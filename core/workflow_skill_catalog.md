@@ -30,7 +30,18 @@
 - `doc-sync`: 변경 파일 목록, 기준 문서 후보, 허브 문서 후보
 - `merge-doc-reconcile`: 병합 후 상태 문서와 허브 문서 경로
 
-## 4. 설계 원칙
+## 4. 상세 스펙 진행 상태
+
+- `session-start`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./session_start_skill_spec.md](./session_start_skill_spec.md)
+- `backlog-update`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./backlog_update_skill_spec.md](./backlog_update_skill_spec.md)
+- `doc-sync`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./doc_sync_skill_spec.md](./doc_sync_skill_spec.md)
+- `merge-doc-reconcile`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./merge_doc_reconcile_skill_spec.md](./merge_doc_reconcile_skill_spec.md)
+
+## 5. 설계 원칙
 
 - skill 은 정책 원문이 아니라 절차와 판단 순서를 담당한다.
 - skill 은 가능하면 프로젝트 프로파일을 읽고 분기해야 한다.
@@ -38,5 +49,9 @@
 
 ## 다음에 읽을 문서
 
+- `session-start` 상세 스펙: [./session_start_skill_spec.md](./session_start_skill_spec.md)
+- `backlog-update` 상세 스펙: [./backlog_update_skill_spec.md](./backlog_update_skill_spec.md)
+- `doc-sync` 상세 스펙: [./doc_sync_skill_spec.md](./doc_sync_skill_spec.md)
+- `merge-doc-reconcile` 상세 스펙: [./merge_doc_reconcile_skill_spec.md](./merge_doc_reconcile_skill_spec.md)
 - MCP 후보 카탈로그: [./workflow_mcp_candidate_catalog.md](./workflow_mcp_candidate_catalog.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)

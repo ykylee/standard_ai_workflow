@@ -9,5 +9,20 @@
 
 ## 현재 상태
 
-- 아직 샘플 프로젝트 프로파일은 없다.
-- 첫 예시는 이 저장소의 `alm_integration` 프로파일을 익명화하거나 단순화한 버전으로 만드는 것을 권장한다.
+- 샘플 프로젝트 프로파일과 운영 문서 세트를 `acme_delivery_platform/` 아래에 추가했다.
+- 첫 예시는 특정 내부 프로젝트를 직접 노출하지 않고도 문서 구조와 운영 흐름을 이해할 수 있게 단순화된 가상 프로젝트 형태로 제공한다.
+
+## 포함된 예시
+
+- [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
+- [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
+- [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
+- [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
+- [end_to_end_skill_demo.md](./end_to_end_skill_demo.md)
+
+## 예시 사용 방법
+
+- 먼저 프로젝트 프로파일을 읽고 저장소별 규칙이 어떻게 채워지는지 본다.
+- 그다음 handoff 와 backlog 를 읽어 세션 시작 흐름이 실제로 어떻게 이어지는지 확인한다.
+- 프로토타입 skill 이 실제로 어떻게 이어지는지 보려면 `end_to_end_skill_demo.md` 를 읽고 명령을 순서대로 실행한다.
+- 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

@@ -6,6 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-04-18
 - 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
+- 상태 진단 문서: `./core/project_status_assessment.md`
 
 ## 1. 이 폴더의 역할
 
@@ -37,7 +38,9 @@
 | --- | --- | --- |
 | 공통 표준 문서 | 사용 가능 | 바로 복사 가능 |
 | 프로젝트/세션 템플릿 | 사용 가능 | 값 채우기 필요 |
-| skill 카탈로그 | 설계 완료, 구현 미포함 | 실제 skill 파일 없음 |
+| 샘플 도입 예시 | 사용 가능 | `examples/acme_delivery_platform/` 참고 |
+| skill 프로토타입 | 사용 가능 | `skills/` 및 end-to-end 데모 참고 |
+| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 실행형 초안 있음 |
 | MCP 카탈로그 | 설계 완료, 구현 미포함 | 실제 MCP 서버/도구 없음 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
@@ -96,6 +99,9 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 ## 다음에 읽을 문서
 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
+- 샘플 도입 예시: [examples/README.md](./examples/README.md)
+- end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
 - 프로젝트 프로파일 템플릿: [templates/project_workflow_profile_template.md](./templates/project_workflow_profile_template.md)
 - agent 토폴로지: [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
 - 분리 체크리스트: [split_checklist.md](./split_checklist.md)

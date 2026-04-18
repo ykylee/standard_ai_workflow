@@ -37,7 +37,21 @@
 - 구조화된 출력이 가능해야 한다.
 - 프로젝트 특화 규칙은 프로젝트 프로파일을 입력으로 받아야 한다.
 
+## 5. 프로토타입 진행 상태
+
+- `latest_backlog`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/latest-backlog/MCP.md](../mcp/latest-backlog/MCP.md)
+- `check_doc_metadata`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/check-doc-metadata/MCP.md](../mcp/check-doc-metadata/MCP.md)
+- `check_doc_links`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/check-doc-links/MCP.md](../mcp/check-doc-links/MCP.md)
+- `create_backlog_entry`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/create-backlog-entry/MCP.md](../mcp/create-backlog-entry/MCP.md)
+- `suggest_impacted_docs`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/suggest-impacted-docs/MCP.md](../mcp/suggest-impacted-docs/MCP.md)
+
 ## 다음에 읽을 문서
 
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
+- mcp 허브: [../mcp/README.md](../mcp/README.md)

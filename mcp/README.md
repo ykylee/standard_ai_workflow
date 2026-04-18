@@ -1,20 +1,43 @@
 # MCP
 
 - 문서 목적: 표준 워크플로우에서 공통으로 재사용할 MCP 구현을 배치할 위치와 역할을 안내한다.
-- 범위: 향후 추가할 MCP 서버 또는 도구 구현의 목적과 초기 도입 후보
+- 범위: MCP 프로토타입 디렉터리 구조, 구현 진입점, 초기 도입 후보
 - 대상 독자: AI agent 설계자, 개발자, 운영자
 - 상태: draft
 - 최종 수정일: 2026-04-18
-- 관련 문서: `../core/workflow_mcp_candidate_catalog.md`
+- 관련 문서: `../core/workflow_mcp_candidate_catalog.md`, `./prototype_layout.md`
 
 ## 현재 상태
 
-- 아직 실제 MCP 구현 코드는 없다.
-- 현재는 `core/workflow_mcp_candidate_catalog.md` 의 카탈로그를 기준으로 어떤 MCP 를 먼저 구현할지 정하는 단계다.
+- 우선순위 1 MCP 후보 5종에 대한 프로토타입 디렉터리 구조를 추가했다.
+- 현재 단계는 실행 가능한 프로토타입과 문서 기반 인터페이스 설명이 공존하는 상태다.
+- 실제 MCP 서버 패키징이나 transport 계층은 아직 없다.
 
-## 1차 구현 후보
+## 현재 구조
 
-- `latest_backlog`
-- `check_doc_metadata`
-- `check_doc_links`
-- `create_backlog_entry`
+- [prototype_layout.md](./prototype_layout.md)
+- [latest-backlog/MCP.md](./latest-backlog/MCP.md)
+- [check-doc-metadata/MCP.md](./check-doc-metadata/MCP.md)
+- [check-doc-links/MCP.md](./check-doc-links/MCP.md)
+- [create-backlog-entry/MCP.md](./create-backlog-entry/MCP.md)
+- [suggest-impacted-docs/MCP.md](./suggest-impacted-docs/MCP.md)
+
+## 구현 원칙
+
+- 각 MCP 디렉터리는 최소한 `MCP.md` 를 가져야 한다.
+- `MCP.md` 에는 목적, 입력, 출력, 읽기/쓰기 성격, 구현 메모가 포함되어야 한다.
+- 프로젝트 프로파일 기준 해석이 필요한 도구는 입력 또는 실행 옵션에 그 경로를 포함하는 것을 권장한다.
+- 자동 확정보다 구조화된 결과와 경고를 우선한다.
+
+## 현재 프로토타입 범위
+
+- `latest-backlog`: backlog 디렉터리에서 최신 날짜 markdown 찾기
+- `check-doc-metadata`: markdown 메타데이터 누락 검사
+- `check-doc-links`: 상대 링크 무결성 검사
+- `create-backlog-entry`: backlog entry 초안 JSON 생성
+- `suggest-impacted-docs`: 변경 파일 기준 영향 문서 후보 추천
+
+## 다음에 읽을 문서
+
+- MCP 카탈로그: [../core/workflow_mcp_candidate_catalog.md](../core/workflow_mcp_candidate_catalog.md)
+- 프로토타입 구조 안내: [./prototype_layout.md](./prototype_layout.md)

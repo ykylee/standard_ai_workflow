@@ -102,6 +102,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
 - 샘플 도입 예시: [examples/README.md](./examples/README.md)
 - end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
+- end-to-end MCP 데모: [examples/end_to_end_mcp_demo.md](./examples/end_to_end_mcp_demo.md)
 - 프로젝트 프로파일 템플릿: [templates/project_workflow_profile_template.md](./templates/project_workflow_profile_template.md)
 - agent 토폴로지: [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
 - 분리 체크리스트: [split_checklist.md](./split_checklist.md)

@@ -19,10 +19,12 @@
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
 - [end_to_end_skill_demo.md](./end_to_end_skill_demo.md)
+- [end_to_end_mcp_demo.md](./end_to_end_mcp_demo.md)
 
 ## 예시 사용 방법
 
 - 먼저 프로젝트 프로파일을 읽고 저장소별 규칙이 어떻게 채워지는지 본다.
 - 그다음 handoff 와 backlog 를 읽어 세션 시작 흐름이 실제로 어떻게 이어지는지 확인한다.
 - 프로토타입 skill 이 실제로 어떻게 이어지는지 보려면 `end_to_end_skill_demo.md` 를 읽고 명령을 순서대로 실행한다.
+- 프로토타입 MCP 가 실제로 어떻게 이어지는지 보려면 `end_to_end_mcp_demo.md` 를 읽고 명령을 순서대로 실행한다.
 - 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

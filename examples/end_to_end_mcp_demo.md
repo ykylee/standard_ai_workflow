@@ -4,23 +4,30 @@
 - 범위: `latest_backlog`, `check_doc_metadata`, `check_doc_links`, `create_backlog_entry`, `suggest_impacted_docs` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `./README.md`, `./acme_delivery_platform/work_backlog.md`, `../mcp/README.md`, `../mcp/prototype_layout.md`
+- 최종 수정일: 2026-04-19
+- 관련 문서: `./README.md`, `./acme_delivery_platform/work_backlog.md`, `./research_eval_hub/work_backlog.md`, `../mcp/README.md`, `../mcp/prototype_layout.md`
 
 ## 1. 목적
 
-이 문서는 예시 프로젝트 `acme_delivery_platform` 을 기준으로 우선순위 1 MCP 프로토타입 5종이 실제로 어떤 순서로 이어지는지 보여준다.
+이 문서는 예시 프로젝트를 기준으로 우선순위 1 MCP 프로토타입 5종이 실제로 어떤 순서로 이어지는지 보여준다.
 
 현재 프로토타입은 모두 읽기 전용 또는 JSON 초안 생성 단계이며, 실제 MCP 서버 transport 는 포함하지 않는다. 대신 각 도구가 어떤 입력을 받고 어떤 구조화 결과를 내는지 빠르게 검증할 수 있다.
 
 ## 2. 준비 문서
 
-데모에서 사용하는 예시 문서:
+데모에서 기본으로 사용하는 예시 문서:
 
 - [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
+
+같은 MCP 흐름을 다른 샘플에도 적용할 수 있다:
+
+- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
+- [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
+- [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
 
 데모에서 사용하는 프로토타입:
 

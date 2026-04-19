@@ -18,6 +18,40 @@ def repo_path(*parts: str) -> Path:
     return REPO_ROOT.joinpath(*parts).resolve()
 
 
+EXAMPLE_PRESETS = {
+    "acme_delivery_platform": {
+        "project_profile_path": repo_path("examples", "acme_delivery_platform", "project_workflow_profile.md"),
+        "session_handoff_path": repo_path("examples", "acme_delivery_platform", "session_handoff.md"),
+        "work_backlog_index_path": repo_path("examples", "acme_delivery_platform", "work_backlog.md"),
+        "backlog_dir_path": repo_path("examples", "acme_delivery_platform", "backlog"),
+        "task_id": "TASK-021",
+        "task_name": "배송 상태 동기화 실패 대응 절차 문서 정리",
+        "task_brief": "runbook 및 handoff 반영 상태를 점검했다.",
+        "task_status": "in_progress",
+        "changed_files": [
+            "app/jobs/delivery_sync.py",
+            "docs/operations/runbooks/delivery-sync.md",
+        ],
+        "merge_result_summary": "runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리",
+    },
+    "research_eval_hub": {
+        "project_profile_path": repo_path("examples", "research_eval_hub", "project_workflow_profile.md"),
+        "session_handoff_path": repo_path("examples", "research_eval_hub", "session_handoff.md"),
+        "work_backlog_index_path": repo_path("examples", "research_eval_hub", "work_backlog.md"),
+        "backlog_dir_path": repo_path("examples", "research_eval_hub", "backlog"),
+        "task_id": "TASK-044",
+        "task_name": "평가 리포트 패키지와 실험 메타데이터 정합성 점검",
+        "task_brief": "release report 와 manifest 기준선을 재확인했다.",
+        "task_status": "in_progress",
+        "changed_files": [
+            "evals/pipelines/report_builder.py",
+            "docs/evals/reports/release-report-v2.md",
+        ],
+        "merge_result_summary": "평가 리포트와 실험 메타데이터 문서가 함께 갱신된 브랜치 병합 후 재정리",
+    },
+}
+
+
 def run_json(cmd: list[str]) -> dict[str, Any]:
     completed = subprocess.run(
         cmd,
@@ -32,49 +66,67 @@ def run_json(cmd: list[str]) -> dict[str, Any]:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the workflow kit end-to-end demo.")
     parser.add_argument(
+        "--example-project",
+        choices=sorted(EXAMPLE_PRESETS),
+        default="acme_delivery_platform",
+        help="Use one of the bundled example projects as the default input set.",
+    )
+    parser.add_argument(
         "--project-profile-path",
-        default=str(repo_path("examples", "acme_delivery_platform", "project_workflow_profile.md")),
+        default=None,
     )
     parser.add_argument(
         "--session-handoff-path",
-        default=str(repo_path("examples", "acme_delivery_platform", "session_handoff.md")),
+        default=None,
     )
     parser.add_argument(
         "--work-backlog-index-path",
-        default=str(repo_path("examples", "acme_delivery_platform", "work_backlog.md")),
+        default=None,
     )
     parser.add_argument(
         "--backlog-dir-path",
-        default=str(repo_path("examples", "acme_delivery_platform", "backlog")),
+        default=None,
     )
     parser.add_argument("--latest-backlog-path")
     parser.add_argument(
         "--task-id",
-        default="TASK-021",
+        default=None,
     )
     parser.add_argument(
         "--task-name",
-        default="배송 상태 동기화 실패 대응 절차 문서 정리",
+        default=None,
     )
     parser.add_argument(
         "--task-brief",
-        default="runbook 및 handoff 반영 상태를 점검했다.",
+        default=None,
     )
     parser.add_argument(
         "--task-status",
-        default="in_progress",
+        default=None,
     )
     parser.add_argument(
         "--changed-file",
         action="append",
         dest="changed_files",
-        default=["app/jobs/delivery_sync.py", "docs/operations/runbooks/delivery-sync.md"],
+        default=None,
     )
     parser.add_argument(
         "--merge-result-summary",
-        default="runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리",
+        default=None,
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    preset = EXAMPLE_PRESETS[args.example_project]
+    args.project_profile_path = args.project_profile_path or str(preset["project_profile_path"])
+    args.session_handoff_path = args.session_handoff_path or str(preset["session_handoff_path"])
+    args.work_backlog_index_path = args.work_backlog_index_path or str(preset["work_backlog_index_path"])
+    args.backlog_dir_path = args.backlog_dir_path or str(preset["backlog_dir_path"])
+    args.task_id = args.task_id or str(preset["task_id"])
+    args.task_name = args.task_name or str(preset["task_name"])
+    args.task_brief = args.task_brief or str(preset["task_brief"])
+    args.task_status = args.task_status or str(preset["task_status"])
+    args.changed_files = list(args.changed_files or preset["changed_files"])
+    args.merge_result_summary = args.merge_result_summary or str(preset["merge_result_summary"])
+    return args
 
 
 def main() -> int:
@@ -185,6 +237,7 @@ def main() -> int:
     )
 
     result = {
+        "example_project": args.example_project,
         "project_profile_path": str(Path(args.project_profile_path).resolve()),
         "latest_backlog": latest_backlog_data,
         "session_start": session_start,

@@ -4,13 +4,14 @@
 - 범위: 향후 추가할 예시 문서와 샘플 프로젝트 프로파일
 - 대상 독자: 개발자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-04-19
 - 관련 문서: `../templates/project_workflow_profile_template.md`
 
 ## 현재 상태
 
 - 샘플 프로젝트 프로파일과 운영 문서 세트를 `acme_delivery_platform/` 아래에 추가했다.
 - 첫 예시는 특정 내부 프로젝트를 직접 노출하지 않고도 문서 구조와 운영 흐름을 이해할 수 있게 단순화된 가상 프로젝트 형태로 제공한다.
+- 두 번째 예시는 문서와 평가 기준 정합성이 중요한 리서치 운영형 프로젝트를 가정해, 같은 표준 문서 세트가 다른 작업 성격에도 적용되는지 보여준다.
 
 ## 포함된 예시
 
@@ -18,8 +19,18 @@
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
+- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
+- [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
+- [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
 - [end_to_end_skill_demo.md](./end_to_end_skill_demo.md)
 - [end_to_end_mcp_demo.md](./end_to_end_mcp_demo.md)
+
+## 예시 비교 포인트
+
+- `acme_delivery_platform/` 는 운영 절차, 장애 대응, staging 검증처럼 서비스 운영 문서 흐름이 중심인 프로젝트 예시다.
+- `research_eval_hub/` 는 평가 데이터셋, 실험 결과, 배포 가능한 문서 패키지 정합성처럼 문서와 연구 산출물 관리가 중심인 프로젝트 예시다.
+- 두 예시는 같은 표준 handoff, backlog, profile 구성을 유지하면서도 검증 포인트와 예외 규칙만 프로젝트 성격에 맞게 바뀌는 방식을 보여준다.
 
 ## 예시 사용 방법
 

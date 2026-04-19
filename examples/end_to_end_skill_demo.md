@@ -4,12 +4,12 @@
 - 범위: `session-start`, `backlog-update`, `doc-sync`, `merge-doc-reconcile` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `./README.md`, `./acme_delivery_platform/project_workflow_profile.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
+- 최종 수정일: 2026-04-19
+- 관련 문서: `./README.md`, `./acme_delivery_platform/project_workflow_profile.md`, `./research_eval_hub/project_workflow_profile.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
 
 ## 1. 목적
 
-이 문서는 예시 프로젝트 `acme_delivery_platform` 을 기준으로 1차 핵심 skill 4종이 실제로 어떤 순서로 이어지는지 보여준다.
+이 문서는 예시 프로젝트를 기준으로 1차 핵심 skill 4종이 실제로 어떤 순서로 이어지는지 보여준다.
 
 현재 프로토타입은 모두 읽기 전용 또는 JSON 초안 생성 단계이며, 실제 문서를 직접 수정하지 않는다. 대신 각 단계에서 무엇을 읽고 어떤 결과를 내는지 빠르게 검증할 수 있다.
 
@@ -19,12 +19,19 @@
 
 ## 2. 준비 문서
 
-데모에서 사용하는 예시 문서:
+데모에서 기본으로 사용하는 예시 문서:
 
 - [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
 - [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 - [acme_delivery_platform/work_backlog.md](./acme_delivery_platform/work_backlog.md)
 - [acme_delivery_platform/backlog/2026-04-18.md](./acme_delivery_platform/backlog/2026-04-18.md)
+
+다른 성격의 샘플로도 같은 흐름을 검증할 수 있다:
+
+- [research_eval_hub/project_workflow_profile.md](./research_eval_hub/project_workflow_profile.md)
+- [research_eval_hub/session_handoff.md](./research_eval_hub/session_handoff.md)
+- [research_eval_hub/work_backlog.md](./research_eval_hub/work_backlog.md)
+- [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
 
 데모에서 사용하는 프로토타입:
 
@@ -158,6 +165,12 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 
 ```bash
 python3 scripts/run_demo_workflow.py
+```
+
+다른 샘플 프로젝트로 돌려보려면 예제 이름만 바꾸면 된다.
+
+```bash
+python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 ```
 
 ## 8. 현재 한계

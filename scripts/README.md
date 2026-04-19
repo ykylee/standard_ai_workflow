@@ -67,12 +67,14 @@ python3 scripts/bootstrap_workflow_kit.py \
 ## run_demo_workflow.py
 
 - 목적:
-- 예시 프로젝트 문서를 대상으로 session-start, backlog-update, doc-sync, merge-doc-reconcile 흐름을 한 번에 실행한다.
+- 예시 프로젝트 문서를 대상으로 session-start, backlog-update, doc-sync, validation-plan, code-index-update, merge-doc-reconcile 흐름을 한 번에 실행한다.
 - 지원 예시:
 - `acme_delivery_platform`
 - `research_eval_hub`
 - 출력 형태:
 - 단계별 JSON 결과와 요약 정보를 합친 통합 JSON
+- 포함 단계:
+- 최신 backlog 식별, 세션 기준선 복원, backlog 초안 생성, 영향 문서 추천, 검증 계획 추천, 색인 문서 후보 추천, 병합 후 문서 재정리 포인트 산출
 
 실행 예시:
 

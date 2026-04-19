@@ -49,14 +49,16 @@
 | 공통 표준 문서 | 사용 가능 | 바로 복사 가능 |
 | 프로젝트/세션 템플릿 | 사용 가능 | 값 채우기 필요 |
 | 샘플 도입 예시 | 사용 가능 | `examples/acme_delivery_platform/` 참고 |
-| skill 프로토타입 | 사용 가능 | `skills/` 및 end-to-end 데모 참고 |
-| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 실행형 초안 있음 |
+| skill 프로토타입 | 사용 가능 | `session-start`, `backlog-update`, `doc-sync`, `merge-doc-reconcile`, `validation-plan`, `code-index-update` 포함 |
+| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 있음 |
 | MCP 프로토타입 | 사용 가능 | `mcp/` 및 MCP 데모 참고 |
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
 | 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
+| 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
+| 출력 샘플 JSON | 사용 가능 | `examples/output_samples/` 참고 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
@@ -160,6 +162,7 @@ python3 scripts/export_harness_package.py \
 - 이 폴더는 배포용 문서 패키지이며, 실제 skill/MCP 구현 코드를 포함하지는 않는다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
+- 출력 샘플 JSON 은 현재 일부 skill 중심으로만 정리돼 있어, 나머지 skill/MCP 까지 확대가 필요하다.
 
 ## 9. 수동 대체 원칙
 
@@ -185,6 +188,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 하네스 허브: [harnesses/README.md](./harnesses/README.md)
 - end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
 - end-to-end MCP 데모: [examples/end_to_end_mcp_demo.md](./examples/end_to_end_mcp_demo.md)
+- 출력 샘플: [examples/output_samples/README.md](./examples/output_samples/README.md)
 - 스크립트 허브: [scripts/README.md](./scripts/README.md)
 - 프로젝트 프로파일 템플릿: [templates/project_workflow_profile_template.md](./templates/project_workflow_profile_template.md)
 - agent 토폴로지: [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)

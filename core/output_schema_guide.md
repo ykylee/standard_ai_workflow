@@ -1,6 +1,6 @@
 # Output Schema Guide
 
-- 문서 목적: skill 프로토타입 4종과 우선순위 1 MCP 프로토타입 5종의 JSON 출력 계약을 공통 규칙으로 정리한다.
+- 문서 목적: skill 프로토타입 6종과 우선순위 1 MCP 프로토타입 5종의 JSON 출력 계약을 공통 규칙으로 정리한다.
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
@@ -35,6 +35,7 @@
 | --- | --- | --- |
 | `warnings` | 부분 실패, 불확실성, 수동 확인 필요 항목 | `list[str]` |
 | `source_context` | 입력 경로 또는 입력 요약 | `object` |
+| `confidence_notes` | 보수적 추정, 추천 강도, 불확실성 설명 | `list[str]` |
 
 ### 3.2 skill 출력 공통 필드
 
@@ -47,6 +48,7 @@ skill 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `recommended_review_order` | 검토 문서/단계 순서 |
 | `fields_requiring_confirmation` | 사람이 직접 확인해야 하는 값 |
 | `validation_notes` 또는 `validation_follow_up` | 검증 결과 또는 검증 필요 메모 |
+| `reasoning_notes` | 추천 또는 분류 근거 |
 
 ### 3.3 MCP 출력 공통 필드
 
@@ -169,6 +171,47 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `validation_follow_up` | 예 | `str` | 병합 후 검증 메모 |
 | `source_context` | 예 | `object` | 병합 요약과 변경 파일 |
 
+### 5.5 `validation-plan`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `detected_change_types` | 예 | `list[str]` | 감지된 변경 유형 |
+| `recommended_validation_levels` | 예 | `list[str]` | 권장 검증 수준 |
+| `recommended_commands` | 예 | `list[object]` | 바로 실행 가능한 검증 명령과 이유 |
+| `commands_requiring_confirmation` | 예 | `list[object]` | 환경/권한 확인 후 실행할 명령 |
+| `documentation_checks` | 예 | `list[str]` | 문서화/운영 체크 항목 |
+| `evidence_expectations` | 예 | `list[str]` | 남겨야 할 증빙 또는 기록 형태 |
+| `deferred_validation_items` | 예 | `list[object]` | 미실행 항목과 권장 기록 위치 |
+| `warnings` | 예 | `list[str]` | 환경 제약, 승인 제약, 보수적 경고 |
+| `confidence_notes` | 예 | `list[str]` | 추천 강도 및 해석 근거 |
+| `source_context` | 예 | `object` | 프로젝트 프로파일과 변경 입력 요약 |
+
+대표 샘플:
+
+- [../examples/output_samples/validation_plan.acme_delivery_platform.json](../examples/output_samples/validation_plan.acme_delivery_platform.json)
+
+### 5.6 `code-index-update`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `index_update_candidates` | 예 | `list[str]` | 재확인할 색인/허브 문서 후보 |
+| `priority_index_candidates` | 예 | `list[str]` | 우선순위가 높은 색인 후보 |
+| `stale_index_warnings` | 예 | `list[str]` | 색인 stale 가능성 경고 |
+| `reasoning_notes` | 예 | `list[str]` | 분류 및 추천 근거 |
+| `suggested_index_actions` | 예 | `list[str]` | 후속으로 취할 색인 관련 행동 |
+| `document_structure_signals` | 예 | `list[str]` | 문서 구조 변화 신호 |
+| `missing_index_candidates` | 예 | `list[str]` | 프로파일 기준으로 추정했지만 현재 확인되지 않은 색인 경로 |
+| `confidence_notes` | 예 | `list[str]` | 추천 강도 및 한계 |
+| `source_context` | 예 | `object` | 프로젝트 프로파일과 변경 입력 요약 |
+
+대표 샘플:
+
+- [../examples/output_samples/code_index_update.research_eval_hub.json](../examples/output_samples/code_index_update.research_eval_hub.json)
+
 ## 6. MCP 출력 계약
 
 ### 6.1 `latest_backlog`
@@ -214,11 +257,12 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 현재 가이드를 바탕으로 다음 두 작업을 권장한다.
 
-1. 각 프로토타입 디렉터리에 `examples/output/*.json` 샘플 추가
-2. 이후 통합 runner 가 사용할 공통 실패 출력 규칙 추가
+1. 나머지 skill/MCP 프로토타입에도 `examples/output_samples/*.json` 샘플 추가
+2. 이후 통합 runner 가 사용할 공통 실패 출력 규칙과 `error_code` 필드 추가
 
 ## 다음에 읽을 문서
 
 - 상위 로드맵: [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md)
 - skill 허브: [../skills/README.md](../skills/README.md)
 - mcp 허브: [../mcp/README.md](../mcp/README.md)
+- 출력 샘플 허브: [../examples/output_samples/README.md](../examples/output_samples/README.md)

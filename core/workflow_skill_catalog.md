@@ -20,7 +20,7 @@
 
 | skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
 | --- | --- | --- | --- | --- | --- |
-| `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | 미구현 | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
+| `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | 프로토타입 있음 | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
 | `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | 미구현 | 변경 경로를 기준으로 색인 문서를 수동 검토 |
 
 ## 3. 최소 입력 계약
@@ -40,6 +40,10 @@
 - 참고 문서: [./doc_sync_skill_spec.md](./doc_sync_skill_spec.md)
 - `merge-doc-reconcile`: 상세 입력/출력 계약 초안 있음
 - 참고 문서: [./merge_doc_reconcile_skill_spec.md](./merge_doc_reconcile_skill_spec.md)
+- `validation-plan`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./validation_plan_skill_spec.md](./validation_plan_skill_spec.md)
+- `code-index-update`: 상세 입력/출력 계약 초안 있음
+- 참고 문서: [./code_index_update_skill_spec.md](./code_index_update_skill_spec.md)
 
 ## 5. 설계 원칙
 
@@ -53,5 +57,7 @@
 - `backlog-update` 상세 스펙: [./backlog_update_skill_spec.md](./backlog_update_skill_spec.md)
 - `doc-sync` 상세 스펙: [./doc_sync_skill_spec.md](./doc_sync_skill_spec.md)
 - `merge-doc-reconcile` 상세 스펙: [./merge_doc_reconcile_skill_spec.md](./merge_doc_reconcile_skill_spec.md)
+- `validation-plan` 상세 스펙: [./validation_plan_skill_spec.md](./validation_plan_skill_spec.md)
+- `code-index-update` 상세 스펙: [./code_index_update_skill_spec.md](./code_index_update_skill_spec.md)
 - MCP 후보 카탈로그: [./workflow_mcp_candidate_catalog.md](./workflow_mcp_candidate_catalog.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)

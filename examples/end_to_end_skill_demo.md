@@ -1,7 +1,7 @@
 # End-to-End Skill Demo
 
-- 문서 목적: 1차 핵심 skill 4종이 예시 프로젝트 문서를 기준으로 어떻게 이어지는지 end-to-end 데모 흐름으로 설명한다.
-- 범위: `session-start`, `backlog-update`, `doc-sync`, `merge-doc-reconcile` 실행 순서와 기대 결과
+- 문서 목적: 핵심 skill 과 후속 검증 planning skill 이 예시 프로젝트 문서를 기준으로 어떻게 이어지는지 end-to-end 데모 흐름으로 설명한다.
+- 범위: `session-start`, `backlog-update`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-19
@@ -38,6 +38,8 @@
 - [../skills/session-start/scripts/run_session_start.py](../skills/session-start/scripts/run_session_start.py)
 - [../skills/backlog-update/scripts/run_backlog_update.py](../skills/backlog-update/scripts/run_backlog_update.py)
 - [../skills/doc-sync/scripts/run_doc_sync.py](../skills/doc-sync/scripts/run_doc_sync.py)
+- [../skills/validation-plan/scripts/run_validation_plan.py](../skills/validation-plan/scripts/run_validation_plan.py)
+- [../skills/code-index-update/scripts/run_code_index_update.py](../skills/code-index-update/scripts/run_code_index_update.py)
 - [../skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py](../skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py)
 
 ## 3. Step 1: Session Start
@@ -129,7 +131,50 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
 - stale 가능성 경고 출력
 - 후속 검토 순서와 행동 제안 출력
 
-## 6. Step 4: Merge Doc Reconcile
+## 6. Step 4: Validation Plan
+
+문서와 코드 변경을 기준으로 이번 세션의 검증 수준과 증빙 기대값을 구조화한다.
+
+```bash
+python3 skills/validation-plan/scripts/run_validation_plan.py \
+  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
+  --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
+  --changed-file app/jobs/delivery_sync.py \
+  --changed-file docs/operations/runbooks/delivery-sync.md \
+  --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
+```
+
+기대 결과:
+
+- 감지된 변경 유형 목록 출력
+- 권장 검증 수준과 명령 목록 출력
+- 문서화 체크 항목과 증빙 기대값 출력
+- 미실행 항목을 backlog 또는 handoff 에 남길지 판단할 힌트 출력
+- 환경 제약이나 승인 규칙 기반 경고 출력
+
+## 7. Step 5: Code Index Update
+
+변경된 문서나 코드가 README, 운영 허브, backlog index 같은 색인 문서를 stale 하게 만들었는지 추천한다.
+
+```bash
+python3 skills/code-index-update/scripts/run_code_index_update.py \
+  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
+  --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
+  --changed-file app/jobs/delivery_sync.py \
+  --changed-file docs/operations/runbooks/delivery-sync.md \
+  --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
+```
+
+기대 결과:
+
+- 색인 문서 갱신 후보와 우선순위 후보 출력
+- 허브 stale 가능성 경고 출력
+- 문서 구조 변경 가능성 신호 출력
+- 색인 문서 후속 액션 추천 출력
+
+## 8. Step 6: Merge Doc Reconcile
 
 병합 이후 상태 문서와 허브 문서의 재확정 포인트를 정리한다.
 
@@ -151,7 +196,7 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 - 재확정 포인트와 재정리 메모 초안 출력
 - 병합 후 검증 미완료 상태 경고 출력
 
-## 7. 추천 읽기 순서
+## 9. 추천 읽기 순서
 
 이 저장소를 처음 보는 사람에게는 아래 순서를 권장한다.
 
@@ -159,7 +204,7 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 2. [./README.md](./README.md)
 3. [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
 4. [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
-5. 이 문서의 4개 프로토타입 명령 실행
+5. 이 문서의 6개 프로토타입 명령 실행
 
 한 번에 흐름을 실행해보려면 아래 명령도 사용할 수 있다.
 
@@ -173,7 +218,7 @@ python3 scripts/run_demo_workflow.py
 python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 ```
 
-## 8. 현재 한계
+## 10. 현재 한계
 
 - 예시 프로젝트 문서 구조는 단순화된 가상 사례다.
 - 프로토타입은 JSON 추천과 초안 생성 단계까지이며 문서를 직접 수정하지 않는다.

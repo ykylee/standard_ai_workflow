@@ -9,9 +9,9 @@
 
 ## 현재 상태
 
-- 1차 핵심 skill 4종에 대한 프로토타입 디렉터리 구조를 추가했다.
-- 현재 단계는 실행 가능한 구현 전이며, 각 디렉터리의 `SKILL.md` 에 목적과 입력/출력 계약 연결, 구현 메모를 정리한 상태다.
-- 실제 런타임 코드, 테스트, 배포 스크립트는 아직 없다.
+- 1차 핵심 skill 4종은 실행 가능한 읽기 전용 프로토타입까지 포함한다.
+- 2차 skill 중 `validation-plan` 도 읽기 전용 프로토타입을 추가했다.
+- 각 디렉터리의 `SKILL.md` 는 목적, 입력/출력 계약 연결, 구현 메모, 실행 예시를 포함한다.
 - 예시 프로젝트 기준 end-to-end 실행 흐름은 [../examples/end_to_end_skill_demo.md](../examples/end_to_end_skill_demo.md) 에 정리돼 있다.
 
 ## 현재 구조
@@ -21,6 +21,8 @@
 - [backlog-update/SKILL.md](./backlog-update/SKILL.md)
 - [doc-sync/SKILL.md](./doc-sync/SKILL.md)
 - [merge-doc-reconcile/SKILL.md](./merge-doc-reconcile/SKILL.md)
+- [validation-plan/SKILL.md](./validation-plan/SKILL.md)
+- [code-index-update/SKILL.md](./code-index-update/SKILL.md)
 
 ## 구현 원칙
 
@@ -31,10 +33,10 @@
 
 ## 다음 구현 순서 권고
 
-- `session-start`: 문서 읽기 순서와 구조화 출력 프로토타입부터 구현
-- `backlog-update`: 날짜별 backlog 초안 생성 및 갱신 보호 로직 구현
-- `doc-sync`: 변경 파일 기반 영향 문서 추천 로직 구현
-- `merge-doc-reconcile`: 병합 후 재확정 포인트 생성 로직 구현
+- `validation-plan`: 실행 결과 입력을 받아 미실행 항목을 자동 축소하는 단계 추가
+- `code-index-update`: git diff 기반 rename 감지와 링크 그래프 분석 보강
+- `session-start`: 프로젝트별 문서 템플릿 차이를 더 보수적으로 흡수하도록 파서 보강
+- `doc-sync`: 허브 문서 후보 추론 규칙 정교화
 
 ## 다음에 읽을 문서
 

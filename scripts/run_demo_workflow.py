@@ -206,6 +206,37 @@ def main() -> int:
         ]
     )
 
+    validation_plan = run_json(
+        [
+            python,
+            str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
+            "--project-profile-path",
+            args.project_profile_path,
+            "--session-handoff-path",
+            args.session_handoff_path,
+            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+            *sum([["--changed-file", item] for item in args.changed_files], []),
+            "--change-summary",
+            " / ".join(args.changed_files),
+        ]
+    )
+
+    code_index_update = run_json(
+        [
+            python,
+            str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
+            "--project-profile-path",
+            args.project_profile_path,
+            "--work-backlog-index-path",
+            args.work_backlog_index_path,
+            "--session-handoff-path",
+            args.session_handoff_path,
+            *sum([["--changed-file", item] for item in args.changed_files], []),
+            "--change-summary",
+            " / ".join(args.changed_files),
+        ]
+    )
+
     suggest_impacted_docs = run_json(
         [
             python,
@@ -243,12 +274,16 @@ def main() -> int:
         "session_start": session_start,
         "backlog_update": backlog_update,
         "doc_sync": doc_sync,
+        "validation_plan": validation_plan,
+        "code_index_update": code_index_update,
         "suggest_impacted_docs": suggest_impacted_docs,
         "merge_doc_reconcile": merge_doc_reconcile,
         "workflow_summary": {
             "current_baseline": session_start.get("summary", []),
             "target_backlog_path": backlog_update.get("target_backlog_path"),
             "primary_impacted_documents": doc_sync.get("impacted_documents", []),
+            "recommended_validation_levels": validation_plan.get("recommended_validation_levels", []),
+            "priority_index_candidates": code_index_update.get("priority_index_candidates", []),
             "reconcile_targets": merge_doc_reconcile.get("reconcile_targets", []),
         },
     }

@@ -25,6 +25,8 @@
 - 하네스 스캐폴드 스크립트가 새 하네스 starter 문서를 생성하는지 확인
 - 하네스 export 스크립트가 dist 산출물, manifest, zip 파일을 생성하는지 확인
 - export manifest 에 global snippet 파일 정보가 포함되는지 확인
+- `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
+- `code-index-update` 프로토타입이 예시 프로젝트에서 색인 문서 후보와 stale 경고를 출력하는지 확인
 
 ## 실행 방법
 
@@ -32,6 +34,8 @@
 - 저장소 루트에서 `python3 tests/check_bootstrap.py`
 - 저장소 루트에서 `python3 tests/check_scaffold_harness.py`
 - 저장소 루트에서 `python3 tests/check_export_harness_package.py`
+- 저장소 루트에서 `python3 tests/check_validation_plan.py`
+- 저장소 루트에서 `python3 tests/check_code_index_update.py`
 
 ## 향후 확장 후보
 

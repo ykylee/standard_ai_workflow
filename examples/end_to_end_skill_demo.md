@@ -13,6 +13,10 @@
 
 현재 프로토타입은 모두 읽기 전용 또는 JSON 초안 생성 단계이며, 실제 문서를 직접 수정하지 않는다. 대신 각 단계에서 무엇을 읽고 어떤 결과를 내는지 빠르게 검증할 수 있다.
 
+통합 실행 스크립트도 제공한다:
+
+- [../scripts/run_demo_workflow.py](../scripts/run_demo_workflow.py)
+
 ## 2. 준비 문서
 
 데모에서 사용하는 예시 문서:
@@ -149,6 +153,12 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 3. [acme_delivery_platform/project_workflow_profile.md](./acme_delivery_platform/project_workflow_profile.md)
 4. [acme_delivery_platform/session_handoff.md](./acme_delivery_platform/session_handoff.md)
 5. 이 문서의 4개 프로토타입 명령 실행
+
+한 번에 흐름을 실행해보려면 아래 명령도 사용할 수 있다.
+
+```bash
+python3 scripts/run_demo_workflow.py
+```
 
 ## 8. 현재 한계
 

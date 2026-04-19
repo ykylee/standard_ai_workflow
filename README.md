@@ -7,6 +7,8 @@
 - 최종 수정일: 2026-04-18
 - 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
 - 상태 진단 문서: `./core/project_status_assessment.md`
+- 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
+- 출력 스키마 가이드: `./core/output_schema_guide.md`
 
 ## 1. 이 폴더의 역할
 
@@ -29,6 +31,7 @@
 | `skills/` | 향후 공통 skill 구현 위치 |
 | `mcp/` | 향후 공통 MCP 구현 위치 |
 | `examples/` | 샘플 프로파일과 도입 예시 위치 |
+| `scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
 | `tests/` | 링크/템플릿/구현 smoke test 위치 |
 | `split_checklist.md` | 별도 프로젝트로 분리할 때 수행할 체크리스트 |
 
@@ -41,7 +44,9 @@
 | 샘플 도입 예시 | 사용 가능 | `examples/acme_delivery_platform/` 참고 |
 | skill 프로토타입 | 사용 가능 | `skills/` 및 end-to-end 데모 참고 |
 | skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 실행형 초안 있음 |
-| MCP 카탈로그 | 설계 완료, 구현 미포함 | 실제 MCP 서버/도구 없음 |
+| MCP 프로토타입 | 사용 가능 | `mcp/` 및 MCP 데모 참고 |
+| MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
+| 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py` 참고 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
@@ -100,6 +105,8 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
+- 상위 로드맵: [core/workflow_kit_roadmap.md](./core/workflow_kit_roadmap.md)
+- 출력 스키마 가이드: [core/output_schema_guide.md](./core/output_schema_guide.md)
 - 샘플 도입 예시: [examples/README.md](./examples/README.md)
 - end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
 - end-to-end MCP 데모: [examples/end_to_end_mcp_demo.md](./examples/end_to_end_mcp_demo.md)

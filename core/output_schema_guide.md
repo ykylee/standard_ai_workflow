@@ -1,0 +1,224 @@
+# Output Schema Guide
+
+- 문서 목적: skill 프로토타입 4종과 우선순위 1 MCP 프로토타입 5종의 JSON 출력 계약을 공통 규칙으로 정리한다.
+- 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
+- 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
+- 상태: draft
+- 최종 수정일: 2026-04-19
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
+
+## 1. 목적
+
+이 문서는 현재 저장소에 있는 실행형 프로토타입의 JSON 출력을 공통 규칙으로 설명하기 위한 가이드다.
+
+현재 단계에서는 정식 schema 파일보다 아래 목표가 더 중요하다.
+
+- 같은 성격의 출력 필드를 일관된 이름으로 유지
+- 경고와 실패를 구조화해서 사람이 재검토하기 쉽게 만들기
+- 개별 프로토타입 출력을 이후 통합 runner 나 MCP server 로 승격하기 쉽게 만들기
+
+## 2. 공통 원칙
+
+- 모든 프로토타입은 JSON 객체를 출력한다.
+- 사람이 읽을 수 있는 텍스트와 후속 자동화가 읽을 수 있는 구조를 함께 고려한다.
+- 문서 자동 확정이 위험한 경우, 성공 결과보다 경고와 초안을 우선 출력한다.
+- 실패 가능한 상황이라도 가능한 한 부분 결과를 남기는 방향을 권장한다.
+- 경고는 숨기지 말고 `warnings` 필드로 구조화한다.
+
+## 3. 공통 필드 규칙
+
+### 3.1 전역 공통 필드
+
+가능하면 아래 필드를 공통으로 사용한다.
+
+| 필드 | 의미 | 타입 |
+| --- | --- | --- |
+| `warnings` | 부분 실패, 불확실성, 수동 확인 필요 항목 | `list[str]` |
+| `source_context` | 입력 경로 또는 입력 요약 | `object` |
+
+### 3.2 skill 출력 공통 필드
+
+skill 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `summary` | 현재 상태 요약 또는 결과 요약 |
+| `recommended_next_action` | 다음 행동 한 줄 제안 |
+| `recommended_review_order` | 검토 문서/단계 순서 |
+| `fields_requiring_confirmation` | 사람이 직접 확인해야 하는 값 |
+| `validation_notes` 또는 `validation_follow_up` | 검증 결과 또는 검증 필요 메모 |
+
+### 3.3 MCP 출력 공통 필드
+
+MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `checked_files` | 검사 대상 파일 목록 |
+| `candidates` | 후보 경로 또는 선택 후보 목록 |
+| `draft_entry` | 생성 초안 |
+| `reasoning_notes` | 추천 또는 판단 근거 |
+
+## 4. 경고와 실패 규칙
+
+### 4.1 경고 출력 규칙
+
+- 경고는 `warnings` 에 넣는다.
+- 경고 메시지는 “무엇이 불확실한지”와 “왜 수동 확인이 필요한지”가 드러나야 한다.
+- 가능하면 다음 행동을 암시하는 표현을 사용한다.
+
+좋은 예:
+
+- `최신 backlog 경로를 backlog index 에서 확인하지 못했다.`
+- `검증 결과가 없으므로 done 상태는 초안에서 in_progress 로 낮춘다.`
+
+### 4.2 실패 출력 규칙
+
+현재 프로토타입은 일부가 예외 종료 방식이지만, 이후에는 아래 구조를 권장한다.
+
+| 필드 | 의미 |
+| --- | --- |
+| `error` | 실패 요약 |
+| `warnings` | 실패에 이르기 전 확인된 문제 |
+| `source_context` | 어떤 입력으로 실패했는지 |
+
+권장 실패 예시:
+
+```json
+{
+  "error": "project_profile_path 를 읽을 수 없다.",
+  "warnings": [
+    "문서 구조를 해석할 수 없어 후속 판단을 중단한다."
+  ],
+  "source_context": {
+    "project_profile_path": "/abs/path/project_workflow_profile.md"
+  }
+}
+```
+
+## 5. Skill 출력 계약
+
+### 5.1 `session-start`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `summary` | 예 | `list[str]` | 현재 기준선 요약 |
+| `in_progress_items` | 예 | `list[str]` | 진행 중 작업 목록 |
+| `blocked_items` | 예 | `list[str]` | 차단 작업 목록 |
+| `latest_backlog_path` | 예 | `str \| null` | 최신 backlog 경로 |
+| `next_documents` | 예 | `list[str]` | 다음에 읽을 문서 |
+| `recommended_next_action` | 예 | `str` | 세션 직후 행동 |
+| `warnings` | 예 | `list[str]` | 불일치 및 누락 경고 |
+| `validation_notes` | 예 | `list[str]` | 현재는 빈 리스트 가능 |
+| `environment_constraints` | 예 | `list[str]` | 환경 제약 요약 |
+| `source_documents` | 예 | `object` | 사용한 입력 문서 경로 |
+
+### 5.2 `backlog-update`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `operation_type` | 예 | `str` | `create_entry`, `update_entry`, `create_daily_backlog`, `cannot_determine` |
+| `target_backlog_path` | 예 | `str` | 대상 backlog 경로 |
+| `task_id` | 예 | `str` | 작업 ID |
+| `task_found` | 예 | `bool` | 기존 항목 발견 여부 |
+| `draft_entry` | 예 | `list[str]` | backlog 항목 초안 |
+| `status_recommendation` | 예 | `object` | 상태 제안과 이유 |
+| `fields_requiring_confirmation` | 예 | `list[str]` | 직접 확인 필드 |
+| `warnings` | 예 | `list[str]` | 상태 확정 위험 및 경로 경고 |
+| `index_update_note` | 아니오 | `str \| null` | index 후속 메모 |
+| `handoff_update_note` | 아니오 | `str \| null` | handoff 후속 메모 |
+| `validation_note` | 아니오 | `str \| null` | 검증 메모 |
+| `source_context` | 예 | `object` | 입력 경로와 탐색 상태 |
+
+### 5.3 `doc-sync`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
+| `hub_update_candidates` | 예 | `list[str]` | 허브/인덱스 후보 |
+| `status_doc_candidates` | 예 | `list[str]` | 상태 문서 후보 |
+| `validation_doc_candidates` | 예 | `list[str]` | 결과 기록 후보 |
+| `stale_warnings` | 예 | `list[str]` | stale 가능성 경고 |
+| `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
+| `recommended_review_order` | 예 | `list[str]` | 검토 순서 |
+| `follow_up_actions` | 예 | `list[str]` | 후속 행동 |
+| `confidence_notes` | 예 | `list[str]` | 추천 강도 또는 불확실성 |
+| `source_context` | 예 | `object` | 변경 파일과 입력 요약 |
+
+### 5.4 `merge-doc-reconcile`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `reconcile_targets` | 예 | `list[str]` | 재확인 대상 문서 |
+| `state_conflicts` | 예 | `list[str]` | 상태 충돌 목록 |
+| `reconfirmation_points` | 예 | `list[str]` | 재확정 포인트 |
+| `draft_reconcile_notes` | 예 | `list[str]` | 재정리 메모 초안 |
+| `recommended_review_order` | 예 | `list[str]` | 검토 순서 |
+| `warnings` | 예 | `list[str]` | 병합 후 검증/경로 경고 |
+| `handoff_update_note` | 아니오 | `str \| null` | handoff 후속 메모 |
+| `backlog_update_note` | 아니오 | `str \| null` | backlog/index 후속 메모 |
+| `hub_update_note` | 아니오 | `str \| null` | 허브 후속 메모 |
+| `validation_follow_up` | 예 | `str` | 병합 후 검증 메모 |
+| `source_context` | 예 | `object` | 병합 요약과 변경 파일 |
+
+## 6. MCP 출력 계약
+
+### 6.1 `latest_backlog`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `latest_backlog_path` | 예 | `str \| null` | 최신 backlog 경로 |
+| `candidates` | 예 | `list[str]` | backlog 후보 목록 |
+| `warnings` | 예 | `list[str]` | 탐색 경고 |
+
+### 6.2 `check_doc_metadata`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `checked_files` | 예 | `list[str]` | 검사 대상 파일 |
+| `missing_metadata` | 예 | `list[object]` | 누락 파일과 필드 |
+| `warnings` | 예 | `list[str]` | 추가 경고 |
+
+### 6.3 `check_doc_links`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `checked_files` | 예 | `list[str]` | 검사 대상 파일 |
+| `broken_links` | 예 | `list[object]` | 깨진 링크 목록 |
+| `warnings` | 예 | `list[str]` | 추가 경고 |
+
+### 6.4 `create_backlog_entry`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `draft_entry` | 예 | `list[str]` | backlog 항목 초안 |
+| `warnings` | 예 | `list[str]` | 생성 경고 |
+
+### 6.5 `suggest_impacted_docs`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
+| `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
+| `warnings` | 예 | `list[str]` | 입력 부족 또는 경고 |
+
+## 7. 다음 정리 권고
+
+현재 가이드를 바탕으로 다음 두 작업을 권장한다.
+
+1. 각 프로토타입 디렉터리에 `examples/output/*.json` 샘플 추가
+2. 이후 통합 runner 가 사용할 공통 실패 출력 규칙 추가
+
+## 다음에 읽을 문서
+
+- 상위 로드맵: [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md)
+- skill 허브: [../skills/README.md](../skills/README.md)
+- mcp 허브: [../mcp/README.md](../mcp/README.md)

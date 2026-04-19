@@ -1,0 +1,94 @@
+# Workflow Adoption Entry Points
+
+- 문서 목적: 표준 AI 워크플로우를 도입할 때 `신규 프로젝트` 와 `작업 중인 프로젝트` 두 가지 진입 경로를 구분해 시작 절차를 정리한다.
+- 범위: 도입 모드별 목표, 추천 시작 순서, 자동화 가능 범위, 주의점
+- 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
+- 상태: draft
+- 최종 수정일: 2026-04-19
+- 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `../scripts/bootstrap_workflow_kit.py`
+
+## 1. 도입 경로 개요
+
+표준 AI 워크플로우 도입은 아래 두 경로로 나눠서 생각하는 것이 가장 실용적이다.
+
+1. 신규 프로젝트
+2. 작업 중인 프로젝트
+
+두 경우 모두 최종적으로는 같은 문서 세트로 수렴하지만, 시작 시점의 입력과 자동화 초점은 다르다.
+
+## 2. 신규 프로젝트 도입
+
+### 목표
+
+- 공통 문서 구조를 빠르게 깔고, 프로젝트 특화 규칙만 얇게 채운다.
+- 문서 경로, 기본 명령, 검증 규칙을 초기부터 표준 포맷으로 맞춘다.
+
+### 추천 시작 순서
+
+1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
+2. `project_workflow_profile.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
+3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
+4. 이후 skill/MCP 도입 범위를 정한다.
+
+### 자동화 포인트
+
+- 문서 세트 생성
+- core 문서 복사
+- 첫 backlog 파일 생성
+
+### 주의점
+
+- 신규 프로젝트는 자동 추정할 기존 코드베이스가 없으므로, profile 문서의 TODO 를 반드시 사람이 채워야 한다.
+- 운영 절차가 아직 없는 상태라면 profile 문서의 예외 규칙 섹션부터 먼저 정리하는 편이 좋다.
+
+## 3. 작업 중인 프로젝트 도입
+
+### 목표
+
+- 기존 코드베이스와 문서 구조를 빠르게 읽고, 워크플로우용 문서 초안을 자동 생성한다.
+- 현재 저장소 현실에 맞는 도입 경로를 제시해 "빈 템플릿" 상태를 줄인다.
+
+### 추천 시작 순서
+
+1. `bootstrap_workflow_kit.py --adoption-mode existing` 로 저장소 분석과 문서 초안을 생성한다.
+2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
+3. `project_workflow_profile.md` 에 자동 추정값을 확정 또는 수정한다.
+4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
+5. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
+
+### 자동화 포인트
+
+- 상위 디렉터리 구조 스캔
+- 기술 스택 후보 감지
+- docs/tests/source 디렉터리 감지
+- 설치, 실행, 테스트 명령 추정
+- repository assessment 문서 생성
+- handoff/backlog 초기 항목 자동 작성
+
+### 주의점
+
+- 자동 추정한 명령은 편의용 초안일 뿐이며, 실제 CI/CD 또는 운영 절차와 다를 수 있다.
+- 기존 문서 체계가 이미 있다면 별도 워크플로우 문서를 둘지, 기존 문서 위치에 흡수할지 먼저 결정해야 한다.
+- 리뷰 규칙, 배포 승인 규칙, 환경 제약은 자동 추정하기 어렵기 때문에 반드시 사람이 보강해야 한다.
+
+## 4. 어떤 경로를 고를지 판단 기준
+
+- 아직 저장소 골격만 있는 경우:
+- `new`
+- 이미 코드와 테스트, 문서가 존재하는 경우:
+- `existing`
+- 코드가 조금 있지만 운영 규칙이 거의 없는 경우:
+- `existing` 으로 시작하되, 신규 프로젝트처럼 profile 문서를 적극 보완한다.
+
+## 5. 권장 출력물
+
+- 신규 프로젝트:
+- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
+- 작업 중인 프로젝트:
+- 위 문서 세트 + `repository_assessment.md`
+
+## 다음에 읽을 문서
+
+- 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
+- 상태 진단: [./project_status_assessment.md](./project_status_assessment.md)
+- 스크립트 안내: [../scripts/README.md](../scripts/README.md)

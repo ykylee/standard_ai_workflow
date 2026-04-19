@@ -1,0 +1,125 @@
+# Scripts
+
+- 문서 목적: 표준 AI 워크플로우 저장소에서 제공하는 실행 스크립트의 역할과 사용 시점을 안내한다.
+- 범위: bootstrap 스크립트, 신규/기존 프로젝트 도입 모드, Codex/OpenCode 하네스 오버레이, end-to-end 데모 runner, 출력 형태
+- 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
+- 상태: draft
+- 최종 수정일: 2026-04-19
+- 관련 문서: `../README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`
+
+## 현재 포함된 스크립트
+
+- [bootstrap_workflow_kit.py](./bootstrap_workflow_kit.py)
+- [export_harness_package.py](./export_harness_package.py)
+- [scaffold_harness.py](./scaffold_harness.py)
+- [run_demo_workflow.py](./run_demo_workflow.py)
+
+## bootstrap_workflow_kit.py
+
+- 목적:
+- 새 저장소 또는 임시 디렉터리에 표준 AI 워크플로우 기본 문서 세트와 선택적 core 문서를 한 번에 생성한다.
+- 도입 모드:
+- `--adoption-mode new` 는 신규 프로젝트용 기본 세트를 만든다.
+- `--adoption-mode existing` 는 기존 코드베이스를 분석해 profile, handoff, backlog, repository assessment 초안을 함께 만든다.
+- 하네스 옵션:
+- `--harness codex` 는 `AGENTS.md` 와 `.codex/config.toml.example` 를 생성한다.
+- `--harness opencode` 는 `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...` 를 생성한다.
+- 하네스 확장 방식:
+- bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 추후 다른 하네스도 같은 패턴으로 추가할 수 있다.
+- 기본 생성 구조:
+- `ai-workflow/README.md`
+- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/project/backlog/YYYY-MM-DD.md`
+- `ai-workflow/project/repository_assessment.md` (`existing` 모드일 때만)
+- 선택 옵션:
+- `--copy-core-docs` 를 주면 핵심 core 문서를 `ai-workflow/core/` 아래에 함께 복사한다.
+- 출력 형태:
+- 생성된 경로와 다음 작업을 JSON 으로 출력한다.
+- manifest 추가 정보:
+- `global_snippet_candidates` 필드로 하네스별 전역 snippet 후보와 적용 대상 전역 설정 경로를 함께 출력한다.
+
+실행 예시:
+
+```bash
+python3 scripts/bootstrap_workflow_kit.py \
+  --target-root /tmp/sample-repo \
+  --project-slug sample_api \
+  --project-name "Sample API" \
+  --harness codex \
+  --harness opencode \
+  --copy-core-docs
+```
+
+기존 프로젝트 분석 예시:
+
+```bash
+python3 scripts/bootstrap_workflow_kit.py \
+  --target-root /tmp/existing-repo \
+  --project-slug payments_api \
+  --project-name "Payments API" \
+  --adoption-mode existing \
+  --harness codex \
+  --copy-core-docs
+```
+
+## run_demo_workflow.py
+
+- 목적:
+- 예시 프로젝트 문서를 대상으로 session-start, backlog-update, doc-sync, merge-doc-reconcile 흐름을 한 번에 실행한다.
+- 지원 예시:
+- `acme_delivery_platform`
+- `research_eval_hub`
+- 출력 형태:
+- 단계별 JSON 결과와 요약 정보를 합친 통합 JSON
+
+실행 예시:
+
+```bash
+python3 scripts/run_demo_workflow.py
+python3 scripts/run_demo_workflow.py --example-project research_eval_hub
+```
+
+## scaffold_harness.py
+
+- 목적:
+- 새 하네스를 추가할 때 `harnesses/<target>/` 아래 starter README 와 overlay spec 초안을 자동 생성한다.
+- 출력 형태:
+- 생성된 경로와 다음 작업을 JSON 으로 출력한다.
+
+실행 예시:
+
+```bash
+python3 scripts/scaffold_harness.py \
+  --harness-name claude-code \
+  --display-name "Claude Code" \
+  --root-entrypoint "TODO: CLAUDE.md" \
+  --config-file "TODO: .claude/config.json"
+```
+
+## export_harness_package.py
+
+- 목적:
+- 선택한 하네스 패키지를 `dist/harnesses/<target>/` 아래 bundle, manifest, zip 파일로 export 한다.
+- 출력 형태:
+- export 결과 경로와 포함 파일 수를 JSON 으로 출력한다.
+- manifest 추가 정보:
+- `global_snippet_files` 필드로 관련 전역 snippet 파일이 bundle 에 함께 포함됐는지 추적한다.
+
+실행 예시:
+
+```bash
+python3 scripts/export_harness_package.py \
+  --harness codex \
+  --harness opencode
+```
+
+## 다음에 읽을 문서
+
+- 저장소 개요: [../README.md](../README.md)
+- 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
+- 하네스 허브: [../harnesses/README.md](../harnesses/README.md)
+- 릴리스 규격: [../core/workflow_release_spec.md](../core/workflow_release_spec.md)
+- examples 허브: [../examples/README.md](../examples/README.md)
+- tests 허브: [../tests/README.md](../tests/README.md)

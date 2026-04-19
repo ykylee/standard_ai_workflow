@@ -34,9 +34,11 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `AGENTS.md` 에 적힌 기본 명령이 실제 저장소와 맞는지 확인
 - `ai-workflow/project/` 경로가 현재 저장소 구조와 맞는지 확인
 - `.codex/config.toml.example` 를 실제 사용자 전역 설정에 반영할지 결정
+- 생성된 `AGENTS.md` 에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 
 ## 다음에 읽을 문서
 
 - 적용 가이드: [./apply_guide.md](./apply_guide.md)
 - 하네스 허브: [../README.md](../README.md)
 - 배포 전략: [../../core/workflow_harness_distribution.md](../../core/workflow_harness_distribution.md)
+- bootstrap 생성물 샘플: [../../examples/bootstrap_output_samples.md](../../examples/bootstrap_output_samples.md)

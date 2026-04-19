@@ -60,6 +60,14 @@
 
 이렇게 두면 전역 설정을 거의 건드리지 않으면서 프로젝트별 규칙만 교체할 수 있다.
 
+## 2.5 언어와 컨텍스트 운영 원칙
+
+- Codex 에서 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 초안은 한국어로 작성하도록 `AGENTS.md` 에 명시한다.
+- 코드, 명령어, 파일 경로, 설정 key 는 필요한 경우 원문 그대로 유지한다.
+- 내부 사고 과정, 임시 분류, 중간 reasoning 은 모델이 효율적으로 처리하게 두고, 사용자에게는 필요한 결론만 짧게 전달하도록 한다.
+- 진행 업데이트는 짧고 목적 지향적으로 유지하고, 이미 확인한 사실을 반복해서 길게 설명하지 않는다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 컨텍스트 누적을 줄인다.
+
 ## 3. 신규 프로젝트 적용 순서
 
 1. 아래 명령으로 기본 문서 세트와 Codex overlay 를 생성한다.
@@ -76,6 +84,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 
 2. 생성된 `ai-workflow/project/project_workflow_profile.md` 에 실제 명령과 검증 규칙을 채운다.
 3. 루트 `AGENTS.md` 가 `ai-workflow/project/` 문서를 먼저 읽도록 연결됐는지 확인한다.
+   이때 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 원칙도 함께 넣는 것을 권장한다.
 4. `.codex/config.toml.example` 를 참고해 필요한 Codex 전역 설정을 수동 반영할지 결정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/codex/config.toml.snippet](../../global-snippets/codex/config.toml.snippet) 도 함께 검토한다.
 5. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
@@ -97,6 +106,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 2. `ai-workflow/project/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
 3. `project_workflow_profile.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `AGENTS.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
+   작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토한다.
 5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
 
 ## 5. Codex 에서 첫 세션 시작하는 방법

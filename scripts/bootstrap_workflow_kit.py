@@ -478,7 +478,14 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
 5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
 
-## 6. 프로젝트 실제 문서 경로 설정값
+## 6. 언어와 컨텍스트 운영 원칙
+
+- 사용자에게 직접 보이는 작업 보고, 상태 요약, handoff/backlog 갱신 문안은 기본적으로 한국어로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
+- 내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리하고, 사용자에게는 필요한 결론만 짧게 전달한다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+
+## 7. 프로젝트 실제 문서 경로 설정값
 
 - 문서 위키 홈: `{context['doc_home']}`
 - 운영 문서 위치: `{context['operations_dir']}`
@@ -611,6 +618,13 @@ def render_session_handoff(args: argparse.Namespace, context: dict[str, object])
 - 최근 핵심 기준 문서:
 - `{context['session_doc_path']}`, `{context['doc_home']}`
 
+## 1.1 기록 원칙
+
+- 이 문서는 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다.
+- 사용자에게 직접 보여지는 요약과 작업 보고는 한국어를 기본으로 한다.
+- 코드, 명령어, 파일 경로, 설정 key 는 필요한 경우 원문 그대로 유지한다.
+- 내부 탐색 메모나 장문의 reasoning 기록은 남기지 않고, 결정과 검증 결과 중심으로 정리한다.
+
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
@@ -668,6 +682,8 @@ def render_backlog_index(args: argparse.Namespace) -> str:
 - 새 작업은 브리핑 후 해당 날짜 백로그에 등록한다.
 - 세션 종료 전에는 handoff 문서를 갱신한다.
 - 검증 결과와 미실행 사유는 날짜별 백로그에 남긴다.
+- 사용자에게 직접 보여지는 작업 기록과 상태 요약은 한국어를 기본으로 작성한다.
+- 다음 세션에 필요한 핵심 사실만 남기고, 중간 탐색 흔적과 중복 요약은 줄인다.
 
 ## 날짜별 백로그 문서
 
@@ -725,6 +741,12 @@ def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -
 - 자동 추정한 명령, 문서 위치, 검증 규칙이 실제 운영 규칙과 다를 수 있다.
 - 후속 작업:
 - 실제 프로젝트 운영 규칙과 승인 절차를 profile 및 handoff 문서에 반영한다.
+
+## 기록 메모
+
+- 작업 기록은 한국어를 기본으로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key 는 필요할 때 원문 그대로 유지한다.
+- 다음 세션에 필요한 핵심 결정, 검증 결과, 미실행 사유만 남기고 장문의 중간 사고 기록은 생략한다.
 """
 
 
@@ -859,6 +881,14 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 검증하지 않은 결과는 완료로 확정하지 않는다.
 - 세션 종료 전에는 `session_handoff.md` 와 최신 backlog 를 갱신한다.
 
+## 언어와 컨텍스트 원칙
+
+- 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
+- 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한 결론과 다음 행동만 짧게 전달한다.
+- 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+
 ## 프로젝트 실행 기본값
 
 - 설치: `{context['install_command']}`
@@ -950,10 +980,14 @@ If the repository is still in adoption, also read:
 
 Follow these rules:
 
+- Write user-facing status updates, work reports, and document drafts in Korean by default.
+- Keep code, commands, file paths, config keys, and external product names in their original form when needed.
 - Brief the task before editing files.
 - Keep task status aligned with backlog records.
 - Do not mark work done without validation evidence.
 - Update the handoff and latest backlog before ending a session.
+- Keep internal reasoning and intermediate classification compact, and avoid long repeated explanations to the user.
+- Leave only essential facts in handoff/backlog so session context stays lean.
 """
 
 
@@ -989,6 +1023,13 @@ Project defaults:
 - Smoke check: `{context['smoke_check_command']}`
 
 When the repo is in adoption mode, review `ai-workflow/project/repository_assessment.md` before trusting inferred commands.
+
+User-facing workflow rules:
+
+- Write visible work reports, summaries, and document drafts in Korean by default.
+- Keep code, commands, file paths, config keys, and external system names in their original form when useful.
+- Use concise progress updates and avoid long repeated reasoning in user-visible messages.
+- Keep internal processing compact and preserve only the facts needed for the next step or next session.
 """
 
 

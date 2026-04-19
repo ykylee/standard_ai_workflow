@@ -39,6 +39,8 @@
 - 생성된 경로와 다음 작업을 JSON 으로 출력한다.
 - manifest 추가 정보:
 - `global_snippet_candidates` 필드로 하네스별 전역 snippet 후보와 적용 대상 전역 설정 경로를 함께 출력한다.
+- 생성물 예시:
+- bootstrap 으로 생성되는 문서/하네스 문구 샘플은 [../examples/bootstrap_output_samples.md](../examples/bootstrap_output_samples.md) 에 정리돼 있다.
 
 실행 예시:
 
@@ -124,4 +126,5 @@ python3 scripts/export_harness_package.py \
 - 하네스 허브: [../harnesses/README.md](../harnesses/README.md)
 - 릴리스 규격: [../core/workflow_release_spec.md](../core/workflow_release_spec.md)
 - examples 허브: [../examples/README.md](../examples/README.md)
+- bootstrap 생성물 샘플: [../examples/bootstrap_output_samples.md](../examples/bootstrap_output_samples.md)
 - tests 허브: [../tests/README.md](../tests/README.md)

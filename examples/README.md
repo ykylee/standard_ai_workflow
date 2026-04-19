@@ -25,6 +25,7 @@
 - [research_eval_hub/backlog/2026-04-19.md](./research_eval_hub/backlog/2026-04-19.md)
 - [end_to_end_skill_demo.md](./end_to_end_skill_demo.md)
 - [end_to_end_mcp_demo.md](./end_to_end_mcp_demo.md)
+- [bootstrap_output_samples.md](./bootstrap_output_samples.md)
 
 ## 예시 비교 포인트
 
@@ -38,4 +39,5 @@
 - 그다음 handoff 와 backlog 를 읽어 세션 시작 흐름이 실제로 어떻게 이어지는지 확인한다.
 - 프로토타입 skill 이 실제로 어떻게 이어지는지 보려면 `end_to_end_skill_demo.md` 를 읽고 명령을 순서대로 실행한다.
 - 프로토타입 MCP 가 실제로 어떻게 이어지는지 보려면 `end_to_end_mcp_demo.md` 를 읽고 명령을 순서대로 실행한다.
+- bootstrap 생성물이 어떤 문구를 기본으로 포함하는지 보려면 `bootstrap_output_samples.md` 를 먼저 확인한다.
 - 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

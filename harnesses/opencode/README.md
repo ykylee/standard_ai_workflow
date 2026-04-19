@@ -39,9 +39,11 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `opencode.json` 의 instruction 경로가 현재 저장소 구조와 맞는지 확인
 - `.opencode/agents/` 권한 정책이 현재 팀 운영 방식과 맞는지 확인
 - `.opencode/skills/standard-ai-workflow/SKILL.md` 에 적힌 참조 문서가 최신 상태인지 확인
+- 생성된 `AGENTS.md`, skill, agent 문구에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 
 ## 다음에 읽을 문서
 
 - 적용 가이드: [./apply_guide.md](./apply_guide.md)
 - 하네스 허브: [../README.md](../README.md)
 - 배포 전략: [../../core/workflow_harness_distribution.md](../../core/workflow_harness_distribution.md)
+- bootstrap 생성물 샘플: [../../examples/bootstrap_output_samples.md](../../examples/bootstrap_output_samples.md)

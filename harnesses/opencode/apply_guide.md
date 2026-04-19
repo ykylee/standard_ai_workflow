@@ -62,6 +62,14 @@
 
 이렇게 두면 OpenCode 의 merge 특성을 활용하면서도 기존 사용자 기본값을 최대한 보존할 수 있다.
 
+## 2.5 언어와 컨텍스트 운영 원칙
+
+- OpenCode 에서 사용자에게 보이는 작업 보고, 상태 요약, 문서 초안은 한국어로 작성하도록 `AGENTS.md`, `opencode.json` 의 instruction 연결, project-local skill/agent 문서에 반영한다.
+- 코드, 명령어, 파일 경로, 설정 key 는 필요한 경우 원문 그대로 유지한다.
+- 내부 사고 과정과 중간 분류 방식은 모델이 효율적으로 선택하게 두고, 사용자에게는 필요한 결정과 다음 행동만 짧게 전달하도록 한다.
+- 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피하도록 project-local instructions 에 명시하는 것이 좋다.
+- handoff 와 backlog 에는 후속 세션에 꼭 필요한 사실만 남겨 컨텍스트 증가를 줄인다.
+
 ## 3. 신규 프로젝트 적용 순서
 
 1. 아래 명령으로 기본 문서 세트와 OpenCode overlay 를 생성한다.
@@ -79,6 +87,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 2. `ai-workflow/project/project_workflow_profile.md` 에 실제 명령과 검증 규칙을 채운다.
 3. `AGENTS.md` 가 생성됐는지 확인하고, 공통 상위 지침으로 사용할 내용을 검토한다.
 4. `opencode.json` 의 `instructions` 가 `AGENTS.md` 와 `ai-workflow/project/` 문서를 함께 가리키는지 확인한다.
+   이때 한국어 보고 원칙과 중간 설명 최소화 원칙이 instruction 체인에서 누락되지 않았는지 함께 확인한다.
 5. `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 의 권한 정책을 팀 운영 방식에 맞게 조정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
 6. 첫 세션에서 handoff 와 backlog 를 채운다.
@@ -100,6 +109,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 2. `ai-workflow/project/repository_assessment.md` 를 읽고 추정 명령과 문서 경로를 검토한다.
 3. `project_workflow_profile.md` 의 실행, 테스트, 검증 규칙을 실제 저장소 기준으로 수정한다.
 4. `AGENTS.md` 와 `opencode.json` 의 instruction 경로가 같이 맞는지 확인한다.
+   작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
 6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
 

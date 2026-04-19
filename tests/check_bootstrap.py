@@ -79,10 +79,20 @@ def check_new_project_mode() -> None:
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
         if "Sample API" not in readme_text:
             raise AssertionError("Generated README does not mention the project name.")
+        if "사용자에게 직접 보이는 작업 보고" not in readme_text:
+            raise AssertionError("Generated workflow README should include the Korean reporting rule.")
 
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "docs/operations/" not in profile_text:
             raise AssertionError("Generated profile did not include the default operations dir.")
+
+        handoff_text = Path(str(generated["session_handoff"])).read_text(encoding="utf-8")
+        if "이 문서는 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다." not in handoff_text:
+            raise AssertionError("Generated handoff should include the context-saving rule.")
+
+        daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
+        if "작업 기록은 한국어를 기본으로 작성한다." not in daily_backlog_text:
+            raise AssertionError("Generated daily backlog should include the Korean reporting rule.")
 
 
 def check_existing_project_mode() -> None:
@@ -155,6 +165,10 @@ def check_existing_project_mode() -> None:
         if "existing" not in assessment_text or "dev, test, test:smoke, test:unit" not in assessment_text:
             raise AssertionError("Repository assessment is missing inferred script details.")
 
+        readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
+        if "내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리" not in readme_text:
+            raise AssertionError("Existing project workflow README should include the context-saving rule.")
+
 
 def check_opencode_only_mode() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -181,6 +195,18 @@ def check_opencode_only_mode() -> None:
         snippet_candidates = payload["global_snippet_candidates"]
         if "opencode" not in snippet_candidates:
             raise AssertionError("Missing opencode global snippet metadata.")
+
+        agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
+        if "사용자에게 직접 보이는 작업 보고" not in agents_text:
+            raise AssertionError("AGENTS.md should include the Korean reporting rule.")
+
+        skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
+        if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:
+            raise AssertionError("OpenCode skill should include the Korean reporting rule.")
+
+        agent_text = Path(str(harness_files["opencode_agent"])).read_text(encoding="utf-8")
+        if "Write visible work reports, summaries, and document drafts in Korean by default." not in agent_text:
+            raise AssertionError("OpenCode agent should include the Korean reporting rule.")
 
         opencode_config_text = Path(str(harness_files["opencode_config"])).read_text(encoding="utf-8")
         opencode_config = json.loads(opencode_config_text)

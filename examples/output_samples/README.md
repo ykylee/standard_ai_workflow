@@ -1,7 +1,7 @@
 # Output Samples
 
-- 문서 목적: 실행형 skill 프로토타입의 대표 JSON 출력 예시를 한곳에서 참조할 수 있게 정리한다.
-- 범위: 현재 추가된 skill 출력 샘플 파일과 사용 용도
+- 문서 목적: 실행형 skill 과 MCP 프로토타입의 대표 JSON 출력 예시를 한곳에서 참조할 수 있게 정리한다.
+- 범위: 현재 추가된 skill/MCP 출력 샘플 파일과 사용 용도
 - 대상 독자: AI workflow 설계자, skill 구현자, 테스트 작성자, 운영자
 - 상태: draft
 - 최종 수정일: 2026-04-19
@@ -9,8 +9,17 @@
 
 ## 현재 포함된 샘플
 
+- [session_start.acme_delivery_platform.json](./session_start.acme_delivery_platform.json)
+- [backlog_update.acme_delivery_platform.json](./backlog_update.acme_delivery_platform.json)
+- [doc_sync.acme_delivery_platform.json](./doc_sync.acme_delivery_platform.json)
+- [merge_doc_reconcile.acme_delivery_platform.json](./merge_doc_reconcile.acme_delivery_platform.json)
 - [validation_plan.acme_delivery_platform.json](./validation_plan.acme_delivery_platform.json)
 - [code_index_update.research_eval_hub.json](./code_index_update.research_eval_hub.json)
+- [latest_backlog.acme_delivery_platform.json](./latest_backlog.acme_delivery_platform.json)
+- [check_doc_metadata.examples.json](./check_doc_metadata.examples.json)
+- [check_doc_links.examples.json](./check_doc_links.examples.json)
+- [create_backlog_entry.sample.json](./create_backlog_entry.sample.json)
+- [suggest_impacted_docs.sample.json](./suggest_impacted_docs.sample.json)
 
 ## 사용 목적
 
@@ -22,6 +31,7 @@
 
 - 이 디렉터리의 JSON 파일은 대표 예시이며, 모든 프로젝트에서 값이 동일하다는 뜻은 아니다.
 - 경고 문구나 후보 경로는 프로젝트 프로파일과 변경 파일 입력에 따라 달라질 수 있다.
+- 시간 정보가 들어가는 샘플은 예시 생성 시점의 값이 포함될 수 있다.
 
 ## 다음에 읽을 문서
 

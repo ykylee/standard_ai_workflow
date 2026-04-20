@@ -27,6 +27,7 @@
 - export manifest 에 global snippet 파일 정보가 포함되는지 확인
 - `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
 - `code-index-update` 프로토타입이 예시 프로젝트에서 색인 문서 후보와 stale 경고를 출력하는지 확인
+- `examples/output_samples/` 아래 JSON 샘플이 README 링크와 일치하고 유효한 JSON 인지 확인
 
 ## 실행 방법
 
@@ -36,6 +37,7 @@
 - 저장소 루트에서 `python3 tests/check_export_harness_package.py`
 - 저장소 루트에서 `python3 tests/check_validation_plan.py`
 - 저장소 루트에서 `python3 tests/check_code_index_update.py`
+- 저장소 루트에서 `python3 tests/check_output_samples.py`
 
 ## 향후 확장 후보
 

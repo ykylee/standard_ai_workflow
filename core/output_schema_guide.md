@@ -117,6 +117,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `environment_constraints` | 예 | `list[str]` | 환경 제약 요약 |
 | `source_documents` | 예 | `object` | 사용한 입력 문서 경로 |
 
+대표 샘플:
+
+- [../examples/output_samples/session_start.acme_delivery_platform.json](../examples/output_samples/session_start.acme_delivery_platform.json)
+
 ### 5.2 `backlog-update`
 
 현재 출력 필드:
@@ -136,6 +140,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `validation_note` | 아니오 | `str \| null` | 검증 메모 |
 | `source_context` | 예 | `object` | 입력 경로와 탐색 상태 |
 
+대표 샘플:
+
+- [../examples/output_samples/backlog_update.acme_delivery_platform.json](../examples/output_samples/backlog_update.acme_delivery_platform.json)
+
 ### 5.3 `doc-sync`
 
 현재 출력 필드:
@@ -152,6 +160,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `follow_up_actions` | 예 | `list[str]` | 후속 행동 |
 | `confidence_notes` | 예 | `list[str]` | 추천 강도 또는 불확실성 |
 | `source_context` | 예 | `object` | 변경 파일과 입력 요약 |
+
+대표 샘플:
+
+- [../examples/output_samples/doc_sync.acme_delivery_platform.json](../examples/output_samples/doc_sync.acme_delivery_platform.json)
 
 ### 5.4 `merge-doc-reconcile`
 
@@ -170,6 +182,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `hub_update_note` | 아니오 | `str \| null` | 허브 후속 메모 |
 | `validation_follow_up` | 예 | `str` | 병합 후 검증 메모 |
 | `source_context` | 예 | `object` | 병합 요약과 변경 파일 |
+
+대표 샘플:
+
+- [../examples/output_samples/merge_doc_reconcile.acme_delivery_platform.json](../examples/output_samples/merge_doc_reconcile.acme_delivery_platform.json)
 
 ### 5.5 `validation-plan`
 
@@ -222,6 +238,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `candidates` | 예 | `list[str]` | backlog 후보 목록 |
 | `warnings` | 예 | `list[str]` | 탐색 경고 |
 
+대표 샘플:
+
+- [../examples/output_samples/latest_backlog.acme_delivery_platform.json](../examples/output_samples/latest_backlog.acme_delivery_platform.json)
+
 ### 6.2 `check_doc_metadata`
 
 | 필드 | 필수 | 타입 | 의미 |
@@ -229,6 +249,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `checked_files` | 예 | `list[str]` | 검사 대상 파일 |
 | `missing_metadata` | 예 | `list[object]` | 누락 파일과 필드 |
 | `warnings` | 예 | `list[str]` | 추가 경고 |
+
+대표 샘플:
+
+- [../examples/output_samples/check_doc_metadata.examples.json](../examples/output_samples/check_doc_metadata.examples.json)
 
 ### 6.3 `check_doc_links`
 
@@ -238,12 +262,20 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `broken_links` | 예 | `list[object]` | 깨진 링크 목록 |
 | `warnings` | 예 | `list[str]` | 추가 경고 |
 
+대표 샘플:
+
+- [../examples/output_samples/check_doc_links.examples.json](../examples/output_samples/check_doc_links.examples.json)
+
 ### 6.4 `create_backlog_entry`
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
 | `draft_entry` | 예 | `list[str]` | backlog 항목 초안 |
 | `warnings` | 예 | `list[str]` | 생성 경고 |
+
+대표 샘플:
+
+- [../examples/output_samples/create_backlog_entry.sample.json](../examples/output_samples/create_backlog_entry.sample.json)
 
 ### 6.5 `suggest_impacted_docs`
 
@@ -253,12 +285,16 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
 | `warnings` | 예 | `list[str]` | 입력 부족 또는 경고 |
 
+대표 샘플:
+
+- [../examples/output_samples/suggest_impacted_docs.sample.json](../examples/output_samples/suggest_impacted_docs.sample.json)
+
 ## 7. 다음 정리 권고
 
 현재 가이드를 바탕으로 다음 두 작업을 권장한다.
 
-1. 나머지 skill/MCP 프로토타입에도 `examples/output_samples/*.json` 샘플 추가
-2. 이후 통합 runner 가 사용할 공통 실패 출력 규칙과 `error_code` 필드 추가
+1. 이후 통합 runner 가 사용할 공통 실패 출력 규칙과 `error_code` 필드 추가
+2. 샘플 JSON 과 실제 스크립트 출력 사이 차이를 주기적으로 점검하는 회귀 검사 추가
 
 ## 다음에 읽을 문서
 

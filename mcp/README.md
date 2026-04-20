@@ -21,6 +21,7 @@
 - [check-doc-links/MCP.md](./check-doc-links/MCP.md)
 - [create-backlog-entry/MCP.md](./create-backlog-entry/MCP.md)
 - [suggest-impacted-docs/MCP.md](./suggest-impacted-docs/MCP.md)
+- [check-quickstart-stale-links/MCP.md](./check-quickstart-stale-links/MCP.md)
 
 ## 구현 원칙
 
@@ -36,6 +37,7 @@
 - `check-doc-links`: 상대 링크 무결성 검사
 - `create-backlog-entry`: backlog entry 초안 JSON 생성
 - `suggest-impacted-docs`: 변경 파일 기준 영향 문서 후보 추천
+- `check-quickstart-stale-links`: quickstart/README 계열 문서의 stale 링크와 핵심 진입 문서 누락 점검
 
 ## 다음에 읽을 문서
 

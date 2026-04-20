@@ -13,6 +13,7 @@
 - [export_harness_package.py](./export_harness_package.py)
 - [scaffold_harness.py](./scaffold_harness.py)
 - [run_demo_workflow.py](./run_demo_workflow.py)
+- [run_existing_project_onboarding.py](./run_existing_project_onboarding.py)
 
 ## bootstrap_workflow_kit.py
 
@@ -83,6 +84,26 @@ python3 scripts/bootstrap_workflow_kit.py \
 ```bash
 python3 scripts/run_demo_workflow.py
 python3 scripts/run_demo_workflow.py --example-project research_eval_hub
+```
+
+## run_existing_project_onboarding.py
+
+- 목적:
+- `bootstrap_workflow_kit.py --adoption-mode existing` 직후에 repository assessment 와 초기 workflow 문서를 읽고 후속 skill 을 순서대로 실행한다.
+- 입력:
+- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, backlog 디렉터리, 선택적으로 `repository_assessment.md`
+- 출력 형태:
+- latest backlog 식별, session-start, validation-plan, code-index-update 결과와 onboarding 요약을 합친 통합 JSON
+
+실행 예시:
+
+```bash
+python3 scripts/run_existing_project_onboarding.py \
+  --project-profile-path /path/to/project/ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path /path/to/project/ai-workflow/project/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/project/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/project/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/project/repository_assessment.md
 ```
 
 ## scaffold_harness.py

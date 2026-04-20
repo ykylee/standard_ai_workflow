@@ -23,7 +23,7 @@
 | --- | --- | --- | --- | --- |
 | `create_session_handoff_draft` | 최신 백로그, 완료 작업 요약 | handoff 초안 | 미구현 | handoff 템플릿에 최근 완료/잔여 작업을 수동 요약 |
 | `create_environment_record_stub` | 호스트 정보 | 환경 문서 초안 | 미구현 | 환경 기록 템플릿을 수동 작성 |
-| `check_quickstart_stale_links` | quickstart 문서 | stale 링크 경고 | 미구현 | quickstart 링크를 기준 문서와 대조 |
+| `check_quickstart_stale_links` | quickstart 문서 | stale 링크 경고 | 프로토타입 있음 | quickstart 링크를 기준 문서와 대조 |
 
 ## 3. 최소 입력 계약
 
@@ -49,6 +49,8 @@
 - 참고 문서: [../mcp/create-backlog-entry/MCP.md](../mcp/create-backlog-entry/MCP.md)
 - `suggest_impacted_docs`: 실행 프로토타입 있음
 - 참고 문서: [../mcp/suggest-impacted-docs/MCP.md](../mcp/suggest-impacted-docs/MCP.md)
+- `check_quickstart_stale_links`: 실행 프로토타입 있음
+- 참고 문서: [../mcp/check-quickstart-stale-links/MCP.md](../mcp/check-quickstart-stale-links/MCP.md)
 
 ## 다음에 읽을 문서
 

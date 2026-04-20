@@ -56,6 +56,28 @@
 4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
 5. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
 
+### bootstrap 직후 후속 루틴
+
+기존 프로젝트 모드에서는 bootstrap 직후 아래 스크립트로 첫 온보딩 순서를 재현할 수 있다.
+
+```bash
+python3 scripts/run_existing_project_onboarding.py \
+  --project-profile-path /path/to/project/ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path /path/to/project/ai-workflow/project/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/project/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/project/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/project/repository_assessment.md
+```
+
+이 스크립트는 아래 순서를 읽기 전용으로 이어준다.
+
+1. latest backlog 식별
+2. session-start 기준선 복원
+3. validation-plan 으로 초기 검증 수준 정리
+4. code-index-update 로 README/허브/index 재확인 후보 정리
+
+즉, bootstrap 으로 만든 기존 프로젝트 초안을 “사람이 바로 검토할 수 있는 후속 계획”까지 연결하는 용도다.
+
 ### 자동화 포인트
 
 - 상위 디렉터리 구조 스캔

@@ -18,6 +18,7 @@
 - [latest_backlog.acme_delivery_platform.json](./latest_backlog.acme_delivery_platform.json)
 - [check_doc_metadata.examples.json](./check_doc_metadata.examples.json)
 - [check_doc_links.examples.json](./check_doc_links.examples.json)
+- [check_quickstart_stale_links.sample.json](./check_quickstart_stale_links.sample.json)
 - [create_backlog_entry.sample.json](./create_backlog_entry.sample.json)
 - [suggest_impacted_docs.sample.json](./suggest_impacted_docs.sample.json)
 

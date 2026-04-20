@@ -1,4 +1,6 @@
 {
+  "status": "ok",
+  "tool_version": "prototype-v1",
   "checked_files": [
     "/Users/yklee/repos/standard_ai_workflow/examples/bootstrap_output_samples.md"
   ],

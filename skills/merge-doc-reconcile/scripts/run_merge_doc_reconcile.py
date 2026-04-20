@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+TOOL_VERSION = "prototype-v1"
+
 
 TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
 DOC_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -264,6 +266,8 @@ def main() -> int:
     draft_reconcile_notes = dedupe(draft_reconcile_notes)
 
     result = {
+        "status": "ok",
+        "tool_version": TOOL_VERSION,
         "reconcile_targets": reconcile_targets,
         "state_conflicts": state_conflicts,
         "reconfirmation_points": reconfirmation_points,

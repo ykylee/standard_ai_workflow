@@ -4,7 +4,7 @@
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-20
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -33,9 +33,20 @@
 
 | 필드 | 의미 | 타입 |
 | --- | --- | --- |
+| `status` | 성공/부분성공/실패 상태 (`ok`, `warning`, `error`) | `str` |
+| `tool_version` | 현재 프로토타입 또는 패키지 버전 식별자 | `str` |
 | `warnings` | 부분 실패, 불확실성, 수동 확인 필요 항목 | `list[str]` |
 | `source_context` | 입력 경로 또는 입력 요약 | `object` |
 | `confidence_notes` | 보수적 추정, 추천 강도, 불확실성 설명 | `list[str]` |
+
+권장 규칙:
+
+- 정상 종료 시에는 `status: "ok"` 를 기본값으로 사용한다.
+- 경고가 있어도 결과를 신뢰 가능한 구조로 남길 수 있으면 `status: "ok"` 를 유지하고, 메시지는 `warnings` 에 넣는다.
+- 부분 결과만 남기고 재검토가 강하게 필요한 경우 `status: "warning"` 을 사용할 수 있다.
+- 실패 시에는 `status: "error"` 와 `error`, `error_code` 를 함께 사용한다.
+- 현재 저장소의 실행형 프로토타입은 정상 출력에 `tool_version: "prototype-v1"` 을 공통으로 사용한다.
+- `stale_warnings`, `stale_index_warnings` 같은 도메인 전용 경고 필드를 쓰더라도, 같은 메시지를 `warnings` 에도 함께 반영해 공통 파이프라인이 읽을 수 있게 한다.
 
 ### 3.2 skill 출력 공통 필드
 
@@ -80,7 +91,9 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 의미 |
 | --- | --- |
+| `status` | 항상 `error` |
 | `error` | 실패 요약 |
+| `error_code` | 비교 가능한 실패 코드 |
 | `warnings` | 실패에 이르기 전 확인된 문제 |
 | `source_context` | 어떤 입력으로 실패했는지 |
 
@@ -88,7 +101,10 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 ```json
 {
+  "status": "error",
+  "tool_version": "prototype-v1",
   "error": "project_profile_path 를 읽을 수 없다.",
+  "error_code": "missing_project_profile",
   "warnings": [
     "문서 구조를 해석할 수 없어 후속 판단을 중단한다."
   ],
@@ -106,6 +122,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `summary` | 예 | `list[str]` | 현재 기준선 요약 |
 | `in_progress_items` | 예 | `list[str]` | 진행 중 작업 목록 |
 | `blocked_items` | 예 | `list[str]` | 차단 작업 목록 |
@@ -127,6 +145,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `operation_type` | 예 | `str` | `create_entry`, `update_entry`, `create_daily_backlog`, `cannot_determine` |
 | `target_backlog_path` | 예 | `str` | 대상 backlog 경로 |
 | `task_id` | 예 | `str` | 작업 ID |
@@ -150,6 +170,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
 | `hub_update_candidates` | 예 | `list[str]` | 허브/인덱스 후보 |
 | `status_doc_candidates` | 예 | `list[str]` | 상태 문서 후보 |
@@ -171,6 +193,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `reconcile_targets` | 예 | `list[str]` | 재확인 대상 문서 |
 | `state_conflicts` | 예 | `list[str]` | 상태 충돌 목록 |
 | `reconfirmation_points` | 예 | `list[str]` | 재확정 포인트 |
@@ -193,6 +217,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `detected_change_types` | 예 | `list[str]` | 감지된 변경 유형 |
 | `recommended_validation_levels` | 예 | `list[str]` | 권장 검증 수준 |
 | `recommended_commands` | 예 | `list[object]` | 바로 실행 가능한 검증 명령과 이유 |
@@ -214,6 +240,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `index_update_candidates` | 예 | `list[str]` | 재확인할 색인/허브 문서 후보 |
 | `priority_index_candidates` | 예 | `list[str]` | 우선순위가 높은 색인 후보 |
 | `stale_index_warnings` | 예 | `list[str]` | 색인 stale 가능성 경고 |
@@ -234,6 +262,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `latest_backlog_path` | 예 | `str \| null` | 최신 backlog 경로 |
 | `candidates` | 예 | `list[str]` | backlog 후보 목록 |
 | `warnings` | 예 | `list[str]` | 탐색 경고 |
@@ -246,6 +276,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `checked_files` | 예 | `list[str]` | 검사 대상 파일 |
 | `missing_metadata` | 예 | `list[object]` | 누락 파일과 필드 |
 | `warnings` | 예 | `list[str]` | 추가 경고 |
@@ -258,6 +290,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `checked_files` | 예 | `list[str]` | 검사 대상 파일 |
 | `broken_links` | 예 | `list[object]` | 깨진 링크 목록 |
 | `warnings` | 예 | `list[str]` | 추가 경고 |
@@ -270,6 +304,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `draft_entry` | 예 | `list[str]` | backlog 항목 초안 |
 | `warnings` | 예 | `list[str]` | 생성 경고 |
 
@@ -281,6 +317,8 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
 | `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
 | `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
 | `warnings` | 예 | `list[str]` | 입력 부족 또는 경고 |
@@ -293,7 +331,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 현재 가이드를 바탕으로 다음 두 작업을 권장한다.
 
-1. 이후 통합 runner 가 사용할 공통 실패 출력 규칙과 `error_code` 필드 추가
+1. 예외 종료하는 프로토타입에도 `status: "error"` / `error_code` 구조를 점진적으로 적용
 2. 샘플 JSON 과 실제 스크립트 출력 사이 차이를 주기적으로 점검하는 회귀 검사 추가
 
 ## 다음에 읽을 문서

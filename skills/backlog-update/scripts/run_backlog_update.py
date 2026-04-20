@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+TOOL_VERSION = "prototype-v1"
+
 
 TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
 
@@ -323,6 +325,8 @@ def main() -> int:
         handoff_update_note = "상태 변화가 handoff 에 반영되어야 하는지 확인한다."
 
     result = {
+        "status": "ok",
+        "tool_version": TOOL_VERSION,
         "operation_type": operation_type,
         "target_backlog_path": str(daily_backlog_path),
         "task_id": task_id,

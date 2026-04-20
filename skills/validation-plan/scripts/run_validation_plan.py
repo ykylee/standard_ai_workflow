@@ -5,77 +5,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
+from workflow_kit.common.change_types import detect_validation_change_types
+from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.project_docs import parse_project_profile_validation
+from workflow_kit.common.text import normalize_inline_code
 
-
-def iter_lines(path: Path) -> list[str]:
-    return read_text(path).splitlines()
-
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def normalize_inline_code(value: str) -> str:
-    normalized = value.strip()
-    while normalized.startswith("`"):
-        normalized = normalized[1:].strip()
-    while normalized.endswith("`"):
-        normalized = normalized[:-1].strip()
-    return normalized
-
-
-def extract_section_value(lines: list[str], label: str) -> str | None:
-    prefix = f"- {label}:"
-    for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
-    return None
-
-
-def extract_named_section_bullets(lines: list[str], title: str) -> list[str]:
-    heading = f"## {title}"
-    collecting = False
-    items: list[str] = []
-    for line in lines:
-        stripped = line.rstrip()
-        if stripped.startswith("## "):
-            if collecting:
-                break
-            collecting = stripped == heading
-            continue
-        if not collecting:
-            continue
-        if stripped.startswith("- "):
-            value = normalize_inline_code(stripped[2:].strip())
-            if value.endswith(":"):
-                continue
-            items.append(value)
-    return items
-
-
-def parse_project_profile(path: Path) -> dict[str, Any]:
-    lines = iter_lines(path)
-    return {
-        "project_name": extract_section_value(lines, "프로젝트명"),
-        "quick_tests": extract_section_value(lines, "빠른 테스트"),
-        "isolated_tests": extract_section_value(lines, "격리 테스트"),
-        "runtime_checks": extract_section_value(lines, "UI/API 실행 확인"),
-        "validation_points": extract_named_section_bullets(lines, "4. 프로젝트 특화 검증 포인트"),
-        "exception_rules": extract_named_section_bullets(lines, "5. 프로젝트 특화 예외 규칙"),
-    }
-
+TOOL_VERSION = "prototype-v1"
 
 def split_commands(raw: str | None) -> list[str]:
     if not raw:
@@ -92,52 +35,6 @@ def dedupe(items: list[str]) -> list[str]:
             seen.add(normalized)
             result.append(normalized)
     return result
-
-
-def classify_changed_file(path_str: str) -> set[str]:
-    lower = path_str.lower()
-    kinds: set[str] = set()
-
-    if any(token in lower for token in ["frontend/", "/ui/", "web/", ".tsx", ".jsx", ".css", ".scss"]):
-        kinds.add("ui")
-    if any(token in lower for token in ["deploy", "helm", "k8s", "infra", "terraform", "ops", "runbook"]):
-        kinds.add("ops")
-    if any(token in lower for token in ["prompt", "eval", "dataset", "manifest", "report"]):
-        kinds.add("prompt_or_eval")
-    if lower.endswith(".md"):
-        kinds.add("docs")
-    if any(lower.endswith(ext) for ext in [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"]):
-        kinds.add("code")
-    if any(lower.endswith(ext) for ext in [".yaml", ".yml", ".json", ".toml", ".ini"]):
-        kinds.add("config")
-
-    if not kinds:
-        kinds.add("other")
-    return kinds
-
-
-def detect_change_types(changed_files: list[str], change_summary: str | None) -> list[str]:
-    detected: list[str] = []
-    for item in changed_files:
-        detected.extend(sorted(classify_changed_file(item)))
-
-    summary_lower = (change_summary or "").lower()
-    if any(token in summary_lower for token in ["ui", "screen", "console", "frontend"]):
-        detected.append("ui")
-    if any(token in summary_lower for token in ["deploy", "release", "runbook", "rollback", "healthcheck"]):
-        detected.append("ops")
-    if any(token in summary_lower for token in ["prompt", "eval", "dataset", "report", "experiment"]):
-        detected.append("prompt_or_eval")
-    if any(token in summary_lower for token in ["docs", "document", "문서", "runbook", "handoff", "backlog"]):
-        detected.append("docs")
-    if any(token in summary_lower for token in ["config", "setting", "schema", "migration"]):
-        detected.append("config")
-    if any(token in summary_lower for token in ["code", "api", "logic", "service", "handler"]):
-        detected.append("code")
-
-    return dedupe(detected or ["other"])
-
-
 def collect_validation_levels(change_types: list[str]) -> list[str]:
     levels: list[str] = []
     if change_types == ["docs"]:
@@ -272,12 +169,14 @@ def main() -> int:
         raise SystemExit("at least one --changed-file or --change-summary is required")
 
     project_profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile(project_profile_path)
+    profile = parse_project_profile_validation(project_profile_path)
     session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
     latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
-    change_types = detect_change_types(args.changed_files, args.change_summary)
+    change_types = detect_validation_change_types(args.changed_files, args.change_summary)
 
     result = {
+        "status": "ok",
+        "tool_version": TOOL_VERSION,
         "detected_change_types": change_types,
         **build_validation_plan(
             profile=profile,

@@ -4,8 +4,8 @@
 - 범위: bootstrap 스크립트, 신규/기존 프로젝트 도입 모드, Codex/OpenCode 하네스 오버레이, end-to-end 데모 runner, 출력 형태
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
-- 관련 문서: `../README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`
+- 최종 수정일: 2026-04-20
+- 관련 문서: `../README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../core/existing_project_onboarding_contract.md`
 
 ## 현재 포함된 스크립트
 
@@ -94,6 +94,8 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 - `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, backlog 디렉터리, 선택적으로 `repository_assessment.md`
 - 출력 형태:
 - latest backlog 식별, session-start, validation-plan, code-index-update 결과와 onboarding 요약을 합친 통합 JSON
+- 계약 문서:
+- 단계별 입력/출력 연결 규칙은 [../core/existing_project_onboarding_contract.md](../core/existing_project_onboarding_contract.md) 를 따른다.
 
 실행 예시:
 
@@ -144,6 +146,7 @@ python3 scripts/export_harness_package.py \
 
 - 저장소 개요: [../README.md](../README.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
+- 기존 프로젝트 온보딩 계약: [../core/existing_project_onboarding_contract.md](../core/existing_project_onboarding_contract.md)
 - 하네스 허브: [../harnesses/README.md](../harnesses/README.md)
 - 릴리스 규격: [../core/workflow_release_spec.md](../core/workflow_release_spec.md)
 - examples 허브: [../examples/README.md](../examples/README.md)

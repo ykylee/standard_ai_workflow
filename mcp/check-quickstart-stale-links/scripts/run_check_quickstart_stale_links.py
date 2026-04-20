@@ -5,46 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import re
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+from workflow_kit.common.markdown import markdown_targets, rel_link_from_doc, resolve_relative_target
+from workflow_kit.common.paths import resolve_existing_path
 
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def normalize_target(raw: str) -> str:
-    target = raw.strip()
-    if target.startswith("<") and target.endswith(">"):
-        target = target[1:-1].strip()
-    if "#" in target:
-        target = target.split("#", 1)[0]
-    return target
-
-
-def markdown_targets(path: Path) -> list[str]:
-    targets: list[str] = []
-    for match in LINK_RE.finditer(path.read_text(encoding="utf-8")):
-        target = normalize_target(match.group(1))
-        if not target or "://" in target or target.startswith("#"):
-            continue
-        targets.append(target)
-    return targets
-
-
-def resolve_relative_target(base: Path, raw_target: str) -> Path:
-    return (base.parent / raw_target).resolve()
-
-
-def rel_link_from_doc(doc_path: Path, target_path: Path) -> str:
-    return os.path.relpath(target_path, start=doc_path.parent).replace(os.sep, "/")
+TOOL_VERSION = "prototype-v1"
 
 
 def main() -> int:
@@ -78,6 +49,7 @@ def main() -> int:
         checked_files.append(str(quickstart_path))
         raw_targets = markdown_targets(quickstart_path)
         target_set = set(raw_targets)
+        quickstart_text = quickstart_path.read_text(encoding="utf-8")
 
         broken: list[str] = []
         for raw_target in raw_targets:
@@ -93,7 +65,7 @@ def main() -> int:
         missing_for_doc: list[str] = []
         for expected in expected_targets:
             rel_target = rel_link_from_doc(quickstart_path, expected)
-            if rel_target not in target_set and expected.name not in quickstart_path.read_text(encoding="utf-8"):
+            if rel_target not in target_set and expected.name not in quickstart_text:
                 missing_for_doc.append(rel_target)
         if missing_for_doc:
             missing_expected_links.append(
@@ -113,6 +85,8 @@ def main() -> int:
     print(
         json.dumps(
             {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
                 "checked_files": checked_files,
                 "broken_links": broken_links,
                 "missing_expected_links": missing_expected_links,

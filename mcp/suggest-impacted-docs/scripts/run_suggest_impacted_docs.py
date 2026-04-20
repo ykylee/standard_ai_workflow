@@ -5,25 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
+from workflow_kit.common.change_types import classify_impacted_doc_file
+from workflow_kit.common.paths import resolve_existing_path
 
-
-def classify_changed_file(path_str: str) -> str:
-    lower = path_str.lower()
-    if lower.endswith(".md"):
-        return "doc"
-    if any(lower.endswith(ext) for ext in [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"]):
-        return "code"
-    if any(lower.endswith(ext) for ext in [".yaml", ".yml", ".json", ".toml", ".ini"]):
-        return "config"
-    return "other"
+TOOL_VERSION = "prototype-v1"
 
 
 def dedupe(items: list[str]) -> list[str]:
@@ -59,7 +51,7 @@ def main() -> int:
         impacted_documents.append(str(resolve_existing_path(args.work_backlog_index_path)))
 
     for changed in args.changed_files:
-        kind = classify_changed_file(changed)
+        kind = classify_impacted_doc_file(changed)
         reasoning_notes.append(f"`{changed}` 는 `{kind}` 유형 변경으로 해석했다.")
         if kind in {"code", "config"} and not any(
             [args.session_handoff_path, args.latest_backlog_path, args.work_backlog_index_path]
@@ -71,6 +63,8 @@ def main() -> int:
     print(
         json.dumps(
             {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
                 "impacted_documents": dedupe(impacted_documents),
                 "reasoning_notes": reasoning_notes,
                 "warnings": dedupe(warnings),

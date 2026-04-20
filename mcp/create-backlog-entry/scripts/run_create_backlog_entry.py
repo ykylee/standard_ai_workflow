@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 
+TOOL_VERSION = "prototype-v1"
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run create_backlog_entry MCP prototype.")
@@ -35,7 +37,18 @@ def main() -> int:
         "- 남은 리스크:",
         "- 후속 작업:",
     ]
-    print(json.dumps({"draft_entry": draft_entry, "warnings": []}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
+                "draft_entry": draft_entry,
+                "warnings": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

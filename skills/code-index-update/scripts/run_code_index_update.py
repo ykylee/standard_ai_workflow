@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+TOOL_VERSION = "prototype-v1"
+
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -250,6 +252,7 @@ def build_index_plan(
         "index_update_candidates": dedupe(index_candidates),
         "priority_index_candidates": dedupe(priority_candidates),
         "stale_index_warnings": dedupe(stale_warnings),
+        "warnings": dedupe(stale_warnings),
         "reasoning_notes": dedupe(reasoning_notes),
         "suggested_index_actions": dedupe(suggested_actions),
         "document_structure_signals": dedupe(structure_signals),
@@ -292,6 +295,8 @@ def main() -> int:
         session_handoff_path=session_handoff_path,
         change_summary=args.change_summary,
     )
+    result["status"] = "ok"
+    result["tool_version"] = TOOL_VERSION
     result["source_context"] = {
         "project_profile_path": str(project_profile_path),
         "project_name": profile.get("project_name"),

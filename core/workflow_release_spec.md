@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 관리자, 배포 담당자, AI workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-19
-- 관련 문서: `./workflow_harness_distribution.md`, `../scripts/export_harness_package.py`, `../harnesses/README.md`
+- 관련 문서: `./workflow_harness_distribution.md`, `./prototype_promotion_scope.md`, `../scripts/export_harness_package.py`, `../harnesses/README.md`
 
 ## 1. release 목표
 
@@ -65,7 +65,14 @@
 - 정책 변경은 항상 `core/`, `harnesses/`, `scripts/` 원본에서 수행한다.
 - dist 는 재생성 가능해야 하며, export 스크립트가 같은 구조를 반복 생성할 수 있어야 한다.
 
+## 7. 다음 단계와의 관계
+
+- 현재 release spec 은 문서 패키지와 하네스 overlay export 를 기준으로 한다.
+- reusable package 또는 MCP server 승격 범위는 [./prototype_promotion_scope.md](./prototype_promotion_scope.md) 에서 별도로 정의한다.
+- 즉, 현재의 `dist/` export 와 향후 library/server 배포는 같은 문제가 아니라 두 단계의 별도 배포 축으로 본다.
+
 ## 다음에 읽을 문서
 
 - 하네스 배포 전략: [./workflow_harness_distribution.md](./workflow_harness_distribution.md)
+- 승격 범위 문서: [./prototype_promotion_scope.md](./prototype_promotion_scope.md)
 - 하네스 허브: [../harnesses/README.md](../harnesses/README.md)

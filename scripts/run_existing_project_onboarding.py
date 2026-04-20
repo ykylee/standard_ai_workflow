@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+TOOL_VERSION = "prototype-v1"
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -141,6 +143,8 @@ def main() -> int:
     if args.latest_backlog_path:
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path)
         latest_backlog_data = {
+            "status": "ok",
+            "tool_version": TOOL_VERSION,
             "latest_backlog_path": str(latest_backlog_path),
             "candidates": [str(latest_backlog_path)],
             "warnings": [],
@@ -224,6 +228,8 @@ def main() -> int:
     }
 
     result = {
+        "status": "ok",
+        "tool_version": TOOL_VERSION,
         "onboarding_mode": "existing_project_followup",
         "repository_assessment": {
             "path": str(repository_assessment_path) if repository_assessment_path else None,

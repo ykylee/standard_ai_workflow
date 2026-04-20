@@ -1,4 +1,6 @@
 {
+  "status": "ok",
+  "tool_version": "prototype-v1",
   "index_update_candidates": [
     "/Users/yklee/repos/standard_ai_workflow/README.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/research_eval_hub/docs/README.md",
@@ -13,6 +15,10 @@
     "/Users/yklee/repos/standard_ai_workflow/README.md"
   ],
   "stale_index_warnings": [
+    "코드/설정 변경이 문서 허브 설명과 최신 구조에 반영됐는지 확인이 필요하다.",
+    "변경 경로 기준으로 추정한 색인 문서 일부가 현재 저장소에서 확인되지 않는다."
+  ],
+  "warnings": [
     "코드/설정 변경이 문서 허브 설명과 최신 구조에 반영됐는지 확인이 필요하다.",
     "변경 경로 기준으로 추정한 색인 문서 일부가 현재 저장소에서 확인되지 않는다."
   ],

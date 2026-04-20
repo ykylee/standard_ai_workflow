@@ -41,6 +41,15 @@ def main() -> int:
             continue
         if not isinstance(payload, dict):
             failures.append(f"Sample is not a JSON object: {path.relative_to(REPO_ROOT)}")
+            continue
+        if "status" not in payload:
+            failures.append(f"Missing `status` in {path.relative_to(REPO_ROOT)}")
+        if "tool_version" not in payload:
+            failures.append(f"Missing `tool_version` in {path.relative_to(REPO_ROOT)}")
+        if "warnings" not in payload:
+            failures.append(f"Missing `warnings` in {path.relative_to(REPO_ROOT)}")
+        if payload.get("status") == "error" and "error_code" not in payload:
+            failures.append(f"Missing `error_code` for error sample {path.relative_to(REPO_ROOT)}")
 
     if failures:
         print("Output sample check failed:")

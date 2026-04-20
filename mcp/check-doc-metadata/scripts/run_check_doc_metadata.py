@@ -5,36 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-REQUIRED_METADATA = [
-    "문서 목적",
-    "범위",
-    "대상 독자",
-    "상태",
-    "최종 수정일",
-    "관련 문서",
-]
+from workflow_kit.common.docs import missing_metadata_fields
+from workflow_kit.common.paths import resolve_existing_path
 
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def check_file(path: Path) -> list[str]:
-    lines = path.read_text(encoding="utf-8").splitlines()[:20]
-    missing = []
-    for field in REQUIRED_METADATA:
-        prefix = f"- {field}:"
-        if not any(line.startswith(prefix) for line in lines):
-            missing.append(field)
-    if not lines or not lines[0].startswith("# "):
-        missing.append("제목 헤더")
-    return missing
+TOOL_VERSION = "prototype-v1"
 
 
 def main() -> int:
@@ -47,13 +28,15 @@ def main() -> int:
     missing_metadata = []
     for path in sorted(doc_dir.rglob("*.md")):
         checked_files.append(str(path))
-        missing = check_file(path)
+        missing = missing_metadata_fields(path)
         if missing:
             missing_metadata.append({"path": str(path), "missing_fields": missing})
 
     print(
         json.dumps(
             {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
                 "checked_files": checked_files,
                 "missing_metadata": missing_metadata,
                 "warnings": [],

@@ -12,6 +12,7 @@
 - 도입 분기 가이드: `./core/workflow_adoption_entrypoints.md`
 - 하네스 배포 가이드: `./core/workflow_harness_distribution.md`
 - 릴리스 규격 가이드: `./core/workflow_release_spec.md`
+- 승격 범위 가이드: `./core/prototype_promotion_scope.md`
 - 설정 계층 가이드: `./core/workflow_configuration_layers.md`
 - 비침투적 주입 정책: `./core/workflow_global_injection_policy.md`
 
@@ -162,7 +163,7 @@ python3 scripts/export_harness_package.py \
 - 이 폴더는 배포용 문서 패키지이며, 실제 skill/MCP 구현 코드를 포함하지는 않는다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
-- 출력 샘플 JSON 은 현재 일부 skill 중심으로만 정리돼 있어, 나머지 skill/MCP 까지 확대가 필요하다.
+- 출력 샘플 허브는 정리돼 있지만, 실패 출력 규칙과 `error_code` 수준 계약은 아직 더 고정할 필요가 있다.
 
 ## 9. 수동 대체 원칙
 
@@ -181,6 +182,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 도입 분기 가이드: [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 - 릴리스 규격: [core/workflow_release_spec.md](./core/workflow_release_spec.md)
+- 승격 범위 가이드: [core/prototype_promotion_scope.md](./core/prototype_promotion_scope.md)
 - 설정 계층 가이드: [core/workflow_configuration_layers.md](./core/workflow_configuration_layers.md)
 - 비침투적 주입 정책: [core/workflow_global_injection_policy.md](./core/workflow_global_injection_policy.md)
 - 전역 snippet 허브: [global-snippets/README.md](./global-snippets/README.md)

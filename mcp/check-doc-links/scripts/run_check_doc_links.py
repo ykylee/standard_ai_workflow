@@ -5,30 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
+import sys
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+from workflow_kit.common.markdown import find_broken_links
+from workflow_kit.common.paths import resolve_existing_path
 
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def find_broken_links(path: Path) -> list[str]:
-    broken = []
-    for match in LINK_RE.finditer(path.read_text(encoding="utf-8")):
-        target = match.group(1).split("#", 1)[0].strip()
-        if not target or "://" in target or target.startswith("#"):
-            continue
-        resolved = (path.parent / target).resolve()
-        if not resolved.exists():
-            broken.append(target)
-    return broken
+TOOL_VERSION = "prototype-v1"
 
 
 def main() -> int:
@@ -48,6 +35,8 @@ def main() -> int:
     print(
         json.dumps(
             {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
                 "checked_files": checked_files,
                 "broken_links": broken_links,
                 "warnings": [],

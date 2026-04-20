@@ -1,4 +1,6 @@
 {
+  "status": "ok",
+  "tool_version": "prototype-v1",
   "impacted_documents": [
     "docs/operations/runbooks/delivery-sync.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
@@ -16,6 +18,9 @@
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
   ],
   "stale_warnings": [
+    "app/jobs/delivery_sync.py 변경이 운영 문서에 반영됐는지 아직 확인되지 않았다."
+  ],
+  "warnings": [
     "app/jobs/delivery_sync.py 변경이 운영 문서에 반영됐는지 아직 확인되지 않았다."
   ],
   "reasoning_notes": [

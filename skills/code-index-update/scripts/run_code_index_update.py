@@ -5,57 +5,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit.common.change_types import classify_index_change_kinds, dedupe
+from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.project_docs import parse_project_profile_core
+
 TOOL_VERSION = "prototype-v1"
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-def iter_lines(path: Path) -> list[str]:
-    return read_text(path).splitlines()
-
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def normalize_inline_code(value: str) -> str:
-    normalized = value.strip()
-    while normalized.startswith("`"):
-        normalized = normalized[1:].strip()
-    while normalized.endswith("`"):
-        normalized = normalized[:-1].strip()
-    return normalized
-
-
-def extract_section_value(lines: list[str], label: str) -> str | None:
-    prefix = f"- {label}:"
-    for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
-    return None
-
-
-def parse_project_profile(path: Path) -> dict[str, Any]:
-    lines = iter_lines(path)
-    return {
-        "project_name": extract_section_value(lines, "프로젝트명"),
-        "document_home": extract_section_value(lines, "문서 위키 홈"),
-        "operations_path": extract_section_value(lines, "운영 문서 위치"),
-        "backlog_path": extract_section_value(lines, "백로그 위치"),
-        "handoff_path": extract_section_value(lines, "세션 인계 문서 위치"),
-    }
-
 
 def path_exists_relative(base: Path, raw: str | None) -> Path | None:
     if not raw:
@@ -70,49 +32,6 @@ def declared_doc_path(base: Path, raw: str | None) -> str | None:
     if not raw:
         return None
     return str((base / raw).resolve())
-
-
-def dedupe(items: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for item in items:
-        normalized = item.strip()
-        if normalized and normalized not in seen:
-            seen.add(normalized)
-            result.append(normalized)
-    return result
-
-
-def classify_changed_file(path_str: str) -> set[str]:
-    lower = path_str.lower()
-    kinds: set[str] = set()
-    is_markdown = lower.endswith(".md")
-
-    if lower.endswith("readme.md"):
-        kinds.add("root_or_hub_readme")
-    if is_markdown:
-        kinds.add("doc")
-    if is_markdown and any(
-        token in lower
-        for token in ["runbook", "/reports/", "release-report", "/dataset", "manifest", "/prompt", "/prompts/"]
-    ):
-        kinds.add("hub_child_doc")
-    if "backlog" in lower:
-        kinds.add("backlog_doc")
-    if "handoff" in lower:
-        kinds.add("handoff_doc")
-    if any(lower.endswith(ext) for ext in [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"]):
-        kinds.add("code")
-    if any(lower.endswith(ext) for ext in [".yaml", ".yml", ".json", ".toml", ".ini"]):
-        kinds.add("config")
-    if lower.startswith("docs/") and is_markdown and lower.count("/") >= 2:
-        kinds.add("nested_doc")
-
-    if not kinds:
-        kinds.add("other")
-    return kinds
-
-
 def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
     targets: list[str] = []
     for changed in changed_files:
@@ -179,7 +98,7 @@ def build_index_plan(
     code_change_detected = False
 
     for changed in changed_files:
-        kinds = classify_changed_file(changed)
+        kinds = classify_index_change_kinds(changed)
         reasoning_notes.append(f"`{changed}` 는 `{', '.join(sorted(kinds))}` 신호로 분류됐다.")
 
         if "doc" in kinds:
@@ -277,7 +196,7 @@ def main() -> int:
         raise SystemExit("at least one --changed-file or --change-summary is required")
 
     project_profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile(project_profile_path)
+    profile = parse_project_profile_core(project_profile_path)
     base_dir = project_profile_path.parent
     repo_root = Path(__file__).resolve().parents[3]
 

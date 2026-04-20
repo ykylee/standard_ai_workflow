@@ -55,6 +55,36 @@ def classify_validation_change_kinds(path_str: str) -> set[str]:
     return kinds
 
 
+def classify_index_change_kinds(path_str: str) -> set[str]:
+    lower = path_str.lower()
+    kinds: set[str] = set()
+    is_markdown = lower.endswith(".md")
+
+    if lower.endswith("readme.md"):
+        kinds.add("root_or_hub_readme")
+    if is_markdown:
+        kinds.add("doc")
+    if is_markdown and any(
+        token in lower
+        for token in ["runbook", "/reports/", "release-report", "/dataset", "manifest", "/prompt", "/prompts/"]
+    ):
+        kinds.add("hub_child_doc")
+    if "backlog" in lower:
+        kinds.add("backlog_doc")
+    if "handoff" in lower:
+        kinds.add("handoff_doc")
+    if any(lower.endswith(ext) for ext in [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"]):
+        kinds.add("code")
+    if any(lower.endswith(ext) for ext in [".yaml", ".yml", ".json", ".toml", ".ini"]):
+        kinds.add("config")
+    if lower.startswith("docs/") and is_markdown and lower.count("/") >= 2:
+        kinds.add("nested_doc")
+
+    if not kinds:
+        kinds.add("other")
+    return kinds
+
+
 def detect_validation_change_types(changed_files: list[str], change_summary: str | None) -> list[str]:
     detected: list[str] = []
     for item in changed_files:
@@ -86,4 +116,3 @@ def dedupe(items: list[str]) -> list[str]:
             seen.add(normalized)
             result.append(normalized)
     return result
-

@@ -5,79 +5,24 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
+import sys
 from pathlib import Path
 from typing import Any
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit.common.change_types import classify_doc_sync_file
+from workflow_kit.common.markdown import markdown_targets
+from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.project_docs import (
+    parse_backlog,
+    parse_handoff,
+    parse_project_profile_merge,
+)
+
 TOOL_VERSION = "prototype-v1"
-
-
-TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
-DOC_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-def iter_lines(path: Path) -> list[str]:
-    return read_text(path).splitlines()
-
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def normalize_inline_code(value: str) -> str:
-    normalized = value.strip()
-    if normalized.startswith("`") and normalized.endswith("`"):
-        normalized = normalized[1:-1].strip()
-    return normalized
-
-
-def extract_section_value(lines: list[str], label: str) -> str | None:
-    prefix = f"- {label}:"
-    for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
-    return None
-
-
-def extract_list_after_label(lines: list[str], label: str) -> list[str]:
-    prefix = f"- {label}:"
-    results: list[str] = []
-    capture = False
-    for line in lines:
-        stripped = line.strip()
-        if stripped == prefix:
-            capture = True
-            continue
-        if capture:
-            if stripped.startswith("## "):
-                break
-            if stripped.startswith("- "):
-                results.append(normalize_inline_code(stripped[2:].strip()))
-            elif stripped:
-                break
-    return results
-
-
-def extract_markdown_links(path: Path) -> list[Path]:
-    candidates: list[Path] = []
-    for match in DOC_LINK_RE.finditer(read_text(path)):
-        target = match.group(1).split("#", 1)[0].strip()
-        if not target or "://" in target or target.startswith("#"):
-            continue
-        candidate = (path.parent / target).resolve()
-        if candidate.exists():
-            candidates.append(candidate)
-    return candidates
 
 
 def dedupe(items: list[str]) -> list[str]:
@@ -89,57 +34,6 @@ def dedupe(items: list[str]) -> list[str]:
             seen.add(normalized)
             result.append(normalized)
     return result
-
-
-def parse_project_profile(path: Path) -> dict[str, Any]:
-    lines = iter_lines(path)
-    return {
-        "project_name": extract_section_value(lines, "프로젝트명"),
-        "document_home": extract_section_value(lines, "문서 위키 홈"),
-        "operations_path": extract_section_value(lines, "운영 문서 위치"),
-        "backlog_path": extract_section_value(lines, "백로그 위치"),
-        "handoff_path": extract_section_value(lines, "세션 인계 문서 위치"),
-        "constraints": extract_section_value(lines, "환경 제약"),
-        "merge_rule": extract_section_value(lines, "병합 규칙"),
-    }
-
-
-def parse_handoff(path: Path) -> dict[str, Any]:
-    lines = iter_lines(path)
-    return {
-        "current_axis": extract_section_value(lines, "현재 주 작업 축"),
-        "in_progress_items": extract_list_after_label(lines, "현재 `in_progress` 작업"),
-        "blocked_items": extract_list_after_label(lines, "현재 `blocked` 작업"),
-        "recent_done_items": extract_list_after_label(lines, "최근 완료 작업 목록"),
-        "next_documents": [str(p) for p in extract_markdown_links(path)],
-    }
-
-
-def parse_backlog(path: Path) -> dict[str, Any]:
-    tasks: list[dict[str, str]] = []
-    current: dict[str, str] | None = None
-    for line in iter_lines(path):
-        header_match = TASK_HEADER_RE.match(line.strip())
-        if header_match:
-            if current:
-                tasks.append(current)
-            current = {"task_id": header_match.group(1), "title": header_match.group(2), "status": ""}
-            continue
-        if current is None:
-            continue
-        stripped = line.strip()
-        if stripped.startswith("- 상태:"):
-            current["status"] = stripped.split(":", 1)[1].strip()
-    if current:
-        tasks.append(current)
-    return {
-        "tasks": tasks,
-        "in_progress_items": [f"{t['task_id']} {t['title']}" for t in tasks if t["status"] == "in_progress"],
-        "blocked_items": [f"{t['task_id']} {t['title']}" for t in tasks if t["status"] == "blocked"],
-        "done_items": [f"{t['task_id']} {t['title']}" for t in tasks if t["status"] == "done"],
-    }
-
-
 def compare_lists(label: str, handoff_items: list[str], backlog_items: list[str]) -> list[str]:
     handoff_set = set(dedupe(handoff_items))
     backlog_set = set(dedupe(backlog_items))
@@ -149,27 +43,6 @@ def compare_lists(label: str, handoff_items: list[str], backlog_items: list[str]
         backlog_view = ", ".join(sorted(backlog_set)) or "없음"
         conflicts.append(f"{label} 항목이 다르다. handoff: {handoff_view} / backlog: {backlog_view}")
     return conflicts
-
-
-def classify_changed_file(path_str: str) -> str:
-    lower = path_str.lower()
-    if lower.endswith(".md"):
-        if "readme" in lower:
-            return "hub_doc"
-        if "runbook" in lower:
-            return "runbook_doc"
-        if "handoff" in lower:
-            return "handoff_doc"
-        if "backlog" in lower:
-            return "backlog_doc"
-        return "doc"
-    if any(lower.endswith(ext) for ext in [".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java"]):
-        return "code"
-    if any(lower.endswith(ext) for ext in [".yaml", ".yml", ".json", ".toml", ".ini"]):
-        return "config"
-    return "other"
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the merge-doc-reconcile prototype.")
     parser.add_argument("--project-profile-path", required=True)
@@ -185,7 +58,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile(profile_path)
+    profile = parse_project_profile_merge(profile_path)
     base_dir = profile_path.parent
 
     warnings: list[str] = []
@@ -230,7 +103,7 @@ def main() -> int:
         reconfirmation_points.append("병합 후 완료 처리된 작업의 검증 근거를 다시 확인한다.")
 
     for changed in args.changed_files:
-        kind = classify_changed_file(changed)
+        kind = classify_doc_sync_file(changed)
         if kind in {"runbook_doc", "hub_doc"}:
             reconfirmation_points.append(f"{changed} 링크와 허브 반영 여부를 다시 확인한다.")
         if kind in {"code", "config"}:

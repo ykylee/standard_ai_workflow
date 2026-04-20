@@ -43,6 +43,9 @@
 - `validation-plan`
 - `doc-sync`
 - `suggest_impacted_docs`
+- `backlog-update`
+- `merge-doc-reconcile`
+- `code-index-update`
 
 즉, 읽기 전용 MCP 1차 묶음의 공통 기반이 이제 스크립트 내부 복사 로직이 아니라 package 모듈로 이동하기 시작했다.
 

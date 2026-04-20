@@ -56,6 +56,29 @@ def parse_project_profile_session(path: Path) -> dict[str, str | None]:
     }
 
 
+def parse_project_profile_merge(path: Path) -> dict[str, str | None]:
+    lines = iter_lines(path)
+    return {
+        "project_name": extract_section_value(lines, "프로젝트명"),
+        "document_home": extract_section_value(lines, "문서 위키 홈"),
+        "operations_path": extract_section_value(lines, "운영 문서 위치"),
+        "backlog_path": extract_section_value(lines, "백로그 위치"),
+        "handoff_path": extract_section_value(lines, "세션 인계 문서 위치"),
+        "constraints": extract_section_value(lines, "환경 제약"),
+        "merge_rule": extract_section_value(lines, "병합 규칙"),
+    }
+
+
+def parse_project_profile_backlog(path: Path) -> dict[str, str | None]:
+    lines = iter_lines(path)
+    return {
+        "project_name": extract_section_value(lines, "프로젝트명"),
+        "backlog_path": extract_section_value(lines, "백로그 위치"),
+        "handoff_path": extract_section_value(lines, "세션 인계 문서 위치"),
+        "constraints": extract_section_value(lines, "환경 제약"),
+    }
+
+
 def parse_handoff(path: Path) -> dict[str, object]:
     lines = iter_lines(path)
     return {
@@ -99,6 +122,28 @@ def parse_backlog(path: Path) -> dict[str, object]:
     }
 
 
+def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
+    if not path.exists():
+        return []
+    tasks: list[dict[str, str | None]] = []
+    current_task: dict[str, str | None] | None = None
+    for line in iter_lines(path):
+        header_match = TASK_HEADER_RE.match(line.strip())
+        if header_match:
+            if current_task:
+                tasks.append(current_task)
+            current_task = {"task_id": header_match.group(1), "title": header_match.group(2), "status": None}
+            continue
+        if current_task is None:
+            continue
+        status_match = STATUS_RE.match(line.strip())
+        if status_match:
+            current_task["status"] = status_match.group(1)
+    if current_task:
+        tasks.append(current_task)
+    return tasks
+
+
 def find_latest_backlog_path(index_path: Path) -> Path | None:
     linked_paths = [(index_path.parent / target).resolve() for target in markdown_targets(index_path)]
     if linked_paths:
@@ -112,4 +157,3 @@ def find_latest_backlog_path(index_path: Path) -> Path | None:
             if match:
                 date_candidates.append((index_path.parent / match.group(1)).resolve())
     return date_candidates[-1] if date_candidates else None
-

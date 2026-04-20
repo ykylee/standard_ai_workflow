@@ -6,92 +6,28 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
 
 TOOL_VERSION = "prototype-v1"
 
 
 TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
 
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-def iter_lines(path: Path) -> list[str]:
-    return read_text(path).splitlines()
-
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
 def normalize_item(value: str) -> str:
     normalized = value.strip()
     if normalized.startswith("`") and normalized.endswith("`"):
         normalized = normalized[1:-1].strip()
     return " ".join(normalized.split())
-
-
-def normalize_inline_code(value: str) -> str:
-    normalized = value.strip()
-    if normalized.startswith("`") and normalized.endswith("`"):
-        normalized = normalized[1:-1].strip()
-    return normalized
-
-
-def extract_section_value(lines: list[str], label: str) -> str | None:
-    prefix = f"- {label}:"
-    for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
-    return None
-
-
-def parse_project_profile(path: Path) -> dict[str, Any]:
-    lines = iter_lines(path)
-    return {
-        "project_name": extract_section_value(lines, "프로젝트명"),
-        "backlog_path": extract_section_value(lines, "백로그 위치"),
-        "handoff_path": extract_section_value(lines, "세션 인계 문서 위치"),
-        "constraints": extract_section_value(lines, "환경 제약"),
-    }
-
-
-def parse_backlog_tasks(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    tasks: list[dict[str, Any]] = []
-    current: dict[str, Any] | None = None
-    for line in iter_lines(path):
-        stripped = line.rstrip()
-        header_match = TASK_HEADER_RE.match(stripped.strip())
-        if header_match:
-            if current:
-                tasks.append(current)
-            current = {
-                "task_id": header_match.group(1),
-                "title": header_match.group(2),
-                "status": None,
-            }
-            continue
-        if current is None:
-            continue
-        if stripped.strip().startswith("- 상태:"):
-            current["status"] = stripped.split(":", 1)[1].strip()
-    if current:
-        tasks.append(current)
-    return tasks
-
-
 def infer_backlog_path(project_profile_path: Path, backlog_dir: str | None, target_date: str) -> Path:
     base_dir = project_profile_path.parent
     if backlog_dir:
@@ -231,7 +167,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     project_profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile(project_profile_path)
+    profile = parse_project_profile_backlog(project_profile_path)
 
     warnings: list[str] = []
     request_date = args.target_date or datetime.now().strftime("%Y-%m-%d")
@@ -242,7 +178,7 @@ def main() -> int:
     else:
         daily_backlog_path = infer_backlog_path(project_profile_path, profile.get("backlog_path"), request_date)
 
-    existing_tasks = parse_backlog_tasks(daily_backlog_path) if daily_backlog_path.exists() else []
+    existing_tasks = parse_backlog_task_entries(daily_backlog_path) if daily_backlog_path.exists() else []
 
     requested_mode = args.mode
     if requested_mode == "auto":

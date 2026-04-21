@@ -4,7 +4,7 @@
 - 범위: 입력 인자, 단계별 호출 순서, 각 단계의 핵심 출력, 생략/경고 조건, 후속 사용 지점
 - 대상 독자: AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-04-22
 - 관련 문서: `./workflow_adoption_entrypoints.md`, `./output_schema_guide.md`, `./workflow_kit_roadmap.md`, `../scripts/run_existing_project_onboarding.py`, `../tests/check_existing_project_onboarding.py`
 
 ## 1. 목적
@@ -176,6 +176,8 @@
 | `status` | 현재 runner 실행 상태 |
 | `tool_version` | 현재 runner 버전 식별자 |
 | `onboarding_mode` | 항상 `existing_project_followup` |
+| `warnings` | 하위 단계에서 집계한 상위 경고 목록 |
+| `orchestration_plan` | 메인 오케스트레이터와 worker 분배 메타데이터 |
 | `repository_assessment` | assessment 문서 경로와 요약 |
 | `latest_backlog` | latest backlog 결과 |
 | `session_start` | 기준선 복원 결과 |
@@ -184,6 +186,12 @@
 | `onboarding_summary` | 사람이 바로 읽을 요약 |
 | `source_context` | 입력 경로와 변경 요약 |
 
+추가 규칙:
+
+- 정상 경로에서는 `status: "ok"` 를 기본으로 사용한다.
+- 하위 step 이 구조화된 `error` JSON 을 반환하거나 비정상 종료하면 runner 도 top-level `error` JSON 으로 감싸서 반환한다.
+- 이때 상위 `error_code` 는 runner 분류용 값을 사용하고, 실제 실패 step 이름과 upstream `error_code` 는 `source_context.failed_step`, `source_context.upstream_error_code` 로 남긴다.
+
 ## 6. 생략 및 경고 규칙
 
 - `repository_assessment.md` 가 없으면 `repository_assessment.summary` 는 `null` 이고, `review_assessment_first` 는 `false` 가 된다.
@@ -191,9 +199,35 @@
 - 최신 backlog 를 찾지 못해도 runner 자체는 가능한 범위의 결과를 계속 반환한다.
 - 세부 프로토타입의 도메인 경고는 각 단계의 `warnings` 로 남기고, runner 는 이를 축약하지 않는다.
 
+### 6.1 실패 시 기대 동작
+
+- `project_profile_path`, `session_handoff_path`, `work_backlog_index_path`, `backlog_dir_path` 같은 필수 입력 경로가 없으면 runner 는 즉시 `status: "error"` 를 반환한다.
+- `repository_assessment_path` 는 선택 입력이므로 누락 자체가 즉시 실패 조건은 아니다.
+- 하위 step 이 실패해도 가능한 한 그 실패를 구조화된 JSON 으로 감싸 반환하고, 호출자는 Python 예외 대신 JSON 상태값을 우선 읽는 편이 좋다.
+
+### 6.2 하네스 소비 우선순위
+
+기존 프로젝트 첫 세션에서 하네스가 이 runner 결과를 읽을 때는 아래 우선순위를 권장한다.
+
+1. `status`
+2. `onboarding_summary.recommended_next_steps`
+3. `warnings`
+4. `orchestration_plan`
+5. `validation_plan`
+6. `code_index_update`
+7. `session_start`
+
+이 순서는 “사람에게 바로 보일 요약 -> 리스크 -> worker 분배 -> 세부 근거” 흐름을 유지하기 위한 것이다.
+
 ## 7. 권장 후속 사용 방식
 
 - Codex/OpenCode 하네스는 기존 프로젝트 첫 세션에서 이 runner 결과를 읽고, `onboarding_summary.recommended_next_steps` 를 우선 사용자 노출 요약으로 사용할 수 있다.
+- `status == "ok"` 인 경우:
+  하네스는 `warnings` 와 `orchestration_plan` 을 함께 읽어 첫 작업 분배 방향을 정하고, 필요하면 `validation_plan` 과 `code_index_update` 를 세부 근거로 참조한다.
+- `status == "error"` 인 경우:
+  하네스는 `error`, `error_code`, `source_context.failed_step` 를 우선 사용자에게 요약하고, 바로 다음 복구 액션은 `source_context` 의 누락/실패 입력을 기준으로 제안하는 편이 좋다.
+- OpenCode 쪽에서는 `orchestration_plan.worker_assignments` 를 바탕으로 doc/code/validation worker 에 bounded 작업을 분배하기 쉽다.
+- Codex 쪽에서는 개별 worker 권한 분리가 강제되지는 않으므로, 같은 `orchestration_plan` 을 운영 원칙 문서와 서브 에이전트 배정 힌트로 사용하는 편이 현실적이다.
 - 이후 세션부터는 `session-start`, `backlog-update`, `doc-sync`, `validation-plan`, `code-index-update` 를 상황별로 직접 호출하는 쪽이 더 적합하다.
 - 즉, 이 runner 는 “도입 직후 기준선 정렬용 오케스트레이션 레이어”로 유지하는 것이 권장된다.
 

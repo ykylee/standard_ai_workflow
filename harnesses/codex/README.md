@@ -4,7 +4,7 @@
 - 범위: `AGENTS.md`, Codex 설정 예시, 공통 문서 연결 방식
 - 대상 독자: Codex 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-22
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`
 
 ## 생성 대상
@@ -19,6 +19,7 @@
 - `.codex/config.toml.example` 는 전역 Codex 설정에 병합 가능한 샘플 스니펫으로 유지한다.
 - Codex 에서는 OpenCode 처럼 project-local agent 권한을 세밀하게 분리하기 어렵기 때문에, `AGENTS.md` 에 메인/worker 운영 패턴을 명시하는 방식을 우선 사용한다.
 - `main`/`small` 모델 구조를 쓴다면, Codex 에서도 메인 에이전트는 `main`, bounded scope 서브 에이전트는 `small` 로 두는 운영 원칙을 문서로 먼저 합의하는 편이 좋다.
+- 기존 프로젝트 도입 첫 세션에서는 `run_existing_project_onboarding.py` 결과의 `onboarding_summary`, `warnings`, `orchestration_plan` 을 먼저 읽고, 이를 Codex 내부 운영 힌트로 사용하는 구성이 적합하다.
 
 ## bootstrap 예시
 
@@ -38,6 +39,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `.codex/config.toml.example` 를 실제 사용자 전역 설정에 반영할지 결정
 - 생성된 `AGENTS.md` 에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 - 생성된 `AGENTS.md` 에 메인 조정자와 worker 성격 서브 에이전트 분리 원칙이 포함되는지 확인
+- 기존 프로젝트 도입 시 onboarding runner 결과를 어디에 붙여 읽을지 팀 운영 방식이 정해져 있는지 확인
 
 ## 다음에 읽을 문서
 

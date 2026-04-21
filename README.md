@@ -4,7 +4,7 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서, 분리 체크리스트
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-04-22
 - 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
 - 상태 진단 문서: `./core/project_status_assessment.md`
 - 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
@@ -177,7 +177,7 @@ python3 scripts/export_harness_package.py \
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
 - `workflow_kit/common` 추출은 진행 중이지만, 아직 모든 skill/MCP 를 완전히 공통 라이브러리화한 상태는 아니다.
-- 실제 GitHub Actions CI 연결과 다중 실제 저장소 적용 기록은 아직 저장소 내부에 포함되지 않았다.
+- 다중 실제 저장소 적용 기록과 CI 실패 원인 분류 고도화는 아직 저장소 내부에 충분히 포함되지 않았다.
 
 ## 10. 수동 대체 원칙
 

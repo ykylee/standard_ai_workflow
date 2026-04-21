@@ -4,7 +4,7 @@
 - 범위: 현재 포함된 공통 모듈, 초기 사용처, 향후 확장 방향
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-04-22
 - 관련 문서: `../core/prototype_promotion_scope.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -26,6 +26,7 @@
 - `common.session_outputs`
 - `common.runner`
 - `common.errors`
+- `common.output_contracts`
 
 이 모듈들은 아래 책임을 가진다.
 
@@ -41,6 +42,8 @@
 - session 요약/권장 액션/merge reconcile note 조립
 - JSON subprocess 실행, step 실패 구조화, 반복 flag 조립, runner 상위 warnings/orchestration 조립
 - 공통 error JSON payload 생성
+- 샘플/스모크 테스트에서 재사용하는 출력 계약 맵 제공
+- `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공
 
 ## 3. 현재 사용처
 
@@ -72,6 +75,7 @@
 
 - result payload builder 추가 정리
 - runner 단계 조립 함수와 step 실패 컨텍스트 공통화
+- `tool_version` 및 output contract 검증 기준의 단일 출처 유지
 - 읽기 전용 MCP server 엔트리포인트 초안 연결
 
 ## 5. 원칙

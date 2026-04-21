@@ -4,7 +4,7 @@
 - 범위: 문서 무결성 검사와 향후 skill/MCP/agent 구현 검증
 - 대상 독자: 개발자, 운영자, AI agent 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-04-22
 - 관련 문서: `../split_checklist.md`
 
 ## 현재 상태
@@ -33,6 +33,8 @@
 - `examples/output_samples/` 아래 JSON 샘플이 README 링크와 일치하고 유효한 JSON 인지 확인
 - demo runner 가 상위 `orchestration_plan`, `workflow_summary`, `source_context` 를 유지하는지 확인
 - demo runner 가 하위 step 실패를 top-level `workflow_step_failed` 로 감싸는지 확인
+- 대표 JSON 샘플이 공통 필드뿐 아니라 skill/runner 계약의 핵심 필드도 유지하는지 확인
+- `schemas/output_sample_contracts.json` 과 Python 런타임 계약 맵이 서로 어긋나지 않는지 확인
 - 기존 프로젝트 bootstrap 산출물을 입력으로 받아 onboarding runner 가 session-start, validation-plan, code-index-update 를 연결하는지 확인
 - onboarding runner 가 누락 입력 문서 시 top-level 구조화 error JSON 을 반환하는지 확인
 - quickstart/README 문서를 입력으로 받아 stale 링크 경고와 핵심 진입 문서 누락을 감지하는지 확인

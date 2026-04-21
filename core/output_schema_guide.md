@@ -4,7 +4,7 @@
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-04-22
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -16,6 +16,9 @@
 - 같은 성격의 출력 필드를 일관된 이름으로 유지
 - 경고와 실패를 구조화해서 사람이 재검토하기 쉽게 만들기
 - 개별 프로토타입 출력을 이후 통합 runner 나 MCP server 로 승격하기 쉽게 만들기
+
+현재 저장소에는 위 목표를 보조하기 위한 정적 계약 초안으로 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 이 포함된다.
+이 파일은 완전한 JSON Schema 대체물이 아니라, output sample 과 smoke test 가 공유하는 최소 계약 기준선으로 사용한다.
 
 ## 2. 공통 원칙
 
@@ -46,6 +49,7 @@
 - 부분 결과만 남기고 재검토가 강하게 필요한 경우 `status: "warning"` 을 사용할 수 있다.
 - 실패 시에는 `status: "error"` 와 `error`, `error_code` 를 함께 사용한다.
 - 현재 저장소의 실행형 프로토타입은 정상 출력에 `workflow_kit.__version__` 값을 공통 `tool_version` 으로 사용한다.
+- 대표 JSON 샘플과 smoke test 도 같은 `workflow_kit.__version__` 값을 기준으로 검증하는 것을 권장한다.
 - `stale_warnings`, `stale_index_warnings` 같은 도메인 전용 경고 필드를 쓰더라도, 같은 메시지를 `warnings` 에도 함께 반영해 공통 파이프라인이 읽을 수 있게 한다.
 
 ### 3.2 skill 출력 공통 필드
@@ -289,6 +293,13 @@ runner 실패 규칙:
 - 하위 skill/MCP step 이 `status: "error"` 를 반환하거나 비정상 종료하면 runner 도 `status: "error"` 로 감싼다.
 - 이때 runner 의 `error_code` 는 상위 분류용 코드로 유지하고, 실제 실패 step 이름과 upstream `error_code` 는 `source_context.failed_step`, `source_context.upstream_error_code` 로 남긴다.
 - 자식 step 이 이미 `warnings` 를 반환했다면 runner 실패 출력에서도 그대로 승계한다.
+
+샘플/계약 검증 권장 규칙:
+
+- `examples/output_samples/*.json` 은 단순 예시가 아니라 smoke test 기준선으로도 사용한다.
+- 대표 skill/runner 샘플은 최소 핵심 필드 계약을 검사하는 smoke test 와 함께 유지한다.
+- 샘플의 `tool_version` 은 문서 문자열이 아니라 실제 `workflow_kit.__version__` 값과 같아야 한다.
+- 정적 계약 초안이 필요할 때는 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 을 우선 갱신한다.
 
 ### 6.1 `run_demo_workflow.py`
 

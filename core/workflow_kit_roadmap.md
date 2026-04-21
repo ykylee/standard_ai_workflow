@@ -4,7 +4,7 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-04-22
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
 ## 1. 현재 단계
@@ -32,12 +32,12 @@
 - 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
 - reusable package / MCP server 승격 범위 문서가 있다.
 - `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
-- `tests/check_*.py` 기준 smoke CI 를 추가할 수 있는 최소 구조가 이미 갖춰져 있다.
+- `tests/check_*.py` 기준 smoke CI 가 GitHub Actions 로 연결돼 있다.
 
 아직 4단계가 아닌 이유:
 
 - 실제 MCP server packaging 또는 transport 계층이 없다.
-- skill, MCP, runner 출력 계약은 문서화됐지만, schema 파일 수준의 강한 정적 검증까지는 아직 없다.
+- skill, MCP, runner 출력 계약은 문서화됐고 sample contract 용 정적 schema 초안도 추가됐지만, 완전한 JSON Schema 수준의 강한 정적 검증까지는 아직 아니다.
 - 여러 실제 프로젝트에 시범 적용한 결과가 없다.
 - MCP server packaging 은 아직 시작되지 않았다.
 - 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
@@ -103,7 +103,7 @@
 - 기존 프로젝트 bootstrap 이후 assessment -> backlog/handoff -> validation/code-index 순으로 이어지는 후속 루틴이 있다.
 - 승격 범위 문서가 있어 package/server 화 대상을 분리해서 계획할 수 있다.
 - `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner helper 가 누적되고 있다.
-- smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어져 CI 로 연결하기 쉬운 구조다.
+- smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어졌고 GitHub Actions smoke workflow 에 연결돼 있다.
 
 ### 아직 비어 있는 축
 
@@ -112,11 +112,11 @@
 - 실제 저장소 시범 적용 결과
 - 쓰기 성격 draft MCP 의 permission 경계 정리
 - core 문서 간 중복 축소와 README 상태 단일 출처 정리
-- GitHub Actions 등 실제 CI 연결
+- smoke CI 결과 가시성 정리와 실패 분류 개선
 
 ## 5. 다음 우선순위 로드맵
 
-### 우선순위 1: runner/schema 계약 고정과 smoke CI 연결
+### 우선순위 1: runner/schema 계약 고정과 smoke CI 안정화
 
 현재 상태:
 
@@ -124,19 +124,22 @@
 - skill/MCP/runner 대표 출력 JSON 샘플 허브가 있다.
 - `status`, `tool_version`, `warnings`, `source_context` 공통 필드는 1차 정리됐다.
 - skill 6종과 runner 2종은 구조화된 `error`/`error_code` 패턴을 따른다.
-- runner 실패 경로는 smoke test 로 확인되기 시작했지만, 아직 CI 에 연결되지는 않았다.
+- runner 실패 경로는 smoke test 와 GitHub Actions smoke workflow 로 확인된다.
 - `tool_version` 값은 여러 실행 스크립트에 반복 선언돼 있어 단일 소스 유지가 필요하다.
+- 대표 output sample 검사는 공통 계약 맵과 실제 `workflow_kit.__version__` 값을 기준으로 보강할 수 있다.
 
 목표:
 
 - skill/MCP/runner 전반에서 공통 출력 규칙과 `error`/`warnings`/`source_context` 사용 기준을 더 명확히 한다.
 - representative sample 과 smoke test 가 같은 계약을 바라보도록 정렬한다.
-- `tests/check_*.py` 묶음을 CI 에 연결하기 쉬운 단위로 정리한다.
+- sample contract 정적 schema 초안을 유지하고, 필요 시 JSON Schema 로 승격한다.
+- `tests/check_*.py` 묶음의 실패 원인이 CI 로그에서 바로 식별되도록 정리한다.
 - `tool_version` 값을 package 루트 한 곳에서 관리한다.
 
 권장 산출물:
 
 - `examples/output_samples/*.json`
+- `schemas/output_sample_contracts.json`
 - `core/output_schema_guide.md` 보강
 - 필요 시 `schemas/` 또는 실패 규칙 부록 문서
 - 대표 skill 다건의 실패 처리 패턴
@@ -218,7 +221,6 @@
 
 ### 1주차
 
-- `tests/check_*.py` 기준 GitHub Actions smoke CI 연결
 - `tool_version` 단일 소스화
 - demo/onboarding runner 입출력 계약 정리
 - 공통 라이브러리 후보 모듈 경계 정리 및 1차 유틸 추출
@@ -250,9 +252,9 @@
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
 
-1. `tests/check_*.py` 묶음의 GitHub Actions smoke CI 연결
-2. `tool_version` 단일 소스화
-3. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
+1. `tool_version` 단일 소스화
+2. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
+3. runner 포함 출력 계약의 정적 schema 초안 확장
 4. 실제 저장소 시범 적용 대상 선정
 5. 공통 library / orchestration helper / 읽기 전용 MCP server 착수
 
@@ -262,7 +264,7 @@
 
 외부 리뷰 브랜치(`review/external-review`)에서 제안된 항목 중 현재 계획에 반영할 내용은 아래와 같다.
 
-즉시 반영:
+즉시 반영 완료:
 
 - `.gitignore` 보강으로 export/venv/cache 산출물 누수 방지
 - `tests/check_*.py` 묶음을 기준으로 한 GitHub Actions smoke CI 추가

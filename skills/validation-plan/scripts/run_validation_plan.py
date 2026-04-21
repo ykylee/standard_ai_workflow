@@ -14,7 +14,9 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit.common.change_types import detect_validation_change_types
+from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.planning import collect_validation_levels
 from workflow_kit.common.project_docs import parse_project_profile_validation
 from workflow_kit.common.text import normalize_inline_code
 
@@ -24,32 +26,6 @@ def split_commands(raw: str | None) -> list[str]:
     if not raw:
         return []
     return [normalize_inline_code(item.strip()) for item in raw.split(",") if item.strip()]
-
-
-def dedupe(items: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for item in items:
-        normalized = item.strip()
-        if normalized and normalized not in seen:
-            seen.add(normalized)
-            result.append(normalized)
-    return result
-def collect_validation_levels(change_types: list[str]) -> list[str]:
-    levels: list[str] = []
-    if change_types == ["docs"]:
-        levels.append("documentation")
-    if any(item in change_types for item in ["code", "config"]):
-        levels.append("standard")
-    if "ui" in change_types:
-        levels.append("ui_extended")
-    if "ops" in change_types:
-        levels.append("release_sensitive")
-    if "prompt_or_eval" in change_types:
-        levels.append("artifact_sensitive")
-    if not levels:
-        levels.append("light_review")
-    return dedupe(levels)
 
 
 def build_validation_plan(
@@ -145,11 +121,11 @@ def build_validation_plan(
         "recommended_validation_levels": collect_validation_levels(change_types),
         "recommended_commands": recommended_commands,
         "commands_requiring_confirmation": confirmation_commands,
-        "documentation_checks": dedupe(documentation_checks),
-        "evidence_expectations": dedupe(evidence_expectations),
+        "documentation_checks": dedupe_strings(documentation_checks),
+        "evidence_expectations": dedupe_strings(evidence_expectations),
         "deferred_validation_items": deferred_validation_items,
-        "warnings": dedupe(warnings),
-        "confidence_notes": dedupe(confidence_notes),
+        "warnings": dedupe_strings(warnings),
+        "confidence_notes": dedupe_strings(confidence_notes),
     }
 
 

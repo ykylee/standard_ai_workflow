@@ -14,35 +14,17 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit.common.change_types import classify_doc_sync_file
-from workflow_kit.common.markdown import markdown_targets
+from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.project_docs import (
     parse_backlog,
     parse_handoff,
     parse_project_profile_merge,
 )
+from workflow_kit.common.reconcile import explain_state_conflicts
+from workflow_kit.common.session_outputs import build_reconcile_notes
 
 TOOL_VERSION = "prototype-v1"
-
-
-def dedupe(items: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for item in items:
-        normalized = " ".join(item.strip().split())
-        if normalized and normalized not in seen:
-            seen.add(normalized)
-            result.append(normalized)
-    return result
-def compare_lists(label: str, handoff_items: list[str], backlog_items: list[str]) -> list[str]:
-    handoff_set = set(dedupe(handoff_items))
-    backlog_set = set(dedupe(backlog_items))
-    conflicts: list[str] = []
-    if handoff_set != backlog_set:
-        handoff_view = ", ".join(sorted(handoff_set)) or "없음"
-        backlog_view = ", ".join(sorted(backlog_set)) or "없음"
-        conflicts.append(f"{label} 항목이 다르다. handoff: {handoff_view} / backlog: {backlog_view}")
-    return conflicts
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the merge-doc-reconcile prototype.")
     parser.add_argument("--project-profile-path", required=True)
@@ -95,8 +77,8 @@ def main() -> int:
         if operations_doc.exists():
             reconcile_targets.append(str(operations_doc))
 
-    state_conflicts.extend(compare_lists("in_progress", handoff.get("in_progress_items", []), backlog.get("in_progress_items", [])))
-    state_conflicts.extend(compare_lists("blocked", handoff.get("blocked_items", []), backlog.get("blocked_items", [])))
+    state_conflicts.extend(explain_state_conflicts("in_progress", handoff.get("in_progress_items", []), backlog.get("in_progress_items", [])))
+    state_conflicts.extend(explain_state_conflicts("blocked", handoff.get("blocked_items", []), backlog.get("blocked_items", [])))
 
     if backlog.get("done_items") and not args.validation_result:
         warnings.append("병합 후 검증 결과가 없어 done 상태를 재확정할 수 없다.")
@@ -111,22 +93,12 @@ def main() -> int:
         if kind in {"handoff_doc", "backlog_doc"}:
             reconfirmation_points.append(f"{changed} 의 병합 후 상태 요약을 재확정한다.")
 
-    if profile.get("merge_rule"):
-        draft_reconcile_notes.append(f"프로젝트 병합 규칙: {profile['merge_rule']}")
-
-    draft_reconcile_notes.extend(
-        [
-            "병합 후 handoff 와 최신 backlog 의 상태값을 실제 저장소 기준으로 다시 맞춘다.",
-            "허브 및 인덱스 문서가 최신 문서 경로와 설명을 반영하는지 확인한다.",
-        ]
-    )
-    if args.changed_files:
-        draft_reconcile_notes.append("병합에 포함된 변경 파일과 문서 설명이 어긋나지 않는지 다시 본다.")
+    draft_reconcile_notes.extend(build_reconcile_notes(profile, args.changed_files))
 
     if state_conflicts:
         reconfirmation_points.append("handoff 와 backlog 의 충돌 항목을 우선 정리한다.")
 
-    recommended_review_order = dedupe(
+    recommended_review_order = dedupe_strings(
         [
             str(latest_backlog_path) if latest_backlog_path else "",
             str(session_handoff_path) if session_handoff_path else "",
@@ -134,9 +106,9 @@ def main() -> int:
             str(operations_doc) if operations_doc and operations_doc.exists() else "",
         ]
     )
-    reconcile_targets = dedupe(reconcile_targets)
-    reconfirmation_points = dedupe(reconfirmation_points)
-    draft_reconcile_notes = dedupe(draft_reconcile_notes)
+    reconcile_targets = dedupe_strings(reconcile_targets)
+    reconfirmation_points = dedupe_strings(reconfirmation_points)
+    draft_reconcile_notes = dedupe_strings(draft_reconcile_notes)
 
     result = {
         "status": "ok",

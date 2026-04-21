@@ -4,7 +4,7 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-04-21
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
 ## 1. 현재 단계
@@ -30,7 +30,7 @@
 - 기존 프로젝트 bootstrap 이후 후속 온보딩 runner 가 있다.
 - 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
 - reusable package / MCP server 승격 범위 문서가 있다.
-- `workflow_kit/common` 패키지 루트와 1차 공통 유틸 추출이 시작됐다.
+- `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
 
 아직 4단계가 아닌 이유:
 
@@ -38,7 +38,7 @@
 - skill 과 MCP 출력 계약은 문서화됐지만, 모든 프로토타입 샘플과 실패 규칙까지 완전히 고정되지는 않았다.
 - 여러 실제 프로젝트에 시범 적용한 결과가 없다.
 - MCP server packaging 은 아직 시작되지 않았다.
-- 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 1차 착수 상태다.
+- 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
 
 ## 2. 현재 자산
 
@@ -100,13 +100,13 @@
 - 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 운영 원칙이 core 문서와 bootstrap 생성물에 반영돼 있다.
 - 기존 프로젝트 bootstrap 이후 assessment -> backlog/handoff -> validation/code-index 순으로 이어지는 후속 루틴이 있다.
 - 승격 범위 문서가 있어 package/server 화 대상을 분리해서 계획할 수 있다.
-- `workflow_kit/common` 패키지에 경로/Markdown/메타데이터 공통 유틸이 추출되기 시작했다.
+- `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner helper 가 누적되고 있다.
 
 ### 아직 비어 있는 축
 
 - 공통 실패 출력 규칙과 `error_code` 수준 계약
 - 읽기 전용 MCP 묶음 server 화
-- profile / backlog / handoff / changed-file 분류 계열의 추가 reusable package 추출
+- 결과 payload builder 와 orchestration 계층의 추가 reusable package 추출
 - 실제 저장소 시범 적용 결과
 - 쓰기 성격 draft MCP 의 permission 경계 정리
 
@@ -172,12 +172,13 @@
 
 목표:
 
-- 시작된 `workflow_kit/common` 추출을 profile/backlog/handoff 파서와 changed-file 분류까지 확장하고 읽기 전용 MCP 묶음 server 의 최소 엔트리포인트를 설계한다.
+- 시작된 `workflow_kit/common` 추출을 결과 payload builder 와 orchestration helper 까지 확장하고 읽기 전용 MCP 묶음 server 의 최소 엔트리포인트를 설계한다.
 
 권장 대상:
 
 - profile / backlog / handoff 파서
 - metadata / link / quickstart 검사 유틸
+- session/doc-sync/validation/orchestration helper
 - `latest_backlog`, `check_doc_metadata`, `check_doc_links`, `suggest_impacted_docs`, `check_quickstart_stale_links`
 
 완료 기준:
@@ -185,6 +186,7 @@
 - 기존 스크립트가 공통 라이브러리를 호출하도록 재구성된다.
 - 읽기 전용 MCP server 1호 범위가 문서 수준이 아니라 코드 구조 수준으로 시작된다.
 - `workflow_kit/` 패키지 루트가 향후 server 내부 구현에서도 재사용 가능한 구조로 정리된다.
+- runner 들의 subprocess 호출과 단계별 입력 조립도 공통 helper 를 재사용한다.
 
 ### 우선순위 4: 실제 적용 검증
 
@@ -214,7 +216,7 @@
 
 - 기존 프로젝트 온보딩 흐름 문서 보강
 - assessment 와 후속 skill 연결 확인
-- profile/backlog 파서 package 추출 또는 읽기 전용 MCP server 엔트리포인트 초안 착수
+- output/orchestration helper package 추출 또는 읽기 전용 MCP server 엔트리포인트 초안 착수
 
 ## 7. 단계별 완료 기준
 
@@ -240,7 +242,7 @@
 2. 공통 실패 계약과 schema 정리
 3. 기존 프로젝트 온보딩 입출력 계약 보강
 4. 실제 저장소 시범 적용 대상 선정
-5. 공통 library / 읽기 전용 MCP server 착수
+5. 공통 library / orchestration helper / 읽기 전용 MCP server 착수
 
 이 순서는 현재 저장소가 가진 자산을 “프로토타입 정렬 -> 온보딩 계약 보강 -> 실사용 검증 -> package/server 승격” 순서로 확장하는 데 초점을 둔다.
 

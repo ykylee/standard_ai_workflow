@@ -4,7 +4,7 @@
 - 범위: 승격 판단 기준, 우선 승격 후보, 보류 후보, package/server 분리 원칙, 단계별 권장 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 배포 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-04-21
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_release_spec.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
@@ -74,8 +74,16 @@
 - `workflow_kit/common/paths.py`
 - `workflow_kit/common/markdown.py`
 - `workflow_kit/common/docs.py`
+- `workflow_kit/common/project_docs.py`
+- `workflow_kit/common/change_types.py`
+- `workflow_kit/common/normalize.py`
+- `workflow_kit/common/reconcile.py`
+- `workflow_kit/common/planning.py`
+- `workflow_kit/common/doc_sync.py`
+- `workflow_kit/common/session_outputs.py`
+- `workflow_kit/common/runner.py`
 
-즉, 읽기 전용 MCP 일부에서 사용하는 공통 경로/Markdown/메타데이터 유틸은 이미 package 루트로 추출이 시작됐다.
+즉, 읽기 전용 MCP 일부에서 사용하는 공통 경로/Markdown/메타데이터 유틸뿐 아니라 skill 파서, 정규화, 요약 생성, orchestration runner helper 까지 package 루트로 옮겨지기 시작했다.
 
 ### 3.2 우선 MCP server 후보
 

@@ -5,73 +5,26 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
 TOOL_VERSION = "prototype-v1"
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.runner import current_python_executable, repeated_flag_args, run_json_command
+from workflow_kit.common.text import (
+    extract_list_after_label,
+    extract_section_value,
+    iter_lines,
+)
 def repo_path(*parts: str) -> Path:
     return REPO_ROOT.joinpath(*parts).resolve()
-
-
-def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8")
-
-
-def iter_lines(path: Path) -> list[str]:
-    return read_text(path).splitlines()
-
-
-def resolve_existing_path(raw: str) -> Path:
-    path = Path(raw).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"path does not exist: {path}")
-    return path
-
-
-def normalize_inline_code(value: str) -> str:
-    normalized = value.strip()
-    while normalized.startswith("`"):
-        normalized = normalized[1:].strip()
-    while normalized.endswith("`"):
-        normalized = normalized[:-1].strip()
-    return normalized
-
-
-def extract_section_value(lines: list[str], label: str) -> str | None:
-    prefix = f"- {label}:"
-    for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
-    return None
-
-
-def extract_list_after_label(lines: list[str], label: str) -> list[str]:
-    prefix = f"- {label}:"
-    results: list[str] = []
-    capture = False
-    for line in lines:
-        stripped = line.strip()
-        if stripped == prefix:
-            capture = True
-            continue
-        if capture:
-            if stripped.startswith("## "):
-                break
-            if stripped.startswith("- "):
-                results.append(normalize_inline_code(stripped[2:].strip()))
-            elif stripped:
-                break
-    return results
 
 
 def parse_repository_assessment(path: Path) -> dict[str, Any]:
@@ -92,19 +45,6 @@ def parse_repository_assessment(path: Path) -> dict[str, Any]:
         "test_dirs": extract_section_value(lines, "테스트 디렉터리 후보"),
         "sample_paths": extract_list_after_label(lines, "분석 중 확인한 경로 샘플"),
     }
-
-
-def run_json(cmd: list[str]) -> dict[str, Any]:
-    completed = subprocess.run(
-        cmd,
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return json.loads(completed.stdout)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the existing-project onboarding flow after bootstrap generation."
@@ -125,7 +65,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    python = sys.executable
+    python = current_python_executable()
 
     project_profile_path = resolve_existing_path(args.project_profile_path)
     session_handoff_path = resolve_existing_path(args.session_handoff_path)
@@ -150,7 +90,7 @@ def main() -> int:
             "warnings": [],
         }
     else:
-        latest_backlog_data = run_json(
+        latest_backlog_data = run_json_command(
             [
                 python,
                 str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
@@ -158,11 +98,12 @@ def main() -> int:
                 str(work_backlog_index_path),
                 "--backlog-dir-path",
                 str(backlog_dir_path),
-            ]
+            ],
+            REPO_ROOT,
         )
         latest_backlog_path = Path(latest_backlog_data["latest_backlog_path"]).resolve()
 
-    session_start = run_json(
+    session_start = run_json_command(
         [
             python,
             str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
@@ -174,10 +115,11 @@ def main() -> int:
             str(project_profile_path),
             "--latest-backlog-path",
             str(latest_backlog_path),
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    validation_plan = run_json(
+    validation_plan = run_json_command(
         [
             python,
             str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
@@ -187,13 +129,14 @@ def main() -> int:
             str(session_handoff_path),
             "--latest-backlog-path",
             str(latest_backlog_path),
-            *(sum([["--changed-file", item] for item in args.changed_files], [])),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--change-summary",
             args.change_summary,
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    code_index_update = run_json(
+    code_index_update = run_json_command(
         [
             python,
             str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
@@ -203,10 +146,11 @@ def main() -> int:
             str(work_backlog_index_path),
             "--session-handoff-path",
             str(session_handoff_path),
-            *(sum([["--changed-file", item] for item in args.changed_files], [])),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--change-summary",
             args.change_summary,
-        ]
+        ],
+        REPO_ROOT,
     )
 
     onboarding_summary = {

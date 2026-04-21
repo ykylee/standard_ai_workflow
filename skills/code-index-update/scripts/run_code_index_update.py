@@ -14,24 +14,10 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit.common.change_types import classify_index_change_kinds, dedupe
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import declared_doc_path, path_exists_relative, resolve_existing_path
 from workflow_kit.common.project_docs import parse_project_profile_core
 
 TOOL_VERSION = "prototype-v1"
-
-def path_exists_relative(base: Path, raw: str | None) -> Path | None:
-    if not raw:
-        return None
-    candidate = (base / raw).resolve()
-    if candidate.exists():
-        return candidate
-    return None
-
-
-def declared_doc_path(base: Path, raw: str | None) -> str | None:
-    if not raw:
-        return None
-    return str((base / raw).resolve())
 def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
     targets: list[str] = []
     for changed in changed_files:

@@ -4,7 +4,7 @@
 - 범위: 현재 포함된 공통 모듈, 초기 사용처, 향후 확장 방향
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-04-21
 - 관련 문서: `../core/prototype_promotion_scope.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -19,6 +19,12 @@
 - `common.text`
 - `common.project_docs`
 - `common.change_types`
+- `common.normalize`
+- `common.reconcile`
+- `common.planning`
+- `common.doc_sync`
+- `common.session_outputs`
+- `common.runner`
 
 이 모듈들은 아래 책임을 가진다.
 
@@ -27,6 +33,12 @@
 - 문서 메타데이터 누락 필드 확인
 - project profile / handoff / backlog 파싱
 - changed-file 분류와 validation change type 추정
+- 문자열 정규화와 공통 dedupe
+- handoff/backlog 상태 비교 설명 생성
+- validation level 계산과 보수적 task status 결정
+- doc-sync 계열 문서 후보 조립
+- session 요약/권장 액션/merge reconcile note 조립
+- JSON subprocess 실행과 반복 flag 조립
 
 ## 3. 현재 사용처
 
@@ -47,14 +59,18 @@
 - `merge-doc-reconcile`
 - `code-index-update`
 
+현재 아래 orchestration script 도 `workflow_kit.common` 을 사용한다.
+
+- `scripts/run_existing_project_onboarding.py`
+- `scripts/run_demo_workflow.py`
+
 즉, 읽기 전용 MCP 1차 묶음의 공통 기반이 이제 스크립트 내부 복사 로직이 아니라 package 모듈로 이동하기 시작했다.
 
 ## 4. 다음 확장 후보
 
-- project profile / handoff / backlog 파서
-- changed-file 분류 유틸
-- validation-plan 추천 로직
-- code-index-update 추천 로직
+- result payload builder 추가 정리
+- runner 단계 조립 함수 공통화
+- 읽기 전용 MCP server 엔트리포인트 초안 연결
 
 ## 5. 원칙
 

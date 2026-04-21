@@ -12,3 +12,17 @@ def resolve_existing_path(raw: str) -> Path:
         raise FileNotFoundError(f"path does not exist: {path}")
     return path
 
+
+def path_exists_relative(base: Path, raw: str | None) -> Path | None:
+    if not raw:
+        return None
+    candidate = (base / raw).resolve()
+    if candidate.exists():
+        return candidate
+    return None
+
+
+def declared_doc_path(base: Path, raw: str | None) -> str | None:
+    if not raw:
+        return None
+    return str((base / raw).resolve())

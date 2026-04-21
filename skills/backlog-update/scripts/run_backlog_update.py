@@ -16,18 +16,13 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
+from workflow_kit.common.normalize import normalize_backticked
 
 TOOL_VERSION = "prototype-v1"
 
 
-TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
-
-def normalize_item(value: str) -> str:
-    normalized = value.strip()
-    if normalized.startswith("`") and normalized.endswith("`"):
-        normalized = normalized[1:-1].strip()
-    return " ".join(normalized.split())
 def infer_backlog_path(project_profile_path: Path, backlog_dir: str | None, target_date: str) -> Path:
     base_dir = project_profile_path.parent
     if backlog_dir:
@@ -42,24 +37,6 @@ def suggest_next_task_id(tasks: list[dict[str, Any]]) -> str:
         if match:
             max_num = max(max_num, int(match.group(1)))
     return f"TASK-{max_num + 1:03d}"
-
-
-def determine_status(
-    requested_status: str | None,
-    validation_result: str | None,
-    operation_type: str,
-) -> tuple[str, list[str]]:
-    warnings: list[str] = []
-    status = requested_status or ("planned" if operation_type == "create_entry" else "in_progress")
-    if status not in {"planned", "in_progress", "blocked", "done"}:
-        warnings.append(f"알 수 없는 상태 `{status}` 는 사용할 수 없어 `planned` 로 대체한다.")
-        status = "planned"
-    if status == "done" and not validation_result:
-        warnings.append("검증 결과가 없으므로 `done` 상태는 초안에서 `in_progress` 로 낮춘다.")
-        status = "in_progress"
-    return status, warnings
-
-
 def build_draft_entry(
     *,
     task_id: str,
@@ -205,7 +182,7 @@ def main() -> int:
                 warnings.append(f"`{args.task_id}` 항목을 대상 backlog 에서 찾지 못했다.")
 
     task_id = args.task_id or suggest_next_task_id(existing_tasks)
-    status, status_warnings = determine_status(args.status, args.validation_result, operation_type)
+    status, status_warnings = determine_conservative_task_status(args.status, args.validation_result, operation_type)
     warnings.extend(status_warnings)
 
     progress_note = args.progress_note
@@ -228,7 +205,7 @@ def main() -> int:
         "risks": args.risks,
         "follow_up": args.follow_up,
     }
-    fields_requiring_confirmation = detect_confirmation_fields(fields_data)
+    fields_requiring_confirmation = [normalize_backticked(item) for item in detect_confirmation_fields(fields_data)]
 
     draft_entry = build_draft_entry(
         task_id=task_id,

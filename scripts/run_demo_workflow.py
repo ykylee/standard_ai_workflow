@@ -5,17 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
 TOOL_VERSION = "prototype-v1"
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit.common.runner import current_python_executable, repeated_flag_args, run_json_command
 def repo_path(*parts: str) -> Path:
     return REPO_ROOT.joinpath(*parts).resolve()
 
@@ -52,19 +53,6 @@ EXAMPLE_PRESETS = {
         "merge_result_summary": "평가 리포트와 실험 메타데이터 문서가 함께 갱신된 브랜치 병합 후 재정리",
     },
 }
-
-
-def run_json(cmd: list[str]) -> dict[str, Any]:
-    completed = subprocess.run(
-        cmd,
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return json.loads(completed.stdout)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the workflow kit end-to-end demo.")
     parser.add_argument(
@@ -133,7 +121,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    python = sys.executable
+    python = current_python_executable()
 
     latest_backlog_data: dict[str, Any]
     if args.latest_backlog_path:
@@ -146,7 +134,7 @@ def main() -> int:
             "warnings": [],
         }
     else:
-        latest_backlog_data = run_json(
+        latest_backlog_data = run_json_command(
             [
                 python,
                 str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
@@ -154,11 +142,12 @@ def main() -> int:
                 args.work_backlog_index_path,
                 "--backlog-dir-path",
                 args.backlog_dir_path,
-            ]
+            ],
+            REPO_ROOT,
         )
     latest_backlog_path = latest_backlog_data.get("latest_backlog_path")
 
-    session_start = run_json(
+    session_start = run_json_command(
         [
             python,
             str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
@@ -169,10 +158,11 @@ def main() -> int:
             "--project-profile-path",
             args.project_profile_path,
             *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    backlog_update = run_json(
+    backlog_update = run_json_command(
         [
             python,
             str(repo_path("skills", "backlog-update", "scripts", "run_backlog_update.py")),
@@ -190,10 +180,11 @@ def main() -> int:
             args.task_brief,
             "--status",
             args.task_status,
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    doc_sync = run_json(
+    doc_sync = run_json_command(
         [
             python,
             str(repo_path("skills", "doc-sync", "scripts", "run_doc_sync.py")),
@@ -204,13 +195,14 @@ def main() -> int:
             "--work-backlog-index-path",
             args.work_backlog_index_path,
             *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            *sum([["--changed-file", item] for item in args.changed_files], []),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--change-summary",
             " / ".join(args.changed_files),
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    validation_plan = run_json(
+    validation_plan = run_json_command(
         [
             python,
             str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
@@ -219,13 +211,14 @@ def main() -> int:
             "--session-handoff-path",
             args.session_handoff_path,
             *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            *sum([["--changed-file", item] for item in args.changed_files], []),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--change-summary",
             " / ".join(args.changed_files),
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    code_index_update = run_json(
+    code_index_update = run_json_command(
         [
             python,
             str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
@@ -235,26 +228,28 @@ def main() -> int:
             args.work_backlog_index_path,
             "--session-handoff-path",
             args.session_handoff_path,
-            *sum([["--changed-file", item] for item in args.changed_files], []),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--change-summary",
             " / ".join(args.changed_files),
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    suggest_impacted_docs = run_json(
+    suggest_impacted_docs = run_json_command(
         [
             python,
             str(repo_path("mcp", "suggest-impacted-docs", "scripts", "run_suggest_impacted_docs.py")),
-            *sum([["--changed-file", item] for item in args.changed_files], []),
+            *repeated_flag_args("--changed-file", args.changed_files),
             "--session-handoff-path",
             args.session_handoff_path,
             *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
             "--work-backlog-index-path",
             args.work_backlog_index_path,
-        ]
+        ],
+        REPO_ROOT,
     )
 
-    merge_doc_reconcile = run_json(
+    merge_doc_reconcile = run_json_command(
         [
             python,
             str(repo_path("skills", "merge-doc-reconcile", "scripts", "run_merge_doc_reconcile.py")),
@@ -267,8 +262,9 @@ def main() -> int:
             *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
             "--merge-result-summary",
             args.merge_result_summary,
-            *sum([["--changed-file", item] for item in args.changed_files], []),
-        ]
+            *repeated_flag_args("--changed-file", args.changed_files),
+        ],
+        REPO_ROOT,
     )
 
     result = {

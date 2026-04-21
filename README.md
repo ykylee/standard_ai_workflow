@@ -4,7 +4,7 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서, 분리 체크리스트
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
 - 상태 진단 문서: `./core/project_status_assessment.md`
 - 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
@@ -15,6 +15,7 @@
 - 승격 범위 가이드: `./core/prototype_promotion_scope.md`
 - 설정 계층 가이드: `./core/workflow_configuration_layers.md`
 - 비침투적 주입 정책: `./core/workflow_global_injection_policy.md`
+- workflow kit 패키지 가이드: `./workflow_kit/README.md`
 
 ## 1. 이 폴더의 역할
 
@@ -40,6 +41,7 @@
 | `global-snippets/` | 하네스 전역 설정에 넣을 수 있는 비침투적 snippet 예시 |
 | `harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 |
 | `scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
+| `workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
 | `tests/` | 링크/템플릿/구현 smoke test 위치 |
 | `split_checklist.md` | 별도 프로젝트로 분리할 때 수행할 체크리스트 |
 
@@ -60,6 +62,7 @@
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
 | 출력 샘플 JSON | 사용 가능 | `examples/output_samples/` 참고 |
+| workflow kit package | 사용 가능 | `workflow_kit/common` 에 공통 파서/분류/helper 축적 중 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
@@ -164,6 +167,7 @@ python3 scripts/export_harness_package.py \
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
 - 출력 샘플 허브는 정리돼 있지만, 실패 출력 규칙과 `error_code` 수준 계약은 아직 더 고정할 필요가 있다.
+- `workflow_kit/common` 추출은 진행 중이지만, 아직 모든 skill/MCP 를 완전히 공통 라이브러리화한 상태는 아니다.
 
 ## 9. 수동 대체 원칙
 
@@ -183,6 +187,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 - 릴리스 규격: [core/workflow_release_spec.md](./core/workflow_release_spec.md)
 - 승격 범위 가이드: [core/prototype_promotion_scope.md](./core/prototype_promotion_scope.md)
+- workflow kit 패키지: [workflow_kit/README.md](./workflow_kit/README.md)
 - 설정 계층 가이드: [core/workflow_configuration_layers.md](./core/workflow_configuration_layers.md)
 - 비침투적 주입 정책: [core/workflow_global_injection_policy.md](./core/workflow_global_injection_policy.md)
 - 전역 snippet 허브: [global-snippets/README.md](./global-snippets/README.md)

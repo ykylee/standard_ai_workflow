@@ -56,12 +56,13 @@
 | skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 있음 |
 | MCP 프로토타입 | 사용 가능 | `mcp/` 및 MCP 데모 참고 |
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
-| 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py` 참고 |
+| 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
+| orchestrator/worker overlays | 사용 가능 | OpenCode worker 분화와 Codex 운영 패턴 문서화 포함 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
-| 출력 샘플 JSON | 사용 가능 | `examples/output_samples/` 참고 |
+| 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |
 | workflow kit package | 사용 가능 | `workflow_kit/common` 에 공통 파서/분류/helper 축적 중 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
@@ -161,15 +162,24 @@ python3 scripts/export_harness_package.py \
   --harness opencode
 ```
 
-## 8. 현재 한계
+## 8. 구현 현황 요약
+
+- skill 6종은 공통 `tool_version` 과 구조화된 실패 JSON (`status`, `error`, `error_code`, `warnings`, `source_context`) 패턴을 따른다.
+- 통합 runner 2종은 하위 step 결과를 중첩 payload 로 유지하면서 `warnings`, `orchestration_plan`, `source_context` 를 상위 메타데이터로 제공한다.
+- runner 는 하위 skill/MCP step 이 `status: "error"` 를 반환해도 상위 `workflow_step_failed` 형태로 감싸고, 실패한 step 이름과 upstream `error_code` 를 `source_context` 에 남긴다.
+- OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 운영 패턴을 문서/템플릿으로 배포한다.
+- `workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
+- `tests/check_*.py` 는 문서, bootstrap, harness export, output sample, validation/code-index, onboarding runner 까지 smoke 기준선을 제공한다.
+
+## 9. 현재 한계
 
 - 이 폴더는 배포용 문서 패키지이며, 실제 skill/MCP 구현 코드를 포함하지는 않는다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
-- 출력 샘플 허브는 정리돼 있지만, 실패 출력 규칙과 `error_code` 수준 계약은 아직 더 고정할 필요가 있다.
 - `workflow_kit/common` 추출은 진행 중이지만, 아직 모든 skill/MCP 를 완전히 공통 라이브러리화한 상태는 아니다.
+- 실제 GitHub Actions CI 연결과 다중 실제 저장소 적용 기록은 아직 저장소 내부에 포함되지 않았다.
 
-## 9. 수동 대체 원칙
+## 10. 수동 대체 원칙
 
 skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 가능해야 한다.
 
@@ -194,6 +204,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 샘플 도입 예시: [examples/README.md](./examples/README.md)
 - 하네스 허브: [harnesses/README.md](./harnesses/README.md)
 - end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
+  여기에는 메인 오케스트레이터와 `doc/code/validation` worker 분배 예시도 포함된다.
 - end-to-end MCP 데모: [examples/end_to_end_mcp_demo.md](./examples/end_to_end_mcp_demo.md)
 - 출력 샘플: [examples/output_samples/README.md](./examples/output_samples/README.md)
 - 스크립트 허브: [scripts/README.md](./scripts/README.md)

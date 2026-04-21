@@ -4,7 +4,7 @@
 - 범위: 문서 무결성 검사와 향후 skill/MCP/agent 구현 검증
 - 대상 독자: 개발자, 운영자, AI agent 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `../split_checklist.md`
 
 ## 현재 상태
@@ -14,6 +14,7 @@
 - 하네스 스텁 생성기를 확인하는 `check_scaffold_harness.py` 를 제공한다.
 - 하네스 패키지 export 를 확인하는 `check_export_harness_package.py` 를 제공한다.
 - 기존 프로젝트 bootstrap 후속 온보딩 흐름을 확인하는 `check_existing_project_onboarding.py` 를 제공한다.
+- demo runner 성공/실패 경로를 확인하는 `check_demo_workflow.py` 를 제공한다.
 - quickstart/README stale 링크 점검 MCP 를 확인하는 `check_quickstart_stale_links.py` 를 제공한다.
 - 현재 스크립트는 문서 무결성과 기본 생성 흐름이 깨지지 않았는지 빠르게 검사한다.
 
@@ -30,11 +31,15 @@
 - `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
 - `code-index-update` 프로토타입이 예시 프로젝트에서 색인 문서 후보와 stale 경고를 출력하는지 확인
 - `examples/output_samples/` 아래 JSON 샘플이 README 링크와 일치하고 유효한 JSON 인지 확인
+- demo runner 가 상위 `orchestration_plan`, `workflow_summary`, `source_context` 를 유지하는지 확인
+- demo runner 가 하위 step 실패를 top-level `workflow_step_failed` 로 감싸는지 확인
 - 기존 프로젝트 bootstrap 산출물을 입력으로 받아 onboarding runner 가 session-start, validation-plan, code-index-update 를 연결하는지 확인
+- onboarding runner 가 누락 입력 문서 시 top-level 구조화 error JSON 을 반환하는지 확인
 - quickstart/README 문서를 입력으로 받아 stale 링크 경고와 핵심 진입 문서 누락을 감지하는지 확인
 
 ## 실행 방법
 
+- 저장소 루트에서 `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
 - 저장소 루트에서 `python3 tests/check_docs.py`
 - 저장소 루트에서 `python3 tests/check_bootstrap.py`
 - 저장소 루트에서 `python3 tests/check_scaffold_harness.py`
@@ -42,6 +47,7 @@
 - 저장소 루트에서 `python3 tests/check_validation_plan.py`
 - 저장소 루트에서 `python3 tests/check_code_index_update.py`
 - 저장소 루트에서 `python3 tests/check_output_samples.py`
+- 저장소 루트에서 `python3 tests/check_demo_workflow.py`
 - 저장소 루트에서 `python3 tests/check_existing_project_onboarding.py`
 - 저장소 루트에서 `python3 tests/check_quickstart_stale_links.py`
 

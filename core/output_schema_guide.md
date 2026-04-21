@@ -4,7 +4,7 @@
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-04-21
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -45,7 +45,7 @@
 - 경고가 있어도 결과를 신뢰 가능한 구조로 남길 수 있으면 `status: "ok"` 를 유지하고, 메시지는 `warnings` 에 넣는다.
 - 부분 결과만 남기고 재검토가 강하게 필요한 경우 `status: "warning"` 을 사용할 수 있다.
 - 실패 시에는 `status: "error"` 와 `error`, `error_code` 를 함께 사용한다.
-- 현재 저장소의 실행형 프로토타입은 정상 출력에 `tool_version: "prototype-v1"` 을 공통으로 사용한다.
+- 현재 저장소의 실행형 프로토타입은 정상 출력에 `workflow_kit.__version__` 값을 공통 `tool_version` 으로 사용한다.
 - `stale_warnings`, `stale_index_warnings` 같은 도메인 전용 경고 필드를 쓰더라도, 같은 메시지를 `warnings` 에도 함께 반영해 공통 파이프라인이 읽을 수 있게 한다.
 
 ### 3.2 skill 출력 공통 필드
@@ -114,6 +114,14 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 }
 ```
 
+현재 반영 상태:
+
+- `session-start` 프로토타입은 누락 입력 또는 런타임 오류 시 위 구조를 따르는 `error` JSON 을 출력한다.
+- `validation-plan` 프로토타입은 누락 변경 입력, 누락 문서, 런타임 오류 시 위 구조를 따르는 `error` JSON 을 출력한다.
+- `code-index-update` 프로토타입은 누락 변경 입력, 누락 문서, 런타임 오류 시 위 구조를 따르는 `error` JSON 을 출력한다.
+- `backlog-update`, `doc-sync`, `merge-doc-reconcile` 프로토타입도 누락 문서 또는 런타임 오류 시 위 구조를 따르는 `error` JSON 을 출력한다.
+- 나머지 skill/MCP 프로토타입은 같은 패턴으로 순차 확장 예정이며, 그 전까지는 일부 예외 종료가 남아 있을 수 있다.
+
 ## 5. Skill 출력 계약
 
 ### 5.1 `session-start`
@@ -138,6 +146,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/session_start.acme_delivery_platform.json](../examples/output_samples/session_start.acme_delivery_platform.json)
+- [../examples/output_samples/session_start.error.missing_document.json](../examples/output_samples/session_start.error.missing_document.json)
 
 ### 5.2 `backlog-update`
 
@@ -163,6 +172,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/backlog_update.acme_delivery_platform.json](../examples/output_samples/backlog_update.acme_delivery_platform.json)
+- [../examples/output_samples/backlog_update.error.missing_document.json](../examples/output_samples/backlog_update.error.missing_document.json)
 
 ### 5.3 `doc-sync`
 
@@ -186,6 +196,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/doc_sync.acme_delivery_platform.json](../examples/output_samples/doc_sync.acme_delivery_platform.json)
+- [../examples/output_samples/doc_sync.error.missing_change_input.json](../examples/output_samples/doc_sync.error.missing_change_input.json)
 
 ### 5.4 `merge-doc-reconcile`
 
@@ -210,6 +221,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/merge_doc_reconcile.acme_delivery_platform.json](../examples/output_samples/merge_doc_reconcile.acme_delivery_platform.json)
+- [../examples/output_samples/merge_doc_reconcile.error.missing_document.json](../examples/output_samples/merge_doc_reconcile.error.missing_document.json)
 
 ### 5.5 `validation-plan`
 
@@ -233,6 +245,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/validation_plan.acme_delivery_platform.json](../examples/output_samples/validation_plan.acme_delivery_platform.json)
+- [../examples/output_samples/validation_plan.error.missing_change_input.json](../examples/output_samples/validation_plan.error.missing_change_input.json)
 
 ### 5.6 `code-index-update`
 
@@ -255,8 +268,81 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/code_index_update.research_eval_hub.json](../examples/output_samples/code_index_update.research_eval_hub.json)
+- [../examples/output_samples/code_index_update.error.missing_change_input.json](../examples/output_samples/code_index_update.error.missing_change_input.json)
 
-## 6. MCP 출력 계약
+## 6. Runner 출력 계약
+
+통합 runner 출력은 개별 skill/MCP 단계 결과를 그대로 중첩하면서, 오케스트레이터 관점의 상위 메타데이터를 추가하는 방식을 권장한다.
+
+runner 공통 필드:
+
+| 필드 | 의미 |
+| --- | --- |
+| `status` | runner 실행 결과 상태 |
+| `tool_version` | 현재 runner 버전 식별자 |
+| `warnings` | 하위 단계에서 집계한 상위 경고 목록 |
+| `orchestration_plan` | 메인 오케스트레이터와 worker 분배 메타데이터 |
+| `source_context` | runner 입력 경로와 step 실패 시점 추적 정보 |
+
+runner 실패 규칙:
+
+- 하위 skill/MCP step 이 `status: "error"` 를 반환하거나 비정상 종료하면 runner 도 `status: "error"` 로 감싼다.
+- 이때 runner 의 `error_code` 는 상위 분류용 코드로 유지하고, 실제 실패 step 이름과 upstream `error_code` 는 `source_context.failed_step`, `source_context.upstream_error_code` 로 남긴다.
+- 자식 step 이 이미 `warnings` 를 반환했다면 runner 실패 출력에서도 그대로 승계한다.
+
+### 6.1 `run_demo_workflow.py`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
+| `warnings` | 예 | `list[str]` | 하위 단계에서 집계한 상위 경고 |
+| `example_project` | 예 | `str` | 사용한 예시 프로젝트 이름 |
+| `project_profile_path` | 예 | `str` | 기준 프로젝트 프로파일 경로 |
+| `orchestration_plan` | 예 | `object` | 권장 worker 분배와 모델 분할 |
+| `latest_backlog` | 예 | `object` | latest backlog 단계 결과 |
+| `session_start` | 예 | `object` | session-start 단계 결과 |
+| `backlog_update` | 예 | `object` | backlog-update 단계 결과 |
+| `doc_sync` | 예 | `object` | doc-sync 단계 결과 |
+| `validation_plan` | 예 | `object` | validation-plan 단계 결과 |
+| `code_index_update` | 예 | `object` | code-index-update 단계 결과 |
+| `suggest_impacted_docs` | 예 | `object` | suggest-impacted-docs 단계 결과 |
+| `merge_doc_reconcile` | 예 | `object` | merge-doc-reconcile 단계 결과 |
+| `workflow_summary` | 예 | `object` | 상위 요약 필드 묶음 |
+| `source_context` | 예 | `object` | runner 입력 요약과 재현용 인자 묶음 |
+
+대표 샘플:
+
+- [../examples/output_samples/demo_workflow.acme_delivery_platform.json](../examples/output_samples/demo_workflow.acme_delivery_platform.json)
+- [../examples/output_samples/demo_workflow.error.missing_document.json](../examples/output_samples/demo_workflow.error.missing_document.json)
+
+### 6.2 `run_existing_project_onboarding.py`
+
+현재 출력 필드:
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
+| `warnings` | 예 | `list[str]` | 하위 단계에서 집계한 상위 경고 |
+| `onboarding_mode` | 예 | `str` | 현재 온보딩 흐름 식별자 |
+| `orchestration_plan` | 예 | `object` | 온보딩 초기 worker 분배와 모델 분할 |
+| `repository_assessment` | 예 | `object` | assessment 경로와 요약 |
+| `latest_backlog` | 예 | `object` | latest backlog 단계 결과 |
+| `session_start` | 예 | `object` | session-start 단계 결과 |
+| `validation_plan` | 예 | `object` | validation-plan 단계 결과 |
+| `code_index_update` | 예 | `object` | code-index-update 단계 결과 |
+| `onboarding_summary` | 예 | `object` | 상위 후속 작업 요약 |
+| `source_context` | 예 | `object` | runner 입력 경로와 변경 입력 요약 |
+
+대표 샘플:
+
+- [../examples/output_samples/existing_project_onboarding.acme_delivery_platform.json](../examples/output_samples/existing_project_onboarding.acme_delivery_platform.json)
+- [../examples/output_samples/existing_project_onboarding.error.missing_document.json](../examples/output_samples/existing_project_onboarding.error.missing_document.json)
+
+## 7. MCP 출력 계약
 
 ### 6.1 `latest_backlog`
 
@@ -327,7 +413,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 
 - [../examples/output_samples/suggest_impacted_docs.sample.json](../examples/output_samples/suggest_impacted_docs.sample.json)
 
-## 7. 다음 정리 권고
+## 8. 다음 정리 권고
 
 현재 가이드를 바탕으로 다음 두 작업을 권장한다.
 

@@ -4,7 +4,7 @@
 - 범위: `session-start`, `backlog-update`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `./README.md`, `./acme_delivery_platform/project_workflow_profile.md`, `./research_eval_hub/project_workflow_profile.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
 
 ## 1. 목적
@@ -16,6 +16,14 @@
 통합 실행 스크립트도 제공한다:
 
 - [../scripts/run_demo_workflow.py](../scripts/run_demo_workflow.py)
+
+현재 권장 운영 패턴은 아래와 같다.
+
+- 메인 오케스트레이터는 세션 기준선 복원, 우선순위 조정, 결과 통합, 사용자 보고를 담당한다.
+- `doc-worker` 는 문서 읽기/비교/초안 정리에 집중한다.
+- `code-worker` 는 범위가 명확한 코드/설정 수정에 집중한다.
+- `validation-worker` 는 검증 실행, 로그 확인, 증빙 수집에 집중한다.
+- 모델을 `main` + `small` 로 운영한다면 기본값은 `main orchestrator + small workers` 를 권장한다.
 
 ## 2. 준비 문서
 
@@ -42,7 +50,37 @@
 - [../skills/code-index-update/scripts/run_code_index_update.py](../skills/code-index-update/scripts/run_code_index_update.py)
 - [../skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py](../skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py)
 
-## 3. Step 1: Session Start
+## 3. 권장 운영 예시: Orchestrator + Workers
+
+실제 운영에서는 메인 오케스트레이터가 아래처럼 worker 를 호출하는 흐름을 권장한다.
+
+예시 시나리오:
+
+- 사용자 요청: "delivery sync 재시도 로직 수정 후 문서와 backlog 를 같이 정리해줘"
+
+권장 분배:
+
+1. 메인 오케스트레이터 (`main`)
+2. `doc-worker` (`small`)
+3. `code-worker` (`small`)
+4. `validation-worker` (`small`)
+
+권장 호출 흐름:
+
+1. 메인 오케스트레이터가 `session-start` 로 현재 기준선을 복원한다.
+2. `doc-worker` 에게 handoff, latest backlog, 관련 runbook 비교를 맡겨 영향 문서와 상태 불일치를 요약받는다.
+3. `code-worker` 에게 실제 코드 수정이나 설정 수정이 필요한 범위만 넘긴다.
+4. `validation-worker` 에게 quick test, smoke check, 로그 확인, 증빙 메모 수집을 맡긴다.
+5. 메인 오케스트레이터가 `doc-sync`, `validation-plan`, `code-index-update` 결과와 worker 요약을 합쳐 backlog/handoff 반영 방향을 정한다.
+6. 병합 직후라면 마지막에 `merge-doc-reconcile` 로 재확정 포인트를 정리한다.
+
+운영 메모:
+
+- 문서 대량 읽기와 코드 수정을 한 에이전트에 몰지 않으면 컨텍스트가 훨씬 덜 오염된다.
+- worker 는 원문 dump 대신 핵심 사실, draft, 리스크, follow-up 만 반환하는 편이 좋다.
+- 난도가 높아지면 특정 worker 만 일시적으로 `main` 모델로 승격하고, 기본값은 `small` 로 유지하는 편이 효율적이다.
+
+## 4. Step 1: Session Start
 
 세션 시작 시점에 현재 기준선을 복원한다.
 
@@ -61,7 +99,7 @@ python3 skills/session-start/scripts/run_session_start.py \
 - 다음에 읽을 문서 경로 추천
 - handoff 와 backlog 불일치 시 경고 출력
 
-## 4. Step 2: Backlog Update
+## 5. Step 2: Backlog Update
 
 세션에서 수행할 작업을 날짜별 backlog 초안으로 만든다.
 
@@ -97,7 +135,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 - `done` 상태 오판 방지 경고 출력
 - 사람이 직접 채워야 할 `fields_requiring_confirmation` 분리
 
-## 5. Step 3: Doc Sync
+## 6. Step 3: Doc Sync
 
 변경 파일을 기준으로 어떤 문서를 함께 봐야 하는지 추천한다.
 
@@ -131,7 +169,7 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
 - stale 가능성 경고 출력
 - 후속 검토 순서와 행동 제안 출력
 
-## 6. Step 4: Validation Plan
+## 7. Step 4: Validation Plan
 
 문서와 코드 변경을 기준으로 이번 세션의 검증 수준과 증빙 기대값을 구조화한다.
 
@@ -153,7 +191,7 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
 - 미실행 항목을 backlog 또는 handoff 에 남길지 판단할 힌트 출력
 - 환경 제약이나 승인 규칙 기반 경고 출력
 
-## 7. Step 5: Code Index Update
+## 8. Step 5: Code Index Update
 
 변경된 문서나 코드가 README, 운영 허브, backlog index 같은 색인 문서를 stale 하게 만들었는지 추천한다.
 
@@ -174,7 +212,7 @@ python3 skills/code-index-update/scripts/run_code_index_update.py \
 - 문서 구조 변경 가능성 신호 출력
 - 색인 문서 후속 액션 추천 출력
 
-## 8. Step 6: Merge Doc Reconcile
+## 9. Step 6: Merge Doc Reconcile
 
 병합 이후 상태 문서와 허브 문서의 재확정 포인트를 정리한다.
 
@@ -196,7 +234,7 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 - 재확정 포인트와 재정리 메모 초안 출력
 - 병합 후 검증 미완료 상태 경고 출력
 
-## 9. 추천 읽기 순서
+## 10. 추천 읽기 순서
 
 이 저장소를 처음 보는 사람에게는 아래 순서를 권장한다.
 
@@ -218,7 +256,7 @@ python3 scripts/run_demo_workflow.py
 python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 ```
 
-## 10. 현재 한계
+## 11. 현재 한계
 
 - 예시 프로젝트 문서 구조는 단순화된 가상 사례다.
 - 프로토타입은 JSON 추천과 초안 생성 단계까지이며 문서를 직접 수정하지 않는다.

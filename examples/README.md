@@ -4,7 +4,7 @@
 - 범위: 향후 추가할 예시 문서와 샘플 프로젝트 프로파일
 - 대상 독자: 개발자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `../templates/project_workflow_profile_template.md`
 
 ## 현재 상태
@@ -38,6 +38,7 @@
 - 먼저 프로젝트 프로파일을 읽고 저장소별 규칙이 어떻게 채워지는지 본다.
 - 그다음 handoff 와 backlog 를 읽어 세션 시작 흐름이 실제로 어떻게 이어지는지 확인한다.
 - 프로토타입 skill 이 실제로 어떻게 이어지는지 보려면 `end_to_end_skill_demo.md` 를 읽고 명령을 순서대로 실행한다.
+- 메인 오케스트레이터가 `doc-worker`, `code-worker`, `validation-worker` 를 어떻게 분배하면 좋은지 보려면 `end_to_end_skill_demo.md` 의 운영 예시 섹션을 먼저 읽는다.
 - 프로토타입 MCP 가 실제로 어떻게 이어지는지 보려면 `end_to_end_mcp_demo.md` 를 읽고 명령을 순서대로 실행한다.
 - bootstrap 생성물이 어떤 문구를 기본으로 포함하는지 보려면 `bootstrap_output_samples.md` 를 먼저 확인한다.
 - 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

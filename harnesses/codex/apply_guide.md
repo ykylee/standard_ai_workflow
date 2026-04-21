@@ -67,6 +67,8 @@
 - 내부 사고 과정, 임시 분류, 중간 reasoning 은 모델이 효율적으로 처리하게 두고, 사용자에게는 필요한 결론만 짧게 전달하도록 한다.
 - 진행 업데이트는 짧고 목적 지향적으로 유지하고, 이미 확인한 사실을 반복해서 길게 설명하지 않는다.
 - handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 컨텍스트 누적을 줄인다.
+- Codex 에서도 가능한 경우 메인 에이전트는 조정/통합에 집중하고, bounded scope 읽기/쓰기/검증은 worker 성격의 서브 에이전트로 분리하는 운영 패턴을 권장한다.
+- `main`/`small` 모델 구조를 운영한다면, 메인 에이전트는 `main`, 문서/코드/검증 성격의 bounded scope 서브 에이전트는 `small` 을 기본값으로 두는 편이 효율적이다.
 
 ## 3. 신규 프로젝트 적용 순서
 
@@ -87,6 +89,8 @@ python3 scripts/bootstrap_workflow_kit.py \
    이때 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 원칙도 함께 넣는 것을 권장한다.
 4. `.codex/config.toml.example` 를 참고해 필요한 Codex 전역 설정을 수동 반영할지 결정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/codex/config.toml.snippet](../../global-snippets/codex/config.toml.snippet) 도 함께 검토한다.
+   Codex 는 project-local agent permission 분리를 직접 제공하지 않으므로, 메인/worker 역할 분리는 `AGENTS.md` 운영 원칙으로 명시하는 방식을 우선 사용한다.
+   worker 는 문서 비교, bounded code edit, 검증 로그 수집처럼 역할을 나눠 호출하면 컨텍스트 절약 효과가 더 크다.
 5. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
 
 ## 4. 작업 중인 프로젝트 적용 순서
@@ -107,6 +111,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 3. `project_workflow_profile.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `AGENTS.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
    작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토한다.
+   가능하면 메인 에이전트가 직접 모든 읽기/쓰기를 떠안지 않도록, bounded scope worker 호출 원칙도 이 단계에서 같이 검토한다.
 5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
 
 ## 5. Codex 에서 첫 세션 시작하는 방법

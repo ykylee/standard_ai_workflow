@@ -12,10 +12,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.markdown import markdown_targets, rel_link_from_doc, resolve_relative_target
 from workflow_kit.common.paths import resolve_existing_path
-
-TOOL_VERSION = "prototype-v1"
 
 
 def main() -> int:

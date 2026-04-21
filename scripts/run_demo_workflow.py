@@ -9,14 +9,25 @@ import sys
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "prototype-v1"
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from workflow_kit.common.runner import current_python_executable, repeated_flag_args, run_json_command
+from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.runner import (
+    build_orchestration_plan,
+    build_step_error_context,
+    build_worker_assignment,
+    collect_step_warnings,
+    current_python_executable,
+    repeated_flag_args,
+    run_json_command,
+    WorkflowStepError,
+)
+
+
 def repo_path(*parts: str) -> Path:
     return REPO_ROOT.joinpath(*parts).resolve()
 
@@ -122,156 +133,257 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     python = current_python_executable()
+    source_context = {
+        "example_project": args.example_project,
+        "project_profile_path": str(Path(args.project_profile_path).resolve()),
+        "session_handoff_path": str(Path(args.session_handoff_path).resolve()),
+        "work_backlog_index_path": str(Path(args.work_backlog_index_path).resolve()),
+        "backlog_dir_path": str(Path(args.backlog_dir_path).resolve()),
+        "latest_backlog_path": str(Path(args.latest_backlog_path).resolve()) if args.latest_backlog_path else None,
+        "task_id": args.task_id,
+        "task_name": args.task_name,
+        "task_brief": args.task_brief,
+        "task_status": args.task_status,
+        "changed_files": args.changed_files,
+        "merge_result_summary": args.merge_result_summary,
+    }
 
-    latest_backlog_data: dict[str, Any]
-    if args.latest_backlog_path:
-        latest_backlog_path = Path(args.latest_backlog_path).resolve()
-        latest_backlog_data = {
-            "status": "ok",
-            "tool_version": TOOL_VERSION,
-            "latest_backlog_path": str(latest_backlog_path),
-            "candidates": [str(latest_backlog_path)],
-            "warnings": [],
-        }
-    else:
-        latest_backlog_data = run_json_command(
+    try:
+        latest_backlog_data: dict[str, Any]
+        if args.latest_backlog_path:
+            latest_backlog_path = Path(args.latest_backlog_path).resolve()
+            latest_backlog_data = {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
+                "latest_backlog_path": str(latest_backlog_path),
+                "candidates": [str(latest_backlog_path)],
+                "warnings": [],
+            }
+        else:
+            latest_backlog_data = run_json_command(
+                [
+                    python,
+                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                    "--work-backlog-index-path",
+                    args.work_backlog_index_path,
+                    "--backlog-dir-path",
+                    args.backlog_dir_path,
+                ],
+                REPO_ROOT,
+                step_name="latest_backlog",
+            )
+        latest_backlog_path = latest_backlog_data.get("latest_backlog_path")
+
+        session_start = run_json_command(
             [
                 python,
-                str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
+                "--session-handoff-path",
+                args.session_handoff_path,
                 "--work-backlog-index-path",
                 args.work_backlog_index_path,
-                "--backlog-dir-path",
-                args.backlog_dir_path,
+                "--project-profile-path",
+                args.project_profile_path,
+                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
             ],
             REPO_ROOT,
+            step_name="session_start",
         )
-    latest_backlog_path = latest_backlog_data.get("latest_backlog_path")
 
-    session_start = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
-            "--session-handoff-path",
-            args.session_handoff_path,
-            "--work-backlog-index-path",
-            args.work_backlog_index_path,
-            "--project-profile-path",
-            args.project_profile_path,
-            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-        ],
-        REPO_ROOT,
+        backlog_update = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "backlog-update", "scripts", "run_backlog_update.py")),
+                "--project-profile-path",
+                args.project_profile_path,
+                "--daily-backlog-path",
+                latest_backlog_path or "",
+                "--mode",
+                "update",
+                "--task-id",
+                args.task_id,
+                "--task-name",
+                args.task_name,
+                "--task-brief",
+                args.task_brief,
+                "--status",
+                args.task_status,
+            ],
+            REPO_ROOT,
+            step_name="backlog_update",
+        )
+
+        doc_sync = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "doc-sync", "scripts", "run_doc_sync.py")),
+                "--project-profile-path",
+                args.project_profile_path,
+                "--session-handoff-path",
+                args.session_handoff_path,
+                "--work-backlog-index-path",
+                args.work_backlog_index_path,
+                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--change-summary",
+                " / ".join(args.changed_files),
+            ],
+            REPO_ROOT,
+            step_name="doc_sync",
+        )
+
+        validation_plan = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
+                "--project-profile-path",
+                args.project_profile_path,
+                "--session-handoff-path",
+                args.session_handoff_path,
+                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--change-summary",
+                " / ".join(args.changed_files),
+            ],
+            REPO_ROOT,
+            step_name="validation_plan",
+        )
+
+        code_index_update = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
+                "--project-profile-path",
+                args.project_profile_path,
+                "--work-backlog-index-path",
+                args.work_backlog_index_path,
+                "--session-handoff-path",
+                args.session_handoff_path,
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--change-summary",
+                " / ".join(args.changed_files),
+            ],
+            REPO_ROOT,
+            step_name="code_index_update",
+        )
+
+        suggest_impacted_docs = run_json_command(
+            [
+                python,
+                str(repo_path("mcp", "suggest-impacted-docs", "scripts", "run_suggest_impacted_docs.py")),
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--session-handoff-path",
+                args.session_handoff_path,
+                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                "--work-backlog-index-path",
+                args.work_backlog_index_path,
+            ],
+            REPO_ROOT,
+            step_name="suggest_impacted_docs",
+        )
+
+        merge_doc_reconcile = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "merge-doc-reconcile", "scripts", "run_merge_doc_reconcile.py")),
+                "--project-profile-path",
+                args.project_profile_path,
+                "--session-handoff-path",
+                args.session_handoff_path,
+                "--work-backlog-index-path",
+                args.work_backlog_index_path,
+                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                "--merge-result-summary",
+                args.merge_result_summary,
+                *repeated_flag_args("--changed-file", args.changed_files),
+            ],
+            REPO_ROOT,
+            step_name="merge_doc_reconcile",
+        )
+    except WorkflowStepError as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=exc.error,
+            error_code="workflow_step_failed",
+            warnings=list(exc.payload.get("warnings", [])) if exc.payload else [],
+            source_context=build_step_error_context(step_error=exc, source_context=source_context),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+    except Exception as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=str(exc),
+            error_code="demo_workflow_runtime_error",
+            warnings=[],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
+    warnings = collect_step_warnings(
+        latest_backlog_data,
+        session_start,
+        backlog_update,
+        doc_sync,
+        validation_plan,
+        code_index_update,
+        suggest_impacted_docs,
+        merge_doc_reconcile,
     )
 
-    backlog_update = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "backlog-update", "scripts", "run_backlog_update.py")),
-            "--project-profile-path",
-            args.project_profile_path,
-            "--daily-backlog-path",
-            latest_backlog_path or "",
-            "--mode",
-            "update",
-            "--task-id",
-            args.task_id,
-            "--task-name",
-            args.task_name,
-            "--task-brief",
-            args.task_brief,
-            "--status",
-            args.task_status,
+    orchestration_plan = build_orchestration_plan(
+        model_split={
+            "orchestrator": "main",
+            "doc_worker": "small",
+            "code_worker": "small",
+            "validation_worker": "small",
+        },
+        worker_assignments=[
+            build_worker_assignment(
+                worker="doc-worker",
+                model="small",
+                responsibilities=[
+                    "session_handoff 와 latest backlog 비교",
+                    "영향 문서와 허브 문서 후보 요약",
+                    "문서 초안 또는 상태 불일치 메모 정리",
+                ],
+                backing_steps=["session_start", "doc_sync", "merge_doc_reconcile"],
+            ),
+            build_worker_assignment(
+                worker="code-worker",
+                model="small",
+                responsibilities=[
+                    "범위가 명확한 코드/설정 수정",
+                    "관련 파일 최소 범위 확인",
+                    "수정 리스크와 follow-up 요약",
+                ],
+                backing_steps=["backlog_update"],
+            ),
+            build_worker_assignment(
+                worker="validation-worker",
+                model="small",
+                responsibilities=[
+                    "검증 명령 실행 또는 실행 후보 점검",
+                    "로그와 증빙 수집",
+                    "미실행 사유와 기록 위치 정리",
+                ],
+                backing_steps=["validation_plan", "code_index_update"],
+            ),
         ],
-        REPO_ROOT,
-    )
-
-    doc_sync = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "doc-sync", "scripts", "run_doc_sync.py")),
-            "--project-profile-path",
-            args.project_profile_path,
-            "--session-handoff-path",
-            args.session_handoff_path,
-            "--work-backlog-index-path",
-            args.work_backlog_index_path,
-            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--change-summary",
-            " / ".join(args.changed_files),
+        integration_notes=[
+            "메인 오케스트레이터는 worker 결과를 통합해 backlog/handoff 반영 방향을 최종 결정한다.",
+            "복잡한 설계 변경이나 높은 회귀 위험이 있으면 특정 worker 만 일시적으로 main 모델로 승격할 수 있다.",
         ],
-        REPO_ROOT,
-    )
-
-    validation_plan = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
-            "--project-profile-path",
-            args.project_profile_path,
-            "--session-handoff-path",
-            args.session_handoff_path,
-            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--change-summary",
-            " / ".join(args.changed_files),
-        ],
-        REPO_ROOT,
-    )
-
-    code_index_update = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
-            "--project-profile-path",
-            args.project_profile_path,
-            "--work-backlog-index-path",
-            args.work_backlog_index_path,
-            "--session-handoff-path",
-            args.session_handoff_path,
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--change-summary",
-            " / ".join(args.changed_files),
-        ],
-        REPO_ROOT,
-    )
-
-    suggest_impacted_docs = run_json_command(
-        [
-            python,
-            str(repo_path("mcp", "suggest-impacted-docs", "scripts", "run_suggest_impacted_docs.py")),
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--session-handoff-path",
-            args.session_handoff_path,
-            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            "--work-backlog-index-path",
-            args.work_backlog_index_path,
-        ],
-        REPO_ROOT,
-    )
-
-    merge_doc_reconcile = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "merge-doc-reconcile", "scripts", "run_merge_doc_reconcile.py")),
-            "--project-profile-path",
-            args.project_profile_path,
-            "--session-handoff-path",
-            args.session_handoff_path,
-            "--work-backlog-index-path",
-            args.work_backlog_index_path,
-            *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
-            "--merge-result-summary",
-            args.merge_result_summary,
-            *repeated_flag_args("--changed-file", args.changed_files),
-        ],
-        REPO_ROOT,
     )
 
     result = {
         "status": "ok",
         "tool_version": TOOL_VERSION,
+        "warnings": warnings,
         "example_project": args.example_project,
         "project_profile_path": str(Path(args.project_profile_path).resolve()),
+        "orchestration_plan": orchestration_plan,
         "latest_backlog": latest_backlog_data,
         "session_start": session_start,
         "backlog_update": backlog_update,
@@ -288,6 +400,7 @@ def main() -> int:
             "priority_index_candidates": code_index_update.get("priority_index_candidates", []),
             "reconcile_targets": merge_doc_reconcile.get("reconcile_targets", []),
         },
+        "source_context": source_context,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

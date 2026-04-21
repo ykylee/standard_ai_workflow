@@ -856,6 +856,22 @@ def opencode_agent_path(paths: Paths) -> Path:
     return paths.target_root / ".opencode" / "agents" / "workflow-orchestrator.md"
 
 
+def opencode_worker_agent_path(paths: Paths) -> Path:
+    return paths.target_root / ".opencode" / "agents" / "workflow-worker.md"
+
+
+def opencode_doc_worker_agent_path(paths: Paths) -> Path:
+    return paths.target_root / ".opencode" / "agents" / "workflow-doc-worker.md"
+
+
+def opencode_code_worker_agent_path(paths: Paths) -> Path:
+    return paths.target_root / ".opencode" / "agents" / "workflow-code-worker.md"
+
+
+def opencode_validation_worker_agent_path(paths: Paths) -> Path:
+    return paths.target_root / ".opencode" / "agents" / "workflow-validation-worker.md"
+
+
 def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
     harness_note = (
         "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
@@ -908,6 +924,9 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 - Codex 는 프로젝트 루트의 `AGENTS.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
 - OpenAI 관련 질문이 나오면 OpenAI 문서 MCP 를 우선 사용하는 구성을 권장한다.
+- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 worker 성격의 서브 에이전트로 분리하는 패턴을 권장한다.
+- worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
+- `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
 - {harness_note}
 """
 
@@ -944,6 +963,22 @@ def render_opencode_config(args: argparse.Namespace, paths: Paths) -> str:
                             "workflow-*": "allow",
                         }
                     },
+                },
+                "workflow-worker": {
+                    "description": "Scoped worker for implementation, draft writing, and verification tasks",
+                    "prompt": "{file:.opencode/agents/workflow-worker.md}",
+                },
+                "workflow-doc-worker": {
+                    "description": "Scoped worker for document reading, comparison, and draft updates",
+                    "prompt": "{file:.opencode/agents/workflow-doc-worker.md}",
+                },
+                "workflow-code-worker": {
+                    "description": "Scoped worker for bounded code edits and implementation tasks",
+                    "prompt": "{file:.opencode/agents/workflow-code-worker.md}",
+                },
+                "workflow-validation-worker": {
+                    "description": "Scoped worker for checks, logs, and validation evidence collection",
+                    "prompt": "{file:.opencode/agents/workflow-validation-worker.md}",
                 }
             },
             "mcp": {
@@ -1002,6 +1037,7 @@ permission:
     "git status*": allow
     "git diff*": allow
     "rg *": allow
+    "ls *": allow
   webfetch: ask
 ---
 
@@ -1030,6 +1066,165 @@ User-facing workflow rules:
 - Keep code, commands, file paths, config keys, and external system names in their original form when useful.
 - Use concise progress updates and avoid long repeated reasoning in user-visible messages.
 - Keep internal processing compact and preserve only the facts needed for the next step or next session.
+- Use sub-agents aggressively for file exploration, comparisons, log inspection, and draft generation when that helps reduce context pollution.
+- Keep the main orchestrator focused on coordination, prioritization, integration, and the final user-facing report.
+- Separate broad read-heavy exploration from write tasks when possible so one stream of work does not pollute another stream's context.
+- Treat this agent as a read-mostly coordinator: prefer delegating edits, broad scans, and heavy log review to sub-agents unless a small direct action is clearly cheaper.
+- Keep direct tool use narrow: use lightweight inspection commands for triage, and escalate to sub-agents for context-heavy reads or any substantial write path.
+- When delegating, give each worker a bounded scope, clear output, and a concise completion contract.
+- Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded code changes, and `workflow-validation-worker` for checks and evidence collection.
+- If your harness supports per-agent model selection, prefer the main model for this orchestrator and a smaller model for the worker agents by default.
+"""
+
+
+def render_opencode_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    return f"""---
+description: Executes bounded workflow tasks for this repository
+mode: subagent
+permission:
+  edit: ask
+  bash:
+    "*": ask
+    "git status*": allow
+    "git diff*": allow
+    "rg *": allow
+    "ls *": allow
+  webfetch: ask
+---
+
+You are a workflow worker for this repository.
+
+You are not the main orchestrator. Your role is to execute a tightly scoped task and return only the essential result.
+
+Before starting, read only the minimum relevant context:
+
+- `AGENTS.md`
+- the specific `ai-workflow/project/` document or file paths that match your assigned scope
+
+Project defaults:
+
+- Install: `{context['install_command']}`
+- Run: `{context['run_command']}`
+- Quick test: `{context['quick_test_command']}`
+- Isolated test: `{context['isolated_test_command']}`
+- Smoke check: `{context['smoke_check_command']}`
+
+Worker rules:
+
+- Stay within the assigned file or task scope.
+- Prefer doing the actual bounded work instead of producing long plans.
+- Summarize only the key facts, edits, risks, and follow-up items needed by the orchestrator.
+- Avoid pasting large raw outputs when a short summary is enough.
+- If you edit files, keep changes narrow and do not expand into unrelated cleanup.
+- If you run checks, report only the command intent and the result that matters.
+- Write user-facing drafts in Korean by default unless the assigned task clearly requires another language.
+"""
+
+
+def render_opencode_doc_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    return f"""---
+description: Executes bounded document-focused workflow tasks for this repository
+mode: subagent
+permission:
+  edit: ask
+  bash:
+    "*": ask
+    "git status*": allow
+    "git diff*": allow
+    "rg *": allow
+    "ls *": allow
+  webfetch: ask
+---
+
+You are a document-focused workflow worker for this repository.
+
+Your role is to read, compare, summarize, and update a tightly scoped set of documents without pulling unrelated context into the main orchestrator.
+
+Before starting, read only the minimum relevant context:
+
+- `AGENTS.md`
+- the assigned `ai-workflow/project/` documents or directly named doc paths
+
+Worker rules:
+
+- Stay within the assigned document scope.
+- Prefer concise comparisons, change notes, and draft text over long quotations.
+- Return only the facts, inconsistencies, draft wording, and follow-up items needed by the orchestrator.
+- Keep user-facing drafts in Korean by default.
+- If your harness supports per-agent model selection, this worker is a good default target for a smaller model.
+"""
+
+
+def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    return f"""---
+description: Executes bounded code-focused workflow tasks for this repository
+mode: subagent
+permission:
+  edit: ask
+  bash:
+    "*": ask
+    "git status*": allow
+    "git diff*": allow
+    "rg *": allow
+    "ls *": allow
+  webfetch: ask
+---
+
+You are a code-focused workflow worker for this repository.
+
+Your role is to implement a tightly scoped code or config change and report only the essential result back to the orchestrator.
+
+Before starting, read only the minimum relevant context:
+
+- `AGENTS.md`
+- the specific source files, tests, and workflow docs tied to your assigned scope
+
+Worker rules:
+
+- Stay within the assigned write scope.
+- Prefer shipping the bounded change over expanding into adjacent cleanup.
+- If you run checks, report what matters: pass/fail, key regression risk, and any deferred follow-up.
+- Avoid broad repository exploration unless explicitly assigned.
+- If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
+"""
+
+
+def render_opencode_validation_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    return f"""---
+description: Executes bounded validation and evidence-collection tasks for this repository
+mode: subagent
+permission:
+  edit: ask
+  bash:
+    "*": ask
+    "git status*": allow
+    "git diff*": allow
+    "rg *": allow
+    "ls *": allow
+  webfetch: ask
+---
+
+You are a validation-focused workflow worker for this repository.
+
+Your role is to run bounded checks, inspect logs, gather evidence, and return a compact validation summary to the orchestrator.
+
+Before starting, read only the minimum relevant context:
+
+- `AGENTS.md`
+- the assigned validation scope, commands, and relevant backlog or handoff notes
+
+Project defaults:
+
+- Quick test: `{context['quick_test_command']}`
+- Isolated test: `{context['isolated_test_command']}`
+- Smoke check: `{context['smoke_check_command']}`
+
+Worker rules:
+
+- Stay within the assigned validation scope and command set.
+- Report only the result that matters: what ran, what failed or passed, and what evidence should be recorded.
+- Avoid flooding the orchestrator with raw logs when a short summary is enough.
+- If your harness supports per-agent model selection, this worker is usually a strong candidate for a smaller model.
 """
 
 
@@ -1053,13 +1248,29 @@ def write_opencode_harness_files(
     opencode_config = opencode_config_path(paths)
     opencode_skill = opencode_skill_path(paths)
     opencode_agent = opencode_agent_path(paths)
+    opencode_worker_agent = opencode_worker_agent_path(paths)
+    opencode_doc_worker_agent = opencode_doc_worker_agent_path(paths)
+    opencode_code_worker_agent = opencode_code_worker_agent_path(paths)
+    opencode_validation_worker_agent = opencode_validation_worker_agent_path(paths)
     write_text(opencode_config, render_opencode_config(args, paths), force=args.force)
     write_text(opencode_skill, render_opencode_skill(), force=args.force)
     write_text(opencode_agent, render_opencode_agent(args, context), force=args.force)
+    write_text(opencode_worker_agent, render_opencode_worker_agent(args, context), force=args.force)
+    write_text(opencode_doc_worker_agent, render_opencode_doc_worker_agent(args, context), force=args.force)
+    write_text(opencode_code_worker_agent, render_opencode_code_worker_agent(args, context), force=args.force)
+    write_text(
+        opencode_validation_worker_agent,
+        render_opencode_validation_worker_agent(args, context),
+        force=args.force,
+    )
     return {
         "opencode_config": str(opencode_config),
         "opencode_skill": str(opencode_skill),
         "opencode_agent": str(opencode_agent),
+        "opencode_worker_agent": str(opencode_worker_agent),
+        "opencode_doc_worker_agent": str(opencode_doc_worker_agent),
+        "opencode_code_worker_agent": str(opencode_code_worker_agent),
+        "opencode_validation_worker_agent": str(opencode_validation_worker_agent),
     }
 
 

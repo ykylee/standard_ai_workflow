@@ -9,20 +9,31 @@ import sys
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "prototype-v1"
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import resolve_existing_path
-from workflow_kit.common.runner import current_python_executable, repeated_flag_args, run_json_command
+from workflow_kit.common.runner import (
+    build_orchestration_plan,
+    build_step_error_context,
+    build_worker_assignment,
+    collect_step_warnings,
+    current_python_executable,
+    repeated_flag_args,
+    run_json_command,
+    WorkflowStepError,
+)
 from workflow_kit.common.text import (
     extract_list_after_label,
     extract_section_value,
     iter_lines,
 )
+
+
 def repo_path(*parts: str) -> Path:
     return REPO_ROOT.joinpath(*parts).resolve()
 
@@ -45,6 +56,8 @@ def parse_repository_assessment(path: Path) -> dict[str, Any]:
         "test_dirs": extract_section_value(lines, "테스트 디렉터리 후보"),
         "sample_paths": extract_list_after_label(lines, "분석 중 확인한 경로 샘플"),
     }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the existing-project onboarding flow after bootstrap generation."
@@ -66,91 +79,179 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     python = current_python_executable()
+    source_context = {
+        "project_profile_path": str(Path(args.project_profile_path).resolve()),
+        "session_handoff_path": str(Path(args.session_handoff_path).resolve()),
+        "work_backlog_index_path": str(Path(args.work_backlog_index_path).resolve()),
+        "backlog_dir_path": str(Path(args.backlog_dir_path).resolve()),
+        "repository_assessment_path": (
+            str(Path(args.repository_assessment_path).resolve()) if args.repository_assessment_path else None
+        ),
+        "latest_backlog_path": str(Path(args.latest_backlog_path).resolve()) if args.latest_backlog_path else None,
+        "changed_files": args.changed_files,
+        "change_summary": args.change_summary,
+    }
 
-    project_profile_path = resolve_existing_path(args.project_profile_path)
-    session_handoff_path = resolve_existing_path(args.session_handoff_path)
-    work_backlog_index_path = resolve_existing_path(args.work_backlog_index_path)
-    backlog_dir_path = resolve_existing_path(args.backlog_dir_path)
-    repository_assessment_path = (
-        resolve_existing_path(args.repository_assessment_path) if args.repository_assessment_path else None
-    )
+    try:
+        project_profile_path = resolve_existing_path(args.project_profile_path)
+        session_handoff_path = resolve_existing_path(args.session_handoff_path)
+        work_backlog_index_path = resolve_existing_path(args.work_backlog_index_path)
+        backlog_dir_path = resolve_existing_path(args.backlog_dir_path)
+        repository_assessment_path = (
+            resolve_existing_path(args.repository_assessment_path) if args.repository_assessment_path else None
+        )
 
-    assessment: dict[str, Any] | None = None
-    if repository_assessment_path:
-        assessment = parse_repository_assessment(repository_assessment_path)
+        assessment: dict[str, Any] | None = None
+        if repository_assessment_path:
+            assessment = parse_repository_assessment(repository_assessment_path)
 
-    latest_backlog_data: dict[str, Any]
-    if args.latest_backlog_path:
-        latest_backlog_path = resolve_existing_path(args.latest_backlog_path)
-        latest_backlog_data = {
-            "status": "ok",
-            "tool_version": TOOL_VERSION,
-            "latest_backlog_path": str(latest_backlog_path),
-            "candidates": [str(latest_backlog_path)],
-            "warnings": [],
-        }
-    else:
-        latest_backlog_data = run_json_command(
+        latest_backlog_data: dict[str, Any]
+        if args.latest_backlog_path:
+            latest_backlog_path = resolve_existing_path(args.latest_backlog_path)
+            latest_backlog_data = {
+                "status": "ok",
+                "tool_version": TOOL_VERSION,
+                "latest_backlog_path": str(latest_backlog_path),
+                "candidates": [str(latest_backlog_path)],
+                "warnings": [],
+            }
+        else:
+            latest_backlog_data = run_json_command(
+                [
+                    python,
+                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                    "--work-backlog-index-path",
+                    str(work_backlog_index_path),
+                    "--backlog-dir-path",
+                    str(backlog_dir_path),
+                ],
+                REPO_ROOT,
+                step_name="latest_backlog",
+            )
+            latest_backlog_path = Path(latest_backlog_data["latest_backlog_path"]).resolve()
+
+        session_start = run_json_command(
             [
                 python,
-                str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
+                "--session-handoff-path",
+                str(session_handoff_path),
                 "--work-backlog-index-path",
                 str(work_backlog_index_path),
-                "--backlog-dir-path",
-                str(backlog_dir_path),
+                "--project-profile-path",
+                str(project_profile_path),
+                "--latest-backlog-path",
+                str(latest_backlog_path),
             ],
             REPO_ROOT,
+            step_name="session_start",
         )
-        latest_backlog_path = Path(latest_backlog_data["latest_backlog_path"]).resolve()
 
-    session_start = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
-            "--session-handoff-path",
-            str(session_handoff_path),
-            "--work-backlog-index-path",
-            str(work_backlog_index_path),
-            "--project-profile-path",
-            str(project_profile_path),
-            "--latest-backlog-path",
-            str(latest_backlog_path),
+        validation_plan = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
+                "--project-profile-path",
+                str(project_profile_path),
+                "--session-handoff-path",
+                str(session_handoff_path),
+                "--latest-backlog-path",
+                str(latest_backlog_path),
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--change-summary",
+                args.change_summary,
+            ],
+            REPO_ROOT,
+            step_name="validation_plan",
+        )
+
+        code_index_update = run_json_command(
+            [
+                python,
+                str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
+                "--project-profile-path",
+                str(project_profile_path),
+                "--work-backlog-index-path",
+                str(work_backlog_index_path),
+                "--session-handoff-path",
+                str(session_handoff_path),
+                *repeated_flag_args("--changed-file", args.changed_files),
+                "--change-summary",
+                args.change_summary,
+            ],
+            REPO_ROOT,
+            step_name="code_index_update",
+        )
+    except WorkflowStepError as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=exc.error,
+            error_code="workflow_step_failed",
+            warnings=list(exc.payload.get("warnings", [])) if exc.payload else [],
+            source_context=build_step_error_context(step_error=exc, source_context=source_context),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+    except FileNotFoundError as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=str(exc),
+            error_code="missing_required_document",
+            warnings=[],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+    except Exception as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=str(exc),
+            error_code="existing_project_onboarding_runtime_error",
+            warnings=[],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
+    orchestration_plan = build_orchestration_plan(
+        model_split={
+            "orchestrator": "main",
+            "doc_worker": "small",
+            "validation_worker": "small",
+        },
+        worker_assignments=[
+            build_worker_assignment(
+                worker="doc-worker",
+                model="small",
+                responsibilities=[
+                    "repository assessment 와 workflow 문서 비교",
+                    "handoff 와 latest backlog 기준선 차이 확인",
+                    "허브 문서와 index 후보 요약",
+                ],
+                backing_steps=["session_start", "code_index_update"],
+            ),
+            build_worker_assignment(
+                worker="validation-worker",
+                model="small",
+                responsibilities=[
+                    "초기 검증 수준과 미실행 항목 정리",
+                    "추정 명령 검토",
+                    "증빙 기록 위치 제안",
+                ],
+                backing_steps=["validation_plan"],
+            ),
         ],
-        REPO_ROOT,
+        integration_notes=[
+            "메인 오케스트레이터는 assessment, session-start, validation, index 결과를 합쳐 첫 후속 작업 순서를 결정한다.",
+            "기존 프로젝트 온보딩 초기에는 bounded 탐색과 문서 정렬을 small worker 에 맡기고, 최종 판단은 main 에 남기는 편이 안전하다.",
+        ],
     )
 
-    validation_plan = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
-            "--project-profile-path",
-            str(project_profile_path),
-            "--session-handoff-path",
-            str(session_handoff_path),
-            "--latest-backlog-path",
-            str(latest_backlog_path),
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--change-summary",
-            args.change_summary,
-        ],
-        REPO_ROOT,
-    )
-
-    code_index_update = run_json_command(
-        [
-            python,
-            str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
-            "--project-profile-path",
-            str(project_profile_path),
-            "--work-backlog-index-path",
-            str(work_backlog_index_path),
-            "--session-handoff-path",
-            str(session_handoff_path),
-            *repeated_flag_args("--changed-file", args.changed_files),
-            "--change-summary",
-            args.change_summary,
-        ],
-        REPO_ROOT,
+    warnings = collect_step_warnings(
+        latest_backlog_data,
+        session_start,
+        validation_plan,
+        code_index_update,
     )
 
     onboarding_summary = {
@@ -174,7 +275,9 @@ def main() -> int:
     result = {
         "status": "ok",
         "tool_version": TOOL_VERSION,
+        "warnings": warnings,
         "onboarding_mode": "existing_project_followup",
+        "orchestration_plan": orchestration_plan,
         "repository_assessment": {
             "path": str(repository_assessment_path) if repository_assessment_path else None,
             "summary": assessment,

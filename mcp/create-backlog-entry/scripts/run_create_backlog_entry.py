@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 
-TOOL_VERSION = "prototype-v1"
+from workflow_kit import __version__ as TOOL_VERSION
 
 
 def main() -> int:

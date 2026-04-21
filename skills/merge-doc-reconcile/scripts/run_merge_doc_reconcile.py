@@ -13,7 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import classify_doc_sync_file
+from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.project_docs import (
@@ -24,7 +26,7 @@ from workflow_kit.common.project_docs import (
 from workflow_kit.common.reconcile import explain_state_conflicts
 from workflow_kit.common.session_outputs import build_reconcile_notes
 
-TOOL_VERSION = "prototype-v1"
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the merge-doc-reconcile prototype.")
     parser.add_argument("--project-profile-path", required=True)
@@ -39,96 +41,144 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile_merge(profile_path)
-    base_dir = profile_path.parent
-
-    warnings: list[str] = []
-    state_conflicts: list[str] = []
-    reconfirmation_points: list[str] = []
-    reconcile_targets: list[str] = []
-    draft_reconcile_notes: list[str] = []
-
-    session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
-    work_backlog_index_path = resolve_existing_path(args.work_backlog_index_path) if args.work_backlog_index_path else None
-    latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
-
-    handoff: dict[str, Any] = {"in_progress_items": [], "blocked_items": [], "recent_done_items": [], "next_documents": []}
-    backlog: dict[str, Any] = {"in_progress_items": [], "blocked_items": [], "done_items": []}
-
-    if session_handoff_path:
-        handoff = parse_handoff(session_handoff_path)
-        reconcile_targets.append(str(session_handoff_path))
-    else:
-        warnings.append("handoff 경로가 없어 세션 요약 상태를 직접 비교하지 못했다.")
-
-    if latest_backlog_path:
-        backlog = parse_backlog(latest_backlog_path)
-        reconcile_targets.append(str(latest_backlog_path))
-    else:
-        warnings.append("최신 backlog 경로가 없어 작업 단위 상태를 직접 비교하지 못했다.")
-
-    if work_backlog_index_path:
-        reconcile_targets.append(str(work_backlog_index_path))
-
-    operations_doc = None
-    if profile.get("operations_path"):
-        operations_doc = (base_dir / profile["operations_path"]).resolve()
-        if operations_doc.exists():
-            reconcile_targets.append(str(operations_doc))
-
-    state_conflicts.extend(explain_state_conflicts("in_progress", handoff.get("in_progress_items", []), backlog.get("in_progress_items", [])))
-    state_conflicts.extend(explain_state_conflicts("blocked", handoff.get("blocked_items", []), backlog.get("blocked_items", [])))
-
-    if backlog.get("done_items") and not args.validation_result:
-        warnings.append("병합 후 검증 결과가 없어 done 상태를 재확정할 수 없다.")
-        reconfirmation_points.append("병합 후 완료 처리된 작업의 검증 근거를 다시 확인한다.")
-
-    for changed in args.changed_files:
-        kind = classify_doc_sync_file(changed)
-        if kind in {"runbook_doc", "hub_doc"}:
-            reconfirmation_points.append(f"{changed} 링크와 허브 반영 여부를 다시 확인한다.")
-        if kind in {"code", "config"}:
-            reconfirmation_points.append(f"{changed} 변경이 handoff/backlog 설명과 일치하는지 확인한다.")
-        if kind in {"handoff_doc", "backlog_doc"}:
-            reconfirmation_points.append(f"{changed} 의 병합 후 상태 요약을 재확정한다.")
-
-    draft_reconcile_notes.extend(build_reconcile_notes(profile, args.changed_files))
-
-    if state_conflicts:
-        reconfirmation_points.append("handoff 와 backlog 의 충돌 항목을 우선 정리한다.")
-
-    recommended_review_order = dedupe_strings(
-        [
-            str(latest_backlog_path) if latest_backlog_path else "",
-            str(session_handoff_path) if session_handoff_path else "",
-            str(work_backlog_index_path) if work_backlog_index_path else "",
-            str(operations_doc) if operations_doc and operations_doc.exists() else "",
-        ]
-    )
-    reconcile_targets = dedupe_strings(reconcile_targets)
-    reconfirmation_points = dedupe_strings(reconfirmation_points)
-    draft_reconcile_notes = dedupe_strings(draft_reconcile_notes)
-
-    result = {
-        "status": "ok",
-        "tool_version": TOOL_VERSION,
-        "reconcile_targets": reconcile_targets,
-        "state_conflicts": state_conflicts,
-        "reconfirmation_points": reconfirmation_points,
-        "draft_reconcile_notes": draft_reconcile_notes,
-        "recommended_review_order": recommended_review_order,
-        "warnings": warnings,
-        "handoff_update_note": "handoff 의 현재 주 작업 축과 상태 요약을 병합 후 기준으로 재작성할지 확인한다." if session_handoff_path else None,
-        "backlog_update_note": "최신 backlog 와 backlog index 의 정합성을 함께 확인한다." if latest_backlog_path or work_backlog_index_path else None,
-        "hub_update_note": "허브 문서 링크와 설명이 병합 후 구조를 반영하는지 확인한다." if operations_doc and operations_doc.exists() else None,
-        "validation_follow_up": args.validation_result or "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
-        "source_context": {
-            "project_profile_path": str(profile_path),
-            "merge_result_summary": args.merge_result_summary,
-            "changed_files": args.changed_files,
-        },
+    source_context = {
+        "project_profile_path": args.project_profile_path,
+        "merge_result_summary": args.merge_result_summary,
+        "session_handoff_path": args.session_handoff_path,
+        "work_backlog_index_path": args.work_backlog_index_path,
+        "latest_backlog_path": args.latest_backlog_path,
+        "changed_files": args.changed_files,
     }
+
+    try:
+        profile_path = resolve_existing_path(args.project_profile_path)
+        profile = parse_project_profile_merge(profile_path)
+        base_dir = profile_path.parent
+
+        warnings: list[str] = []
+        state_conflicts: list[str] = []
+        reconfirmation_points: list[str] = []
+        reconcile_targets: list[str] = []
+        draft_reconcile_notes: list[str] = []
+
+        session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
+        work_backlog_index_path = (
+            resolve_existing_path(args.work_backlog_index_path) if args.work_backlog_index_path else None
+        )
+        latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
+
+        handoff: dict[str, Any] = {
+            "in_progress_items": [],
+            "blocked_items": [],
+            "recent_done_items": [],
+            "next_documents": [],
+        }
+        backlog: dict[str, Any] = {"in_progress_items": [], "blocked_items": [], "done_items": []}
+
+        if session_handoff_path:
+            handoff = parse_handoff(session_handoff_path)
+            reconcile_targets.append(str(session_handoff_path))
+        else:
+            warnings.append("handoff 경로가 없어 세션 요약 상태를 직접 비교하지 못했다.")
+
+        if latest_backlog_path:
+            backlog = parse_backlog(latest_backlog_path)
+            reconcile_targets.append(str(latest_backlog_path))
+        else:
+            warnings.append("최신 backlog 경로가 없어 작업 단위 상태를 직접 비교하지 못했다.")
+
+        if work_backlog_index_path:
+            reconcile_targets.append(str(work_backlog_index_path))
+
+        operations_doc = None
+        if profile.get("operations_path"):
+            operations_doc = (base_dir / profile["operations_path"]).resolve()
+            if operations_doc.exists():
+                reconcile_targets.append(str(operations_doc))
+
+        state_conflicts.extend(
+            explain_state_conflicts(handoff.get("in_progress_items", []), backlog.get("in_progress_items", []), "in_progress")
+        )
+        state_conflicts.extend(
+            explain_state_conflicts(handoff.get("blocked_items", []), backlog.get("blocked_items", []), "blocked")
+        )
+
+        if backlog.get("done_items") and not args.validation_result:
+            warnings.append("병합 후 검증 결과가 없어 done 상태를 재확정할 수 없다.")
+            reconfirmation_points.append("병합 후 완료 처리된 작업의 검증 근거를 다시 확인한다.")
+
+        for changed in args.changed_files:
+            kind = classify_doc_sync_file(changed)
+            if kind in {"runbook_doc", "hub_doc"}:
+                reconfirmation_points.append(f"{changed} 링크와 허브 반영 여부를 다시 확인한다.")
+            if kind in {"code", "config"}:
+                reconfirmation_points.append(f"{changed} 변경이 handoff/backlog 설명과 일치하는지 확인한다.")
+            if kind in {"handoff_doc", "backlog_doc"}:
+                reconfirmation_points.append(f"{changed} 의 병합 후 상태 요약을 재확정한다.")
+
+        draft_reconcile_notes.extend(build_reconcile_notes(profile, args.changed_files))
+
+        if state_conflicts:
+            reconfirmation_points.append("handoff 와 backlog 의 충돌 항목을 우선 정리한다.")
+
+        recommended_review_order = dedupe_strings(
+            [
+                str(latest_backlog_path) if latest_backlog_path else "",
+                str(session_handoff_path) if session_handoff_path else "",
+                str(work_backlog_index_path) if work_backlog_index_path else "",
+                str(operations_doc) if operations_doc and operations_doc.exists() else "",
+            ]
+        )
+        reconcile_targets = dedupe_strings(reconcile_targets)
+        reconfirmation_points = dedupe_strings(reconfirmation_points)
+        draft_reconcile_notes = dedupe_strings(draft_reconcile_notes)
+
+        result = {
+            "status": "ok",
+            "tool_version": TOOL_VERSION,
+            "reconcile_targets": reconcile_targets,
+            "state_conflicts": state_conflicts,
+            "reconfirmation_points": reconfirmation_points,
+            "draft_reconcile_notes": draft_reconcile_notes,
+            "recommended_review_order": recommended_review_order,
+            "warnings": warnings,
+            "handoff_update_note": (
+                "handoff 의 현재 주 작업 축과 상태 요약을 병합 후 기준으로 재작성할지 확인한다." if session_handoff_path else None
+            ),
+            "backlog_update_note": (
+                "최신 backlog 와 backlog index 의 정합성을 함께 확인한다." if latest_backlog_path or work_backlog_index_path else None
+            ),
+            "hub_update_note": (
+                "허브 문서 링크와 설명이 병합 후 구조를 반영하는지 확인한다." if operations_doc and operations_doc.exists() else None
+            ),
+            "validation_follow_up": args.validation_result or "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
+            "source_context": {
+                "project_profile_path": str(profile_path),
+                "merge_result_summary": args.merge_result_summary,
+                "changed_files": args.changed_files,
+            },
+        }
+    except FileNotFoundError as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="merge-doc-reconcile 에 필요한 입력 문서를 읽을 수 없다.",
+            error_code="missing_required_document",
+            warnings=["프로젝트 프로파일 또는 선택 입력 경로를 다시 확인해야 한다."],
+            source_context=source_context | {"missing_path_detail": str(exc)},
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+    except Exception as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="merge-doc-reconcile 실행 중 예기치 않은 오류가 발생했다.",
+            error_code="merge_doc_reconcile_runtime_error",
+            warnings=["입력 문서 형식과 병합 후 정합성 로직을 점검한 뒤 다시 실행해야 한다."],
+            source_context=source_context | {"exception_type": type(exc).__name__},
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

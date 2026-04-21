@@ -26,6 +26,17 @@ def run_json(cmd: list[str], cwd: Path) -> dict[str, object]:
     return json.loads(completed.stdout)
 
 
+def run_json_allow_failure(cmd: list[str], cwd: Path) -> tuple[int, dict[str, object]]:
+    completed = subprocess.run(
+        [sys.executable, *cmd],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return completed.returncode, json.loads(completed.stdout)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         target_root = Path(tmpdir) / "existing-repo"
@@ -98,6 +109,33 @@ def main() -> int:
             raise AssertionError("Expected code-index-update candidates in onboarding output.")
         if len(onboarding_payload["onboarding_summary"]["recommended_next_steps"]) < 3:
             raise AssertionError("Expected multiple onboarding next steps.")
+        if onboarding_payload["orchestration_plan"]["model_split"]["orchestrator"] != "main":
+            raise AssertionError("Expected main orchestrator model split in onboarding output.")
+        if not onboarding_payload["source_context"]["project_profile_path"]:
+            raise AssertionError("Expected onboarding source_context to include project_profile_path.")
+
+        failure_code, failure_payload = run_json_allow_failure(
+            [
+                str(ONBOARDING_SCRIPT),
+                "--project-profile-path",
+                "/tmp/missing-profile.md",
+                "--session-handoff-path",
+                str(generated["session_handoff"]),
+                "--work-backlog-index-path",
+                str(generated["work_backlog"]),
+                "--backlog-dir-path",
+                str(project_dir / "backlog"),
+            ],
+            REPO_ROOT,
+        )
+        if failure_code == 0:
+            raise AssertionError("Expected onboarding runner failure for missing profile path.")
+        if failure_payload["status"] != "error":
+            raise AssertionError("Expected structured error payload for onboarding failure.")
+        if failure_payload["error_code"] != "missing_required_document":
+            raise AssertionError("Expected missing_required_document error code.")
+        if failure_payload["source_context"]["project_profile_path"] != "/private/tmp/missing-profile.md":
+            raise AssertionError("Expected source_context to retain the missing project profile path.")
 
     print("Existing-project onboarding smoke check passed.")
     return 0

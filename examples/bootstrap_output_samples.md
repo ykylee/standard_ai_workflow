@@ -4,7 +4,7 @@
 - 범위: `ai-workflow/README.md`, `session_handoff.md`, 날짜별 backlog, `AGENTS.md`, OpenCode skill/agent 생성 문구 예시
 - 대상 독자: 프로젝트 온보딩 담당자, AI workflow 설계자, 하네스 통합 담당자, 개발자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `../scripts/README.md`, `../harnesses/codex/README.md`, `../harnesses/opencode/README.md`, `../core/global_workflow_standard.md`
 
 ## 1. 왜 이 문서를 보는가
@@ -86,7 +86,18 @@ agent 예시:
 - Write visible work reports, summaries, and document drafts in Korean by default.
 - Use concise progress updates and avoid long repeated reasoning in user-visible messages.
 - Keep internal processing compact and preserve only the facts needed for the next step or next session.
+- Treat this agent as a read-mostly coordinator: prefer delegating edits, broad scans, and heavy log review to sub-agents unless a small direct action is clearly cheaper.
 ```
+
+worker 예시:
+
+```md
+- You are a code-focused workflow worker for this repository.
+- Stay within the assigned write scope.
+- If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
+```
+
+문서/검증 worker 도 같은 방식으로 생성되며, 권장 운영 패턴은 `main orchestrator + small workers` 다.
 
 ## 7. 어떻게 검증하는가
 

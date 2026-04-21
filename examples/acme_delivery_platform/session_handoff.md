@@ -51,6 +51,14 @@
 - 주요 제약:
 - VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가
 
+## 7. 현재 세션 운영 메모
+
+- 메인 오케스트레이터는 세션 기준선 복원, 우선순위 조정, 결과 통합에 집중한다.
+- `doc-worker` 에게는 runbook, handoff, latest backlog 차이 비교와 초안 문구 정리를 우선 맡긴다.
+- `code-worker` 에게는 delivery sync 재시도 로직처럼 범위가 명확한 코드 수정만 넘긴다.
+- `validation-worker` 에게는 staging 접근 가능 여부 확인, quick test, 검증 증빙 수집을 맡긴다.
+- 기본 모델 분배는 `main orchestrator + small workers` 로 두고, staging 검증 설계가 복잡해지면 validation worker 만 일시적으로 `main` 으로 올린다.
+
 ## 다음에 읽을 문서
 
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)

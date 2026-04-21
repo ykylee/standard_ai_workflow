@@ -69,6 +69,8 @@
 - 내부 사고 과정과 중간 분류 방식은 모델이 효율적으로 선택하게 두고, 사용자에게는 필요한 결정과 다음 행동만 짧게 전달하도록 한다.
 - 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피하도록 project-local instructions 에 명시하는 것이 좋다.
 - handoff 와 backlog 에는 후속 세션에 꼭 필요한 사실만 남겨 컨텍스트 증가를 줄인다.
+- 메인 오케스트레이터는 read-mostly coordinator 로 두고, 대량 탐색/로그 수집/실제 수정은 서브 에이전트에 맡기도록 권한 정책을 나누는 편이 좋다.
+- `main`/`small` 모델 구조를 쓴다면, 메인 오케스트레이터는 `main`, 문서/코드/검증 worker 는 기본적으로 `small` 쪽에 두는 편이 효율적이다.
 
 ## 3. 신규 프로젝트 적용 순서
 
@@ -90,6 +92,9 @@ python3 scripts/bootstrap_workflow_kit.py \
    이때 한국어 보고 원칙과 중간 설명 최소화 원칙이 instruction 체인에서 누락되지 않았는지 함께 확인한다.
 5. `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 의 권한 정책을 팀 운영 방식에 맞게 조정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
+   가능하면 메인 오케스트레이터는 `git status`, `git diff`, `rg`, 제한된 `ls` 정도만 직접 허용하고, 실제 수정은 서브 에이전트에 위임하는 구성을 우선 검토한다.
+   `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 편집/검증은 worker 에 맡기는 운영 패턴을 함께 검토한다.
+   필요하면 worker 를 `workflow-doc-worker`, `workflow-code-worker`, `workflow-validation-worker` 로 나눠 역할별로 호출한다.
 6. 첫 세션에서 handoff 와 backlog 를 채운다.
 
 ## 4. 작업 중인 프로젝트 적용 순서
@@ -111,6 +116,9 @@ python3 scripts/bootstrap_workflow_kit.py \
 4. `AGENTS.md` 와 `opencode.json` 의 instruction 경로가 같이 맞는지 확인한다.
    작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
+   이때 오케스트레이터가 직접 광범위한 `bash` 와 `edit` 를 수행하지 않도록 read-mostly 권한 프로필을 우선 고려한다.
+   worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.
+   모델을 나눠 운영한다면 기본값은 `main orchestrator + small workers` 로 두고, 구조 판단이 어려운 경우에만 worker 를 일시적으로 `main` 으로 올리는 편이 좋다.
 6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
 
 ## 5. OpenCode 에서 첫 세션 시작하는 방법
@@ -130,6 +138,10 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `AGENTS.md` 가 존재한다.
 - `.opencode/skills/standard-ai-workflow/SKILL.md` 가 존재한다.
 - `.opencode/agents/workflow-orchestrator.md` 가 존재한다.
+- `.opencode/agents/workflow-worker.md` 가 존재한다.
+- `.opencode/agents/workflow-doc-worker.md` 가 존재한다.
+- `.opencode/agents/workflow-code-worker.md` 가 존재한다.
+- `.opencode/agents/workflow-validation-worker.md` 가 존재한다.
 - `ai-workflow/project/` 문서 세트가 존재한다.
 - profile 문서의 명령과 검증 규칙이 실제 저장소 기준으로 채워져 있다.
 - handoff 와 backlog 가 비어 있지 않다.
@@ -138,6 +150,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 
 - `opencode.json` 의 instruction 경로
 - project-local agent 권한 정책
+- worker agent 의 역할 범위와 권한
 - `project_workflow_profile.md` 의 검증 기준
 - handoff 와 backlog 의 최신 상태
 

@@ -84,6 +84,7 @@
 - `workflow_kit/common/runner.py`
 
 즉, 읽기 전용 MCP 일부에서 사용하는 공통 경로/Markdown/메타데이터 유틸뿐 아니라 skill 파서, 정규화, 요약 생성, orchestration runner helper 까지 package 루트로 옮겨지기 시작했다.
+다만 다음 확장부터는 외부 리뷰 의견을 반영해 parser / classifier / recommendation 계열을 우선하고, orchestration helper 추가 추출은 실패 계약과 실제 적용 검증 이후로 미루는 편이 안전하다.
 
 ### 3.2 우선 MCP server 후보
 
@@ -180,7 +181,7 @@
 3. 초안 생성 MCP 는 permission 설계를 더 명확히 한 뒤 2차로 올린다.
 4. onboarding/demo runner 는 library + MCP 조합의 상위 orchestration 레이어로 남긴다.
 
-즉, 지금은 “모든 것을 server 화”하기보다 “공통 라이브러리화 -> 읽기 전용 MCP server 화 -> 쓰기 성격 확장” 순서가 가장 안전하다.
+즉, 지금은 “모든 것을 server 화”하기보다 “공통 라이브러리화 -> 읽기 전용 MCP server 화 -> 쓰기 성격 확장” 순서가 가장 안전하다. 추가로 library 확장도 한 번에 넓히기보다, 변경 파일 분류/문서 파서/추천 로직처럼 계약이 비교적 안정적인 영역부터 좁게 가져가는 것이 현재 단계에 더 맞다.
 
 ## 7. 다음에 읽을 문서
 

@@ -13,6 +13,10 @@
 - 프로젝트 루트 `opencode.json`
 - 프로젝트 루트 `.opencode/skills/standard-ai-workflow/SKILL.md`
 - 프로젝트 루트 `.opencode/agents/workflow-orchestrator.md`
+- 프로젝트 루트 `.opencode/agents/workflow-worker.md`
+- 프로젝트 루트 `.opencode/agents/workflow-doc-worker.md`
+- 프로젝트 루트 `.opencode/agents/workflow-code-worker.md`
+- 프로젝트 루트 `.opencode/agents/workflow-validation-worker.md`
 
 ## 구성 원칙
 
@@ -21,6 +25,9 @@
 - `opencode.json` 은 기존 사용자 provider/model 기본값을 덮어쓰지 않도록 최소 키만 유지한다.
 - project-local skill 은 세션 시작, backlog 갱신, handoff 정리를 위한 빠른 진입점 역할을 한다.
 - project-local agent 는 workflow 문서와 기본 명령을 기준으로 조정 가능한 운영 오케스트레이터 역할을 한다.
+- 메인 오케스트레이터 agent 는 read-mostly coordinator 로 두고, 실제 수정과 대량 탐색은 서브 에이전트로 분리하는 구성을 권장한다.
+- worker agent 는 bounded scope 의 읽기/쓰기/검증 작업을 받아 실행하고, 핵심 결과만 오케스트레이터에 되돌려주는 역할을 맡는다.
+- 문서/코드/검증 worker 를 나누면 역할이 더 선명해지고, `main orchestrator + small workers` 구조를 운영하기 쉬워진다.
 
 ## bootstrap 예시
 
@@ -38,6 +45,9 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `AGENTS.md` 가 생성됐는지 확인
 - `opencode.json` 의 instruction 경로가 현재 저장소 구조와 맞는지 확인
 - `.opencode/agents/` 권한 정책이 현재 팀 운영 방식과 맞는지 확인
+- 메인 오케스트레이터의 툴 권한이 지나치게 넓지 않은지 확인
+- worker agent 의 범위와 권한이 실제 실행 작업에 비해 과도하지 않은지 확인
+- 문서/코드/검증 worker 분리가 현재 팀 운영 방식과 맞는지 확인
 - `.opencode/skills/standard-ai-workflow/SKILL.md` 에 적힌 참조 문서가 최신 상태인지 확인
 - 생성된 `AGENTS.md`, skill, agent 문구에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 

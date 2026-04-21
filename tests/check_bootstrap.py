@@ -68,6 +68,10 @@ def check_new_project_mode() -> None:
             "opencode_config",
             "opencode_skill",
             "opencode_agent",
+            "opencode_worker_agent",
+            "opencode_doc_worker_agent",
+            "opencode_code_worker_agent",
+            "opencode_validation_worker_agent",
         ):
             assert_exists(str(harness_files[key]))
         for harness in ("codex", "opencode"):
@@ -190,7 +194,16 @@ def check_opencode_only_mode() -> None:
         if payload["harnesses"] != ["opencode"]:
             raise AssertionError("Expected only the opencode harness in opencode-only mode.")
         harness_files = payload["generated_harness_files"]
-        for key in ("codex_agents", "opencode_config", "opencode_skill", "opencode_agent"):
+        for key in (
+            "codex_agents",
+            "opencode_config",
+            "opencode_skill",
+            "opencode_agent",
+            "opencode_worker_agent",
+            "opencode_doc_worker_agent",
+            "opencode_code_worker_agent",
+            "opencode_validation_worker_agent",
+        ):
             assert_exists(str(harness_files[key]))
         snippet_candidates = payload["global_snippet_candidates"]
         if "opencode" not in snippet_candidates:
@@ -207,6 +220,26 @@ def check_opencode_only_mode() -> None:
         agent_text = Path(str(harness_files["opencode_agent"])).read_text(encoding="utf-8")
         if "Write visible work reports, summaries, and document drafts in Korean by default." not in agent_text:
             raise AssertionError("OpenCode agent should include the Korean reporting rule.")
+        if "read-mostly coordinator" not in agent_text:
+            raise AssertionError("OpenCode orchestrator should describe the coordinator role.")
+
+        worker_text = Path(str(harness_files["opencode_worker_agent"])).read_text(encoding="utf-8")
+        if "You are a workflow worker for this repository." not in worker_text:
+            raise AssertionError("OpenCode worker agent should be generated.")
+        if "Stay within the assigned file or task scope." not in worker_text:
+            raise AssertionError("OpenCode worker should describe bounded execution.")
+
+        doc_worker_text = Path(str(harness_files["opencode_doc_worker_agent"])).read_text(encoding="utf-8")
+        if "document-focused workflow worker" not in doc_worker_text:
+            raise AssertionError("OpenCode doc worker should be generated.")
+
+        code_worker_text = Path(str(harness_files["opencode_code_worker_agent"])).read_text(encoding="utf-8")
+        if "code-focused workflow worker" not in code_worker_text:
+            raise AssertionError("OpenCode code worker should be generated.")
+
+        validation_worker_text = Path(str(harness_files["opencode_validation_worker_agent"])).read_text(encoding="utf-8")
+        if "validation-focused workflow worker" not in validation_worker_text:
+            raise AssertionError("OpenCode validation worker should be generated.")
 
         opencode_config_text = Path(str(harness_files["opencode_config"])).read_text(encoding="utf-8")
         opencode_config = json.loads(opencode_config_text)

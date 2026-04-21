@@ -28,14 +28,16 @@
 - 출력 스키마 가이드와 대표 JSON 샘플 허브가 있다.
 - bootstrap, harness overlay, harness package export 까지 동작한다.
 - 기존 프로젝트 bootstrap 이후 후속 온보딩 runner 가 있다.
+- demo/onboarding runner 모두 상위 `source_context` 와 step 실패 구조화 패턴을 가진다.
 - 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
 - reusable package / MCP server 승격 범위 문서가 있다.
 - `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
+- `tests/check_*.py` 기준 smoke CI 를 추가할 수 있는 최소 구조가 이미 갖춰져 있다.
 
 아직 4단계가 아닌 이유:
 
 - 실제 MCP server packaging 또는 transport 계층이 없다.
-- skill 과 MCP 출력 계약은 문서화됐지만, 모든 프로토타입 샘플과 실패 규칙까지 완전히 고정되지는 않았다.
+- skill, MCP, runner 출력 계약은 문서화됐지만, schema 파일 수준의 강한 정적 검증까지는 아직 없다.
 - 여러 실제 프로젝트에 시범 적용한 결과가 없다.
 - MCP server packaging 은 아직 시작되지 않았다.
 - 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
@@ -96,48 +98,56 @@
 - Codex/OpenCode 오버레이 생성, export, 적용 가이드가 있다.
 - skill 6종과 MCP 6종의 실행형 프로토타입이 있다.
 - skill 통합 demo runner 와 end-to-end 문서가 있다.
-- 출력 스키마 가이드와 skill/MCP 대표 출력 샘플 허브가 있다.
+- 출력 스키마 가이드와 skill/MCP/runner 대표 출력 샘플 허브가 있다.
 - 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 운영 원칙이 core 문서와 bootstrap 생성물에 반영돼 있다.
 - 기존 프로젝트 bootstrap 이후 assessment -> backlog/handoff -> validation/code-index 순으로 이어지는 후속 루틴이 있다.
 - 승격 범위 문서가 있어 package/server 화 대상을 분리해서 계획할 수 있다.
 - `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner helper 가 누적되고 있다.
+- smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어져 CI 로 연결하기 쉬운 구조다.
 
 ### 아직 비어 있는 축
 
-- 공통 실패 출력 규칙과 `error_code` 수준 계약
 - 읽기 전용 MCP 묶음 server 화
 - 결과 payload builder 와 orchestration 계층의 추가 reusable package 추출
 - 실제 저장소 시범 적용 결과
 - 쓰기 성격 draft MCP 의 permission 경계 정리
+- core 문서 간 중복 축소와 README 상태 단일 출처 정리
+- GitHub Actions 등 실제 CI 연결
 
 ## 5. 다음 우선순위 로드맵
 
-### 우선순위 1: 공통 실패 계약과 schema 고정
+### 우선순위 1: runner/schema 계약 고정과 smoke CI 연결
 
 현재 상태:
 
 - `core/output_schema_guide.md` 는 이미 존재한다.
-- skill/MCP 대표 출력 JSON 샘플 허브가 있다.
-- `status`, `tool_version`, `warnings` 공통 필드는 1차 정리됐다.
-- 다만 `error`, `source_context`, `error_code` 수준의 실패 계약은 아직 더 고정할 여지가 있다.
+- skill/MCP/runner 대표 출력 JSON 샘플 허브가 있다.
+- `status`, `tool_version`, `warnings`, `source_context` 공통 필드는 1차 정리됐다.
+- skill 6종과 runner 2종은 구조화된 `error`/`error_code` 패턴을 따른다.
+- runner 실패 경로는 smoke test 로 확인되기 시작했지만, 아직 CI 에 연결되지는 않았다.
+- `tool_version` 값은 여러 실행 스크립트에 반복 선언돼 있어 단일 소스 유지가 필요하다.
 
 목표:
 
-- 실패 시 공통 출력 규칙과 `error`/`warnings`/`source_context` 사용 기준을 더 명확히 한다.
-- 필요하면 `error_code`, `status`, `tool_version` 같은 필드를 추가로 정의한다.
-- 대표 샘플이 이 계약을 따르도록 정렬한다.
+- skill/MCP/runner 전반에서 공통 출력 규칙과 `error`/`warnings`/`source_context` 사용 기준을 더 명확히 한다.
+- representative sample 과 smoke test 가 같은 계약을 바라보도록 정렬한다.
+- `tests/check_*.py` 묶음을 CI 에 연결하기 쉬운 단위로 정리한다.
+- `tool_version` 값을 package 루트 한 곳에서 관리한다.
 
 권장 산출물:
 
 - `examples/output_samples/*.json`
 - `core/output_schema_guide.md` 보강
 - 필요 시 `schemas/` 또는 실패 규칙 부록 문서
+- 대표 skill 다건의 실패 처리 패턴
 
 완료 기준:
 
 - 같은 성격의 경고/실패 필드가 이름과 의미 면에서 과도하게 흩어지지 않는다.
 - 샘플과 실제 프로토타입 출력이 같은 실패 계약을 공유한다.
 - 실패 케이스 샘플과 예외 종료 스크립트 정리가 따라온다.
+- runner 성공/실패 경로가 smoke test 와 샘플에서 함께 검증된다.
+- `tool_version` 변경 시 수정 지점이 한 군데로 제한된다.
 
 ### 우선순위 2: 기존 프로젝트 온보딩 자동 루틴 강화
 
@@ -146,7 +156,7 @@
 - bootstrap 의 `existing` 모드는 `repository_assessment.md` 와 초기 문서 세트를 생성한다.
 - `run_existing_project_onboarding.py` 가 assessment 결과를 읽고 backlog/handoff/validation/code-index 후속 단계를 이어준다.
 - `existing_project_onboarding_contract.md` 로 입력 계약과 단계별 연결 규칙이 문서화됐다.
-- 다음 단계는 runner 출력 샘플과 하네스 연결 방식 정리다.
+- 다음 단계는 하네스 연결 방식과 실제 적용 예시를 더 늘리는 것이다.
 
 목표:
 
@@ -208,12 +218,14 @@
 
 ### 1주차
 
-- 출력 실패 규칙 정리
-- 온보딩 runner 입출력 계약 정리
+- `tests/check_*.py` 기준 GitHub Actions smoke CI 연결
+- `tool_version` 단일 소스화
+- demo/onboarding runner 입출력 계약 정리
 - 공통 라이브러리 후보 모듈 경계 정리 및 1차 유틸 추출
 
 ### 2주차
 
+- runner 포함 출력 계약의 정적 schema 후보 정리
 - 기존 프로젝트 온보딩 흐름 문서 보강
 - assessment 와 후속 skill 연결 확인
 - output/orchestration helper package 추출 또는 읽기 전용 MCP server 엔트리포인트 초안 착수
@@ -238,13 +250,35 @@
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
 
-1. 출력 샘플의 실패/경고 케이스 보강
-2. 공통 실패 계약과 schema 정리
-3. 기존 프로젝트 온보딩 입출력 계약 보강
+1. `tests/check_*.py` 묶음의 GitHub Actions smoke CI 연결
+2. `tool_version` 단일 소스화
+3. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
 4. 실제 저장소 시범 적용 대상 선정
 5. 공통 library / orchestration helper / 읽기 전용 MCP server 착수
 
 이 순서는 현재 저장소가 가진 자산을 “프로토타입 정렬 -> 온보딩 계약 보강 -> 실사용 검증 -> package/server 승격” 순서로 확장하는 데 초점을 둔다.
+
+## 9. 외부 리뷰 반영 메모
+
+외부 리뷰 브랜치(`review/external-review`)에서 제안된 항목 중 현재 계획에 반영할 내용은 아래와 같다.
+
+즉시 반영:
+
+- `.gitignore` 보강으로 export/venv/cache 산출물 누수 방지
+- `tests/check_*.py` 묶음을 기준으로 한 GitHub Actions smoke CI 추가
+- `tool_version` 단일 소스화
+
+단기 계획에 반영:
+
+- 대표 skill 여러 종에서 `error_code` 포함 구조화 실패 출력 패턴 적용
+- `tests/README.md` 에 CI 와 동일한 원샷 실행 명령 유지
+- 실제 적용 전까지는 공통 라이브러리 확장을 계속하되, 새 추출은 파서/분류/추천 로직 우선으로 제한
+
+논의 후 결정:
+
+- `session-end` 대칭 흐름 추가
+- core 문서 중복 축소와 README 상태 단일 출처 정리
+- 공개 표준의 최소 필드와 선택 필드 재계층화
 
 ## 다음에 읽을 문서
 

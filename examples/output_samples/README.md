@@ -4,17 +4,27 @@
 - 범위: 현재 추가된 skill/MCP 출력 샘플 파일과 사용 용도
 - 대상 독자: AI workflow 설계자, skill 구현자, 테스트 작성자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-21
 - 관련 문서: `../../core/output_schema_guide.md`, `../end_to_end_skill_demo.md`
 
 ## 현재 포함된 샘플
 
 - [session_start.acme_delivery_platform.json](./session_start.acme_delivery_platform.json)
+- [session_start.error.missing_document.json](./session_start.error.missing_document.json)
 - [backlog_update.acme_delivery_platform.json](./backlog_update.acme_delivery_platform.json)
+- [backlog_update.error.missing_document.json](./backlog_update.error.missing_document.json)
 - [doc_sync.acme_delivery_platform.json](./doc_sync.acme_delivery_platform.json)
+- [doc_sync.error.missing_change_input.json](./doc_sync.error.missing_change_input.json)
 - [merge_doc_reconcile.acme_delivery_platform.json](./merge_doc_reconcile.acme_delivery_platform.json)
+- [merge_doc_reconcile.error.missing_document.json](./merge_doc_reconcile.error.missing_document.json)
 - [validation_plan.acme_delivery_platform.json](./validation_plan.acme_delivery_platform.json)
+- [validation_plan.error.missing_change_input.json](./validation_plan.error.missing_change_input.json)
 - [code_index_update.research_eval_hub.json](./code_index_update.research_eval_hub.json)
+- [code_index_update.error.missing_change_input.json](./code_index_update.error.missing_change_input.json)
+- [demo_workflow.acme_delivery_platform.json](./demo_workflow.acme_delivery_platform.json)
+- [demo_workflow.error.missing_document.json](./demo_workflow.error.missing_document.json)
+- [existing_project_onboarding.acme_delivery_platform.json](./existing_project_onboarding.acme_delivery_platform.json)
+- [existing_project_onboarding.error.missing_document.json](./existing_project_onboarding.error.missing_document.json)
 - [latest_backlog.acme_delivery_platform.json](./latest_backlog.acme_delivery_platform.json)
 - [check_doc_metadata.examples.json](./check_doc_metadata.examples.json)
 - [check_doc_links.examples.json](./check_doc_links.examples.json)
@@ -31,7 +41,9 @@
 ## 주의 사항
 
 - 이 디렉터리의 JSON 파일은 대표 예시이며, 모든 프로젝트에서 값이 동일하다는 뜻은 아니다.
+- `demo_workflow.*`, `existing_project_onboarding.*` 샘플은 runner 전체 출력을 보여주기 위해 개별 step 요약이 아니라 중첩 payload 를 포함한 richer sample 형태를 사용한다.
 - 경고 문구나 후보 경로는 프로젝트 프로파일과 변경 파일 입력에 따라 달라질 수 있다.
+- 실패 샘플은 대표적인 오류 분류 예시이며, `source_context` 세부 값은 실행 인자에 따라 달라질 수 있다.
 - 시간 정보가 들어가는 샘플은 예시 생성 시점의 값이 포함될 수 있다.
 
 ## 다음에 읽을 문서

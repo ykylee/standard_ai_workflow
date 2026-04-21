@@ -13,11 +13,13 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import classify_index_change_kinds, dedupe
+from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import declared_doc_path, path_exists_relative, resolve_existing_path
 from workflow_kit.common.project_docs import parse_project_profile_core
 
-TOOL_VERSION = "prototype-v1"
+
 def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
     targets: list[str] = []
     for changed in changed_files:
@@ -178,36 +180,74 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if not args.changed_files and not args.change_summary:
-        raise SystemExit("at least one --changed-file or --change-summary is required")
-
-    project_profile_path = resolve_existing_path(args.project_profile_path)
-    profile = parse_project_profile_core(project_profile_path)
-    base_dir = project_profile_path.parent
-    repo_root = Path(__file__).resolve().parents[3]
-
-    work_backlog_index_path = (
-        resolve_existing_path(args.work_backlog_index_path) if args.work_backlog_index_path else None
-    )
-    session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
-
-    result = build_index_plan(
-        base_dir=base_dir,
-        repo_root=repo_root,
-        profile=profile,
-        changed_files=args.changed_files,
-        work_backlog_index_path=work_backlog_index_path,
-        session_handoff_path=session_handoff_path,
-        change_summary=args.change_summary,
-    )
-    result["status"] = "ok"
-    result["tool_version"] = TOOL_VERSION
-    result["source_context"] = {
-        "project_profile_path": str(project_profile_path),
-        "project_name": profile.get("project_name"),
+    source_context = {
+        "project_profile_path": args.project_profile_path,
         "changed_files": args.changed_files,
         "change_summary": args.change_summary,
+        "work_backlog_index_path": args.work_backlog_index_path,
+        "session_handoff_path": args.session_handoff_path,
     }
+
+    if not args.changed_files and not args.change_summary:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="변경 입력이 없어 code-index-update 를 구성할 수 없다.",
+            error_code="missing_change_input",
+            warnings=["최소 하나의 changed file 또는 change summary 가 필요하다."],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
+    try:
+        project_profile_path = resolve_existing_path(args.project_profile_path)
+        profile = parse_project_profile_core(project_profile_path)
+        base_dir = project_profile_path.parent
+        repo_root = Path(__file__).resolve().parents[3]
+
+        work_backlog_index_path = (
+            resolve_existing_path(args.work_backlog_index_path) if args.work_backlog_index_path else None
+        )
+        session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
+
+        result = build_index_plan(
+            base_dir=base_dir,
+            repo_root=repo_root,
+            profile=profile,
+            changed_files=args.changed_files,
+            work_backlog_index_path=work_backlog_index_path,
+            session_handoff_path=session_handoff_path,
+            change_summary=args.change_summary,
+        )
+        result["status"] = "ok"
+        result["tool_version"] = TOOL_VERSION
+        result["source_context"] = {
+            "project_profile_path": str(project_profile_path),
+            "project_name": profile.get("project_name"),
+            "changed_files": args.changed_files,
+            "change_summary": args.change_summary,
+        }
+    except FileNotFoundError as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="code-index-update 에 필요한 입력 문서를 읽을 수 없다.",
+            error_code="missing_required_document",
+            warnings=["프로젝트 프로파일 또는 선택 입력 경로를 다시 확인해야 한다."],
+            source_context=source_context | {"missing_path_detail": str(exc)},
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+    except Exception as exc:
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="code-index-update 실행 중 예기치 않은 오류가 발생했다.",
+            error_code="code_index_update_runtime_error",
+            warnings=["프로파일 형식, 변경 경로, 또는 추천 로직을 점검한 뒤 다시 실행해야 한다."],
+            source_context=source_context | {"exception_type": type(exc).__name__},
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

@@ -51,6 +51,14 @@
 - 주요 제약:
 - 내부 데이터셋 전문 검증은 secure runner 접근 권한이 있어야만 수행 가능
 
+## 7. 현재 세션 운영 메모
+
+- 메인 오케스트레이터는 release report, manifest, handoff 결과를 통합해 최종 기준선을 정한다.
+- `doc-worker` 에게는 report, manifest, 실험 요약 문서 간 링크와 버전 태그 비교를 맡긴다.
+- `code-worker` 에게는 report builder 나 export 설정처럼 범위가 명확한 코드/설정 수정만 넘긴다.
+- `validation-worker` 에게는 secure runner dry-run 가능 여부, 로그 확인, 증빙 메모 수집을 맡긴다.
+- 기본 모델 분배는 `main orchestrator + small workers` 로 두고, 실험 해석이 복잡해지면 doc-worker 또는 validation-worker 만 일시적으로 `main` 으로 승격한다.
+
 ## 다음에 읽을 문서
 
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)

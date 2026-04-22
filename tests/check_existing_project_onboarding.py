@@ -9,6 +9,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from workflow_kit.common.output_contracts import validate_output_payload
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_workflow_kit.py"
@@ -97,6 +102,9 @@ def main() -> int:
             REPO_ROOT,
         )
 
+        output_errors = validate_output_payload(onboarding_payload, family="existing_project_onboarding")
+        if output_errors:
+            raise AssertionError(f"Existing-project onboarding payload violated output contract: {output_errors}")
         if onboarding_payload["onboarding_mode"] != "existing_project_followup":
             raise AssertionError("Unexpected onboarding mode.")
         if onboarding_payload["repository_assessment"]["summary"]["primary_stack"] != "node":
@@ -148,6 +156,9 @@ def main() -> int:
         )
         if no_backlog_payload["status"] != "ok":
             raise AssertionError("Expected onboarding runner to continue without a latest backlog.")
+        output_errors = validate_output_payload(no_backlog_payload, family="existing_project_onboarding")
+        if output_errors:
+            raise AssertionError(f"No-backlog onboarding payload violated output contract: {output_errors}")
         if no_backlog_payload["latest_backlog"]["latest_backlog_path"] is not None:
             raise AssertionError("Expected latest_backlog_path to remain null when no backlog exists.")
         if not no_backlog_payload["latest_backlog"]["warnings"]:

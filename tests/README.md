@@ -16,6 +16,11 @@
 - 기존 프로젝트 bootstrap 후속 온보딩 흐름을 확인하는 `check_existing_project_onboarding.py` 를 제공한다.
 - demo runner 성공/실패 경로를 확인하는 `check_demo_workflow.py` 를 제공한다.
 - quickstart/README stale 링크 점검 MCP 를 확인하는 `check_quickstart_stale_links.py` 를 제공한다.
+- draft read-only MCP bundle manifest 와 payload schema 검증을 확인하는 `check_read_only_mcp_server.py` 를 제공한다.
+- runtime 계약에서 생성한 JSON Schema draft 와 체크인된 generated schema 정합성을 확인하는 `check_output_json_schema.py` 를 제공한다.
+- generated JSON Schema draft 로 실제 output sample JSON 을 검증하는 `check_generated_schema_validation.py` 를 제공한다.
+- backlog-update 프로토타입의 성공/실패 경로와 output contract 를 확인하는 `check_backlog_update.py` 를 제공한다.
+- create-backlog-entry MCP 프로토타입의 draft entry shape 를 확인하는 `check_create_backlog_entry.py` 를 제공한다.
 - 현재 스크립트는 문서 무결성과 기본 생성 흐름이 깨지지 않았는지 빠르게 검사한다.
 
 ## 포함된 검사
@@ -29,6 +34,8 @@
 - 하네스 export 스크립트가 dist 산출물, manifest, zip 파일을 생성하는지 확인
 - export manifest 에 global snippet 파일 정보가 포함되는지 확인
 - `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
+- `backlog-update` 프로토타입이 보수적 상태 추천, draft entry, 구조화 error 경로를 유지하는지 확인
+- `create_backlog_entry` 프로토타입이 draft entry 구조와 공통 output contract 를 유지하는지 확인
 - `code-index-update` 프로토타입이 예시 프로젝트에서 색인 문서 후보와 stale 경고를 출력하는지 확인
 - `examples/output_samples/` 아래 JSON 샘플이 README 링크와 일치하고 유효한 JSON 인지 확인
 - demo runner 가 상위 `orchestration_plan`, `workflow_summary`, `source_context` 를 유지하는지 확인
@@ -38,6 +45,10 @@
 - 기존 프로젝트 bootstrap 산출물을 입력으로 받아 onboarding runner 가 session-start, validation-plan, code-index-update 를 연결하는지 확인
 - onboarding runner 가 누락 입력 문서 시 top-level 구조화 error JSON 을 반환하는지 확인
 - quickstart/README 문서를 입력으로 받아 stale 링크 경고와 핵심 진입 문서 누락을 감지하는지 확인
+- read-only MCP bundle manifest 가 tool별 input schema 와 payload example 을 노출하는지 확인
+- read-only MCP bundle entrypoint 가 필수 payload 누락을 schema 단계에서 실패시키는지 확인
+- generated JSON Schema draft 파일과 생성 스크립트 출력이 런타임 계약과 같은지 확인
+- generated JSON Schema draft 가 실제 대표 sample JSON 을 받아들일 수 있는지 확인
 
 ## 실행 방법
 
@@ -47,11 +58,16 @@
 - 저장소 루트에서 `python3 tests/check_scaffold_harness.py`
 - 저장소 루트에서 `python3 tests/check_export_harness_package.py`
 - 저장소 루트에서 `python3 tests/check_validation_plan.py`
+- 저장소 루트에서 `python3 tests/check_backlog_update.py`
+- 저장소 루트에서 `python3 tests/check_create_backlog_entry.py`
 - 저장소 루트에서 `python3 tests/check_code_index_update.py`
 - 저장소 루트에서 `python3 tests/check_output_samples.py`
 - 저장소 루트에서 `python3 tests/check_demo_workflow.py`
 - 저장소 루트에서 `python3 tests/check_existing_project_onboarding.py`
 - 저장소 루트에서 `python3 tests/check_quickstart_stale_links.py`
+- 저장소 루트에서 `python3 tests/check_read_only_mcp_server.py`
+- 저장소 루트에서 `python3 tests/check_output_json_schema.py`
+- 저장소 루트에서 `python3 tests/check_generated_schema_validation.py`
 
 ## 권장 실행 순서
 
@@ -60,6 +76,11 @@
 - bootstrap 또는 하네스 변경 직후에는 `check_bootstrap.py`, `check_scaffold_harness.py`, `check_export_harness_package.py` 를 먼저 본다.
 - runner/orchestration 변경 직후에는 `check_demo_workflow.py`, `check_existing_project_onboarding.py` 를 먼저 본다.
 - skill 분류/추천 로직 변경 직후에는 `check_validation_plan.py`, `check_code_index_update.py` 를 먼저 본다.
+- backlog-update 변경 직후에는 `check_backlog_update.py` 를 먼저 본다.
+- create-backlog-entry 변경 직후에는 `check_create_backlog_entry.py` 를 먼저 본다.
+- read-only MCP bundle 변경 직후에는 `check_read_only_mcp_server.py` 를 먼저 본다.
+- output contract / generated schema 변경 직후에는 `check_output_samples.py`, `check_output_json_schema.py` 를 먼저 본다.
+- JSON Schema 생성/승격 작업 직후에는 `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 
 ## 실패 분류 가이드
 
@@ -77,10 +98,20 @@
   `harnesses/` 문서, overlay manifest, dist 산출물 경로를 먼저 본다.
 - `check_validation_plan.py` 실패:
   `skills/validation-plan/scripts/run_validation_plan.py` 와 `workflow_kit/common/planning.py` 또는 change type 분류를 먼저 본다.
+- `check_backlog_update.py` 실패:
+  `skills/backlog-update/scripts/run_backlog_update.py` 의 입력 경로 처리, 보수적 상태 추천, draft entry 조립, 구조화 error 반환을 먼저 본다.
+- `check_create_backlog_entry.py` 실패:
+  `mcp/create-backlog-entry/scripts/run_create_backlog_entry.py` 의 draft entry 라인 조립과 공통 output contract 정합성을 먼저 본다.
 - `check_code_index_update.py` 실패:
   `skills/code-index-update/scripts/run_code_index_update.py` 와 index candidate 추론 규칙을 먼저 본다.
 - `check_quickstart_stale_links.py` 실패:
   quickstart/README 문서의 핵심 진입 링크와 상대 경로 무결성을 먼저 본다.
+- `check_read_only_mcp_server.py` 실패:
+  `workflow_kit/server/read_only_registry.py` 의 input schema, `workflow_kit/server/read_only_entrypoint.py` 의 payload 검증, 하위 script 의 CLI 인자 이름 정합성을 먼저 본다.
+- `check_output_json_schema.py` 실패:
+  `workflow_kit/common/output_contracts.py`, `scripts/generate_output_json_schema.py`, `schemas/generated_output_schemas.json` 셋 중 하나가 어긋난 경우가 많다.
+- `check_generated_schema_validation.py` 실패:
+  generated schema 가 실제 sample payload 보다 과하게 엄격하거나, sample JSON 이 계약과 어긋난 경우가 많다.
 
 ## CI 읽기 포인트
 

@@ -8,6 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from workflow_kit.common.output_contracts import validate_output_payload
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_SCRIPT = REPO_ROOT / "scripts" / "run_demo_workflow.py"
@@ -32,6 +37,9 @@ def check_success_path() -> None:
     _, payload = run_json([str(DEMO_SCRIPT), "--example-project", "acme_delivery_platform"], expect_success=True)
     if payload["status"] != "ok":
         raise AssertionError("Demo workflow success payload should have ok status.")
+    output_errors = validate_output_payload(payload, family="demo_workflow")
+    if output_errors:
+        raise AssertionError(f"Demo workflow success payload violated output contract: {output_errors}")
     if payload["orchestration_plan"]["model_split"]["orchestrator"] != "main":
         raise AssertionError("Expected main orchestrator model split.")
     if len(payload["orchestration_plan"]["worker_assignments"]) < 3:

@@ -8,6 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from workflow_kit.common.output_contracts import validate_output_payload
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "skills" / "code-index-update" / "scripts" / "run_code_index_update.py"
@@ -46,6 +51,9 @@ def main() -> int:
         ],
         "delivery sync 재시도 로직과 운영 runbook 동시 수정",
     )
+    output_errors = validate_output_payload(acme_payload, family="code_index_update")
+    if output_errors:
+        raise AssertionError(f"Acme code-index-update payload violated output contract: {output_errors}")
     acme_priorities = set(acme_payload["priority_index_candidates"])
     if not any(item.endswith("docs/README.md") for item in acme_priorities):
         raise AssertionError("Acme example should elevate the declared document home as a priority index candidate.")
@@ -62,6 +70,9 @@ def main() -> int:
         ],
         "evaluation report builder 로직과 release report 동시 수정",
     )
+    output_errors = validate_output_payload(research_payload, family="code_index_update")
+    if output_errors:
+        raise AssertionError(f"Research code-index-update payload violated output contract: {output_errors}")
     research_candidates = set(research_payload["index_update_candidates"])
     if not any(item.endswith("docs/evals/README.md") for item in research_candidates):
         raise AssertionError("Research example should include the evals README candidate.")

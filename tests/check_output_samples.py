@@ -21,8 +21,10 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.output_contracts import (
     COMMON_REQUIRED_KEYS,
     ERROR_PATH_CONTRACTS,
+    output_field_shapes_schema,
     SUCCESS_PATH_CONTRACTS,
     detect_sample_family,
+    validate_output_payload,
 )
 
 
@@ -65,6 +67,11 @@ def compare_schema_and_runtime_contracts(schema: dict[str, object], failures: li
     runtime_error = {key: set(value) for key, value in ERROR_PATH_CONTRACTS.items()}
     if schema_error != runtime_error:
         failures.append("Schema error_required_keys do not match workflow_kit.common.output_contracts.")
+
+    schema_shapes = dict(schema.get("field_shapes", {}))
+    runtime_shapes = output_field_shapes_schema()
+    if schema_shapes != runtime_shapes:
+        failures.append("Schema field_shapes do not match workflow_kit.common.output_contracts.")
 
 
 def main() -> int:
@@ -122,6 +129,9 @@ def main() -> int:
                     failures.append(
                         f"Missing `{key}` in success sample {path.relative_to(REPO_ROOT)}"
                     )
+        if family:
+            for error in validate_output_payload(payload, family=family):
+                failures.append(f"{path.relative_to(REPO_ROOT)}: {error}")
 
     if failures:
         print("Output sample check failed:")

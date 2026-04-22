@@ -13,8 +13,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.markdown import find_broken_links
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.read_only_bundle import check_doc_links_payload
 
 
 def main() -> int:
@@ -22,24 +21,9 @@ def main() -> int:
     parser.add_argument("--doc-dir-path", required=True)
     args = parser.parse_args()
 
-    doc_dir = resolve_existing_path(args.doc_dir_path)
-    checked_files = []
-    broken_links = []
-    for path in sorted(doc_dir.rglob("*.md")):
-        checked_files.append(str(path))
-        broken = find_broken_links(path)
-        if broken:
-            broken_links.append({"path": str(path), "broken_links": broken})
-
     print(
         json.dumps(
-            {
-                "status": "ok",
-                "tool_version": TOOL_VERSION,
-                "checked_files": checked_files,
-                "broken_links": broken_links,
-                "warnings": [],
-            },
+            check_doc_links_payload(doc_dir_path=args.doc_dir_path, tool_version=TOOL_VERSION),
             ensure_ascii=False,
             indent=2,
         )

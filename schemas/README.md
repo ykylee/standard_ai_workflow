@@ -20,12 +20,15 @@
 ## 2. 현재 포함된 schema 초안
 
 - [output_sample_contracts.json](./output_sample_contracts.json)
+- [generated_output_schemas.json](./generated_output_schemas.json)
 
 이 파일은 아래 정보를 담는다.
 
 - 공통 필수 필드
 - sample family 별 success/error 필수 필드
+- read-only MCP 5종의 주요 nested output field shape
 - `tool_version` 단일 출처가 `workflow_kit.__version__` 임을 가리키는 메타데이터
+- runtime 계약에서 자동 생성한 JSON Schema draft 묶음
 
 추가 메모:
 
@@ -36,11 +39,15 @@
 
 - `tests/check_output_samples.py` 가 이 파일을 읽어 대표 JSON 샘플의 핵심 필드 계약을 검증한다.
 - `workflow_kit/common/output_contracts.py` 는 같은 계약을 Python 코드에서 재사용하기 위한 런타임 표현이다.
+- 현재는 read-only MCP 5종과 `session_start`, `doc_sync`, `merge_doc_reconcile`, `code_index_update`, `validation_plan`, `demo_workflow`, `existing_project_onboarding` 에 한해 nested list/object shape 도 정적 schema 와 런타임 validator 가 함께 검증한다.
+- `scripts/generate_output_json_schema.py` 는 런타임 계약에서 [generated_output_schemas.json](./generated_output_schemas.json) 을 생성한다.
+- `tests/check_output_json_schema.py` 는 generated schema 파일과 생성 스크립트 출력이 런타임 계약과 같은지 검증한다.
+- `tests/check_generated_schema_validation.py` 는 generated schema draft 로 실제 sample JSON 이 통과하는지 검증한다.
 - 두 표현이 어긋나면 smoke test 가 실패하도록 유지하는 것이 권장된다.
 
 ## 4. 현재 한계
 
-- 아직 완전한 JSON Schema draft 문서나 외부 validator 연동까지는 포함하지 않는다.
+- generated JSON Schema draft 는 포함되지만, 외부 validator 연동까지는 아직 포함하지 않는다.
 - 타입 수준 검증은 제한적이며, 현재는 필수 키와 family 별 핵심 필드 중심이다.
 - nested payload 전체 구조를 완전 검증하지는 않는다.
 

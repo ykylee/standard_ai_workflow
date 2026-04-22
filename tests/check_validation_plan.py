@@ -8,6 +8,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+if str(Path(__file__).resolve().parents[1]) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from workflow_kit.common.output_contracts import validate_output_payload
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "skills" / "validation-plan" / "scripts" / "run_validation_plan.py"
@@ -47,6 +52,9 @@ def main() -> int:
         ],
         "delivery sync 재시도 로직과 운영 runbook 동시 수정",
     )
+    output_errors = validate_output_payload(acme_payload, family="validation_plan")
+    if output_errors:
+        raise AssertionError(f"Acme validation-plan payload violated output contract: {output_errors}")
     detected = set(acme_payload["detected_change_types"])
     if not {"code", "docs", "ops"}.issubset(detected):
         raise AssertionError("Acme example should classify code/docs/ops changes.")
@@ -64,6 +72,9 @@ def main() -> int:
         ],
         "evaluation report builder 로직과 release report 동시 수정",
     )
+    output_errors = validate_output_payload(research_payload, family="validation_plan")
+    if output_errors:
+        raise AssertionError(f"Research validation-plan payload violated output contract: {output_errors}")
     research_detected = set(research_payload["detected_change_types"])
     if not {"code", "docs", "prompt_or_eval"}.issubset(research_detected):
         raise AssertionError("Research example should classify code/docs/prompt_or_eval changes.")
@@ -79,6 +90,9 @@ def main() -> int:
         ],
         "운영 runbook 문서만 수정",
     )
+    output_errors = validate_output_payload(docs_only_payload, family="validation_plan")
+    if output_errors:
+        raise AssertionError(f"Docs-only validation-plan payload violated output contract: {output_errors}")
     if docs_only_payload["detected_change_types"] != ["docs", "ops"]:
         raise AssertionError("Docs-only runbook example should classify docs and ops changes.")
     if not docs_only_payload["recommended_commands"]:

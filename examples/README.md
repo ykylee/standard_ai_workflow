@@ -30,6 +30,7 @@
 - [pilot_execution_plan_existing_repo.md](./pilot_execution_plan_existing_repo.md)
 - [pilot_candidate_shortlist_example.md](./pilot_candidate_shortlist_example.md)
 - [pilot_candidate_existing_service_repo_example.md](./pilot_candidate_existing_service_repo_example.md)
+- [pilot_candidate_open_git_client_assessment.md](./pilot_candidate_open_git_client_assessment.md)
 
 ## 예시 비교 포인트
 
@@ -49,4 +50,5 @@
 - 실제 파일럿을 어떤 순서로 진행할지 보려면 `pilot_execution_plan_existing_repo.md` 를 먼저 확인한다.
 - 파일럿 후보를 어떤 기준으로 1~2개로 좁힐지 보려면 `pilot_candidate_shortlist_example.md` 를 먼저 확인한다.
 - 1순위 후보 체크리스트를 실제로 어떻게 채우는지 보려면 `pilot_candidate_existing_service_repo_example.md` 를 먼저 확인한다.
+- 실제 로컬 저장소 하나를 후보로 평가한 예시는 `pilot_candidate_open_git_client_assessment.md` 를 먼저 확인한다.
 - 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

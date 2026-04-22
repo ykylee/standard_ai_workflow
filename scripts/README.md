@@ -96,6 +96,11 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 - latest backlog 식별, session-start, validation-plan, code-index-update 결과와 onboarding 요약을 합친 통합 JSON
 - 계약 문서:
 - 단계별 입력/출력 연결 규칙은 [../core/existing_project_onboarding_contract.md](../core/existing_project_onboarding_contract.md) 를 따른다.
+- 소비 우선순위:
+- 하네스 또는 사람이 바로 읽을 때는 `status -> onboarding_summary.recommended_next_steps -> warnings -> orchestration_plan -> validation_plan -> code_index_update -> session_start -> repository_assessment.summary` 순서를 권장한다.
+- latest backlog 미발견 처리:
+- backlog index 와 backlog 디렉터리에서 최신 backlog 를 찾지 못해도 runner 는 가능한 범위의 결과를 계속 반환한다.
+- 이 경우 `latest_backlog.latest_backlog_path` 와 top-level `source_context.latest_backlog_path` 는 `null` 이다.
 
 실행 예시:
 

@@ -39,6 +39,27 @@
       "latest_backlog_path",
       "candidates"
     ],
+    "check_doc_metadata": [
+      "checked_files",
+      "missing_metadata"
+    ],
+    "check_doc_links": [
+      "checked_files",
+      "broken_links"
+    ],
+    "check_quickstart_stale_links": [
+      "checked_files",
+      "missing_expected_links",
+      "stale_link_warnings",
+      "reasoning_notes"
+    ],
+    "create_backlog_entry": [
+      "draft_entry"
+    ],
+    "suggest_impacted_docs": [
+      "impacted_documents",
+      "reasoning_notes"
+    ],
     "demo_workflow": [
       "orchestration_plan",
       "workflow_summary",

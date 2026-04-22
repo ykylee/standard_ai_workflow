@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-22
-- 관련 문서: `../split_checklist.md`
+- 관련 문서: `../split_checklist.md`, `../templates/pilot_adoption_record_template.md`, `../templates/pilot_candidate_checklist.md`
 
 ## 현재 상태
 
@@ -52,6 +52,43 @@
 - 저장소 루트에서 `python3 tests/check_demo_workflow.py`
 - 저장소 루트에서 `python3 tests/check_existing_project_onboarding.py`
 - 저장소 루트에서 `python3 tests/check_quickstart_stale_links.py`
+
+## 권장 실행 순서
+
+- 전체 회귀를 빠르게 볼 때는 `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
+- 문서/계약 변경 직후에는 `check_docs.py`, `check_output_samples.py`, `check_quickstart_stale_links.py` 를 먼저 본다.
+- bootstrap 또는 하네스 변경 직후에는 `check_bootstrap.py`, `check_scaffold_harness.py`, `check_export_harness_package.py` 를 먼저 본다.
+- runner/orchestration 변경 직후에는 `check_demo_workflow.py`, `check_existing_project_onboarding.py` 를 먼저 본다.
+- skill 분류/추천 로직 변경 직후에는 `check_validation_plan.py`, `check_code_index_update.py` 를 먼저 본다.
+
+## 실패 분류 가이드
+
+- `check_docs.py` 실패:
+  메타데이터 누락, 문서 제목 형식, 상대 링크 깨짐을 먼저 의심한다.
+- `check_output_samples.py` 실패:
+  `examples/output_samples/`, `schemas/output_sample_contracts.json`, `workflow_kit/common/output_contracts.py` 셋 중 하나가 어긋난 경우가 많다.
+- `check_demo_workflow.py` 실패:
+  `scripts/run_demo_workflow.py` 의 step 조립, top-level error wrapping, `workflow_summary` 필드 구성을 먼저 본다.
+- `check_existing_project_onboarding.py` 실패:
+  `scripts/run_existing_project_onboarding.py` 의 입력 경로 처리, latest backlog fallback, `source_context` 유지 여부를 먼저 본다.
+- `check_bootstrap.py` 실패:
+  `scripts/bootstrap_workflow_kit.py` 의 생성 경로, 생성 문서 목록, adoption mode 분기를 먼저 본다.
+- `check_scaffold_harness.py` 또는 `check_export_harness_package.py` 실패:
+  `harnesses/` 문서, overlay manifest, dist 산출물 경로를 먼저 본다.
+- `check_validation_plan.py` 실패:
+  `skills/validation-plan/scripts/run_validation_plan.py` 와 `workflow_kit/common/planning.py` 또는 change type 분류를 먼저 본다.
+- `check_code_index_update.py` 실패:
+  `skills/code-index-update/scripts/run_code_index_update.py` 와 index candidate 추론 규칙을 먼저 본다.
+- `check_quickstart_stale_links.py` 실패:
+  quickstart/README 문서의 핵심 진입 링크와 상대 경로 무결성을 먼저 본다.
+
+## CI 읽기 포인트
+
+- GitHub Actions smoke job 은 실패한 `tests/check_*.py` 파일 목록을 Step Summary 에 다시 적는다.
+- CI 에서 실패한 파일만 로컬에서 그대로 재실행해 원인을 좁히는 흐름을 권장한다.
+- runner 계열 실패는 먼저 개별 runner 스크립트를 직접 실행해 JSON payload 를 확인하는 편이 빠르다.
+- 파일럿 적용 전후 기록은 [../templates/pilot_adoption_record_template.md](../templates/pilot_adoption_record_template.md) 형식으로 남겨두면 회귀와 운영 피드백 비교가 쉬워진다.
+- 파일럿 대상 저장소는 [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md) 기준으로 먼저 후보를 거르는 편이 안전하다.
 
 ## 향후 확장 후보
 

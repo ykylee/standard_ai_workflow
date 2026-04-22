@@ -41,6 +41,9 @@
 - doc-sync 계열 문서 후보 조립
 - session 요약/권장 액션/merge reconcile note 조립
 - JSON subprocess 실행, step 실패 구조화, 반복 flag 조립, runner 상위 warnings/orchestration 조립
+- latest backlog 단계 조립과 optional path flag 생성
+- runner top-level step 실패 error wrapping 공통화
+- runner top-level success payload 조립 공통화
 - 공통 error JSON payload 생성
 - 샘플/스모크 테스트에서 재사용하는 출력 계약 맵 제공
 - `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공

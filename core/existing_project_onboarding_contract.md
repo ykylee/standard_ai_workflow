@@ -197,6 +197,7 @@
 - `repository_assessment.md` 가 없으면 `repository_assessment.summary` 는 `null` 이고, `review_assessment_first` 는 `false` 가 된다.
 - `changed_files` 가 비어 있어도 `change_summary` 가 있으면 validation/code-index 단계는 계속 실행한다.
 - 최신 backlog 를 찾지 못해도 runner 자체는 가능한 범위의 결과를 계속 반환한다.
+  이 경우 `latest_backlog.latest_backlog_path` 와 top-level `source_context.latest_backlog_path` 는 `null` 이고, 관련 경고는 `latest_backlog.warnings` 및 top-level `warnings` 에 남는다.
 - 세부 프로토타입의 도메인 경고는 각 단계의 `warnings` 로 남기고, runner 는 이를 축약하지 않는다.
 
 ### 6.1 실패 시 기대 동작
@@ -216,14 +217,17 @@
 5. `validation_plan`
 6. `code_index_update`
 7. `session_start`
+8. `repository_assessment.summary`
 
-이 순서는 “사람에게 바로 보일 요약 -> 리스크 -> worker 분배 -> 세부 근거” 흐름을 유지하기 위한 것이다.
+이 순서는 “사람에게 바로 보일 요약 -> 리스크 -> worker 분배 -> 세부 근거 -> 추정 명령/스택 확인” 흐름을 유지하기 위한 것이다.
 
 ## 7. 권장 후속 사용 방식
 
 - Codex/OpenCode 하네스는 기존 프로젝트 첫 세션에서 이 runner 결과를 읽고, `onboarding_summary.recommended_next_steps` 를 우선 사용자 노출 요약으로 사용할 수 있다.
 - `status == "ok"` 인 경우:
   하네스는 `warnings` 와 `orchestration_plan` 을 함께 읽어 첫 작업 분배 방향을 정하고, 필요하면 `validation_plan` 과 `code_index_update` 를 세부 근거로 참조한다.
+  `repository_assessment.summary` 가 있으면 추정 명령과 스택 정보는 onboarding 요약 다음 우선순위로 확인하는 편이 좋다.
+  assessment 가 포함된 예시는 [../examples/output_samples/existing_project_onboarding.with_assessment.sample.json](../examples/output_samples/existing_project_onboarding.with_assessment.sample.json) 을 참고한다.
 - `status == "error"` 인 경우:
   하네스는 `error`, `error_code`, `source_context.failed_step` 를 우선 사용자에게 요약하고, 바로 다음 복구 액션은 `source_context` 의 누락/실패 입력을 기준으로 제안하는 편이 좋다.
 - OpenCode 쪽에서는 `orchestration_plan.worker_assignments` 를 바탕으로 doc/code/validation worker 에 bounded 작업을 분배하기 쉽다.

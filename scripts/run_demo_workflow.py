@@ -15,14 +15,16 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.runner import (
     build_orchestration_plan,
-    build_step_error_context,
+    build_runner_success_result,
+    build_top_level_step_error_result,
     build_worker_assignment,
     collect_step_warnings,
     current_python_executable,
+    optional_path_flag,
     repeated_flag_args,
+    run_latest_backlog_step,
     run_json_command,
     WorkflowStepError,
 )
@@ -149,30 +151,15 @@ def main() -> int:
     }
 
     try:
-        latest_backlog_data: dict[str, Any]
-        if args.latest_backlog_path:
-            latest_backlog_path = Path(args.latest_backlog_path).resolve()
-            latest_backlog_data = {
-                "status": "ok",
-                "tool_version": TOOL_VERSION,
-                "latest_backlog_path": str(latest_backlog_path),
-                "candidates": [str(latest_backlog_path)],
-                "warnings": [],
-            }
-        else:
-            latest_backlog_data = run_json_command(
-                [
-                    python,
-                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
-                    "--work-backlog-index-path",
-                    args.work_backlog_index_path,
-                    "--backlog-dir-path",
-                    args.backlog_dir_path,
-                ],
-                REPO_ROOT,
-                step_name="latest_backlog",
-            )
-        latest_backlog_path = latest_backlog_data.get("latest_backlog_path")
+        latest_backlog_data, latest_backlog_path = run_latest_backlog_step(
+            python=python,
+            repo_root=REPO_ROOT,
+            latest_backlog_script=repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py"),
+            work_backlog_index_path=args.work_backlog_index_path,
+            backlog_dir_path=args.backlog_dir_path,
+            direct_latest_backlog_path=args.latest_backlog_path,
+            tool_version=TOOL_VERSION,
+        )
 
         session_start = run_json_command(
             [
@@ -184,7 +171,7 @@ def main() -> int:
                 args.work_backlog_index_path,
                 "--project-profile-path",
                 args.project_profile_path,
-                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *optional_path_flag("--latest-backlog-path", latest_backlog_path),
             ],
             REPO_ROOT,
             step_name="session_start",
@@ -223,7 +210,7 @@ def main() -> int:
                 args.session_handoff_path,
                 "--work-backlog-index-path",
                 args.work_backlog_index_path,
-                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *optional_path_flag("--latest-backlog-path", latest_backlog_path),
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--change-summary",
                 " / ".join(args.changed_files),
@@ -240,7 +227,7 @@ def main() -> int:
                 args.project_profile_path,
                 "--session-handoff-path",
                 args.session_handoff_path,
-                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *optional_path_flag("--latest-backlog-path", latest_backlog_path),
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--change-summary",
                 " / ".join(args.changed_files),
@@ -274,7 +261,7 @@ def main() -> int:
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--session-handoff-path",
                 args.session_handoff_path,
-                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *optional_path_flag("--latest-backlog-path", latest_backlog_path),
                 "--work-backlog-index-path",
                 args.work_backlog_index_path,
             ],
@@ -292,7 +279,7 @@ def main() -> int:
                 args.session_handoff_path,
                 "--work-backlog-index-path",
                 args.work_backlog_index_path,
-                *(["--latest-backlog-path", latest_backlog_path] if latest_backlog_path else []),
+                *optional_path_flag("--latest-backlog-path", latest_backlog_path),
                 "--merge-result-summary",
                 args.merge_result_summary,
                 *repeated_flag_args("--changed-file", args.changed_files),
@@ -301,12 +288,10 @@ def main() -> int:
             step_name="merge_doc_reconcile",
         )
     except WorkflowStepError as exc:
-        result = build_error_result(
+        result = build_top_level_step_error_result(
             tool_version=TOOL_VERSION,
-            error=exc.error,
-            error_code="workflow_step_failed",
-            warnings=list(exc.payload.get("warnings", [])) if exc.payload else [],
-            source_context=build_step_error_context(step_error=exc, source_context=source_context),
+            step_error=exc,
+            source_context=source_context,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -377,31 +362,32 @@ def main() -> int:
         ],
     )
 
-    result = {
-        "status": "ok",
-        "tool_version": TOOL_VERSION,
-        "warnings": warnings,
-        "example_project": args.example_project,
-        "project_profile_path": str(Path(args.project_profile_path).resolve()),
-        "orchestration_plan": orchestration_plan,
-        "latest_backlog": latest_backlog_data,
-        "session_start": session_start,
-        "backlog_update": backlog_update,
-        "doc_sync": doc_sync,
-        "validation_plan": validation_plan,
-        "code_index_update": code_index_update,
-        "suggest_impacted_docs": suggest_impacted_docs,
-        "merge_doc_reconcile": merge_doc_reconcile,
-        "workflow_summary": {
-            "current_baseline": session_start.get("summary", []),
-            "target_backlog_path": backlog_update.get("target_backlog_path"),
-            "primary_impacted_documents": doc_sync.get("impacted_documents", []),
-            "recommended_validation_levels": validation_plan.get("recommended_validation_levels", []),
-            "priority_index_candidates": code_index_update.get("priority_index_candidates", []),
-            "reconcile_targets": merge_doc_reconcile.get("reconcile_targets", []),
+    result = build_runner_success_result(
+        tool_version=TOOL_VERSION,
+        warnings=warnings,
+        orchestration_plan=orchestration_plan,
+        source_context=source_context,
+        extra_fields={
+            "example_project": args.example_project,
+            "project_profile_path": str(Path(args.project_profile_path).resolve()),
+            "latest_backlog": latest_backlog_data,
+            "session_start": session_start,
+            "backlog_update": backlog_update,
+            "doc_sync": doc_sync,
+            "validation_plan": validation_plan,
+            "code_index_update": code_index_update,
+            "suggest_impacted_docs": suggest_impacted_docs,
+            "merge_doc_reconcile": merge_doc_reconcile,
+            "workflow_summary": {
+                "current_baseline": session_start.get("summary", []),
+                "target_backlog_path": backlog_update.get("target_backlog_path"),
+                "primary_impacted_documents": doc_sync.get("impacted_documents", []),
+                "recommended_validation_levels": validation_plan.get("recommended_validation_levels", []),
+                "priority_index_candidates": code_index_update.get("priority_index_candidates", []),
+                "reconcile_targets": merge_doc_reconcile.get("reconcile_targets", []),
+            },
         },
-        "source_context": source_context,
-    }
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

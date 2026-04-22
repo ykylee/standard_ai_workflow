@@ -35,6 +35,10 @@ def listed_sample_paths() -> list[Path]:
     return results
 
 
+def actual_sample_paths() -> list[Path]:
+    return sorted(SAMPLES_DIR.glob("*.json"))
+
+
 def load_schema_contract() -> dict[str, object]:
     return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
@@ -68,10 +72,20 @@ def main() -> int:
     schema = load_schema_contract()
     compare_schema_and_runtime_contracts(schema, failures)
     listed = listed_sample_paths()
+    actual = actual_sample_paths()
     if not listed:
         failures.append("No JSON sample links were found in examples/output_samples/README.md.")
 
-    for path in listed:
+    listed_set = set(listed)
+    actual_set = set(actual)
+    missing_from_readme = sorted(actual_set - listed_set)
+    extra_in_readme = sorted(listed_set - actual_set)
+    for path in missing_from_readme:
+        failures.append(f"Sample JSON is not listed in README: {path.relative_to(REPO_ROOT)}")
+    for path in extra_in_readme:
+        failures.append(f"README lists a missing JSON sample: {path.relative_to(REPO_ROOT)}")
+
+    for path in actual:
         if not path.exists():
             failures.append(f"Missing listed sample: {path.relative_to(REPO_ROOT)}")
             continue
@@ -115,7 +129,7 @@ def main() -> int:
             print(f"- {failure}")
         return 1
 
-    print(f"Output sample check passed for {len(listed)} JSON files.")
+    print(f"Output sample check passed for {len(actual)} JSON files.")
     return 0
 
 

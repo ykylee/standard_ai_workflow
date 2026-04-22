@@ -104,6 +104,7 @@ python3 scripts/run_existing_project_onboarding.py \
 - 자동 추정한 명령은 편의용 초안일 뿐이며, 실제 CI/CD 또는 운영 절차와 다를 수 있다.
 - 기존 문서 체계가 이미 있다면 별도 워크플로우 문서를 둘지, 기존 문서 위치에 흡수할지 먼저 결정해야 한다.
 - 리뷰 규칙, 배포 승인 규칙, 환경 제약은 자동 추정하기 어렵기 때문에 반드시 사람이 보강해야 한다.
+- 실제 파일럿 적용 대상은 [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md) 기준으로 먼저 추리는 편이 좋다.
 
 ## 4. 어떤 경로를 고를지 판단 기준
 
@@ -127,3 +128,4 @@ python3 scripts/run_existing_project_onboarding.py \
 - 상태 진단: [./project_status_assessment.md](./project_status_assessment.md)
 - 기존 프로젝트 온보딩 계약: [./existing_project_onboarding_contract.md](./existing_project_onboarding_contract.md)
 - 스크립트 안내: [../scripts/README.md](../scripts/README.md)
+- 파일럿 후보 선정 체크리스트: [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md)

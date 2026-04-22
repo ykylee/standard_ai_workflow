@@ -29,6 +29,9 @@
 - worker agent 는 bounded scope 의 읽기/쓰기/검증 작업을 받아 실행하고, 핵심 결과만 오케스트레이터에 되돌려주는 역할을 맡는다.
 - 문서/코드/검증 worker 를 나누면 역할이 더 선명해지고, `main orchestrator + small workers` 구조를 운영하기 쉬워진다.
 - 기존 프로젝트 도입 첫 세션에서는 `run_existing_project_onboarding.py` 결과의 `onboarding_summary`, `warnings`, `orchestration_plan.worker_assignments` 를 메인 오케스트레이터의 초기 분배 입력으로 삼는 구성이 자연스럽다.
+- OpenCode 에서 기존 프로젝트 첫 세션 결과를 읽을 때 권장 순서는 `status -> onboarding_summary.recommended_next_steps -> warnings -> orchestration_plan.worker_assignments -> validation_plan -> code_index_update -> session_start -> repository_assessment.summary` 다.
+- `repository_assessment.summary` 와 `onboarding_summary.inferred_commands` 가 함께 채워진 예시는 [../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json](../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json) 을 참고하면 된다.
+- `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락 입력 경로를 먼저 메인 오케스트레이터에 전달하고 worker 분배는 복구 작업 기준으로 다시 잡는 편이 안전하다.
 
 ## bootstrap 예시
 

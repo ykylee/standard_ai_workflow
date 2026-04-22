@@ -24,14 +24,39 @@ jobs:
         run: |
           set -euo pipefail
           failed=0
+          failed_tests=""
           for t in tests/check_*.py; do
             echo "::group::$t"
             if python3 "$t"; then
+              echo "[PASS] $t"
               echo "::endgroup::"
             else
               echo "::endgroup::"
               echo "::error file=$t::smoke check failed"
               failed=1
+              failed_tests="${failed_tests}${t}\n"
             fi
           done
+          if [ "$failed" -ne 0 ]; then
+            {
+              echo "## Smoke Failures"
+              echo
+              printf "%b" "$failed_tests" | sed 's/^/- /'
+              echo
+              echo "### Local Re-run"
+              echo '```bash'
+              printf "%b" "$failed_tests" | while IFS= read -r t; do
+                [ -n "$t" ] && echo "python3 $t"
+              done
+              echo '```'
+              echo
+              echo "See tests/README.md for failure triage order."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Smoke Passed"
+              echo
+              echo "- All \`tests/check_*.py\` scripts passed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
           exit "$failed"

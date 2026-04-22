@@ -113,6 +113,47 @@ def main() -> int:
             raise AssertionError("Expected main orchestrator model split in onboarding output.")
         if not onboarding_payload["source_context"]["project_profile_path"]:
             raise AssertionError("Expected onboarding source_context to include project_profile_path.")
+        if onboarding_payload["source_context"]["repository_assessment_path"] != str(
+            Path(generated["repository_assessment"]).resolve()
+        ):
+            raise AssertionError("Expected onboarding source_context to retain repository_assessment_path.")
+        if onboarding_payload["source_context"]["latest_backlog_path"] != onboarding_payload["latest_backlog"]["latest_backlog_path"]:
+            raise AssertionError("Expected onboarding source_context latest_backlog_path to match latest_backlog output.")
+
+        empty_backlog_root = target_root / "empty-backlog-case"
+        empty_backlog_root.mkdir(parents=True, exist_ok=True)
+        empty_work_backlog = empty_backlog_root / "work_backlog.md"
+        empty_work_backlog.write_text(
+            "# 작업 백로그 인덱스\n\n- 문서 목적: 테스트\n- 범위: 테스트\n- 대상 독자: 테스트\n- 상태: draft\n- 최종 수정일: 2026-04-22\n- 관련 문서:\n\n## 운영 원칙\n\n- 테스트\n\n## 날짜별 백로그 문서\n",
+            encoding="utf-8",
+        )
+        empty_backlog_dir = empty_backlog_root / "backlog"
+        empty_backlog_dir.mkdir(parents=True, exist_ok=True)
+
+        no_backlog_payload = run_json(
+            [
+                str(ONBOARDING_SCRIPT),
+                "--project-profile-path",
+                str(generated["project_profile"]),
+                "--session-handoff-path",
+                str(generated["session_handoff"]),
+                "--work-backlog-index-path",
+                str(empty_work_backlog),
+                "--backlog-dir-path",
+                str(empty_backlog_dir),
+                "--change-summary",
+                "latest backlog 없이도 onboarding 흐름이 계속되는지 확인한다.",
+            ],
+            REPO_ROOT,
+        )
+        if no_backlog_payload["status"] != "ok":
+            raise AssertionError("Expected onboarding runner to continue without a latest backlog.")
+        if no_backlog_payload["latest_backlog"]["latest_backlog_path"] is not None:
+            raise AssertionError("Expected latest_backlog_path to remain null when no backlog exists.")
+        if not no_backlog_payload["latest_backlog"]["warnings"]:
+            raise AssertionError("Expected latest_backlog warnings when no backlog exists.")
+        if no_backlog_payload["source_context"]["latest_backlog_path"] is not None:
+            raise AssertionError("Expected onboarding source_context latest_backlog_path to remain null.")
 
         failure_code, failure_payload = run_json_allow_failure(
             [
@@ -134,7 +175,8 @@ def main() -> int:
             raise AssertionError("Expected structured error payload for onboarding failure.")
         if failure_payload["error_code"] != "missing_required_document":
             raise AssertionError("Expected missing_required_document error code.")
-        if failure_payload["source_context"]["project_profile_path"] != "/private/tmp/missing-profile.md":
+        expected_missing_profile = str(Path("/tmp/missing-profile.md").resolve())
+        if failure_payload["source_context"]["project_profile_path"] != expected_missing_profile:
             raise AssertionError("Expected source_context to retain the missing project profile path.")
 
     print("Existing-project onboarding smoke check passed.")

@@ -14,6 +14,13 @@ SUCCESS_PATH_CONTRACTS: dict[str, frozenset[str]] = {
     "validation_plan": frozenset({"recommended_validation_levels", "documentation_checks", "source_context"}),
     "code_index_update": frozenset({"index_update_candidates", "source_context"}),
     "latest_backlog": frozenset({"latest_backlog_path", "candidates"}),
+    "check_doc_metadata": frozenset({"checked_files", "missing_metadata"}),
+    "check_doc_links": frozenset({"checked_files", "broken_links"}),
+    "check_quickstart_stale_links": frozenset(
+        {"checked_files", "missing_expected_links", "stale_link_warnings", "reasoning_notes"}
+    ),
+    "create_backlog_entry": frozenset({"draft_entry"}),
+    "suggest_impacted_docs": frozenset({"impacted_documents", "reasoning_notes"}),
     "demo_workflow": frozenset({"orchestration_plan", "workflow_summary", "source_context"}),
     "existing_project_onboarding": frozenset({"orchestration_plan", "onboarding_summary", "source_context"}),
 }

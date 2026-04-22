@@ -26,6 +26,8 @@
 - [end_to_end_skill_demo.md](./end_to_end_skill_demo.md)
 - [end_to_end_mcp_demo.md](./end_to_end_mcp_demo.md)
 - [bootstrap_output_samples.md](./bootstrap_output_samples.md)
+- [pilot_adoption_existing_repo_example.md](./pilot_adoption_existing_repo_example.md)
+- [pilot_execution_plan_existing_repo.md](./pilot_execution_plan_existing_repo.md)
 
 ## 예시 비교 포인트
 
@@ -41,4 +43,6 @@
 - 메인 오케스트레이터가 `doc-worker`, `code-worker`, `validation-worker` 를 어떻게 분배하면 좋은지 보려면 `end_to_end_skill_demo.md` 의 운영 예시 섹션을 먼저 읽는다.
 - 프로토타입 MCP 가 실제로 어떻게 이어지는지 보려면 `end_to_end_mcp_demo.md` 를 읽고 명령을 순서대로 실행한다.
 - bootstrap 생성물이 어떤 문구를 기본으로 포함하는지 보려면 `bootstrap_output_samples.md` 를 먼저 확인한다.
+- 실제 파일럿 적용 기록을 어떤 형식으로 남길지 보려면 `pilot_adoption_existing_repo_example.md` 를 먼저 확인한다.
+- 실제 파일럿을 어떤 순서로 진행할지 보려면 `pilot_execution_plan_existing_repo.md` 를 먼저 확인한다.
 - 이후 자신의 프로젝트에 맞게 문서 경로, 명령, 검증 포인트만 바꿔서 복사 적용한다.

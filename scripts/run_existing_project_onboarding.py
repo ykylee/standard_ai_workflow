@@ -19,11 +19,14 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.runner import (
     build_orchestration_plan,
-    build_step_error_context,
+    build_runner_success_result,
+    build_top_level_step_error_result,
     build_worker_assignment,
     collect_step_warnings,
     current_python_executable,
+    optional_path_flag,
     repeated_flag_args,
+    run_latest_backlog_step,
     run_json_command,
     WorkflowStepError,
 )
@@ -105,62 +108,49 @@ def main() -> int:
         if repository_assessment_path:
             assessment = parse_repository_assessment(repository_assessment_path)
 
-        latest_backlog_data: dict[str, Any]
-        if args.latest_backlog_path:
-            latest_backlog_path = resolve_existing_path(args.latest_backlog_path)
-            latest_backlog_data = {
-                "status": "ok",
-                "tool_version": TOOL_VERSION,
-                "latest_backlog_path": str(latest_backlog_path),
-                "candidates": [str(latest_backlog_path)],
-                "warnings": [],
-            }
-        else:
-            latest_backlog_data = run_json_command(
-                [
-                    python,
-                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
-                    "--work-backlog-index-path",
-                    str(work_backlog_index_path),
-                    "--backlog-dir-path",
-                    str(backlog_dir_path),
-                ],
-                REPO_ROOT,
-                step_name="latest_backlog",
-            )
-            latest_backlog_path = Path(latest_backlog_data["latest_backlog_path"]).resolve()
+        latest_backlog_data, latest_backlog_path = run_latest_backlog_step(
+            python=python,
+            repo_root=REPO_ROOT,
+            latest_backlog_script=repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py"),
+            work_backlog_index_path=str(work_backlog_index_path),
+            backlog_dir_path=str(backlog_dir_path),
+            direct_latest_backlog_path=str(resolve_existing_path(args.latest_backlog_path)) if args.latest_backlog_path else None,
+            tool_version=TOOL_VERSION,
+        )
+
+        session_start_command = [
+            python,
+            str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
+            "--session-handoff-path",
+            str(session_handoff_path),
+            "--work-backlog-index-path",
+            str(work_backlog_index_path),
+            "--project-profile-path",
+            str(project_profile_path),
+            *optional_path_flag("--latest-backlog-path", latest_backlog_path),
+        ]
 
         session_start = run_json_command(
-            [
-                python,
-                str(repo_path("skills", "session-start", "scripts", "run_session_start.py")),
-                "--session-handoff-path",
-                str(session_handoff_path),
-                "--work-backlog-index-path",
-                str(work_backlog_index_path),
-                "--project-profile-path",
-                str(project_profile_path),
-                "--latest-backlog-path",
-                str(latest_backlog_path),
-            ],
+            session_start_command,
             REPO_ROOT,
             step_name="session_start",
         )
 
+        validation_plan_command = [
+            python,
+            str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
+            "--project-profile-path",
+            str(project_profile_path),
+            "--session-handoff-path",
+            str(session_handoff_path),
+            *optional_path_flag("--latest-backlog-path", latest_backlog_path),
+            *repeated_flag_args("--changed-file", args.changed_files),
+            "--change-summary",
+            args.change_summary,
+        ]
+
         validation_plan = run_json_command(
-            [
-                python,
-                str(repo_path("skills", "validation-plan", "scripts", "run_validation_plan.py")),
-                "--project-profile-path",
-                str(project_profile_path),
-                "--session-handoff-path",
-                str(session_handoff_path),
-                "--latest-backlog-path",
-                str(latest_backlog_path),
-                *repeated_flag_args("--changed-file", args.changed_files),
-                "--change-summary",
-                args.change_summary,
-            ],
+            validation_plan_command,
             REPO_ROOT,
             step_name="validation_plan",
         )
@@ -183,12 +173,10 @@ def main() -> int:
             step_name="code_index_update",
         )
     except WorkflowStepError as exc:
-        result = build_error_result(
+        result = build_top_level_step_error_result(
             tool_version=TOOL_VERSION,
-            error=exc.error,
-            error_code="workflow_step_failed",
-            warnings=list(exc.payload.get("warnings", [])) if exc.payload else [],
-            source_context=build_step_error_context(step_error=exc, source_context=source_context),
+            step_error=exc,
+            source_context=source_context,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -272,30 +260,33 @@ def main() -> int:
         ],
     }
 
-    result = {
-        "status": "ok",
-        "tool_version": TOOL_VERSION,
-        "warnings": warnings,
-        "onboarding_mode": "existing_project_followup",
-        "orchestration_plan": orchestration_plan,
-        "repository_assessment": {
-            "path": str(repository_assessment_path) if repository_assessment_path else None,
-            "summary": assessment,
-        },
-        "latest_backlog": latest_backlog_data,
-        "session_start": session_start,
-        "validation_plan": validation_plan,
-        "code_index_update": code_index_update,
-        "onboarding_summary": onboarding_summary,
-        "source_context": {
+    result = build_runner_success_result(
+        tool_version=TOOL_VERSION,
+        warnings=warnings,
+        orchestration_plan=orchestration_plan,
+        source_context={
             "project_profile_path": str(project_profile_path),
             "session_handoff_path": str(session_handoff_path),
             "work_backlog_index_path": str(work_backlog_index_path),
             "backlog_dir_path": str(backlog_dir_path),
+            "repository_assessment_path": str(repository_assessment_path) if repository_assessment_path else None,
+            "latest_backlog_path": str(latest_backlog_path) if latest_backlog_path else None,
             "changed_files": args.changed_files,
             "change_summary": args.change_summary,
         },
-    }
+        extra_fields={
+            "onboarding_mode": "existing_project_followup",
+            "repository_assessment": {
+                "path": str(repository_assessment_path) if repository_assessment_path else None,
+                "summary": assessment,
+            },
+            "latest_backlog": latest_backlog_data,
+            "session_start": session_start,
+            "validation_plan": validation_plan,
+            "code_index_update": code_index_update,
+            "onboarding_summary": onboarding_summary,
+        },
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

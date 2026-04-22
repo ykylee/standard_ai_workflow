@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from workflow_kit.common.errors import build_error_result
+
 
 class WorkflowStepError(RuntimeError):
     """Raised when an orchestration runner cannot obtain a usable child payload."""
@@ -156,4 +158,91 @@ def build_orchestration_plan(
         "model_split": model_split,
         "worker_assignments": worker_assignments,
         "integration_notes": integration_notes,
+    }
+
+
+def run_latest_backlog_step(
+    *,
+    python: str,
+    repo_root: Path,
+    latest_backlog_script: Path,
+    work_backlog_index_path: str,
+    backlog_dir_path: str,
+    direct_latest_backlog_path: str | None,
+    tool_version: str,
+) -> tuple[dict[str, Any], Path | None]:
+    """Resolve latest backlog either from a direct path or by calling the MCP prototype."""
+
+    if direct_latest_backlog_path:
+        latest_backlog_path = Path(direct_latest_backlog_path).resolve()
+        return (
+            {
+                "status": "ok",
+                "tool_version": tool_version,
+                "latest_backlog_path": str(latest_backlog_path),
+                "candidates": [str(latest_backlog_path)],
+                "warnings": [],
+            },
+            latest_backlog_path,
+        )
+
+    latest_backlog_data = run_json_command(
+        [
+            python,
+            str(latest_backlog_script),
+            "--work-backlog-index-path",
+            work_backlog_index_path,
+            "--backlog-dir-path",
+            backlog_dir_path,
+        ],
+        repo_root,
+        step_name="latest_backlog",
+    )
+    raw_latest_backlog = latest_backlog_data.get("latest_backlog_path")
+    latest_backlog_path = Path(str(raw_latest_backlog)).resolve() if raw_latest_backlog else None
+    return latest_backlog_data, latest_backlog_path
+
+
+def optional_path_flag(flag: str, path: Path | None) -> list[str]:
+    """Return a CLI flag pair only when the optional path is available."""
+
+    if path is None:
+        return []
+    return [flag, str(path)]
+
+
+def build_top_level_step_error_result(
+    *,
+    tool_version: str,
+    step_error: WorkflowStepError,
+    source_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Wrap a child step error payload into the top-level runner error contract."""
+
+    return build_error_result(
+        tool_version=tool_version,
+        error=step_error.error,
+        error_code="workflow_step_failed",
+        warnings=list(step_error.payload.get("warnings", [])) if step_error.payload else [],
+        source_context=build_step_error_context(step_error=step_error, source_context=source_context),
+    )
+
+
+def build_runner_success_result(
+    *,
+    tool_version: str,
+    warnings: list[str],
+    orchestration_plan: dict[str, Any],
+    source_context: dict[str, Any],
+    extra_fields: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the shared top-level success payload shape for orchestration runners."""
+
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "warnings": warnings,
+        "orchestration_plan": orchestration_plan,
+        **extra_fields,
+        "source_context": source_context,
     }

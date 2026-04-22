@@ -355,7 +355,7 @@ runner 실패 규칙:
 
 ## 7. MCP 출력 계약
 
-### 6.1 `latest_backlog`
+### 7.1 `latest_backlog`
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
@@ -369,7 +369,7 @@ runner 실패 규칙:
 
 - [../examples/output_samples/latest_backlog.acme_delivery_platform.json](../examples/output_samples/latest_backlog.acme_delivery_platform.json)
 
-### 6.2 `check_doc_metadata`
+### 7.2 `check_doc_metadata`
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
@@ -383,7 +383,7 @@ runner 실패 규칙:
 
 - [../examples/output_samples/check_doc_metadata.examples.json](../examples/output_samples/check_doc_metadata.examples.json)
 
-### 6.3 `check_doc_links`
+### 7.3 `check_doc_links`
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
@@ -397,7 +397,7 @@ runner 실패 규칙:
 
 - [../examples/output_samples/check_doc_links.examples.json](../examples/output_samples/check_doc_links.examples.json)
 
-### 6.4 `create_backlog_entry`
+### 7.4 `create_backlog_entry`
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
@@ -410,7 +410,24 @@ runner 실패 규칙:
 
 - [../examples/output_samples/create_backlog_entry.sample.json](../examples/output_samples/create_backlog_entry.sample.json)
 
-### 6.5 `suggest_impacted_docs`
+### 7.5 `suggest_impacted_docs`
+
+### 7.6 `check_quickstart_stale_links`
+
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
+| `checked_files` | 예 | `list[str]` | 점검한 quickstart 문서 |
+| `broken_links` | 예 | `list[object]` | 깨진 상대 링크 목록 |
+| `missing_expected_links` | 예 | `list[object]` | 빠진 핵심 진입 문서 링크 |
+| `stale_link_warnings` | 예 | `list[str]` | quickstart stale 가능성 경고 |
+| `reasoning_notes` | 예 | `list[str]` | 점검 근거 |
+| `warnings` | 예 | `list[str]` | 추가 경고 |
+
+대표 샘플:
+
+- [../examples/output_samples/check_quickstart_stale_links.sample.json](../examples/output_samples/check_quickstart_stale_links.sample.json)
 
 | 필드 | 필수 | 타입 | 의미 |
 | --- | --- | --- | --- |
@@ -430,6 +447,7 @@ runner 실패 규칙:
 
 1. 예외 종료하는 프로토타입에도 `status: "error"` / `error_code` 구조를 점진적으로 적용
 2. 샘플 JSON 과 실제 스크립트 출력 사이 차이를 주기적으로 점검하는 회귀 검사 추가
+3. `schemas/output_sample_contracts.json` 과 `workflow_kit.common.output_contracts` 가 MCP 샘플까지 같은 기준을 보도록 함께 유지
 
 ## 다음에 읽을 문서
 

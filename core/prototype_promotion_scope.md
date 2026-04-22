@@ -183,6 +183,11 @@
 
 즉, 지금은 “모든 것을 server 화”하기보다 “공통 라이브러리화 -> 읽기 전용 MCP server 화 -> 쓰기 성격 확장” 순서가 가장 안전하다. 추가로 library 확장도 한 번에 넓히기보다, 변경 파일 분류/문서 파서/추천 로직처럼 계약이 비교적 안정적인 영역부터 좁게 가져가는 것이 현재 단계에 더 맞다.
 
+현재 착수 상태:
+
+- 읽기 전용 MCP 1차 묶음의 registry 와 draft entrypoint 가 `workflow_kit/server/read_only_registry.py`, `workflow_kit/server/read_only_entrypoint.py` 로 시작됐다.
+- 현재 단계는 subprocess adapter 수준의 draft 구조이며, 정식 MCP transport 와 direct function call 교체는 다음 확장 단계다.
+
 ## 7. 다음에 읽을 문서
 
 - 상위 로드맵: [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md)

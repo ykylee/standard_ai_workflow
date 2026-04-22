@@ -12,10 +12,12 @@
 - 우선순위 1 MCP 후보 5종에 대한 프로토타입 디렉터리 구조를 추가했다.
 - 현재 단계는 실행 가능한 프로토타입과 문서 기반 인터페이스 설명이 공존하는 상태다.
 - 실제 MCP 서버 패키징이나 transport 계층은 아직 없다.
+- 대신 읽기 전용 MCP 1차 묶음을 위한 draft registry 와 entrypoint 가 `workflow_kit/server/` 아래에서 시작됐다.
 
 ## 현재 구조
 
 - [prototype_layout.md](./prototype_layout.md)
+- [read_only_bundle.md](./read_only_bundle.md)
 - [latest-backlog/MCP.md](./latest-backlog/MCP.md)
 - [check-doc-metadata/MCP.md](./check-doc-metadata/MCP.md)
 - [check-doc-links/MCP.md](./check-doc-links/MCP.md)
@@ -43,3 +45,4 @@
 
 - MCP 카탈로그: [../core/workflow_mcp_candidate_catalog.md](../core/workflow_mcp_candidate_catalog.md)
 - 프로토타입 구조 안내: [./prototype_layout.md](./prototype_layout.md)
+- 읽기 전용 bundle 초안: [./read_only_bundle.md](./read_only_bundle.md)

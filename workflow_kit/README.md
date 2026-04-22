@@ -27,6 +27,8 @@
 - `common.runner`
 - `common.errors`
 - `common.output_contracts`
+- `server.read_only_registry`
+- `server.read_only_entrypoint`
 
 이 모듈들은 아래 책임을 가진다.
 
@@ -47,6 +49,7 @@
 - 공통 error JSON payload 생성
 - 샘플/스모크 테스트에서 재사용하는 출력 계약 맵 제공
 - `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공
+- 읽기 전용 MCP 1차 묶음의 draft tool registry 와 subprocess adapter entrypoint 제공
 
 ## 3. 현재 사용처
 

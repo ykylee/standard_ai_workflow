@@ -101,6 +101,8 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 - latest backlog 미발견 처리:
 - backlog index 와 backlog 디렉터리에서 최신 backlog 를 찾지 못해도 runner 는 가능한 범위의 결과를 계속 반환한다.
 - 이 경우 `latest_backlog.latest_backlog_path` 와 top-level `source_context.latest_backlog_path` 는 `null` 이다.
+- 실제 파일럿 참고:
+- `open_git_client` 에 bootstrap 과 onboarding runner 를 실제 적용한 기록은 [../examples/pilot_adoption_open_git_client_example.md](../examples/pilot_adoption_open_git_client_example.md) 에 정리돼 있다.
 
 실행 예시:
 

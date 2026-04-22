@@ -49,8 +49,13 @@
 - 부분 결과만 남기고 재검토가 강하게 필요한 경우 `status: "warning"` 을 사용할 수 있다.
 - 실패 시에는 `status: "error"` 와 `error`, `error_code` 를 함께 사용한다.
 - 현재 저장소의 실행형 프로토타입은 정상 출력에 `workflow_kit.__version__` 값을 공통 `tool_version` 으로 사용한다.
-- 대표 JSON 샘플과 smoke test 도 같은 `workflow_kit.__version__` 값을 기준으로 검증하는 것을 권장한다.
+- 대표 JSON 샘플과 smoke test 도 같은 `workflow_kit.__version__` 값을 기준으로 검증한다.
 - `stale_warnings`, `stale_index_warnings` 같은 도메인 전용 경고 필드를 쓰더라도, 같은 메시지를 `warnings` 에도 함께 반영해 공통 파이프라인이 읽을 수 있게 한다.
+
+추가 메모:
+
+- 정적 계약 파일인 `schemas/output_sample_contracts.json` 은 `tool_version_source` 메타데이터로만 단일 출처를 표시한다.
+- 실제 샘플 JSON 의 `tool_version` 값 일치 검증은 `tests/check_output_samples.py` 가 런타임 `workflow_kit.__version__` 과 직접 비교해 수행한다.
 
 ### 3.2 skill 출력 공통 필드
 
@@ -249,7 +254,12 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 대표 샘플:
 
 - [../examples/output_samples/validation_plan.acme_delivery_platform.json](../examples/output_samples/validation_plan.acme_delivery_platform.json)
+- [../examples/output_samples/validation_plan.docs_primary.acme_delivery_platform.json](../examples/output_samples/validation_plan.docs_primary.acme_delivery_platform.json)
 - [../examples/output_samples/validation_plan.error.missing_change_input.json](../examples/output_samples/validation_plan.error.missing_change_input.json)
+
+추가 메모:
+
+- docs-primary 변경에서도 프로젝트 프로파일의 빠른 테스트 명령이 있으면 `recommended_commands` 에 기본 회귀 확인용으로 포함할 수 있다.
 
 ### 5.6 `code-index-update`
 

@@ -72,6 +72,23 @@ def main() -> int:
     if not research_payload["documentation_checks"]:
         raise AssertionError("Research example should include documentation checks.")
 
+    docs_only_payload = run_validation(
+        "acme_delivery_platform",
+        [
+            "docs/operations/runbooks/delivery-sync.md",
+        ],
+        "운영 runbook 문서만 수정",
+    )
+    if docs_only_payload["detected_change_types"] != ["docs", "ops"]:
+        raise AssertionError("Docs-only runbook example should classify docs and ops changes.")
+    if not docs_only_payload["recommended_commands"]:
+        raise AssertionError("Docs-only example should still recommend quick validation commands when available.")
+    if any(
+        warning == "프로젝트 프로파일에서 실행 가능한 검증 명령을 충분히 찾지 못했다."
+        for warning in docs_only_payload["warnings"]
+    ):
+        raise AssertionError("Docs-only example should not emit missing-command warning when quick tests exist.")
+
     print("Validation-plan smoke check passed.")
     return 0
 

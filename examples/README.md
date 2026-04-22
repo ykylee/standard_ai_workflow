@@ -27,6 +27,7 @@
 - [end_to_end_mcp_demo.md](./end_to_end_mcp_demo.md)
 - [bootstrap_output_samples.md](./bootstrap_output_samples.md)
 - [pilot_adoption_existing_repo_example.md](./pilot_adoption_existing_repo_example.md)
+- [pilot_adoption_open_git_client_example.md](./pilot_adoption_open_git_client_example.md)
 - [pilot_execution_plan_existing_repo.md](./pilot_execution_plan_existing_repo.md)
 - [pilot_candidate_shortlist_example.md](./pilot_candidate_shortlist_example.md)
 - [pilot_candidate_existing_service_repo_example.md](./pilot_candidate_existing_service_repo_example.md)
@@ -47,6 +48,7 @@
 - 프로토타입 MCP 가 실제로 어떻게 이어지는지 보려면 `end_to_end_mcp_demo.md` 를 읽고 명령을 순서대로 실행한다.
 - bootstrap 생성물이 어떤 문구를 기본으로 포함하는지 보려면 `bootstrap_output_samples.md` 를 먼저 확인한다.
 - 실제 파일럿 적용 기록을 어떤 형식으로 남길지 보려면 `pilot_adoption_existing_repo_example.md` 를 먼저 확인한다.
+- 실제 로컬 저장소에 적용한 첫 파일럿 기록을 보려면 `pilot_adoption_open_git_client_example.md` 를 먼저 확인한다.
 - 실제 파일럿을 어떤 순서로 진행할지 보려면 `pilot_execution_plan_existing_repo.md` 를 먼저 확인한다.
 - 파일럿 후보를 어떤 기준으로 1~2개로 좁힐지 보려면 `pilot_candidate_shortlist_example.md` 를 먼저 확인한다.
 - 1순위 후보 체크리스트를 실제로 어떻게 채우는지 보려면 `pilot_candidate_existing_service_repo_example.md` 를 먼저 확인한다.

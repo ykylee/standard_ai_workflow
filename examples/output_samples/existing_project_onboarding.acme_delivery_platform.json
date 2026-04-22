@@ -4,7 +4,6 @@
   "warnings": [
     "blocked 항목이 handoff 와 backlog 사이에서 다를 수 있으므로 수동 재확인이 필요하다.",
     "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다.",
-    "프로젝트 프로파일에서 실행 가능한 검증 명령을 충분히 찾지 못했다.",
     "변경 경로 기준으로 추정한 색인 문서 일부가 현재 저장소에서 확인되지 않는다."
   ],
   "onboarding_mode": "existing_project_followup",
@@ -83,13 +82,22 @@
     "recommended_validation_levels": [
       "documentation"
     ],
+    "recommended_commands": [
+      {
+        "command": "pytest -q",
+        "reason": "문서 전용 변경이지만 기본 회귀 확인"
+      },
+      {
+        "command": "make lint",
+        "reason": "문서 전용 변경이지만 기본 회귀 확인"
+      }
+    ],
     "documentation_checks": [
       "허브 문서, 메타데이터, 관련 링크 무결성을 함께 점검한다.",
       "운영 허브 링크, 메타데이터, 관련 runbook 링크 무결성을 함께 확인한다."
     ],
     "warnings": [
-      "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다.",
-      "프로젝트 프로파일에서 실행 가능한 검증 명령을 충분히 찾지 못했다."
+      "staging 검증은 사내 VPN 연결 상태에서만 수행 가능하다."
     ]
   },
   "code_index_update": {

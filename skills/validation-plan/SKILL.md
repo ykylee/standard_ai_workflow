@@ -46,6 +46,7 @@
 - 프로젝트 프로파일의 `기본 명령` 과 `프로젝트 특화 검증 포인트` 를 우선 해석한다.
 - 출력은 보수적으로 생성하고, 확신이 낮은 항목은 `commands_requiring_confirmation` 또는 `confidence_notes` 로 분리한다.
 - 프로젝트 특화 환경 제약은 `warnings` 와 `deferred_validation_items` 에 반영한다.
+- 문서 전용 변경이어도 프로젝트 프로파일에 빠른 테스트가 정의돼 있으면 기본 회귀 확인 명령을 함께 제안한다.
 
 ## 프로토타입 실행
 

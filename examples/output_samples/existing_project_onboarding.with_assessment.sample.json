@@ -101,6 +101,16 @@
     "recommended_validation_levels": [
       "standard"
     ],
+    "recommended_commands": [
+      {
+        "command": "npm test",
+        "reason": "기본 빠른 테스트"
+      },
+      {
+        "command": "npm run test:unit",
+        "reason": "격리 검증 또는 추가 회귀 확인"
+      }
+    ],
     "documentation_checks": [
       "허브 문서, 메타데이터, 관련 링크 무결성을 함께 점검한다.",
       "운영 허브 링크, 메타데이터, 관련 runbook 링크 무결성을 함께 확인한다."

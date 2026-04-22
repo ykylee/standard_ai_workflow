@@ -6,6 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-04-22
 - 관련 문서: `./workflow_adoption_entrypoints.md`, `./output_schema_guide.md`, `./workflow_kit_roadmap.md`, `../scripts/run_existing_project_onboarding.py`, `../tests/check_existing_project_onboarding.py`
+- 실제 파일럿 예시: `../examples/pilot_adoption_open_git_client_example.md`
 
 ## 1. 목적
 
@@ -218,6 +219,10 @@
 6. `code_index_update`
 7. `session_start`
 8. `repository_assessment.summary`
+
+실제 적용 참고:
+
+- `open_git_client` 파일럿에서는 bootstrap 직후 경로 표현 보정, handoff/backlog 상태 정렬, quick test 실행 증빙까지 반영한 기록을 [../examples/pilot_adoption_open_git_client_example.md](../examples/pilot_adoption_open_git_client_example.md) 에 남겼다.
 
 이 순서는 “사람에게 바로 보일 요약 -> 리스크 -> worker 분배 -> 세부 근거 -> 추정 명령/스택 확인” 흐름을 유지하기 위한 것이다.
 

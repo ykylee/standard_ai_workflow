@@ -48,12 +48,19 @@ def build_validation_plan(
     quick_tests = split_commands(profile.get("quick_tests"))
     isolated_tests = split_commands(profile.get("isolated_tests"))
     runtime_checks = split_commands(profile.get("runtime_checks"))
+    docs_primary = (
+        "docs" in change_types and not any(item in change_types for item in ["code", "config", "ui", "prompt_or_eval"])
+    )
 
     if any(item in change_types for item in ["code", "config"]):
         for command in quick_tests:
             recommended_commands.append({"command": command, "reason": "기본 빠른 테스트"})
         for command in isolated_tests:
             recommended_commands.append({"command": command, "reason": "격리 검증 또는 추가 회귀 확인"})
+
+    if docs_primary:
+        for command in quick_tests:
+            recommended_commands.append({"command": command, "reason": "문서 전용 변경이지만 기본 회귀 확인"})
 
     if "ui" in change_types:
         for command in runtime_checks:
@@ -114,6 +121,8 @@ def build_validation_plan(
         confidence_notes.append("명령 추천보다 문서 기반 체크리스트 비중이 높다.")
     else:
         confidence_notes.append("프로젝트 프로파일의 기본 명령을 우선 사용해 검증 계획을 구성했다.")
+        if docs_primary:
+            confidence_notes.append("문서 전용 변경에서도 저장소 기본 회귀 확인 명령을 함께 제안했다.")
 
     if changed_files and all(item == "docs" for item in change_types):
         confidence_notes.append("현재 변경은 문서 중심으로 보여 실행 검증은 최소화했다.")

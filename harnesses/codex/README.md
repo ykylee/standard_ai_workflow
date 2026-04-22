@@ -22,6 +22,7 @@
 - 기존 프로젝트 도입 첫 세션에서는 `run_existing_project_onboarding.py` 결과의 `onboarding_summary`, `warnings`, `orchestration_plan` 을 먼저 읽고, 이를 Codex 내부 운영 힌트로 사용하는 구성이 적합하다.
 - Codex 에서 기존 프로젝트 첫 세션 결과를 읽을 때 권장 순서는 `status -> onboarding_summary.recommended_next_steps -> warnings -> orchestration_plan -> validation_plan -> code_index_update -> session_start -> repository_assessment.summary` 다.
 - `repository_assessment.summary` 와 `onboarding_summary.inferred_commands` 가 함께 채워진 예시는 [../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json](../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json) 을 참고하면 된다.
+- 실제 기존 저장소에 Codex 하네스를 얹은 첫 파일럿 기록은 [../../examples/pilot_adoption_open_git_client_example.md](../../examples/pilot_adoption_open_git_client_example.md) 을 참고하면 된다.
 - `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락된 입력 경로를 먼저 요약하고 복구 작업부터 배치하는 편이 낫다.
 
 ## bootstrap 예시

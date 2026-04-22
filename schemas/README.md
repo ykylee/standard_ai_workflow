@@ -27,6 +27,11 @@
 - sample family 별 success/error 필수 필드
 - `tool_version` 단일 출처가 `workflow_kit.__version__` 임을 가리키는 메타데이터
 
+추가 메모:
+
+- 현재 정적 계약 파일은 `tool_version` 값을 직접 반복 정의하지 않고, `workflow_kit.__version__` 를 단일 출처로 삼는다는 사실만 메타데이터로 기록한다.
+- 실제 JSON 샘플 값 일치 여부는 `tests/check_output_samples.py` 가 런타임 `workflow_kit.__version__` 과 직접 비교해 검증한다.
+
 ## 3. 현재 사용 방식
 
 - `tests/check_output_samples.py` 가 이 파일을 읽어 대표 JSON 샘플의 핵심 필드 계약을 검증한다.

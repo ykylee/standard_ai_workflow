@@ -18,6 +18,7 @@
 - [merge_doc_reconcile.acme_delivery_platform.json](./merge_doc_reconcile.acme_delivery_platform.json)
 - [merge_doc_reconcile.error.missing_document.json](./merge_doc_reconcile.error.missing_document.json)
 - [validation_plan.acme_delivery_platform.json](./validation_plan.acme_delivery_platform.json)
+- [validation_plan.docs_primary.acme_delivery_platform.json](./validation_plan.docs_primary.acme_delivery_platform.json)
 - [validation_plan.error.missing_change_input.json](./validation_plan.error.missing_change_input.json)
 - [code_index_update.research_eval_hub.json](./code_index_update.research_eval_hub.json)
 - [code_index_update.error.missing_change_input.json](./code_index_update.error.missing_change_input.json)
@@ -44,6 +45,7 @@
 - 이 디렉터리의 JSON 파일은 대표 예시이며, 모든 프로젝트에서 값이 동일하다는 뜻은 아니다.
 - `demo_workflow.*`, `existing_project_onboarding.*` 샘플은 runner 전체 출력을 보여주기 위해 개별 step 요약이 아니라 중첩 payload 를 포함한 richer sample 형태를 사용한다.
 - `existing_project_onboarding.with_assessment.sample.json` 은 `repository_assessment.summary` 와 `onboarding_summary.inferred_commands` 가 실제로 채워진 하네스 소비 예시를 보여준다.
+- `validation_plan.docs_primary.acme_delivery_platform.json` 은 docs-primary 변경에서도 기본 quick test 를 제안하는 최신 정책 예시를 보여준다.
 - 경고 문구나 후보 경로는 프로젝트 프로파일과 변경 파일 입력에 따라 달라질 수 있다.
 - 실패 샘플은 대표적인 오류 분류 예시이며, `source_context` 세부 값은 실행 인자에 따라 달라질 수 있다.
 - 시간 정보가 들어가는 샘플은 예시 생성 시점의 값이 포함될 수 있다.

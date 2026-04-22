@@ -4,7 +4,7 @@
 - 범위: `opencode.json`, project-local skill/agent 파일, 공통 문서 연결 방식
 - 대상 독자: OpenCode 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-04-23
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`
 
 ## 생성 대상

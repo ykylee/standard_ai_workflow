@@ -4,7 +4,7 @@
 - 범위: 현재 포함된 공통 모듈, 초기 사용처, 향후 확장 방향
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-04-23
 - 관련 문서: `../core/prototype_promotion_scope.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -27,7 +27,9 @@
 - `common.runner`
 - `common.errors`
 - `common.output_contracts`
+- `common.read_only_bundle`
 - `server.read_only_registry`
+- `server.read_only_tools`
 - `server.read_only_entrypoint`
 
 이 모듈들은 아래 책임을 가진다.
@@ -49,7 +51,8 @@
 - 공통 error JSON payload 생성
 - 샘플/스모크 테스트에서 재사용하는 출력 계약 맵 제공
 - `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공
-- 읽기 전용 MCP 1차 묶음의 draft tool registry 와 subprocess adapter entrypoint 제공
+- read-only MCP 5종의 공통 callable layer 제공
+- 읽기 전용 MCP 1차 묶음의 draft tool registry, direct-call adapter, schema-validated entrypoint 제공
 
 ## 3. 현재 사용처
 
@@ -58,7 +61,9 @@
 - `latest_backlog`
 - `check_doc_links`
 - `check_doc_metadata`
+- `suggest_impacted_docs`
 - `check_quickstart_stale_links`
+- `create_backlog_entry`
 
 현재 아래 skill/MCP 프로토타입도 `workflow_kit.common` 을 사용한다.
 
@@ -82,12 +87,14 @@
 - result payload builder 추가 정리
 - runner 단계 조립 함수와 step 실패 컨텍스트 공통화
 - `tool_version` 및 output contract 검증 기준의 단일 출처 유지
-- 읽기 전용 MCP server 엔트리포인트 초안 연결
+- generated JSON Schema 와 manifest 외부 소비 지점 연결
+- 읽기 전용 MCP server transport 계층 연결
 
 현재 상태 메모:
 
 - 코드 경로의 `tool_version` 은 이미 `workflow_kit.__version__` 에서 가져오도록 정리돼 있다.
-- 남은 정렬 작업은 문서 예시와 대표 샘플이 이 단일 출처 원칙을 더 명확히 설명하도록 보강하는 쪽이다.
+- output contract 런타임 맵은 generated JSON Schema 와 sample validation smoke 의 단일 출처로도 쓰이고 있다.
+- 남은 정렬 작업은 문서 예시와 외부 소비 지점이 이 단일 출처 원칙을 더 명확히 설명하도록 보강하는 쪽이다.
 
 ## 5. 원칙
 

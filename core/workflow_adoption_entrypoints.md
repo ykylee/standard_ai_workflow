@@ -4,7 +4,7 @@
 - 범위: 도입 모드별 목표, 추천 시작 순서, 자동화 가능 범위, 주의점
 - 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-04-23
 - 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
 
 ## 1. 도입 경로 개요
@@ -82,11 +82,12 @@ python3 scripts/run_existing_project_onboarding.py \
 
 하네스 소비 관점의 권장 순서는 아래와 같다.
 
-1. `onboarding_summary.recommended_next_steps`
-2. `warnings`
-3. `orchestration_plan`
-4. `validation_plan`
-5. `code_index_update`
+1. `status`
+2. `onboarding_summary.recommended_next_steps`
+3. `warnings`
+4. `orchestration_plan`
+5. `validation_plan`
+6. `code_index_update`
 
 즉, 첫 세션에서는 사람이 읽을 요약과 리스크를 먼저 보여주고, 그 다음 worker 분배나 세부 검증 근거를 여는 편이 가장 자연스럽다.
 

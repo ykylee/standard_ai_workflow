@@ -1,10 +1,10 @@
 # Output Schema Guide
 
-- 문서 목적: skill 프로토타입 6종과 우선순위 1 MCP 프로토타입 5종의 JSON 출력 계약을 공통 규칙으로 정리한다.
+- 문서 목적: 현재 저장소의 skill, runner, 우선순위 1 MCP 프로토타입 JSON 출력 계약을 공통 규칙으로 정리한다.
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-04-23
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
 
 ## 1. 목적
@@ -17,8 +17,8 @@
 - 경고와 실패를 구조화해서 사람이 재검토하기 쉽게 만들기
 - 개별 프로토타입 출력을 이후 통합 runner 나 MCP server 로 승격하기 쉽게 만들기
 
-현재 저장소에는 위 목표를 보조하기 위한 정적 계약 초안으로 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 이 포함된다.
-이 파일은 완전한 JSON Schema 대체물이 아니라, output sample 과 smoke test 가 공유하는 최소 계약 기준선으로 사용한다.
+현재 저장소에는 위 목표를 보조하기 위한 정적 계약 초안 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 과 generated JSON Schema 묶음 [../schemas/generated_output_schemas.json](../schemas/generated_output_schemas.json) 이 포함된다.
+정적 계약 파일은 문서와 smoke test 가 공유하는 기준선이고, generated schema 는 런타임 계약에서 재생성되는 기계 검증용 draft 로 사용한다.
 
 ## 2. 공통 원칙
 
@@ -309,7 +309,8 @@ runner 실패 규칙:
 - `examples/output_samples/*.json` 은 단순 예시가 아니라 smoke test 기준선으로도 사용한다.
 - 대표 skill/runner 샘플은 최소 핵심 필드 계약을 검사하는 smoke test 와 함께 유지한다.
 - 샘플의 `tool_version` 은 문서 문자열이 아니라 실제 `workflow_kit.__version__` 값과 같아야 한다.
-- 정적 계약 초안이 필요할 때는 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 을 우선 갱신한다.
+- 정적 계약 초안이 필요할 때는 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 을 갱신한다.
+- runtime contract 변경 뒤에는 [../schemas/generated_output_schemas.json](../schemas/generated_output_schemas.json) 도 함께 재생성 상태인지 확인한다.
 
 ### 6.1 `run_demo_workflow.py`
 
@@ -422,6 +423,18 @@ runner 실패 규칙:
 
 ### 7.5 `suggest_impacted_docs`
 
+| 필드 | 필수 | 타입 | 의미 |
+| --- | --- | --- | --- |
+| `status` | 예 | `str` | 현재 실행 결과 상태 |
+| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
+| `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
+| `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
+| `warnings` | 예 | `list[str]` | 입력 부족 또는 경고 |
+
+대표 샘플:
+
+- [../examples/output_samples/suggest_impacted_docs.sample.json](../examples/output_samples/suggest_impacted_docs.sample.json)
+
 ### 7.6 `check_quickstart_stale_links`
 
 | 필드 | 필수 | 타입 | 의미 |
@@ -439,25 +452,13 @@ runner 실패 규칙:
 
 - [../examples/output_samples/check_quickstart_stale_links.sample.json](../examples/output_samples/check_quickstart_stale_links.sample.json)
 
-| 필드 | 필수 | 타입 | 의미 |
-| --- | --- | --- | --- |
-| `status` | 예 | `str` | 현재 실행 결과 상태 |
-| `tool_version` | 예 | `str` | 프로토타입 버전 식별자 |
-| `impacted_documents` | 예 | `list[str]` | 영향 문서 후보 |
-| `reasoning_notes` | 예 | `list[str]` | 추천 근거 |
-| `warnings` | 예 | `list[str]` | 입력 부족 또는 경고 |
-
-대표 샘플:
-
-- [../examples/output_samples/suggest_impacted_docs.sample.json](../examples/output_samples/suggest_impacted_docs.sample.json)
-
 ## 8. 다음 정리 권고
 
 현재 가이드를 바탕으로 다음 두 작업을 권장한다.
 
-1. 예외 종료하는 프로토타입에도 `status: "error"` / `error_code` 구조를 점진적으로 적용
-2. 샘플 JSON 과 실제 스크립트 출력 사이 차이를 주기적으로 점검하는 회귀 검사 추가
-3. `schemas/output_sample_contracts.json` 과 `workflow_kit.common.output_contracts` 가 MCP 샘플까지 같은 기준을 보도록 함께 유지
+1. nested object 와 enum 제약이 아직 느슨한 family 를 중심으로 output contract 를 계속 세분화
+2. generated schema 를 MCP manifest 나 외부 소비 지점과 어떻게 연결할지 정리
+3. `schemas/output_sample_contracts.json`, `schemas/generated_output_schemas.json`, `workflow_kit.common.output_contracts` 가 같은 기준을 보도록 함께 유지
 
 ## 다음에 읽을 문서
 

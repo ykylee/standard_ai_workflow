@@ -4,7 +4,7 @@
 - 범위: 문서 무결성 검사와 향후 skill/MCP/agent 구현 검증
 - 대상 독자: 개발자, 운영자, AI agent 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-04-23
 - 관련 문서: `../split_checklist.md`, `../templates/pilot_adoption_record_template.md`, `../templates/pilot_candidate_checklist.md`
 
 ## 현재 상태
@@ -79,7 +79,7 @@
 - backlog-update 변경 직후에는 `check_backlog_update.py` 를 먼저 본다.
 - create-backlog-entry 변경 직후에는 `check_create_backlog_entry.py` 를 먼저 본다.
 - read-only MCP bundle 변경 직후에는 `check_read_only_mcp_server.py` 를 먼저 본다.
-- output contract / generated schema 변경 직후에는 `check_output_samples.py`, `check_output_json_schema.py` 를 먼저 본다.
+- output contract / generated schema 변경 직후에는 `check_output_samples.py`, `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 - JSON Schema 생성/승격 작업 직후에는 `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 
 ## 실패 분류 가이드

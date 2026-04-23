@@ -177,7 +177,7 @@
 현재 시점에서는 아래 순서를 권장한다.
 
 1. 공통 파서/분류/추천 로직을 reusable package 로 추출한다.
-2. 읽기 전용 MCP 5종 + `check_quickstart_stale_links` 를 MCP server 1호 범위로 묶는다.
+2. `check_quickstart_stale_links` 를 포함한 읽기 전용 MCP 5종을 MCP server 1호 범위로 묶는다.
 3. 초안 생성 MCP 는 permission 설계를 더 명확히 한 뒤 2차로 올린다.
 4. onboarding/demo runner 는 library + MCP 조합의 상위 orchestration 레이어로 남긴다.
 

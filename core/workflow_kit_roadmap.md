@@ -4,8 +4,8 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-22
-- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
+- 최종 수정일: 2026-04-23
+- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
 ## 1. 현재 단계
 
@@ -32,14 +32,15 @@
 - 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
 - reusable package / MCP server 승격 범위 문서가 있다.
 - `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
+- read-only MCP 1차 묶음은 direct-call entrypoint, draft transport descriptor, JSON-RPC fixture bridge, export 산출물, 승격 기준 spec 까지 갖춘 상태다.
 - `tests/check_*.py` 기준 smoke CI 가 GitHub Actions 로 연결돼 있다.
 
 아직 4단계가 아닌 이유:
 
-- 실제 MCP server packaging 또는 transport 계층이 없다.
-- skill, MCP, runner 출력 계약은 문서화됐고 sample contract 용 정적 schema 초안도 추가됐지만, 완전한 JSON Schema 수준의 강한 정적 검증까지는 아직 아니다.
+- 정식 MCP SDK server packaging 과 transport loop 는 아직 없다.
+- skill, MCP, runner 출력 계약은 문서화됐고 runtime contract 기반 generated JSON Schema 와 대표 sample 검증까지 추가됐지만, 모든 nested payload 를 완전히 엄격한 schema 로 고정한 것은 아니다.
 - 여러 실제 프로젝트에 시범 적용한 결과가 없다.
-- MCP server packaging 은 아직 시작되지 않았다.
+- read-only MCP 는 draft bridge/fixture 단계이며, 실제 MCP client 호환성은 아직 보장하지 않는다.
 - 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
 
 ## 2. 현재 자산
@@ -80,6 +81,7 @@
 - 기존 프로젝트 온보딩 스모크 검사: [../tests/check_existing_project_onboarding.py](../tests/check_existing_project_onboarding.py)
 - quickstart stale 링크 스모크 검사: [../tests/check_quickstart_stale_links.py](../tests/check_quickstart_stale_links.py)
 - 기존 프로젝트 온보딩 runner: [../scripts/run_existing_project_onboarding.py](../scripts/run_existing_project_onboarding.py)
+- read-only MCP transport 승격 기준: [read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 
 ## 3. 상위 목표
 
@@ -103,16 +105,20 @@
 - 기존 프로젝트 bootstrap 이후 assessment -> backlog/handoff -> validation/code-index 순으로 이어지는 후속 루틴이 있다.
 - 승격 범위 문서가 있어 package/server 화 대상을 분리해서 계획할 수 있다.
 - `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner helper 가 누적되고 있다.
+- `workflow_kit/server` 에 read-only registry, direct-call entrypoint, JSON-RPC draft bridge 가 있다.
+- read-only descriptor, 하네스 MCP 예시, JSON-RPC fixture 가 `schemas/` 산출물로 export 되고 harness package 에 포함된다.
+- runtime output contract 가 generated JSON Schema, manifest outputSchema, sample validation 에 함께 쓰인다.
 - smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어졌고 GitHub Actions smoke workflow 에 연결돼 있다.
 
 ### 아직 비어 있는 축
 
-- 읽기 전용 MCP 묶음 server 화
+- 정식 MCP SDK transport loop 와 실제 client 호환성 검증
+- read-only input schema 의 dataclass 또는 더 강한 타입 계약화
 - 결과 payload builder 와 orchestration 계층의 추가 reusable package 추출
 - 실제 저장소 시범 적용 결과
 - 쓰기 성격 draft MCP 의 permission 경계 정리
 - core 문서 간 중복 축소와 README 상태 단일 출처 정리
-- smoke CI 결과 가시성 정리와 실패 분류 개선
+- smoke CI 결과 가시성 추가 개선
 
 ## 5. 다음 우선순위 로드맵
 
@@ -125,8 +131,9 @@
 - `status`, `tool_version`, `warnings`, `source_context` 공통 필드는 1차 정리됐다.
 - skill 6종과 runner 2종은 구조화된 `error`/`error_code` 패턴을 따른다.
 - runner 실패 경로는 smoke test 와 GitHub Actions smoke workflow 로 확인된다.
-- `tool_version` 값은 여러 실행 스크립트에 반복 선언돼 있어 단일 소스 유지가 필요하다.
-- 대표 output sample 검사는 공통 계약 맵과 실제 `workflow_kit.__version__` 값을 기준으로 보강할 수 있다.
+- `tool_version` 값은 `workflow_kit.__version__` 을 단일 출처로 쓰도록 정리됐다.
+- 대표 output sample 검사는 공통 계약 맵과 실제 `workflow_kit.__version__` 값을 기준으로 수행된다.
+- runtime contract 에서 generated JSON Schema 를 생성하고, read-only manifest/descriptor 의 outputSchema 에도 같은 생성 결과를 사용한다.
 
 목표:
 
@@ -134,7 +141,7 @@
 - representative sample 과 smoke test 가 같은 계약을 바라보도록 정렬한다.
 - sample contract 정적 schema 초안을 유지하고, 필요 시 JSON Schema 로 승격한다.
 - `tests/check_*.py` 묶음의 실패 원인이 CI 로그에서 바로 식별되도록 정리한다.
-- `tool_version` 값을 package 루트 한 곳에서 관리한다.
+- nested payload 와 error source_context 중 아직 얕게 검증하는 영역을 점진적으로 좁힌다.
 
 권장 산출물:
 
@@ -185,7 +192,7 @@
 
 목표:
 
-- 시작된 `workflow_kit/common` 추출을 결과 payload builder 와 orchestration helper 까지 확장하고 읽기 전용 MCP 묶음 server 의 최소 엔트리포인트를 설계한다.
+- 시작된 `workflow_kit/common` 추출을 결과 payload builder 와 orchestration helper 까지 확장하고, read-only JSON-RPC draft bridge 를 정식 MCP SDK transport 로 승격할 준비를 한다.
 
 권장 대상:
 
@@ -197,9 +204,10 @@
 완료 기준:
 
 - 기존 스크립트가 공통 라이브러리를 호출하도록 재구성된다.
-- 읽기 전용 MCP server 1호 범위가 문서 수준이 아니라 코드 구조 수준으로 시작된다.
+- 읽기 전용 MCP server 1호 범위가 registry/direct-call/descriptor/fixture 수준에서 코드 구조로 시작됐다.
 - `workflow_kit/` 패키지 루트가 향후 server 내부 구현에서도 재사용 가능한 구조로 정리된다.
 - runner 들의 subprocess 호출과 단계별 입력 조립도 공통 helper 를 재사용한다.
+- 정식 SDK transport 승격 전후에 유지할 descriptor 계약과 변경 가능한 envelope 가 분리된다.
 
 ### 우선순위 4: 실제 적용 검증
 
@@ -221,16 +229,16 @@
 
 ### 1주차
 
-- `tool_version` 단일 소스화
-- demo/onboarding runner 입출력 계약 정리
-- 공통 라이브러리 후보 모듈 경계 정리 및 1차 유틸 추출
+- read-only MCP draft bridge 와 실제 MCP SDK transport 요구 차이 확인
+- malformed JSON, notification, capability 세부 필드 같은 bridge edge case 정리
+- input schema 를 dataclass 또는 더 강한 타입 계약으로 승격할 범위 결정
 
 ### 2주차
 
-- runner 포함 출력 계약의 정적 schema 후보 정리
-- 기존 프로젝트 온보딩 흐름 문서 보강
-- assessment 와 후속 skill 연결 확인
-- output/orchestration helper package 추출 또는 읽기 전용 MCP server 엔트리포인트 초안 착수
+- 기존 프로젝트 온보딩 흐름 문서와 하네스 소비 가이드 보강
+- 실제 저장소 시범 적용 후보 선정 및 적용 기록 템플릿 점검
+- output/orchestration helper package 추출 범위 재검토
+- 쓰기 성격 draft MCP 의 permission 경계 초안 작성
 
 ## 7. 단계별 완료 기준
 
@@ -252,13 +260,13 @@
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
 
-1. `tool_version` 단일 소스화
-2. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
-3. runner 포함 출력 계약의 정적 schema 초안 확장
-4. 실제 저장소 시범 적용 대상 선정
-5. 공통 library / orchestration helper / 읽기 전용 MCP server 착수
+1. read-only JSON-RPC draft bridge 의 malformed input/error envelope 보강
+2. 실제 MCP SDK transport loop 구현 후보 검토
+3. read-only input schema dataclass 화 또는 타입 계약 강화
+4. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
+5. 실제 저장소 시범 적용 대상 선정
 
-이 순서는 현재 저장소가 가진 자산을 “프로토타입 정렬 -> 온보딩 계약 보강 -> 실사용 검증 -> package/server 승격” 순서로 확장하는 데 초점을 둔다.
+이 순서는 현재 저장소가 가진 자산을 “draft server 경계 안정화 -> SDK transport 승격 준비 -> 온보딩/실사용 검증” 순서로 확장하는 데 초점을 둔다.
 
 ## 9. 외부 리뷰 반영 메모
 
@@ -269,12 +277,14 @@
 - `.gitignore` 보강으로 export/venv/cache 산출물 누수 방지
 - `tests/check_*.py` 묶음을 기준으로 한 GitHub Actions smoke CI 추가
 - `tool_version` 단일 소스화
+- read-only MCP descriptor, JSON-RPC fixture, transport 승격 기준 spec 추가
 
 단기 계획에 반영:
 
 - 대표 skill 여러 종에서 `error_code` 포함 구조화 실패 출력 패턴 적용
 - `tests/README.md` 에 CI 와 동일한 원샷 실행 명령 유지
 - 실제 적용 전까지는 공통 라이브러리 확장을 계속하되, 새 추출은 파서/분류/추천 로직 우선으로 제한
+- 정식 MCP SDK transport 승격 전에는 draft bridge/fixture 와 실제 SDK envelope 차이를 먼저 분리
 
 논의 후 결정:
 
@@ -288,6 +298,7 @@
 - 출력 스키마 가이드: [./output_schema_guide.md](./output_schema_guide.md)
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - 승격 범위 문서: [./prototype_promotion_scope.md](./prototype_promotion_scope.md)
+- read-only transport 승격 기준: [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 - package 루트: [../workflow_kit/README.md](../workflow_kit/README.md)
 - 출력 샘플 허브: [../examples/output_samples/README.md](../examples/output_samples/README.md)
 - skill 허브: [../skills/README.md](../skills/README.md)

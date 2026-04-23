@@ -46,7 +46,7 @@ rm -rf .venv
 - `--adoption-mode existing` 는 기존 코드베이스를 분석해 profile, handoff, backlog, repository assessment 초안을 함께 만든다.
 - 하네스 옵션:
 - `--harness codex` 는 `AGENTS.md` 와 `.codex/config.toml.example` 를 생성한다.
-- `--harness opencode` 는 `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...` 를 생성한다.
+- `--harness opencode` 는 `AGENTS.md`, `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...` 를 생성한다.
 - 하네스 확장 방식:
 - bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 추후 다른 하네스도 같은 패턴으로 추가할 수 있다.
 - 기본 생성 구조:

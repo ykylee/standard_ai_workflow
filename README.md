@@ -85,7 +85,7 @@
 배포 타겟은 하네스별로도 나눌 수 있다.
 
 - Codex: `AGENTS.md` 와 Codex 설정 예시 중심
-- OpenCode: `opencode.json` 과 project-local skill/agent 중심
+- OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
 - 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능
 
 ## 5. 로컬 환경 설정 메모
@@ -203,7 +203,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `project/backlog/YYYY-MM-DD.md`
 - `project/repository_assessment.md` (`existing` 모드일 때)
 - `AGENTS.md`, `.codex/config.toml.example` (`codex` 선택 시)
-- `opencode.json`, `.opencode/...` (`opencode` 선택 시)
+- `AGENTS.md`, `opencode.json`, `.opencode/...` (`opencode` 선택 시)
 - 선택 시 `core/*.md`
 
 배포 가능한 하네스 패키지를 export 하려면 아래처럼 실행할 수 있다.

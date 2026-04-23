@@ -51,7 +51,7 @@
 하네스 오버레이 레이어 포함 항목:
 
 - Codex: `AGENTS.md`, `.codex/config.toml.example`
-- OpenCode: `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...`
+- OpenCode: `AGENTS.md`, `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...`
 
 기본 제외 항목:
 

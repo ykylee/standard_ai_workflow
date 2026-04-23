@@ -1,7 +1,7 @@
 # Harnesses
 
 - 문서 목적: 표준 AI 워크플로우를 하네스별 배포 패키지로 맞출 때 참고할 타겟별 안내 문서를 모은다.
-- 범위: Codex, OpenCode 타겟별 파일 구성과 bootstrap 연결 방식, 추후 하네스 확장 포인트
+- 범위: Codex, OpenCode 타겟별 파일 구성과 bootstrap 연결 방식, 공통 `AGENTS.md` 진입점, 추후 하네스 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23

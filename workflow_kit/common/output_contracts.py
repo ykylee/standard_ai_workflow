@@ -39,6 +39,7 @@ ERROR_PATH_CONTRACTS: dict[str, frozenset[str]] = {
     "check_doc_links": frozenset({"error", "error_code", "source_context"}),
     "check_quickstart_stale_links": frozenset({"error", "error_code", "source_context"}),
     "suggest_impacted_docs": frozenset({"error", "error_code", "source_context"}),
+    "read_only_entrypoint": frozenset({"error", "error_code", "source_context"}),
     "demo_workflow": frozenset({"error", "error_code", "source_context"}),
     "existing_project_onboarding": frozenset({"error", "error_code", "source_context"}),
 }
@@ -135,7 +136,15 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         "next_documents": OutputFieldShape(kind="list", item_kind="string"),
         "validation_notes": OutputFieldShape(kind="list", item_kind="string"),
         "environment_constraints": OutputFieldShape(kind="list", item_kind="string"),
-        "source_documents": OutputFieldShape(kind="object"),
+        "source_documents": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"session_handoff_path", "work_backlog_index_path", "project_profile_path"}),
+            properties={
+                "session_handoff_path": OutputFieldShape(kind="string"),
+                "work_backlog_index_path": OutputFieldShape(kind="string"),
+                "project_profile_path": OutputFieldShape(kind="string"),
+            },
+        ),
         "warnings": OutputFieldShape(kind="list", item_kind="string"),
     },
     "backlog_update": {
@@ -180,7 +189,15 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         "recommended_review_order": OutputFieldShape(kind="list", item_kind="string"),
         "follow_up_actions": OutputFieldShape(kind="list", item_kind="string"),
         "confidence_notes": OutputFieldShape(kind="list", item_kind="string"),
-        "source_context": OutputFieldShape(kind="object"),
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"project_profile_path", "changed_files", "change_summary"}),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "change_summary": OutputFieldShape(kind="string", allow_null=True),
+            },
+        ),
     },
     "merge_doc_reconcile": {
         "reconcile_targets": OutputFieldShape(kind="list", item_kind="string"),
@@ -193,7 +210,15 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         "hub_update_note": OutputFieldShape(kind="string", allow_null=True),
         "validation_follow_up": OutputFieldShape(kind="string", allow_null=True),
         "warnings": OutputFieldShape(kind="list", item_kind="string"),
-        "source_context": OutputFieldShape(kind="object"),
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"project_profile_path", "merge_result_summary", "changed_files"}),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "merge_result_summary": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+            },
+        ),
     },
     "code_index_update": {
         "index_update_candidates": OutputFieldShape(kind="list", item_kind="string"),
@@ -264,7 +289,16 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
             required_keys=frozenset({"recommended_pattern", "model_split", "worker_assignments", "integration_notes"}),
             properties={
                 "recommended_pattern": OutputFieldShape(kind="string"),
-                "model_split": OutputFieldShape(kind="object"),
+                "model_split": OutputFieldShape(
+                    kind="object",
+                    required_keys=frozenset({"orchestrator", "doc_worker", "validation_worker"}),
+                    properties={
+                        "orchestrator": OutputFieldShape(kind="string"),
+                        "doc_worker": OutputFieldShape(kind="string"),
+                        "code_worker": OutputFieldShape(kind="string"),
+                        "validation_worker": OutputFieldShape(kind="string"),
+                    },
+                ),
                 "worker_assignments": OutputFieldShape(
                     kind="list",
                     item_kind="object",
@@ -341,7 +375,16 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
             required_keys=frozenset({"recommended_pattern", "model_split", "worker_assignments", "integration_notes"}),
             properties={
                 "recommended_pattern": OutputFieldShape(kind="string"),
-                "model_split": OutputFieldShape(kind="object"),
+                "model_split": OutputFieldShape(
+                    kind="object",
+                    required_keys=frozenset({"orchestrator", "doc_worker", "validation_worker"}),
+                    properties={
+                        "orchestrator": OutputFieldShape(kind="string"),
+                        "doc_worker": OutputFieldShape(kind="string"),
+                        "code_worker": OutputFieldShape(kind="string"),
+                        "validation_worker": OutputFieldShape(kind="string"),
+                    },
+                ),
                 "worker_assignments": OutputFieldShape(
                     kind="list",
                     item_kind="object",
@@ -455,6 +498,213 @@ OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
     **HIGH_VALUE_OUTPUT_FIELD_SHAPES,
 }
 
+ERROR_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
+    "session_start": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {"session_handoff_path", "work_backlog_index_path", "project_profile_path", "latest_backlog_path"}
+            ),
+            properties={
+                "session_handoff_path": OutputFieldShape(kind="string"),
+                "work_backlog_index_path": OutputFieldShape(kind="string"),
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "backlog_update": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {"project_profile_path", "task_name", "task_brief", "daily_backlog_path", "target_date", "task_id", "mode"}
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "task_name": OutputFieldShape(kind="string"),
+                "task_brief": OutputFieldShape(kind="string"),
+                "daily_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "target_date": OutputFieldShape(kind="string", allow_null=True),
+                "task_id": OutputFieldShape(kind="string", allow_null=True),
+                "mode": OutputFieldShape(kind="string"),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "doc_sync": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {
+                    "project_profile_path",
+                    "changed_files",
+                    "change_summary",
+                    "session_handoff_path",
+                    "work_backlog_index_path",
+                    "latest_backlog_path",
+                }
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "change_summary": OutputFieldShape(kind="string", allow_null=True),
+                "session_handoff_path": OutputFieldShape(kind="string", allow_null=True),
+                "work_backlog_index_path": OutputFieldShape(kind="string", allow_null=True),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "merge_doc_reconcile": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {
+                    "project_profile_path",
+                    "merge_result_summary",
+                    "session_handoff_path",
+                    "work_backlog_index_path",
+                    "latest_backlog_path",
+                    "changed_files",
+                }
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "merge_result_summary": OutputFieldShape(kind="string"),
+                "session_handoff_path": OutputFieldShape(kind="string", allow_null=True),
+                "work_backlog_index_path": OutputFieldShape(kind="string", allow_null=True),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "validation_plan": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {"project_profile_path", "changed_files", "change_summary", "session_handoff_path", "latest_backlog_path"}
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "change_summary": OutputFieldShape(kind="string", allow_null=True),
+                "session_handoff_path": OutputFieldShape(kind="string", allow_null=True),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "code_index_update": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {"project_profile_path", "changed_files", "change_summary", "work_backlog_index_path", "session_handoff_path"}
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "change_summary": OutputFieldShape(kind="string", allow_null=True),
+                "work_backlog_index_path": OutputFieldShape(kind="string", allow_null=True),
+                "session_handoff_path": OutputFieldShape(kind="string", allow_null=True),
+                "missing_path_detail": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "demo_workflow": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {
+                    "example_project",
+                    "project_profile_path",
+                    "session_handoff_path",
+                    "work_backlog_index_path",
+                    "backlog_dir_path",
+                    "latest_backlog_path",
+                    "task_id",
+                    "task_name",
+                    "task_brief",
+                    "task_status",
+                    "changed_files",
+                    "merge_result_summary",
+                    "failed_step",
+                    "failed_command",
+                    "upstream_error_code",
+                }
+            ),
+            properties={
+                "example_project": OutputFieldShape(kind="string"),
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "session_handoff_path": OutputFieldShape(kind="string"),
+                "work_backlog_index_path": OutputFieldShape(kind="string"),
+                "backlog_dir_path": OutputFieldShape(kind="string"),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "task_id": OutputFieldShape(kind="string"),
+                "task_name": OutputFieldShape(kind="string"),
+                "task_brief": OutputFieldShape(kind="string"),
+                "task_status": OutputFieldShape(kind="string"),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "merge_result_summary": OutputFieldShape(kind="string"),
+                "failed_step": OutputFieldShape(kind="string"),
+                "failed_command": OutputFieldShape(kind="list", item_kind="string"),
+                "upstream_error_code": OutputFieldShape(kind="string"),
+                "upstream_status": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "existing_project_onboarding": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset(
+                {
+                    "project_profile_path",
+                    "session_handoff_path",
+                    "work_backlog_index_path",
+                    "backlog_dir_path",
+                    "repository_assessment_path",
+                    "latest_backlog_path",
+                    "changed_files",
+                    "change_summary",
+                }
+            ),
+            properties={
+                "project_profile_path": OutputFieldShape(kind="string"),
+                "session_handoff_path": OutputFieldShape(kind="string"),
+                "work_backlog_index_path": OutputFieldShape(kind="string"),
+                "backlog_dir_path": OutputFieldShape(kind="string"),
+                "repository_assessment_path": OutputFieldShape(kind="string", allow_null=True),
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+                "changed_files": OutputFieldShape(kind="list", item_kind="string"),
+                "change_summary": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+    "read_only_entrypoint": {
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"action", "tool", "payload_json"}),
+            properties={
+                "action": OutputFieldShape(kind="string"),
+                "tool": OutputFieldShape(kind="string", allow_null=True),
+                "payload_json": OutputFieldShape(kind="string", allow_null=True),
+                "allowed_fields": OutputFieldShape(kind="list", item_kind="string"),
+                "missing_path": OutputFieldShape(kind="string"),
+                "exception_type": OutputFieldShape(kind="string"),
+                "exception": OutputFieldShape(kind="string"),
+            },
+        ),
+    },
+}
+
 
 def output_field_shapes_schema() -> dict[str, dict[str, dict[str, object]]]:
     """Return a JSON-serializable view of the nested output field shapes."""
@@ -465,6 +715,18 @@ def output_field_shapes_schema() -> dict[str, dict[str, dict[str, object]]]:
             for field_name, shape in field_shapes.items()
         }
         for family, field_shapes in OUTPUT_FIELD_SHAPES.items()
+    }
+
+
+def output_error_field_shapes_schema() -> dict[str, dict[str, dict[str, object]]]:
+    """Return a JSON-serializable view of error-only output field shapes."""
+
+    return {
+        family: {
+            field_name: output_field_shape_to_schema(shape)
+            for field_name, shape in field_shapes.items()
+        }
+        for family, field_shapes in ERROR_OUTPUT_FIELD_SHAPES.items()
     }
 
 
@@ -507,8 +769,8 @@ def _json_schema_for_shape(shape: OutputFieldShape) -> dict[str, object]:
                 "type": "object",
                 "required": sorted(shape.required_keys),
                 "properties": {
-                    key: _json_schema_for_shape(shape.item_properties[key]) if key in shape.item_properties else {}
-                    for key in sorted(shape.required_keys)
+                    key: _json_schema_for_shape(value)
+                    for key, value in sorted(shape.item_properties.items())
                 },
                 "additionalProperties": True,
             }
@@ -520,8 +782,8 @@ def _json_schema_for_shape(shape: OutputFieldShape) -> dict[str, object]:
             "type": type_value,
             "required": sorted(shape.required_keys),
             "properties": {
-                key: _json_schema_for_shape(shape.properties[key]) if key in shape.properties else {}
-                for key in sorted(shape.required_keys)
+                key: _json_schema_for_shape(value)
+                for key, value in sorted(shape.properties.items())
             },
             "additionalProperties": True,
         }
@@ -555,7 +817,9 @@ def output_json_schema_for_family(family: str) -> dict[str, object]:
         "status": {"const": "error"},
         "error": {"type": "string"},
         "error_code": {"type": "string"},
-        "source_context": {"type": "object"},
+        "source_context": _json_schema_for_shape(
+            ERROR_OUTPUT_FIELD_SHAPES.get(family, {}).get("source_context", OutputFieldShape(kind="object"))
+        ),
     }
     success_properties = {
         **properties,
@@ -666,10 +930,11 @@ def _validate_shape_value(family: str, field_name: str, value: object, shape: Ou
 
 def validate_output_payload_shape(payload: dict[str, object], *, family: str, status: str) -> list[str]:
     if status == "error":
-        return []
+        field_shapes = ERROR_OUTPUT_FIELD_SHAPES.get(family, {})
+    else:
+        field_shapes = OUTPUT_FIELD_SHAPES.get(family, {})
 
     errors: list[str] = []
-    field_shapes = OUTPUT_FIELD_SHAPES.get(family, {})
     for field_name, shape in field_shapes.items():
         if field_name not in payload:
             continue

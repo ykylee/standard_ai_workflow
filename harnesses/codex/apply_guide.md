@@ -89,6 +89,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    이때 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 원칙도 함께 넣는 것을 권장한다.
 4. `.codex/config.toml.example` 를 참고해 필요한 Codex 전역 설정을 수동 반영할지 결정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/codex/config.toml.snippet](../../global-snippets/codex/config.toml.snippet) 도 함께 검토한다.
+   export bundle 을 쓰는 경우 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 descriptor 이며, 정식 서버 루프가 연결되기 전에는 참고 산출물로 취급한다.
    Codex 는 project-local agent permission 분리를 직접 제공하지 않으므로, 메인/worker 역할 분리는 `AGENTS.md` 운영 원칙으로 명시하는 방식을 우선 사용한다.
    worker 는 문서 비교, bounded code edit, 검증 로그 수집처럼 역할을 나눠 호출하면 컨텍스트 절약 효과가 더 크다.
 5. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
@@ -111,6 +112,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 3. `project_workflow_profile.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `AGENTS.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
    작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토한다.
+   export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
    가능하면 메인 에이전트가 직접 모든 읽기/쓰기를 떠안지 않도록, bounded scope worker 호출 원칙도 이 단계에서 같이 검토한다.
 5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
 

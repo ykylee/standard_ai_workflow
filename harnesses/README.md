@@ -24,6 +24,10 @@
 - 공통 문서 세트는 `ai-workflow/` 아래에 유지한다.
 - 실제 하네스가 읽는 파일은 프로젝트 루트 또는 하네스 전용 디렉터리에 생성한다.
 - 새 하네스는 레지스트리 기반 bootstrap 확장 방식으로 추가한다.
+- export bundle 을 배포할 때는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 와 `bundle/source-docs/mcp/read_only_bundle.md` 도 함께 확인한다.
+- 하네스별 MCP 설정 검토용 draft 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 에 들어 있다.
+- JSON-RPC draft bridge request/response 기준선은 `bundle/source-docs/schemas/read_only_jsonrpc_fixtures.json` 에 들어 있다.
+- 이 descriptor 는 아직 draft 이며, 정식 MCP SDK 서버 루프를 붙이기 전 하네스별 MCP 연결 검토용 기준선으로 사용한다.
 
 ## bootstrap 예시
 

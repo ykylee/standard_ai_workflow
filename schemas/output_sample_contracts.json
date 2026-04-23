@@ -8,13 +8,13 @@
   ],
   "success_required_keys": {
     "session_start": [
-      "summary",
-      "recommended_next_action"
+      "recommended_next_action",
+      "summary"
     ],
     "backlog_update": [
       "operation_type",
-      "target_backlog_path",
-      "source_context"
+      "source_context",
+      "target_backlog_path"
     ],
     "doc_sync": [
       "impacted_documents",
@@ -23,12 +23,12 @@
     ],
     "merge_doc_reconcile": [
       "reconcile_targets",
-      "state_conflicts",
-      "source_context"
+      "source_context",
+      "state_conflicts"
     ],
     "validation_plan": [
-      "recommended_validation_levels",
       "documentation_checks",
+      "recommended_validation_levels",
       "source_context"
     ],
     "code_index_update": [
@@ -36,22 +36,22 @@
       "source_context"
     ],
     "latest_backlog": [
-      "latest_backlog_path",
-      "candidates"
+      "candidates",
+      "latest_backlog_path"
     ],
     "check_doc_metadata": [
       "checked_files",
       "missing_metadata"
     ],
     "check_doc_links": [
-      "checked_files",
-      "broken_links"
+      "broken_links",
+      "checked_files"
     ],
     "check_quickstart_stale_links": [
       "checked_files",
       "missing_expected_links",
-      "stale_link_warnings",
-      "reasoning_notes"
+      "reasoning_notes",
+      "stale_link_warnings"
     ],
     "create_backlog_entry": [
       "draft_entry"
@@ -62,12 +62,12 @@
     ],
     "demo_workflow": [
       "orchestration_plan",
-      "workflow_summary",
-      "source_context"
+      "source_context",
+      "workflow_summary"
     ],
     "existing_project_onboarding": [
-      "orchestration_plan",
       "onboarding_summary",
+      "orchestration_plan",
       "source_context"
     ]
   },
@@ -127,6 +127,11 @@
       "error_code",
       "source_context"
     ],
+    "read_only_entrypoint": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
     "demo_workflow": [
       "error",
       "error_code",
@@ -139,6 +144,136 @@
     ]
   },
   "field_shapes": {
+    "latest_backlog": {
+      "latest_backlog_path": {
+        "kind": "string",
+        "item_kind": null,
+        "required_keys": [],
+        "allow_null": true
+      },
+      "candidates": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      }
+    },
+    "check_doc_metadata": {
+      "checked_files": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "missing_metadata": {
+        "kind": "list",
+        "item_kind": "object",
+        "required_keys": [
+          "missing_fields",
+          "path"
+        ],
+        "allow_null": false
+      },
+      "warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      }
+    },
+    "check_doc_links": {
+      "checked_files": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "broken_links": {
+        "kind": "list",
+        "item_kind": "object",
+        "required_keys": [
+          "broken_links",
+          "path"
+        ],
+        "allow_null": false
+      },
+      "warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      }
+    },
+    "suggest_impacted_docs": {
+      "impacted_documents": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "reasoning_notes": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      }
+    },
+    "check_quickstart_stale_links": {
+      "checked_files": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "broken_links": {
+        "kind": "list",
+        "item_kind": "object",
+        "required_keys": [
+          "broken_links",
+          "path"
+        ],
+        "allow_null": false
+      },
+      "missing_expected_links": {
+        "kind": "list",
+        "item_kind": "object",
+        "required_keys": [
+          "missing_targets",
+          "path"
+        ],
+        "allow_null": false
+      },
+      "stale_link_warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "reasoning_notes": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      },
+      "warnings": {
+        "kind": "list",
+        "item_kind": "string",
+        "required_keys": [],
+        "allow_null": false
+      }
+    },
     "session_start": {
       "summary": {
         "kind": "list",
@@ -185,8 +320,32 @@
       "source_documents": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": [],
-        "allow_null": false
+        "required_keys": [
+          "project_profile_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
       },
       "warnings": {
         "kind": "list",
@@ -217,7 +376,10 @@
       "status_recommendation": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["reason", "value"],
+        "required_keys": [
+          "reason",
+          "value"
+        ],
         "allow_null": false,
         "properties": {
           "reason": {
@@ -261,7 +423,11 @@
       "source_context": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["daily_backlog_exists", "existing_task_count", "project_profile_path"],
+        "required_keys": [
+          "daily_backlog_exists",
+          "existing_task_count",
+          "project_profile_path"
+        ],
         "allow_null": false,
         "properties": {
           "daily_backlog_exists": {
@@ -369,8 +535,32 @@
       "source_context": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": [],
-        "allow_null": false
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "project_profile_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "change_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
       }
     },
     "merge_doc_reconcile": {
@@ -437,8 +627,32 @@
       "source_context": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": [],
-        "allow_null": false
+        "required_keys": [
+          "changed_files",
+          "merge_result_summary",
+          "project_profile_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "merge_result_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
       }
     },
     "code_index_update": {
@@ -475,7 +689,11 @@
       "source_context": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["change_summary", "changed_files", "project_profile_path"],
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "project_profile_path"
+        ],
         "allow_null": false,
         "properties": {
           "change_summary": {
@@ -533,7 +751,10 @@
       "recommended_commands": {
         "kind": "list",
         "item_kind": "object",
-        "required_keys": ["command", "reason"],
+        "required_keys": [
+          "command",
+          "reason"
+        ],
         "allow_null": false,
         "item_properties": {
           "command": {
@@ -553,7 +774,10 @@
       "commands_requiring_confirmation": {
         "kind": "list",
         "item_kind": "object",
-        "required_keys": ["command", "reason"],
+        "required_keys": [
+          "command",
+          "reason"
+        ],
         "allow_null": false,
         "item_properties": {
           "command": {
@@ -579,7 +803,10 @@
       "deferred_validation_items": {
         "kind": "list",
         "item_kind": "object",
-        "required_keys": ["item", "suggested_record_path"],
+        "required_keys": [
+          "item",
+          "suggested_record_path"
+        ],
         "allow_null": false,
         "item_properties": {
           "item": {
@@ -611,7 +838,12 @@
       "source_context": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["change_summary", "changed_files", "project_name", "project_profile_path"],
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "project_name",
+          "project_profile_path"
+        ],
         "allow_null": false,
         "properties": {
           "change_summary": {
@@ -645,7 +877,12 @@
       "orchestration_plan": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["integration_notes", "model_split", "recommended_pattern", "worker_assignments"],
+        "required_keys": [
+          "integration_notes",
+          "model_split",
+          "recommended_pattern",
+          "worker_assignments"
+        ],
         "allow_null": false,
         "properties": {
           "integration_notes": {
@@ -657,8 +894,38 @@
           "model_split": {
             "kind": "object",
             "item_kind": null,
-            "required_keys": [],
-            "allow_null": false
+            "required_keys": [
+              "doc_worker",
+              "orchestrator",
+              "validation_worker"
+            ],
+            "allow_null": false,
+            "properties": {
+              "code_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "doc_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "orchestrator": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "validation_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              }
+            }
           },
           "recommended_pattern": {
             "kind": "string",
@@ -669,7 +936,12 @@
           "worker_assignments": {
             "kind": "list",
             "item_kind": "object",
-            "required_keys": ["backing_steps", "model", "responsibilities", "worker"],
+            "required_keys": [
+              "backing_steps",
+              "model",
+              "responsibilities",
+              "worker"
+            ],
             "allow_null": false,
             "item_properties": {
               "backing_steps": {
@@ -855,7 +1127,12 @@
       "orchestration_plan": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["integration_notes", "model_split", "recommended_pattern", "worker_assignments"],
+        "required_keys": [
+          "integration_notes",
+          "model_split",
+          "recommended_pattern",
+          "worker_assignments"
+        ],
         "allow_null": false,
         "properties": {
           "integration_notes": {
@@ -867,8 +1144,38 @@
           "model_split": {
             "kind": "object",
             "item_kind": null,
-            "required_keys": [],
-            "allow_null": false
+            "required_keys": [
+              "doc_worker",
+              "orchestrator",
+              "validation_worker"
+            ],
+            "allow_null": false,
+            "properties": {
+              "code_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "doc_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "orchestrator": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              },
+              "validation_worker": {
+                "kind": "string",
+                "item_kind": null,
+                "required_keys": [],
+                "allow_null": false
+              }
+            }
           },
           "recommended_pattern": {
             "kind": "string",
@@ -879,7 +1186,12 @@
           "worker_assignments": {
             "kind": "list",
             "item_kind": "object",
-            "required_keys": ["backing_steps", "model", "responsibilities", "worker"],
+            "required_keys": [
+              "backing_steps",
+              "model",
+              "responsibilities",
+              "worker"
+            ],
             "allow_null": false,
             "item_properties": {
               "backing_steps": {
@@ -913,7 +1225,10 @@
       "repository_assessment": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["path", "summary"],
+        "required_keys": [
+          "path",
+          "summary"
+        ],
         "allow_null": false,
         "properties": {
           "path": {
@@ -1034,13 +1349,24 @@
       "onboarding_summary": {
         "kind": "object",
         "item_kind": null,
-        "required_keys": ["inferred_commands", "primary_stack", "recommended_next_steps", "review_assessment_first"],
+        "required_keys": [
+          "inferred_commands",
+          "primary_stack",
+          "recommended_next_steps",
+          "review_assessment_first"
+        ],
         "allow_null": false,
         "properties": {
           "inferred_commands": {
             "kind": "object",
             "item_kind": null,
-            "required_keys": ["install", "isolated_test", "quick_test", "run", "smoke_check"],
+            "required_keys": [
+              "install",
+              "isolated_test",
+              "quick_test",
+              "run",
+              "smoke_check"
+            ],
             "allow_null": false,
             "properties": {
               "install": {
@@ -1166,123 +1492,627 @@
         "required_keys": [],
         "allow_null": false
       }
-    },
-    "latest_backlog": {
-      "latest_backlog_path": {
-        "kind": "string",
+    }
+  },
+  "error_field_shapes": {
+    "session_start": {
+      "source_context": {
+        "kind": "object",
         "item_kind": null,
-        "required_keys": [],
-        "allow_null": true
-      },
-      "candidates": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
+        "required_keys": [
+          "latest_backlog_path",
+          "project_profile_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
       }
     },
-    "check_doc_metadata": {
-      "checked_files": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "missing_metadata": {
-        "kind": "list",
-        "item_kind": "object",
-        "required_keys": ["missing_fields", "path"],
-        "allow_null": false
-      },
-      "warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
+    "backlog_update": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "daily_backlog_path",
+          "mode",
+          "project_profile_path",
+          "target_date",
+          "task_brief",
+          "task_id",
+          "task_name"
+        ],
+        "allow_null": false,
+        "properties": {
+          "daily_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "mode": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "target_date": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "task_brief": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "task_id": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "task_name": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
       }
     },
-    "check_doc_links": {
-      "checked_files": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "broken_links": {
-        "kind": "list",
-        "item_kind": "object",
-        "required_keys": ["broken_links", "path"],
-        "allow_null": false
-      },
-      "warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
+    "doc_sync": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "latest_backlog_path",
+          "project_profile_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "change_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          }
+        }
       }
     },
-    "suggest_impacted_docs": {
-      "impacted_documents": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "reasoning_notes": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
+    "merge_doc_reconcile": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "changed_files",
+          "latest_backlog_path",
+          "merge_result_summary",
+          "project_profile_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "merge_result_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          }
+        }
       }
     },
-    "check_quickstart_stale_links": {
-      "checked_files": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "broken_links": {
-        "kind": "list",
-        "item_kind": "object",
-        "required_keys": ["broken_links", "path"],
-        "allow_null": false
-      },
-      "missing_expected_links": {
-        "kind": "list",
-        "item_kind": "object",
-        "required_keys": ["missing_targets", "path"],
-        "allow_null": false
-      },
-      "stale_link_warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "reasoning_notes": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
-      },
-      "warnings": {
-        "kind": "list",
-        "item_kind": "string",
-        "required_keys": [],
-        "allow_null": false
+    "validation_plan": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "latest_backlog_path",
+          "project_profile_path",
+          "session_handoff_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "change_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          }
+        }
+      }
+    },
+    "code_index_update": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "change_summary",
+          "changed_files",
+          "project_profile_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "change_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "missing_path_detail": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          }
+        }
+      }
+    },
+    "demo_workflow": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "backlog_dir_path",
+          "changed_files",
+          "example_project",
+          "failed_command",
+          "failed_step",
+          "latest_backlog_path",
+          "merge_result_summary",
+          "project_profile_path",
+          "session_handoff_path",
+          "task_brief",
+          "task_id",
+          "task_name",
+          "task_status",
+          "upstream_error_code",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "backlog_dir_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "example_project": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "failed_command": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "failed_step": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "merge_result_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "task_brief": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "task_id": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "task_name": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "task_status": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "upstream_error_code": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "upstream_status": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
+      }
+    },
+    "existing_project_onboarding": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "backlog_dir_path",
+          "change_summary",
+          "changed_files",
+          "latest_backlog_path",
+          "project_profile_path",
+          "repository_assessment_path",
+          "session_handoff_path",
+          "work_backlog_index_path"
+        ],
+        "allow_null": false,
+        "properties": {
+          "backlog_dir_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "change_summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "latest_backlog_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "project_profile_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "repository_assessment_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "session_handoff_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "work_backlog_index_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
+      }
+    },
+    "read_only_entrypoint": {
+      "source_context": {
+        "kind": "object",
+        "item_kind": null,
+        "required_keys": [
+          "action",
+          "payload_json",
+          "tool"
+        ],
+        "allow_null": false,
+        "properties": {
+          "action": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "allowed_fields": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "exception_type": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "missing_path": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "payload_json": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          },
+          "tool": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": true
+          }
+        }
       }
     }
   }

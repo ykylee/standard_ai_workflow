@@ -4,8 +4,8 @@
 - 범위: 승격 판단 기준, 우선 승격 후보, 보류 후보, package/server 분리 원칙, 단계별 권장 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 배포 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-21
-- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_release_spec.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`, `../workflow_kit/README.md`
+- 최종 수정일: 2026-04-23
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_release_spec.md`, `./workflow_mcp_candidate_catalog.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
 
@@ -186,12 +186,13 @@
 현재 착수 상태:
 
 - 읽기 전용 MCP 1차 묶음의 registry 와 draft entrypoint 가 `workflow_kit/server/read_only_registry.py`, `workflow_kit/server/read_only_entrypoint.py` 로 시작됐다.
-- 현재 단계는 subprocess adapter 수준의 draft 구조이며, 정식 MCP transport 와 direct function call 교체는 다음 확장 단계다.
+- 현재 단계는 direct-call adapter, JSON-RPC draft bridge, fixture export 수준의 draft 구조이며, 정식 MCP SDK transport 승격 기준은 [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md) 에서 분리한다.
 
 ## 7. 다음에 읽을 문서
 
 - 상위 로드맵: [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md)
 - 릴리스 규격: [./workflow_release_spec.md](./workflow_release_spec.md)
 - MCP 후보 카탈로그: [./workflow_mcp_candidate_catalog.md](./workflow_mcp_candidate_catalog.md)
+- read-only transport 승격 기준: [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 - package 루트: [../workflow_kit/README.md](../workflow_kit/README.md)
 - mcp 허브: [../mcp/README.md](../mcp/README.md)

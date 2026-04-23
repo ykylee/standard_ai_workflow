@@ -1,0 +1,769 @@
+{
+  "descriptor_target": "mcp_tools_list_draft",
+  "server_name": "workflow_read_only_bundle",
+  "status": "ok",
+  "tool_count": 5,
+  "tool_version": "prototype-v1",
+  "tools": [
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Locate the latest dated backlog document from an index or backlog directory.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "backlog_dir_path"
+            ]
+          },
+          {
+            "required": [
+              "work_backlog_index_path"
+            ]
+          }
+        ],
+        "properties": {
+          "backlog_dir_path": {
+            "description": "Fallback backlog directory to scan for dated markdown files.",
+            "type": "string"
+          },
+          "work_backlog_index_path": {
+            "description": "Backlog index markdown file whose links point to dated backlog files.",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "name": "latest_backlog",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "candidates": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {},
+              "error_code": {},
+              "latest_backlog_path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source_context": {},
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "candidates",
+              "latest_backlog_path",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "candidates": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "latest_backlog_path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "error",
+              "error_code",
+              "source_context",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "latest_backlog output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Inspect markdown files and report missing required metadata fields.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_dir_path": {
+            "description": "Root directory whose markdown files will be scanned.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_dir_path"
+        ],
+        "type": "object"
+      },
+      "name": "check_doc_metadata",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {},
+              "error_code": {},
+              "missing_metadata": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "missing_fields",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "source_context": {},
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "checked_files",
+              "missing_metadata",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "missing_metadata": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "missing_fields",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "error",
+              "error_code",
+              "source_context",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "check_doc_metadata output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Inspect markdown relative links and report broken targets.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "doc_dir_path": {
+            "description": "Root directory whose markdown files will be scanned for broken links.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "doc_dir_path"
+        ],
+        "type": "object"
+      },
+      "name": "check_doc_links",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "broken_links",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {},
+              "error_code": {},
+              "source_context": {},
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "broken_links",
+              "checked_files",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "broken_links",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "error",
+              "error_code",
+              "source_context",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "check_doc_links output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Suggest impacted workflow documents from changed files and summary input.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_files": {
+            "description": "Changed file paths that should be classified into impacted document candidates.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "latest_backlog_path": {
+            "description": "Optional latest backlog document to include as an impacted state document.",
+            "type": "string"
+          },
+          "session_handoff_path": {
+            "description": "Optional session handoff document to include as an impacted state document.",
+            "type": "string"
+          },
+          "work_backlog_index_path": {
+            "description": "Optional backlog index document to include as an impacted state document.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "changed_files"
+        ],
+        "type": "object"
+      },
+      "name": "suggest_impacted_docs",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {},
+              "error_code": {},
+              "impacted_documents": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "reasoning_notes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "source_context": {},
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "impacted_documents",
+              "reasoning_notes",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "impacted_documents": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "reasoning_notes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "error",
+              "error_code",
+              "source_context",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "suggest_impacted_docs output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Check quickstart and README entry docs for stale or missing links.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "agents_path": {
+            "description": "Optional AGENTS or harness guidance document expected to be linked from entry docs.",
+            "type": "string"
+          },
+          "project_profile_path": {
+            "description": "Optional project profile document expected to be linked from entry docs.",
+            "type": "string"
+          },
+          "quickstart_paths": {
+            "description": "One or more quickstart or README entry documents to inspect.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "session_handoff_path": {
+            "description": "Optional session handoff document expected to be linked from entry docs.",
+            "type": "string"
+          },
+          "work_backlog_index_path": {
+            "description": "Optional backlog index document expected to be linked from entry docs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quickstart_paths"
+        ],
+        "type": "object"
+      },
+      "name": "check_quickstart_stale_links",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "broken_links",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {},
+              "error_code": {},
+              "missing_expected_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "missing_targets",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "reasoning_notes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "source_context": {},
+              "stale_link_warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "checked_files",
+              "missing_expected_links",
+              "reasoning_notes",
+              "stale_link_warnings",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "broken_links",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "checked_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "missing_expected_links": {
+                "items": {
+                  "additionalProperties": true,
+                  "properties": {},
+                  "required": [
+                    "missing_targets",
+                    "path"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "reasoning_notes": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "stale_link_warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "error",
+              "error_code",
+              "source_context",
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "check_quickstart_stale_links output"
+      }
+    }
+  ],
+  "transport_ready": false
+}

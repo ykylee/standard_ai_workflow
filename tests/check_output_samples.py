@@ -21,6 +21,7 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.output_contracts import (
     COMMON_REQUIRED_KEYS,
     ERROR_PATH_CONTRACTS,
+    output_error_field_shapes_schema,
     output_field_shapes_schema,
     SUCCESS_PATH_CONTRACTS,
     detect_sample_family,
@@ -72,6 +73,11 @@ def compare_schema_and_runtime_contracts(schema: dict[str, object], failures: li
     runtime_shapes = output_field_shapes_schema()
     if schema_shapes != runtime_shapes:
         failures.append("Schema field_shapes do not match workflow_kit.common.output_contracts.")
+
+    schema_error_shapes = dict(schema.get("error_field_shapes", {}))
+    runtime_error_shapes = output_error_field_shapes_schema()
+    if schema_error_shapes != runtime_error_shapes:
+        failures.append("Schema error_field_shapes do not match workflow_kit.common.output_contracts.")
 
 
 def main() -> int:

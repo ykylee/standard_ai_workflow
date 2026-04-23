@@ -4,7 +4,7 @@
 - 범위: dist 구조, 하네스 패키지 manifest, export 기준, 검증 포인트
 - 대상 독자: 저장소 관리자, 배포 담당자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-23
 - 관련 문서: `./workflow_harness_distribution.md`, `./prototype_promotion_scope.md`, `../scripts/export_harness_package.py`, `../harnesses/README.md`
 
 ## 1. release 목표
@@ -22,6 +22,9 @@
 - `dist/harnesses/<target>/bundle/`
 - `dist/harnesses/<target>/bundle/<exported files>`
 - `dist/harnesses/<target>/<target>-workflow-kit.zip`
+- `dist/harnesses/<target>/bundle/source-docs/schemas/read_only_transport_descriptors.json`
+- `dist/harnesses/<target>/bundle/source-docs/schemas/read_only_harness_mcp_examples.json`
+- `dist/harnesses/<target>/bundle/source-docs/schemas/read_only_jsonrpc_fixtures.json`
 
 ## 3. 하네스 패키지 구성
 
@@ -57,6 +60,7 @@
 - 선택한 하네스 오버레이 파일이 모두 bundle 에 포함됐는지 확인
 - 공통 workflow 문서가 bundle 에 포함됐는지 확인
 - manifest 의 포함 파일 목록이 실제 bundle 과 일치하는지 확인
+- read-only MCP descriptor 산출물, 하네스별 MCP 예시 draft, JSON-RPC fixture, read-only bundle 안내 문서가 포함됐는지 확인
 - zip 산출물이 생성됐는지 확인
 
 ## 6. 운영 원칙

@@ -53,6 +53,15 @@ def main() -> int:
                 raise AssertionError("Manifest should include exported files.")
             if not manifest["global_snippet_files"]:
                 raise AssertionError("Manifest should include related global snippet files.")
+            included = set(manifest["included_files"])
+            if "bundle/source-docs/schemas/read_only_harness_mcp_examples.json" not in included:
+                raise AssertionError("Manifest should include read-only harness MCP examples.")
+            if "bundle/source-docs/schemas/read_only_jsonrpc_fixtures.json" not in included:
+                raise AssertionError("Manifest should include read-only JSON-RPC fixtures.")
+            if "bundle/source-docs/schemas/read_only_transport_descriptors.json" not in included:
+                raise AssertionError("Manifest should include read-only transport descriptors.")
+            if "bundle/source-docs/mcp/read_only_bundle.md" not in included:
+                raise AssertionError("Manifest should include read-only bundle documentation.")
 
     print("Harness package export smoke check passed.")
     return 0

@@ -92,6 +92,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    이때 한국어 보고 원칙과 중간 설명 최소화 원칙이 instruction 체인에서 누락되지 않았는지 함께 확인한다.
 5. `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 의 권한 정책을 팀 운영 방식에 맞게 조정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
+   export bundle 을 쓰는 경우 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 descriptor 이며, 정식 서버 루프가 연결되기 전에는 참고 산출물로 취급한다.
    가능하면 메인 오케스트레이터는 `git status`, `git diff`, `rg`, 제한된 `ls` 정도만 직접 허용하고, 실제 수정은 서브 에이전트에 위임하는 구성을 우선 검토한다.
    `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 편집/검증은 worker 에 맡기는 운영 패턴을 함께 검토한다.
    필요하면 worker 를 `workflow-doc-worker`, `workflow-code-worker`, `workflow-validation-worker` 로 나눠 역할별로 호출한다.
@@ -115,6 +116,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 3. `project_workflow_profile.md` 의 실행, 테스트, 검증 규칙을 실제 저장소 기준으로 수정한다.
 4. `AGENTS.md` 와 `opencode.json` 의 instruction 경로가 같이 맞는지 확인한다.
    작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
+   export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
    이때 오케스트레이터가 직접 광범위한 `bash` 와 `edit` 를 수행하지 않도록 read-mostly 권한 프로필을 우선 고려한다.
    worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.

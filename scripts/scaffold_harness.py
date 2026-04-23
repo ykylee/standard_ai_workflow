@@ -77,12 +77,15 @@ def render_harness_readme(display_name: str, slug: str, args: argparse.Namespace
 - `{args.root_entrypoint}` 는 하네스의 실제 진입 파일로 사용한다.
 - 상세 정책은 `ai-workflow/project/` 문서를 먼저 읽도록 연결한다.
 - 설정 파일은 가능한 한 최소 예시만 두고, 긴 정책 본문은 공통 문서로 위임한다.
+- export bundle 의 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 draft descriptor 로 취급한다.
+- descriptor 의 `transport_ready` 값이 `false` 인 동안에는 실제 MCP 연결보다 참고 산출물로 두는 편이 안전하다.
 
 ## bootstrap 확장 TODO
 
 - `scripts/bootstrap_workflow_kit.py` 에 `{slug}` 하네스 생성 함수를 추가한다.
 - `SUPPORTED_HARNESSES`, `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 `{slug}` 를 등록한다.
 - `tests/check_bootstrap.py` 에 `{slug}` 생성 검증을 추가한다.
+- descriptor export 위치와 draft 사용 범위를 문서화한다.
 
 ## 다음에 읽을 문서
 
@@ -124,6 +127,7 @@ def render_overlay_spec(display_name: str, slug: str, args: argparse.Namespace) 
 - 항상 `ai-workflow/project/work_backlog.md` 를 참조하게 연결한다.
 - 항상 `ai-workflow/project/project_workflow_profile.md` 를 참조하게 연결한다.
 - 필요하면 `ai-workflow/project/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.
+- read-only MCP draft descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 위치를 기준으로 검토한다.
 
 ## 4. 구현 체크리스트
 
@@ -131,6 +135,7 @@ def render_overlay_spec(display_name: str, slug: str, args: argparse.Namespace) 
 - 레지스트리 등록
 - smoke test 추가
 - README 문서 갱신
+- descriptor export 산출물 포함 여부 확인
 
 ## 다음에 읽을 문서
 

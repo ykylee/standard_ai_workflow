@@ -16,13 +16,18 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.output_contracts import validate_output_payload
-from workflow_kit.server.read_only_registry import build_server_manifest, get_tool_spec
+from workflow_kit.server.read_only_registry import build_server_manifest, build_transport_tool_descriptors, get_tool_spec
 from workflow_kit.server.read_only_tools import invoke_read_only_tool
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Draft entrypoint for the read-only MCP bundle.")
     parser.add_argument("--list-tools", action="store_true", help="Print the bundled tool manifest as JSON.")
+    parser.add_argument(
+        "--list-transport-tools",
+        action="store_true",
+        help="Print draft MCP-style tool descriptors as JSON.",
+    )
     parser.add_argument("--tool", help="Tool name from the read-only bundle registry.")
     parser.add_argument(
         "--payload-json",
@@ -85,7 +90,7 @@ def validate_payload(spec: Any, payload: dict[str, Any]) -> list[str]:
 
 def invoke_tool(tool_name: str, payload_json: str | None) -> tuple[int, dict[str, Any]]:
     spec = get_tool_spec(tool_name)
-    source_context = {"tool": tool_name, "payload_json": payload_json}
+    source_context = {"action": "tool", "tool": tool_name, "payload_json": payload_json}
     if spec is None:
         return 1, build_entrypoint_error_result(
             error="알 수 없는 읽기 전용 MCP tool 이다.",
@@ -156,6 +161,9 @@ def main() -> int:
     if args.list_tools:
         print(json.dumps(build_server_manifest(), ensure_ascii=False, indent=2))
         return 0
+    if args.list_transport_tools:
+        print(json.dumps(build_transport_tool_descriptors(), ensure_ascii=False, indent=2))
+        return 0
     if args.tool:
         returncode, payload = invoke_tool(args.tool, args.payload_json)
         print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -165,7 +173,7 @@ def main() -> int:
         error="실행할 동작이 지정되지 않았다.",
         error_code="missing_server_action",
         warnings=["`--list-tools` 또는 `--tool <name> --payload-json '{...}'` 중 하나가 필요하다."],
-        source_context={},
+        source_context={"action": "none", "tool": None, "payload_json": None},
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 1

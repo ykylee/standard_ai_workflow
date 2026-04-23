@@ -138,6 +138,43 @@ python3 scripts/scaffold_harness.py \
 - 선택한 하네스 패키지를 `dist/harnesses/<target>/` 아래 bundle, manifest, zip 파일로 export 한다.
 - 출력 형태:
 - export 결과 경로와 포함 파일 수를 JSON 으로 출력한다.
+- 공통 source docs 에는 read-only MCP bundle 안내와 `schemas/read_only_transport_descriptors.json` 도 포함한다.
+
+## generate_read_only_transport_descriptors.py
+
+- read-only MCP bundle registry 에서 draft transport tool descriptor 묶음을 생성한다.
+- 체크인 산출물은 `schemas/read_only_transport_descriptors.json` 이다.
+- 정식 MCP SDK 서버 루프를 붙이기 전, 외부 package/export 단계에서 descriptor 를 재사용할 수 있게 한다.
+
+예시:
+
+```bash
+python3 scripts/generate_read_only_transport_descriptors.py > schemas/read_only_transport_descriptors.json
+```
+
+## generate_read_only_harness_mcp_examples.py
+
+- read-only MCP descriptor 를 Codex/OpenCode 하네스별 MCP 설정 예시 draft 로 변환한다.
+- 체크인 산출물은 `schemas/read_only_harness_mcp_examples.json` 이다.
+- 예시는 `workflow_kit.server.read_only_jsonrpc --stdio-lines` draft bridge 를 가리키지만 `manual_review_only` 이며, `transport_ready=false` 상태에서는 실제 설정으로 자동 적용하지 않는다.
+
+예시:
+
+```bash
+python3 scripts/generate_read_only_harness_mcp_examples.py > schemas/read_only_harness_mcp_examples.json
+```
+
+## generate_read_only_jsonrpc_fixtures.py
+
+- read-only JSON-RPC draft bridge 의 대표 request/response fixture 를 생성한다.
+- 체크인 산출물은 `schemas/read_only_jsonrpc_fixtures.json` 이다.
+- 정식 MCP SDK transport 로 승격할 때 envelope 차이를 비교하기 위한 기준선으로 사용한다.
+
+예시:
+
+```bash
+python3 scripts/generate_read_only_jsonrpc_fixtures.py > schemas/read_only_jsonrpc_fixtures.json
+```
 - manifest 추가 정보:
 - `global_snippet_files` 필드로 관련 전역 snippet 파일이 bundle 에 함께 포함됐는지 추적한다.
 

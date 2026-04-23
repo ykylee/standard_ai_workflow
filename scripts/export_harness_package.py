@@ -65,6 +65,10 @@ def workflow_common_sources() -> list[Path]:
         REPO_ROOT / "core" / "workflow_adoption_entrypoints.md",
         REPO_ROOT / "core" / "workflow_harness_distribution.md",
         REPO_ROOT / "core" / "workflow_release_spec.md",
+        REPO_ROOT / "mcp" / "read_only_bundle.md",
+        REPO_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
+        REPO_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
+        REPO_ROOT / "schemas" / "read_only_transport_descriptors.json",
         REPO_ROOT / "harnesses" / "README.md",
     ]
 

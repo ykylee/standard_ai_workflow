@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.output_contracts import ERROR_PATH_CONTRACTS, SUCCESS_PATH_CONTRACTS, output_field_shapes_schema
+from workflow_kit.common.output_contracts import (
+    ERROR_PATH_CONTRACTS,
+    SUCCESS_PATH_CONTRACTS,
+    output_field_shapes_schema,
+    output_json_schema_for_family,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +38,7 @@ class ReadOnlyToolSpec:
 
 
 READ_ONLY_SERVER_NAME = "workflow_read_only_bundle"
+READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET = "mcp_tools_list_draft"
 
 READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
@@ -176,12 +182,79 @@ def get_tool_spec(tool_name: str) -> ReadOnlyToolSpec | None:
     return None
 
 
+def input_json_schema_for_spec(spec: ReadOnlyToolSpec) -> dict[str, object]:
+    properties: dict[str, object] = {}
+    required: list[str] = []
+    for field in spec.input_fields:
+        field_schema: dict[str, object]
+        if field.repeated:
+            field_schema = {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": field.description,
+            }
+        else:
+            field_schema = {
+                "type": "string",
+                "description": field.description,
+            }
+        properties[field.name] = field_schema
+        if field.required:
+            required.append(field.name)
+
+    schema: dict[str, object] = {
+        "type": "object",
+        "properties": properties,
+        "required": sorted(required),
+        "additionalProperties": False,
+    }
+    if spec.requires_any_of:
+        schema["anyOf"] = [{"required": [field_name]} for field_name in spec.requires_any_of]
+    return schema
+
+
+def build_transport_tool_descriptor(spec: ReadOnlyToolSpec) -> dict[str, object]:
+    return {
+        "name": spec.name,
+        "description": spec.description,
+        "inputSchema": input_json_schema_for_spec(spec),
+        "outputSchema": output_json_schema_for_family(spec.name),
+        "annotations": {
+            "readOnlyHint": True,
+        },
+        "_meta": {
+            "transport_ready": False,
+            "bundle_phase": "direct_call_adapter",
+            "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+            "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
+        },
+    }
+
+
+def build_transport_tool_descriptors() -> dict[str, object]:
+    descriptors = [build_transport_tool_descriptor(spec) for spec in READ_ONLY_TOOL_SPECS]
+    return {
+        "status": "ok",
+        "tool_version": TOOL_VERSION,
+        "server_name": READ_ONLY_SERVER_NAME,
+        "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
+        "transport_ready": False,
+        "tool_count": len(descriptors),
+        "tools": descriptors,
+    }
+
+
 def build_server_manifest() -> dict[str, object]:
     return {
         "status": "ok",
         "tool_version": TOOL_VERSION,
         "server_name": READ_ONLY_SERVER_NAME,
         "tool_count": len(READ_ONLY_TOOL_SPECS),
+        "transport": {
+            "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
+            "transport_ready": False,
+            "descriptor_source": "workflow_kit.server.read_only_registry.build_transport_tool_descriptors",
+        },
         "tools": [
             {
                 "name": spec.name,
@@ -208,7 +281,11 @@ def build_server_manifest() -> dict[str, object]:
                     "success_required_keys": sorted(SUCCESS_PATH_CONTRACTS.get(spec.name, frozenset())),
                     "error_required_keys": sorted(ERROR_PATH_CONTRACTS.get(spec.name, frozenset())),
                     "field_shapes": output_field_shapes_schema().get(spec.name, {}),
+                    "json_schema_draft": "2020-12",
+                    "json_schema_source": "workflow_kit.common.output_contracts.output_json_schema_for_family",
+                    "json_schema": output_json_schema_for_family(spec.name),
                 },
+                "transport_descriptor": build_transport_tool_descriptor(spec),
                 "payload_example": spec.payload_example,
             }
             for spec in READ_ONLY_TOOL_SPECS

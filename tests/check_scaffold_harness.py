@@ -52,10 +52,14 @@ def main() -> int:
         readme_text = readme_path.read_text(encoding="utf-8")
         if "Test Harness Harness Package" not in readme_text:
             raise AssertionError("Harness README did not include the display name.")
+        if "read_only_transport_descriptors.json" not in readme_text:
+            raise AssertionError("Harness README did not mention read-only transport descriptors.")
 
         overlay_spec_text = overlay_spec_path.read_text(encoding="utf-8")
         if "test-harness" not in overlay_spec_text:
             raise AssertionError("Overlay spec did not include the harness slug.")
+        if "read_only_transport_descriptors.json" not in overlay_spec_text:
+            raise AssertionError("Overlay spec did not mention read-only transport descriptors.")
 
     print("Harness scaffold smoke check passed.")
     return 0

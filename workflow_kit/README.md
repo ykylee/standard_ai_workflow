@@ -5,7 +5,7 @@
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `../core/prototype_promotion_scope.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
+- 관련 문서: `../core/prototype_promotion_scope.md`, `../core/read_only_mcp_transport_promotion.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
 
 ## 1. 목적
 
@@ -31,6 +31,7 @@
 - `server.read_only_registry`
 - `server.read_only_tools`
 - `server.read_only_entrypoint`
+- `server.read_only_jsonrpc`
 
 이 모듈들은 아래 책임을 가진다.
 
@@ -52,7 +53,7 @@
 - 샘플/스모크 테스트에서 재사용하는 출력 계약 맵 제공
 - `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공
 - read-only MCP 5종의 공통 callable layer 제공
-- 읽기 전용 MCP 1차 묶음의 draft tool registry, direct-call adapter, schema-validated entrypoint 제공
+- 읽기 전용 MCP 1차 묶음의 draft tool registry, direct-call adapter, schema-validated entrypoint, JSON-RPC draft bridge 제공
 
 ## 3. 현재 사용처
 
@@ -88,13 +89,17 @@
 - runner 단계 조립 함수와 step 실패 컨텍스트 공통화
 - `tool_version` 및 output contract 검증 기준의 단일 출처 유지
 - generated JSON Schema 와 manifest 외부 소비 지점 연결
-- 읽기 전용 MCP server transport 계층 연결
+- 읽기 전용 MCP server transport descriptor 와 SDK 서버 루프 연결
 
 현재 상태 메모:
 
 - 코드 경로의 `tool_version` 은 이미 `workflow_kit.__version__` 에서 가져오도록 정리돼 있다.
 - output contract 런타임 맵은 generated JSON Schema 와 sample validation smoke 의 단일 출처로도 쓰이고 있다.
-- 남은 정렬 작업은 문서 예시와 외부 소비 지점이 이 단일 출처 원칙을 더 명확히 설명하도록 보강하는 쪽이다.
+- read-only MCP bundle manifest 는 tool 별 generated JSON Schema 를 runtime output contract 에서 직접 가져와 노출한다.
+- read-only MCP bundle 은 draft transport tool descriptor 도 registry 에서 생성한다.
+- read-only MCP bundle 은 SDK 서버 루프 전 단계의 JSON-RPC draft bridge 로 `tools/list` 와 `tools/call` 경계를 smoke test 한다.
+- 남은 정렬 작업은 draft bridge 를 실제 SDK server transport 로 승격할 때 필요한 protocol/runtime 차이를 분리하는 쪽이다.
+- SDK transport 승격 시 유지할 field 와 바뀔 수 있는 envelope 는 [../core/read_only_mcp_transport_promotion.md](../core/read_only_mcp_transport_promotion.md) 에서 관리한다.
 
 ## 5. 원칙
 
@@ -105,5 +110,6 @@
 ## 다음에 읽을 문서
 
 - 승격 범위 문서: [../core/prototype_promotion_scope.md](../core/prototype_promotion_scope.md)
+- read-only transport 승격 기준: [../core/read_only_mcp_transport_promotion.md](../core/read_only_mcp_transport_promotion.md)
 - 상위 로드맵: [../core/workflow_kit_roadmap.md](../core/workflow_kit_roadmap.md)
 - mcp 허브: [../mcp/README.md](../mcp/README.md)

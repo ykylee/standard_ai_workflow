@@ -32,6 +32,9 @@
 - OpenCode 에서 기존 프로젝트 첫 세션 결과를 읽을 때 권장 순서는 `status -> onboarding_summary.recommended_next_steps -> warnings -> orchestration_plan.worker_assignments -> validation_plan -> code_index_update -> session_start -> repository_assessment.summary` 다.
 - `repository_assessment.summary` 와 `onboarding_summary.inferred_commands` 가 함께 채워진 예시는 [../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json](../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json) 을 참고하면 된다.
 - `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락 입력 경로를 먼저 메인 오케스트레이터에 전달하고 worker 분배는 복구 작업 기준으로 다시 잡는 편이 안전하다.
+- 하네스 export bundle 을 적용할 때 read-only MCP descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 에 들어 있다.
+- descriptor 를 OpenCode 설정 검토용 draft 로 변환한 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 의 `harness_examples.opencode` 에 들어 있다.
+- OpenCode project-local MCP 설정으로 바로 옮기기 전에 [../../mcp/read_only_bundle.md](../../mcp/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
 
 ## bootstrap 예시
 
@@ -55,6 +58,8 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 기존 프로젝트 도입 시 onboarding runner 결과를 worker 분배 프롬프트에 어떻게 녹일지 팀 규칙이 정해져 있는지 확인
 - `.opencode/skills/standard-ai-workflow/SKILL.md` 에 적힌 참조 문서가 최신 상태인지 확인
 - 생성된 `AGENTS.md`, skill, agent 문구에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
+- export bundle 의 read-only MCP descriptor 를 실제 OpenCode MCP 설정에 연결할지, 참고 산출물로만 둘지 결정
+- `read_only_harness_mcp_examples.json` 의 OpenCode 예시가 `manual_review_only` 임을 확인
 
 ## 다음에 읽을 문서
 

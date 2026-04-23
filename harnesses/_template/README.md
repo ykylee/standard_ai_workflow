@@ -14,6 +14,7 @@
 3. `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 새 하네스를 등록한다.
 4. bootstrap smoke test에 새 하네스 생성 검증을 추가한다.
 5. 루트 `README.md`, `scripts/README.md`, `core/workflow_harness_distribution.md` 에 새 타겟을 반영한다.
+6. export bundle 에 포함되는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 를 새 하네스 MCP 설정에서 참고 산출물로 둘지, 실제 연결 입력으로 변환할지 결정한다.
 
 ## 2. 새 하네스 설계 원칙
 
@@ -21,6 +22,7 @@
 - 가능한 한 `ai-workflow/project/` 문서를 읽도록 연결한다.
 - 하네스가 요구하는 루트 파일과 최소 설정 파일만 생성한다.
 - 권한 정책이나 에이전트 정의는 보수적인 기본값으로 시작한다.
+- read-only MCP descriptor 는 draft 이므로 `transport_ready=false` 상태에서는 자동 연결보다 검토용 산출물로 다룬다.
 
 ## 3. bootstrap 확장 포인트
 
@@ -35,6 +37,7 @@
 - `tests/check_bootstrap.py` 에 생성 파일 존재 여부를 추가한다.
 - 필요하면 새 하네스 설정 파일의 최소 구조를 문자열 검사한다.
 - `tests/check_docs.py` 로 문서 링크와 메타데이터가 유지되는지 확인한다.
+- 하네스 export 를 지원한다면 `tests/check_export_harness_package.py` 에 descriptor 포함 여부를 확인한다.
 
 ## 다음에 읽을 문서
 

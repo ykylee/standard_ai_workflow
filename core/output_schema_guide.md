@@ -19,6 +19,8 @@
 
 현재 저장소에는 위 목표를 보조하기 위한 정적 계약 초안 [../schemas/output_sample_contracts.json](../schemas/output_sample_contracts.json) 과 generated JSON Schema 묶음 [../schemas/generated_output_schemas.json](../schemas/generated_output_schemas.json) 이 포함된다.
 정적 계약 파일은 문서와 smoke test 가 공유하는 기준선이고, generated schema 는 런타임 계약에서 재생성되는 기계 검증용 draft 로 사용한다.
+주요 error payload 의 `source_context` 는 정적 계약의 `error_field_shapes` 와 런타임 계약에서 success shape 와 분리해 관리한다.
+read-only bundle entrypoint 자체 오류는 개별 tool family 가 아니라 `read_only_entrypoint` family 로 분리해 검증한다.
 
 ## 2. 공통 원칙
 
@@ -454,7 +456,7 @@ runner 실패 규칙:
 
 ## 8. 다음 정리 권고
 
-현재 가이드를 바탕으로 다음 두 작업을 권장한다.
+현재 가이드를 바탕으로 다음 작업을 권장한다.
 
 1. nested object 와 enum 제약이 아직 느슨한 family 를 중심으로 output contract 를 계속 세분화
 2. generated schema 를 MCP manifest 나 외부 소비 지점과 어떻게 연결할지 정리

@@ -24,6 +24,9 @@
 - `repository_assessment.summary` 와 `onboarding_summary.inferred_commands` 가 함께 채워진 예시는 [../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json](../../examples/output_samples/existing_project_onboarding.with_assessment.sample.json) 을 참고하면 된다.
 - 실제 기존 저장소에 Codex 하네스를 얹은 첫 파일럿 기록은 [../../examples/pilot_adoption_open_git_client_example.md](../../examples/pilot_adoption_open_git_client_example.md) 을 참고하면 된다.
 - `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락된 입력 경로를 먼저 요약하고 복구 작업부터 배치하는 편이 낫다.
+- 하네스 export bundle 을 적용할 때 read-only MCP descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 에 들어 있다.
+- descriptor 를 Codex 설정 검토용 draft 로 변환한 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 의 `harness_examples.codex` 에 들어 있다.
+- Codex 전역 MCP 설정으로 바로 복사하기 전에 [../../mcp/read_only_bundle.md](../../mcp/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
 
 ## bootstrap 예시
 
@@ -44,6 +47,8 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 생성된 `AGENTS.md` 에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 - 생성된 `AGENTS.md` 에 메인 조정자와 worker 성격 서브 에이전트 분리 원칙이 포함되는지 확인
 - 기존 프로젝트 도입 시 onboarding runner 결과를 어디에 붙여 읽을지 팀 운영 방식이 정해져 있는지 확인
+- export bundle 의 read-only MCP descriptor 를 실제 Codex MCP 설정에 연결할지, 참고 산출물로만 둘지 결정
+- `read_only_harness_mcp_examples.json` 의 Codex 예시가 `manual_review_only` 임을 확인
 
 ## 다음에 읽을 문서
 

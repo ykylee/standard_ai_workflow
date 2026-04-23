@@ -17,8 +17,13 @@
 - demo runner 성공/실패 경로를 확인하는 `check_demo_workflow.py` 를 제공한다.
 - quickstart/README stale 링크 점검 MCP 를 확인하는 `check_quickstart_stale_links.py` 를 제공한다.
 - draft read-only MCP bundle manifest 와 payload schema 검증을 확인하는 `check_read_only_mcp_server.py` 를 제공한다.
+- draft read-only JSON-RPC bridge 를 확인하는 `check_read_only_jsonrpc_bridge.py` 를 제공한다.
+- read-only JSON-RPC fixture 산출물이 runtime bridge 와 같은지 확인하는 `check_read_only_jsonrpc_fixtures.py` 를 제공한다.
+- read-only MCP transport 승격 기준 문서가 fixture 이름과 유지 계약을 반영하는지 확인하는 `check_read_only_transport_promotion_spec.py` 를 제공한다.
 - runtime 계약에서 생성한 JSON Schema draft 와 체크인된 generated schema 정합성을 확인하는 `check_output_json_schema.py` 를 제공한다.
 - generated JSON Schema draft 로 실제 output sample JSON 을 검증하는 `check_generated_schema_validation.py` 를 제공한다.
+- read-only transport descriptor export 산출물이 registry 와 같은지 확인하는 `check_read_only_transport_descriptors.py` 를 제공한다.
+- read-only harness MCP 예시 산출물이 descriptor 기준과 같은지 확인하는 `check_read_only_harness_mcp_examples.py` 를 제공한다.
 - backlog-update 프로토타입의 성공/실패 경로와 output contract 를 확인하는 `check_backlog_update.py` 를 제공한다.
 - create-backlog-entry MCP 프로토타입의 draft entry shape 를 확인하는 `check_create_backlog_entry.py` 를 제공한다.
 - 현재 스크립트는 문서 무결성과 기본 생성 흐름이 깨지지 않았는지 빠르게 검사한다.
@@ -42,10 +47,19 @@
 - demo runner 가 하위 step 실패를 top-level `workflow_step_failed` 로 감싸는지 확인
 - 대표 JSON 샘플이 공통 필드뿐 아니라 skill/runner 계약의 핵심 필드도 유지하는지 확인
 - `schemas/output_sample_contracts.json` 과 Python 런타임 계약 맵이 서로 어긋나지 않는지 확인
+- error payload 의 주요 `source_context` shape 가 런타임 계약, 정적 계약, generated JSON Schema 에서 어긋나지 않는지 확인
 - 기존 프로젝트 bootstrap 산출물을 입력으로 받아 onboarding runner 가 session-start, validation-plan, code-index-update 를 연결하는지 확인
 - onboarding runner 가 누락 입력 문서 시 top-level 구조화 error JSON 을 반환하는지 확인
 - quickstart/README 문서를 입력으로 받아 stale 링크 경고와 핵심 진입 문서 누락을 감지하는지 확인
 - read-only MCP bundle manifest 가 tool별 input schema 와 payload example 을 노출하는지 확인
+- read-only MCP bundle manifest 가 tool별 generated JSON Schema 를 runtime output contract 에서 직접 노출하는지 확인
+- read-only MCP bundle 이 draft transport tool descriptor 를 노출하는지 확인
+- read-only JSON-RPC bridge 가 `initialize`, `tools/list`, `tools/call`, tool-call error mapping 을 유지하는지 확인
+- read-only JSON-RPC fixture 가 runtime bridge 결과와 같은 request/response envelope 를 유지하는지 확인
+- read-only MCP transport 승격 기준 문서가 fixture 기준선과 유지할 descriptor 계약을 놓치지 않는지 확인
+- read-only transport descriptor 체크인 산출물과 생성 스크립트가 registry 결과와 같은지 확인
+- read-only harness MCP 예시가 descriptor 대상, tool 목록, `transport_ready=false`, manual-review-only 원칙을 유지하는지 확인
+- read-only MCP bundle entrypoint 자체 오류가 `read_only_entrypoint` output family 계약을 따르는지 확인
 - read-only MCP bundle entrypoint 가 필수 payload 누락을 schema 단계에서 실패시키는지 확인
 - generated JSON Schema draft 파일과 생성 스크립트 출력이 런타임 계약과 같은지 확인
 - generated JSON Schema draft 가 실제 대표 sample JSON 을 받아들일 수 있는지 확인
@@ -66,6 +80,11 @@
 - 저장소 루트에서 `python3 tests/check_existing_project_onboarding.py`
 - 저장소 루트에서 `python3 tests/check_quickstart_stale_links.py`
 - 저장소 루트에서 `python3 tests/check_read_only_mcp_server.py`
+- 저장소 루트에서 `python3 tests/check_read_only_jsonrpc_bridge.py`
+- 저장소 루트에서 `python3 tests/check_read_only_jsonrpc_fixtures.py`
+- 저장소 루트에서 `python3 tests/check_read_only_transport_promotion_spec.py`
+- 저장소 루트에서 `python3 tests/check_read_only_transport_descriptors.py`
+- 저장소 루트에서 `python3 tests/check_read_only_harness_mcp_examples.py`
 - 저장소 루트에서 `python3 tests/check_output_json_schema.py`
 - 저장소 루트에서 `python3 tests/check_generated_schema_validation.py`
 
@@ -79,6 +98,11 @@
 - backlog-update 변경 직후에는 `check_backlog_update.py` 를 먼저 본다.
 - create-backlog-entry 변경 직후에는 `check_create_backlog_entry.py` 를 먼저 본다.
 - read-only MCP bundle 변경 직후에는 `check_read_only_mcp_server.py` 를 먼저 본다.
+- read-only JSON-RPC bridge 변경 직후에는 `check_read_only_jsonrpc_bridge.py` 를 먼저 본다.
+- read-only JSON-RPC fixture 변경 직후에는 `check_read_only_jsonrpc_fixtures.py` 를 먼저 본다.
+- read-only MCP transport 승격 기준 변경 직후에는 `check_read_only_transport_promotion_spec.py` 를 먼저 본다.
+- read-only transport descriptor export 변경 직후에는 `check_read_only_transport_descriptors.py` 를 먼저 본다.
+- read-only harness MCP 예시 변경 직후에는 `check_read_only_harness_mcp_examples.py` 를 먼저 본다.
 - output contract / generated schema 변경 직후에는 `check_output_samples.py`, `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 - JSON Schema 생성/승격 작업 직후에는 `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 
@@ -87,7 +111,7 @@
 - `check_docs.py` 실패:
   메타데이터 누락, 문서 제목 형식, 상대 링크 깨짐을 먼저 의심한다.
 - `check_output_samples.py` 실패:
-  `examples/output_samples/`, `schemas/output_sample_contracts.json`, `workflow_kit/common/output_contracts.py` 셋 중 하나가 어긋난 경우가 많다.
+  `examples/output_samples/`, `schemas/output_sample_contracts.json`, `workflow_kit/common/output_contracts.py` 셋 중 하나가 어긋난 경우가 많다. error sample 이라면 `error_field_shapes` 와 `source_context` required key 를 함께 확인한다.
 - `check_demo_workflow.py` 실패:
   `scripts/run_demo_workflow.py` 의 step 조립, top-level error wrapping, `workflow_summary` 필드 구성을 먼저 본다.
 - `check_existing_project_onboarding.py` 실패:
@@ -107,7 +131,17 @@
 - `check_quickstart_stale_links.py` 실패:
   quickstart/README 문서의 핵심 진입 링크와 상대 경로 무결성을 먼저 본다.
 - `check_read_only_mcp_server.py` 실패:
-  `workflow_kit/server/read_only_registry.py` 의 input schema, `workflow_kit/server/read_only_entrypoint.py` 의 payload 검증, 하위 script 의 CLI 인자 이름 정합성을 먼저 본다.
+  `workflow_kit/server/read_only_registry.py` 의 input/output schema 와 transport descriptor, `workflow_kit/server/read_only_entrypoint.py` 의 payload 검증, 하위 script 의 CLI 인자 이름 정합성을 먼저 본다.
+- `check_read_only_jsonrpc_bridge.py` 실패:
+  `workflow_kit/server/read_only_jsonrpc.py`, `workflow_kit/server/read_only_entrypoint.py`, read-only descriptor 의 tool 이름과 error mapping 을 먼저 본다.
+- `check_read_only_jsonrpc_fixtures.py` 실패:
+  `workflow_kit/server/read_only_jsonrpc.py`, `scripts/generate_read_only_jsonrpc_fixtures.py`, `schemas/read_only_jsonrpc_fixtures.json` 셋 중 하나가 어긋난 경우가 많다.
+- `check_read_only_transport_promotion_spec.py` 실패:
+  `core/read_only_mcp_transport_promotion.md` 가 fixture 이름, 유지할 descriptor 계약, 변경 가능한 envelope 설명을 놓친 경우가 많다.
+- `check_read_only_transport_descriptors.py` 실패:
+  `workflow_kit/server/read_only_registry.py`, `scripts/generate_read_only_transport_descriptors.py`, `schemas/read_only_transport_descriptors.json` 셋 중 하나가 어긋난 경우가 많다.
+- `check_read_only_harness_mcp_examples.py` 실패:
+  `scripts/generate_read_only_harness_mcp_examples.py`, `schemas/read_only_harness_mcp_examples.json`, read-only descriptor target/tool 목록 중 하나가 어긋난 경우가 많다.
 - `check_output_json_schema.py` 실패:
   `workflow_kit/common/output_contracts.py`, `scripts/generate_output_json_schema.py`, `schemas/generated_output_schemas.json` 셋 중 하나가 어긋난 경우가 많다.
 - `check_generated_schema_validation.py` 실패:

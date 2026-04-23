@@ -4,8 +4,8 @@
 - 범위: 일자별 백로그 문서
 - 대상 독자: 프로젝트 참여자, 문서 작성자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-22
-- 관련 문서: `./core/project_status_assessment.md`, `./core/workflow_kit_roadmap.md`, `./backlog/2026-04-22.md`
+- 최종 수정일: 2026-04-23
+- 관련 문서: `./core/project_status_assessment.md`, `./core/workflow_kit_roadmap.md`, `./backlog/2026-04-22.md`, `./backlog/2026-04-23.md`
 
 ## 운영 원칙
 
@@ -17,3 +17,4 @@
 ## 날짜별 백로그 문서
 
 - [2026-04-22 작업 백로그](./backlog/2026-04-22.md)
+- [2026-04-23 작업 백로그](./backlog/2026-04-23.md)

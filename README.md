@@ -13,6 +13,7 @@
 - 하네스 배포 가이드: `./core/workflow_harness_distribution.md`
 - 릴리스 규격 가이드: `./core/workflow_release_spec.md`
 - 승격 범위 가이드: `./core/prototype_promotion_scope.md`
+- read-only MCP transport 승격 기준: `./core/read_only_mcp_transport_promotion.md`
 - 설정 계층 가이드: `./core/workflow_configuration_layers.md`
 - 비침투적 주입 정책: `./core/workflow_global_injection_policy.md`
 - workflow kit 패키지 가이드: `./workflow_kit/README.md`
@@ -169,6 +170,7 @@ python3 scripts/export_harness_package.py \
 - runner 는 하위 skill/MCP step 이 `status: "error"` 를 반환해도 상위 `workflow_step_failed` 형태로 감싸고, 실패한 step 이름과 upstream `error_code` 를 `source_context` 에 남긴다.
 - OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 운영 패턴을 문서/템플릿으로 배포한다.
 - `workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper, read-only MCP 공통 callable layer, output contract validator 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
+- 하네스 export bundle 은 read-only MCP descriptor 초안, 하네스별 MCP 설정 예시 draft, JSON-RPC fixture 를 함께 포함해 이후 MCP/server 연결 지점을 전달한다.
 - `tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
 
 ## 9. 현재 한계
@@ -197,6 +199,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 - 릴리스 규격: [core/workflow_release_spec.md](./core/workflow_release_spec.md)
 - 승격 범위 가이드: [core/prototype_promotion_scope.md](./core/prototype_promotion_scope.md)
+- read-only MCP transport 승격 기준: [core/read_only_mcp_transport_promotion.md](./core/read_only_mcp_transport_promotion.md)
 - workflow kit 패키지: [workflow_kit/README.md](./workflow_kit/README.md)
 - 설정 계층 가이드: [core/workflow_configuration_layers.md](./core/workflow_configuration_layers.md)
 - 비침투적 주입 정책: [core/workflow_global_injection_policy.md](./core/workflow_global_injection_policy.md)

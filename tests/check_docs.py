@@ -19,10 +19,22 @@ REQUIRED_METADATA = [
 ]
 LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "#")
+IGNORED_PARTS = {
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "dist",
+    "build",
+}
 
 
 def iter_markdown_files() -> list[Path]:
-    return sorted(REPO_ROOT.rglob("*.md"))
+    return sorted(path for path in REPO_ROOT.rglob("*.md") if not set(path.parts).intersection(IGNORED_PARTS))
 
 
 def normalize_link_target(raw_target: str) -> str:

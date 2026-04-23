@@ -60,6 +60,53 @@ def main() -> int:
     if initialize["result"]["_meta"]["transport_ready"] is not False:
         raise AssertionError("Expected draft bridge to remain transport_ready=false.")
 
+    initialize_rich = run_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-03-26",
+                "clientInfo": {"name": "fixture-client", "version": "0.1.0"},
+                "capabilities": {
+                    "tools": {"listChanged": True},
+                    "roots": {"listChanged": False},
+                    "sampling": {},
+                    "elicitation": {},
+                    "experimental": {},
+                },
+            },
+        }
+    )
+    if initialize_rich["result"]["serverInfo"]["name"] != "workflow_read_only_bundle":
+        raise AssertionError("Expected valid richer initialize request to succeed.")
+
+    initialize_invalid = run_request(
+        {"jsonrpc": "2.0", "id": 11, "method": "initialize", "params": {"capabilities": []}}
+    )
+    if initialize_invalid["error"]["code"] != -32602:
+        raise AssertionError("Expected invalid initialize capabilities to return Invalid params.")
+    initialize_invalid_tools = run_request(
+        {
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "initialize",
+            "params": {"capabilities": {"tools": {"listChanged": "yes"}}},
+        }
+    )
+    if initialize_invalid_tools["error"]["code"] != -32602:
+        raise AssertionError("Expected invalid tools.listChanged to return Invalid params.")
+    initialize_invalid_roots = run_request(
+        {"jsonrpc": "2.0", "id": 13, "method": "initialize", "params": {"capabilities": {"roots": []}}}
+    )
+    if initialize_invalid_roots["error"]["code"] != -32602:
+        raise AssertionError("Expected invalid roots capability to return Invalid params.")
+    notification_with_id = run_request(
+        {"jsonrpc": "2.0", "id": 14, "method": "notifications/initialized", "params": {}}
+    )
+    if notification_with_id["error"]["code"] != -32600:
+        raise AssertionError("Expected notification with id to return Invalid Request.")
+
     tools_list = run_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}})
     tools = tools_list["result"]["tools"]
     if len(tools) < 5:
@@ -106,6 +153,10 @@ def main() -> int:
     if missing_method["error"]["code"] != -32601:
         raise AssertionError("Expected unknown methods to return Method not found.")
 
+    invalid_boolean_id = run_request({"jsonrpc": "2.0", "id": True, "method": "tools/list", "params": {}})
+    if invalid_boolean_id["error"]["code"] != -32600:
+        raise AssertionError("Expected boolean id to return Invalid Request.")
+
     parse_error_code, parse_error = run_raw_request("{not-json", expect_success=False)
     if parse_error_code == 0:
         raise AssertionError("Expected malformed --request-json to return non-zero.")
@@ -121,13 +172,27 @@ def main() -> int:
     stdio_responses = run_stdio_lines(
         [
             "{not-json",
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}, ensure_ascii=False),
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "draft"}}, ensure_ascii=False),
             json.dumps({"jsonrpc": "2.0", "id": 6, "method": "tools/list", "params": {}}, ensure_ascii=False),
+            json.dumps({"jsonrpc": "2.0", "id": 7, "method": "initialize", "params": {}}, ensure_ascii=False),
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}, ensure_ascii=False),
+            json.dumps({"jsonrpc": "2.0", "id": 8, "method": "tools/list", "params": {}}, ensure_ascii=False),
+            json.dumps({"jsonrpc": "2.0", "id": 9, "method": "initialize", "params": {}}, ensure_ascii=False),
         ]
     )
     if [response.get("error", {}).get("code") for response in stdio_responses[:1]] != [-32700]:
         raise AssertionError("Expected stdio malformed line to return Parse error and continue.")
-    if stdio_responses[1]["result"]["_meta"]["tool_count"] < 5:
-        raise AssertionError("Expected stdio bridge to continue after malformed line.")
+    if len(stdio_responses) != 5:
+        raise AssertionError("Expected notifications to be ignored while stdio requests still emit responses.")
+    if stdio_responses[1]["error"]["code"] != -32002:
+        raise AssertionError("Expected pre-initialize stdio tools/list to return Server not initialized.")
+    if stdio_responses[2]["result"]["serverInfo"]["name"] != "workflow_read_only_bundle":
+        raise AssertionError("Expected stdio initialize to succeed once session state is created.")
+    if stdio_responses[3]["result"]["_meta"]["tool_count"] < 5:
+        raise AssertionError("Expected stdio bridge to allow tools/list after initialize.")
+    if stdio_responses[4]["error"]["data"]["reason"] != "initialize may only be called once per stdio session":
+        raise AssertionError("Expected stdio bridge to reject a second initialize call.")
 
     print("Read-only JSON-RPC bridge smoke check passed.")
     return 0

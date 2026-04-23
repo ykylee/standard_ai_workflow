@@ -44,6 +44,7 @@
 | `scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
 | `workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
 | `tests/` | 링크/템플릿/구현 smoke test 위치 |
+| `releases/` | 릴리즈 노트와 pre-release 기록 위치 |
 | `split_checklist.md` | 별도 프로젝트로 분리할 때 수행할 체크리스트 |
 
 ## 3. 현재 구현 상태
@@ -87,7 +88,57 @@
 - OpenCode: `opencode.json` 과 project-local skill/agent 중심
 - 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능
 
-## 5. 다른 프로젝트에 적용할 때 최소 복사 세트
+## 5. 로컬 환경 설정 메모
+
+공식 MCP Python SDK 를 이 저장소에서 로컬 검증에 쓰려면 Python 3.10 이상이 필요하다.
+
+- 공식 패키지 이름은 `mcp` 이다.
+- 현재 저장소에서는 Python 3.11 기반 `.venv` 가상환경을 기준으로 검증했다.
+- macOS/Homebrew 기준 Python 3.11 설치 경로는 `/opt/homebrew/bin/python3.11` 이다.
+
+이번 로컬 검증 환경 메모:
+
+- OS: macOS `26.4.1`
+- 아키텍처: `arm64`
+- Homebrew 경로: `/opt/homebrew/bin/brew`
+- Homebrew Python 경로: `/opt/homebrew/bin/python3.11`
+- 저장소 가상환경 경로: `/Users/yklee/repos/standard_ai_workflow/.venv`
+- 가상환경 Python: `3.11.15`
+- 설치된 MCP Python SDK: `mcp 1.27.0`
+- MCP site-packages 경로: `/Users/yklee/repos/standard_ai_workflow/.venv/lib/python3.11/site-packages`
+
+최초 1회 설정 예시:
+
+```bash
+brew install python@3.11
+rm -rf .venv
+/opt/homebrew/bin/python3.11 -m venv .venv
+./.venv/bin/python -m pip install --upgrade pip
+./.venv/bin/python -m pip install "mcp[cli]"
+```
+
+가상환경 사용 예시:
+
+```bash
+source .venv/bin/activate
+python -m pip show mcp
+python tests/check_read_only_mcp_sdk_candidate.py
+python tests/check_read_only_mcp_sdk_stdio.py
+```
+
+현재 확인된 설치 기준:
+
+- Python: `3.11.15`
+- MCP Python SDK: `mcp 1.27.0`
+
+주의:
+
+- Python 3.9 이하 환경에서는 공식 `mcp` 패키지가 설치되지 않는다.
+- 이 저장소 루트에는 `mcp/` 디렉터리가 있으므로, SDK import 검증은 가상환경 Python 으로 실행해야 혼동이 없다.
+- official SDK candidate 는 [workflow_kit/server/read_only_mcp_sdk.py](./workflow_kit/server/read_only_mcp_sdk.py) 에 있고, 설치 확인 스모크는 [tests/check_read_only_mcp_sdk_candidate.py](./tests/check_read_only_mcp_sdk_candidate.py) 를 사용한다.
+- 실제 stdio round-trip 상호운용 스모크는 [tests/check_read_only_mcp_sdk_stdio.py](./tests/check_read_only_mcp_sdk_stdio.py) 를 사용한다.
+
+## 6. 다른 프로젝트에 적용할 때 최소 복사 세트
 
 최소 세트:
 
@@ -103,7 +154,7 @@
 - `core/workflow_mcp_candidate_catalog.md`
 - `core/workflow_agent_topology.md`
 
-## 6. 별도 프로젝트로 분리할 때 권장 구조
+## 7. 별도 프로젝트로 분리할 때 권장 구조
 
 - `README.md`
 - `split_checklist.md`
@@ -117,7 +168,7 @@
 - `examples/`
 - `tests/`
 
-## 7. bootstrap 사용 예시
+## 8. bootstrap 사용 예시
 
 새 저장소 또는 임시 디렉터리에 표준 워크플로우 패키지를 생성하려면 아래처럼 실행할 수 있다.
 
@@ -163,7 +214,16 @@ python3 scripts/export_harness_package.py \
   --harness opencode
 ```
 
-## 8. 구현 현황 요약
+이 export 는 이번 릴리즈 기준으로 workflow/skill 온보딩 묶음을 우선 배포한다.
+
+- 기본 소비 진입점: `ai-workflow/README.md`, `ai-workflow/core/workflow_adoption_entrypoints.md`, `ai-workflow/core/workflow_skill_catalog.md`
+- 기본 현장 문서: `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`
+- 기본 export 는 AI agent 컨텍스트 절약을 위해 런타임 파일만 포함하고, source docs 와 global snippet 예시는 제외한다.
+- 하네스별 패키지는 `dist/harnesses/<target>/<version>/` 아래 개별 생성되며, zip 파일 이름에도 버전이 포함된다.
+- 각 패키지 루트에는 `PACKAGE_CONTENTS.md` 와 `APPLY_GUIDE.md` 가 함께 생성돼 다른 환경에서 바로 적용 흐름을 읽을 수 있다.
+- 개발 참고용 원본 문서나 전역 snippet 예시가 필요하면 export 시 opt-in 플래그로만 포함한다.
+
+## 9. 구현 현황 요약
 
 - skill 6종은 공통 `tool_version` 과 구조화된 실패 JSON (`status`, `error`, `error_code`, `warnings`, `source_context`) 패턴을 따른다.
 - 통합 runner 2종은 하위 step 결과를 중첩 payload 로 유지하면서 `warnings`, `orchestration_plan`, `source_context` 를 상위 메타데이터로 제공한다.
@@ -173,15 +233,33 @@ python3 scripts/export_harness_package.py \
 - 하네스 export bundle 은 read-only MCP descriptor 초안, 하네스별 MCP 설정 예시 draft, JSON-RPC fixture 를 함께 포함해 이후 MCP/server 연결 지점을 전달한다.
 - `tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
 
-## 9. 현재 한계
+## 10. 2026-04-23 개발 종합 정리
+
+이번 세션까지 기준으로 현재 저장소는 “workflow/skill 기반 온보딩 패키지 + 차기 MCP 승격 준비” 상태까지 올라왔다.
+
+- read-only JSON-RPC bridge 는 malformed input, invalid request, initialize capability shape, notification lifecycle, stdio session initialize gating 까지 고정했다.
+- official MCP Python SDK candidate 와 실제 stdio round-trip smoke 를 추가해 다음 릴리즈 MCP 승격 준비선을 만들었다.
+- Python 3.11 + `mcp[cli]` 개발 환경 재현성과 CI smoke 설치 경로를 저장소 기준선으로 반영했다.
+- 이번 릴리즈 방향을 workflow/skill 온보딩 중심으로 재정렬하고, 파일럿 적용 체크리스트와 기록 템플릿을 맞췄다.
+- 하네스 export 는 `agent_runtime_minimal` 프로필과 버저닝을 도입해, 하네스별 minimal runtime 패키지와 zip 산출물을 실제로 생성할 수 있게 했다.
+- 배포 패키지 루트에는 `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md`, `manifest.json` 이 함께 생성돼 다른 환경에서 바로 읽고 적용할 수 있다.
+
+이번 pre-release 핵심 결과물:
+
+- Codex package: [dist/harnesses/codex/prototype-v1](/Users/yklee/repos/standard_ai_workflow/dist/harnesses/codex/prototype-v1)
+- OpenCode package: [dist/harnesses/opencode/prototype-v1](/Users/yklee/repos/standard_ai_workflow/dist/harnesses/opencode/prototype-v1)
+- release note draft: [releases/prototype-v1-pre-release.md](./releases/prototype-v1-pre-release.md)
+
+## 11. 현재 한계
 
 - 이 저장소는 문서 패키지 성격이 강하지만, 동시에 skill/MCP/runner 프로토타입과 공통 Python package 를 함께 포함하는 작업 저장소다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
 - `workflow_kit/common` 추출은 진행 중이지만, 아직 모든 skill/MCP 를 완전히 공통 라이브러리화한 상태는 아니다.
 - 다중 실제 저장소 적용 기록과 CI 실패 원인 분류 고도화는 아직 저장소 내부에 충분히 포함되지 않았다.
+- 공식 MCP SDK server candidate 는 준비됐지만, 기본 배포/하네스 적용 경로는 이번 릴리즈에서 의도적으로 제외했다.
 
-## 10. 수동 대체 원칙
+## 12. 수동 대체 원칙
 
 skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 가능해야 한다.
 
@@ -194,6 +272,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
 - 상위 로드맵: [core/workflow_kit_roadmap.md](./core/workflow_kit_roadmap.md)
+- pre-release note: [releases/prototype-v1-pre-release.md](./releases/prototype-v1-pre-release.md)
 - 출력 스키마 가이드: [core/output_schema_guide.md](./core/output_schema_guide.md)
 - 도입 분기 가이드: [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)

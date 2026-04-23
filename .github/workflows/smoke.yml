@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install dev dependencies
+        run: python3 -m pip install -r requirements-dev.txt
+
       - name: Run tests/check_*.py
         shell: bash
         run: |

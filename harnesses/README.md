@@ -4,7 +4,7 @@
 - 범위: Codex, OpenCode 타겟별 파일 구성과 bootstrap 연결 방식, 추후 하네스 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-04-23
 - 관련 문서: `../core/workflow_harness_distribution.md`, `../scripts/bootstrap_workflow_kit.py`
 
 ## 현재 지원 타겟
@@ -24,10 +24,18 @@
 - 공통 문서 세트는 `ai-workflow/` 아래에 유지한다.
 - 실제 하네스가 읽는 파일은 프로젝트 루트 또는 하네스 전용 디렉터리에 생성한다.
 - 새 하네스는 레지스트리 기반 bootstrap 확장 방식으로 추가한다.
-- export bundle 을 배포할 때는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 와 `bundle/source-docs/mcp/read_only_bundle.md` 도 함께 확인한다.
-- 하네스별 MCP 설정 검토용 draft 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 에 들어 있다.
-- JSON-RPC draft bridge request/response 기준선은 `bundle/source-docs/schemas/read_only_jsonrpc_fixtures.json` 에 들어 있다.
-- 이 descriptor 는 아직 draft 이며, 정식 MCP SDK 서버 루프를 붙이기 전 하네스별 MCP 연결 검토용 기준선으로 사용한다.
+- 이번 릴리즈 배포 묶음의 기본 진입점은 `workflow_adoption_entrypoints.md` 와 `workflow_skill_catalog.md` 이다.
+- 기본 export bundle 은 AI agent 런타임 사용에 필요한 파일만 포함하고, source docs 와 global snippets 는 기본적으로 제외한다.
+- MCP 관련 draft 자료는 기본 배포 패키지에 넣지 않고, 필요할 때만 opt-in export 로 포함한다.
+
+이번 릴리즈에서 하네스 소비자가 우선 읽을 파일:
+
+- `bundle/ai-workflow/README.md`
+- `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
+- `bundle/ai-workflow/core/workflow_skill_catalog.md`
+- `bundle/ai-workflow/project/project_workflow_profile.md`
+- `bundle/ai-workflow/project/session_handoff.md`
+- `bundle/ai-workflow/project/work_backlog.md`
 
 ## bootstrap 예시
 

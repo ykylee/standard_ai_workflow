@@ -32,6 +32,7 @@
 - `server.read_only_tools`
 - `server.read_only_entrypoint`
 - `server.read_only_jsonrpc`
+- `server.read_only_mcp_sdk`
 
 이 모듈들은 아래 책임을 가진다.
 
@@ -54,6 +55,7 @@
 - `schemas/output_sample_contracts.json` 과 나란히 유지할 런타임 계약 표현 제공
 - read-only MCP 5종의 공통 callable layer 제공
 - 읽기 전용 MCP 1차 묶음의 draft tool registry, direct-call adapter, schema-validated entrypoint, JSON-RPC draft bridge 제공
+- 공식 MCP Python SDK 가 설치된 환경에서 사용할 optional stdio server candidate 제공
 
 ## 3. 현재 사용처
 
@@ -97,7 +99,9 @@
 - output contract 런타임 맵은 generated JSON Schema 와 sample validation smoke 의 단일 출처로도 쓰이고 있다.
 - read-only MCP bundle manifest 는 tool 별 generated JSON Schema 를 runtime output contract 에서 직접 가져와 노출한다.
 - read-only MCP bundle 은 draft transport tool descriptor 도 registry 에서 생성한다.
-- read-only MCP bundle 은 SDK 서버 루프 전 단계의 JSON-RPC draft bridge 로 `tools/list` 와 `tools/call` 경계를 smoke test 한다.
+- read-only MCP bundle 은 SDK 서버 루프 전 단계의 JSON-RPC draft bridge 로 `initialize`, initialize capability validation, notification lifecycle, stdio session gating, `tools/list`, `tools/call` 경계를 smoke test 한다.
+- read-only MCP bundle 은 `workflow_kit.server.read_only_mcp_sdk` 에 공식 MCP Python SDK low-level server 후보도 두고, SDK 미설치 환경에서는 availability metadata 와 오류 경계만 유지한다.
+- read-only MCP bundle 은 개발 환경에서 official MCP SDK client 기준 stdio round-trip smoke 도 수행한다.
 - 남은 정렬 작업은 draft bridge 를 실제 SDK server transport 로 승격할 때 필요한 protocol/runtime 차이를 분리하는 쪽이다.
 - SDK transport 승격 시 유지할 field 와 바뀔 수 있는 envelope 는 [../core/read_only_mcp_transport_promotion.md](../core/read_only_mcp_transport_promotion.md) 에서 관리한다.
 

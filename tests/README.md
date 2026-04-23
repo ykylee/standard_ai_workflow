@@ -37,7 +37,9 @@
 - bootstrap manifest 에 하네스별 global snippet 후보 정보가 포함되는지 확인
 - 하네스 스캐폴드 스크립트가 새 하네스 starter 문서를 생성하는지 확인
 - 하네스 export 스크립트가 dist 산출물, manifest, zip 파일을 생성하는지 확인
-- export manifest 에 global snippet 파일 정보가 포함되는지 확인
+- 기본 export manifest 가 minimal deployment profile 과 버전 정보를 기록하는지 확인
+- 기본 export 가 source docs 와 global snippets 를 제외하는지 확인
+- 기본 export archive 가 `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md` 를 포함하는지 확인
 - `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
 - `backlog-update` 프로토타입이 보수적 상태 추천, draft entry, 구조화 error 경로를 유지하는지 확인
 - `create_backlog_entry` 프로토타입이 draft entry 구조와 공통 output contract 를 유지하는지 확인
@@ -54,7 +56,9 @@
 - read-only MCP bundle manifest 가 tool별 input schema 와 payload example 을 노출하는지 확인
 - read-only MCP bundle manifest 가 tool별 generated JSON Schema 를 runtime output contract 에서 직접 노출하는지 확인
 - read-only MCP bundle 이 draft transport tool descriptor 를 노출하는지 확인
-- read-only JSON-RPC bridge 가 `initialize`, `tools/list`, `tools/call`, malformed JSON, invalid request, tool-call error mapping 을 유지하는지 확인
+- read-only JSON-RPC bridge 가 `initialize`, initialize capability shape validation, notification lifecycle, stdio session initialize gating, `tools/list`, `tools/call`, malformed JSON, invalid request, tool-call error mapping 을 유지하는지 확인
+- optional official MCP SDK candidate 가 runtime availability metadata 와 미설치 환경 오류 경계를 유지하는지 확인
+- official MCP SDK client 가 stdio server candidate 와 실제 `initialize -> tools/list -> tools/call` 왕복을 수행할 수 있는지 확인
 - read-only JSON-RPC fixture 가 runtime bridge 결과와 같은 request/response envelope 를 유지하는지 확인
 - read-only MCP transport 승격 기준 문서가 fixture 기준선과 유지할 descriptor 계약을 놓치지 않는지 확인
 - read-only transport descriptor 체크인 산출물과 생성 스크립트가 registry 결과와 같은지 확인
@@ -83,6 +87,8 @@
 - 저장소 루트에서 `python3 tests/check_read_only_jsonrpc_bridge.py`
 - 저장소 루트에서 `python3 tests/check_read_only_jsonrpc_fixtures.py`
 - 저장소 루트에서 `python3 tests/check_read_only_transport_promotion_spec.py`
+- 저장소 루트에서 `python3 tests/check_read_only_mcp_sdk_candidate.py`
+- 저장소 루트에서 `python3 tests/check_read_only_mcp_sdk_stdio.py`
 - 저장소 루트에서 `python3 tests/check_read_only_transport_descriptors.py`
 - 저장소 루트에서 `python3 tests/check_read_only_harness_mcp_examples.py`
 - 저장소 루트에서 `python3 tests/check_output_json_schema.py`
@@ -100,6 +106,7 @@
 - read-only MCP bundle 변경 직후에는 `check_read_only_mcp_server.py` 를 먼저 본다.
 - read-only JSON-RPC bridge 변경 직후에는 `check_read_only_jsonrpc_bridge.py` 를 먼저 본다.
 - read-only JSON-RPC fixture 변경 직후에는 `check_read_only_jsonrpc_fixtures.py` 를 먼저 본다.
+- official MCP SDK candidate 변경 직후에는 `check_read_only_mcp_sdk_candidate.py`, `check_read_only_mcp_sdk_stdio.py` 를 먼저 본다.
 - read-only MCP transport 승격 기준 변경 직후에는 `check_read_only_transport_promotion_spec.py` 를 먼저 본다.
 - read-only transport descriptor export 변경 직후에는 `check_read_only_transport_descriptors.py` 를 먼저 본다.
 - read-only harness MCP 예시 변경 직후에는 `check_read_only_harness_mcp_examples.py` 를 먼저 본다.
@@ -138,6 +145,10 @@
   `workflow_kit/server/read_only_jsonrpc.py`, `scripts/generate_read_only_jsonrpc_fixtures.py`, `schemas/read_only_jsonrpc_fixtures.json` 셋 중 하나가 어긋난 경우가 많다.
 - `check_read_only_transport_promotion_spec.py` 실패:
   `core/read_only_mcp_transport_promotion.md` 가 fixture 이름, 유지할 descriptor 계약, 변경 가능한 envelope 설명을 놓친 경우가 많다.
+- `check_read_only_mcp_sdk_candidate.py` 실패:
+  `workflow_kit/server/read_only_mcp_sdk.py` 의 optional import 경계, CLI runtime metadata, SDK 미설치 fallback 오류를 먼저 본다.
+- `check_read_only_mcp_sdk_stdio.py` 실패:
+  `workflow_kit/server/read_only_mcp_sdk.py` 의 low-level server tool 등록, stdio loop, entrypoint 구조화 error payload 보존 여부를 먼저 본다.
 - `check_read_only_transport_descriptors.py` 실패:
   `workflow_kit/server/read_only_registry.py`, `scripts/generate_read_only_transport_descriptors.py`, `schemas/read_only_transport_descriptors.json` 셋 중 하나가 어긋난 경우가 많다.
 - `check_read_only_harness_mcp_examples.py` 실패:

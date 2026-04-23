@@ -30,6 +30,10 @@ def main() -> int:
         fixture_name = fixture["name"]
         if f"`{fixture_name}`" not in spec_text:
             raise AssertionError(f"Promotion spec should mention fixture `{fixture_name}`.")
+    for fixture in fixtures.get("session_fixtures", []):
+        fixture_name = fixture["name"]
+        if f"`{fixture_name}`" not in spec_text:
+            raise AssertionError(f"Promotion spec should mention session fixture `{fixture_name}`.")
 
     allowed_envelope_terms = (
         "JSON-RPC top-level `id`",

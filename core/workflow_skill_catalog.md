@@ -51,6 +51,49 @@
 - skill 은 가능하면 프로젝트 프로파일을 읽고 분기해야 한다.
 - tool 이 없어도 최소 수동 절차는 남아 있어야 한다.
 
+## 6. 권장 skill 묶음
+
+이번 릴리즈에서는 개별 skill 자체보다 “어떤 순서로 묶어 쓰는가” 를 더 중요하게 본다.
+
+### 6.1 기존 프로젝트 첫 세션 묶음
+
+1. `session-start`
+2. `validation-plan`
+3. `code-index-update`
+
+목적:
+
+- 현재 handoff/backlog 기준선 복원
+- 첫 검증 계획 수립
+- README/허브/index 재확인 후보 정리
+
+### 6.2 일상 작업 진행 묶음
+
+1. `backlog-update`
+2. `doc-sync`
+
+목적:
+
+- 오늘 작업 등록/갱신
+- 영향 문서 후보와 허브 갱신 포인트 정리
+
+### 6.3 병합 후 정리 묶음
+
+1. `merge-doc-reconcile`
+2. 필요 시 `doc-sync`
+
+목적:
+
+- 병합 후 handoff/backlog/index 정합성 회복
+- 허브 문서 누락 여부 재확인
+
+### 6.4 이번 릴리즈 기준 제외 범위
+
+- MCP 를 기본 진입 경로로 두는 skill 구성
+- 하네스 자동 연결을 전제로 한 tool-first 소비 경로
+
+즉, 이번 릴리즈에서는 skill 을 사람이 읽는 workflow 순서와 runner 결과 소비 순서에 맞춰 배치하는 것이 우선이다.
+
 ## 다음에 읽을 문서
 
 - `session-start` 상세 스펙: [./session_start_skill_spec.md](./session_start_skill_spec.md)

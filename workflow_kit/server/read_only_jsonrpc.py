@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ from workflow_kit.server.read_only_registry import READ_ONLY_SERVER_NAME, build_
 
 
 JSONRPC_VERSION = "2.0"
+SERVER_NOT_INITIALIZED_CODE = -32002
 
 
 def jsonrpc_result(request_id: object, result: dict[str, Any]) -> dict[str, Any]:
@@ -70,6 +72,82 @@ def build_initialize_result() -> dict[str, Any]:
     }
 
 
+def invalid_initialize_params(request_id: object, reason: str) -> dict[str, Any]:
+    return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": reason})
+
+
+@dataclass
+class JsonRpcSessionState:
+    initialized: bool = False
+    client_initialized: bool = False
+
+
+def is_valid_jsonrpc_id(value: object) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, (int, float, str))
+
+
+def validate_optional_capability_object(
+    request_id: object,
+    capabilities: dict[str, Any],
+    key: str,
+) -> dict[str, Any] | None:
+    value = capabilities.get(key)
+    if value is not None and not isinstance(value, dict):
+        return invalid_initialize_params(request_id, f"initialize params.capabilities.{key} must be an object")
+    return None
+
+
+def validate_optional_capability_bool(
+    request_id: object,
+    capability: dict[str, Any],
+    capability_name: str,
+    key: str,
+) -> dict[str, Any] | None:
+    value = capability.get(key)
+    if value is not None and not isinstance(value, bool):
+        return invalid_initialize_params(
+            request_id,
+            f"initialize params.capabilities.{capability_name}.{key} must be a boolean",
+        )
+    return None
+
+
+def validate_initialize_params(request_id: object, params: Any) -> dict[str, Any] | None:
+    if params is None:
+        return None
+    if not isinstance(params, dict):
+        return invalid_initialize_params(request_id, "initialize params must be an object")
+    capabilities = params.get("capabilities")
+    if capabilities is not None and not isinstance(capabilities, dict):
+        return invalid_initialize_params(request_id, "initialize params.capabilities must be an object")
+    if isinstance(capabilities, dict):
+        for key in ("tools", "roots", "sampling", "elicitation", "experimental"):
+            error = validate_optional_capability_object(request_id, capabilities, key)
+            if error is not None:
+                return error
+        tools = capabilities.get("tools")
+        if isinstance(tools, dict):
+            error = validate_optional_capability_bool(request_id, tools, "tools", "listChanged")
+            if error is not None:
+                return error
+        roots = capabilities.get("roots")
+        if isinstance(roots, dict):
+            error = validate_optional_capability_bool(request_id, roots, "roots", "listChanged")
+            if error is not None:
+                return error
+    client_info = params.get("clientInfo")
+    if client_info is not None and not isinstance(client_info, dict):
+        return invalid_initialize_params(request_id, "initialize params.clientInfo must be an object")
+    protocol_version = params.get("protocolVersion")
+    if protocol_version is not None and not isinstance(protocol_version, str):
+        return invalid_initialize_params(request_id, "initialize params.protocolVersion must be a string")
+    return None
+
+
 def build_tools_list_result() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     return {
@@ -102,8 +180,22 @@ def build_tools_call_result(name: str, arguments: dict[str, Any]) -> tuple[int, 
     }
 
 
-def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any] | None:
+def server_not_initialized_error(request_id: object, method: str) -> dict[str, Any]:
+    return jsonrpc_error(
+        request_id,
+        SERVER_NOT_INITIALIZED_CODE,
+        "Server not initialized",
+        {"reason": f"initialize must be called before {method} in stdio session mode"},
+    )
+
+
+def handle_jsonrpc_request(
+    request: dict[str, Any],
+    session_state: JsonRpcSessionState | None = None,
+) -> dict[str, Any] | None:
     request_id = request.get("id")
+    if "id" in request and not is_valid_jsonrpc_id(request_id):
+        return jsonrpc_error(None, -32600, "Invalid Request", {"reason": "id must be a string, number, or null"})
     if request.get("jsonrpc") != JSONRPC_VERSION:
         return jsonrpc_error(request_id, -32600, "Invalid Request", {"reason": "jsonrpc must be 2.0"})
 
@@ -111,13 +203,34 @@ def handle_jsonrpc_request(request: dict[str, Any]) -> dict[str, Any] | None:
     if not isinstance(method, str):
         return jsonrpc_error(request_id, -32600, "Invalid Request", {"reason": "method is required"})
 
-    if method == "notifications/initialized":
+    if method.startswith("notifications/"):
+        if "id" in request:
+            return jsonrpc_error(request_id, -32600, "Invalid Request", {"reason": "notifications must not include id"})
+        if session_state is not None and method == "notifications/initialized" and session_state.initialized:
+            session_state.client_initialized = True
         return None
     if method == "initialize":
+        if session_state is not None and session_state.initialized:
+            return jsonrpc_error(
+                request_id,
+                -32600,
+                "Invalid Request",
+                {"reason": "initialize may only be called once per stdio session"},
+            )
+        error = validate_initialize_params(request_id, request.get("params"))
+        if error is not None:
+            return error
+        if session_state is not None:
+            session_state.initialized = True
+            session_state.client_initialized = False
         return jsonrpc_result(request_id, build_initialize_result())
     if method == "tools/list":
+        if session_state is not None and not session_state.initialized:
+            return server_not_initialized_error(request_id, method)
         return jsonrpc_result(request_id, build_tools_list_result())
     if method == "tools/call":
+        if session_state is not None and not session_state.initialized:
+            return server_not_initialized_error(request_id, method)
         params = request.get("params")
         if not isinstance(params, dict):
             return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "params must be an object"})
@@ -162,6 +275,7 @@ def main() -> int:
         print_response(handle_jsonrpc_request(request))
         return 0
     if args.stdio_lines:
+        session_state = JsonRpcSessionState()
         for line in sys.stdin:
             stripped = line.strip()
             if not stripped:
@@ -171,7 +285,7 @@ def main() -> int:
                 print_response(error)
                 continue
             assert request is not None
-            print_response(handle_jsonrpc_request(request))
+            print_response(handle_jsonrpc_request(request, session_state))
         return 0
 
     print_response(

@@ -32,16 +32,35 @@
 - 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
 - reusable package / MCP server 승격 범위 문서가 있다.
 - `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
-- read-only MCP 1차 묶음은 direct-call entrypoint, draft transport descriptor, JSON-RPC fixture bridge, export 산출물, 승격 기준 spec 까지 갖춘 상태다.
+- read-only MCP 1차 묶음은 direct-call entrypoint, draft transport descriptor, JSON-RPC fixture bridge, optional official SDK candidate, export 산출물, 승격 기준 spec 까지 갖춘 상태다.
 - `tests/check_*.py` 기준 smoke CI 가 GitHub Actions 로 연결돼 있다.
 
 아직 4단계가 아닌 이유:
 
-- 정식 MCP SDK server packaging 과 transport loop 는 아직 없다.
+- 정식 MCP SDK server packaging 과 transport loop 의 실사용 검증은 아직 없고, 현재는 optional official SDK candidate 까지만 추가된 상태다.
 - skill, MCP, runner 출력 계약은 문서화됐고 runtime contract 기반 generated JSON Schema 와 대표 sample 검증까지 추가됐지만, 모든 nested payload 를 완전히 엄격한 schema 로 고정한 것은 아니다.
 - 여러 실제 프로젝트에 시범 적용한 결과가 없다.
-- read-only MCP 는 draft bridge/fixture 단계이며, 실제 MCP client 호환성은 아직 보장하지 않는다.
+- read-only MCP 는 다음 릴리즈 승격 대상으로 남겨두었고, 이번 릴리즈의 중심은 workflow/skill 온보딩과 실적용 준비다.
 - 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
+
+## 1.1 현재 릴리즈 기준 정리
+
+`prototype-v1` pre-release 기준으로 이번 릴리즈의 완료/이관 범위는 아래처럼 정리된다.
+
+이번 릴리즈에서 완료된 것:
+
+- workflow/skill 중심 온보딩 진입점 재정렬
+- existing-project onboarding runner 와 skill 묶음 소비 순서 정리
+- read-only JSON-RPC bridge 안정화와 official MCP SDK candidate 준비
+- Python 3.11 + `mcp[cli]` 개발 기준선과 stdio smoke 추가
+- 하네스별 minimal runtime package export, 버저닝, package/apply guide 생성
+
+다음 릴리즈로 넘긴 것:
+
+- official MCP SDK server 기본 활성화
+- 하네스 MCP 자동 연결과 descriptor 승격
+- 실제 파일럿 저장소 다건 적용 결과 일반화
+- packaging/changelog 자동화
 
 ## 2. 현재 자산
 
@@ -122,7 +141,57 @@
 
 ## 5. 다음 우선순위 로드맵
 
-### 우선순위 1: runner/schema 계약 고정과 smoke CI 안정화
+### 우선순위 1: 기존 프로젝트 온보딩 자동 루틴 강화
+
+현재 상태:
+
+- bootstrap 의 `existing` 모드는 `repository_assessment.md` 와 초기 문서 세트를 생성한다.
+- `run_existing_project_onboarding.py` 가 assessment 결과를 읽고 backlog/handoff/validation/code-index 후속 단계를 이어준다.
+- `existing_project_onboarding_contract.md` 로 입력 계약과 단계별 연결 규칙이 문서화됐다.
+- 다음 단계는 하네스 연결 방식과 실제 적용 예시를 더 늘리는 것이다.
+
+목표:
+
+- 기존 프로젝트 도입 직후에 `repository_assessment.md`, inferred command, backlog/handoff 초안을 읽고
+  `validation-plan`, `code-index-update` 같은 후속 프로토타입을 일관된 계약으로 이어준다.
+- 신규 프로젝트용 진입과 기존 프로젝트용 진입의 차이를 더 명확히 드러낸다.
+- 후속 단계가 어떤 조건에서 생략/경고/추가되는지 명시한다.
+- 하네스가 이 결과를 어떻게 소비할지 연결 지점을 짧은 가이드로 정리한다.
+
+권장 산출물:
+
+- 기존 프로젝트 온보딩 runner 또는 bootstrap 후속 스크립트
+- 온보딩 흐름 문서
+- 단계별 입력/출력 전달 규칙
+
+완료 기준:
+
+- 기존 프로젝트 도입 직후 어떤 프로토타입을 순서대로 실행해야 하는지 자동 또는 반자동으로 재현 가능하다.
+- assessment 결과와 후속 skill 출력의 연결이 문서와 코드로 설명된다.
+- 온보딩 runner 출력이 샘플/가이드와 어긋나지 않는다.
+- 첫 세션에서 사람이 어떤 순서로 `session-start`, `validation-plan`, `code-index-update`, `backlog-update`, `doc-sync` 를 열어야 하는지 짧은 가이드로 설명된다.
+
+### 우선순위 2: 실제 적용 검증
+
+목표:
+
+- 실제 저장소에 시범 적용하거나, 최소 1개의 추가 실제 사례를 문서화한다.
+
+권장 산출물:
+
+- 실제 적용 기록
+- 적용 전/후 차이 요약
+- 파일럿 후보 체크리스트 보강
+- 첫 세션 브리핑 예시
+
+완료 기준:
+
+- 현재 규칙이 특정 샘플에 과도하게 맞춰진 것은 아닌지 실제 피드백으로 검증 가능하다.
+- 복사 적용 시 어떤 문서를 어디까지 바꾸면 되는지 더 명확해진다.
+- 하네스가 `onboarding_summary`, `warnings`, `orchestration_plan` 을 실제 첫 세션 브리핑에서 소비할 수 있음을 확인한다.
+- pre-release package 를 실제 다른 저장소나 다른 환경에서 풀어 적용한 기록이 최소 1건 이상 남는다.
+
+### 우선순위 3: runner/schema 계약 고정과 smoke CI 안정화
 
 현재 상태:
 
@@ -159,36 +228,7 @@
 - runner 성공/실패 경로가 smoke test 와 샘플에서 함께 검증된다.
 - `tool_version` 변경 시 수정 지점이 한 군데로 제한된다.
 
-### 우선순위 2: 기존 프로젝트 온보딩 자동 루틴 강화
-
-현재 상태:
-
-- bootstrap 의 `existing` 모드는 `repository_assessment.md` 와 초기 문서 세트를 생성한다.
-- `run_existing_project_onboarding.py` 가 assessment 결과를 읽고 backlog/handoff/validation/code-index 후속 단계를 이어준다.
-- `existing_project_onboarding_contract.md` 로 입력 계약과 단계별 연결 규칙이 문서화됐다.
-- 다음 단계는 하네스 연결 방식과 실제 적용 예시를 더 늘리는 것이다.
-
-목표:
-
-- 기존 프로젝트 도입 직후에 `repository_assessment.md`, inferred command, backlog/handoff 초안을 읽고
-  `validation-plan`, `code-index-update` 같은 후속 프로토타입을 일관된 계약으로 이어준다.
-- 신규 프로젝트용 진입과 기존 프로젝트용 진입의 차이를 더 명확히 드러낸다.
-- 후속 단계가 어떤 조건에서 생략/경고/추가되는지 명시한다.
-- 하네스가 이 결과를 어떻게 소비할지 연결 지점을 짧은 가이드로 정리한다.
-
-권장 산출물:
-
-- 기존 프로젝트 온보딩 runner 또는 bootstrap 후속 스크립트
-- 온보딩 흐름 문서
-- 단계별 입력/출력 전달 규칙
-
-완료 기준:
-
-- 기존 프로젝트 도입 직후 어떤 프로토타입을 순서대로 실행해야 하는지 자동 또는 반자동으로 재현 가능하다.
-- assessment 결과와 후속 skill 출력의 연결이 문서와 코드로 설명된다.
-- 온보딩 runner 출력이 샘플/가이드와 어긋나지 않는다.
-
-### 우선순위 3: reusable package 및 MCP server 승격 착수
+### 우선순위 4: reusable package 및 MCP server 승격 착수
 
 목표:
 
@@ -209,36 +249,38 @@
 - runner 들의 subprocess 호출과 단계별 입력 조립도 공통 helper 를 재사용한다.
 - 정식 SDK transport 승격 전후에 유지할 descriptor 계약과 변경 가능한 envelope 가 분리된다.
 
-### 우선순위 4: 실제 적용 검증
+### 우선순위 5: 릴리즈 운영 정리
 
 목표:
 
-- 실제 저장소에 시범 적용하거나, 최소 1개의 추가 실제 사례를 문서화한다.
+- pre-release 패키지, 릴리즈 노트, 배포 산출물 업로드 흐름을 더 반복 가능한 운영 절차로 정리한다.
 
 권장 산출물:
 
-- 실제 적용 기록
-- 적용 전/후 차이 요약
+- 릴리즈 노트 템플릿
+- package manifest 와 changelog 연결 기준
+- GitHub pre-release 업로드 절차 문서
 
 완료 기준:
 
-- 현재 규칙이 특정 샘플에 과도하게 맞춰진 것은 아닌지 실제 피드백으로 검증 가능하다.
-- 복사 적용 시 어떤 문서를 어디까지 바꾸면 되는지 더 명확해진다.
+- 버전별 패키지 산출물과 릴리즈 노트가 같은 구조로 반복 생성된다.
+- 하네스별 zip 업로드와 릴리즈 본문 작성이 반자동 이상으로 재현 가능하다.
+- source-docs 포함 프로필과 minimal runtime 프로필의 사용 기준이 문서화된다.
 
 ## 6. 권장 2주 순서
 
 ### 1주차
 
-- read-only MCP draft bridge 와 실제 MCP SDK transport 요구 차이 확인
-- malformed JSON, notification, capability 세부 필드 같은 bridge edge case 정리
-- input schema 를 dataclass 또는 더 강한 타입 계약으로 승격할 범위 결정
+- pre-release package 를 외부 저장소나 별도 환경에 실제 적용해보기
+- 파일럿 후보 선정 및 적용 기록 남기기
+- release note 와 package guide 피드백 반영
 
 ### 2주차
 
-- 기존 프로젝트 온보딩 흐름 문서와 하네스 소비 가이드 보강
-- 실제 저장소 시범 적용 후보 선정 및 적용 기록 템플릿 점검
+- 실제 저장소 시범 적용 1건 이상 추가 기록
 - output/orchestration helper package 추출 범위 재검토
-- 쓰기 성격 draft MCP 의 permission 경계 초안 작성
+- MCP server 기본 경로 승격 여부 판단
+- release/changelog 자동화 가능성 검토
 
 ## 7. 단계별 완료 기준
 
@@ -260,13 +302,13 @@
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
 
-1. read-only JSON-RPC draft bridge 의 malformed input/error envelope 보강
-2. 실제 MCP SDK transport loop 구현 후보 검토
-3. read-only input schema dataclass 화 또는 타입 계약 강화
-4. 기존 프로젝트 온보딩 입출력 계약과 하네스 연결 가이드 보강
-5. 실제 저장소 시범 적용 대상 선정
+1. pre-release package 를 실제 다른 저장소나 환경에 적용해 onboarding friction 확인
+2. 파일럿 적용 기록 1건 이상 작성
+3. official MCP SDK server 기본 경로 승격 여부 판단
+4. read-only input schema dataclass 화 또는 타입 계약 강화
+5. 릴리즈 운영 절차와 changelog 구조 정리
 
-이 순서는 현재 저장소가 가진 자산을 “draft server 경계 안정화 -> SDK transport 승격 준비 -> 온보딩/실사용 검증” 순서로 확장하는 데 초점을 둔다.
+이 순서는 현재 저장소가 가진 자산을 “pre-release 소비 검증 -> 파일럿 적용 -> MCP 승격 판단 -> 릴리즈 운영 정리” 순서로 확장하는 데 초점을 둔다.
 
 ## 9. 외부 리뷰 반영 메모
 

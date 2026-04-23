@@ -10,6 +10,7 @@
 ## 1. 우선 선정 기준
 
 - 문서와 코드가 모두 있어 `existing` 모드 검증 가치가 큰 저장소인가
+- 첫 세션에서 `session-start`, `validation-plan`, `code-index-update` 묶음을 실제로 적용해볼 가치가 있는 저장소인가
 - 기본 실행 명령과 빠른 테스트 명령을 확인할 수 있는 저장소인가
 - backlog/handoff 성격 문서를 넣어도 운영 마찰이 과도하지 않은 팀인가
 - README 또는 docs 허브가 있어 `code-index-update` 검증 가치가 있는 저장소인가
@@ -49,6 +50,7 @@
 
 - bootstrap 초안이 실제 저장소 구조와 얼마나 맞았는가
 - onboarding runner 요약이 첫 세션 브리핑으로 충분했는가
+- skill 묶음 순서가 실제 세션 진행 순서와 자연스럽게 맞았는가
 - 하네스가 `onboarding_summary`, `warnings`, `orchestration_plan` 을 읽기 쉬웠는가
 - output sample / 실제 runner 출력 / 문서 계약이 현장에서 어긋나지 않았는가
 - backlog/handoff 도입이 실사용 습관으로 이어질 가능성이 있는가

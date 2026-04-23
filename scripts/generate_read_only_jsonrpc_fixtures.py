@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from workflow_kit.server.read_only_jsonrpc import handle_jsonrpc_request, parse_request_json
+from workflow_kit.server.read_only_jsonrpc import JsonRpcSessionState, handle_jsonrpc_request, parse_request_json
 from workflow_kit.server.read_only_registry import build_transport_tool_descriptors
 
 
@@ -43,6 +43,27 @@ def raw_request_response_pair(name: str, raw_request: str) -> dict[str, Any]:
     }
 
 
+def request_no_response_pair(name: str, request: dict[str, Any]) -> dict[str, Any]:
+    response = handle_jsonrpc_request(request)
+    if response is not None:
+        raise ValueError(f"Fixture request should not produce a response: {name}")
+    return {
+        "name": name,
+        "request": request,
+        "response": None,
+    }
+
+
+def session_request_response_pair(name: str, requests: list[dict[str, Any]]) -> dict[str, Any]:
+    session_state = JsonRpcSessionState()
+    responses = [handle_jsonrpc_request(request, session_state) for request in requests]
+    return {
+        "name": name,
+        "requests": requests,
+        "responses": responses,
+    }
+
+
 def build_jsonrpc_fixtures() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     latest_backlog_payload = {
@@ -52,6 +73,59 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
         request_response_pair(
             "initialize",
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        ),
+        request_response_pair(
+            "initialize_with_supported_capabilities",
+            {
+                "jsonrpc": "2.0",
+                "id": 10,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "clientInfo": {"name": "fixture-client", "version": "0.1.0"},
+                    "capabilities": {
+                        "tools": {"listChanged": True},
+                        "roots": {"listChanged": False},
+                        "sampling": {},
+                        "elicitation": {},
+                        "experimental": {},
+                    },
+                },
+            },
+        ),
+        request_response_pair(
+            "initialize_invalid_capabilities",
+            {"jsonrpc": "2.0", "id": 11, "method": "initialize", "params": {"capabilities": []}},
+        ),
+        request_response_pair(
+            "initialize_invalid_tools_list_changed",
+            {
+                "jsonrpc": "2.0",
+                "id": 12,
+                "method": "initialize",
+                "params": {"capabilities": {"tools": {"listChanged": "yes"}}},
+            },
+        ),
+        request_response_pair(
+            "initialize_invalid_roots_capability",
+            {
+                "jsonrpc": "2.0",
+                "id": 13,
+                "method": "initialize",
+                "params": {"capabilities": {"roots": []}},
+            },
+        ),
+        request_no_response_pair(
+            "notification_initialized_no_response",
+            {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+        ),
+        request_no_response_pair(
+            "notification_unknown_no_response",
+            {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"step": "draft"}},
+        ),
+        request_response_pair(
+            "notification_with_id_invalid_request",
+            {"jsonrpc": "2.0", "id": 14, "method": "notifications/initialized", "params": {}},
         ),
         request_response_pair(
             "tools_list",
@@ -79,8 +153,30 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
             "unknown_method",
             {"jsonrpc": "2.0", "id": 5, "method": "unknown/method", "params": {}},
         ),
+        request_response_pair(
+            "invalid_boolean_id",
+            {"jsonrpc": "2.0", "id": True, "method": "tools/list", "params": {}},
+        ),
         raw_request_response_pair("malformed_json_parse_error", "{not-json"),
         raw_request_response_pair("non_object_invalid_request", "[]"),
+    ]
+    session_fixtures = [
+        session_request_response_pair(
+            "stdio_session_requires_initialize",
+            [
+                {"jsonrpc": "2.0", "id": 21, "method": "tools/list", "params": {}},
+                {"jsonrpc": "2.0", "id": 22, "method": "initialize", "params": {}},
+                {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
+                {"jsonrpc": "2.0", "id": 23, "method": "tools/list", "params": {}},
+            ],
+        ),
+        session_request_response_pair(
+            "stdio_session_rejects_second_initialize",
+            [
+                {"jsonrpc": "2.0", "id": 24, "method": "initialize", "params": {}},
+                {"jsonrpc": "2.0", "id": 25, "method": "initialize", "params": {}},
+            ],
+        ),
     ]
     return {
         "status": "ok",
@@ -89,7 +185,9 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
         "descriptor_target": descriptors["descriptor_target"],
         "tool_version": descriptors["tool_version"],
         "fixture_count": len(fixtures),
+        "session_fixture_count": len(session_fixtures),
         "fixtures": fixtures,
+        "session_fixtures": session_fixtures,
     }
 
 

@@ -123,6 +123,39 @@ python3 scripts/run_existing_project_onboarding.py \
 - 작업 중인 프로젝트:
 - 위 문서 세트 + `repository_assessment.md`
 
+## 6. 이번 릴리즈 기준 권장 도입 묶음
+
+이번 릴리즈에서는 MCP 연결보다 workflow/skill 구성과 온보딩 실적용 준비를 우선한다.
+
+### 6.1 첫 세션 기본 묶음
+
+기존 프로젝트 첫 세션에서는 아래 순서를 기본 묶음으로 권장한다.
+
+1. `run_existing_project_onboarding.py`
+2. `session-start`
+3. `validation-plan`
+4. `code-index-update`
+
+이 묶음의 목적은 “현재 기준선 복원 + 검증 계획 + 허브/색인 재확인” 이다.
+
+### 6.2 작업 등록/문서 정렬 묶음
+
+실제 작업을 이어갈 때는 아래 순서를 권장한다.
+
+1. `backlog-update`
+2. `doc-sync`
+3. 필요 시 `merge-doc-reconcile`
+
+이 묶음의 목적은 “오늘 작업 항목 정리 + 영향 문서 반영 + 병합 후 문서 정합성 회복” 이다.
+
+### 6.3 다음 릴리즈로 미루는 항목
+
+- 하네스 기본 연결 경로를 MCP server 로 승격하는 작업
+- read-only MCP draft bridge 를 기본 운영 경로로 바꾸는 작업
+- MCP capability 확장과 정식 client 상호운용 범위 확대
+
+즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 “workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가” 에 둔다.
+
 ## 다음에 읽을 문서
 
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)

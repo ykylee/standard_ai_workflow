@@ -7,11 +7,13 @@ import json
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXPORT_SCRIPT = REPO_ROOT / "scripts" / "export_harness_package.py"
+EXPECTED_VERSION = "prototype-v1"
 
 
 def main() -> int:
@@ -37,6 +39,8 @@ def main() -> int:
         exports = payload["exports"]
         if len(exports) != 2:
             raise AssertionError("Expected two exported harness packages.")
+        if payload["package_version"] != EXPECTED_VERSION:
+            raise AssertionError("Top-level export payload should report the package version.")
         for export in exports:
             package_root = Path(export["package_root"])
             manifest_path = Path(export["manifest_path"])
@@ -51,17 +55,56 @@ def main() -> int:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             if not manifest["included_files"]:
                 raise AssertionError("Manifest should include exported files.")
-            if not manifest["global_snippet_files"]:
-                raise AssertionError("Manifest should include related global snippet files.")
+            if manifest["global_snippet_files"]:
+                raise AssertionError("Minimal deployment export should exclude global snippet files by default.")
+            if export["package_version"] != EXPECTED_VERSION:
+                raise AssertionError("Each export result should carry the package version.")
+            if manifest["package_version"] != EXPECTED_VERSION:
+                raise AssertionError("Manifest should record the package version.")
+            if manifest["optimization_profile"] != "agent_runtime_minimal":
+                raise AssertionError("Manifest should record the deployment optimization profile.")
+            if manifest["release_focus"] != "workflow_skill_onboarding":
+                raise AssertionError("Manifest should record the current workflow/skill release focus.")
+            if "bundle/ai-workflow/core/workflow_adoption_entrypoints.md" not in manifest["recommended_entrypoints"]:
+                raise AssertionError("Manifest should include workflow adoption entrypoint guidance.")
+            if "developer_source_docs" not in manifest["excluded_by_default"]:
+                raise AssertionError("Manifest should explain excluded deployment-only context.")
+            if "official_mcp_server_default_adoption" not in manifest["deferred_release_items"]:
+                raise AssertionError("Manifest should record deferred MCP activation work.")
             included = set(manifest["included_files"])
-            if "bundle/source-docs/schemas/read_only_harness_mcp_examples.json" not in included:
-                raise AssertionError("Manifest should include read-only harness MCP examples.")
-            if "bundle/source-docs/schemas/read_only_jsonrpc_fixtures.json" not in included:
-                raise AssertionError("Manifest should include read-only JSON-RPC fixtures.")
-            if "bundle/source-docs/schemas/read_only_transport_descriptors.json" not in included:
-                raise AssertionError("Manifest should include read-only transport descriptors.")
-            if "bundle/source-docs/mcp/read_only_bundle.md" not in included:
-                raise AssertionError("Manifest should include read-only bundle documentation.")
+            if "bundle/ai-workflow/core/global_workflow_standard.md" not in included:
+                raise AssertionError("Manifest should include global workflow standard runtime docs.")
+            if "bundle/ai-workflow/core/workflow_skill_catalog.md" not in included:
+                raise AssertionError("Manifest should include workflow skill catalog runtime docs.")
+            if "bundle/ai-workflow/core/workflow_adoption_entrypoints.md" not in included:
+                raise AssertionError("Manifest should include workflow adoption entrypoint runtime docs.")
+            if export["harness"] == "codex" and "bundle/.codex/config.toml.example" not in included:
+                raise AssertionError("Codex export should preserve the .codex config example path.")
+            if export["harness"] == "opencode" and "bundle/.opencode/agents/workflow-orchestrator.md" not in included:
+                raise AssertionError("OpenCode export should preserve the .opencode agent path.")
+            if "bundle/source-docs/core/workflow_skill_catalog.md" in included:
+                raise AssertionError("Minimal deployment export should not include source-docs by default.")
+            if "bundle/source-docs/schemas/read_only_transport_descriptors.json" in included:
+                raise AssertionError("Minimal deployment export should not include draft MCP assets by default.")
+            if "bundle/global-snippets/codex/config.toml.snippet" in included:
+                raise AssertionError("Minimal deployment export should not include global snippets by default.")
+
+            expected_root = (output_root / "harnesses" / export["harness"] / EXPECTED_VERSION).resolve()
+            if package_root != expected_root:
+                raise AssertionError("Versioned package root path is incorrect.")
+
+            with zipfile.ZipFile(archive_path) as archive:
+                names = set(archive.namelist())
+            if "manifest.json" not in names:
+                raise AssertionError("Archive should include manifest.json at the package root.")
+            if "bundle/ai-workflow/README.md" not in names:
+                raise AssertionError("Archive should include the runtime workflow README.")
+            if "PACKAGE_CONTENTS.md" not in names:
+                raise AssertionError("Archive should include package composition guidance.")
+            if "APPLY_GUIDE.md" not in names:
+                raise AssertionError("Archive should include package apply guidance.")
+            if any(name.startswith("bundle/source-docs/") for name in names):
+                raise AssertionError("Archive should exclude source-docs in the default deployment profile.")
 
     print("Harness package export smoke check passed.")
     return 0

@@ -44,6 +44,14 @@ def check_success_path() -> None:
         raise AssertionError("Expected main orchestrator model split.")
     if len(payload["orchestration_plan"]["worker_assignments"]) < 3:
         raise AssertionError("Expected specialized worker assignments in orchestration plan.")
+    if payload["runner_inputs"]["task"]["task_id"] != "TASK-021":
+        raise AssertionError("Expected runner_inputs to preserve task metadata.")
+    if len(payload["execution_trace"]) != 8:
+        raise AssertionError("Expected execution_trace to record all eight orchestration steps.")
+    if payload["execution_trace"][0]["step"] != "latest_backlog":
+        raise AssertionError("Expected latest_backlog to appear first in execution_trace.")
+    if "recommended_validation_levels" not in payload["execution_trace"][4]["produced_keys"]:
+        raise AssertionError("Expected validation_plan trace to expose produced keys.")
     if not payload["workflow_summary"]["recommended_validation_levels"]:
         raise AssertionError("Expected workflow summary validation levels.")
     if payload["source_context"]["example_project"] != "acme_delivery_platform":
@@ -65,6 +73,8 @@ def check_failure_path() -> None:
         raise AssertionError("Expected session_start to be reported as failed_step.")
     if payload["source_context"]["upstream_error_code"] != "missing_required_document":
         raise AssertionError("Expected upstream missing_required_document error code.")
+    if "failed_command" not in payload["source_context"]:
+        raise AssertionError("Expected failed command metadata in runner failure source_context.")
     if not payload["warnings"]:
         raise AssertionError("Expected propagated warnings from the failing child step.")
 

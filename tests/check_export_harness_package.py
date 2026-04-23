@@ -72,6 +72,8 @@ def main() -> int:
             if "official_mcp_server_default_adoption" not in manifest["deferred_release_items"]:
                 raise AssertionError("Manifest should record deferred MCP activation work.")
             included = set(manifest["included_files"])
+            if "bundle/AGENTS.md" not in included:
+                raise AssertionError("Every harness export should include AGENTS.md as the shared top-level instruction entrypoint.")
             if "bundle/ai-workflow/core/global_workflow_standard.md" not in included:
                 raise AssertionError("Manifest should include global workflow standard runtime docs.")
             if "bundle/ai-workflow/core/workflow_skill_catalog.md" not in included:
@@ -97,6 +99,8 @@ def main() -> int:
                 names = set(archive.namelist())
             if "manifest.json" not in names:
                 raise AssertionError("Archive should include manifest.json at the package root.")
+            if "bundle/AGENTS.md" not in names:
+                raise AssertionError("Archive should include AGENTS.md for every harness package.")
             if "bundle/ai-workflow/README.md" not in names:
                 raise AssertionError("Archive should include the runtime workflow README.")
             if "PACKAGE_CONTENTS.md" not in names:

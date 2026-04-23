@@ -17,14 +17,41 @@ from workflow_kit.server.read_only_jsonrpc import JsonRpcSessionState, handle_js
 from workflow_kit.server.read_only_registry import build_transport_tool_descriptors
 
 
+def normalize_fixture_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: normalize_fixture_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalize_fixture_value(item) for item in value]
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                pass
+            else:
+                normalized = normalize_fixture_value(parsed)
+                return json.dumps(normalized, ensure_ascii=False, sort_keys=True)
+        try:
+            path = Path(value)
+        except OSError:
+            return value
+        if path.is_absolute():
+            try:
+                return path.relative_to(REPO_ROOT).as_posix()
+            except ValueError:
+                return value
+    return value
+
+
 def request_response_pair(name: str, request: dict[str, Any]) -> dict[str, Any]:
     response = handle_jsonrpc_request(request)
     if response is None:
         raise ValueError(f"Fixture request produced no response: {name}")
     return {
         "name": name,
-        "request": request,
-        "response": response,
+        "request": normalize_fixture_value(request),
+        "response": normalize_fixture_value(response),
     }
 
 
@@ -39,7 +66,7 @@ def raw_request_response_pair(name: str, raw_request: str) -> dict[str, Any]:
     return {
         "name": name,
         "request": raw_request,
-        "response": response,
+        "response": normalize_fixture_value(response),
     }
 
 
@@ -49,7 +76,7 @@ def request_no_response_pair(name: str, request: dict[str, Any]) -> dict[str, An
         raise ValueError(f"Fixture request should not produce a response: {name}")
     return {
         "name": name,
-        "request": request,
+        "request": normalize_fixture_value(request),
         "response": None,
     }
 
@@ -59,15 +86,15 @@ def session_request_response_pair(name: str, requests: list[dict[str, Any]]) -> 
     responses = [handle_jsonrpc_request(request, session_state) for request in requests]
     return {
         "name": name,
-        "requests": requests,
-        "responses": responses,
+        "requests": normalize_fixture_value(requests),
+        "responses": normalize_fixture_value(responses),
     }
 
 
 def build_jsonrpc_fixtures() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     latest_backlog_payload = {
-        "work_backlog_index_path": str(REPO_ROOT / "examples" / "acme_delivery_platform" / "work_backlog.md")
+        "work_backlog_index_path": "examples/acme_delivery_platform/work_backlog.md"
     }
     fixtures = [
         request_response_pair(

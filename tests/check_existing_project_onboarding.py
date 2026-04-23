@@ -119,6 +119,14 @@ def main() -> int:
             raise AssertionError("Expected multiple onboarding next steps.")
         if onboarding_payload["orchestration_plan"]["model_split"]["orchestrator"] != "main":
             raise AssertionError("Expected main orchestrator model split in onboarding output.")
+        if onboarding_payload["runner_inputs"]["onboarding_mode"] != "existing_project_followup":
+            raise AssertionError("Expected runner_inputs to preserve onboarding mode.")
+        if len(onboarding_payload["execution_trace"]) != 4:
+            raise AssertionError("Expected execution_trace to record all onboarding steps.")
+        if onboarding_payload["execution_trace"][1]["step"] != "session_start":
+            raise AssertionError("Expected session_start to be the second onboarding trace step.")
+        if "index_update_candidates" not in onboarding_payload["execution_trace"][3]["produced_keys"]:
+            raise AssertionError("Expected code_index_update trace to expose produced keys.")
         if not onboarding_payload["source_context"]["project_profile_path"]:
             raise AssertionError("Expected onboarding source_context to include project_profile_path.")
         if onboarding_payload["source_context"]["repository_assessment_path"] != str(

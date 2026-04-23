@@ -38,6 +38,16 @@ def _trim_text(value: str, *, limit: int = 400) -> str:
     return f"{text[:limit].rstrip()}..."
 
 
+def _json_safe_value(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, list):
+        return [_json_safe_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _json_safe_value(item) for key, item in value.items()}
+    return value
+
+
 def run_json_command(cmd: list[str], cwd: Path, *, step_name: str) -> dict[str, Any]:
     try:
         completed = subprocess.run(
@@ -146,6 +156,23 @@ def build_worker_assignment(
     }
 
 
+def build_execution_trace_step(
+    *,
+    step: str,
+    status: str,
+    command: list[str] | None = None,
+    used_inputs: dict[str, Any] | None = None,
+    produced_keys: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "step": step,
+        "status": status,
+        "command": _json_safe_value(command),
+        "used_inputs": _json_safe_value(used_inputs or {}),
+        "produced_keys": _json_safe_value(produced_keys or []),
+    }
+
+
 def build_orchestration_plan(
     *,
     model_split: dict[str, str],
@@ -235,6 +262,8 @@ def build_runner_success_result(
     orchestration_plan: dict[str, Any],
     source_context: dict[str, Any],
     extra_fields: dict[str, Any],
+    runner_inputs: dict[str, Any] | None = None,
+    execution_trace: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the shared top-level success payload shape for orchestration runners."""
 
@@ -243,6 +272,8 @@ def build_runner_success_result(
         "tool_version": tool_version,
         "warnings": warnings,
         "orchestration_plan": orchestration_plan,
+        "runner_inputs": runner_inputs or {},
+        "execution_trace": execution_trace or [],
         **extra_fields,
         "source_context": source_context,
     }

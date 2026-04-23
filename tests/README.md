@@ -13,6 +13,7 @@
 - bootstrap 스캐폴딩 결과를 확인하는 `check_bootstrap.py` 를 제공한다.
 - 하네스 스텁 생성기를 확인하는 `check_scaffold_harness.py` 를 제공한다.
 - 하네스 패키지 export 를 확인하는 `check_export_harness_package.py` 를 제공한다.
+- `session-start`, `doc-sync`, `merge-doc-reconcile` 개별 skill smoke 를 제공한다.
 - 기존 프로젝트 bootstrap 후속 온보딩 흐름을 확인하는 `check_existing_project_onboarding.py` 를 제공한다.
 - demo runner 성공/실패 경로를 확인하는 `check_demo_workflow.py` 를 제공한다.
 - quickstart/README stale 링크 점검 MCP 를 확인하는 `check_quickstart_stale_links.py` 를 제공한다.
@@ -41,6 +42,9 @@
 - 기본 export 가 source docs 와 global snippets 를 제외하는지 확인
 - 기본 export archive 가 `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md` 를 포함하는지 확인
 - `validation-plan` 프로토타입이 예시 프로젝트에서 기대한 분류와 검증 수준을 출력하는지 확인
+- `session-start` 프로토타입이 세션 기준선 복원과 구조화된 실패 경로를 유지하는지 확인
+- `doc-sync` 프로토타입이 영향 문서 후보, 검토 순서, follow-up action 과 구조화된 실패 경로를 유지하는지 확인
+- `merge-doc-reconcile` 프로토타입이 병합 후 재확정 포인트와 구조화된 실패 경로를 유지하는지 확인
 - `backlog-update` 프로토타입이 보수적 상태 추천, draft entry, 구조화 error 경로를 유지하는지 확인
 - `create_backlog_entry` 프로토타입이 draft entry 구조와 공통 output contract 를 유지하는지 확인
 - `code-index-update` 프로토타입이 예시 프로젝트에서 색인 문서 후보와 stale 경고를 출력하는지 확인
@@ -75,6 +79,9 @@
 - 저장소 루트에서 `python3 tests/check_bootstrap.py`
 - 저장소 루트에서 `python3 tests/check_scaffold_harness.py`
 - 저장소 루트에서 `python3 tests/check_export_harness_package.py`
+- 저장소 루트에서 `python3 tests/check_session_start.py`
+- 저장소 루트에서 `python3 tests/check_doc_sync.py`
+- 저장소 루트에서 `python3 tests/check_merge_doc_reconcile.py`
 - 저장소 루트에서 `python3 tests/check_validation_plan.py`
 - 저장소 루트에서 `python3 tests/check_backlog_update.py`
 - 저장소 루트에서 `python3 tests/check_create_backlog_entry.py`
@@ -99,6 +106,7 @@
 - 전체 회귀를 빠르게 볼 때는 `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
 - 문서/계약 변경 직후에는 `check_docs.py`, `check_output_samples.py`, `check_quickstart_stale_links.py` 를 먼저 본다.
 - bootstrap 또는 하네스 변경 직후에는 `check_bootstrap.py`, `check_scaffold_harness.py`, `check_export_harness_package.py` 를 먼저 본다.
+- skill 구현 변경 직후에는 `check_session_start.py`, `check_doc_sync.py`, `check_merge_doc_reconcile.py`, `check_backlog_update.py` 를 먼저 본다.
 - runner/orchestration 변경 직후에는 `check_demo_workflow.py`, `check_existing_project_onboarding.py` 를 먼저 본다.
 - skill 분류/추천 로직 변경 직후에는 `check_validation_plan.py`, `check_code_index_update.py` 를 먼저 본다.
 - backlog-update 변경 직후에는 `check_backlog_update.py` 를 먼저 본다.
@@ -120,15 +128,21 @@
 - `check_output_samples.py` 실패:
   `examples/output_samples/`, `schemas/output_sample_contracts.json`, `workflow_kit/common/output_contracts.py` 셋 중 하나가 어긋난 경우가 많다. error sample 이라면 `error_field_shapes` 와 `source_context` required key 를 함께 확인한다.
 - `check_demo_workflow.py` 실패:
-  `scripts/run_demo_workflow.py` 의 step 조립, top-level error wrapping, `workflow_summary` 필드 구성을 먼저 본다.
+  `scripts/run_demo_workflow.py` 의 step 조립, top-level error wrapping, `runner_inputs`, `execution_trace`, `workflow_summary` 필드 구성을 먼저 본다.
 - `check_existing_project_onboarding.py` 실패:
-  `scripts/run_existing_project_onboarding.py` 의 입력 경로 처리, latest backlog fallback, `source_context` 유지 여부를 먼저 본다.
+  `scripts/run_existing_project_onboarding.py` 의 입력 경로 처리, latest backlog fallback, `runner_inputs`, `execution_trace`, `source_context` 유지 여부를 먼저 본다.
 - `check_bootstrap.py` 실패:
   `scripts/bootstrap_workflow_kit.py` 의 생성 경로, 생성 문서 목록, adoption mode 분기를 먼저 본다.
 - `check_scaffold_harness.py` 또는 `check_export_harness_package.py` 실패:
   `harnesses/` 문서, overlay manifest, dist 산출물 경로를 먼저 본다.
 - `check_validation_plan.py` 실패:
   `skills/validation-plan/scripts/run_validation_plan.py` 와 `workflow_kit/common/planning.py` 또는 change type 분류를 먼저 본다.
+- `check_session_start.py` 실패:
+  `skills/session-start/scripts/run_session_start.py` 와 `workflow_kit/common/project_docs.py`, `workflow_kit/common/session_outputs.py` 를 먼저 본다.
+- `check_doc_sync.py` 실패:
+  `skills/doc-sync/scripts/run_doc_sync.py` 와 `workflow_kit/common/doc_sync.py` 의 후보 추천 규칙과 입력 경로 처리를 먼저 본다.
+- `check_merge_doc_reconcile.py` 실패:
+  `skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py`, `workflow_kit/common/reconcile.py`, `workflow_kit/common/session_outputs.py` 를 먼저 본다.
 - `check_backlog_update.py` 실패:
   `skills/backlog-update/scripts/run_backlog_update.py` 의 입력 경로 처리, 보수적 상태 추천, draft entry 조립, 구조화 error 반환을 먼저 본다.
 - `check_create_backlog_entry.py` 실패:

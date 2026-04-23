@@ -162,6 +162,7 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
     elif harness == "opencode":
         sources.extend(
             [
+                temp_repo / "AGENTS.md",
                 temp_repo / "opencode.json",
                 temp_repo / ".opencode",
             ]

@@ -85,6 +85,11 @@ def main() -> int:
     success = checked_in["fixtures"][9]["response"]["result"]
     if success["structuredContent"]["status"] != "ok":
         raise AssertionError("Expected successful call fixture to contain structuredContent.")
+    if checked_in["fixtures"][9]["request"]["params"]["arguments"]["work_backlog_index_path"] != "examples/acme_delivery_platform/work_backlog.md":
+        raise AssertionError("Expected fixture request paths to remain repo-relative for portable comparisons.")
+    latest_backlog_path = success["structuredContent"]["latest_backlog_path"]
+    if latest_backlog_path != "examples/acme_delivery_platform/backlog/2026-04-18.md":
+        raise AssertionError("Expected fixture response paths to remain repo-relative for portable comparisons.")
     schema_error = checked_in["fixtures"][10]["response"]["error"]
     if schema_error["code"] != -32000:
         raise AssertionError("Expected schema failure fixture to use JSON-RPC server error code.")

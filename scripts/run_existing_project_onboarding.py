@@ -19,6 +19,7 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.runner import (
     build_orchestration_plan,
+    build_execution_trace_step,
     build_runner_success_result,
     build_top_level_step_error_result,
     build_worker_assignment,
@@ -274,6 +275,87 @@ def main() -> int:
             "changed_files": args.changed_files,
             "change_summary": args.change_summary,
         },
+        runner_inputs={
+            "onboarding_mode": "existing_project_followup",
+            "assessment_inputs": {
+                "repository_assessment_path": str(repository_assessment_path) if repository_assessment_path else None,
+                "review_assessment_first": repository_assessment_path is not None,
+            },
+            "change_set": {
+                "changed_files": args.changed_files,
+                "change_summary": args.change_summary,
+            },
+        },
+        execution_trace=[
+            build_execution_trace_step(
+                step="latest_backlog",
+                status=latest_backlog_data.get("status", "ok"),
+                command=None if args.latest_backlog_path else [
+                    python,
+                    str(repo_path("mcp", "latest-backlog", "scripts", "run_latest_backlog.py")),
+                    "--work-backlog-index-path",
+                    str(work_backlog_index_path),
+                    "--backlog-dir-path",
+                    str(backlog_dir_path),
+                ],
+                used_inputs={
+                    "work_backlog_index_path": str(work_backlog_index_path),
+                    "backlog_dir_path": str(backlog_dir_path),
+                    "direct_latest_backlog_path": str(resolve_existing_path(args.latest_backlog_path)) if args.latest_backlog_path else None,
+                },
+                produced_keys=["latest_backlog_path", "candidates", "warnings"],
+            ),
+            build_execution_trace_step(
+                step="session_start",
+                status=session_start.get("status", "ok"),
+                command=session_start_command,
+                used_inputs={
+                    "session_handoff_path": str(session_handoff_path),
+                    "work_backlog_index_path": str(work_backlog_index_path),
+                    "project_profile_path": str(project_profile_path),
+                    "latest_backlog_path": str(latest_backlog_path) if latest_backlog_path else None,
+                },
+                produced_keys=["summary", "recommended_next_action", "next_documents", "warnings"],
+            ),
+            build_execution_trace_step(
+                step="validation_plan",
+                status=validation_plan.get("status", "ok"),
+                command=validation_plan_command,
+                used_inputs={
+                    "project_profile_path": str(project_profile_path),
+                    "session_handoff_path": str(session_handoff_path),
+                    "latest_backlog_path": str(latest_backlog_path) if latest_backlog_path else None,
+                    "changed_files": args.changed_files,
+                    "change_summary": args.change_summary,
+                },
+                produced_keys=["recommended_validation_levels", "recommended_commands", "documentation_checks", "warnings"],
+            ),
+            build_execution_trace_step(
+                step="code_index_update",
+                status=code_index_update.get("status", "ok"),
+                command=[
+                    python,
+                    str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
+                    "--project-profile-path",
+                    str(project_profile_path),
+                    "--work-backlog-index-path",
+                    str(work_backlog_index_path),
+                    "--session-handoff-path",
+                    str(session_handoff_path),
+                    *repeated_flag_args("--changed-file", args.changed_files),
+                    "--change-summary",
+                    args.change_summary,
+                ],
+                used_inputs={
+                    "project_profile_path": str(project_profile_path),
+                    "work_backlog_index_path": str(work_backlog_index_path),
+                    "session_handoff_path": str(session_handoff_path),
+                    "changed_files": args.changed_files,
+                    "change_summary": args.change_summary,
+                },
+                produced_keys=["index_update_candidates", "priority_index_candidates", "warnings"],
+            ),
+        ],
         extra_fields={
             "onboarding_mode": "existing_project_followup",
             "repository_assessment": {

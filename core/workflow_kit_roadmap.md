@@ -51,6 +51,8 @@
 
 - workflow/skill 중심 온보딩 진입점 재정렬
 - existing-project onboarding runner 와 skill 묶음 소비 순서 정리
+- skill 6종 중 누락돼 있던 `session-start`, `doc-sync`, `merge-doc-reconcile` 개별 smoke 기준선 추가
+- orchestration runner 결과에 `runner_inputs` 와 `execution_trace` 를 추가해 하네스 소비용 상위 메타데이터를 보강
 - read-only JSON-RPC bridge 안정화와 official MCP SDK candidate 준비
 - Python 3.11 + `mcp[cli]` 개발 기준선과 stdio smoke 추가
 - 하네스별 minimal runtime package export, 버저닝, package/apply guide 생성
@@ -128,6 +130,7 @@
 - read-only descriptor, 하네스 MCP 예시, JSON-RPC fixture 가 `schemas/` 산출물로 export 되고 harness package 에 포함된다.
 - runtime output contract 가 generated JSON Schema, manifest outputSchema, sample validation 에 함께 쓰인다.
 - smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어졌고 GitHub Actions smoke workflow 에 연결돼 있다.
+- skill 6종 모두가 독립 `tests/check_*.py` smoke 경로를 갖추는 방향으로 정리되고 있다.
 
 ### 아직 비어 있는 축
 

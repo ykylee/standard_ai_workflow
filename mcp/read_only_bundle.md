@@ -71,7 +71,7 @@ JSON-RPC draft bridge 는 정식 MCP SDK 서버가 아니라, SDK 연결 전 `in
 - `tests/check_read_only_mcp_server.py` 는 manifest 의 `bundle_phase`, `input_schema`, `output_schema.field_shapes`, payload validation 경로를 함께 확인한다.
 - `tests/check_read_only_mcp_server.py` 는 manifest 에 노출된 tool 별 generated JSON Schema 가 runtime output contract 의 생성 결과와 같은지도 확인한다.
 - `tests/check_read_only_mcp_server.py` 는 `--list-transport-tools` 의 draft descriptor count, input anyOf, output schema source, read-only annotation 도 확인한다.
-- `tests/check_read_only_jsonrpc_bridge.py` 는 JSON-RPC draft bridge 의 `initialize`, `tools/list`, `tools/call`, tool-call error mapping 을 확인한다.
+- `tests/check_read_only_jsonrpc_bridge.py` 는 JSON-RPC draft bridge 의 `initialize`, `tools/list`, `tools/call`, malformed JSON, invalid request, tool-call error mapping 을 확인한다.
 - `tests/check_read_only_jsonrpc_fixtures.py` 는 체크인된 JSON-RPC fixture 산출물이 runtime bridge 결과와 같은지 확인한다.
 - `tests/check_read_only_transport_descriptors.py` 는 체크인된 descriptor export 산출물과 생성 스크립트 출력이 registry 결과와 같은지 확인한다.
 - `tests/check_read_only_harness_mcp_examples.py` 는 하네스별 MCP 예시 산출물이 descriptor target, tool 목록, `transport_ready=false` 원칙을 유지하는지 확인한다.

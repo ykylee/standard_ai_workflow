@@ -42,6 +42,8 @@ SDK 승격 전 비교 기준선은 [../schemas/read_only_jsonrpc_fixtures.json](
 - `latest_backlog_call_success`
 - `check_doc_metadata_call_schema_error`
 - `unknown_method`
+- `malformed_json_parse_error`
+- `non_object_invalid_request`
 
 이 fixture 는 실제 MCP client 호환성 보장이 아니라, draft bridge 의 envelope 변화가 의도된 것인지 확인하기 위한 diff 기준선이다.
 
@@ -61,6 +63,7 @@ SDK transport 로 승격할 때도 아래 계약은 유지해야 한다.
 정식 MCP SDK transport 로 바뀌면 아래 envelope 는 달라질 수 있다.
 
 - JSON-RPC top-level `id` 처리
+- parse error 와 invalid request 의 세부 `data` 필드
 - SDK 초기화 응답의 capability 상세 필드
 - tool call result 의 `content` wrapper 형식
 - tool call error 의 JSON-RPC error code 와 message

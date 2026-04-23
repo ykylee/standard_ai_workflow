@@ -47,6 +47,8 @@ def main() -> int:
         "latest_backlog_call_success",
         "check_doc_metadata_call_schema_error",
         "unknown_method",
+        "malformed_json_parse_error",
+        "non_object_invalid_request",
     ]
     if names != expected_names:
         raise AssertionError("Unexpected JSON-RPC fixture ordering.")
@@ -59,6 +61,12 @@ def main() -> int:
         raise AssertionError("Expected schema failure fixture to use JSON-RPC server error code.")
     if schema_error["data"]["error_code"] != "invalid_tool_payload_schema":
         raise AssertionError("Expected schema failure fixture to preserve entrypoint error code.")
+    malformed = checked_in["fixtures"][5]["response"]["error"]
+    if malformed["code"] != -32700:
+        raise AssertionError("Expected malformed JSON fixture to preserve Parse error.")
+    non_object = checked_in["fixtures"][6]["response"]["error"]
+    if non_object["code"] != -32600:
+        raise AssertionError("Expected non-object request fixture to preserve Invalid Request.")
 
     print("Read-only JSON-RPC fixture generation check passed.")
     return 0

@@ -1,6 +1,6 @@
 {
   "descriptor_target": "mcp_tools_list_draft",
-  "fixture_count": 5,
+  "fixture_count": 7,
   "fixture_phase": "jsonrpc_draft_fixture",
   "fixtures": [
     {
@@ -907,6 +907,37 @@
           "message": "Method not found"
         },
         "id": 5,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "malformed_json_parse_error",
+      "request": "{not-json",
+      "response": {
+        "error": {
+          "code": -32700,
+          "data": {
+            "position": 1,
+            "reason": "request must be valid JSON"
+          },
+          "message": "Parse error"
+        },
+        "id": null,
+        "jsonrpc": "2.0"
+      }
+    },
+    {
+      "name": "non_object_invalid_request",
+      "request": "[]",
+      "response": {
+        "error": {
+          "code": -32600,
+          "data": {
+            "reason": "request must be a JSON object"
+          },
+          "message": "Invalid Request"
+        },
+        "id": null,
         "jsonrpc": "2.0"
       }
     }

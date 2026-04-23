@@ -35,6 +35,21 @@ def jsonrpc_error(request_id: object, code: int, message: str, data: dict[str, A
     return {"jsonrpc": JSONRPC_VERSION, "id": request_id, "error": error}
 
 
+def parse_request_json(raw_json: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    try:
+        request = json.loads(raw_json)
+    except json.JSONDecodeError as exc:
+        return None, jsonrpc_error(
+            None,
+            -32700,
+            "Parse error",
+            {"reason": "request must be valid JSON", "position": exc.pos},
+        )
+    if not isinstance(request, dict):
+        return None, jsonrpc_error(None, -32600, "Invalid Request", {"reason": "request must be a JSON object"})
+    return request, None
+
+
 def build_initialize_result() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     return {
@@ -139,9 +154,11 @@ def print_response(response: dict[str, Any] | None) -> None:
 def main() -> int:
     args = parse_args()
     if args.request_json:
-        request = json.loads(args.request_json)
-        if not isinstance(request, dict):
-            raise ValueError("--request-json must be a JSON object.")
+        request, error = parse_request_json(args.request_json)
+        if error is not None:
+            print_response(error)
+            return 1
+        assert request is not None
         print_response(handle_jsonrpc_request(request))
         return 0
     if args.stdio_lines:
@@ -149,10 +166,11 @@ def main() -> int:
             stripped = line.strip()
             if not stripped:
                 continue
-            request = json.loads(stripped)
-            if not isinstance(request, dict):
-                print_response(jsonrpc_error(None, -32600, "Invalid Request", {"reason": "line must be a JSON object"}))
+            request, error = parse_request_json(stripped)
+            if error is not None:
+                print_response(error)
                 continue
+            assert request is not None
             print_response(handle_jsonrpc_request(request))
         return 0
 

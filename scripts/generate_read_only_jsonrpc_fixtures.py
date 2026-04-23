@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from workflow_kit.server.read_only_jsonrpc import handle_jsonrpc_request
+from workflow_kit.server.read_only_jsonrpc import handle_jsonrpc_request, parse_request_json
 from workflow_kit.server.read_only_registry import build_transport_tool_descriptors
 
 
@@ -24,6 +24,21 @@ def request_response_pair(name: str, request: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": name,
         "request": request,
+        "response": response,
+    }
+
+
+def raw_request_response_pair(name: str, raw_request: str) -> dict[str, Any]:
+    request, response = parse_request_json(raw_request)
+    if response is None:
+        if request is None:
+            raise ValueError(f"Raw fixture request produced neither request nor response: {name}")
+        response = handle_jsonrpc_request(request)
+    if response is None:
+        raise ValueError(f"Raw fixture request produced no response: {name}")
+    return {
+        "name": name,
+        "request": raw_request,
         "response": response,
     }
 
@@ -64,6 +79,8 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
             "unknown_method",
             {"jsonrpc": "2.0", "id": 5, "method": "unknown/method", "params": {}},
         ),
+        raw_request_response_pair("malformed_json_parse_error", "{not-json"),
+        raw_request_response_pair("non_object_invalid_request", "[]"),
     ]
     return {
         "status": "ok",

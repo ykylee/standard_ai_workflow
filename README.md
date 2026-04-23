@@ -246,8 +246,8 @@ python3 scripts/export_harness_package.py \
 
 이번 pre-release 핵심 결과물:
 
-- Codex package: [dist/harnesses/codex/prototype-v1](/Users/yklee/repos/standard_ai_workflow/dist/harnesses/codex/prototype-v1)
-- OpenCode package: [dist/harnesses/opencode/prototype-v1](/Users/yklee/repos/standard_ai_workflow/dist/harnesses/opencode/prototype-v1)
+- Codex package: GitHub pre-release asset `standard-ai-workflow-codex-prototype-v1.zip`
+- OpenCode package: GitHub pre-release asset `standard-ai-workflow-opencode-prototype-v1.zip`
 - release note draft: [releases/prototype-v1-pre-release.md](./releases/prototype-v1-pre-release.md)
 
 ## 11. 현재 한계

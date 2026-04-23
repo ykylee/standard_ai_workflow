@@ -61,7 +61,7 @@
 | 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
-| orchestrator/worker overlays | 사용 가능 | OpenCode worker 분화와 Codex 운영 패턴 문서화 포함 |
+| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 Codex 운영 패턴 문서화 포함 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
 | 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |

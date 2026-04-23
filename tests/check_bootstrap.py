@@ -234,8 +234,10 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode doc worker should be generated.")
 
         code_worker_text = Path(str(harness_files["opencode_code_worker_agent"])).read_text(encoding="utf-8")
-        if "code-focused workflow worker" not in code_worker_text:
+        if "implementation and build-focused workflow worker" not in code_worker_text:
             raise AssertionError("OpenCode code worker should be generated.")
+        if "build-oriented checks" not in code_worker_text:
+            raise AssertionError("OpenCode code worker should cover implementation/build verification work.")
 
         validation_worker_text = Path(str(harness_files["opencode_validation_worker_agent"])).read_text(encoding="utf-8")
         if "validation-focused workflow worker" not in validation_worker_text:

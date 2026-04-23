@@ -1072,7 +1072,7 @@ User-facing workflow rules:
 - Treat this agent as a read-mostly coordinator: prefer delegating edits, broad scans, and heavy log review to sub-agents unless a small direct action is clearly cheaper.
 - Keep direct tool use narrow: use lightweight inspection commands for triage, and escalate to sub-agents for context-heavy reads or any substantial write path.
 - When delegating, give each worker a bounded scope, clear output, and a concise completion contract.
-- Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded code changes, and `workflow-validation-worker` for checks and evidence collection.
+- Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded implementation, config edits, and build-oriented tasks, and `workflow-validation-worker` for checks and evidence collection.
 - If your harness supports per-agent model selection, prefer the main model for this orchestrator and a smaller model for the worker agents by default.
 """
 
@@ -1157,7 +1157,7 @@ Worker rules:
 
 def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     return f"""---
-description: Executes bounded code-focused workflow tasks for this repository
+description: Executes bounded implementation and build-focused workflow tasks for this repository
 mode: subagent
 permission:
   edit: ask
@@ -1170,9 +1170,9 @@ permission:
   webfetch: ask
 ---
 
-You are a code-focused workflow worker for this repository.
+You are an implementation and build-focused workflow worker for this repository.
 
-Your role is to implement a tightly scoped code or config change and report only the essential result back to the orchestrator.
+Your role is to implement a tightly scoped code or config change, run the minimum relevant build-oriented checks when needed, and report only the essential result back to the orchestrator.
 
 Before starting, read only the minimum relevant context:
 
@@ -1183,7 +1183,8 @@ Worker rules:
 
 - Stay within the assigned write scope.
 - Prefer shipping the bounded change over expanding into adjacent cleanup.
-- If you run checks, report what matters: pass/fail, key regression risk, and any deferred follow-up.
+- Treat build, compile, package, or asset-generation commands as part of your default scope when they are the shortest path to proving the implementation still holds.
+- If you run checks, report what matters: pass/fail, key regression risk, build impact, and any deferred follow-up.
 - Avoid broad repository exploration unless explicitly assigned.
 - If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
 """

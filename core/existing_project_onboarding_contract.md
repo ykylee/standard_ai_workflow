@@ -236,6 +236,7 @@
 - `status == "error"` 인 경우:
   하네스는 `error`, `error_code`, `source_context.failed_step` 를 우선 사용자에게 요약하고, 바로 다음 복구 액션은 `source_context` 의 누락/실패 입력을 기준으로 제안하는 편이 좋다.
 - OpenCode 쪽에서는 `orchestration_plan.worker_assignments` 를 바탕으로 doc/code/validation worker 에 bounded 작업을 분배하기 쉽다.
+  이때 실제 구현, 설정 수정, 빌드 확인은 `workflow-code-worker` 에 우선 배정하는 해석이 자연스럽다.
 - Codex 쪽에서는 개별 worker 권한 분리가 강제되지는 않으므로, 같은 `orchestration_plan` 을 운영 원칙 문서와 서브 에이전트 배정 힌트로 사용하는 편이 현실적이다.
 - 이후 세션부터는 `session-start`, `backlog-update`, `doc-sync`, `validation-plan`, `code-index-update` 를 상황별로 직접 호출하는 쪽이 더 적합하다.
 - 즉, 이 runner 는 “도입 직후 기준선 정렬용 오케스트레이션 레이어”로 유지하는 것이 권장된다.

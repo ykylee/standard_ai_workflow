@@ -94,7 +94,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
    export bundle 을 쓰는 경우 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 descriptor 이며, 정식 서버 루프가 연결되기 전에는 참고 산출물로 취급한다.
    가능하면 메인 오케스트레이터는 `git status`, `git diff`, `rg`, 제한된 `ls` 정도만 직접 허용하고, 실제 수정은 서브 에이전트에 위임하는 구성을 우선 검토한다.
-   `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 편집/검증은 worker 에 맡기는 운영 패턴을 함께 검토한다.
+   `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 실제 구현과 빌드는 `workflow-code-worker`, 검증 증빙은 `workflow-validation-worker` 에 맡기는 운영 패턴을 함께 검토한다.
    필요하면 worker 를 `workflow-doc-worker`, `workflow-code-worker`, `workflow-validation-worker` 로 나눠 역할별로 호출한다.
 6. 첫 세션에서 handoff 와 backlog 를 채운다.
 
@@ -120,6 +120,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
    이때 오케스트레이터가 직접 광범위한 `bash` 와 `edit` 를 수행하지 않도록 read-mostly 권한 프로필을 우선 고려한다.
    worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.
+   특히 구현, 설정 변경, 빌드/컴파일 확인은 `workflow-code-worker` 에 우선 배정하는 편이 자연스럽다.
    모델을 나눠 운영한다면 기본값은 `main orchestrator + small workers` 로 두고, 구조 판단이 어려운 경우에만 worker 를 일시적으로 `main` 으로 올리는 편이 좋다.
 6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
 
@@ -153,6 +154,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `opencode.json` 의 instruction 경로
 - project-local agent 권한 정책
 - worker agent 의 역할 범위와 권한
+- `workflow-code-worker` 의 구현/빌드 책임 범위
 - `project_workflow_profile.md` 의 검증 기준
 - handoff 와 backlog 의 최신 상태
 

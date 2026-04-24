@@ -13,7 +13,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXPORT_SCRIPT = REPO_ROOT / "scripts" / "export_harness_package.py"
-EXPECTED_VERSION = "prototype-v1"
+EXPECTED_VERSION = "prototype-v2"
 
 
 def main() -> int:
@@ -80,6 +80,8 @@ def main() -> int:
                 raise AssertionError("Manifest should include workflow skill catalog runtime docs.")
             if "bundle/ai-workflow/core/workflow_adoption_entrypoints.md" not in included:
                 raise AssertionError("Manifest should include workflow adoption entrypoint runtime docs.")
+            if "bundle/ai-workflow/project/state.json" not in included:
+                raise AssertionError("Manifest should include the workflow state cache.")
             if export["harness"] == "codex" and "bundle/.codex/config.toml.example" not in included:
                 raise AssertionError("Codex export should preserve the .codex config example path.")
             if export["harness"] == "opencode" and "bundle/.opencode/agents/workflow-orchestrator.md" not in included:
@@ -103,6 +105,8 @@ def main() -> int:
                 raise AssertionError("Archive should include AGENTS.md for every harness package.")
             if "bundle/ai-workflow/README.md" not in names:
                 raise AssertionError("Archive should include the runtime workflow README.")
+            if "bundle/ai-workflow/project/state.json" not in names:
+                raise AssertionError("Archive should include the workflow state cache.")
             if "PACKAGE_CONTENTS.md" not in names:
                 raise AssertionError("Archive should include package composition guidance.")
             if "APPLY_GUIDE.md" not in names:

@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "prototype-v1",
+  "tool_version": "prototype-v2",
   "error": "path does not exist: /private/tmp/missing-profile.md",
   "error_code": "missing_required_document",
   "warnings": [],

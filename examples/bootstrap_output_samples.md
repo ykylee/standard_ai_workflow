@@ -86,7 +86,8 @@ agent 예시:
 - Write visible work reports, summaries, and document drafts in Korean by default.
 - Use concise progress updates and avoid long repeated reasoning in user-visible messages.
 - Keep internal processing compact and preserve only the facts needed for the next step or next session.
-- Treat this agent as a read-mostly coordinator: prefer delegating edits, broad scans, and heavy log review to sub-agents unless a small direct action is clearly cheaper.
+- Do not call direct tools yourself. Use only task delegation for repository exploration, comparisons, implementation, checks, and draft generation.
+- Treat this agent as a read-mostly coordinator with task-only execution: delegate edits, scans, log review, and validation to sub-agents instead of making exceptions for direct tool use.
 ```
 
 worker 예시:
@@ -94,6 +95,7 @@ worker 예시:
 ```md
 - You are a code-focused workflow worker for this repository.
 - Stay within the assigned write scope.
+- Minimize asks during execution.
 - If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
 ```
 

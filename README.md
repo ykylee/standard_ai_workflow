@@ -61,7 +61,7 @@
 | 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
-| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 Codex 운영 패턴 문서화 포함 |
+| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 orchestrator task-only 운영 기본 원칙 포함 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
 | 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |
@@ -228,7 +228,7 @@ python3 scripts/export_harness_package.py \
 - skill 6종은 공통 `tool_version` 과 구조화된 실패 JSON (`status`, `error`, `error_code`, `warnings`, `source_context`) 패턴을 따른다.
 - 통합 runner 2종은 하위 step 결과를 중첩 payload 로 유지하면서 `warnings`, `orchestration_plan`, `source_context` 를 상위 메타데이터로 제공한다.
 - runner 는 하위 skill/MCP step 이 `status: "error"` 를 반환해도 상위 `workflow_step_failed` 형태로 감싸고, 실패한 step 이름과 upstream `error_code` 를 `source_context` 에 남긴다.
-- OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 운영 패턴을 문서/템플릿으로 배포한다.
+- OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 task-only orchestrator + bounded worker 운영 패턴을 문서/템플릿으로 배포한다.
 - `workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper, read-only MCP 공통 callable layer, output contract validator 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
 - 하네스 export bundle 은 read-only MCP descriptor 초안, 하네스별 MCP 설정 예시 draft, JSON-RPC fixture 를 함께 포함해 이후 MCP/server 연결 지점을 전달한다.
 - `tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
@@ -246,9 +246,9 @@ python3 scripts/export_harness_package.py \
 
 이번 pre-release 핵심 결과물:
 
-- Codex package: GitHub pre-release asset `standard-ai-workflow-codex-prototype-v1.zip`
-- OpenCode package: GitHub pre-release asset `standard-ai-workflow-opencode-prototype-v1.zip`
-- release note draft: [releases/prototype-v1-pre-release.md](./releases/prototype-v1-pre-release.md)
+- Codex package: GitHub pre-release asset `standard-ai-workflow-codex-prototype-v2.zip`
+- OpenCode package: GitHub pre-release asset `standard-ai-workflow-opencode-prototype-v2.zip`
+- release note draft: [releases/prototype-v2-pre-release.md](./releases/prototype-v2-pre-release.md)
 
 ## 11. 현재 한계
 
@@ -272,7 +272,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
 - 상위 로드맵: [core/workflow_kit_roadmap.md](./core/workflow_kit_roadmap.md)
-- pre-release note: [releases/prototype-v1-pre-release.md](./releases/prototype-v1-pre-release.md)
+- pre-release note: [releases/prototype-v2-pre-release.md](./releases/prototype-v2-pre-release.md)
 - 출력 스키마 가이드: [core/output_schema_guide.md](./core/output_schema_guide.md)
 - 도입 분기 가이드: [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)

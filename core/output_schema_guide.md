@@ -113,7 +113,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 ```json
 {
   "status": "error",
-  "tool_version": "prototype-v1",
+  "tool_version": "prototype-v2",
   "error": "project_profile_path 를 읽을 수 없다.",
   "error_code": "missing_project_profile",
   "warnings": [

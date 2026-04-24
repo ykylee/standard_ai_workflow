@@ -76,8 +76,9 @@ OpenCode 타겟은 공통 상위 진입점 `AGENTS.md` 와 `opencode.json`, proj
 - `AGENTS.md` 는 OpenCode 패키지에서도 공통 상위 지침 진입점으로 유지한다.
 - `opencode.json` 의 `instructions` 는 `AGENTS.md` 와 공통 workflow 문서를 직접 가리킨다.
 - skill 과 agent 파일은 공통 workflow 문서를 읽고 세션 시작, backlog 갱신, handoff 갱신을 우선 수행하도록 만든다.
-- 메인 오케스트레이터는 read-mostly coordinator 로 두고, 실제 수정/검증/초안 작성은 worker agent 로 분리하는 구성을 권장한다.
+- 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 도구 호출 없이 실제 수정/검증/초안 작성은 worker agent 로 분리하는 구성을 기본값으로 둔다.
 - worker 는 generic 하나만 두기보다 문서, 구현/빌드, 검증 성격으로 나눌수록 컨텍스트 오염과 권한 범위를 더 잘 제어할 수 있다.
+- worker 는 bounded scope 안에서 실제 실행을 맡고, low-risk 범위에서는 `ask` 를 과도하게 발생시키지 않는 방향을 기본 운영값으로 둔다.
 
 ## 5. 유지보수 원칙
 

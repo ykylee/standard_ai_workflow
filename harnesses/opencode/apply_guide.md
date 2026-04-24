@@ -69,7 +69,7 @@
 - 내부 사고 과정과 중간 분류 방식은 모델이 효율적으로 선택하게 두고, 사용자에게는 필요한 결정과 다음 행동만 짧게 전달하도록 한다.
 - 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피하도록 project-local instructions 에 명시하는 것이 좋다.
 - handoff 와 backlog 에는 후속 세션에 꼭 필요한 사실만 남겨 컨텍스트 증가를 줄인다.
-- 메인 오케스트레이터는 read-mostly coordinator 로 두고, 대량 탐색/로그 수집/실제 수정은 서브 에이전트에 맡기도록 권한 정책을 나누는 편이 좋다.
+- 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 도구 호출 없이 대량 탐색/로그 수집/실제 수정은 서브 에이전트에 맡기도록 권한 정책을 나누는 편이 좋다.
 - `main`/`small` 모델 구조를 쓴다면, 메인 오케스트레이터는 `main`, 문서/코드/검증 worker 는 기본적으로 `small` 쪽에 두는 편이 효율적이다.
 
 ## 3. 신규 프로젝트 적용 순서
@@ -93,8 +93,9 @@ python3 scripts/bootstrap_workflow_kit.py \
 5. `.opencode/skills/standard-ai-workflow/SKILL.md` 와 `.opencode/agents/workflow-orchestrator.md` 의 권한 정책을 팀 운영 방식에 맞게 조정한다.
    전역 snippet 을 쓰려면 [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc) 도 함께 검토한다.
    export bundle 을 쓰는 경우 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 descriptor 이며, 정식 서버 루프가 연결되기 전에는 참고 산출물로 취급한다.
-   가능하면 메인 오케스트레이터는 `git status`, `git diff`, `rg`, 제한된 `ls` 정도만 직접 허용하고, 실제 수정은 서브 에이전트에 위임하는 구성을 우선 검토한다.
+   가능하면 메인 오케스트레이터는 직접 `bash`/`edit`/`webfetch` 를 호출하지 않고 `task` 위임만 수행하게 둔다.
    `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 실제 구현과 빌드는 `workflow-code-worker`, 검증 증빙은 `workflow-validation-worker` 에 맡기는 운영 패턴을 함께 검토한다.
+   worker 쪽은 범위만 충분히 좁혀 두고, low-risk 실행에서는 `ask` 를 과도하게 유발하지 않도록 설정하는 편이 실제 운영성이 좋다.
    필요하면 worker 를 `workflow-doc-worker`, `workflow-code-worker`, `workflow-validation-worker` 로 나눠 역할별로 호출한다.
 6. 첫 세션에서 handoff 와 backlog 를 채운다.
 
@@ -118,9 +119,10 @@ python3 scripts/bootstrap_workflow_kit.py \
    작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
    export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
-   이때 오케스트레이터가 직접 광범위한 `bash` 와 `edit` 를 수행하지 않도록 read-mostly 권한 프로필을 우선 고려한다.
+   이때 오케스트레이터가 직접 `bash`/`edit`/`webfetch` 를 수행하지 않도록 task-only 권한 프로필을 우선 고려한다.
    worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.
    특히 구현, 설정 변경, 빌드/컴파일 확인은 `workflow-code-worker` 에 우선 배정하는 편이 자연스럽다.
+   작업 중 추가 질의는 genuinely blocking case 로 좁히고, 나머지는 worker 가 최소 가정으로 계속 진행하도록 두는 편이 좋다.
    모델을 나눠 운영한다면 기본값은 `main orchestrator + small workers` 로 두고, 구조 판단이 어려운 경우에만 worker 를 일시적으로 `main` 으로 올리는 편이 좋다.
 6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
 

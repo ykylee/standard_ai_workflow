@@ -182,6 +182,7 @@ def copy_minimal_runtime_docs(bundle_root: Path, package_root: Path) -> list[str
 def recommended_entrypoints_for(harness: str) -> list[str]:
     common = [
         "bundle/ai-workflow/README.md",
+        "bundle/ai-workflow/project/state.json",
         "bundle/ai-workflow/project/session_handoff.md",
         "bundle/ai-workflow/project/work_backlog.md",
         "bundle/ai-workflow/project/project_workflow_profile.md",
@@ -205,15 +206,16 @@ def package_apply_steps_for(harness: str) -> list[str]:
         return [
             "압축을 풀고 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "선택적으로 `bundle/.codex/config.toml.example` 내용을 현재 사용자 `~/.codex/config.toml` 에 additive 방식으로 반영할지 검토한다.",
-            "`AGENTS.md` 가 `ai-workflow/project/session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
-            "첫 세션에서는 `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
+            "`AGENTS.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
+            "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     if harness == "opencode":
         return [
             "압축을 풀고 `bundle/AGENTS.md`, `bundle/opencode.json`, `bundle/.opencode/`, `bundle/ai-workflow/` 를 대상 저장소 루트에 복사한다.",
             "`opencode.json` 의 instruction 경로와 `.opencode/agents/` 권한 범위가 현재 저장소 운영 방식과 맞는지 검토한다.",
-            "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 실제 수정은 worker agent 로 분리하는 패턴을 유지한다.",
-            "첫 세션에서는 `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
+            "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 직접 도구 호출 없이 worker agent 위임만 수행하는 패턴을 유지한다.",
+            "worker agent 는 bounded scope 안에서 실제 읽기/수정/검증을 맡고, low-risk 실행에서는 `ask` 를 최소화하는 방향으로 운영한다.",
+            "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     raise ValueError(f"Unsupported harness: {harness}")
 
@@ -278,6 +280,7 @@ def render_package_contents(
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
 - `bundle/ai-workflow/project/project_workflow_profile.md`
+- `bundle/ai-workflow/project/state.json`
 - `bundle/ai-workflow/project/session_handoff.md`
 - `bundle/ai-workflow/project/work_backlog.md`
 - `bundle/ai-workflow/project/backlog/2026-04-23.md`
@@ -333,6 +336,7 @@ def render_apply_guide(
     first_session_reads = {
         "codex": [
             "- `AGENTS.md`",
+            "- `ai-workflow/project/state.json`",
             "- `ai-workflow/project/session_handoff.md`",
             "- `ai-workflow/project/work_backlog.md`",
             "- `ai-workflow/project/project_workflow_profile.md`",
@@ -342,6 +346,7 @@ def render_apply_guide(
             "- `opencode.json`",
             "- `.opencode/skills/standard-ai-workflow/SKILL.md`",
             "- `.opencode/agents/workflow-orchestrator.md`",
+            "- `ai-workflow/project/state.json`",
             "- `ai-workflow/project/session_handoff.md`",
             "- `ai-workflow/project/work_backlog.md`",
             "- `ai-workflow/project/project_workflow_profile.md`",
@@ -383,6 +388,7 @@ def render_apply_guide(
 
 ## 5. 적용 후 바로 수정할 항목
 
+- `ai-workflow/project/state.json` 의 current_focus 와 next_documents
 - `ai-workflow/project/project_workflow_profile.md` 의 실행/테스트/검증 명령
 - `ai-workflow/project/session_handoff.md` 의 현재 기준선
 - `ai-workflow/project/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태

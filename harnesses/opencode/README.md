@@ -25,7 +25,7 @@
 - `opencode.json` 은 기존 사용자 provider/model 기본값을 덮어쓰지 않도록 최소 키만 유지한다.
 - project-local skill 은 세션 시작, backlog 갱신, handoff 정리를 위한 빠른 진입점 역할을 한다.
 - project-local agent 는 workflow 문서와 기본 명령을 기준으로 조정 가능한 운영 오케스트레이터 역할을 한다.
-- 메인 오케스트레이터 agent 는 read-mostly coordinator 로 두고, 실제 수정과 대량 탐색은 서브 에이전트로 분리하는 구성을 권장한다.
+- 메인 오케스트레이터 agent 는 task-only coordinator 로 두고, 직접 도구 호출 없이 실제 수정과 탐색, 검증은 서브 에이전트로 분리하는 구성을 권장한다.
 - worker agent 는 bounded scope 의 읽기/쓰기/검증 작업을 받아 실행하고, 핵심 결과만 오케스트레이터에 되돌려주는 역할을 맡는다.
 - `workflow-code-worker` 는 실제 구현, 설정 수정, 빌드/컴파일 확인처럼 작업 본체를 맡는 기본 실행 worker 로 본다.
 - 문서/구현/검증 worker 를 나누면 역할이 더 선명해지고, `main orchestrator + small workers` 구조를 운영하기 쉬워진다.
@@ -53,8 +53,9 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `AGENTS.md` 가 생성됐는지 확인
 - `opencode.json` 의 instruction 경로가 현재 저장소 구조와 맞는지 확인
 - `.opencode/agents/` 권한 정책이 현재 팀 운영 방식과 맞는지 확인
-- 메인 오케스트레이터의 툴 권한이 지나치게 넓지 않은지 확인
+- 메인 오케스트레이터가 직접 `bash`/`edit`/`webfetch` 를 호출하지 않도록 제한됐는지 확인
 - worker agent 의 범위와 권한이 실제 실행 작업에 비해 과도하지 않은지 확인
+- worker agent 가 bounded scope 안에서 `ask` 를 과도하게 유발하지 않는지 확인
 - 문서/구현/검증 worker 분리가 현재 팀 운영 방식과 맞는지 확인
 - `workflow-code-worker` 가 실제 구현과 빌드 작업 담당이라는 점이 팀 운영 규칙에 반영돼 있는지 확인
 - 기존 프로젝트 도입 시 onboarding runner 결과를 worker 분배 프롬프트에 어떻게 녹일지 팀 규칙이 정해져 있는지 확인

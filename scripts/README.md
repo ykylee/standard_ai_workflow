@@ -11,6 +11,7 @@
 
 - [bootstrap_workflow_kit.py](./bootstrap_workflow_kit.py)
 - [export_harness_package.py](./export_harness_package.py)
+- [generate_workflow_state.py](./generate_workflow_state.py)
 - [scaffold_harness.py](./scaffold_harness.py)
 - [run_demo_workflow.py](./run_demo_workflow.py)
 - [run_existing_project_onboarding.py](./run_existing_project_onboarding.py)
@@ -52,6 +53,7 @@ rm -rf .venv
 - 기본 생성 구조:
 - `ai-workflow/README.md`
 - `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/project/state.json`
 - `ai-workflow/project/session_handoff.md`
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/backlog/YYYY-MM-DD.md`
@@ -60,6 +62,8 @@ rm -rf .venv
 - `--copy-core-docs` 를 주면 핵심 core 문서를 `ai-workflow/core/` 아래에 함께 복사한다.
 - 출력 형태:
 - 생성된 경로와 다음 작업을 JSON 으로 출력한다.
+- 상태 캐시:
+- bootstrap 은 `ai-workflow/project/state.json` 을 함께 생성해, 에이전트가 handoff/backlog 전체를 읽기 전에 현재 기준선을 빠르게 복원할 수 있게 한다.
 - manifest 추가 정보:
 - `global_snippet_candidates` 필드로 하네스별 전역 snippet 후보와 적용 대상 전역 설정 경로를 함께 출력한다.
 - 생성물 예시:
@@ -87,6 +91,30 @@ python3 scripts/bootstrap_workflow_kit.py \
   --adoption-mode existing \
   --harness codex \
   --copy-core-docs
+```
+
+## generate_workflow_state.py
+
+- 목적:
+- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, 최신 날짜 backlog 를 읽어 `state.json` 캐시를 다시 생성한다.
+- 사용 시점:
+- handoff 나 backlog 를 갱신한 직후
+- 다른 환경에서 export bundle 을 적용한 뒤 첫 세션 기준선을 빠르게 맞출 때
+- 출력 형태:
+- 생성된 `state.json` 경로를 JSON 으로 출력한다.
+- 운영 원칙:
+- `state.json` 은 source of truth 가 아니라 빠른 세션 복원용 캐시다.
+- 원본 상태는 계속 markdown 문서 세트를 기준으로 관리한다.
+
+실행 예시:
+
+```bash
+python3 scripts/generate_workflow_state.py \
+  --project-profile-path /path/to/project/ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path /path/to/project/ai-workflow/project/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/project/work_backlog.md \
+  --latest-backlog-path /path/to/project/ai-workflow/project/backlog/2026-04-24.md \
+  --output-path /path/to/project/ai-workflow/project/state.json
 ```
 
 ## run_demo_workflow.py

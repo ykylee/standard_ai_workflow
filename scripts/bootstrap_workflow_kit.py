@@ -12,8 +12,12 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit.common.workflow_state import build_workflow_state_payload
+
 DEFAULT_CORE_DOCS = [
     "global_workflow_standard.md",
     "workflow_skill_catalog.md",
@@ -51,6 +55,7 @@ class Paths:
     backlog_dir: Path
     readme_path: Path
     profile_path: Path
+    state_path: Path
     handoff_path: Path
     backlog_index_path: Path
     daily_backlog_path: Path
@@ -147,6 +152,7 @@ def make_paths(args: argparse.Namespace) -> Paths:
         backlog_dir=backlog_dir,
         readme_path=kit_root / "README.md",
         profile_path=project_dir / "project_workflow_profile.md",
+        state_path=project_dir / "state.json",
         handoff_path=project_dir / "session_handoff.md",
         backlog_index_path=project_dir / "work_backlog.md",
         daily_backlog_path=backlog_dir / f"{args.today}.md",
@@ -446,7 +452,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `./project/project_workflow_profile.md`, `./project/session_handoff.md`, `./project/work_backlog.md`
+- 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -457,6 +463,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 ## 2. 생성된 파일
 
 - [project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- [project/state.json](./project/state.json)
 - [project/session_handoff.md](./project/session_handoff.md)
 - [project/work_backlog.md](./project/work_backlog.md)
 - [project/backlog/{args.today}.md](./project/backlog/{args.today}.md)
@@ -473,7 +480,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 ## 5. 도입 직후 해야 할 일
 
 1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
-2. `session_handoff.md` 와 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
+2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
 5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
@@ -496,6 +503,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- 빠른 상태 요약: [./project/state.json](./project/state.json)
 - 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
 - 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)
 """
@@ -886,6 +894,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 ## 항상 먼저 읽을 문서
 
+- `ai-workflow/project/state.json`
 - `ai-workflow/project/session_handoff.md`
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/project_workflow_profile.md`
@@ -895,7 +904,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
 - 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
 - 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `session_handoff.md` 와 최신 backlog 를 갱신한다.
+- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
 
 ## 언어와 컨텍스트 원칙
 
@@ -944,6 +953,7 @@ supports_parallel_tool_calls = true
 def render_opencode_config(args: argparse.Namespace, paths: Paths) -> str:
     instructions = [
         "AGENTS.md",
+        f"{rel(paths.state_path, paths.target_root)}",
         f"{rel(paths.profile_path, paths.target_root)}",
         f"{rel(paths.handoff_path, paths.target_root)}",
         f"{rel(paths.backlog_index_path, paths.target_root)}",
@@ -1005,6 +1015,7 @@ Use this skill when you need to start a session, update backlog state, sync docu
 
 Always read:
 
+- `ai-workflow/project/state.json`
 - `ai-workflow/project/session_handoff.md`
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/project_workflow_profile.md`
@@ -1020,7 +1031,7 @@ Follow these rules:
 - Brief the task before editing files.
 - Keep task status aligned with backlog records.
 - Do not mark work done without validation evidence.
-- Update the handoff and latest backlog before ending a session.
+- Update `state.json`, the handoff, and the latest backlog before ending a session.
 - Keep internal reasoning and intermediate classification compact, and avoid long repeated explanations to the user.
 - Leave only essential facts in handoff/backlog so session context stays lean.
 """
@@ -1031,14 +1042,9 @@ def render_opencode_agent(args: argparse.Namespace, context: dict[str, object]) 
 description: Orchestrates the standard AI workflow for this repository
 mode: primary
 permission:
-  edit: ask
-  bash:
-    "*": ask
-    "git status*": allow
-    "git diff*": allow
-    "rg *": allow
-    "ls *": allow
-  webfetch: ask
+  edit: deny
+  bash: deny
+  webfetch: deny
 ---
 
 You are the workflow orchestrator for this repository.
@@ -1046,6 +1052,7 @@ You are the workflow orchestrator for this repository.
 Start each substantial task by reading:
 
 - `AGENTS.md`
+- `ai-workflow/project/state.json`
 - `ai-workflow/project/session_handoff.md`
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/project_workflow_profile.md`
@@ -1066,11 +1073,12 @@ User-facing workflow rules:
 - Keep code, commands, file paths, config keys, and external system names in their original form when useful.
 - Use concise progress updates and avoid long repeated reasoning in user-visible messages.
 - Keep internal processing compact and preserve only the facts needed for the next step or next session.
+- Do not call direct tools yourself. Use only task delegation for repository exploration, comparisons, implementation, checks, and draft generation.
 - Use sub-agents aggressively for file exploration, comparisons, log inspection, and draft generation when that helps reduce context pollution.
 - Keep the main orchestrator focused on coordination, prioritization, integration, and the final user-facing report.
 - Separate broad read-heavy exploration from write tasks when possible so one stream of work does not pollute another stream's context.
-- Treat this agent as a read-mostly coordinator: prefer delegating edits, broad scans, and heavy log review to sub-agents unless a small direct action is clearly cheaper.
-- Keep direct tool use narrow: use lightweight inspection commands for triage, and escalate to sub-agents for context-heavy reads or any substantial write path.
+- Treat this agent as a read-mostly coordinator with task-only execution: delegate edits, scans, log review, and validation to sub-agents instead of making exceptions for direct tool use.
+- Ask the user only when a missing decision is genuinely blocking or a risky external action needs confirmation; otherwise make the smallest reasonable assumption and continue through a worker.
 - When delegating, give each worker a bounded scope, clear output, and a concise completion contract.
 - Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded implementation, config edits, and build-oriented tasks, and `workflow-validation-worker` for checks and evidence collection.
 - If your harness supports per-agent model selection, prefer the main model for this orchestrator and a smaller model for the worker agents by default.
@@ -1082,14 +1090,9 @@ def render_opencode_worker_agent(args: argparse.Namespace, context: dict[str, ob
 description: Executes bounded workflow tasks for this repository
 mode: subagent
 permission:
-  edit: ask
-  bash:
-    "*": ask
-    "git status*": allow
-    "git diff*": allow
-    "rg *": allow
-    "ls *": allow
-  webfetch: ask
+  edit: allow
+  bash: allow
+  webfetch: allow
 ---
 
 You are a workflow worker for this repository.
@@ -1099,6 +1102,7 @@ You are not the main orchestrator. Your role is to execute a tightly scoped task
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
+- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
 - the specific `ai-workflow/project/` document or file paths that match your assigned scope
 
 Project defaults:
@@ -1118,6 +1122,7 @@ Worker rules:
 - If you edit files, keep changes narrow and do not expand into unrelated cleanup.
 - If you run checks, report only the command intent and the result that matters.
 - Write user-facing drafts in Korean by default unless the assigned task clearly requires another language.
+- Minimize asks during execution. Proceed with the smallest reasonable assumption unless the orchestrator explicitly requested a decision point.
 """
 
 
@@ -1126,14 +1131,9 @@ def render_opencode_doc_worker_agent(args: argparse.Namespace, context: dict[str
 description: Executes bounded document-focused workflow tasks for this repository
 mode: subagent
 permission:
-  edit: ask
-  bash:
-    "*": ask
-    "git status*": allow
-    "git diff*": allow
-    "rg *": allow
-    "ls *": allow
-  webfetch: ask
+  edit: allow
+  bash: allow
+  webfetch: allow
 ---
 
 You are a document-focused workflow worker for this repository.
@@ -1143,6 +1143,7 @@ Your role is to read, compare, summarize, and update a tightly scoped set of doc
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
+- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
 - the assigned `ai-workflow/project/` documents or directly named doc paths
 
 Worker rules:
@@ -1151,6 +1152,7 @@ Worker rules:
 - Prefer concise comparisons, change notes, and draft text over long quotations.
 - Return only the facts, inconsistencies, draft wording, and follow-up items needed by the orchestrator.
 - Keep user-facing drafts in Korean by default.
+- Minimize asks during execution and resolve obvious document-structure choices locally when risk is low.
 - If your harness supports per-agent model selection, this worker is a good default target for a smaller model.
 """
 
@@ -1160,14 +1162,9 @@ def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[st
 description: Executes bounded implementation and build-focused workflow tasks for this repository
 mode: subagent
 permission:
-  edit: ask
-  bash:
-    "*": ask
-    "git status*": allow
-    "git diff*": allow
-    "rg *": allow
-    "ls *": allow
-  webfetch: ask
+  edit: allow
+  bash: allow
+  webfetch: allow
 ---
 
 You are an implementation and build-focused workflow worker for this repository.
@@ -1177,6 +1174,7 @@ Your role is to implement a tightly scoped code or config change, run the minimu
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
+- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
 
 Worker rules:
@@ -1186,6 +1184,7 @@ Worker rules:
 - Treat build, compile, package, or asset-generation commands as part of your default scope when they are the shortest path to proving the implementation still holds.
 - If you run checks, report what matters: pass/fail, key regression risk, build impact, and any deferred follow-up.
 - Avoid broad repository exploration unless explicitly assigned.
+- Minimize asks during execution. Make bounded implementation choices locally unless the change would alter product behavior or ownership boundaries.
 - If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
 """
 
@@ -1195,14 +1194,9 @@ def render_opencode_validation_worker_agent(args: argparse.Namespace, context: d
 description: Executes bounded validation and evidence-collection tasks for this repository
 mode: subagent
 permission:
-  edit: ask
-  bash:
-    "*": ask
-    "git status*": allow
-    "git diff*": allow
-    "rg *": allow
-    "ls *": allow
-  webfetch: ask
+  edit: allow
+  bash: allow
+  webfetch: allow
 ---
 
 You are a validation-focused workflow worker for this repository.
@@ -1212,6 +1206,7 @@ Your role is to run bounded checks, inspect logs, gather evidence, and return a 
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
+- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
 - the assigned validation scope, commands, and relevant backlog or handoff notes
 
 Project defaults:
@@ -1225,6 +1220,7 @@ Worker rules:
 - Stay within the assigned validation scope and command set.
 - Report only the result that matters: what ran, what failed or passed, and what evidence should be recorded.
 - Avoid flooding the orchestrator with raw logs when a short summary is enough.
+- Minimize asks during execution and complete the assigned checks unless the environment is genuinely blocked.
 - If your harness supports per-agent model selection, this worker is usually a strong candidate for a smaller model.
 """
 
@@ -1313,6 +1309,7 @@ def build_manifest(
     generated_files: dict[str, str] = {
         "readme": str(paths.readme_path),
         "project_profile": str(paths.profile_path),
+        "workflow_state": str(paths.state_path),
         "session_handoff": str(paths.handoff_path),
         "work_backlog": str(paths.backlog_index_path),
         "daily_backlog": str(paths.daily_backlog_path),
@@ -1333,6 +1330,7 @@ def build_manifest(
         "copied_core_docs": core_docs,
         "next_steps": [
             f"Open {rel(paths.profile_path, paths.target_root)} and replace TODO placeholders.",
+            f"Refresh {rel(paths.state_path, paths.target_root)} after updating workflow docs.",
             f"Update {rel(paths.handoff_path, paths.target_root)} with the current session baseline.",
             f"Register the next real task in {rel(paths.daily_backlog_path, paths.target_root)}.",
         ]
@@ -1371,6 +1369,23 @@ def main() -> int:
         write_text(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
         if args.adoption_mode == "existing":
             write_text(paths.assessment_path, render_assessment(args, context), force=args.force)
+        write_text(
+            paths.state_path,
+            json.dumps(
+                build_workflow_state_payload(
+                    project_profile_path=paths.profile_path,
+                    session_handoff_path=paths.handoff_path,
+                    work_backlog_index_path=paths.backlog_index_path,
+                    latest_backlog_path=paths.daily_backlog_path,
+                    repository_assessment_path=paths.assessment_path if args.adoption_mode == "existing" else None,
+                    generated_at=args.today,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            force=args.force,
+        )
         harness_files = write_harness_files(args, paths, context)
         if args.copy_core_docs:
             core_docs = copy_core_docs(paths, force=args.force)

@@ -113,7 +113,8 @@ OpenCode 에서는 아래처럼 해석하는 것이 적절하다.
 
 - `opencode.json` 은 `AGENTS.md` 와 `ai-workflow/project/` 문서를 참조하는 연결 계층으로 둔다.
 - `.opencode/agents/` 권한 정책은 보수적 기본값으로 두고, 프로젝트 규칙은 문서에서 읽게 한다.
-- 메인 오케스트레이터는 read-mostly coordinator 로 두고, 실제 수정/광범위 탐색은 서브 에이전트 쪽 권한으로 분리하는 구성이 잘 맞는다.
+- 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 `bash`/`edit`/`webfetch` 를 수행하지 않은 채 실제 수정/광범위 탐색은 서브 에이전트 쪽 권한으로 분리하는 구성이 기본값에 가깝다.
+- 서브 에이전트는 bounded scope 안에서 실제 실행을 담당하고, low-risk 작업에서는 `ask` 를 최소화하는 쪽이 운영성과 컨텍스트 효율에 더 잘 맞는다.
 
 ## 7. 추천 운영 방식
 

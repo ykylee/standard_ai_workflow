@@ -87,6 +87,22 @@ def main() -> int:
         for error in link_errors:
             failures.append(f"{rel_path}: {error}")
 
+    targeted_phrases = {
+        Path("core/global_workflow_standard.md"): [
+            "task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.",
+            "ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.",
+        ],
+        Path("core/workflow_agent_topology.md"): [
+            "메인 오케스트레이터가 직접 도구 호출을 수행하는 패턴은 기본값이 아니며",
+            "권장 툴 성격: task-only delegation",
+        ],
+    }
+    for rel_path, snippets in targeted_phrases.items():
+        text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
+        for snippet in snippets:
+            if snippet not in text:
+                failures.append(f"{rel_path}: missing required phrase `{snippet}`")
+
     if failures:
         print("Document smoke check failed:")
         for failure in failures:

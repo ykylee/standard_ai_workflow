@@ -62,7 +62,8 @@
 - model/provider 관련 top-level key 는 기본 생성물에서 생략한다.
 - 사용자 전역 permission 기본값을 프로젝트 config 에서 통째로 덮어쓰지 않는다.
 - 프로젝트별 권한 정책이 필요하면 project-local agent 단위에서만 최소 범위로 정의한다.
-- 특히 메인 오케스트레이터 agent 는 read-mostly coordinator 성격으로 두고, 직접 수정/광범위 탐색 권한은 최소화하는 편이 안전하다.
+- 특히 메인 오케스트레이터 agent 는 task-only coordinator 성격으로 두고, 직접 수정/광범위 탐색 권한은 원칙적으로 주지 않는 편이 안전하다.
+- 실제 탐색, 수정, 검증은 project-local worker agent 로 분리하고, `ask` 는 genuinely blocking decision 이나 위험한 외부 작업에만 쓰도록 좁히는 편이 기본 정책과 잘 맞는다.
 - 언어 정책과 응답 길이/중간 설명 최소화 정책은 `instructions` 또는 project-local skill/agent 문서에 두는 것이 적합하다.
 
 ## 6. 예외가 필요한 경우

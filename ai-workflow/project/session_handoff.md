@@ -5,16 +5,17 @@
 - 대상 독자: 개발자, 운영자, 리뷰어, 문서 작성자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/2026-04-24.md`
+- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
 
 ## 1. 현재 작업 요약
 
 - 현재 기준선:
-- ai-workflow scaffold 와 Codex 진입점 `AGENTS.md` 를 이 저장소에 실제 배포했고, self-dogfood 기준으로 workflow 경계를 검증하는 중이다.
+- Standard AI Workflow 저장소의 루트 `README.md`, `requirements-dev.txt`, `tests/README.md`, `ai-workflow/project/*` 를 확인했다.
+- 기존 작업 트리는 다수의 수정/삭제가 있는 상태이므로, 온보딩 문서 갱신은 workflow state docs 범위로 제한한다.
 - 현재 주 작업 축:
-- workflow state docs 와 실제 project docs 경계를 이 저장소 운영 방식에 맞게 고정하고, Codex 흐름에서 실제로 동작하는지 검증하는 작업
+- TASK-001 표준 AI 워크플로우 초기 도입을 실제 저장소 기준으로 정렬한다.
 - 최근 핵심 기준 문서:
-- `ai-workflow/project/project_workflow_profile.md`, `core/workflow_state_vs_project_docs.md`
+- `README.md`, `tests/README.md`, `core/workflow_state_vs_project_docs.md`, `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
 
 ## 1.1 기록 원칙
 
@@ -26,47 +27,53 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-001 이 저장소에 Codex workflow 배포 및 self-dogfood 검증
+- TASK-001 표준 AI 워크플로우 초기 도입
+
+연결 계획 문서: [TASK-001 표준 AI 워크플로우 초기 도입 계획](./plans/TASK-001-standard-workflow-onboarding.md)
+이어서 볼 위치: `6. 작업 단계`
+
+목적은 샘플 bootstrap 값과 TODO 를 현재 저장소의 실제 명령, 문서 구조, 검증 기준으로 교체하는 것이다. 범위는 `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`, `ai-workflow/project/state.json` 이다.
+
 ## 3. 차단 작업
 
-- 현재 `blocked` 작업:
-- 
-- 
+- 현재 `blocked` 작업: 없음
+
 ## 4. 최근 완료 작업
 
-- 최근 완료 작업 목록:
-- 기존 저장소 구조 자동 스캔 완료
-- ai-workflow bootstrap 과 Codex overlay 초안 생성 완료
+- 최근 완료 작업 목록: 아직 없음
+
 ## 5. 잔여 작업 우선순위
 
 ### 우선순위 1
 
-- profile 문서의 명령과 문서 경계를 실제 저장소 기준으로 확정
-- 오늘 날짜 workflow backlog 에 실제 진행 작업과 검증 결과를 반영
+- `TASK-001` 문서 정렬 후 전체 smoke 실행 필요 여부를 결정한다.
+- workflow state docs 작성 규칙을 skill/parser 쪽 테스트나 템플릿에도 반영할지 검토한다.
+- 큰 작업별 계획 문서 연결 규칙을 bootstrap 산출물과 skill 출력에도 더 깊게 반영할지 검토한다.
+- `TASK-002`부터 `TASK-007`까지 등록한 장기 작업 중 다음 착수 항목을 선택한다.
 
 ### 우선순위 2
 
-- self-dogfood 결과를 바탕으로 Codex/OpenCode 배포 규칙의 거슬리는 지점을 정리
-- 필요하면 실제 project docs 와 workflow state docs 의 동기화 규칙을 더 세분화
+- 별도 `docs/` 운영 문서 트리를 만들지, 루트 `README.md`/`core/`/`tests/README.md` 체계를 유지할지 결정한다.
+- skill/MCP 도입 후보 범위를 현재 저장소 리스크에 맞게 좁히기
 
 ## 6. 환경별 검증 현황
 
 - 검증 완료 호스트:
-- `local / 127.0.0.1`
+- `iyeong-gyun-ui-MacBookAir.local / 192.168.0.139`
 - 주요 제약:
-- 루트 `.codex` 는 원래 빈 파일이었고, 현재는 `.codex.pre_workflow_2026-04-24` 로 보존했다. 전역 Codex 설정 병합은 별도 판단이 필요하다.
-- 기존 `.codex` 파일과 Codex 설정 디렉터리 충돌 이력이 있어 전역 설정 병합은 수동 검토 후 진행해야 한다.
+- macOS `Darwin 25.4.0 arm64`, Python `3.11.15` 기준.
+- `python3 tests/check_docs.py` 통과: 91개 markdown 문서 smoke 확인.
+- `python3 skills/session-start/scripts/run_session_start.py ...` 통과: 경고 없이 진행 중 작업 1건 복원.
+- `ai-workflow/project/state.json` 재생성 완료.
+- 실제 실행에서 발견한 최적화 규칙을 `core/workflow_state_vs_project_docs.md` 에 반영했다.
+- 큰 작업별 계획 문서 연결 규칙을 core 문서, 템플릿, bootstrap 산출물, 현재 `TASK-001` 계획 문서에 반영했다.
+- `session-start` 와 `state.json` 에 계획 문서가 다음 문서로 노출되는 것을 확인했다.
+- 장기 작업 계획 문서 템플릿을 개발, 분석, 리팩터링, 운영, 문서/workflow 등 카테고리 확장형으로 보강했다.
+- 병렬 작업 충돌을 줄이기 위해 날짜별 backlog 경로를 호스트명/IP 폴더 아래로 분리했다.
+- `latest-backlog` 가 중첩 backlog 경로를 재귀 탐색하는 것을 확인했다.
+- 현재 개발 현황을 6개 장기 작업으로 분류하고 개별 계획 문서를 등록했다.
+- 전체 smoke 는 아직 실행하지 않았다.
 
-## 현재 세션 운영 메모
-
-- workflow state write target 은 `ai-workflow/project/*` 로 유지한다.
-- 실제 project docs 탐색은 `README.md`, `core/`, `backlog/` 를 우선 보고 `ai-workflow/` 는 메타 레이어로 분리한다.
-- Codex 실제 적용 테스트에서는 `session-start`, `backlog-update --apply`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile --apply` 순으로 점검한다.
-
-- [merge-doc-reconcile] 프로젝트 병합 규칙: ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
-- [merge-doc-reconcile] 병합 후 handoff 와 최신 backlog 의 상태값을 실제 저장소 기준으로 다시 맞춘다.
-- [merge-doc-reconcile] 허브 및 인덱스 문서가 최신 문서 경로와 설명을 반영하는지 확인한다.
-- [merge-doc-reconcile] 병합에 포함된 변경 파일과 문서 설명이 어긋나지 않는지 다시 본다.
 ## 다음에 읽을 문서
 
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)

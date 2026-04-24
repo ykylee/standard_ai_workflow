@@ -21,6 +21,8 @@
 
 - `session_handoff_path`
 - `latest_backlog_path`
+- `completed_commands`
+- `failed_commands`
 
 ## 기대 출력
 
@@ -31,6 +33,7 @@
 - 문서화 체크 항목
 - 증빙 기대값
 - 미실행 가능 항목과 기록 위치 힌트
+- 입력된 실행 결과 요약
 - 경고와 신뢰도 메모
 
 ## 권한 경계
@@ -48,6 +51,8 @@
 - 프로젝트 특화 환경 제약은 `warnings` 와 `deferred_validation_items` 에 반영한다.
 - 문서 전용 변경이어도 프로젝트 프로파일에 빠른 테스트가 정의돼 있으면 기본 회귀 확인 명령을 함께 제안한다.
 - `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
+- `completed_commands` 가 있으면 해당 명령을 남은 추천 목록과 미실행 항목에서 제외한다.
+- `failed_commands` 가 있으면 해당 명령을 경고와 후속 재확인 항목에 남긴다.
 
 ## 프로토타입 실행
 
@@ -58,10 +63,13 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --changed-file app/jobs/delivery_sync.py \
   --changed-file docs/operations/runbooks/delivery-sync.md \
-  --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
+  --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정" \
+  --completed-command "pytest -q" \
+  --failed-command "make lint"
 ```
 
 ## 현재 상태
 
 - 입력/출력 계약과 읽기 전용 프로토타입이 있다.
+- 실행 결과 입력을 받아 이미 통과한 명령은 남은 검증 후보에서 제외하고, 실패한 명령은 후속 재확인 항목으로 남긴다.
 - 실제 테스트 실행, CI 수집, 증빙 업로드는 아직 없다.

@@ -41,8 +41,8 @@ def extract_index_candidates(index_path: Path) -> list[Path]:
 
 
 def discover_backlog_files(backlog_dir: Path) -> list[Path]:
-    files = [path for path in backlog_dir.glob("*.md") if DATE_NAME_RE.search(path.name)]
-    return sorted(files, key=lambda path: path.name)
+    files = [path for path in backlog_dir.rglob("*.md") if DATE_NAME_RE.search(path.name)]
+    return sorted(files, key=lambda path: (path.name, path.as_posix()))
 
 
 def latest_backlog_payload(*, backlog_dir_path: str | None, work_backlog_index_path: str | None, tool_version: str) -> dict[str, Any]:

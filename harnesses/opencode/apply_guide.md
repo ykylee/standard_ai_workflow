@@ -72,6 +72,18 @@
 - 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 도구 호출 없이 대량 탐색/로그 수집/실제 수정은 서브 에이전트에 맡기도록 권한 정책을 나누는 편이 좋다.
 - `main`/`small` 모델 구조를 쓴다면, 메인 오케스트레이터는 `main`, 문서/코드/검증 worker 는 기본적으로 `small` 쪽에 두는 편이 효율적이다.
 
+## 2.6 로컬 LLM edit 실패 회피 규칙
+
+로컬 LLM worker 에서 빈도가 높은 `edit` 실패는 보통 직전 read 없이 오래된 기준선으로 patch 를 만들거나, 너무 큰 replacement 를 시도하거나, 반복 블록/공백/line ending 이 예상과 다를 때 발생한다. OpenCode worker 문서에는 아래 규칙을 넣는 것을 권장한다.
+
+- edit 직전 대상 파일을 읽고 현재 내용 기준으로 anchor 를 잡는다.
+- 한 번에 하나의 작은 hunk 를 수정하고, 여러 파일 변경은 파일별로 read -> edit -> 확인 순서를 반복한다.
+- 기존 tab/space 와 CRLF/LF 스타일은 기본적으로 보존한다.
+- tab -> 4 space, CRLF -> LF 같은 정규화가 필요하면 맡은 파일 범위에 먼저 제한하고, 정규화 후 다시 읽은 뒤 실제 수정 patch 를 적용한다.
+- 반복되는 큰 블록보다 고유한 함수명, heading, 설정 key, 인접 라인을 기준으로 patch 를 만든다.
+- 테스트 코드처럼 유사한 assertion/setup 라인이 많은 파일은 `oldString` 에 앞뒤 문맥을 함께 넣어 대상 문자열이 고유하게 잡히도록 한다.
+- edit 실패 후에는 같은 patch 를 반복하지 말고 파일을 다시 읽어 더 좁은 replacement 로 재시도한다.
+
 ## 3. 신규 프로젝트 적용 순서
 
 1. 아래 명령으로 기본 문서 세트와 OpenCode overlay 를 생성한다.
@@ -96,6 +108,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    가능하면 메인 오케스트레이터는 직접 `bash`/`edit`/`webfetch` 를 호출하지 않고 `task` 위임만 수행하게 둔다.
    `.opencode/agents/workflow-worker.md` 는 bounded scope 실행용으로 두고, 실제 구현과 빌드는 `workflow-code-worker`, 검증 증빙은 `workflow-validation-worker` 에 맡기는 운영 패턴을 함께 검토한다.
    worker 쪽은 범위만 충분히 좁혀 두고, low-risk 실행에서는 `ask` 를 과도하게 유발하지 않도록 설정하는 편이 실제 운영성이 좋다.
+   로컬 LLM 을 worker 로 쓸 경우 edit 전 read, small hunk edit, whitespace/line ending 보존, 실패 후 reread/retry 원칙이 worker prompt 에 포함됐는지 확인한다.
    필요하면 worker 를 `workflow-doc-worker`, `workflow-code-worker`, `workflow-validation-worker` 로 나눠 역할별로 호출한다.
 6. 첫 세션에서 handoff 와 backlog 를 채운다.
 
@@ -122,6 +135,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    이때 오케스트레이터가 직접 `bash`/`edit`/`webfetch` 를 수행하지 않도록 task-only 권한 프로필을 우선 고려한다.
    worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.
    특히 구현, 설정 변경, 빌드/컴파일 확인은 `workflow-code-worker` 에 우선 배정하는 편이 자연스럽다.
+   오래된 기준선, 넓은 replacement, tab/space 또는 CRLF/LF 불일치가 edit 실패의 흔한 원인이므로 worker prompt 에 read-before-edit 과 작은 단위 retry 규칙을 둔다.
    작업 중 추가 질의는 genuinely blocking case 로 좁히고, 나머지는 worker 가 최소 가정으로 계속 진행하도록 두는 편이 좋다.
    모델을 나눠 운영한다면 기본값은 `main orchestrator + small workers` 로 두고, 구조 판단이 어려운 경우에만 worker 를 일시적으로 `main` 으로 올리는 편이 좋다.
 6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
@@ -150,6 +164,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `ai-workflow/project/` 문서 세트가 존재한다.
 - profile 문서의 명령과 검증 규칙이 실제 저장소 기준으로 채워져 있다.
 - handoff 와 backlog 가 비어 있지 않다.
+- worker prompt 가 edit 전 read, 작은 단위 edit, tab/space 와 CRLF/LF 보존 또는 제한 정규화, 실패 후 reread/retry 원칙을 포함한다.
 
 ## 7. 자주 손보게 되는 부분
 

@@ -7,45 +7,18 @@
     "warnings"
   ],
   "success_required_keys": {
-    "session_start": [
-      "recommended_next_action",
-      "summary"
-    ],
     "backlog_update": [
       "operation_type",
       "source_context",
       "target_backlog_path"
     ],
-    "doc_sync": [
-      "impacted_documents",
-      "recommended_review_order",
-      "source_context"
-    ],
-    "merge_doc_reconcile": [
-      "reconcile_targets",
-      "source_context",
-      "state_conflicts"
-    ],
-    "validation_plan": [
-      "documentation_checks",
-      "recommended_validation_levels",
-      "source_context"
-    ],
-    "code_index_update": [
-      "index_update_candidates",
-      "source_context"
-    ],
-    "latest_backlog": [
-      "candidates",
-      "latest_backlog_path"
+    "check_doc_links": [
+      "broken_links",
+      "checked_files"
     ],
     "check_doc_metadata": [
       "checked_files",
       "missing_metadata"
-    ],
-    "check_doc_links": [
-      "broken_links",
-      "checked_files"
     ],
     "check_quickstart_stale_links": [
       "checked_files",
@@ -53,61 +26,53 @@
       "reasoning_notes",
       "stale_link_warnings"
     ],
+    "code_index_update": [
+      "index_update_candidates",
+      "source_context"
+    ],
     "create_backlog_entry": [
       "draft_entry"
-    ],
-    "suggest_impacted_docs": [
-      "impacted_documents",
-      "reasoning_notes"
     ],
     "demo_workflow": [
       "orchestration_plan",
       "source_context",
       "workflow_summary"
     ],
+    "doc_sync": [
+      "impacted_documents",
+      "recommended_review_order",
+      "source_context"
+    ],
     "existing_project_onboarding": [
       "onboarding_summary",
       "orchestration_plan",
       "source_context"
+    ],
+    "latest_backlog": [
+      "candidates",
+      "latest_backlog_path"
+    ],
+    "merge_doc_reconcile": [
+      "reconcile_targets",
+      "source_context",
+      "state_conflicts"
+    ],
+    "session_start": [
+      "recommended_next_action",
+      "summary"
+    ],
+    "suggest_impacted_docs": [
+      "impacted_documents",
+      "reasoning_notes"
+    ],
+    "validation_plan": [
+      "documentation_checks",
+      "recommended_validation_levels",
+      "source_context"
     ]
   },
   "error_required_keys": {
-    "session_start": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
     "backlog_update": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "doc_sync": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "merge_doc_reconcile": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "validation_plan": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "code_index_update": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "latest_backlog": [
-      "error",
-      "error_code",
-      "source_context"
-    ],
-    "check_doc_metadata": [
       "error",
       "error_code",
       "source_context"
@@ -117,12 +82,42 @@
       "error_code",
       "source_context"
     ],
+    "check_doc_metadata": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
     "check_quickstart_stale_links": [
       "error",
       "error_code",
       "source_context"
     ],
-    "suggest_impacted_docs": [
+    "code_index_update": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "demo_workflow": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "doc_sync": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "existing_project_onboarding": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "latest_backlog": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "merge_doc_reconcile": [
       "error",
       "error_code",
       "source_context"
@@ -132,12 +127,17 @@
       "error_code",
       "source_context"
     ],
-    "demo_workflow": [
+    "session_start": [
       "error",
       "error_code",
       "source_context"
     ],
-    "existing_project_onboarding": [
+    "suggest_impacted_docs": [
+      "error",
+      "error_code",
+      "source_context"
+    ],
+    "validation_plan": [
       "error",
       "error_code",
       "source_context"
@@ -835,6 +835,36 @@
         "required_keys": [],
         "allow_null": false
       },
+      "executed_validation_results": {
+        "kind": "list",
+        "item_kind": "object",
+        "required_keys": [
+          "command",
+          "status",
+          "summary"
+        ],
+        "allow_null": false,
+        "item_properties": {
+          "command": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "status": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          },
+          "summary": {
+            "kind": "string",
+            "item_kind": null,
+            "required_keys": [],
+            "allow_null": false
+          }
+        }
+      },
       "source_context": {
         "kind": "object",
         "item_kind": null,
@@ -853,6 +883,18 @@
             "allow_null": false
           },
           "changed_files": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "completed_commands": {
+            "kind": "list",
+            "item_kind": "string",
+            "required_keys": [],
+            "allow_null": false
+          },
+          "failed_commands": {
             "kind": "list",
             "item_kind": "string",
             "required_keys": [],

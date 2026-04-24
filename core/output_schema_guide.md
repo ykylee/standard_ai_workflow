@@ -249,6 +249,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `documentation_checks` | 예 | `list[str]` | 문서화/운영 체크 항목 |
 | `evidence_expectations` | 예 | `list[str]` | 남겨야 할 증빙 또는 기록 형태 |
 | `deferred_validation_items` | 예 | `list[object]` | 미실행 항목과 권장 기록 위치 |
+| `executed_validation_results` | 아니오 | `list[object]` | 입력으로 받은 통과/실패 검증 결과 요약 |
 | `warnings` | 예 | `list[str]` | 환경 제약, 승인 제약, 보수적 경고 |
 | `confidence_notes` | 예 | `list[str]` | 추천 강도 및 해석 근거 |
 | `source_context` | 예 | `object` | 프로젝트 프로파일과 변경 입력 요약 |
@@ -262,6 +263,7 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 추가 메모:
 
 - docs-primary 변경에서도 프로젝트 프로파일의 빠른 테스트 명령이 있으면 `recommended_commands` 에 기본 회귀 확인용으로 포함할 수 있다.
+- `completed_commands` 와 `failed_commands` 입력이 있으면 이미 통과한 명령은 남은 추천에서 제외하고, 실패한 명령은 후속 재확인 항목으로 남긴다.
 
 ### 5.6 `code-index-update`
 

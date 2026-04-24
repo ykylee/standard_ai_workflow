@@ -37,6 +37,7 @@
 - 최근 완료 작업 목록:
 - 기존 저장소 구조 자동 스캔 완료
 - ai-workflow bootstrap 과 Codex overlay 초안 생성 완료
+- OpenCode 로컬 LLM edit 실패 회피 규칙을 worker prompt, harness 문서, agent topology 에 반영 완료
 ## 5. 잔여 작업 우선순위
 
 ### 우선순위 1
@@ -46,7 +47,7 @@
 
 ### 우선순위 2
 
-- self-dogfood 결과를 바탕으로 Codex/OpenCode 배포 규칙의 거슬리는 지점을 정리
+- 실제 OpenCode 적용 저장소에서 edit 실패 로그가 쌓이면 read-before-edit, small hunk, whitespace/line ending 정규화 규칙을 더 구체적인 taxonomy 로 정리
 - 필요하면 실제 project docs 와 workflow state docs 의 동기화 규칙을 더 세분화
 
 ## 6. 환경별 검증 현황
@@ -62,6 +63,7 @@
 - workflow state write target 은 `ai-workflow/project/*` 로 유지한다.
 - 실제 project docs 탐색은 `README.md`, `core/`, `backlog/` 를 우선 보고 `ai-workflow/` 는 메타 레이어로 분리한다.
 - Codex 실제 적용 테스트에서는 `session-start`, `backlog-update --apply`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile --apply` 순으로 점검한다.
+- OpenCode 로컬 LLM worker 는 `edit` 전 대상 파일을 바로 읽고, 작은 hunk 로 수정하며, tab/space 및 CRLF/LF 정규화가 필요하면 맡은 파일 범위로 제한한 뒤 reread/retry 하는 규칙을 기본값으로 둔다.
 
 - [merge-doc-reconcile] 프로젝트 병합 규칙: ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
 - [merge-doc-reconcile] 병합 후 handoff 와 최신 backlog 의 상태값을 실제 저장소 기준으로 다시 맞춘다.

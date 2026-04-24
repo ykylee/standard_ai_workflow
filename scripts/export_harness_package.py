@@ -217,6 +217,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
             "`opencode.json` 의 instruction 경로와 `.opencode/agents/` 권한 범위가 현재 저장소 운영 방식과 맞는지 검토한다.",
             "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 직접 도구 호출 없이 worker agent 위임만 수행하는 패턴을 유지한다.",
             "worker agent 는 bounded scope 안에서 실제 읽기/수정/검증을 맡고, low-risk 실행에서는 `ask` 를 최소화하는 방향으로 운영한다.",
+            "로컬 LLM worker 를 쓰는 경우 edit 직전 read, 작은 단위 edit, tab/space 와 CRLF/LF 보존, 실패 후 reread/retry 원칙이 `.opencode/agents/` 문서에 남아 있는지 확인한다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     raise ValueError(f"Unsupported harness: {harness}")

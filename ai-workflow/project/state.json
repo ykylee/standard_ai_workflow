@@ -31,7 +31,8 @@
     "blocked_items": [],
     "recent_done_items": [
       "기존 저장소 구조 자동 스캔 완료",
-      "ai-workflow bootstrap 과 Codex overlay 초안 생성 완료"
+      "ai-workflow bootstrap 과 Codex overlay 초안 생성 완료",
+      "TASK-002 OpenCode 로컬 LLM edit 실패 회피 규칙 반영"
     ],
     "environment_constraints": [
       "루트 `.codex` 는 원래 빈 파일이었고, 현재는 `.codex.pre_workflow_2026-04-24` 로 보존했다. 전역 Codex 설정 병합은 별도 판단이 필요하다."
@@ -39,12 +40,14 @@
   },
   "backlog": {
     "latest_backlog_path": "/home/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-24.md",
-    "task_count": 1,
+    "task_count": 2,
     "in_progress_items": [
       "TASK-001 이 저장소에 Codex workflow 배포 및 self-dogfood 검증"
     ],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-002 OpenCode 로컬 LLM edit 실패 회피 규칙 반영"
+    ]
   },
   "next_documents": [
     "/home/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",

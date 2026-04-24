@@ -312,12 +312,18 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode worker should allow bounded execution without repeated asks.")
         if "Minimize asks during execution." not in worker_text:
             raise AssertionError("OpenCode worker should explicitly minimize asks.")
+        if "Read the target file immediately before editing" not in worker_text:
+            raise AssertionError("OpenCode worker should include edit reliability read-before-edit guidance.")
+        if "CRLF/LF line endings" not in worker_text:
+            raise AssertionError("OpenCode worker should mention line-ending normalization for edit failures.")
 
         doc_worker_text = Path(str(harness_files["opencode_doc_worker_agent"])).read_text(encoding="utf-8")
         if "document-focused workflow worker" not in doc_worker_text:
             raise AssertionError("OpenCode doc worker should be generated.")
         if "Minimize asks during execution" not in doc_worker_text:
             raise AssertionError("OpenCode doc worker should minimize asks.")
+        if "After an edit-tool failure, reread the file" not in doc_worker_text:
+            raise AssertionError("OpenCode doc worker should include edit failure recovery guidance.")
 
         code_worker_text = Path(str(harness_files["opencode_code_worker_agent"])).read_text(encoding="utf-8")
         if "implementation and build-focused workflow worker" not in code_worker_text:
@@ -326,6 +332,8 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode code worker should cover implementation/build verification work.")
         if "Minimize asks during execution." not in code_worker_text:
             raise AssertionError("OpenCode code worker should minimize asks.")
+        if "Keep each edit small and local" not in code_worker_text:
+            raise AssertionError("OpenCode code worker should prefer small edit-tool calls.")
 
         validation_worker_text = Path(str(harness_files["opencode_validation_worker_agent"])).read_text(encoding="utf-8")
         if "validation-focused workflow worker" not in validation_worker_text:

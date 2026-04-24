@@ -28,6 +28,6 @@
     "suggest_impacted_docs",
     "check_quickstart_stale_links"
   ],
-  "tool_version": "prototype-v1",
+  "tool_version": "prototype-v2",
   "transport_ready": false
 }

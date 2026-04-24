@@ -1132,6 +1132,18 @@ Follow these rules:
 """
 
 
+def opencode_edit_reliability_rules() -> str:
+    return """Edit reliability rules:
+
+- Read the target file immediately before editing so the edit tool anchors against the current file content.
+- Keep each edit small and local. Prefer one focused hunk per call for indentation-heavy, generated, or recently changed files.
+- Preserve the file's existing indentation and line-ending style unless the task explicitly asks for normalization.
+- If inconsistent tabs/spaces or CRLF/LF line endings are the likely cause of edit failures, normalize only the assigned files first, then reread and apply the intended edit.
+- Avoid matching huge repeated blocks. Anchor edits on nearby unique lines, function names, headings, or stable keys.
+- After an edit-tool failure, reread the file and retry with a narrower replacement instead of repeating the same broad patch.
+"""
+
+
 def render_opencode_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
     return f"""---
 description: Orchestrates the standard AI workflow for this repository
@@ -1193,6 +1205,7 @@ User-facing workflow rules:
 
 
 def render_opencode_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    edit_rules = opencode_edit_reliability_rules()
     return f"""---
 description: Executes bounded workflow tasks for this repository
 mode: subagent
@@ -1231,10 +1244,13 @@ Worker rules:
 - Write user-facing drafts in Korean by default unless the assigned task clearly requires another language.
 - Minimize asks during execution. Proceed with the smallest reasonable assumption unless the orchestrator explicitly requested a decision point.
 - Ignore `ai-workflow/` during normal project document or source exploration unless the assigned task explicitly targets workflow docs or session-state updates.
+
+{edit_rules}
 """
 
 
 def render_opencode_doc_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    edit_rules = opencode_edit_reliability_rules()
     return f"""---
 description: Executes bounded document-focused workflow tasks for this repository
 mode: subagent
@@ -1263,10 +1279,13 @@ Worker rules:
 - Minimize asks during execution and resolve obvious document-structure choices locally when risk is low.
 - If your harness supports per-agent model selection, this worker is a good default target for a smaller model.
 - Ignore `ai-workflow/` when looking for project documentation unless the assigned task is explicitly about workflow docs or session-state maintenance.
+
+{edit_rules}
 """
 
 
 def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    edit_rules = opencode_edit_reliability_rules()
     return f"""---
 description: Executes bounded implementation and build-focused workflow tasks for this repository
 mode: subagent
@@ -1296,6 +1315,8 @@ Worker rules:
 - Minimize asks during execution. Make bounded implementation choices locally unless the change would alter product behavior or ownership boundaries.
 - If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
 - Ignore `ai-workflow/` during normal implementation-context discovery unless the assigned task explicitly targets workflow docs or workflow automation.
+
+{edit_rules}
 """
 
 

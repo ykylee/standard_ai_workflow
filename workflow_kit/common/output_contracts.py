@@ -272,6 +272,16 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         ),
         "warnings": OutputFieldShape(kind="list", item_kind="string"),
         "confidence_notes": OutputFieldShape(kind="list", item_kind="string"),
+        "executed_validation_results": OutputFieldShape(
+            kind="list",
+            item_kind="object",
+            required_keys=frozenset({"command", "status", "summary"}),
+            item_properties={
+                "command": OutputFieldShape(kind="string"),
+                "status": OutputFieldShape(kind="string"),
+                "summary": OutputFieldShape(kind="string"),
+            },
+        ),
         "source_context": OutputFieldShape(
             kind="object",
             required_keys=frozenset({"project_profile_path", "project_name", "changed_files", "change_summary"}),
@@ -280,6 +290,8 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
                 "project_name": OutputFieldShape(kind="string"),
                 "changed_files": OutputFieldShape(kind="list", item_kind="string"),
                 "change_summary": OutputFieldShape(kind="string"),
+                "completed_commands": OutputFieldShape(kind="list", item_kind="string"),
+                "failed_commands": OutputFieldShape(kind="list", item_kind="string"),
             },
         ),
     },

@@ -3192,6 +3192,29 @@
             },
             "error": {},
             "error_code": {},
+            "executed_validation_results": {
+              "items": {
+                "additionalProperties": true,
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command",
+                  "status",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              "type": "array"
+            },
             "recommended_commands": {
               "items": {
                 "additionalProperties": true,
@@ -3224,6 +3247,18 @@
                   "type": "string"
                 },
                 "changed_files": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "completed_commands": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "failed_commands": {
                   "items": {
                     "type": "string"
                   },
@@ -3334,6 +3369,29 @@
             },
             "error_code": {
               "type": "string"
+            },
+            "executed_validation_results": {
+              "items": {
+                "additionalProperties": true,
+                "properties": {
+                  "command": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "command",
+                  "status",
+                  "summary"
+                ],
+                "type": "object"
+              },
+              "type": "array"
             },
             "recommended_commands": {
               "items": {

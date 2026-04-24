@@ -43,6 +43,44 @@ def run_validation(example_name: str, changed_files: list[str], change_summary: 
     return json.loads(completed.stdout)
 
 
+def run_validation_with_results(
+    example_name: str,
+    changed_files: list[str],
+    change_summary: str,
+    *,
+    completed_commands: list[str],
+    failed_commands: list[str] | None = None,
+) -> dict[str, object]:
+    example_root = REPO_ROOT / "examples" / example_name
+    latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
+    command = [
+        sys.executable,
+        str(SCRIPT_PATH),
+        "--project-profile-path",
+        str(example_root / "project_workflow_profile.md"),
+        "--session-handoff-path",
+        str(example_root / "session_handoff.md"),
+        "--latest-backlog-path",
+        str(latest_backlog),
+        *sum([["--changed-file", item] for item in changed_files], []),
+        "--change-summary",
+        change_summary,
+    ]
+    for completed_command in completed_commands:
+        command.extend(["--completed-command", completed_command])
+    for failed_command in failed_commands or []:
+        command.extend(["--failed-command", failed_command])
+
+    completed = subprocess.run(
+        command,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
 def main() -> int:
     acme_payload = run_validation(
         "acme_delivery_platform",
@@ -112,6 +150,34 @@ def main() -> int:
     )
     if workflow_meta_payload["source_context"]["changed_files"]:
         raise AssertionError("Validation-plan should ignore ai-workflow metadata paths in changed_files.")
+
+    result_aware_payload = run_validation_with_results(
+        "acme_delivery_platform",
+        [
+            "app/jobs/delivery_sync.py",
+            "docs/operations/runbooks/delivery-sync.md",
+        ],
+        "delivery sync 재시도 로직과 운영 runbook 동시 수정",
+        completed_commands=["pytest -q"],
+        failed_commands=["make lint"],
+    )
+    output_errors = validate_output_payload(result_aware_payload, family="validation_plan")
+    if output_errors:
+        raise AssertionError(f"Result-aware validation-plan payload violated output contract: {output_errors}")
+    remaining_commands = {item["command"] for item in result_aware_payload["recommended_commands"]}
+    if "pytest -q" in remaining_commands:
+        raise AssertionError("Completed validation commands should be removed from the remaining recommendations.")
+    deferred_items = [item["item"] for item in result_aware_payload["deferred_validation_items"]]
+    if any("미실행 검증 명령 확인: `pytest -q`" == item for item in deferred_items):
+        raise AssertionError("Completed validation commands should not remain as deferred validation items.")
+    if any("미실행 검증 명령 확인: `make lint`" == item for item in deferred_items):
+        raise AssertionError("Failed validation commands should not be treated as unexecuted validation items.")
+    if not any("실패한 검증 명령 재확인: `make lint`" == item for item in deferred_items):
+        raise AssertionError("Failed validation commands should remain as deferred follow-up items.")
+    if not any(result["status"] == "passed" for result in result_aware_payload["executed_validation_results"]):
+        raise AssertionError("Result-aware payload should expose passed command evidence.")
+    if "make lint" not in " ".join(result_aware_payload["warnings"]):
+        raise AssertionError("Failed validation command should be surfaced in warnings.")
 
     print("Validation-plan smoke check passed.")
     return 0

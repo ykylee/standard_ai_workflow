@@ -30,6 +30,38 @@ def split_commands(raw: str | None) -> list[str]:
     return [normalize_inline_code(item.strip()) for item in raw.split(",") if item.strip()]
 
 
+def normalize_command_list(commands: list[str]) -> list[str]:
+    return dedupe_strings(normalize_inline_code(item.strip()) for item in commands if item.strip())
+
+
+def command_result_entries(*, completed_commands: list[str], failed_commands: list[str]) -> list[dict[str, str]]:
+    results: list[dict[str, str]] = []
+    for command in completed_commands:
+        results.append(
+            {
+                "command": command,
+                "status": "passed",
+                "summary": "입력된 실행 결과 기준으로 이미 통과한 검증이다.",
+            }
+        )
+    for command in failed_commands:
+        results.append(
+            {
+                "command": command,
+                "status": "failed",
+                "summary": "입력된 실행 결과 기준으로 실패했거나 재확인이 필요한 검증이다.",
+            }
+        )
+    return results
+
+
+def filter_completed_commands(
+    commands: list[dict[str, str]],
+    completed_command_set: set[str],
+) -> list[dict[str, str]]:
+    return [item for item in commands if item["command"] not in completed_command_set]
+
+
 def build_validation_plan(
     *,
     profile: dict[str, Any],
@@ -37,6 +69,8 @@ def build_validation_plan(
     changed_files: list[str],
     session_handoff_path: Path | None,
     latest_backlog_path: Path | None,
+    completed_commands: list[str],
+    failed_commands: list[str],
 ) -> dict[str, Any]:
     recommended_commands: list[dict[str, str]] = []
     confirmation_commands: list[dict[str, str]] = []
@@ -128,6 +162,37 @@ def build_validation_plan(
     if changed_files and all(item == "docs" for item in change_types):
         confidence_notes.append("현재 변경은 문서 중심으로 보여 실행 검증은 최소화했다.")
 
+    completed_command_set = set(completed_commands)
+    failed_command_set = set(failed_commands)
+    executed_command_set = completed_command_set | failed_command_set
+    if executed_command_set:
+        recommended_commands = filter_completed_commands(recommended_commands, executed_command_set)
+        confirmation_commands = filter_completed_commands(confirmation_commands, executed_command_set)
+    if completed_command_set:
+        for command in completed_commands:
+            evidence_expectations.append(f"이미 통과한 검증 명령 `{command}` 의 결과를 세션 증빙에 포함한다.")
+        confidence_notes.append("입력된 실행 결과를 반영해 이미 통과한 명령은 남은 추천 목록에서 제외했다.")
+
+    if failed_command_set:
+        for command in failed_commands:
+            warnings.append(f"검증 명령 `{command}` 이 실패했거나 재확인이 필요하다.")
+
+    record_path = str(latest_backlog_path or session_handoff_path or "TODO: 검증 기록 위치 확인")
+    for command in [item["command"] for item in [*recommended_commands, *confirmation_commands]]:
+        deferred_validation_items.append(
+            {
+                "item": f"미실행 검증 명령 확인: `{command}`",
+                "suggested_record_path": record_path,
+            }
+        )
+    for command in failed_commands:
+        deferred_validation_items.append(
+            {
+                "item": f"실패한 검증 명령 재확인: `{command}`",
+                "suggested_record_path": record_path,
+            }
+        )
+
     return {
         "recommended_validation_levels": collect_validation_levels(change_types),
         "recommended_commands": recommended_commands,
@@ -137,6 +202,10 @@ def build_validation_plan(
         "deferred_validation_items": deferred_validation_items,
         "warnings": dedupe_strings(warnings),
         "confidence_notes": dedupe_strings(confidence_notes),
+        "executed_validation_results": command_result_entries(
+            completed_commands=completed_commands,
+            failed_commands=failed_commands,
+        ),
     }
 
 
@@ -147,6 +216,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--change-summary")
     parser.add_argument("--session-handoff-path")
     parser.add_argument("--latest-backlog-path")
+    parser.add_argument("--completed-command", action="append", dest="completed_commands", default=[])
+    parser.add_argument("--failed-command", action="append", dest="failed_commands", default=[])
     return parser.parse_args()
 
 
@@ -158,6 +229,8 @@ def main() -> int:
         "change_summary": args.change_summary,
         "session_handoff_path": args.session_handoff_path,
         "latest_backlog_path": args.latest_backlog_path,
+        "completed_commands": args.completed_commands,
+        "failed_commands": args.failed_commands,
     }
 
     if not args.changed_files and not args.change_summary:
@@ -178,6 +251,8 @@ def main() -> int:
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
         filtered_changed_files = filter_project_scope_paths(args.changed_files)
         change_types = detect_validation_change_types(filtered_changed_files, args.change_summary)
+        completed_commands = normalize_command_list(args.completed_commands)
+        failed_commands = normalize_command_list(args.failed_commands)
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
@@ -209,12 +284,16 @@ def main() -> int:
             changed_files=args.changed_files,
             session_handoff_path=session_handoff_path,
             latest_backlog_path=latest_backlog_path,
+            completed_commands=completed_commands,
+            failed_commands=failed_commands,
         ),
         "source_context": {
             "project_profile_path": str(project_profile_path),
             "project_name": profile.get("project_name"),
             "changed_files": filtered_changed_files,
             "change_summary": args.change_summary,
+            "completed_commands": completed_commands,
+            "failed_commands": failed_commands,
         },
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))

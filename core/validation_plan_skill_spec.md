@@ -34,6 +34,10 @@
 - 최신 backlog 문서 경로. 검증 미실행 사유를 backlog 에 남겨야 하는지 판단할 때 사용
 - `session_handoff_path`
 - handoff 문서 경로. 검증 제약이나 후속 인계 메모 필요 여부를 함께 판단할 때 사용
+- `completed_commands`
+- 이미 실행했고 통과한 검증 명령 목록. 남은 추천 목록과 미실행 항목에서 제외할 때 사용
+- `failed_commands`
+- 실행했지만 실패했거나 재확인이 필요한 검증 명령 목록. 경고와 후속 재확인 항목에 남길 때 사용
 
 ## 3. 기대 출력 계약
 
@@ -48,6 +52,7 @@
 - `deferred_validation_items`
 - `warnings`
 - `confidence_notes`
+- `executed_validation_results`
 - `source_context`
 
 ## 4. 판단 규칙
@@ -103,6 +108,8 @@
 `validation-plan` 은 실제 명령 실행 여부를 모른다고 가정한다. 따라서 기본 출력은 "권장 계획" 이며, 실행 여부가 불명확하면 아래 방식으로 정리한다.
 
 - `deferred_validation_items` 에 미실행 가능성이 있는 항목을 남긴다.
+- `completed_commands` 로 들어온 명령은 이미 증빙이 있는 것으로 보고 남은 추천 명령과 미실행 항목에서 제외한다.
+- `failed_commands` 로 들어온 명령은 검증 실패 또는 재확인 대상으로 보고 `warnings` 와 `deferred_validation_items` 에 남긴다.
 - 환경 제약, 권한 제약, 시간 제약이 프로파일에 있으면 그 내용을 경고나 메모에 반영한다.
 - backlog 또는 handoff 경로가 입력되면 후속 기록 위치 후보를 함께 제안한다.
 
@@ -113,6 +120,7 @@
 - 변경 파일을 보수적으로 분류
 - 프로젝트 프로파일에서 검증 명령/메모를 추출
 - 검증 수준과 추천 명령을 JSON 으로 정리
+- 입력된 실행 결과를 반영해 통과한 명령과 남은 검증 항목을 분리
 - 사람이 남겨야 할 증빙과 미실행 사유를 분리
 
 현재 단계의 프로토타입은 다음은 수행하지 않는다.

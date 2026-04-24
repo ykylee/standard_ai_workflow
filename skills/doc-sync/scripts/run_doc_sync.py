@@ -16,13 +16,13 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.doc_sync import build_doc_sync_candidates
 from workflow_kit.common.errors import build_error_result
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
 from workflow_kit.common.project_docs import parse_project_profile_core
 
 
 def build_candidates(
     *,
-    base_dir: Path,
+    project_root: Path,
     profile: dict[str, Any],
     changed_files: list[str],
     session_handoff_path: Path | None,
@@ -31,7 +31,7 @@ def build_candidates(
     change_summary: str | None,
 ) -> dict[str, Any]:
     return build_doc_sync_candidates(
-        base_dir=base_dir,
+        project_root=project_root,
         profile=profile,
         changed_files=changed_files,
         session_handoff_path=session_handoff_path,
@@ -77,7 +77,7 @@ def main() -> int:
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
         profile = parse_project_profile_core(project_profile_path)
-        base_dir = project_profile_path.parent
+        project_root = project_workspace_root(project_profile_path)
 
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
         work_backlog_index_path = (
@@ -86,7 +86,7 @@ def main() -> int:
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
 
         result = build_candidates(
-            base_dir=base_dir,
+            project_root=project_root,
             profile=profile,
             changed_files=args.changed_files,
             session_handoff_path=session_handoff_path,

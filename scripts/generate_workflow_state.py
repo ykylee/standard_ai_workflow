@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from workflow_kit.common.workflow_state import build_workflow_state_payload
+from workflow_kit.common.workflow_state import refresh_workflow_state_cache
 
 
 def parse_args() -> argparse.Namespace:
@@ -30,20 +30,27 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    payload = build_workflow_state_payload(
+    output_path = Path(args.output_path).resolve()
+    refresh_result = refresh_workflow_state_cache(
         project_profile_path=Path(args.project_profile_path).resolve(),
         session_handoff_path=Path(args.session_handoff_path).resolve(),
         work_backlog_index_path=Path(args.work_backlog_index_path).resolve(),
         latest_backlog_path=Path(args.latest_backlog_path).resolve() if args.latest_backlog_path else None,
-        repository_assessment_path=(
-            Path(args.repository_assessment_path).resolve() if args.repository_assessment_path else None
-        ),
+        repository_assessment_path=Path(args.repository_assessment_path).resolve() if args.repository_assessment_path else None,
+        output_path=output_path,
         generated_at=args.generated_at,
     )
-    output_path = Path(args.output_path).resolve()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"status": "ok", "output_path": str(output_path)}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "status": "ok",
+                "output_path": str(output_path),
+                "state_cache_status": refresh_result["status"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     return 0
 
 

@@ -12,11 +12,23 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BOOTSTRAP_SCRIPT = REPO_ROOT / "scripts" / "bootstrap_workflow_kit.py"
+BACKLOG_UPDATE_SCRIPT = REPO_ROOT / "skills" / "backlog-update" / "scripts" / "run_backlog_update.py"
 
 
 def run_bootstrap(args: list[str]) -> dict[str, object]:
     completed = subprocess.run(
         [sys.executable, str(BOOTSTRAP_SCRIPT), *args],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def run_backlog_update(args: list[str]) -> dict[str, object]:
+    completed = subprocess.run(
+        [sys.executable, str(BACKLOG_UPDATE_SCRIPT), *args],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
@@ -179,6 +191,28 @@ def check_existing_project_mode() -> None:
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
         if "내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리" not in readme_text:
             raise AssertionError("Existing project workflow README should include the context-saving rule.")
+
+        docs_backlog_dir = target_root / "docs" / "operations" / "backlog"
+        docs_backlog_dir.mkdir(parents=True, exist_ok=True)
+        payload = run_backlog_update(
+            [
+                "--project-profile-path",
+                str(generated["project_profile"]),
+                "--task-name",
+                "실제 프로젝트 문서와 workflow state 경계 정리",
+                "--task-brief",
+                "workflow backlog 는 ai-workflow 아래에 유지하고 project docs 경계만 확인한다.",
+                "--target-date",
+                "2026-04-24",
+                "--mode",
+                "create",
+            ]
+        )
+        target_backlog = Path(str(payload["target_backlog_path"]))
+        if "/ai-workflow/project/backlog/" not in str(target_backlog):
+            raise AssertionError("Workflow backlog writes should stay under ai-workflow/project/backlog.")
+        if "/ai-workflow/project/docs/" in str(target_backlog):
+            raise AssertionError("Workflow backlog writes should not resolve project docs paths under ai-workflow/project.")
 
 
 def check_opencode_only_mode() -> None:

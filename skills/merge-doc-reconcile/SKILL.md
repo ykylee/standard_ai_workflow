@@ -37,12 +37,15 @@
 - 읽기 중심 재정리 단계
 - 병합 전 상태 자동 합치기 금지
 - `done` 확정과 차단 해제 자동 처리 금지
+- `--apply` 는 handoff 운영 메모에 재정리 노트를 남기는 제한적 write mode 로만 허용한다.
 
 ## 6. 구현 메모
 
 - handoff 와 최신 backlog 를 먼저 대조
 - 허브/인덱스 문서는 링크와 구조 설명 최신성 중심으로 점검
 - 병합 후 검증 미완료 상태는 재확정 포인트로 유지
+- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
+- handoff/backlog 재확정 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
 
 ## 7. 프로토타입 실행
 
@@ -61,6 +64,7 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 ```
 
 - 현재 프로토타입은 병합 후 재확정 포인트를 JSON 으로 출력하고 문서를 직접 수정하지 않는다.
+- `--apply` 를 주면 `session_handoff.md` 의 운영 메모 섹션에 중복 없는 재정리 노트를 추가하고 `state.json` 을 다시 맞춘다.
 
 ## 8. 현재 상태
 

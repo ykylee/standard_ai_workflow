@@ -23,6 +23,11 @@
 | `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | 프로토타입 있음 | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
 | `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | 프로토타입 있음 | 변경 경로를 기준으로 색인 문서를 수동 검토 |
 
+운영 보조 원칙:
+
+- `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성해 빠른 세션 기준선을 맞춘다.
+- `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile` 는 `ai-workflow/` 경로를 workflow 메타 레이어로 보고, 일반 프로젝트 문서/변경 탐색 범위에서는 기본적으로 제외한다.
+
 ## 3. 최소 입력 계약
 
 - `session-start`: 현재 프로젝트의 handoff 문서, 백로그 인덱스, 프로젝트 프로파일 경로

@@ -15,6 +15,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import detect_validation_change_types
+from workflow_kit.common.exploration_scope import filter_project_scope_paths
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import resolve_existing_path
@@ -175,7 +176,8 @@ def main() -> int:
         profile = parse_project_profile_validation(project_profile_path)
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
-        change_types = detect_validation_change_types(args.changed_files, args.change_summary)
+        filtered_changed_files = filter_project_scope_paths(args.changed_files)
+        change_types = detect_validation_change_types(filtered_changed_files, args.change_summary)
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
@@ -211,7 +213,7 @@ def main() -> int:
         "source_context": {
             "project_profile_path": str(project_profile_path),
             "project_name": profile.get("project_name"),
-            "changed_files": args.changed_files,
+            "changed_files": filtered_changed_files,
             "change_summary": args.change_summary,
         },
     }

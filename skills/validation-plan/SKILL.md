@@ -47,6 +47,7 @@
 - 출력은 보수적으로 생성하고, 확신이 낮은 항목은 `commands_requiring_confirmation` 또는 `confidence_notes` 로 분리한다.
 - 프로젝트 특화 환경 제약은 `warnings` 와 `deferred_validation_items` 에 반영한다.
 - 문서 전용 변경이어도 프로젝트 프로파일에 빠른 테스트가 정의돼 있으면 기본 회귀 확인 명령을 함께 제안한다.
+- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
 
 ## 프로토타입 실행
 

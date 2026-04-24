@@ -6,6 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-04-23
 - 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
+- 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`
 
 ## 1. 도입 경로 개요
 
@@ -28,6 +29,7 @@
 1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
 2. `project_workflow_profile.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
 3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
+4. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
 4. 이후 skill/MCP 도입 범위를 정한다.
 
 ### 자동화 포인트
@@ -54,7 +56,8 @@
 2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
 3. `project_workflow_profile.md` 에 자동 추정값을 확정 또는 수정한다.
 4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
-5. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
+5. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
+6. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
 
 ### bootstrap 직후 후속 루틴
 
@@ -75,6 +78,8 @@ python3 scripts/run_existing_project_onboarding.py \
 2. session-start 기준선 복원
 3. validation-plan 으로 초기 검증 수준 정리
 4. code-index-update 로 README/허브/index 재확인 후보 정리
+
+이때 `ai-workflow/` 문서는 세션 복원과 workflow 상태 관리용 메타 레이어로 취급하고, 일반 프로젝트 문서 탐색 범위에는 기본적으로 넣지 않는 편이 좋다.
 
 즉, bootstrap 으로 만든 기존 프로젝트 초안을 “사람이 바로 검토할 수 있는 후속 계획”까지 연결하는 용도다.
 
@@ -145,8 +150,9 @@ python3 scripts/run_existing_project_onboarding.py \
 1. `backlog-update`
 2. `doc-sync`
 3. 필요 시 `merge-doc-reconcile`
+4. `generate_workflow_state.py`
 
-이 묶음의 목적은 “오늘 작업 항목 정리 + 영향 문서 반영 + 병합 후 문서 정합성 회복” 이다.
+이 묶음의 목적은 “오늘 작업 항목 정리 + 영향 문서 반영 + 병합 후 문서 정합성 회복 + 빠른 세션 기준선 재생성” 이다.
 
 ### 6.3 다음 릴리즈로 미루는 항목
 

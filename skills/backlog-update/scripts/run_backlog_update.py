@@ -7,7 +7,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,15 +18,15 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import normalize_backticked
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import resolve_existing_path, workflow_project_dir
 from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
+from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
+from workflow_kit.common.workflow_writes import ensure_backlog_index_entry, sync_handoff_status, upsert_backlog_entry
 
 
-def infer_backlog_path(project_profile_path: Path, backlog_dir: str | None, target_date: str) -> Path:
-    base_dir = project_profile_path.parent
-    if backlog_dir:
-        return (base_dir / backlog_dir / f"{target_date}.md").resolve()
+def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
+    base_dir = workflow_project_dir(project_profile_path)
     return (base_dir / "backlog" / f"{target_date}.md").resolve()
 
 
@@ -140,6 +140,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--risks")
     parser.add_argument("--follow-up")
     parser.add_argument("--validation-result")
+    parser.add_argument("--work-backlog-index-path")
+    parser.add_argument("--session-handoff-path")
+    parser.add_argument("--apply", action="store_true")
     return parser.parse_args()
 
 
@@ -182,12 +185,22 @@ def main() -> int:
     try:
         warnings: list[str] = []
         request_date = args.target_date or datetime.now().strftime("%Y-%m-%d")
+        work_backlog_index_path = (
+            Path(args.work_backlog_index_path).expanduser().resolve()
+            if args.work_backlog_index_path
+            else (workflow_project_dir(project_profile_path) / "work_backlog.md").resolve()
+        )
+        session_handoff_path = (
+            Path(args.session_handoff_path).expanduser().resolve()
+            if args.session_handoff_path
+            else (workflow_project_dir(project_profile_path) / "session_handoff.md").resolve()
+        )
 
         daily_backlog_path: Path
         if args.daily_backlog_path:
             daily_backlog_path = Path(args.daily_backlog_path).expanduser().resolve()
         else:
-            daily_backlog_path = infer_backlog_path(project_profile_path, profile.get("backlog_path"), request_date)
+            daily_backlog_path = infer_backlog_path(project_profile_path, request_date)
 
         existing_tasks = parse_backlog_task_entries(daily_backlog_path) if daily_backlog_path.exists() else []
 
@@ -270,6 +283,62 @@ def main() -> int:
         handoff_update_note = None
         if status in {"in_progress", "blocked", "done"}:
             handoff_update_note = "상태 변화가 handoff 에 반영되어야 하는지 확인한다."
+        state_cache_update = build_state_cache_refresh_hint(
+            project_profile_path=project_profile_path,
+            latest_backlog_path=daily_backlog_path,
+        )
+        apply_result = {
+            "status": "skipped",
+            "written_paths": [],
+            "created_paths": [],
+            "updated_paths": [],
+            "warnings": [],
+        }
+        if args.apply and operation_type != "cannot_determine":
+            backlog_action = upsert_backlog_entry(
+                backlog_path=daily_backlog_path,
+                task_id=task_id,
+                entry_lines=draft_entry,
+            )
+            apply_result["written_paths"].append(str(daily_backlog_path))
+            if backlog_action == "created":
+                apply_result["created_paths"].append(str(daily_backlog_path))
+            else:
+                apply_result["updated_paths"].append(str(daily_backlog_path))
+
+            if work_backlog_index_path.exists():
+                index_added = ensure_backlog_index_entry(
+                    work_backlog_index_path=work_backlog_index_path,
+                    daily_backlog_path=daily_backlog_path,
+                )
+                apply_result["written_paths"].append(str(work_backlog_index_path))
+                apply_result["updated_paths"].append(str(work_backlog_index_path))
+                if index_added:
+                    warnings.append("backlog index 에 새 날짜 backlog 링크를 자동 추가했다.")
+            else:
+                apply_result["warnings"].append("work_backlog.md 가 없어 backlog index 자동 갱신을 건너뛰었다.")
+
+            if session_handoff_path.exists() and status in {"in_progress", "blocked", "done"}:
+                sync_handoff_status(
+                    handoff_path=session_handoff_path,
+                    task_label=f"{task_id} {args.task_name}",
+                    status=status,
+                )
+                apply_result["written_paths"].append(str(session_handoff_path))
+                apply_result["updated_paths"].append(str(session_handoff_path))
+            elif status in {"in_progress", "blocked", "done"}:
+                apply_result["warnings"].append("session_handoff.md 가 없어 handoff 상태 동기화를 건너뛰었다.")
+
+            apply_result["status"] = "applied"
+
+        state_cache_refresh = refresh_workflow_state_cache(
+            project_profile_path=project_profile_path,
+            session_handoff_path=session_handoff_path if session_handoff_path.exists() else None,
+            work_backlog_index_path=work_backlog_index_path if work_backlog_index_path.exists() else None,
+            latest_backlog_path=daily_backlog_path if daily_backlog_path.exists() else None,
+            generated_at=date.today().isoformat(),
+        )
+        warnings.extend(apply_result["warnings"])
 
         result = {
             "status": "ok",
@@ -291,6 +360,20 @@ def main() -> int:
             "warnings": warnings,
             "index_update_note": index_update_note,
             "handoff_update_note": handoff_update_note,
+            "state_cache_update_note": (
+                f"`--apply` 반영 결과를 포함한 현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
+                if args.apply and state_cache_refresh["status"] == "refreshed"
+                else f"현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
+                if state_cache_refresh["status"] == "refreshed"
+                else f"source-of-truth 문서가 아직 부족해 `{state_cache_update['state_path']}` 자동 재생성을 건너뛰었다."
+            ),
+            "state_cache_refresh_command": state_cache_update["refresh_command"],
+            "state_cache_status": state_cache_refresh["status"],
+            "state_cache_missing_paths": state_cache_refresh["missing_paths"],
+            "apply_status": apply_result["status"],
+            "written_paths": apply_result["written_paths"],
+            "created_paths": apply_result["created_paths"],
+            "updated_paths": apply_result["updated_paths"],
             "validation_note": args.validation_result,
             "source_context": {
                 "project_profile_path": str(project_profile_path),

@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 if str(Path(__file__).resolve().parents[1]) not in sys.path:
@@ -34,30 +35,62 @@ def run_json(cmd: list[str], *, expect_success: bool) -> tuple[int, dict[str, ob
 
 
 def check_success_path() -> None:
-    _, payload = run_json([str(DEMO_SCRIPT), "--example-project", "acme_delivery_platform"], expect_success=True)
-    if payload["status"] != "ok":
-        raise AssertionError("Demo workflow success payload should have ok status.")
-    output_errors = validate_output_payload(payload, family="demo_workflow")
-    if output_errors:
-        raise AssertionError(f"Demo workflow success payload violated output contract: {output_errors}")
-    if payload["orchestration_plan"]["model_split"]["orchestrator"] != "main":
-        raise AssertionError("Expected main orchestrator model split.")
-    if len(payload["orchestration_plan"]["worker_assignments"]) < 3:
-        raise AssertionError("Expected specialized worker assignments in orchestration plan.")
-    if payload["runner_inputs"]["task"]["task_id"] != "TASK-021":
-        raise AssertionError("Expected runner_inputs to preserve task metadata.")
-    if len(payload["execution_trace"]) != 8:
-        raise AssertionError("Expected execution_trace to record all eight orchestration steps.")
-    if payload["execution_trace"][0]["step"] != "latest_backlog":
-        raise AssertionError("Expected latest_backlog to appear first in execution_trace.")
-    if "recommended_validation_levels" not in payload["execution_trace"][4]["produced_keys"]:
-        raise AssertionError("Expected validation_plan trace to expose produced keys.")
-    if not payload["workflow_summary"]["recommended_validation_levels"]:
-        raise AssertionError("Expected workflow summary validation levels.")
-    if payload["source_context"]["example_project"] != "acme_delivery_platform":
-        raise AssertionError("Expected source_context example_project to be preserved.")
-    if not payload["merge_doc_reconcile"]["reconcile_targets"]:
-        raise AssertionError("Expected merge_doc_reconcile targets in success payload.")
+    example_root = REPO_ROOT / "examples" / "acme_delivery_platform"
+    latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_root = Path(temp_dir)
+        temp_project_root = temp_root / "project"
+        temp_project_root.mkdir()
+        for relative_path in ("project_workflow_profile.md", "session_handoff.md", "work_backlog.md"):
+            source_path = example_root / relative_path
+            target_path = temp_project_root / relative_path
+            target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        temp_backlog_dir = temp_project_root / "backlog"
+        temp_backlog_dir.mkdir()
+        temp_latest_backlog = temp_backlog_dir / latest_backlog.name
+        temp_latest_backlog.write_text(latest_backlog.read_text(encoding="utf-8"), encoding="utf-8")
+
+        _, payload = run_json(
+            [
+                str(DEMO_SCRIPT),
+                "--example-project",
+                "acme_delivery_platform",
+                "--project-profile-path",
+                str(temp_project_root / "project_workflow_profile.md"),
+                "--session-handoff-path",
+                str(temp_project_root / "session_handoff.md"),
+                "--work-backlog-index-path",
+                str(temp_project_root / "work_backlog.md"),
+                "--backlog-dir-path",
+                str(temp_backlog_dir),
+                "--latest-backlog-path",
+                str(temp_latest_backlog),
+            ],
+            expect_success=True,
+        )
+        if payload["status"] != "ok":
+            raise AssertionError("Demo workflow success payload should have ok status.")
+        output_errors = validate_output_payload(payload, family="demo_workflow")
+        if output_errors:
+            raise AssertionError(f"Demo workflow success payload violated output contract: {output_errors}")
+        if payload["orchestration_plan"]["model_split"]["orchestrator"] != "main":
+            raise AssertionError("Expected main orchestrator model split.")
+        if len(payload["orchestration_plan"]["worker_assignments"]) < 3:
+            raise AssertionError("Expected specialized worker assignments in orchestration plan.")
+        if payload["runner_inputs"]["task"]["task_id"] != "TASK-021":
+            raise AssertionError("Expected runner_inputs to preserve task metadata.")
+        if len(payload["execution_trace"]) != 8:
+            raise AssertionError("Expected execution_trace to record all eight orchestration steps.")
+        if payload["execution_trace"][0]["step"] != "latest_backlog":
+            raise AssertionError("Expected latest_backlog to appear first in execution_trace.")
+        if "recommended_validation_levels" not in payload["execution_trace"][4]["produced_keys"]:
+            raise AssertionError("Expected validation_plan trace to expose produced keys.")
+        if not payload["workflow_summary"]["recommended_validation_levels"]:
+            raise AssertionError("Expected workflow summary validation levels.")
+        if payload["source_context"]["example_project"] != "acme_delivery_platform":
+            raise AssertionError("Expected source_context example_project to be preserved.")
+        if not payload["merge_doc_reconcile"]["reconcile_targets"]:
+            raise AssertionError("Expected merge_doc_reconcile targets in success payload.")
 
 
 def check_failure_path() -> None:

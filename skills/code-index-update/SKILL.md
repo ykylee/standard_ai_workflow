@@ -42,6 +42,7 @@
 - 문서 홈, 운영 허브, backlog index, 루트 README 를 기본 후보군으로 다룬다.
 - runbook, report, dataset, prompt 같은 허브성 하위 문서 변경은 상위 허브 재검토 신호로 해석한다.
 - 새 Markdown 문서 추가로 보이는 경우 `priority_index_candidates` 와 `missing_index_candidates` 를 함께 사용한다.
+- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 색인/허브 탐색 범위에서는 기본적으로 제외한다.
 
 ## 프로토타입 실행
 

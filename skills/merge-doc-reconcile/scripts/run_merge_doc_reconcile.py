@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -15,9 +16,10 @@ if str(REPO_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import classify_doc_sync_file
+from workflow_kit.common.exploration_scope import filter_project_scope_paths
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import dedupe_strings
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
 from workflow_kit.common.project_docs import (
     parse_backlog,
     parse_handoff,
@@ -25,6 +27,8 @@ from workflow_kit.common.project_docs import (
 )
 from workflow_kit.common.reconcile import explain_state_conflicts
 from workflow_kit.common.session_outputs import build_reconcile_notes
+from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
+from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--changed-file", action="append", dest="changed_files", default=[])
     parser.add_argument("--validation-result")
+    parser.add_argument("--apply", action="store_true")
     return parser.parse_args()
 
 
@@ -53,7 +58,7 @@ def main() -> int:
     try:
         profile_path = resolve_existing_path(args.project_profile_path)
         profile = parse_project_profile_merge(profile_path)
-        base_dir = profile_path.parent
+        project_root = project_workspace_root(profile_path)
 
         warnings: list[str] = []
         state_conflicts: list[str] = []
@@ -92,7 +97,7 @@ def main() -> int:
 
         operations_doc = None
         if profile.get("operations_path"):
-            operations_doc = (base_dir / profile["operations_path"]).resolve()
+            operations_doc = (project_root / str(profile["operations_path"])).resolve()
             if operations_doc.exists():
                 reconcile_targets.append(str(operations_doc))
 
@@ -107,7 +112,8 @@ def main() -> int:
             warnings.append("병합 후 검증 결과가 없어 done 상태를 재확정할 수 없다.")
             reconfirmation_points.append("병합 후 완료 처리된 작업의 검증 근거를 다시 확인한다.")
 
-        for changed in args.changed_files:
+        filtered_changed_files = filter_project_scope_paths(args.changed_files)
+        for changed in filtered_changed_files:
             kind = classify_doc_sync_file(changed)
             if kind in {"runbook_doc", "hub_doc"}:
                 reconfirmation_points.append(f"{changed} 링크와 허브 반영 여부를 다시 확인한다.")
@@ -116,7 +122,41 @@ def main() -> int:
             if kind in {"handoff_doc", "backlog_doc"}:
                 reconfirmation_points.append(f"{changed} 의 병합 후 상태 요약을 재확정한다.")
 
-        draft_reconcile_notes.extend(build_reconcile_notes(profile, args.changed_files))
+        draft_reconcile_notes.extend(build_reconcile_notes(profile, filtered_changed_files))
+        apply_result = {
+            "status": "skipped",
+            "written_paths": [],
+            "updated_paths": [],
+            "warnings": [],
+        }
+        if args.apply and session_handoff_path:
+            applied = append_unique_bullets_under_heading(
+                doc_path=session_handoff_path,
+                heading="현재 세션 운영 메모",
+                bullets=[f"[merge-doc-reconcile] {note}" for note in draft_reconcile_notes],
+            )
+            if applied:
+                apply_result["status"] = "applied"
+                apply_result["written_paths"].append(str(session_handoff_path))
+                apply_result["updated_paths"].append(str(session_handoff_path))
+            else:
+                apply_result["status"] = "skipped"
+                apply_result["warnings"].append("handoff 운영 메모 섹션을 찾지 못했거나 추가할 재정리 노트가 없었다.")
+        elif args.apply:
+            apply_result["warnings"].append("session_handoff.md 경로가 없어 merge-doc-reconcile apply 모드를 건너뛰었다.")
+
+        state_cache_update = build_state_cache_refresh_hint(
+            project_profile_path=profile_path,
+            latest_backlog_path=latest_backlog_path,
+        )
+        state_cache_refresh = refresh_workflow_state_cache(
+            project_profile_path=profile_path,
+            session_handoff_path=session_handoff_path,
+            work_backlog_index_path=work_backlog_index_path,
+            latest_backlog_path=latest_backlog_path,
+            generated_at=date.today().isoformat(),
+        )
+        warnings.extend(apply_result["warnings"])
 
         if state_conflicts:
             reconfirmation_points.append("handoff 와 backlog 의 충돌 항목을 우선 정리한다.")
@@ -151,11 +191,22 @@ def main() -> int:
             "hub_update_note": (
                 "허브 문서 링크와 설명이 병합 후 구조를 반영하는지 확인한다." if operations_doc and operations_doc.exists() else None
             ),
+            "state_cache_update_note": (
+                f"현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
+                if state_cache_refresh["status"] == "refreshed"
+                else f"source-of-truth 문서가 아직 부족해 `{state_cache_update['state_path']}` 자동 재생성을 건너뛰었다."
+            ),
+            "state_cache_refresh_command": state_cache_update["refresh_command"],
+            "state_cache_status": state_cache_refresh["status"],
+            "state_cache_missing_paths": state_cache_refresh["missing_paths"],
+            "apply_status": apply_result["status"],
+            "written_paths": apply_result["written_paths"],
+            "updated_paths": apply_result["updated_paths"],
             "validation_follow_up": args.validation_result or "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
             "source_context": {
                 "project_profile_path": str(profile_path),
                 "merge_result_summary": args.merge_result_summary,
-                "changed_files": args.changed_files,
+                "changed_files": filtered_changed_files,
             },
         }
     except FileNotFoundError as exc:

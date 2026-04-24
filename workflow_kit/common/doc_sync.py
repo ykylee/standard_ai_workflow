@@ -5,20 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from workflow_kit.common.change_types import classify_doc_sync_file
+from workflow_kit.common.exploration_scope import filter_project_scope_paths, is_workflow_meta_path
 from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import path_exists_relative
 
 
-def is_workflow_meta_path(raw_path: str | Path | None) -> bool:
-    if raw_path is None:
-        return False
-    normalized = str(raw_path).replace("\\", "/")
-    return "/ai-workflow/" in normalized or normalized.startswith("ai-workflow/")
-
-
 def build_doc_sync_candidates(
     *,
-    base_dir: Path,
+    project_root: Path,
     profile: dict[str, object],
     changed_files: list[str],
     session_handoff_path: Path | None,
@@ -26,8 +20,8 @@ def build_doc_sync_candidates(
     latest_backlog_path: Path | None,
     change_summary: str | None,
 ) -> dict[str, list[str]]:
-    operations_doc = path_exists_relative(base_dir, profile.get("operations_path"))
-    doc_home = path_exists_relative(base_dir, profile.get("document_home"))
+    operations_doc = path_exists_relative(project_root, profile.get("operations_path"))
+    doc_home = path_exists_relative(project_root, profile.get("document_home"))
     impacted: list[str] = []
     hub_candidates: list[str] = []
     status_doc_candidates: list[str] = []
@@ -97,8 +91,8 @@ def build_doc_sync_candidates(
         if not status_doc_candidates:
             stale_warnings.append("코드 변경은 있었지만 상태 문서 후보를 찾지 못했다.")
 
-    impacted_documents = dedupe_strings([item for item in impacted if not is_workflow_meta_path(item)])
-    hub_update_candidates = dedupe_strings([item for item in hub_candidates if not is_workflow_meta_path(item)])
+    impacted_documents = dedupe_strings(filter_project_scope_paths(impacted))
+    hub_update_candidates = dedupe_strings(filter_project_scope_paths(hub_candidates))
     status_doc_candidates = dedupe_strings(status_doc_candidates)
     follow_up_actions = dedupe_strings(follow_up_actions)
     recommended_review_order = dedupe_strings(

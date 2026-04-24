@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 if str(Path(__file__).resolve().parents[1]) not in sys.path:
@@ -78,6 +79,60 @@ def main() -> int:
         raise AssertionError("Research example should include the evals README candidate.")
     if not research_payload["document_structure_signals"]:
         raise AssertionError("Research example should include document structure signals.")
+
+    workflow_meta_payload = run_index_update(
+        "acme_delivery_platform",
+        [
+            "ai-workflow/project/session_handoff.md",
+        ],
+        "workflow 상태 문서만 수정",
+    )
+    if workflow_meta_payload["source_context"]["changed_files"]:
+        raise AssertionError("Code-index-update should ignore ai-workflow metadata paths in changed_files.")
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        repo_root = Path(tmpdir) / "repo"
+        workflow_project = repo_root / "ai-workflow" / "project"
+        workflow_project.mkdir(parents=True, exist_ok=True)
+        (repo_root / "docs" / "operations").mkdir(parents=True, exist_ok=True)
+        (repo_root / "README.md").write_text("# Repo\n", encoding="utf-8")
+        (repo_root / "docs" / "README.md").write_text("# Docs\n", encoding="utf-8")
+        (repo_root / "docs" / "operations" / "README.md").write_text("# Operations\n", encoding="utf-8")
+        (workflow_project / "project_workflow_profile.md").write_text(
+            (
+                "# Project Workflow Profile\n\n"
+                "## 1. 프로젝트 개요\n\n"
+                "- 프로젝트명:\n- `Temp Repo`\n\n"
+                "## 2. 문서 구조\n\n"
+                "- 문서 위키 홈:\n- `docs/README.md`\n"
+                "- 운영 문서 위치:\n- `docs/operations/`\n"
+                "- 백로그 위치:\n- `docs/operations/backlog/`\n"
+                "- 세션 인계 문서 위치:\n- `docs/operations/session_handoff.md`\n"
+                "- 환경 기록 위치:\n- `docs/operations/environments/`\n"
+            ),
+            encoding="utf-8",
+        )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_PATH),
+                "--project-profile-path",
+                str(workflow_project / "project_workflow_profile.md"),
+                "--changed-file",
+                "docs/operations/runbooks/foo.md",
+                "--change-summary",
+                "runbook 수정",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        payload = json.loads(completed.stdout)
+        if not any(item.endswith("/docs/README.md") for item in payload["priority_index_candidates"]):
+            raise AssertionError("Project docs should resolve from repository root, not ai-workflow/project.")
+        if any("/ai-workflow/project/docs/" in item for item in payload["index_update_candidates"]):
+            raise AssertionError("Project doc candidates should not resolve under ai-workflow/project/docs.")
 
     print("Code-index-update smoke check passed.")
     return 0

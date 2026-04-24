@@ -38,12 +38,14 @@
 - 초안 생성과 갱신 제안 중심
 - 검증 없는 `done` 확정 금지
 - 존재하지 않는 task 를 사실처럼 갱신 금지
+- `--apply` 를 주면 날짜별 backlog, backlog index, handoff 상태 목록을 좁은 범위에서 직접 갱신할 수 있다.
 
 ## 6. 구현 메모
 
 - 신규 생성과 기존 갱신을 엄격히 분리
 - backlog 경로는 프로젝트 프로파일 기준으로 해석
 - handoff/index 후속 갱신은 메모로만 남기고 별도 단계로 분리
+- backlog 또는 handoff 상태를 갱신한 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
 
 ## 7. 프로토타입 실행
 
@@ -73,6 +75,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 ```
 
 - 현재 프로토타입은 backlog 파일을 직접 수정하지 않고 JSON 초안만 출력한다.
+- `--apply` 를 주면 초안을 대상 backlog 파일에 반영하고, 가능한 경우 backlog index 와 handoff 상태 목록도 같이 동기화한다.
 
 ## 8. 현재 상태
 

@@ -60,6 +60,9 @@ rm -rf .venv
 - `ai-workflow/project/repository_assessment.md` (`existing` 모드일 때만)
 - 선택 옵션:
 - `--copy-core-docs` 를 주면 핵심 core 문서를 `ai-workflow/core/` 아래에 함께 복사한다.
+- 경로 해석 원칙:
+- `ai-workflow/project/*` 는 workflow state docs 로 취급한다.
+- `project_workflow_profile.md` 안의 `문서 위키 홈`, `운영 문서 위치`, `백로그 위치`, `세션 인계 문서 위치` 는 실제 프로젝트 루트 기준 `docs/...` 경로를 적는다.
 - 출력 형태:
 - 생성된 경로와 다음 작업을 JSON 으로 출력한다.
 - 상태 캐시:
@@ -105,6 +108,28 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 운영 원칙:
 - `state.json` 은 source of truth 가 아니라 빠른 세션 복원용 캐시다.
 - 원본 상태는 계속 markdown 문서 세트를 기준으로 관리한다.
+- `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 이 스크립트와 같은 로직으로 `state.json` 을 자동 재생성한다.
+- 별도 문서 수정이나 외부 적용 뒤 독립적으로 캐시만 다시 만들고 싶을 때 이 스크립트를 직접 실행한다.
+
+## backlog-update apply mode
+
+- `skills/backlog-update/scripts/run_backlog_update.py --apply` 는 JSON 초안만 내는 read/suggest 경로와 달리 실제 workflow 문서를 갱신한다.
+- 현재 자동 반영 범위:
+- 날짜별 backlog entry 생성 또는 갱신
+- `work_backlog.md` 에 날짜별 backlog 링크 보장
+- `session_handoff.md` 의 `in_progress` / `blocked` / `done` 목록 동기화
+- 그 뒤 `state.json` 자동 재생성
+- 보수적 제한:
+- `merge-doc-reconcile` 처럼 병합 후 재확정이 필요한 단계는 아직 read-first 원칙을 유지한다.
+
+## merge-doc-reconcile apply mode
+
+- `skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py --apply` 는 상태값 자동 확정 대신 handoff 운영 메모에 재정리 노트만 남기는 제한적 write mode 다.
+- 현재 자동 반영 범위:
+- `session_handoff.md` 의 `현재 세션 운영 메모` 섹션에 중복 없는 reconcile note 추가
+- 그 뒤 `state.json` 자동 재생성
+- 보수적 제한:
+- backlog 상태, 완료 여부, 차단 해제, 허브 문서 설명은 자동 확정하지 않는다.
 
 실행 예시:
 
@@ -128,6 +153,8 @@ python3 scripts/generate_workflow_state.py \
 - 단계별 JSON 결과와 요약 정보를 합친 통합 JSON
 - 포함 단계:
 - 최신 backlog 식별, 세션 기준선 복원, backlog 초안 생성, 영향 문서 추천, 검증 계획 추천, 색인 문서 후보 추천, 병합 후 문서 재정리 포인트 산출
+- 탐색 범위 원칙:
+- `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile` 는 `ai-workflow/` 경로를 일반 프로젝트 문서 탐색 범위에서 제외한다.
 
 실행 예시:
 

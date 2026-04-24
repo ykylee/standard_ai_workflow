@@ -15,14 +15,22 @@ if str(REPO_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import classify_index_change_kinds, dedupe
+from workflow_kit.common.exploration_scope import filter_project_scope_paths, is_workflow_meta_path
 from workflow_kit.common.errors import build_error_result
-from workflow_kit.common.paths import declared_doc_path, path_exists_relative, resolve_existing_path
+from workflow_kit.common.paths import (
+    declared_doc_path_from_profile,
+    path_exists_from_profile,
+    project_workspace_root,
+    resolve_existing_path,
+)
 from workflow_kit.common.project_docs import parse_project_profile_core
 
 
 def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
     targets: list[str] = []
     for changed in changed_files:
+        if is_workflow_meta_path(changed):
+            continue
         lower = changed.lower()
         if lower.startswith("docs/operations/runbooks/"):
             targets.append("docs/operations/README.md")
@@ -37,7 +45,7 @@ def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
 
 def build_index_plan(
     *,
-    base_dir: Path,
+    project_profile_path: Path,
     repo_root: Path,
     profile: dict[str, Any],
     changed_files: list[str],
@@ -58,15 +66,15 @@ def build_index_plan(
     if root_readme.exists():
         index_candidates.append(str(root_readme))
 
-    declared_document_home = declared_doc_path(base_dir, profile.get("document_home"))
-    document_home = path_exists_relative(base_dir, profile.get("document_home"))
+    declared_document_home = declared_doc_path_from_profile(project_profile_path, profile.get("document_home"))
+    document_home = path_exists_from_profile(project_profile_path, profile.get("document_home"))
     if declared_document_home:
         index_candidates.append(declared_document_home)
         if not document_home:
             missing_index_candidates.append(declared_document_home)
 
-    declared_operations_root = declared_doc_path(base_dir, profile.get("operations_path"))
-    operations_path = path_exists_relative(base_dir, profile.get("operations_path"))
+    declared_operations_root = declared_doc_path_from_profile(project_profile_path, profile.get("operations_path"))
+    operations_path = path_exists_from_profile(project_profile_path, profile.get("operations_path"))
     if declared_operations_root:
         index_candidates.append(declared_operations_root)
         if not operations_path:
@@ -202,19 +210,19 @@ def main() -> int:
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
         profile = parse_project_profile_core(project_profile_path)
-        base_dir = project_profile_path.parent
-        repo_root = Path(__file__).resolve().parents[3]
+        repo_root = project_workspace_root(project_profile_path)
 
         work_backlog_index_path = (
             resolve_existing_path(args.work_backlog_index_path) if args.work_backlog_index_path else None
         )
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
 
+        filtered_changed_files = filter_project_scope_paths(args.changed_files)
         result = build_index_plan(
-            base_dir=base_dir,
+            project_profile_path=project_profile_path,
             repo_root=repo_root,
             profile=profile,
-            changed_files=args.changed_files,
+            changed_files=filtered_changed_files,
             work_backlog_index_path=work_backlog_index_path,
             session_handoff_path=session_handoff_path,
             change_summary=args.change_summary,
@@ -224,7 +232,7 @@ def main() -> int:
         result["source_context"] = {
             "project_profile_path": str(project_profile_path),
             "project_name": profile.get("project_name"),
-            "changed_files": args.changed_files,
+            "changed_files": filtered_changed_files,
             "change_summary": args.change_summary,
         }
     except FileNotFoundError as exc:

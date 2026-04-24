@@ -6,6 +6,7 @@
 - 상태: draft
 - 최종 수정일: 2026-04-19
 - 관련 문서: `./workflow_harness_distribution.md`, `./workflow_adoption_entrypoints.md`, `./workflow_global_injection_policy.md`, `../harnesses/codex/apply_guide.md`, `../harnesses/opencode/apply_guide.md`
+- 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`
 
 ## 1. 왜 계층이 필요한가
 
@@ -58,8 +59,8 @@
 
 역할:
 
-- 특정 저장소에서만 유효한 명령, 문서 경로, 승인 규칙, 환경 제약
-- 현재 프로젝트의 실제 상태와 backlog, handoff
+- 특정 저장소에서만 유효한 명령, 실제 프로젝트 문서 경로, 승인 규칙, 환경 제약
+- 현재 workflow state 와 세션 기준선
 
 예시:
 
@@ -67,6 +68,12 @@
 - `ai-workflow/project/session_handoff.md`
 - `ai-workflow/project/work_backlog.md`
 - 최신 날짜 backlog 문서
+
+주의:
+
+- `ai-workflow/project/*` 는 workflow state docs 다.
+- `project_workflow_profile.md` 안의 `docs/...` 경로는 실제 프로젝트 문서 위치를 가리킨다.
+- 즉, `ai-workflow/project/backlog/*.md` 에 작업 상태를 기록하는 것과 `docs/operations/backlog/*.md` 같은 실제 운영 문서를 참조하거나 동기화하는 것은 서로 다른 레이어다.
 
 이 레이어는 항상 최우선으로 수정 가능해야 한다.
 

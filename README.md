@@ -10,6 +10,7 @@
 - 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
 - 출력 스키마 가이드: `./core/output_schema_guide.md`
 - 도입 분기 가이드: `./core/workflow_adoption_entrypoints.md`
+- 상태 문서/프로젝트 문서 경계 가이드: `./core/workflow_state_vs_project_docs.md`
 - 하네스 배포 가이드: `./core/workflow_harness_distribution.md`
 - 릴리스 규격 가이드: `./core/workflow_release_spec.md`
 - 승격 범위 가이드: `./core/prototype_promotion_scope.md`
@@ -27,6 +28,7 @@
 - 공통 규칙은 코어 문서로 둔다.
 - 저장소별 차이는 프로젝트 프로파일 템플릿에 적는다.
 - 세션 상태 문서는 템플릿으로 제공한다.
+- `ai-workflow/project/` 아래 문서는 workflow state docs 이고, 실제 프로젝트 운영 문서인 `docs/...` 와 역할을 분리한다.
 - skill, MCP, agent 는 설계 카탈로그로 먼저 제공하고, 실제 구현은 프로젝트 상황에 맞게 선택 적용한다.
 - 이 저장소만 읽어도 구조를 이해할 수 있게 외부 저장소 의존 링크를 최소화한다.
 
@@ -206,6 +208,11 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `AGENTS.md`, `opencode.json`, `.opencode/...` (`opencode` 선택 시)
 - 선택 시 `core/*.md`
 
+여기서 역할을 명확히 나누면 아래와 같다.
+
+- `ai-workflow/project/*`: workflow state docs. 세션 복원, backlog 상태, handoff, state cache 의 source-of-truth
+- `project_workflow_profile.md` 안의 `docs/...` 경로: 실제 프로젝트 문서 위치. runbook, 운영 허브, project-level handoff 같은 현장 문서 위치
+
 배포 가능한 하네스 패키지를 export 하려면 아래처럼 실행할 수 있다.
 
 ```bash
@@ -217,7 +224,9 @@ python3 scripts/export_harness_package.py \
 이 export 는 이번 릴리즈 기준으로 workflow/skill 온보딩 묶음을 우선 배포한다.
 
 - 기본 소비 진입점: `ai-workflow/README.md`, `ai-workflow/core/workflow_adoption_entrypoints.md`, `ai-workflow/core/workflow_skill_catalog.md`
-- 기본 현장 문서: `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`
+- 기본 현장 문서: `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`
+- `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 일반 프로젝트 코드/문서 탐색 범위에서는 기본적으로 제외한다.
+- `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성한다. 독립 실행이 필요할 때는 `scripts/generate_workflow_state.py` 를 직접 사용할 수 있다.
 - 기본 export 는 AI agent 컨텍스트 절약을 위해 런타임 파일만 포함하고, source docs 와 global snippet 예시는 제외한다.
 - 하네스별 패키지는 `dist/harnesses/<target>/<version>/` 아래 개별 생성되며, zip 파일 이름에도 버전이 포함된다.
 - 각 패키지 루트에는 `PACKAGE_CONTENTS.md` 와 `APPLY_GUIDE.md` 가 함께 생성돼 다른 환경에서 바로 적용 흐름을 읽을 수 있다.

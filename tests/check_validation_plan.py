@@ -103,6 +103,16 @@ def main() -> int:
     ):
         raise AssertionError("Docs-only example should not emit missing-command warning when quick tests exist.")
 
+    workflow_meta_payload = run_validation(
+        "acme_delivery_platform",
+        [
+            "ai-workflow/project/session_handoff.md",
+        ],
+        "workflow 상태 문서만 수정",
+    )
+    if workflow_meta_payload["source_context"]["changed_files"]:
+        raise AssertionError("Validation-plan should ignore ai-workflow metadata paths in changed_files.")
+
     print("Validation-plan smoke check passed.")
     return 0
 

@@ -55,10 +55,16 @@ def _replace_list_after_label(lines: list[str], label: str, items: list[str]) ->
 
 
 def _ensure_related_doc_links(lines: list[str], *, backlog_path: Path) -> list[str]:
+    parts = backlog_path.resolve().parts
+    if "backlog" in parts:
+        backlog_index = len(parts) - 1 - list(reversed(parts)).index("backlog")
+        project_dir = Path(*parts[:backlog_index])
+    else:
+        project_dir = backlog_path.parent.parent
     related = [
-        f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'work_backlog.md')}`",
-        f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'session_handoff.md')}`",
-        f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'project_workflow_profile.md')}`",
+        f"`{rel_link_from_doc(backlog_path, project_dir / 'work_backlog.md')}`",
+        f"`{rel_link_from_doc(backlog_path, project_dir / 'session_handoff.md')}`",
+        f"`{rel_link_from_doc(backlog_path, project_dir / 'project_workflow_profile.md')}`",
     ]
     return _replace_list_after_label(lines, "관련 문서", related)
 

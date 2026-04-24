@@ -21,6 +21,9 @@
 - 현재 `in_progress` 작업:
 - 예: `TASK-014 문서 링크 검사 도구화`
 
+연결 계획 문서: 예: `docs/operations/plans/TASK-014-doc-link-checker.md`
+이어서 볼 위치: 예: `계획 문서의 4단계 검증 자동화 섹션`
+
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

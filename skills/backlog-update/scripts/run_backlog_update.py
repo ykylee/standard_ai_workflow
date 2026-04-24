@@ -18,16 +18,30 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import normalize_backticked
-from workflow_kit.common.paths import resolve_existing_path, workflow_project_dir
+from workflow_kit.common.paths import host_scoped_backlog_path, resolve_existing_path, workflow_project_dir
 from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import ensure_backlog_index_entry, sync_handoff_status, upsert_backlog_entry
 
 
-def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
-    base_dir = workflow_project_dir(project_profile_path)
-    return (base_dir / "backlog" / f"{target_date}.md").resolve()
+def infer_backlog_path(project_profile_path: Path, target_date: str, *, host_name: str | None, host_ip: str | None) -> Path:
+    return host_scoped_backlog_path(
+        project_profile_path=project_profile_path,
+        target_date=target_date,
+        host_name=host_name,
+        host_ip=host_ip,
+    )
+
+
+def display_path(raw: str | None, fallback: Path) -> str:
+    """Return a stable output path without resolving filesystem symlinks from user input."""
+    if raw:
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        return str(path)
+    return str(fallback)
 
 
 def suggest_next_task_id(tasks: list[dict[str, Any]]) -> str:
@@ -200,7 +214,15 @@ def main() -> int:
         if args.daily_backlog_path:
             daily_backlog_path = Path(args.daily_backlog_path).expanduser().resolve()
         else:
-            daily_backlog_path = infer_backlog_path(project_profile_path, request_date)
+            daily_backlog_path = infer_backlog_path(
+                project_profile_path,
+                request_date,
+                host_name=args.host_name,
+                host_ip=args.host_ip,
+            )
+        daily_backlog_display_path = display_path(args.daily_backlog_path, daily_backlog_path)
+        work_backlog_index_display_path = display_path(args.work_backlog_index_path, work_backlog_index_path)
+        session_handoff_display_path = display_path(args.session_handoff_path, session_handoff_path)
 
         existing_tasks = parse_backlog_task_entries(daily_backlog_path) if daily_backlog_path.exists() else []
 
@@ -300,19 +322,19 @@ def main() -> int:
                 task_id=task_id,
                 entry_lines=draft_entry,
             )
-            apply_result["written_paths"].append(str(daily_backlog_path))
+            apply_result["written_paths"].append(daily_backlog_display_path)
             if backlog_action == "created":
-                apply_result["created_paths"].append(str(daily_backlog_path))
+                apply_result["created_paths"].append(daily_backlog_display_path)
             else:
-                apply_result["updated_paths"].append(str(daily_backlog_path))
+                apply_result["updated_paths"].append(daily_backlog_display_path)
 
             if work_backlog_index_path.exists():
                 index_added = ensure_backlog_index_entry(
                     work_backlog_index_path=work_backlog_index_path,
                     daily_backlog_path=daily_backlog_path,
                 )
-                apply_result["written_paths"].append(str(work_backlog_index_path))
-                apply_result["updated_paths"].append(str(work_backlog_index_path))
+                apply_result["written_paths"].append(work_backlog_index_display_path)
+                apply_result["updated_paths"].append(work_backlog_index_display_path)
                 if index_added:
                     warnings.append("backlog index 에 새 날짜 backlog 링크를 자동 추가했다.")
             else:
@@ -324,8 +346,8 @@ def main() -> int:
                     task_label=f"{task_id} {args.task_name}",
                     status=status,
                 )
-                apply_result["written_paths"].append(str(session_handoff_path))
-                apply_result["updated_paths"].append(str(session_handoff_path))
+                apply_result["written_paths"].append(session_handoff_display_path)
+                apply_result["updated_paths"].append(session_handoff_display_path)
             elif status in {"in_progress", "blocked", "done"}:
                 apply_result["warnings"].append("session_handoff.md 가 없어 handoff 상태 동기화를 건너뛰었다.")
 
@@ -344,7 +366,7 @@ def main() -> int:
             "status": "ok",
             "tool_version": TOOL_VERSION,
             "operation_type": operation_type,
-            "target_backlog_path": str(daily_backlog_path),
+            "target_backlog_path": daily_backlog_display_path,
             "task_id": task_id,
             "task_found": bool(matched_task),
             "draft_entry": draft_entry,

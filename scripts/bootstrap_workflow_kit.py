@@ -17,6 +17,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from workflow_kit.common.workflow_state import build_workflow_state_payload
+from workflow_kit.common.paths import safe_path_segment
 
 DEFAULT_CORE_DOCS = [
     "global_workflow_standard.md",
@@ -44,6 +45,7 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "core/code_index_update_skill_spec.md",
     "templates/project_workflow_profile_template.md",
     "templates/session_handoff_template.md",
+    "templates/work_item_plan_template.md",
     "templates/pilot_candidate_checklist.md",
     "templates/pilot_adoption_record_template.md",
     "schemas/output_sample_contracts.json",
@@ -162,6 +164,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--backlog-dir", default="docs/operations/backlog/")
     parser.add_argument("--session-doc-path", default="docs/operations/session_handoff.md")
     parser.add_argument("--environment-dir", default="docs/operations/environments/")
+    parser.add_argument("--plan-dir", default="docs/operations/plans/")
     parser.add_argument("--install-command", default="TODO: 설치 명령 입력")
     parser.add_argument("--run-command", default="TODO: 로컬 실행 명령 입력")
     parser.add_argument("--quick-test-command", default="TODO: 빠른 테스트 명령 입력")
@@ -209,19 +212,24 @@ def make_paths(args: argparse.Namespace) -> Paths:
     target_root = Path(args.target_root).resolve()
     kit_root = target_root / args.kit_dir
     project_dir = kit_root / "project"
-    backlog_dir = project_dir / "backlog"
+    backlog_root_dir = project_dir / "backlog"
+    host_backlog_dir = (
+        backlog_root_dir
+        / safe_path_segment(args.host_name, fallback="unknown-host")
+        / safe_path_segment(args.host_ip, fallback="unknown-ip")
+    )
     return Paths(
         target_root=target_root,
         kit_root=kit_root,
         core_dir=kit_root / "core",
         project_dir=project_dir,
-        backlog_dir=backlog_dir,
+        backlog_dir=backlog_root_dir,
         readme_path=kit_root / "README.md",
         profile_path=project_dir / "project_workflow_profile.md",
         state_path=project_dir / "state.json",
         handoff_path=project_dir / "session_handoff.md",
         backlog_index_path=project_dir / "work_backlog.md",
-        daily_backlog_path=backlog_dir / f"{args.today}.md",
+        daily_backlog_path=host_backlog_dir / f"{args.today}.md",
         assessment_path=project_dir / "repository_assessment.md",
     )
 
@@ -362,6 +370,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
             "backlog_dir": args.backlog_dir,
             "session_doc_path": args.session_doc_path,
             "environment_dir": args.environment_dir,
+            "plan_dir": args.plan_dir,
             "install_command": args.install_command,
             "run_command": args.run_command,
             "quick_test_command": args.quick_test_command,
@@ -426,6 +435,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     backlog_dir = f"{operations_dir.rstrip('/')}/backlog/"
     session_doc_path = f"{operations_dir.rstrip('/')}/session_handoff.md"
     environment_dir = f"{operations_dir.rstrip('/')}/environments/"
+    plan_dir = f"{operations_dir.rstrip('/')}/plans/"
 
     if primary_stack == "node":
         install_command = "npm install"
@@ -498,6 +508,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
         "backlog_dir": backlog_dir,
         "session_doc_path": session_doc_path,
         "environment_dir": environment_dir,
+        "plan_dir": plan_dir,
         "install_command": install_command,
         "run_command": run_command,
         "quick_test_command": quick_test_command,
@@ -566,9 +577,10 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
 2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
-3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
-4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
-5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
+3. 여러 세션에 걸칠 큰 작업이면 backlog 항목에 계획 문서 경로를 연결한다.
+4. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
+5. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
+6. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
@@ -584,6 +596,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 - 백로그 위치: `{context['backlog_dir']}`
 - 세션 인계 문서 위치: `{context['session_doc_path']}`
 - 환경 기록 위치: `{context['environment_dir']}`
+- 장기 작업 계획 문서 위치: `{context['plan_dir']}`
 
 ## 다음에 읽을 문서
 
@@ -632,11 +645,14 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
 - 운영 문서 위치:
 - `{context['operations_dir']}`
 - 백로그 위치:
-- `{context['backlog_dir']}`
+- `ai-workflow/project/backlog/<host-name>/<host-ip>/YYYY-MM-DD.md`
+- 프로젝트 문서 기준 백로그 위치: `{context['backlog_dir']}`
 - 세션 인계 문서 위치:
 - `{context['session_doc_path']}`
 - 환경 기록 위치:
 - `{context['environment_dir']}`
+- 장기 작업 계획 문서 위치:
+- `{context['plan_dir']}`
 
 ## 3. 기본 명령
 
@@ -723,6 +739,9 @@ def render_session_handoff(args: argparse.Namespace, context: dict[str, object])
 - 현재 `in_progress` 작업:
 - {in_progress}
 
+연결 계획 문서: TODO: 큰 작업이면 계획 문서 경로를 적는다.
+이어서 볼 위치: TODO: 계획 문서의 이어서 볼 섹션이나 단계 번호를 적는다.
+
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -739,6 +758,7 @@ def render_session_handoff(args: argparse.Namespace, context: dict[str, object])
 
 - profile 문서의 추정 명령과 문서 구조를 실제 프로젝트 기준으로 검증
 - 오늘 날짜 backlog 에 실제 진행 작업과 검증 계획을 반영
+- 큰 작업이면 계획 문서 또는 로드맵 문서를 만들고 backlog 항목에 연결
 
 ### 우선순위 2
 
@@ -775,12 +795,20 @@ def render_backlog_index(args: argparse.Namespace) -> str:
 - 새 작업은 브리핑 후 해당 날짜 백로그에 등록한다.
 - 세션 종료 전에는 handoff 문서를 갱신한다.
 - 검증 결과와 미실행 사유는 날짜별 백로그에 남긴다.
+- 날짜별 backlog 는 호스트명과 IP 폴더 아래에 둬 병렬 작업 간 task 번호 충돌을 줄인다.
+- 여러 세션에 걸칠 큰 작업은 날짜별 backlog 항목에 계획 문서 경로를 연결한다.
+- 이어서 작업할 때는 먼저 작업 항목을 선택하고, 연결된 계획 문서를 읽은 뒤 현재 상태와 다음 단계를 확인한다.
 - 사용자에게 직접 보여지는 작업 기록과 상태 요약은 한국어를 기본으로 작성한다.
 - 다음 세션에 필요한 핵심 사실만 남기고, 중간 탐색 흔적과 중복 요약은 줄인다.
 
 ## 날짜별 백로그 문서
 
-- [{args.today} 작업 백로그](./backlog/{args.today}.md)
+- [{args.today} 작업 백로그](./backlog/{safe_path_segment(args.host_name, fallback="unknown-host")}/{safe_path_segment(args.host_ip, fallback="unknown-ip")}/{args.today}.md)
+- 호스트별 예: `./backlog/{safe_path_segment(args.host_name, fallback="unknown-host")}/{safe_path_segment(args.host_ip, fallback="unknown-ip")}/{args.today}.md`
+
+## 장기 작업 계획 문서
+
+- 예: `./plans/{args.initial_task_id}-work-item-plan.md`
 """
 
 
@@ -820,6 +848,8 @@ def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -
 - 영향 문서:
 - `{context['session_doc_path']}`
 - `{context['backlog_dir']}`
+- 계획 문서:
+- TODO: 여러 세션에 걸칠 작업이면 `{context['plan_dir']}{args.initial_task_id}.md` 같은 계획 문서를 연결한다.
 - 작업 내용:
 - {task_details}
 - 진행 현황:

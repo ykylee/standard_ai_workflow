@@ -74,6 +74,7 @@ def check_new_project_mode() -> None:
         for relative_path in (
             "ai-workflow/templates/project_workflow_profile_template.md",
             "ai-workflow/templates/session_handoff_template.md",
+            "ai-workflow/templates/work_item_plan_template.md",
             "ai-workflow/schemas/generated_output_schemas.json",
             "ai-workflow/examples/output_samples/README.md",
             "ai-workflow/mcp/README.md",
@@ -112,6 +113,8 @@ def check_new_project_mode() -> None:
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "docs/operations/" not in profile_text:
             raise AssertionError("Generated profile did not include the default operations dir.")
+        if "장기 작업 계획 문서 위치" not in profile_text:
+            raise AssertionError("Generated profile should include the long-running work plan path.")
 
         workflow_state = json.loads(Path(str(generated["workflow_state"])).read_text(encoding="utf-8"))
         if workflow_state["schema_version"] != "1":
@@ -126,6 +129,10 @@ def check_new_project_mode() -> None:
         daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
         if "작업 기록은 한국어를 기본으로 작성한다." not in daily_backlog_text:
             raise AssertionError("Generated daily backlog should include the Korean reporting rule.")
+        if "계획 문서:" not in daily_backlog_text:
+            raise AssertionError("Generated daily backlog should include a plan document field.")
+        if "/unknown-host/unknown-ip/" not in str(generated["daily_backlog"]):
+            raise AssertionError("Generated daily backlog should be scoped by host and IP folders.")
 
 
 def check_existing_project_mode() -> None:
@@ -187,6 +194,10 @@ def check_existing_project_mode() -> None:
             raise AssertionError("Existing project mode did not infer npm install.")
         if "docs/operations/" not in profile_text:
             raise AssertionError("Existing project mode did not infer docs/operations/.")
+        if "docs/operations/plans/" not in profile_text:
+            raise AssertionError("Existing project mode did not infer the long-running work plan directory.")
+        if "/unknown-host/unknown-ip/" not in str(generated["daily_backlog"]):
+            raise AssertionError("Existing project daily backlog should be scoped by host and IP folders.")
 
         harness_files = payload["generated_harness_files"]
         assert_exists(str(harness_files["codex_agents"]))

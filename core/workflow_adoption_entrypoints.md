@@ -28,9 +28,10 @@
 
 1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
 2. `project_workflow_profile.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
-3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
-4. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
-4. 이후 skill/MCP 도입 범위를 정한다.
+3. `session_handoff.md` 와 호스트별 날짜 backlog 에 첫 작업 기준선을 적는다.
+4. 여러 세션에 걸칠 첫 작업이면 계획 문서 또는 로드맵 문서를 만들고 backlog 항목에 연결한다.
+5. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
+6. 이후 skill/MCP 도입 범위를 정한다.
 
 ### 자동화 포인트
 
@@ -55,9 +56,10 @@
 1. `bootstrap_workflow_kit.py --adoption-mode existing` 로 저장소 분석과 문서 초안을 생성한다.
 2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
 3. `project_workflow_profile.md` 에 자동 추정값을 확정 또는 수정한다.
-4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
-5. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
-6. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
+4. `session_handoff.md` 와 호스트별 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
+5. 코드베이스 분석, 리팩터링, 개발 항목처럼 다시 시작 비용이 큰 작업은 계획 문서를 만들고 backlog 항목에 연결한다.
+6. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
+7. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
 
 ### bootstrap 직후 후속 루틴
 
@@ -104,12 +106,16 @@ python3 scripts/run_existing_project_onboarding.py \
 - 설치, 실행, 테스트 명령 추정
 - repository assessment 문서 생성
 - handoff/backlog 초기 항목 자동 작성
+- 장기 작업 계획 문서 경로를 backlog 항목에 연결
+- 호스트명/IP 기준 날짜 backlog 경로 생성
 
 ### 주의점
 
 - 자동 추정한 명령은 편의용 초안일 뿐이며, 실제 CI/CD 또는 운영 절차와 다를 수 있다.
 - 기존 문서 체계가 이미 있다면 별도 워크플로우 문서를 둘지, 기존 문서 위치에 흡수할지 먼저 결정해야 한다.
 - 리뷰 규칙, 배포 승인 규칙, 환경 제약은 자동 추정하기 어렵기 때문에 반드시 사람이 보강해야 한다.
+- 큰 작업의 계획 문서가 없으면 세션을 다시 시작할 때 코드베이스 분석과 결정 기록을 반복하게 되므로, 처음부터 backlog 항목에 계획 문서 경로를 남기는 편이 안전하다.
+- 날짜만으로 backlog 를 나누면 병렬 작업 시 task 번호가 충돌할 수 있으므로, 호스트명/IP 폴더를 포함한 backlog 경로를 기본값으로 둔다.
 - 실제 파일럿 적용 대상은 [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md) 기준으로 먼저 추리는 편이 좋다.
 
 ## 4. 어떤 경로를 고를지 판단 기준

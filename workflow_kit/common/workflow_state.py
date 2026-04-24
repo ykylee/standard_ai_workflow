@@ -62,6 +62,7 @@ def build_workflow_state_payload(
             str(work_backlog_index_path),
             str(resolved_latest_backlog_path) if resolved_latest_backlog_path else "",
             *[str(path) for path in handoff.get("next_documents", []) if isinstance(path, Path) and path.exists()],
+            *[str(path) for path in backlog.get("linked_documents", []) if isinstance(path, Path) and path.exists()],
         ]
     )
 

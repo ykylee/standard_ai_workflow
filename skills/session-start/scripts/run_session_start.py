@@ -86,6 +86,7 @@ def main() -> int:
                 str(latest_backlog_path) if latest_backlog_path else "",
                 str(project_profile_path),
                 *[str(path) for path in handoff.get("next_documents", []) if path.exists()],
+                *[str(path) for path in backlog.get("linked_documents", []) if isinstance(path, Path) and path.exists()],
             ]
         )
 

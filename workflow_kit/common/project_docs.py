@@ -119,6 +119,7 @@ def parse_backlog(path: Path) -> dict[str, object]:
         "in_progress_items": [f"{task['task_id']} {task['title']}" for task in tasks if task.get("status") == "in_progress"],
         "blocked_items": [f"{task['task_id']} {task['title']}" for task in tasks if task.get("status") == "blocked"],
         "done_items": [f"{task['task_id']} {task['title']}" for task in tasks if task.get("status") == "done"],
+        "linked_documents": [(path.parent / target).resolve() for target in markdown_targets(path)],
     }
 
 

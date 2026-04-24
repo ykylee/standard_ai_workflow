@@ -94,6 +94,8 @@
 - `project_workflow_profile.md` 안에 `백로그 위치: docs/...` 가 적혀 있다고 해서 workflow backlog write target 이 `docs/...` 로 바뀌는 것은 아니다.
 - `ai-workflow/project/backlog/*.md` 는 workflow state backlog 다.
 - `docs/operations/backlog/*.md` 는 실제 프로젝트 운영 문서일 수 있지만, 기본 workflow state write target 과는 별개다.
+- `project_workflow_profile.md` 의 경로 필드 다음 줄에는 순수 경로만 둔다. 설명형 문장을 바로 다음 줄에 두면 `state.json` cache 가 그 문장을 경로값으로 파싱할 수 있다.
+- `session_handoff.md` 의 `현재 in_progress 작업`, `blocked 작업`, `최근 완료 작업` 목록에는 task 항목만 둔다. 목적, 범위, 설명 문장을 같은 bullet 목록에 섞으면 `session-start` 가 보조 설명을 작업 항목으로 오인해 handoff/backlog 불일치 경고를 낼 수 있다.
 
 ## 7. 구현 기준
 
@@ -105,6 +107,23 @@
 
 - runner 와 helper 는 이 둘을 섞어 해석하지 않아야 한다.
 - 문서와 하네스 가이드도 같은 용어를 유지해야 한다.
+
+## 8. 실행 기반 개선 규칙
+
+실제 onboarding 을 돌릴 때는 문서 수정 직후 아래 순서로 빠른 피드백을 받는다.
+
+1. `python3 scripts/generate_workflow_state.py ...` 로 `state.json` 을 재생성한다.
+2. `python3 skills/session-start/scripts/run_session_start.py ...` 로 다음 세션 복원이 경고 없이 되는지 확인한다.
+3. `python3 tests/check_docs.py` 로 문서 메타데이터와 링크를 확인한다.
+4. `git diff --check -- <changed-files>` 로 whitespace 오류를 먼저 제거한다.
+
+실행 중 확인한 최적화 기준:
+
+- profile 의 파싱 대상 필드는 사람이 읽는 설명보다 cache 안정성을 우선한다. 자세한 설명은 `문서 구조 메모` 같은 별도 섹션으로 분리한다.
+- handoff 의 상태 목록은 task 단위로만 유지하고, 부가 설명은 목록 밖의 짧은 문단으로 둔다.
+- `state.json` 은 수동 편집하지 않고 source-of-truth 문서를 고친 뒤 재생성한다.
+- 전체 smoke 는 비용이 크므로 문서 온보딩 단계에서는 `check_docs`, `session-start`, `diff --check` 를 1차 게이트로 삼고, 코드/계약 변경이 있을 때만 관련 `tests/check_*.py` 또는 전체 smoke 로 확장한다.
+- 이미 dirty worktree 인 경우에는 이번 작업의 책임 파일을 먼저 좁히고, 기존 미관련 변경은 되돌리지 않는다.
 
 ## 다음에 읽을 문서
 

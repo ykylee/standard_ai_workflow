@@ -899,6 +899,8 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/project_workflow_profile.md`
 
+`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+
 ## 작업 원칙
 
 - 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
@@ -1034,6 +1036,7 @@ Follow these rules:
 - Update `state.json`, the handoff, and the latest backlog before ending a session.
 - Keep internal reasoning and intermediate classification compact, and avoid long repeated explanations to the user.
 - Leave only essential facts in handoff/backlog so session context stays lean.
+- Treat `ai-workflow/` as workflow metadata only. Ignore it during normal project document exploration unless the task is explicitly about workflow docs or session state.
 """
 
 
@@ -1057,6 +1060,16 @@ Start each substantial task by reading:
 - `ai-workflow/project/work_backlog.md`
 - `ai-workflow/project/project_workflow_profile.md`
 
+Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
+
+You may directly read only the minimum session-restoration set and tiny triage inputs:
+
+- `ai-workflow/project/state.json`
+- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/project/project_workflow_profile.md`
+- one clearly bounded file or path for tiny triage
+
 Project defaults:
 
 - Install: `{context['install_command']}`
@@ -1078,10 +1091,12 @@ User-facing workflow rules:
 - Keep the main orchestrator focused on coordination, prioritization, integration, and the final user-facing report.
 - Separate broad read-heavy exploration from write tasks when possible so one stream of work does not pollute another stream's context.
 - Treat this agent as a read-mostly coordinator with task-only execution: delegate edits, scans, log review, and validation to sub-agents instead of making exceptions for direct tool use.
+- Keep direct read narrow: after the session-restoration set, only tiny single-file or single-path triage reads stay local; broader reading goes to workers.
 - Ask the user only when a missing decision is genuinely blocking or a risky external action needs confirmation; otherwise make the smallest reasonable assumption and continue through a worker.
 - When delegating, give each worker a bounded scope, clear output, and a concise completion contract.
 - Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded implementation, config edits, and build-oriented tasks, and `workflow-validation-worker` for checks and evidence collection.
 - If your harness supports per-agent model selection, prefer the main model for this orchestrator and a smaller model for the worker agents by default.
+- Do not treat `ai-workflow/` as part of normal project document discovery. Use it only for workflow-state restoration or explicit workflow-maintenance tasks.
 """
 
 
@@ -1123,6 +1138,7 @@ Worker rules:
 - If you run checks, report only the command intent and the result that matters.
 - Write user-facing drafts in Korean by default unless the assigned task clearly requires another language.
 - Minimize asks during execution. Proceed with the smallest reasonable assumption unless the orchestrator explicitly requested a decision point.
+- Ignore `ai-workflow/` during normal project document or source exploration unless the assigned task explicitly targets workflow docs or session-state updates.
 """
 
 
@@ -1154,6 +1170,7 @@ Worker rules:
 - Keep user-facing drafts in Korean by default.
 - Minimize asks during execution and resolve obvious document-structure choices locally when risk is low.
 - If your harness supports per-agent model selection, this worker is a good default target for a smaller model.
+- Ignore `ai-workflow/` when looking for project documentation unless the assigned task is explicitly about workflow docs or session-state maintenance.
 """
 
 
@@ -1186,6 +1203,7 @@ Worker rules:
 - Avoid broad repository exploration unless explicitly assigned.
 - Minimize asks during execution. Make bounded implementation choices locally unless the change would alter product behavior or ownership boundaries.
 - If your harness supports per-agent model selection, use a smaller model for routine edits and reserve the main model for unusually risky or architectural code tasks.
+- Ignore `ai-workflow/` during normal implementation-context discovery unless the assigned task explicitly targets workflow docs or workflow automation.
 """
 
 
@@ -1222,6 +1240,7 @@ Worker rules:
 - Avoid flooding the orchestrator with raw logs when a short summary is enough.
 - Minimize asks during execution and complete the assigned checks unless the environment is genuinely blocked.
 - If your harness supports per-agent model selection, this worker is usually a strong candidate for a smaller model.
+- Ignore `ai-workflow/` during normal validation-context discovery unless the assigned task explicitly targets workflow docs or session-state verification.
 """
 
 

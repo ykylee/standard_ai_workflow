@@ -70,6 +70,28 @@ def main() -> int:
     if not any("runbook" in item or "operations" in item for item in payload["impacted_documents"]):
         raise AssertionError("Expected runbook/operations document to appear in impacted documents.")
 
+    _, workflow_meta_payload = run_doc_sync(
+        expect_success=True,
+        args=[
+            "--project-profile-path",
+            str(example_root / "project_workflow_profile.md"),
+            "--session-handoff-path",
+            str(example_root / "session_handoff.md"),
+            "--work-backlog-index-path",
+            str(example_root / "work_backlog.md"),
+            "--latest-backlog-path",
+            str(latest_backlog),
+            "--changed-file",
+            "ai-workflow/project/session_handoff.md",
+            "--change-summary",
+            "workflow 상태 문서만 수정",
+        ],
+    )
+    if any("ai-workflow/" in item for item in workflow_meta_payload["impacted_documents"]):
+        raise AssertionError("Workflow metadata paths should be ignored in impacted project documents.")
+    if any("ai-workflow/" in item for item in workflow_meta_payload["hub_update_candidates"]):
+        raise AssertionError("Workflow metadata paths should be ignored in project hub candidates.")
+
     failure_code, failure_payload = run_doc_sync(
         expect_success=False,
         args=[

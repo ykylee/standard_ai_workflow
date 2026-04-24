@@ -9,6 +9,13 @@ from workflow_kit.common.normalize import dedupe_strings
 from workflow_kit.common.paths import path_exists_relative
 
 
+def is_workflow_meta_path(raw_path: str | Path | None) -> bool:
+    if raw_path is None:
+        return False
+    normalized = str(raw_path).replace("\\", "/")
+    return "/ai-workflow/" in normalized or normalized.startswith("ai-workflow/")
+
+
 def build_doc_sync_candidates(
     *,
     base_dir: Path,
@@ -43,6 +50,11 @@ def build_doc_sync_candidates(
     for changed in changed_files:
         kind = classify_doc_sync_file(changed)
         reasoning_notes.append(f"`{changed}` 는 `{kind}` 유형 변경으로 분류됐다.")
+        if is_workflow_meta_path(changed):
+            reasoning_notes.append(
+                f"`{changed}` 는 workflow 메타 문서 경로이므로 프로젝트 문서 탐색 후보에서는 제외한다."
+            )
+            continue
         if kind in {"handoff_doc", "backlog_doc", "doc"}:
             impacted.append(changed)
             if "handoff" in changed.lower() and session_handoff_path:
@@ -85,8 +97,8 @@ def build_doc_sync_candidates(
         if not status_doc_candidates:
             stale_warnings.append("코드 변경은 있었지만 상태 문서 후보를 찾지 못했다.")
 
-    impacted_documents = dedupe_strings(impacted + status_doc_candidates)
-    hub_update_candidates = dedupe_strings(hub_candidates)
+    impacted_documents = dedupe_strings([item for item in impacted if not is_workflow_meta_path(item)])
+    hub_update_candidates = dedupe_strings([item for item in hub_candidates if not is_workflow_meta_path(item)])
     status_doc_candidates = dedupe_strings(status_doc_candidates)
     follow_up_actions = dedupe_strings(follow_up_actions)
     recommended_review_order = dedupe_strings(

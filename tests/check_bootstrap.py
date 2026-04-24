@@ -225,12 +225,16 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("AGENTS.md should include the Korean reporting rule.")
         if "ai-workflow/project/state.json" not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
+        if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:
+            raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
 
         skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
         if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:
             raise AssertionError("OpenCode skill should include the Korean reporting rule.")
         if "ai-workflow/project/state.json" not in skill_text:
             raise AssertionError("OpenCode skill should read the workflow state cache.")
+        if "Treat `ai-workflow/` as workflow metadata only." not in skill_text:
+            raise AssertionError("OpenCode skill should exclude ai-workflow from normal project exploration.")
 
         agent_text = Path(str(harness_files["opencode_agent"])).read_text(encoding="utf-8")
         if "Write visible work reports, summaries, and document drafts in Korean by default." not in agent_text:
@@ -245,6 +249,12 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode orchestrator should deny direct edit/bash/webfetch access.")
         if "Ask the user only when a missing decision is genuinely blocking" not in agent_text:
             raise AssertionError("OpenCode orchestrator should minimize user asks.")
+        if "Do not treat `ai-workflow/` as part of normal project document discovery." not in agent_text:
+            raise AssertionError("OpenCode orchestrator should exclude ai-workflow from normal project exploration.")
+        if "You may directly read only the minimum session-restoration set and tiny triage inputs:" not in agent_text:
+            raise AssertionError("OpenCode orchestrator should define the narrow direct-read allowlist.")
+        if "Keep direct read narrow" not in agent_text:
+            raise AssertionError("OpenCode orchestrator should restrict direct reads after session restoration.")
 
         worker_text = Path(str(harness_files["opencode_worker_agent"])).read_text(encoding="utf-8")
         if "You are a workflow worker for this repository." not in worker_text:

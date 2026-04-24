@@ -33,6 +33,7 @@
 - 세션 문서에는 최종 결정, 검증 결과, 다음 세션에 필요한 사실만 남기고 내부 탐색 흔적은 최소화한다.
 - orchestrator 와 worker 를 나눠 운영할 수 있는 하네스에서는 메인 orchestrator 가 직접 도구 호출을 떠안기보다 task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.
 - 실제 탐색, 수정, 검증은 bounded scope worker 에 맡기고, ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.
+- `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 프로젝트 코드/문서 탐색 범위에는 기본적으로 포함하지 않는다.
 
 ## 2. 세션 시작 순서
 

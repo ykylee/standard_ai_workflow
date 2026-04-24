@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+import re
 
 from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.project_docs import TASK_HEADER_RE
@@ -119,25 +120,46 @@ def ensure_backlog_index_entry(*, work_backlog_index_path: Path, daily_backlog_p
     lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
     link_target = rel_link_from_doc(work_backlog_index_path, daily_backlog_path)
     link_line = f"- [{daily_backlog_path.stem} 작업 백로그]({link_target})"
-    if any(line.strip() == link_line for line in lines):
-        _write_lines(work_backlog_index_path, lines)
-        return False
+    existing_targets = {
+        candidate.resolve()
+        for candidate in (
+            (work_backlog_index_path.parent / line.split("](", 1)[1][:-1]).resolve()
+            for line in lines
+            if line.strip().startswith("- [") and "](" in line and line.strip().endswith(")")
+        )
+    }
 
     insert_at = None
     for idx, line in enumerate(lines):
         if line.strip() == "## 날짜별 백로그 문서":
-            insert_at = idx + 1
-            while insert_at < len(lines) and (
-                lines[insert_at].strip() == "" or lines[insert_at].strip().startswith("- ")
+            section_start = idx + 1
+            section_end = section_start
+            while section_end < len(lines) and (
+                lines[section_end].strip() == "" or lines[section_end].strip().startswith("- ")
             ):
-                insert_at += 1
+                section_end += 1
+            deduped_section: list[str] = []
+            seen_targets: set[Path] = set()
+            for line_in_section in lines[section_start:section_end]:
+                stripped = line_in_section.strip()
+                if not stripped.startswith("- [") or "](" not in stripped or not stripped.endswith(")"):
+                    deduped_section.append(line_in_section)
+                    continue
+                raw_target = stripped.split("](", 1)[1][:-1]
+                resolved_target = (work_backlog_index_path.parent / raw_target).resolve()
+                if resolved_target in seen_targets:
+                    continue
+                seen_targets.add(resolved_target)
+                deduped_section.append(line_in_section)
+            lines = lines[:section_start] + deduped_section + lines[section_end:]
+            insert_at = section_start + len(deduped_section)
             break
     if insert_at is None:
         lines.extend(["", "## 날짜별 백로그 문서", link_line])
-    else:
+    elif daily_backlog_path.resolve() not in existing_targets:
         lines = lines[:insert_at] + [link_line] + lines[insert_at:]
     _write_lines(work_backlog_index_path, lines)
-    return True
+    return daily_backlog_path.resolve() not in existing_targets
 
 
 def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> None:
@@ -196,11 +218,11 @@ def append_unique_bullets_under_heading(*, doc_path: Path, heading: str, bullets
     if not lines or not bullets:
         return False
 
-    heading_line = f"## {heading}"
+    heading_re = re.compile(rf"^##\s+(?:\d+\.\s+)?{re.escape(heading)}\s*$")
     start: int | None = None
     end: int | None = None
     for idx, line in enumerate(lines):
-        if line.strip() == heading_line:
+        if heading_re.match(line.strip()):
             start = idx + 1
             end = start
             while end < len(lines) and not lines[end].startswith("## "):

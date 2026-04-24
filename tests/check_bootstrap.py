@@ -71,6 +71,17 @@ def check_new_project_mode() -> None:
             raise AssertionError("Expected seven copied core docs in new project mode.")
         for raw_path in copied_core_docs:
             assert_exists(str(raw_path))
+        for relative_path in (
+            "ai-workflow/templates/project_workflow_profile_template.md",
+            "ai-workflow/templates/session_handoff_template.md",
+            "ai-workflow/schemas/generated_output_schemas.json",
+            "ai-workflow/examples/output_samples/README.md",
+            "ai-workflow/mcp/README.md",
+            "ai-workflow/skills/README.md",
+            "ai-workflow/scripts/README.md",
+            "ai-workflow/scripts/apply_harness_update.py",
+        ):
+            assert_exists(str(target_root / relative_path))
 
         harness_files = payload["generated_harness_files"]
         snippet_candidates = payload["global_snippet_candidates"]
@@ -261,6 +272,8 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
         if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:
             raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
+        if "- 문서 목적:" not in agents_text:
+            raise AssertionError("AGENTS.md should include doc metadata for repository smoke checks.")
 
         skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
         if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:

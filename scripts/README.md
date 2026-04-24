@@ -10,6 +10,7 @@
 ## 현재 포함된 스크립트
 
 - [bootstrap_workflow_kit.py](./bootstrap_workflow_kit.py)
+- [apply_harness_update.py](./apply_harness_update.py)
 - [export_harness_package.py](./export_harness_package.py)
 - [generate_workflow_state.py](./generate_workflow_state.py)
 - [scaffold_harness.py](./scaffold_harness.py)
@@ -94,6 +95,39 @@ python3 scripts/bootstrap_workflow_kit.py \
   --adoption-mode existing \
   --harness codex \
   --copy-core-docs
+```
+
+## apply_harness_update.py
+
+- 목적:
+- export package 나 bundle-like 디렉터리를 기존 저장소에 안전하게 반영한다.
+- 기본 동작:
+- `AGENTS.md`, `ai-workflow/`, `.codex`, `opencode.json`, `.opencode` 중 source 에 실제로 들어 있는 경로만 관리 대상으로 본다.
+- 동일한 내용은 건너뛰고, 바뀐 경로만 `<target-root>/.ai-workflow-backups/<timestamp>/` 아래에 먼저 백업한 뒤 교체한다.
+- 파일/디렉터리 타입 충돌도 백업 후 교체한다.
+- 사용 시점:
+- 기존 저장소에 workflow 재배포나 버전 업데이트를 적용할 때
+- 과거 flat `.codex` 파일을 새 `.codex/` 디렉터리 구조로 안전하게 바꿔야 할 때
+- 입력 형태:
+- `--source-root` 는 export package 루트 또는 바로 `bundle/` 내용이 들어 있는 디렉터리를 받을 수 있다.
+- 출력 형태:
+- 적용 결과, 백업 위치, 생성/업데이트/건너뜀 경로를 JSON 으로 출력한다.
+
+실행 예시:
+
+```bash
+python3 scripts/apply_harness_update.py \
+  --source-root /path/to/standard-ai-workflow-codex-prototype-v2 \
+  --target-root /path/to/project
+```
+
+dry-run 예시:
+
+```bash
+python3 scripts/apply_harness_update.py \
+  --source-root /path/to/package \
+  --target-root /path/to/project \
+  --dry-run
 ```
 
 ## generate_workflow_state.py

@@ -94,6 +94,14 @@ python3 scripts/bootstrap_workflow_kit.py \
    worker 는 문서 비교, bounded code edit, 검증 로그 수집처럼 역할을 나눠 호출하면 컨텍스트 절약 효과가 더 크다.
 5. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
 
+기존에 workflow 배포본이 이미 있다면 manual copy 대신 아래 updater 를 먼저 검토하는 편이 안전하다.
+
+```bash
+python3 scripts/apply_harness_update.py \
+  --source-root /path/to/exported-package \
+  --target-root /path/to/project
+```
+
 ## 4. 작업 중인 프로젝트 적용 순서
 
 1. 아래 명령으로 기존 저장소 분석과 Codex overlay 를 함께 생성한다.
@@ -115,6 +123,15 @@ python3 scripts/bootstrap_workflow_kit.py \
    export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
    가능하면 메인 에이전트가 직접 모든 읽기/쓰기를 떠안지 않도록, bounded scope worker 호출 원칙도 이 단계에서 같이 검토한다.
 5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
+
+기존 배포본을 갱신하는 상황이라면 먼저 dry-run 으로 변경 예정 경로와 backup 대상부터 확인한다.
+
+```bash
+python3 scripts/apply_harness_update.py \
+  --source-root /path/to/exported-package \
+  --target-root /path/to/project \
+  --dry-run
+```
 
 ## 5. Codex 에서 첫 세션 시작하는 방법
 

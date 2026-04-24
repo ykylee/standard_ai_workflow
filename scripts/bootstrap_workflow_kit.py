@@ -27,6 +27,72 @@ DEFAULT_CORE_DOCS = [
     "workflow_adoption_entrypoints.md",
     "workflow_harness_distribution.md",
 ]
+DEFAULT_CORE_SUPPORT_PATHS = [
+    "core/existing_project_onboarding_contract.md",
+    "core/project_status_assessment.md",
+    "core/prototype_promotion_scope.md",
+    "core/read_only_mcp_transport_promotion.md",
+    "core/workflow_release_spec.md",
+    "core/workflow_configuration_layers.md",
+    "core/workflow_global_injection_policy.md",
+    "core/workflow_kit_roadmap.md",
+    "core/session_start_skill_spec.md",
+    "core/backlog_update_skill_spec.md",
+    "core/doc_sync_skill_spec.md",
+    "core/merge_doc_reconcile_skill_spec.md",
+    "core/validation_plan_skill_spec.md",
+    "core/code_index_update_skill_spec.md",
+    "templates/project_workflow_profile_template.md",
+    "templates/session_handoff_template.md",
+    "templates/pilot_candidate_checklist.md",
+    "templates/pilot_adoption_record_template.md",
+    "schemas/output_sample_contracts.json",
+    "schemas/generated_output_schemas.json",
+    "examples/output_samples",
+    "examples/README.md",
+    "examples/end_to_end_skill_demo.md",
+    "examples/end_to_end_mcp_demo.md",
+    "examples/bootstrap_output_samples.md",
+    "examples/pilot_adoption_open_git_client_example.md",
+    "skills/README.md",
+    "skills/prototype_layout.md",
+    "skills/session-start/SKILL.md",
+    "skills/backlog-update/SKILL.md",
+    "skills/doc-sync/SKILL.md",
+    "skills/merge-doc-reconcile/SKILL.md",
+    "skills/validation-plan/SKILL.md",
+    "skills/code-index-update/SKILL.md",
+    "mcp/README.md",
+    "mcp/prototype_layout.md",
+    "mcp/read_only_bundle.md",
+    "mcp/latest-backlog/MCP.md",
+    "mcp/check-doc-metadata/MCP.md",
+    "mcp/check-doc-links/MCP.md",
+    "mcp/create-backlog-entry/MCP.md",
+    "mcp/suggest-impacted-docs/MCP.md",
+    "mcp/check-quickstart-stale-links/MCP.md",
+    "tests/README.md",
+    "tests/check_docs.py",
+    "tests/check_bootstrap.py",
+    "tests/check_validation_plan.py",
+    "tests/check_code_index_update.py",
+    "tests/check_existing_project_onboarding.py",
+    "tests/check_quickstart_stale_links.py",
+    "harnesses/_template/README.md",
+    "harnesses/README.md",
+    "harnesses/codex/apply_guide.md",
+    "harnesses/opencode/apply_guide.md",
+    "global-snippets/README.md",
+    "scripts/README.md",
+    "scripts/apply_harness_update.py",
+    "scripts/bootstrap_workflow_kit.py",
+    "scripts/export_harness_package.py",
+    "scripts/generate_workflow_state.py",
+    "scripts/scaffold_harness.py",
+    "scripts/run_demo_workflow.py",
+    "scripts/run_existing_project_onboarding.py",
+    "workflow_kit/README.md",
+]
 IGNORED_DIRS = {
     ".git",
     ".hg",
@@ -177,6 +243,25 @@ def copy_core_docs(paths: Paths, *, force: bool) -> list[str]:
             raise FileExistsError(f"Destination already exists: {destination}")
         shutil.copyfile(source, destination)
         copied.append(str(destination))
+    for raw_relative_path in DEFAULT_CORE_SUPPORT_PATHS:
+        relative_path = Path(raw_relative_path)
+        source = REPO_ROOT / relative_path
+        destination = paths.kit_root / relative_path
+        if source.is_dir():
+            for file_path in sorted(source.rglob("*")):
+                if not file_path.is_file():
+                    continue
+                nested_relative = file_path.relative_to(REPO_ROOT)
+                nested_destination = paths.kit_root / nested_relative
+                if nested_destination.exists() and not force:
+                    raise FileExistsError(f"Destination already exists: {nested_destination}")
+                nested_destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(file_path, nested_destination)
+            continue
+        if destination.exists() and not force:
+            raise FileExistsError(f"Destination already exists: {destination}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
     return copied
 
 
@@ -887,6 +972,13 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
         else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
     )
     return f"""# AGENTS.md
+
+- 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
+- 대상 독자: Codex, 저장소 관리자, workflow 설계자
+- 상태: draft
+- 최종 수정일: {args.today}
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
 
 ## 목적
 

@@ -139,6 +139,72 @@ def main() -> int:
             raise AssertionError("Expected apply mode to move the task into the blocked handoff section.")
         if str(temp_backlog_path) not in apply_payload["written_paths"]:
             raise AssertionError("Expected apply mode to report the written backlog path.")
+        work_backlog_text = (temp_project_root / "work_backlog.md").read_text(encoding="utf-8")
+        backlog_link_count = sum(
+            1
+            for line in work_backlog_text.splitlines()
+            if line.strip() == f"- [{backlog_path.stem} 작업 백로그](./backlog/{backlog_path.name})"
+        )
+        if backlog_link_count != 1:
+            raise AssertionError("Expected apply mode to keep only one backlog index link per daily backlog file.")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_root = Path(temp_dir)
+        temp_project_root = temp_root / "project"
+        temp_project_root.mkdir()
+        for relative_path in ("project_workflow_profile.md", "session_handoff.md", "work_backlog.md"):
+            source_path = example_root / relative_path
+            target_path = temp_project_root / relative_path
+            target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        temp_backlog_dir = temp_project_root / "backlog"
+        temp_backlog_dir.mkdir()
+        temp_backlog_path = temp_backlog_dir / backlog_path.name
+        temp_backlog_path.write_text(backlog_path.read_text(encoding="utf-8"), encoding="utf-8")
+        index_path = temp_project_root / "work_backlog.md"
+        index_text = index_path.read_text(encoding="utf-8")
+        index_text = index_text.replace(
+            f"- [{backlog_path.stem} 작업 백로그](./backlog/{backlog_path.name})",
+            "\n".join(
+                [
+                    f"- [{backlog_path.stem} 작업 백로그](./backlog/{backlog_path.name})",
+                    f"- [{backlog_path.stem} 작업 백로그](backlog/{backlog_path.name})",
+                ]
+            ),
+            1,
+        )
+        index_path.write_text(index_text, encoding="utf-8")
+
+        _, apply_payload = run_backlog_update(
+            expect_success=True,
+            args=[
+                "--project-profile-path",
+                str(temp_project_root / "project_workflow_profile.md"),
+                "--daily-backlog-path",
+                str(temp_backlog_path),
+                "--work-backlog-index-path",
+                str(index_path),
+                "--session-handoff-path",
+                str(temp_project_root / "session_handoff.md"),
+                "--task-name",
+                "배송 상태 동기화 실패 대응 절차 문서 정리",
+                "--task-brief",
+                "중복 링크를 자동 정리하는지 확인한다.",
+                "--task-id",
+                "TASK-021",
+                "--mode",
+                "update",
+                "--apply",
+            ],
+        )
+        if apply_payload["apply_status"] != "applied":
+            raise AssertionError("Expected apply mode to succeed while cleaning duplicate backlog links.")
+        normalized_lines = [
+            line.strip()
+            for line in index_path.read_text(encoding="utf-8").splitlines()
+            if line.strip().startswith("- [") and backlog_path.name in line
+        ]
+        if len(normalized_lines) != 1:
+            raise AssertionError("Expected duplicate backlog links to be collapsed to one canonical entry.")
 
     failure_code, failure_payload = run_backlog_update(
         expect_success=False,

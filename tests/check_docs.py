@@ -21,6 +21,8 @@ LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "#")
 IGNORED_PARTS = {
     ".git",
+    ".codex",
+    ".opencode",
     ".venv",
     "venv",
     "env",
@@ -31,10 +33,30 @@ IGNORED_PARTS = {
     "dist",
     "build",
 }
+IGNORED_AI_WORKFLOW_SUBTREES = {
+    ("ai-workflow", "core"),
+    ("ai-workflow", "examples"),
+    ("ai-workflow", "global-snippets"),
+    ("ai-workflow", "harnesses"),
+    ("ai-workflow", "mcp"),
+    ("ai-workflow", "schemas"),
+    ("ai-workflow", "scripts"),
+    ("ai-workflow", "skills"),
+    ("ai-workflow", "templates"),
+    ("ai-workflow", "workflow_kit"),
+}
 
 
 def iter_markdown_files() -> list[Path]:
-    return sorted(path for path in REPO_ROOT.rglob("*.md") if not set(path.parts).intersection(IGNORED_PARTS))
+    markdown_files: list[Path] = []
+    for path in REPO_ROOT.rglob("*.md"):
+        if set(path.parts).intersection(IGNORED_PARTS):
+            continue
+        rel_parts = path.relative_to(REPO_ROOT).parts
+        if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_AI_WORKFLOW_SUBTREES:
+            continue
+        markdown_files.append(path)
+    return sorted(markdown_files)
 
 
 def normalize_link_target(raw_target: str) -> str:

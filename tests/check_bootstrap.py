@@ -316,6 +316,8 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode worker should include edit reliability read-before-edit guidance.")
         if "CRLF/LF line endings" not in worker_text:
             raise AssertionError("OpenCode worker should mention line-ending normalization for edit failures.")
+        if "include enough before-and-after context in oldString" not in worker_text:
+            raise AssertionError("OpenCode worker should include oldString uniqueness guidance for repeated test code.")
 
         doc_worker_text = Path(str(harness_files["opencode_doc_worker_agent"])).read_text(encoding="utf-8")
         if "document-focused workflow worker" not in doc_worker_text:

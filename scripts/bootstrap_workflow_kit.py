@@ -1140,6 +1140,7 @@ def opencode_edit_reliability_rules() -> str:
 - Preserve the file's existing indentation and line-ending style unless the task explicitly asks for normalization.
 - If inconsistent tabs/spaces or CRLF/LF line endings are the likely cause of edit failures, normalize only the assigned files first, then reread and apply the intended edit.
 - Avoid matching huge repeated blocks. Anchor edits on nearby unique lines, function names, headings, or stable keys.
+- In test files or other files with many similar lines, include enough before-and-after context in oldString so the target is unique.
 - After an edit-tool failure, reread the file and retry with a narrower replacement instead of repeating the same broad patch.
 """
 

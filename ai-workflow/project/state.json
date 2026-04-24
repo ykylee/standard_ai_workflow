@@ -33,6 +33,7 @@
       "기존 저장소 구조 자동 스캔 완료",
       "ai-workflow bootstrap 과 Codex overlay 초안 생성 완료",
       "TASK-002 OpenCode 로컬 LLM edit 실패 회피 규칙 반영",
+      "OpenCode worker 반복 코드 oldString 고유화 규칙 반영",
       "TASK-003 validation-plan 실행 결과 입력 반영"
     ],
     "environment_constraints": [

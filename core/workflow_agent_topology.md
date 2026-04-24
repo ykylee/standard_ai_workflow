@@ -107,6 +107,7 @@ OpenCode 에서 로컬 LLM 을 worker 로 쓸 때 `edit` 실패가 잦은 경로
 - 한 번의 edit 는 작고 국소적인 hunk 로 제한한다. indentation-heavy 파일, 생성 파일, 직전 변경 파일은 특히 더 좁게 나눈다.
 - 기존 파일의 tab/space, CRLF/LF 스타일을 유지한다. 스타일 불일치가 edit 실패 원인일 때만 맡은 파일 범위 안에서 먼저 정규화한 뒤 다시 읽고 수정한다.
 - 큰 반복 블록 전체를 replacement 대상으로 삼지 않고, 주변의 고유한 함수명, heading, key, 인접 라인을 anchor 로 사용한다.
+- 테스트 코드처럼 유사한 줄이 많은 파일은 `oldString` 에 수정 대상 앞뒤 문맥을 충분히 포함해 매칭 대상이 고유해지도록 한다.
 - edit 실패 후에는 같은 넓은 patch 를 반복하지 않고 파일을 다시 읽은 다음 더 좁은 replacement 로 재시도한다.
 - 여러 파일을 고칠 때는 파일별로 read -> small edit -> 확인 순서를 끝낸 뒤 다음 파일로 넘어간다.
 

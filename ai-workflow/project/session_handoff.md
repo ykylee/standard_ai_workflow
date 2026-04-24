@@ -38,6 +38,7 @@
 - 기존 저장소 구조 자동 스캔 완료
 - ai-workflow bootstrap 과 Codex overlay 초안 생성 완료
 - OpenCode 로컬 LLM edit 실패 회피 규칙을 worker prompt, harness 문서, agent topology 에 반영 완료
+- OpenCode worker 반복 코드 수정 시 `oldString` 앞뒤 문맥으로 매칭 대상을 고유화하는 규칙을 문서와 bootstrap smoke 에 반영 완료
 - validation-plan 이 실행 결과 입력을 받아 통과/실패 명령을 남은 검증 항목에 반영하도록 보완 완료
 ## 5. 잔여 작업 우선순위
 
@@ -66,6 +67,7 @@
 - 실제 project docs 탐색은 `README.md`, `core/`, `backlog/` 를 우선 보고 `ai-workflow/` 는 메타 레이어로 분리한다.
 - Codex 실제 적용 테스트에서는 `session-start`, `backlog-update --apply`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile --apply` 순으로 점검한다.
 - OpenCode 로컬 LLM worker 는 `edit` 전 대상 파일을 바로 읽고, 작은 hunk 로 수정하며, tab/space 및 CRLF/LF 정규화가 필요하면 맡은 파일 범위로 제한한 뒤 reread/retry 하는 규칙을 기본값으로 둔다.
+- 반복되는 테스트/setup 라인이 많은 파일에서는 `oldString` 에 앞뒤 문맥을 포함해 대상 문자열을 고유화한다.
 - `validation-plan` 은 `--completed-command`, `--failed-command` 입력을 받아 이미 통과한 명령은 남은 추천에서 제외하고 실패 명령은 후속 재확인 항목으로 남긴다.
 
 - [merge-doc-reconcile] 프로젝트 병합 규칙: ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.

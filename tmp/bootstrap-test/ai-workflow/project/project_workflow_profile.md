@@ -4,23 +4,23 @@
 - 관련: [공통 표준](../core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
-- 프로젝트명: <Project Name>
-- 프로젝트 목적: <핵심 사용자 가치 및 목표>
-- 주요 이해관계자: <협업 부서 및 담당자>
+- 프로젝트명: Bootstrap Test Project
+- 프로젝트 목적: TODO: 프로젝트 목적 정리
+- 주요 이해관계자: TODO: 주요 이해관계자 정리
 
 ## 2. 문서 구조 (Path)
-- 문서 위키 홈: <README.md>
-- 운영 문서 홈: <docs/operations/>
-- 백로그 위치: <ai-workflow/project/backlog/>
-- 세션 인계 문서: <ai-workflow/project/session_handoff.md>
-- 환경 기록 위치: <ai-workflow/project/repository_assessment.md>
+- 문서 위키 홈: docs/README.md
+- 운영 문서 홈: docs/operations/
+- 백로그 위치: docs/operations/backlog/
+- 세션 인계 문서: docs/operations/session_handoff.md
+- 환경 기록 위치: docs/operations/environments/
 
 ## 3. 기본 명령 (Commands)
-- 설치: <설치 및 가상환경 구성 명령>
-- 로컬 실행: <어플리케이션 실행 명령>
-- 빠른 테스트: <단위 테스트 및 Lint 명령>
-- 격리 테스트: <Docker 또는 독립 환경 테스트 명령>
-- 실행 확인: <상태 체크 및 E2E 확인 명령>
+- 설치: TODO: 설치 명령 입력
+- 로컬 실행: TODO: 로컬 실행 명령 입력
+- 빠른 테스트: TODO: 빠른 테스트 명령 입력
+- 격리 테스트: TODO: 격리 테스트 명령 입력
+- 실행 확인: TODO: 실행 확인 명령 입력
 
 ## 4. 검증 포인트 (Validation)
 - 코드 변경: <테스트/리뷰 필수 사항>

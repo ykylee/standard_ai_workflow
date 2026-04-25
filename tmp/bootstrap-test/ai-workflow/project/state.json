@@ -1,0 +1,50 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-04-25",
+  "source_of_truth": {
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/project_workflow_profile.md",
+    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/backlog/2026-04-25.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": null,
+    "document_home": null,
+    "operations_path": null,
+    "backlog_path": null,
+    "handoff_path": null,
+    "environment_path": null
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": null,
+    "current_axis": null,
+    "current_focus": "TASK-001 표준 AI 워크플로우 초기 도입",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/backlog/2026-04-25.md",
+    "task_count": 1,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": []
+  },
+  "next_documents": [
+    "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/project_workflow_profile.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/session_handoff.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/work_backlog.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/bootstrap-test/ai-workflow/project/backlog/2026-04-25.md"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  }
+}

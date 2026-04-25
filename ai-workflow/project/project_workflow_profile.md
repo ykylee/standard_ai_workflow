@@ -21,7 +21,7 @@
 - 문서 위키 홈:
 - `README.md`
 - 운영 문서 위치:
-- `docs/operations/` (또는 `ai-workflow/project/` 를 직접 참조)
+- `ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)
 - 백로그 위치:
 - `ai-workflow/project/backlog/`
 - 세션 인계 문서 위치:

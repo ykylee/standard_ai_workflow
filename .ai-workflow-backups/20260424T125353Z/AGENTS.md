@@ -1,8 +1,8 @@
 # AGENTS.md
 
-- 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 문서 목적: OpenCode 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
-- 대상 독자: Codex, 저장소 관리자, workflow 설계자
+- 대상 독자: OpenCode, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-24
 - 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
@@ -37,24 +37,27 @@
 
 ## 프로젝트 실행 기본값
 
-- 설치: `TODO: 설치 명령 입력`
-- 로컬 실행: `TODO: 로컬 실행 명령 입력`
-- 빠른 테스트: `TODO: 빠른 테스트 명령 입력`
-- 격리 테스트: `TODO: 격리 테스트 명령 입력`
-- 실행 확인: `TODO: 실행 확인 명령 입력`
+- 설치: `python3 -m pip install -r requirements-dev.txt`
+- 로컬 실행: `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- 빠른 테스트: `python3 tests/check_docs.py`, `python3 tests/check_output_samples.py`
+- 격리 테스트: `python3 tests/check_demo_workflow.py`, `python3 tests/check_existing_project_onboarding.py`
+- 실행 확인: `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
 
 ## 문서 작업 기준
 
-- 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `docs/operations/`
-- backlog 위치: `docs/operations/backlog/`
-- session handoff 위치: `docs/operations/session_handoff.md`
+- 문서 위키 홈: `README.md`
+- 운영 문서 위치: `core/`
+- backlog 위치: `backlog/`
+- session handoff 위치: `ai-workflow/project/session_handoff.md`
 
-## Codex 전용 메모
+## OpenCode 전용 메모
 
-- Codex 는 프로젝트 루트의 `AGENTS.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
-- OpenAI 관련 질문이 나오면 OpenAI 문서 MCP 를 우선 사용하는 구성을 권장한다.
-- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 worker 성격의 서브 에이전트로 분리하는 패턴을 권장한다.
+- OpenCode 는 프로젝트 루트의 `AGENTS.md` 와 `opencode.json`, project-local `.opencode/` 디렉터리를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
+- `opencode.json` 의 `instructions` 는 `AGENTS.md` 와 공통 workflow 문서를 직접 가리킨다.
+- 메인 오케스트레이터는 task-only coordinator 로 두고, 직접 도구 호출 없이 실제 수정/검증/초안 작성은 worker agent 로 분리하는 구성을 기본값으로 한다.
+- worker 는 generic 하나만 두기보다 문서, 구현/빌드, 검증 성격으로 나누면 컨텍스트 오염과 권한 범위를 더 잘 제어할 수 있다.
 - worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
 - `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
-- 신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다.
+- 기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다.
+- 이 저장소는 self-dogfood 중이므로 `ai-workflow/project/*` 는 workflow state docs, 루트 `README.md`, `core/`, `backlog/` 는 실제 project docs 로 구분해 다룬다.
+- project-local skill 과 agent 파일은 `.opencode/` 디렉터리에 위치하며, 세션 시작/backlog 갱신/handoff 갱신을 우선 수행하도록 구성한다.

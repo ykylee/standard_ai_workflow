@@ -4,7 +4,7 @@
 - 범위: 저장소 목적, 문서 구조, 기본 명령, 환경 기록 위치, 프로젝트 특화 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-24
+- 최종 수정일: 2026-04-25
 - 관련 문서: `../core/global_workflow_standard.md`, `./session_handoff.md`, `./work_backlog.md`
 
 ## 1. 프로젝트 개요
@@ -12,57 +12,57 @@
 - 프로젝트명:
 - `Standard AI Workflow`
 - 프로젝트 목적:
-- 재사용 가능한 AI workflow 문서, skill prototype, read-only MCP draft, harness distribution 자산을 한 저장소에서 관리하고 검증한다.
+- 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, 향후 skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자:
-- workflow 설계자, 저장소 관리자, Codex/OpenCode 통합 담당자
+- YK Lee (Developer), AI Agent 설계자
 
 ## 2. 문서 구조
 
 - 문서 위키 홈:
 - `README.md`
 - 운영 문서 위치:
-- `core/`
+- `docs/operations/` (또는 `ai-workflow/project/` 를 직접 참조)
 - 백로그 위치:
-- `backlog/`
+- `ai-workflow/project/backlog/`
 - 세션 인계 문서 위치:
 - `ai-workflow/project/session_handoff.md`
 - 환경 기록 위치:
-- `releases/`
+- `ai-workflow/project/repository_assessment.md`
 
 ## 3. 기본 명령
 
 - 설치:
 - `python3 -m pip install -r requirements-dev.txt`
 - 로컬 실행:
-- `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- `python3 scripts/run_demo_workflow.py`
 - 빠른 테스트:
-- `python3 tests/check_docs.py, python3 tests/check_output_samples.py`
+- `python3 tests/check_docs.py`
 - 격리 테스트:
-- `python3 tests/check_demo_workflow.py, python3 tests/check_existing_project_onboarding.py`
+- `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
 - UI/API 실행 확인:
-- `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- `python3 scripts/bootstrap_workflow_kit.py --help`
 
 ## 4. 프로젝트 특화 검증 포인트
 
 - 코드 변경 시:
-- 공통 helper, runner, output contract 를 건드리면 관련 smoke 와 schema/sample 검증을 함께 돌린다.
+- `tests/check_*.py` 스모크 테스트 통과 확인. `bootstrap_workflow_kit.py` 의 경우 `--dry-run` 결과의 JSON 스키마 정합성 확인.
 - 문서 변경 시:
-- README, core 문서, examples, scripts 안내 문서의 링크와 현재 구현 상태가 어긋나지 않는지 함께 확인한다.
+- `python3 tests/check_docs.py` 를 실행하여 상대 링크와 메타데이터 무결성 확인.
 - UI 변경 시:
-- 실제 UI 는 없지만 Codex/OpenCode overlay 나 예시 출력 변경 시 user-facing 문구와 진입 흐름을 다시 읽는다.
+- N/A (CLI/문서 중심 프로젝트)
 - 배포/운영 변경 시:
-- dist export, release note, harness package 구조가 현재 버전과 맞는지 확인하고, 필요한 경우 pre-release 산출물까지 재생성한다.
+- `scripts/export_harness_package.py` 를 실행하여 배포용 번들 생성 및 `PACKAGE_CONTENTS.md` 포함 여부 확인.
 
 ## 5. 프로젝트 특화 예외 규칙
 
 - 병합 규칙:
-- ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
+- `ai-workflow/project/` 아래의 상태 문서들(`state.json`, `session_handoff.md`)은 현재 세션의 context를 담고 있으므로, git merge 시 충돌이 나면 현재 진행 중인 세션의 최신 상태를 우선으로 수동 재작성한다.
 - 승인 규칙:
-- release/export 구조, harness 기본 정책, output contract 변경은 문서와 테스트를 같이 맞춘 뒤 반영한다.
+- `core/` 아래의 표준 문서는 워크플로우 전반에 영향을 주므로 변경 시 반드시 설계 의도와 하위 호환성을 검토한다.
 - 환경 제약:
-- 루트 `.codex` 경로는 Codex config 디렉터리와 충돌할 수 있으므로 전역 설정 병합 전 수동 검토가 필요하다.
+- Python 3.10 이상 필요 (MCP SDK 의존성).
 - 기타:
-- 이 저장소는 self-dogfood 중이므로 `ai-workflow/project/*` 를 workflow state docs 로 사용하고, 실제 project docs 는 루트 `README.md`, `core/`, `backlog/` 를 우선 본다.
+- 이 저장소는 워크플로우 키트 자체의 개발 저장소이므로, `ai-workflow/` 디렉터리가 개발 대상이자 동시에 운영 도구로 사용되는 "self-dogfooding" 구조임을 유의한다.
 
 ## 다음에 읽을 문서
 

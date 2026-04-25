@@ -4,8 +4,8 @@
 - 범위: 일자별 백로그 문서
 - 대상 독자: 프로젝트 참여자, 문서 작성자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-24
-- 관련 문서: `./session_handoff.md`, `./project_workflow_profile.md`, `./backlog/2026-04-24.md`
+- 최종 수정일: 2026-04-25
+- 관련 문서: `./session_handoff.md`, `./project_workflow_profile.md`, `./backlog/2026-04-25.md`
 
 ## 운영 원칙
 
@@ -18,4 +18,5 @@
 
 ## 날짜별 백로그 문서
 
+- [2026-04-25 작업 백로그](./backlog/2026-04-25.md)
 - [2026-04-24 작업 백로그](./backlog/2026-04-24.md)

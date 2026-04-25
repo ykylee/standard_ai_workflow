@@ -80,7 +80,20 @@ OpenCode 타겟은 공통 상위 진입점 `AGENTS.md` 와 `opencode.json`, proj
 - worker 는 generic 하나만 두기보다 문서, 구현/빌드, 검증 성격으로 나눌수록 컨텍스트 오염과 권한 범위를 더 잘 제어할 수 있다.
 - worker 는 bounded scope 안에서 실제 실행을 맡고, low-risk 범위에서는 `ask` 를 과도하게 발생시키지 않는 방향을 기본 운영값으로 둔다.
 
-## 5. 유지보수 원칙
+## 5. Antigravity 타겟
+
+Antigravity 타겟은 프로젝트 루트의 `ANTIGRAVITY.md` 를 핵심 진입점으로 본다.
+
+권장 산출물:
+
+- `ANTIGRAVITY.md`
+
+구성 원칙:
+
+- `ANTIGRAVITY.md` 는 `ai-workflow/project/` 문서를 먼저 읽도록 안내한다.
+- 브라우저 서브 에이전트 등 적절한 서브 에이전트로 작업을 분리하는 패턴을 권장한다.
+
+## 6. 유지보수 원칙
 
 - 하네스별 파일 안에 긴 정책 본문을 중복해서 넣지 않는다.
 - 공통 문서 경로가 바뀌면 Codex/OpenCode 오버레이도 함께 갱신한다.
@@ -89,7 +102,7 @@ OpenCode 타겟은 공통 상위 진입점 `AGENTS.md` 와 `opencode.json`, proj
 - MCP 관련 descriptor 와 예시는 패키지에 포함할 수 있지만, 이번 릴리즈 기본 소비 경로는 `workflow_adoption_entrypoints` 와 `workflow_skill_catalog` 이어야 한다.
 - 배포 패키지는 하네스별 개별 버전 디렉터리와 버전이 포함된 zip 이름으로 생성한다.
 
-## 6. 확장 포인트
+## 7. 확장 포인트
 
 다른 하네스를 추가할 때는 아래 순서를 권장한다.
 

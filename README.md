@@ -62,7 +62,7 @@
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
 | 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
-| harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
+| harness overlays | 사용 가능 | `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity` 대상 오버레이 생성 가능 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 orchestrator task-only 운영 기본 원칙 포함 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
@@ -88,6 +88,8 @@
 
 - Codex: `AGENTS.md` 와 Codex 설정 예시 중심
 - OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
+- Gemini CLI: `GEMINI.md` 중심
+- Antigravity: `ANTIGRAVITY.md` 중심
 - 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능
 
 ## 5. 로컬 환경 설정 메모
@@ -181,6 +183,7 @@ python3 scripts/bootstrap_workflow_kit.py \
   --project-name "Sample API" \
   --harness codex \
   --harness opencode \
+  --harness antigravity \
   --copy-core-docs
 ```
 
@@ -206,6 +209,8 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `project/repository_assessment.md` (`existing` 모드일 때)
 - `AGENTS.md`, `.codex/config.toml.example` (`codex` 선택 시)
 - `AGENTS.md`, `opencode.json`, `.opencode/...` (`opencode` 선택 시)
+- `GEMINI.md` (`gemini-cli` 선택 시)
+- `ANTIGRAVITY.md` (`antigravity` 선택 시)
 - 선택 시 `core/*.md`
 
 여기서 역할을 명확히 나누면 아래와 같다.

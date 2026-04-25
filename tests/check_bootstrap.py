@@ -346,11 +346,83 @@ def check_opencode_only_mode() -> None:
         assert_exists(str(snippet_candidates["opencode"]["snippet"]))
 
 
+def check_gemini_cli_mode() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "gemini-cli-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "gemini_cli_project",
+                "--project-name",
+                "Gemini CLI Project",
+                "--harness",
+                "gemini-cli",
+                "--copy-core-docs",
+            ]
+        )
+        if payload["harnesses"] != ["gemini-cli"]:
+            raise AssertionError("Expected only the gemini-cli harness.")
+        harness_files = payload["generated_harness_files"]
+        if "gemini_cli_agents" not in harness_files:
+            raise AssertionError("Missing gemini_cli_agents in generated harness files.")
+        assert_exists(str(harness_files["gemini_cli_agents"]))
+
+        gemini_text = Path(str(harness_files["gemini_cli_agents"])).read_text(encoding="utf-8")
+        if "# GEMINI.md" not in gemini_text:
+            raise AssertionError("GEMINI.md should have the correct header.")
+        if "Gemini CLI" not in gemini_text:
+            raise AssertionError("GEMINI.md should mention Gemini CLI.")
+        if "사용자에게 직접 보이는 작업 보고" not in gemini_text:
+            raise AssertionError("GEMINI.md should include the Korean reporting rule.")
+        if "invoke_agent" not in gemini_text:
+            raise AssertionError("GEMINI.md should mention invoke_agent for sub-agents.")
+
+
+def check_antigravity_mode() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "antigravity-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "antigravity_project",
+                "--project-name",
+                "Antigravity Project",
+                "--harness",
+                "antigravity",
+                "--copy-core-docs",
+            ]
+        )
+        if payload["harnesses"] != ["antigravity"]:
+            raise AssertionError("Expected only the antigravity harness.")
+        harness_files = payload["generated_harness_files"]
+        if "antigravity_agents" not in harness_files:
+            raise AssertionError("Missing antigravity_agents in generated harness files.")
+        assert_exists(str(harness_files["antigravity_agents"]))
+
+        antigravity_text = Path(str(harness_files["antigravity_agents"])).read_text(encoding="utf-8")
+        if "# ANTIGRAVITY.md" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should have the correct header.")
+        if "Antigravity" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should mention Antigravity.")
+        if "사용자에게 직접 보이는 작업 보고" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should include the Korean reporting rule.")
+        if "브라우저 서브 에이전트" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should mention sub-agents.")
+
+
 def main() -> int:
     check_new_project_mode()
     check_existing_project_mode()
     check_opencode_only_mode()
-    print("Bootstrap scaffold smoke check passed for new and existing project modes.")
+    check_gemini_cli_mode()
+    check_antigravity_mode()
+    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli and antigravity.")
     return 0
 
 

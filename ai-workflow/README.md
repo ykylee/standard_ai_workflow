@@ -4,7 +4,7 @@
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-24
+- 최종 수정일: 2026-04-25
 - 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
 
 ## 1. 도입 모드
@@ -19,22 +19,16 @@
 - [project/state.json](./project/state.json)
 - [project/session_handoff.md](./project/session_handoff.md)
 - [project/work_backlog.md](./project/work_backlog.md)
-- [project/backlog/2026-04-24.md](./project/backlog/2026-04-24.md)
+- [project/backlog/2026-04-25.md](./project/backlog/2026-04-25.md)
 - [project/repository_assessment.md](./project/repository_assessment.md)
 
 ## 3. 코어 문서
 
-- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
-- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
-- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
-- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
-- [core/output_schema_guide.md](./core/output_schema_guide.md)
-- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
+- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다.
 
 ## 4. 하네스 오버레이
 
-- `codex` 하네스용 오버레이 파일 생성
+- `gemini-cli` 하네스용 오버레이 파일 생성
 
 ## 5. 도입 직후 해야 할 일
 

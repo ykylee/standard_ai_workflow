@@ -109,7 +109,7 @@ IGNORED_DIRS = {
     ".venv",
     "venv",
 }
-SUPPORTED_HARNESSES = ("codex", "opencode")
+SUPPORTED_HARNESSES = ("codex", "opencode", "gemini-cli", "antigravity")
 
 
 @dataclass(frozen=True)
@@ -281,6 +281,14 @@ HARNESS_DEFINITIONS = {
     "opencode": HarnessDefinition(
         name="opencode",
         description="Generate opencode.json and project-local OpenCode overlays.",
+    ),
+    "gemini-cli": HarnessDefinition(
+        name="gemini-cli",
+        description="Generate GEMINI.md for the Gemini CLI.",
+    ),
+    "antigravity": HarnessDefinition(
+        name="antigravity",
+        description="Generate ANTIGRAVITY.md for the Antigravity agent.",
     ),
 }
 
@@ -933,6 +941,10 @@ def codex_agents_path(paths: Paths) -> Path:
     return paths.target_root / "AGENTS.md"
 
 
+def gemini_cli_agents_path(paths: Paths) -> Path:
+    return paths.target_root / "GEMINI.md"
+
+
 def codex_config_example_path(paths: Paths) -> Path:
     return paths.target_root / ".codex" / "config.toml.example"
 
@@ -963,6 +975,146 @@ def opencode_code_worker_agent_path(paths: Paths) -> Path:
 
 def opencode_validation_worker_agent_path(paths: Paths) -> Path:
     return paths.target_root / ".opencode" / "agents" / "workflow-validation-worker.md"
+
+
+def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
+    harness_note = (
+        "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
+        if args.adoption_mode == "existing"
+        else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
+    )
+    return f"""# GEMINI.md
+
+- 문서 목적: Gemini CLI 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
+- 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
+- 상태: draft
+- 최종 수정일: {args.today}
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+
+## 목적
+
+이 저장소에서는 표준 AI 워크플로우를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다.
+
+## 항상 먼저 읽을 문서
+
+- `ai-workflow/project/state.json`
+- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/project/project_workflow_profile.md`
+
+`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+
+## 작업 원칙
+
+- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
+- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
+- 검증하지 않은 결과는 완료로 확정하지 않는다.
+- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+
+## 언어와 컨텍스트 원칙
+
+- 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
+- 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한 결론과 다음 행동만 짧게 전달한다.
+- 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+
+## 프로젝트 실행 기본값
+
+- 설치: `{context['install_command']}`
+- 로컬 실행: `{context['run_command']}`
+- 빠른 테스트: `{context['quick_test_command']}`
+- 격리 테스트: `{context['isolated_test_command']}`
+- 실행 확인: `{context['smoke_check_command']}`
+
+## 문서 작업 기준
+
+- 문서 위키 홈: `{context['doc_home']}`
+- 운영 문서 위치: `{context['operations_dir']}`
+- backlog 위치: `{context['backlog_dir']}`
+- session handoff 위치: `{context['session_doc_path']}`
+
+## Gemini CLI 전용 메모
+
+- Gemini CLI 는 프로젝트 루트의 `GEMINI.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
+- `GEMINI.md` 에 기재된 지침은 시스템 프롬프트보다 우선하는 강력한 지침으로 취급한다.
+- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 서브 에이전트(`invoke_agent`)로 분리하는 패턴을 권장한다.
+- 서브 에이전트에게는 책임 범위와 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
+- {harness_note}
+"""
+
+
+def antigravity_agents_path(paths: Paths) -> Path:
+    return paths.target_root / "ANTIGRAVITY.md"
+
+
+def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
+    harness_note = (
+        "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
+        if args.adoption_mode == "existing"
+        else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
+    )
+    return f"""# ANTIGRAVITY.md
+
+- 문서 목적: Antigravity 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
+- 대상 독자: Antigravity, 저장소 관리자, workflow 설계자
+- 상태: draft
+- 최종 수정일: {args.today}
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+
+## 목적
+
+이 저장소에서는 표준 AI 워크플로우를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다.
+
+## 항상 먼저 읽을 문서
+
+- `ai-workflow/project/state.json`
+- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/project/project_workflow_profile.md`
+
+`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+
+## 작업 원칙
+
+- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
+- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
+- 검증하지 않은 결과는 완료로 확정하지 않는다.
+- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+
+## 언어와 컨텍스트 원칙
+
+- 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
+- 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한 결론과 다음 행동만 짧게 전달한다.
+- 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+
+## 프로젝트 실행 기본값
+
+- 설치: `{context['install_command']}`
+- 로컬 실행: `{context['run_command']}`
+- 빠른 테스트: `{context['quick_test_command']}`
+- 격리 테스트: `{context['isolated_test_command']}`
+- 실행 확인: `{context['smoke_check_command']}`
+
+## 문서 작업 기준
+
+- 문서 위키 홈: `{context['doc_home']}`
+- 운영 문서 위치: `{context['operations_dir']}`
+- backlog 위치: `{context['backlog_dir']}`
+- session handoff 위치: `{context['session_doc_path']}`
+
+## Antigravity 전용 메모
+
+- Antigravity 는 프로젝트 루트의 `ANTIGRAVITY.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
+- `ANTIGRAVITY.md` 에 기재된 지침은 시스템 프롬프트보다 우선하는 강력한 지침으로 취급한다.
+- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 브라우저 서브 에이전트 등 적절한 서브 에이전트로 분리하는 패턴을 권장한다.
+- 서브 에이전트에게는 책임 범위와 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
+- {harness_note}
+"""
 
 
 def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
@@ -1382,9 +1534,30 @@ def write_opencode_harness_files(
     }
 
 
+def write_gemini_cli_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    # GEMINI.md is written in write_harness_files if selected,
+    # but we can also do it here if we want to be explicit or if we change write_harness_files.
+    # Currently write_harness_files writes it.
+    return {}
+
+
+def write_antigravity_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    return {}
+
+
 HARNESS_FILE_BUILDERS = {
     "codex": write_codex_harness_files,
     "opencode": write_opencode_harness_files,
+    "gemini-cli": write_gemini_cli_harness_files,
+    "antigravity": write_antigravity_harness_files,
 }
 
 
@@ -1395,10 +1568,22 @@ def write_harness_files(
 ) -> dict[str, str]:
     generated: dict[str, str] = {}
     harnesses = selected_harnesses(args)
-    if harnesses:
+
+    if "codex" in harnesses or "opencode" in harnesses:
         codex_agents = codex_agents_path(paths)
         write_text(codex_agents, render_codex_agents(args, paths, context), force=args.force)
         generated["codex_agents"] = str(codex_agents)
+
+    if "gemini-cli" in harnesses:
+        gemini_agents = gemini_cli_agents_path(paths)
+        write_text(gemini_agents, render_gemini_cli_agents(args, paths, context), force=args.force)
+        generated["gemini_cli_agents"] = str(gemini_agents)
+
+    if "antigravity" in harnesses:
+        antigravity_agents = antigravity_agents_path(paths)
+        write_text(antigravity_agents, render_antigravity_agents(args, paths, context), force=args.force)
+        generated["antigravity_agents"] = str(antigravity_agents)
+
     for harness in harnesses:
         builder = HARNESS_FILE_BUILDERS[harness]
         generated.update(builder(args, paths, context))
@@ -1465,7 +1650,20 @@ def main() -> int:
     paths = make_paths(args)
     context = infer_project_context(args, paths)
     core_docs = [str(paths.core_dir / name) for name in DEFAULT_CORE_DOCS] if args.copy_core_docs else []
+    
+    # Pre-calculate harness files for manifest
+    harnesses = selected_harnesses(args)
     harness_files: dict[str, str] = {}
+    if "codex" in harnesses or "opencode" in harnesses:
+        harness_files["codex_agents"] = str(codex_agents_path(paths))
+    if "gemini-cli" in harnesses:
+        harness_files["gemini_cli_agents"] = str(gemini_cli_agents_path(paths))
+    if "antigravity" in harnesses:
+        harness_files["antigravity_agents"] = str(antigravity_agents_path(paths))
+    
+    # We could call HARNESS_FILE_BUILDERS here without writing, 
+    # but for dry-run manifest, the above is often enough or we can add more if needed.
+
     manifest = build_manifest(args, paths, core_docs, context, harness_files)
 
     if args.dry_run:

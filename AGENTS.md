@@ -37,18 +37,18 @@
 
 ## 프로젝트 실행 기본값
 
-- 설치: `python3 -m pip install -r requirements-dev.txt`
-- 로컬 실행: `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
-- 빠른 테스트: `python3 tests/check_docs.py`, `python3 tests/check_output_samples.py`
-- 격리 테스트: `python3 tests/check_demo_workflow.py`, `python3 tests/check_existing_project_onboarding.py`
-- 실행 확인: `python3 scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- 설치: `TODO: 설치 명령 입력`
+- 로컬 실행: `TODO: 로컬 실행 명령 입력`
+- 빠른 테스트: `TODO: 빠른 테스트 명령 입력`
+- 격리 테스트: `TODO: 격리 테스트 명령 입력`
+- 실행 확인: `TODO: 실행 확인 명령 입력`
 
 ## 문서 작업 기준
 
-- 문서 위키 홈: `README.md`
-- 운영 문서 위치: `core/`
-- backlog 위치: `backlog/`
-- session handoff 위치: `ai-workflow/project/session_handoff.md`
+- 문서 위키 홈: `docs/README.md`
+- 운영 문서 위치: `docs/operations/`
+- backlog 위치: `docs/operations/backlog/`
+- session handoff 위치: `docs/operations/session_handoff.md`
 
 ## Codex 전용 메모
 
@@ -57,5 +57,4 @@
 - 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 worker 성격의 서브 에이전트로 분리하는 패턴을 권장한다.
 - worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
 - `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
-- 기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다.
-- 이 저장소는 self-dogfood 중이므로 `ai-workflow/project/*` 는 workflow state docs, 루트 `README.md`, `core/`, `backlog/` 는 실제 project docs 로 구분해 다룬다.
+- 신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다.

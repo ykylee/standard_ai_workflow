@@ -22,7 +22,7 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "**Beta v2 Milestone 및 가버넌스 체계 고도화 완료 (2026-04-26)**: 핵심 스킬 Beta 승급, MCP 공식 통합, SSOT 기반 가버넌스(Maturity Matrix, Strategic Threads) 및 정합성 자동 검증 도구(Linter) 구축 완료.",
+    "current_baseline": "**Beta v2.2 Milestone 및 전 하네스 온보딩 지능화 완료 (2026-04-26)**: 가버넌스 SSOT 구축, 모든 하네스(Gemini, OpenCode, Codex, Antigravity)에 대한 명령어 자동 추론 및 마찰 제로 온보딩 구현, GitHub 공식 릴리즈 완료.",
     "current_axis": "Phase 4 진입 및 운영 지능화(Phase 5) 준비.",
     "current_focus": "N/A",
     "in_progress_items": [

@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-26",
+  "generated_at": "2026-04-27",
   "source_of_truth": {
     "project_profile_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
     "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
     "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-27.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -22,8 +22,8 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "**Beta v2.2 Milestone 및 전 하네스 온보딩 지능화 완료 (2026-04-26)**: 가버넌스 SSOT 구축, 모든 하네스(Gemini, OpenCode, Codex, Antigravity)에 대한 명령어 자동 추론 및 마찰 제로 온보딩 구현, GitHub 공식 릴리즈 완료.",
-    "current_axis": "Phase 4 진입 및 운영 지능화(Phase 5) 준비.",
+    "current_baseline": "**Phase 4 실전 파일럿 성공 및 Phase 5 운영 지능화 착수 (2026-04-27)**",
+    "current_axis": "Phase 5 운영 지능화 및 가버넌스 자동화.",
     "current_focus": "N/A",
     "in_progress_items": [
       "N/A"
@@ -32,41 +32,26 @@
       "N/A"
     ],
     "recent_done_items": [
-      "TASK-019: 파일럿 프로젝트 온보딩 피드백 반영 및 Friction 개선 (Done)",
-      "TASK-018: 실운영 파일럿용 테스트 베드 구축 및 bootstrap 실행 (Done)",
-      "TASK-017: 로드맵-성숙도 매트릭스 간 상태 동기화 검증 구현 (Done)",
-      "TASK-016: workflow-linter 성숙도 매트릭스(SSOT) 정합성 검증 강화 (Done)",
-      "TASK-015: `project-status-assessment` 스킬 신규 구현 및 Beta 승급.",
-      "TASK-014: `workflow-linter` 스킬 Beta 승급.",
-      "TASK-012: 워크플로우 상태 문서 로테이션 및 요약 로직 도입.",
-      "TASK-011: bootstrap 도구의 의존성 자동 관리 기능 고도화.",
-      "TASK-010: Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성.",
-      "TASK-009: MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합."
+      "TASK-021: git_history_summarizer MCP 프로토타이핑",
+      "TASK-020: 실전형 시뮬레이션 파일럿 수행 및 기록",
+      "TASK-019: 파일럿 프로젝트 온보딩 피드백 반영 및 Friction 개선"
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."
     ]
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md",
-    "task_count": 9,
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-27.md",
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-017 로드맵-성숙도 매트릭스 간 상태 동기화 검사 구현",
-      "TASK-016 workflow-linter 성숙도 매트릭스(SSOT) 정합성 검증 강화",
-      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현",
-      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현",
-      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충",
-      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 통합",
-      "TASK-010 Beta v2 배포 패키지 구성",
-      "TASK-011 bootstrap 도구 고도화",
-      "TASK-013 workflow-linter 스킬 프로토타입 구현"
+      "TASK-020",
+      "TASK-021"
     ]
   },
   "next_documents": [
     "/Users/yklee/repos/standard_ai_workflow_gemini/core/strategic_threads.md",
-    "/Users/yklee/repos/standard_ai_workflow_gemini/core/maturity_matrix.json",
     "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md"
   ],
   "repository_assessment": {

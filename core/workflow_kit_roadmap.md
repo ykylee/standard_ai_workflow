@@ -104,6 +104,8 @@
 - 기존 프로젝트 온보딩 runner: [../scripts/run_existing_project_onboarding.py](../scripts/run_existing_project_onboarding.py)
 - read-only MCP transport 승격 기준: [read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 
+5. 운영 지능화 및 품질 거버넌스 단계 (Next Phase)
+
 ## 3. 상위 목표
 
 다음 단계의 상위 목표는 아래 세 가지다.
@@ -111,8 +113,26 @@
 1. 문서와 프로토타입을 공용 계약 중심으로 정리한다.
 2. 개별 프로토타입을 연결해 실제 workflow kit 형태를 만든다.
 3. 둘 이상의 실제 프로젝트에서 적용 가능한 수준까지 검증한다.
+4. (New) 워크플로우 운영 데이터를 지능적으로 요약하고 품질을 자동 관리한다.
 
 ## 4. 현재까지 완료된 축
+...
+## 5. 다음 우선순위 로드맵
+...
+### 우선순위 6: 운영 지능화 및 품질 거버넌스 (Phase 5)
+
+목표:
+- 단순 기록을 넘어 워크플로우의 질적 관리와 자동 검증 역량을 확보한다.
+
+권장 산출물:
+- **Skill v3**: `workflow-linter` (문서 정합성 자동 교정), `automated-repro-scaffold` (버그 재현 자동화).
+- **MCP v3**: `git_history_summarizer` (변경 이력 자동 요약), `workflow_log_rotator` (문서 비대화 방지).
+- **Governance**: 마일스톤 체크포인트 자동 생성 프로세스.
+
+완료 기준:
+- 에이전트가 자신의 작업 이력을 Git 기반으로 자동 요약할 수 있다.
+- 워크플로우 문서 간의 불일치가 도구에 의해 자동으로 탐지된다.
+- 10개 이상의 TASK가 누적될 경우 마일스톤 요약이 자동으로 제안된다.
 
 ### 완료 또는 사용 가능한 상태
 

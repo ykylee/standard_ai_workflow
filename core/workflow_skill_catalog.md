@@ -23,6 +23,14 @@
 | `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | 프로토타입 있음 | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
 | `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | 프로토타입 있음 | 변경 경로를 기준으로 색인 문서를 수동 검토 |
 
+## 3. 3차 도입 skill (운영 지능화)
+
+| skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
+| --- | --- | --- | --- | --- | --- |
+| `workflow-linter` | 워크플로우 문서 정합성 교정 | state.json, handoff, 백로그 | 불일치 리포트 및 교정안 | 미구현 | 문서 간 TASK 상태와 링크를 수동 대조 |
+| `project-status-assessment` | 프로젝트 도입 성숙도 진단 | 저장소 전체 구조, 테스트, 문서 | 성숙도 리포트, 보강 추천 | 1차 프로토타입 있음 | `repository_assessment.md` 를 수동 작성 |
+| `automated-repro-scaffold` | 버그 재현 환경 자동 구축 | 버그 리포트, 기존 테스트 코드 | 재현 테스트 파일(`repro_*.py`) | 미구현 | 버그 리포트를 읽고 테스트 코드를 수동 작성 |
+
 운영 보조 원칙:
 
 - `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성해 빠른 세션 기준선을 맞춘다.

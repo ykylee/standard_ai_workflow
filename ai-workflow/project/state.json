@@ -2,10 +2,10 @@
   "schema_version": "1",
   "generated_at": "2026-04-26",
   "source_of_truth": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
+    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -22,38 +22,53 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "핵심 스킬 6종 Beta 승급 및 MCP 도구 8종 통합 완료. Beta v2 배포 패키지 및 퀵스타트 가이드 작성 완료.",
-    "current_axis": "Beta v2 배포 및 실제 프로젝트 시범 도입 시작.",
+    "current_baseline": "**Beta v2 Milestone 완료 (2026-04-26)**: 핵심 스킬 6종 Beta 승급, MCP 도구 8종 통합, 배포 패키지 및 퀵스타트 가이드 작성 완료 (TASK-001~010).",
+    "current_axis": "실제 프로젝트 시범 도입 및 워크플로우 운영 도구 고도화.",
     "current_focus": "N/A",
-    "in_progress_items": [],
-    "blocked_items": [],
+    "in_progress_items": [
+      "N/A"
+    ],
+    "blocked_items": [
+      "N/A"
+    ],
     "recent_done_items": [
-      "TASK-010: Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성 완료.",
-      "TASK-009: MCP 우선순위 1 & 2 도구(8종) 구현 및 공식 SDK 서버 통합 완료.",
-      "TASK-008: `scripts/run_demo_workflow.py` 및 데모 문서에 `--apply` 파이프라인 E2E 시나리오 확충 완료.",
-      "TASK-007: `validation-plan` 및 `code-index-update` 쓰기 기능 구현 및 Beta 승급 완료.",
-      "TASK-006: `doc-sync` 및 `merge-doc-reconcile` 쓰기 기능 구현 및 Beta 승급 완료."
+      "TASK-015: `project-status-assessment` 스킬 신규 구현 및 Beta 승급.",
+      "TASK-014: `workflow-linter` 스킬 Beta 승급 (표준 러너 도입 및 스모크 테스트 추가).",
+      "TASK-013: `workflow-linter` 스킬 프로토타입 구현 (문서 동기화 자동 검사).",
+      "TASK-012: 워크플로우 상태 문서 로테이션 및 요약 로직 도입.",
+      "TASK-011: `scripts/bootstrap_workflow_kit.py` 고도화 (Python/Node 의존성 자동 관리).",
+      "(이전 Beta v2 관련 세부 TASK-006~010은 Baseline으로 통합됨)",
+      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현 및 Beta 승급",
+      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현 및 Beta 승급",
+      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충",
+      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합",
+      "TASK-010 Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성",
+      "TASK-011 bootstrap 도구의 의존성 자동 관리 기능 고도화"
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."
     ]
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md",
-    "task_count": 3,
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md",
+    "task_count": 7,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현 및 Beta 승급",
       "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현 및 Beta 승급",
-      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충"
+      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충",
+      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합",
+      "TASK-010 Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성",
+      "TASK-011 bootstrap 도구의 의존성 자동 관리 기능 고도화",
+      "TASK-013 workflow-linter 스킬 프로토타입 구현"
     ]
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md"
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md"
   ],
   "repository_assessment": {
     "path": null,

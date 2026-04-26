@@ -25,6 +25,14 @@
 | `create_environment_record_stub` | 호스트 정보 | 환경 문서 초안 | 미구현 | 환경 기록 템플릿을 수동 작성 |
 | `check_quickstart_stale_links` | quickstart 문서 | stale 링크 경고 | 프로토타입 있음 | quickstart 링크를 기준 문서와 대조 |
 
+## 3. 우선순위 3 (지능형 자동화)
+
+| MCP 후보 | 입력 | 출력 | 구현 상태 | 수동 대체 |
+| --- | --- | --- | --- | --- |
+| `git_history_summarizer` | 커밋 범위 또는 날짜 | 백로그 스타일 요약 텍스트 | 미구현 | `git log` 를 직접 읽고 수동 요약 |
+| `workflow_log_rotator` | 문서 경로, 임계치 | 마일스톤 요약 및 로테이션 초안 | 미구현 (일부 로직 추출됨) | 수동으로 마일스톤 통합 및 로그 정리 |
+| `dependency_vulnerability_checker` | 의존성 파일 경로 | 취약점 리포트 및 권장 버전 | 미구현 | 보안 취약점 DB를 수동 조회 |
+
 ## 3. 최소 입력 계약
 
 - 문서 경로 입력은 프로젝트 프로파일에 정의된 문서 구조를 기준으로 해석한다.

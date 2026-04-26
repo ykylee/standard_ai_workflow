@@ -37,6 +37,8 @@
 | merge-doc-reconcile | ✅ 읽기 | ✅ beta | completed |
 | validation-plan | ✅ 읽기 | ✅ beta | completed |
 | code-index-update | ✅ 읽기 | ✅ beta | completed |
+| workflow-linter | ✅ 실행 | ✅ beta | completed |
+| project-status-assessment | ✅ 실행 | ✅ beta | completed |
 
 ## 4. BetaUpgrade 계획
 

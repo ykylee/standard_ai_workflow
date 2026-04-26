@@ -178,7 +178,7 @@ def main() -> int:
 
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_validation(project_profile_path)
+        profile_data = parse_project_profile_validation(project_profile_path)
         project_root = project_workspace_root(project_profile_path)
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
@@ -186,12 +186,15 @@ def main() -> int:
         change_types = detect_validation_change_types(filtered_changed_files, args.change_summary)
 
         plan_details = build_validation_plan(
-            profile=profile,
+            profile=profile_data,
             change_types=change_types,
             changed_files=args.changed_files,
             session_handoff_path=session_handoff_path,
             latest_backlog_path=latest_backlog_path,
         )
+
+        if "warnings" in profile_data:
+            plan_details["warnings"] = dedupe_strings(plan_details.get("warnings", []) + profile_data["warnings"])
 
         result = {
             "status": "ok",

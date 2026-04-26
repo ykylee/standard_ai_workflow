@@ -214,7 +214,7 @@ def main() -> int:
 
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_core(project_profile_path)
+        profile_data = parse_project_profile_core(project_profile_path)
         repo_root = project_workspace_root(project_profile_path)
 
         work_backlog_index_path = (
@@ -226,12 +226,15 @@ def main() -> int:
         plan_details = build_index_plan(
             project_profile_path=project_profile_path,
             repo_root=repo_root,
-            profile=profile,
+            profile=profile_data,
             changed_files=filtered_changed_files,
             work_backlog_index_path=work_backlog_index_path,
             session_handoff_path=session_handoff_path,
             change_summary=args.change_summary,
         )
+
+        if "warnings" in profile_data:
+            plan_details["warnings"] = dedupe(plan_details.get("warnings", []) + profile_data["warnings"])
         
         result = {
             "status": "ok",
@@ -239,7 +242,7 @@ def main() -> int:
             **plan_details,
             "source_context": {
                 "project_profile_path": str(project_profile_path),
-                "project_name": profile.get("project_name"),
+                "project_name": profile_data.get("project_name"),
                 "changed_files": filtered_changed_files,
                 "change_summary": args.change_summary,
             },

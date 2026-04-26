@@ -79,7 +79,7 @@ def main() -> int:
 
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_core(project_profile_path)
+        profile_data = parse_project_profile_core(project_profile_path)
         project_root = project_workspace_root(project_profile_path)
 
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
@@ -90,13 +90,16 @@ def main() -> int:
 
         result = build_candidates(
             project_root=project_root,
-            profile=profile,
+            profile=profile_data,
             changed_files=args.changed_files,
             session_handoff_path=session_handoff_path,
             work_backlog_index_path=work_backlog_index_path,
             latest_backlog_path=latest_backlog_path,
             change_summary=args.change_summary,
         )
+        
+        if "warnings" in profile_data:
+            result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))
         result["status"] = "ok"
         result["tool_version"] = TOOL_VERSION
         result["source_context"] = {

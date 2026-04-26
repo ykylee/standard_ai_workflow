@@ -57,10 +57,12 @@ def main() -> int:
 
     try:
         profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_merge(profile_path)
+        profile_data = parse_project_profile_merge(profile_path)
         project_root = project_workspace_root(profile_path)
 
         warnings: list[str] = []
+        if "warnings" in profile_data:
+            warnings.extend(profile_data["warnings"])
         state_conflicts: list[str] = []
         reconfirmation_points: list[str] = []
         reconcile_targets: list[str] = []
@@ -83,12 +85,16 @@ def main() -> int:
         if session_handoff_path:
             handoff = parse_handoff(session_handoff_path)
             reconcile_targets.append(str(session_handoff_path))
+            if "warnings" in handoff:
+                warnings.extend(handoff["warnings"])
         else:
             warnings.append("handoff 경로가 없어 세션 요약 상태를 직접 비교하지 못했다.")
 
         if latest_backlog_path:
             backlog = parse_backlog(latest_backlog_path)
             reconcile_targets.append(str(latest_backlog_path))
+            if "warnings" in backlog:
+                warnings.extend(backlog["warnings"])
         else:
             warnings.append("최신 backlog 경로가 없어 작업 단위 상태를 직접 비교하지 못했다.")
 

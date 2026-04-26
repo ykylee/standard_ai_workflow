@@ -160,7 +160,7 @@ def main() -> int:
 
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_backlog(project_profile_path)
+        profile_data = parse_project_profile_backlog(project_profile_path)
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
@@ -184,6 +184,9 @@ def main() -> int:
 
     try:
         warnings: list[str] = []
+        if "warnings" in profile_data:
+            warnings.extend(profile_data["warnings"])
+        
         request_date = args.target_date or datetime.now().strftime("%Y-%m-%d")
         work_backlog_index_path = (
             Path(args.work_backlog_index_path).expanduser().resolve()

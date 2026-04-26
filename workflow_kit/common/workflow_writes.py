@@ -249,7 +249,32 @@ def append_unique_bullets_under_heading(*, doc_path: Path, heading: str, bullets
 
 
 def update_next_documents_section(*, doc_path: Path, links: list[str]) -> bool:
-# ... (생략) ...
+    lines = _read_lines(doc_path)
+    if not lines:
+        return False
+
+    heading = "다음에 읽을 문서"
+    heading_re = re.compile(rf"^##\s+(?:\d+\.\s+)?{re.escape(heading)}\s*$")
+    start: int | None = None
+    end: int | None = None
+    for idx, line in enumerate(lines):
+        if heading_re.match(line.strip()):
+            start = idx + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            break
+
+    if start is None:
+        updated = list(lines)
+        if updated and updated[-1] != "":
+            updated.append("")
+        updated.append(f"## {heading}")
+        updated.extend([f"- {link}" for link in links])
+    else:
+        updated = lines[:start] + [f"- {link}" for link in links] + lines[end:]
+
+    updated = _replace_scalar_value(updated, "최종 수정일", date.today().isoformat())
     _write_lines(doc_path, updated)
     return True
 
@@ -278,13 +303,11 @@ def update_project_profile_commands(*, profile_path: Path, commands: dict[str, s
         prefix = f"- {label}:"
         for idx, line in enumerate(new_lines):
             if line.strip().startswith(prefix):
-                # 인라인 값 확인
                 val_part = line.strip()[len(prefix):].strip()
                 if not val_part or "TODO" in val_part:
                     new_lines[idx] = f"- {label}: `{new_val}`"
                     updated_fields.append(label)
                 elif idx + 1 < len(new_lines) and new_lines[idx + 1].strip().startswith("- "):
-                    # 다음 줄 값 확인
                     next_val = new_lines[idx + 1].strip()[2:].strip()
                     if "TODO" in next_val:
                         new_lines[idx + 1] = f"  - `{new_val}`"

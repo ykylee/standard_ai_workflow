@@ -102,8 +102,8 @@ def main() -> int:
             reconcile_targets.append(str(work_backlog_index_path))
 
         operations_doc = None
-        if profile.get("operations_path"):
-            operations_doc = (project_root / str(profile["operations_path"])).resolve()
+        if profile_data.get("operations_path"):
+            operations_doc = (project_root / str(profile_data["operations_path"])).resolve()
             if operations_doc.exists():
                 reconcile_targets.append(str(operations_doc))
 
@@ -128,7 +128,7 @@ def main() -> int:
             if kind in {"handoff_doc", "backlog_doc"}:
                 reconfirmation_points.append(f"{changed} 의 병합 후 상태 요약을 재확정한다.")
 
-        draft_reconcile_notes.extend(build_reconcile_notes(profile, filtered_changed_files))
+        draft_reconcile_notes.extend(build_reconcile_notes(profile_data, filtered_changed_files))
         apply_result = {
             "status": "skipped",
             "written_paths": [],

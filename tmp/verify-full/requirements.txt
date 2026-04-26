@@ -1,0 +1,4 @@
+# Standard AI Workflow Dependencies
+mcp
+pytest
+pytest-asyncio

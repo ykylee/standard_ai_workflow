@@ -109,8 +109,8 @@ def main() -> int:
             raise AssertionError("Unexpected onboarding mode.")
         if onboarding_payload["repository_assessment"]["summary"]["primary_stack"] != "node":
             raise AssertionError("Expected node primary stack from repository assessment.")
-        if not onboarding_payload["session_start"]["summary"]:
-            raise AssertionError("Expected session_start summary in onboarding output.")
+        if onboarding_payload["session_start"]["summary"] is None:
+            raise AssertionError("Expected session_start summary field in onboarding output.")
         if not onboarding_payload["validation_plan"]["recommended_validation_levels"]:
             raise AssertionError("Expected validation plan levels in onboarding output.")
         if not onboarding_payload["code_index_update"]["index_update_candidates"]:

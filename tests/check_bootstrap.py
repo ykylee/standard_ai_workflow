@@ -120,12 +120,12 @@ def check_new_project_mode() -> None:
             raise AssertionError("Generated workflow state should expose the current focus for fast agent reads.")
 
         handoff_text = Path(str(generated["session_handoff"])).read_text(encoding="utf-8")
-        if "이 문서는 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다." not in handoff_text:
+        if "목적: 세션 상태 복원용 요약" not in handoff_text:
             raise AssertionError("Generated handoff should include the context-saving rule.")
 
         daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
-        if "작업 기록은 한국어를 기본으로 작성한다." not in daily_backlog_text:
-            raise AssertionError("Generated daily backlog should include the Korean reporting rule.")
+        if "목적: 일일 작업 계획 및 결과 기록" not in daily_backlog_text:
+            raise AssertionError("Generated daily backlog should include the correct purpose statement.")
 
 
 def check_existing_project_mode() -> None:

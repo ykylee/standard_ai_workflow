@@ -203,7 +203,7 @@ def main() -> int:
             **plan_details,
             "source_context": {
                 "project_profile_path": str(project_profile_path),
-                "project_name": profile.get("project_name"),
+                "project_name": profile_data.get("project_name"),
                 "changed_files": filtered_changed_files,
                 "change_summary": args.change_summary,
             },

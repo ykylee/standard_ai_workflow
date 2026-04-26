@@ -27,6 +27,11 @@ DEFAULT_CORE_DOCS = [
     "workflow_adoption_entrypoints.md",
     "workflow_harness_distribution.md",
 ]
+RECOMMENDED_PYTHON_DEPS = [
+    "mcp",
+    "pytest",
+    "pytest-asyncio",
+]
 DEFAULT_CORE_SUPPORT_PATHS = [
     "core/existing_project_onboarding_contract.md",
     "core/project_status_assessment.md",
@@ -193,6 +198,11 @@ def parse_args() -> argparse.Namespace:
         help="Copy selected core docs into the generated kit directory.",
     )
     parser.add_argument(
+        "--update-deps",
+        action="store_true",
+        help="Update or create requirements.txt with recommended dependencies.",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Overwrite existing generated files when the destination already exists.",
@@ -271,6 +281,50 @@ def rel(path: Path, base: Path) -> str:
 
 def selected_harnesses(args: argparse.Namespace) -> list[str]:
     return sorted(dict.fromkeys(args.harnesses))
+
+
+def update_dependencies(paths: Paths, context: dict[str, object]) -> list[str]:
+    updated_files: list[str] = []
+    primary_stack = context.get("primary_stack", "unknown")
+    target_root = paths.target_root
+
+    # For Python projects or if requirements.txt exists/should be created
+    req_file = target_root / "requirements.txt"
+    is_python = primary_stack == "python" or primary_stack == "unspecified"
+    
+    if is_python or req_file.exists():
+        existing_content = ""
+        if req_file.exists():
+            existing_content = req_file.read_text(encoding="utf-8")
+        
+        needed = [dep for dep in RECOMMENDED_PYTHON_DEPS if dep not in existing_content]
+        if needed:
+            new_lines = []
+            if existing_content and not existing_content.endswith("\n"):
+                new_lines.append("\n")
+            
+            if "# Standard AI Workflow Dependencies" not in existing_content:
+                new_lines.append("# Standard AI Workflow Dependencies\n")
+            
+            for dep in needed:
+                new_lines.append(f"{dep}\n")
+            
+            with open(req_file, "a", encoding="utf-8") as f:
+                f.writelines(new_lines)
+            updated_files.append(rel(req_file, target_root))
+
+    # Add recommendations to context summary if using other package managers
+    if (target_root / "pyproject.toml").exists():
+        context["analysis_summary"].append(
+            f"Note: `pyproject.toml` detected. Recommended: `uv add {' '.join(RECOMMENDED_PYTHON_DEPS)}` or equivalent."
+        )
+    
+    if primary_stack == "node" or (target_root / "package.json").exists():
+        context["analysis_summary"].append(
+            "Note: Node.js project detected. Consider adding `@modelcontextprotocol/sdk` to devDependencies."
+        )
+
+    return updated_files
 
 
 HARNESS_DEFINITIONS = {
@@ -1453,6 +1507,7 @@ def build_manifest(
     core_docs: list[str],
     context: dict[str, object],
     harness_files: dict[str, str],
+    dependency_files: list[str] = None,
 ) -> dict[str, object]:
     selected_snippets = {
         harness: global_snippet_sources()[harness]
@@ -1479,6 +1534,7 @@ def build_manifest(
         "analysis_summary": context["analysis_summary"],
         "generated_files": generated_files,
         "generated_harness_files": harness_files,
+        "updated_dependency_files": dependency_files or [],
         "global_snippet_candidates": selected_snippets,
         "copied_core_docs": core_docs,
         "next_steps": [
@@ -1487,6 +1543,11 @@ def build_manifest(
             f"Update {rel(paths.handoff_path, paths.target_root)} with the current session baseline.",
             f"Register the next real task in {rel(paths.daily_backlog_path, paths.target_root)}.",
         ]
+        + (
+            [f"Run `{context.get('install_command')}` to install recommended dependencies."]
+            if dependency_files
+            else []
+        )
         + (
             [f"Review {rel(paths.assessment_path, paths.target_root)} and confirm inferred commands and doc paths."]
             if args.adoption_mode == "existing"
@@ -1518,10 +1579,11 @@ def main() -> int:
     if "antigravity" in harnesses:
         harness_files["antigravity_agents"] = str(antigravity_agents_path(paths))
     
-    # We could call HARNESS_FILE_BUILDERS here without writing, 
-    # but for dry-run manifest, the above is often enough or we can add more if needed.
+    dependency_files: list[str] = []
+    if args.update_deps and not args.dry_run:
+        dependency_files = update_dependencies(paths, context)
 
-    manifest = build_manifest(args, paths, core_docs, context, harness_files)
+    manifest = build_manifest(args, paths, core_docs, context, harness_files, dependency_files)
 
     if args.dry_run:
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
@@ -1555,7 +1617,7 @@ def main() -> int:
         harness_files = write_harness_files(args, paths, context)
         if args.copy_core_docs:
             core_docs = copy_core_docs(paths, force=args.force)
-        manifest = build_manifest(args, paths, core_docs, context, harness_files)
+        manifest = build_manifest(args, paths, core_docs, context, harness_files, dependency_files)
     except FileExistsError as exc:
         print(str(exc), file=sys.stderr)
         return 1

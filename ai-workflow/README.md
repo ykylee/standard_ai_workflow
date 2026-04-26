@@ -1,17 +1,17 @@
 # Standard AI Workflow Kit
 
-- 문서 목적: `Standard AI Workflow` 저장소에 표준 AI 워크플로우 기본 문서 세트와 하네스 지원 현황을 안내한다.
+- 문서 목적: `Standard AI Workflow` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-25
+- 최종 수정일: 2026-04-26
 - 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
 
 ## 1. 도입 모드
 
-- 선택한 도입 모드: `self-dogfooding`
+- 선택한 도입 모드: `existing`
 - 요약:
-- 워크플로우 키트 자체 개발 저장소에 `gemini-cli` 및 `opencode` 하네스 지원을 통합했다.
+- 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다.
 
 ## 2. 생성된 파일
 
@@ -19,17 +19,23 @@
 - [project/state.json](./project/state.json)
 - [project/session_handoff.md](./project/session_handoff.md)
 - [project/work_backlog.md](./project/work_backlog.md)
-- [project/backlog/2026-04-25.md](./project/backlog/2026-04-25.md)
+- [project/backlog/2026-04-26.md](./project/backlog/2026-04-26.md)
 - [project/repository_assessment.md](./project/repository_assessment.md)
 
 ## 3. 코어 문서
 
-- core 문서는 `core/` 디렉토리에 위치하며, 워크플로우의 표준 규격과 설계 철학을 담고 있다.
+- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](./core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 
-- `gemini-cli`: `GEMINI.md`를 통한 세션 관리 지원
-- `opencode`: `opencode.json` 및 `.opencode/` 설정을 통한 멀티 에이전트 워크플로우 지원
+- `gemini-cli` 하네스용 오버레이 파일 생성
+- `opencode` 하네스용 오버레이 파일 생성
 
 ## 5. 도입 직후 해야 할 일
 
@@ -49,14 +55,14 @@
 ## 7. 프로젝트 실제 문서 경로 설정값
 
 - 문서 위키 홈: `README.md`
-- 운영 문서 위치: `ai-workflow/project/`
-- 백로그 위치: `ai-workflow/project/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/project/session_handoff.md`
-- 환경 기록 위치: `ai-workflow/project/repository_assessment.md`
+- 운영 문서 위치: `docs/operations/`
+- 백로그 위치: `docs/operations/backlog/`
+- 세션 인계 문서 위치: `docs/operations/session_handoff.md`
+- 환경 기록 위치: `docs/operations/environments/`
 
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
 - 빠른 상태 요약: [./project/state.json](./project/state.json)
-- 세션 인계 문서: [./project/session_handoff.md](./session_handoff.md)
+- 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
 - 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)

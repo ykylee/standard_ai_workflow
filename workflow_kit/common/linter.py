@@ -5,6 +5,64 @@ from typing import Dict, List, Any
 
 from workflow_kit.common.project_docs import parse_backlog, parse_handoff
 
+def check_maturity_consistency(
+    matrix_path: Path,
+    roadmap_path: Path,
+    project_root: Path
+) -> Dict[str, Any]:
+    issues = []
+    warnings = []
+    
+    if not matrix_path.exists():
+        return {"status": "skipped", "reason": "maturity_matrix.json not found"}
+        
+    try:
+        matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return {"status": "error", "error_code": "matrix_json_load_failure", "description": f"Failed to load maturity_matrix.json: {e}"}
+
+    # 1. Check test_path existence
+    skills = matrix.get("skills", {})
+    for skill_name, info in skills.items():
+        test_path_str = info.get("test_path")
+        if test_path_str:
+            test_path = (project_root / test_path_str).resolve()
+            if not test_path.exists():
+                issues.append({
+                    "type": "maturity_error",
+                    "code": "missing_test_file",
+                    "description": f"Skill '{skill_name}' declares test_path '{test_path_str}', but the file does not exist.",
+                    "severity": "high",
+                    "fix_suggestion": f"Create the missing test file at {test_path_str} or update the matrix."
+                })
+        elif info.get("stage") in ["beta", "stable"]:
+            warnings.append(f"Skill '{skill_name}' is in stage '{info.get('stage')}' but has no test_path defined.")
+
+    # 2. Check Roadmap alignment (Basic Check)
+    if roadmap_path.exists():
+        roadmap_content = roadmap_path.read_text(encoding="utf-8")
+        milestones = matrix.get("milestones", {})
+        
+        # Check if current Roadmap phase matches In-Progress milestone
+        in_progress_milestones = [name for name, m in milestones.items() if m.get("status") == "in_progress"]
+        for m_name in in_progress_milestones:
+            # Simple check: Does the roadmap mention the in-progress phase name?
+            phase_name = milestones[m_name].get("name", "")
+            if phase_name and phase_name not in roadmap_content:
+                 issues.append({
+                    "type": "maturity_error",
+                    "code": "roadmap_milestone_mismatch",
+                    "description": f"Milestone '{m_name}' ({phase_name}) is 'in_progress' in matrix, but not prominently mentioned as current phase in roadmap.md.",
+                    "severity": "medium",
+                    "fix_suggestion": "Update roadmap.md to reflect the current in-progress phase from maturity_matrix.json."
+                })
+
+    return {
+        "status": "ok" if not issues else "issues_found",
+        "issues": issues,
+        "warnings": warnings
+    }
+
 def check_workflow_consistency(
     state_json_path: Path,
     handoff_path: Path,

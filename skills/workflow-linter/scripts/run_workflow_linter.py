@@ -72,12 +72,31 @@ def main() -> int:
 
         source_context["latest_backlog_path"] = str(latest_backlog_path)
 
-        # Run consistency check
+        # 1. Workflow Consistency (Docs)
         result_data = check_workflow_consistency(
             state_json_path=state_json_path,
             handoff_path=handoff_path,
             latest_backlog_path=latest_backlog_path
         )
+
+        # 2. Maturity Consistency (SSOT)
+        from workflow_kit.common.linter import check_maturity_consistency
+        matrix_path = root / "core/maturity_matrix.json"
+        roadmap_path = root / "core/workflow_kit_roadmap.md"
+        maturity_data = check_maturity_consistency(matrix_path, roadmap_path, root)
+        
+        if maturity_data.get("status") != "skipped":
+            # Merge results
+            result_data["issues"].extend(maturity_data.get("issues", []))
+            result_data["warnings"].extend(maturity_data.get("warnings", []))
+            if maturity_data.get("status") == "issues_found":
+                result_data["status"] = "issues_found"
+            
+            # Recalculate summary
+            result_data["summary"]["maturity_errors"] = len([i for i in result_data["issues"] if i.get("type") == "maturity_error"])
+            result_data["summary"]["total_issues"] = len(result_data["issues"])
+            result_data["summary"]["sync_errors"] = len([i for i in result_data["issues"] if i.get("type") == "sync_error"])
+            result_data["summary"]["broken_links"] = len([i for i in result_data["issues"] if i.get("type") == "broken_link"])
 
         if result_data.get("status") == "error":
             error_result = build_error_result(

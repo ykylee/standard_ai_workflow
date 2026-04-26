@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import sys
+import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -27,11 +28,21 @@ DEFAULT_CORE_DOCS = [
     "workflow_adoption_entrypoints.md",
     "workflow_harness_distribution.md",
 ]
-RECOMMENDED_PYTHON_DEPS = [
-    "mcp",
-    "pytest",
-    "pytest-asyncio",
-]
+# Base dependencies for any workflow integration
+COMMON_PYTHON_DEPS = ["mcp", "pytest", "pytest-asyncio"]
+COMMON_NODE_DEPS = ["@modelcontextprotocol/sdk"]
+
+# Harness-specific optional dependencies
+HARNESS_PYTHON_DEPS = {
+    "gemini-cli": [],
+    "codex": [],
+    "opencode": [],
+}
+HARNESS_NODE_DEPS = {
+    "gemini-cli": [],
+    "codex": [],
+}
+
 DEFAULT_CORE_SUPPORT_PATHS = [
     "core/existing_project_onboarding_contract.md",
     "core/project_status_assessment.md",
@@ -162,16 +173,16 @@ def parse_args() -> argparse.Namespace:
         "--stakeholders",
         default="TODO: 주요 이해관계자 목록을 정리한다.",
     )
-    parser.add_argument("--doc-home", default="docs/README.md")
-    parser.add_argument("--operations-dir", default="docs/operations/")
-    parser.add_argument("--backlog-dir", default="docs/operations/backlog/")
-    parser.add_argument("--session-doc-path", default="docs/operations/session_handoff.md")
-    parser.add_argument("--environment-dir", default="docs/operations/environments/")
-    parser.add_argument("--install-command", default="TODO: 설치 명령 입력")
-    parser.add_argument("--run-command", default="TODO: 로컬 실행 명령 입력")
-    parser.add_argument("--quick-test-command", default="TODO: 빠른 테스트 명령 입력")
-    parser.add_argument("--isolated-test-command", default="TODO: 격리 테스트 명령 입력")
-    parser.add_argument("--smoke-check-command", default="TODO: 실행 확인 명령 입력")
+    parser.add_argument("--doc-home", default="README.md")
+    parser.add_argument("--operations-dir", default="ai-workflow/project/")
+    parser.add_argument("--backlog-dir", default="ai-workflow/project/backlog/")
+    parser.add_argument("--session-doc-path", default="ai-workflow/project/session_handoff.md")
+    parser.add_argument("--environment-dir", default="ai-workflow/project/environments/")
+    parser.add_argument("--install-command", default=None)
+    parser.add_argument("--run-command", default=None)
+    parser.add_argument("--quick-test-command", default=None)
+    parser.add_argument("--isolated-test-command", default=None)
+    parser.add_argument("--smoke-check-command", default=None)
     parser.add_argument("--today", default=today)
     parser.add_argument("--initial-task-id", default="TASK-001")
     parser.add_argument("--initial-task-name", default="표준 AI 워크플로우 초기 도입")
@@ -283,22 +294,32 @@ def selected_harnesses(args: argparse.Namespace) -> list[str]:
     return sorted(dict.fromkeys(args.harnesses))
 
 
-def update_dependencies(paths: Paths, context: dict[str, object]) -> list[str]:
+def update_dependencies(paths: Paths, context: dict[str, object], harnesses: list[str]) -> list[str]:
     updated_files: list[str] = []
     primary_stack = context.get("primary_stack", "unknown")
     target_root = paths.target_root
 
-    # For Python projects or if requirements.txt exists/should be created
+    # 1. Handle Python dependencies (requirements.txt)
     req_file = target_root / "requirements.txt"
     is_python = primary_stack == "python" or primary_stack == "unspecified"
     
     if is_python or req_file.exists():
+        needed_python = list(COMMON_PYTHON_DEPS)
+        for h in harnesses:
+            needed_python.extend(HARNESS_PYTHON_DEPS.get(h, []))
+        
+        needed_python = sorted(list(set(needed_python)))
         existing_content = ""
         if req_file.exists():
             existing_content = req_file.read_text(encoding="utf-8")
         
-        needed = [dep for dep in RECOMMENDED_PYTHON_DEPS if dep not in existing_content]
-        if needed:
+        to_add = []
+        for dep in needed_python:
+            pattern = rf"(^|\s|[,]){re.escape(dep)}([>=<#\s]|$)"
+            if not re.search(pattern, existing_content, re.MULTILINE | re.IGNORECASE):
+                to_add.append(dep)
+
+        if to_add:
             new_lines = []
             if existing_content and not existing_content.endswith("\n"):
                 new_lines.append("\n")
@@ -306,22 +327,47 @@ def update_dependencies(paths: Paths, context: dict[str, object]) -> list[str]:
             if "# Standard AI Workflow Dependencies" not in existing_content:
                 new_lines.append("# Standard AI Workflow Dependencies\n")
             
-            for dep in needed:
+            for dep in to_add:
                 new_lines.append(f"{dep}\n")
             
             with open(req_file, "a", encoding="utf-8") as f:
                 f.writelines(new_lines)
             updated_files.append(rel(req_file, target_root))
 
-    # Add recommendations to context summary if using other package managers
+    # 2. Handle Node.js dependencies (package.json)
+    package_json = target_root / "package.json"
+    if package_json.exists():
+        try:
+            payload = json.loads(package_json.read_text(encoding="utf-8"))
+            dev_deps = payload.get("devDependencies", {})
+            deps = payload.get("dependencies", {})
+            
+            needed_node = list(COMMON_NODE_DEPS)
+            for h in harnesses:
+                needed_node.extend(HARNESS_NODE_DEPS.get(h, []))
+            
+            to_add_node = [
+                dep for dep in needed_node 
+                if dep not in dev_deps and dep not in deps
+            ]
+            
+            if to_add_node:
+                if "devDependencies" not in payload:
+                    payload["devDependencies"] = {}
+                for dep in to_add_node:
+                    payload["devDependencies"][dep] = "latest"
+                
+                payload["devDependencies"] = dict(sorted(payload["devDependencies"].items()))
+                package_json.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                updated_files.append(rel(package_json, target_root))
+        except (json.JSONDecodeError, KeyError):
+            context["analysis_summary"].append("Warning: Could not parse package.json for dependency updates.")
+
+    # 3. Handle pyproject.toml / other managers with hints
     if (target_root / "pyproject.toml").exists():
+        needed_python = sorted(list(set(COMMON_PYTHON_DEPS + [d for h in harnesses for d in HARNESS_PYTHON_DEPS.get(h, [])])))
         context["analysis_summary"].append(
-            f"Note: `pyproject.toml` detected. Recommended: `uv add {' '.join(RECOMMENDED_PYTHON_DEPS)}` or equivalent."
-        )
-    
-    if primary_stack == "node" or (target_root / "package.json").exists():
-        context["analysis_summary"].append(
-            "Note: Node.js project detected. Consider adding `@modelcontextprotocol/sdk` to devDependencies."
+            f"Note: `pyproject.toml` detected. Recommended: `uv add {' '.join(needed_python)}` or equivalent."
         )
 
     return updated_files
@@ -408,38 +454,7 @@ def guess_run_command(target_root: Path, package_scripts: dict[str, str]) -> str
 
 
 def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, object]:
-    if args.adoption_mode == "new":
-        return {
-            "top_level_entries": [],
-            "source_dirs": [],
-            "docs_dirs": [],
-            "test_dirs": [],
-            "stack_labels": [],
-            "primary_stack": "unspecified",
-            "package_scripts": {},
-            "existing_docs_detected": False,
-            "has_existing_tests": False,
-            "doc_home": args.doc_home,
-            "operations_dir": args.operations_dir,
-            "backlog_dir": args.backlog_dir,
-            "session_doc_path": args.session_doc_path,
-            "environment_dir": args.environment_dir,
-            "install_command": args.install_command,
-            "run_command": args.run_command,
-            "quick_test_command": args.quick_test_command,
-            "isolated_test_command": args.isolated_test_command,
-            "smoke_check_command": args.smoke_check_command,
-            "analysis_summary": [
-                "신규 프로젝트 모드이므로 기존 코드베이스 분석은 수행하지 않았다.",
-                "프로젝트 특화 명령과 문서 구조는 생성된 profile 문서에서 직접 채워야 한다.",
-            ],
-        }
-
-    files = iter_repo_files(paths.target_root)
-    rel_files = [path.relative_to(paths.target_root).as_posix() for path in files]
-    top_level_entries = sorted(
-        path.name for path in paths.target_root.iterdir() if path.name != args.kit_dir
-    )
+    # Basic exploration for both "new" and "existing" modes
     docs_dirs = sorted(
         {
             name
@@ -477,67 +492,102 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
 
     package_scripts = detect_package_scripts(paths.target_root)
 
-    if docs_dirs and (paths.target_root / docs_dirs[0] / "README.md").exists():
-        doc_home = f"{docs_dirs[0]}/README.md"
-    elif (paths.target_root / "README.md").exists():
-        doc_home = "README.md"
-    else:
+    # Resolve paths: prefer CLI args if provided, then inferred, then defaults
+    if args.doc_home and args.doc_home != "README.md":
         doc_home = args.doc_home
+    elif docs_dirs and (paths.target_root / docs_dirs[0] / "README.md").exists():
+        doc_home = f"{docs_dirs[0]}/README.md"
+    else:
+        doc_home = "README.md"
 
-    operations_dir = f"{docs_dirs[0]}/operations/" if docs_dirs else args.operations_dir
+    # Resolve operations_dir
+    if args.adoption_mode == "existing" and docs_dirs:
+        operations_dir = f"{docs_dirs[0]}/operations/"
+    else:
+        operations_dir = args.operations_dir
+
     backlog_dir = f"{operations_dir.rstrip('/')}/backlog/"
     session_doc_path = f"{operations_dir.rstrip('/')}/session_handoff.md"
     environment_dir = f"{operations_dir.rstrip('/')}/environments/"
 
-    if primary_stack == "node":
-        install_command = "npm install"
-        run_command = guess_run_command(paths.target_root, package_scripts)
-        quick_test_command = (
-            "npm test"
-            if "test" in package_scripts
-            else ("npm run lint" if "lint" in package_scripts else "TODO: 빠른 테스트 명령 입력")
-        )
-        isolated_test_command = (
-            "npm run test:unit"
-            if "test:unit" in package_scripts
-            else ("npm run test:ci" if "test:ci" in package_scripts else "TODO: 격리 테스트 명령 입력")
-        )
-        smoke_check_command = (
-            "npm run test:smoke"
-            if "test:smoke" in package_scripts
-            else ("npm run smoke" if "smoke" in package_scripts else "TODO: 실행 확인 명령 입력")
-        )
-    elif primary_stack == "python":
-        install_command = "uv sync" if (paths.target_root / "uv.lock").exists() else (
-            "pip install -r requirements.txt"
-            if (paths.target_root / "requirements.txt").exists()
-            else "pip install -e ."
-        )
-        run_command = guess_run_command(paths.target_root, package_scripts)
-        quick_test_command = "pytest -q" if test_dirs else "TODO: 빠른 테스트 명령 입력"
-        isolated_test_command = (
-            f"pytest {test_dirs[0]} -q" if test_dirs else "TODO: 격리 테스트 명령 입력"
-        )
-        smoke_check_command = "TODO: 실행 확인 명령 입력"
-    elif primary_stack == "rust":
-        install_command = "cargo fetch"
-        run_command = "cargo run"
-        quick_test_command = "cargo test"
-        isolated_test_command = "cargo test --lib"
-        smoke_check_command = "TODO: 실행 확인 명령 입력"
-    elif primary_stack == "go":
-        install_command = "go mod download"
-        run_command = "go run ./..."
-        quick_test_command = "go test ./..."
-        isolated_test_command = "go test ./... -run TestSmoke"
-        smoke_check_command = "TODO: 실행 확인 명령 입력"
-    else:
-        install_command = args.install_command
-        run_command = args.run_command
-        quick_test_command = args.quick_test_command
-        isolated_test_command = args.isolated_test_command
-        smoke_check_command = args.smoke_check_command
+    # Initial commands from args
+    install_command = args.install_command
+    run_command = args.run_command
+    quick_test_command = args.quick_test_command
+    isolated_test_command = args.isolated_test_command
+    smoke_check_command = args.smoke_check_command
 
+    # Refine commands based on stack
+    if primary_stack == "node":
+        if not install_command: install_command = "npm install"
+        if not run_command: run_command = guess_run_command(paths.target_root, package_scripts)
+        if not quick_test_command:
+            quick_test_command = "npm test" if "test" in package_scripts else ("npm run lint" if "lint" in package_scripts else "TODO: 빠른 테스트 명령 입력")
+        if not isolated_test_command:
+            isolated_test_command = "npm run test:unit" if "test:unit" in package_scripts else ("npm run test:ci" if "test:ci" in package_scripts else "TODO: 격리 테스트 명령 입력")
+        if not smoke_check_command:
+            smoke_check_command = "npm run test:smoke" if "test:smoke" in package_scripts else "TODO: 실행 확인 명령 입력"
+    elif primary_stack == "python":
+        if not install_command: 
+            install_command = "pip install -r requirements.txt" if (paths.target_root / "requirements.txt").exists() else "pip install ."
+        if not run_command: run_command = guess_run_command(paths.target_root, {})
+        if not quick_test_command:
+            quick_test_command = "pytest" if test_dirs else "TODO: 빠른 테스트 명령 입력"
+        if not isolated_test_command:
+            isolated_test_command = "pytest tests/unit" if (paths.target_root / "tests/unit").exists() else "TODO: 격리 테스트 명령 입력"
+    elif primary_stack == "rust":
+        if not install_command: install_command = "cargo fetch"
+        if not run_command: run_command = "cargo run"
+        if not quick_test_command: quick_test_command = "cargo test"
+        if not isolated_test_command: isolated_test_command = "cargo test --lib"
+    elif primary_stack == "go":
+        if not install_command: install_command = "go mod download"
+        if not run_command: run_command = "go run ./..."
+        if not quick_test_command: quick_test_command = "go test ./..."
+        if not isolated_test_command: isolated_test_command = "go test ./... -run TestSmoke"
+
+    # Fallback for all stacks
+    install_command = install_command or "TODO: 설치 명령 입력"
+    run_command = run_command or "TODO: 로컬 실행 명령 입력"
+    quick_test_command = quick_test_command or "TODO: 빠른 테스트 명령 입력"
+    isolated_test_command = isolated_test_command or "TODO: 격리 테스트 명령 입력"
+    smoke_check_command = smoke_check_command or "TODO: 실행 확인 명령 입력"
+
+    top_level_entries = sorted(
+        path.name for path in paths.target_root.iterdir() if path.name != args.kit_dir
+    )
+
+    if args.adoption_mode == "new":
+        return {
+            "top_level_entries": top_level_entries,
+            "source_dirs": source_dirs,
+            "docs_dirs": docs_dirs,
+            "test_dirs": test_dirs,
+            "stack_labels": stack_labels,
+            "primary_stack": primary_stack,
+            "package_scripts": package_scripts,
+            "existing_docs_detected": bool(docs_dirs),
+            "has_existing_tests": bool(test_dirs),
+            "doc_home": doc_home,
+            "operations_dir": operations_dir,
+            "backlog_dir": backlog_dir,
+            "session_doc_path": session_doc_path,
+            "environment_dir": environment_dir,
+            "install_command": install_command,
+            "run_command": run_command,
+            "quick_test_command": quick_test_command,
+            "isolated_test_command": isolated_test_command,
+            "smoke_check_command": smoke_check_command,
+            "analysis_summary": [
+                "신규 프로젝트 모드이지만 기본 구조 분석을 통해 명령어를 추론했다.",
+                "필요한 경우 생성된 profile 문서에서 명령어를 추가로 보정할 수 있다.",
+            ],
+        }
+
+    # "existing" mode additional info
+    files = iter_repo_files(paths.target_root)
+    rel_files = [path.relative_to(paths.target_root).as_posix() for path in files]
+    
     analysis_summary = [
         f"상위 디렉터리 기준으로 `{', '.join(top_level_entries[:10])}` 구조를 확인했다." if top_level_entries else "상위 디렉터리 항목이 거의 비어 있다.",
         f"추정 기본 스택은 `{primary_stack}` 이며 감지된 스택 라벨은 `{', '.join(stack_labels) or '없음'}` 이다.",
@@ -570,8 +620,8 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     }
 
 
-def value_or_inferred(explicit: str, fallback: str) -> str:
-    if explicit.startswith("TODO:"):
+def value_or_inferred(explicit: str | None, fallback: str) -> str:
+    if explicit is None or explicit.startswith("TODO:"):
         return fallback
     return explicit
 
@@ -892,8 +942,16 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
     harness_note = (
         "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
         if args.adoption_mode == "existing"
-        else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
+        else "신규 프로젝트 기준 초안이다. 프로젝트 고유의 실행 명령과 문서 구조가 정확한지 확인해야 한다."
     )
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in smoke_check:
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""# GEMINI.md
 
 - 문서 목적: Gemini CLI 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -937,7 +995,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - 로컬 실행: `{context['run_command']}`
 - 빠른 테스트: `{context['quick_test_command']}`
 - 격리 테스트: `{context['isolated_test_command']}`
-- 실행 확인: `{context['smoke_check_command']}`
+- 실행 확인: `{smoke_check}`
 
 ## 문서 작업 기준
 
@@ -964,8 +1022,16 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
     harness_note = (
         "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
         if args.adoption_mode == "existing"
-        else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
+        else "신규 프로젝트 기준 초안이다. 프로젝트 고유의 실행 명령과 문서 구조가 정확한지 확인해야 한다."
     )
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in smoke_check:
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""# ANTIGRAVITY.md
 
 - 문서 목적: Antigravity 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -1009,7 +1075,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 로컬 실행: `{context['run_command']}`
 - 빠른 테스트: `{context['quick_test_command']}`
 - 격리 테스트: `{context['isolated_test_command']}`
-- 실행 확인: `{context['smoke_check_command']}`
+- 실행 확인: `{smoke_check}`
 
 ## 문서 작업 기준
 
@@ -1032,8 +1098,16 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
     harness_note = (
         "기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다."
         if args.adoption_mode == "existing"
-        else "신규 프로젝트 기준 초안이다. TODO 항목과 명령은 실제 프로젝트 규칙으로 채워야 한다."
+        else "신규 프로젝트 기준 초안이다. 프로젝트 고유의 실행 명령과 문서 구조가 정확한지 확인해야 한다."
     )
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in smoke_check:
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""# AGENTS.md
 
 - 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -1077,7 +1151,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 로컬 실행: `{context['run_command']}`
 - 빠른 테스트: `{context['quick_test_command']}`
 - 격리 테스트: `{context['isolated_test_command']}`
-- 실행 확인: `{context['smoke_check_command']}`
+- 실행 확인: `{smoke_check}`
 
 ## 문서 작업 기준
 
@@ -1581,7 +1655,7 @@ def main() -> int:
     
     dependency_files: list[str] = []
     if args.update_deps and not args.dry_run:
-        dependency_files = update_dependencies(paths, context)
+        dependency_files = update_dependencies(paths, context, harnesses)
 
     manifest = build_manifest(args, paths, core_docs, context, harness_files, dependency_files)
 

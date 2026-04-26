@@ -11,7 +11,7 @@
   "project": {
     "project_name": "Standard AI Workflow",
     "document_home": "README.md",
-    "operations_path": "ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)",
+    "operations_path": "ai-workflow/project/",
     "backlog_path": "ai-workflow/project/backlog/",
     "handoff_path": "ai-workflow/project/session_handoff.md",
     "environment_path": "ai-workflow/project/repository_assessment.md"
@@ -22,8 +22,8 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "**Beta v2 Milestone 완료 (2026-04-26)**: 핵심 스킬 6종 Beta 승급, MCP 도구 8종 통합, 배포 패키지 및 퀵스타트 가이드 작성 완료 (TASK-001~010).",
-    "current_axis": "실제 프로젝트 시범 도입 및 워크플로우 운영 도구 고도화.",
+    "current_baseline": "**Beta v2 Milestone 및 가버넌스 체계 고도화 완료 (2026-04-26)**: 핵심 스킬 Beta 승급, MCP 공식 통합, SSOT 기반 가버넌스(Maturity Matrix, Strategic Threads) 및 정합성 자동 검증 도구(Linter) 구축 완료.",
+    "current_axis": "Phase 4 진입 및 운영 지능화(Phase 5) 준비.",
     "current_focus": "N/A",
     "in_progress_items": [
       "N/A"
@@ -32,18 +32,16 @@
       "N/A"
     ],
     "recent_done_items": [
+      "TASK-019: 파일럿 프로젝트 온보딩 피드백 반영 및 Friction 개선 (Done)",
+      "TASK-018: 실운영 파일럿용 테스트 베드 구축 및 bootstrap 실행 (Done)",
+      "TASK-017: 로드맵-성숙도 매트릭스 간 상태 동기화 검증 구현 (Done)",
+      "TASK-016: workflow-linter 성숙도 매트릭스(SSOT) 정합성 검증 강화 (Done)",
       "TASK-015: `project-status-assessment` 스킬 신규 구현 및 Beta 승급.",
-      "TASK-014: `workflow-linter` 스킬 Beta 승급 (표준 러너 도입 및 스모크 테스트 추가).",
-      "TASK-013: `workflow-linter` 스킬 프로토타입 구현 (문서 동기화 자동 검사).",
+      "TASK-014: `workflow-linter` 스킬 Beta 승급.",
       "TASK-012: 워크플로우 상태 문서 로테이션 및 요약 로직 도입.",
-      "TASK-011: `scripts/bootstrap_workflow_kit.py` 고도화 (Python/Node 의존성 자동 관리).",
-      "(이전 Beta v2 관련 세부 TASK-006~010은 Baseline으로 통합됨)",
-      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현 및 Beta 승급",
-      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현 및 Beta 승급",
-      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충",
-      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합",
-      "TASK-010 Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성",
-      "TASK-011 bootstrap 도구의 의존성 자동 관리 기능 고도화"
+      "TASK-011: bootstrap 도구의 의존성 자동 관리 기능 고도화.",
+      "TASK-010: Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성.",
+      "TASK-009: MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합."
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."
@@ -51,24 +49,25 @@
   },
   "backlog": {
     "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md",
-    "task_count": 7,
+    "task_count": 9,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현 및 Beta 승급",
-      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현 및 Beta 승급",
+      "TASK-017 로드맵-성숙도 매트릭스 간 상태 동기화 검사 구현",
+      "TASK-016 workflow-linter 성숙도 매트릭스(SSOT) 정합성 검증 강화",
+      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현",
+      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현",
       "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충",
-      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 공식 SDK 서버 통합",
-      "TASK-010 Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성",
-      "TASK-011 bootstrap 도구의 의존성 자동 관리 기능 고도화",
+      "TASK-009 MCP 우선순위 1 & 2 도구 구현 및 통합",
+      "TASK-010 Beta v2 배포 패키지 구성",
+      "TASK-011 bootstrap 도구 고도화",
       "TASK-013 workflow-linter 스킬 프로토타입 구현"
     ]
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
-    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-26.md"
+    "/Users/yklee/repos/standard_ai_workflow_gemini/core/strategic_threads.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/core/maturity_matrix.json",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md"
   ],
   "repository_assessment": {
     "path": null,

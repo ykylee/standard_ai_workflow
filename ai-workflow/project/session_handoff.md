@@ -1,56 +1,52 @@
-# 세션 인계 문서
+# 세션 인계 문서 (Session Handoff)
 
-- 문서 목적: 새 세션이나 새 환경에서 이전 작업 상태를 빠르게 복원할 수 있도록 현재 기준 상태를 요약한다.
-- 범위: 진행 중 작업, 차단 작업, 최근 완료 작업, 잔여 작업, 환경별 검증 현황
-- 대상 독자: 개발자, 운영자, 리뷰어, 문서 작성자
+- 문서 목적: 현재 세션의 작업 결과를 요약하고 다음 세션이 즉시 이어받을 수 있는 컨텍스트를 제공한다.
+- 범위: 완료된 작업, 현재 상태, 다음 세션 작업 제안, 리스크 및 특이사항
+- 대상 독자: 다음 세션 담당 에이전트/개발자
 - 상태: done
 - 최종 수정일: 2026-04-26
-- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/2026-04-26.md`
+- 관련 문서: `./state.json`, `./work_backlog.md`, `./backlog/2026-04-26.md`
 
-## 1. 현재 작업 요약
+## 1. 세션 요약
 
-- 현재 기준선:
-- **Beta v2 Milestone 완료 (2026-04-26)**: 핵심 스킬 6종 Beta 승급, MCP 도구 8종 통합, 배포 패키지 및 퀵스타트 가이드 작성 완료 (TASK-001~010).
-- 현재 주 작업 축:
-- 실제 프로젝트 시범 도입 및 워크플로우 운영 도구 고도화.
-- 최근 핵심 핵심 문서:
-- `QUICKSTART.md`, `core/skill_beta_criteria.md`, `dist/harnesses/gemini-cli/beta-v2.0/manifest.json`
+**Beta v2 마일스톤 완성 및 SSOT 기반 가버넌스 체계 구축 완료**
 
-## 2. 진행 중 작업
+이번 세션에서는 핵심 스킬의 Beta 승급과 MCP 통합을 마무리하고, 향후 계획 문서의 파편화를 방지하기 위한 단일 진실 공급원(SSOT) 체계를 구축했습니다.
 
-- 현재 `in_progress` 작업:
-- N/A
-## 3. 차단 작업
+## 2. 완료된 작업 (Recently Done)
 
-- 현재 `blocked` 작업:
-- N/A
-## 4. 최근 완료 작업
+- **[THREAD-001] 가버넌스 고도화**:
+    - `core/maturity_matrix.json` (SSOT) 도입: 스킬/MCP 상태 중앙 관리.
+    - `core/strategic_threads.md` 도입: 세션 간 전략적 연속성 확보.
+    - `workflow-linter` 고도화: 매트릭스 및 로드맵 정합성 자동 검증 (TASK-016, TASK-017).
+- **Beta v2 배포 준비**:
+    - 핵심 스킬 6종 Beta 승급 및 쓰기 기능 연동.
+    - MCP 8종 공식 SDK 통합 및 서버 구축.
+    - 배포 패키지(`dist/`) 및 `QUICKSTART.md` 작성.
+- **도구 지능화**:
+    - `project-status-assessment` 스킬 구현 (저장소 자동 진단).
+    - `workflow-linter` 문서 정합성 검사 프로토타입.
 
-- 최근 완료 작업 목록:
-- TASK-015: `project-status-assessment` 스킬 신규 구현 및 Beta 승급.
-- TASK-014: `workflow-linter` 스킬 Beta 승급 (표준 러너 도입 및 스모크 테스트 추가).
-- TASK-013: `workflow-linter` 스킬 프로토타입 구현 (문서 동기화 자동 검사).
-- TASK-012: 워크플로우 상태 문서 로테이션 및 요약 로직 도입.
-- TASK-011: `scripts/bootstrap_workflow_kit.py` 고도화 (Python/Node 의존성 자동 관리).
-- (이전 Beta v2 관련 세부 TASK-006~010은 Baseline으로 통합됨)
-## 5. 잔여 작업 우선순위
+## 3. 현재 상태 (Current Status)
 
-### 우선순위 1
+- **마일스톤**: Phase 4 (Beta/Pilot) 진입 및 가버넌스 안정화 단계.
+- **문서 정합성**: `maturity_matrix.json`을 중심으로 로드맵과 카탈로그 동기화 완료.
+- **도구 가용성**: 모든 핵심 스킬과 MCP가 실행 및 검증 가능 상태.
 
-- **실제 프로젝트 시범 도입**: `QUICKSTART.md`를 기반으로 외부 저장소에 워크플로우 도입 테스트 및 피드백 수집.
+## 4. 다음 세션 작업 제안 (Next Actions)
 
-### 우선순위 2
+1. **[THREAD-002] 실운영 파일럿 적용**:
+    - `dist/` 패키지를 실제 타 저장소에 도입하여 온보딩 프로세스 검증.
+    - `bootstrap` 시 발생하는 사용자 경험(Friction) 개선.
+2. **운영 지능화(Phase 5) 착수**:
+    - `git_history_summarizer` 등 지능형 요약 MCP 도구 구현.
+3. **가버넌스 자동화 확장**:
+    - `workflow-linter`에 탐지된 불일치 사항을 자동 교정(Auto-fix)하는 루틴 보강.
 
-- **MCP 도구 확장**: 프로젝트 상태 진단 스킬과 연동된 추가 MCP 도구 검토.
+## 5. 리스크 및 특이사항
 
-## 6. 환경별 검증 현황
+- **Linter 경고**: 백로그 내 TASK ID 파싱 방식에 따라 미세한 정합성 경고가 발생할 수 있으나, 이는 세션 시작 시 상태 동기화로 해결 가능.
+- **환경 의존성**: 공식 MCP SDK 서버 실행을 위해 `.venv` 환경 및 Python 3.11이 필요함.
 
-- 검증 완료 호스트:
-- local / 127.0.0.1
-- 주요 제약:
-- Python 3.11 가상환경 필요.
-
-## 다음에 읽을 문서
-
-- 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+---
+**다음 세션 시작 포인트**: `core/strategic_threads.md`를 읽고 [THREAD-002] 실운영 파일럿 계획 수립부터 시작하십시오.

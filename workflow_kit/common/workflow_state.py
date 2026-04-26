@@ -54,7 +54,7 @@ def build_workflow_state_payload(
     recent_done_items = dedupe_normalized_backticked(
         [item for item in list(handoff.get("recent_done_items", [])) if is_meaningful_text(item)]
         + list(backlog.get("done_items", []))
-    )
+    )[:10]  # Keep only the last 10 items to prevent bloat
     next_documents = dedupe_strings(
         [
             str(project_profile_path),

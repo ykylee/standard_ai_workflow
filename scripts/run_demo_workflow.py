@@ -118,6 +118,11 @@ def parse_args() -> argparse.Namespace:
         "--merge-result-summary",
         default=None,
     )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Run write-capable skills with --apply and --scaffold flags.",
+    )
     args = parser.parse_args()
     preset = EXAMPLE_PRESETS[args.example_project]
     args.project_profile_path = args.project_profile_path or str(preset["project_profile_path"])
@@ -150,6 +155,9 @@ def main() -> int:
         "changed_files": args.changed_files,
         "merge_result_summary": args.merge_result_summary,
     }
+
+    apply_flag = ["--apply"] if args.apply else []
+    scaffold_flag = ["--scaffold"] if args.apply else []
 
     try:
         latest_backlog_data, latest_backlog_path = run_latest_backlog_step(
@@ -215,6 +223,7 @@ def main() -> int:
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--change-summary",
                 " / ".join(args.changed_files),
+                *apply_flag,
             ],
             REPO_ROOT,
             step_name="doc_sync",
@@ -232,6 +241,7 @@ def main() -> int:
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--change-summary",
                 " / ".join(args.changed_files),
+                *scaffold_flag,
             ],
             REPO_ROOT,
             step_name="validation_plan",
@@ -250,6 +260,7 @@ def main() -> int:
                 *repeated_flag_args("--changed-file", args.changed_files),
                 "--change-summary",
                 " / ".join(args.changed_files),
+                *apply_flag,
             ],
             REPO_ROOT,
             step_name="code_index_update",
@@ -284,6 +295,7 @@ def main() -> int:
                 "--merge-result-summary",
                 args.merge_result_summary,
                 *repeated_flag_args("--changed-file", args.changed_files),
+                *apply_flag,
             ],
             REPO_ROOT,
             step_name="merge_doc_reconcile",
@@ -469,6 +481,7 @@ def main() -> int:
                     *repeated_flag_args("--changed-file", args.changed_files),
                     "--change-summary",
                     " / ".join(args.changed_files),
+                    *apply_flag,
                 ],
                 used_inputs={
                     "project_profile_path": args.project_profile_path,
@@ -493,6 +506,7 @@ def main() -> int:
                     *repeated_flag_args("--changed-file", args.changed_files),
                     "--change-summary",
                     " / ".join(args.changed_files),
+                    *scaffold_flag,
                 ],
                 used_inputs={
                     "project_profile_path": args.project_profile_path,
@@ -517,6 +531,7 @@ def main() -> int:
                     *repeated_flag_args("--changed-file", args.changed_files),
                     "--change-summary",
                     " / ".join(args.changed_files),
+                    *apply_flag,
                 ],
                 used_inputs={
                     "project_profile_path": args.project_profile_path,
@@ -563,6 +578,7 @@ def main() -> int:
                     "--merge-result-summary",
                     args.merge_result_summary,
                     *repeated_flag_args("--changed-file", args.changed_files),
+                    *apply_flag,
                 ],
                 used_inputs={
                     "project_profile_path": args.project_profile_path,

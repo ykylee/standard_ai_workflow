@@ -1270,6 +1270,14 @@ Follow these rules:
 
 
 def render_opencode_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in str(smoke_check):
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""---
 description: Orchestrates the standard AI workflow for this repository
 mode: primary
@@ -1305,7 +1313,7 @@ Project defaults:
 - Run: `{context['run_command']}`
 - Quick test: `{context['quick_test_command']}`
 - Isolated test: `{context['isolated_test_command']}`
-- Smoke check: `{context['smoke_check_command']}`
+- Smoke check: `{smoke_check}`
 
 When the repo is in adoption mode, review `ai-workflow/project/repository_assessment.md` before trusting inferred commands.
 
@@ -1330,6 +1338,14 @@ User-facing workflow rules:
 
 
 def render_opencode_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in str(smoke_check):
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""---
 description: Executes bounded workflow tasks for this repository
 mode: subagent
@@ -1355,7 +1371,7 @@ Project defaults:
 - Run: `{context['run_command']}`
 - Quick test: `{context['quick_test_command']}`
 - Isolated test: `{context['isolated_test_command']}`
-- Smoke check: `{context['smoke_check_command']}`
+- Smoke check: `{smoke_check}`
 
 Worker rules:
 
@@ -1437,6 +1453,14 @@ Worker rules:
 
 
 def render_opencode_validation_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in str(smoke_check):
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""---
 description: Executes bounded validation and evidence-collection tasks for this repository
 mode: subagent
@@ -1460,7 +1484,7 @@ Project defaults:
 
 - Quick test: `{context['quick_test_command']}`
 - Isolated test: `{context['isolated_test_command']}`
-- Smoke check: `{context['smoke_check_command']}`
+- Smoke check: `{smoke_check}`
 
 Worker rules:
 

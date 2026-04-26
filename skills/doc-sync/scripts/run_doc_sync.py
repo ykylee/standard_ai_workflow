@@ -16,8 +16,10 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.doc_sync import build_doc_sync_candidates
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
 from workflow_kit.common.project_docs import parse_project_profile_core
+from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading, update_next_documents_section
 
 
 def build_candidates(
@@ -49,6 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--work-backlog-index-path")
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--change-summary")
+    parser.add_argument("--apply", action="store_true")
     return parser.parse_args()
 
 
@@ -101,6 +104,48 @@ def main() -> int:
             "changed_files": args.changed_files,
             "change_summary": args.change_summary,
         }
+
+        apply_result = {
+            "status": "skipped",
+            "written_paths": [],
+            "warnings": [],
+        }
+
+        if args.apply and session_handoff_path:
+            # 1. '다음에 읽을 문서' 섹션 갱신
+            links = []
+            for path_str in result.get("recommended_review_order", []):
+                target_path = Path(path_str)
+                if not target_path.is_absolute():
+                    target_path = (project_root / target_path).resolve()
+                
+                # 상대 경로 링크 생성
+                rel_link = rel_link_from_doc(session_handoff_path, target_path)
+                label = target_path.name
+                links.append(f"[{label}]({rel_link})")
+            
+            if links:
+                if update_next_documents_section(doc_path=session_handoff_path, links=links):
+                    apply_result["status"] = "applied"
+                    apply_result["written_paths"].append(str(session_handoff_path))
+
+            # 2. '현재 세션 운영 메모'에 follow_up_actions 추가
+            actions = result.get("follow_up_actions", [])
+            if actions:
+                bullets = [f"[doc-sync] {action}" for action in actions]
+                if append_unique_bullets_under_heading(
+                    doc_path=session_handoff_path, heading="현재 세션 운영 메모", bullets=bullets
+                ):
+                    apply_result["status"] = "applied"
+                    if str(session_handoff_path) not in apply_result["written_paths"]:
+                        apply_result["written_paths"].append(str(session_handoff_path))
+            
+            result["apply_status"] = apply_result["status"]
+            result["written_paths"] = apply_result["written_paths"]
+        elif args.apply:
+            result["apply_status"] = "skipped"
+            result["warnings"].append("session_handoff.md 경로가 없어 doc-sync apply 모드를 건너뛰었다.")
+
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,

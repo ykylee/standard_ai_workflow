@@ -95,9 +95,14 @@ def build_doc_sync_candidates(
     hub_update_candidates = dedupe_strings(filter_project_scope_paths(hub_candidates))
     status_doc_candidates = dedupe_strings(status_doc_candidates)
     follow_up_actions = dedupe_strings(follow_up_actions)
-    recommended_review_order = dedupe_strings(
-        [*impacted_documents, *status_doc_candidates, *hub_update_candidates]
-    )
+    
+    # 자기 자신(session_handoff.md)은 검토 추천 목록에서 제외
+    raw_review_order = [*impacted_documents, *status_doc_candidates, *hub_update_candidates]
+    recommended_review_order = [
+        p for p in dedupe_strings(raw_review_order)
+        if session_handoff_path is None or Path(p).resolve() != session_handoff_path.resolve()
+    ]
+    
     confidence_notes = []
     if stale_warnings:
         confidence_notes.append("현재 출력에는 추정 기반 후보가 포함되어 있어 수동 검토가 필요하다.")

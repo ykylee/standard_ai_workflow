@@ -126,7 +126,6 @@ def main() -> int:
         apply_result = {
             "status": "skipped",
             "written_paths": [],
-            "updated_paths": [],
             "warnings": [],
         }
         if args.apply and session_handoff_path:
@@ -138,9 +137,7 @@ def main() -> int:
             if applied:
                 apply_result["status"] = "applied"
                 apply_result["written_paths"].append(str(session_handoff_path))
-                apply_result["updated_paths"].append(str(session_handoff_path))
             else:
-                apply_result["status"] = "skipped"
                 apply_result["warnings"].append("handoff 운영 메모 섹션을 찾지 못했거나 추가할 재정리 노트가 없었다.")
         elif args.apply:
             apply_result["warnings"].append("session_handoff.md 경로가 없어 merge-doc-reconcile apply 모드를 건너뛰었다.")
@@ -156,6 +153,12 @@ def main() -> int:
             latest_backlog_path=latest_backlog_path,
             generated_at=date.today().isoformat(),
         )
+        if state_cache_refresh["status"] == "refreshed":
+            apply_result["status"] = "applied"
+            state_json_path = state_cache_refresh["state_path"]
+            if state_json_path not in apply_result["written_paths"]:
+                apply_result["written_paths"].append(state_json_path)
+
         warnings.extend(apply_result["warnings"])
 
         if state_conflicts:
@@ -201,7 +204,6 @@ def main() -> int:
             "state_cache_missing_paths": state_cache_refresh["missing_paths"],
             "apply_status": apply_result["status"],
             "written_paths": apply_result["written_paths"],
-            "updated_paths": apply_result["updated_paths"],
             "validation_follow_up": args.validation_result or "병합 후 별도 검증 결과가 없으면 상태 재확정 전에 확인이 필요하다.",
             "source_context": {
                 "project_profile_path": str(profile_path),

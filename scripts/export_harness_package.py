@@ -122,12 +122,18 @@ def global_snippet_source_map() -> dict[str, list[Path]]:
 
 
 def harness_specific_sources(harness: str) -> list[Path]:
+    harness_dir = REPO_ROOT / "harnesses" / harness
+    sources = [harness_dir / "README.md"]
+    apply_guide = harness_dir / "apply_guide.md"
+    if apply_guide.exists():
+        sources.append(apply_guide)
+    
     if harness == "codex":
-        return [REPO_ROOT / "harnesses" / "codex" / "README.md"]
+        return sources
     if harness == "opencode":
-        return [REPO_ROOT / "harnesses" / "opencode" / "README.md"]
+        return sources
     if harness == "gemini-cli":
-        return [REPO_ROOT / "harnesses" / "gemini-cli" / "README.md"]
+        return sources
     raise ValueError(f"Unsupported harness: {harness}")
 
 

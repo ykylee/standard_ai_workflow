@@ -3,8 +3,8 @@
 - 문서 목적: `backlog-update` skill 프로토타입의 역할과 구현 진입점을 정리한다.
 - 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
 - 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: prototype
-- 최종 수정일: 2026-04-18
+- 상태: beta
+- 최종 수정일: 2026-04-25
 - 관련 문서: `../../core/backlog_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
 ## 1. 목적

@@ -246,3 +246,36 @@ def append_unique_bullets_under_heading(*, doc_path: Path, heading: str, bullets
     updated = _replace_scalar_value(updated, "최종 수정일", date.today().isoformat())
     _write_lines(doc_path, updated)
     return True
+
+
+def update_next_documents_section(*, doc_path: Path, links: list[str]) -> bool:
+    lines = _read_lines(doc_path)
+    if not lines:
+        return False
+
+    heading = "다음에 읽을 문서"
+    heading_re = re.compile(rf"^##\s+(?:\d+\.\s+)?{re.escape(heading)}\s*$")
+    start: int | None = None
+    end: int | None = None
+    for idx, line in enumerate(lines):
+        if heading_re.match(line.strip()):
+            start = idx + 1
+            end = start
+            while end < len(lines) and not lines[end].startswith("## "):
+                end += 1
+            break
+
+    if start is None:
+        # 헤딩이 없으면 파일 끝에 추가
+        updated = list(lines)
+        if updated and updated[-1] != "":
+            updated.append("")
+        updated.append(f"## {heading}")
+        updated.extend([f"- {link}" for link in links])
+    else:
+        # 기존 섹션 내용을 교체
+        updated = lines[:start] + [f"- {link}" for link in links] + lines[end:]
+
+    updated = _replace_scalar_value(updated, "최종 수정일", date.today().isoformat())
+    _write_lines(doc_path, updated)
+    return True

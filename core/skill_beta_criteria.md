@@ -31,14 +31,18 @@
 
 | skill | prototype | beta |Gap|
 |------|-----------|------|---|
-| session-start | ✅ 실행 | ✅ beta | tests |
-| backlog-update | ✅ 실행 | ✅ beta | tests |
-| doc-sync | ✅ 읽기 | ⚠️ 쓰기필요 | write |
-| merge-doc-reconcile | ✅ 읽기 | ⚠️ 쓰기필요 | write |
+| session-start | ✅ 실행 | ✅ beta | completed |
+| backlog-update | ✅ 실행 | ✅ beta | completed |
+| doc-sync | ✅ 읽기 | ✅ beta | completed |
+| merge-doc-reconcile | ✅ 읽기 | ✅ beta | completed |
+| validation-plan | ✅ 읽기 | ✅ beta | completed |
+| code-index-update | ✅ 읽기 | ✅ beta | completed |
 
 ## 4. BetaUpgrade 계획
 
 - session-start: smoke test 추가 → beta완료
 - backlog-update: smoke test 추가 → beta완료
-- doc-sync: 쓰기 기능 확장 → beta
-- merge-doc-reconcile: 쓰기 기능 확장 → beta
+- doc-sync: 쓰기 기능 확장 → beta완료
+- merge-doc-reconcile: 쓰기 기능 확장 → beta완료
+- validation-plan: 테스트 스캐폴딩 생성 → beta완료
+- code-index-update: 인덱스 갱신 쓰기 기능 추가 → beta완료

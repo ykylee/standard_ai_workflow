@@ -17,11 +17,14 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import detect_validation_change_types
 from workflow_kit.common.exploration_scope import filter_project_scope_paths
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.normalize import dedupe_strings
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
 from workflow_kit.common.planning import collect_validation_levels
 from workflow_kit.common.project_docs import parse_project_profile_validation
+from workflow_kit.common.scaffold import generate_validation_scaffold
 from workflow_kit.common.text import normalize_inline_code
+from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading, update_next_documents_section
 
 
 def split_commands(raw: str | None) -> list[str]:
@@ -147,6 +150,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--change-summary")
     parser.add_argument("--session-handoff-path")
     parser.add_argument("--latest-backlog-path")
+    parser.add_argument("--scaffold", action="store_true")
+    parser.add_argument("--task-id")
     return parser.parse_args()
 
 
@@ -174,10 +179,56 @@ def main() -> int:
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
         profile = parse_project_profile_validation(project_profile_path)
+        project_root = project_workspace_root(project_profile_path)
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
         latest_backlog_path = resolve_existing_path(args.latest_backlog_path) if args.latest_backlog_path else None
         filtered_changed_files = filter_project_scope_paths(args.changed_files)
         change_types = detect_validation_change_types(filtered_changed_files, args.change_summary)
+
+        plan_details = build_validation_plan(
+            profile=profile,
+            change_types=change_types,
+            changed_files=args.changed_files,
+            session_handoff_path=session_handoff_path,
+            latest_backlog_path=latest_backlog_path,
+        )
+
+        result = {
+            "status": "ok",
+            "tool_version": TOOL_VERSION,
+            "detected_change_types": change_types,
+            **plan_details,
+            "source_context": {
+                "project_profile_path": str(project_profile_path),
+                "project_name": profile.get("project_name"),
+                "changed_files": filtered_changed_files,
+                "change_summary": args.change_summary,
+            },
+        }
+
+        if args.scaffold:
+            scaffold_path = generate_validation_scaffold(
+                project_root=project_root,
+                task_id=args.task_id or "validation",
+                commands=[cmd["command"] for cmd in plan_details.get("recommended_commands", [])],
+                change_summary=args.change_summary,
+            )
+            result["scaffold_status"] = "created"
+            result["scaffold_path"] = str(scaffold_path)
+            
+            if session_handoff_path:
+                rel_link = rel_link_from_doc(session_handoff_path, scaffold_path)
+                label = scaffold_path.name
+                update_next_documents_section(doc_path=session_handoff_path, links=[f"[{label}]({rel_link})"])
+                append_unique_bullets_under_heading(
+                    doc_path=session_handoff_path,
+                    heading="현재 세션 운영 메모",
+                    bullets=[f"[validation-plan] 신규 테스트 뼈대 생성: `{label}`"]
+                )
+                result["written_paths"] = [str(session_handoff_path), str(scaffold_path)]
+            else:
+                result["written_paths"] = [str(scaffold_path)]
+
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
@@ -199,24 +250,6 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
 
-    result = {
-        "status": "ok",
-        "tool_version": TOOL_VERSION,
-        "detected_change_types": change_types,
-        **build_validation_plan(
-            profile=profile,
-            change_types=change_types,
-            changed_files=args.changed_files,
-            session_handoff_path=session_handoff_path,
-            latest_backlog_path=latest_backlog_path,
-        ),
-        "source_context": {
-            "project_profile_path": str(project_profile_path),
-            "project_name": profile.get("project_name"),
-            "changed_files": filtered_changed_files,
-            "change_summary": args.change_summary,
-        },
-    }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

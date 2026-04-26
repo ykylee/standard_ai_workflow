@@ -1,15 +1,15 @@
 # Merge-Doc-Reconcile Skill
 
-- 문서 목적: `merge-doc-reconcile` skill 프로토타입의 역할과 구현 진입점을 정리한다.
+- 문서 목적: `merge-doc-reconcile` skill 의 역할과 구현 진입점을 정리한다.
 - 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
 - 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: prototype
-- 최종 수정일: 2026-04-18
+- 상태: beta
+- 최종 수정일: 2026-04-26
 - 관련 문서: `../../core/merge_doc_reconcile_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
 ## 1. 목적
 
-병합 이후 handoff, backlog, 허브 문서 사이의 상태 불일치와 재확정 포인트를 구조화해 후속 정리를 돕는다.
+병합 이후 handoff, backlog, 허브 문서 사이의 상태 불일치와 재확정 포인트를 구조화해 후속 정리를 돕고 `state.json` 을 최신화한다.
 
 ## 2. 연결 스펙
 
@@ -34,10 +34,9 @@
 
 ## 5. 권한 경계
 
-- 읽기 중심 재정리 단계
-- 병합 전 상태 자동 합치기 금지
-- `done` 확정과 차단 해제 자동 처리 금지
-- `--apply` 는 handoff 운영 메모에 재정리 노트를 남기는 제한적 write mode 로만 허용한다.
+- 읽기 중심 재정리 및 제한적 쓰기(apply) 단계
+- `--apply` 사용 시 `session_handoff.md` 에 재정리 노트를 추가하고 `state.json` 을 재생성함
+- `done` 확정과 차단 해제 자동 처리 금지 (수동 확인 필요)
 
 ## 6. 구현 메모
 
@@ -47,30 +46,31 @@
 - `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
 - handoff/backlog 재확정 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
 
-## 7. 프로토타입 실행
+## 7. 스킬 실행
 
 - 실행 스크립트: [scripts/run_merge_doc_reconcile.py](./scripts/run_merge_doc_reconcile.py)
-- 예시 실행:
-
+- 실행 예시 (재정리 필요 항목 확인):
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
-  --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
-  --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
-  --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
-  --merge-result-summary "runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리" \
-  --changed-file docs/operations/runbooks/delivery-sync.md \
-  --changed-file app/jobs/delivery_sync.py
+  --project-profile-path ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path ai-workflow/project/session_handoff.md \
+  --merge-result-summary "기능 브랜치 병합"
 ```
-
-- 현재 프로토타입은 병합 후 재확정 포인트를 JSON 으로 출력하고 문서를 직접 수정하지 않는다.
-- `--apply` 를 주면 `session_handoff.md` 의 운영 메모 섹션에 중복 없는 재정리 노트를 추가하고 `state.json` 을 다시 맞춘다.
+- 실행 예시 (자동 반영):
+```bash
+python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
+  --project-profile-path ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path ai-workflow/project/session_handoff.md \
+  --merge-result-summary "기능 브랜치 병합" \
+  --apply
+```
 
 ## 8. 현재 상태
 
-- 읽기 전용 재정리 프로토타입 있음
-- handoff, backlog, 허브 문서 재확인 대상과 상태 충돌을 출력할 수 있음
-- 병합 후 검증 미완료 상태는 경고로 유지함
+- Beta 단계: 병합 후 정합성 분석 및 제한적 쓰기 기능 지원
+- `--apply` 플래그 사용 시 `session_handoff.md` 에 재정리 노트 추가
+- 최신 상태를 반영하여 `state.json` 캐시 자동 갱신
+- 병합 후 검증 미완료 상태는 경고 및 재확정 포인트로 유지함
 
 ## 다음에 읽을 문서
 

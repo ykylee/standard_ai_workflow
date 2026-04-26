@@ -1,17 +1,17 @@
-# validation-plan
+# Validation-Plan Skill
 
 - 문서 목적: `validation-plan` skill 의 역할, 입력/출력, 실행 예시를 정리한다.
-- 범위: 검증 수준 판단, 권장 명령 구조화, 문서화 체크 및 미실행 항목 메모
+- 범위: 검증 수준 판단, 권장 명령 구조화, 테스트 스캐폴딩 생성
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: draft
-- 최종 수정일: 2026-04-19
+- 상태: beta
+- 최종 수정일: 2026-04-26
 - 관련 문서: `../../core/validation_plan_skill_spec.md`, `../../core/workflow_skill_catalog.md`
 
-## 목적
+## 1. 목적
 
-변경된 파일과 프로젝트 프로파일을 기준으로 이번 작업에서 필요한 검증 수준과 권장 검증 항목을 구조화한다.
+변경된 파일과 프로젝트 프로파일을 기준으로 이번 작업에서 필요한 검증 수준을 판단하고, 실제 검증에 즉시 사용할 수 있는 테스트 뼈대(Scaffold)를 생성한다.
 
-## 기대 입력
+## 2. 기대 입력
 
 - `project_profile_path`
 - `changed_files`
@@ -21,47 +21,56 @@
 
 - `session_handoff_path`
 - `latest_backlog_path`
+- `scaffold` (플래그): 테스트 뼈대 생성 여부
+- `task_id`: 생성할 테스트 파일 이름 및 주석에 사용
 
-## 기대 출력
+## 3. 기대 출력
 
-- 감지된 변경 유형 요약
-- 권장 검증 수준
-- 실행 권장 명령 목록
-- 추가 확인이 필요한 명령 목록
-- 문서화 체크 항목
-- 증빙 기대값
-- 미실행 가능 항목과 기록 위치 힌트
-- 경고와 신뢰도 메모
+- 감지된 변경 유형 요약 (code, docs, ui, ops 등)
+- 권장 검증 수준 및 실행 권장 명령 목록
+- **테스트 스캐폴딩**: `tests/repro_{task_id}.py` 파일 생성
+- `session_handoff.md` 자동 갱신 (생성된 파일 링크 및 운영 메모 추가)
+- 증빙 기대값 및 문서화 체크 항목
 
-## 권한 경계
+## 4. 권한 경계
 
-- 현재 프로토타입은 읽기 전용이다.
-- 프로젝트 프로파일, handoff, backlog 를 읽을 수 있다.
-- 테스트나 빌드 명령은 직접 실행하지 않는다.
-- 실제 명령 실행과 상태 갱신은 호출한 agent 또는 후속 automation 이 담당한다.
+- 읽기 분석 및 제한적 쓰기(scaffold) 단계
+- `--scaffold` 사용 시 `tests/` 디렉토리 내 신규 파일 생성 및 `session_handoff.md` 수정 허용
+- 실제 테스트 명령의 실행은 호출한 agent 또는 개발자의 책임임
 
-## 구현 메모
+## 5. 구현 메모
 
-- 변경 파일만으로 분류가 어려우면 `change_summary` 를 보조 입력으로 사용한다.
-- 프로젝트 프로파일의 `기본 명령` 과 `프로젝트 특화 검증 포인트` 를 우선 해석한다.
-- 출력은 보수적으로 생성하고, 확신이 낮은 항목은 `commands_requiring_confirmation` 또는 `confidence_notes` 로 분리한다.
-- 프로젝트 특화 환경 제약은 `warnings` 와 `deferred_validation_items` 에 반영한다.
-- 문서 전용 변경이어도 프로젝트 프로파일에 빠른 테스트가 정의돼 있으면 기본 회귀 확인 명령을 함께 제안한다.
-- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
+- 프로젝트 프로파일의 `빠른 테스트`, `격리 테스트` 명령을 우선적으로 추출한다.
+- `unittest` 기반의 Python 스크립트 뼈대를 생성하여 즉각적인 검증 로직 작성을 돕는다.
+- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 제외한다.
 
-## 프로토타입 실행
+## 6. 스킬 실행
 
+- **분석 전용**:
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
-  --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
-  --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
-  --changed-file app/jobs/delivery_sync.py \
-  --changed-file docs/operations/runbooks/delivery-sync.md \
-  --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
+  --project-profile-path ai-workflow/project/project_workflow_profile.md \
+  --changed-file app/main.py \
+  --change-summary "로그인 로직 수정"
 ```
 
-## 현재 상태
+- **테스트 뼈대 생성 및 반영**:
+```bash
+python3 skills/validation-plan/scripts/run_validation_plan.py \
+  --project-profile-path ai-workflow/project/project_workflow_profile.md \
+  --session-handoff-path ai-workflow/project/session_handoff.md \
+  --changed-file app/main.py \
+  --change-summary "로그인 로직 수정" \
+  --scaffold \
+  --task-id TASK-123
+```
 
-- 입력/출력 계약과 읽기 전용 프로토타입이 있다.
-- 실제 테스트 실행, CI 수집, 증빙 업로드는 아직 없다.
+## 7. 현재 상태
+
+- Beta 단계: 검증 계획 수립 및 테스트 스캐폴딩 자동 생성 지원
+- `--scaffold` 플래그로 `tests/repro_{task_id}.py` 생성 및 `session_handoff.md` 연동 완료
+
+## 다음에 읽을 문서
+
+- skills 허브: [../README.md](../README.md)
+- 상세 스펙: [../../core/validation_plan_skill_spec.md](../../core/validation_plan_skill_spec.md)

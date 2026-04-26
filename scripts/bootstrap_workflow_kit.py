@@ -1420,6 +1420,14 @@ Worker rules:
 
 
 def render_opencode_code_worker_agent(args: argparse.Namespace, context: dict[str, object]) -> str:
+    # Ensure smoke check has a sensible default if still TODO
+    smoke_check = context['smoke_check_command']
+    if "TODO" in str(smoke_check):
+        if context['primary_stack'] == 'python':
+            smoke_check = "python3 --version"
+        elif context['primary_stack'] == 'node':
+            smoke_check = "node --version"
+
     return f"""---
 description: Executes bounded implementation and build-focused workflow tasks for this repository
 mode: subagent
@@ -1438,6 +1446,14 @@ Before starting, read only the minimum relevant context:
 - `AGENTS.md`
 - `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
+
+Project defaults:
+
+- Install: `{context['install_command']}`
+- Run: `{context['run_command']}`
+- Quick test: `{context['quick_test_command']}`
+- Isolated test: `{context['isolated_test_command']}`
+- Smoke check: `{smoke_check}`
 
 Worker rules:
 

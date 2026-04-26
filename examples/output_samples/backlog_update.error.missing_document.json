@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "prototype-v2",
+  "tool_version": "beta-v2.0",
   "error": "backlog-update 에 필요한 입력 문서를 읽을 수 없다.",
   "error_code": "missing_required_document",
   "warnings": [

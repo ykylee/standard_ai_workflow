@@ -10,17 +10,16 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선:
-- 워크플로우 핵심 스킬 6종 전체 Beta 승급 완료 및 스모크 테스트 통과.
+- 핵심 스킬 6종 Beta 승급 및 MCP 도구 8종 통합 완료. Beta v2 배포 패키지 및 퀵스타트 가이드 작성 완료.
 - 현재 주 작업 축:
-- **Beta v1 공식 배포 패키징 및 사용자 온보딩 가이드 작성.**
-- 최근 핵심 기준 문서:
-- `core/skill_beta_criteria.md`, `skills/validation-plan/SKILL.md`, `skills/code-index-update/SKILL.md`
+- Beta v2 배포 및 실제 프로젝트 시범 도입 시작.
+- 최근 핵심 핵심 문서:
+- `QUICKSTART.md`, `core/skill_beta_criteria.md`, `dist/harnesses/gemini-cli/beta-v2.0/manifest.json`
 
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- N/A
-- TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충
+- TASK-010 Beta v2 배포 패키지 구성 및 무결성 확인
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -28,10 +27,12 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-010: Beta v2 배포 패키지 구성 및 `QUICKSTART.md` 작성 완료.
+
+- TASK-009: MCP 우선순위 1 & 2 도구(8종) 구현 및 공식 SDK 서버 통합 완료.
 - TASK-008: `scripts/run_demo_workflow.py` 및 데모 문서에 `--apply` 파이프라인 E2E 시나리오 확충 완료.
 - TASK-007: `validation-plan` 및 `code-index-update` 쓰기 기능 구현 및 Beta 승급 완료.
 - TASK-006: `doc-sync` 및 `merge-doc-reconcile` 쓰기 기능 구현 및 Beta 승급 완료.
-- TASK-005: `session-start` 및 `backlog-update` Beta 승급 완료.
 ## 5. 잔여 작업 우선순위
 
 ### 우선순위 1

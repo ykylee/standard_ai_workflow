@@ -1,76 +1,77 @@
-# QUICKSTART.md
+# Standard AI Workflow Quickstart
 
-- 문서 목적: 표준 AI 워크플로우를 신규 또는 기존 프로젝트에 5분 내로 도입하는 핵심 절차를 안내한다.
-- 범위: bootstrap 실행, 하네스 연결, 첫 세션 시작 방법
-- 대상 독자: 프로젝트 관리자, AI 에이전트 사용자, 워크플로우 설계자
+- 문서 목적: Standard AI Workflow를 신규 프로젝트에 빠르게 도입하는 방법을 안내한다.
+- 범위: 프로젝트 초기화, 환경 설정, 첫 세션 시작 가이드
+- 대상 독자: AI 에이전트와 협업하려는 개발자
 - 상태: beta
 - 최종 수정일: 2026-04-26
+- 관련 문서: `ai-workflow/README.md`, `GEMINI.md`
 
-## 1. 개요
+이 문서는 **Standard AI Workflow**를 여러분의 프로젝트에 5분 만에 도입하여 AI 에이전트와 체계적으로 Peer Programming을 시작하는 방법을 안내합니다.
 
-표준 AI 워크플로우는 AI 에이전트와 사람이 협업할 때 **상태(State), 인계(Handoff), 백로그(Backlog)**를 일관되게 관리하기 위한 문서 체계와 도구 모음입니다.
+## 1. 목적
 
-## 2. 빠른 도입 방법 (Bootstrap)
+- AI 에이전트가 프로젝트의 컨텍스트를 스스로 이해하고 관리하도록 합니다.
+- 작업 이력(Backlog), 세션 상태(Handoff), 프로젝트 프로파일을 표준화된 방식으로 유지합니다.
+- 복잡한 작업(문서 동기화, 테스트 검증 등)을 전용 스킬(Skill)과 MCP 도구로 자동화합니다.
 
-저장소 루트에서 아래 명령을 실행하여 워크플로우 환경을 구축합니다.
+## 2. 준비물
 
-### A. 신규 프로젝트인 경우
+- **Python 3.11+**: 워크플로우 도구 실행에 필요합니다.
+- **Gemini CLI**: 권장 에이전트 하네스입니다.
+- **배포 패키지**: `dist/harnesses/gemini-cli/beta-v2.0/` 에 있는 압축 파일.
+
+## 3. 3단계 도입 가이드
+
+### 1단계: 프로젝트 초기화
+
+배포 패키지의 `bundle/` 디렉토리 내용을 프로젝트 루트에 복사합니다.
+
 ```bash
-python3 scripts/bootstrap_workflow_kit.py \
-  --target-root . \
-  --project-slug my-project \
-  --project-name "My New Project" \
-  --adoption-mode new \
-  --harness gemini-cli \
-  --copy-core-docs
+# 패키지 압축을 푼 후 프로젝트 루트에서 실행
+cp -r /path/to/bundle/ai-workflow .
+cp /path/to/bundle/GEMINI.md .
 ```
 
-### B. 기존 프로젝트인 경우
+- `ai-workflow/`: 워크플로우의 상태와 메타데이터가 저장되는 공간입니다.
+- `GEMINI.md`: AI 에이전트가 이 프로젝트의 워크플로우 규칙을 인지하게 하는 진입점입니다.
+
+### 2단계: 의존성 설치 및 환경 설정
+
+워크플로우 스크립트 실행을 위해 가상환경을 구축하고 필수 라이브러리를 설치합니다.
+
 ```bash
-python3 scripts/bootstrap_workflow_kit.py \
-  --target-root . \
-  --project-slug my-existing-project \
-  --project-name "My Existing Project" \
-  --adoption-mode existing \
-  --harness gemini-cli \
-  --copy-core-docs
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
 ```
 
-*참고: `--harness` 옵션에 `codex`, `opencode`, `gemini-cli` 중 사용하는 도구를 지정할 수 있습니다.*
+### 3단계: 첫 세션 시작
 
-## 3. 도입 후 핵심 파일
+AI 에이전트에게 워크플로우가 도입되었음을 알리고 상태를 점검하게 합니다.
 
-도입이 완료되면 다음 파일들이 생성됩니다:
+```bash
+# Gemini CLI 세션 시작 시 에이전트에게 다음을 요청하세요:
+"프로젝트 루트의 GEMINI.md를 읽고 워크플로우 세션을 시작해줘."
+```
 
-- `GEMINI.md` (또는 `AGENTS.md`, `opencode.json`): AI 에이전트의 진입점 및 시스템 지침 오버레이.
-- `ai-workflow/project/`: 프로젝트별 상태 관리 문서들.
-  - `state.json`: 워크플로우 전체 상태의 단일 진실 공급원(Source of Truth).
-  - `session_handoff.md`: 세션 간 작업 맥락 인계 문서.
-  - `work_backlog.md`: 전체 작업 목록 및 일자별 백로그 인덱스.
-  - `project_workflow_profile.md`: 프로젝트 전용 명령(설치, 실행, 테스트) 정의.
+## 4. 핵심 워크플로우 도구 (Skills)
 
-## 4. 첫 세션 시작하기
+워크플로우가 안정되면 에이전트가 다음 도구들을 사용하여 작업을 보조합니다:
 
-1. AI 에이전트에게 `GEMINI.md` (또는 `AGENTS.md`)를 먼저 읽도록 지시합니다.
-2. 에이전트가 `ai-workflow/project/session_handoff.md`를 통해 현재 상태를 파악하게 합니다.
-3. `ai-workflow/project/project_workflow_profile.md`의 TODO 항목들을 실제 프로젝트 환경에 맞게 수정합니다. (특히 설치/실행/테스트 명령)
-4. 오늘 날짜의 백로그 문서(`ai-workflow/project/backlog/YYYY-MM-DD.md`)에 첫 번째 작업을 등록하고 시작합니다.
+- **`session-start`**: 세션 시작 시 현재 상태 복원 및 작업 방향 제안.
+- **`backlog-update`**: 새 작업 등록 및 진행 중인 작업 상태 업데이트.
+- **`doc-sync`**: 코드 변경에 따른 관련 문서(Handoff, Profile 등) 자동 동기화 추천.
+- **`validation-plan`**: 변경 사항 검증을 위한 테스트 계획 수립 및 실행.
 
-## 5. 주요 워크플로우 스킬 (Beta)
+## 5. MCP 도구 사용 (선택 사항)
 
-에이전트는 다음 스킬들을 사용하여 작업을 보조할 수 있습니다:
+정식 MCP SDK가 설치된 경우, 에이전트는 더 강력한 도구를 직접 사용할 수 있습니다:
 
-- `session-start`: 새 세션 시작 시 상태 복원 및 브리핑.
-- `backlog-update`: 작업 진행 상태 반영 및 백로그 갱신.
-- `doc-sync`: 워크플로우 문서 간 데이터 동기화.
-- `validation-plan`: 변경 사항 검증을 위한 테스트 계획 수립 및 뼈대 생성.
-- `code-index-update`: 코드 변경 사항을 프로젝트 색인에 반영.
-
-## 6. 더 알아보기
-
-- 상세 가이드: `ai-workflow/README.md`
-- 스킬 카탈로그: `ai-workflow/core/workflow_skill_catalog.md`
-- 하네스별 적용 안내: `harnesses/README.md`
+```bash
+# MCP 서버 실행 예시
+python3 workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
+```
 
 ---
-*표준 AI 워크플로우 Beta v1 릴리즈를 환영합니다!*
+더 자세한 내용은 `ai-workflow/README.md`를 참고하세요.

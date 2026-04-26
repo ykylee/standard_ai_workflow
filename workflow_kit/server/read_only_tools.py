@@ -8,6 +8,9 @@ from workflow_kit.common.read_only_bundle import (
     check_doc_links_payload,
     check_doc_metadata_payload,
     check_quickstart_stale_links_payload,
+    create_backlog_entry_payload,
+    create_environment_record_stub_payload,
+    create_session_handoff_draft_payload,
     latest_backlog_payload,
     suggest_impacted_docs_payload,
 )
@@ -24,6 +27,26 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
         return check_doc_metadata_payload(doc_dir_path=str(payload["doc_dir_path"]), tool_version=tool_version)
     if tool_name == "check_doc_links":
         return check_doc_links_payload(doc_dir_path=str(payload["doc_dir_path"]), tool_version=tool_version)
+    if tool_name == "create_backlog_entry":
+        return create_backlog_entry_payload(
+            task_id=str(payload["task_id"]),
+            task_name=str(payload["task_name"]),
+            request_date=str(payload["request_date"]),
+            status=payload.get("status"),
+            priority=payload.get("priority"),
+            tool_version=tool_version,
+        )
+    if tool_name == "create_session_handoff_draft":
+        return create_session_handoff_draft_payload(
+            latest_backlog_path=payload.get("latest_backlog_path"),
+            tool_version=tool_version,
+        )
+    if tool_name == "create_environment_record_stub":
+        return create_environment_record_stub_payload(
+            hostname=str(payload["hostname"]),
+            os_type=str(payload["os_type"]),
+            tool_version=tool_version,
+        )
     if tool_name == "suggest_impacted_docs":
         return suggest_impacted_docs_payload(
             changed_files=[str(item) for item in payload["changed_files"]],

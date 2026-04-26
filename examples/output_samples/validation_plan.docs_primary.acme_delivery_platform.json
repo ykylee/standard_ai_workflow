@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "prototype-v2",
+  "tool_version": "beta-v2.0",
   "detected_change_types": [
     "docs",
     "ops"

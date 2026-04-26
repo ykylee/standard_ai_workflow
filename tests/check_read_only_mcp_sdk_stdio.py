@@ -33,13 +33,17 @@ async def run_stdio_smoke() -> None:
                 raise AssertionError("Expected stdio SDK server to expose read-only bundle server name.")
 
             tools_result = await session.list_tools()
-            if len(tools_result.tools) < 5:
-                raise AssertionError("Expected at least five read-only tools over stdio SDK session.")
+            if len(tools_result.tools) < 6:
+                raise AssertionError(f"Expected at least six read-only tools over stdio SDK session, got {len(tools_result.tools)}.")
             latest_backlog = next((tool for tool in tools_result.tools if tool.name == "latest_backlog"), None)
             if latest_backlog is None:
                 raise AssertionError("Expected latest_backlog tool over stdio SDK session.")
             if latest_backlog.annotations is None or latest_backlog.annotations.readOnlyHint is not True:
                 raise AssertionError("Expected latest_backlog tool to remain read-only annotated.")
+
+            create_backlog_entry = next((tool for tool in tools_result.tools if tool.name == "create_backlog_entry"), None)
+            if create_backlog_entry is None:
+                raise AssertionError("Expected create_backlog_entry tool over stdio SDK session.")
 
             latest_backlog_payload = {
                 "work_backlog_index_path": str(REPO_ROOT / "examples" / "acme_delivery_platform" / "work_backlog.md")

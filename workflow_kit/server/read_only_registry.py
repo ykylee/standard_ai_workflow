@@ -130,6 +130,92 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
         },
     ),
     ReadOnlyToolSpec(
+        name="create_backlog_entry",
+        description="Generate a draft backlog entry JSON for a new task.",
+        script_path=REPO_ROOT / "mcp" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="task_id",
+                cli_flag="--task-id",
+                value_type="string",
+                description="Unique identifier for the task (e.g., TASK-001).",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="task_name",
+                cli_flag="--task-name",
+                value_type="string",
+                description="Short descriptive name of the task.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="request_date",
+                cli_flag="--request-date",
+                value_type="string",
+                description="Date the task was requested (YYYY-MM-DD).",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="status",
+                cli_flag="--status",
+                value_type="string",
+                description="Initial status of the task (default: planned).",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="priority",
+                cli_flag="--priority",
+                value_type="string",
+                description="Priority of the task (default: high).",
+            ),
+        ),
+        payload_example={
+            "task_id": "TASK-009",
+            "task_name": "MCP Server Promotion",
+            "request_date": "2026-04-26",
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="create_session_handoff_draft",
+        description="Generate a draft session handoff document from the latest backlog.",
+        script_path=REPO_ROOT / "mcp" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="latest_backlog_path",
+                cli_flag="--latest-backlog-path",
+                value_type="path",
+                description="Latest dated backlog document to extract task status from.",
+            ),
+        ),
+        payload_example={
+            "latest_backlog_path": str(REPO_ROOT / "ai-workflow" / "project" / "backlog" / "2026-04-26.md"),
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="create_environment_record_stub",
+        description="Generate a draft environment record stub for the current host.",
+        script_path=REPO_ROOT / "mcp" / "create-environment-record-stub" / "scripts" / "run_create_environment_record_stub.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="hostname",
+                cli_flag="--hostname",
+                value_type="string",
+                description="Current host name.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="os_type",
+                cli_flag="--os-type",
+                value_type="string",
+                description="Current OS type (e.g., darwin, linux, windows).",
+                required=True,
+            ),
+        ),
+        payload_example={
+            "hostname": "local-dev",
+            "os_type": "darwin",
+        },
+    ),
+    ReadOnlyToolSpec(
         name="check_quickstart_stale_links",
         description="Check quickstart and README entry docs for stale or missing links.",
         script_path=REPO_ROOT / "mcp" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py",

@@ -22,24 +22,17 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "워크플로우 핵심 스킬 6종 전체 Beta 승급 완료 및 스모크 테스트 통과.",
-    "current_axis": "**Beta v1 공식 배포 패키징 및 사용자 온보딩 가이드 작성.**",
+    "current_baseline": "핵심 스킬 6종 Beta 승급 및 MCP 도구 8종 통합 완료. Beta v2 배포 패키지 및 퀵스타트 가이드 작성 완료.",
+    "current_axis": "Beta v2 배포 및 실제 프로젝트 시범 도입 시작.",
     "current_focus": "N/A",
-    "in_progress_items": [
-      "N/A",
-      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충"
-    ],
-    "blocked_items": [
-      "N/A"
-    ],
+    "in_progress_items": [],
+    "blocked_items": [],
     "recent_done_items": [
+      "TASK-010: Beta v2 배포 패키지 구성 및 QUICKSTART.md 작성 완료.",
+      "TASK-009: MCP 우선순위 1 & 2 도구(8종) 구현 및 공식 SDK 서버 통합 완료.",
       "TASK-008: `scripts/run_demo_workflow.py` 및 데모 문서에 `--apply` 파이프라인 E2E 시나리오 확충 완료.",
       "TASK-007: `validation-plan` 및 `code-index-update` 쓰기 기능 구현 및 Beta 승급 완료.",
-      "TASK-006: `doc-sync` 및 `merge-doc-reconcile` 쓰기 기능 구현 및 Beta 승급 완료.",
-      "TASK-005: `session-start` 및 `backlog-update` Beta 승급 완료.",
-      "TASK-006 doc-sync 및 merge-doc-reconcile 쓰기 기능 구현 및 Beta 승급",
-      "TASK-007 validation-plan 및 code-index-update 쓰기 기능 구현 및 Beta 승급",
-      "TASK-008 전체 워크플로우 통합 E2E 데모 시나리오 확충"
+      "TASK-006: `doc-sync` 및 `merge-doc-reconcile` 쓰기 기능 구현 및 Beta 승급 완료."
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."

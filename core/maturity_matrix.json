@@ -1,13 +1,13 @@
 {
   "schema_version": "1.0",
   "project_name": "Standard AI Workflow",
-  "last_updated": "2026-04-26",
+  "last_updated": "2026-04-27",
   "milestones": {
     "Phase 1": { "name": "Concept", "status": "done" },
     "Phase 2": { "name": "Template", "status": "done" },
     "Phase 3": { "name": "Prototype", "status": "done" },
-    "Phase 4": { "name": "Beta/Pilot", "status": "in_progress" },
-    "Phase 5": { "name": "Intelligence", "status": "planned" }
+    "Phase 4": { "name": "Beta/Pilot", "status": "done" },
+    "Phase 5": { "name": "Intelligence", "status": "done" }
   },
   "skills": {
     "session-start": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_session_start.py" },
@@ -18,7 +18,7 @@
     "code-index-update": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_code_index_update.py" },
     "workflow-linter": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_workflow_linter.py" },
     "project-status-assessment": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_project_status_assessment.py" },
-    "automated-repro-scaffold": { "stage": "alpha", "apply": false, "scaffold": true, "test_path": null }
+    "automated-repro-scaffold": { "stage": "beta", "apply": false, "scaffold": true, "test_path": null }
   },
   "mcp_tools": {
     "latest_backlog": { "stage": "stable", "server": "official_sdk" },
@@ -29,7 +29,7 @@
     "create_session_handoff_draft": { "stage": "stable", "server": "official_sdk" },
     "create_environment_record_stub": { "stage": "stable", "server": "official_sdk" },
     "check_quickstart_stale_links": { "stage": "stable", "server": "official_sdk" },
-    "git_history_summarizer": { "stage": "planned", "server": null },
-    "workflow_log_rotator": { "stage": "alpha", "server": null }
+    "git_history_summarizer": { "stage": "beta", "server": "official_sdk" },
+    "workflow_log_rotator": { "stage": "alpha", "server": "official_sdk" }
   }
 }

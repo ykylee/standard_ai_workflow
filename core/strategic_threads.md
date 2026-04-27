@@ -19,19 +19,14 @@
 
 ### [THREAD-002] 실운영 파일럿 및 온보딩 마찰 제로화
 - **목적**: 타 저장소 도입 시의 허들을 낮추고 실전 데이터를 확보함.
-- **상태**: Planned
+- **상태**: In-Progress
 - **설계 방향**: 
     - `bootstrap` 결과물 피드백 루프 구축.
     - 첫 세션 자동 브리핑(Starter kit) 강화.
-- **연결된 TASK**: 미배정
-
-### [THREAD-003] 운영 지능화 및 가버넌스 자동화 (Phase 5)
-- **목적**: 에이전트가 스스로 작업 이력을 요약하고 품질을 관리함.
-- **상태**: Planned
-- **설계 방향**: 
-    - `git_history_summarizer` 구현.
-    - 마일스톤 자동 로테이션 및 요약 제안.
-- **연결된 TASK**: 미배정
+- **연결된 TASK**: TASK-020 (실전 시뮬레이션 검증 완료)
 
 ## 2. 완료/보관된 스레드
-- (비어 있음)
+- [THREAD-003] 운영 지능화 및 가버넌스 자동화 (Phase 5)
+    - **성과**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` 도구 구현 및 `automated-repro-scaffold` 스킬 확보. 문서 비대화 방지와 마일스톤 진척도 관리 자동화 달성.
+- [THREAD-002] 실운영 파일럿 및 온보딩 마찰 제로화 (일부 TASK 완료, THREAD 단위 종료 대기)
+

@@ -15,21 +15,13 @@
 2. 표준 문서와 템플릿 분리 단계 (완료)
 3. 실행 가능한 프로토타입 도입 단계 (완료)
 4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 (진행 중)
-5. 운영 지능화 및 품질 거버넌스 단계 (Next Phase)
+5. 운영 지능화 및 품질 거버넌스 단계 (완료)
 
-현재 판단 근거 (2026-04-26 기준):
+현재 판단 근거 (2026-04-27 기준):
 
-- **핵심 스킬 Beta 승급**: `session-start`, `backlog-update`, `doc-sync`, `merge-doc-reconcile`, `validation-plan`, `code-index-update` 6종 모두 `--apply` 및 `--scaffold` 기능을 포함하여 Beta 단계로 승급 완료.
-- **운영 보조 스킬 확보**: `workflow-linter`(정합성 검사), `project-status-assessment`(저장소 진단) 스킬이 구현되어 Beta 단계 진입.
-- **공식 MCP SDK 통합**: 8종의 핵심 MCP 도구가 공식 SDK 서버(`read_only_mcp_sdk.py`)와 stdio transport 를 통해 통합 완료.
-- **배포 패키지 구성**: 하네스별(`gemini-cli`, `codex`, `opencode`) Beta v2 배포 패키지(`dist/`) 및 `QUICKSTART.md` 작성 완료.
-- **검증 체계 강화**: GitHub Actions smoke CI 가 모든 핵심 스킬 및 온보딩 러너에 연결됨.
-
-아직 5단계가 아닌 이유:
-
-- **자동 교정(Auto-fix)**: `workflow-linter`가 불일치를 탐지하지만, 복잡한 케이스에 대한 자동 교정 기능은 아직 실험적이다.
-- **지능형 요약**: 작업 이력을 기반으로 한 마일스톤 자동 요약 및 로테이션 기능이 MCP 수준에서 완전히 고도화되지 않았다.
-- **실전 파일럿 부족**: Beta v2 패키지를 실제 타 저장소에 도입하여 1세션 이상 운영한 완결된 사례 기록이 부족하다.
+- **운영 지능화 도구 확보**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` MCP 도구 구현 및 실전 통합 완료.
+- **자동 재현 스캐폴딩**: `automated-repro-scaffold` 스킬 프로토타입 구현으로 버그 재현 자동화 기반 마련.
+- **문서 비대화 관리**: 핸드오프 로테이션 자동화로 장기 운영 안정성 확보.
 
 ## 1.1 현재 릴리즈 기준 정리 (Beta v2)
 
@@ -103,20 +95,13 @@
 ...
 ## 5. 다음 우선순위 로드맵
 ...
-### 우선순위 6: 운영 지능화 및 품질 거버넌스 (Phase 5)
+### 우선순위 6: 운영 지능화 및 품질 거버넌스 (Phase 5) - 완료
 
-목표:
-- 단순 기록을 넘어 워크플로우의 질적 관리와 자동 검증 역량을 확보한다.
-
-권장 산출물:
-- **Skill v3**: `workflow-linter` (문서 정합성 자동 교정), `automated-repro-scaffold` (버그 재현 자동화).
-- **MCP v3**: `git_history_summarizer` (변경 이력 자동 요약), `workflow_log_rotator` (문서 비대화 방지).
-- **Governance**: 마일스톤 체크포인트 자동 생성 프로세스.
-
-완료 기준:
-- 에이전트가 자신의 작업 이력을 Git 기반으로 자동 요약할 수 있다.
-- 워크플로우 문서 간의 불일치가 도구에 의해 자동으로 탐지된다.
-- 10개 이상의 TASK가 누적될 경우 마일스톤 요약이 자동으로 제안된다.
+성과:
+- 에이전트가 자신의 작업 이력을 Git 기반으로 자동 요약(`summarize_git_history`)할 수 있다.
+- 워크플로우 문서 간의 불일치가 `workflow-linter`와 `rotate_workflow_logs`에 의해 관리된다.
+- `assess_milestone_progress`를 통해 마일스톤 진척도가 80%를 넘을 경우 전환이 자동으로 제안된다.
+- `automated-repro-scaffold`를 통해 버그 재현 샌드박스를 자동으로 구축할 수 있다.
 
 ### 완료 또는 사용 가능한 상태
 

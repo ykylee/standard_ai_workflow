@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -111,9 +112,28 @@ def main() -> int:
 
         written_paths = []
         if args.apply and result_data["issues"]:
-            # Auto-fix logic can be added here
-            # For now, we just log that we would fix them
-            pass
+            # Auto-fix logic
+            modified_state = False
+            for issue in result_data["issues"]:
+                if issue["code"] == "task_status_mismatch" and "state.json" in issue["description"]:
+                    # Extract task ID from description (simple heuristic)
+                    task_match = re.search(r"Task (TASK-\d+)", issue["description"])
+                    if task_match:
+                        task_id = task_match.group(1)
+                        # Add to state.json
+                        if "session" not in state_data: state_data["session"] = {}
+                        if "in_progress_items" not in state_data["session"]: state_data["session"]["in_progress_items"] = []
+                        
+                        if task_id not in [t.split()[0] for t in state_data["session"]["in_progress_items"]]:
+                            # Try to find full name from backlog/handoff if available
+                            # For simplicity, just add the ID for now
+                            state_data["session"]["in_progress_items"].append(task_id)
+                            modified_state = True
+            
+            if modified_state:
+                state_json_path.write_text(json.dumps(state_data, indent=2, ensure_ascii=False), encoding="utf-8")
+                written_paths.append(str(state_json_path))
+                # Update result_data status if all sync issues were fixed (optional, complex)
 
         if args.json:
             final_result = build_runner_success_result(

@@ -13,6 +13,9 @@ from workflow_kit.common.read_only_bundle import (
     create_session_handoff_draft_payload,
     latest_backlog_payload,
     suggest_impacted_docs_payload,
+    summarize_git_history_payload,
+    rotate_workflow_logs_payload,
+    assess_milestone_progress_payload,
 )
 
 
@@ -39,6 +42,7 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
     if tool_name == "create_session_handoff_draft":
         return create_session_handoff_draft_payload(
             latest_backlog_path=payload.get("latest_backlog_path"),
+            git_summary=payload.get("git_summary"),
             tool_version=tool_version,
         )
     if tool_name == "create_environment_record_stub":
@@ -62,6 +66,24 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
             session_handoff_path=payload.get("session_handoff_path"),
             work_backlog_index_path=payload.get("work_backlog_index_path"),
             agents_path=payload.get("agents_path"),
+            tool_version=tool_version,
+        )
+    if tool_name == "summarize_git_history":
+        return summarize_git_history_payload(
+            repo_path=str(payload["repo_path"]),
+            commit_range=str(payload["commit_range"]),
+            tool_version=tool_version,
+        )
+    if tool_name == "rotate_workflow_logs":
+        return rotate_workflow_logs_payload(
+            handoff_path=str(payload["handoff_path"]),
+            max_done_items=int(payload.get("max_done_items", 10)),
+            tool_version=tool_version,
+        )
+    if tool_name == "assess_milestone_progress":
+        return assess_milestone_progress_payload(
+            matrix_path=str(payload["matrix_path"]),
+            backlog_path=str(payload["backlog_path"]),
             tool_version=tool_version,
         )
     raise KeyError(tool_name)

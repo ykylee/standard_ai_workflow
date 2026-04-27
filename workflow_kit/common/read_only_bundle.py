@@ -8,6 +8,9 @@ from typing import Any
 
 from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
+from workflow_kit.common.git import summarize_git_history
+from workflow_kit.common.rotation import rotate_handoff_tasks
+from workflow_kit.common.milestones import assess_milestone_progress
 from workflow_kit.common.markdown import (
     find_broken_links,
     markdown_targets,
@@ -252,6 +255,7 @@ def create_backlog_entry_payload(
 def create_session_handoff_draft_payload(
     *,
     latest_backlog_path: str | None,
+    git_summary: str | None = None,
     tool_version: str,
 ) -> dict[str, Any]:
     warnings: list[str] = []
@@ -287,9 +291,20 @@ def create_session_handoff_draft_payload(
         "- 현재 기준선: N/A",
         "- 현재 주 작업 축: N/A",
         "",
-        "## 2. 진행 중 작업",
-        "",
     ]
+    
+    if git_summary:
+        draft_handoff.extend([
+            "## 2. Git 작업 이력 기반 요약",
+            "",
+            git_summary,
+            "",
+        ])
+
+    draft_handoff.extend([
+        "## 3. 진행 중 작업",
+        "",
+    ])
     for item in in_progress_items:
         draft_handoff.append(f"- {item}")
     if not in_progress_items:
@@ -297,11 +312,11 @@ def create_session_handoff_draft_payload(
 
     draft_handoff.extend([
         "",
-        "## 3. 차단 작업",
+        "## 4. 차단 작업",
         "",
         "- N/A",
         "",
-        "## 4. 최근 완료 작업",
+        "## 5. 최근 완료 작업",
         "",
     ])
     for item in done_items:
@@ -311,13 +326,13 @@ def create_session_handoff_draft_payload(
 
     draft_handoff.extend([
         "",
-        "## 5. 잔여 작업 우선순위",
+        "## 6. 잔여 작업 우선순위",
         "",
         "### 우선순위 1",
         "",
         "- [ ] 다음 단계 작업 명시",
         "",
-        "## 6. 환경별 검증 현황",
+        "## 7. 환경별 검증 현황",
         "",
         "- 검증 완료 호스트: local",
     ])
@@ -326,7 +341,10 @@ def create_session_handoff_draft_payload(
         "status": "ok",
         "tool_version": tool_version,
         "draft_handoff": draft_handoff,
-        "source_context": {"latest_backlog_path": latest_backlog_path},
+        "source_context": {
+            "latest_backlog_path": latest_backlog_path,
+            "has_git_summary": bool(git_summary)
+        },
         "warnings": warnings,
     }
 
@@ -361,5 +379,71 @@ def create_environment_record_stub_payload(
         "tool_version": tool_version,
         "draft_record": draft_record,
         "source_context": {"hostname": hostname, "os_type": os_type},
+        "warnings": [],
+    }
+
+
+def summarize_git_history_payload(
+    *,
+    repo_path: str,
+    commit_range: str,
+    tool_version: str,
+) -> dict[str, Any]:
+    resolved_repo_path = resolve_existing_path(repo_path)
+    summary_data = summarize_git_history(resolved_repo_path, commit_range)
+
+    from dataclasses import asdict
+
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "commit_count": summary_data["commit_count"],
+        "range": commit_range,
+        "markdown": summary_data["markdown"],
+        "entries": [asdict(e) for e in summary_data["entries"]],
+        "warnings": [],
+    }
+
+
+def rotate_workflow_logs_payload(
+    *,
+    handoff_path: str,
+    max_done_items: int = 10,
+    tool_version: str,
+) -> dict[str, Any]:
+    path = resolve_existing_path(handoff_path)
+    result = rotate_handoff_tasks(path, max_done_items)
+    
+    return {
+        "status": "ok" if result["status"] == "ok" else "error",
+        "tool_version": tool_version,
+        "rotated": result.get("rotated", False),
+        "rotated_count": result.get("rotated_count", 0),
+        "remaining_count": result.get("remaining_count", 0),
+        "rotated_items": result.get("rotated_items", []),
+        "written_paths": [str(path)] if result.get("rotated") else [],
+        "warnings": [],
+    }
+
+
+def assess_milestone_progress_payload(
+    *,
+    matrix_path: str,
+    backlog_path: str,
+    tool_version: str,
+) -> dict[str, Any]:
+    matrix_p = resolve_existing_path(matrix_path)
+    backlog_p = resolve_existing_path(backlog_path)
+    result = assess_milestone_progress(matrix_p, backlog_p)
+    
+    return {
+        "status": "ok" if result["status"] == "ok" else "error",
+        "tool_version": tool_version,
+        "milestone_id": result.get("milestone_id"),
+        "milestone_name": result.get("milestone_name"),
+        "progress_percentage": result.get("progress"),
+        "done_count": result.get("done_count", 0),
+        "total_count": result.get("total_count", 0),
+        "suggestion": result.get("suggestion"),
         "warnings": [],
     }

@@ -3,7 +3,7 @@
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
   "tool_count": 11,
-  "tool_version": "beta-v3.0",
+  "tool_version": "beta-v3.0.1",
   "tools": [
     {
       "_meta": {

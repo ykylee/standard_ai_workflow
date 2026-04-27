@@ -18,7 +18,7 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as WORKFLOW_KIT_VERSION
 
 
-SUPPORTED_HARNESSES = ("codex", "opencode", "gemini-cli")
+SUPPORTED_HARNESSES = ("codex", "opencode", "gemini-cli", "pi-dev")
 MINIMAL_CORE_DOCS = (
     "global_workflow_standard.md",
     "workflow_adoption_entrypoints.md",
@@ -138,6 +138,8 @@ def harness_specific_sources(harness: str) -> list[Path]:
         return sources
     if harness == "gemini-cli":
         return sources
+    if harness == "pi-dev":
+        return sources
     raise ValueError(f"Unsupported harness: {harness}")
 
 
@@ -185,6 +187,12 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
                 temp_repo / "GEMINI.md",
             ]
         )
+    elif harness == "pi-dev":
+        sources.extend(
+            [
+                temp_repo / "AGENTS.md",
+            ]
+        )
     return sources
 
 
@@ -218,6 +226,8 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
         ] + common
     if harness == "gemini-cli":
         return ["bundle/GEMINI.md"] + common
+    if harness == "pi-dev":
+        return ["bundle/AGENTS.md"] + common
     raise ValueError(f"Unsupported harness: {harness}")
 
 
@@ -245,6 +255,14 @@ def package_apply_steps_for(harness: str) -> list[str]:
             "수동 적용 시 `bundle/GEMINI.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "`GEMINI.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
             "Gemini CLI 에서는 `GEMINI.md` 가 시스템 지침보다 우선하므로, 프로젝트 특화 규칙이 이 문서에 잘 반영됐는지 확인한다.",
+            "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
+        ]
+    if harness == "pi-dev":
+        return [
+            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "수동 적용 시 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
+            "`AGENTS.md` 가 `ai-workflow/project/state.json`, `session_handoff.md`, `work_backlog.md`, `project_workflow_profile.md` 를 먼저 읽도록 유지한다.",
+            "Pi Coding Agent 는 루트의 `AGENTS.md` 를 자동으로 시스템 지침에 주입합니다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     raise ValueError(f"Unsupported harness: {harness}")
@@ -280,6 +298,9 @@ def render_package_contents(
         ],
         "gemini-cli": [
             "- `bundle/GEMINI.md`",
+        ],
+        "pi-dev": [
+            "- `bundle/AGENTS.md`",
         ],
     }[harness]
     source_docs_state = "포함됨" if include_source_docs else "기본 제외"
@@ -369,6 +390,10 @@ def render_apply_guide(
             "- `bundle/GEMINI.md -> <repo>/GEMINI.md`",
             "- `bundle/ai-workflow -> <repo>/ai-workflow`",
         ],
+        "pi-dev": [
+            "- `bundle/AGENTS.md -> <repo>/AGENTS.md`",
+            "- `bundle/ai-workflow -> <repo>/ai-workflow`",
+        ],
     }[harness]
     first_session_reads = {
         "codex": [
@@ -390,6 +415,13 @@ def render_apply_guide(
         ],
         "gemini-cli": [
             "- `GEMINI.md`",
+            "- `ai-workflow/project/state.json`",
+            "- `ai-workflow/project/session_handoff.md`",
+            "- `ai-workflow/project/work_backlog.md`",
+            "- `ai-workflow/project/project_workflow_profile.md`",
+        ],
+        "pi-dev": [
+            "- `AGENTS.md`",
             "- `ai-workflow/project/state.json`",
             "- `ai-workflow/project/session_handoff.md`",
             "- `ai-workflow/project/work_backlog.md`",

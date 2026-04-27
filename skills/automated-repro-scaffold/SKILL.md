@@ -1,10 +1,11 @@
 # Skill: automated-repro-scaffold
 
-- 역할: 버그 재현용 독립 샌드박스 스크립트 자동 생성
-- 입력: 버그 리포트(MD/텍스트), 관련 테스트 코드(선택)
-- 출력: `repro_*.py` 스크립트 및 실행 가이드
+- 문서 목적: 버그 재현용 독립 샌드박스 스크립트 자동 생성 스킬의 사용법과 기능을 설명한다.
+- 범위: 스킬 실행 방법, 주요 기능, 프로토타입 실행 예시
+- 대상 독자: AI 에이전트, 개발자
 - 상태: prototype
 - 최종 수정일: 2026-04-27
+- 관련 문서: `core/automated_repro_scaffold_skill_spec.md`, `core/workflow_skill_catalog.md`
 
 ## 실행 방법 (Prototype)
 

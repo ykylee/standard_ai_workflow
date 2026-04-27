@@ -501,10 +501,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
         doc_home = "README.md"
 
     # Resolve operations_dir
-    if args.adoption_mode == "existing" and docs_dirs:
-        operations_dir = f"{docs_dirs[0]}/operations/"
-    else:
-        operations_dir = args.operations_dir
+    operations_dir = args.operations_dir
 
     backlog_dir = f"{operations_dir.rstrip('/')}/backlog/"
     session_doc_path = f"{operations_dir.rstrip('/')}/session_handoff.md"

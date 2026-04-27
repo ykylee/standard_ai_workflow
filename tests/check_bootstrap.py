@@ -110,7 +110,7 @@ def check_new_project_mode() -> None:
             raise AssertionError("Generated workflow README should include the Korean reporting rule.")
 
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
-        if "docs/operations/" not in profile_text:
+        if "ai-workflow/project/" not in profile_text:
             raise AssertionError("Generated profile did not include the default operations dir.")
 
         workflow_state = json.loads(Path(str(generated["workflow_state"])).read_text(encoding="utf-8"))
@@ -185,8 +185,8 @@ def check_existing_project_mode() -> None:
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "npm install" not in profile_text:
             raise AssertionError("Existing project mode did not infer npm install.")
-        if "docs/operations/" not in profile_text:
-            raise AssertionError("Existing project mode did not infer docs/operations/.")
+        if "ai-workflow/project/" not in profile_text:
+            raise AssertionError("Existing project mode did not infer ai-workflow/project/.")
 
         harness_files = payload["generated_harness_files"]
         assert_exists(str(harness_files["codex_agents"]))

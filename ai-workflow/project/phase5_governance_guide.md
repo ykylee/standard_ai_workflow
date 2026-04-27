@@ -2,6 +2,10 @@
 
 - 문서 목적: Phase 5에서 도입된 지능형 도구(`rotate_workflow_logs`, `assess_milestone_progress`, `summarize_git_history`)의 실전 활용 방법을 설명한다.
 - 범위: 문서 비대화 방지, 마일스톤 관리, 작업 이력 요약
+- 대상 독자: AI 에이전트, 워크플로우 운영자, 개발자
+- 상태: final
+- 최종 수정일: 2026-04-27
+- 관련 문서: `ai-workflow/project/comprehensive_workflow_report.md`, `core/workflow_kit_roadmap.md`
 
 ## 1. 작업 이력 자동 요약 (`summarize_git_history`)
 

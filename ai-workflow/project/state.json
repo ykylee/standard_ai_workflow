@@ -32,14 +32,14 @@
       "N/A"
     ],
     "recent_done_items": [
+      "TASK-031: Phase 5 패키징 및 beta-v3.0 정식 배포 준비 완료",
       "TASK-030: Phase 5 최종 동기화 및 완료 선언",
       "TASK-029: 지능형 도구 실전 연동 검증 및 가이드",
       "TASK-028: automated-repro-scaffold 스킬 구현",
       "TASK-027: 지능형 마일스톤 요약 및 전환 제안 로직",
       "TASK-026: workflow_log_rotator 로직 구현 및 MCP 등록",
       "TASK-025: workflow-linter 자동 교정(Auto-fix) 로직 기초 구현",
-      "TASK-024: 자동 생성된 Handoff 초안을 통한 세션 관리 실증",
-      "TASK-023: git_history_summarizer MCP 서버 정식 등록"
+      "TASK-024: 자동 생성된 Handoff 초안을 통한 세션 관리 실증"
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."

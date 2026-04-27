@@ -32,11 +32,13 @@ def test_assessment_python():
         (root / "README.md").write_text("# Test Project")
 
         result = run_assessment(root)
+        if result["status"] != "ok":
+            print(f"FAILED. Result: {json.dumps(result, indent=2, ensure_ascii=False)}")
         assert result["status"] == "ok"
         assessment = result["assessment"]
         assert assessment["primary_stack"] == "python"
-        assert "src" in assessment["source_dirs"]
-        assert "tests" in assessment["test_dirs"]
+        assert "src" in assessment["dirs"]["source"]
+        assert "tests" in assessment["dirs"]["test"]
         print("✅ Python assessment successful.")
 
 def test_assessment_node():
@@ -53,7 +55,7 @@ def test_assessment_node():
         assert result["status"] == "ok"
         assessment = result["assessment"]
         assert assessment["primary_stack"] == "node"
-        assert "docs" in assessment["docs_dirs"]
+        assert "docs" in assessment["dirs"]["docs"]
         assert assessment["package_scripts"]["test"] == "jest"
         print("✅ Node.js assessment successful.")
 

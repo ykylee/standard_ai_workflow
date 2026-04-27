@@ -90,7 +90,7 @@ def build_assessment_report(root: Path, data: dict[str, Any]) -> list[str]:
     else:
         lines.append("- 권고: 현재 구조에서 워크플로우 즉시 도입 가능.")
 
-    return lines
+    return lines, score
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Analyze repository status and maturity.")
@@ -111,7 +111,7 @@ def main() -> int:
 
     try:
         data = analyze_repo_structure(root)
-        report_lines = build_assessment_report(root, data)
+        report_lines, score = build_assessment_report(root, data)
         report_content = "\n".join(report_lines)
         
         written_paths = []

@@ -2,8 +2,8 @@
   "descriptor_target": "mcp_tools_list_draft",
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
-  "tool_count": 8,
-  "tool_version": "beta-v2.0",
+  "tool_count": 11,
+  "tool_version": "beta-v3.0",
   "tools": [
     {
       "_meta": {
@@ -702,6 +702,10 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "git_summary": {
+            "description": "Optional git summary text to include in the handoff.",
+            "type": "string"
+          },
           "latest_backlog_path": {
             "description": "Latest dated backlog document to extract task status from.",
             "type": "string"
@@ -1150,6 +1154,299 @@
           }
         ],
         "title": "check_quickstart_stale_links output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Summarize git commit history into categories and markdown for handoff.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "commit_range": {
+            "description": "Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+            "type": "string"
+          },
+          "repo_path": {
+            "description": "Path to the git repository.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commit_range",
+          "repo_path"
+        ],
+        "type": "object"
+      },
+      "name": "summarize_git_history",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "summarize_git_history output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Rotate old done items from handoff into baseline to prevent bloat.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "handoff_path": {
+            "description": "Path to the session handoff document.",
+            "type": "string"
+          },
+          "max_done_items": {
+            "description": "Maximum number of done items to keep in 'recently done' (default: 10).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "handoff_path"
+        ],
+        "type": "object"
+      },
+      "name": "rotate_workflow_logs",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "rotate_workflow_logs output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Analyze milestone progress based on maturity matrix and backlog.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "backlog_path": {
+            "description": "Path to the current backlog document.",
+            "type": "string"
+          },
+          "matrix_path": {
+            "description": "Path to the maturity matrix JSON.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "backlog_path",
+          "matrix_path"
+        ],
+        "type": "object"
+      },
+      "name": "assess_milestone_progress",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "assess_milestone_progress output"
       }
     }
   ],

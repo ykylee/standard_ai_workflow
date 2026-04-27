@@ -1,8 +1,11 @@
 # Skill: project-status-assessment
 
-- 역할: 저장소의 기술 스택, 구조, 테스트, 문서화 수준을 진단하여 `repository_assessment.md` 리포트를 생성하고 워크플로우 도입 성숙도를 평가한다.
+- 문서 목적: 저장소의 기술 스택, 구조, 테스트, 문서화 수준을 진단하여 워크플로우 도입 성숙도를 평가하는 스킬을 설명한다.
+- 범위: 입력 및 출력 계약, 진단 항목, 실행 방법
+- 대상 독자: AI 에이전트, 워크플로우 온보딩 담당자
 - 상태: beta
 - 최종 수정일: 2026-04-26
+- 관련 문서: `core/project_status_assessment.md`, `core/workflow_skill_catalog.md`
 
 ## 1. 개요
 

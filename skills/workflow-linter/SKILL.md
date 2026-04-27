@@ -1,8 +1,11 @@
 # Skill: workflow-linter
 
-- 역할: 워크플로우 핵심 문서(`state.json`, `handoff`, `backlog`) 간의 데이터 정합성을 검사하고 교정안을 제시한다.
+- 문서 목적: 워크플로우 핵심 문서(`state.json`, `handoff`, `backlog`) 간의 데이터 정합성을 검사하는 스킬을 설명한다.
+- 범위: 입력 및 출력 계약, 검사항목, 정합성 유지 규칙
+- 대상 독자: AI 에이전트, 워크플로우 운영자
 - 상태: beta
 - 최종 수정일: 2026-04-26
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`
 
 ## 1. 개요
 

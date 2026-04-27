@@ -22,11 +22,11 @@
     "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "**Phase 5 운영 지능화 및 가버넌스 자동화 완결 (2026-04-27)**",
-    "current_axis": "N/A (Phase 5 공식 종료)",
-    "current_focus": "N/A",
+    "current_baseline": "**Phase 6 편집 정밀화 및 지능형 읽기 도구 최적화 (2026-04-27)**",
+    "current_axis": "THREAD-004: 로컬 LLM 친화적 편집 및 읽기 도구 최적화",
+    "current_focus": "TASK-033 Phase 6 전략 수립 및 robust-patcher 상세 설계",
     "in_progress_items": [
-      "N/A"
+      "TASK-033: Phase 6 전략 수립 및 robust-patcher 상세 설계"
     ],
     "blocked_items": [
       "N/A"
@@ -36,11 +36,9 @@
       "TASK-031: Phase 5 패키징 및 beta-v3.0 정식 배포 준비 완료",
       "TASK-030: Phase 5 최종 동기화 및 완료 선언",
       "TASK-029: 지능형 도구 실전 연동 검증 및 가이드",
-      "TASK-028: automated-repro-scaffold 스킬 구현",
-      "TASK-027: 지능형 마일스톤 요약 및 전환 제안 로직",
-      "TASK-026: workflow_log_rotator 로직 구현 및 MCP 등록",
-      "TASK-025: workflow-linter 자동 교정(Auto-fix) 로직 기초 구현",
-      "TASK-024: 자동 생성된 Handoff 초안을 통한 세션 관리 실증"
+      "TASK-028: automated-repro-scaffold 스킬 구현"
+    ],
+
     ],
     "environment_constraints": [
       "Python 3.11 가상환경 필요."

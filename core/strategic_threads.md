@@ -30,8 +30,16 @@
     - 첫 세션 자동 브리핑(Starter kit) 강화.
 - **연결된 TASK**: TASK-020 (실전 시뮬레이션 검증 완료)
 
+### [THREAD-004] 로컬 LLM 친화적 편집 및 읽기 도구 최적화
+- **목적**: 로컬 LLM의 낮은 정밀도를 보완하는 견고한(Robust) 파일 조작 체계 구축.
+- **상태**: In-Progress
+- **설계 방향**: 
+    - Aider 스타일의 Search-Replace 블록 및 퍼지 매칭 도입.
+    - AST 기반의 시맨틱 심볼(함수/클래스) 추출 읽기 도구 제공.
+- **연결된 TASK**: TASK-033, 034, 035, 036
+
 ## 2. 완료/보관된 스레드
-- [THREAD-003] 운영 지능화 및 가버넌스 자동화 (Phase 5)
+- [THREAD-003] 운영 지능화 및 가버넌스 자동화 (Phase 5 완결)
     - **성과**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` 도구 구현 및 `automated-repro-scaffold` 스킬 확보. 문서 비대화 방지와 마일스톤 진척도 관리 자동화 달성.
 - [THREAD-002] 실운영 파일럿 및 온보딩 마찰 제로화 (일부 TASK 완료, THREAD 단위 종료 대기)
 

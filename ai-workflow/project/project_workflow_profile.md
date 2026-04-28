@@ -3,16 +3,16 @@
 - 문서 목적: 공통 표준 워크플로우를 `Standard AI Workflow` 저장소에 적용할 때 필요한 프로젝트 특화 규칙을 정리한다.
 - 범위: 저장소 목적, 문서 구조, 기본 명령, 환경 기록 위치, 프로젝트 특화 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-25
-- 관련 문서: `../core/global_workflow_standard.md`, `./session_handoff.md`, `./work_backlog.md`
+- 상태: final (Phase 6 진입)
+- 최종 수정일: 2026-04-29
+- 관련 문서: `../core/global_workflow_standard.md`, `./session_handoff.md`, `./work_backlog.md`, `../core/maturity_matrix.json`
 
 ## 1. 프로젝트 개요
 
 - 프로젝트명:
 - `Standard AI Workflow`
 - 프로젝트 목적:
-- 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, 향후 skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
+- 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, 향후 skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다. 현재 **Phase 6 (편집 정밀화 및 지능형 읽기 도구 최적화)** 단계에 있으며, `robust-patcher`와 `smart-context-reader`를 통한 생산성 극대화를 목표로 한다.
 - 주요 이해관계자:
 - YK Lee (Developer), AI Agent 설계자
 

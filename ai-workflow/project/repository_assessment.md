@@ -1,92 +1,48 @@
 # Repository Assessment
 
-- 문서 목적: 기존 프로젝트에 표준 AI 워크플로우를 도입하기 전에 현재 코드베이스와 문서 구조를 빠르게 진단한다.
-- 범위: 저장소 구조, 추정 기술 스택, 문서 위치, 테스트 흔적, 초기 워크플로우 도입 포인트
-- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-26
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 문서 목적: 리포지토리의 구조와 워크플로우 적용 상태를 진단하고 성숙도를 기록한다.
+- 범위: 저장소 구조, 기술 스택, 문서화 수준, 자동화 도구 현황
+- 대상 독자: 개발자, AI Agent, 운영자
+- 상태: final (Phase 6 진입)
+- 최종 수정일: 2026-04-29
+- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/maturity_matrix.json`
 
 ## 1. 요약
 
-- 분석 대상 프로젝트:
-- `Standard AI Workflow`
-- 분석 모드:
-- `existing`
-- 추정 기본 스택:
-- `unknown`
-- 감지된 스택 라벨:
-- `없음`
+- 분석 대상 프로젝트: `Standard AI Workflow`
+- 현재 상태: **Phase 6 (편집 정밀화 및 지능형 읽기 도구 최적화)**
+- 주요 기술 스택: Python 3.10+, Markdown, JSON-RPC, MCP (Model Context Protocol)
+- 워크플로우 성숙도: Level 4+ (전략적 최적화 및 도구 고도화 단계)
 
-## 2. 저장소 구조 관찰
+## 2. 저장소 구조
 
-- 상위 디렉터리 항목:
-- `.DS_Store, .ai-workflow-backups, .git, .github, .gitignore, .opencode, .venv, AGENTS.md, GEMINI.md, QUICKSTART.md, README.md, backlog, core, dist, examples, global-snippets, harnesses, mcp, opencode.json, releases, requirements-dev.txt, schemas, scripts, skills, split_checklist.md, templates, tests, tmp, work_backlog.md, workflow_kit`
-- 소스 디렉터리 후보:
-- `없음`
-- 문서 디렉터리 후보:
-- `없음`
-- 테스트 디렉터리 후보:
-- `tests`
+- **Core Logic**: `kit/` (워크플로우 핵심 로직 및 스펙)
+- **Operational Docs**: `ai-workflow/project/` (세션 상태 및 백로그 관리)
+- **Automation Scripts**: `scripts/` (부트스트랩, 배포, 상태 생성 등)
+- **Tests**: `tests/` (문서 무결성 및 스크립트 기능 검증)
+- **Examples**: `examples/` (워크플로우 적용 사례 및 출력 샘플)
+- **Schemas**: `schemas/` (JSON 스키마 및 규약 문서)
 
-## 3. 추정 명령
+## 3. 핵심 자동화 도구 및 명령
 
-- 설치:
-- `pip install -r requirements-dev.txt`
-- 로컬 실행:
-- `python3 scripts/run_demo_workflow.py`
-- 빠른 테스트:
-- `python3 tests/check_docs.py`
-- 격리 테스트:
-- `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
-- 실행 확인:
-- `python3 scripts/bootstrap_workflow_kit.py --help`
+- **부트스트랩**: `python3 scripts/bootstrap_workflow_kit.py` (신규 프로젝트에 워크플로우 이식)
+- **데모 실행**: `python3 scripts/run_demo_workflow.py` (표준 워크플로우 사이클 시뮬레이션)
+- **문서 검증**: `python3 tests/check_docs.py` (링크 및 메타데이터 무결성 점검)
+- **배포 번들링**: `python3 scripts/export_harness_package.py`
 
-## 4. package script 및 경로 샘플
+## 4. 워크플로우 도입 현황
 
-- package script 목록:
-- `없음`
-- 분석 중 확인한 경로 샘플:
-- `.DS_Store`
-- `.gitignore`
-- `AGENTS.md`
-- `GEMINI.md`
-- `QUICKSTART.md`
-- `README.md`
-- `opencode.json`
-- `requirements-dev.txt`
-- `split_checklist.md`
-- `work_backlog.md`
-- `.ai-workflow-backups/20260424T125353Z/AGENTS.md`
-- `.ai-workflow-backups/20260424T125353Z/.opencode/.gitignore`
-- `.ai-workflow-backups/20260424T125353Z/.opencode/package-lock.json`
-- `.ai-workflow-backups/20260424T125353Z/.opencode/package.json`
-- `.ai-workflow-backups/20260424T125353Z/ai-workflow/README.md`
-- `.ai-workflow-backups/20260424T144730Z/.opencode/.gitignore`
-- `.ai-workflow-backups/20260424T144730Z/.opencode/package-lock.json`
-- `.ai-workflow-backups/20260424T144730Z/.opencode/package.json`
-- `.ai-workflow-backups/20260424T144730Z/ai-workflow/README.md`
-- `.ai-workflow-backups/v2-backup-20260424234723/README.md`
+- **문서화**: 모든 운영 문서가 `ai-workflow/project/` 하위에 표준화되어 있으며, `GEMINI.md`를 통해 에이전트 진입점이 명확함.
+- **상태 관리**: `state.json`과 날짜별 백로그를 통해 세션 간 연속성이 완벽하게 보장됨.
+- **정밀 편집**: Phase 6 진입으로 `robust-patcher` 기반의 고신뢰도 코드 수정 체계 구축 중.
 
-## 5. 워크플로우 도입 초안
+## 5. 향후 과제
 
-- 추천 문서 위키 홈:
-- `README.md`
-- 추천 운영 문서 위치:
-- `docs/operations/`
-- 추천 backlog 위치:
-- `docs/operations/backlog/`
-- 추천 session handoff 위치:
-- `docs/operations/session_handoff.md`
-
-## 6. 자동 분석 기반 다음 작업
-
-- 현재 추정 명령과 실제 운영 명령이 일치하는지 확인한다.
-- 기존 문서 체계가 있으면 운영 문서 위치를 그대로 따를지, 별도 워크플로우 디렉터리로 분리할지 결정한다.
-- 빠른 테스트와 실행 확인 기준이 약하면 우선 profile 문서에서 검증 규칙을 먼저 보강한다.
+- **지능형 컨텍스트**: `smart-context-reader`를 통한 대규모 코드베이스 분석 효율화.
+- **팀 협업 최적화**: 멀티 에이전트 환경에서의 상태 동기화 및 충돌 방지 로직 강화.
 
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 성숙도 매트릭스: [../core/maturity_matrix.json](../core/maturity_matrix.json)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
-- 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)

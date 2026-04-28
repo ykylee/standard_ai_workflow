@@ -110,7 +110,7 @@ def main() -> int:
     }
 
     try:
-        data = analyze_repo_structure(root)
+        data = analyze_repo_structure(root, ignore_dirs={"ai-workflow"})
         report_lines, score = build_assessment_report(root, data)
         report_content = "\n".join(report_lines)
         

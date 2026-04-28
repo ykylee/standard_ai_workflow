@@ -162,6 +162,17 @@ python3 scripts/run_existing_project_onboarding.py \
 
 즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 “workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가” 에 둔다.
 
+## 릴리스 및 안정성 업데이트 (2026-04-28)
+
+### 릴리스 상태: Phase 6 진입
+- 현재 워크플로우 키트는 **Phase 6: 편집 정밀화 및 지능형 도구 최적화** 단계에 진입했습니다.
+- 주요 성과: Phase 5에서 지능형 운영 도구(Git 요약, 로테이션 등)와 MCP SDK 통합을 완료했습니다.
+
+### 기술적 안정성 개선: 빈 프로젝트 오판 방지
+- **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.
+- **해결**: `iter_repo_files` 및 `analyze_repo_structure` 함수에 `ignore_dirs` 필터링 로직을 강화했습니다. 이제 키트 디렉토리를 명시적으로 무시하여 순수 대상 프로젝트의 컨텍스트만 정확히 수집합니다.
+- **효과**: "빈 저장소에 워크플로우를 먼저 배포하고 프로젝트를 시작"하는 패턴에서도 분석 결과가 왜곡되지 않고 청결한 상태를 유지합니다.
+
 ## 다음에 읽을 문서
 
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)

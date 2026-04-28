@@ -364,8 +364,12 @@ def global_snippet_sources() -> dict[str, dict[str, str]]:
     }
 
 
-def iter_repo_files(root: Path, *, max_depth: int = 3) -> list[Path]:
+def iter_repo_files(root: Path, *, max_depth: int = 3, ignore_dirs: set[str] | None = None) -> list[Path]:
     results: list[Path] = []
+    combined_ignore = IGNORED_DIRS.copy()
+    if ignore_dirs:
+        combined_ignore.update(ignore_dirs)
+
     for current_root, dirs, files in os.walk(root):
         current_path = Path(current_root)
         try:
@@ -376,7 +380,7 @@ def iter_repo_files(root: Path, *, max_depth: int = 3) -> list[Path]:
         dirs[:] = sorted(
             name
             for name in dirs
-            if name not in IGNORED_DIRS and depth < max_depth
+            if name not in combined_ignore and depth < max_depth
         )
         for file_name in sorted(files):
             results.append(current_path / file_name)
@@ -435,7 +439,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
             ],
         }
 
-    files = iter_repo_files(paths.target_root)
+    files = iter_repo_files(paths.target_root, ignore_dirs={args.kit_dir})
     rel_files = [path.relative_to(paths.target_root).as_posix() for path in files]
     top_level_entries = sorted(
         path.name for path in paths.target_root.iterdir() if path.name != args.kit_dir

@@ -12,15 +12,19 @@ IGNORED_DIRS = {
     "dist", "build", "coverage", "__pycache__", ".venv", "venv",
 }
 
-def iter_repo_files(root: Path) -> list[Path]:
+def iter_repo_files(root: Path, ignore_dirs: set[str] | None = None) -> list[Path]:
     results: list[Path] = []
+    combined_ignore = IGNORED_DIRS.copy()
+    if ignore_dirs:
+        combined_ignore.update(ignore_dirs)
+
     for entry in sorted(root.iterdir()):
-        if entry.name in IGNORED_DIRS:
+        if entry.name in combined_ignore:
             continue
         if entry.is_file():
             results.append(entry)
         elif entry.is_dir():
-            results.extend(iter_repo_files(entry))
+            results.extend(iter_repo_files(entry, ignore_dirs=ignore_dirs))
     return results
 
 def detect_package_scripts(root: Path) -> dict[str, str]:
@@ -46,12 +50,16 @@ def guess_run_command(root: Path, package_scripts: dict[str, str]) -> str:
     
     return "TODO: 로컬 실행 명령 입력"
 
-def analyze_repo_structure(root: Path) -> dict[str, Any]:
-    top_level_entries = sorted([p.name for p in root.iterdir() if p.name not in IGNORED_DIRS])
+def analyze_repo_structure(root: Path, ignore_dirs: set[str] | None = None) -> dict[str, Any]:
+    combined_ignore = IGNORED_DIRS.copy()
+    if ignore_dirs:
+        combined_ignore.update(ignore_dirs)
+        
+    top_level_entries = sorted([p.name for p in root.iterdir() if p.name not in combined_ignore])
     
-    docs_dirs = sorted({n for n in ("docs", "doc", "wiki", "handbook") if (root / n).exists()})
-    test_dirs = sorted({n for n in ("tests", "test", "spec", "__tests__") if (root / n).exists()})
-    source_dirs = sorted({n for n in ("src", "app", "apps", "services", "packages", "lib") if (root / n).exists()})
+    docs_dirs = sorted({n for n in ("docs", "doc", "wiki", "handbook") if (root / n).exists() and n not in combined_ignore})
+    test_dirs = sorted({n for n in ("tests", "test", "spec", "__tests__") if (root / n).exists() and n not in combined_ignore})
+    source_dirs = sorted({n for n in ("src", "app", "apps", "services", "packages", "lib") if (root / n).exists() and n not in combined_ignore})
     
     stack_labels: list[str] = []
     if (root / "package.json").exists(): stack_labels.append("node")

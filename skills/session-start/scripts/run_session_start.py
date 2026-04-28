@@ -93,7 +93,11 @@ def main() -> int:
         result = {
             "status": "ok",
             "tool_version": TOOL_VERSION,
-            "summary": build_session_summary(handoff, backlog, profile),
+            "summary": build_session_summary(
+                changed_files=[],
+                handoff_items=handoff.get("in_progress_items", []),
+                backlog_items=backlog.get("in_progress_items", []),
+            ),
             "in_progress_items": dedupe_normalized_backticked(
                 handoff.get("in_progress_items", []) + backlog.get("in_progress_items", [])
             ),

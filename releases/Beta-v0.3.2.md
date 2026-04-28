@@ -1,7 +1,7 @@
-# Beta v3.0.2
+# Beta v0.3.2
 
 - 날짜: 2026-04-28
-- 버전: `v3.0.2-beta`
+- 버전: `v0.3.2-beta`
 - 상태: **Beta**
 
 ## 1. 개요
@@ -21,10 +21,10 @@
 - **성숙도 매트릭스 최신화**: `core/maturity_matrix.json`을 2026-04-28 기준으로 동기화.
 
 ## 3. 포함된 배포 패키지 (Assets)
-- `standard-ai-workflow-codex-v3.0.2-beta.zip`
-- `standard-ai-workflow-gemini-cli-v3.0.2-beta.zip`
-- `standard-ai-workflow-opencode-v3.0.2-beta.zip`
-- `standard-ai-workflow-pi-dev-v3.0.2-beta.zip`
+- `standard-ai-workflow-codex-v0.3.2-beta.zip`
+- `standard-ai-workflow-gemini-cli-v0.3.2-beta.zip`
+- `standard-ai-workflow-opencode-v0.3.2-beta.zip`
+- `standard-ai-workflow-pi-dev-v0.3.2-beta.zip`
 
 ## 4. 설치 및 업그레이드 가이드
 1. `scripts/bootstrap_workflow_kit.py`를 실행하여 최신 키트를 배포합니다.

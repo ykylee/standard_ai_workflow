@@ -98,6 +98,7 @@ def workflow_common_sources() -> list[Path]:
         REPO_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
         REPO_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
         REPO_ROOT / "schemas" / "read_only_transport_descriptors.json",
+        REPO_ROOT / "templates" / "release_note_template.md",
         REPO_ROOT / "templates" / "pilot_candidate_checklist.md",
         REPO_ROOT / "templates" / "pilot_adoption_record_template.md",
         REPO_ROOT / "harnesses" / "README.md",

@@ -1,7 +1,7 @@
 """Filesystem path helpers shared across workflow kit prototypes."""
 
 from __future__ import annotations
-
+import os
 from pathlib import Path
 
 
@@ -11,6 +11,18 @@ def resolve_existing_path(raw: str) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"path does not exist: {path}")
     return path
+
+
+def safe_relpath(path: Path, start: Path) -> str:
+    """Return a relative version of a path if it is under start, otherwise absolute string."""
+    try:
+        resolved_path = path.resolve()
+        resolved_start = start.resolve()
+        if resolved_path.is_relative_to(resolved_start):
+            return os.path.relpath(resolved_path, resolved_start)
+        return str(resolved_path)
+    except (ValueError, OSError):
+        return str(path)
 
 
 def path_exists_relative(base: Path, raw: str | None) -> Path | None:

@@ -1787,6 +1787,7 @@ def main() -> int:
                     latest_backlog_path=paths.daily_backlog_path,
                     repository_assessment_path=paths.assessment_path if args.adoption_mode == "existing" else None,
                     generated_at=args.today,
+                    workspace_root=paths.target_root,
                 ),
                 ensure_ascii=False,
                 indent=2,

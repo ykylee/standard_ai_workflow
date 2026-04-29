@@ -94,9 +94,11 @@ def main() -> int:
         
         state_payload = json.loads(state_path.read_text(encoding="utf-8"))
         expected_profile_path = str((temp_project_root / "project_workflow_profile.md").resolve())
-        actual_profile_path = str(Path(state_payload["source_of_truth"]["project_profile_path"]).resolve())
+        # The path in state.json is now relative to workspace root (temp_project_root)
+        actual_profile_rel = state_payload["source_of_truth"]["project_profile_path"]
+        actual_profile_path = str((temp_project_root / actual_profile_rel).resolve())
         if actual_profile_path != expected_profile_path:
-            raise AssertionError(f"Expected state.json to be refreshed from {expected_profile_path}, but got {actual_profile_path}")
+            raise AssertionError(f"Expected state.json to be refreshed from {expected_profile_path}, but got {actual_profile_path} (rel: {actual_profile_rel})")
 
     # Case 2: Update with --apply
     with tempfile.TemporaryDirectory() as temp_dir:

@@ -115,7 +115,7 @@ def parse_handoff(path: Path) -> dict[str, object]:
         "blocked_items": parser.get_list("현재 `blocked` 작업"),
         "recent_done_items": parser.get_list("최근 완료 작업 목록"),
         "constraints": parser.get_value("주요 제약"),
-        "next_documents": [(path.parent / target).resolve() for target in markdown_targets(path)],
+        "next_documents": [path.parent / target for target in markdown_targets(path)],
     }
     return {**data, "warnings": parser.warnings}
 
@@ -182,7 +182,7 @@ def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
 
 
 def find_latest_backlog_path(index_path: Path) -> Path | None:
-    linked_paths = [(index_path.parent / target).resolve() for target in markdown_targets(index_path)]
+    linked_paths = [index_path.parent / target for target in markdown_targets(index_path)]
     if linked_paths:
         return linked_paths[-1]
     lines = iter_lines(index_path)
@@ -192,5 +192,5 @@ def find_latest_backlog_path(index_path: Path) -> Path | None:
         if re.search(r"\d{4}-\d{2}-\d{2}\.md", stripped):
             match = re.search(r"(\.?\.?/.*\d{4}-\d{2}-\d{2}\.md)", stripped)
             if match:
-                date_candidates.append((index_path.parent / match.group(1)).resolve())
+                date_candidates.append(index_path.parent / match.group(1))
     return date_candidates[-1] if date_candidates else None

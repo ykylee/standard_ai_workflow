@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-path", required=True)
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--repository-assessment-path")
+    parser.add_argument("--workspace-root")
     parser.add_argument("--generated-at", default=date.today().isoformat())
     return parser.parse_args()
 
@@ -39,6 +40,7 @@ def main() -> int:
         repository_assessment_path=Path(args.repository_assessment_path).resolve() if args.repository_assessment_path else None,
         output_path=output_path,
         generated_at=args.generated_at,
+        workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
     )
     print(
         json.dumps(

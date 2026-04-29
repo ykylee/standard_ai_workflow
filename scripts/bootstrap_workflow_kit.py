@@ -1093,6 +1093,20 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 격리 테스트: `{context['isolated_test_command']}`
 - 실행 확인: `{smoke_check}`
 
+## Antigravity 전용 작업 원칙
+
+### 1. Artifacts (작업 증빙) 활용
+Antigravity 에이전트는 모든 주요 의사결정과 작업 결과를 Artifacts 로 관리한다.
+- **Implementation Plan**: 복잡한 수정 전에는 반드시 계획 문서를 작성하여 의도를 공유한다.
+- **Task List**: 작업 단위를 쪼개어 실시간 진행 상황을 기록한다.
+- **Walkthrough**: 작업 완료 후 변경 사항과 검증 결과를 요약하여 제출한다.
+
+### 2. 브라우저 통합 및 서브 에이전트
+UI 검증이나 외부 환경 조작이 필요한 경우, 직접 도구를 사용하는 대신 전용 **브라우저 서브 에이전트**를 활용하여 스크린샷과 녹화본을 증빙으로 확보한다.
+
+### 3. 워크플로우 Skills 연동
+`ai-workflow/skills/` 및 `scripts/` 아래의 도구들은 Antigravity 의 **Specialized Skills** 로 간주한다. 복잡한 상태 갱신이나 백로그 동기화는 직접 파일을 수정하기보다 이 도구들을 호출하여 수행하는 것을 권장한다.
+
 ## 문서 작업 기준
 
 - 문서 위키 홈: `{context['doc_home']}`

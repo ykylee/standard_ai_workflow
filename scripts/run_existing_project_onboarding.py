@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,8 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.workflow_writes import update_project_profile_commands
+from workflow_kit.common.workflow_state import refresh_workflow_state_cache
 from workflow_kit.common.runner import (
     build_orchestration_plan,
     build_execution_trace_step,
@@ -77,6 +80,7 @@ def parse_args() -> argparse.Namespace:
         "--change-summary",
         default="기존 프로젝트 도입 초안과 추정 명령/문서 구조를 실제 저장소 기준으로 정렬한다.",
     )
+    parser.add_argument("--apply", action="store_true", help="Apply changes to profile and trigger skill writes.")
     return parser.parse_args()
 
 
@@ -105,9 +109,21 @@ def main() -> int:
             resolve_existing_path(args.repository_assessment_path) if args.repository_assessment_path else None
         )
 
+        written_paths: list[str] = []
         assessment: dict[str, Any] | None = None
         if repository_assessment_path:
             assessment = parse_repository_assessment(repository_assessment_path)
+            if args.apply:
+                inferred = {
+                    "install": assessment.get("install_command"),
+                    "run": assessment.get("run_command"),
+                    "quick_test": assessment.get("quick_test_command"),
+                    "isolated_test": assessment.get("isolated_test_command"),
+                    "smoke_check": assessment.get("smoke_check_command"),
+                }
+                updated = update_project_profile_commands(profile_path=project_profile_path, commands=inferred)
+                if updated:
+                    written_paths.append(str(project_profile_path))
 
         latest_backlog_data, latest_backlog_path = run_latest_backlog_step(
             python=python,
@@ -149,30 +165,49 @@ def main() -> int:
             "--change-summary",
             args.change_summary,
         ]
+        if args.apply:
+            validation_plan_command.append("--scaffold")
 
         validation_plan = run_json_command(
             validation_plan_command,
             REPO_ROOT,
             step_name="validation_plan",
         )
+        if args.apply and validation_plan.get("written_paths"):
+            written_paths.extend(validation_plan["written_paths"])
+
+        code_index_update_command = [
+            python,
+            str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
+            "--project-profile-path",
+            str(project_profile_path),
+            "--work-backlog-index-path",
+            str(work_backlog_index_path),
+            "--session-handoff-path",
+            str(session_handoff_path),
+            *repeated_flag_args("--changed-file", args.changed_files),
+            "--change-summary",
+            args.change_summary,
+        ]
+        if args.apply:
+            code_index_update_command.append("--apply")
 
         code_index_update = run_json_command(
-            [
-                python,
-                str(repo_path("skills", "code-index-update", "scripts", "run_code_index_update.py")),
-                "--project-profile-path",
-                str(project_profile_path),
-                "--work-backlog-index-path",
-                str(work_backlog_index_path),
-                "--session-handoff-path",
-                str(session_handoff_path),
-                *repeated_flag_args("--changed-file", args.changed_files),
-                "--change-summary",
-                args.change_summary,
-            ],
+            code_index_update_command,
             REPO_ROOT,
             step_name="code_index_update",
         )
+        if args.apply and code_index_update.get("written_paths"):
+            written_paths.extend(code_index_update["written_paths"])
+
+        if args.apply:
+            refresh_workflow_state_cache(
+                project_profile_path=project_profile_path,
+                session_handoff_path=session_handoff_path,
+                work_backlog_index_path=work_backlog_index_path,
+                latest_backlog_path=Path(latest_backlog_path) if latest_backlog_path else None,
+                generated_at=date.today().isoformat(),
+            )
     except WorkflowStepError as exc:
         result = build_top_level_step_error_result(
             tool_version=TOOL_VERSION,
@@ -244,6 +279,7 @@ def main() -> int:
     )
 
     onboarding_summary = {
+        "apply_mode": args.apply,
         "review_assessment_first": repository_assessment_path is not None,
         "primary_stack": assessment.get("primary_stack") if assessment else None,
         "inferred_commands": {
@@ -253,6 +289,7 @@ def main() -> int:
             "isolated_test": assessment.get("isolated_test_command") if assessment else None,
             "smoke_check": assessment.get("smoke_check_command") if assessment else None,
         },
+        "critical_todos": [],
         "recommended_next_steps": [
             "repository assessment 의 추정 명령과 문서 경로를 실제 저장소 기준으로 먼저 확정한다.",
             "session-start 결과를 기준으로 handoff 와 최신 backlog 의 현재 상태를 맞춘다.",
@@ -261,10 +298,22 @@ def main() -> int:
         ],
     }
 
+    if assessment:
+        for cmd_type, cmd_value in onboarding_summary["inferred_commands"].items():
+            if cmd_value and "TODO" in cmd_value:
+                onboarding_summary["critical_todos"].append(f"{cmd_type} 명령이 아직 설정되지 않았다.")
+        
+        if onboarding_summary["critical_todos"]:
+            if args.apply:
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `project_workflow_profile.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")
+            else:
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 중요: `project_workflow_profile.md`에서 TODO 상태인 명령어를 먼저 수정해야 한다.")
+
     result = build_runner_success_result(
         tool_version=TOOL_VERSION,
         warnings=warnings,
         orchestration_plan=orchestration_plan,
+        written_paths=written_paths if args.apply else [],
         source_context={
             "project_profile_path": str(project_profile_path),
             "session_handoff_path": str(session_handoff_path),

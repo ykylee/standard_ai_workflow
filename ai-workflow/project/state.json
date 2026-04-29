@@ -1,60 +1,55 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-24",
+  "generated_at": "2026-04-28",
   "source_of_truth": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
+    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-28.md",
     "repository_assessment_path": null
   },
   "project": {
     "project_name": "Standard AI Workflow",
     "document_home": "README.md",
-    "operations_path": "core/",
-    "backlog_path": "ai-workflow/project/backlog/<host-name>/<host-ip>/",
+    "operations_path": "ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)",
+    "backlog_path": "ai-workflow/project/backlog/",
     "handoff_path": "ai-workflow/project/session_handoff.md",
-    "environment_path": "README.md"
+    "environment_path": "ai-workflow/project/repository_assessment.md"
   },
   "commands": {
     "quick_tests": "python3 tests/check_docs.py",
-    "isolated_tests": "python3 tests/check_*.py",
-    "runtime_checks": "for t in tests/check_*.py; do python3 \"$t\" || exit 1; done"
+    "isolated_tests": "for t in tests/check_*.py; do python3 \"$t\" || exit 1; done",
+    "runtime_checks": "python3 scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "Standard AI Workflow 저장소의 루트 `README.md`, `requirements-dev.txt`, `tests/README.md`, `ai-workflow/project/*` 를 확인했다.",
-    "current_axis": "TASK-001 표준 AI 워크플로우 초기 도입을 실제 저장소 기준으로 정렬한다.",
-    "current_focus": "TASK-001 표준 AI 워크플로우 초기 도입",
+    "current_baseline": "**Phase 6 편집 정밀화 및 지능형 읽기 도구 최적화 시작**. 빈 프로젝트 오판 버그 수정 및 팀 공유용 문서 최신화 완료.",
+    "current_axis": "THREAD-001 워크플로우 전파 및 THREAD-004 정밀 도구 최적화",
+    "current_focus": "TASK-037 [THREAD-001] 팀 공유 전 전체 워크플로우 문서 전수 점검 및 최신화",
     "in_progress_items": [
-      "TASK-001 표준 AI 워크플로우 초기 도입"
+      "TASK-037 [THREAD-001] 팀 공유 전 전체 워크플로우 문서 전수 점검 및 최신화"
     ],
     "blocked_items": [],
-    "recent_done_items": [],
-    "environment_constraints": [
-      "macOS `Darwin 25.4.0 arm64`, Python `3.11.15` 기준."
-    ]
+    "recent_done_items": [
+      "TASK-036 [THREAD-003] 빈 프로젝트 배포 시 키트 내부 파일 오판 버그 수정"
+    ],
+    "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md",
-    "task_count": 7,
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-28.md",
+    "task_count": 2,
     "in_progress_items": [
-      "TASK-001 표준 AI 워크플로우 초기 도입"
+      "TASK-037 [THREAD-001] 팀 공유 전 전체 워크플로우 문서 전수 점검 및 최신화"
     ],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-036 [THREAD-003] 빈 프로젝트 배포 시 키트 내부 파일 오판 버그 수정"
+    ]
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-001-standard-workflow-onboarding.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-002-existing-project-onboarding-hardening.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-003-pilot-adoption-validation.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-004-output-contract-stabilization.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-005-reusable-package-extraction.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-006-read-only-mcp-sdk-promotion.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/plans/TASK-007-release-packaging-operations.md"
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/project_workflow_profile.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/session_handoff.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/work_backlog.md",
+    "/Users/yklee/repos/standard_ai_workflow_gemini/ai-workflow/project/backlog/2026-04-28.md"
   ],
   "repository_assessment": {
     "path": null,

@@ -49,6 +49,8 @@ rm -rf .venv
 - 하네스 옵션:
 - `--harness codex` 는 `AGENTS.md` 와 `.codex/config.toml.example` 를 생성한다.
 - `--harness opencode` 는 `AGENTS.md`, `opencode.json`, `.opencode/skills/...`, `.opencode/agents/...` 를 생성한다.
+- `--harness gemini-cli` 는 `GEMINI.md` 를 생성한다.
+- `--harness antigravity` 는 `ANTIGRAVITY.md` 를 생성한다.
 - 하네스 확장 방식:
 - bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 추후 다른 하네스도 같은 패턴으로 추가할 수 있다.
 - 기본 생성 구조:
@@ -82,6 +84,7 @@ python3 scripts/bootstrap_workflow_kit.py \
   --project-name "Sample API" \
   --harness codex \
   --harness opencode \
+  --harness antigravity \
   --copy-core-docs
 ```
 

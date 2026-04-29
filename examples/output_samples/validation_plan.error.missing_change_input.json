@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "prototype-v2",
+  "tool_version": "beta-v3.0.1",
   "error": "변경 입력이 없어 validation-plan 을 구성할 수 없다.",
   "error_code": "missing_change_input",
   "warnings": [

@@ -12,8 +12,9 @@ def build_error_result(
     error_code: str,
     warnings: list[str],
     source_context: dict[str, Any],
+    recovery_hint: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    result = {
         "status": "error",
         "tool_version": tool_version,
         "error": error,
@@ -21,3 +22,6 @@ def build_error_result(
         "warnings": warnings,
         "source_context": source_context,
     }
+    if recovery_hint:
+        result["recovery_hint"] = recovery_hint
+    return result

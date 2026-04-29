@@ -13,6 +13,8 @@
 - [codex/apply_guide.md](./codex/apply_guide.md)
 - [opencode/README.md](./opencode/README.md)
 - [opencode/apply_guide.md](./opencode/apply_guide.md)
+- [gemini-cli/README.md](./gemini-cli/README.md)
+- [gemini-cli/apply_guide.md](./gemini-cli/apply_guide.md)
 
 ## 추후 확장용 템플릿
 

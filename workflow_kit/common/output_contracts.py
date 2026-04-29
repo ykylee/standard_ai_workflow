@@ -22,6 +22,8 @@ SUCCESS_PATH_CONTRACTS: dict[str, frozenset[str]] = {
         {"checked_files", "missing_expected_links", "stale_link_warnings", "reasoning_notes"}
     ),
     "create_backlog_entry": frozenset({"draft_entry"}),
+    "create_session_handoff_draft": frozenset({"draft_handoff", "source_context"}),
+    "create_environment_record_stub": frozenset({"draft_record", "source_context"}),
     "suggest_impacted_docs": frozenset({"impacted_documents", "reasoning_notes"}),
     "demo_workflow": frozenset({"orchestration_plan", "workflow_summary", "source_context"}),
     "existing_project_onboarding": frozenset({"orchestration_plan", "onboarding_summary", "source_context"}),
@@ -38,6 +40,9 @@ ERROR_PATH_CONTRACTS: dict[str, frozenset[str]] = {
     "check_doc_metadata": frozenset({"error", "error_code", "source_context"}),
     "check_doc_links": frozenset({"error", "error_code", "source_context"}),
     "check_quickstart_stale_links": frozenset({"error", "error_code", "source_context"}),
+    "create_backlog_entry": frozenset({"error", "error_code", "source_context"}),
+    "create_session_handoff_draft": frozenset({"error", "error_code", "source_context"}),
+    "create_environment_record_stub": frozenset({"error", "error_code", "source_context"}),
     "suggest_impacted_docs": frozenset({"error", "error_code", "source_context"}),
     "read_only_entrypoint": frozenset({"error", "error_code", "source_context"}),
     "demo_workflow": frozenset({"error", "error_code", "source_context"}),
@@ -124,6 +129,29 @@ READ_ONLY_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         "stale_link_warnings": OutputFieldShape(kind="list", item_kind="string"),
         "reasoning_notes": OutputFieldShape(kind="list", item_kind="string"),
         "warnings": OutputFieldShape(kind="list", item_kind="string"),
+    },
+    "create_session_handoff_draft": {
+        "draft_handoff": OutputFieldShape(kind="list", item_kind="string"),
+        "warnings": OutputFieldShape(kind="list", item_kind="string"),
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"latest_backlog_path"}),
+            properties={
+                "latest_backlog_path": OutputFieldShape(kind="string", allow_null=True),
+            },
+        ),
+    },
+    "create_environment_record_stub": {
+        "draft_record": OutputFieldShape(kind="list", item_kind="string"),
+        "warnings": OutputFieldShape(kind="list", item_kind="string"),
+        "source_context": OutputFieldShape(
+            kind="object",
+            required_keys=frozenset({"hostname", "os_type"}),
+            properties={
+                "hostname": OutputFieldShape(kind="string"),
+                "os_type": OutputFieldShape(kind="string"),
+            },
+        ),
     },
 }
 
@@ -272,16 +300,6 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
         ),
         "warnings": OutputFieldShape(kind="list", item_kind="string"),
         "confidence_notes": OutputFieldShape(kind="list", item_kind="string"),
-        "executed_validation_results": OutputFieldShape(
-            kind="list",
-            item_kind="object",
-            required_keys=frozenset({"command", "status", "summary"}),
-            item_properties={
-                "command": OutputFieldShape(kind="string"),
-                "status": OutputFieldShape(kind="string"),
-                "summary": OutputFieldShape(kind="string"),
-            },
-        ),
         "source_context": OutputFieldShape(
             kind="object",
             required_keys=frozenset({"project_profile_path", "project_name", "changed_files", "change_summary"}),
@@ -290,8 +308,6 @@ HIGH_VALUE_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
                 "project_name": OutputFieldShape(kind="string"),
                 "changed_files": OutputFieldShape(kind="list", item_kind="string"),
                 "change_summary": OutputFieldShape(kind="string"),
-                "completed_commands": OutputFieldShape(kind="list", item_kind="string"),
-                "failed_commands": OutputFieldShape(kind="list", item_kind="string"),
             },
         ),
     },

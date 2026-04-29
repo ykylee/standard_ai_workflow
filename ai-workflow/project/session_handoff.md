@@ -1,80 +1,40 @@
 # 세션 인계 문서
 
-- 문서 목적: 새 세션이나 새 환경에서 이전 작업 상태를 빠르게 복원할 수 있도록 현재 기준 상태를 요약한다.
-- 범위: 진행 중 작업, 차단 작업, 최근 완료 작업, 잔여 작업, 환경별 검증 현황
-- 대상 독자: 개발자, 운영자, 리뷰어, 문서 작성자
-- 상태: draft
-- 최종 수정일: 2026-04-24
-- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
+- 문서 목적: 현재 세션의 작업 결과를 요약하고 다음 세션의 에이전트가 상태를 즉시 복원할 수 있도록 돕는다.
+- 범위: 변경 사항 요약, 진행 중/차단된 작업, 환경 검증 현황
+- 대상 독자: AI 에이전트, 개발자
+- 상태: done
+- 최종 수정일: 2026-04-28
+- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/work_backlog.md`
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선:
-- Standard AI Workflow 저장소의 루트 `README.md`, `requirements-dev.txt`, `tests/README.md`, `ai-workflow/project/*` 를 확인했다.
-- 기존 작업 트리는 다수의 수정/삭제가 있는 상태이므로, 온보딩 문서 갱신은 workflow state docs 범위로 제한한다.
-- 현재 주 작업 축:
-- TASK-001 표준 AI 워크플로우 초기 도입을 실제 저장소 기준으로 정렬한다.
-- 최근 핵심 기준 문서:
-- `README.md`, `tests/README.md`, `core/workflow_state_vs_project_docs.md`, `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
+- 현재 기준선: **Phase 6 편집 정밀화 및 지능형 읽기 도구 최적화 시작**. 빈 프로젝트 오판 버그 수정 및 팀 공유용 문서 최신화 완료.
+- 현재 주 작업 축: THREAD-001 워크플로우 전파 및 THREAD-004 정밀 도구 최적화
 
-## 1.1 기록 원칙
+## 2. Git 작업 이력 기반 요약
 
-- 이 문서는 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다.
-- 사용자에게 직접 보여지는 요약과 작업 보고는 한국어를 기본으로 한다.
-- 코드, 명령어, 파일 경로, 설정 key 는 필요한 경우 원문 그대로 유지한다.
-- 내부 탐색 메모나 장문의 reasoning 기록은 남기지 않고, 결정과 검증 결과 중심으로 정리한다.
+### 주요 변경 사항
+- **Fix**: `bootstrap_workflow_kit.py` 및 관련 라이브러리에서 `ignore_dirs` 인자를 추가하여 빈 프로젝트 도입 시 키트 내부 파일이 검색되는 오판 버그 해결.
+- **Update**: `core/workflow_adoption_entrypoints.md`에 안정성 개선 사례 추가 및 Phase 6 진입 상태 반영.
+- **Update**: `core/maturity_matrix.json`을 2026-04-28 기준으로 최신화 (Phase 6 추가, robust-patcher/smart-reader 반영).
+- **Doc**: 오늘 날짜 백로그(`2026-04-28.md`) 생성 및 전체 운영 문서 점검 완료.
 
-## 2. 진행 중 작업
+## 3. 진행 중 작업
+- N/A (팀 공유를 위한 준비 완료)
 
-- 현재 `in_progress` 작업:
-- TASK-001 표준 AI 워크플로우 초기 도입
+## 4. 차단 작업
+- N/A
 
-연결 계획 문서: [TASK-001 표준 AI 워크플로우 초기 도입 계획](./plans/TASK-001-standard-workflow-onboarding.md)
-이어서 볼 위치: `6. 작업 단계`
+## 5. 최근 완료 작업 (세션 내역)
+- TASK-037 [THREAD-001] 팀 공유 전 전체 워크플로우 문서 전수 점검 및 최신화
+- TASK-036 [THREAD-003] 빈 프로젝트 배포 시 키트 내부 파일 오판 버그 수정
 
-목적은 샘플 bootstrap 값과 TODO 를 현재 저장소의 실제 명령, 문서 구조, 검증 기준으로 교체하는 것이다. 범위는 `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`, `ai-workflow/project/state.json` 이다.
+## 6. 다음 단계
+- [ ] 팀원들에게 워크플로우 공유 및 초기 피드백 수집
+- [ ] Phase 6 `robust-patcher` 실전 테스트 및 고도화
+- [ ] `smart-context-reader`를 활용한 대규모 파일 분석 사례 검증
 
-## 3. 차단 작업
-
-- 현재 `blocked` 작업: 없음
-
-## 4. 최근 완료 작업
-
-- 최근 완료 작업 목록: 아직 없음
-
-## 5. 잔여 작업 우선순위
-
-### 우선순위 1
-
-- `TASK-001` 문서 정렬 후 전체 smoke 실행 필요 여부를 결정한다.
-- workflow state docs 작성 규칙을 skill/parser 쪽 테스트나 템플릿에도 반영할지 검토한다.
-- 큰 작업별 계획 문서 연결 규칙을 bootstrap 산출물과 skill 출력에도 더 깊게 반영할지 검토한다.
-- `TASK-002`부터 `TASK-007`까지 등록한 장기 작업 중 다음 착수 항목을 선택한다.
-
-### 우선순위 2
-
-- 별도 `docs/` 운영 문서 트리를 만들지, 루트 `README.md`/`core/`/`tests/README.md` 체계를 유지할지 결정한다.
-- skill/MCP 도입 후보 범위를 현재 저장소 리스크에 맞게 좁히기
-
-## 6. 환경별 검증 현황
-
-- 검증 완료 호스트:
-- `iyeong-gyun-ui-MacBookAir.local / 192.168.0.139`
-- 주요 제약:
-- macOS `Darwin 25.4.0 arm64`, Python `3.11.15` 기준.
-- `python3 tests/check_docs.py` 통과: 91개 markdown 문서 smoke 확인.
-- `python3 skills/session-start/scripts/run_session_start.py ...` 통과: 경고 없이 진행 중 작업 1건 복원.
-- `ai-workflow/project/state.json` 재생성 완료.
-- 실제 실행에서 발견한 최적화 규칙을 `core/workflow_state_vs_project_docs.md` 에 반영했다.
-- 큰 작업별 계획 문서 연결 규칙을 core 문서, 템플릿, bootstrap 산출물, 현재 `TASK-001` 계획 문서에 반영했다.
-- `session-start` 와 `state.json` 에 계획 문서가 다음 문서로 노출되는 것을 확인했다.
-- 장기 작업 계획 문서 템플릿을 개발, 분석, 리팩터링, 운영, 문서/workflow 등 카테고리 확장형으로 보강했다.
-- 병렬 작업 충돌을 줄이기 위해 날짜별 backlog 경로를 호스트명/IP 폴더 아래로 분리했다.
-- `latest-backlog` 가 중첩 backlog 경로를 재귀 탐색하는 것을 확인했다.
-- 현재 개발 현황을 6개 장기 작업으로 분류하고 개별 계획 문서를 등록했다.
-- 전체 smoke 는 아직 실행하지 않았다.
-
-## 다음에 읽을 문서
-
-- 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+## 7. 환경별 검증 현황
+- 검증 완료 호스트: local
+- 검증 결과: `tmp/repro-issue`를 통한 빈 프로젝트 오판 방지 로직의 정상 작동 확인. 모든 코어 마크다운 문서의 링크 및 메타데이터 무결성 유지.

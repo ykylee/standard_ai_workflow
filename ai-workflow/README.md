@@ -1,17 +1,17 @@
 # Standard AI Workflow Kit
 
-- 문서 목적: `Export Sample` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
+- 문서 목적: `Standard AI Workflow` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-24
+- 최종 수정일: 2026-04-26
 - 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
 
 ## 1. 도입 모드
 
-- 선택한 도입 모드: `new`
+- 선택한 도입 모드: `existing`
 - 요약:
-- 신규 프로젝트용 기본 문서 세트를 생성했다.
+- 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다.
 
 ## 2. 생성된 파일
 
@@ -19,25 +19,31 @@
 - [project/state.json](./project/state.json)
 - [project/session_handoff.md](./project/session_handoff.md)
 - [project/work_backlog.md](./project/work_backlog.md)
-- [project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md](./project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
-
+- [project/backlog/2026-04-26.md](./project/backlog/2026-04-26.md)
+- [project/repository_assessment.md](./project/repository_assessment.md)
 
 ## 3. 코어 문서
 
-- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다.
+- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](./core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 
-- `codex` 하네스용 오버레이 파일 생성
+- `gemini-cli` 하네스용 오버레이 파일 생성
+- `opencode` 하네스용 오버레이 파일 생성
 
 ## 5. 도입 직후 해야 할 일
 
 1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
-2. `state.json`, `session_handoff.md`, 호스트별 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
-3. 여러 세션에 걸칠 큰 작업이면 backlog 항목에 계획 문서 경로를 연결한다.
-4. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
-5. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
-6. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
+2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
+3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
+4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
+5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
@@ -48,7 +54,7 @@
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
-- 문서 위키 홈: `docs/README.md`
+- 문서 위키 홈: `README.md`
 - 운영 문서 위치: `docs/operations/`
 - 백로그 위치: `docs/operations/backlog/`
 - 세션 인계 문서 위치: `docs/operations/session_handoff.md`

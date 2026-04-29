@@ -2,38 +2,24 @@
 
 from __future__ import annotations
 
-from workflow_kit.common.normalize import dedupe_normalized_backticked
-
 
 def build_session_summary(
-    *,
-    changed_files: list[str],
-    handoff_items: list[str],
-    backlog_items: list[str],
+    handoff: dict[str, object], backlog: dict[str, object], profile: dict[str, object]
 ) -> list[str]:
-    lines = [
-        "Session Handoff Summary",
-        "=======================",
-        "",
-        "### Changed Files",
-    ]
-    if changed_files:
-        for item in changed_files:
-            lines.append(f"- `{item}`")
-
-    if handoff_items:
-        lines.append("")
-        lines.append("### Handoff Items")
-        for item in handoff_items:
-            lines.append(f"- {item}")
-
-    if backlog_items:
-        lines.append("")
-        lines.append("### Backlog Items")
-        for item in backlog_items:
-            lines.append(f"- {item}")
-
-    return lines
+    summary: list[str] = []
+    if handoff.get("current_baseline"):
+        summary.append(f"현재 기준선: {handoff['current_baseline']}")
+    if handoff.get("current_axis"):
+        summary.append(f"주 작업 축: {handoff['current_axis']}")
+    if backlog.get("in_progress_items"):
+        summary.append(f"진행 중 작업 {len(backlog['in_progress_items'])}건 확인")
+    elif handoff.get("in_progress_items"):
+        summary.append(f"handoff 기준 진행 중 작업 {len(handoff['in_progress_items'])}건 확인")
+    if handoff.get("constraints"):
+        summary.append(f"주요 제약: {handoff['constraints']}")
+    elif profile.get("constraints"):
+        summary.append(f"프로파일 제약: {profile['constraints']}")
+    return summary[:6]
 
 
 def make_session_recommended_action(

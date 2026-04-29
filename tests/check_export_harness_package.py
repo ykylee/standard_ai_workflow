@@ -12,8 +12,13 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from workflow_kit import __version__ as TOOL_VERSION
+
 EXPORT_SCRIPT = REPO_ROOT / "scripts" / "export_harness_package.py"
-EXPECTED_VERSION = "prototype-v2"
+EXPECTED_VERSION = TOOL_VERSION
 
 
 def main() -> int:

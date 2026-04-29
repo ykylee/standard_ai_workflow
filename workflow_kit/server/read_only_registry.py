@@ -130,6 +130,99 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
         },
     ),
     ReadOnlyToolSpec(
+        name="create_backlog_entry",
+        description="Generate a draft backlog entry JSON for a new task.",
+        script_path=REPO_ROOT / "mcp" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="task_id",
+                cli_flag="--task-id",
+                value_type="string",
+                description="Unique identifier for the task (e.g., TASK-001).",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="task_name",
+                cli_flag="--task-name",
+                value_type="string",
+                description="Short descriptive name of the task.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="request_date",
+                cli_flag="--request-date",
+                value_type="string",
+                description="Date the task was requested (YYYY-MM-DD).",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="status",
+                cli_flag="--status",
+                value_type="string",
+                description="Initial status of the task (default: planned).",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="priority",
+                cli_flag="--priority",
+                value_type="string",
+                description="Priority of the task (default: high).",
+            ),
+        ),
+        payload_example={
+            "task_id": "TASK-009",
+            "task_name": "MCP Server Promotion",
+            "request_date": "2026-04-26",
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="create_session_handoff_draft",
+        description="Generate a draft session handoff document from the latest backlog.",
+        script_path=REPO_ROOT / "mcp" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="latest_backlog_path",
+                cli_flag="--latest-backlog-path",
+                value_type="path",
+                description="Latest dated backlog document to extract task status from.",
+            ),
+            ReadOnlyToolFieldSpec(
+                name="git_summary",
+                cli_flag="--git-summary",
+                value_type="string",
+                description="Optional git summary text to include in the handoff.",
+            ),
+        ),
+        payload_example={
+            "latest_backlog_path": str(REPO_ROOT / "ai-workflow" / "project" / "backlog" / "2026-04-26.md"),
+            "git_summary": "### Git Summary\n- feat: some change",
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="create_environment_record_stub",
+        description="Generate a draft environment record stub for the current host.",
+        script_path=REPO_ROOT / "mcp" / "create-environment-record-stub" / "scripts" / "run_create_environment_record_stub.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="hostname",
+                cli_flag="--hostname",
+                value_type="string",
+                description="Current host name.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="os_type",
+                cli_flag="--os-type",
+                value_type="string",
+                description="Current OS type (e.g., darwin, linux, windows).",
+                required=True,
+            ),
+        ),
+        payload_example={
+            "hostname": "local-dev",
+            "os_type": "darwin",
+        },
+    ),
+    ReadOnlyToolSpec(
         name="check_quickstart_stale_links",
         description="Check quickstart and README entry docs for stale or missing links.",
         script_path=REPO_ROOT / "mcp" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py",
@@ -170,6 +263,80 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
         payload_example={
             "quickstart_paths": [str(REPO_ROOT / "README.md")],
             "work_backlog_index_path": str(REPO_ROOT / "work_backlog.md"),
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="summarize_git_history",
+        description="Summarize git commit history into categories and markdown for handoff.",
+        script_path=REPO_ROOT / "mcp" / "git-history-summarizer" / "scripts" / "run_git_history_summarizer.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="repo_path",
+                cli_flag="--repo-path",
+                value_type="path",
+                description="Path to the git repository.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="commit_range",
+                cli_flag="--range",
+                value_type="string",
+                description="Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+                required=True,
+            ),
+        ),
+        payload_example={
+            "repo_path": ".",
+            "commit_range": "HEAD~3..HEAD",
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="rotate_workflow_logs",
+        description="Rotate old done items from handoff into baseline to prevent bloat.",
+        script_path=REPO_ROOT / "mcp" / "rotate-workflow-logs" / "scripts" / "run_rotate_workflow_logs.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="handoff_path",
+                cli_flag="--handoff-path",
+                value_type="path",
+                description="Path to the session handoff document.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="max_done_items",
+                cli_flag="--max-done-items",
+                value_type="string",
+                description="Maximum number of done items to keep in 'recently done' (default: 10).",
+            ),
+        ),
+        payload_example={
+            "handoff_path": "ai-workflow/project/session_handoff.md",
+            "max_done_items": "5",
+        },
+    ),
+    ReadOnlyToolSpec(
+        name="assess_milestone_progress",
+        description="Analyze milestone progress based on maturity matrix and backlog.",
+        script_path=REPO_ROOT / "mcp" / "milestone-progress" / "scripts" / "run_assess_milestone_progress.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="matrix_path",
+                cli_flag="--matrix-path",
+                value_type="path",
+                description="Path to the maturity matrix JSON.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="backlog_path",
+                cli_flag="--backlog-path",
+                value_type="path",
+                description="Path to the current backlog document.",
+                required=True,
+            ),
+        ),
+        payload_example={
+            "matrix_path": "core/maturity_matrix.json",
+            "backlog_path": "ai-workflow/project/backlog/2026-04-27.md",
         },
     ),
 )

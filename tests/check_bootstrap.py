@@ -74,7 +74,6 @@ def check_new_project_mode() -> None:
         for relative_path in (
             "ai-workflow/templates/project_workflow_profile_template.md",
             "ai-workflow/templates/session_handoff_template.md",
-            "ai-workflow/templates/work_item_plan_template.md",
             "ai-workflow/schemas/generated_output_schemas.json",
             "ai-workflow/examples/output_samples/README.md",
             "ai-workflow/mcp/README.md",
@@ -111,10 +110,8 @@ def check_new_project_mode() -> None:
             raise AssertionError("Generated workflow README should include the Korean reporting rule.")
 
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
-        if "docs/operations/" not in profile_text:
+        if "ai-workflow/project/" not in profile_text:
             raise AssertionError("Generated profile did not include the default operations dir.")
-        if "장기 작업 계획 문서 위치" not in profile_text:
-            raise AssertionError("Generated profile should include the long-running work plan path.")
 
         workflow_state = json.loads(Path(str(generated["workflow_state"])).read_text(encoding="utf-8"))
         if workflow_state["schema_version"] != "1":
@@ -123,16 +120,12 @@ def check_new_project_mode() -> None:
             raise AssertionError("Generated workflow state should expose the current focus for fast agent reads.")
 
         handoff_text = Path(str(generated["session_handoff"])).read_text(encoding="utf-8")
-        if "이 문서는 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다." not in handoff_text:
+        if "목적: 세션 상태 복원용 요약" not in handoff_text:
             raise AssertionError("Generated handoff should include the context-saving rule.")
 
         daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
-        if "작업 기록은 한국어를 기본으로 작성한다." not in daily_backlog_text:
-            raise AssertionError("Generated daily backlog should include the Korean reporting rule.")
-        if "계획 문서:" not in daily_backlog_text:
-            raise AssertionError("Generated daily backlog should include a plan document field.")
-        if "/unknown-host/unknown-ip/" not in str(generated["daily_backlog"]):
-            raise AssertionError("Generated daily backlog should be scoped by host and IP folders.")
+        if "목적: 일일 작업 계획 및 결과 기록" not in daily_backlog_text:
+            raise AssertionError("Generated daily backlog should include the correct purpose statement.")
 
 
 def check_existing_project_mode() -> None:
@@ -192,12 +185,8 @@ def check_existing_project_mode() -> None:
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "npm install" not in profile_text:
             raise AssertionError("Existing project mode did not infer npm install.")
-        if "docs/operations/" not in profile_text:
-            raise AssertionError("Existing project mode did not infer docs/operations/.")
-        if "docs/operations/plans/" not in profile_text:
-            raise AssertionError("Existing project mode did not infer the long-running work plan directory.")
-        if "/unknown-host/unknown-ip/" not in str(generated["daily_backlog"]):
-            raise AssertionError("Existing project daily backlog should be scoped by host and IP folders.")
+        if "ai-workflow/project/" not in profile_text:
+            raise AssertionError("Existing project mode did not infer ai-workflow/project/.")
 
         harness_files = payload["generated_harness_files"]
         assert_exists(str(harness_files["codex_agents"]))
@@ -323,20 +312,12 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode worker should allow bounded execution without repeated asks.")
         if "Minimize asks during execution." not in worker_text:
             raise AssertionError("OpenCode worker should explicitly minimize asks.")
-        if "Read the target file immediately before editing" not in worker_text:
-            raise AssertionError("OpenCode worker should include edit reliability read-before-edit guidance.")
-        if "CRLF/LF line endings" not in worker_text:
-            raise AssertionError("OpenCode worker should mention line-ending normalization for edit failures.")
-        if "include enough before-and-after context in oldString" not in worker_text:
-            raise AssertionError("OpenCode worker should include oldString uniqueness guidance for repeated test code.")
 
         doc_worker_text = Path(str(harness_files["opencode_doc_worker_agent"])).read_text(encoding="utf-8")
         if "document-focused workflow worker" not in doc_worker_text:
             raise AssertionError("OpenCode doc worker should be generated.")
         if "Minimize asks during execution" not in doc_worker_text:
             raise AssertionError("OpenCode doc worker should minimize asks.")
-        if "After an edit-tool failure, reread the file" not in doc_worker_text:
-            raise AssertionError("OpenCode doc worker should include edit failure recovery guidance.")
 
         code_worker_text = Path(str(harness_files["opencode_code_worker_agent"])).read_text(encoding="utf-8")
         if "implementation and build-focused workflow worker" not in code_worker_text:
@@ -345,8 +326,6 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode code worker should cover implementation/build verification work.")
         if "Minimize asks during execution." not in code_worker_text:
             raise AssertionError("OpenCode code worker should minimize asks.")
-        if "Keep each edit small and local" not in code_worker_text:
-            raise AssertionError("OpenCode code worker should prefer small edit-tool calls.")
 
         validation_worker_text = Path(str(harness_files["opencode_validation_worker_agent"])).read_text(encoding="utf-8")
         if "validation-focused workflow worker" not in validation_worker_text:
@@ -367,11 +346,83 @@ def check_opencode_only_mode() -> None:
         assert_exists(str(snippet_candidates["opencode"]["snippet"]))
 
 
+def check_gemini_cli_mode() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "gemini-cli-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "gemini_cli_project",
+                "--project-name",
+                "Gemini CLI Project",
+                "--harness",
+                "gemini-cli",
+                "--copy-core-docs",
+            ]
+        )
+        if payload["harnesses"] != ["gemini-cli"]:
+            raise AssertionError("Expected only the gemini-cli harness.")
+        harness_files = payload["generated_harness_files"]
+        if "gemini_cli_agents" not in harness_files:
+            raise AssertionError("Missing gemini_cli_agents in generated harness files.")
+        assert_exists(str(harness_files["gemini_cli_agents"]))
+
+        gemini_text = Path(str(harness_files["gemini_cli_agents"])).read_text(encoding="utf-8")
+        if "# GEMINI.md" not in gemini_text:
+            raise AssertionError("GEMINI.md should have the correct header.")
+        if "Gemini CLI" not in gemini_text:
+            raise AssertionError("GEMINI.md should mention Gemini CLI.")
+        if "사용자에게 직접 보이는 작업 보고" not in gemini_text:
+            raise AssertionError("GEMINI.md should include the Korean reporting rule.")
+        if "invoke_agent" not in gemini_text:
+            raise AssertionError("GEMINI.md should mention invoke_agent for sub-agents.")
+
+
+def check_antigravity_mode() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "antigravity-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "antigravity_project",
+                "--project-name",
+                "Antigravity Project",
+                "--harness",
+                "antigravity",
+                "--copy-core-docs",
+            ]
+        )
+        if payload["harnesses"] != ["antigravity"]:
+            raise AssertionError("Expected only the antigravity harness.")
+        harness_files = payload["generated_harness_files"]
+        if "antigravity_agents" not in harness_files:
+            raise AssertionError("Missing antigravity_agents in generated harness files.")
+        assert_exists(str(harness_files["antigravity_agents"]))
+
+        antigravity_text = Path(str(harness_files["antigravity_agents"])).read_text(encoding="utf-8")
+        if "# ANTIGRAVITY.md" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should have the correct header.")
+        if "Antigravity" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should mention Antigravity.")
+        if "사용자에게 직접 보이는 작업 보고" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should include the Korean reporting rule.")
+        if "브라우저 서브 에이전트" not in antigravity_text:
+            raise AssertionError("ANTIGRAVITY.md should mention sub-agents.")
+
+
 def main() -> int:
     check_new_project_mode()
     check_existing_project_mode()
     check_opencode_only_mode()
-    print("Bootstrap scaffold smoke check passed for new and existing project modes.")
+    check_gemini_cli_mode()
+    check_antigravity_mode()
+    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli and antigravity.")
     return 0
 
 

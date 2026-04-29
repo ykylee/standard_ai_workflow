@@ -66,6 +66,6 @@
 
 ## 다음에 읽을 문서
 
-- 공통 표준: [../core/global_workflow_standard.md](../core/global_workflow_standard.md)
+- 공통 표준: [../core/global_workflow_standard.md](../../core/global_workflow_standard.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)

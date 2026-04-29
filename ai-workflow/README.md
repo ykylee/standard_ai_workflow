@@ -24,13 +24,13 @@
 
 ## 3. 코어 문서
 
-- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
-- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
-- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
-- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
-- [core/output_schema_guide.md](./core/output_schema_guide.md)
-- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
+- [core/global_workflow_standard.md](../core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](../core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](../core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](../core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](../core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](../core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 

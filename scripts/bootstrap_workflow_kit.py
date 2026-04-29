@@ -37,6 +37,7 @@ HARNESS_PYTHON_DEPS = {
     "gemini-cli": [],
     "codex": [],
     "opencode": [],
+    "antigravity": [],
 }
 HARNESS_NODE_DEPS = {
     "gemini-cli": [],

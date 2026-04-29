@@ -32,6 +32,10 @@ IGNORED_PARTS = {
     ".ruff_cache",
     "dist",
     "build",
+    ".ai-workflow-backups",
+    "tmp",
+    "templates",
+    "releases",
 }
 IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "core"),

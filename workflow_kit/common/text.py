@@ -25,11 +25,20 @@ def normalize_inline_code(value: str) -> str:
 def extract_section_value(lines: list[str], label: str) -> str | None:
     prefix = f"- {label}:"
     for idx, line in enumerate(lines):
-        if line.strip() == prefix and idx + 1 < len(lines):
-            value = lines[idx + 1].strip()
-            if value.startswith("- "):
-                value = value[2:].strip()
-            return normalize_inline_code(value)
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            # 인라인 값 확인 (예: - 레이블: 값)
+            value_part = stripped[len(prefix):].strip()
+            if value_part:
+                return normalize_inline_code(value_part)
+            
+            # 다음 줄 값 확인 (예: - 레이블:\n  - 값)
+            if idx + 1 < len(lines):
+                next_val = lines[idx + 1].strip()
+                if next_val.startswith("- "):
+                    next_val = next_val[2:].strip()
+                if next_val:
+                    return normalize_inline_code(next_val)
     return None
 
 

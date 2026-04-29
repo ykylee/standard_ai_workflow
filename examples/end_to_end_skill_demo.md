@@ -11,7 +11,7 @@
 
 이 문서는 예시 프로젝트를 기준으로 1차 핵심 skill 4종이 실제로 어떤 순서로 이어지는지 보여준다.
 
-현재 프로토타입은 모두 읽기 전용 또는 JSON 초안 생성 단계이며, 실제 문서를 직접 수정하지 않는다. 대신 각 단계에서 무엇을 읽고 어떤 결과를 내는지 빠르게 검증할 수 있다.
+현재 프로토타입은 기본적으로 JSON 초안과 추천을 반환하며, `--apply` 또는 `--scaffold` 옵션을 주면 쓰기/생성 작업을 수행한다. 쓰기 기능은 Beta v1 이후에 정식 도입됐다.
 
 통합 실행 스크립트도 제공한다:
 
@@ -154,6 +154,8 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
   --change-summary "delivery sync 재시도 로직 변경"
 ```
 
+(여기에 `--apply` 옵션을 추가하면, 영향 문서 중 백로그/상태 문서에 변경 감지 메모를 남긴다.)
+
 문서 변경 예시:
 
 ```bash
@@ -186,6 +188,8 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
   --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
 ```
 
+(여기에 `--scaffold` 옵션을 추가하면, 테스트 코드 뼈대 파일(`tests/repro_*.py`)을 자동 생성하고 handoff에 기록한다.)
+
 기대 결과:
 
 - 감지된 변경 유형 목록 출력
@@ -207,6 +211,8 @@ python3 skills/code-index-update/scripts/run_code_index_update.py \
   --changed-file docs/operations/runbooks/delivery-sync.md \
   --change-summary "delivery sync 재시도 로직과 운영 runbook 동시 수정"
 ```
+
+(여기에 `--scaffold` 옵션을 추가하면, 테스트 코드 뼈대 파일(`tests/repro_*.py`)을 자동 생성하고 handoff에 기록한다.)
 
 기대 결과:
 
@@ -253,6 +259,12 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
 python3 scripts/run_demo_workflow.py
 ```
 
+`--apply` 옵션을 주면 쓰기/생성(`--apply`, `--scaffold`) 흐름까지 함께 검증할 수 있다.
+
+```bash
+python3 scripts/run_demo_workflow.py --apply
+```
+
 다른 샘플 프로젝트로 돌려보려면 예제 이름만 바꾸면 된다.
 
 ```bash
@@ -262,7 +274,7 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 ## 11. 현재 한계
 
 - 예시 프로젝트 문서 구조는 단순화된 가상 사례다.
-- 프로토타입은 JSON 추천과 초안 생성 단계까지이며 문서를 직접 수정하지 않는다.
+- 프로토타입 쓰기 기능(`--apply`)은 현재 백로그 갱신, 문서 인덱스 추천 및 state 동기화 위주로 제한되어 있으며, 코드 본문을 직접 리팩토링하지는 않는다.
 - 허브 문서 후보는 실제 프로젝트 문서 구조에 따라 더 정교한 규칙이 필요할 수 있다.
 
 ## 다음에 읽을 문서

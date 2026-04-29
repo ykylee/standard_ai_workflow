@@ -62,7 +62,7 @@
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
 | 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
-| harness overlays | 사용 가능 | `Codex`, `OpenCode` 대상 오버레이 생성 가능 |
+| harness overlays | 사용 가능 | `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity` 대상 오버레이 생성 가능 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 orchestrator task-only 운영 기본 원칙 포함 |
 | harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
 | 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
@@ -88,6 +88,8 @@
 
 - Codex: `AGENTS.md` 와 Codex 설정 예시 중심
 - OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
+- Gemini CLI: `GEMINI.md` 중심
+- Antigravity: `ANTIGRAVITY.md` 중심
 - 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능
 
 ## 5. 로컬 환경 설정 메모
@@ -181,6 +183,7 @@ python3 scripts/bootstrap_workflow_kit.py \
   --project-name "Sample API" \
   --harness codex \
   --harness opencode \
+  --harness antigravity \
   --copy-core-docs
 ```
 
@@ -206,6 +209,8 @@ python3 scripts/bootstrap_workflow_kit.py \
 - `project/repository_assessment.md` (`existing` 모드일 때)
 - `AGENTS.md`, `.codex/config.toml.example` (`codex` 선택 시)
 - `AGENTS.md`, `opencode.json`, `.opencode/...` (`opencode` 선택 시)
+- `GEMINI.md` (`gemini-cli` 선택 시)
+- `ANTIGRAVITY.md` (`antigravity` 선택 시)
 - 선택 시 `core/*.md`
 
 여기서 역할을 명확히 나누면 아래와 같다.
@@ -253,11 +258,11 @@ python3 scripts/export_harness_package.py \
 - 하네스 export 는 `agent_runtime_minimal` 프로필과 버저닝을 도입해, 하네스별 minimal runtime 패키지와 zip 산출물을 실제로 생성할 수 있게 했다.
 - 배포 패키지 루트에는 `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md`, `manifest.json` 이 함께 생성돼 다른 환경에서 바로 읽고 적용할 수 있다.
 
-이번 pre-release 핵심 결과물:
+이번 릴리스 핵심 결과물:
 
-- Codex package: GitHub pre-release asset `standard-ai-workflow-codex-prototype-v2.zip`
-- OpenCode package: GitHub pre-release asset `standard-ai-workflow-opencode-prototype-v2.zip`
-- release note draft: [releases/prototype-v2-pre-release.md](./releases/prototype-v2-pre-release.md)
+- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.3.2-beta.zip`
+- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.3.2-beta.zip`
+- release note: [releases/Beta-v0.3.2.md](./releases/Beta-v0.3.2.md)
 
 ## 11. 현재 한계
 
@@ -281,7 +286,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
 - 상위 로드맵: [core/workflow_kit_roadmap.md](./core/workflow_kit_roadmap.md)
-- pre-release note: [releases/prototype-v2-pre-release.md](./releases/prototype-v2-pre-release.md)
+- release note: [releases/Beta-v0.3.2.md](./releases/Beta-v0.3.2.md)
 - 출력 스키마 가이드: [core/output_schema_guide.md](./core/output_schema_guide.md)
 - 도입 분기 가이드: [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)

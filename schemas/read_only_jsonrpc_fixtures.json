@@ -27,7 +27,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "prototype-v2"
+            "version": "beta-v3.0.1"
           }
         }
       }
@@ -73,7 +73,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "prototype-v2"
+            "version": "beta-v3.0.1"
           }
         }
       }
@@ -204,7 +204,7 @@
         "result": {
           "_meta": {
             "descriptor_target": "mcp_tools_list_draft",
-            "tool_count": 5,
+            "tool_count": 11,
             "transport_ready": false
           },
           "tools": [
@@ -771,6 +771,398 @@
               "annotations": {
                 "readOnlyHint": true
               },
+              "description": "Generate a draft backlog entry JSON for a new task.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "priority": {
+                    "description": "Priority of the task (default: high).",
+                    "type": "string"
+                  },
+                  "request_date": {
+                    "description": "Date the task was requested (YYYY-MM-DD).",
+                    "type": "string"
+                  },
+                  "status": {
+                    "description": "Initial status of the task (default: planned).",
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "description": "Unique identifier for the task (e.g., TASK-001).",
+                    "type": "string"
+                  },
+                  "task_name": {
+                    "description": "Short descriptive name of the task.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "request_date",
+                  "task_id",
+                  "task_name"
+                ],
+                "type": "object"
+              },
+              "name": "create_backlog_entry",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_entry": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {},
+                      "error_code": {},
+                      "source_context": {},
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "draft_entry",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_entry": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "error",
+                      "error_code",
+                      "source_context",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "create_backlog_entry output"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Generate a draft session handoff document from the latest backlog.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "git_summary": {
+                    "description": "Optional git summary text to include in the handoff.",
+                    "type": "string"
+                  },
+                  "latest_backlog_path": {
+                    "description": "Latest dated backlog document to extract task status from.",
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "type": "object"
+              },
+              "name": "create_session_handoff_draft",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_handoff": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {},
+                      "error_code": {},
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "latest_backlog_path": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "latest_backlog_path"
+                        ],
+                        "type": "object"
+                      },
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "draft_handoff",
+                      "source_context",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_handoff": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "error",
+                      "error_code",
+                      "source_context",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "create_session_handoff_draft output"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Generate a draft environment record stub for the current host.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "hostname": {
+                    "description": "Current host name.",
+                    "type": "string"
+                  },
+                  "os_type": {
+                    "description": "Current OS type (e.g., darwin, linux, windows).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "hostname",
+                  "os_type"
+                ],
+                "type": "object"
+              },
+              "name": "create_environment_record_stub",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_record": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {},
+                      "error_code": {},
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {
+                          "hostname": {
+                            "type": "string"
+                          },
+                          "os_type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "hostname",
+                          "os_type"
+                        ],
+                        "type": "object"
+                      },
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "draft_record",
+                      "source_context",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "draft_record": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "error",
+                      "error_code",
+                      "source_context",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "create_environment_record_stub output"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
               "description": "Check quickstart and README entry docs for stale or missing links.",
               "inputSchema": {
                 "additionalProperties": false,
@@ -966,6 +1358,299 @@
                 ],
                 "title": "check_quickstart_stale_links output"
               }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Summarize git commit history into categories and markdown for handoff.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "commit_range": {
+                    "description": "Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+                    "type": "string"
+                  },
+                  "repo_path": {
+                    "description": "Path to the git repository.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "commit_range",
+                  "repo_path"
+                ],
+                "type": "object"
+              },
+              "name": "summarize_git_history",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "summarize_git_history output"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Rotate old done items from handoff into baseline to prevent bloat.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "handoff_path": {
+                    "description": "Path to the session handoff document.",
+                    "type": "string"
+                  },
+                  "max_done_items": {
+                    "description": "Maximum number of done items to keep in 'recently done' (default: 10).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "handoff_path"
+                ],
+                "type": "object"
+              },
+              "name": "rotate_workflow_logs",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "rotate_workflow_logs output"
+              }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Analyze milestone progress based on maturity matrix and backlog.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "backlog_path": {
+                    "description": "Path to the current backlog document.",
+                    "type": "string"
+                  },
+                  "matrix_path": {
+                    "description": "Path to the maturity matrix JSON.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "backlog_path",
+                  "matrix_path"
+                ],
+                "type": "object"
+              },
+              "name": "assess_milestone_progress",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "assess_milestone_progress output"
+              }
             }
           ]
         }
@@ -995,7 +1680,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"prototype-v2\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"beta-v3.0.1\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -1005,7 +1690,7 @@
             ],
             "latest_backlog_path": "examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "prototype-v2",
+            "tool_version": "beta-v3.0.1",
             "warnings": []
           }
         }
@@ -1037,7 +1722,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "prototype-v2",
+            "tool_version": "beta-v3.0.1",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1177,7 +1862,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "prototype-v2"
+              "version": "beta-v3.0.1"
             }
           }
         },
@@ -1188,7 +1873,7 @@
           "result": {
             "_meta": {
               "descriptor_target": "mcp_tools_list_draft",
-              "tool_count": 5,
+              "tool_count": 11,
               "transport_ready": false
             },
             "tools": [
@@ -1755,6 +2440,398 @@
                 "annotations": {
                   "readOnlyHint": true
                 },
+                "description": "Generate a draft backlog entry JSON for a new task.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "priority": {
+                      "description": "Priority of the task (default: high).",
+                      "type": "string"
+                    },
+                    "request_date": {
+                      "description": "Date the task was requested (YYYY-MM-DD).",
+                      "type": "string"
+                    },
+                    "status": {
+                      "description": "Initial status of the task (default: planned).",
+                      "type": "string"
+                    },
+                    "task_id": {
+                      "description": "Unique identifier for the task (e.g., TASK-001).",
+                      "type": "string"
+                    },
+                    "task_name": {
+                      "description": "Short descriptive name of the task.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "request_date",
+                    "task_id",
+                    "task_name"
+                  ],
+                  "type": "object"
+                },
+                "name": "create_backlog_entry",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_entry": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {},
+                        "error_code": {},
+                        "source_context": {},
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "draft_entry",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_entry": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "error",
+                        "error_code",
+                        "source_context",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "create_backlog_entry output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Generate a draft session handoff document from the latest backlog.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "git_summary": {
+                      "description": "Optional git summary text to include in the handoff.",
+                      "type": "string"
+                    },
+                    "latest_backlog_path": {
+                      "description": "Latest dated backlog document to extract task status from.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "type": "object"
+                },
+                "name": "create_session_handoff_draft",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_handoff": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {},
+                        "error_code": {},
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {
+                            "latest_backlog_path": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "latest_backlog_path"
+                          ],
+                          "type": "object"
+                        },
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "draft_handoff",
+                        "source_context",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_handoff": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "error",
+                        "error_code",
+                        "source_context",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "create_session_handoff_draft output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Generate a draft environment record stub for the current host.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "hostname": {
+                      "description": "Current host name.",
+                      "type": "string"
+                    },
+                    "os_type": {
+                      "description": "Current OS type (e.g., darwin, linux, windows).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "hostname",
+                    "os_type"
+                  ],
+                  "type": "object"
+                },
+                "name": "create_environment_record_stub",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_record": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {},
+                        "error_code": {},
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {
+                            "hostname": {
+                              "type": "string"
+                            },
+                            "os_type": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "hostname",
+                            "os_type"
+                          ],
+                          "type": "object"
+                        },
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "draft_record",
+                        "source_context",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "draft_record": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "error",
+                        "error_code",
+                        "source_context",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "create_environment_record_stub output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
                 "description": "Check quickstart and README entry docs for stale or missing links.",
                 "inputSchema": {
                   "additionalProperties": false,
@@ -1950,6 +3027,299 @@
                   ],
                   "title": "check_quickstart_stale_links output"
                 }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Summarize git commit history into categories and markdown for handoff.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "commit_range": {
+                      "description": "Commit range to summarize (e.g., 'HEAD~5..HEAD').",
+                      "type": "string"
+                    },
+                    "repo_path": {
+                      "description": "Path to the git repository.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "commit_range",
+                    "repo_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "summarize_git_history",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "summarize_git_history output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Rotate old done items from handoff into baseline to prevent bloat.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "handoff_path": {
+                      "description": "Path to the session handoff document.",
+                      "type": "string"
+                    },
+                    "max_done_items": {
+                      "description": "Maximum number of done items to keep in 'recently done' (default: 10).",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "handoff_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "rotate_workflow_logs",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "rotate_workflow_logs output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Analyze milestone progress based on maturity matrix and backlog.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "backlog_path": {
+                      "description": "Path to the current backlog document.",
+                      "type": "string"
+                    },
+                    "matrix_path": {
+                      "description": "Path to the maturity matrix JSON.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "backlog_path",
+                    "matrix_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "assess_milestone_progress",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "assess_milestone_progress output"
+                }
               }
             ]
           }
@@ -1989,7 +3359,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "prototype-v2"
+              "version": "beta-v3.0.1"
             }
           }
         },
@@ -2008,6 +3378,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "prototype-v2",
+  "tool_version": "beta-v3.0.1",
   "transport_ready": false
 }

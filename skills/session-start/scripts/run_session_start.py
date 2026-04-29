@@ -53,6 +53,7 @@ def main() -> int:
             error_code="missing_required_document",
             warnings=["session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."],
             source_context=source_context | {"missing_path_detail": str(exc)},
+            recovery_hint="`scripts/bootstrap_workflow_kit.py`를 실행하여 초기 문서를 생성하거나, 인자로 넘어온 경로가 올바른지 확인해야 한다.",
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -60,7 +61,10 @@ def main() -> int:
     warnings: list[str] = []
     try:
         handoff = parse_handoff(session_handoff_path)
+        warnings.extend(handoff.get("warnings", []))
+        
         profile = parse_project_profile_session(project_profile_path)
+        warnings.extend(profile.get("warnings", []))
 
         latest_backlog_path: Path | None
         if args.latest_backlog_path:
@@ -71,9 +75,10 @@ def main() -> int:
                 latest_backlog_path = None
                 warnings.append("최신 backlog 경로를 backlog index 에서 확인하지 못했다.")
 
-        backlog: dict[str, Any] = {"tasks": [], "in_progress_items": [], "blocked_items": [], "done_items": []}
+        backlog: dict[str, Any] = {"tasks": [], "in_progress_items": [], "blocked_items": [], "done_items": [], "warnings": []}
         if latest_backlog_path is not None:
             backlog = parse_backlog(latest_backlog_path)
+            warnings.extend(backlog.get("warnings", []))
 
         warnings.extend(
             compare_state_lists(handoff.get("in_progress_items", []), backlog.get("in_progress_items", []), "in_progress")
@@ -86,18 +91,13 @@ def main() -> int:
                 str(latest_backlog_path) if latest_backlog_path else "",
                 str(project_profile_path),
                 *[str(path) for path in handoff.get("next_documents", []) if path.exists()],
-                *[str(path) for path in backlog.get("linked_documents", []) if isinstance(path, Path) and path.exists()],
             ]
         )
 
         result = {
             "status": "ok",
             "tool_version": TOOL_VERSION,
-            "summary": build_session_summary(
-                changed_files=[],
-                handoff_items=handoff.get("in_progress_items", []),
-                backlog_items=backlog.get("in_progress_items", []),
-            ),
+            "summary": build_session_summary(handoff, backlog, profile),
             "in_progress_items": dedupe_normalized_backticked(
                 handoff.get("in_progress_items", []) + backlog.get("in_progress_items", [])
             ),

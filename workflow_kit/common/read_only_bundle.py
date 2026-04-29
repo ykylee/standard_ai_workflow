@@ -8,6 +8,9 @@ from typing import Any
 
 from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
+from workflow_kit.common.git import summarize_git_history
+from workflow_kit.common.rotation import rotate_handoff_tasks
+from workflow_kit.common.milestones import assess_milestone_progress
 from workflow_kit.common.markdown import (
     find_broken_links,
     markdown_targets,
@@ -41,8 +44,8 @@ def extract_index_candidates(index_path: Path) -> list[Path]:
 
 
 def discover_backlog_files(backlog_dir: Path) -> list[Path]:
-    files = [path for path in backlog_dir.rglob("*.md") if DATE_NAME_RE.search(path.name)]
-    return sorted(files, key=lambda path: (path.name, path.as_posix()))
+    files = [path for path in backlog_dir.glob("*.md") if DATE_NAME_RE.search(path.name)]
+    return sorted(files, key=lambda path: path.name)
 
 
 def latest_backlog_payload(*, backlog_dir_path: str | None, work_backlog_index_path: str | None, tool_version: str) -> dict[str, Any]:
@@ -209,5 +212,238 @@ def check_quickstart_stale_links_payload(
         "missing_expected_links": missing_expected_links,
         "stale_link_warnings": stale_link_warnings,
         "reasoning_notes": reasoning_notes,
+        "warnings": [],
+    }
+
+
+def create_backlog_entry_payload(
+    *,
+    task_id: str,
+    task_name: str,
+    request_date: str,
+    status: str | None,
+    priority: str | None,
+    tool_version: str,
+) -> dict[str, Any]:
+    draft_entry = [
+        f"## {task_id} {task_name}",
+        "",
+        f"- 상태: {status or 'planned'}",
+        f"- 우선순위: {priority or 'high'}",
+        f"- 요청일: {request_date}",
+        "- 완료일:",
+        "- 담당:",
+        "- 호스트명:",
+        "- 호스트 IP:",
+        "- 영향 문서:",
+        "- 작업 내용:",
+        "- 진행 현황:",
+        "- 완료 기준:",
+        "- 작업 결과:",
+        "- 다음 세션 시작 포인트:",
+        "- 남은 리스크:",
+        "- 후속 작업:",
+    ]
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "draft_entry": draft_entry,
+        "warnings": [],
+    }
+
+
+def create_session_handoff_draft_payload(
+    *,
+    latest_backlog_path: str | None,
+    git_summary: str | None = None,
+    tool_version: str,
+) -> dict[str, Any]:
+    warnings: list[str] = []
+    done_items: list[str] = []
+    in_progress_items: list[str] = []
+
+    if latest_backlog_path:
+        path = resolve_existing_path(latest_backlog_path)
+        content = path.read_text(encoding="utf-8")
+        # Simple markdown section extractor
+        current_section = ""
+        for line in content.splitlines():
+            if line.startswith("## "):
+                current_section = line[3:].strip()
+            elif "- 상태: done" in line:
+                if current_section:
+                    done_items.append(current_section)
+            elif "- 상태: in_progress" in line:
+                if current_section:
+                    in_progress_items.append(current_section)
+
+    if not done_items and not in_progress_items:
+        warnings.append("최신 백로그에서 진행 중이거나 완료된 작업을 찾지 못했다.")
+
+    draft_handoff = [
+        "# 세션 인계 문서 (초안)",
+        "",
+        "- 상태: draft",
+        f"- 생성일: {Path(latest_backlog_path).stem if latest_backlog_path else 'N/A'}",
+        "",
+        "## 1. 현재 작업 요약",
+        "",
+        "- 현재 기준선: N/A",
+        "- 현재 주 작업 축: N/A",
+        "",
+    ]
+    
+    if git_summary:
+        draft_handoff.extend([
+            "## 2. Git 작업 이력 기반 요약",
+            "",
+            git_summary,
+            "",
+        ])
+
+    draft_handoff.extend([
+        "## 3. 진행 중 작업",
+        "",
+    ])
+    for item in in_progress_items:
+        draft_handoff.append(f"- {item}")
+    if not in_progress_items:
+        draft_handoff.append("- N/A")
+
+    draft_handoff.extend([
+        "",
+        "## 4. 차단 작업",
+        "",
+        "- N/A",
+        "",
+        "## 5. 최근 완료 작업",
+        "",
+    ])
+    for item in done_items:
+        draft_handoff.append(f"- {item}")
+    if not done_items:
+        draft_handoff.append("- N/A")
+
+    draft_handoff.extend([
+        "",
+        "## 6. 잔여 작업 우선순위",
+        "",
+        "### 우선순위 1",
+        "",
+        "- [ ] 다음 단계 작업 명시",
+        "",
+        "## 7. 환경별 검증 현황",
+        "",
+        "- 검증 완료 호스트: local",
+    ])
+
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "draft_handoff": draft_handoff,
+        "source_context": {
+            "latest_backlog_path": latest_backlog_path,
+            "has_git_summary": bool(git_summary)
+        },
+        "warnings": warnings,
+    }
+
+
+def create_environment_record_stub_payload(
+    *,
+    hostname: str,
+    os_type: str,
+    tool_version: str,
+) -> dict[str, Any]:
+    draft_record = [
+        "## 환경 및 호스트 정보",
+        "",
+        f"- 호스트명: {hostname}",
+        f"- OS 유형: {os_type}",
+        "- Python 버전: N/A",
+        "- 주요 가상환경: .venv",
+        "- 프로젝트 루트: N/A",
+        "",
+        "### 검증 도구 상태",
+        "",
+        "- [ ] git",
+        "- [ ] python3",
+        "- [ ] pip",
+        "",
+        "### 특이 사항",
+        "",
+        "- N/A",
+    ]
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "draft_record": draft_record,
+        "source_context": {"hostname": hostname, "os_type": os_type},
+        "warnings": [],
+    }
+
+
+def summarize_git_history_payload(
+    *,
+    repo_path: str,
+    commit_range: str,
+    tool_version: str,
+) -> dict[str, Any]:
+    resolved_repo_path = resolve_existing_path(repo_path)
+    summary_data = summarize_git_history(resolved_repo_path, commit_range)
+
+    from dataclasses import asdict
+
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "commit_count": summary_data["commit_count"],
+        "range": commit_range,
+        "markdown": summary_data["markdown"],
+        "entries": [asdict(e) for e in summary_data["entries"]],
+        "warnings": [],
+    }
+
+
+def rotate_workflow_logs_payload(
+    *,
+    handoff_path: str,
+    max_done_items: int = 10,
+    tool_version: str,
+) -> dict[str, Any]:
+    path = resolve_existing_path(handoff_path)
+    result = rotate_handoff_tasks(path, max_done_items)
+    
+    return {
+        "status": "ok" if result["status"] == "ok" else "error",
+        "tool_version": tool_version,
+        "rotated": result.get("rotated", False),
+        "rotated_count": result.get("rotated_count", 0),
+        "remaining_count": result.get("remaining_count", 0),
+        "rotated_items": result.get("rotated_items", []),
+        "written_paths": [str(path)] if result.get("rotated") else [],
+        "warnings": [],
+    }
+
+
+def assess_milestone_progress_payload(
+    *,
+    matrix_path: str,
+    backlog_path: str,
+    tool_version: str,
+) -> dict[str, Any]:
+    matrix_p = resolve_existing_path(matrix_path)
+    backlog_p = resolve_existing_path(backlog_path)
+    result = assess_milestone_progress(matrix_p, backlog_p)
+    
+    return {
+        "status": "ok" if result["status"] == "ok" else "error",
+        "tool_version": tool_version,
+        "milestone_id": result.get("milestone_id"),
+        "milestone_name": result.get("milestone_name"),
+        "progress_percentage": result.get("progress"),
+        "done_count": result.get("done_count", 0),
+        "total_count": result.get("total_count", 0),
+        "suggestion": result.get("suggestion"),
         "warnings": [],
     }

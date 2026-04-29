@@ -7,62 +7,38 @@
 - 최종 수정일: 2026-04-23
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
-## 1. 현재 단계
+## 1. 현재 단계 (Phase 4: Beta/Pilot)
 
-현재 저장소는 아래 4단계 중 3단계 중후반에 해당한다.
+현재 저장소는 아래 5단계 중 **4단계 진입** 상태다.
 
-1. 개념 정리 단계
-2. 표준 문서와 템플릿 분리 단계
-3. 실행 가능한 프로토타입 도입 단계
-4. 다수 프로젝트 실운영 검증 단계
+1. 개념 정리 단계 (완료)
+2. 표준 문서와 템플릿 분리 단계 (완료)
+3. 실행 가능한 프로토타입 도입 단계 (완료)
+4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 (진행 중)
+5. 운영 지능화 및 품질 거버넌스 단계 (완료)
 
-현재 판단 근거:
+현재 판단 근거 (2026-04-27 기준):
 
-- 공통 표준, 템플릿, 카탈로그 문서가 정리돼 있다.
-- 샘플 프로젝트 문서 세트가 있다.
-- 문서 무결성 검사 스크립트가 있다.
-- 1차 핵심 skill 4종과 2차 skill 2종에 상세 스펙과 실행형 프로토타입이 있다.
-- 우선순위 1 MCP 5종에 프로토타입 구조와 실행 스크립트가 있다.
-- skill/MCP 모두 end-to-end 데모 문서가 있다.
-- skill 통합 demo runner 가 실제로 순차 실행된다.
-- 출력 스키마 가이드와 대표 JSON 샘플 허브가 있다.
-- bootstrap, harness overlay, harness package export 까지 동작한다.
-- 기존 프로젝트 bootstrap 이후 후속 온보딩 runner 가 있다.
-- demo/onboarding runner 모두 상위 `source_context` 와 step 실패 구조화 패턴을 가진다.
-- 2차 MCP 후보인 `check_quickstart_stale_links` 프로토타입이 있다.
-- reusable package / MCP server 승격 범위 문서가 있다.
-- `workflow_kit/common` 패키지 루트와 공통 파서/분류/helper 추출이 진행 중이다.
-- read-only MCP 1차 묶음은 direct-call entrypoint, draft transport descriptor, JSON-RPC fixture bridge, optional official SDK candidate, export 산출물, 승격 기준 spec 까지 갖춘 상태다.
-- `tests/check_*.py` 기준 smoke CI 가 GitHub Actions 로 연결돼 있다.
+- **운영 지능화 도구 확보**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` MCP 도구 구현 및 실전 통합 완료.
+- **자동 재현 스캐폴딩**: `automated-repro-scaffold` 스킬 프로토타입 구현으로 버그 재현 자동화 기반 마련.
+- **문서 비대화 관리**: 핸드오프 로테이션 자동화로 장기 운영 안정성 확보.
 
-아직 4단계가 아닌 이유:
+## 1.1 현재 릴리즈 기준 정리 (Beta v2)
 
-- 정식 MCP SDK server packaging 과 transport loop 의 실사용 검증은 아직 없고, 현재는 optional official SDK candidate 까지만 추가된 상태다.
-- skill, MCP, runner 출력 계약은 문서화됐고 runtime contract 기반 generated JSON Schema 와 대표 sample 검증까지 추가됐지만, 모든 nested payload 를 완전히 엄격한 schema 로 고정한 것은 아니다.
-- 여러 실제 프로젝트에 시범 적용한 결과가 없다.
-- read-only MCP 는 다음 릴리즈 승격 대상으로 남겨두었고, 이번 릴리즈의 중심은 workflow/skill 온보딩과 실적용 준비다.
-- 공통 라이브러리 추출은 `workflow_kit/common` 기준으로 skill helper 와 runner helper 까지 확장된 착수 상태다.
+`Beta v2` (2026-04-26) 기준으로 완료된 성과:
 
-## 1.1 현재 릴리즈 기준 정리
+- **쓰기 파이프라인 완성**: 모든 핵심 스킬에 `--apply` 또는 `--scaffold` 옵션 도입.
+- **지능형 온보딩**: `project-status-assessment`를 통해 기존 프로젝트 도입 비용 획기적 절감.
+- **통합 데모 러너**: `run_demo_workflow.py`를 통해 전 과정 E2E 시나리오(쓰기 포함) 재현 가능.
+- **의존성 자동 관리**: `bootstrap` 도구가 Python/Node 환경에 맞춰 도구 의존성을 자동 설정.
+- **출력 계약 엄격화**: 모든 도구가 표준 에러 코드와 `source_context`를 포함한 구조화된 JSON 출력을 제공.
 
-`prototype-v1` pre-release 기준으로 이번 릴리즈의 완료/이관 범위는 아래처럼 정리된다.
+다음 릴리즈(Phase 5)로 넘긴 것:
 
-이번 릴리즈에서 완료된 것:
-
-- workflow/skill 중심 온보딩 진입점 재정렬
-- existing-project onboarding runner 와 skill 묶음 소비 순서 정리
-- skill 6종 중 누락돼 있던 `session-start`, `doc-sync`, `merge-doc-reconcile` 개별 smoke 기준선 추가
-- orchestration runner 결과에 `runner_inputs` 와 `execution_trace` 를 추가해 하네스 소비용 상위 메타데이터를 보강
-- read-only JSON-RPC bridge 안정화와 official MCP SDK candidate 준비
-- Python 3.11 + `mcp[cli]` 개발 기준선과 stdio smoke 추가
-- 하네스별 minimal runtime package export, 버저닝, package/apply guide 생성
-
-다음 릴리즈로 넘긴 것:
-
-- official MCP SDK server 기본 활성화
-- 하네스 MCP 자동 연결과 descriptor 승격
-- 실제 파일럿 저장소 다건 적용 결과 일반화
-- packaging/changelog 자동화
+- **운영 지능화**: `git_history_summarizer`, `workflow_log_rotator` 등 MCP 도구의 실전 통합.
+- **자동 재현 뼈대**: `automated-repro-scaffold` 스킬의 본격적인 AI 에이전트 연동.
+- **품질 대시보드**: 워크플로우 운영 지표 및 품질 점수 시각화 가이드.
+- **공식 MCP SDK 정식 승격**: 읽기 전용을 넘어선 양방향 MCP 서버 구조 확립.
 
 ## 2. 현재 자산
 
@@ -104,6 +80,8 @@
 - 기존 프로젝트 온보딩 runner: [../scripts/run_existing_project_onboarding.py](../scripts/run_existing_project_onboarding.py)
 - read-only MCP transport 승격 기준: [read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 
+5. 운영 지능화 및 품질 거버넌스 단계 (Next Phase)
+
 ## 3. 상위 목표
 
 다음 단계의 상위 목표는 아래 세 가지다.
@@ -111,8 +89,19 @@
 1. 문서와 프로토타입을 공용 계약 중심으로 정리한다.
 2. 개별 프로토타입을 연결해 실제 workflow kit 형태를 만든다.
 3. 둘 이상의 실제 프로젝트에서 적용 가능한 수준까지 검증한다.
+4. (New) 워크플로우 운영 데이터를 지능적으로 요약하고 품질을 자동 관리한다.
 
 ## 4. 현재까지 완료된 축
+...
+## 5. 다음 우선순위 로드맵
+...
+### 우선순위 6: 운영 지능화 및 품질 거버넌스 (Phase 5) - 완료
+
+성과:
+- 에이전트가 자신의 작업 이력을 Git 기반으로 자동 요약(`summarize_git_history`)할 수 있다.
+- 워크플로우 문서 간의 불일치가 `workflow-linter`와 `rotate_workflow_logs`에 의해 관리된다.
+- `assess_milestone_progress`를 통해 마일스톤 진척도가 80%를 넘을 경우 전환이 자동으로 제안된다.
+- `automated-repro-scaffold`를 통해 버그 재현 샌드박스를 자동으로 구축할 수 있다.
 
 ### 완료 또는 사용 가능한 상태
 

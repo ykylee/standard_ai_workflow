@@ -262,6 +262,7 @@ def build_runner_success_result(
     orchestration_plan: dict[str, Any],
     source_context: dict[str, Any],
     extra_fields: dict[str, Any],
+    written_paths: list[str] | None = None,
     runner_inputs: dict[str, Any] | None = None,
     execution_trace: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -272,6 +273,7 @@ def build_runner_success_result(
         "tool_version": tool_version,
         "warnings": warnings,
         "orchestration_plan": orchestration_plan,
+        "written_paths": written_paths or [],
         "runner_inputs": runner_inputs or {},
         "execution_trace": execution_trace or [],
         **extra_fields,

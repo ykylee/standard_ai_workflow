@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.change_types import classify_index_change_kinds, dedupe
 from workflow_kit.common.exploration_scope import filter_project_scope_paths, is_workflow_meta_path
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.paths import (
     declared_doc_path_from_profile,
     path_exists_from_profile,
@@ -24,6 +26,8 @@ from workflow_kit.common.paths import (
     resolve_existing_path,
 )
 from workflow_kit.common.project_docs import parse_project_profile_core
+from workflow_kit.common.workflow_state import refresh_workflow_state_cache
+from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading, update_next_documents_section
 
 
 def infer_missing_index_targets(changed_files: list[str]) -> list[str]:
@@ -183,6 +187,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--work-backlog-index-path")
     parser.add_argument("--session-handoff-path")
     parser.add_argument("--change-summary")
+    parser.add_argument("--apply", action="store_true")
     return parser.parse_args()
 
 
@@ -209,7 +214,7 @@ def main() -> int:
 
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        profile = parse_project_profile_core(project_profile_path)
+        profile_data = parse_project_profile_core(project_profile_path)
         repo_root = project_workspace_root(project_profile_path)
 
         work_backlog_index_path = (
@@ -218,23 +223,95 @@ def main() -> int:
         session_handoff_path = resolve_existing_path(args.session_handoff_path) if args.session_handoff_path else None
 
         filtered_changed_files = filter_project_scope_paths(args.changed_files)
-        result = build_index_plan(
+        plan_details = build_index_plan(
             project_profile_path=project_profile_path,
             repo_root=repo_root,
-            profile=profile,
+            profile=profile_data,
             changed_files=filtered_changed_files,
             work_backlog_index_path=work_backlog_index_path,
             session_handoff_path=session_handoff_path,
             change_summary=args.change_summary,
         )
-        result["status"] = "ok"
-        result["tool_version"] = TOOL_VERSION
-        result["source_context"] = {
-            "project_profile_path": str(project_profile_path),
-            "project_name": profile.get("project_name"),
-            "changed_files": filtered_changed_files,
-            "change_summary": args.change_summary,
+
+        if "warnings" in profile_data:
+            plan_details["warnings"] = dedupe(plan_details.get("warnings", []) + profile_data["warnings"])
+        
+        result = {
+            "status": "ok",
+            "tool_version": TOOL_VERSION,
+            **plan_details,
+            "source_context": {
+                "project_profile_path": str(project_profile_path),
+                "project_name": profile_data.get("project_name"),
+                "changed_files": filtered_changed_files,
+                "change_summary": args.change_summary,
+            },
         }
+
+        apply_result = {
+            "status": "skipped",
+            "written_paths": [],
+            "warnings": [],
+        }
+
+        if args.apply and session_handoff_path:
+            # 1. '다음에 읽을 문서' 섹션 갱신
+            # 중요도 높은 후보와 일반 후보 병합
+            all_candidates = dedupe(plan_details.get("priority_index_candidates", []) + plan_details.get("index_update_candidates", []))
+            links = []
+            for path_str in all_candidates:
+                target_path = Path(path_str)
+                if not target_path.is_absolute():
+                    target_path = (repo_root / target_path).resolve()
+                
+                if not target_path.exists():
+                    continue
+                
+                # 자기 자신(session_handoff.md)은 제외
+                if target_path.resolve() == session_handoff_path.resolve():
+                    continue
+
+                rel_link = rel_link_from_doc(session_handoff_path, target_path)
+                label = target_path.name
+                links.append(f"[{label}]({rel_link})")
+            
+            if links:
+                if update_next_documents_section(doc_path=session_handoff_path, links=links):
+                    apply_result["status"] = "applied"
+                    apply_result["written_paths"].append(str(session_handoff_path))
+
+            # 2. '현재 세션 운영 메모'에 권장 조치 추가
+            actions = plan_details.get("suggested_index_actions", [])
+            if actions:
+                bullets = [f"[code-index-update] {action}" for action in actions]
+                if append_unique_bullets_under_heading(
+                    doc_path=session_handoff_path, heading="현재 세션 운영 메모", bullets=bullets
+                ):
+                    apply_result["status"] = "applied"
+                    if str(session_handoff_path) not in apply_result["written_paths"]:
+                        apply_result["written_paths"].append(str(session_handoff_path))
+            
+            # 3. state.json 갱신
+            latest_backlog_path = None # 여기서 정확히 알기 어려우면 None으로 전달
+            state_refresh = refresh_workflow_state_cache(
+                project_profile_path=project_profile_path,
+                session_handoff_path=session_handoff_path,
+                work_backlog_index_path=work_backlog_index_path,
+                latest_backlog_path=None,
+                generated_at=date.today().isoformat(),
+            )
+            if state_refresh["status"] == "refreshed":
+                apply_result["status"] = "applied"
+                state_json_path = state_refresh["state_path"]
+                if state_json_path not in apply_result["written_paths"]:
+                    apply_result["written_paths"].append(state_json_path)
+
+            result["apply_status"] = apply_result["status"]
+            result["written_paths"] = apply_result["written_paths"]
+        elif args.apply:
+            result["apply_status"] = "skipped"
+            result["warnings"].append("session_handoff.md 경로가 없어 code-index-update apply 모드를 건너뛰었다.")
+
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,

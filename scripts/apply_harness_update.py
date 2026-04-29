@@ -20,6 +20,12 @@ MANAGED_RELATIVE_PATHS = [
     Path(".opencode"),
 ]
 
+PRESERVE_RELATIVE_PATHS = [
+    Path("ai-workflow/project/project_workflow_profile.md"),
+    Path("ai-workflow/project/session_handoff.md"),
+    Path("ai-workflow/project/state.json"),
+]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -51,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Show what would be backed up and replaced without writing files.",
+    )
+    parser.add_argument(
+        "--preserve-data",
+        action="store_true",
+        help="Preserve user data (profile/handoff/state.json/backlog) during update.",
     )
     return parser.parse_args()
 
@@ -171,7 +182,11 @@ def main() -> int:
     backed_up_paths: list[str] = []
 
     changes_to_apply: list[tuple[Path, Path, bool]] = []
+    preserve_path_strings = {p.as_posix() for p in PRESERVE_RELATIVE_PATHS}
     for rel_path in managed_paths:
+        if args.preserve_data and rel_path.as_posix() in preserve_path_strings:
+            skipped_paths.append(rel_path.as_posix())
+            continue
         source_path = bundle_root / rel_path
         target_path = target_root / rel_path
         source_signature = path_signature(source_path)

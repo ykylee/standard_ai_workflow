@@ -847,6 +847,9 @@
               },
               "type": "array"
             },
+            "error": {},
+            "error_code": {},
+            "source_context": {},
             "status": {
               "enum": [
                 "ok",
@@ -906,6 +909,9 @@
             }
           },
           "required": [
+            "error",
+            "error_code",
+            "source_context",
             "status",
             "tool_version",
             "warnings"
@@ -914,6 +920,209 @@
         }
       ],
       "title": "create_backlog_entry output"
+    },
+    "create_environment_record_stub": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "properties": {
+            "draft_record": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "error": {},
+            "error_code": {},
+            "source_context": {
+              "additionalProperties": true,
+              "properties": {
+                "hostname": {
+                  "type": "string"
+                },
+                "os_type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hostname",
+                "os_type"
+              ],
+              "type": "object"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "warning"
+              ]
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "draft_record",
+            "source_context",
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": true,
+          "properties": {
+            "draft_record": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "error": {
+              "type": "string"
+            },
+            "error_code": {
+              "type": "string"
+            },
+            "source_context": {
+              "additionalProperties": true,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "status": {
+              "const": "error"
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "error",
+            "error_code",
+            "source_context",
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        }
+      ],
+      "title": "create_environment_record_stub output"
+    },
+    "create_session_handoff_draft": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "properties": {
+            "draft_handoff": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "error": {},
+            "error_code": {},
+            "source_context": {
+              "additionalProperties": true,
+              "properties": {
+                "latest_backlog_path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "latest_backlog_path"
+              ],
+              "type": "object"
+            },
+            "status": {
+              "enum": [
+                "ok",
+                "warning"
+              ]
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "draft_handoff",
+            "source_context",
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": true,
+          "properties": {
+            "draft_handoff": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "error": {
+              "type": "string"
+            },
+            "error_code": {
+              "type": "string"
+            },
+            "source_context": {
+              "additionalProperties": true,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "status": {
+              "const": "error"
+            },
+            "tool_version": {
+              "type": "string"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "error",
+            "error_code",
+            "source_context",
+            "status",
+            "tool_version",
+            "warnings"
+          ],
+          "type": "object"
+        }
+      ],
+      "title": "create_session_handoff_draft output"
     },
     "demo_workflow": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3192,29 +3401,6 @@
             },
             "error": {},
             "error_code": {},
-            "executed_validation_results": {
-              "items": {
-                "additionalProperties": true,
-                "properties": {
-                  "command": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  },
-                  "summary": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "command",
-                  "status",
-                  "summary"
-                ],
-                "type": "object"
-              },
-              "type": "array"
-            },
             "recommended_commands": {
               "items": {
                 "additionalProperties": true,
@@ -3247,18 +3433,6 @@
                   "type": "string"
                 },
                 "changed_files": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "completed_commands": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "failed_commands": {
                   "items": {
                     "type": "string"
                   },
@@ -3369,29 +3543,6 @@
             },
             "error_code": {
               "type": "string"
-            },
-            "executed_validation_results": {
-              "items": {
-                "additionalProperties": true,
-                "properties": {
-                  "command": {
-                    "type": "string"
-                  },
-                  "status": {
-                    "type": "string"
-                  },
-                  "summary": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "command",
-                  "status",
-                  "summary"
-                ],
-                "type": "object"
-              },
-              "type": "array"
             },
             "recommended_commands": {
               "items": {

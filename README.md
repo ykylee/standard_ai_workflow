@@ -4,7 +4,7 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서, 분리 체크리스트
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-04-29
 - 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
 - 상태 진단 문서: `./core/project_status_assessment.md`
 - 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
@@ -264,7 +264,13 @@ python3 scripts/export_harness_package.py \
 - OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.3.2-beta.zip`
 - release note: [releases/Beta-v0.3.2.md](./releases/Beta-v0.3.2.md)
 
-## 11. 현재 한계
+## 11. 2026-04-29 개발 종합 정리
+
+이번 업데이트는 CI 및 로컬 환경에서 발생하는 git 이력 기반 테스트 실패를 수정했다.
+
+- 얕은 복제(shallow clone)나 초기 커밋 상태의 레포지토리에서 `HEAD~n` 형식의 범위를 조회할 때 발생하는 오류를 방지하기 위해 `tests/check_handoff_git_integration.py` 및 `tests/check_git_history_summarizer.py`의 기본 검증 범위를 `HEAD`로 변경했다.
+
+## 12. 현재 한계
 
 - 이 저장소는 문서 패키지 성격이 강하지만, 동시에 skill/MCP/runner 프로토타입과 공통 Python package 를 함께 포함하는 작업 저장소다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
@@ -273,7 +279,7 @@ python3 scripts/export_harness_package.py \
 - 다중 실제 저장소 적용 기록과 CI 실패 원인 분류 고도화는 아직 저장소 내부에 충분히 포함되지 않았다.
 - 공식 MCP SDK server candidate 는 준비됐지만, 기본 배포/하네스 적용 경로는 이번 릴리즈에서 의도적으로 제외했다.
 
-## 12. 수동 대체 원칙
+## 13. 수동 대체 원칙
 
 skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 가능해야 한다.
 
@@ -281,7 +287,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 프로젝트 특화 규칙: `templates/project_workflow_profile_template.md`
 - 상태 문서 템플릿: `templates/`
 
-## 다음에 읽을 문서
+## 14. 다음에 읽을 문서
 
 - 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)

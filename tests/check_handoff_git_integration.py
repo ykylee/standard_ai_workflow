@@ -13,7 +13,7 @@ def test_handoff_git_integration():
     cmd = [
         "python3", "mcp/create-session-handoff-draft/scripts/run_create_session_handoff_draft.py",
         "--latest-backlog-path", latest_backlog,
-        "--git-range", "HEAD~3..HEAD"
+        "--git-range", "HEAD"
     ]
     
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -24,7 +24,7 @@ def test_handoff_git_integration():
     
     draft_text = "\n".join(payload["draft_handoff"])
     assert "Git 작업 이력 기반 요약" in draft_text
-    assert "Git 작업 요약 (HEAD~3..HEAD)" in draft_text
+    assert "Git 작업 요약 (HEAD)" in draft_text
     
     print("  [OK] Handoff draft contains git summary")
     print("All tests passed for handoff-git integration!")

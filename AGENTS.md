@@ -4,7 +4,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-24
+- 최종 수정일: 2026-04-29
 - 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
 
 ## 목적

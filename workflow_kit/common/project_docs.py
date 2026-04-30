@@ -121,7 +121,27 @@ def parse_handoff(path: Path) -> dict[str, object]:
 
 
 def parse_backlog(path: Path) -> dict[str, object]:
-    parser = WorkflowDocParser(path)
+    lines: Iterable[str]
+    if not path.exists():
+        tasks_dir = path.parent / "tasks"
+        task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
+        if not task_files:
+            return {
+                "tasks": [],
+                "in_progress_items": [],
+                "blocked_items": [],
+                "done_items": [],
+                "warnings": [f"백로그 파일({path.name}) 및 태스크 파일을 찾을 수 없습니다."],
+            }
+        lines = []
+        for tf in task_files:
+            lines.extend(tf.read_text(encoding="utf-8").splitlines())
+            lines.append("")
+        parser = WorkflowDocParser(path)
+        parser.lines = iter(lines)
+    else:
+        parser = WorkflowDocParser(path)
+
     tasks: list[dict[str, str]] = []
     current_task: dict[str, str] | None = None
 
@@ -156,9 +176,21 @@ def parse_backlog(path: Path) -> dict[str, object]:
 
 
 def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
+    lines: Iterable[str]
     if not path.exists():
-        return []
-    parser = WorkflowDocParser(path)
+        tasks_dir = path.parent / "tasks"
+        task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
+        if not task_files:
+            return []
+        lines = []
+        for tf in task_files:
+            lines.extend(tf.read_text(encoding="utf-8").splitlines())
+            lines.append("")
+        parser = WorkflowDocParser(path)
+        parser.lines = iter(lines)
+    else:
+        parser = WorkflowDocParser(path)
+        
     tasks: list[dict[str, str | None]] = []
     current_task: dict[str, str | None] | None = None
     for idx, line in enumerate(parser.lines):

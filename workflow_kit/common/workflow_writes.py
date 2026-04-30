@@ -80,35 +80,26 @@ def render_daily_backlog_header(*, backlog_path: Path) -> list[str]:
 
 
 def upsert_backlog_entry(*, backlog_path: Path, task_id: str, entry_lines: list[str]) -> str:
-    lines = _read_lines(backlog_path)
-    if not lines:
-        lines = render_daily_backlog_header(backlog_path=backlog_path)
-
+    # 1. Create tasks directory
+    tasks_dir = backlog_path.parent / "tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Write individual task file
+    task_file = tasks_dir / f"{backlog_path.stem}_{task_id}.md"
+    action = "updated" if task_file.exists() else "created"
+    _write_lines(task_file, entry_lines)
+    
+    # 3. Aggregate all tasks for this date into backlog_path
+    task_files = sorted(tasks_dir.glob(f"{backlog_path.stem}_*.md"))
+    
+    lines = render_daily_backlog_header(backlog_path=backlog_path)
     lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
-    lines = _ensure_related_doc_links(lines, backlog_path=backlog_path)
-
-    header_prefix = f"## {task_id} "
-    start: int | None = None
-    end: int | None = None
-    for idx, line in enumerate(lines):
-        if line.startswith(header_prefix):
-            start = idx
-            end = idx + 1
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
-            break
-
-    updated = list(lines)
-    if start is None:
-        if updated and updated[-1] != "":
-            updated.append("")
-        updated.extend(entry_lines)
-        action = "created"
-    else:
-        updated = updated[:start] + entry_lines + updated[end:]
-        action = "updated"
-
-    _write_lines(backlog_path, updated)
+    
+    for tf in task_files:
+        lines.append("")
+        lines.extend(_read_lines(tf))
+        
+    _write_lines(backlog_path, lines)
     return action
 
 

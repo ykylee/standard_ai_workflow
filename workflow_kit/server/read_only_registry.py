@@ -339,6 +339,31 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             "backlog_path": "ai-workflow/project/backlog/2026-04-27.md",
         },
     ),
+    ReadOnlyToolSpec(
+        name="smart_context_reader",
+        description="Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
+        script_path=REPO_ROOT / "mcp" / "smart-context-reader" / "scripts" / "run_smart_reader.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="file_path",
+                cli_flag="--file-path",
+                value_type="path",
+                description="Path to the Python file.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="symbols",
+                cli_flag="--symbols",
+                value_type="string",
+                description="List of function or class names to extract. If empty, all are extracted.",
+                repeated=True,
+            ),
+        ),
+        payload_example={
+            "file_path": "src/main.py",
+            "symbols": ["calculate_total", "UserContext"],
+        },
+    ),
 )
 
 

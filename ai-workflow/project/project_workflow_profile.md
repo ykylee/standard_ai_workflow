@@ -23,7 +23,8 @@
 - 운영 문서 위치:
 - `ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)
 - 백로그 위치:
-- `ai-workflow/project/backlog/`
+- `ai-workflow/project/backlog/tasks/` (개별 태스크 저장)
+- `ai-workflow/project/backlog/` (취합된 날짜별 백로그 - Auto-generated)
 - 세션 인계 문서 위치:
 - `ai-workflow/project/session_handoff.md`
 - 환경 기록 위치:
@@ -55,8 +56,10 @@
 
 ## 5. 프로젝트 특화 예외 규칙
 
-- 병합 규칙:
-- `ai-workflow/project/` 아래의 상태 문서들(`state.json`, `session_handoff.md`)은 현재 세션의 context를 담고 있으므로, git merge 시 충돌이 나면 현재 진행 중인 세션의 최신 상태를 우선으로 수동 재작성한다.
+- 병합 규칙 (Conflict Management):
+- **백로그 (Event Sourcing)**: `backlog/tasks/` 하위의 개별 태스크 파일을 Git으로 관리하여 병합 충돌을 방지한다. 날짜별 취합 문서(`backlog/YYYY-MM-DD.md`)는 로컬에서 자동 생성되므로 Git에서 제외(ignore)하거나 충돌 시 무시하고 재생성한다.
+- **상태 문서 (`state.json`, `session_handoff.md`)**: 이 문서들은 현재 세션의 context를 담고 있는 파생(Generated) 문서이거나 캐시이므로, Git 병합 충돌 시 `merge-doc-reconcile --apply` 명령을 사용하여 양쪽 브랜치의 변경 사항을 AI가 자동 취합하여 재생성하도록 권장한다.
+- **Backlog Index (`work_backlog.md`)**: 날짜별 문서 링크 추가 시 충돌이 나면 `merge=union` 속성을 활용하거나 수동으로 중복 없이 병합한다.
 - 승인 규칙:
 - `core/` 아래의 표준 문서는 워크플로우 전반에 영향을 주므로 변경 시 반드시 설계 의도와 하위 호환성을 검토한다.
 - 환경 제약:

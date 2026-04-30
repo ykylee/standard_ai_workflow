@@ -16,6 +16,7 @@ from workflow_kit.common.read_only_bundle import (
     summarize_git_history_payload,
     rotate_workflow_logs_payload,
     assess_milestone_progress_payload,
+    smart_context_reader_payload,
 )
 
 
@@ -84,6 +85,12 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
         return assess_milestone_progress_payload(
             matrix_path=str(payload["matrix_path"]),
             backlog_path=str(payload["backlog_path"]),
+            tool_version=tool_version,
+        )
+    if tool_name == "smart_context_reader":
+        return smart_context_reader_payload(
+            file_path=str(payload["file_path"]),
+            symbols=payload.get("symbols"),
             tool_version=tool_version,
         )
     raise KeyError(tool_name)

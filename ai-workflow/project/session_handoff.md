@@ -9,16 +9,16 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **워크플로우 이식성 최적화 및 Antigravity 하네스 공식 전환 완료**. `state.json` 의 모든 경로를 상대 경로로 전환하여 저장소 이동성을 확보했으며, Antigravity 특화 가이드(Artifacts, Browser 연동)를 보강하고 패키징 지원을 완료함.
-- 현재 주 작업 축: THREAD-004 워크플로우 정밀 도구 최적화 (Phase 6)
+- 현재 기준선: **워크플로우 정밀 도구 최적화 (Phase 6) 및 협업 충돌 방지 시스템 구축 완료**. `robust-patcher`와 `smart-context-reader` 연동을 마쳤으며, Event Sourcing 패턴을 도입하여 백로그와 상태 문서의 병합 충돌을 원천 차단함.
+- 현재 주 작업 축: THREAD-004 워크플로우 정밀 도구 최적화 (Phase 6) - 실전 검증 및 팀 공유 준비 완료
 
 ## 2. Git 작업 이력 기반 요약
 
 ### 주요 변경 사항
-- **Fix**: `bootstrap_workflow_kit.py` 및 관련 라이브러리에서 `ignore_dirs` 인자를 추가하여 빈 프로젝트 도입 시 키트 내부 파일이 검색되는 오판 버그 해결.
-- **Update**: `core/workflow_adoption_entrypoints.md`에 안정성 개선 사례 추가 및 Phase 6 진입 상태 반영.
-- **Update**: `core/maturity_matrix.json`을 2026-04-28 기준으로 최신화 (Phase 6 추가, robust-patcher/smart-reader 반영).
-- **Doc**: 오늘 날짜 백로그(`2026-04-28.md`) 생성 및 전체 운영 문서 점검 완료.
+- **Feature**: `robust-patcher` 엔진 고도화 및 `smart-context-reader` MCP 서버 연동 완료.
+- **Architect**: Event Sourcing 패턴 기반 백로그 분산 저장 시스템 구현 및 기존 데이터 마이그레이션 완료.
+- **Git**: 상태 문서(`state.json`, `YYYY-MM-DD.md`) 병합 충돌 방지를 위한 `.gitignore` 및 Aggregator 로직 적용.
+- **Test**: 신규 도구 및 아키텍처 변경 사항에 대한 전체 스모크 테스트 통과 확인.
 
 ## 3. 진행 중 작업
 - N/A (팀 공유를 위한 준비 완료)
@@ -27,13 +27,15 @@
 - N/A
 
 ## 5. 최근 완료 작업 (세션 내역)
-- TASK-037 [THREAD-001] 팀 공유 전 전체 워크플로우 문서 전수 점검 및 최신화
-- TASK-036 [THREAD-003] 빈 프로젝트 배포 시 키트 내부 파일 오판 버그 수정
+- TASK-001 [THREAD-004] 상태 문서 병합 충돌 개선 (Event Sourcing 도입)
+- TASK-035 [THREAD-004] `smart-context-reader` MCP 도구 구현
+- TASK-034 [THREAD-004] `robust-patcher` 핵심 엔진 및 스킬 구현
 
 ## 6. 다음 단계
+- [x] Phase 6 `robust-patcher` 실전 테스트 및 고도화
+- [x] `smart-context-reader`를 활용한 대규모 파일 분석 사례 검증
+- [ ] TASK-036 하네스(opencode, pi-dev) 지침 업데이트 및 실전 검증
 - [ ] 팀원들에게 워크플로우 공유 및 초기 피드백 수집
-- [ ] Phase 6 `robust-patcher` 실전 테스트 및 고도화
-- [ ] `smart-context-reader`를 활용한 대규모 파일 분석 사례 검증
 
 ## 7. 환경별 검증 현황
 - 검증 완료 호스트: local

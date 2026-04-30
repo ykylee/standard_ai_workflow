@@ -447,3 +447,77 @@ def assess_milestone_progress_payload(
         "suggestion": result.get("suggestion"),
         "warnings": [],
     }
+
+
+def smart_context_reader_payload(
+    *,
+    file_path: str,
+    symbols: list[str] | None = None,
+    tool_version: str,
+) -> dict[str, Any]:
+    import ast
+    
+    path = resolve_existing_path(file_path)
+    
+    warnings: list[str] = []
+    extracted_content: list[str] = []
+    not_found_symbols: list[str] = []
+    
+    if path.suffix != ".py":
+        warnings.append(f"지원하지 않는 파일 형식입니다: {path.name}")
+        return {
+            "status": "error",
+            "tool_version": tool_version,
+            "extracted_content": [],
+            "not_found_symbols": symbols or [],
+            "warnings": warnings,
+        }
+
+    try:
+        source = path.read_text(encoding="utf-8")
+        tree = ast.parse(source)
+    except SyntaxError as e:
+        warnings.append(f"구문 오류가 있어 파일을 분석할 수 없습니다: {e}")
+        return {
+            "status": "error",
+            "tool_version": tool_version,
+            "extracted_content": [],
+            "not_found_symbols": symbols or [],
+            "warnings": warnings,
+        }
+    except Exception as e:
+        warnings.append(f"파일을 읽는 중 오류 발생: {e}")
+        return {
+            "status": "error",
+            "tool_version": tool_version,
+            "extracted_content": [],
+            "not_found_symbols": symbols or [],
+            "warnings": warnings,
+        }
+
+    lines = source.splitlines()
+    found_symbols = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+            if not symbols or node.name in symbols:
+                start = node.lineno - 1
+                end = node.end_lineno
+                content = "\\n".join(lines[start:end])
+                block_type = type(node).__name__
+                extracted_content.append(f"--- Symbol: {node.name} ({block_type}) ---\\n{content}")
+                found_symbols.add(node.name)
+
+    if symbols:
+        not_found_symbols = [s for s in symbols if s not in found_symbols]
+        if not_found_symbols:
+            warnings.append(f"다음 심볼을 찾을 수 없습니다: {', '.join(not_found_symbols)}")
+
+    return {
+        "status": "ok",
+        "tool_version": tool_version,
+        "extracted_content": extracted_content,
+        "not_found_symbols": not_found_symbols,
+        "warnings": warnings,
+    }
+

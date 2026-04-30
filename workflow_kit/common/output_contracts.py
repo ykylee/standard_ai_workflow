@@ -25,6 +25,7 @@ SUCCESS_PATH_CONTRACTS: dict[str, frozenset[str]] = {
     "create_session_handoff_draft": frozenset({"draft_handoff", "source_context"}),
     "create_environment_record_stub": frozenset({"draft_record", "source_context"}),
     "suggest_impacted_docs": frozenset({"impacted_documents", "reasoning_notes"}),
+    "smart_context_reader": frozenset({"extracted_content", "not_found_symbols"}),
     "demo_workflow": frozenset({"orchestration_plan", "workflow_summary", "source_context"}),
     "existing_project_onboarding": frozenset({"orchestration_plan", "onboarding_summary", "source_context"}),
 }
@@ -152,6 +153,11 @@ READ_ONLY_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
                 "os_type": OutputFieldShape(kind="string"),
             },
         ),
+    },
+    "smart_context_reader": {
+        "extracted_content": OutputFieldShape(kind="list", item_kind="string"),
+        "not_found_symbols": OutputFieldShape(kind="list", item_kind="string"),
+        "warnings": OutputFieldShape(kind="list", item_kind="string"),
     },
 }
 

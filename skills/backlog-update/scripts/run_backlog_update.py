@@ -18,7 +18,7 @@ if str(REPO_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.normalize import normalize_backticked
-from workflow_kit.common.paths import resolve_existing_path, workflow_project_dir
+from workflow_kit.common.paths import resolve_existing_path, workflow_memory_dir, workflow_branch_dir
 from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
@@ -26,8 +26,8 @@ from workflow_kit.common.workflow_writes import ensure_backlog_index_entry, sync
 
 
 def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
-    base_dir = workflow_project_dir(project_profile_path)
-    return (base_dir / "backlog" / f"{target_date}.md").resolve()
+    branch_dir = workflow_branch_dir(project_profile_path)
+    return (branch_dir / "backlog" / f"{target_date}.md").resolve()
 
 
 def suggest_next_task_id(tasks: list[dict[str, Any]]) -> str:
@@ -191,12 +191,12 @@ def main() -> int:
         work_backlog_index_path = (
             Path(args.work_backlog_index_path).expanduser().resolve()
             if args.work_backlog_index_path
-            else (workflow_project_dir(project_profile_path) / "work_backlog.md").resolve()
+            else (workflow_memory_dir(project_profile_path) / "work_backlog.md").resolve()
         )
         session_handoff_path = (
             Path(args.session_handoff_path).expanduser().resolve()
             if args.session_handoff_path
-            else (workflow_project_dir(project_profile_path) / "session_handoff.md").resolve()
+            else (workflow_branch_dir(project_profile_path) / "session_handoff.md").resolve()
         )
 
         daily_backlog_path: Path

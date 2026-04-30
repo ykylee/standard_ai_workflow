@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from workflow_kit.common.normalize import dedupe_normalized_backticked, dedupe_strings
-from workflow_kit.common.paths import workflow_project_dir, safe_relpath, project_workspace_root
+from workflow_kit.common.paths import workflow_memory_dir, safe_relpath, project_workspace_root, workflow_branch_dir
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
     parse_backlog,
@@ -129,13 +129,13 @@ def build_state_cache_refresh_hint(
     latest_backlog_path: Path | None = None,
     repository_assessment_path: Path | None = None,
 ) -> dict[str, str]:
-    state_path = project_profile_path.parent / "state.json"
-    workflow_dir = workflow_project_dir(project_profile_path)
+    branch_dir = workflow_branch_dir(project_profile_path)
+    state_path = branch_dir / "state.json"
     command_parts = [
         "python3 scripts/generate_workflow_state.py",
         f"--project-profile-path {project_profile_path}",
-        f"--session-handoff-path {workflow_dir / 'session_handoff.md'}",
-        f"--work-backlog-index-path {workflow_dir / 'work_backlog.md'}",
+        f"--session-handoff-path {branch_dir / 'session_handoff.md'}",
+        f"--work-backlog-index-path {project_profile_path.parent / 'work_backlog.md'}",
         f"--output-path {state_path}",
     ]
     if latest_backlog_path:
@@ -160,10 +160,11 @@ def refresh_workflow_state_cache(
     workspace_root: Path | None = None,
 ) -> dict[str, object]:
     resolved_project_profile_path = project_profile_path.resolve()
-    project_dir = workflow_project_dir(resolved_project_profile_path)
+    memory_dir = workflow_memory_dir(resolved_project_profile_path)
+    branch_dir = workflow_branch_dir(resolved_project_profile_path)
     actual_root = workspace_root or project_workspace_root(resolved_project_profile_path)
-    resolved_session_handoff_path = (session_handoff_path or (project_dir / "session_handoff.md")).resolve()
-    resolved_work_backlog_index_path = (work_backlog_index_path or (project_dir / "work_backlog.md")).resolve()
+    resolved_session_handoff_path = (session_handoff_path or (branch_dir / "session_handoff.md")).resolve()
+    resolved_work_backlog_index_path = (work_backlog_index_path or (memory_dir / "work_backlog.md")).resolve()
     resolved_latest_backlog_path = latest_backlog_path.resolve() if latest_backlog_path else None
     resolved_repository_assessment_path = repository_assessment_path.resolve() if repository_assessment_path else None
 
@@ -176,7 +177,7 @@ def refresh_workflow_state_cache(
         if not required_path.exists():
             missing_paths.append(str(required_path))
 
-    state_path = (output_path or (project_dir / "state.json")).resolve()
+    state_path = (output_path or (branch_dir / "state.json")).resolve()
     refresh_hint = build_state_cache_refresh_hint(
         project_profile_path=resolved_project_profile_path,
         latest_backlog_path=resolved_latest_backlog_path,

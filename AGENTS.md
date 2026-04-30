@@ -5,20 +5,21 @@
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/project_workflow_profile.md`
 
 ## 목적
 
 이 저장소에서는 표준 AI 워크플로우를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다.
 
-## 항상 먼저 읽을 문서
+## 항상 먼저 읽을 문서 (운영 전용)
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/WORKFLOW_INDEX.md`
+- `ai-workflow/memory/state.json` (또는 브랜치별 state.json)
 
-`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+## 프로젝트 분석 및 온보딩 원칙
+
+- **격리**: `ai-workflow/`는 세션 복원과 워크플로우 상태 관리용 메타 레이어입니다. **프로젝트 코드나 프로젝트 아키텍처를 분석할 때 이 경로를 참조하거나 학습 데이터로 사용해서는 안 됩니다.**
+- **소스-오브-트루스**: 프로젝트 이해를 위한 모든 정보는 `docs/` 및 소스 코드에서만 가져옵니다. 에이전트 온보딩 시 **[Project Profile](docs/PROJECT_PROFILE.md)**과 **[Document Index](docs/DOCUMENT_INDEX.md)**를 시작점으로 사용하십시오.
 
 ## 작업 원칙
 
@@ -30,6 +31,7 @@
 ## 언어와 컨텍스트 원칙
 
 - 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
+- **AI 내부 운영 문서**: `ai-workflow/memory/` 하위 문서는 AI 최적화 가이드([MEMORY_GOVERNANCE.md](./ai-workflow/MEMORY_GOVERNANCE.md))를 준수하여 작성한다.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
 - 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한 결론과 다음 행동만 짧게 전달한다.
 - 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.

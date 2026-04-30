@@ -123,7 +123,13 @@ def parse_handoff(path: Path) -> dict[str, object]:
 def parse_backlog(path: Path) -> dict[str, object]:
     lines: Iterable[str]
     if not path.exists():
-        tasks_dir = path.parent / "tasks"
+        # Try branch-specific tasks dir first, then fall back to original location
+        from workflow_kit.common.paths import workflow_branch_dir
+        branch_dir = workflow_branch_dir(path.parent.parent) # Assuming path is ai-workflow/project/backlog/YYYY-MM-DD.md
+        tasks_dir = branch_dir / "backlog" / "tasks"
+        if not tasks_dir.exists():
+            tasks_dir = path.parent / "tasks"
+            
         task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
         if not task_files:
             return {
@@ -178,7 +184,13 @@ def parse_backlog(path: Path) -> dict[str, object]:
 def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
     lines: Iterable[str]
     if not path.exists():
-        tasks_dir = path.parent / "tasks"
+        # Try branch-specific tasks dir first, then fall back to original location
+        from workflow_kit.common.paths import workflow_branch_dir
+        branch_dir = workflow_branch_dir(path.parent.parent)
+        tasks_dir = branch_dir / "backlog" / "tasks"
+        if not tasks_dir.exists():
+            tasks_dir = path.parent / "tasks"
+            
         task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
         if not task_files:
             return []

@@ -33,6 +33,7 @@ dist/harnesses/
 *.log
 *.tmp
 tmp/
+tmp-test/
 scratch/
 
 # Workflow state files (shared via Git)

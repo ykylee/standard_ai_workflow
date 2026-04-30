@@ -38,24 +38,24 @@
 - 설치:
 - `python3 -m pip install -r requirements-dev.txt`
 - 로컬 실행:
-- `python3 scripts/run_demo_workflow.py`
+- `python3 ai-workflow/scripts/run_demo_workflow.py`
 - 빠른 테스트:
-- `python3 tests/check_docs.py`
+- `python3 ai-workflow/tests/check_docs.py`
 - 격리 테스트:
-- `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
+- `for t in ai-workflow/tests/check_*.py; do python3 "$t" || exit 1; done`
 - UI/API 실행 확인:
-- `python3 scripts/bootstrap_workflow_kit.py --help`
+- `python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help`
 
 ## 4. 프로젝트 특화 검증 포인트
 
 - 코드 변경 시:
-- `tests/check_*.py` 스모크 테스트 통과 확인. `bootstrap_workflow_kit.py` 의 경우 `--dry-run` 결과의 JSON 스키마 정합성 확인.
+- `ai-workflow/tests/check_*.py` 스모크 테스트 통과 확인. `ai-workflow/scripts/bootstrap_workflow_kit.py` 의 경우 `--dry-run` 결과의 JSON 스키마 정합성 확인.
 - 문서 변경 시:
-- `python3 tests/check_docs.py` 를 실행하여 상대 링크와 메타데이터 무결성 확인.
+- `python3 ai-workflow/tests/check_docs.py` 를 실행하여 상대 링크와 메타데이터 무결성 확인.
 - UI 변경 시:
 - N/A (CLI/문서 중심 프로젝트)
 - 배포/운영 변경 시:
-- `scripts/export_harness_package.py` 를 실행하여 배포용 번들 생성 및 `PACKAGE_CONTENTS.md` 포함 여부 확인.
+- `python3 ai-workflow/scripts/export_harness_package.py` 를 실행하여 배포용 번들 생성 및 `PACKAGE_CONTENTS.md` 포함 여부 확인.
 
 ## 5. 프로젝트 특화 예외 규칙
 

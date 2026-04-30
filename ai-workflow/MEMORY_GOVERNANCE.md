@@ -1,5 +1,12 @@
 # AI-First Memory Governance
 
+- 문서 목적: AI 에이전트가 관리하는 운영 문서(Workflow State)의 관리 규칙과 템플릿을 정의한다.
+- 범위: 상태 문서 분류, 작성 표준, 메타데이터 요구사항
+- 대상 독자: AI 에이전트, 저장소 관리자
+- 상태: stable
+- 최종 수정일: 2026-04-30
+- 관련 문서: [./WORKFLOW_INDEX.md](./WORKFLOW_INDEX.md), [../README.md](../README.md)
+
 이 문서는 `ai-workflow/memory/` 하위 문서를 작성할 때 AI 에이전트가 준수해야 할 규칙과 템플릿을 정의합니다.
 
 ## 1. 작성 규칙 (Writing Rules)

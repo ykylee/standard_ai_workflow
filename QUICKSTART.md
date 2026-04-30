@@ -70,7 +70,7 @@ AI 에이전트에게 워크플로우가 도입되었음을 알리고 상태를 
 
 ```bash
 # MCP 서버 실행 예시
-python3 workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
+python3 ai-workflow/workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
 ```
 
 ---

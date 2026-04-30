@@ -1,11 +1,11 @@
 # Repository Assessment
 
-- 문서 목적: 리포지토리의 구조와 워크플로우 적용 상태를 진단하고 성숙도를 기록한다.
-- 범위: 저장소 구조, 기술 스택, 문서화 수준, 자동화 도구 현황
-- 대상 독자: 개발자, AI Agent, 운영자
-- 상태: final (Phase 6 진입)
-- 최종 수정일: 2026-04-29
-- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../../core/maturity_matrix.json`
+- 문서 목적: 대상 저장소의 워크플로우 성숙도를 진단하고 도입 전략을 제안한다.
+- 범위: 저장소 구조 분석, 성숙도 평가, 개선 제안
+- 대상 독자: 개발자, AI 에이전트, 프로젝트 매니저
+- 상태: draft (Phase 6 진입)
+- 최종 수정일: 2026-04-30
+- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../core/maturity_matrix.json](../core/maturity_matrix.json)
 
 ## 1. 요약
 
@@ -43,6 +43,5 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
-- 성숙도 매트릭스: [../../core/maturity_matrix.json](../../core/maturity_matrix.json)
+- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../core/maturity_matrix.json](../core/maturity_matrix.json)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)

@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-26
-- 관련 문서: `./project/PROJECT_PROFILE.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
+- 관련 문서: `../docs/PROJECT_PROFILE.md`, `./memory/gemini/phase6/state.json`, `./memory/gemini/phase6/session_handoff.md`, `./memory/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -15,22 +15,22 @@
 
 ## 2. 생성된 파일
 
-- [project/PROJECT_PROFILE.md](./project/PROJECT_PROFILE.md)
-- [project/state.json](./project/state.json)
-- [project/session_handoff.md](./project/session_handoff.md)
-- [project/work_backlog.md](./project/work_backlog.md)
-- [project/backlog/2026-04-26.md](./project/backlog/2026-04-26.md)
-- [project/repository_assessment.md](./project/repository_assessment.md)
+- [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- [ai-workflow/memory/gemini/phase6/state.json](./memory/gemini/phase6/state.json)
+- [ai-workflow/memory/gemini/phase6/session_handoff.md](./memory/gemini/phase6/session_handoff.md)
+- [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
+- [ai-workflow/memory/gemini/phase6/backlog/2026-04-30.md](./memory/gemini/phase6/backlog/2026-04-30.md)
+- [ai-workflow/memory/repository_assessment.md](./memory/repository_assessment.md)
 
 ## 3. 코어 문서
 
-- [core/global_workflow_standard.md](../core/global_workflow_standard.md)
-- [core/workflow_skill_catalog.md](../core/workflow_skill_catalog.md)
-- [core/workflow_mcp_candidate_catalog.md](../core/workflow_mcp_candidate_catalog.md)
-- [core/workflow_agent_topology.md](../core/workflow_agent_topology.md)
-- [core/output_schema_guide.md](../core/output_schema_guide.md)
-- [core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
-- [core/workflow_harness_distribution.md](../core/workflow_harness_distribution.md)
+- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](./core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 
@@ -62,7 +62,7 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project/PROJECT_PROFILE.md](./project/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./project/state.json](./project/state.json)
-- 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
-- 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)
+- 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- 빠른 상태 요약: [./memory/gemini/phase6/state.json](./memory/gemini/phase6/state.json)
+- 세션 인계 문서: [./memory/gemini/phase6/session_handoff.md](./memory/gemini/phase6/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)

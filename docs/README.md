@@ -1,3 +1,12 @@
+# Project Documentation Wiki Home
+
+- 문서 목적: 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 온보딩 및 분석을 돕는다.
+- 범위: 프로젝트 설계, 개발 표준, 분석 및 계획
+- 대상 독자: 개발자, AI 에이전트, 프로젝트 이해관계자
+- 상태: stable
+- 최종 수정일: 2026-04-30
+- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [../README.md](../README.md)
+
 # Project Documentation Governance
 
 본 저장소의 문서는 **작업 상태 문서(Workflow State)**와 **영구 지식 문서(Knowledge Base)**로 이원화하여 관리합니다.

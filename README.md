@@ -5,19 +5,19 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./core/global_workflow_standard.md`, `./core/workflow_agent_topology.md`, `./split_checklist.md`
-- 상태 진단 문서: `./core/project_status_assessment.md`
-- 상위 로드맵 문서: `./core/workflow_kit_roadmap.md`
-- 출력 스키마 가이드: `./core/output_schema_guide.md`
-- 도입 분기 가이드: `./core/workflow_adoption_entrypoints.md`
-- 상태 문서/프로젝트 문서 경계 가이드: `./core/workflow_state_vs_project_docs.md`
-- 하네스 배포 가이드: `./core/workflow_harness_distribution.md`
-- 릴리스 규격 가이드: `./core/workflow_release_spec.md`
-- 승격 범위 가이드: `./core/prototype_promotion_scope.md`
-- read-only MCP transport 승격 기준: `./core/read_only_mcp_transport_promotion.md`
-- 설정 계층 가이드: `./core/workflow_configuration_layers.md`
-- 비침투적 주입 정책: `./core/workflow_global_injection_policy.md`
-- workflow kit 패키지 가이드: `./workflow_kit/README.md`
+- 관련 문서: `./ai-workflow/core/global_workflow_standard.md`, `./ai-workflow/core/workflow_agent_topology.md`, `./split_checklist.md`
+- 상태 진단 문서: `./ai-workflow/core/project_status_assessment.md`
+- 상위 로드맵 문서: `./ai-workflow/core/workflow_kit_roadmap.md`
+- 출력 스키마 가이드: `./ai-workflow/core/output_schema_guide.md`
+- 도입 분기 가이드: `./ai-workflow/core/workflow_adoption_entrypoints.md`
+- 상태 문서/프로젝트 문서 경계 가이드: `./ai-workflow/core/workflow_state_vs_project_docs.md`
+- 하네스 배포 가이드: `./ai-workflow/core/workflow_harness_distribution.md`
+- 릴리스 규격 가이드: `./ai-workflow/core/workflow_release_spec.md`
+- 승격 범위 가이드: `./ai-workflow/core/prototype_promotion_scope.md`
+- read-only MCP transport 승격 기준: `./ai-workflow/core/read_only_mcp_transport_promotion.md`
+- 설정 계층 가이드: `./ai-workflow/core/workflow_configuration_layers.md`
+- 비침투적 주입 정책: `./ai-workflow/core/workflow_global_injection_policy.md`
+- workflow kit 패키지 가이드: `./ai-workflow/workflow_kit/README.md`
 
 ## 1. 이 폴더의 역할
 
@@ -36,17 +36,17 @@
 
 | 경로 | 역할 |
 | --- | --- |
-| `core/` | 여러 프로젝트에 공통 적용할 코어 문서 |
-| `templates/` | 프로젝트와 세션 상태 문서 템플릿 |
-| `skills/` | 향후 공통 skill 구현 위치 |
-| `mcp/` | 향후 공통 MCP 구현 위치 |
-| `examples/` | 샘플 프로파일과 도입 예시 위치 |
-| `global-snippets/` | 하네스 전역 설정에 넣을 수 있는 비침투적 snippet 예시 |
-| `harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 |
-| `scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
-| `workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
-| `tests/` | 링크/템플릿/구현 smoke test 위치 |
-| `releases/` | 릴리즈 노트와 pre-release 기록 위치 |
+| `ai-workflow/core/` | 여러 프로젝트에 공통 적용할 코어 문서 |
+| `ai-workflow/templates/` | 프로젝트와 세션 상태 문서 템플릿 |
+| `ai-workflow/skills/` | 향후 공통 skill 구현 위치 |
+| `ai-workflow/mcp/` | 향후 공통 MCP 구현 위치 |
+| `ai-workflow/examples/` | 샘플 프로파일과 도입 예시 위치 |
+| `ai-workflow/global-snippets/` | 하네스 전역 설정에 넣을 수 있는 비침투적 snippet 예시 |
+| `ai-workflow/harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 |
+| `ai-workflow/scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
+| `ai-workflow/workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
+| `ai-workflow/tests/` | 링크/템플릿/구현 smoke test 위치 |
+| `ai-workflow/releases/` | 릴리즈 노트와 pre-release 기록 위치 |
 | `split_checklist.md` | 별도 프로젝트로 분리할 때 수행할 체크리스트 |
 
 ## 3. 현재 구현 상태
@@ -55,29 +55,29 @@
 | --- | --- | --- |
 | 공통 표준 문서 | 사용 가능 | 바로 복사 가능 |
 | 프로젝트/세션 템플릿 | 사용 가능 | 값 채우기 필요 |
-| 샘플 도입 예시 | 사용 가능 | `examples/acme_delivery_platform/` 참고 |
-| skill 프로토타입 | 사용 가능 | `session-start`, `backlog-update`, `doc-sync`, `merge-doc-reconcile`, `validation-plan`, `code-index-update` 포함 |
+| 샘플 도입 예시 | 사용 가능 | `ai-workflow/examples/acme_delivery_platform/` 참고 |
+| skill 프로토타입 | 사용 가능 | `ai-workflow/skills/` 및 `ai-workflow/scripts/` 참고 |
 | skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 있음 |
-| MCP 프로토타입 | 사용 가능 | `mcp/` 및 MCP 데모 참고 |
+| MCP 프로토타입 | 사용 가능 | `ai-workflow/mcp/` 및 MCP 데모 참고 |
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
-| 통합 데모 runner | 사용 가능 | `scripts/run_demo_workflow.py`, `scripts/run_existing_project_onboarding.py` 참고 |
-| bootstrap scaffold | 사용 가능 | `scripts/bootstrap_workflow_kit.py` 참고 |
+| 통합 데모 runner | 사용 가능 | `ai-workflow/scripts/run_demo_workflow.py`, `ai-workflow/scripts/run_existing_project_onboarding.py` 참고 |
+| bootstrap scaffold | 사용 가능 | `ai-workflow/scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity` 대상 오버레이 생성 가능 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 orchestrator task-only 운영 기본 원칙 포함 |
-| harness package export | 사용 가능 | `scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
-| 출력 스키마 가이드 | 사용 가능 | `validation-plan`, `code-index-update` 포함 |
+| harness package export | 사용 가능 | `ai-workflow/scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
+| 출력 스키마 가이드 | 사용 가능 | `ai-workflow/core/output_schema_guide.md` 포함 |
 | 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |
-| workflow kit package | 사용 가능 | `workflow_kit/common` 에 공통 파서/분류/helper 축적 중 |
+| workflow kit package | 사용 가능 | `ai-workflow/workflow_kit/common` 에 공통 파서/분류/helper 축적 중 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
 
-1. `core/global_workflow_standard.md` 를 기준 문서로 읽는다.
-2. 새 저장소에 `project_workflow_profile_template.md` 를 복사해 프로젝트 특화 규칙을 채운다.
-3. `templates/` 아래 세션/백로그 템플릿을 해당 저장소 문서 구조에 맞게 배치한다.
-4. `core/workflow_skill_catalog.md`, `core/workflow_mcp_candidate_catalog.md`, `core/workflow_agent_topology.md` 를 읽고 도입 범위를 정한다.
+1. `ai-workflow/core/global_workflow_standard.md` 를 기준 문서로 읽는다.
+2. 새 저장소에 `ai-workflow/templates/project_workflow_profile_template.md` 를 복사해 프로젝트 특화 규칙을 채운다.
+3. `ai-workflow/templates/` 아래 세션/백로그 템플릿을 해당 저장소 문서 구조에 맞게 배치한다.
+4. `ai-workflow/core/workflow_skill_catalog.md`, `ai-workflow/core/workflow_mcp_candidate_catalog.md`, `ai-workflow/core/workflow_agent_topology.md` 를 읽고 도입 범위를 정한다.
 5. 첫 도입은 세션 시작, 백로그 갱신, 문서 동기화처럼 영향이 큰 흐름부터 시작한다.
-6. 반복 적용이 필요하면 `scripts/bootstrap_workflow_kit.py` 로 새 저장소용 기본 문서 세트를 생성한다.
+6. 반복 적용이 필요하면 `ai-workflow/scripts/bootstrap_workflow_kit.py` 로 새 저장소용 기본 문서 세트를 생성한다.
 
 도입 시작점은 두 가지로 나눌 수 있다.
 
@@ -126,8 +126,8 @@ rm -rf .venv
 ```bash
 source .venv/bin/activate
 python -m pip show mcp
-python tests/check_read_only_mcp_sdk_candidate.py
-python tests/check_read_only_mcp_sdk_stdio.py
+python ai-workflow/tests/check_read_only_mcp_sdk_candidate.py
+python ai-workflow/tests/check_read_only_mcp_sdk_stdio.py
 ```
 
 현재 확인된 설치 기준:
@@ -139,45 +139,45 @@ python tests/check_read_only_mcp_sdk_stdio.py
 
 - Python 3.9 이하 환경에서는 공식 `mcp` 패키지가 설치되지 않는다.
 - 이 저장소 루트에는 `mcp/` 디렉터리가 있으므로, SDK import 검증은 가상환경 Python 으로 실행해야 혼동이 없다.
-- official SDK candidate 는 [workflow_kit/server/read_only_mcp_sdk.py](./workflow_kit/server/read_only_mcp_sdk.py) 에 있고, 설치 확인 스모크는 [tests/check_read_only_mcp_sdk_candidate.py](./tests/check_read_only_mcp_sdk_candidate.py) 를 사용한다.
-- 실제 stdio round-trip 상호운용 스모크는 [tests/check_read_only_mcp_sdk_stdio.py](./tests/check_read_only_mcp_sdk_stdio.py) 를 사용한다.
+- official SDK candidate 는 [ai-workflow/workflow_kit/server/read_only_mcp_sdk.py](./ai-workflow/workflow_kit/server/read_only_mcp_sdk.py) 에 있고, 설치 확인 스모크는 [ai-workflow/tests/check_read_only_mcp_sdk_candidate.py](./ai-workflow/tests/check_read_only_mcp_sdk_candidate.py) 를 사용한다.
+- 실제 stdio round-trip 상호운용 스모크는 [ai-workflow/tests/check_read_only_mcp_sdk_stdio.py](./ai-workflow/tests/check_read_only_mcp_sdk_stdio.py) 를 사용한다.
 
 ## 6. 다른 프로젝트에 적용할 때 최소 복사 세트
 
 최소 세트:
 
-- `core/global_workflow_standard.md`
-- `templates/project_workflow_profile_template.md`
-- `templates/session_handoff_template.md`
-- `templates/work_backlog_template.md`
-- `templates/daily_backlog_template.md`
+- `ai-workflow/core/global_workflow_standard.md`
+- `ai-workflow/templates/project_workflow_profile_template.md`
+- `ai-workflow/templates/session_handoff_template.md`
+- `ai-workflow/templates/work_backlog_template.md`
+- `ai-workflow/templates/daily_backlog_template.md`
 
 확장 세트:
 
-- `core/workflow_skill_catalog.md`
-- `core/workflow_mcp_candidate_catalog.md`
-- `core/workflow_agent_topology.md`
+- `ai-workflow/core/workflow_skill_catalog.md`
+- `ai-workflow/core/workflow_mcp_candidate_catalog.md`
+- `ai-workflow/core/workflow_agent_topology.md`
 
 ## 7. 별도 프로젝트로 분리할 때 권장 구조
 
 - `README.md`
 - `split_checklist.md`
-- `core/`
-- `templates/`
+- `ai-workflow/core/`
+- `ai-workflow/templates/`
 
 실제 구현이 시작되면 아래를 추가한다.
 
-- `skills/`
-- `mcp/`
-- `examples/`
-- `tests/`
+- `ai-workflow/skills/`
+- `ai-workflow/mcp/`
+- `ai-workflow/examples/`
+- `ai-workflow/tests/`
 
 ## 8. bootstrap 사용 예시
 
 새 저장소 또는 임시 디렉터리에 표준 워크플로우 패키지를 생성하려면 아래처럼 실행할 수 있다.
 
 ```bash
-python3 scripts/bootstrap_workflow_kit.py \
+python3 ai-workflow/scripts/bootstrap_workflow_kit.py \
   --target-root /tmp/sample-repo \
   --project-slug sample_api \
   --project-name "Sample API" \
@@ -190,7 +190,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 기존 프로젝트용 분석 기반 도입은 아래처럼 시작할 수 있다.
 
 ```bash
-python3 scripts/bootstrap_workflow_kit.py \
+python3 ai-workflow/scripts/bootstrap_workflow_kit.py \
   --target-root /tmp/existing-repo \
   --project-slug payments_api \
   --project-name "Payments API" \
@@ -221,7 +221,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 배포 가능한 하네스 패키지를 export 하려면 아래처럼 실행할 수 있다.
 
 ```bash
-python3 scripts/export_harness_package.py \
+python3 ai-workflow/scripts/export_harness_package.py \
   --harness codex \
   --harness opencode
 ```
@@ -231,7 +231,7 @@ python3 scripts/export_harness_package.py \
 - 기본 소비 진입점: `ai-workflow/README.md`, `ai-workflow/core/workflow_adoption_entrypoints.md`, `ai-workflow/core/workflow_skill_catalog.md`
 - 기본 현장 문서: `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 일반 프로젝트 코드/문서 탐색 범위에서는 기본적으로 제외한다.
-- `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성한다. 독립 실행이 필요할 때는 `scripts/generate_workflow_state.py` 를 직접 사용할 수 있다.
+- `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성한다. 독립 실행이 필요할 때는 `ai-workflow/scripts/generate_workflow_state.py` 를 직접 사용할 수 있다.
 - 기본 export 는 AI agent 컨텍스트 절약을 위해 런타임 파일만 포함하고, source docs 와 global snippet 예시는 제외한다.
 - 하네스별 패키지는 `dist/harnesses/<target>/<version>/` 아래 개별 생성되며, zip 파일 이름에도 버전이 포함된다.
 - 각 패키지 루트에는 `PACKAGE_CONTENTS.md` 와 `APPLY_GUIDE.md` 가 함께 생성돼 다른 환경에서 바로 적용 흐름을 읽을 수 있다.
@@ -243,9 +243,9 @@ python3 scripts/export_harness_package.py \
 - 통합 runner 2종은 하위 step 결과를 중첩 payload 로 유지하면서 `warnings`, `orchestration_plan`, `source_context` 를 상위 메타데이터로 제공한다.
 - runner 는 하위 skill/MCP step 이 `status: "error"` 를 반환해도 상위 `workflow_step_failed` 형태로 감싸고, 실패한 step 이름과 upstream `error_code` 를 `source_context` 에 남긴다.
 - OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 task-only orchestrator + bounded worker 운영 패턴을 문서/템플릿으로 배포한다.
-- `workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper, read-only MCP 공통 callable layer, output contract validator 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
+- `ai-workflow/workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper, read-only MCP 공통 callable layer, output contract validator 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
 - 하네스 export bundle 은 read-only MCP descriptor 초안, 하네스별 MCP 설정 예시 draft, JSON-RPC fixture 를 함께 포함해 이후 MCP/server 연결 지점을 전달한다.
-- `tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
+- `ai-workflow/tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
 
 ## 10. 2026-04-23 개발 종합 정리
 
@@ -262,7 +262,7 @@ python3 scripts/export_harness_package.py \
 
 - Codex package: GitHub release asset `standard-ai-workflow-codex-v0.3.2-beta.zip`
 - OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.3.2-beta.zip`
-- release note: [releases/Beta-v0.3.2.md](./releases/Beta-v0.3.2.md)
+- release note: [releases/Beta-v0.3.2.md](./ai-workflow/releases/Beta-v0.3.2.md)
 
 ## 11. 현재 한계
 
@@ -283,27 +283,27 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 
 ## 다음에 읽을 문서
 
-- 공통 코어 표준: [core/global_workflow_standard.md](./core/global_workflow_standard.md)
-- 프로젝트 상태 진단: [core/project_status_assessment.md](./core/project_status_assessment.md)
-- 상위 로드맵: [core/workflow_kit_roadmap.md](./core/workflow_kit_roadmap.md)
-- release note: [releases/Beta-v0.3.2.md](./releases/Beta-v0.3.2.md)
-- 출력 스키마 가이드: [core/output_schema_guide.md](./core/output_schema_guide.md)
-- 도입 분기 가이드: [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- 하네스 배포 가이드: [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
-- 릴리스 규격: [core/workflow_release_spec.md](./core/workflow_release_spec.md)
-- 승격 범위 가이드: [core/prototype_promotion_scope.md](./core/prototype_promotion_scope.md)
-- read-only MCP transport 승격 기준: [core/read_only_mcp_transport_promotion.md](./core/read_only_mcp_transport_promotion.md)
-- workflow kit 패키지: [workflow_kit/README.md](./workflow_kit/README.md)
-- 설정 계층 가이드: [core/workflow_configuration_layers.md](./core/workflow_configuration_layers.md)
-- 비침투적 주입 정책: [core/workflow_global_injection_policy.md](./core/workflow_global_injection_policy.md)
-- 전역 snippet 허브: [global-snippets/README.md](./global-snippets/README.md)
-- 샘플 도입 예시: [examples/README.md](./examples/README.md)
-- 하네스 허브: [harnesses/README.md](./harnesses/README.md)
-- end-to-end 데모: [examples/end_to_end_skill_demo.md](./examples/end_to_end_skill_demo.md)
+- 공통 코어 표준: [ai-workflow/core/global_workflow_standard.md](./ai-workflow/core/global_workflow_standard.md)
+- 프로젝트 상태 진단: [ai-workflow/core/project_status_assessment.md](./ai-workflow/core/project_status_assessment.md)
+- 상위 로드맵: [ai-workflow/core/workflow_kit_roadmap.md](./ai-workflow/core/workflow_kit_roadmap.md)
+- release note: [ai-workflow/releases/Beta-v0.3.2.md](./ai-workflow/releases/Beta-v0.3.2.md)
+- 출력 스키마 가이드: [ai-workflow/core/output_schema_guide.md](./ai-workflow/core/output_schema_guide.md)
+- 도입 분기 가이드: [ai-workflow/core/workflow_adoption_entrypoints.md](./ai-workflow/core/workflow_adoption_entrypoints.md)
+- 하네스 배포 가이드: [ai-workflow/core/workflow_harness_distribution.md](./ai-workflow/core/workflow_harness_distribution.md)
+- 릴리스 규격: [ai-workflow/core/workflow_release_spec.md](./ai-workflow/core/workflow_release_spec.md)
+- 승격 범위 가이드: [ai-workflow/core/prototype_promotion_scope.md](./ai-workflow/core/prototype_promotion_scope.md)
+- read-only MCP transport 승격 기준: [ai-workflow/core/read_only_mcp_transport_promotion.md](./ai-workflow/core/read_only_mcp_transport_promotion.md)
+- workflow kit 패키지: [ai-workflow/workflow_kit/README.md](./ai-workflow/workflow_kit/README.md)
+- 설정 계층 가이드: [ai-workflow/core/workflow_configuration_layers.md](./ai-workflow/core/workflow_configuration_layers.md)
+- 비침투적 주입 정책: [ai-workflow/core/workflow_global_injection_policy.md](./ai-workflow/core/workflow_global_injection_policy.md)
+- 전역 snippet 허브: [ai-workflow/global-snippets/README.md](./ai-workflow/global-snippets/README.md)
+- 샘플 도입 예시: [ai-workflow/examples/README.md](./ai-workflow/examples/README.md)
+- 하네스 허브: [ai-workflow/harnesses/README.md](./ai-workflow/harnesses/README.md)
+- end-to-end 데모: [ai-workflow/examples/end_to_end_skill_demo.md](./ai-workflow/examples/end_to_end_skill_demo.md)
   여기에는 메인 오케스트레이터와 `doc/code/validation` worker 분배 예시도 포함된다.
-- end-to-end MCP 데모: [examples/end_to_end_mcp_demo.md](./examples/end_to_end_mcp_demo.md)
-- 출력 샘플: [examples/output_samples/README.md](./examples/output_samples/README.md)
-- 스크립트 허브: [scripts/README.md](./scripts/README.md)
-- 프로젝트 프로파일 템플릿: [templates/project_workflow_profile_template.md](./templates/project_workflow_profile_template.md)
-- agent 토폴로지: [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- end-to-end MCP 데모: [ai-workflow/examples/end_to_end_mcp_demo.md](./ai-workflow/examples/end_to_end_mcp_demo.md)
+- 출력 샘플: [ai-workflow/examples/output_samples/README.md](./ai-workflow/examples/output_samples/README.md)
+- 스크립트 허브: [ai-workflow/scripts/README.md](./ai-workflow/scripts/README.md)
+- 프로젝트 프로파일 템플릿: [ai-workflow/templates/project_workflow_profile_template.md](./ai-workflow/templates/project_workflow_profile_template.md)
+- agent 토폴로지: [ai-workflow/core/workflow_agent_topology.md](./ai-workflow/core/workflow_agent_topology.md)
 - 분리 체크리스트: [split_checklist.md](./split_checklist.md)

@@ -38,10 +38,10 @@
 ## 프로젝트 실행 기본값
 
 - 설치: `pip install -r requirements-dev.txt`
-- 로컬 실행: `python3 scripts/run_demo_workflow.py`
-- 빠른 테스트: `python3 tests/check_docs.py`
-- 격리 테스트: `for t in tests/check_*.py; do python3 "$t" || exit 1; done`
-- 실행 확인: `python3 scripts/bootstrap_workflow_kit.py --help`
+- 로컬 실행: `python3 ai-workflow/scripts/run_demo_workflow.py`
+- 빠른 테스트: `python3 ai-workflow/tests/check_docs.py`
+- 격리 테스트: `for t in ai-workflow/tests/check_*.py; do python3 "$t" || exit 1; done`
+- 실행 확인: `python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help`
 
 ## Antigravity 전용 작업 원칙
 

@@ -40,17 +40,17 @@
 ## 프로젝트 실행 기본값
 
 - 설치: `N/A (Standard Python 3.9+ with common libraries)`
-- 로컬 실행: `python3 scripts/bootstrap_workflow_kit.py --help`
-- 빠른 테스트: `python3 tests/check_bootstrap.py`
-- 격리 테스트: `python3 tests/check_merge_doc_reconcile.py`
-- 실행 확인: `python3 scripts/generate_workflow_state.py --project-profile-path docs/PROJECT_PROFILE.md`
+- 로컬 실행: `python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help`
+- 빠른 테스트: `python3 ai-workflow/tests/check_bootstrap.py`
+- 격리 테스트: `python3 ai-workflow/tests/check_merge_doc_reconcile.py`
+- 실행 확인: `python3 ai-workflow/scripts/generate_workflow_state.py --project-profile-path docs/PROJECT_PROFILE.md`
 
 ## 문서 작업 기준
 
 - 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `docs/operations/`
-- backlog 위치: `docs/operations/backlog/`
-- session handoff 위치: `docs/operations/session_handoff.md`
+- 운영 문서 위치: `ai-workflow/memory/`
+- backlog 위치: `ai-workflow/memory/backlog/`
+- session handoff 위치: `ai-workflow/memory/session_handoff.md`
 
 ## Codex 전용 메모
 

@@ -9,6 +9,11 @@
 
 ## 운영 원칙
 
+- [x] AI 워크플로우 인프라 격리 (ai-workflow/ 하위 이동)
+    - [x] scripts, skills, mcp, tests, templates 등 이동
+    - [x] bootstrap_workflow_kit.py 경로 로직 업데이트
+    - [x] 모든 Python 엔트리포인트 REPO_ROOT 및 sys.path 업데이트
+    - [x] 자동화 스모크 테스트를 통한 정합성 검증
 - 세션 시작 시 본 인덱스와 최신 날짜 백로그를 먼저 확인한다.
 - 새 작업은 브리핑 후 해당 날짜 백로그에 등록한다.
 - 세션 종료 전에는 handoff 문서를 갱신한다.

@@ -6,15 +6,22 @@
 - 최종 수정일: 2026-04-30
 - 관련 문서: [./state.json](./state.json), [./work_backlog.md](./work_backlog.md)
 
-- 상태: draft
+- 상태: done
 - 생성일: 2026-04-27
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: N/A
-- 현재 주 작업 축: N/A
+- 현재 기준선: `codex/phase6` 브랜치에 `origin/main` 최신 커밋 `bb3dbce`를 반영했고, 운영 상태 문서를 `ai-workflow/memory/codex/phase6/` 기준으로 재배치했다.
+- 현재 주 작업 축: THREAD-003 배포 패키징 및 main 통합
 
 ## 2. Git 작업 이력 기반 요약
+
+### 최신 통합 작업
+
+- `origin/main` fetch 후 `codex/phase6`에 fast-forward merge 완료.
+- 스태시 `codex: preserve local phase6 work before syncing main` 재적용 중 발생한 충돌을 새 `ai-workflow/memory` 구조 기준으로 해소.
+- 버전 표기는 배포 기준인 `v0.3.2-beta`를 유지하고, `main`에서 도입된 `ai-workflow/` 하위 경로 구조를 우선 적용.
+- 구 `ai-workflow/project` 기록은 `codex/phase6/backlog/tasks/` 개별 task 문서로 변환했고, 중복 로컬 백업 산출물은 확인 후 삭제했다.
 
 ### Git 작업 요약 (HEAD~5..HEAD)
 
@@ -39,6 +46,11 @@
 
 ## 5. 최근 완료 작업
 
+- codex/phase6 브랜치에 최신 main 반영 및 충돌 해소
+- main 기준 workflow 배치에 맞춰 `codex/phase6` branch memory 생성
+- 추적 중이던 과거 `.ai-workflow-backups/` 및 `scratch/bootstrap_test/` 임시 산출물 삭제
+- PR #8 최신 업데이트 리뷰 및 GitHub 코멘트 작성
+- `v0.3.2-beta` Codex 하네스 패키지 설치 및 로컬 작업 보존
 - TASK-020 [THREAD-002] 실전형 시뮬레이션 파일럿 수행 및 기록
 - TASK-021 [THREAD-003] `git_history_summarizer` MCP 도구 프로토타이핑
 - TASK-022 [THREAD-003] 지능형 요약 도구 연동 및 로직 공유화

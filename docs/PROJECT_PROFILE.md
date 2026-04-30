@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: final (Phase 6 진입)
 - 최종 수정일: 2026-04-29
-- 관련 문서: `../ai-workflow/core/global_workflow_standard.md`, `../ai-workflow/memory/session_handoff.md`, `../ai-workflow/memory/work_backlog.md`
+- 관련 문서: `../ai-workflow/core/global_workflow_standard.md`, `../ai-workflow/memory/codex/phase6/session_handoff.md`, `../ai-workflow/memory/work_backlog.md`
 - **운영 인덱스 (Ops)**: [Workflow Index](../ai-workflow/WORKFLOW_INDEX.md), [Agent Rules](../AGENTS.md)
 - **지식 인덱스 (Knowledge)**: [Document Index](./DOCUMENT_INDEX.md), [Code Index](./CODE_INDEX.md)
 

@@ -27,7 +27,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "beta-v3.0.1"
+            "version": "v0.3.2-beta"
           }
         }
       }
@@ -73,7 +73,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "beta-v3.0.1"
+            "version": "v0.3.2-beta"
           }
         }
       }
@@ -1806,7 +1806,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"beta-v3.0.1\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.3.2-beta\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -1816,7 +1816,7 @@
             ],
             "latest_backlog_path": "examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "beta-v3.0.1",
+            "tool_version": "v0.3.2-beta",
             "warnings": []
           }
         }
@@ -1848,7 +1848,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "beta-v3.0.1",
+            "tool_version": "v0.3.2-beta",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1988,7 +1988,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "beta-v3.0.1"
+              "version": "v0.3.2-beta"
             }
           }
         },
@@ -3611,7 +3611,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "beta-v3.0.1"
+              "version": "v0.3.2-beta"
             }
           }
         },
@@ -3630,6 +3630,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "beta-v3.0.1",
+  "tool_version": "v0.3.2-beta",
   "transport_ready": false
 }

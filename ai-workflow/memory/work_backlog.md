@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 참여자, 문서 작성자, 개발자, 운영자
 - 상태: done
 - 최종 수정일: 2026-04-30
-- 관련 문서: `./gemini/phase6/session_handoff.md`, `../docs/PROJECT_PROFILE.md`
+- 관련 문서: `./codex/phase6/session_handoff.md`, `../docs/PROJECT_PROFILE.md`
 
 ## 운영 원칙
 
@@ -25,10 +25,6 @@
 
 ## 날짜별 백로그 문서
 
+- [2026-04-30 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-04-30.md) (v0.3.2-beta 통합 및 workflow 재배치)
+- [2026-04-30 작업 기록](./gemini/phase6/backlog/2026-04-30.md) (main 통합 후 codex/phase6 충돌 해소 포함)
 - [2026-04-30 작업 백로그](./gemini/phase6/backlog/2026-04-30.md) (브랜치 격리 및 거버넌스 개편)
-- [2026-04-28 작업 백로그](./backlog/2026-04-28.md)
-- [2026-04-27 작업 백로그](./backlog/2026-04-27.md)
-- [2026-04-26 작업 백로그](./backlog/2026-04-26.md)
-- [2026-04-25 작업 백로그](./backlog/2026-04-25.md)
-- [2026-04-24 작업 백로그](./backlog/2026-04-24.md)
-- [2026-04-30 작업 백로그](gemini/phase6/backlog/2026-04-30.md)

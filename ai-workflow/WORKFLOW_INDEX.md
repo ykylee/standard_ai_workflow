@@ -14,8 +14,8 @@
 
 - **[Project Profile](../docs/PROJECT_PROFILE.md)**: 프로젝트 특화 워크플로우 규칙 및 명령 가이드.
 - **[Work Backlog Index](./memory/work_backlog.md)**: 전체 백로그 이력.
-- **[Current Session State](./memory/gemini/phase6/state.json)**: 현재 세션 캐시 (Auto-generated).
-- **[Branch Handoff](./memory/gemini/phase6/session_handoff.md)**: 브랜치별 인계 사항.
+- **[Current Session State](./memory/codex/phase6/state.json)**: 현재 세션 캐시 (Auto-generated).
+- **[Branch Handoff](./memory/codex/phase6/session_handoff.md)**: 브랜치별 인계 사항.
 
 ## 2. 에이전트 운영 지침 (Agent Ops)
 

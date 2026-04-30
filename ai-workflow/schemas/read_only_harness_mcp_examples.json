@@ -35,6 +35,6 @@
     "assess_milestone_progress",
     "smart_context_reader"
   ],
-  "tool_version": "beta-v3.0.1",
+  "tool_version": "v0.3.2-beta",
   "transport_ready": false
 }

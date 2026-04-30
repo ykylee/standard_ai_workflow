@@ -1,3 +1,3 @@
 """Reusable library modules for the standard AI workflow kit."""
 
-__version__ = "beta-v3.0.1"
+__version__ = "v0.3.2-beta"

@@ -2,19 +2,19 @@
   "schema_version": "1",
   "generated_at": "2026-04-26",
   "source_of_truth": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/backlog/2026-04-26.md",
     "repository_assessment_path": null
   },
   "project": {
     "project_name": "Standard AI Workflow",
     "document_home": "README.md",
-    "operations_path": "ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)",
-    "backlog_path": "ai-workflow/project/backlog/",
-    "handoff_path": "ai-workflow/project/session_handoff.md",
-    "environment_path": "ai-workflow/project/repository_assessment.md"
+    "operations_path": "ai-workflow/memory/` (또는 `ai-workflow/memory/` 를 직접 참조)",
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": "ai-workflow/memory/session_handoff.md",
+    "environment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "commands": {
     "quick_tests": "python3 tests/check_docs.py",
@@ -46,7 +46,7 @@
     ]
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/backlog/2026-04-26.md",
     "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
@@ -57,10 +57,10 @@
     ]
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/project_workflow_profile.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/project/backlog/2026-04-26.md"
+    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/PROJECT_PROFILE.md",
+    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/session_handoff.md",
+    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/work_backlog.md",
+    "/Users/yklee/repos/standard_ai_workflow/ai-workflow/memory/backlog/2026-04-26.md"
   ],
   "repository_assessment": {
     "path": null,

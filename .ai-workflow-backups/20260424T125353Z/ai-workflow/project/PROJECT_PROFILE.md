@@ -25,7 +25,7 @@
 - 백로그 위치:
 - `backlog/`
 - 세션 인계 문서 위치:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 - 환경 기록 위치:
 - `releases/`
 
@@ -56,13 +56,13 @@
 ## 5. 프로젝트 특화 예외 규칙
 
 - 병합 규칙:
-- ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
+- ai-workflow/memory/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
 - 승인 규칙:
 - release/export 구조, harness 기본 정책, output contract 변경은 문서와 테스트를 같이 맞춘 뒤 반영한다.
 - 환경 제약:
 - 루트 `.codex` 경로는 Codex config 디렉터리와 충돌할 수 있으므로 전역 설정 병합 전 수동 검토가 필요하다.
 - 기타:
-- 이 저장소는 self-dogfood 중이므로 `ai-workflow/project/*` 를 workflow state docs 로 사용하고, 실제 project docs 는 루트 `README.md`, `core/`, `backlog/` 를 우선 본다.
+- 이 저장소는 self-dogfood 중이므로 `ai-workflow/memory/*` 를 workflow state docs 로 사용하고, 실제 project docs 는 루트 `README.md`, `core/`, `backlog/` 를 우선 본다.
 
 ## 다음에 읽을 문서
 

@@ -43,10 +43,10 @@
 - `ai-workflow/README.md`
 - `ai-workflow/core/workflow_adoption_entrypoints.md`
 - `ai-workflow/core/workflow_skill_catalog.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/YYYY-MM-DD.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/YYYY-MM-DD.md`
 
 하네스 오버레이 레이어 포함 항목:
 

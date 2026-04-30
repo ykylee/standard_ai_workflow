@@ -5,15 +5,15 @@
 - 대상 독자: OpenCode agent
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `../../AGENTS.md`, `../../ai-workflow/project/state.json`, `../../ai-workflow/project/session_handoff.md`, `../../ai-workflow/project/work_backlog.md`
+- 관련 문서: `../../AGENTS.md`, `../../ai-workflow/memory/state.json`, `../../ai-workflow/memory/session_handoff.md`, `../../ai-workflow/memory/work_backlog.md`
 
 ## 시작할 때
 
 1. 먼저 아래 문서를 순서대로 읽는다.
    - `AGENTS.md`
-   - `ai-workflow/project/state.json`
-   - `ai-workflow/project/session_handoff.md`
-   - `ai-workflow/project/work_backlog.md`
+   - `ai-workflow/memory/state.json`
+   - `ai-workflow/memory/session_handoff.md`
+   - `ai-workflow/memory/work_backlog.md`
 
 2. 세션 시작 skill 이라면:
    - state.json 의 현재 프로젝트 상태를 확인한다.

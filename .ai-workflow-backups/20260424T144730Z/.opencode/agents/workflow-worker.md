@@ -14,8 +14,8 @@ You are not the main orchestrator. Your role is to execute a tightly scoped task
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the specific `ai-workflow/project/` document or file paths that match your assigned scope
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the specific `ai-workflow/memory/` document or file paths that match your assigned scope
 
 Project defaults:
 

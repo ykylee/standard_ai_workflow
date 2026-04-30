@@ -5,7 +5,7 @@
 - 대상 독자: OpenCode, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -13,10 +13,10 @@
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -48,7 +48,7 @@
 - 문서 위키 홈: `README.md`
 - 운영 문서 위치: `core/`
 - backlog 위치: `backlog/`
-- session handoff 위치: `ai-workflow/project/session_handoff.md`
+- session handoff 위치: `ai-workflow/memory/session_handoff.md`
 
 ## OpenCode 전용 메모
 
@@ -59,5 +59,5 @@
 - worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
 - `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
 - 기존 코드베이스 분석 결과를 반영한 초안이다. 추정 명령과 문서 경로는 실제 저장소 기준으로 수정할 수 있다.
-- 이 저장소는 self-dogfood 중이므로 `ai-workflow/project/*` 는 workflow state docs, 루트 `README.md`, `core/`, `backlog/` 는 실제 project docs 로 구분해 다룬다.
+- 이 저장소는 self-dogfood 중이므로 `ai-workflow/memory/*` 는 workflow state docs, 루트 `README.md`, `core/`, `backlog/` 는 실제 project docs 로 구분해 다룬다.
 - project-local skill 과 agent 파일은 `.opencode/` 디렉터리에 위치하며, 세션 시작/backlog 갱신/handoff 갱신을 우선 수행하도록 구성한다.

@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-26
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -69,6 +69,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)

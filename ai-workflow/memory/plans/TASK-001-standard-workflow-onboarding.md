@@ -34,7 +34,7 @@
 ## 3. 범위
 
 - 포함 범위:
-- `ai-workflow/project/*` 상태 문서 정렬
+- `ai-workflow/memory/*` 상태 문서 정렬
 - `core/` 표준 문서 개선
 - `templates/` 기본 양식 개선
 - bootstrap 산출물 기본값 개선
@@ -44,10 +44,10 @@
 - MCP server 정식 승격
 - 미관련 기존 worktree 변경 되돌리기
 - 영향 파일/문서:
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
-- `ai-workflow/project/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
+- `ai-workflow/memory/state.json`
 - `core/global_workflow_standard.md`
 - `core/workflow_state_vs_project_docs.md`
 - `templates/*`
@@ -61,7 +61,7 @@
 - `core/global_workflow_standard.md`
 - `core/workflow_state_vs_project_docs.md`
 - `templates/*`
-- `ai-workflow/project/*`
+- `ai-workflow/memory/*`
 - 적용할 workflow 규칙:
 - workflow state docs 와 project docs 를 분리한다.
 - 장기 작업은 backlog 항목마다 계획 문서를 연결한다.
@@ -139,7 +139,7 @@
 - `python3 tests/check_docs.py`
 - `session-start` 경고 없음 확인
 - skill 6종 smoke 확인
-- `python3 mcp/latest-backlog/scripts/run_latest_backlog.py --backlog-dir-path ai-workflow/project/backlog`
+- `python3 mcp/latest-backlog/scripts/run_latest_backlog.py --backlog-dir-path ai-workflow/memory/backlog`
 - 개발 현황 분류:
 - `TASK-002` 기존 프로젝트 온보딩 자동 루틴 강화
 - `TASK-003` 실제 적용 검증 및 파일럿 기록
@@ -155,9 +155,9 @@
 ## 9. 다음 세션 시작 포인트
 
 - 먼저 읽을 파일:
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md`
 - 이 계획 문서
 - 바로 할 일:
 - `python3 tests/check_bootstrap.py` 와 `python3 tests/check_docs.py` 결과를 확인한다.

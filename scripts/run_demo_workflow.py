@@ -37,7 +37,7 @@ def repo_path(*parts: str) -> Path:
 
 EXAMPLE_PRESETS = {
     "acme_delivery_platform": {
-        "project_profile_path": repo_path("examples", "acme_delivery_platform", "project_workflow_profile.md"),
+        "project_profile_path": repo_path("examples", "acme_delivery_platform", "PROJECT_PROFILE.md"),
         "session_handoff_path": repo_path("examples", "acme_delivery_platform", "session_handoff.md"),
         "work_backlog_index_path": repo_path("examples", "acme_delivery_platform", "work_backlog.md"),
         "backlog_dir_path": repo_path("examples", "acme_delivery_platform", "backlog"),
@@ -52,7 +52,7 @@ EXAMPLE_PRESETS = {
         "merge_result_summary": "runbook 링크와 상태 문서가 함께 수정된 브랜치 병합 후 재정리",
     },
     "research_eval_hub": {
-        "project_profile_path": repo_path("examples", "research_eval_hub", "project_workflow_profile.md"),
+        "project_profile_path": repo_path("examples", "research_eval_hub", "PROJECT_PROFILE.md"),
         "session_handoff_path": repo_path("examples", "research_eval_hub", "session_handoff.md"),
         "work_backlog_index_path": repo_path("examples", "research_eval_hub", "work_backlog.md"),
         "backlog_dir_path": repo_path("examples", "research_eval_hub", "backlog"),

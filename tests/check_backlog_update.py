@@ -50,7 +50,7 @@ def main() -> int:
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
         
-        for relative_path in ("project_workflow_profile.md", "work_backlog.md"):
+        for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -68,7 +68,7 @@ def main() -> int:
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(temp_project_root / "PROJECT_PROFILE.md"),
                 "--daily-backlog-path",
                 str(temp_backlog_path),
                 "--task-name",
@@ -104,7 +104,7 @@ def main() -> int:
             raise AssertionError(f"Expected state.json to exist at {state_path}, but it was not found.")
         
         state_payload = json.loads(state_path.read_text(encoding="utf-8"))
-        expected_profile_path = str((temp_project_root / "project_workflow_profile.md").resolve())
+        expected_profile_path = str((temp_project_root / "PROJECT_PROFILE.md").resolve())
         # The path in state.json is now relative to workspace root (temp_project_root)
         actual_profile_rel = state_payload["source_of_truth"]["project_profile_path"]
         actual_profile_path = str((temp_project_root / actual_profile_rel).resolve())
@@ -121,7 +121,7 @@ def main() -> int:
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
         
-        for relative_path in ("project_workflow_profile.md", "work_backlog.md"):
+        for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -139,7 +139,7 @@ def main() -> int:
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(temp_project_root / "PROJECT_PROFILE.md"),
                 "--daily-backlog-path",
                 str(temp_backlog_path),
                 "--work-backlog-index-path",
@@ -194,7 +194,7 @@ def main() -> int:
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
         
-        for relative_path in ("project_workflow_profile.md", "work_backlog.md"):
+        for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -225,7 +225,7 @@ def main() -> int:
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(temp_project_root / "PROJECT_PROFILE.md"),
                 "--daily-backlog-path",
                 str(temp_backlog_path),
                 "--work-backlog-index-path",

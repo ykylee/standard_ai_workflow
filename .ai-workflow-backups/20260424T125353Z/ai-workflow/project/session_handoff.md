@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, 리뷰어, 문서 작성자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/2026-04-24.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./work_backlog.md`, `./backlog/2026-04-24.md`
 
 ## 1. 현재 작업 요약
 
@@ -14,7 +14,7 @@
 - 현재 주 작업 축:
 - workflow state docs 와 실제 project docs 경계를 이 저장소 운영 방식에 맞게 고정하고, Codex 흐름에서 실제로 동작하는지 검증하는 작업
 - 최근 핵심 기준 문서:
-- `ai-workflow/project/project_workflow_profile.md`, `core/workflow_state_vs_project_docs.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`, `core/workflow_state_vs_project_docs.md`
 
 ## 1.1 기록 원칙
 
@@ -59,15 +59,15 @@
 
 ## 현재 세션 운영 메모
 
-- workflow state write target 은 `ai-workflow/project/*` 로 유지한다.
+- workflow state write target 은 `ai-workflow/memory/*` 로 유지한다.
 - 실제 project docs 탐색은 `README.md`, `core/`, `backlog/` 를 우선 보고 `ai-workflow/` 는 메타 레이어로 분리한다.
 - Codex 실제 적용 테스트에서는 `session-start`, `backlog-update --apply`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile --apply` 순으로 점검한다.
 
-- [merge-doc-reconcile] 프로젝트 병합 규칙: ai-workflow/project/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
+- [merge-doc-reconcile] 프로젝트 병합 규칙: ai-workflow/memory/session_handoff.md 와 최신 workflow backlog 가 충돌하면 병합 후 handoff 를 우선 재작성한다.
 - [merge-doc-reconcile] 병합 후 handoff 와 최신 backlog 의 상태값을 실제 저장소 기준으로 다시 맞춘다.
 - [merge-doc-reconcile] 허브 및 인덱스 문서가 최신 문서 경로와 설명을 반영하는지 확인한다.
 - [merge-doc-reconcile] 병합에 포함된 변경 파일과 문서 설명이 어긋나지 않는지 다시 본다.
 ## 다음에 읽을 문서
 
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)

@@ -26,11 +26,11 @@ def test_linter_pass():
     print("Testing linter pass case...")
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
-        (root / "ai-workflow/project/backlog").mkdir(parents=True)
+        (root / "ai-workflow/memory/backlog").mkdir(parents=True)
         
-        state_json = root / "ai-workflow/project/state.json"
-        handoff = root / "ai-workflow/project/session_handoff.md"
-        backlog = root / "ai-workflow/project/backlog/2026-04-26.md"
+        state_json = root / "ai-workflow/memory/state.json"
+        handoff = root / "ai-workflow/memory/session_handoff.md"
+        backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
         
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},
@@ -57,11 +57,11 @@ def test_linter_fail_task_mismatch():
     print("Testing linter task mismatch case...")
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
-        (root / "ai-workflow/project/backlog").mkdir(parents=True)
+        (root / "ai-workflow/memory/backlog").mkdir(parents=True)
         
-        state_json = root / "ai-workflow/project/state.json"
-        handoff = root / "ai-workflow/project/session_handoff.md"
-        backlog = root / "ai-workflow/project/backlog/2026-04-26.md"
+        state_json = root / "ai-workflow/memory/state.json"
+        handoff = root / "ai-workflow/memory/session_handoff.md"
+        backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
         
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},
@@ -81,11 +81,11 @@ def test_linter_fail_broken_link():
     print("Testing linter broken link case...")
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
-        (root / "ai-workflow/project/backlog").mkdir(parents=True)
+        (root / "ai-workflow/memory/backlog").mkdir(parents=True)
         
-        state_json = root / "ai-workflow/project/state.json"
-        handoff = root / "ai-workflow/project/session_handoff.md"
-        backlog = root / "ai-workflow/project/backlog/2026-04-26.md"
+        state_json = root / "ai-workflow/memory/state.json"
+        handoff = root / "ai-workflow/memory/session_handoff.md"
+        backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
         
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},

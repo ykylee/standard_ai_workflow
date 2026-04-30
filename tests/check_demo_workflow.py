@@ -41,7 +41,7 @@ def check_success_path() -> None:
         temp_root = Path(temp_dir)
         temp_project_root = temp_root / "project"
         temp_project_root.mkdir()
-        for relative_path in ("project_workflow_profile.md", "session_handoff.md", "work_backlog.md"):
+        for relative_path in ("PROJECT_PROFILE.md", "session_handoff.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -56,7 +56,7 @@ def check_success_path() -> None:
                 "--example-project",
                 "acme_delivery_platform",
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(temp_project_root / "PROJECT_PROFILE.md"),
                 "--session-handoff-path",
                 str(temp_project_root / "session_handoff.md"),
                 "--work-backlog-index-path",

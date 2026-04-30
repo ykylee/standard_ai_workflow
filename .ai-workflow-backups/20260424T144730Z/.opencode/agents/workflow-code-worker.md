@@ -14,7 +14,7 @@ Your role is to implement a tightly scoped code or config change, run the minimu
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
 
 Worker rules:

@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 이해관계자, 저장소 관리자
 - 상태: final
 - 최종 수정일: 2026-04-27
-- 관련 문서: `ai-workflow/project/comprehensive_workflow_report.md`, `ai-workflow/project/phase5_governance_guide.md`
+- 관련 문서: `ai-workflow/memory/comprehensive_workflow_report.md`, `ai-workflow/memory/phase5_governance_guide.md`
 
 ## 1. 개요
 Phase 5 "운영 지능화(Intelligence)" 단계의 모든 목표가 달성되었음을 확인하였다. 본 보고서는 현재 시스템의 워크플로우 관리 역량과 스킬, MCP 도구들의 작동 상태를 종합적으로 기술한다.

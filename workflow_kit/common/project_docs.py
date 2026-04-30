@@ -125,7 +125,7 @@ def parse_backlog(path: Path) -> dict[str, object]:
     if not path.exists():
         # Try branch-specific tasks dir first, then fall back to original location
         from workflow_kit.common.paths import workflow_branch_dir
-        branch_dir = workflow_branch_dir(path.parent.parent) # Assuming path is ai-workflow/project/backlog/YYYY-MM-DD.md
+        branch_dir = workflow_branch_dir(path.parent.parent) # Assuming path is ai-workflow/memory/backlog/YYYY-MM-DD.md
         tasks_dir = branch_dir / "backlog" / "tasks"
         if not tasks_dir.exists():
             tasks_dir = path.parent / "tasks"

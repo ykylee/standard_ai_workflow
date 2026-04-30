@@ -46,7 +46,7 @@
     ]
   },
   "repository_assessment": {
-    "path": "/Users/yklee/repos/example-repo/ai-workflow/project/repository_assessment.md",
+    "path": "/Users/yklee/repos/example-repo/ai-workflow/memory/repository_assessment.md",
     "summary": {
       "project_name": "Existing Repo",
       "analysis_mode": "existing",
@@ -72,9 +72,9 @@
   "latest_backlog": {
     "status": "ok",
     "tool_version": "prototype-v2",
-    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md",
+    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md",
     "candidates": [
-      "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md"
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md"
     ],
     "warnings": []
   },
@@ -125,8 +125,8 @@
     "index_update_candidates": [
       "/Users/yklee/repos/example-repo/README.md",
       "/Users/yklee/repos/example-repo/docs/README.md",
-      "/Users/yklee/repos/example-repo/ai-workflow/project/work_backlog.md",
-      "/Users/yklee/repos/example-repo/ai-workflow/project/session_handoff.md"
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/work_backlog.md",
+      "/Users/yklee/repos/example-repo/ai-workflow/memory/session_handoff.md"
     ],
     "warnings": []
   },
@@ -148,12 +148,12 @@
     ]
   },
   "source_context": {
-    "project_profile_path": "/Users/yklee/repos/example-repo/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/example-repo/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/example-repo/ai-workflow/project/work_backlog.md",
-    "backlog_dir_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog",
-    "repository_assessment_path": "/Users/yklee/repos/example-repo/ai-workflow/project/repository_assessment.md",
-    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/project/backlog/2026-04-22.md",
+    "project_profile_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/work_backlog.md",
+    "backlog_dir_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog",
+    "repository_assessment_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/repository_assessment.md",
+    "latest_backlog_path": "/Users/yklee/repos/example-repo/ai-workflow/memory/backlog/2026-04-22.md",
     "changed_files": [
       "src/server.js",
       "docs/README.md"

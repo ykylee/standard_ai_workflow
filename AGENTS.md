@@ -5,7 +5,7 @@
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -14,7 +14,7 @@
 ## 항상 먼저 읽을 문서 (운영 전용)
 
 - `ai-workflow/WORKFLOW_INDEX.md`
-- `ai-workflow/memory/state.json` (또는 브랜치별 state.json)
+- `ai-workflow/memory/state.json` (부재 시 `state.json.template` 참조하여 초기화)
 
 ## 프로젝트 분석 및 온보딩 원칙
 
@@ -39,11 +39,11 @@
 
 ## 프로젝트 실행 기본값
 
-- 설치: `TODO: 설치 명령 입력`
-- 로컬 실행: `TODO: 로컬 실행 명령 입력`
-- 빠른 테스트: `TODO: 빠른 테스트 명령 입력`
-- 격리 테스트: `TODO: 격리 테스트 명령 입력`
-- 실행 확인: `TODO: 실행 확인 명령 입력`
+- 설치: `N/A (Standard Python 3.9+ with common libraries)`
+- 로컬 실행: `python3 scripts/bootstrap_workflow_kit.py --help`
+- 빠른 테스트: `python3 tests/check_bootstrap.py`
+- 격리 테스트: `python3 tests/check_merge_doc_reconcile.py`
+- 실행 확인: `python3 scripts/generate_workflow_state.py --project-profile-path docs/PROJECT_PROFILE.md`
 
 ## 문서 작업 기준
 

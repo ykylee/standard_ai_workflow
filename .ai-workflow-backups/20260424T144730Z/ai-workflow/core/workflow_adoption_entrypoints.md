@@ -27,7 +27,7 @@
 ### 추천 시작 순서
 
 1. `bootstrap_workflow_kit.py --adoption-mode new` 로 기본 문서 세트를 생성한다.
-2. `project_workflow_profile.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
+2. `PROJECT_PROFILE.md` 에 프로젝트 목적, 문서 구조, 명령, 검증 규칙을 채운다.
 3. `session_handoff.md` 와 날짜별 backlog 에 첫 작업 기준선을 적는다.
 4. `generate_workflow_state.py` 로 `state.json` 을 생성하거나 갱신해 빠른 세션 기준선을 맞춘다.
 4. 이후 skill/MCP 도입 범위를 정한다.
@@ -54,7 +54,7 @@
 
 1. `bootstrap_workflow_kit.py --adoption-mode existing` 로 저장소 분석과 문서 초안을 생성한다.
 2. `repository_assessment.md` 에 적힌 추정 스택, 명령, 문서 위치를 실제 운영 규칙과 대조한다.
-3. `project_workflow_profile.md` 에 자동 추정값을 확정 또는 수정한다.
+3. `PROJECT_PROFILE.md` 에 자동 추정값을 확정 또는 수정한다.
 4. `session_handoff.md` 와 backlog 에 현재 진행 중인 실제 작업과 리스크를 반영한다.
 5. `generate_workflow_state.py` 로 `state.json` 을 갱신한다.
 6. 이후 문서 동기화, 세션 시작, backlog 갱신 흐름을 단계적으로 도입한다.
@@ -65,11 +65,11 @@
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/project/project_workflow_profile.md \
-  --session-handoff-path /path/to/project/ai-workflow/project/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/project/work_backlog.md \
-  --backlog-dir-path /path/to/project/ai-workflow/project/backlog \
-  --repository-assessment-path /path/to/project/ai-workflow/project/repository_assessment.md
+  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/memory/repository_assessment.md
 ```
 
 이 스크립트는 아래 순서를 읽기 전용으로 이어준다.
@@ -124,7 +124,7 @@ python3 scripts/run_existing_project_onboarding.py \
 ## 5. 권장 출력물
 
 - 신규 프로젝트:
-- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
+- `PROJECT_PROFILE.md`, `session_handoff.md`, `work_backlog.md`, 날짜별 backlog
 - 작업 중인 프로젝트:
 - 위 문서 세트 + `repository_assessment.md`
 

@@ -14,8 +14,8 @@ Your role is to read, compare, summarize, and update a tightly scoped set of doc
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the assigned `ai-workflow/project/` documents or directly named doc paths
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the assigned `ai-workflow/memory/` documents or directly named doc paths
 
 Worker rules:
 

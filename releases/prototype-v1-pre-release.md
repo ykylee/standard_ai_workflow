@@ -42,9 +42,9 @@
 - zip: `dist/harnesses/codex/prototype-v1/standard-ai-workflow-codex-prototype-v1.zip`
 - entrypoints:
 - `bundle/AGENTS.md`
-- `bundle/ai-workflow/project/session_handoff.md`
-- `bundle/ai-workflow/project/work_backlog.md`
-- `bundle/ai-workflow/project/project_workflow_profile.md`
+- `bundle/ai-workflow/memory/session_handoff.md`
+- `bundle/ai-workflow/memory/work_backlog.md`
+- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
 
 ### OpenCode
 

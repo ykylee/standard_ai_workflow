@@ -23,7 +23,7 @@ def main() -> int:
         project_root.mkdir()
         
         # 1. 테스트용 프로젝트 문서 준비
-        profile_path = project_root / "project_workflow_profile.md"
+        profile_path = project_root / "PROJECT_PROFILE.md"
         profile_path.write_text(
             "# Project Profile\n\n- 프로젝트명: Test Project\n- 문서 위키 홈: README.md\n- 운영 문서 위치: docs/ops.md\n",
             encoding="utf-8"

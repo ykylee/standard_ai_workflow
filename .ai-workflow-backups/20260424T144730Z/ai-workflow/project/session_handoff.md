@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, 리뷰어, 문서 작성자
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `./project_workflow_profile.md`, `./work_backlog.md`, `./backlog/2026-04-24.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./work_backlog.md`, `./backlog/2026-04-24.md`
 
 ## 1. 현재 작업 요약
 
@@ -14,7 +14,7 @@
 - 현재 주 작업 축:
 - TASK-003 Beta Self-Test Apply
 - 최근 핵심 기준 문서:
-- `ai-workflow/project/project_workflow_profile.md`, `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/session_handoff.md`
 
 ## 1.1 기록 원칙
 
@@ -67,4 +67,4 @@
 ## 다음에 읽을 문서
 
 - 작업 백로그 인덱스: [./work_backlog.md](./work_backlog.md)
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)

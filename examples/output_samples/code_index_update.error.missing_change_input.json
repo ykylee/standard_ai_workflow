@@ -7,7 +7,7 @@
     "최소 하나의 changed file 또는 change summary 가 필요하다."
   ],
   "source_context": {
-    "project_profile_path": "/abs/path/project_workflow_profile.md",
+    "project_profile_path": "/abs/path/PROJECT_PROFILE.md",
     "changed_files": [],
     "change_summary": null,
     "work_backlog_index_path": null,

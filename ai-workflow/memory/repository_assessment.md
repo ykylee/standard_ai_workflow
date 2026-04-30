@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, AI Agent, 운영자
 - 상태: final (Phase 6 진입)
 - 최종 수정일: 2026-04-29
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../../core/maturity_matrix.json`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../../core/maturity_matrix.json`
 
 ## 1. 요약
 
@@ -17,7 +17,7 @@
 ## 2. 저장소 구조
 
 - **Core Logic**: `kit/` (워크플로우 핵심 로직 및 스펙)
-- **Operational Docs**: `ai-workflow/project/` (세션 상태 및 백로그 관리)
+- **Operational Docs**: `ai-workflow/memory/` (세션 상태 및 백로그 관리)
 - **Automation Scripts**: `scripts/` (부트스트랩, 배포, 상태 생성 등)
 - **Tests**: `tests/` (문서 무결성 및 스크립트 기능 검증)
 - **Examples**: `examples/` (워크플로우 적용 사례 및 출력 샘플)
@@ -32,7 +32,7 @@
 
 ## 4. 워크플로우 도입 현황
 
-- **문서화**: 모든 운영 문서가 `ai-workflow/project/` 하위에 표준화되어 있으며, `GEMINI.md`를 통해 에이전트 진입점이 명확함.
+- **문서화**: 모든 운영 문서가 `ai-workflow/memory/` 하위에 표준화되어 있으며, `GEMINI.md`를 통해 에이전트 진입점이 명확함.
 - **상태 관리**: `state.json`과 날짜별 백로그를 통해 세션 간 연속성이 완벽하게 보장됨.
 - **정밀 편집**: Phase 6 진입으로 `robust-patcher` 기반의 고신뢰도 코드 수정 체계 구축 중.
 
@@ -43,6 +43,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 성숙도 매트릭스: [../../core/maturity_matrix.json](../../core/maturity_matrix.json)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)

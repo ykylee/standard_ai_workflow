@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트 협업 체계 설계자, 저장소 관리자, 시스템 운영자
 - 상태: final
 - 최종 수정일: 2026-04-27
-- 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/project/state.json`, `ai-workflow/project/phase5_governance_guide.md`
+- 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/phase5_governance_guide.md`
 
 ## 1. 시스템의 핵심 용도
 **"AI 에이전트와 인간 개발자 간의 고신뢰 협업 인터페이스 구축"**

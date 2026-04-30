@@ -24,13 +24,13 @@
 
 ### state cache 축
 
-- `ai-workflow/project/state.json` 을 기본 생성물에 추가했다.
-- `project_workflow_profile.md`, `session_handoff.md`, `work_backlog.md`, 최신 날짜 backlog 를 읽어 빠른 세션 복원용 최소 상태를 추출한다.
+- `ai-workflow/memory/state.json` 을 기본 생성물에 추가했다.
+- `PROJECT_PROFILE.md`, `session_handoff.md`, `work_backlog.md`, 최신 날짜 backlog 를 읽어 빠른 세션 복원용 최소 상태를 추출한다.
 - `generate_workflow_state.py` 를 추가해 handoff/backlog 갱신 뒤 state cache 를 재생성할 수 있게 했다.
 
 ### 배포 패키징 축
 
-- 하네스 export minimal runtime 패키지에 `bundle/ai-workflow/project/state.json` 을 포함하도록 바꿨다.
+- 하네스 export minimal runtime 패키지에 `bundle/ai-workflow/memory/state.json` 을 포함하도록 바꿨다.
 - Codex/OpenCode instruction chain 과 package apply guide 가 `state.json` 을 먼저 읽는 흐름을 기본으로 따르도록 정리했다.
 
 ## 3. 배포 산출물
@@ -41,10 +41,10 @@
 - zip: `dist/harnesses/codex/prototype-v2/standard-ai-workflow-codex-prototype-v2.zip`
 - entrypoints:
 - `bundle/AGENTS.md`
-- `bundle/ai-workflow/project/state.json`
-- `bundle/ai-workflow/project/session_handoff.md`
-- `bundle/ai-workflow/project/work_backlog.md`
-- `bundle/ai-workflow/project/project_workflow_profile.md`
+- `bundle/ai-workflow/memory/state.json`
+- `bundle/ai-workflow/memory/session_handoff.md`
+- `bundle/ai-workflow/memory/work_backlog.md`
+- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
 
 ### OpenCode
 
@@ -55,7 +55,7 @@
 - `bundle/opencode.json`
 - `bundle/.opencode/skills/standard-ai-workflow/SKILL.md`
 - `bundle/.opencode/agents/workflow-orchestrator.md`
-- `bundle/ai-workflow/project/state.json`
+- `bundle/ai-workflow/memory/state.json`
 
 ## 4. 검증
 

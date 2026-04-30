@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 참여자, 문서 작성자, 개발자, 운영자
 - 상태: sample
 - 최종 수정일: 2026-04-18
-- 관련 문서: `./session_handoff.md`, `./project_workflow_profile.md`, `./backlog/2026-04-18.md`
+- 관련 문서: `./session_handoff.md`, `./PROJECT_PROFILE.md`, `./backlog/2026-04-18.md`
 
 ## 운영 원칙
 

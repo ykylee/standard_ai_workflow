@@ -11,7 +11,7 @@
 
 - Codex 전역 설정에는 additive MCP 연결이나 기능 플래그만 넣는다.
 - model, provider, reasoning effort 기본값은 넣지 않는다.
-- 실제 프로젝트 workflow 진입은 `AGENTS.md` 와 `ai-workflow/project/` 문서에서 수행한다.
+- 실제 프로젝트 workflow 진입은 `AGENTS.md` 와 `ai-workflow/memory/` 문서에서 수행한다.
 
 ## 포함된 파일
 

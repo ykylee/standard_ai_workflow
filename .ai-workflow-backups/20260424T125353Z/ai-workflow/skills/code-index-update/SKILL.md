@@ -48,7 +48,7 @@
 
 ```bash
 python3 skills/code-index-update/scripts/run_code_index_update.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --changed-file app/jobs/delivery_sync.py \

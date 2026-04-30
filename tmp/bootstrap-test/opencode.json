@@ -2,10 +2,10 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": [
     "AGENTS.md",
-    "ai-workflow/project/state.json",
-    "ai-workflow/project/project_workflow_profile.md",
-    "ai-workflow/project/session_handoff.md",
-    "ai-workflow/project/work_backlog.md"
+    "ai-workflow/memory/state.json",
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md"
   ],
   "agent": {
     "workflow-orchestrator": {

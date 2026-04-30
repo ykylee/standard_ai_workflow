@@ -26,7 +26,7 @@ def run_validation(example_name: str, changed_files: list[str], change_summary: 
             sys.executable,
             str(SCRIPT_PATH),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--session-handoff-path",
             str(example_root / "session_handoff.md"),
             "--latest-backlog-path",
@@ -106,7 +106,7 @@ def main() -> int:
     workflow_meta_payload = run_validation(
         "acme_delivery_platform",
         [
-            "ai-workflow/project/session_handoff.md",
+            "ai-workflow/memory/session_handoff.md",
         ],
         "workflow 상태 문서만 수정",
     )

@@ -23,7 +23,7 @@ def main() -> int:
         project_root.mkdir()
         
         # 1. 테스트용 프로젝트 문서 준비
-        profile_path = project_root / "project_workflow_profile.md"
+        profile_path = project_root / "PROJECT_PROFILE.md"
         profile_path.write_text(
             "# Project Profile\n\n- 프로젝트명: Test Project\n- 빠른 테스트: python3 -m unittest discover tests\n",
             encoding="utf-8"

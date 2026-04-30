@@ -6,14 +6,14 @@ from pathlib import Path
 
 def test_relative_paths_in_state():
     repo_root = Path(__file__).resolve().parents[1]
-    output_path = repo_root / "ai-workflow/project/state.json"
+    output_path = repo_root / "ai-workflow/memory/gemini/phase6/state.json"
     
     # Run the generator
     cmd = [
         "python3", "scripts/generate_workflow_state.py",
-        "--project-profile-path", "ai-workflow/project/project_workflow_profile.md",
-        "--session-handoff-path", "ai-workflow/project/session_handoff.md",
-        "--work-backlog-index-path", "ai-workflow/project/work_backlog.md",
+        "--project-profile-path", "docs/PROJECT_PROFILE.md",
+        "--session-handoff-path", "ai-workflow/memory/gemini/phase6/session_handoff.md",
+        "--work-backlog-index-path", "ai-workflow/memory/work_backlog.md",
         "--output-path", str(output_path),
         "--workspace-root", str(repo_root)
     ]

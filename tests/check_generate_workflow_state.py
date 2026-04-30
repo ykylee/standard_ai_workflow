@@ -25,7 +25,7 @@ def main() -> int:
                 sys.executable,
                 str(SCRIPT_PATH),
                 "--project-profile-path",
-                str(example_root / "project_workflow_profile.md"),
+                str(example_root / "PROJECT_PROFILE.md"),
                 "--session-handoff-path",
                 str(example_root / "session_handoff.md"),
                 "--work-backlog-index-path",

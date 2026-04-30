@@ -14,8 +14,8 @@ When `status: done` is added to a task in the backlog, the `task_count` or `done
 `state.json` remains stale until a full manual update is triggered.
 
 -- Steps to Reproduce
-1. Modify `ai-workflow/project/backlog/2026-04-27.md` and set a task to `done`.
-2. Check `ai-workflow/project/state.json`.
+1. Modify `ai-workflow/memory/backlog/2026-04-27.md` and set a task to `done`.
+2. Check `ai-workflow/memory/state.json`.
 3. Observe that `done_items` list does not contain the task ID.
 
 class TestReproduction(unittest.TestCase):

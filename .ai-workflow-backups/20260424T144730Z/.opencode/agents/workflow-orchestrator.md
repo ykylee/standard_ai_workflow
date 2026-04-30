@@ -12,19 +12,19 @@ You are the workflow orchestrator for this repository.
 Start each substantial task by reading:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
 
 You may directly read only the minimum session-restoration set and tiny triage inputs:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 - one clearly bounded file or path for tiny triage
 
 Project defaults:
@@ -35,7 +35,7 @@ Project defaults:
 - Isolated test: `TODO: 격리 테스트 명령 입력`
 - Smoke check: `TODO: 실행 확인 명령 입력`
 
-When the repo is in adoption mode, review `ai-workflow/project/repository_assessment.md` before trusting inferred commands.
+When the repo is in adoption mode, review `ai-workflow/memory/repository_assessment.md` before trusting inferred commands.
 
 User-facing workflow rules:
 

@@ -8,7 +8,7 @@ def test_handoff_git_integration():
     print("Testing handoff-git integration...")
     
     # Path to latest backlog for testing (using the one from state.json or current date)
-    latest_backlog = "ai-workflow/project/backlog/2026-04-27.md"
+    latest_backlog = "ai-workflow/memory/backlog/2026-04-27.md"
     
     cmd = [
         "python3", "mcp/create-session-handoff-draft/scripts/run_create_session_handoff_draft.py",

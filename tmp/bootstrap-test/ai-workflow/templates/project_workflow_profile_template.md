@@ -11,9 +11,9 @@
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: <README.md>
 - 운영 문서 홈: <docs/operations/>
-- 백로그 위치: <ai-workflow/project/backlog/>
-- 세션 인계 문서: <ai-workflow/project/session_handoff.md>
-- 환경 기록 위치: <ai-workflow/project/repository_assessment.md>
+- 백로그 위치: <ai-workflow/memory/backlog/>
+- 세션 인계 문서: <ai-workflow/memory/session_handoff.md>
+- 환경 기록 위치: <ai-workflow/memory/repository_assessment.md>
 
 ## 3. 기본 명령 (Commands)
 - 설치: <설치 및 가상환경 구성 명령>

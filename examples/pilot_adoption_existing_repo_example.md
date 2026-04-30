@@ -49,11 +49,11 @@
 ## 3. 적용 범위
 
 - 생성/복사한 문서:
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/2026-04-22.md`
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/2026-04-22.md`
+- `ai-workflow/memory/repository_assessment.md`
 - 적용한 하네스 오버레이:
 - `AGENTS.md`
 - `.codex/config.toml.example`
@@ -83,13 +83,13 @@
 ## 5. 적용 후 상태
 
 - 최종 project profile 경로:
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 - 최종 session handoff 경로:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 - 최종 work backlog 경로:
-- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/memory/work_backlog.md`
 - 최신 backlog 경로:
-- `ai-workflow/project/backlog/2026-04-22.md`
+- `ai-workflow/memory/backlog/2026-04-22.md`
 - 실제 첫 세션에서 사용한 runner 또는 skill:
 - `run_existing_project_onboarding.py`
 - 하네스에서 우선 읽은 출력:

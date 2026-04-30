@@ -2,10 +2,10 @@
   "schema_version": "1",
   "generated_at": "2026-04-26",
   "source_of_truth": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/backlog/2026-04-26.md",
+    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/backlog/2026-04-26.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -31,17 +31,17 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/backlog/2026-04-26.md",
+    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/backlog/2026-04-26.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": []
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/project_workflow_profile.md",
-    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/project/backlog/2026-04-26.md"
+    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/PROJECT_PROFILE.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/session_handoff.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/work_backlog.md",
+    "/Users/yklee/repos/standard_ai_workflow/tmp/dep-test-final/ai-workflow/memory/backlog/2026-04-26.md"
   ],
   "repository_assessment": {
     "path": null,

@@ -21,13 +21,13 @@
 - 문서 위키 홈:
 - `README.md`
 - 운영 문서 위치:
-- `ai-workflow/project/` (또는 `ai-workflow/project/` 를 직접 참조)
+- `ai-workflow/memory/` (또는 `ai-workflow/memory/` 를 직접 참조)
 - 백로그 위치:
-- `ai-workflow/project/backlog/`
+- `ai-workflow/memory/backlog/`
 - 세션 인계 문서 위치:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 - 환경 기록 위치:
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/repository_assessment.md`
 
 ## 3. 기본 명령
 
@@ -56,7 +56,7 @@
 ## 5. 프로젝트 특화 예외 규칙
 
 - 병합 규칙:
-- `ai-workflow/project/` 아래의 상태 문서들(`state.json`, `session_handoff.md`)은 현재 세션의 context를 담고 있으므로, git merge 시 충돌이 나면 현재 진행 중인 세션의 최신 상태를 우선으로 수동 재작성한다.
+- `ai-workflow/memory/` 아래의 상태 문서들(`state.json`, `session_handoff.md`)은 현재 세션의 context를 담고 있으므로, git merge 시 충돌이 나면 현재 진행 중인 세션의 최신 상태를 우선으로 수동 재작성한다.
 - 승인 규칙:
 - `core/` 아래의 표준 문서는 워크플로우 전반에 영향을 주므로 변경 시 반드시 설계 의도와 하위 호환성을 검토한다.
 - 환경 제약:

@@ -14,7 +14,7 @@
 - 현재 주 작업 축:
 - 예: `문서 동기화 자동화 1차 도입`
 - 최근 핵심 기준 문서:
-- 예: `global_workflow_standard.md`, `project_workflow_profile.md`
+- 예: `global_workflow_standard.md`, `PROJECT_PROFILE.md`
 
 ## 2. 진행 중 작업
 

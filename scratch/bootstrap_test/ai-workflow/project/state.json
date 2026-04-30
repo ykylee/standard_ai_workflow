@@ -2,19 +2,19 @@
   "schema_version": "1",
   "generated_at": "2026-04-30",
   "source_of_truth": {
-    "project_profile_path": "ai-workflow/project/project_workflow_profile.md",
-    "session_handoff_path": "ai-workflow/project/session_handoff.md",
-    "work_backlog_index_path": "ai-workflow/project/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-04-30.md",
+    "project_profile_path": "ai-workflow/memory/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
+    "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-04-30.md",
     "repository_assessment_path": null
   },
   "project": {
     "project_name": "Test Project",
     "document_home": "README.md",
     "operations_path": null,
-    "backlog_path": "ai-workflow/project/backlog/",
+    "backlog_path": "ai-workflow/memory/backlog/",
     "handoff_path": null,
-    "environment_path": "ai-workflow/project/environments/"
+    "environment_path": "ai-workflow/memory/environments/"
   },
   "commands": {
     "quick_tests": "TODO: 빠른 테스트 명령 입력",
@@ -31,17 +31,17 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/project/backlog/2026-04-30.md",
+    "latest_backlog_path": "ai-workflow/memory/backlog/2026-04-30.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": []
   },
   "next_documents": [
-    "ai-workflow/project/project_workflow_profile.md",
-    "ai-workflow/project/session_handoff.md",
-    "ai-workflow/project/work_backlog.md",
-    "ai-workflow/project/backlog/2026-04-30.md"
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "ai-workflow/memory/session_handoff.md",
+    "ai-workflow/memory/work_backlog.md",
+    "ai-workflow/memory/backlog/2026-04-30.md"
   ],
   "repository_assessment": {
     "path": null,

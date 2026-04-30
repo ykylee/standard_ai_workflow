@@ -15,7 +15,7 @@
 
 ### 입력 (Inputs)
 - `project-root`: 진단 대상 프로젝트 루트 경로 (기본값: `.`)
-- `output-path`: 리포트 생성 경로 (기본값: `ai-workflow/project/repository_assessment.md`)
+- `output-path`: 리포트 생성 경로 (기본값: `ai-workflow/memory/repository_assessment.md`)
 - `apply`: 실제 파일 생성/갱신 여부
 
 ### 출력 (Outputs)

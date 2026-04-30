@@ -41,7 +41,7 @@ def main() -> int:
         expect_success=True,
         args=[
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--session-handoff-path",
             str(example_root / "session_handoff.md"),
             "--work-backlog-index-path",
@@ -74,7 +74,7 @@ def main() -> int:
         expect_success=True,
         args=[
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--session-handoff-path",
             str(example_root / "session_handoff.md"),
             "--work-backlog-index-path",
@@ -82,7 +82,7 @@ def main() -> int:
             "--latest-backlog-path",
             str(latest_backlog),
             "--changed-file",
-            "ai-workflow/project/session_handoff.md",
+            "ai-workflow/memory/session_handoff.md",
             "--change-summary",
             "workflow 상태 문서만 수정",
         ],
@@ -96,7 +96,7 @@ def main() -> int:
         expect_success=False,
         args=[
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
         ],
     )
     if failure_code == 0:

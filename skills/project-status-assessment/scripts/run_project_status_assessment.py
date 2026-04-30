@@ -116,7 +116,7 @@ def main() -> int:
         
         written_paths = []
         if args.apply:
-            output_path = Path(args.output_path).resolve() if args.output_path else root / "ai-workflow/project/repository_assessment.md"
+            output_path = Path(args.output_path).resolve() if args.output_path else root / "ai-workflow/memory/repository_assessment.md"
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(report_content, encoding="utf-8")
             written_paths.append(str(output_path))

@@ -32,3 +32,9 @@ dist/harnesses/
 # Logs and temp
 *.log
 *.tmp
+tmp/
+scratch/
+
+# Workflow state files (shared via Git)
+# ai-workflow/memory/*/state.json
+# ai-workflow/memory/*/session_handoff.md

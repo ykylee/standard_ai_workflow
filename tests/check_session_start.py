@@ -45,7 +45,7 @@ def main() -> int:
             "--work-backlog-index-path",
             str(example_root / "work_backlog.md"),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--latest-backlog-path",
             str(latest_backlog),
         ],
@@ -72,7 +72,7 @@ def main() -> int:
             "--work-backlog-index-path",
             str(example_root / "work_backlog.md"),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
         ],
     )
     if failure_code == 0:

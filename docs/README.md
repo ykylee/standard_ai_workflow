@@ -4,7 +4,7 @@
 
 ## 1. 문서 분류
 
-### 📂 `ai-workflow/project/<branch>/` (상태 문서)
+### 📂 `ai-workflow/memory/<branch>/` (상태 문서)
 - **성격**: 현재 세션의 작업 문맥을 담는 휘발성/진행성 데이터.
 - **주요 파일**: `state.json`, `session_handoff.md`, `backlog/tasks/*.md`.
 - **관리**: 브랜치별로 격리되며, AI와 개발자가 자유롭게 생성/수정합니다. 별도의 PR 리뷰 없이 작업 생산성을 위해 사용됩니다.

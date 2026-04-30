@@ -27,6 +27,7 @@ from workflow_kit.common.runner import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Lint workflow documents for consistency.")
     parser.add_argument("--project-root", default=".")
+    parser.add_argument("--project-profile-path")
     parser.add_argument("--state-json-path")
     parser.add_argument("--handoff-path")
     parser.add_argument("--latest-backlog-path")
@@ -38,14 +39,32 @@ def main() -> int:
     args = parse_args()
     root = Path(args.project_root).resolve()
     
+    from workflow_kit.common.paths import workflow_branch_dir, workflow_memory_dir
+    
+    # Resolve project profile
+    profile_path = None
+    if args.project_profile_path:
+        profile_path = Path(args.project_profile_path).resolve()
+    else:
+        # Fallback: look for docs/PROJECT_PROFILE.md
+        candidate = root / "docs/PROJECT_PROFILE.md"
+        if candidate.exists():
+            profile_path = candidate
+        else:
+            candidate = root / "ai-workflow/memory/PROJECT_PROFILE.md"
+            if candidate.exists():
+                profile_path = candidate
+
     # Resolve paths with fallbacks
+    branch_dir = workflow_branch_dir(profile_path) if profile_path else root / "ai-workflow/memory"
+    
     state_json_path = (
         Path(args.state_json_path).resolve() if args.state_json_path 
-        else root / "ai-workflow/project/state.json"
+        else branch_dir / "state.json"
     )
     handoff_path = (
         Path(args.handoff_path).resolve() if args.handoff_path 
-        else root / "ai-workflow/project/session_handoff.md"
+        else branch_dir / "session_handoff.md"
     )
     
     source_context = {
@@ -69,7 +88,7 @@ def main() -> int:
         if not latest_backlog_path:
             # Last resort fallback (guess by date)
             from datetime import date
-            latest_backlog_path = root / f"ai-workflow/project/backlog/{date.today().isoformat()}.md"
+            latest_backlog_path = branch_dir / f"backlog/{date.today().isoformat()}.md"
 
         source_context["latest_backlog_path"] = str(latest_backlog_path)
 

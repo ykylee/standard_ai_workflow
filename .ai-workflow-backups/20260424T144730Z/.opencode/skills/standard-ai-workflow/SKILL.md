@@ -9,14 +9,14 @@ Use this skill when you need to start a session, update backlog state, sync docu
 
 Always read:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 If the repository is still in adoption, also read:
 
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/repository_assessment.md`
 
 Follow these rules:
 

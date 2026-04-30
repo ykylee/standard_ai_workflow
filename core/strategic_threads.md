@@ -5,7 +5,7 @@
 - 대상 독자: 프로젝트 리드, AI 에이전트, 저장소 관리자
 - 상태: in-progress
 - 최종 수정일: 2026-04-27
-- 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/project/state.json`
+- 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/memory/state.json`
 - 운영 원칙: 
     1. 모든 계획(Strategy) 수립 시 이 문서의 관련 스레드를 먼저 확인한다.
     2. 새로운 전략적 방향이 생기면 스레드를 추가한다.

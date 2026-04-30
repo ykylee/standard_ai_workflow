@@ -503,9 +503,9 @@ def smart_context_reader_payload(
             if not symbols or node.name in symbols:
                 start = node.lineno - 1
                 end = node.end_lineno
-                content = "\\n".join(lines[start:end])
+                content = "\n".join(lines[start:end])
                 block_type = type(node).__name__
-                extracted_content.append(f"--- Symbol: {node.name} ({block_type}) ---\\n{content}")
+                extracted_content.append(f"--- Symbol: {node.name} ({block_type}) ---\n{content}")
                 found_symbols.add(node.name)
 
     if symbols:

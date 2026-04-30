@@ -305,9 +305,9 @@ def main() -> int:
         
         if onboarding_summary["critical_todos"]:
             if args.apply:
-                onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `project_workflow_profile.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `PROJECT_PROFILE.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")
             else:
-                onboarding_summary["recommended_next_steps"].insert(0, "!! 중요: `project_workflow_profile.md`에서 TODO 상태인 명령어를 먼저 수정해야 한다.")
+                onboarding_summary["recommended_next_steps"].insert(0, "!! 중요: `PROJECT_PROFILE.md`에서 TODO 상태인 명령어를 먼저 수정해야 한다.")
 
     result = build_runner_success_result(
         tool_version=TOOL_VERSION,

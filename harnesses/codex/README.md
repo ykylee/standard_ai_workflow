@@ -15,7 +15,7 @@
 ## 구성 원칙
 
 - `AGENTS.md` 는 Codex 의 프로젝트 지침 진입점으로 사용한다.
-- 상세 정책은 `ai-workflow/project/` 문서를 먼저 읽도록 연결한다.
+- 상세 정책은 `ai-workflow/memory/` 문서를 먼저 읽도록 연결한다.
 - `.codex/config.toml.example` 는 전역 Codex 설정에 병합 가능한 샘플 스니펫으로 유지한다.
 - Codex 에서는 OpenCode 처럼 project-local agent 권한을 세밀하게 분리하기 어렵기 때문에, `AGENTS.md` 에 메인/worker 운영 패턴을 명시하는 방식을 우선 사용한다.
 - `main`/`small` 모델 구조를 쓴다면, Codex 에서도 메인 에이전트는 `main`, bounded scope 서브 에이전트는 `small` 로 두는 운영 원칙을 문서로 먼저 합의하는 편이 좋다.
@@ -42,7 +42,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 ## 도입 후 확인 포인트
 
 - `AGENTS.md` 에 적힌 기본 명령이 실제 저장소와 맞는지 확인
-- `ai-workflow/project/` 경로가 현재 저장소 구조와 맞는지 확인
+- `ai-workflow/memory/` 경로가 현재 저장소 구조와 맞는지 확인
 - `.codex/config.toml.example` 를 실제 사용자 전역 설정에 반영할지 결정
 - 생성된 `AGENTS.md` 에 한국어 보고/컨텍스트 절약 원칙이 포함되는지 확인
 - 생성된 `AGENTS.md` 에 메인 조정자와 worker 성격 서브 에이전트 분리 원칙이 포함되는지 확인

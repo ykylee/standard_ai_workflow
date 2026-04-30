@@ -217,7 +217,7 @@ def make_paths(args: argparse.Namespace) -> Paths:
         project_dir=project_dir,
         backlog_dir=backlog_dir,
         readme_path=kit_root / "README.md",
-        profile_path=project_dir / "project_workflow_profile.md",
+        profile_path=project_dir / "PROJECT_PROFILE.md",
         state_path=project_dir / "state.json",
         handoff_path=project_dir / "session_handoff.md",
         backlog_index_path=project_dir / "work_backlog.md",
@@ -545,7 +545,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `./project/project_workflow_profile.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
+- 관련 문서: `./project/PROJECT_PROFILE.md`, `./project/state.json`, `./project/session_handoff.md`, `./project/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -555,7 +555,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 2. 생성된 파일
 
-- [project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- [project/PROJECT_PROFILE.md](./project/PROJECT_PROFILE.md)
 - [project/state.json](./project/state.json)
 - [project/session_handoff.md](./project/session_handoff.md)
 - [project/work_backlog.md](./project/work_backlog.md)
@@ -572,7 +572,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 5. 도입 직후 해야 할 일
 
-1. `project_workflow_profile.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
+1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
 2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
@@ -595,7 +595,7 @@ def render_readme(args: argparse.Namespace, context: dict[str, object]) -> str:
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project/project_workflow_profile.md](./project/project_workflow_profile.md)
+- 프로젝트 프로파일: [./project/PROJECT_PROFILE.md](./project/PROJECT_PROFILE.md)
 - 빠른 상태 요약: [./project/state.json](./project/state.json)
 - 세션 인계 문서: [./project/session_handoff.md](./project/session_handoff.md)
 - 작업 백로그 인덱스: [./project/work_backlog.md](./project/work_backlog.md)
@@ -623,9 +623,9 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
         "<협업 부서 및 담당자>": value_or_inferred(args.stakeholders, "TODO: 주요 이해관계자 정리"),
         "<README.md>": str(context["doc_home"]),
         "<docs/operations/>": str(context["operations_dir"]),
-        "<ai-workflow/project/backlog/>": str(context["backlog_dir"]),
-        "<ai-workflow/project/session_handoff.md>": str(context["session_doc_path"]),
-        "<ai-workflow/project/repository_assessment.md>": str(context["environment_dir"]),
+        "<ai-workflow/memory/backlog/>": str(context["backlog_dir"]),
+        "<ai-workflow/memory/session_handoff.md>": str(context["session_doc_path"]),
+        "<ai-workflow/memory/repository_assessment.md>": str(context["environment_dir"]),
         "<설치 및 가상환경 구성 명령>": install_command,
         "<어플리케이션 실행 명령>": run_command,
         "<단위 테스트 및 Lint 명령>": quick_test_command,
@@ -725,7 +725,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -788,7 +788,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
 """
@@ -847,7 +847,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -855,10 +855,10 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -919,7 +919,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 대상 독자: Antigravity, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -927,10 +927,10 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -987,7 +987,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/work_backlog.md`, `ai-workflow/project/project_workflow_profile.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -995,10 +995,10 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
@@ -1118,14 +1118,14 @@ Use this skill when you need to start a session, update backlog state, sync docu
 
 Always read:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 If the repository is still in adoption, also read:
 
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/repository_assessment.md`
 
 Follow these rules:
 
@@ -1156,19 +1156,19 @@ You are the workflow orchestrator for this repository.
 Start each substantial task by reading:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 
 Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
 
 You may directly read only the minimum session-restoration set and tiny triage inputs:
 
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
 - one clearly bounded file or path for tiny triage
 
 Project defaults:
@@ -1179,7 +1179,7 @@ Project defaults:
 - Isolated test: `{context['isolated_test_command']}`
 - Smoke check: `{context['smoke_check_command']}`
 
-When the repo is in adoption mode, review `ai-workflow/project/repository_assessment.md` before trusting inferred commands.
+When the repo is in adoption mode, review `ai-workflow/memory/repository_assessment.md` before trusting inferred commands.
 
 User-facing workflow rules:
 
@@ -1218,8 +1218,8 @@ You are not the main orchestrator. Your role is to execute a tightly scoped task
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the specific `ai-workflow/project/` document or file paths that match your assigned scope
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the specific `ai-workflow/memory/` document or file paths that match your assigned scope
 
 Project defaults:
 
@@ -1260,8 +1260,8 @@ Your role is to read, compare, summarize, and update a tightly scoped set of doc
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
-- the assigned `ai-workflow/project/` documents or directly named doc paths
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
+- the assigned `ai-workflow/memory/` documents or directly named doc paths
 
 Worker rules:
 
@@ -1292,7 +1292,7 @@ Your role is to implement a tightly scoped code or config change, run the minimu
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
 
 Worker rules:
@@ -1325,7 +1325,7 @@ Your role is to run bounded checks, inspect logs, gather evidence, and return a 
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/project/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/state.json` when it helps restore the current task baseline quickly
 - the assigned validation scope, commands, and relevant backlog or handoff notes
 
 Project defaults:

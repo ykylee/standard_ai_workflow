@@ -84,7 +84,7 @@
 
 ## TASK-036 PR 리뷰 피드백 반영 및 환경 표준화 완료
 
-- 상태: done
+- 상태: in_progress
 - 우선순위: high
 - 요청일: 2026-04-30
 - 완료일:
@@ -103,7 +103,7 @@
 - 완료 기준:
 - 
 - 작업 결과:
-- All 6 smoke test suites passed locally.
+- 
 - 다음 세션 시작 포인트:
 - 
 - 남은 리스크:

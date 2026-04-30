@@ -34,7 +34,7 @@ def extract_symbols(file_path, symbol_names):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file", required=True)
+    parser.add_argument("--file-path", required=True, dest="file")
     parser.add_argument("--symbols", nargs="*", help="List of function or class names to extract")
     args = parser.parse_args()
     

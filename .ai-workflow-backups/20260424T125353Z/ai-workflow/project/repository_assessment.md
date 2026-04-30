@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: stable
 - 최종 수정일: 2026-04-25
-- 관련 문서: `./project_workflow_profile.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 요약
 
@@ -52,9 +52,9 @@
 - N/A (Python scripts 중심)
 - 분석 중 확인한 주요 경로:
 - `GEMINI.md`
-- `ai-workflow/project/state.json`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
+- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
 - `scripts/bootstrap_workflow_kit.py`
 - `scripts/export_harness_package.py`
 
@@ -63,11 +63,11 @@
 - 문서 위키 홈:
 - `README.md`
 - 운영 문서 위치:
-- `ai-workflow/project/`
+- `ai-workflow/memory/`
 - backlog 위치:
-- `ai-workflow/project/backlog/`
+- `ai-workflow/memory/backlog/`
 - session handoff 위치:
-- `ai-workflow/project/session_handoff.md`
+- `ai-workflow/memory/session_handoff.md`
 
 ## 6. 특이 사항
 
@@ -76,6 +76,6 @@
 
 ## 다음에 읽을 문서
 
-- 프로젝트 프로파일: [./project_workflow_profile.md](./project_workflow_profile.md)
+- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
 - 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)

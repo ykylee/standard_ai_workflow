@@ -54,11 +54,11 @@
 
 ## 5. 기대 산출물
 
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/YYYY-MM-DD.md`
-- `ai-workflow/project/repository_assessment.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/YYYY-MM-DD.md`
+- `ai-workflow/memory/repository_assessment.md`
 - onboarding runner 결과 JSON
 - 파일럿 적용 기록 문서
 

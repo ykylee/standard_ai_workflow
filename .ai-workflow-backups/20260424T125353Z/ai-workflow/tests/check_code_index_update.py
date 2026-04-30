@@ -26,7 +26,7 @@ def run_index_update(example_name: str, changed_files: list[str], change_summary
             sys.executable,
             str(SCRIPT_PATH),
             "--project-profile-path",
-            str(example_root / "project_workflow_profile.md"),
+            str(example_root / "PROJECT_PROFILE.md"),
             "--work-backlog-index-path",
             str(example_root / "work_backlog.md"),
             "--session-handoff-path",
@@ -83,7 +83,7 @@ def main() -> int:
     workflow_meta_payload = run_index_update(
         "acme_delivery_platform",
         [
-            "ai-workflow/project/session_handoff.md",
+            "ai-workflow/memory/session_handoff.md",
         ],
         "workflow 상태 문서만 수정",
     )
@@ -98,7 +98,7 @@ def main() -> int:
         (repo_root / "README.md").write_text("# Repo\n", encoding="utf-8")
         (repo_root / "docs" / "README.md").write_text("# Docs\n", encoding="utf-8")
         (repo_root / "docs" / "operations" / "README.md").write_text("# Operations\n", encoding="utf-8")
-        (workflow_project / "project_workflow_profile.md").write_text(
+        (workflow_project / "PROJECT_PROFILE.md").write_text(
             (
                 "# Project Workflow Profile\n\n"
                 "## 1. 프로젝트 개요\n\n"
@@ -117,7 +117,7 @@ def main() -> int:
                 sys.executable,
                 str(SCRIPT_PATH),
                 "--project-profile-path",
-                str(workflow_project / "project_workflow_profile.md"),
+                str(workflow_project / "PROJECT_PROFILE.md"),
                 "--changed-file",
                 "docs/operations/runbooks/foo.md",
                 "--change-summary",
@@ -130,9 +130,9 @@ def main() -> int:
         )
         payload = json.loads(completed.stdout)
         if not any(item.endswith("/docs/README.md") for item in payload["priority_index_candidates"]):
-            raise AssertionError("Project docs should resolve from repository root, not ai-workflow/project.")
-        if any("/ai-workflow/project/docs/" in item for item in payload["index_update_candidates"]):
-            raise AssertionError("Project doc candidates should not resolve under ai-workflow/project/docs.")
+            raise AssertionError("Project docs should resolve from repository root, not ai-workflow/memory.")
+        if any("/ai-workflow/memory/docs/" in item for item in payload["index_update_candidates"]):
+            raise AssertionError("Project doc candidates should not resolve under ai-workflow/memory/docs.")
 
     print("Code-index-update smoke check passed.")
     return 0

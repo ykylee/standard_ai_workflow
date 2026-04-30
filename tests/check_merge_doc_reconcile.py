@@ -41,13 +41,28 @@ def main() -> int:
     latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_root = Path(temp_dir)
+        from workflow_kit.common.paths import workflow_branch_dir, get_current_branch
+        
         temp_project_root = temp_root / "project"
         temp_project_root.mkdir()
-        for relative_path in ("project_workflow_profile.md", "session_handoff.md", "work_backlog.md"):
-            source_path = example_root / relative_path
-            target_path = temp_project_root / relative_path
-            target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-        temp_backlog_dir = temp_project_root / "backlog"
+        
+        # In the new architecture, profile is in docs/ or memory/ root, 
+        # but session_handoff and backlog are in branch-specific dirs.
+        profile_path = temp_project_root / "PROJECT_PROFILE.md"
+        profile_path.write_text((example_root / "PROJECT_PROFILE.md").read_text(encoding="utf-8"), encoding="utf-8")
+        
+        temp_work_backlog = temp_project_root / "work_backlog.md"
+        temp_work_backlog.write_text((example_root / "work_backlog.md").read_text(encoding="utf-8"), encoding="utf-8")
+        
+        # Get branch dir using the same logic as the tool
+        branch_name = get_current_branch()
+        branch_dir = temp_project_root / branch_name
+        branch_dir.mkdir(parents=True)
+        
+        temp_handoff = branch_dir / "session_handoff.md"
+        temp_handoff.write_text((example_root / "session_handoff.md").read_text(encoding="utf-8"), encoding="utf-8")
+        
+        temp_backlog_dir = branch_dir / "backlog"
         temp_backlog_dir.mkdir()
         temp_latest_backlog = temp_backlog_dir / latest_backlog.name
         temp_latest_backlog.write_text(latest_backlog.read_text(encoding="utf-8"), encoding="utf-8")
@@ -56,13 +71,13 @@ def main() -> int:
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(profile_path),
                 "--merge-result-summary",
                 "delivery sync 관련 문서와 코드 변경이 병합됐다.",
                 "--session-handoff-path",
-                str(temp_project_root / "session_handoff.md"),
+                str(temp_handoff),
                 "--work-backlog-index-path",
-                str(temp_project_root / "work_backlog.md"),
+                str(temp_work_backlog),
                 "--latest-backlog-path",
                 str(temp_latest_backlog),
                 "--changed-file",
@@ -101,13 +116,13 @@ def main() -> int:
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(profile_path),
                 "--merge-result-summary",
                 "delivery sync 관련 문서와 코드 변경이 병합됐다.",
                 "--session-handoff-path",
-                str(temp_project_root / "session_handoff.md"),
+                str(temp_handoff),
                 "--work-backlog-index-path",
-                str(temp_project_root / "work_backlog.md"),
+                str(temp_work_backlog),
                 "--latest-backlog-path",
                 str(temp_latest_backlog),
                 "--changed-file",
@@ -119,27 +134,27 @@ def main() -> int:
         )
         if apply_payload["apply_status"] != "applied":
             raise AssertionError("Expected merge-doc-reconcile apply mode to report applied status.")
-        handoff_text = (temp_project_root / "session_handoff.md").read_text(encoding="utf-8")
+        handoff_text = temp_handoff.read_text(encoding="utf-8")
         if "[merge-doc-reconcile]" not in handoff_text:
             raise AssertionError("Expected merge-doc-reconcile apply mode to append reconcile notes to handoff.")
-        if str(temp_project_root / "session_handoff.md") not in apply_payload["written_paths"]:
+        if str(temp_handoff) not in apply_payload["written_paths"]:
             raise AssertionError("Expected merge-doc-reconcile apply mode to report the written handoff path.")
 
         _, workflow_meta_payload = run_merge_doc_reconcile(
             expect_success=True,
             args=[
                 "--project-profile-path",
-                str(temp_project_root / "project_workflow_profile.md"),
+                str(profile_path),
                 "--merge-result-summary",
                 "workflow 상태 문서만 병합됐다.",
                 "--session-handoff-path",
-                str(temp_project_root / "session_handoff.md"),
+                str(temp_handoff),
                 "--work-backlog-index-path",
-                str(temp_project_root / "work_backlog.md"),
+                str(temp_work_backlog),
                 "--latest-backlog-path",
                 str(temp_latest_backlog),
                 "--changed-file",
-                "ai-workflow/project/session_handoff.md",
+                f"ai-workflow/memory/{branch_name}/session_handoff.md",
             ],
         )
         if workflow_meta_payload["source_context"]["changed_files"]:

@@ -5,7 +5,7 @@
 - 대상 독자: OpenCode agent
 - 상태: draft
 - 최종 수정일: 2026-04-24
-- 관련 문서: `../../AGENTS.md`, `../../ai-workflow/project/state.json`, `../../ai-workflow/project/session_handoff.md`, `../../ai-workflow/project/work_backlog.md`
+- 관련 문서: `../../AGENTS.md`, `../../ai-workflow/memory/state.json`, `../../ai-workflow/memory/session_handoff.md`, `../../ai-workflow/memory/work_backlog.md`
 
 ## 역할
 
@@ -17,9 +17,9 @@
 
 - 세션을 시작하기 전에 먼저 아래 문서를 읽는다:
   - `AGENTS.md`
-  - `ai-workflow/project/state.json`
-  - `ai-workflow/project/session_handoff.md`
-  - `ai-workflow/project/work_backlog.md`
+  - `ai-workflow/memory/state.json`
+  - `ai-workflow/memory/session_handoff.md`
+  - `ai-workflow/memory/work_backlog.md`
 
 - 작업을 분배하기 전에 목적, 범위, 영향을 짧게 정리한다.
 - 분배 시 책임 파일과 종료 조건을 worker 에게 명확히 넘긴다.

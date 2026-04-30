@@ -204,7 +204,7 @@
         "result": {
           "_meta": {
             "descriptor_target": "mcp_tools_list_draft",
-            "tool_count": 11,
+            "tool_count": 12,
             "transport_ready": false
           },
           "tools": [
@@ -1651,6 +1651,132 @@
                 ],
                 "title": "assess_milestone_progress output"
               }
+            },
+            {
+              "_meta": {
+                "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                "bundle_phase": "direct_call_adapter",
+                "descriptor_target": "mcp_tools_list_draft",
+                "transport_ready": false
+              },
+              "annotations": {
+                "readOnlyHint": true
+              },
+              "description": "Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "file_path": {
+                    "description": "Path to the Python file.",
+                    "type": "string"
+                  },
+                  "symbols": {
+                    "description": "List of function or class names to extract. If empty, all are extracted.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "file_path"
+                ],
+                "type": "object"
+              },
+              "name": "smart_context_reader",
+              "outputSchema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "oneOf": [
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "extracted_content": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "not_found_symbols": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "status": {
+                        "enum": [
+                          "ok",
+                          "warning"
+                        ]
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "extracted_content",
+                      "not_found_symbols",
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      },
+                      "error_code": {
+                        "type": "string"
+                      },
+                      "extracted_content": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "not_found_symbols": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_context": {
+                        "additionalProperties": true,
+                        "properties": {},
+                        "required": [],
+                        "type": "object"
+                      },
+                      "status": {
+                        "const": "error"
+                      },
+                      "tool_version": {
+                        "type": "string"
+                      },
+                      "warnings": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "tool_version",
+                      "warnings"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "title": "smart_context_reader output"
+              }
             }
           ]
         }
@@ -1873,7 +1999,7 @@
           "result": {
             "_meta": {
               "descriptor_target": "mcp_tools_list_draft",
-              "tool_count": 11,
+              "tool_count": 12,
               "transport_ready": false
             },
             "tools": [
@@ -3319,6 +3445,132 @@
                     }
                   ],
                   "title": "assess_milestone_progress output"
+                }
+              },
+              {
+                "_meta": {
+                  "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+                  "bundle_phase": "direct_call_adapter",
+                  "descriptor_target": "mcp_tools_list_draft",
+                  "transport_ready": false
+                },
+                "annotations": {
+                  "readOnlyHint": true
+                },
+                "description": "Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
+                "inputSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_path": {
+                      "description": "Path to the Python file.",
+                      "type": "string"
+                    },
+                    "symbols": {
+                      "description": "List of function or class names to extract. If empty, all are extracted.",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "file_path"
+                  ],
+                  "type": "object"
+                },
+                "name": "smart_context_reader",
+                "outputSchema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "oneOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "extracted_content": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "not_found_symbols": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "status": {
+                          "enum": [
+                            "ok",
+                            "warning"
+                          ]
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "extracted_content",
+                        "not_found_symbols",
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "error": {
+                          "type": "string"
+                        },
+                        "error_code": {
+                          "type": "string"
+                        },
+                        "extracted_content": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "not_found_symbols": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "source_context": {
+                          "additionalProperties": true,
+                          "properties": {},
+                          "required": [],
+                          "type": "object"
+                        },
+                        "status": {
+                          "const": "error"
+                        },
+                        "tool_version": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "tool_version",
+                        "warnings"
+                      ],
+                      "type": "object"
+                    }
+                  ],
+                  "title": "smart_context_reader output"
                 }
               }
             ]

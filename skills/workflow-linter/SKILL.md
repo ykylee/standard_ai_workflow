@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트, 워크플로우 운영자
 - 상태: beta
 - 최종 수정일: 2026-04-26
-- 관련 문서: `ai-workflow/project/state.json`, `ai-workflow/project/session_handoff.md`
+- 관련 문서: `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`
 
 ## 1. 개요
 
@@ -43,6 +43,6 @@ python3 skills/workflow-linter/scripts/run_workflow_linter.py --json
 
 # 특정 경로 지정
 python3 skills/workflow-linter/scripts/run_workflow_linter.py \
-  --state-json-path ai-workflow/project/state.json \
-  --handoff-path ai-workflow/project/session_handoff.md
+  --state-json-path ai-workflow/memory/state.json \
+  --handoff-path ai-workflow/memory/session_handoff.md
 ```

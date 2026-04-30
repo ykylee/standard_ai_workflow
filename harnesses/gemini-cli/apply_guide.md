@@ -24,7 +24,7 @@
 - 공유:
 - 프로젝트 루트 `GEMINI.md` 와 `ai-workflow/` 패키지를 둔다.
 - 로컬:
-- `ai-workflow/project/` 문서에서 실제 명령, 경로, backlog 상태를 관리한다.
+- `ai-workflow/memory/` 문서에서 실제 명령, 경로, backlog 상태를 관리한다.
 
 프로젝트별 규칙은 항상 local 문서가 우선한다.
 
@@ -52,8 +52,8 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. 생성된 `ai-workflow/project/project_workflow_profile.md` 에 실제 명령과 검증 규칙을 채운다.
-3. 루트 `GEMINI.md` 가 `ai-workflow/project/` 문서를 먼저 읽도록 연결됐는지 확인한다.
+2. 생성된 `ai-workflow/memory/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
+3. 루트 `GEMINI.md` 가 `ai-workflow/memory/` 문서를 먼저 읽도록 연결됐는지 확인한다.
 4. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
 
 ## 4. 작업 중인 프로젝트 적용 순서
@@ -70,8 +70,8 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. `ai-workflow/project/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
-3. `project_workflow_profile.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
+2. `ai-workflow/memory/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
+3. `PROJECT_PROFILE.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `GEMINI.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
 5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
 
@@ -79,15 +79,15 @@ python3 scripts/bootstrap_workflow_kit.py \
 
 - 먼저 `GEMINI.md` 를 기준으로 현재 저장소 규칙을 읽는다.
 - 이어서 아래 세 문서를 순서대로 읽는다.
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/project_workflow_profile.md`
-- 기존 프로젝트 도입 직후라면 `ai-workflow/project/repository_assessment.md` 도 함께 읽는다.
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- 기존 프로젝트 도입 직후라면 `ai-workflow/memory/repository_assessment.md` 도 함께 읽는다.
 
 ## 6. 적용 후 확인 체크리스트
 
 - `GEMINI.md` 가 존재한다.
-- `ai-workflow/project/` 문서 세트가 존재한다.
+- `ai-workflow/memory/` 문서 세트가 존재한다.
 - profile 문서의 명령이 실제 저장소 기준으로 채워져 있다.
 - 첫 backlog 항목과 handoff 가 비어 있지 않다.
 - Gemini CLI 가 읽어야 할 시작 문서 경로가 팀 내에서 합의되어 있다.

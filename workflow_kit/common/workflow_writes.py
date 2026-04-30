@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 import re
+import shutil
 
 from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.project_docs import TASK_HEADER_RE
@@ -58,7 +59,7 @@ def _ensure_related_doc_links(lines: list[str], *, backlog_path: Path) -> list[s
     related = [
         f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'work_backlog.md')}`",
         f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'session_handoff.md')}`",
-        f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'project_workflow_profile.md')}`",
+        f"`{rel_link_from_doc(backlog_path, backlog_path.parent.parent / 'PROJECT_PROFILE.md')}`",
     ]
     return _replace_list_after_label(lines, "관련 문서", related)
 
@@ -98,6 +99,11 @@ def upsert_backlog_entry(*, backlog_path: Path, task_id: str, entry_lines: list[
     for tf in task_files:
         lines.append("")
         lines.extend(_read_lines(tf))
+        
+    # Backup existing backlog before overwriting
+    if backlog_path.exists():
+        backup_path = backlog_path.with_suffix(".md.bak")
+        shutil.copyfile(backlog_path, backup_path)
         
     _write_lines(backlog_path, lines)
     return action

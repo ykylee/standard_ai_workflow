@@ -1,6 +1,6 @@
 # Workflow State Vs Project Docs
 
-- 문서 목적: `ai-workflow/project/*` 와 실제 프로젝트 문서(`docs/...`)의 역할 차이를 한 번에 이해할 수 있게 정리한다.
+- 문서 목적: `ai-workflow/memory/*` 와 실제 프로젝트 문서(`docs/...`)의 역할 차이를 한 번에 이해할 수 있게 정리한다.
 - 범위: 용어 정의, 읽기 우선순위, 쓰기 대상, 탐색 경계, 대표 예시
 - 대상 독자: 개발자, 운영자, AI agent, 하네스 통합 담당자
 - 상태: draft
@@ -9,8 +9,8 @@
 
 ## 1. 한 줄 요약
 
-- `ai-workflow/project/*` 는 workflow state docs 다.
-- `project_workflow_profile.md` 안의 `docs/...` 경로는 실제 프로젝트 문서 위치다.
+- `ai-workflow/memory/*` 는 workflow state docs 다.
+- `PROJECT_PROFILE.md` 안의 `docs/...` 경로는 실제 프로젝트 문서 위치다.
 - 둘은 모두 참조 대상이지만, 같은 레이어가 아니다.
 
 ## 2. 용어 정의
@@ -21,11 +21,11 @@
 
 대표 경로:
 
-- `ai-workflow/project/project_workflow_profile.md`
-- `ai-workflow/project/session_handoff.md`
-- `ai-workflow/project/work_backlog.md`
-- `ai-workflow/project/backlog/YYYY-MM-DD.md`
-- `ai-workflow/project/state.json`
+- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/work_backlog.md`
+- `ai-workflow/memory/backlog/YYYY-MM-DD.md`
+- `ai-workflow/memory/state.json`
 
 ### 2.2 Project Docs
 
@@ -45,11 +45,11 @@
 
 권장 순서:
 
-1. `ai-workflow/project/state.json`
-2. `ai-workflow/project/session_handoff.md`
-3. `ai-workflow/project/work_backlog.md`
-4. `ai-workflow/project/project_workflow_profile.md`
-5. 필요 시 최신 `ai-workflow/project/backlog/YYYY-MM-DD.md`
+1. `ai-workflow/memory/state.json`
+2. `ai-workflow/memory/session_handoff.md`
+3. `ai-workflow/memory/work_backlog.md`
+4. `ai-workflow/memory/PROJECT_PROFILE.md`
+5. 필요 시 최신 `ai-workflow/memory/backlog/YYYY-MM-DD.md`
 
 그 다음 실제 project docs 를 읽는다.
 
@@ -62,18 +62,18 @@
 
 기본 원칙:
 
-- 작업 상태 기록, handoff, 세션 기준선, state cache 는 `ai-workflow/project/*` 에 쓴다.
+- 작업 상태 기록, handoff, 세션 기준선, state cache 는 `ai-workflow/memory/*` 에 쓴다.
 - 실제 runbook, 허브, README, 운영 절차 문서 수정은 profile 이 가리키는 `docs/...` 에 쓴다.
 
 대표 예시:
 
 - `backlog-update --apply`
-  - 기본 write target: `ai-workflow/project/backlog/*.md`
-  - 함께 동기화: `ai-workflow/project/work_backlog.md`, `ai-workflow/project/session_handoff.md`, `ai-workflow/project/state.json`
+  - 기본 write target: `ai-workflow/memory/backlog/*.md`
+  - 함께 동기화: `ai-workflow/memory/work_backlog.md`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/state.json`
 - `doc-sync`, `code-index-update`
   - 기본 탐색 대상: profile 이 가리키는 실제 project docs
 - `merge-doc-reconcile --apply`
-  - 제한적 write target: `ai-workflow/project/session_handoff.md` 운영 메모
+  - 제한적 write target: `ai-workflow/memory/session_handoff.md` 운영 메모
 
 ## 5. 탐색 경계
 
@@ -91,15 +91,15 @@
 
 ## 6. 실수하기 쉬운 케이스
 
-- `project_workflow_profile.md` 안에 `백로그 위치: docs/...` 가 적혀 있다고 해서 workflow backlog write target 이 `docs/...` 로 바뀌는 것은 아니다.
-- `ai-workflow/project/backlog/*.md` 는 workflow state backlog 다.
+- `PROJECT_PROFILE.md` 안에 `백로그 위치: docs/...` 가 적혀 있다고 해서 workflow backlog write target 이 `docs/...` 로 바뀌는 것은 아니다.
+- `ai-workflow/memory/backlog/*.md` 는 workflow state backlog 다.
 - `docs/operations/backlog/*.md` 는 실제 프로젝트 운영 문서일 수 있지만, 기본 workflow state write target 과는 별개다.
 
 ## 7. 구현 기준
 
 - 경로 해석은 두 기준으로 나눈다.
 - workflow state docs:
-  - `ai-workflow/project/` 기준
+  - `ai-workflow/memory/` 기준
 - project docs:
   - 저장소 루트 기준
 

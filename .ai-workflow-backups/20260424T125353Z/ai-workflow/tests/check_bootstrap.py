@@ -219,10 +219,10 @@ def check_existing_project_mode() -> None:
             ]
         )
         target_backlog = Path(str(payload["target_backlog_path"]))
-        if "/ai-workflow/project/backlog/" not in str(target_backlog):
-            raise AssertionError("Workflow backlog writes should stay under ai-workflow/project/backlog.")
-        if "/ai-workflow/project/docs/" in str(target_backlog):
-            raise AssertionError("Workflow backlog writes should not resolve project docs paths under ai-workflow/project.")
+        if "/ai-workflow/memory/backlog/" not in str(target_backlog):
+            raise AssertionError("Workflow backlog writes should stay under ai-workflow/memory/backlog.")
+        if "/ai-workflow/memory/docs/" in str(target_backlog):
+            raise AssertionError("Workflow backlog writes should not resolve project docs paths under ai-workflow/memory.")
 
 
 def check_opencode_only_mode() -> None:
@@ -267,7 +267,7 @@ def check_opencode_only_mode() -> None:
         agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
         if "사용자에게 직접 보이는 작업 보고" not in agents_text:
             raise AssertionError("AGENTS.md should include the Korean reporting rule.")
-        if "ai-workflow/project/state.json" not in agents_text:
+        if "ai-workflow/memory/state.json" not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
         if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:
             raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
@@ -277,7 +277,7 @@ def check_opencode_only_mode() -> None:
         skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
         if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:
             raise AssertionError("OpenCode skill should include the Korean reporting rule.")
-        if "ai-workflow/project/state.json" not in skill_text:
+        if "ai-workflow/memory/state.json" not in skill_text:
             raise AssertionError("OpenCode skill should read the workflow state cache.")
         if "Treat `ai-workflow/` as workflow metadata only." not in skill_text:
             raise AssertionError("OpenCode skill should exclude ai-workflow from normal project exploration.")
@@ -287,7 +287,7 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode agent should include the Korean reporting rule.")
         if "read-mostly coordinator" not in agent_text:
             raise AssertionError("OpenCode orchestrator should describe the coordinator role.")
-        if "ai-workflow/project/state.json" not in agent_text:
+        if "ai-workflow/memory/state.json" not in agent_text:
             raise AssertionError("OpenCode orchestrator should read the workflow state cache.")
         if "Do not call direct tools yourself. Use only task delegation" not in agent_text:
             raise AssertionError("OpenCode orchestrator should require task delegation instead of direct tool calls.")

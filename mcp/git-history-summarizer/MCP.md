@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트, 개발자
 - 상태: prototype
 - 최종 수정일: 2026-04-27
-- 관련 문서: `../../ai-workflow/project/session_handoff.md`, `../../core/workflow_mcp_candidate_catalog.md`
+- 관련 문서: `../../ai-workflow/memory/session_handoff.md`, `../../core/workflow_mcp_candidate_catalog.md`
 
 ## 1. 개요
 

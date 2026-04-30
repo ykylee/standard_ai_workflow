@@ -2,7 +2,7 @@
 
 - 목적: 세션 상태 복원용 요약
 - 상태: draft (2026-04-25)
-- 관련: [프로젝트 프로파일](./project_workflow_profile.md), [백로그](./work_backlog.md)
+- 관련: [프로젝트 프로파일](./PROJECT_PROFILE.md), [백로그](./work_backlog.md)
 
 ## 1. 현재 작업 요약
 
@@ -31,4 +31,4 @@
 
 ## 다음에 읽을 문서
 - [작업 백로그](./work_backlog.md)
-- [프로젝트 프로파일](./project_workflow_profile.md)
+- [프로젝트 프로파일](./PROJECT_PROFILE.md)

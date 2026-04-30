@@ -53,7 +53,7 @@
 
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --changed-file app/jobs/delivery_sync.py \

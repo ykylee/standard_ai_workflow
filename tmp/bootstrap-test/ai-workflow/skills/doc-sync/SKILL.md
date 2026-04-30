@@ -51,7 +51,7 @@
 
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -63,7 +63,7 @@ python3 skills/doc-sync/scripts/run_doc_sync.py \
 
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
-  --project-profile-path examples/acme_delivery_platform/project_workflow_profile.md \
+  --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \

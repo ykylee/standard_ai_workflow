@@ -310,7 +310,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             ),
         ),
         payload_example={
-            "handoff_path": "ai-workflow/project/session_handoff.md",
+            "handoff_path": "ai-workflow/memory/session_handoff.md",
             "max_done_items": "5",
         },
     ),
@@ -336,7 +336,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
         ),
         payload_example={
             "matrix_path": "core/maturity_matrix.json",
-            "backlog_path": "ai-workflow/project/backlog/2026-04-27.md",
+            "backlog_path": "ai-workflow/memory/backlog/2026-04-27.md",
         },
     ),
     ReadOnlyToolSpec(

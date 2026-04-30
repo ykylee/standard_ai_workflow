@@ -2,13 +2,13 @@
 
 - 목적: 세션 상태 복원용 요약
 - 상태: draft (2026-04-30)
-- 관련: [프로젝트 프로파일](./project_workflow_profile.md), [백로그](./work_backlog.md)
+- 관련: [프로젝트 프로파일](./PROJECT_PROFILE.md), [백로그](./work_backlog.md)
 
 ## 1. 현재 작업 요약
 
 - 기준선: TODO: 현재 세션 기준 상태 요약
 - 주 작업 축: TODO: 핵심 작업 축
-- 핵심 문서: ai-workflow/project/session_handoff.md, README.md
+- 핵심 문서: ai-workflow/memory/session_handoff.md, README.md
 
 ## 2. 작업 상태 (State)
 
@@ -31,4 +31,4 @@
 
 ## 다음에 읽을 문서
 - [작업 백로그](./work_backlog.md)
-- [프로젝트 프로파일](./project_workflow_profile.md)
+- [프로젝트 프로파일](./PROJECT_PROFILE.md)

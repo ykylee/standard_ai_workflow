@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트, 워크플로우 운영자, 개발자
 - 상태: final
 - 최종 수정일: 2026-04-27
-- 관련 문서: `ai-workflow/project/comprehensive_workflow_report.md`, `core/workflow_kit_roadmap.md`
+- 관련 문서: `ai-workflow/memory/comprehensive_workflow_report.md`, `core/workflow_kit_roadmap.md`
 
 ## 1. 작업 이력 자동 요약 (`summarize_git_history`)
 
@@ -24,7 +24,7 @@ python3 workflow_kit/server/read_only_entrypoint.py --tool summarize_git_history
 **실행 명령:**
 ```bash
 python3 workflow_kit/server/read_only_entrypoint.py --tool rotate_workflow_logs \
-  --payload-json '{"handoff_path": "ai-workflow/project/session_handoff.md", "max_done_items": 10}'
+  --payload-json '{"handoff_path": "ai-workflow/memory/session_handoff.md", "max_done_items": 10}'
 ```
 
 ## 3. 마일스톤 진척도 관리 (`assess_milestone_progress`)
@@ -34,7 +34,7 @@ python3 workflow_kit/server/read_only_entrypoint.py --tool rotate_workflow_logs 
 **실행 명령:**
 ```bash
 python3 workflow_kit/server/read_only_entrypoint.py --tool assess_milestone_progress \
-  --payload-json '{"matrix_path": "core/maturity_matrix.json", "backlog_path": "ai-workflow/project/backlog/2026-04-27.md"}'
+  --payload-json '{"matrix_path": "core/maturity_matrix.json", "backlog_path": "ai-workflow/memory/backlog/2026-04-27.md"}'
 ```
 
 ## 4. 권장 자동화 루틴

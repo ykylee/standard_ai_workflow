@@ -84,27 +84,55 @@ def upsert_backlog_entry(*, backlog_path: Path, task_id: str, entry_lines: list[
     # 1. Create tasks directory
     tasks_dir = backlog_path.parent / "tasks"
     tasks_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 2. Write individual task file
     task_file = tasks_dir / f"{backlog_path.stem}_{task_id}.md"
     action = "updated" if task_file.exists() else "created"
     _write_lines(task_file, entry_lines)
-    
+
     # 3. Aggregate all tasks for this date into backlog_path
     task_files = sorted(tasks_dir.glob(f"{backlog_path.stem}_*.md"))
-    
+    migrated_task_ids = {tf.stem.split("_", 1)[1] for tf in task_files}
+
     lines = render_daily_backlog_header(backlog_path=backlog_path)
     lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
-    
+
+    # 3.1. Preserve legacy tasks if they exist in the current backlog file
+    if backlog_path.exists():
+        existing_content = backlog_path.read_text(encoding="utf-8")
+        # Find all ## TASK sections
+        legacy_sections = []
+        current_legacy = []
+        current_legacy_id = None
+
+        for line in existing_content.splitlines():
+            match = TASK_HEADER_RE.match(line)
+            if match:
+                if current_legacy_id and current_legacy_id not in migrated_task_ids:
+                    legacy_sections.append(current_legacy)
+                current_legacy_id = match.group(1)
+                current_legacy = [line]
+            elif current_legacy_id:
+                current_legacy.append(line)
+
+        # Last one
+        if current_legacy_id and current_legacy_id not in migrated_task_ids:
+            legacy_sections.append(current_legacy)
+
+        for section in legacy_sections:
+            lines.append("")
+            lines.extend(section)
+
+    # 3.2. Add migrated tasks
     for tf in task_files:
         lines.append("")
         lines.extend(_read_lines(tf))
-        
+
     # Backup existing backlog before overwriting
     if backlog_path.exists():
         backup_path = backlog_path.with_suffix(".md.bak")
         shutil.copyfile(backlog_path, backup_path)
-        
+
     _write_lines(backlog_path, lines)
     return action
 
@@ -283,7 +311,7 @@ def update_project_profile_commands(*, profile_path: Path, commands: dict[str, s
 
     updated_fields = []
     new_lines = list(lines)
-    
+
     mapping = {
         "install": "설치",
         "run": "로컬 실행",
@@ -296,7 +324,7 @@ def update_project_profile_commands(*, profile_path: Path, commands: dict[str, s
         new_val = commands.get(key)
         if not new_val or "TODO" in new_val:
             continue
-            
+
         prefix = f"- {label}:"
         for idx, line in enumerate(new_lines):
             if line.strip().startswith(prefix):
@@ -314,5 +342,5 @@ def update_project_profile_commands(*, profile_path: Path, commands: dict[str, s
     if updated_fields:
         new_lines = _replace_scalar_value(new_lines, "최종 수정일", date.today().isoformat())
         _write_lines(profile_path, new_lines)
-    
+
     return updated_fields

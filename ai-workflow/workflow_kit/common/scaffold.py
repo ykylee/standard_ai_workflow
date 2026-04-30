@@ -16,16 +16,16 @@ def generate_validation_scaffold(
     """Generate a Python unittest scaffold for reproducing or validating a task."""
     test_dir = project_root / "tests"
     test_dir.mkdir(parents=True, exist_ok=True)
-    
+
     file_name = f"repro_{task_id.lower().replace('-', '_')}.py"
     target_path = test_dir / file_name
-    
+
     command_section = ""
     if commands:
         command_section = "\n".join([f"# - {cmd}" for cmd in commands])
-    
+
     summary_comment = f"# 작업 요약: {change_summary}" if change_summary else "# 작업 요약: (정보 없음)"
-    
+
     template = f'''#!/usr/bin/env python3
 """Validation script for {task_id}."""
 

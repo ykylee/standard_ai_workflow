@@ -186,7 +186,7 @@ def main() -> int:
         warnings: list[str] = []
         if "warnings" in profile_data:
             warnings.extend(profile_data["warnings"])
-        
+
         request_date = args.target_date or datetime.now().strftime("%Y-%m-%d")
         work_backlog_index_path = (
             Path(args.work_backlog_index_path).expanduser().resolve()

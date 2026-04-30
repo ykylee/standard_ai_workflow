@@ -38,9 +38,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     root = Path(args.project_root).resolve()
-    
+
     from workflow_kit.common.paths import workflow_branch_dir, workflow_memory_dir
-    
+
     # Resolve project profile
     profile_path = None
     if args.project_profile_path:
@@ -57,16 +57,16 @@ def main() -> int:
 
     # Resolve paths with fallbacks
     branch_dir = workflow_branch_dir(profile_path) if profile_path else root / "ai-workflow/memory"
-    
+
     state_json_path = (
-        Path(args.state_json_path).resolve() if args.state_json_path 
+        Path(args.state_json_path).resolve() if args.state_json_path
         else branch_dir / "state.json"
     )
     handoff_path = (
-        Path(args.handoff_path).resolve() if args.handoff_path 
+        Path(args.handoff_path).resolve() if args.handoff_path
         else branch_dir / "session_handoff.md"
     )
-    
+
     source_context = {
         "project_root": str(root),
         "state_json_path": str(state_json_path),
@@ -84,7 +84,7 @@ def main() -> int:
                 latest_backlog_path = Path(state_data["source_of_truth"]["latest_backlog_path"]).resolve()
             except Exception:
                 pass
-        
+
         if not latest_backlog_path:
             # Last resort fallback (guess by date)
             from datetime import date
@@ -104,14 +104,14 @@ def main() -> int:
         matrix_path = root / "ai-workflow/core/maturity_matrix.json"
         roadmap_path = root / "ai-workflow/core/workflow_kit_roadmap.md"
         maturity_data = check_maturity_consistency(matrix_path, roadmap_path, root)
-        
+
         if maturity_data.get("status") != "skipped":
             # Merge results
             result_data["issues"].extend(maturity_data.get("issues", []))
             result_data["warnings"].extend(maturity_data.get("warnings", []))
             if maturity_data.get("status") == "issues_found":
                 result_data["status"] = "issues_found"
-            
+
             # Recalculate summary
             result_data["summary"]["maturity_errors"] = len([i for i in result_data["issues"] if i.get("type") == "maturity_error"])
             result_data["summary"]["total_issues"] = len(result_data["issues"])
@@ -142,13 +142,13 @@ def main() -> int:
                         # Add to state.json
                         if "session" not in state_data: state_data["session"] = {}
                         if "in_progress_items" not in state_data["session"]: state_data["session"]["in_progress_items"] = []
-                        
+
                         if task_id not in [t.split()[0] for t in state_data["session"]["in_progress_items"]]:
                             # Try to find full name from backlog/handoff if available
                             # For simplicity, just add the ID for now
                             state_data["session"]["in_progress_items"].append(task_id)
                             modified_state = True
-            
+
             if modified_state:
                 state_json_path.write_text(json.dumps(state_data, indent=2, ensure_ascii=False), encoding="utf-8")
                 written_paths.append(str(state_json_path))
@@ -180,7 +180,7 @@ def main() -> int:
                 for issue in issues:
                     print(f"- [{issue['severity'].upper()}] ({issue['code']}) {issue['description']}")
                     print(f"  💡 Suggestion: {issue['fix_suggestion']}")
-            
+
             if result_data.get("warnings"):
                 print(f"\n⚠️ Warnings: {len(result_data['warnings'])}")
                 for w in result_data["warnings"]:

@@ -292,7 +292,7 @@ def create_session_handoff_draft_payload(
         "- 현재 주 작업 축: N/A",
         "",
     ]
-    
+
     if git_summary:
         draft_handoff.extend([
             "## 2. Git 작업 이력 기반 요약",
@@ -413,7 +413,7 @@ def rotate_workflow_logs_payload(
 ) -> dict[str, Any]:
     path = resolve_existing_path(handoff_path)
     result = rotate_handoff_tasks(path, max_done_items)
-    
+
     return {
         "status": "ok" if result["status"] == "ok" else "error",
         "tool_version": tool_version,
@@ -435,7 +435,7 @@ def assess_milestone_progress_payload(
     matrix_p = resolve_existing_path(matrix_path)
     backlog_p = resolve_existing_path(backlog_path)
     result = assess_milestone_progress(matrix_p, backlog_p)
-    
+
     return {
         "status": "ok" if result["status"] == "ok" else "error",
         "tool_version": tool_version,
@@ -456,13 +456,13 @@ def smart_context_reader_payload(
     tool_version: str,
 ) -> dict[str, Any]:
     import ast
-    
+
     path = resolve_existing_path(file_path)
-    
+
     warnings: list[str] = []
     extracted_content: list[str] = []
     not_found_symbols: list[str] = []
-    
+
     if path.suffix != ".py":
         warnings.append(f"지원하지 않는 파일 형식입니다: {path.name}")
         return {

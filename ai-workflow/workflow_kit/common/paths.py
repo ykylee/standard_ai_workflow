@@ -79,7 +79,7 @@ def workflow_branch_dir(project_profile_path: Path) -> Path:
     """Return the branch-specific directory within the memory dir."""
     base_dir = workflow_memory_dir(project_profile_path)
     branch = get_current_branch()
-    # Normalize branch name for filesystem safety if needed, 
+    # Normalize branch name for filesystem safety if needed,
     # but here we allow nested folders if branch name has '/'
     return (base_dir / branch).resolve()
 

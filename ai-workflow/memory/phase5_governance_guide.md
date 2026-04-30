@@ -40,6 +40,6 @@ python3 workflow_kit/server/read_only_entrypoint.py --tool assess_milestone_prog
 ## 4. 권장 자동화 루틴
 
 - **세션 시작 시**: `assess_milestone_progress`를 실행하여 현재 마일스톤 상태 확인.
-- **세션 종료 시**: 
+- **세션 종료 시**:
   1. `summarize_git_history`로 인계 문서 초안 작성.
   2. `rotate_workflow_logs`를 실행하여 문서 크기 최적화.

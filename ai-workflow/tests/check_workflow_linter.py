@@ -27,11 +27,11 @@ def test_linter_pass():
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
         (root / "ai-workflow/memory/backlog").mkdir(parents=True)
-        
+
         state_json = root / "ai-workflow/memory/state.json"
         handoff = root / "ai-workflow/memory/session_handoff.md"
         backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
-        
+
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},
             "session": {"in_progress_items": ["TASK-001 Test task"]},
@@ -40,7 +40,7 @@ def test_linter_pass():
         # Format matters: extract_list_after_label needs the exact prefix "- Label:"
         handoff.write_text("## 1. 현재 작업 요약\n- 현재 기준선: Test\n- 현재 주 작업 축: Test\n\n## 2. 진행 중 작업\n- 현재 `in_progress` 작업:\n  - TASK-001 Test task")
         backlog.write_text("## TASK-001 Test task\n- 상태: in_progress")
-        
+
         # Valid link
         readme = root / "README.md"
         readme.write_text("Hello")
@@ -58,11 +58,11 @@ def test_linter_fail_task_mismatch():
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
         (root / "ai-workflow/memory/backlog").mkdir(parents=True)
-        
+
         state_json = root / "ai-workflow/memory/state.json"
         handoff = root / "ai-workflow/memory/session_handoff.md"
         backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
-        
+
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},
             "session": {"in_progress_items": ["TASK-001 Test task"]},
@@ -82,11 +82,11 @@ def test_linter_fail_broken_link():
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
         (root / "ai-workflow/memory/backlog").mkdir(parents=True)
-        
+
         state_json = root / "ai-workflow/memory/state.json"
         handoff = root / "ai-workflow/memory/session_handoff.md"
         backlog = root / "ai-workflow/memory/backlog/2026-04-26.md"
-        
+
         state_json.write_text(json.dumps({
             "source_of_truth": {"latest_backlog_path": str(backlog)},
             "session": {"in_progress_items": []},

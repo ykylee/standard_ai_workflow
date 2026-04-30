@@ -318,17 +318,17 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
     # 1. Handle Python dependencies (requirements.txt)
     req_file = target_root / "requirements.txt"
     is_python = primary_stack == "python"or primary_stack == "unspecified"
-    
+
     if is_python or req_file.exists():
         needed_python = list(COMMON_PYTHON_DEPS)
         for h in harnesses:
             needed_python.extend(HARNESS_PYTHON_DEPS.get(h, []))
-        
+
         needed_python = sorted(list(set(needed_python)))
         existing_content = ""
         if req_file.exists():
             existing_content = req_file.read_text(encoding="utf-8")
-        
+
         to_add = []
         for dep in needed_python:
             pattern = rf"(^|\s|[,]){re.escape(dep)}([>=<#\s]|$)"
@@ -339,13 +339,13 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
             new_lines = []
             if existing_content and not existing_content.endswith("\n"):
                 new_lines.append("\n")
-            
+
             if "# Standard AI Workflow Dependencies"not in existing_content:
                 new_lines.append("# Standard AI Workflow Dependencies\n")
-            
+
             for dep in to_add:
                 new_lines.append(f"{dep}\n")
-            
+
             with open(req_file, "a", encoding="utf-8") as f:
                 f.writelines(new_lines)
             updated_files.append(rel(req_file, target_root))
@@ -357,22 +357,22 @@ def update_dependencies(paths: Paths, context: dict[str, object], harnesses: lis
             payload = json.loads(package_json.read_text(encoding="utf-8"))
             dev_deps = payload.get("devDependencies", {})
             deps = payload.get("dependencies", {})
-            
+
             needed_node = list(COMMON_NODE_DEPS)
             for h in harnesses:
                 needed_node.extend(HARNESS_NODE_DEPS.get(h, []))
-            
+
             to_add_node = [
-                dep for dep in needed_node 
+                dep for dep in needed_node
                 if dep not in dev_deps and dep not in deps
             ]
-            
+
             if to_add_node:
                 if "devDependencies"not in payload:
                     payload["devDependencies"] = {}
                 for dep in to_add_node:
                     payload["devDependencies"][dep] = "latest"
-                
+
                 payload["devDependencies"] = dict(sorted(payload["devDependencies"].items()))
                 package_json.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 updated_files.append(rel(package_json, target_root))
@@ -545,7 +545,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
         if not smoke_check_command:
             smoke_check_command = "npm run test:smoke"if "test:smoke"in package_scripts else "TODO: 실행 확인 명령 입력"
     elif primary_stack == "python":
-        if not install_command: 
+        if not install_command:
             install_command = "pip install -r requirements.txt"if (paths.target_root / "requirements.txt").exists() else "pip install ."
         if not run_command: run_command = guess_run_command(paths.target_root, {})
         if not quick_test_command:
@@ -604,7 +604,7 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     # "existing"mode additional info
     files = iter_repo_files(paths.target_root, ignore_dirs={args.kit_dir})
     rel_files = [path.relative_to(paths.target_root).as_posix() for path in files]
-    
+
     analysis_summary = [
         f"상위 디렉터리 기준으로 `{', '.join(top_level_entries[:10])}` 구조를 확인했다."if top_level_entries else "상위 디렉터리 항목이 거의 비어 있다.",
         f"추정 기본 스택은 `{primary_stack}` 이며 감지된 스택 라벨은 `{', '.join(stack_labels) or '없음'}` 이다.",
@@ -737,7 +737,7 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
     quick_test_command = value_or_inferred(args.quick_test_command, str(context["quick_test_command"]))
     isolated_test_command = value_or_inferred(args.isolated_test_command, str(context["isolated_test_command"]))
     smoke_check_command = value_or_inferred(args.smoke_check_command, str(context["smoke_check_command"]))
-    
+
     replacements = {
         "<Project Name>": args.project_name,
         "<핵심 사용자 가치 및 목표>": value_or_inferred(args.project_purpose, "TODO: 프로젝트 목적 정리"),
@@ -761,13 +761,13 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
 
 def render_session_handoff(args: argparse.Namespace, context: dict[str, object]) -> str:
     content = load_template("session_handoff_template.md")
-    
+
     baseline = "TODO: 현재 세션 기준 상태 요약"
     workstream = "TODO: 핵심 작업 축"
     in_progress = f"{args.initial_task_id} {args.initial_task_name}"
     blocked = "N/A"
     completed = "N/A"
-    
+
     if args.adoption_mode == "existing":
         baseline = f"기존 코드베이스 분석 완료 (추정 스택: {context['primary_stack']})"
         workstream = "워크플로우 도입 및 초기 설정"
@@ -801,11 +801,11 @@ def render_backlog_index(args: argparse.Namespace) -> str:
 
 def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -> str:
     content = load_template("daily_backlog_template.md")
-    
+
     task_goal = "TODO: 작업 목표"
     done_criteria = "TODO: 완료 기준"
     progress = f"`{args.today} 09:00` bootstrap 초기 생성"
-    
+
     if args.adoption_mode == "existing":
         task_goal = "기존 프로젝트 분석 및 워크플로우 도입"
         done_criteria = "profile/handoff/backlog 초안 생성 및 검토 완료"
@@ -1763,7 +1763,7 @@ def main() -> int:
     paths = make_paths(args)
     context = infer_project_context(args, paths)
     core_docs = [str(paths.core_dir / name) for name in DEFAULT_CORE_DOCS] if args.copy_core_docs else []
-    
+
     # Pre-calculate harness files for manifest
     harnesses = selected_harnesses(args)
     harness_files: dict[str, str] = {}
@@ -1773,7 +1773,7 @@ def main() -> int:
         harness_files["gemini_cli_agents"] = str(gemini_cli_agents_path(paths))
     if "antigravity"in harnesses:
         harness_files["antigravity_agents"] = str(antigravity_agents_path(paths))
-    
+
     dependency_files: list[str] = []
     if args.update_deps and not args.dry_run:
         dependency_files = update_dependencies(paths, context, harnesses)

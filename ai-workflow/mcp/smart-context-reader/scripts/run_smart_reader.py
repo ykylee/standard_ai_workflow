@@ -11,13 +11,13 @@ def extract_symbols(file_path, symbol_names):
     path = Path(file_path)
     if not path.exists() or path.suffix != ".py":
         return f"Error: Only Python files are supported. File: {file_path}"
-    
+
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source)
     lines = source.splitlines()
-    
+
     found_content = []
-    
+
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
             if node.name in symbol_names or not symbol_names:
@@ -26,17 +26,17 @@ def extract_symbols(file_path, symbol_names):
                 end = node.end_lineno
                 content = "\n".join(lines[start:end])
                 found_content.append(f"--- Symbol: {node.name} ({type(node).__name__}) ---\n{content}\n")
-                
+
     if not found_content:
         return f"No matching symbols found for: {', '.join(symbol_names)}"
-        
+
     return "\n".join(found_content)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file-path", required=True, dest="file")
+    parser.add_argument("--file-path", "--file", required=True, dest="file")
     parser.add_argument("--symbols", nargs="*", help="List of function or class names to extract")
     args = parser.parse_args()
-    
+
     result = extract_symbols(args.file, args.symbols)
     print(result)

@@ -14,7 +14,7 @@
 ## 항상 먼저 읽을 문서 (운영 전용)
 
 - `ai-workflow/WORKFLOW_INDEX.md`
-- `ai-workflow/memory/state.json` (부재 시 `state.json.template` 참조하여 초기화)
+- `ai-workflow/memory/state.json` (부재 시 `ai-workflow/memory/state.json.template` 참조하여 초기화)
 
 ## 프로젝트 분석 및 온보딩 원칙
 

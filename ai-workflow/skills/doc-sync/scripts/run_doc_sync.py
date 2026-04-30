@@ -97,7 +97,7 @@ def main() -> int:
             latest_backlog_path=latest_backlog_path,
             change_summary=args.change_summary,
         )
-        
+
         if "warnings" in profile_data:
             result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))
         result["status"] = "ok"
@@ -121,12 +121,12 @@ def main() -> int:
                 target_path = Path(path_str)
                 if not target_path.is_absolute():
                     target_path = (project_root / target_path).resolve()
-                
+
                 # 상대 경로 링크 생성
                 rel_link = rel_link_from_doc(session_handoff_path, target_path)
                 label = target_path.name
                 links.append(f"[{label}]({rel_link})")
-            
+
             if links:
                 if update_next_documents_section(doc_path=session_handoff_path, links=links):
                     apply_result["status"] = "applied"
@@ -142,7 +142,7 @@ def main() -> int:
                     apply_result["status"] = "applied"
                     if str(session_handoff_path) not in apply_result["written_paths"]:
                         apply_result["written_paths"].append(str(session_handoff_path))
-            
+
             result["apply_status"] = apply_result["status"]
             result["written_paths"] = apply_result["written_paths"]
         elif args.apply:

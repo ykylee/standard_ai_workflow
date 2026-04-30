@@ -9,6 +9,10 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 PATCH_ENGINE = SCRIPT_DIR.parent / "skills" / "robust-patcher" / "scripts" / "patch_engine.py"
 
+S = "<<<<<<<" + " SEARCH"
+E = "======="
+R = ">>>>>>>" + " REPLACE"
+
 def run_patch(target_file, patch_content):
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as patch_file:
         patch_file.write(patch_content)
@@ -29,14 +33,14 @@ def test_exact_match():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
         f.write("def hello():\n    print('world')\n")
         target_path = f.name
-        
-    patch = """<<<<<<< SEARCH
+
+    patch = f"""{S}
 def hello():
     print('world')
-=======
+{E}
 def hello():
     print('universe')
->>>>>>> REPLACE"""
+{R}"""
 
     try:
         success, out = run_patch(target_path, patch)
@@ -52,19 +56,19 @@ def test_fuzzy_match():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
         f.write("def calc():\n    a = 1\n    \n    b = 2\n    return a + b\n")
         target_path = f.name
-        
+
     # 패치에 들여쓰기가 다르고, 빈 줄이 빠져 있음
-    patch = """<<<<<<< SEARCH
+    patch = f"""{S}
 def calc():
   a = 1
   b = 2
   return a + b
-=======
+{E}
 def calc():
     a = 10
     b = 20
     return a + b
->>>>>>> REPLACE"""
+{R}"""
 
     try:
         success, out = run_patch(target_path, patch)
@@ -81,21 +85,21 @@ def test_multi_block():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
         f.write("def one():\n    return 1\n\ndef two():\n    return 2\n")
         target_path = f.name
-        
-    patch = """<<<<<<< SEARCH
+
+    patch = f"""{S}
 def one():
     return 1
-=======
+{E}
 def one():
     return 10
->>>>>>> REPLACE
-<<<<<<< SEARCH
+{R}
+{S}
 def two():
     return 2
-=======
+{E}
 def two():
     return 20
->>>>>>> REPLACE"""
+{R}"""
 
     try:
         success, out = run_patch(target_path, patch)
@@ -112,15 +116,15 @@ def test_syntax_error():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
         f.write("def valid():\n    pass\n")
         target_path = f.name
-        
+
     # 문법 오류 유발 (콜론 빠짐)
-    patch = """<<<<<<< SEARCH
+    patch = f"""{S}
 def valid():
     pass
-=======
+{E}
 def valid()
     return True
->>>>>>> REPLACE"""
+{R}"""
 
     try:
         success, out = run_patch(target_path, patch)

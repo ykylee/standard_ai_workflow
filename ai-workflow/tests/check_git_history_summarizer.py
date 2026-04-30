@@ -5,7 +5,7 @@ import os
 
 def test_git_history_summarizer():
     print("Testing git-history-summarizer MCP...")
-    
+
     # Test Markdown format
     cmd_md = ["python3", "ai-workflow/mcp/git-history-summarizer/scripts/run_git_history_summarizer.py", "--range", "HEAD~1..HEAD"]
     result_md = subprocess.run(cmd_md, capture_output=True, text=True, check=True)

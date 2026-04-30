@@ -49,12 +49,12 @@ def process_logs(logs: List[str]) -> List[CommitEntry]:
 def generate_git_markdown_summary(entries: List[CommitEntry], commit_range: str) -> str:
     if not entries:
         return f"No commits found in range `{commit_range}`."
-    
+
     cat_map: Dict[str, List[str]] = {}
     for e in entries:
         if e.category not in cat_map: cat_map[e.category] = []
         cat_map[e.category].append(f"- {e.subject} (`{e.hash}`)")
-    
+
     md = [f"### Git 작업 요약 ({commit_range})\n"]
     for cat in ["Feature", "Bug Fix", "Refactor", "Docs", "Test", "Chore", "Other"]:
         if cat in cat_map:

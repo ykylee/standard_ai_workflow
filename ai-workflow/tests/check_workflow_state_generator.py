@@ -7,7 +7,7 @@ from pathlib import Path
 def test_relative_paths_in_state():
     repo_root = Path(__file__).resolve().parents[2]
     output_path = repo_root / "ai-workflow/memory/gemini/phase6/state.json"
-    
+
     # Run the generator
     cmd = [
         "python3", "ai-workflow/scripts/generate_workflow_state.py",
@@ -17,16 +17,16 @@ def test_relative_paths_in_state():
         "--output-path", str(output_path),
         "--workspace-root", str(repo_root)
     ]
-    
+
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(repo_root))
     if result.returncode != 0:
         print(f"Error: {result.stderr}")
         exit(1)
-        
+
     # Load and verify state.json
     state = json.loads(output_path.read_text(encoding="utf-8"))
-    
+
     print("\nVerifying source_of_truth paths...")
     sot = state.get("source_of_truth", {})
     for key, val in sot.items():

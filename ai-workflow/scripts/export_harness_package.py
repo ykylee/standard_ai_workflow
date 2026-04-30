@@ -133,7 +133,7 @@ def harness_specific_sources(harness: str) -> list[Path]:
     apply_guide = harness_dir / "apply_guide.md"
     if apply_guide.exists():
         sources.append(apply_guide)
-    
+
     if harness == "codex":
         return sources
     if harness == "opencode":

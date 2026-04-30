@@ -75,13 +75,18 @@ def sdk_runtime_status() -> dict[str, object]:
     }
 
 
-def _text_content_from_payload(sdk_types: Any, payload: dict[str, Any]) -> Any:
-    return sdk_types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False, sort_keys=True))
+def _text_content_from_payload(sdk_types: Any, name: str, payload: dict[str, Any]) -> Any:
+    text_representation: str
+    if name == "smart_context_reader" and "extracted_content" in payload:
+        text_representation = "\n\n".join(payload["extracted_content"])
+    else:
+        text_representation = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return sdk_types.TextContent(type="text", text=text_representation)
 
 
 def _call_tool_result_for_payload(sdk_types: Any, name: str, payload: dict[str, Any]) -> Any:
     return sdk_types.CallToolResult(
-        content=[_text_content_from_payload(sdk_types, payload)],
+        content=[_text_content_from_payload(sdk_types, name, payload)],
         structuredContent=payload,
         isError=payload.get("status") == "error",
         _meta={

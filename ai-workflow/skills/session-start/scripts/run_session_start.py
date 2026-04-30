@@ -62,7 +62,7 @@ def main() -> int:
     try:
         handoff = parse_handoff(session_handoff_path)
         warnings.extend(handoff.get("warnings", []))
-        
+
         profile = parse_project_profile_session(project_profile_path)
         warnings.extend(profile.get("warnings", []))
 

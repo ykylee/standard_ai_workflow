@@ -64,14 +64,14 @@ def test_assessment_apply():
     with tempfile.TemporaryDirectory() as tmp_dir:
         root = Path(tmp_dir)
         (root / "requirements.txt").write_text("pytest")
-        
+
         output_path = Path(root / "custom_assessment.md").resolve()
         result = run_assessment(root, ["--apply", "--output-path", str(output_path)])
-        
+
         if result["status"] != "ok":
             print(f"FAILED. Result: {json.dumps(result, indent=2, ensure_ascii=False)}")
         assert result["status"] == "ok"
-        
+
         resolved_written = [str(Path(p).resolve()) for p in result["written_paths"]]
         assert str(output_path) in resolved_written, f"Expected {output_path} in {resolved_written}"
         assert output_path.exists()

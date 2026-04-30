@@ -15,30 +15,30 @@ class DocTransformer:
         lines = content.splitlines()
         optimized_lines = []
         in_code_block = False
-        
+
         for line in lines:
             stripped = line.strip()
-            
+
             # Code blocks must be preserved entirely
             if stripped.startswith("```"):
                 in_code_block = not in_code_block
                 optimized_lines.append(line)
                 continue
-            
+
             if in_code_block:
                 optimized_lines.append(line)
                 continue
-            
+
             # Preserve headers and list items
             if stripped.startswith("#") or stripped.startswith("-") or stripped.startswith("*") or re.match(r"^\d+\.", stripped):
                 optimized_lines.append(line)
                 continue
-                
+
             # Preserve tables
             if "|" in stripped:
                 optimized_lines.append(line)
                 continue
-            
+
             # Preserve metadata/frontmatter
             if stripped.startswith("---") or (len(optimized_lines) > 0 and optimized_lines[0].startswith("---") and not any(l.startswith("---") for l in optimized_lines[1:])):
                  optimized_lines.append(line)
@@ -49,7 +49,7 @@ class DocTransformer:
             if any(k in stripped.upper() for k in keywords) and len(stripped) < 200:
                 optimized_lines.append(line)
                 continue
-            
+
             # Otherwise, skip prose to save tokens
             continue
 
@@ -66,6 +66,6 @@ class DocTransformer:
             optimized = self.minify_markdown(content)
         else:
             optimized = content # Keep JSON/other as is for now
-            
+
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(optimized, encoding="utf-8")

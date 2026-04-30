@@ -235,7 +235,7 @@ def main() -> int:
 
         if "warnings" in profile_data:
             plan_details["warnings"] = dedupe(plan_details.get("warnings", []) + profile_data["warnings"])
-        
+
         result = {
             "status": "ok",
             "tool_version": TOOL_VERSION,
@@ -263,10 +263,10 @@ def main() -> int:
                 target_path = Path(path_str)
                 if not target_path.is_absolute():
                     target_path = (repo_root / target_path).resolve()
-                
+
                 if not target_path.exists():
                     continue
-                
+
                 # 자기 자신(session_handoff.md)은 제외
                 if target_path.resolve() == session_handoff_path.resolve():
                     continue
@@ -274,7 +274,7 @@ def main() -> int:
                 rel_link = rel_link_from_doc(session_handoff_path, target_path)
                 label = target_path.name
                 links.append(f"[{label}]({rel_link})")
-            
+
             if links:
                 if update_next_documents_section(doc_path=session_handoff_path, links=links):
                     apply_result["status"] = "applied"
@@ -290,7 +290,7 @@ def main() -> int:
                     apply_result["status"] = "applied"
                     if str(session_handoff_path) not in apply_result["written_paths"]:
                         apply_result["written_paths"].append(str(session_handoff_path))
-            
+
             # 3. state.json 갱신
             latest_backlog_path = None # 여기서 정확히 알기 어려우면 None으로 전달
             state_refresh = refresh_workflow_state_cache(

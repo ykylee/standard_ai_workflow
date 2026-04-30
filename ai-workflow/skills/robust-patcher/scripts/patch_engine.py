@@ -16,44 +16,44 @@ def fuzzy_find_block(source_lines, search_lines, threshold=0.8):
     norm_search = normalize_lines(search_lines)
     if not norm_search:
         return -1, 0
-    
+
     search_len = len(norm_search)
-    
+
     valid_source_indices = []
     norm_source = []
     for i, line in enumerate(source_lines):
         if line.strip():
             norm_source.append(line.strip())
             valid_source_indices.append(i)
-            
+
     if not norm_source:
         return -1, 0
 
     best_match_idx = -1
     best_length = 0
     best_ratio = 0
-    
+
     # 윈도우 슬라이딩 (블록 크기에 약간의 변동 허용)
     for i in range(len(norm_source)):
         for size_diff in range(-2, 3):
             w_size = search_len + size_diff
             if w_size <= 0 or i + w_size > len(norm_source):
                 continue
-                
+
             window = norm_source[i:i+w_size]
             ratio = difflib.SequenceMatcher(None, window, norm_search).ratio()
-            
+
             if ratio > best_ratio:
                 best_ratio = ratio
                 best_match_idx = valid_source_indices[i]
                 end_idx = valid_source_indices[i + w_size - 1]
                 best_length = end_idx - best_match_idx + 1
-                
+
             if ratio == 1.0:
                 break
         if best_ratio == 1.0:
             break
-            
+
     if best_ratio >= threshold:
         return best_match_idx, best_length
     return -1, 0
@@ -64,7 +64,7 @@ def parse_patch(patch_content):
     search_block = []
     replace_block = []
     state = "NONE"
-    
+
     for line in patch_content.splitlines(keepends=True):
         if line.startswith("<<<<<<< SEARCH"):
             state = "SEARCH"
@@ -80,12 +80,12 @@ def parse_patch(patch_content):
                 blocks.append({"search": search_block, "replace": replace_block})
             state = "NONE"
             continue
-            
+
         if state == "SEARCH":
             search_block.append(line)
         elif state == "REPLACE":
             replace_block.append(line)
-            
+
     return blocks
 
 def apply_patch(file_path, patch_content):
@@ -95,10 +95,10 @@ def apply_patch(file_path, patch_content):
     path = Path(file_path)
     if not path.exists():
         return False, f"File not found: {file_path}"
-    
+
     original_lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
     lines = list(original_lines)
-    
+
     blocks = parse_patch(patch_content)
     if not blocks:
         return False, "No valid SEARCH/REPLACE block found in patch."
@@ -109,20 +109,20 @@ def apply_patch(file_path, patch_content):
     for i, block in enumerate(blocks):
         search_lines = block["search"]
         replace_lines = block["replace"]
-        
+
         start_idx, length = fuzzy_find_block(lines, search_lines)
         if start_idx == -1:
             return False, f"Could not find a reliable match for SEARCH block #{i+1}."
-            
+
         lines = lines[:start_idx] + replace_lines + lines[start_idx+length:]
-    
+
     # 문법 검사 (Python 파일인 경우)
     if path.suffix == ".py":
         try:
             compile("".join(lines), str(path), 'exec')
         except SyntaxError as e:
             return False, f"Patch would result in SyntaxError: {e}"
-            
+
     path.write_text("".join(lines), encoding="utf-8")
     return True, f"Successfully applied {len(blocks)} patch block(s)."
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--file", required=True)
     parser.add_argument("--patch-file", required=True)
     args = parser.parse_args()
-    
+
     patch_text = Path(args.patch_file).read_text(encoding="utf-8")
     success, message = apply_patch(args.file, patch_text)
     print(message)

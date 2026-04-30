@@ -42,26 +42,26 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_root = Path(temp_dir)
         from workflow_kit.common.paths import workflow_branch_dir, get_current_branch
-        
+
         temp_project_root = temp_root / "project"
         temp_project_root.mkdir()
-        
-        # In the new architecture, profile is in docs/ or memory/ root, 
+
+        # In the new architecture, profile is in docs/ or memory/ root,
         # but session_handoff and backlog are in branch-specific dirs.
         profile_path = temp_project_root / "PROJECT_PROFILE.md"
         profile_path.write_text((example_root / "PROJECT_PROFILE.md").read_text(encoding="utf-8"), encoding="utf-8")
-        
+
         temp_work_backlog = temp_project_root / "work_backlog.md"
         temp_work_backlog.write_text((example_root / "work_backlog.md").read_text(encoding="utf-8"), encoding="utf-8")
-        
+
         # Get branch dir using the same logic as the tool
         branch_name = get_current_branch()
         branch_dir = temp_project_root / branch_name
         branch_dir.mkdir(parents=True)
-        
+
         temp_handoff = branch_dir / "session_handoff.md"
         temp_handoff.write_text((example_root / "session_handoff.md").read_text(encoding="utf-8"), encoding="utf-8")
-        
+
         temp_backlog_dir = branch_dir / "backlog"
         temp_backlog_dir.mkdir()
         temp_latest_backlog = temp_backlog_dir / latest_backlog.name

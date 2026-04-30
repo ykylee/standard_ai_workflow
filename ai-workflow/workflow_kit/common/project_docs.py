@@ -129,7 +129,7 @@ def parse_backlog(path: Path) -> dict[str, object]:
         tasks_dir = branch_dir / "backlog" / "tasks"
         if not tasks_dir.exists():
             tasks_dir = path.parent / "tasks"
-            
+
         task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
         if not task_files:
             return {
@@ -159,10 +159,10 @@ def parse_backlog(path: Path) -> dict[str, object]:
                 tasks.append(current_task)
             current_task = {"task_id": header_match.group(1), "title": header_match.group(2)}
             continue
-        
+
         if current_task is None:
             continue
-            
+
         status_match = STATUS_RE.match(stripped)
         if status_match:
             current_task["status"] = status_match.group(1)
@@ -190,7 +190,7 @@ def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
         tasks_dir = branch_dir / "backlog" / "tasks"
         if not tasks_dir.exists():
             tasks_dir = path.parent / "tasks"
-            
+
         task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
         if not task_files:
             return []
@@ -202,7 +202,7 @@ def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
         parser.lines = iter(lines)
     else:
         parser = WorkflowDocParser(path)
-        
+
     tasks: list[dict[str, str | None]] = []
     current_task: dict[str, str | None] | None = None
     for idx, line in enumerate(parser.lines):

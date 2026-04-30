@@ -81,7 +81,7 @@ async def fetch_data():
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as txt_file:
             txt_file.write("def foo(): pass")
             txt_file_path = txt_file.name
-        
+
         try:
             payload = {"file_path": txt_file_path}
             result = invoke_read_only_tool(
@@ -98,7 +98,7 @@ async def fetch_data():
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as err_file:
             err_file.write("def missing_colon()\n    pass")
             err_path = err_file.name
-        
+
         try:
             payload = {"file_path": err_path}
             result = invoke_read_only_tool(

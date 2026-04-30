@@ -31,7 +31,7 @@ def extract_section_value(lines: list[str], label: str) -> str | None:
             value_part = stripped[len(prefix):].strip()
             if value_part:
                 return normalize_inline_code(value_part)
-            
+
             # 다음 줄 값 확인 (예: - 레이블:\n  - 값)
             if idx + 1 < len(lines):
                 next_val = lines[idx + 1].strip()

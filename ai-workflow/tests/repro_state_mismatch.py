@@ -26,10 +26,10 @@ class TestReproduction(unittest.TestCase):
         """
         # TODO: Implement the actual reproduction logic based on the report
         print("\n[INFO] Attempting to reproduce issue...")
-        
+
         # Example of a failing assertion (expected bug state)
         # self.assertEqual(actual_result, expected_result, "Bug detected: results do not match")
-        
+
         # For prototype demonstration, we just show it's working
         self.assertTrue(True)
 

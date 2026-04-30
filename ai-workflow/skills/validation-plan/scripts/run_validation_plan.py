@@ -218,7 +218,7 @@ def main() -> int:
             )
             result["scaffold_status"] = "created"
             result["scaffold_path"] = str(scaffold_path)
-            
+
             if session_handoff_path:
                 rel_link = rel_link_from_doc(session_handoff_path, scaffold_path)
                 label = scaffold_path.name

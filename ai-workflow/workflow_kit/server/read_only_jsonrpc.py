@@ -164,11 +164,17 @@ def build_tools_call_result(name: str, arguments: dict[str, Any]) -> tuple[int, 
     returncode, payload = invoke_tool(name, json.dumps(arguments, ensure_ascii=False))
     if returncode != 0:
         return returncode, payload
+    text_representation: str
+    if name == "smart_context_reader" and "extracted_content" in payload:
+        text_representation = "\n\n".join(payload["extracted_content"])
+    else:
+        text_representation = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
     return 0, {
         "content": [
             {
                 "type": "text",
-                "text": json.dumps(payload, ensure_ascii=False, sort_keys=True),
+                "text": text_representation,
             }
         ],
         "structuredContent": payload,

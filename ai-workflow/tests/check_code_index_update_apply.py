@@ -21,14 +21,14 @@ def main() -> int:
         tmp_path = Path(tmpdir)
         project_root = tmp_path / "project"
         project_root.mkdir()
-        
+
         # 1. 테스트용 프로젝트 문서 준비
         profile_path = project_root / "PROJECT_PROFILE.md"
         profile_path.write_text(
             "# Project Profile\n\n- 프로젝트명: Test Project\n- 문서 위키 홈: README.md\n- 운영 문서 위치: docs/ops.md\n",
             encoding="utf-8"
         )
-        
+
         # README.md 생성 (추천 후보로 등장하게 함)
         readme_path = project_root / "README.md"
         readme_path.write_text("# Root README", encoding="utf-8")
@@ -41,7 +41,7 @@ def main() -> int:
 
         work_backlog_index_path = project_root / "work_backlog.md"
         work_backlog_index_path.write_text("# Work Backlog Index", encoding="utf-8")
-        
+
         # 2. code-index-update --apply 실행
         completed = subprocess.run(
             [
@@ -58,20 +58,20 @@ def main() -> int:
             text=True,
             check=False
         )
-        
+
         if completed.returncode != 0:
             print(f"code-index-update failed with return code {completed.returncode}")
             print(f"stdout: {completed.stdout}")
             print(f"stderr: {completed.stderr}")
             return 1
-            
+
         payload = json.loads(completed.stdout)
-        
+
         # 3. 결과 검증
         if payload.get("apply_status") != "applied":
             print(f"Expected apply_status 'applied', got {payload.get('apply_status')}")
             return 1
-            
+
         # handoff 갱신 검증
         handoff_content = handoff_path.read_text(encoding="utf-8")
         if "[README.md]" not in handoff_content:
@@ -80,7 +80,7 @@ def main() -> int:
         if "[code-index-update]" not in handoff_content:
             print("code-index-update memo not found in handoff.")
             return 1
-            
+
         # state.json 생성 검증
         state_path = project_root / "state.json"
         if not state_path.exists():

@@ -15,11 +15,11 @@ def rotate_handoff_tasks(
 
     content = handoff_path.read_text(encoding="utf-8")
     lines = content.splitlines()
-    
+
     recent_done_start = -1
     recent_done_end = -1
     baseline_line_idx = -1
-    
+
     # 1. Locate sections
     for i, line in enumerate(lines):
         if line.startswith("## 5. 최근 완료 작업"):
@@ -35,17 +35,17 @@ def rotate_handoff_tasks(
     # 2. Extract items
     done_section_lines = lines[recent_done_start+1 : recent_done_end]
     items = [l for l in done_section_lines if l.strip().startswith("- TASK-")]
-    
+
     if len(items) <= max_done_items:
         return {"status": "ok", "message": f"Done items ({len(items)}) within limit ({max_done_items})", "rotated": False}
 
     # 3. Rotate old items
     to_rotate = items[:-max_done_items]
     remaining = items[-max_done_items:]
-    
+
     # Create summary for baseline
     rotate_summary = ", ".join([it.strip("- ").strip() for it in to_rotate])
-    
+
     # Update baseline
     if baseline_line_idx != -1:
         old_baseline = lines[baseline_line_idx]
@@ -53,17 +53,17 @@ def rotate_handoff_tasks(
             lines[baseline_line_idx] = f"- 현재 기준선: {rotate_summary}"
         else:
             lines[baseline_line_idx] = f"{old_baseline}, {rotate_summary}"
-    
+
     # Update recent_done section
     new_content_lines = lines[:recent_done_start+1]
     new_content_lines.append("")
     new_content_lines.extend(remaining)
     new_content_lines.append("")
     new_content_lines.extend(lines[recent_done_end:])
-    
+
     new_content = "\n".join(new_content_lines)
     handoff_path.write_text(new_content, encoding="utf-8")
-    
+
     return {
         "status": "ok",
         "rotated": True,

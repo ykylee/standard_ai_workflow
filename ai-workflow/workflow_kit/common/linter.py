@@ -12,10 +12,10 @@ def check_maturity_consistency(
 ) -> Dict[str, Any]:
     issues = []
     warnings = []
-    
+
     if not matrix_path.exists():
         return {"status": "skipped", "reason": "maturity_matrix.json not found"}
-        
+
     try:
         matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
     except Exception as e:
@@ -42,7 +42,7 @@ def check_maturity_consistency(
     if roadmap_path.exists():
         roadmap_content = roadmap_path.read_text(encoding="utf-8")
         milestones = matrix.get("milestones", {})
-        
+
         # Check if current Roadmap phase matches In-Progress milestone
         in_progress_milestones = [name for name, m in milestones.items() if m.get("status") == "in_progress"]
         for m_name in in_progress_milestones:
@@ -70,7 +70,7 @@ def check_workflow_consistency(
 ) -> Dict[str, Any]:
     issues = []
     warnings = []
-    
+
     # Load data
     try:
         if not state_json_path.exists():
@@ -78,7 +78,7 @@ def check_workflow_consistency(
         state = json.loads(state_json_path.read_text(encoding="utf-8"))
     except Exception as e:
         return {"status": "error", "error_code": "state_json_load_failure", "description": f"Failed to load state.json: {e}"}
-        
+
     try:
         handoff = parse_handoff(handoff_path)
     except Exception as e:
@@ -90,19 +90,19 @@ def check_workflow_consistency(
     except Exception as e:
         warnings.append(f"Failed to parse backlog: {e}")
         backlog = {}
-    
+
     # 1. Check in_progress consistency
     backlog_in_progress = {item.split()[0] for item in backlog.get("in_progress_items", []) if item.startswith("TASK-")}
     handoff_in_progress = {item.split()[0] for item in handoff.get("in_progress_items", []) if item.startswith("TASK-") and "N/A" not in item}
     state_in_progress = {item.split()[0] for item in state.get("session", {}).get("in_progress_items", []) if item.startswith("TASK-") and "N/A" not in item}
-    
+
     all_tasks = backlog_in_progress | handoff_in_progress | state_in_progress
     for task in all_tasks:
         missing = []
         if task not in backlog_in_progress: missing.append("backlog")
         if task not in handoff_in_progress: missing.append("handoff")
         if task not in state_in_progress: missing.append("state.json")
-        
+
         if missing:
             issues.append({
                 "type": "sync_error",

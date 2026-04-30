@@ -302,7 +302,7 @@ def main() -> int:
         for cmd_type, cmd_value in onboarding_summary["inferred_commands"].items():
             if cmd_value and "TODO" in cmd_value:
                 onboarding_summary["critical_todos"].append(f"{cmd_type} 명령이 아직 설정되지 않았다.")
-        
+
         if onboarding_summary["critical_todos"]:
             if args.apply:
                 onboarding_summary["recommended_next_steps"].insert(0, "!! 알림: `PROJECT_PROFILE.md`의 일부 TODO 항목을 진단 결과로 자동 보정했다.")

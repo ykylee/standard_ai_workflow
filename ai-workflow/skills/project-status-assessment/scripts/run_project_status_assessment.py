@@ -27,7 +27,7 @@ from workflow_kit.common.runner import (
 def build_assessment_report(root: Path, data: dict[str, Any]) -> list[str]:
     primary_stack = data["primary_stack"]
     package_scripts = data["package_scripts"]
-    
+
     # Infer commands
     if primary_stack == "node":
         install_cmd = "npm install"
@@ -73,16 +73,16 @@ def build_assessment_report(root: Path, data: dict[str, Any]) -> list[str]:
         "## 4. 진단 결과 및 권고",
         "",
     ]
-    
+
     # Scoring logic (simplified)
     score = 0
     if data["docs_dirs"]: score += 1
     if data["test_dirs"]: score += 1
     if data["source_dirs"]: score += 1
     if data["stack_labels"]: score += 1
-    
+
     lines.append(f"- 구조 성숙도 점수: `{score}/4`")
-    
+
     if score < 2:
         lines.append("- 권고: 기본 디렉토리 구조(src, tests, docs) 보강이 필요함.")
     elif score < 4:
@@ -103,7 +103,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     root = Path(args.project_root).resolve()
-    
+
     source_context = {
         "project_root": str(root),
         "apply": args.apply,
@@ -113,7 +113,7 @@ def main() -> int:
         data = analyze_repo_structure(root, ignore_dirs={"ai-workflow"})
         report_lines, score = build_assessment_report(root, data)
         report_content = "\n".join(report_lines)
-        
+
         written_paths = []
         if args.apply:
             output_path = Path(args.output_path).resolve() if args.output_path else root / "ai-workflow/memory/repository_assessment.md"
@@ -171,7 +171,7 @@ def main() -> int:
             print(report_content)
             if written_paths:
                 print(f"\n✅ Assessment report written to: {written_paths[0]}")
-        
+
         return 0
 
     except Exception as exc:

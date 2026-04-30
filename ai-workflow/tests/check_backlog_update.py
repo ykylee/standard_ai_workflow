@@ -39,26 +39,26 @@ def run_backlog_update(*, expect_success: bool, args: list[str]) -> tuple[int, d
 def main() -> int:
     example_root = REPO_ROOT / "ai-workflow" / "examples" / "acme_delivery_platform"
     backlog_path = sorted((example_root / "backlog").glob("*.md"))[-1]
-    
+
     # Case 1: Standard update without --apply
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_root = Path(temp_dir).resolve()
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
-        
+
         current_branch = get_current_branch()
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
-        
+
         for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-            
+
         source_path = example_root / "session_handoff.md"
         target_path = temp_branch_root / "session_handoff.md"
         target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-            
+
         temp_backlog_dir = (temp_branch_root / "backlog").resolve()
         temp_backlog_dir.mkdir()
         temp_backlog_path = (temp_backlog_dir / backlog_path.name).resolve()
@@ -81,7 +81,7 @@ def main() -> int:
                 "update",
             ],
         )
-        
+
         output_errors = validate_output_payload(payload, family="backlog_update")
         if output_errors:
             raise AssertionError(f"Backlog-update success payload violated output contract: {output_errors}")
@@ -91,18 +91,18 @@ def main() -> int:
             raise AssertionError("Expected conservative in_progress status recommendation.")
         if not payload["draft_entry"]:
             raise AssertionError("Expected non-empty backlog draft entry.")
-        
+
         if "state.json" not in payload["state_cache_update_note"]:
             raise AssertionError("Expected backlog-update to include a state cache refresh note.")
         if "generate_workflow_state.py" not in payload["state_cache_refresh_command"]:
             raise AssertionError("Expected backlog-update to include a state cache refresh command.")
         if payload["state_cache_status"] != "refreshed":
             raise AssertionError(f"Expected backlog-update to refresh state.json automatically. Got: {payload['state_cache_status']}")
-        
+
         state_path = (temp_branch_root / "state.json").resolve()
         if not state_path.exists():
             raise AssertionError(f"Expected state.json to exist at {state_path}, but it was not found.")
-        
+
         state_payload = json.loads(state_path.read_text(encoding="utf-8"))
         expected_profile_path = str((temp_project_root / "PROJECT_PROFILE.md").resolve())
         # The path in state.json is now relative to workspace root (temp_project_root)
@@ -116,16 +116,16 @@ def main() -> int:
         temp_root = Path(temp_dir).resolve()
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
-        
+
         current_branch = get_current_branch()
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
-        
+
         for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-            
+
         source_path = example_root / "session_handoff.md"
         target_path = temp_branch_root / "session_handoff.md"
         target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
@@ -170,11 +170,11 @@ def main() -> int:
         blocked_section = handoff_text.split("- 현재 `blocked` 작업:", 1)[1]
         if "TASK-021 배송 상태 동기화 실패 대응 절차 문서 정리" not in blocked_section:
             raise AssertionError("Expected apply mode to move the task into the blocked handoff section.")
-        
+
         resolved_written_paths = [str(Path(p).resolve()) for p in apply_payload["written_paths"]]
         if str(temp_backlog_path.resolve()) not in resolved_written_paths:
             raise AssertionError(f"Expected apply mode to report the written backlog path. Got: {resolved_written_paths}")
-        
+
         work_backlog_text = (temp_project_root / "work_backlog.md").read_text(encoding="utf-8")
         backlog_link_count = sum(
             1
@@ -189,20 +189,20 @@ def main() -> int:
         temp_root = Path(temp_dir).resolve()
         temp_project_root = (temp_root / "project").resolve()
         temp_project_root.mkdir()
-        
+
         current_branch = get_current_branch()
         temp_branch_root = (temp_project_root / current_branch).resolve()
         temp_branch_root.mkdir(parents=True)
-        
+
         for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
             source_path = example_root / relative_path
             target_path = temp_project_root / relative_path
             target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-            
+
         source_path = example_root / "session_handoff.md"
         target_path = temp_branch_root / "session_handoff.md"
         target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
-            
+
         temp_backlog_dir = (temp_branch_root / "backlog").resolve()
         temp_backlog_dir.mkdir()
         temp_backlog_path = (temp_backlog_dir / backlog_path.name).resolve()
@@ -212,12 +212,12 @@ def main() -> int:
         canonical_rel_path = f"./{current_branch}/backlog/{backlog_path.name}"
         index_path = (temp_project_root / "work_backlog.md").resolve()
         index_text = index_path.read_text(encoding="utf-8")
-        
+
         # Replace the existing link (which might be in the old format) with a duplicate in the new format
         # First, find what's actually in the index
         old_link_pattern = rf"- \[{backlog_path.stem} 작업 백로그\]\(\.\/backlog\/{backlog_path.name}\)"
         new_link = f"- [{backlog_path.stem} 작업 백로그]({canonical_rel_path})"
-        
+
         index_text = re.sub(old_link_pattern, f"{new_link}\n{new_link}", index_text)
         index_path.write_text(index_text, encoding="utf-8")
 

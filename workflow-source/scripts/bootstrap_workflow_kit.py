@@ -160,6 +160,7 @@ class Paths:
     backlog_index_path: Path
     daily_backlog_path: Path
     assessment_path: Path
+    status_assessment_path: Path
 
 
 @dataclass(frozen=True)
@@ -262,6 +263,7 @@ def make_paths(args: argparse.Namespace) -> Paths:
         backlog_index_path=memory_dir / "work_backlog.md",
         daily_backlog_path=backlog_dir / f"{args.today}.md",
         assessment_path=memory_dir / "repository_assessment.md",
+        status_assessment_path=memory_dir / "project_status_assessment.md",
     )
 
 
@@ -847,6 +849,11 @@ def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -
     # Append the progress note as it's not a direct placeholder in the simple template
     content = content.replace("- 진행 현황:", f"- 진행 현황: {progress}")
     return content
+
+
+def render_project_status_assessment(args: argparse.Namespace) -> str:
+    content = load_template("project_status_assessment_template.md")
+    return content.replace("<Project Name>", args.project_name).replace("<YYYY-MM-DD>", args.today)
 
 
 def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> str:
@@ -1736,6 +1743,7 @@ def build_manifest(
         "session_handoff": str(paths.handoff_path),
         "work_backlog": str(paths.backlog_index_path),
         "daily_backlog": str(paths.daily_backlog_path),
+        "project_status_assessment": str(paths.status_assessment_path),
     }
     if args.adoption_mode == "existing":
         generated_files["repository_assessment"] = str(paths.assessment_path)
@@ -1810,6 +1818,7 @@ def main() -> int:
         write_text(paths.handoff_path, render_session_handoff(args, context), force=args.force)
         write_text(paths.backlog_index_path, render_backlog_index(args), force=args.force)
         write_text(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
+        write_text(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
         if args.adoption_mode == "existing":
             write_text(paths.assessment_path, render_assessment(args, context), force=args.force)
         write_text(

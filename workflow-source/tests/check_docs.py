@@ -47,6 +47,7 @@ IGNORED_PARTS = {
     "scratch",
     "templates",
     "releases",
+    "archive",
 }
 IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "core"),

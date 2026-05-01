@@ -36,6 +36,48 @@ tmp/
 tmp-test/
 scratch/
 
-# Workflow state files (shared via Git)
-# ai-workflow/memory/*/state.json
-# ai-workflow/memory/*/session_handoff.md
+# Workflow layer (selective tracking)
+/ANTIGRAVITY.md
+/AGENTS.md
+/GEMINI.md
+
+# Exclude duplicated engine/tool copies in the source repo
+/ai-workflow/skills/
+/ai-workflow/workflow_kit/
+/ai-workflow/mcp/
+/ai-workflow/schemas/
+/ai-workflow/templates/
+/ai-workflow/examples/
+/ai-workflow/global-snippets/
+/ai-workflow/harnesses/
+/ai-workflow/tests/
+
+# Keep the data (memory) and core guides
+!/ai-workflow/README.md
+!/ai-workflow/WORKFLOW_INDEX.md
+!/ai-workflow/core/
+!/ai-workflow/memory/
+
+# Added by Workflow Upgrade Script
+# Workflow layer (selective tracking)
+/ANTIGRAVITY.md
+/AGENTS.md
+/GEMINI.md
+
+# Exclude duplicated engine/tool copies
+/ai-workflow/scripts/
+/ai-workflow/skills/
+/ai-workflow/workflow_kit/
+/ai-workflow/mcp/
+/ai-workflow/schemas/
+/ai-workflow/templates/
+/ai-workflow/examples/
+/ai-workflow/global-snippets/
+/ai-workflow/harnesses/
+/ai-workflow/tests/
+
+# Keep the data (memory) and core guides
+!/ai-workflow/README.md
+!/ai-workflow/WORKFLOW_INDEX.md
+!/ai-workflow/core/
+!/ai-workflow/memory/

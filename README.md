@@ -1,11 +1,11 @@
 # Standard AI Workflow
 
 - 문서 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, 향후 skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
-- 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서, 분리 체크리스트
+- 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
-- 상태: draft
+- 상태: done
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`, `./split_checklist.md`
+- 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`, `./ANTIGRAVITY.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
 - 출력 스키마 가이드: `./workflow-source/core/output_schema_guide.md`
@@ -47,7 +47,6 @@
 | `workflow-source/workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
 | `workflow-source/tests/` | 링크/템플릿/구현 smoke test 위치 |
 | `workflow-source/releases/` | 릴리즈 노트와 pre-release 기록 위치 |
-| `split_checklist.md` | 별도 프로젝트로 분리할 때 수행할 체크리스트 |
 
 ## 3. 현재 구현 상태
 
@@ -99,6 +98,41 @@
 - 공식 패키지 이름은 `mcp` 이다.
 - 현재 저장소에서는 Python 3.11 기반 `.venv` 가상환경을 기준으로 검증했다.
 - macOS/Homebrew 기준 Python 3.11 설치 경로는 `/opt/homebrew/bin/python3.11` 이다.
+
+## 6. 개발 및 온보딩 가이드 (Self-dogfooding)
+
+이 저장소 자체를 개발할 때(Self-dogfooding) 또는 처음 체크아웃한 후에는 아래 명령어를 통해 로컬 런타임 환경을 활성화해야 합니다.
+
+1. **의존성 설치**:
+   ```bash
+   python3 -m pip install -r requirements-dev.txt
+   ```
+
+2. **워크플로우 런타임 동기화**:
+   원본 소스(`workflow-source/`)를 기반으로 로컬 `ai-workflow/` 런타임 도구를 동기화하고 하네스 파일(예: `ANTIGRAVITY.md`)을 생성합니다.
+   ```bash
+   python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+     --target-root . \
+     --project-slug standard-ai-workflow \
+     --project-name "Standard AI Workflow" \
+     --harness antigravity \
+     --adoption-mode existing \
+     --copy-core-docs \
+     --force
+   ```
+
+3. **상태 동기화**:
+   현재의 백로그와 세션 인계 사항을 바탕으로 상태 요약(`state.json`)을 갱신합니다.
+   ```bash
+   python3 workflow-source/scripts/generate_workflow_state.py \
+     --project-profile-path docs/PROJECT_PROFILE.md \
+     --session-handoff-path ai-workflow/memory/session_handoff.md \
+     --work-backlog-index-path ai-workflow/memory/work_backlog.md \
+     --output-path ai-workflow/memory/state.json
+   ```
+
+> [!NOTE]
+> 하네스 엔트리포인트 파일(`ANTIGRAVITY.md` 등)과 `ai-workflow/` 하위의 실행 도구(`scripts/`, `skills/` 등)는 깃 이력 관리를 위해 `.gitignore`에 등록되어 있습니다. 최초 체크아웃 후에는 위 부트스트랩 명령어를 실행하여 로컬에 생성해 주시기 바랍니다.
 
 이번 로컬 검증 환경 메모:
 
@@ -161,7 +195,6 @@ python workflow-source/tests/check_read_only_mcp_sdk_stdio.py
 ## 7. 별도 프로젝트로 분리할 때 권장 구조
 
 - `README.md`
-- `split_checklist.md`
 - `workflow-source/core/`
 - `workflow-source/templates/`
 
@@ -306,4 +339,3 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 스크립트 허브: [workflow-source/scripts/README.md](./workflow-source/scripts/README.md)
 - 프로젝트 프로파일 템플릿: [workflow-source/templates/project_workflow_profile_template.md](./workflow-source/templates/project_workflow_profile_template.md)
 - agent 토폴로지: [workflow-source/core/workflow_agent_topology.md](./workflow-source/core/workflow_agent_topology.md)
-- 분리 체크리스트: [split_checklist.md](./split_checklist.md)

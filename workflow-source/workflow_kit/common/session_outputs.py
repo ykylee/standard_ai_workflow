@@ -20,6 +20,15 @@ def build_session_summary(
     if current_mode:
         summary.append(f"현재 작업 모드: **{current_mode}**")
         summary.extend(build_mode_guidelines(current_mode))
+    else:
+        # Try to recommend a mode based on task titles
+        in_progress_tasks = [t for t in tasks if isinstance(t, dict) and t.get("status") == "in_progress"]
+        if in_progress_tasks:
+            recommended = recommend_task_mode(in_progress_tasks[0].get("title", ""))
+            if recommended:
+                summary.append(f"추천 작업 모드: **{recommended}** (자동 감지)")
+                summary.extend(build_mode_guidelines(recommended))
+                summary.append("참고: 백로그에 `- 모드: {recommended}`를 명시하여 고정할 수 있습니다.")
 
     if handoff.get("current_baseline"):
         summary.append(f"현재 기준선: {handoff['current_baseline']}")
@@ -58,6 +67,23 @@ def build_mode_guidelines(mode: str) -> list[str]:
         ],
     }
     return guidelines.get(mode, [])
+
+
+def recommend_task_mode(title: str) -> str | None:
+    t = title.lower()
+    if any(k in t for k in ["analysis", "분석", "조사", "탐색", "investigate"]):
+        return "Analysis"
+    if any(k in t for k in ["requirement", "요구", "명세", "needs"]):
+        return "Requirements"
+    if any(k in t for k in ["design", "설계", "architecture", "아키텍처"]):
+        return "Design"
+    if any(k in t for k in ["plan", "계획", "roadmap", "일정"]):
+        return "Planning"
+    if any(k in t for k in ["refactor", "리팩터", "개선", "cleanup", "정리"]):
+        return "Refactoring"
+    if any(k in t for k in ["implement", "구현", "feat", "add", "fix", "버그", "수정", "작업"]):
+        return "Implementation"
+    return None
 
 
 def make_session_recommended_action(

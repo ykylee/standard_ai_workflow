@@ -365,6 +365,31 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             "symbols": ["calculate_total", "UserContext"],
         },
     ),
+    ReadOnlyToolSpec(
+        name="apply_robust_patch",
+        description="Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
+        script_path=SOURCE_ROOT / "mcp" / "apply_robust_patch" / "scripts" / "run_apply_robust_patch.py",
+        input_fields=(
+            ReadOnlyToolFieldSpec(
+                name="file_path",
+                cli_flag="--file-path",
+                value_type="path",
+                description="Target file to patch.",
+                required=True,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="patch_content",
+                cli_flag="--patch-content",
+                value_type="string",
+                description="The SEARCH/REPLACE block content (using <<<<<<< SEARCH, =======, >>>>>>> REPLACE).",
+                required=True,
+            ),
+        ),
+        payload_example={
+            "file_path": "src/main.py",
+            "patch_content": "<<<<<<< SEARCH\ndef old():\n    pass\n=======\ndef new():\n    print('fixed')\n>>>>>>> REPLACE",
+        },
+    ),
 )
 
 

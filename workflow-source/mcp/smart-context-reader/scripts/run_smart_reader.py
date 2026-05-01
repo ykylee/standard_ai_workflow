@@ -1,42 +1,35 @@
 #!/usr/bin/env python3
-import ast
 import sys
+import json
 import argparse
 from pathlib import Path
 
-def extract_symbols(file_path, symbol_names):
-    """
-    Python 파일에서 특정 함수나 클래스의 코드 블록을 추출합니다.
-    """
-    path = Path(file_path)
-    if not path.exists() or path.suffix != ".py":
-        return f"Error: Only Python files are supported. File: {file_path}"
+# Add workflow-source to path
+REPO_ROOT = Path(__file__).resolve().parents[4]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
-    source = path.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    lines = source.splitlines()
+from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.read_only_bundle import smart_context_reader_payload
 
-    found_content = []
-
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
-            if node.name in symbol_names or not symbol_names:
-                # 노드의 시작과 끝 줄 번호를 사용하여 텍스트 추출
-                start = node.lineno - 1
-                end = node.end_lineno
-                content = "\n".join(lines[start:end])
-                found_content.append(f"--- Symbol: {node.name} ({type(node).__name__}) ---\n{content}\n")
-
-    if not found_content:
-        return f"No matching symbols found for: {', '.join(symbol_names)}"
-
-    return "\n".join(found_content)
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--file-path", "--file", required=True, dest="file")
-    parser.add_argument("--symbols", nargs="*", help="List of function or class names to extract")
+def main():
+    parser = argparse.ArgumentParser(description="Extract specific function or class blocks from a Python file.")
+    parser.add_argument("--file-path", required=True, help="Path to the Python file.")
+    parser.add_argument("--symbols", nargs="*", help="List of function or class names to extract.")
     args = parser.parse_args()
 
-    result = extract_symbols(args.file, args.symbols)
-    print(result)
+    result = smart_context_reader_payload(
+        file_path=args.file_path,
+        symbols=args.symbols,
+        tool_version=TOOL_VERSION
+    )
+    
+    if result["status"] == "ok":
+        print("\n\n".join(result["extracted_content"]))
+    else:
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

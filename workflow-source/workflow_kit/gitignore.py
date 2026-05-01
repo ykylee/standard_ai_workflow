@@ -27,7 +27,7 @@ def ensure_gitignore_patterns(target_root: Path, dry_run: bool) -> list[str]:
     Uses marker comments to manage the block idempotently:
     - If the file does not exist → create it with the full block.
     - If the markers already exist → replace the block content in-place.
-    - If the markers do not exist but legacy patterns are detected → append.
+    - If the markers do not exist but legacy patterns are detected → migrate to marked block.
     - Otherwise → append the full block.
 
     Returns a list of human-readable change descriptions (empty = no changes).
@@ -58,11 +58,16 @@ def ensure_gitignore_patterns(target_root: Path, dry_run: bool) -> list[str]:
             gitignore_path.write_text(new_content, encoding="utf-8")
         return changes
 
-    # --- Case 3: Legacy patterns without markers → append with markers ------
+    # --- Case 3: Legacy patterns without markers → migrate to markers -------
     if "/ai-workflow/scripts/" in content:
-        # Legacy block exists but without markers; don't double-append.
-        # User should clean up manually or we can skip.
-        return []
+        changes.append("Migrated legacy .gitignore patterns to marked block")
+        if not dry_run:
+            # We append the marked block. Future runs will use Case 2.
+            # We leave the legacy patterns as is to avoid accidental deletion,
+            # but the new block will take precedence or be redundant.
+            with gitignore_path.open("a", encoding="utf-8") as f:
+                f.write("\n" + block + "\n")
+        return changes
 
     # --- Case 4: No existing patterns → append full block -------------------
     changes.append("Appended standard workflow patterns to .gitignore")

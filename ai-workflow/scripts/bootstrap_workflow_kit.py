@@ -762,26 +762,28 @@ def render_project_profile(args: argparse.Namespace, context: dict[str, object])
 def render_session_handoff(args: argparse.Namespace, context: dict[str, object]) -> str:
     content = load_template("session_handoff_template.md")
 
-    baseline = "TODO: 현재 세션 기준 상태 요약"
-    workstream = "TODO: 핵심 작업 축"
+    current_focus = "TODO: Summarize the current session focus."
     in_progress = f"{args.initial_task_id} {args.initial_task_name}"
     blocked = "N/A"
     completed = "N/A"
+    key_change = "Initial workflow docs generated."
+    next_action = "Review and refine generated workflow docs."
+    risk_or_blocker = "N/A"
 
     if args.adoption_mode == "existing":
-        baseline = f"기존 코드베이스 분석 완료 (추정 스택: {context['primary_stack']})"
-        workstream = "워크플로우 도입 및 초기 설정"
-        completed = "저장소 스캔 완료"
+        current_focus = f"Existing codebase onboarding completed; inferred primary stack: {context['primary_stack']}."
+        completed = "Repository scan completed"
+        key_change = "Generated initial workflow docs from the existing repository scan."
+        next_action = "Validate generated profile, handoff, and backlog against the repository."
 
     replacements = {
-        "<최종 검증 상태 요약>": baseline,
-        "<이번 세션의 핵심 목표>": workstream,
-        "<참조한 주요 설계/정책 문서>": f"{context['session_doc_path']}, {context['doc_home']}",
-        "<TASK-ID 또는 N/A>": in_progress,
-        "<사유 또는 N/A>": blocked,
-        "<TASK-ID>": completed,
-        "<hostname / IP>": f"{args.host_name} / {args.host_ip}",
-        "<VPN, 권한, 가상환경 등 제약사항>": "TODO: 환경 제약 사항 채우기",
+        "<CURRENT_FOCUS>": current_focus,
+        "<IN_PROGRESS_ITEM>": in_progress,
+        "<BLOCKED_ITEM>": blocked,
+        "<DONE_ITEM>": completed,
+        "<KEY_CHANGE>": key_change,
+        "<NEXT_ACTION>": next_action,
+        "<RISK_OR_BLOCKER>": risk_or_blocker,
         "YYYY-MM-DD": args.today,
     }
     for key, val in replacements.items():

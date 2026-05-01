@@ -7,8 +7,7 @@ from pathlib import Path
 def test_handoff_git_integration():
     print("Testing handoff-git integration...")
 
-    # Path to latest backlog for testing (using the one from state.json or current date)
-    latest_backlog = "ai-workflow/memory/backlog/2026-04-27.md"
+    latest_backlog = "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md"
 
     cmd = [
         "python3", "ai-workflow/mcp/create-session-handoff-draft/scripts/run_create_session_handoff_draft.py",
@@ -23,7 +22,7 @@ def test_handoff_git_integration():
     assert "draft_handoff" in payload
 
     draft_text = "\n".join(payload["draft_handoff"])
-    assert "Git 작업 이력 기반 요약" in draft_text
+    assert "## Git Summary" in draft_text
     assert "Git 작업 요약 (HEAD~3..HEAD)" in draft_text
 
     print("  [OK] Handoff draft contains git summary")

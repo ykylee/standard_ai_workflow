@@ -18,6 +18,7 @@ from workflow_kit.common.markdown import (
     resolve_relative_target,
 )
 from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.project_docs import parse_backlog
 
 
 DATE_NAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})\.md$")
@@ -264,77 +265,59 @@ def create_session_handoff_draft_payload(
 
     if latest_backlog_path:
         path = resolve_existing_path(latest_backlog_path)
-        content = path.read_text(encoding="utf-8")
-        # Simple markdown section extractor
-        current_section = ""
-        for line in content.splitlines():
-            if line.startswith("## "):
-                current_section = line[3:].strip()
-            elif "- 상태: done" in line:
-                if current_section:
-                    done_items.append(current_section)
-            elif "- 상태: in_progress" in line:
-                if current_section:
-                    in_progress_items.append(current_section)
+        backlog = parse_backlog(path)
+        in_progress_items.extend(str(item) for item in backlog.get("in_progress_items", []))
+        done_items.extend(str(item) for item in backlog.get("done_items", []))
+        warnings.extend(str(warning) for warning in backlog.get("warnings", []))
 
     if not done_items and not in_progress_items:
         warnings.append("최신 백로그에서 진행 중이거나 완료된 작업을 찾지 못했다.")
 
     draft_handoff = [
-        "# 세션 인계 문서 (초안)",
+        "# Session Handoff Draft",
         "",
-        "- 상태: draft",
-        f"- 생성일: {Path(latest_backlog_path).stem if latest_backlog_path else 'N/A'}",
+        "- Purpose: Compact restore context for the next AI agent session.",
+        "- Status: draft",
+        f"- Created: {Path(latest_backlog_path).stem if latest_backlog_path else 'N/A'}",
         "",
-        "## 1. 현재 작업 요약",
+        "## Current Focus",
         "",
-        "- 현재 기준선: N/A",
-        "- 현재 주 작업 축: N/A",
+        "- N/A",
         "",
     ]
 
     if git_summary:
         draft_handoff.extend([
-            "## 2. Git 작업 이력 기반 요약",
+            "## Git Summary",
             "",
             git_summary,
             "",
         ])
 
     draft_handoff.extend([
-        "## 3. 진행 중 작업",
+        "## Work Status",
         "",
     ])
     for item in in_progress_items:
-        draft_handoff.append(f"- {item}")
+        draft_handoff.append(f"- {item}: in_progress")
     if not in_progress_items:
-        draft_handoff.append("- N/A")
+        draft_handoff.append("- N/A: in_progress")
+
+    draft_handoff.append("- N/A: blocked")
+    for item in done_items:
+        draft_handoff.append(f"- {item}: done")
+    if not done_items:
+        draft_handoff.append("- N/A: done")
 
     draft_handoff.extend([
         "",
-        "## 4. 차단 작업",
+        "## Next Actions",
+        "",
+        "- [ ] Define the next concrete task.",
+        "",
+        "## Risks & Blockers",
         "",
         "- N/A",
-        "",
-        "## 5. 최근 완료 작업",
-        "",
-    ])
-    for item in done_items:
-        draft_handoff.append(f"- {item}")
-    if not done_items:
-        draft_handoff.append("- N/A")
-
-    draft_handoff.extend([
-        "",
-        "## 6. 잔여 작업 우선순위",
-        "",
-        "### 우선순위 1",
-        "",
-        "- [ ] 다음 단계 작업 명시",
-        "",
-        "## 7. 환경별 검증 현황",
-        "",
-        "- 검증 완료 호스트: local",
     ])
 
     return {
@@ -520,4 +503,3 @@ def smart_context_reader_payload(
         "not_found_symbols": not_found_symbols,
         "warnings": warnings,
     }
-

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from workflow_kit.common.markdown import markdown_targets
 from workflow_kit.common.text import (
@@ -17,7 +17,8 @@ from workflow_kit.common.text import (
 
 
 STATUS_RE = re.compile(r"- 상태:\s*(planned|in_progress|blocked|done)\s*$")
-TASK_HEADER_RE = re.compile(r"^##\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
+TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
+WORK_STATUS_RE = re.compile(r"^-\s+((?:TASK|WF)-[A-Z0-9-]+)\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$")
 
 
 class WorkflowDocParser:
@@ -37,6 +38,81 @@ class WorkflowDocParser:
 
     def get_named_bullets(self, title: str) -> list[str]:
         return extract_named_section_bullets(self.lines, title)
+
+
+def _section_lines(lines: list[str], title: str) -> list[str]:
+    heading = f"## {title}"
+    collecting = False
+    section: list[str] = []
+    for line in lines:
+        stripped = line.rstrip()
+        if stripped.startswith("## "):
+            if collecting:
+                break
+            collecting = stripped == heading
+            continue
+        if collecting:
+            section.append(line)
+    return section
+
+
+def _first_bullet_or_text(lines: list[str]) -> str | None:
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("- "):
+            return normalize_inline_code(stripped[2:].strip())
+        return normalize_inline_code(stripped)
+    return None
+
+
+def _work_status_items(lines: list[str]) -> dict[str, list[str]]:
+    items = {"in_progress_items": [], "blocked_items": [], "done_items": []}
+    for line in lines:
+        match = WORK_STATUS_RE.match(line.strip())
+        if not match:
+            continue
+        task_id, title, status = match.groups()
+        item = f"{task_id} {title}"
+        if status == "in_progress":
+            items["in_progress_items"].append(item)
+        elif status == "blocked":
+            items["blocked_items"].append(item)
+        elif status == "done":
+            items["done_items"].append(item)
+    return items
+
+
+def _linked_task_paths(path: Path) -> list[Path]:
+    task_paths: list[Path] = []
+    for target in markdown_targets(path):
+        candidate = (path.parent / target).resolve()
+        if candidate.exists() and candidate.parent.name == "tasks":
+            task_paths.append(candidate)
+    return task_paths
+
+
+def _task_lines_for_backlog(path: Path) -> tuple[list[str], list[str]]:
+    warnings: list[str] = []
+    if not path.exists():
+        task_files = sorted((path.parent / "tasks").glob(f"{path.stem}_*.md"))
+        if not task_files:
+            return [], [f"백로그 파일({path.name}) 및 태스크 파일을 찾을 수 없습니다."]
+        lines: list[str] = []
+        for task_file in task_files:
+            lines.extend(task_file.read_text(encoding="utf-8").splitlines())
+            lines.append("")
+        return lines, warnings
+
+    lines = path.read_text(encoding="utf-8").splitlines()
+    linked_task_paths = _linked_task_paths(path)
+    if linked_task_paths and not any(TASK_HEADER_RE.match(line.strip()) for line in lines):
+        lines = []
+        for task_file in linked_task_paths:
+            lines.extend(task_file.read_text(encoding="utf-8").splitlines())
+            lines.append("")
+    return lines, warnings
 
 
 def parse_project_profile_core(path: Path) -> dict[str, Any]:
@@ -107,13 +183,15 @@ def parse_project_profile_backlog(path: Path) -> dict[str, Any]:
 
 def parse_handoff(path: Path) -> dict[str, object]:
     parser = WorkflowDocParser(path)
+    current_focus = _first_bullet_or_text(_section_lines(parser.lines, "Current Focus"))
+    work_status = _work_status_items(_section_lines(parser.lines, "Work Status"))
     data = {
-        "current_baseline": parser.get_value("현재 기준선", required=True),
-        "current_axis": parser.get_value("현재 주 작업 축", required=True),
+        "current_baseline": parser.get_value("현재 기준선", required=current_focus is None) or current_focus,
+        "current_axis": parser.get_value("현재 주 작업 축", required=current_focus is None) or current_focus,
         "recent_core_docs": parser.get_list("최근 핵심 기준 문서"),
-        "in_progress_items": parser.get_list("현재 `in_progress` 작업"),
-        "blocked_items": parser.get_list("현재 `blocked` 작업"),
-        "recent_done_items": parser.get_list("최근 완료 작업 목록"),
+        "in_progress_items": parser.get_list("현재 `in_progress` 작업") or work_status["in_progress_items"],
+        "blocked_items": parser.get_list("현재 `blocked` 작업") or work_status["blocked_items"],
+        "recent_done_items": parser.get_list("최근 완료 작업 목록") or work_status["done_items"],
         "constraints": parser.get_value("주요 제약"),
         "next_documents": [path.parent / target for target in markdown_targets(path)],
     }
@@ -121,32 +199,10 @@ def parse_handoff(path: Path) -> dict[str, object]:
 
 
 def parse_backlog(path: Path) -> dict[str, object]:
-    lines: Iterable[str]
-    if not path.exists():
-        # Try branch-specific tasks dir first, then fall back to original location
-        from workflow_kit.common.paths import workflow_branch_dir
-        branch_dir = workflow_branch_dir(path.parent.parent) # Assuming path is ai-workflow/memory/backlog/YYYY-MM-DD.md
-        tasks_dir = branch_dir / "backlog" / "tasks"
-        if not tasks_dir.exists():
-            tasks_dir = path.parent / "tasks"
-
-        task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
-        if not task_files:
-            return {
-                "tasks": [],
-                "in_progress_items": [],
-                "blocked_items": [],
-                "done_items": [],
-                "warnings": [f"백로그 파일({path.name}) 및 태스크 파일을 찾을 수 없습니다."],
-            }
-        lines = []
-        for tf in task_files:
-            lines.extend(tf.read_text(encoding="utf-8").splitlines())
-            lines.append("")
-        parser = WorkflowDocParser(path)
-        parser.lines = iter(lines)
-    else:
-        parser = WorkflowDocParser(path)
+    lines, warnings = _task_lines_for_backlog(path)
+    parser = WorkflowDocParser(path)
+    parser.lines = lines
+    parser.warnings.extend(warnings)
 
     tasks: list[dict[str, str]] = []
     current_task: dict[str, str] | None = None
@@ -182,26 +238,11 @@ def parse_backlog(path: Path) -> dict[str, object]:
 
 
 def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
-    lines: Iterable[str]
-    if not path.exists():
-        # Try branch-specific tasks dir first, then fall back to original location
-        from workflow_kit.common.paths import workflow_branch_dir
-        branch_dir = workflow_branch_dir(path.parent.parent)
-        tasks_dir = branch_dir / "backlog" / "tasks"
-        if not tasks_dir.exists():
-            tasks_dir = path.parent / "tasks"
-
-        task_files = sorted(tasks_dir.glob(f"{path.stem}_*.md")) if tasks_dir.exists() else []
-        if not task_files:
-            return []
-        lines = []
-        for tf in task_files:
-            lines.extend(tf.read_text(encoding="utf-8").splitlines())
-            lines.append("")
-        parser = WorkflowDocParser(path)
-        parser.lines = iter(lines)
-    else:
-        parser = WorkflowDocParser(path)
+    lines, _warnings = _task_lines_for_backlog(path)
+    if not lines:
+        return []
+    parser = WorkflowDocParser(path)
+    parser.lines = lines
 
     tasks: list[dict[str, str | None]] = []
     current_task: dict[str, str | None] | None = None

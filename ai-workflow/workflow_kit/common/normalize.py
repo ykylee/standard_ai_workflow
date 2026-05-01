@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
+
+WORK_ITEM_ID_RE = re.compile(r"^((?:TASK|WF)-[A-Z0-9-]+)\b")
+
 
 def normalize_whitespace(value: str) -> str:
     return " ".join(value.strip().split())
@@ -35,3 +40,15 @@ def dedupe_normalized_backticked(items: list[str]) -> list[str]:
             result.append(normalized)
     return result
 
+
+def dedupe_work_items(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for item in items:
+        normalized = normalize_backticked(item)
+        match = WORK_ITEM_ID_RE.match(normalized)
+        key = match.group(1) if match else normalized
+        if normalized and key not in seen:
+            seen.add(key)
+            result.append(normalized)
+    return result

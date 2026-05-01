@@ -1790,7 +1790,7 @@
         "method": "tools/call",
         "params": {
           "arguments": {
-            "work_backlog_index_path": "examples/acme_delivery_platform/work_backlog.md"
+            "work_backlog_index_path": "ai-workflow/examples/acme_delivery_platform/work_backlog.md"
           },
           "name": "latest_backlog"
         }
@@ -1806,15 +1806,15 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.3.2-beta\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"ai-workflow/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"ai-workflow/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.3.2-beta\", \"warnings\": []}",
               "type": "text"
             }
           ],
           "structuredContent": {
             "candidates": [
-              "examples/acme_delivery_platform/backlog/2026-04-18.md"
+              "ai-workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
             ],
-            "latest_backlog_path": "examples/acme_delivery_platform/backlog/2026-04-18.md",
+            "latest_backlog_path": "ai-workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
             "tool_version": "v0.3.2-beta",
             "warnings": []

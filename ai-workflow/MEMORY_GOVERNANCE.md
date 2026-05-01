@@ -57,8 +57,26 @@ created_at: YYYY-MM-DD
 [완료 시 결과물 또는 검증 결과]
 ```
 
+### 📂 Daily Backlog Index (`backlog/YYYY-MM-DD.md`)
+```markdown
+# YYYY-MM-DD Branch Work Backlog
+
+- Purpose: Link task detail files for one working day.
+- Status: in_progress
+- Updated: YYYY-MM-DD
+
+## Tasks
+
+- TASK-XXX Task title: `./tasks/YYYY-MM-DD_TASK-XXX.md`
+```
+
+- `backlog/tasks/*.md` is the source of truth for detailed task state.
+- `backlog/YYYY-MM-DD.md` is a tracked lightweight index. Keep it small and link-oriented.
+- On merge conflicts, rebuild the daily index from task links and resolve detailed state in each task file.
+
 ## 3. 에이전트 행동 지침
 
 - 세션 종료 시 `session_handoff.md`를 위 템플릿에 맞춰 갱신하십시오.
 - 새로운 작업 시작 시 `tasks/` 폴더에 템플릿 기반의 신규 파일을 생성하십시오.
+- 날짜별 백로그에는 신규 task 파일 링크만 추가하고, 긴 상세 기록은 task 파일에 남기십시오.
 - 상태 업데이트 시 자연어 서술보다는 불렛 포인트와 상태 키워드를 우선하십시오.

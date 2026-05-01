@@ -4,7 +4,7 @@
 - 범위: 저장소 구조 분석, 성숙도 평가, 개선 제안
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 매니저
 - 상태: draft (Phase 6 진입)
-- 최종 수정일: 2026-04-30
+- 최종 수정일: 2026-05-01
 - 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../core/maturity_matrix.json](../core/maturity_matrix.json)
 
 ## 1. 요약
@@ -16,23 +16,24 @@
 
 ## 2. 저장소 구조
 
-- **Core Logic**: `kit/` (워크플로우 핵심 로직 및 스펙)
+- **Core Logic**: `ai-workflow/workflow_kit/` (워크플로우 핵심 로직 및 공통 모듈)
 - **Operational Docs**: `ai-workflow/memory/` (세션 상태 및 백로그 관리)
-- **Automation Scripts**: `scripts/` (부트스트랩, 배포, 상태 생성 등)
-- **Tests**: `tests/` (문서 무결성 및 스크립트 기능 검증)
-- **Examples**: `examples/` (워크플로우 적용 사례 및 출력 샘플)
-- **Schemas**: `schemas/` (JSON 스키마 및 규약 문서)
+- **Automation Scripts**: `ai-workflow/scripts/` (부트스트랩, 배포, 상태 생성 등)
+- **Tests**: `ai-workflow/tests/` (문서 무결성 및 스크립트 기능 검증)
+- **Examples**: `ai-workflow/examples/` (워크플로우 적용 사례 및 출력 샘플)
+- **Schemas**: `ai-workflow/schemas/` (JSON 스키마 및 규약 문서)
+- **Skills and MCP Tools**: `ai-workflow/skills/`, `ai-workflow/mcp/`
 
 ## 3. 핵심 자동화 도구 및 명령
 
-- **부트스트랩**: `python3 scripts/bootstrap_workflow_kit.py` (신규 프로젝트에 워크플로우 이식)
-- **데모 실행**: `python3 scripts/run_demo_workflow.py` (표준 워크플로우 사이클 시뮬레이션)
-- **문서 검증**: `python3 tests/check_docs.py` (링크 및 메타데이터 무결성 점검)
-- **배포 번들링**: `python3 scripts/export_harness_package.py`
+- **부트스트랩**: `python3 ai-workflow/scripts/bootstrap_workflow_kit.py` (신규 프로젝트에 워크플로우 이식)
+- **데모 실행**: `python3 ai-workflow/scripts/run_demo_workflow.py` (표준 워크플로우 사이클 시뮬레이션)
+- **문서 검증**: `python3 ai-workflow/tests/check_docs.py` (링크 및 메타데이터 무결성 점검)
+- **배포 번들링**: `python3 ai-workflow/scripts/export_harness_package.py`
 
 ## 4. 워크플로우 도입 현황
 
-- **문서화**: 모든 운영 문서가 `ai-workflow/memory/` 하위에 표준화되어 있으며, `GEMINI.md`를 통해 에이전트 진입점이 명확함.
+- **문서화**: 모든 운영 문서가 `ai-workflow/memory/` 하위에 표준화되어 있으며, `AGENTS.md`를 통해 Codex 진입점이 명확함.
 - **상태 관리**: `state.json`과 날짜별 백로그를 통해 세션 간 연속성이 완벽하게 보장됨.
 - **정밀 편집**: Phase 6 진입으로 `robust-patcher` 기반의 고신뢰도 코드 수정 체계 구축 중.
 

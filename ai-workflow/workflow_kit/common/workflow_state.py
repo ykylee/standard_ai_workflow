@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from workflow_kit.common.normalize import dedupe_normalized_backticked, dedupe_strings
+from workflow_kit.common.normalize import dedupe_normalized_backticked, dedupe_strings, dedupe_work_items
 from workflow_kit.common.paths import workflow_memory_dir, safe_relpath, project_workspace_root, workflow_branch_dir
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
@@ -45,15 +45,15 @@ def build_workflow_state_payload(
         "done_items": [],
     }
 
-    in_progress_items = dedupe_normalized_backticked(
+    in_progress_items = dedupe_work_items(
         [item for item in list(handoff.get("in_progress_items", [])) if is_meaningful_text(item)]
         + list(backlog.get("in_progress_items", []))
     )
-    blocked_items = dedupe_normalized_backticked(
+    blocked_items = dedupe_work_items(
         [item for item in list(handoff.get("blocked_items", [])) if is_meaningful_text(item)]
         + list(backlog.get("blocked_items", []))
     )
-    recent_done_items = dedupe_normalized_backticked(
+    recent_done_items = dedupe_work_items(
         [item for item in list(handoff.get("recent_done_items", [])) if is_meaningful_text(item)]
         + list(backlog.get("done_items", []))
     )[:10]  # Keep only the last 10 items to prevent bloat
@@ -129,13 +129,16 @@ def build_state_cache_refresh_hint(
     latest_backlog_path: Path | None = None,
     repository_assessment_path: Path | None = None,
 ) -> dict[str, str]:
+    workspace_root = project_workspace_root(project_profile_path)
+    memory_dir = workflow_memory_dir(project_profile_path)
     branch_dir = workflow_branch_dir(project_profile_path)
+    generator_path = workspace_root / "ai-workflow" / "scripts" / "generate_workflow_state.py"
     state_path = branch_dir / "state.json"
     command_parts = [
-        "python3 scripts/generate_workflow_state.py",
+        f"python3 {generator_path}",
         f"--project-profile-path {project_profile_path}",
         f"--session-handoff-path {branch_dir / 'session_handoff.md'}",
-        f"--work-backlog-index-path {project_profile_path.parent / 'work_backlog.md'}",
+        f"--work-backlog-index-path {memory_dir / 'work_backlog.md'}",
         f"--output-path {state_path}",
     ]
     if latest_backlog_path:

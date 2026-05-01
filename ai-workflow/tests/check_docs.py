@@ -17,6 +17,14 @@ REQUIRED_METADATA = [
     "최종 수정일",
     "관련 문서",
 ]
+ENGLISH_METADATA = [
+    "Purpose",
+    "Scope",
+    "Audience",
+    "Status",
+    "Updated",
+    "Related docs",
+]
 LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "#")
 IGNORED_PARTS = {
@@ -77,14 +85,21 @@ def normalize_link_target(raw_target: str) -> str:
 def check_metadata(path: Path) -> list[str]:
     lines = path.read_text(encoding="utf-8").splitlines()
     header_lines = lines[:20]
+    required_metadata = REQUIRED_METADATA
+    if has_metadata_set(header_lines, ENGLISH_METADATA):
+        required_metadata = ENGLISH_METADATA
     missing = []
-    for field in REQUIRED_METADATA:
+    for field in required_metadata:
         prefix = f"- {field}:"
         if not any(line.startswith(prefix) for line in header_lines):
             missing.append(field)
     if not lines or not lines[0].startswith("# "):
         missing.append("제목 헤더")
     return missing
+
+
+def has_metadata_set(lines: list[str], fields: list[str]) -> bool:
+    return all(any(line.startswith(f"- {field}:") for line in lines) for field in fields)
 
 
 def check_links(path: Path) -> list[str]:

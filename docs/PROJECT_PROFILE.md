@@ -60,7 +60,7 @@
 ## 5. 프로젝트 특화 예외 규칙
 
 - 병합 규칙 (Conflict Management):
-- **백로그 (Event Sourcing)**: `backlog/tasks/` 하위의 개별 태스크 파일을 Git으로 관리하여 병합 충돌을 방지한다. 날짜별 취합 문서(`backlog/YYYY-MM-DD.md`)는 로컬에서 자동 생성되므로 Git에서 제외(ignore)하거나 충돌 시 무시하고 재생성한다.
+- **백로그 (Event Sourcing)**: `backlog/tasks/` 하위의 개별 태스크 파일을 작업 상태의 source of truth로 관리한다. 날짜별 취합 문서(`backlog/YYYY-MM-DD.md`)는 task 파일을 연결하는 lightweight index로 Git에서 함께 추적하되, 상세 상태는 task 파일을 우선한다. 충돌 시 날짜별 취합 문서는 task 링크 목록을 기준으로 재정렬하고, task 본문 충돌은 개별 task 파일에서 해결한다.
 - **상태 문서 (`state.json`, `session_handoff.md`)**: 이 문서들은 현재 세션의 context를 담고 있는 파생(Generated) 문서이거나 캐시이므로, Git 병합 충돌 시 `merge-doc-reconcile --apply` 명령을 사용하여 양쪽 브랜치의 변경 사항을 AI가 자동 취합하여 재생성하도록 권장한다.
 - **Backlog Index (`work_backlog.md`)**: 날짜별 문서 링크 추가 시 충돌이 나면 `merge=union` 속성을 활용하거나 수동으로 중복 없이 병합한다.
 - 승인 규칙:

@@ -1,40 +1,58 @@
 # Session Handoff
 
-- 문서 목적: `codex/phase6` 브랜치의 현재 세션 상태와 다음 작업 시작점을 정리한다.
-- 범위: main 통합, v0.3.2-beta 작업 재적용, 워크플로우 상태 문서 재배치
-- 대상 독자: AI 에이전트, 개발자
-- 최종 수정일: 2026-04-30
-- 관련 문서: [./state.json](./state.json), [../../work_backlog.md](../../work_backlog.md), [./backlog/2026-04-30.md](./backlog/2026-04-30.md)
-- 상태: done
+- Purpose: Restore context for the `codex/phase6` branch.
+- Scope: beta 0.4.0 workflow configuration review follow-ups.
+- Audience: AI agents, maintainers
+- Status: done
+- Updated: 2026-05-01
+- Related docs: [./state.json](./state.json), [../../work_backlog.md](../../work_backlog.md), [./backlog/2026-05-01.md](./backlog/2026-05-01.md)
 
 - Branch: `codex/phase6`
-- Updated: `2026-04-30`
+- Updated: `2026-05-01`
 
 ## Current Focus
 
-- `origin/main`의 `ai-workflow/memory/<branch>/` 기반 운영 구조를 `codex/phase6` 브랜치 상태 문서에 반영했다.
+- TASK-042 beta 0.4.0 workflow configuration review follow-ups are complete; the branch is ready for final review and commit.
 
 ## Work Status
 
-- TASK-038 `v0.3.2-beta` 버전 정합성 복구: done
-- TASK-039 `v0.3.2-beta` 하네스 패키지 로컬 배포: done
-- TASK-040 `v0.3.2-beta` Codex 하네스 패키지 설치: done
-- TASK-041 최신 `main` 반영 및 workflow 상태 문서 재배치: done
+- TASK-042 beta 0.4.0 workflow configuration review follow-up plan: done
+  - WF-042-05 Update code index and repository assessment paths: done
+  - WF-042-04 Decide daily backlog aggregate tracking policy: done
+  - WF-042-03 Isolate workflow state generator test output path: done
+  - WF-042-06 Align branch memory templates and parsers: done
+  - WF-042-02 Add detached HEAD branch fallback policy: done
+  - WF-042-01 Align workflow state refresh hint paths: done
+- TASK-041 Sync latest main and relocate workflow state docs: done
+- TASK-040 Install v0.3.2-beta Codex harness package: done
+- TASK-039 Deploy v0.3.2-beta harness package locally: done
+- TASK-038 Restore v0.3.2-beta version consistency: done
 
 ## Key Changes
 
-- `ai-workflow/project/`에 남아 있던 이전 일자 백로그를 `ai-workflow/memory/codex/phase6/backlog/tasks/` 하위 개별 task 문서로 변환했다.
-- `state.json`, `session_handoff.md`, 날짜별 백로그 취합 문서를 `codex/phase6` 브랜치 전용 경로에 생성했다.
-- `WORKFLOW_INDEX.md`, `AGENTS.md`, `ai-workflow/README.md`, `work_backlog.md`의 active 운영 경로를 `codex/phase6` 기준으로 맞췄다.
-- 기존 `gemini/phase6` 기록은 main에서 들어온 이전 브랜치 기록으로 보존했다.
-- Git에 추적되던 과거 `.ai-workflow-backups/` 백업과 `scratch/bootstrap_test/` 임시 산출물을 확인 후 제거했다.
+- Migrated prior active backlog records from `ai-workflow/project/` into branch-specific task files under `ai-workflow/memory/codex/phase6/backlog/tasks/`.
+- Created branch-specific `state.json`, `session_handoff.md`, and daily backlog aggregate docs for `codex/phase6`.
+- Aligned active workflow paths in `WORKFLOW_INDEX.md`, `AGENTS.md`, `ai-workflow/README.md`, and `work_backlog.md`.
+- Preserved prior `gemini/phase6` history as imported main branch memory.
+- Removed obsolete tracked `.ai-workflow-backups/` and `scratch/bootstrap_test/` artifacts.
+- Registered beta 0.4.0 review findings as `TASK-042` subitems `WF-042-01` through `WF-042-05`, then added `WF-042-06` for parser/template alignment.
+- Completed WF-042-02 by adding env-based branch fallback and unsafe branch slug filtering in `get_current_branch()`.
+- Completed WF-042-01 by updating `build_state_cache_refresh_hint()` to use `ai-workflow/scripts/generate_workflow_state.py` and `ai-workflow/memory/work_backlog.md`.
+- Completed WF-042-06 by teaching `parse_handoff()` to read `Current Focus`/`Work Status` and `parse_backlog()` to follow linked task files under `backlog/tasks/`.
+- Switched newly generated AI-facing handoff templates and handoff draft output to English-first schema.
+- Completed WF-042-03 by changing `check_workflow_state_generator.py` to write generated state into a temporary file instead of tracked `gemini/phase6/state.json`.
+- Completed WF-042-04 by defining daily backlog aggregates as tracked lightweight indexes and task files as the detailed source of truth.
+- Completed WF-042-05 by updating `docs/CODE_INDEX.md` and `ai-workflow/memory/repository_assessment.md` for the `ai-workflow/` subdirectory layout.
 
 ## Next Actions
 
-- [ ] 필요 시 `v0.3.2-beta` 산출물을 GitHub release asset으로 업로드한다.
-- [ ] `codex/phase6` 변경을 커밋/푸시하기 전 전체 smoke 테스트 범위를 결정한다.
+- [x] WF-042-01 Align workflow state refresh hint paths
+- [x] WF-042-02 Add detached HEAD branch fallback policy
+- [x] WF-042-06 Align branch memory templates and parsers
+- [x] WF-042-03 Isolate workflow state generator test output path
+- [x] WF-042-04 Decide daily backlog aggregate tracking policy
+- [x] WF-042-05 Update code index and repository assessment paths
 
 ## Risks & Blockers
 
-- 과거 백업/스크래치 산출물은 참조 여부를 확인한 뒤 제거했다.
-- `stash@{0}`는 안전 보존용으로 남아 있으나 현재 필요한 변경은 재적용된 상태다.
+- Optional MCP SDK stdio verification still requires installing `mcp[cli]==1.27.0` from `requirements-dev.txt` in the local Python environment.

@@ -3,7 +3,16 @@
 from __future__ import annotations
 import os
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+
+BRANCH_ENV_KEYS = (
+    "CODEX_WORKFLOW_BRANCH",
+    "GITHUB_HEAD_REF",
+    "GITHUB_REF_NAME",
+    "CI_COMMIT_REF_NAME",
+    "BRANCH_NAME",
+)
 
 
 def resolve_existing_path(raw: str) -> Path:
@@ -62,15 +71,36 @@ def project_workspace_root(project_profile_path: Path) -> Path:
     return memory_dir
 
 
+def _usable_branch_name(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    branch = raw.strip()
+    for prefix in ("refs/heads/", "refs/remotes/origin/"):
+        if branch.startswith(prefix):
+            branch = branch[len(prefix):]
+            break
+    if not branch or branch == "HEAD" or branch.startswith("/"):
+        return None
+    path = PurePosixPath(branch)
+    if any(part in {"", ".", ".."} for part in path.parts):
+        return None
+    return branch
+
+
 def get_current_branch() -> str:
-    """Return the current git branch name. Default to 'main' if not in a git repo."""
+    """Return a branch-safe workflow memory slug, falling back to main."""
+    for env_key in BRANCH_ENV_KEYS:
+        branch = _usable_branch_name(os.environ.get(env_key))
+        if branch:
+            return branch
+
     try:
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             stderr=subprocess.DEVNULL,
             text=True
         ).strip()
-        return branch if branch else "main"
+        return _usable_branch_name(branch) or "main"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "main"
 

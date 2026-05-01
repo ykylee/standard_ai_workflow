@@ -4,8 +4,8 @@
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-30
-- 관련 문서: `../docs/PROJECT_PROFILE.md`, `./memory/codex/phase6/state.json`, `./memory/codex/phase6/session_handoff.md`, `./memory/work_backlog.md`
+- 최종 수정일: 2026-05-01
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -16,21 +16,15 @@
 ## 2. 생성된 파일
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- [ai-workflow/memory/codex/phase6/state.json](./memory/codex/phase6/state.json)
-- [ai-workflow/memory/codex/phase6/session_handoff.md](./memory/codex/phase6/session_handoff.md)
+- [ai-workflow/memory/state.json](./memory/state.json)
+- [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
 - [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
-- [ai-workflow/memory/codex/phase6/backlog/2026-04-30.md](./memory/codex/phase6/backlog/2026-04-30.md)
-- [ai-workflow/memory/repository_assessment.md](./memory/repository_assessment.md)
+- [ai-workflow/memory/codex/phase6/backlog/2026-05-01.md](./memory/codex/phase6/backlog/2026-05-01.md)
+
 
 ## 3. 코어 문서
 
-- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
-- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
-- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
-- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
-- [core/output_schema_guide.md](./core/output_schema_guide.md)
-- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
-- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
+- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다.
 
 ## 4. 하네스 오버레이
 
@@ -42,7 +36,7 @@
 2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
-5. 이후 표준 skill/MCP 도입 범위는 `ai-workflow/core/` 문서를 기준으로 결정한다.
+5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
@@ -53,15 +47,15 @@
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
-- 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `ai-workflow/memory/codex/phase6/`
-- 백로그 위치: `ai-workflow/memory/codex/phase6/backlog/tasks/`
-- 세션 인계 문서 위치: `ai-workflow/memory/codex/phase6/session_handoff.md`
-- 환경 기록 위치: `ai-workflow/memory/repository_assessment.md`
+- 문서 위키 홈: `README.md`
+- 운영 문서 위치: `ai-workflow/memory/`
+- 백로그 위치: `ai-workflow/memory/backlog/`
+- 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`
+- 환경 기록 위치: `ai-workflow/memory/environments/`
 
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./memory/codex/phase6/state.json](./memory/codex/phase6/state.json)
-- 세션 인계 문서: [./memory/codex/phase6/session_handoff.md](./memory/codex/phase6/session_handoff.md)
+- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
+- 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
 - 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)

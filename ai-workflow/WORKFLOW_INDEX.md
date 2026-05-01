@@ -22,4 +22,4 @@
 - **브랜치 격리**: 모든 상태 문서는 `ai-workflow/memory/<branch>/` 하위에서 관리합니다.
 - **Event Sourcing**: 백로그는 `tasks/` 폴더에 개별 태스크 단위로 기록합니다.
 - **비참조 원칙**: 코드베이스 분석(Semantic Search 등) 시 `ai-workflow/` 경로는 검색 범위에서 제외(Exclude)해야 합니다.
-- **작성 표준**: 모든 운영 문서는 [MEMORY_GOVERNANCE.md](./MEMORY_GOVERNANCE.md)의 템플릿과 규칙을 따릅니다.
+- **작성 표준**: 모든 운영 문서는 [MEMORY_GOVERNANCE.md](../workflow-source/MEMORY_GOVERNANCE.md)의 템플릿과 규칙을 따릅니다.

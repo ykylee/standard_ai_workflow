@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 매니저
 - 상태: draft (Phase 6 진입)
 - 최종 수정일: 2026-05-01
-- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../core/maturity_matrix.json](../core/maturity_matrix.json)
+- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 
 ## 1. 요약
 
@@ -16,20 +16,20 @@
 
 ## 2. 저장소 구조
 
-- **Core Logic**: `ai-workflow/workflow_kit/` (워크플로우 핵심 로직 및 공통 모듈)
+- **Core Logic**: `workflow-source/workflow_kit/` (워크플로우 핵심 로직 및 공통 모듈)
 - **Operational Docs**: `ai-workflow/memory/` (세션 상태 및 백로그 관리)
-- **Automation Scripts**: `ai-workflow/scripts/` (부트스트랩, 배포, 상태 생성 등)
-- **Tests**: `ai-workflow/tests/` (문서 무결성 및 스크립트 기능 검증)
-- **Examples**: `ai-workflow/examples/` (워크플로우 적용 사례 및 출력 샘플)
-- **Schemas**: `ai-workflow/schemas/` (JSON 스키마 및 규약 문서)
-- **Skills and MCP Tools**: `ai-workflow/skills/`, `ai-workflow/mcp/`
+- **Automation Scripts**: `workflow-source/scripts/` (부트스트랩, 배포, 상태 생성 등)
+- **Tests**: `workflow-source/tests/` (문서 무결성 및 스크립트 기능 검증)
+- **Examples**: `workflow-source/examples/` (워크플로우 적용 사례 및 출력 샘플)
+- **Schemas**: `workflow-source/schemas/` (JSON 스키마 및 규약 문서)
+- **Skills and MCP Tools**: `workflow-source/skills/`, `workflow-source/mcp/`
 
 ## 3. 핵심 자동화 도구 및 명령
 
-- **부트스트랩**: `python3 ai-workflow/scripts/bootstrap_workflow_kit.py` (신규 프로젝트에 워크플로우 이식)
-- **데모 실행**: `python3 ai-workflow/scripts/run_demo_workflow.py` (표준 워크플로우 사이클 시뮬레이션)
-- **문서 검증**: `python3 ai-workflow/tests/check_docs.py` (링크 및 메타데이터 무결성 점검)
-- **배포 번들링**: `python3 ai-workflow/scripts/export_harness_package.py`
+- **부트스트랩**: `python3 workflow-source/scripts/bootstrap_workflow_kit.py` (신규 프로젝트에 워크플로우 이식)
+- **데모 실행**: `python3 workflow-source/scripts/run_demo_workflow.py` (표준 워크플로우 사이클 시뮬레이션)
+- **문서 검증**: `python3 workflow-source/tests/check_docs.py` (링크 및 메타데이터 무결성 점검)
+- **배포 번들링**: `python3 workflow-source/scripts/export_harness_package.py`
 
 ## 4. 워크플로우 도입 현황
 
@@ -44,5 +44,5 @@
 
 ## 다음에 읽을 문서
 
-- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../core/maturity_matrix.json](../core/maturity_matrix.json)
+- 관련 문서: [../../docs/PROJECT_PROFILE.md](../../docs/PROJECT_PROFILE.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)

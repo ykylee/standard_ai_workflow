@@ -33,7 +33,7 @@
 ## 언어와 컨텍스트 원칙
 
 - 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
-- **AI 내부 운영 문서**: `ai-workflow/memory/` 하위 문서는 AI 최적화 가이드([MEMORY_GOVERNANCE.md](./ai-workflow/MEMORY_GOVERNANCE.md))를 준수하여 작성한다.
+- **AI 내부 운영 문서**: `ai-workflow/memory/` 하위 문서는 AI 최적화 가이드([MEMORY_GOVERNANCE.md](./workflow-source/MEMORY_GOVERNANCE.md))를 준수하여 작성한다.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
 - 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한 결론과 다음 행동만 짧게 전달한다.
 - 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.
@@ -42,10 +42,10 @@
 ## 프로젝트 실행 기본값
 
 - 설치: `python3 -m pip install -r requirements-dev.txt`
-- 로컬 실행: `python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help`
-- 빠른 테스트: `python3 ai-workflow/tests/check_docs.py`, `python3 ai-workflow/tests/check_output_samples.py`
-- 격리 테스트: `python3 ai-workflow/tests/check_demo_workflow.py`, `python3 ai-workflow/tests/check_existing_project_onboarding.py`
-- 실행 확인: `python3 ai-workflow/scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- 로컬 실행: `python3 workflow-source/scripts/bootstrap_workflow_kit.py --help`
+- 빠른 테스트: `python3 workflow-source/tests/check_docs.py`, `python3 workflow-source/tests/check_output_samples.py`
+- 격리 테스트: `python3 workflow-source/tests/check_demo_workflow.py`, `python3 workflow-source/tests/check_existing_project_onboarding.py`
+- 실행 확인: `python3 workflow-source/scripts/run_demo_workflow.py --example-project acme_delivery_platform`
 
 ## 문서 작업 기준
 

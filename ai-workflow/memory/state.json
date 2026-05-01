@@ -1,11 +1,11 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-30",
+  "generated_at": "2026-05-01",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/codex/phase6/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-04-30.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
     "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "project": {
@@ -17,42 +17,48 @@
     "environment_path": "ai-workflow/memory/repository_assessment.md"
   },
   "commands": {
-    "quick_tests": "python3 ai-workflow/tests/check_docs.py",
-    "isolated_tests": "for t in ai-workflow/tests/check_*.py; do python3 \"$t\" || exit 1; done",
-    "runtime_checks": "python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help"
+    "quick_tests": "python3 workflow-source/tests/check_docs.py",
+    "isolated_tests": "for t in workflow-source/tests/check_*.py; do python3 \"$t\" || exit 1; done",
+    "runtime_checks": "python3 workflow-source/scripts/bootstrap_workflow_kit.py --help"
   },
   "session": {
-    "current_baseline": "origin/main bb3dbce 기준의 branch-isolated memory 구조로 codex/phase6 상태 문서를 재배치했다.",
-    "current_axis": "THREAD-003 배포 패키징 및 main 통합",
-    "current_focus": "codex/phase6 브랜치 workflow 상태 문서 재배치",
+    "current_baseline": "TASK-045 runtime deletion independence is complete; `workflow-source/` development checks pass even when the applied `ai-workflow/` runtime layer is temporarily hidden.",
+    "current_axis": "TASK-045 runtime deletion independence is complete; `workflow-source/` development checks pass even when the applied `ai-workflow/` runtime layer is temporarily hidden.",
+    "current_focus": "TASK-044 Separate workflow development source from applied runtime",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "codex/phase6 브랜치 workflow 상태 문서 재배치",
-      "codex/phase6 브랜치에 origin/main bb3dbce 반영 및 stash 재적용 충돌 해소",
-      "TASK-001 워크플로우 이식성 강화 및 Antigravity 하네스 전환",
-      "TASK-034 `robust-patcher` 핵심 엔진 및 스킬 구현",
-      "TASK-035 `smart-context-reader` MCP 도구 구현"
+      "TASK-045 Make workflow source development independent from applied runtime",
+      "TASK-044 Separate workflow development source from applied runtime",
+      "TASK-043 Apply current Codex workflow package locally",
+      "TASK-042 beta 0.4.0 workflow configuration review follow-up plan",
+      "WF-042-05 Update code index and repository assessment paths",
+      "WF-042-04 Decide daily backlog aggregate tracking policy",
+      "WF-042-03 Isolate workflow state generator test output path",
+      "WF-042-06 Align branch memory templates and parsers",
+      "WF-042-02 Add detached HEAD branch fallback policy",
+      "WF-042-01 Align workflow state refresh hint paths"
     ],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-04-30.md",
+    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
     "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-038 배포 기준 버전 `v0.3.2-beta` 정합성 복구",
-      "TASK-039 `v0.3.2-beta` 하네스 패키지 로컬 배포",
-      "TASK-040 `v0.3.2-beta` Codex 하네스 패키지 설치",
-      "TASK-041 codex/phase6 최신 main 반영 및 워크플로우 재배치"
+      "TASK-044 Separate workflow development source from applied runtime",
+      "TASK-045 Make workflow source development independent from applied runtime",
+      "TASK-043 Apply current Codex workflow package locally",
+      "TASK-042 beta 0.4.0 workflow configuration review follow-up plan"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/codex/phase6/session_handoff.md",
     "ai-workflow/memory/work_backlog.md",
-    "ai-workflow/memory/codex/phase6/backlog/2026-04-30.md"
+    "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
+    "ai-workflow/memory/codex/phase6/state.json"
   ],
   "repository_assessment": {
     "path": "ai-workflow/memory/repository_assessment.md",

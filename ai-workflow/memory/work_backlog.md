@@ -26,7 +26,7 @@
 
 ## 날짜별 백로그 문서
 
-- [2026-05-01 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-05-01.md) (beta 0.4.0 workflow configuration review follow-up plan)
+- [2026-05-01 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-05-01.md) (beta 0.4.0 workflow configuration review follow-up plan, Codex package local export, source/runtime separation, runtime deletion independence, full smoke validation)
 - [2026-04-30 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-04-30.md) (v0.3.2-beta 통합 및 workflow 재배치)
 - [2026-04-30 작업 기록](./gemini/phase6/backlog/2026-04-30.md) (main 통합 후 codex/phase6 충돌 해소 포함)
 - [2026-04-30 작업 백로그](./gemini/phase6/backlog/2026-04-30.md) (브랜치 격리 및 거버넌스 개편)

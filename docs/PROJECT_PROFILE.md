@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: final (Phase 6 진입)
 - 최종 수정일: 2026-04-29
-- 관련 문서: `../ai-workflow/core/global_workflow_standard.md`, `../ai-workflow/memory/codex/phase6/session_handoff.md`, `../ai-workflow/memory/work_backlog.md`
+- 관련 문서: `../workflow-source/core/global_workflow_standard.md`, `../ai-workflow/memory/codex/phase6/session_handoff.md`, `../ai-workflow/memory/work_backlog.md`
 - **운영 인덱스 (Ops)**: [Workflow Index](../ai-workflow/WORKFLOW_INDEX.md), [Agent Rules](../AGENTS.md)
 - **지식 인덱스 (Knowledge)**: [Document Index](./DOCUMENT_INDEX.md), [Code Index](./CODE_INDEX.md)
 
@@ -38,24 +38,24 @@
 - 설치:
 - `python3 -m pip install -r requirements-dev.txt`
 - 로컬 실행:
-- `python3 ai-workflow/scripts/run_demo_workflow.py`
+- `python3 workflow-source/scripts/run_demo_workflow.py`
 - 빠른 테스트:
-- `python3 ai-workflow/tests/check_docs.py`
+- `python3 workflow-source/tests/check_docs.py`
 - 격리 테스트:
-- `for t in ai-workflow/tests/check_*.py; do python3 "$t" || exit 1; done`
+- `for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done`
 - UI/API 실행 확인:
-- `python3 ai-workflow/scripts/bootstrap_workflow_kit.py --help`
+- `python3 workflow-source/scripts/bootstrap_workflow_kit.py --help`
 
 ## 4. 프로젝트 특화 검증 포인트
 
 - 코드 변경 시:
-- `ai-workflow/tests/check_*.py` 스모크 테스트 통과 확인. `ai-workflow/scripts/bootstrap_workflow_kit.py` 의 경우 `--dry-run` 결과의 JSON 스키마 정합성 확인.
+- `workflow-source/tests/check_*.py` 스모크 테스트 통과 확인. `workflow-source/scripts/bootstrap_workflow_kit.py` 의 경우 `--dry-run` 결과의 JSON 스키마 정합성 확인.
 - 문서 변경 시:
-- `python3 ai-workflow/tests/check_docs.py` 를 실행하여 상대 링크와 메타데이터 무결성 확인.
+- `python3 workflow-source/tests/check_docs.py` 를 실행하여 상대 링크와 메타데이터 무결성 확인.
 - UI 변경 시:
 - N/A (CLI/문서 중심 프로젝트)
 - 배포/운영 변경 시:
-- `python3 ai-workflow/scripts/export_harness_package.py` 를 실행하여 배포용 번들 생성 및 `PACKAGE_CONTENTS.md` 포함 여부 확인.
+- `python3 workflow-source/scripts/export_harness_package.py` 를 실행하여 배포용 번들 생성 및 `PACKAGE_CONTENTS.md` 포함 여부 확인.
 
 ## 5. 프로젝트 특화 예외 규칙
 
@@ -69,9 +69,9 @@
 - 환경 제약:
 - Python 3.10 이상 필요 (MCP SDK 의존성).
 - 기타:
-- 이 저장소는 워크플로우 키트 자체의 개발 저장소이므로, `ai-workflow/` 디렉터리가 개발 대상이자 동시에 운영 도구로 사용되는 "self-dogfooding" 구조임을 유의한다.
+- 이 저장소는 워크플로우 키트 자체의 개발 저장소이므로, `workflow-source/`가 개발 원본이고 `ai-workflow/`가 이 저장소에 적용된 runtime/state 레이어인 self-dogfooding 구조임을 유의한다.
 
 ## 다음에 읽을 문서
 
-- 공통 표준: [Global Workflow Standard](../ai-workflow/core/global_workflow_standard.md)
+- 공통 표준: [Global Workflow Standard](../workflow-source/core/global_workflow_standard.md)
 - 작업 백로그 인덱스: [Work Backlog Index](../ai-workflow/memory/work_backlog.md)

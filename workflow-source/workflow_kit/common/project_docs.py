@@ -17,6 +17,7 @@ from workflow_kit.common.text import (
 
 
 STATUS_RE = re.compile(r"- 상태:\s*(planned|in_progress|blocked|done)\s*$")
+MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")
 TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
 WORK_STATUS_RE = re.compile(r"^-\s+((?:TASK|WF)-[A-Z0-9-]+)\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$")
 
@@ -225,6 +226,10 @@ def parse_backlog(path: Path) -> dict[str, object]:
         elif stripped.startswith("- 상태:") and not STATUS_RE.match(stripped):
             parser.warnings.append(f"잘못된 상태 형식 (L{idx+1}): `{stripped}`")
 
+        mode_match = MODE_RE.match(stripped)
+        if mode_match:
+            current_task["mode"] = mode_match.group(1)
+
     if current_task:
         tasks.append(current_task)
 
@@ -261,6 +266,11 @@ def parse_backlog_task_entries(path: Path) -> list[dict[str, str | None]]:
             current_task["status"] = status_match.group(1)
         elif stripped.startswith("- 상태:") and not STATUS_RE.match(stripped):
             parser.warnings.append(f"잘못된 상태 형식 (L{idx+1}): `{stripped}`")
+
+        mode_match = MODE_RE.match(stripped)
+        if mode_match:
+            current_task["mode"] = mode_match.group(1)
+
     if current_task:
         tasks.append(current_task)
     return tasks

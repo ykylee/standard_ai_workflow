@@ -6,6 +6,7 @@
 ## TASK-XXX <작업명>
 
 - 상태: planned | in_progress | done | blocked
+- 모드: Analysis | Requirements | Design | Planning | Implementation | Refactoring
 - 우선순위: high | medium | low
 - 담당: <name>
 - 영향 문서: <file_paths>

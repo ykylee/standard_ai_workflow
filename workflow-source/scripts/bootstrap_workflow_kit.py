@@ -500,16 +500,25 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     )
 
     stack_labels: list[str] = []
-    if (paths.target_root / "package.json").exists():
-        stack_labels.append("node")
-    if (paths.target_root / "pyproject.toml").exists() or (paths.target_root / "requirements.txt").exists():
-        stack_labels.append("python")
-    if (paths.target_root / "Cargo.toml").exists():
-        stack_labels.append("rust")
-    if (paths.target_root / "go.mod").exists():
-        stack_labels.append("go")
-    if (paths.target_root / "Gemfile").exists():
-        stack_labels.append("ruby")
+    # Check root and subdirectories for stack indicators
+    search_paths = [paths.target_root] + [p for p in paths.target_root.iterdir() if p.is_dir() and p.name not in IGNORED_DIRS]
+    
+    for p in search_paths:
+        if (p / "package.json").exists():
+            stack_labels.append("node")
+        if (p / "pyproject.toml").exists() or (p / "requirements.txt").exists() or (p / "setup.py").exists():
+            stack_labels.append("python")
+        if (p / "Cargo.toml").exists():
+            stack_labels.append("rust")
+        if (p / "go.mod").exists():
+            stack_labels.append("go")
+        if (p / "Gemfile").exists():
+            stack_labels.append("ruby")
+        if (p / "CMakeLists.txt").exists() or (p / "Makefile").exists():
+            stack_labels.append("cpp")
+
+    # Remove duplicates and prioritize
+    stack_labels = sorted(list(set(stack_labels)))
     primary_stack = stack_labels[0] if stack_labels else "unknown"
 
     package_scripts = detect_package_scripts(paths.target_root)
@@ -536,34 +545,41 @@ def infer_project_context(args: argparse.Namespace, paths: Paths) -> dict[str, o
     isolated_test_command = args.isolated_test_command
     smoke_check_command = args.smoke_check_command
 
-    # Refine commands based on stack
+    # Refine commands based on stack (Priority: Makefile -> Primary Stack)
+    if (paths.target_root / "Makefile").exists():
+        if not install_command: install_command = "make install"
+        if not run_command: run_command = "make run"
+        if not quick_test_command: quick_test_command = "make test"
+        if not smoke_check_command: smoke_check_command = "make smoke"
+
+    # Fallback to stack-specific defaults if still TODO
     if primary_stack == "node":
-        if not install_command: install_command = "npm install"
-        if not run_command: run_command = guess_run_command(paths.target_root, package_scripts)
-        if not quick_test_command:
-            quick_test_command = "npm test"if "test"in package_scripts else ("npm run lint"if "lint"in package_scripts else "TODO: 빠른 테스트 명령 입력")
-        if not isolated_test_command:
-            isolated_test_command = "npm run test:unit"if "test:unit"in package_scripts else ("npm run test:ci"if "test:ci"in package_scripts else "TODO: 격리 테스트 명령 입력")
-        if not smoke_check_command:
-            smoke_check_command = "npm run test:smoke"if "test:smoke"in package_scripts else "TODO: 실행 확인 명령 입력"
+        if not install_command or "TODO" in install_command: install_command = "npm install"
+        if not run_command or "TODO" in run_command: run_command = guess_run_command(paths.target_root, package_scripts)
+        if not quick_test_command or "TODO" in quick_test_command:
+            quick_test_command = "npm test" if "test" in package_scripts else ("npm run lint" if "lint" in package_scripts else "TODO: 빠른 테스트 명령 입력")
+        if not isolated_test_command or "TODO" in isolated_test_command:
+            isolated_test_command = "npm run test:unit" if "test:unit" in package_scripts else ("npm run test:ci" if "test:ci" in package_scripts else "TODO: 격리 테스트 명령 입력")
+        if not smoke_check_command or "TODO" in smoke_check_command:
+            smoke_check_command = "npm run test:smoke" if "test:smoke" in package_scripts else "TODO: 실행 확인 명령 입력"
     elif primary_stack == "python":
-        if not install_command:
-            install_command = "pip install -r requirements.txt"if (paths.target_root / "requirements.txt").exists() else "pip install ."
-        if not run_command: run_command = guess_run_command(paths.target_root, {})
-        if not quick_test_command:
-            quick_test_command = "pytest"if test_dirs else "TODO: 빠른 테스트 명령 입력"
-        if not isolated_test_command:
-            isolated_test_command = "pytest tests/unit"if (paths.target_root / "tests/unit").exists() else "TODO: 격리 테스트 명령 입력"
+        if not install_command or "TODO" in install_command:
+            install_command = "pip install -r requirements.txt" if (paths.target_root / "requirements.txt").exists() else "pip install ."
+        if not run_command or "TODO" in run_command: run_command = guess_run_command(paths.target_root, {})
+        if not quick_test_command or "TODO" in quick_test_command:
+            quick_test_command = "pytest" if test_dirs else "TODO: 빠른 테스트 명령 입력"
+        if not isolated_test_command or "TODO" in isolated_test_command:
+            isolated_test_command = "pytest tests/unit" if (paths.target_root / "tests/unit").exists() else "TODO: 격리 테스트 명령 입력"
     elif primary_stack == "rust":
-        if not install_command: install_command = "cargo fetch"
-        if not run_command: run_command = "cargo run"
-        if not quick_test_command: quick_test_command = "cargo test"
-        if not isolated_test_command: isolated_test_command = "cargo test --lib"
+        if not install_command or "TODO" in install_command: install_command = "cargo fetch"
+        if not run_command or "TODO" in run_command: run_command = "cargo run"
+        if not quick_test_command or "TODO" in quick_test_command: quick_test_command = "cargo test"
+        if not isolated_test_command or "TODO" in isolated_test_command: isolated_test_command = "cargo test --lib"
     elif primary_stack == "go":
-        if not install_command: install_command = "go mod download"
-        if not run_command: run_command = "go run ./..."
-        if not quick_test_command: quick_test_command = "go test ./..."
-        if not isolated_test_command: isolated_test_command = "go test ./... -run TestSmoke"
+        if not install_command or "TODO" in install_command: install_command = "go mod download"
+        if not run_command or "TODO" in run_command: run_command = "go run ./..."
+        if not quick_test_command or "TODO" in quick_test_command: quick_test_command = "go test ./..."
+        if not isolated_test_command or "TODO" in isolated_test_command: isolated_test_command = "go test ./... -run TestSmoke"
 
     # Fallback for all stacks
     install_command = install_command or "TODO: 설치 명령 입력"

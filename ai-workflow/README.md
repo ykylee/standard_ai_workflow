@@ -1,17 +1,17 @@
 # Standard AI Workflow Kit
 
-- 문서 목적: `Export Sample` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
+- 문서 목적: `Standard AI Workflow` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
+- 상태: done
 - 최종 수정일: 2026-05-01
 - 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
 
 ## 1. 도입 모드
 
-- 선택한 도입 모드: `new`
+- 선택한 도입 모드: `existing`
 - 요약:
-- 신규 프로젝트용 기본 문서 세트를 생성했다.
+- 기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다.
 
 ## 2. 생성된 파일
 
@@ -19,16 +19,22 @@
 - [ai-workflow/memory/state.json](./memory/state.json)
 - [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
 - [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
-- [ai-workflow/memory/codex/phase6/backlog/2026-05-01.md](./memory/codex/phase6/backlog/2026-05-01.md)
-
+- [ai-workflow/memory/backlog/2026-05-01.md](./memory/backlog/2026-05-01.md)
+- [ai-workflow/memory/repository_assessment.md](./memory/repository_assessment.md)
 
 ## 3. 코어 문서
 
-- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다.
+- [core/global_workflow_standard.md](./core/global_workflow_standard.md)
+- [core/workflow_skill_catalog.md](./core/workflow_skill_catalog.md)
+- [core/workflow_mcp_candidate_catalog.md](./core/workflow_mcp_candidate_catalog.md)
+- [core/workflow_agent_topology.md](./core/workflow_agent_topology.md)
+- [core/output_schema_guide.md](./core/output_schema_guide.md)
+- [core/workflow_adoption_entrypoints.md](./core/workflow_adoption_entrypoints.md)
+- [core/workflow_harness_distribution.md](./core/workflow_harness_distribution.md)
 
 ## 4. 하네스 오버레이
 
-- `codex` 하네스용 오버레이 파일 생성
+- `antigravity` 하네스용 오버레이 파일 생성
 
 ## 5. 도입 직후 해야 할 일
 
@@ -47,7 +53,7 @@
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
-- 문서 위키 홈: `README.md`
+- 문서 위키 홈: `docs/README.md`
 - 운영 문서 위치: `ai-workflow/memory/`
 - 백로그 위치: `ai-workflow/memory/backlog/`
 - 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`

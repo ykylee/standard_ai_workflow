@@ -251,7 +251,7 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
 def package_apply_steps_for(harness: str) -> list[str]:
     if harness == "codex":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "선택적으로 `bundle/.codex/config.toml.example` 내용을 현재 사용자 `~/.codex/config.toml` 에 additive 방식으로 반영할지 검토한다.",
             "`AGENTS.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
@@ -259,7 +259,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
         ]
     if harness == "opencode":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md`, `bundle/opencode.json`, `bundle/.opencode/`, `bundle/ai-workflow/` 를 대상 저장소 루트에 복사한다.",
             "`opencode.json` 의 instruction 경로와 `.opencode/agents/` 권한 범위가 현재 저장소 운영 방식과 맞는지 검토한다.",
             "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 직접 도구 호출 없이 worker agent 위임만 수행하는 패턴을 유지한다.",
@@ -268,7 +268,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
         ]
     if harness == "gemini-cli":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/GEMINI.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "`GEMINI.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "Gemini CLI 에서는 `GEMINI.md` 가 시스템 지침보다 우선하므로, 프로젝트 특화 규칙이 이 문서에 잘 반영됐는지 확인한다.",
@@ -276,7 +276,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
         ]
     if harness == "pi-dev":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
             "수동 적용 시 `bundle/AGENTS.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "`AGENTS.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "Pi Coding Agent 는 루트의 `AGENTS.md` 를 자동으로 시스템 지침에 주입합니다.",
@@ -284,7 +284,7 @@ def package_apply_steps_for(harness: str) -> list[str]:
         ]
     if harness == "antigravity":
         return [
-            "압축을 풀고 가능하면 `scripts/apply_harness_update.py` 같은 backup-first updater 로 `bundle/` 내용을 반영한다. 수동 복사를 한다면 기존 파일을 먼저 별도 백업한다.",
+            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교, .gitignore 셋업, 스테일 파일 정리를 지원한다.",
             "수동 적용 시 `bundle/ANTIGRAVITY.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
             "`ANTIGRAVITY.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
             "Antigravity 는 루트의 `ANTIGRAVITY.md` 를 시스템 지침에 우선 반영하며, Artifacts 와 Browser sub-agent 를 적극 활용합니다.",
@@ -598,6 +598,11 @@ def export_harness(
             rel_dest = rel(destination, package_root)
             included_files.append(rel_dest)
             snippet_files.append(rel_dest)
+
+    version_path = bundle_root / "ai-workflow" / "VERSION"
+    version_path.parent.mkdir(parents=True, exist_ok=True)
+    version_path.write_text(version, encoding="utf-8")
+    included_files.append(rel(version_path, package_root))
 
     package_name = f"standard-ai-workflow-{harness}"
     included_files.extend(

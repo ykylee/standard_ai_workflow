@@ -3,65 +3,68 @@
   "generated_at": "2026-05-01",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/codex/phase6/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/session_handoff.md",
     "work_backlog_index_path": "ai-workflow/memory/work_backlog.md",
-    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
-    "repository_assessment_path": "ai-workflow/memory/repository_assessment.md"
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-04-30.md",
+    "repository_assessment_path": null
   },
   "project": {
     "project_name": "Standard AI Workflow",
-    "document_home": "README.md",
-    "operations_path": "ai-workflow/memory/<branch_name>/",
-    "backlog_path": "ai-workflow/memory/<branch_name>/backlog/tasks/",
-    "handoff_path": "ai-workflow/memory/<branch_name>/session_handoff.md",
-    "environment_path": "ai-workflow/memory/repository_assessment.md"
+    "document_home": "docs/README.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/backlog/",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/environments/"
   },
   "commands": {
     "quick_tests": "python3 workflow-source/tests/check_docs.py",
-    "isolated_tests": "for t in workflow-source/tests/check_*.py; do python3 \"$t\" || exit 1; done",
-    "runtime_checks": "python3 workflow-source/scripts/bootstrap_workflow_kit.py --help"
+    "isolated_tests": "python3 workflow-source/tests/check_demo_workflow.py",
+    "runtime_checks": null
   },
   "session": {
-    "current_baseline": "TASK-045 runtime deletion independence is complete; `workflow-source/` development checks pass even when the applied `ai-workflow/` runtime layer is temporarily hidden.",
-    "current_axis": "TASK-045 runtime deletion independence is complete; `workflow-source/` development checks pass even when the applied `ai-workflow/` runtime layer is temporarily hidden.",
-    "current_focus": "TASK-044 Separate workflow development source from applied runtime",
-    "in_progress_items": [],
+    "current_baseline": "워크플로우 패키징 및 배포 프로세스 고도화 (버전 관리 및 .gitignore 자동화)",
+    "current_axis": "워크플로우 패키징 및 배포 프로세스 고도화 (버전 관리 및 .gitignore 자동화)",
+    "current_focus": "TASK-001 Branch Isolated Workspace Test",
+    "in_progress_items": [
+      "TASK-001 Branch Isolated Workspace Test"
+    ],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-045 Make workflow source development independent from applied runtime",
-      "TASK-044 Separate workflow development source from applied runtime",
-      "TASK-043 Apply current Codex workflow package locally",
-      "TASK-042 beta 0.4.0 workflow configuration review follow-up plan",
-      "WF-042-05 Update code index and repository assessment paths",
-      "WF-042-04 Decide daily backlog aggregate tracking policy",
-      "WF-042-03 Isolate workflow state generator test output path",
-      "WF-042-06 Align branch memory templates and parsers",
-      "WF-042-02 Add detached HEAD branch fallback policy",
-      "WF-042-01 Align workflow state refresh hint paths"
+      "TASK-001 표준 AI 워크플로우 초기 도입 및 배포 프로세스 고도화",
+      "TASK-041 codex/phase6 최신 main 반영",
+      "TASK-009 PR #8 Review Fixes and Final Stabilization",
+      "TASK-034 `robust-patcher` 핵심 엔진 및 스킬 구현",
+      "TASK-035 `smart-context-reader` MCP 도구 구현",
+      "TASK-036 PR 리뷰 피드백 반영 및 환경 표준화 완료"
     ],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
-    "task_count": 4,
-    "in_progress_items": [],
+    "latest_backlog_path": "ai-workflow/memory/gemini/phase6/backlog/2026-04-30.md",
+    "task_count": 6,
+    "in_progress_items": [
+      "TASK-001 Branch Isolated Workspace Test"
+    ],
     "blocked_items": [],
     "done_items": [
-      "TASK-044 Separate workflow development source from applied runtime",
-      "TASK-045 Make workflow source development independent from applied runtime",
-      "TASK-043 Apply current Codex workflow package locally",
-      "TASK-042 beta 0.4.0 workflow configuration review follow-up plan"
+      "TASK-041 codex/phase6 최신 main 반영",
+      "TASK-009 PR #8 Review Fixes and Final Stabilization",
+      "TASK-034 `robust-patcher` 핵심 엔진 및 스킬 구현",
+      "TASK-035 `smart-context-reader` MCP 도구 구현",
+      "TASK-036 PR 리뷰 피드백 반영 및 환경 표준화 완료"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/codex/phase6/session_handoff.md",
+    "ai-workflow/memory/session_handoff.md",
     "ai-workflow/memory/work_backlog.md",
-    "ai-workflow/memory/codex/phase6/backlog/2026-05-01.md",
-    "ai-workflow/memory/codex/phase6/state.json"
+    "ai-workflow/memory/gemini/phase6/backlog/2026-04-30.md",
+    "ai-workflow/memory/PROJECT_PROFILE.md",
+    "README.md",
+    "docs/README.md"
   ],
   "repository_assessment": {
-    "path": "ai-workflow/memory/repository_assessment.md",
-    "present": true
+    "path": null,
+    "present": false
   }
 }

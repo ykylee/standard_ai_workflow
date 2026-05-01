@@ -118,6 +118,7 @@ DEFAULT_CORE_SUPPORT_PATHS = [
     "global-snippets/README.md",
     "scripts/README.md",
     "scripts/apply_harness_update.py",
+    "scripts/apply_workflow_upgrade.py",
     "scripts/bootstrap_workflow_kit.py",
     "scripts/export_harness_package.py",
     "scripts/generate_workflow_state.py",

@@ -21,14 +21,14 @@
 ## 3. 최근 핵심 기준 문서
 - [docs/PROJECT_PROFILE.md](../../../../docs/PROJECT_PROFILE.md)
 - [ai-workflow/memory/gemini/phase6/state.json](./state.json)
-- [AGENTS.md](../../../../AGENTS.md)
+- [ANTIGRAVITY.md](../../../../ANTIGRAVITY.md)
 
 ## 4. 현재 `in_progress` 작업
 - 없음 (본 세션 목표 달성)
 
 ## 5. 주요 제약 및 참고 사항
 - `state.json`은 이제 Git으로 공유되므로 브랜치 병합 시 충돌 주의
-- `ai-workflow/` 경로는 AI 운영 전용 메타 레이어로, 프로젝트 코드 분석 범위에서 제외 권장 (`AGENTS.md` 지침 준수)
+- `ai-workflow/` 경로는 AI 운영 전용 메타 레이어로, 프로젝트 코드 분석 범위에서 제외 권장 (`ANTIGRAVITY.md` 지침 준수)
 
 ## 6. 다음 세션 시작 포인트
 - PR #8 최종 승인 및 메인 브랜치 병합 진행

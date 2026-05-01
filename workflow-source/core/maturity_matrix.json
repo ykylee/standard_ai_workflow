@@ -8,7 +8,9 @@
     "Phase 3": { "name": "Prototype", "status": "done" },
     "Phase 4": { "name": "Beta/Pilot", "status": "done" },
     "Phase 5": { "name": "Intelligence", "status": "done" },
-    "Phase 6": { "name": "Precision & Optimization", "status": "done" }
+    "Phase 6": { "name": "Precision & Optimization", "status": "done" },
+    "Phase 7": { "name": "Intelligent Task Modes", "status": "done" },
+    "Phase 8": { "name": "Pilot Deployment & Integration", "status": "in_progress" }
   },
   "skills": {
     "session-start": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_session_start.py" },
@@ -20,7 +22,8 @@
     "workflow-linter": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_workflow_linter.py" },
     "project-status-assessment": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_project_status_assessment.py" },
     "automated-repro-scaffold": { "stage": "beta", "apply": false, "scaffold": true, "test_path": null },
-    "robust-patcher": { "stage": "alpha", "apply": true, "scaffold": false, "test_path": "tests/check_robust_patcher.py" }
+    "robust-patcher": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_robust_patcher.py" },
+    "task-modes": { "stage": "beta", "apply": true, "scaffold": false, "test_path": null }
   },
   "mcp_tools": {
     "latest_backlog": { "stage": "stable", "server": "official_sdk" },
@@ -33,6 +36,7 @@
     "check_quickstart_stale_links": { "stage": "stable", "server": "official_sdk" },
     "git_history_summarizer": { "stage": "beta", "server": "official_sdk" },
     "workflow_log_rotator": { "stage": "beta", "server": "official_sdk" },
-    "smart_context_reader": { "stage": "alpha", "server": "official_sdk" }
+    "smart_context_reader": { "stage": "beta", "server": "official_sdk" },
+    "apply_robust_patch": { "stage": "beta", "server": "official_sdk" }
   }
 }

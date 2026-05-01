@@ -14,6 +14,7 @@
 
 ## 날짜별 백로그 문서
 
+- [2026-05-01 잔여 작업 (Phase 6, 7 마무리)](./backlog/2026-05-01_residual.md)
 - [2026-05-01](./backlog/2026-05-01.md)
 - [2026-05-01 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-05-01.md)
 - [2026-04-30 codex/phase6 작업 백로그](./codex/phase6/backlog/2026-04-30.md)

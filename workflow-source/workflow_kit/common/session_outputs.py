@@ -71,18 +71,19 @@ def build_mode_guidelines(mode: str) -> list[str]:
 
 def recommend_task_mode(title: str) -> str | None:
     t = title.lower()
-    if any(k in t for k in ["analysis", "분석", "조사", "탐색", "investigate"]):
-        return "Analysis"
-    if any(k in t for k in ["requirement", "요구", "명세", "needs"]):
-        return "Requirements"
+    # Higher priority: Action-oriented modes
+    if any(k in t for k in ["refactor", "리팩터", "리팩토링", "개선", "cleanup", "정리"]):
+        return "Refactoring"
+    if any(k in t for k in ["implement", "구현", "feat", "add", "fix", "버그", "수정", "작업", "도입"]):
+        return "Implementation"
     if any(k in t for k in ["design", "설계", "architecture", "아키텍처"]):
         return "Design"
     if any(k in t for k in ["plan", "계획", "roadmap", "일정"]):
         return "Planning"
-    if any(k in t for k in ["refactor", "리팩터", "개선", "cleanup", "정리"]):
-        return "Refactoring"
-    if any(k in t for k in ["implement", "구현", "feat", "add", "fix", "버그", "수정", "작업"]):
-        return "Implementation"
+    if any(k in t for k in ["requirement", "요구", "명세", "needs"]):
+        return "Requirements"
+    if any(k in t for k in ["analysis", "분석", "조사", "탐색", "investigate", "검토"]):
+        return "Analysis"
     return None
 
 

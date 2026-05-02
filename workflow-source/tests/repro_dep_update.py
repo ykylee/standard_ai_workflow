@@ -53,14 +53,14 @@ def verify():
     # pytest should NOT be added as a new line because it exists as pytest==8.0.0
     # But it will exist in the file.
     assert has_pkg("pytest", reqs)
-    assert has_pkg("mcp", reqs)
+    assert has_pkg("mcp_servers", reqs)
     assert has_pkg("pytest-asyncio", reqs)
 
     # Check that 'pytest' wasn't added as a separate line if it already existed
     # The new dependencies are added after "# Standard AI Workflow Dependencies"
     new_part = reqs.split("# Standard AI Workflow Dependencies")[1]
     assert not has_pkg("pytest", new_part)
-    assert has_pkg("mcp", new_part)
+    assert has_pkg("mcp_servers", new_part)
     assert has_pkg("pytest-asyncio", new_part)
 
     # Verify Node

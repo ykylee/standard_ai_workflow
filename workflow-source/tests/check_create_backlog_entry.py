@@ -11,7 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPT_PATH = SOURCE_ROOT / "mcp" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py"
+SCRIPT_PATH = SOURCE_ROOT / "mcp_servers" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py"
 
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))

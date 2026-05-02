@@ -7,7 +7,9 @@ from pathlib import Path
 
 # 패치 엔진의 경로 설정
 SCRIPT_DIR = Path(__file__).resolve().parent
-PATCH_ENGINE = SCRIPT_DIR.parent / "skills" / "robust-patcher" / "scripts" / "patch_engine.py"
+SOURCE_ROOT = SCRIPT_DIR.parent
+SKILL_ROOT = SOURCE_ROOT / "skills" / "robust_patcher"
+ENGINE_PATH = SKILL_ROOT / "scripts" / "patch_engine.py"
 
 S = "<<<<<<<" + " SEARCH"
 E = "======="
@@ -20,7 +22,7 @@ def run_patch(target_file, patch_content):
 
     try:
         result = subprocess.run(
-            [sys.executable, str(PATCH_ENGINE), "--file", str(target_file), "--patch-file", patch_path],
+            [sys.executable, str(ENGINE_PATH), "--file", str(target_file), "--patch-file", patch_path],
             capture_output=True,
             text=True
         )

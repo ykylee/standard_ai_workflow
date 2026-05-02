@@ -3,7 +3,7 @@
 - 문서 목적: 현재 저장소의 skill, runner, 우선순위 1 MCP 프로토타입 JSON 출력 계약을 공통 규칙으로 정리한다.
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-23
 - 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
 

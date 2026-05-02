@@ -1,8 +1,10 @@
 # smart-context-reader
 
 - 문서 목적: Python 파일 등에서 원하는 심볼(함수, 클래스)만 추출하여 읽기 전용으로 반환하는 MCP 도구의 스펙 정의
+- 범위: 심볼 추출 알고리즘 및 MCP 인터페이스 스펙
 - 대상 독자: AI 에이전트, MCP 클라이언트
 - 상태: implemented
+- 최종 수정일: 2026-05-02
 - 관련 문서: `../../core/phase6_precision_editing_plan.md`
 
 ## 목적

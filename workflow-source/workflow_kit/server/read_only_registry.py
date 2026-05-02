@@ -45,7 +45,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="latest_backlog",
         description="Locate the latest dated backlog document from an index or backlog directory.",
-        script_path=SOURCE_ROOT / "mcp" / "latest-backlog" / "scripts" / "run_latest_backlog.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "latest-backlog" / "scripts" / "run_latest_backlog.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="backlog_dir_path",
@@ -66,7 +66,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="check_doc_metadata",
         description="Inspect markdown files and report missing required metadata fields.",
-        script_path=SOURCE_ROOT / "mcp" / "check-doc-metadata" / "scripts" / "run_check_doc_metadata.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "check-doc-metadata" / "scripts" / "run_check_doc_metadata.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="doc_dir_path",
@@ -81,7 +81,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="check_doc_links",
         description="Inspect markdown relative links and report broken targets.",
-        script_path=SOURCE_ROOT / "mcp" / "check-doc-links" / "scripts" / "run_check_doc_links.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "check-doc-links" / "scripts" / "run_check_doc_links.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="doc_dir_path",
@@ -96,7 +96,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="suggest_impacted_docs",
         description="Suggest impacted workflow documents from changed files and summary input.",
-        script_path=SOURCE_ROOT / "mcp" / "suggest-impacted-docs" / "scripts" / "run_suggest_impacted_docs.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "suggest-impacted-docs" / "scripts" / "run_suggest_impacted_docs.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="changed_files",
@@ -133,7 +133,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="create_backlog_entry",
         description="Generate a draft backlog entry JSON for a new task.",
-        script_path=SOURCE_ROOT / "mcp" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "create-backlog-entry" / "scripts" / "run_create_backlog_entry.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="task_id",
@@ -178,7 +178,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="create_session_handoff_draft",
         description="Generate a draft session handoff document from the latest backlog.",
-        script_path=SOURCE_ROOT / "mcp" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="latest_backlog_path",
@@ -201,7 +201,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="create_environment_record_stub",
         description="Generate a draft environment record stub for the current host.",
-        script_path=SOURCE_ROOT / "mcp" / "create-environment-record-stub" / "scripts" / "run_create_environment_record_stub.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "create-environment-record-stub" / "scripts" / "run_create_environment_record_stub.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="hostname",
@@ -226,7 +226,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="check_quickstart_stale_links",
         description="Check quickstart and README entry docs for stale or missing links.",
-        script_path=SOURCE_ROOT / "mcp" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "check-quickstart-stale-links" / "scripts" / "run_check_quickstart_stale_links.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="quickstart_paths",
@@ -269,7 +269,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="summarize_git_history",
         description="Summarize git commit history into categories and markdown for handoff.",
-        script_path=SOURCE_ROOT / "mcp" / "git-history-summarizer" / "scripts" / "run_git_history_summarizer.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "git-history-summarizer" / "scripts" / "run_git_history_summarizer.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="repo_path",
@@ -294,7 +294,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="rotate_workflow_logs",
         description="Rotate old done items from handoff into baseline to prevent bloat.",
-        script_path=SOURCE_ROOT / "mcp" / "rotate-workflow-logs" / "scripts" / "run_rotate_workflow_logs.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "rotate-workflow-logs" / "scripts" / "run_rotate_workflow_logs.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="handoff_path",
@@ -318,7 +318,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="assess_milestone_progress",
         description="Analyze milestone progress based on maturity matrix and backlog.",
-        script_path=SOURCE_ROOT / "mcp" / "milestone-progress" / "scripts" / "run_assess_milestone_progress.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "milestone-progress" / "scripts" / "run_assess_milestone_progress.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="matrix_path",
@@ -343,7 +343,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="smart_context_reader",
         description="Extract specific function or class blocks from a Python file to reduce LLM context bloat.",
-        script_path=SOURCE_ROOT / "mcp" / "smart-context-reader" / "scripts" / "run_smart_reader.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "smart-context-reader" / "scripts" / "run_smart_reader.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="file_path",
@@ -368,7 +368,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="apply_robust_patch",
         description="Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
-        script_path=SOURCE_ROOT / "mcp" / "apply_robust_patch" / "scripts" / "run_apply_robust_patch.py",
+        script_path=SOURCE_ROOT / "mcp_servers" / "apply_robust_patch" / "scripts" / "run_apply_robust_patch.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
                 name="file_path",

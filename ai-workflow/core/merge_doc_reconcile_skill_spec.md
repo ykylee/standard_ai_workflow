@@ -3,7 +3,7 @@
 - 문서 목적: `merge-doc-reconcile` skill 을 실제 구현 가능한 수준의 입력/출력 계약과 동작 순서로 구체화한다.
 - 범위: 목표, 입력 계약, 출력 계약, 병합 후 충돌/불일치 판단 규칙, 재확정 포인트 생성 규칙, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-18
 - 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `./session_start_skill_spec.md`, `./backlog_update_skill_spec.md`, `./doc_sync_skill_spec.md`
 

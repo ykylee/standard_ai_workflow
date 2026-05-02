@@ -3,7 +3,7 @@
 - 문서 목적: 표준 워크플로우를 skill 로 분리할 때 우선순위와 책임을 정리한다.
 - 범위: skill 후보, 역할, 입력 문서, 기대 출력, 도입 우선순위
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-21
 - 관련 문서: `workflow_agent_topology.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`
 

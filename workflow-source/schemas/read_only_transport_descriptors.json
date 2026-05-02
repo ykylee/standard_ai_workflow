@@ -2,8 +2,8 @@
   "descriptor_target": "mcp_tools_list_draft",
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
-  "tool_count": 12,
-  "tool_version": "v0.3.2-beta",
+  "tool_count": 13,
+  "tool_version": "v0.4.1-beta",
   "tools": [
     {
       "_meta": {
@@ -1573,6 +1573,104 @@
           }
         ],
         "title": "smart_context_reader output"
+      }
+    },
+    {
+      "_meta": {
+        "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
+        "bundle_phase": "direct_call_adapter",
+        "descriptor_target": "mcp_tools_list_draft",
+        "transport_ready": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      },
+      "description": "Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "file_path": {
+            "description": "Target file to patch.",
+            "type": "string"
+          },
+          "patch_content": {
+            "description": "The SEARCH/REPLACE block content (using <<<<<<< SEARCH, =======, >>>>>>> REPLACE).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path",
+          "patch_content"
+        ],
+        "type": "object"
+      },
+      "name": "apply_robust_patch",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "enum": [
+                  "ok",
+                  "warning"
+                ]
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": true,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "error_code": {
+                "type": "string"
+              },
+              "source_context": {
+                "additionalProperties": true,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "status": {
+                "const": "error"
+              },
+              "tool_version": {
+                "type": "string"
+              },
+              "warnings": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "tool_version",
+              "warnings"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "apply_robust_patch output"
       }
     }
   ],

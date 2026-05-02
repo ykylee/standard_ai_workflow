@@ -3,7 +3,7 @@
 - 문서 목적: `code-index-update` skill 이 변경 경로를 기준으로 어떤 색인 문서와 허브 문서를 재검토해야 하는지 판단하는 최소 계약을 정의한다.
 - 범위: 입력, 출력, 추천 규칙, 색인 문서 범위 정의, 보수적 경고 규칙, 프로토타입 범위
 - 대상 독자: AI agent 설계자, skill 구현자, 개발자, 운영자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-19
 - 관련 문서: `./workflow_skill_catalog.md`, `./doc_sync_skill_spec.md`, `../skills/code-index-update/SKILL.md`
 

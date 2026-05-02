@@ -3,7 +3,7 @@
 - 문서 목적: 표준 AI 워크플로우를 도입할 때 `신규 프로젝트` 와 `작업 중인 프로젝트` 두 가지 진입 경로를 구분해 시작 절차를 정리한다.
 - 범위: 도입 모드별 목표, 추천 시작 순서, 자동화 가능 범위, 주의점
 - 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-23
 - 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
 - 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`

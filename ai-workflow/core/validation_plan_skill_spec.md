@@ -3,7 +3,7 @@
 - 문서 목적: `validation-plan` skill 이 변경 유형과 프로젝트 프로파일을 바탕으로 검증 수준을 판단하는 최소 계약을 정의한다.
 - 범위: 입력, 출력, 판단 규칙, 보수적 예외 처리, 프로토타입 범위
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-19
 - 관련 문서: `./workflow_skill_catalog.md`, `../skills/validation-plan/SKILL.md`, `../templates/project_workflow_profile_template.md`
 

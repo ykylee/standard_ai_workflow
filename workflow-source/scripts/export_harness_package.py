@@ -100,7 +100,7 @@ def workflow_common_sources() -> list[Path]:
         SOURCE_ROOT / "core" / "automated_repro_scaffold_skill_spec.md",
         SOURCE_ROOT / "core" / "phase5_governance_guide.md",
         SOURCE_ROOT / "examples" / "end_to_end_skill_demo.md",
-        SOURCE_ROOT / "mcp" / "read_only_bundle.md",
+        SOURCE_ROOT / "mcp_servers" / "read_only_bundle.md",
         SOURCE_ROOT / "schemas" / "read_only_harness_mcp_examples.json",
         SOURCE_ROOT / "schemas" / "read_only_jsonrpc_fixtures.json",
         SOURCE_ROOT / "schemas" / "read_only_transport_descriptors.json",

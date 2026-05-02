@@ -1,3 +1,13 @@
+# Read-Only MCP Bundle Manifest
+
+- 문서 목적: 첫 번째 읽기 전용 MCP 도구 번들의 매니페스트 및 예시 정의
+- 범위: 번들 스펙, 하네스별 예시
+- 대상 독자: AI 에이전트, 개발자
+- 상태: stable
+- 최종 수정일: 2026-05-02
+- 관련 문서: [README.md](./README.md)
+
+```json
 {
   "descriptor_target": "mcp_tools_list_draft",
   "harness_examples": {
@@ -35,6 +45,7 @@
     "assess_milestone_progress",
     "smart_context_reader"
   ],
-  "tool_version": "beta-v3.0.1",
+  "tool_version": "v0.4.1-beta",
   "transport_ready": false
 }
+```

@@ -50,7 +50,7 @@ def opencode_jsonc_example(tool_names: list[str]) -> str:
             "  // Draft only: generated from schemas/read_only_transport_descriptors.json.",
             "  // transport_ready=false; do not enable until an MCP SDK server loop exists.",
             f"  // Tools described: {tools}",
-            '  "mcp": {',
+            '  "mcp_servers": {',
             f'    // "{SERVER_ALIAS}": {{',
             '    //   "type": "local",',
             '    //   "command": "python3",',

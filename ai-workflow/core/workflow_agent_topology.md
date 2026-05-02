@@ -3,7 +3,7 @@
 - 문서 목적: 배포형 표준 워크플로우에서 사용할 agent 역할과 권한 경계를 요약한다.
 - 범위: 추천 agent 목록, 책임, 입력/출력, 상태 문서 수정 원칙
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: done
+- 상태: draft
 - 최종 수정일: 2026-04-21
 - 관련 문서: `workflow_skill_catalog.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`
 

@@ -3,8 +3,8 @@
 - 문서 목적: 프로젝트 특화 규칙과 실행/검증 기준을 정의한다.
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: done
-- 최종 수정일: 2026-05-01
+- 상태: draft
+- 최종 수정일: 2026-05-02
 - 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md)
 
 ## 1. 프로젝트 개요
@@ -20,11 +20,11 @@
 - 환경 기록 위치: ai-workflow/memory/environments/
 
 ## 3. 기본 명령 (Commands)
-- 설치: `python3 -m pip install -r requirements-dev.txt`
-- 로컬 실행: `python3 workflow-source/scripts/bootstrap_workflow_kit.py --help`
-- 빠른 테스트: `python3 workflow-source/tests/check_docs.py`
-- 격리 테스트: `python3 workflow-source/tests/check_demo_workflow.py`
-- 실행 확인: `python3 workflow-source/scripts/run_demo_workflow.py --example-project acme_delivery_platform`
+- 설치: TODO: 설치 명령 입력
+- 로컬 실행: TODO: 로컬 실행 명령 입력
+- 빠른 테스트: TODO: 빠른 테스트 명령 입력
+- 격리 테스트: TODO: 격리 테스트 명령 입력
+- 실행 확인: TODO: 실행 확인 명령 입력
 
 ## 4. 검증 포인트 (Validation)
 - 코드 변경: <테스트/리뷰 필수 사항>

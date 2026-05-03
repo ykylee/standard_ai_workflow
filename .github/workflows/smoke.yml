@@ -21,16 +21,20 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dev dependencies
-        run: python3 -m pip install -r requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install -r requirements-dev.txt
 
-      - name: Run tests/check_*.py
+      - name: Run workflow-source/tests/check_*.py
         shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
         run: |
           set -euo pipefail
           failed=0
           failed_tests=""
-          for t in tests/check_*.py; do
+          for t in workflow-source/tests/check_*.py; do
             echo "::group::$t"
             if python3 "$t"; then
               echo "[PASS] $t"
@@ -61,7 +65,7 @@ jobs:
             {
               echo "## Smoke Passed"
               echo
-              echo "- All \`tests/check_*.py\` scripts passed."
+              echo "- All \`workflow-source/tests/check_*.py\` scripts passed."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
           exit "$failed"

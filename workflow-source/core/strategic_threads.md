@@ -38,11 +38,12 @@
     - AST 기반의 시맨틱 심볼(함수/클래스) 추출 읽기 도구 제공.
 - **연결된 TASK**: TASK-033, 034, 035, 036
 
-### [THREAD-005] 다중 에이전트 역할 분화 및 오케스트레이션 고도화
-- **목적**: 오케스트레이터와 워커(doc/code/validation) 간의 효율적인 협업 체계 구축.
-- **상태**: In-Progress
-- **설계 방향**:
-    - Antigravity sub-agent 연동 규격 표준화.
+### [THREAD-005] 하네스 인지형 오케스트레이션 (Harness-Aware Orchestration)
+- **현황**: 모든 하네스(Antigravity, Codex)에 대해 동일한 단일 에이전트 워크플로우를 적용 중.
+- **개선**: 하네스의 역량(Browser, Sub-agent, Artifacts)에 따라 멀티 에이전트 전략을 동적으로 변경.
+    - **Antigravity**: `sub-agent`를 활용한 병렬/계층적 워커 위임.
+    - **Codex**: 논리적 컨텍스트 분할을 통한 순차적 태스크 수행.
+- **효과**: 하네스별 최적의 성능 발휘 및 에이전트 피로도 감소.
     - 역할별 최소 컨텍스트 전달(Minimal Context Transfer) 로직 구현.
 - **연결된 TASK**: TASK-050, 052
 

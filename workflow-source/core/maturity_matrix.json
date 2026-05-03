@@ -24,7 +24,8 @@
     "project-status-assessment": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_project_status_assessment.py" },
     "automated-repro-scaffold": { "stage": "beta", "apply": false, "scaffold": true, "test_path": null },
     "robust-patcher": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_robust_patcher.py" },
-    "task-modes": { "stage": "beta", "apply": true, "scaffold": false, "test_path": null }
+    "task-modes": { "stage": "beta", "apply": true, "scaffold": false, "test_path": null },
+    "git-conflict-resolver": { "stage": "alpha", "apply": false, "scaffold": false, "test_path": null }
   },
   "mcp_tools": {
     "latest_backlog": { "stage": "stable", "server": "official_sdk" },

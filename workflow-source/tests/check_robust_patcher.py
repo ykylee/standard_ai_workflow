@@ -15,6 +15,8 @@ S = "<<<<<<<" + " SEARCH"
 E = "======="
 R = ">>>>>>>" + " REPLACE"
 
+import json
+
 def run_patch(target_file, patch_content):
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as patch_file:
         patch_file.write(patch_content)
@@ -26,7 +28,11 @@ def run_patch(target_file, patch_content):
             capture_output=True,
             text=True
         )
-        return result.returncode == 0, result.stdout + result.stderr
+        try:
+            payload = json.loads(result.stdout)
+            return payload.get("status") == "ok", payload.get("message", "") or payload.get("error", "")
+        except json.JSONDecodeError:
+            return False, f"Invalid JSON output: {result.stdout}\n{result.stderr}"
     finally:
         os.remove(patch_path)
 

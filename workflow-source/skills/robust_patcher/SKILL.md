@@ -4,7 +4,7 @@
 - 범위: SEARCH/REPLACE 블록 파싱, 퍼지 매칭, 문법 검사
 - 대상 독자: AI 에이전트, 개발자
 - 상태: prototype
-- 최종 수정일: 2026-04-27
+- 최종 수정일: 2026-05-03
 - 관련 문서: `core/phase6_precision_editing_plan.md`
 
 ## 1. 개요

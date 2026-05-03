@@ -1,43 +1,41 @@
 #!/usr/bin/env python3
-"""Prototype runner for create_session_handoff_draft MCP."""
-
-from __future__ import annotations
-
-import argparse
-import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
+# Add lib to path for common_utils
+LIB_PATH = Path(__file__).resolve().parents[2] / "lib"
+if str(LIB_PATH) not in sys.path:
+    sys.path.insert(0, str(LIB_PATH))
 
-from workflow_kit import __version__ as TOOL_VERSION
+from common_utils import inject_workflow_source, mcp_main
+
+inject_workflow_source()
 from workflow_kit.common.read_only_bundle import create_session_handoff_draft_payload
 from workflow_kit.common.git import summarize_git_history
 
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Run create_session_handoff_draft MCP prototype.")
+def build_args(parser):
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--git-range", help="Commit range for git summary (e.g. HEAD~3..HEAD)")
     parser.add_argument("--repo-path", default=".", help="Path to git repository")
-    args = parser.parse_args()
 
+def wrapped_payload(latest_backlog_path, git_range, repo_path, tool_version):
     git_summary = None
-    if args.git_range:
-        summary_data = summarize_git_history(repo_path=args.repo_path, commit_range=args.git_range)
+    if git_range:
+        summary_data = summarize_git_history(repo_path=repo_path, commit_range=git_range)
         git_summary = summary_data["markdown"]
-
-    payload = create_session_handoff_draft_payload(
-        latest_backlog_path=args.latest_backlog_path,
+    
+    return create_session_handoff_draft_payload(
+        latest_backlog_path=latest_backlog_path,
         git_summary=git_summary,
-        tool_version=TOOL_VERSION,
+        tool_version=tool_version
     )
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
-    return 0
 
+def main():
+    mcp_main(
+        description="Run create_session_handoff_draft MCP prototype.",
+        arg_builder=build_args,
+        payload_func=wrapped_payload
+    )
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

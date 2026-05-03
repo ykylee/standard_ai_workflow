@@ -20,7 +20,7 @@ class WorkflowMCPv1Server:
             print("Error: 'mcp' SDK not installed. Run 'pip install mcp' to use MCP v1.0 features.", file=sys.stderr)
             sys.exit(1)
         
-        self.mcp = FastMCP(name, version=version)
+        self.mcp = FastMCP(name)
 
     def tool(self, name: str | None = None, description: str | None = None) -> Callable:
         """Decorator to register a tool."""

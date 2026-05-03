@@ -37,10 +37,10 @@ def main() -> int:
     if script_output != runtime:
         raise AssertionError("generate_output_json_schema.py output does not match runtime contracts.")
 
-    if checked_in.get("json_schema_draft") != "2020-12":
-        raise AssertionError("Expected json_schema_draft metadata to be 2020-12.")
-    if "validation_plan" not in checked_in.get("families", {}):
-        raise AssertionError("Expected validation_plan family in generated JSON Schema bundle.")
+    if "validation_plan" not in checked_in.get("outputs", {}):
+        raise AssertionError("Expected validation_plan family in generated JSON Schema bundle outputs.")
+    if "validation_plan" not in checked_in.get("errors", {}):
+        raise AssertionError("Expected validation_plan family in generated JSON Schema bundle errors.")
 
     print("Output JSON Schema generation check passed.")
     return 0

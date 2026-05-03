@@ -38,8 +38,16 @@
     - AST 기반의 시맨틱 심볼(함수/클래스) 추출 읽기 도구 제공.
 - **연결된 TASK**: TASK-033, 034, 035, 036
 
+### [THREAD-005] 다중 에이전트 역할 분화 및 오케스트레이션 고도화
+- **목적**: 오케스트레이터와 워커(doc/code/validation) 간의 효율적인 협업 체계 구축.
+- **상태**: In-Progress
+- **설계 방향**:
+    - Antigravity sub-agent 연동 규격 표준화.
+    - 역할별 최소 컨텍스트 전달(Minimal Context Transfer) 로직 구현.
+- **연결된 TASK**: TASK-050, 052
+
 ## 2. 완료/보관된 스레드
 - [THREAD-003] 운영 지능화 및 가버넌스 자동화 (Phase 5 완결)
     - **성과**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` 도구 구현 및 `automated-repro-scaffold` 스킬 확보. 문서 비대화 방지와 마일스톤 진척도 관리 자동화 달성.
-- [THREAD-002] 실운영 파일럿 및 온보딩 마찰 제로화 (일부 TASK 완료, THREAD 단위 종료 대기)
-
+- [THREAD-002] 실운영 파일럿 및 온보딩 마찰 제로화 (Phase 8 완결)
+    - **성과**: bootstrap 도구 고도화, v0.4.1-beta 릴리즈, DevHub 파일럿 적용 성공.

@@ -3,9 +3,16 @@
 - 문서 목적: 표준 워크플로우 패키지의 링크, 메타데이터, 템플릿 smoke test 또는 향후 구현 테스트를 배치할 위치를 안내한다.
 - 범위: 문서 무결성 검사와 향후 skill/MCP/agent 구현 검증
 - 대상 독자: 개발자, 운영자, AI agent 설계자
-- 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `../split_checklist.md`, `../templates/pilot_adoption_record_template.md`, `../templates/pilot_candidate_checklist.md`
+- 상태: stable
+- 최종 수정일: 2026-05-03
+
+## 🚀 빠른 전체 테스트 (One-shot)
+
+저장소 루트에서 다음 명령을 실행하여 모든 smoke test를 한 번에 검증할 수 있습니다:
+
+```bash
+for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
+```
 
 ## 현재 상태
 

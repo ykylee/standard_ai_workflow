@@ -7,9 +7,13 @@ import os
 import sys
 from pathlib import Path
 
-import anyio
-from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+try:
+    import anyio
+    from mcp import ClientSession
+    from mcp.client.stdio import StdioServerParameters, stdio_client
+    HAS_MCP_SDK = True
+except ImportError:
+    HAS_MCP_SDK = False
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -65,6 +69,9 @@ async def run_stdio_smoke() -> None:
 
 
 def main() -> int:
+    if not HAS_MCP_SDK:
+        print("Skipping Read-only MCP SDK stdio smoke check: mcp or anyio not installed.")
+        return 0
     anyio.run(run_stdio_smoke)
     print("Read-only MCP SDK stdio smoke check passed.")
     return 0

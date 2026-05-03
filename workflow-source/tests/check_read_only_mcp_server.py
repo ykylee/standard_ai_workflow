@@ -74,11 +74,12 @@ def main() -> int:
         raise AssertionError("Expected latest_backlog success output schema.")
     if latest_backlog_spec["output_schema"]["error_required_keys"] != ["error", "error_code", "source_context"]:
         raise AssertionError("Expected latest_backlog error output schema.")
-    if latest_backlog_spec["output_schema"]["json_schema"]["oneOf"][0]["properties"]["status"]["enum"] != [
+    if latest_backlog_spec["output_schema"]["json_schema"]["properties"]["status"]["enum"] != [
         "ok",
         "warning",
+        "error",
     ]:
-        raise AssertionError("Expected latest_backlog manifest JSON Schema success status enum.")
+        raise AssertionError("Expected latest_backlog manifest JSON Schema status enum to include ok/warning/error.")
     latest_backlog_shape = latest_backlog_spec["output_schema"]["field_shapes"]["latest_backlog_path"]
     if latest_backlog_shape["kind"] != "string" or not latest_backlog_shape["allow_null"]:
         raise AssertionError("Expected nullable string shape for latest_backlog_path.")

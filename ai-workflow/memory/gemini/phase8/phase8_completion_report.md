@@ -1,5 +1,12 @@
 # Phase 8: Pilot Deployment & Integration - Completion Report
 
+- 문서 목적: Phase 8의 주요 성과와 엔진 표준화 결과를 기록하고 다음 마일스톤으로의 이행을 확정한다.
+- 범위: 엔진 리팩토링, MCP 표준화, 성숙도 진단 결과
+- 대상 독자: 개발자, 운영자, AI 에이전트
+- 상태: stable
+- 최종 수정일: 2026-05-03
+- 관련 문서: `workflow-source/core/workflow_kit_roadmap.md`, `ai-workflow/memory/gemini/phase8/state.json`
+
 ## 1. 개요
 Phase 8은 워크플로우 엔진의 완성도를 실전 수준으로 끌어올리는 단계로, 본 세션에서는 핵심 엔진 로직의 공통화(Standardization)와 MCP 러너의 구조적 통합을 완결했습니다.
 

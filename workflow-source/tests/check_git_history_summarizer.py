@@ -13,7 +13,7 @@ def test_git_history_summarizer():
     print("  [OK] Markdown output format")
 
     # Test JSON format
-    cmd_json = ["python3", "workflow-source/mcp_servers/git-history-summarizer/scripts/run_git_history_summarizer.py", "--range", "HEAD~1..HEAD", "--format", "json"]
+    cmd_json = ["python3", "workflow-source/mcp_servers/git-history-summarizer/scripts/run_git_history_summarizer.py", "--range", "HEAD~1..HEAD", "--json"]
     result_json = subprocess.run(cmd_json, capture_output=True, text=True, check=True)
     data = json.loads(result_json.stdout)
     assert data["status"] == "ok"

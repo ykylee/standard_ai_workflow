@@ -21,6 +21,8 @@ from workflow_kit.common.contracts.errors import (
     ERROR_FIELD_SHAPES,
 )
 
+from pathlib import Path
+
 SUCCESS_PATH_CONTRACTS: dict[str, frozenset[str]] = {
     **READ_ONLY_SUCCESS_CONTRACTS,
     **HIGH_VALUE_SUCCESS_CONTRACTS,
@@ -34,6 +36,17 @@ OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = {
 }
 
 ERROR_OUTPUT_FIELD_SHAPES: dict[str, dict[str, OutputFieldShape]] = ERROR_FIELD_SHAPES
+
+
+def detect_sample_family(path: Path | str) -> str | None:
+    """Infer the contract family from a sample filename."""
+    name = Path(path).name.lower()
+    family = name.split(".")[0].replace("-", "_")
+    
+    all_families = set(OUTPUT_FIELD_SHAPES.keys()) | set(ERROR_OUTPUT_FIELD_SHAPES.keys())
+    if family in all_families:
+        return family
+    return None
 
 
 def required_output_keys(family: str, *, status: str) -> frozenset[str]:

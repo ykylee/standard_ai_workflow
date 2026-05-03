@@ -3,7 +3,7 @@
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
   "tool_count": 13,
-  "tool_version": "v0.4.1-beta",
+  "tool_version": "v0.4.2-beta",
   "tools": [
     {
       "_meta": {
@@ -45,103 +45,45 @@
       },
       "name": "latest_backlog",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "candidates": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "latest_backlog_path": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "source_context": {},
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "candidates": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "candidates",
-              "latest_backlog_path",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "candidates": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "latest_backlog_path": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+          "latest_backlog_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "candidates",
+          "latest_backlog_path",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "latest_backlog output"
+        "type": "object"
       }
     },
     {
@@ -170,115 +112,50 @@
       },
       "name": "check_doc_metadata",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "missing_metadata": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "missing_fields",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "source_context": {},
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "checked_files": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "checked_files",
-              "missing_metadata",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "missing_metadata": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "missing_fields",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "missing_metadata": {
+            "items": {
+              "properties": {},
+              "required": [
+                "missing_fields",
+                "path"
+              ],
+              "type": "object"
             },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "checked_files",
+          "missing_metadata",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "check_doc_metadata output"
+        "type": "object"
       }
     },
     {
@@ -307,115 +184,50 @@
       },
       "name": "check_doc_links",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "broken_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "broken_links",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "source_context": {},
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "broken_links": {
+            "items": {
+              "properties": {},
+              "required": [
+                "broken_links",
+                "path"
+              ],
+              "type": "object"
             },
-            "required": [
-              "broken_links",
-              "checked_files",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "broken_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "broken_links",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "checked_files": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "broken_links",
+          "checked_files",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "check_doc_links output"
+        "type": "object"
       }
     },
     {
@@ -459,103 +271,45 @@
       },
       "name": "suggest_impacted_docs",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {},
-              "error_code": {},
-              "impacted_documents": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "reasoning_notes": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "source_context": {},
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "impacted_documents": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "impacted_documents",
-              "reasoning_notes",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "impacted_documents": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "reasoning_notes": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "reasoning_notes": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "impacted_documents",
+          "reasoning_notes",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "suggest_impacted_docs output"
+        "type": "object"
       }
     },
     {
@@ -602,90 +356,38 @@
       },
       "name": "create_backlog_entry",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "draft_entry": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "source_context": {},
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "draft_entry": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "draft_entry",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "draft_entry": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "draft_entry",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "create_backlog_entry output"
+        "type": "object"
       }
     },
     {
@@ -716,105 +418,53 @@
       },
       "name": "create_session_handoff_draft",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
+        "properties": {
+          "draft_handoff": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "source_context": {
             "properties": {
-              "draft_handoff": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {
-                  "latest_backlog_path": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                },
-                "required": [
-                  "latest_backlog_path"
-                ],
-                "type": "object"
-              },
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
+              "latest_backlog_path": {
+                "type": [
+                  "string",
+                  "null"
                 ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
               }
             },
             "required": [
-              "draft_handoff",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+              "latest_backlog_path"
             ],
             "type": "object"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "draft_handoff": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "draft_handoff",
+          "source_context",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "create_session_handoff_draft output"
+        "type": "object"
       }
     },
     {
@@ -848,106 +498,54 @@
       },
       "name": "create_environment_record_stub",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
+        "properties": {
+          "draft_record": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "source_context": {
             "properties": {
-              "draft_record": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {
-                  "hostname": {
-                    "type": "string"
-                  },
-                  "os_type": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "hostname",
-                  "os_type"
-                ],
-                "type": "object"
-              },
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
+              "hostname": {
                 "type": "string"
               },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
+              "os_type": {
+                "type": "string"
               }
             },
             "required": [
-              "draft_record",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+              "hostname",
+              "os_type"
             ],
             "type": "object"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "draft_record": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "draft_record",
+          "source_context",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "create_environment_record_stub output"
+        "type": "object"
       }
     },
     {
@@ -995,165 +593,75 @@
       },
       "name": "check_quickstart_stale_links",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "broken_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "broken_links",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {},
-              "error_code": {},
-              "missing_expected_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "missing_targets",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "reasoning_notes": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "source_context": {},
-              "stale_link_warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "broken_links": {
+            "items": {
+              "properties": {},
+              "required": [
+                "broken_links",
+                "path"
+              ],
+              "type": "object"
             },
-            "required": [
-              "checked_files",
-              "missing_expected_links",
-              "reasoning_notes",
-              "stale_link_warnings",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "broken_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "broken_links",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "checked_files": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "missing_expected_links": {
-                "items": {
-                  "additionalProperties": true,
-                  "properties": {},
-                  "required": [
-                    "missing_targets",
-                    "path"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "reasoning_notes": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "stale_link_warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "checked_files": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "error",
-              "error_code",
-              "source_context",
-              "status",
-              "tool_version",
-              "warnings"
+            "type": "array"
+          },
+          "missing_expected_links": {
+            "items": {
+              "properties": {},
+              "required": [
+                "missing_targets",
+                "path"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "reasoning_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "stale_link_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "checked_files",
+          "missing_expected_links",
+          "reasoning_notes",
+          "stale_link_warnings",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "check_quickstart_stale_links output"
+        "type": "object"
       }
     },
     {
@@ -1187,71 +695,31 @@
       },
       "name": "summarize_git_history",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "summarize_git_history output"
+        "type": "object"
       }
     },
     {
@@ -1284,71 +752,31 @@
       },
       "name": "rotate_workflow_logs",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "rotate_workflow_logs output"
+        "type": "object"
       }
     },
     {
@@ -1382,71 +810,31 @@
       },
       "name": "assess_milestone_progress",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "assess_milestone_progress output"
+        "type": "object"
       }
     },
     {
@@ -1482,97 +870,45 @@
       },
       "name": "smart_context_reader",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "extracted_content": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "not_found_symbols": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+        "properties": {
+          "extracted_content": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "extracted_content",
-              "not_found_symbols",
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "extracted_content": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "not_found_symbols": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "not_found_symbols": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
+          },
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
+        },
+        "required": [
+          "extracted_content",
+          "not_found_symbols",
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "smart_context_reader output"
+        "type": "object"
       }
     },
     {
@@ -1606,71 +942,31 @@
       },
       "name": "apply_robust_patch",
       "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "oneOf": [
-          {
-            "additionalProperties": true,
-            "properties": {
-              "status": {
-                "enum": [
-                  "ok",
-                  "warning"
-                ]
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
+        "properties": {
+          "status": {
+            "enum": [
+              "ok",
+              "warning",
+              "error"
             ],
-            "type": "object"
+            "type": "string"
           },
-          {
-            "additionalProperties": true,
-            "properties": {
-              "error": {
-                "type": "string"
-              },
-              "error_code": {
-                "type": "string"
-              },
-              "source_context": {
-                "additionalProperties": true,
-                "properties": {},
-                "required": [],
-                "type": "object"
-              },
-              "status": {
-                "const": "error"
-              },
-              "tool_version": {
-                "type": "string"
-              },
-              "warnings": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              }
+          "tool_version": {
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
             },
-            "required": [
-              "status",
-              "tool_version",
-              "warnings"
-            ],
-            "type": "object"
+            "type": "array"
           }
+        },
+        "required": [
+          "status",
+          "tool_version",
+          "warnings"
         ],
-        "title": "apply_robust_patch output"
+        "type": "object"
       }
     }
   ],

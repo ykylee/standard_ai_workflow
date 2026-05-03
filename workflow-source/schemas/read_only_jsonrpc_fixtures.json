@@ -27,7 +27,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.4.1-beta"
+            "version": "v0.4.2-beta"
           }
         }
       }
@@ -73,7 +73,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.4.1-beta"
+            "version": "v0.4.2-beta"
           }
         }
       }
@@ -1200,7 +1200,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.4.1-beta\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.4.2-beta\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -1210,7 +1210,7 @@
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "v0.4.1-beta",
+            "tool_version": "v0.4.2-beta",
             "warnings": []
           }
         }
@@ -1242,7 +1242,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "v0.4.1-beta",
+            "tool_version": "v0.4.2-beta",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1382,7 +1382,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.4.1-beta"
+              "version": "v0.4.2-beta"
             }
           }
         },
@@ -2399,7 +2399,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.4.1-beta"
+              "version": "v0.4.2-beta"
             }
           }
         },
@@ -2418,6 +2418,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "v0.4.1-beta",
+  "tool_version": "v0.4.2-beta",
   "transport_ready": false
 }

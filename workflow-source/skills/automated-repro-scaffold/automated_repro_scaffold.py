@@ -3,17 +3,32 @@ import argparse
 import sys
 import os
 import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.errors import build_error_result
 
 def main():
     parser = argparse.ArgumentParser(description="Automated Bug Reproduction Scaffolder (Prototype)")
     parser.add_argument("--report", required=True, help="Path to the bug report file")
     parser.add_argument("--output", required=True, help="Path to save the generated reproduction script")
-    parser.add_argument("--tool-version", default="0.1.0", help="Version of the tool")
 
     args = parser.parse_args()
+    source_context = {"report_path": args.report, "output_path": args.output}
 
     if not os.path.exists(args.report):
-        print(json.dumps({"status": "error", "error_code": "FILE_NOT_FOUND", "message": f"Report file not found: {args.report}"}))
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=f"리포트 파일을 찾을 수 없다: {args.report}",
+            error_code="report_file_not_found",
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         sys.exit(1)
 
     with open(args.report, "r", encoding="utf-8") as f:
@@ -57,13 +72,20 @@ if __name__ == "__main__":
             "status": "success",
             "repro_script_path": args.output,
             "execution_command": f"python3 {args.output}",
-            "tool_version": args.tool_version,
-            "warnings": ["This is an auto-generated prototype. Manual adjustment is required."]
+            "tool_version": TOOL_VERSION,
+            "warnings": ["이것은 자동 생성된 프로토타입입니다. 수동 조정이 필요할 수 있습니다."],
+            "source_context": source_context,
         }
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
     except Exception as e:
-        print(json.dumps({"status": "error", "error_code": "WRITE_FAILED", "message": str(e)}))
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=f"재현 스크립트 작성 중 오류가 발생했다: {str(e)}",
+            error_code="repro_write_failed",
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         sys.exit(1)
 
 if __name__ == "__main__":

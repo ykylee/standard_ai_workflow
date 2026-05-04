@@ -5,7 +5,7 @@
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp/README.md`
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp_servers/README.md`
 
 ## 1. 목적
 
@@ -466,5 +466,5 @@ runner 실패 규칙:
 
 - 상위 로드맵: [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md)
 - skill 허브: [../skills/README.md](../skills/README.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)
 - 출력 샘플 허브: [../examples/output_samples/README.md](../examples/output_samples/README.md)

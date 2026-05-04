@@ -5,7 +5,7 @@
 - Audience: AI agents, maintainers
 - Status: draft
 - Updated: 2026-05-04
-- Related docs: [Project Profile](../../docs/PROJECT_PROFILE.md), [Work Backlog](./work_backlog.md)
+- Related docs: [Project Profile](../../../../docs/PROJECT_PROFILE.md), [Work Backlog](./work_backlog.md)
 
 ## Current Focus
 

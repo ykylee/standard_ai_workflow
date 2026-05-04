@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-19
-- 관련 문서: `./README.md`, `./acme_delivery_platform/work_backlog.md`, `./research_eval_hub/work_backlog.md`, `../mcp/README.md`, `../mcp/prototype_layout.md`
+- 관련 문서: `./README.md`, `./acme_delivery_platform/work_backlog.md`, `./research_eval_hub/work_backlog.md`, `../mcp_servers/README.md`, `../mcp_servers/prototype_layout.md`
 
 ## 1. 목적
 
@@ -31,18 +31,18 @@
 
 데모에서 사용하는 프로토타입:
 
-- [../mcp/latest-backlog/scripts/run_latest_backlog.py](../mcp/latest-backlog/scripts/run_latest_backlog.py)
-- [../mcp/check-doc-metadata/scripts/run_check_doc_metadata.py](../mcp/check-doc-metadata/scripts/run_check_doc_metadata.py)
-- [../mcp/check-doc-links/scripts/run_check_doc_links.py](../mcp/check-doc-links/scripts/run_check_doc_links.py)
-- [../mcp/create-backlog-entry/scripts/run_create_backlog_entry.py](../mcp/create-backlog-entry/scripts/run_create_backlog_entry.py)
-- [../mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py](../mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py)
+- [../mcp_servers/latest-backlog/scripts/run_latest_backlog.py](../mcp_servers/latest-backlog/scripts/run_latest_backlog.py)
+- [../mcp_servers/check-doc-metadata/scripts/run_check_doc_metadata.py](../mcp_servers/check-doc-metadata/scripts/run_check_doc_metadata.py)
+- [../mcp_servers/check-doc-links/scripts/run_check_doc_links.py](../mcp_servers/check-doc-links/scripts/run_check_doc_links.py)
+- [../mcp_servers/create-backlog-entry/scripts/run_create_backlog_entry.py](../mcp_servers/create-backlog-entry/scripts/run_create_backlog_entry.py)
+- [../mcp_servers/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py](../mcp_servers/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py)
 
 ## 3. Step 1: Latest Backlog
 
 backlog index 에서 최신 날짜 backlog 를 찾는다.
 
 ```bash
-python3 mcp/latest-backlog/scripts/run_latest_backlog.py \
+python3 mcp_servers/latest-backlog/scripts/run_latest_backlog.py \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md
 ```
 
@@ -57,7 +57,7 @@ python3 mcp/latest-backlog/scripts/run_latest_backlog.py \
 문서 디렉터리 전체에서 필수 메타데이터 누락 여부를 검사한다.
 
 ```bash
-python3 mcp/check-doc-metadata/scripts/run_check_doc_metadata.py \
+python3 mcp_servers/check-doc-metadata/scripts/run_check_doc_metadata.py \
   --doc-dir-path .
 ```
 
@@ -71,7 +71,7 @@ python3 mcp/check-doc-metadata/scripts/run_check_doc_metadata.py \
 문서 디렉터리 전체에서 상대 링크 무결성을 검사한다.
 
 ```bash
-python3 mcp/check-doc-links/scripts/run_check_doc_links.py \
+python3 mcp_servers/check-doc-links/scripts/run_check_doc_links.py \
   --doc-dir-path .
 ```
 
@@ -85,7 +85,7 @@ python3 mcp/check-doc-links/scripts/run_check_doc_links.py \
 새 작업을 날짜별 backlog 항목 초안으로 생성한다.
 
 ```bash
-python3 mcp/create-backlog-entry/scripts/run_create_backlog_entry.py \
+python3 mcp_servers/create-backlog-entry/scripts/run_create_backlog_entry.py \
   --task-id TASK-099 \
   --task-name "MCP 초안 생성 확인" \
   --request-date 2026-04-18
@@ -101,7 +101,7 @@ python3 mcp/create-backlog-entry/scripts/run_create_backlog_entry.py \
 변경 파일을 기준으로 함께 봐야 할 문서 후보를 빠르게 추천한다.
 
 ```bash
-python3 mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py \
+python3 mcp_servers/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py \
   --changed-file app/jobs/delivery_sync.py \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --latest-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -119,7 +119,7 @@ python3 mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py \
 이 저장소를 처음 보는 사람에게는 아래 순서를 권장한다.
 
 1. [../README.md](../README.md)
-2. [../mcp/README.md](../mcp/README.md)
+2. [../mcp_servers/README.md](../mcp_servers/README.md)
 3. [./README.md](./README.md)
 4. 이 문서의 5개 프로토타입 명령 실행
 
@@ -132,4 +132,4 @@ python3 mcp/suggest-impacted-docs/scripts/run_suggest_impacted_docs.py \
 ## 다음에 읽을 문서
 
 - examples 허브: [./README.md](./README.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)

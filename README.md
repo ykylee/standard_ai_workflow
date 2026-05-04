@@ -4,7 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: done
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-05-04
+- 버전: v0.5.0-beta
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -39,7 +40,7 @@
 | `workflow-source/core/` | 여러 프로젝트에 공통 적용할 코어 문서 |
 | `workflow-source/templates/` | 프로젝트와 세션 상태 문서 템플릿 |
 | `workflow-source/skills/` | 향후 공통 skill 구현 위치 |
-| `workflow-source/mcp/` | 향후 공통 MCP 구현 위치 |
+| `workflow-source/mcp_servers/` | 향후 공통 MCP 구현 위치 |
 | `workflow-source/examples/` | 샘플 프로파일과 도입 예시 위치 |
 | `workflow-source/global-snippets/` | 하네스 전역 설정에 넣을 수 있는 비침투적 snippet 예시 |
 | `workflow-source/harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 |
@@ -57,16 +58,19 @@
 | 샘플 도입 예시 | 사용 가능 | `workflow-source/examples/acme_delivery_platform/` 참고 |
 | skill 프로토타입 | 사용 가능 | `workflow-source/skills/` 및 `workflow-source/scripts/` 참고 |
 | skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 있음 |
-| MCP 프로토타입 | 사용 가능 | `workflow-source/mcp/` 및 MCP 데모 참고 |
+| MCP 프로토타입 | 사용 가능 | `workflow-source/mcp_servers/` 및 MCP 데모 참고 |
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `workflow-source/scripts/bootstrap_workflow_kit.py` 참고 |
 | harness overlays | 사용 가능 | `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity` 대상 오버레이 생성 가능 |
-| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화와 orchestrator task-only 운영 기본 원칙 포함 |
+| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화 및 위임 패턴 포함 |
+| 다중 에이전트 오케스트레이션 | 사용 가능 | `orchestration_demo.py` 및 피드백 루프 시뮬레이션 포함 |
+| 워크플로우 린터 (Skill) | 사용 가능 | `run_workflow_linter.py`를 통한 문서 정합성 자동 검사 및 복구 |
+| 실전 스킬 (Git) | 사용 가능 | `run_git_conflict_resolver.py`를 통한 컨텍스트 기반 충돌 해결 |
 | harness package export | 사용 가능 | `workflow-source/scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
-| 출력 스키마 가이드 | 사용 가능 | `workflow-source/core/output_schema_guide.md` 포함 |
+| 출력 스키마 가이드 | 사용 가능 | `workflow-source/core/output_schema_guide.md` 포함 (Pydantic 전환 완료) |
 | 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |
-| workflow kit package | 사용 가능 | `workflow-source/workflow_kit/common` 에 공통 파서/분류/helper 축적 중 |
+| workflow kit package | 사용 가능 | `workflow-source/workflow_kit/common` 에 Pydantic 기반 계약 체계 구축 완료 |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
@@ -172,7 +176,7 @@ python workflow-source/tests/check_read_only_mcp_sdk_stdio.py
 주의:
 
 - Python 3.9 이하 환경에서는 공식 `mcp` 패키지가 설치되지 않는다.
-- 이 저장소 루트에는 `mcp/` 디렉터리가 있으므로, SDK import 검증은 가상환경 Python 으로 실행해야 혼동이 없다.
+- 이 저장소 루트에는 `mcp_servers/` 디렉터리가 있으므로, SDK import 검증은 가상환경 Python 으로 실행해야 혼동이 없다.
 - official SDK candidate 는 [workflow-source/workflow_kit/server/read_only_mcp_sdk.py](./workflow-source/workflow_kit/server/read_only_mcp_sdk.py) 에 있고, 설치 확인 스모크는 [workflow-source/tests/check_read_only_mcp_sdk_candidate.py](./workflow-source/tests/check_read_only_mcp_sdk_candidate.py) 를 사용한다.
 - 실제 stdio round-trip 상호운용 스모크는 [workflow-source/tests/check_read_only_mcp_sdk_stdio.py](./workflow-source/tests/check_read_only_mcp_sdk_stdio.py) 를 사용한다.
 
@@ -201,7 +205,7 @@ python workflow-source/tests/check_read_only_mcp_sdk_stdio.py
 실제 구현이 시작되면 아래를 추가한다.
 
 - `workflow-source/skills/`
-- `workflow-source/mcp/`
+- `workflow-source/mcp_servers/`
 - `workflow-source/examples/`
 - `workflow-source/tests/`
 

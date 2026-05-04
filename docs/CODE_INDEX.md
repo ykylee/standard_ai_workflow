@@ -16,7 +16,7 @@
 ├── workflow-source/
 │   ├── workflow_kit/       # 워크플로우 핵심 엔진 및 공통 모듈
 │   ├── skills/             # 독립적으로 실행 가능한 워크플로우 기능(Skill) 모음
-│   ├── mcp/                # Model Context Protocol 기반 에이전트 도구 서버
+│   ├── mcp_servers/        # Model Context Protocol 기반 에이전트 도구 서버
 │   ├── scripts/            # 프로젝트 부트스트랩 및 관리용 스크립트
 │   ├── tests/              # 스모크 테스트 및 유효성 검사 도구
 │   ├── schemas/            # JSON 스키마 및 출력 계약
@@ -41,7 +41,7 @@
 - `merge-doc-reconcile/`: 상태 문서 병합 충돌 해결 도구.
 - `robust-patcher/`: 정밀 코드 편집 엔진.
 
-### MCP Tools (`workflow-source/mcp/`)
+### MCP Tools (`workflow-source/mcp_servers/`)
 - `smart-context-reader/`: 에이전트가 코드 문맥을 시맨틱하게 읽을 수 있도록 돕는 도구 서버.
 
 ## 3. 주요 진입점 (Entry Points)

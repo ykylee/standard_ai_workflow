@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 배포 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_release_spec.md`, `./workflow_mcp_candidate_catalog.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../workflow_kit/README.md`
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_release_spec.md`, `./workflow_mcp_candidate_catalog.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
 
@@ -195,4 +195,4 @@
 - MCP 후보 카탈로그: [./workflow_mcp_candidate_catalog.md](./workflow_mcp_candidate_catalog.md)
 - read-only transport 승격 기준: [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
 - package 루트: [../workflow_kit/README.md](../workflow_kit/README.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)

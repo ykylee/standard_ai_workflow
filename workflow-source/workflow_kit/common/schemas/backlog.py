@@ -35,3 +35,8 @@ class BacklogUpdateOutput(BaseOutput):
     validation_note: str | None = None
     status_recommendation: StatusRecommendation | None = None
     source_context: BacklogUpdateSourceContext
+
+class CreateBacklogEntryOutput(BaseOutput):
+    """Output contract for the create-backlog-entry skill."""
+    status: Status = Status.OK
+    draft_entry: list[str] = Field(..., description="Generated markdown lines for the backlog entry")

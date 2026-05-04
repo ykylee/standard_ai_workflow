@@ -153,7 +153,7 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - `check_backlog_update.py` 실패:
   `skills/backlog-update/scripts/run_backlog_update.py` 의 입력 경로 처리, 보수적 상태 추천, draft entry 조립, 구조화 error 반환을 먼저 본다.
 - `check_create_backlog_entry.py` 실패:
-  `mcp/create-backlog-entry/scripts/run_create_backlog_entry.py` 의 draft entry 라인 조립과 공통 output contract 정합성을 먼저 본다.
+  `mcp_servers/create-backlog-entry/scripts/run_create_backlog_entry.py` 의 draft entry 라인 조립과 공통 output contract 정합성을 먼저 본다.
 - `check_code_index_update.py` 실패:
   `skills/code-index-update/scripts/run_code_index_update.py` 와 index candidate 추론 규칙을 먼저 본다.
 - `check_quickstart_stale_links.py` 실패:

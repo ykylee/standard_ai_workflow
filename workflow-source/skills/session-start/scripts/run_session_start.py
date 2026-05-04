@@ -95,30 +95,33 @@ def main() -> int:
             ]
         )
 
-        result = {
-            "status": "ok",
-            "tool_version": TOOL_VERSION,
-            "summary": build_session_summary(handoff, backlog, profile),
-            "in_progress_items": dedupe_normalized_backticked(
+        from workflow_kit.common.schemas import SessionStartOutput
+        
+        output_model = SessionStartOutput(
+            status="ok",
+            tool_version=TOOL_VERSION,
+            summary=build_session_summary(handoff, backlog, profile),
+            in_progress_items=dedupe_normalized_backticked(
                 handoff.get("in_progress_items", []) + backlog.get("in_progress_items", [])
             ),
-            "blocked_items": dedupe_normalized_backticked(
+            blocked_items=dedupe_normalized_backticked(
                 handoff.get("blocked_items", []) + backlog.get("blocked_items", [])
             ),
-            "latest_backlog_path": str(latest_backlog_path) if latest_backlog_path else None,
-            "next_documents": next_documents,
-            "recommended_next_action": make_session_recommended_action(warnings, backlog, profile),
-            "warnings": warnings,
-            "validation_notes": [],
-            "environment_constraints": dedupe_normalized_backticked(
+            latest_backlog_path=str(latest_backlog_path) if latest_backlog_path else None,
+            next_documents=next_documents,
+            recommended_next_action=make_session_recommended_action(warnings, backlog, profile),
+            warnings=warnings,
+            validation_notes=[],
+            environment_constraints=dedupe_normalized_backticked(
                 [item for item in [handoff.get("constraints"), profile.get("constraints")] if item]
             ),
-            "source_documents": {
+            source_documents={
                 "session_handoff_path": str(session_handoff_path),
                 "work_backlog_index_path": str(work_backlog_index_path),
                 "project_profile_path": str(project_profile_path),
             },
-        }
+        )
+        result = output_model.model_dump()
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,

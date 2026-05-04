@@ -35,7 +35,7 @@
 - `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락 입력 경로를 먼저 메인 오케스트레이터에 전달하고 worker 분배는 복구 작업 기준으로 다시 잡는 편이 안전하다.
 - 하네스 export bundle 을 적용할 때 read-only MCP descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 에 들어 있다.
 - descriptor 를 OpenCode 설정 검토용 draft 로 변환한 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 의 `harness_examples.opencode` 에 들어 있다.
-- OpenCode project-local MCP 설정으로 바로 옮기기 전에 [../../mcp/read_only_bundle.md](../../mcp/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
+- OpenCode project-local MCP 설정으로 바로 옮기기 전에 [../../mcp_servers/read_only_bundle.md](../../mcp_servers/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
 
 ## bootstrap 예시
 

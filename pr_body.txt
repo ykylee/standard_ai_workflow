@@ -1,0 +1,12 @@
+## Overview
+Phase 9 introduces industrial-grade stability and a new multi-agent topology to the AI workflow kit.
+
+## Key Changes
+- **Strict Data Contracts**: Migrated all core output models to Pydantic (workflow_kit.common.schemas).
+- **MCP v1.0 SDK**: Replaced legacy JSON-RPC bridge with the official MCP Python SDK and FastMCP.
+- **Multi-Agent Topology**: Introduced role-specific worker prompts and a harness-aware delegation helper.
+- **New Skill**: Added git-conflict-resolver with 3-way merge analysis and smart list merging.
+
+## Verification
+- Full smoke test suite passed on CI.
+- Multi-agent scenario demo successfully executed locally.

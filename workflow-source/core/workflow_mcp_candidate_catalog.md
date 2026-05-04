@@ -53,4 +53,4 @@
 
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)

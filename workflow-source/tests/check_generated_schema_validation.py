@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import validate, ValidationError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -30,47 +30,41 @@ def listed_sample_paths() -> list[Path]:
 
 
 def main() -> int:
+    if not SCHEMA_PATH.exists():
+        print(f"Schema path {SCHEMA_PATH} does not exist.")
+        return 1
+
     generated = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-    outputs = generated.get("outputs", {})
-    errors_schema = generated.get("errors", {})
+    outputs_bundle = generated.get("outputs", {})
+    errors_bundle = generated.get("errors", {})
     failures: list[str] = []
 
     for path in listed_sample_paths():
+        if not path.exists():
+            failures.append(f"Sample file not found: {path}")
+            continue
+
         payload = json.loads(path.read_text(encoding="utf-8"))
         family = detect_sample_family(path)
         if not family:
-            failures.append(f"Could not infer family for sample {path.relative_to(REPO_ROOT)}")
+            failures.append(f"Could not infer family for sample {path.name}")
             continue
         
         status = payload.get("status")
-        families = errors_schema if status == "error" else outputs
-        schema = families.get(family)
+        bundle = errors_bundle if status == "error" else outputs_bundle
+        
+        # In the new Pydantic bundle, errors might be keyed by family or just 'error'
+        # Our bundle generator currently provides it for each family for compatibility.
+        schema = bundle.get(family)
         
         if schema is None:
             failures.append(f"Missing generated JSON Schema for family {family} (status: {status})")
             continue
         
-        # Note: The current generated schema is actually a bundle of field shapes, 
-        # not a full JSON Schema for the whole object (status, tool_version, etc. are missing).
-        # We need to wrap it if we want to use jsonschema validator properly,
-        # OR just validate the fields that are present.
-        # For now, let's just check the fields that ARE in the schema.
-        for field_name, field_value in payload.items():
-            if field_name in ["status", "tool_version", "warnings"]:
-                continue
-            field_schema = schema.get(field_name)
-            if field_schema:
-                # convert our field shape schema to a real JSON schema
-                # (This is getting complex, maybe we should just use our internal validator)
-                pass
-
-    # Actually, the internal validate_output_payload already does this.
-    # The purpose of this test is to verify the GENERATED schemas.
-    # Let's just verify the 'families' key doesn't exist anymore and fix the test to skip for now 
-    # or implement a simple check.
-    
-    print("Generated schema structure verified.")
-    return 0
+        try:
+            validate(instance=payload, schema=schema)
+        except ValidationError as e:
+            failures.append(f"Sample {path.name} failed schema validation: {e.message}")
 
     if failures:
         print("Generated schema validation failed:")
@@ -78,7 +72,7 @@ def main() -> int:
             print(f"- {failure}")
         return 1
 
-    print("Generated schema validation check passed.")
+    print("All output samples passed Pydantic-generated JSON Schema validation.")
     return 0
 
 

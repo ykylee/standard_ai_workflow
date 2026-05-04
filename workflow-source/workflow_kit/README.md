@@ -5,7 +5,7 @@
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `../core/prototype_promotion_scope.md`, `../core/read_only_mcp_transport_promotion.md`, `../core/workflow_kit_roadmap.md`, `../mcp/README.md`
+- 관련 문서: `../core/prototype_promotion_scope.md`, `../core/read_only_mcp_transport_promotion.md`, `../core/workflow_kit_roadmap.md`, `../mcp_servers/README.md`
 
 ## 1. 목적
 
@@ -116,4 +116,4 @@
 - 승격 범위 문서: [../core/prototype_promotion_scope.md](../core/prototype_promotion_scope.md)
 - read-only transport 승격 기준: [../core/read_only_mcp_transport_promotion.md](../core/read_only_mcp_transport_promotion.md)
 - 상위 로드맵: [../core/workflow_kit_roadmap.md](../core/workflow_kit_roadmap.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)

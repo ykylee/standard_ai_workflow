@@ -5,7 +5,7 @@
 - 대상 독자: MCP server 구현자, 하네스 적용 담당자, AI workflow 설계자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./prototype_promotion_scope.md`, `../mcp/read_only_bundle.md`, `../schemas/README.md`, `../workflow_kit/README.md`
+- 관련 문서: `./prototype_promotion_scope.md`, `../mcp_servers/read_only_bundle.md`, `../schemas/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
 
@@ -115,6 +115,6 @@ python3 tests/check_read_only_harness_mcp_examples.py
 ## 7. 다음에 읽을 문서
 
 - 승격 범위 문서: [./prototype_promotion_scope.md](./prototype_promotion_scope.md)
-- read-only MCP bundle: [../mcp/read_only_bundle.md](../mcp/read_only_bundle.md)
+- read-only MCP bundle: [../mcp_servers/read_only_bundle.md](../mcp_servers/read_only_bundle.md)
 - schema 허브: [../schemas/README.md](../schemas/README.md)
 - package 루트: [../workflow_kit/README.md](../workflow_kit/README.md)

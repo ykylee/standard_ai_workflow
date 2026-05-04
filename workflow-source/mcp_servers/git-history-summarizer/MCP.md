@@ -27,7 +27,7 @@
 ## 4. 실행 예시
 
 ```bash
-python3 mcp/git-history-summarizer/scripts/run_git_history_summarizer.py --range "HEAD~5..HEAD"
+python3 mcp_servers/git-history-summarizer/scripts/run_git_history_summarizer.py --range "HEAD~5..HEAD"
 ```
 
 ## 5. 구현 로직

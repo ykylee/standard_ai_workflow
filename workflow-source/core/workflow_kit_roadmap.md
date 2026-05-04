@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-23
-- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
+- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
 ## 1. 현재 단계 (Phase 8: Pilot Deployment & Integration)
 
@@ -74,12 +74,12 @@
 
 ### 실행형 MCP 프로토타입
 
-- [../mcp/latest-backlog/MCP.md](../mcp/latest-backlog/MCP.md)
-- [../mcp/check-doc-metadata/MCP.md](../mcp/check-doc-metadata/MCP.md)
-- [../mcp/check-doc-links/MCP.md](../mcp/check-doc-links/MCP.md)
-- [../mcp/create-backlog-entry/MCP.md](../mcp/create-backlog-entry/MCP.md)
-- [../mcp/suggest-impacted-docs/MCP.md](../mcp/suggest-impacted-docs/MCP.md)
-- [../mcp/check-quickstart-stale-links/MCP.md](../mcp/check-quickstart-stale-links/MCP.md)
+- [../mcp_servers/latest-backlog/MCP.md](../mcp_servers/latest-backlog/MCP.md)
+- [../mcp_servers/check-doc-metadata/MCP.md](../mcp_servers/check-doc-metadata/MCP.md)
+- [../mcp_servers/check-doc-links/MCP.md](../mcp_servers/check-doc-links/MCP.md)
+- [../mcp_servers/create-backlog-entry/MCP.md](../mcp_servers/create-backlog-entry/MCP.md)
+- [../mcp_servers/suggest-impacted-docs/MCP.md](../mcp_servers/suggest-impacted-docs/MCP.md)
+- [../mcp_servers/check-quickstart-stale-links/MCP.md](../mcp_servers/check-quickstart-stale-links/MCP.md)
 
 ### 데모와 검증
 
@@ -363,4 +363,4 @@
 - package 루트: [../workflow_kit/README.md](../workflow_kit/README.md)
 - 출력 샘플 허브: [../examples/output_samples/README.md](../examples/output_samples/README.md)
 - skill 허브: [../skills/README.md](../skills/README.md)
-- mcp 허브: [../mcp/README.md](../mcp/README.md)
+- mcp 허브: [../mcp_servers/README.md](../mcp_servers/README.md)

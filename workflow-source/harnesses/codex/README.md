@@ -26,7 +26,7 @@
 - `status == "error"` 인 경우에는 `error`, `error_code`, `source_context.failed_step`, 누락된 입력 경로를 먼저 요약하고 복구 작업부터 배치하는 편이 낫다.
 - 하네스 export bundle 을 적용할 때 read-only MCP descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 에 들어 있다.
 - descriptor 를 Codex 설정 검토용 draft 로 변환한 예시는 `bundle/source-docs/schemas/read_only_harness_mcp_examples.json` 의 `harness_examples.codex` 에 들어 있다.
-- Codex 전역 MCP 설정으로 바로 복사하기 전에 [../../mcp/read_only_bundle.md](../../mcp/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
+- Codex 전역 MCP 설정으로 바로 복사하기 전에 [../../mcp_servers/read_only_bundle.md](../../mcp_servers/read_only_bundle.md) 의 draft 범위와 `transport_ready=false` 상태를 먼저 확인한다.
 
 ## bootstrap 예시
 

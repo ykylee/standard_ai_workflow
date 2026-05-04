@@ -344,15 +344,17 @@ def main() -> int:
         )
         warnings.extend(apply_result["warnings"])
 
-        result = {
-            "status": "ok",
-            "tool_version": TOOL_VERSION,
-            "operation_type": operation_type,
-            "target_backlog_path": str(daily_backlog_path),
-            "task_id": task_id,
-            "task_found": bool(matched_task),
-            "draft_entry": draft_entry,
-            "status_recommendation": {
+        from workflow_kit.common.schemas import BacklogUpdateOutput
+        
+        output_model = BacklogUpdateOutput(
+            status="ok",
+            tool_version=TOOL_VERSION,
+            operation_type=operation_type,
+            target_backlog_path=str(daily_backlog_path),
+            task_id=task_id,
+            task_found=bool(matched_task),
+            draft_entry=draft_entry,
+            status_recommendation={
                 "value": status,
                 "reason": (
                     "검증 결과가 없으므로 완료 확정 대신 보수적인 상태를 유지한다."
@@ -360,31 +362,32 @@ def main() -> int:
                     else "입력된 상태와 현재 작업 브리핑 기준으로 가장 보수적인 상태를 제안한다."
                 ),
             },
-            "fields_requiring_confirmation": fields_requiring_confirmation,
-            "warnings": warnings,
-            "index_update_note": index_update_note,
-            "handoff_update_note": handoff_update_note,
-            "state_cache_update_note": (
+            fields_requiring_confirmation=fields_requiring_confirmation,
+            warnings=warnings,
+            index_update_note=index_update_note,
+            handoff_update_note=handoff_update_note,
+            state_cache_update_note=(
                 f"`--apply` 반영 결과를 포함한 현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
                 if args.apply and state_cache_refresh["status"] == "refreshed"
                 else f"현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
                 if state_cache_refresh["status"] == "refreshed"
                 else f"source-of-truth 문서가 아직 부족해 `{state_cache_update['state_path']}` 자동 재생성을 건너뛰었다."
             ),
-            "state_cache_refresh_command": state_cache_update["refresh_command"],
-            "state_cache_status": state_cache_refresh["status"],
-            "state_cache_missing_paths": state_cache_refresh["missing_paths"],
-            "apply_status": apply_result["status"],
-            "written_paths": apply_result["written_paths"],
-            "created_paths": apply_result["created_paths"],
-            "updated_paths": apply_result["updated_paths"],
-            "validation_note": args.validation_result,
-            "source_context": {
+            state_cache_refresh_command=state_cache_update["refresh_command"],
+            state_cache_status=state_cache_refresh["status"],
+            state_cache_missing_paths=state_cache_refresh["missing_paths"],
+            apply_status=apply_result["status"],
+            written_paths=apply_result["written_paths"],
+            created_paths=apply_result["created_paths"],
+            updated_paths=apply_result["updated_paths"],
+            validation_note=args.validation_result,
+            source_context={
                 "project_profile_path": str(project_profile_path),
                 "daily_backlog_exists": daily_backlog_path.exists(),
                 "existing_task_count": len(existing_tasks),
             },
-        }
+        )
+        result = output_model.model_dump()
     except Exception as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,

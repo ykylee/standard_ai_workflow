@@ -85,17 +85,25 @@ def _usable_branch_name(raw: str | None) -> str | None:
 
 
 def get_current_branch() -> str:
-    """Return a branch-safe workflow memory slug, falling back to main."""
+    """Return a branch-safe workflow memory slug, falling back to main.
+
+    The git lookup is anchored at this module's parent repo (``workflow-source/..``)
+    rather than the current process CWD, so callers invoking this from a
+    sandboxed temp directory (smoke tests, sub-agents, MCP servers) still see
+    the real workflow repo's branch.
+    """
     for env_key in BRANCH_ENV_KEYS:
         branch = _usable_branch_name(os.environ.get(env_key))
         if branch:
             return branch
 
+    repo_root = Path(__file__).resolve().parents[3]
     try:
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(repo_root),
             stderr=subprocess.DEVNULL,
-            text=True
+            text=True,
         ).strip()
         return _usable_branch_name(branch) or "main"
     except (subprocess.CalledProcessError, FileNotFoundError):

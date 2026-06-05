@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -11,24 +12,22 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
 
 def _detect_branch_name() -> str:
-    """Return the current git branch name with a safe fallback."""
-    try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        branch = completed.stdout.strip()
-        if branch:
-            return branch
-    except FileNotFoundError:
-        pass
-    return "main"
+    """Return the current git branch name with a safe fallback.
+
+    Delegates to :func:`workflow_kit.common.paths.get_current_branch` so the
+    test files and the linter look at the same ``ai-workflow/memory/<branch>/``
+    directory. The function prefers CI-provided env vars, then falls back
+    to ``git rev-parse`` anchored at the workflow kit repo, and finally
+    defaults to ``main`` when nothing usable is available.
+    """
+    sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common.paths import get_current_branch
+
+    return get_current_branch()
 
 
 BRANCH_NAME = _detect_branch_name()
@@ -95,10 +94,11 @@ def test_linter_pass():
         )
         paths["backlog"].write_text("## TASK-001 Test task\n- 상태: in_progress")
 
-        # Valid link: relative to ai-workflow/memory/main/ this resolves to README.md in the project root
+        # Valid link: relative to ai-workflow/memory/<branch>/session_handoff.md
+        # this resolves to README.md in the project root (4 levels up).
         readme = root / "README.md"
         readme.write_text("Hello")
-        paths["handoff"].write_text(paths["handoff"].read_text() + "\n\n[README](../../../README.md)")
+        paths["handoff"].write_text(paths["handoff"].read_text() + "\n\n[README](../../../../README.md)")
 
         result = run_linter(root)
         if result["status"] != "ok":

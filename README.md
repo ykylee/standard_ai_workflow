@@ -93,7 +93,8 @@
 - OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
 - Gemini CLI: `GEMINI.md` 중심
 - Antigravity: `ANTIGRAVITY.md` 중심
-- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능
+- MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.MiniMax/agents/` (orchestrator + doc/code/validation worker) 중심
+- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `bootstrap_harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_workflow_kit.py` 의 `register_harness_builder` 한 줄로 끝난다)
 
 ## 5. 로컬 환경 설정 메모
 
@@ -297,9 +298,9 @@ python3 workflow-source/scripts/export_harness_package.py \
 
 이번 릴리스 핵심 결과물:
 
-- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.3.2-beta.zip`
-- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.3.2-beta.zip`
-- release note: [releases/Beta-v0.3.2.md](./workflow-source/releases/Beta-v0.3.2.md)
+- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.5.0-beta.zip`
+- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.5.0-beta.zip`
+- release note: [releases/Beta-v0.5.0.md](./workflow-source/releases/Beta-v0.5.0.md)
 
 ## 11. 현재 한계
 
@@ -323,7 +324,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - 공통 코어 표준: [workflow-source/core/global_workflow_standard.md](./workflow-source/core/global_workflow_standard.md)
 - 프로젝트 상태 진단: [workflow-source/core/project_status_assessment.md](./workflow-source/core/project_status_assessment.md)
 - 상위 로드맵: [workflow-source/core/workflow_kit_roadmap.md](./workflow-source/core/workflow_kit_roadmap.md)
-- release note: [workflow-source/releases/Beta-v0.3.2.md](./workflow-source/releases/Beta-v0.3.2.md)
+- release note: [workflow-source/releases/Beta-v0.5.0.md](./workflow-source/releases/Beta-v0.5.0.md)
 - 출력 스키마 가이드: [workflow-source/core/output_schema_guide.md](./workflow-source/core/output_schema_guide.md)
 - 도입 분기 가이드: [workflow-source/core/workflow_adoption_entrypoints.md](./workflow-source/core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [workflow-source/core/workflow_harness_distribution.md](./workflow-source/core/workflow_harness_distribution.md)

@@ -34,6 +34,9 @@ IGNORED_PARTS = {
     ".venv",
     "venv",
     "env",
+    ".venv-review",
+    ".venv-copilot",
+    "node_modules",
     "__pycache__",
     ".pytest_cache",
     ".mypy_cache",
@@ -50,6 +53,7 @@ IGNORED_PARTS = {
     "archive",
     "tests",
 }
+IGNORED_PREFIX_PARTS = (".venv",)
 IGNORED_AI_WORKFLOW_SUBTREES = {
     ("ai-workflow", "core"),
     ("ai-workflow", "examples"),
@@ -82,6 +86,13 @@ def iter_markdown_files() -> list[Path]:
         if set(path.parts).intersection(IGNORED_PARTS):
             continue
         rel_parts = path.relative_to(REPO_ROOT).parts
+        if any(
+            part == "node_modules"
+            or part in IGNORED_PARTS
+            or any(part.startswith(prefix) for prefix in IGNORED_PREFIX_PARTS)
+            for part in rel_parts
+        ):
+            continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_AI_WORKFLOW_SUBTREES:
             continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_WORKFLOW_SOURCE_SUBTREES:

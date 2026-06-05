@@ -13,7 +13,7 @@
 ## 1. 운영 문서 인덱스 (State Index)
 
 - **[Project Profile](../docs/PROJECT_PROFILE.md)**: 프로젝트 특화 워크플로우 규칙 및 명령 가이드.
-- **[Work Backlog Index](./memory/work_backlog.md)**: 전체 백로그 이력.
+- **[Work Backlog Index](./memory/gemini/phase10/work_backlog.md)**: 전체 백로그 이력.
 - **[Current Session State](./memory/gemini/phase7/state.json)**: 현재 세션 캐시 (Auto-generated).
 - **[Branch Handoff](./memory/gemini/phase7/session_handoff.md)**: 브랜치별 인계 사항.
 

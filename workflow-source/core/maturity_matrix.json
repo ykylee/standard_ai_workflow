@@ -11,7 +11,9 @@
     "Phase 6": { "name": "Precision & Optimization", "status": "done" },
     "Phase 7": { "name": "Intelligent Task Modes", "status": "done" },
     "Phase 8": { "name": "Pilot Deployment & Integration", "status": "done" },
-    "Phase 9": { "name": "System Maturity & Multi-Agent Evolution", "status": "in_progress" }
+    "Phase 9": { "name": "System Maturity & Multi-Agent Evolution", "status": "in_progress" },
+    "Phase 10": { "name": "Document & Link Hygiene", "status": "in_progress" },
+    "Phase 11": { "name": "Real-world Pilot Validation", "status": "planned" }
   },
   "skills": {
     "session-start": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_session_start.py" },

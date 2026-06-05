@@ -1,17 +1,6 @@
 {
   "errors": {
     "backlog_update": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -31,8 +20,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -51,23 +45,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "check_doc_links": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -87,8 +71,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -107,23 +96,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "check_doc_metadata": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -143,8 +122,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -163,23 +147,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "check_quickstart_stale_links": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -199,8 +173,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -219,23 +198,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "code_index_update": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -255,8 +224,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -275,23 +249,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "create_backlog_entry": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -311,8 +275,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -331,23 +300,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "create_environment_record_stub": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -367,8 +326,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -387,23 +351,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "create_session_handoff_draft": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -423,8 +377,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -443,23 +402,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "demo_workflow": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -479,8 +428,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -499,23 +453,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "doc_sync": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -535,8 +479,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -555,23 +504,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "existing_project_onboarding": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -591,8 +530,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -611,23 +555,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "git_conflict_resolver": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -647,8 +581,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -667,23 +606,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "latest_backlog": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -703,8 +632,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -723,23 +657,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "merge_doc_reconcile": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -759,8 +683,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -779,23 +708,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "session_start": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -815,8 +734,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -835,23 +759,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "smart_context_reader": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -871,8 +785,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -891,23 +810,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "suggest_impacted_docs": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -927,8 +836,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -947,23 +861,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "validation_plan": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -983,8 +887,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1003,23 +912,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "worker_response": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -1039,8 +938,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1059,23 +963,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "worker_task": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -1095,8 +989,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1115,23 +1014,13 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
     },
     "workflow_linter": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Standard payload for failed tool executions.",
       "properties": {
         "error": {
@@ -1151,8 +1040,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "error"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1171,7 +1065,8 @@
       "required": [
         "tool_version",
         "error",
-        "error_code"
+        "error_code",
+        "source_context"
       ],
       "title": "ErrorOutput",
       "type": "object"
@@ -1179,62 +1074,27 @@
   },
   "outputs": {
     "backlog_update": {
-      "$defs": {
-        "BacklogUpdateSourceContext": {
-          "properties": {
-            "daily_backlog_exists": {
-              "title": "Daily Backlog Exists",
-              "type": "boolean"
-            },
-            "existing_task_count": {
-              "title": "Existing Task Count",
-              "type": "integer"
-            },
-            "project_profile_path": {
-              "title": "Project Profile Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "daily_backlog_exists",
-            "existing_task_count",
-            "project_profile_path"
-          ],
-          "title": "BacklogUpdateSourceContext",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "StatusRecommendation": {
-          "properties": {
-            "reason": {
-              "description": "Reason for the recommendation",
-              "title": "Reason",
-              "type": "string"
-            },
-            "value": {
-              "description": "Recommended status value",
-              "title": "Value",
-              "type": "string"
-            }
-          },
-          "required": [
-            "value",
-            "reason"
-          ],
-          "title": "StatusRecommendation",
-          "type": "object"
-        }
-      },
       "description": "Output contract for the backlog-update skill.",
       "properties": {
+        "apply_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Apply Status"
+        },
+        "created_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Created Paths",
+          "type": "array"
+        },
         "draft_entry": {
           "description": "Generated markdown lines for the backlog entry",
           "items": {
@@ -1274,28 +1134,116 @@
           "default": null,
           "title": "Index Update Note"
         },
+        "operation_type": {
+          "description": "Classified operation type (create_entry, update_entry, ...)",
+          "title": "Operation Type",
+          "type": "string"
+        },
         "source_context": {
-          "$ref": "#/$defs/BacklogUpdateSourceContext"
+          "properties": {
+            "daily_backlog_exists": {
+              "title": "Daily Backlog Exists",
+              "type": "boolean"
+            },
+            "existing_task_count": {
+              "title": "Existing Task Count",
+              "type": "integer"
+            },
+            "project_profile_path": {
+              "title": "Project Profile Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "daily_backlog_exists",
+            "existing_task_count",
+            "project_profile_path"
+          ],
+          "title": "BacklogUpdateSourceContext",
+          "type": "object"
         },
-        "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+        "state_cache_missing_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "State Cache Missing Paths",
+          "type": "array"
         },
-        "status_recommendation": {
+        "state_cache_refresh_command": {
           "anyOf": [
             {
-              "$ref": "#/$defs/StatusRecommendation"
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "title": "State Cache Refresh Command"
+        },
+        "state_cache_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State Cache Status"
+        },
+        "state_cache_update_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State Cache Update Note"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "status_recommendation": {
+          "properties": {
+            "reason": {
+              "description": "Reason for the recommendation",
+              "title": "Reason",
+              "type": "string"
+            },
+            "value": {
+              "description": "Recommended status value",
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "reason"
+          ],
+          "title": "StatusRecommendation",
+          "type": "object"
         },
         "target_backlog_path": {
           "description": "Path to the updated backlog file",
           "title": "Target Backlog Path",
           "type": "string"
+        },
+        "task_found": {
+          "default": false,
+          "description": "Whether the requested task_id was found in the daily backlog",
+          "title": "Task Found",
+          "type": "boolean"
         },
         "task_id": {
           "description": "ID of the task that was updated",
@@ -1306,6 +1254,13 @@
           "description": "Version of the tool that generated this output",
           "title": "Tool Version",
           "type": "string"
+        },
+        "updated_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Updated Paths",
+          "type": "array"
         },
         "validation_note": {
           "anyOf": [
@@ -1326,55 +1281,50 @@
           },
           "title": "Warnings",
           "type": "array"
+        },
+        "written_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Written Paths",
+          "type": "array"
         }
       },
       "required": [
         "tool_version",
-        "task_id",
+        "operation_type",
         "target_backlog_path",
+        "task_id",
         "draft_entry",
+        "status_recommendation",
         "source_context"
       ],
       "title": "BacklogUpdateOutput",
       "type": "object"
     },
     "check_doc_links": {
-      "$defs": {
-        "BrokenLinks": {
-          "properties": {
-            "broken_links": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Broken Links",
-              "type": "array"
-            },
-            "path": {
-              "title": "Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "path",
-            "broken_links"
-          ],
-          "title": "BrokenLinks",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "broken_links": {
           "items": {
-            "$ref": "#/$defs/BrokenLinks"
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Broken Links",
+                "type": "array"
+              },
+              "path": {
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "broken_links"
+            ],
+            "title": "BrokenLinks",
+            "type": "object"
           },
           "title": "Broken Links",
           "type": "array"
@@ -1387,8 +1337,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1411,38 +1366,6 @@
       "type": "object"
     },
     "check_doc_metadata": {
-      "$defs": {
-        "MissingMetadata": {
-          "properties": {
-            "missing_fields": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Missing Fields",
-              "type": "array"
-            },
-            "path": {
-              "title": "Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "path",
-            "missing_fields"
-          ],
-          "title": "MissingMetadata",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "checked_files": {
           "items": {
@@ -1453,14 +1376,37 @@
         },
         "missing_metadata": {
           "items": {
-            "$ref": "#/$defs/MissingMetadata"
+            "properties": {
+              "missing_fields": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Missing Fields",
+                "type": "array"
+              },
+              "path": {
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "missing_fields"
+            ],
+            "title": "MissingMetadata",
+            "type": "object"
           },
           "title": "Missing Metadata",
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1483,63 +1429,28 @@
       "type": "object"
     },
     "check_quickstart_stale_links": {
-      "$defs": {
-        "BrokenLinks": {
-          "properties": {
-            "broken_links": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Broken Links",
-              "type": "array"
-            },
-            "path": {
-              "title": "Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "path",
-            "broken_links"
-          ],
-          "title": "BrokenLinks",
-          "type": "object"
-        },
-        "StaleLinkWarning": {
-          "properties": {
-            "missing_targets": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Missing Targets",
-              "type": "array"
-            },
-            "path": {
-              "title": "Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "path",
-            "missing_targets"
-          ],
-          "title": "StaleLinkWarning",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "broken_links": {
           "items": {
-            "$ref": "#/$defs/BrokenLinks"
+            "properties": {
+              "broken_links": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Broken Links",
+                "type": "array"
+              },
+              "path": {
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "broken_links"
+            ],
+            "title": "BrokenLinks",
+            "type": "object"
           },
           "title": "Broken Links",
           "type": "array"
@@ -1553,7 +1464,25 @@
         },
         "missing_expected_links": {
           "items": {
-            "$ref": "#/$defs/StaleLinkWarning"
+            "properties": {
+              "missing_targets": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Missing Targets",
+                "type": "array"
+              },
+              "path": {
+                "title": "Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "missing_targets"
+            ],
+            "title": "StaleLinkWarning",
+            "type": "object"
           },
           "title": "Missing Expected Links",
           "type": "array"
@@ -1573,8 +1502,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1597,61 +1531,6 @@
       "type": "object"
     },
     "code_index_update": {
-      "$defs": {
-        "IndexUpdateSourceContext": {
-          "properties": {
-            "change_summary": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Change Summary"
-            },
-            "changed_files": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Changed Files",
-              "type": "array"
-            },
-            "project_name": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Project Name"
-            },
-            "project_profile_path": {
-              "title": "Project Profile Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "project_profile_path"
-          ],
-          "title": "IndexUpdateSourceContext",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Output contract for the code-index-update skill.",
       "properties": {
         "apply_status": {
@@ -1709,7 +1588,48 @@
           "type": "array"
         },
         "source_context": {
-          "$ref": "#/$defs/IndexUpdateSourceContext"
+          "properties": {
+            "change_summary": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Change Summary"
+            },
+            "changed_files": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Changed Files",
+              "type": "array"
+            },
+            "project_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Name"
+            },
+            "project_profile_path": {
+              "title": "Project Profile Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project_profile_path"
+          ],
+          "title": "IndexUpdateSourceContext",
+          "type": "object"
         },
         "stale_index_warnings": {
           "items": {
@@ -1719,8 +1639,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "suggested_index_actions": {
           "items": {
@@ -1758,17 +1683,6 @@
       "type": "object"
     },
     "create_backlog_entry": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Output contract for the create-backlog-entry skill.",
       "properties": {
         "draft_entry": {
@@ -1780,8 +1694,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1805,17 +1724,6 @@
       "type": "object"
     },
     "create_environment_record_stub": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "draft_record": {
           "items": {
@@ -1830,8 +1738,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1855,17 +1768,6 @@
       "type": "object"
     },
     "create_session_handoff_draft": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "draft_handoff": {
           "items": {
@@ -1880,8 +1782,13 @@
           "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1905,8 +1812,9 @@
       "type": "object"
     },
     "demo_workflow": {
-      "$defs": {
-        "OrchestrationPlan": {
+      "description": "Output contract for the demo-workflow skill.",
+      "properties": {
+        "orchestration_plan": {
           "properties": {
             "integration_notes": {
               "items": {
@@ -1942,7 +1850,12 @@
           "title": "OrchestrationPlan",
           "type": "object"
         },
-        "Status": {
+        "source_context": {
+          "additionalProperties": true,
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
           "enum": [
             "ok",
             "warning",
@@ -1950,21 +1863,6 @@
           ],
           "title": "Status",
           "type": "string"
-        }
-      },
-      "description": "Output contract for the demo-workflow skill.",
-      "properties": {
-        "orchestration_plan": {
-          "$ref": "#/$defs/OrchestrationPlan"
-        },
-        "source_context": {
-          "additionalProperties": true,
-          "title": "Source Context",
-          "type": "object"
-        },
-        "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -1995,8 +1893,63 @@
       "type": "object"
     },
     "doc_sync": {
-      "$defs": {
-        "DocSyncSourceContext": {
+      "description": "Output contract for the doc-sync skill.",
+      "properties": {
+        "apply_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Apply Status"
+        },
+        "confidence_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Confidence Notes",
+          "type": "array"
+        },
+        "follow_up_actions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Follow Up Actions",
+          "type": "array"
+        },
+        "hub_update_candidates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hub Update Candidates",
+          "type": "array"
+        },
+        "impacted_documents": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Impacted Documents",
+          "type": "array"
+        },
+        "reasoning_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasoning Notes",
+          "type": "array"
+        },
+        "recommended_review_order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommended Review Order",
+          "type": "array"
+        },
+        "source_context": {
           "properties": {
             "change_summary": {
               "anyOf": [
@@ -2065,75 +2018,6 @@
           "title": "DocSyncSourceContext",
           "type": "object"
         },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
-      "description": "Output contract for the doc-sync skill.",
-      "properties": {
-        "apply_status": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Apply Status"
-        },
-        "confidence_notes": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Confidence Notes",
-          "type": "array"
-        },
-        "follow_up_actions": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Follow Up Actions",
-          "type": "array"
-        },
-        "hub_update_candidates": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Hub Update Candidates",
-          "type": "array"
-        },
-        "impacted_documents": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Impacted Documents",
-          "type": "array"
-        },
-        "reasoning_notes": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Reasoning Notes",
-          "type": "array"
-        },
-        "recommended_review_order": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Recommended Review Order",
-          "type": "array"
-        },
-        "source_context": {
-          "$ref": "#/$defs/DocSyncSourceContext"
-        },
         "stale_warnings": {
           "items": {
             "type": "string"
@@ -2142,8 +2026,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "status_doc_candidates": {
           "items": {
@@ -2188,8 +2077,9 @@
       "type": "object"
     },
     "existing_project_onboarding": {
-      "$defs": {
-        "OnboardingSummary": {
+      "description": "Output contract for the existing-project-onboarding skill.",
+      "properties": {
+        "onboarding_summary": {
           "properties": {
             "inferred_commands": {
               "additionalProperties": {
@@ -2236,7 +2126,7 @@
           "title": "OnboardingSummary",
           "type": "object"
         },
-        "OrchestrationPlan": {
+        "orchestration_plan": {
           "properties": {
             "integration_notes": {
               "items": {
@@ -2272,7 +2162,12 @@
           "title": "OrchestrationPlan",
           "type": "object"
         },
-        "Status": {
+        "source_context": {
+          "additionalProperties": true,
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
           "enum": [
             "ok",
             "warning",
@@ -2280,24 +2175,6 @@
           ],
           "title": "Status",
           "type": "string"
-        }
-      },
-      "description": "Output contract for the existing-project-onboarding skill.",
-      "properties": {
-        "onboarding_summary": {
-          "$ref": "#/$defs/OnboardingSummary"
-        },
-        "orchestration_plan": {
-          "$ref": "#/$defs/OrchestrationPlan"
-        },
-        "source_context": {
-          "additionalProperties": true,
-          "title": "Source Context",
-          "type": "object"
-        },
-        "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2323,41 +2200,72 @@
       "type": "object"
     },
     "git_conflict_resolver": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "UnresolvedConflict": {
-          "properties": {
-            "lines": {
-              "title": "Lines",
-              "type": "string"
-            },
-            "reason": {
-              "title": "Reason",
-              "type": "string"
-            }
-          },
-          "required": [
-            "lines",
-            "reason"
-          ],
-          "title": "UnresolvedConflict",
-          "type": "object"
-        }
-      },
       "description": "Output contract for the git-conflict-resolver skill.",
       "properties": {
         "conflict_count": {
           "description": "Total number of conflicts found",
           "title": "Conflict Count",
           "type": "integer"
+        },
+        "conflicts": {
+          "items": {
+            "properties": {
+              "file_path": {
+                "description": "Path to the file containing the conflict",
+                "title": "File Path",
+                "type": "string"
+              },
+              "line_number": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Approximate line number of the conflict",
+                "title": "Line Number"
+              },
+              "our_content": {
+                "description": "Content from the current branch (OURS)",
+                "title": "Our Content",
+                "type": "string"
+              },
+              "resolution_note": {
+                "description": "Rationale for the chosen resolution",
+                "title": "Resolution Note",
+                "type": "string"
+              },
+              "resolution_strategy": {
+                "enum": [
+                  "ours",
+                  "theirs",
+                  "merge",
+                  "manual"
+                ],
+                "title": "ResolutionStrategy",
+                "type": "string"
+              },
+              "their_content": {
+                "description": "Content from the incoming branch (THEIRS)",
+                "title": "Their Content",
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_path",
+              "our_content",
+              "their_content",
+              "resolution_strategy",
+              "resolution_note"
+            ],
+            "title": "ConflictPoint",
+            "type": "object"
+          },
+          "title": "Conflicts",
+          "type": "array"
         },
         "resolution_summary": {
           "description": "Human-readable summary of resolutions",
@@ -2369,9 +2277,21 @@
           "title": "Resolved Count",
           "type": "integer"
         },
+        "source_context": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Context",
+          "type": "object"
+        },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2380,7 +2300,10 @@
         },
         "unresolved_conflicts": {
           "items": {
-            "$ref": "#/$defs/UnresolvedConflict"
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
           },
           "title": "Unresolved Conflicts",
           "type": "array"
@@ -2404,17 +2327,6 @@
       "type": "object"
     },
     "latest_backlog": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "candidates": {
           "items": {
@@ -2436,8 +2348,13 @@
           "title": "Latest Backlog Path"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2460,42 +2377,6 @@
       "type": "object"
     },
     "merge_doc_reconcile": {
-      "$defs": {
-        "ReconcileSourceContext": {
-          "properties": {
-            "changed_files": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Changed Files",
-              "type": "array"
-            },
-            "merge_result_summary": {
-              "title": "Merge Result Summary",
-              "type": "string"
-            },
-            "project_profile_path": {
-              "title": "Project Profile Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "project_profile_path",
-            "merge_result_summary"
-          ],
-          "title": "ReconcileSourceContext",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Output contract for the merge-doc-reconcile skill.",
       "properties": {
         "apply_status": {
@@ -2575,7 +2456,29 @@
           "type": "array"
         },
         "source_context": {
-          "$ref": "#/$defs/ReconcileSourceContext"
+          "properties": {
+            "changed_files": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Changed Files",
+              "type": "array"
+            },
+            "merge_result_summary": {
+              "title": "Merge Result Summary",
+              "type": "string"
+            },
+            "project_profile_path": {
+              "title": "Project Profile Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project_profile_path",
+            "merge_result_summary"
+          ],
+          "title": "ReconcileSourceContext",
+          "type": "object"
         },
         "state_cache_missing_paths": {
           "items": {
@@ -2628,8 +2531,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2672,40 +2580,6 @@
       "type": "object"
     },
     "session_start": {
-      "$defs": {
-        "SessionStartSourceDocs": {
-          "properties": {
-            "project_profile_path": {
-              "title": "Project Profile Path",
-              "type": "string"
-            },
-            "session_handoff_path": {
-              "title": "Session Handoff Path",
-              "type": "string"
-            },
-            "work_backlog_index_path": {
-              "title": "Work Backlog Index Path",
-              "type": "string"
-            }
-          },
-          "required": [
-            "session_handoff_path",
-            "work_backlog_index_path",
-            "project_profile_path"
-          ],
-          "title": "SessionStartSourceDocs",
-          "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Output contract for the session-start skill.",
       "properties": {
         "blocked_items": {
@@ -2754,11 +2628,36 @@
           "type": "string"
         },
         "source_documents": {
-          "$ref": "#/$defs/SessionStartSourceDocs"
+          "properties": {
+            "project_profile_path": {
+              "title": "Project Profile Path",
+              "type": "string"
+            },
+            "session_handoff_path": {
+              "title": "Session Handoff Path",
+              "type": "string"
+            },
+            "work_backlog_index_path": {
+              "title": "Work Backlog Index Path",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_handoff_path",
+            "work_backlog_index_path",
+            "project_profile_path"
+          ],
+          "title": "SessionStartSourceDocs",
+          "type": "object"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "summary": {
           "items": {
@@ -2796,17 +2695,6 @@
       "type": "object"
     },
     "smart_context_reader": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "extracted_content": {
           "items": {
@@ -2823,8 +2711,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2847,17 +2740,6 @@
       "type": "object"
     },
     "suggest_impacted_docs": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "properties": {
         "impacted_documents": {
           "items": {
@@ -2874,8 +2756,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -2898,53 +2785,134 @@
       "type": "object"
     },
     "validation_plan": {
-      "$defs": {
-        "DeferredValidationItem": {
-          "properties": {
-            "item": {
-              "title": "Item",
+      "description": "Output contract for the validation-plan skill.",
+      "properties": {
+        "commands_requiring_confirmation": {
+          "items": {
+            "properties": {
+              "command": {
+                "title": "Command",
+                "type": "string"
+              },
+              "reason": {
+                "title": "Reason",
+                "type": "string"
+              }
+            },
+            "required": [
+              "command",
+              "reason"
+            ],
+            "title": "ValidationCommand",
+            "type": "object"
+          },
+          "title": "Commands Requiring Confirmation",
+          "type": "array"
+        },
+        "confidence_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Confidence Notes",
+          "type": "array"
+        },
+        "deferred_validation_items": {
+          "items": {
+            "properties": {
+              "item": {
+                "title": "Item",
+                "type": "string"
+              },
+              "suggested_record_path": {
+                "title": "Suggested Record Path",
+                "type": "string"
+              }
+            },
+            "required": [
+              "item",
+              "suggested_record_path"
+            ],
+            "title": "DeferredValidationItem",
+            "type": "object"
+          },
+          "title": "Deferred Validation Items",
+          "type": "array"
+        },
+        "detected_change_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Detected Change Types",
+          "type": "array"
+        },
+        "documentation_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Documentation Checks",
+          "type": "array"
+        },
+        "evidence_expectations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Expectations",
+          "type": "array"
+        },
+        "recommended_commands": {
+          "items": {
+            "properties": {
+              "command": {
+                "title": "Command",
+                "type": "string"
+              },
+              "reason": {
+                "title": "Reason",
+                "type": "string"
+              }
+            },
+            "required": [
+              "command",
+              "reason"
+            ],
+            "title": "ValidationCommand",
+            "type": "object"
+          },
+          "title": "Recommended Commands",
+          "type": "array"
+        },
+        "recommended_validation_levels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommended Validation Levels",
+          "type": "array"
+        },
+        "scaffold_path": {
+          "anyOf": [
+            {
               "type": "string"
             },
-            "suggested_record_path": {
-              "title": "Suggested Record Path",
-              "type": "string"
+            {
+              "type": "null"
             }
-          },
-          "required": [
-            "item",
-            "suggested_record_path"
           ],
-          "title": "DeferredValidationItem",
-          "type": "object"
+          "default": null,
+          "title": "Scaffold Path"
         },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "ValidationCommand": {
-          "properties": {
-            "command": {
-              "title": "Command",
+        "scaffold_status": {
+          "anyOf": [
+            {
               "type": "string"
             },
-            "reason": {
-              "title": "Reason",
-              "type": "string"
+            {
+              "type": "null"
             }
-          },
-          "required": [
-            "command",
-            "reason"
           ],
-          "title": "ValidationCommand",
-          "type": "object"
+          "default": null,
+          "title": "Scaffold Status"
         },
-        "ValidationPlanSourceContext": {
+        "source_context": {
           "properties": {
             "change_summary": {
               "anyOf": [
@@ -2987,96 +2955,15 @@
           ],
           "title": "ValidationPlanSourceContext",
           "type": "object"
-        }
-      },
-      "description": "Output contract for the validation-plan skill.",
-      "properties": {
-        "commands_requiring_confirmation": {
-          "items": {
-            "$ref": "#/$defs/ValidationCommand"
-          },
-          "title": "Commands Requiring Confirmation",
-          "type": "array"
-        },
-        "confidence_notes": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Confidence Notes",
-          "type": "array"
-        },
-        "deferred_validation_items": {
-          "items": {
-            "$ref": "#/$defs/DeferredValidationItem"
-          },
-          "title": "Deferred Validation Items",
-          "type": "array"
-        },
-        "detected_change_types": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Detected Change Types",
-          "type": "array"
-        },
-        "documentation_checks": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Documentation Checks",
-          "type": "array"
-        },
-        "evidence_expectations": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Evidence Expectations",
-          "type": "array"
-        },
-        "recommended_commands": {
-          "items": {
-            "$ref": "#/$defs/ValidationCommand"
-          },
-          "title": "Recommended Commands",
-          "type": "array"
-        },
-        "recommended_validation_levels": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Recommended Validation Levels",
-          "type": "array"
-        },
-        "scaffold_path": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Scaffold Path"
-        },
-        "scaffold_status": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Scaffold Status"
-        },
-        "source_context": {
-          "$ref": "#/$defs/ValidationPlanSourceContext"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",
@@ -3107,17 +2994,6 @@
       "type": "object"
     },
     "worker_response": {
-      "$defs": {
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
       "description": "Payload returned by a sub-agent (worker) to the orchestrator.",
       "properties": {
         "produced_artifacts": {
@@ -3150,8 +3026,13 @@
           "type": "array"
         },
         "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
         },
         "suggested_follow_up": {
           "description": "Next steps recommended by the worker",
@@ -3246,53 +3127,74 @@
       "type": "object"
     },
     "workflow_linter": {
-      "$defs": {
-        "LinterIssue": {
-          "properties": {
-            "code": {
-              "description": "Specific error code",
-              "title": "Code",
-              "type": "string"
+      "description": "Output contract for the workflow-linter skill.",
+      "properties": {
+        "issues": {
+          "items": {
+            "properties": {
+              "code": {
+                "description": "Specific error code",
+                "title": "Code",
+                "type": "string"
+              },
+              "description": {
+                "description": "Detailed description of the issue",
+                "title": "Description",
+                "type": "string"
+              },
+              "fix_suggestion": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Recommended action to resolve the issue",
+                "title": "Fix Suggestion"
+              },
+              "severity": {
+                "description": "Severity level: 'low', 'medium', 'high'",
+                "title": "Severity",
+                "type": "string"
+              },
+              "type": {
+                "description": "Category of the issue (e.g., 'sync_error', 'broken_link')",
+                "title": "Type",
+                "type": "string"
+              }
             },
-            "description": {
-              "description": "Detailed description of the issue",
-              "title": "Description",
-              "type": "string"
-            },
-            "fix_suggestion": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "description": "Recommended action to resolve the issue",
-              "title": "Fix Suggestion"
-            },
-            "severity": {
-              "description": "Severity level: 'low', 'medium', 'high'",
-              "title": "Severity",
-              "type": "string"
-            },
-            "type": {
-              "description": "Category of the issue (e.g., 'sync_error', 'broken_link')",
-              "title": "Type",
-              "type": "string"
-            }
+            "required": [
+              "type",
+              "code",
+              "description",
+              "severity"
+            ],
+            "title": "LinterIssue",
+            "type": "object"
           },
-          "required": [
-            "type",
-            "code",
-            "description",
-            "severity"
-          ],
-          "title": "LinterIssue",
+          "title": "Issues",
+          "type": "array"
+        },
+        "source_context": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Context",
           "type": "object"
         },
-        "LinterSummary": {
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
           "properties": {
             "bloat_warnings": {
               "title": "Bloat Warnings",
@@ -3319,39 +3221,6 @@
           ],
           "title": "LinterSummary",
           "type": "object"
-        },
-        "Status": {
-          "enum": [
-            "ok",
-            "warning",
-            "error"
-          ],
-          "title": "Status",
-          "type": "string"
-        }
-      },
-      "description": "Output contract for the workflow-linter skill.",
-      "properties": {
-        "issues": {
-          "items": {
-            "$ref": "#/$defs/LinterIssue"
-          },
-          "title": "Issues",
-          "type": "array"
-        },
-        "source_context": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "title": "Source Context",
-          "type": "object"
-        },
-        "status": {
-          "$ref": "#/$defs/Status",
-          "default": "ok"
-        },
-        "summary": {
-          "$ref": "#/$defs/LinterSummary"
         },
         "tool_version": {
           "description": "Version of the tool that generated this output",

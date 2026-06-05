@@ -27,8 +27,8 @@ class ErrorOutput(BaseOutput):
     error: str = Field(..., description="Human-readable error message")
     error_code: str = Field(..., description="Stable machine-readable error code")
     source_context: dict[str, Any] = Field(
-        default_factory=dict, 
-        description="Arbitrary context data to help diagnose the error"
+        ...,
+        description="Arbitrary context data to help diagnose the error",
     )
 
 

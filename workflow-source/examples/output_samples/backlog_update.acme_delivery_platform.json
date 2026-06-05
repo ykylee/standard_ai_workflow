@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "v0.4.2-beta",
+  "tool_version": "v0.5.0-beta",
   "operation_type": "update_entry",
   "target_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
   "task_id": "TASK-021",
@@ -58,5 +58,19 @@
     "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
     "daily_backlog_exists": true,
     "existing_task_count": 1
-  }
+  },
+  "apply_status": "applied",
+  "created_paths": [
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/backlog/2026-04-18.md"
+  ],
+  "state_cache_status": "refreshed",
+  "updated_paths": [
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/work_backlog.md",
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/session_handoff.md"
+  ],
+  "written_paths": [
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/backlog/2026-04-18.md",
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/work_backlog.md",
+    "/Users/yklee/.minimax/agents/mavis/workspace/.opencode/tmp/tmpci5a9owl/project/main/session_handoff.md"
+  ]
 }

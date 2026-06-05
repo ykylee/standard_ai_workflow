@@ -4,7 +4,7 @@
 - 범위: 완료된 작업, 현재 상태, 다음 단계, 블로커
 - 대상 독자: AI 에이전트, 개발자
 - 최종 수정일: 2026-04-30
-- 관련 문서: [./state.json](./state.json), [./work_backlog.md](../../work_backlog.md)
+- 관련 문서: [./state.json](./state.json), [./work_backlog.md](../phase10/work_backlog.md)
 
 - 상태: done
 - 생성일: 2026-04-27

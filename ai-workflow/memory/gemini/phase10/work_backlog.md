@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 매니저
 - 상태: stable
 - 최종 수정일: 2026-05-02
-- 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../docs/PROJECT_PROFILE.md)
+- 관련 문서: [세션 인계](./session_handoff.md), [프로젝트 프로파일](../../../../docs/PROJECT_PROFILE.md)
 
 ## 1. 운영 원칙
 1. 세션 시작 시 인덱스와 최신 백로그 확인

@@ -95,7 +95,7 @@ def session_request_response_pair(name: str, requests: list[dict[str, Any]]) -> 
 def build_jsonrpc_fixtures() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     latest_backlog_payload = {
-        "work_backlog_index_path": "workflow-source/examples/acme_delivery_platform/work_backlog.md"
+        "work_backlog_index_path": str((REPO_ROOT / "workflow-source" / "examples" / "acme_delivery_platform" / "work_backlog.md").resolve())
     }
     fixtures = [
         request_response_pair(

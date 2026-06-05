@@ -27,7 +27,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.4.2-beta"
+            "version": "v0.5.0-beta"
           }
         }
       }
@@ -73,7 +73,7 @@
           },
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.4.2-beta"
+            "version": "v0.5.0-beta"
           }
         }
       }
@@ -253,13 +253,20 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Candidates",
                     "type": "array"
                   },
                   "latest_backlog_path": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Latest Backlog Path"
                   },
                   "status": {
                     "enum": [
@@ -267,25 +274,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "candidates",
-                  "latest_backlog_path",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "LatestBacklogOutput",
                 "type": "object"
               }
             },
@@ -320,17 +329,32 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Checked Files",
                     "type": "array"
                   },
                   "missing_metadata": {
                     "items": {
-                      "properties": {},
+                      "properties": {
+                        "missing_fields": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Missing Fields",
+                          "type": "array"
+                        },
+                        "path": {
+                          "title": "Path",
+                          "type": "string"
+                        }
+                      },
                       "required": [
-                        "missing_fields",
-                        "path"
+                        "path",
+                        "missing_fields"
                       ],
+                      "title": "MissingMetadata",
                       "type": "object"
                     },
+                    "title": "Missing Metadata",
                     "type": "array"
                   },
                   "status": {
@@ -339,25 +363,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "checked_files",
-                  "missing_metadata",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "CheckDocMetadataOutput",
                 "type": "object"
               }
             },
@@ -390,19 +416,34 @@
                 "properties": {
                   "broken_links": {
                     "items": {
-                      "properties": {},
+                      "properties": {
+                        "broken_links": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Broken Links",
+                          "type": "array"
+                        },
+                        "path": {
+                          "title": "Path",
+                          "type": "string"
+                        }
+                      },
                       "required": [
-                        "broken_links",
-                        "path"
+                        "path",
+                        "broken_links"
                       ],
+                      "title": "BrokenLinks",
                       "type": "object"
                     },
+                    "title": "Broken Links",
                     "type": "array"
                   },
                   "checked_files": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Checked Files",
                     "type": "array"
                   },
                   "status": {
@@ -411,25 +452,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "broken_links",
-                  "checked_files",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "CheckDocLinksOutput",
                 "type": "object"
               }
             },
@@ -479,12 +522,14 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Impacted Documents",
                     "type": "array"
                   },
                   "reasoning_notes": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Reasoning Notes",
                     "type": "array"
                   },
                   "status": {
@@ -493,25 +538,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "impacted_documents",
-                  "reasoning_notes",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "SuggestImpactedDocsOutput",
                 "type": "object"
               }
             },
@@ -559,11 +606,14 @@
               },
               "name": "create_backlog_entry",
               "outputSchema": {
+                "description": "Output contract for the create-backlog-entry skill.",
                 "properties": {
                   "draft_entry": {
+                    "description": "Generated markdown lines for the backlog entry",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Draft Entry",
                     "type": "array"
                   },
                   "status": {
@@ -572,24 +622,28 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "draft_entry",
-                  "status",
                   "tool_version",
-                  "warnings"
+                  "draft_entry"
                 ],
+                "title": "CreateBacklogEntryOutput",
                 "type": "object"
               }
             },
@@ -626,20 +680,12 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Draft Handoff",
                     "type": "array"
                   },
                   "source_context": {
-                    "properties": {
-                      "latest_backlog_path": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "latest_backlog_path"
-                    ],
+                    "additionalProperties": true,
+                    "title": "Source Context",
                     "type": "object"
                   },
                   "status": {
@@ -648,25 +694,28 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "draft_handoff",
-                  "source_context",
-                  "status",
                   "tool_version",
-                  "warnings"
+                  "source_context"
                 ],
+                "title": "CreateSessionHandoffDraftOutput",
                 "type": "object"
               }
             },
@@ -706,21 +755,12 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Draft Record",
                     "type": "array"
                   },
                   "source_context": {
-                    "properties": {
-                      "hostname": {
-                        "type": "string"
-                      },
-                      "os_type": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "hostname",
-                      "os_type"
-                    ],
+                    "additionalProperties": true,
+                    "title": "Source Context",
                     "type": "object"
                   },
                   "status": {
@@ -729,25 +769,28 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "draft_record",
-                  "source_context",
-                  "status",
                   "tool_version",
-                  "warnings"
+                  "source_context"
                 ],
+                "title": "CreateEnvironmentRecordStubOutput",
                 "type": "object"
               }
             },
@@ -799,42 +842,73 @@
                 "properties": {
                   "broken_links": {
                     "items": {
-                      "properties": {},
+                      "properties": {
+                        "broken_links": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Broken Links",
+                          "type": "array"
+                        },
+                        "path": {
+                          "title": "Path",
+                          "type": "string"
+                        }
+                      },
                       "required": [
-                        "broken_links",
-                        "path"
+                        "path",
+                        "broken_links"
                       ],
+                      "title": "BrokenLinks",
                       "type": "object"
                     },
+                    "title": "Broken Links",
                     "type": "array"
                   },
                   "checked_files": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Checked Files",
                     "type": "array"
                   },
                   "missing_expected_links": {
                     "items": {
-                      "properties": {},
+                      "properties": {
+                        "missing_targets": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "title": "Missing Targets",
+                          "type": "array"
+                        },
+                        "path": {
+                          "title": "Path",
+                          "type": "string"
+                        }
+                      },
                       "required": [
-                        "missing_targets",
-                        "path"
+                        "path",
+                        "missing_targets"
                       ],
+                      "title": "StaleLinkWarning",
                       "type": "object"
                     },
+                    "title": "Missing Expected Links",
                     "type": "array"
                   },
                   "reasoning_notes": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Reasoning Notes",
                     "type": "array"
                   },
                   "stale_link_warnings": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Stale Link Warnings",
                     "type": "array"
                   },
                   "status": {
@@ -843,27 +917,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "checked_files",
-                  "missing_expected_links",
-                  "reasoning_notes",
-                  "stale_link_warnings",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "CheckQuickstartStaleLinksOutput",
                 "type": "object"
               }
             },
@@ -898,30 +972,7 @@
               },
               "name": "summarize_git_history",
               "outputSchema": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "ok",
-                      "warning",
-                      "error"
-                    ],
-                    "type": "string"
-                  },
-                  "tool_version": {
-                    "type": "string"
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "status",
-                  "tool_version",
-                  "warnings"
-                ],
+                "description": "Generic schema for unmodeled family 'summarize_git_history'.",
                 "type": "object"
               }
             },
@@ -955,30 +1006,7 @@
               },
               "name": "rotate_workflow_logs",
               "outputSchema": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "ok",
-                      "warning",
-                      "error"
-                    ],
-                    "type": "string"
-                  },
-                  "tool_version": {
-                    "type": "string"
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "status",
-                  "tool_version",
-                  "warnings"
-                ],
+                "description": "Generic schema for unmodeled family 'rotate_workflow_logs'.",
                 "type": "object"
               }
             },
@@ -1013,30 +1041,7 @@
               },
               "name": "assess_milestone_progress",
               "outputSchema": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "ok",
-                      "warning",
-                      "error"
-                    ],
-                    "type": "string"
-                  },
-                  "tool_version": {
-                    "type": "string"
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "status",
-                  "tool_version",
-                  "warnings"
-                ],
+                "description": "Generic schema for unmodeled family 'assess_milestone_progress'.",
                 "type": "object"
               }
             },
@@ -1078,12 +1083,14 @@
                     "items": {
                       "type": "string"
                     },
+                    "title": "Extracted Content",
                     "type": "array"
                   },
                   "not_found_symbols": {
                     "items": {
                       "type": "string"
                     },
+                    "title": "Not Found Symbols",
                     "type": "array"
                   },
                   "status": {
@@ -1092,25 +1099,27 @@
                       "warning",
                       "error"
                     ],
+                    "title": "Status",
                     "type": "string"
                   },
                   "tool_version": {
+                    "description": "Version of the tool that generated this output",
+                    "title": "Tool Version",
                     "type": "string"
                   },
                   "warnings": {
+                    "description": "List of non-fatal warnings encountered",
                     "items": {
                       "type": "string"
                     },
+                    "title": "Warnings",
                     "type": "array"
                   }
                 },
                 "required": [
-                  "extracted_content",
-                  "not_found_symbols",
-                  "status",
-                  "tool_version",
-                  "warnings"
+                  "tool_version"
                 ],
+                "title": "SmartContextReaderOutput",
                 "type": "object"
               }
             },
@@ -1145,30 +1154,7 @@
               },
               "name": "apply_robust_patch",
               "outputSchema": {
-                "properties": {
-                  "status": {
-                    "enum": [
-                      "ok",
-                      "warning",
-                      "error"
-                    ],
-                    "type": "string"
-                  },
-                  "tool_version": {
-                    "type": "string"
-                  },
-                  "warnings": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "status",
-                  "tool_version",
-                  "warnings"
-                ],
+                "description": "Generic schema for unmodeled family 'apply_robust_patch'.",
                 "type": "object"
               }
             }
@@ -1200,7 +1186,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.4.2-beta\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.5.0-beta\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -1210,7 +1196,7 @@
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "v0.4.2-beta",
+            "tool_version": "v0.5.0-beta",
             "warnings": []
           }
         }
@@ -1242,7 +1228,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "v0.4.2-beta",
+            "tool_version": "v0.5.0-beta",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1382,7 +1368,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.4.2-beta"
+              "version": "v0.5.0-beta"
             }
           }
         },
@@ -1442,13 +1428,20 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Candidates",
                       "type": "array"
                     },
                     "latest_backlog_path": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Latest Backlog Path"
                     },
                     "status": {
                       "enum": [
@@ -1456,25 +1449,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "candidates",
-                    "latest_backlog_path",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "LatestBacklogOutput",
                   "type": "object"
                 }
               },
@@ -1509,17 +1504,32 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Checked Files",
                       "type": "array"
                     },
                     "missing_metadata": {
                       "items": {
-                        "properties": {},
+                        "properties": {
+                          "missing_fields": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "title": "Missing Fields",
+                            "type": "array"
+                          },
+                          "path": {
+                            "title": "Path",
+                            "type": "string"
+                          }
+                        },
                         "required": [
-                          "missing_fields",
-                          "path"
+                          "path",
+                          "missing_fields"
                         ],
+                        "title": "MissingMetadata",
                         "type": "object"
                       },
+                      "title": "Missing Metadata",
                       "type": "array"
                     },
                     "status": {
@@ -1528,25 +1538,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "checked_files",
-                    "missing_metadata",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "CheckDocMetadataOutput",
                   "type": "object"
                 }
               },
@@ -1579,19 +1591,34 @@
                   "properties": {
                     "broken_links": {
                       "items": {
-                        "properties": {},
+                        "properties": {
+                          "broken_links": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "title": "Broken Links",
+                            "type": "array"
+                          },
+                          "path": {
+                            "title": "Path",
+                            "type": "string"
+                          }
+                        },
                         "required": [
-                          "broken_links",
-                          "path"
+                          "path",
+                          "broken_links"
                         ],
+                        "title": "BrokenLinks",
                         "type": "object"
                       },
+                      "title": "Broken Links",
                       "type": "array"
                     },
                     "checked_files": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Checked Files",
                       "type": "array"
                     },
                     "status": {
@@ -1600,25 +1627,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "broken_links",
-                    "checked_files",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "CheckDocLinksOutput",
                   "type": "object"
                 }
               },
@@ -1668,12 +1697,14 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Impacted Documents",
                       "type": "array"
                     },
                     "reasoning_notes": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Reasoning Notes",
                       "type": "array"
                     },
                     "status": {
@@ -1682,25 +1713,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "impacted_documents",
-                    "reasoning_notes",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "SuggestImpactedDocsOutput",
                   "type": "object"
                 }
               },
@@ -1748,11 +1781,14 @@
                 },
                 "name": "create_backlog_entry",
                 "outputSchema": {
+                  "description": "Output contract for the create-backlog-entry skill.",
                   "properties": {
                     "draft_entry": {
+                      "description": "Generated markdown lines for the backlog entry",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Draft Entry",
                       "type": "array"
                     },
                     "status": {
@@ -1761,24 +1797,28 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "draft_entry",
-                    "status",
                     "tool_version",
-                    "warnings"
+                    "draft_entry"
                   ],
+                  "title": "CreateBacklogEntryOutput",
                   "type": "object"
                 }
               },
@@ -1815,20 +1855,12 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Draft Handoff",
                       "type": "array"
                     },
                     "source_context": {
-                      "properties": {
-                        "latest_backlog_path": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "latest_backlog_path"
-                      ],
+                      "additionalProperties": true,
+                      "title": "Source Context",
                       "type": "object"
                     },
                     "status": {
@@ -1837,25 +1869,28 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "draft_handoff",
-                    "source_context",
-                    "status",
                     "tool_version",
-                    "warnings"
+                    "source_context"
                   ],
+                  "title": "CreateSessionHandoffDraftOutput",
                   "type": "object"
                 }
               },
@@ -1895,21 +1930,12 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Draft Record",
                       "type": "array"
                     },
                     "source_context": {
-                      "properties": {
-                        "hostname": {
-                          "type": "string"
-                        },
-                        "os_type": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "hostname",
-                        "os_type"
-                      ],
+                      "additionalProperties": true,
+                      "title": "Source Context",
                       "type": "object"
                     },
                     "status": {
@@ -1918,25 +1944,28 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "draft_record",
-                    "source_context",
-                    "status",
                     "tool_version",
-                    "warnings"
+                    "source_context"
                   ],
+                  "title": "CreateEnvironmentRecordStubOutput",
                   "type": "object"
                 }
               },
@@ -1988,42 +2017,73 @@
                   "properties": {
                     "broken_links": {
                       "items": {
-                        "properties": {},
+                        "properties": {
+                          "broken_links": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "title": "Broken Links",
+                            "type": "array"
+                          },
+                          "path": {
+                            "title": "Path",
+                            "type": "string"
+                          }
+                        },
                         "required": [
-                          "broken_links",
-                          "path"
+                          "path",
+                          "broken_links"
                         ],
+                        "title": "BrokenLinks",
                         "type": "object"
                       },
+                      "title": "Broken Links",
                       "type": "array"
                     },
                     "checked_files": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Checked Files",
                       "type": "array"
                     },
                     "missing_expected_links": {
                       "items": {
-                        "properties": {},
+                        "properties": {
+                          "missing_targets": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "title": "Missing Targets",
+                            "type": "array"
+                          },
+                          "path": {
+                            "title": "Path",
+                            "type": "string"
+                          }
+                        },
                         "required": [
-                          "missing_targets",
-                          "path"
+                          "path",
+                          "missing_targets"
                         ],
+                        "title": "StaleLinkWarning",
                         "type": "object"
                       },
+                      "title": "Missing Expected Links",
                       "type": "array"
                     },
                     "reasoning_notes": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Reasoning Notes",
                       "type": "array"
                     },
                     "stale_link_warnings": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Stale Link Warnings",
                       "type": "array"
                     },
                     "status": {
@@ -2032,27 +2092,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "checked_files",
-                    "missing_expected_links",
-                    "reasoning_notes",
-                    "stale_link_warnings",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "CheckQuickstartStaleLinksOutput",
                   "type": "object"
                 }
               },
@@ -2087,30 +2147,7 @@
                 },
                 "name": "summarize_git_history",
                 "outputSchema": {
-                  "properties": {
-                    "status": {
-                      "enum": [
-                        "ok",
-                        "warning",
-                        "error"
-                      ],
-                      "type": "string"
-                    },
-                    "tool_version": {
-                      "type": "string"
-                    },
-                    "warnings": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "tool_version",
-                    "warnings"
-                  ],
+                  "description": "Generic schema for unmodeled family 'summarize_git_history'.",
                   "type": "object"
                 }
               },
@@ -2144,30 +2181,7 @@
                 },
                 "name": "rotate_workflow_logs",
                 "outputSchema": {
-                  "properties": {
-                    "status": {
-                      "enum": [
-                        "ok",
-                        "warning",
-                        "error"
-                      ],
-                      "type": "string"
-                    },
-                    "tool_version": {
-                      "type": "string"
-                    },
-                    "warnings": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "tool_version",
-                    "warnings"
-                  ],
+                  "description": "Generic schema for unmodeled family 'rotate_workflow_logs'.",
                   "type": "object"
                 }
               },
@@ -2202,30 +2216,7 @@
                 },
                 "name": "assess_milestone_progress",
                 "outputSchema": {
-                  "properties": {
-                    "status": {
-                      "enum": [
-                        "ok",
-                        "warning",
-                        "error"
-                      ],
-                      "type": "string"
-                    },
-                    "tool_version": {
-                      "type": "string"
-                    },
-                    "warnings": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "tool_version",
-                    "warnings"
-                  ],
+                  "description": "Generic schema for unmodeled family 'assess_milestone_progress'.",
                   "type": "object"
                 }
               },
@@ -2267,12 +2258,14 @@
                       "items": {
                         "type": "string"
                       },
+                      "title": "Extracted Content",
                       "type": "array"
                     },
                     "not_found_symbols": {
                       "items": {
                         "type": "string"
                       },
+                      "title": "Not Found Symbols",
                       "type": "array"
                     },
                     "status": {
@@ -2281,25 +2274,27 @@
                         "warning",
                         "error"
                       ],
+                      "title": "Status",
                       "type": "string"
                     },
                     "tool_version": {
+                      "description": "Version of the tool that generated this output",
+                      "title": "Tool Version",
                       "type": "string"
                     },
                     "warnings": {
+                      "description": "List of non-fatal warnings encountered",
                       "items": {
                         "type": "string"
                       },
+                      "title": "Warnings",
                       "type": "array"
                     }
                   },
                   "required": [
-                    "extracted_content",
-                    "not_found_symbols",
-                    "status",
-                    "tool_version",
-                    "warnings"
+                    "tool_version"
                   ],
+                  "title": "SmartContextReaderOutput",
                   "type": "object"
                 }
               },
@@ -2334,30 +2329,7 @@
                 },
                 "name": "apply_robust_patch",
                 "outputSchema": {
-                  "properties": {
-                    "status": {
-                      "enum": [
-                        "ok",
-                        "warning",
-                        "error"
-                      ],
-                      "type": "string"
-                    },
-                    "tool_version": {
-                      "type": "string"
-                    },
-                    "warnings": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "tool_version",
-                    "warnings"
-                  ],
+                  "description": "Generic schema for unmodeled family 'apply_robust_patch'.",
                   "type": "object"
                 }
               }
@@ -2399,7 +2371,7 @@
             },
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.4.2-beta"
+              "version": "v0.5.0-beta"
             }
           }
         },
@@ -2418,6 +2390,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "v0.4.2-beta",
+  "tool_version": "v0.5.0-beta",
   "transport_ready": false
 }

@@ -24,3 +24,10 @@ class SessionStartOutput(BaseOutput):
     validation_notes: list[str] = Field(default_factory=list)
     environment_constraints: list[str] = Field(default_factory=list)
     source_documents: SessionStartSourceDocs
+
+    @property
+    def primary_summary(self) -> str:
+        """Backwards-compatible string view of the summary list."""
+        if not self.summary:
+            return ""
+        return self.summary[0]

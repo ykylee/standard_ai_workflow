@@ -28,3 +28,8 @@ class WorkflowLinterOutput(BaseOutput):
     warnings: list[str] = Field(default_factory=list)
     summary: LinterSummary
     source_context: dict[str, str] = Field(default_factory=dict)
+
+    @property
+    def linter_status(self) -> str:
+        """Legacy ``linter_status`` key for downstream tests."""
+        return "issues_found" if self.issues else "ok"

@@ -39,5 +39,5 @@
 - 기타: <프로젝트 특유의 컨벤션>
 
 ## 다음에 읽을 문서
-- [세션 인계 문서](./session_handoff.md)
-- [작업 백로그](./work_backlog.md)
+- [세션 인계 문서](./gemini/phase10/session_handoff.md)
+- [작업 백로그](./gemini/phase10/work_backlog.md)

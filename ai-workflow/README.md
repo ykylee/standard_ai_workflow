@@ -17,9 +17,9 @@
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - [ai-workflow/memory/state.json](./memory/state.json)
-- [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
-- [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
-- [ai-workflow/memory/backlog/2026-05-02.md](./memory/backlog/2026-05-02.md)
+- [ai-workflow/memory/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
+- [ai-workflow/memory/work_backlog.md](./memory/gemini/phase10/work_backlog.md)
+- [ai-workflow/memory/backlog/2026-05-02.md](./memory/gemini/phase10/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
 
 
 ## 3. 코어 문서
@@ -63,5 +63,5 @@
 
 - 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - 빠른 상태 요약: [./memory/state.json](./memory/state.json)
-- 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
-- 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)
+- 세션 인계 문서: [./memory/gemini/phase10/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/gemini/phase10/work_backlog.md](./memory/gemini/phase10/work_backlog.md)

@@ -417,13 +417,68 @@ def check_antigravity_mode() -> None:
             raise AssertionError("ANTIGRAVITY.md should mention sub-agents.")
 
 
+def check_minimax_code_mode() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "minimax-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "minimax_project",
+                "--project-name",
+                "MiniMax Code Project",
+                "--harness",
+                "minimax-code",
+                "--copy-core-docs",
+            ]
+        )
+        if payload["harnesses"] != ["minimax-code"]:
+            raise AssertionError("Expected only the minimax-code harness.")
+        harness_files = payload["generated_harness_files"]
+
+        expected_keys = {
+            "minimax_code_agents",
+            "minimax_config_example",
+            "minimax_orchestrator",
+            "minimax_worker",
+            "minimax_doc_worker",
+            "minimax_code_worker",
+            "minimax_validation_worker",
+        }
+        missing = expected_keys - set(harness_files)
+        if missing:
+            raise AssertionError(f"Missing MiniMax Code harness files: {sorted(missing)}")
+
+        for key in expected_keys:
+            assert_exists(str(harness_files[key]))
+
+        minimax_text = Path(str(harness_files["minimax_code_agents"])).read_text(encoding="utf-8")
+        if "# MiniMax.md" not in minimax_text:
+            raise AssertionError("MiniMax.md should have the correct header.")
+        if "오케스트레이터 / 워커" not in minimax_text:
+            raise AssertionError("MiniMax.md should describe the orchestrator/worker split.")
+        if "WorkerTask" not in minimax_text:
+            raise AssertionError("MiniMax.md should reference the WorkerTask contract.")
+        if "사용자에게 직접 보이는 작업 보고" not in minimax_text:
+            raise AssertionError("MiniMax.md should include the Korean reporting rule.")
+
+        config_text = Path(str(harness_files["minimax_config_example"])).read_text(encoding="utf-8")
+        if "workflow-orchestrator" not in config_text:
+            raise AssertionError("MiniMax config should reference the orchestrator agent.")
+        if "PYTHONPATH" not in config_text:
+            raise AssertionError("MiniMax config should expose PYTHONPATH for the read-only MCP draft.")
+
+
 def main() -> int:
     check_new_project_mode()
     check_existing_project_mode()
     check_opencode_only_mode()
     check_gemini_cli_mode()
     check_antigravity_mode()
-    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli and antigravity.")
+    check_minimax_code_mode()
+    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, and minimax-code.")
     return 0
 
 

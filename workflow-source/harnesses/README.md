@@ -1,11 +1,11 @@
 # Harnesses
 
 - 문서 목적: 표준 AI 워크플로우를 하네스별 배포 패키지로 맞출 때 참고할 타겟별 안내 문서를 모은다.
-- 범위: Codex, OpenCode 타겟별 파일 구성과 bootstrap 연결 방식, 공통 `AGENTS.md` 진입점, 추후 하네스 확장 포인트
+- 범위: Codex, OpenCode, MiniMax Code, Gemini CLI, Antigravity 타겟별 파일 구성과 bootstrap 연결 방식, 공통 `AGENTS.md` 진입점, 추후 하네스 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `../core/workflow_harness_distribution.md`, `../scripts/bootstrap_workflow_kit.py`
+- 최종 수정일: 2026-06-05
+- 관련 문서: `../core/workflow_harness_distribution.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_harnesses/__init__.py`
 
 ## 현재 지원 타겟
 
@@ -13,8 +13,12 @@
 - [codex/apply_guide.md](./codex/apply_guide.md)
 - [opencode/README.md](./opencode/README.md)
 - [opencode/apply_guide.md](./opencode/apply_guide.md)
+- [minimax-code/README.md](./minimax-code/README.md)
+- [minimax-code/apply_guide.md](./minimax-code/apply_guide.md)
 - [gemini-cli/README.md](./gemini-cli/README.md)
 - [gemini-cli/apply_guide.md](./gemini-cli/apply_guide.md)
+- [antigravity/README.md](./antigravity/README.md)
+- [antigravity/apply_guide.md](./antigravity/apply_guide.md)
 
 ## 추후 확장용 템플릿
 

@@ -36,6 +36,6 @@
     "smart_context_reader",
     "apply_robust_patch"
   ],
-  "tool_version": "v0.4.2-beta",
+  "tool_version": "v0.5.0-beta",
   "transport_ready": false
 }

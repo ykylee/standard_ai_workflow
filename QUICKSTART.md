@@ -78,10 +78,40 @@ pip install -r requirements-dev.txt
 
 ## 5. MCP 도구 사용 (선택 사항)
 
-정식 MCP SDK가 설치된 경우, 에이전트는 더 강력한 도구를 직접 사용할 수 있습니다:
+`bootstrap_workflow_kit.py` 가 각 하네스별 MCP config 스니펫을 자동으로 생성할 수 있다. 도입 시점에 한 번만 실행하면 된다.
 
 ```bash
-# MCP 서버 실행 예시
+# bootstrap 시 --enable-mcp 추가
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> \
+  --project-name "<name>" \
+  --harness <harness> \
+  --adoption-mode existing \
+  --copy-core-docs \
+  --enable-mcp                       # ← 이 한 줄
+```
+
+생성되는 파일:
+
+| 하네스 | 경로 | 스키마 |
+| --- | --- | --- |
+| Codex | `<root>/.codex/mcp.toml` | TOML |
+| OpenCode | `<root>/mcp.opencode.json` | JSON (`mcp` 키) |
+| Gemini CLI | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
+| Antigravity | `<root>/antigravity.mcp.json` | JSON (`mcpServers` 키) |
+| MiniMax Code | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
+
+전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/settings.json` / `~/.MiniMax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](./workflow-source/core/mcp_installation_by_harness.md)
+
+전송 방식 (transport) 선택:
+
+- `--mcp-bridge jsonrpc-bridge` (default, 안정) — `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines`
+- `--mcp-bridge stdio-sdk` (실험적) — `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk`. 정식 mcp SDK 호환이 필요한 경우에만.
+
+정식 MCP SDK가 설치된 환경에서는 SDK stdio server 도 직접 띄울 수 있다:
+
+```bash
 python3 ai-workflow/workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
 ```
 

@@ -97,3 +97,42 @@ python3 scripts/bootstrap_workflow_kit.py \
 - Gemini CLI 패키지 안내: [./README.md](./README.md)
 - 하네스 허브: [../README.md](../README.md)
 - 도입 분기 가이드: [../../core/workflow_adoption_entrypoints.md](../../core/workflow_adoption_entrypoints.md)
+- **MCP 설치 by 하네스: [../../core/mcp_installation_by_harness.md](../../core/mcp_installation_by_harness.md)**
+- 예시: [../../examples/mcp_config_examples/gemini-cli-mcp.json](../../examples/mcp_config_examples/gemini-cli-mcp.json)
+
+## 7. 로컬 MCP 설치 (`--enable-mcp`)
+
+Gemini CLI 의 MCP 연결은 `~/.gemini/settings.json` 의 `"mcpServers": { ... }` 키다.
+
+### 7.1 자동 심기
+
+```bash
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> --project-name "<name>" \
+  --harness gemini-cli --adoption-mode existing --copy-core-docs \
+  --enable-mcp
+```
+
+`<root>/.gemini/mcp.json` 생성. 프로젝트 로컬로 두고 싶으면 그대로, 글로벌에 등록하려면 `~/.gemini/settings.json` 의 `mcpServers` 블록에 merge.
+
+### 7.2 전역에 적용
+
+```json
+{
+  "mcpServers": {
+    "standardAiWorkflowReadOnly": {
+      "command": "python3",
+      "args": ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"],
+      "env": {
+        "PYTHONPATH": "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source",
+        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
+      },
+      "trust": true,
+      "includeTools": ["latest_backlog", "check_doc_metadata", "check_doc_links", "suggest_impacted_docs"]
+    }
+  }
+}
+```
+
+자세한 가이드: [`../../core/mcp_installation_by_harness.md`](../../core/mcp_installation_by_harness.md), 예시: [`../../examples/mcp_config_examples/gemini-cli-mcp.json`](../../examples/mcp_config_examples/gemini-cli-mcp.json)

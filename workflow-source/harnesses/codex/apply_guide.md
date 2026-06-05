@@ -163,6 +163,38 @@ python3 scripts/apply_harness_update.py \
 - 여러 프로젝트가 공유하는 전역 설정에 특정 저장소 backlog 경로를 넣는 것
 - `AGENTS.md` 대신 전역 설정만으로 프로젝트 운영 규칙을 모두 해결하려는 것
 
+## 9. 로컬 MCP 설치 (`--enable-mcp`)
+
+Codex 의 MCP 연결은 TOML 의 `[mcp_servers.<alias>]` 섹션으로 등록한다.
+
+### 9.1 자동 심기
+
+`bootstrap_workflow_kit.py` 의 `--harness codex --enable-mcp` 옵션이 `<root>/.codex/mcp.toml` 스니펫을 한 번에 생성한다. 예:
+
+```bash
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> --project-name "<name>" \
+  --harness codex --adoption-mode existing --copy-core-docs \
+  --enable-mcp
+```
+
+`--mcp-bridge jsonrpc-bridge|stdio-sdk` 로 transport 선택 가능. 기본값은 `jsonrpc-bridge` (안정적).
+
+### 9.2 전역에 적용
+
+`~/.codex/config.toml` 의 `[mcp_servers]` 테이블 아래에 스니펫을 그대로 복사한다. 절대 경로 보정:
+
+```toml
+[mcp_servers.standardAiWorkflowReadOnly]
+command = "python3"
+args = ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
+STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"
+```
+
+자세한 가이드: [`../../core/mcp_installation_by_harness.md`](../../core/mcp_installation_by_harness.md), 예시: [`../../examples/mcp_config_examples/codex-mcp.toml`](../../examples/mcp_config_examples/codex-mcp.toml)
+
 ## 다음에 읽을 문서
 
 - Codex 패키지 안내: [./README.md](./README.md)
@@ -170,4 +202,5 @@ python3 scripts/apply_harness_update.py \
 - 도입 분기 가이드: [../../core/workflow_adoption_entrypoints.md](../../core/workflow_adoption_entrypoints.md)
 - 설정 계층 가이드: [../../core/workflow_configuration_layers.md](../../core/workflow_configuration_layers.md)
 - 비침투적 주입 정책: [../../core/workflow_global_injection_policy.md](../../core/workflow_global_injection_policy.md)
+- **MCP 설치 by 하네스: [../../core/mcp_installation_by_harness.md](../../core/mcp_installation_by_harness.md)**
 - 전역 snippet: [../../global-snippets/codex/config.toml.snippet](../../global-snippets/codex/config.toml.snippet)

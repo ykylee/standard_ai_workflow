@@ -77,3 +77,35 @@ MiniMax chat "AGENTS.md와 MiniMax.md를 읽고 워크플로우 세션을 시작
 - 첫 적용이 끝나면 `workflow-source/harnesses/minimax-code/README.md` 와 본 가이드를 함께 검토한다.
 - 추가 워커 페르소나가 필요하면 `MiniMax.md` 의 "오케스트레이터 / 워커 운영 원칙" 섹션을 갱신하고 `.MiniMax/agents/` 에 새 파일을 추가한다.
 - 운영 패턴이 안정되면 `pilot_adoption_record_template.md` 로 도입 기록을 남긴다.
+
+## 7. 로컬 MCP 설치 (`--enable-mcp`)
+
+MiniMax Code 의 MCP 연결은 `mcp_servers` 키다.
+
+### 7.1 자동 심기
+
+```bash
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> --project-name "<name>" \
+  --harness minimax-code --adoption-mode existing --copy-core-docs \
+  --enable-mcp
+```
+
+`<root>/.MiniMax/mcp.json` 생성. 글로벌에 등록하려면 symlink:
+
+```bash
+mkdir -p ~/.MiniMax
+ln -sf <project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
+```
+
+### 7.2 전역에 적용
+
+`~/.MiniMax/config.json` 의 `mcp_servers` 블록에 bootstrap 출력의 `standardAiWorkflowReadOnly` 항목을 옮긴다. `PYTHONPATH` 와 `STANDARD_AI_WORKFLOW_ROOT` 는 절대 경로로 보정.
+
+### 7.3 Transport 선택
+
+- 기본 `jsonrpc-bridge` (권장, 안정) — `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines`
+- `stdio-sdk` (실험적) — `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk`. `--mcp-bridge stdio-sdk` 로 전환. `check_read_only_mcp_sdk_stdio.py` 가 그린이 되면 정식 권장으로 승격.
+
+자세한 가이드: [`../../core/mcp_installation_by_harness.md`](../../core/mcp_installation_by_harness.md), 예시: [`../../examples/mcp_config_examples/minimax-code-mcp.json`](../../examples/mcp_config_examples/minimax-code-mcp.json), stdio-sdk variant: [`../../examples/mcp_config_examples/minimax-code-mcp.stdio-sdk.json`](../../examples/mcp_config_examples/minimax-code-mcp.stdio-sdk.json)

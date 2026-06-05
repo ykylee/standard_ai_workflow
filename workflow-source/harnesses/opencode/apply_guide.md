@@ -174,4 +174,27 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 도입 분기 가이드: [../../core/workflow_adoption_entrypoints.md](../../core/workflow_adoption_entrypoints.md)
 - 설정 계층 가이드: [../../core/workflow_configuration_layers.md](../../core/workflow_configuration_layers.md)
 - 비침투적 주입 정책: [../../core/workflow_global_injection_policy.md](../../core/workflow_global_injection_policy.md)
+- **MCP 설치 by 하네스: [../../core/mcp_installation_by_harness.md](../../core/mcp_installation_by_harness.md)**
 - 전역 snippet: [../../global-snippets/opencode/opencode.global.jsonc](../../global-snippets/opencode/opencode.global.jsonc)
+
+## 7. 로컬 MCP 설치 (`--enable-mcp`)
+
+OpenCode 의 MCP 연결은 `opencode.json` 의 최상위 `"mcp": { ... }` 키다.
+
+### 7.1 자동 심기
+
+```bash
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> --project-name "<name>" \
+  --harness opencode --adoption-mode existing --copy-core-docs \
+  --enable-mcp
+```
+
+`<root>/mcp.opencode.json` 스니펫이 생성된다. 프로젝트 `opencode.json` 의 `mcp` 키에 그대로 merge 하거나 symlink 한다.
+
+### 7.2 전역에 적용
+
+`~/.config/opencode/opencode.json` 의 `mcp` 블록에 bootstrap 출력의 `standardAiWorkflowReadOnly` 항목을 옮긴다. `PYTHONPATH` 와 `STANDARD_AI_WORKFLOW_ROOT` 는 절대 경로로 보정.
+
+자세한 가이드: [`../../core/mcp_installation_by_harness.md`](../../core/mcp_installation_by_harness.md), 예시: [`../../examples/mcp_config_examples/opencode-mcp.json`](../../examples/mcp_config_examples/opencode-mcp.json)

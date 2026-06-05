@@ -471,6 +471,93 @@ def check_minimax_code_mode() -> None:
             raise AssertionError("MiniMax config should expose PYTHONPATH for the read-only MCP draft.")
 
 
+def check_enable_mcp_emission() -> None:
+    """Verify ``--enable-mcp`` writes a per-harness MCP config snippet."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "mcp-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "mcp_emission",
+                "--project-name",
+                "MCP Emission",
+                "--harness",
+                "codex",
+                "--harness",
+                "opencode",
+                "--harness",
+                "gemini-cli",
+                "--harness",
+                "antigravity",
+                "--harness",
+                "minimax-code",
+                "--copy-core-docs",
+                "--enable-mcp",
+            ]
+        )
+        harness_files = payload["generated_harness_files"]
+        expected_keys = {
+            "codex_mcp_config": ".codex/mcp.toml",
+            "opencode_mcp_config": "mcp.opencode.json",
+            "gemini_cli_mcp_config": ".gemini/mcp.json",
+            "antigravity_mcp_config": "antigravity.mcp.json",
+            "minimax_code_mcp_config": ".MiniMax/mcp.json",
+        }
+        for key, suffix in expected_keys.items():
+            if key not in harness_files:
+                raise AssertionError(f"--enable-mcp did not emit {key}")
+            if not str(harness_files[key]).endswith(suffix):
+                raise AssertionError(f"{key} should land at {suffix}, got {harness_files[key]}")
+            if not Path(str(harness_files[key])).exists():
+                raise AssertionError(f"{key} file missing on disk: {harness_files[key]}")
+
+        codex_text = Path(str(harness_files["codex_mcp_config"])).read_text(encoding="utf-8")
+        if "[mcp_servers.standardAiWorkflowReadOnly]" not in codex_text:
+            raise AssertionError("Codex MCP config should declare [mcp_servers.standardAiWorkflowReadOnly] section.")
+        if "read_only_jsonrpc" not in codex_text:
+            raise AssertionError("Codex MCP config should reference the read-only JSON-RPC bridge by default.")
+
+        minimax_payload = json.loads(Path(str(harness_files["minimax_code_mcp_config"])).read_text(encoding="utf-8"))
+        if "standardAiWorkflowReadOnly" not in minimax_payload.get("mcp_servers", {}):
+            raise AssertionError("MiniMax MCP config should declare the standardAiWorkflowReadOnly server.")
+        if minimax_payload["mcp_servers"]["standardAiWorkflowReadOnly"].get("transport") != "jsonrpc-bridge":
+            raise AssertionError("MiniMax MCP config should default to jsonrpc-bridge transport.")
+
+
+def check_stdio_sdk_mcp_emission() -> None:
+    """Verify ``--mcp-bridge stdio-sdk`` switches the emitted config transport."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "stdio-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "stdio_emission",
+                "--project-name",
+                "Stdio SDK Emission",
+                "--harness",
+                "minimax-code",
+                "--copy-core-docs",
+                "--enable-mcp",
+                "--mcp-bridge",
+                "stdio-sdk",
+            ]
+        )
+        minimax_path = payload["generated_harness_files"]["minimax_code_mcp_config"]
+        minimax_payload = json.loads(Path(str(minimax_path)).read_text(encoding="utf-8"))
+        transport = minimax_payload["mcp_servers"]["standardAiWorkflowReadOnly"].get("transport")
+        if transport != "stdio-sdk":
+            raise AssertionError(f"--mcp-bridge stdio-sdk should switch the transport, got {transport}")
+        args = minimax_payload["mcp_servers"]["standardAiWorkflowReadOnly"].get("args", [])
+        if not any("read_only_mcp_sdk" in str(part) for part in args):
+            raise AssertionError("stdio-sdk MCP config should reference read_only_mcp_sdk entry point.")
+
+
 def main() -> int:
     check_new_project_mode()
     check_existing_project_mode()
@@ -478,7 +565,9 @@ def main() -> int:
     check_gemini_cli_mode()
     check_antigravity_mode()
     check_minimax_code_mode()
-    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, and minimax-code.")
+    check_enable_mcp_emission()
+    check_stdio_sdk_mcp_emission()
+    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, minimax-code, and --enable-mcp emission.")
     return 0
 
 

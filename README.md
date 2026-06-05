@@ -16,6 +16,8 @@
 - 릴리스 규격 가이드: `./workflow-source/core/workflow_release_spec.md`
 - 승격 범위 가이드: `./workflow-source/core/prototype_promotion_scope.md`
 - read-only MCP transport 승격 기준: `./workflow-source/core/read_only_mcp_transport_promotion.md`
+- **하네스별 로컬 MCP 설치 가이드 (v0.5.1 신규)**: `./workflow-source/core/mcp_installation_by_harness.md`
+- **하네스별 MCP config 예시 5종 (v0.5.1 신규)**: `./workflow-source/examples/mcp_config_examples/`
 - 설정 계층 가이드: `./workflow-source/core/workflow_configuration_layers.md`
 - 비침투적 주입 정책: `./workflow-source/core/workflow_global_injection_policy.md`
 - workflow kit 패키지 가이드: `./workflow-source/workflow_kit/README.md`
@@ -224,6 +226,20 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --harness antigravity \
   --copy-core-docs
 ```
+
+로컬 MCP 까지 함께 심으려면 `--enable-mcp` 옵션을 추가한다. 각 하네스별 MCP config 스니펫이 `<root>/.codex/mcp.toml`, `<root>/mcp.opencode.json`, `<root>/.gemini/mcp.json`, `<root>/antigravity.mcp.json`, `<root>/.MiniMax/mcp.json` 중 선택한 하네스 경로로 emit 된다.
+
+```bash
+python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+  --target-root <project_root> \
+  --project-slug <slug> --project-name "<name>" \
+  --harness minimax-code \
+  --adoption-mode existing --copy-core-docs \
+  --enable-mcp                       # ← 로컬 MCP 동시 심기
+  # --mcp-bridge stdio-sdk            # 선택: 정식 SDK stdio 사용 (실험적)
+```
+
+자세한 가이드: [workflow-source/core/mcp_installation_by_harness.md](./workflow-source/core/mcp_installation_by_harness.md), 예시 5종: [workflow-source/examples/mcp_config_examples/](./workflow-source/examples/mcp_config_examples/)
 
 기존 프로젝트용 분석 기반 도입은 아래처럼 시작할 수 있다.
 

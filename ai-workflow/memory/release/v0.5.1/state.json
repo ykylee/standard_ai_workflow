@@ -28,6 +28,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (bootstrap emit → spawn → round-trip)",
       "TASK-V051-003 각 하네스별 로컬 MCP 설치/온보딩 자동화 + 가이드 + 예시 설정",
       "TASK-V051-002 v0.5.1 후보 작업 우선순위 결정",
       "TASK-V051-001 v0.5.0 self-dogfooding 점검 + 메모리 layer 부트스트랩"
@@ -36,12 +37,13 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/release/v0.5.1/backlog/2026-06-05.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-V051-001 v0.5.0 self-dogfooding 점검 + 메모리 layer 부트스트랩",
       "TASK-V051-002 v0.5.1 후보 작업 우선순위 결정",
+      "TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (bootstrap emit → spawn → round-trip)",
       "TASK-V051-003 각 하네스별 로컬 MCP 설치/온보딩 자동화 + 가이드 + 예시 설정"
     ]
   },

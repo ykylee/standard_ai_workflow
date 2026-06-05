@@ -16,7 +16,9 @@
 
 ## Work Status
 
-- TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (환경 의존, 다음 세션 시작 시 사용자 환경 선택): planned
+- TASK-V051-006 나머지 4개 하네스 (Codex / OpenCode / Gemini CLI / Antigravity) round-trip smoke: planned
+- TASK-V051-005 `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정: planned
+- TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (bootstrap emit → spawn → round-trip): done
 - TASK-V051-003 각 하네스별 로컬 MCP 설치/온보딩 자동화 + 가이드 + 예시 설정: done
 - TASK-V051-002 v0.5.1 후보 작업 우선순위 결정: done
 - TASK-V051-001 v0.5.0 self-dogfooding 점검 + 메모리 layer 부트스트랩: done
@@ -25,7 +27,7 @@
 
 - `ai-workflow/memory/release/v0.5.1/PROJECT_PROFILE.md` 신규 (실제 명령/검증/exceptions 반영)
 - `ai-workflow/memory/release/v0.5.1/session_handoff.md` 신규 (이 문서)
-- `ai-workflow/memory/release/v0.5.1/backlog/2026-06-05.md` 신규 (TASK-V051-001..003)
+- `ai-workflow/memory/release/v0.5.1/backlog/2026-06-05.md` 신규 (TASK-V051-001..004)
 - `ai-workflow/memory/release/v0.5.1/state.json` 신규 (generate_workflow_state.py 로 생성)
 - `ai-workflow/memory/work_backlog.md` 신규 (글로벌 인덱스)
 - `check_docs.py` 96 markdown files 0 broken 확인
@@ -36,11 +38,12 @@
 - (TASK-V051-003) 5개 하네스의 `apply_guide.md` 에 "로컬 MCP 설치" 섹션 추가
 - (TASK-V051-003) `QUICKSTART.md` / `README.md` 의 MCP 섹션 갱신
 - (TASK-V051-003) `check_bootstrap.py` 에 `check_enable_mcp_emission` + `check_stdio_sdk_mcp_emission` 추가
+- (TASK-V051-004) `workflow-source/tests/check_bootstrap_mcp_roundtrip.py` 신규 (bootstrap emit → spawn → JSON-RPC round-trip smoke)
 
 ## Next Actions
 
-- TASK-V051-004: 각 하네스 환경에서 실제 MCP stdio 세션 smoke (사용자 환경 선택: Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code 중 어디서 검증할지)
-- TASK-V051-005: `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (남은 리스크 #2 의 후속)
+- TASK-V051-005: `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (남은 리스크 #2 의 후속, 1차 가설: mcp 1.27.0 의 `CallToolResult(structuredContent=...)` API 시그니처 변경)
+- TASK-V051-006: 나머지 4개 하네스 (Codex / OpenCode / Gemini CLI / Antigravity) round-trip smoke (`check_bootstrap_mcp_roundtrip.py` 의 harness 인자만 바꿔서 재실행)
 
 ## Risks & Blockers
 

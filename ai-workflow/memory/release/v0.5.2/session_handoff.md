@@ -11,17 +11,19 @@
 
 - **현재 브랜치**: `release/v0.5.2` (main #73f8f2f 에서 분기, 2026-06-06)
 - **현재 주 작업 축**: v0.5.2 = v0.5.1 의 plan 된 3개 후속 모두 실행
-  - TASK-V052-001: `bootstrap_workflow_kit.py` 1,855줄 → `bootstrap_lib/` 풀 리팩터
-  - TASK-V052-002: `workflow_kit` 정식 패키지 배포 (`pyproject.toml` 추가, `pip install -e .` 가능)
-  - TASK-V052-003: 외부 저장소 pilot validation 1건 (Devhub_example 추천)
-- **현재 기준선**: main 은 v0.5.1 (PR #13/#14/#15 머지) 까지 stable. v0.5.2 는 main 에서 분기, 0 commit. `ai-workflow/memory/release/v0.5.2/` 디렉터리 부트스트랩 진행 중
+  - TASK-V052-001: `bootstrap_workflow_kit.py` 1,855줄 → `bootstrap_lib/` 풀 리팩터 ✅
+  - TASK-V052-002: `workflow_kit` 정식 패키지 배포 (`pyproject.toml` 추가, `pip install -e .` 가능) ✅
+  - TASK-V052-003: 외부 저장소 pilot validation 1건 (Devhub_example 추천) ✅
+- **현재 기준선**: 모든 v0.5.2 TASK done, v0.5.2-beta tag 생성, release 노트 작성. main 머지 대기
 - **메모리 layer 연속성**: v0.5.1 의 memory layer 가 같은 패턴으로 v0.5.2 에도 이식됨
 
 ## Work Status
 
-- TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터 (2,468줄 → `bootstrap_lib/` 패키지화): done (PR #16)
-- TASK-V052-002 `workflow_kit` 정식 패키지 배포 (`pyproject.toml`): done
-- TASK-V052-003 외부 저장소 pilot validation 1건: done
+- TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터 (2,468줄 → `bootstrap_lib/` 패키지화): done (PR #16, commit fda93b5)
+- TASK-V052-002 `workflow_kit` 정식 패키지 배포 (`pyproject.toml`): done (commit e390e00)
+- TASK-V052-003 외부 저장소 pilot validation 1건: done (commit c92f166)
+- v0.5.2-beta tag 생성 (commit cce82aa)
+- Beta-v0.5.2.md release 노트 작성
 - (v0.5.1 의 TASK-V051-001..006 done — history 보존)
 
 ## Key Changes

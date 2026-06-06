@@ -28,7 +28,9 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터 (1,855줄 → `bootstrap_lib/` 패키지화)"
+      "TASK-V052-002 `workflow_kit` 정식 패키지 배포 (`pyproject.toml`)",
+      "TASK-V052-003 외부 저장소 pilot validation 1건",
+      "TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터"
     ],
     "environment_constraints": []
   },
@@ -38,7 +40,9 @@
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터"
+      "TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터",
+      "TASK-V052-002 `workflow_kit` 정식 패키지 배포",
+      "TASK-V052-003 외부 저장소 pilot validation 1건"
     ]
   },
   "next_documents": [

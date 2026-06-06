@@ -8,20 +8,25 @@ can actually be spawned by a harness, run a JSON-RPC session, and serve
 the bootstrap generates a syntactically valid config but the underlying
 bridge entry point is broken (wrong PYTHONPATH, missing module, etc.).
 
+By default this test runs the smoke for **every supported harness** so a
+single run covers Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code.
+A specific subset can be requested via the ``--harness`` flag (repeatable).
+
 Usage::
 
     PYTHONPATH=workflow-source python3 workflow-source/tests/check_bootstrap_mcp_roundtrip.py
+    PYTHONPATH=workflow-source python3 workflow-source/tests/check_bootstrap_mcp_roundtrip.py --harness minimax-code
 
 The test is CWD-independent: it anchors PYTHONPATH at this repository's
 ``workflow-source`` directory and the harness cwd at the bootstrap output
-directory (``/tmp/mcp-smoke`` by default).
+directory (a temp dir per harness run).
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -31,29 +36,54 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
+#: Harness name → key in the bootstrap manifest's ``generated_harness_files``
+#: dict that points at the emitted MCP config file.
+HARNESS_CONFIG_KEY = {
+    "codex": "codex_mcp_config",
+    "opencode": "opencode_mcp_config",
+    "gemini-cli": "gemini_cli_mcp_config",
+    "antigravity": "antigravity_mcp_config",
+    "minimax-code": "minimax_code_mcp_config",
+}
 
-def run_bootstrap(target_root: Path) -> dict[str, object]:
-    """Run ``bootstrap --enable-mcp`` and return the manifest payload."""
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--harness",
+        action="append",
+        choices=list(HARNESS_CONFIG_KEY),
+        help="Limit the smoke to a single harness. Repeatable; defaults to all.",
+    )
+    return parser.parse_args()
+
+
+def run_bootstrap(target_root: Path, harness: str) -> dict[str, object]:
+    """Run ``bootstrap --enable-mcp`` for a single harness and return the manifest payload.
+
+    The bootstrap script writes a progress preamble to stdout before
+    printing the final manifest. We therefore locate the manifest by
+    parsing successive JSON candidates from the end of stdout rather
+    than relying on a fixed delimiter.
+    """
     args = [
         sys.executable,
         str(SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"),
         "--target-root",
         str(target_root),
         "--project-slug",
-        "mcp_smoke",
+        f"mcp_smoke_{harness.replace('-', '_')}",
         "--project-name",
-        "MCP Smoke",
+        f"MCP Smoke {harness}",
         "--harness",
-        "minimax-code",
+        harness,
         "--adoption-mode",
         "new",
         "--copy-core-docs",
         "--enable-mcp",
     ]
     env = os.environ.copy()
-    env["PYTHONPATH"] = str(SOURCE_ROOT)
-    if str(SOURCE_ROOT.parent / "scripts") not in env.get("PYTHONPATH", ""):
-        env["PYTHONPATH"] = f"{SOURCE_ROOT}{os.pathsep}{SOURCE_ROOT.parent / 'scripts'}"
+    env["PYTHONPATH"] = f"{SOURCE_ROOT}{os.pathsep}{SOURCE_ROOT.parent / 'scripts'}"
     completed = subprocess.run(
         args,
         cwd=str(REPO_ROOT),
@@ -62,13 +92,33 @@ def run_bootstrap(target_root: Path) -> dict[str, object]:
         check=True,
         env=env,
     )
-    # Manifest is the last JSON object printed on stdout
-    payload = json.loads(completed.stdout.split("}\n")[-2] + "}")
-    return payload
+    # Walk backwards over the lines, trying to parse a JSON object out of
+    # the tail. The manifest is the last valid JSON object on stdout.
+    lines = completed.stdout.splitlines()
+    for end in range(len(lines), 0, -1):
+        for start in range(end - 1, -1, -1):
+            if lines[start].lstrip().startswith("{"):
+                candidate = "\n".join(lines[start:end])
+                try:
+                    payload = json.loads(candidate)
+                except json.JSONDecodeError:
+                    break  # this starting line isn't a real object start; bail
+                if isinstance(payload, dict) and "generated_harness_files" in payload:
+                    return payload
+                # else: this was some other JSON; keep walking
+                break
+    raise AssertionError(
+        f"bootstrap did not produce a recognisable manifest on stdout. "
+        f"Last 200 chars:\n{completed.stdout[-200:]}"
+    )
 
 
-def spawn_bridge(manifest: dict[str, object], target_root: Path) -> subprocess.Popen[str]:
-    """Spawn the MCP bridge described by the bootstrap manifest.
+def spawn_bridge(
+    manifest: dict[str, object],
+    target_root: Path,
+    harness: str,
+) -> subprocess.Popen[str]:
+    """Spawn the MCP bridge described by the bootstrap manifest for ``harness``.
 
     Anchors ``PYTHONPATH`` at the kit's ``workflow-source`` so the entry
     point can resolve ``workflow_kit`` regardless of the caller's cwd,
@@ -79,22 +129,46 @@ def spawn_bridge(manifest: dict[str, object], target_root: Path) -> subprocess.P
     dependencies, so we pin to the same interpreter we used to run the
     test (which definitely has them).
     """
-    config = json.loads(
-        Path(str(manifest["generated_harness_files"]["minimax_code_mcp_config"])).read_text(
-            encoding="utf-8"
+    config_key = HARNESS_CONFIG_KEY[harness]
+    if config_key not in manifest["generated_harness_files"]:
+        raise AssertionError(
+            f"bootstrap did not emit {config_key!r} for harness {harness!r}. "
+            f"Keys present: {sorted(manifest['generated_harness_files'])}"
         )
-    )
-    server = config["mcp_servers"]["standardAiWorkflowReadOnly"]
-    # Replace the emitted "python3" with the test runner's interpreter so
-    # the spawned bridge has the same Python environment as the test.
-    cmd = [sys.executable, *server["args"]]
+    config_path = Path(str(manifest["generated_harness_files"][config_key]))
+    config_text = config_path.read_text(encoding="utf-8")
+    if config_path.suffix == ".toml":
+        # Codex uses TOML; we only care about the [mcp_servers.<alias>] table.
+        server_block = _parse_codex_toml_server_block(config_text)
+    else:
+        config = json.loads(config_text)
+        # Resolve to the actual server block under our canonical alias.
+        # Each harness uses a slightly different top-level key, and the
+        # ``mcp`` / ``mcpServers`` / ``mcp_servers`` keys wrap a dict
+        # keyed by the server alias (``standardAiWorkflowReadOnly``).
+        if "mcp" in config and isinstance(config["mcp"], dict):
+            server_block = (
+                config["mcp"].get("standardAiWorkflowReadOnly") or config["mcp"]
+            )
+        elif "mcpServers" in config and isinstance(config["mcpServers"], dict):
+            server_block = (
+                config["mcpServers"].get("standardAiWorkflowReadOnly") or config["mcpServers"]
+            )
+        elif "mcp_servers" in config and isinstance(config["mcp_servers"], dict):
+            server_block = (
+                config["mcp_servers"].get("standardAiWorkflowReadOnly") or config["mcp_servers"]
+            )
+        else:
+            server_block = {}
+    if not server_block or "command" not in server_block:
+        raise AssertionError(
+            f"Emitted MCP config for {harness!r} has no recognisable server block. "
+            f"Top-level keys: {sorted(config)}"
+        )
+    cmd = [sys.executable, *server_block["args"]]
     env = os.environ.copy()
-    # Bootstrap emits a relative PYTHONPATH ("workflow-source"). Anchor it
-    # at the kit's actual workflow-source so the bridge can import
-    # ``workflow_kit`` from any cwd.
-    kit_env = {**server.get("env", {}), "PYTHONPATH": str(SOURCE_ROOT)}
+    kit_env = {**server_block.get("env", {}), "PYTHONPATH": str(SOURCE_ROOT)}
     env.update({k: str(v) for k, v in kit_env.items()})
-    # STANDARD_AI_WORKFLOW_ROOT should be the absolute bootstrap target
     env["STANDARD_AI_WORKFLOW_ROOT"] = str(target_root.resolve())
     return subprocess.Popen(
         cmd,
@@ -108,7 +182,9 @@ def spawn_bridge(manifest: dict[str, object], target_root: Path) -> subprocess.P
     )
 
 
-def round_trip(proc: subprocess.Popen[str], request: dict[str, object], *, timeout: float = 5.0) -> dict[str, object]:
+def round_trip(
+    proc: subprocess.Popen[str], request: dict[str, object], *, timeout: float = 5.0
+) -> dict[str, object]:
     """Send a single JSON-RPC request over stdio and return the response."""
     assert proc.stdin is not None and proc.stdout is not None
     proc.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
@@ -123,14 +199,59 @@ def round_trip(proc: subprocess.Popen[str], request: dict[str, object], *, timeo
     raise AssertionError(f"No response within {timeout}s for request {request['method']}")
 
 
-def main() -> int:
+def _parse_codex_toml_server_block(toml_text: str) -> dict[str, object]:
+    """Best-effort parser for the Codex ``[mcp_servers.<alias>]`` TOML block.
+
+    Codex's snippet uses a flat layout with simple key = value pairs plus a
+    single string array for ``args``. We don't need full TOML semantics —
+    just enough to extract ``command``, ``args`` (parsed from a TOML list
+    literal), and the env vars.
+    """
+    import re
+
+    # Locate the [mcp_servers.standardAiWorkflowReadOnly] section.
+    section_match = re.search(
+        r"^\[mcp_servers\.standardAiWorkflowReadOnly\]\s*$(.*?)(?=^\[|\Z)",
+        toml_text,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not section_match:
+        raise AssertionError("Codex TOML is missing the [mcp_servers.standardAiWorkflowReadOnly] section.")
+    body = section_match.group(1)
+    server: dict[str, object] = {}
+
+    # command = "python3"
+    command_match = re.search(r'^\s*command\s*=\s*"([^"]+)"', body, re.MULTILINE)
+    if not command_match:
+        raise AssertionError("Codex TOML is missing `command = \"...\"`.")
+    server["command"] = command_match.group(1)
+
+    # args = ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+    args_match = re.search(r"^\s*args\s*=\s*\[(.*?)\]\s*$", body, re.MULTILINE | re.DOTALL)
+    if args_match:
+        items = re.findall(r'"([^"]+)"', args_match.group(1))
+        server["args"] = items
+    else:
+        server["args"] = []
+
+    # env entries like: PYTHONPATH = "workflow-source"
+    env: dict[str, str] = {}
+    for env_match in re.finditer(r'^\s*([A-Z_][A-Z0-9_]*)\s*=\s*"([^"]*)"', body, re.MULTILINE):
+        key = env_match.group(1)
+        if key in {"command"} or key in {"startup_timeout_sec", "tool_timeout_sec"}:
+            continue
+        env[key] = env_match.group(2)
+    if env:
+        server["env"] = env
+    return server
+
+
+def smoke_one_harness(harness: str) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
-        target_root = Path(tmpdir) / "mcp-smoke"
+        target_root = Path(tmpdir) / f"mcp-smoke-{harness}"
         target_root.mkdir(parents=True, exist_ok=True)
-        manifest = run_bootstrap(target_root)
-        if "minimax_code_mcp_config" not in manifest["generated_harness_files"]:
-            raise AssertionError("bootstrap did not emit a minimax_code_mcp_config file.")
-        proc = spawn_bridge(manifest, target_root)
+        manifest = run_bootstrap(target_root, harness)
+        proc = spawn_bridge(manifest, target_root, harness)
         try:
             init = round_trip(
                 proc,
@@ -174,7 +295,9 @@ def main() -> int:
                 raise AssertionError("latest_backlog call did not return the expected bridge phase.")
             structured = call_result.get("structuredContent", {})
             if structured.get("status") != "ok":
-                raise AssertionError(f"latest_backlog structuredContent status is {structured.get('status')!r}, expected 'ok'.")
+                raise AssertionError(
+                    f"latest_backlog structuredContent status is {structured.get('status')!r}, expected 'ok'."
+                )
         finally:
             try:
                 if proc.stdin is not None:
@@ -187,11 +310,19 @@ def main() -> int:
                 proc.kill()
             stderr = proc.stderr.read() if proc.stderr is not None else ""
             if stderr.strip():
-                # Surface only the first 400 chars to avoid log noise
                 snippet = stderr.strip().splitlines()[:5]
-                print(f"bridge stderr (first 5 lines):\n  " + "\n  ".join(snippet))
+                print(f"  [{harness}] bridge stderr (first 5 lines):\n    " + "\n    ".join(snippet))
 
-    print("Bootstrap-emitted MCP config round-trip smoke check passed.")
+
+def main() -> int:
+    args = parse_args()
+    harnesses = args.harness or list(HARNESS_CONFIG_KEY)
+    print(f"Running MCP round-trip smoke for: {harnesses}")
+    for harness in harnesses:
+        print(f"  - {harness} ...", end=" ", flush=True)
+        smoke_one_harness(harness)
+        print("ok")
+    print("Bootstrap-emitted MCP config round-trip smoke check passed for all selected harnesses.")
     return 0
 
 

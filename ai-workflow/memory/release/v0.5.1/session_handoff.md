@@ -16,16 +16,20 @@
 
 ## Work Status
 
-- TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (환경 의존, 다음 세션 시작 시 사용자 환경 선택): planned
+- TASK-V051-006 나머지 4개 하네스 (Codex / OpenCode / Gemini CLI / Antigravity) round-trip smoke: done
+- TASK-V051-005 `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정: done (실은 버그 아님 — venv 미설치였음)
+- TASK-V051-004 각 하네스 환경에서 실제 MCP stdio 세션 smoke (bootstrap emit → spawn → round-trip): done
 - TASK-V051-003 각 하네스별 로컬 MCP 설치/온보딩 자동화 + 가이드 + 예시 설정: done
 - TASK-V051-002 v0.5.1 후보 작업 우선순위 결정: done
 - TASK-V051-001 v0.5.0 self-dogfooding 점검 + 메모리 layer 부트스트랩: done
+
+v0.5.1 의 plan 된 모든 in_progress TASK 가 완료됨. v0.5.1 release 노트 + 태그 + release PR 작성 후속.
 
 ## Key Changes
 
 - `ai-workflow/memory/release/v0.5.1/PROJECT_PROFILE.md` 신규 (실제 명령/검증/exceptions 반영)
 - `ai-workflow/memory/release/v0.5.1/session_handoff.md` 신규 (이 문서)
-- `ai-workflow/memory/release/v0.5.1/backlog/2026-06-05.md` 신규 (TASK-V051-001..003)
+- `ai-workflow/memory/release/v0.5.1/backlog/2026-06-05.md` 신규 (TASK-V051-001..006)
 - `ai-workflow/memory/release/v0.5.1/state.json` 신규 (generate_workflow_state.py 로 생성)
 - `ai-workflow/memory/work_backlog.md` 신규 (글로벌 인덱스)
 - `check_docs.py` 96 markdown files 0 broken 확인
@@ -36,11 +40,15 @@
 - (TASK-V051-003) 5개 하네스의 `apply_guide.md` 에 "로컬 MCP 설치" 섹션 추가
 - (TASK-V051-003) `QUICKSTART.md` / `README.md` 의 MCP 섹션 갱신
 - (TASK-V051-003) `check_bootstrap.py` 에 `check_enable_mcp_emission` + `check_stdio_sdk_mcp_emission` 추가
+- (TASK-V051-004) `workflow-source/tests/check_bootstrap_mcp_roundtrip.py` 신규 (bootstrap emit → spawn → JSON-RPC round-trip smoke, 1차: MiniMax Code)
+- (TASK-V051-005) `Connection closed` 재현 시도 → venv 의존 문제로 판명, 코드 변경 없음
+- (TASK-V051-006) `check_bootstrap_mcp_roundtrip.py` parametric 확장 (5개 하네스 모두 round-trip 검증, Codex TOML 파서 추가)
 
 ## Next Actions
 
-- TASK-V051-004: 각 하네스 환경에서 실제 MCP stdio 세션 smoke (사용자 환경 선택: Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code 중 어디서 검증할지)
-- TASK-V051-005: `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (남은 리스크 #2 의 후속)
+- v0.5.1 release 노트 작성 (`workflow-source/releases/Beta-v0.5.1.md`)
+- v0.5.1-beta 태그 + release PR (main 기준)
+- v0.5.2 후보: `bootstrap_workflow_kit.py` 1,855줄 → `bootstrap_lib/` 풀 리팩터, 또는 `workflow_kit` 정식 패키지 배포, 또는 외부 저장소 pilot validation 1건 — 사용자 선택 대기
 
 ## Risks & Blockers
 

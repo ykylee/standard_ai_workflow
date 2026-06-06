@@ -21,7 +21,7 @@
 
 - TASK-V052-001 `bootstrap_workflow_kit.py` 풀 리팩터 (2,468줄 → `bootstrap_lib/` 패키지화): done (PR #16)
 - TASK-V052-002 `workflow_kit` 정식 패키지 배포 (`pyproject.toml`): done
-- TASK-V052-003 외부 저장소 pilot validation 1건: in_progress
+- TASK-V052-003 외부 저장소 pilot validation 1건: done
 - (v0.5.1 의 TASK-V051-001..006 done — history 보존)
 
 ## Key Changes

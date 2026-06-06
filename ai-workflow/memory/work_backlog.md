@@ -29,4 +29,4 @@
 
 - [release/v0.5.2/session_handoff.md](./release/v0.5.2/session_handoff.md)
 - [release/v0.5.2/backlog/2026-06-06.md](./release/v0.5.2/backlog/2026-06-06.md)
-- [Maturity Matrix](../../../workflow-source/core/maturity_matrix.json)
+- [Maturity Matrix](../../workflow-source/core/maturity_matrix.json)

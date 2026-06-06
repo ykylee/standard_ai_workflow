@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer, 멀티 에이전트 운영자, AI agent
 - 상태: stable
 - 최종 수정일: 2026-06-06
-- 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md), [Maturity Matrix](../ai-workflow/core/maturity_matrix.json), [Bootstrap Script](../../workflow-source/scripts/bootstrap_workflow_kit.py)
+- 관련 문서: [공통 표준](../../../../workflow-source/core/global_workflow_standard.md), [Maturity Matrix](../../../../workflow-source/core/maturity_matrix.json), [Bootstrap Script](../../../../workflow-source/scripts/bootstrap_workflow_kit.py)
 
 ## 1. 프로젝트 개요
 
@@ -75,6 +75,6 @@
 
 ## 다음에 읽을 문서
 
-- [세션 인계 문서](../memory/release/v0.5.2/session_handoff.md)
-- [작업 백로그 인덱스](../memory/work_backlog.md)
-- [Maturity Matrix](../../workflow-source/core/maturity_matrix.json)
+- [세션 인계 문서](./session_handoff.md)
+- [작업 백로그 인덱스](../../work_backlog.md)
+- [Maturity Matrix](../../../../workflow-source/core/maturity_matrix.json)

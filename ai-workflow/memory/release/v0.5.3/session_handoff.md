@@ -18,8 +18,9 @@
 
 ## Work Status
 
-- TASK-V053-001 antigravity MCP config 경로 표준화: in_progress
-- TASK-V053-002 cross-language stack 표시: in_progress
+- TASK-V053-001 antigravity MCP config 경로 표준화: done (PR #17)
+- TASK-V053-002 cross-language stack 표시: done (PR #17)
+- v0.5.3 merge commit: b6ae73a (squash of release/v0.5.3)
 - (v0.5.2 의 TASK-V052-001/002/003 done — history 보존)
 - (v0.5.1 의 TASK-V051-001..006 done — history 보존)
 

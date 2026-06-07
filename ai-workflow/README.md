@@ -46,6 +46,9 @@
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
+> v0.5.4 부터 메인 orchestrator 와 sub-agent 간 위임은 [`../workflow-source/core/orchestrator_subagent_contract_v1.md`](../workflow-source/core/orchestrator_subagent_contract_v1.md) 의 외부 contract v1 을 따른다.
+
+
 - 사용자에게 직접 보이는 작업 보고, 상태 요약, handoff/backlog 갱신 문안은 기본적으로 한국어로 작성한다.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
 - 내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리하고, 사용자에게는 필요한 결론만 짧게 전달한다.

@@ -3,8 +3,8 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-05-01
-- 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`
+- 최종 수정일: 2026-06-07
+- 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. 공통 원칙
 
@@ -33,6 +33,7 @@
 - orchestrator 와 worker 를 나눠 운영할 수 있는 하네스에서는 메인 orchestrator 가 직접 도구 호출을 떠안기보다 task delegation 과 결과 통합에 집중하는 구성을 기본값으로 둔다.
 - 실제 탐색, 수정, 검증은 bounded scope worker 에 맡기고, ask 는 genuinely blocking decision 이나 위험한 외부 작업으로만 좁히는 편을 기본 원칙으로 둔다.
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 프로젝트 코드/문서 탐색 범위에는 기본적으로 포함하지 않는다.
+- 메인 orchestrator 와 sub-agent 간 위임은 [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md) 의 외부 contract v1 을 따른다 (v0.5.4 부터 적용, v0.5.3 이하 시스템은 점진 적용 권장).
 ## 1.3 작업 모드 (Task Modes)
 
 작업의 성격에 따라 최적화된 워크플로우를 제공하기 위해 아래 모드를 지원한다. 세부 정의는 `workflow_task_modes.md`를 따른다.

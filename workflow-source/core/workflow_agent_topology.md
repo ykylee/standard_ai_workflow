@@ -3,9 +3,9 @@
 - 문서 목적: 배포형 표준 워크플로우에서 사용할 agent 역할과 권한 경계를 요약한다.
 - 범위: 추천 agent 목록, 책임, 입력/출력, 상태 문서 수정 원칙
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: draft
-- 최종 수정일: 2026-04-21
-- 관련 문서: `workflow_skill_catalog.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`
+- 상태: stable
+- 최종 수정일: 2026-06-07
+- 관련 문서: `workflow_skill_catalog.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`, **외부 contract: [./orchestrator_subagent_contract_v1.md](./orchestrator_subagent_contract_v1.md)**
 
 ## 1. 1차 필수 agent
 
@@ -45,6 +45,8 @@
 - 상태 문서는 가능한 한 보수적으로 수정한다.
 
 ## 5. 메인 오케스트레이터 운영 원칙
+
+> **외부 contract**: v0.5.4 부터 위임/보고의 입력/출력 스키마, 역할 경계, 위임 가능/불가 카탈로그, 에러/폴백 정책은 [**`./orchestrator_subagent_contract_v1.md`**](./orchestrator_subagent_contract_v1.md) 의 외부 contract v1 을 따른다. 본 장은 그 contract 의 권장 운영 원칙 요약이다.
 
 - 메인 오케스트레이터는 읽기/쓰기 작업을 직접 모두 떠안기보다 서브 에이전트를 적극 활용해 작업을 분담한다.
 - 메인 오케스트레이터가 직접 도구 호출을 수행하는 패턴은 기본값이 아니며, 가능하면 task delegation 과 결과 통합만 맡는다.

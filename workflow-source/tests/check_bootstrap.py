@@ -503,7 +503,7 @@ def check_enable_mcp_emission() -> None:
             "codex_mcp_config": ".codex/mcp.toml",
             "opencode_mcp_config": "mcp.opencode.json",
             "gemini_cli_mcp_config": ".gemini/mcp.json",
-            "antigravity_mcp_config": "antigravity.mcp.json",
+            "antigravity_mcp_config": ".antigravity/mcp.json",
             "minimax_code_mcp_config": ".MiniMax/mcp.json",
         }
         for key, suffix in expected_keys.items():
@@ -525,6 +525,66 @@ def check_enable_mcp_emission() -> None:
             raise AssertionError("MiniMax MCP config should declare the standardAiWorkflowReadOnly server.")
         if minimax_payload["mcp_servers"]["standardAiWorkflowReadOnly"].get("transport") != "jsonrpc-bridge":
             raise AssertionError("MiniMax MCP config should default to jsonrpc-bridge transport.")
+
+
+def check_multi_stack_detection() -> None:
+    """Cross-language projects (e.g. Python+Go+Node) should expose all stacks."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target_root = Path(tmpdir) / "multi-stack-repo"
+        target_root.mkdir(parents=True, exist_ok=True)
+        # Create three language indicator files so the scanner sees all three.
+        (target_root / "package.json").write_text(
+            '{"name": "demo", "scripts": {"test": "npm test"}}',
+            encoding="utf-8",
+        )
+        (target_root / "pyproject.toml").write_text(
+            '[project]\nname = "demo"\n', encoding="utf-8"
+        )
+        (target_root / "go.mod").write_text(
+            "module example.com/demo\n\ngo 1.22\n", encoding="utf-8"
+        )
+        (target_root / "docs").mkdir(parents=True, exist_ok=True)
+        (target_root / "tests").mkdir(parents=True, exist_ok=True)
+
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "multi_stack_demo",
+                "--project-name",
+                "Multi Stack Demo",
+                "--adoption-mode",
+                "existing",
+                "--harness",
+                "codex",
+                "--copy-core-docs",
+            ]
+        )
+
+        stack_labels = payload.get("stack_labels")
+        if not isinstance(stack_labels, list):
+            raise AssertionError("Manifest should expose stack_labels as a list.")
+        for expected in ("node", "python", "go"):
+            if expected not in stack_labels:
+                raise AssertionError(
+                    f"stack_labels should include {expected!r}, got {stack_labels}"
+                )
+        if not payload.get("multi_stack"):
+            raise AssertionError(
+                f"multi_stack should be True with 3+ stacks, got stack_labels={stack_labels}"
+            )
+
+        # The README/assessment generated for existing mode should mention
+        # multiple stacks so the operator doesn't think it's single-language.
+        assessment_text = Path(str(payload["generated_files"]["repository_assessment"])).read_text(
+            encoding="utf-8"
+        )
+        for expected in ("node", "python", "go"):
+            if expected not in assessment_text:
+                raise AssertionError(
+                    f"Repository assessment should mention stack {expected!r}"
+                )
 
 
 def check_stdio_sdk_mcp_emission() -> None:
@@ -566,6 +626,7 @@ def main() -> int:
     check_antigravity_mode()
     check_minimax_code_mode()
     check_enable_mcp_emission()
+    check_multi_stack_detection()
     check_stdio_sdk_mcp_emission()
     print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, minimax-code, and --enable-mcp emission.")
     return 0

@@ -183,10 +183,15 @@ def render_session_handoff(args: argparse.Namespace, context: dict[str, object])
     risk_or_blocker = "N/A"
 
     if args.adoption_mode == "existing":
-        current_focus = (
-            f"Existing codebase onboarding completed; "
-            f"inferred primary stack: {context['primary_stack']}."
-        )
+        stack_labels = context.get("stack_labels") or []
+        if len(stack_labels) > 1:
+            stack_summary = (
+                f"inferred primary stack: {context['primary_stack']}; "
+                f"all detected stacks: {', '.join(stack_labels)}"
+            )
+        else:
+            stack_summary = f"inferred primary stack: {context['primary_stack']}"
+        current_focus = f"Existing codebase onboarding completed; {stack_summary}."
         completed = "Repository scan completed"
         key_change = "Generated initial workflow docs from the existing repository scan."
         next_action = "Validate generated profile, handoff, and backlog against the repository."

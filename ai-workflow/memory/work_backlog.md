@@ -15,6 +15,9 @@
 
 ## 최근 작업 백로그
 
+### release/v0.5.3 (2026-06-07)
+- [2026-06-07 작업 백로그](./release/v0.5.3/backlog/2026-06-07.md) — v0.5.3 2개 TASK (antigravity MCP config 표준화 / cross-language stack 표시)
+
 ### release/v0.5.2 (2026-06-06)
 - [2026-06-06 작업 백로그](./release/v0.5.2/backlog/2026-06-06.md) — v0.5.2 3개 TASK (bootstrap 풀 리팩터 / workflow_kit 패키지화 / 외부 pilot validation)
 
@@ -27,6 +30,8 @@
 
 ## 다음에 읽을 문서
 
+- [release/v0.5.3/session_handoff.md](./release/v0.5.3/session_handoff.md)
+- [release/v0.5.3/backlog/2026-06-07.md](./release/v0.5.3/backlog/2026-06-07.md)
 - [release/v0.5.2/session_handoff.md](./release/v0.5.2/session_handoff.md)
 - [release/v0.5.2/backlog/2026-06-06.md](./release/v0.5.2/backlog/2026-06-06.md)
 - [Maturity Matrix](../../workflow-source/core/maturity_matrix.json)

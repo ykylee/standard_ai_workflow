@@ -12,7 +12,7 @@
 - 프로젝트 슬러그: `standard-ai-workflow`
 - 프로젝트 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자: 저장소 maintainer (`ykylee`), 워크플로우 도입 검토자, 멀티 에이전트 운영자
-- 현재 베이스라인: **v0.5.5-beta** (in progress; main 은 v0.5.4 까지 stable, v0.5.5 에서 Phase 11 본격 pilot + contract v1 실전 검증)
+- 현재 베이스라인: **v0.5.6-beta** (in progress; main 은 v0.5.5 까지 stable, v0.5.6 에서 P0 enforcement — §5 validator + §6.1 delegator)
 
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: docs/README.md
@@ -68,13 +68,16 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - 문서 변경: 필수 메타데이터 존재 여부 및 Markdown 상대 링크 무결성 확인 (`python workflow-source/tests/check_docs.py`).
 - UI 변경: 현재 프로젝트는 CLI/문서 위주이나, 하네스 오버레이 생성 시 각 하네스(Codex, Antigravity 등)에서의 렌더링 확인.
 - 배포/운영: `workflow-source/scripts/export_harness_package.py`를 통한 패키지 생성 확인 및 `workflow-source/releases/` 가이드라인 준수.
-- contract v1 (v0.5.4 신규): orchestrator ↔ sub-agent 위임 시 §4 입력 / §5 출력 스키마 준수 여부. 3개 회귀 (`check_contract_v1_*`) 로 검증.
+- contract v1 (v0.5.4 부터): orchestrator ↔ sub-agent 위임 시 §4 입력 / §5 출력 스키마 준수 여부. 3개 회귀 (`check_contract_v1_*`) 로 검증.
+- contract v1 enforcement (v0.5.6 신규): sub-agent 출력은 `workflow_kit.contract_v1.output_validator.validate_output()`, Mavis 측 위임 결정은 `workflow_kit.contract_v1.delegator.choose_role()` 로 자동 enforce. 5개 회귀 (`check_contract_v1_*`) 로 검증.
 
 ## 5. 예외 규칙 (Policy)
 - 병합: `ai-workflow/memory/state.json` 등 자동 생성 파일은 충돌 시 소스 문서(backlog, handoff)를 기준으로 재생성한다.
 - 승인: 코어 문서(`workflow-source/core/`) 변경 시 아키텍처 리뷰 필수 (특히 `global_workflow_standard.md`, `maturity_matrix.json`, `orchestrator_subagent_contract_v1.md`).
 - 제약: Python 3.10+ 환경 필수 (MCP SDK 의존성). pydantic / anyio / mcp 가 venv 에 설치되어 있어야 회귀가 동작 (시스템 python 으로는 ModuleNotFoundError).
 - 기타: 모든 스킬 및 MCP 출력은 공통 JSON 계약 구조를 따라야 함.
+- (v0.5.6 신규) sub-agent 출력은 §5 spec fit 자동 검증 (`workflow_kit.contract_v1.output_validator.validate_output()`). 위반 시 §7.4 정책.
+- (v0.5.6 신규) orchestrator 측 위임 결정은 `workflow_kit.contract_v1.delegator.choose_role()` 자동 호출. §6.3 MUST-NOT-delegate 매치 시 직접 처리.
 - **신규 (v0.5.4)**: orchestrator는 sub-agent 위임 가능한 작업을 직접 도구 호출로 처리하지 않는다 (제6.1장). 자세한 contract: `../workflow-source/core/orchestrator_subagent_contract_v1.md`.
 
 ## 다음에 읽을 문서
@@ -82,6 +85,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - [작업 백로그](../ai-workflow/memory/work_backlog.md)
 - [Orchestrator ↔ Sub-agent Contract v1](../workflow-source/core/orchestrator_subagent_contract_v1.md)
 - [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
+- [릴리스 노트 v0.5.6](../workflow-source/releases/Beta-v0.5.6.md)
 - [릴리스 노트 v0.5.5](../workflow-source/releases/Beta-v0.5.5.md)
 - [릴리스 노트 v0.5.4](../workflow-source/releases/Beta-v0.5.4.md)
 

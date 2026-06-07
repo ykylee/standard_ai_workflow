@@ -80,6 +80,7 @@ packages = [
     "workflow_kit",
     "workflow_kit.common",
     "workflow_kit.common.modes",
+    "workflow_kit.contract_v1",
     "workflow_kit.server",
     "workflow_kit.harness",
 ]

@@ -21,11 +21,9 @@
 
 ## Work Status
 
-- TASK-V055-001 S4 live demo + Phase 11 본격 pilot: in_progress
-  - spec doc: done
-  - 1 regression check: done
-  - cross-link 갱신: done
-  - **남은 일**: 단일 squash 커밋 + PR 본문 + push + 머지 + v0.5.5-beta 태그
+- TASK-V055-001 S4 live demo + Phase 11 본격 pilot: done
+- v0.5.5 merge commit: 1f095ec (squash of release/v0.5.5, PR #19 MERGED)
+- v0.5.5-beta tag: push 완료 (a533a5d)
 - v0.5.4 merge commit: 7737e14 (squash of release/v0.5.4) — issue #1 영구 해결
 - v0.5.4-beta tag: push 완료
 - (v0.5.3 의 TASK-V053-001/002 done — history 보존)

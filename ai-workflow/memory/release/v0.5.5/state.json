@@ -22,17 +22,17 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**현재 브랜치**: `release/v0.5.5` (main #7737e14 에서 분기, 2026-06-07)",
-    "current_axis": "**현재 브랜치**: `release/v0.5.5` (main #7737e14 에서 분기, 2026-06-07)",
-    "current_focus": "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example)",
-    "in_progress_items": [
-      "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example)"
-    ],
+    "current_baseline": "**현재 브랜치**: `release/v0.5.5` (main #7737e14 에서 분기, 2026-06-07) — merge 완료 (1f095ec)",
+    "current_axis": "**현재 브랜치**: `release/v0.5.5` (main #7737e14 에서 분기, 2026-06-07) — merge 완료",
+    "current_focus": "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example) — done, v0.5.5-beta tag push 완료",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "v0.5.5 merge (PR #19): Phase 11 본격 pilot (Devhub Example × Contract v1)",
+      "v0.5.5-beta tag push (a533a5d, 2026-06-07)",
       "v0.5.4 merge (PR #18): orchestrator ↔ sub-agent contract v1",
       "v0.5.4-beta tag push",
-      "issue #1 영구 해결 + close 코멘트 (2026-06-07)"
+      "issue #1 영구 해결 + close 코멘트"
     ],
     "environment_constraints": [
       "Python 3.10+ (현재 환경 3.14)",
@@ -43,11 +43,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/release/v0.5.5/backlog/2026-06-07.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example)"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example)"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",

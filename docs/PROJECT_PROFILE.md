@@ -12,7 +12,7 @@
 - 프로젝트 슬러그: `standard-ai-workflow`
 - 프로젝트 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자: 저장소 maintainer (`ykylee`), 워크플로우 도입 검토자, 멀티 에이전트 운영자
-- 현재 베이스라인: **v0.5.4-beta** (in progress; main 은 v0.5.3 까지 stable, v0.5.4 에서 orchestrator ↔ sub-agent contract v1 추가)
+- 현재 베이스라인: **v0.5.5-beta** (in progress; main 은 v0.5.4 까지 stable, v0.5.5 에서 Phase 11 본격 pilot + contract v1 실전 검증)
 
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: docs/README.md
@@ -52,7 +52,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   - `python workflow-source/tests/check_contract_v1_roundtrip.py`
   - `python workflow-source/tests/check_contract_v1_role_mapping.py`
   - `python workflow-source/tests/check_contract_v1_direct_only.py`
-- 워크플로우 linter: `PYTHONPATH=workflow-source python workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --state-json-path ai-workflow/memory/release/v0.5.4/state.json --session-handoff-path ai-workflow/memory/release/v0.5.4/session_handoff.md --latest-backlog-path ai-workflow/memory/release/v0.5.4/backlog/2026-06-07.md`
+- 워크플로우 linter: `PYTHONPATH=workflow-source python workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --state-json-path ai-workflow/memory/release/v0.5.5/state.json --session-handoff-path ai-workflow/memory/release/v0.5.5/session_handoff.md --latest-backlog-path ai-workflow/memory/release/v0.5.5/backlog/2026-06-07.md`
 
 ### 3.4 실행 확인 (상태 동기화)
 ```bash
@@ -82,5 +82,6 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - [작업 백로그](../ai-workflow/memory/work_backlog.md)
 - [Orchestrator ↔ Sub-agent Contract v1](../workflow-source/core/orchestrator_subagent_contract_v1.md)
 - [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
+- [릴리스 노트 v0.5.5](../workflow-source/releases/Beta-v0.5.5.md)
 - [릴리스 노트 v0.5.4](../workflow-source/releases/Beta-v0.5.4.md)
 

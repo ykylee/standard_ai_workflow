@@ -15,6 +15,9 @@
 
 ## 최근 작업 백로그
 
+### release/v0.5.4 (2026-06-07)
+- [2026-06-07 작업 백로그](./release/v0.5.4/backlog/2026-06-07.md) — v0.5.4 3개 TASK (orchestrator → sub-agent delegation contract v1 / maturity matrix 동기화 / root baseline 동기화)
+
 ### release/v0.5.3 (2026-06-07)
 - [2026-06-07 작업 백로그](./release/v0.5.3/backlog/2026-06-07.md) — v0.5.3 2개 TASK (antigravity MCP config 표준화 / cross-language stack 표시)
 
@@ -30,6 +33,8 @@
 
 ## 다음에 읽을 문서
 
+- [release/v0.5.4/session_handoff.md](./release/v0.5.4/session_handoff.md)
+- [release/v0.5.4/backlog/2026-06-07.md](./release/v0.5.4/backlog/2026-06-07.md)
 - [release/v0.5.3/session_handoff.md](./release/v0.5.3/session_handoff.md)
 - [release/v0.5.3/backlog/2026-06-07.md](./release/v0.5.3/backlog/2026-06-07.md)
 - [release/v0.5.2/session_handoff.md](./release/v0.5.2/session_handoff.md)

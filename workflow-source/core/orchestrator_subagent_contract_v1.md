@@ -160,7 +160,7 @@ contract v1 은 다음 4개 역할을 정의한다. 각 역할은 책임, 권한
 | `task.inputs.files` | path[] | ❌ | 읽어야 할 파일 (상대경로, repo root 기준) |
 | `task.inputs.context_paths` | path[] | ❌ | 참고용 디렉터리 (예: memory layer) |
 | `task.expected_outputs.primary_artifact` | path | ✅ | 주 산출물 경로 |
-| `task.expected_outputs.artifact_kind` | enum | ✅ | `markdown` / `python` / `json` / `toml` / `text` / `other` |
+| `task.expected_outputs.artifact_kind` | enum | ✅ | `markdown` / `python` / `json` / `toml` / `text` / `code` / `other` |
 | `task.expected_outputs.must_include` | string[] | ❌ | 반드시 포함해야 할 항목 |
 | `task.validation.required` | bool | ✅ | true 면 orchestrator 가 검증 단계 포함 |
 | `task.validation.criteria` | string | ❌ | 검증 기준 (linter/test PASS 등) |
@@ -372,24 +372,34 @@ v0.5.5 TASK-V055-001 의 S4 라이브 데모는 4 시나리오 contract v1 round
 
 ## 9. 구현 가이드 (Reference)
 
+### 9.0 v0.5.6 enforcement helpers
+
+v0.5.6 부터 contract v1 의 §5/§6 enforcement 가 Python 모듈로 제공된다:
+
+- **§5 출력 검증**: `workflow_kit.contract_v1.output_validator.validate_output(payload, expected_delegation_id=None) -> OutputValidationResult`
+- **§6 위임 결정**: `workflow_kit.contract_v1.delegator.choose_role(task, strict=False) -> DelegationDecision`
+
+오케스트레이터 / sub-agent 런타임은 이 헬퍼를 호출해서 contract v1 을 자동 enforce 한다. 자세한 사용 예시는 [`workflow_kit/contract_v1/__init__.py`](../../workflow_kit/contract_v1/__init__.py) 와 회귀 [`check_contract_v1_output_validator.py`](../../tests/check_contract_v1_output_validator.py) / [`check_contract_v1_delegator.py`](../../tests/check_contract_v1_delegator.py) 참조.
+
 ### 9.1 오케스트레이터 (Mavis) 측
 
-- 위임 결정: §6 카탈로그를 보고 직접 처리 vs 위임 결정
-- 입력 생성: §4 스키마로 직렬화, sub-agent prompt 에 포함
-- 결과 수신: §5 스키마로 파싱, 통합/리뷰
+- 위임 결정: `delegator.choose_role(task)` 호출 (자동 enforce). `must_not_delegate=True` 시 직접 처리
+- 입력 생성: §4 스키마로 직렬화, `choose_role` 이 반환한 `delegation_id` 사용, sub-agent prompt 에 포함
+- 결과 수신: `output_validator.validate_output(payload, expected_delegation_id=...)` 호출. 위반 시 §7.4 의 "출력 스키마 위반" 정책
 - 타임아웃: deadline_hint + 30분
 
 ### 9.2 sub-agent 측
 
 - 입력 수신: §4 스키마를 prompt 의 일부로 파싱
 - 작업 수행: §3 의 role 권한 내에서
-- 출력: §5 스키마로 직렬화, orchestrator 에게 보고
+- 출력: §5 스키마로 직렬화, orchestrator 에게 보고. `validate_output` 으로 자체 검증 후 보고 권장
 - 실패 시: `status: "failed"` + `warnings` + `risks` 채워서 보고
 
 ### 9.3 검증 도구
 
 - §8 의 S1~S3 는 `tests/` 아래 회귀 스크립트로 박는다
 - §8.4 는 라이브 데모이며 PR 본문에 명시
+- v0.5.6 의 §5/§6 enforcement 회귀: `check_contract_v1_output_validator.py` + `check_contract_v1_delegator.py`
 
 ## 10. 마이그레이션 (v0.5.3 → v0.5.4)
 

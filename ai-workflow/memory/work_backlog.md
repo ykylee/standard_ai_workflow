@@ -15,6 +15,9 @@
 
 ## 최근 작업 백로그
 
+### release/v0.5.6 (2026-06-07)
+- [2026-06-07 작업 백로그](./release/v0.5.6/backlog/2026-06-07.md) — v0.5.6 1개 TASK (§5 출력 validator + §6.1 자동 위임 delegator, P0 enforcement)
+
 ### release/v0.5.5 (2026-06-07)
 - [2026-06-07 작업 백로그](./release/v0.5.5/backlog/2026-06-07.md) — v0.5.5 1개 TASK (S4 live demo + Phase 11 본격 pilot, contract v1 실전 검증)
 
@@ -36,6 +39,8 @@
 
 ## 다음에 읽을 문서
 
+- [release/v0.5.6/session_handoff.md](./release/v0.5.6/session_handoff.md)
+- [release/v0.5.6/backlog/2026-06-07.md](./release/v0.5.6/backlog/2026-06-07.md)
 - [release/v0.5.5/session_handoff.md](./release/v0.5.5/session_handoff.md)
 - [release/v0.5.5/backlog/2026-06-07.md](./release/v0.5.5/backlog/2026-06-07.md)
 - [release/v0.5.4/session_handoff.md](./release/v0.5.4/session_handoff.md)

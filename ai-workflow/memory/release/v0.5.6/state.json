@@ -22,16 +22,17 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07)",
-    "current_axis": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07)",
-    "current_focus": "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator (P0 enforcement, v0.5.5 pilot 도출)",
-    "in_progress_items": [
-      "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator (P0 enforcement)"
-    ],
+    "current_baseline": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07) — merge 완료 (79f3bec)",
+    "current_axis": "**현재 브랜치**: `release/v0.5.6` (main #75a3fc6 에서 분기, 2026-06-07) — merge 완료",
+    "current_focus": "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator — done, v0.5.6-beta tag push 완료",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "v0.5.5 merge (PR #19): Phase 11 본격 pilot (Devhub Example × Contract v1)",
-      "v0.5.5-beta tag push (a533a5d, 2026-06-07)"
+      "v0.5.6 merge (PR #20): contract v1 §5/§6 P0 enforcement (validator + delegator)",
+      "v0.5.6-beta tag push (c8f4560, 2026-06-07)",
+      "v0.5.5 merge (PR #19): Phase 11 본격 pilot",
+      "v0.5.5-beta tag push",
+      "issue #1 영구 해결 (v0.5.4)"
     ],
     "environment_constraints": [
       "Python 3.10+ (현재 환경 3.14)",
@@ -42,11 +43,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/release/v0.5.6/backlog/2026-06-07.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator (P0 enforcement)"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator (P0 enforcement)"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",

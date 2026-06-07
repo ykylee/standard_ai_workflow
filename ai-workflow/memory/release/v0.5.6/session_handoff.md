@@ -22,12 +22,9 @@
 
 ## Work Status
 
-- TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator: in_progress
-  - 모듈 구현: done (output_validator.py + delegator.py)
-  - 2개 회귀: done (output_validator + delegator)
-  - spec 갭 수정: done (artifact_kind enum 에 code 추가)
-  - cross-link + release notes: done
-  - **남은 일**: 단일 squash 커밋 + push + 머지 + v0.5.6-beta 태그
+- TASK-V056-001 §5 출력 validator + §6.1 자동 위임 delegator: done
+- v0.5.6 merge commit: 79f3bec (squash of release/v0.5.6, PR #20 MERGED)
+- v0.5.6-beta tag: push 완료 (c8f4560)
 - v0.5.5 merge commit: 1f095ec (squash of release/v0.5.5) — Phase 11 pilot
 - v0.5.5-beta tag: push 완료
 - v0.5.4 merge commit: 7737e14 (squash of release/v0.5.4) — issue #1 영구 해결

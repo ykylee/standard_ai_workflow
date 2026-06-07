@@ -20,7 +20,8 @@
 ```
 <project_root>/
 ├── ANTIGRAVITY.md
-└── antigravity.mcp.json   # --enable-mcp 사용 시
+└── .antigravity/
+    └── mcp.json   # --enable-mcp 사용 시
 ```
 
 ## 3. 설정 적용
@@ -39,14 +40,14 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --enable-mcp
 ```
 
-`<root>/antigravity.mcp.json` 생성. 글로벌에 등록:
+`<root>/.antigravity/mcp.json` 생성. 글로벌에 등록:
 
 ```bash
 mkdir -p ~/.antigravity
-cp <project_root>/antigravity.mcp.json ~/.antigravity/mcp.json
+cp <project_root>/.antigravity/mcp.json ~/.antigravity/mcp.json
 # 또는
 jq -s '.[0].mcpServers * .[1].mcpServers' \
-   ~/.antigravity/mcp.json <project_root>/antigravity.mcp.json \
+   ~/.antigravity/mcp.json <project_root>/.antigravity/mcp.json \
    > ~/.antigravity/mcp.json.new && mv ~/.antigravity/mcp.json.new ~/.antigravity/mcp.json
 ```
 

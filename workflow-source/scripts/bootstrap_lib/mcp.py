@@ -137,8 +137,9 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     """Return an Antigravity MCP snippet.
 
     Antigravity shares the JSON ``mcpServers`` shape with Gemini CLI. The
-    bootstrap writes the file as ``antigravity.mcp.json`` next to the
-    ``ANTIGRAVITY.md`` overlay.
+    bootstrap writes the file as ``.antigravity/mcp.json`` (project-local),
+    following the same dot-dir convention as ``.codex/``, ``.gemini/``,
+    and ``.MiniMax/``.
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
@@ -218,7 +219,7 @@ def write_mcp_config_files(
         generated["gemini_cli_mcp_config"] = str(gemini_path)
 
     if "antigravity" in harnesses:
-        antigravity_path = paths.target_root / "antigravity.mcp.json"
+        antigravity_path = paths.target_root / ".antigravity" / "mcp.json"
         write_text(antigravity_path, render_antigravity_mcp_config(args, paths), force=args.force)
         generated["antigravity_mcp_config"] = str(antigravity_path)
 

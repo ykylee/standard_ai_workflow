@@ -129,6 +129,13 @@ def build_manifest(
         next_steps.append(
             "Review the recommended global snippet before merging it into your harness-wide config."
         )
+
+    # Surface the full stack detection so multi-language projects (e.g. a Python
+    # backend + Go service + Node frontend) don't get reduced to ``primary_stack``
+    # alone. ``multi_stack`` is a convenience boolean for downstream tools.
+    stack_labels: list[str] = list(context.get("stack_labels", []) or [])
+    multi_stack = len(stack_labels) > 1
+
     return {
         "target_root": str(paths.target_root),
         "kit_root": str(paths.kit_root),
@@ -136,6 +143,9 @@ def build_manifest(
         "project_name": args.project_name,
         "adoption_mode": args.adoption_mode,
         "harnesses": selected_harnesses,
+        "primary_stack": context.get("primary_stack", "unknown"),
+        "stack_labels": stack_labels,
+        "multi_stack": multi_stack,
         "analysis_summary": context.get("analysis_summary", []),
         "generated_files": generated_files,
         "generated_harness_files": harness_files,

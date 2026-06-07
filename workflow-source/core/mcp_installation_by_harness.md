@@ -32,7 +32,7 @@
 | **Codex** | `~/.codex/config.toml` (`[mcp_servers.<alias>]` 섹션) | `<root>/.codex/mcp.toml` | TOML |
 | **OpenCode** | `opencode.json` 의 `"mcp": { ... }` 키 | `<root>/mcp.opencode.json` | JSON (top-level `mcp` 키) |
 | **Gemini CLI** | `~/.gemini/settings.json` 의 `"mcpServers": { ... }` | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
-| **Antigravity** | `~/.MiniMax/antigravity.json` (가정, 하네스별 확인 필요) | `<root>/antigravity.mcp.json` | JSON (`mcpServers` 키) |
+| **Antigravity** | `~/.MiniMax/antigravity.json` (가정, 하네스별 확인 필요) | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
 | **MiniMax Code** | `~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json` 의 `mcp_servers` | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
 
 ## 4. 자동 심기 (`bootstrap --enable-mcp`)
@@ -119,7 +119,7 @@ workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadat
 
 ### 5.4 Antigravity
 
-Antigravity 의 정확한 글로벌 설정 경로는 하네스 문서를 참조. 일반적으로 `~/.antigravity/config.json` 에 `mcpServers` 키로 등록 (Gemini CLI 와 동일 스키마). bootstrap 이 emit 한 `antigravity.mcp.json` 의 `mcpServers` 블록을 그대로 복사.
+Antigravity 의 정확한 글로벌 설정 경로는 하네스 문서를 참조. 일반적으로 `~/.antigravity/config.json` 에 `mcpServers` 키로 등록 (Gemini CLI 와 동일 스키마). bootstrap 이 emit 한 `.antigravity/mcp.json` 의 `mcpServers` 블록을 그대로 복사.
 
 ### 5.5 MiniMax Code (`~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json`)
 

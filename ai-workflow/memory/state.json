@@ -1,12 +1,10 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.5.4/backlog/2026-06-07.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.5.5/backlog/2026-06-07.md"
   },
   "session": {
     "in_progress_items": [
-      "TASK-V054-001 orchestrator → sub-agent delegation contract v1 (closes issue #1)",
-      "TASK-V054-002 maturity matrix 동기화",
-      "TASK-V054-003 root baseline 동기화"
+      "TASK-V055-001 S4 live demo + Phase 11 본격 pilot (Devhub_example)"
     ]
   }
 }

@@ -353,6 +353,23 @@ contract v1 의 거동을 검증하는 시나리오. 각 시나리오는 `tests/
 - PR 본문에 "S4 라이브 데모" 섹션 추가
 - 회귀: 라이브 데모 자체가 검증이며, 별도 자동화 X
 
+#### 8.4.1 v0.5.5 S4 라이브 데모 결과 (Phase 11 pilot)
+
+v0.5.5 TASK-V055-001 의 S4 라이브 데모는 4 시나리오 contract v1 round-trip 으로 실행 (단, simulated walkthrough — single-spawn producer work 제약 + mavis-team multi-step 한계):
+
+| 시나리오 | Devhub_example PR | delegation_id | 역할 | 스키마 fit |
+|----------|------------------|---------------|------|-----------|
+| chore (단일 파일 .gitignore) | #493 | del-2026-06-07-p493 | doc-worker | ✅ |
+| feature code (N:M weight, multi-file) | #492 | del-2026-06-07-p492 | code-worker (main 승격) | ✅ |
+| UI feature (sub-task 1 of 3) | #491 | del-2026-06-07-p491-ui | code-worker | ✅ |
+| docs traceability (4 matrix cross-ref) | #490 | del-2026-06-07-p490 | doc-worker | ✅ |
+
+전체 round-trip 결과: `check_pilot_phase11_contract_v1.py` (신규 회귀) PASS.
+
+§6 카탈로그 정합성: 85% (3.5/4.0) — 멀티 fan-out + cross-ref 명시 row 가 v0.5.6 P1.
+
+상세 결과: [`workflow-source/examples/pilot_phase11_devhub_contract_v1.md`](../examples/pilot_phase11_devhub_contract_v1.md).
+
 ## 9. 구현 가이드 (Reference)
 
 ### 9.1 오케스트레이터 (Mavis) 측

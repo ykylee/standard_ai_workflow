@@ -134,7 +134,7 @@ MiniMax Code(미니맥스 코드) 타겟은 메인 orchestrator + doc/code/valid
 4. 하네스 레지스트리에 이름, 설명, 생성 함수를 등록한다.
 5. smoke test와 하네스 문서를 함께 추가한다.
 
-현재 bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 다음 타겟은 `SUPPORTED_HARNESSES`, `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 등록하는 방식으로 확장한다.
+현재 bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 다음 타겟은 `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 두 군데에 등록하는 방식으로 확장한다. `HARNESS_SPECS` 가 `name` / `description` / `entry_files` / `extra_files` / `long_description` 을 한 곳에서 선언하는 single source of truth 이다. legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated 되었으며, 새 하네스는 등록할 필요가 없고 기존 `pi-dev` 같이 누락된 항목도 더 이상 거기로 복원하지 않는다.
 
 ## 다음에 읽을 문서
 

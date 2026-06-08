@@ -1060,3 +1060,44 @@ def write_minimax_code_harness_files(
 
 register_harness_builder("minimax-code", write_minimax_code_harness_files)
 
+
+# ---------------------------------------------------------------------------
+# Self-check: HARNESS_SPECS (single source of truth for harness metadata) must
+# agree with HARNESS_FILE_BUILDERS (the actual renderer registry). If they
+# drift, the CLI --harness choices will not match the renderers, which is the
+# same class of bug we hit in v0.5.7.1 (sub-packages missing) and in v0.5.7
+# (HARNESS_DEFINITIONS missing pi-dev).
+# ---------------------------------------------------------------------------
+def _verify_harness_registry_consistency() -> None:
+    from bootstrap_lib.harnesses import HARNESS_FILE_BUILDERS, HARNESS_SPECS, SUPPORTED_HARNESSES
+
+    spec_keys = set(HARNESS_SPECS)
+    builder_keys = set(HARNESS_FILE_BUILDERS)
+    supported = set(SUPPORTED_HARNESSES)
+    missing_builder = sorted(spec_keys - builder_keys)
+    missing_spec = sorted(builder_keys - spec_keys)
+    missing_supported = sorted(supported - spec_keys)
+    if missing_builder or missing_spec or missing_supported:
+        problems = []
+        if missing_builder:
+            problems.append(
+                "HARNESS_SPECS has entries without a renderer: " + ", ".join(missing_builder)
+            )
+        if missing_spec:
+            problems.append(
+                "HARNESS_FILE_BUILDERS has entries without a spec: " + ", ".join(missing_spec)
+            )
+        if missing_supported:
+            problems.append(
+                "SUPPORTED_HARNESSES has entries without a spec: "
+                + ", ".join(missing_supported)
+            )
+        raise RuntimeError(
+            "Harness registry drift detected. The single source of truth is "
+            "HARNESS_SPECS; fix the following before releasing:\n  - "
+            + "\n  - ".join(problems)
+        )
+
+
+_verify_harness_registry_consistency()
+

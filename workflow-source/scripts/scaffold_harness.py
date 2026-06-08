@@ -84,7 +84,7 @@ def render_harness_readme(display_name: str, slug: str, args: argparse.Namespace
 ## bootstrap 확장 TODO
 
 - `scripts/bootstrap_workflow_kit.py` 에 `{slug}` 하네스 생성 함수를 추가한다.
-- `SUPPORTED_HARNESSES`, `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 `{slug}` 를 등록한다.
+- `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 에 `{slug}` 를 등록한다. (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated, 신규 등록 불필요)
 - `tests/check_bootstrap.py` 에 `{slug}` 생성 검증을 추가한다.
 - descriptor export 위치와 draft 사용 범위를 문서화한다.
 
@@ -154,7 +154,8 @@ def build_manifest(harness_dir: Path, files: dict[str, str], slug: str, display_
         "next_steps": [
             "Fill in the root entrypoint and config file placeholders.",
             "Add a harness file builder to scripts/bootstrap_workflow_kit.py.",
-            "Register the new harness in SUPPORTED_HARNESSES, HARNESS_DEFINITIONS, and HARNESS_FILE_BUILDERS.",
+            "Register the new harness in bootstrap_lib.harnesses.HARNESS_SPECS "
+            "and HARNESS_FILE_BUILDERS (HARNESS_DEFINITIONS is deprecated as of v0.5.8).",
             "Extend tests/check_bootstrap.py for the new harness.",
         ],
     }

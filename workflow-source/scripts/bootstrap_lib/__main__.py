@@ -208,6 +208,16 @@ DEFAULT_CORE_SUPPORT_PATHS: list[str] = [
     "workflow_kit",
 ]
 
+#: Deprecated alias kept for backwards compatibility.
+#:
+#: The single source of truth for harness metadata is
+#: :data:`bootstrap_lib.harnesses.HARNESS_SPECS`. This dict only mirrors the
+#: subset of fields that older consumers depended on (``name`` + ``description``)
+#: and is currently missing the ``pi-dev`` overlay that ``HARNESS_SPECS``
+#: already declares. New code should import ``HARNESS_SPECS`` from
+#: :mod:`bootstrap_lib.harnesses` directly; this dict will be removed in a
+#: future release (target: 0.6.x). See ``workflow_harness_distribution.md``
+#: for the migration note.
 HARNESS_DEFINITIONS: dict[str, HarnessDefinition] = {
     "codex": HarnessDefinition(
         name="codex",
@@ -286,7 +296,17 @@ def parse_args() -> argparse.Namespace:
         choices=list(SUPPORTED_HARNESSES),
         dest="harnesses",
         default=[],
-        help="Generate harness-specific overlay files for the selected target.",
+        help="Generate harness-specific overlay files for the selected target. "
+        "When omitted in a TTY session, an interactive picker is shown; in "
+        "non-TTY sessions (CI, scripts), pass --no-interactive to receive a "
+        "clear error instead.",
+    )
+    parser.add_argument(
+        "--no-interactive",
+        action="store_true",
+        dest="no_interactive",
+        help="Disable the interactive harness picker. Use this in CI, scripts, "
+        "or any non-TTY context to fail fast if --harness is missing.",
     )
     parser.add_argument(
         "--copy-core-docs",
@@ -327,11 +347,123 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the generation plan without writing files.",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Interactive harness picker: fire only when (a) the user didn't pass
+    # --harness, (b) --no-interactive wasn't requested, and (c) stdin is a
+    # TTY. In every other case (CI, scripts, explicit --no-interactive) we
+    # either keep an empty selection (for callers that handle it) or fail
+    # fast with a clear message (see enforce_harness_selection).
+    if (
+        not args.harnesses
+        and not args.no_interactive
+        and sys.stdin.isatty()
+    ):
+        args.harnesses = prompt_for_harnesses()
+
+    return args
+
+
+def enforce_harness_selection(args: argparse.Namespace) -> None:
+    """Fail fast if no harness is selected and we can't prompt the user.
+
+    Called by :func:`main` after argparse, so the picker has already had a
+    chance to populate ``args.harnesses``. If we get here with an empty list
+    we know we are in non-TTY / --no-interactive mode and should refuse to
+    silently generate zero overlay files.
+    """
+    if args.harnesses:
+        return
+    raise SystemExit(
+        "ERROR: --harness is required when --no-interactive is set or when "
+        "stdin is not a TTY. Re-run with one or more of: "
+        + ", ".join(SUPPORTED_HARNESSES)
+        + " (comma-separated via repeated --harness flags)."
+    )
 
 
 def selected_harnesses(args: argparse.Namespace) -> list[str]:
     return sorted(dict.fromkeys(args.harnesses))
+
+
+def prompt_for_harnesses(
+    selected: list[str] | None = None,
+    *,
+    input_stream=None,
+    output_stream=None,
+) -> list[str]:
+    """Interactively ask the user to pick one or more harness overlays.
+
+    The menu is built from :data:`HARNESS_SPECS` (single source of truth for
+    harness metadata) and shown via plain ``input()`` so no third-party
+    dependency is required. Empty input keeps the current ``selected`` list
+    (defaulting to an empty list on first call). ``a`` selects every harness,
+    ``q`` aborts the picker and returns the existing ``selected`` value.
+    """
+    from bootstrap_lib.harnesses import HARNESS_SPECS  # local import: keep top-level lean
+
+    # Late-bind default streams so monkey-patching sys.stdin/stdout (e.g. in
+    # tests) is observed at call time, not at import time.
+    if input_stream is None:
+        input_stream = sys.stdin
+    if output_stream is None:
+        output_stream = sys.stdout
+
+    catalog = list(HARNESS_SPECS.items())
+    base = sorted(dict.fromkeys(selected or []))
+    chosen: set[str] = set(base)
+    print(
+        "Select harness overlays to generate.",
+        file=output_stream,
+    )
+    print(
+        "Enter numbers separated by commas (e.g. 1,3), 'a' for all, 'q' to "
+        "keep current selection, or just Enter to keep current selection.",
+        file=output_stream,
+    )
+    for idx, (name, spec) in enumerate(catalog, start=1):
+        marker = "*" if name in chosen else " "
+        print(
+            f"  [{marker}] {idx}. {name} — {spec.description}",
+            file=output_stream,
+        )
+    if chosen:
+        print(
+            f"Current selection: {', '.join(sorted(chosen))}",
+            file=output_stream,
+        )
+
+    raw = input_stream.readline()
+    if not raw:
+        return sorted(chosen)
+    answer = raw.strip().lower()
+    if not answer or answer == "q":
+        return sorted(chosen)
+    if answer == "a":
+        chosen = {name for name, _ in catalog}
+        return sorted(chosen)
+
+    parsed: set[str] = set()
+    for token in answer.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        if not token.isdigit():
+            print(
+                f"  ! ignoring non-numeric token: {token!r}",
+                file=output_stream,
+            )
+            continue
+        idx = int(token)
+        if 1 <= idx <= len(catalog):
+            parsed.add(catalog[idx - 1][0])
+        else:
+            print(
+                f"  ! ignoring out-of-range index: {idx}",
+                file=output_stream,
+            )
+    chosen.update(parsed)
+    return sorted(chosen)
 
 
 # ---------------------------------------------------------------------------
@@ -738,6 +870,7 @@ def write_harness_files(
 # ---------------------------------------------------------------------------
 def main() -> int:
     args = parse_args()
+    enforce_harness_selection(args)
     paths = make_paths(args)
     context = infer_project_context(args, paths)
 

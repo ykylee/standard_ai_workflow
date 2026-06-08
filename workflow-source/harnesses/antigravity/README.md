@@ -24,7 +24,7 @@
 ## bootstrap 확장 TODO
 
 - `scripts/bootstrap_workflow_kit.py` 에 `antigravity` 하네스 생성 함수를 추가한다.
-- `SUPPORTED_HARNESSES`, `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 `antigravity` 를 등록한다.
+- `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 에 `antigravity` 를 등록한다. (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated, 신규 등록 불필요)
 - `tests/check_bootstrap.py` 에 `antigravity` 생성 검증을 추가한다.
 - descriptor export 위치와 draft 사용 범위를 문서화한다.
 

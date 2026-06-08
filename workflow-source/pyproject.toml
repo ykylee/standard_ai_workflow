@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "standard-ai-workflow"
-version = "0.5.7.1-beta"
+version = "0.5.8-beta"
 description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -87,6 +87,12 @@ packages = [
     "workflow_kit.server",
     "workflow_kit.harness",
 ]
+
+# Single-file modules that don't live inside a package directory.
+# ``bootstrap_workflow_kit`` is the legacy CLI shim kept for back-compat
+# (see scripts/bootstrap_workflow_kit.py docstring) and ships as a
+# top-level module from ``scripts/``.
+py-modules = ["bootstrap_workflow_kit"]
 
 [tool.setuptools.package-dir]
 # Map package names to their on-disk locations. This lets us ship

@@ -67,6 +67,7 @@ def fanout_to_subs(task: dict, sub_agent_caller) -> dict:
     sub_decisions = decisions[1:]
 
     # 2) sub-agent 들을 병렬로 호출
+    sub_payloads: list[dict] = []
     sub_responses: list[dict] = []
     for sub_decision in sub_decisions:
         sub_payload = {
@@ -79,6 +80,7 @@ def fanout_to_subs(task: dict, sub_agent_caller) -> dict:
                 # ...
             },
         }
+        sub_payloads.append(sub_payload)
         sub_responses.append(sub_agent_caller(sub_payload))
 
     # 3) fan-in 보고서 작성 (sub-agent 가 아니라 orchestrator)

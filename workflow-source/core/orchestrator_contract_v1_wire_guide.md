@@ -193,11 +193,12 @@ python3 workflow-source/tests/check_pilot_phase11_contract_v1.py
 
 | 신규 API | wire 시점 | 효과 |
 | --- | --- | --- |
-| `choose_roles(task, strict=...)` | sub-agent fan-out 결정 시 | sub_task 별 role + parent-prefix delegation_id 발급 |
+| `choose_roles(task, strict=...)` | sub-agent fan-out 결정 시 | sub_task 별 role + parent-prefix delegation_id 발급 (형식: `{parent_delegation_id}-st-{i}`, e.g. `del-2026-06-08-c6cc8da7-st-1`) |
 | `validate_fanin_output(payload, expected_parent_delegation_id=...)` | sub-agent fan-in 보고 수신 시 | aggregated status 일관성 + sub delegation_id prefix enforce |
 | `recommend_model_tier(task)` | `choose_role` 결과 확인 시 | task keyword 기반 main/small 자동 결정 |
 | `decision.recommended_model_tier` | sub-agent 호출 페이로드 생성 시 | worker.model_tier 자동 주입 |
 | `decision.sub_id` | sub-agent 호출 결과 routing 시 | multi-component 결과 → 원본 sub 매핑 |
+| **sub.delegation_id prefix rule (v0.5.9 보강)** | fan-in 보고서 `sub_results[].delegation_id` 작성 시 | sub.delegation_id 는 반드시 parent.delegation_id 의 prefix 여야 한다 (e.g. `del-PARENT` → `del-PARENT-st-1`). `validate_fanin_output` 가 enforce — 위반 시 `sub_delegation_id_prefix_mismatch` 에러. **Mavis 측 sub-agent 응답을 가공할 때 절대 prefix 를 떼거나 재발급하지 말 것.** |
 
 ## 8. 안티패턴 (피해야 할 wire)
 
@@ -206,9 +207,11 @@ python3 workflow-source/tests/check_pilot_phase11_contract_v1.py
 3. **`sub_results` 를 무시하고 sub 응답을 통째로 합치기** — §5.2 의 aggregated status 계산이 무의미해짐. `validate_fanin_output` 의 status consistency check 가 잡아냄.
 4. **`expected_delegation_id` 없이 `validate_output` 호출** — cross-delegation leak (sub-agent 가 다른 delegation_id 응답) 못 잡음.
 5. **model_tier 를 sub-agent 가 자기 결정** — §4.1 의 `required_model_tier` 가 orchestrator 결정값. sub-agent 가 무시 가능하지만 자동 검증.
+6. **sub 응답의 `delegation_id` 를 orchestrator 가 임의 재발급** (v0.5.9 보강) — Mavis 가 sub-agent 응답을 fan-in 보고서 `sub_results[].delegation_id` 에 옮길 때 새 UUID / 새 prefix 부여하면 `validate_fanin_output` 가 `sub_delegation_id_prefix_mismatch` 로 거절한다. sub-agent 가 보낸 `delegation_id` 를 **그대로** 옮길 것. sub-agent 가 빈 값으로 보낸 경우에만 `sub_decision.delegation_id` (= `choose_roles` 가 미리 발급한 parent-prefix 값) 로 fill — 그 외 재가공 금지.
 
 ## 9. 다음 단계
 
 - Mavis 측 `mavis_team` (engine) 의 `mavis communication send --command spawn` 호출 직전에 `choose_role` 자동 wire
 - mavis-team 의 `delegate_to_subagent` hook 에서 `validate_output` enforce
-- v0.5.8 에서 PyPI 배포 + 위 hook 들의 mavis 표준 wiring
+- v0.5.8 (Beta) — GitHub Releases 만 배포 (PyPI 미배포 확정, `docs/RELEASE.md` 참조). v0.5.8 에서 `bootstrap_lib` 인터랙티브 `--harness` picker + packaging smoke 자동화 추가
+- v0.5.9 (예정) — 본 문서의 §7/§8 보강 + 위 hook 들의 Mavis 표준 wiring. sub.delegation_id prefix 룰 자동 회귀 test (이미 `check_contract_v1_multi_component.py` `check_validate_fanin_sub_delegation_id_prefix_mismatch` 로 enforce)

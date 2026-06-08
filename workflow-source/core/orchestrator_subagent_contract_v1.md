@@ -1,10 +1,10 @@
 # Orchestrator ↔ Sub-agent Delegation Contract v1
 
 - 문서 목적: 메인 오케스트레이터(세션 루트 세션)가 sub-agent 워커에게 작업을 위임할 때 따르는 외부 contract v1 을 명시한다. 이 contract 는 standard_ai_workflow v0.5.4 부터 적용되며, [이슈 #1](https://github.com/ykylee/standard_ai_workflow/issues/1) ("오케스트레이터가 서브 에이전트를 호출하지 않고 직접 도구를 사용") 의 영구 해결을 위한 기준선이 된다.
-- 범위: 위임 입력/출력 스키마, 4개 역할 경계, 위임 가능/불가 카탈로그, 에러/폴백 정책, 검증 시나리오
+- 범위: 위임 입력/출력 스키마, 4개 역할 경계, 위임 가능/불가 카탈로그, 에러/폴백 정책, 검증 시나리오, 멀티 컴포넌트 fan-out/in (v0.5.7 부터)
 - 대상 독자: standard_ai_workflow 도입자, 멀티 에이전트 운영자, AI 에이전트 설계자
-- 상태: stable (v1, 2026-06-07)
-- 최종 수정일: 2026-06-07
+- 상태: stable (v1, 2026-06-08 — v0.5.7: §6.3 cross-ref row + §11 멀티 컴포넌트 1차 컷 + §4.1 required_model_tier + §5.1 sub_results fan-in)
+- 최종 수정일: 2026-06-08
 - 관련 문서:
   - 권장 운영 원칙: [./workflow_agent_topology.md](./workflow_agent_topology.md)
   - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
@@ -166,9 +166,83 @@ contract v1 은 다음 4개 역할을 정의한다. 각 역할은 책임, 권한
 | `task.validation.criteria` | string | ❌ | 검증 기준 (linter/test PASS 등) |
 | `task.validation.owner` | enum | ✅ | 항상 `"orchestrator"` (검증 책임 명시) |
 | `task.deadline_hint` | ISO 8601 | ❌ | 권장 완료 시각, 강제 X |
+| `task.required_model_tier` | enum | ❌ | v0.5.7: `"small"` (기본) / `"main"` (강제 승격). 미지정 시 `delegator` 가 자동 결정 (main 후보: 아키텍처 변경, 정책 결정, 5+ 파일 cross-cutting, bounded_research 5+ source) |
+| `task.parent_delegation_id` | string | ❌ | v0.5.7: 멀티 컴포넌트 fan-out 시 부모 delegation_id. 미지정 시 standalone 으로 간주 |
+| `task.sub_tasks` | object[] | ❌ | v0.5.7: fan-out 의 분해된 sub-task 목록 (아래 §4.2 참조) |
 | `context.branch` | string | ✅ | git branch |
 | `context.memory_layer_root` | path | ❌ | 메모리 layer 루트 |
 | `context.project_root` | path | ✅ | 절대 경로 |
+
+### 4.2 멀티 컴포넌트 sub-task (v0.5.7, fan-out)
+
+복합 작업을 여러 sub-agent 가 분담할 때 사용하는 fan-out 입력. **부모 task 의 `sub_tasks` 필드**에 1개 이상의 sub-task 정의. 각 sub-task 는 §4 의 task 본질을 그대로 따른다 (스키마 동일). 부모 sub-agent 또는 orchestrator 가 fan-out 결정, sub-agent 가 fan-in 보고.
+
+```json
+{
+  "contract_version": "1.0",
+  "delegation_id": "del-2026-06-08-fanout-001",
+  "issued_at": "2026-06-08T15:00:00+09:00",
+  "issued_by": {
+    "session_id": "mvs_orchestrator_root",
+    "role": "orchestrator"
+  },
+  "task": {
+    "task_id": "TASK-V057-001",
+    "task_type": "code_change",
+    "brief": "Devhub N+1 endpoint 1차 구현 + 4 시나리오 동시 진행",
+    "constraints": ["scope: backend-core/handlers/"],
+    "sub_tasks": [
+      {
+        "sub_id": "st-1",
+        "task_type": "code_change",
+        "brief": "POST /auth/logout 구현 (OIDC + 204)",
+        "primary_artifact": "backend-core/handlers/auth_logout.go",
+        "artifact_kind": "code",
+        "parent_delegation_id": "del-2026-06-08-fanout-001"
+      },
+      {
+        "sub_id": "st-2",
+        "task_type": "code_change",
+        "brief": "POST /ci-runs 구현 (repository_id + 7 enum + 409 idempotency)",
+        "primary_artifact": "backend-core/handlers/ci_runs.go",
+        "artifact_kind": "code",
+        "parent_delegation_id": "del-2026-06-08-fanout-001"
+      },
+      {
+        "sub_id": "st-3",
+        "task_type": "validation_run",
+        "brief": "4 endpoint 통합 test suite 실행",
+        "primary_artifact": "backend-core/tests/contract_v1_integration.py",
+        "artifact_kind": "code",
+        "parent_delegation_id": "del-2026-06-08-fanout-001"
+      }
+    ],
+    "expected_outputs": {
+      "primary_artifact": "backend-core/handlers/",
+      "artifact_kind": "code",
+      "must_include": ["3 sub-component 모두 PASS", "fan-in aggregation 1 report"]
+    }
+  }
+}
+```
+
+#### 4.2.1 sub-task 필드 정의
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `sub_id` | string | ✅ | 부모 내 유니크 (`st-N` 권장) |
+| `task_type` | enum | ✅ | 부모와 독립 — 각 sub-task 별 role 결정 |
+| `brief` | string | ✅ | sub-task 설명 |
+| `primary_artifact` | path | ✅ | sub 산출물 |
+| `artifact_kind` | enum | ✅ | `markdown` / `python` / `json` / `toml` / `text` / `code` / `other` |
+| `parent_delegation_id` | string | ✅ | 부모 delegation_id 와 일치해야 함 (delegator 가 enforce) |
+
+#### 4.2.2 fan-out 규칙
+
+- `sub_tasks` 가 1개 이상이면 **반드시 fan-out 모드** (단일 위임 아님)
+- 각 sub-task 는 §4 의 task 본질을 따르므로 `delegator.choose_role` 을 각각 호출 가능 (per-sub delegation_id 별도)
+- sub-task 별 `delegation_id` 형식: `del-YYYY-MM-DD-<parent-suffix>-<sub_id>` 권장
+- `sub_tasks` 내 `task_type` 이 부모와 다를 수 있음 (e.g. 부모 `code_change` + sub `validation_run` 혼재 가능)
 
 ## 5. 위임 출력 스키마 (sub-agent → orchestrator)
 
@@ -236,6 +310,8 @@ sub-agent 가 작업을 끝내고 orchestrator 에게 보고할 때 사용하는
 | `result.next_step` | string | ✅ | orchestrator 가 다음에 할 일 |
 | `warnings` | string[] | ❌ | 단서, 가정, 한계 |
 | `risks` | string[] | ❌ | 후속 작업 시 주의 |
+| `sub_results` | object[] | ❌ | v0.5.7: fan-in 보고. sub-task 별 §5 보고 (아래 §5.2 참조) |
+| `parent_delegation_id` | string | ❌ | v0.5.7: fan-in 보고 시 부모 delegation_id. `sub_results` 가 있으면 필수 |
 
 ## 6. 위임 가능 / 불가 카탈로그
 
@@ -273,6 +349,9 @@ sub-agent 가 작업을 끝내고 orchestrator 에게 보고할 때 사용하는
 | PR 본문 작성 | orchestrator | 사용자-facing 메시지 |
 | 짧은 triage read (1 파일, 50줄 미만) | orchestrator | 컨텍스트 부풀림 작음 |
 | 메모리 layer 의 session_handoff.md / state.json 직접 write | orchestrator | 단일 진실 공급원 |
+| **cross-ref 갱신 (docs/ ↔ memory layer ↔ handoff 간 링크 수정)** (v0.5.7 신규) | orchestrator | cross-ref 는 단일 진실 공급원(orchestrator) 만이 일관성 보장 가능; sub-agent 가 부분 갱신 시 dead link 위험 |
+| **fan-in 결과 통합 보고 작성** (v0.5.7 신규) | orchestrator | sub_results 통합은 §6.3 의 "sub-agent 출력 통합/리뷰" 의 멀티 컴포넌트 버전; sub-agent 가 자기 sub 만 보고, 통합은 orchestrator |
+| **parent_delegation_id 발급** (v0.5.7 신규) | orchestrator | fan-out 의 부모 ID 는 fan-out 결정의 일부, orchestrator 만 발급 |
 
 ### 6.4 위임 금지 영역
 
@@ -377,9 +456,81 @@ v0.5.5 TASK-V055-001 의 S4 라이브 데모는 4 시나리오 contract v1 round
 v0.5.6 부터 contract v1 의 §5/§6 enforcement 가 Python 모듈로 제공된다:
 
 - **§5 출력 검증**: `workflow_kit.contract_v1.output_validator.validate_output(payload, expected_delegation_id=None) -> OutputValidationResult`
+- **§5 fan-in 검증** (v0.5.7): `workflow_kit.contract_v1.output_validator.validate_fanin_output(payload, expected_parent_delegation_id=None) -> OutputValidationResult`. `sub_results[]` 각 항목도 재귀 검증
 - **§6 위임 결정**: `workflow_kit.contract_v1.delegator.choose_role(task, strict=False) -> DelegationDecision`
+- **§6 멀티 위임 (fan-out, v0.5.7)**: `workflow_kit.contract_v1.delegator.choose_roles(task, strict=False) -> list[DelegationDecision]`. `task.sub_tasks` 가 있으면 각 sub-task 에 대해 호출; 없으면 단일 결과 (`[choose_role(task)]`)
+- **§6 model_tier 자동 결정 (v0.5.7)**: `workflow_kit.contract_v1.delegator.recommend_model_tier(task) -> "small" | "main"`. main 후보: 아키텍처 결정, 정책 문구, 5+ 파일 cross-cutting, bounded_research 5+ source
 
-오케스트레이터 / sub-agent 런타임은 이 헬퍼를 호출해서 contract v1 을 자동 enforce 한다. 자세한 사용 예시는 [`workflow_kit/contract_v1/__init__.py`](../../workflow_kit/contract_v1/__init__.py) 와 회귀 [`check_contract_v1_output_validator.py`](../../tests/check_contract_v1_output_validator.py) / [`check_contract_v1_delegator.py`](../../tests/check_contract_v1_delegator.py) 참조.
+### 5.2 fan-in 출력 스키마 (sub-agent fan-in 보고, v0.5.7)
+
+멀티 컴포넌트 작업의 부모 sub-agent 가 fan-in 보고할 때 사용. 각 sub-task 별 §5 보고를 `sub_results[]` 에 담고, 부모 보고의 `parent_delegation_id` 와 매칭.
+
+```json
+{
+  "contract_version": "1.0",
+  "delegation_id": "del-2026-06-08-fanout-001-parent",
+  "completed_at": "2026-06-08T17:30:00+09:00",
+  "worker": {
+    "session_id": "mvs_parent_xxxxxxxx",
+    "role": "code-worker",
+    "model_tier": "main"
+  },
+  "parent_delegation_id": "del-2026-06-08-fanout-001",
+  "result": {
+    "status": "ok",
+    "summary": "3 sub-component 모두 PASS, fan-in 통합 완료",
+    "artifacts": [
+      {"path": "backend-core/handlers/auth_logout.go", "kind": "code", "action": "created"},
+      {"path": "backend-core/handlers/ci_runs.go", "kind": "code", "action": "created"},
+      {"path": "backend-core/tests/contract_v1_integration.py", "kind": "python", "action": "created"}
+    ],
+    "written_paths": [
+      "backend-core/handlers/auth_logout.go",
+      "backend-core/handlers/ci_runs.go",
+      "backend-core/tests/contract_v1_integration.py"
+    ],
+    "sub_results": [
+      {
+        "sub_id": "st-1",
+        "delegation_id": "del-2026-06-08-fanout-001-st-1",
+        "status": "ok",
+        "summary": "POST /auth/logout OIDC + 204 구현, 5/5 test PASS",
+        "written_paths": ["backend-core/handlers/auth_logout.go"]
+      },
+      {
+        "sub_id": "st-2",
+        "delegation_id": "del-2026-06-08-fanout-001-st-2",
+        "status": "ok",
+        "summary": "POST /ci-runs repository_id + 7 enum + 409 idempotency, 4/4 test PASS",
+        "written_paths": ["backend-core/handlers/ci_runs.go"]
+      },
+      {
+        "sub_id": "st-3",
+        "delegation_id": "del-2026-06-08-fanout-001-st-3",
+        "status": "partial",
+        "summary": "integration 12/15 PASS — 3개 race condition 발견, fix 위임 필요",
+        "written_paths": ["backend-core/tests/contract_v1_integration.py"]
+      }
+    ],
+    "validation_result": {
+      "ran": true,
+      "command": "pytest backend-core/tests/contract_v1_integration.py -q",
+      "status": "partial",
+      "details": "12/15 PASS, 3 fail (st-3 race)"
+    },
+    "next_step": "orchestrator 가 st-3 race fix 를 code-worker 에 별도 위임 후 fan-in 재보고"
+  }
+}
+```
+
+#### 5.2.1 fan-in 규칙
+
+- `sub_results` 가 있으면 `parent_delegation_id` 필수
+- 각 sub_result 항목은 `sub_id` + `delegation_id` + `status` + `summary` + `written_paths` 최소 5필드
+- `result.status` 는 sub_results 의 status 들로부터 자동 계산 가능 (모든 `ok` → `ok`, 하나라도 `failed` → `failed`, 그 외 → `partial`)
+- `validate_fanin_output` 이 이 계산을 검증
+
+오케스트레이터 / sub-agent 런타임은 이 헬퍼를 호출해서 contract v1 을 자동 enforce 한다. 자세한 사용 예시는 [`workflow_kit/contract_v1/__init__.py`](../../workflow_kit/contract_v1/__init__.py) 와 회귀 [`check_contract_v1_output_validator.py`](../../tests/check_contract_v1_output_validator.py) / [`check_contract_v1_delegator.py`](../../tests/check_contract_v1_delegator.py) / [`check_contract_v1_multi_component.py`](../../tests/check_contract_v1_multi_component.py) (v0.5.7 신규) 참조. Mavis / Mavis 측 wire 패턴은 [`orchestrator_contract_v1_wire_guide.md`](./orchestrator_contract_v1_wire_guide.md) (v0.5.7 신규) 참조.
 
 ### 9.1 오케스트레이터 (Mavis) 측
 
@@ -411,12 +562,12 @@ v0.5.6 부터 contract v1 의 §5/§6 enforcement 가 Python 모듈로 제공된
 ## 11. 차기 버전 (v2 후보)
 
 contract v2 에서 다음 항목 검토:
-
 - 스트리밍 출력 (긴 작업 중간 progress 보고)
 - 양방향 ping (sub-agent 가 orchestrator 에 질문)
-- 멀티 sub-agent fan-out / fan-in
+- **멀티 sub-agent fan-out / fan-in** (v0.5.7 1차 컷: 입력 §4.2 + 출력 §5.2 + delegator `choose_roles` + §6.3 cross-ref row)
 - 에스크레이션 우선순위 (P0/P1/P2)
 - observability (각 delegation_id 별 latency / token 사용량 추적)
+- **required_model_tier 자동 결정** (v0.5.7 1차 컷: §4.1 필드 + delegator 자동 결정; v2 에서 policy 한 단계 더 formal 화)
 
 ## 다음에 읽을 문서
 

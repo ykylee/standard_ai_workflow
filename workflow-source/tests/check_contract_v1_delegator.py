@@ -3,9 +3,10 @@
 
 Verifies that workflow_kit.contract_v1.delegator.choose_role correctly:
 - maps the 4 task_types to roles per §6.1
-- rejects all 7 §6.3 MUST-NOT-delegate markers (handoff / backlog / state.json / ask_user / 우선순위 / 통합/리뷰 / PR 본문)
+- rejects all 9 §6.3 MUST-NOT-delegate markers (v0.5.6: 7 + v0.5.7: cross-ref / fan-in 통합)
 - raises on unknown task_type
 - generates valid §4 delegation_id format
+- (v0.5.7) recommends model_tier based on task keywords
 
 Reference: workflow-source/core/orchestrator_subagent_contract_v1.md §6
 """
@@ -19,7 +20,11 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.contract_v1 import choose_role, DelegationRejected  # noqa: E402
+from workflow_kit.contract_v1 import (  # noqa: E402
+    choose_role,
+    DelegationRejected,
+    recommend_model_tier,
+)
 
 DELEGATION_ID_RE = re.compile(r"^del-\d{4}-\d{2}-\d{2}-[0-9a-f]{8}$")
 
@@ -55,7 +60,11 @@ def check_task_type_to_role_mapping() -> None:
 
 
 def check_must_not_delegate_rejection() -> None:
-    """§6.3: all 7 markers must be rejected with must_not_delegate=True."""
+    """§6.3: all 9 markers must be rejected with must_not_delegate=True.
+
+    v0.5.6: 7 markers (handoff, backlog, state.json, ask_user, 우선순위, 통합/리뷰, PR 본문)
+    v0.5.7: +2 (cross-ref, fan-in 통합)
+    """
     cases = [
         ("handoff 갱신 및 정리", "handoff 갱신은 orchestrator 직접 처리 (contract v1 §6.3)"),
         ("backlog update", "backlog 갱신은 orchestrator 직접 처리 (contract v1 §6.3)"),
@@ -64,6 +73,15 @@ def check_must_not_delegate_rejection() -> None:
         ("우선순위 결정", "우선순위 결정은 orchestrator 직접 처리 (contract v1 §6.3)"),
         ("sub-agent 출력 통합/리뷰", "sub-agent 출력 통합/리뷰는 orchestrator 직접 처리 (contract v1 §6.3)"),
         ("PR 본문 작성", "PR 본문 작성은 orchestrator 직접 처리 (contract v1 §6.3)"),
+        # v0.5.7 신규
+        (
+            "docs cross-ref 갱신 (3 doc-link + 2 memory link)",
+            "cross-ref 갱신은 orchestrator 직접 처리 (contract v1 §6.3, v0.5.7)",
+        ),
+        (
+            "fan-in 통합 보고서 작성",
+            "fan-in 통합 보고는 orchestrator 직접 처리 (contract v1 §6.3, v0.5.7)",
+        ),
     ]
     for brief, expected_reason in cases:
         decision = choose_role(_task("doc_draft", brief=brief))
@@ -126,6 +144,66 @@ def check_non_must_not_delegate_brief_passes() -> None:
         )
 
 
+def check_recommend_model_tier_main_keywords() -> None:
+    """v0.5.7: model_tier 자동 결정 — main 후보 keyword 매치 시 'main'."""
+    main_cases = [
+        {"brief": "아키텍처 재설계 — 모듈 경계 변경", "task_type": "code_change"},
+        {"brief": "정책 문구 추가 (보안 정책 v2)", "task_type": "doc_draft"},
+        {"brief": "5+ 파일 cross-cutting refactor", "task_type": "code_change"},
+        {"brief": "bounded_research 5+ source 종합", "task_type": "bounded_research"},
+    ]
+    for task in main_cases:
+        tier = recommend_model_tier(task)
+        if tier != "main":
+            raise AssertionError(
+                f"task brief={task['brief']!r} should recommend 'main', got {tier!r}"
+            )
+
+
+def check_recommend_model_tier_default_small() -> None:
+    """v0.5.7: main keyword 가 없으면 'small'."""
+    small_cases = [
+        {"brief": "단일 파일 200줄 read", "task_type": "doc_draft"},
+        {"brief": "build / lint / test 실행", "task_type": "validation_run"},
+        {"brief": "small fix 1 file", "task_type": "code_change"},
+    ]
+    for task in small_cases:
+        tier = recommend_model_tier(task)
+        if tier != "small":
+            raise AssertionError(
+                f"task brief={task['brief']!r} should recommend 'small', got {tier!r}"
+            )
+
+
+def check_recommend_model_tier_explicit_override() -> None:
+    """v0.5.7: required_model_tier 명시 시 override."""
+    # 명시적으로 small 인데 brief 가 main keyword 있어도 small
+    tier = recommend_model_tier({
+        "brief": "아키텍처 재설계",
+        "task_type": "code_change",
+        "required_model_tier": "small",
+    })
+    if tier != "small":
+        raise AssertionError(f"explicit small should override brief keyword, got {tier!r}")
+    # 명시적으로 main 인데 brief 가 일반이어도 main
+    tier = recommend_model_tier({
+        "brief": "small fix",
+        "task_type": "code_change",
+        "required_model_tier": "main",
+    })
+    if tier != "main":
+        raise AssertionError(f"explicit main should override default, got {tier!r}")
+
+
+def check_choose_role_returns_recommended_tier() -> None:
+    """v0.5.7: choose_role 결과에 recommended_model_tier 박혀 있어야."""
+    decision = choose_role(_task("code_change", brief="아키텍처 변경"))
+    if decision.recommended_model_tier != "main":
+        raise AssertionError(
+            f"choose_role should propagate recommended_model_tier=main, got {decision.recommended_model_tier!r}"
+        )
+
+
 def main() -> int:
     check_task_type_to_role_mapping()
     check_must_not_delegate_rejection()
@@ -133,10 +211,17 @@ def main() -> int:
     check_unknown_task_type_raises()
     check_marker_in_primary_artifact_also_rejected()
     check_non_must_not_delegate_brief_passes()
+    # v0.5.7 신규
+    check_recommend_model_tier_main_keywords()
+    check_recommend_model_tier_default_small()
+    check_recommend_model_tier_explicit_override()
+    check_choose_role_returns_recommended_tier()
     print(
         "Contract v1 §6.1/§6.3 delegator smoke check passed "
-        "(4 task_type mappings, 7 must-not-delegate rejections, strict mode, "
-        "unknown type, primary_artifact marker, non-match baseline)."
+        "(4 task_type mappings, 9 must-not-delegate rejections [7 v0.5.6 + 2 v0.5.7], "
+        "strict mode, unknown type, primary_artifact marker, non-match baseline, "
+        "model_tier main keywords, model_tier default small, model_tier explicit "
+        "override, choose_role propagates tier)."
     )
     return 0
 

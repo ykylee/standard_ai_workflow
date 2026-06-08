@@ -164,6 +164,17 @@ def check_choose_roles_fanout_three_subs() -> None:
             raise AssertionError(
                 f"sub {i} delegation_id {sub_decision.delegation_id!r} should contain sub_id st-{i + 1}"
             )
+        # v0.5.10 spec 정합: sub delegation_id 는 반드시 parent delegation_id
+        # 의 prefix 여야 한다 (validate_fanin_output 의 prefix check 와 정합).
+        # v0.5.7.1 까지는 _generate_delegation_id_with_suffix 가 random parent
+        # prefix 를 발급해 fanin validator 가 거절했음. v0.5.10 fix 후
+        # choose_roles 가 직접 f"{parent_id}-st-{i}" 형식으로 발급.
+        if not sub_decision.delegation_id.startswith(parent.delegation_id):
+            raise AssertionError(
+                f"sub {i} delegation_id {sub_decision.delegation_id!r} should "
+                f"start with parent delegation_id {parent.delegation_id!r} "
+                f"(v0.5.10 spec 정합 — fanin validator prefix check)"
+            )
         # 서브 delegation_id 들이 서로 유니크
         sibling_ids = [d.delegation_id for d in decisions[1:] if d.delegation_id is not None]
         if len(sibling_ids) != len(set(sibling_ids)):

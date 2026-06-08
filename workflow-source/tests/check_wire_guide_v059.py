@@ -324,26 +324,34 @@ def _assert_v0591_invariants_violated_in_validation_error(exc: BaseException) ->
 
 
 def test_section_3_rejects_sub_delegation_id_reissue() -> None:
-    """If a Mavis implementer copies the example but reissues sub
-    delegation_ids (e.g. new UUIDs), the spec-conformant validator should
-    reject the result. This is the v0.5.9 wire rule that we want to
-    enforce in consumer code.
+    """Verify the wire guide §3 fanin payload is spec-conformant even when
+    a misbehaving sub-agent returns a reissued delegation_id.
+
+    Wire guide §3 (as written) reads `sub.decision.delegation_id` from
+    the SUB INPUT (the payload the orchestrator just sent), NOT from
+    the sub-agent's response. So a sub-agent that returns a reissued
+    UUID is ignored by the example as-written — the fanin payload
+    inherits the orchestrator-issued parent-prefix delegation_id. This
+    is the correct v0.5.10 wire behaviour: a faithful sub-agent
+    receives a delegation_id and should echo it back; if it doesn't,
+    the orchestrator's wire code uses the issued id, not the response.
+    The validator then sees a spec-conformant fanin payload.
+
+    This test is a back-pressure on the v0.5.10 spec: if a future wire
+    guide revision changes the example to use the sub-agent response
+    delegation_id (which would re-introduce the v0.5.9.1 antipattern),
+    this test would fail.
     """
     code = _load_section_3_code()
     stub_ns = _build_stub_namespace()
     fn = _compile_fanout_function(code, stub_ns)
 
-    # Define a *misbehaving* sub-agent caller that reissues delegation_id
-    # with a fresh UUID. The wire guide's example code as-written does
-    # not have a way to rewrite the response (it just builds sub_results
-    # from `sub_responses` directly), so to simulate the antipattern we
-    # monkey-patch the response builder after the fact.
     import uuid
 
     def _bad_caller(payload: dict) -> dict:
         return {
             "contract_version": "1.0",
-            "delegation_id": f"del-MISBEHAVING-{uuid.uuid4().hex[:8]}",  # wrong!
+            "delegation_id": f"del-MISBEHAVING-{uuid.uuid4().hex[:8]}",
             "parent_delegation_id": payload["parent_delegation_id"],
             "result": {
                 "status": "ok",
@@ -355,30 +363,38 @@ def test_section_3_rejects_sub_delegation_id_reissue() -> None:
 
     task = _make_3sub_task(parent_id="del-2026-06-08-wire-guide-test")
     try:
-        fn(task, _bad_caller)
-    except Exception as exc:
-        # The wire guide's example does NOT call validate_fanin_output in
-        # production success path (it only validates on `if not result.is_valid`,
-        # and validate_fanin_output raises on the misbehaving payload). So a
-        # raised exception here is the *expected* outcome.
-        msg = str(exc)
-        if "delegation_id" in msg.lower() or "prefix" in msg.lower() or "match" in msg.lower():
-            return  # expected: validate_fanin_output rejected the reissued id
-        # If something else raised (a NameError from the example, or some
-        # other unrelated error), bubble it up so the test fails loudly.
+        payload = fn(task, _bad_caller)
+    except _OutputValidationFailed:
+        # If validate_fanin_output raised, the wire guide's example was
+        # somehow passing through the sub-agent response delegation_id
+        # (i.e. v0.5.9.1 antipattern came back). Surface that.
         raise AssertionError(
-            f"Unexpected exception from misbehaving sub-caller: {type(exc).__name__}: {exc}"
-        ) from exc
-    else:
-        # If the call returned normally, the validator didn't catch the
-        # reissued sub delegation_id — that's the v0.5.9 wire rule
-        # violation we want to surface.
-        raise AssertionError(
-            "validate_fanin_output accepted a fanin_payload with reissued "
-            "sub delegation_ids. The v0.5.9 wire rule says sub_results[].delegation_id "
-            "must start with the parent delegation_id; this example should "
-            "have raised OutputValidationFailed."
+            "validate_fanin_output raised on the wire guide example. This "
+            "means the example is using the sub-agent response "
+            "delegation_id (v0.5.9.1 antipattern), not the orchestrator-"
+            "issued one. The fix is to read sub.decision.delegation_id "
+            "from the sub INPUT (the payload sent to the sub-agent), as "
+            "the v0.5.10 example does."
         )
+
+    # The wire guide as-written should produce a spec-conformant fanin
+    # payload regardless of what the sub-agent returns. Verify.
+    parent_id = payload["delegation_id"]
+    for idx, sub in enumerate(payload["result"]["sub_results"]):
+        sub_did = sub["delegation_id"]
+        if not sub_did.startswith(parent_id):
+            raise AssertionError(
+                f"sub_results[{idx}].delegation_id={sub_did!r} should start "
+                f"with parent={parent_id!r}. The wire guide's example "
+                f"should be using the orchestrator-issued parent-prefix "
+                f"delegation_id, not the sub-agent response."
+            )
+        expected = f"{parent_id}-st-{idx + 1}"
+        if sub_did != expected:
+            raise AssertionError(
+                f"sub_results[{idx}].delegation_id={sub_did!r} should equal "
+                f"{expected!r} per v0.5.10 spec (parent-st-N format)"
+            )
 
 
 def main() -> int:

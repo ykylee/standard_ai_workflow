@@ -107,8 +107,14 @@ def _generate_delegation_id() -> str:
 def _generate_delegation_id_with_suffix(extra: str) -> str:
     """Generate `del-YYYY-MM-DD-<base>-<extra>` for sub-task fan-out (v0.5.7).
 
-    `extra` 는 sub_id 그대로 (e.g. "st-1") 가 들어옴. sub 가 fan-out parent
-    session 내에서 유니크하도록 base uuid4 hex 6자 + sub_id 결합.
+    Deprecated in v0.5.10. ``choose_roles`` now issues sub delegation_ids
+    in the spec-declared ``{parent_delegation_id}-st-N`` format directly
+    so that ``validate_fanin_output``'s prefix check (parent
+    delegation_id must be a prefix of every sub_results[].delegation_id)
+    is satisfied end-to-end. The random-base + sub_id-suffix format this
+    helper produced did not respect that contract, so the v0.5.7.1
+    verifier's actual walkthrough surfaced the gap. Kept for any external
+    callers that imported it; new code should not use this helper.
     """
     from datetime import date
     today = date.today().isoformat()
@@ -325,7 +331,7 @@ def choose_roles(
 
     # fan-out: 각 sub-task 별 decision
     decisions: list[DelegationDecision] = [parent_decision]
-    for sub in sub_tasks:
+    for sub_index, sub in enumerate(sub_tasks, start=1):
         _validate_sub_task(sub, parent_delegation_id)
         # sub-task 를 단일 task 로 위장해서 choose_role 호출
         sub_as_task: dict[str, Any] = {
@@ -338,9 +344,17 @@ def choose_roles(
         }
         sub_decision = choose_role(sub_as_task, strict=False)
         sub_decision.sub_id = sub["sub_id"]
-        # delegation_id 를 sub_id suffix 형식으로 덮어쓰기 (parent prefix 안 씀 —
-        # parent delegation_id 가 바뀌어도 sub 가 추적 가능하도록, sub_id 만 suffix)
-        sub_decision.delegation_id = _generate_delegation_id_with_suffix(sub["sub_id"])
+        # v0.5.10 spec 정합 (v0.5.7.1 verifier actual walkthrough 가 surface):
+        # sub delegation_id 는 반드시 parent delegation_id 의 prefix 여야
+        # 한다 (v0.5.7 spec §4.2 + §5.2 의 fanin validator 가 enforce). 형식:
+        # `{parent_delegation_id}-st-{i}` (1-based, e.g.
+        # `del-2026-06-08-c6cc8da7-st-1`). sub_id 가 무엇이든
+        # (`"a"`, `"st-1"`, `"core-build"` 등) 무관하게 st-N 형식 사용 —
+        # spec 본체 (orchestrator_subagent_contract_v1.md §4.2) 의 권장
+        # 형식과 회귀 test `_ok_payload` 의 정답 builder 와 정합.
+        # v0.5.7.1 에서는 `_generate_delegation_id_with_suffix(sub_id)` 가
+        # random parent prefix 를 발급해 fanin validator 가 거절했음.
+        sub_decision.delegation_id = f"{parent_delegation_id}-st-{sub_index}"
         # sub 의 parent_delegation_id 자동 채움 (caller 가 미리 채웠다면 그대로 둠)
         if sub.get("parent_delegation_id") is None:
             sub["parent_delegation_id"] = parent_delegation_id

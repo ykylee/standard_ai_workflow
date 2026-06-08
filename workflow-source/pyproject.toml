@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "standard-ai-workflow"
-version = "0.5.2-beta"
+version = "0.5.7.1-beta"
 description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -80,6 +80,9 @@ packages = [
     "workflow_kit",
     "workflow_kit.common",
     "workflow_kit.common.modes",
+    "workflow_kit.common.state",
+    "workflow_kit.common.contracts",
+    "workflow_kit.common.schemas",
     "workflow_kit.contract_v1",
     "workflow_kit.server",
     "workflow_kit.harness",
@@ -92,6 +95,9 @@ packages = [
 "workflow_kit" = "workflow_kit"
 "workflow_kit.common" = "workflow_kit/common"
 "workflow_kit.common.modes" = "workflow_kit/common/modes"
+"workflow_kit.common.state" = "workflow_kit/common/state"
+"workflow_kit.common.contracts" = "workflow_kit/common/contracts"
+"workflow_kit.common.schemas" = "workflow_kit/common/schemas"
 "workflow_kit.server" = "workflow_kit/server"
 "workflow_kit.harness" = "workflow_kit/harness"
 "bootstrap_lib" = "scripts/bootstrap_lib"

@@ -225,7 +225,7 @@ v0.5.7 (PR #21): contract v1 §4.2/§5.2 multi-component fan-out/in + §6.3 cros
 ## 10. 다음 단계 (v0.5.8 후보)
 
 - [ ] Mavis 측 `choose_role`/`choose_roles` 을 mavis-team engine 의 `delegate_to_subagent` hook 에 자동 wire (가이드 v0.5.7 기반)
-- [ ] PyPI 배포 (v0.5.2 부터 보류 중)
+- [ ] **배포 채널 정책 변경 (2026-06-08)**: PyPI/TestPyPI 업로드 폐기, **GitHub Releases** 에 wheel/sdist attach 만. `releases/Beta-v0.5.7.md` 가 release notes 본문.
 - [ ] Phase 11 case study 추가 — v0.5.7 fan-out/in 시나리오 walkthrough (Devhub N+1 endpoint 4 동시 처리)
 - [ ] contract v2 스트리밍 출력 / 양방향 ping / observability (v0.5.7 §11 1차 컷 외 항목)
 - [ ] `task.required_model_tier` 의 keyword 사전 외부화 (config 기반)

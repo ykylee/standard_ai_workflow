@@ -23,6 +23,10 @@ ALLOWED_ARTIFACT_KINDS = ("markdown", "python", "json", "toml", "text", "code", 
 REQUIRED_TOP_FIELDS = ("contract_version", "delegation_id", "completed_at", "worker", "result")
 REQUIRED_WORKER_FIELDS = ("session_id", "role", "model_tier")
 REQUIRED_RESULT_FIELDS = ("status", "summary", "artifacts", "written_paths", "next_step")
+# v0.5.7: fan-in sub_result 최소 필드
+REQUIRED_SUB_RESULT_FIELDS = ("sub_id", "delegation_id", "status", "summary", "written_paths")
+# v0.5.7: artifacts action enum (created/modified/deleted)
+ALLOWED_ARTIFACT_ACTIONS = ("created", "modified", "deleted")
 
 
 @dataclass
@@ -150,6 +154,19 @@ def validate_output(
                     f"result.artifacts[{idx}].kind",
                     f"must be one of {ALLOWED_ARTIFACT_KINDS}, got {artifact['kind']!r}",
                 ))
+            # v0.5.7: action enum (optional, but validated if present)
+            if "action" in artifact and artifact["action"] not in ALLOWED_ARTIFACT_ACTIONS:
+                errors.append(OutputValidationError(
+                    f"result.artifacts[{idx}].action",
+                    f"must be one of {ALLOWED_ARTIFACT_ACTIONS}, got {artifact['action']!r}",
+                ))
+            # v0.5.7: action 통계 (added/removed/total) — optional, validated if present
+            for stat_field in ("added", "removed", "total"):
+                if stat_field in artifact and not isinstance(artifact[stat_field], int):
+                    errors.append(OutputValidationError(
+                        f"result.artifacts[{idx}].{stat_field}",
+                        "must be an int",
+                    ))
     if "written_paths" in result and not isinstance(result["written_paths"], list):
         errors.append(OutputValidationError("result.written_paths", "must be a list"))
     if "next_step" in result:
@@ -176,6 +193,175 @@ def validate_output(
                         "result.validation_result.status",
                         f"must be one of ('pass', 'fail', 'skipped'), got {vr['status']!r}",
                     ))
+
+    return OutputValidationResult(
+        is_valid=not errors,
+        errors=errors,
+        warnings=warnings,
+    )
+
+
+# v0.5.7: sub_result status → 부모 status 자동 계산
+SUB_RESULT_TO_PARENT_STATUS = {
+    # (any_failed, any_partial) → parent status
+    (False, False): "ok",
+    (False, True): "partial",
+    (True, False): "failed",
+    (True, True): "failed",
+}
+
+
+def _validate_sub_result_entry(
+    sub: Any,
+    idx: int,
+    expected_parent: str | None,
+) -> tuple[list[OutputValidationError], str | None]:
+    """Validate a single sub_result entry. Returns (errors, status)."""
+    errs: list[OutputValidationError] = []
+    if not isinstance(sub, dict):
+        errs.append(OutputValidationError(
+            f"result.sub_results[{idx}]",
+            f"must be a dict, got {type(sub).__name__}",
+        ))
+        return errs, None
+    for field_name in REQUIRED_SUB_RESULT_FIELDS:
+        if field_name not in sub:
+            errs.append(OutputValidationError(
+                f"result.sub_results[{idx}].{field_name}",
+                "missing required field",
+            ))
+    if "delegation_id" in sub and expected_parent is not None:
+        # sub_result delegation_id 가 parent delegation_id 로 시작하는지 (prefix check)
+        if not str(sub["delegation_id"]).startswith(expected_parent):
+            errs.append(OutputValidationError(
+                f"result.sub_results[{idx}].delegation_id",
+                f"must start with parent delegation_id {expected_parent!r}, "
+                f"got {sub['delegation_id']!r}",
+            ))
+    if "status" in sub and sub["status"] not in ALLOWED_STATUS:
+        errs.append(OutputValidationError(
+            f"result.sub_results[{idx}].status",
+            f"must be one of {ALLOWED_STATUS}, got {sub['status']!r}",
+        ))
+    if "written_paths" in sub and not isinstance(sub["written_paths"], list):
+        errs.append(OutputValidationError(
+            f"result.sub_results[{idx}].written_paths",
+            "must be a list",
+        ))
+    return errs, sub.get("status") if isinstance(sub, dict) else None
+
+
+def _compute_aggregated_status(sub_statuses: list[str]) -> str:
+    """Compute aggregated parent status from sub_result statuses (§5.2.1)."""
+    any_failed = any(s == "failed" for s in sub_statuses)
+    any_partial = any(s == "partial" for s in sub_statuses)
+    return SUB_RESULT_TO_PARENT_STATUS[(any_failed, any_partial)]
+
+
+def validate_fanin_output(
+    payload: Any,
+    expected_parent_delegation_id: str | None = None,
+) -> OutputValidationResult:
+    """v0.5.7: Validate a fan-in payload (§5.2).
+
+    Runs the standard §5 schema validation first, then enforces the
+    fan-in-specific rules:
+    1. `parent_delegation_id` matches expected (when provided)
+    2. `sub_results` is a list; each entry has the 5 required fields
+    3. Each sub_result.delegation_id starts with the parent delegation_id
+    4. `result.status` is consistent with sub_results aggregation
+       (when sub_results is present)
+
+    Args:
+        payload: A sub-agent fan-in report dict (§5.2).
+        expected_parent_delegation_id: If provided, asserts
+            `payload.parent_delegation_id` matches AND that all
+            `sub_results[].delegation_id` start with this value.
+
+    Returns:
+        OutputValidationResult. Aggregated status mismatch is reported
+        as an error (not warning) — it indicates a fan-in bug.
+    """
+    # First, run standard §5 validation
+    base = validate_output(payload, expected_delegation_id=None)
+    errors: list[OutputValidationError] = list(base.errors)
+    warnings: list[str] = list(base.warnings)
+
+    if not base.is_valid:
+        # base validate_output already reported; do not attempt fan-in logic
+        # on a malformed payload (it may not be a dict).
+        return OutputValidationResult(
+            is_valid=False, errors=errors, warnings=warnings,
+        )
+
+    # parent_delegation_id field
+    parent_id = payload.get("parent_delegation_id")
+    if expected_parent_delegation_id is not None:
+        if parent_id is None:
+            errors.append(OutputValidationError(
+                "parent_delegation_id",
+                f"required when sub_results present, expected "
+                f"{expected_parent_delegation_id!r}",
+            ))
+        elif parent_id != expected_parent_delegation_id:
+            errors.append(OutputValidationError(
+                "parent_delegation_id",
+                f"expected {expected_parent_delegation_id!r}, got {parent_id!r}",
+            ))
+
+    result = payload.get("result", {})
+    if not isinstance(result, dict):
+        return OutputValidationResult(
+            is_valid=not errors, errors=errors, warnings=warnings,
+        )
+
+    sub_results = result.get("sub_results")
+    if sub_results is None:
+        # Not a fan-in payload — base validation suffices
+        return OutputValidationResult(
+            is_valid=not errors, errors=errors, warnings=warnings,
+        )
+
+    # parent_delegation_id 가 있는데 sub_results 가 있으면 fan-in 모드
+    if parent_id is None:
+        errors.append(OutputValidationError(
+            "parent_delegation_id",
+            "required when result.sub_results is present",
+        ))
+
+    if not isinstance(sub_results, list):
+        errors.append(OutputValidationError(
+            "result.sub_results", "must be a list",
+        ))
+        return OutputValidationResult(
+            is_valid=not errors, errors=errors, warnings=warnings,
+        )
+
+    if len(sub_results) == 0:
+        errors.append(OutputValidationError(
+            "result.sub_results", "must contain at least 1 sub-result",
+        ))
+
+    sub_statuses: list[str] = []
+    for idx, sub in enumerate(sub_results):
+        sub_errs, sub_status = _validate_sub_result_entry(
+            sub, idx, expected_parent_delegation_id
+        )
+        errors.extend(sub_errs)
+        if sub_status in ALLOWED_STATUS:
+            sub_statuses.append(sub_status)
+
+    # Aggregated status consistency check
+    if sub_statuses and "status" in result:
+        computed = _compute_aggregated_status(sub_statuses)
+        declared = result["status"]
+        if computed != declared:
+            errors.append(OutputValidationError(
+                "result.status",
+                f"declared {declared!r} but sub_results aggregate to {computed!r} "
+                f"(any_failed={any(s=='failed' for s in sub_statuses)}, "
+                f"any_partial={any(s=='partial' for s in sub_statuses)})",
+            ))
 
     return OutputValidationResult(
         is_valid=not errors,

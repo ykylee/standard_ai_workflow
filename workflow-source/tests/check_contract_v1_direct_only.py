@@ -13,6 +13,7 @@ from pathlib import Path
 CONTRACT_PATH = Path(__file__).resolve().parents[1] / "core" / "orchestrator_subagent_contract_v1.md"
 
 # §6.3 MUST NOT delegate list (negative test catalog).
+# v0.5.6: 7 actions. v0.5.7: +2 (cross-ref 갱신, fan-in 통합 보고).
 DIRECT_ONLY_ACTIONS = (
     "handoff 갱신",
     "backlog 갱신",
@@ -21,6 +22,9 @@ DIRECT_ONLY_ACTIONS = (
     "우선순위 결정",
     "sub-agent 출력 통합/리뷰",
     "PR 본문 작성",
+    # v0.5.7 신규
+    "docs cross-ref 갱신",
+    "fan-in 통합 보고",
 )
 
 
@@ -70,7 +74,7 @@ def main() -> int:
     _check_doc_has_section_6_3()
     check_direct_only_actions_rejected()
     check_negative_test_examples_present()
-    print("Contract v1 direct-only smoke check passed (7 MUST-NOT-delegate actions + §8.3 negative examples).")
+    print("Contract v1 direct-only smoke check passed (9 MUST-NOT-delegate actions [7 v0.5.6 + 2 v0.5.7] + §8.3 negative examples).")
     return 0
 
 

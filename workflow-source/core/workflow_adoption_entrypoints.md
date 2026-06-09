@@ -4,7 +4,7 @@
 - 범위: 도입 모드별 목표, 추천 시작 순서, 자동화 가능 범위, 주의점
 - 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-06-09
 - 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
 - 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`
 
@@ -156,17 +156,18 @@ python3 scripts/run_existing_project_onboarding.py \
 
 ### 6.3 다음 릴리즈로 미루는 항목
 
-- 하네스 기본 연결 경로를 MCP server 로 승격하는 작업
-- read-only MCP draft bridge 를 기본 운영 경로로 바꾸는 작업
+- MCP stdio-sdk 정식 승격 (현재 `Connection closed` 회귀 해결 필요)
+- read-only MCP 운영 경로 단일화 (jsonrpc-bridge → stdio-sdk 전환)
 - MCP capability 확장과 정식 client 상호운용 범위 확대
 
-즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 “workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가” 에 둔다.
+즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 "workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가" 에 둔다.
 
-## 릴리스 및 안정성 업데이트 (2026-04-28)
+## 릴리스 및 안정성 업데이트 (v0.5.10-beta, 2026-06-09)
 
-### 릴리스 상태: Phase 6 진입
-- 현재 워크플로우 키트는 **Phase 6: 편집 정밀화 및 지능형 도구 최적화** 단계에 진입했습니다.
-- 주요 성과: Phase 5에서 지능형 운영 도구(Git 요약, 로테이션 등)와 MCP SDK 통합을 완료했습니다.
+### 릴리스 상태: Phase 11 진행 중
+- 현재 워크플로우 키트는 **Phase 11: 실전 파일럿 검증** 단계에 있습니다.
+- Phase 1–10 완료. 주요 성과: contract v1 enforcement, multi-component fan-out, interactive harness picker, MCP dual transport, 52종 smoke test 안정 통과.
+- 정식 phase 상태: `workflow-source/core/maturity_matrix.json` 참조.
 
 ### 기술적 안정성 개선: 빈 프로젝트 오판 방지
 - **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.

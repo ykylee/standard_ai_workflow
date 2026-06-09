@@ -12,6 +12,8 @@ from common_utils import inject_workflow_source, mcp_main
 inject_workflow_source()
 from workflow_kit.common.read_only_bundle import check_quickstart_stale_links_payload
 
+TOOL_VERSION = "0.5.10-beta"
+
 def build_args(parser):
     parser.add_argument("--quickstart-path", action="append", dest="quickstart_paths", required=True)
     parser.add_argument("--project-profile-path")

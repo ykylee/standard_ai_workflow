@@ -1,5 +1,9 @@
 # MCP v1.0 Migration Specification
 
+> **⚠️ HISTORICAL — migration completed in Phase 9 (commit `2bb8bc7`).**  
+> Current implementation: `workflow_kit/server/mcp_v1_server.py`.  
+> This spec is preserved for traceability only — the migration described here is done.
+
 ## 1. 개요
 현재 사용 중인 커스텀 `read_only_mcp_sdk` 및 `mcp_main` 러너를 공식 MCP(Model Context Protocol) Python SDK로 전환하기 위한 기술 명세입니다.
 

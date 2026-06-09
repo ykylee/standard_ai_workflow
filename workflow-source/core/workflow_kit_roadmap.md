@@ -4,43 +4,36 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-06-09
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
-## 1. 현재 단계 (Phase 8: Pilot Deployment & Integration)
+## 1. 현재 단계 (Phase 11: Real-world Pilot Validation)
 
-현재 저장소는 아래 9단계 중 **9단계 진입** 상태다.
+현재 저장소는 아래 11단계 중 **Phase 11 진행 중** 상태다. (Phase 1–10 완료, Phase 11 in_progress)
 
-1. 개념 정리 단계 (완료)
-2. 표준 문서와 템플릿 분리 단계 (완료)
-3. 실행 가능한 프로토타입 도입 단계 (완료)
-4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 (완료)
-5. 운영 지능화 및 품질 거버넌스 단계 (완료)
-6. 정밀도 및 최적화 단계 (완료)
-7. 지능형 작업 모드 도입 단계 (완료)
-8. 실전 파일럿 배포 및 통합 고도화 단계 (완료)
-9. 시스템 성숙도 및 다중 에이전트 진화 단계 (진행 중)
+1. 개념 정리 단계 — Phase 1 (완료)
+2. 표준 문서와 템플릿 분리 단계 — Phase 2 (완료)
+3. 실행 가능한 프로토타입 도입 단계 — Phase 3 (완료)
+4. 다수 프로젝트 실운영 검증 및 Beta 안정화 단계 — Phase 4 (완료)
+5. 운영 지능화 및 품질 거버넌스 단계 — Phase 5 (완료)
+6. 정밀도 및 최적화 단계 — Phase 6 (완료)
+7. 지능형 작업 모드 도입 단계 — Phase 7 (완료)
+8. 실전 파일럿 배포 및 통합 고도화 단계 — Phase 8 (완료)
+9. 시스템 성숙도 및 다중 에이전트 진화 단계 — Phase 9 (완료)
+10. 문서 및 링크 위생 단계 — Phase 10 (완료)
+11. 실전 파일럿 검증 단계 — Phase 11 (진행 중)
 
-현재 판단 근거 (2026-05-03 기준):
+현재 판단 근거 (v0.5.10-beta, 2026-06-08 기준):
 
-- **Phase 8 완결**: 엔진 로직 공통화, MCP 러너 표준화, 상태 관리 모듈화 완료.
-- **실전 파일럿 검증**: DevHub 등 실제 프로젝트에서 v0.4.1-beta 기반 운영 안정성 확인.
-- **다중 에이전트 준비**: 에이전트 토폴로지(Topology) 설계 완료 및 sub-agent 연동 기반 마련.
+- **Phase 1–10 완결**: 엔진 로직 공통화, MCP 러너 표준화, 상태 관리 모듈화, contract v1 enforcement, multi-component fan-out, 다중 에이전트 오케스트레이션, 문서·링크 위생 정리 완료.
+- **Phase 11 진행 중**: DevHub 예제 기반 contract v1 실전 검증, Phase 11 pilot 시나리오 A/B/C 실행 및 피드백 반영 진행 중.
+- **v0.5.10-beta 기준**: `choose_roles` sub.delegation_id parent-prefix spec 정합, `contract_v1/` enforcement helpers 안정화, interactive `--harness` picker (v0.5.8), MCP transport dual-mode (jsonrpc-bridge 안정 + stdio-sdk 실험적).
+- **작업 모드(Task Modes) 정의**: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합 완료.
+- **DevHub 파일럿 성공**: 실제 대규모 프로젝트(DevHub)에 v0.5.x-beta 기반 운영 안정성 확인.
 
-- **v0.4.1-beta 릴리즈**: .gitignore 마이그레이션 로직 및 버전 관리 체계 확립.
-- **분석 정밀도 향상**: 멀티 스택 감지 및 Makefile 기반 명령어 추론 엔진 고도화.
-- **작업 모드(Task Modes) 정의**: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합.
-- **DevHub 파일럿 성공**: 실제 대규모 프로젝트(DevHub)에 표준 워크플로우를 성공적으로 이식 및 업그레이드 완료.
+## 1.1 현재 릴리즈 기준 정리 (v0.5.10-beta)
 
-## 1.1 현재 릴리즈 기준 정리 (Phase 8 완료)
-
-- **운영 지능화 도구 확보**: `git_history_summarizer`, `workflow_log_rotator`, `assess_milestone_progress` MCP 도구 구현 및 실전 통합 완료.
-- **자동 재현 스캐폴딩**: `automated-repro-scaffold` 스킬 프로토타입 구현으로 버그 재현 자동화 기반 마련.
-- **문서 비대화 관리**: 핸드오프 로테이션 자동화로 장기 운영 안정성 확보.
-
-## 1.1 현재 릴리즈 기준 정리 (Beta v2)
-
-`Beta v2` (2026-04-26) 기준으로 완료된 성과:
+`v0.5.10-beta` (2026-06-08) 기준으로 완료된 성과:
 
 - **쓰기 파이프라인 완성**: 모든 핵심 스킬에 `--apply` 또는 `--scaffold` 옵션 도입.
 - **지능형 온보딩**: `project-status-assessment`를 통해 기존 프로젝트 도입 비용 획기적 절감.
@@ -48,12 +41,12 @@
 - **의존성 자동 관리**: `bootstrap` 도구가 Python/Node 환경에 맞춰 도구 의존성을 자동 설정.
 - **출력 계약 엄격화**: 모든 도구가 표준 에러 코드와 `source_context`를 포함한 구조화된 JSON 출력을 제공.
 
-다음 릴리즈(Phase 5)로 넘긴 것:
+다음 릴리즈(Phase 11 완료 이후)로 넘긴 것:
 
-- **운영 지능화**: `git_history_summarizer`, `workflow_log_rotator` 등 MCP 도구의 실전 통합.
-- **자동 재현 뼈대**: `automated-repro-scaffold` 스킬의 본격적인 AI 에이전트 연동.
+- **운영 지능화**: `git_history_summarizer`, `workflow_log_rotator` 등 MCP 도구의 심화 통합.
+- **자동 재현 고도화**: `automated-repro-scaffold` 스킬의 AI 에이전트 연동 강화.
 - **품질 대시보드**: 워크플로우 운영 지표 및 품질 점수 시각화 가이드.
-- **공식 MCP SDK 정식 승격**: 읽기 전용을 넘어선 양방향 MCP 서버 구조 확립.
+- **정식 MCP SDK 안정화**: stdio-sdk `Connection closed` 회귀 해결 및 정식 승격.
 
 ## 2. 현재 자산
 
@@ -63,7 +56,7 @@
 - 프로젝트 상태 진단: [project_status_assessment.md](./project_status_assessment.md)
 - 프로젝트/세션 템플릿: [../templates/](../templates/)
 
-### 실행형 skill 프로토타입
+### 실행형 skill 프로토타입 (11종)
 
 - [../skills/session-start/SKILL.md](../skills/session-start/SKILL.md)
 - [../skills/backlog-update/SKILL.md](../skills/backlog-update/SKILL.md)
@@ -71,6 +64,11 @@
 - [../skills/merge-doc-reconcile/SKILL.md](../skills/merge-doc-reconcile/SKILL.md)
 - [../skills/validation-plan/SKILL.md](../skills/validation-plan/SKILL.md)
 - [../skills/code-index-update/SKILL.md](../skills/code-index-update/SKILL.md)
+- [../skills/workflow-linter/SKILL.md](../skills/workflow-linter/SKILL.md)
+- [../skills/project-status-assessment/SKILL.md](../skills/project-status-assessment/SKILL.md)
+- [../skills/automated-repro-scaffold/SKILL.md](../skills/automated-repro-scaffold/SKILL.md)
+- [../skills/robust-patcher/SKILL.md](../skills/robust-patcher/SKILL.md)
+- [../skills/git-conflict-resolver/SKILL.md](../skills/git-conflict-resolver/SKILL.md)
 
 ### 실행형 MCP 프로토타입
 
@@ -89,13 +87,9 @@
 - 출력 샘플 허브: [../examples/output_samples/README.md](../examples/output_samples/README.md)
 - 문서 무결성 검사: [../tests/check_docs.py](../tests/check_docs.py)
 - bootstrap 스모크 검사: [../tests/check_bootstrap.py](../tests/check_bootstrap.py)
-- 2차 skill 스모크 검사: [../tests/check_validation_plan.py](../tests/check_validation_plan.py), [../tests/check_code_index_update.py](../tests/check_code_index_update.py)
-- 기존 프로젝트 온보딩 스모크 검사: [../tests/check_existing_project_onboarding.py](../tests/check_existing_project_onboarding.py)
-- quickstart stale 링크 스모크 검사: [../tests/check_quickstart_stale_links.py](../tests/check_quickstart_stale_links.py)
+- 52종 전체 smoke test: [../tests/](../tests/)
 - 기존 프로젝트 온보딩 runner: [../scripts/run_existing_project_onboarding.py](../scripts/run_existing_project_onboarding.py)
 - read-only MCP transport 승격 기준: [read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md)
-
-5. 운영 지능화 및 품질 거버넌스 단계 (Next Phase)
 
 ## 3. 상위 목표
 
@@ -129,78 +123,57 @@
 ### 완료 또는 사용 가능한 상태
 
 - 공통 코어 문서, 템플릿, 하네스 가이드, 전역 snippet 가이드가 정리돼 있다.
-- bootstrap 스크립트가 신규 프로젝트와 기존 프로젝트 도입 모드를 모두 지원한다.
-- Codex/OpenCode 오버레이 생성, export, 적용 가이드가 있다.
-- skill 6종과 MCP 6종의 실행형 프로토타입이 있다.
+- bootstrap 스크립트가 신규 프로젝트와 기존 프로젝트 도입 모드를 모두 지원하며, interactive `--harness` picker (v0.5.8) 를 통해 TTY 자동 선택 가능.
+- 6개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `pi-dev`.
+- skill 11종과 MCP 12종의 실행형 프로토타입이 있다.
 - skill 통합 demo runner 와 end-to-end 문서가 있다.
 - 출력 스키마 가이드와 skill/MCP/runner 대표 출력 샘플 허브가 있다.
 - 사용자 노출 산출물은 한국어, 내부 처리는 간결하게 유지한다는 운영 원칙이 core 문서와 bootstrap 생성물에 반영돼 있다.
 - 기존 프로젝트 bootstrap 이후 assessment -> backlog/handoff -> validation/code-index 순으로 이어지는 후속 루틴이 있다.
 - 승격 범위 문서가 있어 package/server 화 대상을 분리해서 계획할 수 있다.
-- `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner helper 가 누적되고 있다.
-- `workflow_kit/server` 에 read-only registry, direct-call entrypoint, JSON-RPC draft bridge 가 있다.
+- `workflow_kit/common` 패키지에 경로/Markdown/메타데이터/파서/정규화/runner/contracts/schemas/server helper 가 누적되고 있다.
+- `workflow_kit/contract_v1/` (v0.5.6+, v0.5.7 multi-component 확장) 에 Pydantic v2 기반 delegation enforcement helpers (`output_validator`, `delegator.choose_role`, `delegator.choose_roles`) 가 있다.
+- `workflow_kit/server` 에 read-only registry, direct-call entrypoint, JSON-RPC draft bridge, MCP v1 SDK candidate 가 있다.
 - read-only descriptor, 하네스 MCP 예시, JSON-RPC fixture 가 `schemas/` 산출물로 export 되고 harness package 에 포함된다.
 - runtime output contract 가 generated JSON Schema, manifest outputSchema, sample validation 에 함께 쓰인다.
-- smoke test 묶음이 문서, bootstrap, output sample, demo/onboarding runner 까지 넓어졌고 GitHub Actions smoke workflow 에 연결돼 있다.
-- skill 6종 모두가 독립 `tests/check_*.py` smoke 경로를 갖추는 방향으로 정리되고 있다.
+- 52개 smoke test 묶음이 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀까지 커버한다.
+- skill 11종 모두가 독립 `tests/check_*.py` smoke 경로를 갖추는 방향으로 정리되고 있다.
 
 ### 아직 비어 있는 축
 
-- 정식 MCP SDK transport loop 와 실제 client 호환성 검증
-- read-only input schema 의 dataclass 또는 더 강한 타입 계약화
+- 정식 MCP SDK transport (`stdio-sdk`) 의 `Connection closed` 회귀 해결
+- read-only input schema 의 Pydantic v2 기반 강타입 계약 전면 적용
 - 결과 payload builder 와 orchestration 계층의 추가 reusable package 추출
-- 실제 저장소 시범 적용 결과
+- 실제 저장소 시범 적용 결과 (Phase 11 pilot 진행 중)
 - 쓰기 성격 draft MCP 의 permission 경계 정리
 - core 문서 간 중복 축소와 README 상태 단일 출처 정리
 - smoke CI 결과 가시성 추가 개선
 
 ## 5. 다음 우선순위 로드맵
 
-### 우선순위 1: 기존 프로젝트 온보딩 자동 루틴 강화
+### 우선순위 1: Phase 11 실전 파일럿 검증 완료
 
 현재 상태:
-
-- bootstrap 의 `existing` 모드는 `repository_assessment.md` 와 초기 문서 세트를 생성한다.
-- `run_existing_project_onboarding.py` 가 assessment 결과를 읽고 backlog/handoff/validation/code-index 후속 단계를 이어준다.
-- `existing_project_onboarding_contract.md` 로 입력 계약과 단계별 연결 규칙이 문서화됐다.
-- 다음 단계는 하네스 연결 방식과 실제 적용 예시를 더 늘리는 것이다.
+- Phase 11 pilot 시나리오 A (Linter & Steward), B (Feedback Loop), C (Git Resolver) 실행 및 피드백 반영 완료.
+- 파일럿 결과 보고서 작성 및 Phase 11 종료 판단 진행 중.
 
 목표:
-
-- 기존 프로젝트 도입 직후에 `repository_assessment.md`, inferred command, backlog/handoff 초안을 읽고
-  `validation-plan`, `code-index-update` 같은 후속 프로토타입을 일관된 계약으로 이어준다.
-- 신규 프로젝트용 진입과 기존 프로젝트용 진입의 차이를 더 명확히 드러낸다.
-- 후속 단계가 어떤 조건에서 생략/경고/추가되는지 명시한다.
-- 하네스가 이 결과를 어떻게 소비할지 연결 지점을 짧은 가이드로 정리한다.
-
-권장 산출물:
-
-- 기존 프로젝트 온보딩 runner 또는 bootstrap 후속 스크립트
-- 온보딩 흐름 문서
-- 단계별 입력/출력 전달 규칙
-
-완료 기준:
-
-- 기존 프로젝트 도입 직후 어떤 프로토타입을 순서대로 실행해야 하는지 자동 또는 반자동으로 재현 가능하다.
-- assessment 결과와 후속 skill 출력의 연결이 문서와 코드로 설명된다.
-- 온보딩 runner 출력이 샘플/가이드와 어긋나지 않는다.
-- 첫 세션에서 사람이 어떤 순서로 `session-start`, `validation-plan`, `code-index-update`, `backlog-update`, `doc-sync` 를 열어야 하는지 짧은 가이드로 설명된다.
+- `phase11_pilot_validation_plan.md` 의 모든 성공 기준 충족.
+- contract v1 enforcement (`choose_roles` + `validate_fanin_output`) 의 실전 안정성 검증.
+- Phase 11 종료 후 Phase 12 (패키지 승격) 진입 판단.
 
 ### 우선순위 2: 실제 적용 검증
 
 목표:
-
 - 실제 저장소에 시범 적용하거나, 최소 1개의 추가 실제 사례를 문서화한다.
 
 권장 산출물:
-
 - 실제 적용 기록
 - 적용 전/후 차이 요약
 - 파일럿 후보 체크리스트 보강
 - 첫 세션 브리핑 예시
 
 완료 기준:
-
 - 현재 규칙이 특정 샘플에 과도하게 맞춰진 것은 아닌지 실제 피드백으로 검증 가능하다.
 - 복사 적용 시 어떤 문서를 어디까지 바꾸면 되는지 더 명확해진다.
 - 하네스가 `onboarding_summary`, `warnings`, `orchestration_plan` 을 실제 첫 세션 브리핑에서 소비할 수 있음을 확인한다.
@@ -299,31 +272,34 @@
 
 ## 7. 단계별 완료 기준
 
-### 3단계 완료 기준
+### Phase 10 완료 기준
 
-- skill 6종과 우선순위 1 MCP 5종의 출력 계약이 샘플과 함께 정리돼 있다.
+- skill 11종과 MCP 12종의 출력 계약이 샘플과 함께 정리돼 있다.
 - 통합 demo runner 또는 동등한 연결 실행 흐름이 있다.
-- 기존 프로젝트 도입 후속 루틴의 최소 프로토타입이 있다.
-- 2차 MCP 후보 1종 이상이 프로토타입 상태다.
-- 데모 문서만이 아니라 실행 스크립트 수준에서 순차 흐름이 재현된다.
+- 기존 프로젝트 도입 후속 루틴의 프로토타입이 있다.
+- contract v1 enforcement (output_validator + delegator) 완료.
+- multi-component fan-out/in (choose_roles) 완료.
+- 문서/링크 위생 (Phase 10) 완료.
+- 52종 smoke test 통과.
 
-### 4단계 진입 기준
+### Phase 11 완료 기준
 
+- Phase 11 pilot 시나리오 A/B/C 실행 및 성공 기준 충족.
+- contract v1 실전 검증 (`choose_roles` + `validate_fanin_output`) 안정.
 - 두 개 이상 프로젝트에 적용 가능한 예시 또는 시범 적용 결과가 있다.
-- 공통 규칙이 과한지 여부를 운영 피드백으로 조정했다.
 - MCP/skill 프로토타입 중 일부가 실제 reusable package 또는 server 형태로 승격됐다.
 
 ## 8. 현재 권장 다음 작업
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
 
-1. pre-release package 를 실제 다른 저장소나 환경에 적용해 onboarding friction 확인
-2. 파일럿 적용 기록 1건 이상 작성
-3. official MCP SDK server 기본 경로 승격 여부 판단
-4. read-only input schema dataclass 화 또는 타입 계약 강화
+1. Phase 11 pilot 결과 보고서 작성 및 종료 판단
+2. MCP stdio-sdk `Connection closed` 회귀 해결
+3. read-only input schema Pydantic v2 전면 적용
+4. 실제 저장소 추가 시범 적용 1건 이상
 5. 릴리즈 운영 절차와 changelog 구조 정리
 
-이 순서는 현재 저장소가 가진 자산을 “pre-release 소비 검증 -> 파일럿 적용 -> MCP 승격 판단 -> 릴리즈 운영 정리” 순서로 확장하는 데 초점을 둔다.
+이 순서는 현재 저장소가 가진 자산을 "Phase 11 완료 -> MCP 안정화 -> 타입 계약 강화 -> 실제 적용 -> 릴리즈 정리" 순서로 확장하는 데 초점을 둔다.
 
 추가 메모:
 

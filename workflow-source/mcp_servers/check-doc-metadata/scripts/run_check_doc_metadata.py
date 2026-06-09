@@ -12,6 +12,8 @@ from common_utils import inject_workflow_source, mcp_main
 inject_workflow_source()
 from workflow_kit.common.read_only_bundle import check_doc_metadata_payload
 
+TOOL_VERSION = "0.5.10-beta"
+
 def build_args(parser):
     parser.add_argument("--doc-dir-path", required=True)
 

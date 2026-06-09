@@ -4,8 +4,8 @@
 - 범위: 프로젝트 초기화, 환경 설정, 첫 세션 시작 가이드
 - 대상 독자: AI 에이전트와 협업하려는 개발자
 - 상태: beta
-- 최종 수정일: 2026-06-05
-- 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `GEMINI.md`, `MiniMax.md`
+- 최종 수정일: 2026-06-09
+- 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `GEMINI.md`, `MiniMax.md`, [`docs/INSTALLATION_AND_USAGE.md`](docs/INSTALLATION_AND_USAGE.md) (개발자용)
 
 이 문서는 **Standard AI Workflow**를 여러분의 프로젝트에 5분 만에 도입하여 AI 에이전트와 체계적으로 Peer Programming을 시작하는 방법을 안내합니다.
 
@@ -17,14 +17,15 @@
 
 ## 2. 준비물
 
-- **Python 3.11+**: 워크플로우 도구 실행에 필요합니다.
+- **Python 3.10+** (3.11+ 권장): 워크플로우 도구 실행에 필요합니다. (3.9 이하는 `mcp` SDK 미지원)
 - **에이전트 하네스**: 다음 중 하나를 선택합니다.
   - **MiniMax Code** (권장, Mavis 오케스트레이터/워커 오버레이 포함)
   - Codex CLI
   - OpenCode CLI
   - Gemini CLI
   - Antigravity
-- **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.5.0-beta/` 아래의 압축 파일.
+  - pi-dev
+- **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.5.10-beta/` 아래의 압축 파일.
 
 ## 3. 3단계 도입 가이드
 
@@ -75,14 +76,19 @@ pip install -r requirements-dev.txt
 - **`validation-plan`**: 변경 사항 검증을 위한 테스트 계획 수립 및 실행.
 - **`merge-doc-reconcile`**: 문서/상태 충돌 시 자동 조정 제안.
 - **`workflow-linter`**: 문서 정합성/메타데이터/링크 무결성 자동 검사.
+- **`code-index-update`**: 코드 인덱스 갱신 (v0.5.7+).
+- **`project-status-assessment`**: 프로젝트 상태 자동 진단 (v0.5.7+).
+- **`git-conflict-resolver`**: 컨텍스트 기반 Git 충돌 해결 (v0.5.7+).
+- **`robust_patcher`**: 정밀 코드 편집 엔진 (v0.5.7+).
+- **`automated-repro-scaffold`**: reproduction scaffold 생성 (v0.5.7+).
 
 ## 5. MCP 도구 사용 (선택 사항)
 
-`bootstrap_workflow_kit.py` 가 각 하네스별 MCP config 스니펫을 자동으로 생성할 수 있다. 도입 시점에 한 번만 실행하면 된다.
+`python3 -m bootstrap_lib` (또는 레거시 `bootstrap_workflow_kit.py`) 가 각 하네스별 MCP config 스니펫을 자동으로 생성할 수 있다. 도입 시점에 한 번만 실행하면 된다.
 
 ```bash
-# bootstrap 시 --enable-mcp 추가
-python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+# bootstrap 시 --enable-mcp 추가 (v0.5.2+ 권장 진입점)
+python3 -m bootstrap_lib \
   --target-root <project_root> \
   --project-slug <slug> \
   --project-name "<name>" \
@@ -92,6 +98,8 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --enable-mcp                       # ← 이 한 줄
 ```
 
+v0.5.8 부터 TTY 환경에서 `--harness` 미지정 시 interactive picker 가 자동 동작한다. 비대화형 환경 (CI, 스크립트) 에서는 `--harness` 명시가 필수.
+
 생성되는 파일:
 
 | 하네스 | 경로 | 스키마 |
@@ -100,9 +108,10 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 | OpenCode | `<root>/mcp.opencode.json` | JSON (`mcp` 키) |
 | Gemini CLI | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
 | Antigravity | `<root>/antigravity.mcp.json` | JSON (`mcpServers` 키) |
-| MiniMax Code | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
+| MiniMax Code | `<root>/.minimax/mcp.json` | JSON (`mcp_servers` 키) |
+| pi-dev | `<root>/.pi-dev/mcp.json` | JSON (`mcpServers` 키) |
 
-전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/settings.json` / `~/.MiniMax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](./workflow-source/core/mcp_installation_by_harness.md)
+전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/settings.json` / `~/.minimax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](workflow-source/core/mcp_installation_by_harness.md)
 
 전송 방식 (transport) 선택:
 

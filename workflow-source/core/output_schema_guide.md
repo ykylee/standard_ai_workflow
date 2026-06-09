@@ -4,8 +4,8 @@
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp_servers/README.md`
+- 최종 수정일: 2026-06-09
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../workflow_kit/contract_v1/__init__.py`, `../workflow_kit/common/contracts/`, `../workflow_kit/common/schemas/`
 
 ## 1. 목적
 
@@ -461,6 +461,33 @@ runner 실패 규칙:
 1. nested object 와 enum 제약이 아직 느슨한 family 를 중심으로 output contract 를 계속 세분화
 2. generated schema 를 MCP manifest 나 외부 소비 지점과 어떻게 연결할지 정리
 3. `schemas/output_sample_contracts.json`, `schemas/generated_output_schemas.json`, `workflow_kit.common.output_contracts` 가 같은 기준을 보도록 함께 유지
+
+## 9. Contract v1 Output Envelope (v0.5.6+)
+
+v0.5.6 부터 orchestrator ↔ sub-agent delegation 에 contract v1 enforcement 가 적용되었다. contract v1 출력 envelope 는 아래 공통 필드를 포함한다.
+
+| 필드 | 의미 | 타입 |
+| --- | --- | --- |
+| `status` | 성공/실패 상태 (`ok`, `error`) | `str` |
+| `error` | 실패 요약 (실패 시) | `str \| null` |
+| `error_code` | 비교 가능한 실패 코드 | `str \| null` |
+| `warnings` | 실행 중 발생한 경고 | `list[str]` |
+| `source_context` | 입력 출처 및 위임 경로 | `object` |
+| `tool_version` | 도구 버전 식별자 | `str` |
+
+contract v1 enforcement 는 `workflow_kit/contract_v1/` 아래 `output_validator`, `delegator.choose_role`, `delegator.choose_roles` (v0.5.7 multi-component fan-out) 로 제공된다.
+
+### 9.1 Canonical Schema Generation Paths
+
+contract v1 에서 사용하는 스키마는 아래 경로에서 Pydantic v2 기반으로 관리된다.
+
+- **Contract enforcement**: `workflow-source/workflow_kit/contract_v1/`
+- **Common contracts**: `workflow-source/workflow_kit/common/contracts/` (`base.py`, `errors.py`, `high_value.py`, `read_only.py`)
+- **Common schemas**: `workflow-source/workflow_kit/common/schemas/` (`base.py`, `session.py`, `backlog.py`, `orchestration.py`, `worker.py`, `validation.py`, `index.py`, `reconcile.py`, `doc_sync.py`, `linter.py`, `read_only.py`, `git.py`)
+
+### 9.2 Multi-component Fan-out (v0.5.7+)
+
+`choose_roles` 를 통한 다중 sub-agent 위임 시, 각 sub-agent 로부터 반환된 contract v1 응답은 `validate_fanin_output` 으로 통합 검증된다. 통합 시 각 sub-agent 의 `delegation_id` 는 `{parent_id}-st-{N}` 형식의 parent-prefix rule 을 따른다 (v0.5.10).
 
 ## 다음에 읽을 문서
 

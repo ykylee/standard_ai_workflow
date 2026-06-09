@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-06
+- 최종 수정일: 2026-06-09
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -14,6 +14,9 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### release/v0.5.10 (2026-06-09)
+- [2026-06-09 작업 백로그](./release/v0.5.10/backlog/2026-06-09.md) — v0.5.10 1개 TASK (TASK-V0510-001: 개발자용 설치·사용 가이드 `docs/INSTALLATION_AND_USAGE.md` 신규 작성 + 문서 인덱스/메모리 layer 동기화)
 
 ### release/v0.5.6 (2026-06-07)
 - [2026-06-07 작업 백로그](./release/v0.5.6/backlog/2026-06-07.md) — v0.5.6 1개 TASK (§5 출력 validator + §6.1 자동 위임 delegator, P0 enforcement)

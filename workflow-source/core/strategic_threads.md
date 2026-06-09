@@ -4,7 +4,7 @@
 - 범위: 전략 스레드 활성화 상태, 설계 가이드라인, 태스크 연결 관계
 - 대상 독자: 프로젝트 리드, AI 에이전트, 저장소 관리자
 - 상태: in-progress
-- 최종 수정일: 2026-04-27
+- 최종 수정일: 2026-06-09
 - 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/memory/state.json`
 - 운영 원칙:
     1. 모든 계획(Strategy) 수립 시 이 문서의 관련 스레드를 먼저 확인한다.
@@ -39,7 +39,7 @@
 - **연결된 TASK**: TASK-033, 034, 035, 036
 
 ### [THREAD-005] 하네스 인지형 오케스트레이션 (Harness-Aware Orchestration)
-- **현황**: 모든 하네스(Antigravity, Codex)에 대해 동일한 단일 에이전트 워크플로우를 적용 중.
+- **현황**: 모든 하네스(Antigravity, Codex, OpenCode, Gemini CLI, MiniMax Code, pi-dev)에 대해 하네스별 오버레이를 갖추고 있다. pi-dev harness 는 현재 active 상태이며, `apply_guide.md` 는 Scope D 작업으로 진행 중.
 - **개선**: 하네스의 역량(Browser, Sub-agent, Artifacts)에 따라 멀티 에이전트 전략을 동적으로 변경.
     - **Antigravity**: `sub-agent`를 활용한 병렬/계층적 워커 위임.
     - **Codex**: 논리적 컨텍스트 분할을 통한 순차적 태스크 수행.

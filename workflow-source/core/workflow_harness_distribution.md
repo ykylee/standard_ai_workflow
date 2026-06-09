@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
 - 최종 수정일: 2026-06-05
-- 관련 문서: `./global_workflow_standard.md`, `./workflow_adoption_entrypoints.md`, `./workflow_configuration_layers.md`, `./workflow_global_injection_policy.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_harnesses/__init__.py`
+- 관련 문서: `./global_workflow_standard.md`, `./workflow_adoption_entrypoints.md`, `./workflow_configuration_layers.md`, `./workflow_global_injection_policy.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_lib/harnesses/__init__.py`
 
 ## 1. 기본 원칙
 

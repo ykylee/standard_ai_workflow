@@ -1,7 +1,14 @@
 # Release Procedure (v0.5.7+)
 
-> **최종 갱신**: 2026-06-08
-> **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용.
+- 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
+- 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
+- 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
+- 상태: stable
+- 최종 수정일: 2026-06-09
+- 관련 문서: [../README.md](../README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../workflow-source/releases/](../workflow-source/releases/)
+
+> **최종 갱신**: 2026-06-09
+> **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
 > **이유**: 토큰 회전 부담, 외부 공개 단계 미도달, downstream 은 `pip install <wheel>` 로 로컬 검증.
 
 ---
@@ -23,7 +30,7 @@ release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 
 ### 2.1 사전 점검
 
 ```bash
-cd /Users/yklee/repos/standard_ai_workflow_minimax
+# cwd 는 저장소 루트로 가정 (절대 경로는 각자 환경에 맞게 조정)
 git status                 # clean 트리 확인
 git log --oneline -3       # 머지된 release squash 커밋 확인
 gh auth status             # gh CLI 로그인 확인 (keyring)
@@ -71,9 +78,12 @@ spec 의 strict validation 이 red 로 빨개지면 그대로 멈추고 fix → 
 ### 2.5 GitHub Release 생성 + asset attach
 
 ```bash
-cd /Users/yklee/repos/standard_ai_workflow_minimax
-gh release create v<X>.<Y>.<Z>-beta \
-  --repo ykylee/standard_ai_workflow \
+# cwd 는 저장소 루트
+REPO="<github-owner>/<github-repo>"     # 예: ykylee/standard_ai_workflow
+TAG="v<X>.<Y>.<Z>-beta"
+
+gh release create "$TAG" \
+  --repo "$REPO" \
   --title "Beta v<X>.<Y>.<Z> — <한 줄 요약>" \
   --notes-file workflow-source/releases/Beta-v<X>.<Y>.<Z>.md \
   --target main \
@@ -85,30 +95,33 @@ gh release create v<X>.<Y>.<Z>-beta \
 확인:
 
 ```bash
-gh release view v<X>.<Y>.<Z>-beta --repo ykylee/standard_ai_workflow
+gh release view "v<X>.<Y>.<Z>-beta" --repo "$REPO"
 #   asset: standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl
 #   asset: standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz
 ```
 
 ### 2.6 downstream 안내 (선택)
 
-릴리스 직후 본인 사용 프로젝트 (Devhub_example, my_harness 등) 의 dep 박스를
-`standard-ai-workflow @ https://github.com/ykylee/standard_ai_workflow/releases/download/v<X>.<Y>.<Z>-beta/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl`
-형태로 pin 하거나, requirements.txt 에 git+ 형태 사용.
+릴리스 직후 본인 사용 프로젝트 (downstream 예: `Devhub_example`, `my_harness`) 의 dep 박스를
+`standard-ai-workflow @ https://github.com/<owner>/<repo>/releases/download/v<X>.<Y>.<Z>-beta/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl`
+형태로 pin 하거나, `requirements.txt` 에 `git+` 형태 사용.
 
 ## 3. 트러블슈팅
 
-### 3.1 `workflow_kit/contract_v1` 가 wheel 에 포함 안 됨
+### 3.1 `workflow_kit/contract_v1` 또는 `workflow_kit.common.{state,contracts,schemas}` 가 wheel 에 포함 안 됨
 
-원인: `pyproject.toml` 의 `tool.setuptools.packages` 누락.
+원인: `pyproject.toml` 의 `tool.setuptools.packages` 누락 (v0.5.6 / v0.5.7.1 에서 이미 fix 됨).
 확인:
 
 ```bash
-unzip -l dist/standard_ai_workflow-*.whl | grep contract_v1
-#   → "workflow_kit/contract_v1/__init__.py"   ← 반드시 있어야 함
+unzip -l dist/standard_ai_workflow-*.whl | grep -E "contract_v1|common/(state|contracts|schemas)/__init__"
+#   → "workflow_kit/contract_v1/__init__.py"                       ← 반드시 있어야 함
+#   → "workflow_kit/common/state/__init__.py"                      ← v0.5.7.1+ 필수
+#   → "workflow_kit/common/contracts/__init__.py"                  ← v0.5.7.1+ 필수
+#   → "workflow_kit/common/schemas/__init__.py"                    ← v0.5.7.1+ 필수
 ```
 
-수정 후 재빌드.
+수정 후 재빌드. 회귀: `python3 workflow-source/tools/check_packaging.py`.
 
 ### 3.2 `twine check` 가 README 파싱 실패
 
@@ -118,15 +131,28 @@ unzip -l dist/standard_ai_workflow-*.whl | grep contract_v1
 ### 3.3 Release page 가 draft 로 생성됐을 때
 
 ```bash
-gh release edit v<X>.<Y>.<Z>-beta --repo ykylee/standard_ai_workflow --draft=false
+gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 ```
 
 ## 4. 회귀 (Reference)
 
-| release | wheel / sdist | release page |
-|---|---|---|
-| v0.5.0-beta | local only | ✅ |
-| v0.5.1 / 5.2 / 5.3 / 5.4 | (wheel build 까지만, 미배포) | (release page 없음) |
-| v0.5.5-beta | tag only, release page 없음 | ❌ (소급 정정 가능) |
-| v0.5.6-beta | tag only, release page 없음 | ❌ (소급 정정 가능) |
-| v0.5.7-beta | **GitHub Release + wheel/sdist** | ✅ (2026-06-08) |
+| release | wheel / sdist | release page | 비고 |
+|---|---|---|---|
+| v0.5.0-beta | local only | ✅ |  |
+| v0.5.1 / 5.2 / 5.3 / 5.4 | (wheel build 까지만, 미배포) | (release page 없음) |  |
+| v0.5.5-beta | tag only | ❌ (소급 정정 가능) | Phase 11 pilot |
+| v0.5.6-beta | tag only | ❌ (소급 정정 가능) | P0 enforcement (validator + delegator) |
+| v0.5.7-beta | **GitHub Release + wheel/sdist** | ✅ (2026-06-08) | v0.5.7 wheel packaging 도입 |
+| v0.5.7.1-beta | (wheel packaging fix) | (v0.5.7 에 통합) | state/contracts/schemas wheel 누락 fix |
+| v0.5.8-beta | GitHub Release | (v0.5.7.1 직후) | interactive harness picker + packaging smoke automation |
+| v0.5.9-beta | GitHub Release | ✅ | wire 가이드 §7/§8/§9 보강 |
+| v0.5.9.1-beta | GitHub Release | ✅ | wire 가이드 §3 sub_payloads fix + 회귀 test |
+| v0.5.10-beta | GitHub Release | ✅ (2026-06-08) | choose_roles sub.delegation_id parent-prefix spec 정합 |
+
+## 다음에 읽을 문서
+
+- [릴리스 노트 디렉토리](../workflow-source/releases/)
+- [마지막 릴리스 노트 v0.5.10](../workflow-source/releases/Beta-v0.5.10.md)
+- [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
+- [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
+- [Project Profile](./PROJECT_PROFILE.md)

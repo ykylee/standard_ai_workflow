@@ -1,5 +1,8 @@
 # Phase 9: System Maturity & Multi-Agent Evolution Plan
 
+> **⚠️ HISTORICAL — Phase 9 completed in commit `2bb8bc7`.**  
+> Current Phase status: see `maturity_matrix.json`. Phase 9 content below is preserved for traceability.
+
 ## 1. 개요
 Phase 9은 워크플로우 키트의 핵심 엔진을 산업용 수준으로 안정화하고, 단일 에이전트 중심의 실행 구조를 다중 에이전트(Multi-Agent) 기반의 역할 분화 구조로 진화시키는 단계입니다.
 

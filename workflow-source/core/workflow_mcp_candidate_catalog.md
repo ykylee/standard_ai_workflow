@@ -3,8 +3,8 @@
 - 문서 목적: 표준 워크플로우를 보조할 MCP 후보를 입력/출력과 함께 정리한다.
 - 범위: 탐색, 검사, 초안 생성, 영향도 추천 등 반복 작업에 적합한 MCP 후보
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: Beta v2 통합 완료
-- 최종 수정일: 2026-04-26
+- 상태: Beta v2 통합 완료 (v0.5.10-beta 기준 refresh)
+- 최종 수정일: 2026-06-09
 - 관련 문서: `workflow_skill_catalog.md`, `workflow_agent_topology.md`
 
 ## 1. 우선순위 1 (Beta v2 통합 완료)
@@ -45,9 +45,18 @@
 - 구조화된 출력이 가능해야 한다.
 - 프로젝트 특화 규칙은 프로젝트 프로파일을 입력으로 받아야 한다.
 
-## 6. 공식 SDK 통합 상태
+## 6. Transport Status Disclaimer (v0.5.10-beta)
 
-현재 모든 우선순위 1, 2 도구들은 `workflow_kit/server/read_only_mcp_sdk.py`를 통해 하나의 서버 엔트리포인트로 통합되어 있다. 하네스는 `stdio` 트랜스포트를 통해 이 도구들을 즉시 소비할 수 있다.
+> **⚠️ MCP transport 상태**: 현재 "공식 SDK stdio 통합" 으로 표기된 MCP 도구들은 실제로 dual-mode (jsonrpc-bridge + stdio-sdk) 로 제공된다.
+> - **`jsonrpc-bridge`** (`python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines`): **안정 (stable)**, 기본 transport. `tools/list` / `tools/call` round-trip 정상 동작.
+> - **`stdio-sdk`** (`python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk`): **실험적 (experimental)**, `check_read_only_mcp_sdk_stdio.py` 가 `Connection closed` 로 fail. MCP 1.27.0 의 `CallToolResult` API 불일치로 인한 알려진 회귀.
+>
+> 권장 경로: 처음 도입 시 `jsonrpc-bridge` 로 시작. 정식 SDK 호환은 별도 TASK 로 추적.
+> 상세 설치 및 transport 별 가이드: [./mcp_installation_by_harness.md](./mcp_installation_by_harness.md)
+
+## 7. 공식 SDK 통합 상태
+
+현재 모든 우선순위 1, 2 도구들은 `workflow_kit/server/read_only_mcp_sdk.py` (stdio-sdk, 실험적) 및 `workflow_kit/server/read_only_jsonrpc.py` (jsonrpc-bridge, 안정) 양쪽을 통해 하나의 서버 엔트리포인트로 통합되어 있다. 하네스는 `stdio` 트랜스포트를 통해 이 도구들을 즉시 소비할 수 있으나, stdio-sdk 경로는 실험적 상태임에 유의한다.
 
 ## 다음에 읽을 문서
 

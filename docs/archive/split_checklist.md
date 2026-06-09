@@ -1,11 +1,13 @@
-# Workflow Standard Kit 분리 체크리스트
+# Workflow Standard Kit 분리 체크리스트 (DEPRECATED)
 
-- 문서 목적: `workflow_standard_kit/` 를 별도 프로젝트로 옮길 때 필요한 정리 항목과 완료 기준을 체크리스트로 제공한다.
+> **⚠️ DEPRECATED — 2026-06-09**: 이 문서는 `workflow_standard_kit/` 별도 분리 (v0.5.0 이전) 의 체크리스트입니다. v0.5.2 commit `96431f1 refactor(workflow): separate source from runtime layer` 부터 source/runtime 분리는 **이미 완료**되었으며 (canonical: `workflow-source/`, `ai-workflow/`, `docs/` 3-layer), 본 체크리스트는 그 결과의 역사적 기록입니다. 분리 작업을 다시 검토하려면 현재 [`../../workflow-source/core/workflow_state_vs_project_docs.md`](../../workflow-source/core/workflow_state_vs_project_docs.md) 와 [`../../docs/architecture/README.md`](../../docs/architecture/README.md) §2 를 참고하십시오.
+
+- 문서 목적 (역사적): `workflow_standard_kit/` 를 별도 프로젝트로 옮길 때 필요한 정리 항목과 완료 기준을 체크리스트로 제공한다.
 - 범위: 디렉터리 구성, 링크 점검, 문서 self-contained 여부, 구현/미구현 경계, 배포 전 검증 항목
-- 대상 독자: 개발자, 운영자, 프로젝트 분리 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `README.md`, `core/global_workflow_standard.md`, `core/workflow_skill_catalog.md`, `core/workflow_mcp_candidate_catalog.md`, `core/workflow_agent_topology.md`
+- 대상 독자 (역사적): 개발자, 운영자, 프로젝트 분리 담당자
+- 상태: **deprecated** (2026-06-09)
+- 최종 수정일: 2026-04-18 (원본) / 2026-06-09 (deprecation banner 추가)
+- 관련 문서 (역사적): `README.md`, `core/global_workflow_standard.md`, `core/workflow_skill_catalog.md`, `core/workflow_mcp_candidate_catalog.md`, `core/workflow_agent_topology.md`
 
 ## 1. 분리 전 체크
 

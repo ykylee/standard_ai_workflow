@@ -12,6 +12,8 @@ from common_utils import inject_workflow_source, mcp_main
 inject_workflow_source()
 from workflow_kit.common.read_only_bundle import create_backlog_entry_payload
 
+TOOL_VERSION = "0.5.10-beta"
+
 def build_args(parser):
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--task-name", required=True)

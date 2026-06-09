@@ -4,8 +4,8 @@
 - 범위: dist 구조, 하네스 패키지 manifest, export 기준, 검증 포인트
 - 대상 독자: 저장소 관리자, 배포 담당자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow_harness_distribution.md`, `./prototype_promotion_scope.md`, `../scripts/export_harness_package.py`, `../harnesses/README.md`
+- 최종 수정일: 2026-06-09
+- 관련 문서: `./workflow_harness_distribution.md`, `./prototype_promotion_scope.md`, `../scripts/export_harness_package.py`, `../harnesses/README.md`, `../../docs/RELEASE.md`
 
 ## 1. release 목표
 
@@ -65,10 +65,11 @@
 
 일관성 있는 릴리스 관리를 위해 아래 템플릿을 필수 사용한다.
 
-- **릴리스 템플릿**: \`templates/release_note_template.md\`
-- **릴리스 명칭**: \`Beta vX.Y.Z\` (정식 릴리스 전에는 반드시 Beta 접두어 사용)
-- **태그 규칙**: \`vX.Y.Z-beta\`
-- **기록 위치**: \`releases/Beta-vX.Y.Z.md\`
+- **릴리스 템플릿**: `templates/release_note_template.md`
+- **릴리스 명칭**: `Beta vX.Y.Z` (정식 릴리스 전에는 반드시 Beta 접두어 사용)
+- **태그 규칙**: `vX.Y.Z-beta`
+- **기록 위치**: `releases/Beta-vX.Y.Z.md`
+- **GitHub Releases 전용**: v0.5.7+ 부터 모든 릴리스는 GitHub Releases 로만 배포한다. 절차 상세는 [`docs/RELEASE.md`](../../docs/RELEASE.md) 참조.
 
 릴리스 노트 작성 시 필수 포함 항목:
 - 🚀 기능 추가 (Features)

@@ -1,11 +1,15 @@
-# AGENTS.md
+# AGENTS.md (DEPRECATED)
 
-- 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+> **⚠️ DEPRECATED — 2026-06-09**: 이 문서는 `codex/phase6` 시점 (2026-05 이전) 의 결정 기록입니다. 현재는 **루트의 `AGENTS.md` + `ai-workflow/memory/release/v0.5.10/session_handoff.md` + `ai-workflow/memory/work_backlog.md` 가 canonical**입니다. 경로 (`ai-workflow/memory/codex/phase6/...`) 와 명령 (`bootstrap_workflow_kit.py`) 이 모두 stale 입니다. 신규 결정은 위 canonical 위치에 기록하고, 본 문서는 **보존 목적**으로만 archive/ 에 남깁니다.
+>
+> 후속 작업 시 본 문서를 참조해야 할 이유가 있으면, 대신 `docs/PROJECT_PROFILE.md` 의 §4 §5 와 `workflow-source/core/global_workflow_standard.md` 의 최신 버전을 사용하십시오.
+
+- 문서 목적 (역사적): Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
 - 범위: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, 기본 실행/검증 명령
-- 대상 독자: Codex, 저장소 관리자, workflow 설계자
-- 상태: draft
-- 최종 수정일: 2026-04-30
-- 관련 문서: `ai-workflow/WORKFLOW_INDEX.md`, `ai-workflow/memory/codex/phase6/state.json`, `ai-workflow/memory/codex/phase6/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `docs/PROJECT_PROFILE.md`
+- 대상 독자 (역사적): Codex, 저장소 관리자, workflow 설계자
+- 상태: **deprecated** (2026-06-09)
+- 최종 수정일: 2026-04-30 (원본) / 2026-06-09 (deprecation banner 추가)
+- 관련 문서 (역사적): `ai-workflow/WORKFLOW_INDEX.md`, `ai-workflow/memory/codex/phase6/state.json`, `ai-workflow/memory/codex/phase6/session_handoff.md`, `ai-workflow/memory/work_backlog.md`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 

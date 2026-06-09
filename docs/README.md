@@ -4,8 +4,8 @@
 - 범위: 프로젝트 설계, 개발 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 이해관계자
 - 상태: stable
-- 최종 수정일: 2026-04-30
-- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [../README.md](../README.md)
+- 최종 수정일: 2026-06-09
+- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../README.md](../README.md)
 
 # Project Documentation Governance
 
@@ -15,17 +15,17 @@
 
 ### 📂 `ai-workflow/memory/<branch>/` (상태 문서)
 - **성격**: 현재 세션의 작업 문맥을 담는 휘발성/진행성 데이터.
-- **주요 파일**: `state.json`, `session_handoff.md`, `backlog/YYYY-MM-DD.md`, `backlog/tasks/*.md`.
+- **주요 파일**: `state.json`, `session_handoff.md`, `backlog/YYYY-MM-DD.md`, `backlog/tasks/*.md`, `release/<version>/` (릴리스별 스냅샷).
 - **백로그 정책**: `backlog/tasks/*.md`가 상세 작업 상태의 source of truth이며, `backlog/YYYY-MM-DD.md`는 Git에서 추적되는 lightweight index로 task 링크를 모은다.
 - **관리**: 브랜치별로 격리되며, AI와 개발자가 자유롭게 생성/수정합니다. 별도의 PR 리뷰 없이 작업 생산성을 위해 사용됩니다.
 
 ### 📂 `docs/` (공유 지식 문서)
 - **성격**: 프로젝트 전체에 공유되는 영구적인 기술 자산.
-- **분류**:
-  - `architecture/`: 시스템 설계, ADR(Architecture Decision Records), 인프라 구조.
-  - `development/`: 코딩 표준, 설정 가이드, API 명세서.
-  - `analysis/`: 요구사항 분석, 성능 벤치마크, 리서치 결과.
-  - `planning/`: 마일스톤 계획, 로드맵, 상위 수준의 전략 문서.
+- **현 분류** (v0.5.10 기준 실제 디렉토리 구조와 일치):
+  - 루트: `README.md` (governance), `DOCUMENT_INDEX.md`, `CODE_INDEX.md`, `PROJECT_PROFILE.md`, `INSTALLATION_AND_USAGE.md`, `RELEASE.md`
+  - `architecture/`: 시스템 설계, ADR(Architecture Decision Records), 인프라 구조. (작성 예정)
+  - `planning/`: 마일스톤 계획, 로드맵, 상위 수준의 전략 문서. (작성 예정)
+  - `archive/`: 폐기 후보. 옛 단계 결정 기록 (`AGENTS.md` Phase 6/codex 시점, `split_checklist.md` source/runtime 분리 작업). deprecated.
 - **관리**: 모든 브랜치에서 공유되며, **반드시 PR 리뷰 및 검토**를 거쳐 `main`에 머지해야 합니다.
 
 ## 2. 리뷰 및 검토 프로세스

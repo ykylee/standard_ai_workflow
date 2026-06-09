@@ -4,14 +4,13 @@
 - 범위: 루트 진입 파일, 설정 파일, 공통 workflow 문서 연결 방식
 - 대상 독자: Antigravity 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-06-09
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`, `../_template/README.md`
 
 ## 생성 대상
 
-- `ANTIGRAVITY.md`
-- `TODO: 하네스 전용 설정 파일 경로`
-- TODO: 하네스가 요구하는 추가 overlay 파일
+- `ANTIGRAVITY.md` (단일 진입점, 별도 설정 파일 없음)
+- 추가 overlay 파일 없음 (bootstrap 시 `ANTIGRAVITY.md` 외 파일 생성하지 않음)
 
 ## 구성 원칙
 
@@ -21,12 +20,14 @@
 - export bundle 의 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 draft descriptor 로 취급한다.
 - descriptor 의 `transport_ready` 값이 `false` 인 동안에는 실제 MCP 연결보다 참고 산출물로 두는 편이 안전하다.
 
-## bootstrap 확장 TODO
+## bootstrap 확장 상태
 
-- `scripts/bootstrap_workflow_kit.py` 에 `antigravity` 하네스 생성 함수를 추가한다.
-- `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 에 `antigravity` 를 등록한다. (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated, 신규 등록 불필요)
-- `tests/check_bootstrap.py` 에 `antigravity` 생성 검증을 추가한다.
-- descriptor export 위치와 draft 사용 범위를 문서화한다.
+아래 항목은 v0.5.10-beta 기준으로 모두 완료되었다.
+
+- [x] `scripts/bootstrap_workflow_kit.py` 에 `antigravity` 하네스 생성 함수 추가 (`HARNESS_SPECS` 연동)
+- [x] `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 에 `antigravity` 등록 (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated, 신규 등록 불필요)
+- [x] `tests/check_bootstrap.py` 에 `antigravity` 생성 검증 추가 (`check_antigravity_mode()`)
+- [x] descriptor export 위치와 draft 사용 범위 문서화
 
 ## 다음에 읽을 문서
 

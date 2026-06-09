@@ -3,9 +3,9 @@
 - 문서 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, 향후 skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
-- 상태: done
-- 최종 수정일: 2026-05-04
-- 버전: v0.5.0-beta
+- 상태: stable
+- 최종 수정일: 2026-06-09
+- 버전: v0.5.10-beta
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -16,11 +16,13 @@
 - 릴리스 규격 가이드: `./workflow-source/core/workflow_release_spec.md`
 - 승격 범위 가이드: `./workflow-source/core/prototype_promotion_scope.md`
 - read-only MCP transport 승격 기준: `./workflow-source/core/read_only_mcp_transport_promotion.md`
-- **하네스별 로컬 MCP 설치 가이드 (v0.5.1 신규)**: `./workflow-source/core/mcp_installation_by_harness.md`
-- **하네스별 MCP config 예시 5종 (v0.5.1 신규)**: `./workflow-source/examples/mcp_config_examples/`
+- 하네스별 로컬 MCP 설치 가이드: `./workflow-source/core/mcp_installation_by_harness.md`
+- 하네스별 MCP config 예시 5종: `./workflow-source/examples/mcp_config_examples/`
 - 설정 계층 가이드: `./workflow-source/core/workflow_configuration_layers.md`
 - 비침투적 주입 정책: `./workflow-source/core/workflow_global_injection_policy.md`
 - workflow kit 패키지 가이드: `./workflow-source/workflow_kit/README.md`
+- **개발자용 설치·사용 가이드 (v0.5.10 신규)**: [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md)
+- **릴리스 절차 가이드 (v0.5.7+)**: [`./docs/RELEASE.md`](./docs/RELEASE.md)
 
 ## 1. 이 폴더의 역할
 
@@ -58,21 +60,24 @@
 | 공통 표준 문서 | 사용 가능 | 바로 복사 가능 |
 | 프로젝트/세션 템플릿 | 사용 가능 | 값 채우기 필요 |
 | 샘플 도입 예시 | 사용 가능 | `workflow-source/examples/acme_delivery_platform/` 참고 |
-| skill 프로토타입 | 사용 가능 | `workflow-source/skills/` 및 `workflow-source/scripts/` 참고 |
-| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 있음 |
-| MCP 프로토타입 | 사용 가능 | `workflow-source/mcp_servers/` 및 MCP 데모 참고 |
-| MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 있음 |
+| skill 프로토타입 | 사용 가능 | `workflow-source/skills/` 및 `workflow-source/scripts/` 참고. 11종 (1차 6종 + 2차 2종 + 3차 3종) |
+| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 + 3차 (backlog-steward, robust-patcher, git-conflict-resolver) |
+| MCP 프로토타입 | 사용 가능 | `workflow-source/mcp_servers/` 및 MCP 데모 참고. jsonrpc-bridge (안정) + stdio-sdk (실험적) 양쪽 지원 |
+| MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 + read_only_mcp_sdk v1.0 SDK candidate |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
-| bootstrap scaffold | 사용 가능 | `workflow-source/scripts/bootstrap_workflow_kit.py` 참고 |
-| harness overlays | 사용 가능 | `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity` 대상 오버레이 생성 가능 |
-| orchestrator/worker overlays | 사용 가능 | OpenCode 문서/구현/검증 worker 분화 및 위임 패턴 포함 |
-| 다중 에이전트 오케스트레이션 | 사용 가능 | `orchestration_demo.py` 및 피드백 루프 시뮬레이션 포함 |
+| bootstrap scaffold | 사용 가능 | `python3 -m bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
+| harness overlays | 사용 가능 | 6개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `pi-dev` |
+| harness interactive picker | 사용 가능 (v0.5.8 신규) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
+| orchestrator/worker overlays | 사용 가능 | OpenCode orchestrator + doc/code/validation worker 분화 및 위임 패턴 |
+| contract v1 (orchestrator ↔ sub-agent) | 사용 가능 (v0.5.4+) | `workflow-source/core/orchestrator_subagent_contract_v1.md` 외부 spec + `workflow_kit/contract_v1/` enforcement helpers (output_validator, delegator.choose_roles). wire 가이드: `orchestrator_contract_v1_wire_guide.md` |
+| 다중 컴포넌트 fan-out/in (v0.5.7) | 사용 가능 | `choose_roles` (multi-sub 위임) + `validate_fanin_output` (cross-ref 통합) |
+| 다중 에이전트 오케스트레이션 | 사용 가능 | `orchestration_demo.py` 및 피드백 루프 시뮬레이션 |
 | 워크플로우 린터 (Skill) | 사용 가능 | `run_workflow_linter.py`를 통한 문서 정합성 자동 검사 및 복구 |
 | 실전 스킬 (Git) | 사용 가능 | `run_git_conflict_resolver.py`를 통한 컨텍스트 기반 충돌 해결 |
-| harness package export | 사용 가능 | `workflow-source/scripts/export_harness_package.py` 로 dist 산출물 생성 가능 |
-| 출력 스키마 가이드 | 사용 가능 | `workflow-source/core/output_schema_guide.md` 포함 (Pydantic 전환 완료) |
-| 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 포함 |
-| workflow kit package | 사용 가능 | `workflow-source/workflow_kit/common` 에 Pydantic 기반 계약 체계 구축 완료 |
+| harness package export | 사용 가능 | `workflow-source/scripts/export_harness_package.py` 로 dist 산출물 생성. v0.5.8 부터 packaging smoke 자동화 (`tools/check_packaging.py`) |
+| 출력 스키마 가이드 | 사용 가능 | `workflow-source/core/output_schema_guide.md` (Pydantic v2 기반) |
+| 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 |
+| workflow kit package | 사용 가능 | `workflow_kit` + `bootstrap_lib` + `contract_v1` (v0.5.6+), `common.{state,contracts,schemas,server}` (v0.5.7.1+ wheel 포함) |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서
@@ -95,30 +100,26 @@
 - OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
 - Gemini CLI: `GEMINI.md` 중심
 - Antigravity: `ANTIGRAVITY.md` 중심
-- MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.MiniMax/agents/` (orchestrator + doc/code/validation worker) 중심
-- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `bootstrap_harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_workflow_kit.py` 의 `register_harness_builder` 한 줄로 끝난다)
+- MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.minimax/agents/` (orchestrator + doc/code/validation worker) 중심
+- pi-dev: `AGENTS.md` + `SYSTEM.md` (에이전트 페르소나) 중심
+- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_lib/__main__.py` 의 `register_harness_builder` 한 줄로 끝난다)
 
 ## 5. 로컬 환경 설정 메모
 
-공식 MCP Python SDK 를 이 저장소에서 로컬 검증에 쓰려면 Python 3.10 이상이 필요하다.
+공식 MCP Python SDK 를 이 저장소에서 로컬 검증에 쓰려면 Python 3.10 이상이 필요하다 (3.11+ 권장).
 
 - 공식 패키지 이름은 `mcp` 이다.
-- 현재 저장소에서는 Python 3.11 기반 `.venv` 가상환경을 기준으로 검증했다.
-- macOS/Homebrew 기준 Python 3.11 설치 경로는 `/opt/homebrew/bin/python3.11` 이다.
+- Python 3.9 이하 환경에서는 `mcp` 패키지가 설치되지 않는다.
+- **자세한 설치 절차, editable install, 스모크 테스트 실행, 워크플로우 kit 호출, 부트스트랩, MCP 서버 실행, 자주 만나는 문제 해결은 [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md) 참고.**
 
 ## 6. 개발 및 온보딩 가이드 (Self-dogfooding)
 
-이 저장소 자체를 개발할 때(Self-dogfooding) 또는 처음 체크아웃한 후에는 아래 명령어를 통해 로컬 런타임 환경을 활성화해야 합니다.
+이 저장소 자체를 개발할 때(Self-dogfooding) 또는 처음 체크아웃한 후에는 [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md) 의 §3.A 절차로 editable install 한 뒤, 아래 명령어로 로컬 런타임 도구와 하네스 파일을 동기화한다.
 
-1. **의존성 설치**:
-   ```bash
-   python3 -m pip install -r requirements-dev.txt
-   ```
-
-2. **워크플로우 런타임 동기화**:
+1. **워크플로우 런타임 동기화**:
    원본 소스(`workflow-source/`)를 기반으로 로컬 `ai-workflow/` 런타임 도구를 동기화하고 하네스 파일(예: `ANTIGRAVITY.md`)을 생성합니다.
    ```bash
-   python3 workflow-source/scripts/bootstrap_workflow_kit.py \
+   python3 -m bootstrap_lib \
      --target-root . \
      --project-slug standard-ai-workflow \
      --project-name "Standard AI Workflow" \
@@ -128,7 +129,7 @@
      --force
    ```
 
-3. **상태 동기화**:
+2. **상태 동기화**:
    현재의 백로그와 세션 인계 사항을 바탕으로 상태 요약(`state.json`)을 갱신합니다.
    ```bash
    python3 workflow-source/scripts/generate_workflow_state.py \
@@ -140,48 +141,6 @@
 
 > [!NOTE]
 > 하네스 엔트리포인트 파일(`ANTIGRAVITY.md` 등)과 `ai-workflow/` 하위의 실행 도구(`scripts/`, `skills/` 등)는 깃 이력 관리를 위해 `.gitignore`에 등록되어 있습니다. 최초 체크아웃 후에는 위 부트스트랩 명령어를 실행하여 로컬에 생성해 주시기 바랍니다.
-
-이번 로컬 검증 환경 메모:
-
-- OS: macOS `26.4.1`
-- 아키텍처: `arm64`
-- Homebrew 경로: `/opt/homebrew/bin/brew`
-- Homebrew Python 경로: `/opt/homebrew/bin/python3.11`
-- 저장소 가상환경 경로: `/Users/yklee/repos/standard_ai_workflow/.venv`
-- 가상환경 Python: `3.11.15`
-- 설치된 MCP Python SDK: `mcp 1.27.0`
-- MCP site-packages 경로: `/Users/yklee/repos/standard_ai_workflow/.venv/lib/python3.11/site-packages`
-
-최초 1회 설정 예시:
-
-```bash
-brew install python@3.11
-rm -rf .venv
-/opt/homebrew/bin/python3.11 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
-./.venv/bin/python -m pip install "mcp[cli]"
-```
-
-가상환경 사용 예시:
-
-```bash
-source .venv/bin/activate
-python -m pip show mcp
-python workflow-source/tests/check_read_only_mcp_sdk_candidate.py
-python workflow-source/tests/check_read_only_mcp_sdk_stdio.py
-```
-
-현재 확인된 설치 기준:
-
-- Python: `3.11.15`
-- MCP Python SDK: `mcp 1.27.0`
-
-주의:
-
-- Python 3.9 이하 환경에서는 공식 `mcp` 패키지가 설치되지 않는다.
-- 이 저장소 루트에는 `mcp_servers/` 디렉터리가 있으므로, SDK import 검증은 가상환경 Python 으로 실행해야 혼동이 없다.
-- official SDK candidate 는 [workflow-source/workflow_kit/server/read_only_mcp_sdk.py](./workflow-source/workflow_kit/server/read_only_mcp_sdk.py) 에 있고, 설치 확인 스모크는 [workflow-source/tests/check_read_only_mcp_sdk_candidate.py](./workflow-source/tests/check_read_only_mcp_sdk_candidate.py) 를 사용한다.
-- 실제 stdio round-trip 상호운용 스모크는 [workflow-source/tests/check_read_only_mcp_sdk_stdio.py](./workflow-source/tests/check_read_only_mcp_sdk_stdio.py) 를 사용한다.
 
 ## 6. 다른 프로젝트에 적용할 때 최소 복사 세트
 
@@ -293,39 +252,43 @@ python3 workflow-source/scripts/export_harness_package.py \
 
 ## 9. 구현 현황 요약
 
-- skill 6종은 공통 `tool_version` 과 구조화된 실패 JSON (`status`, `error`, `error_code`, `warnings`, `source_context`) 패턴을 따른다.
+- skill 11종은 공통 `tool_version` 과 구조화된 실패 JSON (`status`, `error`, `error_code`, `warnings`, `source_context`) 패턴을 따른다.
 - 통합 runner 2종은 하위 step 결과를 중첩 payload 로 유지하면서 `warnings`, `orchestration_plan`, `source_context` 를 상위 메타데이터로 제공한다.
 - runner 는 하위 skill/MCP step 이 `status: "error"` 를 반환해도 상위 `workflow_step_failed` 형태로 감싸고, 실패한 step 이름과 upstream `error_code` 를 `source_context` 에 남긴다.
 - OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 task-only orchestrator + bounded worker 운영 패턴을 문서/템플릿으로 배포한다.
-- `workflow-source/workflow_kit/common` 은 문서 파싱, 분류, reconcile, runner/error helper, read-only MCP 공통 callable layer, output contract validator 까지 축적돼 있어 개별 스크립트의 중복 로직이 줄어드는 방향으로 정리 중이다.
-- 하네스 export bundle 은 read-only MCP descriptor 초안, 하네스별 MCP 설정 예시 draft, JSON-RPC fixture 를 함께 포함해 이후 MCP/server 연결 지점을 전달한다.
-- `workflow-source/tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle 까지 smoke 기준선을 제공한다.
+- `workflow_kit.common` (state, contracts, schemas, runner, errors, output_contracts, reconcile, scaffold, doc_sync 등 30+ submodule) 은 v0.5.2+ 본격 추출 진행 중. `workflow_kit/contract_v1/` (v0.5.6+, v0.5.7 multi-component 확장) 은 Pydantic v2 기반 외부 contract enforcement helpers.
+- 하네스 export bundle 은 read-only MCP descriptor, 하네스별 MCP 설정 예시 (5종), JSON-RPC fixture 를 함께 포함한다.
+- `workflow-source/tests/check_*.py` 52개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀 까지 smoke 기준선을 제공한다.
+- CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 52개 smoke 전부 실행.
 
-## 10. 2026-04-23 개발 종합 정리
+## 10. v0.5.10 기준 누적 변경 요약 (2026-05-04 이후)
 
-이번 세션까지 기준으로 현재 저장소는 “workflow/skill 기반 온보딩 패키지 + 차기 MCP 승격 준비” 상태까지 올라왔다.
+v0.5.4 부터 v0.5.10 까지 누적된 핵심 변경:
 
-- read-only JSON-RPC bridge 는 malformed input, invalid request, initialize capability shape, notification lifecycle, stdio session initialize gating 까지 고정했다.
-- official MCP Python SDK candidate 와 실제 stdio round-trip smoke 를 추가해 다음 릴리즈 MCP 승격 준비선을 만들었다.
-- Python 3.11 + `mcp[cli]` 개발 환경 재현성과 CI smoke 설치 경로를 저장소 기준선으로 반영했다.
-- 이번 릴리즈 방향을 workflow/skill 온보딩 중심으로 재정렬하고, 파일럿 적용 체크리스트와 기록 템플릿을 맞췄다.
-- 하네스 export 는 `agent_runtime_minimal` 프로필과 버저닝을 도입해, 하네스별 minimal runtime 패키지와 zip 산출물을 실제로 생성할 수 있게 했다.
-- 배포 패키지 루트에는 `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md`, `manifest.json` 이 함께 생성돼 다른 환경에서 바로 읽고 적용할 수 있다.
+- v0.5.4 — orchestrator ↔ sub-agent delegation contract v1 외부 spec + `workflow_kit/contract_v1/` (issue #1 영구 해결)
+- v0.5.5 — Phase 11 본격 pilot (Devhub Example × Contract v1 실전 검증)
+- v0.5.6 — contract v1 §5/§6 P0 enforcement (output_validator + delegator.choose_role, sub-agent 응답 자동 검증, MUST NOT delegate 7 패턴 거부)
+- v0.5.7 — contract v1 §4.2/§5.2 multi-component fan-out/in + recommend_model_tier + wheel packaging 보강 (v0.5.7.1: state/contracts/schemas 포함 누락 fix)
+- v0.5.8 — interactive `--harness` picker (TTY 자동 picker) + packaging smoke automation (`tools/check_packaging.py`)
+- v0.5.9 / v0.5.9.1 — wire 가이드 §3 sub_payloads + §7/§8/§9 sub.delegation_id parent-prefix rule 명시
+- v0.5.10 — `choose_roles` sub.delegation_id parent-prefix spec 정합 (배치 위임 ID 가 `{parent_id}-st-{N}` 형식 강제)
 
-이번 릴리스 핵심 결과물:
+이번 기준선 핵심 결과물:
 
-- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.5.0-beta.zip`
-- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.5.0-beta.zip`
-- release note: [releases/Beta-v0.5.0.md](./workflow-source/releases/Beta-v0.5.0.md)
+- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.5.10-beta.zip`
+- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.5.10-beta.zip`
+- release note: [releases/Beta-v0.5.10.md](./workflow-source/releases/Beta-v0.5.10.md)
+- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.5.10.1): [releases/](./workflow-source/releases/)
 
 ## 11. 현재 한계
 
 - 이 저장소는 문서 패키지 성격이 강하지만, 동시에 skill/MCP/runner 프로토타입과 공통 Python package 를 함께 포함하는 작업 저장소다.
 - 프로젝트별 문서 경로와 명령 체계는 `project_workflow_profile_template.md` 를 채운 뒤에야 완성된다.
 - 여러 프로젝트에서 시범 적용하기 전에는 공통 규칙이 과도한지 여부를 추가 검증해야 한다.
-- `workflow_kit/common` 추출은 진행 중이지만, 아직 모든 skill/MCP 를 완전히 공통 라이브러리화한 상태는 아니다.
+- `workflow_kit/common` 의 모든 skill/MCP 공통 라이브러리화는 진행 중 (v0.5.2+ 본격 추출, v0.5.7+ contract_v1 추가).
 - 다중 실제 저장소 적용 기록과 CI 실패 원인 분류 고도화는 아직 저장소 내부에 충분히 포함되지 않았다.
-- 공식 MCP SDK server candidate 는 준비됐지만, 기본 배포/하네스 적용 경로는 이번 릴리즈에서 의도적으로 제외했다.
+- 정식 MCP SDK stdio 전송 (`--mcp-bridge stdio-sdk`) 은 실험적이며 알려진 connection-closed 회귀가 있다. 안정 전송은 `--mcp-bridge jsonrpc-bridge` (default).
+- `check_workflow_linter.py` 가 `warning` 을 반환하는 것은 v0.5.0 부터의 baseline 동작이며 의도된 통과다.
 
 ## 12. 수동 대체 원칙
 
@@ -337,10 +300,14 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 
 ## 다음에 읽을 문서
 
+- **개발자용 설치·사용 가이드 (v0.5.10 신규)**: [docs/INSTALLATION_AND_USAGE.md](./docs/INSTALLATION_AND_USAGE.md)
+- **릴리스 절차 (v0.5.7+)**: [docs/RELEASE.md](./docs/RELEASE.md)
 - 공통 코어 표준: [workflow-source/core/global_workflow_standard.md](./workflow-source/core/global_workflow_standard.md)
+- contract v1 외부 spec: [workflow-source/core/orchestrator_subagent_contract_v1.md](./workflow-source/core/orchestrator_subagent_contract_v1.md)
+- contract v1 wire 가이드: [workflow-source/core/orchestrator_contract_v1_wire_guide.md](./workflow-source/core/orchestrator_contract_v1_wire_guide.md)
 - 프로젝트 상태 진단: [workflow-source/core/project_status_assessment.md](./workflow-source/core/project_status_assessment.md)
 - 상위 로드맵: [workflow-source/core/workflow_kit_roadmap.md](./workflow-source/core/workflow_kit_roadmap.md)
-- release note: [workflow-source/releases/Beta-v0.5.0.md](./workflow-source/releases/Beta-v0.5.0.md)
+- 마지막 release note: [workflow-source/releases/Beta-v0.5.10.md](./workflow-source/releases/Beta-v0.5.10.md)
 - 출력 스키마 가이드: [workflow-source/core/output_schema_guide.md](./workflow-source/core/output_schema_guide.md)
 - 도입 분기 가이드: [workflow-source/core/workflow_adoption_entrypoints.md](./workflow-source/core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [workflow-source/core/workflow_harness_distribution.md](./workflow-source/core/workflow_harness_distribution.md)

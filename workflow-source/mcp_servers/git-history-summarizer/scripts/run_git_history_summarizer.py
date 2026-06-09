@@ -16,6 +16,8 @@ from common_utils import inject_workflow_source, mcp_main, standard_output_handl
 inject_workflow_source()
 from workflow_kit.common.read_only_bundle import summarize_git_history_payload
 
+TOOL_VERSION = "0.5.10-beta"
+
 def build_args(parser):
     parser.add_argument("--commit-range", "--range", default="HEAD~3..HEAD", help="Commit range (e.g. HEAD~3..HEAD)")
     parser.add_argument("--repo-path", default=".", help="Path to git repository")

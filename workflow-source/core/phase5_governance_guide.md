@@ -4,8 +4,8 @@
 - 범위: 문서 비대화 방지, 마일스톤 관리, 작업 이력 요약
 - 대상 독자: AI 에이전트, 워크플로우 운영자, 개발자
 - 상태: final
-- 최종 수정일: 2026-04-27
-- 관련 문서: `ai-workflow/memory/comprehensive_workflow_report.md`, `core/workflow_kit_roadmap.md`
+- 최종 수정일: 2026-06-09
+- 관련 문서: `../../ai-workflow/memory/state.json`, `core/workflow_kit_roadmap.md`
 
 ## 1. 작업 이력 자동 요약 (`summarize_git_history`)
 

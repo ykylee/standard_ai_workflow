@@ -4,10 +4,10 @@
 - 범위: skill 후보, 역할, 입력 문서, 기대 출력, 도입 우선순위
 - 대상 독자: AI agent 설계자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-21
-- 관련 문서: `workflow_agent_topology.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`
+- 최종 수정일: 2026-06-09
+- 관련 문서: `workflow_agent_topology.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`, `./orchestrator_subagent_contract_v1.md`
 
-## 1. 핵심 도입 skill (Beta v2 완료)
+## 1. 핵심 도입 skill (v0.5.10-beta 기준, 11종)
 
 | skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
 | --- | --- | --- | --- | --- | --- |
@@ -18,13 +18,15 @@
 | `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | **Beta** (`--scaffold` 지원) | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
 | `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | **Beta** (`--apply` 지원) | 변경 경로를 기준으로 색인 문서를 수동 검토 |
 
-## 2. 운영 보조 및 지능화 skill (Beta 진입)
+## 2. 운영 보조 및 지능화 skill (Beta 진입, v0.5.7+ 확장)
 
 | skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
 | --- | --- | --- | --- | --- | --- |
 | `workflow-linter` | 워크플로우 문서 정합성 교정 | state.json, handoff, 백로그 | 불일치 리포트 및 교정안 | **Beta** (정합성 자동 검사) | 문서 간 TASK 상태와 링크를 수동 대조 |
 | `project-status-assessment` | 프로젝트 도입 성숙도 진단 | 저장소 전체 구조, 테스트, 문서 | 성숙도 리포트, 보강 추천 | **Beta** (자동 진단 및 리포팅) | `repository_assessment.md` 를 수동 작성 |
 | `automated-repro-scaffold` | 버그 재현 환경 자동 구축 | 버그 리포트, 기존 테스트 코드 | 재현 테스트 파일(`repro_*.py`) | 프로토타입 (`validation-plan` 연동) | 버그 리포트를 읽고 테스트 코드를 수동 작성 |
+| `robust-patcher` | 로컬 LLM 친화적 견고한 파일 수정 | 변경 대상 파일과 수정 명세 | Search-Replace + 퍼지 매칭 기반 패치 | **Beta** (`--apply` 지원) | 일반 편집 도구로 수동 수정 |
+| `git-conflict-resolver` | 컨텍스트 기반 Git 충돌 자동 해결 | 충돌 파일, session_handoff 문맥 | 최적 병합 버전 선택 제안 | **Alpha** (프로토타입) | 수동 3-way merge
 
 운영 보조 원칙:
 
@@ -58,6 +60,17 @@
 - skill 은 정책 원문이 아니라 절차와 판단 순서를 담당한다.
 - skill 은 가능하면 프로젝트 프로파일을 읽고 분기해야 한다.
 - tool 이 없어도 최소 수동 절차는 남아 있어야 한다.
+
+## 5.1 Contract v1 통합 (v0.5.6+)
+
+v0.5.6 부터 orchestrator ↔ sub-agent 위임 시 contract v1 enforcement 가 적용된다. skill 이 sub-agent 로 위임될 때 아래 원칙을 따른다.
+
+- `choose_role` / `choose_roles` (v0.5.7 multi-component) 로 단일 또는 다중 sub-agent 선정.
+- 각 sub-agent 응답은 contract v1 output envelope (`status`, `error`, `error_code`, `warnings`, `source_context`, `tool_version`) 을 준수해야 한다.
+- `output_validator` 가 응답을 자동 검증하며, MUST NOT delegate 7 패턴을 위반하면 거부된다.
+- multi-component fan-out 시 `validate_fanin_output` 으로 cross-ref 통합 검증을 수행한다.
+
+상세 spec: [./orchestrator_subagent_contract_v1.md](./orchestrator_subagent_contract_v1.md), wire 가이드: [./orchestrator_contract_v1_wire_guide.md](./orchestrator_contract_v1_wire_guide.md)
 
 ## 6. 권장 skill 묶음
 

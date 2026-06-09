@@ -3,7 +3,7 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-06-07
+- 최종 수정일: 2026-06-09
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. 공통 원칙
@@ -106,7 +106,7 @@
 - 실행 확인 요약
 - 남은 리스크
 
-## 7. 상태 동기화 및 가버넌스 가이드라인 (Beta v2 추가)
+## 7. 상태 동기화 및 가버넌스 가이드라인 (v0.5.10-beta 기준)
 
 문서 파편화와 로드맵 뒤처짐을 방지하기 위해 아래의 동기화 규칙을 준수한다.
 

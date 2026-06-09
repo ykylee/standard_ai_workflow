@@ -4,14 +4,14 @@
 - 범위: 문서 추가 위치, bootstrap 확장 포인트, 테스트 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-06-09
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`, `../README.md`
 
 ## 1. 새 하네스 추가 최소 단계
 
 1. `python3 scripts/scaffold_harness.py --harness-name <target>` 로 starter 문서를 생성한다.
 2. `scripts/bootstrap_workflow_kit.py` 에 하네스 파일 생성 함수를 추가한다.
-3. `bootstrap_lib.harnesses.HARNESS_SPECS`, `HARNESS_FILE_BUILDERS` 에 새 하네스를 등록한다. (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated — 신규 등록 불필요)
+3. `bootstrap_lib.harnesses.HARNESS_SPECS`, `HARNESS_FILE_BUILDERS` 에 새 하네스를 등록한다. 실제 import 경로는 `workflow-source/scripts/bootstrap_lib/harnesses` 다. (legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated — 신규 등록 불필요)
 4. bootstrap smoke test에 새 하네스 생성 검증을 추가한다.
 5. 루트 `README.md`, `scripts/README.md`, `core/workflow_harness_distribution.md` 에 새 타겟을 반영한다.
 6. export bundle 에 포함되는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 를 새 하네스 MCP 설정에서 참고 산출물로 둘지, 실제 연결 입력으로 변환할지 결정한다.
@@ -26,7 +26,7 @@
 
 ## 3. bootstrap 확장 포인트
 
-- `bootstrap_lib.harnesses.HARNESS_SPECS` (단일 source of truth)
+- `bootstrap_lib.harnesses.HARNESS_SPECS` (단일 source of truth, 실제 import: `workflow-source/scripts/bootstrap_lib/harnesses`)
 - `bootstrap_lib.harnesses.HARNESS_FILE_BUILDERS`
 
 `HARNESS_SPECS` 는 `name` / `description` / `entry_files` / `extra_files` / `long_description` 을 한 곳에서 선언하므로 `HARNESS_DEFINITIONS` (legacy, v0.5.8 부터 deprecated) 는 더 이상 갱신하지 않는다.

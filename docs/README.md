@@ -5,9 +5,11 @@
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 이해관계자
 - 상태: stable
 - 최종 수정일: 2026-06-09
-- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../README.md](../README.md)
+- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../README.md](../README.md), [./architecture/README.md](./architecture/README.md)
 
 # Project Documentation Governance
+
+본 저장소는 현재 1인 dev 환경 (Sisyphus, Mavis/MiniMax M3 기반 AI agent) 으로 운영되며, 본인 (`Sisyphus`) 은 `문서 관리자` 로 자임한다. 모든 `docs/` PR 은 self-review + 24h cool-down 후 머지하며, 추후 reviewer 가 추가되면 본 단락을 갱신한다.
 
 본 저장소의 문서는 **작업 상태 문서(Workflow State)**와 **영구 지식 문서(Knowledge Base)**로 이원화하여 관리합니다.
 
@@ -21,12 +23,12 @@
 
 ### 📂 `docs/` (공유 지식 문서)
 - **성격**: 프로젝트 전체에 공유되는 영구적인 기술 자산.
-- **현 분류** (v0.5.10 기준 실제 디렉토리 구조와 일치):
+- **현 분류** (v0.5.11 기준 실제 디렉토리 구조와 일치):
   - 루트: `README.md` (governance), `DOCUMENT_INDEX.md`, `CODE_INDEX.md`, `PROJECT_PROFILE.md`, `INSTALLATION_AND_USAGE.md`, `RELEASE.md`
-  - `architecture/`: 시스템 설계, ADR(Architecture Decision Records), 인프라 구조. (작성 예정)
+  - `architecture/`: 시스템 설계, **ADR 정식 기록됨 (v0.5.11, 3건)**, 인프라 구조. [architecture/README.md](./architecture/README.md) 참조
   - `planning/`: 마일스톤 계획, 로드맵, 상위 수준의 전략 문서. (작성 예정)
   - `archive/`: 폐기 후보. 옛 단계 결정 기록 (`AGENTS.md` Phase 6/codex 시점, `split_checklist.md` source/runtime 분리 작업). deprecated.
-- **관리**: 모든 브랜치에서 공유되며, **반드시 PR 리뷰 및 검토**를 거쳐 `main`에 머지해야 합니다.
+- **관리**: 모든 브랜치에서 공유되며, **반드시 PR 리뷰 및 검토**를 거쳐 `main`에 머지해야 합니다. 현 1인 dev 환경에서는 self-review + 24h cool-down 으로 governance §3 의 "피어 리뷰어" 요건을 충족한다.
 
 ## 2. 리뷰 및 검토 프로세스
 
@@ -39,5 +41,6 @@
 
 ## 3. PR 가이드라인
 
-- `docs/` 변경이 포함된 PR은 최소 1명 이상의 피어 리뷰어 또는 지정된 문서 관리자의 승인이 필요합니다.
+- `docs/` 변경이 포함된 PR은 최소 1명 이상의 피어 리뷰어 또는 지정된 문서 관리자의 승인이 필요합니다. **현 1인 dev 환경에서 본인 (`Sisyphus`) 은 `문서 관리자` 로 자임**하며, self-review + 24h cool-down 으로 본 요건을 충족한다.
+- **Governance 변경 PR** (예: 본 README §3 의 1인 dev 명시 자체) 은 **7-day cool-down** 적용. governance 의 meta 순환 (governance 가 governance 변경을 self-merge) 위험을 "fresh eyes" interval 로 완화.
 - 변경 사항이 큰 경우(예: 신규 아키텍처 도입), `analysis/` 문서를 먼저 작성하여 공유한 뒤 `architecture/`를 업데이트하는 것을 권장합니다.

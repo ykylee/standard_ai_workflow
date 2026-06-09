@@ -44,14 +44,22 @@ def _mcp_server_command(bridge: str) -> list[str]:
 def _mcp_server_env(workspace_root: Path) -> dict[str, str]:
     """Return the per-harness MCP server ``env`` block.
 
-    ``PYTHONPATH`` points at ``workflow-source`` so the entry point can
-    resolve ``workflow_kit``. ``STANDARD_AI_WORKFLOW_ROOT`` lets the
-    server locate the kit root even when invoked from a non-default cwd.
+    ``STANDARD_AI_WORKFLOW_ROOT`` lets the server locate the kit root
+    even when invoked from a non-default cwd.
+
+    ``PYTHONPATH`` is only set when the bootstrap itself is running
+    from a source repo checkout (SOURCE_ROOT is available). In a wheel
+    install the server should resolve ``workflow_kit`` from the wheel's
+    site-packages, so the bootstrap does NOT preprend
+    ``workflow-source`` — that path would otherwise shadow the installed
+    wheel and break protocolVersion / smart-update fixes.
     """
-    return {
-        "PYTHONPATH": "workflow-source",
-        "STANDARD_AI_WORKFLOW_ROOT": str(workspace_root.resolve()),
-    }
+    from bootstrap_lib import __main__ as _bm  # local import to avoid cycle
+
+    env = {"STANDARD_AI_WORKFLOW_ROOT": str(workspace_root.resolve())}
+    if _bm.SOURCE_ROOT is not None:
+        env["PYTHONPATH"] = "workflow-source"
+    return env
 
 
 def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:

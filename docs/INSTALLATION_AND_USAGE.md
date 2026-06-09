@@ -275,6 +275,17 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --project-name "Sample API" \
   --harness codex \
   --copy-core-docs
+
+# 옵션 C: CI / 스크립트 환경 (--no-interactive 필수)
+# 비대화형 환경에서 --harness 미지정 시 SystemExit(1) + harness 목록 fail-fast
+# v0.5.8+ 의 interactive picker 는 TTY 미감지 시 자동 skip 됨. --no-interactive 는 명시적.
+python3 -m bootstrap_lib \
+  --target-root "$REPO" \
+  --project-slug "$SLUG" \
+  --harness opencode \
+  --no-interactive \
+  --adoption-mode existing \
+  --copy-core-docs
 ```
 
 핵심 옵션:
@@ -282,6 +293,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 - `--harness <name>` — `codex` / `opencode` / `gemini-cli` / `antigravity` / `minimax-code` (반복 가능)
 - `--adoption-mode {new,existing}` — `existing` 은 `repository_assessment.md` 도 생성
 - `--copy-core-docs` — `core/*.md` 를 타겟 저장소에 복사
+- `--no-interactive` — 비대화형 환경(CI/파이프라인/자동 에이전트) 에서 interactive picker 자동 실행을 비활성화. `--harness` 미지정 시 fail-fast.
 - `--enable-mcp` — 하네스별 MCP config 스니펫 동시 emit
 - `--mcp-bridge {jsonrpc-bridge,stdio-sdk}` — MCP 전송 방식 (default: `jsonrpc-bridge`, 안정; `stdio-sdk` 는 정식 SDK 호환)
 

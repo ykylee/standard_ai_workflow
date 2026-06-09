@@ -38,6 +38,18 @@ python3 -m bootstrap_lib --target-root <project_root> ...
 
 비대화형(non-TTY) 환경에서는 `--harness` 를 명시적으로 지정하지 않으면 오류가 발생한다. CI/CD 파이프라인에서는 반드시 `--harness` 플래그를 명시해야 한다.
 
+비대화형 정책 (v0.5.11 §6 보강): `--no-interactive` 플래그 또는 non-TTY stdin 에서 `--harness` 미지정 시 `bootstrap_lib` 은 silent 0 overlay 생성을 하지 않고 명확한 `SystemExit(1)` + 6개 harness 목록 (`codex, opencode, gemini-cli, antigravity, minimax-code, pi-dev`) 제시 후 fail-fast 한다. 이 동작은 v0.5.8 부터 변경 없이 유지되지만, 비대화형 환경(CI, 파이프라인, 자동 에이전트)에서 명시적 contract 으로 문서화.
+
+CI / 스크립트 환경 권장 호출 (silent 0 overlay 방지):
+
+```bash
+python3 -m bootstrap_lib --target-root "$REPO" \
+  --project-slug "$SLUG" \
+  --harness opencode \
+  --no-interactive \
+  --adoption-mode existing
+```
+
 picker 가 선택한 하네스에 따라 `--enable-mcp` 와 결합 시 해당 하네스용 MCP config 도 자동 emit 된다.
 
 ## 4. 하네스별 MCP config 위치

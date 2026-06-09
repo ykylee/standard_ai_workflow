@@ -27,6 +27,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.contract_v1 import (  # noqa: E402
     choose_roles,
     DelegationRejected,
+    enforce_fanin_response,
     validate_fanin_output,
 )
 
@@ -353,6 +354,55 @@ def check_validate_fanin_invalid_stat_type() -> None:
         raise AssertionError("non-int added should produce error")
 
 
+def check_enforce_fanin_sub_delegation_id_prefix_mismatch_raises_value_error() -> None:
+    """v0.5.11 §6.5: enforce_fanin_response 가 sub.delegation_id prefix mismatch 시 ValueError raise."""
+    payload = _ok_payload()
+    payload["result"]["sub_results"][0]["delegation_id"] = "del-WRONG-PREFIX-aaaaaaaa"
+    try:
+        enforce_fanin_response(
+            payload, expected_parent_delegation_id="del-2026-06-08-fanout-pilot"
+        )
+    except ValueError as exc:
+        if "delegation_id" not in str(exc) and "parent" not in str(exc):
+            raise AssertionError(
+                f"ValueError should mention delegation_id/parent, got: {exc}"
+            )
+        return
+    raise AssertionError(
+        "sub.delegation_id prefix mismatch should raise ValueError"
+    )
+
+
+def check_validate_fanin_parent_delegation_id_missing_raises() -> None:
+    """v0.5.11 §2 회귀: fan-in payload 에 parent_delegation_id 누락 시 ValueError raise."""
+    payload = _ok_payload()
+    del payload["parent_delegation_id"]
+    result = validate_fanin_output(payload)
+    if result.is_valid:
+        raise AssertionError(
+            "missing parent_delegation_id should produce error"
+        )
+
+
+def check_validate_fanin_sub_id_duplicate_with_status_inconsistency_detected() -> None:
+    """v0.5.11 §2 회귀: 동일 sub_id 가 status 불일치 동반 시 aggregated mismatch 로 검출.
+
+    Known limitation (시나리오 B): caller 가 동일 sub_id + 동일 status 의
+    중복을 보내면 aggregated check 가 통과함. 옵션 (b) — choose_roles
+    dedup check — 는 v0.5.12+ 별도 plan.
+    """
+    payload = _ok_payload()
+    payload["result"]["sub_results"][0]["sub_id"] = "st-dup"
+    payload["result"]["sub_results"][1]["sub_id"] = "st-dup"
+    payload["result"]["sub_results"][0]["status"] = "ok"
+    payload["result"]["sub_results"][1]["status"] = "failed"
+    result = validate_fanin_output(payload)
+    if result.is_valid:
+        raise AssertionError(
+            "duplicate sub_id with status inconsistency should be detected"
+        )
+
+
 def main() -> int:
     # choose_roles
     check_choose_roles_single_no_subtasks()
@@ -374,12 +424,19 @@ def main() -> int:
     check_validate_fanin_artifact_action_and_stats()
     check_validate_fanin_invalid_action()
     check_validate_fanin_invalid_stat_type()
+    # v0.5.11 신규 — §6.5 Mavis engine hook (fan-in variant)
+    check_enforce_fanin_sub_delegation_id_prefix_mismatch_raises_value_error()
+    # v0.5.11 신규 — §2 회귀 test 강화
+    check_validate_fanin_parent_delegation_id_missing_raises()
+    check_validate_fanin_sub_id_duplicate_with_status_inconsistency_detected()
     print(
         "Contract v1 §4.2/§5.2 multi-component smoke check passed "
         "(choose_roles: single/3-sub/parent-reject/strict/sub-reject/schema-invalid/type-invalid; "
         "validate_fanin_output: ok/partial/failed aggregation, status mismatch, parent mismatch, "
         "sub delegation_id prefix mismatch, missing sub field, missing parent, "
-        "artifact action+stats, invalid action, invalid stat type)."
+        "artifact action+stats, invalid action, invalid stat type, "
+        "enforce_fanin_response prefix mismatch, "
+        "parent_delegation_id missing raise, sub_id duplicate status-inconsistency)."
     )
     return 0
 

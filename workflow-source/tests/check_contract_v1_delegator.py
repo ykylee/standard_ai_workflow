@@ -23,6 +23,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.contract_v1 import (  # noqa: E402
     choose_role,
     DelegationRejected,
+    enforce_subagent_response,
     recommend_model_tier,
 )
 
@@ -204,6 +205,56 @@ def check_choose_role_returns_recommended_tier() -> None:
         )
 
 
+def check_enforce_subagent_response_happy_path() -> None:
+    """v0.5.11 §6.5: enforce_subagent_response 가 정상 응답을 통과시킨다."""
+    valid_response = {
+        "contract_version": "1.0",
+        "delegation_id": "del-2026-06-09-aaaaaaaa",
+        "completed_at": "2026-06-09T12:00:00Z",
+        "worker": {"session_id": "mvs_test", "role": "doc-worker", "model_tier": "small"},
+        "result": {
+            "status": "ok",
+            "summary": "Test response",
+            "artifacts": [],
+            "written_paths": [],
+            "next_step": "continue",
+        },
+    }
+    enforce_subagent_response(
+        valid_response, expected_delegation_id="del-2026-06-09-aaaaaaaa"
+    )
+
+
+def check_enforce_subagent_response_violation_raises_value_error() -> None:
+    """v0.5.11 §6.5: expected_delegation_id 불일치 시 ValueError raise."""
+    bad_response = {
+        "contract_version": "1.0",
+        "delegation_id": "del-2026-06-09-bbbbbbbb",
+        "completed_at": "2026-06-09T12:00:00Z",
+        "worker": {"session_id": "mvs_test", "role": "doc-worker", "model_tier": "small"},
+        "result": {
+            "status": "ok",
+            "summary": "Test",
+            "artifacts": [],
+            "written_paths": [],
+            "next_step": "continue",
+        },
+    }
+    try:
+        enforce_subagent_response(
+            bad_response, expected_delegation_id="del-2026-06-09-aaaaaaaa"
+        )
+    except ValueError as exc:
+        if "delegation_id" not in str(exc):
+            raise AssertionError(
+                f"ValueError should mention 'delegation_id', got: {exc}"
+            )
+        return
+    raise AssertionError(
+        "expected_delegation_id mismatch should raise ValueError"
+    )
+
+
 def main() -> int:
     check_task_type_to_role_mapping()
     check_must_not_delegate_rejection()
@@ -216,12 +267,15 @@ def main() -> int:
     check_recommend_model_tier_default_small()
     check_recommend_model_tier_explicit_override()
     check_choose_role_returns_recommended_tier()
+    # v0.5.11 신규 — §6.5 Mavis engine hook
+    check_enforce_subagent_response_happy_path()
+    check_enforce_subagent_response_violation_raises_value_error()
     print(
         "Contract v1 §6.1/§6.3 delegator smoke check passed "
         "(4 task_type mappings, 9 must-not-delegate rejections [7 v0.5.6 + 2 v0.5.7], "
         "strict mode, unknown type, primary_artifact marker, non-match baseline, "
         "model_tier main keywords, model_tier default small, model_tier explicit "
-        "override, choose_role propagates tier)."
+        "override, choose_role propagates tier, enforce_subagent_response happy + violation)."
     )
     return 0
 

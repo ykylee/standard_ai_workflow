@@ -15,9 +15,8 @@ v0.5.6 부터 회귀 스크립트(`check_contract_v1_delegator.py` / `check_cont
 ```python
 from workflow_kit.contract_v1 import (
     choose_role,
-    validate_output,
+    enforce_subagent_response,
     DelegationRejected,
-    OutputValidationResult,
 )
 
 
@@ -37,15 +36,12 @@ def delegate_to_subagent(task: dict, sub_agent_caller) -> dict:
     }
     response = sub_agent_caller(payload)
 
-    # 3) 출력 검증 (§5)
-    result: OutputValidationResult = validate_output(
+    # 3) 출력 검증 (§5) — v0.5.11 §6.5: enforce helper 가 invalid 시
+    # ValueError raise. §7.4 정책 (재위임 1회) 은 caller 책임.
+    enforce_subagent_response(
         response,
         expected_delegation_id=decision.delegation_id,
     )
-    if not result.is_valid:
-        # §7.4 정책: 위반 보고 + 재위임 1회
-        log_violation(result.errors, decision.delegation_id)
-        raise OutputValidationFailed(result)
 
     return response["result"]
 ```
@@ -55,7 +51,7 @@ def delegate_to_subagent(task: dict, sub_agent_caller) -> dict:
 ```python
 from workflow_kit.contract_v1 import (
     choose_roles,
-    validate_fanin_output,
+    enforce_fanin_response,
 )
 
 
@@ -113,15 +109,13 @@ def fanout_to_subs(task: dict, sub_agent_caller) -> dict:
         },
     }
 
-    # 4) fan-in 검증 (§5.2)
-    result = validate_fanin_output(
+    # 4) fan-in 검증 (§5.2) — v0.5.11 §6.5: enforce helper 가 invalid 시
+    # ValueError raise. aggregated status mismatch / sub delegation_id
+    # prefix mismatch 등을 한 줄로 enforce.
+    enforce_fanin_response(
         fanin_payload,
         expected_parent_delegation_id=parent_decision.delegation_id,
     )
-    if not result.is_valid:
-        # aggregated status mismatch / sub delegation_id prefix mismatch 등
-        log_violation(result.errors, parent_decision.delegation_id)
-        raise OutputValidationFailed(result)
 
     return fanin_payload
 ```

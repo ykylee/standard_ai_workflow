@@ -12,10 +12,15 @@ Specifically this test:
 
   1. Extracts the python code block under ``## 3.`` of the wire guide.
   2. Patches the missing imports / helper references (``choose_roles``,
-     ``validate_fanin_output``, ``aggregate_status``, ``fanin_summary``,
+     ``validate_fanin_output``, ``enforce_fanin_response``,
+     ``aggregate_status``, ``fanin_summary``,
      ``fanin_artifacts``, ``fanin_written_paths``, ``orchestrator_next_step``,
-     ``orchestrator_session_id``, ``now_iso``, ``OutputValidationFailed``)
-     with a minimal in-process stub that mirrors spec v0.5.7 behaviour.
+     ``orchestrator_session_id``, ``now_iso``)
+     with a minimal in-process stub that mirrors spec v0.5.11 behaviour.
+     v0.5.11 §6.5: ``OutputValidationFailed`` was removed; the wire guide
+     now uses ``enforce_fanin_response`` which raises ``ValueError`` on
+     violation. The stub namespace exposes ``enforce_fanin_response``
+     as a real re-export from ``workflow_kit.contract_v1``.
   3. Defines a fake ``sub_agent_caller`` that echoes the ``delegation_id``
      in the input payload (simulating a faithful sub-agent). Each sub's
      response delegation_id MUST start with the parent delegation_id.
@@ -83,7 +88,7 @@ def _build_stub_namespace() -> dict[str, object]:
     regression walkthrough we provide minimal in-process equivalents.
     """
     from datetime import datetime, timezone
-    from workflow_kit.contract_v1 import choose_roles, validate_fanin_output
+    from workflow_kit.contract_v1 import choose_roles, enforce_fanin_response, validate_fanin_output
 
     def _now_iso() -> str:
         return datetime.now(timezone.utc).isoformat()
@@ -112,14 +117,15 @@ def _build_stub_namespace() -> dict[str, object]:
         return "continue"
 
     def _log_violation(errors, delegation_id: str) -> None:
-        # The wire guide defers logging to the consumer. The regression
-        # walkthrough treats it as a no-op so we can validate the success
-        # path of the example as written.
+        # v0.5.11 §6.5: removed from wire guide. The regression
+        # walkthrough keeps this stub for backwards compatibility with
+        # the §8 anti-pattern test that still references it.
         return None
 
     return {
         "choose_roles": choose_roles,
         "validate_fanin_output": validate_fanin_output,
+        "enforce_fanin_response": enforce_fanin_response,
         "aggregate_status": _aggregate_status,
         "fanin_summary": _fanin_summary,
         "fanin_artifacts": _fanin_artifacts,
@@ -127,23 +133,8 @@ def _build_stub_namespace() -> dict[str, object]:
         "orchestrator_next_step": _orchestrator_next_step,
         "orchestrator_session_id": _orchestrator_session_id,
         "now_iso": _now_iso,
-        "OutputValidationFailed": _OutputValidationFailed,
         "log_violation": _log_violation,
     }
-
-
-class _OutputValidationFailed(Exception):
-    """Module-level exception used in the v0.5.9.1 regression walkthrough.
-
-    Mirrors the shape of Mavis / consumer-side wire code that wraps
-    ``validate_fanin_output`` with a custom exception for the failure
-    path. We hoist this to module scope so test functions can introspect
-    it without re-defining it.
-    """
-
-    def __init__(self, result):
-        self.result = result
-        super().__init__(f"validate_fanin_output failed: {result.errors}")
 
 
 def _compile_fanout_function(code: str, stub_ns: dict[str, object]):
@@ -260,12 +251,14 @@ def test_section_3_runs_against_3sub_fixture() -> None:
             "in the example scope. (v0.5.9.1 fix: sub_payloads was added to "
             "the sub-agent loop so zip(sub_payloads, sub_responses) resolves.)"
         ) from exc
-    except _OutputValidationFailed as exc:
-        # Expected: validate_fanin_output correctly rejects fanout output
-        # because choose_roles does not yet emit parent-prefix sub
-        # delegation_ids. This is the v0.5.10 back-log; not a v0.5.9.1
-        # regression. The test PASSES so long as the example at least
-        # runs to the validator (proving the v0.5.9.1 sub_payloads fix
+    except ValueError as exc:
+        # v0.5.11 §6.5: enforce_fanin_response raises ValueError when
+        # the wire guide's fan-in payload doesn't pass validation. The
+        # current v0.5.10 contract has the prefix-mismatch back-log
+        # (choose_roles emits sub IDs not yet parent-prefixed), so we
+        # expect this to fire and surface the v0.5.10 back-pressure.
+        _assert_v0591_invariants_violated_in_validation_error(exc)
+        return
         # is intact). When choose_roles is fixed in v0.5.10, this branch
         # stops firing and we move to the success-path assertions below.
         _assert_v0591_invariants_violated_in_validation_error(exc)
@@ -364,12 +357,13 @@ def test_section_3_rejects_sub_delegation_id_reissue() -> None:
     task = _make_3sub_task(parent_id="del-2026-06-08-wire-guide-test")
     try:
         payload = fn(task, _bad_caller)
-    except _OutputValidationFailed:
-        # If validate_fanin_output raised, the wire guide's example was
-        # somehow passing through the sub-agent response delegation_id
-        # (i.e. v0.5.9.1 antipattern came back). Surface that.
+    except ValueError:
+        # v0.5.11 §6.5: enforce_fanin_response raises ValueError when
+        # the wire guide's example is using the sub-agent response
+        # delegation_id (v0.5.9.1 antipattern) instead of the
+        # orchestrator-issued one. Surface that.
         raise AssertionError(
-            "validate_fanin_output raised on the wire guide example. This "
+            "enforce_fanin_response raised on the wire guide example. This "
             "means the example is using the sub-agent response "
             "delegation_id (v0.5.9.1 antipattern), not the orchestrator-"
             "issued one. The fix is to read sub.decision.delegation_id "

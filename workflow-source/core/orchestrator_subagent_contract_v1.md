@@ -313,6 +313,8 @@ sub-agent 가 작업을 끝내고 orchestrator 에게 보고할 때 사용하는
 | `sub_results` | object[] | ❌ | v0.5.7: fan-in 보고. sub-task 별 §5 보고 (아래 §5.2 참조) |
 | `parent_delegation_id` | string | ❌ | v0.5.7: fan-in 보고 시 부모 delegation_id. `sub_results` 가 있으면 필수 |
 
+**v0.5.11 §4.2 보강**: `sub_results[]` 의 `sub_id` 필드는 부모 fan-out 보고 내에서 **유일**해야 한다. caller 책임 (orchestrator 측 fan-in 통합 시 보장). `validate_fanin_output` 는 동일 `sub_id` + status 불일치 동반 시 aggregated status mismatch 로 **indirect 검출**하지만, status 일치 중복 (시나리오 B) 은 미검출. dedup enforce 가 필요한 경우 `choose_roles` 에 dedup check 추가하는 옵션 (b) 는 v0.5.12+ 별도 plan.
+
 ## 6. 위임 가능 / 불가 카탈로그
 
 오케스트레이터는 다음 카탈로그를 보고 직접 처리 vs 위임을 결정한다. **이 목록은 권장이 아니라 contract v1 의 의무 분배**다.
@@ -360,6 +362,57 @@ sub-agent 가 작업을 끝내고 orchestrator 에게 보고할 때 사용하는
 | 사용자-facing 결정 (요구사항 확정, 스코프 축소) | orchestrator → 사용자 인터페이스 단일화 |
 | 보안/권한 관련 설정 변경 | risk-owned by orchestrator, 변경은 sub-agent 가 못 함 |
 | handoff/backlog 직접 write | §6.3 와 동일 |
+
+### 6.5 Mavis engine hook (P0 enforcement) (v0.5.11)
+
+orchestrator 측 `delegate_to_subagent` (single) / `fanout_to_subs` (multi-component) 가 sub-agent 응답을 수신한 직후, **반드시** `validate_output` / `validate_fanin_output` 으로 envelope 을 검증해야 한다. 위반 시 `OutputValidationResult.raise_if_invalid()` 가 `ValueError` 를 raise 한다.
+
+#### 6.5.1 위치 (wire 가이드 §2/§3 패턴 강제)
+
+- **single 위임** (`delegate_to_subagent`): `sub_agent_caller(payload)` 반환 직후, 응답 envelope 에 대해 `enforce_subagent_response(response, expected_delegation_id=decision.delegation_id)` 호출. 위반 시 `ValueError` raise.
+- **fan-in** (`fanout_to_subs`): 모든 sub 응답을 모은 fan-in payload (`parent_delegation_id`, `result.sub_results[]` 포함) 에 대해 `enforce_fanin_response(fanin_payload, expected_parent_delegation_id=parent_decision.delegation_id)` 호출. 위반 시 `ValueError` raise.
+
+helper 시그니처:
+
+```python
+# workflow_kit.contract_v1.output_validator
+def enforce_subagent_response(
+    payload: Any,
+    *,
+    expected_delegation_id: str | None = None,
+) -> None:
+    """P0 enforcement: validate sub-agent response; raise ValueError on violation.
+
+    Thin wrapper over validate_output() + OutputValidationResult.raise_if_invalid().
+    """
+
+def enforce_fanin_response(
+    payload: Any,
+    *,
+    expected_parent_delegation_id: str | None = None,
+) -> None:
+    """P0 enforcement: validate fan-in payload; raise ValueError on violation."""
+```
+
+#### 6.5.2 정책
+
+- **opt-out 없음 (P0)**: hook 의도적 우회, silent skip, marker 기반 비활성화 모두 **금지**. 모든 Mavis / Mavis 구현체는 본 helper 를 wire 가이드 §2/§3 패턴 그대로 호출해야 한다.
+- **위반 시 정책 (§7.4)**: `ValueError` 가 caller 로 propagate. caller 의 §7.4 정책 (`log_violation` → 1회 재위임) 은 helper 가 raise 한 후의 caller 책임.
+- **PRESERVE_RELATIVE_PATHS 와 무관**: hook 은 위임 응답 envelope 만 검증. user data 보호와 별개.
+
+#### 6.5.3 helper 출처
+
+- 정의: `workflow_kit/contract_v1/output_validator.py` — `enforce_subagent_response`, `enforce_fanin_response`
+- re-export: `workflow_kit/contract_v1/__init__.py` 에서 `from .output_validator import enforce_subagent_response, enforce_fanin_response`
+- wire 가이드: `workflow-source/core/orchestrator_contract_v1_wire_guide.md` §2, §3 reference code 가 본 helper 사용. 비표준 식별자 (`OutputValidationFailed`, `log_violation` 등) 금지.
+
+#### 6.5.4 Mavis 측 wire 의무 (v0.5.11 audit)
+
+| 항목 | PASS 조건 |
+| --- | --- |
+| Mavis 측 `delegate_to_subagent` 호출 시 `enforce_subagent_response` 호출 | 코드 grep 으로 검증 |
+| Mavis 측 `fanout_to_subs` 호출 시 `enforce_fanin_response` 호출 | 코드 grep 으로 검증 |
+| `validate_output` / `validate_fanin_output` 가 `enforce_*` helper 없이 직접 호출 | 금지 (회귀 시 catch 누락 위험) |
 
 ## 7. 에러 / 폴백 정책
 

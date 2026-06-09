@@ -62,6 +62,36 @@ def _ensure_dict(payload: Any, field: str) -> dict[str, Any]:
     return payload
 
 
+def enforce_subagent_response(
+    payload: Any,
+    *,
+    expected_delegation_id: str | None = None,
+) -> None:
+    """P0 enforcement: validate sub-agent response; raise ValueError on violation.
+
+    Thin wrapper over ``validate_output`` + ``OutputValidationResult.raise_if_invalid``.
+    See ``orchestrator_subagent_contract_v1.md`` §6.5 for the full policy.
+    """
+    result = validate_output(payload, expected_delegation_id=expected_delegation_id)
+    result.raise_if_invalid()
+
+
+def enforce_fanin_response(
+    payload: Any,
+    *,
+    expected_parent_delegation_id: str | None = None,
+) -> None:
+    """P0 enforcement: validate fan-in payload; raise ValueError on violation.
+
+    Thin wrapper over ``validate_fanin_output`` + ``OutputValidationResult.raise_if_invalid``.
+    See ``orchestrator_subagent_contract_v1.md`` §6.5 for the full policy.
+    """
+    result = validate_fanin_output(
+        payload, expected_parent_delegation_id=expected_parent_delegation_id
+    )
+    result.raise_if_invalid()
+
+
 def validate_output(
     payload: Any,
     expected_delegation_id: str | None = None,

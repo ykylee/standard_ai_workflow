@@ -60,6 +60,12 @@ def main() -> int:
         raise AssertionError("Expected read-only bundle serverInfo name.")
     if initialize["result"]["_meta"]["transport_ready"] is not False:
         raise AssertionError("Expected draft bridge to remain transport_ready=false.")
+    if "protocolVersion" not in initialize["result"]:
+        raise AssertionError(
+            "OpenCode / 2025-03-26 client 가 initialize response 에서 "
+            "protocolVersion 을 필수로 기대. 부재 시 '4 of 5 requests failed: "
+            "unexpected error' 발생 (MCP 2025-03-26 spec 준수)."
+        )
 
     initialize_rich = run_request(
         {

@@ -56,6 +56,7 @@ def parse_request_json(raw_json: str) -> tuple[dict[str, Any] | None, dict[str, 
 def build_initialize_result() -> dict[str, Any]:
     descriptors = build_transport_tool_descriptors()
     return {
+        "protocolVersion": "2025-03-26",
         "serverInfo": {
             "name": READ_ONLY_SERVER_NAME,
             "version": descriptors["tool_version"],

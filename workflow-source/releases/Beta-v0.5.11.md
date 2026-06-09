@@ -1,8 +1,10 @@
 # Beta v0.5.11 — Mavis engine hook + ADR 정식 기록 + 비대화형 가이드 보강
 
-- **릴리스 일자**: 2026-06-09
+- **릴리스 일자**: 2026-06-09 (1차), 2026-06-16 (2차 — PR-3b ADR 3건 머지 후)
 - **브랜치**: `main`
-- **포함 커밋**: 4 (#1 Mavis hook, #2 회귀 test 강화, #3 비대화형 가이드, #4 ADR 3건 + governance 갱신)
+- **포함 커밋**: 5 (1차) + 1 (2차, PR-3b ADR 3건 + architecture/README 갱신. 7-day cool-down 후)
+  - 1차 (#1 + #2 + #3 + #4 governance + release note): Mavis engine hook + 회귀 test 강화 + 비대화형 가이드 + governance 갱신
+  - 2차 (#4 ADR 3건): ADR-001/002/003 정식 기록 (PR-3b, 7-day cool-down)
 - **상태**: ✅ P0 enforcement 자동화 + ✅ 영구 지식 자산 정식 기록 + ✅ docs governance 1인 dev 환경 명시. breaking change 없음.
 
 ## 1. 무엇이 바뀌었나

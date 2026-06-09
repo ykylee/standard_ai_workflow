@@ -205,27 +205,27 @@ def write_mcp_config_files(
 
     if "codex" in harnesses or "opencode" in harnesses:
         codex_path = paths.target_root / ".codex" / "mcp.toml"
-        write_text(codex_path, render_codex_mcp_config(args, paths), force=args.force)
+        write_text(codex_path, render_codex_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["codex_mcp_config"] = str(codex_path)
 
     if "opencode" in harnesses:
         opencode_path = paths.target_root / "mcp.opencode.json"
-        write_text(opencode_path, render_opencode_mcp_config(args, paths), force=args.force)
+        write_text(opencode_path, render_opencode_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["opencode_mcp_config"] = str(opencode_path)
 
     if "gemini-cli" in harnesses:
         gemini_path = paths.target_root / ".gemini" / "mcp.json"
-        write_text(gemini_path, render_gemini_cli_mcp_config(args, paths), force=args.force)
+        write_text(gemini_path, render_gemini_cli_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["gemini_cli_mcp_config"] = str(gemini_path)
 
     if "antigravity" in harnesses:
         antigravity_path = paths.target_root / ".antigravity" / "mcp.json"
-        write_text(antigravity_path, render_antigravity_mcp_config(args, paths), force=args.force)
+        write_text(antigravity_path, render_antigravity_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["antigravity_mcp_config"] = str(antigravity_path)
 
     if "minimax-code" in harnesses:
         minimax_path = paths.target_root / ".MiniMax" / "mcp.json"
-        write_text(minimax_path, render_minimax_code_mcp_config(args, paths), force=args.force)
+        write_text(minimax_path, render_minimax_code_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["minimax_code_mcp_config"] = str(minimax_path)
 
     return generated

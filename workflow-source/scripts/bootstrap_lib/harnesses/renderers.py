@@ -910,7 +910,7 @@ def write_codex_harness_files(
     context: dict[str, object],
 ) -> dict[str, str]:
     codex_config = codex_config_example_path(paths)
-    write_text(codex_config, render_codex_config_example(), force=args.force)
+    write_text(codex_config, render_codex_config_example(), force=args.force, rel_to=paths.target_root)
     return {
         "codex_config_example": str(codex_config),
     }
@@ -928,16 +928,17 @@ def write_opencode_harness_files(
     opencode_doc_worker_agent = opencode_doc_worker_agent_path(paths)
     opencode_code_worker_agent = opencode_code_worker_agent_path(paths)
     opencode_validation_worker_agent = opencode_validation_worker_agent_path(paths)
-    write_text(opencode_config, render_opencode_config(args, paths), force=args.force)
-    write_text(opencode_skill, render_opencode_skill(), force=args.force)
-    write_text(opencode_agent, render_opencode_agent(args, context), force=args.force)
-    write_text(opencode_worker_agent, render_opencode_worker_agent(args, context), force=args.force)
-    write_text(opencode_doc_worker_agent, render_opencode_doc_worker_agent(args, context), force=args.force)
-    write_text(opencode_code_worker_agent, render_opencode_code_worker_agent(args, context), force=args.force)
+    write_text(opencode_config, render_opencode_config(args, paths), force=args.force, rel_to=paths.target_root)
+    write_text(opencode_skill, render_opencode_skill(), force=args.force, rel_to=paths.target_root)
+    write_text(opencode_agent, render_opencode_agent(args, context), force=args.force, rel_to=paths.target_root)
+    write_text(opencode_worker_agent, render_opencode_worker_agent(args, context), force=args.force, rel_to=paths.target_root)
+    write_text(opencode_doc_worker_agent, render_opencode_doc_worker_agent(args, context), force=args.force, rel_to=paths.target_root)
+    write_text(opencode_code_worker_agent, render_opencode_code_worker_agent(args, context), force=args.force, rel_to=paths.target_root)
     write_text(
         opencode_validation_worker_agent,
         render_opencode_validation_worker_agent(args, context),
         force=args.force,
+        rel_to=paths.target_root,
     )
     return {
         "opencode_config": str(opencode_config),
@@ -1043,17 +1044,17 @@ def write_minimax_code_harness_files(
     minimax_code_worker = minimax_root / "agents" / "workflow-code-worker.md"
     minimax_validation_worker = minimax_root / "agents" / "workflow-validation-worker.md"
 
-    write_text(minimax_config, render_minimax_config_example(), force=args.force)
+    write_text(minimax_config, render_minimax_config_example(), force=args.force, rel_to=paths.target_root)
     generated["minimax_config_example"] = str(minimax_config)
-    write_text(minimax_orchestrator, render_minimax_orchestrator(args, context), force=args.force)
+    write_text(minimax_orchestrator, render_minimax_orchestrator(args, context), force=args.force, rel_to=paths.target_root)
     generated["minimax_orchestrator"] = str(minimax_orchestrator)
-    write_text(minimax_worker, render_minimax_worker(args, context), force=args.force)
+    write_text(minimax_worker, render_minimax_worker(args, context), force=args.force, rel_to=paths.target_root)
     generated["minimax_worker"] = str(minimax_worker)
-    write_text(minimax_doc_worker, render_minimax_doc_worker(args, context), force=args.force)
+    write_text(minimax_doc_worker, render_minimax_doc_worker(args, context), force=args.force, rel_to=paths.target_root)
     generated["minimax_doc_worker"] = str(minimax_doc_worker)
-    write_text(minimax_code_worker, render_minimax_code_worker(args, context), force=args.force)
+    write_text(minimax_code_worker, render_minimax_code_worker(args, context), force=args.force, rel_to=paths.target_root)
     generated["minimax_code_worker"] = str(minimax_code_worker)
-    write_text(minimax_validation_worker, render_minimax_validation_worker(args, context), force=args.force)
+    write_text(minimax_validation_worker, render_minimax_validation_worker(args, context), force=args.force, rel_to=paths.target_root)
     generated["minimax_validation_worker"] = str(minimax_validation_worker)
     return generated
 

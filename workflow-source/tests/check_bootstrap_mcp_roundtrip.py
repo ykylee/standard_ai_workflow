@@ -96,17 +96,20 @@ def run_bootstrap(target_root: Path, harness: str) -> dict[str, object]:
     # the tail. The manifest is the last valid JSON object on stdout.
     lines = completed.stdout.splitlines()
     for end in range(len(lines), 0, -1):
+        found_start = None
         for start in range(end - 1, -1, -1):
             if lines[start].lstrip().startswith("{"):
                 candidate = "\n".join(lines[start:end])
                 try:
                     payload = json.loads(candidate)
                 except json.JSONDecodeError:
-                    break  # this starting line isn't a real object start; bail
+                    continue
                 if isinstance(payload, dict) and "generated_harness_files" in payload:
                     return payload
-                # else: this was some other JSON; keep walking
+                found_start = start
                 break
+        if found_start is not None:
+            end = found_start
     raise AssertionError(
         f"bootstrap did not produce a recognisable manifest on stdout. "
         f"Last 200 chars:\n{completed.stdout[-200:]}"

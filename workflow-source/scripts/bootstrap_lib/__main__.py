@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from datetime import date
@@ -27,11 +28,30 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Path setup (must run before importing workflow_kit or bootstrap_lib submodules)
 # ---------------------------------------------------------------------------
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPT_DIR = REPO_ROOT / "workflow-source" / "scripts"
-if str(SOURCE_ROOT) not in sys.path:
+# This file lives at workflow-source/scripts/bootstrap_lib/__main__.py in the
+# source repo, and at site-packages/bootstrap_lib/__main__.py when installed
+# via pip. We resolve SOURCE_ROOT by walking up from this file's parent
+# until we find a directory containing core/global_workflow_standard.md; if
+# none is found, SOURCE_ROOT is None and the bootstrap gracefully skips
+# core-docs copy (wheel install without bundled data).
+_THIS_FILE = Path(__file__).resolve()
+_BOOTSTRAP_LIB_PARENT = _THIS_FILE.parent
+SOURCE_ROOT: Path | None = None
+for _candidate in _BOOTSTRAP_LIB_PARENT.parents:
+    if (_candidate / "core" / "global_workflow_standard.md").exists():
+        SOURCE_ROOT = _candidate
+        break
+REPO_ROOT = SOURCE_ROOT.parent if SOURCE_ROOT is not None else None
+SCRIPT_DIR = SOURCE_ROOT / "scripts" if SOURCE_ROOT is not None else None
+if SOURCE_ROOT is not None and str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
+
+# Test/operational override: when set, skip SOURCE_ROOT auto-detection
+# and treat as a wheel install (core docs / global snippets unavailable).
+if os.environ.get("BOOTSTRAP_LIB_NO_SOURCE"):
+    SOURCE_ROOT = None
+    REPO_ROOT = None
+    SCRIPT_DIR = None
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -107,6 +127,7 @@ from bootstrap_lib.renderers import (  # noqa: E402
 from bootstrap_lib.writes import (  # noqa: E402
     build_manifest,
     copy_core_docs,
+    drain_file_actions,
     rel,
     write_text,
 )
@@ -820,11 +841,17 @@ def write_harness_files(
     also written and merged into the result.
     """
     generated: dict[str, str] = {}
+    actions: list[dict[str, str]] = []
     harnesses = selected_harnesses(args)
+
+    def _w(path, content):
+        actions.append(
+            write_text(path, content, force=args.force, rel_to=paths.target_root)
+        )
 
     if "codex" in harnesses or "opencode" in harnesses:
         codex_agents = codex_agents_path(paths)
-        write_text(codex_agents, render_codex_agents(args, paths, context), force=args.force)
+        _w(codex_agents, render_codex_agents(args, paths, context))
         generated["codex_agents"] = str(codex_agents)
 
     if "pi-dev" in harnesses:
@@ -834,17 +861,17 @@ def write_harness_files(
         from bootstrap_lib.harnesses.renderers import render_pi_dev_agents
 
         pi_agents = codex_agents_path(paths)
-        write_text(pi_agents, render_pi_dev_agents(args, context), force=args.force)
+        _w(pi_agents, render_pi_dev_agents(args, context))
         generated["pi_dev_agents"] = str(pi_agents)
 
     if "gemini-cli" in harnesses:
         gemini_agents = gemini_cli_agents_path(paths)
-        write_text(gemini_agents, render_gemini_cli_agents(args, paths, context), force=args.force)
+        _w(gemini_agents, render_gemini_cli_agents(args, paths, context))
         generated["gemini_cli_agents"] = str(gemini_agents)
 
     if "antigravity" in harnesses:
         antigravity_agents = antigravity_agents_path(paths)
-        write_text(antigravity_agents, render_antigravity_agents(args, paths, context), force=args.force)
+        _w(antigravity_agents, render_antigravity_agents(args, paths, context))
         generated["antigravity_agents"] = str(antigravity_agents)
 
     if "minimax-code" in harnesses:
@@ -852,7 +879,7 @@ def write_harness_files(
         # MiniMax.md entry file. We do NOT route through the codex/opencode
         # block above because the AGENTS.md text differs slightly.
         minimax_agents = minimax_agents_path(paths)
-        write_text(minimax_agents, render_minimax_agents(args, paths, context), force=args.force)
+        _w(minimax_agents, render_minimax_agents(args, paths, context))
         generated["minimax_code_agents"] = str(minimax_agents)
 
     for harness in harnesses:
@@ -862,7 +889,7 @@ def write_harness_files(
     if getattr(args, "enable_mcp", False):
         generated.update(write_mcp_config_files(args, paths, harnesses))
 
-    return generated
+    return generated, actions
 
 
 # ---------------------------------------------------------------------------
@@ -877,30 +904,68 @@ def main() -> int:
     harness_files: dict[str, str] = {}
     dependency_files: list[str] = []
     core_docs: list[str] = []
+    file_actions: list[dict[str, str]] = []
+
+    # Records each smart-update action into the manifest.
+    def _record_write(
+        path: Path,
+        content: str,
+        *,
+        force: bool = False,
+        src_version: str | None = None,
+    ) -> None:
+        file_actions.append(
+            write_text(
+                path,
+                content,
+                force=force,
+                src_version=src_version,
+                rel_to=paths.target_root,
+            )
+        )
 
     if not args.dry_run:
         # 1. Write core docs if requested
         if args.copy_core_docs:
-            core_docs = copy_core_docs(
-                paths,
-                force=args.force,
-                default_core_docs=DEFAULT_CORE_DOCS,
-                default_core_support_paths=DEFAULT_CORE_SUPPORT_PATHS,
-                source_root=SOURCE_ROOT,
-            )
+            if SOURCE_ROOT is None:
+                # Wheel install without bundled data: skip core-docs copy
+                # but record it as a manifest warning so users notice.
+                context.setdefault("warnings", []).append(
+                    "--copy-core-docs requested but core docs are not bundled "
+                    "in the installed wheel. To copy them, install from source: "
+                    "git clone … && pip install -e workflow-source/"
+                )
+            else:
+                core_actions = copy_core_docs(
+                    paths,
+                    force=args.force,
+                    default_core_docs=DEFAULT_CORE_DOCS,
+                    default_core_support_paths=DEFAULT_CORE_SUPPORT_PATHS,
+                    source_root=SOURCE_ROOT,
+                )
+                file_actions.extend(core_actions)
+                # copied_core_docs is the manifest field that historically
+                # lists only default_core_docs, not the support sub-tree.
+                core_doc_names = set(DEFAULT_CORE_DOCS)
+                core_docs = [
+                    a["rel"] for a in core_actions
+                    if a.get("action") in ("create", "updated")
+                    and Path(a["rel"]).name in core_doc_names
+                ]
 
         # 2. Render + write all generated docs
-        write_text(paths.readme_path, render_readme(args, context, default_core_docs=DEFAULT_CORE_DOCS), force=args.force)
-        write_text(paths.profile_path, render_project_profile(args, context), force=args.force)
-        write_text(paths.handoff_path, render_session_handoff(args, context), force=args.force)
-        write_text(paths.backlog_index_path, render_backlog_index(args), force=args.force)
-        write_text(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
-        write_text(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
+        _record_write(paths.readme_path, render_readme(args, context, default_core_docs=DEFAULT_CORE_DOCS), force=args.force)
+        _record_write(paths.profile_path, render_project_profile(args, context), force=args.force)
+        _record_write(paths.handoff_path, render_session_handoff(args, context), force=args.force)
+        _record_write(paths.backlog_index_path, render_backlog_index(args), force=args.force)
+        _record_write(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
+        _record_write(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
         if args.adoption_mode == "existing":
-            write_text(paths.assessment_path, render_assessment(args, context), force=args.force)
+            _record_write(paths.assessment_path, render_assessment(args, context), force=args.force)
 
         # 3. Write harness overlay files (includes MCP config snippets if --enable-mcp)
-        harness_files = write_harness_files(args, paths, context)
+        harness_files, harness_actions = write_harness_files(args, paths, context)
+        file_actions.extend(harness_actions)
 
         # 4. Optionally update dependency manifests
         if args.update_deps:
@@ -925,6 +990,7 @@ def main() -> int:
         )
 
     # 7. Build + emit the manifest
+    all_file_actions = file_actions + drain_file_actions()
     manifest = build_manifest(
         args=args,
         paths=paths,
@@ -934,6 +1000,7 @@ def main() -> int:
         dependency_files=dependency_files,
         selected_harnesses=selected_harnesses(args),
         global_snippet_sources_fn=lambda: _global_snippet_sources(SOURCE_ROOT),
+        file_actions=all_file_actions,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0

@@ -20,6 +20,12 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as WORKFLOW_KIT_VERSION
 from workflow_kit.constants import PRESERVE_RELATIVE_PATHS
 from workflow_kit.gitignore import ensure_gitignore_patterns
+from workflow_kit.upgrade_diff import (
+    Action,
+    decide_action,
+    parse_version_marker,
+    read_kit_version,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +65,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Delete files in the target ai-workflow/ that are not in the new bundle. "
         "Requires --yes to actually delete (otherwise prints a preview).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite every conflicting file regardless of VERSION marker or "
+        "content hash. Preserved paths (PRESERVE_RELATIVE_PATHS, e.g. "
+        "ai-workflow/memory/) are still respected.",
     )
     parser.add_argument(
         "--yes",
@@ -104,6 +117,8 @@ def apply_upgrade(
     dry_run: bool,
     force_cleanup: bool,
     confirmed: bool,
+    *,
+    force: bool = False,
 ) -> dict[str, list[str]]:
     results: dict[str, list[str]] = {
         "created": [],
@@ -127,28 +142,36 @@ def apply_upgrade(
             if p.is_file():
                 target_files.add(p.relative_to(target_root))
 
+    # 2b. Short-circuit when target kit version already matches the
+    # bundle version: skip per-file I/O entirely.
+    src_kit_version = WORKFLOW_KIT_VERSION.lstrip("vV")
+    target_kit_version = read_kit_version(target_root)
+    short_circuit = (
+        target_kit_version is not None
+        and target_kit_version == src_kit_version
+    )
+
     # 3. Handle specific version migrations (reserved for future use)
     # For example: if current_version < "v0.4.0": run_some_migration()
 
-    # 4. Handle Update/Create
+    # 4. Handle Update/Create using the smart-update policy.
     for rel_path, src_path in source_files.items():
         dst_path = target_root / rel_path
 
-        if _is_preserved(rel_path):
-            if dst_path.exists():
-                results["preserved"].append(str(rel_path))
-                continue
-            # If preserved path doesn't exist yet, create it from source
-            results["created"].append(str(rel_path))
-            if not dry_run:
-                dst_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src_path, dst_path)
+        is_preserved = _is_preserved(rel_path)
+
+        if short_circuit and dst_path.exists():
+            results["ignored"].append(str(rel_path))
             continue
 
-        if dst_path.exists():
+        try:
+            src_text = src_path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            src_text = None
+        if src_text is None and dst_path.exists():
+            # Binary file: hash comparison.
             src_hash = get_file_hash(src_path)
             dst_hash = get_file_hash(dst_path)
-
             if src_hash != dst_hash:
                 results["updated"].append(str(rel_path))
                 if not dry_run:
@@ -156,11 +179,35 @@ def apply_upgrade(
                     shutil.copy2(src_path, dst_path)
             else:
                 results["ignored"].append(str(rel_path))
-        else:
-            results["created"].append(str(rel_path))
+            continue
+
+        dst_text: str | None = None
+        if dst_path.exists():
+            try:
+                dst_text = dst_path.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                dst_text = None
+
+        decision = decide_action(
+            src_text=src_text,
+            dst_text=dst_text,
+            is_preserved_path=is_preserved,
+            force=force,
+        )
+
+        if decision.action == Action.PRESERVED:
+            results["preserved"].append(str(rel_path))
+            continue
+        if decision.action == Action.IGNORED:
+            results["ignored"].append(str(rel_path))
+            continue
+        if decision.action in (Action.CREATE, Action.UPDATED):
+            bucket = "created" if decision.action == Action.CREATE else "updated"
+            results[bucket].append(str(rel_path))
             if not dry_run:
                 dst_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src_path, dst_path)
+            continue
 
     # 5. Handle Cleanup (Stale files in ai-workflow/)
     if force_cleanup:
@@ -224,7 +271,14 @@ def main() -> None:
 
     # Apply file changes
     confirmed = args.yes or args.dry_run
-    results = apply_upgrade(bundle_root, target_root, args.dry_run, args.force_cleanup, confirmed)
+    results = apply_upgrade(
+        bundle_root,
+        target_root,
+        args.dry_run,
+        args.force_cleanup,
+        confirmed,
+        force=args.force,
+    )
 
     # Apply .gitignore changes
     gitignore_changes: list[str] = []

@@ -61,14 +61,20 @@ IGNORED_DIRS: set[str] = {
 
 
 def global_snippet_sources(
-    source_root: Path,
+    source_root: Path | None,
 ) -> dict[str, dict[str, str]]:
     """Return the recommended non-invasive global snippet paths to copy.
 
     The keys are short identifiers used in the generated README and apply guide;
     the values point to the snippet templates that ship with the kit, together
     with the recommended target file path and the merge policy.
+
+    When ``source_root`` is ``None`` (e.g. wheel install without bundled data),
+    an empty dict is returned; the bootstrap surfaces a manifest warning so
+    operators can install from source to access the snippets.
     """
+    if source_root is None:
+        return {}
     return {
         "codex": {
             "readme": str((source_root / "global-snippets" / "codex" / "README.md").resolve()),

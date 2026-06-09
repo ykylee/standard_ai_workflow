@@ -40,15 +40,18 @@
 | v0.5.8 | 2026-06-08 | interactive --harness picker + packaging smoke |  |
 | v0.5.9 | 2026-06-08 | wire 가이드 §7/§8/§9 보강 |  |
 | v0.5.9.1 | 2026-06-08 | wire 가이드 §3 sub_payloads fix + 회귀 |  |
-| v0.5.10 | 2026-06-08 | choose_roles sub.delegation_id parent-prefix spec 정합 | current HEAD |
+| v0.5.10 | 2026-06-08 | choose_roles sub.delegation_id parent-prefix spec 정합 |  |
+| v0.5.10.1 | 2026-06-09 | smart update (VERSION marker + content hash 기반 silent 갱신) |  |
 
 릴리스 노트 전체: [`../../workflow-source/releases/`](../../workflow-source/releases/). 절차: [`../RELEASE.md`](../RELEASE.md).
 
 ## 3. 단기 백로그 (v0.5.11 ~ v0.5.12 후보)
 
-`Beta-v0.5.10.md` 의 §4 "Next Steps" 에서 도출된 항목:
+`Beta-v0.5.10.1.md` 의 §6 "Known limitations" 에서 도출된 항목:
 
-1. **Mavis engine hook**: `delegate_to_subagent` 호출 시 `output_validator.validate_output` 자동 enforce (orchestrator 측 hook)
+1. **sub_id uniqueness 옵션 (b)**: `choose_roles` 에 dedup check 추가 (breaking change 가능, 별도 plan)
+2. **`--report <path>` 옵션**: human-readable 갱신 리포트 (v0.5.10.1 hotfix 후속)
+3. **`--preserve-user-edits` 옵션**: marker 동일 + hash 다름 시 skip (사용자 편집 보호)
 2. **추가 회귀 test**: `parent_delegation_id` 누락, sub_id unique 위반 검출 (현재 17개 + 3개 회귀, 더 강화)
 3. **`_generate_delegation_id_with_suffix` deprecation 정리**: function body 살아있음, v0.6.x 에서 제거
 4. **bootstrap interactive picker (v0.5.8) 의 비대화형 환경 명세 강화**: `--no-interactive` 플래그 추가 검토

@@ -83,6 +83,46 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `draft_entry` | 생성 초안 |
 | `reasoning_notes` | 추천 또는 판단 근거 |
 
+### 3.4 stage_completion 공통 필드 (v0.6.4 신규)
+
+skill/MCP output 의 stage 끝에 사용자 explicit approval 을 받기 위한 공통 필드. AIDLC 의 2-option completion message 패턴을 차용한 우리 표준. 자세한 형식/적용/예외는 [`./stage_gate_pattern.md`](./stage_gate_pattern.md) 참조.
+
+| 필드 | 의미 | 타입 |
+| --- | --- | --- |
+| `stage_name` | stage 식별자 (예: `code-generation`, `requirements-analysis`, `merge-doc-reconcile`) | `str` |
+| `stage_status` | stage 자체의 실행 결과 (`ok`, `warning`, `error`) | `Literal` |
+| `next_stage` | 다음 stage 이름. workflow 끝이면 `None` | `str \| None` |
+| `requested_changes` | 사용자가 요청한 변경 사항 free text list | `list[str]` |
+| `approval_timestamp` | 사용자 승인 시각 (ISO 8601). 미승인이면 `None` | `str \| None` |
+| `approval_actor` | 승인 주체 (`user`, `orchestrator`, `auto`) | `str \| None` |
+| `artifacts` | 검토 대상 artifact path list | `list[str]` |
+| `notes` | AI 가 사용자에게 보여주는 1-3 line 요약 | `list[str]` |
+
+권장 규칙:
+
+- 모든 skill/MCP output 은 `stage_completion` 필드를 포함해야 한다 (11종 skill + 8+ MCP).
+- `requested_changes` 가 비어있고 `approval_timestamp` 가 None 이면 stage gate 미통과. 자동 다음 stage 진행 ❌.
+- `approval_actor: "auto"` 는 CI/CD timeout / cron / P0 hotfix 에서만 허용. production 코드 변경 / state 문서 갱신 / release 는 user approval mandatory.
+- audit log (`ai-workflow/memory/active/audit.md`) 에 append-only 기록 필수. ISO 8601 timestamp, raw user input, stage context.
+
+Pydantic v2 schema (참고):
+
+```python
+from pydantic import BaseModel, Field
+from typing import Literal
+
+class StageCompletion(BaseModel):
+    """v0.6.4 신규. skill/MCP output 의 stage completion 승인 필드."""
+    stage_name: str = Field(..., description="stage 식별자")
+    stage_status: Literal["ok", "warning", "error"]
+    next_stage: str | None = Field(None, description="다음 stage 이름. workflow 끝이면 None")
+    requested_changes: list[str] = Field(default_factory=list, description="user 요청 변경")
+    approval_timestamp: str | None = Field(None, description="ISO 8601. 미승인이면 None")
+    approval_actor: Literal["user", "orchestrator", "auto"] | None = Field(None)
+    artifacts: list[str] = Field(default_factory=list, description="검토 대상 artifact path")
+    notes: list[str] = Field(default_factory=list, description="AI 1-3 line summary")
+```
+
 ## 4. 경고와 실패 규칙
 
 ### 4.1 경고 출력 규칙

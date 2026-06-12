@@ -14,7 +14,7 @@ updated: 2026-06-12
 
 ## Status
 
-Proposed (R9 implemented in v0.6.1.5 PATCH on 2026-06-12, this ADR is the first formal record). 기존 release note ([[Beta-v0.6.1.5]] 동등: `workflow-source/releases/Beta-v0.6.1.5.md`) 한 줄 note 로 등재됐던 R9 규칙을 ADR 형식으로 승격. 채택 확정 시 status 를 `accepted` 로 전환.
+Proposed (R9 implemented in v0.6.1.5 PATCH on 2026-06-12, this ADR is the first formal record). 기존 release note ([`Beta-v0.6.1.5`](../../../workflow-source/releases/Beta-v0.6.1.5.md) 동등) 한 줄 note 로 등재됐던 R9 규칙을 ADR 형식으로 승격. 채택 확정 시 status 를 `accepted` 로 전환.
 
 ## Context
 
@@ -88,7 +88,7 @@ scope: `ai-workflow/wiki/**/*.md` 전체. R8 freeze 자체의 무결성은 `chec
 | # | Trade-off | 완화책 |
 |---|---|---|
 | 1 | **Ingest latency** | session 종료 시점부터 wiki 반영까지 최소 1일 (다음 session 시작 시 ingest). 실시간 wiki 반영 안 됨 | R8 freeze 즉시 trigger + 다음 session 시작 시 ingest 우선순위 최상위 ([[concepts/memory-3-state-lifecycle]] §4.1 step 5 무결성 검증 후 진행) |
-| 2 | **Mid-session knowledge 손실** | session 진행 중 wiki 검색이 필요한데 archive 가 아직 freeze 안 됐으면 새 정보가 wiki 에 없음 | session-start 시 handoff 의 `[[open questions]]` 를 우선 query source 로 사용 (volatile but explicit). freeze 후 다음 session 에서 정식 wiki 반영 |
+| 2 | **Mid-session knowledge 손실** | session 진행 중 wiki 검색이 필요한데 archive 가 아직 freeze 안 됐으면 새 정보가 wiki 에 없음 | session-start 시 handoff 의 `open questions` 섹션을 우선 query source 로 사용 (volatile but explicit). freeze 후 다음 session 에서 정식 wiki 반영 |
 | 3 | **Codebase self-ingest audit 부담** | R9 면제 scope 인 codebase ingest 도 누가 어떤 시점에 어떤 commit 으로 wiki 갱신했는지 추적 필요 | `last_ingested_from` + `related_pages` + ingest commit message 의 page 목록 ([[INGEST_GUIDE]] §6) 으로 line-by-line audit 가능 |
 | 4 | **V-R9 lint false positive 가능성** | wiki 페이지 본문에서 `active/` 를 메타 설명용으로 언급하는 경우 (예: "active/ 는 ingest 하지 않는다") 도 패턴에 매칭될 수 있음 | 본 ADR 자체가 R9 정의를 설명하며 `active/ ingest 금지` 를 적시. 추후 lint 를 `code block` 또는 `frontmatter` 로 scope 제한하는 정밀화 검토 |
 

@@ -2,7 +2,7 @@
 type: topic
 status: active
 last_ingested_from: README.md + workflow-source/README.md + v0.6.3-beta release notes
-related_pages: [entities/standard-ai-workflow, entities/workflow-source, entities/ai-workflow-runtime, entities/workflow-kit, decisions/adr-001-3-layer-separation, decisions/adr-004-wiki-layer, decisions/adr-005-r9-wiki-source-rule, concepts/three-layer-architecture, concepts/harness-distribution, concepts/memory-3-state-lifecycle]
+related_pages: [entities/standard-ai-workflow, entities/workflow-source, entities/ai-workflow-runtime, entities/workflow-kit, decisions/adr-001-3-layer-separation, decisions/adr-004-wiki-layer, decisions/adr-005-r9-wiki-source-rule, concepts/project-architecture, concepts/harness-distribution, concepts/memory-3-state-lifecycle]
 created: 2026-06-12
 updated: 2026-06-12
 ---
@@ -38,12 +38,12 @@ v0.6.3-beta 의 `standard-ai-workflow` 는 **Source (workflow-source) → Runtim
 | Additive merge (충돌 시 양쪽 보존) | wiki merge 시 | R5 + R7 (LLM reviewer 의무) |
 | Push 직전 `fetch && rebase` | wiki sync | R3 pull-before-push + `.ingest_lock` |
 | ID 영구 보존 | R/A/V/P/ADR 번호 | SCHEMA §1.2 (개정 시 ID 유지, version 만 bump) |
-| Harness 추가 = 2 line | `bootstrap_lib/harnesses/__init__.py` + `bootstrap_lib/__main__.py` | [[patterns/harness-overlay-factory]] |
+| Harness 추가 = 2 line | `bootstrap_lib/harnesses/__init__.py` + `bootstrap_lib/__main__.py` | |
 | `ai-workflow/` 는 일반 탐색 제외 | export bundle, project code search | README §8 (메타 레이어 명시) |
 
 ## Layered View
 
-3-layer separation ([[decisions/adr-001-3-layer-separation]]) — 각 layer 는 위치·추적·소유자·내용이 직교한다. Wiki layer (v0.6.0+, [[decisions/adr-004-wiki-layer]]) 와 Memory layer (v0.6.1+, [[decisions/adr-005-r9-wiki-source-rule]]) 는 Runtime 내부의 sub-layer 로 본다. 상세: [[concepts/three-layer-architecture]].
+3-layer separation ([[decisions/adr-001-3-layer-separation]]) — 각 layer 는 위치·추적·소유자·내용이 직교한다. Wiki layer (v0.6.0+, [[decisions/adr-004-wiki-layer]]) 와 Memory layer (v0.6.1+, [[decisions/adr-005-r9-wiki-source-rule]]) 는 Runtime 내부의 sub-layer 로 본다. 상세: [[concepts/project-architecture]].
 
 | Layer | Location | Git | Owner | Content |
 |---|---|---|---|---|
@@ -73,7 +73,7 @@ v0.6.3-beta 의 `standard-ai-workflow` 는 **Source (workflow-source) → Runtim
 | Harness: **pi-dev** | overlay | v0.6.3-beta | `AGENTS.md` + `SYSTEM.md` (페르소나 기반) |
 | `ai-workflow/wiki/` | LLM wiki | v0.6.0+ | 5 types, 7 rules (R1~R7), 8 validations (V-1~V-8), 4 phases (P1~P4) |
 | `ai-workflow/memory/` | session state | v0.6.1+ | 3-state lifecycle: active ↔ archive ↔ release; R8/R9/R10 |
-| `dist/harnesses/<h>/<v>/` | export bundle | v0.6.3-beta | runtime + overlay + manifest + zip; pattern: [[patterns/harness-overlay-factory]] |
+| `dist/harnesses/<h>/<v>/` | export bundle | v0.6.3-beta | runtime + overlay + manifest + zip; pattern: harness factory (HARNESS_SPECS + builder) |
 | `workflow-source/scripts/` | runners | v0.6.3-beta | `run_demo_workflow.py`, `run_existing_project_onboarding.py`, `export_harness_package.py`, `run_workflow_linter.py`, `run_git_conflict_resolver.py`, `run_memory_freeze.py`, `generate_workflow_state.py` |
 | `workflow-source/global-snippets/` | 비침투적 snippet | v0.6.3-beta | 하네스 전역 설정에 복사 가능한 snippet 예시 (default exclude) |
 | `workflow-source/examples/` | 샘플 + demo | v0.6.3-beta | `acme_delivery_platform/`, `end_to_end_skill_demo.md`, `end_to_end_mcp_demo.md`, `mcp_config_examples/` (5종), `output_samples/` |
@@ -115,7 +115,7 @@ Cadence: 메이저 (X.0) 분기 단위, 마이너 (X.Y) 월 단위, 패치 (X.Y.
 
 ### Concepts
 
-- [[concepts/three-layer-architecture]] — Source / Runtime / Project Docs 3-layer 정의
+- [[concepts/project-architecture]] — Source / Runtime / Project Docs 3-layer 정의
 - [[concepts/project-architecture]] — 3-Layer + LLM Wiki + Memory 3-State 통합 요약
 - [[concepts/harness-distribution]] — 6-harness overlay model
 - [[concepts/memory-3-state-lifecycle]] — active ↔ archive ↔ release, R8 freeze 메커니즘
@@ -141,7 +141,7 @@ Cadence: 메이저 (X.0) 분기 단위, 마이너 (X.Y) 월 단위, 패치 (X.Y.
 
 ### Patterns / Topics
 
-- [[patterns/harness-overlay-factory]] — `HARNESS_SPECS` 한 줄 + `register_harness_builder` 한 줄로 harness 추가
+- — `HARNESS_SPECS` 한 줄 + `register_harness_builder` 한 줄로 harness 추가
 - [[topics/harness-distribution-model]] — 6-harness 모델의 상위 topic 페이지
 
 ### External refs (NOT wiki pages)

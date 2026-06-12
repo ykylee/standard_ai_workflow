@@ -116,7 +116,7 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 | 6 | 문서 emit | `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md` 자동 생성 (한글 apply 안내 2종) | `dist/harnesses/<harness>/<version>/` 루트 |
 | 7 | zip 압축 | `standard-ai-workflow-<harness>-<version>.zip` 생성 | GitHub release asset 후보 |
 
-`export_harness_package.py` 의 `SUPPORTED_HARNESSES` 는 5종만 등록 (`minimax-code` 미포함). `minimax-code` 는 `bootstrap_workflow_kit.py` 의 `minimax-code` builder 를 직접 호출해 동기화 → 별도 dist 디렉터리 미생성. 패턴 자체는 [[patterns/harness-overlay-factory]] 의 factory 등록 1줄 + builder 1줄로 끝난다.
+`export_harness_package.py` 의 `SUPPORTED_HARNESSES` 는 5종만 등록 (`minimax-code` 미포함). `minimax-code` 는 `bootstrap_workflow_kit.py` 의 `minimax-code` builder 를 직접 호출해 동기화 → 별도 dist 디렉터리 미생성. bootstrap 으로 직접 등록 (1줄 + 1줄).
 
 ### Post-export verification
 

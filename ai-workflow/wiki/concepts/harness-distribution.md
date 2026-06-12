@@ -2,7 +2,7 @@
 type: concept
 status: active
 last_ingested_from: workflow-source/core/workflow_harness_distribution.md + workflow-source/harnesses/
-related_pages: [concepts/agent-topology, topics/harness-distribution-model, patterns/harness-overlay-factory]
+related_pages: [concepts/agent-topology, topics/harness-distribution-model]
 created: 2026-06-12
 updated: 2026-06-12
 ---
@@ -76,7 +76,7 @@ v0.6.3-beta 시점. 공통 정책 원문은 `workflow-source/core/` 와 `ai-work
 | 6. 문서 emit | `PACKAGE_CONTENTS.md`, `APPLY_GUIDE.md` 자동 생성 (각 export 루트) | 한글 apply 안내 2종 |
 | 7. zip 압축 | `standard-ai-workflow-<harness>-<version>.zip` | GitHub release asset 후보 |
 
-packaging smoke 은 v0.5.8+ `tools/check_packaging.py` 가 자동 검증. `MiniMax Code` 는 `export_harness_package.py` 의 `SUPPORTED_HARNESSES` 에 아직 포함되지 않으므로 (소스 line 23 기준 5종만 등록), bootstrap 직접 호출로 동기화한다. 관련 패턴은 [[patterns/harness-overlay-factory]].
+packaging smoke 은 v0.5.8+ `tools/check_packaging.py` 가 자동 검증. `MiniMax Code` 는 `export_harness_package.py` 의 `SUPPORTED_HARNESSES` 에 아직 포함되지 않으므로 (소스 line 23 기준 5종만 등록), bootstrap 직접 호출로 동기화한다. (별도 pattern page 없음).
 
 ## Related Decisions
 

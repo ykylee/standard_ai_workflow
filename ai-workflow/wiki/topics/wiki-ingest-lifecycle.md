@@ -87,7 +87,7 @@ session state 가 wiki page 가 되기까지의 전 단계. R9 강제 ([[concept
 | 2 | **stale** | warning | `check_wiki_antipatterns.py` | `updated` 가 90일 이전 (5% 이상) — [[patterns/stale-90day-lint]] |
 | 3 | **orphan** | error | `check_wiki_index_structure.py` | inbound link 0 페이지. 신규는 1개+ 강제 |
 | 4 | **missing** | error | `check_wiki_index_structure.py` | `related_pages` 참조 vs filesystem 1:1 매핑 |
-| 5 | **broken backlinks** | error | `check_wiki_antipatterns.py` | `[[path]]` / `[text](path)` target 부재 |
+| 5 | **broken backlinks** | error | `check_wiki_antipatterns.py` | wikilink `[[path]]` 또는 `[text](path)` 의 target 부재 |
 
 추가 lint: **V-R9** ([[concepts/wiki-source-rule-r9]] §Lint Enforcement) — wiki layer 가 `active/` 를 ingest/source 로 언급하면 error (R9 강제). scope: `ai-workflow/wiki/**/*.md` 전체. violation 시 `AssertionError` + exit 1.
 
@@ -118,7 +118,7 @@ file-back 트리거 3종 ([[SCHEMA]] §3.1): 답변 30줄 초과 / 합성 결과
 | Codebase self-describe | 1~2회 / release | Phase 1~7 수동 curate + P6 sync | release-bound |
 | Release snapshot | release 시점 | release 절차 deep-freeze → wiki 동시 ingest | release-day |
 
-memory path 의 latency 는 ADR-005 §Consequences Negative #1 의 trade-off. session 진행 중 wiki 검색이 필요하면 `[[open questions]]` (handoff 의 volatile) 를 우선 source 로 사용 ([[decisions/adr-005-r9-wiki-source-rule]] §Consequences #2 완화책).
+memory path 의 latency 는 ADR-005 §Consequences Negative #1 의 trade-off. session 진행 중 wiki 검색이 필요하면 handoff 의 `open questions` 섹션 (volatile) 를 우선 source 로 사용 ([[decisions/adr-005-r9-wiki-source-rule]] §Consequences #2 완화책).
 
 ## Related
 

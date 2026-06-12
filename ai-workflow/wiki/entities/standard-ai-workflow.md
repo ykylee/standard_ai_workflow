@@ -2,7 +2,7 @@
 type: entity
 status: active
 last_ingested_from: README.md + workflow-source/README.md
-related_pages: [concepts/three-layer-architecture, concepts/harness-distribution, concepts/contract-v1-output-validation, concepts/agent-topology, entities/workflow-kit, entities/workflow-source, entities/ai-workflow-runtime, decisions/adr-001-3-layer-separation]
+related_pages: [concepts/project-architecture, concepts/harness-distribution, concepts/contract-v1-output-validation, concepts/agent-topology, entities/workflow-kit, entities/workflow-source, entities/ai-workflow-runtime, decisions/adr-001-3-layer-separation]
 created: 2026-06-12
 updated: 2026-06-12
 ---
@@ -154,6 +154,6 @@ python3 workflow-source/scripts/export_harness_package.py --harness codex --harn
 
 **Entities:** [[entities/workflow-source]] · [[entities/workflow-kit]] · [[entities/ai-workflow-runtime]] · [[entities/bootstrap-wiki-py]]
 
-**Concepts:** [[concepts/three-layer-architecture]] · [[concepts/harness-distribution]] · [[concepts/contract-v1-output-validation]] · [[concepts/agent-topology]] · [[concepts/orchestrator-subagent-pattern]] · [[concepts/memory-3-state-lifecycle]] · [[concepts/mcp-transport]] · [[concepts/project-architecture]] · [[concepts/wiki-source-rule-r9]]
+**Concepts:** [[concepts/project-architecture]] · [[concepts/harness-distribution]] · [[concepts/contract-v1-output-validation]] · [[concepts/agent-topology]] · [[concepts/orchestrator-subagent-pattern]] · [[concepts/memory-3-state-lifecycle]] · [[concepts/mcp-transport]] · [[concepts/project-architecture]] · [[concepts/wiki-source-rule-r9]]
 
 **Decisions:** [[decisions/adr-001-3-layer-separation]] · [[decisions/adr-002-pydantic-v2-contract-v1]] · [[decisions/adr-003-read-only-mcp-default]] · [[decisions/adr-004-wiki-layer]] · [[decisions/adr-005-r9-wiki-source-rule]]

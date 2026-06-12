@@ -419,3 +419,34 @@ updated: 2026-06-12
   - ⏸ Step 7: Extension 시스템 (B, 3-5 ses)
   - ⏸ Step 8: Security-baseline 1종 (O, 1 ses)
   - ⏸ Step 9: Unit of Work 3-layer (G, 1-2 ses)
+
+## [2026-06-12] v0.7.0 step 9 | Unit of Work 3-layer template (2 file, +622 line, 17 test PASS)
+
+- **Trigger**: v0.6.4-7 의 mode 6종 (horizontal) + task-level (work_backlog) 의 missing layer 보강. yklee 승인, step 9 진행
+- **Commit (c981cac)**: 2 file, +622 line
+  - `workflow-source/templates/unit_of_work_template.md` (208 line, NEW): system-level 분해 + dependency matrix + Mermaid graph + story mapping + code organization
+  - `tests/check_unit_of_work_template.py` (414 line, NEW, 17 test PASS):
+    - UOW 정의 parse (5): header / required fields / type enum / status enum / date format
+    - Dependency Matrix (5): parse / symmetry / no-self-dep / **cycle detection (DFS)** / DAG validation
+    - Mermaid Graph (2): block present / edge syntax
+    - Story Mapping (1): valid UOW id 참조
+    - Template 자체 정합성 (3): sections / related docs / AIDLC source
+    - 통합 (1): full parse 일관성
+- **Test bug fix (보너스)**:
+  - dep_matrix_cycle_detection 의 nested function scope issue → helper `_has_cycle` top-level 로 추출
+  - mermaid_graph_syntax 의 strict edge matching → 양방향 arrow + line edge 매칭
+- **검증**:
+  - 신규 17 test PASS
+  - 기존 56 test 모두 PASS — 회귀 0
+  - 누적 **73 test PASS** (v0.6.4-7 + v0.7.0 step 1 + 9 + 10)
+- **누적 v0.7.0 step 진행**:
+  - ✅ Step 1: stage_completion required 격상 (commit 6e57cf3)
+  - ✅ Step 9: Unit of Work 3-layer template (본 commit)
+  - ✅ Step 10: Audit Log 표준화 (commit 54e96a9)
+  - ⏸ Step 6: Reverse Engineering 9-Artifact (D, 2-3 ses)
+  - ⏸ Step 7: Extension 시스템 (B, 3-5 ses)
+  - ⏸ Step 8: Security-baseline 1종 (O, 1 ses)
+- **Follow-up (v0.7.1+)**:
+  1. workflow_kit.common.contracts.uow 신규 (UOW matrix parsing + sub-agent 위임 결정 helper)
+  2. bootstrap_lib 의 `--adoption-mode new` 가 unit_of_work.md 자동 emit
+  3. v0.8.0: UOW 기반 sub-agent 위임 자동화

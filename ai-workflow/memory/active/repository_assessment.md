@@ -73,11 +73,11 @@
 - 추천 문서 위키 홈:
 - `docs/README.md`
 - 추천 운영 문서 위치:
-- `ai-workflow/memory/`
+- `ai-workflow/memory/active/`
 - 추천 backlog 위치:
-- `ai-workflow/memory/backlog/`
+- `ai-workflow/memory/active/backlog/`
 - 추천 session handoff 위치:
-- `ai-workflow/memory/session_handoff.md`
+- `ai-workflow/memory/active/session_handoff.md`
 
 ## 6. 자동 분석 기반 다음 작업
 

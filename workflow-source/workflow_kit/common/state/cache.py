@@ -20,8 +20,8 @@ def build_state_cache_refresh_hint(
     repository_assessment_path: Path | None = None,
 ) -> dict[str, str]:
     workspace_root = project_workspace_root(project_profile_path)
-    memory_dir = workflow_memory_dir(project_profile_path)
-    branch_dir = workflow_branch_dir(project_profile_path)
+    memory_dir = workflow_memory_dir(project_profile_path) / "active"
+    branch_dir = workflow_branch_dir(project_profile_path) / "active"
     generator_path = workspace_root / "workflow-source" / "scripts" / "generate_workflow_state.py"
     state_path = branch_dir / "state.json"
     command_parts = [
@@ -52,8 +52,8 @@ def refresh_workflow_state_cache(
     workspace_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_project_profile_path = project_profile_path.resolve()
-    memory_dir = workflow_memory_dir(resolved_project_profile_path)
-    branch_dir = workflow_branch_dir(resolved_project_profile_path)
+    memory_dir = workflow_memory_dir(resolved_project_profile_path) / "active"
+    branch_dir = workflow_branch_dir(resolved_project_profile_path) / "active"
     actual_root = workspace_root or project_workspace_root(resolved_project_profile_path)
     resolved_session_handoff_path = (session_handoff_path or (branch_dir / "session_handoff.md")).resolve()
     resolved_work_backlog_index_path = (work_backlog_index_path or (memory_dir / "work_backlog.md")).resolve()

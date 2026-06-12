@@ -26,8 +26,8 @@
 - `bundle/ai-workflow/core/global_workflow_standard.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
-- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
-- `bundle/ai-workflow/memory/state.json`
+- `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `bundle/ai-workflow/memory/active/state.json`
 - `bundle/ai-workflow/memory/session_handoff.md`
 - `bundle/ai-workflow/memory/work_backlog.md`
 - `bundle/ai-workflow/memory/backlog/2026-04-23.md`
@@ -54,10 +54,10 @@
 
 - `bundle/ANTIGRAVITY.md`
 - `bundle/ai-workflow/README.md`
-- `bundle/ai-workflow/memory/state.json`
+- `bundle/ai-workflow/memory/active/state.json`
 - `bundle/ai-workflow/memory/session_handoff.md`
 - `bundle/ai-workflow/memory/work_backlog.md`
-- `bundle/ai-workflow/memory/PROJECT_PROFILE.md`
+- `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
 

@@ -35,7 +35,7 @@ GITIGNORE_PATTERNS: list[str] = [
     "!/ai-workflow/README.md",
     "!/ai-workflow/WORKFLOW_INDEX.md",
     "!/ai-workflow/core/",
-    "!/ai-workflow/memory/",
+    "!/ai-workflow/memory/active/",
 ]
 
 # ---------------------------------------------------------------------------
@@ -46,6 +46,7 @@ GITIGNORE_PATTERNS: list[str] = [
 # ---------------------------------------------------------------------------
 PRESERVE_RELATIVE_PATHS: list[Path] = [
     Path("ai-workflow/memory"),
+    Path("ai-workflow/memory/active"),
     Path("ai-workflow/WORKFLOW_INDEX.md"),
     Path("ai-workflow/README.md"),
 ]

@@ -105,6 +105,9 @@ from bootstrap_lib.harnesses.renderers import (  # noqa: E402
 from bootstrap_lib.mcp import (  # noqa: E402
     write_mcp_config_files,
 )
+from bootstrap_lib.wiki import (  # noqa: E402
+    write_wiki_files,
+)
 from bootstrap_lib.paths import (  # noqa: E402
     HarnessDefinition,
     Paths,
@@ -290,10 +293,10 @@ def parse_args() -> argparse.Namespace:
         default="TODO: 주요 이해관계자 목록을 정리한다.",
     )
     parser.add_argument("--doc-home", default="README.md")
-    parser.add_argument("--operations-dir", default="ai-workflow/memory/")
-    parser.add_argument("--backlog-dir", default="ai-workflow/memory/backlog/")
-    parser.add_argument("--session-doc-path", default="ai-workflow/memory/session_handoff.md")
-    parser.add_argument("--environment-dir", default="ai-workflow/memory/environments/")
+    parser.add_argument("--operations-dir", default="ai-workflow/memory/active/")
+    parser.add_argument("--backlog-dir", default="ai-workflow/memory/active/backlog/")
+    parser.add_argument("--session-doc-path", default="ai-workflow/memory/active/session_handoff.md")
+    parser.add_argument("--environment-dir", default="ai-workflow/memory/active/environments/")
     parser.add_argument("--install-command", default=None)
     parser.add_argument("--run-command", default=None)
     parser.add_argument("--quick-test-command", default=None)
@@ -346,6 +349,12 @@ def parse_args() -> argparse.Namespace:
             "Emit a per-harness MCP server config snippet alongside the harness overlay. "
             "Use with --mcp-bridge to pick the transport (defaults to jsonrpc-bridge)."
         ),
+    )
+    parser.add_argument(
+        "--enable-wiki",
+        action="store_true",
+        help=("Emit an LLM Wiki layer (ai-workflow/wiki/) alongside the harness overlay. "
+              "Mirrors the --enable-mcp pattern. Wiki is git-tracked per ADR-004."),
     )
     parser.add_argument(
         "--mcp-bridge",
@@ -888,6 +897,9 @@ def write_harness_files(
 
     if getattr(args, "enable_mcp", False):
         generated.update(write_mcp_config_files(args, paths, harnesses))
+
+    if getattr(args, "enable_wiki", False):
+        generated.update(write_wiki_files(args, paths, harnesses))
 
     return generated, actions
 

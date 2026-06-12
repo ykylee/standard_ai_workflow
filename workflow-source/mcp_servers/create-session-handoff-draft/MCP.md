@@ -25,7 +25,7 @@
 
 ```json
 {
-  "latest_backlog_path": "ai-workflow/memory/backlog/2026-06-09.md",
+  "latest_backlog_path": "ai-workflow/memory/active/backlog/2026-06-09.md",
   "git_range": "HEAD~3..HEAD",
   "repo_path": "."
 }

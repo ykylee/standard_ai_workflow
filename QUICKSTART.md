@@ -4,7 +4,7 @@
 - 범위: 프로젝트 초기화, 환경 설정, 첫 세션 시작 가이드
 - 대상 독자: AI 에이전트와 협업하려는 개발자
 - 상태: beta
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-12
 - 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `GEMINI.md`, `MiniMax.md`, [`docs/INSTALLATION_AND_USAGE.md`](docs/INSTALLATION_AND_USAGE.md) (개발자용)
 
 이 문서는 **Standard AI Workflow**를 여러분의 프로젝트에 5분 만에 도입하여 AI 에이전트와 체계적으로 Peer Programming을 시작하는 방법을 안내합니다.
@@ -25,7 +25,7 @@
   - Gemini CLI
   - Antigravity
   - pi-dev
-- **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.5.10-beta/` 아래의 압축 파일.
+  - **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.6.0.1-beta/` 아래의 압축 파일.
 
 ## 3. 3단계 도입 가이드
 

@@ -41,8 +41,9 @@ python3 -m workflow_kit.server.read_only_entrypoint --list-tools
 
 세션이 정상 시작되면 다음을 확인한다.
 
-- `ai-workflow/memory/state.json` 이 자동 갱신됨
+- `ai-workflow/memory/active/state.json` 이 자동 갱신됨
 - `session_handoff.md` 의 "다음 세션 시작 포인트" 가 한 문장 갱신됨
+- Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 - `AGENTS.md` 의 §1 세션 시작 루틴에 따라 `state.json` → `session_handoff.md` → `work_backlog.md` 순서로 읽기 루틴이 수행됨
 
 ## 4. 트러블슈팅
@@ -52,7 +53,7 @@ python3 -m workflow_kit.server.read_only_entrypoint --list-tools
 | `AGENTS.md` 가 로드되지 않음 | Pi가 프로젝트 루트를 인식하지 못함 | 프로젝트 루트에서 세션 재시작 |
 | `state.json` 갱신 실패 | `PYTHONPATH` 가 `workflow-source` 를 가리키지 않음 | `export PYTHONPATH=workflow-source:$PYTHONPATH` |
 | 한국어 보고가 영어로 나옴 | `AGENTS.md` §5 언어 가이드 미적용 | `AGENTS.md` 의 언어 설정 확인 후 세션 재시작 |
-| 작업 상태가 backlog 에 반영되지 않음 | §3 워크플로우 상태 관리 루틴 누락 | `ai-workflow/memory/backlog/` 의 날짜 문서 직접 갱신 |
+| 작업 상태가 backlog 에 반영되지 않음 | §3 워크플로우 상태 관리 루틴 누락 | `ai-workflow/memory/active/backlog/` 의 날짜 문서 직접 갱신 |
 
 ## 5. 다음 단계
 

@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-02
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -16,10 +16,10 @@
 ## 2. 생성된 파일
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- [ai-workflow/memory/state.json](./memory/state.json)
-- [ai-workflow/memory/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
-- [ai-workflow/memory/work_backlog.md](./memory/gemini/phase10/work_backlog.md)
-- [ai-workflow/memory/backlog/2026-05-02.md](./memory/gemini/phase10/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
+- [ai-workflow/memory/active/state.json](./memory/active/state.json)
+- [ai-workflow/memory/active/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
+- [ai-workflow/memory/active/work_backlog.md](./memory/gemini/phase10/work_backlog.md)
+- [ai-workflow/memory/active/backlog/2026-05-02.md](./memory/gemini/phase10/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
 
 
 ## 3. 코어 문서
@@ -57,14 +57,14 @@
 ## 7. 프로젝트 실제 문서 경로 설정값
 
 - 문서 위키 홈: `docs/README.md`
-- 운영 문서 위치: `ai-workflow/memory/`
-- 백로그 위치: `ai-workflow/memory/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/memory/session_handoff.md`
-- 환경 기록 위치: `ai-workflow/memory/environments/`
+- 운영 문서 위치: `ai-workflow/memory/active/`
+- 백로그 위치: `ai-workflow/memory/active/backlog/`
+- 세션 인계 문서 위치: `ai-workflow/memory/active/session_handoff.md`
+- 환경 기록 위치: `ai-workflow/memory/active/environments/`
 
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
+- 빠른 상태 요약: [./memory/active/state.json](./memory/active/state.json)
 - 세션 인계 문서: [./memory/gemini/phase10/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
 - 작업 백로그 인덱스: [./memory/gemini/phase10/work_backlog.md](./memory/gemini/phase10/work_backlog.md)

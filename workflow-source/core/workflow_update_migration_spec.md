@@ -28,10 +28,10 @@
 
 ### 2.1 항상 보존 (절대 덮어쓰지 않음)
 
-- `ai-workflow/memory/PROJECT_PROFILE.md`
-- `ai-workflow/memory/session_handoff.md`
-- `ai-workflow/memory/state.json`
-- `ai-workflow/memory/backlog/*.md`
+- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/state.json`
+- `ai-workflow/memory/active/backlog/*.md`
 
 ### 2.2 새 패키지로 업데이트 (덮어 writ 가능)
 

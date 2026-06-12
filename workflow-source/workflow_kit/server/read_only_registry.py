@@ -311,7 +311,7 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             ),
         ),
         payload_example={
-            "handoff_path": "ai-workflow/memory/session_handoff.md",
+            "handoff_path": "ai-workflow/memory/active/session_handoff.md",
             "max_done_items": "5",
         },
     ),

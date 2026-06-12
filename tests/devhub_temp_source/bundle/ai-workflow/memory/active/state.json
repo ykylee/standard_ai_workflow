@@ -11,10 +11,10 @@
   "project": {
     "project_name": "Export Sample",
     "document_home": "README.md",
-    "operations_path": null,
+    "operations_path": "ai-workflow/memory/active/",
     "backlog_path": "ai-workflow/memory/backlog/",
-    "handoff_path": null,
-    "environment_path": "ai-workflow/memory/environments/"
+    "handoff_path": "ai-workflow/memory/session_handoff.md",
+    "environment_path": "ai-workflow/memory/active/environments/"
   },
   "commands": {
     "quick_tests": "TODO: 빠른 테스트 명령 입력",
@@ -41,6 +41,7 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/PROJECT_PROFILE.md",
     "ai-workflow/memory/session_handoff.md",
     "ai-workflow/memory/work_backlog.md",
     "ai-workflow/memory/backlog/2026-05-01.md"

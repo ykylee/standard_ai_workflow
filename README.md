@@ -4,8 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-09
-- 버전: v0.5.10-beta
+- 최종 수정일: 2026-06-12
+- 버전: v0.6.0.1-beta
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -33,7 +33,7 @@
 - 공통 규칙은 코어 문서로 둔다.
 - 저장소별 차이는 프로젝트 프로파일 템플릿에 적는다.
 - 세션 상태 문서는 템플릿으로 제공한다.
-- `ai-workflow/memory/` 아래 문서는 workflow state docs 이고, 실제 프로젝트 운영 문서인 `docs/...` 와 역할을 분리한다.
+- `ai-workflow/memory/active/` 아래 문서는 workflow state docs 이고, 실제 프로젝트 운영 문서인 `docs/...` 와 역할을 분리한다.
 - skill, MCP, agent 는 설계 카탈로그로 먼저 제공하고, 실제 구현은 프로젝트 상황에 맞게 선택 적용한다.
 - 이 저장소만 읽어도 구조를 이해할 수 있게 외부 저장소 의존 링크를 최소화한다.
 
@@ -134,9 +134,9 @@
    ```bash
    python3 workflow-source/scripts/generate_workflow_state.py \
      --project-profile-path docs/PROJECT_PROFILE.md \
-     --session-handoff-path ai-workflow/memory/session_handoff.md \
-     --work-backlog-index-path ai-workflow/memory/work_backlog.md \
-     --output-path ai-workflow/memory/state.json
+     --session-handoff-path ai-workflow/memory/active/session_handoff.md \
+     --work-backlog-index-path ai-workflow/memory/active/work_backlog.md \
+     --output-path ai-workflow/memory/active/state.json
    ```
 
 > [!NOTE]
@@ -228,7 +228,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 
 여기서 역할을 명확히 나누면 아래와 같다.
 
-- `ai-workflow/memory/*`: workflow state docs. 세션 복원, backlog 상태, handoff, state cache 의 source-of-truth
+- `ai-workflow/memory/active/*`: workflow state docs. 세션 복원, backlog 상태, handoff, state cache 의 source-of-truth
 - `PROJECT_PROFILE.md` 안의 `docs/...` 경로: 실제 프로젝트 문서 위치. runbook, 운영 허브, project-level handoff 같은 현장 문서 위치
 
 배포 가능한 하네스 패키지를 export 하려면 아래처럼 실행할 수 있다.
@@ -242,7 +242,7 @@ python3 workflow-source/scripts/export_harness_package.py \
 이 export 는 이번 릴리즈 기준으로 workflow/skill 온보딩 묶음을 우선 배포한다.
 
 - 기본 소비 진입점: `workflow-source/README.md`, `workflow-source/core/workflow_adoption_entrypoints.md`, `workflow-source/core/workflow_skill_catalog.md`
-- 기본 현장 문서: `ai-workflow/memory/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
+- 기본 현장 문서: `ai-workflow/memory/active/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 일반 프로젝트 코드/문서 탐색 범위에서는 기본적으로 제외한다.
 - `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성한다. 독립 실행이 필요할 때는 `workflow-source/scripts/generate_workflow_state.py` 를 직접 사용할 수 있다.
 - 기본 export 는 AI agent 컨텍스트 절약을 위해 런타임 파일만 포함하고, source docs 와 global snippet 예시는 제외한다.
@@ -261,9 +261,9 @@ python3 workflow-source/scripts/export_harness_package.py \
 - `workflow-source/tests/check_*.py` 52개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀 까지 smoke 기준선을 제공한다.
 - CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 52개 smoke 전부 실행.
 
-## 10. v0.5.10 기준 누적 변경 요약 (2026-05-04 이후)
+## 10. v0.6.0 기준 누적 변경 요약 (2026-06-12 이후)
 
-v0.5.4 부터 v0.5.10 까지 누적된 핵심 변경:
+v0.5.4 부터 v0.6.0 까지 누적된 핵심 변경:
 
 - v0.5.4 — orchestrator ↔ sub-agent delegation contract v1 외부 spec + `workflow_kit/contract_v1/` (issue #1 영구 해결)
 - v0.5.5 — Phase 11 본격 pilot (Devhub Example × Contract v1 실전 검증)
@@ -275,9 +275,9 @@ v0.5.4 부터 v0.5.10 까지 누적된 핵심 변경:
 
 이번 기준선 핵심 결과물:
 
-- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.5.10-beta.zip`
-- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.5.10-beta.zip`
-- release note: [releases/Beta-v0.5.10.md](./workflow-source/releases/Beta-v0.5.10.md)
+- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.6.0-beta.zip`
+- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.6.0-beta.zip` (planned)
+- release note: [releases/Beta-v0.6.0.md](./workflow-source/releases/Beta-v0.6.0.md) (planned)
 - 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.5.10.1): [releases/](./workflow-source/releases/)
 
 ## 11. 현재 한계

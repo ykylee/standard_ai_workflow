@@ -52,20 +52,22 @@
 | Workflow Kit | `workflow_kit/` | 공통 헬퍼 + contract v1 + MCP server | Python 패키지, editable install |
 | Bootstrap | `scripts/bootstrap_lib/` | 새/기존 프로젝트에 워크플로우 도입 | v0.5.2+ 6-module 리팩터 |
 | Skills | `skills/` (11종) | 워크플로우 단계 자동화 | `tool_version` + `status` envelope |
-| MCP Servers | `mcp_servers/` (8+3) | 에이전트 도구 (read-only) | jsonrpc-bridge / stdio-sdk |
+| MCP Servers | `mcp_servers/` (8+3) | 에이전트 도구 (read-only) | jsonrpc-bridge / stdio-sdk — [ADR-003](./ADR-003-read-only-mcp-default-policy.md) |
 | Harnesses | `harnesses/` (6+1) | 하네스별 overlay (AGENTS.md, apply_guide) | HARNESS_SPECS 레지스트리 |
-| State Memory | `ai-workflow/memory/` | 세션/릴리스별 state, backlog, handoff | .gitignore 일부 |
+| State Memory | `ai-workflow/memory/` | 세션/릴리스별 state, backlog, handoff | .gitignore 일부 — [ADR-001](./ADR-001-source-state-knowledge-3-layer-separation.md) |
 | Knowledge Base | `docs/` | 영구 지식, PR 리뷰 대상 | governance: `docs/README.md` |
+| Contract v1 | `core/orchestrator_subagent_contract_v1.md` + `workflow_kit/contract_v1/` | 외부 spec + Pydantic v2 helper | [ADR-002](./ADR-002-pydantic-v2-contract-v1-external-spec.md) |
 
 상세 모듈/함수 명세: [`../CODE_INDEX.md`](../CODE_INDEX.md) §2.
 
 ## 4. 향후 작성 예정 (Backlog)
 
-- **ADR-001: Source/State/Knowledge 3-layer 분리 결정** — v0.5.2 commit `96431f1` 의 rationale (bootstrappable runtime layer + 영구 knowledge 의 책임 분리) 정식 기록
-- **ADR-002: Pydantic v2 contract v1 외부 spec 채택** — v0.5.4 의 rationale (내부 docstring 만으로 contract enforce 불가능 → 외부 markdown spec + Python helper 조합) 정식 기록
-- **ADR-003: Read-only MCP 우선 정책** — v0.5.7 의 rationale (에이전트 자율성 vs 안전성 균형)
+- [x] **ADR-001: Source/State/Knowledge 3-layer 분리 결정** (v0.5.11 작성) — [ADR-001](./ADR-001-source-state-knowledge-3-layer-separation.md)
+- [x] **ADR-002: Pydantic v2 contract v1 외부 spec 채택** (v0.5.11 작성) — [ADR-002](./ADR-002-pydantic-v2-contract-v1-external-spec.md)
+- [x] **ADR-003: Read-only MCP 우선 정책** (v0.5.11 작성) — [ADR-003](./ADR-003-read-only-mcp-default-policy.md)
+- [ADR-004: LLM Wiki Layer 도입](./ADR-004-llm-wiki-layer.md) — wiki layer 설계 (v0.6.0 accepted, P1 implemented)
 - **컴포넌트 다이어그램** — `workflow-source/`, `ai-workflow/`, `docs/` 3-layer 시각화 (mermaid)
-- **CI smoke 52개** 의 책임 영역 매트릭스 (어떤 smoke 이 어느 contract/spec 변경 시 깨지는지)
+- **CI smoke** 의 책임 영역 매트릭스 (어떤 smoke 이 어느 contract/spec 변경 시 깨지는지) — v0.5.10 baseline 52 + v0.5.10.1 hotfix 1 (`check_smart_update.py`) + v0.5.11 5 (wire 가이드 / contract v1 §6.5 / 회귀 test 강화) = 58+개
 
 ## 다음에 읽을 문서
 

@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-12
 - 관련 문서: [../README.md](../README.md), [../QUICKSTART.md](../QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md)
 
 > [!NOTE]
@@ -105,8 +105,8 @@ PYTHONPATH=workflow-source python3 -c "import workflow_kit; print(workflow_kit._
 릴리스 페이지에서 `standard-ai-workflow-*.zip` 또는 하네스별 패키지 (`standard-ai-workflow-codex-v*.zip` 등) 를 받아 압축 해제 후 그 안의 wheel 을 설치한다. 자세한 절차는 [`../QUICKSTART.md`](../QUICKSTART.md) §3 참고.
 
 ```bash
-unzip standard-ai-workflow-codex-v0.5.10-beta.zip
-cd standard-ai-workflow-codex-v0.5.10-beta
+unzip standard-ai-workflow-codex-v0.6.0-beta.zip
+cd standard-ai-workflow-codex-v0.6.0-beta
 pip install dist/*.whl       # 또는: pip install -e .
 ```
 
@@ -135,8 +135,8 @@ python: 3.13.7
   pydantic==2.13.3
   anyio==4.13.0
   mcp==1.27.0
-  workflow_kit==0.5.10-beta
-  bootstrap_lib==0.5.10-beta
+  workflow_kit==0.6.0-beta
+  bootstrap_lib==0.6.0-beta
 ```
 
 ## 5. 스모크 테스트 실행
@@ -426,5 +426,5 @@ pip install -e ".[mcp-sdk,dev]"
 | 스킬 카탈로그 | [`../../workflow-source/core/workflow_skill_catalog.md`](../workflow-source/core/workflow_skill_catalog.md) |
 | MCP 후보 카탈로그 | [`../../workflow-source/core/workflow_mcp_candidate_catalog.md`](../workflow-source/core/workflow_mcp_candidate_catalog.md) |
 | 릴리스 절차 (GitHub Release zip 생성) | [`./RELEASE.md`](./RELEASE.md) |
-| 마지막 릴리스 노트 | [`../../workflow-source/releases/Beta-v0.5.10.md`](../workflow-source/releases/Beta-v0.5.10.md) |
+| 마지막 릴리스 노트 | [`../../workflow-source/releases/Beta-v0.6.0.1.md`](../workflow-source/releases/Beta-v0.6.0.1.md) |
 | 변경 이력 / 로드맵 | [`../../workflow-source/core/workflow_kit_roadmap.md`](../workflow-source/core/workflow_kit_roadmap.md) |

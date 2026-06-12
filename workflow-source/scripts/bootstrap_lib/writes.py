@@ -90,7 +90,7 @@ def rel(path: Path, base: Path) -> str:
 # the bootstrap layer can decide without an extra import. Keep in sync
 # if PRESERVE_RELATIVE_PATHS is updated.
 _PRESERVE_RELATIVE_PATHS: list[Path] = [
-    Path("ai-workflow/memory"),
+    Path("ai-workflow/memory/active"),
     Path("ai-workflow/WORKFLOW_INDEX.md"),
     Path("ai-workflow/README.md"),
 ]

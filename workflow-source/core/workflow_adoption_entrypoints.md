@@ -65,11 +65,11 @@
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
-  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
-  --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \
-  --repository-assessment-path /path/to/project/ai-workflow/memory/repository_assessment.md
+  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/active/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/memory/active/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/memory/active/repository_assessment.md
 ```
 
 이 스크립트는 아래 순서를 읽기 전용으로 이어준다.

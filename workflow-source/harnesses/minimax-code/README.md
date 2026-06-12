@@ -16,6 +16,8 @@ MiniMax Code overlay는 다음 두 진입점을 생성한다.
 
 `AGENTS.md` 와 `MiniMax.md` 가 가리키는 사실이 다르다면 `MiniMax.md` 가 우선하되, 두 문서를 동기화 상태로 유지한다.
 
+Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
+
 ## 2. 워커 오버레이 (`.minimax/agents/`)
 
 | 파일 | 역할 | 참고 |
@@ -54,6 +56,6 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 
 MiniMax Code 세션에서 다음과 같이 요청해 워크플로우를 활성화한다.
 
-> 프로젝트 루트의 `MiniMax.md` 와 `AGENTS.md` 를 읽고, `ai-workflow/memory/state.json` 을 기준으로 워크플로우 세션을 시작해줘.
+> 프로젝트 루트의 `MiniMax.md` 와 `AGENTS.md` 를 읽고, `ai-workflow/memory/active/state.json` 을 기준으로 워크플로우 세션을 시작해줘.
 
 세션 시작 직후 `state.json` 과 `session_handoff.md` 가 자동 갱신되며, 이후 모든 작업은 메인 orchestrator가 워커에 위임해 수행한다.

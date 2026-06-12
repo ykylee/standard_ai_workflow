@@ -55,21 +55,21 @@ rm -rf .venv
 - bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 추후 다른 하네스도 같은 패턴으로 추가할 수 있다.
 - 기본 생성 구조:
 - `ai-workflow/README.md`
-- `ai-workflow/memory/PROJECT_PROFILE.md`
-- `ai-workflow/memory/state.json`
-- `ai-workflow/memory/session_handoff.md`
-- `ai-workflow/memory/work_backlog.md`
-- `ai-workflow/memory/backlog/YYYY-MM-DD.md`
-- `ai-workflow/memory/repository_assessment.md` (`existing` 모드일 때만)
+- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `ai-workflow/memory/active/state.json`
+- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
+- `ai-workflow/memory/active/repository_assessment.md` (`existing` 모드일 때만)
 - 선택 옵션:
 - `--copy-core-docs` 를 주면 핵심 core 문서를 `ai-workflow/core/` 아래에 함께 복사한다.
 - 경로 해석 원칙:
-- `ai-workflow/memory/*` 는 workflow state docs 로 취급한다.
+- `ai-workflow/memory/active/*` 는 workflow state docs 로 취급한다.
 - `PROJECT_PROFILE.md` 안의 `문서 위키 홈`, `운영 문서 위치`, `백로그 위치`, `세션 인계 문서 위치` 는 실제 프로젝트 루트 기준 `docs/...` 경로를 적는다.
 - 출력 형태:
 - 생성된 경로와 다음 작업을 JSON 으로 출력한다.
 - 상태 캐시:
-- bootstrap 은 `ai-workflow/memory/state.json` 을 함께 생성해, 에이전트가 handoff/backlog 전체를 읽기 전에 현재 기준선을 빠르게 복원할 수 있게 한다.
+- bootstrap 은 `ai-workflow/memory/active/state.json` 을 함께 생성해, 에이전트가 handoff/backlog 전체를 읽기 전에 현재 기준선을 빠르게 복원할 수 있게 한다.
 - manifest 추가 정보:
 - `global_snippet_candidates` 필드로 하네스별 전역 snippet 후보와 적용 대상 전역 설정 경로를 함께 출력한다.
 - 생성물 예시:
@@ -172,11 +172,11 @@ python3 scripts/apply_harness_update.py \
 
 ```bash
 python3 scripts/generate_workflow_state.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
-  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
-  --latest-backlog-path /path/to/project/ai-workflow/memory/backlog/2026-04-24.md \
-  --output-path /path/to/project/ai-workflow/memory/state.json
+  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/active/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/work_backlog.md \
+  --latest-backlog-path /path/to/project/ai-workflow/memory/active/backlog/2026-04-24.md \
+  --output-path /path/to/project/ai-workflow/memory/active/state.json
 ```
 
 ## run_demo_workflow.py
@@ -222,11 +222,11 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/PROJECT_PROFILE.md \
-  --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
-  --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \
-  --repository-assessment-path /path/to/project/ai-workflow/memory/repository_assessment.md
+  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/active/session_handoff.md \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/work_backlog.md \
+  --backlog-dir-path /path/to/project/ai-workflow/memory/active/backlog \
+  --repository-assessment-path /path/to/project/ai-workflow/memory/active/repository_assessment.md
 ```
 
 ## scaffold_harness.py

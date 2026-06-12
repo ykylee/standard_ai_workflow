@@ -4,10 +4,10 @@
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-12
 - 관련 문서: [../README.md](../README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../workflow-source/releases/](../workflow-source/releases/)
 
-> **최종 갱신**: 2026-06-09
+> **최종 갱신**: 2026-06-12
 > **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
 > **이유**: 토큰 회전 부담, 외부 공개 단계 미도달, downstream 은 `pip install <wheel>` 로 로컬 검증.
 
@@ -148,11 +148,14 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 | v0.5.9-beta | GitHub Release | ✅ | wire 가이드 §7/§8/§9 보강 |
 | v0.5.9.1-beta | GitHub Release | ✅ | wire 가이드 §3 sub_payloads fix + 회귀 test |
 | v0.5.10-beta | GitHub Release | ✅ (2026-06-08) | choose_roles sub.delegation_id parent-prefix spec 정합 |
+| v0.5.11-beta | GitHub Release | ✅ (2026-06-09) | Mavis engine hook (§6.5) + ADR 정식 기록 + 비대화형 가이드 보강 |
+| v0.6.0-beta | GitHub Release | (planned) | LLM wiki layer git-tracked (ai-workflow/wiki/) |
+| v0.6.0.1-beta | GitHub Release | ✅ (2026-06-12) | memory/active/ rename + bootstrap --enable-wiki + 6 harness wiki/ stub (P1.5) |
 
 ## 다음에 읽을 문서
 
 - [릴리스 노트 디렉토리](../workflow-source/releases/)
-- [마지막 릴리스 노트 v0.5.10](../workflow-source/releases/Beta-v0.5.10.md)
+- [마지막 릴리스 노트 v0.5.11](../workflow-source/releases/Beta-v0.5.11.md)
 - [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
 - [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 - [Project Profile](./PROJECT_PROFILE.md)

@@ -269,7 +269,7 @@ def check_opencode_only_mode() -> None:
         agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
         if "사용자에게 직접 보이는 작업 보고" not in agents_text:
             raise AssertionError("AGENTS.md should include the Korean reporting rule.")
-        if "ai-workflow/memory/state.json" not in agents_text:
+        if "ai-workflow/memory/active/state.json" not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
         if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:
             raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
@@ -279,7 +279,7 @@ def check_opencode_only_mode() -> None:
         skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
         if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:
             raise AssertionError("OpenCode skill should include the Korean reporting rule.")
-        if "ai-workflow/memory/state.json" not in skill_text:
+        if "ai-workflow/memory/active/state.json" not in skill_text:
             raise AssertionError("OpenCode skill should read the workflow state cache.")
         if "Treat `ai-workflow/` as workflow metadata only." not in skill_text:
             raise AssertionError("OpenCode skill should exclude ai-workflow from normal project exploration.")
@@ -289,7 +289,7 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("OpenCode agent should include the Korean reporting rule.")
         if "read-mostly coordinator" not in agent_text:
             raise AssertionError("OpenCode orchestrator should describe the coordinator role.")
-        if "ai-workflow/memory/state.json" not in agent_text:
+        if "ai-workflow/memory/active/state.json" not in agent_text:
             raise AssertionError("OpenCode orchestrator should read the workflow state cache.")
         if "Do not call direct tools yourself. Use only task delegation" not in agent_text:
             raise AssertionError("OpenCode orchestrator should require task delegation instead of direct tool calls.")
@@ -587,6 +587,77 @@ def check_multi_stack_detection() -> None:
                 )
 
 
+def check_enable_wiki_emission() -> None:
+    """Verify ``--enable-wiki`` writes the wiki/ skeleton (SCHEMA·index·log·.gitignore)."""
+    target_root = Path("/tmp/test-wiki-bootstrap")
+    if target_root.exists():
+        import shutil
+
+        shutil.rmtree(target_root)
+    target_root.mkdir(parents=True, exist_ok=True)
+    try:
+        payload = run_bootstrap(
+            [
+                "--target-root",
+                str(target_root),
+                "--project-slug",
+                "test_wiki",
+                "--project-name",
+                "Test Wiki",
+                "--harness",
+                "codex",
+                "--enable-wiki",
+                "--adoption-mode",
+                "new",
+                "--copy-core-docs",
+                "--force",
+            ]
+        )
+        harness_files = payload["generated_harness_files"]
+        expected_keys = {
+            "wiki_schema": "ai-workflow/wiki/SCHEMA.md",
+            "wiki_index": "ai-workflow/wiki/index.md",
+            "wiki_log": "ai-workflow/wiki/log.md",
+            "wiki_gitignore": "ai-workflow/wiki/.gitignore",
+        }
+        for key, suffix in expected_keys.items():
+            if key not in harness_files:
+                raise AssertionError(f"--enable-wiki did not emit {key}")
+            normalized = str(harness_files[key]).replace("\\", "/")
+            if not normalized.endswith(suffix):
+                raise AssertionError(f"{key} should land at {suffix}, got {harness_files[key]}")
+            if not Path(str(harness_files[key])).exists():
+                raise AssertionError(f"{key} file missing on disk: {harness_files[key]}")
+
+        prototype_wiki = REPO_ROOT / "ai-workflow" / "wiki"
+        for proto_name, emitted_path in (
+            ("SCHEMA.md", harness_files["wiki_schema"]),
+            ("index.md", harness_files["wiki_index"]),
+            ("log.md", harness_files["wiki_log"]),
+            (".gitignore", harness_files["wiki_gitignore"]),
+        ):
+            proto_text = (prototype_wiki / proto_name).read_text(encoding="utf-8")
+            emitted_text = Path(str(emitted_path)).read_text(encoding="utf-8")
+            # Bootstrap prepends `<!-- standard-ai-workflow-kit: vX -->`; strip it.
+            import re
+
+            marker_pattern = re.compile(
+                r"^(?:#|//)?\s*standard-ai-workflow-kit:\s*v?[^\s>]+\s*-->\s*\n+",
+                re.IGNORECASE,
+            )
+            stripped = marker_pattern.sub("", emitted_text, count=1)
+            if proto_text != stripped:
+                raise AssertionError(
+                    f"Emitted wiki/{proto_name} does not match the prototype wiki/ file. "
+                    f"Got {len(stripped)} chars, expected {len(proto_text)}."
+                )
+    finally:
+        if target_root.exists():
+            import shutil
+
+            shutil.rmtree(target_root)
+
+
 def check_stdio_sdk_mcp_emission() -> None:
     """Verify ``--mcp-bridge stdio-sdk`` switches the emitted config transport."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -628,7 +699,8 @@ def main() -> int:
     check_enable_mcp_emission()
     check_multi_stack_detection()
     check_stdio_sdk_mcp_emission()
-    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, minimax-code, and --enable-mcp emission.")
+    check_enable_wiki_emission()
+    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, minimax-code, --enable-mcp emission, and --enable-wiki emission.")
     return 0
 
 

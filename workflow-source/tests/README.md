@@ -34,6 +34,8 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - read-only harness MCP 예시 산출물이 descriptor 기준과 같은지 확인하는 `check_read_only_harness_mcp_examples.py` 를 제공한다.
 - backlog-update 프로토타입의 성공/실패 경로와 output contract 를 확인하는 `check_backlog_update.py` 를 제공한다.
 - create-backlog-entry MCP 프로토타입의 draft entry shape 를 확인하는 `check_create_backlog_entry.py` 를 제공한다.
+- wiki lint skill 프로토타입 (V-1, V-4) 의 단일 위치성과 anchor 구조를 확인하는 `check_wiki_lint.py` (umbrella) 와 개별 validator `check_wiki_location.py`, `check_wiki_index_structure.py` 를 제공한다.
+- `bootstrap --enable-wiki` 옵션 (v0.6.0.1 신규) → wiki/ 디렉토리 자동 emit 확인 (`check_bootstrap.py` 안에 wiki emission test case 포함)
 - 현재 스크립트는 문서 무결성과 기본 생성 흐름이 깨지지 않았는지 빠르게 검사한다.
 
 ## 포함된 검사
@@ -78,6 +80,11 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - read-only MCP bundle entrypoint 가 필수 payload 누락을 schema 단계에서 실패시키는지 확인
 - generated JSON Schema draft 파일과 생성 스크립트 출력이 런타임 계약과 같은지 확인
 - generated JSON Schema draft 가 실제 대표 sample JSON 을 받아들일 수 있는지 확인
+- V-1 wiki 위치 단일성: `ai-workflow/wiki/index.md` 존재 + `docs/wiki/`, `.wiki/`, `workflow-source/wiki/`, root `wiki/` 중복 0건 확인
+- V-4 index.md anchor 구조: `#` 헤딩 시작, 모든 `##` 섹션이 1개 이상의 `###` entry 포함, `### [[<path>]] {#<anchor-id>}` 형식 준수, 비어 있는 path/anchor 0건, anchor ID 중복 0건, entry path 가 `ai-workflow/wiki/` 하위 실제 파일로 해소되는지 확인
+- wiki lint umbrella 가 V-1, V-4 를 결합 실행하고 통합 종료 코드 + 통합 요약 메시지를 노출하는지 확인
+- `bootstrap --enable-wiki` 옵션이 `ai-workflow/wiki/SCHEMA.md`, `ai-workflow/wiki/index.md`, `ai-workflow/wiki/log.md`, `ai-workflow/wiki/.gitignore` 4개 파일을 emit 하는지 확인
+- wiki emission 결과물 content 가 prototype `ai-workflow/wiki/` 원본과 byte-level 일치하는지 확인 (SCHEMA·index·log·.gitignore)
 
 ## 실행 방법
 
@@ -107,6 +114,10 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - 저장소 루트에서 `python3 tests/check_read_only_harness_mcp_examples.py`
 - 저장소 루트에서 `python3 tests/check_output_json_schema.py`
 - 저장소 루트에서 `python3 tests/check_generated_schema_validation.py`
+- 저장소 루트에서 `python3 tests/check_wiki_lint.py`
+- 저장소 루트에서 `python3 tests/check_wiki_location.py`
+- 저장소 루트에서 `python3 tests/check_wiki_index_structure.py`
+- 저장소 루트에서 `python3 tests/check_bootstrap.py` (자동으로 모든 test case 실행, `--enable-wiki` wiki emission 포함)
 
 ## 권장 실행 순서
 
@@ -127,6 +138,8 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - read-only harness MCP 예시 변경 직후에는 `check_read_only_harness_mcp_examples.py` 를 먼저 본다.
 - output contract / generated schema 변경 직후에는 `check_output_samples.py`, `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
 - JSON Schema 생성/승격 작업 직후에는 `check_output_json_schema.py`, `check_generated_schema_validation.py` 를 먼저 본다.
+- wiki lint skill (V-1, V-4) 변경 직후에는 `check_wiki_lint.py` 를 먼저 본다 (umbrella 가 V-1, V-4 결과를 한 번에 노출).
+- bootstrap 변경 직후에는 `check_bootstrap.py` 먼저 (--enable-mcp·--enable-wiki·multi-stack·stdio-sdk 모든 emission test 포함).
 
 ## 실패 분류 가이드
 
@@ -178,6 +191,12 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
   `workflow_kit/common/output_contracts.py`, `scripts/generate_output_json_schema.py`, `schemas/generated_output_schemas.json` 셋 중 하나가 어긋난 경우가 많다.
 - `check_generated_schema_validation.py` 실패:
   generated schema 가 실제 sample payload 보다 과하게 엄격하거나, sample JSON 이 계약과 어긋난 경우가 많다.
+- `check_wiki_location.py` 실패:
+  `ai-workflow/wiki/` 디렉토리, `ai-workflow/wiki/index.md` 존재 여부, 그리고 `docs/wiki/`, `.wiki/`, `workflow-source/wiki/`, root `wiki/` 중복 0건 위반 위치를 먼저 본다.
+- `check_wiki_index_structure.py` 실패:
+  `ai-workflow/wiki/index.md` 의 `#` 헤딩, `##` 섹션별 `###` entry 1개 이상, `### [[<path>]] {#<anchor-id>}` 형식, 비어 있는 path/anchor, anchor ID 중복, path 의 실제 파일 존재 여부를 먼저 본다.
+- `check_wiki_lint.py` 실패:
+  V-1, V-4 의 실패 분류 가이드를 모두 확인하고 umbrella 출력에 표시된 어느 validator 가 실패했는지 본다.
 
 ## CI 읽기 포인트
 

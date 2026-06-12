@@ -51,7 +51,7 @@ def declared_doc_path(base: Path, raw: str | None) -> str | None:
 
 
 def workflow_memory_dir(project_profile_path: Path) -> Path:
-    """Return the base directory for workflow memory (ai-workflow/memory/)."""
+    """Return the base directory for workflow memory (ai-workflow/memory/active/)."""
     profile_dir = project_profile_path.resolve().parent
     if profile_dir.name == "docs":
         return (profile_dir.parent / "ai-workflow" / "memory").resolve()

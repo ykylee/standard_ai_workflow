@@ -29,22 +29,22 @@
 
 - 압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교, .gitignore 셋업, 스테일 파일 정리를 지원한다.
 - 수동 적용 시 `bundle/ANTIGRAVITY.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.
-- `ANTIGRAVITY.md` 가 `ai-workflow/memory/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.
+- `ANTIGRAVITY.md` 가 `ai-workflow/memory/active/state.json`, `session_handoff.md`, `work_backlog.md`, `active/PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.
 - Antigravity 는 루트의 `ANTIGRAVITY.md` 를 시스템 지침에 우선 반영하며, Artifacts 와 Browser sub-agent 를 적극 활용합니다.
 - 첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.
 
 ## 4. 첫 세션 권장 읽기 순서
 
 - `ANTIGRAVITY.md`
-- `ai-workflow/memory/state.json`
+- `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/session_handoff.md`
 - `ai-workflow/memory/work_backlog.md`
-- `ai-workflow/memory/PROJECT_PROFILE.md`
+- `ai-workflow/memory/active/PROJECT_PROFILE.md`
 
 ## 5. 적용 후 바로 수정할 항목
 
-- `ai-workflow/memory/state.json` 의 current_focus 와 next_documents
-- `ai-workflow/memory/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
+- `ai-workflow/memory/active/state.json` 의 current_focus 와 next_documents
+- `ai-workflow/memory/active/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
 - `ai-workflow/memory/session_handoff.md` 의 현재 기준선
 - `ai-workflow/memory/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태
 

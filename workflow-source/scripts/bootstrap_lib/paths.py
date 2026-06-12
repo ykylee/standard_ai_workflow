@@ -65,7 +65,7 @@ class HarnessDefinition:
 def make_paths(args: argparse.Namespace) -> Paths:
     target_root = Path(args.target_root).resolve()
     kit_root = target_root / args.kit_dir
-    memory_dir = kit_root / "memory"
+    memory_dir = kit_root / "memory" / "active"
     backlog_dir = memory_dir / "backlog"
     return Paths(
         target_root=target_root,

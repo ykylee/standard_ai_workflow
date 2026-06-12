@@ -57,8 +57,8 @@ def render_readme(
     ) or "- 선택한 하네스 없음"
     if args.adoption_mode == "existing":
         generated_assessment = (
-            "- [ai-workflow/memory/repository_assessment.md]"
-            "(./ai-workflow/memory/repository_assessment.md)"
+            "- [ai-workflow/memory/active/repository_assessment.md]"
+            "(./ai-workflow/memory/active/repository_assessment.md)"
         )
         mode_summary = "기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다."
     return f"""# Standard AI Workflow Kit
@@ -68,7 +68,7 @@ def render_readme(
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/state.json`, `ai-workflow/memory/session_handoff.md`, `ai-workflow/memory/work_backlog.md`
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
 
 ## 1. 도입 모드
 
@@ -79,10 +79,10 @@ def render_readme(
 ## 2. 생성된 파일
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- [ai-workflow/memory/state.json](./memory/state.json)
-- [ai-workflow/memory/session_handoff.md](./memory/session_handoff.md)
-- [ai-workflow/memory/work_backlog.md](./memory/work_backlog.md)
-- [ai-workflow/memory/backlog/{args.today}.md](./memory/backlog/{args.today}.md)
+- [ai-workflow/memory/active/state.json](./memory/active/state.json)
+- [ai-workflow/memory/active/session_handoff.md](./memory/active/session_handoff.md)
+- [ai-workflow/memory/active/work_backlog.md](./memory/active/work_backlog.md)
+- [ai-workflow/memory/active/backlog/{args.today}.md](./memory/active/backlog/{args.today}.md)
 {generated_assessment}
 
 ## 3. 코어 문서
@@ -119,9 +119,9 @@ def render_readme(
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./memory/state.json](./memory/state.json)
-- 세션 인계 문서: [./memory/session_handoff.md](./memory/session_handoff.md)
-- 작업 백로그 인덱스: [./memory/work_backlog.md](./memory/work_backlog.md)
+- 빠른 상태 요약: [./memory/active/state.json](./memory/active/state.json)
+- 세션 인계 문서: [./memory/active/session_handoff.md](./memory/active/session_handoff.md)
+- 작업 백로그 인덱스: [./memory/active/work_backlog.md](./memory/active/work_backlog.md)
 """
 
 

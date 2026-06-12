@@ -14,10 +14,10 @@
 
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: README.md
-- 운영 문서 홈: ai-workflow/memory/
+- 운영 문서 홈: ai-workflow/memory/active/
 - 백로그 위치: ai-workflow/memory/backlog/
 - 세션 인계 문서: ai-workflow/memory/session_handoff.md
-- 환경 기록 위치: ai-workflow/memory/environments/
+- 환경 기록 위치: ai-workflow/memory/active/environments/
 
 ## 3. 기본 명령 (Commands)
 - 설치: TODO: 설치 명령 입력

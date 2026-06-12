@@ -83,7 +83,7 @@ def main() -> int:
             "--latest-backlog-path",
             str(latest_backlog),
             "--changed-file",
-            "ai-workflow/memory/session_handoff.md",
+            "ai-workflow/memory/active/session_handoff.md",
             "--change-summary",
             "workflow 상태 문서만 수정",
         ],

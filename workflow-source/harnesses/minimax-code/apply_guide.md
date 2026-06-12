@@ -59,9 +59,10 @@ MiniMax chat "AGENTS.md와 MiniMax.md를 읽고 워크플로우 세션을 시작
 
 세션이 정상 시작되면 다음을 확인한다.
 
-- `ai-workflow/memory/state.json` 이 자동 갱신됨
+- `ai-workflow/memory/active/state.json` 이 자동 갱신됨
 - `session_handoff.md` 의 "다음 세션 시작 포인트" 가 한 문장 갱신됨
 - `MiniMax.md` 가 시스템 프롬프트 일부로 로드되어 우선 규칙으로 작동
+- Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 
 ## 5. 트러블슈팅
 

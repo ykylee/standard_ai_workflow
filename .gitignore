@@ -58,3 +58,8 @@ scratch/
 !/ai-workflow/WORKFLOW_INDEX.md
 !/ai-workflow/core/
 !/ai-workflow/memory/
+
+# v0.6.0+: LLM wiki layer (Runtime, git-tracked, durable knowledge)
+# See .omo/plans/v0.5.11-plus-llm-wiki-distributed-rules.md#s3-3-gitignore-policy
+!/ai-workflow/wiki/
+!/ai-workflow/wiki/**/*.md

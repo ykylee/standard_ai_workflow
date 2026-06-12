@@ -269,3 +269,29 @@ updated: 2026-06-12
   3. runtime 적용 후 L1 wiki 11종 skill table 의 'runtime 적용' column 갱신
   4. v0.7.0: stage_completion required 격상
   5. v0.8.0: orchestrator 측 자동 emit_and_log 통합
+
+## [2026-06-12] v0.6.5 | batch stage_completion integration — 6 spec 보유 skill (10/11 완료)
+
+- **Trigger**: pilot (commit 2fab835) 후 나머지 spec 보유 skill batch 적용. yklee 승인
+- **Commit (ca7a685)**: 6 file, +72 line
+  - 6 spec 의 run_*.py 성공 path 에 stage_completion merge:
+    - session-start, backlog-update, doc-sync, merge-doc-reconcile, validation-plan, code-index-update
+  - pilot template 그대로 적용 (12 line each, import + merge block)
+  - status mapping: 'ok'/'success' → 'ok', 'warning' → 'warning', else 'error'
+- **Helper script** (일회용, git 미포함):
+  - /tmp/v0_6_5_batch_runtime.py — 6 spec 일괄 적용
+  - 1st run: success path 식별 버그 (window 가 짧아 중간 return 1 을 success 로 오인)
+    → rollback → fix (파일의 *마지막* print + return 0 만 식별) → 2nd run PASS
+- **검증**:
+  - syntax check: 6 spec 모두 통과
+  - merge dry-build (session-start style): stage_completion 8 field 모두 포함
+  - 35 smoke test 모두 PASS — 회귀 0
+- **누적 v0.6.5 runtime 적용 (10/11)**:
+  - ✅ automated-repro-scaffold (pilot, commit 2fab835)
+  - ✅ session-start, backlog-update, doc-sync, merge-doc-reconcile, validation-plan, code-index-update (batch, 본 commit)
+  - ⏸ workflow-linter, project-status-assessment, memory-freeze, git-conflict-resolver, robust-patcher (SKILL.md cross-ref 만, runtime script 없음)
+- **Follow-up (별도 commit, optional)**:
+  1. v0.6.5 spec 의 11종 skill table 'runtime 적용' column 갱신
+  2. 5 SKILL.md 만 있는 skill 의 runtime (runtime helper 호출 경로)
+  3. v0.7.0: stage_completion required 격상
+  4. v0.8.0: orchestrator 측 자동 emit_and_log 통합

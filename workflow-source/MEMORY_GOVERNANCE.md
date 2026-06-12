@@ -80,3 +80,14 @@ created_at: YYYY-MM-DD
 - 새로운 작업 시작 시 `tasks/` 폴더에 템플릿 기반의 신규 파일을 생성하십시오.
 - 날짜별 백로그에는 신규 task 파일 링크만 추가하고, 긴 상세 기록은 task 파일에 남기십시오.
 - 상태 업데이트 시 자연어 서술보다는 불렛 포인트와 상태 키워드를 우선하십시오.
+
+## 4. Freeze 규칙 (R8, v0.6.1+)
+
+- **freeze 시점**: session 종료 시 자동 (또는 수동 `memory-freeze` 스킬)
+- **freeze 단위**: per-session (1일). `archive/YYYY-MM-DD/` 하위에 생성
+- **freeze 내용**: `active/` 내 모든 `.md`, `.json`, `.template` 파일
+- **freeze 동작**: COPY (NOT move). active/ 파일은 유지 (다음 세션에서 재사용)
+- **immutability**: freeze 후 archive/ 는 읽기 전용 raw source (R9)
+- **marker**: `.frozen` YAML 파일 (frozen_at, source, files 포함)
+- **중복 freeze**: 같은 날짜 이미 frozen → skip (immutability 보존)
+- **wiki ingest**: wiki-ingest 는 `archive/YYYY-MM-DD/` 만 source 로 사용 (R9). `active/` ingest 금지.

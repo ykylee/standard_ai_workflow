@@ -65,6 +65,19 @@ python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
   --apply
 ```
 
+## 7. Wiki 전용 conflict type 분류 (R7, v0.6.1+)
+
+wiki 페이지 (`ai-workflow/wiki/`) merge 시 4가지 conflict type:
+
+| Type | 설명 | Resolution |
+|---|---|---|
+| `line-conflict` | 동일 라인 동시 수정 | reconcile-text (word-level OT) |
+| `section-conflict` | 동일 섹션 동시 수정 | additive (R5, 양쪽 결합) |
+| `semantic-conflict` | 의미적 모순 | LLM review 필수 |
+| `index-conflict` | index.md anchor 충돌 | manual review 필수 |
+
+Mode: read-only = default. `--apply` = LLM 승인 + `--confirm-llm-review` 필요.
+
 ## 8. 현재 상태
 
 - Beta 단계: 병합 후 정합성 분석 및 제한적 쓰기 기능 지원

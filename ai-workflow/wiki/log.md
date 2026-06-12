@@ -450,3 +450,44 @@ updated: 2026-06-12
   1. workflow_kit.common.contracts.uow 신규 (UOW matrix parsing + sub-agent 위임 결정 helper)
   2. bootstrap_lib 의 `--adoption-mode new` 가 unit_of_work.md 자동 emit
   3. v0.8.0: UOW 기반 sub-agent 위임 자동화
+
+## [2026-06-12] v0.7.0 step 6 | Reverse Engineering 9-Artifact (11 file, +674 line, 19 test PASS)
+
+- **Trigger**: v0.6.4-7 의 `existing` onboarding 이 단일 `repository_assessment.md` 만 emit → 주제별 SSOT 부재. yklee 승인, step 6 진행
+- **1차 출처**: AIDLC `aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (311 line, commit b19c819, 2026-06-08)
+- **Scope 결정**: AIDLC 9-Artifact 구조 유지 (simplification ❌). 각 artifact 를 30-50 line template 으로 압축 (AIDLC 50 line × 9 = 450 line → 우리 ~30 line × 9 = 270 line)
+- **Commit (예정)**: 11 file, +674 line
+  - `workflow-source/reverse-engineering/01-business-overview.md` (32 line, NEW): business transaction = workflow stage transition
+  - `workflow-source/reverse-engineering/02-architecture.md` (32 line, NEW): components = harness / skill / MCP / workflow_kit
+  - `workflow-source/reverse-engineering/03-code-structure.md` (29 line, NEW): key classes = workflow_kit modules
+  - `workflow-source/reverse-engineering/04-api-documentation.md` (32 line, NEW): REST → MCP tool / Internal → workflow_kit Python
+  - `workflow-source/reverse-engineering/05-component-inventory.md` (33 line, NEW): 5 type (Harness/MCP/workflow_kit/Template/Test)
+  - `workflow-source/reverse-engineering/06-technology-stack.md` (36 line, NEW): Python + 5 harness + packaging
+  - `workflow-source/reverse-engineering/07-dependencies.md` (37 line, NEW): internal workflow_kit + pyproject external
+  - `workflow-source/reverse-engineering/08-code-quality-assessment.md` (40 line, NEW): smoke test PASS + R-1~R9 lint
+  - `workflow-source/reverse-engineering/09-reverse-engineering-metadata.md` (43 line, NEW): ISO 8601 + state.json sync
+  - `workflow-source/core/reverse_engineering.md` (140 line, NEW): step-by-step guide (13 step, AIDLC 대응)
+  - `workflow-source/tests/check_reverse_engineering.py` (350 line, NEW, 19 test PASS):
+    - 디렉토리 + 9 artifact 존재 (4)
+    - artifact 내용 검증 (4): Verification subsection / Workflow domain 적응 / AIDLC cross-ref / sequential numbering
+    - guide 내용 검증 (6): 13 step / 9-Artifact table / AIDLC correspondence / rerun stale / state.json schema / workflow pattern adaptation
+    - cross-reference (2): AIDLC 1차 출처 line count drift / artifact count matches
+    - R-1~R9 lint (3): no duplicate filename / consistent naming / guide links to artifact dir
+- **Test bug fix (보너스)**:
+  - `test_guide_has_thirteen_steps` 의 개별 step 매칭 → "Step 2-9" range 표기 인식 추가 (DRY)
+- **검증**:
+  - 신규 19 test PASS
+  - 기존 88 test 모두 PASS — 회귀 0
+  - 누적 **107 test PASS** (v0.6.4-7 + v0.7.0 step 1, 9, 10, 8, 6)
+- **누적 v0.7.0 step 진행**:
+  - ✅ Step 1: stage_completion required 격상 (commit 6e57cf3)
+  - ✅ Step 8: Security-baseline 1종 (commit dc2c22b)
+  - ✅ Step 9: Unit of Work 3-layer template (commit c981cac)
+  - ✅ Step 10: Audit Log 표준화 (commit 54e96a9)
+  - ✅ Step 6: Reverse Engineering 9-Artifact (본 commit)
+  - ⏸ Step 7: Extension 시스템 (B, 3-5 ses)
+- **Follow-up (v0.7.1+)**:
+  1. `existing_project_onboarding.py` 가 9 artifact 자동 fill (현재 단일 `repository_assessment.md` 만 자동)
+  2. v0.7.1: SEC-WF-05 dependency integrity 검증 — `07-dependencies.md` 의 lock file + checksum 자동 확인
+  3. v0.7.1: 9-Artifact 별 wiki L1 page (각 artifact 마다 L1 topic page + L2 sources/)
+  4. v0.8.0: Artifact 별 version diff (이전 reverse engineering 대비 변경점)

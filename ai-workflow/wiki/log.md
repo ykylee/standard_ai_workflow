@@ -16,3 +16,13 @@
 - L3 raw mirror 셋업: `~/wiki/wiki-sync-standard-ai-workflow.sh` + `raw/projects/standard-ai-workflow/` (588 files, 4.7 MB)
 - L2 placeholder: `~/wiki/index.md` §18 standard-ai-workflow section 추가 (Phase 6 hook)
 - L1 wiki ingest commit 1회 (R2, 5-15 page 동시 갱신 준수)
+
+## [2026-06-12] ingest | phase-2-concepts — 5 concept pages 신규
+
+- wiki-source-rule-r9.md (98 lines, 11 cross-ref) — R9 (wiki-ingest source = archive/ only, v0.6.1.5)
+- memory-3-state-lifecycle.md (105 lines, 4 cross-ref) — active ↔ archive ↔ release 3-state
+- contract-v1-output-validation.md (180 lines, 6 cross-ref) — Pydantic v2 + output_validator + delegator + MUST NOT 7+2
+- agent-topology.md (145 lines, 8 cross-ref) — 4-role orchestrator + 3 sub-agent (doc/code/validation)
+- harness-distribution.md (103 lines, 7 cross-ref) — 6-harness overlay + bundle structure + export workflow
+- 합계 631 lines, 36 cross-ref (5 page 평균 7.2)
+- 모두 R2 1 commit (5-15 page 동시 갱신) 준수, R3 pull-before-push 대기

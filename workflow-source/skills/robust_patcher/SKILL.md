@@ -29,3 +29,17 @@ python3 skills/robust-patcher/scripts/patch_engine.py --file "src/main.py" --pat
 ## 4. 주요 특징
 - **Fuzzy Match**: 들여쓰기나 빈 줄 차이가 있어도 80% 이상 유사하면 패치를 적용합니다.
 - **Auto-Validation**: 패치 후 Python 문법 에러가 발생하면 파일에 저장하지 않고 실패를 보고합니다.
+
+
+## v0.6.5 Stage Completion
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../../../core/stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다.
+
+| Field | 값 |
+|---|---|
+| `stage_name` | `robust-patcher` |
+| `next_stage` | `validation-plan` |
+| `approval_actor` | `user` mandatory (state 문서 영향) |
+| `approval_timestamp` | ISO 8601 |
+
+자세한 spec: [`core/stage_gate_pattern.md`](../../../core/stage_gate_pattern.md), [`core/output_schema_guide.md §3.4`](../../../core/output_schema_guide.md).

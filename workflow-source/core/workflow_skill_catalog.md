@@ -72,6 +72,31 @@ v0.5.6 부터 orchestrator ↔ sub-agent 위임 시 contract v1 enforcement 가 
 
 상세 spec: [./orchestrator_subagent_contract_v1.md](./orchestrator_subagent_contract_v1.md), wire 가이드: [./orchestrator_contract_v1_wire_guide.md](./orchestrator_contract_v1_wire_guide.md)
 
+## 5.2 Stage Completion 통합 (v0.6.5)
+
+v0.6.5 부터 11종 skill 의 출력은 v0.6.4 의 [Stage Gate Pattern](./stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+적용된 7 spec (§4 출력 계약 끝에 `### 4.1. stage_completion` subsection 추가):
+
+| Skill | Stage Name | Next Stage |
+|---|---|---|
+| `session-start` | `session-start` | (workflow end) |
+| `backlog-update` | `backlog-update` | (workflow end) |
+| `doc-sync` | `doc-sync` | `validation-plan` |
+| `merge-doc-reconcile` | `merge-doc-reconcile` | (workflow end) |
+| `validation-plan` | `validation-plan` | `code-index-update` |
+| `code-index-update` | `code-index-update` | (workflow end) |
+| `automated-repro-scaffold` | `automated-repro-scaffold` | `validation-plan` |
+
+스펙 없는 4 skill (`workflow-linter`, `project-status-assessment`, `robust-patcher`, `memory-freeze`, `git-conflict-resolver`) 은 SKILL.md 또는 별도 mini-spec 작성 시 `stage_completion` field 추가 예정.
+
+Gate 정책:
+- `approval_actor: "user"` mandatory (state 문서 갱신 skill)
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 다음 stage 진행
+- auto-approval 명시적 차단 (`require_explicit_approval` 의 is_state_doc 파라미터)
+
+상세: [./stage_gate_pattern.md](./stage_gate_pattern.md), [./output_schema_guide.md §3.4](./output_schema_guide.md), [`../workflow_kit/common/contracts/stage_gate.py`](../workflow_kit/common/contracts/stage_gate.py)
+
 ## 6. 권장 skill 묶음
 
 이번 릴리즈에서는 개별 skill 자체보다 “어떤 순서로 묶어 쓰는가” 를 더 중요하게 본다.

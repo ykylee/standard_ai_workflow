@@ -49,3 +49,17 @@ python3 scripts/run_memory_freeze.py
 3. `.frozen` 마커 작성 (YAML 형식, `frozen_at`, `source`, `files`)
 4. stdout 에 archive 경로 + 파일 목록 출력
 5. 이미 freeze 된 날짜면 skip (기존 freeze 는 immutable)
+
+
+## v0.6.5 Stage Completion
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../../../core/stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다.
+
+| Field | 값 |
+|---|---|
+| `stage_name` | `memory-freeze` |
+| `next_stage` | `(workflow end)` |
+| `approval_actor` | `user` mandatory (state 문서 영향) |
+| `approval_timestamp` | ISO 8601 |
+
+자세한 spec: [`core/stage_gate_pattern.md`](../../../core/stage_gate_pattern.md), [`core/output_schema_guide.md §3.4`](../../../core/output_schema_guide.md).

@@ -27,6 +27,32 @@
 3. **템플릿 적용**: `unittest` 또는 단순 `assert` 문을 포함한 독립 실행형 스크립트 구조에 내용을 채운다.
 4. **검증 안내**: 생성된 스크립트가 실패(버그 재현 성공)해야 함을 명시한다.
 
+
+### 4.1. stage_completion (v0.6.5 신규)
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+| Field | 값 | 비고 |
+|---|---|---|
+| `stage_name` | `automated-repro-scaffold` | 본 skill 의 stage 식별자 |
+| `stage_status` | `ok` / `warning` / `error` | skill 실행 결과 |
+| `next_stage` | `validation-plan` | 다음 stage 이름. workflow 끝이면 `None` |
+| `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
+| `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
+| `artifacts` | [`repro_<bug_id>.py`] | 본 stage 의 검토 대상 artifact path |
+| `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
+| `notes` | 1-3 line | AI summary |
+
+Gate 정책:
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 gate 통과
+- `approval_actor: "auto"` 는 명시적 차단 (state 문서 갱신 skill)
+- 다음 stage 자동 진행 ❌ — user explicit approval 후에만 진행
+
+상세:
+- Pydantic v2 schema: [`../../workflow_kit/common/contracts/stage_gate.py`](../../workflow_kit/common/contracts/stage_gate.py) `StageCompletion`
+- Output schema 가이드: [`../output_schema_guide.md` §3.4](../output_schema_guide.md)
+- Stage Gate Pattern: [`../stage_gate_pattern.md`](../stage_gate_pattern.md)
+- smoke test: [`../../tests/check_stage_gate_compliance.py`](../../tests/check_stage_gate_compliance.py)
 ## 5. 실패 시나리오
 - 버그 리포트 내용이 너무 모호하여 재현 로직을 특정할 수 없는 경우.
 - 특정 하드웨어나 외부 API 의존성이 강해 로컬 샌드박스 생성이 불가능한 경우.

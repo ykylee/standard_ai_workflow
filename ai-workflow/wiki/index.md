@@ -4,3 +4,4 @@
 
 ### [[concepts/mcp-transport]] {#mcp-transport}
 ### [[concepts/orchestrator-subagent-pattern]] {#orchestrator-subagent-pattern}
+### [[concepts/project-architecture]] {#project-architecture}

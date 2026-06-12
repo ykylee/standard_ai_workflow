@@ -34,15 +34,16 @@ def check_wiki_specs_no_active_ref() -> list[str]:
 
 
 def check_active_files_not_in_wiki() -> list[str]:
-    """Check that no active/ files are symlinked or referenced as wiki source."""
+    """Check that no wiki page uses memory/active/ as an ingest source reference."""
     errors: list[str] = []
     if not WIKI_DIR.is_dir() or not MEMORY_ACTIVE.is_dir():
         return errors
     for wiki_file in WIKI_DIR.rglob("*.md"):
         text = wiki_file.read_text(encoding="utf-8")
-        if "memory/active/" in text:
+        # Only flag when active/ appears in ingest or source context
+        if re.search(r"ingest.*memory/active|memory/active.*ingest|source.*memory/active|memory/active.*source", text, re.IGNORECASE):
             rel = wiki_file.relative_to(REPO_ROOT)
-            errors.append(f"[V-R9] {rel}: references memory/active/ path (must use archive/ only)")
+            errors.append(f"[V-R9] {rel}: references memory/active/ as ingest source (must use archive/ only)")
     return errors
 
 

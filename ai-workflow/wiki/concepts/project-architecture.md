@@ -40,7 +40,7 @@ Memory layer (v0.6.1+): 3-state lifecycle (active/archive/release). R8 Freeze �
 
 | State | 위치 | Mutability | Lifecycle |
 |---|---|---|---|
-| **Active** | `memory/active/` | mutable (session write) | session start → end |
+| **Active** | `memory/active/` _(archive after freeze)_ | mutable (session write) | session start → end |
 | **Archive** | `memory/archive/YYYY-MM-DD/` | immutable (R8 freeze) | session end → freeze |
 | **Release** | `memory/release/v0.5.X/` | immutable (release snapshot) | release time → deep freeze |
 

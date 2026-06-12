@@ -9,3 +9,10 @@
 
 ## [2026-06-12] freeze | v0.6.1 test freeze
 - archive/2026-06-12/ 생성. 6개 파일 frozen (PROJECT_PROFILE, state.json, work_backlog.md 등)
+
+## [2026-06-12] session | v0.6.3 release + wiki organization
+- wiki page types 정리: decisions/adr-004-wiki-layer, patterns/r4-anchor-index, entities/bootstrap-wiki-py 신규
+- index.md 갱신: 7 entries (3 concepts + 1 decision + 1 pattern + 1 entity + 1 archived)
+- memory archive freeze: 2회 (v6.3, self-dogfood)
+- self-dogfood concept page: project-architecture.md 작성 (3-Layer + Wiki + Memory 3-State)
+- 모든 lint test PASS

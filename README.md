@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
 - 최종 수정일: 2026-06-12
-- 버전: v0.6.3-beta
+- 버전: v0.6.5-beta
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -261,24 +261,26 @@ python3 workflow-source/scripts/export_harness_package.py \
 - `workflow-source/tests/check_*.py` 52개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀 까지 smoke 기준선을 제공한다.
 - CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 52개 smoke 전부 실행.
 
-## 10. v0.6.0 기준 누적 변경 요약 (2026-06-12 이후)
+## 10. v0.6.5 기준 누적 변경 요약 (2026-06-12)
 
-v0.5.4 부터 v0.6.0 까지 누적된 핵심 변경:
+v0.6.0 부터 v0.6.5 까지 누적된 핵심 변경 (AIDLC 패턴 차용 2종 + runtime 적용):
 
-- v0.5.4 — orchestrator ↔ sub-agent delegation contract v1 외부 spec + `workflow_kit/contract_v1/` (issue #1 영구 해결)
-- v0.5.5 — Phase 11 본격 pilot (Devhub Example × Contract v1 실전 검증)
-- v0.5.6 — contract v1 §5/§6 P0 enforcement (output_validator + delegator.choose_role, sub-agent 응답 자동 검증, MUST NOT delegate 7 패턴 거부)
-- v0.5.7 — contract v1 §4.2/§5.2 multi-component fan-out/in + recommend_model_tier + wheel packaging 보강 (v0.5.7.1: state/contracts/schemas 포함 누락 fix)
-- v0.5.8 — interactive `--harness` picker (TTY 자동 picker) + packaging smoke automation (`tools/check_packaging.py`)
-- v0.5.9 / v0.5.9.1 — wire 가이드 §3 sub_payloads + §7/§8/§9 sub.delegation_id parent-prefix rule 명시
-- v0.5.10 — `choose_roles` sub.delegation_id parent-prefix spec 정합 (배치 위임 ID 가 `{parent_id}-st-{N}` 형식 강제)
+- v0.6.3 — L1 wiki 운영 R-1~R9 + R-9 source rule (R8/R10 freeze, V-R9 skip marker)
+- v0.6.4 (AIDLC 분석) — 1차 출처 16 file 분석 + 1:1 비교 (강점 8 / 갭 20) + 보완안 15건
+- v0.6.4 (구현) — **Question File Format** + **Stage Gate 명시화** spec 2종 (AIDLC `common/question-format-guide.md` + construction phase 차용)
+- v0.6.4 (코드) — runtime helper 2 module (question_format.py + stage_gate.py) + 22 smoke test PASS
+- v0.6.5 (spec) — 11종 skill spec §4.1 stage_completion + 5 SKILL.md cross-ref
+- v0.6.5 (runtime) — stage_gate_runtime helper + migration guide + 13 smoke test PASS
+- v0.6.5 (pilot + batch) — 7 spec 보유 skill runtime 통합 (automated-repro-scaffold + 6 batch)
+
+**누적**: 4,100 line, 35 smoke test PASS (7 question_format + 15 stage_gate_compliance + 13 stage_gate_runtime), breaking change 없음 (stage_completion optional field).
 
 이번 기준선 핵심 결과물:
 
-- Codex package: GitHub release asset `standard-ai-workflow-codex-v0.6.0-beta.zip`
-- OpenCode package: GitHub release asset `standard-ai-workflow-opencode-v0.6.0-beta.zip` (planned)
-- release note: [releases/Beta-v0.6.0.md](./workflow-source/releases/Beta-v0.6.0.md) (planned)
-- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.5.10.1): [releases/](./workflow-source/releases/)
+- release note: [releases/Beta-v0.6.5.md](./workflow-source/releases/Beta-v0.6.5.md) (NEW, v0.6.4 + v0.6.5 묶음)
+- AIDLC 분석 노트: L1 wiki `topics/aidlc-benchmark-analysis-2026-06-12.md`
+- 12 신규 doc + 3 신규 module + 3 신규 smoke test (35 PASS)
+- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.6.5): [releases/](./workflow-source/releases/)
 
 ## 11. 현재 한계
 

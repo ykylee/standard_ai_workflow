@@ -25,7 +25,7 @@
   - Gemini CLI
   - Antigravity
   - pi-dev
-  - **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.6.3-beta/` 아래의 압축 파일.
+  - **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.6.5-beta/` 아래의 압축 파일.
 
 ## 3. 3단계 도입 가이드
 

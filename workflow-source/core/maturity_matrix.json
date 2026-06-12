@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project_name": "Standard AI Workflow",
-  "last_updated": "2026-06-07",
+  "last_updated": "2026-06-12",
   "milestones": {
     "Phase 1": { "name": "Concept", "status": "done" },
     "Phase 2": { "name": "Template", "status": "done" },

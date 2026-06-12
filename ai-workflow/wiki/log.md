@@ -392,3 +392,30 @@ updated: 2026-06-12
   - ⏸ Step 8: Security-baseline 1종 (O)
   - ⏸ Step 9: Unit of Work 3-layer (G)
   - ⏸ Step 10: Audit Log 표준화 (H)
+
+## [2026-06-12] v0.7.0 step 10 | Audit Log 표준화 (3 file, +637 line, 13 test PASS)
+
+- **Trigger**: v0.6.4-5 의 분산 정의된 audit log 정책 통합. yklee 승인, step 10 진행
+- **Commit (54e96a9)**: 3 file, +637 line
+  - `workflow-source/core/audit_log_standard.md` (209 line, NEW): 단일 표준 spec
+    - §1-10: 위치 / format / append-only / lifecycle / 자동화 / migration / 한계 / AIDLC 호환 / references
+  - `workflow_kit/common/contracts/stage_gate.py` (+22 line, fix):
+    - **Bug fix 1 (leading newline)**: entry_lines 시작의 "" 제거 → file 첫 줄이 ## [Stage: ...] 로 시작
+    - **Bug fix 2 (microsecond leak)**: datetime.now(timezone.utc).isoformat() 가 microsecond 포함 → split('.')[0] 정규화
+  - `tests/check_audit_log_compliance.py` (412 line, NEW, 13 test PASS):
+    - entry format / 8 field / append-only / ISO 8601 / approval status / actor / full_workflow_audit_log / legacy_readable
+- **Test bug fix (보너스)**:
+  - ENTRY_HEADER_RE 에 `re.MULTILINE` flag 누락 → 추가
+  - iso_8601_z_suffix test 의 string 비교 (`ts[len(...):]`) 잘못 → `ISO_8601_RE.match()` + microsecond 검증으로 fix
+- **검증**:
+  - 신규 13 test PASS
+  - 기존 43 test 모두 PASS — 회귀 0
+  - 누적 **56 test PASS** (v0.6.4-7 + v0.7.0 step 1 + step 10)
+  - runtime helper 2 fix 가 기존 smoke test 회귀 0 (latent bug)
+- **누적 v0.7.0 step 진행**:
+  - ✅ Step 1: stage_completion required 격상 (commit 6e57cf3)
+  - ✅ Step 10: Audit Log 표준화 (본 commit)
+  - ⏸ Step 6: Reverse Engineering 9-Artifact (D, 2-3 ses)
+  - ⏸ Step 7: Extension 시스템 (B, 3-5 ses)
+  - ⏸ Step 8: Security-baseline 1종 (O, 1 ses)
+  - ⏸ Step 9: Unit of Work 3-layer (G, 1-2 ses)

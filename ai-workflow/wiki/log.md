@@ -295,3 +295,38 @@ updated: 2026-06-12
   2. 5 SKILL.md 만 있는 skill 의 runtime (runtime helper 호출 경로)
   3. v0.7.0: stage_completion required 격상
   4. v0.8.0: orchestrator 측 자동 emit_and_log 통합
+
+## [2026-06-12] v0.6.5 | release(v0.6.5) — AIDLC 패턴 차용 (10 commit, ~2,600 line)
+
+- **Trigger**: v0.6.4 + v0.6.5 작업 완료. yklee 승인, release 묶음
+- **Commit (3897da7)**: 5 file, +168 line
+  - `releases/Beta-v0.6.5.md` (NEW, 122 line) — AIDLC 패턴 2종 + runtime 35 test PASS
+  - `workflow_skill_catalog.md` §5.2 (41 line 보강) — 7 spec runtime 적용 + 5 SKILL.md-only table + migration guide cross-ref
+  - `maturity_matrix.json` last_updated 2026-06-07 → 2026-06-12
+  - `README.md` §1 버전 v0.6.3-beta → v0.6.5-beta + §10 누적 변경 v0.6.0 → v0.6.5
+  - `QUICKSTART.md` 배포 패키지 v0.6.3-beta → v0.6.5-beta
+- **v0.6.5 누적 작업** (10 commit, 0ae8d4a → 3897da7):
+  - 5b16517: 7 skill spec §4.1 stage_completion + 5 SKILL.md cross-ref + catalog §5.2
+  - dd98e69: stage_gate_runtime helper + migration guide + 13 runtime test
+  - 2fab835: pilot runtime — automated-repro-scaffold
+  - ca7a685: 6 spec 보유 skill batch runtime
+  - 0ae8d4a: L1 wiki batch log entry
+  - 3897da7: release 묶음 (Beta-v0.6.5.md + version bump)
+- **누적 v0.6.4-5 산출물** (전체):
+  - 4 신규 spec doc (question_file_format, stage_gate_pattern, stage_gate_runtime_migration, output_schema_guide §3.4)
+  - 3 신규 Python module (question_format.py, stage_gate.py, stage_gate_runtime.py)
+  - 3 신규 smoke test (7 + 15 + 13 = 35 test PASS)
+  - 1 release note (Beta-v0.6.5.md)
+  - 7 skill spec 보강 (11종 skill table + catalog §5.2)
+  - 5 SKILL.md cross-ref (workflow-linter, project-status-assessment, memory-freeze, git-conflict-resolver, robust-patcher)
+  - 7 spec 보유 skill runtime 적용 (pilot 1 + batch 6)
+  - 3 wiki concept (question-file-format, stage-gate-pattern × 2)
+  - 1 wiki topic (aidlc-benchmark-analysis-2026-06-12)
+  - 4 channel L2 vault sync (stub + index + log + 자기-갱신)
+- **총 ~4,100 line, 35 smoke test PASS, breaking change 0**
+- **Follow-up (v0.6.6+ 후보)**:
+  1. v0.6.5 5 SKILL.md-only skill 의 runtime script 작성 (선택)
+  2. v0.7.0: stage_completion required 격상
+  3. v0.7.0: Extension 시스템 (B) + security-baseline 1종
+  4. v0.8.0: orchestrator 측 자동 emit_and_log 통합
+  5. ADR-NNN: Operations phase 도입 여부

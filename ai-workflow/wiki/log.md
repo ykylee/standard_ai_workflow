@@ -356,3 +356,39 @@ updated: 2026-06-12
   2. v0.7.0: Extension 시스템 (B) + security-baseline 1종
   3. v0.8.0: orchestrator 측 자동 emit_and_log 통합
   4. ADR-NNN: Operations phase 도입 여부
+
+## [2026-06-12] v0.7.0 step 1 | stage_completion required 격상 + ensure fallback (3 file, +319 line, 8 test PASS)
+
+- **Trigger**: v0.6.6 follow-up #1 (12/12 일관성) 완료. v0.7.0 본격 시작
+- **Commit (6e57cf3)**: 3 file, +319 line
+  - `workflow_kit/common/contracts/stage_gate_runtime.py` (+40 line):
+    - 신규 `ensure_stage_completion()` helper — stage_completion 없는 result 에 자동 생성 (lazy fallback)
+    - status mapping: 'success'/'ok' → 'ok', 'warning' → 'warning', else 'error'
+  - `workflow-source/core/output_schema_guide.md` §3.4 (12 line):
+    - "v0.6.4 신규" → "v0.6.4 신규, **v0.7.0 부터 required**"
+    - 11종 skill + 8+ MCP output 의 stage_completion mandatory
+    - 마이그레이션 가이드 (3 step)
+  - `tests/check_stage_completion_required.py` (272 line, NEW, 8 test PASS):
+    - ensure_creates_when_missing / preserves_existing / status_mapping
+    - automated_repro_scaffold_runtime (실제 pilot runtime 실행)
+    - build_then_merge_roundtrip / legacy_result_compatibility
+    - 8_field_completeness_after_ensure / skill_catalog_stage_name_mapping
+- **핵심 변경**:
+  - stage_completion 이 optional → **required** 로 격상
+  - 12/12 일관성 (v0.6.6 follow-up #1) 후 가능한 mandatory 격상
+  - runtime layer `ensure_stage_completion()` 으로 legacy code path 자동 복구
+- **검증**:
+  - 신규 8 test PASS
+  - 기존 35 test 모두 PASS (7 + 15 + 13) — 회귀 0
+  - 누적 **43 test PASS** (v0.6.4-7 + v0.7.0 step 1)
+- **Follow-up (별도 commit, v0.7.1+)**:
+  1. MCP server (8+ read_only bundle) 에 stage_completion 적용
+  2. sample output (workflow-source/examples/output_samples/*.json) stage_completion migration
+  3. stage_completion.strict_required runtime check (lint)
+- **누적 v0.7.0 step**:
+  - ✅ Step 1: stage_completion required 격상 (본 commit)
+  - ⏸ Step 6: Reverse Engineering 9-Artifact (D)
+  - ⏸ Step 7: Extension 시스템 (B)
+  - ⏸ Step 8: Security-baseline 1종 (O)
+  - ⏸ Step 9: Unit of Work 3-layer (G)
+  - ⏸ Step 10: Audit Log 표준화 (H)

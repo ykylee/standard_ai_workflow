@@ -226,13 +226,23 @@ def append_audit_log(
         if existing and not existing.endswith("\n"):
             existing += "\n"
 
-    # ISO 8601 timestamp with Z suffix (UTC)
-    ts = completion.approval_timestamp or datetime.now(timezone.utc).isoformat().replace(
-        "+00:00", "Z"
-    )
+    # ISO 8601 timestamp with Z suffix (UTC).
+    # v0.7.0 fix: microsecond 제거 (audit_log_standard.md §3.1 형식 준수).
+    # datetime.now(timezone.utc).isoformat() 가 microsecond 포함 시 정규화.
+    if completion.approval_timestamp:
+        ts = completion.approval_timestamp
+    else:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        # microsecond 제거 (있으면)
+        if "." in now_iso:
+            ts = now_iso.split(".")[0] + "Z"
+        else:
+            ts = now_iso.replace("+00:00", "Z")
 
+    # v0.7.0 fix: entry_lines 시작에 "" 제거 (leading newline 방지).
+    # 기존 line 226 에서 existing 에 "\n" 자동 추가하므로, 두 번째+ append 시
+    # leading newline 이 entry header 앞에 안 생김.
     entry_lines: list[str] = [
-        "",
         f"## [Stage: {completion.stage_name}] [{ts}]",
         f"**Stage**: {completion.stage_name}",
         f"**Status**: {completion.stage_status}",

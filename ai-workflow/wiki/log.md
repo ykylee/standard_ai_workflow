@@ -491,3 +491,47 @@ updated: 2026-06-12
   2. v0.7.1: SEC-WF-05 dependency integrity 검증 — `07-dependencies.md` 의 lock file + checksum 자동 확인
   3. v0.7.1: 9-Artifact 별 wiki L1 page (각 artifact 마다 L1 topic page + L2 sources/)
   4. v0.8.0: Artifact 별 version diff (이전 reverse engineering 대비 변경점)
+
+## [2026-06-13] v0.7.0 step 7 | Extension 시스템 일반화 (5 file, +23 test PASS)
+
+- **Trigger**: v0.7.0 step 8 의 security-baseline 1종 출시 후, 3종 extension (security / testing / performance) 일반화 + SCHEMA.md SSOT. yklee 승인, step 7 진행
+- **1차 출처**: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/` 3종 (commit b19c819, 2026-06-08)
+- **Scope 결정**: SCHEMA.md (extension file format SSOT) + 2종 extension (testing + performance) 1차 출시. security opt-in 은 SCHEMA 형식으로 update (P) Partial 옵션 추가)
+- **Commit (예정)**: 6 file, +line
+  - `workflow-source/extensions/SCHEMA.md` (170 line, NEW): extension system SSOT (Directory Layout, File Format, Rule ID Convention, Hard Constraint 정책, Lint Rule 10종, Helper Contract v0.7.1+)
+  - `workflow-source/extensions/testing-baseline.md` (130 line, NEW, 6 rule TST-WF-01~06): AIDLC PBT 1:1 적응 (PBT-05/06/08 N/A)
+  - `workflow-source/extensions/testing-baseline.opt-in.md` (80 line, NEW): A/B/P/X 4 옵션 + State File Schema + Extension Configuration table
+  - `workflow-source/extensions/performance-baseline.md` (130 line, NEW, 6 rule PERF-WF-01~06): 우리 domain 적응 (workflow runtime — Smoke Test Time / Module Import / Memory Footprint / Audit Log Latency / state.json Latency / Profiling Hook)
+  - `workflow-source/extensions/performance-baseline.opt-in.md` (80 line, NEW): 동일 형식
+  - `workflow-source/extensions/security-baseline.opt-in.md` (UPDATE): SCHEMA 형식으로 정합 (P) Partial 옵션 + Response Processing + Extension Configuration table 추가)
+  - `workflow-source/tests/check_extension_system.py` (290 line, NEW, 23 test PASS):
+    - SCHEMA.md 검증 (5): 존재 / Directory Layout / File Format / Prefix Convention / Lint Rule
+    - 3종 extension baseline + opt-in (3): present / no_extra_baseline_files / rule_count
+    - baseline 형식 (4): rule_id_format / rule+verification / compliance_summary / no_duplicate_rule_ids
+    - opt-in 형식 (4): question_format / four_options / response_processing / state_schema
+    - AIDLC cross-reference (2): 1차 출처 path valid / artifact count
+    - 추가 (5): extension unique prefix / 6 rules / helper contract / follow-up
+- **Test bug fix (보너스)**:
+  - `check_extension_system.py` 의 AIDLC path 결합 중복 (`aidlc_root/extensions/extensions/...`) → `aidlc_root` (parent) 로 fix
+  - `security-baseline.opt-in.md` update 시 기존 `check_security_baseline.py` 의 `opt_in_response_format_documented` 회귀 → `Extension Configuration` table 보존 + SCHEMA 형식 (State File Schema YAML) 추가
+  - 모든 3종 opt-in 에 `security_baseline_status.md` 형식 (`Extension Configuration` table) 일관성 추가
+- **검증**:
+  - 신규 23 test PASS
+  - 기존 107 test 모두 PASS — 회귀 0
+  - 누적 **130 test PASS** (v0.6.4-7 + v0.7.0 step 1, 6, 8, 9, 10, 7)
+  - AIDLC 3종 extension (security / testing / resiliency) cross-reference 검증
+- **누적 v0.7.0 step 진행**:
+  - ✅ Step 1: stage_completion required 격상 (commit 6e57cf3)
+  - ✅ Step 6: Reverse Engineering 9-Artifact (commit 4bbd391)
+  - ✅ Step 7: Extension 시스템 일반화 (본 commit)
+  - ✅ Step 8: Security-baseline 1종 (commit dc2c22b)
+  - ✅ Step 9: Unit of Work 3-layer template (commit c981cac)
+  - ✅ Step 10: Audit Log 표준화 (commit 54e96a9)
+  - **🎉 v0.7.0 6 step 전부 완료**
+- **Follow-up (v0.7.1+)**:
+  1. `workflow_kit.common.contracts.{security,testing,performance}_baseline.evaluate_compliance()` helper 구현 (3종)
+  2. session-start 에 3종 opt-in prompt 통합
+  3. `state.json` 의 `<name>_baseline` 필드 schema validation
+  4. v0.8.0: sub-cat 도입 (e.g. `extensions/security/auth/`, `extensions/testing/property-based/`)
+  5. v0.8.0: 4종 (resiliency) 추가 — workflow_kit health check + 장애 대응
+  6. v0.7.0 release: packaging (5 harness) + GitHub release v0.7.0

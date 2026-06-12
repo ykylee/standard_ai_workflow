@@ -163,20 +163,25 @@ Audit log 정책:
 
 ## §8 11종 Skill 별 Stage Name  {#s8-skill-stages}
 
-| Skill | Stage Name | Next Stage (typical) |
-|---|---|---|
-| `session-start` | `session-start` | (없음 — task selection) |
-| `backlog-update` | `backlog-update` | (없음 — task execution) |
-| `doc-sync` | `doc-sync` | `validation-plan` 또는 다음 skill |
-| `merge-doc-reconcile` | `merge-doc-reconcile` | (없음) |
-| `validation-plan` | `validation-plan` | `code-index-update` 또는 task execution |
-| `code-index-update` | `code-index-update` | (없음) |
-| `workflow-linter` | `workflow-linter` | (없음) |
-| `project-status-assessment` | `project-status-assessment` | (없음) |
-| `git-conflict-resolver` | `git-conflict-resolver` | (없음) |
-| `robust-patcher` | `robust-patcher` | `validation-plan` |
-| `automated-repro-scaffold` | `automated-repro-scaffold` | `validation-plan` |
-| `memory-freeze` (v0.6.1+ 신규) | `memory-freeze` | (없음) |
+| Skill | Stage Name | Next Stage (typical) | v0.6.5 spec 적용 |
+|---|---|---|---|
+| `session-start` | `session-start` | (없음 — task selection) | ✅ spec 적용 (commit `5b16517`) |
+| `backlog-update` | `backlog-update` | (없음 — task execution) | ✅ spec 적용 |
+| `doc-sync` | `doc-sync` | `validation-plan` 또는 다음 skill | ✅ spec 적용 |
+| `merge-doc-reconcile` | `merge-doc-reconcile` | (없음) | ✅ spec 적용 |
+| `validation-plan` | `validation-plan` | `code-index-update` 또는 task execution | ✅ spec 적용 |
+| `code-index-update` | `code-index-update` | (없음) | ✅ spec 적용 |
+| `workflow-linter` | `workflow-linter` | (없음) | ✅ SKILL.md cross-ref |
+| `project-status-assessment` | `project-status-assessment` | (없음) | ✅ SKILL.md cross-ref |
+| `git-conflict-resolver` | `git-conflict-resolver` | (없음) | ✅ SKILL.md cross-ref |
+| `robust-patcher` | `robust-patcher` | `validation-plan` | ✅ SKILL.md cross-ref |
+| `automated-repro-scaffold` | `automated-repro-scaffold` | `validation-plan` | ✅ spec 적용 |
+| `memory-freeze` (v0.6.1+ 신규) | `memory-freeze` | (없음) | ✅ SKILL.md cross-ref |
+
+v0.6.5 (commit `5b16517`) 의 일괄 적용:
+- 7종 spec (§4 출력 계약 끝에 `### 4.1. stage_completion` subsection 추가, 26 line each)
+- 5종 SKILL.md cross-ref (14 line each)
+- `workflow_skill_catalog.md` §5.2 신규 (+25 line)
 
 ## §9 Question File Format 과의 결합  {#s9-binding}
 

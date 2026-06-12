@@ -193,3 +193,26 @@ updated: 2026-06-12
 - **영향**: 11종 skill spec 의 §X Output Contract 에 `stage_completion` field 추가 권장 (v0.6.5 follow-up). 본 wiki page 의 Stage Gate 정책은 11종 skill 의 표준 패턴
 - **Cross-ref**: [[concepts/question-file-format]] ↔ [[concepts/stage-gate-pattern]] 상호 cross-ref. [[topics/aidlc-benchmark-analysis-2026-06-12]] §4 의 A + C 보완안 = 본 commit
 - **Follow-up (v0.6.5 후보)**: 11종 skill spec 의 Output Contract 에 `stage_completion` field 추가 (각 5-10 line, ~80 line). 1 commit
+
+## [2026-06-12] v0.6.5 | StageCompletion field 11종 skill spec + catalog 보강 (13 file, +277 line)
+
+- **Trigger**: v0.6.4 의 Stage Gate Pattern (commit 25756bb) 의 runtime 적용. yklee 승인
+- **Commit (5b16517)**: 13 file, +277 line
+  - 7 skill spec §4 출력 계약 보강 (+182 line, 26 each):
+    session-start, backlog-update, doc-sync, merge-doc-reconcile, validation-plan, code-index-update, automated-repro-scaffold
+  - 5 SKILL.md cross-ref (+70 line, 14 each):
+    memory-freeze, git-conflict-resolver, robust-patcher, workflow-linter, project-status-assessment
+  - workflow_skill_catalog.md §5.2 신규 (+25 line)
+- **Helper script** (일회용, git 미포함):
+  - /tmp/v0_6_5_inject_stage_completion.py — 7 spec 에 stage_completion subsection 일괄 삽입
+  - /tmp/v0_6_5_fix_backticks_v2.py — backtick nesting 4 file fix
+  - /tmp/v0_6_5_inject_skill_cross_ref.py — 5 SKILL.md cross-ref 일괄 추가
+- **Bug fix (helper 실행 중 발견)**:
+  - 첫 helper 가 `### 4.X.` placeholder 사용 → spec 별 subsection 자동 계산 (4.1 등) 로 fix
+  - 첫 helper 의 backtick nesting (` ``X` ``) → sed 가 일부만 fix → python script v2 로 재실행
+- **L1 wiki stage-gate-pattern §8 갱신**: 11종 skill table 에 "v0.6.5 spec 적용" column 추가
+- **Linter 영향**: V-1 PASS / V-4 PASS (37 entries) / V-R9 PASS — 변경 없음 (코드 변경 0)
+- **Follow-up (별도 session, runtime migration)**:
+  1. 11종 skill 의 Python 구현이 `StageCompletion` 객체를 output 에 포함하도록 코드 변경
+  2. orchestrator 측 `emit_completion_message` 호출 후 user response → `append_audit_log` 자동
+  3. AIDLC 호환 검증

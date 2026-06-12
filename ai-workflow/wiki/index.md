@@ -10,6 +10,8 @@
 ### [[concepts/contract-v1-output-validation]] {#contract-v1-output-validation}
 ### [[concepts/agent-topology]] {#agent-topology}
 ### [[concepts/harness-distribution]] {#harness-distribution}
+### [[concepts/question-file-format]] {#question-file-format}
+### [[concepts/stage-gate-pattern]] {#stage-gate-pattern}
 ### [[INGEST_GUIDE]] {#ingest-guide}
 
 ## Decisions

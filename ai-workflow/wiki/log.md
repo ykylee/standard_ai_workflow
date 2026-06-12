@@ -169,3 +169,27 @@ updated: 2026-06-12
   1. v0.6.4: Question File Format (A) + Stage Gate 명시화 (C) — yklee 승인 시
   2. v0.7.0: Extension 시스템 (B) + security-baseline
   3. ADR-NNN: Operations phase 도입 여부 (N)
+
+## [2026-06-12] v0.6.4 | Question File Format + Stage Gate 명시화 (4 doc, 1347 line 코드+테스트)
+
+- **Trigger**: AIDLC 벤치마크 분석 (commit 2916d49) 의 보완안 §4 A + C 채택. yklee 승인, 즉시 작업 시작
+- **Commit 1 (25756bb)**: 4 doc 신규/수정 (498 line)
+  - 신규 spec 2종: `question_file_format.md` (204) + `stage_gate_pattern.md` (207)
+  - `output_schema_guide.md` §3.4 stage_completion Pydantic v2 schema (+40)
+  - `workflow_adoption_entrypoints.md` §7 v0.6.4 권장 도입 묶음 (+47)
+- **Commit 2 (bc16d91)**: 2 module + 2 smoke test (1347 line, 22 test PASS)
+  - `workflow_kit/common/contracts/question_format.py` (358) — parse_answers, validate_answers, detect_ambiguity, detect_contradiction, generate_clarification_file, full_validation
+  - `workflow_kit/common/contracts/stage_gate.py` (335) — StageCompletion dataclass, validate_completion, require_explicit_approval (auto 한계), append_audit_log, emit_completion_message, normalize_option_label
+  - `tests/check_question_format.py` (336) — 7 test PASS
+  - `tests/check_stage_gate_compliance.py` (318) — 15 test PASS
+- **Bug fix (구현 중 발견)**: `ANSWER_TAG_RE` 가 옵션 라벨 안의 '[Answer]:' 도 매칭 ('X) Other (please describe after [Answer]: tag below)' 의 'T' 매칭 오인). `^` anchor + 'letter' 그룹 '?' 로 fix. parser 가 Q3 의 빈 tag 를 Q2 의 T 로 오인하던 버그 → 정상
+- **신규 L1 wiki concept page 2종**:
+  - `concepts/question-file-format.md` (입력 단계, AIDLC common/question-format-guide.md 차용)
+  - `concepts/stage-gate-pattern.md` (출력 단계, AIDLC construction phase 차용)
+- **index.md**: ### [[concepts/question-file-format]] + ### [[concepts/stage-gate-pattern]] anchor 추가 (V-4 37 entries)
+- **L2 stub 2종 emit**: sources/concepts-question-file-format.md + sources/concepts-stage-gate-pattern.md (frontmatter + <needs content> placeholder, status: draft)
+- **L2 wiki index**: Concepts count 8 → 10 (33 page → 35 page)
+- **R-1/V-1/V-4/V-R9**: 모두 PASS
+- **영향**: 11종 skill spec 의 §X Output Contract 에 `stage_completion` field 추가 권장 (v0.6.5 follow-up). 본 wiki page 의 Stage Gate 정책은 11종 skill 의 표준 패턴
+- **Cross-ref**: [[concepts/question-file-format]] ↔ [[concepts/stage-gate-pattern]] 상호 cross-ref. [[topics/aidlc-benchmark-analysis-2026-06-12]] §4 의 A + C 보완안 = 본 commit
+- **Follow-up (v0.6.5 후보)**: 11종 skill spec 의 Output Contract 에 `stage_completion` field 추가 (각 5-10 line, ~80 line). 1 commit

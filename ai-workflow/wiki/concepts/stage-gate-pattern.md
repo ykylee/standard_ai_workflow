@@ -212,5 +212,6 @@ AIDLC 의 audit.md 가 이 결합을 자연스럽게 support.
 - 외부 spec: [`../../workflow-source/core/stage_gate_pattern.md`](../../workflow-source/core/stage_gate_pattern.md)
 - Output schema: [`../../workflow-source/core/output_schema_guide.md`](../../workflow-source/core/output_schema_guide.md) §3.4
 - Python helper: [`../../workflow-source/workflow_kit/common/contracts/stage_gate.py`](../../workflow-source/workflow_kit/common/contracts/stage_gate.py)
-- smoke test: [`../../workflow-source/tests/check_stage_gate_compliance.py`](../../workflow-source/tests/check_stage_gate_compliance.py)
+- **v0.6.5 Runtime migration**: [`../../workflow-source/core/stage_gate_runtime_migration.md`](../../workflow-source/core/stage_gate_runtime_migration.md), [`../../workflow-source/workflow_kit/common/contracts/stage_gate_runtime.py`](../../workflow-source/workflow_kit/common/contracts/stage_gate_runtime.py)
+- smoke test: [`../../workflow-source/tests/check_stage_gate_compliance.py`](../../workflow-source/tests/check_stage_gate_compliance.py) (15 test) + [`../../workflow-source/tests/check_stage_gate_runtime.py`](../../workflow-source/tests/check_stage_gate_runtime.py) (13 test, v0.6.5 신규)
 - AIDLC 원본: `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` §14

@@ -216,3 +216,35 @@ updated: 2026-06-12
   1. 11종 skill 의 Python 구현이 `StageCompletion` 객체를 output 에 포함하도록 코드 변경
   2. orchestrator 측 `emit_completion_message` 호출 후 user response → `append_audit_log` 자동
   3. AIDLC 호환 검증
+
+## [2026-06-12] v0.6.5 | Stage Gate Runtime helper + migration guide (3 file, +644 line, 13 test PASS)
+
+- **Trigger**: v0.6.5 spec 보강 (commit 5b16517) 의 runtime enforcement 인프라. yklee 승인
+- **Commit (dd98e69)**: 3 file, +644 line
+  - `workflow_kit/common/contracts/stage_gate_runtime.py` (186 line) — runtime helper 5 function
+    - build_stage_completion / merge_into_result / emit_and_log
+    - is_stage_completion_present / get_stage_status_from_result
+  - `tests/check_stage_gate_runtime.py` (292 line) — 13 test PASS
+    - build / merge / emit / audit log / 52 smoke test 호환 검증
+  - `core/stage_gate_runtime_migration.md` (166 line) — runtime migration 가이드
+    - §1 why: v0.6.4 이론 → v0.6.5 runtime 필요성
+    - §2 runtime helper API + 사용 예시
+    - §3 11종 skill code 변경 절차 (안전 순서, breaking 회피, stage name table)
+    - §4 smoke test 추가 (13 test)
+    - §5 AIDLC 호환 (이점 + 의도적 차이 2개)
+    - §6 follow-up (11 skill code 변경, v0.7.0 required 격상, orchestrator 통합)
+- **L1 wiki stage-gate-pattern §12 References 갱신**:
+  - `stage_gate_runtime_migration.md` + `stage_gate_runtime.py` + `check_stage_gate_runtime.py` cross-ref 추가
+- **Breaking change 회피 정책**: stage_completion 은 **optional field** 로 추가 (mandatory 아님)
+  - 기존 52 smoke test 의 schema validator 와 즉시 호환
+  - 11종 skill code 변경은 **점진 적용** (1 skill pilot → 회귀 검증 → batch)
+  - v0.7.0+ 에 모두 적용된 후 required 로 격상
+- **누적 v0.6.4-5 test PASS**:
+  - question_format: 7
+  - stage_gate_compliance: 15
+  - stage_gate_runtime: 13
+  - **총 35 test PASS**
+- **Follow-up (별도 commit)**:
+  1. 11종 skill `run_*.py` 에 stage_completion merge + emit_and_log 추가 (1-2 commit)
+  2. v0.7.0: stage_completion required 격상 + AIDLC 완전 호환 검증
+  3. v0.8.0: orchestrator 측 자동 emit_and_log 통합

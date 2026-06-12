@@ -17,6 +17,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.doc_sync import build_doc_sync_candidates
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.markdown import rel_link_from_doc
 from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
 from workflow_kit.common.project_docs import parse_project_profile_core
@@ -171,6 +172,17 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
 
+        # v0.6.5: stage_completion merge (pilot template, batch 적용)
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name="doc-sync",
+                stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                artifacts=["ai-workflow/memory/active/session_handoff.md"],
+                next_stage="validation-plan",
+                notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
+            ),
+        )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

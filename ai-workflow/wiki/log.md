@@ -120,3 +120,32 @@ updated: 2026-06-12
   - `log.md` (frontmatter 추가 — type: meta, r9_skip: true)
 - **검증**: V-1 PASS / V-4 PASS (34 entries) / **V-R9 PASS (0 violation)**. 17 false-positive → 0
 - **Cross-ref**: wiki vault 의 standard-ai-workflow project 영향 page 2 (wiki-log, wiki-ingest-guide) 의 last_touched 갱신 (wiki-event-sync v0.3.0)
+
+## [2026-06-12] ingest | 1 topic page (AIDLC benchmark analysis 2026-06-12)
+
+- **Trigger**: AWS AIDLC (`awslabs/aidlc-workflows`, commit `b19c819`) 풀 벤치마크 분석. yklee 의뢰, Mavis 실행 (2026-06-12, 풀 벤치마크 모드)
+- **신규 page**: `topics/aidlc-benchmark-analysis-2026-06-12.md` (1 page, ~290 lines, status: draft)
+  - **§1**: 분석 목적/범위
+  - **§2**: AIDLC 핵심 구조 요약 (3-Phase + 7대 결정적 차별 메커니즘)
+  - **§3**: 우리 v0.6.3-beta 와의 1:1 비교 (강점 8 + 갭 20)
+  - **§4**: 보완안 (도입 권장 ★★★ 4종 / 부분 도입 6종 / 비권장 3종 / ADR 후보 2종)
+  - **§5**: v0.6.3 → v0.7.0+ 권장 실행 순서 (12 step, 의존성 매트릭스)
+  - **§6**: R-1~R9 cross-cutting 정합성 체크리스트
+  - **§7**: 1차 출처 (16 file, AIDLC 13 + 우리 3) line-count 검증
+  - **§8**: 다음 단계
+- **R-9 면제**: codebase self-ingest (last_ingested_from = `workflow-source/core/global_workflow_standard.md + workflow-source/core/workflow_task_modes.md`, in-repo path)
+- **index.md anchor**: `### [[topics/aidlc-benchmark-analysis-2026-06-12]] {#aidlc-benchmark-analysis-2026-06-12}` 추가 (V-4 PASS, 35 entries)
+- **L2 mirror**: `~/wiki/wiki/projects/standard-ai-workflow/` 의 derived view 자동 emit (wiki-source-sync). topics/ 디렉토리 부재 → L2 sources/ 에 stub 또는 comparisons/ 신규 디렉토리 결정은 별도 turn
+- **AIDLC reference 1차 출처**:
+  - `awslabs/aidlc-workflows/README.md` (962 lines)
+  - `aidlc-rules/aws-aidlc-rules/core-workflow.md` (539 lines) — 3-Phase lifecycle
+  - `aidlc-rules/aws-aidlc-rule-details/inception/{workspace-detection, requirements-analysis, units-generation, workflow-planning}.md`
+  - `aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` (217 lines)
+  - `aidlc-rules/aws-aidlc-rule-details/common/{process-overview, depth-levels, question-format-guide}.md`
+  - `aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md` (307 lines) + `.opt-in.md`
+  - `docs/GENERATED_DOCS_REFERENCE.md` (102 lines)
+- **Follow-up 후보** (별도 turn):
+  1. v0.6.4: Question File Format (A) + Stage Gate 명시화 (C) — yklee 승인 시
+  2. v0.7.0: Reverse Engineering 9-Artifact (D) + Extension 시스템 (B) + Security-baseline extension (O)
+  3. ADR-NNN: Operations phase 도입 여부 (N) — yklee 별도 결정
+- **L1 ↔ L2 cross-ref**: 본 page → L2 derived view 자동 emit. vault L1 `standard-ai-workflow` project 영향 page 식별은 v0.3.0 wiki-event-sync 가 commit op 으로 자동 처리 (L2 wiki-log, 표준 ADRs 영향)

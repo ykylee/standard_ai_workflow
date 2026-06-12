@@ -48,3 +48,4 @@
 ### [[topics/standard-ai-workflow-architecture-2026]] {#standard-ai-workflow-architecture-2026}
 ### [[topics/harness-distribution-model]] {#harness-distribution-model}
 ### [[topics/wiki-ingest-lifecycle]] {#wiki-ingest-lifecycle}
+### [[topics/aidlc-benchmark-analysis-2026-06-12]] {#aidlc-benchmark-analysis-2026-06-12}

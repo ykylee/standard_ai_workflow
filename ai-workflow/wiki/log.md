@@ -38,3 +38,23 @@
 - ADR-001/002/003 mirror + ADR-004 extend + ADR-005 신규
 - 모두 R2 1 commit (5-15 page 동시 갱신) 준수
 - ADR-005 status=proposed (정식 accepted 시 status 갱신 필요)
+
+## [2026-06-12] ingest | phase-4-patterns-entities — 3 pattern + 12 entity (R2 batch 3, 15 page = 한도 매칭)
+
+- patterns/frozen-archive-immutability (119 lines, 3 cross-ref) — R8 freeze mechanism
+- patterns/wiki-stub-emit (104 lines, 3 cross-ref) — bootstrap_lib/wiki.py emitter
+- patterns/stale-90day-lint (74 lines, 4 cross-ref) — L05 stale 90일+ lint
+- entities/standard-ai-workflow (159 lines, 21 cross-ref) — PRIMARY hub entity
+- entities/workflow-kit (73 lines, 6 cross-ref) — Python package
+- entities/workflow-source (73 lines, 11 cross-ref) — SSOT source dir
+- entities/ai-workflow-runtime (71 lines, 5 cross-ref) — runtime layer
+- entities/skill-catalog (107 lines, 7 cross-ref) — 11 skills
+- entities/mcp-read-only-bundle (91 lines, 9 cross-ref) — 6+1 MCP servers
+- entities/harness-overlay-codex (105 lines, 6 cross-ref) — Codex
+- entities/harness-overlay-opencode (80 lines, 8 cross-ref) — OpenCode 5-agent
+- entities/harness-overlay-gemini-cli (72 lines, 10 cross-ref) — Gemini CLI
+- entities/harness-overlay-antigravity (92 lines, 10 cross-ref) — Antigravity
+- entities/harness-overlay-minimax-code (87 lines, 13 cross-ref) — MiniMax Code
+- entities/harness-overlay-pi-dev (71 lines, 5 cross-ref) — pi-dev
+- 합계 15 page, 1378 lines, 121 cross-ref (15 page 평균 8.07)
+- R2 1 commit = 1 ingest (5-15 page 동시 갱신) 한도 정확히 매칭 (15 page)

@@ -248,3 +248,24 @@ updated: 2026-06-12
   1. 11종 skill `run_*.py` 에 stage_completion merge + emit_and_log 추가 (1-2 commit)
   2. v0.7.0: stage_completion required 격상 + AIDLC 완전 호환 검증
   3. v0.8.0: orchestrator 측 자동 emit_and_log 통합
+
+## [2026-06-12] v0.6.5 | pilot runtime — automated-repro-scaffold stage_completion 통합 (1 file, +44 line)
+
+- **Trigger**: runtime migration (commit dd98e69) 의 1차 pilot. yklee 승인
+- **Commit (2fab835)**: 1 file, +44 line
+  - `automated_repro_scaffold.py` — 3 result build path 모두 stage_completion merge
+    - report_file_not_found: stage_status=error, next_stage=None
+    - success: stage_status=ok, next_stage=validation-plan
+    - repro_write_failed: stage_status=error, next_stage=None
+- **Bug fix (pre-existing, 발견)**: error path 의 `build_error_result()` 가 `warnings` keyword-only arg 누락 → TypeError → 본 pilot 적용 중 발견, fix 포함. latent 버그 (v0.6.5 이전부터 존재, error path 즉시 crash)
+- **Stage Name 매핑**: STAGE_NAME = "automated-repro-scaffold", NEXT_STAGE = "validation-plan" (workflow_skill_catalog.md §5.2 와 일치)
+- **검증**:
+  - happy path 실제 실행: stage_completion 8 field 모두 포함 + 기존 field 보존 ✅
+  - error path 실제 실행: stage_status=error, next_stage=None ✅
+  - 35 smoke test 모두 PASS (7 question_format + 15 stage_gate_compliance + 13 stage_gate_runtime) — 회귀 0
+- **Follow-up (별도 commit, batch)**:
+  1. session-start, backlog-update, doc-sync, merge-doc-reconcile, validation-plan, code-index-update (6 spec) — 각 1 commit 또는 batch 1-2 commit
+  2. workflow-linter, project-status-assessment, memory-freeze, git-conflict-resolver, robust-patcher (5 SKILL.md cross-ref 만) — 1 commit
+  3. runtime 적용 후 L1 wiki 11종 skill table 의 'runtime 적용' column 갱신
+  4. v0.7.0: stage_completion required 격상
+  5. v0.8.0: orchestrator 측 자동 emit_and_log 통합

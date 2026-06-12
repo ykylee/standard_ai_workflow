@@ -12,6 +12,15 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
+# v0.6.5 stage_completion integration (runtime migration pilot)
+from workflow_kit.common.contracts.stage_gate_runtime import (
+    build_stage_completion, merge_into_result,
+)
+
+# v0.6.5 spec 보강 (commit 5b16517) — Stage Name 매핑
+STAGE_NAME = "automated-repro-scaffold"
+NEXT_STAGE = "validation-plan"  # repro script → validation-plan 으로 진행
+ARTIFACTS_TEMPLATE = ["<repro_script_path>"]  # runtime 에서 args.output 으로 채움
 
 def main():
     parser = argparse.ArgumentParser(description="Automated Bug Reproduction Scaffolder (Prototype)")
@@ -26,7 +35,19 @@ def main():
             tool_version=TOOL_VERSION,
             error=f"리포트 파일을 찾을 수 없다: {args.report}",
             error_code="report_file_not_found",
+            warnings=[f"report file not found: {args.report}"],
             source_context=source_context,
+        )
+        # v0.6.5: stage_completion merge (status: error, gate 정지)
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name=STAGE_NAME,
+                stage_status="error",
+                artifacts=[args.output],
+                next_stage=None,  # error 시 다음 stage 없음
+                notes=[f"report file not found: {args.report}"],
+            ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         sys.exit(1)
@@ -76,6 +97,17 @@ if __name__ == "__main__":
             "warnings": ["이것은 자동 생성된 프로토타입입니다. 수동 조정이 필요할 수 있습니다."],
             "source_context": source_context,
         }
+        # v0.6.5: stage_completion merge (status: ok, validation-plan 으로 진행)
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name=STAGE_NAME,
+                stage_status="ok",  # legacy "success" → "ok" 매핑
+                artifacts=[args.output],
+                next_stage=NEXT_STAGE,
+                notes=[f"repro script generated: {args.output}"],
+            ),
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
 
     except Exception as e:
@@ -83,7 +115,19 @@ if __name__ == "__main__":
             tool_version=TOOL_VERSION,
             error=f"재현 스크립트 작성 중 오류가 발생했다: {str(e)}",
             error_code="repro_write_failed",
+            warnings=[f"repro write failed: {str(e)[:200]}"],
             source_context=source_context,
+        )
+        # v0.6.5: stage_completion merge (status: error)
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name=STAGE_NAME,
+                stage_status="error",
+                artifacts=[args.output],
+                next_stage=None,
+                notes=[f"repro write failed: {str(e)[:100]}"],
+            ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         sys.exit(1)

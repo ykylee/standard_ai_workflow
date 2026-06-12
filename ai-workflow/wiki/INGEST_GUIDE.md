@@ -1,10 +1,17 @@
 ---
 type: concept
 status: active
-last_ingested_from: .omo/plans/v0.6.1-plus-codebase-ingest-design.md
+last_ingested_from: .omo/plans/llm-wiki-convergence-design.md
 related_pages: [concepts/project-architecture, decisions/adr-004-wiki-layer, patterns/r4-anchor-index, entities/bootstrap-wiki-py]
 created: 2026-06-12
 updated: 2026-06-12
+backfilled_at: 2026-06-12
+backfill_note: |
+  v0.6.3 P7 검증 중 INGEST_GUIDE frontmatter 의 last_ingested_from 이
+  .omo/plans/v0.6.1-plus-codebase-ingest-design.md 였으나 해당 plan 파일은
+  소스/raw mirror 어느 쪽에도 존재하지 않음. 가장 의미적으로 가까운
+  master plan 인 .omo/plans/llm-wiki-convergence-design.md 로 정정.
+  (INGEST_GUIDE 본문 §7 의 "다음에 읽을 문서" 도 동일 plan 을 가리킴)
 ---
 
 # INGEST_GUIDE — Codebase Ingest into Runtime Wiki (Phase 1-7)

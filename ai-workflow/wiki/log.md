@@ -76,3 +76,16 @@
 - L1 V-1 (location) PASS, V-4 (index structure) PASS (34 entries validated)
 - L1 V-R9 (source rule): 16 false-positive — R9 rule 자체를 설명하는 5 page 가 의도적으로 `active/` mention. v0.6.1.5 의 R9 lint 구현은 naive grep 기반 — skip marker 또는 smart parser 가 후속 작업
 - L1 commit a5762e5
+
+## [2026-06-12] backfill | phase-6-verification — P6 close + A1~A4 audit
+
+- **Trigger**: P7 검증 재방문 중 INGEST_GUIDE §2 phase 표 와 실제 commit history 의 gap 발견 (P1~P5, P7 만 존재, P6 누락)
+- **A1 (L2 lint)**: `~/wiki/_lint/report_2026-06-12.md` — 0 error / 0 warn / 0 info (pages=420). P7 L2 part PASS
+- **A2 (wiki-source-sync idempotent)**: `~/wiki/wiki/projects/standard-ai-workflow/sources/` = 494 stub. raw mirror 의 ADR-001~004 풀네임 → L2 kebab-case stem 매칭 정상 (e.g. `architecture-adr-001-source-state-knowledge-3-layer-separation.md`). P6 mass source stub emit 완료
+- **A3 (L1 ↔ L2 cross-layer 정합)**: L1 28 page 의 last_ingested_from 34 unique path 검증
+  - 22 paths OK (raw mirror 매칭)
+  - 4 paths synthetic/glob: `dist/harnesses/*/v0.6.3-beta/`, `dist/harnesses/opencode/v0.6.3-beta/agents/` (의도된 glob), `v0.6.3-beta release notes` (multi-file composite), `ai-workflow/wiki/INGEST_GUIDE.md` (L1 자기 자신)
+  - 3 ADR-001/002/004 는 body 의 `[ADR-NNN file](../../docs/architecture/...)` 가 실제 raw mirror 와 매칭, frontmatter 의 last_ingested_from 부재는 정합 OK
+  - **1 fix**: INGEST_GUIDE frontmatter `last_ingested_from: .omo/plans/v0.6.1-plus-codebase-ingest-design.md` → `.omo/plans/llm-wiki-convergence-design.md` (해당 plan 은 소스/raw 어느 쪽에도 미존재, master plan 으로 정정). body §7 의 "다음에 읽을 문서" 도 동일 plan 가리킴
+- **A4 (log 정합)**: 본 entry (L1) + L2 `~/wiki/log.md` 에 동기 entry append. P6 자체는 emit 됐지만 log 만 누락된 상태에서 backfill
+- **P6 close**: mass source stub emit (494 files) 완료 + L2 lint 0/0/0 + L1 ↔ L2 cross-layer 정합 + log 보강. R8/R9 life-cycle 과 R7 distributed sync 의 runtime layer 검증 가능 상태

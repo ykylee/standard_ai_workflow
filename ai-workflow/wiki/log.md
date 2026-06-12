@@ -330,3 +330,29 @@ updated: 2026-06-12
   3. v0.7.0: Extension 시스템 (B) + security-baseline 1종
   4. v0.8.0: orchestrator 측 자동 emit_and_log 통합
   5. ADR-NNN: Operations phase 도입 여부
+
+## [2026-06-12] v0.6.6 follow-up #1 | 5 SKILL.md-only skill runtime 통합 (12/12 일관성)
+
+- **Trigger**: v0.6.5 release (commit 3897da7) follow-up #1. yklee 승인
+- **Commit (6a9126c)**: 5 file, +148 line
+  - 4 file batch (기존 run_*.py 보강, +44 line):
+    - workflow-linter (Pydantic model_dump)
+    - project-status-assessment (plain dict)
+    - memory-freeze (payload dict)
+    - git-conflict-resolver (Pydantic model_dump)
+  - 1 file 신규 (robust_patcher, +104 line):
+    - run_robust_patcher.py — patch_engine.py library function 호출하는 runtime entry
+    - STAGE_NAME = "robust-patcher", NEXT_STAGE = "validation-plan"
+- **Helper script** (일회용, git 미포함):
+  - /tmp/v0_6_6_runtime_skill_md_only.py — 4 file 일괄 + 1 file 신규 작성
+  - 1st run: success path 식별 버그 (window 5 line 부족, return 0 at line 176) → rollback → fix (window 8 line) → 2nd run PASS
+- **검증**:
+  - syntax check: 5 file 모두 통과
+  - merge block 정확: pilot template 일관성
+  - 35 smoke test 모두 PASS (회귀 0)
+- **누적 12/12 일관성**: spec 7 + SKILL.md 5 + runtime 12 (모두 완료)
+- **Follow-up (별도 commit)**:
+  1. v0.7.0: stage_completion required 격상 (모든 skill 적용 완료, 본 commit 으로 가능)
+  2. v0.7.0: Extension 시스템 (B) + security-baseline 1종
+  3. v0.8.0: orchestrator 측 자동 emit_and_log 통합
+  4. ADR-NNN: Operations phase 도입 여부

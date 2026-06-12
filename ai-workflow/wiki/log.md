@@ -26,3 +26,15 @@
 - harness-distribution.md (103 lines, 7 cross-ref) — 6-harness overlay + bundle structure + export workflow
 - 합계 631 lines, 36 cross-ref (5 page 평균 7.2)
 - 모두 R2 1 commit (5-15 page 동시 갱신) 준수, R3 pull-before-push 대기
+
+## [2026-06-12] ingest | phase-3-decisions — 4 ADR 신규 + 1 ADR extend
+
+- decisions/adr-001-3-layer-separation (112 lines, 7 cross-ref, accepted v0.5.2) — Source/State/Knowledge 3-layer 분리
+- decisions/adr-002-pydantic-v2-contract-v1 (111 lines, 6 cross-ref, accepted v0.5.4) — 외부 markdown spec + Pydantic v2 helper 결합
+- decisions/adr-003-read-only-mcp-default (114+12 lines, 3 cross-ref, accepted v0.5.5) — MCP 6+1 server + 2 transport 의 read-only default
+- decisions/adr-004-wiki-layer (37 → 114 lines, 7 cross-ref, accepted v0.6.0) — extend: frontmatter 정규화 + v0.6.1+ Evolution (R8/R9) + References 추가
+- decisions/adr-005-r9-wiki-source-rule (119 lines, 22 cross-ref, proposed v0.6.1.5) — R9 rule 의 정식 ADR 승격
+- 합계 5 page, 570 lines (extend 포함), 45 cross-ref (5 page 평균 9.0)
+- ADR-001/002/003 mirror + ADR-004 extend + ADR-005 신규
+- 모두 R2 1 commit (5-15 page 동시 갱신) 준수
+- ADR-005 status=proposed (정식 accepted 시 status 갱신 필요)

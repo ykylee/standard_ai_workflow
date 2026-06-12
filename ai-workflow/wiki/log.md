@@ -535,3 +535,35 @@ updated: 2026-06-12
   4. v0.8.0: sub-cat 도입 (e.g. `extensions/security/auth/`, `extensions/testing/property-based/`)
   5. v0.8.0: 4종 (resiliency) 추가 — workflow_kit health check + 장애 대응
   6. v0.7.0 release: packaging (5 harness) + GitHub release v0.7.0
+
+## [2026-06-13] v0.7.0 | Release — AIDLC 6 step 완료 (15 commit, ~3,200 line, 130 test PASS)
+
+- **Trigger**: v0.7.0 6 step (Stage Completion Required / Audit Log / UOW Template / Security Baseline / Reverse Engineering / Extension System) 모두 완료. AIDLC (`awslabs/aidlc-workflows`, commit b19c819) 의 7대 차별 메커니즘 중 3개 채택.
+- **Release notes**: `workflow-source/releases/Beta-v0.7.0.md` (NEW)
+- **6 step 회고** (commit 6e57cf3 → 0052da1):
+  - Step 1 (commit 6e57cf3): stage_completion required 격상 — +319 line, 8 test PASS
+  - Step 10 (commit 54e96a9): Audit Log 표준화 + 2 latent bug fix — +637 line, 13 test PASS
+  - Step 9 (commit c981cac): Unit of Work 3-layer template — +622 line, 17 test PASS
+  - Step 8 (commit dc2c22b): Security-baseline 1종 — +558 line, 15 test PASS
+  - Step 6 (commit 4bbd391): Reverse Engineering 9-Artifact — +925 line, 19 test PASS
+  - Step 7 (commit 0052da1): Extension 시스템 일반화 (3종) — +1150 line, 23 test PASS
+- **핵심 적응 비율** (AIDLC 1차 출처 → 우리):
+  - 15 SECURITY → 6 SEC-WF (40%, N/A: HTTP API / Lambda / RDS)
+  - 9 PBT → 6 TST-WF (67%, N/A: PBT-05/06/08)
+  - 16 RESILIENCY → 6 PERF-WF (38%, N/A: HA/DR/Incident)
+  - 9-Artifact 구조 100% 유지 (내용 압축)
+  - UOW 4종 → 3 layer (75%, 4종 과잉)
+- **누적 130 test PASS** (v0.6.5 35 → +95 신규) — 회귀 0
+- **신규 산출물 (~3,200 line)**:
+  - 외부 spec 8종 (reverse_engineering / SCHEMA / 3 extension baseline + 3 opt-in / unit_of_work_template / audit_log_standard)
+  - Reverse Engineering 9 artifact template
+  - workflow_kit module 3종 (stage_gate_runtime / audit_log + 1 update)
+  - smoke test 6종 (95 test PASS 신규)
+- **Follow-up (v0.7.1+)**:
+  1. `workflow_kit.common.contracts.{security,testing,performance}_baseline.evaluate_compliance()` 3종
+  2. session-start 에 3종 opt-in prompt 통합
+  3. `state.json` 의 `<name>_baseline` 필드 schema validation
+  4. PERF-WF-03 (memory 자동 측정) + PERF-WF-06 (profiling decorator)
+  5. v0.8.0: Extension sub-cat 도입 + 4종 (resiliency) 추가
+  6. v0.7.0 packaging (5 harness) + GitHub release v0.7.0
+- **🎉 v0.7.0 6 step 전부 완료** — AIDLC 채택 3/7 (Question File Format [v0.6.4] / Stage Gate Pattern [v0.6.5] / Extension 시스템 + Reverse Engineering 9-Artifact [v0.7.0])

@@ -149,3 +149,23 @@ updated: 2026-06-12
   2. v0.7.0: Reverse Engineering 9-Artifact (D) + Extension 시스템 (B) + Security-baseline extension (O)
   3. ADR-NNN: Operations phase 도입 여부 (N) — yklee 별도 결정
 - **L1 ↔ L2 cross-ref**: 본 page → L2 derived view 자동 emit. vault L1 `standard-ai-workflow` project 영향 page 식별은 v0.3.0 wiki-event-sync 가 commit op 으로 자동 처리 (L2 wiki-log, 표준 ADRs 영향)
+
+## [2026-06-12] promote | topics/aidlc-benchmark-analysis-2026-06-12 (draft → active)
+
+- **Trigger**: 4-channel 동기화 (L1 page/index/log + L2 stub/index/log) 완료 후 status 승격
+- **대상 page**: `topics/aidlc-benchmark-analysis-2026-06-12.md` (frontmatter status: draft → active)
+- **전환 근거 (R-1 / V-1 / V-4 / V-R9)**:
+  - V-1 (위치 단일성): `ai-workflow/wiki/topics/` 단일 ✅
+  - V-4 (index anchor): `### [[topics/aidlc-benchmark-analysis-2026-06-12]]` 1+ inbound ✅
+  - V-R9: codebase self-ingest 면제, `last_ingested_from` = in-repo path ✅
+  - R-1 (inbound ≥ 1): `related_pages` 8 + index anchor 1 = 9 inbound ✅
+  - body stable: 분석 노트 SSOT, 갭 20 / 보완안 15 / 12 step 의존성 매트릭스 확정
+- **Frontmatter 보강**:
+  - `active_since: 2026-06-12`
+  - `active_reason: "draft → active (commit 2916d49 + cross-channel 동기화 완료). V-1 / V-4 / V-R9 / R-1 모두 PASS"`
+- **L2 cross-channel**: L2 stub (commit 9bea914) status: draft → reviewed, body fill (TL;DR + 7 mechanism + 우리 갭 Top 4 + 12 step) — L1 ↔ L2 SSOT ↔ derived view 3-tier 정합
+- **Linter 영향**: V-1 PASS / V-4 PASS (35 entries) / V-R9 PASS (0 violation) — 변경 없음
+- **Follow-up 후보** (별도 turn):
+  1. v0.6.4: Question File Format (A) + Stage Gate 명시화 (C) — yklee 승인 시
+  2. v0.7.0: Extension 시스템 (B) + security-baseline
+  3. ADR-NNN: Operations phase 도입 여부 (N)

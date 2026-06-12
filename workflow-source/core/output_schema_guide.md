@@ -83,13 +83,13 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `draft_entry` | 생성 초안 |
 | `reasoning_notes` | 추천 또는 판단 근거 |
 
-### 3.4 stage_completion 공통 필드 (v0.6.4 신규)
+### 3.4 stage_completion 공통 필드 (v0.6.4 신규, v0.7.0 부터 required)
 
 skill/MCP output 의 stage 끝에 사용자 explicit approval 을 받기 위한 공통 필드. AIDLC 의 2-option completion message 패턴을 차용한 우리 표준. 자세한 형식/적용/예외는 [`./stage_gate_pattern.md`](./stage_gate_pattern.md) 참조.
 
 | 필드 | 의미 | 타입 |
 | --- | --- | --- |
-| `stage_name` | stage 식별자 (예: `code-generation`, `requirements-analysis`, `merge-doc-reconcile`) | `str` |
+| `stage_name` | stage 식별자 (예: `code-generation`, `requirements-analysis`) | `str` |
 | `stage_status` | stage 자체의 실행 결과 (`ok`, `warning`, `error`) | `Literal` |
 | `next_stage` | 다음 stage 이름. workflow 끝이면 `None` | `str \| None` |
 | `requested_changes` | 사용자가 요청한 변경 사항 free text list | `list[str]` |
@@ -100,10 +100,16 @@ skill/MCP output 의 stage 끝에 사용자 explicit approval 을 받기 위한 
 
 권장 규칙:
 
-- 모든 skill/MCP output 은 `stage_completion` 필드를 포함해야 한다 (11종 skill + 8+ MCP).
+- **v0.7.0 부터 required**: 모든 skill/MCP output 은 `stage_completion` 필드를 *반드시* 포함해야 한다 (11종 skill + 8+ MCP). 12/12 일관성 달성 후 격상. `stage_gate_runtime.ensure_stage_completion()` 으로 lazy fallback 보장.
 - `requested_changes` 가 비어있고 `approval_timestamp` 가 None 이면 stage gate 미통과. 자동 다음 stage 진행 ❌.
 - `approval_actor: "auto"` 는 CI/CD timeout / cron / P0 hotfix 에서만 허용. production 코드 변경 / state 문서 갱신 / release 는 user approval mandatory.
 - audit log (`ai-workflow/memory/active/audit.md`) 에 append-only 기록 필수. ISO 8601 timestamp, raw user input, stage context.
+
+마이그레이션 가이드 (v0.6.5 → v0.7.0):
+
+1. **runtime layer**: 모든 skill 의 `run_*.py` success path + error path 에 `stage_completion` 자동 merge. v0.6.5 batch + pilot + follow-up 으로 12/12 적용 완료. v0.7.0 부터 mandatory.
+2. **sample output**: `workflow-source/examples/output_samples/*.json` 의 legacy sample (stage_completion 없는) 들은 v0.7.0 에서 자동 migration (별도 follow-up). 그 전까지는 legacy 호환.
+3. **MCP server** (8+): read_only bundle 의 stage_completion 적용은 v0.7.1+ 후보. 본 commit 범위 외.
 
 Pydantic v2 schema (참고):
 

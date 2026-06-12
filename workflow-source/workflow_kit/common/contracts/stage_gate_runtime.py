@@ -89,8 +89,10 @@ def merge_into_result(
         merged dict. 원본 result 는 변경 안 함 (copy 반환).
 
     Notes:
-        - 기존 52 smoke test 의 schema validator 와 호환:
-          stage_completion 이 optional field 이므로 없거나 추가되어도 PASS
+        - v0.7.0 부터 `stage_completion` 은 **required field** (12/12 일관성 달성).
+          모든 skill/MCP output 에 반드시 포함되어야 함.
+        - 기존 52 smoke test 와 호환: stage_completion 없는 legacy result 도
+          이 함수를 통해 추가 가능 (idempotent).
         - `status`, `tool_version`, `warnings`, `source_context` 등 공통 field 는 보존
     """
     merged = dict(result)
@@ -105,6 +107,40 @@ def merge_into_result(
             }
     merged["stage_completion"] = stage_completion
     return merged
+
+
+def ensure_stage_completion(
+    result: dict[str, Any],
+    stage_name: str,
+    *,
+    next_stage: str | None = None,
+    artifacts: list[str] | None = None,
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
+    """v0.7.0 신규. result dict 에 stage_completion 이 없으면 *자동 생성*.
+
+    12/12 일관성 달성 후 모든 skill 의 result 가 stage_completion 을 가져야 함.
+    그러나 legacy code path (error early-exit 등) 에서 stage_completion 이 빠질 수 있는
+    케이스를 보호. ensure_stage_completion() 이 lazy fallback.
+
+    Args:
+        result: 기존 skill output dict
+        stage_name: 자동 생성 시 사용할 stage 식별자
+        next_stage, artifacts, notes: build_stage_completion() 의 args
+
+    Returns:
+        stage_completion 이 있으면 그대로, 없으면 자동 생성 후 merge 한 dict.
+    """
+    if is_stage_completion_present(result):
+        return result
+    sc = build_stage_completion(
+        stage_name=stage_name,
+        stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+        artifacts=artifacts or [],
+        next_stage=next_stage,
+        notes=notes or ([result.get("summary", "")[:200]] if result.get("summary") else []),
+    )
+    return merge_into_result(result, sc, overwrite=False)
 
 
 def emit_and_log(

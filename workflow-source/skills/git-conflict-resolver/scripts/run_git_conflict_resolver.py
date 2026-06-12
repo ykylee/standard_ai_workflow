@@ -114,6 +114,18 @@ def main() -> int:
         }
     )
 
+    result = output.model_dump()
+        # v0.6.6 follow-up: stage_completion merge (pilot template)
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name="git-conflict-resolver",
+                stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                artifacts=["(resolved_conflicts)"],
+                next_stage=None,
+                notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
+            ),
+        )
     print(json.dumps(output.model_dump(), ensure_ascii=False, indent=2))
     return 0
 

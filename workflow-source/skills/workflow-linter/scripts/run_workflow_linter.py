@@ -17,6 +17,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.paths import resolve_existing_path, workflow_branch_dir, workflow_memory_dir
 from workflow_kit.common.linter import check_workflow_consistency, check_maturity_consistency
 from workflow_kit.common.schemas import WorkflowLinterOutput, Status
@@ -142,6 +143,18 @@ def main() -> int:
             source_context=source_context
         )
         
+        result = output_model.model_dump()
+            # v0.6.6 follow-up: stage_completion merge (pilot template)
+            result = merge_into_result(
+                result,
+                build_stage_completion(
+                    stage_name="workflow-linter",
+                    stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                    artifacts=["(workflow_linter_report)"],
+                    next_stage=None,
+                    notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
+                ),
+            )
         print(json.dumps(output_model.model_dump(), ensure_ascii=False, indent=2))
         return 0
 

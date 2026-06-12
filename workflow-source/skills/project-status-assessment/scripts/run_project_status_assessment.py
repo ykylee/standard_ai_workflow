@@ -17,6 +17,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
+from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.exploration import analyze_repo_structure, guess_run_command
 from workflow_kit.common.runner import (
@@ -167,6 +168,15 @@ def main() -> int:
                     "report_preview": report_lines[:15] # Top part of the report
                 }
             )
+                # v0.6.6 follow-up: stage_completion merge (pilot template)
+                project-status-assessment_completion = build_stage_completion(
+                    stage_name="project-status-assessment",
+                    stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                    artifacts=["(project_status_report)"],
+                    next_stage=None,
+                    notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
+                )
+                result = merge_into_result(result, project-status-assessment_completion)
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(report_content)

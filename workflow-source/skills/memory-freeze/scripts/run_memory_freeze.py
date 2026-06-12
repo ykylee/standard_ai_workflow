@@ -99,6 +99,15 @@ def main() -> int:
         "frozen_files": frozen_files,
         "file_count": len(frozen_files),
     }
+        # v0.6.6 follow-up: stage_completion merge (pilot template)
+        memory-freeze_completion = build_stage_completion(
+            stage_name="memory-freeze",
+            stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+            artifacts=["ai-workflow/memory/archive/<target_date>/"],
+            next_stage=None,
+            notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
+        )
+        result = merge_into_result(result, memory-freeze_completion)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 

@@ -5,6 +5,7 @@ last_ingested_from: ai-workflow/README.md
 related_pages: [entities/standard-ai-workflow, entities/workflow-source, concepts/memory-3-state-lifecycle, concepts/wiki-source-rule-r9]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # ai-workflow/

@@ -5,6 +5,7 @@ last_ingested_from: workflow-source/core/workflow_harness_distribution.md + work
 related_pages: [concepts/agent-topology, topics/harness-distribution-model]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # Harness Distribution: 6-Harness Overlay Model

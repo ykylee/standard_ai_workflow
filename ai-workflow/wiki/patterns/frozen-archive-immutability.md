@@ -5,6 +5,7 @@ used_in: [workflow-source/skills/memory-freeze, ai-workflow/memory/archive]
 related_components: [concepts/memory-3-state-lifecycle, concepts/wiki-source-rule-r9, decisions/adr-004-wiki-layer, decisions/adr-005-r9-wiki-source-rule]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # R8 Frozen-Archive Immutability Pattern

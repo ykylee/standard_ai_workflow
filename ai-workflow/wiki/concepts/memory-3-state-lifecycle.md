@@ -5,6 +5,7 @@ last_ingested_from: workflow-source/MEMORY_GOVERNANCE.md + .omo/plans/v0.6.1-plu
 related_pages: [concepts/project-architecture, concepts/wiki-source-rule-r9, patterns/frozen-archive-immutability, decisions/adr-005-r9-wiki-source-rule]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # Memory 3-State Lifecycle (v0.6.1+)

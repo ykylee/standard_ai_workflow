@@ -8,6 +8,7 @@ alternatives_considered: [memory-replacement, federated-wiki, crdt, docs-wiki, s
 related_pages: [concepts/project-architecture, patterns/r4-anchor-index, concepts/wiki-source-rule-r9, concepts/memory-3-state-lifecycle, patterns/frozen-archive-immutability]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # ADR-004: LLM Wiki Layer 도입

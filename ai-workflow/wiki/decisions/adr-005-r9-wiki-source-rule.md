@@ -8,6 +8,7 @@ alternatives_considered: [active-as-source, both-active-and-archive, manual-sele
 related_pages: [concepts/wiki-source-rule-r9, concepts/memory-3-state-lifecycle, patterns/frozen-archive-immutability, decisions/adr-004-wiki-layer]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # ADR-005: R9 — wiki-ingest source = `archive/` only

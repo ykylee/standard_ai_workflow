@@ -5,6 +5,7 @@ last_ingested_from: .omo/plans/llm-wiki-convergence-design.md
 related_pages: [concepts/project-architecture, decisions/adr-004-wiki-layer, patterns/r4-anchor-index, entities/bootstrap-wiki-py]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 backfilled_at: 2026-06-12
 backfill_note: |
   v0.6.3 P7 검증 중 INGEST_GUIDE frontmatter 의 last_ingested_from 이

@@ -1,3 +1,14 @@
+---
+type: meta
+status: active
+r9_skip: true
+title: Wiki Ingest/Query Log
+related_pages: [INGEST_GUIDE]
+last_touched: 2026-06-12
+created: 2026-06-12
+updated: 2026-06-12
+---
+
 # Wiki Ingest/Query Log
 
 - 문서 목적: 모든 ingest / query / lint 이벤트의 append-only 작업 로그. 시간 순 보존, 편집 금지 (append only).
@@ -74,7 +85,7 @@
   - 3× `[[concepts/three-layer-architecture]]` → `[[concepts/project-architecture]]` (canonical page 매핑)
   - 2× `[[open questions]]` / `[[Beta-v0.6.1.5]]` (template text) → prose / markdown link
 - L1 V-1 (location) PASS, V-4 (index structure) PASS (34 entries validated)
-- L1 V-R9 (source rule): 16 false-positive — R9 rule 자체를 설명하는 5 page 가 의도적으로 `active/` mention. v0.6.1.5 의 R9 lint 구현은 naive grep 기반 — skip marker 또는 smart parser 가 후속 작업
+- L1 V-R9 (source rule): 16 false-positive — R9 rule 자체를 설명하는 5 page 가 의도적으로 `active/` mention. v0.6.1.5 의 R9 lint 구현은 naive grep 기반 — **v0.2.0 skip marker 보강** (frontmatter `r9_skip: true` 로 V-R9 skip, R-4 정책 따라 frontmatter only marker)
 - L1 commit a5762e5
 
 ## [2026-06-12] backfill | phase-6-verification — P6 close + A1~A4 audit
@@ -89,3 +100,23 @@
   - **1 fix**: INGEST_GUIDE frontmatter `last_ingested_from: .omo/plans/v0.6.1-plus-codebase-ingest-design.md` → `.omo/plans/llm-wiki-convergence-design.md` (해당 plan 은 소스/raw 어느 쪽에도 미존재, master plan 으로 정정). body §7 의 "다음에 읽을 문서" 도 동일 plan 가리킴
 - **A4 (log 정합)**: 본 entry (L1) + L2 `~/wiki/log.md` 에 동기 entry append. P6 자체는 emit 됐지만 log 만 누락된 상태에서 backfill
 - **P6 close**: mass source stub emit (494 files) 완료 + L2 lint 0/0/0 + L1 ↔ L2 cross-layer 정합 + log 보강. R8/R9 life-cycle 과 R7 distributed sync 의 runtime layer 검증 가능 상태
+
+## [2026-06-12] lint-fix | V-R9 skip marker — naive grep false-positive 17 → 0
+
+- **Trigger**: P7 commit L77 의 후속 메모 (V-R9 naive grep 의 16 false-positive, skip marker / smart parser 후속)
+- **V-R9 v0.2.0 보강**: `workflow-source/tests/check_wiki_source_rule.py` 에 `has_r9_skip_marker()` 추가
+  - frontmatter `r9_skip: true` (또는 `1`/`yes`) 면 V-R9 skip
+  - R-4 정책 (frontmatter only marker) 준수 — body 미수정
+- **Skip marker 적용 10 page**:
+  - `concepts/wiki-source-rule-r9.md` (R9 rule 자체 정의)
+  - `concepts/memory-3-state-lifecycle.md` (3-state 정의)
+  - `concepts/harness-distribution.md`
+  - `patterns/frozen-archive-immutability.md` (R8 freeze protocol)
+  - `decisions/adr-004-wiki-layer.md` (R8/R9 extension)
+  - `decisions/adr-005-r9-wiki-source-rule.md` (R9 정식 ADR)
+  - `entities/ai-workflow-runtime.md`
+  - `topics/wiki-ingest-lifecycle.md`
+  - `INGEST_GUIDE.md` (§1 R9 scope 설명)
+  - `log.md` (frontmatter 추가 — type: meta, r9_skip: true)
+- **검증**: V-1 PASS / V-4 PASS (34 entries) / **V-R9 PASS (0 violation)**. 17 false-positive → 0
+- **Cross-ref**: wiki vault 의 standard-ai-workflow project 영향 page 2 (wiki-log, wiki-ingest-guide) 의 last_touched 갱신 (wiki-event-sync v0.3.0)

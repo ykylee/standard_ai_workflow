@@ -5,6 +5,7 @@ last_ingested_from: workflow-source/MEMORY_GOVERNANCE.md §4 + workflow-source/r
 related_pages: [concepts/memory-3-state-lifecycle, concepts/project-architecture, decisions/adr-005-r9-wiki-source-rule, patterns/frozen-archive-immutability, INGEST_GUIDE]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # R9 Rule: wiki-ingest source = `archive/` only

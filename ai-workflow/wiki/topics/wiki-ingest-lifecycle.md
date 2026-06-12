@@ -5,6 +5,7 @@ last_ingested_from: ai-workflow/wiki/INGEST_GUIDE.md + ai-workflow/wiki/SCHEMA.m
 related_pages: [concepts/wiki-source-rule-r9, concepts/memory-3-state-lifecycle, patterns/r4-anchor-index, patterns/frozen-archive-immutability, patterns/stale-90day-lint, decisions/adr-004-wiki-layer, decisions/adr-005-r9-wiki-source-rule, INGEST_GUIDE]
 created: 2026-06-12
 updated: 2026-06-12
+r9_skip: true
 ---
 
 # Wiki Ingest Lifecycle — Raw → Wiki → Lint → Query

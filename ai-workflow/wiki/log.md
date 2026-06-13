@@ -838,3 +838,5 @@ updated: 2026-06-12
   2. v0.7.3 baseline evaluate_compliance() 확장 (5 baseline × ~34 RuleResult)
   3. v0.7.3 flat path migration (v0.7.0 의 flat → v0.7.2+ sub-cat)
   4. v0.7.3 PBT hypothesis + memory objgraph 의존성 옵션
+
+## [2026-06-13] v0.7.3-beta (commit `d03348a`) | 4 Runtime Helper 본 구현 (191 test PASS, GH release)

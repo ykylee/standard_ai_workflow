@@ -631,3 +631,22 @@ updated: 2026-06-12
   2. drift smoke test 의 CI 통합 (PR check 시 drift >= 14일 page 알림)
   3. wiki maintainability score metric (6 dim 별 점수 + dashboard)
   4. wiki-source-sync 본 emit 옵션 (vault 의 wiki-source-sync.py 자체에 통합)
+
+## [2026-06-13] wiki maintainability (commit `TBD`) | L2 sources/ 전체 draft 해소 (30 page, last_touched 갱신)
+
+- **Trigger**: yklee 의 "emit_wiki_l2_body.py 의 --apply --limit=0 (전체)" 요청. 30 page 가 emit 대상.
+- **실행**:
+  - `python3 workflow-source/tools/emit_wiki_l2_body.py --project=standard-ai-workflow --apply` (default limit 0 = 무제한)
+  - 30 page 모두 status: reviewed + last_touched: 2026-06-13 + 본문 발췌 (max 2000자)
+  - 0 잔여 (raw mirror 와 1:1 매칭 37 page 모두 emit)
+- **개선 효과**:
+  - vault 의 L2 sources/ 539 page 중 30 page 가 draft → reviewed
+  - 검색 정합도: wiki-query-helper 가 30 page 의 본문 검색 가능 (이전 0 매칭)
+  - drift smoke test 의 drift report 가 30 page 의 *stale* 정보 → 정상 (last_touched 갱신됨)
+- **tool fix (보너스)**:
+  - `update_l2_full()` 신규 — frontmatter 의 `## Summary\n<needs content>` 자리만 교체 (placeholder 라인 제거)
+  - frontmatter 의 `last_touched` + `status: draft → reviewed` 자동 갱신
+- **my-harness / devhub / cross**: 0 candidates (L1 in-repo wiki 가 없는 project) — raw mirror 정책 별도
+- **Follow-up (v0.7.1+)**:
+  1. emit helper 의 `--project=cross` (L1 raw mirror 가 모든 project 에 동일)
+  2. v0.7.1: vault 의 wiki-source-sync.py 자체에 --emit-body 옵션 통합

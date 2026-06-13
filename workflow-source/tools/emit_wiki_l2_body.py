@@ -138,6 +138,42 @@ def build_emit_body(l1_path: Path, today: str, max_chars: int = 2000) -> str:
     return "\n".join(parts)
 
 
+def update_l2_full(l2_path: Path, l1_path: Path, today: str, max_chars: int = 2000) -> str:
+    """L2 file 전체 갱신: frontmatter 보존 + `<needs content>` 자리에 emit body 삽입 + last_touched 갱신 + status reviewed.
+
+    Returns the new full content.
+    """
+    content = l2_path.read_text(encoding="utf-8")
+    # frontmatter 추출
+    if not content.startswith("---\n"):
+        return content
+    fm_end = content.find("\n---\n", 4)
+    if fm_end < 0:
+        return content
+    fm = content[4:fm_end]
+    body = content[fm_end + 5:]
+
+    # body 에서 `<needs content>` 자리만 교체 (placeholder 라인 전체 제거)
+    new_body_section = build_emit_body(l1_path, today, max_chars=max_chars)
+    new_body = body.replace("## Summary\n<needs content>", new_body_section, 1)
+    if new_body == body:
+        # fallback: bare <needs content> 만 교체
+        new_body = body.replace("<needs content>", new_body_section, 1)
+
+    # frontmatter 갱신: last_touched + status
+    new_fm_lines = []
+    for line in fm.split("\n"):
+        if line.startswith("last_touched:"):
+            new_fm_lines.append(f"last_touched: {today}")
+        elif line.startswith("status: draft"):
+            new_fm_lines.append("status: reviewed")
+        else:
+            new_fm_lines.append(line)
+    new_fm = "\n".join(new_fm_lines)
+
+    return f"---\n{new_fm}\n---\n{new_body}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--project", required=True, help="my-harness | devhub | standard-ai-workflow | cross")
@@ -172,17 +208,14 @@ def main() -> int:
 
     emitted = 0
     for l1, l2 in candidates:
-        new_body = build_emit_body(l1, today, max_chars=args.max_chars)
         rel_l1 = l1.relative_to(RAW_MIRROR / args.project / "ai-workflow" / "wiki")
 
         if dry_run:
             print(f"  [DRY] {l2.relative_to(VAULT_ROOT)}")
             print(f"        ← raw: {rel_l1}")
         else:
-            content = l2.read_text(encoding="utf-8")
-            # <needs content> 자리만 교체 (기존 frontmatter 보존)
-            replaced = content.replace("<needs content>", new_body, 1)
-            l2.write_text(replaced, encoding="utf-8")
+            new_content = update_l2_full(l2, l1, today, max_chars=args.max_chars)
+            l2.write_text(new_content, encoding="utf-8")
             print(f"  [APPLIED] {l2.relative_to(VAULT_ROOT)}")
             emitted += 1
 

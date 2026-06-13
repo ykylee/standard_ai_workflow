@@ -742,7 +742,7 @@ updated: 2026-06-12
   2. 9-Artifact auto-fill helper 의 heuristic 강화
   3. score tool 의 CI 통합
 
-## [2026-06-13] wiki maintainability score trend (commit `TBD`) | 7 milestone score 누적 + dashboard 갱신
+## [2026-06-13] wiki maintainability score trend (commit `99e299f`) | 7 milestone score 누적 + dashboard 갱신
 
 - **Trigger**: yklee 의 "score trend over time (commit 별 추적)" 요청.
 - **신규 tool**:

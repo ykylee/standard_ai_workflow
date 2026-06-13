@@ -808,3 +808,33 @@ updated: 2026-06-12
   1. v0.7.2: 6 dim 모두 ≥ 4.5 (Grade A 안정) 유지 정책 — alert 가 발화하지 않도록 *임계값 유지 정책*
   2. v0.7.2: PR 마다 자동 --record-current (github action)
   3. v0.7.2: v0.8.0+ 의 dim 별 trend 자동 alert 의 *alert channel* (slack / email)
+
+## [2026-06-13] v0.7.2 (commit `TBD`) | Extension sub-cat + 4종 본 구현 (179 test PASS, GH release)
+
+- **Trigger**: yklee 의 "v0.7.2 follow-up (sub-cat 본 구현)" 요청. v0.7.1 roadmap 의 4 follow-up 모두 본 구현.
+- **신규 4 baseline (8 file, ~1,200 line)**:
+  - `extensions/security/auth/auth-baseline.md` (210 line, 6 SEC-AUTH rule)
+  - `extensions/security/auth/auth-baseline.opt-in.md`
+  - `extensions/testing/property-based/property-based-testing.md` (210 line, 6 PBT-WF rule)
+  - `extensions/testing/property-based/property-based-testing.opt-in.md`
+  - `extensions/performance/memory/memory-baseline.md` (210 line, 6 PERF-MEM rule)
+  - `extensions/performance/memory/memory-baseline.opt-in.md`
+  - `extensions/resiliency-baseline.md` (200 line, 8 RES-WF rule)
+  - `extensions/resiliency-baseline.opt-in.md`
+- **Lint rule 확장** (`tests/check_extension_system.py`):
+  - `SUB_CAT_EXTENSIONS` 정의 (4종)
+  - 7 신규 test (sub_cat_baselines_present / opt_ins_present / rule_count / rule_id_format / opt_in_question_format / aidlc_reference / unique_prefix)
+  - `RULE_ID_RE` 의 v0.7.2 prefix 지원: `<CAT>(-<SUB>)?(-WF)?-<NN>` (SEC-AUTH, PBT-WF, PERF-MEM, RES-WF)
+  - **30/30 PASS** (v0.7.0 의 23 + 7 신규)
+- **Version bump + release notes + GH release v0.7.2-beta** (wheel + tar.gz)
+- **누적 179 test PASS** — 회귀 0
+- **각 baseline 의 핵심 rule (summary)**:
+  - SEC-AUTH-01~06: API key / token rotation / OAuth scope / 2FA / entropy / auth audit
+  - PBT-WF-01~06: property ID / round-trip / invariant / idempotency / generator / shrink
+  - PERF-MEM-01~06: peak mem / leak / GC / ref cycle / profiling / regression
+  - RES-WF-01~08: critical / change mgmt / observability / health / backup / recovery (AIDLC 16 → 우리 8)
+- **Follow-up (v0.7.3+)**:
+  1. v0.7.3 runtime helper 본 구현 (auth / testing / profiling / resiliency)
+  2. v0.7.3 baseline evaluate_compliance() 확장 (5 baseline × ~34 RuleResult)
+  3. v0.7.3 flat path migration (v0.7.0 의 flat → v0.7.2+ sub-cat)
+  4. v0.7.3 PBT hypothesis + memory objgraph 의존성 옵션

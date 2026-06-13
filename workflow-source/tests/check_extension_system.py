@@ -37,6 +37,7 @@ EXTENSIONS = [
         "opt_in": "security-baseline.opt-in.md",
         "rule_count": 6,
         "aidlc_path": "extensions/security/baseline/security-baseline.md",
+        "sub_cat": None,
     },
     {
         "name": "testing",
@@ -45,6 +46,7 @@ EXTENSIONS = [
         "opt_in": "testing-baseline.opt-in.md",
         "rule_count": 6,
         "aidlc_path": "extensions/testing/property-based/property-based-testing.md",
+        "sub_cat": None,
     },
     {
         "name": "performance",
@@ -53,14 +55,57 @@ EXTENSIONS = [
         "opt_in": "performance-baseline.opt-in.md",
         "rule_count": 6,
         "aidlc_path": None,  # 우리 domain 적응 — AIDLC 없음
+        "sub_cat": None,
+    },
+]
+
+# v0.7.2+ sub-cat: 각 parent baseline 의 sub-category
+SUB_CAT_EXTENSIONS = [
+    {
+        "name": "security-auth",
+        "parent": "security",
+        "prefix": "SEC-AUTH",
+        "baseline_path": "security/auth/auth-baseline.md",
+        "opt_in_path": "security/auth/auth-baseline.opt-in.md",
+        "rule_count": 6,
+        "aidlc_path": "extensions/security/baseline/security-baseline.md",  # AIDLC parent
+    },
+    {
+        "name": "testing-pbt",
+        "parent": "testing",
+        "prefix": "PBT-WF",
+        "baseline_path": "testing/property-based/property-based-testing.md",
+        "opt_in_path": "testing/property-based/property-based-testing.opt-in.md",
+        "rule_count": 6,
+        "aidlc_path": "extensions/testing/property-based/property-based-testing.md",
+    },
+    {
+        "name": "performance-memory",
+        "parent": "performance",
+        "prefix": "PERF-MEM",
+        "baseline_path": "performance/memory/memory-baseline.md",
+        "opt_in_path": "performance/memory/memory-baseline.opt-in.md",
+        "rule_count": 6,
+        "aidlc_path": None,  # 우리 domain 적응
+    },
+    {
+        "name": "resiliency",
+        "parent": None,  # 4종 (standalone)
+        "prefix": "RES-WF",
+        "baseline_path": "resiliency-baseline.md",
+        "opt_in_path": "resiliency-baseline.opt-in.md",
+        "rule_count": 8,
+        "aidlc_path": "extensions/resiliency/baseline/resiliency-baseline.md",
     },
 ]
 
 # 정규식 패턴
-RULE_ID_RE = re.compile(r"^[A-Z]+-WF-\d{2}$")
-RULE_HEADER_RE = re.compile(r"^### \d+\.\d+ Rule ([A-Z]+-WF-\d{2}):\s+(.+)$", re.MULTILINE)
+# v0.7.2+ prefix format: <CAT>(-<SUB>)?(-WF)?-<NN>
+# 예: SEC-WF-NN (v0.7.0), SEC-AUTH-NN (v0.7.2 sub-cat), TST-WF-NN, PBT-WF-NN, PERF-WF-NN, PERF-MEM-NN, RES-WF-NN
+RULE_ID_RE = re.compile(r"^[A-Z]+(?:-[A-Z]+)?(?:-WF)?-\d{2}$")
+RULE_HEADER_RE = re.compile(r"^### \d+\.\d+ Rule ([A-Z]+(?:-[A-Z]+)?(?:-WF)?-\d{2}):\s+(.+)$", re.MULTILINE)
 VERIFICATION_BULLET_RE = re.compile(r"^- (.+)$", re.MULTILINE)
-COMPLIANCE_ROW_RE = re.compile(r"^\| ([A-Z]+-WF-\d{2}) \|", re.MULTILINE)
+COMPLIANCE_ROW_RE = re.compile(r"^\| ([A-Z]+(?:-[A-Z]+)?(?:-WF)?-\d{2}) \|", re.MULTILINE)
 
 
 # --- Test 1: SCHEMA.md 존재 ---
@@ -327,6 +372,83 @@ def test_schema_documents_follow_up() -> None:
     assert "v0.7.1+" in content, "SCHEMA missing v0.7.1+ reference"
 
 
+# --- Test 7: v0.7.2+ sub-cat + 4종 baseline ---
+
+
+def test_sub_cat_four_baselines_present() -> None:
+    """v0.7.2+ sub-cat 3 + 4종 1 = 4 baseline 모두 존재 (auth / pbt / memory / resiliency)."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["baseline_path"]
+        assert path.exists(), f"sub-cat baseline missing: {ext['baseline_path']}"
+
+
+def test_sub_cat_four_opt_ins_present() -> None:
+    """v0.7.2+ sub-cat 3 + 4종 1 = 4 opt-in 모두 존재."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["opt_in_path"]
+        assert path.exists(), f"sub-cat opt-in missing: {ext['opt_in_path']}"
+
+
+def test_sub_cat_rule_count() -> None:
+    """v0.7.2+ sub-cat 4종 의 rule count = 6 (resiliency = 8) baseline."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["baseline_path"]
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        rule_ids = [
+            m for m in RULE_HEADER_RE.findall(content)
+            if m[0].startswith(ext["prefix"])
+        ]
+        expected = ext["rule_count"]
+        assert len(rule_ids) == expected, \
+            f"{ext['name']}: expected {expected} rules, got {len(rule_ids)}"
+
+
+def test_sub_cat_rule_id_format() -> None:
+    """sub-cat 4종 의 rule ID 가 PREFIX-WF-NN 형식."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["baseline_path"]
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        for rid, _ in RULE_HEADER_RE.findall(content):
+            assert rid.startswith(ext["prefix"]), \
+                f"{rid} should start with {ext['prefix']}"
+
+
+def test_sub_cat_opt_in_question_format() -> None:
+    """sub-cat 4종 의 opt-in 이 `> Question:` + `[Answer]:` 형식."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["opt_in_path"]
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        assert "> Question:" in content
+        assert "[Answer]:" in content
+
+
+def test_sub_cat_aidlc_reference() -> None:
+    """sub-cat 4종 의 1차 출처 cross-reference (AIDLC 또는 우리 domain 적응 명시)."""
+    for ext in SUB_CAT_EXTENSIONS:
+        path = EXTENSIONS_DIR / ext["baseline_path"]
+        if not path.exists():
+            continue
+        content = path.read_text(encoding="utf-8")
+        if ext["aidlc_path"] is None:
+            # 우리 domain 적응 — AIDLC 없음 명시
+            assert "우리 domain 적응" in content or "domain 적응" in content, \
+                f"{ext['name']} missing 'domain 적응' note"
+        else:
+            assert "AIDLC" in content, f"{ext['name']} missing AIDLC reference"
+
+
+def test_sub_cat_unique_prefix() -> None:
+    """sub-cat 4종 의 prefix 가 unique."""
+    prefixes = [ext["prefix"] for ext in SUB_CAT_EXTENSIONS]
+    assert len(prefixes) == len(set(prefixes)), f"duplicate prefix: {prefixes}"
+
+
 # --- 메인 실행 ---
 
 
@@ -349,6 +471,13 @@ def main() -> int:
         test_opt_in_response_processing,
         test_opt_in_state_schema,
         test_aidlc_1차_출처_path_valid,
+        test_sub_cat_four_baselines_present,
+        test_sub_cat_four_opt_ins_present,
+        test_sub_cat_rule_count,
+        test_sub_cat_rule_id_format,
+        test_sub_cat_opt_in_question_format,
+        test_sub_cat_aidlc_reference,
+        test_sub_cat_unique_prefix,
         test_aidlc_artifact_count,
         test_baseline_aidlc_reference,
         test_no_duplicate_rule_ids,

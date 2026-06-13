@@ -604,7 +604,7 @@ updated: 2026-06-12
   4. Extension sub-cat + 4종 (resiliency) 추가
   5. v0.7.0 + v0.7.1 follow-up 묶음 release (v0.7.1-beta)
 
-## [2026-06-13] wiki 유지보수 개선 (commit `TBD`) | 5 concept page + emit helper + drift smoke test
+## [2026-06-13] wiki 유지보수 개선 (commit `021ec16`) | 5 concept page + emit helper + drift smoke test
 
 - **Trigger**: yklee 의 "이 저장소의 wiki 가 코드 유지보수에 사용될 수 있을 정도 수준" 검토 요청. 6 dim 평가 결과 3.0/5 (60%) — 즉시 개선 가능 항목 4건.
 - **개선 내역**:

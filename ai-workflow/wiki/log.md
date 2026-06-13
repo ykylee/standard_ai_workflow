@@ -357,7 +357,7 @@ updated: 2026-06-12
   3. v0.8.0: orchestrator 측 자동 emit_and_log 통합
   4. ADR-NNN: Operations phase 도입 여부
 
-## [2026-06-12] v0.7.0 step 1 | stage_completion required 격상 + ensure fallback (3 file, +319 line, 8 test PASS)
+## [2026-06-12] v0.7.0 step 1 (commit `6e57cf3`) | stage_completion required 격상 + ensure fallback (3 file, +319 line, 8 test PASS)
 
 - **Trigger**: v0.6.6 follow-up #1 (12/12 일관성) 완료. v0.7.0 본격 시작
 - **Commit (6e57cf3)**: 3 file, +319 line
@@ -393,7 +393,7 @@ updated: 2026-06-12
   - ⏸ Step 9: Unit of Work 3-layer (G)
   - ⏸ Step 10: Audit Log 표준화 (H)
 
-## [2026-06-12] v0.7.0 step 10 | Audit Log 표준화 (3 file, +637 line, 13 test PASS)
+## [2026-06-12] v0.7.0 step 10 (commit `54e96a9`) | Audit Log 표준화 (3 file, +637 line, 13 test PASS)
 
 - **Trigger**: v0.6.4-5 의 분산 정의된 audit log 정책 통합. yklee 승인, step 10 진행
 - **Commit (54e96a9)**: 3 file, +637 line
@@ -420,7 +420,7 @@ updated: 2026-06-12
   - ⏸ Step 8: Security-baseline 1종 (O, 1 ses)
   - ⏸ Step 9: Unit of Work 3-layer (G, 1-2 ses)
 
-## [2026-06-12] v0.7.0 step 9 | Unit of Work 3-layer template (2 file, +622 line, 17 test PASS)
+## [2026-06-12] v0.7.0 step 9 (commit `c981cac`) | Unit of Work 3-layer template (2 file, +622 line, 17 test PASS)
 
 - **Trigger**: v0.6.4-7 의 mode 6종 (horizontal) + task-level (work_backlog) 의 missing layer 보강. yklee 승인, step 9 진행
 - **Commit (c981cac)**: 2 file, +622 line
@@ -451,7 +451,7 @@ updated: 2026-06-12
   2. bootstrap_lib 의 `--adoption-mode new` 가 unit_of_work.md 자동 emit
   3. v0.8.0: UOW 기반 sub-agent 위임 자동화
 
-## [2026-06-12] v0.7.0 step 6 | Reverse Engineering 9-Artifact (11 file, +674 line, 19 test PASS)
+## [2026-06-12] v0.7.0 step 6 (commit `4bbd391`) | Reverse Engineering 9-Artifact (11 file, +674 line, 19 test PASS)
 
 - **Trigger**: v0.6.4-7 의 `existing` onboarding 이 단일 `repository_assessment.md` 만 emit → 주제별 SSOT 부재. yklee 승인, step 6 진행
 - **1차 출처**: AIDLC `aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (311 line, commit b19c819, 2026-06-08)
@@ -492,7 +492,7 @@ updated: 2026-06-12
   3. v0.7.1: 9-Artifact 별 wiki L1 page (각 artifact 마다 L1 topic page + L2 sources/)
   4. v0.8.0: Artifact 별 version diff (이전 reverse engineering 대비 변경점)
 
-## [2026-06-13] v0.7.0 step 7 | Extension 시스템 일반화 (5 file, +23 test PASS)
+## [2026-06-13] v0.7.0 step 7 (commit `0052da1`) | Extension 시스템 일반화 (5 file, +23 test PASS)
 
 - **Trigger**: v0.7.0 step 8 의 security-baseline 1종 출시 후, 3종 extension (security / testing / performance) 일반화 + SCHEMA.md SSOT. yklee 승인, step 7 진행
 - **1차 출처**: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/` 3종 (commit b19c819, 2026-06-08)
@@ -536,7 +536,7 @@ updated: 2026-06-12
   5. v0.8.0: 4종 (resiliency) 추가 — workflow_kit health check + 장애 대응
   6. v0.7.0 release: packaging (5 harness) + GitHub release v0.7.0
 
-## [2026-06-13] v0.7.0 | Release — AIDLC 6 step 완료 (15 commit, ~3,200 line, 130 test PASS)
+## [2026-06-13] v0.7.0 (commit `dff0aae`) | Release — AIDLC 6 step 완료 (15 commit, ~3,200 line, 130 test PASS)
 
 - **Trigger**: v0.7.0 6 step (Stage Completion Required / Audit Log / UOW Template / Security Baseline / Reverse Engineering / Extension System) 모두 완료. AIDLC (`awslabs/aidlc-workflows`, commit b19c819) 의 7대 차별 메커니즘 중 3개 채택.
 - **Release notes**: `workflow-source/releases/Beta-v0.7.0.md` (NEW)
@@ -568,7 +568,7 @@ updated: 2026-06-12
   6. v0.7.0 packaging (5 harness) + GitHub release v0.7.0
 - **🎉 v0.7.0 6 step 전부 완료** — AIDLC 채택 3/7 (Question File Format [v0.6.4] / Stage Gate Pattern [v0.6.5] / Extension 시스템 + Reverse Engineering 9-Artifact [v0.7.0])
 
-## [2026-06-13] v0.7.0 follow-up (Task 3+2+1) | packaging + session-start opt-in + evaluate_compliance helper
+## [2026-06-13] v0.7.0 follow-up (commit `390a6e0`+`71de1b0`+`8818cbe`) | packaging + session-start opt-in + evaluate_compliance helper
 
 - **Trigger**: v0.7.0 release 직후 follow-up 3 task. yklee 승인, 순서 = 3 (packaging) → 2 (session-start opt-in) → 1 (evaluate_compliance).
 - **Task 3: v0.7.0 packaging + GitHub Release** (✅ 완료)

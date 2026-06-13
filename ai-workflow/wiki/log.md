@@ -773,3 +773,38 @@ updated: 2026-06-12
   1. trend 의 dim 별 변화 자동 alert (≥ 0.3 하락 시)
   2. score tool 의 CI 통합 (overall < 4.0 시 block)
   3. v0.7.1 trend 자동 누적 (PR 머지 시 github action)
+
+## [2026-06-13] wiki score trend dim 별 alert (commit `TBD`) | --alert + --baseline 옵션 + 4 smoke test
+
+- **Trigger**: yklee 의 "trend 의 dim 별 변화 자동 alert (≥ 0.3 하락 시)" 요청.
+- **신규 옵션** (tools/score_wiki_trend.py):
+  - `--alert --baseline=<commit>`: 현재 score vs baseline 의 dim 별 비교
+  - `--threshold N` (default 0.3): alert 임계값
+  - **출력**: dim 별 🔴 alert / 🟢 info / ⚪ ok 표시
+  - **CI 통합**: exit code 0 (no alert) / 1 (≥ 1 alert) / 2 (error: missing baseline)
+- **새로운 type**:
+  - `DimAlert` dataclass (dim / baseline / current / delta / severity)
+  - `compare_scores(baseline, current, threshold)` 함수
+  - `print_alerts()` 출력 함수
+- **검증** (real baseline 7a4dbae vs current d8c981c):
+  - 5 dim 개선 (info: freshness +2.23 / discoverability +4.55 / lifecycle +4.55 / cross_ref +0.64 / operational +1.00)
+  - 1 dim 유지 (coverage +0.17)
+  - alert 0 → exit 0
+- **Synthetic alert 시나리오 검증**:
+  - baseline 5.0 / current freshness 4.5 (-0.5) / discoverability 4.6 (-0.4) / lifecycle 4.7 (-0.3) → 2 alerts (freshness, discoverability)
+  - lifecycle -0.30 = boundary → ok (floating point 정밀도)
+- **누적 172 test PASS** (v0.7.1 158 + 14 신규) — 회귀 0
+- **신규 smoke test 4종**:
+  - test_compare_scores_no_alert (info 만)
+  - test_compare_scores_alert (alert 1)
+  - test_alert_cli_no_alert (real baseline 비교, exit 0)
+  - test_alert_cli_missing_baseline (exit 2)
+- **CI 통합 가이드** (`.github/workflows/score-alert.yml` 권장):
+  ```yaml
+  - name: Wiki score alert check
+    run: python3 workflow-source/tools/score_wiki_trend.py --alert --baseline=main~10 --threshold=0.3
+  ```
+- **Follow-up (v0.7.2+)**:
+  1. v0.7.2: 6 dim 모두 ≥ 4.5 (Grade A 안정) 유지 정책 — alert 가 발화하지 않도록 *임계값 유지 정책*
+  2. v0.7.2: PR 마다 자동 --record-current (github action)
+  3. v0.7.2: v0.8.0+ 의 dim 별 trend 자동 alert 의 *alert channel* (slack / email)

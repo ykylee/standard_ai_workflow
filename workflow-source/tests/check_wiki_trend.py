@@ -153,6 +153,56 @@ def test_show_idempotent() -> None:
     assert out1 == out2, "show not idempotent"
 
 
+# --- Test 6: alert 분기 ---
+
+
+def test_compare_scores_no_alert() -> None:
+    """baseline < current → alert 0, exit 0."""
+    import sys
+    sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+    import score_wiki_trend as swt
+
+    baseline = {"scores": {d: 4.0 for d in swt.DIMS}}
+    current = {"scores": {d: 4.5 for d in swt.DIMS}}  # +0.5 (info)
+    alerts = swt.compare_scores(baseline, current, alert_threshold=0.3)
+    assert all(a.severity in ("info", "ok") for a in alerts), "expected no alert"
+    assert any(a.severity == "info" for a in alerts), "expected info"
+
+
+def test_compare_scores_alert() -> None:
+    """dim 별 -0.5 → alert 1, exit 1."""
+    import sys
+    sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+    import score_wiki_trend as swt
+
+    baseline = {"scores": {d: 5.0 for d in swt.DIMS}}
+    current = {"scores": dict(baseline["scores"])}
+    current["scores"]["freshness"] = 4.5  # -0.5
+
+    alerts = swt.compare_scores(baseline, current, alert_threshold=0.3)
+    alert_dims = [a.dim for a in alerts if a.severity == "alert"]
+    assert "freshness" in alert_dims
+    assert len(alert_dims) == 1
+
+
+def test_alert_cli_no_alert() -> None:
+    """CLI --alert 실행 + exit 0 (real baseline 7a4dbae vs current)."""
+    rc, out, err = _run(["--alert", "--baseline=7a4dbae"], timeout=120)
+    assert rc in (0, 1), f"unexpected exit code: {rc}"
+    assert "Dim alerts" in out
+    assert "alert(s)" in out
+    # baseline 7a4dbae (D 3.70) vs current (A 4.67) → 0 alert
+    assert rc == 0, f"expected 0 alert, got exit {rc}: {out[-200:]}"
+
+
+def test_alert_cli_missing_baseline() -> None:
+    """--alert without --baseline → exit 2."""
+    rc, out, _ = _run(["--alert"], timeout=30)
+    assert rc == 2
+    assert "ERROR" in out
+    assert "--baseline" in out
+
+
 # --- 메인 실행 ---
 
 
@@ -168,6 +218,10 @@ def main() -> int:
         test_dashboard_trend_section,
         test_dashboard_includes_trend_tool_reference,
         test_show_idempotent,
+        test_compare_scores_no_alert,
+        test_compare_scores_alert,
+        test_alert_cli_no_alert,
+        test_alert_cli_missing_baseline,
     ]
 
     passed = 0

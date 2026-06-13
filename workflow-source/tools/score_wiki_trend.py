@@ -29,6 +29,7 @@ import argparse
 import json
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -180,12 +181,78 @@ def ascii_chart(records: list[dict], dim: str = "overall") -> str:
     return "\n".join(rows)
 
 
+@dataclass
+class DimAlert:
+    """dim 별 alert 결과."""
+
+    dim: str
+    baseline: float
+    current: float
+    delta: float  # current - baseline
+    severity: str  # "alert" | "info" | "ok"
+
+
+def compare_scores(baseline: dict, current: dict, alert_threshold: float = 0.3) -> list[DimAlert]:
+    """baseline vs current 의 dim 별 비교. 하락 ≥ alert_threshold → alert.
+
+    Args:
+        baseline: 이전 commit 의 score record
+        current: 현재 commit 의 score record
+        alert_threshold: dim 별 하락 alert 임계값 (default 0.3)
+
+    Returns:
+        DimAlert list (dim 별 1개)
+    """
+    alerts = []
+    for dim in DIMS:
+        b = baseline.get("scores", {}).get(dim, 0.0)
+        c = current.get("scores", {}).get(dim, 0.0)
+        delta = c - b
+        if delta <= -alert_threshold:
+            severity = "alert"
+        elif delta >= alert_threshold:
+            severity = "info"
+        else:
+            severity = "ok"
+        alerts.append(DimAlert(dim=dim, baseline=b, current=c, delta=delta, severity=severity))
+    return alerts
+
+
+def print_alerts(alerts: list[DimAlert], baseline_label: str, current_label: str, alert_threshold: float) -> tuple[int, int]:
+    """alert 출력 + (alert_count, info_count) 반환.
+
+    CI 통합용: exit code 는 별도 caller 가 결정.
+    """
+    alert_count = 0
+    info_count = 0
+    print(f"Dim alerts ({baseline_label} → {current_label}, threshold={alert_threshold}):")
+    print()
+    for a in alerts:
+        sign = "+" if a.delta >= 0 else ""
+        bar = ""
+        if a.severity == "alert":
+            color = "🔴"
+            alert_count += 1
+        elif a.severity == "info":
+            color = "🟢"
+            info_count += 1
+        else:
+            color = "⚪"
+        print(f"  {color} {a.dim:18s} {a.baseline:5.2f} → {a.current:5.2f} ({sign}{a.delta:+.2f})")
+    print()
+    print(f"Total: {alert_count} alert(s), {info_count} improvement(s)")
+    return alert_count, info_count
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--record-current", action="store_true", help="현재 HEAD 의 score 기록")
     parser.add_argument("--record-range", type=int, default=0, help="최근 N commit 의 score 재기록")
     parser.add_argument("--show", action="store_true", help="trend 시각화 (ASCII chart)")
     parser.add_argument("--json", action="store_true", help="JSON 출력")
+    parser.add_argument("--alert", action="store_true", help="dim 별 하락 alert (≥ threshold)")
+    parser.add_argument("--baseline", help="baseline commit (alert 시 비교 대상)")
+    parser.add_argument("--threshold", type=float, default=0.3, help="alert 임계값 (default: 0.3)")
     args = parser.parse_args()
 
     # 현재 HEAD
@@ -208,6 +275,53 @@ def main() -> int:
         for r in records:
             print(f"  {r['commit']}: overall={r['overall']} grade={r['grade']}")
         return 0
+
+    if args.alert:
+        # baseline commit 의 score record 찾기
+        if not args.baseline:
+            print("ERROR: --alert requires --baseline=<commit>")
+            return 2
+
+        records = load_history()
+        baseline_rec = next((r for r in records if r.get("commit") == args.baseline[:7]), None)
+        if not baseline_rec:
+            print(f"ERROR: baseline commit {args.baseline[:7]} not found in history")
+            return 2
+
+        # 현재 score 측정
+        current_score = compute_score_at_commit(head)
+        if "error" in current_score:
+            print(f"ERROR: cannot compute current score: {current_score['error']}")
+            return 2
+
+        # baseline + current 를 동일한 형식으로 normalize
+        baseline = {
+            "commit": baseline_rec["commit"],
+            "scores": baseline_rec.get("scores", {}),
+            "overall": baseline_rec.get("overall", 0),
+        }
+        current = {
+            "commit": head[:7],
+            "scores": current_score.get("scores", {}),
+            "overall": current_score.get("overall", 0),
+        }
+
+        alerts = compare_scores(baseline, current, alert_threshold=args.threshold)
+        alert_count, info_count = print_alerts(
+            alerts,
+            f"baseline={baseline_rec['commit']}",
+            f"current={head[:7]}",
+            args.threshold,
+        )
+
+        if alert_count > 0:
+            print()
+            print(f"❌ ALERT: {alert_count} dim(s) dropped ≥ {args.threshold} since baseline")
+            return 1
+        else:
+            print()
+            print(f"✅ OK: no dim dropped ≥ {args.threshold} since baseline")
+            return 0
 
     records = load_history()
 

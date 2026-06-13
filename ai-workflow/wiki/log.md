@@ -686,7 +686,7 @@ updated: 2026-06-12
   3. score dashboard 의 *trend over time* (commit 별 score 추적)
   4. v0.7.1: 6 dim 별 improvement suggestion 자동화
 
-## [2026-06-13] wiki maintainability score 갱신 (commit `TBD`) | 498 page 본문 emit (metadata-only) + Overall 3.11 → 4.66 (Grade A)
+## [2026-06-13] wiki maintainability score 갱신 (commit `c72bdc3`) | 498 page 본문 emit (metadata-only) + Overall 3.11 → 4.66 (Grade A)
 
 - **Trigger**: yklee 의 "Discoverability 0.37 → 4.5" 요청. vault L2 의 499 page 중 499 모두 해소.
 - **분석**:

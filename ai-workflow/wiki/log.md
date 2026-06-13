@@ -651,7 +651,7 @@ updated: 2026-06-12
   1. emit helper 의 `--project=cross` (L1 raw mirror 가 모든 project 에 동일)
   2. v0.7.1: vault 의 wiki-source-sync.py 자체에 --emit-body 옵션 통합
 
-## [2026-06-13] wiki maintainability score (commit `TBD`) | 6 dim dashboard + 12 smoke test
+## [2026-06-13] wiki maintainability score (commit `49dfc78`) | 6 dim dashboard + 12 smoke test
 
 - **Trigger**: yklee 의 "wiki maintainability score metric (6 dim dashboard)" 요청. 위키 운영 정공법의 *정량적 metric*.
 - **산출**:

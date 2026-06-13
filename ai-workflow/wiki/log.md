@@ -774,7 +774,7 @@ updated: 2026-06-12
   2. score tool 의 CI 통합 (overall < 4.0 시 block)
   3. v0.7.1 trend 자동 누적 (PR 머지 시 github action)
 
-## [2026-06-13] wiki score trend dim 별 alert (commit `TBD`) | --alert + --baseline 옵션 + 4 smoke test
+## [2026-06-13] wiki score trend dim 별 alert (commit `0224a76`) | --alert + --baseline 옵션 + 4 smoke test
 
 - **Trigger**: yklee 의 "trend 의 dim 별 변화 자동 alert (≥ 0.3 하락 시)" 요청.
 - **신규 옵션** (tools/score_wiki_trend.py):

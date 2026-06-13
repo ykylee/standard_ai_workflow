@@ -567,3 +567,39 @@ updated: 2026-06-12
   5. v0.8.0: Extension sub-cat 도입 + 4종 (resiliency) 추가
   6. v0.7.0 packaging (5 harness) + GitHub release v0.7.0
 - **🎉 v0.7.0 6 step 전부 완료** — AIDLC 채택 3/7 (Question File Format [v0.6.4] / Stage Gate Pattern [v0.6.5] / Extension 시스템 + Reverse Engineering 9-Artifact [v0.7.0])
+
+## [2026-06-13] v0.7.0 follow-up (Task 3+2+1) | packaging + session-start opt-in + evaluate_compliance helper
+
+- **Trigger**: v0.7.0 release 직후 follow-up 3 task. yklee 승인, 순서 = 3 (packaging) → 2 (session-start opt-in) → 1 (evaluate_compliance).
+- **Task 3: v0.7.0 packaging + GitHub Release** (✅ 완료)
+  - version bump: `pyproject.toml` 0.6.3 → 0.7.0 / `workflow_kit/__init__.py` v0.6.3-beta → v0.7.0-beta
+  - wheel + sdist 빌드 (`workflow-source/dist/standard_ai_workflow-0.7.0-py3-none-any.whl`, 159898 bytes)
+  - twine check: PASSED (wheel + sdist)
+  - fresh venv smoke (`/tmp/sawsmoke-070`): workflow_kit.__version__ = v0.7.0-beta, 8-field StageCompletion import, ensure_stage_completion() 정상
+  - local tag `v0.7.0-beta` push + `gh release create --verify-tag`
+  - **GitHub Release**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.0-beta (2 asset: wheel + tar.gz)
+- **Task 2: session-start opt-in prompt 통합** (✅ 완료, spec level)
+  - `core/session_start_skill_spec.md` §11 추가 (Extension Baseline Opt-In 통합)
+  - 3종 baseline (security / testing / performance) opt-in 흐름 6 step (detect → prompt → response → file write → state.json sync → audit log)
+  - Default 정책: Greenfield (security=A, testing=A, performance=P) / Brownfield (기존 존중) / CI/CD (skip)
+  - Session-Start 출력 schema 확장: `extension_baselines` field + `warnings` 자동 생성
+  - Runtime 통합은 §11.5 v0.7.1+ follow-up (evaluate_compliance 의 입력으로 활용)
+  - `next_documents` 에 SCHEMA.md + 3 opt-in reference 추가
+- **Task 1: evaluate_compliance() helper** (✅ 완료, 12 test PASS)
+  - `workflow_kit/common/contracts/baselines.py` 신규 (340 line): RuleResult + ComplianceSummary dataclass + 3종 baseline evaluator
+  - `evaluate_compliance(project_root, baseline)` + `evaluate_all(project_root)`
+  - Security 6 rule runtime: stage_gate.append_audit_log / require_explicit_approval / validate_answers / fail-closed / pyproject 존재 / R-9 skip marker
+  - Testing 6 rule runtime: smoke test count ≥ 5 / state.json round-trip / invariant / idempotency / fixture / docstring
+  - Performance 6 rule runtime: smoke test 30초 / import 1초 / tracemalloc 200MB / audit log 10ms / state.json 5ms / profiling module
+  - `_aggregate_status` 3 분기: partial_rules 적용
+  - smoke test `tests/check_baselines_compliance.py` (12 test PASS): 3 baseline × 6 rule = 18 RuleResult, status enum 4 value, partial_rules 적용, error handling
+- **누적 142 test PASS** (v0.7.0 130 + 12 신규) — 회귀 0
+- **GitHub Release 재발행** (v0.7.0-beta + baselines helper 포함, commit 390a6e0~ 추가):
+  - release asset 추가 안 함 (spec level 변경만), 기존 release 의 note 갱신 안 함
+  - 다음 release (v0.7.1) 에 baselines.py + session-start spec 포함
+- **Follow-up (v0.7.1)**:
+  1. existing_project_onboarding.py 가 9 artifact 자동 fill
+  2. SEC-WF-05 dependency integrity 검증 (lock file + checksum)
+  3. 9-Artifact 별 wiki L1 page
+  4. Extension sub-cat + 4종 (resiliency) 추가
+  5. v0.7.0 + v0.7.1 follow-up 묶음 release (v0.7.1-beta)

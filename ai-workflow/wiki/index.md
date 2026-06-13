@@ -12,6 +12,11 @@
 ### [[concepts/harness-distribution]] {#harness-distribution}
 ### [[concepts/question-file-format]] {#question-file-format}
 ### [[concepts/stage-gate-pattern]] {#stage-gate-pattern}
+### [[concepts/stage-gate-runtime]] {#stage-gate-runtime}
+### [[concepts/extension-system]] {#extension-system}
+### [[concepts/reverse-engineering]] {#reverse-engineering}
+### [[concepts/unit-of-work]] {#unit-of-work}
+### [[concepts/audit-log-standard]] {#audit-log-standard}
 ### [[INGEST_GUIDE]] {#ingest-guide}
 
 ## Decisions

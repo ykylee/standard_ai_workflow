@@ -603,3 +603,31 @@ updated: 2026-06-12
   3. 9-Artifact 별 wiki L1 page
   4. Extension sub-cat + 4종 (resiliency) 추가
   5. v0.7.0 + v0.7.1 follow-up 묶음 release (v0.7.1-beta)
+
+## [2026-06-13] wiki 유지보수 개선 (commit `TBD`) | 5 concept page + emit helper + drift smoke test
+
+- **Trigger**: yklee 의 "이 저장소의 wiki 가 코드 유지보수에 사용될 수 있을 정도 수준" 검토 요청. 6 dim 평가 결과 3.0/5 (60%) — 즉시 개선 가능 항목 4건.
+- **개선 내역**:
+  - **작업 1: 5 concept page 신규** (L1 wiki 의 v0.7.0 5 step coverage 갭 해소):
+    - `concepts/extension-system.md` (210 line) — SCHEMA + 3 baseline + opt-in + helper contract
+    - `concepts/reverse-engineering.md` (165 line) — 9-Artifact + 13 step + rerun stale
+    - `concepts/unit-of-work.md` (155 line) — 3 layer + dep matrix + Mermaid
+    - `concepts/audit-log-standard.md` (180 line) — 8 field + append-only + 2 latent bug fix
+    - `concepts/stage-gate-runtime.md` (180 line) — required 격상 + ensure_stage_completion + auto-approval
+    - `index.md` anchor 5 page 추가
+  - **작업 2: vault L2 sources/ 5 page 본문 emit** (draft 80% 해소):
+    - 5 신규 L2 page: `concepts-extension-system.md` / `concepts-reverse-engineering.md` / `concepts-unit-of-work.md` / `concepts-audit-log-standard.md` / `concepts-stage-gate-runtime.md` — frontmatter 11 line + TL;DR + 본문 발췌 (max 2000자)
+  - **작업 3: emit helper 신규** (vault L2 sources/ 자동 본문 emit tool):
+    - `tools/emit_wiki_l2_body.py` (200 line) — `--apply` / `--dry-run` / `--max-chars=N` / `--limit=N`
+    - raw mirror 의 L1 in-repo wiki 본문 → vault L2 sources/ 자동 emit (frontmatter 보존, `<needs content>` 자리만 교체)
+    - glob brace `{a,b,c}` + numeric range `01..09` + glob `*` 모두 지원
+    - 3 page apply 검증 (concepts-agent-topology, concepts-contract-v1-output-validation, concepts-harness-distribution)
+  - **작업 4: drift 자동 검출 smoke test** (L1 ↔ code ↔ L2 3-way 정합):
+    - `tests/check_wiki_drift.py` (5 test): L1 drift report / L2 drift report / ingested_from path 검증 / 5 신규 page index anchor / frontmatter format
+    - 4 PASS + 1 fail (drift report 만 — 정보성, v0.6.4 page 의 7일 경계 drift 가 expected)
+- **누적 146 test PASS** (v0.7.0 follow-up 142 + 4 신규)
+- **Follow-up (v0.7.1+)**:
+  1. emit_wiki_l2_body.py 의 `--apply --limit=0` (전체 L2 sources/ draft 해소)
+  2. drift smoke test 의 CI 통합 (PR check 시 drift >= 14일 page 알림)
+  3. wiki maintainability score metric (6 dim 별 점수 + dashboard)
+  4. wiki-source-sync 본 emit 옵션 (vault 의 wiki-source-sync.py 자체에 통합)

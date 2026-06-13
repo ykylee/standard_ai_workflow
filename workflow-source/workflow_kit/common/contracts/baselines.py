@@ -1,6 +1,7 @@
-"""Extension Baseline Compliance Evaluator (v0.7.1+).
+"""Extension Baseline Compliance Evaluator (v0.7.1+ / v0.7.3+).
 
-3종 baseline (security / testing / performance) 의 runtime compliance 평가.
+5종 baseline (security / testing / performance / security-auth / testing-property-based /
+performance-memory / resiliency) 의 runtime compliance 평가.
 각 rule 마다 compliant / non-compliant / N/A 평가 후 ComplianceSummary 반환.
 
 1차 출시 (v0.7.1):
@@ -8,9 +9,24 @@
 - testing-baseline: 6 rule runtime check (smoke test count + generator quality)
 - performance-baseline: 6 rule runtime check (smoke test time + import time + memory)
 
+2차 출시 (v0.7.2, sub-cat 본 구현):
+- auth-baseline (SEC-AUTH): 6 rule
+- property-based-testing (PBT-WF): 6 rule
+- memory-baseline (PERF-MEM): 6 rule
+- resiliency-baseline (RES-WF): 8 rule
+
+3차 출시 (v0.7.3, runtime helper 본 구현):
+- 4 helper module (auth / testing / profiling / resiliency) 추가
+- evaluate_compliance 5 baseline dispatcher 확장
+
 Reference:
 - workflow-source/extensions/SCHEMA.md §6 Helper Contract
 - workflow-source/extensions/{security,testing,performance}-baseline.md
+- workflow-source/extensions/security/auth/auth-baseline.md (v0.7.2+)
+- workflow-source/extensions/testing/property-based/property-based-testing.md (v0.7.2+)
+- workflow-source/extensions/performance/memory/memory-baseline.md (v0.7.2+)
+- workflow-source/extensions/resiliency-baseline.md (v0.7.2+)
+- workflow-source/workflow_kit/common/{auth,testing,profiling,resiliency}.py (v0.7.3+)
 """
 
 from __future__ import annotations
@@ -527,6 +543,95 @@ def _dummy_event():
 
 
 # ===================================================================
+# v0.7.3 — 4 신규 baseline dispatcher (sub-cat + runtime helper)
+# ===================================================================
+
+
+def _eval_security_auth_baseline(project_root: Path) -> ComplianceSummary:
+    """6 SEC-AUTH rule runtime 평가 (auth.py dispatcher)."""
+    from workflow_kit.common.auth import evaluate_compliance as _eval
+    from workflow_kit.common.auth import RuleResult as _RR
+
+    result = _eval(project_root=project_root)
+    results = [
+        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
+        for r in result["results"]
+    ]
+    state = _read_state_json(project_root)
+    partial = _get_partial_rules(state, "security_auth")
+    return ComplianceSummary(
+        baseline="security-auth",
+        status=result["status"],
+        partial_rules=partial,
+        results=results,
+    )
+
+
+def _eval_testing_pbt_baseline(project_root: Path) -> ComplianceSummary:
+    """6 PBT-WF rule runtime 평가 (testing.py dispatcher)."""
+    from workflow_kit.common.testing import evaluate_compliance as _eval
+    from workflow_kit.common.testing import RuleResult as _RR
+
+    result = _eval(project_root=project_root)
+    results = [
+        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
+        for r in result["results"]
+    ]
+    state = _read_state_json(project_root)
+    partial = _get_partial_rules(state, "testing_pbt")
+    return ComplianceSummary(
+        baseline="testing-property-based",
+        status=result["status"],
+        partial_rules=partial,
+        results=results,
+    )
+
+
+def _eval_performance_memory_baseline(
+    project_root: Path,
+    fn=None,
+    baseline_path: Path | None = None,
+) -> ComplianceSummary:
+    """6 PERF-MEM rule runtime 평가 (profiling.py dispatcher)."""
+    from workflow_kit.common.profiling import evaluate_compliance as _eval
+    from workflow_kit.common.profiling import RuleResult as _RR
+
+    result = _eval(fn=fn, baseline_path=baseline_path)
+    results = [
+        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
+        for r in result["results"]
+    ]
+    state = _read_state_json(project_root)
+    partial = _get_partial_rules(state, "performance_memory")
+    return ComplianceSummary(
+        baseline="performance-memory",
+        status=result["status"],
+        partial_rules=partial,
+        results=results,
+    )
+
+
+def _eval_resiliency_baseline(project_root: Path) -> ComplianceSummary:
+    """8 RES-WF rule runtime 평가 (resiliency.py dispatcher)."""
+    from workflow_kit.common.resiliency import evaluate_compliance as _eval
+    from workflow_kit.common.resiliency import RuleResult as _RR
+
+    result = _eval(project_root=project_root)
+    results = [
+        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
+        for r in result["results"]
+    ]
+    state = _read_state_json(project_root)
+    partial = _get_partial_rules(state, "resiliency")
+    return ComplianceSummary(
+        baseline="resiliency",
+        status=result["status"],
+        partial_rules=partial,
+        results=results,
+    )
+
+
+# ===================================================================
 # Public API
 # ===================================================================
 
@@ -534,12 +639,18 @@ def _dummy_event():
 def evaluate_compliance(
     project_root: Path,
     baseline: str,
+    fn=None,
+    baseline_path: Path | None = None,
 ) -> ComplianceSummary:
     """단일 baseline 의 compliance 평가.
 
     Args:
         project_root: 프로젝트 루트 경로 (state.json 위치)
-        baseline: "security" | "testing" | "performance"
+        baseline: "security" | "testing" | "performance" |
+                  "security-auth" | "testing-property-based" |
+                  "performance-memory" | "resiliency"
+        fn: performance-memory baseline 의 측정 callable (optional)
+        baseline_path: performance-memory baseline 의 regression baseline (optional)
 
     Returns:
         ComplianceSummary with overall status + per-rule results.
@@ -550,19 +661,37 @@ def evaluate_compliance(
         return _eval_testing_baseline(project_root)
     if baseline == "performance":
         return _eval_performance_baseline(project_root)
+    if baseline == "security-auth":
+        return _eval_security_auth_baseline(project_root)
+    if baseline == "testing-property-based":
+        return _eval_testing_pbt_baseline(project_root)
+    if baseline == "performance-memory":
+        return _eval_performance_memory_baseline(project_root, fn=fn, baseline_path=baseline_path)
+    if baseline == "resiliency":
+        return _eval_resiliency_baseline(project_root)
     raise ValueError(f"unknown baseline: {baseline}")
 
 
 def evaluate_all(
     project_root: Path,
+    fn=None,
+    baseline_path: Path | None = None,
 ) -> dict[str, ComplianceSummary]:
-    """3종 baseline 모두 평가.
+    """5종 baseline 모두 평가 (v0.7.3+ 7 baseline dispatcher).
 
     Returns:
         dict mapping baseline name → ComplianceSummary.
     """
     return {
+        # v0.7.1 (3 baseline)
         "security": _eval_security_baseline(project_root),
         "testing": _eval_testing_baseline(project_root),
         "performance": _eval_performance_baseline(project_root),
+        # v0.7.3 (4 baseline dispatcher — sub-cat 본 구현)
+        "security-auth": _eval_security_auth_baseline(project_root),
+        "testing-property-based": _eval_testing_pbt_baseline(project_root),
+        "performance-memory": _eval_performance_memory_baseline(
+            project_root, fn=fn, baseline_path=baseline_path
+        ),
+        "resiliency": _eval_resiliency_baseline(project_root),
     }

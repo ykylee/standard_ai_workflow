@@ -82,13 +82,27 @@ def test_evaluate_performance_baseline() -> None:
 
 
 def test_evaluate_all_baselines() -> None:
-    """evaluate_all() → 3 baseline 모두."""
+    """evaluate_all() → 7 baseline 모두 (v0.7.3+ 4 dispatcher 추가)."""
     from workflow_kit.common.contracts.baselines import evaluate_all
     result = evaluate_all(SOURCE_ROOT)
-    assert set(result.keys()) == {"security", "testing", "performance"}
+    expected = {
+        "security",
+        "testing",
+        "performance",
+        "security-auth",
+        "testing-property-based",
+        "performance-memory",
+        "resiliency",
+    }
+    assert set(result.keys()) == expected, f"missing: {expected - set(result.keys())}"
     for baseline_name, cs in result.items():
         assert cs.baseline == baseline_name
-        assert len(cs.results) == 6
+        # 6 rule (security/testing/performance/security-auth/testing-property-based/performance-memory)
+        # 8 rule (resiliency)
+        if baseline_name == "resiliency":
+            assert len(cs.results) == 8, f"{baseline_name}: {len(cs.results)} rule (expected 8)"
+        else:
+            assert len(cs.results) == 6, f"{baseline_name}: {len(cs.results)} rule (expected 6)"
 
 
 # --- Test 3: ComplianceSummary.to_dict() ---
@@ -157,15 +171,37 @@ def test_partial_rules_applied() -> None:
     assert _is_enabled(state, "performance") is False
 
 
-# --- Test 6: 6 rule × 3 baseline = 18 RuleResult ---
+# --- Test 6: 6 rule × 7 baseline = 44 RuleResult (v0.7.3+ 7 baseline dispatcher) ---
 
 
 def test_total_rule_results() -> None:
-    """3 baseline × 6 rule = 18 RuleResult."""
+    """7 baseline × 6+6+6+6+6+6+8 = 44 RuleResult.
+
+    v0.7.1: 3 baseline (security 6 + testing 6 + performance 6) = 18
+    v0.7.3: + 4 baseline dispatcher (security-auth 6 + testing-property-based 6 +
+                                performance-memory 6 + resiliency 8) = +26
+    Total: 18 + 26 = 44
+    """
     from workflow_kit.common.contracts.baselines import evaluate_all
     result = evaluate_all(SOURCE_ROOT)
     total = sum(len(cs.results) for cs in result.values())
-    assert total == 18, f"expected 18 total, got {total}"
+    assert total == 44, f"expected 44 total (v0.7.3: 3 + 4 baseline dispatcher), got {total}"
+
+
+def test_seven_baseline_dispatcher_v0_7_3() -> None:
+    """v0.7.3+ 7 baseline dispatcher."""
+    from workflow_kit.common.contracts.baselines import evaluate_all
+    result = evaluate_all(SOURCE_ROOT)
+    expected = {
+        "security",
+        "testing",
+        "performance",
+        "security-auth",
+        "testing-property-based",
+        "performance-memory",
+        "resiliency",
+    }
+    assert set(result.keys()) == expected, f"missing: {expected - set(result.keys())}"
 
 
 # --- Test 7: error handling ---

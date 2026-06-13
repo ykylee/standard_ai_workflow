@@ -632,7 +632,7 @@ updated: 2026-06-12
   3. wiki maintainability score metric (6 dim 별 점수 + dashboard)
   4. wiki-source-sync 본 emit 옵션 (vault 의 wiki-source-sync.py 자체에 통합)
 
-## [2026-06-13] wiki maintainability (commit `TBD`) | L2 sources/ 전체 draft 해소 (30 page, last_touched 갱신)
+## [2026-06-13] wiki maintainability (commit `7a4dbae`) | L2 sources/ 전체 draft 해소 (30 page, last_touched 갱신)
 
 - **Trigger**: yklee 의 "emit_wiki_l2_body.py 의 --apply --limit=0 (전체)" 요청. 30 page 가 emit 대상.
 - **실행**:

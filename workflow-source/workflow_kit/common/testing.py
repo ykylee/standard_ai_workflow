@@ -193,6 +193,7 @@ def check_generator_present(test_files: list[Path]) -> RuleResult:
     """PBT-WF-05: generator 사용 (hypothesis / quickcheck / 가짜 random).
 
     hypothesis 가 없으면 *minimal generator* (결정적 list of boundary values) 권장.
+    v0.7.4+: optional `hypothesis` package (PBT framework). 미설치 시 fallback.
     """
     has_hypothesis = False
     has_minimal = False
@@ -208,12 +209,31 @@ def check_generator_present(test_files: list[Path]) -> RuleResult:
         # minimal generator: 결정적 list + boundary (e.g. [0, 1, -1, MAX, MIN, ""])
         if re.search(r"def\s+gen_\w+\(", content) or re.search(r"\[0,\s*1,\s*-1,\s*MAX", content):
             has_minimal = True
+
+    # v0.7.4: hypothesis package 가용성 확인 (optional dependency)
+    hypothesis_installed = False
+    try:
+        import hypothesis  # noqa: F401
+        hypothesis_installed = True
+    except ImportError:
+        pass
+
     if not has_hypothesis and not has_minimal:
+        hint = "hypothesis / minimal generator 0개 (boundary value set 권장)"
+        if not hypothesis_installed:
+            hint += " | optional: pip install hypothesis"
         return RuleResult(
             rule_id="PBT-WF-05",
             title="Property Test Generator",
             status="advisory",
-            notes="hypothesis / minimal generator 0개 (boundary value set 권장)",
+            notes=hint,
+        )
+    if has_hypothesis and not hypothesis_installed:
+        return RuleResult(
+            rule_id="PBT-WF-05",
+            title="Property Test Generator",
+            status="advisory",
+            notes="@given 사용되지만 hypothesis package 미설치 — pip install hypothesis",
         )
     kind = "hypothesis" if has_hypothesis else "minimal"
     return RuleResult(

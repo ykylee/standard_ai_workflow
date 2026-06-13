@@ -169,6 +169,7 @@ def check_reference_cycle(fn: Callable[[], object]) -> RuleResult:
     """PERF-MEM-04: 함수 실행 후 unreachable object 0개.
 
     Reference cycle = container 가 서로 참조 (list.append(self) 등).
+    v0.7.4+: optional `objgraph` (reference graph visualization). 미설치 시 fallback.
     """
     before = len(gc.get_objects())
     fn()
@@ -177,18 +178,33 @@ def check_reference_cycle(fn: Callable[[], object]) -> RuleResult:
     # if growth is small and finalizable count is 0, OK
     finalizers = sum(1 for o in gc.get_objects() if gc.is_finalized(o))
     growth = after - before
+
+    # v0.7.4: objgraph package 가용성 (optional — reference chain 시각화)
+    objgraph_installed = False
+    try:
+        import objgraph  # noqa: F401
+        objgraph_installed = True
+    except ImportError:
+        pass
+
     if finalizers == 0 and growth < 1000:
+        note = f"object growth {growth} < 1000, finalizer {finalizers}"
+        if objgraph_installed:
+            note += " | objgraph available (deep ref-chain 분석 가능)"
         return RuleResult(
             rule_id="PERF-MEM-04",
             title="Reference Cycle",
             status="compliant",
-            notes=f"object growth {growth} < 1000, finalizer {finalizers}",
+            notes=note,
         )
+    note = f"object growth {growth}, finalizer {finalizers} (review 필요)"
+    if not objgraph_installed:
+        note += " | optional: pip install objgraph (ref-chain 시각화)"
     return RuleResult(
         rule_id="PERF-MEM-04",
         title="Reference Cycle",
         status="advisory",
-        notes=f"object growth {growth}, finalizer {finalizers} (review 필요)",
+        notes=note,
     )
 
 

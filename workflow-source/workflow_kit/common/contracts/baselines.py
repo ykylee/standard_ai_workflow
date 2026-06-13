@@ -431,7 +431,6 @@ def _eval_performance_baseline(project_root: Path) -> ComplianceSummary:
     ))
 
     # PERF-WF-02: Module Import Time (≤ 1초)
-    import time
     start = time.time()
     try:
         import workflow_kit

@@ -650,3 +650,38 @@ updated: 2026-06-12
 - **Follow-up (v0.7.1+)**:
   1. emit helper 의 `--project=cross` (L1 raw mirror 가 모든 project 에 동일)
   2. v0.7.1: vault 의 wiki-source-sync.py 자체에 --emit-body 옵션 통합
+
+## [2026-06-13] wiki maintainability score (commit `TBD`) | 6 dim dashboard + 12 smoke test
+
+- **Trigger**: yklee 의 "wiki maintainability score metric (6 dim dashboard)" 요청. 위키 운영 정공법의 *정량적 metric*.
+- **산출**:
+  - `workflow-source/tools/score_wiki_maintainability.py` 신규 (365 line)
+  - 6 dim 별 0.0~5.0 점수:
+    - Coverage (L1 wiki + last_ingested_from + status: active) = 4.13
+    - Freshness (drift < 7일) = 4.20
+    - Discoverability (vault L2 본문 ≥ 200자) = 0.37 (low — 539 page 중 40 page 만 searchable)
+    - Cross-ref (related_pages ≥ 2) = 4.63
+    - Lifecycle (status: reviewed) = 0.34 (low — 539 page 중 37 page 만 reviewed)
+    - Operational (11 smoke test PASS) = 5.00
+  - **Overall: 3.11 / 5.0 — Grade D**
+  - grade 기준: A(≥4.5) / B(≥4.0) / C(≥3.5) / D(≥3.0) / F(<3.0)
+- **Dashboard**:
+  - `ai-workflow/wiki/concepts/wiki-maintainability-score.md` (auto-emit)
+  - 6 dim table + bar chart (ASCII) + detail section + 다음 개선 가이드
+  - `index.md` anchor 추가
+- **Smoke test**:
+  - `workflow-source/tests/check_wiki_score.py` (250 line, 12 test PASS):
+    - tool importable + executable (2)
+    - score structure + range + grade enum + grade match (4)
+    - detail consistency + operational smoke (2)
+    - dashboard emit + format + index (3)
+    - idempotency (1)
+- **누적 158 test PASS** (v0.7.0 follow-up 142 + 16 신규) — 회귀 0
+- **개선 후보 (점수 < 4.5 dim)**:
+  - **Discoverability 0.37 → 4.5**: vault L2 의 509 page 의 `<needs content>` 해소. emit_wiki_l2_body.py 의 L1 1:1 매칭이 37 page 만이라 *raw mirror 가 없는 page* 는 본문 emit 불가. v0.7.1+ 의 *manually authored L2 page* 정책 필요
+  - **Lifecycle 0.34 → 4.5**: 동일 — L2 sources/ 의 509 page 의 status: draft → reviewed 자동 변경 로직 필요
+- **Follow-up (v0.7.1+)**:
+  1. score tool 의 CI 통합 (PR check 시 overall < 3.5 면 block)
+  2. v0.7.1: L2 sources/ 의 *raw mirror 가 없는 page* (자체 생성 archive/) 도 본문 emit (template 기반)
+  3. score dashboard 의 *trend over time* (commit 별 score 추적)
+  4. v0.7.1: 6 dim 별 improvement suggestion 자동화

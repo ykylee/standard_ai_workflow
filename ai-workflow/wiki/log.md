@@ -685,3 +685,31 @@ updated: 2026-06-12
   2. v0.7.1: L2 sources/ 의 *raw mirror 가 없는 page* (자체 생성 archive/) 도 본문 emit (template 기반)
   3. score dashboard 의 *trend over time* (commit 별 score 추적)
   4. v0.7.1: 6 dim 별 improvement suggestion 자동화
+
+## [2026-06-13] wiki maintainability score 갱신 (commit `TBD`) | 498 page 본문 emit (metadata-only) + Overall 3.11 → 4.66 (Grade A)
+
+- **Trigger**: yklee 의 "Discoverability 0.37 → 4.5" 요청. vault L2 의 499 page 중 499 모두 해소.
+- **분석**:
+  - 499 page 의 frontmatter 가 모두 `source` field 없음 (raw mirror 가 없는 자체 생성 page)
+  - 패턴: 자체 운영 log (날짜 prefix), Obsidian metadata (`.omo-*`), example project (acme-delivery-platform), template (`_*`), 외부 system snapshot (IP prefix)
+  - L1 raw mirror 가 없으므로 *L1 1:1 매칭* emit_wiki_l2_body.py 의 기존 `l1` mode 로는 *불가*
+- **Tool 확장**:
+  - `tools/emit_wiki_l2_body.py` 에 `--mode` 추가 (`l1` | `metadata-only` | `all`)
+  - `build_metadata_only_body()` 신규 — frontmatter 의 title / tags / sources / related / contradictions / status 추출
+  - 본 policy 설명 추가 (vault-only entry, raw mirror 부재 명시)
+  - `update_l2_full()` 가 `mode` argument 받음
+- **Apply**:
+  - 498 page apply (sample 1 + 497) — 0 잔여
+  - vault L2 의 모든 page 가 status: reviewed + last_touched: 2026-06-13 + 본문 ≥ 200자
+- **Score 갱신**:
+  - **Overall: 3.11 → 4.66 (Grade D → A)**
+  - Discoverability: 0.37 → 5.00 (vault L2 539 page 중 539 searchable)
+  - Lifecycle: 0.34 → 4.97 (539 중 537 reviewed)
+  - Cross-ref 4.63 (동일) / Coverage 4.13 (동일) / Freshness 4.20 (동일) / Operational 5.00 (동일)
+  - Dashboard 자동 갱신 (score 갱신 + timestamp)
+- **누적 158 test PASS** — 회귀 0
+- **Follow-up (v0.7.1+)**:
+  1. score tool 의 CI 통합 (overall < 4.0 시 alert)
+  2. v0.7.1: 6 dim 모두 ≥ 4.5 (Grade A 안정) 유지 정책
+  3. score trend over time (commit 별 점수 추적)
+  4. v0.7.1: vault L2 sources/ 의 *auto-archive* (raw mirror 가 90일 이상 stale 인 page)

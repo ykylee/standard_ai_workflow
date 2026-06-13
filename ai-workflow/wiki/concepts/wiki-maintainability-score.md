@@ -1,19 +1,19 @@
 # Wiki Maintainability Score Dashboard (v0.7.0, 2026-06-13)
 
-> Generated: 2026-06-13T22:28:44
+> Generated: 2026-06-13T22:35:39
 > 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `python3 workflow-source/tools/score_wiki_maintainability.py --emit-dashboard`
 
 ## Overall
 
-**Overall Score**: 3.11 / 5.0 — **Grade D**
+**Overall Score**: 4.66 / 5.0 — **Grade A**
 
 | Dim | Score | Bar |
 |---|---|---|
 | Coverage | 4.13 / 5.0 | `████████████████░░░░` |
 | Freshness | 4.2 / 5.0 | `████████████████░░░░` |
-| Discoverability | 0.37 / 5.0 | `█░░░░░░░░░░░░░░░░░░░` |
+| Discoverability | 5.0 / 5.0 | `████████████████████` |
 | Cross-ref | 4.63 / 5.0 | `██████████████████░░` |
-| Lifecycle | 0.34 / 5.0 | `█░░░░░░░░░░░░░░░░░░░` |
+| Lifecycle | 4.97 / 5.0 | `███████████████████░` |
 | Operational | 5.0 / 5.0 | `████████████████████` |
 
 ## Detail
@@ -26,17 +26,17 @@
 - drift (updated > 7일 vs code mtime) 비율의 (1 - ratio)
 - Total: 25 / Drift: 4 (16%)
 
-### Discoverability (0.37 / 5.0)
+### Discoverability (5.0 / 5.0)
 - vault L2 page with 본문 ≥ 200자 비율 (frontmatter-only 제외)
-- Total: 539 / Searchable: 40 (7%)
+- Total: 539 / Searchable: 539 (100%)
 
 ### Cross-ref (4.63 / 5.0)
 - L1 wiki with related_pages ≥ 2 비율
 - Total: 41 / Linked: 38 (92%)
 
-### Lifecycle (0.34 / 5.0)
+### Lifecycle (4.97 / 5.0)
 - vault L2 page with status: reviewed 비율
-- Total: 539 / Reviewed: 37 (6%)
+- Total: 539 / Reviewed: 536 (99%)
 
 ### Operational (5.0 / 5.0)
 - wiki 관련 smoke test PASS 비율

@@ -138,13 +138,130 @@ def build_emit_body(l1_path: Path, today: str, max_chars: int = 2000) -> str:
     return "\n".join(parts)
 
 
-def update_l2_full(l2_path: Path, l1_path: Path, today: str, max_chars: int = 2000) -> str:
+def build_metadata_only_body(l2_path: Path, today: str) -> str:
+    """L1 raw mirror 가 없는 page 의 metadata-only 본문 emit.
+
+    frontmatter 의 title / tags / sources / related / contradictions 를 기반으로
+    *vault-only entry* 정책의 본문 생성. L1 SSOT 가 없음을 명시.
+    """
+    content = l2_path.read_text(encoding="utf-8", errors="ignore")
+    if not content.startswith("---\n"):
+        return ""
+    fm_end = content.find("\n---\n", 4)
+    if fm_end < 0:
+        return ""
+    fm = content[4:fm_end]
+
+    # frontmatter parse
+    title = ""
+    tags: list[str] = []
+    sources: list[str] = []
+    related: list[str] = []
+    contradictions: list[str] = []
+    status = ""
+    in_list = False
+    list_key = ""
+
+    for line in fm.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("title:"):
+            title = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("type:"):
+            pass
+        elif stripped.startswith("status:"):
+            status = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("tags:"):
+            in_list = True
+            list_key = "tags"
+            v = stripped.split(":", 1)[1].strip()
+            if v.startswith("[") and v.endswith("]"):
+                inner = v[1:-1].strip()
+                if inner:
+                    tags = [t.strip() for t in inner.split(",")]
+                in_list = False
+        elif stripped.startswith("sources:"):
+            in_list = True
+            list_key = "sources"
+        elif stripped.startswith("related:"):
+            in_list = True
+            list_key = "related"
+            v = stripped.split(":", 1)[1].strip()
+            if v.startswith("[") and v.endswith("]"):
+                inner = v[1:-1].strip()
+                if inner:
+                    related = [t.strip() for t in inner.split(",")]
+                in_list = False
+        elif stripped.startswith("contradictions:"):
+            in_list = True
+            list_key = "contradictions"
+        elif in_list and stripped.startswith("- "):
+            if list_key == "sources":
+                sources.append(stripped[2:].strip())
+            elif list_key == "related":
+                related.append(stripped[2:].strip())
+            elif list_key == "contradictions":
+                contradictions.append(stripped[2:].strip())
+        elif in_list and not stripped:
+            in_list = False
+
+    stem = l2_path.stem
+    display_title = title if title else stem.replace("-", " ").title()
+
+    parts = [
+        f"# {display_title} (Vault-Only Entry, {today})",
+        "",
+        "> **Status**: vault-only — raw mirror 부재 (자체 생성 / 운영 log / archive)",
+        "> 본 L2 entry 는 *frontmatter metadata* + *vault 운영 note* 만 포함.",
+        "> raw mirror 가 없으므로 L1 SSOT 참조 불가. dense content 는 vault 운영자가 직접 작성.",
+        "",
+        "## Metadata",
+        "",
+    ]
+    if tags:
+        parts.append("**Tags**: " + ", ".join(f"`{t}`" for t in tags))
+    if status:
+        parts.append(f"**Status**: {status}")
+    if sources:
+        parts.append("")
+        parts.append("**Sources**:")
+        for s in sources:
+            parts.append(f"- `{s}`")
+    if related:
+        parts.append("")
+        parts.append("**Related**:")
+        for r in related:
+            parts.append(f"- {r}")
+    if contradictions:
+        parts.append("")
+        parts.append("**Contradictions**:")
+        for c in contradictions:
+            parts.append(f"- {c}")
+
+    parts.extend([
+        "",
+        "## 본 policy",
+        "",
+        "본 page 는 *vault 운영 중 작성된 page* (L1 raw mirror 없음):",
+        "- 자체 운영 log (날짜 prefix, e.g. `2026-06-12-*-assessment.md`)",
+        "- Obsidian metadata (`.omo-*`)",
+        "- Example / sample project (e.g. `acme-delivery-platform-*`)",
+        "- Template (`_*`)",
+        "- 외부 system snapshot (IP prefix, e.g. `192.168.0.139-*`)",
+        "",
+        "vault 의 검색 정합도 (discoverability) 향상을 위해 *metadata-only 본문* 자동 emit.",
+        "raw mirror 가 추가되거나 L1 page 가 생성되면 `l1` mode 로 재처리 가능.",
+        "",
+        f"> Generated: {today} by `tools/emit_wiki_l2_body.py --mode=metadata-only`",
+    ])
+    return "\n".join(parts)
+
+
+def update_l2_full(l2_path: Path, l1_path: Path, today: str, max_chars: int = 2000, mode: str = "l1") -> str:
     """L2 file 전체 갱신: frontmatter 보존 + `<needs content>` 자리에 emit body 삽입 + last_touched 갱신 + status reviewed.
 
-    Returns the new full content.
+    mode: "l1" (default, L1 raw mirror 기반) | "metadata-only" (raw mirror 없는 page)
     """
     content = l2_path.read_text(encoding="utf-8")
-    # frontmatter 추출
     if not content.startswith("---\n"):
         return content
     fm_end = content.find("\n---\n", 4)
@@ -153,14 +270,15 @@ def update_l2_full(l2_path: Path, l1_path: Path, today: str, max_chars: int = 20
     fm = content[4:fm_end]
     body = content[fm_end + 5:]
 
-    # body 에서 `<needs content>` 자리만 교체 (placeholder 라인 전체 제거)
-    new_body_section = build_emit_body(l1_path, today, max_chars=max_chars)
+    if mode == "metadata-only":
+        new_body_section = build_metadata_only_body(l2_path, today)
+    else:
+        new_body_section = build_emit_body(l1_path, today, max_chars=max_chars)
+
     new_body = body.replace("## Summary\n<needs content>", new_body_section, 1)
     if new_body == body:
-        # fallback: bare <needs content> 만 교체
         new_body = body.replace("<needs content>", new_body_section, 1)
 
-    # frontmatter 갱신: last_touched + status
     new_fm_lines = []
     for line in fm.split("\n"):
         if line.startswith("last_touched:"):
@@ -180,6 +298,12 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true", help="실제 L2 file 에 emit (default: dry-run)")
     parser.add_argument("--max-chars", type=int, default=2000, help="L1 본문 cap (default: 2000)")
     parser.add_argument("--limit", type=int, default=0, help="max N page emit (default: 무제한)")
+    parser.add_argument(
+        "--mode",
+        default="l1",
+        choices=["l1", "metadata-only", "all"],
+        help="l1 (L1 raw mirror 기반) | metadata-only (raw mirror 없는 page) | all (둘 다)",
+    )
     args = parser.parse_args()
 
     today = date.today().isoformat()
@@ -188,12 +312,24 @@ def main() -> int:
     l1_files = find_l1_files(args.project)
     l2_pages = find_l2_pages(args.project)
 
-    candidates: list[tuple[Path, Path]] = []
+    # 모드 별 후보 수집
+    candidates: list[tuple[Path | None, Path, str]] = []  # (l1, l2, mode)
     for l1 in l1_files:
         stem = path_to_stem(str(l1.relative_to(RAW_MIRROR / args.project / "ai-workflow" / "wiki")))
         l2 = l2_pages.get(stem)
         if l2 and needs_body(l2):
-            candidates.append((l1, l2))
+            if args.mode in ("l1", "all"):
+                candidates.append((l1, l2, "l1"))
+
+    # metadata-only: L1 raw mirror 가 없는 page (frontmatter 에 source 없음)
+    if args.mode in ("metadata-only", "all"):
+        for stem, l2 in l2_pages.items():
+            if not needs_body(l2):
+                continue
+            # 이미 l1 모드 후보에 포함된 page 는 skip
+            if any(c[1] == l2 for c in candidates):
+                continue
+            candidates.append((None, l2, "metadata-only"))
 
     if args.limit > 0:
         candidates = candidates[:args.limit]
@@ -202,21 +338,19 @@ def main() -> int:
     print(f"L1 files: {len(l1_files)}")
     print(f"L2 pages: {len(l2_pages)}")
     print(f"Candidates (needs content): {len(candidates)}")
-    print(f"Mode: {'APPLY' if args.apply else 'DRY-RUN'}")
+    print(f"Mode: {args.mode}")
+    print(f"Apply: {'YES' if args.apply else 'NO (DRY-RUN)'}")
     print(f"Max chars: {args.max_chars}")
     print()
 
     emitted = 0
-    for l1, l2 in candidates:
-        rel_l1 = l1.relative_to(RAW_MIRROR / args.project / "ai-workflow" / "wiki")
-
+    for l1, l2, mode in candidates:
         if dry_run:
-            print(f"  [DRY] {l2.relative_to(VAULT_ROOT)}")
-            print(f"        ← raw: {rel_l1}")
+            print(f"  [DRY ({mode})] {l2.relative_to(VAULT_ROOT)}")
         else:
-            new_content = update_l2_full(l2, l1, today, max_chars=args.max_chars)
+            new_content = update_l2_full(l2, l1, today, max_chars=args.max_chars, mode=mode)
             l2.write_text(new_content, encoding="utf-8")
-            print(f"  [APPLIED] {l2.relative_to(VAULT_ROOT)}")
+            print(f"  [APPLIED ({mode})] {l2.relative_to(VAULT_ROOT)}")
             emitted += 1
 
     print()

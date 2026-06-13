@@ -713,3 +713,31 @@ updated: 2026-06-12
   2. v0.7.1: 6 dim 모두 ≥ 4.5 (Grade A 안정) 유지 정책
   3. score trend over time (commit 별 점수 추적)
   4. v0.7.1: vault L2 sources/ 의 *auto-archive* (raw mirror 가 90일 이상 stale 인 page)
+
+## [2026-06-13] v0.7.1 (commit `TBD`) | follow-up 4건 + wiki 개선 4건 묶음 (158 test PASS)
+
+- **Trigger**: yklee 의 "v0.7.1-beta 묶음" 요청. v0.7.0 release 의 4 follow-up + 이번 session 의 wiki 개선 4건.
+- **4 follow-up 모두 완료**:
+  - **1. 9-Artifact auto-fill helper** (`tools/fill_reverse_engineering_artifacts.py`, 227 line)
+    - workflow-source/reverse-engineering/ template 자동 fill + heuristic TODO marker
+    - `--info` / `--project-root` / `--apply` / `--limit` / `--output-dir`
+  - **2. SEC-WF-05 dependency integrity 실제 검증** (baselines.py)
+    - pyproject.toml 의 version pin (== / >=) + lock file (requirements.txt / uv.lock / poetry.lock) + checksum (sha256 / gpg) 3가지 평가
+    - 평가: pinned + (lock OR checksum) = compliant / pinned only = advisory / no pin = non_compliant
+  - **3. 9-Artifact index topic page** (`topics/reverse-engineering-9-artifact-index.md`, 90 line)
+    - 9 artifact 의 index (본 위치 + 주제 + Verification 안내)
+    - `index.md` anchor 추가
+  - **4. Extension sub-cat + resiliency 스케치** (`extensions/v0.7.1-roadmap.md`, 115 line)
+    - v0.7.1+ sub-cat directory 구조 + 4종 (resiliency) 의 우리 적응 8/16 rule + v0.8.0+ follow-up 4건
+- **Version bump + release notes**:
+  - `pyproject.toml` 0.7.0 → 0.7.1
+  - `workflow_kit/__init__.py` v0.7.0-beta → v0.7.1-beta
+  - `releases/Beta-v0.7.1.md` (170 line, 4 follow-up + 4 wiki 개선 + score 갱신)
+  - wheel + sdist 빌드 (twine check PASSED)
+  - smoke venv (`/tmp/sawsmoke-071`): workflow_kit v0.7.1-beta 정상 + SEC-WF-05 advisory 검증 동작
+  - GitHub Release v0.7.1-beta 발행
+- **누적 158 test PASS** — 회귀 0
+- **Follow-up (v0.7.2+)**:
+  1. sub-cat 본 구현 (auth-baseline, property-based-testing, memory-baseline, resiliency-baseline)
+  2. 9-Artifact auto-fill helper 의 heuristic 강화
+  3. score tool 의 CI 통합

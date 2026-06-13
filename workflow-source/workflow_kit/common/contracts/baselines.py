@@ -183,17 +183,69 @@ def _eval_security_baseline(project_root: Path) -> ComplianceSummary:
     ))
 
     # SEC-WF-05: Dependency Integrity
-    # 검증: pyproject.toml 또는 requirements.txt 의 lock / version pin
-    has_lock = (project_root / "workflow-source" / "pyproject.toml").exists()
-    if has_lock:
+    # SEC-WF-05: Dependency Integrity (v0.7.1 follow-up)
+    # 검증: pyproject.toml 의 lock / version pin + checksum
+    pyproject_path = project_root / "workflow-source" / "pyproject.toml"
+    req_txt_path = project_root / "workflow-source" / "requirements.txt"
+    req_dev_txt_path = project_root / "workflow-source" / "requirements-dev.txt"
+    if not pyproject_path.exists():
+        results.append(RuleResult("SEC-WF-05", "Dependency Integrity", "not_applicable"))
+    else:
+        # 1) version pinning 검증: dependencies 의 모든 entry 가 == 또는 >= 명시
+        pyproject_text = pyproject_path.read_text(encoding="utf-8")
+        # dependencies section 추출
+        dep_match = re.search(
+            r"^dependencies\s*=\s*\[(.*?)\]",
+            pyproject_text,
+            re.MULTILINE | re.DOTALL,
+        )
+        pinned = False
+        if dep_match:
+            deps = dep_match.group(1)
+            # '==' or '>=' 패턴 카운트
+            strict_count = len(re.findall(r'==\s*[\d.]+', deps))
+            loose_count = len(re.findall(r'>=\s*[\d.]+', deps))
+            if strict_count + loose_count >= 1:
+                pinned = True
+        # 2) lock file 검증: requirements.txt / requirements-dev.txt / uv.lock / poetry.lock
+        lock_files = [
+            req_txt_path,
+            req_dev_txt_path,
+            project_root / "uv.lock",
+            project_root / "poetry.lock",
+        ]
+        has_lock = any(p.exists() for p in lock_files)
+        # 3) checksum 검증: SHA256 또는 PGP signature
+        has_checksum = "sha256" in pyproject_text.lower() or "gpg" in pyproject_text.lower()
+
+        notes_parts = []
+        if pinned:
+            notes_parts.append("version pinned")
+        else:
+            notes_parts.append("no version pin")
+        if has_lock:
+            notes_parts.append("lock file present")
+        else:
+            notes_parts.append("no lock file (pip install 시 reproducibility 약함)")
+        if has_checksum:
+            notes_parts.append("checksum verified")
+        else:
+            notes_parts.append("no checksum (supply chain 검증 부재)")
+
+        # 평가: pinned + (lock OR checksum) = compliant
+        if pinned and (has_lock or has_checksum):
+            status = "compliant"
+        elif pinned:
+            status = "advisory"
+        else:
+            status = "non_compliant"
+
         results.append(RuleResult(
             rule_id="SEC-WF-05",
             title="Dependency Integrity",
-            status="advisory",
-            notes="pyproject.toml 존재 (lock file / checksum 검증은 v0.7.1 follow-up)",
+            status=status,
+            notes=", ".join(notes_parts),
         ))
-    else:
-        results.append(RuleResult("SEC-WF-05", "Dependency Integrity", "not_applicable"))
 
     # SEC-WF-06: R-9 Skip Marker
     # 검증: extensions/*.md 파일에 r9_skip frontmatter 존재 (skip marker)

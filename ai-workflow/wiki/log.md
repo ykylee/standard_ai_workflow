@@ -840,3 +840,5 @@ updated: 2026-06-12
   4. v0.7.3 PBT hypothesis + memory objgraph 의존성 옵션
 
 ## [2026-06-13] v0.7.3-beta (commit `d03348a`) | 4 Runtime Helper 본 구현 (191 test PASS, GH release)
+
+## [2026-06-13] v0.7.4-beta (commit `22e7750`) | workflow doctor CLI + @graceful_shutdown + optional dep (200 test PASS, GH release)

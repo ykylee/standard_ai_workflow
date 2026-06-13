@@ -714,7 +714,7 @@ updated: 2026-06-12
   3. score trend over time (commit 별 점수 추적)
   4. v0.7.1: vault L2 sources/ 의 *auto-archive* (raw mirror 가 90일 이상 stale 인 page)
 
-## [2026-06-13] v0.7.1 (commit `TBD`) | follow-up 4건 + wiki 개선 4건 묶음 (158 test PASS)
+## [2026-06-13] v0.7.1 (commit `f09034d`) | follow-up 4건 + wiki 개선 4건 묶음 (158 test PASS)
 
 - **Trigger**: yklee 의 "v0.7.1-beta 묶음" 요청. v0.7.0 release 의 4 follow-up + 이번 session 의 wiki 개선 4건.
 - **4 follow-up 모두 완료**:

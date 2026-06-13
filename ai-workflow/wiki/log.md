@@ -809,7 +809,7 @@ updated: 2026-06-12
   2. v0.7.2: PR 마다 자동 --record-current (github action)
   3. v0.7.2: v0.8.0+ 의 dim 별 trend 자동 alert 의 *alert channel* (slack / email)
 
-## [2026-06-13] v0.7.2 (commit `TBD`) | Extension sub-cat + 4종 본 구현 (179 test PASS, GH release)
+## [2026-06-13] v0.7.2 (commit `3bffba3`) | Extension sub-cat + 4종 본 구현 (179 test PASS, GH release)
 
 - **Trigger**: yklee 의 "v0.7.2 follow-up (sub-cat 본 구현)" 요청. v0.7.1 roadmap 의 4 follow-up 모두 본 구현.
 - **신규 4 baseline (8 file, ~1,200 line)**:

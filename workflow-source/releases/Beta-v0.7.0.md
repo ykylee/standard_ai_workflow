@@ -144,3 +144,31 @@
   - `aidlc-rules/aws-aidlc-rule-details/construction/build-and-test.md` (audit log)
 - 우리 wiki: `~/wiki/wiki/projects/standard-ai-workflow/sources/topics-aidlc-benchmark-analysis-2026-06-12.md` (D/B/A 보완안 4종)
 - 우리 log: `ai-workflow/wiki/log.md` (6 step entry + 본 release entry)
+
+---
+
+## v0.7.0 follow-up (2026-06-13)
+
+본 release 직후 follow-up 3 task 완료 (commit 71de1b0):
+
+### Task 3: v0.7.0 packaging (commit 390a6e0)
+
+- pyproject.toml + workflow_kit/__init__.py: 0.6.3 → 0.7.0
+- wheel + sdist 빌드 (159898 bytes) + twine check PASSED
+- fresh venv smoke 정상
+- **GitHub Release v0.7.0-beta 발행** (2 asset: wheel + tar.gz)
+
+### Task 2: session-start opt-in 통합 (spec level)
+
+- `core/session_start_skill_spec.md` §11 추가 (76 line)
+- 3종 baseline opt-in 흐름 6 step (detect → prompt → response → file → state.json → audit)
+- Default 정책: Greenfield (A/A/P) / Brownfield (기존 존중) / CI/CD (skip)
+- Session-Start 출력 schema: `extension_baselines` + `warnings` field 추가
+- Runtime 통합: §11.5 v0.7.1+ follow-up
+
+### Task 1: evaluate_compliance() helper
+
+- `workflow_kit/common/contracts/baselines.py` 신규 (516 line)
+- 3종 baseline × 6 rule = 18 RuleResult runtime 평가
+- 12 test PASS (smoke test `check_baselines_compliance.py`)
+- 누적 **142 test PASS** (v0.7.0 130 + 12 신규)

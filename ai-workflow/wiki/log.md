@@ -741,3 +741,35 @@ updated: 2026-06-12
   1. sub-cat 본 구현 (auth-baseline, property-based-testing, memory-baseline, resiliency-baseline)
   2. 9-Artifact auto-fill helper 의 heuristic 강화
   3. score tool 의 CI 통합
+
+## [2026-06-13] wiki maintainability score trend (commit `TBD`) | 7 milestone score 누적 + dashboard 갱신
+
+- **Trigger**: yklee 의 "score trend over time (commit 별 추적)" 요청.
+- **신규 tool**:
+  - `tools/score_wiki_trend.py` (170 line) — git log + score tool 결과 누적 + ASCII chart 시각화
+  - `--record-current` (HEAD 점수 기록) / `--record-range N` (최근 N commit 재기록) / `--show` (ASCII chart) / `--json`
+  - history: `tools/.score_history.jsonl` (v0.7.1+ 누적)
+- **Dashboard 갱신**:
+  - `score_wiki_maintainability.py` 의 `emit_dashboard()` 에 trend section 추가
+  - 7 commit 의 overall + grade 를 table 로 표시
+  - 자동 추출 — score tool 실행 시 dashboard 자동 갱신
+- **7 milestone record** (key commit 의 score):
+  - `0052da1` (v0.7.0 step 7): 3.11 (D)
+  - `021ec16` (v0.7.0 wiki maintainability): 3.70 (D)
+  - `7a4dbae` (v0.7.0 L2 30 page emit): 3.70 (D)
+  - `49dfc78` (v0.7.0 score metric + dashboard): 3.70 (D)
+  - `c72bdc3` (v0.7.0 L2 499 page metadata-only emit): 4.66 (A)
+  - `f09034d` (v0.7.1 release): 4.66 (A)
+  - `bad14d8` (current HEAD): 4.67 (A)
+- **신규 smoke test** (tests/check_wiki_trend.py, 220 line, 10 test PASS):
+  - tool importable + show runs (2)
+  - history valid jsonl + score range (2)
+  - chart bar chars (1)
+  - JSON output (1)
+  - dashboard integration (2)
+  - idempotency (1)
+- **누적 168 test PASS** (v0.7.1 158 + 10 신규) — 회귀 0
+- **Follow-up (v0.7.2+)**:
+  1. trend 의 dim 별 변화 자동 alert (≥ 0.3 하락 시)
+  2. score tool 의 CI 통합 (overall < 4.0 시 block)
+  3. v0.7.1 trend 자동 누적 (PR 머지 시 github action)

@@ -360,7 +360,28 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
         filled = int(score / 5.0 * 20)
         return "█" * filled + "░" * (20 - filled)
 
-    md = f"""# Wiki Maintainability Score Dashboard (v0.7.0, 2026-06-13)
+    # trend section: history jsonl read
+    trend_section = ""
+    history_path = SOURCE_ROOT / "tools" / ".score_history.jsonl"
+    if history_path.exists():
+        records = []
+        for line in history_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            if line.strip():
+                try:
+                    records.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+        if records:
+            trend_section = "\n## Trend Over Time (v0.7.1+)\n\n"
+            trend_section += "| Commit | Subject | Overall | Grade |\n"
+            trend_section += "|---|---|---|---|\n"
+            for r in records:
+                subj = r.get("subject", "")[:50]
+                trend_section += f"| `{r.get('commit', '?')}` | {subj} | {r.get('overall', 0):.2f} | {r.get('grade', 'F')} |\n"
+            trend_section += "\n자동 추출: `python3 workflow-source/tools/score_wiki_trend.py --show`\n"
+            trend_section += "history: `workflow-source/tools/.score_history.jsonl` (v0.7.1+ 누적)\n"
+
+    md = f"""# Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
 
 > Generated: {timestamp}
 > 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `python3 workflow-source/tools/score_wiki_maintainability.py --emit-dashboard`
@@ -422,10 +443,12 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 - **Cross-ref < 4.5**: related_pages ≥ 2 page 추가
 - **Lifecycle < 4.5**: vault L2 status: draft → reviewed 자동 갱신
 - **Operational < 4.5**: smoke test 신규 추가 또는 회귀 fix
+{trend_section}
 
 ## References
 
 - tool: `workflow-source/tools/score_wiki_maintainability.py`
+- tool: `workflow-source/tools/score_wiki_trend.py` (v0.7.1+, trend over time)
 - helper: `workflow-source/tools/emit_wiki_l2_body.py` (L2 emit)
 - smoke: `workflow-source/tests/check_wiki_drift.py` (drift)
 - 6 dim 정의: 본 dashboard §Score 기준

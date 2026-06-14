@@ -77,7 +77,7 @@ trigger: v0.7.7 release note 의 *"다음"* 항목 ("state-aware evaluate_compli
 | Hash | Subject |
 |---|---|
 | `d3235ad` | feat(v0.7.8): state-aware evaluate_compliance + config actual apply |
-| `<release>` | chore(v0.7.8): version bump 0.7.7 → 0.7.8 + release note |
+| `b67af83` | chore(v0.7.8): version bump 0.7.7 → 0.7.8 + release note |
 
 ## 다음 (v0.7.9 / v0.8.0 후보)
 

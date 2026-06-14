@@ -356,6 +356,195 @@ def cmd_note_draft(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 4. release (Phase 2 — v0.7.10)
+# ---------------------------------------------------------------------------
+
+
+def find_dist_files(version: str) -> list[Path]:
+    """dist/ 의 wheel + sdist glob. PEP 440 normalize: 0.7.10 → 0.7.10b0."""
+    dist = REPO_ROOT / "dist"
+    if not dist.exists():
+        return []
+    # PEP 440: 0.7.10-beta → 0.7.10b0
+    base = version.split("-")[0]
+    pep_version = base  # wheel 파일명은 X.Y.Z 형태
+    return sorted(dist.glob(f"standard_ai_workflow-{pep_version}*"))
+
+
+def cmd_release(args) -> dict:
+    """GitHub Release 생성 (gh release create).
+
+    사전 점검: --skip-validate 미지정 시 validate 4 source 자동 호출.
+    1+ source fail 시 release 중단 (exit 1).
+
+    gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
+    """
+    results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
+
+    # 1. validate (사전 점검)
+    if not args.skip_validate:
+        val_result = cmd_validate(args)
+        results["pre_check"] = val_result
+        if not all(v.get("ok", False) for v in val_result.values()):
+            return {**results, "error": "validate failed; abort release"}
+
+    # 2. dist 파일 glob
+    version = read_version()
+    dist_files = find_dist_files(version)
+    if not dist_files:
+        return {**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"}
+
+    # 3. tag + gh command
+    tag = f"v{version}-beta"
+    notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+    if not notes_file.exists():
+        return {**results, "error": f"release note not found: {notes_file}"}
+
+    rel_assets = [str(f.relative_to(REPO_ROOT)) for f in dist_files]
+    results["tag"] = tag
+    results["assets"] = rel_assets
+    results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+
+    # 4. gh command build
+    repo_remote = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+    )
+    repo = repo_remote.stdout.strip().replace("https://github.com/", "").replace(".git", "")
+    results["repo"] = repo
+
+    gh_cmd = [
+        "gh", "release", "create", tag,
+        "--repo", repo,
+        "--title", f"Beta v{version}",
+        "--notes-file", str(notes_file),
+        "--target", "main",
+        "--verify-tag",
+    ] + [str(f) for f in dist_files]
+    results["gh_command"] = " ".join(gh_cmd)
+
+    if args.dry_run:
+        return results
+
+    # 5. gh auth check + release create
+    auth_proc = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10)
+    if auth_proc.returncode != 0:
+        return {**results, "error": "gh auth not authenticated"}
+    results["gh_auth_ok"] = True
+
+    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=120)
+    results["gh_exit_code"] = proc.returncode
+    if proc.stdout:
+        results["gh_stdout_tail"] = proc.stdout.strip().split("\n")[-1]
+    if proc.stderr:
+        results["gh_stderr_tail"] = proc.stderr.strip().split("\n")[-1]
+    if proc.returncode != 0:
+        return {**results, "error": f"gh release create failed: exit {proc.returncode}"}
+    return results
+
+
+# ---------------------------------------------------------------------------
+# 5. verify (Phase 2 — v0.7.10)
+# ---------------------------------------------------------------------------
+
+
+def cmd_verify(args) -> dict:
+    """GitHub Release 의 tag + asset 검증 (read-only)."""
+    tag = args.tag
+    if tag.startswith("v"):
+        tag_full = tag
+    else:
+        tag_full = f"v{tag}"
+
+    # 1. gh release view (--json tag,name,url,assets)
+    gh_cmd = [
+        "gh", "release", "view", tag_full,
+        "--repo", _get_repo(),
+        "--json", "tag,name,url,assets,isPrerelease,createdAt",
+    ]
+    results: dict = {"tag": tag_full, "gh_command": " ".join(gh_cmd), "mode": "read-only"}
+
+    if args.dry_run:
+        return results
+
+    proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=30)
+    if proc.returncode != 0:
+        return {**results, "error": f"release not found: {tag_full} (gh exit {proc.returncode})"}
+
+    try:
+        release_data = json.loads(proc.stdout)
+    except json.JSONDecodeError as e:
+        return {**results, "error": f"gh release view JSON parse failed: {e}"}
+
+    results["name"] = release_data.get("name")
+    results["url"] = release_data.get("url")
+    results["is_prerelease"] = release_data.get("isPrerelease")
+    results["created_at"] = release_data.get("createdAt")
+    results["assets"] = [a.get("name") for a in release_data.get("assets", [])]
+    results["asset_count"] = len(results["assets"])
+    results["ok"] = results["asset_count"] > 0
+    return results
+
+
+def _get_repo() -> str:
+    """git remote origin → 'owner/repo' 추출."""
+    proc = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+    )
+    return proc.stdout.strip().replace("https://github.com/", "").replace(".git", "")
+
+
+# ---------------------------------------------------------------------------
+# 6. rollback (Phase 2 — v0.7.10)
+# ---------------------------------------------------------------------------
+
+
+def cmd_rollback(args) -> dict:
+    """GitHub Release + git tag 삭제 (destructive).
+
+    --dry-run: 삭제 명령만 print, 실제 호출 0.
+    --apply: gh release delete + git tag -d + git push --delete origin <tag>.
+    """
+    tag = args.tag if args.tag.startswith("v") else f"v{args.tag}"
+    repo = _get_repo()
+
+    commands = [
+        # local tag delete
+        ["git", "tag", "-d", tag],
+        # remote tag delete
+        ["git", "push", "--delete", "origin", tag],
+        # gh release delete
+        ["gh", "release", "delete", tag, "--repo", repo, "--yes"],
+    ]
+    results: dict = {
+        "tag": tag,
+        "repo": repo,
+        "commands": [" ".join(c) for c in commands],
+        "mode": "dry-run" if args.dry_run else "apply",
+    }
+
+    if args.dry_run:
+        return results
+
+    # 실제 실행
+    executed: list[dict] = []
+    for cmd in commands:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        executed.append({
+            "cmd": " ".join(cmd),
+            "exit_code": proc.returncode,
+            "stdout_tail": (proc.stdout or "").strip().split("\n")[-1] if proc.stdout else "",
+        })
+        if proc.returncode != 0:
+            results["error"] = f"command failed: {' '.join(cmd)} (exit {proc.returncode})"
+            break
+    results["executed"] = executed
+    results["ok"] = "error" not in results
+    return results
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -391,8 +580,28 @@ def main() -> int:
     p_nd.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_nd.add_argument("--apply", dest="apply", action="store_true", default=True)
 
+    # release (Phase 2 — v0.7.10)
+    p_rel = sub.add_parser("release", help="GitHub Release 생성 (gh release create)")
+    p_rel.add_argument("--skip-validate", action="store_true", help="validate 사전 점검 skip")
+    p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_rel.add_argument("--json", action="store_true")
+
+    # verify (Phase 2 — v0.7.10)
+    p_ver = sub.add_parser("verify", help="GitHub Release 의 tag + asset 검증 (read-only)")
+    p_ver.add_argument("--tag", required=True, help="tag 이름 (e.g. v0.7.9-beta 또는 0.7.9)")
+    p_ver.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_ver.add_argument("--json", action="store_true")
+
+    # rollback (Phase 2 — v0.7.10)
+    p_rb = sub.add_parser("rollback", help="GitHub Release + git tag 삭제 (destructive)")
+    p_rb.add_argument("--tag", required=True, help="tag 이름 (e.g. v0.7.9-beta 또는 0.7.9)")
+    p_rb.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_rb.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_rb.add_argument("--json", action="store_true")
+
     args = p.parse_args()
-    if args.dry_run:
+    if getattr(args, "dry_run", False):
         args.apply = False
 
     if args.command == "validate":
@@ -401,6 +610,12 @@ def main() -> int:
         result = cmd_version_bump(args)
     elif args.command == "note-draft":
         result = cmd_note_draft(args)
+    elif args.command == "release":
+        result = cmd_release(args)
+    elif args.command == "verify":
+        result = cmd_verify(args)
+    elif args.command == "rollback":
+        result = cmd_rollback(args)
     else:
         p.error(f"unknown command: {args.command}")
         return 2
@@ -408,20 +623,32 @@ def main() -> int:
     if getattr(args, "json", False):
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        print(f"=== {args.command} ({'DRY-RUN' if getattr(args, 'dry_run', False) else 'APPLY'}) ===")
+        dry_run = getattr(args, "dry_run", False)
+        mode_label = "DRY-RUN" if dry_run else "APPLY"
+        if args.command == "verify":
+            mode_label = "READ-ONLY"
+        print(f"=== {args.command} ({mode_label}) ===")
         for k, v in result.items():
             if isinstance(v, dict):
                 print(f"  {k}:")
                 for k2, v2 in v.items():
-                    print(f"    {k2}: {v2}")
+                    if isinstance(v2, list) and len(str(v2)) > 80:
+                        print(f"    {k2}: [{', '.join(str(x) for x in v2[:3])}...]")
+                    else:
+                        print(f"    {k2}: {v2}")
             elif isinstance(v, list):
-                print(f"  {k}: [{', '.join(str(x) for x in v[:5])}...]")
+                if len(str(v)) > 80:
+                    print(f"  {k}: [{', '.join(str(x) for x in v[:3])}...]")
+                else:
+                    print(f"  {k}: {v}")
             else:
                 print(f"  {k}: {v}")
 
-    # exit code: validate 만 exit 1 가능 (non-zero 시)
-    if args.command == "validate":
-        if not all(v.get("ok", False) for v in result.values()):
+    # exit code: validate / release / verify / rollback 의 ok/error 기반
+    if args.command in ("validate", "release", "verify", "rollback"):
+        if "error" in result:
+            return 1
+        if args.command in ("release", "rollback") and not result.get("ok", True):
             return 1
     return 0
 

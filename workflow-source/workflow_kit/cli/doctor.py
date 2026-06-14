@@ -5,11 +5,15 @@ Usage:
     python -m workflow_kit.cli.doctor --baseline=security   # 1 baseline
     python -m workflow_kit.cli.doctor --json                # JSON output
     python -m workflow_kit.cli.doctor --pretty              # pretty table
-    python -m workflow_kit.cli.doctor --exit-on-fail       # exit 1 if non_compliant
+    python -m workflow_kit.cli.doctor --exit-on-fail        # exit per config.fail_on
 
 v0.7.3 의 7 baseline dispatcher (security / testing / performance / security-auth /
 testing-property-based / performance-memory / resiliency) 를 CLI 로 expose.
 v0.7.4 추가: 7 baseline 통합 evaluate_all + pretty table 출력 + --exit-on-fail.
+v0.7.7 추가: load_config() integration (v0.7.6 의 [tool.workflow-doctor] 5 field 사용).
+  - fail_on (CI threshold) 의 *enum* 적용: compliant | advisory | non_compliant
+  - partial_rules / opt_in / thresholds / excluded_paths 의 *summary 표시* (deferred follow-up: state-aware variant)
+  - --show-config flag: 현재 load 된 config 의 to_dict() 출력
 """
 
 from __future__ import annotations
@@ -57,11 +61,18 @@ def evaluate(project_root: Path, baseline: str | None = None) -> dict:
     return {name: cs.to_dict() for name, cs in all_summaries.items()}
 
 
-def render_pretty(results: dict) -> str:
-    """7 baseline 결과를 사람이 읽기 좋은 table 로."""
+def render_pretty(results: dict, config=None) -> str:
+    """7 baseline 결과를 사람이 읽기 좋은 table 로.
+
+    v0.7.7+: config (DoctorConfig) 인자 추가. config 있으면:
+    - footer 에 fail_on threshold 명시
+    - config 의 partial_rules / opt_in 표시 (deferred: 실제 적용은 follow-up)
+    """
+    from workflow_kit.common.metadata import DoctorConfig
+
     lines = []
     lines.append("=" * 78)
-    lines.append(f" Workflow Doctor — 7 Baseline Compliance Report")
+    lines.append(f" Workflow Doctor — 7 Baseline Compliance Report (v0.7.7)")
     lines.append("=" * 78)
     for baseline_name, cs in results.items():
         # status icon
@@ -75,6 +86,14 @@ def render_pretty(results: dict) -> str:
         lines.append(f"\n[{status_icon}] {baseline_name}: {cs['status']}")
         if cs.get("partial_rules"):
             lines.append(f"   partial rules: {', '.join(cs['partial_rules'])}")
+        # v0.7.7+ config.partial_rules 가 있으면 표시 (state.json override 후보)
+        if config and config.partial_rules.get(baseline_name):
+            config_partial = ", ".join(config.partial_rules[baseline_name])
+            lines.append(f"   config partial: {config_partial} (state.json 부재 시 fallback)")
+        # v0.7.7+ opt_in 표시
+        if config and config.opt_in.get(baseline_name):
+            config_opt_in = ", ".join(config.opt_in[baseline_name])
+            lines.append(f"   config opt_in: {config_opt_in} (default disable, opt-in 시 enable)")
         lines.append(f"   {'rule_id':<14} {'title':<40} {'status':<14}")
         lines.append(f"   {'-' * 70}")
         for r in cs["results"]:
@@ -116,14 +135,25 @@ def render_pretty(results: dict) -> str:
         f"{advisory} advisory, "
         f"{non_compliant} non_compliant"
     )
+    # v0.7.7+ config footer
+    if config is not None:
+        lines.append(f" Config: fail_on={config.fail_on} (severity ≥ {config.fail_on} → exit 1)")
+        if config.thresholds:
+            thresholds_str = ", ".join(f"{k}={v}" for k, v in config.thresholds.items())
+            lines.append(f"         thresholds: {thresholds_str}")
+        if config.excluded_paths:
+            excluded_str = ", ".join(config.excluded_paths)
+            lines.append(f"         excluded_paths: {excluded_str}")
     lines.append("=" * 78)
     return "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
+    from workflow_kit.common.metadata import load_config, should_fail
+
     parser = argparse.ArgumentParser(
         prog="workflow-doctor",
-        description="Workflow 7 baseline compliance evaluator (v0.7.4+)",
+        description="Workflow 7 baseline compliance evaluator (v0.7.7+)",
     )
     parser.add_argument(
         "--project-root",
@@ -143,11 +173,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--exit-on-fail",
         action="store_true",
-        help="non_compliant 발견 시 exit 1",
+        help=f"config.fail_on threshold 이상 발견 시 exit 1 (default fail_on=non_compliant)",
+    )
+    parser.add_argument(
+        "--show-config",
+        action="store_true",
+        help="현재 load 된 [tool.workflow-doctor] config 출력 (5 field)",
     )
 
     args = parser.parse_args(argv)
     baseline = None if args.baseline == "all" else args.baseline
+
+    # v0.7.7+ load_config integration
+    config = load_config(args.project_root)
+
+    # --show-config: config 만 출력하고 종료
+    if args.show_config:
+        print(json.dumps(config.to_dict(), indent=2, ensure_ascii=False))
+        return 0
 
     try:
         results = evaluate(args.project_root, baseline)
@@ -156,14 +199,20 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.json:
-        print(json.dumps(results, indent=2, ensure_ascii=False))
+        # v0.7.7+ JSON output 에 config 추가
+        out = {
+            "config": config.to_dict(),
+            "results": results,
+        }
+        print(json.dumps(out, indent=2, ensure_ascii=False))
     else:
         # pretty = default
-        print(render_pretty(results))
+        print(render_pretty(results, config=config))
 
     if args.exit_on_fail:
+        # v0.7.7+ should_fail() integration — config.fail_on enum 기반
         for cs in results.values():
-            if cs["status"] == "non_compliant":
+            if should_fail(cs["status"], config):
                 return 1
     return 0
 

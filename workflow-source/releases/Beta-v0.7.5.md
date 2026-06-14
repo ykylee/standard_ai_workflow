@@ -81,7 +81,7 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --apply --since=2026-06-14
 |---|---|
 | `9e1f206` | test(v0.7.5): 4 sub-cat dispatcher runtime test 보강 (12 → 16) |
 | `0741775` | feat(v0.7.5): refresh_wiki_memory tool 정식화 + 10 smoke test (Wiki 운영 자동화) |
-| `<release>` | chore(v0.7.5): version bump 0.7.4 → 0.7.5 + release note |
+| `c2a75f8` | chore(v0.7.5): version bump 0.7.4 → 0.7.5 + release note |
 
 ## 다음 (v0.7.6 / v0.8.0 후보)
 

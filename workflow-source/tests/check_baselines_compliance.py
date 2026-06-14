@@ -81,6 +81,71 @@ def test_evaluate_performance_baseline() -> None:
     assert rule_ids == expected, f"rule ID mismatch: {rule_ids} != {expected}"
 
 
+# --- Test 2.1: 4 신규 sub-cat dispatcher (v0.7.3+, v0.7.5 audit 보강) ---
+
+
+def test_evaluate_security_auth_baseline() -> None:
+    """evaluate_compliance(baseline='security-auth') → 6 SEC-AUTH rule.
+
+    v0.7.5 audit: v0.7.3 의 4 신규 sub-cat dispatcher 중 security-auth 의
+    runtime test 누락 보강. SEC-AUTH-01~06 (keyring chmod 600, token rotation,
+    OAuth scope, 2FA, entropy, audit log) 검증.
+    """
+    from workflow_kit.common.contracts.baselines import evaluate_compliance
+    cs = evaluate_compliance(SOURCE_ROOT, "security-auth")
+    assert cs.baseline == "security-auth"
+    assert len(cs.results) == 6, f"expected 6 rules, got {len(cs.results)}"
+    rule_ids = {r.rule_id for r in cs.results}
+    expected = {f"SEC-AUTH-{i:02d}" for i in range(1, 7)}
+    assert rule_ids == expected, f"rule ID mismatch: {rule_ids} != {expected}"
+
+
+def test_evaluate_testing_pbt_baseline() -> None:
+    """evaluate_compliance(baseline='testing-property-based') → 6 PBT-WF rule.
+
+    v0.7.5 audit: testing sub-cat (property-based) 의 runtime dispatcher 검증.
+    PBT-WF-01~06 (test_prop_, round_trip, invariant, idempotency, generator, shrink).
+    """
+    from workflow_kit.common.contracts.baselines import evaluate_compliance
+    cs = evaluate_compliance(SOURCE_ROOT, "testing-property-based")
+    assert cs.baseline == "testing-property-based"
+    assert len(cs.results) == 6, f"expected 6 rules, got {len(cs.results)}"
+    rule_ids = {r.rule_id for r in cs.results}
+    expected = {f"PBT-WF-{i:02d}" for i in range(1, 7)}
+    assert rule_ids == expected, f"rule ID mismatch: {rule_ids} != {expected}"
+
+
+def test_evaluate_performance_memory_baseline() -> None:
+    """evaluate_compliance(baseline='performance-memory') → 6 PERF-MEM rule.
+
+    v0.7.5 audit: performance sub-cat (memory) 의 runtime dispatcher 검증.
+    PERF-MEM-01~06 (tracemalloc+RSS, leak, GC pause, ref cycle, cProfile, regression).
+    """
+    from workflow_kit.common.contracts.baselines import evaluate_compliance
+    cs = evaluate_compliance(SOURCE_ROOT, "performance-memory")
+    assert cs.baseline == "performance-memory"
+    assert len(cs.results) == 6, f"expected 6 rules, got {len(cs.results)}"
+    rule_ids = {r.rule_id for r in cs.results}
+    expected = {f"PERF-MEM-{i:02d}" for i in range(1, 7)}
+    assert rule_ids == expected, f"rule ID mismatch: {rule_ids} != {expected}"
+
+
+def test_evaluate_resiliency_baseline() -> None:
+    """evaluate_compliance(baseline='resiliency') → 8 RES-WF rule.
+
+    v0.7.5 audit: resiliency sub-cat 의 runtime dispatcher 검증.
+    RES-WF-01~08 (doctor, structured log, metrics, run_id, 5-tuple error,
+    SIGTERM, max iter, health snapshot).
+    """
+    from workflow_kit.common.contracts.baselines import evaluate_compliance
+    cs = evaluate_compliance(SOURCE_ROOT, "resiliency")
+    assert cs.baseline == "resiliency"
+    assert len(cs.results) == 8, f"expected 8 rules, got {len(cs.results)}"
+    rule_ids = {r.rule_id for r in cs.results}
+    expected = {f"RES-WF-{i:02d}" for i in range(1, 9)}
+    assert rule_ids == expected, f"rule ID mismatch: {rule_ids} != {expected}"
+
+
 def test_evaluate_all_baselines() -> None:
     """evaluate_all() → 7 baseline 모두 (v0.7.3+ 4 dispatcher 추가)."""
     from workflow_kit.common.contracts.baselines import evaluate_all
@@ -228,6 +293,10 @@ def main() -> int:
         test_evaluate_security_baseline,
         test_evaluate_testing_baseline,
         test_evaluate_performance_baseline,
+        test_evaluate_security_auth_baseline,
+        test_evaluate_testing_pbt_baseline,
+        test_evaluate_performance_memory_baseline,
+        test_evaluate_resiliency_baseline,
         test_evaluate_all_baselines,
         test_compliance_summary_to_dict,
         test_status_values_valid,

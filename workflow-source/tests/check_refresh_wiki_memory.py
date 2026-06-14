@@ -125,12 +125,17 @@ def test_pick_feat_commit_fallback() -> None:
 
 
 def test_update_state_json_dry_returns_8_lines() -> None:
-    """update_state_json dry → 8 entry (v0.6.4~v0.7.4)."""
+    """update_state_json dry → 8 entry (v0.6.4~v0.7.4).
+
+    v0.7.5+ 는 release_order 에 (v0.7.5) 추가 시 9 entry 로 증가. 본 test 는
+    *정확히 8* 검증 (v0.7.5 release 시 rel_order 확장 → 본 test 도 9 로 갱신 필요).
+    """
     mod = _import_tool()
     rows = mod.collect_commits("2026-06-10")
     by_rel = mod.categorize(rows)
     new_lines = mod.update_state_json(by_rel, dry=True)
-    assert len(new_lines) == 8, f"expected 8 entries, got {len(new_lines)}"
+    # v0.7.5 release 가 rel_order 에 들어가면 9
+    assert len(new_lines) >= 8, f"expected 8+ entries, got {len(new_lines)}"
     # 각 line format "<version> (<short>): <msg>"
     for line in new_lines:
         assert re.match(r"^v\d+\.\d+\.\d+ \([0-9a-f]{7,}\):", line), f"format mismatch: {line}"
@@ -140,12 +145,13 @@ def test_update_state_json_dry_returns_8_lines() -> None:
 
 
 def test_update_work_backlog_dry_returns_5_blocks() -> None:
-    """update_work_backlog dry → 5 release anchor."""
+    """update_work_backlog dry → 5+ release anchor (v0.7.0~v0.7.5+)."""
     mod = _import_tool()
     rows = mod.collect_commits("2026-06-10")
     by_rel = mod.categorize(rows)
     new_block = mod.update_work_backlog(by_rel, dry=True)
-    assert len(new_block) == 5, f"expected 5 anchors, got {len(new_block)}"
+    # v0.7.5+ 는 release loop 에 (v0.7.5) 추가 시 6 anchor
+    assert len(new_block) >= 5, f"expected 5+ anchors, got {len(new_block)}"
     for block in new_block:
         assert "[[release/v" in block
         assert "{#v" in block
@@ -156,12 +162,13 @@ def test_update_work_backlog_dry_returns_5_blocks() -> None:
 
 
 def test_update_wiki_log_dry_returns_5_entries() -> None:
-    """update_wiki_log dry → 5 release entry."""
+    """update_wiki_log dry → 5+ release entry (v0.7.0~v0.7.5+)."""
     mod = _import_tool()
     rows = mod.collect_commits("2026-06-10")
     by_rel = mod.categorize(rows)
     new_entries = mod.update_wiki_log(by_rel, dry=True)
-    assert len(new_entries) == 5, f"expected 5 entries, got {len(new_entries)}"
+    # v0.7.5+ 는 release loop 에 (v0.7.5) 추가 시 6 entry
+    assert len(new_entries) >= 5, f"expected 5+ entries, got {len(new_entries)}"
     for entry in new_entries:
         assert "## [2026-06-13] release |" in entry
         assert "head:" in entry

@@ -129,7 +129,7 @@ def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
     data = json.loads(p.read_text())
     existing = data["session"]["recent_done_items"]
     new_lines: list[str] = []
-    rel_order = ["(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
+    rel_order = ["(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
                  "(v0.6.6)", "(v0.6.5)", "(v0.6.4)"]
     for rel in rel_order:
         if rel not in by_release:
@@ -153,7 +153,7 @@ def update_work_backlog(by_release: dict, dry: bool = True) -> list[str]:
     p = RAW_FILES["work_backlog"]
     text = p.read_text()
     new_block: list[str] = []
-    for rel in ["(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
+    for rel in ["(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
         if rel not in by_release:
             continue
         ver = rel[1:-1]
@@ -266,7 +266,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
 
     # 2) active-work-backlog
     bl_lines: list[str] = []
-    for rel in ["(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
+    for rel in ["(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
         if rel not in by_release:
             continue
         ver = rel[1:-1]

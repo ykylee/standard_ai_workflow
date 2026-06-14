@@ -80,7 +80,7 @@ trigger: v0.7.9 release note 의 deferred 3종 (release / verify / rollback) 의
 | Hash | Subject |
 |---|---|
 | `fdf8159` | feat(v0.7.10): release_pipeline Phase 2 (release / verify / rollback) + 8 smoke test |
-| `<release>` | chore(v0.7.10): version bump 0.7.9 → 0.7.10 + release note |
+| `67d4a37` | chore(v0.7.10): version bump 0.7.9 → 0.7.10 + release note |
 
 ## 다음 (v0.7.11 / v0.8.0 후보)
 

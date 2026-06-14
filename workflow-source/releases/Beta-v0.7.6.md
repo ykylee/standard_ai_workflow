@@ -94,7 +94,7 @@ fail_on = "non_compliant"
 |---|---|
 | `53d5dc8` | feat(v0.7.6): run_all_checks 통합 runner + 10 smoke test |
 | `0daf6da` | feat(v0.7.6): workflow_kit.metadata (pyproject.toml [tool.workflow-doctor] loader) + 10 smoke test |
-| `<release>` | chore(v0.7.6): version bump 0.7.5 → 0.7.6 + release note |
+| `b9ede19` | chore(v0.7.6): version bump 0.7.5 → 0.7.6 + release note |
 
 ## 다음 (v0.7.7 / v0.8.0 후보)
 

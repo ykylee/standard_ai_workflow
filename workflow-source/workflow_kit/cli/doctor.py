@@ -38,12 +38,21 @@ ALL_BASELINES = [
 ]
 
 
-def evaluate(project_root: Path, baseline: str | None = None) -> dict:
+def evaluate(project_root: Path, baseline: str | None = None, config=None) -> dict:
     """7 baseline compliance 평가 (single or all).
+
+    v0.7.8+ config (DoctorConfig) 인자 추가. config 있으면:
+    1. project_root/state.json read → in-memory state dict
+    2. config.partial_rules[baseline] 가 있으면 state[f"{baseline}_baseline"]["partial_rules"] 에 merge
+    3. config.opt_in[baseline] 가 있으면 state[f"{baseline}_baseline"]["status"] = "enabled" + opt_in rule list
+    4. merged state 로 evaluate_compliance / evaluate_all 호출 (state=...)
+
+    즉 v0.7.7 의 *display only* (config partial: ... footer) 가 *actual apply* 로 격상.
 
     Args:
         project_root: 프로젝트 루트 (state.json 위치)
         baseline: 단일 baseline name, None 이면 7 baseline 모두
+        config: DoctorConfig (optional). None 이면 v0.7.7 behavior (state.json only).
 
     Returns:
         dict with single baseline result or all 7 baseline results
@@ -52,12 +61,44 @@ def evaluate(project_root: Path, baseline: str | None = None) -> dict:
         evaluate_all,
         evaluate_compliance,
     )
+    from workflow_kit.common.contracts.baselines import _read_state_json  # type: ignore
+
+    # v0.7.8+ in-memory state override
+    state: dict | None = None
+    if config is not None:
+        state = _read_state_json(project_root)
+        # config key (hyphen, e.g. "security-auth") → baselines.py key (underscore, "security_auth")
+        # state key 가 f"{baseline}_baseline" 형식 — _get_partial_rules(state, "security_auth")
+        # 가 state["security_auth_baseline"] 찾으므로 normalize 필요
+        def _normalize_key(bl_name: str) -> str:
+            return bl_name.replace("-", "_")
+        # config.partial_rules[baseline] → state[f"{baseline}_baseline"]["partial_rules"] merge
+        for bl_name, rules in config.partial_rules.items():
+            if not rules:
+                continue
+            bl_key = f"{_normalize_key(bl_name)}_baseline"
+            bl_config = state.setdefault(bl_key, {})
+            existing_partial = bl_config.get("partial_rules", [])
+            # union (state 가 우선, config 가 추가)
+            merged = list(dict.fromkeys(list(existing_partial) + list(rules)))
+            bl_config["partial_rules"] = merged
+        # config.opt_in[baseline] → state[f"{baseline}_baseline"]["status"] = "enabled" + opt_in rule list
+        for bl_name, opt_in_rules in config.opt_in.items():
+            if not opt_in_rules:
+                continue
+            bl_key = f"{_normalize_key(bl_name)}_baseline"
+            bl_config = state.setdefault(bl_key, {})
+            bl_config["status"] = "enabled"
+            # opt_in rule 도 partial_rules 에 add (state partial mode hard constraint 의 일종)
+            existing_partial = bl_config.get("partial_rules", [])
+            merged = list(dict.fromkeys(list(existing_partial) + list(opt_in_rules)))
+            bl_config["partial_rules"] = merged
 
     if baseline:
-        cs = evaluate_compliance(project_root, baseline)
+        cs = evaluate_compliance(project_root, baseline, state=state)
         return {baseline: cs.to_dict()}
 
-    all_summaries = evaluate_all(project_root)
+    all_summaries = evaluate_all(project_root, state=state)
     return {name: cs.to_dict() for name, cs in all_summaries.items()}
 
 
@@ -193,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     try:
-        results = evaluate(args.project_root, baseline)
+        results = evaluate(args.project_root, baseline, config=config)
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2

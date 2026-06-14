@@ -133,7 +133,7 @@ def _aggregate_status(results: list[RuleResult], partial_rules: list[str]) -> St
 # ===================================================================
 
 
-def _eval_security_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_security_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """6 SEC-WF rule runtime 평가."""
     results: list[RuleResult] = []
 
@@ -279,7 +279,7 @@ def _eval_security_baseline(project_root: Path) -> ComplianceSummary:
         notes="extensions/ 내 r9_skip frontmarker 검증",
     ))
 
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "security")
     return ComplianceSummary(
         baseline="security",
@@ -294,7 +294,7 @@ def _eval_security_baseline(project_root: Path) -> ComplianceSummary:
 # ===================================================================
 
 
-def _eval_testing_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_testing_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """6 TST-WF rule runtime 평가."""
     results: list[RuleResult] = []
     tests_dir = project_root / "workflow-source" / "tests"
@@ -385,7 +385,7 @@ def _eval_testing_baseline(project_root: Path) -> ComplianceSummary:
         notes=f"test functions without docstring: {len(no_docstring)}",
     ))
 
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "testing")
     return ComplianceSummary(
         baseline="testing",
@@ -400,7 +400,7 @@ def _eval_testing_baseline(project_root: Path) -> ComplianceSummary:
 # ===================================================================
 
 
-def _eval_performance_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_performance_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """6 PERF-WF rule runtime 평가."""
     results: list[RuleResult] = []
     tests_dir = project_root / "workflow-source" / "tests"
@@ -520,7 +520,7 @@ def _eval_performance_baseline(project_root: Path) -> ComplianceSummary:
         notes="workflow_kit.common.profiling module 존재 (v0.7.1+ follow-up)",
     ))
 
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "performance")
     return ComplianceSummary(
         baseline="performance",
@@ -546,7 +546,7 @@ def _dummy_event():
 # ===================================================================
 
 
-def _eval_security_auth_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_security_auth_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """6 SEC-AUTH rule runtime 평가 (auth.py dispatcher)."""
     from workflow_kit.common.auth import evaluate_compliance as _eval
     from workflow_kit.common.auth import RuleResult as _RR
@@ -556,7 +556,7 @@ def _eval_security_auth_baseline(project_root: Path) -> ComplianceSummary:
         _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
         for r in result["results"]
     ]
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "security_auth")
     return ComplianceSummary(
         baseline="security-auth",
@@ -566,7 +566,7 @@ def _eval_security_auth_baseline(project_root: Path) -> ComplianceSummary:
     )
 
 
-def _eval_testing_pbt_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_testing_pbt_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """6 PBT-WF rule runtime 평가 (testing.py dispatcher)."""
     from workflow_kit.common.testing import evaluate_compliance as _eval
     from workflow_kit.common.testing import RuleResult as _RR
@@ -576,7 +576,7 @@ def _eval_testing_pbt_baseline(project_root: Path) -> ComplianceSummary:
         _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
         for r in result["results"]
     ]
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "testing_pbt")
     return ComplianceSummary(
         baseline="testing-property-based",
@@ -587,9 +587,7 @@ def _eval_testing_pbt_baseline(project_root: Path) -> ComplianceSummary:
 
 
 def _eval_performance_memory_baseline(
-    project_root: Path,
-    fn=None,
-    baseline_path: Path | None = None,
+    project_root: Path, fn=None, baseline_path: Path | None = None, *, state: dict | None = None,
 ) -> ComplianceSummary:
     """6 PERF-MEM rule runtime 평가 (profiling.py dispatcher)."""
     from workflow_kit.common.profiling import evaluate_compliance as _eval
@@ -600,7 +598,7 @@ def _eval_performance_memory_baseline(
         _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
         for r in result["results"]
     ]
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "performance_memory")
     return ComplianceSummary(
         baseline="performance-memory",
@@ -610,7 +608,7 @@ def _eval_performance_memory_baseline(
     )
 
 
-def _eval_resiliency_baseline(project_root: Path) -> ComplianceSummary:
+def _eval_resiliency_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
     """8 RES-WF rule runtime 평가 (resiliency.py dispatcher)."""
     from workflow_kit.common.resiliency import evaluate_compliance as _eval
     from workflow_kit.common.resiliency import RuleResult as _RR
@@ -620,7 +618,7 @@ def _eval_resiliency_baseline(project_root: Path) -> ComplianceSummary:
         _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
         for r in result["results"]
     ]
-    state = _read_state_json(project_root)
+    state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "resiliency")
     return ComplianceSummary(
         baseline="resiliency",
@@ -640,6 +638,8 @@ def evaluate_compliance(
     baseline: str,
     fn=None,
     baseline_path: Path | None = None,
+    *,
+    state: dict | None = None,
 ) -> ComplianceSummary:
     """단일 baseline 의 compliance 평가.
 
@@ -650,24 +650,29 @@ def evaluate_compliance(
                   "performance-memory" | "resiliency"
         fn: performance-memory baseline 의 측정 callable (optional)
         baseline_path: performance-memory baseline 의 regression baseline (optional)
+        state: v0.7.8+ state dict (in-memory override). None 이면 project_root/state.json read.
+            caller (e.g. workflow_kit.cli.doctor) 가 pyproject.toml [tool.workflow-doctor]
+            config 의 partial_rules / opt_in 을 *in-memory* state 에 merge 한 뒤 주입 가능.
 
     Returns:
         ComplianceSummary with overall status + per-rule results.
     """
     if baseline == "security":
-        return _eval_security_baseline(project_root)
+        return _eval_security_baseline(project_root, state=state)
     if baseline == "testing":
-        return _eval_testing_baseline(project_root)
+        return _eval_testing_baseline(project_root, state=state)
     if baseline == "performance":
-        return _eval_performance_baseline(project_root)
+        return _eval_performance_baseline(project_root, state=state)
     if baseline == "security-auth":
-        return _eval_security_auth_baseline(project_root)
+        return _eval_security_auth_baseline(project_root, state=state)
     if baseline == "testing-property-based":
-        return _eval_testing_pbt_baseline(project_root)
+        return _eval_testing_pbt_baseline(project_root, state=state)
     if baseline == "performance-memory":
-        return _eval_performance_memory_baseline(project_root, fn=fn, baseline_path=baseline_path)
+        return _eval_performance_memory_baseline(
+            project_root, fn=fn, baseline_path=baseline_path, state=state,
+        )
     if baseline == "resiliency":
-        return _eval_resiliency_baseline(project_root)
+        return _eval_resiliency_baseline(project_root, state=state)
     raise ValueError(f"unknown baseline: {baseline}")
 
 
@@ -675,22 +680,30 @@ def evaluate_all(
     project_root: Path,
     fn=None,
     baseline_path: Path | None = None,
+    *,
+    state: dict | None = None,
 ) -> dict[str, ComplianceSummary]:
     """5종 baseline 모두 평가 (v0.7.3+ 7 baseline dispatcher).
+
+    Args:
+        project_root: 프로젝트 루트 경로
+        fn: performance-memory baseline 의 측정 callable (optional)
+        baseline_path: performance-memory baseline 의 regression baseline (optional)
+        state: v0.7.8+ state dict (in-memory override). None 이면 project_root/state.json read.
 
     Returns:
         dict mapping baseline name → ComplianceSummary.
     """
     return {
         # v0.7.1 (3 baseline)
-        "security": _eval_security_baseline(project_root),
-        "testing": _eval_testing_baseline(project_root),
-        "performance": _eval_performance_baseline(project_root),
+        "security": _eval_security_baseline(project_root, state=state),
+        "testing": _eval_testing_baseline(project_root, state=state),
+        "performance": _eval_performance_baseline(project_root, state=state),
         # v0.7.3 (4 baseline dispatcher — sub-cat 본 구현)
-        "security-auth": _eval_security_auth_baseline(project_root),
-        "testing-property-based": _eval_testing_pbt_baseline(project_root),
+        "security-auth": _eval_security_auth_baseline(project_root, state=state),
+        "testing-property-based": _eval_testing_pbt_baseline(project_root, state=state),
         "performance-memory": _eval_performance_memory_baseline(
-            project_root, fn=fn, baseline_path=baseline_path
+            project_root, fn=fn, baseline_path=baseline_path, state=state,
         ),
-        "resiliency": _eval_resiliency_baseline(project_root),
+        "resiliency": _eval_resiliency_baseline(project_root, state=state),
     }

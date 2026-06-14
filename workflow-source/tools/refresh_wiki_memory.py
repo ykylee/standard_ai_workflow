@@ -129,7 +129,7 @@ def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
     data = json.loads(p.read_text())
     existing = data["session"]["recent_done_items"]
     new_lines: list[str] = []
-    rel_order = ["(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
+    rel_order = ["(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
                  "(v0.6.6)", "(v0.6.5)", "(v0.6.4)"]
     for rel in rel_order:
         if rel not in by_release:
@@ -153,7 +153,7 @@ def update_work_backlog(by_release: dict, dry: bool = True) -> list[str]:
     p = RAW_FILES["work_backlog"]
     text = p.read_text()
     new_block: list[str] = []
-    for rel in ["(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
+    for rel in ["(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
         if rel not in by_release:
             continue
         ver = rel[1:-1]
@@ -208,14 +208,15 @@ def update_memory_log(dry: bool = True) -> str:
     p = RAW_FILES["memory_log"]
     text = p.read_text()
     entry = (
-        "## [2026-06-14] sync | wiki raw mirror backfill (v0.6.4~v0.7.8)\n"
-        "- 9 release (v0.6.4~v0.7.8) 의 state.json / work_backlog.md / wiki/log.md 갭 보강\n"
+        "## [2026-06-14] sync | wiki raw mirror backfill (v0.6.4~v0.7.9)\n"
+        "- 10 release (v0.6.4~v0.7.9) 의 state.json / work_backlog.md / wiki/log.md 갭 보강\n"
         "- v0.6.3 freeze 후 누적된 35+ commit 의 SSOT 복원\n"
         "- vault L2 stub 4 file dense 재emit (active-state / active-work-backlog / active-session-handoff / wiki-log)\n"
         "- v0.7.5: refresh_wiki_memory tool 정식화로 1회용 helper → 정식 CLI 승격\n"
         "- v0.7.6: run_all_checks 통합 runner + pyproject.toml [tool.workflow-doctor] metadata 외부 config\n"
         "- v0.7.7: workflow_kit.cli.doctor 의 load_config + should_fail integration (metadata 1차 consumer)\n"
         "- v0.7.8: state-aware evaluate_compliance + config actual apply (display only → actual apply 격상)\n"
+        "- v0.7.9: release_pipeline tool 정식화 (validate / version-bump / note-draft)\n"
     )
     if dry:
         return entry
@@ -270,7 +271,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
 
     # 2) active-work-backlog
     bl_lines: list[str] = []
-    for rel in ["(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
+    for rel in ["(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
         if rel not in by_release:
             continue
         ver = rel[1:-1]

@@ -89,7 +89,7 @@ python3 tools/release_pipeline.py validate --json
 | Hash | Subject |
 |---|---|
 | `cb0a892` | feat(v0.7.9): release_pipeline tool 정식화 (validate / version-bump / note-draft) + 8 smoke test |
-| `<release>` | chore(v0.7.9): version bump 0.7.8 → 0.7.9 + release note |
+| `d39be44` | chore(v0.7.9): version bump 0.7.8 → 0.7.9 + release note |
 
 ## 다음 (v0.7.10 / v0.8.0 후보)
 

@@ -74,7 +74,7 @@ fix: state-aware variant 가 breaking change 라서 v0.7.7 은 *display + fail_o
 | Hash | Subject |
 |---|---|
 | `022672f` | feat(v0.7.7): workflow_kit.cli.doctor 에 load_config + should_fail integration |
-| `<release>` | chore(v0.7.7): version bump 0.7.6 → 0.7.7 + release note |
+| `3300e73` | chore(v0.7.7): version bump 0.7.6 → 0.7.7 + release note |
 
 ## 다음 (v0.7.8 / v0.8.0 후보)
 

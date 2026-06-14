@@ -143,3 +143,35 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# v0.7.6+ workflow-doctor external config
+# ---------------------------------------------------------------------------
+#
+# workflow_kit.common.metadata.load_config() 가 이 section 을 읽어 DoctorConfig 반환.
+# baseline dispatcher / CLI doctor / partial mode / opt-in / CI threshold 의 SSOT.
+#
+# 운영 시 부분 config 가능 — partial_rules / opt_in / thresholds / excluded_paths /
+# fail_on 5 field 모두 optional. 없는 field 는 default fallback (DoctorConfig()).
+
+[tool.workflow-doctor]
+# baseline 별 hard constraint rule list. evaluate_compliance(baseline, partial_rules=...)
+# 의 partial_rules 인자로 전달. 해당 rule 의 non_compliant 는 hard fail (CI fail).
+# v0.7.6 default: resiliency 의 RES-WF-01/02 (변경 관리 + critical workload 식별).
+partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }
+
+# baseline 별 opt-in rule dict. opt-in rule 은 default disable, 명시적 enable 시에만
+# evaluate 대상. (v0.7.6 시점: security-auth 의 2FA 는 opt-in 권장, default disable)
+opt_in = { "security-auth" = ["SEC-AUTH-04"] }
+
+# dim 별 alert threshold
+# - score_alert: 0.0~1.0, score trend 의 dim 별 alert 시 사용 (tools/score_wiki_trend.py)
+# - memory_alert_mb: profiling baseline 의 leak/regression alert 시 사용
+thresholds = { score_alert = 0.3, memory_alert_mb = 100.0 }
+
+# lint / score 측정 시 skip 할 path glob (build / venv / cache / wiki mirror)
+excluded_paths = ["build/*", ".venv/*", ".venv-build/*", "__pycache__/*", ".worktrees/*"]
+
+# CI integration — evaluate_compliance 결과 status 가 이 값 이상이면 exit 1.
+# "compliant" | "advisory" | "non_compliant". default: "non_compliant".
+fail_on = "non_compliant"

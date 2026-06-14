@@ -21,3 +21,8 @@ from workflow_kit.common.resiliency import (  # noqa: F401
     RuleResult as ResiliencyRuleResult,
     evaluate_compliance as evaluate_resiliency_compliance,
 )
+from workflow_kit.common.metadata import (  # noqa: F401
+    DoctorConfig,
+    load_config,
+    should_fail,
+)

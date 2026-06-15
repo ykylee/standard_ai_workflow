@@ -1,10 +1,11 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.14/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.15/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.7.15 (a369e7c): P3 atomic_write helper (POSIX os.replace) + changelog-gen --from-tag/--to-tag filter + 5 smoke (release_pipeline 7/8 → 8/8 subcommand)",
       "v0.7.14 (TBD): P3 cmd_version_bump auto-sync __init__.py + cmd_changelog_gen subcommand + 8 smoke",
       "v0.7.13 (727c59c): feat(v0.7.13): cmd_release --version flag (staging backfill) + 3 smoke + version sync",
       "v0.7.12 (5b8e730): feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect + 4 smoke + v0.7.5~v0.7.10 backfill (6 wheel/sdist + 6 tag + 6 GH release)",

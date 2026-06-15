@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.15/backlog/2026-06-15.md]] {#release-v0-7-15}
+- 2026-06-15: v0.7.15 4개 TASK (atomic_write helper + changelog-gen filter + 5 smoke + state sync atomic)
+
 ### [[release/v0.7.14/backlog/2026-06-15.md]] {#release-v0-7-14}
 - 2026-06-15: v0.7.14 4개 TASK (cmd_version_bump auto-sync + cmd_changelog_gen subcommand + 8 smoke + state sync)
 

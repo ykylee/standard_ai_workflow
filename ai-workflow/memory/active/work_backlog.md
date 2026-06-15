@@ -171,3 +171,11 @@
 - **scope**: `release_pipeline.py:_run_post_step_sync_hash` (~50 line, 2-phase: sync + amend) + 1 신규 test file (5 smoke, 5/5 PASS)
 - **정공법**: post-step 의 *sequential dependency* (sync → add → amend → rev-parse). sync fail → amend 호출 0. amend fail → final_hash = None + ok = False. **별도 fix(state) commit 불필요** — feat + chore = 2 commit (v0.7.28 의 3 commit 대비 *33% 감소*).
 
+
+## v0.7.30 (2026-06-15) — TASK-V0728-001 (Archive Stale Memory Cron Integration)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `tools/archive_stale_memory.py` (~80 line 추가: 3 cmd + 3 flag + 2 config) + 1 신규 test file (5 smoke, 5/5 PASS)
+- **정공법**: `mavis cron create <agent> <cronName> --schedule <interval> --prompt <text>` 자동 호출. *manual* → *automated* 정공법 (caller discipline → system automation).
+

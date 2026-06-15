@@ -37,6 +37,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -238,11 +239,112 @@ def cmd_archive(args: argparse.Namespace) -> dict:
     }
 
 
+# === Cron subcommand (TASK-V0728-001) ===
+def cmd_install_cron(args: argparse.Namespace) -> dict:
+    """`mavis cron create <agent> <cronName> --schedule <interval> --prompt ...` 자동 호출.
+
+    매 interval 마다 본 tool 의 --older-than=<N> --apply 를 자동 실행.
+    caller 는 prompt 의 *plain text* + 본 tool 의 호출.
+
+    Args:
+        args: argparse.Namespace with --cron-name, --cron-interval, --older-than, --repo-root, --agent.
+
+    Returns:
+        dict with keys: ok (bool), cron_name (str), cron_interval (str), mavis_cron_stdout (str),
+        mavis_cron_stderr (str), returncode (int), error (str | None).
+    """
+    cron_name = getattr(args, "cron_name", "archive-memory")
+    cron_interval = getattr(args, "cron_interval", "7d")
+    agent = getattr(args, "agent", "mavis")
+    older_than = args.older_than
+    repo_root = get_repo_root(args.repo_root)
+
+    prompt = (
+        f"Run: python3 workflow-source/tools/archive_stale_memory.py --older-than={older_than} --apply "
+        f"--repo-root={repo_root}\n"
+        f"(auto-triggered by mavis cron '{cron_name}' every {cron_interval})"
+    )
+
+    proc = subprocess.run(
+        ["mavis", "cron", "create", agent, cron_name, f"--schedule={cron_interval}", f"--prompt={prompt}"],
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+    )
+    return {
+        "ok": proc.returncode == 0,
+        "cron_name": cron_name,
+        "cron_interval": cron_interval,
+        "older_than": older_than,
+        "agent": agent,
+        "repo_root": str(repo_root),
+        "mavis_cron_stdout": proc.stdout,
+        "mavis_cron_stderr": proc.stderr,
+        "returncode": proc.returncode,
+        "error": None if proc.returncode == 0 else f"mavis cron create failed (returncode={proc.returncode}): {proc.stderr}",
+    }
+
+
+def cmd_uninstall_cron(args: argparse.Namespace) -> dict:
+    """`mavis cron disable <agent> <cronName>` 자동 호출.
+
+    Args:
+        args: argparse.Namespace with --cron-name, --agent.
+
+    Returns:
+        dict with keys: ok (bool), cron_name (str), mavis_cron_stdout (str),
+        mavis_cron_stderr (str), returncode (int), error (str | None).
+    """
+    cron_name = getattr(args, "cron_name", "archive-memory")
+    agent = getattr(args, "agent", "mavis")
+
+    proc = subprocess.run(
+        ["mavis", "cron", "disable", agent, cron_name],
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+    )
+    return {
+        "ok": proc.returncode == 0,
+        "cron_name": cron_name,
+        "agent": agent,
+        "mavis_cron_stdout": proc.stdout,
+        "mavis_cron_stderr": proc.stderr,
+        "returncode": proc.returncode,
+        "error": None if proc.returncode == 0 else f"mavis cron disable failed (returncode={proc.returncode}): {proc.stderr}",
+    }
+
+
+def cmd_show_cron(args: argparse.Namespace) -> dict:
+    """`mavis cron list <agent>` 의 output 에서 cron_name 매치 여부 확인.
+
+    Args:
+        args: argparse.Namespace with --cron-name, --agent.
+
+    Returns:
+        dict with keys: ok (bool), cron_name (str), mavis_cron_stdout (str), found (bool).
+    """
+    cron_name = getattr(args, "cron_name", "archive-memory")
+    agent = getattr(args, "agent", "mavis")
+    proc = subprocess.run(
+        ["mavis", "cron", "list", agent],
+        capture_output=True, text=True, timeout=30, cwd=str(get_repo_root(args.repo_root)),
+    )
+    found = cron_name in proc.stdout if proc.returncode == 0 else False
+    return {
+        "ok": proc.returncode == 0,
+        "cron_name": cron_name,
+        "agent": agent,
+        "found": found,
+        "mavis_cron_stdout": proc.stdout,
+        "mavis_cron_stderr": proc.stderr,
+        "returncode": proc.returncode,
+        "error": None if proc.returncode == 0 else f"mavis cron list failed (returncode={proc.returncode}): {proc.stderr}",
+    }
+
+
 # === argparse ===
 def build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="archive_stale_memory",
-        description="TASK-V0726-004 (v0.7.28): detached HEAD memory dir age-based auto-archive (short SHA dir)",
+        description="TASK-V0726-004 (v0.7.28): detached HEAD memory dir age-based auto-archive (short SHA dir). "
+                    "TASK-V0728-001 (v0.7.30): --install-cron/--uninstall-cron/--show-cron 으로 자동화.",
     )
     p.add_argument(
         "--older-than", type=int, default=30,
@@ -268,6 +370,31 @@ def build_argparser() -> argparse.ArgumentParser:
         "--repo-root", type=str, default=None,
         help="REPO_ROOT override (priority 1, v0.7.12 정공법).",
     )
+    # TASK-V0728-001 cron subcommand flags
+    p.add_argument(
+        "--install-cron", action="store_true",
+        help="mavis cron self 자동 호출 (TASK-V0728-001).",
+    )
+    p.add_argument(
+        "--uninstall-cron", action="store_true",
+        help="mavis cron self --disable 자동 호출.",
+    )
+    p.add_argument(
+        "--show-cron", action="store_true",
+        help="mavis cron self list 에서 cron_name 매치 여부 확인.",
+    )
+    p.add_argument(
+        "--cron-name", type=str, default="archive-memory",
+        help="mavis cron self 의 cron name (default: archive-memory).",
+    )
+    p.add_argument(
+        "--cron-interval", type=str, default="7d",
+        help="mavis cron self 의 interval (default: 7d, e.g. '7d' / '1d' / '12h').",
+    )
+    p.add_argument(
+        "--agent", type=str, default="mavis",
+        help="mavis cron 의 agent name (default: mavis).",
+    )
     return p
 
 
@@ -275,8 +402,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_argparser()
     args = parser.parse_args(argv)
 
-    # mode 결정
-    if args.list:
+    # Cron subcommand 우선
+    if args.install_cron:
+        result = cmd_install_cron(args)
+    elif args.uninstall_cron:
+        result = cmd_uninstall_cron(args)
+    elif args.show_cron:
+        result = cmd_show_cron(args)
+    elif args.list:
         if args.apply or args.cleanup:
             parser.error("--list 와 --apply/--cleanup 은 mutually exclusive (--list 는 dry-run 만)")
         # force dry-run
@@ -284,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
         result = cmd_list(args)
     else:
         if not args.dry_run and not args.apply and not args.cleanup:
-            parser.error("at least one of --dry-run, --apply, or --cleanup is required")
+            parser.error("at least one of --dry-run, --apply, --cleanup, --install-cron, --uninstall-cron, --show-cron is required")
         if args.cleanup:
             args.apply = True
         result = cmd_archive(args)

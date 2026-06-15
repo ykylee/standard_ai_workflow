@@ -21,6 +21,7 @@ Reference:
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -31,12 +32,8 @@ from unittest import mock
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
 
-# 1차 출처
-REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+# 2차 출처 (raw mirror) — wiki vault
 VAULT_ROOT = Path.home() / "wiki"
-PROJECT_SLUG = "standard-ai-workflow"
-RAW_BASE = VAULT_ROOT / "raw" / "projects" / PROJECT_SLUG
-L2_BASE = VAULT_ROOT / "wiki" / "projects" / PROJECT_SLUG
 
 
 def _import_tool():
@@ -205,10 +202,83 @@ def test_reemit_l2_stubs_dry_returns_4_non_empty() -> None:
         assert size > 100, f"{name} body too small: {size} bytes"
 
 
-# --- 메인 실행 ---
+# --- Test 9: REPO_ROOT auto-detect (v0.7.12) — argparse 인식 ---
 
+def test_repo_root_argparse_recognized() -> None:
+    """--repo-root argparse flag 가 인식되고 result.repo_root 에 반영."""
+    # cwd 가 workflow-source/ inner. 본 repo 의 git toplevel 은 outer.
+    # `git rev-parse --show-toplevel` 가 outer 를 반환 (workflow-source 는 subdir).
+    proc = subprocess.run(
+        [sys.executable, str(TOOL), "--refresh-raw", "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
+    out = json.loads(proc.stdout)
+    assert "repo_root" in out
+    expected_toplevel = Path(
+        subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout.strip()
+    ).resolve()
+    assert out["repo_root"] == str(expected_toplevel), \
+        f"expected git toplevel {expected_toplevel}, got {out['repo_root']}"
+
+
+def test_repo_root_cli_flag_priority() -> None:
+    """--repo-root CLI flag 가 env var 보다 우선. (valid path + dry-run)"""
+    # valid path + dry-run → collect_commits 가 git log 정상 호출. result.repo_root 검증.
+    proc = subprocess.run(
+        [
+            sys.executable, str(TOOL), "--refresh-raw", "--dry-run", "--json",
+            "--repo-root", str(SOURCE_ROOT.resolve()),
+        ],
+        capture_output=True, text=True, timeout=30,
+        env={**os.environ, "STANDARD_AI_WF_REPO": "/tmp/env-var-path-must-be-ignored"},
+    )
+    assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
+    out = json.loads(proc.stdout)
+    assert out["repo_root"] == str(SOURCE_ROOT.resolve()), \
+        f"CLI flag 무시됨: {out['repo_root']} (env var 가 우선?)"
+
+# --- Test 11: REPO_ROOT auto-detect — env var fallback (cwd 외부 실행) ---
+
+
+def test_repo_root_env_var_fallback() -> None:
+    """STANDARD_AI_WF_REPO env var 가 cwd 외부에서도 동작."""
+    proc = subprocess.run(
+        [sys.executable, str(TOOL), "--refresh-raw", "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=30,
+        cwd="/tmp",
+        env={**os.environ, "STANDARD_AI_WF_REPO": str(SOURCE_ROOT.resolve())},
+    )
+    assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
+    out = json.loads(proc.stdout)
+    assert out["repo_root"] == str(SOURCE_ROOT.resolve()), \
+        f"env var 미반영: {out['repo_root']}"
+
+
+# --- Test 12: REPO_ROOT auto-detect — git rev-parse 결과 일치 (priority 3) ---
+
+
+def test_repo_root_git_toplevel_priority() -> None:
+    """cwd 가 git repo 안일 때 `git rev-parse --show-toplevel` 결과."""
+    mod = _import_tool()
+    expected = mod.REPO_ROOT
+    proc = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, timeout=5,
+        cwd=str(SOURCE_ROOT),
+    )
+    assert proc.returncode == 0
+    expected_str = str(Path(proc.stdout.strip()).resolve())
+    assert str(expected) == expected_str, \
+        f"REPO_ROOT {expected!r} != git rev-parse {expected_str!r}"
 
 def main() -> int:
+    passed = 0
+    failed = 0
+    failures: list[tuple[str, str]] = []
     test_funcs = [
         test_cli_subcommand_parsing,
         test_cli_no_subcommand_errors,
@@ -220,11 +290,11 @@ def main() -> int:
         test_update_wiki_log_dry_returns_5_entries,
         test_update_memory_log_dry_returns_1_entry,
         test_reemit_l2_stubs_dry_returns_4_non_empty,
+        test_repo_root_argparse_recognized,
+        test_repo_root_cli_flag_priority,
+        test_repo_root_env_var_fallback,
+        test_repo_root_git_toplevel_priority,
     ]
-
-    passed = 0
-    failed = 0
-    failures: list[tuple[str, str]] = []
     for func in test_funcs:
         try:
             func()

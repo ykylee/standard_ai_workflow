@@ -65,7 +65,7 @@ release pipeline 의 4 source (validate 의 state.json freshness) 와 memory lay
 - 각 release 별 TASK-VXXXX-NNN 1~7 task + 완료 기준 + Reference
 - 일자별 group: 06-13 (5 file: v0.7.0~v0.7.4) + 06-14 (6 file: v0.7.5~v0.7.10)
 
-**Tool 부작용 fix**: `tools/refresh_wiki_memory.py` 의 `REPO_ROOT` 가 `~/repos/standard_ai_workflow_minimax` (v0.7.5 시점 rename 후 누락) 으로 hardcoded. 본 repo (현재 `~/repos/standard_ai_workflow`) 에서 깨짐. symlink (`~/repos/standard_ai_workflow_minimax -> ~/repos/standard_ai_workflow`) 으로 즉시 회귀 해소. 본 release 범위 밖 (별도 fix).
+**Tool 부작용 fix**: `tools/refresh_wiki_memory.py` 의 `REPO_ROOT` 가 `~/repos/standard_ai_workflow_minimax` (v0.7.5 시점 rename 후 누락) 으로 hardcoded. 본 repo (현재 `~/repos/standard_ai_workflow`) 에서 깨짐. symlink 으로 즉시 회귀 해소. **v0.7.12+ follow-up** (REPO_ROOT auto-detect + `--repo-root` flag + `STANDARD_AI_WF_REPO` env var).
 
 ### 3. Version string sync (`__version__` = `v0.7.10-beta`)
 
@@ -87,7 +87,7 @@ release pipeline 의 4 source (validate 의 state.json freshness) 와 memory lay
 | `score trend 의 config thresholds` (v0.7.7 의 deferred #2) | hardcoded 0.3 → `thresholds["score_alert"]` | `tools/score_wiki_trend.py` 의 0.3 literal → `config.thresholds["score_alert"]` |
 | `profiling 의 config memory threshold` (deferred #3) | hardcoded → config | `tools/score_wiki_trend.py` 와 동일 패턴 |
 | `linter 의 config excluded_paths` (deferred #4) | hardcoded → config | `[tool.workflow-doctor].excluded_paths` 적용 |
-| `refresh_wiki_memory.py` `REPO_ROOT` hardcoded fix | 본 release 범위 밖, symlink 으로 즉시 회귀 해소 | argparse `--repo-root` flag 추가 + auto-detect |
+| `refresh_wiki_memory.py` `REPO_ROOT` hardcoded fix | 본 release 범위 밖, symlink 으로 즉시 회귀 해소 | **v0.7.12 본 구현 완료** — `get_repo_root()` (CLI flag > env var > git rev-parse > legacy fallback) + `--repo-root` argparse flag + `STANDARD_AI_WF_REPO` env var. [Beta-v0.7.12.md](Beta-v0.7.12.md) 참조 |
 
 ## 검증
 

@@ -5,6 +5,12 @@ git log (REPO_ROOT) → release 별 feat commit 분류 → 1차 출처 (raw mirr
 4 file 자동 보강 (state.json / work_backlog.md / wiki/log.md / memory/log.md).
 L2 sources/ dense emit 은 `emit_wiki_l2_body.py --apply` 로 분리 (R-3 단계 분리).
 
+REPO_ROOT 결정 (v0.7.12+ auto-detect):
+    1. `--repo-root=<path>` CLI flag (명시적)
+    2. `STANDARD_AI_WF_REPO` env var (CI integration)
+    3. `git rev-parse --show-toplevel` subprocess (현재 dir 기준, repo 어디서 실행해도 동작)
+    4. legacy fallback: `~/repos/standard_ai_workflow_minimax` (deprecation 경고)
+
 Usage:
     # dry-run: 어떤 file 이 어떻게 갱신될지 미리 보기
     python3 refresh_wiki_memory.py --dry-run
@@ -17,6 +23,9 @@ Usage:
 
     # 특정 project 만 (multi-project repo 대비)
     python3 refresh_wiki_memory.py --apply --project=standard-ai-workflow
+
+    # 다른 repo 경로 명시
+    python3 refresh_wiki_memory.py --repo-root=/path/to/other/repo --dry-run
 
     # JSON 출력 (CI 통합)
     python3 refresh_wiki_memory.py --dry-run --json
@@ -33,14 +42,64 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
-# 1차 출처 (source of truth) — git repo
-REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+# 1차 출처 (source of truth) — git repo (v0.7.12+ auto-detect; legacy literal 도 fallback)
+_LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
+_DEPRECATION_WARNED = False
+
+
+def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_warning: bool = False) -> Path:
+    """REPO_ROOT 결정 (priority: CLI flag > env var > git rev-parse > legacy fallback).
+
+    Args:
+        cli_value: --repo-root flag 값. None 이면 skip.
+        _suppress_warning: legacy fallback 사용 시 deprecation 경고 suppress (test 용).
+
+    Returns:
+        Path. existence 보장 (legacy fallback 도 string 그대로 반환).
+    """
+    global _DEPRECATION_WARNED
+
+    # 1. CLI flag
+    if cli_value is not None:
+        p = Path(cli_value).expanduser().resolve()
+        return p
+
+    # 2. env var
+    env_val = os.environ.get("STANDARD_AI_WF_REPO")
+    if env_val:
+        p = Path(env_val).expanduser().resolve()
+        return p
+
+    # 3. git rev-parse --show-toplevel
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return Path(proc.stdout.strip()).resolve()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # 4. legacy fallback (deprecation warning 1회)
+    if not _DEPRECATION_WARNED and not _suppress_warning:
+        _DEPRECATION_WARNED = True
+        print(
+            f"[DEPRECATION] refresh_wiki_memory.py: REPO_ROOT auto-detect 실패 — legacy fallback 사용 ({_LEGACY_REPO_ROOT}). "
+            "v0.7.12+ 부터 --repo-root=<path> 또는 STANDARD_AI_WF_REPO env var 사용 권장.",
+            file=sys.stderr,
+        )
+    return _LEGACY_REPO_ROOT
+
+
+REPO_ROOT = get_repo_root()  # eager init for backward compat (module-level read)
 
 # 2차 출처 (raw mirror) — wiki vault 의 1차 mirror
 VAULT_ROOT = Path.home() / "wiki"
@@ -75,10 +134,17 @@ RELEASE_LOOSE_RE = re.compile(r"\bv(\d+\.\d+(?:\.\d+)?)\b")
 # ---------------------------------------------------------------------------
 
 
-def collect_commits(since: str = "2026-06-10") -> list[dict]:
-    """git log --since=<since> 의 commit 수집. (short, full, author, date, subject)"""
+def collect_commits(since: str = "2026-06-10", *, repo_root: Path | None = None) -> list[dict]:
+    """git log --since=<since> 의 commit 수집. (short, full, author, date, subject)
+
+    Args:
+        since: --since 기준일 (default 2026-06-10).
+        repo_root: git repo 경로. None 이면 module-level REPO_ROOT 사용.
+    """
+    if repo_root is None:
+        repo_root = REPO_ROOT
     proc = subprocess.run(
-        ["git", "-C", str(REPO_ROOT), "log", f"--since={since}", "--pretty=format:%h|%H|%an|%ai|%s"],
+        ["git", "-C", str(repo_root), "log", f"--since={since}", "--pretty=format:%h|%H|%an|%ai|%s"],
         capture_output=True, text=True, timeout=30,
     )
     if proc.returncode != 0:
@@ -367,7 +433,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
 def cmd_refresh_raw(args) -> dict:
     """raw mirror 4 file 갱신 (subcommand --refresh-raw)."""
     dry = args.dry_run
-    by_release = categorize(collect_commits(args.since))
+    by_release = categorize(collect_commits(args.since, repo_root=args.repo_root))
     if dry:
         return {"mode": "dry-run", "commits": sum(len(v) for v in by_release.values())}
     state_lines = update_state_json(by_release, dry=False)
@@ -380,11 +446,10 @@ def cmd_refresh_raw(args) -> dict:
         "release_buckets": len(by_release),
     }
 
-
 def cmd_emit_l2(args) -> dict:
     """vault L2 stub 4 file dense 재emit (subcommand --emit-l2)."""
     dry = args.dry_run
-    by_release = categorize(collect_commits(args.since))
+    by_release = categorize(collect_commits(args.since, repo_root=args.repo_root))
     state_lines = update_state_json(by_release, dry=True)  # dry 로 계산
     if dry:
         return {"mode": "dry-run"}
@@ -402,6 +467,8 @@ def main() -> int:
                    help="vault L2 stub 4 file dense 재emit (active-state / active-work-backlog / active-session-handoff / wiki-log)")
     p.add_argument("--since", default="2026-06-10",
                    help="git log --since 기준 (default: 2026-06-10, v0.6.4+)")
+    p.add_argument("--repo-root", default=None,
+                   help="git repo 경로 (default: auto-detect via $STANDARD_AI_WF_REPO or `git rev-parse --show-toplevel`)")
     p.add_argument("--dry-run", action="store_true",
                    help="갱신 없이 plan 만 출력 (default: --apply)")
     p.add_argument("--apply", dest="apply", action="store_true", default=True,
@@ -416,7 +483,15 @@ def main() -> int:
     if args.dry_run:
         args.apply = False
 
-    result: dict = {"since": args.since, "dry_run": args.dry_run}
+    # REPO_ROOT 결정 (CLI flag > env var > git rev-parse > legacy fallback)
+    resolved_repo_root = get_repo_root(args.repo_root)
+    args.repo_root = resolved_repo_root
+
+    result: dict = {
+        "since": args.since,
+        "dry_run": args.dry_run,
+        "repo_root": str(resolved_repo_root),
+    }
     if args.refresh_raw:
         result["refresh_raw"] = cmd_refresh_raw(args)
     if args.emit_l2:
@@ -427,9 +502,12 @@ def main() -> int:
     else:
         print(f"=== {'DRY-RUN' if args.dry_run else 'APPLY'} mode ===")
         print(f"since: {args.since}")
+        print(f"repo_root: {resolved_repo_root}")
         for k, v in result.items():
             if isinstance(v, dict):
                 print(f"  {k}: {v}")
+            elif k in ("since", "dry_run", "repo_root"):
+                continue  # 이미 위에서 출력
             else:
                 print(f"  {k}: {v}")
     return 0

@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""v0.7.9+: standard-ai-workflow release pipeline 정식화 (3 subcommand).
+"""v0.7.9+: standard-ai-workflow release pipeline 정식화 (7 subcommand).
 
-release 절차 (validate → version-bump → note-draft → gh release create) 의
+release 절차 (validate → dist → version-bump → note-draft → release → verify → rollback) 의
 *기계화 layer*. manual 절차 (memory #5 / docs/RELEASE.md) 의 *부족 부분* 자동화.
 
-3 subcommand (Phase 1 of 2; release trigger 는 v0.7.10+ follow-up):
-- validate: check_packaging + v0.7.8 doctor + state.json freshness + git status clean
-- version-bump: pyproject.toml version patch (--to=... or --patch / --minor / --major)
-- note-draft: git log --since=<prev_tag> → release note skeleton 자동 생성
+Phase 1 (v0.7.9): validate / version-bump / note-draft — 사전 점검 + version + note.
+Phase 2 (v0.7.10): release / verify / rollback — gh CLI 통합 + read-only verify + destructive rollback.
+Phase 3 (v0.7.11): dist — `python3 -m build` wheel + sdist 자동 빌드 (PEP 517/518).
 
 PyPI/TestPyPI 업로드 ❌ (memory #5 의 release 채널 정책 — GitHub Releases 만).
-gh release create 는 수동 trigger (v0.7.10+ follow-up).
 
 Usage:
     # dry-run: 모든 subcommand plan 만 출력
@@ -545,6 +543,124 @@ def cmd_rollback(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 7. dist (Phase 3 — v0.7.11)
+# ---------------------------------------------------------------------------
+
+
+def _check_build_module() -> dict:
+    """`build` module 가용성 체크. 없으면 pip install 안내.
+
+    Returns:
+        {"available": bool, "hint": str (if not available)}
+    """
+    try:
+        import build  # type: ignore[import-not-found]  # noqa: F401
+
+        return {"available": True, "version": getattr(build, "__version__", "unknown")}
+    except ImportError:
+        return {
+            "available": False,
+            "hint": "pip install build (or `python3 -m pip install --user build`)",
+        }
+
+
+def _build_command(out_dir: Path, *, sdist_only: bool = False, wheel_only: bool = False) -> list[str]:
+    """`python3 -m build` 호출 command list. PEP 517/518 build."""
+    cmd = [sys.executable, "-m", "build", "--outdir", str(out_dir)]
+    if sdist_only:
+        cmd.append("--sdist")
+    elif wheel_only:
+        cmd.append("--wheel")
+    cmd.append(str(REPO_ROOT))
+    return cmd
+
+
+def _expected_dist_pattern(version: str) -> str:
+    """version (e.g. '0.7.10' or '0.7.10-beta') → dist file prefix (PEP 440 normalize)."""
+    return version.split("-")[0]
+
+def cmd_dist(args) -> dict:
+    """Wheel + sdist 자동 빌드 (`python3 -m build`).
+
+    pre-check: `build` module 가용성 → 부재 시 graceful fail.
+    dry-run: command + PEP 440 normalize 만 print. exit 0.
+    apply: subprocess `python3 -m build` 실행. exit code + dist glob 결과 report.
+    """
+    _dist_dir = REPO_ROOT / "dist"
+    results: dict = {"mode": "dry-run" if args.dry_run else "apply", "out_dir": str(_dist_dir)}
+
+    # 1) pre-check: build module 가용성
+    build_check = _check_build_module()
+    results["build_module"] = build_check
+    if not build_check["available"]:
+        results["error"] = f"build module not installed: {build_check['hint']}"
+        return results
+
+    # 2) version read (pyproject.toml)
+    try:
+        current_version = read_version()
+    except Exception as e:  # pragma: no cover
+        results["error"] = f"pyproject.toml version read 실패: {e}"
+        return results
+    results["version"] = current_version
+
+    # 3) build command
+    cmd = _build_command(
+        _dist_dir,
+        sdist_only=getattr(args, "sdist_only", False),
+        wheel_only=getattr(args, "wheel_only", False),
+    )
+    results["command"] = " ".join(cmd)
+    results["expected_pattern"] = f"standard_ai_workflow-{_expected_dist_pattern(current_version)}*"
+
+    # 4) skip-existing check (--skip-existing)
+    if getattr(args, "skip_existing", False) and _dist_dir.exists():
+        existing = find_dist_files(current_version)
+        if existing:
+            results["mode"] = "skip"
+            results["skipped"] = True
+            results["existing"] = [f.name for f in existing]
+            results["ok"] = True
+            return results
+
+    # 5) dry-run: command plan 만 반환
+    if args.dry_run:
+        results["ok"] = True
+        return results
+
+    # 6) apply: subprocess `python3 -m build` 실행
+    _dist_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=args.timeout,
+            cwd=str(REPO_ROOT),
+        )
+    except subprocess.TimeoutExpired:
+        results["error"] = f"build timeout after {args.timeout}s"
+        return results
+
+    results["returncode"] = proc.returncode
+    # 마지막 5 line 의 stdout/stderr 만 report (full log 은 debug 용)
+    out_tail = proc.stdout.strip().splitlines()[-5:] if proc.stdout.strip() else []
+    err_tail = proc.stderr.strip().splitlines()[-5:] if proc.stderr.strip() else []
+    results["stdout_tail"] = out_tail
+    results["stderr_tail"] = err_tail
+
+    if proc.returncode != 0:
+        results["error"] = f"build failed: exit {proc.returncode}"
+        results["ok"] = False
+        return results
+
+    # 7) post-check: dist glob 결과
+    built = find_dist_files(current_version)
+    results["built"] = [f.name for f in built]
+    results["ok"] = True
+    return results
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -600,6 +716,16 @@ def main() -> int:
     p_rb.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rb.add_argument("--json", action="store_true")
 
+    # dist (Phase 3 — v0.7.11)
+    p_dist = sub.add_parser("dist", help="wheel + sdist 자동 빌드 (`python3 -m build`)")
+    p_dist.add_argument("--sdist-only", action="store_true", help="sdist 만 빌드")
+    p_dist.add_argument("--wheel-only", action="store_true", help="wheel 만 빌드")
+    p_dist.add_argument("--skip-existing", action="store_true", help="dist/ 의 current-version 파일 있으면 skip")
+    p_dist.add_argument("--timeout", type=int, default=300, help="subprocess timeout in sec (default 300)")
+    p_dist.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_dist.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_dist.add_argument("--json", action="store_true")
+
     args = p.parse_args()
     if getattr(args, "dry_run", False):
         args.apply = False
@@ -616,6 +742,8 @@ def main() -> int:
         result = cmd_verify(args)
     elif args.command == "rollback":
         result = cmd_rollback(args)
+    elif args.command == "dist":
+        result = cmd_dist(args)
     else:
         p.error(f"unknown command: {args.command}")
         return 2
@@ -644,11 +772,11 @@ def main() -> int:
             else:
                 print(f"  {k}: {v}")
 
-    # exit code: validate / release / verify / rollback 의 ok/error 기반
-    if args.command in ("validate", "release", "verify", "rollback"):
+    # exit code: validate / release / verify / rollback / dist 의 ok/error 기반
+    if args.command in ("validate", "release", "verify", "rollback", "dist"):
         if "error" in result:
             return 1
-        if args.command in ("release", "rollback") and not result.get("ok", True):
+        if args.command in ("release", "rollback", "dist") and not result.get("ok", True):
             return 1
     return 0
 

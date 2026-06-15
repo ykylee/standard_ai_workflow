@@ -1,10 +1,21 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/active/work_backlog.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.11/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.7.10 (67d4a37): P3 release_pipeline Phase 2 (release/verify/rollback) + 8 smoke",
+      "v0.7.9 (d39be44): P3 release_pipeline tool 정식화 (validate/version-bump/note-draft) + 8 smoke",
+      "v0.7.8 (b67af83): state-aware evaluate_compliance + config actual apply (8 smoke)",
+      "v0.7.7 (3300e73): workflow_kit.cli.doctor × load_config/should_fail integration (8 smoke)",
+      "v0.7.6 (b9ede19): run_all_checks 통합 runner + workflow_kit.metadata (20 smoke)",
+      "v0.7.5 (c2a75f8): Extension audit (4 dispatcher runtime) + refresh_wiki_memory 정식화 (14 smoke)",
+      "v0.7.4 (22e7750): workflow doctor CLI + @graceful_shutdown + optional dep (9 smoke)",
+      "v0.7.3 (d03348a): 4 Runtime Helper (auth/testing/profiling/resiliency) + 7 baseline dispatcher (12 smoke)",
+      "v0.7.2 (3bffba3): Extension sub-cat + 4종 본 구현 (SEC-AUTH/PBT/PERF-MEM/RES) (7 smoke)",
+      "v0.7.1 (f09034d): follow-up 4건 + wiki 개선 4건 (28 smoke, 158 test PASS)",
+      "v0.7.0 (390a6e0): AIDLC Extension 시스템 + 9-Artifact + UOW + audit log (95 smoke)",
       "v0.6.3 (1923705): P4 harness overlay consistency + memory/log.md. v0.6.x series final.",
       "v0.6.2 (2713059): P3 T2 work_backlog anchor + T3 ingest atomicity",
       "v0.6.1.5 (0634dd6): P2.5 R9 wiki-ingest source rule (archive/ only)",

@@ -16,6 +16,42 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.11/backlog/2026-06-15.md]] {#release-v0-7-11}
+- 2026-06-15: v0.7.11 5개 TASK (dist subcommand + state sync backfill + version string sync + release note + session_handoff)
+
+### [[release/v0.7.10/backlog/2026-06-14.md]] {#release-v0-7-10}
+- 2026-06-14: v0.7.10 3개 TASK (release / verify / rollback — release_pipeline Phase 2)
+
+### [[release/v0.7.9/backlog/2026-06-14.md]] {#release-v0-7-9}
+- 2026-06-14: v0.7.9 3개 TASK (validate / version-bump / note-draft — release_pipeline Phase 1)
+
+### [[release/v0.7.8/backlog/2026-06-14.md]] {#release-v0-7-8}
+- 2026-06-14: v0.7.8 2개 TASK (state-aware evaluate_compliance + config actual apply)
+
+### [[release/v0.7.7/backlog/2026-06-14.md]] {#release-v0-7-7}
+- 2026-06-14: v0.7.7 1개 TASK (workflow_kit.cli.doctor × load_config integration)
+
+### [[release/v0.7.6/backlog/2026-06-14.md]] {#release-v0-7-6}
+- 2026-06-14: v0.7.6 2개 TASK (run_all_checks 통합 runner + workflow_kit.metadata loader)
+
+### [[release/v0.7.5/backlog/2026-06-14.md]] {#release-v0-7-5}
+- 2026-06-14: v0.7.5 2개 TASK (Extension audit 4 dispatcher + refresh_wiki_memory 정식화)
+
+### [[release/v0.7.4/backlog/2026-06-13.md]] {#release-v0-7-4}
+- 2026-06-13: v0.7.4 3개 TASK (workflow doctor CLI + @graceful_shutdown + optional dep)
+
+### [[release/v0.7.3/backlog/2026-06-13.md]] {#release-v0-7-3}
+- 2026-06-13: v0.7.3 2개 TASK (4 Runtime Helper + 7 baseline dispatcher)
+
+### [[release/v0.7.2/backlog/2026-06-13.md]] {#release-v0-7-2}
+- 2026-06-13: v0.7.2 2개 TASK (Extension sub-cat lint + 4 baseline 본 구현)
+
+### [[release/v0.7.1/backlog/2026-06-13.md]] {#release-v0-7-1}
+- 2026-06-13: v0.7.1 5개 TASK (score dashboard / L2 emit / 위치 lint / drift check / follow-up 묶음)
+
+### [[release/v0.7.0/backlog/2026-06-13.md]] {#release-v0-7-0}
+- 2026-06-13: v0.7.0 7개 TASK (AIDLC Extension + Reverse Engineering + UOW + audit log + Stage Completion + Security Baseline + packaging)
+
 ### [[release/v0.5.10/backlog/2026-06-09.md]] {#release-v0-5-10}
 - 2026-06-09: v0.5.10 1개 TASK (TASK-V0510-001: 개발자용 설치·사용 가이드)
 

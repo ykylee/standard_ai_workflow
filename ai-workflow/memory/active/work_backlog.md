@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.22/backlog/2026-06-15.md]] {#release-v0-7-22}
+- 2026-06-15: v0.7.22 1개 TASK (linter symlink-resolve fix — workflow_kit/common/linter.py .resolve() → .absolute() 2 site + 3 smoke)
+
 ### [[release/v0.7.21/backlog/2026-06-15.md]] {#release-v0-7-21}
 - 2026-06-15: v0.7.21 1개 TASK (F-4 design 결함 fix — --allow-existing-tag flag + tag push 자동화 + 1 smoke)
 

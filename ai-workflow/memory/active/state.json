@@ -1,14 +1,15 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.21/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.22/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.21 (f014d59): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",
-      "v0.7.20 (5758657): P3 release coordination observability (auto-bump chain 최종 — v0.7.18/v0.7.19/v0.7.20 의 3 release 의 tag push + pre-check fail cycle)",
-      "v0.7.19 (8ada0f1): P3 release coordination auto-bump (v0.7.18 → v0.7.19)",
-      "v0.7.18 (07bf145): P3 release coordination observability (_check_remote_tag + next_available_version + --auto-bump + 7 smoke)",
+      "v0.7.22 (TBD): P3 linter symlink-resolve fix (workflow_kit/common/linter.py .resolve() → .absolute() 2 site) + 3 smoke",
+      "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",
+      "v0.7.20 (5758657): P3 release coordination observability (auto-bump chain 최종)",
+      "v0.7.19 (8ada0f1): P3 release coordination auto-bump",
+      "v0.7.18 (07bf145): P3 release coordination observability (_check_remote_tag + next_available_version + --auto-bump) + 7 smoke",
       "v0.7.17 (6f6f1af): P3 wiki in-repo storage isolation (5 file redirect + ai-workflow/wiki/sources/ 신규 + 11 smoke)",
       "v0.7.16 (33f5243): P3 [tool.workflow-doctor] config thresholds/excluded_paths 적용 (B-1/B-2/B-3) + linter IndentationError/dict-slice fix + 9 smoke (deferred 3종 한꺼번에 해소)",
       "v0.7.15 (a369e7c): P3 atomic_write helper (POSIX os.replace) + changelog-gen --from-tag/--to-tag filter + 5 smoke (release_pipeline 7/8 → 8/8 subcommand)",
@@ -19,7 +20,7 @@
       "v0.7.10 (67d4a37): P3 release_pipeline Phase 2 (release/verify/rollback) + 8 smoke",
       "v0.7.9 (d39be44): P3 release_pipeline tool 정식화 (validate/version-bump/note-draft) + 8 smoke",
       "v0.7.8 (b67af83): state-aware evaluate_compliance + config actual apply (8 smoke)",
-      "v0.7.7 (3300e73): workflow_kit.cli.doctor × load_config/should_fail integration (8 smoke)",
+      "v0.7.7 (330073): workflow_kit.cli.doctor × load_config/should_fail integration (8 smoke)",
       "v0.7.6 (b9ede19): run_all_checks 통합 runner + workflow_kit.metadata (20 smoke)",
       "v0.7.5 (c2a75f8): Extension audit (4 dispatcher runtime) + refresh_wiki_memory 정식화 (14 smoke)",
       "v0.7.4 (22e7750): workflow doctor CLI + @graceful_shutdown + optional dep (9 smoke)",

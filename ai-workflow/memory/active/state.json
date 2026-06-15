@@ -5,7 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.25 (9292568): P3 Legacy L2 page in-repo migration (tools/migrate_legacy_l2.py + 5 smoke + 1 mirror file)",
+      "v0.7.25 (96a919d): P3 Legacy L2 page in-repo migration (tools/migrate_legacy_l2.py + 5 smoke + 1 mirror file)",
       "v0.7.24 (ef13691): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",
       "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",

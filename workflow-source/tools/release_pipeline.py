@@ -517,12 +517,21 @@ def _run_post_step_sync_hash(version: str) -> dict:
         }
 
     # final hash (amend 후의 HEAD)
-    proc_hash = subprocess.run(
-        ["git", "rev-parse", "HEAD", "--short=7"],
+    # 2-step: full SHA → short=7 (F-7+ 의 정공법, v0.7.26)
+    proc_full = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
         capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
     )
-    if proc_hash.returncode == 0:
-        final_hash = proc_hash.stdout.strip().splitlines()[-1][:7]
+    if proc_full.returncode == 0 and proc_full.stdout.strip():
+        head_full = proc_full.stdout.strip()
+        proc_short = subprocess.run(
+            ["git", "rev-parse", "--short=7", head_full],
+            capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+        )
+        if proc_short.returncode == 0 and proc_short.stdout.strip():
+            final_hash = proc_short.stdout.strip()[:7]
+        else:
+            final_hash = None
     else:
         final_hash = None
 

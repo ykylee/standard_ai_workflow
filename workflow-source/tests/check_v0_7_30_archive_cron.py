@@ -66,18 +66,27 @@ def _make_args(**kwargs):
 
 # === Test 1: install_cron subprocess ===
 def test_install_cron_subprocess() -> bool:
-    """--install-cron 이 'mavis cron create' 호출 (correct args)."""
+    """--install-cron 이 'mavis cron create' 호출 (correct args).
+
+    v0.7.31 의 TASK-V0730-001 fix: install_cron 가 *idempotency* check (info) 추가 → 2 calls
+    (info + create). info fail → create 만. → 2 calls expected.
+    """
     args = _make_args(install_cron=True)
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value = _make_fake_proc(0, "created\n")
+        # v0.7.31: info fail (returncode 1) → create OK (returncode 0)
+        mock_run.side_effect = [
+            _make_fake_proc(1, "", "Error: cron not found\n"),  # info fail
+            _make_fake_proc(0, "created\n"),  # create OK
+        ]
         result = cmd_install_cron(args)
         if not result.get("ok"):
             print(f"  FAIL: ok=False. Got: {result}")
             return False
-        if mock_run.call_count != 1:
-            print(f"  FAIL: expected 1 subprocess call, got {mock_run.call_count}")
+        if mock_run.call_count != 2:
+            print(f"  FAIL: expected 2 subprocess calls (info + create), got {mock_run.call_count}")
             return False
-        call_args = mock_run.call_args[0][0]
+        # verify 2nd call (create)
+        call_args = mock_run.call_args_list[1][0][0]
         # verify 'mavis cron create' + agent + cronName + --schedule
         if "mavis" not in call_args or "cron" not in call_args or "create" not in call_args:
             print(f"  FAIL: expected 'mavis cron create', got {call_args}")

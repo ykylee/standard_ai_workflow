@@ -179,3 +179,11 @@
 - **scope**: `tools/archive_stale_memory.py` (~80 line 추가: 3 cmd + 3 flag + 2 config) + 1 신규 test file (5 smoke, 5/5 PASS)
 - **정공법**: `mavis cron create <agent> <cronName> --schedule <interval> --prompt <text>` 자동 호출. *manual* → *automated* 정공법 (caller discipline → system automation).
 
+
+## v0.7.31 (2026-06-15) — TASK-V0729-001 + TASK-V0730-001 (Run-Time Metrics + Cron Idempotency)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `archive_stale_memory.py` (~110 line: 3 helper + 1 subcommand + idempotency + check_already_archived file catch) + 1 신규 test file (10 smoke, 10/10 PASS) + 1 v0.7.28 test fix
+- **정공법**: append-only metrics log (ISO 8601 + tab-separated 5 field) + `mavis cron info` existence check + `--force-install` caller opt-in + `check_already_archived` file catch (v0.7.28 의 *dst 가 file* 시나리오 보강).
+

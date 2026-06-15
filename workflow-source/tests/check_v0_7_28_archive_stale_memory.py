@@ -18,8 +18,15 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+
+# KST = UTC+9. test 의 archive date 가 KST 정합.
+def _today_kst() -> str:
+    """KST (UTC+9) 기준 오늘 날짜. archive target date 와 정합."""
+    kst = timezone(timedelta(hours=9))
+    return datetime.now(tz=kst).strftime("%Y-%m-%d")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TOOL = REPO_ROOT / "workflow-source" / "tools" / "archive_stale_memory.py"
@@ -81,13 +88,13 @@ def test_age_filter() -> bool:
         memory_dir = repo_root / "ai-workflow" / "memory"
         memory_dir.mkdir(parents=True, exist_ok=True)
         # old dir (40 day)
-        old_dir = memory_dir / "aabb123"
+        old_dir = memory_dir / "ff00ff0"
         old_dir.mkdir(parents=True, exist_ok=True)
         (old_dir / "state.md").write_text("old", encoding="utf-8")
         old_mtime = time.time() - (40 * 86400)
         os.utime(old_dir, (old_mtime, old_mtime))
-        # new dir (5 day)
-        new_dir = memory_dir / "ff00ff0"
+        # new dir (5 day) — different name
+        new_dir = memory_dir / "ff00ff1"
         new_dir.mkdir(parents=True, exist_ok=True)
         (new_dir / "state.md").write_text("new", encoding="utf-8")
         # new mtime = now (default)
@@ -100,14 +107,14 @@ def test_age_filter() -> bool:
         candidate_shas = [c["sha"] for c in candidates]
         skipped = result.get("skipped", [])
         skipped_shas = [s["sha"] for s in skipped]
-        if "aabb123" not in candidate_shas:
+        if "ff00ff0" not in candidate_shas:
             print(f"  FAIL: old dir not in candidates. candidates: {candidate_shas}, skipped: {skipped_shas}")
             return False
-        if "ff00ff0" not in skipped_shas:
+        if "ff00ff1" not in skipped_shas:
             print(f"  FAIL: new dir not in skipped. skipped: {skipped_shas}")
             return False
         # verify reason
-        new_skipped = next(s for s in skipped if s["sha"] == "ff00ff0")
+        new_skipped = next(s for s in skipped if s["sha"] == "ff00ff1")
         if new_skipped.get("reason") != "too-recent":
             print(f"  FAIL: expected reason='too-recent', got {new_skipped}")
             return False
@@ -123,12 +130,12 @@ def test_already_archived_skip() -> bool:
         memory_dir = repo_root / "ai-workflow" / "memory"
         memory_dir.mkdir(parents=True, exist_ok=True)
         # old dir (40 day)
-        old_dir = memory_dir / "aabb123"
+        old_dir = memory_dir / "ff00ff2"
         old_dir.mkdir(parents=True, exist_ok=True)
         old_mtime = time.time() - (40 * 86400)
         os.utime(old_dir, (old_mtime, old_mtime))
-        # already-archived (under archive/2026-06-01/old1234/)
-        archive_target = memory_dir / "archive" / "2026-06-01" / "aabb123"
+        # already-archived (under archive/2026-06-01/ff00ff2/)
+        archive_target = memory_dir / "archive" / "2026-06-01" / "ff00ff2"
         archive_target.mkdir(parents=True, exist_ok=True)
 
         result = _run_tool("--older-than=30", "--dry-run", repo_root=repo_root)
@@ -137,10 +144,10 @@ def test_already_archived_skip() -> bool:
             return False
         candidates = result.get("candidates", [])
         skipped = result.get("skipped", [])
-        if any(c["sha"] == "aabb123" for c in candidates):
-            print(f"  FAIL: old1234 should NOT be in candidates (already archived)")
+        if any(c["sha"] == "ff00ff2" for c in candidates):
+            print(f"  FAIL: ff00ff2 should NOT be in candidates (already archived)")
             return False
-        skipped_old = next((s for s in skipped if s["sha"] == "aabb123"), None)
+        skipped_old = next((s for s in skipped if s["sha"] == "ff00ff2"), None)
         if not skipped_old or skipped_old.get("reason") != "already-archived":
             print(f"  FAIL: expected 'already-archived' skip. Got: {skipped}")
             return False
@@ -155,7 +162,7 @@ def test_dry_run_no_move() -> bool:
         repo_root = Path(tmp) / "fake_repo"
         memory_dir = repo_root / "ai-workflow" / "memory"
         memory_dir.mkdir(parents=True, exist_ok=True)
-        old_dir = memory_dir / "aabb123"
+        old_dir = memory_dir / "ff00ff0"
         old_dir.mkdir(parents=True, exist_ok=True)
         old_mtime = time.time() - (40 * 86400)
         os.utime(old_dir, (old_mtime, old_mtime))
@@ -185,7 +192,7 @@ def test_apply_archives_old_dir() -> bool:
         repo_root = Path(tmp) / "fake_repo"
         memory_dir = repo_root / "ai-workflow" / "memory"
         memory_dir.mkdir(parents=True, exist_ok=True)
-        old_dir = memory_dir / "aabb123"
+        old_dir = memory_dir / "ff00ff3"
         old_dir.mkdir(parents=True, exist_ok=True)
         test_content = "important state data"
         (old_dir / "state.md").write_text(test_content, encoding="utf-8")
@@ -206,7 +213,7 @@ def test_apply_archives_old_dir() -> bool:
             print(f"  FAIL: archive dir not created")
             return False
         today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-        target = archive_base / today / "aabb123"
+        target = archive_base / _today_kst() / "ff00ff3"
         if not target.exists():
             print(f"  FAIL: target dir not created: {target}")
             return False

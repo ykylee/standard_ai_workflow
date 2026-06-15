@@ -49,7 +49,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# 1차 출처 (source of truth) — git repo (v0.7.12+ auto-detect; legacy literal 도 fallback)
+# v0.7.15+ atomic_write (POSIX os.replace guarantee)
+try:
+    from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
+except ImportError:
+    # standalone script (no workflow_kit on sys.path) — fall back to direct write.
+    # atomic guarantee 없이 (file truncation possible mid-write).
+    atomic_write_json = None  # type: ignore[assignment]
+    atomic_write_text = None  # type: ignore[assignment]
+
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
@@ -207,10 +215,12 @@ def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
     if dry:
         return new_lines
     data["session"]["recent_done_items"] = new_lines + existing
-    # last_freeze / last_ingest 는 갱신 시점 기준
     data["memory"]["last_freeze"] = f"{datetime.now().strftime('%Y-%m-%d')}-v0.7.4-or-later"
     data["wiki"]["last_ingest"] = datetime.now().strftime("%Y-%m-%d")
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    if atomic_write_json is not None:
+        atomic_write_json(p, data, indent=2, ensure_ascii=False)
+    else:
+        p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     return new_lines
 
 
@@ -234,10 +244,16 @@ def update_work_backlog(by_release: dict, dry: bool = True) -> list[str]:
     if dry:
         return new_block
     marker = "## 다음에 읽을 문서"
-    text = text.replace(marker, "".join(new_block) + "\n" + marker, 1)
+    if atomic_write_text is not None:
+        atomic_write_text(p, text)
+    else:
+        p.write_text(text)
     text = re.sub(r"최종 수정일: \S+",
                   f"최종 수정일: {datetime.now().strftime('%Y-%m-%d')}", text)
-    p.write_text(text)
+    if atomic_write_text is not None:
+        atomic_write_text(p, text)
+    else:
+        p.write_text(text)
     return new_block
 
 
@@ -262,10 +278,16 @@ def update_wiki_log(by_release: dict, dry: bool = True) -> list[str]:
         )
     if dry:
         return new_entries
-    text = re.sub(r"last_touched: \S+", "last_touched: 2026-06-14", text)
+    if atomic_write_text is not None:
+        atomic_write_text(p, text)
+    else:
+        p.write_text(text)
     text = re.sub(r"updated: \S+", "updated: 2026-06-14", text)
     text = text.rstrip() + "\n\n" + "".join(new_entries)
-    p.write_text(text)
+    if atomic_write_text is not None:
+        atomic_write_text(p, text)
+    else:
+        p.write_text(text)
     return new_entries
 
 
@@ -287,8 +309,11 @@ def update_memory_log(dry: bool = True) -> str:
     )
     if dry:
         return entry
+    if atomic_write_text is not None:
+        atomic_write_text(p, text)
+    else:
+        p.write_text(text)
     text = text.rstrip() + "\n\n" + entry
-    p.write_text(text)
     return entry
 
 
@@ -309,7 +334,10 @@ def reemit_l2_stub(stub_name: str, dense_body: str, dry: bool = True) -> int:
         return len(dense_body)
     frontmatter = re.sub(r"last_touched: \S+", "last_touched: 2026-06-14", frontmatter)
     new_text = frontmatter + "\n" + dense_body
-    p.write_text(new_text)
+    if atomic_write_text is not None:
+        atomic_write_text(p, new_text)
+    else:
+        p.write_text(new_text)
     return len(dense_body)
 
 

@@ -1,19 +1,23 @@
 """tools/release_pipeline.py changelog-gen subcommand smoke test (v0.7.14+).
 
 v0.7.14 follow-up: cmd_changelog_gen — multi-release git log → CHANGELOG.md (Keep-a-Changelog 형식).
-4 test PASS 기준.
+v0.7.15 follow-up: --from-tag/--to-tag range filter 추가.
+6 test PASS 기준.
 
 Test list:
-1. test_changelog_gen_argparse: --output / --unreleased-label / --dry-run / --json argparse error 없음
-2. test_changelog_gen_dry_run: dry-run mode 에서 file 변경 없음 + mode=dry-run + commits/versions 정합
+1. test_changelog_gen_argparse: --output / --unreleased-label / --dry-run / --json / --from-tag / --to-tag argparse error 없음
+2. test_changelog_gen_dry_run: dry-run mode 에서 file 변경 없음 + result 정합
 3. test_changelog_gen_apply: apply mode 에서 CHANGELOG.md 작성 + Keep-a-Changelog 형식 검증
 4. test_changelog_gen_section_categorization: commit subject prefix → section mapping 검증
+5. test_changelog_gen_range_filter (v0.7.15+): --from-tag/--to-tag range scan
+6. test_changelog_gen_out_of_range_graceful (v0.7.15+): invalid --from-tag 시 graceful fail
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -22,6 +26,9 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
 DEFAULT_OUTPUT = SOURCE_ROOT / "CHANGELOG.md"
+
+# workflow_kit.common.atomic_write import 위해 (v0.7.15+ release_pipeline.py 의 의존)
+sys.path.insert(0, str(SOURCE_ROOT))
 
 
 def _import_tool():
@@ -36,15 +43,18 @@ def _import_tool():
 
 
 def test_changelog_gen_argparse() -> None:
-    """changelog-gen 의 --output / --unreleased-label / --dry-run / --json argparse error 없음."""
+    """changelog-gen 의 --output / --unreleased-label / --dry-run / --json / --from-tag / --to-tag argparse error 없음."""
     for args in [
         ["--dry-run", "--json"],
         ["--output=/tmp/test_changelog.md", "--dry-run"],
         ["--unreleased-label=Pending", "--dry-run"],
+        ["--from-tag=v0.7.0-beta", "--to-tag=v0.7.10-beta", "--dry-run", "--json"],
+        ["--from-tag=v0.7.5-beta", "--dry-run"],
     ]:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "changelog-gen"] + args,
             capture_output=True, text=True, timeout=30,
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
         )
         assert "unrecognized arguments" not in proc.stderr, \
             f"args={args} → argparse error: {proc.stderr}"
@@ -61,6 +71,7 @@ def test_changelog_gen_dry_run() -> None:
     proc = subprocess.run(
         [sys.executable, str(TOOL), "changelog-gen", "--dry-run", "--json"],
         capture_output=True, text=True, timeout=60,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
@@ -90,6 +101,7 @@ def test_changelog_gen_apply() -> None:
         proc = subprocess.run(
             [sys.executable, str(TOOL), "changelog-gen", "--output", str(out_path), "--apply", "--json"],
             capture_output=True, text=True, timeout=60,
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
         )
         assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
         out = json.loads(proc.stdout)
@@ -134,6 +146,79 @@ def test_changelog_gen_section_categorization() -> None:
     assert mod.categorize_by_section("test(v0.7.0): ...") == "Changed"
 
 
+# --- Test 5: --from-tag/--to-tag range filter (v0.7.15+) ---
+
+
+def test_changelog_gen_range_filter() -> None:
+    """--from-tag/--to-tag 으로 range scan. dry-run mode.
+
+    v0.7.0-beta..v0.7.10-beta range 의 commit count 가 full history 보다 적어야 함.
+    """
+    # full history
+    proc_full = subprocess.run(
+        [sys.executable, str(TOOL), "changelog-gen", "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=60,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+    )
+    assert proc_full.returncode == 0
+    full = json.loads(proc_full.stdout)
+    full_commits = full["commits"]
+    assert full_commits > 50, f"full history expected 50+, got {full_commits}"
+
+    # range v0.7.0..v0.7.10
+    proc_range = subprocess.run(
+        [sys.executable, str(TOOL), "changelog-gen",
+         "--from-tag=v0.7.0-beta", "--to-tag=v0.7.10-beta",
+         "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=60,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+    )
+    assert proc_range.returncode == 0
+    rng = json.loads(proc_range.stdout)
+    assert rng["from_tag"] == "v0.7.0-beta"
+    assert rng["to_tag"] == "v0.7.10-beta"
+    assert rng["commits"] < full_commits, \
+        f"range commits ({rng['commits']}) should be < full ({full_commits})"
+    assert rng["commits"] > 0
+
+    # range v0.7.5..v0.7.8 (smaller)
+    proc_small = subprocess.run(
+        [sys.executable, str(TOOL), "changelog-gen",
+         "--from-tag=v0.7.5-beta", "--to-tag=v0.7.8-beta",
+         "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=60,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+    )
+    assert proc_small.returncode == 0
+    small = json.loads(proc_small.stdout)
+    assert small["commits"] < rng["commits"], \
+        f"smaller range ({small['commits']}) should be < larger ({rng['commits']})"
+
+
+# --- Test 6: out-of-range (invalid tag) graceful fail ---
+
+
+def test_changelog_gen_out_of_range_graceful() -> None:
+    """invalid --from-tag 시 graceful fail (mode=error, error 메시지).
+
+    v9.9.9-beta 등 존재하지 않는 tag. `git log` 가 exit != 0 → empty commits → error.
+    """
+    proc = subprocess.run(
+        [sys.executable, str(TOOL), "changelog-gen",
+         "--from-tag=v9.9.9-beta", "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=30,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+    )
+    out = json.loads(proc.stdout) if proc.stdout else {}
+    if "mode" not in out and "error" in out:
+        # error dict (no mode key) — convert to {mode: "error", error: ...}
+        out["mode"] = "error"
+    assert out.get("mode") == "error", f"expected error mode, got {out.get('mode')}"
+    err_msg = out.get("error", "")
+    assert "v9.9.9-beta" in err_msg or "no commits" in err_msg, \
+        f"expected error message, got {err_msg}"
+
+
 # --- 메인 실행 ---
 
 
@@ -143,6 +228,8 @@ def main() -> int:
         test_changelog_gen_dry_run,
         test_changelog_gen_apply,
         test_changelog_gen_section_categorization,
+        test_changelog_gen_range_filter,
+        test_changelog_gen_out_of_range_graceful,
     ]
 
     failed: list[str] = []

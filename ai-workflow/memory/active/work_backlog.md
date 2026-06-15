@@ -16,6 +16,15 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.21/backlog/2026-06-15.md]] {#release-v0-7-21}
+- 2026-06-15: v0.7.21 1개 TASK (F-4 design 결함 fix — --allow-existing-tag flag + tag push 자동화 + 1 smoke)
+
+### [[release/v0.7.20/backlog/2026-06-15.md]] {#release-v0-7-20}
+- 2026-06-15: v0.7.20 1개 TASK (release coordination observability — auto-bump chain 최종)
+
+### [[release/v0.7.19/backlog/2026-06-15.md]] {#release-v0-7-19}
+- 2026-06-15: v0.7.19 1개 TASK (release coordination auto-bump — v0.7.18 → v0.7.19)
+
 ### [[release/v0.7.18/backlog/2026-06-15.md]] {#release-v0-7-18}
 - 2026-06-15: v0.7.18 1개 TASK (release coordination observability — _check_remote_tag + next_available_version + --auto-bump + 7 smoke)
 

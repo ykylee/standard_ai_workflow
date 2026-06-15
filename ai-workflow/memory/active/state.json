@@ -5,7 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.26 (TBD): P3 F-7 branch detection fix + F-7+ automated hash sync (sync_release_hash.py) + 10 smoke",
+      "v0.7.26 (e5fbd2b): P3 F-7 branch detection fix + F-7+ automated hash sync (sync_release_hash.py) + 10 smoke",
       "v0.7.25 (00e7ca8): P3 Legacy L2 page in-repo migration (tools/migrate_legacy_l2.py + 5 smoke + 1 mirror file)",
       "v0.7.24 (ef13691): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",

@@ -78,7 +78,7 @@ if not notes_file.exists():
 
 | Hash | Subject |
 |---|---|
-| `TBD` | feat(v0.7.24): cmd_release --notes-template flag (5 template: default/detailed/simple/changelog/custom) + 5 smoke |
+| `1dfa8fb` | feat(v0.7.24): cmd_release --notes-template flag (5 template: default/detailed/simple/changelog/custom) + 5 smoke |
 
 ## 다음 (v0.7.25 / v0.8.0 후보)
 

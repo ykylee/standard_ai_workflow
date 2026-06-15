@@ -35,6 +35,13 @@ TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
 # 2차 출처 (raw mirror) — wiki vault
 VAULT_ROOT = Path.home() / "wiki"
 
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
+WORKFLOW_KIT_SRC = SOURCE_ROOT / "workflow_kit"
+
+# workflow_kit.common.atomic_write import 위해 (v0.7.15+ refresh_wiki_memory 의 의존)
+sys.path.insert(0, str(SOURCE_ROOT))
+
 
 def _import_tool():
     """refresh_wiki_memory.py 를 importlib 로 로드."""
@@ -43,9 +50,6 @@ def _import_tool():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-
-# --- Test 1: CLI subcommand 파싱 ---
 
 
 def test_cli_subcommand_parsing() -> None:

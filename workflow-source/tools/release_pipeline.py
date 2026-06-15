@@ -41,6 +41,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# v0.7.15+ atomic_write (POSIX os.replace guarantee)
+try:
+    from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
+except ImportError:
+    # standalone script (no workflow_kit on sys.path) — fall back to direct write.
+    atomic_write_json = None  # type: ignore[assignment]
+    atomic_write_text = None  # type: ignore[assignment]
 # 1차 출처
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -419,15 +426,47 @@ SECTION_PREFIXES = {
 
 
 def collect_commits_all_time() -> list[dict]:
-    """git log all-time 의 commit (subject 의 vX.Y.Z 추출)."""
+    """git log all-time 의 commit (subject 의 vX.Y.Z 추출).
+
+    v0.7.15+ deprecation: prefer collect_commits_in_range(from_ref, to_ref).
+    """
     proc = subprocess.run(
         ["git", "log", "--all", "--pretty=format:%h|%H|%an|%ai|%s"],
         cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
     )
     if proc.returncode != 0:
         return []
+    return _parse_git_log(proc.stdout)
+
+
+def collect_commits_in_range(from_ref: str | None, to_ref: str = "HEAD") -> list[dict]:
+    """git log <from>..<to> 의 commit. (v0.7.15+ filter).
+
+    Args:
+        from_ref: 시작 ref (tag or commit hash). None 이면 --all (전체 history).
+        to_ref: 종료 ref (default HEAD).
+
+    Returns:
+        commit dict list. from_ref 가 invalid (e.g. unknown tag) 시 empty list + stderr 의 error.
+    """
+    if from_ref is None:
+        return collect_commits_all_time()
+    # git log <from>..<to>
+    range_arg = f"{from_ref}..{to_ref}"
+    proc = subprocess.run(
+        ["git", "log", range_arg, "--pretty=format:%h|%H|%an|%ai|%s"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
+    )
+    if proc.returncode != 0:
+        # from_ref 또는 to_ref invalid. caller 가 error 처리.
+        return []
+    return _parse_git_log(proc.stdout)
+
+
+def _parse_git_log(pretty_output: str) -> list[dict]:
+    """`git log --pretty=format:...` output → commit dict list (RELEASE_RE parse)."""
     rows = []
-    for line in proc.stdout.strip().split("\n"):
+    for line in pretty_output.strip().split("\n"):
         if not line:
             continue
         parts = line.split("|", 4)
@@ -517,10 +556,15 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
 
 def cmd_changelog_gen(args) -> dict:
     """multi-release git log → CHANGELOG.md 본문 생성 (Keep-a-Changelog 형식)."""
-    commits = collect_commits_all_time()
+    from_tag = getattr(args, "from_tag", None)
+    to_tag = getattr(args, "to_tag", "HEAD")
+    commits = collect_commits_in_range(from_tag, to_tag)
     if not commits:
+        if from_tag is not None:
+            return {
+                "error": f"no commits in range {from_tag}..{to_tag} (from_tag 또는 to_tag invalid 할 수 있음)",
+            }
         return {"mode": "error", "error": "no commits in git log"}
-
     body = draft_changelog(commits, unreleased_label=getattr(args, "unreleased_label", "Unreleased"))
     output_path = Path(args.output) if args.output else (REPO_ROOT / "CHANGELOG.md")
     if args.dry_run:
@@ -529,17 +573,23 @@ def cmd_changelog_gen(args) -> dict:
             "output_path": str(output_path),
             "commits": len(commits),
             "versions": len(set(c["version"] for c in commits)),
+            "from_tag": from_tag,
+            "to_tag": to_tag,
             "preview_first_500": body[:500],
         }
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(body)
+    if atomic_write_text is not None:
+        atomic_write_text(output_path, body)
+    else:
+        output_path.write_text(body, encoding="utf-8")
     return {
         "mode": "applied",
         "output_path": str(output_path),
         "commits": len(commits),
         "versions": len(set(c["version"] for c in commits)),
+        "from_tag": from_tag,
+        "to_tag": to_tag,
     }
-# ---------------------------------------------------------------------------
 
 
 def find_dist_files(version: str) -> list[Path]:
@@ -727,6 +777,16 @@ def cmd_rollback(args) -> dict:
     results["ok"] = "error" not in results
     return results
 
+    p_cl.add_argument("--unreleased-label", default="Unreleased",
+                      help="unreleased commit group 의 label (default: 'Unreleased')")
+    p_cl.add_argument("--from-tag", default=None,
+                      help="git log 시작 ref (e.g. v0.7.0-beta). 미지정 시 --all (전체 history)")
+    p_cl.add_argument("--to-tag", default="HEAD",
+                      help="git log 종료 ref (default: HEAD)")
+    p_cl.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_cl.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_cl.add_argument("--json", action="store_true")
+
 
 # ---------------------------------------------------------------------------
 # 7. dist (Phase 3 — v0.7.11)
@@ -885,12 +945,16 @@ def main() -> int:
     p_nd.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_nd.add_argument("--apply", dest="apply", action="store_true", default=True)
 
-    # changelog-gen (Phase 4 — v0.7.14+, Keep-a-Changelog 형식)
+    # changelog-gen (Phase 4 — v0.7.14+, Keep-a-Changelog 형식, v0.7.15+ filter)
     p_cl = sub.add_parser("changelog-gen", help="multi-release git log → CHANGELOG.md 본문 (Keep-a-Changelog 형식)")
     p_cl.add_argument("--output", default=None,
                       help="output file path (default: workflow-source/CHANGELOG.md)")
     p_cl.add_argument("--unreleased-label", default="Unreleased",
                       help="unreleased commit group 의 label (default: 'Unreleased')")
+    p_cl.add_argument("--from-tag", default=None,
+                      help="git log 시작 ref (e.g. v0.7.0-beta). 미지정 시 --all (전체 history)")
+    p_cl.add_argument("--to-tag", default="HEAD",
+                      help="git log 종료 ref (default: HEAD)")
     p_cl.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_cl.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_cl.add_argument("--json", action="store_true")

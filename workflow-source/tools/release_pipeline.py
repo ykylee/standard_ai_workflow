@@ -7,6 +7,8 @@ release 절차 (validate → dist → version-bump → note-draft → release �
 Phase 1 (v0.7.9): validate / version-bump / note-draft — 사전 점검 + version + note.
 Phase 2 (v0.7.10): release / verify / rollback — gh CLI 통합 + read-only verify + destructive rollback.
 Phase 3 (v0.7.11): dist — `python3 -m build` wheel + sdist 자동 빌드 (PEP 517/518).
+Phase 5 (v0.7.18): release coordination observability — cmd_release 의 --auto-bump
+  + remote tag pre-check (`git ls-remote origin`). v0.7.16 의 race lesson 반영.
 
 PyPI/TestPyPI 업로드 ❌ (memory #5 의 release 채널 정책 — GitHub Releases 만).
 
@@ -168,6 +170,145 @@ def cmd_validate(args) -> dict:
         results["git"] = {"ok": True, "skipped": True}
 
     return results
+
+
+# ---------------------------------------------------------------------------
+# 1.5 release coordination observability (v0.7.18+)
+# ---------------------------------------------------------------------------
+
+
+def _check_remote_tag(tag: str, *, timeout: int = 15) -> dict:
+    """원격 (origin) 에 주어진 tag 가 존재하는지 확인.
+
+    Returns:
+        {"exists": bool, "remote_url": str | None, "tag": str}
+    """
+    result: dict = {"exists": False, "remote_url": None, "tag": tag}
+    # 1. remote URL 추출
+    remote_proc = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if remote_proc.returncode != 0:
+        return result
+    result["remote_url"] = remote_proc.stdout.strip()
+    # 2. ls-remote 로 tag 조회
+    ls_proc = subprocess.run(
+        ["git", "ls-remote", "origin", f"refs/tags/{tag}"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if ls_proc.returncode == 0 and ls_proc.stdout.strip():
+        result["exists"] = True
+    return result
+
+
+def _list_remote_tags(pattern: str = "v*", *, timeout: int = 15) -> list[str]:
+    """원격의 tag list (정규식 filter, sort -V)."""
+    ls_proc = subprocess.run(
+        ["git", "ls-remote", "--tags", "origin", pattern],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=timeout,
+    )
+    if ls_proc.returncode != 0:
+        return []
+    tags = []
+    for line in ls_proc.stdout.strip().splitlines():
+        # line: "<sha>\trefs/tags/<tagname>"
+        parts = line.split("\t", 1)
+        if len(parts) == 2:
+            tag = parts[1].removeprefix("refs/tags/")
+            # peel 된 ^{} tag 제외
+            if not tag.endswith("^{}"):
+                tags.append(tag)
+    return sorted(tags, key=_version_sort_key)
+
+
+def _version_sort_key(tag: str) -> tuple:
+    """PEP 440 + suffix sort key. v0.7.17-beta → (0, 7, 17, 'beta'), v0.7.18 → (0, 7, 18, '').
+
+    SemVer-ish + PEP 440 suffix 순서 (release < alpha < beta < rc). 정수 tuple 이므로
+    `sorted(tags, key=_version_sort_key)` 가 *자동으로* numeric + suffix 순서.
+    """
+    # 'v' prefix 제거
+    s = tag.lstrip("v")
+    # '-suffix' 분리
+    if "-" in s:
+        base, suffix = s.split("-", 1)
+    else:
+        base, suffix = s, ""
+    # base = 'X.Y.Z' → int tuple
+    parts = base.split(".")
+    nums = tuple(int(p) for p in parts if p.isdigit())
+    # suffix sort: '' (release) < 'alpha' < 'beta' < 'rc'
+    suffix_order = {"": 0, "alpha": 1, "beta": 2, "rc": 3}
+    suffix_rank = suffix_order.get(suffix.split(".")[0], 99)
+    return nums + (suffix_rank, suffix)
+
+
+def next_available_version(local_version: str, *, remote_tags: list[str] | None = None) -> dict:
+    """local_version 보다 큰, remote 에 없는 다음 version 결정.
+
+    1차 출처: remote `git ls-remote --tags origin "vX.Y.*"` 의 latest + 0.0.1 bump.
+    local_version 이 이미 remote 의 latest 보다 크면 그대로 (충돌 없음).
+    같은 major.minor prefix 의 모든 tag → max + 0.0.1.
+
+    Args:
+        local_version: 현재 local pyproject 의 version (e.g. "0.7.17").
+        remote_tags: pre-fetched list. None 이면 _list_remote_tags() 호출.
+
+    Returns:
+        {"next": "0.7.18", "current_local": "0.7.17", "remote_max": "0.7.17-beta", "bumped": True}
+    """
+    if remote_tags is None:
+        remote_tags = _list_remote_tags()
+    # local_version 의 major.minor prefix
+    parts = local_version.split(".")
+    if len(parts) < 2:
+        major_minor_prefix = local_version
+    else:
+        major_minor_prefix = ".".join(parts[:2])
+    # remote 의 같은 major.minor 의 tag 만 filter
+    prefix = f"v{major_minor_prefix}."
+    same_prefix = [t for t in remote_tags if t.startswith(prefix)]
+    # numeric base 비교 (PEP 440 suffix 무시)
+    def base_tuple(t: str) -> tuple:
+        b = t.lstrip("v").split("-", 1)[0]
+        try:
+            return tuple(int(p) for p in b.split("."))
+        except ValueError:
+            return (0,)
+    if same_prefix:
+        remote_max = max(same_prefix, key=base_tuple)
+    else:
+        remote_max = None
+    local_tuple = base_tuple(f"v{local_version}")
+    if remote_max is None:
+        # remote 에 같은 major.minor 부재 → local 그대로 (다음 patch 가 local 의 +1)
+        next_v = local_version
+        bumped = False
+    else:
+        remote_tuple = base_tuple(remote_max)
+        if local_tuple > remote_tuple:
+            # local 이 remote max 보다 큼 → 그대로
+            next_v = local_version
+            bumped = False
+        elif local_tuple < remote_tuple:
+            # local 이 remote max 보다 작음 → remote max + 0.0.1
+            next_tuple = list(remote_tuple)
+            next_tuple[-1] += 1
+            next_v = ".".join(str(n) for n in next_tuple)
+            bumped = True
+        else:
+            # local == remote max → patch bump
+            next_tuple = list(remote_tuple)
+            next_tuple[-1] += 1
+            next_v = ".".join(str(n) for n in next_tuple)
+            bumped = True
+    return {
+        "next": next_v,
+        "current_local": local_version,
+        "remote_max": remote_max,
+        "bumped": bumped,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -609,6 +750,12 @@ def cmd_release(args) -> dict:
     사전 점검: --skip-validate 미지정 시 validate 4 source 자동 호출.
     1+ source fail 시 release 중단 (exit 1).
 
+    **v0.7.18+ release coordination observability**:
+    `tag` 결정 후 `git ls-remote origin` 로 *원격 tag 존재 여부* 확인. 존재 시
+    - default: exit 1 + auto-bump hint
+    - `--auto-bump`: `next_available_version()` 로 다음 version 결정 + version-bump 자동 + re-flow
+    v0.7.16 의 race lesson 반영 (memory #22 §release coordination race).
+
     gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
     """
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
@@ -619,6 +766,7 @@ def cmd_release(args) -> dict:
         results["pre_check"] = val_result
         if not all(v.get("ok", False) for v in val_result.values()):
             return {**results, "error": "validate failed; abort release"}
+
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
     if getattr(args, "version", None):
@@ -627,15 +775,56 @@ def cmd_release(args) -> dict:
     else:
         version = read_version()
         results["version_source"] = "pyproject.toml"
+
+    # v0.7.18+ auto-bump: pre-check 후 tag 결정 전에 호출
+    if getattr(args, "auto_bump", False):
+        bump_info = next_available_version(version)
+        if bump_info["bumped"]:
+            version = bump_info["next"]
+            results["version_source"] = "auto-bump"
+            results["auto_bump"] = bump_info
+            # version-bump 자동 적용 (in-place). write_version + write_workflow_kit_version
+            write_version(version)
+            suffix = "beta"
+            if read_workflow_kit_version().endswith("-beta"):
+                suffix = "beta"
+            elif read_workflow_kit_version().endswith("-alpha"):
+                suffix = "alpha"
+            else:
+                suffix = ""  # default
+            write_workflow_kit_version(version, suffix=("-" + suffix) if suffix else "")
+        else:
+            results["auto_bump"] = bump_info  # bumped=False, info only
+
     dist_files = find_dist_files(version)
     if not dist_files:
         return {**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"}
 
-    # 3. tag + gh command
+    # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}-beta"
     notes_file = RELEASES_DIR / f"Beta-v{version}.md"
     if not notes_file.exists():
         return {**results, "error": f"release note not found: {notes_file}"}
+
+    # 3.5 원격 tag pre-check (v0.7.18+ race lesson)
+    if not args.dry_run:
+        tag_check = _check_remote_tag(tag)
+        results["tag_pre_check"] = tag_check
+        if tag_check["exists"]:
+            return {
+                **results,
+                "error": (
+                    f"remote tag {tag} already exists at {tag_check['remote_url']}. "
+                    f"v0.7.16 race 정공법: --auto-bump 으로 다음 version 자동 bump, "
+                    f"또는 --version=<next> 명시."
+                ),
+            }
+    else:
+        # dry-run 시에도 pre-check 는 수행 (plan 검증)
+        tag_check = _check_remote_tag(tag)
+        results["tag_pre_check"] = tag_check
+        if tag_check["exists"]:
+            results["tag_pre_check_warning"] = f"remote tag {tag} already exists (dry-run: pre-check only)"
 
     rel_assets = [str(f.relative_to(REPO_ROOT)) for f in dist_files]
     results["tag"] = tag
@@ -964,6 +1153,9 @@ def main() -> int:
     p_rel.add_argument("--skip-validate", action="store_true", help="validate 사전 점검 skip")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
+    p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,
+                       help="remote tag pre-check fail 시 다음 version 으로 자동 bump + re-flow. "
+                            "v0.7.18+: release coordination observability.")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")

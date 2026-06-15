@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.17/backlog/2026-06-15.md]] {#release-v0-7-17}
+- 2026-06-15: v0.7.17 1개 TASK (wiki in-repo storage isolation — 5 file redirect + ai-workflow/wiki/sources/ 신규 + 11 smoke)
+
 ### [[release/v0.7.16/backlog/2026-06-15.md]] {#release-v0-7-16}
 - 2026-06-15: v0.7.16 4개 TASK (config score_alert + memory_alert_mb consumer + linter excluded_paths + linter IndentationError/dict-slice fix + 9 smoke)
 

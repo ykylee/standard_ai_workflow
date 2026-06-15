@@ -16,6 +16,12 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.13/backlog/2026-06-15.md]] {#release-v0-7-13}
+- 2026-06-15: v0.7.13 3개 TASK (cmd_release --version flag + 3 smoke + version sync)
+
+### [[release/v0.7.12/backlog/2026-06-15.md]] {#release-v0-7-12}
+- 2026-06-15: v0.7.12 3개 TASK (REPO_ROOT auto-detect + 4 smoke + v0.7.5~v0.7.10 backfill)
+
 ### [[release/v0.7.11/backlog/2026-06-15.md]] {#release-v0-7-11}
 - 2026-06-15: v0.7.11 5개 TASK (dist subcommand + state sync backfill + version string sync + release note + session_handoff)
 

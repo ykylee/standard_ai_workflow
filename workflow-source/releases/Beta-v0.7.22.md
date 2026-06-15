@@ -63,7 +63,7 @@
 
 | Hash | Subject |
 |---|---|
-| `TBD` | fix(v0.7.22): workflow_kit/common/linter.py .resolve() → .absolute() (mavis data dir 격리 환경 + macOS /var symlink fix) + 3 smoke |
+| `3c12950` | fix(v0.7.22): workflow_kit/common/linter.py .resolve() → .absolute() (mavis data dir 격리 환경 + macOS /var symlink fix) + 3 smoke |
 
 ## 다음 (v0.7.23 / v0.8.0 후보)
 

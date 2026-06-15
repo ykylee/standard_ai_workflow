@@ -75,6 +75,14 @@ python3 tools/release_pipeline.py release --version=0.7.5 --skip-validate --appl
 - **linter 의 config excluded_paths** (deferred #4)
 - **Wiki 운영 cross-link** — `emit_wiki_l2_body.py` 와 `refresh_wiki_memory.py` 의 1-command 통합
 
+## Commit
+
+| Hash | Subject |
+|---|---|
+| `922ebc0` | feat(v0.7.13): cmd_release --version flag (staging backfill, pyproject 일시 patch 불필요) |
+| `628bf93` | chore(v0.7.13): version bump 0.7.11 → 0.7.13 + __version__ sync + Beta-v0.7.13.md |
+| `afc685a` | chore(v0.7.13): state sync (v0.7.12 + v0.7.13 backfill) + 2 daily backlog |
+
 ## Reference
 
 - [v0.7.12 release note](Beta-v0.7.12.md) (직전) — REPO_ROOT auto-detect + v0.7.5~v0.7.10 backfill

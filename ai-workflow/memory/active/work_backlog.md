@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.14/backlog/2026-06-15.md]] {#release-v0-7-14}
+- 2026-06-15: v0.7.14 4개 TASK (cmd_version_bump auto-sync + cmd_changelog_gen subcommand + 8 smoke + state sync)
+
 ### [[release/v0.7.13/backlog/2026-06-15.md]] {#release-v0-7-13}
 - 2026-06-15: v0.7.13 3개 TASK (cmd_release --version flag + 3 smoke + version sync)
 

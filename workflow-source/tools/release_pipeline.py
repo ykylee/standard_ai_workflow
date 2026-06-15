@@ -443,6 +443,9 @@ def cmd_version_bump(args) -> dict:
 def _run_post_step_sync_hash(version: str) -> dict:
     """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step).
 
+    sync_release_hash.py 는 release_pipeline.py 와 같은 dir (workflow-source/tools/) 에
+    위치. REPO_ROOT 와 무관하게 __file__ 의 parents[1] (workflow-source/tools/) 기준.
+
     Args:
         version: new version (e.g. "0.7.27").
 
@@ -450,10 +453,11 @@ def _run_post_step_sync_hash(version: str) -> dict:
         dict with keys: ok (bool), stdout (str), stderr (str), returncode (int).
         sync_release_hash.py 의 returncode 0 = 성공, 1+ = 실패.
     """
-    sync_tool = REPO_ROOT / "workflow-source" / "tools" / "sync_release_hash.py"
+    sync_tool = Path(__file__).resolve().parent / "sync_release_hash.py"
     if not sync_tool.exists():
         return {"ok": False, "stdout": "", "stderr": f"sync_release_hash.py not found: {sync_tool}", "returncode": -1}
     version_arg = f"v{version}" if not version.startswith("v") else version
+    # cwd = REPO_ROOT (sync_release_hash.py 의 git rev-parse --show-toplevel auto-detect)
     proc = subprocess.run(
         [sys.executable, str(sync_tool), f"--version={version_arg}", "--apply"],
         capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),

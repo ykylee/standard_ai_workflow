@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.23/backlog/2026-06-15.md]] {#release-v0-7-23}
+- 2026-06-15: v0.7.23 1개 TASK (wiki 운영 cross-link 1-command wrapper — tools/wiki_emit.py 3-step cycle + 5 smoke)
+
 ### [[release/v0.7.22/backlog/2026-06-15.md]] {#release-v0-7-22}
 - 2026-06-15: v0.7.22 1개 TASK (linter symlink-resolve fix — workflow_kit/common/linter.py .resolve() → .absolute() 2 site + 3 smoke)
 

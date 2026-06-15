@@ -1,11 +1,12 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.22/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.23/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.22 (2d3cdbc): P3 linter symlink-resolve fix (workflow_kit/common/linter.py .resolve() → .absolute() 2 site) + 3 smoke",
+      "v0.7.23 (TBD): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle: refresh_raw + emit_l2 + reemit_stubs) + 5 smoke",
+      "v0.7.22 (8b02fe9): P3 linter symlink-resolve fix (workflow_kit/common/linter.py .resolve() → .absolute() 2 site) + 3 smoke",
       "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",
       "v0.7.20 (5758657): P3 release coordination observability (auto-bump chain 최종)",
       "v0.7.19 (8ada0f1): P3 release coordination auto-bump",
@@ -20,7 +21,7 @@
       "v0.7.10 (67d4a37): P3 release_pipeline Phase 2 (release/verify/rollback) + 8 smoke",
       "v0.7.9 (d39be44): P3 release_pipeline tool 정식화 (validate/version-bump/note-draft) + 8 smoke",
       "v0.7.8 (b67af83): state-aware evaluate_compliance + config actual apply (8 smoke)",
-      "v0.7.7 (330073): workflow_kit.cli.doctor × load_config/should_fail integration (8 smoke)",
+      "v0.7.7 (330e73): workflow_kit.cli.doctor × load_config/should_fail integration (8 smoke)",
       "v0.7.6 (b9ede19): run_all_checks 통합 runner + workflow_kit.metadata (20 smoke)",
       "v0.7.5 (c2a75f8): Extension audit (4 dispatcher runtime) + refresh_wiki_memory 정식화 (14 smoke)",
       "v0.7.4 (22e7750): workflow doctor CLI + @graceful_shutdown + optional dep (9 smoke)",

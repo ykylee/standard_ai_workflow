@@ -385,9 +385,14 @@ def cmd_release(args) -> dict:
         results["pre_check"] = val_result
         if not all(v.get("ok", False) for v in val_result.values()):
             return {**results, "error": "validate failed; abort release"}
-
     # 2. dist 파일 glob
-    version = read_version()
+    # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
+    if getattr(args, "version", None):
+        version = args.version
+        results["version_source"] = "cli-flag"
+    else:
+        version = read_version()
+        results["version_source"] = "pyproject.toml"
     dist_files = find_dist_files(version)
     if not dist_files:
         return {**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"}
@@ -693,9 +698,11 @@ def main() -> int:
     p_nd.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_nd.add_argument("--apply", dest="apply", action="store_true", default=True)
 
-    # release (Phase 2 — v0.7.10)
+    # release (Phase 2 — v0.7.10, v0.7.13+ --version)
     p_rel = sub.add_parser("release", help="GitHub Release 생성 (gh release create)")
     p_rel.add_argument("--skip-validate", action="store_true", help="validate 사전 점검 skip")
+    p_rel.add_argument("--version", default=None,
+                       help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")

@@ -5,7 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.24 (e802e56): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
+      "v0.7.24 (2c38d07): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",
       "v0.7.22 (8b02fe9): P3 linter symlink-resolve fix (workflow_kit/common/linter.py .resolve() → .absolute() 2 site) + 3 smoke",
       "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",

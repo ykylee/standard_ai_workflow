@@ -1,11 +1,13 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.14/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.16/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.14 (TBD): P3 cmd_version_bump auto-sync __init__.py + cmd_changelog_gen subcommand + 8 smoke",
+      "v0.7.16 (33f5243): P3 [tool.workflow-doctor] config thresholds/excluded_paths 적용 (B-1/B-2/B-3) + linter IndentationError/dict-slice fix + 9 smoke (deferred 3종 한꺼번에 해소)",
+      "v0.7.15 (a369e7c): P3 atomic_write helper + changelog-gen --from-tag/--to-tag filter + 5 smoke (state.json manual write race fix)",
+      "v0.7.14 (63ab483): P3 cmd_version_bump auto-sync __init__.py + cmd_changelog_gen subcommand + 8 smoke",
       "v0.7.13 (727c59c): feat(v0.7.13): cmd_release --version flag (staging backfill) + 3 smoke + version sync",
       "v0.7.12 (5b8e730): feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect + 4 smoke + v0.7.5~v0.7.10 backfill (6 wheel/sdist + 6 tag + 6 GH release)",
       "v0.7.11 (0b3e704): feat(v0.7.11): release_pipeline Phase 3 (dist subcommand) + state sync + version sync",

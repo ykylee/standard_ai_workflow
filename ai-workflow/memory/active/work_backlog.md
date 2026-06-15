@@ -16,6 +16,12 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.16/backlog/2026-06-15.md]] {#release-v0-7-16}
+- 2026-06-15: v0.7.16 4개 TASK (config score_alert + memory_alert_mb consumer + linter excluded_paths + linter IndentationError/dict-slice fix + 9 smoke)
+
+### [[release/v0.7.15/backlog/2026-06-15.md]] {#release-v0-7-15}
+- 2026-06-15: v0.7.15 2개 TASK (atomic_write helper + changelog-gen --from-tag/--to-tag filter + 5 smoke)
+
 ### [[release/v0.7.14/backlog/2026-06-15.md]] {#release-v0-7-14}
 - 2026-06-15: v0.7.14 4개 TASK (cmd_version_bump auto-sync + cmd_changelog_gen subcommand + 8 smoke + state sync)
 

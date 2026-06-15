@@ -102,9 +102,9 @@ python3 tools/release_pipeline.py changelog-gen --output=/tmp/CHANGELOG.md --app
 
 | Hash | Subject |
 |---|---|
-| `TBD` | feat(v0.7.14): cmd_version_bump auto-sync workflow_kit/__init__.py + cmd_changelog_gen subcommand + 8 smoke |
-| `TBD` | chore(v0.7.14): version bump 0.7.13 → 0.7.14 (auto-sync verified) + Beta-v0.7.14.md + CHANGELOG.md + state/work_backlog sync |
-| `TBD` | fix(v0.7.14): Beta-v0.7.14.md Commit section + 3 commit hash |
+| `23eb7fd` | feat(v0.7.14): cmd_version_bump auto-sync workflow_kit/__init__.py + cmd_changelog_gen subcommand + 8 smoke |
+| `63ab483` | chore(v0.7.14): version bump 0.7.13 → 0.7.14 (auto-sync verified) + Beta-v0.7.14.md + CHANGELOG.md + state/work_backlog sync |
+| `a01c7b4` | fix(v0.7.14): Beta-v0.7.14.md commit table TBD → 23eb7fd + 63ab483 |
 
 ## 다음 (v0.7.15 / v0.8.0 후보)
 
@@ -116,8 +116,9 @@ python3 tools/release_pipeline.py changelog-gen --output=/tmp/CHANGELOG.md --app
 - **changelog-gen filter** (`--from-tag` / `--to-tag`) — multi-release 누적 시 range scan
 - **`cmd_release` 의 `--notes-template`** — GH release notes 의 custom template
 
-| `23eb7fd` | feat(v0.7.14): cmd_version_bump auto-sync workflow_kit/__init__.py + cmd_changelog_gen subcommand + 8 smoke |
-| `63ab483` | chore(v0.7.14): version bump 0.7.13 → 0.7.14 (auto-sync verified) + Beta-v0.7.14.md + CHANGELOG.md + state/work_backlog sync |
+
+## Reference
+
 - [v0.7.13 release note](Beta-v0.7.13.md) (직전) — cmd_release --version flag
 - [v0.7.12 release note](Beta-v0.7.12.md) — REPO_ROOT auto-detect + v0.7.5~v0.7.10 backfill
 - [v0.7.11 release note](Beta-v0.7.11.md) — Phase 3 (dist subcommand) + state sync + version sync

@@ -84,11 +84,39 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --dry-run
   - check_state_aware_baselines: 8/8
 - **누적 139+ test PASS** (v0.7.11 135+ + 4 신규)
 
+## 부가: v0.7.5~v0.7.10 release backfill (2026-06-15 01:47:04Z~01:47:20Z)
+
+본 release 의 cut 시점 (`63080ba`) 에 v0.7.5~v0.7.10 의 6 release 가 `main` 에 push 완료 + `Beta-v0.7.X.md` 첨부된 상태였지만, **git tag + GH release + wheel/sdist 만 부재** 발견. 본 세션에서 self-dogfooding (v0.7.11 의 `dist` subcommand + v0.7.12 의 symlink-less auto-detect + v0.7.12 의 `git worktree`) 으로 backfill 완료.
+
+**6 wheel/sdist 빌드** (`git worktree add` × 6 + `python3 -m build --outdir /tmp/dist_v_$ver`):
+- v0.7.5: `standard_ai_workflow-0.7.5-py3-none-any.whl` (181273 bytes) + `.tar.gz` (148665 bytes)
+- v0.7.6: `.whl` (183658) + `.tar.gz` (151351)
+- v0.7.7: `.whl` (183657) + `.tar.gz` (151356)
+- v0.7.8: `.whl` (183852) + `.tar.gz` (151526)
+- v0.7.9: `.whl` (183850) + `.tar.gz` (151518)
+- v0.7.10: `.whl` (183858) + `.tar.gz` (151542)
+
+**6 git tag push** (`git tag -a v0.7.X-beta c2a75f8` ... + `git push origin v0.7.X-beta`):
+- `v0.7.5-beta` @ `c2a75f8`
+- `v0.7.6-beta` @ `b9ede19`
+- `v0.7.7-beta` @ `3300e73`
+- `v0.7.8-beta` @ `b67af83`
+- `v0.7.9-beta` @ `d39be44`
+- `v0.7.10-beta` @ `67d4a37`
+
+**6 GH release create** (`gh release create` × 6 with `--verify-tag`):
+- https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.5-beta (2026-06-15T01:47:04Z)
+- ... (생략) ...
+- https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.10-beta (2026-06-15T01:47:20Z)
+
+**verify (`gh release view --json`)** × 6 정상 (asset 2종 모두 부착, `is_prerelease=false`).
+
 ## Commit
 
 | Hash | Subject |
 |---|---|
 | `63080ba` | feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect (CLI flag > env var > git rev-parse > legacy fallback) + 4 smoke + Beta-v0.7.12.md |
+| `TBD` | chore(v0.7.12): v0.7.5~v0.7.10 release backfill (6 wheel/sdist + 6 git tag + 6 GH release) + Beta-v0.7.12.md 갱신 |
 
 ## 다음 (v0.7.13 / v0.8.0 후보)
 
@@ -97,7 +125,7 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --dry-run
 - **score trend 의 config thresholds** (v0.7.7 의 deferred #2) — `tools/score_wiki_trend.py` 의 hardcoded 0.3 → `thresholds["score_alert"]`
 - **profiling 의 config memory threshold** (deferred #3)
 - **linter 의 config excluded_paths** (deferred #4)
-- **v0.7.5~v0.7.10 release backfill** (v0.7.12 의 발견) — 6 release 의 git tag + GH release cut
+- **v0.7.5~v0.7.10 release backfill** (v0.7.12 의 발견) — **v0.7.12 본 세션에서 완료** (6 wheel/sdist 빌드 + 6 git tag push + 6 gh release create, 2026-06-15 01:47:04Z~01:47:20Z)
 - **Wiki 운영 cross-link** — `emit_wiki_l2_body.py` 와 `refresh_wiki_memory.py` 의 1-command 통합
 
 ## Reference

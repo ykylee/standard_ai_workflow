@@ -5,7 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.29 (67a0773): P3 TASK-V0727-001 post-step 2-phase + amend integration (1 commit 통합) + 5 smoke",
+      "v0.7.29 (2ee6dbf): P3 TASK-V0727-001 post-step 2-phase + amend integration (1 commit 통합) + 5 smoke",
       "v0.7.28 (7bb6259): P3 TASK-V0726-004 detached HEAD memory dir cleanup (tools/archive_stale_memory.py + 5 smoke)",
       "v0.7.27 (2aa1efa): P3 TASK-V0726-003 sync_release_hash post-step (release_pipeline.py version-bump auto-call) + 5 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",

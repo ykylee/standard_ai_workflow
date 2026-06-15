@@ -16,6 +16,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.18/backlog/2026-06-15.md]] {#release-v0-7-18}
+- 2026-06-15: v0.7.18 1개 TASK (release coordination observability — _check_remote_tag + next_available_version + --auto-bump + 7 smoke)
+
 ### [[release/v0.7.17/backlog/2026-06-15.md]] {#release-v0-7-17}
 - 2026-06-15: v0.7.17 1개 TASK (wiki in-repo storage isolation — 5 file redirect + ai-workflow/wiki/sources/ 신규 + 11 smoke)
 

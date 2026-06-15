@@ -1,10 +1,11 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.17/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.18/backlog/2026-06-15.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.7.18 (07bf145): P3 release coordination observability (_check_remote_tag + next_available_version + --auto-bump + 7 smoke)",
       "v0.7.17 (6f6f1af): P3 wiki in-repo storage isolation (5 file redirect + ai-workflow/wiki/sources/ 신규 + 11 smoke)",
       "v0.7.16 (33f5243): P3 [tool.workflow-doctor] config thresholds/excluded_paths 적용 (B-1/B-2/B-3) + linter IndentationError/dict-slice fix + 9 smoke (deferred 3종 한꺼번에 해소)",
       "v0.7.15 (a369e7c): P3 atomic_write helper (POSIX os.replace) + changelog-gen --from-tag/--to-tag filter + 5 smoke (release_pipeline 7/8 → 8/8 subcommand)",

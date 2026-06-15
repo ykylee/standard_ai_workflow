@@ -45,6 +45,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 RELEASES_DIR = REPO_ROOT / "releases"
+WORKFLOW_KIT_INIT = REPO_ROOT / "workflow_kit" / "__init__.py"
 
 # 표준 sub-package list (check_packaging.py 와 동일 — packaging 정합성)
 EXPECTED_SUBPACKAGES = [
@@ -186,13 +187,35 @@ def write_version(new_version: str) -> None:
     PYPROJECT.write_text(text)
 
 
-def parse_version(version: str) -> tuple[int, int, int]:
-    """'0.7.8' → (0, 7, 8). pre-release 식별자 (e.g. '-beta') 는 무시."""
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+def read_workflow_kit_version() -> str:
+    """workflow_kit/__init__.py 의 __version__ 읽기. e.g. 'v0.7.13-beta'."""
+    text = WORKFLOW_KIT_INIT.read_text()
+    m = re.search(r'__version__\s*=\s*"([^"]+)"', text)
     if not m:
-        raise ValueError(f"invalid version: {version}")
-    return int(m.group(1)), int(m.group(2)), int(m.group(3))
+        raise ValueError(f"__version__ not found in {WORKFLOW_KIT_INIT}")
+    return m.group(1)
 
+
+def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> str:
+    """workflow_kit/__init__.py 의 __version__ 갱신.
+
+    e.g. new_version='0.7.14' → '__version__ = "v0.7.14-beta"'.
+    suffix 인자 (default '-beta') 로 suffix override 가능. None 시 suffix 제거.
+    Returns:
+        실제 기록된 __version__ string (e.g. 'v0.7.14-beta').
+    """
+    text = WORKFLOW_KIT_INIT.read_text()
+    target = f'"v{new_version}{suffix or ""}"'
+    new_text, n = re.subn(
+        r'__version__\s*=\s*"v?\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?"',
+        f'__version__ = {target}',
+        text,
+        count=1,
+    )
+    if n == 0:
+        raise ValueError(f"__version__ pattern not found in {WORKFLOW_KIT_INIT}")
+    WORKFLOW_KIT_INIT.write_text(new_text)
+    return f"v{new_version}{suffix or ''}"
 
 def bump_version(version: str, *, patch: bool = False, minor: bool = False, major: bool = False, to: str | None = None) -> str:
     """version bump.
@@ -210,19 +233,34 @@ def bump_version(version: str, *, patch: bool = False, minor: bool = False, majo
     return f"{major_n}.{minor_n}.{patch_n + 1}"
 
 
+def parse_version(version: str) -> tuple[int, int, int]:
+    """'0.7.8' → (0, 7, 8). pre-release 식별자 (e.g. '-beta') 는 무시."""
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
+    if not m:
+        raise ValueError(f"invalid version: {version}")
+    return int(m.group(1)), int(m.group(2)), int(m.group(3))
+
+
 def cmd_version_bump(args) -> dict:
-    """pyproject.toml version patch."""
+    """pyproject.toml version patch + workflow_kit/__init__.py __version__ 자동 sync (v0.7.14+).
+
+    --no-init flag 시 __init__.py sync skip (CI / override 시나리오).
+    """
     current = read_version()
+    current_wk = read_workflow_kit_version()
     if args.dry_run:
         new = bump_version(
             current,
             patch=args.patch, minor=args.minor, major=args.major, to=args.to,
         )
-        return {
+        result = {
             "mode": "dry-run",
-            "current": current,
-            "next": new,
+            "current_pyproject": current,
+            "current_workflow_kit": current_wk,
+            "next_pyproject": new,
+            "next_workflow_kit": f"v{new}-beta" if not getattr(args, "no_init", False) else "(skipped)",
         }
+        return result
     if args.to is None and not (args.patch or args.minor or args.major):
         args.patch = True
     new = bump_version(
@@ -230,11 +268,18 @@ def cmd_version_bump(args) -> dict:
         patch=args.patch, minor=args.minor, major=args.major, to=args.to,
     )
     write_version(new)
-    return {
+    result = {
         "mode": "applied",
-        "previous": current,
-        "current": new,
+        "previous_pyproject": current,
+        "current_pyproject": new,
     }
+    if not getattr(args, "no_init", False):
+        written = write_workflow_kit_version(new, suffix="-beta")
+        result["previous_workflow_kit"] = current_wk
+        result["current_workflow_kit"] = written
+    else:
+        result["workflow_kit_skipped"] = True
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -354,7 +399,146 @@ def cmd_note_draft(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 4. release (Phase 2 — v0.7.10)
+# 3.5 changelog-gen (Phase 4 — v0.7.14+)
+# ---------------------------------------------------------------------------
+
+
+RELEASE_RE = re.compile(r"\(v(\d+\.\d+(?:\.\d+)?)\)")
+# commit subject prefix → Keep-a-Changelog section mapping
+SECTION_PREFIXES = {
+    "feat": "Added",
+    "fix": "Fixed",
+    "docs": "Changed",  # docs 변경 → Changed (Keep-a-Changelog 의 "Changed" 섹션)
+    "refactor": "Changed",
+    "perf": "Changed",
+    "chore": "Changed",  # chore 는 빌드/CI → Changed 로 흡수 (Keep-a-Changelog 표준)
+    "test": "Changed",
+    "build": "Changed",
+    "ci": "Changed",
+}
+
+
+def collect_commits_all_time() -> list[dict]:
+    """git log all-time 의 commit (subject 의 vX.Y.Z 추출)."""
+    proc = subprocess.run(
+        ["git", "log", "--all", "--pretty=format:%h|%H|%an|%ai|%s"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=60,
+    )
+    if proc.returncode != 0:
+        return []
+    rows = []
+    for line in proc.stdout.strip().split("\n"):
+        if not line:
+            continue
+        parts = line.split("|", 4)
+        if len(parts) < 5:
+            continue
+        short, full, author, date, subject = parts
+        m = RELEASE_RE.search(subject)
+        version = m.group(1) if m else "unreleased"
+        rows.append({
+            "short": short, "full": full, "author": author,
+            "date": date[:10], "subject": subject, "version": version,
+        })
+    return rows
+
+
+def categorize_by_section(subject: str) -> str:
+    """commit subject prefix → Keep-a-Changelog section."""
+    # `feat(...)`, `fix:` 등 첫 token 추출
+    m = re.match(r"^([a-zA-Z]+)", subject)
+    if not m:
+        return "Changed"
+    prefix = m.group(1).lower()
+    return SECTION_PREFIXES.get(prefix, "Changed")
+
+
+def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -> str:
+    """multi-release commit → Keep-a-Changelog 형식 CHANGELOG.md 본문.
+
+    e.g.:
+        # Changelog
+        ...
+        ## [0.7.10] - 2026-06-14
+        ### Added
+        - ...
+        ### Fixed
+        - ...
+    """
+    # group by version
+    by_version: dict[str, list[dict]] = {}
+    for c in commits:
+        by_version.setdefault(c["version"], []).append(c)
+
+    # version order: 사전 reverse (latest first)
+    versions = sorted(by_version.keys(), reverse=True)
+
+    lines = [
+        "# Changelog",
+        "",
+        "All notable changes to this project will be documented in this file.",
+        "",
+        "본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).",
+        "수동 편집도 가능하나 다음 release 시 자동 갱신 시 충돌 가능.",
+        "",
+    ]
+
+    for ver in versions:
+        if ver == "unreleased":
+            label = unreleased_label
+        else:
+            label = ver
+        v_commits = by_version[ver]
+        # head commit (latest)
+        head = v_commits[0]
+        # date = head commit 의 date
+        lines += [
+            f"## [{label}] - {head['date']}",
+            "",
+        ]
+        # section 별 분류
+        by_section: dict[str, list[dict]] = {}
+        for c in v_commits:
+            sec = categorize_by_section(c["subject"])
+            by_section.setdefault(sec, []).append(c)
+        # section 출력 (Keep-a-Changelog 표준 6 종)
+        for sec in ["Added", "Changed", "Fixed", "Deprecated", "Removed", "Security"]:
+            if sec not in by_section:
+                continue
+            lines += [f"### {sec}", ""]
+            for c in by_section[sec][:30]:  # max 30
+                lines.append(f"- {c['subject']} ({c['short']})")
+            if len(by_section[sec]) > 30:
+                lines.append(f"- ... ({len(by_section[sec]) - 30} more)")
+            lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_changelog_gen(args) -> dict:
+    """multi-release git log → CHANGELOG.md 본문 생성 (Keep-a-Changelog 형식)."""
+    commits = collect_commits_all_time()
+    if not commits:
+        return {"mode": "error", "error": "no commits in git log"}
+
+    body = draft_changelog(commits, unreleased_label=getattr(args, "unreleased_label", "Unreleased"))
+    output_path = Path(args.output) if args.output else (REPO_ROOT / "CHANGELOG.md")
+    if args.dry_run:
+        return {
+            "mode": "dry-run",
+            "output_path": str(output_path),
+            "commits": len(commits),
+            "versions": len(set(c["version"] for c in commits)),
+            "preview_first_500": body[:500],
+        }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(body)
+    return {
+        "mode": "applied",
+        "output_path": str(output_path),
+        "commits": len(commits),
+        "versions": len(set(c["version"] for c in commits)),
+    }
 # ---------------------------------------------------------------------------
 
 
@@ -581,6 +765,7 @@ def _expected_dist_pattern(version: str) -> str:
     """version (e.g. '0.7.10' or '0.7.10-beta') → dist file prefix (PEP 440 normalize)."""
     return version.split("-")[0]
 
+
 def cmd_dist(args) -> dict:
     """Wheel + sdist 자동 빌드 (`python3 -m build`).
 
@@ -605,8 +790,6 @@ def cmd_dist(args) -> dict:
         results["error"] = f"pyproject.toml version read 실패: {e}"
         return results
     results["version"] = current_version
-
-    # 3) build command
     cmd = _build_command(
         _dist_dir,
         sdist_only=getattr(args, "sdist_only", False),
@@ -682,14 +865,18 @@ def main() -> int:
     p_val.add_argument("--dry-run", action="store_true")
     p_val.add_argument("--json", action="store_true")
 
-    # version-bump
-    p_vb = sub.add_parser("version-bump", help="pyproject.toml version patch")
+    # version-bump (v0.7.14+ auto-sync workflow_kit/__init__.py)
+    p_vb = sub.add_parser("version-bump", help="pyproject.toml version patch + workflow_kit/__init__.py __version__ auto-sync")
     p_vb.add_argument("--patch", action="store_true", help="patch bump (default)")
     p_vb.add_argument("--minor", action="store_true", help="minor bump")
     p_vb.add_argument("--major", action="store_true", help="major bump")
     p_vb.add_argument("--to", help="explicit version (e.g. 0.7.9)")
-    p_vb.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_vb.add_argument("--no-init", action="store_true", dest="no_init",
+                       help="workflow_kit/__init__.py __version__ sync skip (CI / override 시나리오)")
+    p_vb.add_argument("--dry-run", action="store_true", dest="dry_run",
+                       help="bump plan 만 출력 (default: --apply)")
     p_vb.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_vb.add_argument("--json", action="store_true", help="JSON output (CI integration)")
 
     # note-draft
     p_nd = sub.add_parser("note-draft", help="release note skeleton 자동 생성")
@@ -697,6 +884,16 @@ def main() -> int:
     p_nd.add_argument("--to", required=True, help="새 release version (e.g. 0.7.9)")
     p_nd.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_nd.add_argument("--apply", dest="apply", action="store_true", default=True)
+
+    # changelog-gen (Phase 4 — v0.7.14+, Keep-a-Changelog 형식)
+    p_cl = sub.add_parser("changelog-gen", help="multi-release git log → CHANGELOG.md 본문 (Keep-a-Changelog 형식)")
+    p_cl.add_argument("--output", default=None,
+                      help="output file path (default: workflow-source/CHANGELOG.md)")
+    p_cl.add_argument("--unreleased-label", default="Unreleased",
+                      help="unreleased commit group 의 label (default: 'Unreleased')")
+    p_cl.add_argument("--dry-run", action="store_true", dest="dry_run")
+    p_cl.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_cl.add_argument("--json", action="store_true")
 
     # release (Phase 2 — v0.7.10, v0.7.13+ --version)
     p_rel = sub.add_parser("release", help="GitHub Release 생성 (gh release create)")
@@ -740,6 +937,8 @@ def main() -> int:
         result = cmd_version_bump(args)
     elif args.command == "note-draft":
         result = cmd_note_draft(args)
+    elif args.command == "changelog-gen":
+        result = cmd_changelog_gen(args)
     elif args.command == "release":
         result = cmd_release(args)
     elif args.command == "verify":

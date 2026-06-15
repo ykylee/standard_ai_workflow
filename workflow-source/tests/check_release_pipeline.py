@@ -74,11 +74,11 @@ def test_version_bump_patch_dry_run() -> None:
     """version-bump --patch dry-run: current 0.7.x → next 0.7.x+1."""
     mod = _import_tool()
     current = mod.read_version()
-    result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": True, "apply": False})())
+    result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": True, "apply": False, "no_init": False})())
     assert result["mode"] == "dry-run"
     major, minor, patch = mod.parse_version(current)
     expected = f"{major}.{minor}.{patch + 1}"
-    assert result["next"] == expected
+    assert result["next_pyproject"] == expected
 
 
 # --- Test 3: version-bump --to=... dry-run ---
@@ -87,8 +87,8 @@ def test_version_bump_patch_dry_run() -> None:
 def test_version_bump_to_explicit() -> None:
     """--to=0.8.0 명시 시 그대로 사용."""
     mod = _import_tool()
-    result = mod.cmd_version_bump(type("Args", (), {"patch": False, "minor": False, "major": False, "to": "0.8.0", "dry_run": True, "apply": False})())
-    assert result["next"] == "0.8.0"
+    result = mod.cmd_version_bump(type("Args", (), {"patch": False, "minor": False, "major": False, "to": "0.8.0", "dry_run": True, "apply": False, "no_init": False})())
+    assert result["next_pyproject"] == "0.8.0"
 
 
 # --- Test 4: version-bump apply + restore ---
@@ -98,21 +98,24 @@ def test_version_bump_apply_and_restore() -> None:
     """--apply 시 pyproject.toml 실제 갱신, 원복 후 정합."""
     mod = _import_tool()
     original = mod.read_version()
+    original_init = mod.read_workflow_kit_version()
     try:
         # 0.7.8 → 0.7.9 patch
-        result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": False, "apply": True})())
+        result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": False, "apply": True, "no_init": False})())
         assert result["mode"] == "applied"
-        assert result["previous"] == original
-        assert result["current"] != original
+        assert result["previous_pyproject"] == original
+        assert result["current_pyproject"] != original
         # file 갱신 검증
-        assert mod.read_version() == result["current"]
+        assert mod.read_version() == result["current_pyproject"]
+        # __init__.py 도 auto-sync 검증
+        assert "current_workflow_kit" in result
+        assert mod.read_workflow_kit_version() == result["current_workflow_kit"]
     finally:
-        # restore
+        # restore (pyproject + __init__.py)
         mod.write_version(original)
+        mod.write_workflow_kit_version(original.lstrip("v").split("-")[0] if original.startswith("v") else original.split("-")[0])
         assert mod.read_version() == original
-
-
-# --- Test 5: note-draft dry-run ---
+        assert mod.read_workflow_kit_version() == original_init
 
 
 def test_note_draft_dry_run() -> None:

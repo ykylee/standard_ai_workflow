@@ -695,6 +695,86 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _resolve_notes_file(version: str, template: str, *, dry_run: bool = False) -> dict:
+    """v0.7.24+ --notes-template flag 의 release notes file 결정.
+
+    Templates:
+        - default: `Beta-v{version}.md` (기존 동작)
+        - detailed: `Beta-v{version}.md` + 1st paragraph (default 와 동일, 명시적)
+        - simple: `Beta-v{version}-simple.md` (1 line summary)
+        - changelog: `CHANGELOG.md` (Keep-a-Changelog 1.1.0 형식, v0.7.14 의 changelog-gen 의 output)
+        - custom:<path>: 임의 path
+
+    Returns:
+        {"notes_file": Path, "source": str, "error": str | None}
+    """
+    template = (template or "default").strip()
+    if template == "default" or template == "detailed":
+        notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template == "simple":
+        notes_file = RELEASES_DIR / f"Beta-v{version}-simple.md"
+        if not notes_file.exists() and not dry_run:
+            # simple: default notes 의 1st # 헤더 + 1st ## 헤더 + 1st paragraph 만 자동 generate
+            # 본문 추출: 1st # + 1st ## + (1st blank skip) + 본문 line + 2nd blank (paragraph 끝)
+            default_notes = RELEASES_DIR / f"Beta-v{version}.md"
+            if default_notes.exists():
+                content = default_notes.read_text(encoding="utf-8")
+                lines = content.split("\n")
+                # 1st # 헤더
+                first_h1 = next((i for i, l in enumerate(lines) if l.startswith("# ")), -1)
+                if first_h1 >= 0:
+                    simple_lines: list[str] = []
+                    seen_h1 = False
+                    seen_first_h2 = False
+                    # 1st # 헤더 + 1st ## 헤더 + 본문 (2nd ## 헤더 또는 2nd blank 전까지)
+                    # 본문 = 1st ## 헤더 *후* 의 non-blank line 들
+                    blank_count = 0
+                    in_body = False
+                    for i in range(first_h1, len(lines)):
+                        line = lines[i]
+                        if not seen_h1:
+                            if line.startswith("# "):
+                                simple_lines.append(line)
+                                seen_h1 = True
+                            continue
+                        if line.startswith("## "):
+                            if not seen_first_h2:
+                                simple_lines.append(line)
+                                seen_first_h2 = True
+                                in_body = True
+                            else:
+                                # 2nd ## 헤더 → 끝
+                                break
+                        elif line.strip() == "":
+                            if in_body:
+                                blank_count += 1
+                                if blank_count >= 2:
+                                    # 2nd blank → 1st paragraph 끝
+                                    break
+                        else:
+                            if in_body:
+                                simple_lines.append(line)
+                                blank_count = 0
+                    notes_file.parent.mkdir(parents=True, exist_ok=True)
+                    notes_file.write_text("\n".join(simple_lines).rstrip() + "\n", encoding="utf-8")
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template == "changelog":
+        notes_file = REPO_ROOT / "workflow-source" / "CHANGELOG.md"
+        return {"notes_file": notes_file, "source": template, "error": None}
+    elif template.startswith("custom:"):
+        custom_path = Path(template[len("custom:"):])
+        if not custom_path.is_absolute():
+            custom_path = REPO_ROOT / custom_path
+        return {"notes_file": custom_path, "source": template, "error": None}
+    else:
+        return {
+            "notes_file": Path(),
+            "source": template,
+            "error": f"unknown --notes-template value: {template!r}. Use 'default' / 'detailed' / 'simple' / 'changelog' / 'custom:<path>'",
+        }
+
+
 def cmd_changelog_gen(args) -> dict:
     """multi-release git log → CHANGELOG.md 본문 생성 (Keep-a-Changelog 형식)."""
     from_tag = getattr(args, "from_tag", None)
@@ -802,7 +882,12 @@ def cmd_release(args) -> dict:
 
     # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}-beta"
-    notes_file = RELEASES_DIR / f"Beta-v{version}.md"
+    # v0.7.24+: --notes-template flag 로 release notes format 자유도
+    notes_template = getattr(args, "notes_template", "default") or "default"
+    notes_resolution = _resolve_notes_file(version, notes_template, dry_run=args.dry_run)
+    if notes_resolution.get("error"):
+        return {**results, "error": notes_resolution["error"]}
+    notes_file = notes_resolution["notes_file"]
     if not notes_file.exists():
         return {**results, "error": f"release note not found: {notes_file}"}
 
@@ -852,7 +937,11 @@ def cmd_release(args) -> dict:
     rel_assets = [str(f.relative_to(REPO_ROOT)) for f in dist_files]
     results["tag"] = tag
     results["assets"] = rel_assets
-    results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+    # v0.7.24+: notes_file 가 in-repo 면 relative path, 그 외 (예: changelog) 면 absolute
+    try:
+        results["notes_file"] = str(notes_file.relative_to(REPO_ROOT))
+    except ValueError:
+        results["notes_file"] = str(notes_file)
 
     # 4. gh command build
     repo_remote = subprocess.run(
@@ -1183,6 +1272,11 @@ def main() -> int:
                        help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
                             "v0.7.21+ follow-up: tag push 와 release 의 coupling fix. "
                             "*의도된* tag re-push (e.g. wheel re-attach) 또는 backfill 시에만 사용.")
+    p_rel.add_argument("--notes-template", dest="notes_template", default="default",
+                       help="release notes format 결정. v0.7.24+. "
+                            "'default' (Beta-v<X>.<Y>.<Z>.md) / 'detailed' (default 와 동일) / "
+                            "'simple' (1 line summary) / 'changelog' (workflow-source/CHANGELOG.md) / "
+                            "'custom:<path>' (임의 path).")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")

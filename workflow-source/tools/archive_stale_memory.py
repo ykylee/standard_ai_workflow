@@ -347,6 +347,212 @@ def cmd_show_metrics(args: argparse.Namespace) -> dict:
     }
 
 
+# === Log rotation (TASK-V0731-001) ===
+LOG_ROTATE_LINE_THRESHOLD = 10000  # 10K line 초과 시 rotate
+
+
+def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_LINE_THRESHOLD) -> dict:
+    """metrics log 의 line 수 > threshold 시 gzip + rotate.
+
+    Args:
+        memory_dir: REPO_ROOT / "ai-workflow" / "memory".
+        line_threshold: rotate trigger. default 10000 line.
+
+    Returns:
+        dict with keys: rotated (bool), line_count (int), threshold (int),
+        archive_path (str | None), archive_size_bytes (int | None).
+    """
+    import gzip
+    import shutil
+
+    log_path = memory_dir / METRICS_LOG_NAME
+    if not log_path.exists():
+        return {"rotated": False, "line_count": 0, "threshold": line_threshold,
+                "archive_path": None, "archive_size_bytes": None}
+    # line count
+    with log_path.open("r", encoding="utf-8") as f:
+        line_count = sum(1 for _ in f)
+    if line_count <= line_threshold:
+        return {"rotated": False, "line_count": line_count, "threshold": line_threshold,
+                "archive_path": None, "archive_size_bytes": None}
+    # rotate: archive_stale_memory.log.2026-06-15T13-00-00Z.gz
+    timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    archive_path = memory_dir / f"{METRICS_LOG_NAME}.{timestamp}.gz"
+    with log_path.open("rb") as f_in, gzip.open(archive_path, "wb") as f_out:
+        shutil.copyfileobj(f_in, f_out)
+    archive_size = archive_path.stat().st_size
+    # truncate log
+    log_path.write_text("", encoding="utf-8")
+    return {
+        "rotated": True,
+        "line_count": line_count,
+        "threshold": line_threshold,
+        "archive_path": str(archive_path),
+        "archive_size_bytes": archive_size,
+    }
+
+
+def cmd_rotate_logs(args: argparse.Namespace) -> dict:
+    """metrics log 의 line count > threshold 시 gzip + rotate.
+
+    Args:
+        args: argparse.Namespace with --rotate-logs, --rotate-threshold.
+
+    Returns:
+        dict with keys: ok (bool), rotated (bool), line_count, threshold, archive_path, archive_size_bytes.
+    """
+    repo_root = get_repo_root(args.repo_root)
+    memory_dir = get_memory_dir(repo_root)
+    if not memory_dir.exists():
+        return {"ok": False, "error": f"memory dir not found: {memory_dir}"}
+    threshold = getattr(args, "rotate_threshold", LOG_ROTATE_LINE_THRESHOLD)
+    result = rotate_log_if_needed(memory_dir, line_threshold=threshold)
+    return {
+        "ok": True,
+        "rotated": result["rotated"],
+        "line_count": result["line_count"],
+        "threshold": result["threshold"],
+        "archive_path": result["archive_path"],
+        "archive_size_bytes": result["archive_size_bytes"],
+        "memory_dir": str(memory_dir),
+    }
+
+
+def read_rotated_logs(memory_dir: Path) -> list[dict]:
+    """모든 rotated log (*.gz) 의 entries 를 read.
+
+    Returns:
+        list of {"timestamp": str, "older_than": int, "archived": int, "skipped": int, "error": int, "source": str}.
+    """
+    import gzip
+
+    if not memory_dir.exists():
+        return []
+    entries = []
+    # main log
+    entries.extend(read_metrics_log(memory_dir))
+    # rotated gz logs
+    for path in sorted(memory_dir.glob(f"{METRICS_LOG_NAME}.*.gz")):
+        try:
+            with gzip.open(path, "rt", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split("\t")
+                    if len(parts) != 5:
+                        continue
+                    ts, ot, ar, sk, er = parts
+                    entries.append({
+                        "timestamp": ts,
+                        "older_than": int(ot.split("=")[1]),
+                        "archived": int(ar.split("=")[1]),
+                        "skipped": int(sk.split("=")[1]),
+                        "error": int(er.split("=")[1]),
+                        "source": path.name,
+                    })
+        except (OSError, gzip.BadGzipFile):
+            continue
+    return entries
+
+
+# === Metrics aggregation (TASK-V0732-001) ===
+def aggregate_metrics(entries: list[dict], *, period: str = "weekly") -> dict:
+    """metrics entries 를 *weekly* / *monthly* aggregation.
+
+    Args:
+        entries: read_metrics_log / read_rotated_logs 의 entries list.
+        period: "weekly" / "monthly" / "daily" / "all".
+
+    Returns:
+        dict with keys: period, buckets (list of {"start": str, "end": str, "archived": int,
+        "skipped": int, "error": int, "count": int}), total ({"archived": int, "skipped": int, "error": int, "count": int}).
+    """
+    from collections import defaultdict
+
+    if period == "all" or not entries:
+        total = {
+            "archived": sum(e.get("archived", 0) for e in entries),
+            "skipped": sum(e.get("skipped", 0) for e in entries),
+            "error": sum(e.get("error", 0) for e in entries),
+            "count": len(entries),
+        }
+        return {"period": "all", "buckets": [], "total": total}
+
+    # bucket key
+    def bucket_key(ts_str: str) -> str:
+        try:
+            ts = dt.datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return "unknown"
+        if period == "daily":
+            return ts.strftime("%Y-%m-%d")
+        elif period == "weekly":
+            # ISO week (Monday-Sunday)
+            iso = ts.isocalendar()
+            return f"{iso.year}-W{iso.week:02d}"
+        elif period == "monthly":
+            return ts.strftime("%Y-%m")
+        return "unknown"
+
+    bucket_data: dict[str, list[dict]] = defaultdict(list)
+    for e in entries:
+        bk = bucket_key(e.get("timestamp", ""))
+        bucket_data[bk].append(e)
+
+    buckets = []
+    for bk in sorted(bucket_data.keys()):
+        es = bucket_data[bk]
+        buckets.append({
+            "bucket": bk,
+            "archived": sum(e.get("archived", 0) for e in es),
+            "skipped": sum(e.get("skipped", 0) for e in es),
+            "error": sum(e.get("error", 0) for e in es),
+            "count": len(es),
+        })
+
+    total = {
+        "archived": sum(b["archived"] for b in buckets),
+        "skipped": sum(b["skipped"] for b in buckets),
+        "error": sum(b["error"] for b in buckets),
+        "count": sum(b["count"] for b in buckets),
+    }
+    return {"period": period, "buckets": buckets, "total": total}
+
+
+def cmd_aggregate_metrics(args: argparse.Namespace) -> dict:
+    """metrics log 의 entries 를 *period* 별 aggregation.
+
+    Args:
+        args: argparse.Namespace with --aggregate (period), --include-rotated.
+
+    Returns:
+        dict with keys: ok (bool), period, buckets, total, entry_count, included_rotated (int).
+    """
+    repo_root = get_repo_root(args.repo_root)
+    memory_dir = get_memory_dir(repo_root)
+    if not memory_dir.exists():
+        return {"ok": False, "error": f"memory dir not found: {memory_dir}"}
+    period = getattr(args, "aggregate", "weekly")
+    if period not in ("daily", "weekly", "monthly", "all"):
+        return {"ok": False, "error": f"invalid --aggregate: {period} (expected: daily|weekly|monthly|all)"}
+    entries = read_metrics_log(memory_dir)
+    included_rotated = 0
+    if getattr(args, "include_rotated", False):
+        rotated = read_rotated_logs(memory_dir)
+        # rotated 의 entries 는 source field 가 있음. main log 와 dedup
+        # main log entries 의 timestamp 와 rotated 의 timestamp 가 *중복 가능* — 그러나 main 가 최신 → 우선
+        main_ts = {e.get("timestamp") for e in entries}
+        rotated_filtered = [e for e in rotated if e.get("timestamp") not in main_ts]
+        entries.extend(rotated_filtered)
+        included_rotated = len(rotated_filtered)
+    result = aggregate_metrics(entries, period=period)
+    return {
+        "ok": True,
+        "memory_dir": str(memory_dir),
+        "entry_count": len(entries),
+        "included_rotated": included_rotated,
+        **result,
+    }
+
+
 # === Cron subcommand (TASK-V0728-001) ===
 def cmd_install_cron(args: argparse.Namespace) -> dict:
     """`mavis cron create <agent> <cronName> --schedule <interval> --prompt ...` 자동 호출.
@@ -539,6 +745,24 @@ def build_argparser() -> argparse.ArgumentParser:
         "--force-install", action="store_true",
         help="TASK-V0730-001: --install-cron 의 idempotency skip 우회 (force create even if existing).",
     )
+    # TASK-V0731-001: log rotation
+    p.add_argument(
+        "--rotate-logs", action="store_true",
+        help="metrics log 의 line > threshold 시 gzip + rotate (TASK-V0731-001).",
+    )
+    p.add_argument(
+        "--rotate-threshold", type=int, default=10000,
+        help="TASK-V0731-001: rotate trigger (default: 10000 line).",
+    )
+    # TASK-V0732-001: metrics aggregation
+    p.add_argument(
+        "--aggregate", type=str, default=None,
+        help="TASK-V0732-001: metrics aggregation period (daily|weekly|monthly|all).",
+    )
+    p.add_argument(
+        "--include-rotated", action="store_true",
+        help="TASK-V0732-001: --aggregate 시 rotated log (*.gz) 도 include.",
+    )
     return p
 
 
@@ -555,6 +779,10 @@ def main(argv: list[str] | None = None) -> int:
         result = cmd_show_cron(args)
     elif args.show_metrics:
         result = cmd_show_metrics(args)
+    elif args.rotate_logs:
+        result = cmd_rotate_logs(args)
+    elif args.aggregate is not None:
+        result = cmd_aggregate_metrics(args)
     elif args.list:
         if args.apply or args.cleanup:
             parser.error("--list 와 --apply/--cleanup 은 mutually exclusive (--list 는 dry-run 만)")
@@ -563,7 +791,7 @@ def main(argv: list[str] | None = None) -> int:
         result = cmd_list(args)
     else:
         if not args.dry_run and not args.apply and not args.cleanup:
-            parser.error("at least one of --dry-run, --apply, --cleanup, --install-cron, --uninstall-cron, --show-cron, --show-metrics is required")
+            parser.error("at least one of --dry-run, --apply, --cleanup, --install-cron, --uninstall-cron, --show-cron, --show-metrics, --rotate-logs, --aggregate is required")
         if args.cleanup:
             args.apply = True
         result = cmd_archive(args)

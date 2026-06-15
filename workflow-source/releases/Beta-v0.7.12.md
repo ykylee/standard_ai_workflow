@@ -116,7 +116,7 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --dry-run
 | Hash | Subject |
 |---|---|
 | `63080ba` | feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect (CLI flag > env var > git rev-parse > legacy fallback) + 4 smoke + Beta-v0.7.12.md |
-| `TBD` | chore(v0.7.12): v0.7.5~v0.7.10 release backfill (6 wheel/sdist + 6 git tag + 6 GH release) + Beta-v0.7.12.md 갱신 |
+| `89b7af5` | chore(v0.7.12): v0.7.5~v0.7.10 release backfill (6 wheel/sdist + 6 git tag + 6 GH release) + Beta-v0.7.12.md 갱신 |
 
 ## 다음 (v0.7.13 / v0.8.0 후보)
 

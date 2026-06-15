@@ -806,21 +806,44 @@ def cmd_release(args) -> dict:
     if not notes_file.exists():
         return {**results, "error": f"release note not found: {notes_file}"}
 
-    # 3.5 원격 tag pre-check (v0.7.18+ race lesson)
+    # 3.5 원격 tag pre-check + tag push (v0.7.18+ race lesson, v0.7.21+ follow-up)
+    # v0.7.21 fix: tag push 와 release 의 coupling. *순서*:
+    #   1. pre-check: remote 에 tag 가 이미 push 됐는지 확인
+    #   2. tag push: pre-check fail 시 default = skip, --allow-existing-tag 면 skip + 진행, --auto-bump 면 bump
+    #   3. gh release create: --verify-tag 가 tag 의 remote 존재 검증 (pre-check 와 *redundant* 한 부분)
     if not args.dry_run:
         tag_check = _check_remote_tag(tag)
         results["tag_pre_check"] = tag_check
         if tag_check["exists"]:
-            return {
-                **results,
-                "error": (
-                    f"remote tag {tag} already exists at {tag_check['remote_url']}. "
-                    f"v0.7.16 race 정공법: --auto-bump 으로 다음 version 자동 bump, "
-                    f"또는 --version=<next> 명시."
-                ),
-            }
+            if not getattr(args, "allow_existing_tag", False):
+                return {
+                    **results,
+                    "error": (
+                        f"remote tag {tag} already exists at {tag_check['remote_url']}. "
+                        f"v0.7.16 race 정공법: --auto-bump 으로 다음 version 자동 bump, "
+                        f"--allow-existing-tag 으로 *기존 tag* 에 re-attach, "
+                        f"또는 --version=<next> 명시."
+                    ),
+                }
+            # --allow-existing-tag: skip pre-check fail, 그대로 release 진행
+            results["tag_pre_check_skipped"] = "allow-existing-tag"
+
+    # 3.6 local tag push (v0.7.21+ — tag push 와 release 의 coupling)
+    if not args.dry_run:
+        push_tag_proc = subprocess.run(
+            ["git", "push", "origin", f"refs/tags/{tag}"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
+        )
+        results["tag_push"] = {
+            "tag": tag,
+            "returncode": push_tag_proc.returncode,
+            "stdout_tail": push_tag_proc.stdout.strip().split("\n")[-1] if push_tag_proc.stdout else "",
+            "stderr_tail": push_tag_proc.stderr.strip().split("\n")[-1] if push_tag_proc.stderr else "",
+        }
+        if push_tag_proc.returncode != 0 and not getattr(args, "allow_existing_tag", False):
+            return {**results, "error": f"git push tag {tag} failed: {push_tag_proc.stderr.strip()}"}
     else:
-        # dry-run 시에도 pre-check 는 수행 (plan 검증)
+        # dry-run: pre-check 결과 + warning (plan 검증)
         tag_check = _check_remote_tag(tag)
         results["tag_pre_check"] = tag_check
         if tag_check["exists"]:
@@ -1156,6 +1179,10 @@ def main() -> int:
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,
                        help="remote tag pre-check fail 시 다음 version 으로 자동 bump + re-flow. "
                             "v0.7.18+: release coordination observability.")
+    p_rel.add_argument("--allow-existing-tag", dest="allow_existing_tag", action="store_true", default=False,
+                       help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
+                            "v0.7.21+ follow-up: tag push 와 release 의 coupling fix. "
+                            "*의도된* tag re-push (e.g. wheel re-attach) 또는 backfill 시에만 사용.")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")

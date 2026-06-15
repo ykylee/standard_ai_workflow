@@ -61,6 +61,23 @@ def test_remote_tag_check_argparse() -> None:
     )
 
 
+def test_allow_existing_tag_argparse() -> None:
+    """release --allow-existing-tag 이 argparse error 없이 받아들여짐 (v0.7.21+)."""
+    proc = subprocess.run(
+        [sys.executable, str(TOOL), "release", "--allow-existing-tag", "--skip-validate", "--dry-run", "--json"],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert "unrecognized arguments" not in proc.stderr, f"argparse error: {proc.stderr}"
+    # dry-run 결과는 dist 부재로 error 포함 가능. 정상.
+    try:
+        out = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return  # graceful
+    assert "error" in out or "version_source" in out, (
+        f"unexpected output structure: {out}"
+    )
+
+
 # --- Test 2: dry-run 시 pre-check warning (mock remote with non-existent URL) ---
 
 

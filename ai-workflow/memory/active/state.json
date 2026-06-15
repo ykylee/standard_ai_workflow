@@ -5,7 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.28 (TBD): P3 TASK-V0726-004 detached HEAD memory dir cleanup (tools/archive_stale_memory.py + 5 smoke)",
+      "v0.7.28 (7bb6259): P3 TASK-V0726-004 detached HEAD memory dir cleanup (tools/archive_stale_memory.py + 5 smoke)",
       "v0.7.27 (2aa1efa): P3 TASK-V0726-003 sync_release_hash post-step (release_pipeline.py version-bump auto-call) + 5 smoke",
       "v0.7.26 (ecb6ce1): P3 F-7 branch detection fix + F-7+ automated hash sync (sync_release_hash.py) + 10 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",

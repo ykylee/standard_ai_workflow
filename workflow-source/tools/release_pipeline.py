@@ -453,12 +453,11 @@ def cmd_verify(args) -> dict:
         tag_full = tag
     else:
         tag_full = f"v{tag}"
-
-    # 1. gh release view (--json tag,name,url,assets)
+    # 1. gh release view (--json tagName,name,url,assets,isPrerelease,publishedAt)
     gh_cmd = [
         "gh", "release", "view", tag_full,
         "--repo", _get_repo(),
-        "--json", "tag,name,url,assets,isPrerelease,createdAt",
+        "--json", "tagName,name,url,assets,isPrerelease,publishedAt",
     ]
     results: dict = {"tag": tag_full, "gh_command": " ".join(gh_cmd), "mode": "read-only"}
 
@@ -477,10 +476,8 @@ def cmd_verify(args) -> dict:
     results["name"] = release_data.get("name")
     results["url"] = release_data.get("url")
     results["is_prerelease"] = release_data.get("isPrerelease")
-    results["created_at"] = release_data.get("createdAt")
+    results["created_at"] = release_data.get("publishedAt")
     results["assets"] = [a.get("name") for a in release_data.get("assets", [])]
-    results["asset_count"] = len(results["assets"])
-    results["ok"] = results["asset_count"] > 0
     return results
 
 

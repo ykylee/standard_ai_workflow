@@ -108,9 +108,8 @@ release pipeline 의 4 source (validate 의 state.json freshness) 와 memory lay
 
 | Hash | Subject |
 |---|---|
-| `TBD` | feat(v0.7.11): release_pipeline Phase 3 (dist subcommand) + state sync + version string sync + 8 smoke test |
-| `TBD` | chore(v0.7.11): version bump 0.7.10 → 0.7.11 + release note |
-
+| `b2650f5` | feat(v0.7.11): release_pipeline Phase 3 (dist subcommand) + state sync + 8 smoke |
+| `ec407f1` | chore(v0.7.11): version bump 0.7.10 → 0.7.11 + __version__ sync |
 ## 다음 (v0.7.12 / v0.8.0 후보)
 
 - **ci-publish subcommand** (v0.7.11 의 Phase 4) — GH Actions 또는 local pre-push hook

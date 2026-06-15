@@ -20,6 +20,7 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.paths import resolve_existing_path, workflow_branch_dir, workflow_memory_dir
 from workflow_kit.common.linter import check_workflow_consistency, check_maturity_consistency
+from workflow_kit.common.metadata import load_config  # v0.7.15+: excluded_paths from config
 from workflow_kit.common.schemas import WorkflowLinterOutput, Status
 
 
@@ -81,11 +82,16 @@ def main() -> int:
             "latest_backlog_path": str(latest_backlog_path),
         }
 
+        # v0.7.15+: [tool.workflow-doctor] excluded_paths load → check_workflow_consistency
+        config = load_config(project_root)
+        excluded_paths = config.excluded_paths
+
         # 1. Workflow Consistency (Docs)
         linter_result = check_workflow_consistency(
             state_json_path=state_json_path,
             handoff_path=session_handoff_path,
-            latest_backlog_path=latest_backlog_path
+            latest_backlog_path=latest_backlog_path,
+            excluded_paths=excluded_paths,
         )
 
         if linter_result.get("status") == "error":
@@ -144,18 +150,21 @@ def main() -> int:
         )
         
         result = output_model.model_dump()
-            # v0.6.6 follow-up: stage_completion merge (pilot template)
-            result = merge_into_result(
-                result,
-                build_stage_completion(
-                    stage_name="workflow-linter",
-                    stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
-                    artifacts=["(workflow_linter_report)"],
-                    next_stage=None,
-                    notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
-                ),
-            )
-        print(json.dumps(output_model.model_dump(), ensure_ascii=False, indent=2))
+        # v0.6.6 follow-up: stage_completion merge (pilot template)
+        # v0.7.15 fix: result["summary"] 가 dict (linter summary) 면 str() 변환 후 [:200]
+        summary_value = result.get("summary", "")
+        summary_str = str(summary_value)[:200] if summary_value else ""
+        result = merge_into_result(
+            result,
+            build_stage_completion(
+                stage_name="workflow-linter",
+                stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                artifacts=["(workflow_linter_report)"],
+                next_stage=None,
+                notes=[summary_str] if summary_str else [],
+            ),
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
     except Exception as exc:

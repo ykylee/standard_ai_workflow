@@ -40,6 +40,26 @@ HISTORY_PATH = SOURCE_ROOT / "tools" / ".score_history.jsonl"
 # trend 시각화용 dim
 DIMS = ["coverage", "freshness", "discoverability", "cross_ref", "lifecycle", "operational"]
 
+# v0.7.15: alert threshold 의 *config layer* 적용. v0.7.7 deferred #2 + #3 해소.
+# hardcoded 0.3 / 100.0 → [tool.workflow-doctor] 의 thresholds dict 에서 load.
+# - score_alert: dim 별 하락 alert 임계값 (default 0.3, v0.7.7 default)
+# - memory_alert_mb: runtime RSS alert 임계값 (default 100.0, profiling 용)
+def _load_config_thresholds() -> dict:
+    """pyproject.toml [tool.workflow-doctor] thresholds load. 실패 시 default."""
+    try:
+        sys.path.insert(0, str(SOURCE_ROOT))
+        from workflow_kit.common.metadata import load_config
+
+        config = load_config(REPO_ROOT / "workflow-source")
+        return dict(config.thresholds) if config.thresholds else {}
+    except Exception:
+        return {"score_alert": 0.3, "memory_alert_mb": 100.0}
+
+
+THRESHOLDS = _load_config_thresholds()
+SCORE_ALERT_DEFAULT = THRESHOLDS.get("score_alert", 0.3)
+MEMORY_ALERT_MB_DEFAULT = THRESHOLDS.get("memory_alert_mb", 100.0)
+
 
 def get_git_commits(limit: int = 10) -> list[tuple[str, str]]:
     """git log 의 최근 N commit (hash, subject) 반환."""
@@ -85,17 +105,45 @@ def compute_score_at_commit(commit: str) -> dict:
 def record_current(commit: str) -> dict:
     """현재 commit 의 score 기록 (append to jsonl)."""
     score = compute_score_at_commit(commit)
+    # v0.7.15+: runtime RSS probe (profiling memory threshold, deferred #3 해소)
+    rss_mb = _probe_rss_mb()
     record = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
         "commit": commit[:7],
         "scores": score.get("scores", {}),
         "overall": score.get("overall", 0),
         "grade": score.get("grade", "F"),
+        "rss_mb": rss_mb,
     }
     HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
     with HISTORY_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    if rss_mb is not None and rss_mb > MEMORY_ALERT_MB_DEFAULT:
+        print(
+            f"⚠️  RSS {rss_mb:.1f}MB > memory_alert_mb {MEMORY_ALERT_MB_DEFAULT:.1f}MB "
+            f"(config.thresholds['memory_alert_mb'])",
+            file=sys.stderr,
+        )
     return record
+
+
+def _probe_rss_mb() -> float | None:
+    """현재 process 의 RSS (resident set size) MB 측정. 실패 시 None.
+
+    macOS / Linux 에서 동작 (resource module). Windows 는 psutil fallback 가능하나
+    본 tool 의 target 은 macOS / Linux.
+    """
+    try:
+        import resource  # type: ignore[import-not-found]
+
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        # ru_maxrss: macOS = bytes, Linux = KB. platform 분기.
+        rss = usage.ru_maxrss
+        if sys.platform == "darwin":
+            return rss / (1024 * 1024)
+        return rss / 1024  # Linux KB
+    except Exception:
+        return None
 
 
 def record_range(limit: int) -> list[dict]:
@@ -192,17 +240,24 @@ class DimAlert:
     severity: str  # "alert" | "info" | "ok"
 
 
-def compare_scores(baseline: dict, current: dict, alert_threshold: float = 0.3) -> list[DimAlert]:
+def compare_scores(
+    baseline: dict,
+    current: dict,
+    alert_threshold: float | None = None,
+) -> list[DimAlert]:
     """baseline vs current 의 dim 별 비교. 하락 ≥ alert_threshold → alert.
 
     Args:
         baseline: 이전 commit 의 score record
         current: 현재 commit 의 score record
-        alert_threshold: dim 별 하락 alert 임계값 (default 0.3)
+        alert_threshold: dim 별 하락 alert 임계값. None 이면 ``config.thresholds['score_alert']``
+            (default 0.3). explicit override 가능.
 
     Returns:
         DimAlert list (dim 별 1개)
     """
+    if alert_threshold is None:
+        alert_threshold = SCORE_ALERT_DEFAULT
     alerts = []
     for dim in DIMS:
         b = baseline.get("scores", {}).get(dim, 0.0)
@@ -252,7 +307,12 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="JSON 출력")
     parser.add_argument("--alert", action="store_true", help="dim 별 하락 alert (≥ threshold)")
     parser.add_argument("--baseline", help="baseline commit (alert 시 비교 대상)")
-    parser.add_argument("--threshold", type=float, default=0.3, help="alert 임계값 (default: 0.3)")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=SCORE_ALERT_DEFAULT,
+        help=f"alert 임계값 (default: {SCORE_ALERT_DEFAULT} from [tool.workflow-doctor] config)",
+    )
     args = parser.parse_args()
 
     # 현재 HEAD

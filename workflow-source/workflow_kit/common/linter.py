@@ -5,6 +5,36 @@ from typing import Dict, List, Any
 
 from workflow_kit.common.project_docs import parse_backlog, parse_handoff
 
+# v0.7.15+: excluded_paths glob match helper. v0.7.7 deferred #4 해소.
+def _is_excluded(path: Path, excluded_patterns: List[str]) -> bool:
+    """path 가 excluded_patterns 중 하나와 match 하는지 확인.
+
+    각 pattern 을 glob 으로 처리. Path.match() 는 * 와 ** 모두 지원 (3.13+ glob).
+    """
+    if not excluded_patterns:
+        return False
+    posix_path = path.as_posix()
+    for pattern in excluded_patterns:
+        # glob pattern: * matches single segment, ** matches recursive
+        # simple fnmatch-style check: try Path.match first, then fallback
+        try:
+            if path.match(pattern):
+                return True
+        except (ValueError, TypeError):
+            pass
+        # Also check if any parent path matches
+        for parent in path.parents:
+            if parent.match(pattern):
+                return True
+        # Posix path match for ** patterns
+        if "**" in pattern:
+            # Convert ** to .* for regex
+            regex = pattern.replace(".", r"\.").replace("**", ".*").replace("*", "[^/]*")
+            if re.match(f"^{regex}$", posix_path):
+                return True
+    return False
+
+
 def check_maturity_consistency(
     matrix_path: Path,
     roadmap_path: Path,
@@ -66,10 +96,22 @@ def check_maturity_consistency(
 def check_workflow_consistency(
     state_json_path: Path,
     handoff_path: Path,
-    latest_backlog_path: Path
+    latest_backlog_path: Path,
+    *,
+    excluded_paths: List[str] | None = None,
 ) -> Dict[str, Any]:
+    """workflow 3 source (state / handoff / backlog) 정합 검증.
+
+    Args:
+        state_json_path: state.json 경로
+        handoff_path: session_handoff.md 경로
+        latest_backlog_path: latest backlog 경로
+        excluded_paths: broken link check skip glob list. v0.7.15+: [tool.workflow-doctor]
+            의 ``excluded_paths`` field 적용. None 이면 empty list.
+    """
     issues = []
     warnings = []
+    excluded_paths = excluded_paths or []
 
     # Load data
     try:
@@ -137,6 +179,9 @@ def check_workflow_consistency(
                 # Remove query or fragments if any
                 clean_link = link.split("#")[0].split("?")[0]
                 link_path = (path.parent / clean_link).resolve()
+                # v0.7.15+: excluded_paths glob match 시 broken link check skip
+                if excluded_paths and _is_excluded(link_path, excluded_paths):
+                    continue
                 if not link_path.exists():
                     issues.append({
                         "type": "broken_link",
@@ -156,6 +201,7 @@ def check_workflow_consistency(
             "total_issues": len(issues),
             "sync_errors": len([i for i in issues if i["type"] == "sync_error"]),
             "broken_links": len([i for i in issues if i["type"] == "broken_link"]),
-            "bloat_warnings": len([i for i in issues if i["type"] == "bloat_warning"])
+            "bloat_warnings": len([i for i in issues if i["type"] == "bloat_warning"]),
+            "excluded_paths": excluded_paths,
         }
     }

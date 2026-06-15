@@ -2,16 +2,20 @@
 """v0.7.0 wiki: drift 자동 검출 smoke test.
 
 in-repo wiki 의 `last_ingested_from` 의 code file mtime 과 `updated:` 사이 lag 검출.
-vault L2 sources/ 의 `last_touched` 와 raw mirror 의 mtime 사이 lag 검출.
+in-repo L2 sources/ 의 `last_touched` 와 L1 raw mirror 의 mtime 사이 lag 검출.
 
 Drift = L1 wiki 의 updated 가 L1 code 의 mtime 보다 7일 이상 stale.
-      = L2 sources/ 의 last_touched 가 raw mirror 의 mtime 보다 7일 이상 stale.
+      = L2 sources/ 의 last_touched 가 L1 raw mirror 의 mtime 보다 7일 이상 stale.
+
+**v0.7.17+ in-repo storage**: 외부 vault (~/wiki/) 연결 없음. L1 raw mirror =
+`ai-workflow/wiki/`, L2 sources = `ai-workflow/wiki/sources/`, drift detection
+= 두 in-repo 경로 사이의 mtime lag.
 
 Reference:
 - workflow-source/ai-workflow/wiki/SCHEMA.md
 - workflow-source/ai-workflow/wiki/log.md (v0.7.0 follow-up entry)
-- ~/wiki/wiki/projects/standard-ai-workflow/sources/ (L2 sources)
-- ~/wiki/raw/projects/standard-ai-workflow/ (raw mirror)
+- ai-workflow/wiki/sources/ (v0.7.17+ L2 sources, in-repo)
+- ai-workflow/wiki/ (v0.7.17+ L1 raw mirror, in-repo)
 """
 
 from __future__ import annotations
@@ -25,9 +29,9 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 # workflow-source 의 부모가 in-repo root → /Users/yklee/repos/standard_ai_workflow_minimax
 REPO_ROOT = SOURCE_ROOT.parent
 INREPO_WIKI = REPO_ROOT / "ai-workflow" / "wiki"
-VAULT_ROOT = Path.home() / "wiki"
-L2_SOURCES = VAULT_ROOT / "wiki" / "projects" / "standard-ai-workflow" / "sources"
-RAW_MIRROR = VAULT_ROOT / "raw" / "projects" / "standard-ai-workflow"
+# v0.7.17+ in-repo storage: L2 sources 와 L1 raw mirror 모두 in-repo.
+L2_SOURCES = INREPO_WIKI / "sources"
+RAW_MIRROR = INREPO_WIKI  # L1 raw mirror = ai-workflow/wiki/ 자체
 WIKI_FRONTMATTER_RE = re.compile(r"---\n(.+?)\n---\n", re.DOTALL)
 UPDATED_RE = re.compile(r"^updated:\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
 LAST_INGESTED_FROM_RE = re.compile(r"^last_ingested_from:\s*(.+)$", re.MULTILINE)
@@ -125,9 +129,13 @@ def _code_mtime(path: Path) -> str:
 
 
 def _raw_mtime(raw_path: str) -> str | None:
-    """raw mirror 의 file mtime (YYYY-MM-DD)."""
-    # raw_path: 'raw/projects/standard-ai-workflow/ai-workflow/wiki/concepts/foo.md'
-    p = VAULT_ROOT / raw_path
+    """L1 raw mirror 의 file mtime (YYYY-MM-DD). v0.7.17+ in-repo.
+
+    raw_path: 'ai-workflow/wiki/concepts/foo.md' (in-repo 상대 path).
+    외부 vault 의 'raw/projects/standard-ai-workflow/ai-workflow/wiki/...' 형식
+    은 v0.7.17 부터 미사용. L2 sources 의 `sources` field 가 in-repo path 로 박힘.
+    """
+    p = REPO_ROOT / raw_path
     if not p.exists():
         return None
     return datetime.fromtimestamp(p.stat().st_mtime).strftime("%Y-%m-%d")

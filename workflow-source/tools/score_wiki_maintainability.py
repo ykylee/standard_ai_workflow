@@ -41,8 +41,8 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
 INREPO_WIKI = REPO_ROOT / "ai-workflow" / "wiki"
-VAULT_ROOT = Path.home() / "wiki"
-L2_SOURCES = VAULT_ROOT / "wiki" / "projects" / "standard-ai-workflow" / "sources"
+# v0.7.17+ in-repo storage: L2 sources 도 in-repo.
+L2_SOURCES = INREPO_WIKI / "sources"
 WIKI_FRONTMATTER_RE = re.compile(r"---\n(.+?)\n---\n", re.DOTALL)
 UPDATED_RE = re.compile(r"^updated:\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
 LAST_INGESTED_FROM_RE = re.compile(r"^last_ingested_from:\s*(.+)$", re.MULTILINE)

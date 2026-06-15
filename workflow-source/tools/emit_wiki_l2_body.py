@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""vault L2 sources/ 의 <needs content> placeholder 해소 + 본문 emit helper.
+"""in-repo wiki L2 sources/ 의 <needs content> placeholder 해소 + 본문 emit helper.
 
 v0.7.0 wiki 유지보수 개선 (2026-06-13): L2 sources/ 가 frontmatter 만 있고 본문 비어있는
 draft 80% page 들을 raw mirror 의 본문 일부를 추출하여 자동 emit. wiki 검색 정합성 +
 vault retrieval 의 *검색 가능 본문* 보장.
 
+**v0.7.17+ in-repo storage**: 외부 vault (~/wiki/) 연결 완전 제거. 본 project 의
+L1 raw mirror = `ai-workflow/wiki/` (concepts/decisions/entities/patterns/topics),
+L2 sources = `ai-workflow/wiki/sources/`. 모든 path 가 in-repo.
+
 Usage:
     # Dry-run: 어떤 page 가 emit 대상인지 확인
     python3 emit_wiki_l2_body.py --project=standard-ai-workflow --dry-run
 
-    # 실제 emit (vault 의 ~/wiki 의 L2 sources/ 에 직접 작성)
+    # 실제 emit (in-repo L2 sources/ 에 직접 작성)
     python3 emit_wiki_l2_body.py --project=standard-ai-workflow --apply
 
     # 본문 cap (char count) — 너무 긴 본문 truncate
@@ -19,13 +23,13 @@ Body emit 정책 (v1):
 - L1 raw mirror 의 첫 # 헤더 이후 본문 2000자 추출
 - `# Title (Derived View, YYYY-MM-DD)` 형식 머리
 - `> L1 SSOT: <path> (<line count> lines)` reference
-- `> 본 L2 derived view 는 vault retrieval 용 압축 요약. dense content 는 L1 SSOT 참조.`
+- `> 본 L2 derived view 는 in-repo retrieval 용 압축 요약. dense content 는 L1 SSOT 참조.`
 - `## TL;DR` 자동 추출 (frontmatter 의 summary field 가 있으면 우선)
 - 기존 # 본문 보존 (overwrite ❌, skip ✅)
 
 Reference:
 - workflow-source/extensions/SCHEMA.md §3 (file format)
-- vault 의 L2 sources/ 본문 형식 (topics-aidlc-benchmark-analysis-2026-06-12.md 와 동일)
+- in-repo L2 sources/ 본문 형식 (concepts/*.md 와 동일)
 """
 
 from __future__ import annotations
@@ -37,16 +41,39 @@ import sys
 from datetime import date
 from pathlib import Path
 
-VAULT_ROOT = Path.home() / "wiki"
-RAW_MIRROR = VAULT_ROOT / "raw" / "projects"
-L2_SOURCES = VAULT_ROOT / "wiki" / "projects"
+# v0.7.17+ in-repo storage. REPO_ROOT 결정 + L1/L2 path 모두 in-repo.
+# 4-priority auto-detect (refresh_wiki_memory.py 와 동일) — git rev-parse 우선.
+def _detect_repo_root() -> Path:
+    """REPO_ROOT 결정 (priority: git rev-parse > cwd 기준 상위 dir 탐색).
+
+    refresh_wiki_memory.py 와 동일 정공법. 단, 본 script 는 standalone 실행 가능
+    형태를 위해 env var + CLI flag 는 생략 (v0.7.17+ 의 단순화).
+    """
+    try:
+        import subprocess
+
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            return Path(proc.stdout.strip()).resolve()
+    except Exception:
+        pass
+    return Path.cwd().resolve()
+
+
+REPO_ROOT = _detect_repo_root()
+L1_BASE = REPO_ROOT / "ai-workflow"
+RAW_MIRROR = L1_BASE / "wiki"  # L1 raw mirror (in-repo)
+L2_SOURCES = L1_BASE / "wiki" / "sources"  # L2 dense content emit target (in-repo)
 
 # L1 → L2 stem 변환 (AIDLC 의 stem_from_path 와 동일)
 PATH_TO_STEM_RE = re.compile(r"[/._]+")
 
 
 def path_to_stem(rel_path: str) -> str:
-    """raw/projects/<project>/ai-workflow/wiki/concepts/foo.md → concepts-foo"""
+    """ai-workflow/wiki/concepts/foo.md → concepts-foo"""
     parts = rel_path.split("/")
     if "wiki" in parts:
         idx = parts.index("wiki")
@@ -58,16 +85,20 @@ def path_to_stem(rel_path: str) -> str:
 
 
 def find_l1_files(project: str) -> list[Path]:
-    """raw mirror 의 L1 wiki file 들 (in-repo wiki) — NOT raw project root."""
-    l1_dir = RAW_MIRROR / project / "ai-workflow" / "wiki"
+    """in-repo L1 wiki file 들 (ai-workflow/wiki/concepts/*.md 등).
+
+    v0.7.17+ in-repo storage. project 는 *legacy* field (multi-project metadata) 로
+    무시 — 본 project 의 wiki 는 단일.
+    """
+    l1_dir = RAW_MIRROR
     if not l1_dir.exists():
         return []
     return sorted(p for p in l1_dir.rglob("*.md"))
 
 
 def find_l2_pages(project: str) -> dict[str, Path]:
-    """L2 sources/ 의 모든 page (stem → path) mapping."""
-    l2_dir = L2_SOURCES / project / "sources"
+    """in-repo L2 sources/ 의 모든 page (stem → path) mapping."""
+    l2_dir = L2_SOURCES
     if not l2_dir.exists():
         return {}
     return {p.stem: p for p in l2_dir.glob("*.md")}
@@ -127,8 +158,8 @@ def build_emit_body(l1_path: Path, today: str, max_chars: int = 2000) -> str:
     parts = [
         f"# {title} (Derived View, {today})",
         "",
-        f"> L1 SSOT: `~/{rel_l1}` ({l1_line_count} lines)",
-        "> 본 L2 derived view 는 vault retrieval 용 압축 요약. dense content 는 L1 SSOT 참조.",
+        f"> L1 SSOT: `ai-workflow/wiki/{rel_l1}` ({l1_line_count} lines)",
+        "> 본 L2 derived view 는 in-repo retrieval 용 압축 요약. dense content 는 L1 SSOT 참조.",
         "",
     ]
     if tldr:

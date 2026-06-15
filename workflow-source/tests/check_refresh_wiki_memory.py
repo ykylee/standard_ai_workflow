@@ -32,8 +32,11 @@ from unittest import mock
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
 
-# 2차 출처 (raw mirror) — wiki vault
-VAULT_ROOT = Path.home() / "wiki"
+# 2차 출처 (raw mirror) — v0.7.17+ in-repo. 외부 vault (~/wiki/) 연결 없음.
+# 1차 출처 = ai-workflow/memory/active/, 2차 출처 = ai-workflow/wiki/sources/ (L2 dense).
+# v0.7.17 이전의 VAULT_ROOT (Path.home() / "wiki") 는 *legacy* — 본 test 의 *in-repo*
+# redirect 검증이 본 release 의 핵심.
+INREPO_WIKI = SOURCE_ROOT.parent / "ai-workflow" / "wiki"
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"

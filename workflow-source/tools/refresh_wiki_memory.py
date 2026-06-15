@@ -5,6 +5,10 @@ git log (REPO_ROOT) → release 별 feat commit 분류 → 1차 출처 (raw mirr
 4 file 자동 보강 (state.json / work_backlog.md / wiki/log.md / memory/log.md).
 L2 sources/ dense emit 은 `emit_wiki_l2_body.py --apply` 로 분리 (R-3 단계 분리).
 
+**v0.7.17+ in-repo storage**: 외부 vault (`~/wiki/`) 연결 제거. 본 project 의
+SSOT 는 *전부 in-repo* (`ai-workflow/wiki/` + `ai-workflow/memory/active/` +
+`ai-workflow/memory/log.md`). 모든 tool 의 path 가 in-repo 기준.
+
 REPO_ROOT 결정 (v0.7.12+ auto-detect):
     1. `--repo-root=<path>` CLI flag (명시적)
     2. `STANDARD_AI_WF_REPO` env var (CI integration)
@@ -36,6 +40,7 @@ Reference:
 - tools/refresh_raw_memory.py (raw mirror sync — 구버전, 본 tool 로 대체)
 - workflow-source/extensions/SCHEMA.md §3 (file format)
 - workflow_kit/common/contracts/baselines.py (v0.7.3+ 7 baseline dispatcher)
+- ai-workflow/wiki/sources/ (v0.7.17+ L2 dense emit target, in-repo)
 """
 
 from __future__ import annotations
@@ -109,27 +114,28 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
 
 REPO_ROOT = get_repo_root()  # eager init for backward compat (module-level read)
 
-# 2차 출처 (raw mirror) — wiki vault 의 1차 mirror
-VAULT_ROOT = Path.home() / "wiki"
+# v0.7.17+ in-repo storage: 외부 vault (~/wiki/) 연결 완전 제거. 모든 path 가
+# REPO_ROOT 안쪽. PROJECT_SLUG 는 *legacy* field (multi-project metadata) 로 유지.
 PROJECT_SLUG = "standard-ai-workflow"
-RAW_BASE = VAULT_ROOT / "raw" / "projects" / PROJECT_SLUG
-RAW_AIWF = RAW_BASE / "ai-workflow"
-L2_BASE = VAULT_ROOT / "wiki" / "projects" / PROJECT_SLUG
+# 1차 출처 (L1 raw mirror) — in-repo wiki + memory/active
+L1_BASE = REPO_ROOT / "ai-workflow"
+# 2차 출처 (L2 dense sources) — in-repo wiki/sources
+L2_BASE = L1_BASE / "wiki" / "sources"
 
-# 갱신 대상 4 file (raw mirror)
+# 갱신 대상 4 file (L1 raw mirror, in-repo)
 RAW_FILES = {
-    "state_json": RAW_AIWF / "memory/active/state.json",
-    "work_backlog": RAW_AIWF / "memory/active/work_backlog.md",
-    "wiki_log": RAW_AIWF / "wiki/log.md",
-    "memory_log": RAW_AIWF / "memory/log.md",
+    "state_json": L1_BASE / "memory/active/state.json",
+    "work_backlog": L1_BASE / "memory/active/work_backlog.md",
+    "wiki_log": L1_BASE / "wiki/log.md",
+    "memory_log": L1_BASE / "memory/log.md",
 }
 
-# L2 stub 4 file (dense 재emit 대상)
+# L2 stub 4 file (dense 재emit 대상, in-repo)
 L2_STUBS = {
-    "active-state": L2_BASE / "sources/active-state.md",
-    "active-work-backlog": L2_BASE / "sources/active-work-backlog.md",
-    "active-session-handoff": L2_BASE / "sources/active-session-handoff.md",
-    "wiki-log": L2_BASE / "sources/wiki-log.md",
+    "active-state": L2_BASE / "active-state.md",
+    "active-work-backlog": L2_BASE / "active-work-backlog.md",
+    "active-session-handoff": L2_BASE / "active-session-handoff.md",
+    "wiki-log": L2_BASE / "wiki-log.md",
 }
 
 # release 분류 regex
@@ -359,9 +365,9 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
         state_body += f"- {line}\n"
     state_body += (
         "\n## 다음에 읽을 문서\n\n"
-        "- [raw/.../memory/active/state.json](../../../raw/projects/standard-ai-workflow/ai-workflow/memory/active/state.json) (1차 출처)\n"
-        "- [raw/.../memory/active/work_backlog.md](../../../raw/projects/standard-ai-workflow/ai-workflow/memory/active/work_backlog.md)\n"
-        "- [raw/.../wiki/log.md](../../../raw/projects/standard-ai-workflow/ai-workflow/wiki/log.md)\n"
+        "- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json) (1차 출처)\n"
+        "- [in-repo/ai-workflow/memory/active/work_backlog.md](../../../memory/active/work_backlog.md)\n"
+        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)\n"
     )
 
     # 2) active-work-backlog
@@ -389,7 +395,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
         "- TASK-NNN 식별자 (1+ 작업 항목 / 일자)\n"
         "- 동일 일자 다중 브랜치 작업 시 브랜치별 별도 파일\n\n"
         "## 다음에 읽을 문서\n\n"
-        "- [raw/.../memory/active/work_backlog.md](../../../raw/projects/standard-ai-workflow/ai-workflow/memory/active/work_backlog.md) (1차 출처)\n"
+        "- [in-repo/ai-workflow/memory/active/work_backlog.md](../../../memory/active/work_backlog.md) (1차 출처)\n"
     )
 
     # 3) active-session-handoff
@@ -414,8 +420,8 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
         "- **B. Wiki 운영 자동화** — `tools/refresh_wiki_memory.py` (git log → memory 자동 emit) + smoke test\n"
         "- **C. Extension 시스템 2차 확장** — v0.7.2 의 resiliency 4종 외 testing / observability / security sub-cat 추가 (3-5 commit)\n\n"
         "## Cross-ref\n\n"
-        "- [raw/.../memory/active/state.json](../../../raw/projects/standard-ai-workflow/ai-workflow/memory/active/state.json)\n"
-        "- [raw/.../wiki/log.md](../../../raw/projects/standard-ai-workflow/ai-workflow/wiki/log.md)\n"
+        "- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json)\n"
+        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)\n"
         "- [v0.7.4 release note] — repo `workflow-source/releases/Beta-v0.7.4.md`\n"
     )
 
@@ -442,7 +448,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
         "본 section 은 L1 wiki 가 *runtime layer (R1, D1, D2) 만* 추적하던 갭을 보강. release 별 head commit / commit count / test count 기록.\n\n"
         + "\n\n".join(rl_lines) + "\n\n"
         "## 다음에 읽을 문서\n\n"
-        "- [raw/.../wiki/log.md](../../../raw/projects/standard-ai-workflow/ai-workflow/wiki/log.md) (1차 출처, phase 1-7 entry 포함)\n"
+        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md) (1차 출처, phase 1-7 entry 포함)\n"
     )
 
     return {

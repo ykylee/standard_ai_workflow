@@ -393,6 +393,10 @@ def cmd_version_bump(args) -> dict:
     """pyproject.toml version patch + workflow_kit/__init__.py __version__ 자동 sync (v0.7.14+).
 
     --no-init flag 시 __init__.py sync skip (CI / override 시나리오).
+
+    v0.7.27+: --apply 시 sync_release_hash.py 자동 호출 (TASK-V0726-003). 본 release 의
+    state.json + backlog 의 hash = latest commit (apply 후의 chore commit) 으로 1 commit
+    으로 정합. infinite fix(state) loop 회피.
     """
     current = read_version()
     current_wk = read_workflow_kit_version()
@@ -427,7 +431,39 @@ def cmd_version_bump(args) -> dict:
         result["current_workflow_kit"] = written
     else:
         result["workflow_kit_skipped"] = True
+
+    # TASK-V0726-003 (v0.7.27): post-step 자동 sync — state.json + backlog 의 hash = latest
+    # commit. --skip-sync-hash flag 시 skip (manual override).
+    if not getattr(args, "skip_sync_hash", False):
+        sync_result = _run_post_step_sync_hash(new)
+        result["sync_hash_result"] = sync_result
     return result
+
+
+def _run_post_step_sync_hash(version: str) -> dict:
+    """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step).
+
+    Args:
+        version: new version (e.g. "0.7.27").
+
+    Returns:
+        dict with keys: ok (bool), stdout (str), stderr (str), returncode (int).
+        sync_release_hash.py 의 returncode 0 = 성공, 1+ = 실패.
+    """
+    sync_tool = REPO_ROOT / "workflow-source" / "tools" / "sync_release_hash.py"
+    if not sync_tool.exists():
+        return {"ok": False, "stdout": "", "stderr": f"sync_release_hash.py not found: {sync_tool}", "returncode": -1}
+    version_arg = f"v{version}" if not version.startswith("v") else version
+    proc = subprocess.run(
+        [sys.executable, str(sync_tool), f"--version={version_arg}", "--apply"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    return {
+        "ok": proc.returncode == 0,
+        "stdout": proc.stdout,
+        "stderr": proc.stderr,
+        "returncode": proc.returncode,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1237,6 +1273,8 @@ def main() -> int:
     p_vb.add_argument("--dry-run", action="store_true", dest="dry_run",
                        help="bump plan 만 출력 (default: --apply)")
     p_vb.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_vb.add_argument("--skip-sync-hash", action="store_true", dest="skip_sync_hash",
+                       help="post-step sync_release_hash 자동 호출 skip (TASK-V0726-003, manual override)")
     p_vb.add_argument("--json", action="store_true", help="JSON output (CI integration)")
 
     # note-draft

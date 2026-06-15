@@ -147,3 +147,11 @@
 - **scope**: `workflow_kit/common/paths.py` (~15 line, F-7 detached HEAD → short SHA) + `tools/sync_release_hash.py` (~180 line, F-7+ automated hash sync) + 2 신규 test file (10 smoke, 10/10 PASS)
 - **정공법**: F-7 = detached HEAD 의 stable identifier = short SHA (7자). F-7+ = automated hash sync 로 v0.7.25 의 infinite fix(state) loop 회피 (1 commit 으로 state.json + backlog 의 hash = latest commit hash).
 
+
+## v0.7.27 (2026-06-15) — TASK-V0726-003 (sync_release_hash post-step auto-call)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `release_pipeline.py:cmd_version_bump` post-step sync_release_hash 자동 호출 + `_run_post_step_sync_hash` 신규 helper + `--skip-sync-hash` flag + 1 신규 test file (5 smoke, 5/5 PASS)
+- **정공법**: post-step 의 *in-process* + caller opt-in flag (--skip-sync-hash) 의 *3종 정합* (v0.7.18/21/27) + post-step 의 *graceful fail* (sync_hash fail 해도 version-bump 성공). v0.7.25 의 infinite fix(state) loop 의 *closure*.
+

@@ -5,9 +5,9 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
-      "v0.7.24 (2c38d07): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
+      "v0.7.25 (71cac6d): P3 Legacy L2 page in-repo migration (tools/migrate_legacy_l2.py + 5 smoke + 1 mirror file)",
+      "v0.7.24 (ef13691): P3 cmd_release --notes-template flag (5 template) + 5 smoke",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",
-      "v0.7.22 (8b02fe9): P3 linter symlink-resolve fix (workflow_kit/common/linter.py .resolve() → .absolute() 2 site) + 3 smoke",
       "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",
       "v0.7.20 (5758657): P3 release coordination observability (auto-bump chain 최종)",
       "v0.7.19 (8ada0f1): P3 release coordination auto-bump",
@@ -37,7 +37,8 @@
       "v0.6.0.1 (7134c5b): P1.5 memory/active/ rename + bootstrap --enable-wiki + harness wiki/ stub",
       "v0.6.0 (8359cfc+): LLM Wiki Layer — wiki/ + SCHEMA + 2 concepts + ADR-004",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
-    ]
+    ],
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.25/backlog/2026-06-15.md"
   },
   "wiki": {
     "concepts_count": 2,

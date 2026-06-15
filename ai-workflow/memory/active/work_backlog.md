@@ -131,3 +131,11 @@
 - [release/v0.5.2/session_handoff.md](../release/v0.5.2/session_handoff.md)
 - [release/v0.5.2/backlog/2026-06-06.md](../release/v0.5.2/backlog/2026-06-06.md)
 - [Maturity Matrix](../../workflow-source/core/maturity_matrix.json)
+
+## v0.7.25 (2026-06-15) — Legacy L2 page in-repo migration (F-6)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: tools/migrate_legacy_l2.py (~280 line) + tests/check_v0_7_25_legacy_l2_migration.py (5 smoke) + ai-workflow/memory/release/_external-wiki-legacy.md (mirror file, 35,032 bytes, 15 version 1:1 mirror)
+- **정공법**: external wiki 의 legacy L2 page (15 version: v0.1.0~v0.6.3) → in-repo 의 단일 mirror file. v0.7.17 의 in-repo redirect 의 *closure*.
+

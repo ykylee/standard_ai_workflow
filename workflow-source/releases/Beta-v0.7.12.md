@@ -88,7 +88,7 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --dry-run
 
 | Hash | Subject |
 |---|---|
-| `TBD` | feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect (CLI flag > env var > git rev-parse > legacy fallback) + 4 smoke + Beta-v0.7.12.md |
+| `63080ba` | feat(v0.7.12): refresh_wiki_memory REPO_ROOT auto-detect (CLI flag > env var > git rev-parse > legacy fallback) + 4 smoke + Beta-v0.7.12.md |
 
 ## 다음 (v0.7.13 / v0.8.0 후보)
 
@@ -101,7 +101,6 @@ python3 tools/refresh_wiki_memory.py --refresh-raw --dry-run
 - **Wiki 운영 cross-link** — `emit_wiki_l2_body.py` 와 `refresh_wiki_memory.py` 의 1-command 통합
 
 ## Reference
-
 - [v0.7.11 release note](Beta-v0.7.11.md) (직전) — Phase 3 (dist subcommand) + state sync + version sync
 - [v0.7.10 release note](Beta-v0.7.10.md) — Phase 2 (release / verify / rollback)
 - [v0.7.9 release note](Beta-v0.7.9.md) — Phase 1 (validate / version-bump / note-draft)

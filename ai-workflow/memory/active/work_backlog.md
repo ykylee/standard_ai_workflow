@@ -139,3 +139,11 @@
 - **scope**: tools/migrate_legacy_l2.py (~280 line) + tests/check_v0_7_25_legacy_l2_migration.py (5 smoke) + ai-workflow/memory/release/_external-wiki-legacy.md (mirror file, 35,032 bytes, 15 version 1:1 mirror)
 - **정공법**: external wiki 의 legacy L2 page (15 version: v0.1.0~v0.6.3) → in-repo 의 단일 mirror file. v0.7.17 의 in-repo redirect 의 *closure*.
 
+
+## v0.7.26 (2026-06-15) — Branch Detection Fix (F-7) + Automated Hash Sync (F-7+)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `workflow_kit/common/paths.py` (~15 line, F-7 detached HEAD → short SHA) + `tools/sync_release_hash.py` (~180 line, F-7+ automated hash sync) + 2 신규 test file (10 smoke, 10/10 PASS)
+- **정공법**: F-7 = detached HEAD 의 stable identifier = short SHA (7자). F-7+ = automated hash sync 로 v0.7.25 의 infinite fix(state) loop 회피 (1 commit 으로 state.json + backlog 의 hash = latest commit hash).
+

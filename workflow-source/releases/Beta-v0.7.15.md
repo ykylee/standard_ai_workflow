@@ -92,8 +92,7 @@ python3 tools/release_pipeline.py changelog-gen --from-tag=v9.9.9-beta --dry-run
 |---|---|---|
 | `ci-publish` subcommand | GH Actions 또는 local pre-push hook | `.github/workflows/release.yml` 자동화 + gh auth token 주입 (사용자 제외 결정) |
 | `score trend 의 config thresholds` (v0.7.7 의 deferred #2) | hardcoded 0.3 → `thresholds["score_alert"]` | `tools/score_wiki_trend.py` 의 0.3 literal → `config.thresholds["score_alert"]` |
-| `profiling 의 config memory threshold` (deferred #3) | hardcoded → config | `tools/score_wiki_trend.py` 와 동일 패턴 |
-| `linter 의 config excluded_paths` (deferred #4) | hardcoded → config | `[tool.workflow-doctor].excluded_paths` 적용 |
+
 | Wiki 운영 cross-link | `emit_wiki_l2_body.py` + `refresh_wiki_memory.py` 1-command 통합 | `tools/wiki_emit.py` wrapper 또는 subcommand 통합 |
 | `cmd_release` 의 `--notes-template` | GH release notes 의 custom template | release note 를 `Beta-v0.7.15.md` 외 custom format 가능 |
 | tag 부재 tag 의 `--from-tag` (v0.7.5~v0.7.10 의 6 tag 가 backfill 되어 해결) | local `git rev-parse` fail | 본 release 의 backfill 로 해결. v0.7.16+ 부터 정상 동작 |
@@ -123,8 +122,9 @@ python3 tools/release_pipeline.py changelog-gen --from-tag=v9.9.9-beta --dry-run
 | Hash | Subject |
 |---|---|
 | `5cd1fe1` | feat(v0.7.15): atomic_write helper + changelog-gen --from-tag/--to-tag filter + 5 smoke |
-| `TBD` | chore(v0.7.15): version bump 0.7.14 → 0.7.15 (auto-sync verified) + Beta-v0.7.15.md + state/work_backlog sync |
-| `TBD` | fix(v0.7.15): Beta-v0.7.15.md Commit section + 2 commit hash |
+| `a369e7c` | chore(v0.7.15): version bump 0.7.14 → 0.7.15 (auto-sync verified) + Beta-v0.7.15.md |
+| `3049651` | chore(v0.7.15): state sync (atomic_write 적용) + 1 daily backlog |
+| `3dfb5a1` | fix(v0.7.15): Beta-v0.7.15.md Commit section + 3 commit hash |
 
 ## 다음 (v0.7.16 / v0.8.0 후보)
 

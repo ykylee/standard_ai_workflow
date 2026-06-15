@@ -83,7 +83,7 @@ v0.7.17 의 wiki in-repo storage isolation + DevHub 의 PR #602 (in-repo L0 Home
 
 | Hash | Subject |
 |---|---|
-| `TBD` | feat(v0.7.23): tools/wiki_emit.py 1-command wrapper (3-step cycle: refresh_raw + emit_l2 + reemit_stubs) + 5 smoke |
+| `b4936a2` | feat(v0.7.23): tools/wiki_emit.py 1-command wrapper (3-step cycle: refresh_raw + emit_l2 + reemit_stubs) + 5 smoke |
 
 ## 다음 (v0.7.24 / v0.8.0 후보)
 

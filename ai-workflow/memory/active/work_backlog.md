@@ -155,3 +155,11 @@
 - **scope**: `release_pipeline.py:cmd_version_bump` post-step sync_release_hash 자동 호출 + `_run_post_step_sync_hash` 신규 helper + `--skip-sync-hash` flag + 1 신규 test file (5 smoke, 5/5 PASS)
 - **정공법**: post-step 의 *in-process* + caller opt-in flag (--skip-sync-hash) 의 *3종 정합* (v0.7.18/21/27) + post-step 의 *graceful fail* (sync_hash fail 해도 version-bump 성공). v0.7.25 의 infinite fix(state) loop 의 *closure*.
 
+
+## v0.7.28 (2026-06-15) — TASK-V0726-004 (Detached HEAD Memory Dir Cleanup)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `tools/archive_stale_memory.py` (~250 line, 4-priority REPO_ROOT + 3 subcommand + 5 helper) + `tests/check_v0_7_28_archive_stale_memory.py` (5 smoke, 5/5 PASS)
+- **정공법**: F-7 (v0.7.26) 의 detached HEAD → short SHA fix 의 *closure*. age-based auto-archive: N day 이전의 short SHA dir → `archive/<YYYY-MM-DD>/<sha>/` 로 move. SHA256-based idempotency (v0.7.25 의 F-6 의 1차 출처).
+

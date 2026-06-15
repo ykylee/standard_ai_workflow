@@ -5,9 +5,9 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.7.28 (TBD): P3 TASK-V0726-004 detached HEAD memory dir cleanup (tools/archive_stale_memory.py + 5 smoke)",
       "v0.7.27 (2aa1efa): P3 TASK-V0726-003 sync_release_hash post-step (release_pipeline.py version-bump auto-call) + 5 smoke",
       "v0.7.26 (ecb6ce1): P3 F-7 branch detection fix + F-7+ automated hash sync (sync_release_hash.py) + 10 smoke",
-      "v0.7.25 (00e7ca8): P3 Legacy L2 page in-repo migration (tools/migrate_legacy_l2.py + 5 smoke + 1 mirror file)",
       "v0.7.23 (98442d1): P3 wiki 운영 cross-link 1-command wrapper (tools/wiki_emit.py 3-step cycle) + 5 smoke",
       "v0.7.21 (fa329b1): P3 F-4 design 결함 fix (cmd_release --allow-existing-tag flag + tag push 자동화) + 1 smoke",
       "v0.7.20 (5758657): P3 release coordination observability (auto-bump chain 최종)",
@@ -39,7 +39,7 @@
       "v0.6.0 (8359cfc+): LLM Wiki Layer — wiki/ + SCHEMA + 2 concepts + ADR-004",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
     ],
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.27/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.28/backlog/2026-06-15.md"
   },
   "wiki": {
     "concepts_count": 2,

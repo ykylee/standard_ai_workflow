@@ -441,32 +441,94 @@ def cmd_version_bump(args) -> dict:
 
 
 def _run_post_step_sync_hash(version: str) -> dict:
-    """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step).
+    """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step) + amend 통합 (TASK-V0727-001).
+
+    2-phase:
+    1. sync_release_hash.py 자동 호출 — state.json + backlog 의 TBD → *current HEAD* hash
+    2. `git add` (sync 의 변경) + `git commit --amend --no-edit` — 1 commit 통합 (별도 fix(state) commit 불필요)
 
     sync_release_hash.py 는 release_pipeline.py 와 같은 dir (workflow-source/tools/) 에
     위치. REPO_ROOT 와 무관하게 __file__ 의 parents[1] (workflow-source/tools/) 기준.
 
     Args:
-        version: new version (e.g. "0.7.27").
+        version: new version (e.g. "0.7.29").
 
     Returns:
-        dict with keys: ok (bool), stdout (str), stderr (str), returncode (int).
-        sync_release_hash.py 의 returncode 0 = 성공, 1+ = 실패.
+        dict with keys: ok (bool), sync_result (subprocess result), amend_result (subprocess result),
+        final_hash (amend 후의 HEAD short SHA, 또는 None).
+        sync_release_hash.py 또는 git amend 의 returncode != 0 면 ok = False.
     """
     sync_tool = Path(__file__).resolve().parent / "sync_release_hash.py"
     if not sync_tool.exists():
-        return {"ok": False, "stdout": "", "stderr": f"sync_release_hash.py not found: {sync_tool}", "returncode": -1}
+        return {
+            "ok": False, "sync_result": None, "amend_result": None, "final_hash": None,
+            "error": f"sync_release_hash.py not found: {sync_tool}",
+        }
     version_arg = f"v{version}" if not version.startswith("v") else version
-    # cwd = REPO_ROOT (sync_release_hash.py 의 git rev-parse --show-toplevel auto-detect)
-    proc = subprocess.run(
+
+    # Phase 1: sync_release_hash 호출
+    proc_sync = subprocess.run(
         [sys.executable, str(sync_tool), f"--version={version_arg}", "--apply"],
         capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
     )
+    sync_result = {
+        "stdout": proc_sync.stdout,
+        "stderr": proc_sync.stderr,
+        "returncode": proc_sync.returncode,
+    }
+    if proc_sync.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": None, "final_hash": None,
+            "error": f"sync_release_hash.py failed (returncode={proc_sync.returncode}): {proc_sync.stderr}",
+        }
+
+    # Phase 2: git add (sync 의 변경) + git commit --amend --no-edit (1 commit 통합)
+    # amend 시 *HEAD* 의 *직전* commit (feat or chore) 이 amend 됨
+    # sync_release_hash 의 변경 = state.json + backlog 의 TBD → HEAD hash
+    # *이미* amend 후 의 *HEAD* 의 본 release 의 chore commit hash 와 정합
+    proc_add = subprocess.run(
+        ["git", "add", "-A"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    add_result = {
+        "stdout": proc_add.stdout,
+        "stderr": proc_add.stderr,
+        "returncode": proc_add.returncode,
+    }
+    if proc_add.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": add_result, "final_hash": None,
+            "error": f"git add failed (returncode={proc_add.returncode}): {proc_add.stderr}",
+        }
+
+    proc_amend = subprocess.run(
+        ["git", "commit", "--amend", "--no-edit"],
+        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+    )
+    amend_result = {
+        "stdout": proc_amend.stdout,
+        "stderr": proc_amend.stderr,
+        "returncode": proc_amend.returncode,
+    }
+    if proc_amend.returncode != 0:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": amend_result, "final_hash": None,
+            "error": f"git commit --amend failed (returncode={proc_amend.returncode}): {proc_amend.stderr}",
+        }
+
+    # final hash (amend 후의 HEAD)
+    proc_hash = subprocess.run(
+        ["git", "rev-parse", "HEAD", "--short=7"],
+        capture_output=True, text=True, timeout=5, cwd=str(REPO_ROOT),
+    )
+    if proc_hash.returncode == 0:
+        final_hash = proc_hash.stdout.strip().splitlines()[-1][:7]
+    else:
+        final_hash = None
+
     return {
-        "ok": proc.returncode == 0,
-        "stdout": proc.stdout,
-        "stderr": proc.stderr,
-        "returncode": proc.returncode,
+        "ok": True, "sync_result": sync_result, "amend_result": amend_result, "final_hash": final_hash,
+        "error": None,
     }
 
 

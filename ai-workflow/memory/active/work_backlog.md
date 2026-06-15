@@ -163,3 +163,11 @@
 - **scope**: `tools/archive_stale_memory.py` (~250 line, 4-priority REPO_ROOT + 3 subcommand + 5 helper) + `tests/check_v0_7_28_archive_stale_memory.py` (5 smoke, 5/5 PASS)
 - **정공법**: F-7 (v0.7.26) 의 detached HEAD → short SHA fix 의 *closure*. age-based auto-archive: N day 이전의 short SHA dir → `archive/<YYYY-MM-DD>/<sha>/` 로 move. SHA256-based idempotency (v0.7.25 의 F-6 의 1차 출처).
 
+
+## v0.7.29 (2026-06-15) — TASK-V0727-001 (Post-Step 2-Phase + Amend Integration)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `release_pipeline.py:_run_post_step_sync_hash` (~50 line, 2-phase: sync + amend) + 1 신규 test file (5 smoke, 5/5 PASS)
+- **정공법**: post-step 의 *sequential dependency* (sync → add → amend → rev-parse). sync fail → amend 호출 0. amend fail → final_hash = None + ok = False. **별도 fix(state) commit 불필요** — feat + chore = 2 commit (v0.7.28 의 3 commit 대비 *33% 감소*).
+

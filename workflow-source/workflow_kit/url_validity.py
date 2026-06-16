@@ -675,8 +675,8 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
 _evictions_total: int = 0  # Cumulative since process start
 _evictions_session: int = 0  # Current session (process start → now)
 _last_eviction_timestamp: float = 0.0  # time.time() of last eviction, 0.0 = never
-
-
+_evictions_lru: int = 0  # v0.7.41+ per-strategy counter (ADR-021 follow-up)
+_evictions_lfu: int = 0  # v0.7.41+ per-strategy counter (ADR-021 follow-up, includes 'mixed')
 class _CacheLock:
     """Context manager for cross-process file lock on cache file. ADR-015.
 
@@ -783,7 +783,7 @@ def _save_cache(
     - lfu: lowest access_count (tie: oldest timestamp)
     - mixed: lowest (access_count, timestamp) tuple (composite, default)
     """
-    global _evictions_total, _evictions_session, _last_eviction_timestamp
+    global _evictions_total, _evictions_session, _last_eviction_timestamp, _evictions_lru, _evictions_lfu
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     raw = {
         url: {
@@ -811,6 +811,11 @@ def _save_cache(
         _evictions_total += 1
         _evictions_session += 1
         _last_eviction_timestamp = time.time()
+        # v0.7.41+ per-strategy counter (ADR-021 follow-up)
+        if eviction_strategy == "lru":
+            _evictions_lru += 1
+        else:  # lfu or mixed
+            _evictions_lfu += 1
         raw = {
             url: {
                 "timestamp": entry.timestamp,
@@ -897,14 +902,16 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
         "evictions_total": _evictions_total,
         "evictions_current_session": _evictions_session,
         "last_eviction_timestamp": _last_eviction_timestamp,
+        "evictions_lru": _evictions_lru,
+        "evictions_lfu": _evictions_lfu,
     }
+
 
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")
     p.add_argument("--mode", choices=["strict", "loose"], default="strict", help="lint mode")
     p.add_argument("--online", action="store_true", help="run online HEAD check (ADR-012)")
-    p.add_argument("--cache", action="store_true", help="use 24h disk cache (ADR-013)")
     p.add_argument("--ttl", type=int, default=DEFAULT_CACHE_TTL_SECONDS, help=f"cache TTL (default: {DEFAULT_CACHE_TTL_SECONDS})")
     p.add_argument("--max-retries", type=int, default=3, help="max retries for 5xx/429/timeout (default: 3)")
     p.add_argument("--timeout", type=float, default=10.0, help="online HEAD/body timeout in seconds (default: 10.0)")

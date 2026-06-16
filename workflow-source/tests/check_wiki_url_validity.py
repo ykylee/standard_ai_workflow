@@ -333,7 +333,7 @@ def test_cache_stats() -> None:
         try:
             # Empty cache
             stats = mod.cache_stats(cache_file=cache_file)
-            assert stats == {"total": 0, "fresh": 0, "expired": 0, "bytes": 0, "evictions_total": 0, "evictions_current_session": 0, "last_eviction_timestamp": 0.0}
+            assert stats == {"total": 0, "fresh": 0, "expired": 0, "bytes": 0, "evictions_total": 0, "evictions_current_session": 0, "last_eviction_timestamp": 0.0, "evictions_lru": 0, "evictions_lfu": 0}
             # 1 entry
             mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
             stats = mod.cache_stats(cache_file=cache_file)
@@ -599,13 +599,47 @@ def test_cache_lru_still_works_with_strategy_param() -> None:
         mod._save_cache(cache_file, entries, max_entries=1, max_bytes=10*1024*1024, eviction_strategy="lru")
         loaded = mod._load_cache(cache_file)
         assert len(loaded) == 1, f"expected 1 entry, got {len(loaded)}"
-        assert "https://old.com/" not in loaded, f"oldest should be evicted, got: {list(loaded.keys())}"
         assert "https://new.com/" in loaded, f"newest should be kept, got: {list(loaded.keys())}"
+
+
+def test_cache_per_strategy_lru_metric_v0_7_41() -> None:
+    """cache_stats() evictions_lru counter increments for 'lru' strategy (v0.7.41+)."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        now = time.time()
+        entries = {
+            "https://a.com/": mod.CacheEntry(url="https://a.com/", timestamp=now-2000, issues=("ok",), access_count=0),
+            "https://b.com/": mod.CacheEntry(url="https://b.com/", timestamp=now-1000, issues=("ok",), access_count=0),
+            "https://c.com/": mod.CacheEntry(url="https://c.com/", timestamp=now,      issues=("ok",), access_count=0),
+        }
+        mod._save_cache(cache_file, entries, max_entries=1, max_bytes=10*1024*1024, eviction_strategy="lru")
+        stats = mod.cache_stats(cache_file=cache_file)
+        # 2 evictions happened (a, b) — both LRU
+        assert stats["evictions_lru"] >= 2, f"evictions_lru should be >= 2, got: {stats}"
+        # lfu counter not incremented for 'lru' strategy
+        # (Note: previous test runs in same process may have incremented lfu, so we don't assert == 0)
+
+
+def test_cache_per_strategy_lfu_metric_v0_7_41() -> None:
+    """cache_stats() evictions_lfu counter increments for 'lfu'/'mixed' strategies (v0.7.41+)."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        now = time.time()
+        entries = {
+            "https://a.com/": mod.CacheEntry(url="https://a.com/", timestamp=now, issues=("ok",), access_count=0),    # low freq
+            "https://b.com/": mod.CacheEntry(url="https://b.com/", timestamp=now, issues=("ok",), access_count=10),   # high freq
+            "https://c.com/": mod.CacheEntry(url="https://c.com/", timestamp=now, issues=("ok",), access_count=5),    # mid freq
+        }
+        mod._save_cache(cache_file, entries, max_entries=1, max_bytes=10*1024*1024, eviction_strategy="mixed")
+        stats = mod.cache_stats(cache_file=cache_file)
+        # 2 evictions happened (a, c) — both LFU/mixed bucket
+        assert stats["evictions_lfu"] >= 2, f"evictions_lfu should be >= 2, got: {stats}"
 
 
 def test_cache_gzip_compression_roundtrip() -> None:
     """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
-    import gzip as _gzip
     mod = _import_url_validity()
     with tempfile.TemporaryDirectory() as tmpdir:
         cache_file = Path(tmpdir) / "cache.json"
@@ -815,6 +849,8 @@ def main() -> int:
         test_file_lock_stale_cleanup,
         test_cache_lfu_eviction_strategy,
         test_cache_lru_still_works_with_strategy_param,
+        test_cache_per_strategy_lru_metric_v0_7_41,
+        test_cache_per_strategy_lfu_metric_v0_7_41,
     ]
     failed: list[str] = []
     for fn in test_funcs:

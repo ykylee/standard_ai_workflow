@@ -1553,3 +1553,52 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (no new in v0.7.47).
 - **workflow_kit module count**: 14 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 4.0 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB, v_r13_commit_diff 6.0 KB, cache_lfu_decay 3.0 KB, cache_analytics 3.7 KB) = **103+ KB total**.
 - **release note count**: 42 cumulative (v0.7.5 ~ v0.7.47).
+
+## [2026-06-16] release | v0.7.48 — V-R13 commit diff integration + LFU full refactor + cache dashboard + federation v3 + CLI flag
+
+- **Trigger**: v0.7.47 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`ok do next` 14번째 turn). TASK-V0748-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (5 code enhancement + 10 new test) — v0.7.47 release 시점의 deferred work. **All FREE tier**, no paid APIs.
+- **Phase 1 (DONE — `9461ed1`)**: V-R13 layer 2 commit-level diff integration:
+  - `workflow_kit.v_r13_commit_diff_integration` module (NEW, 3.8 KB)
+  - `parse_range_from_url` + `check_url_semantic_with_commit_diff` + `format_commit_diff_summary`
+  - 2 new tests
+- **Phase 2 (DONE — `d27004f`)**: LFUConfig + _save_cache full refactor (replace, not wrap):
+  - `workflow_kit.cache_lfu_decay` extension
+  - `save_cache_lfu_decay_full` — standalone implementation
+  - 2 new tests
+- **Phase 3 (DONE — `6d9ca13`)**: per-strategy cache dashboard:
+  - `workflow_kit.cache_dashboard` module (NEW, 2.8 KB)
+  - `cache_dashboard` (formatted table) + `cache_dashboard_dict` (machine-readable)
+  - 2 new tests
+- **Phase 4 (DONE — `ffacc80`)**: phishing federation v3 (cross-source verification):
+  - `workflow_kit.phishing_federation_v3` module (NEW, 2.8 KB)
+  - `fetch_federated_phishing_urls_v3` (URLs in >= min_source_count)
+  - 2 new tests
+- **Phase 5 (DONE — `83ee37a`)**: CLI --cache-dashboard flag:
+  - `workflow_kit.cache_dashboard_cli` module (NEW, 2.4 KB)
+  - `run_cache_dashboard` with `--cache-dashboard` + `--cache-path=PATH`
+  - 2 new tests
+- **Phase 6 (DONE — TBD commit)**: final verification (171/171 tests PASS across 26 suites) + `releases/Beta-v0.7.48.md` (9 KB) + version bump v0.7.47 → v0.7.48 + log entry (본 entry).
+- **cumulative test**: v0.7.47 의 510+ → v0.7.48 의 **520+** (10 new: 2 commit diff integration + 2 LFU full refactor + 2 dashboard + 2 federation v3 + 2 CLI dashboard). 26 test suites, 171/171 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 0 new wiki pages)
+  - V-4 PASS (75 entries, no change — code-only changes)
+  - R-2 batch 권장 외 (5 follow-up + 10 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.48 release):
+  1. `9461ed1` feat(v0.7.48): V-R13 layer 2 commit-level diff integration (2/2 PASS) (Phase 1)
+  2. `d27004f` feat(v0.7.48): LFUConfig + _save_cache full refactor (save_cache_lfu_decay_full, 2/2 PASS) (Phase 2)
+  3. `6d9ca13` feat(v0.7.48): per-strategy cache dashboard (cache_dashboard module, 2/2 PASS) (Phase 3)
+  4. `ffacc80` feat(v0.7.48): phishing federation v3 (cross-source verification, 2/2 PASS) (Phase 4)
+  5. `83ee37a` feat(v0.7.48): CLI --cache-dashboard flag (cache_dashboard_cli module, 2/2 PASS) (Phase 5)
+  6. TBD release(v0.7.48): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.49+):
+  1. v0.7.49 release note + version bump (v0.7.48 → v0.7.49) — release 자체는 v0.7.48 release note + version bump 에서 완료.
+  2. VirusTotal API integration (commercial, multi-engine)
+  3. Live cache dashboard via web (Streamlit / Flask)
+  4. Federation v4: cross-source confidence scoring (weighted voting)
+  5. V-R13 layer 2 full pipeline (parse + dispatch + format + CLI integration)
+  6. Per-URL LFU decay score persistence (cache_lfu_decay + url_validity.py integration)
+- **ADR cumulative count**: 17 ADR accepted (006-025) + 0 ADR proposed = **17 total** (001-025). 17 accepted. No new ADRs in v0.7.48.
+- **concept page cumulative count**: 26 concepts (no new in v0.7.48).
+- **workflow_kit module count**: 18 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 4.0 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB, v_r13_commit_diff 6.0 KB, cache_lfu_decay 4.0 KB (extension), cache_analytics 3.7 KB, v_r13_commit_diff_integration 3.8 KB, cache_dashboard 2.8 KB, phishing_federation_v3 2.8 KB, cache_dashboard_cli 2.4 KB) = **113+ KB total**.
+- **release note count**: 43 cumulative (v0.7.5 ~ v0.7.48).

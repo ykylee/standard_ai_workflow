@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-011
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.35+ candidate)
+accepted_in: v0.7.35 (release note: workflow-source/releases/Beta-v0.7.35.md)
 alternatives_considered: [no-version-detect, strict-major-match, strict-minor-match, opt-in-version, sidecar-version-manifest]
-related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, decisions/adr-010-v-r10-url-validity-lint, patterns/wiki-stub-emit]
+related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, decisions/adr-010-v-r10-url-validity-lint, patterns/wiki-stub-emit, releases/Beta-v0.7.35]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 `concepts/okf-open-knowledge-format.md` follow-up + ADR-006 follow-up 5 (`okf_version` in `index.md` frontmatter) + ADR-007 follow-up 4 (versioning auto-detect) 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.35 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.35). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.35 release note 와 동시 accepted. `_parse_okf_version` + `_check_version_compatibility` 가 `okf_import.py` 에 통합. 5 new test (12/12 PASS) — exact match / major mismatch reject / minor higher warn / missing warn / malformed.
 
 ## Context
 
@@ -197,3 +197,4 @@ ADR-006 (OKF 5-field bridge) 채택으로 우리 wiki 가 OKF spec 과 1-way pro
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. `concepts/okf-open-knowledge-format.md` §12.1 follow-up 4 + ADR-006 follow-up 5 + ADR-007 follow-up 4 기반. 6 implementation item + 6 follow-up. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.35 release note 등재. `related_pages` 에 Beta-v0.7.35 추가. | Sisyphus (orchestrator) |

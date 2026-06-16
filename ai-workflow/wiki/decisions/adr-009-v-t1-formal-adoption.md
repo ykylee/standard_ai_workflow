@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-009
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.34+ candidate)
+accepted_in: v0.7.35 (release note: workflow-source/releases/Beta-v0.7.35.md)
 alternatives_considered: [lint-optional, lint-error-strict-only, lint-warn-only, manual-review, body-h1-only-no-frontmatter-title]
-related_pages: [concepts/v-t1-title-consistency-lint, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, patterns/wiki-stub-emit, patterns/r4-anchor-index, concepts/wiki-source-rule-r9]
+related_pages: [concepts/v-t1-title-consistency-lint, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, patterns/wiki-stub-emit, patterns/r4-anchor-index, concepts/wiki-source-rule-r9, releases/Beta-v0.7.35]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-006 follow-up 3 + `concepts/v-t1-title-consistency-lint.md` §0 (status: proposed) + ADR-007 §3 (mode matrix 통합 의무) 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.34 release note (`workflow-source/releases/Beta-v0.7.34.md`) 에 등재.
+**Accepted** (2026-06-16, v0.7.35). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.35 release note 와 동시 accepted. V-T1 PoC 가 `tests/run_all_checks.py` 의 `check_*.py` glob 으로 *auto-discovered* → 5 lint (V-1, V-4, V-R9) + 2 신규 (V-T1, ADR-007) 의 *canonical mode matrix* 완성.
 
 ## Context
 
@@ -181,3 +181,4 @@ ADR-007 §3 mode matrix (8 lint × 2 mode) 의 한 row 로 V-T1 정의 필요:
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-006 follow-up 3 + `concepts/v-t1-title-consistency-lint.md` §0 + ADR-007 §3 mode matrix 통합 의무 기반. 7 test spec + 10 implementation item. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.35 release note 등재. `related_pages` 에 Beta-v0.7.35 추가. | Sisyphus (orchestrator) |

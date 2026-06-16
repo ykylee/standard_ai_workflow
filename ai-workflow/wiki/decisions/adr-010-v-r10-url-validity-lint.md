@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-010
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.35+ candidate)
+accepted_in: v0.7.35 (release note: workflow-source/releases/Beta-v0.7.35.md)
 alternatives_considered: [online-only-head, offline-only-syntax, hybrid-cached, scheduled-ci-only, no-formal-decision]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-006-okf-compat-frontmatter, decisions/adr-008-in-repo-path-to-url, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-006-okf-compat-frontmatter, decisions/adr-008-in-repo-path-to-url, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit, decisions/adr-012-v-r10-online-layer, releases/Beta-v0.7.35]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 `concepts/okf-open-knowledge-format.md` follow-up + ADR-008 follow-up 3 (V-R10 URL validity) 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.35 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.35). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.35 release note 와 동시 accepted. 8 offline check PoC (`workflow_kit/url_validity.py`, 6/6 PASS) 가 우리 wiki lint suite 의 한 row 로 정식 등록. online HEAD layer 는 ADR-012 follow-up.
 
 ## Context
 
@@ -208,3 +208,4 @@ ADR-006 (OKF 5-field bridge) 채택으로 wiki 의 `resource` field 와 `last_in
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. `concepts/okf-open-knowledge-format.md` §12.1 follow-up 3 + ADR-008 follow-up 3 기반. 8 offline check + 8 online check + 9 implementation item + 6 follow-up. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.35 release note 등재. `related_pages` 에 ADR-012 (online layer) + Beta-v0.7.35 추가. | Sisyphus (orchestrator) |

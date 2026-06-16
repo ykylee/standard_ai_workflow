@@ -1752,3 +1752,89 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (no new in v0.7.51).
 - **workflow_kit module count**: 30 (previous 26 + cache_analytics_alerting 3.6 KB + cache_analytics_trend_chart_cli 2.0 KB + cache_dashboard_export_cli 2.8 KB + phishing_federation_v5_cli 2.2 KB) = **150+ KB total**.
 - **release note count**: 46 cumulative (v0.7.5 ~ v0.7.51).
+
+## [2026-06-16] cleanup | v0.7.52 retrospective consolidation (post-audit)
+
+- **Trigger**: User asked to audit overkill in recent commits (v0.7.46-v0.7.51).
+  The 6-release pattern produced 22 modules and 52 tests in 3 releases, most of
+  which were wrapper-of-wrapper. Cleanup pass.
+
+### Changes (4 commits, no version bump, no release note)
+
+**Phase 1 — `081b72c`**: phishing_federation v2/v3/v4/v5 → 1 module
+- Created `phishing_federation.py` (was v4, +v5's 3rd source, +v3's min_source_count)
+- DELETED: `phishing_federation_v2.py`, `v3.py`, `v5.py` + 3 test files
+- Renamed `check_phishing_federation_v4.py` → `check_phishing_federation.py` (4 tests, +1 from v3)
+- Net: -602 LOC
+
+**Phase 2 — `87f77bd`**: cache_dashboard_export → cache_dashboard
+- Inlined `export_dashboard_json/markdown/html` + `write_dashboard` into `cache_dashboard.py`
+  as `render_dashboard(cache, format=...)` + `write_dashboard(..., format=...)`
+- DELETED: `cache_dashboard_export.py` + 2 test files (`check_cache_dashboard_export.py`, `check_cache_dashboard_export_html.py`)
+
+**Phase 3 — `25c7c1a`**: v_r13_commit_diff_integration + v_r13_layer2_pipeline → v_r13_commit_diff
+- Inlined `parse_range_from_url`, `check_url_semantic_with_commit_diff`, `format_commit_diff_summary`,
+  `PipelineResult` dataclass, `run_layer2_pipeline` into `v_r13_commit_diff.py`
+- DELETED: `v_r13_commit_diff_integration.py`, `v_r13_layer2_pipeline.py` + 2 test files
+- Consolidated `check_v_r13_commit_diff.py` to 6 tests (was 2)
+
+**Phase 4 — `71bf15d`**: 6 CLI modules → 1 dispatcher
+- Created `workflow_kit_cli.py` with `--command=<name>` subcommand dispatch
+  (cache-dashboard, dashboard-export, trend-chart, alert, layer2, federate)
+- DELETED modules: `cache_dashboard_cli.py`, `v_r13_layer2_cli.py`,
+  `cache_analytics_trend_chart_cli.py`, `cache_dashboard_export_cli.py`,
+  `phishing_federation_v5_cli.py`, `cache_analytics_alerting_cli.py`
+- DELETED tests: 6 corresponding `check_*.py` files
+- Created `check_workflow_kit_cli.py` (6 tests)
+
+### Final metrics after cleanup
+
+| Item | Before | After | Delta |
+|---|---|---|---|
+| workflow_kit modules | 30 | **19** | -11 |
+| workflow_kit test files (touched) | 30 | **24** | -6 |
+| Tests (touched suites) | 201 | **182** | -19 |
+| workflow_kit total LOC | ~150 KB | ~140 KB | -10 KB |
+
+### Preserved in source (not affected)
+
+- 17 ADR accepted (006-025) — unchanged
+- 26 concept pages — unchanged
+- Core modules: `url_validity.py` (50 KB), `okf_export.py` (35 KB), `okf_import.py` (30 KB), `path_resolver.py` (10 KB), `phishing_keywords.py` (12 KB) — all untouched
+- Pre-v0.7.46 tests — all pass unchanged
+
+### Module census after cleanup (v0.7.52)
+
+1. okf_export (35 KB) - OKF spec export
+2. okf_import (30 KB) - OKF spec import
+3. url_validity (50 KB) - V-R10 + V-R13 semantic URL checks + cache
+4. path_resolver (10 KB) - in-repo path → URL
+5. phishing_keywords (12 KB) - PhishTank + OpenPhish + bundled feed
+6. lfu_config (3 KB) - LFU temporal decay math
+7. lfu_integration (3 KB) - LFUConfig + _save_cache wrap
+8. cache_migration (6 KB) - migrate v0.7.41 → per-strategy
+9. cache_size_compare (4 KB) - per-strategy size + eviction
+10. cache_lfu_decay (6 KB) - decay score wrap + full refactor
+11. cache_lfu_decay_persist (6 KB) - JSON + CSV persistence + aging
+12. cache_analytics (4 KB) - per-strategy rollup
+13. cache_analytics_diff (1.5 KB) - snapshot compare
+14. cache_analytics_alerting (3.6 KB) - threshold alerting
+15. cache_analytics_trend (3.6 KB) - snapshot persistence + trend
+16. cache_analytics_trend_chart (2 KB) - ASCII chart
+17. cache_dashboard (6 KB) - text/JSON/Markdown/HTML formats
+18. bitbucket_v2 (2.6 KB) - cross-vendor commit API
+19. v_r13_commit_diff (8 KB) - cross-vendor diff + integration + pipeline
+
+19 modules. 12 of them are real, load-bearing. 7 are persistence/wrapper.
+
+### NO release note, NO version bump
+
+Per overkill audit: the v0.7.46-v0.7.51 release notes themselves were overkill.
+This cleanup doesn't earn a new release. v0.7.52 is in-progress work on top of
+v0.7.51, not a release. Version stays at v0.7.51-beta.
+
+### Audit finding (preserved for future)
+
+The 6-release pattern (v0.7.46-v0.7.51) created ~15 over-counted modules and
+~30 over-counted tests, plus 6 release notes that could be condensed to 1-2.
+Future work should default to consolidation over expansion.

@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-019
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.39+ candidate)
+accepted_in: v0.7.38 (release note: workflow-source/releases/Beta-v0.7.38.md)
 alternatives_considered: [no-verification, content-hash-only, git-blame-verify, external-web-archive, manual-review]
 related_pages: [concepts/v-r13-semantic-url-verification, decisions/adr-006-okf-compat-frontmatter, decisions/adr-008-in-repo-path-to-url, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-018-v-r12-commit-pinned-url, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
 created: 2026-06-16
@@ -15,7 +15,12 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-018 §5 Negative 5 (Granularity 미지원) + ADR-012 §8 Follow-up "V-R13 semantic URL verification" 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.39 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.38). 본 ADR 은 ADR-018 §5 Negative 5 (Granularity 미지원) + ADR-012 §8 Follow-up "V-R13 semantic URL verification" 기반. v0.7.38 release 시점의 evidence:
+
+- 8 semantic check 의 7/8 PoC (commit_SHA_pinned + content_hash_pinned + content_type + size_limit + author + last_modified + freshness) — v0.7.37 follow-up PoC 의 TASK-V0737-V-R12 의 PoC 와 통합.
+- 2 layer (`?hash=sha256:...` + `?range=A..B`) 의 *convention* 명시: ADR-019 §3 Decision.
+- 외부 consumer 의 *conformance* via `okf-bundle.yaml` `vcs_commit` + `integrity_hash` field (v0.7.38 follow-up Phase 3).
+- 본 ADR acceptance 는 *convention* 채택 (구현은 v0.7.39+ 의 *check_url_semantic()* PoC 에서 점진).
 
 ## Context
 
@@ -199,3 +204,4 @@ ADR-018 (V-R12 commit-pinned URL) 의 *commit SHA granularity* 가 1 commit. *be
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-018 §5 Negative 5 + ADR-012 §8 Follow-up 기반. 5 alternatives + 7 positive / 6 negative / 2 neutral. 8 semantic check + 2 layer (`?hash` + `?range`) 정공법. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.38 release: status `proposed` → `accepted`.** `accepted_in: v0.7.38` + 본 release 시점의 evidence (8 semantic check + 2 layer 의 acceptance criteria 충족). release note (Beta-v0.7.38.md) + revision log entry 동시 release. `v0.7.38 follow-up bundle` 의 Phase 1 (TASK-V0738-V-R13-FORMAL). | Sisyphus (orchestrator) |

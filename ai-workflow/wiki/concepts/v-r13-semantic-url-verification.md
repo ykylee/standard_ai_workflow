@@ -1,9 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: verified_via_adr-019 (proposed, v0.7.39+ candidate)
+verification_status: verified_via_adr-019 (accepted, v0.7.38)
 contradiction_flags: []
 related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-006-okf-compat-frontmatter, decisions/adr-008-in-repo-path-to-url, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-018-v-r12-commit-pinned-url, decisions/adr-019-v-r13-semantic-url-verification, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
 created: 2026-06-16
@@ -20,7 +20,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-019 (proposed, v0.7.39+ candidate) 와 동시 promote. PoC 단계. |
+| 1 | status | **active** — ADR-019 와 동시 promote (v0.7.38 release, 2026-06-16). 본 rule 의 *convention* (8 check + 2 layer) 채택. PoC 구현은 v0.7.39+ 의 `check_url_semantic()` 에서 점진. |
 | 2 | rule ID | **V-R13** (Semantic URL verification) |
 | 3 | 도입 예정 버전 | v0.7.39 (PATCH, ADR-019 채택 시) |
 | 4 | 면제 범위 | 없음 (URL emit 시 default 적용, opt-in flag `--semantic` 로 manual skip) |
@@ -184,3 +184,4 @@ issues = check_url_semantic(
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-019 (proposed) 와 동시. 8 semantic check + 2 layer (`?hash` + `?range`) + mode matrix. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.38 release: status `proposed` → `active` + ADR-019 `proposed` → `accepted`.** 본 release 시점의 evidence (8 check 의 convention 명시 + 2 layer 의 query param convention 채택) — v0.7.38 follow-up bundle Phase 1 (TASK-V0738-V-R13-FORMAL). v0.7.39+ 의 `check_url_semantic()` PoC 와 통합. | Sisyphus (orchestrator) |

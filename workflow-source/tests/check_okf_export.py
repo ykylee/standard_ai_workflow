@@ -286,6 +286,14 @@ def test_okf_spec_4_1_full_conformance() -> None:
 
         # verify every exported page meets §4.1 conformance
         for out_path in sorted(out_bundle.rglob("*.md")):
+            # §6 index.md 는 reserved 이며 frontmatter 가 다름 (okf_version, generated_at, generator).
+            # §4.1 hard rule 은 *non-reserved* page 에만 적용.
+            if out_path.name == "index.md" and out_path.parent == out_bundle:
+                # bundle-root index.md: OKF spec §6 + §11 형식 (okf_version field)
+                text = out_path.read_text(encoding="utf-8")
+                assert text.startswith("---\n"), f"index.md missing frontmatter: {out_path}"
+                assert "okf_version" in text, f"index.md missing okf_version (SPEC §11): {out_path}"
+                continue
             text = out_path.read_text(encoding="utf-8")
             # §4.1 hard rule 1: parseable YAML frontmatter (lines start with ---)
             assert text.startswith("---\n"), f"{out_path}: missing frontmatter"
@@ -295,9 +303,9 @@ def test_okf_spec_4_1_full_conformance() -> None:
             type_val = type_match.group(1).strip().strip('"').strip("'")
             assert type_val, f"{out_path}: empty `type` field"
             # §4.1 hard rule 3: reserved filename structure
-            # (index.md, log.md 는 우리 export 가 emit 안 함 — 별도 검증)
+            # (per-page index.md/log.md 는 우리 export 가 emit 안 함 — subdir 의 reserved 는 안 OK)
             assert out_path.name not in ("index.md", "log.md"), (
-                f"{out_path}: reserved filename in concept export"
+                f"{out_path}: reserved filename in concept export (subdir)"
             )
 
         # verify priority order (type → title → description → resource → tags → timestamp) for full page
@@ -357,19 +365,25 @@ def test_okf_bundle_directory_layout() -> None:
         assert report.pages_exported == 3, (
             f"exported count: {report.pages_exported} (expected 3), errors: {report.errors}"
         )
-        # reserved files NOT in output (wiki root reserved + per-type reserved)
+        # reserved wiki-root files NOT in output
         assert not (out_bundle / "SCHEMA.md").exists(), "SCHEMA.md leaked to bundle"
         assert not (out_bundle / "INGEST_GUIDE.md").exists(), "INGEST_GUIDE.md leaked"
-        assert not (out_bundle / "index.md").exists(), "root index.md leaked"
-        assert not (out_bundle / "log.md").exists(), "root log.md leaked"
+        # bundle-root index.md IS auto-emitted (OKF spec §6 + §11) — verify it has okf_version
+        index_path = out_bundle / "index.md"
+        assert index_path.exists(), "bundle-root index.md not auto-emitted"
+        index_text = index_path.read_text(encoding="utf-8")
+        assert "okf_version" in index_text, "bundle-root index.md missing okf_version"
+        # log.md 는 export 가 emit 안 함 (별도 기능)
+        assert not (out_bundle / "log.md").exists(), "log.md leaked (not emitted by our export)"
         # subdirectory hierarchy preserved
         assert (out_bundle / "concepts" / "a.md").exists(), "concepts/a.md missing"
         assert (out_bundle / "concepts" / "sub" / "b.md").exists(), "concepts/sub/b.md missing"
         assert (out_bundle / "decisions" / "d.md").exists(), "decisions/d.md missing"
-        # no extra files in bundle
+        # exact file list: 3 concept/decision pages + 1 bundle-root index.md
         all_files = sorted(p.relative_to(out_bundle) for p in out_bundle.rglob("*") if p.is_file())
         expected = sorted(
             [
+                Path("index.md"),
                 Path("concepts/a.md"),
                 Path("concepts/sub/b.md"),
                 Path("decisions/d.md"),
@@ -378,6 +392,47 @@ def test_okf_bundle_directory_layout() -> None:
         assert all_files == expected, f"layout mismatch:\n  got: {all_files}\n  expected: {expected}"
 
 
+# --- Test 10: bundle root index.md auto-emit (OKF SPEC §6 + §11) ---
+
+
+def test_okf_bundle_root_index_md_emit() -> None:
+    """Bundle root `index.md` 자동 emit (OKF SPEC.md §6 + §11).
+
+    §6: index.md MAY appear in any directory to enumerate contents.
+    §11: bundle-root `index.md` frontmatter 의 `okf_version` 으로 spec version 선언.
+    """
+    mod = _import_okf_export()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "concepts" / "alpha.md").write_text(
+            "---\ntype: concept\nstatus: active\n---\n\n# Alpha\n\nbody\n",
+            encoding="utf-8",
+        )
+        (wiki_root / "decisions").mkdir()
+        (wiki_root / "decisions" / "beta.md").write_text(
+            "---\ntype: decision\nstatus: active\n---\n\n# Beta\n\nbody\n",
+            encoding="utf-8",
+        )
+        report = mod.export_wiki_to_okf(wiki_root, out_bundle)
+        assert report.pages_exported == 2, f"got {report.pages_exported}, errors: {report.errors}"
+        index_path = out_bundle / "index.md"
+        assert index_path.exists(), "bundle-root index.md not auto-emitted"
+        text = index_path.read_text(encoding="utf-8")
+        # §11: okf_version field
+        assert 'okf_version: "0.1"' in text, f"index.md missing okf_version field:\n{text}"
+        # generated_at + generator field
+        assert "generated_at:" in text, "index.md missing generated_at"
+        assert "generator:" in text, "index.md missing generator"
+        # body: section heading per type + entries
+        assert "## Concepts" in text, "index.md missing Concepts section"
+        assert "## Decisions" in text, "index.md missing Decisions section"
+        assert "alpha.md" in text, "index.md missing alpha.md entry"
+        assert "beta.md" in text, "index.md missing beta.md entry"
+        # bundle-root index.md 는 §4.1 hard rule 적용 안 됨 (no `type` field, has `okf_version`)
+        assert "type:" not in text.split("---")[1], "index.md should NOT have `type` field (reserved)"
 # --- 메인 실행 ---
 def main() -> int:
     test_funcs = [
@@ -390,6 +445,7 @@ def main() -> int:
         test_export_wiki_to_okf_end_to_end,
         test_okf_spec_4_1_full_conformance,
         test_okf_bundle_directory_layout,
+        test_okf_bundle_root_index_md_emit,
     ]
     failed: list[str] = []
 

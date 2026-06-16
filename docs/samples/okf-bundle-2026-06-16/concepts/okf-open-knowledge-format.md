@@ -2,13 +2,13 @@
 type: concept
 title: OKF (Open Knowledge Format) v0.1
 description: A bundle is a self-contained, hierarchical collection of knowledge documents — the unit of distribution.
+resource: "https://github.com/ykylee/standard_ai_workflow/blob/main/external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16)"
 tags: [status:active, wiki-type:concept]
 timestamp: "2026-06-16T00:00:00Z"
 created: 2026-06-16
 status: active
 related_pages: [concepts/wiki-source-rule-r9, concepts/stage-gate-pattern, concepts/contract-v1-output-validation, decisions/adr-001-3-layer-separation, patterns/r4-anchor-index, topics/wiki-ingest-lifecycle, patterns/wiki-stub-emit]
 r9_skip: true
-last_ingested_from: "external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16)"
 ---
 # OKF (Open Knowledge Format) v0.1
 
@@ -388,10 +388,6 @@ timestamp: <ISO 8601 datetime>   # = updated 와 동일 값
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. 외부 grounding/AI search 결과 합성. 모든 structural claim `[INFERENCE]` + C-OKF-1 flag | Sisyphus (orchestrator) |
 | 2026-06-16 | 0.2.0 | **C-OKF-1 RESOLVED**: `GoogleCloudPlatform/knowledge-catalog/okf/SPEC.md` (457 lines) primary source 확인. 모든 `[INFERENCE]` 제거, status=draft→active, verification_status=VERIFIED, §0~§17 재구성. §8 conformance, §9 versioning, §7 citations, §11 reference impl + 3 sample bundle, §14 verification trail 추가. initial draft 의 §1-§6 structural claim 검증 완료. | Sisyphus (orchestrator) |
-
-## Citations
-
-[1] [external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16)](external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16))
 
 ## See Also
 

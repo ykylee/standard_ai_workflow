@@ -2,12 +2,12 @@
 type: entity
 title: workflow_kit
 description: "Reusable Python package (`workflow-source/workflow_kit/`) installed editable via `pip install -e`. Consolidates logic previously scattered across scripts and prototypes into importable modules. Cur..."
+resource: "https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/workflow_kit/README.md"
 tags: [status:active, wiki-type:entity]
 timestamp: "2026-06-12T00:00:00Z"
 created: 2026-06-12
 status: active
 related_pages: [entities/standard-ai-workflow, entities/workflow-source, concepts/contract-v1-output-validation, concepts/mcp-transport]
-last_ingested_from: workflow-source/workflow_kit/README.md
 ---
 # workflow_kit
 
@@ -73,10 +73,6 @@ Semver string exported as `workflow_kit.__version__`. Current value: `v0.6.3-bet
 - [workflow-source](../entities/workflow-source.md) — source tree where this package lives
 - [contract-v1-output-validation](../concepts/contract-v1-output-validation.md) — contract enforced by `contract_v1/`
 - [mcp-transport](../concepts/mcp-transport.md) — transport context for `server/`
-
-## Citations
-
-[1] [workflow-source/workflow_kit/README.md](workflow-source/workflow_kit/README.md)
 
 ## See Also
 

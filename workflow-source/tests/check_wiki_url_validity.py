@@ -536,13 +536,36 @@ def test_file_lock_serializes_concurrent_writes() -> None:
         assert isinstance(parsed, dict)
 
 
+def test_file_lock_stale_cleanup() -> None:
+    """_CacheLock removes a lock file whose mtime is older than stale_seconds."""
+    import time as _time
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = cache_file.with_suffix(cache_file.suffix + ".lock")
+        # create a lock file and back-date it to 48h ago
+        lock_path.write_text("stale")
+        old_time = _time.time() - (48 * 3600)  # 48h ago
+        import os
+        os.utime(lock_path, (old_time, old_time))
+        assert lock_path.exists()
+        # Open with stale_seconds=24h; should remove the stale lock file
+        with mod._CacheLock(cache_file, timeout=1.0, stale_seconds=24 * 3600):
+            pass
+        # After exiting, the lock file should have been removed (stale) and recreated.
+        assert lock_path.exists(), "lock file should be re-created after cleanup"
+        # verify the file's mtime is now (recent)
+        mtime_after = lock_path.stat().st_mtime
+        assert _time.time() - mtime_after < 60, f"lock file mtime not refreshed: {mtime_after}"
+
+
 def test_cache_gzip_compression_roundtrip() -> None:
     """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
     import gzip as _gzip
     mod = _import_url_validity()
     with tempfile.TemporaryDirectory() as tmpdir:
         cache_file = Path(tmpdir) / "cache.json"
-        # build a cache that exceeds 4KB
         now = time.time()
         entries: dict[str, mod.CacheEntry] = {}
         for i in range(50):
@@ -746,6 +769,7 @@ def main() -> int:
         test_cli_body_flag_invokes_body_audit,
         test_file_lock_timeout,
         test_cache_gzip_compression_roundtrip,
+        test_file_lock_stale_cleanup,
     ]
     failed: list[str] = []
     for fn in test_funcs:

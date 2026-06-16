@@ -366,10 +366,13 @@ class _CacheLock:
     """
 
     DEFAULT_LOCK_TIMEOUT: float = 30.0
+    DEFAULT_STALE_SECONDS: float = 86400.0  # 24h: lock file older than this is orphaned
 
-    def __init__(self, cache_file: Path, timeout: float = DEFAULT_LOCK_TIMEOUT):
+    def __init__(self, cache_file: Path, timeout: float = DEFAULT_LOCK_TIMEOUT,
+                 stale_seconds: float = DEFAULT_STALE_SECONDS):
         self.cache_file = cache_file
         self.timeout = timeout
+        self.stale_seconds = stale_seconds
         self._lock_path: Path | None = None
         self._fd = None
 
@@ -382,6 +385,9 @@ class _CacheLock:
         # Use a sidecar lock file (cache_file.lock) to avoid interfering with cache reads
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._lock_path = self.cache_file.with_suffix(self.cache_file.suffix + ".lock")
+        # v0.7.38+: orphan lock cleanup. If lock file exists and is older than
+        # stale_seconds, treat as orphaned (process died without cleanup) and remove.
+        self._maybe_cleanup_stale_lock()
         try:
             self._fd = open(self._lock_path, "w")
             # Try non-blocking exclusive lock first
@@ -422,7 +428,27 @@ class _CacheLock:
             self._fd = None
         return False
 
+    def _maybe_cleanup_stale_lock(self) -> None:
+        """If lock file mtime is older than self.stale_seconds, remove it.
 
+        Handles the case where a previous process died holding the lock
+        (e.g. SIGKILL, OOM, segfault). POSIX flock() is per-process, so once
+        the process is gone, the lock is released — but a stale lock file
+        can mislead a subsequent process that uses LOCK_NB first. We remove
+        the lock file if it's old enough to be considered orphaned.
+        """
+        import sys
+        import time
+        if self._lock_path is None or not self._lock_path.exists():
+            return
+        try:
+            mtime = self._lock_path.stat().st_mtime
+            age = time.time() - mtime
+            if age > self.stale_seconds:
+                print(f"WARN: removing stale lock file (age={age:.0f}s > {self.stale_seconds:.0f}s): {self._lock_path}", file=sys.stderr)
+                self._lock_path.unlink()
+        except OSError as e:
+            print(f"WARN: stale lock check failed for {self._lock_path}: {e}", file=sys.stderr)
 
 
 def _save_cache(

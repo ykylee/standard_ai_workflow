@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-025 (proposed, v0.7.43 draft)
-related_pages: [decisions/adr-025-okf-consumer-quickstart-tutorial, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, decisions/adr-008-in-repo-path-to-url, decisions/adr-011-okf-version-auto-detect, decisions/adr-018-v-r12-commit-pinned-url, decisions/adr-019-v-r13-semantic-url-verification, concepts/okf-open-knowledge-format, docs/OKF_CONSUMER_GUIDE]
+verification_status: accepted_via_adr-025 (v0.7.44, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -25,7 +24,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-025 와 동시 (v0.7.43 draft, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.43+ 예정) 의 *formal documentation*. |
+| 1 | status | **active** — ADR-025 와 동시 promote (v0.7.43 draft → v0.7.44 formal acceptance, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.44+ implemented `docs/OKF_CONSUMER_QUICKSTART.md`) 의 *formal documentation*. |
 | 2 | tutorial format | *Markdown* 의 *5 section* (Install + Verify + Inspect + Ingest + Lint). |
 | 3 | time-to-value | *5 min* 의 *external consumer* 의 *first-time setup* 의 *operational* 정공법. |
 | 4 | sample bundle | `docs/samples/okf-bundle-2026-06-16/` 의 *walkthrough* 의 *operational* 정공법. |
@@ -126,4 +125,4 @@ updated: 2026-06-16
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-025 (proposed) 와 동시. 11 section + 7 primary sources. 5 section *operational matrix* + sample bundle walkthrough + CLI command sequence. 6 phase 의 *gradual rollout*. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.44 release: status `proposed` → `active` + ADR-025 `proposed` → `accepted`.** 본 release 시점의 evidence (docs/OKF_CONSUMER_QUICKSTART.md 5 section + sample bundle walkthrough 5-step table + CLI command sequence copy-paste-able). `v0.7.44 follow-up bundle` 의 Phase 1 (TASK-V0744-ADR-FORMAL). | Sisyphus (orchestrator) |

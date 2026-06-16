@@ -237,9 +237,148 @@ def test_export_wiki_to_okf_end_to_end() -> None:
         assert "## See Also" in out_text
 
 
+# --- Test 8: OKF spec §4.1 full conformance ---
+
+
+def test_okf_spec_4_1_full_conformance() -> None:
+    """OKF SPEC.md §4.1 full conformance: 3 hard rule + 5 recommended field.
+
+    Hard rule (§9 conformance):
+    1. Every non-reserved `.md` file has parseable YAML frontmatter
+    2. Every frontmatter has non-empty `type` field
+    3. Reserved filenames (`index.md`, `log.md`) follow structure
+
+    Recommended (priority order): type → title → description → resource → tags → timestamp
+
+    본 test 는 export 된 bundle 의 모든 page 가 §4.1 conformance 충족 검증.
+    """
+    mod = _import_okf_export()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        # 3 page: 1 with full frontmatter, 1 minimal, 1 in different subdir
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "entities").mkdir()
+        (wiki_root / "concepts" / "full.md").write_text(
+            "---\n"
+            "type: concept\n"
+            "title: Full Page\n"
+            "description: All fields populated.\n"
+            "last_ingested_from: https://example.com/spec.md\n"
+            "tags: [a, b]\n"
+            "updated: 2026-06-16\n"
+            "status: active\n"
+            "---\n\n# Full Page\n\nbody\n",
+            encoding="utf-8",
+        )
+        (wiki_root / "concepts" / "minimal.md").write_text(
+            "---\ntype: concept\n---\n\n# Minimal\n\nbody\n",
+            encoding="utf-8",
+        )
+        (wiki_root / "entities" / "entity.md").write_text(
+            "---\ntype: entity\nstatus: active\n---\n\n# Entity\n\nbody\n",
+            encoding="utf-8",
+        )
+        report = mod.export_wiki_to_okf(wiki_root, out_bundle)
+        assert report.pages_exported == 3, f"exported count: {report.pages_exported}, errors: {report.errors}"
+        assert not report.errors, f"export errors: {report.errors}"
+
+        # verify every exported page meets §4.1 conformance
+        for out_path in sorted(out_bundle.rglob("*.md")):
+            text = out_path.read_text(encoding="utf-8")
+            # §4.1 hard rule 1: parseable YAML frontmatter (lines start with ---)
+            assert text.startswith("---\n"), f"{out_path}: missing frontmatter"
+            # §4.1 hard rule 2: non-empty `type` field
+            type_match = re.search(r"^type: (\S.*)$", text, re.MULTILINE)
+            assert type_match, f"{out_path}: missing `type` field"
+            type_val = type_match.group(1).strip().strip('"').strip("'")
+            assert type_val, f"{out_path}: empty `type` field"
+            # §4.1 hard rule 3: reserved filename structure
+            # (index.md, log.md 는 우리 export 가 emit 안 함 — 별도 검증)
+            assert out_path.name not in ("index.md", "log.md"), (
+                f"{out_path}: reserved filename in concept export"
+            )
+
+        # verify priority order (type → title → description → resource → tags → timestamp) for full page
+        full_text = (out_bundle / "concepts" / "full.md").read_text(encoding="utf-8")
+        # find positions of first occurrence
+        priority = ["type", "title", "description", "resource", "tags", "timestamp"]
+        positions: list[tuple[str, int]] = []
+        for key in priority:
+            m = re.search(rf"^{key}:", full_text, re.MULTILINE)
+            if m:
+                positions.append((key, m.start()))
+        # sort by position
+        positions.sort(key=lambda x: x[1])
+        actual_order = [k for k, _ in positions]
+        assert actual_order == priority, (
+            f"OKF §4.1 priority order violated: {actual_order} != {priority}"
+        )
+
+
+# --- Test 9: bundle directory layout (reserved file isolation, subdir preservation) ---
+
+
+def test_okf_bundle_directory_layout() -> None:
+    """Bundle directory layout: reserved filename 격리 + subdirectory 보존.
+
+    OKF SPEC.md §3.1: `index.md` 와 `log.md` 는 reserved. §2.2: directory hierarchy 보존.
+    본 test 는 export 시:
+    1. reserved filename (`index.md`, `log.md`) 이 wiki 의 reserved file 과 충돌 시 skip
+    2. subdirectory hierarchy 보존
+    3. 우리 wiki 의 SCHEMA.md / INGEST_GUIDE.md 같은 reserved file 도 skip
+    """
+    mod = _import_okf_export()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        # create SCHEMA.md (reserved) at wiki root + INGEST_GUIDE.md (reserved)
+        (wiki_root / "SCHEMA.md").write_text("---\ntype: schema\n---\n\nschema\n", encoding="utf-8")
+        (wiki_root / "INGEST_GUIDE.md").write_text("# Guide\n", encoding="utf-8")
+        (wiki_root / "index.md").write_text("# Index\n", encoding="utf-8")
+        (wiki_root / "log.md").write_text("# Log\n", encoding="utf-8")
+        # nested subdirectories with pages
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "concepts" / "a.md").write_text(
+            "---\ntype: concept\n---\n\n# A\n\nbody\n", encoding="utf-8"
+        )
+        (wiki_root / "concepts" / "sub").mkdir()
+        (wiki_root / "concepts" / "sub" / "b.md").write_text(
+            "---\ntype: concept\n---\n\n# B\n\nbody\n", encoding="utf-8"
+        )
+        (wiki_root / "decisions").mkdir()
+        (wiki_root / "decisions" / "d.md").write_text(
+            "---\ntype: decision\n---\n\n# D\n\nbody\n", encoding="utf-8"
+        )
+        report = mod.export_wiki_to_okf(wiki_root, out_bundle)
+        # only 3 concept/decision pages exported, reserved + non-type-dir files skipped
+        assert report.pages_exported == 3, (
+            f"exported count: {report.pages_exported} (expected 3), errors: {report.errors}"
+        )
+        # reserved files NOT in output (wiki root reserved + per-type reserved)
+        assert not (out_bundle / "SCHEMA.md").exists(), "SCHEMA.md leaked to bundle"
+        assert not (out_bundle / "INGEST_GUIDE.md").exists(), "INGEST_GUIDE.md leaked"
+        assert not (out_bundle / "index.md").exists(), "root index.md leaked"
+        assert not (out_bundle / "log.md").exists(), "root log.md leaked"
+        # subdirectory hierarchy preserved
+        assert (out_bundle / "concepts" / "a.md").exists(), "concepts/a.md missing"
+        assert (out_bundle / "concepts" / "sub" / "b.md").exists(), "concepts/sub/b.md missing"
+        assert (out_bundle / "decisions" / "d.md").exists(), "decisions/d.md missing"
+        # no extra files in bundle
+        all_files = sorted(p.relative_to(out_bundle) for p in out_bundle.rglob("*") if p.is_file())
+        expected = sorted(
+            [
+                Path("concepts/a.md"),
+                Path("concepts/sub/b.md"),
+                Path("decisions/d.md"),
+            ]
+        )
+        assert all_files == expected, f"layout mismatch:\n  got: {all_files}\n  expected: {expected}"
+
+
 # --- 메인 실행 ---
-
-
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -249,8 +388,11 @@ def main() -> int:
         test_map_to_okf_derives_title_from_body,
         test_rewrite_wiki_links,
         test_export_wiki_to_okf_end_to_end,
+        test_okf_spec_4_1_full_conformance,
+        test_okf_bundle_directory_layout,
     ]
     failed: list[str] = []
+
     for fn in test_funcs:
         name = fn.__name__
         try:

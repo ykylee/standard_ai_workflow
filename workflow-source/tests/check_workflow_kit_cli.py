@@ -500,6 +500,37 @@ def test_cache_merge_multi_no_op_v0_7_57() -> None:
         assert code == 0
 
 
+def test_consumer_metrics_registered_v0_7_58() -> None:
+    """consumer-metrics is registered as dispatcher subcommand 27 (v0.7.58+)."""
+    mod = _import_cli()
+    assert "consumer-metrics" in mod.COMMANDS
+    assert callable(mod.COMMANDS["consumer-metrics"])
+
+
+def test_consumer_metrics_invalid_days_returns_2_v0_7_58() -> None:
+    """consumer-metrics with --days=0 or --days=100 returns 2 (usage error)."""
+    mod = _import_cli()
+    # days=0
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--days=0", "--json"])
+    assert code == 2
+    # days=100 (out of 1-90 range)
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--days=100", "--json"])
+    assert code == 2
+
+
+def test_consumer_metrics_default_argv_v0_7_58() -> None:
+    """consumer-metrics with no args uses defaults (--days=14, --repo=ykylee/standard_ai_workflow).
+
+    Skips when gh CLI is not authenticated (e.g. CI without GITHUB_TOKEN) — returns
+    1 (gh auth fail) or 0 (success) are both acceptable; the test only fails on
+    rc=2 (usage error) which would mean the dispatcher is broken.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
+    # rc=0 = success, rc=1 = gh auth fail (CI), rc=2 = usage error (broken)
+    assert code in (0, 1), f"expected 0 or 1, got {code}"
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -540,6 +571,9 @@ def main() -> int:
         test_cache_export_json_no_output_returns_2_v0_7_57,
         test_cache_export_json_roundtrip_v0_7_57,
         test_cache_merge_multi_no_op_v0_7_57,
+        test_consumer_metrics_registered_v0_7_58,
+        test_consumer_metrics_invalid_days_returns_2_v0_7_58,
+        test_consumer_metrics_default_argv_v0_7_58,
     ]
     failed: list[str] = []
     for fn in test_funcs:

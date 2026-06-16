@@ -1083,6 +1083,27 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
     }
 
 
+def cache_stats_per_strategy(base_path: Path | None = None) -> dict[str, dict[str, int]]:
+    """Return per-strategy cache stats (v0.7.43+, ADR-024 follow-up).
+
+    Reads cache_file_for_strategy(base_path, strategy) for each of lru/lfu/mixed
+    and returns the cache_stats() result for each. Useful for A/B testing
+    cross-strategy effectiveness.
+
+    Args:
+        base_path: base cache file path (default: DEFAULT_CACHE_FILE)
+
+    Returns:
+        dict mapping strategy name to cache_stats() result
+    """
+    base = base_path or DEFAULT_CACHE_FILE
+    return {
+        "lru": cache_stats(cache_file=cache_file_for_strategy(base, "lru")),
+        "lfu": cache_stats(cache_file=cache_file_for_strategy(base, "lfu")),
+        "mixed": cache_stats(cache_file=cache_file_for_strategy(base, "mixed")),
+    }
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")

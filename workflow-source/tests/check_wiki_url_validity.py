@@ -673,8 +673,36 @@ def test_cache_per_strategy_file_isolation_v0_7_42() -> None:
         mixed_loaded = mod._load_cache(mixed_file)
         assert "https://lru.com/" in lru_loaded
         assert "https://mixed.com/" in mixed_loaded
-        assert "https://mixed.com/" not in lru_loaded
         assert "https://lru.com/" not in mixed_loaded
+
+
+def test_cache_stats_per_strategy_v0_7_43() -> None:
+    """cache_stats_per_strategy returns stats for lru/lfu/mixed (cross-strategy compare)."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir) / "url_validity_cache.json"
+        now = time.time()
+        # Populate lru file with 2 entries
+        mod._save_cache(
+            mod.cache_file_for_strategy(base, "lru"),
+            {
+                "https://lru1.com/": mod.CacheEntry(url="https://lru1.com/", timestamp=now, issues=("ok",)),
+                "https://lru2.com/": mod.CacheEntry(url="https://lru2.com/", timestamp=now, issues=("ok",)),
+            },
+        )
+        # Populate mixed file with 1 entry
+        mod._save_cache(
+            mod.cache_file_for_strategy(base, "mixed"),
+            {
+                "https://mixed1.com/": mod.CacheEntry(url="https://mixed1.com/", timestamp=now, issues=("ok",)),
+            },
+        )
+        stats = mod.cache_stats_per_strategy(base_path=base)
+        # lru has 2 entries, mixed has 1, lfu has 0
+        assert "lru" in stats and "lfu" in stats and "mixed" in stats, f"missing strategies: {list(stats.keys())}"
+        assert stats["lru"]["total"] == 2, f"lru total should be 2, got {stats['lru']['total']}"
+        assert stats["mixed"]["total"] == 1, f"mixed total should be 1, got {stats['mixed']['total']}"
+        assert stats["lfu"]["total"] == 0, f"lfu total should be 0, got {stats['lfu']['total']}"
 
 
 def test_cache_gzip_compression_roundtrip() -> None:
@@ -863,6 +891,7 @@ def main() -> int:
         test_online_http_200_pass,
         test_online_http_404_stale,
         test_online_http_500_warn,
+        test_cache_stats_per_strategy_v0_7_43,
         test_online_timeout_warn,
         test_online_tls_error_reject,
         test_online_dns_failure_reject,

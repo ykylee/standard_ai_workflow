@@ -1,6 +1,7 @@
 """workflow_kit.workflow_kit_cli - unified CLI dispatcher (consolidated v0.7.52,
 extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
-cache-migrate / release-doctor).
+cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
+score-wiki-trend).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -10,27 +11,33 @@ Usage:
     python -m workflow_kit.workflow_kit_cli --command=<name> [args...]
 
 Commands:
-    cache-dashboard [--cache-path=PATH]
-    dashboard-export --output=PATH [--format=json|markdown|html] [--cache-path=PATH]
-    trend-chart --snapshots=PATH [--metric=total_size|total_hits|total_misses]
-    alert [--max-size=N] [--min-hit-rate=0.5] [--max-evictions=N] [--cache-path=PATH]
-    layer2 --layer2 URL [--user=USER --token=TOKEN]
-    federate [--phishtank-key=KEY] [--min-confidence=0.0]
-    okf-export    --wiki=PATH --out=PATH [--include=SUBSTR]... [--exclude=SUBSTR]...
-                  [--json] [--repo-root=PATH] [--no-resolve]
-                  [--vcs-commit=SHA] [--vcs-ref=REF]
-    okf-import    --bundle=PATH [--staging=PATH] [--mode=strict|loose|auto]
-                  [--promote] [--json]
-    okf-validate  --bundle=PATH [--mode=strict|loose] [--json]
-    cache-migrate [--cache-path=PATH] [--json]
-    release-doctor[--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git]
+    cache-dashboard    [--cache-path=PATH]
+    dashboard-export   --output=PATH [--format=json|markdown|html] [--cache-path=PATH]
+    trend-chart        --snapshots=PATH [--metric=total_size|total_hits|total_misses]
+    alert              [--max-size=N] [--min-hit-rate=0.5] [--max-evictions=N] [--cache-path=PATH]
+    layer2             --layer2 URL [--user=USER --token=TOKEN]
+    federate           [--phishtank-key=KEY] [--min-confidence=0.0]
+    okf-export         --wiki=PATH --out=PATH [--include=SUBSTR]... [--exclude=SUBSTR]...
+                       [--json] [--repo-root=PATH] [--no-resolve]
+                       [--vcs-commit=SHA] [--vcs-ref=REF]
+    okf-import         --bundle=PATH [--staging=PATH] [--mode=strict|loose|auto]
+                       [--promote] [--json]
+    okf-validate       --bundle=PATH [--mode=strict|loose] [--json]
+    okf-version-check  --okf-version=X.Y  OR  --bundle=PATH [--json]
+    cache-migrate      [--cache-path=PATH] [--mode=migrate|split|both]
+                       [--lfu-threshold=N] [--json]
+    cache-decay        --scores=PATH [--saved-at=ISO8601] [--output=PATH]
+                       [--half-life=N] [--json]
+    release-doctor     [--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git]
+    score-wiki-trend   [--record-current | --record-range=N | --show | --json]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
 
 Note: okf-* / cache-* use their own argparse or function-call API internally.
 The dispatcher forwards argv verbatim after stripping --command. Their full
 arg surface is documented in each module's main() docstring (and via --help).
-release-doctor is dispatcher-internal (calls tools.release_pipeline via subprocess).
+release-doctor and score-wiki-trend call tools/* scripts via in-process import
+(no subprocess overhead).
 """
 
 from __future__ import annotations
@@ -273,6 +280,158 @@ def cmd_okf_import(argv: list[str]) -> int:
         return 2
 
 
+@register("okf-version-check")
+def cmd_okf_version_check(argv: list[str]) -> int:
+    """Check OKF bundle version compatibility (ADR-011 / OKF spec §11).
+
+    Args:
+        --okf-version=X.Y   bundle's okf_version (e.g. "0.1")
+        --bundle=PATH       read from okf-bundle.yaml manifest if --okf-version absent
+        --json              JSON output
+    """
+    import json as _json
+    version = _parse_flag(argv, "--okf-version")
+    bundle = _parse_flag(argv, "--bundle")
+    use_json = _has_flag(argv, "--json")
+    if version is None and bundle is None:
+        print("ERROR: --okf-version=X.Y or --bundle=PATH required", file=sys.stderr)
+        return 2
+    # If bundle given and no version, read from okf-bundle.yaml manifest
+    if version is None and bundle is not None:
+        from pathlib import Path as _P
+        manifest = _P(bundle) / "okf-bundle.yaml"
+        if not manifest.exists():
+            print(f"ERROR: --bundle path has no okf-bundle.yaml: {bundle}", file=sys.stderr)
+            return 2
+        # simple regex: `okf_version: "0.1"` (single-line)
+        import re as _re
+        text = manifest.read_text(encoding="utf-8")
+        m = _re.search(r'^\s*okf_version\s*:\s*["\']?(\d+\.\d+(?:\.\d+)?)["\']?', text, _re.MULTILINE)
+        if m is None:
+            print(f"ERROR: okf_version not found in {manifest}", file=sys.stderr)
+            return 2
+        version = m.group(1)
+    try:
+        from workflow_kit.okf_import import _check_version_compatibility
+        result = _check_version_compatibility(version)
+        out = {
+            "okf_version": result.bundle_version,
+            "our_version": result.our_version,
+            "status": result.status,
+            "message": result.message,
+        }
+        if use_json:
+            print(_json.dumps(out, indent=2))
+        else:
+            print(f"OKF version check: bundle={out['okf_version']}, our={out['our_version']}")
+            print(f"  status: {out['status']}")
+            print(f"  message: {out['message']}")
+        # rc: 0 = pass, 1 = warn, 2 = error
+        if result.status == "error":
+            return 2
+        if result.status == "warn":
+            return 1
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("cache-decay")
+def cmd_cache_decay(argv: list[str]) -> int:
+    """Apply temporal decay to LFU cache scores (v0.7.51+).
+
+    Reads scores from JSON file, applies age-based decay (default half-life=1 day),
+    writes decayed scores back. Args:
+        --scores=PATH          input JSON file (url → score)
+        --saved-at=ISO8601     timestamp when scores were saved
+                              (default: file mtime)
+        --output=PATH          output JSON file (default: stdout)
+        --half-life=N          half-life in seconds (default 86400 = 1 day)
+        --json                 JSON output
+    """
+    import json as _json
+    scores_path_s = _parse_flag(argv, "--scores")
+    if scores_path_s is None:
+        print("ERROR: --scores=PATH required", file=sys.stderr)
+        return 2
+    saved_at_s = _parse_flag(argv, "--saved-at")
+    output_s = _parse_flag(argv, "--output")
+    half_life_s = _parse_flag(argv, "--half-life")
+    half_life = float(half_life_s) if half_life_s else 86400.0
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.cache_lfu_decay_persist import decay_age_scores
+        scores_path = _P(scores_path_s)
+        if not scores_path.exists():
+            print(f"ERROR: --scores path not found: {scores_path}", file=sys.stderr)
+            return 2
+        scores = _json.loads(scores_path.read_text(encoding="utf-8"))
+        if saved_at_s is None:
+            import datetime as _dt
+            mtime = scores_path.stat().st_mtime
+            saved_at = mtime
+        else:
+            # ISO8601 → epoch
+            saved_at = _dt.datetime.fromisoformat(saved_at_s).timestamp()
+        decayed = decay_age_scores(scores, saved_at=saved_at, half_life_seconds=half_life)
+        if output_s:
+            _P(output_s).write_text(_json.dumps(decayed, indent=2, sort_keys=True), encoding="utf-8")
+            if use_json:
+                print(_json.dumps({"output": output_s, "scores_in": len(scores), "scores_out": len(decayed)}, indent=2))
+            else:
+                print(f"Decayed {len(decayed)} scores → {output_s}")
+        else:
+            if use_json:
+                print(_json.dumps({"scores": decayed, "saved_at": saved_at, "half_life": half_life}, indent=2))
+            else:
+                print(f"Decayed {len(decayed)} scores (half_life={half_life}s, saved_at={saved_at})")
+                for url, score in list(decayed.items())[:10]:
+                    print(f"  {url}: {score:.4f}")
+                if len(decayed) > 10:
+                    print(f"  ... +{len(decayed) - 10} more")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("score-wiki-trend")
+def cmd_score_wiki_trend(argv: list[str]) -> int:
+    """Wiki maintainability score trend (v0.7.1+).
+
+    Subprocess wrapper for `tools/score_wiki_trend.py` (script). The script
+    uses dataclass KW_ONLY patterns that don't survive in-process importlib
+    loading (Python 3.14 sys.modules lookup), so subprocess is the
+    well-tested path here. See memory rule #8 (3-layer failure separation):
+    test-harness interface drift → keep subprocess boundary.
+
+    Args (forwarded verbatim):
+        --record-current   record current HEAD score
+        --record-range=N   backfill N recent commits
+        --show             ASCII chart of trend
+        --json             JSON output
+    """
+    try:
+        import subprocess as _sp
+        from pathlib import Path as _P
+        kit_dir = _P(__file__).resolve().parent
+        score_path = kit_dir.parent / "tools" / "score_wiki_trend.py"
+        if not score_path.exists():
+            print(f"ERROR: score_wiki_trend.py not found at {score_path}", file=sys.stderr)
+            return 2
+        cmd = [sys.executable, str(score_path), *argv]
+        proc = _sp.run(cmd, capture_output=True, text=True, timeout=120)
+        sys.stdout.write(proc.stdout)
+        if proc.stderr:
+            sys.stderr.write(proc.stderr)
+        return proc.returncode
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 @register("okf-validate")
 def cmd_okf_validate(argv: list[str]) -> int:
     """Validate an OKF v0.1 bundle (lint only, no import / staging / promote).
@@ -336,43 +495,54 @@ def cmd_okf_validate(argv: list[str]) -> int:
 
 @register("cache-migrate")
 def cmd_cache_migrate(argv: list[str]) -> int:
-    """Migrate v0.7.41 single-strategy cache → 3 per-strategy files (ADR-024).
+    """Migrate v0.7.41 single-strategy cache → per-strategy files (ADR-024).
 
-    Idempotent: re-running on already-migrated cache returns ok without
-    touching existing per-strategy files. Args:
+    2 step:
+      1. migrate: v0.7.41 single file → mixed file (1-step, no-op if already)
+      2. split:   mixed file → LRU + LFU files (per access_count threshold)
+
+    Args:
         --cache-path=PATH   base cache file (default: DEFAULT_CACHE_FILE)
+        --mode=migrate|split|both  default = both
+        --lfu-threshold=N   access_count threshold for LFU classification (default 10)
         --json              JSON output (otherwise human-readable)
     """
     import json as _json
     cache_path_s = _parse_flag(argv, "--cache-path")
+    mode = _parse_flag(argv, "--mode") or "both"
+    if mode not in ("migrate", "split", "both"):
+        print(f"ERROR: --mode must be migrate|split|both, got {mode!r}", file=sys.stderr)
+        return 2
+    lfu_th_s = _parse_flag(argv, "--lfu-threshold")
+    lfu_threshold = int(lfu_th_s) if lfu_th_s else 10
     use_json = _has_flag(argv, "--json")
     try:
         from pathlib import Path as _P
-        from workflow_kit.cache_migration import migrate_to_per_strategy_cache
+        from workflow_kit.cache_migration import (
+            migrate_to_per_strategy_cache,
+            split_to_per_strategy,
+        )
         base = _P(cache_path_s) if cache_path_s else None
-        result = migrate_to_per_strategy_cache(base_path=base)
+        all_results: dict[str, object] = {"mode": mode, "cache_path": str(base) if base else None}
+        if mode in ("migrate", "both"):
+            all_results["migrate"] = migrate_to_per_strategy_cache(base_path=base)
+        if mode in ("split", "both"):
+            all_results["split"] = split_to_per_strategy(base_path=base, lfu_threshold=lfu_threshold)
         if use_json:
-            print(_json.dumps(result, indent=2, default=str))
+            print(_json.dumps(all_results, indent=2, default=str))
         else:
-            if result.get("migrated"):
-                print(f"Cache migrated: {result.get('entries_migrated', 0)} entries")
-                print(f"  source:  {result.get('source')}")
-                print(f"  lru:     {result.get('lru_file')}")
-                print(f"  lfu:     {result.get('lfu_file')}")
-                print(f"  mixed:   {result.get('mixed_file')}")
-            else:
-                # No `reason` field in result; infer from per-strategy file existence.
-                from pathlib import Path as _P2
-                lru_f = _P2(result["lru_file"])
-                lfu_f = _P2(result["lfu_file"])
-                mixed_f = _P2(result["mixed_file"])
-                src_f = _P2(result["source"])
-                if lru_f.exists() or lfu_f.exists() or mixed_f.exists():
-                    print("No migration needed: per-strategy files already exist")
-                elif not src_f.exists():
-                    print("No migration needed: source single file does not exist")
+            if "migrate" in all_results:
+                m = all_results["migrate"]
+                if m.get("migrated"):
+                    print(f"[migrate] OK: {m.get('entries_migrated', 0)} entries → mixed file")
                 else:
-                    print("No migration needed: source file is empty")
+                    print(f"[migrate] no-op (per-strategy already exist or source absent)")
+            if "split" in all_results:
+                s = all_results["split"]
+                if s.get("split"):
+                    print(f"[split] OK: {s.get('lru_entries', 0)} LRU + {s.get('lfu_entries', 0)} LFU (threshold={lfu_threshold})")
+                else:
+                    print(f"[split] no-op (mixed file absent or empty)")
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
@@ -381,9 +551,10 @@ def cmd_cache_migrate(argv: list[str]) -> int:
 
 @register("release-doctor")
 def cmd_release_doctor(argv: list[str]) -> int:
-    """Release pre-flight: 4-source release-readiness check.
+    """Release pre-flight: 4-source release-readiness check (in-process, v0.7.55+).
 
-    Wraps `tools/release_pipeline.py validate` (4 checks):
+    Calls `tools.release_pipeline_lib.cmd_validate` in-process (no subprocess
+    overhead, no script-path coupling). 4 checks:
       1. check_packaging: pyproject [tool.setuptools.packages] ↔ disk
       2. workflow_kit.cli.doctor: 7 baseline evaluate
       3. state.json freshness
@@ -402,30 +573,27 @@ def cmd_release_doctor(argv: list[str]) -> int:
         "git": _has_flag(argv, "--skip-git"),
     }
     try:
-        import subprocess as _sp
-        # tools/release_pipeline.py 는 script (package 아님). 절대경로 호출.
-        repo_root = _sp.check_output(
-            ["git", "rev-parse", "--show-toplevel"], text=True, timeout=10,
-        ).strip()
-        release_pipeline = _sp.os.path.join(repo_root, "workflow-source", "tools", "release_pipeline.py")
-        cmd = [sys.executable, release_pipeline, "validate", "--json"]
-        if skip["packaging"]:
-            cmd.append("--skip-packaging")
-        if skip["doctor"]:
-            cmd.append("--skip-doctor")
-        if skip["state"]:
-            cmd.append("--skip-state")
-        if skip["git"]:
-            cmd.append("--skip-git")
-        proc = _sp.run(
-            cmd, capture_output=True, text=True, timeout=180,
-            cwd=repo_root,
+        # Find workflow-source/tools dir relative to this module.
+        # workflow_kit_cli.py lives at workflow-source/workflow_kit/
+        # → tools/release_pipeline_lib.py is at workflow-source/tools/
+        from pathlib import Path as _P
+        kit_dir = _P(__file__).resolve().parent
+        tools_dir = kit_dir.parent / "tools"
+        if str(tools_dir) not in sys.path:
+            sys.path.insert(0, str(tools_dir))
+        from release_pipeline_lib import cmd_validate as _cmd_validate
+        results = _cmd_validate(
+            skip_packaging=skip["packaging"],
+            skip_doctor=skip["doctor"],
+            skip_state=skip["state"],
+            skip_git=skip["git"],
         )
-        sys.stdout.write(proc.stdout)
-        if proc.stderr:
-            sys.stderr.write(proc.stderr)
-        # 0 = all OK, non-zero = at least one failed
-        return proc.returncode
+        print(json.dumps(results, indent=2, default=str))
+        # rc: 0 = all OK, 1 = at least one source not ok
+        any_fail = any(
+            v.get("ok") is False for v in results.values() if isinstance(v, dict)
+        )
+        return 1 if any_fail else 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2

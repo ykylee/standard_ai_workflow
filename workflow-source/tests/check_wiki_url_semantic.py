@@ -343,6 +343,28 @@ def test_check_url_semantic_range_diff_missing_range_v0_7_41() -> None:
     assert len(issues) == 1
     assert issues[0].rule == "V-R13-range-missing"
 
+
+def test_check_url_semantic_composite_ok_v0_7_41() -> None:
+    """check_url_semantic_composite with all 3 layers returns ok info."""
+    mod = _import_url_validity()
+    url = "https://github.com/foo/bar/blob/abc1234/docs/spec.md?hash=sha256:" + "a" * 64 + "&range=aaa1111..fffeeee"
+    issues = mod.check_url_semantic_composite(url)
+    assert len(issues) == 1
+    assert issues[0].rule == "V-R12-composite-ok"
+    assert issues[0].severity == "info"
+    assert "3 layers" in issues[0].message
+
+
+def test_check_url_semantic_composite_incomplete_v0_7_41() -> None:
+    """check_url_semantic_composite missing ?hash returns incomplete warn."""
+    mod = _import_url_validity()
+    url = "https://github.com/foo/bar/blob/abc1234/docs/spec.md"  # no ?hash, no ?range
+    issues = mod.check_url_semantic_composite(url)
+    assert len(issues) == 1
+    assert issues[0].rule == "V-R12-composite-incomplete"
+    assert issues[0].severity == "warn"
+    assert "missing" in issues[0].message.lower()
+
 def main() -> int:
     test_funcs = [
         test_parse_semantic_url_full,
@@ -366,6 +388,8 @@ def main() -> int:
         test_check_url_semantic_range_diff_v0_7_41,
         test_check_url_semantic_range_diff_no_changes_v0_7_41,
         test_check_url_semantic_range_diff_missing_range_v0_7_41,
+        test_check_url_semantic_composite_ok_v0_7_41,
+        test_check_url_semantic_composite_incomplete_v0_7_41,
     ]
     failed: list[str] = []
     for fn in test_funcs:

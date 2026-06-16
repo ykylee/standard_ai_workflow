@@ -632,7 +632,49 @@ def check_url_semantic_range_diff(
     )]
 
 
-# Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
+def check_url_semantic_composite(
+    url: str,
+    *,
+    require_both_layers: bool = True,
+) -> list[UrlIssue]:
+    """V-R12 composite layer 1+2 verification (v0.7.41+, ADR-019/020 follow-up).
+
+    Verifies that a V-R13 URL has BOTH `?hash=sha256:...` (layer 1, byte-level integrity)
+    AND `?range=<sha>..<sha>` (layer 2, commit range) populated. Returns V-R12-composite-ok
+    info if both present, V-R12-composite-incomplete warn if not.
+
+    Args:
+        url: V-R13 URL to check
+        require_both_layers: if False, only verifies the layers that ARE present (permissive)
+    """
+    parts = parse_semantic_url(url)
+    has_hash = parts.content_hash is not None
+    has_range = parts.range_start is not None and parts.range_end is not None
+    has_commit = parts.commit_sha is not None
+    if not has_commit:
+        return [UrlIssue(
+            rule="V-R12-composite-no-commit", severity="warn",
+            message="V-R12 composite: no commit SHA in URL path (layer 0 missing)",
+        )]
+    if has_hash and has_range:
+        return [UrlIssue(
+            rule="V-R12-composite-ok", severity="info",
+            message=f"V-R12 composite: all 3 layers present (commit + hash + range) — full V-R13 verification possible",
+        )]
+    if require_both_layers:
+        missing = []
+        if not has_hash:
+            missing.append("?hash=sha256:...")
+        if not has_range:
+            missing.append("?range=<sha>..<sha>")
+        return [UrlIssue(
+            rule="V-R12-composite-incomplete", severity="warn",
+            message=f"V-R12 composite: missing layer(s): {', '.join(missing)} — only {sum([has_hash, has_range])}/2 carrier layers present",
+        )]
+    return [UrlIssue(
+        rule="V-R12-composite-partial", severity="info",
+        message=f"V-R12 composite: partial (commit + {'hash' if has_hash else 'range'} only)",
+    )]
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400
 DEFAULT_CACHE_FILE: Path = Path.home() / ".workflow_kit" / "url_validity_cache.json"

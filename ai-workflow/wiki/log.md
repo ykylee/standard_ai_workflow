@@ -1927,3 +1927,42 @@ Bug fix (same commit): okf-validate JSON mode UnboundLocalError (err_count 가 e
 - okf-validate → CI integration (workflows/okf-validate.yml 의 --command wrapper)
 - cache-migrate → v0.7.45+ LRU/LFU split (split_to_per_strategy 노출)
 - dispatcher 14+ (okf-version-check / cache-decay / score-wiki-trend)
+
+## [2026-06-16] release | v0.7.55 — release-doctor in-process + cache-migrate LRU/LFU split + 3 subcommand (L/M/N)
+
+4 follow-up 본 구현 (2 commit):
+
+- **a (4b64b20)**: tools/release_pipeline_lib.py (NEW, 67 line). in-process wrapper for tools/release_pipeline.py (1478 line script). cmd_validate 1 함수 노출.
+- **b (4b64b20)**: release-doctor in-process. subprocess → in-process import. overhead 200ms → <10ms. stderr 정합.
+- **c (4b64b20)**: cache-migrate LRU/LFU split. --mode=migrate|split|both, --lfu-threshold. Real smoke: 3 entry → 1 LRU + 2 LFU (threshold=10) PASS.
+- **d (4b64b20)**: 3 subcommand. okf-version-check (L, in-process) + cache-decay (M, in-process) + score-wiki-trend (N, subprocess — dataclass KW_ONLY + sys.modules bug).
+
+### Cut
+
+- **Commit**: 0436eb3 (chore(v0.7.55): version bump 0.7.54 → 0.7.55 + release note)
+- **Tag**: v0.7.55-beta (annotated, pushed to origin)
+- **GH release**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.55-beta
+- **Release note**: workflow-source/releases/Beta-v0.7.55.md
+
+### Version sync (memory rule 10)
+
+- `pyproject.toml`: 0.7.54 → **0.7.55**
+- `workflow_kit/__init__.py` `__version__`: v0.7.54-beta → **v0.7.55-beta**
+
+### Cumulative (v0.7.52 → v0.7.55)
+
+- Dispatcher: 6 → 8 → 11 → **14 subcommand** (8 신규 since v0.7.52)
+- Dispatcher test: 6 → 9 → 13 → **20 test**
+- release_pipeline_lib: NEW (2 test)
+- 5 module test: 68 PASS (변동 없음)
+- workflow_kit module: 19 (변동 없음)
+- GH Pages: ✅ (v0.7.53+)
+
+### Next (v0.7.56 / v0.7.60)
+
+- score_wiki_trend.py Python 3.14 호환 fix (tools/__init__.py + in-process)
+- dispatcher 16+ (okf-cleanup / cache-prune)
+- cache-lfu-decay-persist CSV in-place 변형
+- release_pipeline 의 다른 subcommand wrapper (cmd_version_bump / cmd_note_draft / cmd_release / cmd_verify / cmd_rollback)
+- 5 module audit 3차 (okf strict mode lint)
+- 외부 consumer feedback loop

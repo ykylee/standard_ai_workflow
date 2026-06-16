@@ -1144,6 +1144,65 @@ def cache_stats_per_strategy_with_hit_rate(
     return result
 
 
+def cache_prune(
+    *,
+    base_path: Path | None = None,
+    max_age_seconds: float | None = None,
+    min_access_count: int = 0,
+    dry_run: bool = True,
+) -> dict[str, int]:
+    """Prune cache entries by age and/or access count (v0.7.56+, ADR-021 follow-up).
+
+    Removes cache entries matching the criteria:
+    - max_age_seconds: only entries older than this are pruned (default = no age filter)
+    - min_access_count: only entries with access_count < this are pruned (default 0 = any)
+
+    Args:
+        base_path: base cache file path (default: DEFAULT_CACHE_FILE). Operates on all
+            per-strategy files (lru/lfu/mixed) like cache_stats_per_strategy.
+        max_age_seconds: max age in seconds (entry.timestamp age > this is pruned)
+        min_access_count: only prune entries with access_count < this (default 0)
+        dry_run: if True, report what would be removed without modifying files (default)
+
+    Returns:
+        dict mapping strategy name to {removed: N, kept: M, total: N+M, dry_run: bool}
+
+    Use case: regular cache hygiene for long-running services. Default dry_run=True
+    is safe for ad-hoc invocation. Pass --apply via dispatcher to actually remove.
+    """
+    base = base_path or DEFAULT_CACHE_FILE
+    now = time.time()
+    result: dict[str, dict[str, object]] = {}
+    total_removed = 0
+    for strategy in ("lru", "lfu", "mixed"):
+        cf = cache_file_for_strategy(base, strategy)
+        if not cf.exists():
+            result[strategy] = {"removed": 0, "kept": 0, "total": 0, "dry_run": dry_run}
+            continue
+        entries = _load_cache(cf)
+        to_remove: list[str] = []
+        for url, entry in entries.items():
+            age = now - entry.timestamp
+            if max_age_seconds is not None and age <= max_age_seconds:
+                continue
+            if entry.access_count >= min_access_count and min_access_count > 0:
+                continue
+            to_remove.append(url)
+        if not dry_run and to_remove:
+            for url in to_remove:
+                del entries[url]
+            _save_cache(cf, entries)
+        result[strategy] = {
+            "removed": len(to_remove),
+            "kept": len(entries) - len(to_remove),
+            "total": len(entries),
+            "dry_run": dry_run,
+        }
+        total_removed += len(to_remove)
+    result["_overall"] = {"total_removed": total_removed, "dry_run": dry_run}
+    return result
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")

@@ -314,6 +314,46 @@ def test_audit_r2_batch_history_precise_v0_7_42() -> None:
     assert result.too_large == 2, f"expected 2 too-large, got {result.too_large}"
 
 
+def test_cleanup_staging_dry_run_v0_7_56() -> None:
+    """cleanup_staging (dry_run=True) reports removal but doesn't modify (v0.7.56+)."""
+    mod = _import_okf_import()
+    with tempfile.TemporaryDirectory() as tmp:
+        staging = Path(tmp) / "staging"
+        staging.mkdir()
+        (staging / "a.md").write_text("x", encoding="utf-8")
+        (staging / "b.md").write_text("y", encoding="utf-8")
+        result = mod.cleanup_staging(staging, dry_run=True)
+        assert result["scanned"] == 2
+        assert result["removed"] == 2
+        assert result["dry_run"] is True
+        # Files still exist
+        assert (staging / "a.md").exists()
+        assert (staging / "b.md").exists()
+
+
+def test_cleanup_staging_apply_with_age_filter_v0_7_56() -> None:
+    """cleanup_staging (apply + older_than) removes only old files (v0.7.56+)."""
+    mod = _import_okf_import()
+    import os
+    import time
+    with tempfile.TemporaryDirectory() as tmp:
+        staging = Path(tmp) / "staging"
+        staging.mkdir()
+        old_file = staging / "old.md"
+        new_file = staging / "new.md"
+        old_file.write_text("x", encoding="utf-8")
+        new_file.write_text("y", encoding="utf-8")
+        # Make old_file 2 days old
+        old_time = time.time() - 86400 * 2
+        os.utime(old_file, (old_time, old_time))
+        result = mod.cleanup_staging(staging, older_than_seconds=86400, dry_run=False)
+        assert result["scanned"] == 2
+        assert result["removed"] == 1
+        assert result["kept"] == 1
+        assert not old_file.exists()
+        assert new_file.exists()
+
+
 # --- 메인 실행 ---
 
 def main() -> int:
@@ -334,6 +374,8 @@ def main() -> int:
         test_r2_batch_size_out_of_range,
         test_audit_r2_batch_history_v0_7_41,
         test_audit_r2_batch_history_precise_v0_7_42,
+        test_cleanup_staging_dry_run_v0_7_56,
+        test_cleanup_staging_apply_with_age_filter_v0_7_56,
     ]
     failed: list[str] = []
     for fn in test_funcs:

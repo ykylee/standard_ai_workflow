@@ -439,6 +439,64 @@ def _stage_page(page: ParsedPage, staging: Path) -> Path:
     return out_path
 
 
+def cleanup_staging(
+    staging_dir: Path,
+    *,
+    older_than_seconds: float | None = None,
+    dry_run: bool = True,
+) -> dict[str, int | bool]:
+    """Clean up OKF staging directory (v0.7.56+, ADR-019 follow-up).
+
+    Removes files in `staging_dir` matching the criteria:
+    - older_than_seconds: only files older than this are removed (mtime check)
+    - dry_run: if True, report what would be removed without modifying (default)
+
+    Args:
+        staging_dir: staging directory to clean
+        older_than_seconds: max age in seconds (files older than this are pruned)
+        dry_run: if True, only report (default safe for ad-hoc invocation)
+
+    Returns:
+        dict with: scanned, removed, kept, dry_run, staging_dir
+
+    Use case: long-running services that accumulate staging files. Default
+    dry_run=True is safe; dispatcher --apply flag actually removes.
+    """
+    import time as _time
+    now = _time.time()
+    if not staging_dir.exists():
+        return {
+            "scanned": 0, "removed": 0, "kept": 0,
+            "dry_run": dry_run, "staging_dir": str(staging_dir),
+        }
+    files = [p for p in staging_dir.rglob("*") if p.is_file()]
+    scanned = len(files)
+    removed = 0
+    kept = 0
+    for f in files:
+        try:
+            mtime = f.stat().st_mtime
+        except OSError:
+            kept += 1
+            continue
+        age = now - mtime
+        if older_than_seconds is not None and age <= older_than_seconds:
+            kept += 1
+            continue
+        if not dry_run:
+            try:
+                f.unlink()
+                removed += 1
+            except OSError:
+                kept += 1
+        else:
+            removed += 1
+    return {
+        "scanned": scanned, "removed": removed, "kept": kept,
+        "dry_run": dry_run, "staging_dir": str(staging_dir),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Import report
 # ---------------------------------------------------------------------------

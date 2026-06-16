@@ -1,7 +1,8 @@
 """workflow_kit.workflow_kit_cli - unified CLI dispatcher (consolidated v0.7.52,
 extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
 cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
-score-wiki-trend).
+score-wiki-trend, v0.7.56 with okf-cleanup / cache-prune + score-wiki-trend
+in-process).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -24,10 +25,13 @@ Commands:
                        [--promote] [--json]
     okf-validate       --bundle=PATH [--mode=strict|loose] [--json]
     okf-version-check  --okf-version=X.Y  OR  --bundle=PATH [--json]
+    okf-cleanup        [--staging=PATH] [--older-than=SECONDS] [--apply] [--json]
     cache-migrate      [--cache-path=PATH] [--mode=migrate|split|both]
                        [--lfu-threshold=N] [--json]
     cache-decay        --scores=PATH [--saved-at=ISO8601] [--output=PATH]
                        [--half-life=N] [--json]
+    cache-prune        [--cache-path=PATH] [--older-than=SECONDS]
+                       [--min-access-count=N] [--apply] [--json]
     release-doctor     [--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git]
     score-wiki-trend   [--record-current | --record-range=N | --show | --json]
 
@@ -36,8 +40,8 @@ Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result,
 Note: okf-* / cache-* use their own argparse or function-call API internally.
 The dispatcher forwards argv verbatim after stripping --command. Their full
 arg surface is documented in each module's main() docstring (and via --help).
-release-doctor and score-wiki-trend call tools/* scripts via in-process import
-(no subprocess overhead).
+release-doctor and score-wiki-trend (v0.7.56+) call tools/* scripts via
+in-process import (no subprocess overhead).
 """
 
 from __future__ import annotations
@@ -401,32 +405,42 @@ def cmd_cache_decay(argv: list[str]) -> int:
 def cmd_score_wiki_trend(argv: list[str]) -> int:
     """Wiki maintainability score trend (v0.7.1+).
 
-    Subprocess wrapper for `tools/score_wiki_trend.py` (script). The script
-    uses dataclass KW_ONLY patterns that don't survive in-process importlib
-    loading (Python 3.14 sys.modules lookup), so subprocess is the
-    well-tested path here. See memory rule #8 (3-layer failure separation):
-    test-harness interface drift → keep subprocess boundary.
+    In-process wrapper (v0.7.56+, previously subprocess) for
+    `tools/score_wiki_trend.py`. v0.7.55 의 release-doctor in-process 와 동일
+    정공법: `workflow-source/` 를 sys.path 에 insert → `import tools.score_wiki_trend`
+    → `main(argv)` 호출.
+
+    v0.7.55 의 subprocess fallback 원인: tools/ 가 *package* 가 아니어서
+    `import tools.score_wiki_trend` 가 fail. v0.7.56 에서 `tools/__init__.py`
+    추가 + sys.path 조정으로 in-process 가능.
 
     Args (forwarded verbatim):
         --record-current   record current HEAD score
         --record-range=N   backfill N recent commits
         --show             ASCII chart of trend
         --json             JSON output
+        --alert --baseline=X  baseline 비교 (dim alert)
     """
     try:
-        import subprocess as _sp
         from pathlib import Path as _P
+        import importlib as _il
         kit_dir = _P(__file__).resolve().parent
-        score_path = kit_dir.parent / "tools" / "score_wiki_trend.py"
-        if not score_path.exists():
-            print(f"ERROR: score_wiki_trend.py not found at {score_path}", file=sys.stderr)
-            return 2
-        cmd = [sys.executable, str(score_path), *argv]
-        proc = _sp.run(cmd, capture_output=True, text=True, timeout=120)
-        sys.stdout.write(proc.stdout)
-        if proc.stderr:
-            sys.stderr.write(proc.stderr)
-        return proc.returncode
+        workflow_source_dir = kit_dir.parent
+        if str(workflow_source_dir) not in sys.path:
+            sys.path.insert(0, str(workflow_source_dir))
+        # tools/ is now a package (v0.7.56+ with __init__.py) → import as module
+        mod = _il.import_module("tools.score_wiki_trend")
+        # main() uses argparse.parse_args() (reads sys.argv[1:]). Patch sys.argv
+        # in-place to forward our argv. Restore on exit (incl. exceptions).
+        old_argv = sys.argv
+        try:
+            sys.argv = ["score_wiki_trend", *argv]
+            return mod.main()
+        finally:
+            sys.argv = old_argv
+    except SystemExit as e:
+        # argparse / main() may call sys.exit — convert to rc
+        return e.code if isinstance(e.code, int) else 2
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
@@ -594,6 +608,98 @@ def cmd_release_doctor(argv: list[str]) -> int:
             v.get("ok") is False for v in results.values() if isinstance(v, dict)
         )
         return 1 if any_fail else 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("okf-cleanup")
+def cmd_okf_cleanup(argv: list[str]) -> int:
+    """Clean up OKF staging directory (v0.7.56+, dispatcher subcommand 15).
+
+    Removes files in `--staging` directory older than `--older-than` seconds
+    (mtime check). Default `--dry-run` reports what would be removed without
+    touching disk. Args:
+        --staging=PATH         staging directory (default = cwd/.okf-staging)
+        --older-than=SECONDS   max age in seconds (default = no age filter = all)
+        --apply                actually remove (default is dry-run)
+        --json                 JSON output
+    """
+    import json as _json
+    staging_s = _parse_flag(argv, "--staging")
+    older_than_s = _parse_flag(argv, "--older-than")
+    apply = _has_flag(argv, "--apply")
+    use_json = _has_flag(argv, "--json")
+    older_than = float(older_than_s) if older_than_s else None
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.okf_import import cleanup_staging
+        staging_path = _P(staging_s) if staging_s else _P.cwd() / ".okf-staging"
+        result = cleanup_staging(
+            staging_path,
+            older_than_seconds=older_than,
+            dry_run=not apply,
+        )
+        if use_json:
+            print(_json.dumps(result, indent=2))
+        else:
+            mode = "APPLY" if apply else "DRY-RUN"
+            print(f"OKF cleanup ({mode}): {result['staging_dir']}")
+            print(f"  scanned: {result['scanned']}")
+            print(f"  removed: {result['removed']}")
+            print(f"  kept:    {result['kept']}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("cache-prune")
+def cmd_cache_prune(argv: list[str]) -> int:
+    """Prune cache entries by age and/or access count (v0.7.56+, dispatcher subcommand 16).
+
+    Removes entries from per-strategy cache files (lru/lfu/mixed) matching:
+    - older-than: only entries with age > this (default = no age filter)
+    - min-access-count: only entries with access_count < this (default 0 = any)
+    - cache-path: base cache file path (default: DEFAULT_CACHE_FILE)
+    Default `--dry-run` reports what would be removed. Args:
+        --cache-path=PATH      base cache file path
+        --older-than=SECONDS   max age in seconds
+        --min-access-count=N   only prune entries with access_count < N
+        --apply                actually remove (default is dry-run)
+        --json                 JSON output
+    """
+    import json as _json
+    cache_path_s = _parse_flag(argv, "--cache-path")
+    older_than_s = _parse_flag(argv, "--older-than")
+    min_access_s = _parse_flag(argv, "--min-access-count")
+    apply = _has_flag(argv, "--apply")
+    use_json = _has_flag(argv, "--json")
+    older_than = float(older_than_s) if older_than_s else None
+    min_access_count = int(min_access_s) if min_access_s else 0
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.url_validity import cache_prune
+        base = _P(cache_path_s) if cache_path_s else None
+        result = cache_prune(
+            base_path=base,
+            max_age_seconds=older_than,
+            min_access_count=min_access_count,
+            dry_run=not apply,
+        )
+        if use_json:
+            print(_json.dumps(result, indent=2, default=str))
+        else:
+            mode = "APPLY" if apply else "DRY-RUN"
+            print(f"Cache prune ({mode}):")
+            for strategy, info in result.items():
+                if strategy.startswith("_"):
+                    continue
+                print(f"  {strategy}: removed={info['removed']}, kept={info['kept']}, total={info['total']}")
+            overall = result.get("_overall", {})
+            if "total_removed" in overall:
+                print(f"  TOTAL removed: {overall['total_removed']}")
+        return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2

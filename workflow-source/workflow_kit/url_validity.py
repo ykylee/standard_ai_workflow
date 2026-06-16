@@ -1160,8 +1160,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--semantic", action="store_true", help="run V-R13 semantic URL check (ADR-019, default: parse-only)")
     p.add_argument("--perform-head", action="store_true", help="V-R13 semantic: also do HEAD-based checks 3/4/6/7 (opt-in)")
     p.add_argument("--perform-github", action="store_true", help="V-R13 semantic: also do GitHub API check 5 author (opt-in)")
+    p.add_argument("--per-strategy", action="store_true", help="V-R10 v4: use per-strategy cache file (consumer opt-in, ADR-024)")
+    p.add_argument("--cache-stats-strategy", choices=["lru", "lfu", "mixed"], help="V-R10 v4: per-strategy cache stats to print")
     return p
-
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_arg_parser().parse_args(argv)

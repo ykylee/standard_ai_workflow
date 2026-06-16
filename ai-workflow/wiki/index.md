@@ -33,6 +33,7 @@
 ### [[decisions/adr-008-in-repo-path-to-url]] {#adr-008-in-repo-path-to-url}
 ### [[decisions/adr-009-v-t1-formal-adoption]] {#adr-009-v-t1-formal-adoption}
 ### [[decisions/adr-010-v-r10-url-validity-lint]] {#adr-010-v-r10-url-validity-lint}
+### [[decisions/adr-011-okf-version-auto-detect]] {#adr-011-okf-version-auto-detect}
 
 ## Patterns
 

@@ -1,17 +1,11 @@
-"""workflow_kit.okf_import helper smoke test (v0.7.34+, OKF consumer PoC).
+"""workflow_kit.okf_import helper smoke test (v0.7.34+, OKF consumer PoC + v0.7.35 ADR-011 version detect).
 
 OKF v0.1 spec §9 의 5 MUST NOT reject 정책 (loose mode) + 우리 wiki strict lint
-(strict mode) 의 *additive* 양립 검증. PoC 단계: 7 test 로 mode detection + lint
-matrix + staging + promote 검증.
+(strict mode) 의 *additive* 양립 + ADR-011 spec version auto-detect 검증.
 
-Test list:
-1. test_detect_mode_default_strict: mode 명시 없으면 default = strict
-2. test_detect_mode_from_manifest: okf-bundle.yaml 의 `mode: loose` → loose
-3. test_detect_mode_from_index_md: index.md frontmatter `okf_mode: loose` → loose
-4. test_detect_mode_cli_override: CLI --mode=loose 는 manifest/index 보다 우선
-5. test_lint_strict_unknown_key_error: strict mode 에서 unknown frontmatter key → error
-6. test_lint_loose_broken_link_warn: loose mode 에서 broken link → warn (MUST NOT reject)
-7. test_import_staging_and_promote: 1 page import → staging landing + --promote 시 wiki 로 copy
+Test list (11):
+1-7.  OKF consumer mode (loose/strict) + lint + staging + promote
+8-11. ADR-011 version detect (parse + exact match + major mismatch + minor higher + missing)
 """
 
 from __future__ import annotations
@@ -40,8 +34,6 @@ def _import_okf_import():
     export_mod = importlib.util.module_from_spec(export_spec)
     sys.modules["workflow_kit.okf_export"] = export_mod
     export_spec.loader.exec_module(export_mod)
-    # Now load okf_import
-    # Create a parent workflow_kit package shim so the relative-style import works
     if "workflow_kit" not in sys.modules:
         wk_spec = importlib.util.spec_from_file_location("workflow_kit", str(SOURCE_ROOT / "workflow_kit" / "__init__.py"))
         wk_mod = importlib.util.module_from_spec(wk_spec)
@@ -52,6 +44,7 @@ def _import_okf_import():
     sys.modules["workflow_kit.okf_import"] = mod
     spec.loader.exec_module(mod)
     return mod
+
 
 def _make_bundle(
     root: Path,
@@ -128,31 +121,27 @@ def test_detect_mode_cli_override() -> None:
     """CLI --mode=strict 는 manifest 의 `mode: loose` 보다 우선."""
     mod = _import_okf_import()
     with tempfile.TemporaryDirectory() as tmpdir:
-        bundle = _make_bundle(Path(tmpdir), with_manifest=True)  # manifest = loose
+        bundle = _make_bundle(Path(tmpdir), with_manifest=True)
         mode = mod.detect_mode(bundle, cli_mode="strict")
         assert mode == "strict", f"CLI override should win, got {mode!r}"
 
 
-# --- Test 5: strict mode rejects unknown frontmatter key ---
+# --- Test 5: strict mode tolerates unknown frontmatter key ---
 
 
 def test_lint_strict_unknown_key_error() -> None:
-    """OKF spec §4.1 은 unknown key tolerate. 우리 wiki strict mode 도 tolerate.
-    본 test 는 *우리 의 strict mode 가 reject 안 함* 검증 (OKF spec 과 양립).
-    """
+    """OKF spec §4.1 은 unknown key tolerate. 우리 wiki strict mode 도 tolerate."""
     mod = _import_okf_import()
     with tempfile.TemporaryDirectory() as tmpdir:
         bundle = _make_bundle(Path(tmpdir), include_unknown_key=True)
         report = mod.import_okf_bundle(bundle, staging=Path(tmpdir) / "staging", mode="strict")
-        # unknown key 는 OKF spec 이 tolerate, 우리 wiki 도 V-R9 외 reject 안 함
-        # 따라서 page 가 staging 에 landing 되어야 함
         assert report.pages_staged == 1, (
-            f"expected 1 page staged (unknown key tolerated), got {report.pages_staged}; "
-            f"errors: {report.errors}; issues: {[(i.rule, i.severity) for i in report.issues]}"
+            f"expected 1 page staged, got {report.pages_staged}; "
+            f"errors: {report.errors}"
         )
 
 
-# --- Test 6: loose mode tolerates broken link (MUST NOT reject) ---
+# --- Test 6: loose mode tolerates broken link ---
 
 
 def test_lint_loose_broken_link_warn() -> None:
@@ -161,21 +150,17 @@ def test_lint_loose_broken_link_warn() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         bundle = _make_bundle(Path(tmpdir), include_broken_link=True)
         report = mod.import_okf_bundle(bundle, staging=Path(tmpdir) / "staging", mode="loose")
-        # loose mode: broken link 가 warn (severity=warn) 이고 reject 안 됨
-        # page 가 staging 에 landing 되어야 함
         assert report.pages_staged == 1, (
             f"loose mode should tolerate broken link, got pages_staged={report.pages_staged}; "
             f"errors: {report.errors}"
         )
-        # 또한 broken link 가 strict mode 였다면 error 였을 거라는 sanity check:
         strict_report = mod.import_okf_bundle(bundle, staging=Path(tmpdir) / "staging2", mode="strict")
-        # strict mode: broken link → page with errors → staged 안 됨
         assert strict_report.pages_staged == 0, (
             f"strict mode should reject broken link, got pages_staged={strict_report.pages_staged}"
         )
 
 
-# --- Test 7: import staging + promote ---
+# --- Test 7: staging + promote ---
 
 
 def test_import_staging_and_promote() -> None:
@@ -188,21 +173,78 @@ def test_import_staging_and_promote() -> None:
         report = mod.import_okf_bundle(bundle, staging=staging, mode="strict", promote=False)
         assert report.pages_staged == 1
         staged_page = staging / "concepts" / "test-concept.md"
-        assert staged_page.exists(), f"staged page not found: {staged_page}"
-        # staging file content matches source
+        assert staged_page.exists()
         assert staged_page.read_text(encoding="utf-8") == (bundle / "concepts" / "test-concept.md").read_text(
             encoding="utf-8"
         )
-        # promote: copy staged to wiki_root (default: ai-workflow/wiki/)
-        # Use a fake wiki_root in tmpdir
         fake_wiki = tmp / "wiki"
         fake_wiki.mkdir()
-        # Re-run with custom staging and copy manually to test promote
         for staged in staging.rglob("*.md"):
             rel = staged.relative_to(staging)
             (fake_wiki / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(staged, fake_wiki / rel)
         assert (fake_wiki / "concepts" / "test-concept.md").exists(), "promote failed"
+
+
+# --- Test 8: OKF version parse (ADR-011) ---
+
+
+def test_version_parse_canonical() -> None:
+    """Canonical form "X.Y" parse. variants (v0.1, 0.1.5 semver) 도 accept."""
+    mod = _import_okf_import()
+    assert mod._parse_okf_version("0.1") == (0, 1)
+    assert mod._parse_okf_version("0.2") == (0, 2)
+    assert mod._parse_okf_version("1.0") == (1, 0)
+    assert mod._parse_okf_version("v0.1") == (0, 1)
+    assert mod._parse_okf_version("0.1.5") == (0, 1)
+    assert mod._parse_okf_version(None) is None
+    assert mod._parse_okf_version("") is None
+    assert mod._parse_okf_version("1") is None
+    assert mod._parse_okf_version("abc") is None
+
+
+# --- Test 9: Version check exact match ---
+
+
+def test_version_check_exact_match() -> None:
+    """exact match (0.1 = 0.1) → pass."""
+    mod = _import_okf_import()
+    result = mod._check_version_compatibility("0.1")
+    assert result.status == "pass", f"got {result.status}: {result.message}"
+    assert result.bundle_version == "0.1"
+
+
+# --- Test 10: Version check major mismatch → error ---
+
+
+def test_version_check_major_mismatch_rejects_strict() -> None:
+    """major mismatch (1.0 > 0.1) → error (our consumer cannot safely process)."""
+    mod = _import_okf_import()
+    result = mod._check_version_compatibility("1.0")
+    assert result.status == "error", f"got {result.status}: {result.message}"
+    assert "major" in result.message.lower() or "breaking" in result.message.lower()
+
+
+# --- Test 11: Version check minor higher → warn ---
+
+
+def test_version_check_minor_higher_warns() -> None:
+    """minor higher (0.2 > 0.1, same major) → warn (backward-compatible per spec §11)."""
+    mod = _import_okf_import()
+    result = mod._check_version_compatibility("0.2")
+    assert result.status == "warn", f"got {result.status}: {result.message}"
+    assert "0.2" in result.message
+
+
+# --- Test 12: Version check missing → warn (assume v0.1) ---
+
+
+def test_version_check_missing_warns() -> None:
+    """no okf_version field → warn (assume our v0.1)."""
+    mod = _import_okf_import()
+    result = mod._check_version_compatibility(None)
+    assert result.status == "warn", f"got {result.status}: {result.message}"
+    assert "no okf_version" in result.message.lower() or "assuming" in result.message.lower()
 
 
 # --- 메인 실행 ---
@@ -217,6 +259,11 @@ def main() -> int:
         test_lint_strict_unknown_key_error,
         test_lint_loose_broken_link_warn,
         test_import_staging_and_promote,
+        test_version_parse_canonical,
+        test_version_check_exact_match,
+        test_version_check_major_mismatch_rejects_strict,
+        test_version_check_minor_higher_warns,
+        test_version_check_missing_warns,
     ]
     failed: list[str] = []
     for fn in test_funcs:

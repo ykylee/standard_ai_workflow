@@ -134,6 +134,114 @@ def detect_mode(
 
 
 # ---------------------------------------------------------------------------
+# Version detection (ADR-011)
+# ---------------------------------------------------------------------------
+OUR_OKF_VERSION: tuple[int, int] = (0, 1)  # major, minor
+
+
+@dataclass(frozen=True)
+class VersionCheckResult:
+    """Result of OKF spec version compatibility check (ADR-011)."""
+
+    bundle_version: str | None
+    our_version: str
+    status: str  # "pass" | "warn" | "error"
+    message: str
+
+
+def _parse_okf_version(s: str | None) -> tuple[int, int] | None:
+    """Parse "X.Y" string to (major, minor) tuple. Returns None if malformed.
+
+    Spec §11: canonical form is "X.Y" (e.g. "0.1", "0.2", "1.0"). We accept:
+    - "0.1" / "1.0" — canonical
+    - "v0.1" / "v1.0" — common variant (strip 'v' prefix)
+    - "0.1.0" / "0.1.5" — semver (ignore patch)
+
+    Returns None for: "1", "0.1.0-beta", "abc", etc.
+    """
+    if not s:
+        return None
+    s = s.strip().lower()
+    if s.startswith("v"):
+        s = s[1:]
+    # split by dot
+    parts = s.split(".")
+    if len(parts) < 2:
+        return None
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+    except ValueError:
+        return None
+    if major < 0 or minor < 0:
+        return None
+    return (major, minor)
+
+
+def _check_version_compatibility(
+    bundle_version: str | None,
+    our_version: tuple[int, int] = OUR_OKF_VERSION,
+) -> VersionCheckResult:
+    """Check bundle version against our consumer version (ADR-011 policy).
+
+    Policy (OKF spec §11):
+    - exact match (major+minor equal) → pass
+    - minor higher (same major, larger minor) → warn (backward-compatible)
+    - major higher → error (breaking change)
+    - older (lower major OR same major lower minor) → error
+    - missing → warn (assume our version)
+    - malformed → warn (best-effort)
+    """
+    our_str = f"{our_version[0]}.{our_version[1]}"
+    parsed = _parse_okf_version(bundle_version)
+    if parsed is None:
+        if bundle_version is None or not bundle_version.strip():
+            return VersionCheckResult(
+                bundle_version=None,
+                our_version=our_str,
+                status="warn",
+                message="no okf_version declared in bundle root index.md; assuming v" + our_str,
+            )
+        return VersionCheckResult(
+            bundle_version=bundle_version,
+            our_version=our_str,
+            status="warn",
+            message=f"malformed okf_version {bundle_version!r}; best-effort parse failed, assuming v{our_str}",
+        )
+    b_major, b_minor = parsed
+    o_major, o_minor = our_version
+    if b_major == o_major and b_minor == o_minor:
+        return VersionCheckResult(
+            bundle_version=bundle_version,
+            our_version=our_str,
+            status="pass",
+            message=f"okf_version {bundle_version} matches our v{our_str}",
+        )
+    if b_major == o_major and b_minor > o_minor:
+        return VersionCheckResult(
+            bundle_version=bundle_version,
+            our_version=our_str,
+            status="warn",
+            message=f"okf_version {bundle_version} > our v{our_str} (minor higher, backward-compatible per spec §11)",
+        )
+    if b_major > o_major:
+        return VersionCheckResult(
+            bundle_version=bundle_version,
+            our_version=our_str,
+            status="error",
+            message=f"okf_version {bundle_version} has major > our v{our_str} (breaking change, our consumer cannot safely process)",
+        )
+    # older (lower major or same major lower minor)
+    return VersionCheckResult(
+        bundle_version=bundle_version,
+        our_version=our_str,
+        status="error",
+        message=f"okf_version {bundle_version} < our v{our_str} (bundle is older than our consumer; refusing)",
+    )
+    return "strict"
+
+
+# ---------------------------------------------------------------------------
 # Bundle parsing
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -348,6 +456,7 @@ class ImportReport:
     errors: tuple[str, ...] = field(default_factory=tuple)
     promoted: bool = False
     okf_version: str | None = None
+    version_check: VersionCheckResult | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +509,25 @@ def import_okf_bundle(
     pages_staged = 0
     errors: list[str] = []
 
+    # ADR-011: version compatibility check
+    version_check = _check_version_compatibility(okf_version)
+    if version_check.status == "error" and resolved_mode == "strict":
+        # major mismatch: strict mode refuses
+        errors.append(f"version check failed: {version_check.message}")
+        return ImportReport(
+            mode=resolved_mode,
+            pages_total=0,
+            pages_staged=0,
+            pages_with_errors=0,
+            pages_with_warnings=0,
+            staging_dir=staging,
+            issues=(),
+            errors=tuple(errors),
+            promoted=False,
+            okf_version=okf_version,
+            version_check=version_check,
+        )
+
     for page in pages:
         try:
             page_issues = lint_page(page, bundle, resolved_mode)
@@ -449,6 +577,7 @@ def import_okf_bundle(
         errors=tuple(errors),
         promoted=promoted,
         okf_version=okf_version,
+        version_check=version_check,
     )
 
 
@@ -457,7 +586,6 @@ def import_okf_bundle(
 # ---------------------------------------------------------------------------
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="workflow_kit.okf_import",
         description="OKF v0.1 bundle → wiki ingest (v0.7.34+). Loose/strict mode.",
     )
     p.add_argument("--bundle", type=Path, required=True, help="OKF bundle root")

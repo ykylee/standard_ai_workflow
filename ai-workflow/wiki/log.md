@@ -842,3 +842,37 @@ updated: 2026-06-12
 ## [2026-06-13] v0.7.3-beta (commit `d03348a`) | 4 Runtime Helper 본 구현 (191 test PASS, GH release)
 
 ## [2026-06-13] v0.7.4-beta (commit `22e7750`) | workflow doctor CLI + @graceful_shutdown + optional dep (200 test PASS, GH release)
+
+## [2026-06-16] ingest | okf-open-knowledge-format (1 concept page, C-OKF-1 RESOLVED)
+
+- **Trigger**: 외부 search "google OKF" 가 Open Knowledge Format spec 을 거론. 초기 search (3 query) 에서 grounding redirect 만 확인, primary source 미발견 → concept page 초안 작성 (`[INFERENCE]` 표시 + C-OKF-1 flag)
+- **신규 page (v0.1.0, draft)**: `concepts/okf-open-knowledge-format.md` (11.2 KB, 250+ line, status: draft, verification_status: [INFERENCE])
+  - §0 Status Notice, §1 TL;DR (9 row), §2 Core Structure, §3 Frontmatter Schema, §4 Cross-Linking, §5 Gap vs. Our Wiki Schema (12 row matrix), §6 OKF-Compatible Bridge, §7 Verification & Open Questions (C-OKF-1 flag), §8 Related, §9 References, §10 Revision Log
+- **C-OKF-1 해소 (v0.2.0, active)**:
+  - 2차 검증 (4 parallel query) 에서도 grounding redirect 30+ 일관, 1차 출처 부재 지속
+  - **3차 결정적 검증**: `https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf` 직접 fetch → `okf/` 디렉토리 + `okf/SPEC.md` (15 KB / 457 lines) **실재 확인**
+  - `https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md` raw fetch → **v0.1 Draft 전체 spec 확보** (11 sections + Appendix A)
+  - 동일 디렉토리 README 확인: "This repository is primarily about the Open Knowledge Format (OKF)" 명시
+  - **오류 정정**: 1차 search 의 "github.com/google/knowledge-catalog 404" 는 잘못된 URL (구 `google/` org 부재). 올바른 URL 은 `github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md` — **search 도구 의 path 해석 실패가 1차 source 부재 오인 야기**
+- **page v0.2.0 갱신** (19.4 KB, ~410 line, status: active, verification_status: VERIFIED, contradiction_flags: []):
+  - 모든 `[INFERENCE]` 제거, primary source 직접 cite
+  - §0 Verification (7 row table) + §14 Verification Trail (6 step audit)
+  - §8 Conformance (3 hard + 5 MUST NOT) + §9 Versioning (v0.1, major/minor) + §7 Citations
+  - §11 Reference Implementation (enrichment_agent + visualize) + 3 sample bundles (ga4 / stackoverflow / crypto_bitcoin) + sample recipes
+  - §12 Gap 매트릭스 20 row 로 확장 (resourced 예시 + ADR pattern + loose-vs-strict 정합 포함)
+  - §15 Related 에 `patterns/wiki-stub-emit` 추가 (minimal example bundle 과 매핑)
+  - §16 References §16.1/§16.2/§16.3/§16.4 4-sub section 으로 분리 (primary / ref impl / secondary / related)
+  - §17 Revision Log 에 v0.2.0 entry 추가
+- **R-9 면제**: 외부 spec (in-repo source 없음), frontmatter `r9_skip: true` 유지
+- **index.md anchor**: `### [[concepts/okf-open-knowledge-format]] {#okf-open-knowledge-format}` 추가 (V-4 36 entries, 그대로)
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (36 entries, OKF anchor 1+ inbound)
+  - V-R9 PASS (`r9_skip: true` frontmatter marker)
+  - V-2 partial: 본 entry 는 1 page ingest (R2 의 5-15 page 권장 범위 외). **R2 위반 경고** — 다음 ingest 시 동시 갱신 5-15 page 묶음에 포함 권장
+- **Follow-up 후보** (별도 turn):
+  1. ~~C-OKF-1 해소~~ — **RESOLVED** (2026-06-16, 본 entry)
+  2. OKF-export helper PoC: 우리 wiki → OKF bundle 변환 (`workflow_kit/okf_export.py` 검토). 1차 PoC: 5 page (concept 2 + decision 1 + pattern 1 + entity 1) → OKF spec 검증
+  3. OKF-consumer mode: 우리 wiki 가 OKF consumer 역할 시 strict lint disable + unknown key / broken link / missing field tolerate 모드 (`check_wiki_antipatterns.py --mode=okf-loose` flag 검토)
+  4. ADR 후보: "OKF 호환 frontmatter 5 필드 (`title`/`description`/`resource`/`tags`/`timestamp`) 의 우리 wiki 표준 채택" — yklee 별도 결정
+  5. R-2 정합: 다음 ingest 시 본 page 와 함께 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: 다른 unverified external spec 정리 (예: Frictionless Data Package, Open Knowledge Foundation wiki)

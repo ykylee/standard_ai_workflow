@@ -168,3 +168,33 @@ def import_from_csv(path: str) -> dict[str, float]:
         return result
     except (OSError, csv.Error, KeyError, TypeError):
         return {}
+
+
+def decay_age_scores(
+    scores: dict[str, float],
+    *,
+    saved_at: float,
+    now: float | None = None,
+    half_life_seconds: float = 86400.0,
+) -> dict[str, float]:
+    """Apply temporal decay to scores based on age since saved_at (v0.7.51+).
+
+    Useful for cache reload: scores saved N days ago get decayed by exp(-ln(2) * age / half_life).
+
+    Args:
+        scores: dict of url -> decay_score
+        saved_at: timestamp when scores were saved (from save_decay_scores)
+        now: optional override for current time
+        half_life_seconds: temporal decay half-life (default 86400 = 1 day)
+
+    Returns:
+        New dict with aged scores (original is not modified)
+    """
+    import math
+    if now is None:
+        now = time.time()
+    age = max(0.0, now - saved_at)
+    if age <= 0.0 or half_life_seconds <= 0.0:
+        return dict(scores)
+    decay_factor = math.exp(-math.log(2) * age / half_life_seconds)
+    return {url: score * decay_factor for url, score in scores.items()}

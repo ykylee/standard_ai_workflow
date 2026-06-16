@@ -360,8 +360,11 @@ class _CacheLock:
     Falls back to no-op on Windows (non-blocking). Emits WARN on failure.
     """
 
-    def __init__(self, cache_file: Path):
+    DEFAULT_LOCK_TIMEOUT: float = 30.0
+
+    def __init__(self, cache_file: Path, timeout: float = DEFAULT_LOCK_TIMEOUT):
         self.cache_file = cache_file
+        self.timeout = timeout
         self._lock_path: Path | None = None
         self._fd = None
 
@@ -376,10 +379,28 @@ class _CacheLock:
         self._lock_path = self.cache_file.with_suffix(self.cache_file.suffix + ".lock")
         try:
             self._fd = open(self._lock_path, "w")
-            fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX)
+            # Try non-blocking exclusive lock first
+            try:
+                fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                # Already locked — retry with backoff until timeout
+                import time
+                deadline = time.monotonic() + self.timeout
+                backoff = 0.05
+                acquired = False
+                while time.monotonic() < deadline:
+                    time.sleep(backoff)
+                    try:
+                        fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        acquired = True
+                        break
+                    except OSError:
+                        backoff = min(backoff * 2, 1.0)
+                if not acquired:
+                    raise OSError(f"lock acquisition timeout after {self.timeout}s")
         except OSError as e:
             import sys
-            print(f"WARN: failed to acquire cache file lock: {e}", file=sys.stderr)
+            print(f"WARN: failed to acquire cache file lock (timeout={self.timeout}s): {e}", file=sys.stderr)
             if self._fd:
                 self._fd.close()
                 self._fd = None

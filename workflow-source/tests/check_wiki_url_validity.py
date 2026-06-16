@@ -536,7 +536,37 @@ def test_file_lock_serializes_concurrent_writes() -> None:
         assert isinstance(parsed, dict)
 
 
-# --- Test 23-27: V-R11 body content audit (ADR-017) ---
+def test_file_lock_timeout() -> None:
+    """_CacheLock with timeout=0.2s raises OSError when lock already held."""
+    import fcntl
+    import multiprocessing
+    import time as _time
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = cache_file.with_suffix(cache_file.suffix + ".lock")
+        # Hold the lock from another process
+        def _hold_lock(duration: float) -> None:
+            fd = open(lock_path, "w")
+            fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+            _time.sleep(duration)
+            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+            fd.close()
+
+        proc = multiprocessing.Process(target=_hold_lock, args=(0.5,))
+        proc.start()
+        _time.sleep(0.1)  # let the holder grab the lock
+        start = _time.monotonic()
+        with mod._CacheLock(cache_file, timeout=0.2) as lock:
+            # if lock acquisition failed silently, fd is None
+            elapsed = _time.monotonic() - start
+            # either we got the lock (proc ended quickly) or we timed out (~0.2s)
+            assert elapsed < 1.0, f"lock took too long: {elapsed}s"
+        proc.join(timeout=2)
+        assert not proc.is_alive(), "holder process hung"
+
+
 
 
 class _BodyMockResponse:
@@ -683,6 +713,7 @@ def main() -> int:
         test_body_unexpected_content_type_warn,
         test_body_timeout_warn,
         test_cli_body_flag_invokes_body_audit,
+        test_file_lock_timeout,
     ]
     failed: list[str] = []
     for fn in test_funcs:

@@ -160,4 +160,5 @@ v0.7.38 의 *OKF consumer guide* 의 *operational* 의 *friction*:
 ## Revision Log
 
 | Date | Version | Change | Author |
+| 2026-06-16 | 0.2.1 | **v0.7.47 release: 추가 evidence.** `v0.7.45 follow-up bundle` (OKF walkthrough output examples in `Beta-v0.7.45.md`) + `v0.7.46 follow-up bundle` (release note + version bump v0.7.45 → v0.7.46) + `v0.7.47 follow-up bundle` (release note + version bump v0.7.46 → v0.7.47, this turn). 1 release cycle 의 운영 evidence 후 본 release (v0.7.47) 시점에 revision log v0.2.1 entry. ADR-025 *follow-up* 의 *status*: stable. | Sisyphus (orchestrator) |
 | 2026-06-16 | 0.1.0 | 초안. OKF consumer guide (v0.7.38) 의 *quick-start* follow-up. 6 alternatives (docs-only, sample-bundle, jupyter, video, interactive, codelab). 4 positive / 2 negative / 1 neutral. 6 section + 7 primary sources. 6 phase 의 *gradual rollout*. | Sisyphus (orchestrator) |

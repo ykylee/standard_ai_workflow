@@ -346,6 +346,10 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
         return {}
 
 
+# Module-level counter for total LRU evictions (ADR-014 follow-up)
+_evictions_total: int = 0
+
+
 class _CacheLock:
     """Context manager for cross-process file lock on cache file. ADR-015.
 
@@ -405,6 +409,7 @@ def _save_cache(
     2. If over either cap: evict oldest (LRU by timestamp) until under both caps
     3. Write. Warn if single entry exceeds cap (best-effort).
     """
+    global _evictions_total
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
     serialized = json.dumps(raw, indent=2, sort_keys=True)
@@ -414,6 +419,7 @@ def _save_cache(
     while (size > max_bytes or len(entries) > max_entries) and entries:
         oldest_url = min(entries.keys(), key=lambda u: entries[u].timestamp)
         del entries[oldest_url]
+        _evictions_total += 1
         raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
         serialized = json.dumps(raw, indent=2, sort_keys=True)
         size = len(serialized.encode("utf-8"))
@@ -473,8 +479,16 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
     now = time.time()
     total = len(cache)
     fresh = sum(1 for e in cache.values() if now - e.timestamp < DEFAULT_CACHE_TTL_SECONDS)
-    return {"total": total, "fresh": fresh, "expired": total - fresh}
-def _build_arg_parser() -> argparse.ArgumentParser:
+    # bytes: actual on-disk size of the cache file (after possible LRU eviction in last save)
+    bytes_size = cache_file.stat().st_size if cache_file.exists() else 0
+    return {
+        "total": total,
+        "fresh": fresh,
+        "expired": total - fresh,
+        "bytes": bytes_size,
+        "evictions_total": _evictions_total,
+    }
+
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")
     p.add_argument("--mode", choices=["strict", "loose"], default="strict", help="lint mode")

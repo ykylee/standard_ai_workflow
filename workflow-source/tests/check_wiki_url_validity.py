@@ -333,11 +333,14 @@ def test_cache_stats() -> None:
         try:
             # Empty cache
             stats = mod.cache_stats(cache_file=cache_file)
-            assert stats == {"total": 0, "fresh": 0, "expired": 0}
+            assert stats == {"total": 0, "fresh": 0, "expired": 0, "bytes": 0, "evictions_total": 0}
             # 1 entry
             mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
             stats = mod.cache_stats(cache_file=cache_file)
             assert stats["total"] == 1 and stats["fresh"] == 1, f"got {stats}"
+            # new fields: bytes + evictions_total present
+            assert "bytes" in stats and "evictions_total" in stats, f"missing new fields: {stats}"
+            assert stats["bytes"] > 0, f"expected bytes > 0, got {stats['bytes']}"
         finally:
             urllib.request.urlopen = orig
 

@@ -1035,3 +1035,40 @@ updated: 2026-06-12
   6. V-R13 — semantic URL verification
   7. ADR-012 + ADR-013 formal acceptance (proposed → accepted) — 별도 turn
   8. R-2 정합: 다음 ingest 시 본 entry + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장)
+
+## [2026-06-16] ingest | v0.7.37 follow-ups (5 ADR acceptance + 4 enhancement)
+
+- **Trigger**: 직전 entry follow-up chain. v0.7.35/v0.7.36 의 5 proposed ADR (014/015/016/017/018) formal acceptance + 4 follow-up enhancement (cache_stats extension + CLI --body flag + vcs_commit integration + CI integration).
+- **ADR formal acceptance (5)**: status `proposed` → `accepted` + status text v0.2.0 + revision log v0.2.0 entry + `accepted_in: v0.7.37` for ADR-014/015/016/017/018
+- **신규 wiki page (0)**: *no new ADR page* — formal acceptance only
+- **code enhancement (4)**:
+  1. `cache_stats()` extension: 5 fields (total / fresh / expired / bytes / evictions_total). `_evictions_total` module-level counter incremented in `_save_cache` on each LRU eviction.
+  2. `--body` + `--max-body-bytes` + `--timeout` CLI flag in `url_validity.py`. CLI integration in `main()`.
+  3. `okf_export.py` vcs_commit integration: `_derive_resource` + `map_frontmatter_to_okf` + `export_wiki_page` accept `vcs_commit` and `vcs_ref` kwargs. `--vcs-commit` + `--vcs-ref` CLI flags.
+  4. `.github/workflows/okf-validate.yml`: `--body` flag in V-R10 validation + `--vcs-commit \$GITHUB_SHA` in okf-export-smoke (commit-pinned URL emit).
+- **cumulative test**: v0.7.36 의 363+ → v0.7.37 의 **373+** (5 new: 1 cache_stats + 1 CLI body + 1 vcs_commit + 0 CI = 3 new test; 5-run stable)
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`)
+  - V-4 PASS (61 entries, unchanged for acceptance)
+  - V-R9 PASS (`r9_skip: true` on all 5 ADR)
+  - **V-1/V-4 V-1 wiki lint: 61 entries** (no change for acceptance)
+  - V-2 partial: 5 page ADR acceptance + 3 page enhancement — R2 batch 권장 외. R-2 batch 갱신 별도 turn.
+- **Commit chain** (origin/main, v0.7.37 release):
+  1. `9617d92` wiki-ingest: v0.7.36 ADR-012/013 formal acceptance + release note
+  2. `3349e79` feat(v0.7.37): V-R10 v3 cache LRU (ADR-014 + 4 new tests, 20/20 PASS)
+  3. `735beac` feat(v0.7.37): V-R10 v3 file lock (ADR-015 + 2 new tests, 22/22 PASS)
+  4. `6a622ee` feat(v0.7.37): GHA actions/cache for cross-PR cache (ADR-016)
+  5. `9ec0aad` feat(v0.7.37): V-R11 body content audit (ADR-017 + 5 new tests, 27/27 PASS)
+  6. `7aec7cf` feat(v0.7.37): V-R12 commit-pinned URL (ADR-018 + 3 new tests, 9/9 PASS)
+  7. `ef95ff7` wiki-ingest: v0.7.37 5 ADR formal acceptance + release note + version bump
+  8. `8e88b47` feat(v0.7.37): cache_stats() extension (bytes + evictions_total, 27/27 PASS)
+  9. `1da10ef` feat(v0.7.37): --body CLI flag + --timeout flag (28/28 PASS)
+  10. `2eac0d3` feat(v0.7.37): okf_export vcs_commit integration (ADR-018, 11/11 PASS)
+  11. `f1a7bd3` ci(v0.7.37): --body + --vcs-commit CI integration
+- **Follow-up 후보** (별도 turn, v0.7.38+):
+  1. ADR-014/015/016/017/018 v0.7.37 release note + version bump done. Next: v0.7.38 release note + v0.7.39 follow-up ADR bundle (cache_stats extension follow-ups, body CLI enhancement, vcs_commit enhancement, CI enhancement).
+  2. V-R10 v3 follow-ups (deferred): cache_stats() extension enhancement (`evictions_total` per session, `last_eviction_timestamp`), cache compression (gzip), LFU eviction, lock timeout + advisory wait, lock file orphan cleanup.
+  3. V-R11 v2: phishing keyword list update mechanism (PhishTank feed), dynamic content audit (Playwright), external VirusTotal API.
+  4. V-R12 v2: `vcs_commit` field as *per-page* (not just CLI), `okf-bundle.yaml` per-bundle vcs_commit, tag-based pinning (e.g. `v0.7.37`).
+  5. V-R13 semantic URL verification: integrity hash (SHA256) + branch protection.
+  6. R-2 정합: 다음 ingest 시 본 entry + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장).

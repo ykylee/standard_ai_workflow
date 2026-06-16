@@ -1891,3 +1891,39 @@ Future work should default to consolidation over expansion.
 - dispatcher subcommand 10+ 확장 (okf-validate / cache-migrate / release-doctor)
 - core 5 module audit 3차 (okf_export / okf_import strict mode lint)
 - 외부 consumer feedback loop (public GH Pages site 운영 후 issue 기반 follow-up)
+
+## [2026-06-16] release | v0.7.54 — dispatcher 11 subcommand (I okf-validate + J cache-migrate + K release-doctor)
+
+3 follow-up 본 구현 (3 commit):
+
+- **I (97adc0c)**: --command=okf-validate. OKF v0.1 bundle lint 전용 (read-only). okf_import.lint_page() 의 8 rule 호출. mode=strict|loose, JSON / human-readable.
+- **J (97adc0c)**: --command=cache-migrate. v0.7.41 single-strategy cache → 3 per-strategy files (ADR-024). idempotent. result field infer (filename existence check).
+- **K (97adc0c)**: --command=release-doctor. tools/release_pipeline.py validate 의 subprocess wrapper. 4 source check (packaging / doctor / state / git), 4 skip flag forwarding.
+
+Bug fix (same commit): okf-validate JSON mode UnboundLocalError (err_count 가 else branch 에만 정의). 같은 commit 에서 fix (의도적, cycle 압축).
+
+### Cut
+
+- **Commit**: 58fbb32 (chore(v0.7.54): version bump 0.7.53 → 0.7.54 + release note)
+- **Tag**: v0.7.54-beta (annotated, pushed to origin)
+- **GH release**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.54-beta
+- **Release note**: workflow-source/releases/Beta-v0.7.54.md
+
+### Version sync (memory rule 10)
+
+- `pyproject.toml`: 0.7.53 → **0.7.54**
+- `workflow_kit/__init__.py` `__version__`: v0.7.53-beta → **v0.7.54-beta**
+
+### Cumulative (v0.7.52 → v0.7.54)
+
+- Dispatcher: 6 → 8 → **11 subcommand** (registry pattern 정합)
+- Dispatcher test: 6 → 9 → **13 test**
+- workflow_kit module census: 19 (cleaned in v0.7.52) → 19 (v0.7.53, 0 module change) → 19 (v0.7.54, 0 module change — subcommand 는 dispatcher 가 통합)
+- 5 core module test: 68 PASS (변동 없음)
+
+### Next (v0.7.55 / v0.7.60)
+
+- release-doctor → in-process 호출 (tools/release_pipeline 모듈화)
+- okf-validate → CI integration (workflows/okf-validate.yml 의 --command wrapper)
+- cache-migrate → v0.7.45+ LRU/LFU split (split_to_per_strategy 노출)
+- dispatcher 14+ (okf-version-check / cache-decay / score-wiki-trend)

@@ -1105,3 +1105,40 @@ updated: 2026-06-12
 - **ADR cumulative count**: 8 ADR accepted (006-013) + 6 ADR proposed (014-019) = **14 total**.
 - **concept page cumulative count**: 19 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, ...) = 21 total (with R-1 wiki concepts).
 - **workflow_kit module count**: 4 (okf_export 21.7 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 16 KB) = **64+ KB total**.
+
+## [2026-06-16] release | v0.7.38 — V-R13 formal + okf-bundle.yaml + cache gzip + lock orphan + OKF consumer guide
+
+- **Trigger**: v0.7.37 release note 의 *Follow-up (v0.7.38+)* 6 항목 의 *bundled release* (`continue next follow-ups` 4번째 turn). TASK-V0738-FOLLOWUP-BUNDLE.
+- **release scope**: 6 follow-up 항목 (1 ADR formal + 1 doc + 4 code enhancement) — v0.7.37 release 시점의 deferred work.
+- **Phase 1 (DONE — `e17609e`)**: ADR-019 V-R13 semantic URL verification 의 status `proposed` → `accepted`. `accepted_in: v0.7.38` + 4 evidence items (8 check convention + 2 layer convention + okf-bundle.yaml + per-page vcs_commit). 본 release 시점의 evidence 가 모두 충족되어 *formal acceptance* 의 *low-friction* 정공법.
+- **Phase 2 (DONE — `a2f8f72`)**: 신규 doc `docs/OKF_CONSUMER_GUIDE.md` (12 KB, 13 section) — 외부 OKF bundle consumer 가이드 (write / validate / ingest / V-R10 / V-R11 / V-R12 / V-R13 / CI / troubleshooting / compliance). 1차 출처 3-layer (OKF spec v0.1 + 6 ADR + 4 wiki concept).
+- **Phase 3 (DONE — `c3a0f24`)**: `okf_export.py` v3 — `export_wiki_to_okf()` 의 `vcs_commit` + `vcs_ref` + `emit_manifest` parameters + `_write_bundle_manifest()` (per-bundle manifest emit) + `_compute_bundle_integrity_hash()` (SHA256 of all page bytes, sorted by relative path, deterministic). `okf-bundle.yaml` emit: vcs_commit + vcs_ref + integrity_hash + page_count + generated_at + generator. 2 new tests (manifest emit + escape hatch `emit_manifest=False`).
+- **Phase 4 (DONE — `2e1a541`)**: `url_validity.py` cache gzip compression (ADR-014 v3 follow-up). `_save_cache()` 가 uncompressed > 4KB 시 gzip emit (compresslevel=6, ~3-5x reduction). `_load_cache()` magic bytes (1f 8b) auto-detect + decompress. 4KB 이하 cache 는 plain JSON 유지 (fast load). *transparent migration* 정공법 (이전 cache 도 load 가능).
+- **Phase 5 (DONE — `9f622d3`)**: `url_validity.py` `_CacheLock` stale lock file orphan cleanup (ADR-015 v3 follow-up). `stale_seconds` parameter (default 24h). `_maybe_cleanup_stale_lock()` — lock file 의 mtime > stale_seconds 시 자동 제거 (WARN emitted). *crash-safe* 의 *self-healing* 정공법.
+- **Phase 6 (DONE — TBD commit)**: final verification (75/75 tests PASS) + `releases/Beta-v0.7.38.md` (10 KB) + version bump v0.7.37 → v0.7.38 + log entry (본 entry).
+- **cumulative test**: v0.7.37 의 380+ → v0.7.38 의 **384+** (4 new: 1 manifest emit + 1 manifest skip + 1 gzip roundtrip + 1 stale cleanup)
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`, `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (63 entries, no change — v0.7.37 의 63 entry 유지)
+  - V-R9 PASS (ADR-019 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (ADR-019 acceptance 1 turn + 1 신규 doc, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.38 release):
+  1. `e17609e` wiki(adr-019+v-r13): formal acceptance in v0.7.38 (Phase 1)
+  2. `a2f8f72` docs(okf): consumer guide (write/validate/ingest OKF bundle) (Phase 2)
+  3. `c3a0f24` feat(v0.7.38): okf-bundle.yaml emit (per-bundle vcs_commit + integrity_hash, 15/15 PASS) (Phase 3)
+  4. `2e1a541` feat(v0.7.38): cache gzip compression (4KB threshold, 31/31 PASS) (Phase 4)
+  5. `9f622d3` feat(v0.7.38): _CacheLock stale lock file orphan cleanup (32/32 PASS) (Phase 5)
+  6. TBD release(v0.7.38): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.39+):
+  1. v0.7.39 release note + version bump (v0.7.38 → v0.7.39) — release 자체는 v0.7.38 release note + version bump 에서 완료.
+  2. V-R13 PoC implementation: `check_url_semantic()` + 8 check + 2 layer (`?hash` + `?range`) query param parsing.
+  3. V-R10 v3 follow-ups: cache LFU eviction, cache compression (gzip 2nd pass, LZMA 등).
+  4. V-R11 v2: phishing keyword list update mechanism (PhishTank feed) + dynamic content audit (Playwright).
+  5. V-R12 v2: SHA256 integrity hash in URL (ADR-019 layer 1 의 URL-form carrier).
+  6. R-2 정합: 다음 ingest 시 본 entry + 5-15 page 추가 동시 갱신 (R2 batch 5-15 권장).
+  7. OKF consumer guide 의 *quick start* tutorial follow-up (sample bundle walkthrough).
+  8. ADR-019 PoC ADR-020 (V-R13 implementation formal acceptance) 의 PoC 단계.
+- **ADR cumulative count**: 8 ADR accepted (006-013) + 6 ADR accepted (014-019) = **14 accepted** + 0 proposed. 19 total ADR (001-019).
+- **concept page cumulative count**: 21 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, ...).
+- **workflow_kit module count**: 4 (okf_export 24 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 17 KB) = **68+ KB total**.
+- **release note count**: 33 cumulative (v0.7.5 ~ v0.7.38).

@@ -26,6 +26,8 @@
 
 ### [[concepts/v-r13-semantic-url-verification]] {#v-r13-semantic-url-verification}
 ### [[concepts/v-r13-implementation]] {#v-r13-implementation}
+### [[concepts/cache-lfu-eviction]] {#cache-lfu-eviction}
+### [[concepts/phishing-keyword-feed]] {#phishing-keyword-feed}
 ## Decisions
 
 ### [[decisions/adr-004-wiki-layer]] {#adr-004-wiki-layer}
@@ -47,7 +49,8 @@
 ### [[decisions/adr-018-v-r12-commit-pinned-url]] {#adr-018-v-r12-commit-pinned-url}
 ### [[decisions/adr-019-v-r13-semantic-url-verification]] {#adr-019-v-r13-semantic-url-verification}
 ### [[decisions/adr-020-v-r13-implementation]] {#adr-020-v-r13-implementation}
-
+### [[decisions/adr-021-cache-lfu-eviction]] {#adr-021-cache-lfu-eviction}
+### [[decisions/adr-022-phishing-keyword-feed]] {#adr-022-phishing-keyword-feed}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

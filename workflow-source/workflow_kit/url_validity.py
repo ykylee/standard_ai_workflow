@@ -226,10 +226,12 @@ def check_url_online(
 
 
 # ---------------------------------------------------------------------------
-# Disk cache layer (ADR-013, v0.7.36+)
+# Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400
 DEFAULT_CACHE_FILE: Path = Path.home() / ".workflow_kit" / "url_validity_cache.json"
+DEFAULT_CACHE_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
+DEFAULT_CACHE_MAX_ENTRIES: int = 10000  # LRU cap
 
 
 @dataclass(frozen=True)
@@ -252,11 +254,37 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
         return {}
 
 
-def _save_cache(cache_file: Path, entries: dict[str, CacheEntry]) -> None:
+def _save_cache(
+    cache_file: Path,
+    entries: dict[str, CacheEntry],
+    max_bytes: int = DEFAULT_CACHE_MAX_BYTES,
+    max_entries: int = DEFAULT_CACHE_MAX_ENTRIES,
+) -> None:
+    """Save cache to disk JSON. Enforce size cap + LRU eviction (ADR-014).
+
+    Strategy:
+    1. Serialize → check size + entry count
+    2. If over either cap: evict oldest (LRU by timestamp) until under both caps
+    3. Write. Warn if single entry exceeds cap (best-effort).
+    """
     cache_file.parent.mkdir(parents=True, exist_ok=True)
     raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
-    cache_file.write_text(json.dumps(raw, indent=2, sort_keys=True), encoding="utf-8")
+    serialized = json.dumps(raw, indent=2, sort_keys=True)
+    size = len(serialized.encode("utf-8"))
 
+    # LRU eviction: sort by timestamp ascending (oldest first)
+    while (size > max_bytes or len(entries) > max_entries) and entries:
+        oldest_url = min(entries.keys(), key=lambda u: entries[u].timestamp)
+        del entries[oldest_url]
+        raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
+        serialized = json.dumps(raw, indent=2, sort_keys=True)
+        size = len(serialized.encode("utf-8"))
+
+    cache_file.write_text(serialized, encoding="utf-8")
+
+    if size > max_bytes:
+        import sys
+        print(f"WARN: cache size {size} bytes exceeds cap {max_bytes} (single entry too large)", file=sys.stderr)
 
 def _cache_lookup(cache: dict[str, CacheEntry], url: str, ttl: int) -> list[UrlIssue] | None:
     entry = cache.get(url)
@@ -275,8 +303,10 @@ def check_url_with_cache(
     timeout: float = 10.0,
     user_agent: str = "workflow-kit-url-validity/0.7.35",
     max_retries: int = 3,
+    max_bytes: int = DEFAULT_CACHE_MAX_BYTES,
+    max_entries: int = DEFAULT_CACHE_MAX_ENTRIES,
 ) -> list[UrlIssue]:
-    """V-R10 online HEAD with disk cache (ADR-013)."""
+    """V-R10 online HEAD with disk cache (ADR-013) + size cap + LRU (ADR-014)."""
     cache_file = cache_file or DEFAULT_CACHE_FILE
     cache = _load_cache(cache_file)
     cached = _cache_lookup(cache, url, ttl_seconds)
@@ -288,7 +318,7 @@ def check_url_with_cache(
         timestamp=time.time(),
         issues=tuple({"rule": i.rule, "severity": i.severity, "message": i.message} for i in issues),
     )
-    _save_cache(cache_file, cache)
+    _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries)
     return issues
 
 
@@ -305,11 +335,6 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
     total = len(cache)
     fresh = sum(1 for e in cache.values() if now - e.timestamp < DEFAULT_CACHE_TTL_SECONDS)
     return {"total": total, "fresh": fresh, "expired": total - fresh}
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")
@@ -317,8 +342,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--online", action="store_true", help="run online HEAD check (ADR-012)")
     p.add_argument("--cache", action="store_true", help="use 24h disk cache (ADR-013)")
     p.add_argument("--ttl", type=int, default=DEFAULT_CACHE_TTL_SECONDS, help=f"cache TTL (default: {DEFAULT_CACHE_TTL_SECONDS})")
-    p.add_argument("--timeout", type=float, default=10.0, help="online HEAD timeout (default: 10.0)")
     p.add_argument("--max-retries", type=int, default=3, help="max retries for 5xx/429/timeout (default: 3)")
+    p.add_argument("--max-bytes", type=int, default=DEFAULT_CACHE_MAX_BYTES, help=f"cache size cap in bytes (default: {DEFAULT_CACHE_MAX_BYTES})")
+    p.add_argument("--max-entries", type=int, default=DEFAULT_CACHE_MAX_ENTRIES, help=f"cache entry count cap (default: {DEFAULT_CACHE_MAX_ENTRIES})")
     p.add_argument("--cache-stats", action="store_true", help="print cache statistics and exit")
     p.add_argument("--cache-clear", action="store_true", help="clear disk cache and exit")
     return p
@@ -344,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
         issues = check_url(url)
         if args.online:
             if args.cache:
-                online_issues = check_url_with_cache(url, ttl_seconds=args.ttl, timeout=args.timeout, max_retries=args.max_retries)
+                online_issues = check_url_with_cache(url, ttl_seconds=args.ttl, timeout=args.timeout, max_retries=args.max_retries, max_bytes=args.max_bytes, max_entries=args.max_entries)
             else:
                 online_issues = check_url_online(url, timeout=args.timeout, max_retries=args.max_retries)
             issues.extend(online_issues)

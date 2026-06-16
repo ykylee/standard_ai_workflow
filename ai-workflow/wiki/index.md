@@ -37,6 +37,7 @@
 ### [[decisions/adr-011-okf-version-auto-detect]] {#adr-011-okf-version-auto-detect}
 ### [[decisions/adr-012-v-r10-online-layer]] {#adr-012-v-r10-online-layer}
 ### [[decisions/adr-013-v-r10-v2-cache]] {#adr-013-v-r10-v2-cache}
+### [[decisions/adr-014-v-r10-v3-cache-lru]] {#adr-014-v-r10-v3-cache-lru}
 
 ## Patterns
 

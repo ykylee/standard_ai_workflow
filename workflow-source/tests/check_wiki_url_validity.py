@@ -349,6 +349,82 @@ def test_cache_clear() -> None:
         assert not cache_file.exists()
 
 
+# --- Test 17-20: V-R10 v3 cache LRU (ADR-014) ---
+
+
+def test_cache_lru_eviction_by_max_entries() -> None:
+    """max_entries=2 → 3rd insertion evicts oldest entry (LRU)."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = lambda *a, **kw: _MockHTTPResponse(200)
+        try:
+            # 3 URLs, max_entries=2 → 1st URL evicted
+            mod.check_url_with_cache("https://a.com/spec", cache_file=cache_file, max_entries=2, ttl_seconds=60)
+            time.sleep(0.01)
+            mod.check_url_with_cache("https://b.com/spec", cache_file=cache_file, max_entries=2, ttl_seconds=60)
+            time.sleep(0.01)
+            mod.check_url_with_cache("https://c.com/spec", cache_file=cache_file, max_entries=2, ttl_seconds=60)
+            # check cache has 2 entries (a evicted, b+c remain)
+            cache = mod._load_cache(cache_file)
+            assert len(cache) == 2, f"expected 2 entries, got {len(cache)}"
+            assert "https://a.com/spec" not in cache, "oldest entry (a) should be evicted"
+            assert "https://b.com/spec" in cache
+            assert "https://c.com/spec" in cache
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_lru_eviction_by_max_bytes() -> None:
+    """max_bytes small → many insertions trigger eviction."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = lambda *a, **kw: _MockHTTPResponse(200)
+        try:
+            # 5 URLs, max_bytes=200 (very small) → at least 1 eviction
+            for i in range(5):
+                mod.check_url_with_cache(
+                    f"https://x{i}.com/spec", cache_file=cache_file, max_bytes=200, ttl_seconds=60,
+                )
+                time.sleep(0.005)
+            # check file size <= 200 bytes
+            size = cache_file.stat().st_size
+            assert size <= 200, f"cache size {size} exceeds 200 bytes"
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_eviction_keeps_recent() -> None:
+    """LRU evicts oldest, keeps most recent."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = lambda *a, **kw: _MockHTTPResponse(200)
+        try:
+            mod.check_url_with_cache("https://old.com/spec", cache_file=cache_file, max_entries=1, ttl_seconds=60)
+            time.sleep(0.01)
+            mod.check_url_with_cache("https://new.com/spec", cache_file=cache_file, max_entries=1, ttl_seconds=60)
+            cache = mod._load_cache(cache_file)
+            assert "https://old.com/spec" not in cache, "oldest should be evicted"
+            assert "https://new.com/spec" in cache, "newest should remain"
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_default_caps() -> None:
+    """DEFAULT_CACHE_MAX_BYTES=10MB + DEFAULT_CACHE_MAX_ENTRIES=10000."""
+    mod = _import_url_validity()
+    assert mod.DEFAULT_CACHE_MAX_BYTES == 10 * 1024 * 1024
+    assert mod.DEFAULT_CACHE_MAX_ENTRIES == 10000
+
+
 # --- 메인 실행 ---
 
 
@@ -370,6 +446,10 @@ def main() -> int:
         test_cache_ttl_expired,
         test_cache_stats,
         test_cache_clear,
+        test_cache_lru_eviction_by_max_entries,
+        test_cache_lru_eviction_by_max_bytes,
+        test_cache_eviction_keeps_recent,
+        test_cache_default_caps,
     ]
     failed: list[str] = []
     for fn in test_funcs:

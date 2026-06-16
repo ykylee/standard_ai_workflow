@@ -20,6 +20,7 @@
 ### [[concepts/okf-open-knowledge-format]] {#okf-open-knowledge-format}
 ### [[concepts/v-t1-title-consistency-lint]] {#v-t1-title-consistency-lint}
 ### [[concepts/v-r10-url-validity-lint]] {#v-r10-url-validity-lint}
+### [[concepts/v-r10-online-layer]] {#v-r10-online-layer}
 ### [[INGEST_GUIDE]] {#ingest-guide}
 
 ## Decisions
@@ -35,6 +36,7 @@
 ### [[decisions/adr-010-v-r10-url-validity-lint]] {#adr-010-v-r10-url-validity-lint}
 ### [[decisions/adr-011-okf-version-auto-detect]] {#adr-011-okf-version-auto-detect}
 ### [[decisions/adr-012-v-r10-online-layer]] {#adr-012-v-r10-online-layer}
+### [[decisions/adr-013-v-r10-v2-cache]] {#adr-013-v-r10-v2-cache}
 
 ## Patterns
 

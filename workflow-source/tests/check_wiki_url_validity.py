@@ -121,6 +121,144 @@ def test_url_path_traversal_reject() -> None:
     )
 
 
+# --- Test 7-12: Online HEAD layer (ADR-012) ---
+
+import socket
+import ssl
+import urllib.error
+from io import BytesIO
+
+
+class _MockHTTPResponse:
+    """Minimal mock for urllib.request.urlopen return value."""
+
+    def __init__(self, status: int, headers: dict[str, str] | None = None):
+        self.status = status
+        self.headers = headers or {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        pass
+
+    def read(self, *args):
+        return b""
+
+
+def _patch_urlopen(monkeypatch, mod, side_effect):
+    """Replace urlopen with a mock returning the given side_effect."""
+    monkeypatch.setattr(mod, "check_url_online", None)  # noop
+    # patch urllib.request.urlopen via the module's import
+    import urllib.request
+    monkeypatch.orig_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = lambda *a, **kw: side_effect()
+    return urllib.request
+
+
+def test_online_http_200_pass() -> None:
+    """HTTP 200 → pass (no issues)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _MockHTTPResponse(200)
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        assert not issues, f"expected no issues for 200, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_online_http_404_stale() -> None:
+    """HTTP 404 → ERROR (stale URL)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _MockHTTPResponse(404)
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        errors = [i for i in issues if i.severity == "error"]
+        assert any("404" in i.message or "stale" in i.message.lower() for i in errors), (
+            f"404 should be error, got: {issues}"
+        )
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_online_http_500_warn() -> None:
+    """HTTP 500 → WARN (transient)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _MockHTTPResponse(500)
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        warns = [i for i in issues if i.severity == "warn"]
+        assert any("500" in i.message or "server error" in i.message.lower() for i in warns), (
+            f"500 should be warn, got: {issues}"
+        )
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_online_timeout_warn() -> None:
+    """Connection timeout → WARN (slow host)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    def _timeout(*a, **kw):
+        raise socket.timeout("read timeout")
+    urllib.request.urlopen = _timeout
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        warns = [i for i in issues if i.severity == "warn"]
+        assert any("timeout" in i.message.lower() for i in warns), f"timeout should be warn, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_online_tls_error_reject() -> None:
+    """TLS error → ERROR (security risk)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    def _tls_fail(*a, **kw):
+        raise ssl.SSLError("certificate verify failed")
+    urllib.request.urlopen = _tls_fail
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        errors = [i for i in issues if i.severity == "error"]
+        assert any("TLS" in i.message or "ssl" in i.message.lower() for i in errors), (
+            f"TLS error should be error, got: {issues}"
+        )
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_online_dns_failure_reject() -> None:
+    """DNS failure → ERROR (host does not exist)."""
+    import urllib.request
+    mod = _import_url_validity()
+
+    orig = urllib.request.urlopen
+    def _dns_fail(*a, **kw):
+        raise urllib.error.URLError("Name or service not known")
+    urllib.request.urlopen = _dns_fail
+    try:
+        issues = mod.check_url_online("https://example.com/spec.md", timeout=5.0)
+        errors = [i for i in issues if i.severity == "error"]
+        assert any("DNS" in i.message or "url error" in i.message.lower() or "Name" in i.message for i in errors), (
+            f"DNS failure should be error, got: {issues}"
+        )
+    finally:
+        urllib.request.urlopen = orig
+
+
 # --- 메인 실행 ---
 
 
@@ -132,6 +270,12 @@ def main() -> int:
         test_url_private_ip_reject,
         test_url_credentials_reject,
         test_url_path_traversal_reject,
+        test_online_http_200_pass,
+        test_online_http_404_stale,
+        test_online_http_500_warn,
+        test_online_timeout_warn,
+        test_online_tls_error_reject,
+        test_online_dns_failure_reject,
     ]
     failed: list[str] = []
     for fn in test_funcs:

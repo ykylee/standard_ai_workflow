@@ -34,6 +34,7 @@
 ### [[decisions/adr-009-v-t1-formal-adoption]] {#adr-009-v-t1-formal-adoption}
 ### [[decisions/adr-010-v-r10-url-validity-lint]] {#adr-010-v-r10-url-validity-lint}
 ### [[decisions/adr-011-okf-version-auto-detect]] {#adr-011-okf-version-auto-detect}
+### [[decisions/adr-012-v-r10-online-layer]] {#adr-012-v-r10-online-layer}
 
 ## Patterns
 

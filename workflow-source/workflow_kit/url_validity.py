@@ -209,8 +209,166 @@ def check_url(url: str) -> list[UrlIssue]:
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# Online HEAD layer (ADR-012)
 # ---------------------------------------------------------------------------
+def check_url_online(
+    url: str,
+    *,
+    timeout: float = 10.0,
+    user_agent: str = "workflow-kit-url-validity/0.7.35",
+) -> list[UrlIssue]:
+    """Online V-R10 check: HTTP HEAD request to detect stale URL.
+
+    ADR-012. opt-in. CI/local dev --v-r10-online flag 시에만 활성.
+
+    Returns:
+        list[UrlIssue]:
+        - HTTP 200 OK: pass (no issues)
+        - HTTP 3xx: follow 1 hop, recheck
+        - HTTP 404/410: ERROR (stale URL)
+        - HTTP 5xx: WARN (transient, retry next run)
+        - timeout: WARN (slow host)
+        - TLS error: ERROR (security risk)
+        - DNS failure: ERROR (host does not exist)
+        - rate limit 429: WARN (back off)
+
+    Note:
+        - urllib.request 만 사용 (no extra dep)
+        - HEAD request 만 (no body download)
+        - 최대 1 redirect hop
+    """
+    import socket
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    issues: list[UrlIssue] = []
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        req.add_header("User-Agent", user_agent)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status = resp.status
+            if 200 <= status < 300:
+                # OK
+                return issues
+            if 300 <= status < 400 and status != 304:
+                # redirect — follow 1 hop
+                location = resp.headers.get("Location", "")
+                if location:
+                    try:
+                        return check_url_online(location, timeout=timeout, user_agent=user_agent)
+                    except Exception as e:  # noqa: BLE001
+                        issues.append(
+                            UrlIssue(
+                                rule="V-R10-online-redirect",
+                                severity="warn",
+                                message=f"redirect target failed: {e}",
+                            )
+                        )
+                        return issues
+                return issues
+            if status in (404, 410):
+                issues.append(
+                    UrlIssue(
+                        rule="V-R10-online-stale",
+                        severity="error",
+                        message=f"HTTP {status}: URL appears stale (not found / gone)",
+                    )
+                )
+            elif 500 <= status < 600:
+                issues.append(
+                    UrlIssue(
+                        rule="V-R10-online-server-error",
+                        severity="warn",
+                        message=f"HTTP {status}: server error (transient, retry next run)",
+                    )
+                )
+            elif status == 429:
+                issues.append(
+                    UrlIssue(
+                        rule="V-R10-online-rate-limit",
+                        severity="warn",
+                        message="HTTP 429: rate limited (back off)",
+                    )
+                )
+            else:
+                issues.append(
+                    UrlIssue(
+                        rule="V-R10-online-unexpected",
+                        severity="warn",
+                        message=f"HTTP {status}: unexpected status",
+                    )
+                )
+    except urllib.error.HTTPError as e:
+        # urllib raises HTTPError for 4xx/5xx (unlike urlopen for 2xx/3xx)
+        status = e.code
+        if status in (404, 410):
+            issues.append(
+                UrlIssue(
+                    rule="V-R10-online-stale",
+                    severity="error",
+                    message=f"HTTP {status}: URL appears stale (not found / gone)",
+                )
+            )
+        elif 500 <= status < 600:
+            issues.append(
+                UrlIssue(
+                    rule="V-R10-online-server-error",
+                    severity="warn",
+                    message=f"HTTP {status}: server error (transient, retry next run)",
+                )
+            )
+        elif status == 429:
+            issues.append(
+                UrlIssue(
+                    rule="V-R10-online-rate-limit",
+                    severity="warn",
+                    message="HTTP 429: rate limited (back off)",
+                )
+            )
+        else:
+            issues.append(
+                UrlIssue(
+                    rule="V-R10-online-http-error",
+                    severity="warn",
+                    message=f"HTTP {status}: {e.reason}",
+                )
+            )
+    except socket.timeout:
+        issues.append(
+            UrlIssue(
+                rule="V-R10-online-timeout",
+                severity="warn",
+                message=f"connection timeout after {timeout}s",
+            )
+        )
+    except ssl.SSLError as e:
+        issues.append(
+            UrlIssue(
+                rule="V-R10-online-tls",
+                severity="error",
+                message=f"TLS error: {e}",
+            )
+        )
+    except urllib.error.URLError as e:
+        # DNS failure, connection refused, etc.
+        issues.append(
+            UrlIssue(
+                rule="V-R10-online-url-error",
+                severity="error",
+                message=f"URL error (DNS / connection): {e.reason}",
+            )
+        )
+    except Exception as e:  # noqa: BLE001
+        issues.append(
+            UrlIssue(
+                rule="V-R10-online-unexpected",
+                severity="warn",
+                message=f"unexpected error: {e}",
+            )
+        )
+    return issues
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="workflow_kit.url_validity",
@@ -218,6 +376,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("urls", nargs="+", help="URLs to check")
     p.add_argument("--mode", choices=["strict", "loose"], default="strict", help="lint mode (ADR-007)")
+    p.add_argument(
+        "--online",
+        action="store_true",
+        help="run online HEAD check (ADR-012, --v-r10-online equivalent). Default: offline only.",
+    )
+    p.add_argument(
+        "--timeout",
+        type=float,
+        default=10.0,
+        help="online HEAD timeout in seconds (default: 10.0)",
+    )
     return p
 
 
@@ -226,8 +395,9 @@ def main(argv: list[str] | None = None) -> int:
     failed = 0
     for url in args.urls:
         issues = check_url(url)
+        if args.online:
+            issues.extend(check_url_online(url, timeout=args.timeout))
         if args.mode == "loose":
-            # in loose mode, errors → warnings
             issues = [
                 UrlIssue(rule=i.rule, severity="warn" if i.severity == "error" else i.severity, message=i.message)
                 for i in issues
@@ -244,3 +414,5 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

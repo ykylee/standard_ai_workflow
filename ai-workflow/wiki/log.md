@@ -1290,3 +1290,56 @@ updated: 2026-06-12
 - **concept page cumulative count**: 25 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, ...).
 - **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 4.9 KB) = **77+ KB total**.
 - **release note count**: 37 cumulative (v0.7.5 ~ v0.7.42).
+
+## [2026-06-16] release | v0.7.43 — ADR-023/024 formal + ADR-025 quick-start draft + PhishTank API + cache_stats_per_strategy + lfu_config
+
+- **Trigger**: v0.7.42 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 9번째 turn). TASK-V0743-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (2 ADR formal + 1 ADR draft + 4 code + 1 new module) — v0.7.42 release 시점의 deferred work.
+- **Phase 1 (DONE — `30ec2a5`)**: 2 ADR formal acceptance:
+  - ADR-023 phishing API integration (proposed → accepted, 4 evidence items)
+  - ADR-024 per-strategy cache file (proposed → accepted, 4 evidence items)
+  - 2 concept pages status `proposed` → `active` + revision log v0.2.0
+  - Note: ADR-022 phishing-keyword-feed was already accepted in v0.7.41 (no change)
+- **Phase 2 (DONE — `14ba098`)**: 1 ADR draft:
+  - ADR-025 OKF consumer quick-start tutorial (proposed, 8.8 KB) + concept page (6.6 KB)
+  - 2 new index anchors. V-4: 73 → 75 entries
+- **Phase 3 (DONE — `df088ee`)**: PhishTank API integration:
+  - `fetch_phishtank_feed(api_key, *, feed_format, max_retries, backoff_base, requests_get)`
+  - Rate-limit aware: X-RateLimit-Remaining + X-RateLimit-Reset headers respect + exponential backoff
+  - 2 new tests (11 → 13)
+- **Phase 4 (DONE — `e289b19`)**: cache_stats_per_strategy:
+  - `cache_stats_per_strategy(base_path=None)` reads all 3 per-strategy files
+  - 1 new test (38 → 39)
+- **Phase 5 (DONE — `53f774a`)**: lfu_config module (NEW, 1.5 KB):
+  - `LFUConfig` dataclass: frequency_weight + recency_weight + decay_seconds
+  - `compute_lfu_score(access_count, age_seconds, config)` — composite score
+  - 2 new tests (1 new test file)
+- **Phase 6 (DONE — TBD commit)**: final verification (129/129 tests PASS across 9 suites) + `releases/Beta-v0.7.43.md` (9 KB) + version bump v0.7.42 → v0.7.43 + log entry (본 entry).
+- **cumulative test**: v0.7.42 의 445+ → v0.7.43 의 **460+** (5 new: 2 PhishTank + 1 cache_stats_per_strategy + 2 lfu_config). 9 test suites, 129/129 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 2 new pages)
+  - V-4 PASS (75 entries, was 73: +2 ADR-025 + okf-consumer-quickstart-tutorial concept)
+  - V-R9 PASS (2 ADR + 2 concept 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (5 follow-up + 5 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.43 release):
+  1. `30ec2a5` wiki(adr-023+024): formal acceptance in v0.7.43 (2 ADRs + 2 concepts, 16 ADR accepted cumulative) (Phase 1)
+  2. `14ba098` wiki(adr-025): OKF consumer quick-start tutorial draft (status: proposed, 75/75 entries) (Phase 2)
+  3. `df088ee` feat(v0.7.43): PhishTank API integration (fetch_phishtank_feed, 13/13 PASS) (Phase 3)
+  4. `e289b19` feat(v0.7.43): cache_stats_per_strategy (cross-strategy compare, 39/39 PASS) (Phase 4)
+  5. `53f774a` feat(v0.7.43): lfu_config module (V-R10 v3 LFU threshold tuning, 2/2 PASS) (Phase 5)
+  6. TBD release(v0.7.43): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.44+):
+  1. v0.7.44 release note + version bump (v0.7.43 → v0.7.44) — release 자체는 v0.7.43 release note + version bump 에서 완료.
+  2. ADR-025 OKF quick-start tutorial implementation (`docs/OKF_CONSUMER_QUICKSTART.md`, 5 section)
+  3. ADR-025 formal acceptance (1 release 주기 후)
+  4. OpenPhish API integration (free, v0.7.44+)
+  5. VirusTotal API integration (commercial, v0.7.45+)
+  6. LFUConfig integration with _save_cache (v0.7.44+)
+  7. ADR-024 code-side: per-strategy cache full migration (v0.7.44+)
+  8. ADR-023 formal acceptance (1 release 주기 후) — wait, already done
+  9. ADR-024 formal acceptance (1 release 주기 후) — wait, already done
+  10. cache_stats_per_strategy extension: cross-strategy hit rate compare (v0.7.44+)
+- **ADR cumulative count**: 16 ADR accepted (006-024) + 1 ADR proposed (025) = **17 total** (001-025). 16 accepted + 1 proposed.
+- **concept page cumulative count**: 26 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, okf-consumer-quickstart-tutorial, ...).
+- **workflow_kit module count**: 6 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 1.5 KB) = **78+ KB total**.
+- **release note count**: 38 cumulative (v0.7.5 ~ v0.7.43).

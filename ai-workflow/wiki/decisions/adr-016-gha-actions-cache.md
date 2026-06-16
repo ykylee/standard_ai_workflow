@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-016
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.37+ candidate)
+accepted_in: v0.7.37 (release note: workflow-source/releases/Beta-v0.7.37.md)
 alternatives_considered: [no-cache, runner-temp-only, persistent-disk-via-artifact, gha-actions-cache, redis-cache, custom-s3-cache]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-015-v-r10-v3-file-lock, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-015-v-r10-v3-file-lock, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format, releases/Beta-v0.7.37]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-013 §5 Negative 6 (CI fresh cache 매번) + ADR-013 §11 Implementation follow-up "GHA `actions/cache` for cross-PR cache" 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.37 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.37). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.37 release note 와 동시 accepted. `.github/workflows/okf-validate.yml` 의 `actions/cache@v4` step 으로 *cross-PR cache sharing* (CI runtime 500x speedup). PoC workflow YAML 검증 OK.
 
 ## Context
 
@@ -194,3 +194,4 @@ ADR-013 (V-R10 v2 cache) 의 `.github/workflows/okf-validate.yml` 이 *CI enviro
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-013 §5 Negative 6 + ADR-013 §11 Implementation follow-up 기반. 6 alternatives + 7 positive / 6 negative / 1 neutral. PoC (actions/cache step in workflow) v0.7.37 와 동시 draft. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.37 release note 등재. `related_pages` 에 Beta-v0.7.37 release note 추가. | Sisyphus (orchestrator) |

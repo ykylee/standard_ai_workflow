@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-018
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.37+ candidate)
+accepted_in: v0.7.37 (release note: workflow-source/releases/Beta-v0.7.37.md)
 alternatives_considered: [default-branch-only, ref-pinned-only, commit-pinned-only, commit-pinned-default, archive-org-snapshot, integrity-hash]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-008-in-repo-path-to-url, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-013-v-r10-v2-cache, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-008-in-repo-path-to-url, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-013-v-r10-v2-cache, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit, releases/Beta-v0.7.37]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-008 §8 Follow-up "V-R12 — GitHub commit-pinned URL" + ADR-012 §8 Follow-up "V-R12" 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.37 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.37). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.37 release note 와 동시 accepted. `resolve_in_repo_path_to_url_pinned()` (commit_sha 7-40 hex 또는 ref) PoC 가 3/3 PASS (9/9 total). ADR-008 의 default branch URL *time-dependent* 한계 해소.
 
 ## Context
 
@@ -189,3 +189,4 @@ ADR-008 (in-repo path → URL) 가 *default branch* (`main`) 기반 URL emit. �
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-008 §8 Follow-up + ADR-012 §8 Follow-up 기반. 6 alternatives + 8 positive / 6 negative / 2 neutral. PoC (resolve_in_repo_path_to_url_pinned + 3 test) v0.7.37 와 동시 draft. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.37 release note 등재. `related_pages` 에 Beta-v0.7.37 release note 추가. | Sisyphus (orchestrator) |

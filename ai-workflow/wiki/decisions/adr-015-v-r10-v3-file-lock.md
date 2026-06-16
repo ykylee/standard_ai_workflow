@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-015
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.37+ candidate)
+accepted_in: v0.7.37 (release note: workflow-source/releases/Beta-v0.7.37.md)
 alternatives_considered: [no-lock, thread-lock-only, process-lock-only, file-mtime-watch, distributed-lock]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format, releases/Beta-v0.7.37]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-013 §5 Negative 5 (concurrent access race condition) + ADR-013 §11 Implementation follow-up "File lock (`fcntl.flock`) for concurrent access" 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.37 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.37). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.37 release note 와 동시 accepted. `_CacheLock` (POSIX `fcntl.flock` + sidecar `.lock` file + Windows no-op fallback) PoC 가 2/2 PASS (22/22 total). ADR-013 의 *concurrent access race* 해소.
 
 ## Context
 

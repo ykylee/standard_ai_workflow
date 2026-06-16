@@ -564,7 +564,62 @@ def generate_index_md(
     return "\n".join(lines) + "\n"
 
 
-# Export pipeline
+def _compute_bundle_integrity_hash(
+    pages: list[tuple[Path, str, Frontmatter]],
+) -> str:
+    """SHA256 of all exported page bytes, sorted by relative path (deterministic).
+
+    v0.7.38+ ADR-019 convention. The integrity hash is byte-level; consumers can
+    recompute and compare to detect any byte change in the bundle.
+    """
+    import hashlib
+    sha = hashlib.sha256()
+    for out_path, rel, _fm in sorted(pages, key=lambda e: e[1]):
+        sha.update(out_path.read_bytes())
+    return f"sha256:{sha.hexdigest()}"
+
+
+def _write_bundle_manifest(
+    out_bundle: Path,
+    pages: list[tuple[Path, str, Frontmatter]],
+    *,
+    vcs_commit: str | None = None,
+    vcs_ref: str | None = None,
+) -> Path:
+    """Emit `okf-bundle.yaml` (per-bundle manifest) at the bundle root.
+
+    Schema (v0.7.38+, ADR-019 convention):
+      okf_version: "0.1"
+      generated_at: <ISO 8601>
+      generator: "workflow_kit.okf_export vX.Y.Z"
+      vcs_commit: <sha>  (optional)
+      vcs_ref: <ref>     (optional)
+      integrity_hash: "sha256:<hex>"
+      page_count: N
+    """
+    import hashlib
+    try:
+        from workflow_kit import __version__ as _wk_version
+    except (ImportError, ModuleNotFoundError):
+        _wk_version = "unknown"
+    integrity = _compute_bundle_integrity_hash(pages)
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    manifest_lines = [
+        f"okf_version: '0.1'",
+        f"generated_at: '{generated_at}'",
+        f"generator: 'workflow_kit.okf_export {_wk_version}'",
+    ]
+    if vcs_commit:
+        manifest_lines.append(f"vcs_commit: '{vcs_commit}'")
+    if vcs_ref:
+        manifest_lines.append(f"vcs_ref: '{vcs_ref}'")
+    manifest_lines.append(f"integrity_hash: '{integrity}'")
+    manifest_lines.append(f"page_count: {len(pages)}")
+    manifest_path = out_bundle / "okf-bundle.yaml"
+    manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
+    return manifest_path
+
+
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ExportReport:
@@ -614,7 +669,6 @@ def export_wiki_page(
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
 ) -> tuple[int, int]:
-    """Export a single wiki page. Returns (exported_count, skipped_count)."""
     text = wiki_page.read_text(encoding="utf-8")
 
     # split frontmatter / body
@@ -641,6 +695,9 @@ def export_wiki_to_okf(
     *,
     repo_root: Path | None = None,
     resolve: bool = True,
+    vcs_commit: str | None = None,
+    vcs_ref: str | None = None,
+    emit_manifest: bool = True,
 ) -> ExportReport:
     """Export a wiki directory tree to an OKF bundle directory.
 
@@ -671,7 +728,10 @@ def export_wiki_to_okf(
             continue
         try:
             out_path = _out_path_for_wiki_page(path, wiki_root, out_bundle)
-            ex, sk = export_wiki_page(path, out_path, repo_root=repo_root, resolve=resolve)
+            ex, sk = export_wiki_page(
+                path, out_path, repo_root=repo_root, resolve=resolve,
+                vcs_commit=vcs_commit, vcs_ref=vcs_ref,
+            )
             exported += ex
             skipped += sk
             # collect for index.md (re-parse the exported file's frontmatter)
@@ -694,6 +754,16 @@ def export_wiki_to_okf(
         except Exception as e:
             errors.append(f"index.md emission failed: {e}")
 
+    # emit per-bundle manifest: okf-bundle.yaml (v0.7.38+, ADR-019 convention)
+    # integrity_hash = SHA256 of all exported page bytes (deterministic order)
+    if emit_manifest and collected_pages:
+        try:
+            _write_bundle_manifest(
+                out_bundle, collected_pages,
+                vcs_commit=vcs_commit, vcs_ref=vcs_ref,
+            )
+        except Exception as e:
+            errors.append(f"okf-bundle.yaml emission failed: {e}")
     return ExportReport(
         pages_exported=exported,
 

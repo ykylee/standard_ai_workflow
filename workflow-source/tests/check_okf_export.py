@@ -379,11 +379,12 @@ def test_okf_bundle_directory_layout() -> None:
         assert (out_bundle / "concepts" / "a.md").exists(), "concepts/a.md missing"
         assert (out_bundle / "concepts" / "sub" / "b.md").exists(), "concepts/sub/b.md missing"
         assert (out_bundle / "decisions" / "d.md").exists(), "decisions/d.md missing"
-        # exact file list: 3 concept/decision pages + 1 bundle-root index.md
+        # exact file list: 3 concept/decision pages + 1 bundle-root index.md + 1 okf-bundle.yaml
         all_files = sorted(p.relative_to(out_bundle) for p in out_bundle.rglob("*") if p.is_file())
         expected = sorted(
             [
                 Path("index.md"),
+                Path("okf-bundle.yaml"),
                 Path("concepts/a.md"),
                 Path("concepts/sub/b.md"),
                 Path("decisions/d.md"),
@@ -561,6 +562,51 @@ def test_tag_based_pinning_v0_7_37() -> None:
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
 
+def test_okf_bundle_manifest_emits_v0_7_38() -> None:
+    """v0.7.38+: okf-bundle.yaml emit with per-bundle vcs_commit + integrity_hash (ADR-019)."""
+    mod = _import_okf_export()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "concepts" / "a.md").write_text(
+            "---\ntype: concept\n---\n\n# A\n\nbody\n", encoding="utf-8"
+        )
+        (wiki_root / "decisions").mkdir()
+        (wiki_root / "decisions" / "d.md").write_text(
+            "---\ntype: decision\n---\n\n# D\n\nbody\n", encoding="utf-8"
+        )
+        report = mod.export_wiki_to_okf(
+            wiki_root, out_bundle, vcs_commit="abc1234def", vcs_ref="v0.7.38"
+        )
+        assert report.pages_exported == 2
+        manifest_path = out_bundle / "okf-bundle.yaml"
+        assert manifest_path.exists(), "okf-bundle.yaml not emitted"
+        text = manifest_path.read_text(encoding="utf-8")
+        assert "okf_version: '0.1'" in text, f"missing okf_version: {text}"
+        assert "vcs_commit: 'abc1234def'" in text, f"missing vcs_commit: {text}"
+        assert "vcs_ref: 'v0.7.38'" in text, f"missing vcs_ref: {text}"
+        assert "integrity_hash: 'sha256:" in text, f"missing integrity_hash: {text}"
+        assert "page_count: 2" in text, f"missing page_count: {text}"
+
+
+def test_okf_bundle_manifest_skip_emit() -> None:
+    """v0.7.38+: emit_manifest=False skips okf-bundle.yaml emit (escape hatch)."""
+    mod = _import_okf_export()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "concepts" / "a.md").write_text(
+            "---\ntype: concept\n---\n\n# A\n\nbody\n", encoding="utf-8"
+        )
+        report = mod.export_wiki_to_okf(wiki_root, out_bundle, emit_manifest=False)
+        assert report.pages_exported == 1
+        assert not (out_bundle / "okf-bundle.yaml").exists(), "okf-bundle.yaml should not exist"
+
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -576,6 +622,8 @@ def main() -> int:
         test_vcs_commit_emits_pinned_url,
         test_per_page_frontmatter_vcs_commit,
         test_tag_based_pinning_v0_7_37,
+        test_okf_bundle_manifest_emits_v0_7_38,
+        test_okf_bundle_manifest_skip_emit,
     ]
     failed: list[str] = []
 

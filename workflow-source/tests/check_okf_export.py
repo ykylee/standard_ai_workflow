@@ -685,6 +685,52 @@ def test_okf_resource_range_refs_v0_7_40() -> None:
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
 
+def test_okf_resource_layer1_layer2_composite_v0_7_42() -> None:
+    """v0.7.42+: composite URL emission with both ?hash= (layer 1) and ?range= (layer 2) carriers."""
+    mod = _import_okf_export()
+    import importlib.util
+    import sys as _sys
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    _sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda p, r: "https://github.com/foo/bar/blob/main/" + p.lstrip("./")
+    pr.resolve_in_repo_path_to_url_pinned = lambda p, r, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref or 'main'}/{p.lstrip('./')}"
+    )
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wiki_root = Path(tmpdir) / "wiki"
+            out_bundle = Path(tmpdir) / "bundle"
+            wiki_root.mkdir()
+            (wiki_root / "concepts").mkdir()
+            (wiki_root / "concepts" / "c.md").write_text(
+                "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# C\n\nbody\n",
+                encoding="utf-8",
+            )
+            # composite: both content_hash (auto) + range_refs
+            import hashlib
+            sha256 = hashlib.sha256(b"test").hexdigest()
+            mod.export_wiki_to_okf(
+                wiki_root, out_bundle,
+                content_hash=f"sha256:{sha256}",
+                range_refs=("aaa1111", "fffeeee"),
+                repo_root=Path(tmpdir),
+            )
+            text = (out_bundle / "concepts" / "c.md").read_text(encoding="utf-8")
+            # Both query params present (in any order, joined by ? or &)
+            assert "hash=sha256:" in text, f"missing layer 1: {text}"
+            assert "range=aaa1111..fffeeee" in text, f"missing layer 2: {text}"
+            # The two carriers are joined by '&' separator
+            assert "hash=" in text and "&range=" in text, f"composite URL not properly joined: {text}"
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -704,6 +750,7 @@ def main() -> int:
         test_okf_bundle_manifest_skip_emit,
         test_okf_resource_content_hash_v0_7_39,
         test_okf_resource_range_refs_v0_7_40,
+        test_okf_resource_layer1_layer2_composite_v0_7_42,
     ]
     failed: list[str] = []
     for fn in test_funcs:

@@ -457,9 +457,48 @@ class ImportReport:
     promoted: bool = False
     okf_version: str | None = None
     version_check: VersionCheckResult | None = None
+    r2_batch_warning: R2BatchWarning | None = None
 
 
-# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class R2BatchWarning:
+    """R-2 batch compliance warning (v0.7.40+).
+
+    The SCHEMA.md R-2 rule recommends cumulative ingest be batched (5-15 page
+    per ingest event). A batch outside this range triggers a warning to remind
+    the operator to consider splitting the ingest or running R-2 batch compliance.
+    """
+    page_count: int
+    threshold_min: int
+    threshold_max: int
+    recommendation: str
+
+
+R2_BATCH_THRESHOLD_MIN: int = 5
+R2_BATCH_THRESHOLD_MAX: int = 15
+
+
+def check_r2_batch_size(page_count: int) -> R2BatchWarning | None:
+    """R-2 batch compliance heuristic (v0.7.40+).
+
+    Returns R2BatchWarning if page_count is outside the 5-15 range.
+    Returns None if page_count is in range.
+    """
+    if page_count < R2_BATCH_THRESHOLD_MIN:
+        return R2BatchWarning(
+            page_count=page_count,
+            threshold_min=R2_BATCH_THRESHOLD_MIN,
+            threshold_max=R2_BATCH_THRESHOLD_MAX,
+            recommendation=f"batch is small ({page_count} < {R2_BATCH_THRESHOLD_MIN}). Consider bundling more pages or accepting the small batch.",
+        )
+    if page_count > R2_BATCH_THRESHOLD_MAX:
+        return R2BatchWarning(
+            page_count=page_count,
+            threshold_min=R2_BATCH_THRESHOLD_MIN,
+            threshold_max=R2_BATCH_THRESHOLD_MAX,
+            recommendation=f"batch is large ({page_count} > {R2_BATCH_THRESHOLD_MAX}). Consider splitting or running R-2 batch compliance audit.",
+        )
+    return None
 # Bundle import entry point
 # ---------------------------------------------------------------------------
 def import_okf_bundle(
@@ -566,6 +605,9 @@ def import_okf_bundle(
                 shutil.copyfile(staged, dest)
             promoted = True
 
+    # v0.7.40+ R-2 batch compliance check
+    r2_batch_warning = check_r2_batch_size(len(pages))
+
     return ImportReport(
         mode=resolved_mode,
         pages_total=len(pages),
@@ -578,8 +620,8 @@ def import_okf_bundle(
         promoted=promoted,
         okf_version=okf_version,
         version_check=version_check,
+        r2_batch_warning=r2_batch_warning,
     )
-
 
 # ---------------------------------------------------------------------------
 # CLI

@@ -247,6 +247,28 @@ def test_version_check_missing_warns() -> None:
     assert "no okf_version" in result.message.lower() or "assuming" in result.message.lower()
 
 
+def test_r2_batch_size_in_range() -> None:
+    """R-2 batch: 5-15 page range returns None (compliant)."""
+    mod = _import_okf_import()
+    assert mod.check_r2_batch_size(5) is None
+    assert mod.check_r2_batch_size(10) is None
+    assert mod.check_r2_batch_size(15) is None
+
+
+def test_r2_batch_size_out_of_range() -> None:
+    """R-2 batch: outside 5-15 range returns R2BatchWarning with recommendation."""
+    mod = _import_okf_import()
+    small = mod.check_r2_batch_size(2)
+    assert small is not None
+    assert small.page_count == 2
+    assert small.threshold_min == 5
+    assert "small" in small.recommendation.lower()
+    large = mod.check_r2_batch_size(20)
+    assert large is not None
+    assert large.page_count == 20
+    assert large.threshold_max == 15
+    assert "large" in large.recommendation.lower() or "split" in large.recommendation.lower()
+
 # --- 메인 실행 ---
 
 
@@ -264,6 +286,8 @@ def main() -> int:
         test_version_check_major_mismatch_rejects_strict,
         test_version_check_minor_higher_warns,
         test_version_check_missing_warns,
+        test_r2_batch_size_in_range,
+        test_r2_batch_size_out_of_range,
     ]
     failed: list[str] = []
     for fn in test_funcs:

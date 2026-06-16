@@ -15,7 +15,13 @@ Test list:
 from __future__ import annotations
 
 import importlib.util
+import socket
+import ssl
 import sys
+import tempfile
+import time
+import urllib.error
+from io import BytesIO
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
@@ -259,6 +265,90 @@ def test_online_dns_failure_reject() -> None:
         urllib.request.urlopen = orig
 
 
+# --- Test 13-16: V-R10 v2 cache (ADR-013) ---
+
+
+def test_cache_miss_then_hit() -> None:
+    """First check → cache miss + store. Second check (same URL) → cache hit (no network)."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        call_count = {"n": 0}
+        def _counting_urlopen(*a, **kw):
+            call_count["n"] += 1
+            return _MockHTTPResponse(200)
+        urllib.request.urlopen = _counting_urlopen
+        try:
+            # 1st: cache miss → live check → store
+            issues1 = mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
+            assert not issues1
+            assert call_count["n"] == 1, f"expected 1 live check, got {call_count['n']}"
+            # 2nd: cache hit → no live check
+            issues2 = mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
+            assert not issues2
+            assert call_count["n"] == 1, f"cache hit should not call urlopen, got {call_count['n']} calls"
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_ttl_expired() -> None:
+    """TTL expired → cache miss + fresh live check."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        call_count = {"n": 0}
+        def _counting_urlopen(*a, **kw):
+            call_count["n"] += 1
+            return _MockHTTPResponse(200)
+        urllib.request.urlopen = _counting_urlopen
+        try:
+            # 1st: store
+            mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=1)
+            assert call_count["n"] == 1
+            # wait > TTL
+            time.sleep(1.2)
+            # 2nd: TTL expired → fresh check
+            mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=1)
+            assert call_count["n"] == 2, f"TTL expired should trigger fresh check, got {call_count['n']} calls"
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_stats() -> None:
+    """cache_stats() returns total/fresh/expired counts."""
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = lambda *a, **kw: _MockHTTPResponse(200)
+        try:
+            # Empty cache
+            stats = mod.cache_stats(cache_file=cache_file)
+            assert stats == {"total": 0, "fresh": 0, "expired": 0}
+            # 1 entry
+            mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
+            stats = mod.cache_stats(cache_file=cache_file)
+            assert stats["total"] == 1 and stats["fresh"] == 1, f"got {stats}"
+        finally:
+            urllib.request.urlopen = orig
+
+
+def test_cache_clear() -> None:
+    """cache_clear() removes the disk cache file."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        cache_file.write_text("{}", encoding="utf-8")
+        assert cache_file.exists()
+        mod.cache_clear(cache_file=cache_file)
+        assert not cache_file.exists()
+
+
 # --- 메인 실행 ---
 
 
@@ -276,6 +366,10 @@ def main() -> int:
         test_online_timeout_warn,
         test_online_tls_error_reject,
         test_online_dns_failure_reject,
+        test_cache_miss_then_hit,
+        test_cache_ttl_expired,
+        test_cache_stats,
+        test_cache_clear,
     ]
     failed: list[str] = []
     for fn in test_funcs:

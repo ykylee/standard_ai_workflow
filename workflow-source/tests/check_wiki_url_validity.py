@@ -333,7 +333,7 @@ def test_cache_stats() -> None:
         try:
             # Empty cache
             stats = mod.cache_stats(cache_file=cache_file)
-            assert stats == {"total": 0, "fresh": 0, "expired": 0, "bytes": 0, "evictions_total": 0}
+            assert stats == {"total": 0, "fresh": 0, "expired": 0, "bytes": 0, "evictions_total": 0, "evictions_current_session": 0, "last_eviction_timestamp": 0.0}
             # 1 entry
             mod.check_url_with_cache("https://example.com/spec.md", cache_file=cache_file, ttl_seconds=60)
             stats = mod.cache_stats(cache_file=cache_file)
@@ -432,7 +432,39 @@ def test_cache_default_caps() -> None:
     assert mod.DEFAULT_CACHE_MAX_ENTRIES == 10000
 
 
-# --- Test 21-22: V-R10 v3 file lock (ADR-015) ---
+def test_cache_session_evictions_tracking() -> None:
+    """evictions_current_session + last_eviction_timestamp updated per LRU eviction."""
+    import urllib.request
+    mod = _import_url_validity()
+    # reset session counter (best-effort; may not work if another test ran first)
+    mod._evictions_session = 0
+    mod._last_eviction_timestamp = 0.0
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        orig = urllib.request.urlopen
+        urllib.request.urlopen = lambda *a, **kw: _MockHTTPResponse(200)
+        try:
+            # 1st: 1 entry
+            mod.check_url_with_cache("https://a.com/spec", cache_file=cache_file, max_entries=1, ttl_seconds=60)
+            assert mod._evictions_session == 0
+            assert mod._last_eviction_timestamp == 0.0
+            # 2nd: triggers 1 eviction (max_entries=1)
+            mod.check_url_with_cache("https://b.com/spec", cache_file=cache_file, max_entries=1, ttl_seconds=60)
+            assert mod._evictions_session == 1, f"expected 1 session eviction, got {mod._evictions_session}"
+            assert mod._last_eviction_timestamp > 0.0, "last_eviction_timestamp should be set"
+            # 3rd: another eviction
+            time.sleep(0.01)
+            mod.check_url_with_cache("https://c.com/spec", cache_file=cache_file, max_entries=1, ttl_seconds=60)
+            assert mod._evictions_session == 2
+            # cache_stats exposes both
+            stats = mod.cache_stats(cache_file=cache_file)
+            assert "evictions_current_session" in stats
+            assert "last_eviction_timestamp" in stats
+            assert stats["evictions_current_session"] == 2
+        finally:
+            urllib.request.urlopen = orig
+
+
 
 
 def test_file_lock_context_manager_exists() -> None:
@@ -642,6 +674,7 @@ def main() -> int:
         test_cache_lru_eviction_by_max_bytes,
         test_cache_eviction_keeps_recent,
         test_cache_default_caps,
+        test_cache_session_evictions_tracking,
         test_file_lock_context_manager_exists,
         test_file_lock_serializes_concurrent_writes,
         test_body_html_pass,

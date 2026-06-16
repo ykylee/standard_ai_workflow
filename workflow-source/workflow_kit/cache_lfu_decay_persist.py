@@ -120,3 +120,51 @@ def merge_decay_scores(
     for d in score_dicts:
         merged.update(d)
     return merged
+
+
+def export_to_csv(scores: dict[str, float], path: str) -> None:
+    """Export decay scores to CSV (v0.7.50+).
+
+    Cross-process friendly format (spreadsheets, BI tools).
+    CSV columns: url, decay_score
+
+    Args:
+        scores: dict of url -> decay_score
+        path: filesystem path (.csv)
+    """
+    import csv
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(["url", "decay_score"])
+        for url in sorted(scores.keys()):
+            writer.writerow([url, scores[url]])
+
+
+def import_from_csv(path: str) -> dict[str, float]:
+    """Import decay scores from CSV (v0.7.50+).
+
+    Args:
+        path: filesystem path (.csv)
+
+    Returns:
+        dict of url -> decay_score (empty dict on error)
+    """
+    import csv
+    if not os.path.exists(path):
+        return {}
+    try:
+        result: dict[str, float] = {}
+        with open(path, "r", newline="", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                url = row.get("url", "").strip()
+                score_str = row.get("decay_score", "0").strip()
+                if url:
+                    try:
+                        result[url] = float(score_str)
+                    except ValueError:
+                        continue
+        return result
+    except (OSError, csv.Error, KeyError, TypeError):
+        return {}

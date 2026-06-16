@@ -139,6 +139,63 @@ def test_release_doctor_all_skip_returns_0_v0_7_54() -> None:
     assert code == 0
 
 
+def test_cache_migrate_invalid_mode_returns_2_v0_7_55() -> None:
+    """cache-migrate with --mode=invalid returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-migrate", "--mode=invalid"])
+    assert code == 2
+
+
+def test_okf_version_check_no_arg_returns_2_v0_7_55() -> None:
+    """okf-version-check without --okf-version or --bundle returns 2."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-version-check"])
+    assert code == 2
+
+
+def test_okf_version_check_match_returns_0_v0_7_55() -> None:
+    """okf-version-check with matching version (0.1 == 0.1) returns 0."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-version-check", "--okf-version=0.1"])
+    assert code == 0
+
+
+def test_okf_version_check_major_higher_returns_2_v0_7_55() -> None:
+    """okf-version-check with major higher (1.0) returns 2 (breaking change)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-version-check", "--okf-version=1.0"])
+    assert code == 2
+
+
+def test_cache_decay_no_scores_returns_2_v0_7_55() -> None:
+    """cache-decay without --scores returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-decay"])
+    assert code == 2
+
+
+def test_cache_decay_returns_0_v0_7_55() -> None:
+    """cache-decay on a valid scores file returns 0 (decay applied)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        sp = Path(tmp) / "scores.json"
+        sp.write_text(json.dumps({"url1": 1.0, "url2": 0.5}))
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-decay", f"--scores={sp}", "--half-life=86400",
+        ])
+        assert code == 0
+
+
+def test_score_wiki_trend_show_returns_0_v0_7_55() -> None:
+    """score-wiki-trend --show returns 0 (subprocess wrapper, no in-process dataclass bug)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=score-wiki-trend", "--show"])
+    assert code == 0
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -154,6 +211,13 @@ def main() -> int:
         test_okf_validate_invalid_mode_returns_2_v0_7_54,
         test_cache_migrate_no_op_returns_0_v0_7_54,
         test_release_doctor_all_skip_returns_0_v0_7_54,
+        test_cache_migrate_invalid_mode_returns_2_v0_7_55,
+        test_okf_version_check_no_arg_returns_2_v0_7_55,
+        test_okf_version_check_match_returns_0_v0_7_55,
+        test_okf_version_check_major_higher_returns_2_v0_7_55,
+        test_cache_decay_no_scores_returns_2_v0_7_55,
+        test_cache_decay_returns_0_v0_7_55,
+        test_score_wiki_trend_show_returns_0_v0_7_55,
     ]
     failed: list[str] = []
     for fn in test_funcs:

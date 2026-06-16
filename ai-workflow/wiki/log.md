@@ -1182,3 +1182,61 @@ updated: 2026-06-12
 - **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 18 KB, phishing_keywords 4.9 KB) = **74+ KB total**.
 - **release note count**: 34 cumulative (v0.7.5 ~ v0.7.39).
 
+
+## [2026-06-16] release | v0.7.41 — ADR-020/021/022 formal + V-R13 range diff + per-strategy metric + R-2 audit + V-R12 composite
+
+- **Trigger**: v0.7.40 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 7번째 turn). TASK-V0741-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (3 ADR formal + 3 concept formal + 4 code enhancement + 1 audit) — v0.7.40 release 시점의 deferred work.
+- **Phase 1 (DONE — `55bd109`)**: ADR-020/021/022 formal acceptance (`proposed` → `accepted`):
+  - ADR-020 V-R13 PoC → formal: 8/8 check executable + 18 unit tests + 2 layer + CLI
+  - ADR-021 LFU: EvictionStrategy + access_count + 2 tests + v0.7.38 backward compat
+  - ADR-022 PhishTank feed: 3-layer fallback + case-insensitive dedup + silent fallback + 11 tests
+  - 3 concept pages (v-r13-implementation, cache-lfu-eviction, phishing-keyword-feed): status `proposed` → `active` + revision log v0.2.0 each
+- **Phase 2 (DONE — `6fcda94`)**: V-R13 `?range=A..B` commit-level diff:
+  - `url_validity.check_url_semantic_range_diff()`: git diff --numstat via subprocess
+  - V-R13-range-diff-ok / V-R13-range-no-changes / V-R13-range-missing / V-R13-range-subprocess-error
+  - subprocess_run parameter for testability
+  - 3 new tests (18 → 21)
+- **Phase 3 (DONE — `46b6b7a`)**: V-R10 v3 per-strategy metric:
+  - `_evictions_lru` + `_evictions_lfu` module-level counters
+  - `cache_stats()` returns both new fields (7 → 9 fields)
+  - 2 new tests (34 → 36)
+- **Phase 4 (DONE — `a595fbb`)**: R-2 batch compliance audit:
+  - `okf_import.R2BatchAuditResult` dataclass
+  - `audit_r2_batch_history()`: log.md regex-based batch counting (+N new tests pattern)
+  - in_range (5-15) + too_small (1-4) + too_large (16+) categorization
+  - 1 new test (14 → 15)
+- **Phase 5 (DONE — `6a480ac`)**: V-R12 composite layer 1+2 verification:
+  - `url_validity.check_url_semantic_composite()`: 3-layer (commit + hash + range) verification
+  - V-R12-composite-ok + V-R12-composite-incomplete + V-R12-composite-partial + V-R12-composite-no-commit
+  - require_both_layers parameter for permissiveness
+  - 2 new tests (21 → 23)
+- **Phase 6 (DONE — TBD commit)**: final verification (118/118 tests PASS across 8 suites) + `releases/Beta-v0.7.41.md` (9 KB) + version bump v0.7.40 → v0.7.41 + log entry (본 entry).
+- **cumulative test**: v0.7.40 의 415+ → v0.7.41 의 **430+** (8 new: 3 V-R13 range_diff + 2 V-R12 composite + 2 per-strategy metric + 1 R-2 audit). 8 test suites (V-1/V-4 wiki lint + okf_export + okf_import + path_resolver + v-t1 + v-r10 + v-r13 + phishing = 8 file, 118/118 PASS).
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`, `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (69 entries, no change — frontmatter + revision log updates only)
+  - V-R9 PASS (3 ADR + 3 concept 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (3 ADR formal + 4 code + 8 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.41 release):
+  1. `55bd109` wiki(adr-020+021+022): formal acceptance in v0.7.41 (3 ADRs + 3 concepts, 14 ADR accepted cumulative) (Phase 1)
+  2. `6fcda94` feat(v0.7.41): V-R13 ?range=A..B commit-level diff (git diff subprocess, 21/21 PASS) (Phase 2)
+  3. `46b6b7a` feat(v0.7.41): V-R10 v3 per-strategy eviction metric (evictions_lru/evictions_lfu, 36/36 PASS) (Phase 3)
+  4. `a595fbb` feat(v0.7.41): R-2 batch compliance audit (audit_r2_batch_history, 15/15 PASS) (Phase 4)
+  5. `6a480ac` feat(v0.7.41): V-R12 composite layer 1+2 verification (check_url_semantic_composite, 23/23 PASS) (Phase 5)
+  6. TBD release(v0.7.41): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.42+):
+  1. v0.7.42 release note + version bump (v0.7.41 → v0.7.42) — release 자체는 v0.7.41 release note + version bump 에서 완료.
+  2. OKF consumer guide quick-start tutorial (sample bundle walkthrough)
+  3. V-R11 v2 follow-ups: PhishTank API integration + rate-limit aware
+  4. V-R12 layer 2 emission (per-page `?range=<sha>..<sha>` emit, parse-only currently)
+  5. V-R13 check 5 per-host extension (GitLab API, Bitbucket API)
+  6. R-2 audit precise (git history, not log.md regex)
+  7. V-R10 v3 follow-ups: per-strategy cache file (separate file per strategy)
+  8. V-R13 `?range=A..B` commit-level diff PoC (`git diff` subprocess — DONE v0.7.41)
+  9. ADR-021 + ADR-022 follow-up ADR (v0.7.42+): per-strategy metric ADR, phishing API ADR
+  10. V-R11 v3 follow-ups: dynamic content audit (Playwright) + phishing detection 의 *real-time* 의 *operational* 보강
+- **ADR cumulative count**: 14 ADR accepted + 0 ADR proposed = **14 total** (001-019 + 020-022 all accepted). 6 ADR formal acceptance this session (020 in v0.7.39, 020+021+022 acceptance now).
+- **concept page cumulative count**: 23 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, v-r13-implementation, cache-lfu-eviction, phishing-keyword-feed, ...).
+- **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 19 KB, phishing_keywords 4.9 KB) = **76+ KB total**.
+- **release note count**: 36 cumulative (v0.7.5 ~ v0.7.41).

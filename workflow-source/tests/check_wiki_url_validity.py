@@ -536,8 +536,39 @@ def test_file_lock_serializes_concurrent_writes() -> None:
         assert isinstance(parsed, dict)
 
 
+def test_cache_gzip_compression_roundtrip() -> None:
+    """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
+    import gzip as _gzip
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        # build a cache that exceeds 4KB
+        now = time.time()
+        entries: dict[str, mod.CacheEntry] = {}
+        for i in range(50):
+            url = f"https://example.com/path/{i:03d}/some-long-url-with-extra-padding"
+            entries[url] = mod.CacheEntry(
+                url=url,
+                timestamp=now - i,
+                issues=("ok",),
+            )
+        mod._save_cache(cache_file, entries)
+        # check file is gzipped (starts with magic 1f 8b)
+        raw = cache_file.read_bytes()
+        assert raw[:2] == b"\x1f\x8b", f"cache not gzipped, starts with: {raw[:8]!r}"
+        # verify size reduction
+        import json as _json
+        uncompressed_size = len(_json.dumps({u: {"timestamp": e.timestamp, "issues": list(e.issues)} for u, e in entries.items()}, indent=2, sort_keys=True).encode("utf-8"))
+        assert len(raw) < uncompressed_size, f"gzip didn't shrink: {len(raw)} vs {uncompressed_size}"
+        # roundtrip: _load_cache should decompress transparently
+        loaded = mod._load_cache(cache_file)
+        assert len(loaded) == len(entries), f"roundtrip lost entries: {len(loaded)} vs {len(entries)}"
+        # verify a known URL is loadable
+        sample_url = f"https://example.com/path/000/some-long-url-with-extra-padding"
+        assert sample_url in loaded, f"sample URL missing from loaded cache"
+
+
 def test_file_lock_timeout() -> None:
-    """_CacheLock with timeout=0.2s raises OSError when lock already held."""
     import fcntl
     import multiprocessing
     import time as _time
@@ -714,6 +745,7 @@ def main() -> int:
         test_body_timeout_warn,
         test_cli_body_flag_invokes_body_audit,
         test_file_lock_timeout,
+        test_cache_gzip_compression_roundtrip,
     ]
     failed: list[str] = []
     for fn in test_funcs:

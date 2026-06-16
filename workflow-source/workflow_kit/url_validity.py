@@ -337,12 +337,17 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
     if not cache_file.exists():
         return {}
     try:
-        raw = json.loads(cache_file.read_text(encoding="utf-8"))
+        raw_bytes = cache_file.read_bytes()
+        # v0.7.38+ gzip auto-detect: magic bytes 1f 8b
+        if raw_bytes.startswith(b"\x1f\x8b"):
+            import gzip
+            raw_bytes = gzip.decompress(raw_bytes)
+        raw = json.loads(raw_bytes.decode("utf-8"))
         return {
             url: CacheEntry(url=url, timestamp=float(data["timestamp"]), issues=tuple(data["issues"]))
             for url, data in raw.items()
         }
-    except (json.JSONDecodeError, KeyError, ValueError, OSError):
+    except (json.JSONDecodeError, KeyError, ValueError, OSError, EOFError):
         return {}
 
 
@@ -448,12 +453,12 @@ def _save_cache(
         raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
         serialized = json.dumps(raw, indent=2, sort_keys=True)
         size = len(serialized.encode("utf-8"))
-    cache_file.write_text(serialized, encoding="utf-8")
-
-    if size > max_bytes:
-        import sys
-        print(f"WARN: cache size {size} bytes exceeds cap {max_bytes} (single entry too large)", file=sys.stderr)
-
+    # v0.7.38+ gzip emit when uncompressed > 4KB (ADR-014 v3 follow-up, ~3-5x size reduction)
+    if size > 4096:
+        import gzip
+        cache_file.write_bytes(gzip.compress(serialized.encode("utf-8"), compresslevel=6))
+    else:
+        cache_file.write_text(serialized, encoding="utf-8")
 def _cache_lookup(cache: dict[str, CacheEntry], url: str, ttl: int) -> list[UrlIssue] | None:
     entry = cache.get(url)
     if entry is None:

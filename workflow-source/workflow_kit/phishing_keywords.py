@@ -277,3 +277,48 @@ def fetch_openphish_feed(
                 continue
             return []
     return []
+
+# v0.7.45+ Multi-source phishing federation (ADR-023 follow-up, FREE tier only)
+
+
+def fetch_federated_phishing_urls(
+    phishtank_api_key: str | None = None,
+    *,
+    include_phishtank: bool = True,
+    include_openphish: bool = True,
+    requests_get_pt=None,
+    requests_get_op=None,
+) -> list[str]:
+    """Fetch + dedup phishing URLs from PhishTank + OpenPhish (v0.7.45+, free tier).
+
+    Multi-source federation of 2 free phishing feeds (PhishTank free + OpenPhish free).
+    Dedup is case-insensitive + URL-normalized. Returns sorted list (deterministic).
+
+    Args:
+        phishtank_api_key: PhishTank API key (free tier: 5 req/hour). Required if include_phishtank=True.
+        include_phishtank: whether to include PhishTank (default True)
+        include_openphish: whether to include OpenPhish (default True)
+        requests_get_pt: optional injected requests_get for PhishTank (testability)
+        requests_get_op: optional injected requests_get for OpenPhish (testability)
+
+    Returns:
+        Sorted, deduped list of phishing URLs.
+    """
+    urls: set[str] = set()
+    if include_phishtank and phishtank_api_key:
+        try:
+            pt_urls = fetch_phishtank_feed(
+                phishtank_api_key, requests_get=requests_get_pt
+            )
+            for u in pt_urls:
+                urls.add(u.strip().lower())
+        except Exception:
+            pass  # silent fallback
+    if include_openphish:
+        try:
+            op_urls = fetch_openphish_feed(requests_get=requests_get_op)
+            for u in op_urls:
+                urls.add(u.strip().lower())
+        except Exception:
+            pass  # silent fallback
+    return sorted(urls)

@@ -645,6 +645,46 @@ def test_okf_resource_content_hash_v0_7_39() -> None:
         pr.resolve_in_repo_path_to_url = orig_url
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
+
+def test_okf_resource_range_refs_v0_7_40() -> None:
+    """v0.7.40+: range_refs=(sha1, sha2) appends ?range=<sha1>..<sha2> to resource URL (ADR-019 layer 2)."""
+    mod = _import_okf_export()
+    import importlib.util
+    import sys as _sys
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    _sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda p, r: "https://github.com/foo/bar/blob/main/" + p.lstrip("./")
+    pr.resolve_in_repo_path_to_url_pinned = lambda p, r, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref or 'main'}/{p.lstrip('./')}"
+    )
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wiki_root = Path(tmpdir) / "wiki"
+            out_bundle = Path(tmpdir) / "bundle"
+            wiki_root.mkdir()
+            (wiki_root / "concepts").mkdir()
+            (wiki_root / "concepts" / "r.md").write_text(
+                "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# R\n\nbody\n",
+                encoding="utf-8",
+            )
+            mod.export_wiki_to_okf(
+                wiki_root, out_bundle,
+                range_refs=("aaa1111", "fffeeee"),
+                repo_root=Path(tmpdir),
+            )
+            text = (out_bundle / "concepts" / "r.md").read_text(encoding="utf-8")
+            assert "range=aaa1111..fffeeee" in text, f"missing range query param: {text}"
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
+
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -663,9 +703,9 @@ def main() -> int:
         test_okf_bundle_manifest_emits_v0_7_38,
         test_okf_bundle_manifest_skip_emit,
         test_okf_resource_content_hash_v0_7_39,
+        test_okf_resource_range_refs_v0_7_40,
     ]
     failed: list[str] = []
-
     for fn in test_funcs:
         name = fn.__name__
         try:

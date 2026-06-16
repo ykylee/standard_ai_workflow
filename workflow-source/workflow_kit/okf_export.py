@@ -360,6 +360,7 @@ def map_frontmatter_to_okf(
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
     content_hash: str | None = None,
+    range_refs: tuple[str, str] | None = None,
 ) -> OkfMapping:
     """wiki Frontmatter → OKF frontmatter (SPEC.md §4.1) + body suffix (Citations §8).
 
@@ -399,12 +400,16 @@ def map_frontmatter_to_okf(
     if resource and content_hash:
         sep = "&" if "?" in resource else "?"
         resource = f"{resource}{sep}hash={content_hash}"
+    # v0.7.40+ ADR-019 layer 2: append ?range=<sha1>..<sha2> when range_refs provided
+    if resource and range_refs:
+        sha1, sha2 = range_refs
+        sep = "&" if "?" in resource else "?"
+        resource = f"{resource}{sep}range={sha1}..{sha2}"
     if resource:
         okf["resource"] = resource
     tags = _derive_tags(frontmatter)
     if tags:
         okf["tags"] = list(tags)
-
     timestamp = _date_to_iso8601(frontmatter.updated) or _date_to_iso8601(frontmatter.created)
     if timestamp:
         okf["timestamp"] = timestamp
@@ -673,6 +678,7 @@ def export_wiki_page(
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
     content_hash: str | None = None,
+    range_refs: tuple[str, str] | None = None,
 ) -> tuple[int, int]:
     text = wiki_page.read_text(encoding="utf-8")
 
@@ -686,17 +692,14 @@ def export_wiki_page(
     if content_hash == "auto":
         import hashlib
         content_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash)
+    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash, range_refs=range_refs)
     body_rewritten = rewrite_wiki_links_to_okf(body_text)
-
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_text = "\n".join(mapping.frontmatter_lines) + "\n" + body_rewritten + "\n"
     if mapping.body_suffix:
         out_text += "\n".join(mapping.body_suffix) + "\n"
     out_path.write_text(out_text, encoding="utf-8")
     return (1, 0)
-
-
 def export_wiki_to_okf(
     wiki_root: Path,
     out_bundle: Path,
@@ -708,6 +711,7 @@ def export_wiki_to_okf(
     vcs_ref: str | None = None,
     emit_manifest: bool = True,
     content_hash: str | None = None,
+    range_refs: tuple[str, str] | None = None,
 ) -> ExportReport:
     """Export a wiki directory tree to an OKF bundle directory.
 
@@ -740,7 +744,7 @@ def export_wiki_to_okf(
             out_path = _out_path_for_wiki_page(path, wiki_root, out_bundle)
             ex, sk = export_wiki_page(
                 path, out_path, repo_root=repo_root, resolve=resolve,
-                vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash,
+                vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash, range_refs=range_refs,
             )
             skipped += sk
             exported += ex

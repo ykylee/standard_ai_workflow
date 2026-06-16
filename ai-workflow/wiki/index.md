@@ -30,6 +30,7 @@
 ### [[concepts/per-strategy-cache-file]] {#per-strategy-cache-file}
 ### [[concepts/phishing-keyword-feed]] {#phishing-keyword-feed}
 ### [[concepts/phishing-api-integration]] {#phishing-api-integration}
+### [[concepts/okf-consumer-quickstart-tutorial]] {#okf-consumer-quickstart-tutorial}
 
 ### [[decisions/adr-004-wiki-layer]] {#adr-004-wiki-layer}
 ### [[decisions/adr-001-3-layer-separation]] {#adr-001-3-layer-separation}
@@ -54,6 +55,7 @@
 ### [[decisions/adr-022-phishing-keyword-feed]] {#adr-022-phishing-keyword-feed}
 ### [[decisions/adr-023-phishing-api-integration]] {#adr-023-phishing-api-integration}
 ### [[decisions/adr-024-per-strategy-cache-file]] {#adr-024-per-strategy-cache-file}
+### [[decisions/adr-025-okf-consumer-quickstart-tutorial]] {#adr-025-okf-consumer-quickstart-tutorial}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

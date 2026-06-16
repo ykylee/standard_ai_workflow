@@ -600,7 +600,24 @@ def test_body_timeout_warn() -> None:
         urllib.request.urlopen = orig
 
 
-# --- 메인 실행 ---
+def test_cli_body_flag_invokes_body_audit() -> None:
+    """CLI --body flag invokes check_url_body() per URL (phishing body → error output)."""
+    import urllib.request
+    import contextlib
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    body = b"<html><body>Please verify your account immediately. Click here!</body></html>"
+    urllib.request.urlopen = lambda req, **kw: _BodyMockResponse(body, "text/html; charset=utf-8")
+    try:
+        from io import StringIO
+        buf = StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = mod.main(["--body", "--mode=strict", "--timeout=5.0", "https://phishing.example.com/login"])
+        output = buf.getvalue()
+        assert "phishing" in output.lower(), f"expected phishing issue in output, got: {output!r}"
+        assert rc != 0, f"expected non-zero exit code (error in strict mode), got {rc}"
+    finally:
+        urllib.request.urlopen = orig
 
 
 def main() -> int:
@@ -632,6 +649,7 @@ def main() -> int:
         test_body_missing_html_tag_warn,
         test_body_unexpected_content_type_warn,
         test_body_timeout_warn,
+        test_cli_body_flag_invokes_body_audit,
     ]
     failed: list[str] = []
     for fn in test_funcs:

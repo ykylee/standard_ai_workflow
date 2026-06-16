@@ -489,6 +489,7 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
         "evictions_total": _evictions_total,
     }
 
+def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")
     p.add_argument("--mode", choices=["strict", "loose"], default="strict", help="lint mode")
@@ -496,10 +497,12 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
     p.add_argument("--cache", action="store_true", help="use 24h disk cache (ADR-013)")
     p.add_argument("--ttl", type=int, default=DEFAULT_CACHE_TTL_SECONDS, help=f"cache TTL (default: {DEFAULT_CACHE_TTL_SECONDS})")
     p.add_argument("--max-retries", type=int, default=3, help="max retries for 5xx/429/timeout (default: 3)")
-    p.add_argument("--max-bytes", type=int, default=DEFAULT_CACHE_MAX_BYTES, help=f"cache size cap in bytes (default: {DEFAULT_CACHE_MAX_BYTES})")
+    p.add_argument("--timeout", type=float, default=10.0, help="online HEAD/body timeout in seconds (default: 10.0)")
     p.add_argument("--max-entries", type=int, default=DEFAULT_CACHE_MAX_ENTRIES, help=f"cache entry count cap (default: {DEFAULT_CACHE_MAX_ENTRIES})")
     p.add_argument("--cache-stats", action="store_true", help="print cache statistics and exit")
     p.add_argument("--cache-clear", action="store_true", help="clear disk cache and exit")
+    p.add_argument("--body", action="store_true", help="run V-R11 body content audit (ADR-017, opt-in)")
+    p.add_argument("--max-body-bytes", type=int, default=DEFAULT_BODY_MAX_BYTES, help=f"body size cap in bytes (default: {DEFAULT_BODY_MAX_BYTES})")
     return p
 
 
@@ -527,12 +530,10 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 online_issues = check_url_online(url, timeout=args.timeout, max_retries=args.max_retries)
             issues.extend(online_issues)
+        if args.body:
+            body_issues = check_url_body(url, timeout=args.timeout, max_body_bytes=args.max_body_bytes)
+            issues.extend(body_issues)
         if args.mode == "loose":
-            issues = [
-                UrlIssue(rule=i.rule, severity="warn" if i.severity == "error" else i.severity, message=i.message)
-                for i in issues
-            ]
-        if not issues:
             print(f"  PASS  {url}")
         else:
             for issue in issues:

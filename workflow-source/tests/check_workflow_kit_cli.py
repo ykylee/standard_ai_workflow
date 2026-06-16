@@ -346,6 +346,41 @@ def test_cache_prune_apply_removes_old_v0_7_56() -> None:
         assert "https://example.com/old" not in after
 
 
+def test_release_bump_dry_run_v0_7_56() -> None:
+    """release-bump (dry-run, --patch) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-bump", "--patch", "--json"])
+    assert code == 0
+
+
+def test_release_create_missing_version_returns_2_v0_7_56() -> None:
+    """release-create without --version returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-create", "--json"])
+    assert code == 2
+
+
+def test_release_rollback_missing_tag_returns_2_v0_7_56() -> None:
+    """release-rollback without --tag returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-rollback", "--json"])
+    assert code == 2
+
+
+def test_release_dist_dry_run_v0_7_56() -> None:
+    """release-dist (dry-run) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-dist", "--json"])
+    assert code == 0
+
+
+def test_release_changelog_dry_run_v0_7_56() -> None:
+    """release-changelog (dry-run) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-changelog", "--json"])
+    assert code == 0
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -374,6 +409,11 @@ def main() -> int:
         test_okf_cleanup_apply_removes_v0_7_56,
         test_cache_prune_dry_run_v0_7_56,
         test_cache_prune_apply_removes_old_v0_7_56,
+        test_release_bump_dry_run_v0_7_56,
+        test_release_create_missing_version_returns_2_v0_7_56,
+        test_release_rollback_missing_tag_returns_2_v0_7_56,
+        test_release_dist_dry_run_v0_7_56,
+        test_release_changelog_dry_run_v0_7_56,
     ]
     failed: list[str] = []
     for fn in test_funcs:

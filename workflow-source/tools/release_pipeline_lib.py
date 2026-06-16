@@ -134,19 +134,26 @@ def cmd_note_draft(*, to: str, from_tag: str, dry_run: bool = True) -> dict:
 
 
 def cmd_changelog_gen(*, from_tag: str | None = None, to_tag: str = "HEAD",
-                      dry_run: bool = True) -> dict:
+                      dry_run: bool = True, output: str | None = None) -> dict:
     """Run cmd_changelog_gen in-process (v0.7.56+).
 
     Args:
         from_tag: start tag (None = all history)
         to_tag: end tag/REF (default "HEAD")
         dry_run: if True, don't write CHANGELOG.md (default)
+        output: explicit output path (default: REPO_ROOT/CHANGELOG.md)
 
     Returns:
         dict with mode, changelog path, commit_count
     """
     mod = _load_release_pipeline()
-    args = _make_args(from_tag=from_tag, to_tag=to_tag, dry_run=dry_run)
+    args = _make_args(
+        from_tag=from_tag,
+        to_tag=to_tag,
+        dry_run=dry_run,
+        output=output,
+        unreleased_label="Unreleased",
+    )
     return mod.cmd_changelog_gen(args)
 
 

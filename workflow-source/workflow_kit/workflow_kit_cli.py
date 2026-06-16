@@ -705,6 +705,185 @@ def cmd_cache_prune(argv: list[str]) -> int:
         return 2
 
 
+# ---------------------------------------------------------------------------
+# release-pipeline wrappers (v0.7.56+, dispatcher subcommand 17-23)
+# ---------------------------------------------------------------------------
+
+def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs) -> int:
+    """Helper: call a release_pipeline_lib wrapper with JSON output + rc conversion.
+
+    Args:
+        argv: dispatcher argv
+        wrapper_name: name of the function in release_pipeline_lib
+        **kwargs: forwarded to the wrapper
+
+    Returns:
+        rc: 0 = success, 1 = warn, 2 = error/usage
+    """
+    import json as _json
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        kit_dir = _P(__file__).resolve().parent
+        tools_dir = kit_dir.parent / "tools"
+        if str(tools_dir) not in sys.path:
+            sys.path.insert(0, str(tools_dir))
+        import release_pipeline_lib as _lib
+        fn = getattr(_lib, wrapper_name)
+        result = fn(**kwargs)
+        if use_json:
+            print(_json.dumps(result, indent=2, default=str))
+        else:
+            mode = result.get("mode", "?")
+            print(f"{wrapper_name}: mode={mode}")
+            for k, v in result.items():
+                if k == "mode":
+                    continue
+                print(f"  {k}: {v}")
+        # rc: success if mode=apply or dry-run OK; error if mode=error
+        if result.get("mode") == "error":
+            return 2
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("release-bump")
+def cmd_release_bump(argv: list[str]) -> int:
+    """Bump pyproject.toml version (v0.7.56+, dispatcher subcommand 17).
+
+    Args:
+        --to=VERSION    explicit target version (e.g. "0.7.56")
+        --patch         increment patch (default if no --to)
+        --minor         increment minor
+        --major         increment major
+        --no-init       skip workflow_kit/__init__.py __version__ sync
+        --apply         actually write (default dry-run)
+        --json          JSON output
+    """
+    to = _parse_flag(argv, "--to")
+    kwargs = {
+        "apply": _has_flag(argv, "--apply"),
+        "no_init": _has_flag(argv, "--no-init"),
+        "to": to,
+        "patch": _has_flag(argv, "--patch"),
+        "minor": _has_flag(argv, "--minor"),
+        "major": _has_flag(argv, "--major"),
+    }
+    return _wrap_release_pipeline(argv, "cmd_version_bump", **kwargs)
+
+
+@register("release-note")
+def cmd_release_note(argv: list[str]) -> int:
+    """Draft release note (v0.7.56+, dispatcher subcommand 18).
+
+    Args:
+        --to=VERSION       target version (required)
+        --from-tag=TAG     source tag (required)
+        --apply            actually write Beta-v<X>.md (default dry-run)
+        --json             JSON output
+    """
+    to = _parse_flag(argv, "--to")
+    from_tag = _parse_flag(argv, "--from-tag")
+    if to is None or from_tag is None:
+        print("ERROR: --to=VERSION and --from-tag=TAG required", file=sys.stderr)
+        return 2
+    return _wrap_release_pipeline(
+        argv, "cmd_note_draft",
+        to=to, from_tag=from_tag, dry_run=not _has_flag(argv, "--apply"),
+    )
+
+
+@register("release-changelog")
+def cmd_release_changelog(argv: list[str]) -> int:
+    """Generate CHANGELOG.md body (v0.7.56+, dispatcher subcommand 19).
+
+    Args:
+        --from-tag=TAG     start tag (default = all history)
+        --to-tag=REF       end tag/REF (default = HEAD)
+        --apply            actually write CHANGELOG.md (default dry-run)
+        --json             JSON output
+    """
+    from_tag = _parse_flag(argv, "--from-tag")
+    to_tag = _parse_flag(argv, "--to-tag") or "HEAD"
+    return _wrap_release_pipeline(
+        argv, "cmd_changelog_gen",
+        from_tag=from_tag, to_tag=to_tag, dry_run=not _has_flag(argv, "--apply"),
+    )
+
+
+@register("release-create")
+def cmd_release_create(argv: list[str]) -> int:
+    """Create GitHub Release (v0.7.56+, dispatcher subcommand 20, destructive).
+
+    Args:
+        --version=VERSION        target version (required)
+        --notes-template=PATH    notes template file (optional)
+        --skip-validate          skip 4-source validate (not recommended)
+        --auto-bump              auto-bump if remote tag exists
+        --apply                  actually create release (default dry-run)
+        --json                   JSON output
+    """
+    version = _parse_flag(argv, "--version")
+    if version is None:
+        print("ERROR: --version=VERSION required", file=sys.stderr)
+        return 2
+    return _wrap_release_pipeline(
+        argv, "cmd_release",
+        version=version,
+        notes_template=_parse_flag(argv, "--notes-template"),
+        skip_validate=_has_flag(argv, "--skip-validate"),
+        auto_bump=_has_flag(argv, "--auto-bump"),
+        apply=_has_flag(argv, "--apply"),
+    )
+
+
+@register("release-verify")
+def cmd_release_verify(argv: list[str]) -> int:
+    """Verify GitHub Release (v0.7.56+, dispatcher subcommand 21, read-only).
+
+    Args:
+        --tag=TAG    tag to verify (e.g. v0.7.56 or 0.7.56, required)
+        --json       JSON output
+    """
+    tag = _parse_flag(argv, "--tag")
+    if tag is None:
+        print("ERROR: --tag=TAG required", file=sys.stderr)
+        return 2
+    return _wrap_release_pipeline(argv, "cmd_verify", tag=tag)
+
+
+@register("release-rollback")
+def cmd_release_rollback(argv: list[str]) -> int:
+    """Delete GitHub Release + git tag (v0.7.56+, dispatcher subcommand 22, destructive).
+
+    Args:
+        --tag=TAG     tag to delete (required)
+        --apply       actually delete (default dry-run)
+        --json        JSON output
+    """
+    tag = _parse_flag(argv, "--tag")
+    if tag is None:
+        print("ERROR: --tag=TAG required", file=sys.stderr)
+        return 2
+    return _wrap_release_pipeline(
+        argv, "cmd_rollback",
+        tag=tag, apply=_has_flag(argv, "--apply"),
+    )
+
+
+@register("release-dist")
+def cmd_release_dist(argv: list[str]) -> int:
+    """Build wheel + sdist (v0.7.56+, dispatcher subcommand 23).
+
+    Args:
+        --apply     actually run `python3 -m build` (default dry-run)
+        --json      JSON output
+    """
+    return _wrap_release_pipeline(argv, "cmd_dist", apply=_has_flag(argv, "--apply"))
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

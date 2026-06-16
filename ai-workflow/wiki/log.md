@@ -1072,3 +1072,36 @@ updated: 2026-06-12
   4. V-R12 v2: `vcs_commit` field as *per-page* (not just CLI), `okf-bundle.yaml` per-bundle vcs_commit, tag-based pinning (e.g. `v0.7.37`).
   5. V-R13 semantic URL verification: integrity hash (SHA256) + branch protection.
   6. R-2 정합: 다음 ingest 시 본 entry + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장).
+
+## [2026-06-16] ingest | v0.7.38 follow-up bundle (cache_stats enhancement + V-R13 draft + vcs_commit per-page + lock timeout)
+
+- **Trigger**: 직전 entry follow-up chain. v0.7.37 의 4 follow-up enhancement (cache_stats enhancement + V-R13 semantic verification draft + per-page frontmatter vcs_commit + lock timeout + advisory wait).
+- **ADR 신규 draft (1)**: `decisions/adr-019-v-r13-semantic-url-verification.md` (12.2 KB, status: proposed) + `concepts/v-r13-semantic-url-verification.md` (9.4 KB, status: proposed) — V-R13 semantic URL verification 의 8 semantic check + 2 layer (`?hash` + `?range`)
+- **code enhancement (4)**:
+  1. `cache_stats()` enhancement: 7 fields (total / fresh / expired / bytes / evictions_total / evictions_current_session / last_eviction_timestamp). 2 new module-level counters incremented in `_save_cache` on each LRU eviction.
+  2. `okf_export.py` vcs_commit per-page: `Frontmatter` dataclass now parses `vcs_commit` + `vcs_ref` fields from wiki page frontmatter. `map_frontmatter_to_okf` uses frontmatter.vcs_commit as fallback for per-page commit pinning. vcs_commit kwarg overrides frontmatter value (kwarg > frontmatter priority).
+  3. `_CacheLock` timeout: `timeout` parameter (default 30s). Non-blocking flock + exponential backoff (50ms -> 1s) until timeout. WARN emitted on lock acquisition failure (silent fallback). test_file_lock_timeout verifies via multiprocessing.
+  4. Tag-based pinning test: `test_tag_based_pinning_v0_7_37` verifies vcs_ref=release tag (v0.7.37) + branch (main) + feature/okf-export (rejected by validation).
+- **cumulative test**: v0.7.37 의 374+ → v0.7.38 의 **380+** (6 new: 1 cache_stats + 1 vcs_commit per-page + 1 tag-based + 1 lock timeout + 2 new concept wiki page = 6 surface; 5-run stable)
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`, `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (63 entries, up from 61: +2 ADR-019 + v-r13 concept)
+  - V-R9 PASS (`r9_skip: true` on ADR-019)
+  - V-2 partial: 6 page 신규 (1 ADR + 1 concept + 4 code enhancement) + 1 log — R2 batch 권장 외. R-2 batch 갱신 별도 turn.
+- **Commit chain** (origin/main, v0.7.38 release):
+  1. `0993b12` wiki-ingest: v0.7.37 follow-up log entry (5 ADR acceptance + 4 enhancement)
+  2. `d06053a` feat(v0.7.38): cache_stats session evictions + last_eviction_timestamp (29/29 PASS)
+  3. `5f4fe72` wiki-ingest: ADR-019 V-R13 semantic URL verification + v-r13 concept page
+  4. `96b6ef0` feat(v0.7.38): per-page frontmatter vcs_commit + vcs_ref (12/12 PASS)
+  5. `6ee1555` test(okf_export): tag-based pinning (v0.7.37, main, feature/x, 13/13 PASS)
+  6. `fbf93b5` feat(v0.7.38): _CacheLock timeout + advisory wait (30/30 PASS)
+- **Follow-up 후보** (별도 turn, v0.7.39+):
+  1. v0.7.38 release note + version bump (v0.7.37 → v0.7.38) — 5 ADR formal acceptance + 4 enhancement + 2 new wiki page.
+  2. ADR-019 formal acceptance + V-R13 PoC implementation (check_url_semantic + ?hash + ?range).
+  3. V-R10 v3 follow-ups: cache compression (gzip), LFU eviction, lock file orphan cleanup, lock file auto-cleanup via stale detection.
+  4. V-R11 v2: phishing keyword list update mechanism, dynamic content audit (Playwright), external VirusTotal API.
+  5. V-R12 v2: `okf-bundle.yaml` per-bundle vcs_commit, integrity hash (SHA256) in URL.
+  6. R-2 정합: 다음 ingest 시 본 entry + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장).
+- **ADR cumulative count**: 8 ADR accepted (006-013) + 6 ADR proposed (014-019) = **14 total**.
+- **concept page cumulative count**: 19 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, ...) = 21 total (with R-1 wiki concepts).
+- **workflow_kit module count**: 4 (okf_export 21.7 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 16 KB) = **64+ KB total**.

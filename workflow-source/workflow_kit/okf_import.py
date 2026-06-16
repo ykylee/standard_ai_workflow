@@ -542,6 +542,101 @@ def audit_r2_batch_history(log_path: Path | None = None) -> R2BatchAuditResult:
         source=str(log_path),
     )
 
+
+
+@dataclass(frozen=True)
+class R2BatchPreciseAuditResult:
+    """R-2 batch compliance precise audit (v0.7.42+, git history based)."""
+    total_commits: int
+    release_commits: int
+    in_range: int
+    too_small: int
+    too_large: int
+    source: str
+
+
+def audit_r2_batch_history_precise(
+    repo_root: Path | None = None,
+    subprocess_run=None,
+    since: str | None = None,
+) -> R2BatchPreciseAuditResult:
+    """R-2 batch compliance precise audit (v0.7.42+).
+
+    Uses `git log --oneline` to count past R-2 ingest events from commit messages.
+    More precise than the regex-based log.md approach (audit_r2_batch_history) but
+    requires git history access.
+
+    Args:
+        repo_root: git repo root (default: cwd)
+        subprocess_run: optional injected subprocess.run for testing
+        since: optional git ref to limit (e.g. "v0.7.32")
+    """
+    if subprocess_run is None:
+        import subprocess as _sp
+        subprocess_run = _sp.run
+    if repo_root is None:
+        repo_root = Path(".")
+    cmd = ["git", "log", "--oneline"]
+    if since:
+        cmd.append(f"{since}..HEAD")
+    try:
+        result = subprocess_run(
+            cmd,
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (FileNotFoundError, OSError, TimeoutError) as e:
+        return R2BatchPreciseAuditResult(
+            total_commits=0, release_commits=0, in_range=0, too_small=0, too_large=0,
+            source=f"git log failed: {type(e).__name__}: {e}",
+        )
+    if result.returncode != 0:
+        return R2BatchPreciseAuditResult(
+            total_commits=0, release_commits=0, in_range=0, too_small=0, too_large=0,
+            source=f"git log error: {result.stderr.strip()[:200]}",
+        )
+    # parse commits: look for "v0.7.X" tags + count "+ N" patterns in commit messages
+    import re
+    commits = result.stdout.strip().split("\n")
+    total_commits = len([c for c in commits if c])
+    in_range = 0
+    too_small = 0
+    too_large = 0
+    release_commits = 0
+    # extract commit message body (after sha + space)
+    for line in commits:
+        if not line.strip():
+            continue
+        # Get the commit message after the sha (permissive: sha may contain non-hex chars in tests)
+        m = re.match(r"^\S+\s+(.*)$", line)
+        if not m:
+            continue
+        msg = m.group(1)
+        # Only count release/v0.7.X commits
+        if "v0.7." not in msg and "release" not in msg.lower():
+            continue
+        release_commits += 1
+        # Look for "+ N new tests" pattern
+        range_m = re.search(r"\+\s*([5-9]|1[0-5])\s*new\s*tests?\b", msg, re.IGNORECASE)
+        small_m = re.search(r"\+\s*([1-4])\s*new\s*tests?\b", msg, re.IGNORECASE)
+        large_m = re.search(r"\+\s*(1[6-9]|[2-9]\d|\d{3,})\s*new\s*tests?\b", msg, re.IGNORECASE)
+        if range_m:
+            in_range += 1
+        elif small_m:
+            too_small += 1
+        elif large_m:
+            too_large += 1
+    return R2BatchPreciseAuditResult(
+        total_commits=total_commits,
+        release_commits=release_commits,
+        in_range=in_range,
+        too_small=too_small,
+        too_large=too_large,
+        source=str(repo_root),
+    )
+
 # Bundle import entry point
 # ---------------------------------------------------------------------------
 def import_okf_bundle(

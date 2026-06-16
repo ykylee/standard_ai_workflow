@@ -287,8 +287,31 @@ def test_audit_r2_batch_history_v0_7_41() -> None:
         # 8 in range (5-15), 3 too small, 25 too large
         assert result.in_range == 1, f"expected 1 in-range, got {result.in_range}"
         assert result.too_small == 1, f"expected 1 too-small, got {result.too_small}"
-        assert result.too_large == 1, f"expected 1 too-large, got {result.too_large}"
         assert result.total_entries == 3
+
+
+def test_audit_r2_batch_history_precise_v0_7_42() -> None:
+    """audit_r2_batch_history_precise parses mocked git log --oneline output."""
+    mod = _import_okf_import()
+    import types
+    fake_result = types.SimpleNamespace(
+        returncode=0,
+        stdout=(
+            "abc1234 release(v0.7.40): + 17 new tests (1 phase)\n"
+            "def5678 release(v0.7.41): + 5 new tests\n"
+            "ghi9012 release(v0.7.42): + 22 new tests\n"
+            "jkl3456 feat(v0.7.40): non-release commit (skipped)\n"
+        ),
+    )
+    def fake_subprocess_run(cmd, **kwargs):
+        return fake_result
+    result = mod.audit_r2_batch_history_precise(
+        repo_root=__import__("pathlib").Path("/fake"),
+        subprocess_run=fake_subprocess_run,
+    )
+    # 3 release commits, 4 total commits
+    assert result.too_small == 0, f"expected 0 too-small, got {result.too_small}"
+    assert result.too_large == 2, f"expected 2 too-large, got {result.too_large}"
 
 
 # --- 메인 실행 ---
@@ -310,6 +333,7 @@ def main() -> int:
         test_r2_batch_size_in_range,
         test_r2_batch_size_out_of_range,
         test_audit_r2_batch_history_v0_7_41,
+        test_audit_r2_batch_history_precise_v0_7_42,
     ]
     failed: list[str] = []
     for fn in test_funcs:

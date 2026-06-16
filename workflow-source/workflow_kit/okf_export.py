@@ -359,6 +359,7 @@ def map_frontmatter_to_okf(
     resolve: bool = True,
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
+    content_hash: str | None = None,
 ) -> OkfMapping:
     """wiki Frontmatter → OKF frontmatter (SPEC.md §4.1) + body suffix (Citations §8).
 
@@ -394,9 +395,12 @@ def map_frontmatter_to_okf(
     effective_vcs_commit = vcs_commit if vcs_commit else frontmatter.vcs_commit
     effective_vcs_ref = vcs_ref if vcs_ref else frontmatter.vcs_ref
     resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve, vcs_commit=effective_vcs_commit, vcs_ref=effective_vcs_ref)
+    # v0.7.39+ ADR-019 layer 1: append ?hash=sha256:<hex> when content_hash provided
+    if resource and content_hash:
+        sep = "&" if "?" in resource else "?"
+        resource = f"{resource}{sep}hash={content_hash}"
     if resource:
         okf["resource"] = resource
-
     tags = _derive_tags(frontmatter)
     if tags:
         okf["tags"] = list(tags)
@@ -668,6 +672,7 @@ def export_wiki_page(
     resolve: bool = True,
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
+    content_hash: str | None = None,
 ) -> tuple[int, int]:
     text = wiki_page.read_text(encoding="utf-8")
 
@@ -677,7 +682,11 @@ def export_wiki_page(
         raise InvalidFrontmatterError(f"{wiki_page}: no frontmatter block")
     body_text = m.group(2).rstrip("\n")
     fm = Frontmatter.parse(text)
-    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref)
+    # v0.7.39+ ADR-019 layer 1: auto-compute content_hash from full page text (frontmatter + body)
+    if content_hash == "auto":
+        import hashlib
+        content_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash)
     body_rewritten = rewrite_wiki_links_to_okf(body_text)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -698,6 +707,7 @@ def export_wiki_to_okf(
     vcs_commit: str | None = None,
     vcs_ref: str | None = None,
     emit_manifest: bool = True,
+    content_hash: str | None = None,
 ) -> ExportReport:
     """Export a wiki directory tree to an OKF bundle directory.
 
@@ -730,11 +740,10 @@ def export_wiki_to_okf(
             out_path = _out_path_for_wiki_page(path, wiki_root, out_bundle)
             ex, sk = export_wiki_page(
                 path, out_path, repo_root=repo_root, resolve=resolve,
-                vcs_commit=vcs_commit, vcs_ref=vcs_ref,
+                vcs_commit=vcs_commit, vcs_ref=vcs_ref, content_hash=content_hash,
             )
-            exported += ex
             skipped += sk
-            # collect for index.md (re-parse the exported file's frontmatter)
+            exported += ex
             try:
                 rel = str(out_path.relative_to(out_bundle))
                 exported_text = out_path.read_text(encoding="utf-8")

@@ -607,6 +607,44 @@ def test_okf_bundle_manifest_skip_emit() -> None:
         assert not (out_bundle / "okf-bundle.yaml").exists(), "okf-bundle.yaml should not exist"
 
 
+def test_okf_resource_content_hash_v0_7_39() -> None:
+    """v0.7.39+: content_hash='auto' appends ?hash=sha256:<hex> to resource URL (ADR-019 layer 1)."""
+    mod = _import_okf_export()
+    import importlib.util
+    import sys as _sys
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    _sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda p, r: "https://github.com/foo/bar/blob/main/" + p.lstrip("./")
+    pr.resolve_in_repo_path_to_url_pinned = lambda p, r, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref or 'main'}/{p.lstrip('./')}"
+    )
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wiki_root = Path(tmpdir) / "wiki"
+            out_bundle = Path(tmpdir) / "bundle"
+            wiki_root.mkdir()
+            (wiki_root / "concepts").mkdir()
+            (wiki_root / "concepts" / "h.md").write_text(
+                "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# H\n\nbody\n",
+                encoding="utf-8",
+            )
+            # auto-compute content hash from full page text
+            mod.export_wiki_to_okf(wiki_root, out_bundle, content_hash="auto", repo_root=Path(tmpdir))
+            text = (out_bundle / "concepts" / "h.md").read_text(encoding="utf-8")
+            assert "hash=sha256:" in text, f"missing hash query param: {text}"
+            import re
+            m = re.search(r"hash=(sha256:[0-9a-f]{64})", text)
+            assert m, f"hash format wrong: {text}"
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -624,6 +662,7 @@ def main() -> int:
         test_tag_based_pinning_v0_7_37,
         test_okf_bundle_manifest_emits_v0_7_38,
         test_okf_bundle_manifest_skip_emit,
+        test_okf_resource_content_hash_v0_7_39,
     ]
     failed: list[str] = []
 

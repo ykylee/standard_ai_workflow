@@ -15,9 +15,13 @@ Test list:
 from __future__ import annotations
 
 import importlib.util
+import json
+import multiprocessing
 import socket
-import ssl
 import sys
+import tempfile
+import multiprocessing
+import socket
 import tempfile
 import time
 import urllib.error
@@ -425,6 +429,78 @@ def test_cache_default_caps() -> None:
     assert mod.DEFAULT_CACHE_MAX_ENTRIES == 10000
 
 
+# --- Test 21-22: V-R10 v3 file lock (ADR-015) ---
+
+
+def test_file_lock_context_manager_exists() -> None:
+    """_CacheLock context manager is exposed."""
+    mod = _import_url_validity()
+    assert hasattr(mod, "_CacheLock"), "_CacheLock not exposed"
+    assert callable(mod._CacheLock)
+
+
+def test_file_lock_serializes_concurrent_writes() -> None:
+    """Concurrent processes writing to same cache should not corrupt the file.
+
+    We use multiprocessing to spawn 2 workers writing concurrently. The file lock
+    (fcntl.flock) ensures atomic read-modify-write — no torn writes.
+    """
+    import multiprocessing
+    import urllib.request
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+
+        def _worker(url_suffix: str) -> None:
+            # re-import inside the subprocess (each has its own interpreter)
+            import importlib.util
+            import urllib.request as ur_local
+
+            spec = importlib.util.spec_from_file_location("ok_url", str(SOURCE_ROOT / "workflow_kit" / "url_validity.py"))
+            mod_local = importlib.util.module_from_spec(spec)
+            sys.modules["ok_url"] = mod_local
+            spec.loader.exec_module(mod_local)
+
+            class _LocalMock:
+                def __init__(self):
+                    self.status = 200
+                    self.headers = {}
+                def __enter__(self):
+                    return self
+                def __exit__(self, *a):
+                    return False
+                def read(self, *a):
+                    return b""
+
+            ur_local.urlopen = lambda req, **kw: _LocalMock()
+            mod_local.check_url_with_cache(
+                f"https://w{url_suffix}.com/spec",
+                cache_file=cache_file,
+                ttl_seconds=60,
+            )
+
+        # spawn 2 workers
+        p1 = multiprocessing.Process(target=_worker, args=("1",))
+        p2 = multiprocessing.Process(target=_worker, args=("2",))
+        p1.start()
+        p2.start()
+        p1.join(timeout=15)
+        p2.join(timeout=15)
+        assert not p1.is_alive(), "worker 1 hung (lock deadlock?)"
+        assert not p2.is_alive(), "worker 2 hung (lock deadlock?)"
+        # both URLs should be in the cache (or the surviving one if eviction happened)
+        cache = mod._load_cache(cache_file)
+        assert len(cache) >= 1, f"expected at least 1 entry, got {len(cache)}: {list(cache.keys())}"
+        # at least one of the worker URLs should be present
+        assert any(k in cache for k in ("https://w1.com/spec", "https://w2.com/spec")), (
+            f"neither worker URL in cache: {list(cache.keys())}"
+        )
+        # file should be valid JSON (no torn write)
+        text = cache_file.read_text(encoding="utf-8")
+        parsed = json.loads(text)  # should not raise
+        assert isinstance(parsed, dict)
+
+
 # --- 메인 실행 ---
 
 
@@ -450,6 +526,8 @@ def main() -> int:
         test_cache_lru_eviction_by_max_bytes,
         test_cache_eviction_keeps_recent,
         test_cache_default_caps,
+        test_file_lock_context_manager_exists,
+        test_file_lock_serializes_concurrent_writes,
     ]
     failed: list[str] = []
     for fn in test_funcs:

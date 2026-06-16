@@ -254,6 +254,52 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
         return {}
 
 
+class _CacheLock:
+    """Context manager for cross-process file lock on cache file. ADR-015.
+
+    Uses `fcntl.flock` for advisory locking (POSIX only).
+    Falls back to no-op on Windows (non-blocking). Emits WARN on failure.
+    """
+
+    def __init__(self, cache_file: Path):
+        self.cache_file = cache_file
+        self._lock_path: Path | None = None
+        self._fd = None
+
+    def __enter__(self):
+        try:
+            import fcntl  # POSIX only
+        except ImportError:
+            # Windows: no-op
+            return self
+        # Use a sidecar lock file (cache_file.lock) to avoid interfering with cache reads
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+        self._lock_path = self.cache_file.with_suffix(self.cache_file.suffix + ".lock")
+        try:
+            self._fd = open(self._lock_path, "w")
+            fcntl.flock(self._fd.fileno(), fcntl.LOCK_EX)
+        except OSError as e:
+            import sys
+            print(f"WARN: failed to acquire cache file lock: {e}", file=sys.stderr)
+            if self._fd:
+                self._fd.close()
+                self._fd = None
+        return self
+
+    def __exit__(self, *args):
+        if self._fd is not None:
+            try:
+                import fcntl
+                fcntl.flock(self._fd.fileno(), fcntl.LOCK_UN)
+            except (OSError, ImportError):
+                pass
+            self._fd.close()
+            self._fd = None
+        return False
+
+
+
+
 def _save_cache(
     cache_file: Path,
     entries: dict[str, CacheEntry],
@@ -306,19 +352,20 @@ def check_url_with_cache(
     max_bytes: int = DEFAULT_CACHE_MAX_BYTES,
     max_entries: int = DEFAULT_CACHE_MAX_ENTRIES,
 ) -> list[UrlIssue]:
-    """V-R10 online HEAD with disk cache (ADR-013) + size cap + LRU (ADR-014)."""
+    """V-R10 online HEAD with disk cache (ADR-013) + size cap + LRU (ADR-014) + file lock (ADR-015)."""
     cache_file = cache_file or DEFAULT_CACHE_FILE
-    cache = _load_cache(cache_file)
-    cached = _cache_lookup(cache, url, ttl_seconds)
-    if cached is not None:
-        return cached
-    issues = check_url_online(url, timeout=timeout, user_agent=user_agent, max_retries=max_retries)
-    cache[url] = CacheEntry(
-        url=url,
-        timestamp=time.time(),
-        issues=tuple({"rule": i.rule, "severity": i.severity, "message": i.message} for i in issues),
-    )
-    _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries)
+    with _CacheLock(cache_file):
+        cache = _load_cache(cache_file)
+        cached = _cache_lookup(cache, url, ttl_seconds)
+        if cached is not None:
+            return cached
+        issues = check_url_online(url, timeout=timeout, user_agent=user_agent, max_retries=max_retries)
+        cache[url] = CacheEntry(
+            url=url,
+            timestamp=time.time(),
+            issues=tuple({"rule": i.rule, "severity": i.severity, "message": i.message} for i in issues),
+        )
+        _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries)
     return issues
 
 

@@ -220,3 +220,60 @@ def fetch_phishtank_feed(
                 continue
             return []
     return []
+
+# v0.7.44+ OpenPhish API integration (ADR-023 follow-up)
+OPENPHISH_FEED_URL = "https://openphish.com/feed.txt"
+
+
+def fetch_openphish_feed(
+    *,
+    max_retries: int = 3,
+    backoff_base: float = 1.0,
+    requests_get=None,
+) -> list[str]:
+    """Fetch OpenPhish free public feed (v0.7.44+, ADR-023 follow-up).
+
+    OpenPhish is a free, real-time phishing feed. Text file with one URL per line.
+    Rate-limit aware: respects X-RateLimit-Remaining + Reset.
+
+    Args:
+        max_retries: max retry count on 429/5xx (default 3)
+        backoff_base: exponential backoff base in seconds (1s, 2s, 4s)
+        requests_get: optional injected function for testing
+
+    Returns:
+        List of phishing URLs (empty list on error).
+    """
+    if requests_get is None:
+        import urllib.request as _ur
+        def requests_get(url: str, **kwargs):
+            return _ur.urlopen(_ur.Request(url, headers=kwargs.get("headers", {})), timeout=kwargs.get("timeout", 30))
+    import time
+    for attempt in range(max_retries):
+        try:
+            response = requests_get(OPENPHISH_FEED_URL, timeout=30)
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if remaining == "0" and reset_at:
+                wait = max(0, int(reset_at) - int(time.time()))
+                if wait > 0:
+                    time.sleep(wait)
+            if response.status == 200:
+                data = response.read().decode("utf-8")
+                return [line.strip() for line in data.splitlines() if line.strip()]
+            elif response.status == 429:
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            elif response.status in (500, 502, 503, 504):
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            else:
+                return []
+        except (OSError, TimeoutError, ValueError) as e:
+            import sys
+            print(f"WARN: OpenPhish fetch attempt {attempt + 1} failed: {type(e).__name__}: {e}", file=sys.stderr)
+            if attempt < max_retries - 1:
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            return []
+    return []

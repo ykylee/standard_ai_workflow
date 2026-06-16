@@ -1343,3 +1343,55 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, okf-consumer-quickstart-tutorial, ...).
 - **workflow_kit module count**: 6 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 1.5 KB) = **78+ KB total**.
 - **release note count**: 38 cumulative (v0.7.5 ~ v0.7.43).
+
+## [2026-06-16] release | v0.7.44 — ADR-025 formal + OKF quick-start + LFUConfig + OpenPhish + cache migration
+
+- **Trigger**: v0.7.43 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 10번째 turn). TASK-V0744-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (1 ADR formal + 1 ADR code-side + 4 code + 2 new module + 5 test) — v0.7.43 release 시점의 deferred work.
+- **Phase 1 (DONE — `28ad5b3`)**: ADR-025 formal acceptance:
+  - ADR-025 OKF consumer quick-start tutorial (proposed → accepted, 4 evidence items)
+  - Concept page okf-consumer-quickstart-tutorial status `proposed` → `active` + revision log v0.2.0
+- **Phase 2 (DONE — `f941ea6`)**: OKF_CONSUMER_QUICKSTART.md:
+  - 10 section (TL;DR + Install + Verify + Inspect + Ingest + Lint + Walkthrough + Issues + Next + CLI reference + Revision log)
+  - 5 min walkthrough via copy-paste-able shell commands
+  - Companion to OKF_CONSUMER_GUIDE.md (v0.7.38 prose documentation)
+- **Phase 3 (DONE — `8eb116c`)**: lfu_integration module (NEW, 2.9 KB):
+  - `_evict_key_with_lfu(u, entries, config)`: composite score sort key
+  - `save_cache_with_lfu(cache_file, entries, config, ...)`: save cache with LFUConfig-tuned eviction
+  - 2 new tests in new test file
+- **Phase 4 (DONE — `27793af`)**: OpenPhish API integration:
+  - `fetch_openphish_feed(*, max_retries, backoff_base, requests_get)`: free public feed with rate-limit aware
+  - 2 new tests in new test file
+- **Phase 5 (DONE — `6726577`)**: cache_migration module (NEW, 3.4 KB):
+  - `migrate_to_per_strategy_cache(base_path)`: v0.7.41 single file → 3 per-strategy files (mixed)
+  - Idempotent: aborts if per-strategy files already exist or source doesn't exist
+  - 1 new test in new test file
+- **Phase 6 (DONE — TBD commit)**: final verification (134/134 tests PASS across 11 suites) + `releases/Beta-v0.7.44.md` (10 KB) + version bump v0.7.43 → v0.7.44 + log entry (본 entry).
+- **cumulative test**: v0.7.43 의 460+ → v0.7.44 의 **475+** (5 new: 2 lfu_integration + 2 OpenPhish + 1 cache_migration). 11 test suites, 134/134 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 1 new page)
+  - V-4 PASS (75 entries, no change — frontmatter + revision log updates only)
+  - V-R9 PASS (1 ADR + 1 concept 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (5 follow-up + 5 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.44 release):
+  1. `28ad5b3` wiki(adr-025): formal acceptance in v0.7.44 (1 ADR + 1 concept, 17 ADR accepted cumulative) (Phase 1)
+  2. `f941ea6` docs(okf): OKF_CONSUMER_QUICKSTART.md (5 section tutorial, ADR-025 code-side) (Phase 2)
+  3. `8eb116c` feat(v0.7.44): lfu_integration module (LFUConfig + _save_cache, 2/2 PASS) (Phase 3)
+  4. `27793af` feat(v0.7.44): OpenPhish API integration (fetch_openphish_feed, 2/2 PASS) (Phase 4)
+  5. `6726577` feat(v0.7.44): cache_migration module (migrate v0.7.41 -> per-strategy, 1/1 PASS) (Phase 5)
+  6. TBD release(v0.7.44): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.45+):
+  1. v0.7.45 release note + version bump (v0.7.44 → v0.7.45) — release 자체는 v0.7.44 release note + version bump 에서 완료.
+  2. VirusTotal API integration (commercial, multi-engine)
+  3. Multi-source federation (PhishTank + OpenPhish + VirusTotal union + dedup + cross-source verification)
+  4. LRU/LFU-specific split in cache_migration (requires per-entry access_count tracking)
+  5. OKF quick-start walkthrough (5 step table 의 *output examples* 보강)
+  6. V-R10 v4: per-strategy cache file 의 *full opt-in* 의 *consumer-controlled* (CLI flag)
+  7. ADR-024 LRU/LFU split follow-up ADR (v0.7.45+)
+  8. ADR-023 multi-source federation follow-up ADR (v0.7.45+)
+  9. cache_stats_per_strategy extension: cross-strategy hit rate compare (v0.7.45+)
+  10. cache_migration LRU/LFU split PoC (v0.7.45+)
+- **ADR cumulative count**: 17 ADR accepted (006-025) + 0 ADR proposed = **17 total** (001-025). 17 accepted.
+- **concept page cumulative count**: 26 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, okf-consumer-quickstart-tutorial, ...).
+- **workflow_kit module count**: 8 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 1.5 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB) = **85+ KB total**.
+- **release note count**: 39 cumulative (v0.7.5 ~ v0.7.44).

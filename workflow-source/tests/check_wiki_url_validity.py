@@ -638,6 +638,45 @@ def test_cache_per_strategy_lfu_metric_v0_7_41() -> None:
         assert stats["evictions_lfu"] >= 2, f"evictions_lfu should be >= 2, got: {stats}"
 
 
+def test_cache_file_for_strategy_v0_7_42() -> None:
+    """cache_file_for_strategy returns per-strategy file path."""
+    mod = _import_url_validity()
+    base = Path("/tmp/url_validity_cache.json")
+    assert mod.cache_file_for_strategy(base, "lru") == Path("/tmp/url_validity_cache_lru.json")
+    assert mod.cache_file_for_strategy(base, "lfu") == Path("/tmp/url_validity_cache_lfu.json")
+    assert mod.cache_file_for_strategy(base, "mixed") == Path("/tmp/url_validity_cache_mixed.json")
+
+
+def test_cache_per_strategy_file_isolation_v0_7_42() -> None:
+    """Per-strategy cache files are independent (entries don't leak between strategies)."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir) / "url_validity_cache.json"
+        lru_file = mod.cache_file_for_strategy(base, "lru")
+        mixed_file = mod.cache_file_for_strategy(base, "mixed")
+        assert lru_file != mixed_file, "lru and mixed should be different files"
+        assert "lru" in str(lru_file) and "mixed" not in str(lru_file)
+        assert "mixed" in str(mixed_file) and "lru" not in str(mixed_file)
+        # write to lru file
+        now = time.time()
+        mod._save_cache(lru_file, {
+            "https://lru.com/": mod.CacheEntry(url="https://lru.com/", timestamp=now, issues=("ok",)),
+        })
+        assert lru_file.exists() and not mixed_file.exists()
+        # write to mixed file
+        mod._save_cache(mixed_file, {
+            "https://mixed.com/": mod.CacheEntry(url="https://mixed.com/", timestamp=now, issues=("ok",)),
+        })
+        assert lru_file.exists() and mixed_file.exists()
+        # load returns different entries
+        lru_loaded = mod._load_cache(lru_file)
+        mixed_loaded = mod._load_cache(mixed_file)
+        assert "https://lru.com/" in lru_loaded
+        assert "https://mixed.com/" in mixed_loaded
+        assert "https://mixed.com/" not in lru_loaded
+        assert "https://lru.com/" not in mixed_loaded
+
+
 def test_cache_gzip_compression_roundtrip() -> None:
     """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
     mod = _import_url_validity()
@@ -851,9 +890,12 @@ def main() -> int:
         test_cache_lru_still_works_with_strategy_param,
         test_cache_per_strategy_lru_metric_v0_7_41,
         test_cache_per_strategy_lfu_metric_v0_7_41,
+        test_cache_file_for_strategy_v0_7_42,
+        test_cache_per_strategy_file_isolation_v0_7_42,
     ]
     failed: list[str] = []
     for fn in test_funcs:
+        name = fn.__name__
         name = fn.__name__
         try:
             fn()

@@ -806,6 +806,16 @@ DEFAULT_CACHE_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB
 DEFAULT_CACHE_MAX_ENTRIES: int = 10000  # LRU cap
 
 
+def cache_file_for_strategy(base_path: Path, strategy: str) -> Path:
+    """Return per-strategy cache file path (v0.7.42+, ADR-024).
+
+    Naming: <stem>_<strategy><suffix> (e.g. url_validity_cache_mixed.json)
+    Strategy suffix: lru / lfu / mixed
+    """
+    suffix = f"_{strategy}"
+    return base_path.with_name(base_path.stem + suffix + base_path.suffix)
+
+
 @dataclass(frozen=True)
 class CacheEntry:
     url: str

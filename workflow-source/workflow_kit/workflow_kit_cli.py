@@ -343,14 +343,15 @@ def cmd_okf_version_check(argv: list[str]) -> int:
 
 @register("cache-decay")
 def cmd_cache_decay(argv: list[str]) -> int:
-    """Apply temporal decay to LFU cache scores (v0.7.51+).
+    """Apply temporal decay to LFU cache scores (v0.7.51+, CSV in-place v0.7.56+).
 
-    Reads scores from JSON file, applies age-based decay (default half-life=1 day),
+    Reads scores from JSON or CSV file, applies age-based decay (default half-life=1 day),
     writes decayed scores back. Args:
-        --scores=PATH          input JSON file (url → score)
+        --scores=PATH          input file (url → score, JSON or CSV)
         --saved-at=ISO8601     timestamp when scores were saved
                               (default: file mtime)
         --output=PATH          output JSON file (default: stdout)
+        --inplace              CSV in-place write (v0.7.56+)
         --half-life=N          half-life in seconds (default 86400 = 1 day)
         --json                 JSON output
     """
@@ -361,24 +362,43 @@ def cmd_cache_decay(argv: list[str]) -> int:
         return 2
     saved_at_s = _parse_flag(argv, "--saved-at")
     output_s = _parse_flag(argv, "--output")
+    inplace = _has_flag(argv, "--inplace")
     half_life_s = _parse_flag(argv, "--half-life")
     half_life = float(half_life_s) if half_life_s else 86400.0
     use_json = _has_flag(argv, "--json")
     try:
         from pathlib import Path as _P
-        from workflow_kit.cache_lfu_decay_persist import decay_age_scores
+        from workflow_kit.cache_lfu_decay_persist import (
+            decay_age_scores, decay_csv_inplace, import_from_csv,
+        )
         scores_path = _P(scores_path_s)
         if not scores_path.exists():
             print(f"ERROR: --scores path not found: {scores_path}", file=sys.stderr)
             return 2
-        scores = _json.loads(scores_path.read_text(encoding="utf-8"))
         if saved_at_s is None:
-            import datetime as _dt
             mtime = scores_path.stat().st_mtime
             saved_at = mtime
         else:
-            # ISO8601 → epoch
+            import datetime as _dt
             saved_at = _dt.datetime.fromisoformat(saved_at_s).timestamp()
+        # CSV in-place (v0.7.56+)
+        if inplace:
+            if scores_path.suffix.lower() != ".csv":
+                print(f"ERROR: --inplace requires .csv file, got {scores_path.suffix}", file=sys.stderr)
+                return 2
+            result = decay_csv_inplace(
+                str(scores_path),
+                saved_at=saved_at,
+                half_life_seconds=half_life,
+            )
+            if use_json:
+                print(_json.dumps(result, indent=2, default=str))
+            else:
+                print(f"Decayed {result['scores_out']} scores in-place → {result['path']}")
+                print(f"  half_life={result['half_life_seconds']}s, saved_at={result['saved_at']:.0f}")
+            return 0
+        # JSON path (v0.7.51+)
+        scores = _json.loads(scores_path.read_text(encoding="utf-8"))
         decayed = decay_age_scores(scores, saved_at=saved_at, half_life_seconds=half_life)
         if output_s:
             _P(output_s).write_text(_json.dumps(decayed, indent=2, sort_keys=True), encoding="utf-8")

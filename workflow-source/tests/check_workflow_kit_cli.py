@@ -381,6 +381,44 @@ def test_release_changelog_dry_run_v0_7_56() -> None:
     assert code == 0
 
 
+def test_cache_decay_csv_inplace_v0_7_56() -> None:
+    """cache-decay --inplace on CSV file (v0.7.56+)."""
+    import os
+    import tempfile
+    import time
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "scores.csv"
+        cp.write_text("url,decay_score\nhttps://hot.com/,100.0\nhttps://warm.com/,50.0\n", encoding="utf-8")
+        old = time.time() - 86400 * 7
+        os.utime(cp, (old, old))
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-decay", f"--scores={cp}",
+            "--inplace", "--half-life=86400", "--json",
+        ])
+        assert code == 0
+        # CSV was modified (decayed)
+        content = cp.read_text(encoding="utf-8")
+        # Decayed values are << 100 / 50
+        assert "100.0" not in content, f"CSV should be decayed, got: {content}"
+
+
+def test_cache_decay_inplace_rejects_non_csv_v0_7_56() -> None:
+    """cache-decay --inplace rejects non-CSV file (v0.7.56+)."""
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        jp = Path(tmp) / "scores.json"
+        jp.write_text("{}", encoding="utf-8")
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-decay", f"--scores={jp}",
+            "--inplace", "--json",
+        ])
+        assert code == 2  # usage error
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -414,6 +452,8 @@ def main() -> int:
         test_release_rollback_missing_tag_returns_2_v0_7_56,
         test_release_dist_dry_run_v0_7_56,
         test_release_changelog_dry_run_v0_7_56,
+        test_cache_decay_csv_inplace_v0_7_56,
+        test_cache_decay_inplace_rejects_non_csv_v0_7_56,
     ]
     failed: list[str] = []
     for fn in test_funcs:

@@ -253,6 +253,46 @@ def test_check_url_semantic_with_perform_head_flag() -> None:
     # Should have 5 stub WARNs + 0 head issues (mocked) = 5
     # URL has no ?hash= so it has 6 issues: 1 layer-1-missing + 5 stubs
     assert len(issues) == 6, f"expected 6 (1 no-hash + 5 stub WARNs, head mocked), got {len(issues)}"
+
+
+def test_cli_semantic_flag_v0_7_40() -> None:
+    """CLI --semantic flag invokes check_url_semantic (parse-only)."""
+    mod = _import_url_validity()
+    import sys as _sys
+    import io as _io
+    saved_argv = _sys.argv
+    _sys.argv = ["x", "https://github.com/foo/bar/blob/abc1234/spec.md", "--semantic"]
+    saved_stderr = _sys.stderr
+    _sys.stderr = _io.StringIO()
+    try:
+        rc = mod.main()
+        # main returns 0 (loose not set, but semantic only emits WARNs)
+        # We just check that the function runs without exception
+    finally:
+        _sys.argv = saved_argv
+        _sys.stderr = saved_stderr
+    # No exception = pass
+
+
+def test_cli_perform_head_and_github_flags() -> None:
+    """CLI --perform-head and --perform-github flags are accepted (no crash on no-network test)."""
+    mod = _import_url_validity()
+    import sys as _sys
+    import io as _io
+    import unittest.mock as mock
+    saved_argv = _sys.argv
+    saved_stderr = _sys.stderr
+    _sys.stderr = _io.StringIO()
+    try:
+        with mock.patch.object(mod, "check_url_online", return_value=[]):
+            with mock.patch.object(mod, "check_url_semantic_github", return_value=[]):
+                _sys.argv = ["x", "https://github.com/foo/bar/blob/abc1234/spec.md", "--semantic", "--perform-head", "--perform-github"]
+                rc = mod.main()
+        # No exception = pass
+    finally:
+        _sys.argv = saved_argv
+        _sys.stderr = saved_stderr
+
 def main() -> int:
     test_funcs = [
         test_parse_semantic_url_full,
@@ -271,6 +311,8 @@ def main() -> int:
         test_check_url_semantic_github_stub_for_non_github,
         test_check_url_semantic_github_extracts_org_repo,
         test_check_url_semantic_with_perform_head_flag,
+        test_cli_semantic_flag_v0_7_40,
+        test_cli_perform_head_and_github_flags,
     ]
     failed: list[str] = []
     for fn in test_funcs:

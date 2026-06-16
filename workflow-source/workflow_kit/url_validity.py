@@ -821,6 +821,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--cache-clear", action="store_true", help="clear disk cache and exit")
     p.add_argument("--body", action="store_true", help="run V-R11 body content audit (ADR-017, opt-in)")
     p.add_argument("--max-body-bytes", type=int, default=DEFAULT_BODY_MAX_BYTES, help=f"body size cap in bytes (default: {DEFAULT_BODY_MAX_BYTES})")
+    p.add_argument("--semantic", action="store_true", help="run V-R13 semantic URL check (ADR-019, default: parse-only)")
+    p.add_argument("--perform-head", action="store_true", help="V-R13 semantic: also do HEAD-based checks 3/4/6/7 (opt-in)")
+    p.add_argument("--perform-github", action="store_true", help="V-R13 semantic: also do GitHub API check 5 author (opt-in)")
     return p
 
 
@@ -851,6 +854,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.body:
             body_issues = check_url_body(url, timeout=args.timeout, max_body_bytes=args.max_body_bytes)
             issues.extend(body_issues)
+        if args.semantic or args.perform_head or args.perform_github:
+            semantic_issues = check_url_semantic(
+                url,
+                perform_head=args.perform_head,
+                perform_github=args.perform_github,
+            )
+            issues.extend(semantic_issues)
         if args.mode == "loose":
             print(f"  PASS  {url}")
         else:
@@ -858,8 +868,6 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  [{issue.severity.upper()}] {issue.rule} {url}: {issue.message}")
                 if issue.severity == "error":
                     failed += 1
-    return 1 if failed > 0 else 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

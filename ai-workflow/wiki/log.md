@@ -876,3 +876,49 @@ updated: 2026-06-12
   3. OKF-consumer mode: 우리 wiki 가 OKF consumer 역할 시 strict lint disable + unknown key / broken link / missing field tolerate 모드 (`check_wiki_antipatterns.py --mode=okf-loose` flag 검토)
   4. ADR 후보: "OKF 호환 frontmatter 5 필드 (`title`/`description`/`resource`/`tags`/`timestamp`) 의 우리 wiki 표준 채택" — yklee 별도 결정
   5. R-2 정합: 다음 ingest 시 본 page 와 함께 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: 다른 unverified external spec 정리 (예: Frictionless Data Package, Open Knowledge Foundation wiki)
+
+## [2026-06-16] ingest | OKF follow-up (1 ADR + 1 tool + 1 test, C-OKF-1 followups 1·2·4 closed)
+
+- **Trigger**: C-OKF-1 RESOLVED entry 의 follow-up 3건 (export helper PoC, OKF-consumer mode 검토, ADR 채택) 중 1·2·4 close. OKF-consumer mode (follow-up 3) 는 별도 ADR-007 후보로 deferred.
+- **신규 page**: `decisions/adr-006-okf-compat-frontmatter.md` (10.3 KB, status: **proposed**, 17 sections)
+  - **§1 Status**: Proposed (v0.7.33+ candidate). 채택 확정 시 `accepted` + v0.7.33 PATCH release note 등재
+  - **§2 Context**: OKF spec 의 양방향 갭 (wiki→OKF / OKF→wiki) + ADR 부재 시 ad-hoc 위험
+  - **§3 Decision**: OKF v0.1 의 5 field (`title`/`description`/`resource`/`tags`/`timestamp`) 를 wiki frontmatter 의 **optional bridge** 로 채택. **wiki schema strict 부분은 변경 없음**, lint 도 변경 없음
+  - **§4 Alternatives**: 4 후보 비교 (strict-only / full-rewrite / sidecar / no-formal-decision) + 탈락 사유
+  - **§5 Consequences**: 5 positive (interop, loose export, provenance, forward-compat, PoC 검증) + 5 negative (schema 비대, title 중복, resource 좁음, import 미지원, timestamp granularity) + 3 neutral
+  - **§6 Compliance**: SCHEMA.md R1~R9 unchanged, OKF SPEC.md §4.1/§4.1 Extensions/§11 cite
+  - **§7 Implementation**: 7 item table, 2 done + 5 proposed/deferred
+  - **§8 Follow-up**: ADR-007 (consumer mode) + ADR-008 (in-repo→URL) + ADR-009 (V-T1 title lint) + v0.7.33 release note + sample bundle commit
+  - **§9 Related**: 5 page cross-ref + 1 primary source link
+  - **§10 Revision Log**: v0.1.0
+- **신규 tool**: `workflow_kit/okf_export.py` (21.7 KB)
+  - **API**: `Frontmatter.parse`, `map_frontmatter_to_okf`, `rewrite_wiki_links_to_okf`, `export_wiki_page`, `export_wiki_to_okf`, `main()` CLI
+  - **Mapping**: `type → type` (required), `title → title` (frontmatter 우선, body H1 derive), `description → description` (frontmatter 우선, body 첫 prose derive), `last_ingested_from` (URL) → `resource`, `tags ∪ status:X ∪ wiki-type:X → tags`, `updated` → `timestamp` (ISO 8601 변환). `created`/`status`/`related_pages`/`adr_id`/`r9_skip`/`last_ingested_from`(in-repo) 는 OKF unknown key tolerate 정책으로 보존
+  - **Field order**: SPEC.md §4.1 priority (type → title → description → resource → tags → timestamp → extensions) 준수
+  - **Body**: `[[wiki-link]]` → `[text](../path.md#anchor)` (SPEC.md §5.1 bundle-relative) + `## Citations` (in-repo path 일 때) + `## See Also` (related_pages)
+  - **CLI**: `python -m workflow_kit.okf_export --wiki <path> --out <bundle> [--include <substr>] [--exclude <substr>] [--json]`
+- **신규 test**: `tests/check_okf_export.py` (10.0 KB, **7/7 PASS**)
+  - 1. frontmatter parse minimal
+  - 2. frontmatter parse full (모든 field + list + bool)
+  - 3. missing/empty `type` → InvalidFrontmatterError
+  - 4. mapping field order = OKF §4.1 priority
+  - 5. title/description body derivation (frontmatter 없을 때 H1 + 첫 prose)
+  - 6. `[[wiki-link]]` rewrite (`path`, `path#anchor`)
+  - 7. end-to-end export (1 page → `type` field, body link rewrite, See Also section)
+- **PoC 검증**: 5 page export (concept 2 + decision 1 + pattern 1 + entity 1) → `/tmp/okf_poc/{concepts,decisions,entities,patterns}/*.md`. 모든 page 가 OKF spec required (`type` non-empty) + 권장 (title/description derive) + Extensions 보존 (status/related_pages/last_ingested_from) 검증 통과
+- **index.md anchor**: `### [[decisions/adr-006-okf-compat-frontmatter]] {#adr-006-okf-compat-frontmatter}` 추가
+- **R-9 면제**: ADR 이 외부 spec (OKF) 의 decision 문서. `r9_skip: true` 적용. ADR-005 와 동일 pattern.
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`)
+  - V-4 PASS (**46 entries**, up from 45)
+  - V-R9 PASS (`r9_skip: true` frontmatter marker)
+  - V-2 partial: 본 entry 도 1 page ingest (ADR 단일) — **R2 위반 경고 유지**
+- **Linter 영향 (tool)**: `tests/check_okf_export.py` 자체는 7/7 PASS. wiki lint 와 무관 (별도 test 도구)
+- **Code 영향**: `workflow_kit/okf_export.py` + `tests/check_okf_export.py` 신규 2 file (총 31.7 KB)
+- **Follow-up 후보** (별도 turn):
+  1. ADR-007 (OKF consumer mode) — `concepts/okf-open-knowledge-format.md` follow-up 3 의 후속
+  2. ADR 채택 (status=proposed→accepted) 시 v0.7.33 PATCH release note 등재 + SCHEMA.md §2/§4 에 OKF 5 optional field bridge 명시
+  3. R-2 정합: 다음 ingest 시 ADR-006 + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: ADR-007, ADR-008, ADR-009
+  4. Sample OKF bundle commit: `docs/samples/okf-bundle-2026-06-16/` 에 PoC export 결과물 체크인 (R-2 batch 와 결합)
+  5. `workflow_kit/okf_export.py` enhancement: `okf_version: "0.1"` in bundle root `index.md` frontmatter (SPEC.md §11)
+  6. `check_okf_export.py` 확장: 8번째 test — OKF spec §4.1 conformance 전체 (frontmatter parse → bundle directory layout, reserved file 격리, cross-link valid)

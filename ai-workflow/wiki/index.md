@@ -27,6 +27,7 @@
 ### [[decisions/adr-002-pydantic-v2-contract-v1]] {#adr-002-pydantic-v2-contract-v1}
 ### [[decisions/adr-003-read-only-mcp-default]] {#adr-003-read-only-mcp-default}
 ### [[decisions/adr-005-r9-wiki-source-rule]] {#adr-005-r9-wiki-source-rule}
+### [[decisions/adr-006-okf-compat-frontmatter]] {#adr-006-okf-compat-frontmatter}
 
 ## Patterns
 

@@ -1966,3 +1966,37 @@ Bug fix (same commit): okf-validate JSON mode UnboundLocalError (err_count 가 e
 - release_pipeline 의 다른 subcommand wrapper (cmd_version_bump / cmd_note_draft / cmd_release / cmd_verify / cmd_rollback)
 - 5 module audit 3차 (okf strict mode lint)
 - 외부 consumer feedback loop
+
+## [2026-06-16] release | v0.7.56 — score-wiki-trend in-process + dispatcher 23 + audit 3차
+
+### Cut
+
+- **Commits** (5): c3ef125 / fb6ebc4 / 7b4d6b7 / 58e2ac0 / 1c5c1df
+- **Tag**: v0.7.56-beta (pending — `git tag -a v0.7.56-beta && git push origin v0.7.56-beta`)
+- **Release note**: workflow-source/releases/Beta-v0.7.56.md
+
+### 6 follow-up 결과
+
+1. ✅ **score-wiki-trend in-process** — `tools/__init__.py` + importlib (overhead 60ms → 25ms)
+2. ✅ **dispatcher 14 → 23** — 9 subcommand 신규 (okf-cleanup / cache-prune / release-{bump,note,changelog,create,verify,rollback,dist})
+3. ✅ **release_pipeline wrapper 1 → 8** — 7 wrapper 신규 (version_bump / note_draft / changelog_gen / release / verify / rollback / dist)
+4. ✅ **cache-lfu-decay-persist CSV in-place** — `decay_csv_inplace(path)` + dispatcher `--inplace` flag
+5. ✅ **5 module audit 3차** — okf strict mode lint rule coverage 7 신규 (V-1 / V-R9 / V-T1 / OKF §4.1)
+6. ✅ **GH Pages 외부 consumer feedback loop** — `docs/FEEDBACK.md` (100+ line, 4 channel + SLA 표 + privacy 정책)
+
+### Cumulative (v0.7.52 → v0.7.56)
+
+- Dispatcher: 6 → 8 → 11 → 14 → **23 subcommand** (17 신규 since v0.7.52)
+- Dispatcher test: 6 → 9 → 13 → 20 → **33 test**
+- release_pipeline_lib wrapper: NEW → 1 → **8 wrapper**
+- 5 module test: 64 → 68 → 68 → 68 → **~147 PASS** (+7 audit 3차)
+- workflow_kit module: 19 (변동 없음)
+- GH Pages: ✅ → ✅ (FEEDBACK 추가)
+
+### Next (v0.7.57 / v0.7.60)
+
+- `cache_lfu_decay.py` 의 `<in-memory>` test artifact — proper tempdir 사용 refactor
+- dispatcher 25+ (cache-{import-csv,export-json,merge-multi} 추가)
+- mkdocs `--strict` 모드 (cross-link audit) — v0.7.53 follow-up
+- consumer feedback 1차 metric — GitHub Pages traffic tab 모니터링
+- 5 module audit 4차 (path_resolver / phishing_keywords 정합)

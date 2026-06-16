@@ -1240,3 +1240,53 @@ updated: 2026-06-12
 - **concept page cumulative count**: 23 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, v-r13-implementation, cache-lfu-eviction, phishing-keyword-feed, ...).
 - **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 19 KB, phishing_keywords 4.9 KB) = **76+ KB total**.
 - **release note count**: 36 cumulative (v0.7.5 ~ v0.7.41).
+
+## [2026-06-16] release | v0.7.42 — ADR-023/024 formal + V-R13 per-host + V-R12 composite + R-2 audit precise + per-strategy cache
+
+- **Trigger**: v0.7.41 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 8번째 turn). TASK-V0742-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (2 ADR formal + 4 code enhancement + 1 audit + 1 composite test) — v0.7.41 release 시점의 deferred work.
+- **Phase 1 (DONE — `62e5f69`)**: 2 ADR formal docs:
+  - ADR-023 phishing API integration (proposed, 8.5 KB) + concept page
+  - ADR-024 per-strategy cache file (proposed, 8.8 KB) + concept page
+  - 4 new index anchors. V-4: 69 → 73 entries
+- **Phase 2 (DONE — `64ca96c`)**: V-R13 per-host extension:
+  - `check_url_semantic_per_host()` + 3 helpers (GitHub / GitLab / Bitbucket API)
+  - 2 new tests (23 → 25)
+- **Phase 3 (DONE — `77b0b87`)**: V-R12 composite test:
+  - `?hash=...&range=...` composite URL emission
+  - 1 new test (17 → 18)
+- **Phase 4 (DONE — `386d68c`)**: R-2 audit precise:
+  - `audit_r2_batch_history_precise()` via `git log --oneline`
+  - 1 new test (15 → 16)
+- **Phase 5 (DONE — `e80cca8`)**: per-strategy cache file helper:
+  - `cache_file_for_strategy()` returns per-strategy file path
+  - 2 new tests (36 → 38)
+- **Phase 6 (DONE — TBD commit)**: final verification (124/124 tests PASS across 8 suites) + `releases/Beta-v0.7.42.md` (9 KB) + version bump v0.7.41 → v0.7.42 + log entry (본 entry).
+- **cumulative test**: v0.7.41 의 430+ → v0.7.42 의 **445+** (6 new: 2 per-host + 1 composite + 1 audit + 2 per-strategy). 8 test suites, 124/124 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 4 new pages)
+  - V-4 PASS (73 entries, was 69: +4 ADR-023/024 + phishing-api-integration concept + per-strategy-cache-file concept)
+  - V-R9 PASS (2 ADR + 2 concept 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (5 follow-up + 6 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.42 release):
+  1. `62e5f69` wiki(adr-023+024): formal documentation draft (phishing API + per-strategy cache, 73/73 entries) (Phase 1)
+  2. `64ca96c` feat(v0.7.42): V-R13 check 5 per-host extension (GitLab + Bitbucket API, 25/25 PASS) (Phase 2)
+  3. `77b0b87` test(v0.7.42): V-R12 layer 1+2 composite URL emission (18/18 PASS) (Phase 3)
+  4. `386d68c` feat(v0.7.42): R-2 audit precise (git log --oneline, 16/16 PASS) (Phase 4)
+  5. `e80cca8` feat(v0.7.42): per-strategy cache file (cache_file_for_strategy helper, 38/38 PASS) (Phase 5)
+  6. TBD release(v0.7.42): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.43+):
+  1. v0.7.43 release note + version bump (v0.7.42 → v0.7.43) — release 자체는 v0.7.42 release note + version bump 에서 완료.
+  2. OKF consumer guide quick-start tutorial (sample bundle walkthrough)
+  3. ADR-023 code-side: PhishTank + OpenPhish API integration (v0.7.43+)
+  4. ADR-024 code-side: per-strategy cache file migration (full opt-in)
+  5. VirusTotal API integration (commercial, v0.7.44+)
+  6. cache_stats_per_strategy (cross-strategy compare, v0.7.43+)
+  7. ADR-022 formal acceptance (1 release 주기 후)
+  8. ADR-023 formal acceptance (1 release 주기 후)
+  9. ADR-024 formal acceptance (1 release 주기 후)
+  10. V-R10 v3 follow-ups: cache LFU threshold tuning, frequency + recency composite
+- **ADR cumulative count**: 14 ADR accepted (006-019) + 3 ADR proposed (020, 021, 022, 023, 024 = 5) = **19 total** (001-024). 14 accepted + 5 proposed.
+- **concept page cumulative count**: 25 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, ...).
+- **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 4.9 KB) = **77+ KB total**.
+- **release note count**: 37 cumulative (v0.7.5 ~ v0.7.42).

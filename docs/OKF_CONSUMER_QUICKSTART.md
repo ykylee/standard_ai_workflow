@@ -152,11 +152,17 @@ The 5 stub warnings are expected in fast mode (ADR-020 PoC). Use `--perform-head
 
 | Step | Action | Expected output |
 |---|---|---|
-| 1 | `cat okf-bundle.yaml` | okf_version, vcs_commit, integrity_hash, page_count |
-| 2 | `cat index.md` | bundle entry, lists all pages by type |
-| 3 | `ls concepts/` | `<page>.md` files (concept pages) |
-| 4 | `python -m workflow_kit.okf_import .` | `ImportReport(pages_total=5, errors=0)` |
-| 5 | `python -m workflow_kit.url_validity <url> --semantic` | V-R13 issues (layer 0/1/2 status) |
+| 1 | `cat okf-bundle.yaml` | ```yaml\nokf_version: '0.1'\ngenerated_at: '2026-06-16T...'\ngenerator: 'workflow_kit.okf_export v0.7.38-beta'\nvcs_commit: 'abc1234...'\nintegrity_hash: 'sha256:...'\npage_count: 5``` |
+| 2 | `cat index.md` | ```markdown\n# My Bundle\n\n- [Hello concept](concepts/hello.md)\n- [My Decision](decisions/my-decision.md)\n``` |
+| 3 | `ls concepts/` | `hello.md` (concept page) |
+| 4 | `python -m workflow_kit.okf_import .` | ```\nImportReport:\n  mode: strict\n  pages_total: 5\n  pages_staged: 5\n  pages_with_errors: 0\n  pages_with_warnings: 0\n  promoted: False\n  okf_version: '0.1'\n  version_check: VersionCheckResult(...)\n  r2_batch_warning: None  # 5 pages is in 5-15 range\n``` |
+| 5 | `python -m workflow_kit.url_validity <url> --semantic` | ```\n[WARN] V-R13-no-content-hash ...\n[WARN] V-R13-stub-content-type ...\n... (5 stub warnings in fast mode)\n``` |
+
+| Step | Verification command | Expected output |
+|---|---|---|
+| A | `python -m workflow_kit.url_validity <url> --perform-head` | V-R13-head-ok (HTTP 200 confirmed) or V-R13-stale (404) |
+| B | `python -m workflow_kit.url_validity <url> --perform-github` | V-R13-author-github-ok (commit confirmed) or V-R13-author-github-404 |
+| C | `python -m workflow_kit.url_validity <url> --per-strategy --cache-stats-strategy mixed` | Cache stats for mixed file (V-R10 v4 opt-in) |
 
 ## §7. Common issues
 

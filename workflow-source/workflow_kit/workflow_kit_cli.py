@@ -2,7 +2,7 @@
 extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
 cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
 score-wiki-trend, v0.7.56 with okf-cleanup / cache-prune + score-wiki-trend
-in-process).
+in-process, v0.7.57 with cache-merge-multi / cache-import-csv / cache-export-json).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -28,11 +28,23 @@ Commands:
     okf-cleanup        [--staging=PATH] [--older-than=SECONDS] [--apply] [--json]
     cache-migrate      [--cache-path=PATH] [--mode=migrate|split|both]
                        [--lfu-threshold=N] [--json]
+    cache-merge-multi  [--cache-path=PATH] [--delete-sources] [--json]
+    cache-import-csv   --csv=PATH [--cache-path=PATH] [--replace] [--json]
+    cache-export-json  --output=PATH [--cache-path=PATH] [--compact] [--json]
     cache-decay        --scores=PATH [--saved-at=ISO8601] [--output=PATH]
-                       [--half-life=N] [--json]
+                       [--half-life=N] [--inplace] [--json]
     cache-prune        [--cache-path=PATH] [--older-than=SECONDS]
                        [--min-access-count=N] [--apply] [--json]
     release-doctor     [--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git]
+    release-bump       [--to=VERSION | --patch | --minor | --major]
+                       [--no-init] [--apply] [--json]
+    release-note       --to=VERSION --from-tag=TAG [--apply] [--json]
+    release-changelog  [--from-tag=TAG] [--to-tag=REF] [--apply] [--json]
+    release-create     --version=VERSION [--notes-template=PATH] [--skip-validate]
+                       [--auto-bump] [--apply] [--json]
+    release-verify     --tag=TAG [--json]
+    release-rollback   --tag=TAG [--apply] [--json]
+    release-dist       [--apply] [--json]
     score-wiki-trend   [--record-current | --record-range=N | --show | --json]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
@@ -902,6 +914,119 @@ def cmd_release_dist(argv: list[str]) -> int:
         --json      JSON output
     """
     return _wrap_release_pipeline(argv, "cmd_dist", apply=_has_flag(argv, "--apply"))
+
+
+# ---------------------------------------------------------------------------
+# cache format interop (v0.7.57+, dispatcher subcommand 24-26)
+# ---------------------------------------------------------------------------
+
+
+@register("cache-merge-multi")
+def cmd_cache_merge_multi(argv: list[str]) -> int:
+    """Merge per-strategy LRU + LFU files back into mixed file (v0.7.57+, subcommand 24).
+
+    Reverse of cache-migrate --mode=split. Default dry-run reports what would be
+    merged. Args:
+        --cache-path=PATH      base cache file path (default: DEFAULT_CACHE_FILE)
+        --delete-sources       delete LRU + LFU files after merge
+        --json                 JSON output
+    """
+    import json as _json
+    cache_path_s = _parse_flag(argv, "--cache-path")
+    delete_sources = _has_flag(argv, "--delete-sources")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.cache_migration import merge_per_strategy_to_mixed
+        base = _P(cache_path_s) if cache_path_s else None
+        result = merge_per_strategy_to_mixed(base_path=base, delete_sources=delete_sources)
+        if use_json:
+            print(_json.dumps(result, indent=2, default=str))
+        else:
+            if result["merged"]:
+                print(f"Merged: {result['lru_entries']} LRU + {result['lfu_entries']} LFU → {result['total']} total → {result['mixed_file']}")
+                if result["delete_sources"]:
+                    print("  (LRU + LFU files deleted)")
+            else:
+                print(f"No-op: no LRU/LFU files found")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("cache-import-csv")
+def cmd_cache_import_csv(argv: list[str]) -> int:
+    """Import URLs from CSV file into cache (v0.7.57+, subcommand 25).
+
+    CSV format: `url,status,timestamp,access_count` (header required).
+    Default merge with existing cache. Args:
+        --csv=PATH             input CSV file (required)
+        --cache-path=PATH      target cache file (default: DEFAULT_CACHE_FILE)
+        --replace              replace existing cache (default merge)
+        --json                 JSON output
+    """
+    import json as _json
+    csv_s = _parse_flag(argv, "--csv")
+    if csv_s is None:
+        print("ERROR: --csv=PATH required", file=sys.stderr)
+        return 2
+    cache_path_s = _parse_flag(argv, "--cache-path")
+    replace = _has_flag(argv, "--replace")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.cache_migration import import_csv_to_cache
+        cache_path = cache_path_s
+        result = import_csv_to_cache(csv_s, cache_path, merge=not replace)
+        if use_json:
+            print(_json.dumps(result, indent=2, default=str))
+        else:
+            mode = "REPLACE" if replace else "MERGE"
+            print(f"Import ({mode}): {result['imported']} imported, {result['skipped']} skipped (of {result['total_rows']} rows)")
+            print(f"  cache: {result['cache_path']}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("cache-export-json")
+def cmd_cache_export_json(argv: list[str]) -> int:
+    """Export cache entries to standalone JSON file (v0.7.57+, subcommand 26).
+
+    Format: flat dict of url -> {timestamp, issues, access_count}. Args:
+        --output=PATH          output JSON file (required)
+        --cache-path=PATH      source cache file (default: DEFAULT_CACHE_FILE)
+        --compact              no indent (default pretty)
+        --json                 JSON output
+    """
+    import json as _json
+    output_s = _parse_flag(argv, "--output")
+    if output_s is None:
+        print("ERROR: --output=PATH required", file=sys.stderr)
+        return 2
+    cache_path_s = _parse_flag(argv, "--cache-path")
+    compact = _has_flag(argv, "--compact")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.cache_migration import export_cache_to_json
+        result = export_cache_to_json(
+            output_s,
+            cache_path=cache_path_s,
+            pretty=not compact,
+        )
+        if use_json:
+            print(_json.dumps(result, indent=2, default=str))
+        else:
+            print(f"Exported {result['entries']} entries → {result['output_path']}")
+            if "error" in result:
+                print(f"  WARN: {result['error']}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
 
 
 def run_workflow_kit_cli(argv: list[str]) -> int:

@@ -16,7 +16,7 @@ from typing import Any
 
 def save_cache_with_decay(
     cache: dict[str, dict[str, Any]],
-    cache_path: str,
+    cache_path: str | None,
     config,  # LFUConfig
     *,
     now: float | None = None,
@@ -25,7 +25,9 @@ def save_cache_with_decay(
 
     Args:
         cache: dict of url -> {status, body, timestamp, access_count, ...}
-        cache_path: filesystem path to write to
+        cache_path: filesystem path to write to. Pass None to skip file write
+            (compute scores only — for callers that don't need persistence,
+            e.g. eviction candidate selection in tests).
         config: LFUConfig instance (from workflow_kit.lfu_config)
         now: optional override for current time (for testing)
 
@@ -47,7 +49,8 @@ def save_cache_with_decay(
         except ValueError:
             score = float(access_count)
         scores[url] = score
-    _write_cache_file(cache_path, cache, scores)
+    if cache_path is not None:
+        _write_cache_file(cache_path, cache, scores)
     return scores
 
 
@@ -69,7 +72,9 @@ def select_eviction_candidates_with_decay(
     Returns:
         List of URLs sorted by lowest decay_score (most-evictable first).
     """
-    scores = save_cache_with_decay(cache, "<in-memory>", config, now=now)
+    # v0.7.57+: cache_path=None (compute-only, no file write) — 이전
+    # "<in-memory>" literal string 은 test artifact 파일을 생성했음.
+    scores = save_cache_with_decay(cache, None, config, now=now)
     sorted_urls = sorted(scores.items(), key=lambda kv: kv[1])
     return [url for url, _ in sorted_urls[:n]]
 

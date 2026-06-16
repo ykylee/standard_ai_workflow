@@ -43,8 +43,9 @@ def test_save_cache_with_decay_returns_scores_v0_7_47() -> None:
     config = _lfu_config.LFUConfig()  # default decay_seconds=86400
     # now=7200 (2 hours), so age=7200
     # half_life=86400 (default), so decay factor = exp(-ln(2) * 7200 / 86400) = exp(-0.0578) ≈ 0.9438
+    # v0.7.57+: cache_path=None (compute-only, no file artifact)
     scores = _decay.save_cache_with_decay(
-        cache=cache, cache_path="<in-memory>", config=config, now=7200.0,
+        cache=cache, cache_path=None, config=config, now=7200.0,
     )
     assert "https://a.com/" in scores
     assert "https://b.com/" in scores
@@ -55,6 +56,32 @@ def test_save_cache_with_decay_returns_scores_v0_7_47() -> None:
     # All scores should be positive
     for url, score in scores.items():
         assert score > 0, f"score should be positive for {url}: {score}"
+
+
+def test_save_cache_with_decay_persists_v0_7_47() -> None:
+    """save_cache_with_decay with valid path writes JSON file (v0.7.47+)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    cache = {
+        "https://a.com/": {"access_count": 100, "timestamp": 0.0},
+    }
+    config = _lfu_config.LFUConfig()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "decay.json"
+        scores = _decay.save_cache_with_decay(
+            cache=cache, cache_path=str(cp), config=config, now=7200.0,
+        )
+        # File should exist
+        assert cp.exists(), f"expected file at {cp}"
+        # Content should be parseable JSON
+        data = json.loads(cp.read_text(encoding="utf-8"))
+        assert "version" in data
+        assert "entries" in data
+        assert "lfu_decay_scores" in data
+        assert "https://a.com/" in data["lfu_decay_scores"]
+        # Returned scores match file content
+        assert scores["https://a.com/"] == data["lfu_decay_scores"]["https://a.com/"]
 
 
 def test_select_eviction_candidates_with_decay_picks_lowest_v0_7_47() -> None:
@@ -78,6 +105,7 @@ def test_select_eviction_candidates_with_decay_picks_lowest_v0_7_47() -> None:
 def main() -> int:
     test_funcs = [
         test_save_cache_with_decay_returns_scores_v0_7_47,
+        test_save_cache_with_decay_persists_v0_7_47,
         test_select_eviction_candidates_with_decay_picks_lowest_v0_7_47,
     ]
     failed: list[str] = []

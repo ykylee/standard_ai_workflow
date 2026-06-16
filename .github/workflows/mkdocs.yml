@@ -36,11 +36,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install "mkdocs>=1.5" "mkdocs-material>=9.4"
 
+      - name: Cross-link audit
+        # v0.7.57+: audit_mkdocs_links.py — public-facing docs cross-link
+        # audit. samples/ + archive/ 는 제외 (samples 는 self-contained OKF
+        # bundle, archive 는 history). main docs 의 broken link 정공법.
+        # NOTE: mkdocs --strict 는 사용 안 함 — ai-workflow/wiki/ 의 wiki
+        # page 들이 mkdocs docs_dir 외부에 있어 116 warning 발생. follow-up:
+        # mkdocs-multirepo 또는 docs/wiki/ mirror.
+        run: python3 scripts/audit_mkdocs_links.py
+
       - name: Build
-        # NOTE: --strict is OFF for v0.7.53 launch — many cross-links between
-        # docs/*.md and ai-workflow/wiki/*.md exist but wiki/*.md is not in
-        # mkdocs docs_dir. Follow-up: move wiki pages to docs/wiki/ or configure
-        # mkdocs-multirepo. For now, lenient build + manual link audit on PR.
+        # v0.7.57+: --strict OFF 유지 (위 cross-link audit 로 main docs 정합)
         run: mkdocs build
 
       - name: Upload artifact

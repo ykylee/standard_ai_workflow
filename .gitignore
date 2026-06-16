@@ -67,3 +67,6 @@ scratch/
 # Local tooling (not tracked)
 .mavis/
 ai-workflow/wiki/.obsidian/
+
+# mkdocs build output
+/site/

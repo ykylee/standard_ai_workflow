@@ -94,10 +94,85 @@ def test_split_to_per_strategy_v0_7_45() -> None:
         assert "https://high.com/" in lfu_loaded
 
 
+def test_merge_per_strategy_to_mixed_v0_7_57() -> None:
+    """merge_per_strategy_to_mixed merges LRU + LFU back into mixed file (v0.7.57+)."""
+    mod = _import_module("cache_migration", WORKFLOW_KIT_DIR / "cache_migration.py")
+    _url_validity = _import_module("url_validity", WORKFLOW_KIT_DIR / "url_validity.py")
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        # Seed LRU + LFU files
+        lru_file = _url_validity.cache_file_for_strategy(base, "lru")
+        lfu_file = _url_validity.cache_file_for_strategy(base, "lfu")
+        lru_data = {
+            "https://lru.com/": {"timestamp": 1000.0, "issues": [], "access_count": 2},
+        }
+        lfu_data = {
+            "https://lfu.com/": {"timestamp": 2000.0, "issues": [], "access_count": 50},
+        }
+        lru_file.write_text(__import__("json").dumps(lru_data), encoding="utf-8")
+        lfu_file.write_text(__import__("json").dumps(lfu_data), encoding="utf-8")
+        result = mod.merge_per_strategy_to_mixed(base_path=base)
+        assert result["merged"] is True
+        assert result["lru_entries"] == 1
+        assert result["lfu_entries"] == 1
+        assert result["total"] == 2
+        # mixed file should exist
+        mixed_file = _url_validity.cache_file_for_strategy(base, "mixed")
+        assert mixed_file.exists(), f"mixed file should exist: {mixed_file}"
+
+
+def test_import_csv_to_cache_v0_7_57() -> None:
+    """import_csv_to_cache imports external CSV (url,status,timestamp,access_count) (v0.7.57+)."""
+    mod = _import_module("cache_migration", WORKFLOW_KIT_DIR / "cache_migration.py")
+    _url_validity = _import_module("url_validity", WORKFLOW_KIT_DIR / "url_validity.py")
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        csv_p = Path(tmp) / "urls.csv"
+        csv_p.write_text(
+            "url,status,timestamp,access_count\n"
+            "https://a.com/,ok,1000.0,5\n"
+            "https://b.com/,ok,2000.0,10\n",
+            encoding="utf-8",
+        )
+        result = mod.import_csv_to_cache(str(csv_p), str(base), merge=False)
+        assert result["imported"] == 2
+        assert result["skipped"] == 0
+        assert result["total_rows"] == 2
+        # Verify entries
+        entries = _url_validity._load_cache(base)
+        assert "https://a.com/" in entries
+        assert "https://b.com/" in entries
+        assert entries["https://a.com/"].access_count == 5
+
+
+def test_export_cache_to_json_v0_7_57() -> None:
+    """export_cache_to_json writes standalone JSON file (v0.7.57+)."""
+    mod = _import_module("cache_migration", WORKFLOW_KIT_DIR / "cache_migration.py")
+    _url_validity = _import_module("url_validity", WORKFLOW_KIT_DIR / "url_validity.py")
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        base.write_text(
+            __import__("json").dumps({
+                "https://a.com/": {"timestamp": 1000.0, "issues": [], "access_count": 5},
+            }),
+            encoding="utf-8",
+        )
+        output = Path(tmp) / "export.json"
+        result = mod.export_cache_to_json(str(output), str(base), pretty=True)
+        assert result["entries"] == 1
+        assert output.exists()
+        data = __import__("json").loads(output.read_text(encoding="utf-8"))
+        assert "https://a.com/" in data
+        assert data["https://a.com/"]["access_count"] == 5
+
+
 def main() -> int:
     test_funcs = [
         test_migrate_to_per_strategy_cache_v0_7_44,
         test_split_to_per_strategy_v0_7_45,
+        test_merge_per_strategy_to_mixed_v0_7_57,
+        test_import_csv_to_cache_v0_7_57,
+        test_export_cache_to_json_v0_7_57,
     ]
     failed: list[str] = []
     for fn in test_funcs:

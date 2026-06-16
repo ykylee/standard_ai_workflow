@@ -87,7 +87,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 ## 다음에 읽을 문서
 - [설치·사용 가이드 (v0.5.10 신규)](./INSTALLATION_AND_USAGE.md)
 - [세션 인계 문서 v0.5.10](../ai-workflow/memory/release/v0.5.10/session_handoff.md)
-- [작업 백로그](../ai-workflow/memory/work_backlog.md)
+- [작업 백로그 (v0.6.3 archive)](../ai-workflow/memory/archive/2026-06-12/work_backlog.md)
 - [Orchestrator ↔ Sub-agent Contract v1](../workflow-source/core/orchestrator_subagent_contract_v1.md)
 - [Wire 가이드 v0.5.7+](../workflow-source/core/orchestrator_contract_v1_wire_guide.md)
 - [Maturity Matrix](../workflow-source/core/maturity_matrix.json)

@@ -269,8 +269,29 @@ def test_r2_batch_size_out_of_range() -> None:
     assert large.threshold_max == 15
     assert "large" in large.recommendation.lower() or "split" in large.recommendation.lower()
 
-# --- 메인 실행 ---
 
+def test_audit_r2_batch_history_v0_7_41() -> None:
+    """audit_r2_batch_history reads log.md and categorizes past batches."""
+    mod = _import_okf_import()
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpdir:
+        log_path = Path(tmpdir) / "log.md"
+        log_path.write_text(
+            "## [2026-06-16] release | v0.7.40 — + 8 new tests\n"
+            "## [2026-06-16] release | v0.7.41 — + 3 new tests\n"
+            "## [2026-06-16] release | v0.7.42 — + 25 new tests (large batch)\n",
+            encoding="utf-8",
+        )
+        result = mod.audit_r2_batch_history(log_path=log_path)
+        # 8 in range (5-15), 3 in range, 25 too large
+        # 8 in range (5-15), 3 too small, 25 too large
+        assert result.in_range == 1, f"expected 1 in-range, got {result.in_range}"
+        assert result.too_small == 1, f"expected 1 too-small, got {result.too_small}"
+        assert result.too_large == 1, f"expected 1 too-large, got {result.too_large}"
+        assert result.total_entries == 3
+
+
+# --- 메인 실행 ---
 
 def main() -> int:
     test_funcs = [
@@ -288,6 +309,7 @@ def main() -> int:
         test_version_check_missing_warns,
         test_r2_batch_size_in_range,
         test_r2_batch_size_out_of_range,
+        test_audit_r2_batch_history_v0_7_41,
     ]
     failed: list[str] = []
     for fn in test_funcs:

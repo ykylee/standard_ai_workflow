@@ -499,6 +499,49 @@ def check_r2_batch_size(page_count: int) -> R2BatchWarning | None:
             recommendation=f"batch is large ({page_count} > {R2_BATCH_THRESHOLD_MAX}). Consider splitting or running R-2 batch compliance audit.",
         )
     return None
+
+
+@dataclass(frozen=True)
+class R2BatchAuditResult:
+    """R-2 batch compliance audit summary (v0.7.41+)."""
+    total_entries: int
+    in_range: int
+    too_small: int
+    too_large: int
+    source: str  # path to log.md
+
+
+def audit_r2_batch_history(log_path: Path | None = None) -> R2BatchAuditResult:
+    """R-2 batch compliance audit (v0.7.41+).
+
+    Reads the wiki log.md and counts past ingest events categorized by batch
+    size. Useful for retroactively checking whether past R-2 ingest events
+    complied with the 5-15 page heuristic.
+
+    Heuristic: counts `+ N` or `* N` patterns in log headers. These are
+    approximate — for precise counts, query the git history.
+    """
+    if log_path is None:
+        log_path = Path("ai-workflow/wiki/log.md")
+    if not log_path.exists():
+        return R2BatchAuditResult(
+            total_entries=0, in_range=0, too_small=0, too_large=0,
+            source=str(log_path),
+        )
+    text = log_path.read_text(encoding="utf-8")
+    import re
+    # Pattern: lines with "+ N new tests" or "N pages" mention (tests as proxy)
+    in_range = len(re.findall(r"\+\s*([5-9]|1[0-5])\s*new\s*tests?\b", text, re.IGNORECASE))
+    too_small = len(re.findall(r"\+\s*([1-4])\s*new\s*tests?\b", text, re.IGNORECASE))
+    too_large = len(re.findall(r"\+\s*(1[6-9]|[2-9]\d|\d{3,})\s*new\s*tests?\b", text, re.IGNORECASE))
+    return R2BatchAuditResult(
+        total_entries=in_range + too_small + too_large,
+        in_range=in_range,
+        too_small=too_small,
+        too_large=too_large,
+        source=str(log_path),
+    )
+
 # Bundle import entry point
 # ---------------------------------------------------------------------------
 def import_okf_bundle(

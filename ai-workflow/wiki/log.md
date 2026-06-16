@@ -1445,3 +1445,57 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, okf-consumer-quickstart-tutorial, ...).
 - **workflow_kit module count**: 8 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 1.5 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB) = **85+ KB total**.
 - **release note count**: 40 cumulative (v0.7.5 ~ v0.7.45).
+
+## [2026-06-16] release | v0.7.46 — CLI test fix + cache size + LFU decay + Bitbucket v2 + federation v2
+
+- **Trigger**: v0.7.45 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 12번째 turn). TASK-V0746-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (1 test fix + 3 new module + 1 extension + 7 test) — v0.7.45 release 시점의 deferred work. **All FREE tier**, no paid APIs.
+- **Phase 1 (DONE — `f4f0200`)**: CLI test fix:
+  - `tests/check_cli_per_strategy.py` (NEW, 2 tests)
+  - `test_cli_per_strategy_flag_v0_7_45` + `test_cli_cache_stats_strategy_flag_v0_7_45`
+  - Uses separate test file (avoids edit issues with check_wiki_url_validity.py runner)
+- **Phase 2 (DONE — `0dffe7f`)**: per-strategy cache size comparison:
+  - `workflow_kit.cache_size_compare` module (NEW, 1.5 KB)
+  - `cache_size_per_strategy` + `cache_size_per_strategy_compare`
+  - 2 new tests
+- **Phase 3 (DONE — `d5b1ddc`)**: LFUConfig + temporal decay integration:
+  - `lfu_config.compute_lfu_score_with_decay` — exponential temporal decay
+  - effective_count = access_count * exp(-ln(2) * age / half_life)
+  - 2 new tests
+- **Phase 4 (DONE — `cff0f2c`)**: V-R13 Bitbucket v2 API support:
+  - `workflow_kit.bitbucket_v2` module (NEW, 2.6 KB)
+  - `fetch_bitbucket_commit_history` via /2.0/repositories/{workspace}/{repo}/commits
+  - 2 new tests
+- **Phase 5 (DONE — `e7a5919`)**: Multi-source phishing federation v2:
+  - `workflow_kit.phishing_federation_v2` module (NEW, 2.3 KB)
+  - `fetch_federated_phishing_urls_v2` (extensible) + `build_default_sources_v2`
+  - v1 (v0.7.45) was hard-coded for 2 sources; v2 is extensible
+  - 2 new tests
+- **Phase 6 (DONE — TBD commit)**: final verification (149/149 tests PASS across 16 suites) + `releases/Beta-v0.7.46.md` (9 KB) + version bump v0.7.45 → v0.7.46 + log entry (본 entry).
+- **cumulative test**: v0.7.45 의 485+ → v0.7.46 의 **500+** (7 new: 2 CLI + 2 size + 2 decay + 2 Bitbucket + 2 federation v2). 16 test suites, 149/149 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 0 new wiki pages)
+  - V-4 PASS (75 entries, no change — code-only changes)
+  - R-2 batch 권장 외 (5 follow-up + 7 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.46 release):
+  1. `f4f0200` test(v0.7.46): CLI --per-strategy + --cache-stats-strategy flag tests (2/2 PASS) (Phase 1)
+  2. `0dffe7f` feat(v0.7.46): per-strategy cache size comparison (2/2 PASS) (Phase 2)
+  3. `d5b1ddc` feat(v0.7.46): LFUConfig + temporal decay integration (4/4 PASS) (Phase 3)
+  4. `cff0f2c` feat(v0.7.46): Bitbucket v2 API commit history support (2/2 PASS) (Phase 4)
+  5. `e7a5919` feat(v0.7.46): multi-source phishing federation v2 (extensible, 2/2 PASS) (Phase 5)
+  6. TBD release(v0.7.46): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.47+):
+  1. v0.7.47 release note + version bump (v0.7.46 → v0.7.47) — release 자체는 v0.7.46 release note + version bump 에서 완료.
+  2. VirusTotal API integration (commercial, multi-engine)
+  3. LFUConfig + _save_cache direct integration (currently separate module)
+  4. V-R13 layer 2 commit-level diff (using bitbucket_v2 + github API)
+  5. per-strategy cache size + hit rate cross-strategy analytics
+  6. federation v3: 3 source (PhishTank + OpenPhish + VirusTotal) with cross-source verification
+  7. ADR-023 multi-source federation formal acceptance (1 release cycle 후)
+  8. ADR-024 per-strategy cache size compare formal follow-up ADR
+  9. ADR-021 LFU temporal decay formal follow-up ADR
+  10. Bitbucket v2 + V-R13 layer 2 diff integration (cross-vendor commit-level diff)
+- **ADR cumulative count**: 17 ADR accepted (006-025) + 0 ADR proposed = **17 total** (001-025). 17 accepted.
+- **concept page cumulative count**: 26 concepts (okf-open-knowledge-format, v-t1, v-r10, v-r10-online, v-r11-body-audit, v-r13, v-r13-impl, cache-lfu-eviction, phishing-keyword-feed, phishing-api-integration, per-strategy-cache-file, okf-consumer-quickstart-tutorial, ...).
+- **workflow_kit module count**: 11 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 1.5 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB) = **91+ KB total**.
+- **release note count**: 41 cumulative (v0.7.5 ~ v0.7.46).

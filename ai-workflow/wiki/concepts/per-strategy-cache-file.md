@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-024 (proposed, v0.7.42 draft)
-related_pages: [decisions/adr-024-per-strategy-cache-file, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-021-cache-lfu-eviction, decisions/adr-015-v-r10-v3-file-lock, decisions/adr-016-gha-actions-cache, concepts/v-r10-url-validity-lint, patterns/wiki-stub-emit]
+verification_status: accepted_via_adr-024 (v0.7.43, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -26,7 +25,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-024 와 동시 (v0.7.42 draft, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.42+ 예정) 의 *formal documentation*. |
+| 1 | status | **active** — ADR-024 와 동시 promote (v0.7.42 draft → v0.7.43 formal acceptance, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.42+ implemented cache_file_for_strategy() helper) 의 *formal documentation*. |
 | 2 | per-strategy file | `_lru.json` + `_lfu.json` + `_mixed.json` (3 separate file). |
 | 3 | base path | `~/.workflow_kit/url_validity_cache.json` 의 *stem + suffix* 의 *strategy suffix* 의 *operational* 의 *low-friction* 의 *follow-up*. |
 | 4 | strategy switch | *Strategy switch* 시 *old file* 의 *delete* (clean reset). |
@@ -144,5 +143,4 @@ def cache_stats_per_strategy(cache_dir: Path = DEFAULT_CACHE_DIR) -> dict[str, d
 ## §13. Revision Log
 
 | Date | Version | Change | Author |
-|---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-024 (proposed) 와 동시. 13 section + 8 primary sources. 3 strategy 의 *file naming matrix* + strategy switch clean reset + cross-strategy compare + backward compat migration. 7 phase 의 *gradual rollout*. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.43 release: status `proposed` → `active` + ADR-024 `proposed` → `accepted`.** 본 release 시점의 evidence (cache_file_for_strategy helper + per-strategy file naming + 2 unit tests + cross-strategy isolation). `v0.7.43 follow-up bundle` 의 Phase 1 (TASK-V0743-ADR-FORMAL). | Sisyphus (orchestrator) |

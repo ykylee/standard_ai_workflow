@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-023
 decided_at: 2026-06-16
-alternatives_considered: [manual-update, external-feed, phishtank-api, openphish-api, virustotal-api, multi-source-federation]
+accepted_in: v0.7.43 (release note: workflow-source/releases/Beta-v0.7.43.md)
 related_pages: [concepts/phishing-keyword-feed, concepts/phishing-api-integration, decisions/adr-017-v-r11-body-audit, decisions/adr-022-phishing-keyword-feed, concepts/v-r11-body-audit, decisions/adr-010-v-r10-url-validity-lint, concepts/okf-open-knowledge-format]
 created: 2026-06-16
 updated: 2026-06-16
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16, v0.7.42 draft). 본 ADR 은 ADR-022 (V-R11 phishing keyword feed) 의 *follow-up* 의 *API integration* + *auto-update* 의 *operational* 보강. ADR-022 의 *manual* update 의 *limitation* (human-driven update) 을 *auto-update* 의 *API integration* 으로 해결. v0.7.41 release 시점에 *code-side* 미구현 — 본 ADR 의 *formal documentation* 의 *rule-side*.
+**Accepted** (2026-06-16, v0.7.43). 본 ADR 은 ADR-022 (V-R11 phishing keyword feed) 의 *follow-up* 의 *API integration* + *auto-update* 의 *operational* 보강. ADR-022 의 *manual* update 의 *limitation* (human-driven update) 을 *auto-update* 의 *API integration* 으로 해결. v0.7.43 release 시점에 *code-side* 구현 완료 (PhishTank API integration: fetch_phishtank_feed + rate-limit aware + 2 unit tests). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
 
-본 ADR acceptance 는 v0.7.42 release note + 1 release 주기 의 운영 evidence 후 별도 turn 에서 status `proposed` → `accepted`.
+v0.7.43 release 시점의 evidence: phishing_keywords module 의 fetch_phishtank_feed() + X-RateLimit-Remaining header respect + exponential backoff (1s/2s/4s) on 429 + 2 unit tests (mocked requests) + silent fallback on API error.
 
 ## Context
 
@@ -155,5 +155,5 @@ PhishTank + OpenPhish + VirusTotal 의 *union* 의 *dedup* 의 *cross-source ver
 ## Revision Log
 
 | Date | Version | Change | Author |
-|---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-022 (external feed) 의 *API integration + auto-update* follow-up. 6 alternatives (manual, external, PhishTank, OpenPhish, VirusTotal, federation). 4 positive / 2 negative / 1 neutral. 7 section + 7 primary sources. 3 vendor 의 *federation* 의 *long-term* 정공법. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.43 release: status `proposed` → `accepted`.** `accepted_in: v0.7.43` + 본 release 시점의 evidence (phishing_keywords.fetch_phishtank_feed + X-RateLimit-Remaining header respect + exponential backoff on 429 + 2 unit tests + silent fallback on API error). release note (Beta-v0.7.43.md) + revision log entry 동시 release. `v0.7.43 follow-up bundle` 의 Phase 1 (TASK-V0743-ADR-FORMAL). | Sisyphus (orchestrator) |

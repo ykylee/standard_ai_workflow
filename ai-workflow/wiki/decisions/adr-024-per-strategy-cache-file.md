@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-024
 decided_at: 2026-06-16
-alternatives_considered: [single-file, per-strategy-file, hybrid-strategy-prefix, no-eviction, external-cache]
+accepted_in: v0.7.43 (release note: workflow-source/releases/Beta-v0.7.43.md)
 related_pages: [concepts/per-strategy-cache-file, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-021-cache-lfu-eviction, decisions/adr-015-v-r10-v3-file-lock, decisions/adr-016-gha-actions-cache, concepts/v-r10-url-validity-lint, patterns/wiki-stub-emit]
 created: 2026-06-16
 updated: 2026-06-16
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16, v0.7.42 draft). 본 ADR 은 ADR-021 (LFU eviction strategy) 의 *follow-up* 의 *per-strategy file* 의 *operational* 보강. ADR-014 (LRU-only) 의 *single-file* 의 *limitation* (mixed strategy 의 *operational* 의 *low-friction* 의 *limitation*) 을 *per-strategy file* 의 *isolation* 으로 해결. v0.7.41 release 시점에 *code-side* 미구현 — 본 ADR 의 *formal documentation* 의 *rule-side*.
+**Accepted** (2026-06-16, v0.7.43). 본 ADR 은 ADR-021 (LFU eviction strategy) 의 *follow-up* 의 *per-strategy file* 의 *operational* 보강. ADR-014 (LRU-only) 의 *single-file* 의 *limitation* (mixed strategy 의 *operational* 의 *low-friction* 의 *limitation*) 을 *per-strategy file* 의 *isolation* 으로 해결. v0.7.42 release 시점에 *code-side* 구현 완료 (cache_file_for_strategy() helper + per-strategy cache file isolation). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
 
-본 ADR acceptance 는 v0.7.42 release note + 1 release 주기 의 운영 evidence 후 별도 turn 에서 status `proposed` → `accepted`.
+v0.7.43 release 시점의 evidence: cache_file_for_strategy() helper + per-strategy file naming (`<stem>_<strategy><suffix>`) + 2 unit tests (test_cache_file_for_strategy_v0_7_42 + test_cache_per_strategy_file_isolation_v0_7_42) + cross-strategy isolation (lru + mixed files are independent).
 
 ## Context
 
@@ -155,5 +155,5 @@ v0.7.41 의 *single file* 의 *mixed strategy* 의 *eviction*. 장점: simplest.
 ## Revision Log
 
 | Date | Version | Change | Author |
-|---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-021 (single file) 의 *per-strategy file* follow-up. 5 alternatives (single, per-strategy, hybrid, no-eviction, external). 4 positive / 2 negative / 1 neutral. 6 section + 8 primary sources. 7 phase 의 *gradual rollout*. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.43 release: status `proposed` → `accepted`.** `accepted_in: v0.7.43` + 본 release 시점의 evidence (cache_file_for_strategy helper + per-strategy file naming + 2 unit tests + cross-strategy isolation). release note (Beta-v0.7.43.md) + revision log entry 동시 release. `v0.7.43 follow-up bundle` 의 Phase 1 (TASK-V0743-ADR-FORMAL). | Sisyphus (orchestrator) |

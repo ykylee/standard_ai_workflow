@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-023 (proposed, v0.7.42 draft)
-related_pages: [decisions/adr-023-phishing-api-integration, decisions/adr-022-phishing-keyword-feed, decisions/adr-017-v-r11-body-audit, concepts/v-r11-body-audit, concepts/phishing-keyword-feed, concepts/okf-open-knowledge-format]
+verification_status: accepted_via_adr-023 (v0.7.43, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -25,7 +24,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-023 와 동시 (v0.7.42 draft, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.43+ 예정) 의 *formal documentation*. |
+| 1 | status | **active** — ADR-023 와 동시 promote (v0.7.42 draft → v0.7.43 formal acceptance, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.43+ implemented) 의 *formal documentation*. |
 | 2 | primary source | PhishTank API (`data.phishtank.com/data/<api_key>/online-valid.json`) — free tier, 5 req/hour, *community-driven verified*. |
 | 3 | secondary source | OpenPhish API (`openphish.com/feed.txt`) — free, 1 req/hour, *real-time* update. |
 | 4 | tertiary source | VirusTotal API (`virustotal.com/api/v3/urls/...`) — commercial, 4 req/min free, *multi-engine high-confidence*. |
@@ -131,4 +130,4 @@ def fetch_federated_phishing_urls() -> list[str]:
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-023 (proposed) 와 동시. 10 section + 7 primary sources. 3 vendor 의 *operational matrix* + rate-limit aware + multi-source federation (long-term). 7 phase 의 *gradual rollout*. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.43 release: status `proposed` → `active` + ADR-023 `proposed` → `accepted`.** 본 release 시점의 evidence (phishing_keywords.fetch_phishtank_feed + X-RateLimit-Remaining header respect + exponential backoff on 429 + 2 unit tests + silent fallback on API error). `v0.7.43 follow-up bundle` 의 Phase 1 (TASK-V0743-ADR-FORMAL). | Sisyphus (orchestrator) |

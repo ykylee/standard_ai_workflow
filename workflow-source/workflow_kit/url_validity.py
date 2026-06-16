@@ -520,6 +520,130 @@ def check_url_semantic_github(
         )]
 
 
+def check_url_semantic_per_host(
+    url: str,
+    *,
+    timeout: float = 10.0,
+    github_token: str | None = None,
+    gitlab_token: str | None = None,
+    bitbucket_user: str | None = None,
+    bitbucket_token: str | None = None,
+) -> list[UrlIssue]:
+    """V-R13 check 5 per-host extension (v0.7.42+).
+
+    Routes V-R13 check 5 (author) to the appropriate per-host API based on URL host:
+    - github.com: api.github.com
+    - gitlab.com: gitlab.com/api/v4
+    - bitbucket.org: api.bitbucket.org/2.0
+
+    All others: returns V-R13-author-stub WARN.
+    """
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    host = parsed.netloc.lower()
+    if host in ("github.com", "www.github.com"):
+        return _check_github_per_host(url, timeout=timeout, token=github_token)
+    elif host in ("gitlab.com", "www.gitlab.com"):
+        return _check_gitlab_per_host(url, timeout=timeout, token=gitlab_token)
+    elif host in ("bitbucket.org", "www.bitbucket.org"):
+        return _check_bitbucket_per_host(url, timeout=timeout, user=bitbucket_user, token=bitbucket_token)
+    return [UrlIssue(
+        rule="V-R13-author-stub", severity="warn",
+        message=f"V-R13 check 5 (author): no per-host API for host={host}",
+    )]
+
+
+def _check_github_per_host(
+    url: str,
+    *,
+    timeout: float,
+    token: str | None,
+) -> list[UrlIssue]:
+    """GitHub API per-host (v0.7.42+)."""
+    parts = parse_semantic_url(url)
+    if parts.commit_sha is None:
+        return [UrlIssue(rule="V-R13-author-stub", severity="warn", message="V-R13 check 5: no commit SHA")]
+    import urllib.request as _ur
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    m = re.match(r"^/([^/]+)/([^/]+)/blob/[^/]+(/.*)?$", parsed.path)
+    if not m:
+        return [UrlIssue(rule="V-R13-author-stub", severity="warn", message="V-R13 check 5: bad path")]
+    org, repo = m.group(1), m.group(2)
+    api_url = f"https://api.github.com/repos/{org}/{repo}/commits/{parts.commit_sha}"
+    try:
+        headers = {"User-Agent": "workflow-kit-url-validity/0.7.42", "Accept": "application/vnd.github+json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = _ur.Request(api_url, headers=headers)
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return [UrlIssue(rule="V-R13-author-github-ok", severity="info", message=f"GitHub API confirmed commit {parts.commit_sha[:7]}")]
+            return [UrlIssue(rule="V-R13-author-github-other", severity="warn", message=f"GitHub API returned {resp.status}")]
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        return [UrlIssue(rule="V-R13-author-github-error", severity="warn", message=f"GitHub API: {type(e).__name__}: {e}")]
+
+
+def _check_gitlab_per_host(
+    url: str,
+    *,
+    timeout: float,
+    token: str | None,
+) -> list[UrlIssue]:
+    """GitLab API per-host (v0.7.42+). Handles /<org>/<repo>/-/blob/<sha>/ and /<org>/<repo>/blob/<sha>/ URL forms."""
+    import urllib.request as _ur
+    from urllib.parse import urlparse as _up, quote as _quote
+    parsed = _up(url)
+    m = re.match(r"^/([^/]+)/([^/]+)(?:/-)?/blob/([^/]+)(/.*)?$", parsed.path)
+    if not m:
+        return [UrlIssue(rule="V-R13-author-stub", severity="warn", message="V-R13 check 5: bad gitlab path")]
+    org, repo, commit_sha = m.group(1), m.group(2), m.group(3)
+    project_path = _quote(f"{org}/{repo}", safe="")
+    api_url = f"https://gitlab.com/api/v4/projects/{project_path}/repository/commits/{commit_sha}"
+    try:
+        headers = {"User-Agent": "workflow-kit-url-validity/0.7.42"}
+        if token:
+            headers["PRIVATE-TOKEN"] = token
+        req = _ur.Request(api_url, headers=headers)
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return [UrlIssue(rule="V-R13-author-gitlab-ok", severity="info", message=f"GitLab API confirmed commit {commit_sha[:7]}")]
+            return [UrlIssue(rule="V-R13-author-gitlab-other", severity="warn", message=f"GitLab API returned {resp.status}")]
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        return [UrlIssue(rule="V-R13-author-gitlab-error", severity="warn", message=f"GitLab API: {type(e).__name__}: {e}")]
+
+
+def _check_bitbucket_per_host(
+    url: str,
+    *,
+    timeout: float,
+    user: str | None,
+    token: str | None,
+) -> list[UrlIssue]:
+    """Bitbucket API per-host (v0.7.42+). Uses Basic auth (user + app password)."""
+    import urllib.request as _ur
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    m = re.match(r"^/([^/]+)/([^/]+)/src/([^/]+)(/.*)?$", parsed.path)
+    if not m:
+        return [UrlIssue(rule="V-R13-author-stub", severity="warn", message="V-R13 check 5: bad bitbucket path")]
+    workspace, repo, commit_sha = m.group(1), m.group(2), m.group(3)
+    api_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo}/commit/{commit_sha}"
+    try:
+        import base64
+        headers = {"User-Agent": "workflow-kit-url-validity/0.7.42"}
+        if user and token:
+            auth_str = base64.b64encode(f"{user}:{token}".encode("utf-8")).decode("ascii")
+            headers["Authorization"] = f"Basic {auth_str}"
+        req = _ur.Request(api_url, headers=headers)
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return [UrlIssue(rule="V-R13-author-bitbucket-ok", severity="info", message=f"Bitbucket API confirmed commit {commit_sha[:7]}")]
+            return [UrlIssue(rule="V-R13-author-bitbucket-other", severity="warn", message=f"Bitbucket API returned {resp.status}")]
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        return [UrlIssue(rule="V-R13-author-bitbucket-error", severity="warn", message=f"Bitbucket API: {type(e).__name__}: {e}")]
+
+
 def check_url_semantic(
     url: str,
     *,

@@ -365,6 +365,31 @@ def test_check_url_semantic_composite_incomplete_v0_7_41() -> None:
     assert issues[0].severity == "warn"
     assert "missing" in issues[0].message.lower()
 
+
+def test_check_url_semantic_per_host_routes_v0_7_42() -> None:
+    """check_url_semantic_per_host routes to GitLab/Bitbucket API for non-GitHub URLs."""
+    mod = _import_url_validity()
+    # GitLab URL — per-host routes to _check_gitlab_per_host (which will fail in test env without network)
+    issues = mod.check_url_semantic_per_host("https://gitlab.com/foo/bar/blob/abc1234/docs/spec.md")
+    rules = {i.rule for i in issues}
+    # In test env, network call will fail with error rule OR succeed; accept either
+    assert "V-R13-author-gitlab-ok" in rules or "V-R13-author-gitlab-error" in rules or "V-R13-author-gitlab-other" in rules, f"unexpected gitlab rules: {rules}"
+    # Bitbucket URL — per-host routes to _check_bitbucket_per_host (different path: /src/...)
+    issues = mod.check_url_semantic_per_host("https://bitbucket.org/foo/bar/src/abc1234/docs/spec.md")
+    rules = {i.rule for i in issues}
+    assert "V-R13-author-bitbucket-ok" in rules or "V-R13-author-bitbucket-error" in rules or "V-R13-author-bitbucket-other" in rules, f"unexpected bitbucket rules: {rules}"
+
+
+def test_check_url_semantic_per_host_unknown_v0_7_42() -> None:
+    """check_url_semantic_per_host for unknown host returns V-R13-author-stub."""
+    mod = _import_url_validity()
+    issues = mod.check_url_semantic_per_host("https://example.com/spec.md")
+    assert len(issues) == 1
+    assert issues[0].rule == "V-R13-author-stub"
+    assert issues[0].severity == "warn"
+    assert "example.com" in issues[0].message
+
+
 def main() -> int:
     test_funcs = [
         test_parse_semantic_url_full,
@@ -390,6 +415,8 @@ def main() -> int:
         test_check_url_semantic_range_diff_missing_range_v0_7_41,
         test_check_url_semantic_composite_ok_v0_7_41,
         test_check_url_semantic_composite_incomplete_v0_7_41,
+        test_check_url_semantic_per_host_routes_v0_7_42,
+        test_check_url_semantic_per_host_unknown_v0_7_42,
     ]
     failed: list[str] = []
     for fn in test_funcs:

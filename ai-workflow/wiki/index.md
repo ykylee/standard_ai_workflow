@@ -19,6 +19,7 @@
 ### [[concepts/audit-log-standard]] {#audit-log-standard}
 ### [[concepts/okf-open-knowledge-format]] {#okf-open-knowledge-format}
 ### [[concepts/v-t1-title-consistency-lint]] {#v-t1-title-consistency-lint}
+### [[concepts/v-r10-url-validity-lint]] {#v-r10-url-validity-lint}
 ### [[INGEST_GUIDE]] {#ingest-guide}
 
 ## Decisions
@@ -31,6 +32,7 @@
 ### [[decisions/adr-006-okf-compat-frontmatter]] {#adr-006-okf-compat-frontmatter}
 ### [[decisions/adr-008-in-repo-path-to-url]] {#adr-008-in-repo-path-to-url}
 ### [[decisions/adr-009-v-t1-formal-adoption]] {#adr-009-v-t1-formal-adoption}
+### [[decisions/adr-010-v-r10-url-validity-lint]] {#adr-010-v-r10-url-validity-lint}
 
 ## Patterns
 

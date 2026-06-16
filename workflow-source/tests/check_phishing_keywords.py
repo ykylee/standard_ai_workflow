@@ -190,6 +190,34 @@ def test_empty_custom_returns_bundled() -> None:
     assert len(kws) == 8, f"empty custom should still return bundled, got {len(kws)}"
 
 
+def test_fetch_phishtank_feed_ok_v0_7_43() -> None:
+    """fetch_phishtank_feed returns URLs on 200 (mocked requests)."""
+    mod = _import_phishing_kw()
+    fake_data = b'[{"url": "https://phish1.com/", "phish_id": "1"}, {"url": "https://phish2.com/", "phish_id": "2"}]'
+    class FakeResp:
+        def __init__(self):
+            self.status = 200
+            self.headers = {"X-RateLimit-Remaining": "4"}
+        def read(self):
+            return fake_data
+    def fake_get(url, **kwargs):
+        return FakeResp()
+    urls = mod.fetch_phishtank_feed("dummy_key", requests_get=fake_get)
+    assert urls == ["https://phish1.com/", "https://phish2.com/"], f"got: {urls}"
+
+
+def test_fetch_phishtank_feed_error_returns_empty_v0_7_43() -> None:
+    """fetch_phishtank_feed returns [] on 404 / 5xx (silent fallback)."""
+    mod = _import_phishing_kw()
+    class FakeResp:
+        def __init__(self):
+            self.status = 404
+            self.headers = {}
+    def fake_get(url, **kwargs):
+        return FakeResp()
+    urls = mod.fetch_phishtank_feed("dummy_key", requests_get=fake_get)
+    assert urls == [], f"expected [] on 404, got: {urls}"
+
 def main() -> int:
     test_funcs = [
         test_bundled_returns_8_keywords,
@@ -203,8 +231,12 @@ def main() -> int:
         test_phishing_feed_update_status_existing_feed,
         test_bundled_case_insensitive_dedup,
         test_empty_custom_returns_bundled,
+        test_fetch_phishtank_feed_ok_v0_7_43,
+        test_fetch_phishtank_feed_error_returns_empty_v0_7_43,
     ]
     failed: list[str] = []
+    for fn in test_funcs:
+        name = fn.__name__
     for fn in test_funcs:
         name = fn.__name__
         try:

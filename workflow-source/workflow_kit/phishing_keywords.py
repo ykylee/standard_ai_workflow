@@ -148,3 +148,75 @@ def phishing_feed_update_status(
         "bundled_count": len(BUNDLED_KEYWORDS),
         "last_modified": mtime,
     }
+
+
+# v0.7.43+ PhishTank API integration (ADR-023 code-side)
+PHISHTANK_API_BASE = "https://data.phishtank.com/data"
+
+
+def fetch_phishtank_feed(
+    api_key: str,
+    *,
+    feed_format: str = "json",
+    max_retries: int = 3,
+    backoff_base: float = 1.0,
+    requests_get=None,
+) -> list[str]:
+    """Fetch PhishTank online-valid feed (v0.7.43+, ADR-023 code-side).
+
+    Rate-limit aware: respects X-RateLimit-Remaining + X-RateLimit-Reset headers.
+    On 429: waits for reset time, then retries. Up to max_retries.
+
+    Args:
+        api_key: PhishTank API key (free tier: 5 req/hour, 100 req/hour paid)
+        feed_format: "json" (default) or "csv"
+        max_retries: max retry count on 429/5xx (default 3)
+        backoff_base: exponential backoff base in seconds (1s, 2s, 4s)
+        requests_get: optional injected function for testing (mocking)
+
+    Returns:
+        List of phishing URLs (empty list on error).
+    """
+    if requests_get is None:
+        import urllib.request as _ur
+        def requests_get(url: str, **kwargs):
+            return _ur.urlopen(_ur.Request(url, headers=kwargs.get("headers", {})), timeout=kwargs.get("timeout", 30))
+    url = f"{PHISHTANK_API_BASE}/{api_key}/online-valid.{feed_format}"
+    import time
+    for attempt in range(max_retries):
+        try:
+            response = requests_get(url, timeout=30)
+            # Check rate-limit headers
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if remaining == "0" and reset_at:
+                # Wait until reset
+                wait = max(0, int(reset_at) - int(time.time()))
+                if wait > 0:
+                    time.sleep(wait)
+            if response.status == 200:
+                # Parse JSON
+                import json
+                data = json.loads(response.read().decode("utf-8"))
+                if isinstance(data, list):
+                    return [entry.get("url", "") for entry in data if "url" in entry]
+                return []
+            elif response.status == 429:
+                # Rate limited — exponential backoff
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            elif response.status in (500, 502, 503, 504):
+                # Server error — retry
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            else:
+                # Other errors — return empty
+                return []
+        except (OSError, TimeoutError, ValueError) as e:
+            import sys
+            print(f"WARN: PhishTank fetch attempt {attempt + 1} failed: {type(e).__name__}: {e}", file=sys.stderr)
+            if attempt < max_retries - 1:
+                time.sleep(backoff_base * (2 ** attempt))
+                continue
+            return []
+    return []

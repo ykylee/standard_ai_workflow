@@ -705,6 +705,38 @@ def test_cache_stats_per_strategy_v0_7_43() -> None:
         assert stats["lfu"]["total"] == 0, f"lfu total should be 0, got {stats['lfu']['total']}"
 
 
+def test_cache_stats_per_strategy_with_hit_rate_v0_7_45() -> None:
+    """cache_stats_per_strategy_with_hit_rate computes total_access_count + hit_rate per strategy."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir) / "url_validity_cache.json"
+        now = time.time()
+        mod._save_cache(
+            mod.cache_file_for_strategy(base, "lru"),
+            {
+                "https://lru1.com/": mod.CacheEntry(url="https://lru1.com/", timestamp=now, issues=("ok",), access_count=5),
+                "https://lru2.com/": mod.CacheEntry(url="https://lru2.com/", timestamp=now, issues=("ok",), access_count=10),
+            },
+        )
+        mod._save_cache(
+            mod.cache_file_for_strategy(base, "lfu"),
+            {
+                "https://lfu1.com/": mod.CacheEntry(url="https://lfu1.com/", timestamp=now, issues=("ok",), access_count=100),
+            },
+        )
+        stats = mod.cache_stats_per_strategy_with_hit_rate(base_path=base)
+        assert stats["lru"]["total"] == 2
+        assert stats["lru"]["total_access_count"] == 15
+        assert stats["lru"]["hit_rate"] == 7.5
+        assert stats["lfu"]["total"] == 1
+        assert stats["lfu"]["total_access_count"] == 100
+        assert stats["lfu"]["hit_rate"] == 100.0
+        assert stats["mixed"]["total"] == 0
+        assert stats["mixed"]["hit_rate"] == 0.0
+        assert stats["_overall"]["total_entries"] == 3
+        assert stats["_overall"]["total_access_count"] == 115
+        assert abs(stats["_overall"]["hit_rate"] - 115/3) < 0.01
+
 def test_cache_gzip_compression_roundtrip() -> None:
     """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
     mod = _import_url_validity()
@@ -919,12 +951,11 @@ def main() -> int:
         test_cache_lru_still_works_with_strategy_param,
         test_cache_per_strategy_lru_metric_v0_7_41,
         test_cache_per_strategy_lfu_metric_v0_7_41,
-        test_cache_file_for_strategy_v0_7_42,
         test_cache_per_strategy_file_isolation_v0_7_42,
+        test_cache_stats_per_strategy_with_hit_rate_v0_7_45,
     ]
     failed: list[str] = []
     for fn in test_funcs:
-        name = fn.__name__
         name = fn.__name__
         try:
             fn()

@@ -1104,6 +1104,46 @@ def cache_stats_per_strategy(base_path: Path | None = None) -> dict[str, dict[st
     }
 
 
+def cache_stats_per_strategy_with_hit_rate(
+    base_path: Path | None = None,
+) -> dict[str, dict[str, object]]:
+    """Return per-strategy cache stats + hit rate (v0.7.45+).
+
+    Extends cache_stats_per_strategy with hit rate computation:
+    hit_rate = total_access_count / total_entries (avg access per entry per strategy).
+
+    Args:
+        base_path: base cache file path (default: DEFAULT_CACHE_FILE)
+
+    Returns:
+        dict mapping strategy name to {stats..., total_access_count, hit_rate}
+    """
+    base = base_path or DEFAULT_CACHE_FILE
+    result: dict[str, dict[str, object]] = {}
+    total_access = 0
+    total_entries = 0
+    for strategy in ("lru", "lfu", "mixed"):
+        cf = cache_file_for_strategy(base, strategy)
+        s = cache_stats(cache_file=cf)
+        # Compute total access_count for this strategy
+        strategy_access = 0
+        if cf.exists():
+            entries = _load_cache(cf)
+            for entry in entries.values():
+                strategy_access += entry.access_count
+        s["total_access_count"] = strategy_access
+        s["hit_rate"] = (strategy_access / s["total"]) if s["total"] > 0 else 0.0
+        result[strategy] = s
+        total_access += strategy_access
+        total_entries += s["total"]
+    result["_overall"] = {
+        "total_entries": total_entries,
+        "total_access_count": total_access,
+        "hit_rate": (total_access / total_entries) if total_entries > 0 else 0.0,
+    }
+    return result
+
+
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="workflow_kit.url_validity", description="V-R10 URL validity check")
     p.add_argument("urls", nargs="*", help="URLs to check")

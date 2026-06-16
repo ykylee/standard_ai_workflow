@@ -1838,3 +1838,28 @@ v0.7.51, not a release. Version stays at v0.7.51-beta.
 The 6-release pattern (v0.7.46-v0.7.51) created ~15 over-counted modules and
 ~30 over-counted tests, plus 6 release notes that could be condensed to 1-2.
 Future work should default to consolidation over expansion.
+
+> **Superseded by v0.7.52-beta release (2026-06-16, commit b0491d0)** — User decided to cut v0.7.52 as the *retrospective consolidation 통합본* (i.e., the cleanup itself *is* the release, not a "doesn't earn a release" case). The audit decision ("v0.7.52 is in-progress, not a release") was *overridden* — not invalidated. Both log entries preserved for accuracy of decision timeline.
+
+## [2026-06-16] release | v0.7.52 retrospective consolidation 통합본 (overrides prior audit decision)
+
+- **Decision override**: User (2026-06-16 19:50 KST) decided v0.7.52 IS a release, not in-progress work. The earlier audit entry ("cleanup doesn't earn a release") was the *initial* call; the *final* call is the opposite. v0.7.52-beta cut and published.
+
+### Cut
+
+- **Commit**: b0491d0 (chore(v0.7.52): version bump 0.7.6 → 0.7.52 + release note)
+- **Tag**: v0.7.52-beta (annotated, pushed to origin)
+- **GH release**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.52-beta
+- **Release note**: workflow-source/releases/Beta-v0.7.52.md (4 phase detail + module census)
+
+### Version sync (memory rule 10)
+
+- `pyproject.toml`: 0.7.33 → **0.7.52**
+- `workflow_kit/__init__.py` `__version__`: v0.7.51-beta → **v0.7.52-beta**
+- 2 source 동시 write (manual sync 누락 시 __init__.py 가 v0.7.2-beta 정체 사례 방지)
+
+### Cross-reference
+
+- Prior commit log entry (ee63739) 의 audit finding "Future work should default to consolidation over expansion" — *kept* (still valid rule, not invalidated by the release cut decision)
+- memory rule 12 (cleanup 검증 정공법 + dispatcher registry 패턴) 의 cross-project 적용 그대로 유지
+- Next release (v0.7.53 / v0.8.0) 후보: core 5 module (url_validity / okf_export / okf_import / path_resolver / phishing_keywords) 의 정합성 audit 2차

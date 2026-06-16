@@ -149,6 +149,63 @@ def test_cache_file_for_strategy_suffix_v0_7_53() -> None:
         assert f.suffix == ".json", f"expected .json suffix, got {f.suffix}"
 
 
+def test_cache_prune_dry_run_preserves_data_v0_7_56() -> None:
+    """cache_prune (dry_run=True) reports removal but does not modify cache (v0.7.56+)."""
+    import time
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        cache_data = {
+            "https://a.com/": {
+                "timestamp": time.time() - 86400 * 7,  # 7d old
+                "issues": [],
+                "access_count": 0,
+            },
+            "https://b.com/": {
+                "timestamp": time.time(),
+                "issues": [],
+                "access_count": 5,
+            },
+        }
+        cf = mod.cache_file_for_strategy(base, "mixed")
+        cf.write_text(json.dumps(cache_data), encoding="utf-8")
+        result = mod.cache_prune(base_path=base, max_age_seconds=86400, dry_run=True)
+        assert result["mixed"]["removed"] == 1
+        assert result["mixed"]["kept"] == 1
+        assert result["_overall"]["dry_run"] is True
+        # File should be unchanged
+        after = json.loads(cf.read_text(encoding="utf-8"))
+        assert len(after) == 2
+
+
+def test_cache_prune_apply_removes_old_v0_7_56() -> None:
+    """cache_prune (apply) actually removes old entries from cache (v0.7.56+)."""
+    import time
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        cache_data = {
+            "https://old.com/": {
+                "timestamp": time.time() - 86400 * 7,
+                "issues": [],
+                "access_count": 0,
+            },
+            "https://fresh.com/": {
+                "timestamp": time.time(),
+                "issues": [],
+                "access_count": 5,
+            },
+        }
+        cf = mod.cache_file_for_strategy(base, "mixed")
+        cf.write_text(json.dumps(cache_data), encoding="utf-8")
+        result = mod.cache_prune(base_path=base, max_age_seconds=86400, min_access_count=5, dry_run=False)
+        assert result["mixed"]["removed"] == 1
+        assert result["_overall"]["dry_run"] is False
+        after = json.loads(cf.read_text(encoding="utf-8"))
+        assert "https://fresh.com/" in after
+        assert "https://old.com/" not in after
+
+
 def main() -> int:
     test_funcs = [
         test_check_url_https_valid_v0_7_53,
@@ -163,6 +220,8 @@ def main() -> int:
         test_cache_stats_zero_on_empty_v0_7_53,
         test_cache_clear_idempotent_v0_7_53,
         test_cache_file_for_strategy_suffix_v0_7_53,
+        test_cache_prune_dry_run_preserves_data_v0_7_56,
+        test_cache_prune_apply_removes_old_v0_7_56,
     ]
     failed: list[str] = []
     for fn in test_funcs:

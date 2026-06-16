@@ -196,6 +196,229 @@ def test_score_wiki_trend_show_returns_0_v0_7_55() -> None:
     assert code == 0
 
 
+def test_score_wiki_trend_json_in_process_v0_7_56() -> None:
+    """score-wiki-trend --json in-process (v0.7.56, was subprocess in v0.7.55).
+
+    Verifies `tools/__init__.py` (v0.7.56 NEW) + workflow_kit_cli 의
+    in-process import 가 정상 동작. --json 은 read-only 라 side effect 없음.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=score-wiki-trend", "--json"])
+    assert code == 0
+
+
+def test_score_wiki_trend_record_current_in_process_v0_7_56(tmp_path=None) -> None:
+    """score-wiki-trend --record-current in-process (v0.7.56).
+
+    side effect (history file append) 발생. in-process 가 subprocess 와
+    동일하게 동작 + .score_history.jsonl 의 row 1개 append 확인.
+    """
+    import json
+    mod = _import_cli()
+    # backup + restore pattern (.score_history.jsonl 보존)
+    from pathlib import Path as _P
+    history_path = SOURCE_ROOT / "tools" / ".score_history.jsonl"
+    backup = history_path.read_text(encoding="utf-8") if history_path.exists() else ""
+    try:
+        before_lines = len([ln for ln in backup.splitlines() if ln.strip()])
+        code = mod.run_workflow_kit_cli(["--command=score-wiki-trend", "--record-current"])
+        assert code == 0
+        after = history_path.read_text(encoding="utf-8")
+        after_lines = len([ln for ln in after.splitlines() if ln.strip()])
+        assert after_lines == before_lines + 1, f"expected 1 new row, got {after_lines - before_lines}"
+        # last row is valid JSON
+        last = json.loads(after.splitlines()[-1])
+        assert "commit" in last and "scores" in last
+    finally:
+        history_path.write_text(backup, encoding="utf-8")
+
+
+def test_okf_cleanup_dry_run_v0_7_56() -> None:
+    """okf-cleanup --dry-run (default) returns 0, doesn't remove (v0.7.56+)."""
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        sp = Path(tmp) / "staging"
+        sp.mkdir()
+        (sp / "page1.md").write_text("content", encoding="utf-8")
+        (sp / "page2.md").write_text("content", encoding="utf-8")
+        code = mod.run_workflow_kit_cli([
+            "--command=okf-cleanup", f"--staging={sp}", "--json",
+        ])
+        assert code == 0
+        # dry-run by default — files still exist
+        assert (sp / "page1.md").exists()
+        assert (sp / "page2.md").exists()
+
+
+def test_okf_cleanup_apply_removes_v0_7_56() -> None:
+    """okf-cleanup --apply actually removes files (v0.7.56+)."""
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        sp = Path(tmp) / "staging"
+        sp.mkdir()
+        (sp / "old.md").write_text("content", encoding="utf-8")
+        # Make file old
+        import time
+        old_time = time.time() - 86400 * 2  # 2 days old
+        import os
+        os.utime(sp / "old.md", (old_time, old_time))
+        code = mod.run_workflow_kit_cli([
+            "--command=okf-cleanup", f"--staging={sp}",
+            "--older-than=86400", "--apply", "--json",
+        ])
+        assert code == 0
+        # file removed
+        assert not (sp / "old.md").exists()
+
+
+def test_cache_prune_dry_run_v0_7_56() -> None:
+    """cache-prune --dry-run returns 0, doesn't modify cache (v0.7.56+)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        # write a small per-strategy cache (mixed)
+        cache_data = {
+            "https://example.com/a": {
+                "timestamp": 0.0,  # very old
+                "issues": [],
+                "access_count": 0,
+            },
+            "https://example.com/b": {
+                "timestamp": 9999999999.0,  # future
+                "issues": [],
+                "access_count": 100,
+            },
+        }
+        from workflow_kit.url_validity import cache_file_for_strategy
+        cf = cache_file_for_strategy(base, "mixed")
+        cf.write_text(json.dumps(cache_data), encoding="utf-8")
+        # dry-run: report only
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-prune", f"--cache-path={base}", "--json",
+        ])
+        assert code == 0
+        # file still exists with same data
+        assert cf.exists()
+        after = json.loads(cf.read_text(encoding="utf-8"))
+        assert len(after) == 2
+
+
+def test_cache_prune_apply_removes_old_v0_7_56() -> None:
+    """cache-prune --apply actually removes old entries (v0.7.56+)."""
+    import json
+    import tempfile
+    import time
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp) / "cache.json"
+        cache_data = {
+            "https://example.com/old": {
+                "timestamp": time.time() - 86400 * 7,  # 7 days old
+                "issues": [],
+                "access_count": 0,
+            },
+            "https://example.com/fresh": {
+                "timestamp": time.time(),
+                "issues": [],
+                "access_count": 5,
+            },
+        }
+        from workflow_kit.url_validity import cache_file_for_strategy
+        cf = cache_file_for_strategy(base, "mixed")
+        cf.write_text(json.dumps(cache_data), encoding="utf-8")
+        # apply: remove entries older than 1 day with access_count < 5
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-prune", f"--cache-path={base}",
+            "--older-than=86400", "--min-access-count=5", "--apply", "--json",
+        ])
+        assert code == 0
+        after = json.loads(cf.read_text(encoding="utf-8"))
+        # only 'fresh' should remain (it's new AND has access_count >= 5)
+        assert "https://example.com/fresh" in after
+        assert "https://example.com/old" not in after
+
+
+def test_release_bump_dry_run_v0_7_56() -> None:
+    """release-bump (dry-run, --patch) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-bump", "--patch", "--json"])
+    assert code == 0
+
+
+def test_release_create_missing_version_returns_2_v0_7_56() -> None:
+    """release-create without --version returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-create", "--json"])
+    assert code == 2
+
+
+def test_release_rollback_missing_tag_returns_2_v0_7_56() -> None:
+    """release-rollback without --tag returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-rollback", "--json"])
+    assert code == 2
+
+
+def test_release_dist_dry_run_v0_7_56() -> None:
+    """release-dist (dry-run) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-dist", "--json"])
+    assert code == 0
+
+
+def test_release_changelog_dry_run_v0_7_56() -> None:
+    """release-changelog (dry-run) returns 0 with mode=dry-run (v0.7.56+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=release-changelog", "--json"])
+    assert code == 0
+
+
+def test_cache_decay_csv_inplace_v0_7_56() -> None:
+    """cache-decay --inplace on CSV file (v0.7.56+)."""
+    import os
+    import tempfile
+    import time
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "scores.csv"
+        cp.write_text("url,decay_score\nhttps://hot.com/,100.0\nhttps://warm.com/,50.0\n", encoding="utf-8")
+        old = time.time() - 86400 * 7
+        os.utime(cp, (old, old))
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-decay", f"--scores={cp}",
+            "--inplace", "--half-life=86400", "--json",
+        ])
+        assert code == 0
+        # CSV was modified (decayed)
+        content = cp.read_text(encoding="utf-8")
+        # Decayed values are << 100 / 50
+        assert "100.0" not in content, f"CSV should be decayed, got: {content}"
+
+
+def test_cache_decay_inplace_rejects_non_csv_v0_7_56() -> None:
+    """cache-decay --inplace rejects non-CSV file (v0.7.56+)."""
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        jp = Path(tmp) / "scores.json"
+        jp.write_text("{}", encoding="utf-8")
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-decay", f"--scores={jp}",
+            "--inplace", "--json",
+        ])
+        assert code == 2  # usage error
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -218,6 +441,19 @@ def main() -> int:
         test_cache_decay_no_scores_returns_2_v0_7_55,
         test_cache_decay_returns_0_v0_7_55,
         test_score_wiki_trend_show_returns_0_v0_7_55,
+        test_score_wiki_trend_json_in_process_v0_7_56,
+        test_score_wiki_trend_record_current_in_process_v0_7_56,
+        test_okf_cleanup_dry_run_v0_7_56,
+        test_okf_cleanup_apply_removes_v0_7_56,
+        test_cache_prune_dry_run_v0_7_56,
+        test_cache_prune_apply_removes_old_v0_7_56,
+        test_release_bump_dry_run_v0_7_56,
+        test_release_create_missing_version_returns_2_v0_7_56,
+        test_release_rollback_missing_tag_returns_2_v0_7_56,
+        test_release_dist_dry_run_v0_7_56,
+        test_release_changelog_dry_run_v0_7_56,
+        test_cache_decay_csv_inplace_v0_7_56,
+        test_cache_decay_inplace_rejects_non_csv_v0_7_56,
     ]
     failed: list[str] = []
     for fn in test_funcs:

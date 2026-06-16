@@ -16,3 +16,14 @@
 - memory archive freeze: 2회 (v6.3, self-dogfood)
 - self-dogfood concept page: project-architecture.md 작성 (3-Layer + Wiki + Memory 3-State)
 - 모든 lint test PASS
+
+## [2026-06-16] release | v0.7.56 — 6 follow-up 통합
+- score-wiki-trend in-process (memory rule 8 fix — tools/ package 화)
+- dispatcher 14 → 23 (9 subcommand 신규: okf-cleanup / cache-prune / release-{bump,note,changelog,create,verify,rollback,dist})
+- release_pipeline wrapper 1 → 8 (7 wrapper 신규)
+- cache-lfu-decay CSV in-place (decay_csv_inplace + dispatcher --inplace)
+- 5 module audit 3차 (okf strict mode lint 7 신규)
+- GH Pages FEEDBACK.md (외부 consumer feedback loop)
+- 누적: dispatcher 6→23, 5 module test ~147 PASS, GH Pages ✅
+- memory rule 5 (destructive subcommand dry-run default) 정공법 4 subcommand 적용
+- 다음: <in-memory> test artifact cleanup, dispatcher 25+, mkdocs --strict

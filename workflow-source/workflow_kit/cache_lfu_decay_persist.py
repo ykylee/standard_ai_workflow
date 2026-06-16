@@ -198,3 +198,42 @@ def decay_age_scores(
         return dict(scores)
     decay_factor = math.exp(-math.log(2) * age / half_life_seconds)
     return {url: score * decay_factor for url, score in scores.items()}
+
+
+def decay_csv_inplace(
+    path: str,
+    *,
+    saved_at: float,
+    now: float | None = None,
+    half_life_seconds: float = 86400.0,
+) -> dict[str, int | float | str]:
+    """Apply decay to scores in a CSV file in-place (v0.7.56+, ADR-021 follow-up).
+
+    Reads CSV (url, decay_score), applies temporal decay, writes back to same path.
+    Useful for regular cache hygiene: cron job can decay scores on disk without
+    managing separate output files.
+
+    Args:
+        path: path to CSV file (must have header `url,decay_score`)
+        saved_at: timestamp when scores were saved
+        now: optional override for current time
+        half_life_seconds: temporal decay half-life (default 86400 = 1 day)
+
+    Returns:
+        dict with: path, scores_in, scores_out, dry_run
+    """
+    scores = import_from_csv(path)
+    decayed = decay_age_scores(
+        scores,
+        saved_at=saved_at,
+        now=now,
+        half_life_seconds=half_life_seconds,
+    )
+    export_to_csv(decayed, path)
+    return {
+        "path": path,
+        "scores_in": len(scores),
+        "scores_out": len(decayed),
+        "saved_at": saved_at,
+        "half_life_seconds": half_life_seconds,
+    }

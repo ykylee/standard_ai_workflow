@@ -36,6 +36,7 @@ nav:
   - Document Index: DOCUMENT_INDEX.md
   - Installation & Usage: INSTALLATION_AND_USAGE.md
   - Release Notes: RELEASE.md
+  - Feedback & Support (v0.7.56+): FEEDBACK.md
 
 markdown_extensions:
   - admonition

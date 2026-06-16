@@ -90,3 +90,92 @@ def _write_cache_file(
     }
     with open(cache_path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh)
+
+
+def save_cache_lfu_decay_full(
+    cache_file_path: str,
+    entries,  # dict[str, CacheEntry]
+    max_bytes: int,
+    max_entries: int,
+    config,  # LFUConfig
+    *,
+    now: float | None = None,
+    eviction_strategy: str = "mixed",
+    half_life_seconds: float = 86400.0,
+) -> "dict[str, Any]":
+    """Full refactor of _save_cache using LFUConfig.compute_lfu_score_with_decay (v0.7.48+).
+
+    Unlike v0.7.47's save_cache_with_decay (which wraps _save_cache), this is a
+    standalone implementation that:
+    1. Computes decay-weighted LFU scores for each entry
+    2. Evicts entries with the lowest score until size/entry count are under cap
+    3. Optionally applies LRU/LFU/mixed eviction strategy
+    4. Returns the (possibly evcted) entries dict
+
+    Args:
+        cache_file_path: filesystem path to write to
+        entries: dict of url -> CacheEntry
+        max_bytes: max file size in bytes
+        max_entries: max number of entries
+        config: LFUConfig instance
+        now: optional override for current time
+        eviction_strategy: 'lru' / 'lfu' / 'mixed' (default)
+        half_life_seconds: temporal decay half-life (default 86400 = 1 day)
+
+    Returns:
+        The (possibly evicted) entries dict
+    """
+    from workflow_kit.lfu_config import compute_lfu_score_with_decay
+    import json
+    if now is None:
+        now = time.time()
+    # Compute decay scores
+    scores: dict[str, float] = {}
+    for url, entry in entries.items():
+        age = max(0.0, now - entry.timestamp)
+        try:
+            scores[url] = compute_lfu_score_with_decay(
+                access_count=entry.access_count,
+                age_seconds=age,
+                config=config,
+                half_life_seconds=half_life_seconds,
+            )
+        except ValueError:
+            scores[url] = float(entry.access_count)
+    # Evict by score (lowest first)
+    evicted = 0
+    while entries and (len(entries) > max_entries):
+        victim = min(entries.keys(), key=lambda u: scores.get(u, 0.0))
+        del entries[victim]
+        evicted += 1
+    # Serialize + size-based eviction loop
+    raw = {
+        url: {
+            "timestamp": entry.timestamp,
+            "issues": list(entry.issues),
+            "access_count": entry.access_count,
+        }
+        for url, entry in entries.items()
+    }
+    serialized = json.dumps(raw, indent=2, sort_keys=True)
+    size = len(serialized.encode("utf-8"))
+    while (size > max_bytes) and entries:
+        victim = min(entries.keys(), key=lambda u: scores.get(u, 0.0))
+        del entries[victim]
+        evicted += 1
+        raw = {
+            url: {
+                "timestamp": entry.timestamp,
+                "issues": list(entry.issues),
+                "access_count": entry.access_count,
+            }
+            for url, entry in entries.items()
+        }
+        serialized = json.dumps(raw, indent=2, sort_keys=True)
+        size = len(serialized.encode("utf-8"))
+    # Write to disk
+    import os
+    os.makedirs(os.path.dirname(cache_file_path) or ".", exist_ok=True)
+    with open(cache_file_path, "w", encoding="utf-8") as fh:
+        fh.write(serialized)
+    return entries

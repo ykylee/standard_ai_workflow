@@ -1,11 +1,11 @@
 ---
 type: concept
-status: proposed
+status: active
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: N/A (internal rule definition)
+verification_status: verified_via_adr-009 (proposed, v0.7.34+ candidate)
 contradiction_flags: []
-related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, patterns/wiki-stub-emit, patterns/r4-anchor-index, concepts/wiki-source-rule-r9]
+related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, decisions/adr-009-v-t1-formal-adoption, patterns/wiki-stub-emit, patterns/r4-anchor-index, concepts/wiki-source-rule-r9]
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -20,9 +20,9 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-009 채택 시 `active` 전환 |
+| 1 | status | **active** — ADR-009 (proposed, v0.7.34+ candidate) 와 동시 promote. 본 release 의 wiki lint suite 에 정식 등록. |
 | 2 | rule ID | **V-T1** (Title consistency) |
-| 3 | 도입 예정 버전 | v0.7.33 (PATCH, ADR-009 채택 시) |
+| 3 | 도입 버전 | v0.7.34 (PATCH, ADR-009 채택 시) |
 | 4 | 면제 범위 | 없음 (모든 wiki page 강제) |
 | 5 | Lint 심각도 | **mode-conditional** (strict: error / loose: warn) — ADR-007 §3 mode matrix 통합 |
 | 6 | 관련 ADR | ADR-006 (OKF 5-field bridge, follow-up 3) + ADR-007 (mode matrix 통합 의무) |
@@ -208,3 +208,4 @@ WARN: [V-T1] ai-workflow/wiki/concepts/foo.md: title "X" != H1 "Y"
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-006 follow-up 3 + ADR-007 §3 mode matrix 통합 의무 기반. 7 test case 정의. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Promote**: status `proposed` → `active`. ADR-009 (proposed) 와 동시 promote. v0.7.34 release note 등재. `verification_status: N/A` → `verified_via_adr-009`. | Sisyphus (orchestrator) |

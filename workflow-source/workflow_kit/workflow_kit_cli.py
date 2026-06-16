@@ -1029,6 +1029,54 @@ def cmd_cache_export_json(argv: list[str]) -> int:
         return 2
 
 
+# ---------------------------------------------------------------------------
+# consumer feedback metrics (v0.7.58+, dispatcher subcommand 27)
+# ---------------------------------------------------------------------------
+
+
+@register("consumer-metrics")
+def cmd_consumer_metrics(argv: list[str]) -> int:
+    """Consumer feedback metrics snapshot (v0.7.58+, subcommand 27).
+
+    Aggregates consumer signal sources:
+    - GH Pages traffic (views, uniques, clones)
+    - GitHub issues with consumer-feedback label
+    - Recent releases
+
+    Args:
+        --repo=OWNER/REPO     target repo (default: ykylee/standard_ai_workflow)
+        --days=N              lookback window (1-90, default 14)
+        --json                JSON output
+    """
+    repo = _parse_flag(argv, "--repo") or "ykylee/standard_ai_workflow"
+    days_s = _parse_flag(argv, "--days")
+    days = int(days_s) if days_s else 14
+    use_json = _has_flag(argv, "--json")
+    if days < 1 or days > 90:
+        print("ERROR: --days must be 1-90", file=sys.stderr)
+        return 2
+    # Delegate to tools.consumer_metrics via subprocess (gh CLI 의존)
+    try:
+        import subprocess as _sp
+        from pathlib import Path as _P
+        kit_dir = _P(__file__).resolve().parent
+        metrics_path = kit_dir.parent / "tools" / "consumer_metrics.py"
+        if not metrics_path.exists():
+            print(f"ERROR: consumer_metrics.py not found at {metrics_path}", file=sys.stderr)
+            return 2
+        cmd = [sys.executable, str(metrics_path), f"--repo={repo}", f"--days={days}"]
+        if use_json:
+            cmd.append("--json")
+        proc = _sp.run(cmd, capture_output=True, text=True, timeout=60)
+        sys.stdout.write(proc.stdout)
+        if proc.stderr:
+            sys.stderr.write(proc.stderr)
+        return proc.returncode
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

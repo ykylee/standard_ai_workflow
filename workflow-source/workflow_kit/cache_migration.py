@@ -6,6 +6,11 @@ ADR-024 follow-up: per-strategy cache file 의 *full migration* 의 *operational
 - The default strategy is "mixed" (entries are copied as-is to the mixed file).
 - LRU/LFU-specific splitting is a v0.7.45+ follow-up (requires per-entry access_count tracking).
 
+v0.7.57+ follow-up: cache format interop (3 신규 function)
+- merge_per_strategy_to_mixed: reverse of split_to_per_strategy (LRU + LFU → mixed)
+- import_csv_to_cache: import external CSV (url, status, timestamp) → cache entries
+- export_cache_to_json: export cache entries → standalone JSON file (one URL per line)
+
 Backward compat:
 - If single file does not exist, returns immediately (WARN)
 - If per-strategy files already exist, returns immediately (WARN)
@@ -14,12 +19,16 @@ Backward compat:
 
 from __future__ import annotations
 
+import csv
+import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from workflow_kit.url_validity import (
     DEFAULT_CACHE_FILE,
     _load_cache,
+    _save_cache,
     cache_file_for_strategy,
     CacheEntry,
 )
@@ -161,4 +170,183 @@ def split_to_per_strategy(
         "lfu_file": str(lfu_file),
         "lru_entries": len(lru_entries),
         "lfu_entries": len(lfu_entries),
+    }
+
+
+# ---------------------------------------------------------------------------
+# v0.7.57+ cache format interop (3 신규 function)
+# ---------------------------------------------------------------------------
+
+
+def merge_per_strategy_to_mixed(
+    base_path: Path | None = None,
+    *,
+    delete_sources: bool = False,
+) -> dict[str, object]:
+    """Merge per-strategy LRU + LFU files back into mixed file (v0.7.57+).
+
+    Reverse of split_to_per_strategy. Useful for:
+    - Cross-strategy analysis (single file is easier to grep)
+    - Pre-migration to a different tool (e.g. single-file format)
+    - Backup before per-strategy eviction runs
+
+    Args:
+        base_path: base cache file path (default: DEFAULT_CACHE_FILE)
+        delete_sources: if True, delete LRU + LFU files after merge (default False)
+
+    Returns:
+        dict with merge status: merged, lru_entries, lfu_entries, total, mixed_file
+    """
+    base = base_path or DEFAULT_CACHE_FILE
+    lru_file = cache_file_for_strategy(base, "lru")
+    lfu_file = cache_file_for_strategy(base, "lfu")
+    mixed_file = cache_file_for_strategy(base, "mixed")
+    result: dict[str, Any] = {
+        "merged": False,
+        "lru_entries": 0,
+        "lfu_entries": 0,
+        "total": 0,
+        "mixed_file": str(mixed_file),
+        "delete_sources": delete_sources,
+    }
+    lru_entries = _load_cache(lru_file) if lru_file.exists() else {}
+    lfu_entries = _load_cache(lfu_file) if lfu_file.exists() else {}
+    if not lru_entries and not lfu_entries:
+        print(f"WARN: no LRU/LFU files found, nothing to merge", file=sys.stderr)
+        return result
+    # LFU overrides LRU on conflict (LFU is the more recent / more-used strategy)
+    merged: dict[str, CacheEntry] = dict(lru_entries)
+    merged.update(lfu_entries)
+    _save_cache(mixed_file, merged)
+    result["merged"] = True
+    result["lru_entries"] = len(lru_entries)
+    result["lfu_entries"] = len(lfu_entries)
+    result["total"] = len(merged)
+    if delete_sources:
+        if lru_file.exists():
+            lru_file.unlink()
+        if lfu_file.exists():
+            lfu_file.unlink()
+    print(
+        f"INFO: merged {len(merged)} entries ({len(lru_entries)} LRU + {len(lfu_entries)} LFU) -> {mixed_file}",
+        file=sys.stderr,
+    )
+    return result
+
+
+def import_csv_to_cache(
+    csv_path: str,
+    cache_path: str | None = None,
+    *,
+    merge: bool = True,
+) -> dict[str, object]:
+    """Import URLs from CSV file into cache (v0.7.57+).
+
+    CSV format: `url,status,timestamp` (status column optional, timestamp in epoch seconds).
+    Useful for migrating from external URL validity tools.
+
+    Args:
+        csv_path: path to input CSV (must have header)
+        cache_path: target cache file (default: base mixed file)
+        merge: if True, merge with existing cache entries (default). If False, replace.
+
+    Returns:
+        dict with import status: imported, skipped, total_rows, cache_path
+    """
+    base = Path(cache_path) if cache_path else DEFAULT_CACHE_FILE
+    base.parent.mkdir(parents=True, exist_ok=True)
+    imported = 0
+    skipped = 0
+    total_rows = 0
+    entries: dict[str, CacheEntry] = _load_cache(base) if merge and base.exists() else {}
+    try:
+        with open(csv_path, "r", newline="", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                total_rows += 1
+                url = (row.get("url") or "").strip()
+                if not url:
+                    skipped += 1
+                    continue
+                try:
+                    timestamp = float(row.get("timestamp") or 0.0)
+                except ValueError:
+                    timestamp = 0.0
+                try:
+                    access_count = int(row.get("access_count") or 0)
+                except ValueError:
+                    access_count = 0
+                # status field is optional — store as issue[] (empty)
+                entries[url] = CacheEntry(
+                    url=url,
+                    timestamp=timestamp,
+                    issues=(),
+                    access_count=access_count,
+                )
+                imported += 1
+    except (OSError, KeyError, ValueError) as e:
+        print(f"ERROR: import failed: {type(e).__name__}: {e}", file=sys.stderr)
+        return {
+            "imported": imported,
+            "skipped": skipped,
+            "total_rows": total_rows,
+            "cache_path": str(base),
+            "error": str(e),
+        }
+    _save_cache(base, entries)
+    return {
+        "imported": imported,
+        "skipped": skipped,
+        "total_rows": total_rows,
+        "cache_path": str(base),
+        "merge": merge,
+    }
+
+
+def export_cache_to_json(
+    output_path: str,
+    cache_path: str | None = None,
+    *,
+    pretty: bool = True,
+) -> dict[str, object]:
+    """Export cache entries to a standalone JSON file (v0.7.57+).
+
+    Format: flat dict of url -> {timestamp, issues, access_count}.
+    Use case: share cache snapshot with another tool, or archive for inspection.
+
+    Args:
+        output_path: path to write JSON file
+        cache_path: source cache file (default: base mixed file)
+        pretty: if True, indent JSON for human readability (default)
+
+    Returns:
+        dict with export status: entries, output_path, cache_path
+    """
+    base = Path(cache_path) if cache_path else DEFAULT_CACHE_FILE
+    if not base.exists():
+        return {
+            "entries": 0,
+            "output_path": output_path,
+            "cache_path": str(base),
+            "error": "cache file does not exist",
+        }
+    entries = _load_cache(base)
+    out: dict[str, dict[str, Any]] = {}
+    for url, entry in entries.items():
+        out[url] = {
+            "timestamp": entry.timestamp,
+            "issues": list(entry.issues),
+            "access_count": entry.access_count,
+        }
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as fh:
+        if pretty:
+            json.dump(out, fh, indent=2, sort_keys=True, ensure_ascii=False)
+        else:
+            json.dump(out, fh, ensure_ascii=False)
+    return {
+        "entries": len(out),
+        "output_path": output_path,
+        "cache_path": str(base),
+        "pretty": pretty,
     }

@@ -419,6 +419,87 @@ def test_cache_decay_inplace_rejects_non_csv_v0_7_56() -> None:
         assert code == 2  # usage error
 
 
+def test_cache_import_csv_no_arg_returns_2_v0_7_57() -> None:
+    """cache-import-csv without --csv returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-import-csv", "--json"])
+    assert code == 2
+
+
+def test_cache_import_csv_roundtrip_v0_7_57() -> None:
+    """cache-import-csv imports CSV into cache file (v0.7.57+)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "cache.json"
+        csv_p = Path(tmp) / "urls.csv"
+        csv_p.write_text(
+            "url,status,timestamp,access_count\n"
+            "https://a.com/,ok,1000.0,5\n"
+            "https://b.com/,ok,2000.0,10\n",
+            encoding="utf-8",
+        )
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-import-csv", f"--csv={csv_p}",
+            f"--cache-path={cp}", "--json",
+        ])
+        assert code == 0
+        # Verify entries exist in cache file
+        assert cp.exists()
+        data = json.loads(cp.read_text(encoding="utf-8"))
+        assert "https://a.com/" in data
+        assert "https://b.com/" in data
+
+
+def test_cache_export_json_no_output_returns_2_v0_7_57() -> None:
+    """cache-export-json without --output returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-export-json", "--json"])
+    assert code == 2
+
+
+def test_cache_export_json_roundtrip_v0_7_57() -> None:
+    """cache-export-json exports cache entries to JSON file (v0.7.57+)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "cache.json"
+        op = Path(tmp) / "export.json"
+        # Seed cache
+        cp.write_text(json.dumps({
+            "https://a.com/": {"timestamp": 1000.0, "issues": [], "access_count": 5},
+        }), encoding="utf-8")
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-export-json", f"--output={op}",
+            f"--cache-path={cp}", "--json",
+        ])
+        assert code == 0
+        # Verify exported file
+        assert op.exists()
+        data = json.loads(op.read_text(encoding="utf-8"))
+        assert "https://a.com/" in data
+        assert data["https://a.com/"]["access_count"] == 5
+
+
+def test_cache_merge_multi_no_op_v0_7_57() -> None:
+    """cache-merge-multi with no LRU/LFU files returns 0 with merged=False (v0.7.57+)."""
+    import json
+    import tempfile
+    from pathlib import Path
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        cp = Path(tmp) / "cache.json"
+        # No LRU/LFU files exist
+        code = mod.run_workflow_kit_cli([
+            "--command=cache-merge-multi", f"--cache-path={cp}", "--json",
+        ])
+        assert code == 0
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -454,6 +535,11 @@ def main() -> int:
         test_release_changelog_dry_run_v0_7_56,
         test_cache_decay_csv_inplace_v0_7_56,
         test_cache_decay_inplace_rejects_non_csv_v0_7_56,
+        test_cache_import_csv_no_arg_returns_2_v0_7_57,
+        test_cache_import_csv_roundtrip_v0_7_57,
+        test_cache_export_json_no_output_returns_2_v0_7_57,
+        test_cache_export_json_roundtrip_v0_7_57,
+        test_cache_merge_multi_no_op_v0_7_57,
     ]
     failed: list[str] = []
     for fn in test_funcs:

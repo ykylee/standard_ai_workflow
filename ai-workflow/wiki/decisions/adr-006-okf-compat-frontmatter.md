@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-006
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.33+ candidate)
+accepted_in: v0.7.33 (release note: workflow-source/releases/Beta-v0.7.33.md)
 alternatives_considered: [strict-wiki-native-only, full-okf-rewrite, sidecar-bridge-file, no-formal-decision]
-related_pages: [concepts/okf-open-knowledge-format, concepts/wiki-source-rule-r9, decisions/adr-004-wiki-layer, patterns/wiki-stub-emit, patterns/r4-anchor-index]
+related_pages: [concepts/okf-open-knowledge-format, concepts/wiki-source-rule-r9, decisions/adr-004-wiki-layer, patterns/wiki-stub-emit, patterns/r4-anchor-index, decisions/adr-007-okf-consumer-mode, decisions/adr-008-in-repo-path-to-url, concepts/v-t1-title-consistency-lint, releases/Beta-v0.7.33]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 `concepts/okf-open-knowledge-format.md` (c-OKF-1 RESOLVED, 2026-06-16) 의 §12 gap 분석 + §13 bridge frontmatter sketch + `workflow_kit/okf_export.py` (PoC) 의 구현 evidence 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.33 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.33). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.33 release note (`workflow-source/releases/Beta-v0.7.33.md`) 와 동시 accepted 전환. 본 ADR 의 1차 evidence: `concepts/okf-open-knowledge-format.md` (c-OKF-1 RESOLVED) 의 §12 gap 분석 + §13 bridge frontmatter sketch + `workflow_kit/okf_export.py` (PoC, 21.7 KB, 7/7 unit test PASS) + `tests/check_okf_export.py` (7/7 PASS) + `docs/samples/okf-bundle-2026-06-16/` (5 page PoC sample). ADR-007 (loose consumer mode) + ADR-008 (in-repo path resolve) + V-T1 (title consistency lint) 는 별도 proposed ADR, v0.7.34+ follow-up.
 
 ## Context
 
@@ -150,3 +150,4 @@ r9_skip: true
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. `concepts/okf-open-knowledge-format.md` + `workflow_kit/okf_export.py` + 5 page PoC + 7/7 unit test PASS 기반 | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. `workflow-source/releases/Beta-v0.7.33.md` 동시 release. `related_pages` 에 ADR-007/008, V-T1, Beta-v0.7.33 release note 추가. `accepted_in: v0.7.33` 명시. | Sisyphus (orchestrator) |

@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-008
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.33+ candidate)
+accepted_in: v0.7.34 (release note: workflow-source/releases/Beta-v0.7.34.md)
 alternatives_considered: [no-resolve, ci-time-resolve, opaque-resource-key, full-vcs-integration, runtime-web-fetch]
-related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, concepts/wiki-source-rule-r9, patterns/wiki-stub-emit]
+related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, concepts/wiki-source-rule-r9, patterns/wiki-stub-emit, releases/Beta-v0.7.34]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 `concepts/okf-open-knowledge-format.md` §12.1 follow-up 2 + ADR-006 §5 (Negative 3) 의 "Resource URL 좁음" 문제 해결. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.33 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.34). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.34 release note (`workflow-source/releases/Beta-v0.7.34.md`) 와 동시 accepted 전환. 본 ADR 의 1차 evidence: `workflow_kit/path_resolver.py` (v0.7.34 PoC, ~5 KB / ~80 lines) + `tests/check_path_resolver.py` (5+ test PASS) + `okf_export.py` enhancement (resolve 통합 + `--no-resolve` flag). ADR-006 의 `resource` field coverage 80% → ~100% 격상.
 
 ## Context
 

@@ -244,15 +244,32 @@ def _date_to_iso8601(date_str: str | None) -> str | None:
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _derive_resource(last_ingested_from: str | None) -> str | None:
+def _derive_resource(
+    last_ingested_from: str | None,
+    *,
+    repo_root: Path | None = None,
+    resolve: bool = True,
+) -> str | None:
     """OKF `resource`: canonical URI for the underlying asset.
-    우리 `last_ingested_from` 가 URL 일 때만 그대로 매핑. in-repo path 면 None.
+
+    Resolution order:
+    1. URL form (`http://` / `https://`) → 그대로 사용
+    2. in-repo path + `resolve=True` + `repo_root` → `path_resolver.resolve_in_repo_path_to_url`
+    3. in-repo path + `resolve=False` → None (ADR-006 status quo)
+    4. None / empty → None
     """
     if not last_ingested_from:
         return None
     if last_ingested_from.startswith(("http://", "https://")):
         return last_ingested_from
-    return None
+    if not resolve or repo_root is None:
+        return None
+    # Lazy import to avoid hard dependency if not used
+    try:
+        from workflow_kit.path_resolver import resolve_in_repo_path_to_url
+    except ImportError:
+        return None
+    return resolve_in_repo_path_to_url(last_ingested_from, repo_root)
 def _extract_title_and_description(body: str, fallback_title: str) -> tuple[str, str | None]:
     """Derive `title` (first H1) and `description` (first prose paragraph) from body.
 
@@ -316,7 +333,13 @@ def _derive_tags(frontmatter: Frontmatter) -> tuple[str, ...]:
     return tuple(deduped)
 
 
-def map_frontmatter_to_okf(frontmatter: Frontmatter, body: str = "") -> OkfMapping:
+def map_frontmatter_to_okf(
+    frontmatter: Frontmatter,
+    body: str = "",
+    *,
+    repo_root: Path | None = None,
+    resolve: bool = True,
+) -> OkfMapping:
     """wiki Frontmatter → OKF frontmatter (SPEC.md §4.1) + body suffix (Citations §8).
 
     Field ordering follows SPEC.md §4.1 권장 priority:
@@ -345,7 +368,7 @@ def map_frontmatter_to_okf(frontmatter: Frontmatter, body: str = "") -> OkfMappi
     elif body_description:
         okf["description"] = body_description
     # 3. resource — URL last_ingested_from 만 매핑
-    resource = _derive_resource(frontmatter.last_ingested_from)
+    resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve)
     if resource:
         okf["resource"] = resource
 
@@ -488,7 +511,13 @@ def _out_path_for_wiki_page(wiki_page: Path, wiki_root: Path, out_bundle: Path) 
     return out_bundle / rel
 
 
-def export_wiki_page(wiki_page: Path, out_path: Path) -> tuple[int, int]:
+def export_wiki_page(
+    wiki_page: Path,
+    out_path: Path,
+    *,
+    repo_root: Path | None = None,
+    resolve: bool = True,
+) -> tuple[int, int]:
     """Export a single wiki page. Returns (exported_count, skipped_count)."""
     text = wiki_page.read_text(encoding="utf-8")
 
@@ -498,7 +527,7 @@ def export_wiki_page(wiki_page: Path, out_path: Path) -> tuple[int, int]:
         raise InvalidFrontmatterError(f"{wiki_page}: no frontmatter block")
     body_text = m.group(2).rstrip("\n")
     fm = Frontmatter.parse(text)
-    mapping = map_frontmatter_to_okf(fm, body=body_text)
+    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve)
     body_rewritten = rewrite_wiki_links_to_okf(body_text)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -513,6 +542,9 @@ def export_wiki_to_okf(
     wiki_root: Path,
     out_bundle: Path,
     page_filter: Callable[[Path], bool] | None = None,
+    *,
+    repo_root: Path | None = None,
+    resolve: bool = True,
 ) -> ExportReport:
     """Export a wiki directory tree to an OKF bundle directory.
 
@@ -520,6 +552,9 @@ def export_wiki_to_okf(
         wiki_root: path to ai-workflow/wiki/ (or subdir thereof)
         out_bundle: target bundle directory (created if missing)
         page_filter: optional predicate(wiki_page) → bool. True = include.
+        repo_root: path to git repository root (for `path_resolver` integration)
+        resolve: if True (default), in-repo `last_ingested_from` path → GitHub URL
+            via `workflow_kit.path_resolver`. Set False to skip resolve (ADR-006 status quo).
 
     Returns:
         ExportReport with counts and any per-file errors.
@@ -540,7 +575,7 @@ def export_wiki_to_okf(
             continue
         try:
             out_path = _out_path_for_wiki_page(path, wiki_root, out_bundle)
-            ex, sk = export_wiki_page(path, out_path)
+            ex, sk = export_wiki_page(path, out_path, repo_root=repo_root, resolve=resolve)
             exported += ex
             skipped += sk
         except WikiToOkfError as e:
@@ -549,6 +584,7 @@ def export_wiki_to_okf(
 
     return ExportReport(
         pages_exported=exported,
+
         pages_skipped=skipped,
         out_bundle=out_bundle,
         errors=tuple(errors),
@@ -592,6 +628,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="JSON output (ExportReport as JSON)",
     )
+    p.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        help="path to git repo root (for path_resolver integration, ADR-008)",
+    )
+    p.add_argument(
+        "--no-resolve",
+        action="store_true",
+        help="skip in-repo path → URL resolve (ADR-006 status quo; default: resolve ON)",
+    )
     return p
 
 
@@ -628,7 +675,20 @@ def main(argv: list[str] | None = None) -> int:
                 return False
             return True
 
-        report = export_wiki_to_okf(wiki, args.out, page_filter=_filter)
+        repo_root = (args.repo_root or wiki).parent.parent.parent.parent  # heuristic: walk up from wiki/ to repo root
+        # better: if --repo-root explicit, use it; else try to find git root
+        if args.repo_root is None:
+            from workflow_kit.path_resolver import _detect_origin_url
+            # try each parent until origin found
+            for candidate in [wiki, *wiki.parents]:
+                if _detect_origin_url(candidate) is not None:
+                    repo_root = candidate
+                    break
+            else:
+                repo_root = wiki  # fallback
+        report = export_wiki_to_okf(
+            wiki, args.out, page_filter=_filter, repo_root=repo_root, resolve=not args.no_resolve,
+        )
 
     if args.json:
         import json as _json

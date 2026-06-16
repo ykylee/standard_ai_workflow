@@ -40,6 +40,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Restore URL validity cache (cross-PR via GHA cache, ADR-016)
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/url_validity_cache
+          key: v-r10-url-cache-${{ github.repository }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            v-r10-url-cache-${{ github.repository }}-${{ github.ref_name }}-
+            v-r10-url-cache-${{ github.repository }}-
+
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip

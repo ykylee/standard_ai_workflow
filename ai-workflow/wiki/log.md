@@ -989,3 +989,49 @@ updated: 2026-06-12
   1. ~~ADR-007~~ **CLOSED** + ~~ADR-008~~ **CLOSED** (2026-06-16, 본 entry)
   2. ADR-009 (V-T1 title consistency lint) — ADR-006 follow-up 3 + ADR-007 §3 mode matrix 통합 의무
   3. R-2 정합: 다음 ingest 시 ADR-008 + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: ADR-009, ADR-010, ADR-011, sample bundle commit, `okf_export.py` enhancement, `path_resolver.py` 신규, `check_path_resolver.py` 신규, `check_okf_export.py` 확장
+
+## [2026-06-16] ingest | v0.7.35 follow-up bundle (5 ADR + 1 concept + 1 CI workflow)
+
+- **Trigger**: 직전 entry follow-up chain. v0.7.35 ADR-009/010/011 formal acceptance + ADR-012 (online) + ADR-013 (cache) + V-R10 online concept + GitHub Actions CI workflow + v0.7.36 version bump.
+- **신규/수정 wiki page (5)**:
+  - `decisions/adr-009-v-t1-formal-adoption.md` — status: proposed → **accepted** + revision log v0.2.0
+  - `decisions/adr-010-v-r10-url-validity-lint.md` — status: proposed → **accepted** + revision log v0.2.0
+  - `decisions/adr-011-okf-version-auto-detect.md` — status: proposed → **accepted** + revision log v0.2.0
+  - `decisions/adr-012-v-r10-online-layer.md` (9.6 KB) — **proposed** draft, 8 online case (200/3xx/404/410/5xx/429/timeout/TLS/DNS)
+  - `decisions/adr-013-v-r10-v2-cache.md` (11.4 KB) — **proposed** draft, 24h disk cache + exponential backoff (1s/2s/4s) + max 3 retries
+  - `concepts/v-r10-online-layer.md` (8.9 KB) — **active**, V-R10 online layer concept page (companion to v-r10-url-validity-lint)
+  - `workflow-source/releases/Beta-v0.7.35.md` (10 KB) — release note (3 ADR acceptance + 2 ADR draft)
+- **신규/enhance code (1 + 2 enhancement)**:
+  - `workflow_kit/url_validity.py` — added `check_url_online()` (8 case) + `check_url_with_cache()` (24h disk cache + smart retry) + `cache_clear()` + `cache_stats()` + CLI flags (`--online --cache --ttl --max-retries --cache-stats --cache-clear`)
+  - `tests/check_wiki_url_validity.py` — 6 → 16 tests (6 offline + 6 online + 4 cache)
+  - `.github/workflows/okf-validate.yml` (6 KB) — V-R10 online + cache + weekly cron + on-PR trigger
+- **index.md**: 53 → 55 entries (V-4) — 2 신규 anchor (adr-013, v-r10-online-layer)
+- **R-9 면제**: 5 ADR 모두 `r9_skip: true`
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`, `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (55 entries, up from 53)
+  - V-R9 PASS (`r9_skip: true` frontmatter marker on all 5 ADR)
+  - V-2 partial: 5 page 신규 (ADR + concept) + 1 sample/CLI (R2 batch 5-15 권장 외) — **R2 위반 경고 유지** (cumulative)
+  - **V-T1 (run_all_checks auto-discovered)**: 7/7 PASS
+  - **V-R10 offline**: 6/6 PASS
+  - **V-R10 online**: 6/6 PASS
+  - **V-R10 cache**: 4/4 PASS
+  - **Total**: 51/51 tests PASS (10/10 + 12/12 + 6/6 + 7/7 + 16/16)
+- **Cumulative test**: 298+ → **349+** (v0.7.34 의 298+ + 12 ADR/online + 4 cache = 51 new test)
+- **CI integration**: `.github/workflows/okf-validate.yml` — 2 jobs (`okf-online-validation`, `okf-export-smoke`). weekly cron (Sunday 03:00 UTC) + on-PR trigger + on-push paths. GITHUB_TOKEN auto-inject (5000 req/h rate limit)
+- **Version bump**: v0.7.34-beta → v0.7.35-beta (formal acceptance) → v0.7.36-beta (cache layer)
+- **Commit chain** (origin/main):
+  1. `2efcb0b` wiki-ingest: v0.7.35 ADR-009/010/011 formal acceptance + release note
+  2. `515a352` feat(v0.7.35): V-R10 online HEAD layer (ADR-012 + 6 new tests, 12/12 PASS)
+  3. `5fec664` feat(v0.7.36): V-R10 v2 cache (ADR-013 + 4 new tests, 16/16 PASS)
+  4. `c26349f` ci(v0.7.36): .github/workflows/okf-validate.yml
+  5. `5652e1a` wiki-ingest: ADR-013 V-R10 v2 cache + v-r10-online concept page
+- **Follow-up 후보** (별도 turn, v0.7.37+):
+  1. V-R10 v3 — cache size cap + LRU eviction
+  2. V-R10 v3 — file lock (`fcntl.flock`) for concurrent access
+  3. GHA `actions/cache` for cross-PR cache
+  4. V-R11 — body content audit (URL 의 *body* 가 valid HTML, no phishing)
+  5. V-R12 — GitHub commit-pinned URL (ADR-008 follow-up)
+  6. V-R13 — semantic URL verification
+  7. ADR-012 + ADR-013 formal acceptance (proposed → accepted) — 별도 turn
+  8. R-2 정합: 다음 ingest 시 본 entry + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장)

@@ -560,6 +560,49 @@ def test_file_lock_stale_cleanup() -> None:
         assert _time.time() - mtime_after < 60, f"lock file mtime not refreshed: {mtime_after}"
 
 
+def test_cache_lfu_eviction_strategy() -> None:
+    """_save_cache with eviction_strategy='lfu' evicts lowest access_count first."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        # 5 entries with varying access_count
+        now = time.time()
+        entries = {
+            "https://a.com/1": mod.CacheEntry(url="https://a.com/1", timestamp=now, issues=("ok",), access_count=10),  # high freq
+            "https://a.com/2": mod.CacheEntry(url="https://a.com/2", timestamp=now, issues=("ok",), access_count=10),  # high freq
+            "https://a.com/3": mod.CacheEntry(url="https://a.com/3", timestamp=now, issues=("ok",), access_count=1),   # low freq → evict first
+            "https://a.com/4": mod.CacheEntry(url="https://a.com/4", timestamp=now, issues=("ok",), access_count=10),  # high freq
+            "https://a.com/5": mod.CacheEntry(url="https://a.com/5", timestamp=now, issues=("ok",), access_count=0),   # lowest → evict first
+        }
+        # force eviction by setting max_entries=3
+        mod._save_cache(cache_file, entries, max_entries=3, max_bytes=10*1024*1024, eviction_strategy="lfu")
+        loaded = mod._load_cache(cache_file)
+        # The 2 evicted should be the ones with lowest access_count (5, 3)
+        assert "https://a.com/3" not in loaded, f"a.com/3 (access_count=1) should be evicted, got: {list(loaded.keys())}"
+        assert "https://a.com/5" not in loaded, f"a.com/5 (access_count=0) should be evicted, got: {list(loaded.keys())}"
+        # The 3 kept should all have access_count=10
+        assert len(loaded) == 3, f"expected 3 entries, got {len(loaded)}"
+        for kept_url, kept_entry in loaded.items():
+            assert kept_entry.access_count == 10, f"{kept_url} access_count={kept_entry.access_count}, expected 10"
+
+
+def test_cache_lru_still_works_with_strategy_param() -> None:
+    """Backward compat: eviction_strategy='lru' uses oldest-timestamp eviction (v0.7.38 behavior)."""
+    mod = _import_url_validity()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cache_file = Path(tmpdir) / "cache.json"
+        now = time.time()
+        entries = {
+            "https://old.com/": mod.CacheEntry(url="https://old.com/", timestamp=now - 1000, issues=("ok",), access_count=100),  # oldest
+            "https://new.com/": mod.CacheEntry(url="https://new.com/", timestamp=now, issues=("ok",), access_count=0),           # newest
+        }
+        mod._save_cache(cache_file, entries, max_entries=1, max_bytes=10*1024*1024, eviction_strategy="lru")
+        loaded = mod._load_cache(cache_file)
+        assert len(loaded) == 1, f"expected 1 entry, got {len(loaded)}"
+        assert "https://old.com/" not in loaded, f"oldest should be evicted, got: {list(loaded.keys())}"
+        assert "https://new.com/" in loaded, f"newest should be kept, got: {list(loaded.keys())}"
+
+
 def test_cache_gzip_compression_roundtrip() -> None:
     """_save_cache gzips when size > 4KB; _load_cache auto-detects gzip magic bytes."""
     import gzip as _gzip
@@ -770,6 +813,8 @@ def main() -> int:
         test_file_lock_timeout,
         test_cache_gzip_compression_roundtrip,
         test_file_lock_stale_cleanup,
+        test_cache_lfu_eviction_strategy,
+        test_cache_lru_still_works_with_strategy_param,
     ]
     failed: list[str] = []
     for fn in test_funcs:

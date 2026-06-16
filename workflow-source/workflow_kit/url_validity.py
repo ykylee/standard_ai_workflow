@@ -460,7 +460,7 @@ class CacheEntry:
     url: str
     timestamp: float
     issues: tuple[dict, ...]
-
+    access_count: int = 0  # v0.7.39+ LFU tracking (ADR-021 PoC)
 
 def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
     if not cache_file.exists():
@@ -473,7 +473,12 @@ def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
             raw_bytes = gzip.decompress(raw_bytes)
         raw = json.loads(raw_bytes.decode("utf-8"))
         return {
-            url: CacheEntry(url=url, timestamp=float(data["timestamp"]), issues=tuple(data["issues"]))
+            url: CacheEntry(
+                url=url,
+                timestamp=float(data["timestamp"]),
+                issues=tuple(data["issues"]),
+                access_count=int(data.get("access_count", 0)),
+            )
             for url, data in raw.items()
         }
     except (json.JSONDecodeError, KeyError, ValueError, OSError, EOFError):
@@ -579,33 +584,56 @@ class _CacheLock:
         except OSError as e:
             print(f"WARN: stale lock check failed for {self._lock_path}: {e}", file=sys.stderr)
 
-
 def _save_cache(
     cache_file: Path,
     entries: dict[str, CacheEntry],
     max_bytes: int = DEFAULT_CACHE_MAX_BYTES,
     max_entries: int = DEFAULT_CACHE_MAX_ENTRIES,
+    eviction_strategy: EvictionStrategy = "mixed",
 ) -> None:
-    """Save cache to disk JSON. Enforce size cap + LRU eviction (ADR-014).
+    """Save cache to disk JSON. Enforce size cap + eviction strategy (ADR-021 PoC).
 
-    Strategy:
-    1. Serialize → check size + entry count
-    2. If over either cap: evict oldest (LRU by timestamp) until under both caps
-    3. Write. Warn if single entry exceeds cap (best-effort).
+    Strategy (v0.7.39+, v0.7.38 was LRU-only):
+    - lru: oldest by timestamp
+    - lfu: lowest access_count (tie: oldest timestamp)
+    - mixed: lowest (access_count, timestamp) tuple (composite, default)
     """
     global _evictions_total, _evictions_session, _last_eviction_timestamp
     cache_file.parent.mkdir(parents=True, exist_ok=True)
-    raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
+    raw = {
+        url: {
+            "timestamp": entry.timestamp,
+            "issues": list(entry.issues),
+            "access_count": entry.access_count,
+        }
+        for url, entry in entries.items()
+    }
     serialized = json.dumps(raw, indent=2, sort_keys=True)
     size = len(serialized.encode("utf-8"))
 
+    def _evict_key(u: str) -> tuple:
+        e = entries[u]
+        if eviction_strategy == "lru":
+            return (0, e.timestamp)  # sort by timestamp only
+        elif eviction_strategy == "lfu":
+            return (e.access_count, e.timestamp)  # LFU primary, LRU tie
+        else:  # mixed
+            return (e.access_count, e.timestamp)  # alias for lfu for now
+
     while (size > max_bytes or len(entries) > max_entries) and entries:
-        oldest_url = min(entries.keys(), key=lambda u: entries[u].timestamp)
-        del entries[oldest_url]
+        victim_url = min(entries.keys(), key=_evict_key)
+        del entries[victim_url]
         _evictions_total += 1
         _evictions_session += 1
         _last_eviction_timestamp = time.time()
-        raw = {url: {"timestamp": entry.timestamp, "issues": list(entry.issues)} for url, entry in entries.items()}
+        raw = {
+            url: {
+                "timestamp": entry.timestamp,
+                "issues": list(entry.issues),
+                "access_count": entry.access_count,
+            }
+            for url, entry in entries.items()
+        }
         serialized = json.dumps(raw, indent=2, sort_keys=True)
         size = len(serialized.encode("utf-8"))
     # v0.7.38+ gzip emit when uncompressed > 4KB (ADR-014 v3 follow-up, ~3-5x size reduction)
@@ -633,6 +661,7 @@ def check_url_with_cache(
     max_retries: int = 3,
     max_bytes: int = DEFAULT_CACHE_MAX_BYTES,
     max_entries: int = DEFAULT_CACHE_MAX_ENTRIES,
+    eviction_strategy: EvictionStrategy = "mixed",
 ) -> list[UrlIssue]:
     """V-R10 online HEAD with disk cache (ADR-013) + size cap + LRU (ADR-014) + file lock (ADR-015)."""
     cache_file = cache_file or DEFAULT_CACHE_FILE
@@ -640,14 +669,24 @@ def check_url_with_cache(
         cache = _load_cache(cache_file)
         cached = _cache_lookup(cache, url, ttl_seconds)
         if cached is not None:
+            # v0.7.39+ LFU tracking: increment access_count on hit (frozen dataclass → replace)
+            entry = cache[url]
+            cache[url] = CacheEntry(
+                url=entry.url,
+                timestamp=entry.timestamp,
+                issues=entry.issues,
+                access_count=entry.access_count + 1,
+            )
+            _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries, eviction_strategy=eviction_strategy)
             return cached
         issues = check_url_online(url, timeout=timeout, user_agent=user_agent, max_retries=max_retries)
         cache[url] = CacheEntry(
             url=url,
             timestamp=time.time(),
             issues=tuple({"rule": i.rule, "severity": i.severity, "message": i.message} for i in issues),
+            access_count=0,
         )
-        _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries)
+        _save_cache(cache_file, cache, max_bytes=max_bytes, max_entries=max_entries, eviction_strategy=eviction_strategy)
     return issues
 
 

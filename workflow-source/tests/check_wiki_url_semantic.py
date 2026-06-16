@@ -293,6 +293,56 @@ def test_cli_perform_head_and_github_flags() -> None:
         _sys.argv = saved_argv
         _sys.stderr = saved_stderr
 
+
+def test_check_url_semantic_range_diff_v0_7_41() -> None:
+    """check_url_semantic_range_diff with mocked subprocess returns diff stats."""
+    mod = _import_url_validity()
+    import types
+    # Mock subprocess.run that returns a fake numstat result
+    fake_result = types.SimpleNamespace(
+        returncode=0,
+        stdout="42\t17\tdocs/spec.md\n",
+        stderr="",
+    )
+    def fake_subprocess_run(cmd, **kwargs):
+        return fake_result
+    url = "https://github.com/foo/bar/blob/abc1234/docs/spec.md?range=aaa1111..fffeeee"
+    issues = mod.check_url_semantic_range_diff(
+        url,
+        repo_root=__import__("pathlib").Path("/fake"),
+        subprocess_run=fake_subprocess_run,
+    )
+    assert "+42/-17" in issues[0].message
+    assert "aaa1111" in issues[0].message
+    assert "fffeeee" in issues[0].message
+
+
+def test_check_url_semantic_range_diff_no_changes_v0_7_41() -> None:
+    """check_url_semantic_range_diff with empty diff returns 'no changes' info."""
+    mod = _import_url_validity()
+    import types
+    fake_result = types.SimpleNamespace(returncode=0, stdout="", stderr="")
+    def fake_subprocess_run(cmd, **kwargs):
+        return fake_result
+    url = "https://github.com/foo/bar/blob/abc1234/docs/spec.md?range=aaa1111..fffeeee"
+    issues = mod.check_url_semantic_range_diff(
+        url,
+        repo_root=__import__("pathlib").Path("/fake"),
+        subprocess_run=fake_subprocess_run,
+    )
+    assert len(issues) == 1
+    assert issues[0].rule == "V-R13-range-no-changes"
+    assert issues[0].severity == "info"
+
+
+def test_check_url_semantic_range_diff_missing_range_v0_7_41() -> None:
+    """check_url_semantic_range_diff without ?range= returns 'range missing' info."""
+    mod = _import_url_validity()
+    url = "https://github.com/foo/bar/blob/abc1234/docs/spec.md"  # no ?range=
+    issues = mod.check_url_semantic_range_diff(url)
+    assert len(issues) == 1
+    assert issues[0].rule == "V-R13-range-missing"
+
 def main() -> int:
     test_funcs = [
         test_parse_semantic_url_full,
@@ -313,6 +363,9 @@ def main() -> int:
         test_check_url_semantic_with_perform_head_flag,
         test_cli_semantic_flag_v0_7_40,
         test_cli_perform_head_and_github_flags,
+        test_check_url_semantic_range_diff_v0_7_41,
+        test_check_url_semantic_range_diff_no_changes_v0_7_41,
+        test_check_url_semantic_range_diff_missing_range_v0_7_41,
     ]
     failed: list[str] = []
     for fn in test_funcs:

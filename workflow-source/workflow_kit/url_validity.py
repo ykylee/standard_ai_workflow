@@ -540,6 +540,98 @@ def check_url_semantic(
         issues.extend(check_url_semantic_github(url))
     return issues
 
+
+def check_url_semantic_range_diff(
+    url: str,
+    *,
+    repo_root: Path | None = None,
+    max_diff_lines: int = 1000,
+    subprocess_run=None,
+) -> list[UrlIssue]:
+    """V-R13 check 8 (range commit-level diff) — v0.7.41 full implementation.
+
+    For URLs with `?range=<sha1>..<sha2>`, runs `git diff <sha1>..<sha2> -- <path>`
+    via subprocess to count changed lines. Returns UrlIssue summarizing diff size.
+
+    Args:
+        url: V-R13 URL with `?range=<sha1>..<sha2>`
+        repo_root: git repo root (default: cwd)
+        max_diff_lines: warn if diff exceeds this (default 1000)
+        subprocess_run: optional injected subprocess.run for testing (mocking)
+    """
+    parts = parse_semantic_url(url)
+    if parts.range_start is None or parts.range_end is None:
+        return [UrlIssue(
+            rule="V-R13-range-missing", severity="info",
+            message="no ?range= layer; range diff N/A",
+        )]
+    if not parts.commit_sha:
+        return [UrlIssue(
+            rule="V-R13-range-no-path", severity="warn",
+            message="?range= layer present but no /blob/<sha>/<path> in URL",
+        )]
+    # Extract path from URL (strip /blob/<sha>/ prefix)
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    m = re.match(r"^/([^/]+)/([^/]+)/blob/[^/]+(/.*)$", parsed.path)
+    if not m:
+        return [UrlIssue(
+            rule="V-R13-range-path-parse-fail", severity="warn",
+            message="could not extract file path from URL",
+        )]
+    file_path = m.group(3).lstrip("/")
+    # Run git diff
+    if subprocess_run is None:
+        import subprocess as _sp
+        subprocess_run = _sp.run
+    cmd = ["git", "diff", "--numstat", f"{parts.range_start}..{parts.range_end}", "--", file_path]
+    try:
+        result = subprocess_run(
+            cmd,
+            cwd=str(repo_root) if repo_root else None,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (FileNotFoundError, OSError, TimeoutError) as e:
+        return [UrlIssue(
+            rule="V-R13-range-subprocess-error", severity="warn",
+            message=f"git diff failed: {type(e).__name__}: {e}",
+        )]
+    if result.returncode != 0:
+        return [UrlIssue(
+            rule="V-R13-range-git-error", severity="warn",
+            message=f"git diff returned {result.returncode}: {result.stderr.strip()[:200]}",
+        )]
+    # Parse numstat: "<add>\t<del>\t<file>"
+    out = result.stdout.strip()
+    if not out:
+        return [UrlIssue(
+            rule="V-R13-range-no-changes", severity="info",
+            message=f"no changes between {parts.range_start[:7]} and {parts.range_end[:7]} in {file_path}",
+        )]
+    parts_line = out.split("\n", 1)[0].split("\t")
+    if len(parts_line) < 2:
+        return [UrlIssue(
+            rule="V-R13-range-parse-error", severity="warn",
+            message=f"unexpected git diff output: {out[:200]}",
+        )]
+    try:
+        add = int(parts_line[0])
+        delete = int(parts_line[1])
+    except ValueError:
+        return [UrlIssue(
+            rule="V-R13-range-parse-error", severity="warn",
+            message=f"non-numeric numstat: {parts_line}",
+        )]
+    total = add + delete
+    severity = "warn" if total > max_diff_lines else "info"
+    return [UrlIssue(
+        rule="V-R13-range-diff-ok", severity=severity,
+        message=f"diff {parts.range_start[:7]}..{parts.range_end[:7]} in {file_path}: +{add}/-{delete} (total {total} lines)",
+    )]
+
+
 # Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400

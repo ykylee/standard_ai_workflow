@@ -24,6 +24,7 @@
 ### [[INGEST_GUIDE]] {#ingest-guide}
 ### [[concepts/v-r11-body-audit]] {#v-r11-body-audit}
 
+### [[concepts/v-r13-semantic-url-verification]] {#v-r13-semantic-url-verification}
 ## Decisions
 
 ### [[decisions/adr-004-wiki-layer]] {#adr-004-wiki-layer}
@@ -43,7 +44,7 @@
 ### [[decisions/adr-016-gha-actions-cache]] {#adr-016-gha-actions-cache}
 ### [[decisions/adr-017-v-r11-body-audit]] {#adr-017-v-r11-body-audit}
 ### [[decisions/adr-018-v-r12-commit-pinned-url]] {#adr-018-v-r12-commit-pinned-url}
-## Patterns
+### [[decisions/adr-019-v-r13-semantic-url-verification]] {#adr-019-v-r13-semantic-url-verification}
 
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}

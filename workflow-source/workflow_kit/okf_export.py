@@ -743,6 +743,14 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="skip in-repo path → URL resolve (ADR-006 status quo; default: resolve ON)",
     )
+    p.add_argument(
+        "--vcs-commit",
+        help="commit SHA for commit-pinned URL emit (ADR-018). Format: 7-40 hex chars.",
+    )
+    p.add_argument(
+        "--vcs-ref",
+        help="ref (branch/tag) for ref-pinned URL emit (ADR-018).",
+    )
     return p
 
 

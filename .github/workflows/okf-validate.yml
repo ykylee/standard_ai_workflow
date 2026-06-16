@@ -100,7 +100,7 @@ jobs:
             [ -n "$url" ] && echo "$url" >> "$args_file"
           done < "$urls_file"
           xargs -a "$args_file" python3 -m workflow_kit.url_validity \
-            --mode=strict --online --cache \
+            --mode=strict --online --cache --body \
             --ttl 86400 --timeout 10 --max-retries 3 \
             | tee "$RUNNER_TEMP/okf-validate.log"
           rc=${PIPESTATUS[0]}
@@ -161,12 +161,12 @@ jobs:
           python3 -m workflow_kit.okf_export \
             --wiki ai-workflow/wiki \
             --out "$out" \
+            --vcs-commit "$GITHUB_SHA" \
             --include okf-open-knowledge-format \
             --include adr-001-3-layer-separation \
             --include workflow-kit \
             --include r4-anchor-index \
             --include wiki-source-rule-r9
-          # verify bundle root index.md has okf_version
           if ! grep -q 'okf_version: "0.1"' "$out/index.md"; then
             echo "::error::bundle root index.md missing okf_version field"
             exit 1

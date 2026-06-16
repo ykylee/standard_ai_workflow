@@ -1142,3 +1142,43 @@ updated: 2026-06-12
 - **concept page cumulative count**: 21 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, ...).
 - **workflow_kit module count**: 4 (okf_export 24 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 17 KB) = **68+ KB total**.
 - **release note count**: 33 cumulative (v0.7.5 ~ v0.7.38).
+
+## [2026-06-16] release | v0.7.39 — V-R13 PoC + LFU + PhishTank + V-R12 carrier
+
+- **Trigger**: v0.7.38 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue next follow-ups` 5번째 turn). TASK-V0739-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (1 ADR proposed + 1 concept proposed + 4 code enhancement) — v0.7.38 release 시점의 deferred work.
+- **Phase 1 (DONE — `ea01e42`)**: ADR-020 V-R13 PoC implementation ADR (proposed) + concept v-r13-implementation (proposed) — 8 check 의 PoC strategy + 5 alternatives + 4 positive / 2 negative / 1 neutral + 11 section + 6 primary sources. ADR-019 convention 의 executable 의 *gradual rollout* 의 *PoC 단계* 정공법.
+- **Phase 2 (DONE — `563ac5c`)**: `url_validity.check_url_semantic()` + `SemanticUrlParts` + `parse_semantic_url()` + `validate_semantic_url()` 신규. 6/8 check executable (parse-only fast mode) + 2/8 stub (V-R11 body + GitHub API 위임) with explicit WARN transparency. 2 layer query param parsing (`?hash=sha256:...` + `?range=...`). 13 new tests.
+- **Phase 3 (DONE — `eab4d2e`)**: `EvictionStrategy = Literal['lru', 'lfu', 'mixed']` with default 'mixed' (LFU primary, LRU tie). `CacheEntry.access_count` field + `_save_cache` 의 `eviction_strategy` parameter + `check_url_with_cache` 의 access_count hit increment. 2 new tests.
+- **Phase 4 (DONE — `e1904fd`)**: `phishing_keywords` module 신규 (4.9 KB) — `BUNDLED_KEYWORDS` (8 baseline) + `load_phishing_keywords(custom, external_feed)` fallback chain (custom > external > bundled, case-insensitive dedup) + JSONL external feed parser (malformed lines skipped, missing file = silent fallback) + diagnostic. 11 new tests.
+- **Phase 5 (DONE — `dd8c177`)**: `okf_export` per-page `?hash=sha256:...` emission (V-R12 layer 1 carrier). `map_frontmatter_to_okf` 의 `content_hash` kwarg + `export_wiki_page` 의 `content_hash='auto'` mode (full page text SHA256 auto) + `export_wiki_to_okf` 의 content_hash pass-through. **Bug fix**: missing `exported += ex` in export_wiki_to_okf loop (exported count was always 0). 1 new test.
+- **Phase 6 (DONE — TBD commit)**: final verification (102/102 tests PASS across 7 suites) + `releases/Beta-v0.7.39.md` (8 KB) + version bump v0.7.38 → v0.7.39 + log entry (본 entry).
+- **cumulative test**: v0.7.38 의 384+ → v0.7.39 의 **405+** (28 new: 13 V-R13 + 11 phishing + 2 LFU + 1 V-R12 + 1 manifest skip pre-existing + 0 from phase 1 wiki + 0 from phase 6 release). 7 test suites (V-1/V-4 wiki lint + okf_export + okf_import + path_resolver + v-t1 + v-r10 + v-r13 + phishing = 8 file, 102/102 PASS).
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`, `ai-workflow/wiki/concepts/`)
+  - V-4 PASS (65 entries, was 63: +2 ADR-020 + v-r13-implementation)
+  - V-R9 PASS (ADR-020 의 `r9_skip: true` 유지)
+  - R-2 batch 권장 외 (1 ADR + 1 concept + 4 code enhancement + 28 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.39 release):
+  1. `ea01e42` wiki(adr-020+v-r13-impl): PoC draft (status: proposed, 65/65 entries) (Phase 1)
+  2. `563ac5c` feat(v0.7.39): check_url_semantic() PoC (6/8 check, 13/13 PASS) (Phase 2)
+  3. `eab4d2e` feat(v0.7.39): LFU eviction strategy + access_count tracking (34/34 PASS) (Phase 3)
+  4. `e1904fd` feat(v0.7.39): phishing_keywords module + 11 tests (V-R11 v2 PoC, 11/11 PASS) (Phase 4)
+  5. `dd8c177` feat(v0.7.39): okf_export per-page ?hash=sha256:... emission (ADR-019 layer 1, 16/16 PASS) (Phase 5)
+  6. TBD release(v0.7.39): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.40+):
+  1. v0.7.40 release note + version bump (v0.7.39 → v0.7.40) — release 자체는 v0.7.39 release note + version bump 에서 완료.
+  2. V-R13 full: 8/8 check executable (content_type via HEAD, author via GitHub API) + `?range=A..B` commit-level diff PoC.
+  3. ADR-020 formal acceptance (PoC 운영 evidence 후).
+  4. V-R12 layer 2: per-page `?range=<sha>..<sha>` emission.
+  5. V-R10 v3 follow-ups: cache LFU threshold tuning, frequency-weighted + recency-weighted composite.
+  6. V-R11 v2 follow-ups: PhishTank API integration, rate-limit aware.
+  7. R-2 정합: 다음 ingest 시 본 entry + 5-15 page 추가 동시 갱신 (R2 batch 5-15 권장).
+  8. check_url_semantic() 의 *online mode* (default: parse-only fast) — `--perform-head` flag 의 *opt-in* 의 *low-friction*.
+  9. ADR-021 (LFU eviction) + ADR-022 (PhishTank feed) 의 formal ADR (v0.7.40+).
+  10. OKF consumer guide quick-start tutorial (sample bundle walkthrough).
+- **ADR cumulative count**: 14 ADR accepted (006-019) + 1 ADR proposed (020) = **15 total** (001-020). 14 accepted cumulative (5 ADR accepted v0.7.37 + 6 ADR accepted v0.7.38 + 1 ADR formal pending v0.7.40+).
+- **concept page cumulative count**: 21 concepts (okf-open-knowledge-format, v-t1-title-consistency-lint, v-r10-url-validity-lint, v-r10-online-layer, v-r11-body-audit, v-r13-semantic-url-verification, v-r13-implementation, ...).
+- **workflow_kit module count**: 5 (okf_export 24 KB, okf_import 19.3 KB, path_resolver 8 KB, url_validity 18 KB, phishing_keywords 4.9 KB) = **74+ KB total**.
+- **release note count**: 34 cumulative (v0.7.5 ~ v0.7.39).
+

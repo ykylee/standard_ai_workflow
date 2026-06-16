@@ -501,6 +501,102 @@ def test_file_lock_serializes_concurrent_writes() -> None:
         assert isinstance(parsed, dict)
 
 
+# --- Test 23-27: V-R11 body content audit (ADR-017) ---
+
+
+class _BodyMockResponse:
+    """Mock for urllib.request.urlopen with body content."""
+
+    def __init__(self, body: bytes = b"", content_type: str = "text/html; charset=utf-8", status: int = 200):
+        self.body = body
+        self.status = status
+        self.headers = {"Content-Type": content_type}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self, n: int = -1) -> bytes:
+        if n < 0:
+            return self.body
+        return self.body[:n]
+
+
+def test_body_html_pass() -> None:
+    """text/html body with <html> tag → no issues."""
+    import urllib.request
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _BodyMockResponse(b"<html><body>Hello</body></html>", "text/html; charset=utf-8")
+    try:
+        issues = mod.check_url_body("https://example.com/page.html")
+        assert not issues, f"clean HTML should pass, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_body_phishing_detected() -> None:
+    """Body containing phishing keyword → ERROR (V-R11-body-phishing)."""
+    import urllib.request
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    body = b"<html><body>Please verify your account immediately. Click here!</body></html>"
+    urllib.request.urlopen = lambda req, **kw: _BodyMockResponse(body, "text/html; charset=utf-8")
+    try:
+        issues = mod.check_url_body("https://phishing.example.com/login")
+        errors = [i for i in issues if i.severity == "error"]
+        assert any("phishing" in i.rule.lower() for i in errors), f"phishing should be error, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_body_missing_html_tag_warn() -> None:
+    """text/html body without <html> tag → warn (V-R11-body-html)."""
+    import urllib.request
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _BodyMockResponse(b"plain text without html", "text/html; charset=utf-8")
+    try:
+        issues = mod.check_url_body("https://example.com/page.html")
+        warns = [i for i in issues if i.severity == "warn"]
+        assert any("html" in i.rule.lower() for i in warns), f"missing <html> should be warn, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_body_unexpected_content_type_warn() -> None:
+    """application/octet-stream → warn (V-R11-body-content-type)."""
+    import urllib.request
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, **kw: _BodyMockResponse(b"\x00\x01\x02", "application/octet-stream")
+    try:
+        issues = mod.check_url_body("https://example.com/binary")
+        warns = [i for i in issues if i.severity == "warn"]
+        assert any("content-type" in i.rule.lower() for i in warns), f"unexpected content-type should be warn, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
+def test_body_timeout_warn() -> None:
+    """Connection timeout during body fetch → warn (V-R11-body-timeout)."""
+    import urllib.request
+    import socket
+    mod = _import_url_validity()
+    orig = urllib.request.urlopen
+    def _timeout(*a, **kw):
+        raise socket.timeout("read timeout")
+    urllib.request.urlopen = _timeout
+    try:
+        issues = mod.check_url_body("https://example.com/page.html")
+        warns = [i for i in issues if i.severity == "warn"]
+        assert any("timeout" in i.rule.lower() for i in warns), f"timeout should be warn, got: {issues}"
+    finally:
+        urllib.request.urlopen = orig
+
+
 # --- 메인 실행 ---
 
 
@@ -528,6 +624,11 @@ def main() -> int:
         test_cache_default_caps,
         test_file_lock_context_manager_exists,
         test_file_lock_serializes_concurrent_writes,
+        test_body_html_pass,
+        test_body_phishing_detected,
+        test_body_missing_html_tag_warn,
+        test_body_unexpected_content_type_warn,
+        test_body_timeout_warn,
     ]
     failed: list[str] = []
     for fn in test_funcs:

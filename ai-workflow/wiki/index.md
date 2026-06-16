@@ -22,6 +22,7 @@
 ### [[concepts/v-r10-url-validity-lint]] {#v-r10-url-validity-lint}
 ### [[concepts/v-r10-online-layer]] {#v-r10-online-layer}
 ### [[INGEST_GUIDE]] {#ingest-guide}
+### [[concepts/v-r11-body-audit]] {#v-r11-body-audit}
 
 ## Decisions
 
@@ -40,6 +41,7 @@
 ### [[decisions/adr-014-v-r10-v3-cache-lru]] {#adr-014-v-r10-v3-cache-lru}
 ### [[decisions/adr-015-v-r10-v3-file-lock]] {#adr-015-v-r10-v3-file-lock}
 ### [[decisions/adr-016-gha-actions-cache]] {#adr-016-gha-actions-cache}
+### [[decisions/adr-017-v-r11-body-audit]] {#adr-017-v-r11-body-audit}
 
 ## Patterns
 

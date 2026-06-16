@@ -226,6 +226,98 @@ def check_url_online(
 
 
 # ---------------------------------------------------------------------------
+# Body content audit (ADR-017, v0.7.37+)
+# ---------------------------------------------------------------------------
+DEFAULT_BODY_MAX_BYTES: int = 1 * 1024 * 1024  # 1 MB body cap (ADR-017)
+PHISHING_KEYWORDS: tuple[str, ...] = (
+    "verify your account",
+    "click here immediately",
+    "your account will be suspended",
+    "urgent action required",
+    "confirm your password",
+    "wire transfer",
+    "lottery winner",
+    "nigerian prince",
+)
+
+
+def check_url_body(
+    url: str,
+    *,
+    timeout: float = 10.0,
+    user_agent: str = "workflow-kit-url-validity/0.7.37",
+    max_body_bytes: int = DEFAULT_BODY_MAX_BYTES,
+    follow_redirect: bool = True,
+    max_redirects: int = 3,
+) -> list[UrlIssue]:
+    """V-R11 body content audit: GET request + content checks. ADR-017.
+
+    Body checks (4 case):
+    1. Content-Type: text/html expected, application/json OK, others warn
+    2. Body size: 0 bytes = warn, > max_body_bytes = warn (truncated)
+    3. Phishing keywords: detected in body = ERROR
+    4. HTML renderable: <html> tag detection for text/html
+
+    Returns:
+        list[UrlIssue]:
+        - HTTP 200: continue body checks
+        - HTTP 4xx/5xx: surface as error/warn (similar to online)
+        - timeout/TLS/DNS: surface as error/warn
+    """
+    import socket
+    import ssl
+    issues: list[UrlIssue] = []
+    try:
+        req = urllib.request.Request(url, method="GET")
+        req.add_header("User-Agent", user_agent)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            content_type = resp.headers.get("Content-Type", "")
+            body_bytes = resp.read(max_body_bytes + 1)  # read 1 extra to detect truncation
+    except urllib.error.HTTPError as e:
+        issues.append(UrlIssue(rule="V-R11-body-http-error", severity="warn", message=f"HTTP {e.code}: {e.reason}"))
+        return issues
+    except socket.timeout:
+        issues.append(UrlIssue(rule="V-R11-body-timeout", severity="warn", message=f"connection timeout after {timeout}s"))
+        return issues
+    except (ssl.SSLError, urllib.error.URLError, OSError) as e:
+        if isinstance(e, ssl.SSLError):
+            issues.append(UrlIssue(rule="V-R11-body-tls", severity="error", message=f"TLS error: {e}"))
+        else:
+            reason = getattr(e, "reason", str(e))
+            issues.append(UrlIssue(rule="V-R11-body-url-error", severity="error", message=f"URL error: {reason}"))
+        return issues
+
+    # 1. Content-Type check
+    if not content_type:
+        issues.append(UrlIssue(rule="V-R11-body-content-type", severity="warn", message="missing Content-Type header"))
+    elif "text/html" not in content_type.lower() and "application/json" not in content_type.lower() and "text/" not in content_type.lower():
+        issues.append(UrlIssue(rule="V-R11-body-content-type", severity="warn", message=f"unexpected Content-Type: {content_type!r}"))
+
+    # 2. Body size check
+    if len(body_bytes) == 0:
+        issues.append(UrlIssue(rule="V-R11-body-empty", severity="warn", message="empty body"))
+    elif len(body_bytes) > max_body_bytes:
+        issues.append(UrlIssue(rule="V-R11-body-truncated", severity="warn", message=f"body exceeds {max_body_bytes} bytes (truncated)"))
+        body_bytes = body_bytes[:max_body_bytes]
+
+    # 3. Phishing keyword check
+    try:
+        body_text = body_bytes.decode("utf-8", errors="ignore").lower()
+    except UnicodeDecodeError:
+        body_text = ""
+    for kw in PHISHING_KEYWORDS:
+        if kw in body_text:
+            issues.append(UrlIssue(rule="V-R11-body-phishing", severity="error", message=f"phishing keyword detected: {kw!r}"))
+            break  # one phishing keyword is enough
+
+    # 4. HTML renderable check (only for text/html)
+    if "text/html" in content_type.lower():
+        if b"<html" not in body_bytes.lower():
+            issues.append(UrlIssue(rule="V-R11-body-html", severity="warn", message="text/html body missing <html> tag"))
+
+    return issues
+
+
 # Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400

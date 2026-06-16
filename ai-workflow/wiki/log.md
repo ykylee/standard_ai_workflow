@@ -1602,3 +1602,53 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (no new in v0.7.48).
 - **workflow_kit module count**: 18 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 4.0 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB, v_r13_commit_diff 6.0 KB, cache_lfu_decay 4.0 KB (extension), cache_analytics 3.7 KB, v_r13_commit_diff_integration 3.8 KB, cache_dashboard 2.8 KB, phishing_federation_v3 2.8 KB, cache_dashboard_cli 2.4 KB) = **113+ KB total**.
 - **release note count**: 43 cumulative (v0.7.5 ~ v0.7.48).
+
+## [2026-06-16] release | v0.7.49 — federation v4 weighted voting + decay persistence + layer 2 pipeline + cache trend + dashboard export
+
+- **Trigger**: v0.7.48 release note 의 6 follow-up 중 5 항목의 *bundled implementation* (`continue` 15번째 turn). TASK-V0749-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (5 new module + 10 new test) — v0.7.48 release 시점의 deferred work. **All FREE tier**, no paid APIs.
+- **Phase 1 (DONE — `bd7c8cb`)**: federation v4 weighted voting confidence scoring:
+  - `workflow_kit.phishing_federation_v4` module (NEW, 3.1 KB)
+  - `fetch_federated_phishing_urls_v4` (per-source weight) + `build_default_sources_v4` (PhishTank=1.0, OpenPhish=0.8)
+  - 2 new tests
+- **Phase 2 (DONE — `d9e050b`)**: per-URL LFU decay score persistence:
+  - `workflow_kit.cache_lfu_decay_persist` module (NEW, 3.2 KB)
+  - `save_decay_scores` + `load_decay_scores` + `update_decay_score` + `get_decay_score` + `merge_decay_scores`
+  - 2 new tests
+- **Phase 3 (DONE — `5726fc0`)**: V-R13 layer 2 full pipeline:
+  - `workflow_kit.v_r13_layer2_pipeline` module (NEW, 3.8 KB)
+  - `run_layer2_pipeline` (one-call parse+dispatch+format) + `PipelineResult` dataclass
+  - 2 new tests
+- **Phase 4 (DONE — `00a255d`)**: cache analytics trend (snapshot over time):
+  - `workflow_kit.cache_analytics_trend` module (NEW, 3.6 KB)
+  - `take_snapshot` + `compute_trend` + `save_snapshots` + `load_snapshots` + `format_trend_summary`
+  - 2 new tests
+- **Phase 5 (DONE — `5834a9a`)**: cache dashboard export (JSON + Markdown):
+  - `workflow_kit.cache_dashboard_export` module (NEW, 2.7 KB)
+  - `export_dashboard_json` + `export_dashboard_markdown` + `write_dashboard`
+  - 2 new tests
+- **Phase 6 (DONE — TBD commit)**: final verification (181/181 tests PASS across 31 suites) + `releases/Beta-v0.7.49.md` (9 KB) + version bump v0.7.48 → v0.7.49 + log entry (본 entry).
+- **cumulative test**: v0.7.48 의 520+ → v0.7.49 의 **530+** (10 new: 2 federation v4 + 2 persist + 2 pipeline + 2 trend + 2 export). 31 test suites, 181/181 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 0 new wiki pages)
+  - V-4 PASS (75 entries, no change — code-only changes)
+  - R-2 batch 권장 외 (5 follow-up + 10 test, *individual* 갱신)
+- **Commit chain** (origin/main, v0.7.49 release):
+  1. `bd7c8cb` feat(v0.7.49): phishing federation v4 (weighted voting, 2/2 PASS) (Phase 1)
+  2. `d9e050b` feat(v0.7.49): per-URL LFU decay score persistence (cache_lfu_decay_persist, 2/2 PASS) (Phase 2)
+  3. `5726fc0` feat(v0.7.49): V-R13 layer 2 full pipeline (one-call parse+dispatch+format, 2/2 PASS) (Phase 3)
+  4. `00a255d` feat(v0.7.49): cache analytics trend (snapshot over time, 2/2 PASS) (Phase 4)
+  5. `5834a9a` feat(v0.7.49): cache dashboard export (JSON + Markdown, 2/2 PASS) (Phase 5)
+  6. TBD release(v0.7.49): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.50+):
+  1. v0.7.50 release note + version bump (v0.7.49 → v0.7.50) — release 자체는 v0.7.49 release note + version bump 에서 완료.
+  2. VirusTotal API integration (commercial, multi-engine)
+  3. Federation v5: 3 source union (PhishTank + OpenPhish + VirusTotal) with weighted voting
+  4. Live cache dashboard via web (Streamlit / Flask)
+  5. CLI for v_r13_layer2_pipeline (one-call URL verification)
+  6. Chart-based trend visualization (matplotlib / plotly)
+  7. ADR-023/024/025 stable 상태 유지 (1 release cycle 의 *additional* 운영 evidence 후의 *future* v0.2.2 가능)
+- **ADR cumulative count**: 17 ADR accepted (006-025) + 0 ADR proposed = **17 total** (001-025). 17 accepted. No new ADRs in v0.7.49.
+- **concept page cumulative count**: 26 concepts (no new in v0.7.49).
+- **workflow_kit module count**: 23 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 4.0 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB, v_r13_commit_diff 6.0 KB, cache_lfu_decay 4.0 KB, cache_analytics 3.7 KB, v_r13_commit_diff_integration 3.8 KB, cache_dashboard 2.8 KB, phishing_federation_v3 2.8 KB, cache_dashboard_cli 2.4 KB, phishing_federation_v4 3.1 KB, cache_lfu_decay_persist 3.2 KB, v_r13_layer2_pipeline 3.8 KB, cache_analytics_trend 3.6 KB, cache_dashboard_export 2.7 KB) = **130+ KB total**.
+- **release note count**: 44 cumulative (v0.7.5 ~ v0.7.49).

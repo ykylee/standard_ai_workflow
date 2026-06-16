@@ -519,6 +519,48 @@ def test_per_page_frontmatter_vcs_commit() -> None:
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
 
+def test_tag_based_pinning_v0_7_37() -> None:
+    """vcs_ref=release tag (e.g. 'v0.7.37') → ref-pinned URL (ADR-018 v2)."""
+    import importlib.util
+    import sys
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda path, root: (
+        "https://github.com/foo/bar/blob/main/" + path
+    )
+    pr.resolve_in_repo_path_to_url_pinned = lambda path, root, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref}/" + path
+    )
+    mod = _import_okf_export()
+    try:
+        # release tag v0.7.37 → ref-pinned URL
+        url = mod._derive_resource(
+            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="v0.7.37"
+        )
+        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+        # branch name "main"
+        url = mod._derive_resource(
+            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="main"
+        )
+        assert url == "https://github.com/foo/bar/blob/main/docs/spec.md", f"got {url!r}"
+        # feature/branch with / → mocked ref always succeeds, so the real path_resolver
+        # would reject it. With our mock, ref is interpolated as-is. Test that the mock
+        # produces a URL with the ref embedded.
+        url = mod._derive_resource(
+            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="feature/okf-export"
+        )
+        assert url == "https://github.com/foo/bar/blob/feature/okf-export/docs/spec.md", f"got {url!r}"
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
+
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -533,9 +575,9 @@ def main() -> int:
         test_okf_bundle_root_index_md_emit,
         test_vcs_commit_emits_pinned_url,
         test_per_page_frontmatter_vcs_commit,
+        test_tag_based_pinning_v0_7_37,
     ]
     failed: list[str] = []
-
 
     for fn in test_funcs:
         name = fn.__name__

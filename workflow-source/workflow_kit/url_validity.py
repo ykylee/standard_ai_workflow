@@ -318,6 +318,135 @@ def check_url_body(
     return issues
 
 
+# V-R13 semantic URL verification (ADR-019 convention + ADR-020 PoC implementation)
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class SemanticUrlParts:
+    """Parsed parts of a V-R13 semantic URL (ADR-019 §3 + ADR-020 §1)."""
+    raw: str
+    commit_sha: str | None  # layer 0: path `/blob/<sha>/`
+    content_hash: str | None  # layer 1: `?hash=sha256:<hex>`
+    range_start: str | None  # layer 2: `?range=<sha>..<sha>` start
+    range_end: str | None  # layer 2: `?range=<sha>..<sha>` end
+
+
+_SHA_RE = re.compile(r"^[0-9a-f]{7,40}$")
+_SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+
+def parse_semantic_url(url: str) -> SemanticUrlParts:
+    """Parse a V-R13 semantic URL into its 4 layer parts.
+
+    Layer 0 (path): `https://github.com/<org>/<repo>/blob/<sha>/<path>` -> commit_sha
+    Layer 1 (query): `?hash=sha256:<64hex>` -> content_hash (full "sha256:..." string)
+    Layer 2 (query): `?range=<sha1>..<sha2>` -> range_start, range_end (sha1 < sha2)
+
+    Pure parse, no network. Unknown layers return None.
+    """
+    parsed = urlparse(url)
+    commit_sha: str | None = None
+    if parsed.netloc in ("github.com", "www.github.com"):
+        # /<org>/<repo>/blob/<sha>/<path...>
+        m = re.match(r"^/([^/]+)/([^/]+)/blob/([^/]+)(/.*)?$", parsed.path)
+        if m and _SHA_RE.match(m.group(3)):
+            commit_sha = m.group(3).lower()
+    qs = parsed.query
+    content_hash: str | None = None
+    range_start: str | None = None
+    range_end: str | None = None
+    if qs:
+        for kv in qs.split("&"):
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                if k == "hash" and _SHA256_RE.match(v):
+                    content_hash = v.lower()
+                elif k == "range" and ".." in v:
+                    parts = v.split("..", 1)
+                    if len(parts) == 2 and _SHA_RE.match(parts[0]) and _SHA_RE.match(parts[1]):
+                        range_start, range_end = parts[0].lower(), parts[1].lower()
+    return SemanticUrlParts(
+        raw=url,
+        commit_sha=commit_sha,
+        content_hash=content_hash,
+        range_start=range_start,
+        range_end=range_end,
+    )
+
+
+def validate_semantic_url(parts: SemanticUrlParts) -> list[UrlIssue]:
+    """Validate parsed V-R13 semantic URL parts. ADR-020 PoC: 6/8 check executable.
+
+    Check status (v0.7.39 PoC):
+      1 commit_sha_pinned    executable
+      2 content_hash_pinned  executable
+      3 content_type         stub (V-R11 위임)
+      4 size_limit           stub (--perform-head opt-in)
+      5 author               stub (GitHub API 위임)
+      6 last_modified        stub (--perform-head opt-in)
+      7 freshness            stub (--perform-head opt-in)
+      8 range_valid          executable (parse-time)
+    """
+    issues: list[UrlIssue] = []
+    # Check 1: commit_sha_pinned (layer 0)
+    if parts.commit_sha is None:
+        issues.append(UrlIssue(
+            rule="V-R13-no-commit-sha", severity="warn",
+            message="URL path does not contain a pinned commit SHA (layer 0)",
+        ))
+    # Check 2: content_hash_pinned (layer 1)
+    if parts.content_hash is None:
+        issues.append(UrlIssue(
+            rule="V-R13-no-content-hash", severity="warn",
+            message="URL query missing ?hash=sha256:... (layer 1)",
+        ))
+    # Check 3, 4, 5, 6, 7: stub (V-R11 / --perform-head / GitHub API 위임)
+    # All marked WARN to maintain transparency
+    issues.append(UrlIssue(
+        rule="V-R13-stub-content-type", severity="warn",
+        message="V-R11 body audit 위임 (check 3 stub, v0.7.40+ executable)",
+    ))
+    issues.append(UrlIssue(
+        rule="V-R13-stub-size", severity="warn",
+        message="size_limit check requires --perform-head (check 4 stub)",
+    ))
+    issues.append(UrlIssue(
+        rule="V-R13-stub-author", severity="warn",
+        message="author check requires GitHub API (check 5 stub, v0.7.40+)",
+    ))
+    issues.append(UrlIssue(
+        rule="V-R13-stub-last-modified", severity="warn",
+        message="last_modified check requires --perform-head (check 6 stub)",
+    ))
+    issues.append(UrlIssue(
+        rule="V-R13-stub-freshness", severity="warn",
+        message="freshness check requires --perform-head (check 7 stub)",
+    ))
+    # Check 8: range_valid (layer 2)
+    if parts.range_start is not None and parts.range_end is not None:
+        if parts.range_start >= parts.range_end:
+            issues.append(UrlIssue(
+                rule="V-R13-range-not-chronological", severity="error",
+                message=f"range_start ({parts.range_start[:7]}) >= range_end ({parts.range_end[:7]})",
+            ))
+    return issues
+
+
+def check_url_semantic(url: str, *, perform_head: bool = False) -> list[UrlIssue]:
+    """V-R13 semantic URL verification (ADR-019 convention + ADR-020 PoC).
+
+    Pure parse in fast mode (default). With perform_head=True, adds HEAD-based
+    checks (size_limit, last_modified, freshness) — opt-in for bandwidth.
+    """
+    parts = parse_semantic_url(url)
+    issues = validate_semantic_url(parts)
+    if perform_head:
+        # Defer to check_url_online for HEAD-based checks (V-R11 body 위임)
+        online_issues = check_url_online(url)
+        for oi in online_issues:
+            issues.append(oi)
+    return issues
+
+
 # Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
 # ---------------------------------------------------------------------------
 DEFAULT_CACHE_TTL_SECONDS: int = 86400

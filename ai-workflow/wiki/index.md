@@ -42,7 +42,7 @@
 ### [[decisions/adr-015-v-r10-v3-file-lock]] {#adr-015-v-r10-v3-file-lock}
 ### [[decisions/adr-016-gha-actions-cache]] {#adr-016-gha-actions-cache}
 ### [[decisions/adr-017-v-r11-body-audit]] {#adr-017-v-r11-body-audit}
-
+### [[decisions/adr-018-v-r12-commit-pinned-url]] {#adr-018-v-r12-commit-pinned-url}
 ## Patterns
 
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}

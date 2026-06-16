@@ -142,6 +142,47 @@ def test_url_passthrough() -> None:
     assert url == "https://example.com/spec.md", f"got {url!r}"
 
 
+# --- Test 7-9: V-R12 commit-pinned URL (ADR-018) ---
+
+
+def test_resolve_commit_pinned() -> None:
+    """commit_sha → /blob/<sha>/<path> (immutable)."""
+    with _EnvPatch() as env:
+        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
+        mod = _import_path_resolver()
+        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
+        url = mod.resolve_in_repo_path_to_url_pinned(
+            "docs/spec.md", Path("/fake"), commit_sha="abc1234"
+        )
+        assert url == "https://github.com/foo/bar/blob/abc1234/docs/spec.md", f"got {url!r}"
+
+
+def test_resolve_ref_pinned() -> None:
+    """ref (branch/tag) → /blob/<ref>/<path>."""
+    with _EnvPatch() as env:
+        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
+        mod = _import_path_resolver()
+        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
+        url = mod.resolve_in_repo_path_to_url_pinned(
+            "docs/spec.md", Path("/fake"), ref="v0.7.37"
+        )
+        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+
+
+def test_resolve_pinned_invalid_sha() -> None:
+    """invalid SHA format → None (validate hex + length 7-40)."""
+    with _EnvPatch() as env:
+        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
+        mod = _import_path_resolver()
+        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
+        # too short
+        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake"), commit_sha="abc") is None
+        # non-hex
+        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake"), commit_sha="xyz1234") is None
+        # no commit_sha, no ref
+        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake")) is None
+
+
 # --- 메인 실행 ---
 
 
@@ -153,6 +194,9 @@ def main() -> int:
         test_resolve_path_traversal_reject,
         test_resolve_absolute_path_reject,
         test_url_passthrough,
+        test_resolve_commit_pinned,
+        test_resolve_ref_pinned,
+        test_resolve_pinned_invalid_sha,
     ]
     failed: list[str] = []
     for fn in test_funcs:

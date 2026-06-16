@@ -208,22 +208,88 @@ def resolve_in_repo_path_to_url(
     return f"{origin}/blob/{default_branch}/{relative_path}"
 
 
+def resolve_in_repo_path_to_url_pinned(
+    relative_path: str,
+    repo_root: Path,
+    *,
+    commit_sha: str | None = None,
+    ref: str | None = None,
+) -> str | None:
+    """Resolve in-repo path to commit-pinned URL (ADR-018, v0.7.37+).
+
+    Pinned URLs use the form:
+    - `<origin>/blob/<commit_sha>/<path>` (commit SHA)
+    - `<origin>/blob/<ref>/<path>` (ref like "v0.7.37", "main", "feature/x")
+
+    Unlike `resolve_in_repo_path_to_url` which uses the *current* default branch
+    (which can change over time), pinned URLs are *immutable* — the URL always
+    points to the exact content at that commit/ref.
+
+    Args:
+        relative_path: in-repo path (e.g. "workflow-source/workflow_kit/README.md")
+        repo_root: path to repository root
+        commit_sha: 40-char commit SHA (full or short, ≥7 chars)
+        ref: branch/tag name (e.g. "main", "v0.7.37") — alternative to commit_sha
+
+    Returns:
+        Canonical pinned URL string, or None if resolve failed.
+
+    Strategy:
+    1. If commit_sha given: use `/blob/<commit_sha>/<path>` (immutable)
+    2. If ref given: use `/blob/<ref>/<path>` (mutable but explicit)
+    3. If neither: return None (caller must provide at least one)
+    """
+    if not _is_path_safe(relative_path):
+        return None
+
+    if relative_path.startswith(("http://", "https://")):
+        return relative_path
+
+    origin = _detect_origin_url(repo_root)
+    if not origin:
+        return None
+
+    if commit_sha:
+        # Validate SHA format (hex, 7-40 chars)
+        sha = commit_sha.strip()
+        if not (7 <= len(sha) <= 40) or not all(c in "0123456789abcdef" for c in sha.lower()):
+            return None
+        return f"{origin}/blob/{sha}/{relative_path}"
+
+    if ref:
+        # Ref: branch or tag name — basic validation (no slashes, no special chars)
+        r = ref.strip()
+        if not r or "/" in r or any(c in r for c in "?&\\"):
+            return None
+        return f"{origin}/blob/{r}/{relative_path}"
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="workflow_kit.path_resolver",
-        description="in-repo path → canonical GitHub URL (v0.7.34+, ADR-008)",
+        description="in-repo path → canonical GitHub URL (v0.7.34+, ADR-008 + commit-pinned via ADR-018)",
     )
     p.add_argument("path", help="in-repo relative path")
     p.add_argument("--repo-root", type=Path, default=Path("."), help="repo root (default: cwd)")
+    p.add_argument("--commit", help="commit SHA (full or short, 7-40 hex chars) for commit-pinned URL (ADR-018)")
+    p.add_argument("--ref", help="ref (branch/tag name) for ref-pinned URL (ADR-018)")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_arg_parser().parse_args(argv)
-    url = resolve_in_repo_path_to_url(args.path, args.repo_root.resolve())
+    if args.commit or args.ref:
+        url = resolve_in_repo_path_to_url_pinned(
+            args.path, args.repo_root.resolve(),
+            commit_sha=args.commit, ref=args.ref,
+        )
+    else:
+        url = resolve_in_repo_path_to_url(args.path, args.repo_root.resolve())
     if url is None:
         print(f"ERROR: resolve failed for {args.path!r}", file=sys.stderr)
         return 1

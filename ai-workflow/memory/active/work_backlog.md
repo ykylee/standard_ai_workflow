@@ -16,6 +16,12 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.7.59/backlog/2026-06-17.md]] {#release-v0-7-59}
+- 2026-06-17: v0.7.59 1개 TASK (cmd_consumer_metrics in-process refactor — subprocess → import_module, v0.7.56+ score-wiki-trend 정공법)
+
+### [[release/v0.7.58/backlog/2026-06-17.md]] {#release-v0-7-58}
+- 2026-06-17: v0.7.58 1개 TASK (consumer feedback metrics — tools/consumer_metrics.py 155 line + cmd_consumer_metrics subcommand 27 + 9 smoke)
+
 ### [[release/v0.7.24/backlog/2026-06-15.md]] {#release-v0-7-24}
 - 2026-06-15: v0.7.24 1개 TASK (cmd_release --notes-template flag — 5 template: default/detailed/simple/changelog/custom + 5 smoke)
 

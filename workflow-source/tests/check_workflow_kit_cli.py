@@ -500,6 +500,163 @@ def test_cache_merge_multi_no_op_v0_7_57() -> None:
         assert code == 0
 
 
+def test_consumer_metrics_registered_v0_7_58() -> None:
+    """consumer-metrics is registered as dispatcher subcommand 27 (v0.7.58+)."""
+    mod = _import_cli()
+    assert "consumer-metrics" in mod.COMMANDS
+    assert callable(mod.COMMANDS["consumer-metrics"])
+
+
+def test_consumer_metrics_invalid_days_returns_2_v0_7_58() -> None:
+    """consumer-metrics with --days=0 or --days=100 returns 2 (usage error)."""
+    mod = _import_cli()
+    # days=0
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--days=0", "--json"])
+    assert code == 2
+    # days=100 (out of 1-90 range)
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--days=100", "--json"])
+    assert code == 2
+
+
+def test_consumer_metrics_default_argv_v0_7_58() -> None:
+    """consumer-metrics with no args uses defaults (--days=14, --repo=ykylee/standard_ai_workflow).
+
+    Skips when gh CLI is not authenticated (e.g. CI without GITHUB_TOKEN) — returns
+    1 (gh auth fail) or 0 (success) are both acceptable; the test only fails on
+    rc=2 (usage error) which would mean the dispatcher is broken.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
+    # rc=0 = success, rc=1 = gh auth fail (CI), rc=2 = usage error (broken)
+    assert code in (0, 1), f"expected 0 or 1, got {code}"
+
+
+def test_consumer_metrics_in_process_v0_7_59() -> None:
+    """consumer-metrics dispatcher uses in-process import (v0.7.59+, was subprocess in v0.7.58).
+
+    Verifies:
+    1. dispatcher argv forwarding reaches consumer_metrics.main() (default repo applies)
+    2. tools.consumer_metrics is imported in-process (no subprocess fork)
+    3. days validation remains single-source (consumer_metrics.main() rc=2 on out-of-range)
+    """
+    import importlib
+    import sys as _sys
+    # Reset import state so we observe the dispatcher's import
+    for mod_name in list(_sys.modules.keys()):
+        if mod_name == "tools.consumer_metrics" or mod_name.startswith("tools.consumer_metrics."):
+            del _sys.modules[mod_name]
+    mod = _import_cli()
+    # Invoke dispatcher with default argv. rc=0/1 acceptable (gh auth dependent);
+    # rc=2 would indicate the dispatcher broke argv forwarding.
+    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
+    assert code in (0, 1), f"expected 0 or 1 (gh auth), got {code}"
+    # After dispatcher run, tools.consumer_metrics must be in sys.modules
+    # (proof that in-process import path was taken, not subprocess)
+    assert "tools.consumer_metrics" in _sys.modules, (
+        "tools.consumer_metrics not in sys.modules — dispatcher may have used subprocess"
+    )
+    # Days validation single-source: consumer_metrics.main() returns 2 for out-of-range
+    cm_mod = importlib.import_module("tools.consumer_metrics")
+    old_argv = _sys.argv
+    try:
+        _sys.argv = ["consumer_metrics", "--days=0", "--json"]
+        assert cm_mod.main() == 2
+        _sys.argv = ["consumer_metrics", "--days=100", "--json"]
+        assert cm_mod.main() == 2
+    finally:
+        _sys.argv = old_argv
+
+
+def test_consumer_metrics_argv_forwarded_v0_7_59() -> None:
+    """consumer-metrics dispatcher forwards --repo / --days to consumer_metrics.main() (v0.7.59+).
+
+    days=0 invalid → rc=2 (validation in main() argparse).
+    days=100 invalid → rc=2 (validation in main() argparse).
+    Confirms argv flows from dispatcher → consumer_metrics argparse without dispatcher-side
+    double-parsing (v0.7.58 had dispatcher-side validation + main()-side validation).
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(
+        ["--command=consumer-metrics", "--days=0", "--repo=ykylee/standard_ai_workflow"]
+    )
+    assert code == 2
+    code = mod.run_workflow_kit_cli(
+        ["--command=consumer-metrics", "--days=100", "--repo=ykylee/standard_ai_workflow"]
+    )
+    assert code == 2
+
+
+def test_cache_lfu_decay_persist_registered_v0_7_60() -> None:
+    """cache-lfu-decay-persist is registered as dispatcher subcommand 28 (v0.7.60+)."""
+    mod = _import_cli()
+    assert "cache-lfu-decay-persist" in mod.COMMANDS
+    assert callable(mod.COMMANDS["cache-lfu-decay-persist"])
+
+
+def test_cache_lfu_decay_persist_missing_args_v0_7_60() -> None:
+    """cache-lfu-decay-persist without --url or --score returns 2 (usage error)."""
+    mod = _import_cli()
+    # missing both
+    code = mod.run_workflow_kit_cli(["--command=cache-lfu-decay-persist"])
+    assert code == 2
+    # missing score
+    code = mod.run_workflow_kit_cli(["--command=cache-lfu-decay-persist", "--url=https://a.com/"])
+    assert code == 2
+    # invalid score (not a number)
+    code = mod.run_workflow_kit_cli(
+        ["--command=cache-lfu-decay-persist", "--url=https://a.com/", "--score=not-a-number"]
+    )
+    assert code == 2
+
+
+def test_cache_lfu_decay_persist_dry_run_v0_7_60() -> None:
+    """cache-lfu-decay-persist dry-run (default) simulates update without writing (v0.7.60+)."""
+    import json
+    import tempfile
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        scores_path = Path(tmp) / "scores.json"
+        scores_path.write_text(json.dumps({"version": 1, "saved_at": 0, "scores": {"https://existing.com/": 0.5}}), encoding="utf-8")
+        # Dry-run with new URL — file unchanged
+        code = mod.run_workflow_kit_cli(
+            [
+                "--command=cache-lfu-decay-persist",
+                "--url=https://new.com/",
+                "--score=0.9",
+                f"--scores-path={scores_path}",
+                "--json",
+            ]
+        )
+        assert code == 0
+        # File should NOT contain the new URL (dry-run)
+        # File should NOT contain the new URL (dry-run) — file format is wrapped {"scores": {...}}
+        data = json.loads(scores_path.read_text(encoding="utf-8"))
+        assert "https://new.com/" not in data.get("scores", {})
+        assert "https://existing.com/" in data["scores"]
+
+
+def test_cache_lfu_decay_persist_apply_v0_7_60() -> None:
+    """cache-lfu-decay-persist --apply actually writes to disk (v0.7.60+)."""
+    import json
+    import tempfile
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        scores_path = Path(tmp) / "scores.json"
+        code = mod.run_workflow_kit_cli(
+            [
+                "--command=cache-lfu-decay-persist",
+                "--url=https://applied.com/",
+                "--score=0.75",
+                f"--scores-path={scores_path}",
+                "--apply",
+                "--json",
+            ]
+        )
+        assert code == 0
+        # File should contain the new URL
+        # File format: {"version": 1, "saved_at": ..., "scores": {...}}
+        data = json.loads(scores_path.read_text(encoding="utf-8"))
+        assert data["scores"]["https://applied.com/"] == 0.75
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -540,7 +697,17 @@ def main() -> int:
         test_cache_export_json_no_output_returns_2_v0_7_57,
         test_cache_export_json_roundtrip_v0_7_57,
         test_cache_merge_multi_no_op_v0_7_57,
+        test_consumer_metrics_registered_v0_7_58,
+        test_consumer_metrics_invalid_days_returns_2_v0_7_58,
+        test_consumer_metrics_default_argv_v0_7_58,
+        test_consumer_metrics_in_process_v0_7_59,
+        test_consumer_metrics_argv_forwarded_v0_7_59,
+        test_cache_lfu_decay_persist_registered_v0_7_60,
+        test_cache_lfu_decay_persist_missing_args_v0_7_60,
+        test_cache_lfu_decay_persist_dry_run_v0_7_60,
+        test_cache_lfu_decay_persist_apply_v0_7_60,
     ]
+
     failed: list[str] = []
     for fn in test_funcs:
         name = fn.__name__

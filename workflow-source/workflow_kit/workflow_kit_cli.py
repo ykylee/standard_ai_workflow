@@ -1029,6 +1029,103 @@ def cmd_cache_export_json(argv: list[str]) -> int:
         return 2
 
 
+# ---------------------------------------------------------------------------
+# consumer feedback metrics (v0.7.58+, dispatcher subcommand 27)
+# ---------------------------------------------------------------------------
+
+
+@register("consumer-metrics")
+def cmd_consumer_metrics(argv: list[str]) -> int:
+    """Consumer feedback metrics snapshot (v0.7.58+, subcommand 27).
+
+    In-process wrapper (v0.7.59+, previously subprocess) for
+    `tools/consumer_metrics.py`. v0.7.55+ release-doctor /
+    v0.7.56+ score-wiki-trend 와 동일 정공법: `workflow-source/` 를
+    sys.path 에 insert → `import tools.consumer_metrics` → `main(argv)` 호출.
+
+    Args (forwarded verbatim, consumer_metrics.main() argparse 가 처리):
+        --repo=OWNER/REPO     target repo (default: ykylee/standard_ai_workflow)
+        --days=N              lookback window (1-90, default 14)
+        --json                JSON output
+
+    Exit code: 0 = success, 1 = gh CLI not authenticated, 2 = usage error.
+    """
+    try:
+        from pathlib import Path as _P
+        import importlib as _il
+        kit_dir = _P(__file__).resolve().parent
+        workflow_source_dir = kit_dir.parent
+        if str(workflow_source_dir) not in sys.path:
+            sys.path.insert(0, str(workflow_source_dir))
+        # tools/ is a package (v0.7.56+ with __init__.py) → import as module
+        mod = _il.import_module("tools.consumer_metrics")
+        # main() uses argparse.parse_args() (reads sys.argv[1:]). Patch sys.argv
+        # in-place to forward our argv. Restore on exit (incl. exceptions).
+        old_argv = sys.argv
+        try:
+            sys.argv = ["consumer_metrics", *argv]
+            return mod.main()
+        finally:
+            sys.argv = old_argv
+    except SystemExit as e:
+        # argparse / main() may call sys.exit — convert to rc
+        return e.code if isinstance(e.code, int) else 2
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+
+
+@register("cache-lfu-decay-persist")
+def cmd_cache_lfu_decay_persist(argv: list[str]) -> int:
+    """Update a single URL's LFU decay score and persist (v0.7.60+, subcommand 28).
+
+    In-process wrapper for `tools.release_pipeline_lib.cmd_lfu_decay_persist`.
+    Reads existing scores from JSON file, simulates (dry-run default) or applies
+    (with --apply) a single URL update, persists to disk.
+
+    Args:
+        --url=URL             URL key to update (required)
+        --score=FLOAT         new decay score (required)
+        --scores-path=PATH    JSON scores file (default: cache/lfu_decay_scores.json)
+        --apply               actually persist (default: dry-run)
+        --json                JSON output
+
+    Safety: default is dry-run (memory rule 5). Pass --apply to persist.
+    """
+    import json as _json
+    url = _parse_flag(argv, "--url")
+    score_s = _parse_flag(argv, "--score")
+    if not url:
+        print("ERROR: --url=URL required", file=sys.stderr)
+        return 2
+    if score_s is None:
+        print("ERROR: --score=FLOAT required", file=sys.stderr)
+        return 2
+    try:
+        score = float(score_s)
+    except ValueError:
+        print(f"ERROR: --score must be a number, got {score_s!r}", file=sys.stderr)
+        return 2
+    scores_path = _parse_flag(argv, "--scores-path") or "cache/lfu_decay_scores.json"
+    apply = _has_flag(argv, "--apply")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        import importlib as _il
+        kit_dir = _P(__file__).resolve().parent
+        workflow_source_dir = kit_dir.parent
+        if str(workflow_source_dir) not in sys.path:
+            sys.path.insert(0, str(workflow_source_dir))
+        rp_lib = _il.import_module("tools.release_pipeline_lib")
+        result = rp_lib.cmd_lfu_decay_persist(
+            url=url, score=score, scores_path=scores_path, apply=apply,
+        )
+        print(_json.dumps(result, indent=2))
+        return 0 if use_json or apply else 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

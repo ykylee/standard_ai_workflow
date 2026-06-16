@@ -225,3 +225,60 @@ def cmd_dist(*, apply: bool = False) -> dict:
     mod = _load_release_pipeline()
     args = _make_args(apply=apply, dry_run=not apply)
     return mod.cmd_dist(args)
+
+def cmd_lfu_decay_persist(
+    *,
+    url: str,
+    score: float,
+    scores_path: str,
+    apply: bool = False,
+) -> dict:
+    """Update a single URL's LFU decay score and persist to disk (v0.7.60+).
+
+    In-process wrapper around workflow_kit.cache_lfu_decay_persist.update_decay_score.
+    Dispatcher subcommand 28 (`cache-lfu-decay-persist`).
+
+    Safety: default is `dry-run` (returns the would-be updated dict without
+    writing to disk). Pass `apply=True` to actually persist. Mirrors the
+    release-bump / cache-prune / okf-cleanup destructive-on-apply pattern
+    (memory rule 5: default dry-run, --apply 명시 시에만 실제 동작).
+
+    Args:
+        url: URL key to update
+        score: new decay score (0.0-1.0)
+        scores_path: filesystem path to the JSON scores file (e.g.
+            `cache/lfu_decay_scores.json`); created if missing
+        apply: if True, actually persist the update (default dry-run)
+
+    Returns:
+        dict with `mode` (dry-run|applied), `url`, `score`, `scores_path`,
+        `scores_count` (current count after update or hypothetical).
+    """
+    from workflow_kit.cache_lfu_decay_persist import (
+        load_decay_scores,
+        save_decay_scores,
+    )
+    # Load existing (or empty) scores
+    existing = load_decay_scores(scores_path)
+    if not apply:
+        # Dry-run: simulate the update without writing
+        would_be = dict(existing)
+        would_be[url] = score
+        return {
+            "mode": "dry-run",
+            "url": url,
+            "score": score,
+            "scores_path": scores_path,
+            "scores_count": len(would_be),
+            "current_count": len(existing),
+        }
+    # Apply: actually persist
+    existing[url] = score
+    save_decay_scores(existing, scores_path)
+    return {
+        "mode": "applied",
+        "url": url,
+        "score": score,
+        "scores_path": scores_path,
+        "scores_count": len(existing),
+    }

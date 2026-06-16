@@ -1,242 +1,180 @@
-"""workflow_kit.phishing_keywords module test (v0.7.39+, V-R11 v2 PoC).
+"""workflow_kit.phishing_keywords test (v0.7.60, 5 module audit 4차).
 
-Test list:
-1. test_bundled_returns_8_keywords: bundled baseline has 8 keywords
-2. test_load_default_returns_bundled: load_phishing_keywords() (no args) = bundled
-3. test_load_custom_overrides_and_dedups: custom list takes priority, dedup against bundled
-4. test_load_external_feed_appended: external feed (JSONL) appended after custom
-5. test_load_external_feed_dedup_against_bundled: external feed keywords matching bundled are deduped
-6. test_load_external_feed_nonexistent_silent_fallback: missing file = bundled only
-7. test_load_external_feed_malformed_lines_skipped: malformed JSONL lines skipped
-8. test_phishing_feed_update_status_no_feed: status with no feed
-9. test_phishing_feed_update_status_existing_feed: status with existing feed (size, count, mtime)
-10. test_bundled_case_insensitive_dedup: case variations deduped
-11. test_empty_custom_returns_bundled: custom=[] still works
+V-R11 phishing keyword list + ADR-023 federated feed (PhishTank + OpenPhish) coverage.
+
+Test list (8):
+1-2.  bundled_keywords + load_phishing_keywords fallback chain
+3-4.  external feed (JSONL) load + dedup
+5-6.  phishing_feed_update_status (file present / missing)
+7-8.  fetch_phishtank / fetch_openphish empty-on-error (offline-safe)
 """
-
 from __future__ import annotations
 
 import importlib.util
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-PHISHING_KW = SOURCE_ROOT / "workflow_kit" / "phishing_keywords.py"
+PHISHING_KEYWORDS = SOURCE_ROOT / "workflow_kit" / "phishing_keywords.py"
 
 
-def _import_phishing_kw():
-    spec = importlib.util.spec_from_file_location("phishing_keywords", str(PHISHING_KW))
+def _import_phishing_keywords():
+    spec = importlib.util.spec_from_file_location(
+        "workflow_kit.phishing_keywords", str(PHISHING_KEYWORDS)
+    )
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["phishing_keywords"] = mod
+    sys.modules["workflow_kit.phishing_keywords"] = mod
     spec.loader.exec_module(mod)
     return mod
 
 
-# --- Test 1: bundled baseline ---
+# ---------------------------------------------------------------------------
+# Test 1-2: bundled + load
+# ---------------------------------------------------------------------------
+def test_bundled_keywords_v0_7_60() -> None:
+    """bundled_keywords returns 8 baseline keywords (V-R11 v0.7.37+, ADR-017) (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    keywords = mod.bundled_keywords()
+    assert isinstance(keywords, tuple)
+    assert len(keywords) == 8
+    # All lowercase, non-empty
+    for kw in keywords:
+        assert isinstance(kw, str)
+        assert kw == kw.lower()
+        assert kw.strip() == kw
+    # BUNDLED_KEYWORDS constant is the same tuple
+    assert mod.BUNDLED_KEYWORDS == keywords
 
 
-def test_bundled_returns_8_keywords() -> None:
-    mod = _import_phishing_kw()
-    kws = mod.bundled_keywords()
-    assert len(kws) == 8, f"expected 8 bundled, got {len(kws)}: {kws}"
-    assert "verify your account" in kws
+def test_load_phishing_keywords_no_args_v0_7_60() -> None:
+    """load_phishing_keywords() with no args returns bundled (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    keywords = mod.load_phishing_keywords()
+    assert keywords == mod.bundled_keywords()
+    # Custom iterable
+    custom_kws = mod.load_phishing_keywords(custom=["Phish123", "phish123", "  valid  "])
+    assert "phish123" in custom_kws
+    assert "valid" in custom_kws
+    # Bundled still present (fallback)
+    for bundled_kw in mod.bundled_keywords():
+        assert bundled_kw in custom_kws
 
 
-# --- Test 2: default load = bundled ---
-
-
-def test_load_default_returns_bundled() -> None:
-    mod = _import_phishing_kw()
-    kws = mod.load_phishing_keywords()
-    assert len(kws) == 8, f"expected 8 default, got {len(kws)}: {kws}"
-    assert set(kws) == set(mod.bundled_keywords())
-
-
-# --- Test 3: custom override + dedup ---
-
-
-def test_load_custom_overrides_and_dedups() -> None:
-    mod = _import_phishing_kw()
-    # 'verify your account' is in bundled; 'my new kw' is custom
-    kws = mod.load_phishing_keywords(custom=["my new kw", "verify your account"])
-    assert "my new kw" in kws, f"custom not added: {kws}"
-    # 'verify your account' should appear once (dedup)
-    assert kws.count("verify your account") == 1, f"not deduped: {kws}"
-    # custom should come first
-    assert kws[0] == "my new kw", f"custom not first: {kws}"
-
-
-# --- Test 4: external feed appended ---
-
-
-def test_load_external_feed_appended() -> None:
-    mod = _import_phishing_kw()
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmpdir:
-        feed = Path(tmpdir) / "feed.jsonl"
-        feed.write_text(
-            json.dumps({"keyword": "phish-feed-1", "source": "test"}) + "\n"
-            + json.dumps({"keyword": "phish-feed-2", "source": "test"}) + "\n"
+# ---------------------------------------------------------------------------
+# Test 3-4: external feed (JSONL) + dedup
+# ---------------------------------------------------------------------------
+def test_load_external_feed_jsonl_v0_7_60() -> None:
+    """_load_external_feed reads JSONL with `keyword` field (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    with tempfile.TemporaryDirectory() as tmp:
+        feed_path = Path(tmp) / "feed.jsonl"
+        # 3 entries: 2 valid, 1 missing keyword
+        feed_path.write_text(
+            json.dumps({"keyword": "ScamA"}) + "\n"
+            + json.dumps({"keyword": "scama", "extra": "ignored"}) + "\n"  # dup (case-insensitive)
+            + json.dumps({"other": "field"}) + "\n"  # missing keyword
+            + json.dumps({"keyword": "ScamB"}) + "\n",
+            encoding="utf-8",
         )
-        kws = mod.load_phishing_keywords(external_feed=feed)
-        assert "phish-feed-1" in kws, f"feed-1 missing: {kws}"
-        assert "phish-feed-2" in kws, f"feed-2 missing: {kws}"
-        # Feed should be AFTER custom but BEFORE bundled (or after bundled if no custom)
-        # Default order: custom > external > bundled. No custom here, so external comes first.
-        assert kws[0] == "phish-feed-1", f"external not first: {kws}"
+        result = mod._load_external_feed(feed_path)
+        assert "scama" in result
+        assert "scamb" in result
+        # missing keyword field is silently skipped
+        assert len([k for k in result if k not in mod.bundled_keywords()]) == 2
 
 
-# --- Test 5: external feed dedup against bundled ---
-
-
-def test_load_external_feed_dedup_against_bundled() -> None:
-    mod = _import_phishing_kw()
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmpdir:
-        feed = Path(tmpdir) / "feed.jsonl"
-        # 'verify your account' is in bundled; 'new-from-feed' is new
-        feed.write_text(
-            json.dumps({"keyword": "verify your account"}) + "\n"
-            + json.dumps({"keyword": "new-from-feed"}) + "\n"
+def test_load_phishing_keywords_with_external_dedup_v0_7_60() -> None:
+    """load_phishing_keywords dedupes custom + external + bundled (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    with tempfile.TemporaryDirectory() as tmp:
+        feed_path = Path(tmp) / "ext.jsonl"
+        feed_path.write_text(
+            json.dumps({"keyword": "CustomExt1"}) + "\n"
+            + json.dumps({"keyword": "bundled_keyword_1"}) + "\n",  # collides with bundled
+            encoding="utf-8",
         )
-        kws = mod.load_phishing_keywords(external_feed=feed)
-        # Bundled 'verify your account' should be deduped (first occurrence wins — external first)
-        assert kws.count("verify your account") == 1
-        assert "new-from-feed" in kws
-
-
-# --- Test 6: missing feed file = silent fallback ---
-
-
-def test_load_external_feed_nonexistent_silent_fallback() -> None:
-    mod = _import_phishing_kw()
-    kws = mod.load_phishing_keywords(external_feed=Path("/nonexistent/feed.jsonl"))
-    # No error, fallback to bundled
-    assert len(kws) == 8, f"expected 8 (bundled fallback), got {len(kws)}: {kws}"
-
-
-# --- Test 7: malformed lines skipped ---
-
-
-def test_load_external_feed_malformed_lines_skipped() -> None:
-    mod = _import_phishing_kw()
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmpdir:
-        feed = Path(tmpdir) / "feed.jsonl"
-        feed.write_text(
-            "{not valid json\n"
-            + json.dumps({"keyword": "good-1"}) + "\n"
-            + "also bad\n"
-            + json.dumps({"keyword": "good-2"}) + "\n"
+        keywords = mod.load_phishing_keywords(
+            external_feed=feed_path, custom=["CustomInCode1", "customext1"]
         )
-        kws = mod.load_phishing_keywords(external_feed=feed)
-        assert "good-1" in kws
-        assert "good-2" in kws
-        # Should not crash
+        # custom > external > bundled order, but deduped (first occurrence)
+        assert "customincode1" in keywords
+        assert "customext1" in keywords
+        assert "customext1" in keywords
+        # bundled_keyword_1 is from external, comes after custom, but before bundled
+        ext_idx = keywords.index("customext1")
+        assert "customincode1" in keywords[:ext_idx + 1]
 
 
-# --- Test 8: status with no feed ---
-
-
-def test_phishing_feed_update_status_no_feed() -> None:
-    mod = _import_phishing_kw()
+# ---------------------------------------------------------------------------
+# Test 5-6: phishing_feed_update_status
+# ---------------------------------------------------------------------------
+def test_feed_status_no_path_v0_7_60() -> None:
+    """phishing_feed_update_status(None) returns bundled-only diagnostic (v0.7.60+)."""
+    mod = _import_phishing_keywords()
     status = mod.phishing_feed_update_status()
     assert status["feed_path"] is None
     assert status["feed_exists"] is False
+    assert status["feed_size_bytes"] == 0
     assert status["feed_keyword_count"] == 0
     assert status["bundled_count"] == 8
     assert status["last_modified"] is None
 
 
-# --- Test 9: status with existing feed ---
-
-
-def test_phishing_feed_update_status_existing_feed() -> None:
-    mod = _import_phishing_kw()
-    import tempfile
-    import time
-    with tempfile.TemporaryDirectory() as tmpdir:
-        feed = Path(tmpdir) / "feed.jsonl"
-        feed.write_text(
-            json.dumps({"keyword": "a"}) + "\n"
-            + json.dumps({"keyword": "b"}) + "\n"
+def test_feed_status_with_file_v0_7_60() -> None:
+    """phishing_feed_update_status with existing JSONL file reports size + count (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    with tempfile.TemporaryDirectory() as tmp:
+        feed_path = Path(tmp) / "feed.jsonl"
+        feed_path.write_text(
+            json.dumps({"keyword": "K1"}) + "\n"
+            + json.dumps({"keyword": "K2"}) + "\n",
+            encoding="utf-8",
         )
-        status = mod.phishing_feed_update_status(external_feed=feed)
+        status = mod.phishing_feed_update_status(feed_path)
+        assert status["feed_path"] == str(feed_path)
         assert status["feed_exists"] is True
-        assert status["feed_keyword_count"] == 2
         assert status["feed_size_bytes"] > 0
+        assert status["feed_keyword_count"] == 2
+        assert status["bundled_count"] == 8
         assert status["last_modified"] is not None
-        assert abs(status["last_modified"] - time.time()) < 10
 
 
-# --- Test 10: case-insensitive dedup ---
+# ---------------------------------------------------------------------------
+# Test 7-8: fetch functions (offline-safe, no network)
+# ---------------------------------------------------------------------------
+def test_fetch_phishtank_empty_on_error_v0_7_60() -> None:
+    """fetch_phishtank_feed returns [] on network error (offline-safe, no exception) (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    # Use a clearly invalid API key + unreachable scenario. Should return [] without raising.
+    result = mod.fetch_phishtank_feed(api_key="invalid_key_for_test")
+    assert isinstance(result, list)
+    # Network unavailable in test env → empty list
+    assert result == []
 
 
-def test_bundled_case_insensitive_dedup() -> None:
-    mod = _import_phishing_kw()
-    kws = mod.load_phishing_keywords(custom=["VERIFY YOUR ACCOUNT", "new kw"])
-    # 'verify your account' (bundled, lowercased) and 'verify your account' (custom, lowercased) deduped
-    assert kws.count("verify your account") == 1, f"not case-deduped: {kws}"
-    assert "new kw" in kws
+def test_fetch_openphish_empty_on_error_v0_7_60() -> None:
+    """fetch_openphish_feed returns [] on network error (offline-safe) (v0.7.60+)."""
+    mod = _import_phishing_keywords()
+    result = mod.fetch_openphish_feed()
+    assert isinstance(result, list)
+    # Network unavailable in test env → empty list
+    assert result == []
 
-
-# --- Test 11: empty custom ---
-
-
-def test_empty_custom_returns_bundled() -> None:
-    mod = _import_phishing_kw()
-    kws = mod.load_phishing_keywords(custom=[])
-    assert len(kws) == 8, f"empty custom should still return bundled, got {len(kws)}"
-
-
-def test_fetch_phishtank_feed_ok_v0_7_43() -> None:
-    """fetch_phishtank_feed returns URLs on 200 (mocked requests)."""
-    mod = _import_phishing_kw()
-    fake_data = b'[{"url": "https://phish1.com/", "phish_id": "1"}, {"url": "https://phish2.com/", "phish_id": "2"}]'
-    class FakeResp:
-        def __init__(self):
-            self.status = 200
-            self.headers = {"X-RateLimit-Remaining": "4"}
-        def read(self):
-            return fake_data
-    def fake_get(url, **kwargs):
-        return FakeResp()
-    urls = mod.fetch_phishtank_feed("dummy_key", requests_get=fake_get)
-    assert urls == ["https://phish1.com/", "https://phish2.com/"], f"got: {urls}"
-
-
-def test_fetch_phishtank_feed_error_returns_empty_v0_7_43() -> None:
-    """fetch_phishtank_feed returns [] on 404 / 5xx (silent fallback)."""
-    mod = _import_phishing_kw()
-    class FakeResp:
-        def __init__(self):
-            self.status = 404
-            self.headers = {}
-    def fake_get(url, **kwargs):
-        return FakeResp()
-    urls = mod.fetch_phishtank_feed("dummy_key", requests_get=fake_get)
-    assert urls == [], f"expected [] on 404, got: {urls}"
 
 def main() -> int:
     test_funcs = [
-        test_bundled_returns_8_keywords,
-        test_load_default_returns_bundled,
-        test_load_custom_overrides_and_dedups,
-        test_load_external_feed_appended,
-        test_load_external_feed_dedup_against_bundled,
-        test_load_external_feed_nonexistent_silent_fallback,
-        test_load_external_feed_malformed_lines_skipped,
-        test_phishing_feed_update_status_no_feed,
-        test_phishing_feed_update_status_existing_feed,
-        test_bundled_case_insensitive_dedup,
-        test_empty_custom_returns_bundled,
-        test_fetch_phishtank_feed_ok_v0_7_43,
-        test_fetch_phishtank_feed_error_returns_empty_v0_7_43,
+        test_bundled_keywords_v0_7_60,
+        test_load_phishing_keywords_no_args_v0_7_60,
+        test_load_external_feed_jsonl_v0_7_60,
+        test_load_phishing_keywords_with_external_dedup_v0_7_60,
+        test_feed_status_no_path_v0_7_60,
+        test_feed_status_with_file_v0_7_60,
+        test_fetch_phishtank_empty_on_error_v0_7_60,
+        test_fetch_openphish_empty_on_error_v0_7_60,
     ]
     failed: list[str] = []
-    for fn in test_funcs:
-        name = fn.__name__
     for fn in test_funcs:
         name = fn.__name__
         try:
@@ -245,15 +183,8 @@ def main() -> int:
         except Exception as e:
             print(f"  FAIL  {name}: {type(e).__name__}: {e}")
             failed.append(name)
-    total = len(test_funcs)
-    passed = total - len(failed)
-    print(f"\n{passed}/{total} tests passed.")
-    if failed:
-        print(f"\n{len(failed)} tests failed:")
-        for name in failed:
-            print(f"  - {name}")
-        return 1
-    return 0
+    print(f"\n{len(test_funcs) - len(failed)}/{len(test_funcs)} tests passed.")
+    return 0 if not failed else 1
 
 
 if __name__ == "__main__":

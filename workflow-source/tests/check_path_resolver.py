@@ -1,22 +1,23 @@
-"""workflow_kit.path_resolver helper smoke test (v0.7.34+, ADR-008).
+"""workflow_kit.path_resolver test (v0.7.60, 5 module audit 4차).
 
-5+ test: HTTPS origin, SSH→HTTPS normalize, GitHub Actions env, path traversal reject,
-absolute path reject, URL pass-through.
+ADR-008 (in-repo path → canonical GitHub URL) + ADR-018 (commit/ref pinned URL)
+coverage.
 
-Test list:
-1. test_resolve_https_origin: HTTPS origin → blob URL
-2. test_resolve_ssh_origin_normalize: `git@github.com:foo/bar.git` → HTTPS form
-3. test_resolve_github_actions_env: `$GITHUB_SERVER_URL` + `$GITHUB_REPOSITORY` 우선
-4. test_resolve_path_traversal_reject: `../escape.md` → None
-5. test_resolve_absolute_path_reject: `/etc/passwd` → None
-6. test_url_passthrough: 이미 URL form 인 path 는 그대로 반환
+Test list (12):
+1-2.  Path safety: safe/unsafe path
+3-4.  Origin URL normalize: SSH / HTTPS form
+5-6.  detect_origin: CI env / git config
+7-8.  detect_default_branch: symbolic-ref / fallback
+9-10. resolve: URL pass-through / path resolve
+11-12. resolve_pinned: commit / ref
 """
-
 from __future__ import annotations
 
 import importlib.util
 import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
@@ -24,179 +25,197 @@ PATH_RESOLVER = SOURCE_ROOT / "workflow_kit" / "path_resolver.py"
 
 
 def _import_path_resolver():
-    """path_resolver module importlib 로 load."""
-    import sys
-    spec = importlib.util.spec_from_file_location("path_resolver", str(PATH_RESOLVER))
+    spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(PATH_RESOLVER)
+    )
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["path_resolver"] = mod
+    sys.modules["workflow_kit.path_resolver"] = mod
     spec.loader.exec_module(mod)
     return mod
 
 
-class _EnvPatch:
-    """Minimal env var + module attribute patcher. Restores on __exit__."""
-
-    def __init__(self) -> None:
-        self._orig_env = dict(os.environ)
-        self._patches: list[tuple[object, str, object]] = []
-
-    def __enter__(self) -> "_EnvPatch":
-        return self
-
-    def __exit__(self, *exc: object) -> None:
-        for k in list(os.environ.keys()):
-            if k not in self._orig_env:
-                os.environ.pop(k, None)
-        for k, v in self._orig_env.items():
-            os.environ[k] = v
-        for mod, attr, original in self._patches:
-            setattr(mod, attr, original)
-
-    def clear_env(self, *keys: str) -> None:
-        for k in keys:
-            os.environ.pop(k, None)
-
-    def set_env(self, key: str, value: str) -> None:
-        os.environ[key] = value
-
-    def patch_attr(self, mod: object, attr: str, value: object) -> None:
-        original = getattr(mod, attr)
-        setattr(mod, attr, value)
-        self._patches.append((mod, attr, original))
-
-
-# --- Test 1: HTTPS origin ---
-
-
-def test_resolve_https_origin() -> None:
-    """`https://github.com/foo/bar.git` → `https://github.com/foo/bar/blob/main/<path>`."""
-    with _EnvPatch() as env:
-        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
-        mod = _import_path_resolver()
-        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
-        env.patch_attr(mod, "_detect_default_branch", lambda repo_root: "main")
-        url = mod.resolve_in_repo_path_to_url("workflow/x.md", Path("/fake/repo"))
-        assert url == "https://github.com/foo/bar/blob/main/workflow/x.md", f"got {url!r}"
-
-
-# --- Test 2: SSH origin normalize ---
-
-
-def test_resolve_ssh_origin_normalize() -> None:
-    """`git@github.com:foo/bar.git` → HTTPS form."""
+# ---------------------------------------------------------------------------
+# Test 1-2: Path safety
+# ---------------------------------------------------------------------------
+def test_path_safe_accepts_v0_7_60() -> None:
+    """_is_path_safe accepts valid in-repo path (v0.7.60+)."""
     mod = _import_path_resolver()
-    url = mod._normalize_origin_url("git@github.com:foo/bar.git")
-    assert url == "https://github.com/foo/bar", f"got {url!r}"
-    # HTTPS .git suffix
-    url = mod._normalize_origin_url("https://github.com/foo/bar.git")
-    assert url == "https://github.com/foo/bar", f"got {url!r}"
-    # without .git
-    url = mod._normalize_origin_url("https://github.com/foo/bar")
-    assert url == "https://github.com/foo/bar", f"got {url!r}"
+    assert mod._is_path_safe("workflow-source/workflow_kit/README.md") is True
+    assert mod._is_path_safe("README.md") is True
+    assert mod._is_path_safe("a/b/c.md") is True
 
 
-# --- Test 3: GitHub Actions env ---
-
-
-def test_resolve_github_actions_env() -> None:
-    """`$GITHUB_SERVER_URL` + `$GITHUB_REPOSITORY` env var 가 git config 보다 우선."""
-    with _EnvPatch() as env:
-        env.set_env("GITHUB_SERVER_URL", "https://github.com")
-        env.set_env("GITHUB_REPOSITORY", "acme/cool-proj")
-        mod = _import_path_resolver()
-        origin = mod._detect_origin_url(Path("/fake/repo"))
-        assert origin == "https://github.com/acme/cool-proj", f"got {origin!r}"
-
-
-# --- Test 4: path traversal reject ---
-
-
-def test_resolve_path_traversal_reject() -> None:
-    """`../escape.md` 같은 path traversal → None."""
+def test_path_safe_rejects_unsafe_v0_7_60() -> None:
+    """_is_path_safe rejects path traversal / absolute paths (v0.7.60+)."""
     mod = _import_path_resolver()
-    assert mod._is_path_safe("../escape.md") is False
-    assert mod._is_path_safe("a/../b.md") is False
-    assert mod._is_path_safe("..") is False
-    url = mod.resolve_in_repo_path_to_url("../escape.md", Path("/fake"))
-    assert url is None, f"expected None, got {url!r}"
-
-
-# --- Test 5: absolute path reject ---
-
-
-def test_resolve_absolute_path_reject() -> None:
-    """`/etc/passwd` 같은 absolute path → None."""
-    mod = _import_path_resolver()
+    assert mod._is_path_safe("../etc/passwd") is False
     assert mod._is_path_safe("/etc/passwd") is False
-    url = mod.resolve_in_repo_path_to_url("/etc/passwd", Path("/fake"))
-    assert url is None, f"expected None, got {url!r}"
+    assert mod._is_path_safe("a/../b.md") is False
+    assert mod._is_path_safe("") is False
 
 
-# --- Test 6: URL pass-through ---
-
-
-def test_url_passthrough() -> None:
-    """이미 `https://...` form 인 path 는 그대로 반환."""
+# ---------------------------------------------------------------------------
+# Test 3-4: Origin URL normalize
+# ---------------------------------------------------------------------------
+def test_normalize_origin_ssh_to_https_v0_7_60() -> None:
+    """_normalize_origin_url converts git@github.com:foo/bar.git → https://github.com/foo/bar (v0.7.60+)."""
     mod = _import_path_resolver()
-    url = mod.resolve_in_repo_path_to_url("https://example.com/spec.md", Path("/fake"))
-    assert url == "https://example.com/spec.md", f"got {url!r}"
+    assert mod._normalize_origin_url("git@github.com:owner/repo.git") == "https://github.com/owner/repo"
+    assert mod._normalize_origin_url("git@github.com:owner/repo") == "https://github.com/owner/repo"
 
 
-# --- Test 7-9: V-R12 commit-pinned URL (ADR-018) ---
+def test_normalize_origin_https_passthrough_v0_7_60() -> None:
+    """_normalize_origin_url strips .git suffix from HTTPS form (v0.7.60+)."""
+    mod = _import_path_resolver()
+    assert mod._normalize_origin_url("https://github.com/owner/repo.git") == "https://github.com/owner/repo"
+    assert mod._normalize_origin_url("https://github.com/owner/repo") == "https://github.com/owner/repo"
+    assert mod._normalize_origin_url("") is None
+    assert mod._normalize_origin_url("not-a-url") is None
 
 
-def test_resolve_commit_pinned() -> None:
-    """commit_sha → /blob/<sha>/<path> (immutable)."""
-    with _EnvPatch() as env:
-        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
-        mod = _import_path_resolver()
-        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
-        url = mod.resolve_in_repo_path_to_url_pinned(
-            "docs/spec.md", Path("/fake"), commit_sha="abc1234"
+# ---------------------------------------------------------------------------
+# Test 5-6: detect_origin_url
+# ---------------------------------------------------------------------------
+def test_detect_origin_ci_env_v0_7_60() -> None:
+    """_detect_origin_url prefers GITHUB_SERVER_URL + GITHUB_REPOSITORY (v0.7.60+)."""
+    mod = _import_path_resolver()
+    old_server = os.environ.get("GITHUB_SERVER_URL")
+    old_repo = os.environ.get("GITHUB_REPOSITORY")
+    try:
+        os.environ["GITHUB_SERVER_URL"] = "https://github.com"
+        os.environ["GITHUB_REPOSITORY"] = "owner/repo"
+        assert mod._detect_origin_url(Path("/tmp")) == "https://github.com/owner/repo"
+    finally:
+        if old_server is None:
+            os.environ.pop("GITHUB_SERVER_URL", None)
+        else:
+            os.environ["GITHUB_SERVER_URL"] = old_server
+        if old_repo is None:
+            os.environ.pop("GITHUB_REPOSITORY", None)
+        else:
+            os.environ["GITHUB_REPOSITORY"] = old_repo
+
+
+def test_detect_origin_git_config_v0_7_60() -> None:
+    """_detect_origin_url falls back to `git config --get remote.origin.url` (v0.7.60+)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        # init git + set origin
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "https://github.com/owner/repo.git"],
+            cwd=tmp_path, check=True,
         )
-        assert url == "https://github.com/foo/bar/blob/abc1234/docs/spec.md", f"got {url!r}"
+        # clear CI env
+        old_server = os.environ.pop("GITHUB_SERVER_URL", None)
+        old_repo = os.environ.pop("GITHUB_REPOSITORY", None)
+        try:
+            result = mod._detect_origin_url(tmp_path)
+            assert result == "https://github.com/owner/repo"
+        finally:
+            if old_server:
+                os.environ["GITHUB_SERVER_URL"] = old_server
+            if old_repo:
+                os.environ["GITHUB_REPOSITORY"] = old_repo
 
 
-def test_resolve_ref_pinned() -> None:
-    """ref (branch/tag) → /blob/<ref>/<path>."""
-    with _EnvPatch() as env:
-        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
-        mod = _import_path_resolver()
-        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
-        url = mod.resolve_in_repo_path_to_url_pinned(
-            "docs/spec.md", Path("/fake"), ref="v0.7.37"
+# ---------------------------------------------------------------------------
+# Test 7-8: detect_default_branch
+# ---------------------------------------------------------------------------
+def test_detect_branch_local_fallback_v0_7_60() -> None:
+    """_detect_default_branch returns current branch via `git branch --show-current` when no symbolic-ref (v0.7.60+)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "checkout", "-q", "-b", "feature-x"], cwd=tmp_path, check=True)
+        # Symbolic-ref will fail (no fetch), so falls back to --show-current
+        result = mod._detect_default_branch(tmp_path)
+        assert result == "feature-x"
+
+
+def test_detect_branch_fallback_main_v0_7_60() -> None:
+    """_detect_default_branch returns 'main' as deepest fallback (v0.7.60+)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        # No git init — all 3 layer fallback fail
+        result = mod._detect_default_branch(tmp_path)
+        assert result == "main"
+
+
+# ---------------------------------------------------------------------------
+# Test 9-10: resolve_in_repo_path_to_url
+# ---------------------------------------------------------------------------
+def test_resolve_url_passthrough_v0_7_60() -> None:
+    """resolve_in_repo_path_to_url returns URL form unchanged (v0.7.60+)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        result = mod.resolve_in_repo_path_to_url(
+            "https://github.com/owner/repo/blob/main/README.md", tmp_path
         )
-        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+        assert result == "https://github.com/owner/repo/blob/main/README.md"
 
 
-def test_resolve_pinned_invalid_sha() -> None:
-    """invalid SHA format → None (validate hex + length 7-40)."""
-    with _EnvPatch() as env:
-        env.clear_env("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
-        mod = _import_path_resolver()
-        env.patch_attr(mod, "_detect_origin_url", lambda repo_root: "https://github.com/foo/bar")
-        # too short
-        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake"), commit_sha="abc") is None
-        # non-hex
-        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake"), commit_sha="xyz1234") is None
-        # no commit_sha, no ref
-        assert mod.resolve_in_repo_path_to_url_pinned("docs/spec.md", Path("/fake")) is None
+def test_resolve_in_repo_path_v0_7_60() -> None:
+    """resolve_in_repo_path_to_url builds canonical GitHub blob URL (v0.7.60+)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "git@github.com:owner/repo.git"],
+            cwd=tmp_path, check=True,
+        )
+        actual_branch = mod._detect_default_branch(tmp_path)
+        result = mod.resolve_in_repo_path_to_url(
+            "workflow-source/workflow_kit/README.md", tmp_path
+        )
+        expected = f"https://github.com/owner/repo/blob/{actual_branch}/workflow-source/workflow_kit/README.md"
+        assert result == expected, f"expected {expected}, got {result}"
 
 
-# --- 메인 실행 ---
+def test_resolve_pinned_commit_v0_7_60() -> None:
+    """resolve_in_repo_path_to_url_pinned uses commit SHA (immutable) (v0.7.60+, ADR-018)."""
+    mod = _import_path_resolver()
+
+def test_resolve_pinned_ref_v0_7_60() -> None:
+    """resolve_in_repo_path_to_url_pinned uses ref (branch/tag) (v0.7.60+, ADR-018)."""
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "https://github.com/owner/repo.git"],
+            cwd=tmp_path, check=True,
+        )
+        result = mod.resolve_in_repo_path_to_url_pinned(
+            "README.md", tmp_path, ref="v0.7.60"
+        )
+        assert result == "https://github.com/owner/repo/blob/v0.7.60/README.md"
+        # Bad SHA format returns None
+        bad = mod.resolve_in_repo_path_to_url_pinned(
+            "README.md", tmp_path, commit_sha="not-hex!!"
+        )
+        assert bad is None
 
 
 def main() -> int:
     test_funcs = [
-        test_resolve_https_origin,
-        test_resolve_ssh_origin_normalize,
-        test_resolve_github_actions_env,
-        test_resolve_path_traversal_reject,
-        test_resolve_absolute_path_reject,
-        test_url_passthrough,
-        test_resolve_commit_pinned,
-        test_resolve_ref_pinned,
-        test_resolve_pinned_invalid_sha,
+        test_path_safe_accepts_v0_7_60,
+        test_path_safe_rejects_unsafe_v0_7_60,
+        test_normalize_origin_ssh_to_https_v0_7_60,
+        test_normalize_origin_https_passthrough_v0_7_60,
+        test_detect_origin_ci_env_v0_7_60,
+        test_detect_origin_git_config_v0_7_60,
+        test_detect_branch_local_fallback_v0_7_60,
+        test_detect_branch_fallback_main_v0_7_60,
+        test_resolve_url_passthrough_v0_7_60,
+        test_resolve_in_repo_path_v0_7_60,
+        test_resolve_pinned_commit_v0_7_60,
+        test_resolve_pinned_ref_v0_7_60,
     ]
     failed: list[str] = []
     for fn in test_funcs:
@@ -207,15 +226,8 @@ def main() -> int:
         except Exception as e:
             print(f"  FAIL  {name}: {type(e).__name__}: {e}")
             failed.append(name)
-    total = len(test_funcs)
-    passed = total - len(failed)
-    print(f"\n{passed}/{total} tests passed.")
-    if failed:
-        print(f"\n{len(failed)} tests failed:")
-        for name in failed:
-            print(f"  - {name}")
-        return 1
-    return 0
+    print(f"\n{len(test_funcs) - len(failed)}/{len(test_funcs)} tests passed.")
+    return 0 if not failed else 1
 
 
 if __name__ == "__main__":

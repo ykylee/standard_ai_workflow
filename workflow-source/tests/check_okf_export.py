@@ -475,8 +475,50 @@ def test_vcs_commit_emits_pinned_url() -> None:
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
 
+def test_per_page_frontmatter_vcs_commit() -> None:
+    """per-page frontmatter `vcs_commit` field → commit-pinned URL emit (ADR-018 follow-up)."""
+    import importlib.util
+    import sys
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda path, root: (
+        "https://github.com/foo/bar/blob/main/" + path
+    )
+    pr.resolve_in_repo_path_to_url_pinned = lambda path, root, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref}/" + path
+    )
+    mod = _import_okf_export()
+    try:
+        # parse frontmatter with vcs_commit field
+        text = (
+            "---\n"
+            "type: concept\n"
+            "status: active\n"
+            "last_ingested_from: workflow-source/docs/spec.md\n"
+            "vcs_commit: deadbeef\n"
+            "---\n\n"
+            "# Title\n\nbody\n"
+        )
+        fm = mod.Frontmatter.parse(text)
+        assert fm.vcs_commit == "deadbeef", f"vcs_commit parse failed: {fm.vcs_commit!r}"
+        # call _derive_resource with fm.vcs_commit (per-page frontmatter precedence)
+        url = mod._derive_resource(
+            fm.last_ingested_from, repo_root=Path("/fake"), vcs_commit=fm.vcs_commit,
+        )
+        assert url == "https://github.com/foo/bar/blob/deadbeef/workflow-source/docs/spec.md", (
+            f"got {url!r}"
+        )
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
-# --- 메인 실행 ---
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -490,8 +532,10 @@ def main() -> int:
         test_okf_bundle_directory_layout,
         test_okf_bundle_root_index_md_emit,
         test_vcs_commit_emits_pinned_url,
+        test_per_page_frontmatter_vcs_commit,
     ]
     failed: list[str] = []
+
 
     for fn in test_funcs:
         name = fn.__name__

@@ -88,9 +88,10 @@ class Frontmatter:
     related_pages: tuple[str, ...]
     tags: tuple[str, ...]
     adr_id: str | None
+    vcs_commit: str | None  # ADR-018/019: per-page commit SHA for pinned URL
+    vcs_ref: str | None    # ADR-018: per-page ref (branch/tag) for ref-pinned URL
     r9_skip: bool
     raw: dict[str, object] = field(default_factory=dict)
-
     @classmethod
     def parse(cls, text: str) -> "Frontmatter":
         """Parse wiki frontmatter block. Raises InvalidFrontmatterError on missing `type`."""
@@ -121,6 +122,8 @@ class Frontmatter:
             related_pages=tuple(_as_str_list(raw.get("related_pages"))),
             tags=tuple(_as_str_list(raw.get("tags"))),
             adr_id=str(raw.get("adr_id", "")).strip() or None,
+            vcs_commit=str(raw.get("vcs_commit", "")).strip() or None,
+            vcs_ref=str(raw.get("vcs_ref", "")).strip() or None,
             r9_skip=bool(raw.get("r9_skip", False)),
             raw=raw,
         )
@@ -359,9 +362,11 @@ def map_frontmatter_to_okf(
 ) -> OkfMapping:
     """wiki Frontmatter → OKF frontmatter (SPEC.md §4.1) + body suffix (Citations §8).
 
+    vcs_commit/vcs_ref priority: explicit kwarg > frontmatter field. Per-page
+    frontmatter `vcs_commit` field override site-wide CLI (ADR-018 follow-up).
+
+
     Field ordering follows SPEC.md §4.1 권장 priority:
-        type (required) → title → description → resource → tags → timestamp
-        (wiki native extensions after: created, status, related_pages, adr_id, r9_skip, last_ingested_from)
     """
     okf: dict[str, object] = {}
 
@@ -385,7 +390,10 @@ def map_frontmatter_to_okf(
     elif body_description:
         okf["description"] = body_description
     # 3. resource — URL last_ingested_from 만 매핑
-    resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref)
+    # vcs_commit priority: kwarg > frontmatter field
+    effective_vcs_commit = vcs_commit if vcs_commit else frontmatter.vcs_commit
+    effective_vcs_ref = vcs_ref if vcs_ref else frontmatter.vcs_ref
+    resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve, vcs_commit=effective_vcs_commit, vcs_ref=effective_vcs_ref)
     if resource:
         okf["resource"] = resource
 

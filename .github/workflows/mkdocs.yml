@@ -1,0 +1,60 @@
+name: mkdocs
+# Build mkdocs site on push to main, deploy to gh-pages branch.
+# v0.7.53+ — public-facing consumer guide + reference (OKF_CONSUMER_GUIDE / QUICKSTART).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/mkdocs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mkdocs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install mkdocs + material
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mkdocs>=1.5" "mkdocs-material>=9.4"
+
+      - name: Build
+        # NOTE: --strict is OFF for v0.7.53 launch — many cross-links between
+        # docs/*.md and ai-workflow/wiki/*.md exist but wiki/*.md is not in
+        # mkdocs docs_dir. Follow-up: move wiki pages to docs/wiki/ or configure
+        # mkdocs-multirepo. For now, lenient build + manual link audit on PR.
+        run: mkdocs build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

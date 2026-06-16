@@ -1,0 +1,56 @@
+site_name: standard-ai-workflow
+site_description: Open Knowledge Format (OKF) consumer guide + workflow_kit reference
+site_url: https://ykylee.github.io/standard_ai_workflow/
+repo_url: https://github.com/ykylee/standard_ai_workflow
+repo_name: ykylee/standard_ai_workflow
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - search.suggest
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Consumer Quickstart (5 min): OKF_CONSUMER_QUICKSTART.md
+  - Consumer Guide (full): OKF_CONSUMER_GUIDE.md
+  - Project Profile: PROJECT_PROFILE.md
+  - Code Index: CODE_INDEX.md
+  - Document Index: DOCUMENT_INDEX.md
+  - Installation & Usage: INSTALLATION_AND_USAGE.md
+  - Release Notes: RELEASE.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - footnotes
+
+plugins:
+  - search
+
+extra:
+  generator: false

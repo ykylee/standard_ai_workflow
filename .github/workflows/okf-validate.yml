@@ -1,0 +1,171 @@
+name: okf-validate
+
+# OKF v0.1 sample bundle validation (ADR-006/008/010/012/013)
+# V-R10 URL validity lint with --online (HEAD) + --cache (24h disk cache)
+# GITHUB_TOKEN 자동 사용 (rate limit 5000 req/h, unauth 60 req/h)
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "ai-workflow/wiki/**"
+      - "docs/samples/okf-bundle-2026-06-16/**"
+      - "workflow-source/workflow_kit/url_validity.py"
+      - "workflow-source/workflow_kit/okf_export.py"
+      - ".github/workflows/okf-validate.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "ai-workflow/wiki/**"
+      - "docs/samples/okf-bundle-2026-06-16/**"
+  schedule:
+    # weekly cron (Sunday 03:00 UTC = ~KR 시간 12:00 낮)
+    - cron: "0 3 * * 0"
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  okf-online-validation:
+    name: V-R10 online URL validation (with cache)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          # workflow_kit 은 stdlib only — no extra deps
+          python3 -c "import urllib.request; print('urllib OK')"
+
+      - name: Extract URLs from wiki frontmatter (resource, last_ingested_from)
+        id: extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls_file="$RUNNER_TEMP/urls.txt"
+          : > "$urls_file"
+          # extract `resource:` URL from wiki frontmatter
+          grep -rEho "resource: ['\"]?https?://[^ '\"]+" ai-workflow/wiki/ 2>/dev/null \
+            | sed -E "s/^resource: ['\"]?//" >> "$urls_file" || true
+          # extract `last_ingested_from:` URL (URL only, skip in-repo paths)
+          grep -rEho "last_ingested_from: ['\"]?https?://[^ '\"]+" ai-workflow/wiki/ 2>/dev/null \
+            | sed -E "s/^last_ingested_from: ['\"]?//" >> "$urls_file" || true
+          # sample bundle
+          grep -rEho "resource: ['\"]?https?://[^ '\"]+" docs/samples/okf-bundle-2026-06-16/ 2>/dev/null \
+            | sed -E "s/^resource: ['\"]?//" >> "$urls_file" || true
+          sort -u "$urls_file" -o "$urls_file"
+          url_count=$(wc -l < "$urls_file")
+          echo "url_count=$url_count" >> "$GITHUB_OUTPUT"
+          echo "Extracted $url_count unique URLs"
+          if [ "$url_count" -eq 0 ]; then
+            echo "WARN: no URLs found to validate"
+          fi
+          cat "$urls_file" | head -20
+
+      - name: V-R10 offline + online + cache (24h)
+        if: steps.extract.outputs.url_count > 0
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          urls_file="$RUNNER_TEMP/urls.txt"
+          cache_dir="$RUNNER_TEMP/url_validity_cache"
+          mkdir -p "$cache_dir"
+          failed=0
+          echo "::group::V-R10 offline + online + cache validation"
+          # Build CLI args file
+          args_file="$RUNNER_TEMP/args.txt"
+          : > "$args_file"
+          while IFS= read -r url; do
+            [ -n "$url" ] && echo "$url" >> "$args_file"
+          done < "$urls_file"
+          xargs -a "$args_file" python3 -m workflow_kit.url_validity \
+            --mode=strict --online --cache \
+            --ttl 86400 --timeout 10 --max-retries 3 \
+            | tee "$RUNNER_TEMP/okf-validate.log"
+          rc=${PIPESTATUS[0]}
+          echo "::endgroup::"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::V-R10 online validation found issues (exit $rc)"
+            failed=1
+          fi
+
+          # cache stats
+          echo "::group::Cache stats"
+          python3 -m workflow_kit.url_validity --cache-stats
+          echo "::endgroup::"
+
+          # post summary
+          {
+            echo "## V-R10 Online Validation"
+            echo
+            echo "- URLs checked: $(wc -l < $urls_file)"
+            echo "- Cache: 24h TTL at \`$cache_dir\`"
+            echo "- Mode: strict + online + cache"
+            if [ "$failed" -ne 0 ]; then
+              echo "- Result: ❌ FAIL"
+            else
+              echo "- Result: ✅ PASS"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$failed"
+
+      - name: V-R10 v0.7.36 cache clear (cleanup)
+        if: always()
+        shell: bash
+        run: |
+          # CI cache cleanup (PR마다 fresh cache 유지)
+          rm -rf "$RUNNER_TEMP/url_validity_cache" || true
+          echo "Cache cleaned up"
+
+  okf-export-smoke:
+    name: OKF export + 5-page PoC re-export
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: OKF export smoke (5 pages, strict mode)
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -euo pipefail
+          out="/tmp/okf_poc"
+          rm -rf "$out"
+          python3 -m workflow_kit.okf_export \
+            --wiki ai-workflow/wiki \
+            --out "$out" \
+            --include okf-open-knowledge-format \
+            --include adr-001-3-layer-separation \
+            --include workflow-kit \
+            --include r4-anchor-index \
+            --include wiki-source-rule-r9
+          # verify bundle root index.md has okf_version
+          if ! grep -q 'okf_version: "0.1"' "$out/index.md"; then
+            echo "::error::bundle root index.md missing okf_version field"
+            exit 1
+          fi
+          echo "OKF export smoke PASS"
+      - name: OKF export unit tests (10/10)
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          python3 workflow-source/tests/check_okf_export.py

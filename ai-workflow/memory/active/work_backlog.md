@@ -195,3 +195,11 @@
 - **scope**: `archive_stale_memory.py` (~180 line: 3 helper + 2 subcommand + argparse flags) + 1 신규 test file (10 smoke, 10/10 PASS, 5-run stable)
 - **정공법**: log rotation (line > 10000 → gzip + truncate) + metrics aggregation (weekly/monthly/daily/all + ISO 8601 week) + `--include-rotated` flag (dedup with main log).
 
+
+## v0.7.33 (2026-06-16) — TASK-V0733-001 + TASK-V0734-001 (Atomic Rotation + Yearly Aggregation)
+
+- **commit**: TBD
+- **status**: in-flight
+- **scope**: `archive_stale_memory.py` (~55 line: 3-step atomic rotation + yearly period) + 1 신규 test file (10 smoke, 10/10 PASS, 5-run stable) + 1 v0.7.32 test fix (`yearly` → `decade`)
+- **정공법**: 3-step atomic rotation (temp file + os.replace + truncate + cleanup-on-fail) + ISO 8601 year (`%Y`) aggregation. *crash safety* 의 *3-축* (step 1 write temp, step 2 atomic rename, step 3 truncate) + *post-recovery* dedup 가능.
+

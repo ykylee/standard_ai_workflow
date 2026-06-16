@@ -354,6 +354,17 @@ LOG_ROTATE_LINE_THRESHOLD = 10000  # 10K line 초과 시 rotate
 def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_LINE_THRESHOLD) -> dict:
     """metrics log 의 line 수 > threshold 시 gzip + rotate.
 
+    v0.7.33 (TASK-V0733-001) atomic rotation:
+    1. *temp file* 에 gzip write (e.g. `archive_stale_memory.log.2026-06-15T13-00-00Z.gz.tmp`)
+    2. `os.replace(temp, archive_path)` (atomic on POSIX/NTFS)
+    3. `os.truncate(log_path, 0)` (main log truncate)
+
+    *crash safety*:
+    - step 1 mid-crash → *temp file* 만 partial. *main log* (full) + *archive* (없음) — *main full* 보존.
+    - step 2 mid-crash → `os.replace` 가 atomic — *archive* (full) + *main log* (full) — *둘 다* 보존.
+    - step 3 mid-crash → *main log* 의 *truncate 미완* — archive (full) + main log (full) — *둘 다* 보존 (main log 의 *중복* entry 가능, *post-recovery* 에 *dedup* 필요).
+    - *post-rotation* 의 *정상* 결과: archive (full) + main log (empty).
+
     Args:
         memory_dir: REPO_ROOT / "ai-workflow" / "memory".
         line_threshold: rotate trigger. default 10000 line.
@@ -363,6 +374,7 @@ def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_L
         archive_path (str | None), archive_size_bytes (int | None).
     """
     import gzip
+    import os
     import shutil
 
     log_path = memory_dir / METRICS_LOG_NAME
@@ -375,14 +387,29 @@ def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_L
     if line_count <= line_threshold:
         return {"rotated": False, "line_count": line_count, "threshold": line_threshold,
                 "archive_path": None, "archive_size_bytes": None}
-    # rotate: archive_stale_memory.log.2026-06-15T13-00-00Z.gz
+    # atomic rotation: 3-step (TASK-V0733-001)
     timestamp = dt.datetime.now(tz=dt.timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
     archive_path = memory_dir / f"{METRICS_LOG_NAME}.{timestamp}.gz"
-    with log_path.open("rb") as f_in, gzip.open(archive_path, "wb") as f_out:
-        shutil.copyfileobj(f_in, f_out)
-    archive_size = archive_path.stat().st_size
-    # truncate log
-    log_path.write_text("", encoding="utf-8")
+    temp_path = archive_path.with_suffix(archive_path.suffix + ".tmp")
+    try:
+        # step 1: temp file 에 gzip write
+        with log_path.open("rb") as f_in, gzip.open(temp_path, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        # step 2: os.replace (atomic rename — POSIX/NTFS 보장)
+        os.replace(temp_path, archive_path)
+        # step 3: main log truncate
+        with log_path.open("r+b") as f:
+            f.truncate(0)
+        archive_size = archive_path.stat().st_size
+    except (OSError, IOError, gzip.BadGzipFile):
+        # cleanup temp file (best-effort)
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except (OSError, IOError):
+            pass
+        return {"rotated": False, "line_count": line_count, "threshold": line_threshold,
+                "archive_path": None, "archive_size_bytes": None, "error": "rotation-failed"}
     return {
         "rotated": True,
         "line_count": line_count,
@@ -490,6 +517,9 @@ def aggregate_metrics(entries: list[dict], *, period: str = "weekly") -> dict:
             return f"{iso.year}-W{iso.week:02d}"
         elif period == "monthly":
             return ts.strftime("%Y-%m")
+        elif period == "yearly":
+            # v0.7.33 (TASK-V0734-001): ISO 8601 year
+            return ts.strftime("%Y")
         return "unknown"
 
     bucket_data: dict[str, list[dict]] = defaultdict(list)
@@ -531,7 +561,7 @@ def cmd_aggregate_metrics(args: argparse.Namespace) -> dict:
     if not memory_dir.exists():
         return {"ok": False, "error": f"memory dir not found: {memory_dir}"}
     period = getattr(args, "aggregate", "weekly")
-    if period not in ("daily", "weekly", "monthly", "all"):
+    if period not in ("daily", "weekly", "monthly", "yearly", "all"):
         return {"ok": False, "error": f"invalid --aggregate: {period} (expected: daily|weekly|monthly|all)"}
     entries = read_metrics_log(memory_dir)
     included_rotated = 0

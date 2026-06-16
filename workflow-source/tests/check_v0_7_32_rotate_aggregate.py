@@ -367,7 +367,7 @@ def test_aggregate_invalid_period() -> bool:
     """invalid --aggregate (e.g. 'yearly') → ok=False, error message."""
     with tempfile.TemporaryDirectory() as tmp:
         repo_root = _make_repo_root(tmp)
-        args = _make_args(aggregate="yearly", repo_root=str(repo_root))
+        args = _make_args(aggregate="decade", repo_root=str(repo_root))
         result = cmd_aggregate_metrics(args)
         if result.get("ok") is not False:
             print(f"  FAIL: expected ok=False, got {result}")

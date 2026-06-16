@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-020
 decided_at: 2026-06-16
-alternatives_considered: [semantic-only, hash-only, range-only, external-service-only, manual-review]
+accepted_in: v0.7.41 (release note: workflow-source/releases/Beta-v0.7.41.md)
 related_pages: [concepts/v-r13-semantic-url-verification, concepts/v-r13-implementation, decisions/adr-018-v-r12-commit-pinned-url, decisions/adr-019-v-r13-semantic-url-verification, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, concepts/okf-open-knowledge-format]
 created: 2026-06-16
 updated: 2026-06-16
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16, v0.7.39 PoC draft). 본 ADR 은 ADR-019 의 *convention* 을 *executable code* 로 점진 구현. ADR-019 §3 Decision 의 8 semantic check + 2 layer (`?hash=sha256:...` + `?range=A..B`) 의 *convention* 은 v0.7.38 에서 formal acceptance, 본 ADR-020 은 PoC 단계의 *executable implementation* 의 정공법.
+**Accepted** (2026-06-16, v0.7.41). 본 ADR 은 ADR-019 의 *convention* 을 *executable code* 로 점진 구현. ADR-019 §3 Decision 의 8 semantic check + 2 layer (`?hash=sha256:...` + `?range=A..B`) 의 *convention* 은 v0.7.38 에서 formal acceptance, 본 ADR-020 은 PoC 단계의 *executable implementation* 의 정공법.
 
-본 PoC 의 4 positive / 2 negative / 1 neutral 정공법. ADR-020 acceptance 는 v0.7.39 의 PoC 검증 + 1 release 주기 의 운영 evidence 후 별도 turn 에서 status `proposed` → `accepted`.
+v0.7.41 release 시점의 evidence: 8/8 check executable (v0.7.40 full implementation — checks 3/4/6/7 via HEAD + check 5 via GitHub API) + 18 unit tests + 2 layer query param parsing + CLI flag wiring. ADR-019 convention 의 *executable* 정공법.
 
 ## Context
 
@@ -145,4 +145,4 @@ ADR-019 convention 만, *runtime check* 없음. 장점: 0 implementation cost. �
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-019 convention 의 executable implementation PoC. 6/8 check + 2/8 stub + 2 layer query param parsing. 5 alternatives (semantic-only, hash-only, range-only, external-service, manual). 4 positive / 2 negative / 1 neutral 정공법. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `accepted`.** `accepted_in: v0.7.41` + 본 release 시점의 evidence (8/8 check executable via v0.7.40 full implementation + 18 unit tests + 2 layer query param parsing + CLI flag wiring). release note (Beta-v0.7.41.md) + revision log entry 동시 release. `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

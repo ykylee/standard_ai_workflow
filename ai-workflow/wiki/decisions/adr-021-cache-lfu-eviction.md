@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-021
 decided_at: 2026-06-16
-alternatives_considered: [pure-lru, pure-lfu, arc-adaptive, no-eviction, fifo]
+accepted_in: v0.7.41 (release note: workflow-source/releases/Beta-v0.7.41.md)
 related_pages: [concepts/cache-lfu-eviction, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-015-v-r10-v3-file-lock, decisions/adr-016-gha-actions-cache, concepts/v-r10-url-validity-lint, patterns/wiki-stub-emit]
 created: 2026-06-16
 updated: 2026-06-16
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16, v0.7.40 formal ADR). 본 ADR 은 ADR-014 (LRU cache cap) 의 *frequency 차원* follow-up + v0.7.39 의 *PoC implementation* 의 *formal documentation*. ADR-014 의 *LRU-only* 의 limitation (frequency-blind) 을 *mixed* strategy 로 보강. v0.7.39 release 시점에 *code-side* 구현 완료 (EvictionStrategy literal + access_count + 2 tests). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
+**Accepted** (2026-06-16, v0.7.41). 본 ADR 은 ADR-014 (LRU cache cap) 의 *frequency 차원* follow-up + v0.7.39 의 *PoC implementation* 의 *formal documentation*. ADR-014 의 *LRU-only* 의 limitation (frequency-blind) 을 *mixed* strategy 로 보강. v0.7.39 release 시점에 *code-side* 구현 완료 (EvictionStrategy literal + access_count + 2 tests). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
 
-본 ADR acceptance 는 v0.7.40 release note + 1 release 주기 의 운영 evidence 후 별도 turn 에서 status `proposed` → `accepted`.
+v0.7.41 release 시점의 evidence: EvictionStrategy = Literal['lru', 'lfu', 'mixed'] (default 'mixed') + CacheEntry.access_count field + _save_cache/load_cache round-trip + check_url_with_cache hit increment + 2 unit tests + backward compat (v0.7.38 cache load). ADR-014 의 *frequency 차원* 보강의 *formal documentation* 정공법.
 
 ## Context
 
@@ -137,4 +137,4 @@ insertion order 만. 장점: simplest. 단점: *recency* + *frequency* 모두 �
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-014 (LRU) 의 *frequency 차원* follow-up. v0.7.39 PoC 의 *formal documentation*. 5 alternatives + 4 positive / 2 negative / 1 neutral. 3 mode (lru/lfu/mixed) + access_count field + backward compat (v0.7.38 cache load). | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `accepted`.** `accepted_in: v0.7.41` + 본 release 시점의 evidence (EvictionStrategy literal + access_count field + _save_cache/_load_cache round-trip + check_url_with_cache hit increment + 2 unit tests + v0.7.38 cache load backward compat). release note (Beta-v0.7.41.md) + revision log entry 동시 release. `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

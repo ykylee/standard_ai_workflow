@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-020 (proposed, v0.7.39 PoC)
-related_pages: [concepts/v-r13-semantic-url-verification, decisions/adr-019-v-r13-semantic-url-verification, decisions/adr-020-v-r13-implementation, decisions/adr-018-v-r12-commit-pinned-url, decisions/adr-010-v-r10-url-validity-lint, concepts/okf-open-knowledge-format]
+verification_status: accepted_via_adr-020 (v0.7.41, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -24,7 +23,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-020 (PoC 단계) 와 동시 promote (v0.7.39 PoC, 2026-06-16). 본 concept 의 *PoC implementation* 의 *rule definition* — *convention* 의 *runtime enforcement* 의 *operational 정공법*. |
+| 1 | status | **accepted** — ADR-020 (PoC 단계) 와 동시 promote (v0.7.39 PoC → v0.7.40 full 8/8 → v0.7.41 formal acceptance, 2026-06-16). 본 concept 의 *PoC implementation* 의 *rule definition* — *convention* 의 *runtime enforcement* 의 *operational 정공법* (gradual rollout). |
 | 2 | PoC scope | 6 of 8 check 의 executable + 2 of 8 check 의 stub (WARN return). 2 layer (path + `?hash=` + `?range=`) 의 query param parsing. |
 | 3 | carrier | per-page `?hash=sha256:...` 의 URL-form emission (V-R12 layer 1) + per-bundle `okf-bundle.yaml` 의 `integrity_hash` 의 manifest-form. |
 | 4 | upstream | ADR-019 (convention) + ADR-018 (commit SHA pinning) + ADR-017 (body audit) + ADR-011 (OKF version). |
@@ -126,4 +125,4 @@ URL form:
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-020 (proposed) 와 동시. 8 check 의 PoC status (6 executable + 2 stub) + 2 layer parsing + mode matrix (fast/medium/strict) + gradual rollout (Phase 1-4). 11 section + 1차 출처 6 종 (ADR-018/019/020 + V-R10 + V-R11 + V-R12). | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `active` + ADR-020 `proposed` → `accepted`.** 본 release 시점의 evidence (8/8 check executable via v0.7.40 full implementation + 18 unit tests + 2 layer query param parsing + CLI flag wiring). `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

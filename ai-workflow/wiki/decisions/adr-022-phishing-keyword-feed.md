@@ -1,9 +1,9 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-022
 decided_at: 2026-06-16
-alternatives_considered: [bundled-only, external-feed, vendor-api, manual-list, no-keyword-check]
+accepted_in: v0.7.41 (release note: workflow-source/releases/Beta-v0.7.41.md)
 related_pages: [concepts/phishing-keyword-feed, decisions/adr-017-v-r11-body-audit, concepts/v-r11-body-audit, decisions/adr-010-v-r10-url-validity-lint, concepts/v-r10-url-validity-lint, concepts/okf-open-knowledge-format]
 created: 2026-06-16
 updated: 2026-06-16
@@ -14,9 +14,9 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16, v0.7.40 formal ADR). 본 ADR 은 ADR-017 (V-R11 body audit) 의 *phishing keyword source* 의 *follow-up*. v0.7.37 의 *bundled-only* 의 limitation (stale keyword list) 을 *external feed* (PhishTank-style) 으로 보강. v0.7.39 release 시점에 *code-side* 구현 완료 (phishing_keywords module + 11 tests). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
+**Accepted** (2026-06-16, v0.7.41). 본 ADR 은 ADR-017 (V-R11 body audit) 의 *phishing keyword source* 의 *follow-up*. v0.7.37 의 *bundled-only* 의 limitation (stale keyword list) 을 *external feed* (PhishTank-style) 으로 보강. v0.7.39 release 시점에 *code-side* 구현 완료 (phishing_keywords module + 11 tests). 본 ADR 은 그 *code-side* 의 *formal documentation* 의 *rule-side*.
 
-본 ADR acceptance 는 v0.7.40 release note + 1 release 주기 의 운영 evidence 후 별도 turn 에서 status `proposed` → `accepted`.
+v0.7.41 release 시점의 evidence: phishing_keywords module (4.9 KB) + BUNDLED_KEYWORDS (8 baseline) + load_phishing_keywords(custom, external_feed) 3-layer fallback chain + case-insensitive dedup + silent fallback (missing file / malformed JSONL) + 11 unit tests. ADR-017 의 *phishing keyword source* 의 *external feed* 보강의 *formal documentation* 정공법.
 
 ## Context
 
@@ -158,4 +158,4 @@ phishing keyword check 자체를 제거. 장점: 0 implementation. 단점: V-R11
 
 | Date | Version | Change | Author |
 |---|---|---|---|
-| 2026-06-16 | 0.1.0 | 초안. ADR-017 (bundled) 의 *external feed* follow-up. v0.7.39 PoC 의 *formal documentation*. 5 alternatives + 4 positive / 2 negative / 1 neutral. 3-layer fallback chain (custom > external > bundled) + case-insensitive dedup + silent fallback. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `accepted`.** `accepted_in: v0.7.41` + 본 release 시점의 evidence (phishing_keywords module + BUNDLED_KEYWORDS + load_phishing_keywords 3-layer fallback chain + case-insensitive dedup + silent fallback + 11 unit tests). release note (Beta-v0.7.41.md) + revision log entry 동시 release. `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

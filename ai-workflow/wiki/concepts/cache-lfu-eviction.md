@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-021 (proposed, v0.7.40 formal)
-related_pages: [decisions/adr-021-cache-lfu-eviction, decisions/adr-013-v-r10-v2-cache, decisions/adr-014-v-r10-v3-cache-lru, decisions/adr-015-v-r10-v3-file-lock, decisions/adr-016-gha-actions-cache, concepts/v-r10-url-validity-lint, concepts/v-r11-body-audit]
+verification_status: accepted_via_adr-021 (v0.7.41, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -24,7 +23,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-021 와 동시 promote (v0.7.40 formal documentation, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.39 PoC) 의 *formal documentation*. |
+| 1 | status | **accepted** — ADR-021 와 동시 promote (v0.7.41 formal acceptance, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.39 PoC) 의 *formal documentation* (v0.7.40 ADR + v0.7.41 acceptance). |
 | 2 | EvictionStrategy | Literal['lru', 'lfu', 'mixed']. default `'mixed'` (LFU primary + LRU tie). |
 | 3 | access_count | `CacheEntry.access_count: int = 0`. cache hit 시 increment. |
 | 4 | sort key | `(access_count, timestamp)` for `lfu`/`mixed`. `(0, timestamp)` for `lru` (backward compat). |
@@ -126,3 +125,10 @@ updated: 2026-06-16
 - [decisions/adr-021-cache-lfu-eviction.md](../decisions/adr-021-cache-lfu-eviction.md) — 본 concept 의 *formal documentation*
 - [decisions/adr-014-v-r10-v3-cache-lru.md](../decisions/adr-014-v-r10-v3-cache-lru.md) — LRU 의 *prerequisite*
 - [decisions/adr-013-v-r10-v2-cache.md](../decisions/adr-013-v-r10-v2-cache.md) — cache 의 *prerequisite*
+
+## §10. Revision Log
+
+| Date | Version | Change | Author |
+|---|---|---|---|
+| 2026-06-16 | 0.1.0 | 초안. ADR-021 (proposed) 와 동시. 9 section + 6 primary sources. access_count lifecycle + 3 mode + gradual rollout (Phase 1-5). | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `active` + ADR-021 `proposed` → `accepted`.** 본 release 시점의 evidence (EvictionStrategy literal + access_count field + _save_cache/_load_cache round-trip + check_url_with_cache hit increment + 2 unit tests + v0.7.38 cache load backward compat). `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

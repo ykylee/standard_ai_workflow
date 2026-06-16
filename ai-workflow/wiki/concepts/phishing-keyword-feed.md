@@ -1,10 +1,9 @@
 ---
 type: concept
-status: proposed
+status: accepted
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
-verification_status: pending_via_adr-022 (proposed, v0.7.40 formal)
-related_pages: [decisions/adr-022-phishing-keyword-feed, decisions/adr-017-v-r11-body-audit, concepts/v-r11-body-audit, decisions/adr-006-okf-compat-frontmatter, concepts/okf-open-knowledge-format]
+verification_status: accepted_via_adr-022 (v0.7.41, formal documentation)
 created: 2026-06-16
 updated: 2026-06-16
 ---
@@ -23,7 +22,7 @@ updated: 2026-06-16
 
 | # | 항목 | 값 |
 |---|---|---|
-| 1 | status | **proposed** — ADR-022 와 동시 promote (v0.7.40 formal documentation, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.39 PoC) 의 *formal documentation*. |
+| 1 | status | **accepted** — ADR-022 와 동시 promote (v0.7.41 formal acceptance, 2026-06-16). 본 concept 의 *rule definition* — *code-side* (v0.7.39 PoC) 의 *formal documentation* (v0.7.40 ADR + v0.7.41 acceptance). |
 | 2 | module | `workflow_kit.phishing_keywords` (4.9 KB). |
 | 3 | BUNDLED_KEYWORDS | 8 baseline (extracted from url_validity.PHISHING_KEYWORDS v0.7.37+). |
 | 4 | fallback chain | `custom > external > bundled` (priority order). |
@@ -146,3 +145,10 @@ return tuple(out)
 - [decisions/adr-022-phishing-keyword-feed.md](../decisions/adr-022-phishing-keyword-feed.md) — 본 concept 의 *formal documentation*
 - [decisions/adr-017-v-r11-body-audit.md](../decisions/adr-017-v-r11-body-audit.md) — V-R11 의 *prerequisite*
 - [concepts/v-r11-body-audit.md](../concepts/v-r11-body-audit.md) — V-R11 의 *rule definition*
+
+## §11. Revision Log
+
+| Date | Version | Change | Author |
+|---|---|---|---|
+| 2026-06-16 | 0.1.0 | 초안. ADR-022 (proposed) 와 동시. 10 section + 5 primary sources. JSONL external feed format spec + silent fallback operational rigor + gradual rollout (Phase 1-5). | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **v0.7.41 release: status `proposed` → `active` + ADR-022 `proposed` → `accepted`.** 본 release 시점의 evidence (phishing_keywords module + BUNDLED_KEYWORDS + load_phishing_keywords 3-layer fallback chain + case-insensitive dedup + silent fallback + 11 unit tests). `v0.7.41 follow-up bundle` 의 Phase 1 (TASK-V0741-ADR-FORMAL). | Sisyphus (orchestrator) |

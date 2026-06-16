@@ -1,10 +1,11 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.24/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.58/backlog/2026-06-17.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.7.58 (TBD): consumer feedback metrics (tools/consumer_metrics.py 155 line + cmd_consumer_metrics subcommand 27 + 9 smoke)",
       "v0.7.32 (ec72360): P3 TASK-V0731-001 log rotation + TASK-V0732-001 metrics aggregation + 10 smoke (5-run stable)",
       "v0.7.31 (6732f48): P3 TASK-V0729-001 run-time metrics + TASK-V0730-001 install-cron idempotency + 10 smoke",
       "v0.7.30 (23a2078): P3 TASK-V0728-001 archive_stale_memory cron integration (mavis cron create/disable/list) + 5 smoke",
@@ -39,7 +40,7 @@
       "v0.6.0 (8359cfc+): LLM Wiki Layer — wiki/ + SCHEMA + 2 concepts + ADR-004",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
     ],
-    "latest_backlog_path": "ai-workflow/memory/release/v0.7.32/backlog/2026-06-15.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.7.58/backlog/2026-06-17.md"
   },
   "wiki": {
     "concepts_count": 2,

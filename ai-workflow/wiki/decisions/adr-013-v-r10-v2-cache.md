@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-013
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.36+ candidate)
+accepted_in: v0.7.36 (release note: workflow-source/releases/Beta-v0.7.36.md)
 alternatives_considered: [no-cache, in-memory-only, persistent-disk, distributed-redis, eager-pre-cache, on-demand-only]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit, releases/Beta-v0.7.36]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-010 §8 Follow-up "V-R10 v2 — online cache + smart retry" + ADR-012 §3 Decision 6 (cache forward-compatible) 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.36 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.36). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.36 release note 와 동시 accepted. `check_url_with_cache()` 의 24h disk cache + exponential backoff (1s/2s/4s) + max 3 retries PoC 가 4/4 PASS (16/16 total). CI 의 `okf-validate.yml` 에서 $RUNNER_TEMP 디렉토리 + GITHUB_TOKEN 으로 동작.
 
 ## Context
 
@@ -203,3 +203,4 @@ ADR-012 (V-R10 online HEAD layer) 채택으로 CI 의 runtime HEAD request 가�
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-010 §8 Follow-up + ADR-012 §3 Decision 6 기반. 8 implementation item + 6 alternative + 7 positive / 6 negative / 3 neutral. PoC (check_url_with_cache + 4 test) v0.7.36 와 동시 draft. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.36 release note 등재. `related_pages` 에 v-r10-online-layer concept + Beta-v0.7.36 release note 추가. | Sisyphus (orchestrator) |

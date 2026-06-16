@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-012
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.36+ candidate)
+accepted_in: v0.7.36 (release note: workflow-source/releases/Beta-v0.7.36.md)
 alternatives_considered: [no-online, online-always, online-cache-only, scheduled-ci-only, opt-in-cli-flag]
-related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-013-v-r10-v2-cache, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
+related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-013-v-r10-v2-cache, concepts/v-r10-online-layer, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit, releases/Beta-v0.7.36]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-010 §3 Decision 7 (online layer opt-in) + `concepts/okf-open-knowledge-format.md` follow-up + ADR-008 follow-up 3 기반. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.36 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.36). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.36 release note 와 동시 accepted. `check_url_online()` 의 8 case PoC (200/3xx/404/410/5xx/429/timeout/TLS/DNS) 가 6/6 PASS. CI 의 `.github/workflows/okf-validate.yml` 에서 GITHUB_TOKEN 자동 활성.
 
 ## Context
 
@@ -180,3 +180,4 @@ ADR-010 (V-R10 URL validity lint) 의 §3 Decision 7 (online layer opt-in) + ADR
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-06-16 | 0.1.0 | 초안. ADR-010 §3 Decision 7 + ADR-008 follow-up 3 기반. 8 online check + 5 alternatives + 7 positive / 6 negative / 3 neutral. PoC (check_url_online + 6 test) v0.7.35 와 동시 draft. | Sisyphus (orchestrator) |
+| 2026-06-16 | 0.2.0 | **Accepted**: status `proposed` → `accepted`. v0.7.36 release note 등재. `related_pages` 에 v-r10-online-layer concept + Beta-v0.7.36 release note 추가. | Sisyphus (orchestrator) |

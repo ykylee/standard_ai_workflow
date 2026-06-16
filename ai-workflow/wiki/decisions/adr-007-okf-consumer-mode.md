@@ -1,11 +1,11 @@
 ---
 type: decision
-status: proposed
+status: accepted
 adr_id: ADR-007
 decided_at: 2026-06-16
-accepted_in: (proposed — v0.7.33+ candidate)
+accepted_in: v0.7.34 (release note: workflow-source/releases/Beta-v0.7.34.md)
 alternatives_considered: [full-strict-mode-only, opt-in-loose-per-page, sidecar-okf-overlay, no-formal-decision]
-related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-004-wiki-layer, concepts/wiki-source-rule-r9, patterns/r4-anchor-index]
+related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-004-wiki-layer, concepts/wiki-source-rule-r9, patterns/r4-anchor-index, releases/Beta-v0.7.34, decisions/adr-008-in-repo-path-to-url, decisions/adr-011-okf-version-auto-detect]
 created: 2026-06-16
 updated: 2026-06-16
 r9_skip: true
@@ -15,7 +15,7 @@ r9_skip: true
 
 ## Status
 
-**Proposed** (2026-06-16). 본 ADR 은 ADR-006 의 follow-up 후보 1 ("OKF consumer mode — `concepts/okf-open-knowledge-format.md` follow-up 3 의 후속") + `concepts/okf-open-knowledge-format.md` §12.1 의 "OKF → 우리 consumer" 갭 해소. 채택 확정 시 status 를 `accepted` 로 전환하고 v0.7.33 PATCH release note 에 등재.
+**Accepted** (2026-06-16, v0.7.34). 2026-06-16 초안 (proposed) → 2026-06-16 v0.7.34 release note (`workflow-source/releases/Beta-v0.7.34.md`) 와 동시 accepted 전환. 본 ADR 의 1차 evidence: `concepts/okf-open-knowledge-format.md` §12.1 의 OKF → 우리 consumer 갭 분석 + `workflow_kit/okf_import.py` (v0.7.34 PoC, ~280 lines) + `tests/check_okf_import.py` (7/7 PASS) + 8 lint × 2 mode matrix 구현. ADR-008 (in-repo path resolve) + ADR-011 (OKF version auto-detect) 와 함께 v0.7.34 의 3 ADR bundle.
 
 ## Context
 

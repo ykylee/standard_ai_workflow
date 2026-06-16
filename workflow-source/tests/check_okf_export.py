@@ -433,6 +433,49 @@ def test_okf_bundle_root_index_md_emit() -> None:
         assert "beta.md" in text, "index.md missing beta.md entry"
         # bundle-root index.md 는 §4.1 hard rule 적용 안 됨 (no `type` field, has `okf_version`)
         assert "type:" not in text.split("---")[1], "index.md should NOT have `type` field (reserved)"
+
+
+# --- Test 11: vcs_commit field → commit-pinned URL (ADR-018) ---
+
+
+def test_vcs_commit_emits_pinned_url() -> None:
+    """vcs_commit 명시 시 _derive_resource 가 commit-pinned URL emit (ADR-018)."""
+    import importlib.util
+    import sys
+    # Patch via sys.modules BEFORE _derive_resource's lazy import
+    pr_spec = importlib.util.spec_from_file_location(
+        "workflow_kit.path_resolver", str(SOURCE_ROOT / "workflow_kit" / "path_resolver.py")
+    )
+    pr = importlib.util.module_from_spec(pr_spec)
+    pr_spec.loader.exec_module(pr)
+    sys.modules["workflow_kit.path_resolver"] = pr
+    orig_url = pr.resolve_in_repo_path_to_url
+    orig_pinned = pr.resolve_in_repo_path_to_url_pinned
+    pr.resolve_in_repo_path_to_url = lambda path, root: "https://github.com/foo/bar/blob/main/" + path
+    pr.resolve_in_repo_path_to_url_pinned = lambda path, root, commit_sha=None, ref=None: (
+        f"https://github.com/foo/bar/blob/{commit_sha or ref}/" + path
+    )
+    try:
+        mod = _import_okf_export()
+        # in-repo path + vcs_commit → commit-pinned URL
+        url = mod._derive_resource(
+            "docs/spec.md", repo_root=Path("/fake"), vcs_commit="abc1234"
+        )
+        assert url == "https://github.com/foo/bar/blob/abc1234/docs/spec.md", f"got {url!r}"
+        # in-repo path + vcs_ref → ref-pinned URL
+        url = mod._derive_resource(
+            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="v0.7.37"
+        )
+        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+        # URL form unchanged (vcs_commit ignored)
+        url = mod._derive_resource("https://example.com/spec.md")
+        assert url == "https://example.com/spec.md", f"got {url!r}"
+    finally:
+        pr.resolve_in_repo_path_to_url = orig_url
+        pr.resolve_in_repo_path_to_url_pinned = orig_pinned
+
+
+
 # --- 메인 실행 ---
 def main() -> int:
     test_funcs = [
@@ -446,6 +489,7 @@ def main() -> int:
         test_okf_spec_4_1_full_conformance,
         test_okf_bundle_directory_layout,
         test_okf_bundle_root_index_md_emit,
+        test_vcs_commit_emits_pinned_url,
     ]
     failed: list[str] = []
 

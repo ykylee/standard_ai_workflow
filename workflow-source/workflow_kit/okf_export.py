@@ -249,14 +249,18 @@ def _derive_resource(
     *,
     repo_root: Path | None = None,
     resolve: bool = True,
+    vcs_commit: str | None = None,
+    vcs_ref: str | None = None,
 ) -> str | None:
-    """OKF `resource`: canonical URI for the underlying asset.
+    """OKF `resource`: canonical URI for the underlying asset (ADR-006 + ADR-018).
 
     Resolution order:
     1. URL form (`http://` / `https://`) → 그대로 사용
-    2. in-repo path + `resolve=True` + `repo_root` → `path_resolver.resolve_in_repo_path_to_url`
-    3. in-repo path + `resolve=False` → None (ADR-006 status quo)
-    4. None / empty → None
+    2. in-repo path + `vcs_commit` 명시 → commit-pinned URL (immutable, ADR-018)
+    3. in-repo path + `vcs_ref` 명시 → ref-pinned URL (mutable but explicit)
+    4. in-repo path + `resolve=True` + `repo_root` → `path_resolver.resolve_in_repo_path_to_url`
+    5. in-repo path + `resolve=False` → None (ADR-006 status quo)
+    6. None / empty → None
     """
     if not last_ingested_from:
         return None
@@ -266,10 +270,21 @@ def _derive_resource(
         return None
     # Lazy import to avoid hard dependency if not used
     try:
-        from workflow_kit.path_resolver import resolve_in_repo_path_to_url
+        from workflow_kit.path_resolver import (
+            resolve_in_repo_path_to_url,
+            resolve_in_repo_path_to_url_pinned,
+        )
     except ImportError:
         return None
+    # commit-pinned URL (immutable) takes precedence over default-branch URL
+    if vcs_commit or vcs_ref:
+        return resolve_in_repo_path_to_url_pinned(
+            last_ingested_from, repo_root,
+            commit_sha=vcs_commit, ref=vcs_ref,
+        )
     return resolve_in_repo_path_to_url(last_ingested_from, repo_root)
+
+
 def _extract_title_and_description(body: str, fallback_title: str) -> tuple[str, str | None]:
     """Derive `title` (first H1) and `description` (first prose paragraph) from body.
 
@@ -339,6 +354,8 @@ def map_frontmatter_to_okf(
     *,
     repo_root: Path | None = None,
     resolve: bool = True,
+    vcs_commit: str | None = None,
+    vcs_ref: str | None = None,
 ) -> OkfMapping:
     """wiki Frontmatter → OKF frontmatter (SPEC.md §4.1) + body suffix (Citations §8).
 
@@ -368,7 +385,7 @@ def map_frontmatter_to_okf(
     elif body_description:
         okf["description"] = body_description
     # 3. resource — URL last_ingested_from 만 매핑
-    resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve)
+    resource = _derive_resource(frontmatter.last_ingested_from, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref)
     if resource:
         okf["resource"] = resource
 
@@ -586,6 +603,8 @@ def export_wiki_page(
     *,
     repo_root: Path | None = None,
     resolve: bool = True,
+    vcs_commit: str | None = None,
+    vcs_ref: str | None = None,
 ) -> tuple[int, int]:
     """Export a single wiki page. Returns (exported_count, skipped_count)."""
     text = wiki_page.read_text(encoding="utf-8")
@@ -596,7 +615,7 @@ def export_wiki_page(
         raise InvalidFrontmatterError(f"{wiki_page}: no frontmatter block")
     body_text = m.group(2).rstrip("\n")
     fm = Frontmatter.parse(text)
-    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve)
+    mapping = map_frontmatter_to_okf(fm, body=body_text, repo_root=repo_root, resolve=resolve, vcs_commit=vcs_commit, vcs_ref=vcs_ref)
     body_rewritten = rewrite_wiki_links_to_okf(body_text)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -2000,3 +2000,32 @@ Bug fix (same commit): okf-validate JSON mode UnboundLocalError (err_count 가 e
 - mkdocs `--strict` 모드 (cross-link audit) — v0.7.53 follow-up
 - consumer feedback 1차 metric — GitHub Pages traffic tab 모니터링
 - 5 module audit 4차 (path_resolver / phishing_keywords 정합)
+
+## [2026-06-16] release | v0.7.57 — <in-memory> cleanup + dispatcher 26 + mkdocs link audit
+
+### Cut
+
+- **Commits** (4): ec1223c / cbcaaad / 654e21e (chore) — version bump 포함
+- **Tag**: v0.7.57-beta (pending push)
+- **Release note**: workflow-source/releases/Beta-v0.7.57.md
+
+### 3 follow-up 결과
+
+1. ✅ **<in-memory> artifact cleanup** — save_cache_with_decay 의 cache_path: str | None. None = compute only.
+2. ✅ **dispatcher 23 → 26** — cache-merge-multi (24) / cache-import-csv (25) / cache-export-json (26)
+3. ✅ **mkdocs cross-link audit** — scripts/audit_mkdocs_links.py (130+ line) + .github/workflows/mkdocs.yml 통합
+
+### Cumulative (v0.7.52 → v0.7.57)
+
+- Dispatcher: 6 → 26 subcommand (20 신규 since v0.7.52)
+- Dispatcher test: 6 → 38 test
+- 5 module test: 64 → 98 PASS (+15 audit + dispatcher, 53% 증가)
+- GH Pages: ✅ (with FEEDBACK + cross-link audit)
+- <in-memory> artifact: ❌ leak → ✅ fix (type-level intent)
+
+### Next (v0.7.58 / v0.7.60)
+
+- consumer feedback 1차 metric (GH Pages traffic tab dashboard)
+- 5 module audit 4차 (path_resolver / phishing_keywords)
+- mkdocs --strict 진짜 활성화 (wiki mirror 또는 multirepo)
+- v0.8.0 candidates: PyPI / stable API / mypy strict

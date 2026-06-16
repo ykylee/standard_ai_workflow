@@ -27,3 +27,10 @@
 - 누적: dispatcher 6→23, 5 module test ~147 PASS, GH Pages ✅
 - memory rule 5 (destructive subcommand dry-run default) 정공법 4 subcommand 적용
 - 다음: <in-memory> test artifact cleanup, dispatcher 25+, mkdocs --strict
+
+## [2026-06-16] release | v0.7.57 — 3 follow-up 통합
+- <in-memory> artifact cleanup (memory rule 8 fix — type-level intent)
+- dispatcher 23 → 26 (cache-merge-multi / cache-import-csv / cache-export-json)
+- mkdocs cross-link audit (scripts/audit_mkdocs_links.py + .github/workflows/mkdocs.yml 통합)
+- 누적: dispatcher 6→26, 5 module test 64→98 PASS, GH Pages ✅ (with audit)
+- 다음: consumer feedback metric, audit 4차, mkdocs --strict

@@ -34,3 +34,15 @@ This site is **auto-generated** from the `main` branch via [mkdocs-material](htt
 - Internal wiki (in-repo): `ai-workflow/wiki/index.md`
 - OKF spec: <https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md>
 - Latest release: see [Release Notes](RELEASE.md)
+
+## Feedback (v0.7.56+)
+
+외부 consumer 의 feedback 은 *project 의 1차 입력*. 본 사이트 사용 중 issue / suggestion / contribution 이 있으시면:
+
+- 🐛 **Bug report** → [GitHub Issues](https://github.com/ykylee/standard_ai_workflow/issues/new?labels=bug,consumer-feedback&template=bug_report.md)
+- 💡 **Feature request / suggestion** → [GitHub Issues (enhancement)](https://github.com/ykylee/standard_ai_workflow/issues/new?labels=enhancement,consumer-feedback&template=feature_request.md)
+- 💬 **General Q&A** → [GitHub Discussions](https://github.com/ykylee/standard_ai_workflow/discussions)
+- 📖 **문서 unclear / missing** → [docs/samples](samples/) 또는 [docs/architecture](architecture/) 먼저 확인 후 issue
+- 📊 **Public-facing telemetry** → 본 사이트는 외부 analytics / tracking 스크립트 0개 (privacy-first). v0.7.56+ 부터는 GitHub Pages 의 [traffic tab](https://github.com/ykylee/standard_ai_workflow/graphs/traffic) 으로 page view 확인 가능.
+
+**Response SLA**: consumer-feedback label issue 는 7일 내 1차 response (acknowledge / triage). critical bug 은 48h. PR review 는 3-5 영업일.

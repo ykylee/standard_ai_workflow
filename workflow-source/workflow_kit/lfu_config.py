@@ -43,3 +43,39 @@ def compute_lfu_score(
     freq_score = access_count / decay_factor
     recency_score = 1.0 / max(1.0, age_seconds)
     return cfg.frequency_weight * freq_score + cfg.recency_weight * recency_score
+
+
+def compute_lfu_score_with_decay(
+    access_count: int,
+    age_seconds: float,
+    config: LFUConfig | None = None,
+    half_life_seconds: float = 86400.0,
+) -> float:
+    """Compute LFU composite score with temporal decay (v0.7.46+, ADR-021 follow-up).
+
+    Extends compute_lfu_score with exponential temporal decay applied to access_count:
+    - effective_count = access_count * exp(-ln(2) * age_seconds / half_life_seconds)
+    - This is the "radioactive decay" formula: every `half_life_seconds`, the count halves.
+
+    Useful for cache freshness: an entry with 1000 hits 1 week ago is less valuable
+    than an entry with 100 hits 1 hour ago.
+
+    Args:
+        access_count: number of cache hits
+        age_seconds: time since entry creation
+        config: LFUConfig (default: LFUConfig())
+        half_life_seconds: time for access_count to halve (default 86400 = 1 day)
+
+    Returns:
+        Higher-is-better composite score with temporal decay applied.
+    """
+    import math
+    cfg = config or LFUConfig()
+    if half_life_seconds <= 0:
+        raise ValueError("half_life_seconds must be > 0")
+    # Exponential decay: count * 2^(-age / half_life) = count * exp(-ln(2) * age / half_life)
+    decay_factor = math.exp(-math.log(2) * age_seconds / half_life_seconds)
+    effective_count = access_count * decay_factor
+    freq_score = effective_count / max(1.0, age_seconds / cfg.decay_seconds)
+    recency_score = 1.0 / max(1.0, age_seconds)
+    return cfg.frequency_weight * freq_score + cfg.recency_weight * recency_score

@@ -1,8 +1,10 @@
-"""workflow_kit.lfu_config test (v0.7.43+).
+"""workflow_kit.lfu_config test (v0.7.46+).
 
 Test list:
 1. test_lfu_config_defaults: default values
 2. test_compute_lfu_score_higher_frequency_higher_score: higher access_count -> higher score
+3. test_compute_lfu_score_with_decay_halves_at_half_life_v0_7_46: score at half_life is < score at age=0
+4. test_compute_lfu_score_with_decay_invalid_half_life_v0_7_46: raises ValueError on half_life <= 0
 """
 
 from __future__ import annotations
@@ -41,10 +43,39 @@ def test_compute_lfu_score_higher_frequency_higher_score() -> None:
     assert score_high > score_low, f"high freq should score higher: {score_high} vs {score_low}"
 
 
+def test_compute_lfu_score_with_decay_halves_at_half_life_v0_7_46() -> None:
+    """compute_lfu_score_with_decay: score at half_life is < score at age=0 (same access_count)."""
+    mod = _import_lfu_config()
+    cfg = mod.LFUConfig(frequency_weight=1.0, recency_weight=0.0, decay_seconds=86400.0)
+    half_life = 3600.0  # 1 hour
+    score_t0 = mod.compute_lfu_score_with_decay(
+        access_count=100, age_seconds=0, config=cfg, half_life_seconds=half_life
+    )
+    score_th = mod.compute_lfu_score_with_decay(
+        access_count=100, age_seconds=half_life, config=cfg, half_life_seconds=half_life
+    )
+    assert score_t0 > score_th, f"score at t=0 should be > score at half_life, got {score_t0} vs {score_th}"
+
+
+def test_compute_lfu_score_with_decay_invalid_half_life_v0_7_46() -> None:
+    """compute_lfu_score_with_decay raises ValueError on half_life_seconds <= 0."""
+    mod = _import_lfu_config()
+    cfg = mod.LFUConfig()
+    try:
+        mod.compute_lfu_score_with_decay(
+            access_count=10, age_seconds=100, config=cfg, half_life_seconds=0
+        )
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+
 def main() -> int:
     test_funcs = [
         test_lfu_config_defaults,
         test_compute_lfu_score_higher_frequency_higher_score,
+        test_compute_lfu_score_with_decay_halves_at_half_life_v0_7_46,
+        test_compute_lfu_score_with_decay_invalid_half_life_v0_7_46,
     ]
     failed: list[str] = []
     for fn in test_funcs:

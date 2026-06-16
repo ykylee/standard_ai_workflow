@@ -18,6 +18,7 @@
 ### [[concepts/unit-of-work]] {#unit-of-work}
 ### [[concepts/audit-log-standard]] {#audit-log-standard}
 ### [[concepts/okf-open-knowledge-format]] {#okf-open-knowledge-format}
+### [[concepts/v-t1-title-consistency-lint]] {#v-t1-title-consistency-lint}
 ### [[INGEST_GUIDE]] {#ingest-guide}
 
 ## Decisions
@@ -28,6 +29,8 @@
 ### [[decisions/adr-003-read-only-mcp-default]] {#adr-003-read-only-mcp-default}
 ### [[decisions/adr-005-r9-wiki-source-rule]] {#adr-005-r9-wiki-source-rule}
 ### [[decisions/adr-006-okf-compat-frontmatter]] {#adr-006-okf-compat-frontmatter}
+### [[decisions/adr-007-okf-consumer-mode]] {#adr-007-okf-consumer-mode}
+### [[decisions/adr-008-in-repo-path-to-url]] {#adr-008-in-repo-path-to-url}
 
 ## Patterns
 

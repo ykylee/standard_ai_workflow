@@ -922,3 +922,70 @@ updated: 2026-06-12
   4. Sample OKF bundle commit: `docs/samples/okf-bundle-2026-06-16/` 에 PoC export 결과물 체크인 (R-2 batch 와 결합)
   5. `workflow_kit/okf_export.py` enhancement: `okf_version: "0.1"` in bundle root `index.md` frontmatter (SPEC.md §11)
   6. `check_okf_export.py` 확장: 8번째 test — OKF spec §4.1 conformance 전체 (frontmatter parse → bundle directory layout, reserved file 격리, cross-link valid)
+
+## [2026-06-16] ingest | ADR-007 OKF consumer mode (1 ADR page, follow-up 3 closed)
+
+- **Trigger**: 직전 entry follow-up 1 ("ADR-007 OKF consumer mode") 실행. ADR-006 의 export 1-way 짝 — 외부 OKF bundle → wiki ingest 시 loose consumer mode 도입.
+- **신규 page**: `decisions/adr-007-okf-consumer-mode.md` (11.0 KB, status: **proposed**, 16 sections)
+  - **§1 Status**: Proposed (v0.7.33+ candidate). ADR-006 와 짝.
+  - **§2 Context**: OKF §9 의 5 MUST NOT 정책과 우리 strict R8/R9/R4 정면 충돌. ADR-006 의 export 만으로는 *symmetric* 호환 미달.
+  - **§3 Decision**:
+    1. 2 모드 (strict default / loose opt-in) 정의
+    2. opt-in trigger: `okf-bundle.yaml` manifest OR `--mode=loose` CLI flag (flag 우선)
+    3. **mode matrix 8 lint × 2 mode table** — V-1 (error, 무관), V-4 (warn), V-R9 (disabled), V-T1 (warn), OKF §4.1 hard 3 rule (error, spec 자체 strict), Extensions (warn), broken link (warn), missing optional (warn)
+    4. staging directory (`.okf_staging/<name>/`) + 명시적 promote 2-stage
+    5. R-8 freeze 그대로: loose mode ingest = status: draft, 운영자 승격
+    6. in/out of scope 명시 (enrichment_agent / versioning 자동 detect 는 별도 ADR)
+    7. `workflow_kit/okf_import.py` 신규 (ADR-006 `okf_export.py` 짝)
+  - **§4 Alternatives**: 4 후보 (full-strict / opt-in-per-page / sidecar-overlay / no-formal-decision) + 탈락 사유
+  - **§5 Consequences**: 6 positive (symmetric, spec-aligned, staging safety, provenance, granularity, PoC path) + 5 negative (mode 2개, staging 관리, manifest 위조, cross-link 약화, spec hard rule 학습) + 3 neutral
+  - **§6 Compliance**: SCHEMA.md R1~R9, OKF §9, OKF §4.1 hard rule, OKF §5.1 cite
+  - **§7 Implementation**: 7 item table, 0 done + 7 proposed
+  - **§8 Follow-up**: ADR-008 + ADR-009 + ADR-010 (versioning) + `okf_import.py` PoC + lint mode matrix 표준화 + staging lifecycle + v0.7.33 release note
+  - **§9 Related**: 5 page cross-ref + 1 primary source link
+  - **§10 Revision Log**: v0.1.0
+- **index.md anchor**: `### [[decisions/adr-007-okf-consumer-mode]] {#adr-007-okf-consumer-mode}` 추가 (V-4 47 entries, up from 46)
+- **R-9 면제**: ADR 이 외부 spec (OKF) 의 decision 문서. `r9_skip: true` 적용. ADR-005/006 와 동일 pattern.
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`)
+  - V-4 PASS (**47 entries**, up from 46)
+  - V-R9 PASS (`r9_skip: true` frontmatter marker)
+  - V-2 partial: 본 entry 도 1 page ingest (ADR 단일) — **R2 위반 경고 유지** (cumulative)
+- **Follow-up 후보** (별도 turn):
+  1. ~~ADR-007~~ — **CLOSED** (2026-06-16, 본 entry)
+  2. ADR-008 (in-repo path → URL resolve) — `concepts/okf-open-knowledge-format.md` follow-up 2 + ADR-006 follow-up 1 의 후속
+  3. ADR-009 (V-T1 title consistency lint) — ADR-006 follow-up 3 + ADR-007 §3 mode matrix 통합 의무
+  4. R-2 정합: 다음 ingest 시 ADR-007 + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: ADR-008, ADR-009, ADR-010, sample bundle commit, `okf_export.py` enhancement, `check_okf_export.py` 확장 test 8·9
+
+## [2026-06-16] ingest | ADR-008 in-repo path → URL resolve (1 ADR page, follow-up 2 closed)
+
+- **Trigger**: 직전 entry follow-up 2 ("ADR-008 in-repo path → URL resolve") 실행. ADR-006 §5 Negative 3 ("Resource URL 좁음") + `concepts/okf-open-knowledge-format.md` §12.1 follow-up 2 해소.
+- **신규 page**: `decisions/adr-008-in-repo-path-to-url.md` (12.6 KB, status: **proposed**, 16 sections)
+  - **§1 Status**: Proposed (v0.7.33+ candidate). ADR-006/007 와 짝.
+  - **§2 Context**: 우리 wiki 의 80% page 가 in-repo path → OKF `resource` 비움. ADR-006 의 *partial interop* → *full interop* 격상 필요.
+  - **§3 Decision**:
+    1. **Resolve algorithm** (deterministic, no runtime fetch): `git config remote.origin.url` → normalize → `<origin>/blob/<default-branch>/<path>` (5 step)
+    2. **Fallback 정책** 4 case (no remote / no default branch / path traversal / scheme 포함 URL)
+    3. **CI 환경 처리**: 3 layer priority (`GITHUB_*` env var → `git config` → `None`)
+    4. **Branch 추적**: default branch (`main`) canonical. commit-pinned URL out of scope
+    5. **도구 surface**: `workflow_kit/path_resolver.py` 신규 (~80 lines) + `okf_export.py` enhancement
+    6. **`--no-resolve` CLI flag** (opt-out, backward-compatible)
+    7. **GitHub only** (GitLab / Bitbucket / self-hosted Git out of scope)
+  - **§4 Alternatives**: 5 후보 (no-resolve / CI-time / opaque-key / full-VCS / runtime-fetch) + 탈락 사유
+  - **§5 Consequences**: 6 positive (resource coverage, semantic 활용, provenance dual, CI/local 양립, opt-out, security) + 6 negative (GitHub 의존, default branch 가정, CI 환경 차이, branch drift, path 변경 시 URL 갱신, frontmatter 비대) + 3 neutral
+  - **§6 Compliance**: SCHEMA.md R1~R9, OKF §4.1, ADR-001 SSOT cite
+  - **§7 Implementation**: 7 item table, 0 done + 7 proposed
+  - **§8 Follow-up**: ADR-010 (commit-pinned) + ADR-011 (GitLab/Bitbucket) + V-R10 (URL validity) + `path_resolver` 고도화 + v0.7.33 release note + sample re-export + CI integration
+  - **§9 Related**: 5 page cross-ref + 1 primary source link
+  - **§10 Revision Log**: v0.1.0
+- **index.md anchor**: `### [[decisions/adr-008-in-repo-path-to-url]] {#adr-008-in-repo-path-to-url}` 추가 (V-4 48 entries, up from 47)
+- **R-9 면제**: ADR 이 외부 spec (OKF) 의 decision 문서. `r9_skip: true` 적용. ADR-005/006/007 와 동일 pattern.
+- **Linter 영향**:
+  - V-1 PASS (location: `ai-workflow/wiki/decisions/`)
+  - V-4 PASS (**48 entries**, up from 47)
+  - V-R9 PASS (`r9_skip: true` frontmatter marker)
+  - V-2 partial: 본 entry 도 1 page ingest (ADR 단일) — **R2 위반 경고 유지** (cumulative)
+- **Follow-up 후보** (별도 turn):
+  1. ~~ADR-007~~ **CLOSED** + ~~ADR-008~~ **CLOSED** (2026-06-16, 본 entry)
+  2. ADR-009 (V-T1 title consistency lint) — ADR-006 follow-up 3 + ADR-007 §3 mode matrix 통합 의무
+  3. R-2 정합: 다음 ingest 시 ADR-008 + 4-14 page 추가 동시 갱신 (R2 batch 5-15 권장). 후보: ADR-009, ADR-010, ADR-011, sample bundle commit, `okf_export.py` enhancement, `path_resolver.py` 신규, `check_path_resolver.py` 신규, `check_okf_export.py` 확장

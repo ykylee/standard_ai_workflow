@@ -1702,3 +1702,53 @@ updated: 2026-06-12
 - **concept page cumulative count**: 26 concepts (no new in v0.7.50).
 - **workflow_kit module count**: 26 (okf_export 24 KB, okf_import 20 KB, path_resolver 8 KB, url_validity 20 KB, phishing_keywords 5 KB, lfu_config 2 KB, lfu_integration 2.9 KB, cache_migration 3.4 KB, cache_size_compare 4.0 KB, bitbucket_v2 2.6 KB, phishing_federation_v2 2.3 KB, v_r13_commit_diff 6.0 KB, cache_lfu_decay 4.0 KB, cache_analytics 3.7 KB, v_r13_commit_diff_integration 3.8 KB, cache_dashboard 2.8 KB, phishing_federation_v3 2.8 KB, cache_dashboard_cli 2.4 KB, phishing_federation_v4 3.1 KB, cache_lfu_decay_persist 5.5 KB (CSV extension), v_r13_layer2_pipeline 3.8 KB, cache_analytics_trend 3.6 KB, cache_dashboard_export 4.4 KB (HTML extension), v_r13_layer2_cli 1.9 KB, cache_analytics_trend_chart 2.0 KB, phishing_federation_v5 4.0 KB) = **140+ KB total**.
 - **release note count**: 45 cumulative (v0.7.5 ~ v0.7.50).
+
+## [2026-06-16] release | v0.7.51 — cache alerting + decay aging + trend chart CLI + dashboard export CLI + federation v5 CLI (FREE tier)
+
+- **Trigger**: v0.7.50 release note 의 6 follow-up 중 **VirusTotal 제외** 5 항목의 *bundled implementation* (`do next! except paid tools` 17번째 turn). TASK-V0751-FOLLOWUP-BUNDLE.
+- **release scope**: 5 follow-up 항목 (4 new module + 1 extension + 10 new test) — v0.7.50 release 시점의 deferred work. **All FREE tier**, no paid APIs (per user request).
+- **Phase 1 (DONE — `5186836`)**: cache analytics threshold-based alerting:
+  - `workflow_kit.cache_analytics_alerting` module (NEW, 3.6 KB)
+  - `AlertThresholds` + `Alert` + `check_alerts` + `format_alerts`
+  - 2 new tests
+- **Phase 2 (DONE — `4247589`)**: LFU decay score automatic aging:
+  - `cache_lfu_decay_persist` extension
+  - `decay_age_scores` (exp decay based on age since saved_at)
+  - 2 new tests + no regression on JSON/CSV
+- **Phase 3 (DONE — `4c579ad`)**: cache trend chart CLI:
+  - `workflow_kit.cache_analytics_trend_chart_cli` module (NEW, 2.0 KB)
+  - `run_trend_chart_cli` with --trend-chart --snapshots=PATH [--metric=METRIC]
+  - 2 new tests
+- **Phase 4 (DONE — `8810695`)**: cache dashboard export CLI (multi-format):
+  - `workflow_kit.cache_dashboard_export_cli` module (NEW, 2.8 KB)
+  - `run_dashboard_export_cli` with --dashboard-export --output=PATH [--format=json|markdown|html]
+  - 2 new tests
+- **Phase 5 (DONE — `85be71c`)**: phishing federation v5 CLI (FREE tier, no VirusTotal):
+  - `workflow_kit.phishing_federation_v5_cli` module (NEW, 2.2 KB)
+  - `run_federation_v5_cli` with --federate-v5 [--phishtank-key=KEY] [--min-confidence=0.0]
+  - 2 new tests
+- **Phase 6 (DONE — TBD commit)**: final verification (201/201 tests PASS across 41 suites) + `releases/Beta-v0.7.51.md` (9 KB) + version bump v0.7.50 → v0.7.51 + log entry (본 entry).
+- **cumulative test**: v0.7.50 의 540+ → v0.7.51 의 **550+** (10 new: 2 alerting + 2 decay age + 2 trend chart CLI + 2 dashboard export CLI + 2 federation v5 CLI). 41 test suites, 201/201 PASS.
+- **Linter 영향**:
+  - V-1 PASS (location: 0 new wiki pages)
+  - V-4 PASS (75 entries, no change — code-only changes)
+  - R-2 batch 권장 외 (5 follow-up + 10 test, *individual* 갱신)
+- **EXCLUDED (paid)**: VirusTotal API integration (TASK-V0751-VIRUSTOTAL) — *EXCLUDED*, deferred to v0.7.52+ per user request (`do next! except paid tools`).
+- **Commit chain** (origin/main, v0.7.51 release):
+  1. `5186836` feat(v0.7.51): cache analytics threshold-based alerting (2/2 PASS) (Phase 1)
+  2. `4247589` feat(v0.7.51): LFU decay score automatic aging (decay_age_scores, 2/2 PASS, no regression) (Phase 2)
+  3. `4c579ad` feat(v0.7.51): cache trend chart CLI (--trend-chart --snapshots=PATH, 2/2 PASS) (Phase 3)
+  4. `8810695` feat(v0.7.51): cache dashboard export CLI (--dashboard-export --output=PATH, 2/2 PASS) (Phase 4)
+  5. `85be71c` feat(v0.7.51): phishing federation v5 CLI (--federate-v5, 2/2 PASS, FREE tier) (Phase 5)
+  6. TBD release(v0.7.51): release note + version bump + log entry (Phase 6)
+- **Follow-up 후보** (별도 turn, v0.7.52+):
+  1. v0.7.52 release note + version bump (v0.7.51 → v0.7.52) — release 자체는 v0.7.51 release note + version bump 에서 완료.
+  2. VirusTotal API integration (commercial, opt-in) — paid
+  3. Live cache dashboard via web (Streamlit / Flask)
+  4. Federation v6 (4+ source with optional VirusTotal)
+  5. Cache alerting email notification (SMTP)
+  6. ADR-023/024/025 stable 상태 유지 (1 release cycle 의 *additional* 운영 evidence 후의 *future* v0.2.2 가능)
+- **ADR cumulative count**: 17 ADR accepted (006-025) + 0 ADR proposed = **17 total** (001-025). 17 accepted. No new ADRs in v0.7.51.
+- **concept page cumulative count**: 26 concepts (no new in v0.7.51).
+- **workflow_kit module count**: 30 (previous 26 + cache_analytics_alerting 3.6 KB + cache_analytics_trend_chart_cli 2.0 KB + cache_dashboard_export_cli 2.8 KB + phishing_federation_v5_cli 2.2 KB) = **150+ KB total**.
+- **release note count**: 46 cumulative (v0.7.5 ~ v0.7.51).

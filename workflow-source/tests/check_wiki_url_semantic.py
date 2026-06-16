@@ -214,6 +214,45 @@ def test_semantic_url_with_v_r10_offline() -> None:
     assert len(all_issues) == 5, f"expected 5 (5 stub WARNs), got {len(all_issues)}: {all_issues}"
 
 
+def test_check_url_semantic_github_stub_for_non_github() -> None:
+    """check_url_semantic_github on non-GitHub URL returns WARN stub (no commit_sha)."""
+    mod = _import_url_validity()
+    issues = mod.check_url_semantic_github("https://example.com/spec.md")
+    rules = {(i.rule, i.severity) for i in issues}
+    assert ("V-R13-author-stub", "warn") in rules, f"missing author stub: {rules}"
+
+
+def test_check_url_semantic_github_extracts_org_repo() -> None:
+    """check_url_semantic_github extracts org/repo from GitHub URL (mocked)."""
+    mod = _import_url_validity()
+    import unittest.mock as mock
+    with mock.patch("urllib.request.urlopen") as mocked_urlopen:
+        mocked_urlopen.return_value.__enter__.return_value.status = 200
+        issues = mod.check_url_semantic_github("https://github.com/org/repo/blob/abc1234/spec.md")
+        # Should call api.github.com with org=org, repo=repo, sha=abc1234
+        args, _ = mocked_urlopen.call_args
+        req = args[0]
+        assert "api.github.com/repos/org/repo/commits/abc1234" in req.full_url, f"wrong API URL: {req.full_url}"
+        rules = {(i.rule, i.severity) for i in issues}
+        # api call may fail in test env (no network), so accept either author-ok or author-error
+        ok = ("V-R13-author-ok", "info") in rules
+        err = ("V-R13-author-error", "warn") in rules
+        assert ok or err, f"expected author-ok or author-error: {rules}"
+
+
+def test_check_url_semantic_with_perform_head_flag() -> None:
+    """check_url_semantic with perform_head=True does not raise (network may fail in tests)."""
+    mod = _import_url_validity()
+    # We use a fake URL that won't actually be fetched (mock check_url_online to be safe)
+    import unittest.mock as mock
+    with mock.patch.object(mod, "check_url_online", return_value=[]):
+        issues = mod.check_url_semantic(
+            "https://github.com/org/repo/blob/abc1234/spec.md",
+            perform_head=True,
+        )
+    # Should have 5 stub WARNs + 0 head issues (mocked) = 5
+    # URL has no ?hash= so it has 6 issues: 1 layer-1-missing + 5 stubs
+    assert len(issues) == 6, f"expected 6 (1 no-hash + 5 stub WARNs, head mocked), got {len(issues)}"
 def main() -> int:
     test_funcs = [
         test_parse_semantic_url_full,
@@ -229,6 +268,9 @@ def main() -> int:
         test_check_url_semantic_fast,
         test_check_url_semantic_stub_checks,
         test_semantic_url_with_v_r10_offline,
+        test_check_url_semantic_github_stub_for_non_github,
+        test_check_url_semantic_github_extracts_org_repo,
+        test_check_url_semantic_with_perform_head_flag,
     ]
     failed: list[str] = []
     for fn in test_funcs:

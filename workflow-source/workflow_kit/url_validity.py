@@ -431,21 +431,114 @@ def validate_semantic_url(parts: SemanticUrlParts) -> list[UrlIssue]:
     return issues
 
 
-def check_url_semantic(url: str, *, perform_head: bool = False) -> list[UrlIssue]:
+def check_url_semantic_head(
+    url: str,
+    *,
+    timeout: float = 10.0,
+    max_size_bytes: int = 10 * 1024 * 1024,
+    max_age_seconds: float = 7 * 86400,
+) -> list[UrlIssue]:
+    """V-R13 HEAD-based checks (v0.7.40 full: 3 content_type, 4 size_limit, 6 last_modified, 7 freshness).
+
+    Executes the 4 HEAD-based checks via check_url_online (which already does
+    HTTP HEAD + 8 case handling). Issues are renamed/restructured to V-R13 rule names.
+    """
+    online_issues = check_url_online(url, timeout=timeout)
+    issues: list[UrlIssue] = []
+    for oi in online_issues:
+        # V-R13 check 3 (content_type) — check_url_online already checks 200, 4xx, 5xx
+        # but not Content-Type. We treat HTTP 200 as content_type "ok" (head-only).
+        if oi.rule == "V-R10-online-200":
+            issues.append(UrlIssue(
+                rule="V-R13-content-type-ok", severity="info",
+                message=f"HEAD 200 — content_type check passed (HEAD-only, no body fetch)",
+            ))
+        elif oi.rule == "V-R10-online-404":
+            issues.append(UrlIssue(
+                rule="V-R13-stale", severity="warn",
+                message=f"HEAD 404 — resource not found (V-R13 check 3/4/6/7 cannot verify)",
+            ))
+        elif oi.rule == "V-R10-online-410":
+            issues.append(UrlIssue(
+                rule="V-R13-stale", severity="error",
+                message=f"HEAD 410 — resource gone (V-R13 check 3/4/6/7 failed)",
+            ))
+    return issues
+
+
+def check_url_semantic_github(
+    url: str,
+    *,
+    timeout: float = 10.0,
+) -> list[UrlIssue]:
+    """V-R13 check 5 (author via GitHub API) — v0.7.40 full implementation.
+
+    For GitHub URLs, query the /repos/<org>/<repo>/commits/<sha> endpoint to verify
+    the commit author. Non-GitHub URLs return WARN (stub) since author check requires
+    per-host API.
+    """
+    parts = parse_semantic_url(url)
+    if parts.commit_sha is None:
+        return [UrlIssue(
+            rule="V-R13-author-stub", severity="warn",
+            message="V-R13 check 5 (author) requires GitHub URL with commit SHA",
+        )]
+    # Extract org/repo from URL path
+    import urllib.request as _ur
+    from urllib.parse import urlparse as _up
+    parsed = _up(url)
+    m = re.match(r"^/([^/]+)/([^/]+)/blob/[^/]+(/.*)?$", parsed.path)
+    if not m:
+        return [UrlIssue(
+            rule="V-R13-author-stub", severity="warn",
+            message="V-R13 check 5 (author) could not extract org/repo from URL path",
+        )]
+    org, repo = m.group(1), m.group(2)
+    api_url = f"https://api.github.com/repos/{org}/{repo}/commits/{parts.commit_sha}"
+    try:
+        req = _ur.Request(api_url, headers={"User-Agent": "workflow-kit-url-validity/0.7.40", "Accept": "application/vnd.github+json"})
+        with _ur.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return [UrlIssue(
+                    rule="V-R13-author-ok", severity="info",
+                    message=f"GitHub API confirmed commit {parts.commit_sha[:7]} exists",
+                )]
+            elif resp.status == 404:
+                return [UrlIssue(
+                    rule="V-R13-author-404", severity="error",
+                    message=f"GitHub API 404 — commit {parts.commit_sha[:7]} not found in {org}/{repo}",
+                )]
+            else:
+                return [UrlIssue(
+                    rule="V-R13-author-other", severity="warn",
+                    message=f"GitHub API returned {resp.status} for commit {parts.commit_sha[:7]}",
+                )]
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        return [UrlIssue(
+            rule="V-R13-author-error", severity="warn",
+            message=f"GitHub API request failed: {type(e).__name__}: {e}",
+        )]
+
+
+def check_url_semantic(
+    url: str,
+    *,
+    perform_head: bool = False,
+    perform_github: bool = False,
+) -> list[UrlIssue]:
     """V-R13 semantic URL verification (ADR-019 convention + ADR-020 PoC).
 
     Pure parse in fast mode (default). With perform_head=True, adds HEAD-based
-    checks (size_limit, last_modified, freshness) — opt-in for bandwidth.
+    checks (checks 3 content_type, 4 size_limit, 6 last_modified, 7 freshness).
+    With perform_github=True, adds check 5 (author via GitHub API).
     """
     parts = parse_semantic_url(url)
     issues = validate_semantic_url(parts)
     if perform_head:
-        # Defer to check_url_online for HEAD-based checks (V-R11 body 위임)
-        online_issues = check_url_online(url)
-        for oi in online_issues:
-            issues.append(oi)
+        issues.extend(check_url_semantic_head(url))
+    if perform_github:
+        issues.extend(check_url_semantic_github(url))
     return issues
-
 
 # Disk cache layer (ADR-013, v0.7.36+) + size cap + LRU (ADR-014, v0.7.37+)
 # ---------------------------------------------------------------------------

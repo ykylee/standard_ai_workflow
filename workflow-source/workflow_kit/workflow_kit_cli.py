@@ -1,4 +1,5 @@
-"""workflow_kit.workflow_kit_cli - unified CLI dispatcher (consolidated v0.7.52).
+"""workflow_kit.workflow_kit_cli - unified CLI dispatcher (consolidated v0.7.52,
+extended v0.7.53 with okf-export / okf-import).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -14,8 +15,18 @@ Commands:
     alert [--max-size=N] [--min-hit-rate=0.5] [--max-evictions=N] [--cache-path=PATH]
     layer2 --layer2 URL [--user=USER --token=TOKEN]
     federate [--phishtank-key=KEY] [--min-confidence=0.0]
+    okf-export  --wiki=PATH --out=PATH [--include=SUBSTR]... [--exclude=SUBSTR]...
+                [--json] [--repo-root=PATH] [--no-resolve]
+                [--vcs-commit=SHA] [--vcs-ref=REF]
+    okf-import  --bundle=PATH [--staging=PATH] [--mode=strict|loose|auto]
+                [--promote] [--json]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
+
+Note: okf-export / okf-import use their own argparse internally. The dispatcher
+forwards argv verbatim after stripping --command. Their full arg surface is
+documented in `okf_export.main()` / `okf_import.main()` docstrings (and via
+`--help` on the underlying modules).
 """
 
 from __future__ import annotations
@@ -222,6 +233,37 @@ def cmd_federate(argv: list[str]) -> int:
         ]
         print(json.dumps(output, indent=2, sort_keys=True))
         return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("okf-export")
+def cmd_okf_export(argv: list[str]) -> int:
+    """Forward argv to okf_export.main() — its own argparse handles all flags.
+    See okf_export._build_arg_parser() for the full flag surface.
+    """
+    try:
+        from workflow_kit.okf_export import main as okf_export_main
+        return okf_export_main(argv)
+    except SystemExit as e:
+        # argparse calls sys.exit on parse error — convert to rc 2 (usage)
+        return e.code if isinstance(e.code, int) else 2
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("okf-import")
+def cmd_okf_import(argv: list[str]) -> int:
+    """Forward argv to okf_import.main() — its own argparse handles all flags.
+    See okf_import._build_arg_parser() for the full flag surface.
+    """
+    try:
+        from workflow_kit.okf_import import main as okf_import_main
+        return okf_import_main(argv)
+    except SystemExit as e:
+        return e.code if isinstance(e.code, int) else 2
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2

@@ -70,6 +70,39 @@ def test_layer2_missing_url_returns_2_v0_7_52() -> None:
     assert code == 2
 
 
+def test_okf_export_missing_wiki_returns_2_v0_7_53() -> None:
+    """okf-export subcommand without --wiki returns 2 (argparse usage error).
+
+    v0.7.53 dispatcher extension — okf-export forwards argv to okf_export.main()
+    whose argparse requires --wiki. Without it, argparse exits with code 2.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-export"])
+    assert code == 2
+
+
+def test_okf_import_missing_bundle_returns_2_v0_7_53() -> None:
+    """okf-import subcommand without --bundle returns 2 (argparse usage error).
+
+    v0.7.53 dispatcher extension — okf-import forwards argv to okf_import.main()
+    whose argparse requires --bundle. Without it, argparse exits with code 2.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-import"])
+    assert code == 2
+
+
+def test_okf_help_returns_0_v0_7_53() -> None:
+    """okf-export --help returns 0 (argparse help exits 0).
+
+    Verifies that the dispatcher's SystemExit passthrough correctly forwards
+    argparse's --help exit code (0) rather than converting to 2.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-export", "--help"])
+    assert code == 0
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -78,6 +111,9 @@ def main() -> int:
         test_dashboard_export_missing_output_returns_2_v0_7_52,
         test_trend_chart_missing_snapshots_returns_2_v0_7_52,
         test_layer2_missing_url_returns_2_v0_7_52,
+        test_okf_export_missing_wiki_returns_2_v0_7_53,
+        test_okf_import_missing_bundle_returns_2_v0_7_53,
+        test_okf_help_returns_0_v0_7_53,
     ]
     failed: list[str] = []
     for fn in test_funcs:

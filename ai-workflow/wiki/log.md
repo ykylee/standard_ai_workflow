@@ -1863,3 +1863,31 @@ Future work should default to consolidation over expansion.
 - Prior commit log entry (ee63739) 의 audit finding "Future work should default to consolidation over expansion" — *kept* (still valid rule, not invalidated by the release cut decision)
 - memory rule 12 (cleanup 검증 정공법 + dispatcher registry 패턴) 의 cross-project 적용 그대로 유지
 - Next release (v0.7.53 / v0.8.0) 후보: core 5 module (url_validity / okf_export / okf_import / path_resolver / phishing_keywords) 의 정합성 audit 2차
+
+## [2026-06-16] release | v0.7.53 — OKF CLI Dispatcher + core 5 audit 2차 + GH Pages
+
+3 follow-up 본 구현 (4 commit):
+
+- **F (a910988)**: workflow_kit_cli dispatcher 8 subcommand. --command=okf-export / --command=okf-import 추가 (registry pattern 유지, --command strip 후 argv forwarding). 9/9 dispatcher test PASS.
+- **G (0562931)**: core 5 module audit 2차 — url_validity (50 KB, 5 caller) 의 test file 부재 갭 해소. 12 test (offline only). 누적 5 module test 68 PASS.
+- **H (fda611b)**: mkdocs GH Pages 셋업 (mkdocs.yml + .github/workflows/mkdocs.yml + docs/index.md). mkdocs-material theme, dark/light toggle, navigation 7 page. push to main → gh-pages branch 자동 deploy.
+
+### Cut
+
+- **Commit**: 3d7e232 (chore(v0.7.53): version bump 0.7.52 → 0.7.53 + release note)
+- **Tag**: v0.7.53-beta (annotated, pushed to origin)
+- **GH release**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.7.53-beta
+- **Release note**: workflow-source/releases/Beta-v0.7.53.md
+
+### Version sync (memory rule 10)
+
+- `pyproject.toml`: 0.7.52 → **0.7.53**
+- `workflow_kit/__init__.py` `__version__`: v0.7.52-beta → **v0.7.53-beta**
+
+### Next (v0.7.54 / v0.8.0)
+
+- mkdocs strict ON (wiki/*.md → docs/wiki/ move 또는 mkdocs-multirepo)
+- GH Pages settings 활성화 (Settings > Pages > Source = GitHub Actions)
+- dispatcher subcommand 10+ 확장 (okf-validate / cache-migrate / release-doctor)
+- core 5 module audit 3차 (okf_export / okf_import strict mode lint)
+- 외부 consumer feedback loop (public GH Pages site 운영 후 issue 기반 follow-up)

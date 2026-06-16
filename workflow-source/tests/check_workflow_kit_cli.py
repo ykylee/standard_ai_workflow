@@ -103,6 +103,42 @@ def test_okf_help_returns_0_v0_7_53() -> None:
     assert code == 0
 
 
+def test_okf_validate_missing_bundle_returns_2_v0_7_54() -> None:
+    """okf-validate subcommand without --bundle returns 2 (usage error)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-validate"])
+    assert code == 2
+
+
+def test_okf_validate_invalid_mode_returns_2_v0_7_54() -> None:
+    """okf-validate subcommand with invalid --mode returns 2."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=okf-validate", "--bundle=/tmp/none", "--mode=invalid"])
+    assert code == 2
+
+
+def test_cache_migrate_no_op_returns_0_v0_7_54() -> None:
+    """cache-migrate on non-existent cache returns 0 (idempotent no-op)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-migrate", "--cache-path=/tmp/nonexistent_v0754_cache.json"])
+    assert code == 0
+
+
+def test_release_doctor_all_skip_returns_0_v0_7_54() -> None:
+    """release-doctor with all 4 sources skipped returns 0 (all ok).
+
+    The --skip-* flags disable each of the 4 release-readiness checks
+    (packaging, doctor, state, git). With all 4 disabled, the validate
+    result is "all skipped = ok" and exit code is 0.
+    """
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli([
+        "--command=release-doctor",
+        "--skip-packaging", "--skip-doctor", "--skip-state", "--skip-git",
+    ])
+    assert code == 0
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -114,6 +150,10 @@ def main() -> int:
         test_okf_export_missing_wiki_returns_2_v0_7_53,
         test_okf_import_missing_bundle_returns_2_v0_7_53,
         test_okf_help_returns_0_v0_7_53,
+        test_okf_validate_missing_bundle_returns_2_v0_7_54,
+        test_okf_validate_invalid_mode_returns_2_v0_7_54,
+        test_cache_migrate_no_op_returns_0_v0_7_54,
+        test_release_doctor_all_skip_returns_0_v0_7_54,
     ]
     failed: list[str] = []
     for fn in test_funcs:

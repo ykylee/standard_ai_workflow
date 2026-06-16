@@ -62,9 +62,42 @@ def test_migrate_to_per_strategy_cache_v0_7_44() -> None:
         assert "https://b.com/" in loaded, f"b.com should be in mixed file, got: {list(loaded.keys())}"
 
 
+def test_split_to_per_strategy_v0_7_45() -> None:
+    """split_to_per_strategy splits mixed file by access_count threshold (default 10)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        base = Path(tmpdir) / "url_validity_cache.json"
+        # First, create v0.7.41 single file and migrate to mixed
+        now = time.time()
+        entries = {
+            "https://low.com/": _url_validity.CacheEntry(url="https://low.com/", timestamp=now, issues=("ok",), access_count=0),
+            "https://mid.com/": _url_validity.CacheEntry(url="https://mid.com/", timestamp=now, issues=("ok",), access_count=5),
+            "https://high.com/": _url_validity.CacheEntry(url="https://high.com/", timestamp=now, issues=("ok",), access_count=100),
+        }
+        _url_validity._save_cache(base, entries)
+        _cache_migration.migrate_to_per_strategy_cache(base_path=base)
+        # Now split
+        result = _cache_migration.split_to_per_strategy(base_path=base, lfu_threshold=10)
+        assert result["split"] is True, f"split should have occurred: {result}"
+        # LRU file: low + mid (access_count < 10)
+        assert result["lru_entries"] == 2, f"expected 2 LRU entries, got {result['lru_entries']}"
+        # LFU file: high (access_count >= 10)
+        assert result["lfu_entries"] == 1, f"expected 1 LFU entry, got {result['lfu_entries']}"
+        # Verify files
+        lru_file = Path(result["lru_file"])
+        lfu_file = Path(result["lfu_file"])
+        assert lru_file.exists(), f"lru file should exist: {lru_file}"
+        assert lfu_file.exists(), f"lfu file should exist: {lfu_file}"
+        lru_loaded = _url_validity._load_cache(lru_file)
+        lfu_loaded = _url_validity._load_cache(lfu_file)
+        assert "https://low.com/" in lru_loaded
+        assert "https://mid.com/" in lru_loaded
+        assert "https://high.com/" in lfu_loaded
+
+
 def main() -> int:
     test_funcs = [
         test_migrate_to_per_strategy_cache_v0_7_44,
+        test_split_to_per_strategy_v0_7_45,
     ]
     failed: list[str] = []
     for fn in test_funcs:

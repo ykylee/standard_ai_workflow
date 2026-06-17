@@ -70,3 +70,9 @@ ai-workflow/wiki/.obsidian/
 
 # mkdocs build output
 /site/
+
+# v0.7.62+ consumer_metrics history (append-only snapshot log, runtime-generated)
+**/.consumer_metrics_history.jsonl
+
+# v0.8.x workflow-source build venv (build-time only, not runtime)
+workflow-source/.venv-build/

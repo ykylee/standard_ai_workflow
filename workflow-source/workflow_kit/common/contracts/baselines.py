@@ -37,7 +37,7 @@ import time
 import tracemalloc
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Any, Callable, Literal, cast
 
 # Type alias
 Status = Literal["compliant", "non_compliant", "not_applicable", "advisory"]
@@ -62,12 +62,12 @@ class ComplianceSummary:
     partial_rules: list[str] = field(default_factory=list)
     results: list[RuleResult] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """JSON-serializable dict."""
         return {
             "baseline": self.baseline,
             "status": self.status,
-            "partial_rules": self.partial_rules,
+            "partial_rules": list(self.partial_rules),
             "results": [
                 {
                     "rule_id": r.rule_id,
@@ -83,19 +83,22 @@ class ComplianceSummary:
 # --- 공통 helper ---
 
 
-def _read_state_json(project_root: Path) -> dict:
+def _read_state_json(project_root: Path) -> dict[str, Any]:
     """state.json 읽기 (없으면 빈 dict)."""
     state_path = project_root / "ai-workflow" / "memory" / "active" / "state.json"
     if not state_path.exists():
         return {}
     try:
         import json
-        return json.loads(state_path.read_text(encoding="utf-8"))
+        loaded: Any = json.loads(state_path.read_text(encoding="utf-8"))
+        if isinstance(loaded, dict):
+            return cast(dict[str, Any], loaded)
+        return {}
     except (json.JSONDecodeError, OSError):
         return {}
 
 
-def _is_enabled(state: dict, baseline: str) -> bool:
+def _is_enabled(state: dict[str, Any], baseline: str) -> bool:
     """state.json 에서 baseline 의 enabled 여부 확인."""
     field = f"{baseline}_baseline"
     config = state.get(field, {})
@@ -104,12 +107,12 @@ def _is_enabled(state: dict, baseline: str) -> bool:
     return False
 
 
-def _get_partial_rules(state: dict, baseline: str) -> list[str]:
+def _get_partial_rules(state: dict[str, Any], baseline: str) -> list[str]:
     """state.json 에서 partial rule list 추출."""
     field = f"{baseline}_baseline"
     config = state.get(field, {})
     if isinstance(config, dict):
-        return config.get("partial_rules", [])
+        return cast(list[str], config.get("partial_rules", []))
     return []
 
 
@@ -133,7 +136,7 @@ def _aggregate_status(results: list[RuleResult], partial_rules: list[str]) -> St
 # ===================================================================
 
 
-def _eval_security_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_security_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 SEC-WF rule runtime 평가."""
     results: list[RuleResult] = []
 
@@ -250,7 +253,7 @@ def _eval_security_baseline(project_root: Path, *, state: dict | None = None) ->
 
         # 평가: pinned + (lock OR checksum) = compliant
         if pinned and (has_lock or has_checksum):
-            status = "compliant"
+            status: Status = "compliant"
         elif pinned:
             status = "advisory"
         else:
@@ -294,7 +297,7 @@ def _eval_security_baseline(project_root: Path, *, state: dict | None = None) ->
 # ===================================================================
 
 
-def _eval_testing_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_testing_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 TST-WF rule runtime 평가."""
     results: list[RuleResult] = []
     tests_dir = project_root / "workflow-source" / "tests"
@@ -400,7 +403,7 @@ def _eval_testing_baseline(project_root: Path, *, state: dict | None = None) -> 
 # ===================================================================
 
 
-def _eval_performance_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_performance_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 PERF-WF rule runtime 평가."""
     results: list[RuleResult] = []
     tests_dir = project_root / "workflow-source" / "tests"
@@ -464,12 +467,18 @@ def _eval_performance_baseline(project_root: Path, *, state: dict | None = None)
     # PERF-WF-04: Audit Log Append Latency (≤ 10ms avg)
     try:
         from workflow_kit.common.contracts.stage_gate import append_audit_log
-        # 1000회 호출 시 평균 latency
+        # 100회 호출 시 평균 latency
         latencies = []
+        dummy = _dummy_completion()
         for _ in range(100):
             start = time.time()
             try:
-                append_audit_log(_dummy_event(), test_audit_path := project_root / "tmp_audit_perf.log")
+                # append_audit_log(audit_path, completion) — original had args swapped
+                # (real bug fix alongside v0.8.14 mypy strict 10단계).
+                append_audit_log(
+                    test_audit_path := project_root / "tmp_audit_perf.log",
+                    dummy,
+                )
             except (TypeError, OSError):
                 pass
             latencies.append((time.time() - start) * 1000)
@@ -530,14 +539,17 @@ def _eval_performance_baseline(project_root: Path, *, state: dict | None = None)
     )
 
 
-def _dummy_event():
-    """PERF-WF-04 의 1000회 호출용 dummy event."""
-    from workflow_kit.common.contracts.stage_gate import AuditLogEvent
-    return AuditLogEvent(
-        event_type="perf_test",
+def _dummy_completion() -> Any:
+    """PERF-WF-04 의 100회 호출용 dummy StageCompletion (v0.8.14 mypy strict 10단계).
+
+    Real bug fix: v0.7.7 original tried to construct an `AuditLogEvent` (which does
+    not exist in stage_gate). Replace with proper `StageCompletion` (the only
+    audit-log payload accepted by `append_audit_log`).
+    """
+    from workflow_kit.common.contracts.stage_gate import StageCompletion
+    return StageCompletion(
         stage_name="performance",
-        actor="perf_test",
-        raw_input="perf_test_dummy",
+        stage_status="ok",
     )
 
 
@@ -546,83 +558,105 @@ def _dummy_event():
 # ===================================================================
 
 
-def _eval_security_auth_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_security_auth_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 SEC-AUTH rule runtime 평가 (auth.py dispatcher)."""
     from workflow_kit.common.auth import evaluate_compliance as _eval
-    from workflow_kit.common.auth import RuleResult as _RR
 
     result = _eval(project_root=project_root)
+    # helper 는 dict[rule_id, title, status, notes] 를 반환. local RuleResult 로 변환.
+    helper_results = cast(list[dict[str, Any]], result["results"])
     results = [
-        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
-        for r in result["results"]
+        RuleResult(
+            rule_id=cast(str, r["rule_id"]),
+            title=cast(str, r["title"]),
+            status=cast(Status, r["status"]),
+            notes=cast(str, r["notes"]),
+        )
+        for r in helper_results
     ]
     state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "security_auth")
     return ComplianceSummary(
         baseline="security-auth",
-        status=result["status"],
+        status=cast(Status, result["status"]),
         partial_rules=partial,
         results=results,
     )
 
 
-def _eval_testing_pbt_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_testing_pbt_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 PBT-WF rule runtime 평가 (testing.py dispatcher)."""
     from workflow_kit.common.testing import evaluate_compliance as _eval
-    from workflow_kit.common.testing import RuleResult as _RR
 
     result = _eval(project_root=project_root)
+    helper_results = cast(list[dict[str, Any]], result["results"])
     results = [
-        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
-        for r in result["results"]
+        RuleResult(
+            rule_id=cast(str, r["rule_id"]),
+            title=cast(str, r["title"]),
+            status=cast(Status, r["status"]),
+            notes=cast(str, r["notes"]),
+        )
+        for r in helper_results
     ]
     state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "testing_pbt")
     return ComplianceSummary(
         baseline="testing-property-based",
-        status=result["status"],
+        status=cast(Status, result["status"]),
         partial_rules=partial,
         results=results,
     )
 
 
 def _eval_performance_memory_baseline(
-    project_root: Path, fn=None, baseline_path: Path | None = None, *, state: dict | None = None,
+    project_root: Path, fn: Callable[..., Any] | None = None, baseline_path: Path | None = None,
+    *, state: dict[str, Any] | None = None,
 ) -> ComplianceSummary:
     """6 PERF-MEM rule runtime 평가 (profiling.py dispatcher)."""
     from workflow_kit.common.profiling import evaluate_compliance as _eval
-    from workflow_kit.common.profiling import RuleResult as _RR
 
     result = _eval(fn=fn, baseline_path=baseline_path)
+    helper_results = cast(list[dict[str, Any]], result["results"])
     results = [
-        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
-        for r in result["results"]
+        RuleResult(
+            rule_id=cast(str, r["rule_id"]),
+            title=cast(str, r["title"]),
+            status=cast(Status, r["status"]),
+            notes=cast(str, r["notes"]),
+        )
+        for r in helper_results
     ]
     state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "performance_memory")
     return ComplianceSummary(
         baseline="performance-memory",
-        status=result["status"],
+        status=cast(Status, result["status"]),
         partial_rules=partial,
         results=results,
     )
 
 
-def _eval_resiliency_baseline(project_root: Path, *, state: dict | None = None) -> ComplianceSummary:
+def _eval_resiliency_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """8 RES-WF rule runtime 평가 (resiliency.py dispatcher)."""
     from workflow_kit.common.resiliency import evaluate_compliance as _eval
-    from workflow_kit.common.resiliency import RuleResult as _RR
 
     result = _eval(project_root=project_root)
+    helper_results = cast(list[dict[str, Any]], result["results"])
     results = [
-        _RR(rule_id=r["rule_id"], title=r["title"], status=r["status"], notes=r["notes"])
-        for r in result["results"]
+        RuleResult(
+            rule_id=cast(str, r["rule_id"]),
+            title=cast(str, r["title"]),
+            status=cast(Status, r["status"]),
+            notes=cast(str, r["notes"]),
+        )
+        for r in helper_results
     ]
     state = state if state is not None else _read_state_json(project_root)
     partial = _get_partial_rules(state, "resiliency")
     return ComplianceSummary(
         baseline="resiliency",
-        status=result["status"],
+        status=cast(Status, result["status"]),
         partial_rules=partial,
         results=results,
     )
@@ -636,10 +670,10 @@ def _eval_resiliency_baseline(project_root: Path, *, state: dict | None = None) 
 def evaluate_compliance(
     project_root: Path,
     baseline: str,
-    fn=None,
+    fn: Callable[..., Any] | None = None,
     baseline_path: Path | None = None,
     *,
-    state: dict | None = None,
+    state: dict[str, Any] | None = None,
 ) -> ComplianceSummary:
     """단일 baseline 의 compliance 평가.
 
@@ -678,10 +712,10 @@ def evaluate_compliance(
 
 def evaluate_all(
     project_root: Path,
-    fn=None,
+    fn: Callable[..., Any] | None = None,
     baseline_path: Path | None = None,
     *,
-    state: dict | None = None,
+    state: dict[str, Any] | None = None,
 ) -> dict[str, ComplianceSummary]:
     """5종 baseline 모두 평가 (v0.7.3+ 7 baseline dispatcher).
 

@@ -213,17 +213,42 @@ def cmd_rollback(*, tag: str, apply: bool = False) -> dict:
     return mod.cmd_rollback(args)
 
 
-def cmd_dist(*, apply: bool = False) -> dict:
-    """Run cmd_dist in-process (v0.7.56+, wheel + sdist build).
+def cmd_dist(
+    *,
+    apply: bool = False,
+    skip_existing: bool = False,
+    production: bool = False,
+    sdist_only: bool = False,
+    wheel_only: bool = False,
+    timeout: int = 300,
+    json_output: bool = False,
+) -> dict:
+    """Run cmd_dist in-process (v0.7.56+, wheel + sdist build, v0.8.15 1-command 확장).
 
     Args:
         apply: if True, actually run `python3 -m build` (default dry-run)
+        skip_existing: if True and dist/ 의 current-version 파일 있으면 build skip
+        production: if True, also simulate production PyPI upload (spec §7.1 step 5)
+        sdist_only: sdist 만 빌드
+        wheel_only: wheel 만 빌드
+        timeout: subprocess timeout in seconds (default 300)
+        json_output: JSON output (release_pipeline 의 --json flag)
 
     Returns:
-        dict with mode, out_dir, artifacts
+        dict with mode, out_dir, artifacts, twine_check, testpypi_simulation,
+        and (if production=True) production_simulation.
     """
     mod = _load_release_pipeline()
-    args = _make_args(apply=apply, dry_run=not apply)
+    args = _make_args(
+        apply=apply,
+        dry_run=not apply,
+        skip_existing=skip_existing,
+        production=production,
+        sdist_only=sdist_only,
+        wheel_only=wheel_only,
+        timeout=timeout,
+        json=json_output,
+    )
     return mod.cmd_dist(args)
 
 def cmd_lfu_decay_persist(

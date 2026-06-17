@@ -1251,6 +1251,12 @@ def cmd_dist(args) -> dict:
     pre-check: `build` module 가용성 → 부재 시 graceful fail.
     dry-run: command + PEP 440 normalize 만 print. exit 0.
     apply: subprocess `python3 -m build` 실행. exit code + dist glob 결과 report.
+
+    v0.8.15 (spec §7 + §9 #7): 1-command build + check + TestPyPI simulation.
+    `release-dist --apply` = build + twine check + TestPyPI upload simulation.
+    `release-dist --apply --production` = + production upload simulation.
+    Both `--apply` and `--apply --production` *simulate* upload (no actual PyPI/TestPyPI
+    deployment per release channel policy: GitHub Releases only).
     """
     _dist_dir = REPO_ROOT / "dist"
     results: dict = {"mode": "dry-run" if args.dry_run else "apply", "out_dir": str(_dist_dir)}
@@ -1277,13 +1283,30 @@ def cmd_dist(args) -> dict:
     results["command"] = " ".join(cmd)
     results["expected_pattern"] = f"standard_ai_workflow-{_expected_dist_pattern(current_version)}*"
 
-    # 4) skip-existing check (--skip-existing)
+    # 4) skip-existing check (--skip-existing) — skip build but still run
+    #    twine check + upload simulation on existing artifacts (v0.8.15).
     if getattr(args, "skip_existing", False) and _dist_dir.exists():
         existing = find_dist_files(current_version)
         if existing:
             results["mode"] = "skip"
             results["skipped"] = True
             results["existing"] = [f.name for f in existing]
+            # Still run post-build steps on existing artifacts.
+            twine_check = _twine_check(_dist_dir, timeout=getattr(args, "timeout", 300))
+            results["twine_check"] = twine_check
+            if not twine_check["ok"]:
+                results["error"] = (
+                    f"twine check failed: {twine_check.get('error', 'unknown')}"
+                )
+                results["ok"] = False
+                return results
+            results["testpypi_simulation"] = _simulate_testpypi_upload(
+                existing, current_version,
+            )
+            if getattr(args, "production", False):
+                results["production_simulation"] = _simulate_production_upload(
+                    existing, current_version,
+                )
             results["ok"] = True
             return results
 
@@ -1321,7 +1344,120 @@ def cmd_dist(args) -> dict:
     # 7) post-check: dist glob 결과
     built = find_dist_files(current_version)
     results["built"] = [f.name for f in built]
+    if not built:
+        results["error"] = "no built artifacts found in dist/"
+        results["ok"] = False
+        return results
+
+    # 8) twine check (metadata validation) — spec §7.1 step 2, §9 #7
+    twine_check = _twine_check(_dist_dir, timeout=getattr(args, "timeout", 300))
+    results["twine_check"] = twine_check
+    if not twine_check["ok"]:
+        results["error"] = f"twine check failed: {twine_check.get('error', 'unknown')}"
+        results["ok"] = False
+        return results
+
+    # 9) TestPyPI upload simulation — spec §7.1 step 3, §9 #7.
+    # Policy: no actual PyPI/TestPyPI deployment (release channel: GitHub Releases only).
+    # We *simulate* the upload by reporting what *would* be uploaded.
+    testpypi_sim = _simulate_testpypi_upload(built, current_version)
+    results["testpypi_simulation"] = testpypi_sim
+
+    # 10) Production upload simulation (only if --production flag set) — spec §7.1 step 5.
+    if getattr(args, "production", False):
+        production_sim = _simulate_production_upload(built, current_version)
+        results["production_simulation"] = production_sim
+
     results["ok"] = True
+    return results
+
+
+def _twine_check(dist_dir: Path, *, timeout: int = 300) -> dict[str, object]:
+    """Run `twine check dist/*` for metadata validation (spec §7.1 step 2).
+
+    Args:
+        dist_dir: dist/ directory containing wheel + sdist
+        timeout: subprocess timeout in seconds (default 300)
+
+    Returns:
+        dict with `ok` (bool), `returncode`, `stdout_tail`, `stderr_tail`, optional `error`.
+    """
+    import sys
+    artifacts = sorted(str(p) for p in dist_dir.glob("*") if p.suffix in (".whl", ".tar.gz"))
+    if not artifacts:
+        return {"ok": False, "error": "no wheel/sdist artifacts in dist/"}
+    try:
+        # `python -m twine` 는 PATH 와 무관하게 현재 Python 의 twine module 사용
+        # (venv / system Python / pip install 모두 동작)
+        proc = subprocess.run(
+            [sys.executable, "-m", "twine", "check"] + artifacts,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=str(REPO_ROOT),
+        )
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": f"twine check timeout after {timeout}s"}
+    return {
+        "ok": proc.returncode == 0,
+        "returncode": proc.returncode,
+        "stdout_tail": proc.stdout.strip().splitlines()[-5:] if proc.stdout.strip() else [],
+        "stderr_tail": proc.stderr.strip().splitlines()[-5:] if proc.stderr.strip() else [],
+    }
+
+
+def _simulate_testpypi_upload(
+    artifacts: list[Path], version: str,
+) -> dict[str, object]:
+    """Simulate `twine upload --repository testpypi` (spec §7.1 step 3).
+
+    Policy: no actual TestPyPI deployment (release channel: GitHub Releases only).
+    Reports what *would* be uploaded + command for manual execution.
+
+    Returns:
+        dict with `command`, `artifacts`, `note` (no-actual-upload policy).
+    """
+    artifact_names = [p.name for p in artifacts]
+    cmd = ["twine", "upload", "--repository", "testpypi", "--skip-existing"] + artifact_names
+    return {
+        "command": " ".join(cmd),
+        "artifacts": artifact_names,
+        "version": version,
+        "would_upload_to": "https://test.pypi.org/project/standard-ai-workflow/",
+        "actual_upload": False,
+        "note": (
+            "Per release channel policy (memory #5: GitHub Releases only), "
+            "no actual TestPyPI upload performed. Use the command above manually "
+            "if TestPyPI validation is needed."
+        ),
+    }
+
+
+def _simulate_production_upload(
+    artifacts: list[Path], version: str,
+) -> dict[str, object]:
+    """Simulate `twine upload` to production PyPI (spec §7.1 step 5).
+
+    Policy: no actual PyPI deployment (release channel: GitHub Releases only).
+    Reports what *would* be uploaded + command for manual execution.
+
+    Returns:
+        dict with `command`, `artifacts`, `note` (no-actual-upload policy).
+    """
+    artifact_names = [p.name for p in artifacts]
+    cmd = ["twine", "upload"] + artifact_names
+    return {
+        "command": " ".join(cmd),
+        "artifacts": artifact_names,
+        "version": version,
+        "would_upload_to": "https://pypi.org/project/standard-ai-workflow/",
+        "actual_upload": False,
+        "note": (
+            "Per release channel policy (memory #5: GitHub Releases only), "
+            "no actual PyPI upload performed. Use the command above manually "
+            "if PyPI production upload is needed."
+        ),
+    }
     return results
 
 
@@ -1521,6 +1657,7 @@ def main() -> int:
     p_dist.add_argument("--timeout", type=int, default=300, help="subprocess timeout in sec (default 300)")
     p_dist.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_dist.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_dist.add_argument("--production", action="store_true", help="simulate production PyPI upload (after TestPyPI sim). actual upload not performed per release policy.")
     p_dist.add_argument("--json", action="store_true")
 
     args = p.parse_args()

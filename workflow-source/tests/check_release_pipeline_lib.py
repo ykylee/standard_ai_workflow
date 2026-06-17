@@ -99,6 +99,40 @@ def test_cmd_dist_dry_run_v0_7_56() -> None:
     assert result["out_dir"].endswith("dist"), f"out_dir should end with dist: {result['out_dir']}"
 
 
+def test_cmd_dist_1_command_build_check_testpypi_v0_8_15() -> None:
+    """cmd_dist(--apply --skip-existing) 는 1-command 로 twine check + testpypi simulation 완료 (spec §9 #7).
+
+    Build step 은 skip-existing 으로 우회 (CI 의 venv dist/ 가 이미 build 된 상태 가정).
+    핵심: twine_check.ok=True + testpypi_simulation.artifacts non-empty.
+    """
+    lib = _import_lib()
+    result = lib.cmd_dist(apply=True, skip_existing=True, production=False)
+    assert result.get("ok") is True, f"expected ok=True, got {result}: {result.get('error')}"
+    # skip-existing 트리거 확인
+    assert result.get("skipped") is True, f"expected skipped=True, got mode={result.get('mode')}"
+    # 1) twine check (spec §7.1 step 2)
+    assert "twine_check" in result, "missing twine_check in result"
+    twine_check = result["twine_check"]
+    assert twine_check.get("ok") is True, f"twine_check failed: {twine_check}"
+    # 2) TestPyPI upload simulation (spec §7.1 step 3)
+    assert "testpypi_simulation" in result, "missing testpypi_simulation in result"
+    sim = result["testpypi_simulation"]
+    assert sim.get("actual_upload") is False, "TestPyPI sim should not actually upload"
+    assert len(sim.get("artifacts", [])) >= 1, "TestPyPI sim should list artifacts"
+    assert "test.pypi.org" in sim.get("would_upload_to", ""), "TestPyPI URL missing"
+
+
+def test_cmd_dist_with_production_simulation_v0_8_15() -> None:
+    """cmd_dist(--apply --skip-existing --production) 는 production simulation 추가 (spec §7.1 step 5)."""
+    lib = _import_lib()
+    result = lib.cmd_dist(apply=True, skip_existing=True, production=True)
+    assert result.get("ok") is True
+    assert "production_simulation" in result, "missing production_simulation with --production flag"
+    prod_sim = result["production_simulation"]
+    assert prod_sim.get("actual_upload") is False, "production sim should not actually upload"
+    assert "pypi.org" in prod_sim.get("would_upload_to", ""), "PyPI URL missing"
+
+
 def test_cmd_changelog_gen_dry_run_v0_7_56() -> None:
     """cmd_changelog_gen(dry_run=True) returns mode=dry-run with commits count."""
     lib = _import_lib()
@@ -133,6 +167,8 @@ def main() -> int:
         test_cmd_version_bump_dry_run_v0_7_56,
         test_cmd_note_draft_dry_run_v0_7_56,
         test_cmd_dist_dry_run_v0_7_56,
+        test_cmd_dist_1_command_build_check_testpypi_v0_8_15,
+        test_cmd_dist_with_production_simulation_v0_8_15,
         test_cmd_changelog_gen_dry_run_v0_7_56,
         test_cmd_verify_bad_tag_v0_7_56,
     ]

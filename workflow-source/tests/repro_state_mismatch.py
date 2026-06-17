@@ -4,19 +4,19 @@ import sys
 # Bug Report Context:
 # - Bug Report: State JSON Task Mismatch
 
--- Description
-The `state.json` file does not automatically update its `done_items` count when a task is manually marked as done in the backlog file.
+# -- Description
+# The `state.json` file does not automatically update its `done_items` count when a task is manually marked as done in the backlog file.
 
--- Expected Behavior
-When `status: done` is added to a task in the backlog, the `task_count` or `done_items` in `state.json` should reflect this change after the next sync.
+# -- Expected Behavior
+# When `status: done` is added to a task in the backlog, the `task_count` or `done_items` in `state.json` should reflect this change after the next sync.
 
--- Actual Behavior
-`state.json` remains stale until a full manual update is triggered.
+# -- Actual Behavior
+# `state.json` remains stale until a full manual update is triggered.
 
--- Steps to Reproduce
-1. Modify `ai-workflow/memory/active/backlog/2026-04-27.md` and set a task to `done`.
-2. Check `ai-workflow/memory/active/state.json`.
-3. Observe that `done_items` list does not contain the task ID.
+# -- Steps to Reproduce
+# 1. Modify `ai-workflow/memory/active/backlog/2026-04-27.md` and set a task to `done`.
+# 2. Check `ai-workflow/memory/active/state.json`.
+# 3. Observe that `done_items` list does not contain the task ID.
 
 class TestReproduction(unittest.TestCase):
     def test_reproduce_issue(self):

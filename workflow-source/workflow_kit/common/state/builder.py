@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from workflow_kit.common.normalize import (
     dedupe_normalized_backticked,
@@ -48,17 +48,30 @@ def build_workflow_state_payload(
         "done_items": [],
     }
 
+    # parse_handoff/parse_backlog return dict[str, object] — cast list-valued fields
+    # to list[str] for downstream consumption. v0.8.13 mypy strict 9단계.
+    handoff_in_progress: list[str] = cast(list[str], handoff.get("in_progress_items", []))
+    handoff_blocked: list[str] = cast(list[str], handoff.get("blocked_items", []))
+    handoff_recent_done: list[str] = cast(list[str], handoff.get("recent_done_items", []))
+    handoff_next_docs_raw: list[Path] = cast(list[Path], handoff.get("next_documents", []))
+    handoff_constraints: list[str] = cast(list[str], handoff.get("constraints", []))
+
+    backlog_in_progress: list[str] = cast(list[str], backlog.get("in_progress_items", []))
+    backlog_blocked: list[str] = cast(list[str], backlog.get("blocked_items", []))
+    backlog_done: list[str] = cast(list[str], backlog.get("done_items", []))
+    backlog_tasks: list[dict[str, str]] = cast(list[dict[str, str]], backlog.get("tasks", []))
+
     in_progress_items = dedupe_work_items(
-        [item for item in list(handoff.get("in_progress_items", [])) if is_meaningful_text(item)]
-        + list(backlog.get("in_progress_items", []))
+        [item for item in handoff_in_progress if is_meaningful_text(item)]
+        + backlog_in_progress
     )
     blocked_items = dedupe_work_items(
-        [item for item in list(handoff.get("blocked_items", [])) if is_meaningful_text(item)]
-        + list(backlog.get("blocked_items", []))
+        [item for item in handoff_blocked if is_meaningful_text(item)]
+        + backlog_blocked
     )
     recent_done_items = dedupe_work_items(
-        [item for item in list(handoff.get("recent_done_items", [])) if is_meaningful_text(item)]
-        + list(backlog.get("done_items", []))
+        [item for item in handoff_recent_done if is_meaningful_text(item)]
+        + backlog_done
     )[:10]
 
     next_documents = _dedupe_strings_base(
@@ -67,16 +80,14 @@ def build_workflow_state_payload(
             safe_relpath(session_handoff_path, actual_root),
             safe_relpath(work_backlog_index_path, actual_root),
             safe_relpath(resolved_latest_backlog_path, actual_root) if resolved_latest_backlog_path else "",
-            *[safe_relpath(path, actual_root) for path in handoff.get("next_documents", []) if isinstance(path, Path) and path.exists()],
+            *[safe_relpath(path, actual_root) for path in handoff_next_docs_raw if isinstance(path, Path) and path.exists()],
         ]
     )
 
     current_focus = in_progress_items[0] if in_progress_items else (blocked_items[0] if blocked_items else None)
-    if current_focus is None:
-        tasks = list(backlog.get("tasks", []))
-        if tasks:
-            first_task = tasks[0]
-            current_focus = f"{first_task['task_id']} {first_task['title']}"
+    if current_focus is None and backlog_tasks:
+        first_task = backlog_tasks[0]
+        current_focus = f"{first_task['task_id']} {first_task['title']}"
 
     return {
         "schema_version": "1",
@@ -109,15 +120,15 @@ def build_workflow_state_payload(
             "blocked_items": blocked_items,
             "recent_done_items": recent_done_items,
             "environment_constraints": dedupe_normalized_backticked(
-                [item for item in [handoff.get("constraints")] if is_meaningful_text(item)]
+                [item for item in handoff_constraints if is_meaningful_text(item)]
             ),
         },
         "backlog": {
             "latest_backlog_path": safe_relpath(resolved_latest_backlog_path, actual_root) if resolved_latest_backlog_path else None,
-            "task_count": len(list(backlog.get("tasks", []))),
-            "in_progress_items": list(backlog.get("in_progress_items", [])),
-            "blocked_items": list(backlog.get("blocked_items", [])),
-            "done_items": list(backlog.get("done_items", [])),
+            "task_count": len(backlog_tasks),
+            "in_progress_items": backlog_in_progress,
+            "blocked_items": backlog_blocked,
+            "done_items": backlog_done,
         },
         "next_documents": next_documents,
         "repository_assessment": {

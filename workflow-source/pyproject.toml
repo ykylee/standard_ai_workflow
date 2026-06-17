@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "standard-ai-workflow"
-version = "0.8.1"
+version = "0.9.1"
 description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -149,6 +149,10 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 ignore_missing_imports = true
+# v0.9.0+: skills/* 는 non-Python (skill spec markdown + helper script) 디렉터리.
+# hyphen-named subpackage (e.g. "git-conflict-resolver") 가 mypy 의 package validation
+# 을 trigger 하므로 exclude. workflow_kit / tools / tests 만 mypy strict 대상.
+exclude = ["skills/.*", "prompts/.*", "examples/.*", "schemas/.*", "core/.*", "build/.*", "releases/.*", "scripts/.*"]
 # v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.
 # 현재 v0.8.0 은 workflow_kit/__init__.py 의 public API 만 strict clean.
 # 다른 module 은 `disallow_untyped_defs = false` (v0.8.x follow-up) 로 두고, base strict = true 가
@@ -170,6 +174,7 @@ ignore_missing_imports = true
 # module 별 strict 격상 시 [tool.mypy.overrides] 로 enable 하는 것이 아니라,
 # v0.8.1 처럼 base strict = true + module 별 error fix.
 # 의 partial_rules 인자로 전달. 해당 rule 의 non_compliant 는 hard fail (CI fail).
+[tool.workflow-doctor]
 # v0.7.6 default: resiliency 의 RES-WF-01/02 (변경 관리 + critical workload 식별).
 partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }
 

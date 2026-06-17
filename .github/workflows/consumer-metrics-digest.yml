@@ -1,0 +1,152 @@
+name: consumer-metrics-digest
+
+# v0.7.62 follow-up A — weekly consumer metrics digest 자동 post (GH issue comment).
+#
+# Workflow:
+# 1. tools/consumer_metrics.py --digest-markdown --days=7 → markdown 본문 생성
+# 2. (기존 consumer-metrics-feed issue 가 있으면) 그 issue 에 comment post
+# 3. (없으면) "Consumer metrics — weekly feed" issue 신규 생성
+#
+# 운영:
+# - 주간 cron (월요일 09:00 UTC ≈ KR 시간 18:00) 자동 실행
+# - workflow_dispatch: manual trigger (test/즉시 실행)
+# - permissions.issues: write (issue create/comment)
+#
+# v0.8.12+ — workflow-source 의 v0.7.62 follow-up A 정공법.
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"  # Monday 09:00 UTC
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Lookback window in days"
+        required: false
+        type: number
+        default: 7
+      dry_run:
+        description: "Print digest to stdout, do not post to issue"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  digest:
+    name: Weekly consumer metrics digest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal dependencies
+        shell: bash
+        run: |
+          python3 -m pip install --upgrade pip
+          # consumer_metrics uses urllib stdlib + gh CLI (preinstalled on ubuntu-latest)
+          # pydantic only for output_contracts (consumer_metrics does not import it directly)
+          python3 -c "import urllib.request, json; print('stdlib OK')"
+
+      - name: Compute digest markdown
+        id: digest
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          days="${{ inputs.days || 7 }}"
+          dry_run="${{ inputs.dry_run || false }}"
+
+          out_file="$RUNNER_TEMP/digest.md"
+          : > "$out_file"
+          # 1) Record today's snapshot to history (best-effort; offline-safe)
+          python3 workflow-source/tools/consumer_metrics.py \
+            --repo "$REPO_NAME" --days "$days" --record \
+            || echo "WARN: --record failed (offline?) — continuing"
+
+          # 2) Generate digest markdown
+          if ! python3 workflow-source/tools/consumer_metrics.py \
+              --repo "$REPO_NAME" --days "$days" --digest-markdown \
+              > "$out_file" 2>"$RUNNER_TEMP/digest.stderr"; then
+            echo "::error::digest generation failed:"
+            cat "$RUNNER_TEMP/digest.stderr"
+            exit 1
+          fi
+
+          # 3) Dry-run: print to stdout, do not post
+          if [ "$dry_run" = "true" ]; then
+            echo "::group::Digest markdown (dry-run, $days days)"
+            cat "$out_file"
+            echo "::endgroup::"
+            echo "dry_run=true → not posting to issue"
+            exit 0
+          fi
+
+          bytes=$(wc -c < "$out_file")
+          echo "digest_bytes=$bytes" >> "$GITHUB_OUTPUT"
+          echo "Generated digest: $bytes bytes ($days days window)"
+
+      - name: Post to existing issue (or create new)
+        if: inputs.dry_run != true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          digest_file="$RUNNER_TEMP/digest.md"
+          if [ ! -s "$digest_file" ]; then
+            echo "::error::digest file missing or empty"
+            exit 1
+          fi
+
+          # Look for an open issue with the consumer-metrics-feed label or title marker
+          # If found, comment on it; otherwise create a new issue.
+          existing_issue=$(gh issue list \
+            --repo "$GH_REPO" \
+            --state open \
+            --label "consumer-metrics-feed" \
+            --json number --jq '.[0].number // empty' 2>/dev/null || true)
+
+          today=$(date -u +%Y-%m-%d)
+          if [ -n "$existing_issue" ]; then
+            echo "Posting digest as comment to issue #$existing_issue"
+            gh issue comment "$existing_issue" \
+              --repo "$GH_REPO" \
+              --body-file "$digest_file" \
+              --header "consumer-digest:GH-DIGEST:yes"
+            echo "::notice title=Digest posted::issue #$existing_issue (comment)"
+          else
+            echo "No open 'consumer-metrics-feed' issue — creating new"
+            gh issue create \
+              --repo "$GH_REPO" \
+              --title "Consumer metrics — weekly feed ($today)" \
+              --label "consumer-metrics-feed" \
+              --body-file "$digest_file"
+            echo "::notice title=Digest created::new issue created with digest"
+          fi
+
+      - name: Upload digest artifact
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/digest-artifact"
+          if [ -f "$RUNNER_TEMP/digest.md" ]; then
+            cp "$RUNNER_TEMP/digest.md" "$RUNNER_TEMP/digest-artifact/digest-${{ github.run_id }}.md"
+          fi
+          echo "digest_bytes=$(wc -c < $RUNNER_TEMP/digest.md 2>/dev/null || echo 0)" >> "$GITHUB_STEP_SUMMARY"
+          echo "run_id=${{ github.run_id }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "repo=${{ github.repository }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "schedule=weekly Monday 09:00 UTC" >> "$GITHUB_STEP_SUMMARY"

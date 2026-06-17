@@ -5,10 +5,10 @@
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable
 - 최종 수정일: 2026-06-12
-- 관련 문서: [../README.md](../README.md), [../QUICKSTART.md](../QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md)
+- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md)
 
 > [!NOTE]
-> 이 문서는 **개발자/통합 담당자** 관점의 설치·사용 가이드다. 일반 사용자가 미리 빌드된 패키지(`dist/harnesses/<harness>/v*.zip`)를 받아 AI 에이전트에게 적용하는 흐름은 [`../QUICKSTART.md`](../QUICKSTART.md) 를 참고한다.
+> 이 문서는 **개발자/통합 담당자** 관점의 설치·사용 가이드다. 일반 사용자가 미리 빌드된 패키지(`dist/harnesses/<harness>/v*.zip`)를 받아 AI 에이전트에게 적용하는 흐름은 [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md) 를 참고한다.
 
 ## 1. 이 문서가 다루는 것 / 다루지 않는 것
 
@@ -22,9 +22,9 @@
 - 자주 만나는 문제 해결
 
 ### 다루지 않는 것
-- 미리 빌드된 zip 패키지(`dist/harnesses/`)로 다른 프로젝트에 적용하는 절차 → `../QUICKSTART.md`
+- 미리 빌드된 zip 패키지(`dist/harnesses/`)로 다른 프로젝트에 적용하는 절차 → [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md)
 - 코어 표준 문서(`workflow-source/core/*.md`)의 내용 자체
-- 릴리스 절차 → `../docs/RELEASE.md`
+- 릴리스 절차 → [`docs/RELEASE.md`](./RELEASE.md)
 - `workflow-source/core/orchestrator_subagent_contract_v1.md` 의 contract v1 wire format 자체
 
 ## 2. 사전 준비
@@ -102,7 +102,7 @@ PYTHONPATH=workflow-source python3 -c "import workflow_kit; print(workflow_kit._
 
 ### 3.C. GitHub Release zip 으로 설치 (사용자/통합자용, 가장 간단)
 
-릴리스 페이지에서 `standard-ai-workflow-*.zip` 또는 하네스별 패키지 (`standard-ai-workflow-codex-v*.zip` 등) 를 받아 압축 해제 후 그 안의 wheel 을 설치한다. 자세한 절차는 [`../QUICKSTART.md`](../QUICKSTART.md) §3 참고.
+릴리스 페이지에서 `standard-ai-workflow-*.zip` 또는 하네스별 패키지 (`standard-ai-workflow-codex-v*.zip` 등) 를 받아 압축 해제 후 그 안의 wheel 을 설치한다. 자세한 절차는 [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md) §3 참고.
 
 ```bash
 unzip standard-ai-workflow-codex-v0.6.0-beta.zip
@@ -229,7 +229,7 @@ from workflow_kit.contract_v1 import delegator           # delegate_to_subagent(
 - `validate_fanin_output(parent_id, sub_results)` — fan-in 시 sub 결과 검증
 - `delegator.delegate_to_subagent(...)` — Pydantic envelope 으로 sub 위임
 
-스펙은 [`workflow-source/core/orchestrator_subagent_contract_v1.md`](../workflow-source/core/orchestrator_subagent_contract_v1.md) 와 [`workflow-source/core/orchestrator_contract_v1_wire_guide.md`](../workflow-source/core/orchestrator_contract_v1_wire_guide.md) 참고.
+스펙은 [`workflow-source/core/orchestrator_subagent_contract_v1.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md) 와 [`workflow-source/core/orchestrator_contract_v1_wire_guide.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_contract_v1_wire_guide.md) 참고.
 
 ### 6.3. 임포트만 검증하는 한 줄 스모크
 
@@ -297,7 +297,7 @@ python3 -m bootstrap_lib \
 - `--enable-mcp` — 하네스별 MCP config 스니펫 동시 emit
 - `--mcp-bridge {jsonrpc-bridge,stdio-sdk}` — MCP 전송 방식 (default: `jsonrpc-bridge`, 안정; `stdio-sdk` 는 정식 SDK 호환)
 
-`--enable-mcp` 로 emit 되는 파일 위치는 [`../QUICKSTART.md`](../QUICKSTART.md) §5 표 참고.
+`--enable-mcp` 로 emit 되는 파일 위치는 [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md) §5 표 참고.
 
 ### 7.2. 상태 동기화 (`state.json` 재생성)
 
@@ -376,7 +376,7 @@ brew install python@3.11
 ### 8.5. `check_workflow_linter.py` 가 `warning` 을 반환
 
 - **v0.5.10 기준 사전부터 알려진 동작**이다. fail 이 아니라 warning 이면 테스트는 의도된 통과다.
-- 진짜로 fail (`status: "error"`) 이면 [`workflow-source/skills/workflow-linter/`](../workflow-source/skills/workflow-linter/) 의 진짜 린터를 직접 돌려본다.
+- 진짜로 fail (`status: "error"`) 이면 [`workflow-source/skills/workflow-linter/`](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/skills/workflow-linter/) 의 진짜 린터를 직접 돌려본다.
 
 ### 8.6. `ai-workflow/` 가 비어 있다
 
@@ -420,11 +420,11 @@ pip install -e ".[mcp-sdk,dev]"
 
 | 하고 싶은 것 | 참고 문서 |
 | --- | --- |
-| 미리 빌드된 zip 으로 다른 프로젝트에 적용 | [`../QUICKSTART.md`](../QUICKSTART.md) |
-| contract v1 wire format 의 모든 필드 | [`../../workflow-source/core/orchestrator_subagent_contract_v1.md`](../workflow-source/core/orchestrator_subagent_contract_v1.md) |
-| 다중 에이전트 토폴로지 (orchestrator / doc / code / validation worker) | [`../../workflow-source/core/workflow_agent_topology.md`](../workflow-source/core/workflow_agent_topology.md) |
-| 스킬 카탈로그 | [`../../workflow-source/core/workflow_skill_catalog.md`](../workflow-source/core/workflow_skill_catalog.md) |
-| MCP 후보 카탈로그 | [`../../workflow-source/core/workflow_mcp_candidate_catalog.md`](../workflow-source/core/workflow_mcp_candidate_catalog.md) |
+| 미리 빌드된 zip 으로 다른 프로젝트에 적용 | [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md) |
+| contract v1 wire format 의 모든 필드 | [`workflow-source/core/orchestrator_subagent_contract_v1.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md) |
+| 다중 에이전트 토폴로지 (orchestrator / doc / code / validation worker) | [`workflow-source/core/workflow_agent_topology.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_agent_topology.md) |
+| 스킬 카탈로그 | [`workflow-source/core/workflow_skill_catalog.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_skill_catalog.md) |
+| MCP 후보 카탈로그 | [`workflow-source/core/workflow_mcp_candidate_catalog.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_mcp_candidate_catalog.md) |
 | 릴리스 절차 (GitHub Release zip 생성) | [`./RELEASE.md`](./RELEASE.md) |
-| 마지막 릴리스 노트 | [`../../workflow-source/releases/Beta-v0.6.0.1.md`](../workflow-source/releases/Beta-v0.6.0.1.md) |
-| 변경 이력 / 로드맵 | [`../../workflow-source/core/workflow_kit_roadmap.md`](../workflow-source/core/workflow_kit_roadmap.md) |
+| 마지막 릴리스 노트 | [`workflow-source/releases/Beta-v0.6.0.1.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v0.6.0.1.md) |
+| 변경 이력 / 로드맵 | [`workflow-source/core/workflow_kit_roadmap.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md) |

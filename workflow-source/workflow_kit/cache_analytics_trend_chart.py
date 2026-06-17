@@ -11,11 +11,11 @@ External consumer 의 *machine-readable* 의 *operational* 보강.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 
 def render_trend_chart_ascii(
-    snapshots: list[dict],
+    snapshots: list[dict[str, Any]],
     metric: Literal["total_size", "total_hits", "total_misses"] = "total_size",
     *,
     width: int = 60,

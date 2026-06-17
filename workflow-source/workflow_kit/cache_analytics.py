@@ -88,5 +88,5 @@ def cache_analytics_summary(
         "total_evictions": total_evictions,
         "overall_hit_rate": round(overall_hit_rate, 4),
         "lru_to_lfu_size_ratio": round(lru_to_lfu_size_ratio, 4),
-        "strategies": {s: per_strategy[s]["size"] for s in per_strategy},
+        "strategies": {s: int(per_strategy[s]["size"]) for s in per_strategy},
     }

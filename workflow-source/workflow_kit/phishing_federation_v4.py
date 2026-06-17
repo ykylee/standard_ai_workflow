@@ -16,7 +16,12 @@ Weighted voting 의 *false positive reduction* 의 *operational* 의 *low-fricti
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, TypedDict, cast
+
+
+class _UrlRecord(TypedDict):
+    confidence: float
+    sources: list[str]
 
 
 def fetch_federated_phishing_urls_v4(
@@ -36,7 +41,7 @@ def fetch_federated_phishing_urls_v4(
     Returns:
         List of (url, confidence, source_names) tuples sorted by confidence desc, then url asc.
     """
-    url_data: dict[str, dict[str, object]] = {}
+    url_data: dict[str, _UrlRecord] = {}
     for idx, (source, weight) in enumerate(sources_with_weights):
         source_name = f"source_{idx}"
         try:
@@ -48,7 +53,7 @@ def fetch_federated_phishing_urls_v4(
             if normalized not in url_data:
                 url_data[normalized] = {
                     "confidence": 0.0,
-                    "sources": [],
+                    "sources": cast(list[str], []),
                 }
             url_data[normalized]["confidence"] = float(url_data[normalized]["confidence"]) + weight
             url_data[normalized]["sources"].append(source_name)

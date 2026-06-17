@@ -46,8 +46,10 @@ jobs:
         run: python3 scripts/audit_mkdocs_links.py
 
       - name: Build
-        # v0.7.57+: --strict OFF 유지 (위 cross-link audit 로 main docs 정합)
-        run: mkdocs build
+        # v0.7.61+: --strict ON (cross-link rewrite + exclude_docs 완료, 116 → 0 warning)
+        # wiki/ 는 mkdocs docs_dir 외부라 cross-link 모두 GitHub absolute URL 로 rewrite.
+        # samples/, archive/, planning/, architecture/ 는 exclude_docs.
+        run: mkdocs build --strict
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

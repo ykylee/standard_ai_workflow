@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable
 - 최종 수정일: 2026-06-12
-- 관련 문서: [../README.md](../README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [../workflow-source/releases/](../workflow-source/releases/)
+- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-06-12
 > **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
@@ -154,8 +154,8 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 
 ## 다음에 읽을 문서
 
-- [릴리스 노트 디렉토리](../workflow-source/releases/)
-- [마지막 릴리스 노트 v0.5.11](../workflow-source/releases/Beta-v0.5.11.md)
-- [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
+- [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
+- [마지막 릴리스 노트 v0.5.11](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v0.5.11.md)
+- [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)
 - [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 - [Project Profile](./PROJECT_PROFILE.md)

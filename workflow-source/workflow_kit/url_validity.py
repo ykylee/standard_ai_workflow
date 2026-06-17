@@ -30,14 +30,15 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import IO, Any, Literal
 from urllib.parse import urlparse
 
 
 # ---------------------------------------------------------------------------
 # Severity
 # ---------------------------------------------------------------------------
-Severity = Literal["error", "warn"]
+Severity = Literal["error", "warn", "info"]
+EvictionStrategy = Literal["lru", "lfu", "mixed"]
 
 
 # ---------------------------------------------------------------------------
@@ -669,8 +670,8 @@ def check_url_semantic_range_diff(
     url: str,
     *,
     repo_root: Path | None = None,
+    subprocess_run: Any = None,
     max_diff_lines: int = 1000,
-    subprocess_run=None,
 ) -> list[UrlIssue]:
     """V-R13 check 8 (range commit-level diff) — v0.7.41 full implementation.
 
@@ -749,7 +750,7 @@ def check_url_semantic_range_diff(
             message=f"non-numeric numstat: {parts_line}",
         )]
     total = add + delete
-    severity = "warn" if total > max_diff_lines else "info"
+    severity: Severity = "warn" if total > max_diff_lines else "info"
     return [UrlIssue(
         rule="V-R13-range-diff-ok", severity=severity,
         message=f"diff {parts.range_start[:7]}..{parts.range_end[:7]} in {file_path}: +{add}/-{delete} (total {total} lines)",
@@ -820,7 +821,7 @@ def cache_file_for_strategy(base_path: Path, strategy: str) -> Path:
 class CacheEntry:
     url: str
     timestamp: float
-    issues: tuple[dict, ...]
+    issues: tuple[dict[str, Any], ...]
     access_count: int = 0  # v0.7.39+ LFU tracking (ADR-021 PoC)
 
 def _load_cache(cache_file: Path) -> dict[str, CacheEntry]:
@@ -869,9 +870,8 @@ class _CacheLock:
         self.timeout = timeout
         self.stale_seconds = stale_seconds
         self._lock_path: Path | None = None
-        self._fd = None
-
-    def __enter__(self):
+        self._fd: IO[Any] | None = None
+    def __enter__(self) -> "_CacheLock":
         try:
             import fcntl  # POSIX only
         except ImportError:
@@ -912,7 +912,7 @@ class _CacheLock:
                 self._fd = None
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> Literal[False]:
         if self._fd is not None:
             try:
                 import fcntl
@@ -972,7 +972,7 @@ def _save_cache(
     serialized = json.dumps(raw, indent=2, sort_keys=True)
     size = len(serialized.encode("utf-8"))
 
-    def _evict_key(u: str) -> tuple:
+    def _evict_key(u: str) -> tuple[int, float]:
         e = entries[u]
         if eviction_strategy == "lru":
             return (0, e.timestamp)  # sort by timestamp only
@@ -1061,8 +1061,7 @@ def cache_clear(cache_file: Path | None = None) -> None:
     if cache_file.exists():
         cache_file.unlink()
 
-
-def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
+def cache_stats(cache_file: Path | None = None) -> dict[str, int | float]:
     cache_file = cache_file or DEFAULT_CACHE_FILE
     cache = _load_cache(cache_file)
     now = time.time()
@@ -1083,7 +1082,7 @@ def cache_stats(cache_file: Path | None = None) -> dict[str, int]:
     }
 
 
-def cache_stats_per_strategy(base_path: Path | None = None) -> dict[str, dict[str, int]]:
+def cache_stats_per_strategy(base_path: Path | None = None) -> dict[str, dict[str, int | float]]:
     """Return per-strategy cache stats (v0.7.43+, ADR-024 follow-up).
 
     Reads cache_file_for_strategy(base_path, strategy) for each of lru/lfu/mixed
@@ -1106,7 +1105,7 @@ def cache_stats_per_strategy(base_path: Path | None = None) -> dict[str, dict[st
 
 def cache_stats_per_strategy_with_hit_rate(
     base_path: Path | None = None,
-) -> dict[str, dict[str, object]]:
+) -> dict[str, dict[str, int | float]]:
     """Return per-strategy cache stats + hit rate (v0.7.45+).
 
     Extends cache_stats_per_strategy with hit rate computation:
@@ -1116,10 +1115,9 @@ def cache_stats_per_strategy_with_hit_rate(
         base_path: base cache file path (default: DEFAULT_CACHE_FILE)
 
     Returns:
-        dict mapping strategy name to {stats..., total_access_count, hit_rate}
     """
     base = base_path or DEFAULT_CACHE_FILE
-    result: dict[str, dict[str, object]] = {}
+    result: dict[str, dict[str, int | float]] = {}
     total_access = 0
     total_entries = 0
     for strategy in ("lru", "lfu", "mixed"):
@@ -1135,7 +1133,7 @@ def cache_stats_per_strategy_with_hit_rate(
         s["hit_rate"] = (strategy_access / s["total"]) if s["total"] > 0 else 0.0
         result[strategy] = s
         total_access += strategy_access
-        total_entries += s["total"]
+        total_entries += int(s["total"])
     result["_overall"] = {
         "total_entries": total_entries,
         "total_access_count": total_access,
@@ -1143,14 +1141,13 @@ def cache_stats_per_strategy_with_hit_rate(
     }
     return result
 
-
 def cache_prune(
     *,
     base_path: Path | None = None,
     max_age_seconds: float | None = None,
     min_access_count: int = 0,
     dry_run: bool = True,
-) -> dict[str, int]:
+) -> dict[str, dict[str, int | bool]]:
     """Prune cache entries by age and/or access count (v0.7.56+, ADR-021 follow-up).
 
     Removes cache entries matching the criteria:
@@ -1172,8 +1169,8 @@ def cache_prune(
     """
     base = base_path or DEFAULT_CACHE_FILE
     now = time.time()
-    result: dict[str, dict[str, object]] = {}
-    total_removed = 0
+    result: dict[str, dict[str, int | bool]] = {}
+    total_removed: int = 0
     for strategy in ("lru", "lfu", "mixed"):
         cf = cache_file_for_strategy(base, strategy)
         if not cf.exists():
@@ -1264,6 +1261,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  [{issue.severity.upper()}] {issue.rule} {url}: {issue.message}")
                 if issue.severity == "error":
                     failed += 1
+    return 1 if failed else 0
 
 if __name__ == "__main__":
     sys.exit(main())

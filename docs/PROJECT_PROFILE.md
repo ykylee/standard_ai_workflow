@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: stable
 - 최종 수정일: 2026-06-09
-- 관련 문서: [공통 표준](../ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](../workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](../workflow-source/core/maturity_matrix.json), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
+- 관련 문서: [공통 표준](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 
 ## 1. 프로젝트 개요
 - 프로젝트명: Standard AI Workflow
@@ -78,18 +78,18 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - 기타: 모든 스킬 및 MCP 출력은 공통 JSON 계약 구조를 따라야 함.
 - (v0.5.6 신규) sub-agent 출력은 §5 spec fit 자동 검증 (`workflow_kit.contract_v1.output_validator.validate_output()`). 위반 시 §7.4 정책.
 - (v0.5.6 신규) orchestrator 측 위임 결정은 `workflow_kit.contract_v1.delegator.choose_role()` 자동 호출. §6.3 MUST-NOT-delegate 매치 시 직접 처리.
-- (v0.5.7 신규) multi-component sub-task 는 `delegator.choose_roles()` (fan-out) + `output_validator.validate_fanin_output()` (fan-in) 으로 자동 enforce. cross-ref 갱신 / fan-in 통합 보고 / parent_delegation_id 발급은 §6.3 에 따라 orchestrator 직접 처리. 자세한 wire 패턴: `../workflow-source/core/orchestrator_contract_v1_wire_guide.md`.
+- (v0.5.7 신규) multi-component sub-task 는 `delegator.choose_roles()` (fan-out) + `output_validator.validate_fanin_output()` (fan-in) 으로 자동 enforce. cross-ref 갱신 / fan-in 통합 보고 / parent_delegation_id 발급은 §6.3 에 따라 orchestrator 직접 처리. 자세한 wire 패턴: [`workflow-source/core/orchestrator_contract_v1_wire_guide.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_contract_v1_wire_guide.md).
 - (v0.5.7 신규) `task.required_model_tier` 가 명시되지 않으면 `delegator.recommend_model_tier()` 가 main keyword (아키텍처/정책/5+ 파일/cross-cutting/5+ source) 기반 자동 결정. `choose_role` 결과의 `decision.recommended_model_tier` 에 박힘.
 - (v0.5.8 신규) 비대화형 환경에서 `--harness` 미지정 시 fail (interactive picker 는 TTY 에서만 동작). 자동화/CI 경로는 `--harness codex --harness opencode ...` 명시 필수.
 - (v0.5.10 신규) sub-agent `delegation_id` 는 부모의 `{parent_id}-st-{N}` 형식 (parent-prefix spec). 회귀: `tests/check_wire_guide_v059.py`, `tests/check_contract_v1_multi_component.py`.
-- **신규 (v0.5.4)**: orchestrator는 sub-agent 위임 가능한 작업을 직접 도구 호출로 처리하지 않는다 (제6.1장). 자세한 contract: `../workflow-source/core/orchestrator_subagent_contract_v1.md`.
+- **신규 (v0.5.4)**: orchestrator는 sub-agent 위임 가능한 작업을 직접 도구 호출로 처리하지 않는다 (제6.1장). 자세한 contract: [`workflow-source/core/orchestrator_subagent_contract_v1.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md).
 
 ## 다음에 읽을 문서
 - [설치·사용 가이드 (v0.5.10 신규)](./INSTALLATION_AND_USAGE.md)
-- [세션 인계 문서 v0.5.10](../ai-workflow/memory/release/v0.5.10/session_handoff.md)
-- [작업 백로그 (v0.6.3 archive)](../ai-workflow/memory/archive/2026-06-12/work_backlog.md)
-- [Orchestrator ↔ Sub-agent Contract v1](../workflow-source/core/orchestrator_subagent_contract_v1.md)
-- [Wire 가이드 v0.5.7+](../workflow-source/core/orchestrator_contract_v1_wire_guide.md)
-- [Maturity Matrix](../workflow-source/core/maturity_matrix.json)
-- [릴리스 노트 v0.5.10](../workflow-source/releases/Beta-v0.5.10.md)
+- [세션 인계 문서 v0.5.10](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/memory/release/v0.5.10/session_handoff.md)
+- [작업 백로그 (v0.6.3 archive)](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/memory/archive/2026-06-12/work_backlog.md)
+- [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md)
+- [Wire 가이드 v0.5.7+](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_contract_v1_wire_guide.md)
+- [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)
+- [릴리스 노트 v0.5.10](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v0.5.10.md)
 

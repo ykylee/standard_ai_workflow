@@ -42,8 +42,8 @@
 - [OKF Consumer Quickstart](OKF_CONSUMER_QUICKSTART.md) — 5분 튜토리얼
 - [OKF Consumer Guide](OKF_CONSUMER_GUIDE.md) — full reference
 - [Code Index](CODE_INDEX.md) — module map
-- [samples/](samples/) — example bundles
-- [architecture/](architecture/) — design / ADR
+- [samples/](https://github.com/ykylee/standard_ai_workflow/tree/main/docs/samples/) — example bundles
+- [architecture/](https://github.com/ykylee/standard_ai_workflow/tree/main/docs/architecture/) — design / ADR
 
 이후에도 unclear 하다면 issue 로 보고. **doc PR 환영** — `docs/` 만 edit 하면 mkdocs 가 자동 rebuild (CI ~2분).
 

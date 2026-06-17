@@ -913,8 +913,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  pages_skipped:  {report.pages_skipped}")
         if report.errors:
             print(f"  errors ({len(report.errors)}):")
-            for e in report.errors:
-                print(f"    - {e}")
+            for err in report.errors:
+                print(f"    - {err}")
     return 0 if not report.errors else 1
 
 

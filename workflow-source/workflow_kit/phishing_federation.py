@@ -16,9 +16,12 @@ Phishing federation evolution:
 - v0.7.52 cleanup: 4 modules -> 1 module
 """
 
-from __future__ import annotations
+from typing import Callable, TypedDict, cast
 
-from typing import Callable
+
+class _UrlRecord(TypedDict):
+    confidence: float
+    sources: list[str]
 
 
 def fetch_federated_phishing_urls(
@@ -39,7 +42,7 @@ def fetch_federated_phishing_urls(
     Returns:
         List of (url, confidence, source_names) tuples
     """
-    url_data: dict[str, dict[str, object]] = {}
+    url_data: dict[str, _UrlRecord] = {}
     for idx, (source, weight) in enumerate(sources_with_weights):
         source_name = f"source_{idx}"
         try:
@@ -49,7 +52,7 @@ def fetch_federated_phishing_urls(
         for url in result:
             normalized = url.strip().lower()
             if normalized not in url_data:
-                url_data[normalized] = {"confidence": 0.0, "sources": []}
+                url_data[normalized] = {"confidence": 0.0, "sources": cast(list[str], [])}
             url_data[normalized]["confidence"] = float(url_data[normalized]["confidence"]) + weight
             url_data[normalized]["sources"].append(source_name)
     filtered = [

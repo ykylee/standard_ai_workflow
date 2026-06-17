@@ -138,24 +138,37 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
-strict = false
+# v0.8.0+ — strict = true.
+# 단계적 격상 (workflow-source/core/v0_8_0_stable_api_spec.md §5.3):
+# - v0.8.0: workflow_kit/__init__.py 의 public surface 만 strict clean (이 file 자체).
+#   다른 module 은 pyproject.toml [tool.mypy.overrides] 로 module 별 strict 분할.
+# - v0.8.x follow-up: workflow_kit/<module>.py 의 strict clean 단계적 격상.
+# - v0.9.0: full strict (모든 module strict clean).
+strict = true
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
 ignore_missing_imports = true
+# v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.
+# 현재 v0.8.0 은 workflow_kit/__init__.py 의 public API 만 strict clean.
+# 다른 module 은 `disallow_untyped_defs = false` (v0.8.x follow-up) 로 두고, base strict = true 가
+# *unused-ignore* 등 정합성 lint 만 enforce.
+# (overrides 는 v0.8.x follow-up 에서 module 별 추가)
+# v0.8.0 follow-up: workflow_kit/{url_validity,okf_import,okf_export,phishing_*,cache_*}.py
+# 의 annotation 보강, v0.9.0 에서 full strict.
 
 # ---------------------------------------------------------------------------
 # v0.7.6+ workflow-doctor external config
 # ---------------------------------------------------------------------------
 #
 # workflow_kit.common.metadata.load_config() 가 이 section 을 읽어 DoctorConfig 반환.
-# baseline dispatcher / CLI doctor / partial mode / opt-in / CI threshold 의 SSOT.
-#
-# 운영 시 부분 config 가능 — partial_rules / opt_in / thresholds / excluded_paths /
-# fail_on 5 field 모두 optional. 없는 field 는 default fallback (DoctorConfig()).
-
-[tool.workflow-doctor]
-# baseline 별 hard constraint rule list. evaluate_compliance(baseline, partial_rules=...)
+# v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.
+# v0.8.0: workflow_kit/__init__.py 만 strict clean (public surface).
+# v0.8.1: + workflow_kit/url_validity.py (V-R10, 25 error → 0, v0.8.0 spec §5.3 단계 1).
+# v0.8.2+: url_validity.py 다음 module 별 strict 격상, 작은 release 로 분할.
+# v0.9.0: full strict (모든 module strict clean).
+# module 별 strict 격상 시 [tool.mypy.overrides] 로 enable 하는 것이 아니라,
+# v0.8.1 처럼 base strict = true + module 별 error fix.
 # 의 partial_rules 인자로 전달. 해당 rule 의 non_compliant 는 hard fail (CI fail).
 # v0.7.6 default: resiliency 의 RES-WF-01/02 (변경 관리 + critical workload 식별).
 partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }

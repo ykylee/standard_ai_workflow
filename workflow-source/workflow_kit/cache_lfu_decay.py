@@ -13,11 +13,12 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from workflow_kit.lfu_config import LFUConfig
 
 def save_cache_with_decay(
     cache: dict[str, dict[str, Any]],
     cache_path: str | None,
-    config,  # LFUConfig
+    config: LFUConfig,  # LFUConfig
     *,
     now: float | None = None,
 ) -> dict[str, float]:
@@ -56,7 +57,7 @@ def save_cache_with_decay(
 
 def select_eviction_candidates_with_decay(
     cache: dict[str, dict[str, Any]],
-    config,
+    config: LFUConfig,
     n: int,
     *,
     now: float | None = None,
@@ -99,15 +100,15 @@ def _write_cache_file(
 
 def save_cache_lfu_decay_full(
     cache_file_path: str,
-    entries,  # dict[str, CacheEntry]
+    entries: "dict[str, Any]",  # CacheEntry
     max_bytes: int,
     max_entries: int,
-    config,  # LFUConfig
+    config: LFUConfig,  # LFUConfig
     *,
     now: float | None = None,
     eviction_strategy: str = "mixed",
     half_life_seconds: float = 86400.0,
-) -> "dict[str, Any]":
+) -> "dict[str, dict[str, Any]]":
     """Full refactor of _save_cache using LFUConfig.compute_lfu_score_with_decay (v0.7.48+).
 
     Unlike v0.7.47's save_cache_with_decay (which wraps _save_cache), this is a

@@ -14,7 +14,7 @@ from __future__ import annotations
 import urllib.error
 import urllib.request
 import base64
-from typing import Any
+from typing import Any, Callable, cast
 
 
 def check_url_semantic_commit_diff_github(
@@ -25,7 +25,7 @@ def check_url_semantic_commit_diff_github(
     *,
     user: str | None = None,
     token: str | None = None,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Return list of commit dicts between range_a..range_b on GitHub.
 
@@ -44,7 +44,7 @@ def check_url_semantic_commit_diff_github(
         Empty list on error.
     """
     if requests_get is None:
-        def requests_get(url: str, **kwargs):
+        def requests_get(url: str, **kwargs: Any) -> Any:
             return urllib.request.urlopen(
                 urllib.request.Request(url, headers=kwargs.get("headers", {})),
                 timeout=kwargs.get("timeout", 30),
@@ -60,7 +60,7 @@ def check_url_semantic_commit_diff_github(
             import json
             data = json.loads(response.read().decode("utf-8"))
             if isinstance(data, dict) and "commits" in data:
-                return data["commits"]
+                return cast(list[dict[str, Any]], data["commits"])
             return []
         return []
     except (urllib.error.URLError, OSError, TimeoutError, ValueError):
@@ -75,7 +75,7 @@ def check_url_semantic_commit_diff_bitbucket(
     *,
     user: str | None = None,
     token: str | None = None,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Return list of commit dicts between range_a..range_b on Bitbucket.
 
@@ -94,7 +94,7 @@ def check_url_semantic_commit_diff_bitbucket(
         Empty list on error.
     """
     if requests_get is None:
-        def requests_get(url: str, **kwargs):
+        def requests_get(url: str, **kwargs: Any) -> Any:
             return urllib.request.urlopen(
                 urllib.request.Request(url, headers=kwargs.get("headers", {})),
                 timeout=kwargs.get("timeout", 30),
@@ -110,7 +110,7 @@ def check_url_semantic_commit_diff_bitbucket(
             import json
             data = json.loads(response.read().decode("utf-8"))
             if isinstance(data, dict) and "values" in data:
-                return data["values"]
+                return cast(list[dict[str, Any]], data["values"])
             return []
         return []
     except (urllib.error.URLError, OSError, TimeoutError, ValueError):
@@ -124,7 +124,7 @@ def check_url_semantic_commit_diff_dispatch(
     *,
     user: str | None = None,
     token: str | None = None,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Auto-route commit-level diff by URL host (v0.7.47+).
 
@@ -196,7 +196,7 @@ def check_url_semantic_with_commit_diff(
     *,
     user: str | None = None,
     token: str | None = None,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
     """Check V-R13 URL with commit-level diff.
 
@@ -265,7 +265,7 @@ def run_layer2_pipeline(
     *,
     user: str | None = None,
     token: str | None = None,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> PipelineResult:
     """Run V-R13 layer 2 full pipeline (parse + dispatch + format)."""
     result = check_url_semantic_with_commit_diff(

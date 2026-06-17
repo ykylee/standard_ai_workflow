@@ -42,7 +42,7 @@ This site is **auto-generated** from the `main` branch via [mkdocs-material](htt
 - 🐛 **Bug report** → [GitHub Issues](https://github.com/ykylee/standard_ai_workflow/issues/new?labels=bug,consumer-feedback&template=bug_report.md)
 - 💡 **Feature request / suggestion** → [GitHub Issues (enhancement)](https://github.com/ykylee/standard_ai_workflow/issues/new?labels=enhancement,consumer-feedback&template=feature_request.md)
 - 💬 **General Q&A** → [GitHub Discussions](https://github.com/ykylee/standard_ai_workflow/discussions)
-- 📖 **문서 unclear / missing** → [docs/samples](samples/) 또는 [docs/architecture](architecture/) 먼저 확인 후 issue
+- 📖 **문서 unclear / missing** → [docs/samples](https://github.com/ykylee/standard_ai_workflow/tree/main/docs/samples/) 또는 [docs/architecture](https://github.com/ykylee/standard_ai_workflow/tree/main/docs/architecture/) 먼저 확인 후 issue
 - 📊 **Public-facing telemetry** → 본 사이트는 외부 analytics / tracking 스크립트 0개 (privacy-first). v0.7.56+ 부터는 GitHub Pages 의 [traffic tab](https://github.com/ykylee/standard_ai_workflow/graphs/traffic) 으로 page view 확인 가능.
 
 **Response SLA**: consumer-feedback label issue 는 7일 내 1차 response (acknowledge / triage). critical bug 은 48h. PR review 는 3-5 영업일.

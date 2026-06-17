@@ -6,6 +6,17 @@ repo_name: ykylee/standard_ai_workflow
 
 docs_dir: docs
 site_dir: site
+# v0.7.61+ — exclude non-public-facing docs from mkdocs build (samples/, archive/,
+# planning/, architecture/ 는 cross-link 의 source/target 양쪽이 docs/ 외부 참조).
+# main docs (PROJECT_PROFILE / INSTALLATION_AND_USAGE / OKF_CONSUMER_*/CODE_INDEX/
+# DOCUMENT_INDEX/RELEASE/index/FEEDBACK) 만 build 대상. cross-link 는 v0.7.61+ 에서
+# 모두 GitHub absolute URL 로 rewrite (../README.md, ../QUICKSTART.md, ../ai-workflow/...,
+# ../workflow-source/... 모두 외부).
+exclude_docs: |
+  samples/**
+  archive/**
+  planning/**
+  architecture/**
 
 theme:
   name: material

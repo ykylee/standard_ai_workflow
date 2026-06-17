@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
-"""mkdocs cross-link audit (v0.7.57+).
+"""mkdocs cross-link audit (v0.7.57+) + gate (v0.7.61+).
 
 Walk docs/ (excluding samples/) and verify all relative links resolve.
 Exits 0 if all links are valid, 1 if any broken.
 
-Why not use mkdocs --strict:
-- mkdocs --strict requires the whole site to be in docs/ (no ../ai-workflow/wiki/)
-- samples/okf-bundle-2026-06-16/ is a self-contained OKF bundle example
-  with cross-references to wiki pages that don't exist in mkdocs docs_dir
-- The v0.7.53 release note mentions this as a known follow-up
+v0.7.61+ status: mkdocs build --strict is now ACTIVE in CI (after cross-link
+rewrite + exclude_docs). This script remains as a defense-in-depth gate for
+the *public-facing* docs — it walks docs/ directly (mkdocs only walks nav files)
+and catches any link that mkdocs --strict missed.
 
-This script is the *pragmatic v0.7.57 fix*:
+Why both mkdocs --strict AND this script:
+- mkdocs --strict: walks only files in `nav`, follows the docs_dir tree
+- this script: walks all .md under docs/ (regardless of nav), useful for catching
+  issues in pages that will be re-added to nav later or in CI logs
+
+Pre-v0.7.61: --strict was OFF because ai-workflow/wiki/ was external to docs_dir
+(116 broken warnings). v0.7.61 fix:
+- Cross-link rewrite: all `../README.md`, `../QUICKSTART.md`, `../ai-workflow/...`,
+  `../workflow-source/...` rewritten to GitHub absolute URL
+- exclude_docs: samples/, archive/, planning/, architecture/ excluded from build
+- docs/README.md: removed (conflict with index.md, merged into DOCUMENT_INDEX)
+
+This script is the *defense-in-depth* layer for v0.7.61+:
 - Audit only the *public-facing* docs (the ones in nav)
 - Skip samples/ bundle (cross-refs are intentional, not broken)
 - Report broken links in human + JSON format
@@ -64,7 +75,6 @@ def _strip_code_blocks(text: str) -> str:
         else:
             # Strip inline code: `...` → ``
             cleaned = re.sub(r"`[^`]+`", "``", line)
-            out.append(cleaned)
     return "\n".join(out)
 
 
@@ -88,7 +98,7 @@ def main() -> int:
     skipped = 0
 
     # Update excludes with default + user-specified
-    all_excludes = [docs_dir / "samples", docs_dir / "archive"]
+    all_excludes = [docs_dir / "samples", docs_dir / "archive", docs_dir / "architecture", docs_dir / "planning"]
     for e in args.exclude:
         path = docs_dir / e.rstrip("/")
         if path not in all_excludes:

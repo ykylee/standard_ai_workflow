@@ -1317,6 +1317,104 @@ def cmd_dist(args) -> dict:
     results["ok"] = True
     return results
 
+
+# ---------------------------------------------------------------------------
+# 8. gen-schema (v0.8.0+ — runtime contract → JSON Schema SSOT)
+# ---------------------------------------------------------------------------
+# v0.7.59+ spec §6.1 정공법: Pydantic v2 model registry 의 모든 output/error schema 를
+# JSON Schema (draft-07) 으로 dump. runtime contract (workflow_kit.common.output_contracts) 와
+# byte-identical 임을 CI 의 `gen-schema --check` 가 검증. read-only MCP manifest 의
+# outputSchema 가 generated schema 와 byte-identical 임을 assertion test 가 강제.
+GEN_SCHEMA_DEFAULT_OUTPUT = REPO_ROOT / "schemas" / "generated_output_schemas.json"
+
+
+def cmd_gen_schema(args) -> dict:
+    """JSON Schema bundle 을 output path 에 write (또는 --check 으로 byte-identical 검증).
+
+    Args:
+        --output=PATH: 출력 file path (default: schemas/generated_output_schemas.json).
+        --check: byte-identical 검증 (write 안 함, CI gate).
+        --dry-run: write 안 함, write plan 만 출력.
+        --json: JSON output.
+        --family=NAME: 단일 family 만 dump (default: all families).
+    """
+    results: dict = {}
+    output_path = Path(args.output) if args.output else GEN_SCHEMA_DEFAULT_OUTPUT
+    results["output_path"] = str(output_path)
+    try:
+        sys.path.insert(0, str(REPO_ROOT))
+        from workflow_kit.common.output_contracts import output_json_schema_bundle, PYDANTIC_MODEL_REGISTRY
+    except ImportError as e:
+        results["error"] = f"output_contracts import failed: {type(e).__name__}: {e}"
+        results["ok"] = False
+        return results
+    # 2. dump
+    try:
+        bundle = output_json_schema_bundle()
+    except Exception as e:  # noqa: BLE001
+        results["error"] = f"output_json_schema_bundle failed: {type(e).__name__}: {e}"
+        results["ok"] = False
+        return results
+    # 3. family filter
+    if args.family:
+        if args.family not in bundle:
+            results["error"] = f"family not in bundle: {args.family}. available: {sorted(bundle.keys())[:5]}..."
+            results["ok"] = False
+            return results
+        bundle = {args.family: bundle[args.family]}
+    results["family_count"] = len(bundle)
+    results["registry_count"] = len(PYDANTIC_MODEL_REGISTRY)
+    # 4. JSON encode (sort_keys=True 로 byte-identical 보장)
+    try:
+        encoded = json.dumps(bundle, sort_keys=True, indent=2, default=str)
+    except (TypeError, ValueError) as e:
+        results["error"] = f"JSON encode failed: {type(e).__name__}: {e}"
+        results["ok"] = False
+        return results
+    results["encoded_bytes"] = len(encoded.encode("utf-8"))
+    # 5. --check: byte-identical 검증 (no write)
+    if args.check:
+        if not output_path.exists():
+            results["error"] = f"--check: output file does not exist: {output_path}"
+            results["ok"] = False
+            return results
+        existing = output_path.read_text(encoding="utf-8")
+        if existing != encoded:
+            results["error"] = (
+                f"--check: drift detected. existing={len(existing)} bytes, "
+                f"expected={len(encoded)} bytes"
+            )
+            results["ok"] = False
+            return results
+        results["check_status"] = "identical"
+        results["ok"] = True
+        return results
+    # 6. --dry-run: write 안 함
+    if args.dry_run:
+        results["dry_run_status"] = "plan-only"
+        results["ok"] = True
+        return results
+    # 7. write (atomic)
+    if atomic_write_text is not None:
+        try:
+            atomic_write_text(output_path, encoded)
+        except Exception as e:  # noqa: BLE001
+            results["error"] = f"atomic_write failed: {type(e).__name__}: {e}"
+            results["ok"] = False
+            return results
+    else:
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(encoded, encoding="utf-8")
+        except OSError as e:
+            results["error"] = f"write failed: {type(e).__name__}: {e}"
+            results["ok"] = False
+            return results
+    results["written"] = str(output_path)
+    results["ok"] = True
+    return results
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
@@ -1383,16 +1481,17 @@ def main() -> int:
                             "v0.7.18+: release coordination observability.")
     p_rel.add_argument("--allow-existing-tag", dest="allow_existing_tag", action="store_true", default=False,
                        help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
-                            "v0.7.21+ follow-up: tag push 와 release 의 coupling fix. "
-                            "*의도된* tag re-push (e.g. wheel re-attach) 또는 backfill 시에만 사용.")
-    p_rel.add_argument("--notes-template", dest="notes_template", default="default",
-                       help="release notes format 결정. v0.7.24+. "
-                            "'default' (Beta-v<X>.<Y>.<Z>.md) / 'detailed' (default 와 동일) / "
-                            "'simple' (1 line summary) / 'changelog' (workflow-source/CHANGELOG.md) / "
-                            "'custom:<path>' (임의 path).")
-    p_rel.add_argument("--dry-run", action="store_true", dest="dry_run")
+                            "v0.7.21+ follow-up: tag push 와 release 의 coupling fix.")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")
+
+    # gen-schema (v0.8.0+ — runtime contract → JSON Schema SSOT)
+    p_gs = sub.add_parser("gen-schema", help="JSON Schema bundle dump (Pydantic v2 → JSON Schema draft-07). v0.8.0+ SSOT")
+    p_gs.add_argument("--output", help="출력 file path (default: schemas/generated_output_schemas.json)")
+    p_gs.add_argument("--check", action="store_true", help="byte-identical 검증 (write 안 함, CI gate)")
+    p_gs.add_argument("--dry-run", action="store_true", dest="dry_run", help="write 안 함, plan 만 출력")
+    p_gs.add_argument("--family", help="단일 family 만 dump (default: all families)")
+    p_gs.add_argument("--json", action="store_true", help="JSON output")
 
     # verify (Phase 2 — v0.7.10)
     p_ver = sub.add_parser("verify", help="GitHub Release 의 tag + asset 검증 (read-only)")
@@ -1420,6 +1519,8 @@ def main() -> int:
     args = p.parse_args()
     if getattr(args, "dry_run", False):
         args.apply = False
+    if getattr(args, "dry_run", False):
+        args.apply = False
 
     if args.command == "validate":
         result = cmd_validate(args)
@@ -1433,10 +1534,10 @@ def main() -> int:
         result = cmd_release(args)
     elif args.command == "verify":
         result = cmd_verify(args)
-    elif args.command == "rollback":
-        result = cmd_rollback(args)
     elif args.command == "dist":
         result = cmd_dist(args)
+    elif args.command == "gen-schema":
+        result = cmd_gen_schema(args)
     else:
         p.error(f"unknown command: {args.command}")
         return 2

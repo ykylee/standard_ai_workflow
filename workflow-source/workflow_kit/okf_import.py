@@ -1,4 +1,4 @@
-"""workflow_kit.okf_import — OKF v0.1 bundle → wiki ingest helper (v0.7.34+).
+"""
 
 OKF (Open Knowledge Format) v0.1 spec 의 consumer. ADR-007 채택 — loose/strict mode
 opt-in, OKF spec §9 의 5 MUST NOT reject 정책 (loose mode) + 우리 wiki strict lint
@@ -48,7 +48,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 # Re-use frontmatter parser from okf_export
 from workflow_kit.okf_export import (
@@ -108,7 +108,7 @@ def detect_mode(
     if cli_mode is not None:
         if cli_mode not in ("strict", "loose"):
             raise OkfImportError(f"invalid mode: {cli_mode!r} (expected 'strict' or 'loose')")
-        return cli_mode
+        return cast(Mode, cli_mode)
 
     # 2. okf-bundle.yaml manifest
     manifest = bundle / "okf-bundle.yaml"
@@ -116,18 +116,18 @@ def detect_mode(
         m = _parse_simple_yaml(manifest.read_text(encoding="utf-8"))
         declared = str(m.get("mode", "")).strip().lower()
         if declared in ("strict", "loose"):
-            return declared  # type: ignore[return-value]
+            return cast(Mode, declared)
 
     # 3. index.md frontmatter
     index_md = bundle / "index.md"
     if index_md.is_file():
         text = index_md.read_text(encoding="utf-8")
-        m = _FRONTMATTER_RE.match(text)
-        if m:
-            fm = _parse_simple_yaml(m.group(1))
+        m_match = _FRONTMATTER_RE.match(text)
+        if m_match:
+            fm = _parse_simple_yaml(m_match.group(1))
             declared = str(fm.get("okf_mode", "")).strip().lower()
             if declared in ("strict", "loose"):
-                return declared  # type: ignore[return-value]
+                return cast(Mode, declared)
 
     # 4. default
     return "strict"
@@ -369,7 +369,8 @@ def _check_v_t1_title_consistency(page: ParsedPage, mode: Mode) -> LintIssue | N
         )
     h1 = h1_match.group(1).strip()
     # normalize
-    norm = lambda s: re.sub(r"\s+", " ", s).strip().lower()  # noqa: E731
+    def norm(s: str) -> str:
+        return re.sub(r"\s+", " ", s).strip().lower()
     if norm(title) == norm(h1):
         return None
     return LintIssue(
@@ -438,30 +439,13 @@ def _stage_page(page: ParsedPage, staging: Path) -> Path:
     )
     return out_path
 
-
 def cleanup_staging(
     staging_dir: Path,
     *,
     older_than_seconds: float | None = None,
     dry_run: bool = True,
-) -> dict[str, int | bool]:
-    """Clean up OKF staging directory (v0.7.56+, ADR-019 follow-up).
-
-    Removes files in `staging_dir` matching the criteria:
-    - older_than_seconds: only files older than this are removed (mtime check)
-    - dry_run: if True, report what would be removed without modifying (default)
-
-    Args:
-        staging_dir: staging directory to clean
-        older_than_seconds: max age in seconds (files older than this are pruned)
-        dry_run: if True, only report (default safe for ad-hoc invocation)
-
-    Returns:
-        dict with: scanned, removed, kept, dry_run, staging_dir
-
-    Use case: long-running services that accumulate staging files. Default
-    dry_run=True is safe; dispatcher --apply flag actually removes.
-    """
+) -> dict[str, int | str | bool]:
+    """Clean up OKF staging directory (v0.7.56+, ADR-019 follow-up)."""
     import time as _time
     now = _time.time()
     if not staging_dir.exists():
@@ -496,13 +480,12 @@ def cleanup_staging(
         "dry_run": dry_run, "staging_dir": str(staging_dir),
     }
 
-
 # ---------------------------------------------------------------------------
 # Import report
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ImportReport:
-    """Result summary of an OKF → wiki import run."""
+    """Result summary of an OKF to wiki import run."""
 
     mode: Mode
     pages_total: int
@@ -615,7 +598,7 @@ class R2BatchPreciseAuditResult:
 
 def audit_r2_batch_history_precise(
     repo_root: Path | None = None,
-    subprocess_run=None,
+    subprocess_run: Any = None,
     since: str | None = None,
 ) -> R2BatchPreciseAuditResult:
     """R-2 batch compliance precise audit (v0.7.42+).
@@ -880,8 +863,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  promoted:           {report.promoted}")
         if report.errors:
             print(f"\n  errors ({len(report.errors)}):")
-            for e in report.errors:
-                print(f"    - {e}")
+            for err in report.errors:
+                print(f"    - {err}")
         if report.issues:
             print(f"\n  issues ({len(report.issues)}):")
             for i in report.issues:

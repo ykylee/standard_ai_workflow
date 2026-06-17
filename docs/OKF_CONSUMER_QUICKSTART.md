@@ -180,7 +180,7 @@ The 5 stub warnings are expected in fast mode (ADR-020 PoC). Use `--perform-head
 
 ### Issue 4: 'r2_batch_warning: too_large'
 **Cause**: ingest has > 15 pages.
-**Fix**: split into multiple bundles (5-15 page batches recommended). See [SCHEMA.md R-2](../ai-workflow/wiki/SCHEMA.md).
+**Fix**: split into multiple bundles (5-15 page batches recommended). See [SCHEMA.md R-2](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/wiki/SCHEMA.md).
 
 ### Issue 5: 'V-R13-stub-content-type' warning
 **Cause**: fast mode (default) skips check 3 (content_type).
@@ -189,9 +189,9 @@ The 5 stub warnings are expected in fast mode (ADR-020 PoC). Use `--perform-head
 ## §8. Next steps
 
 - **Deep dive**: read [OKF_CONSUMER_GUIDE.md](./OKF_CONSUMER_GUIDE.md) for full reference.
-- **V-R13 spec**: read [concepts/v-r13-semantic-url-verification.md](../ai-workflow/wiki/concepts/v-r13-semantic-url-verification.md) for semantic URL convention.
-- **V-R12 spec**: read [concepts/v-r13-implementation.md](../ai-workflow/wiki/concepts/v-r13-implementation.md) for layer 1+2 carrier.
-- **V-R11 body audit**: see [ADR-017](../ai-workflow/wiki/decisions/adr-017-v-r11-body-audit.md) for phishing detection.
+- **V-R13 spec**: read [concepts/v-r13-semantic-url-verification.md](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/wiki/concepts/v-r13-semantic-url-verification.md) for semantic URL convention.
+- **V-R12 spec**: read [concepts/v-r13-implementation.md](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/wiki/concepts/v-r13-implementation.md) for layer 1+2 carrier.
+- **V-R11 body audit**: see [ADR-017](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/wiki/decisions/adr-017-v-r11-body-audit.md) for phishing detection.
 - **OKF spec**: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md (primary source).
 
 ## §9. CLI command reference

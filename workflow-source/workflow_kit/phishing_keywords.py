@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Callable, Iterable
 
 
 # Bundled baseline (8 keywords, V-R11 v0.7.37+, ADR-017).
@@ -160,7 +160,7 @@ def fetch_phishtank_feed(
     feed_format: str = "json",
     max_retries: int = 3,
     backoff_base: float = 1.0,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[str]:
     """Fetch PhishTank online-valid feed (v0.7.43+, ADR-023 code-side).
 
@@ -179,7 +179,7 @@ def fetch_phishtank_feed(
     """
     if requests_get is None:
         import urllib.request as _ur
-        def requests_get(url: str, **kwargs):
+        def requests_get(url: str, **kwargs: Any) -> Any:
             return _ur.urlopen(_ur.Request(url, headers=kwargs.get("headers", {})), timeout=kwargs.get("timeout", 30))
     url = f"{PHISHTANK_API_BASE}/{api_key}/online-valid.{feed_format}"
     import time
@@ -229,7 +229,7 @@ def fetch_openphish_feed(
     *,
     max_retries: int = 3,
     backoff_base: float = 1.0,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[str]:
     """Fetch OpenPhish free public feed (v0.7.44+, ADR-023 follow-up).
 
@@ -246,7 +246,7 @@ def fetch_openphish_feed(
     """
     if requests_get is None:
         import urllib.request as _ur
-        def requests_get(url: str, **kwargs):
+        def requests_get(url: str, **kwargs: Any) -> Any:
             return _ur.urlopen(_ur.Request(url, headers=kwargs.get("headers", {})), timeout=kwargs.get("timeout", 30))
     import time
     for attempt in range(max_retries):
@@ -286,8 +286,8 @@ def fetch_federated_phishing_urls(
     *,
     include_phishtank: bool = True,
     include_openphish: bool = True,
-    requests_get_pt=None,
-    requests_get_op=None,
+    requests_get_pt: Callable[..., Any] | None = None,
+    requests_get_op: Callable[..., Any] | None = None,
 ) -> list[str]:
     """Fetch + dedup phishing URLs from PhishTank + OpenPhish (v0.7.45+, free tier).
 

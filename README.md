@@ -4,8 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-12
-- 버전: v0.6.5-beta
+- 최종 수정일: 2026-06-17
+- 버전: v0.8.15-beta (package: standard-ai-workflow 0.9.1)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -258,29 +258,40 @@ python3 workflow-source/scripts/export_harness_package.py \
 - OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 task-only orchestrator + bounded worker 운영 패턴을 문서/템플릿으로 배포한다.
 - `workflow_kit.common` (state, contracts, schemas, runner, errors, output_contracts, reconcile, scaffold, doc_sync 등 30+ submodule) 은 v0.5.2+ 본격 추출 진행 중. `workflow_kit/contract_v1/` (v0.5.6+, v0.5.7 multi-component 확장) 은 Pydantic v2 기반 외부 contract enforcement helpers.
 - 하네스 export bundle 은 read-only MCP descriptor, 하네스별 MCP 설정 예시 (5종), JSON-RPC fixture 를 함께 포함한다.
-- `workflow-source/tests/check_*.py` 52개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀 까지 smoke 기준선을 제공한다.
-- CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 52개 smoke 전부 실행.
+- `workflow-source/tests/check_*.py` 162개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀, release_pipeline (30+ wrapper) 까지 smoke 기준선을 제공한다 (cumulative, v0.8.15+ 162/162 PASS).
+- CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 162개 smoke 전부 실행.
 
-## 10. v0.6.5 기준 누적 변경 요약 (2026-06-12)
+## 10. v0.8.0 → v0.8.15 누적 변경 요약 (2026-06-17)
 
-v0.6.0 부터 v0.6.5 까지 누적된 핵심 변경 (AIDLC 패턴 차용 2종 + runtime 적용):
+v0.8.0 spec §5.3 (Stable API frozen + mypy strict 단계적 격상) 부터 v0.8.15 까지 누적된 핵심 변경 (16 release):
 
-- v0.6.3 — L1 wiki 운영 R-1~R9 + R-9 source rule (R8/R10 freeze, V-R9 skip marker)
-- v0.6.4 (AIDLC 분석) — 1차 출처 16 file 분석 + 1:1 비교 (강점 8 / 갭 20) + 보완안 15건
-- v0.6.4 (구현) — **Question File Format** + **Stage Gate 명시화** spec 2종 (AIDLC `common/question-format-guide.md` + construction phase 차용)
-- v0.6.4 (코드) — runtime helper 2 module (question_format.py + stage_gate.py) + 22 smoke test PASS
-- v0.6.5 (spec) — 11종 skill spec §4.1 stage_completion + 5 SKILL.md cross-ref
-- v0.6.5 (runtime) — stage_gate_runtime helper + migration guide + 13 smoke test PASS
-- v0.6.5 (pilot + batch) — 7 spec 보유 skill runtime 통합 (automated-repro-scaffold + 6 batch)
+- **v0.8.0** — Stable API frozen + `mypy --strict` base 격상 + `pyproject.toml [project] version` SSOT + `__version__` 자동 derive + generated JSON Schema SSOT (21 family, 85,743 bytes) + `__all__` 27 entry 명시. spec §9 acceptance 7/12.
+- **v0.8.1** — mypy strict 단계적 격상 1단계: `workflow_kit/url_validity.py` 25 error → 0 (Severity='info' 확장, EvictionStrategy 신규, CacheEntry.timestamp real bug fix, subprocess_run: Any 명시, max_diff_lines parameter 추가).
+- **v0.8.2** — mypy strict 단계적 격상 2단계: `workflow_kit/okf_import.py` 9 error → 0 (opening docstring real bug fix, → U+2192 제거, cast(Mode) 명시, lambda→def, e→err loop var rename).
+- **v0.8.3** — mypy strict 단계적 격상 3단계: `workflow_kit/okf_export.py` 2 error → 0.
+- **v0.8.4** — mypy strict 단계적 격상 4단계: `phishing_federation.py` + `phishing_federation_v4.py` 8 error → 0 (_UrlRecord TypedDict 신규).
+- **v0.8.5** — mypy strict 단계적 격상 5단계: `phishing_keywords.py` + `cache_lfu_decay.py` + `cache_lfu_decay_persist.py` 11 error → 0 (LFUConfig 명시 import, Callable[..., Any] | None).
+- **v0.8.6** — mypy strict 단계적 격상 6단계: `workflow_kit_cli.py` 44 error → 0 (가장 큰 module, register decorator Callable 명시).
+- **v0.8.7** — mypy strict 단계적 격상 7단계: `v_r13_commit_diff.py` + `cache_analytics.py` + `cache_analytics_trend_chart.py` 13 error → 0.
+- **v0.8.8** — mypy strict 단계적 격상 8단계: `upgrade_diff.py` + `bitbucket_v2.py` + `lfu_integration.py` + `cache_size_compare.py` 8 error → 0 + `tools/release_pipeline.py` SSOT refactor.
+- **v0.8.9** — dispatcher surface 28 → 30: `cache-lru-decay` + `cache-merge-csv` (v0.7.58 의 3 subcommand 잔여분 2개).
+- **v0.8.10** — read-only MCP manifest byte-identical assertion (spec §9 #6) + spec §9 8/12.
+- **v0.8.11** — phishing_keywords 2 pre-existing test fail fix (lowercase + dedup + mock-based openphish).
+- **v0.8.12** — `.github/workflows/consumer-metrics-digest.yml` GH Actions weekly cron 자동화 (consumer-metrics --digest-markdown → GH issue comment).
+- **v0.8.13** — mypy strict 단계적 격상 9단계: `common/state/builder.py` 13 error → 0 (cumulative fix 잔여분 흡수).
+- **v0.8.14** — mypy strict 단계적 격상 10단계: `common/contracts/baselines.py` 27 error → 0 + 2 real bug fix (AuditLogEvent → StageCompletion, append_audit_log arg 순서).
+- **v0.8.15** — `release-dist --apply` 1-command (`python -m build` + `twine check` + TestPyPI sim) + `--production` flag + `.gitignore` history file 등록 + work_backlog.md v0.7.25~v0.7.32 stale 정리. spec §9 9/12, tools test 52/52 PASS.
 
-**누적**: 4,100 line, 35 smoke test PASS (7 question_format + 15 stage_gate_compliance + 13 stage_gate_runtime), breaking change 없음 (stage_completion optional field).
+**누적 (v0.8.0 → v0.8.15)**: 16 release, mypy strict cumulative **19 file clean** (v0.9.0 에서 full strict), smoke test **162/162 PASS** (cumulative, v0.8.15+), spec §9 acceptance **9/12**, breaking change 없음 (SemVer 2-year guarantee, v0.8.0 → 2.0.0 까지).
+
+**PyPI 배포 정책**: GitHub Releases only, no actual PyPI/TestPyPI deployment. v0.8.15 의 TestPyPI/Production upload 는 *simulation* 만.
 
 이번 기준선 핵심 결과물:
 
-- release note: [releases/Beta-v0.6.5.md](./workflow-source/releases/Beta-v0.6.5.md) (NEW, v0.6.4 + v0.6.5 묶음)
-- AIDLC 분석 노트: L1 wiki `topics/aidlc-benchmark-analysis-2026-06-12.md`
-- 12 신규 doc + 3 신규 module + 3 신규 smoke test (35 PASS)
-- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.6.5): [releases/](./workflow-source/releases/)
+- release note: [releases/Beta-v0.8.15.md](./workflow-source/releases/Beta-v0.8.15.md) (v0.8.0 → v0.8.15 묶음, spec §9 9/12 완료)
+- stable API spec: [core/v0_8_0_stable_api_spec.md](./workflow-source/core/v0_8_0_stable_api_spec.md) (v0.8.0 freeze)
+- deprecation policy spec (v0.9.0): [core/v0_9_0_deprecation_policy_spec.md](./workflow-source/core/v0_9_0_deprecation_policy_spec.md) (NEW v0.9.0+)
+- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.8.15): [releases/](./workflow-source/releases/)
 
 ## 11. 현재 한계
 
@@ -309,7 +320,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - contract v1 wire 가이드: [workflow-source/core/orchestrator_contract_v1_wire_guide.md](./workflow-source/core/orchestrator_contract_v1_wire_guide.md)
 - 프로젝트 상태 진단: [workflow-source/core/project_status_assessment.md](./workflow-source/core/project_status_assessment.md)
 - 상위 로드맵: [workflow-source/core/workflow_kit_roadmap.md](./workflow-source/core/workflow_kit_roadmap.md)
-- 마지막 release note: [workflow-source/releases/Beta-v0.5.10.md](./workflow-source/releases/Beta-v0.5.10.md)
+- 마지막 release note: [workflow-source/releases/Beta-v0.8.15.md](./workflow-source/releases/Beta-v0.8.15.md)
 - 출력 스키마 가이드: [workflow-source/core/output_schema_guide.md](./workflow-source/core/output_schema_guide.md)
 - 도입 분기 가이드: [workflow-source/core/workflow_adoption_entrypoints.md](./workflow-source/core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [workflow-source/core/workflow_harness_distribution.md](./workflow-source/core/workflow_harness_distribution.md)

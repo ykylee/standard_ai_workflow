@@ -57,12 +57,17 @@ def _load_external_feed(feed: Path) -> list[str]:
     Format: one JSON object per line with at minimum a `keyword` field.
     Other fields (`source`, `added_at`) are ignored.
 
+    Returns normalized keywords: lowercased, deduped (case-insensitive,
+    first-occurrence preserved). Matches the lowercasing convention used
+    by ``load_phishing_keywords`` for custom + bundled.
+
     Errors (file not found, parse error, etc.) are silently swallowed —
     external feed is OPTIONAL, and the bundled baseline is always available.
     """
     if not feed.exists():
         return []
     out: list[str] = []
+    seen: set[str] = set()
     try:
         for line in feed.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -72,7 +77,10 @@ def _load_external_feed(feed: Path) -> list[str]:
                 obj = json.loads(line)
                 kw = obj.get("keyword")
                 if isinstance(kw, str) and kw.strip():
-                    out.append(kw.strip())
+                    norm = kw.strip().lower()
+                    if norm not in seen:
+                        seen.add(norm)
+                        out.append(norm)
             except json.JSONDecodeError:
                 continue  # skip malformed lines
     except OSError:

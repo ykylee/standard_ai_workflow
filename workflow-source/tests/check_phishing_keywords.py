@@ -155,11 +155,19 @@ def test_fetch_phishtank_empty_on_error_v0_7_60() -> None:
 
 
 def test_fetch_openphish_empty_on_error_v0_7_60() -> None:
-    """fetch_openphish_feed returns [] on network error (offline-safe) (v0.7.60+)."""
+    """fetch_openphish_feed returns [] on network error (offline-safe) (v0.7.60+).
+
+    v0.8.11 fix: original test assumed offline test env. CI/dev may have network
+    (returns 300+ real URLs). Mock `requests_get` to raise OSError → function
+    returns []. Verifies the offline-safe fallback chain, not "no network available".
+    """
     mod = _import_phishing_keywords()
-    result = mod.fetch_openphish_feed()
+
+    def _failing_requests_get(url: str, **kwargs: object) -> object:
+        raise OSError("simulated network error for offline test")
+
+    result = mod.fetch_openphish_feed(requests_get=_failing_requests_get)
     assert isinstance(result, list)
-    # Network unavailable in test env → empty list
     assert result == []
 
 

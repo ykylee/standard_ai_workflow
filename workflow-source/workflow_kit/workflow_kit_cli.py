@@ -1126,6 +1126,108 @@ def cmd_cache_lfu_decay_persist(argv: list[str]) -> int:
         return 2
 
 
+@register("cache-lru-decay")
+def cmd_cache_lru_decay(argv: list[str]) -> int:
+    """Evict LRU-stale entries to bring cache size under a cap (v0.8.9+, subcommand 29).
+
+    LRU eviction: sorts entries by timestamp (oldest first), evicts until file size
+    is under --max-bytes. In-process wrapper for
+    `workflow_kit.cache_size_compare.evict_lru_over_size`.
+
+    Args:
+        --max-bytes=INT         target max cache file size in bytes (required)
+        --cache-path=PATH       base cache file path (default: ~/.workflow_kit/url_validity_cache.json)
+        --json                  JSON output
+
+    Returns 0 on success, 2 on error.
+    """
+    import json as _json
+    max_bytes_s = _parse_flag(argv, "--max-bytes")
+    if max_bytes_s is None:
+        print("ERROR: --max-bytes=INT required", file=sys.stderr)
+        return 2
+    try:
+        max_bytes = int(max_bytes_s)
+    except ValueError:
+        print(f"ERROR: --max-bytes must be int, got {max_bytes_s!r}", file=sys.stderr)
+        return 2
+    cache_path = _parse_flag(argv, "--cache-path")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.cache_size_compare import evict_lru_over_size
+        cache_path_obj = _P(cache_path) if cache_path else None
+        evicted = evict_lru_over_size(max_bytes, cache_path_obj)
+        if use_json:
+            print(_json.dumps(
+                {"evicted": evicted, "max_bytes": max_bytes, "cache_path": cache_path},
+                indent=2,
+            ))
+        else:
+            print(f"LRU eviction: {evicted} entries removed (target: {max_bytes} bytes)")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("cache-merge-csv")
+def cmd_cache_merge_csv(argv: list[str]) -> int:
+    """Merge multiple CSV files into the cache (v0.8.9+, subcommand 30).
+
+    Each --csv=PATH is imported (merge=True) into the same target cache.
+    Duplicates (by URL) are handled by cache_migration.import_csv_to_cache merge
+    logic. Useful for consolidating multiple CSV exports into one cache.
+
+    Args:
+        --csv=PATH              input CSV file (repeatable, at least 1 required)
+        --cache-path=PATH       target cache file (default: DEFAULT_CACHE_FILE)
+        --json                  JSON output
+
+    Returns 0 on success, 2 on error.
+    """
+    import json as _json
+    csvs = [a.split("=", 1)[1] for a in argv if a.startswith("--csv=")]
+    if not csvs:
+        print("ERROR: --csv=PATH (at least 1, repeatable) required", file=sys.stderr)
+        return 2
+    cache_path_s = _parse_flag(argv, "--cache-path")
+    use_json = _has_flag(argv, "--json")
+    try:
+        from workflow_kit.cache_migration import import_csv_to_cache
+        results: list[dict[str, object]] = []
+        for csv_s in csvs:
+            r = import_csv_to_cache(csv_s, cache_path_s, merge=True)
+            results.append({"csv": csv_s, **r})
+        total_imported = sum(int(r["imported"]) for r in results)
+        total_skipped = sum(int(r["skipped"]) for r in results)
+        if use_json:
+            print(_json.dumps(
+                {
+                    "merged": results,
+                    "cache_path": cache_path_s,
+                    "total_imported": total_imported,
+                    "total_skipped": total_skipped,
+                },
+                indent=2,
+                default=str,
+            ))
+        else:
+            print(
+                f"Merged {len(csvs)} CSV files: "
+                f"{total_imported} imported, {total_skipped} skipped"
+            )
+            for r in results:
+                print(
+                    f"  {r['csv']}: +{r['imported']} imported, "
+                    f"{r['skipped']} skipped (of {r['total_rows']} rows)"
+                )
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

@@ -336,33 +336,40 @@ def write_version(new_version: str) -> None:
 
 
 def read_workflow_kit_version() -> str:
-    """workflow_kit/__init__.py 의 __version__ 읽기. e.g. 'v0.7.13-beta'."""
-    text = WORKFLOW_KIT_INIT.read_text()
-    m = re.search(r'__version__\s*=\s*"([^"]+)"', text)
-    if not m:
-        raise ValueError(f"__version__ not found in {WORKFLOW_KIT_INIT}")
-    return m.group(1)
+    """workflow_kit.__version__ 읽기. e.g. 'v0.7.13-beta'.
+
+    v0.8.0+: SSOT = pyproject.toml [project] version (spec §4.3).
+    workflow_kit/__init__.py 의 __version__ 은 runtime 에서 pyproject.toml 을 parse 해서
+    compute (f"v{version}-beta") 하므로, 본 함수도 동일한 SSOT 에서 직접 compute.
+    """
+    return f"v{read_version()}-beta"
 
 
 def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> str:
-    """workflow_kit/__init__.py 의 __version__ 갱신.
+    """workflow_kit.__version__ 갱신.
 
-    e.g. new_version='0.7.14' → '__version__ = "v0.7.14-beta"'.
-    suffix 인자 (default '-beta') 로 suffix override 가능. None 시 suffix 제거.
-    Returns:
-        실제 기록된 __version__ string (e.g. 'v0.7.14-beta').
+    v0.8.0+: SSOT = pyproject.toml [project] version. workflow_kit/__init__.py 는 runtime
+    compute 이므로 pyproject.toml 만 갱신하면 됨. __init__.py 의 literal fallback 도
+    정합성 위해 함께 갱신 (spec §4.3 loud fallback chain).
+
+    e.g. new_version='0.8.1' → pyproject.toml version 0.8.1, __init__.py fallback
+    "v0.8.1-beta". __init__.py 의 SSOT compute (f"v{version}-beta") 가 pyproject 을
+    parse 해서 같은 값을 return.
     """
+    write_version(new_version)
+    # __init__.py 의 literal fallback (loud fallback chain 의 3번째) 도 정합성 유지.
     text = WORKFLOW_KIT_INIT.read_text()
-    target = f'"v{new_version}{suffix or ""}"'
+    target = f'"v{new_version}{suffix or ""}-beta"'
     new_text, n = re.subn(
-        r'__version__\s*=\s*"v?\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?"',
-        f'__version__ = {target}',
+        r'(return\s+")v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?-beta(")',
+        rf'\g<1>v{new_version}{suffix or ""}-beta\g<2>',
         text,
-        count=1,
     )
     if n == 0:
-        raise ValueError(f"__version__ pattern not found in {WORKFLOW_KIT_INIT}")
-    WORKFLOW_KIT_INIT.write_text(new_text)
+        # literal fallback 이 없는 경우 (e.g. v0.8.0 이전 패턴) — silent skip
+        pass
+    else:
+        WORKFLOW_KIT_INIT.write_text(new_text)
     return f"v{new_version}{suffix or ''}"
 
 def bump_version(version: str, *, patch: bool = False, minor: bool = False, major: bool = False, to: str | None = None) -> str:

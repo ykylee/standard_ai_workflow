@@ -44,7 +44,7 @@ def cache_size_per_strategy_compare(base_path: Path | None = None) -> list[tuple
     return sorted(sizes.items(), key=lambda x: -x[1])
 
 
-def evict_lru_over_size(max_bytes: int, base_path=None) -> int:
+def evict_lru_over_size(max_bytes: int, base_path: Path | None = None) -> int:
     """Evict LRU cache entries to bring file size under max_bytes (v0.7.47+).
 
     Reads the LRU cache file, sorts entries by timestamp (oldest first), and
@@ -78,7 +78,7 @@ def evict_lru_over_size(max_bytes: int, base_path=None) -> int:
     return evicted
 
 
-def evict_lfu_over_size(max_bytes: int, base_path=None) -> int:
+def evict_lfu_over_size(max_bytes: int, base_path: Path | None = None) -> int:
     """Evict LFU cache entries to bring file size under max_bytes (v0.7.47+).
 
     Reads the LFU cache file, sorts entries by access_count (lowest first), and

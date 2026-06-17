@@ -657,6 +657,88 @@ def test_cache_lfu_decay_persist_apply_v0_7_60() -> None:
         # File format: {"version": 1, "saved_at": ..., "scores": {...}}
         data = json.loads(scores_path.read_text(encoding="utf-8"))
         assert data["scores"]["https://applied.com/"] == 0.75
+
+
+def test_cache_lru_decay_registered_v0_8_9() -> None:
+    """cache-lru-decay subcommand 29 is registered (v0.8.9+)."""
+    mod = _import_cli()
+    assert "cache-lru-decay" in mod.COMMANDS
+
+
+def test_cache_lru_decay_missing_args_v0_8_9() -> None:
+    """cache-lru-decay without --max-bytes returns 2 (v0.8.9+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-lru-decay"])
+    assert code == 2
+
+
+def test_cache_lru_decay_dry_run_v0_8_9() -> None:
+    """cache-lru-decay on missing cache file returns 0 with 0 evicted (v0.8.9+)."""
+    import tempfile
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        code = mod.run_workflow_kit_cli(
+            [
+                "--command=cache-lru-decay",
+                "--max-bytes=100",
+                f"--cache-path={tmp}/nonexistent.json",
+                "--json",
+            ]
+        )
+        assert code == 0
+
+
+def test_cache_merge_csv_registered_v0_8_9() -> None:
+    """cache-merge-csv subcommand 30 is registered (v0.8.9+)."""
+    mod = _import_cli()
+    assert "cache-merge-csv" in mod.COMMANDS
+
+
+def test_cache_merge_csv_no_csv_returns_2_v0_8_9() -> None:
+    """cache-merge-csv without --csv returns 2 (v0.8.9+)."""
+    mod = _import_cli()
+    code = mod.run_workflow_kit_cli(["--command=cache-merge-csv"])
+    assert code == 2
+
+
+def test_cache_merge_csv_roundtrip_v0_8_9() -> None:
+    """cache-merge-csv merges 2 CSV files into a single cache (v0.8.9+)."""
+    import json
+    import tempfile
+    mod = _import_cli()
+    with tempfile.TemporaryDirectory() as tmp:
+        csv1 = Path(tmp) / "first.csv"
+        csv2 = Path(tmp) / "second.csv"
+        cache_path = Path(tmp) / "merged.json"
+        csv1.write_text(
+            "url,status,timestamp,access_count\n"
+            "https://a.com/,200,1700000000,1\n"
+            "https://b.com/,200,1700000001,2\n",
+            encoding="utf-8",
+        )
+        csv2.write_text(
+            "url,status,timestamp,access_count\n"
+            "https://c.com/,200,1700000002,3\n"
+            "https://b.com/,200,1700000003,5\n",
+            encoding="utf-8",
+        )
+        code = mod.run_workflow_kit_cli(
+            [
+                "--command=cache-merge-csv",
+                f"--csv={csv1}",
+                f"--csv={csv2}",
+                f"--cache-path={cache_path}",
+                "--json",
+            ]
+        )
+        assert code == 0
+        data = json.loads(cache_path.read_text(encoding="utf-8"))
+        urls = set(data.keys())
+        assert "https://a.com/" in urls
+        assert "https://b.com/" in urls
+        assert "https://c.com/" in urls
+
+
 def main() -> int:
     test_funcs = [
         test_no_args_returns_2_v0_7_52,
@@ -706,6 +788,12 @@ def main() -> int:
         test_cache_lfu_decay_persist_missing_args_v0_7_60,
         test_cache_lfu_decay_persist_dry_run_v0_7_60,
         test_cache_lfu_decay_persist_apply_v0_7_60,
+        test_cache_lru_decay_registered_v0_8_9,
+        test_cache_lru_decay_missing_args_v0_8_9,
+        test_cache_lru_decay_dry_run_v0_8_9,
+        test_cache_merge_csv_registered_v0_8_9,
+        test_cache_merge_csv_no_csv_returns_2_v0_8_9,
+        test_cache_merge_csv_roundtrip_v0_8_9,
     ]
 
     failed: list[str] = []

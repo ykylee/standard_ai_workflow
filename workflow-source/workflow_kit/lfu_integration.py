@@ -23,7 +23,7 @@ def _evict_key_with_lfu(
     u: str,
     entries: dict[str, CacheEntry],
     config: LFUConfig,
-) -> tuple:
+) -> tuple[float, float]:
     """Compute eviction sort key for an entry using LFUConfig composite score.
 
     Lower tuple = more likely to evict.

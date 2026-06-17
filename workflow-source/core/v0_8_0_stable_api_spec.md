@@ -27,25 +27,36 @@ v0.7.x 는 consumer signal / dispatcher surface / release pipeline 의 *수직 �
 
 ```python
 # workflow_kit/__init__.py (v0.8.0)
+# 25 entries total: __version__ + 24 top-level public modules.
+# 정합: file system ground truth (workflow_kit/*.py 의 actual top-level module).
+# internal subpackage (common.*, server.*, contract_v1.*, cli.*, harness.*) 는
+# `__all__` 에 *없음* — importable 하나 stability guarantee 없음.
 __all__ = [
-    # version
     "__version__",
-    # public re-exports (stable)
-    "constants",     # workflow_kit.constants
-    "okf_import",
-    "okf_export",
-    "url_validity",
+    "bitbucket_v2",
+    "cache_analytics",
+    "cache_analytics_alerting",
+    "cache_analytics_diff",
+    "cache_analytics_trend",
+    "cache_analytics_trend_chart",
+    "cache_dashboard",
     "cache_lfu_decay",
     "cache_lfu_decay_persist",
     "cache_migration",
-    "cache_dashboard",
-    "cache_analytics",
-    "phishing_federation",
-    "phishing_keywords",
+    "cache_size_compare",
+    "constants",
     "lfu_config",
     "lfu_integration",
+    "okf_export",
+    "okf_import",
     "path_resolver",
+    "phishing_federation",
+    "phishing_federation_v4",
+    "phishing_keywords",
+    "upgrade_diff",
+    "url_validity",
     "v_r13_commit_diff",
+    "workflow_kit_cli",
 ]
 ```
 

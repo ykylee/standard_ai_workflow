@@ -15,7 +15,7 @@ from __future__ import annotations
 import urllib.error
 import urllib.request
 import base64
-from typing import Any
+from typing import Any, Callable, cast
 
 
 def fetch_bitbucket_commit_history(
@@ -26,7 +26,7 @@ def fetch_bitbucket_commit_history(
     token: str | None = None,
     limit: int = 50,
     timeout: float = 10.0,
-    requests_get=None,
+    requests_get: Callable[..., Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Fetch commit history for a Bitbucket repo via v2 API (v0.7.46+).
 
@@ -44,7 +44,7 @@ def fetch_bitbucket_commit_history(
         Empty list on error.
     """
     if requests_get is None:
-        def requests_get(url: str, **kwargs):
+        def requests_get(url: str, **kwargs: Any) -> Any:
             return urllib.request.urlopen(
                 urllib.request.Request(url, headers=kwargs.get("headers", {})),
                 timeout=kwargs.get("timeout", 30),
@@ -60,7 +60,7 @@ def fetch_bitbucket_commit_history(
             import json
             data = json.loads(response.read().decode("utf-8"))
             if isinstance(data, dict) and "values" in data:
-                return data["values"]
+                return cast(list[dict[str, Any]], data["values"])
             return []
         return []
     except (urllib.error.URLError, OSError, TimeoutError, ValueError):

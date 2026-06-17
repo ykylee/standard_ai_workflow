@@ -181,7 +181,7 @@ class ParsedVersion:
     def _key(self) -> tuple[int, int, int, int, int]:
         return (self.major, self.minor, self.patch, self._pre_rank(), 0)
 
-    def __lt__(self, other: "ParsedVersion") -> bool:  # type: ignore[override]
+    def __lt__(self, other: "ParsedVersion") -> bool:
         return self._key() < other._key()
 
     def __eq__(self, other: object) -> bool:

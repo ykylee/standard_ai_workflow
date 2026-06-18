@@ -4,8 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-17
-- 버전: v0.8.15-beta (package: standard-ai-workflow 0.9.1)
+- 최종 수정일: 2026-06-18
+- 버전: v0.9.0-beta (chapter 1 done, chapter 2 in-progress; package: standard-ai-workflow 0.9.1, runtime __version__ = v0.9.1-beta)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -261,9 +261,9 @@ python3 workflow-source/scripts/export_harness_package.py \
 - `workflow-source/tests/check_*.py` 162개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀, release_pipeline (30+ wrapper) 까지 smoke 기준선을 제공한다 (cumulative, v0.8.15+ 162/162 PASS).
 - CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 162개 smoke 전부 실행.
 
-## 10. v0.8.0 → v0.8.15 누적 변경 요약 (2026-06-17)
+## 10. v0.8.0 → v0.9.0 누적 변경 요약 (2026-06-18)
 
-v0.8.0 spec §5.3 (Stable API frozen + mypy strict 단계적 격상) 부터 v0.8.15 까지 누적된 핵심 변경 (16 release):
+v0.8.0 spec §5.3 (Stable API frozen + mypy strict 단계적 격상) 부터 v0.9.0 chapter 1 까지 누적된 핵심 변경 (16 + 1 release):
 
 - **v0.8.0** — Stable API frozen + `mypy --strict` base 격상 + `pyproject.toml [project] version` SSOT + `__version__` 자동 derive + generated JSON Schema SSOT (21 family, 85,743 bytes) + `__all__` 27 entry 명시. spec §9 acceptance 7/12.
 - **v0.8.1** — mypy strict 단계적 격상 1단계: `workflow_kit/url_validity.py` 25 error → 0 (Severity='info' 확장, EvictionStrategy 신규, CacheEntry.timestamp real bug fix, subprocess_run: Any 명시, max_diff_lines parameter 추가).
@@ -281,8 +281,9 @@ v0.8.0 spec §5.3 (Stable API frozen + mypy strict 단계적 격상) 부터 v0.8
 - **v0.8.13** — mypy strict 단계적 격상 9단계: `common/state/builder.py` 13 error → 0 (cumulative fix 잔여분 흡수).
 - **v0.8.14** — mypy strict 단계적 격상 10단계: `common/contracts/baselines.py` 27 error → 0 + 2 real bug fix (AuditLogEvent → StageCompletion, append_audit_log arg 순서).
 - **v0.8.15** — `release-dist --apply` 1-command (`python -m build` + `twine check` + TestPyPI sim) + `--production` flag + `.gitignore` history file 등록 + work_backlog.md v0.7.25~v0.7.32 stale 정리. spec §9 9/12, tools test 52/52 PASS.
+- **v0.9.0 (in-progress, chapter 1)** — Deprecation Policy Operational Spec 신규 (221 lines, 9 sections) + SSOT 정합 (`pyproject.toml [project] version` 0.8.1 → 0.9.1, runtime `__version__` = v0.9.1-beta) + mypy config 정합 (`[tool.mypy]` unknown option 5개 → `[tool.workflow-doctor]` section 분리, v0.8.0~v0.8.15 의 strict validation bypass 버그 fix). spec §9 acceptance 9/12 *유지* (chapter 2 + release note 후속). 1st cycle 대상 = `phishing_federation_v4.fetch_federated_phishing_urls_v4` (chapter 2 에서 DeprecationWarning 추가). mypy strict 19 file baseline 유지. 누적 smoke test 162/162 PASS 유지. 신규 test 0건 (chapter 1 = zero behavior change). spec ↔ runtime drift: spec §7.1 acceptance 는 v0.9.0-beta 인데 runtime 은 v0.9.1-beta (chapter 2 에서 spec 보강 또는 추가 patch 검토).
 
-**누적 (v0.8.0 → v0.8.15)**: 16 release, mypy strict cumulative **19 file clean** (v0.9.0 에서 full strict), smoke test **162/162 PASS** (cumulative, v0.8.15+), spec §9 acceptance **9/12**, breaking change 없음 (SemVer 2-year guarantee, v0.8.0 → 2.0.0 까지).
+**누적 (v0.8.0 → v0.9.0 chapter 1)**: 16 + 1 release (v0.9.0 chapter 2 + release note 후속), mypy strict cumulative **19 file clean** (full strict 도달 v1.0.0 milestone, 단계적 격상 계속), smoke test **162/162 PASS** (cumulative, v0.8.15+ 유지), spec §9 acceptance **9/12** (chapter 2 + release note 와 함께 12/12 목표), breaking change 없음 (SemVer 2-year guarantee, v0.8.0 → 2.0.0 까지).
 
 **PyPI 배포 정책**: GitHub Releases only, no actual PyPI/TestPyPI deployment. v0.8.15 의 TestPyPI/Production upload 는 *simulation* 만.
 

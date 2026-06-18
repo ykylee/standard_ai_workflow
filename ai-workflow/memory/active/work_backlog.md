@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-17
+- 최종 수정일: 2026-06-18
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -15,6 +15,9 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### [[release/v0.9.0/backlog/2026-06-18.md]] {#release-v0-9-0}
+- 2026-06-18: v0.9.0 chapter 1 — Deprecation Policy Operational Spec 작성 + SSOT 정합 (pyproject 0.8.1 → 0.9.1, __version__ = v0.9.1-beta) + mypy config 정합 ([tool.mypy] unknown option 5개 → [tool.workflow-doctor] section 분리) + syntax fix. commit 841329f force-push.
 
 ### [[release/v0.7.59/backlog/2026-06-17.md]] {#release-v0-7-59}
 - 2026-06-17: v0.7.59 1개 TASK (cmd_consumer_metrics in-process refactor — subprocess → import_module, v0.7.56+ score-wiki-trend 정공법)

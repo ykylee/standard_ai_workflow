@@ -1031,8 +1031,22 @@ def cmd_release(args) -> dict:
             # --allow-existing-tag: skip pre-check fail, 그대로 release 진행
             results["tag_pre_check_skipped"] = "allow-existing-tag"
 
-    # 3.6 local tag push (v0.7.21+ — tag push 와 release 의 coupling)
+    # 3.6 local tag create + push (v0.7.21+ — tag push 와 release 의 coupling,
+    # v0.9.0 chapter 4 fix: local tag create step 추가 — 이전엔 push 만 해서
+    # `src refspec does not match any` fail)
     if not args.dry_run:
+        tag_create_proc = subprocess.run(
+            ["git", "tag", tag, "HEAD"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
+        )
+        results["tag_create"] = {
+            "tag": tag,
+            "returncode": tag_create_proc.returncode,
+            "stdout_tail": tag_create_proc.stdout.strip(),
+            "stderr_tail": tag_create_proc.stderr.strip(),
+        }
+        # tag 가 이미 존재하면 returncode != 0 일 수 있으나, --allow-existing-tag 의 경우
+        # 그대로 진행. 그 외는 다음 step (push) 에서 검증.
         push_tag_proc = subprocess.run(
             ["git", "push", "origin", f"refs/tags/{tag}"],
             cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
@@ -1625,6 +1639,11 @@ def main() -> int:
     p_rel.add_argument("--allow-existing-tag", dest="allow_existing_tag", action="store_true", default=False,
                        help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
                             "v0.7.21+ follow-up: tag push 와 release 의 coupling fix.")
+    p_rel.add_argument("--dry-run", action="store_true", dest="dry_run",
+                       help="destructive subcommand 정공법 (memory #5): tag push + gh release create 의 "
+                            "plan 만 출력, 실제 호출 0. --apply 가 default True 이므로 --dry-run 으로 "
+                            "override. v0.9.0 chapter 4 에서 --dry-run flag 추가 (이전엔 argparse 누락 "
+                            "으로 cmd_release 호출 시 즉시 AttributeError).")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")
 

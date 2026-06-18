@@ -16,6 +16,7 @@ Weighted voting 의 *false positive reduction* 의 *operational* 의 *low-fricti
 
 from __future__ import annotations
 
+import warnings
 from typing import Callable, TypedDict, cast
 
 
@@ -41,6 +42,13 @@ def fetch_federated_phishing_urls_v4(
     Returns:
         List of (url, confidence, source_names) tuples sorted by confidence desc, then url asc.
     """
+    warnings.warn(
+        "phishing_federation_v4.fetch_federated_phishing_urls_v4 is deprecated; "
+        "use phishing_federation.fetch_federated_phishing_urls (consolidated in v0.7.52+). "
+        "Will be removed in v0.10.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     url_data: dict[str, _UrlRecord] = {}
     for idx, (source, weight) in enumerate(sources_with_weights):
         source_name = f"source_{idx}"

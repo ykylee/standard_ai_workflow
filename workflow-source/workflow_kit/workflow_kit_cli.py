@@ -60,13 +60,13 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Callable
+from typing import Any, Callable, Literal, cast
 
 
 COMMANDS: dict[str, Callable[[list[str]], int]] = {}
 
 
-def register(name: str):
+def register(name: str) -> Callable[[Callable[[list[str]], int]], Callable[[list[str]], int]]:
     def decorator(fn: Callable[[list[str]], int]) -> Callable[[list[str]], int]:
         COMMANDS[name] = fn
         return fn
@@ -99,7 +99,7 @@ def cmd_cache_dashboard(argv: list[str]) -> int:
         from workflow_kit.url_validity import _load_cache, cache_file_for_strategy, DEFAULT_CACHE_FILE
         from workflow_kit.cache_dashboard import cache_dashboard
         base = Path(cache_path) if cache_path else DEFAULT_CACHE_FILE
-        merged: dict = {}
+        merged: dict[str, Any] = {}
         for strategy in ("lru", "lfu", "mixed"):
             cf = cache_file_for_strategy(base, strategy)
             if cf.exists():
@@ -130,13 +130,14 @@ def cmd_dashboard_export(argv: list[str]) -> int:
     if fmt not in ("text", "json", "markdown", "html"):
         print(f"ERROR: invalid --format '{fmt}'", file=sys.stderr)
         return 2
+    fmt_literal = cast(Literal["text", "json", "markdown", "html"], fmt)
     cache_path = _parse_flag(argv, "--cache-path")
     try:
         from pathlib import Path
         from workflow_kit.url_validity import _load_cache, cache_file_for_strategy, DEFAULT_CACHE_FILE
         from workflow_kit.cache_dashboard import write_dashboard
         base = Path(cache_path) if cache_path else DEFAULT_CACHE_FILE
-        merged: dict = {}
+        merged: dict[str, Any] = {}
         for strategy in ("lru", "lfu", "mixed"):
             cf = cache_file_for_strategy(base, strategy)
             if cf.exists():
@@ -150,7 +151,7 @@ def cmd_dashboard_export(argv: list[str]) -> int:
                         d = {"timestamp": getattr(entry, "timestamp", 0.0)}
                     d["strategy"] = strategy
                     merged[url] = d
-        write_dashboard(merged, output, format=fmt)
+        write_dashboard(merged, output, format=fmt_literal)
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
@@ -164,6 +165,7 @@ def cmd_trend_chart(argv: list[str]) -> int:
         print("ERROR: --snapshots=PATH required", file=sys.stderr)
         return 2
     metric = _parse_flag(argv, "--metric") or "total_size"
+    metric_literal = cast(Literal["total_size", "total_hits", "total_misses"], metric)
     try:
         from workflow_kit.cache_analytics_trend import load_snapshots
         from workflow_kit.cache_analytics_trend_chart import render_trend_chart_ascii
@@ -171,7 +173,7 @@ def cmd_trend_chart(argv: list[str]) -> int:
         if not snapshots:
             print("ERROR: no snapshots found", file=sys.stderr)
             return 2
-        print(render_trend_chart_ascii(snapshots, metric=metric))
+        print(render_trend_chart_ascii(snapshots, metric=metric_literal))
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
@@ -193,7 +195,7 @@ def cmd_alert(argv: list[str]) -> int:
         from workflow_kit.cache_analytics import cache_analytics
         from workflow_kit.cache_analytics_alerting import AlertThresholds, check_alerts, format_alerts
         base = Path(cache_path) if cache_path else DEFAULT_CACHE_FILE
-        merged: dict = {}
+        merged: dict[str, Any] = {}
         for strategy in ("lru", "lfu", "mixed"):
             cf = cache_file_for_strategy(base, strategy)
             if cf.exists():
@@ -274,7 +276,7 @@ def cmd_okf_export(argv: list[str]) -> int:
         from workflow_kit.okf_export import main as okf_export_main
         return okf_export_main(argv)
     except SystemExit as e:
-        # argparse calls sys.exit on parse error — convert to rc 2 (usage)
+        # argparse / main() may call sys.exit — convert to rc
         return e.code if isinstance(e.code, int) else 2
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
@@ -467,7 +469,7 @@ def cmd_score_wiki_trend(argv: list[str]) -> int:
         old_argv = sys.argv
         try:
             sys.argv = ["score_wiki_trend", *argv]
-            return mod.main()
+            return cast(int, mod.main())
         finally:
             sys.argv = old_argv
     except SystemExit as e:
@@ -498,6 +500,7 @@ def cmd_okf_validate(argv: list[str]) -> int:
     if mode not in ("strict", "loose"):
         print(f"ERROR: --mode must be 'strict' or 'loose', got {mode!r}", file=sys.stderr)
         return 2
+    mode_literal = cast(Literal["strict", "loose"], mode)
     use_json = _has_flag(argv, "--json")
     try:
         from pathlib import Path as _P
@@ -508,9 +511,9 @@ def cmd_okf_validate(argv: list[str]) -> int:
             return 2
         pages = _parse_bundle_pages(bundle_path)
         # mode is Literal["strict", "loose"] — pass string directly (lint_page signature).
-        all_issues: list[dict] = []
+        all_issues: list[dict[str, Any]] = []
         for page in pages:
-            for issue in lint_page(page, bundle_path, mode):
+            for issue in lint_page(page, bundle_path, mode_literal):
                 all_issues.append({
                     "page": str(issue.page.relative_to(bundle_path)),
                     "rule": issue.rule,
@@ -578,13 +581,13 @@ def cmd_cache_migrate(argv: list[str]) -> int:
             print(_json.dumps(all_results, indent=2, default=str))
         else:
             if "migrate" in all_results:
-                m = all_results["migrate"]
+                m = cast(dict[str, Any], all_results["migrate"])
                 if m.get("migrated"):
                     print(f"[migrate] OK: {m.get('entries_migrated', 0)} entries → mixed file")
                 else:
                     print(f"[migrate] no-op (per-strategy already exist or source absent)")
             if "split" in all_results:
-                s = all_results["split"]
+                s = cast(dict[str, Any], all_results["split"])
                 if s.get("split"):
                     print(f"[split] OK: {s.get('lru_entries', 0)} LRU + {s.get('lfu_entries', 0)} LFU (threshold={lfu_threshold})")
                 else:
@@ -627,7 +630,18 @@ def cmd_release_doctor(argv: list[str]) -> int:
         tools_dir = kit_dir.parent / "tools"
         if str(tools_dir) not in sys.path:
             sys.path.insert(0, str(tools_dir))
-        from release_pipeline_lib import cmd_validate as _cmd_validate
+        # importlib 사용 — sys.path manipulation 후에도 mypy 가 stub 못 찾으므로
+        # importlib.util.spec_from_file_location 으로 명시적 로드
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location(
+            "release_pipeline_lib", str(tools_dir / "release_pipeline_lib.py")
+        )
+        if _spec is None or _spec.loader is None:
+            raise ImportError("failed to load release_pipeline_lib spec")
+        _mod = _ilu.module_from_spec(_spec)
+        sys.modules["release_pipeline_lib"] = _mod
+        _spec.loader.exec_module(_mod)
+        _cmd_validate = _mod.cmd_validate
         results = _cmd_validate(
             skip_packaging=skip["packaging"],
             skip_doctor=skip["doctor"],
@@ -741,7 +755,7 @@ def cmd_cache_prune(argv: list[str]) -> int:
 # release-pipeline wrappers (v0.7.56+, dispatcher subcommand 17-23)
 # ---------------------------------------------------------------------------
 
-def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs) -> int:
+def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs: Any) -> int:
     """Helper: call a release_pipeline_lib wrapper with JSON output + rc conversion.
 
     Args:
@@ -760,7 +774,18 @@ def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs) -> int:
         tools_dir = kit_dir.parent / "tools"
         if str(tools_dir) not in sys.path:
             sys.path.insert(0, str(tools_dir))
-        import release_pipeline_lib as _lib
+        # importlib 사용 — sys.path manipulation 후에도 mypy 가 stub 못 찾으므로
+        # importlib.util.spec_from_file_location 으로 명시적 로드 (cmd_release_doctor 와 동일 패턴)
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location(
+            "release_pipeline_lib", str(tools_dir / "release_pipeline_lib.py")
+        )
+        if _spec is None or _spec.loader is None:
+            raise ImportError("failed to load release_pipeline_lib spec")
+        _mod = _ilu.module_from_spec(_spec)
+        sys.modules["release_pipeline_lib"] = _mod
+        _spec.loader.exec_module(_mod)
+        _lib = cast(Any, _mod)  # release_pipeline_lib module — wrapper_name attribute
         fn = getattr(_lib, wrapper_name)
         result = fn(**kwargs)
         if use_json:
@@ -1064,7 +1089,7 @@ def cmd_consumer_metrics(argv: list[str]) -> int:
         old_argv = sys.argv
         try:
             sys.argv = ["consumer_metrics", *argv]
-            return mod.main()
+            return cast(int, mod.main())
         finally:
             sys.argv = old_argv
     except SystemExit as e:
@@ -1072,6 +1097,7 @@ def cmd_consumer_metrics(argv: list[str]) -> int:
         return e.code if isinstance(e.code, int) else 2
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
 
 
 @register("cache-lfu-decay-persist")
@@ -1199,8 +1225,8 @@ def cmd_cache_merge_csv(argv: list[str]) -> int:
         for csv_s in csvs:
             r = import_csv_to_cache(csv_s, cache_path_s, merge=True)
             results.append({"csv": csv_s, **r})
-        total_imported = sum(int(r["imported"]) for r in results)
-        total_skipped = sum(int(r["skipped"]) for r in results)
+        total_imported = sum(int(cast(int, r["imported"])) for r in results)
+        total_skipped = sum(int(cast(int, r["skipped"])) for r in results)
         if use_json:
             print(_json.dumps(
                 {

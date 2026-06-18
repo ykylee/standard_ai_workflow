@@ -1009,22 +1009,51 @@ def cmd_release(args) -> dict:
     if not notes_file.exists():
         return {**results, "error": f"release note not found: {notes_file}"}
 
-    # 3.5 원격 tag pre-check + tag push (v0.7.18+ race lesson, v0.7.21+ follow-up)
+    # 3.5 원격 tag pre-check + tag push (v0.7.18+ race lesson, v0.7.21+ follow-up,
+    # v0.9.1+ --full-auto: pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화)
     # v0.7.21 fix: tag push 와 release 의 coupling. *순서*:
     #   1. pre-check: remote 에 tag 가 이미 push 됐는지 확인
     #   2. tag push: pre-check fail 시 default = skip, --allow-existing-tag 면 skip + 진행, --auto-bump 면 bump
     #   3. gh release create: --verify-tag 가 tag 의 remote 존재 검증 (pre-check 와 *redundant* 한 부분)
+    # v0.9.1+ --full-auto: pre-check fail 시 자동으로 다음 version 결정 (auto-bump 동작) 후
+    #   새로 결정된 version 으로 tag + release 재실행. 1-cycle close.
     if not args.dry_run:
         tag_check = _check_remote_tag(tag)
         results["tag_pre_check"] = tag_check
         if tag_check["exists"]:
-            if not getattr(args, "allow_existing_tag", False):
+            # --full-auto: --auto-bump 와 동일 동작 (다음 version 자동 결정) 후 re-flow
+            if getattr(args, "full_auto", False) and not getattr(args, "allow_existing_tag", False):
+                bump_info = next_available_version(version)
+                if bump_info["bumped"]:
+                    new_version = bump_info["next"]
+                    results["version_source"] = "full-auto-bump"
+                    results["auto_bump"] = bump_info
+                    # in-place version-bump
+                    write_version(new_version)
+                    suffix = "beta"
+                    if read_workflow_kit_version().endswith("-beta"):
+                        suffix = "beta"
+                    write_workflow_kit_version(new_version, suffix=("-beta" if suffix else ""))
+                    # re-flow with new version
+                    version = new_version
+                    tag = f"v{version}-beta"
+                    dist_files = find_dist_files(version)
+                    if not dist_files:
+                        return {**results, "error": f"no dist files for {version} after --full-auto bump"}
+                    tag_check = _check_remote_tag(tag)
+                    results["tag_pre_check"] = tag_check
+                    results["full_auto_re_tag"] = tag
+                    if tag_check["exists"]:
+                        # full-auto 도 bump 했는데 여전히 존재 → --allow-existing-tag 활성화
+                        results["full_auto_fallback"] = "allow-existing-tag"
+            if tag_check.get("exists") and not getattr(args, "allow_existing_tag", False):
                 return {
                     **results,
                     "error": (
                         f"remote tag {tag} already exists at {tag_check['remote_url']}. "
                         f"v0.7.16 race 정공법: --auto-bump 으로 다음 version 자동 bump, "
                         f"--allow-existing-tag 으로 *기존 tag* 에 re-attach, "
+                        f"--full-auto 으로 1-cycle close, "
                         f"또는 --version=<next> 명시."
                     ),
                 }
@@ -1639,6 +1668,14 @@ def main() -> int:
     p_rel.add_argument("--allow-existing-tag", dest="allow_existing_tag", action="store_true", default=False,
                        help="remote tag pre-check 가 'already exists' 일 때 *skip* + 그대로 release 진행. "
                             "v0.7.21+ follow-up: tag push 와 release 의 coupling fix.")
+    p_rel.add_argument("--full-auto", dest="full_auto", action="store_true", default=False,
+                       help="release pipeline 1-step cycle close (v0.9.1+ automation): "
+                            "pre-check conflict 시 자동으로 --auto-bump 동작 (다음 version 결정 + "
+                            "version-bump + re-flow) 후 새로 결정된 tag 로 release 진행. "
+                            "여전히 conflict 면 --allow-existing-tag 로 fallback. "
+                            "최종적으로 *operator intervention 없이* tag push + gh release create "
+                            "완료. release 채널 정책 (memory #5: --dry-run 필수) 유지 — "
+                            "본 flag 는 --dry-run 과 동시 사용 가능 (plan 검증용).")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run",
                        help="destructive subcommand 정공법 (memory #5): tag push + gh release create 의 "
                             "plan 만 출력, 실제 호출 0. --apply 가 default True 이므로 --dry-run 으로 "
@@ -1697,6 +1734,8 @@ def main() -> int:
         result = cmd_release(args)
     elif args.command == "verify":
         result = cmd_verify(args)
+    elif args.command == "rollback":
+        result = cmd_rollback(args)
     elif args.command == "dist":
         result = cmd_dist(args)
     elif args.command == "gen-schema":

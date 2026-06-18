@@ -22,6 +22,9 @@
 - 2026-06-18: v0.9.0 chapter 3 — Spec drift patch (§4.2/§4.3/§7.1 v0.9.0-beta → v0.9.1-beta 정직하게) + Beta-v0.9.0.md release note 신규 + workflow_kit_roadmap.md Phase 11 close + Phase 12 kickoff 갱신. spec §7.5 acceptance 4/4 verify 완료.
 - 2026-06-18: v0.9.0 chapter 4 — Release pipeline 실행 (git tag v0.9.0-beta push + gh release create + 3-way 정합 verify). cmd_release in-scope fix 2건: (1) argparse --dry-run flag 누락 fix (v0.7.10~v0.7.58 14 release 동안 모든 호출 fail 이었던 진짜 bug), (2) local tag create step 누락 fix. release URL: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.9.0-beta.
 
+### [[release/v0.9.1/backlog/2026-06-18.md]] {#release-v0-9-1}
+- 2026-06-18: v0.9.1 chapter 5 — Phase 12 (운영 지능화 + deprecation 운영 안정화) 의 첫 release. 3 deliverables: (1) mypy strict workflow_kit_cli.py 49 → 0 error (register decorator Callable 명시 cascade fix + 6개 cast), cumulative 18 → 19 file clean. (2) cmd_release --full-auto flag 신규 (pre-check conflict 시 자동 --auto-bump + 1-cycle close). 2 in-scope fix 동반: cmd_rollback dispatch 누락 fix, test_release_dry_run_no_dist error message acceptance 확장. (3) deprecation policy contract test 신규 (check_v0_9_1_deprecation_contract.py, 4 test) — workflow_kit.__all__ 의 모든 public symbol 의 deprecation-free/deprecation-marked contract 자동 verify. release URL: https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.9.1-beta.
+
 ### [[release/v0.7.59/backlog/2026-06-17.md]] {#release-v0-7-59}
 - 2026-06-17: v0.7.59 1개 TASK (cmd_consumer_metrics in-process refactor — subprocess → import_module, v0.7.56+ score-wiki-trend 정공법)
 

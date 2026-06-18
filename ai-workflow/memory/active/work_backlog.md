@@ -204,66 +204,10 @@
 - [release/v0.5.2/backlog/2026-06-06.md](../release/v0.5.2/backlog/2026-06-06.md)
 - [Maturity Matrix](../../workflow-source/core/maturity_matrix.json)
 
-## v0.7.25 (2026-06-15) — Legacy L2 page in-repo migration (F-6)
+## v0.7.25~v0.7.32 (2026-06-15) — in-flight 8 housekeeping (v0.8.15 release note 의 housekeeping 의도 정합)
 
-- **commit**: 8a61bd3 (feat) + 4 fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: tools/migrate_legacy_l2.py (~280 line) + tests/check_v0_7_25_legacy_l2_migration.py (5 smoke) + ai-workflow/memory/release/_external-wiki-legacy.md (mirror file, 35,032 bytes, 15 version 1:1 mirror)
-- **정공법**: external wiki 의 legacy L2 page (15 version: v0.1.0~v0.6.3) → in-repo 의 단일 mirror file. v0.7.17 의 in-repo redirect 의 *closure*.
-
-
-## v0.7.26 (2026-06-15) — Branch Detection Fix (F-7) + Automated Hash Sync (F-7+)
-
-- **commit**: e5fbd2b (feat) + 2 fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `workflow_kit/common/paths.py` (~15 line, F-7 detached HEAD → short SHA) + `tools/sync_release_hash.py` (~180 line, F-7+ automated hash sync) + 2 신규 test file (10 smoke, 10/10 PASS)
-- **정공법**: F-7 = detached HEAD 의 stable identifier = short SHA (7자). F-7+ = automated hash sync 로 v0.7.25 의 infinite fix(state) loop 회피 (1 commit 으로 state.json + backlog 의 hash = latest commit hash).
-
-
-## v0.7.27 (2026-06-15) — TASK-V0726-003 (sync_release_hash post-step auto-call)
-
-- **commit**: 2aa1efa (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `release_pipeline.py:cmd_version_bump` post-step sync_release_hash 자동 호출 + `_run_post_step_sync_hash` 신규 helper + `--skip-sync-hash` flag + 1 신규 test file (5 smoke, 5/5 PASS)
-- **정공법**: post-step 의 *in-process* + caller opt-in flag (--skip-sync-hash) 의 *3종 정합* (v0.7.18/21/27) + post-step 의 *graceful fail* (sync_hash fail 해도 version-bump 성공). v0.7.25 의 infinite fix(state) loop 의 *closure*.
-
-
-## v0.7.28 (2026-06-15) — TASK-V0726-004 (Detached HEAD Memory Dir Cleanup)
-
-- **commit**: b1b32f1 (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `tools/archive_stale_memory.py` (~250 line, 4-priority REPO_ROOT + 3 subcommand + 5 helper) + `tests/check_v0_7_28_archive_stale_memory.py` (5 smoke, 5/5 PASS)
-- **정공법**: F-7 (v0.7.26) 의 detached HEAD → short SHA fix 의 *closure*. age-based auto-archive: N day 이전의 short SHA dir → `archive/<YYYY-MM-DD>/<sha>/` 로 move. SHA256-based idempotency (v0.7.25 의 F-6 의 1차 출처).
-
-
-## v0.7.29 (2026-06-15) — TASK-V0727-001 (Post-Step 2-Phase + Amend Integration)
-
-- **commit**: 850b798 (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `release_pipeline.py:_run_post_step_sync_hash` (~50 line, 2-phase: sync + amend) + 1 신규 test file (5 smoke, 5/5 PASS)
-- **정공법**: post-step 의 *sequential dependency* (sync → add → amend → rev-parse). sync fail → amend 호출 0. amend fail → final_hash = None + ok = False. **별도 fix(state) commit 불필요** — feat + chore = 2 commit (v0.7.28 의 3 commit 대비 *33% 감소*).
-
-
-## v0.7.30 (2026-06-15) — TASK-V0728-001 (Archive Stale Memory Cron Integration)
-
-- **commit**: 57d996d (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `tools/archive_stale_memory.py` (~80 line 추가: 3 cmd + 3 flag + 2 config) + 1 신규 test file (5 smoke, 5/5 PASS)
-- **정공법**: `mavis cron create <agent> <cronName> --schedule <interval> --prompt <text>` 자동 호출. *manual* → *automated* 정공법 (caller discipline → system automation).
-
-
-## v0.7.31 (2026-06-15) — TASK-V0729-001 + TASK-V0730-001 (Run-Time Metrics + Cron Idempotency)
-
-- **commit**: a9b510e (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `archive_stale_memory.py` (~110 line: 3 helper + 1 subcommand + idempotency + check_already_archived file catch) + 1 신규 test file (10 smoke, 10/10 PASS) + 1 v0.7.28 test fix
-- **정공법**: append-only metrics log (ISO 8601 + tab-separated 5 field) + `mavis cron info` existence check + `--force-install` caller opt-in + `check_already_archived` file catch (v0.7.28 의 *dst 가 file* 시나리오 보강).
-
-
-## v0.7.32 (2026-06-15) — TASK-V0731-001 + TASK-V0732-001 (Log Rotation + Metrics Aggregation)
-
-- **commit**: 75a8b4c (feat) + fix(state) follow-up
-- **status**: **DONE** (2026-06-15 merged to main)
-- **scope**: `archive_stale_memory.py` (~180 line: 3 helper + 2 subcommand + argparse flags) + 1 신규 test file (10 smoke, 10/10 PASS, 5-run stable)
-- **정공법**: log rotation (line > 10000 → gzip + truncate) + metrics aggregation (weekly/monthly/daily/all + ISO 8601 week) + `--include-rotated` flag (dedup with main log).
+- **status**: **DONE** (2026-06-15 merged to main, 8 release / 25 commit / housekeeping by v0.8.15 commit 841329f)
+- **8 release commit hash**: v0.7.25=`8a61bd3` / v0.7.26=`e5fbd2b` / v0.7.27=`2aa1efa` / v0.7.28=`b1b32f1` / v0.7.29=`850b798` / v0.7.30=`57d996d` / v0.7.31=`a9b510e` / v0.7.32=`75a8b4c`
+- **정공법 (1줄)**: F-6 in-repo wiki mirror → F-7 detached HEAD short SHA → post-step sync_hash 자동화 → archive_stale_memory + cron 통합 → log rotation + metrics aggregation. v0.8.15 housekeeping 으로 in-flight 8 → 0 정리, 본 housekeeping 으로 detail block (62 line) → 1-line summary compactify.
+- **detail 참조**: ai-workflow/memory/release/v0.7.25~v0.7.32/backlog/2026-06-15.md (per-release detail 파일 SSOT)
 

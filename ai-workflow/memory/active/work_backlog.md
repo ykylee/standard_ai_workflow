@@ -19,6 +19,7 @@
 ### [[release/v0.9.0/backlog/2026-06-18.md]] {#release-v0-9-0}
 - 2026-06-18: v0.9.0 chapter 1 — Deprecation Policy Operational Spec 작성 + SSOT 정합 (pyproject 0.8.1 → 0.9.1, __version__ = v0.9.1-beta) + mypy config 정합 ([tool.mypy] unknown option 5개 → [tool.workflow-doctor] section 분리) + syntax fix. commit 841329f force-push.
 - 2026-06-18: v0.9.0 chapter 2 — Deprecation 1st Cycle 실제 적용 (phishing_federation_v4.fetch_federated_phishing_urls_v4 DeprecationWarning 추가 + 6 신규 test + 4 acceptance verify + zero behavior change). mypy strict 18 file baseline 유지.
+- 2026-06-18: v0.9.0 chapter 3 — Spec drift patch (§4.2/§4.3/§7.1 v0.9.0-beta → v0.9.1-beta 정직하게) + Beta-v0.9.0.md release note 신규 + workflow_kit_roadmap.md Phase 11 close + Phase 12 kickoff 갱신. spec §7.5 acceptance 4/4 verify 완료.
 
 ### [[release/v0.7.59/backlog/2026-06-17.md]] {#release-v0-7-59}
 - 2026-06-17: v0.7.59 1개 TASK (cmd_consumer_metrics in-process refactor — subprocess → import_module, v0.7.56+ score-wiki-trend 정공법)

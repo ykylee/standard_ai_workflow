@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
 - 최종 수정일: 2026-06-18
-- 버전: v0.9.0-beta (chapter 1 done, chapter 2 in-progress; package: standard-ai-workflow 0.9.1, runtime __version__ = v0.9.1-beta)
+- 버전: v0.9.0-beta (chapter 1+2+3 done; package: standard-ai-workflow 0.9.1, runtime __version__ = v0.9.1-beta, spec drift patch 반영)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -281,18 +281,20 @@ v0.8.0 spec §5.3 (Stable API frozen + mypy strict 단계적 격상) 부터 v0.9
 - **v0.8.13** — mypy strict 단계적 격상 9단계: `common/state/builder.py` 13 error → 0 (cumulative fix 잔여분 흡수).
 - **v0.8.14** — mypy strict 단계적 격상 10단계: `common/contracts/baselines.py` 27 error → 0 + 2 real bug fix (AuditLogEvent → StageCompletion, append_audit_log arg 순서).
 - **v0.8.15** — `release-dist --apply` 1-command (`python -m build` + `twine check` + TestPyPI sim) + `--production` flag + `.gitignore` history file 등록 + work_backlog.md v0.7.25~v0.7.32 stale 정리. spec §9 9/12, tools test 52/52 PASS.
-- **v0.9.0 (in-progress, chapter 1+2)** — Deprecation Policy Operational Spec 신규 (221 lines, 9 sections) + SSOT 정합 (`pyproject.toml [project] version` 0.8.1 → 0.9.1, runtime `__version__` = v0.9.1-beta) + mypy config 정합 (`[tool.mypy]` unknown option 5개 → `[tool.workflow-doctor]` section 분리, v0.8.0~v0.8.15 의 strict validation bypass 버그 fix). **chapter 2 = deprecation 1st cycle 실제 적용**: `phishing_federation_v4.fetch_federated_phishing_urls_v4` DeprecationWarning 추가 (`stacklevel=2`, deprecated + replacement + v0.10.0 removal 3-element message) + 6 신규 test (`check_v0_9_0_deprecation_1st_cycle.py`) + 4 acceptance verify (DeprecationWarning 1회 raise / output identical to consolidated / `__all__` 그대로 존재 / zero behavior change). mypy strict **18 file baseline** 유지 (chapter 2 검증 중 side 발견: mypy 2.1.0 stricter checking 으로 `workflow_kit_cli.py` 49 error 노출 — v0.8.6 release note 의 "44 error → 0" 은 mypy 1.x 기준, spec §6 현실 조정과 정합 — 별도 후속). spec ↔ runtime drift: spec §7.1 acceptance 는 v0.9.0-beta 인데 runtime 은 v0.9.1-beta (chapter 3 에서 spec 보강 또는 추가 patch 검토). spec §9 acceptance 9/12 *유지* (chapter 3 release note + workflow_kit_cli mypy strict 격상 follow-up 후속).
+- **v0.9.0 (chapter 1+2+3 DONE)** — Deprecation Policy Operational Spec 신규 (221 lines, 9 sections) + SSOT 정합 (`pyproject.toml [project] version` 0.8.1 → 0.9.1, runtime `__version__` = v0.9.1-beta) + mypy config 정합 (`[tool.mypy]` unknown option 5개 → `[tool.workflow-doctor]` section 분리, v0.8.0~v0.8.15 의 strict validation bypass 버그 fix). **chapter 2 = deprecation 1st cycle 실제 적용**: `phishing_federation_v4.fetch_federated_phishing_urls_v4` DeprecationWarning 추가 (`stacklevel=2`, deprecated + replacement + v0.10.0 removal 3-element message) + 6 신규 test (`check_v0_9_0_deprecation_1st_cycle.py`) + 4 acceptance verify (DeprecationWarning 1회 raise / output identical to consolidated / `__all__` 그대로 존재 / zero behavior change). **chapter 3 = spec drift patch + release note + Phase 11 close / Phase 12 kickoff**: spec §4.2/§4.3/§7.1 의 `v0.9.0-beta` → `v0.9.1-beta` 정직하게 인정 (chapter 1 의 `version-bump --minor` 의 patch bump interaction 결과), `Beta-v0.9.0.md` release note 신규 (chapter 1+2+3 묶음), `workflow_kit_roadmap.md` Phase 11 close + Phase 12 kickoff 갱신. mypy strict **18 file baseline** 유지 (chapter 2 검증 중 side 발견: mypy 2.1.0 stricter checking 으로 `workflow_kit_cli.py` 49 error 노출 — v0.8.6 release note 의 "44 error → 0" 은 mypy 1.x 기준, spec §6 현실 조정과 정합 — 별도 후속). spec ↔ runtime drift: chapter 3 에서 spec patch 완료, *drift 재발 방지* 가 spec §4.2 verify 단계의 *운영 약속*. spec §9 acceptance 9/12 *유지* (chapter 4 release tag + workflow_kit_cli mypy strict 격상 follow-up 후속).
 
-**누적 (v0.8.0 → v0.9.0 chapter 1)**: 16 + 1 release (v0.9.0 chapter 2 + release note 후속), mypy strict cumulative **19 file clean** (full strict 도달 v1.0.0 milestone, 단계적 격상 계속), smoke test **162/162 PASS** (cumulative, v0.8.15+ 유지), spec §9 acceptance **9/12** (chapter 2 + release note 와 함께 12/12 목표), breaking change 없음 (SemVer 2-year guarantee, v0.8.0 → 2.0.0 까지).
+**누적 (v0.8.0 → v0.9.0 chapter 1+2+3)**: 16 + 1 release, mypy strict cumulative **18 file clean** (mypy 2.1.0 stricter checking, full strict 도달 v1.0.0 milestone), smoke test **162/162 PASS** (cumulative, v0.8.15+ 유지, 신규 6 test 별도 subset), spec §9 acceptance **9/12** (chapter 4 release tag + workflow_kit_cli mypy strict 격상 follow-up 후속), breaking change 없음 (SemVer 2-year guarantee, v0.8.0 → 2.0.0 까지). Phase 11 close + Phase 12 kickoff (workflow_kit_roadmap.md §1 갱신).
 
 **PyPI 배포 정책**: GitHub Releases only, no actual PyPI/TestPyPI deployment. v0.8.15 의 TestPyPI/Production upload 는 *simulation* 만.
 
 이번 기준선 핵심 결과물:
 
+- release note: [releases/Beta-v0.9.0.md](./workflow-source/releases/Beta-v0.9.0.md) (v0.9.0 chapter 1+2+3 묶음 — deprecation 1st cycle 적용 + SSOT 정합 + mypy config 정합, Phase 11 close)
 - release note: [releases/Beta-v0.8.15.md](./workflow-source/releases/Beta-v0.8.15.md) (v0.8.0 → v0.8.15 묶음, spec §9 9/12 완료)
 - stable API spec: [core/v0_8_0_stable_api_spec.md](./workflow-source/core/v0_8_0_stable_api_spec.md) (v0.8.0 freeze)
-- deprecation policy spec (v0.9.0): [core/v0_9_0_deprecation_policy_spec.md](./workflow-source/core/v0_9_0_deprecation_policy_spec.md) (NEW v0.9.0+)
-- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.8.15): [releases/](./workflow-source/releases/)
+- deprecation policy spec: [core/v0_9_0_deprecation_policy_spec.md](./workflow-source/core/v0_9_0_deprecation_policy_spec.md) (v0.9.0, chapter 3 spec drift patch 반영 — v0.9.0-beta → v0.9.1-beta 정직하게)
+- workflow_kit_roadmap: [core/workflow_kit_roadmap.md](./workflow-source/core/workflow_kit_roadmap.md) (Phase 11 close + Phase 12 kickoff, v0.9.0 chapter 3 갱신)
+- 전체 릴리스 노트 (Alpha-v0.1.0 ~ Beta-v0.9.0): [releases/](./workflow-source/releases/)
 
 ## 11. 현재 한계
 
@@ -321,7 +323,7 @@ skill/MCP 구현이 아직 없더라도 아래 문서만으로 수동 운영은 
 - contract v1 wire 가이드: [workflow-source/core/orchestrator_contract_v1_wire_guide.md](./workflow-source/core/orchestrator_contract_v1_wire_guide.md)
 - 프로젝트 상태 진단: [workflow-source/core/project_status_assessment.md](./workflow-source/core/project_status_assessment.md)
 - 상위 로드맵: [workflow-source/core/workflow_kit_roadmap.md](./workflow-source/core/workflow_kit_roadmap.md)
-- 마지막 release note: [workflow-source/releases/Beta-v0.8.15.md](./workflow-source/releases/Beta-v0.8.15.md)
+- 마지막 release note: [workflow-source/releases/Beta-v0.9.0.md](./workflow-source/releases/Beta-v0.9.0.md)
 - 출력 스키마 가이드: [workflow-source/core/output_schema_guide.md](./workflow-source/core/output_schema_guide.md)
 - 도입 분기 가이드: [workflow-source/core/workflow_adoption_entrypoints.md](./workflow-source/core/workflow_adoption_entrypoints.md)
 - 하네스 배포 가이드: [workflow-source/core/workflow_harness_distribution.md](./workflow-source/core/workflow_harness_distribution.md)

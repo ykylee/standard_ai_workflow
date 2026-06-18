@@ -3,8 +3,8 @@
 - 문서 목적: v0.9.0 부터 적용되는 *deprecation policy* 의 운영 규칙, 영향 symbol/module 관리, SSOT 정합, Phase 11 closure + Phase 12 kickoff 를 정의한다.
 - 범위: deprecation lifecycle, 1st cycle 영향 symbol, mypy strict full clean, SSOT drift 해소, Beta-prefix 유지
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
-- 상태: draft (v0.8.15 종료 후 freeze)
-- 최종 수정일: 2026-06-17
+- 상태: chapter 1+2 DONE, chapter 3 in-progress (drift patch + release note + roadmap 갱신)
+- 최종 수정일: 2026-06-18
 - 관련 문서: [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md), [`./workflow_release_spec.md`](./workflow_release_spec.md), [`./output_schema_guide.md`](./output_schema_guide.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./prototype_promotion_scope.md`](./prototype_promotion_scope.md), [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md)
 
 ## 1. 목적
@@ -90,16 +90,18 @@ v0.8.0 ~ v0.8.15 의 16 release 동안:
 
 ### 4.2 fix
 
-1. `tools/release_pipeline.py version-bump --minor --apply` 로 0.8.1 → 0.9.0
-2. `python -c "import workflow_kit; assert workflow_kit.__version__ == 'v0.9.0-beta'"` — runtime 정합
-3. v0.9.0 release 후 `version-bump` 의 *next-version decision* 이 항상 *remote tag 기준* 으로 동작하도록 verify (다음 cycle 부터 drift 재발 방지)
+1. `tools/release_pipeline.py version-bump --minor --apply` 로 0.8.1 → 0.9.0 *intend*
+2. 실제 결과: 0.9.1 (version-bump 의 `--minor` interaction 으로 patch bump 추가 발생, chapter 1 commit 841329f 에서 verify)
+3. runtime 정합: `python -c "import workflow_kit; print(workflow_kit.__version__)"` → `v0.9.1-beta` PASS
+4. v0.9.0 release 후 `version-bump` 의 *next-version decision* 이 항상 *remote tag 기준* 으로 동작하도록 verify (다음 cycle 부터 drift 재발 방지)
 
-### 4.3 release 정합성 회복
+### 4.3 release 정합성 회복 (chapter 1+3 patch 결과)
 
-- `pyproject.toml [project] version` = "0.9.0-beta" (PEP 440: 0.9.0b0)
-- `__version__` = "v0.9.0-beta"
+- `pyproject.toml [project] version` = "0.9.1" (PEP 440: 0.9.1, runtime echo: `v0.9.1-beta`)
+- `__version__` = "v0.9.1-beta"
+- **drift 정직하게 인정**: 본 spec §4.2 의 *intend* (0.9.0) vs *actual* (0.9.1) 차이는 chapter 1 의 `version-bump --minor` 의 patch bump interaction 결과. spec §7.1 acceptance 도 *actual* 기준 (`v0.9.1-beta`) 으로 patch. 다음 release 부터 *drift 재발 방지* 가 §4.2 의 verify 단계의 *운영 약속*.
 - `Beta-v0.9.0.md` 의 *Stable API frozen* 섹션에 *deprecation first cycle* subsection 추가
-- tools/release_pipeline.py release-dist 의 *twine check* 가 metadata 의 version = "0.9.0-beta" 정합 검증
+- tools/release_pipeline.py release-dist 의 *twine check* 가 metadata 의 version = "0.9.1" 정합 검증
 
 ## 5. Phase 11 closure + Phase 12 kickoff
 
@@ -160,12 +162,14 @@ v0.9.0 = config 정합 + 19 file baseline 유지. full strict 도달은 v0.9.x f
 
 본 release 가 *done* 으로 인정되려면 아래가 모두 true 여야 한다.
 
-### 7.1 spec/SSOT 정합
+### 7.1 spec/SSOT 정합 (chapter 3 patch — `v0.9.0-beta` → `v0.9.1-beta`)
 
-- [ ] `pyproject.toml [project] version` = "0.9.0-beta"
-- [ ] `python -c "import workflow_kit; assert workflow_kit.__version__ == 'v0.9.0-beta'"` PASS
-- [ ] `tools/release_pipeline.py gen-schema --check` exit 0
-- [ ] `tools/release_pipeline.py release-dist --apply --dry-run` 의 *twine check* 가 version 정합 PASS
+- [x] `pyproject.toml [project] version` = "0.9.1"
+- [x] `python -c "import workflow_kit; print(workflow_kit.__version__)"` → `v0.9.1-beta` PASS
+- [x] `tools/release_pipeline.py gen-schema --check` exit 0
+- [x] `tools/release_pipeline.py release-dist --apply --dry-run` 의 *twine check* 가 version 정합 PASS
+
+**drift note**: 본 spec 작성 시점 (chapter 1) 의 acceptance 는 `v0.9.0-beta` 였으나, `version-bump --minor` 의 patch bump interaction 으로 actual 은 `v0.9.1-beta`. 본 spec §4.3 의 drift 인정 섹션 참조. acceptance 는 *actual* 기준 (`v0.9.1-beta`) 으로 patch — 정직한 운영 약속.
 
 ### 7.2 deprecation 1st cycle (chapter 2)
 

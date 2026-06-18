@@ -4,12 +4,12 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-18
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
 
-## 1. 현재 단계 (Phase 11: Real-world Pilot Validation)
+## 1. 현재 단계 (Phase 11 close → Phase 12 in-progress: 운영 지능화 + deprecation 운영 안정화)
 
-현재 저장소는 아래 11단계 중 **Phase 11 진행 중** 상태다. (Phase 1–10 완료, Phase 11 in_progress)
+현재 저장소는 아래 12단계 중 **Phase 11 close + Phase 12 in-progress** 상태다. (Phase 1–11 완료, Phase 12 in_progress)
 
 1. 개념 정리 단계 — Phase 1 (완료)
 2. 표준 문서와 템플릿 분리 단계 — Phase 2 (완료)
@@ -21,17 +21,24 @@
 8. 실전 파일럿 배포 및 통합 고도화 단계 — Phase 8 (완료)
 9. 시스템 성숙도 및 다중 에이전트 진화 단계 — Phase 9 (완료)
 10. 문서 및 링크 위생 단계 — Phase 10 (완료)
-11. 실전 파일럿 검증 단계 — Phase 11 (진행 중)
+11. **실전 파일럿 검증 단계 — Phase 11 (완료, 2026-06-18 v0.9.0 release)**: DevHub 실전 파일럿 + contract v1 검증 + stable API frozen + generated JSON Schema SSOT + mypy strict 단계적 격상 18 file clean + read-only MCP transport + release-dist 1-command + **deprecation 1st cycle 실제 적용** (`phishing_federation_v4.fetch_federated_phishing_urls_v4` → DeprecationWarning) + SSOT 정합 + mypy config 정합
+12. **운영 지능화 + deprecation 운영 안정화 단계 — Phase 12 (진행 중, 2026-06-18~)**: Phase 11 의 *외부 consumer 정합* 위에서 *내부 운영 품질* 심화 — deprecation 2nd cycle (1st 검증 기반) + mypy strict cumulative 18 → 33+ file (full strict 도달은 v1.0.0 milestone) + release pipeline automation (--apply 만으로 cycle close) + deprecation policy contract test (`workflow_kit.__all__` 의 deprecation-free 검증) + consumer signal 2nd wave (v0.7.62 follow-up 2차)
 
-현재 판단 근거 (v0.5.10-beta, 2026-06-08 기준):
+현재 판단 근거 (v0.9.0, 2026-06-18 기준):
 
-- **Phase 1–10 완결**: 엔진 로직 공통화, MCP 러너 표준화, 상태 관리 모듈화, contract v1 enforcement, multi-component fan-out, 다중 에이전트 오케스트레이션, 문서·링크 위생 정리 완료.
-- **Phase 11 진행 중**: DevHub 예제 기반 contract v1 실전 검증, Phase 11 pilot 시나리오 A/B/C 실행 및 피드백 반영 진행 중.
-- **v0.5.10-beta 기준**: `choose_roles` sub.delegation_id parent-prefix spec 정합, `contract_v1/` enforcement helpers 안정화, interactive `--harness` picker (v0.5.8), MCP transport dual-mode (jsonrpc-bridge 안정 + stdio-sdk 실험적).
-- **작업 모드(Task Modes) 정의**: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합 완료.
-- **DevHub 파일럿 성공**: 실제 대규모 프로젝트(DevHub)에 v0.5.x-beta 기반 운영 안정성 확인.
+- **Phase 1–11 완결**: Phase 11 의 모든 성공 기준 충족 (pilot A/B/C 실행 + contract v1 안정 + reusable package 1단계 + deprecation 1st cycle 적용 + SSOT 정합 회복 + mypy config 정합).
+- **Phase 12 진행 중**: v0.9.0 release 직후 kickoff. v0.9.x follow-up 으로 deprecation 2nd cycle + mypy strict cumulative 격상 + release pipeline automation.
+- **v0.9.0-beta 기준 (package: standard-ai-workflow 0.9.1, runtime `__version__` = v0.9.1-beta)**:
+  - Deprecation Policy Operational Spec 신규 (221 lines, 9 sections, spec §3 lifecycle + §3.3 1st cycle 영향 symbol)
+  - SSOT 정합: pyproject 0.8.1 → 0.9.1, runtime v0.9.1-beta (drift 정직하게 인정 — chapter 1 의 `version-bump --minor` 의 patch bump interaction, spec §4.2/§4.3 patch)
+  - mypy config 정합: `[tool.mypy]` unknown option 5개 → `[tool.workflow-doctor]` section 분리 (v0.8.0~v0.8.15 의 strict validation bypass 버그 fix)
+  - mypy strict cumulative: 18 file clean (mypy 2.1.0 stricter checking 으로 `workflow_kit_cli.py` 49 error 노출 — v0.8.6 release note 의 "44 error → 0" 은 mypy 1.x 기준, 별도 후속)
+  - 누적 smoke test: 162/162 PASS 유지 (신규 6 test 는 별도 subset)
+  - deprecation 1st cycle: `phishing_federation_v4.fetch_federated_phishing_urls_v4` → `DeprecationWarning` (stacklevel=2, deprecated + replacement + v0.10.0 removal 3-element message)
+  - 작업 모드(Task Modes) 정의: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합 완료
+  - DevHub 파일럿 성공: 실제 대규모 프로젝트(DevHub)에 v0.9.0-beta 기반 운영 안정성 확인
 
-## 1.1 현재 릴리즈 기준 정리 (v0.5.10-beta)
+## 1.1 현재 릴리즈 기준 정리 (v0.9.0-beta)
 
 `v0.5.10-beta` (2026-06-08) 기준으로 완료된 성과:
 
@@ -282,28 +289,46 @@
 - 문서/링크 위생 (Phase 10) 완료.
 - 52종 smoke test 통과.
 
-### Phase 11 완료 기준
+### Phase 11 완료 기준 (v0.9.0 시점 모두 충족 ✅)
 
-- Phase 11 pilot 시나리오 A/B/C 실행 및 성공 기준 충족.
-- contract v1 실전 검증 (`choose_roles` + `validate_fanin_output`) 안정.
-- 두 개 이상 프로젝트에 적용 가능한 예시 또는 시범 적용 결과가 있다.
-- MCP/skill 프로토타입 중 일부가 실제 reusable package 또는 server 형태로 승격됐다.
+- [x] Phase 11 pilot 시나리오 A/B/C 실행 및 성공 기준 충족.
+- [x] contract v1 실전 검증 (`choose_roles` + `validate_fanin_output`) 안정.
+- [x] 두 개 이상 프로젝트에 적용 가능한 예시 또는 시범 적용 결과가 있다 (DevHub).
+- [x] MCP/skill 프로토타입 중 일부가 실제 reusable package 또는 server 형태로 승격됐다 (workflow_kit.common 30+ submodule, jsonrpc-bridge 안정).
+- [x] Stable API frozen (v0.8.0)
+- [x] generated JSON Schema SSOT (v0.8.0, 21 family, 85,743 bytes)
+- [x] mypy strict 단계적 격상 cumulative (v0.8.1~v0.8.14, 18 file clean with mypy 2.1.0)
+- [x] read-only MCP transport (v0.8.10-11)
+- [x] release-dist 1-command (v0.8.15)
+- [x] **Deprecation 1st cycle 실제 적용** (v0.9.0, `phishing_federation_v4.fetch_federated_phishing_urls_v4` DeprecationWarning)
+- [x] SSOT 정합 (v0.9.0, pyproject 0.8.1 → 0.9.1, runtime v0.9.1-beta)
+- [x] mypy config 정합 (v0.9.0, [tool.workflow-doctor] section 분리)
+
+### Phase 12 완료 기준 (in-progress 기준 정의)
+
+- [ ] Deprecation 2nd cycle 적용 (1st cycle 의 정책 운영 검증 결과 기반, 2nd cycle 영향 symbol 식별 + DeprecationWarning 추가)
+- [ ] mypy strict cumulative 18 → 33+ file (1 release = 1-2 file 격상)
+- [ ] release pipeline automation (`--apply` 만으로 version-bump + note-draft + release cycle close)
+- [ ] deprecation policy contract test (`workflow_kit.__all__` 의 모든 symbol 이 *deprecation-free* 하거나 *명시적 deprecation marker* 가 있는지 contract test)
+- [ ] consumer signal 2nd wave (v0.7.62 consumer_metrics 의 *2차 follow-up* — trend + digest 의 *운영 활용*)
+- [ ] (별도 후속) workflow_kit_cli.py 49 mypy error 격상, full strict 도달 v1.0.0 milestone
 
 ## 8. 현재 권장 다음 작업
 
-현재 시점에서 가장 권장하는 다음 작업은 아래 순서다.
+현재 시점에서 가장 권장하는 다음 작업은 아래 순서다 (Phase 12 기준).
 
-1. Phase 11 pilot 결과 보고서 작성 및 종료 판단
-2. MCP stdio-sdk `Connection closed` 회귀 해결
-3. read-only input schema Pydantic v2 전면 적용
-4. 실제 저장소 추가 시범 적용 1건 이상
-5. 릴리즈 운영 절차와 changelog 구조 정리
+1. **deprecation 2nd cycle 영향 symbol 식별** — 1st cycle 의 *운영 검증 결과* (consumer 의 warning log 빈도, migration 비용) 기반
+2. **mypy strict cumulative 격상** — workflow_kit_cli.py 49 error 우선 처리 (가장 큰 단일 파일)
+3. **release pipeline automation** — `--apply` 만으로 cycle close 가능하도록 in-process 통합
+4. **deprecation policy contract test** — `workflow_kit.__all__` 의 모든 symbol 의 deprecation 상태 contract verify
+5. (별도 후속) read-only input schema Pydantic v2 전면 적용, MCP stdio-sdk `Connection closed` 회귀 해결
 
-이 순서는 현재 저장소가 가진 자산을 "Phase 11 완료 -> MCP 안정화 -> 타입 계약 강화 -> 실제 적용 -> 릴리즈 정리" 순서로 확장하는 데 초점을 둔다.
+이 순서는 현재 저장소가 가진 자산을 "Phase 12 = 운영 지능화 + deprecation 운영 안정화" 로 심화하는 데 초점을 둔다.
 
 추가 메모:
 
 - OpenCode overlay 에서는 `workflow-code-worker` 를 실제 구현, 설정 수정, 빌드/컴파일 확인을 맡는 기본 실행 worker 로 해석하는 기준을 유지한다.
+- Phase 12 의 release note 는 `Beta-v0.9.x.md` 형식 유지 (chapter 별 release note 분할 ❌, v0.9.0 = 1 release note 묶음).
 
 ## 9. 외부 리뷰 반영 메모
 

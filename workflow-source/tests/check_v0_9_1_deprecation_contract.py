@@ -30,11 +30,20 @@ WORKFLOW_KIT_INIT = WORKFLOW_KIT_DIR / "__init__.py"
 # 본 test 는 이 whitelist 에 *명시적으로* 등록된 symbol 만 DeprecationWarning raise 를 verify.
 # whitelist 에 없는 callable 이 DeprecationWarning raise 하면 → contract 위반 (silent error).
 # module_path 는 workflow_kit.X.Y 형식 (full path).
-DEPRECATION_MARKED_CALLABLES: dict[str, str] = {
-    # module_path.callable_name → replacement_module.replacement_callable
-    # chapter 2 의 1st cycle 적용 결과:
-    "workflow_kit.phishing_federation_v4.fetch_federated_phishing_urls_v4":
+DEPRECATION_MARKED_CALLABLES: dict[str, tuple[str, tuple, dict]] = {
+    # module_path.callable_name → (replacement_module.replacement_callable, args, kwargs)
+    # chapter 2 의 1st cycle 적용 결과 (cycle 1, v0.9.0):
+    "workflow_kit.phishing_federation_v4.fetch_federated_phishing_urls_v4": (
         "workflow_kit.phishing_federation.fetch_federated_phishing_urls",
+        ([],),  # sources_with_weights (빈 source list)
+        {},
+    ),
+    # chapter 7 의 2nd cycle 적용 결과 (cycle 8, v0.9.3):
+    "workflow_kit.phishing_federation_v4.build_default_sources_v4": (
+        "workflow_kit.phishing_federation.build_default_sources",
+        (),  # no args (default 작동)
+        {},
+    ),
 }
 
 
@@ -77,15 +86,14 @@ def test_all_list_parse_v0_9_1() -> None:
 def test_deprecation_marked_callables_warn_v0_9_1() -> None:
     """DEPRECATION_MARKED_CALLABLES 의 모든 callable 이 DeprecationWarning raise."""
     sys.path.insert(0, str(SOURCE_ROOT))
-    for full_name, _ in DEPRECATION_MARKED_CALLABLES.items():
+    for full_name, (replacement, args, kwargs) in DEPRECATION_MARKED_CALLABLES.items():
         module_path, callable_name = full_name.rsplit(".", 1)
         # module_path 는 'workflow_kit.X' 형식
         mod = importlib.import_module(module_path)
         func = getattr(mod, callable_name)
         # callable invoke — DeprecationWarning capture
-        # fetch_federated_phishing_urls_v4 의 signature: (sources_with_weights, *, min_confidence=0.0)
-        # minimal fixture: 빈 source list
-        captured = _safe_call_with_warning_capture(func, ([],), {})
+        # whitelist 의 (args, kwargs) 로 호출 (1st cycle: ([],), 2nd cycle: ()).
+        captured = _safe_call_with_warning_capture(func, args, kwargs)
         assert len(captured) >= 1, (
             f"{full_name} did not raise DeprecationWarning "
             f"(deprecation marker missing or removed prematurely)"

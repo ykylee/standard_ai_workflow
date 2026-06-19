@@ -5,7 +5,13 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: done
 - 최종 수정일: 2026-05-01
-- 관련 문서: [공통 표준](../core/global_workflow_standard.md)
+- 관련 문서: [공통 표준](../core/global_workflow_standard.md), [PURPOSE.md](./PURPOSE.md) (directional intent)
+
+## 0. Purpose 참조
+
+이 프로젝트의 *directional intent* (왜 존재하는지) 는 [`PURPOSE.md`](./PURPOSE.md) 참조. 본 문서는 프로젝트 메타 (name / stakeholder / commands / validation / policy) 만 다룬다.
+
+PURPOSE.md 의 4-element (Goals / Key Questions / Research Scope / Evolving Thesis) 는 LLM 이 매 ingest/query 시 context load 의 *directional intent* 의 SSOT.
 
 ## 1. 프로젝트 개요
 - 프로젝트명: Export Sample

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, cast
 
@@ -19,6 +20,38 @@ from workflow_kit.common.project_docs import (
     parse_project_profile_core,
     parse_project_profile_validation,
 )
+
+
+def _parse_purpose_summary(
+    path: Path | None,
+) -> tuple[str | None, str | None]:
+    """PURPOSE.md frontmatter + §1 Goals 첫 번째 goal parse.
+
+    v0.9.4 chapter 8 R-A follow-up part 1.
+    Returns: (purpose_digest, purpose_digest_rev) — 부재 시 (None, None).
+    """
+    if path is None or not path.exists():
+        return None, None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None, None
+    # frontmatter parse
+    purpose_digest_rev: str | None = None
+    fm_match = re.match(r"^---\n(.+?)\n---", text, re.S)
+    if fm_match:
+        rev_match = re.search(
+            r"last_purpose_review\s*:\s*(\d{4}-\d{2}-\d{2})", fm_match.group(1)
+        )
+        if rev_match:
+            purpose_digest_rev = rev_match.group(1)
+    # §1 Goals 첫 번째 goal
+    purpose_digest: str | None = None
+    goal_match = re.search(r"^- \*\*G\d+\*\*\s*:\s*(.+)$", text, re.M)
+    if goal_match:
+        purpose_digest = goal_match.group(1).strip()
+    return purpose_digest, purpose_digest_rev
+
 
 def is_meaningful_text(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip()) and not value.strip().startswith("TODO:")
@@ -54,7 +87,7 @@ def build_workflow_state_payload(
     handoff_blocked: list[str] = cast(list[str], handoff.get("blocked_items", []))
     handoff_recent_done: list[str] = cast(list[str], handoff.get("recent_done_items", []))
     handoff_next_docs_raw: list[Path] = cast(list[Path], handoff.get("next_documents", []))
-    handoff_constraints: list[str] = cast(list[str], handoff.get("constraints", []))
+    handoff_constraints: list[str] = cast(list[str], handoff.get("constraints") or [])
 
     backlog_in_progress: list[str] = cast(list[str], backlog.get("in_progress_items", []))
     backlog_blocked: list[str] = cast(list[str], backlog.get("blocked_items", []))
@@ -89,9 +122,20 @@ def build_workflow_state_payload(
         first_task = backlog_tasks[0]
         current_focus = f"{first_task['task_id']} {first_task['title']}"
 
+    # v0.9.4 chapter 8 R-A follow-up part 1: state.json.purpose_digest 1-line 자동 생성
+    purpose_candidates = [
+        actual_root / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
+        actual_root.parent / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
+        actual_root / "PURPOSE.md",  # workspace_root 의 직접 PURPOSE.md (fallback)
+    ]
+    purpose_path = next((p for p in purpose_candidates if p.exists()), None)
+    purpose_digest, purpose_digest_rev = _parse_purpose_summary(purpose_path)
+
     return {
         "schema_version": "1",
         "generated_at": generated_at,
+        "purpose_digest": purpose_digest,
+        "purpose_digest_rev": purpose_digest_rev,
         "source_of_truth": {
             "project_profile_path": safe_relpath(project_profile_path, actual_root),
             "session_handoff_path": safe_relpath(session_handoff_path, actual_root),

@@ -94,11 +94,20 @@ last_purpose_review: 2026-06-19
 
 ### 4.3 LLM context read pattern
 
-session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 자동 read. 구체:
+session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 자동 read. R-A follow-up 의 3 release 분할:
 
-1. `ai-workflow/memory/active/state.json` 의 `purpose_digest` field 에 1-line summary 자동 생성 (`generate_workflow_state.py` 의 신규 output)
-2. session-start 의 *context load* 시 `state.json.purpose_digest` 1-line + PURPOSE.md 본문 (≤200 token) 자동 read
-3. backlog-update 의 *in-scope check* 시 Research Scope 와 비교하여 *scope creep 경고*
+**v0.9.4 part 1 (본 release, chapter 8)** — `state.json.purpose_digest` 1-line 자동 생성:
+- `ai-workflow/memory/active/state.json` 의 `purpose_digest` field (top-level) + `purpose_digest_rev` field (`last_purpose_review` date) 자동 생성
+- `workflow_kit.common.workflow_state.refresh_workflow_state_cache` 의 output schema 에 2 field 추가
+- `generate_workflow_state.py` 의 caller 자동 populate
+- format: `purpose_digest` = "G1: 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공" (Goals §1 의 첫 번째 goal text), `purpose_digest_rev` = PURPOSE.md frontmatter 의 `last_purpose_review` date (YYYY-MM-DD)
+- PURPOSE.md 부재 시 graceful skip (purpose_digest = null, purpose_digest_rev = null, *fall back* to no-digest)
+
+**v0.9.5 part 2 (후속 release, chapter 9)** — skill context load integration:
+- session-start / backlog-update / doc-sync skill 의 *context load* 시 `state.json.purpose_digest` 1-line + PURPOSE.md 본문 (≤200 token) 자동 read
+- backlog-update 의 *in-scope check* 시 Research Scope 와 비교하여 *scope creep 경고*
+
+**v0.9.6 part 3 (후속 release, chapter 10)** — wiki-event-sync R-A trigger (4.4 참조)
 
 ### 4.4 Suggest-update trigger (wiki 운영 R-1~R9)
 
@@ -122,7 +131,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - [ ] `PROJECT_PROFILE.md` §0 에 PURPOSE.md 참조 추가
 - [ ] Goals G1+ (≥3), Key Questions Q1+ (3-5), Research Scope 포함/제외 모두 non-empty
 - [ ] Evolving Thesis 에 hypothesis / 가설 명시
-- [ ] `state.json` 의 `purpose_digest` field 1-line summary (Goals 1-line) — follow-up (R-A 의 release event trigger)
+- [x] `state.json` 의 `purpose_digest` field 1-line summary (Goals 1-line) — follow-up (R-A 의 release event trigger) ✅ v0.9.4 part 1
 - [ ] session-start skill 의 context load 가 `state.json.purpose_digest` read (1 line) + PURPOSE.md 본문 (≤200 token) 자동 read — follow-up (R-A)
 - [ ] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook — follow-up (R-A)
 - [ ] `tests/check_purpose_concept_v0_9_2.py` 4-element + LLM-readable + structural verify 모두 PASS
@@ -133,7 +142,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - v0.9.0 spec [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md) — 동일 spec layer 의 chapter 1
 - workflow_kit_roadmap §5.2 — Phase 12 정의
 - PROJECT_PROFILE.md — 본 spec 의 §4.5 update 대상
-- ai-workflow/memory/active/state.json — `purpose_digest` field 추가 대상 (follow-up)
+- ai-workflow/memory/active/state.json — `purpose_digest` field 추가 대상 (follow-up) ✅ v0.9.4 part 1 (workflow_kit.common.state.builder._parse_purpose_summary + build_workflow_state_payload output schema 확장)
 
 ## 7. 1차 출처 Bundle 비율
 
@@ -160,3 +169,15 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - global_workflow_standard: [`./global_workflow_standard.md`](./global_workflow_standard.md)
 - Karpathy llm-wiki.md: <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>
 - llm_wiki: <https://github.com/nashsu/llm_wiki>
+
+## 10. R-A follow-up cycle (v0.9.4 / v0.9.5 / v0.9.6)
+
+R-A follow-up 은 3 release 로 분할 진행 (1 release = 1 deliverable, §3.2 의 *1 release DeprecationWarning → 1 release removal* 패턴과 정합):
+
+| cycle | chapter | deliverable | spec layer | runtime layer |
+|---|---|---|---|---|
+| v0.9.4 (chapter 8) | part 1 | `state.json.purpose_digest` 1-line 자동 생성 | §4.3 part 1 | `workflow_kit.common.workflow_state.refresh_workflow_state_cache` output schema + `generate_workflow_state.py` caller |
+| v0.9.5 (chapter 9) | part 2 | skill context load integration | §4.3 part 2 | `session-start` / `backlog-update` / `doc-sync` skill 의 *context load* 시 `state.json.purpose_digest` + PURPOSE.md ≤200 token 자동 read |
+| v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) |
+
+[v0.9.4 chapter 8 = part 1 의 *현재* release]

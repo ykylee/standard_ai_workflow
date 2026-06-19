@@ -85,6 +85,13 @@ def build_default_sources_v4(
     PhishTank weight = 1.0 (community-verified)
     OpenPhish weight = 0.8 (high-frequency, smaller dataset)
     """
+    warnings.warn(
+        "phishing_federation_v4.build_default_sources_v4 is deprecated; "
+        "use phishing_federation.build_default_sources (consolidated in v0.7.52+). "
+        "Will be removed in v0.10.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     from workflow_kit.phishing_keywords import (
         fetch_phishtank_feed,
         fetch_openphish_feed,

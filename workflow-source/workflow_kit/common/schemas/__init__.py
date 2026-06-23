@@ -1,7 +1,11 @@
 from workflow_kit.common.schemas.base import BaseOutput, Status, ErrorOutput
-from workflow_kit.common.schemas.backlog import BacklogUpdateOutput, CreateBacklogEntryOutput
-from workflow_kit.common.schemas.session import SessionStartOutput
-from workflow_kit.common.schemas.doc_sync import DocSyncOutput
+from workflow_kit.common.schemas.backlog import (
+    BacklogUpdateOutput,
+    BacklogUpdatePurposeContext,
+    CreateBacklogEntryOutput,
+)
+from workflow_kit.common.schemas.session import SessionStartOutput, SessionStartPurposeContext
+from workflow_kit.common.schemas.doc_sync import DocSyncOutput, DocSyncPurposeContext
 from workflow_kit.common.schemas.reconcile import ReconcileOutput
 from workflow_kit.common.schemas.index import IndexUpdateOutput
 from workflow_kit.common.schemas.validation import ValidationPlanOutput
@@ -25,8 +29,11 @@ __all__ = [
     "ErrorOutput",
     "Status",
     "BacklogUpdateOutput",
+    "BacklogUpdatePurposeContext",
     "SessionStartOutput",
+    "SessionStartPurposeContext",
     "DocSyncOutput",
+    "DocSyncPurposeContext",
     "ReconcileOutput",
     "IndexUpdateOutput",
     "ValidationPlanOutput",

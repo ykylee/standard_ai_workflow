@@ -5,7 +5,7 @@
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-04-18
-- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/session_handoff_template.md`, `../templates/project_workflow_profile_template.md`
+- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/session_handoff_template.md`, `../templates/project_workflow_profile_template.md`, `./llm_wiki_concept_purpose_spec.md` (v0.9.5 part 2)
 
 ## 1. 목적
 
@@ -294,6 +294,50 @@ extension_baselines:
 - 프로젝트 프로파일을 기준으로 경로와 명령을 해석하는가
 - 출력이 구조화되어 다음 agent 또는 사람이 재사용 가능한가
 - 읽기 전용 원칙을 지키는가
+
+## 13. Purpose Context Load (v0.9.5 chapter 9 R-A part 2)
+
+본 섹션은 [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) §4.3 part 2 의
+session-start 통합 가이드. v0.9.4 에서 `state.json.purpose_digest` 1-line 자동 생성이 완료된
+후속으로, v0.9.5 는 session-start 가 *directional intent* (PURPOSE.md + state.json) 를
+context load 시점에 자동 read 한다.
+
+### 13.1 추가 입력
+
+없음 (기존 입력으로 workspace_root + state.json 경로 도출).
+
+### 13.2 추가 출력
+
+- `purpose_context: SessionStartPurposeContext | None`
+  - `purpose_digest: str | None` — `state.json.purpose_digest` 1-line
+  - `purpose_digest_rev: str | None` — `state.json.purpose_digest_rev` (YYYY-MM-DD)
+  - `purpose_path: str | None` — 자동 detect 된 PURPOSE.md 절대 path
+  - `body_excerpt: str | None` — PURPOSE.md 본문 (frontmatter 제외) ≤800 char
+  - `body_excerpt_truncated: bool` — 원본 본문이 800 char 초과 시 true
+  - `body_excerpt_char_count: int` — 실제 excerpt 의 char 수
+  - `scope_included: list[str]` — PURPOSE.md §3 포함 영역
+  - `scope_excluded: list[str]` — PURPOSE.md §3 제외 영역
+  - `scope_warnings: list[str]` — §3 parse 실패 / PURPOSE.md 부재 시 advisory
+
+### 13.3 동작 절차 추가 (6.7 신규)
+
+1. workspace_root = `project_workspace_root(project_profile_path)`
+2. state.json path = `workflow_memory_dir(project_profile_path) / "state.json"`
+3. `build_purpose_context(workspace_root, state_path)` 호출 (helper module)
+4. output_model 에 `purpose_context` 채워서 반환
+5. `scope_warnings` 는 기존 `warnings` list 에 extend (graceful skip 시 "PURPOSE.md 부재" advisory 1줄 추가)
+
+### 13.4 Graceful skip 정책
+
+- `state.json` 부재 / JSON 파싱 실패 / `purpose_digest` field 부재 → `purpose_digest = None`
+- `PURPOSE.md` 부재 → `body_excerpt = None`, `scope_included = []`, `scope_excluded = []`, `scope_warnings = ["PURPOSE.md 부재 — scope check skipped"]`
+- 어떤 경우에도 skill 실행은 **실패하지 않음**. `purpose_context` field 가 null 또는 partial fill 만 된다.
+
+### 13.5 Acceptance Criterion (spec §4.3 part 2 #1)
+
+- session-start output_model 에 `purpose_context` field 존재
+- PURPOSE.md + state.json 모두 있는 경우, `purpose_digest` + `body_excerpt` (≤800 char) + `scope_included/excluded` 모두 populate
+- PURPOSE.md 부재 시 graceful skip (`scope_warnings` 에 advisory 1줄)
 
 ## 다음에 읽을 문서
 

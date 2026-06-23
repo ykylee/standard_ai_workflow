@@ -17,6 +17,23 @@ class BacklogUpdateSourceContext(BaseModel):
     project_profile_path: str
 
 
+class BacklogUpdatePurposeContext(BaseModel):
+    """v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.
+
+    backlog-update skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.
+    """
+
+    purpose_digest: str | None = None
+    purpose_digest_rev: str | None = None
+    purpose_path: str | None = None
+    body_excerpt: str | None = None
+    body_excerpt_truncated: bool = False
+    body_excerpt_char_count: int = 0
+    scope_included: list[str] = Field(default_factory=list)
+    scope_excluded: list[str] = Field(default_factory=list)
+    scope_warnings: list[str] = Field(default_factory=list)
+
+
 class BacklogUpdateOutput(BaseOutput):
     """Output contract for the backlog-update skill."""
     status: Status = Status.OK
@@ -39,6 +56,8 @@ class BacklogUpdateOutput(BaseOutput):
     created_paths: list[str] = Field(default_factory=list)
     updated_paths: list[str] = Field(default_factory=list)
     source_context: BacklogUpdateSourceContext
+    purpose_context: BacklogUpdatePurposeContext | None = None
+    scope_creep_warnings: list[str] = Field(default_factory=list)
 
 
 class CreateBacklogEntryOutput(BaseOutput):

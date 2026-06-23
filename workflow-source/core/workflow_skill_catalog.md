@@ -112,6 +112,37 @@ Runtime migration 가이드 (11종 skill runtime 적용 절차, breaking change 
 
 상세: [./stage_gate_pattern.md](./stage_gate_pattern.md), [./output_schema_guide.md §3.4](./output_schema_guide.md), [`../workflow_kit/common/contracts/stage_gate.py`](../workflow_kit/common/contracts/stage_gate.py)
 
+## 5.3 Purpose Context 통합 (v0.9.5 chapter 9 R-A part 2)
+
+v0.9.5 부터 3종 핵심 skill (session-start / backlog-update / doc-sync) 은
+[./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) §4.3 part 2 의
+*directional intent* 자동 read 통합:
+
+| Skill | Purpose context field | 추가 책임 |
+|---|---|---|
+| `session-start` | `purpose_context: SessionStartPurposeContext \| None` | 세션 시작 시 directional intent 1-line + body excerpt ≤200 token 자동 read |
+| `backlog-update` | `purpose_context: BacklogUpdatePurposeContext \| None` + `scope_creep_warnings: list[str]` | task_brief / affected_documents vs PURPOSE.md §3 Research Scope *제외 영역* 비교 → scope creep 경고 |
+| `doc-sync` | `purpose_context: DocSyncPurposeContext \| None` | 영향받는 문서 추천의 *방향성 검증* 에 참고 (advisory only, hard warning ❌) |
+
+**공통 helper**: `workflow_kit.common.purpose_context.build_purpose_context(workspace_root, state_path)`
+- `state.json.purpose_digest` 1-line + PURPOSE.md 본문 (frontmatter 제외) ≤800 char
+- §3 Research Scope 의 포함/제외 영역 list
+- PURPOSE.md 부재 시 graceful skip (`scope_warnings` 에 advisory 1줄)
+
+**Scope creep check (backlog-update 한정)**:
+- `check_scope_creep(task_brief, affected_documents, scope)` 가 제외 영역 substring / 첫-2-token 매칭
+- 매칭 시 `scope_creep_warnings` 에 1줄 emit
+- 포함 영역 매칭은 soft heuristic — 본 hard warning 은 *제외* 만 다룬다
+
+**Graceful skip 정책**: 3종 skill 모두 PURPOSE.md / state.json 어느 쪽이 부재해도 skill 실행은 실패하지 않음. `purpose_context` field 가 partial fill 또는 null.
+
+**Acceptance**: [`../tests/check_purpose_concept_skill_context_v0_9_5.py`](../tests/check_purpose_concept_skill_context_v0_9_5.py) (5 test PASS)
+
+상세:
+- spec: [./llm_wiki_concept_purpose_spec.md §4.3 part 2](./llm_wiki_concept_purpose_spec.md)
+- skill 별 spec: session-start §13 / backlog-update §12 / doc-sync §12
+- helper: [`../workflow_kit/common/purpose_context.py`](../workflow_kit/common/purpose_context.py)
+
 ## 6. 권장 skill 묶음
 
 이번 릴리즈에서는 개별 skill 자체보다 “어떤 순서로 묶어 쓰는가” 를 더 중요하게 본다.

@@ -23,6 +23,7 @@ from workflow_kit.common.normalize import normalize_backticked
 from workflow_kit.common.paths import resolve_existing_path, workflow_memory_dir, workflow_branch_dir
 from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
+from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import ensure_backlog_index_entry, sync_handoff_status, upsert_backlog_entry
 
@@ -281,6 +282,29 @@ def main() -> int:
         if operation_type == "create_daily_backlog":
             warnings.append("대상 날짜 backlog 파일이 없어 새 파일 초안 생성이 필요하다.")
 
+        # v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration
+        # backlog-update 가 PURPOSE.md §3 Research Scope 와 비교하여 scope creep 경고
+        from workflow_kit.common.paths import project_workspace_root
+        from workflow_kit.common.schemas import BacklogUpdateOutput, BacklogUpdatePurposeContext
+
+        workspace_root = project_workspace_root(project_profile_path)
+        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        purpose_context_data = build_purpose_context(
+            workspace_root=workspace_root,
+            state_path=state_json_path,
+        )
+        purpose_context_obj = BacklogUpdatePurposeContext(**purpose_context_data)
+        warnings.extend(purpose_context_data.get("scope_warnings", []))
+
+        scope_creep_warnings = check_scope_creep(
+            task_brief=args.task_brief,
+            affected_documents=args.affected_documents,
+            scope={
+                "included": purpose_context_data.get("scope_included", []),
+                "excluded": purpose_context_data.get("scope_excluded", []),
+            },
+        )
+
         index_update_note = None
         if operation_type == "create_daily_backlog":
             index_update_note = "새 날짜 backlog 파일이 생성되면 backlog index 에 링크를 추가해야 한다."
@@ -387,6 +411,8 @@ def main() -> int:
                 "daily_backlog_exists": daily_backlog_path.exists(),
                 "existing_task_count": len(existing_tasks),
             },
+            purpose_context=purpose_context_obj,
+            scope_creep_warnings=scope_creep_warnings,
         )
         result = output_model.model_dump()
     except Exception as exc:

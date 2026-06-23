@@ -25,6 +25,7 @@ from workflow_kit.common.project_docs import (
     parse_handoff,
     parse_project_profile_session,
 )
+from workflow_kit.common.purpose_context import build_purpose_context
 from workflow_kit.common.reconcile import compare_state_lists
 from workflow_kit.common.session_outputs import build_session_summary, make_session_recommended_action
 
@@ -96,8 +97,20 @@ def main() -> int:
             ]
         )
 
-        from workflow_kit.common.schemas import SessionStartOutput
-        
+        # v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration
+        # session-start 가 PURPOSE.md + state.json.purpose_digest 자동 read
+        from workflow_kit.common.paths import project_workspace_root, workflow_memory_dir
+        from workflow_kit.common.schemas import SessionStartOutput, SessionStartPurposeContext
+
+        workspace_root = project_workspace_root(project_profile_path)
+        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        purpose_context_data = build_purpose_context(
+            workspace_root=workspace_root,
+            state_path=state_json_path,
+        )
+        purpose_context = SessionStartPurposeContext(**purpose_context_data)
+        warnings.extend(purpose_context_data.get("scope_warnings", []))
+
         output_model = SessionStartOutput(
             status="ok",
             tool_version=TOOL_VERSION,
@@ -121,6 +134,7 @@ def main() -> int:
                 "work_backlog_index_path": str(work_backlog_index_path),
                 "project_profile_path": str(project_profile_path),
             },
+            purpose_context=purpose_context,
         )
         result = output_model.model_dump()
     except FileNotFoundError as exc:

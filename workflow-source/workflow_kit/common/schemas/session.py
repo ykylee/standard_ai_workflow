@@ -12,6 +12,23 @@ class SessionStartSourceDocs(BaseModel):
     project_profile_path: str
 
 
+class SessionStartPurposeContext(BaseModel):
+    """v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.
+
+    session-start skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.
+    """
+
+    purpose_digest: str | None = None
+    purpose_digest_rev: str | None = None
+    purpose_path: str | None = None
+    body_excerpt: str | None = None
+    body_excerpt_truncated: bool = False
+    body_excerpt_char_count: int = 0
+    scope_included: list[str] = Field(default_factory=list)
+    scope_excluded: list[str] = Field(default_factory=list)
+    scope_warnings: list[str] = Field(default_factory=list)
+
+
 class SessionStartOutput(BaseOutput):
     """Output contract for the session-start skill."""
     status: Status = Status.OK
@@ -24,6 +41,7 @@ class SessionStartOutput(BaseOutput):
     validation_notes: list[str] = Field(default_factory=list)
     environment_constraints: list[str] = Field(default_factory=list)
     source_documents: SessionStartSourceDocs
+    purpose_context: SessionStartPurposeContext | None = None
 
     @property
     def primary_summary(self) -> str:

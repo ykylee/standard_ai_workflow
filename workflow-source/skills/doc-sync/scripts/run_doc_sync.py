@@ -19,8 +19,9 @@ from workflow_kit.common.doc_sync import build_doc_sync_candidates
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.markdown import rel_link_from_doc
-from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_memory_dir
 from workflow_kit.common.project_docs import parse_project_profile_core
+from workflow_kit.common.purpose_context import build_purpose_context
 from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading, update_next_documents_section
 
 
@@ -99,6 +100,19 @@ def main() -> int:
             latest_backlog_path=latest_backlog_path,
             change_summary=args.change_summary,
         )
+
+        # v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration
+        # doc-sync 가 PURPOSE.md + state.json.purpose_digest 자동 read (directional intent 참조)
+        from workflow_kit.common.schemas import DocSyncPurposeContext
+
+        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        purpose_context_data = build_purpose_context(
+            workspace_root=project_root,
+            state_path=state_json_path,
+        )
+        purpose_context_obj = DocSyncPurposeContext(**purpose_context_data)
+        result["purpose_context"] = purpose_context_obj.model_dump()
+        result.setdefault("warnings", []).extend(purpose_context_data.get("scope_warnings", []))
 
         if "warnings" in profile_data:
             result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))

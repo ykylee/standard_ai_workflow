@@ -15,6 +15,23 @@ class DocSyncSourceContext(BaseModel):
     latest_backlog_path: str | None = None
 
 
+class DocSyncPurposeContext(BaseModel):
+    """v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.
+
+    doc-sync skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.
+    """
+
+    purpose_digest: str | None = None
+    purpose_digest_rev: str | None = None
+    purpose_path: str | None = None
+    body_excerpt: str | None = None
+    body_excerpt_truncated: bool = False
+    body_excerpt_char_count: int = 0
+    scope_included: list[str] = Field(default_factory=list)
+    scope_excluded: list[str] = Field(default_factory=list)
+    scope_warnings: list[str] = Field(default_factory=list)
+
+
 class DocSyncOutput(BaseOutput):
     """Output contract for the doc-sync skill."""
     status: Status = Status.OK
@@ -30,3 +47,4 @@ class DocSyncOutput(BaseOutput):
     source_context: DocSyncSourceContext
     apply_status: str | None = None
     written_paths: list[str] = Field(default_factory=list)
+    purpose_context: DocSyncPurposeContext | None = None

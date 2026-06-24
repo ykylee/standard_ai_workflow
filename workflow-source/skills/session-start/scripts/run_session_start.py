@@ -111,8 +111,34 @@ def main() -> int:
         purpose_context = SessionStartPurposeContext(**purpose_context_data)
         warnings.extend(purpose_context_data.get("scope_warnings", []))
 
+        # v0.10.2: self-bootstrap mode
+        # 핵심 4 file (handoff / backlog index / project profile / state.json) 모두
+        # 부재 시 status="warning" + self_bootstrap_suggested=True + init commands emit.
+        # AGENTS.md 부재 환경 (skill-only entry) 의 *최소 effort* 진입 정공법.
+        all_missing = (
+            not session_handoff_path.exists()
+            and not work_backlog_index_path.exists()
+            and not state_json_path.exists()
+        )
+        self_bootstrap_suggested = all_missing
+        self_bootstrap_init_commands: list[str] = []
+        if all_missing:
+            self_bootstrap_init_commands = [
+                f"python3 scripts/bootstrap_workflow_kit.py --target-root {workspace_root} "
+                f"--project-slug <slug> --project-name <name> --adoption-mode new "
+                f"--harness claude-code --entry-mode skill-only",
+                f"python3 skills/session-start/scripts/run_session_start.py "
+                f"--session-handoff-path {session_handoff_path} "
+                f"--work-backlog-index-path {work_backlog_index_path} "
+                f"--project-profile-path {project_profile_path}",
+            ]
+            warnings.append(
+                "self-bootstrap mode: 핵심 4 file 모두 부재. "
+                "bootstrap_workflow_kit.py 실행 권장 (위 self_bootstrap_init_commands 참조)."
+            )
+
         output_model = SessionStartOutput(
-            status="ok",
+            status="warning" if self_bootstrap_suggested else "ok",
             tool_version=TOOL_VERSION,
             summary=build_session_summary(handoff, backlog, profile),
             in_progress_items=dedupe_normalized_backticked(
@@ -135,6 +161,8 @@ def main() -> int:
                 "project_profile_path": str(project_profile_path),
             },
             purpose_context=purpose_context,
+            self_bootstrap_suggested=self_bootstrap_suggested,
+            self_bootstrap_init_commands=self_bootstrap_init_commands,
         )
         result = output_model.model_dump()
     except FileNotFoundError as exc:

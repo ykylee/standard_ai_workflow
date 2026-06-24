@@ -914,6 +914,25 @@ def write_harness_files(
             _w(minimax_agents, render_minimax_agents(args, paths, context))
             generated["minimax_code_agents"] = str(minimax_agents)
 
+    if "claude-code" in harnesses:
+        # Claude Code 는 CLAUDE.md 를 root 진입점으로 자동 read (v0.10.1 의
+        # 잘못된 가정 정정). entry-mode=skill-only 일 때만 skip.
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            from bootstrap_lib.harnesses.renderers import render_claude_code_agents
+
+            claude_agents = paths.target_root / "CLAUDE.md"
+            _w(claude_agents, render_claude_code_agents(args, context))
+            generated["claude_code_agents"] = str(claude_agents)
+
+    if "aider" in harnesses:
+        # Aider 는 CONVENTIONS.md 를 root 진입점으로 자동 read. entry-mode=skill-only skip.
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            from bootstrap_lib.harnesses.renderers import render_aider_conventions
+
+            aider_conventions = paths.target_root / "CONVENTIONS.md"
+            _w(aider_conventions, render_aider_conventions(args, context))
+            generated["aider_conventions_root"] = str(aider_conventions)
+
     for harness in harnesses:
         builder = HARNESS_FILE_BUILDERS[harness]
         generated.update(builder(args, paths, context))

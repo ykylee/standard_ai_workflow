@@ -128,7 +128,11 @@ def test_entry_mode_option_present_v0_10_1() -> None:
 # Acceptance #2: claude-code adapter 등록 + HARNESS_SPECS 정합
 # ---------------------------------------------------------------------------
 def test_claude_code_harness_registered_v0_10_1() -> None:
-    """Acceptance §4.5 #2: 'claude-code' 가 SUPPORTED_HARNESSES + HARNESS_SPECS + HARNESS_FILE_BUILDERS 에 등록."""
+    """Acceptance §4.5 #2: 'claude-code' 가 SUPPORTED_HARNESSES + HARNESS_SPECS + HARNESS_FILE_BUILDERS 에 등록.
+
+    **v0.10.2 갱신**: v0.10.1 의 "Claude Code 는 root 진입점 안 읽음" 가설이 잘못. Claude Code 도
+    CLAUDE.md 를 root 진입점으로 자동 read. entry_files 는 ('CLAUDE.md',) 로 정정됨.
+    """
     from bootstrap_lib.harnesses import (
         HARNESS_SPECS,
         HARNESS_FILE_BUILDERS,
@@ -145,12 +149,13 @@ def test_claude_code_harness_registered_v0_10_1() -> None:
         f"claude-code 가 HARNESS_FILE_BUILDERS 에 등록되어야 함. got: {list(HARNESS_FILE_BUILDERS.keys())}"
     )
 
-    # entry_files = () (root 진입점 없음)
+    # v0.10.2 정정: entry_files = ('CLAUDE.md',) (Claude Code 도 root 진입점 자동 read)
     spec = HARNESS_SPECS["claude-code"]
-    assert spec.entry_files == (), (
-        f"claude-code entry_files 는 비어있어야 함 (root 진입점 없음). got: {spec.entry_files}"
+    assert spec.entry_files == ("CLAUDE.md",), (
+        f"v0.10.2 정정: claude-code entry_files 는 ('CLAUDE.md',) 여야 함 (Claude Code 도 "
+        f"root 진입점 자동 read). got: {spec.entry_files}"
     )
-    # 3 slash command 만 extra_files
+    # 3 slash command extra_files 유지 (additive 도구)
     assert len(spec.extra_files) == 3, (
         f"claude-code extra_files 는 3개 slash command 여야 함. got: {len(spec.extra_files)}"
     )

@@ -965,6 +965,98 @@ def write_gemini_cli_harness_files(
     return {}
 
 
+def render_claude_code_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``CLAUDE.md`` (Claude Code 진입점) — v0.10.2 진입점 정정.
+
+    Claude Code 는 *root 진입점* 으로 ``CLAUDE.md`` 를 자동 read (v0.10.1 의
+    잘못된 가정 정정). 본 render 는 표준 AI workflow 의 *지시* + AGENTS.md 와의
+    *정합* 을 한국어로 명시. 기존 AGENTS.md 가 있으면 `@AGENTS.md` import 안내.
+    """
+    return f"""# CLAUDE.md (Claude Code 진입점)
+
+- **역할**: Claude Code 가 이 저장소에서 *세션 시작 시 자동 read* 하는 진입점 문서.
+- **위치**: `./CLAUDE.md` (또는 `./.claude/CLAUDE.md`) — 둘 다 자동 read.
+- **AGENTS.md 와의 관계**: Claude Code 는 `AGENTS.md` 를 *직접* read 안 함. 본 프로젝트에
+  `AGENTS.md` 가 이미 있으면 본 `CLAUDE.md` 의 `@AGENTS.md` import 또는 symlink 으로 통합 가능:
+
+  ```bash
+  # import 방식 (CLAUDE.md 안에 @AGENTS.md 한 줄 추가)
+  @AGENTS.md
+
+  # 또는 symlink 방식 (cross-platform 의 경우 import 권장)
+  ln -s AGENTS.md CLAUDE.md
+  ```
+
+- 문서 목적: 표준 AI 워크플로우 의 *directional intent* + Claude Code 가 매 세션 알아야 할
+  진입 규칙
+- 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
+- 상태: beta
+- 최종 수정일: {args.today}
+
+## 항상 먼저 읽을 문서
+
+- `ai-workflow/memory/active/state.json`
+- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
+- (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent 1-line + body excerpt
+
+`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나
+프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를
+갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+
+## 진입 slash command (additive)
+
+- `/workflow-session-start` — `state.json` + `session_handoff.md` + `work_backlog.md` baseline 복원
+- `/workflow-backlog-update` — task 등록/갱신 + scope creep warning
+- `/workflow-doc-sync` — 영향 문서 동기화 (advisory)
+
+## 작업 원칙
+
+- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
+- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
+- 검증하지 않은 결과는 완료로 확정하지 않는다.
+- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+
+## 언어와 컨텍스트 원칙
+
+- 사용자에게 직접 보이는 작업 보고, 상태 요약, 문서 갱신 문안은 기본적으로 한국어로 작성한다.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
+- 내부 사고 과정과 임시 분류는 모델이 가장 효율적인 방식으로 처리하되, 사용자에게는 필요한
+  결론과 다음 행동만 짧게 전달한다.
+- 장문의 중간 reasoning, 중복 요약, 불필요한 자기 설명을 피한다.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+
+## self-bootstrap (PURPOSE.md / state.json 부재 시)
+
+`state.json` 이나 `PURPOSE.md` 가 없으면 session-start skill 이 *graceful skip* 으로
+동작. 사용자가 직접 `/workflow-session-start` 호출 시 (또는 자동 read 시) baseline 복원을
+*최소 effort* 로 시도:
+
+1. `ai-workflow/memory/active/state.json` 부재 → 사용자에게 scaffold 제안
+2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
+3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
+
+## 프로젝트 실행 기본값
+
+- **install**: {context.get('install_command', 'TODO')}
+- **run**: {context.get('run_command', 'TODO')}
+- **quick test**: {context.get('quick_test_command', 'TODO')}
+- **isolated test**: {context.get('isolated_test_command', 'TODO')}
+- **smoke check**: {context.get('smoke_check_command', 'TODO')}
+
+위 명령은 추정값이다. 실제 프로젝트 명령으로 보정 후 commit.
+
+## 다음에 읽을 문서
+
+- `ai-workflow/README.md` (kit 개요)
+- `ai-workflow/memory/active/PROJECT_PROFILE.md` (프로젝트 메타)
+- `ai-workflow/memory/active/session_handoff.md` (현재 세션 인계)
+- `harnesses/claude-code/apply_guide.md` (Claude Code 적용 절차)
+"""
+
+
 def render_claude_code_session_start_command(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``.claude/commands/workflow-session-start.md`` slash command.
 
@@ -1104,16 +1196,17 @@ def write_claude_code_harness_files(
     paths: Paths,
     context: dict[str, object],
 ) -> dict[str, str]:
-    """Generate Claude Code harness overlay files (v0.10.1+, skill-only entry).
+    """Generate Claude Code harness overlay files (v0.10.2+, CLAUDE.md + 3 slash commands).
 
-    Claude Code 는 ``CLAUDE.md`` 같은 *root 진입점* 안 읽음. 대신 slash
-    command (`.claude/commands/*.md`) 가 *진입점* 역할. 3종 command emit:
-    - `workflow-session-start` — baseline 복원
-    - `workflow-backlog-update` — 작업 등록/갱신
-    - `workflow-doc-sync` — 영향 문서 동기화
+    Claude Code 의 진입점 = CLAUDE.md (root, 자동 read) + .claude/commands/*.md
+    (slash command, user invocation). 본 함수는 *slash command 3종만* emit.
+    CLAUDE.md 자체는 ``write_harness_files`` 의 진입점 dispatch 에서 emit
+    (``render_claude_code_agents``).
 
-    `--entry-mode skill-only` (default for claude-code) 일 때만 호출됨.
-    다른 entry-mode (`aggressive` / `safe`) 에서도 명시적으로 emit 가능.
+    3 slash command:
+    - ``workflow-session-start`` — baseline 복원
+    - ``workflow-backlog-update`` — 작업 등록/갱신
+    - ``workflow-doc-sync`` — 영향 문서 동기화
     """
     generated: dict[str, str] = {}
     claude_root = paths.target_root / ".claude" / "commands"
@@ -1128,6 +1221,247 @@ def write_claude_code_harness_files(
     generated["claude_code_backlog_update_command"] = str(backlog_update_cmd)
     write_text(doc_sync_cmd, render_claude_code_doc_sync_command(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_doc_sync_command"] = str(doc_sync_cmd)
+
+    return generated
+
+
+# ---------------------------------------------------------------------------
+# Aider adapter (v0.10.2+)
+# ---------------------------------------------------------------------------
+def render_aider_conventions(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``CONVENTIONS.md`` (Aider 진입점) + .aider/conventions.md 동일.
+
+    Aider 는 ``--read`` flag 또는 ``.aider.conf.yml`` 의 ``read`` list 에 등록된
+    파일을 자동 read. CONVENTIONS.md 를 root 와 .aider/ 양쪽에 emit 하면
+    Aider 의 default 동작과 ``.aider.conf.yml`` 명시 read 둘 다 cover.
+    """
+    return f"""# Aider Conventions (CONVENTIONS.md)
+
+- **역할**: Aider 가 이 저장소에서 *세션 시작 시 자동 read* 하는 컨벤션 문서.
+- **위치**: root 의 `CONVENTIONS.md` 와 `.aider/conventions.md` 양쪽 (동일 본문).
+- Aider 가 root `CONVENTIONS.md` 를 자동 read (`.aider.conf.yml` 의 `read:` list 등록 시).
+- 대상 독자: Aider, 저장소 관리자
+- 최종 수정일: {args.today}
+
+## 표준 AI 워크플로우 진입
+
+본 프로젝트는 표준 AI 워크플로우를 따른다. 우선 read 순서:
+
+1. `ai-workflow/memory/active/state.json`
+2. `ai-workflow/memory/active/session_handoff.md`
+3. `ai-workflow/memory/active/work_backlog.md`
+4. `ai-workflow/memory/active/PROJECT_PROFILE.md`
+5. (있으면) `ai-workflow/memory/active/PURPOSE.md`
+
+## 작업 원칙
+
+- 한국어 보고 (사용자), 원문 유지 (코드 / 명령어 / path / 설정 key)
+- handoff 와 backlog 에는 *다음 세션에 꼭 필요한 사실* 만
+- 작업 상태: `planned` / `in_progress` / `blocked` / `done` 4-state
+- 세션 종료 전: `state.json` + `session_handoff.md` + 최신 backlog 갱신
+
+## Aider-specific config
+
+- `.aider.conf.yml` 의 `read:` list 에 `CONVENTIONS.md` 등록되어 있는지 확인
+- commit 메시지: 한국어 + 영어 technical term 혼용
+- weak-model (3.5/4o-mini) fallback 시 본 파일 우선 read (가벼움)
+
+## 다음에 읽을 문서
+
+- `harnesses/aider/apply_guide.md` (적용 절차)
+- `ai-workflow/README.md`
+"""
+
+
+def render_aider_config_example(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.aider.conf.yml.example`` (Aider 가 자동 read 하는 파일 목록)."""
+    return f"""# Aider config example (v0.10.2+)
+#
+# 본 project 에서 Aider 가 read 할 file list + model 설정.
+# 사용: `cp .aider.conf.yml.example .aider.conf.yml` 후 필요 시 편집.
+
+# 자동 read 할 conventions / workflow 문서
+read:
+  - CONVENTIONS.md
+  - ai-workflow/memory/active/state.json
+  - ai-workflow/memory/active/session_handoff.md
+  - ai-workflow/memory/active/work_backlog.md
+  - ai-workflow/memory/active/PROJECT_PROFILE.md
+  - ai-workflow/memory/active/PURPOSE.md
+
+# model: default
+model: claude-3-5-sonnet-20241022
+
+# weak model (commit message + lint)
+weak-model: claude-3-5-haiku-20241022
+
+# auto-commit
+auto-commits: false
+# git history 에 *commit message* 만 Aider 가 만들도록 (실제 commit 은 reviewer 가 결정)
+
+# commit message language: 한국어
+commit-language: ko
+
+# lint command (smoke test)
+lint-cmd: {context.get('smoke_check_command', 'echo TODO: lint command')}
+
+# test command
+test-cmd: {context.get('quick_test_command', 'echo TODO: test command')}
+"""
+
+
+def write_aider_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    """Generate Aider harness overlay files (v0.10.2+)."""
+    generated: dict[str, str] = {}
+    conventions = paths.target_root / "CONVENTIONS.md"
+    aider_conventions = paths.target_root / ".aider" / "conventions.md"
+    aider_config = paths.target_root / ".aider.conf.yml.example"
+
+    body = render_aider_conventions(args, context)
+    write_text(conventions, body, force=args.force, rel_to=paths.target_root)
+    generated["aider_conventions_root"] = str(conventions)
+    write_text(aider_conventions, body, force=args.force, rel_to=paths.target_root)
+    generated["aider_conventions_aider_dir"] = str(aider_conventions)
+    write_text(aider_config, render_aider_config_example(args, context), force=args.force, rel_to=paths.target_root)
+    generated["aider_config_example"] = str(aider_config)
+
+    return generated
+
+
+# ---------------------------------------------------------------------------
+# Goose adapter (v0.10.2+)
+# ---------------------------------------------------------------------------
+def render_goose_config(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.goose/config.yaml`` (Goose extension 등록 config)."""
+    return f"""# Goose config (v0.10.2+)
+#
+# Goose 는 extension 등록을 통해 workflow 진입. 본 config 는
+# standard_ai_workflow 의 *key entry points* 를 Goose 의 pre/post hook 으로 등록.
+# 사용: Goose 가 자동으로 load (또는 `goose config load`).
+
+version: 1
+project:
+  name: {context.get('project_name', 'TODO')}
+  workflow: standard-ai-workflow
+
+# 표준 AI workflow 의 진입 points 등록
+entry_points:
+  session_start:
+    description: "state.json + handoff + work_backlog baseline 복원"
+    command: "python3 ai-workflow/skills/session-start/scripts/run_session_start.py"
+    trigger: on_session_start
+  backlog_update:
+    description: "task 등록/갱신 + scope creep warning"
+    command: "python3 ai-workflow/skills/backlog-update/scripts/run_backlog_update.py"
+    trigger: manual
+  doc_sync:
+    description: "영향 문서 동기화 (advisory)"
+    command: "python3 ai-workflow/skills/doc-sync/scripts/run_doc_sync.py"
+    trigger: manual
+
+# 본 project 의 *진입 문서* (Goose 가 startup 에 read)
+read_files:
+  - ai-workflow/memory/active/state.json
+  - ai-workflow/memory/active/session_handoff.md
+  - ai-workflow/memory/active/work_backlog.md
+  - ai-workflow/memory/active/PROJECT_PROFILE.md
+  - ai-workflow/memory/active/PURPOSE.md
+
+# Goose 의 *pre/post hook* — session 종료 시 handoff 자동 갱신
+hooks:
+  on_session_end:
+    - "python3 ai-workflow/skills/session-start/scripts/run_session_start.py --update-handoff"
+
+# language: 한국어
+language: ko
+"""
+
+
+def write_goose_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    """Generate Goose harness overlay files (v0.10.2+)."""
+    generated: dict[str, str] = {}
+    goose_config = paths.target_root / ".goose" / "config.yaml"
+
+    write_text(goose_config, render_goose_config(args, context), force=args.force, rel_to=paths.target_root)
+    generated["goose_config"] = str(goose_config)
+
+    return generated
+
+
+# ---------------------------------------------------------------------------
+# Custom adapter (v0.10.2+) — caller 가 wire-up 할 수 있는 *neutral* adapter
+# ---------------------------------------------------------------------------
+def render_custom_skill_template(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.workflow-kits/custom/SKILL.md`` (custom adapter 의 *neutral* 진입점).
+
+    Custom adapter 는 *어떤 특정 하네스에도 종속되지 않는* 중립 진입점.
+    Caller 가 자사의 internal harness / IDE / CLI 에 맞게 wire-up.
+    """
+    return f"""# Custom Workflow Kit Skill Template (v0.10.2+)
+
+- **역할**: 표준 AI 워크플로우 의 *중립 진입점* — caller 가 자사 harness / IDE / CLI 에
+  맞게 wire-up. 이 파일은 *reference template* 일 뿐, 특정 도구에 자동 load 안 됨.
+- **위치**: `.workflow-kits/custom/SKILL.md`
+- 대상 독자: custom harness 사용자 (caller)
+- 최종 수정일: {args.today}
+
+## 진입 contract
+
+본 skill 의 *contract* 는 표준 AI 워크플로우 의 3개 skill output schema 정합:
+
+1. **session-start**: `state.json` + `session_handoff.md` + `work_backlog.md` + `PROJECT_PROFILE.md` + (있으면) `PURPOSE.md` baseline 복원. 한국어 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고.
+2. **backlog-update**: 오늘 task 등록/갱신 + scope creep warning (PURPOSE.md §3 제외 영역 매칭). 작업 상태 4-state (`planned` / `in_progress` / `blocked` / `done`).
+3. **doc-sync**: 영향 받은 문서 식별 + anchor 갱신 후보 (advisory).
+
+## caller wire-up 예시
+
+본 파일을 caller 자사 harness / IDE / CLI 에 import / include / reference.
+
+```bash
+# 예: 사내 internal CLI 의 경우
+ln -s .workflow-kits/custom/SKILL.md ~/.internal-cli/standard-ai-workflow.md
+```
+
+```python
+# 예: 사내 Python 도구에서 본 파일을 *reference doc* 으로 load
+with open(".workflow-kits/custom/SKILL.md") as f:
+    workflow_skill = f.read()
+# → caller tool 의 system prompt 에 append
+```
+
+## self-bootstrap (PURPOSE.md / state.json 부재 시)
+
+본 skill 의 caller 가 session-start 호출 시:
+1. `state.json` 부재 → 빈 placeholder 생성 + 사용자에게 scaffold 제안
+2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
+3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
+
+## 다음에 읽을 문서
+
+- `harnesses/custom/apply_guide.md` (caller wire-up 절차)
+- `ai-workflow/README.md`
+"""
+
+
+def write_custom_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    """Generate Custom harness overlay files (v0.10.2+, neutral 진입점)."""
+    generated: dict[str, str] = {}
+    custom_skill = paths.target_root / ".workflow-kits" / "custom" / "SKILL.md"
+
+    write_text(custom_skill, render_custom_skill_template(args, context), force=args.force, rel_to=paths.target_root)
+    generated["custom_skill_template"] = str(custom_skill)
 
     return generated
 
@@ -1190,6 +1524,9 @@ register_harness_builder("gemini-cli", write_gemini_cli_harness_files)
 register_harness_builder("pi-dev", write_pi_dev_harness_files)
 register_harness_builder("antigravity", write_antigravity_harness_files)
 register_harness_builder("claude-code", write_claude_code_harness_files)
+register_harness_builder("aider", write_aider_harness_files)
+register_harness_builder("goose", write_goose_harness_files)
+register_harness_builder("custom", write_custom_harness_files)
 
 
 def write_minimax_code_harness_files(

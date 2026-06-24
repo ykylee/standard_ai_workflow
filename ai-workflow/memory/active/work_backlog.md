@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-24 (v0.10.1 release note 추가)
+- 최종 수정일: 2026-06-24 (v0.10.2 release note 추가)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -15,6 +15,9 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### [[release/v0.10.2/backlog/2026-06-24.md]] {#release-v0-10-2}
+- 2026-06-24: v0.10.2 chapter 13 — **SemVer minor**, Phase 12 의 *delivery layer 확장* release 의 후속. **v0.10.1 의 claude-code adapter 진입점 설계 오류 정정** (Claude Code 도 `CLAUDE.md` root 진입점 자동 read, v0.10.1 의 "slash command 만" 가설 틀림) + **3 신규 harness adapter** (aider / goose / custom) + **session-start self-bootstrap mode** (PURPOSE.md / state.json / handoff / backlog 모두 부재 시 status="warning" + self_bootstrap_suggested=True + init commands emit). `HARNESS_SPECS["claude-code"].entry_files` = `()` → `("CLAUDE.md",)` 정정 + `render_claude_code_agents` 신규. 3 신규 adapter: **aider** (`CONVENTIONS.md` root + `.aider/conventions.md` mirror + `.aider.conf.yml.example`, `commit-language: ko`), **goose** (`.goose/config.yaml` 1 file — entry_points 3종 + read_files 5종 + hooks: on_session_end + language: ko), **custom** (`.workflow-kits/custom/SKILL.md` 1 file — caller wire-up 3종: symlink / Python `with open` / YAML `workflow_skill`). `pi-dev` 는 기존 adapter 활용 (변동 ❌). 4 apply_guide 갱신/신규 (claude-code 정정 + aider / goose / custom 신규). `SessionStartOutput` schema 에 `self_bootstrap_suggested: bool` + `self_bootstrap_init_commands: list[str]` 2 field 신규. 9 acceptance test (`check_v0_10_2_delivery_layer_extension.py`, claude-code 진입점 정정 + 4 mode 조합 + 3 adapter emit verify + SUPPORTED_HARNESSES 10 정합 + session-start self-bootstrap subprocess + v0.10.0/v0.10.1 회귀) + v0.10.1 회귀 6/6 + v0.10.0 회귀 6/6 + v0.9.6 6/6 + v0.9.4 3/3 + v0.9.2 8/8 = **56/56 PASS**. 누적 smoke **162/162 + 56 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6 + v0.10.0 6 + v0.10.1 6 + v0.10.2 9). spec §9 acceptance **12/12 유지**. breaking change 없음. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.10.2-beta>.
 
 ### [[release/v0.10.1/backlog/2026-06-24.md]] {#release-v0-10-1}
 - 2026-06-24: v0.10.1 chapter 12 — **SemVer minor**, Phase 12 의 *delivery layer 확장* release. v0.9.5 part 2 의 *contract layer / delivery layer 분리* 원칙 runtime 적용: **`--entry-mode skill-only` option** (3-mode: aggressive / safe / skill-only) + **`--harness claude-code` adapter** (1차 PoC, slash command 진입점). contract layer (universal skills) 는 harness-agnostic 유지, delivery layer (root 진입점) 만 harness-specific. Claude Code 는 *CLAUDE.md 같은 root 진입점 자동 read ❌*, *slash command* 가 진입 mechanism → 본 adapter 는 `.claude/commands/workflow-{session-start,backlog-update,doc-sync}.md` 3 slash command emit (entry_files=()). HARNESS_SPECS 6→7 + HARNESS_FILE_BUILDERS 6→7 + SUPPORTED_HARNESSES 6→7. `write_harness_files` 의 5 entry-point write block 모두 `entry_mode != "skill-only"` guard 추가 (default = aggressive, v0.10.0 호환, breaking change ❌). `harnesses/claude-code/apply_guide.md` 신규 (≈ 150 line). 6 acceptance test (`check_v0_10_1_skill_only_entry_mode.py`, --entry-mode option 3-mode / claude-code 3-way 정합 / claude-code + skill-only 3 slash command + AGENTS.md 부재 / claude-code + aggressive 동일 / codex + aggressive 기존 동작 / codex + skill-only AGENTS.md skip) + v0.10.0 회귀 6/6 + v0.9.1 contract 4/4 + v0.9.6 6/6 + v0.9.4 3/3 + v0.9.2 8/8 = **47/47 PASS**. 누적 smoke **162/162 + 47 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6 + v0.10.0 6 + v0.10.1 6). spec §9 acceptance **12/12 유지**. breaking change 없음. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.10.1-beta>.

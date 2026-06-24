@@ -42,6 +42,9 @@ class SessionStartOutput(BaseOutput):
     environment_constraints: list[str] = Field(default_factory=list)
     source_documents: SessionStartSourceDocs
     purpose_context: SessionStartPurposeContext | None = None
+    # v0.10.2: self-bootstrap mode (PURPOSE.md / state.json / handoff / backlog 모두 부재 시)
+    self_bootstrap_suggested: bool = False
+    self_bootstrap_init_commands: list[str] = Field(default_factory=list)
 
     @property
     def primary_summary(self) -> str:

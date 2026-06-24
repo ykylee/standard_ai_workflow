@@ -40,6 +40,9 @@ SUPPORTED_HARNESSES: tuple[str, ...] = (
     "antigravity",
     "minimax-code",
     "claude-code",
+    "aider",
+    "goose",
+    "custom",
 )
 
 
@@ -120,19 +123,60 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
     ),
     "claude-code": HarnessSpec(
         name="claude-code",
-        description="Claude Code용 overlay. .claude/commands/workflow-{session-start,backlog-update,doc-sync}.md 3개 slash command 작성 (CLAUDE.md 진입점 없음, skill-only 진입).",
-        entry_files=(),  # Claude Code 는 CLAUDE.md 진입점 안 읽음 (skill-only 진입)
+        description="Claude Code용 overlay. CLAUDE.md 진입점 (root) + .claude/commands/workflow-{session-start,backlog-update,doc-sync}.md 3개 slash command.",
+        entry_files=("CLAUDE.md",),
         extra_files=(
             ".claude/commands/workflow-session-start.md",
             ".claude/commands/workflow-backlog-update.md",
             ".claude/commands/workflow-doc-sync.md",
         ),
         long_description=(
-            "Claude Code 환경용 오버레이. AGENTS.md 진입점을 사용하지 않고 *skill 만* 으로 "
-            "워크플로우 진입 (skill-only entry mode). `.claude/commands/` 아래 3개 slash command "
-            "(`/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`) 가 "
-            "각각 session-start / backlog-update / doc-sync skill 의 entry point 역할. "
-            "AGENTS.md 안 읽는 하네스 (Claude Code / Aider / Goose / pi-dev / custom) 의 *정공법*."
+            "Claude Code 환경용 오버레이. CLAUDE.md 를 root 진입점 (자동 read) 으로 emit + "
+            ".claude/commands/ 아래 3개 slash command (`/workflow-session-start`, "
+            "`/workflow-backlog-update`, `/workflow-doc-sync`) 를 *additive tool* 로 emit. "
+            "v0.10.1 의 skill-only 진입 설계 오류 정정 (Claude Code 도 CLAUDE.md 자동 read). "
+            "AGENTS.md 를 직접 read 하지는 않으므로, 기존 AGENTS.md 가 있으면 CLAUDE.md 에서 "
+            "`@AGENTS.md` import 또는 symlink 으로 통합 가능."
+        ),
+    ),
+    "aider": HarnessSpec(
+        name="aider",
+        description="Aider용 overlay. CONVENTIONS.md 진입점 (root + .aider/conventions.md 양쪽) + .aider.conf.yml.example.",
+        entry_files=("CONVENTIONS.md",),
+        extra_files=(
+            ".aider/conventions.md",
+            ".aider.conf.yml.example",
+        ),
+        long_description=(
+            "Aider 환경용 오버레이. Aider 는 ``--read`` flag 또는 ``.aider.conf.yml`` 의 "
+            "``read`` list 에 등록된 파일을 자동 read. CONVENTIONS.md 를 root 와 "
+            "``.aider/conventions.md`` 양쪽에 emit (Aider default 동작 + "
+            "``.aider.conf.yml`` 명시 read 둘 다 cover). .aider.conf.yml.example 은 "
+            "caller 가 ``cp`` 로 실제 ``.aider.conf.yml`` 생성. commit-language: ko."
+        ),
+    ),
+    "goose": HarnessSpec(
+        name="goose",
+        description="Goose용 overlay. .goose/config.yaml (extension 등록 + entry_points 3종 + read_files).",
+        entry_files=(),
+        extra_files=(".goose/config.yaml",),
+        long_description=(
+            "Goose 환경용 오버레이. Goose 는 *extension* 등록 메커니즘. 본 config 는 "
+            "표준 AI workflow 의 3 skill (session-start / backlog-update / doc-sync) 을 "
+            "Goose 의 entry_points 로 등록 + read_files (5종) 명시. on_session_end hook 으로 "
+            "handoff 자동 갱신 (session-start skill 의 update-handoff flag). language: ko."
+        ),
+    ),
+    "custom": HarnessSpec(
+        name="custom",
+        description="Custom adapter. .workflow-kits/custom/SKILL.md (caller 가 자사 harness 에 wire-up).",
+        entry_files=(),
+        extra_files=(".workflow-kits/custom/SKILL.md",),
+        long_description=(
+            "Custom adapter (v0.10.2+). *특정 하네스에 종속되지 않는* 중립 진입점. "
+            "caller 가 자사 internal harness / IDE / CLI 에 맞게 wire-up. 본 파일은 "
+            "reference template 일 뿐, 특정 도구에 자동 load 안 됨. self-bootstrap mode "
+            "(PURPOSE.md / state.json 부재 시 init light) 의 *neutral contract*."
         ),
     ),
 }

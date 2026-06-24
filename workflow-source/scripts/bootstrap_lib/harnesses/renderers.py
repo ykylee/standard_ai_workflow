@@ -965,6 +965,173 @@ def write_gemini_cli_harness_files(
     return {}
 
 
+def render_claude_code_session_start_command(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/commands/workflow-session-start.md`` slash command.
+
+    Claude Code 의 `/workflow-session-start` slash command. session-start skill 의
+    *진입점* 으로 작동 (AGENTS.md 가 없는 skill-only 진입 환경). command body 는
+    표준 session-start skill 의 *역할* 을 한국어로 설명.
+    """
+    return f"""# /workflow-session-start
+
+> Claude Code slash command. 표준 AI 워크플로우 의 *session-start* 진입점.
+
+## 역할
+
+이 command 는 `ai-workflow/memory/active/` 의 *현재 baseline* 을 복원한다:
+
+1. `state.json` 읽기 — `latest_backlog_path` + `in_progress_items` + `recent_done_items`
+2. `session_handoff.md` 읽기 — 이전 세션의 인계 사항
+3. `work_backlog.md` 읽기 — 현재 작업 목록 anchor
+4. `PROJECT_PROFILE.md` 읽기 — 프로젝트 메타
+5. (있으면) `PURPOSE.md` 읽기 — directional intent 1-line + body excerpt ≤200 token
+
+## 절차
+
+1. `ai-workflow/memory/active/state.json` 부터 읽고 현재 baseline 요약
+2. `session_handoff.md` + `work_backlog.md` 의 anchor 로 3~7개 후속 작업 후보 선정
+3. 한국어로 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고
+4. **중간 reasoning / 중복 요약 / 자기 설명 금지** — 사용자에게는 *결론* 만
+
+## language + context 원칙
+
+- 사용자에게 보이는 보고는 한국어
+- 코드, 명령어, file path, 설정 key 는 원문 그대로
+- handoff / backlog 에는 *다음 세션에 꼭 필요한 사실* 만 남겨 context 누적 최소화
+
+## next step
+
+요약 + 후보 보고 후 사용자 confirm 시:
+- `/workflow-backlog-update` 로 오늘 작업 등록
+- 또는 `/workflow-doc-sync` 로 영향 문서 동기화
+
+## 관련 문서
+
+- `ai-workflow/memory/active/state.json`
+- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+"""
+
+
+def render_claude_code_backlog_update_command(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/commands/workflow-backlog-update.md`` slash command.
+
+    backlog-update skill 의 *진입점*. task_brief + affected_documents vs
+    PURPOSE.md §3 Research Scope *제외 영역* 매칭 → scope creep 경고.
+    """
+    return f"""# /workflow-backlog-update
+
+> Claude Code slash command. 표준 AI 워크플로우 의 *backlog-update* 진입점.
+
+## 역할
+
+오늘 작업 항목을 `ai-workflow/memory/active/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
+
+## 절차
+
+1. `ai-workflow/memory/active/work_backlog.md` 의 인덱스 anchor 확인
+2. 오늘 날짜의 `backlog/YYYY-MM-DD.md` 파일:
+   - 없으면 신규 작성
+   - 있으면 기존 항목에 append
+3. **in-scope check** (PURPOSE.md §3 Research Scope *제외 영역* 매칭):
+   - `task_brief` + `affected_documents` vs 제외 영역 substring / 첫 2 token 매칭
+   - 매칭 시 `scope_creep_warnings` 1줄 emit (hard warning)
+4. 작업 상태: `planned` / `in_progress` / `blocked` / `done` 중 선택
+5. priority + owner + acceptance criteria 명시
+
+## PURPOSE.md 부재 시
+
+scope_creep_warnings = `[]` (graceful skip). 본문 reference 불가, advisory 만.
+
+## 다음에 읽을 문서
+
+- `ai-workflow/memory/active/work_backlog.md`
+- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+- 영향 받을 document 들
+
+## language 원칙
+
+- 작업 보고, 상태 요약, 갱신 문안 = 한국어
+- 코드, file path, 외부 시스템 명칭 = 원문
+"""
+
+
+def render_claude_code_doc_sync_command(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/commands/workflow-doc-sync.md`` slash command.
+
+    doc-sync skill 의 *진입점*. 영향 받은 문서 후보 추천 + 허브 / index 갱신 포인트.
+    """
+    return f"""# /workflow-doc-sync
+
+> Claude Code slash command. 표준 AI 워크플로우 의 *doc-sync* 진입점.
+
+## 역할
+
+작업 후 영향 받은 문서 후보를 식별하고 `ai-workflow/memory/active/` 의 허브 /
+index 갱신 포인트를 정리.
+
+## 절차
+
+1. 현재 변경된 file list + 영향 받은 document 후보 식별
+2. `ai-workflow/wiki/index.md` anchor 기반 페이지 카탈로그 확인
+3. 영향 받은 페이지에 대해 *advisory* 갱신 포인트 emit:
+   - 새 concept / decision / pattern 페이지 후보
+   - 기존 페이지의 `last_touched` 갱신 후보
+4. PURPOSE.md 부재 시 *advisory only* (hard scope check ❌)
+
+## 출력 형식
+
+- 영향 받은 document list (path + 1줄 요약)
+- 권장 anchor / cross-reference
+- confidence (high / medium / low)
+
+## 다음에 읽을 문서
+
+- `ai-workflow/wiki/index.md`
+- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+
+## language 원칙
+
+- 갱신 포인트 보고 = 한국어
+- file path, anchor, 설정 key = 원문
+"""
+
+
+def write_claude_code_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict[str, object],
+) -> dict[str, str]:
+    """Generate Claude Code harness overlay files (v0.10.1+, skill-only entry).
+
+    Claude Code 는 ``CLAUDE.md`` 같은 *root 진입점* 안 읽음. 대신 slash
+    command (`.claude/commands/*.md`) 가 *진입점* 역할. 3종 command emit:
+    - `workflow-session-start` — baseline 복원
+    - `workflow-backlog-update` — 작업 등록/갱신
+    - `workflow-doc-sync` — 영향 문서 동기화
+
+    `--entry-mode skill-only` (default for claude-code) 일 때만 호출됨.
+    다른 entry-mode (`aggressive` / `safe`) 에서도 명시적으로 emit 가능.
+    """
+    generated: dict[str, str] = {}
+    claude_root = paths.target_root / ".claude" / "commands"
+
+    session_start_cmd = claude_root / "workflow-session-start.md"
+    backlog_update_cmd = claude_root / "workflow-backlog-update.md"
+    doc_sync_cmd = claude_root / "workflow-doc-sync.md"
+
+    write_text(session_start_cmd, render_claude_code_session_start_command(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_session_start_command"] = str(session_start_cmd)
+    write_text(backlog_update_cmd, render_claude_code_backlog_update_command(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_backlog_update_command"] = str(backlog_update_cmd)
+    write_text(doc_sync_cmd, render_claude_code_doc_sync_command(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_doc_sync_command"] = str(doc_sync_cmd)
+
+    return generated
+
+
 def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
     return f"""# AGENTS.md (Pi Coding Agent Profile)
 
@@ -1022,6 +1189,7 @@ register_harness_builder("opencode", write_opencode_harness_files)
 register_harness_builder("gemini-cli", write_gemini_cli_harness_files)
 register_harness_builder("pi-dev", write_pi_dev_harness_files)
 register_harness_builder("antigravity", write_antigravity_harness_files)
+register_harness_builder("claude-code", write_claude_code_harness_files)
 
 
 def write_minimax_code_harness_files(

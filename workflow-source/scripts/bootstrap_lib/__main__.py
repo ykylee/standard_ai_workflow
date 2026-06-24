@@ -282,6 +282,19 @@ def parse_args() -> argparse.Namespace:
         default="new",
         help="Choose whether the target is a new project or an existing codebase.",
     )
+    parser.add_argument(
+        "--entry-mode",
+        choices=["aggressive", "safe", "skill-only"],
+        default="aggressive",
+        help=(
+            "Bootstrap 진입점 모드. 'aggressive' (default) = AGENTS.md / GEMINI.md 등 "
+            "root 진입점 + harness overlay 모두 emit. 'safe' = aggressive 와 동일 "
+            "(기존 project overwrite 시 의도적 opt-in). 'skill-only' = root 진입점 "
+            "(AGENTS.md / GEMINI.md / ANTIGRAVITY.md / MiniMax.md) skip, harness "
+            "고유 skill / slash command / config 파일만 emit. AGENTS.md 안 읽는 "
+            "하네스 (Claude Code / Aider / Goose / pi-dev / custom) 의 정공법."
+        ),
+    )
     parser.add_argument("--project-slug", required=True)
     parser.add_argument("--project-name", required=True)
     parser.add_argument(
@@ -859,37 +872,47 @@ def write_harness_files(
         )
 
     if "codex" in harnesses or "opencode" in harnesses:
-        codex_agents = codex_agents_path(paths)
-        _w(codex_agents, render_codex_agents(args, paths, context))
-        generated["codex_agents"] = str(codex_agents)
+        # entry-mode=skill-only: AGENTS.md 진입점 skip (harness-specific config 만 emit)
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            codex_agents = codex_agents_path(paths)
+            _w(codex_agents, render_codex_agents(args, paths, context))
+            generated["codex_agents"] = str(codex_agents)
 
     if "pi-dev" in harnesses:
         # Pi Coding Agent uses AGENTS.md at the root, same path as codex
         # If both are selected, Pi's version will overwrite or vice versa.
         # Usually only one harness is selected for a project.
-        from bootstrap_lib.harnesses.renderers import render_pi_dev_agents
+        # entry-mode=skill-only: AGENTS.md skip
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            from bootstrap_lib.harnesses.renderers import render_pi_dev_agents
 
-        pi_agents = codex_agents_path(paths)
-        _w(pi_agents, render_pi_dev_agents(args, context))
-        generated["pi_dev_agents"] = str(pi_agents)
+            pi_agents = codex_agents_path(paths)
+            _w(pi_agents, render_pi_dev_agents(args, context))
+            generated["pi_dev_agents"] = str(pi_agents)
 
     if "gemini-cli" in harnesses:
-        gemini_agents = gemini_cli_agents_path(paths)
-        _w(gemini_agents, render_gemini_cli_agents(args, paths, context))
-        generated["gemini_cli_agents"] = str(gemini_agents)
+        # entry-mode=skill-only: GEMINI.md 진입점 skip
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            gemini_agents = gemini_cli_agents_path(paths)
+            _w(gemini_agents, render_gemini_cli_agents(args, paths, context))
+            generated["gemini_cli_agents"] = str(gemini_agents)
 
     if "antigravity" in harnesses:
-        antigravity_agents = antigravity_agents_path(paths)
-        _w(antigravity_agents, render_antigravity_agents(args, paths, context))
-        generated["antigravity_agents"] = str(antigravity_agents)
+        # entry-mode=skill-only: ANTIGRAVITY.md 진입점 skip
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            antigravity_agents = antigravity_agents_path(paths)
+            _w(antigravity_agents, render_antigravity_agents(args, paths, context))
+            generated["antigravity_agents"] = str(antigravity_agents)
 
     if "minimax-code" in harnesses:
         # MiniMax Code shares AGENTS.md with codex/opencode but writes its own
         # MiniMax.md entry file. We do NOT route through the codex/opencode
         # block above because the AGENTS.md text differs slightly.
-        minimax_agents = minimax_agents_path(paths)
-        _w(minimax_agents, render_minimax_agents(args, paths, context))
-        generated["minimax_code_agents"] = str(minimax_agents)
+        # entry-mode=skill-only: AGENTS.md + MiniMax.md 진입점 skip
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            minimax_agents = minimax_agents_path(paths)
+            _w(minimax_agents, render_minimax_agents(args, paths, context))
+            generated["minimax_code_agents"] = str(minimax_agents)
 
     for harness in harnesses:
         builder = HARNESS_FILE_BUILDERS[harness]

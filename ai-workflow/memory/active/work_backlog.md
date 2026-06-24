@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-24 (v0.10.0 release note 추가)
+- 최종 수정일: 2026-06-24 (v0.10.1 release note 추가)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -15,6 +15,9 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### [[release/v0.10.1/backlog/2026-06-24.md]] {#release-v0-10-1}
+- 2026-06-24: v0.10.1 chapter 12 — **SemVer minor**, Phase 12 의 *delivery layer 확장* release. v0.9.5 part 2 의 *contract layer / delivery layer 분리* 원칙 runtime 적용: **`--entry-mode skill-only` option** (3-mode: aggressive / safe / skill-only) + **`--harness claude-code` adapter** (1차 PoC, slash command 진입점). contract layer (universal skills) 는 harness-agnostic 유지, delivery layer (root 진입점) 만 harness-specific. Claude Code 는 *CLAUDE.md 같은 root 진입점 자동 read ❌*, *slash command* 가 진입 mechanism → 본 adapter 는 `.claude/commands/workflow-{session-start,backlog-update,doc-sync}.md` 3 slash command emit (entry_files=()). HARNESS_SPECS 6→7 + HARNESS_FILE_BUILDERS 6→7 + SUPPORTED_HARNESSES 6→7. `write_harness_files` 의 5 entry-point write block 모두 `entry_mode != "skill-only"` guard 추가 (default = aggressive, v0.10.0 호환, breaking change ❌). `harnesses/claude-code/apply_guide.md` 신규 (≈ 150 line). 6 acceptance test (`check_v0_10_1_skill_only_entry_mode.py`, --entry-mode option 3-mode / claude-code 3-way 정합 / claude-code + skill-only 3 slash command + AGENTS.md 부재 / claude-code + aggressive 동일 / codex + aggressive 기존 동작 / codex + skill-only AGENTS.md skip) + v0.10.0 회귀 6/6 + v0.9.1 contract 4/4 + v0.9.6 6/6 + v0.9.4 3/3 + v0.9.2 8/8 = **47/47 PASS**. 누적 smoke **162/162 + 47 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6 + v0.10.0 6 + v0.10.1 6). spec §9 acceptance **12/12 유지**. breaking change 없음. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.10.1-beta>.
 
 ### [[release/v0.10.0/backlog/2026-06-24.md]] {#release-v0-10-0}
 - 2026-06-24: v0.10.0 chapter 11 — **SemVer major**, Phase 12 의 *deprecation 운영 안정화* cycle 종료. v0.9.0 (chapter 2) 의 1st cycle + v0.9.3 (chapter 7) 의 2nd cycle 가 동시에 *removal 시점* 도달. `phishing_federation_v4.py` file delete (104 line) + `workflow_kit/__init__.py` 의 import + `__all__` 에서 `phishing_federation_v4` 제거 + `DEPRECATION_MARKED_CALLABLES` whitelist empty + 2 deprecation cycle test file delete (`check_v0_9_0_deprecation_1st_cycle.py` + `check_v0_9_3_deprecation_2nd_cycle.py`, dead test cascade cleanup per memory). consumer 가 *명시적 except* 없으면 `ImportError` raise (semver major 정공법). consolidated `phishing_federation` (v0.7.52+) 은 *영향 0* — replacement module 이 이미 운영 중. 1 신규 acceptance test (`check_v0_10_0_deprecation_removal.py`, 6 test: file delete verify / `__all__` 정합 / `from workflow_kit import` ImportError / `importlib.import_module` ModuleNotFoundError / consolidated zero regression / whitelist empty) + v0.9.1 deprecation contract 갱신 (4 test, whitelist empty + `phishing_federation_v4 NOT in __all__`) + v0.9.6 regression 6/6 + v0.9.4 regression 3/3 + v0.9.2 regression 8/8 + v0.9.0~v0.9.3 deprecation cycle 회귀 4/4 = **41/41 PASS**. 누적 smoke **162/162 + 41 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6 + v0.10.0 6). spec `v0_9_0_deprecation_policy_spec.md` §3.3/§3.4/§3.5/§3.6 갱신 (removal column "v0.10.0 ✅" + cycle 종료 verify 항목 신규). spec §9 acceptance **12/12 유지** (deprecation 1st+2nd 종료 = spec §3.4/§3.6 cycle 종료 정합). phase 12 = **6/6 완료** (purpose.md concept 흡수 1차 + deprecation 2nd cycle 1차 + R-A follow-up 1+2+3 + deprecation 1st+2nd 종료 = 6 release 분할 cycle). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.10.0-beta>.

@@ -39,6 +39,7 @@ SUPPORTED_HARNESSES: tuple[str, ...] = (
     "pi-dev",
     "antigravity",
     "minimax-code",
+    "claude-code",
 )
 
 
@@ -115,6 +116,23 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
             "MiniMax Code(미니맥스 코드) 환경용 오버레이. 메인 orchestrator + doc/code/validation "
             "worker 분화 패턴과 한국어 우선 보고 원칙, 백로그/handoff 자동 동기화 규칙을 "
             "AGENTS.md + MiniMax.md + .minimax/agents/ 구조로 한 번에 적용한다."
+        ),
+    ),
+    "claude-code": HarnessSpec(
+        name="claude-code",
+        description="Claude Code용 overlay. .claude/commands/workflow-{session-start,backlog-update,doc-sync}.md 3개 slash command 작성 (CLAUDE.md 진입점 없음, skill-only 진입).",
+        entry_files=(),  # Claude Code 는 CLAUDE.md 진입점 안 읽음 (skill-only 진입)
+        extra_files=(
+            ".claude/commands/workflow-session-start.md",
+            ".claude/commands/workflow-backlog-update.md",
+            ".claude/commands/workflow-doc-sync.md",
+        ),
+        long_description=(
+            "Claude Code 환경용 오버레이. AGENTS.md 진입점을 사용하지 않고 *skill 만* 으로 "
+            "워크플로우 진입 (skill-only entry mode). `.claude/commands/` 아래 3개 slash command "
+            "(`/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`) 가 "
+            "각각 session-start / backlog-update / doc-sync skill 의 entry point 역할. "
+            "AGENTS.md 안 읽는 하네스 (Claude Code / Aider / Goose / pi-dev / custom) 의 *정공법*."
         ),
     ),
 }

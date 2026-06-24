@@ -12,6 +12,12 @@ DeprecationWarning raise) 또는 *silent deprecation* (DeprecationWarning raise
 v0.9.1 chapter 5 deliverable: contract test 로 deprecation policy 의 *운영 검증*
 자동화. spec §7.2 chapter 2 의 1st cycle verify 와 별개로, *전체* public surface
 에 대한 *meta-contract*.
+
+**v0.10.0 갱신**: 1st cycle (`fetch_federated_phishing_urls_v4`) + 2nd cycle
+(`build_default_sources_v4`) 동시 종료 (spec §3.5/§3.6 removal column ✅ v0.10.0).
+DEPRECATION_MARKED_CALLABLES whitelist 가 empty 가 정합. phishing_federation_v4
+가 `__all__` 에서 제거 + file 자체 delete. consumer 가 *명시적 except* 없으면
+hard fail (ImportError).
 """
 from __future__ import annotations
 
@@ -26,24 +32,17 @@ WORKFLOW_KIT_DIR = SOURCE_ROOT / "workflow_kit"
 WORKFLOW_KIT_INIT = WORKFLOW_KIT_DIR / "__init__.py"
 
 
-# spec §3.3 의 1st cycle 영향 symbol + 미래 cycle 에서 추가될 수 있는 deprecation-marked symbol
-# 본 test 는 이 whitelist 에 *명시적으로* 등록된 symbol 만 DeprecationWarning raise 를 verify.
-# whitelist 에 없는 callable 이 DeprecationWarning raise 하면 → contract 위반 (silent error).
-# module_path 는 workflow_kit.X.Y 형식 (full path).
+# v0.10.0 갱신: 1st cycle (v0.9.0) + 2nd cycle (v0.9.3) 동시 종료.
+# spec §3.5/§3.6 의 removal column = "v0.10.0 ✅". 본 whitelist 는 empty 가 정합.
+# 다음 deprecation cycle 진입 시 새 entry 추가 (같은 정공법: 1 release DeprecationWarning → 1 release removal).
 DEPRECATION_MARKED_CALLABLES: dict[str, tuple[str, tuple, dict]] = {
-    # module_path.callable_name → (replacement_module.replacement_callable, args, kwargs)
-    # chapter 2 의 1st cycle 적용 결과 (cycle 1, v0.9.0):
-    "workflow_kit.phishing_federation_v4.fetch_federated_phishing_urls_v4": (
-        "workflow_kit.phishing_federation.fetch_federated_phishing_urls",
-        ([],),  # sources_with_weights (빈 source list)
-        {},
-    ),
-    # chapter 7 의 2nd cycle 적용 결과 (cycle 8, v0.9.3):
-    "workflow_kit.phishing_federation_v4.build_default_sources_v4": (
-        "workflow_kit.phishing_federation.build_default_sources",
-        (),  # no args (default 작동)
-        {},
-    ),
+    # v0.10.0 정합: empty (1st + 2nd cycle 동시 종료)
+    # 다음 deprecation cycle 의 placeholder 예시:
+    # "workflow_kit.<future_module>.<future_callable>": (
+    #     "workflow_kit.<replacement_module>.<replacement_callable>",
+    #     (args,),  # invoke args
+    #     {},  # invoke kwargs
+    # ),
 }
 
 
@@ -51,8 +50,7 @@ def _parse_all_list(init_path: Path) -> list[str]:
     """workflow_kit/__init__.py 의 __all__ literal 추출.
 
     stub namespace setup (test file 의 다른 test 에서 사용) 이 __init__ 실행을
-    가로채므로, static parse 로 __all__ list 를 직접 검증. chapter 2 의
-    test_phishing_federation_v4_in_all_v0_9_0 와 동일 정공법.
+    가로채므로, static parse 로 __all__ list 를 직접 검증.
     """
     src = init_path.read_text()
     m = re.search(r"^__all__\s*:\s*list\[str\]\s*=\s*\[(.+?)\]", src, re.S | re.M)
@@ -75,34 +73,43 @@ def _safe_call_with_warning_capture(callable_obj, args: tuple, kwargs: dict) -> 
 
 
 def test_all_list_parse_v0_9_1() -> None:
-    """__all__ list 가 parse 가능 + 최소 1개 entry."""
+    """__all__ list 가 parse 가능 + 최소 1개 entry.
+
+    **v0.10.0 갱신**: 1st + 2nd cycle 동시 종료로 `phishing_federation_v4` 가
+    `__all__` 에서 제거. `phishing_federation` (consolidated) 은 유지.
+    """
     all_list = _parse_all_list(WORKFLOW_KIT_INIT)
     assert len(all_list) >= 1, f"__all__ is empty: {WORKFLOW_KIT_INIT}"
-    # 1st cycle 영향 symbol 이 __all__ 에 그대로 존재
-    assert "phishing_federation_v4" in all_list
+    # v0.10.0 정합: phishing_federation_v4 NOT in __all__ (deprecation cycle 종료)
+    assert "phishing_federation_v4" not in all_list, (
+        f"v0.10.0 정합: phishing_federation_v4 는 __all__ 에서 제거되어야 함. "
+        f"__all__ = {all_list}"
+    )
+    # phishing_federation (consolidated, v0.7.52+) 은 유지
     assert "phishing_federation" in all_list
 
 
 def test_deprecation_marked_callables_warn_v0_9_1() -> None:
-    """DEPRECATION_MARKED_CALLABLES 의 모든 callable 이 DeprecationWarning raise."""
+    """DEPRECATION_MARKED_CALLABLES 의 모든 callable 이 DeprecationWarning raise.
+
+    **v0.10.0 갱신**: whitelist empty → loop no-op → 즉시 PASS (cycle 종료 정합).
+    다음 deprecation cycle 진입 시 entry 추가 (1 release DeprecationWarning → 1 release removal).
+    """
     sys.path.insert(0, str(SOURCE_ROOT))
+    # v0.10.0 정합: whitelist empty 이므로 loop body 0회 실행
     for full_name, (replacement, args, kwargs) in DEPRECATION_MARKED_CALLABLES.items():
         module_path, callable_name = full_name.rsplit(".", 1)
-        # module_path 는 'workflow_kit.X' 형식
         mod = importlib.import_module(module_path)
         func = getattr(mod, callable_name)
-        # callable invoke — DeprecationWarning capture
-        # whitelist 의 (args, kwargs) 로 호출 (1st cycle: ([],), 2nd cycle: ()).
         captured = _safe_call_with_warning_capture(func, args, kwargs)
         assert len(captured) >= 1, (
             f"{full_name} did not raise DeprecationWarning "
             f"(deprecation marker missing or removed prematurely)"
         )
         msg = str(captured[0].message)
-        # 3-element message format 검증 (spec §3.2)
         assert "deprecated" in msg.lower(), f"missing 'deprecated' in: {msg}"
-        # removal release 명시 (v0.10.0)
-        assert "v0.10.0" in msg, f"missing removal release 'v0.10.0' in: {msg}"
+        # removal release 명시 (다음 cycle 시 dynamic)
+        assert "v0." in msg, f"missing removal release 'v0.X.Y' in: {msg}"
 
 
 def test_non_deprecated_callables_no_warning_v0_9_1() -> None:

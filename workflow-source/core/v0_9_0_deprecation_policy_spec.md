@@ -66,7 +66,7 @@ def fetch_federated_phishing_urls_v4(
 
 | Symbol | module | 이유 | replacement | removal |
 |---|---|---|---|---|
-| `fetch_federated_phishing_urls_v4` | `workflow_kit.phishing_federation_v4` | v0.7.52 consolidation 으로 redundant. 5+ minor release 동안 `phishing_federation.fetch_federated_phishing_urls` (consolidated) 이 *동일 contract* 제공 | `phishing_federation.fetch_federated_phishing_urls` | v0.10.0 |
+| `fetch_federated_phishing_urls_v4` | `workflow_kit.phishing_federation_v4` | v0.7.52 consolidation 으로 redundant. 5+ minor release 동안 `phishing_federation.fetch_federated_phishing_urls` (consolidated) 이 *동일 contract* 제공 | `phishing_federation.fetch_federated_phishing_urls` | **v0.10.0 ✅** |
 
 **1st cycle scope = 1 symbol.** 본 release 는 *policy 운영의 첫 적용* 이므로 의도적으로 좁게. 2nd cycle 부터 multi-symbol 가능.
 
@@ -74,25 +74,27 @@ def fetch_federated_phishing_urls_v4(
 
 | Symbol | module | 이유 | replacement | removal |
 |---|---|---|---|---|
-| `build_default_sources_v4` | `workflow_kit.phishing_federation_v4` | v0.7.52 consolidation 으로 redundant. 1st cycle 의 *같은 module* 의 *다른 public function*. dispatcher (`cmd_federate`) 가 이미 `phishing_federation.build_default_sources` (consolidated) 사용 중 → v4 module 자체가 unused | `phishing_federation.build_default_sources` | v0.10.0 |
+| `build_default_sources_v4` | `workflow_kit.phishing_federation_v4` | v0.7.52 consolidation 으로 redundant. 1st cycle 의 *같은 module* 의 *다른 public function*. dispatcher (`cmd_federate`) 가 이미 `phishing_federation.build_default_sources` (consolidated) 사용 중 → v4 module 자체가 unused | `phishing_federation.build_default_sources` | **v0.10.0 ✅** |
 
 **2nd cycle scope = 1 symbol** (multi-symbol 가능하지만 *first move* 의 정공법). 1st cycle 의 *운영 검증 결과* 기반 — dispatcher 가 이미 consolidated 사용 = v4 module 의 *dead code 신호*. cycle 1+2 동시 종료 시점 = v0.10.0.
 
 ### 3.6 2nd cycle 검증 (chapter 7 에서 실행)
 
-- [ ] `build_default_sources_v4()` 호출 시 `DeprecationWarning` 1회 raise
-- [ ] `simplefilter('error', DeprecationWarning)` 환경에서도 raise (strict mode)
-- [ ] `phishing_federation.build_default_sources` 는 DeprecationWarning ❌
-- [ ] 두 함수 의 output byte-identical (zero behavior change regression)
-- [ ] `DEPRECATION_MARKED_CALLABLES` whitelist +1 entry (`build_default_sources_v4`)
-- [ ] `__all__` 의 `phishing_federation_v4` 여전히 존재 (cycle 1+2 동시 종료 시점 v0.10.0 에서 제거)
+- [x] `build_default_sources_v4()` 호출 시 `DeprecationWarning` 1회 raise ✅ v0.9.3
+- [x] `simplefilter('error', DeprecationWarning)` 환경에서도 raise (strict mode) ✅ v0.9.3
+- [x] `phishing_federation.build_default_sources` 는 DeprecationWarning ❌ ✅ v0.9.3
+- [x] 두 함수 의 output byte-identical (zero behavior change regression) ✅ v0.9.3
+- [x] `DEPRECATION_MARKED_CALLABLES` whitelist +1 entry (`build_default_sources_v4`) ✅ v0.9.3
+- [x] `__all__` 의 `phishing_federation_v4` 여전히 존재 ✅ v0.9.3 (cycle 1+2 동시 종료 시점 v0.10.0 에서 제거)
+- [x] **cycle 1+2 동시 종료** ✅ **v0.10.0**: `phishing_federation_v4.py` file delete + `__all__` 에서 `phishing_federation_v4` 제거 + `DEPRECATION_MARKED_CALLABLES` whitelist empty. consumer 가 *명시적 except* 없으면 `ImportError` raise (semver major 정공법).
 
 ### 3.4 1st cycle 검증 (chapter 2 에서 실행)
 
-- [ ] `warnings.warn` 호출 시 `DeprecationWarning` 1회 raise (test fixture with `warnings.catch_warnings`)
-- [ ] `phishing_federation.fetch_federated_phishing_urls` 가 deprecation target 과 *동일 출력* (regression test)
-- [ ] `phishing_federation_v4` 가 `__all__` 에 *그대로* 존재 (즉시 제거 ❌, v0.10.0 까지 warning 만)
-- [ ] test count 변동 없음 (deprecation 의 *zero behavior change* 증명)
+- [x] `warnings.warn` 호출 시 `DeprecationWarning` 1회 raise (test fixture with `warnings.catch_warnings`) ✅ v0.9.0
+- [x] `phishing_federation.fetch_federated_phishing_urls` 가 deprecation target 과 *동일 출력* (regression test) ✅ v0.9.0
+- [x] `phishing_federation_v4` 가 `__all__` 에 *그대로* 존재 (즉시 제거 ❌, v0.10.0 까지 warning 만) ✅ v0.9.0
+- [x] test count 변동 없음 (deprecation 의 *zero behavior change* 증명) ✅ v0.9.0
+- [x] **cycle 1 종료** ✅ **v0.10.0**: `phishing_federation_v4.py` file delete + `__all__` 에서 `phishing_federation_v4` 제거. cycle 2 와 동시 종료.
 
 ## 4. SSOT 정합 (v0.8.0 spec §4.3 의 누적 drift 해소)
 

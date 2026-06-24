@@ -34,7 +34,6 @@ from . import (
     okf_import,
     path_resolver,
     phishing_federation,
-    phishing_federation_v4,
     phishing_keywords,
     upgrade_diff,
     url_validity,
@@ -64,7 +63,6 @@ __all__: list[str] = [
     "okf_import",
     "path_resolver",
     "phishing_federation",
-    "phishing_federation_v4",
     "phishing_keywords",
     "upgrade_diff",
     "url_validity",
@@ -106,7 +104,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.9.6-beta"
+    return "v0.10.0-beta"
 
 
 __version__: str = _read_pyproject_version()

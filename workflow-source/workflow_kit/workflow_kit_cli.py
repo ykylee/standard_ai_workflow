@@ -2,7 +2,8 @@
 extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
 cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
 score-wiki-trend, v0.7.56 with okf-cleanup / cache-prune + score-wiki-trend
-in-process, v0.7.57 with cache-merge-multi / cache-import-csv / cache-export-json).
+in-process, v0.7.57 with cache-merge-multi / cache-import-csv / cache-export-json,
+v0.9.6 with refresh-purpose).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -46,6 +47,8 @@ Commands:
     release-rollback   --tag=TAG [--apply] [--json]
     release-dist       [--apply] [--json]
     score-wiki-trend   [--record-current | --record-range=N | --show | --json]
+    refresh-purpose    [--apply] [--window-days=N] [--wiki-log-path=PATH]
+                       [--purpose-path=PATH] [--json]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
 
@@ -1252,6 +1255,81 @@ def cmd_cache_merge_csv(argv: list[str]) -> int:
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
+
+
+@register("refresh-purpose")
+def cmd_refresh_purpose(argv: list[str]) -> int:
+    """R-A Purpose Refresh trigger (v0.9.6+, dispatcher subcommand).
+
+    spec §4.4 (R-A follow-up part 3) — wiki-event-sync R-A trigger:
+    - 30일 안 wiki log 의 ingest/query/release 분포 분석
+    - LLM suggest prompt 생성 (markdown, advisory)
+    - `--apply` 시 PURPOSE.md frontmatter `last_purpose_review` date 갱신
+
+    Args:
+        --apply              actually update PURPOSE.md frontmatter (default dry-run)
+        --window-days=N      ingest/query 분포 분석 window (default 30)
+        --wiki-log-path=PATH log.md path (default ~/wiki/log.md)
+        --purpose-path=PATH  PURPOSE.md path (default auto-detect)
+        --json               JSON output (prompt 본문 제외, summary 만)
+
+    Returns 0 on success, 2 on error.
+    """
+    apply = _has_flag(argv, "--apply")
+    window_days_str = _parse_flag(argv, "--window-days")
+    try:
+        window_days = int(window_days_str) if window_days_str else 30
+    except ValueError:
+        print(f"ERROR: --window-days={window_days_str!r} 는 int 가 아님", file=sys.stderr)
+        return 2
+    wiki_log_s = _parse_flag(argv, "--wiki-log-path")
+    purpose_s = _parse_flag(argv, "--purpose-path")
+    use_json = _has_flag(argv, "--json")
+
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.common.purpose_refresh import run_purpose_refresh
+
+        workspace_root = _P.cwd()
+        result = run_purpose_refresh(
+            workspace_root=workspace_root,
+            window_days=window_days,
+            apply=apply,
+            wiki_log_path=_P(wiki_log_s) if wiki_log_s else None,
+            purpose_path=_P(purpose_s) if purpose_s else None,
+        )
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    if use_json:
+        # prompt 본문은 길 수 있으니 JSON 에서 제외하고 distribution + update 만 emit
+        out: dict[str, object] = {
+            "distribution": result["distribution"],
+            "purpose_update": result["purpose_update"],
+            "applied": result["applied"],
+            "today": result["today"],
+            "prompt_length": len(result["prompt"]),
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        print(result["prompt"])
+        upd = result["purpose_update"]
+        if result["applied"] and upd.get("updated"):
+            print(
+                f"\n[applied] last_purpose_review: "
+                f"{upd.get('previous') or '(none)'} → {upd['current']}"
+            )
+        else:
+            prev = upd.get("previous") or "(none)"
+            print(
+                f"\n[dry-run] PURPOSE.md 미변경. "
+                f"--apply 시 frontmatter 갱신: {prev} → {upd['current']}"
+            )
+        for w in upd.get("warnings", []):
+            print(f"  ⚠️ {w}")
+
+    return 0
 
 
 def run_workflow_kit_cli(argv: list[str]) -> int:

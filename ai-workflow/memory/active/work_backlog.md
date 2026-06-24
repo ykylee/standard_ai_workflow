@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-23
+- 최종 수정일: 2026-06-24
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -15,6 +15,9 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### [[release/v0.9.6/backlog/2026-06-24.md]] {#release-v0-9-6}
+- 2026-06-24: v0.9.6 chapter 10 — R-A follow-up part 3 (wiki-event-sync R-A trigger, R-A 3 release 분할 cycle 종료). v0.9.5 의 skill context load integration 후속으로, R-A (Purpose Refresh) 의 *trigger layer* 가 runtime 으로 추가: 30일 안 wiki log 의 ingest/query/release 분포 분석 + LLM suggest prompt (advisory, auto-commit ❌) + `last_purpose_review` date 갱신. 신규 `workflow_kit.common.purpose_refresh` helper (5 함수: `parse_log_events` / `analyze_30day_distribution` (ingest-like / query-like / release 분류 + top 10 topics + recent releases last 10) / `_read_last_purpose_review` / `update_last_purpose_review` (`re.MULTILINE` regex + 이전/현재 추적) / `generate_llm_suggest_prompt` (markdown §1 분포 + §2 본문 ≤800 char + §3 4-element advisory) + `run_purpose_refresh` unified entry) + CLI dispatcher subcommand 31 `refresh-purpose` 등록 (destructive subcommand 정공법 memory #5 정합: `apply=False` default dry-run + `--apply` 명시 시 frontmatter 갱신 + `--window-days` / `--wiki-log-path` / `--purpose-path` / `--json` flag). spec `llm_wiki_concept_purpose_spec.md` §4.4 7 detail 확장 + §5 follow-up ✅ + §6 cross-ref + §10 cycle table detail + `workflow_skill_catalog.md` §5.4 신규 + `workflow_kit_cli.py` docstring header + subcommand 표. 6 acceptance test (`check_purpose_concept_ra_trigger_v0_9_6.py`, 30일 분포 / LLM prompt / frontmatter 갱신 / dry-run / apply / graceful skip 모두 PASS) + v0.9.4 regression 3/3 + v0.9.2 regression 8/8 + v0.9.5 환경의존 3 제외 = **37/37 PASS**. 누적 smoke **162/162 + 37 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6). Graceful skip 정책: log.md / PURPOSE.md 부재 시 advisory warning 1줄 + no-op. LLM suggest 의 output 은 *advisory* 일 뿐, 자동 commit ❌ — 사람 review 후 `--apply` 로 명시적 갱신. spec §9 acceptance **12/12 유지** (R-A follow-up part 1 ✅ v0.9.4 + part 2 ✅ v0.9.5 + part 3 ✅ v0.9.6 = 3 release 분할 cycle 종료). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.9.6-beta>.
 
 ### [[release/v0.9.0/backlog/2026-06-18.md]] {#release-v0-9-0}
 - 2026-06-18: v0.9.0 chapter 1 — Deprecation Policy Operational Spec 작성 + SSOT 정합 (pyproject 0.8.1 → 0.9.1, __version__ = v0.9.1-beta) + mypy config 정합 ([tool.mypy] unknown option 5개 → [tool.workflow-doctor] section 분리) + syntax fix. commit 841329f force-push.

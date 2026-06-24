@@ -3,8 +3,8 @@
 - 문서 목적: Karpathy `llm-wiki.md` 패턴 + llm_wiki (nashsu) 의 *Purpose.md — The Wiki's Soul* concept 을 우리 standard_ai_workflow 의 workflow state docs layer 에 흡수하는 정공법을 정의한다.
 - 범위: 1차 출처 추출, 4-element concept 정형화, 우리 흡수 위치 (PURPOSE.md 분리), LLM context read pattern, suggest-update trigger
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
-- 상태: draft (cycle 7 / v0.9.2 chapter 6, v0.9.4 chapter 8 part 1, v0.9.5 chapter 9 part 2)
-- 최종 수정일: 2026-06-23
+- 상태: draft (cycle 7 / v0.9.2 chapter 6, v0.9.4 chapter 8 part 1, v0.9.5 chapter 9 part 2, v0.9.6 chapter 10 part 3)
+- 최종 수정일: 2026-06-24
 - 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./global_workflow_standard.md`](./global_workflow_standard.md), [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md)
 - 1차 출처:
   - Karpathy `llm-wiki.md`: <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>
@@ -118,9 +118,19 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 ### 4.4 Suggest-update trigger (wiki 운영 R-1~R9)
 
 기존 R-1~R9 cycle 에 R-A 단계 통합:
-- **R-A: Purpose Refresh** — 30일 안 ingest/query 분포 분석 → LLM 이 PURPOSE.md 보강 제안
+- **R-A: Purpose Refresh** — 30일 안 ingest/query/release 분포 분석 → LLM 이 PURPOSE.md 보강 제안
 - trigger: `wiki-event-sync` 의 release event 시 `last_purpose_review` 갱신 + LLM suggest prompt 생성
 - LLM suggest 는 *advisory* (자동 ❌, human confirm 필요)
+- **v0.9.6 part 3 (본 release, chapter 10)** — R-A trigger runtime:
+  - helper module: `workflow_kit.common.purpose_refresh` (5 함수: `parse_log_events` / `analyze_30day_distribution` / `_read_last_purpose_review` / `update_last_purpose_review` / `generate_llm_suggest_prompt` + `run_purpose_refresh` unified entry)
+  - CLI subcommand: `workflow_kit refresh-purpose [--apply] [--window-days=N] [--wiki-log-path=PATH] [--purpose-path=PATH] [--json]`
+  - 30일 ingest-like / query-like / release event 분포 + top 10 topics (영문 단어 + 한국어 bigram) 분석
+  - markdown 형식의 LLM suggest prompt (§1 분포 + §2 PURPOSE.md 본문 ≤800 char + §3 4-element advisory 요청) 생성
+  - `--apply` 시 PURPOSE.md frontmatter 의 `last_purpose_review` date 갱신 (re.MULTILINE regex, 이전/현재 추적)
+  - destructive subcommand 정공법: `apply=False` 가 default (dry-run), `--apply` 명시 시에만 file write
+  - graceful skip: log.md / PURPOSE.md 부재 시 advisory warning + no-op (auto-fail ❌)
+  - LLM suggest 의 output 은 advisory 일 뿐, 자동 commit ❌. human review 후 `--apply` 로 명시적 갱신.
+  - wiki-event-sync 의 `--op=release` 가 이 trigger 의 dispatcher 역할 (release event hook), 실제 update 는 `workflow_kit refresh-purpose --apply` 가 담당
 
 ### 4.5 PROJECT_PROFILE.md update
 
@@ -140,7 +150,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - [x] `state.json` 의 `purpose_digest` field 1-line summary (Goals 1-line) — follow-up (R-A 의 release event trigger) ✅ v0.9.4 part 1
 - [x] session-start / backlog-update / doc-sync skill 의 context load 가 `state.json.purpose_digest` read (1 line) + PURPOSE.md 본문 (≤200 token) 자동 read — follow-up (R-A) ✅ v0.9.5 part 2
 - [x] backlog-update 의 *in-scope check* 가 PURPOSE.md §3 Research Scope *제외 영역* 과 비교하여 scope creep warning emit — follow-up (R-A) ✅ v0.9.5 part 2
-- [ ] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook — follow-up (R-A)
+- [x] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook + 30일 분포 + LLM suggest (advisory) — follow-up (R-A) ✅ v0.9.6 part 3
 - [ ] `tests/check_purpose_concept_v0_9_2.py` 4-element + LLM-readable + structural verify 모두 PASS
 
 ## 6. Cross-reference
@@ -154,6 +164,9 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - workflow-source/workflow_kit/common/schemas/session.py / backlog.py / doc_sync.py — `*PurposeContext` nested model + `*Output.purpose_context` field (v0.9.5 part 2)
 - workflow-source/skills/{session-start,backlog-update,doc-sync}/scripts/run_*.py — context load 시 `build_purpose_context` 호출 (v0.9.5 part 2)
 - workflow-source/tests/check_purpose_concept_skill_context_v0_9_5.py — skill context load 5 acceptance (v0.9.5 part 2 신규)
+- workflow-source/workflow_kit/common/purpose_refresh.py — R-A Purpose Refresh helper (v0.9.6 part 3 신규, 5 함수 + unified `run_purpose_refresh` entry)
+- workflow-source/workflow_kit/workflow_kit_cli.py — `cmd_refresh_purpose` dispatcher subcommand (v0.9.6 part 3)
+- workflow-source/tests/check_purpose_concept_ra_trigger_v0_9_6.py — R-A trigger 6 acceptance (v0.9.6 part 3 신규)
 
 ## 7. 1차 출처 Bundle 비율
 
@@ -189,6 +202,6 @@ R-A follow-up 은 3 release 로 분할 진행 (1 release = 1 deliverable, §3.2 
 |---|---|---|---|---|
 | v0.9.4 (chapter 8) | part 1 | `state.json.purpose_digest` 1-line 자동 생성 | §4.3 part 1 | `workflow_kit.common.workflow_state.refresh_workflow_state_cache` output schema + `generate_workflow_state.py` caller |
 | v0.9.5 (chapter 9) | part 2 | skill context load integration | §4.3 part 2 | `workflow_kit.common.purpose_context.build_purpose_context` helper + `SessionStartOutput` / `BacklogUpdateOutput` / `DocSyncOutput` 의 `purpose_context` field + `BacklogUpdateOutput.scope_creep_warnings` |
-| v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) |
+| v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) — `workflow_kit.common.purpose_refresh.run_purpose_refresh` helper + `cmd_refresh_purpose` dispatcher subcommand + 6 acceptance test |
 
 [v0.9.4 chapter 8 = part 1 ✅ / v0.9.5 chapter 9 = part 2 ✅ / v0.9.6 chapter 10 = part 3 follow-up]

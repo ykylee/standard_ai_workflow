@@ -143,6 +143,36 @@ v0.9.5 부터 3종 핵심 skill (session-start / backlog-update / doc-sync) 은
 - skill 별 spec: session-start §13 / backlog-update §12 / doc-sync §12
 - helper: [`../workflow_kit/common/purpose_context.py`](../workflow_kit/common/purpose_context.py)
 
+## 5.4 R-A Trigger (v0.9.6 chapter 10 R-A part 3)
+
+v0.9.6 부터 wiki 운영 R-1~R9 cycle 에 R-A (Purpose Refresh) 단계 통합. v0.9.5 까지의 *skill 통합* 에 이어, v0.9.6 은 **release event hook** + **30일 분포 trigger** + **LLM suggest (advisory)** 가 runtime 으로 추가:
+
+| Trigger | 동작 | 산출물 |
+|---|---|---|
+| `wiki-event-sync --op=release` | release tag 의 commit 영향 page 식별 (v0.4.0 부터) + R-A step dispatch | affected page + R-A trigger invoke |
+
+| Runtime | 동작 | 산출물 |
+|---|---|---|
+| `workflow_kit refresh-purpose` (dry-run, default) | 30일 ingest/query/release 분포 + LLM suggest prompt (markdown) | prompt + distribution preview (file I/O ❌) |
+| `workflow_kit refresh-purpose --apply` | + PURPOSE.md frontmatter `last_purpose_review` date 갱신 | prompt + last_purpose_review 갱신 (이전/현재 추적) |
+
+**공통 helper**: `workflow_kit.common.purpose_refresh.run_purpose_refresh(workspace_root, today, window_days, apply, wiki_log_path, purpose_path)` (5 함수: `parse_log_events` / `analyze_30day_distribution` / `_read_last_purpose_review` / `update_last_purpose_review` / `generate_llm_suggest_prompt`)
+
+**Destructive subcommand 정공법** (memory #5 정합):
+- `apply=False` 가 default (dry-run first) — prompt + distribution preview 만 emit, file write ❌
+- `--apply` 명시 시에만 `last_purpose_review` 갱신
+- 30일 window + release count + top 10 topics 가 prompt 의 §1 분포 + §2 PURPOSE.md 본문 ≤800 char + §3 4-element advisory 요청 (Goals / Key Questions / Research Scope / Evolving Thesis) 으로 emit
+- LLM suggest 의 output 은 *advisory* 일 뿐, 자동 commit ❌. human review 후 `--apply` 로 명시적 갱신.
+
+**Graceful skip 정책**: log.md / PURPOSE.md 부재 시 advisory warning 1줄 + no-op (skill/CLI 실행 실패 ❌)
+
+**Acceptance**: [`../tests/check_purpose_concept_ra_trigger_v0_9_6.py`](../tests/check_purpose_concept_ra_trigger_v0_9_6.py) (6 test PASS)
+
+상세:
+- spec: [./llm_wiki_concept_purpose_spec.md §4.4](./llm_wiki_concept_purpose_spec.md)
+- helper: [`../workflow_kit/common/purpose_refresh.py`](../workflow_kit/common/purpose_refresh.py)
+- dispatcher: [`../workflow_kit/workflow_kit_cli.py` `cmd_refresh_purpose`](../workflow_kit/workflow_kit_cli.py) (subcommand 31)
+
 ## 6. 권장 skill 묶음
 
 이번 릴리즈에서는 개별 skill 자체보다 “어떤 순서로 묶어 쓰는가” 를 더 중요하게 본다.

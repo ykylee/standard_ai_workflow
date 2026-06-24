@@ -49,6 +49,8 @@ Commands:
     score-wiki-trend   [--record-current | --record-range=N | --show | --json]
     refresh-purpose    [--apply] [--window-days=N] [--wiki-log-path=PATH]
                        [--purpose-path=PATH] [--json]
+    cascade-delete     --deleted-paths=PATH [--deleted-paths=PATH] ...
+                       --wiki-root=PATH [--project=SLUG] [--apply] [--json]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
 
@@ -1330,6 +1332,83 @@ def cmd_refresh_purpose(argv: list[str]) -> int:
             print(f"  ⚠️ {w}")
 
     return 0
+
+
+@register("cascade-delete")
+def cmd_cascade_delete(argv: list[str]) -> int:
+    """Wiki file deletion cascade cleanup (v0.10.3+, R-A follow-up cycle 2).
+
+    spec: llm_wiki_concept_purpose_spec.md §4.5 / v0.9.2 R-1~R9 cycle 2.
+    3-method matching (basename / stem / project-relative-stem) 으로
+    삭제된 source file 의 wiki page cascade-delete 대상 식별.
+
+    Args:
+        --deleted-paths=PATH  삭제된 source file path (repeatable, ≥1 required)
+        --wiki-root=PATH     wiki vault 의 *project source* 디렉토리
+        --project=SLUG        project slug (project-relative matching 용)
+        --apply               actually delete (default dry-run)
+        --json                JSON output
+
+    Returns 0 on success, 2 on error.
+    """
+    apply = _has_flag(argv, "--apply")
+    use_json = _has_flag(argv, "--json")
+    deleted_paths = [a.split("=", 1)[1] for a in argv if a.startswith("--deleted-paths=")]
+    wiki_root_s = _parse_flag(argv, "--wiki-root")
+    project = _parse_flag(argv, "--project") or ""
+
+    if not deleted_paths:
+        print("ERROR: --deleted-paths=PATH (at least 1, repeatable) required", file=sys.stderr)
+        return 2
+    if wiki_root_s is None:
+        print("ERROR: --wiki-root=PATH required", file=sys.stderr)
+        return 2
+
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.common.wiki_cascade import (
+            emit_cascade_plan,
+            apply_cascade,
+            find_cascade_targets,
+        )
+
+        wiki_root = _P(wiki_root_s)
+        plan = emit_cascade_plan(deleted_paths, wiki_root, project)
+
+        # collect CascadeTarget list for apply
+        all_targets: list = []
+        for deleted in deleted_paths:
+            result = find_cascade_targets(deleted, wiki_root, project)
+            all_targets.extend(result.targets)
+        apply_result = apply_cascade(all_targets, apply=apply)
+
+        if use_json:
+            out: dict[str, object] = {
+                "plan": plan,
+                "applied": apply_result["applied"],
+                "executed": apply_result["executed"],
+                "skipped": apply_result["skipped"],
+                "warnings": apply_result["warnings"],
+            }
+            print(json.dumps(out, ensure_ascii=False, indent=2, default=str))
+        else:
+            from workflow_kit.common.wiki_cascade import render_cascade_plan_text
+            print(render_cascade_plan_text(plan))
+            if apply_result["applied"]:
+                print(
+                    f"\n[applied] {len(apply_result['executed'])} file(s) deleted"
+                )
+            else:
+                print(
+                    f"\n[dry-run] {len(apply_result['skipped'])} file(s) would be deleted. "
+                    f"--apply 시 실제 delete."
+                )
+            for w in apply_result["warnings"]:
+                print(f"  ⚠️ {w}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
 
 
 def run_workflow_kit_cli(argv: list[str]) -> int:

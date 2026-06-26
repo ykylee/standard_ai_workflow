@@ -127,6 +127,21 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - graceful skip: PURPOSE.md 부재 시 cot_trace 모든 field null, advisory warning + no-op (auto-fail ❌)
 - 1차 출처 (Karpathy/llm_wiki) 의 CoT 패턴 차용: raw → structured 2-step 으로 *directional intent* (LLM-readable) 와 *structural rules* (정형화) 가 일관되게 반영되도록 함
 
+**v0.11.1 cycle 4 (후속 release, chapter 12)** — graph insights 정공법:
+- PURPOSE.md 의 4-element (Goals / Key Questions / Research Scope / Evolving Thesis) ↔ 실제 deliverable (state.json recent_done_items + acceptance test) 의 매핑 분석
+- *directional intent* 와 *structural facts* 의 불일치 발견 → Evolving Thesis 갱신 trigger
+- 3 정형화:
+  - **Goal coverage**: 각 Goal ↔ recent_done_items 매칭률 (covered / partial / uncovered)
+  - **Surprising 발견**: Goals 매핑 0 + scope_excluded 매칭 ❌ → scope creep 감지 (advisory)
+  - **Gaps 식별**: Goals 중 deliverable 0 인 goal 식별 (priority 1-3)
+- Health score (0-100, 4 tier): excellent ≥80 / good ≥60 / fair ≥40 / poor <40
+- helper module: `workflow_kit.common.purpose_graph` (5 함수: `extract_goal_keywords` / `parse_recent_done_items` / `compute_goal_coverage` / `find_surprising_deliverables` / `find_gaps` + `compute_health_score` + `run_graph_insights` unified entry)
+- CLI subcommand: `workflow_kit graph-insights [--purpose-path=PATH] [--workspace-root=PATH] [--state-path=PATH] [--no-surprising] [--no-gaps] [--json]`
+- 3 output schema 확장: `SessionStartOutput.graph_insights` / `BacklogUpdateOutput.graph_insights` / `DocSyncOutput.graph_insights` (nested Pydantic model)
+- read-only 분석 only (destructive subcommand 정공법 memory #5: file I/O ❌, advisory emit 만)
+- graceful skip: PURPOSE.md / state.json 부재 시 advisory warning + empty result
+- bundle 비율 92% → 95% (graph insights 정형화 패턴 차용)
+
 ### 4.4 Suggest-update trigger (wiki 운영 R-1~R9)
 
 기존 R-1~R9 cycle 에 R-A 단계 통합:
@@ -164,6 +179,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - [x] backlog-update 의 *in-scope check* 가 PURPOSE.md §3 Research Scope *제외 영역* 과 비교하여 scope creep warning emit — follow-up (R-A) ✅ v0.9.5 part 2
 - [x] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook + 30일 분포 + LLM suggest (advisory) — follow-up (R-A) ✅ v0.9.6 part 3
 - [ ] two-step CoT ingest (raw 추출 → structured 4-element emit + cross-reference validate) — follow-up (R-A cycle 3) ☐ v0.11.0
+- [ ] graph insights (Goal coverage + surprising + gaps + health score) — follow-up (R-A cycle 4) ☐ v0.11.1
 - [ ] `tests/check_purpose_concept_v0_9_2.py` 4-element + LLM-readable + structural verify 모두 PASS
 
 ## 6. Cross-reference
@@ -184,6 +200,11 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - workflow-source/skills/{session-start,backlog-update,doc-sync}/scripts/run_*.py — context load 시 `run_two_step_cot_ingest` 호출 (v0.11.0 cycle 3)
 - workflow-source/workflow_kit/workflow_kit_cli.py — `cmd_ingest_purpose` dispatcher subcommand (v0.11.0 cycle 3, subcommand 33)
 - workflow-source/tests/check_two_step_cot_ingest_v0_11_0.py — two-step CoT ingest 6 acceptance (v0.11.0 cycle 3 신규)
+- workflow-source/workflow_kit/common/purpose_graph.py — graph insights helper (v0.11.1 cycle 4 신규, 5 함수 + 6 dataclass + unified `run_graph_insights` entry)
+- workflow-source/workflow_kit/common/schemas/session.py / backlog.py — `*GraphInsightsOutput` nested model + `*Output.graph_insights` field (v0.11.1 cycle 4)
+- workflow-source/skills/{session-start,backlog-update,doc-sync}/scripts/run_*.py — context load 시 `run_graph_insights` 호출 (v0.11.1 cycle 4)
+- workflow-source/workflow_kit/workflow_kit_cli.py — `cmd_graph_insights` dispatcher subcommand (v0.11.1 cycle 4, subcommand 34)
+- workflow-source/tests/check_graph_insights_v0_11_1.py — graph insights 8 acceptance (v0.11.1 cycle 4 신규)
 
 ## 7. 1차 출처 Bundle 비율
 
@@ -213,8 +234,9 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 
 | v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) — `workflow_kit.common.purpose_refresh.run_purpose_refresh` helper + `cmd_refresh_purpose` dispatcher subcommand + 6 acceptance test |
 | **v0.11.0 (chapter 11)** | **cycle 3** | **two-step CoT ingest** | **§4.3 cycle 3** | **`workflow_kit.common.purpose_ingest` helper module (5 함수 + 5 dataclass) + 3 skill context load 통합 + `cmd_ingest_purpose` dispatcher subcommand (subcommand 33) + 6 acceptance test** |
+| **v0.11.1 (chapter 12)** | **cycle 4** | **graph insights** | **§4.3 cycle 4** | **`workflow_kit.common.purpose_graph` helper module (5 함수 + 6 dataclass) + 3 output schema 확장 + `cmd_graph_insights` dispatcher subcommand (subcommand 34) + 8 acceptance test** |
 
-[v0.9.4 chapter 8 = part 1 ✅ / v0.9.5 chapter 9 = part 2 ✅ / v0.9.6 chapter 10 = part 3 ✅ / v0.11.0 chapter 11 = cycle 3 follow-up]
+[v0.9.4 chapter 8 = part 1 ✅ / v0.9.5 chapter 9 = part 2 ✅ / v0.9.6 chapter 10 = part 3 ✅ / v0.11.0 chapter 11 = cycle 3 ✅ / v0.11.1 chapter 12 = cycle 4 follow-up]
 
 R-A follow-up 은 4 release 로 분할 진행 (1 release = 1 deliverable, §3.2 의 *1 release DeprecationWarning → 1 release removal* 패턴과 정합):
 

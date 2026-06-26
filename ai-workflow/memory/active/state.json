@@ -1,10 +1,11 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.11.0/backlog/2026-06-26.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.11.1/backlog/2026-06-26.md"
   },
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.1 (7d5a0e4): graph insights (R-A follow-up cycle 4) — workflow_kit.common.purpose_graph helper (6 함수 + 7 dataclass) + cmd_graph_insights dispatcher (subcommand 34, read-only) + 8 acceptance test + spec layer cycle 4 갱신",
       "v0.11.0 (c6c53d0): two-step CoT ingest (R-A follow-up cycle 3) — workflow_kit.common.purpose_ingest helper (5 함수 + 5 dataclass) + 3 skill context load 통합 + cmd_ingest_purpose dispatcher (subcommand 33) + 6 acceptance test + 3 output schema extension + spec layer cycle 3 갱신",
       "v0.10.3 (3ca3a49): wiki file deletion cascade cleanup (R-A follow-up cycle 2)",
       "v0.10.2 (c657853): delivery layer 확장 (claude-code 진입점 정정 + aider/goose/custom + self-bootstrap)",
@@ -40,7 +41,7 @@
       "v0.6.3 (1923705): P4 harness overlay consistency + memory/log.md. v0.6.x series final.",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
     ],
-    "latest_backlog_path": "ai-workflow/memory/release/v0.11.0/backlog/2026-06-26.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.11.1/backlog/2026-06-26.md"
   },
   "wiki": {
     "concepts_count": 28,

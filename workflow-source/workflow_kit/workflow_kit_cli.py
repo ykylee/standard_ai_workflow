@@ -1452,6 +1452,119 @@ def cmd_ingest_purpose(argv: list[str]) -> int:
     return 0
 
 
+@register("graph-insights")
+def cmd_graph_insights(argv: list[str]) -> int:
+    """Graph insights (v0.11.1+, R-A follow-up cycle 4, dispatcher subcommand 34).
+
+    spec §4.3 cycle 4 — PURPOSE.md 의 4-element (Goals / Key Questions / Research Scope / Evolving Thesis)
+    ↔ 실제 deliverable (state.json recent_done_items) 의 매핑 분석.
+    - Goal coverage (covered / partial / uncovered)
+    - Surprising 발견 (scope creep 감지, advisory)
+    - Gaps 식별 (uncovered goal priority 1-3)
+    - Health score (0-100, 4 tier)
+
+    Args:
+        --purpose-path=PATH   PURPOSE.md path (default auto-detect)
+        --workspace-root=PATH workspace root (default: cwd)
+        --state-path=PATH     state.json path (default auto-detect)
+        --no-surprising       surprising analysis skip
+        --no-gaps             gaps analysis skip
+        --json                JSON output
+
+    Returns 0 on success, 2 on error.
+    """
+    purpose_s = _parse_flag(argv, "--purpose-path")
+    workspace_s = _parse_flag(argv, "--workspace-root")
+    state_s = _parse_flag(argv, "--state-path")
+    include_surprising = not _has_flag(argv, "--no-surprising")
+    include_gaps = not _has_flag(argv, "--no-gaps")
+    use_json = _has_flag(argv, "--json")
+
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.common.purpose_graph import run_graph_insights
+
+        workspace_root = _P(workspace_s) if workspace_s else _P.cwd()
+        purpose_path = _P(purpose_s) if purpose_s else None
+        state_path = _P(state_s) if state_s else None
+
+        result = run_graph_insights(
+            purpose_path=purpose_path,
+            workspace_root=workspace_root,
+            state_path=state_path,
+            auto_find=True,
+            include_surprising=include_surprising,
+            include_gaps=include_gaps,
+        )
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    if use_json:
+        out: dict[str, object] = {
+            "goal_keywords_count": len(result.goal_keywords),
+            "recent_items_count": len(result.recent_items),
+            "coverage": {
+                "total": result.coverage.total_goals,
+                "covered_count": result.coverage.covered_count,
+                "partial_count": result.coverage.partial_count,
+                "uncovered_count": result.coverage.uncovered_count,
+                "coverage_pct": result.coverage.coverage_pct,
+                "covered": result.coverage.covered,
+                "partial": result.coverage.partial,
+                "uncovered": result.coverage.uncovered,
+            } if result.coverage else None,
+            "surprising": {
+                "count": len(result.surprising.surprising) if result.surprising else 0,
+                "is_scope_creep_count": sum(result.surprising.is_scope_creep) if result.surprising else 0,
+                "scope_creep_warnings": result.surprising.scope_creep_warnings if result.surprising else [],
+            },
+            "gaps": {
+                "gaps": result.gaps.gaps if result.gaps else [],
+                "priorities": result.gaps.priorities if result.gaps else [],
+                "descriptions": result.gaps.descriptions if result.gaps else [],
+            },
+            "health": {
+                "score": result.health.score if result.health else 0,
+                "tier": result.health.tier if result.health else "unknown",
+                "breakdown": result.health.breakdown if result.health else {},
+            } if result.health else None,
+            "overall_warnings": result.overall_warnings,
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        print("[v0.11.1 cycle 4] Graph insights")
+        print(f"  goal_keywords: {len(result.goal_keywords)}")
+        print(f"  recent_items: {len(result.recent_items)}")
+        if result.coverage:
+            cov = result.coverage
+            print(f"  coverage: {cov.covered_count}/{cov.total_goals} ({cov.coverage_pct}%)")
+            for gid in cov.covered:
+                print(f"    ✓ {gid}: covered")
+            for gid in cov.partial:
+                print(f"    ◐ {gid}: partial")
+            for gid in cov.uncovered:
+                print(f"    ✗ {gid}: uncovered")
+        if result.surprising:
+            print(f"  surprising: {len(result.surprising.surprising)}")
+            for s, is_creep in zip(result.surprising.surprising, result.surprising.is_scope_creep):
+                marker = "⚠️ scope_creep" if is_creep else "out-of-scope"
+                print(f"    - {s[:80]}{'...' if len(s) > 80 else ''} [{marker}]")
+        if result.gaps:
+            print(f"  gaps: {len(result.gaps.gaps)}")
+            for gid, prio, desc in zip(result.gaps.gaps, result.gaps.priorities, result.gaps.descriptions):
+                print(f"    - {gid} (priority={prio}): {desc[:60]}{'...' if len(desc) > 60 else ''}")
+        if result.health:
+            h = result.health
+            print(f"  health: {h.score}/100 ({h.tier})")
+            for k, v in h.breakdown.items():
+                print(f"    {k}: {v:+d}" if k != "base" else f"    {k}: {v}")
+        for w in result.overall_warnings:
+            print(f"  ⚠️ {w}")
+
+    return 0
+
+
 @register("cascade-delete")
 def cmd_cascade_delete(argv: list[str]) -> int:
     """Wiki file deletion cascade cleanup (v0.10.3+, R-A follow-up cycle 2).

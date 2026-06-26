@@ -2,9 +2,16 @@ from workflow_kit.common.schemas.base import BaseOutput, Status, ErrorOutput
 from workflow_kit.common.schemas.backlog import (
     BacklogUpdateOutput,
     BacklogUpdatePurposeContext,
+    BacklogUpdatePurposeCoTTrace,
+    GraphInsightsOutput as BacklogGraphInsightsOutput,
     CreateBacklogEntryOutput,
 )
-from workflow_kit.common.schemas.session import SessionStartOutput, SessionStartPurposeContext
+from workflow_kit.common.schemas.session import (
+    SessionStartOutput,
+    SessionStartPurposeContext,
+    SessionStartPurposeCoTTrace,
+    GraphInsightsOutput as SessionGraphInsightsOutput,
+)
 from workflow_kit.common.schemas.doc_sync import DocSyncOutput, DocSyncPurposeContext
 from workflow_kit.common.schemas.reconcile import ReconcileOutput
 from workflow_kit.common.schemas.index import IndexUpdateOutput

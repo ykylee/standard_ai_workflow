@@ -142,6 +142,15 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - graceful skip: PURPOSE.md / state.json 부재 시 advisory warning + empty result
 - bundle 비율 92% → 95% (graph insights 정형화 패턴 차용)
 
+**v0.11.2 cycle 4 deferred 통합 (follow-up release)** — 3 output schema + 3 skill context load 통합:
+- v0.11.1 의 standalone dispatch 중심 cycle 4 를 *3 output schema extension* + *3 skill context load 통합* 으로 완결성 회복
+- helper module: 기존 `workflow_kit.common.purpose_graph` 재사용 (cycle 4 정합)
+- 3 output schema 확장: `SessionStartOutput.graph_insights` / `BacklogUpdateOutput.graph_insights` / `DocSyncOutput["graph_insights"]` (nested Pydantic model + DocSync dict)
+- `GraphInsightsOutput` nested Pydantic model 3종 (session / backlog; doc-sync dict)
+- 3 skill 의 context load 시 `run_graph_insights` 자동 호출 (session-start / backlog-update / doc-sync)
+- read-only dispatch 정합 (state.json / PURPOSE.md 미변경)
+- graceful skip: PURPOSE.md / state.json 부재 시 모든 field 0 / empty list + warnings
+
 ### 4.4 Suggest-update trigger (wiki 운영 R-1~R9)
 
 기존 R-1~R9 cycle 에 R-A 단계 통합:
@@ -179,7 +188,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - [x] backlog-update 의 *in-scope check* 가 PURPOSE.md §3 Research Scope *제외 영역* 과 비교하여 scope creep warning emit — follow-up (R-A) ✅ v0.9.5 part 2
 - [x] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook + 30일 분포 + LLM suggest (advisory) — follow-up (R-A) ✅ v0.9.6 part 3
 - [ ] two-step CoT ingest (raw 추출 → structured 4-element emit + cross-reference validate) — follow-up (R-A cycle 3) ☐ v0.11.0
-- [ ] graph insights (Goal coverage + surprising + gaps + health score) — follow-up (R-A cycle 4) ☐ v0.11.1
+- [x] graph insights (Goal coverage + surprising + gaps + health score) — follow-up (R-A cycle 4) ✅ v0.11.1 + v0.11.2 schema/skill 통합
 - [ ] `tests/check_purpose_concept_v0_9_2.py` 4-element + LLM-readable + structural verify 모두 PASS
 
 ## 6. Cross-reference

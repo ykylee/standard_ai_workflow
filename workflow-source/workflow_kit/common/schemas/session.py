@@ -48,6 +48,30 @@ class SessionStartPurposeCoTTrace(BaseModel):
     overall_warnings: list[str] = Field(default_factory=list)
 
 
+class GraphInsightsOutput(BaseModel):
+    """v0.11.2 chapter 13 R-A follow-up cycle 4 deferred 통합: graph insights output.
+
+    session-start / backlog-update skill 의 context load 시
+    purpose_graph.run_graph_insights 호출 결과 (cycle 4 의 2차 통합).
+    - coverage_pct: 0.0-100.0 (Goals ↔ deliverables 매칭률)
+    - health_score: 0-100 종합 점수
+    - health_tier: excellent / good / fair / poor
+    - scope_creep_warnings: scope_excluded 매칭 ❌ + Goals 매핑 0 deliverable
+    """
+
+    coverage_pct: float = 0.0
+    covered_count: int = 0
+    uncovered_count: int = 0
+    covered_goals: list[str] = Field(default_factory=list)
+    uncovered_goals: list[str] = Field(default_factory=list)
+    surprising_count: int = 0
+    scope_creep_warnings: list[str] = Field(default_factory=list)
+    gaps_count: int = 0
+    health_score: int = 0
+    health_tier: str = "unknown"
+    warnings: list[str] = Field(default_factory=list)
+
+
 class SessionStartOutput(BaseOutput):
     """Output contract for the session-start skill."""
     status: Status = Status.OK
@@ -61,6 +85,7 @@ class SessionStartOutput(BaseOutput):
     environment_constraints: list[str] = Field(default_factory=list)
     purpose_context: SessionStartPurposeContext | None = None
     purpose_cot_trace: SessionStartPurposeCoTTrace | None = None
+    graph_insights: GraphInsightsOutput | None = None
     # v0.10.2: self-bootstrap mode (PURPOSE.md / state.json / handoff / backlog 모두 부재 시)
     self_bootstrap_suggested: bool = False
     self_bootstrap_init_commands: list[str] = Field(default_factory=list)

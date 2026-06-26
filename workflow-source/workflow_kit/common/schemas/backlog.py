@@ -50,6 +50,27 @@ class BacklogUpdatePurposeCoTTrace(BaseModel):
     overall_warnings: list[str] = Field(default_factory=list)
 
 
+class GraphInsightsOutput(BaseModel):
+    """v0.11.2 chapter 13 R-A follow-up cycle 4 deferred 통합: graph insights output.
+
+    backlog-update skill 의 context load 시 purpose_graph.run_graph_insights 호출 결과.
+    - SessionStartPurposeCoTTrace 와 동일 schema (shared pattern)
+    - coverage_pct + health_score + tier 정량화
+    """
+
+    coverage_pct: float = 0.0
+    covered_count: int = 0
+    uncovered_count: int = 0
+    covered_goals: list[str] = Field(default_factory=list)
+    uncovered_goals: list[str] = Field(default_factory=list)
+    surprising_count: int = 0
+    scope_creep_warnings: list[str] = Field(default_factory=list)
+    gaps_count: int = 0
+    health_score: int = 0
+    health_tier: str = "unknown"
+    warnings: list[str] = Field(default_factory=list)
+
+
 class BacklogUpdateOutput(BaseOutput):
     """Output contract for the backlog-update skill."""
     status: Status = Status.OK
@@ -74,6 +95,7 @@ class BacklogUpdateOutput(BaseOutput):
     source_context: BacklogUpdateSourceContext
     purpose_context: BacklogUpdatePurposeContext | None = None
     purpose_cot_trace: BacklogUpdatePurposeCoTTrace | None = None
+    graph_insights: GraphInsightsOutput | None = None
     scope_creep_warnings: list[str] = Field(default_factory=list)
 
 

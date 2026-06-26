@@ -130,6 +130,25 @@ def main() -> int:
         }
         result.setdefault("warnings", []).extend(cot_result.overall_warnings)
 
+        # v0.11.2 chapter 13 R-A follow-up cycle 4 deferred 통합: graph insights
+        from workflow_kit.common.purpose_graph import run_graph_insights
+
+        graph_result = run_graph_insights(workspace_root=project_root)
+        result["graph_insights"] = {
+            "coverage_pct": graph_result.coverage.coverage_pct if graph_result.coverage else 0.0,
+            "covered_count": graph_result.coverage.covered_count if graph_result.coverage else 0,
+            "uncovered_count": graph_result.coverage.uncovered_count if graph_result.coverage else 0,
+            "covered_goals": graph_result.coverage.covered if graph_result.coverage else [],
+            "uncovered_goals": graph_result.coverage.uncovered if graph_result.coverage else [],
+            "surprising_count": len(graph_result.surprising.surprising) if graph_result.surprising else 0,
+            "scope_creep_warnings": graph_result.surprising.scope_creep_warnings if graph_result.surprising else [],
+            "gaps_count": len(graph_result.gaps.gaps) if graph_result.gaps else 0,
+            "health_score": graph_result.health.score if graph_result.health else 0,
+            "health_tier": graph_result.health.tier if graph_result.health else "unknown",
+            "warnings": graph_result.overall_warnings,
+        }
+        result.setdefault("warnings", []).extend(graph_result.overall_warnings)
+
         if "warnings" in profile_data:
             result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))
         result["status"] = "ok"

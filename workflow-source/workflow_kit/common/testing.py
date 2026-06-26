@@ -213,7 +213,8 @@ def check_generator_present(test_files: list[Path]) -> RuleResult:
     # v0.7.4: hypothesis package 가용성 확인 (optional dependency)
     hypothesis_installed = False
     try:
-        import hypothesis  # noqa: F401
+        # hypothesis 는 optional dependency — mypy 의 import-not-found ignore
+        import hypothesis  # type: ignore[import-not-found]  # noqa: F401
         hypothesis_installed = True
     except ImportError:
         pass

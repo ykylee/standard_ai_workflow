@@ -226,8 +226,12 @@ def run_latest_backlog_step(
         step_name="latest_backlog",
     )
     raw_latest_backlog = latest_backlog_data.get("latest_backlog_path")
-    latest_backlog_path = Path(str(raw_latest_backlog)).resolve() if raw_latest_backlog else None
-    return latest_backlog_data, latest_backlog_path
+    # raw_latest_backlog 가 object 이므로 str 변환 + isinstance narrow + 명시적 type annotation
+    # 함수 본체 내에서 line 204 의 latest_backlog_path 와 별도 변수 (no-redef 회피)
+    resolved_latest_backlog: Path | None = (
+        Path(str(raw_latest_backlog)).resolve() if isinstance(raw_latest_backlog, str) and raw_latest_backlog else None
+    )
+    return latest_backlog_data, resolved_latest_backlog
 
 
 def optional_path_flag(flag: str, path: Path | None) -> list[str]:

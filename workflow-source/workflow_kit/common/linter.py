@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import cast, Dict, List, Any
 
 from workflow_kit.common.project_docs import parse_backlog, parse_handoff
 
@@ -135,9 +135,14 @@ def check_workflow_consistency(
         backlog = {}
 
     # 1. Check in_progress consistency
-    backlog_in_progress = {item.split()[0] for item in backlog.get("in_progress_items", []) if item.startswith("TASK-")}
-    handoff_in_progress = {item.split()[0] for item in handoff.get("in_progress_items", []) if item.startswith("TASK-") and "N/A" not in item}
-    state_in_progress = {item.split()[0] for item in state.get("session", {}).get("in_progress_items", []) if item.startswith("TASK-") and "N/A" not in item}
+    # backlog/handoff/state 의 dict type 이 dict[str, object] 로 추정 → .get 결과 object.
+    # 명시적 list[str] cast 후 item.startswith / split 가능.
+    backlog_in_progress_raw = backlog.get("in_progress_items", [])
+    handoff_in_progress_raw = handoff.get("in_progress_items", [])
+    state_in_progress_raw = state.get("session", {}).get("in_progress_items", [])
+    backlog_in_progress = {item.split()[0] for item in cast(list[str], backlog_in_progress_raw) if item.startswith("TASK-")}
+    handoff_in_progress = {item.split()[0] for item in cast(list[str], handoff_in_progress_raw) if item.startswith("TASK-") and "N/A" not in item}
+    state_in_progress = {item.split()[0] for item in cast(list[str], state_in_progress_raw) if item.startswith("TASK-") and "N/A" not in item}
 
     all_tasks = backlog_in_progress | handoff_in_progress | state_in_progress
     for task in all_tasks:
@@ -156,7 +161,7 @@ def check_workflow_consistency(
             })
 
     # 2. Check for bloat in handoff
-    done_items = handoff.get("recent_done_items", [])
+    done_items = cast("list[object]", handoff.get("recent_done_items", []))
     if len(done_items) > 10:
         issues.append({
             "type": "bloat_warning",

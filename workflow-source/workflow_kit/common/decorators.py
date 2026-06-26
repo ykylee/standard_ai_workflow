@@ -18,7 +18,7 @@ import sys
 import threading
 import time
 import warnings
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -64,13 +64,15 @@ def graceful_shutdown(
     """
     # direct decoration: @graceful_shutdown (no parens)
     if fn is not None and callable(fn):
-        return _wrap_with_shutdown(fn, cleanup=cleanup, timeout_sec=timeout_sec)
+        # _wrap_with_shutdown returns F (cast for mypy Callable[[F], F] narrow)
+        return cast(F, _wrap_with_shutdown(fn, cleanup=cleanup, timeout_sec=timeout_sec))
 
     # parameterized: @graceful_shutdown(cleanup=..., timeout_sec=...)
     def decorator(func: F) -> F:
         return _wrap_with_shutdown(func, cleanup=cleanup, timeout_sec=timeout_sec)
 
-    return decorator
+    # mypy 가 decorator 를 Callable[[F], F] 로 추론 → F 로 narrow (cast)
+    return cast(F, decorator)
 
 
 def _wrap_with_shutdown(
@@ -90,10 +92,10 @@ def _wrap_with_shutdown(
             if shutdown_initiated.is_set():
                 return  # double signal → force exit
             shutdown_initiated.set()
-            sig_name = {
-                signal.SIGINT: "SIGINT",
-                signal.SIGTERM: "SIGTERM",
-            }.get(signum, f"signal-{signum}")
+            sig_name = cast(str, {
+                signal.SIGINT.value: "SIGINT",
+                signal.SIGTERM.value: "SIGTERM",
+            }.get(signum, f"signal-{signum}"))
             print(f"\n[{fn.__name__}] received {sig_name}, running cleanup...", file=sys.stderr)
             if cleanup is not None:
                 try:

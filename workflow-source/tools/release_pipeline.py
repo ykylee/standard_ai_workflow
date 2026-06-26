@@ -90,6 +90,8 @@ def cmd_validate(args) -> dict:
     2. workflow_kit.cli.doctor: 7 baseline 모두 evaluate (state-aware variant)
     3. state.json freshness: v0.7.5+ refresh_wiki_memory 의 last_freeze / last_ingest
     4. git status: working tree clean (release commit 의 clean state 보장)
+    5. mypy strict: v0.11.12+ — workflow_kit/ mypy 2.1.0 strict 0 errors 강제
+       (CI mypy-strict workflow 와 동일 invocation, release-time gate)
     """
     results: dict = {}
 
@@ -168,6 +170,46 @@ def cmd_validate(args) -> dict:
         }
     else:
         results["git"] = {"ok": True, "skipped": True}
+
+    # 5. mypy strict (v0.11.12+ — release-time gate, CI mypy-strict workflow 의 local mirror)
+    # v0.11.10 의 FULL mypy strict 도달 (35 file strict clean) 을 release-time 강제.
+    # CI (.github/workflows/mypy-strict.yml) 가 PR-time 방어선이라면, 본 check 는
+    # release-time 방어선. invocation 은 CI 와 동일:
+    #   `mypy --no-incremental workflow_kit/` (cwd = parent_of_REPO_ROOT, 절대경로)
+    # sub-package 의 workflow_kit/pyproject.toml (strict=false) 와 parent 의
+    # workflow-source/pyproject.toml (strict=true) 의 merge 회피.
+    # REPO_ROOT = workflow-source/ (release_pipeline.py 의 Path.__file__.parents[1] 정의)
+    # 이므로, *project root* (REPO_ROOT.parent) 를 cwd 로 사용하고, target 을 절대경로.
+    if not getattr(args, "skip_mypy", False):
+        try:
+            mypy_target = str(REPO_ROOT / "workflow_kit/")
+            mypy_proc = subprocess.run(
+                [sys.executable, "-m", "mypy", "--no-incremental", mypy_target],
+                cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120,
+            )
+            # error count: lines like "file.py:LINE: error: ... [rule]"
+            error_lines = [
+                line for line in mypy_proc.stdout.splitlines()
+                if ".py:" in line and "error:" in line
+            ]
+            first_error = error_lines[0] if error_lines else None
+            results["mypy"] = {
+                "ok": mypy_proc.returncode == 0,
+                "exit_code": mypy_proc.returncode,
+                "error_count": len(error_lines),
+                "first_error": first_error,
+            }
+        except FileNotFoundError:
+            # mypy module 부재 — dev extra install 누락. v0.11.11 pin 정합 이지만
+            # 환경 문제 가능. hard fail (gate 가 무효 = release 정지).
+            results["mypy"] = {
+                "ok": False,
+                "error": "mypy module not installed (run `pip install -e ./workflow-source/workflow_kit[dev]`)",
+            }
+        except subprocess.TimeoutExpired:
+            results["mypy"] = {"ok": False, "error": "mypy timeout (>120s)"}
+    else:
+        results["mypy"] = {"ok": True, "skipped": True}
 
     return results
 
@@ -1613,11 +1655,12 @@ def main() -> int:
     sub = p.add_subparsers(dest="command", required=True)
 
     # validate
-    p_val = sub.add_parser("validate", help="release-readiness 검증 (4 source)")
+    p_val = sub.add_parser("validate", help="release-readiness 검증 (4 source + mypy)")
     p_val.add_argument("--skip-packaging", action="store_true", help="check_packaging skip")
     p_val.add_argument("--skip-doctor", action="store_true", help="doctor skip")
     p_val.add_argument("--skip-state", action="store_true", help="state.json check skip")
     p_val.add_argument("--skip-git", action="store_true", help="git status check skip")
+    p_val.add_argument("--skip-mypy", action="store_true", help="mypy strict check skip (v0.11.12+)")
     p_val.add_argument("--dry-run", action="store_true")
     p_val.add_argument("--json", action="store_true")
 

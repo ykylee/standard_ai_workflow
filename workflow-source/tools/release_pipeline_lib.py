@@ -58,9 +58,23 @@ def _make_args(**kwargs):
 
     release_pipeline's cmd_* functions read attributes from a parsed argparse
     Namespace. We build one from kwargs so callers don't need argparse.
+
+    v0.11.12+: validate-관련 default attribute 들 (skip_packaging / skip_doctor /
+    skip_state / skip_git / skip_mypy) 을 False 로 자동 fill. cmd_release 가
+    내부적으로 cmd_validate 를 호출할 때 모든 skip flag 가 필요 (release_pipeline
+    의 direct attribute access `args.skip_packaging` 등 정합).
     """
     from types import SimpleNamespace
-    return SimpleNamespace(**kwargs)
+    defaults = {
+        "skip_packaging": False,
+        "skip_doctor": False,
+        "skip_state": False,
+        "skip_git": False,
+        "skip_mypy": False,
+        "skip_validate": False,
+    }
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
 
 
 # ---------------------------------------------------------------------------
@@ -68,11 +82,15 @@ def _make_args(**kwargs):
 # ---------------------------------------------------------------------------
 
 def cmd_validate(skip_packaging: bool = False, skip_doctor: bool = False,
-                 skip_state: bool = False, skip_git: bool = False) -> dict:
+                 skip_state: bool = False, skip_git: bool = False,
+                 skip_mypy: bool = False) -> dict:
     """Run cmd_validate from tools/release_pipeline.py in-process.
 
-    Returns the dict shape produced by cmd_validate (4 keys: packaging / doctor /
-    state / git, each with `ok` boolean + details).
+    Returns the dict shape produced by cmd_validate (5 keys: packaging / doctor /
+    state / git / mypy, each with `ok` boolean + details).
+
+    v0.11.12+: mypy source 추가 (release-time gate, CI mypy-strict workflow 의
+    local mirror). mypy 2.1.0 strict 0 errors 강제.
     """
     mod = _load_release_pipeline()
     args = _make_args(
@@ -80,6 +98,7 @@ def cmd_validate(skip_packaging: bool = False, skip_doctor: bool = False,
         skip_doctor=skip_doctor,
         skip_state=skip_state,
         skip_git=skip_git,
+        skip_mypy=skip_mypy,
     )
     return mod.cmd_validate(args)
 
@@ -158,7 +177,9 @@ def cmd_changelog_gen(*, from_tag: str | None = None, to_tag: str = "HEAD",
 
 
 def cmd_release(*, version: str, notes_template: str | None = None,
-                skip_validate: bool = False, auto_bump: bool = False,
+                skip_validate: bool = False, skip_mypy: bool = False,
+                auto_bump: bool = False, full_auto: bool = False,
+                allow_existing_tag: bool = False,
                 apply: bool = False) -> dict:
     """Run cmd_release in-process (v0.7.56+, GitHub Release create).
 
@@ -166,7 +187,10 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         version: target version (e.g. "0.7.56")
         notes_template: path to notes template (optional)
         skip_validate: skip 4-source validate (not recommended)
+        skip_mypy: skip mypy strict pre-check (v0.11.12+, not recommended)
         auto_bump: if remote tag exists, auto-bump to next version
+        full_auto: pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화 (v0.9.1+)
+        allow_existing_tag: remote tag 가 이미 존재해도 그대로 진행 (v0.7.21+)
         apply: if True, actually create the release (default dry-run)
 
     Returns:
@@ -177,7 +201,10 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         version=version,
         notes_template=notes_template,
         skip_validate=skip_validate,
+        skip_mypy=skip_mypy,
         auto_bump=auto_bump,
+        full_auto=full_auto,
+        allow_existing_tag=allow_existing_tag,
         apply=apply,
         dry_run=not apply,
     )

@@ -884,6 +884,8 @@ def cmd_release_create(argv: list[str]) -> int:
         --notes-template=PATH    notes template file (optional)
         --skip-validate          skip 4-source validate (not recommended)
         --auto-bump              auto-bump if remote tag exists
+        --skip-mypy              skip mypy strict pre-check (v0.11.12+, not recommended)
+        --full-auto              pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화
         --apply                  actually create release (default dry-run)
         --json                   JSON output
     """
@@ -896,7 +898,10 @@ def cmd_release_create(argv: list[str]) -> int:
         version=version,
         notes_template=_parse_flag(argv, "--notes-template"),
         skip_validate=_has_flag(argv, "--skip-validate"),
+        skip_mypy=_has_flag(argv, "--skip-mypy"),
         auto_bump=_has_flag(argv, "--auto-bump"),
+        full_auto=_has_flag(argv, "--full-auto"),
+        allow_existing_tag=_has_flag(argv, "--allow-existing-tag"),
         apply=_has_flag(argv, "--apply"),
     )
 

@@ -203,7 +203,7 @@ def cmd_release_status(args) -> dict[str, Any]:
         ready = True
         ready_reason = "all checks pass + unreleased commits present"
 
-    return {
+    result = {
         "current_version": current,
         "last_release_tag": last_tag,
         "unreleased_commits": unreleased,
@@ -218,3 +218,32 @@ def cmd_release_status(args) -> dict[str, Any]:
         "ready_to_release": ready,
         "ready_reason": ready_reason,
     }
+    # v0.11.15+ 1-line summary (jq-friendly)
+    result["summary"] = _summarize_release_status(result)
+    return result
+
+
+def _summarize_release_status(result: dict[str, Any]) -> str:
+    """1-line summary of release status (v0.11.15+, jq-friendly).
+
+    Returns:
+        Compact 1-line string. format = \`ci_mypy=<verdict>, local_mypy=<ok|FAIL>,
+        ready=<true|false>, next=<X.Y.Z>, unreleased=<count>\`. Stable key order
+        for grep / pipe.
+
+    Example:
+        \`ci_mypy=sanity, local_mypy=ok, ready=false, next=0.11.15, unreleased=0\`
+    """
+    ci_verdict = result.get("ci_mypy", {}).get("verdict", "unknown")
+    local_ok = result.get("local_mypy", {}).get("ok", False)
+    local_mypy_str = "ok" if local_ok else "FAIL"
+    ready = result.get("ready_to_release", False)
+    next_v = result.get("next_version", {}).get("next", "?")
+    unreleased = result.get("unreleased_commits", {}).get("count", 0)
+    return (
+        f"ci_mypy={ci_verdict}, "
+        f"local_mypy={local_mypy_str}, "
+        f"ready={'true' if ready else 'false'}, "
+        f"next={next_v}, "
+        f"unreleased={unreleased}"
+    )

@@ -1686,6 +1686,8 @@ def cmd_release_status(argv: list[str]) -> int:
         if use_json:
             print(_json.dumps(result, indent=2, ensure_ascii=False, default=str))
         else:
+            # v0.11.15+ 1-line summary 가독성
+            print(f"summary: {result.get('summary')}")
             print(f"current_version: {result.get('current_version')}")
             print(f"last_release_tag: {result.get('last_release_tag')}")
             print(f"unreleased_commits: {result.get('unreleased_commits', {}).get('count', 0)}")

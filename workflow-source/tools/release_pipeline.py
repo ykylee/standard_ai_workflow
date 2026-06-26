@@ -359,11 +359,66 @@ def _resolve_cross_verify_verdict(ci_mypy: dict, local_mypy: dict) -> str:
     if ci_verdict != "ci_sanity":
         return ci_verdict or "absent"
     # ci_sanity 인 경우에만 local mypy 와 cross-verify
-    if local_mypy.get("skipped"):
+    # local_mypy 가 비어있거나 (--skip-validate) skipped 면 no_local_verify
+    if not local_mypy or local_mypy.get("skipped"):
         return "no_local_verify"
     if local_mypy.get("ok"):
         return "sanity"
     return "drift_warning"
+
+
+def _attach_release_summary(results: dict) -> dict:
+    """results dict 에 v0.11.15+ 1-line summary 추가. 모든 return point 에서 호출.
+
+    summary format: `ci_mypy=<verdict>, local_mypy=<ok|FAIL|skipped>,
+    ready=<true|false>, next=<X.Y.Z|->, error=<error message or ok>`
+
+    `cmd_release --json | jq -r '.summary'` 로 *1-line grep / pipe 가능*.
+    """
+    ci_verdict = results.get("ci_mypy", {}).get("verdict", "skipped")
+    # local mypy 조회: pre_check.mypy (validate 활성 시) 또는 ci_mypy.local_mypy (cross-verify)
+    local_mypy = results.get("pre_check", {}).get("mypy", {})
+    if not local_mypy:
+        # pre_check 가 비어있거나 mypy source 부재 (--skip-validate or --skip-mypy)
+        local_mypy = results.get("ci_mypy", {}).get("local_mypy", {})
+    if not local_mypy:
+        # 둘 다 부재 → skipped (--skip-validate or mypy source 부재)
+        local_str = "skipped"
+    elif local_mypy.get("skipped"):
+        local_str = "skipped"
+    elif local_mypy.get("ok"):
+        local_str = "ok"
+    else:
+        local_str = "FAIL"
+    # ready_to_release (Layer 1 sanity + Layer 2 ok + tag mismatch X)
+    if not results.get("error"):
+        # success path: error 부재 + ci sanity
+        if ci_verdict in ("sanity", "ci_sanity", "no_local_verify", "absent", "skipped") and local_str == "ok":
+            ready = "true"
+        else:
+            ready = "false"
+    else:
+        ready = "false"
+    # next version (version_source 또는 cli flag) — version_source 는 source label (cli-flag,
+    # auto-bump, pyproject.toml) 이고 실제 version 은 다른 field. pyproject.toml 의 경우
+    # read_version() 으로 읽은 값이지만, results 에는 source label 만 남는다.
+    next_v = results.get("version") or results.get("version_source", "-")
+    if next_v == "auto-bump" or next_v == "full-auto-bump":
+        next_v = results.get("auto_bump", {}).get("next", "-")
+    # version_source 가 label 이면 raw version 으로 fallback (없으면 label 유지)
+    if next_v in ("cli-flag", "pyproject.toml", "auto-bump", "full-auto-bump"):
+        # next_v 가 label 이면 results["error"] 부재 시엔 tag/version 표시, 있으면 "-"
+        next_v = "-"
+    err = results.get("error", "ok")
+    summary = (
+        f"ci_mypy={ci_verdict}, "
+        f"local_mypy={local_str}, "
+        f"ready={ready}, "
+        f"next={next_v}, "
+        f"error={err if isinstance(err, str) else 'ok'}"
+    )
+    results["summary"] = summary
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -1174,13 +1229,13 @@ def cmd_release(args) -> dict:
         # --strict-cross-verify: ci_stale / ci_fail 시 hard fail
         if getattr(args, "strict_cross_verify", False):
             if ci_verdict in ("ci_stale", "ci_fail"):
-                return {
+                return _attach_release_summary({
                     **results,
                     "error": (
                         f"strict cross-verify failed: ci_mypy.verdict={ci_verdict!r}, "
                         f"message={ci_mypy.get('message')!r}"
                     ),
-                }
+                })
 
     # 2. validate (사전 점검)
     if not args.skip_validate:
@@ -1197,25 +1252,25 @@ def cmd_release(args) -> dict:
         final_verdict = _resolve_cross_verify_verdict(results["ci_mypy"], local_mypy)
         results["ci_mypy"]["verdict"] = final_verdict
         results["ci_mypy"]["local_mypy"] = {
-            "ok": local_mypy.get("ok"),
-            "skipped": local_mypy.get("skipped", False),
-            "error_count": local_mypy.get("error_count"),
+            "ok": local_mypy.get("ok") if local_mypy else None,
+            "skipped": (not local_mypy) or local_mypy.get("skipped", False),
+            "error_count": local_mypy.get("error_count") if local_mypy else None,
         }
         # --strict-cross-verify: final verdict 도 hard fail 대상
         if getattr(args, "strict_cross_verify", False):
             if final_verdict in ("drift_warning", "ci_stale", "ci_fail"):
-                return {
+                return _attach_release_summary({
                     **results,
                     "error": (
                         f"strict cross-verify failed: ci_mypy.verdict={final_verdict!r}, "
                         f"local_mypy={results['ci_mypy']['local_mypy']!r}, "
                         f"message={results['ci_mypy'].get('message')!r}"
                     ),
-                }
+                })
 
     # 3. validate fail 시 early return (cross-verify 결과는 이미 results 에 포함됨)
     if validate_failed:
-        return {**results, "error": "validate failed; abort release"}
+        return _attach_release_summary({**results, "error": "validate failed; abort release"})
 
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
@@ -1248,7 +1303,7 @@ def cmd_release(args) -> dict:
 
     dist_files = find_dist_files(version)
     if not dist_files:
-        return {**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"}
+        return _attach_release_summary({**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"})
 
     # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}-beta"
@@ -1256,10 +1311,10 @@ def cmd_release(args) -> dict:
     notes_template = getattr(args, "notes_template", "default") or "default"
     notes_resolution = _resolve_notes_file(version, notes_template, dry_run=args.dry_run)
     if notes_resolution.get("error"):
-        return {**results, "error": notes_resolution["error"]}
+        return _attach_release_summary({**results, "error": notes_resolution["error"]})
     notes_file = notes_resolution["notes_file"]
     if not notes_file.exists():
-        return {**results, "error": f"release note not found: {notes_file}"}
+        return _attach_release_summary({**results, "error": f"release note not found: {notes_file}"})
 
     # 3.5 원격 tag pre-check + tag push (v0.7.18+ race lesson, v0.7.21+ follow-up,
     # v0.9.1+ --full-auto: pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화)
@@ -1291,7 +1346,7 @@ def cmd_release(args) -> dict:
                     tag = f"v{version}-beta"
                     dist_files = find_dist_files(version)
                     if not dist_files:
-                        return {**results, "error": f"no dist files for {version} after --full-auto bump"}
+                        return _attach_release_summary({**results, "error": f"no dist files for {version} after --full-auto bump"})
                     tag_check = _check_remote_tag(tag)
                     results["tag_pre_check"] = tag_check
                     results["full_auto_re_tag"] = tag
@@ -1339,7 +1394,7 @@ def cmd_release(args) -> dict:
             "stderr_tail": push_tag_proc.stderr.strip().split("\n")[-1] if push_tag_proc.stderr else "",
         }
         if push_tag_proc.returncode != 0 and not getattr(args, "allow_existing_tag", False):
-            return {**results, "error": f"git push tag {tag} failed: {push_tag_proc.stderr.strip()}"}
+            return _attach_release_summary({**results, "error": f"git push tag {tag} failed: {push_tag_proc.stderr.strip()}"})
     else:
         # dry-run: pre-check 결과 + warning (plan 검증)
         tag_check = _check_remote_tag(tag)
@@ -1380,7 +1435,7 @@ def cmd_release(args) -> dict:
     # 5. gh auth check + release create
     auth_proc = subprocess.run(["gh", "auth", "status"], capture_output=True, text=True, timeout=10)
     if auth_proc.returncode != 0:
-        return {**results, "error": "gh auth not authenticated"}
+        return _attach_release_summary({**results, "error": "gh auth not authenticated"})
     results["gh_auth_ok"] = True
 
     proc = subprocess.run(gh_cmd, capture_output=True, text=True, timeout=120)
@@ -1390,8 +1445,8 @@ def cmd_release(args) -> dict:
     if proc.stderr:
         results["gh_stderr_tail"] = proc.stderr.strip().split("\n")[-1]
     if proc.returncode != 0:
-        return {**results, "error": f"gh release create failed: exit {proc.returncode}"}
-    return results
+        return _attach_release_summary({**results, "error": f"gh release create failed: exit {proc.returncode}"})
+    return _attach_release_summary(results)
 
 
 # ---------------------------------------------------------------------------

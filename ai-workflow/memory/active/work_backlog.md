@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-26 (v0.11.0~v0.11.10 release entries 추가, state drift fix)
+- 최종 수정일: 2026-06-26 (v0.11.11~v0.11.15 release entries 추가, state drift fix)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -15,6 +15,21 @@
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
 
 ## 최근 작업 백로그
+
+### [[release/v0.11.15/backlog/2026-06-26.md]] {#release-v0-11-15}
+- 2026-06-26: v0.11.15 — **SemVer patch**, release summary 1-line (jq-friendly verdict). `cmd_release` + `cmd_release_status` JSON output 에 `summary` 5-field (ci_mypy / local_mypy / ready / next / error|unreleased) 추가. `_summarize_release_status` (release_status.py) + `_attach_release_summary` (release_pipeline.py) 2 helper + 11 return point wrap. `_resolve_cross_verify_verdict` 정합 (local empty → no_local_verify, 이전 drift_warning 잘못). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.15-beta>.
+
+### [[release/v0.11.14/backlog/2026-06-26.md]] {#release-v0-11-14}
+- 2026-06-26: v0.11.14 — **SemVer patch**, release-status dispatcher (신규 workflow_kit/<module> mypy strict clean 2-layer defense 실증). 신규 `workflow_kit/release_status.py` (6 helper + cmd_release_status) + dispatcher `release-status` subcommand (subcommand 35, read-only) + `__init__.py` import + `__all__` + cumulative count 35 → 36. Layer 1 + Layer 2 mypy strict defense 의 *실증 사례*. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.14-beta>.
+
+### [[release/v0.11.13/backlog/2026-06-26.md]] {#release-v0-11-13}
+- 2026-06-26: v0.11.13 — **SemVer patch**, mypy CI cross-verify (Layer 1 ↔ Layer 2 정합 advisory). `_cross_verify_ci_mypy` helper (gh run list mypy-strict.yml 조회) + `_resolve_cross_verify_verdict` (CI-only verdict + local mypy → 7 final verdict: sanity / drift_warning / ci_stale / ci_fail / no_local_verify / absent / skipped). argparse `--skip-cross-verify` / `--strict-cross-verify` flag. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.13-beta>.
+
+### [[release/v0.11.12/backlog/2026-06-26.md]] {#release-v0-11-12}
+- 2026-06-26: v0.11.12 — **SemVer patch**, mypy strict release-time gate (cmd_release pre-check 확장). `cmd_validate` 5번째 source `mypy` 추가 (REPO_ROOT.parent cwd + 절대경로, sub-package config merge 회피). argparse `--skip-mypy` flag. dispatcher 3 flag forwarding (--skip-mypy / --full-auto / --allow-existing-tag, in-scope fix: v0.7.21~v0.9.1 사이의 latent bug 9 release 동안 no-op). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.12-beta>.
+
+### [[release/v0.11.11/backlog/2026-06-26.md]] {#release-v0-11-11}
+- 2026-06-26: v0.11.11 — **SemVer patch**, mypy strict CI 통합 (GH Actions mypy-strict workflow). `.github/workflows/mypy-strict.yml` 신규 (push to main + PR to main + workflow_dispatch). invocation = `mypy --no-incremental workflow-source/workflow_kit/` (REPO_ROOT cwd, 절대경로, sub-package config merge 회피). dev extra mypy pin `>=1.0` → `==2.1.0`. CI mypy-strict workflow passing. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.11-beta>.
 
 ### [[release/v0.10.3/backlog/2026-06-24.md]] {#release-v0-10-3}
 

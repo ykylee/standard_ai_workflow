@@ -1,6 +1,6 @@
 {
   "source_of_truth": {
-    "latest_backlog_path": "ai-workflow/memory/release/v0.11.10/backlog/2026-06-26.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.11.15/backlog/2026-06-26.md"
   },
   "session": {
     "in_progress_items": [],
@@ -50,7 +50,7 @@
       "v0.6.3 (1923705): P4 harness overlay consistency + memory/log.md. v0.6.x series final.",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
     ],
-    "latest_backlog_path": "ai-workflow/memory/release/v0.11.10/backlog/2026-06-26.md"
+    "latest_backlog_path": "ai-workflow/memory/release/v0.11.15/backlog/2026-06-26.md"
   },
   "wiki": {
     "concepts_count": 28,

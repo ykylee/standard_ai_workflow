@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.6 (48b35e8): mypy strict 단계적 격상 17-18단계 (session_outputs + read_only_bundle) — 3+3=6 errors 해소 + cumulative 25→27 file + cast 기반 object narrow",
       "v0.11.5 (ba27ffd): mypy strict 단계적 격상 15-16단계 (decorators + linter) — decorators 2 + linter 4 = 6 errors 해소 + cumulative 23→25 file + cast 기반 type narrow",
       "v0.11.4 (f312c17): mypy strict 단계적 격상 13-14단계 (output_contracts + milestones) — 6+4=10 errors 해소 + cumulative 21→23 file + workflow_kit/__init__.py docstring 갱신 + runtime 영향 ❌ (annotation only)",
       "v0.11.3 (0268af9): mypy strict 단계적 격상 11-12단계 (purpose_ingest + purpose_graph) — 0 strict errors verify + cumulative 19→21 file 갱신 + workflow_kit/__init__.py docstring 갱신",

@@ -22,6 +22,8 @@ Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정�
       v0.11.3 21 + v0.11.4 13-14단계 (output_contracts + milestones) = 23 file
     - v0.11.5 누적: 25 file strict clean
       v0.11.4 23 + v0.11.5 15-16단계 (decorators + linter) = 25 file
+    - v0.11.6 누적: 27 file strict clean
+      v0.11.5 25 + v0.11.6 17-18단계 (session_outputs + read_only_bundle) = 27 file
 """
 from __future__ import annotations
 
@@ -118,7 +120,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.5-beta"
+    return "v0.11.6-beta"
 
 
 __version__: str = _read_pyproject_version()

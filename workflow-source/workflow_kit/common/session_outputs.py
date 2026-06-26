@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import cast
+
 from workflow_kit.common.modes.registry import get_mode_guidelines, recommend_mode_from_text
 
 
@@ -21,7 +23,9 @@ def build_session_summary(
         summary.extend(get_mode_guidelines(current_mode))
     else:
         # Try to recommend a mode based on task titles
-        in_progress_tasks = [t for t in tasks if isinstance(t, dict) and t.get("status") == "in_progress"]
+        # tasks 의 type narrow: backlog.get("tasks", []) 가 object 임을 명시적 narrow
+        tasks_list = cast("list[object]", tasks)
+        in_progress_tasks = [t for t in tasks_list if isinstance(t, dict) and t.get("status") == "in_progress"]
         if in_progress_tasks:
             recommended = recommend_mode_from_text(in_progress_tasks[0].get("title", ""))
             if recommended:
@@ -33,10 +37,14 @@ def build_session_summary(
         summary.append(f"현재 기준선: {handoff['current_baseline']}")
     if handoff.get("current_axis"):
         summary.append(f"주 작업 축: {handoff['current_axis']}")
-    if backlog.get("in_progress_items"):
-        summary.append(f"진행 중 작업 {len(backlog['in_progress_items'])}건 확인")
-    elif handoff.get("in_progress_items"):
-        summary.append(f"handoff 기준 진행 중 작업 {len(handoff['in_progress_items'])}건 확인")
+    backlog_ip_raw = backlog.get("in_progress_items", [])
+    handoff_ip_raw = handoff.get("in_progress_items", [])
+    backlog_ip = cast("list[object]", backlog_ip_raw) if isinstance(backlog_ip_raw, list) else []
+    handoff_ip = cast("list[object]", handoff_ip_raw) if isinstance(handoff_ip_raw, list) else []
+    if backlog_ip:
+        summary.append(f"진행 중 작업 {len(backlog_ip)}건 확인")
+    elif handoff_ip:
+        summary.append(f"handoff 기준 진행 중 작업 {len(handoff_ip)}건 확인")
     if handoff.get("constraints"):
         summary.append(f"주요 제약: {handoff['constraints']}")
     elif profile.get("constraints"):

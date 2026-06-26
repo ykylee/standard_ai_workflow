@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import cast, Any
 
 from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
@@ -266,9 +266,16 @@ def create_session_handoff_draft_payload(
     if latest_backlog_path:
         path = resolve_existing_path(latest_backlog_path)
         backlog = parse_backlog(path)
-        in_progress_items.extend(str(item) for item in backlog.get("in_progress_items", []))
-        done_items.extend(str(item) for item in backlog.get("done_items", []))
-        warnings.extend(str(warning) for warning in backlog.get("warnings", []))
+        # backlog type 이 dict[str, object] → .get 결과 object 명시적 narrow
+        backlog_ip_raw = backlog.get("in_progress_items", [])
+        backlog_done_raw = backlog.get("done_items", [])
+        backlog_warn_raw = backlog.get("warnings", [])
+        backlog_ip = cast("list[object]", backlog_ip_raw) if isinstance(backlog_ip_raw, list) else []
+        backlog_done = cast("list[object]", backlog_done_raw) if isinstance(backlog_done_raw, list) else []
+        backlog_warn = cast("list[object]", backlog_warn_raw) if isinstance(backlog_warn_raw, list) else []
+        in_progress_items.extend(str(item) for item in backlog_ip)
+        done_items.extend(str(item) for item in backlog_done)
+        warnings.extend(str(warning) for warning in backlog_warn)
 
     if not done_items and not in_progress_items:
         warnings.append("최신 백로그에서 진행 중이거나 완료된 작업을 찾지 못했다.")

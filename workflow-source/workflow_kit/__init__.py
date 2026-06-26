@@ -33,6 +33,8 @@ Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정�
     - v0.11.10 누적: 35 file strict clean
       v0.11.9 33 + v0.11.10 25-26단계 (project_docs + profiling) = 35 file
       🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors)
+    - v0.11.14 누적: 36 file strict clean
+      v0.11.10 35 + v0.11.14 27단계 (release_status.py 신규) = 36 file
 """
 from __future__ import annotations
 
@@ -60,6 +62,7 @@ from . import (
     path_resolver,
     phishing_federation,
     phishing_keywords,
+    release_status,
     upgrade_diff,
     url_validity,
     v_r13_commit_diff,
@@ -89,6 +92,7 @@ __all__: list[str] = [
     "path_resolver",
     "phishing_federation",
     "phishing_keywords",
+    "release_status",
     "upgrade_diff",
     "url_validity",
     "v_r13_commit_diff",
@@ -129,7 +133,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.13-beta"
+    return "v0.11.14-beta"
 
 
 __version__: str = _read_pyproject_version()

@@ -1659,6 +1659,49 @@ def cmd_cascade_delete(argv: list[str]) -> int:
         return 2
 
 
+@register("release-status")
+def cmd_release_status(argv: list[str]) -> int:
+    """Release pipeline status aggregator (v0.11.14+, read-only, subcommand 35).
+
+    Aggregates:
+    - current pyproject version
+    - last release tag (git describe)
+    - unreleased commits (count + list)
+    - CI mypy cross-verify verdict (v0.11.13+ Layer 1)
+    - local mypy strict status (v0.11.12+ Layer 2)
+    - next version (auto-bump hint)
+    - ready_to_release verdict (all checks pass)
+
+    Args:
+        --json          JSON output
+    """
+    import json as _json
+    use_json = _has_flag(argv, "--json")
+    try:
+        # lazy import (release_status 는 v0.11.14 신규)
+        from workflow_kit.release_status import cmd_release_status as _impl
+        import argparse
+        args = argparse.Namespace()  # release_status 의 cmd_release_status 는 args 안 사용
+        result = _impl(args)
+        if use_json:
+            print(_json.dumps(result, indent=2, ensure_ascii=False, default=str))
+        else:
+            print(f"current_version: {result.get('current_version')}")
+            print(f"last_release_tag: {result.get('last_release_tag')}")
+            print(f"unreleased_commits: {result.get('unreleased_commits', {}).get('count', 0)}")
+            print(f"ci_mypy.verdict: {result.get('ci_mypy', {}).get('verdict')}")
+            print(f"ci_mypy.head_sha_match: {result.get('ci_mypy', {}).get('head_sha_match')}")
+            print(f"local_mypy.ok: {result.get('local_mypy', {}).get('ok')}")
+            print(f"local_mypy.error_count: {result.get('local_mypy', {}).get('error_count')}")
+            print(f"next_version: {result.get('next_version', {}).get('next')}")
+            print(f"ready_to_release: {result.get('ready_to_release')}")
+            print(f"ready_reason: {result.get('ready_reason')}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

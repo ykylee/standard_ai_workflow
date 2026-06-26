@@ -201,7 +201,7 @@ def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> 
     if target_label is None:
         return
 
-    current_lists = {
+    current_lists: dict[str, list[str]] = {
         "현재 `in_progress` 작업": [],
         "현재 `blocked` 작업": [],
         "최근 완료 작업 목록": [],

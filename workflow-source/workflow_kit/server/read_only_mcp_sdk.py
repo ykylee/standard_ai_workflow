@@ -10,7 +10,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import cast, Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -105,15 +105,17 @@ def build_lowlevel_server() -> Any:
 
     @server.list_tools()
     async def list_tools() -> list[Any]:
+        # descriptors type 이 dict[str, object] → .get("tools") object 명시적 narrow
+        tools_list = cast("list[object]", descriptors.get("tools", [])) if isinstance(descriptors.get("tools"), list) else []
         return [
             sdk.types.Tool(
-                name=descriptor["name"],
-                description=descriptor["description"],
-                inputSchema=descriptor["inputSchema"],
-                outputSchema=descriptor["outputSchema"],
-                annotations=descriptor["annotations"],
+                name=cast("dict[str, object]", descriptor)["name"],
+                description=cast("dict[str, object]", descriptor)["description"],
+                inputSchema=cast("dict[str, object]", descriptor)["inputSchema"],
+                outputSchema=cast("dict[str, object]", descriptor)["outputSchema"],
+                annotations=cast("dict[str, object]", descriptor)["annotations"],
             )
-            for descriptor in descriptors["tools"]
+            for descriptor in tools_list
         ]
 
     @server.call_tool(validate_input=False)

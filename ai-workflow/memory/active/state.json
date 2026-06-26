@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.8 (8c5946a): mypy strict 단계적 격상 21-22단계 (read_only_mcp_sdk + workflow_writes) — 1+1=2 errors 해소 + cumulative 29→31 file + type annotation 명시",
       "v0.11.7 (c503562): mypy strict 단계적 격상 19-20단계 (workflow_kit_cli + doc_sync) — 4+2=6 errors 해소 + cumulative 27→29 file + build_workflow_state_payload → purpose_context 직접 read 정공법",
       "v0.11.6 (48b35e8): mypy strict 단계적 격상 17-18단계 (session_outputs + read_only_bundle) — 3+3=6 errors 해소 + cumulative 25→27 file + cast 기반 object narrow",
       "v0.11.5 (ba27ffd): mypy strict 단계적 격상 15-16단계 (decorators + linter) — decorators 2 + linter 4 = 6 errors 해소 + cumulative 23→25 file + cast 기반 type narrow",

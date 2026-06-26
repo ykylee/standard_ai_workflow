@@ -182,7 +182,8 @@ def check_reference_cycle(fn: Callable[[], object]) -> RuleResult:
     # v0.7.4: objgraph package 가용성 (optional — reference chain 시각화)
     objgraph_installed = False
     try:
-        import objgraph  # noqa: F401
+        # objgraph 는 optional dependency — mypy 의 import-untyped ignore
+        import objgraph  # type: ignore[import-untyped]  # noqa: F401
         objgraph_installed = True
     except ImportError:
         pass

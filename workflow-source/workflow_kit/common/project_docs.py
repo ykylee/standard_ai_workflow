@@ -85,7 +85,7 @@ class HandoffParser(WorkflowDocParser):
         return None
 
     def _work_status_items(self, lines: list[str]) -> dict[str, list[str]]:
-        items = {"in_progress_items": [], "blocked_items": [], "done_items": []}
+        items: dict[str, list[str]] = {"in_progress_items": [], "blocked_items": [], "done_items": []}
         for line in lines:
             match = WORK_STATUS_RE.match(line.strip())
             if not match:

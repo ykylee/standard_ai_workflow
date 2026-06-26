@@ -30,6 +30,9 @@ Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정�
       v0.11.7 29 + v0.11.8 21-22단계 (read_only_mcp_sdk + workflow_writes) = 31 file
     - v0.11.9 누적: 33 file strict clean
       v0.11.8 31 + v0.11.9 23-24단계 (testing + runner) = 33 file
+    - v0.11.10 누적: 35 file strict clean
+      v0.11.9 33 + v0.11.10 25-26단계 (project_docs + profiling) = 35 file
+      🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors)
 """
 from __future__ import annotations
 
@@ -126,7 +129,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.9-beta"
+    return "v0.11.10-beta"
 
 
 __version__: str = _read_pyproject_version()

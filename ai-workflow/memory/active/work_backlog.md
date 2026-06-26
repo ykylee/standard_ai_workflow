@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-26 (v0.11.0 plan 추가)
+- 최종 수정일: 2026-06-26 (v0.11.0~v0.11.10 release entries 추가, state drift fix)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -19,7 +19,37 @@
 ### [[release/v0.10.3/backlog/2026-06-24.md]] {#release-v0-10-3}
 
 ### [[release/v0.11.0/backlog/2026-06-26.md]] {#release-v0-11-0}
-- 2026-06-26: v0.11.0 plan — **SemVer minor**, Phase 12 의 *R-A follow-up cycle 3* (two-step CoT ingest) + 운영 follow-up batch. v0.9.2 spec §4.3 / §10 R-A follow-up table 의 cycle 3 정공법 + v0.10.3 release note 의 "다음" §1 (two-step CoT ingest) + §2 (graph insights). **4 deliverable**: TASK-V1110-001 `workflow_kit.common.purpose_ingest` helper (5 함수 + 5 dataclass) + TASK-V1110-002 3 skill context load 통합 + TASK-V1110-003 `cmd_ingest_purpose` dispatcher subcommand (subcommand 33, destructive 정공법 memory #5) + TASK-V1110-004 acceptance test 6. destructive subcommand 정공법 memory #5 정합: apply=False default dry-run + --apply 명시 시 state.json.purpose_digest 의 stale 항목만 갱신. spec layer 갱신: core/llm_wiki_concept_purpose_spec.md §4.3 cycle 3 + §5 acceptance criterion + §6 cross-reference + §10 R-A follow-up cycle table. (planned)
+- 2026-06-26: v0.11.0 — **SemVer minor**, Phase 12 의 *R-A follow-up cycle 3* (two-step CoT ingest). v0.9.2 spec §4.3 / §10 R-A follow-up table 의 cycle 3 정공법. **4 deliverable**: TASK-V1110-001 `workflow_kit.common.purpose_ingest` helper (5 함수 + 5 dataclass) + TASK-V1110-002 3 skill context load 통합 + TASK-V1110-003 `cmd_ingest_purpose` dispatcher subcommand (subcommand 33, destructive 정공법 memory #5) + TASK-V1110-004 acceptance test 6. spec layer 갱신: core/llm_wiki_concept_purpose_spec.md §4.3 cycle 3 + §5 + §6 + §10. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.0-beta>.
+
+### [[release/v0.11.1/backlog/2026-06-26.md]] {#release-v0-11-1}
+- 2026-06-26: v0.11.1 — **SemVer patch**, R-A follow-up cycle 4 (graph insights). workflow_kit.common.purpose_graph helper (6 함수 + 7 dataclass) + cmd_graph_insights dispatcher (subcommand 34, read-only) + 8 acceptance test + spec layer cycle 4 갱신. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.1-beta>.
+
+### [[release/v0.11.2/backlog/2026-06-26.md]] {#release-v0-11-2}
+- 2026-06-26: v0.11.2 — **SemVer patch**, cycle 4 deferred 통합. v0.11.1 release note 의 deferred TASK (TASK-V1111-003/004) 흡수. SessionGraphInsightsOutput + BacklogGraphInsightsOutput + DocSync dict 3 output schema extension + 3 skill context load 통합 (session-start / backlog-update / doc-sync) + 5 acceptance test. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.2-beta>.
+
+### [[release/v0.11.3/backlog/2026-06-26.md]] {#release-v0-11-3}
+- 2026-06-26: v0.11.3 — **SemVer patch**, mypy strict 누적 격상 19→21 file (cycle 3/cycle 4 의 신규 작성 module 의 strict clean 정식 인정: purpose_ingest + purpose_graph). v0.8.0 spec §5.3 정공법 정합 (1 release = 1-2 file 격상). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.3-beta>.
+
+### [[release/v0.11.4/backlog/2026-06-26.md]] {#release-v0-11-4}
+- 2026-06-26: v0.11.4 — **SemVer patch**, mypy strict 누적 격상 21→23 file (output_contracts 6 + milestones 4 = 10 errors 해소). v0.8.0 spec §5.3 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.4-beta>.
+
+### [[release/v0.11.5/backlog/2026-06-26.md]] {#release-v0-11-5}
+- 2026-06-26: v0.11.5 — **SemVer patch**, mypy strict 누적 격상 23→25 file (decorators 2 + linter 4 = 6 errors 해소). v0.8.0 spec §5.3 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.5-beta>.
+
+### [[release/v0.11.6/backlog/2026-06-26.md]] {#release-v0-11-6}
+- 2026-06-26: v0.11.6 — **SemVer patch**, mypy strict 누적 격상 25→27 file (session_outputs 3 + read_only_bundle 3 = 6 errors 해소). v0.8.0 spec §5.3 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.6-beta>.
+
+### [[release/v0.11.7/backlog/2026-06-26.md]] {#release-v0-11-7}
+- 2026-06-26: v0.11.7 — **SemVer patch**, mypy strict 누적 격상 27→29 file (workflow_kit_cli 4 + doc_sync 2 = 6 errors 해소). build_workflow_state_payload → purpose_context 직접 read 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.7-beta>.
+
+### [[release/v0.11.8/backlog/2026-06-26.md]] {#release-v0-11-8}
+- 2026-06-26: v0.11.8 — **SemVer patch**, mypy strict 누적 격상 29→31 file (read_only_mcp_sdk 1 + workflow_writes 1 = 2 errors 해소). v0.8.0 spec §5.3 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.8-beta>.
+
+### [[release/v0.11.9/backlog/2026-06-26.md]] {#release-v0-11-9}
+- 2026-06-26: v0.11.9 — **SemVer patch**, mypy strict 누적 격상 31→33 file (testing 1 + runner 1 = 2 errors 해소). `# type: ignore[import-not-found]` + `Path|None` 명시적 annotation. v0.8.0 spec §5.3 정공법 정합. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.9-beta>.
+
+### [[release/v0.11.10/backlog/2026-06-26.md]] {#release-v0-11-10}
+- 2026-06-26: v0.11.10 — **🎯 SemVer patch, FULL mypy strict 도달**. mypy strict 누적 격상 33→**35 file** (project_docs 1 + profiling 1 = 2 errors 해소). mypy workflow_kit/ exit 0 (106 source files clean). v0.8.0 spec §5.3 정공법 정합 (1 release = 1-2 file 격상). cumulative acceptance 90/90 PASS. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.10-beta>.
 - 2026-06-24: v0.10.3 chapter 14 — **SemVer minor**, Phase 12 의 *wiki 운영 R-A follow-up cycle 2* release. v0.9.2 cycle 1 (외부 reference concept 흡수) 의 후속: **`wiki-event-sync.py` 의 3-method matching 을 `workflow_kit.common.wiki_cascade` 로 흡수** (delete 방향). source file 삭제 시 wiki page cascade-delete 대상 식별. **destructive subcommand 정공법** memory #5 정합: `apply=False` (default) dry-run + `--apply` 명시 시 실제 delete + `executed`/`skipped` list. 3-method matching (basename / stem / project-relative-stem) + macOS case-insensitive filesystem `Path.samefile()` dedup + v0.9.2 L3 raw mirror `raw/projects/<project>/` prefix 정합. Bug 발견+fix (acceptance test 작성 중): `Path(deleted_path).name` 가 이미 `.md` 포함 → 이중 .md 방지, macOS dedup `samefile()` 기반, `raw/projects/<project>/` prefix 추가. 신규 `workflow_kit.common.wiki_cascade` helper (5 함수 + 2 dataclass, ≈ 230 line): `file_to_stem` (kebab-case + lower SSOT) / `find_cascade_targets` (3-method) / `emit_cascade_plan` (다중 JSON) / `apply_cascade` (destructive) / `render_cascade_plan_text` (advisory). CLI subcommand 32 `cascade-delete` (--deleted-paths / --wiki-root / --project / --apply / --json). 7 acceptance test (`check_wiki_cascade_cleanup_v0_10_3.py`, file_to_stem SSOT / 3-method matching 3 case / graceful 부재 / 다중 plan emit / destructive apply 패턴 / text render / CLI dry-run subprocess) + v0.10.2 회귀 9/9 + v0.10.1 6/6 + v0.10.0 6/6 + v0.9.x 21/21 = **63/63 PASS**. 누적 smoke **162/162 + 63 별도 subset** (v0.9.0 6 + v0.9.1 4 + v0.9.2 8 + v0.9.3 4 + v0.9.4 3 + v0.9.5 6 + v0.9.6 6 + v0.10.0 6 + v0.10.1 6 + v0.10.2 9 + v0.10.3 7). spec §9 acceptance **12/12 유지**. breaking change 없음 (default dry-run, v0.10.2 호환). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.10.3-beta>.
 
 ### [[release/v0.10.2/backlog/2026-06-24.md]] {#release-v0-10-2}

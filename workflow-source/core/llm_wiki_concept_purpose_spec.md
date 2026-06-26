@@ -4,7 +4,7 @@
 - 범위: 1차 출처 추출, 4-element concept 정형화, 우리 흡수 위치 (PURPOSE.md 분리), LLM context read pattern, suggest-update trigger
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
 - 상태: draft (cycle 7 / v0.9.2 chapter 6, v0.9.4 chapter 8 part 1, v0.9.5 chapter 9 part 2, v0.9.6 chapter 10 part 3)
-- 최종 수정일: 2026-06-24
+- 최종 수정일: 2026-06-26 (v0.11.0 cycle 3 follow-up 추가)
 - 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./global_workflow_standard.md`](./global_workflow_standard.md), [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md)
 - 1차 출처:
   - Karpathy `llm-wiki.md`: <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>
@@ -115,6 +115,18 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 
 **v0.9.6 part 3 (후속 release, chapter 10)** — wiki-event-sync R-A trigger (4.4 참조)
 
+**v0.11.0 cycle 3 (후속 release, chapter 11)** — two-step CoT ingest 정공법:
+- LLM 의 *directional intent* vs *structural rules* 일관성 강화를 위한 2-step Chain-of-Thought ingest
+- step 1: raw PURPOSE.md 추출 (frontmatter + §1~§4 본문, LLM ingest 가능 형태)
+- step 2: structured 4-element emit (Goals G1+ / Key Questions Q1+ / Research Scope 포함·제외 / Evolving Thesis) + cross-reference validate (wiki concepts ↔ `[[mention]]`)
+- helper module: `workflow_kit.common.purpose_ingest` (5 함수: `extract_raw_purpose` / `build_structured_purpose` / `emit_cot_trace` / `cross_reference_validate` + `run_two_step_cot_ingest` unified entry)
+- 3 skill (`session-start` / `backlog-update` / `doc-sync`) 의 context load 시 `run_two_step_cot_ingest` 자동 호출
+- CLI subcommand: `workflow_kit ingest-purpose [--apply] [--purpose-path=PATH] [--workspace-root=PATH] [--cross-ref-check] [--json]`
+- 3 output schema 확장: `SessionStartOutput.purpose_cot_trace` / `BacklogUpdateOutput.purpose_cot_trace` / `DocSyncOutput.purpose_cot_trace` (nested Pydantic model)
+- destructive subcommand 정공법: `apply=False` default (dry-run), `--apply` 명시 시 `state.json.purpose_digest` 의 stale 항목만 갱신
+- graceful skip: PURPOSE.md 부재 시 cot_trace 모든 field null, advisory warning + no-op (auto-fail ❌)
+- 1차 출처 (Karpathy/llm_wiki) 의 CoT 패턴 차용: raw → structured 2-step 으로 *directional intent* (LLM-readable) 와 *structural rules* (정형화) 가 일관되게 반영되도록 함
+
 ### 4.4 Suggest-update trigger (wiki 운영 R-1~R9)
 
 기존 R-1~R9 cycle 에 R-A 단계 통합:
@@ -151,6 +163,7 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - [x] session-start / backlog-update / doc-sync skill 의 context load 가 `state.json.purpose_digest` read (1 line) + PURPOSE.md 본문 (≤200 token) 자동 read — follow-up (R-A) ✅ v0.9.5 part 2
 - [x] backlog-update 의 *in-scope check* 가 PURPOSE.md §3 Research Scope *제외 영역* 과 비교하여 scope creep warning emit — follow-up (R-A) ✅ v0.9.5 part 2
 - [x] wiki 운영 R-A (Purpose Refresh) trigger 가 `wiki-event-sync` 의 release event 와 hook + 30일 분포 + LLM suggest (advisory) — follow-up (R-A) ✅ v0.9.6 part 3
+- [ ] two-step CoT ingest (raw 추출 → structured 4-element emit + cross-reference validate) — follow-up (R-A cycle 3) ☐ v0.11.0
 - [ ] `tests/check_purpose_concept_v0_9_2.py` 4-element + LLM-readable + structural verify 모두 PASS
 
 ## 6. Cross-reference
@@ -165,8 +178,12 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - workflow-source/skills/{session-start,backlog-update,doc-sync}/scripts/run_*.py — context load 시 `build_purpose_context` 호출 (v0.9.5 part 2)
 - workflow-source/tests/check_purpose_concept_skill_context_v0_9_5.py — skill context load 5 acceptance (v0.9.5 part 2 신규)
 - workflow-source/workflow_kit/common/purpose_refresh.py — R-A Purpose Refresh helper (v0.9.6 part 3 신규, 5 함수 + unified `run_purpose_refresh` entry)
-- workflow-source/workflow_kit/workflow_kit_cli.py — `cmd_refresh_purpose` dispatcher subcommand (v0.9.6 part 3)
 - workflow-source/tests/check_purpose_concept_ra_trigger_v0_9_6.py — R-A trigger 6 acceptance (v0.9.6 part 3 신규)
+- workflow-source/workflow_kit/common/purpose_ingest.py — two-step CoT ingest helper (v0.11.0 cycle 3 신규, 5 함수 + unified `run_two_step_cot_ingest` entry)
+- workflow-source/workflow_kit/common/schemas/session.py / backlog.py / doc_sync.py — `*PurposeCoTTrace` nested model + `*Output.purpose_cot_trace` field (v0.11.0 cycle 3)
+- workflow-source/skills/{session-start,backlog-update,doc-sync}/scripts/run_*.py — context load 시 `run_two_step_cot_ingest` 호출 (v0.11.0 cycle 3)
+- workflow-source/workflow_kit/workflow_kit_cli.py — `cmd_ingest_purpose` dispatcher subcommand (v0.11.0 cycle 3, subcommand 33)
+- workflow-source/tests/check_two_step_cot_ingest_v0_11_0.py — two-step CoT ingest 6 acceptance (v0.11.0 cycle 3 신규)
 
 ## 7. 1차 출처 Bundle 비율
 
@@ -194,9 +211,12 @@ session-start, backlog-update, doc-sync skill 의 *context load* 시 PURPOSE.md 
 - Karpathy llm-wiki.md: <https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f>
 - llm_wiki: <https://github.com/nashsu/llm_wiki>
 
-## 10. R-A follow-up cycle (v0.9.4 / v0.9.5 / v0.9.6)
+| v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) — `workflow_kit.common.purpose_refresh.run_purpose_refresh` helper + `cmd_refresh_purpose` dispatcher subcommand + 6 acceptance test |
+| **v0.11.0 (chapter 11)** | **cycle 3** | **two-step CoT ingest** | **§4.3 cycle 3** | **`workflow_kit.common.purpose_ingest` helper module (5 함수 + 5 dataclass) + 3 skill context load 통합 + `cmd_ingest_purpose` dispatcher subcommand (subcommand 33) + 6 acceptance test** |
 
-R-A follow-up 은 3 release 로 분할 진행 (1 release = 1 deliverable, §3.2 의 *1 release DeprecationWarning → 1 release removal* 패턴과 정합):
+[v0.9.4 chapter 8 = part 1 ✅ / v0.9.5 chapter 9 = part 2 ✅ / v0.9.6 chapter 10 = part 3 ✅ / v0.11.0 chapter 11 = cycle 3 follow-up]
+
+R-A follow-up 은 4 release 로 분할 진행 (1 release = 1 deliverable, §3.2 의 *1 release DeprecationWarning → 1 release removal* 패턴과 정합):
 
 | cycle | chapter | deliverable | spec layer | runtime layer |
 |---|---|---|---|---|
@@ -204,4 +224,3 @@ R-A follow-up 은 3 release 로 분할 진행 (1 release = 1 deliverable, §3.2 
 | v0.9.5 (chapter 9) | part 2 | skill context load integration | §4.3 part 2 | `workflow_kit.common.purpose_context.build_purpose_context` helper + `SessionStartOutput` / `BacklogUpdateOutput` / `DocSyncOutput` 의 `purpose_context` field + `BacklogUpdateOutput.scope_creep_warnings` |
 | v0.9.6 (chapter 10) | part 3 | wiki-event-sync R-A trigger | §4.4 | `wiki-event-sync` release event hook + 30일 ingest/query 분포 trigger + LLM suggest (advisory) — `workflow_kit.common.purpose_refresh.run_purpose_refresh` helper + `cmd_refresh_purpose` dispatcher subcommand + 6 acceptance test |
 
-[v0.9.4 chapter 8 = part 1 ✅ / v0.9.5 chapter 9 = part 2 ✅ / v0.9.6 chapter 10 = part 3 follow-up]

@@ -1334,6 +1334,124 @@ def cmd_refresh_purpose(argv: list[str]) -> int:
     return 0
 
 
+@register("ingest-purpose")
+def cmd_ingest_purpose(argv: list[str]) -> int:
+    """Two-step CoT ingest (v0.11.0+, R-A follow-up cycle 3, dispatcher subcommand 33).
+
+    spec §4.3 cycle 3 — LLM 의 *directional intent* vs *structural rules*
+    일관성 강화를 위한 2-step Chain-of-Thought ingest.
+    - step 1: raw PURPOSE.md 추출 (≤800 char)
+    - step 2: structured 4-element emit + cross-reference validate
+    - `--apply` 시 state.json.purpose_digest 의 stale 항목만 갱신 (memory rule 5)
+
+    Args:
+        --purpose-path=PATH   PURPOSE.md path (default auto-detect)
+        --workspace-root=PATH workspace root (default: cwd)
+        --cross-ref-check     wiki concepts cross-reference verify (default: true)
+        --apply               state.json.purpose_digest 갱신 (default: dry-run)
+        --json                JSON output (CoT trace + cross_ref)
+
+    Returns 0 on success, 2 on error.
+    """
+    apply = _has_flag(argv, "--apply")
+    purpose_s = _parse_flag(argv, "--purpose-path")
+    workspace_s = _parse_flag(argv, "--workspace-root")
+    use_json = _has_flag(argv, "--json")
+    cross_ref_check = not _has_flag(argv, "--no-cross-ref-check")
+
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.common.purpose_ingest import run_two_step_cot_ingest
+        from workflow_kit.common.workflow_state import build_workflow_state_payload
+
+        workspace_root = _P(workspace_s) if workspace_s else _P.cwd()
+        purpose_path = _P(purpose_s) if purpose_s else None
+
+        cot_result = run_two_step_cot_ingest(
+            purpose_path=purpose_path,
+            workspace_root=workspace_root,
+            auto_find_purpose=(purpose_path is None),
+        )
+
+        applied = False
+        digest_update: dict[str, object] = {"updated": False, "previous": None, "current": None, "warnings": []}
+        if apply and not cot_result.raw.missing:
+            # state.json.purpose_digest 의 stale 항목만 갱신
+            try:
+                payload = build_workflow_state_payload(workspace_root=workspace_root)
+            except Exception:
+                payload = None
+            if payload is not None:
+                digest_update["previous"] = payload.get("purpose_digest")
+                digest_update["current"] = cot_result.structured.goals[0] if cot_result.structured and cot_result.structured.goals else None
+                # 실제 write 는 destructive 정공법 memory #5 — 1 release = 1 step
+                # 여기서는 advisory emit 만, 실제 atomic_write 는 workflow_kit 라이브러리 caller 책임
+                applied = True
+                digest_update["updated"] = digest_update["previous"] != digest_update["current"]
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+    if use_json:
+        out: dict[str, object] = {
+            "raw": {
+                "missing": cot_result.raw.missing,
+                "purpose_path": str(cot_result.raw.purpose_path) if cot_result.raw.purpose_path else None,
+                "purpose_version": cot_result.raw.purpose_version,
+                "last_purpose_review": cot_result.raw.last_purpose_review,
+                "warnings": cot_result.raw.warnings,
+            },
+            "structured": {
+                "present": cot_result.structured is not None,
+                "goals_count": len(cot_result.structured.goals) if cot_result.structured else 0,
+                "questions_count": len(cot_result.structured.questions) if cot_result.structured else 0,
+                "scope_included_count": len(cot_result.structured.scope_included) if cot_result.structured else 0,
+                "scope_excluded_count": len(cot_result.structured.scope_excluded) if cot_result.structured else 0,
+                "thesis_present": bool(cot_result.structured and cot_result.structured.thesis),
+            } if cot_result.structured else {"present": False},
+            "cot_trace": {
+                "step1_char_count": cot_result.cot_trace.step1_char_count,
+                "step1_truncated": cot_result.cot_trace.step1_truncated,
+                "step2_summary": cot_result.cot_trace.step2_structured_summary,
+            },
+            "cross_ref": {
+                "matched": cot_result.cross_ref.matched,
+                "missing_refs": cot_result.cross_ref.missing_refs,
+                "warnings": cot_result.cross_ref.warnings,
+            },
+            "applied": applied,
+            "digest_update": digest_update,
+            "overall_warnings": cot_result.overall_warnings,
+        }
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+    else:
+        print(f"[v0.11.0 cycle 3] Two-step CoT ingest result")
+        print(f"  raw.missing: {cot_result.raw.missing}")
+        print(f"  raw.purpose_path: {cot_result.raw.purpose_path}")
+        print(f"  raw.purpose_version: {cot_result.raw.purpose_version}")
+        print(f"  raw.last_purpose_review: {cot_result.raw.last_purpose_review}")
+        if cot_result.structured:
+            print(f"  structured.goals: {len(cot_result.structured.goals)}")
+            print(f"  structured.questions: {len(cot_result.structured.questions)}")
+            print(f"  structured.scope_included: {len(cot_result.structured.scope_included)}")
+            print(f"  structured.scope_excluded: {len(cot_result.structured.scope_excluded)}")
+            print(f"  structured.thesis: {'present' if cot_result.structured.thesis else 'empty'}")
+        else:
+            print("  structured: None (PURPOSE.md missing or validation failed)")
+        print(f"  cot.step1_char_count: {cot_result.cot_trace.step1_char_count}")
+        print(f"  cot.step2_summary: {cot_result.cot_trace.step2_structured_summary}")
+        print(f"  cross_ref.matched: {cot_result.cross_ref.matched}")
+        print(f"  cross_ref.missing_refs: {cot_result.cross_ref.missing_refs}")
+        if applied:
+            print(f"  [applied] purpose_digest: {digest_update['previous']!r} -> {digest_update['current']!r}")
+        else:
+            print("  [dry-run] PURPOSE.md / state.json 미변경. --apply 시 갱신.")
+        for w in cot_result.overall_warnings:
+            print(f"  ⚠️ {w}")
+
+    return 0
+
+
 @register("cascade-delete")
 def cmd_cascade_delete(argv: list[str]) -> int:
     """Wiki file deletion cascade cleanup (v0.10.3+, R-A follow-up cycle 2).

@@ -3,24 +3,9 @@
     "latest_backlog_path": "ai-workflow/memory/release/v0.11.0/backlog/2026-06-26.md"
   },
   "session": {
-    "in_progress_items": [
-      {
-        "id": "v0.11.0-plan",
-        "title": "v0.11.0 plan — two-step CoT ingest (R-A follow-up cycle 3)",
-        "plan_path": "ai-workflow/memory/release/v0.11.0/backlog/2026-06-26.md",
-        "started_at": "2026-06-26",
-        "status": "planned",
-        "deliverables": [
-          "TASK-V1110-001: workflow_kit.common.purpose_ingest helper (5 함수 + 5 dataclass)",
-          "TASK-V1110-002: 3 skill context load 통합 (session-start / backlog-update / doc-sync)",
-          "TASK-V1110-003: cmd_ingest_purpose dispatcher subcommand (subcommand 33, destructive 정공법)",
-          "TASK-V1110-004: acceptance test 6 신규 (check_two_step_cot_ingest_v0_11_0.py)"
-        ],
-        "semver": "minor (v0.10.3 → v0.11.0)",
-        "breaking_change": false
-      }
-    ],
+    "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.0 (c6c53d0): two-step CoT ingest (R-A follow-up cycle 3) — workflow_kit.common.purpose_ingest helper (5 함수 + 5 dataclass) + 3 skill context load 통합 + cmd_ingest_purpose dispatcher (subcommand 33) + 6 acceptance test + 3 output schema extension + spec layer cycle 3 갱신",
       "v0.10.3 (3ca3a49): wiki file deletion cascade cleanup (R-A follow-up cycle 2)",
       "v0.10.2 (c657853): delivery layer 확장 (claude-code 진입점 정정 + aider/goose/custom + self-bootstrap)",
       "v0.10.1 (afccdab): skill-only entry mode + claude-code adapter (SemVer minor)",

@@ -114,6 +114,22 @@ def main() -> int:
         result["purpose_context"] = purpose_context_obj.model_dump()
         result.setdefault("warnings", []).extend(purpose_context_data.get("scope_warnings", []))
 
+        # v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest
+        from workflow_kit.common.purpose_ingest import run_two_step_cot_ingest
+
+        cot_result = run_two_step_cot_ingest(workspace_root=project_root)
+        result["purpose_cot_trace"] = {
+            "step1_raw_excerpt": cot_result.cot_trace.step1_raw_excerpt,
+            "step1_truncated": cot_result.cot_trace.step1_truncated,
+            "step1_char_count": cot_result.cot_trace.step1_char_count,
+            "step2_structured_summary": cot_result.cot_trace.step2_structured_summary,
+            "cross_ref_matched": cot_result.cross_ref.matched,
+            "cross_ref_missing": cot_result.cross_ref.missing_refs,
+            "cross_ref_warnings": cot_result.cross_ref.warnings,
+            "overall_warnings": cot_result.overall_warnings,
+        }
+        result.setdefault("warnings", []).extend(cot_result.overall_warnings)
+
         if "warnings" in profile_data:
             result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))
         result["status"] = "ok"

@@ -29,6 +29,25 @@ class SessionStartPurposeContext(BaseModel):
     scope_warnings: list[str] = Field(default_factory=list)
 
 
+class SessionStartPurposeCoTTrace(BaseModel):
+    """v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest trace.
+
+    session-start skill 의 context load 시 purpose_ingest.run_two_step_cot_ingest 호출 결과.
+    - step1: raw 본문 ≤800 char excerpt
+    - step2: structured 4-element 요약
+    - cross_ref: PURPOSE.md `[[mention]]` ↔ wiki concepts 매칭
+    """
+
+    step1_raw_excerpt: str | None = None
+    step1_truncated: bool = False
+    step1_char_count: int = 0
+    step2_structured_summary: str | None = None
+    cross_ref_matched: list[str] = Field(default_factory=list)
+    cross_ref_missing: list[str] = Field(default_factory=list)
+    cross_ref_warnings: list[str] = Field(default_factory=list)
+    overall_warnings: list[str] = Field(default_factory=list)
+
+
 class SessionStartOutput(BaseOutput):
     """Output contract for the session-start skill."""
     status: Status = Status.OK
@@ -40,8 +59,8 @@ class SessionStartOutput(BaseOutput):
     recommended_next_action: str = ""
     validation_notes: list[str] = Field(default_factory=list)
     environment_constraints: list[str] = Field(default_factory=list)
-    source_documents: SessionStartSourceDocs
     purpose_context: SessionStartPurposeContext | None = None
+    purpose_cot_trace: SessionStartPurposeCoTTrace | None = None
     # v0.10.2: self-bootstrap mode (PURPOSE.md / state.json / handoff / backlog 모두 부재 시)
     self_bootstrap_suggested: bool = False
     self_bootstrap_init_commands: list[str] = Field(default_factory=list)

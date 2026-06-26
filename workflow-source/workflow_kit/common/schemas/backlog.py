@@ -34,6 +34,22 @@ class BacklogUpdatePurposeContext(BaseModel):
     scope_warnings: list[str] = Field(default_factory=list)
 
 
+class BacklogUpdatePurposeCoTTrace(BaseModel):
+    """v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest trace.
+
+    backlog-update skill 의 context load 시 purpose_ingest.run_two_step_cot_ingest 호출 결과.
+    """
+
+    step1_raw_excerpt: str | None = None
+    step1_truncated: bool = False
+    step1_char_count: int = 0
+    step2_structured_summary: str | None = None
+    cross_ref_matched: list[str] = Field(default_factory=list)
+    cross_ref_missing: list[str] = Field(default_factory=list)
+    cross_ref_warnings: list[str] = Field(default_factory=list)
+    overall_warnings: list[str] = Field(default_factory=list)
+
+
 class BacklogUpdateOutput(BaseOutput):
     """Output contract for the backlog-update skill."""
     status: Status = Status.OK
@@ -57,6 +73,7 @@ class BacklogUpdateOutput(BaseOutput):
     updated_paths: list[str] = Field(default_factory=list)
     source_context: BacklogUpdateSourceContext
     purpose_context: BacklogUpdatePurposeContext | None = None
+    purpose_cot_trace: BacklogUpdatePurposeCoTTrace | None = None
     scope_creep_warnings: list[str] = Field(default_factory=list)
 
 

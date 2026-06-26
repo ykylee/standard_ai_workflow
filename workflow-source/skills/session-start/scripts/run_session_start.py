@@ -111,6 +111,24 @@ def main() -> int:
         purpose_context = SessionStartPurposeContext(**purpose_context_data)
         warnings.extend(purpose_context_data.get("scope_warnings", []))
 
+        # v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest
+        # session-start 가 PURPOSE.md 를 2-step (raw -> structured + cross-ref) 으로 read
+        from workflow_kit.common.purpose_ingest import run_two_step_cot_ingest
+        from workflow_kit.common.schemas import SessionStartPurposeCoTTrace
+
+        cot_result = run_two_step_cot_ingest(workspace_root=workspace_root)
+        purpose_cot_trace = SessionStartPurposeCoTTrace(
+            step1_raw_excerpt=cot_result.cot_trace.step1_raw_excerpt,
+            step1_truncated=cot_result.cot_trace.step1_truncated,
+            step1_char_count=cot_result.cot_trace.step1_char_count,
+            step2_structured_summary=cot_result.cot_trace.step2_structured_summary,
+            cross_ref_matched=cot_result.cross_ref.matched,
+            cross_ref_missing=cot_result.cross_ref.missing_refs,
+            cross_ref_warnings=cot_result.cross_ref.warnings,
+            overall_warnings=cot_result.overall_warnings,
+        )
+        warnings.extend(cot_result.overall_warnings)
+
         # v0.10.2: self-bootstrap mode
         # 핵심 4 file (handoff / backlog index / project profile / state.json) 모두
         # 부재 시 status="warning" + self_bootstrap_suggested=True + init commands emit.
@@ -161,6 +179,7 @@ def main() -> int:
                 "project_profile_path": str(project_profile_path),
             },
             purpose_context=purpose_context,
+            purpose_cot_trace=purpose_cot_trace,
             self_bootstrap_suggested=self_bootstrap_suggested,
             self_bootstrap_init_commands=self_bootstrap_init_commands,
         )

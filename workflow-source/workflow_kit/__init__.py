@@ -8,6 +8,16 @@ Public API surface (v0.8.0+ stable API frozen):
 
 SemVer 2-year guarantee (v0.8.0 -> 2.0.0): no breaking changes.
 Deprecation policy: 1 release DeprecationWarning -> 1 release removal.
+
+Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정합):
+    - v0.8.0~v0.8.15: 19 file strict clean (url_validity, okf_import, okf_export,
+      phishing_federation+_v4, phishing_keywords, cache_lfu_decay+_persist,
+      workflow_kit_cli.py, v_r13_commit_diff, cache_analytics+_trend_chart,
+      upgrade_diff, bitbucket_v2, lfu_integration, cache_size_compare,
+      state/builder.py, contracts/baselines.py, common/__init__.py 외)
+    - v0.11.0 cycle 3 (TASK-V1110-001): + purpose_ingest.py
+    - v0.11.1 cycle 4 (TASK-V1111-001): + purpose_graph.py
+    - v0.11.3 누적: 21 file strict clean (mypy 2.1.0 strict 기준)
 """
 from __future__ import annotations
 
@@ -104,7 +114,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.2-beta"
+    return "v0.11.3-beta"
 
 
 __version__: str = _read_pyproject_version()

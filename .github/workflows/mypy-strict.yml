@@ -1,0 +1,55 @@
+name: mypy-strict
+
+# v0.11.11 follow-up: v0.11.10 의 "다음" §1 — full mypy strict 도달 후 CI 통합.
+# v0.11.10 = mypy workflow_kit/ exit 0 (106 source files strict clean).
+# v0.11.11 = mypy exit 0 을 CI 강제 (regression 방지).
+# memory #8: 1 release = 1 follow-up. v0.11.10 의 누적 35 file strict clean 유지 verify.
+#
+# Triggers: push to main + pull_request to main (smoke / mkdocs 와 정합한 main-only 정책)
+# Python: 3.10 (workflow_kit python_version 정합)
+# Mypy: 2.1.0 (v0.11.10 release note 의 strict 기준 정합)
+# Mypy invocation: `mypy --no-incremental workflow_kit/` (workflow-source/ 의 pyproject [tool.mypy] strict=true read)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  mypy-strict:
+    name: mypy strict (workflow_kit/)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install mypy 2.1.0 + workflow_kit (pydantic, anyio 포함)
+        shell: bash
+        run: |
+          python3 -m pip install --upgrade pip
+          # v0.11.10 release note 기준 mypy 2.1.0 strict 정합
+          python3 -m pip install "mypy==2.1.0"
+          # workflow_kit 의 runtime dep (pydantic, anyio) + package 자체
+          # editable install — mypy 가 third-party type stub 해결 가능
+          python3 -m pip install -e "./workflow-source/workflow_kit"
+
+      - name: Run mypy --no-incremental workflow_kit/
+        shell: bash
+        run: |
+          set -euo pipefail
+          # REPO_ROOT 에서 실행 (workflow-source/path 절대경로).
+          # sub-package 의 workflow_kit/pyproject.toml (strict=false) 와 parent
+          # 의 workflow-source/pyproject.toml (strict=true) 의 merge 가 발생하지 않도록
+          # *target path* 를 REPO_ROOT 기준 절대경로로 명시.
+          mypy --no-incremental workflow-source/workflow_kit/

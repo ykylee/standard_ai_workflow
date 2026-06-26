@@ -6,7 +6,7 @@ import sys
 from typing import Any, Callable
 
 try:
-    from mcp.server.fastmcp import FastMCP
+    from mcp.server.fastmcp import FastMCP  # type: ignore[import-not-found]
     HAS_FASTMCP = True
 except ImportError:
     HAS_FASTMCP = False

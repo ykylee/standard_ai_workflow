@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from workflow_kit.common.change_types import classify_doc_sync_file
 from workflow_kit.common.exploration_scope import filter_project_scope_paths, is_workflow_meta_path
@@ -20,8 +21,13 @@ def build_doc_sync_candidates(
     latest_backlog_path: Path | None,
     change_summary: str | None,
 ) -> dict[str, list[str]]:
-    operations_doc = path_exists_relative(project_root, profile.get("operations_path"))
-    doc_home = path_exists_relative(project_root, profile.get("document_home"))
+    # profile.get 결과 object → str | None 명시적 narrow (operations_path / document_home)
+    operations_path_raw = profile.get("operations_path")
+    document_home_raw = profile.get("document_home")
+    operations_path = cast("str | None", operations_path_raw) if isinstance(operations_path_raw, str) or operations_path_raw is None else None
+    document_home = cast("str | None", document_home_raw) if isinstance(document_home_raw, str) or document_home_raw is None else None
+    operations_doc = path_exists_relative(project_root, operations_path)
+    doc_home = path_exists_relative(project_root, document_home)
     impacted: list[str] = []
     hub_candidates: list[str] = []
     status_doc_candidates: list[str] = []

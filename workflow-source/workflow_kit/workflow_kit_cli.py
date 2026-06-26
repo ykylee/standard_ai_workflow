@@ -1376,18 +1376,26 @@ def cmd_ingest_purpose(argv: list[str]) -> int:
         applied = False
         digest_update: dict[str, object] = {"updated": False, "previous": None, "current": None, "warnings": []}
         if apply and not cot_result.raw.missing:
-            # state.json.purpose_digest 의 stale 항목만 갱신
+            # state.json.purpose_digest 의 stale 항목만 advisory 비교 (destructive 정공법 memory #5).
+            # build_workflow_state_payload 호출은 project_profile_path / session_handoff_path /
+            # work_backlog_index_path / generated_at 4 개 keyword-only arg 필요 — 본 dispatcher context 에서는
+            # 미보유. purpose_context._read_state_digest_and_rev 로 직접 advisory 비교.
             try:
-                payload = build_workflow_state_payload(workspace_root=workspace_root)
-            except Exception:
-                payload = None
-            if payload is not None:
-                digest_update["previous"] = payload.get("purpose_digest")
-                digest_update["current"] = cot_result.structured.goals[0] if cot_result.structured and cot_result.structured.goals else None
+                from workflow_kit.common.purpose_context import _read_state_digest_and_rev
+                state_json_path = workspace_root / "ai-workflow" / "memory" / "active" / "state.json"
+                prev_digest, _prev_rev = _read_state_digest_and_rev(state_json_path)
+                digest_update["previous"] = prev_digest
+                digest_update["current"] = (
+                    cot_result.structured.goals[0]
+                    if cot_result.structured and cot_result.structured.goals
+                    else None
+                )
                 # 실제 write 는 destructive 정공법 memory #5 — 1 release = 1 step
                 # 여기서는 advisory emit 만, 실제 atomic_write 는 workflow_kit 라이브러리 caller 책임
                 applied = True
                 digest_update["updated"] = digest_update["previous"] != digest_update["current"]
+            except Exception:
+                applied = False
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2

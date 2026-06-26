@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.4 (f312c17): mypy strict 단계적 격상 13-14단계 (output_contracts + milestones) — 6+4=10 errors 해소 + cumulative 21→23 file + workflow_kit/__init__.py docstring 갱신 + runtime 영향 ❌ (annotation only)",
       "v0.11.3 (0268af9): mypy strict 단계적 격상 11-12단계 (purpose_ingest + purpose_graph) — 0 strict errors verify + cumulative 19→21 file 갱신 + workflow_kit/__init__.py docstring 갱신",
       "v0.11.2 (1b5500d): cycle 4 deferred 통합 (graph_insights schema + 3 skill context load) — SessionGraphInsightsOutput + BacklogGraphInsightsOutput + DocSync dict 3종 + 3 skill context load 통합 + 5 acceptance test",
       "v0.11.1 (7d5a0e4): graph insights (R-A follow-up cycle 4) — workflow_kit.common.purpose_graph helper (6 함수 + 7 dataclass) + cmd_graph_insights dispatcher (subcommand 34, read-only) + 8 acceptance test + spec layer cycle 4 갱신",

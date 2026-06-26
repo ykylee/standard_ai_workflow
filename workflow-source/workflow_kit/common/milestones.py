@@ -42,12 +42,14 @@ def assess_milestone_progress(
 
     target_thread = phase_thread_map.get(current_milestone_id)
 
-    done_tasks = backlog_data.get("done_items", [])
-    in_progress_tasks = backlog_data.get("in_progress_items", [])
+    done_tasks_raw = backlog_data.get("done_items", [])
+    in_progress_tasks_raw = backlog_data.get("in_progress_items", [])
+    done_tasks: list[Any] = done_tasks_raw if isinstance(done_tasks_raw, list) else []
+    in_progress_tasks: list[Any] = in_progress_tasks_raw if isinstance(in_progress_tasks_raw, list) else []
 
     if target_thread:
-        relevant_done = [t for t in done_tasks if target_thread in t]
-        relevant_ip = [t for t in in_progress_tasks if target_thread in t]
+        relevant_done = [t for t in done_tasks if isinstance(t, str) and target_thread in t]
+        relevant_ip = [t for t in in_progress_tasks if isinstance(t, str) and target_thread in t]
     else:
         relevant_done = done_tasks
         relevant_ip = in_progress_tasks

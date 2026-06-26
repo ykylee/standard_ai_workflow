@@ -18,6 +18,8 @@ Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정�
     - v0.11.0 cycle 3 (TASK-V1110-001): + purpose_ingest.py
     - v0.11.1 cycle 4 (TASK-V1111-001): + purpose_graph.py
     - v0.11.3 누적: 21 file strict clean (mypy 2.1.0 strict 기준)
+    - v0.11.4 누적: 23 file strict clean
+      v0.11.3 21 + v0.11.4 13-14단계 (output_contracts + milestones) = 23 file
 """
 from __future__ import annotations
 
@@ -114,7 +116,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.3-beta"
+    return "v0.11.4-beta"
 
 
 __version__: str = _read_pyproject_version()

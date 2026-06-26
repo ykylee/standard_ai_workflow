@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import Any, Type
+from typing import Any, cast, Type
 
 from pydantic import BaseModel, ValidationError
 
@@ -291,11 +291,12 @@ def validate_output_payload(payload: dict[str, object], *, family: str) -> list[
     status = str(payload.get("status") or "")
 
     if status == "error":
-        model_cls = ErrorOutput
+        model_cls: type[BaseModel] = ErrorOutput
     else:
-        model_cls = PYDANTIC_MODEL_REGISTRY.get(family)
-        if not model_cls:
+        registry_cls = PYDANTIC_MODEL_REGISTRY.get(family)
+        if registry_cls is None:
             return [f"Unknown family: {family}"]
+        model_cls = registry_cls
 
     try:
         model_cls.model_validate(payload)
@@ -309,8 +310,8 @@ def validate_output_payload(payload: dict[str, object], *, family: str) -> list[
 
 def output_json_schema_bundle() -> dict[str, dict[str, object]]:
     """Return a bundle of all output and error schemas generated from Pydantic."""
-    outputs = {}
-    errors = {}
+    outputs: dict[str, dict[str, object]] = {}
+    errors: dict[str, dict[str, object]] = {}
 
     error_schema = _inline_defs(ErrorOutput.model_json_schema())
 
@@ -319,10 +320,10 @@ def output_json_schema_bundle() -> dict[str, dict[str, object]]:
         # For legacy compatibility in tests, provide the same error schema for each family
         errors[family] = error_schema
 
-    return {
+    return cast("dict[str, dict[str, object]]", {
         "outputs": outputs,
         "errors": errors,
-    }
+    })
 
 
 def output_json_schema_for_family(family: str) -> dict[str, object]:
@@ -346,23 +347,28 @@ def output_json_schema_for_family(family: str) -> dict[str, object]:
 
 def _inline_defs(schema: dict[str, object]) -> dict[str, object]:
     """Resolve ``$ref`` entries against ``$defs`` so the schema is self-contained."""
-    defs = schema.get("$defs", {})
+    defs_raw = schema.get("$defs", {}) or {}
+    defs: dict[str, object] = defs_raw if isinstance(defs_raw, dict) else {}
     if not defs:
         return schema
 
     def _resolve(node: object) -> object:
         if isinstance(node, dict):
-            if "$ref" in node and isinstance(node["$ref"], str):
-                ref_name = node["$ref"].rsplit("/", 1)[-1]
-                target = defs.get(ref_name)
+            node_dict = cast("dict[str, object]", node)
+            if "$ref" in node_dict and isinstance(node_dict["$ref"], str):
+                ref_name = node_dict["$ref"].rsplit("/", 1)[-1]
+                target: object = defs.get(ref_name)  # type: ignore[assignment]
                 if target is not None:
                     return _resolve(copy.deepcopy(target))
-            return {key: _resolve(value) for key, value in node.items()}
+            return {key: _resolve(value) for key, value in node_dict.items()}
         if isinstance(node, list):
             return [_resolve(item) for item in node]
         return node
 
     inlined = _resolve(schema)
-    if isinstance(inlined, dict) and "$defs" in inlined:
-        inlined = {key: value for key, value in inlined.items() if key != "$defs"}
-    return inlined
+    if isinstance(inlined, dict):
+        inlined_dict = cast("dict[str, object]", inlined)
+        if "$defs" in inlined_dict:
+            inlined_dict = {key: value for key, value in inlined_dict.items() if key != "$defs"}
+        return inlined_dict
+    return cast("dict[str, object]", inlined)

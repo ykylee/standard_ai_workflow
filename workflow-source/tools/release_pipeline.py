@@ -215,6 +215,158 @@ def cmd_validate(args) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 1.4 mypy CI cross-verify (v0.11.13+ — Layer 1 CI ↔ Layer 2 local mypy gate 정합)
+# ---------------------------------------------------------------------------
+
+
+def _cross_verify_ci_mypy(*, timeout: int = 15) -> dict:
+    """GH Actions mypy-strict workflow 의 last run 결과 와 local HEAD sha 비교.
+
+    Layer 1 (CI, v0.11.11+) 와 Layer 2 (release-time gate, v0.11.12+) 의 정합 verify.
+    verdict:
+      - "sanity": CI success + local mypy 정합 (default, release 진행)
+      - "drift_warning": CI success 인데 local fail (local drift, advisory)
+      - "ci_stale": CI success 인데 headSha != HEAD (re-run 권고, advisory)
+      - "ci_fail": CI failure (advisory)
+      - "absent": gh CLI 성공 / no run found (advisory)
+      - "skipped": gh CLI 부재 / error (advisory)
+
+    Returns:
+        {
+            "verdict": str,
+            "ci_run": dict | None,  # {databaseId, conclusion, headSha, event, status, createdAt, url}
+            "head_sha": str | None,
+            "head_sha_match": bool | None,
+            "message": str,
+        }
+    """
+    head_sha_proc = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=5,
+    )
+    head_sha = head_sha_proc.stdout.strip() if head_sha_proc.returncode == 0 else None
+
+    try:
+        gh_proc = subprocess.run(
+            ["gh", "run", "list", "--repo", "ykylee/standard_ai_workflow",
+             "--workflow", "mypy-strict.yml", "--limit", "1",
+             "--json", "databaseId,conclusion,headSha,event,status,createdAt,url"],
+            cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=timeout,
+        )
+    except FileNotFoundError:
+        return {
+            "verdict": "skipped",
+            "ci_run": None,
+            "head_sha": head_sha,
+            "head_sha_match": None,
+            "message": "gh CLI not found (skip cross-verify)",
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "verdict": "skipped",
+            "ci_run": None,
+            "head_sha": head_sha,
+            "head_sha_match": None,
+            "message": f"gh run list timeout (>{timeout}s)",
+        }
+
+    if gh_proc.returncode != 0:
+        return {
+            "verdict": "skipped",
+            "ci_run": None,
+            "head_sha": head_sha,
+            "head_sha_match": None,
+            "message": f"gh run list failed (exit={gh_proc.returncode}): {gh_proc.stderr.strip()[:200]}",
+        }
+
+    try:
+        runs = json.loads(gh_proc.stdout)
+    except json.JSONDecodeError as e:
+        return {
+            "verdict": "skipped",
+            "ci_run": None,
+            "head_sha": head_sha,
+            "head_sha_match": None,
+            "message": f"gh run list JSON parse error: {e}",
+        }
+
+    if not runs:
+        return {
+            "verdict": "absent",
+            "ci_run": None,
+            "head_sha": head_sha,
+            "head_sha_match": None,
+            "message": "no mypy-strict CI run found",
+        }
+
+    last_run = runs[0]
+    ci_conclusion = last_run.get("conclusion")
+    ci_head_sha = last_run.get("headSha")
+    head_sha_match = (ci_head_sha == head_sha) if (ci_head_sha and head_sha) else None
+
+    # verdict 결정 (Layer 1 CI ↔ Layer 2 local mypy 정합)
+    # caller 가 별도로 local_mypy_ok / local_mypy_status 를 inject 해서
+    # drift_warning / no_local_verify verdict 결정. 여기서는 CI-only verdict 반환.
+    if ci_conclusion == "success":
+        if head_sha_match is False:
+            verdict = "ci_stale"
+            message = (
+                f"CI success for headSha={ci_head_sha[:7]}, "
+                f"but local HEAD={head_sha[:7]} — re-run recommended"
+            )
+        else:
+            verdict = "ci_sanity"
+            message = (
+                f"CI success for headSha={ci_head_sha[:7]} (matches local HEAD) — "
+                f"local mypy 정합 verify 는 caller 가 verdict 결정"
+            )
+    elif ci_conclusion == "failure":
+        verdict = "ci_fail"
+        message = (
+            f"CI failure for headSha={ci_head_sha[:7] if ci_head_sha else '?'}, "
+            f"databaseId={last_run.get('databaseId')}"
+        )
+    else:
+        verdict = "absent"
+        message = (
+            f"CI status {ci_conclusion!r} (not success/failure) for headSha={ci_head_sha[:7] if ci_head_sha else '?'}"
+        )
+
+    return {
+        "verdict": verdict,
+        "ci_run": last_run,
+        "head_sha": head_sha,
+        "head_sha_match": head_sha_match,
+        "message": message,
+    }
+
+
+def _resolve_cross_verify_verdict(ci_mypy: dict, local_mypy: dict) -> str:
+    """_cross_verify_ci_mypy 의 ci-only verdict 를 *local mypy* 와 결합하여 final verdict 결정.
+
+    Verdict matrix:
+      | CI verdict   | local mypy ok | local status | final verdict      |
+      |--------------|---------------|--------------|--------------------|
+      | ci_sanity    | True          | checked      | sanity             |
+      | ci_sanity    | False         | checked      | drift_warning      |
+      | ci_sanity    | N/A           | skipped      | no_local_verify    |
+      | ci_stale     | (any)         | (any)        | ci_stale           |
+      | ci_fail      | (any)         | (any)        | ci_fail            |
+      | absent       | (any)         | (any)        | absent             |
+      | skipped      | (any)         | (any)        | skipped            |
+    """
+    ci_verdict = ci_mypy.get("verdict")
+    if ci_verdict != "ci_sanity":
+        return ci_verdict or "absent"
+    # ci_sanity 인 경우에만 local mypy 와 cross-verify
+    if local_mypy.get("skipped"):
+        return "no_local_verify"
+    if local_mypy.get("ok"):
+        return "sanity"
+    return "drift_warning"
+
+
+# ---------------------------------------------------------------------------
 # 1.5 release coordination observability (v0.7.18+)
 # ---------------------------------------------------------------------------
 
@@ -996,16 +1148,74 @@ def cmd_release(args) -> dict:
     - `--auto-bump`: `next_available_version()` 로 다음 version 결정 + version-bump 자동 + re-flow
     v0.7.16 의 race lesson 반영 (memory #22 §release coordination race).
 
+    **v0.11.13+ mypy CI cross-verify**:
+    validate 5번째 source mypy (Layer 2, v0.11.12+) 와 GH Actions mypy-strict workflow
+    (Layer 1, v0.11.11+) 의 *결과 정합* 을 advisory verify. verdict:
+    - "sanity": CI success + local mypy 정합 (release 진행)
+    - "drift_warning": CI success 인데 local fail (local drift, advisory)
+    - "ci_stale": CI success 인데 headSha != HEAD (re-run 권고)
+    - "ci_fail": CI failure (advisory)
+    - "absent" / "skipped": gh CLI 부재 / no run (skip, advisory)
+    default = advisory (release 진행). `--strict-cross-verify` flag 시 hard fail (drift / ci_stale / ci_fail).
+
     gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
     """
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
 
-    # 1. validate (사전 점검)
+    # 1. mypy CI cross-verify (v0.11.13+, Layer 1 ↔ Layer 2 정합 advisory)
+    # validate 보다 *먼저* 실행 — advisory 라서 validate fail 시에도 결과 포함.
+    # default = advisory (release 진행). --strict-cross-verify 시 hard fail.
+    if not getattr(args, "skip_cross_verify", False):
+        ci_mypy = _cross_verify_ci_mypy()
+        results["ci_mypy"] = ci_mypy
+        # CI-only verdict (Layer 1 결과) 저장. final verdict 는 validate 후 결합.
+        results["ci_mypy"]["ci_only_verdict"] = ci_mypy.get("verdict")
+        ci_verdict = ci_mypy.get("verdict")
+        # --strict-cross-verify: ci_stale / ci_fail 시 hard fail
+        if getattr(args, "strict_cross_verify", False):
+            if ci_verdict in ("ci_stale", "ci_fail"):
+                return {
+                    **results,
+                    "error": (
+                        f"strict cross-verify failed: ci_mypy.verdict={ci_verdict!r}, "
+                        f"message={ci_mypy.get('message')!r}"
+                    ),
+                }
+
+    # 2. validate (사전 점검)
     if not args.skip_validate:
         val_result = cmd_validate(args)
         results["pre_check"] = val_result
-        if not all(v.get("ok", False) for v in val_result.values()):
-            return {**results, "error": "validate failed; abort release"}
+        validate_failed = not all(v.get("ok", False) for v in val_result.values())
+    else:
+        validate_failed = False
+
+    # 2.5 cross-verify final verdict (Layer 1 CI ↔ Layer 2 local mypy 결합)
+    # validate fail 시에도 verdict 는 결합 (output 정합)
+    if not getattr(args, "skip_cross_verify", False) and "ci_mypy" in results:
+        local_mypy = results["pre_check"].get("mypy", {}) if not args.skip_validate else {}
+        final_verdict = _resolve_cross_verify_verdict(results["ci_mypy"], local_mypy)
+        results["ci_mypy"]["verdict"] = final_verdict
+        results["ci_mypy"]["local_mypy"] = {
+            "ok": local_mypy.get("ok"),
+            "skipped": local_mypy.get("skipped", False),
+            "error_count": local_mypy.get("error_count"),
+        }
+        # --strict-cross-verify: final verdict 도 hard fail 대상
+        if getattr(args, "strict_cross_verify", False):
+            if final_verdict in ("drift_warning", "ci_stale", "ci_fail"):
+                return {
+                    **results,
+                    "error": (
+                        f"strict cross-verify failed: ci_mypy.verdict={final_verdict!r}, "
+                        f"local_mypy={results['ci_mypy']['local_mypy']!r}, "
+                        f"message={results['ci_mypy'].get('message')!r}"
+                    ),
+                }
+
+    # 3. validate fail 시 early return (cross-verify 결과는 이미 results 에 포함됨)
+    if validate_failed:
+        return {**results, "error": "validate failed; abort release"}
 
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
@@ -1703,6 +1913,10 @@ def main() -> int:
     # release (Phase 2 — v0.7.10, v0.7.13+ --version)
     p_rel = sub.add_parser("release", help="GitHub Release 생성 (gh release create)")
     p_rel.add_argument("--skip-validate", action="store_true", help="validate 사전 점검 skip")
+    p_rel.add_argument("--skip-cross-verify", action="store_true",
+                       help="mypy CI cross-verify skip (v0.11.13+, advisory 만 default)")
+    p_rel.add_argument("--strict-cross-verify", action="store_true",
+                       help="mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,

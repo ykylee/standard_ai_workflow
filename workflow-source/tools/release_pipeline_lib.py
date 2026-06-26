@@ -71,6 +71,8 @@ def _make_args(**kwargs):
         "skip_state": False,
         "skip_git": False,
         "skip_mypy": False,
+        "skip_cross_verify": False,
+        "strict_cross_verify": False,
         "skip_validate": False,
     }
     defaults.update(kwargs)
@@ -178,6 +180,7 @@ def cmd_changelog_gen(*, from_tag: str | None = None, to_tag: str = "HEAD",
 
 def cmd_release(*, version: str, notes_template: str | None = None,
                 skip_validate: bool = False, skip_mypy: bool = False,
+                skip_cross_verify: bool = False, strict_cross_verify: bool = False,
                 auto_bump: bool = False, full_auto: bool = False,
                 allow_existing_tag: bool = False,
                 apply: bool = False) -> dict:
@@ -188,6 +191,8 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         notes_template: path to notes template (optional)
         skip_validate: skip 4-source validate (not recommended)
         skip_mypy: skip mypy strict pre-check (v0.11.12+, not recommended)
+        skip_cross_verify: skip mypy CI cross-verify (v0.11.13+, advisory 만 default)
+        strict_cross_verify: mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)
         auto_bump: if remote tag exists, auto-bump to next version
         full_auto: pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화 (v0.9.1+)
         allow_existing_tag: remote tag 가 이미 존재해도 그대로 진행 (v0.7.21+)
@@ -202,6 +207,8 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         notes_template=notes_template,
         skip_validate=skip_validate,
         skip_mypy=skip_mypy,
+        skip_cross_verify=skip_cross_verify,
+        strict_cross_verify=strict_cross_verify,
         auto_bump=auto_bump,
         full_auto=full_auto,
         allow_existing_tag=allow_existing_tag,

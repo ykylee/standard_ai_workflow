@@ -1663,6 +1663,10 @@ def cmd_cascade_delete(argv: list[str]) -> int:
 def cmd_release_status(argv: list[str]) -> int:
     """Release pipeline status aggregator (v0.11.14+, read-only, subcommand 35).
 
+    v0.11.16+: --auto-bump flag 추가. current_version == last_release_tag 분기에서
+    자동으로 next_version (patch) bump + post-step sync_release_hash.py 자동 호출.
+    write 발생 (read-only 깨짐). 명시적 opt-in.
+
     Aggregates:
     - current pyproject version
     - last release tag (git describe)
@@ -1671,17 +1675,23 @@ def cmd_release_status(argv: list[str]) -> int:
     - local mypy strict status (v0.11.12+ Layer 2)
     - next version (auto-bump hint)
     - ready_to_release verdict (all checks pass)
+    - auto_bump_applied + auto_bump_result (v0.11.16+, --auto-bump 시)
 
     Args:
         --json          JSON output
+        --auto-bump     v0.11.16+: current_version == last_release_tag 일 때
+                        자동으로 next_version (patch) 적용. in-process
+                        cmd_version_bump --patch --apply 호출 +
+                        sync_release_hash.py post-step 자동 호출.
     """
     import json as _json
     use_json = _has_flag(argv, "--json")
+    auto_bump = _has_flag(argv, "--auto-bump")
     try:
         # lazy import (release_status 는 v0.11.14 신규)
         from workflow_kit.release_status import cmd_release_status as _impl
         import argparse
-        args = argparse.Namespace()  # release_status 의 cmd_release_status 는 args 안 사용
+        args = argparse.Namespace(auto_bump=auto_bump)
         result = _impl(args)
         if use_json:
             print(_json.dumps(result, indent=2, ensure_ascii=False, default=str))
@@ -1698,6 +1708,14 @@ def cmd_release_status(argv: list[str]) -> int:
             print(f"next_version: {result.get('next_version', {}).get('next')}")
             print(f"ready_to_release: {result.get('ready_to_release')}")
             print(f"ready_reason: {result.get('ready_reason')}")
+            # v0.11.16+ auto-bump 결과 출력
+            print(f"auto_bump_applied: {result.get('auto_bump_applied')}")
+            ab_result = result.get('auto_bump_result')
+            if ab_result is not None:
+                if ab_result.get('ok'):
+                    print(f"auto_bump.new_version: {ab_result.get('new_version')}")
+                else:
+                    print(f"auto_bump.error: {ab_result.get('error')}")
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)

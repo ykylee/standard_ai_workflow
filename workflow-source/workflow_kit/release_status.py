@@ -10,8 +10,13 @@ Aggregates:
 - next version (auto-bump hint, v0.7.18+)
 - ready_to_release verdict (all checks pass)
 
+v0.11.16+ --auto-bump flag: `cmd_release_status(args)` 의 `args.auto_bump=True` 일 때
+current_version == last_release_tag 분기에서 자동으로 `tools/release_pipeline.py
+cmd_version_bump --patch --apply` 호출 → next_version patch bump + post-step
+sync_release_hash.py 자동 호출 (v0.7.27+ TASK-V0727-001 정합).
+
 Mypy strict clean (v0.11.10+ FULL STRICT 도달, 35 file 누적) 정합.
-신규 module (v0.11.14+) = 36 file strict clean.
+신규 module (v0.11.14+) = 36 file strict clean. v0.11.16+ = 37 file.
 """
 from __future__ import annotations
 
@@ -159,8 +164,59 @@ def _check_ci_mypy() -> dict[str, Any]:
         }
 
 
+def _run_auto_bump(new_version: str) -> dict[str, Any]:
+    """v0.11.16+ --auto-bump 의 actual bump stage.
+
+    `tools/release_pipeline.py cmd_version_bump` 를 in-process 호출.
+    read-only 모드 (default) 와 달리 write 발생: pyproject.toml version patch +
+    workflow_kit/__init__.py __version__ sync + post-step sync_release_hash.py
+    자동 호출 (v0.7.27+ TASK-V0727-001). amend 통합으로 1 commit 으로 정합.
+
+    Args:
+        new_version: bump 후의 next version (e.g. "0.11.16"). hint 로만 사용,
+            actual 결과는 cmd_version_bump 가 결정.
+
+    Returns:
+        {"ok": bool, "new_version": str, "result": dict (cmd_version_bump result),
+         "error": str | None}
+    """
+    try:
+        # importlib 으로 release_pipeline 의 cmd_version_bump 호출
+        sys.path.insert(0, str(REPO_ROOT / "tools"))
+        from release_pipeline import cmd_version_bump  # type: ignore[import-not-found]
+        import argparse
+        bump_args = argparse.Namespace(
+            patch=True,
+            minor=False,
+            major=False,
+            to=None,
+            dry_run=False,
+            apply=True,
+            no_init=False,
+            skip_sync_hash=False,
+        )
+        bump_result = cmd_version_bump(bump_args)
+        return {
+            "ok": True,
+            "new_version": new_version,
+            "result": bump_result,
+            "error": None,
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "new_version": new_version,
+            "result": None,
+            "error": f"{type(e).__name__}: {e}",
+        }
+
+
 def cmd_release_status(args) -> dict[str, Any]:
     """Release pipeline status aggregator (v0.11.14+, read-only).
+
+    v0.11.16+: args.auto_bump=True 시 current_version == last_release_tag 분기에서
+    자동으로 next_version (patch) bump + sync_release_hash.py post-step 자동 호출.
+    in-process cmd_version_bump 호출. 결과를 auto_bump_result dict 로 attach.
 
     Returns:
         {
@@ -171,6 +227,8 @@ def cmd_release_status(args) -> dict[str, Any]:
             "local_mypy": {ok, exit_code, error_count, first_error},
             "next_version": {next, current, bumped},
             "ready_to_release": bool,
+            "auto_bump_applied": bool (v0.11.16+),
+            "auto_bump_result": dict | None (v0.11.16+),
         }
     """
     current = _read_pyproject_version()
@@ -180,12 +238,32 @@ def cmd_release_status(args) -> dict[str, Any]:
     ci_mypy = _check_ci_mypy()
     next_ver = _suggest_next_version(current)
 
+    # v0.11.16+ --auto-bump: current == last_tag 분기에서 자동 bump
+    auto_bump_applied = False
+    auto_bump_result: dict[str, Any] | None = None
+    if getattr(args, "auto_bump", False) and last_tag \
+            and last_tag.lstrip("v").rstrip("-beta") == current:
+        auto_bump_result = _run_auto_bump(next_ver["next"])
+        auto_bump_applied = auto_bump_result.get("ok", False)
+        if auto_bump_applied:
+            # bump 성공 시 current_version 재읽기 + next_version 재계산
+            current = _read_pyproject_version()
+            next_ver = _suggest_next_version(current)
+
     # ready_to_release verdict: Layer 1 + Layer 2 모두 sanity
     # + unreleased_commits > 0 (release 의미)
     # + last_tag != current (이미 released 가 아님)
+    # v0.11.16+: auto_bump_applied 면 ready (current_version 이 last_tag 와 달라짐)
     local_mypy_ok = local_mypy.get("ok", False)
     ci_verdict = ci_mypy.get("verdict", "skipped")
-    if last_tag and last_tag.lstrip("v").rstrip("-beta") == current:
+    if auto_bump_applied:
+        # bump 성공 = next version 으로 정렬됨 → ready 판정으로 진행
+        ready = True
+        ready_reason = (
+            f"auto-bumped to {current} (was {last_tag}); "
+            "all checks pass + unreleased commits present"
+        )
+    elif last_tag and last_tag.lstrip("v").rstrip("-beta") == current:
         # 이미 current 가 last_tag 와 같음 (release 안 됨)
         ready = False
         ready_reason = "current_version already at last_release_tag"
@@ -217,22 +295,26 @@ def cmd_release_status(args) -> dict[str, Any]:
         "next_version": next_ver,
         "ready_to_release": ready,
         "ready_reason": ready_reason,
+        "auto_bump_applied": auto_bump_applied,
+        "auto_bump_result": auto_bump_result,
     }
-    # v0.11.15+ 1-line summary (jq-friendly)
+    # v0.11.15+ 1-line summary (jq-friendly) + v0.11.16+ 6-field (auto_bump 추가)
     result["summary"] = _summarize_release_status(result)
     return result
 
 
 def _summarize_release_status(result: dict[str, Any]) -> str:
-    """1-line summary of release status (v0.11.15+, jq-friendly).
+    r"""1-line summary of release status (v0.11.15+, jq-friendly).
+
+    v0.11.16+: 6-field 로 확장 — `auto_bump=<applied|skipped|failed>` 추가.
 
     Returns:
-        Compact 1-line string. format = \`ci_mypy=<verdict>, local_mypy=<ok|FAIL>,
-        ready=<true|false>, next=<X.Y.Z>, unreleased=<count>\`. Stable key order
-        for grep / pipe.
+        Compact 1-line string. format = `ci_mypy=<verdict>, local_mypy=<ok|FAIL>,
+        ready=<true|false>, next=<X.Y.Z>, unreleased=<count>, auto_bump=<state>`.
+        Stable key order for grep / pipe.
 
     Example:
-        \`ci_mypy=sanity, local_mypy=ok, ready=false, next=0.11.15, unreleased=0\`
+        `ci_mypy=sanity, local_mypy=ok, ready=false, next=0.11.16, unreleased=3, auto_bump=skipped`
     """
     ci_verdict = result.get("ci_mypy", {}).get("verdict", "unknown")
     local_ok = result.get("local_mypy", {}).get("ok", False)
@@ -240,10 +322,18 @@ def _summarize_release_status(result: dict[str, Any]) -> str:
     ready = result.get("ready_to_release", False)
     next_v = result.get("next_version", {}).get("next", "?")
     unreleased = result.get("unreleased_commits", {}).get("count", 0)
+    # v0.11.16+ auto_bump state
+    if result.get("auto_bump_applied"):
+        auto_bump_state = "applied"
+    elif result.get("auto_bump_result") is not None and not result.get("auto_bump_applied"):
+        auto_bump_state = "failed"
+    else:
+        auto_bump_state = "skipped"
     return (
         f"ci_mypy={ci_verdict}, "
         f"local_mypy={local_mypy_str}, "
         f"ready={'true' if ready else 'false'}, "
         f"next={next_v}, "
-        f"unreleased={unreleased}"
+        f"unreleased={unreleased}, "
+        f"auto_bump={auto_bump_state}"
     )

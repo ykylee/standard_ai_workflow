@@ -35,6 +35,9 @@ Cumulative mypy strict clean file count (v0.8.0 spec §5.3 단계적 격상 정�
       🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors)
     - v0.11.14 누적: 36 file strict clean
       v0.11.10 35 + v0.11.14 27단계 (release_status.py 신규) = 36 file
+    - v0.11.16 누적: 36 file strict clean (유지)
+      v0.11.14 36 + v0.11.16 28단계 (release_status.py --auto-bump 확장, 신규 file 0)
+      = 36 file (기존 release_status.py 의 in-place 확장)
 """
 from __future__ import annotations
 
@@ -133,7 +136,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.11.15-beta"
+    return "v0.11.16-beta"
 
 
 __version__: str = _read_pyproject_version()

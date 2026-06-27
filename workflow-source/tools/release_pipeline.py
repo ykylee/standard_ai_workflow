@@ -1194,6 +1194,12 @@ def find_dist_files(version: str) -> list[Path]:
 def cmd_release(args) -> dict:
     """GitHub Release 생성 (gh release create).
 
+    v0.11.16+ args normalize: release subcommand argparse 의 attribute 와
+    cmd_validate 가 기대하는 attribute 가 비대칭. dispatcher (CLI argparse) 는
+    skip_packaging / skip_doctor / skip_state / skip_git / skip_mypy 를 add 안 해서
+    args.normalize 없이 cmd_release 진입 시 cmd_validate 호출에서 AttributeError.
+    memory #11 의 _make_args 정공법 정합.
+
     사전 점검: --skip-validate 미지정 시 validate 4 source 자동 호출.
     1+ source fail 시 release 중단 (exit 1).
 
@@ -1215,6 +1221,16 @@ def cmd_release(args) -> dict:
 
     gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
     """
+    # v0.11.16+ args normalize: dispatcher (CLI argparse) 의 release subcommand 는
+    # skip_packaging / skip_doctor / skip_state / skip_git / skip_mypy 를 add 안 해서
+    # cmd_release 진입 시 cmd_validate 호출에서 AttributeError. memory #11 의 _make_args
+    # 정공법 정합 — release library wrapper 가 dispatcher 의 kwargs → Namespace 변환 후
+    # *모든 skip flag / optional attr* 의 default fill.
+    for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
+                 "skip_validate", "skip_cross_verify", "strict_cross_verify"):
+        if not hasattr(args, attr):
+            setattr(args, attr, False)
+
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
 
     # 1. mypy CI cross-verify (v0.11.13+, Layer 1 ↔ Layer 2 정합 advisory)

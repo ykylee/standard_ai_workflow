@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.17-dev (f6b65a4): mypy strict output_contracts 15 error 격상 — schemas/__init__.py __all__ 확장 (14 attribute attr-defined 해소) + output_contracts.py:360 unused type:ignore 제거, 누적 35 → 36 file clean, mypy 48 → 33 errors, 별도 발견: check_output_json_schema.py FAIL (기존 schema drift, 본 fix 무관), no release / no version bump",
       "v0.11.16-hotfix (1333cc8): R9 wiki source rule lint fix — wiki-maintainability-score.md dashboard emit line 405 표현이 R9 regex false-positive 트리거 → tool 수정 (line 405 multi-line 분리) + dashboard regenerate → R9 lint PASS, 2 file 변경, no release / no version bump",
       "v0.11.16-hotfix (298704f): workflow 종료 단계 §8 정합 후속 — audit 잔재 0 + wiki layer cross-ref 보강 (concepts/memory-3-state-lifecycle.md + concepts/project-architecture.md + log.md append), 3 file 변경, no release / no version bump",
       "v0.11.16-hotfix (32185c7): workflow 종료 단계 commit/memory 순서 정정 — global_workflow_standard.md §8 + MEMORY_GOVERNANCE.md §3 + phase5_governance_guide.md §4 + resiliency-baseline.md RES-WF-08 + harness/examples/templates 정합 (memory → commit → push), 11 file 변경, no release / no version bump",

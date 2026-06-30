@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.16-hotfix (298704f): workflow 종료 단계 §8 정합 후속 — audit 잔재 0 + wiki layer cross-ref 보강 (concepts/memory-3-state-lifecycle.md + concepts/project-architecture.md + log.md append), 3 file 변경, no release / no version bump",
       "v0.11.16-hotfix (32185c7): workflow 종료 단계 commit/memory 순서 정정 — global_workflow_standard.md §8 + MEMORY_GOVERNANCE.md §3 + phase5_governance_guide.md §4 + resiliency-baseline.md RES-WF-08 + harness/examples/templates 정합 (memory → commit → push), 11 file 변경, no release / no version bump",
       "v0.11.10 (8b984f5): mypy strict 단계적 격상 25-26단계 (project_docs + profiling) — 🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors in 106 files) + cumulative 33→35 file",
       "v0.11.9 (5e33d5c): mypy strict 단계적 격상 23-24단계 (testing + runner) — 1+1=2 errors 해소 + cumulative 31→33 file + type ignore [import-not-found] + Path|None 명시적 annotation",

@@ -357,7 +357,7 @@ def _inline_defs(schema: dict[str, object]) -> dict[str, object]:
             node_dict = cast("dict[str, object]", node)
             if "$ref" in node_dict and isinstance(node_dict["$ref"], str):
                 ref_name = node_dict["$ref"].rsplit("/", 1)[-1]
-                target: object = defs.get(ref_name)  # type: ignore[assignment]
+                target: object = defs.get(ref_name)
                 if target is not None:
                     return _resolve(copy.deepcopy(target))
             return {key: _resolve(value) for key, value in node_dict.items()}

@@ -20,6 +20,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 # Rule result types
 Status = str  # "compliant" | "non_compliant" | "not_applicable" | "advisory"
@@ -269,7 +270,7 @@ def evaluate_compliance(
     token_exp_seconds: int = 0,
     secret: str = "",
     admin_action: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """6 SEC-AUTH rule 의 compliance 평가."""
     if audit_log_path is None:
         audit_log_path = project_root / "ai-workflow" / "memory" / "active" / "audit.md"

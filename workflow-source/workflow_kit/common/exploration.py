@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 IGNORED_DIRS = {
     ".git", ".hg", ".svn", ".idea", ".vscode", "node_modules", ".next", ".turbo",
@@ -33,7 +33,7 @@ def detect_package_scripts(root: Path) -> dict[str, str]:
         return {}
     try:
         data = json.loads(package_json.read_text(encoding="utf-8"))
-        return data.get("scripts", {})
+        return cast(dict[str, str], data.get("scripts", {}))
     except:
         return {}
 

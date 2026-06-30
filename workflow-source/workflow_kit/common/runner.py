@@ -6,7 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from workflow_kit.common.errors import build_error_result
 
@@ -107,7 +107,7 @@ def run_json_command(cmd: list[str], cwd: Path, *, step_name: str) -> dict[str, 
             payload=payload,
         )
 
-    return payload
+    return cast(dict[str, Any], payload)
 
 
 def current_python_executable() -> str:

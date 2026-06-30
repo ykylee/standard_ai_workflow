@@ -24,7 +24,7 @@ import time
 import tracemalloc
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 Status = str  # "compliant" | "non_compliant" | "not_applicable" | "advisory"
 
@@ -285,7 +285,7 @@ def evaluate_compliance(
     baseline_path: Path | None = None,
     iterations_leak: int = 10,
     iterations_gc: int = 50,
-) -> dict:
+) -> dict[str, Any]:
     """6 PERF-MEM rule 의 compliance 평가.
 
     fn: 측정할 callable. None 이면 N/A 처리.

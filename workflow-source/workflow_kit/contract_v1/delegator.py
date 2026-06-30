@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 # §3.1~§3.5 role names (must match contract v1 spec)
 ALLOWED_ROLES = ("doc-worker", "code-worker", "validation-worker", "workflow-worker")
@@ -200,7 +200,7 @@ def recommend_model_tier(task: dict[str, Any]) -> str:
     """
     explicit = task.get("required_model_tier")
     if explicit in ALLOWED_MODEL_TIERS:
-        return explicit
+        return cast(str, explicit)
     haystack_parts: list[str] = []
     haystack_parts.append(str(task.get("brief", "")))
     for c in task.get("constraints", []) or []:

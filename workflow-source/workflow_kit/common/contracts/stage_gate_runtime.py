@@ -19,7 +19,7 @@ runtime enforcement 담당.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from workflow_kit.common.contracts.stage_gate import (
     ApprovalActor,
@@ -214,9 +214,9 @@ def get_stage_status_from_result(result: dict[str, Any]) -> StageStatus | None:
     # 1순위: stage_completion.stage_status
     sc = result.get("stage_completion")
     if isinstance(sc, dict) and "stage_status" in sc:
-        return sc["stage_status"]
+        return cast(StageStatus, sc["stage_status"])
     # 2순위: result['status'] (legacy)
     status = result.get("status")
     if status in ("ok", "warning", "error"):
-        return status
+        return cast(StageStatus, status)
     return None

@@ -25,6 +25,7 @@ import signal
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 Status = str  # "compliant" | "non_compliant" | "not_applicable" | "advisory"
 
@@ -275,7 +276,7 @@ def check_health_snapshot(project_root: Path) -> RuleResult:
 # --- Public API ---
 
 
-def evaluate_compliance(project_root: Path) -> dict:
+def evaluate_compliance(project_root: Path) -> dict[str, Any]:
     """8 RES-WF rule 의 compliance 평가."""
     results = [
         check_health_check(project_root),

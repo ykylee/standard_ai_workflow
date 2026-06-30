@@ -59,7 +59,7 @@ class DocTransformer:
         result = re.sub(r"\n{3,}", "\n\n", result)
         return result.strip()
 
-    def transform_file(self, source: Path, destination: Path):
+    def transform_file(self, source: Path, destination: Path) -> None:
         """Read source, minify, and write to destination."""
         content = source.read_text(encoding="utf-8")
         if source.suffix == ".md":

@@ -20,6 +20,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 Status = str  # "compliant" | "non_compliant" | "not_applicable" | "advisory"
 
@@ -297,7 +298,7 @@ def collect_test_files(project_root: Path) -> list[Path]:
     return candidates
 
 
-def evaluate_compliance(project_root: Path) -> dict:
+def evaluate_compliance(project_root: Path) -> dict[str, Any]:
     """6 PBT-WF rule 의 compliance 평가."""
     test_files = collect_test_files(project_root)
     results = [

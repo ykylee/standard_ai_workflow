@@ -1624,7 +1624,7 @@ def cmd_cascade_delete(argv: list[str]) -> int:
         plan = emit_cascade_plan(deleted_paths, wiki_root, project)
 
         # collect CascadeTarget list for apply
-        all_targets: list = []
+        all_targets: list[Any] = []
         for deleted in deleted_paths:
             result = find_cascade_targets(deleted, wiki_root, project)
             all_targets.extend(result.targets)

@@ -34,7 +34,7 @@ SECTION = "tool.workflow-doctor"
 
 # tomllib (3.11+) / tomli (3.10) 분기
 if sys.version_info >= (3, 11):
-    import tomllib  # type: ignore[import-not-found]
+    import tomllib
 else:  # pragma: no cover
     import tomli as tomllib  # type: ignore[no-redef, import-not-found]
 

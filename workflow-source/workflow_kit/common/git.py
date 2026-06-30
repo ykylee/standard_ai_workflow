@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from dataclasses import dataclass, asdict
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional
 from pathlib import Path
 
 @dataclass
@@ -63,7 +63,7 @@ def generate_git_markdown_summary(entries: List[CommitEntry], commit_range: str)
             md.append("")
     return "\n".join(md)
 
-def summarize_git_history(repo_path: str | Path, commit_range: str) -> dict:
+def summarize_git_history(repo_path: str | Path, commit_range: str) -> dict[str, Any]:
     logs = get_git_log(repo_path, commit_range)
     entries = process_logs(logs)
     return {

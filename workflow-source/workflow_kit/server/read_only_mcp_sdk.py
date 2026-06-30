@@ -103,7 +103,7 @@ def build_lowlevel_server() -> Any:
     server = sdk.lowlevel.Server(READ_ONLY_SERVER_NAME)
     descriptors = build_transport_tool_descriptors()
 
-    @server.list_tools()
+    @server.list_tools()  # type: ignore[untyped-decorator]
     async def list_tools() -> list[Any]:
         # descriptors type 이 dict[str, object] → .get("tools") object 명시적 narrow
         tools_list = cast("list[object]", descriptors.get("tools", [])) if isinstance(descriptors.get("tools"), list) else []
@@ -118,7 +118,7 @@ def build_lowlevel_server() -> Any:
             for descriptor in tools_list
         ]
 
-    @server.call_tool(validate_input=False)
+    @server.call_tool(validate_input=False)  # type: ignore[untyped-decorator]
     async def call_tool(name: str, arguments: dict[str, Any]) -> Any:
         returncode, payload = invoke_tool(name, json.dumps(arguments, ensure_ascii=False))
         result = _call_tool_result_for_payload(sdk.types, name, payload)

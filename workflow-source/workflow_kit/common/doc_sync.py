@@ -24,8 +24,8 @@ def build_doc_sync_candidates(
     # profile.get 결과 object → str | None 명시적 narrow (operations_path / document_home)
     operations_path_raw = profile.get("operations_path")
     document_home_raw = profile.get("document_home")
-    operations_path = cast("str | None", operations_path_raw) if isinstance(operations_path_raw, str) or operations_path_raw is None else None
-    document_home = cast("str | None", document_home_raw) if isinstance(document_home_raw, str) or document_home_raw is None else None
+    operations_path = operations_path_raw if isinstance(operations_path_raw, str) or operations_path_raw is None else None
+    document_home = document_home_raw if isinstance(document_home_raw, str) or document_home_raw is None else None
     operations_doc = path_exists_relative(project_root, operations_path)
     doc_home = path_exists_relative(project_root, document_home)
     impacted: list[str] = []

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -97,9 +98,16 @@ def cmd_validate(args) -> dict:
 
     # 1. check_packaging
     if not args.skip_packaging:
+        # v0.11.17 in-scope fix: 부모 process 의 PYTHONPATH (예: `workflow-source`)
+        # 가 상속되면, wheel install 의 site-packages/bootstrap_lib 가 shadowing
+        # 되어 `No module named 'bootstrap_lib'` 실패. packaging check 는 venv
+        # site-packages 만 사용해야 함. doctor/state/git check 는 venv site-packages
+        # 만 사용하므로 동일 처리.
+        clean_env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
         proc = subprocess.run(
             [sys.executable, str(REPO_ROOT / "tools/check_packaging.py")],
             capture_output=True, text=True, timeout=120,
+            env=clean_env,
         )
         results["packaging"] = {
             "exit_code": proc.returncode,

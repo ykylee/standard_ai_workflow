@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.17-dev (97795bc): mypy strict cli/doctor + common/decorators 묶음 격상 — cli/doctor.py 6 error (DoctorConfig | None param + dict[str, Any] return + unused type:ignore) + common/decorators.py 4 error (redundant cast + unused type:ignore) → 0, 누적 36 → 38 file clean, mypy 33 → 23 errors, check_baselines_compliance 16 PASS + check_output_samples 24 PASS + check_wiki_source_rule R9 PASS, 2 file 변경, no release / no version bump",
       "v0.11.17-dev (00cc83e): schema drift housekeeping — examples/output_samples/*.json 24 file tool_version v0.5.10.1-beta → v0.11.16-beta + SUCCESS_PATH_CONTRACTS/ERROR_PATH_CONTRACTS 정합 (purpose_context/graph_insights 등 default null 추가) + output_sample_contracts.json + generated_output_schemas.json regenerate, 26 file 변경, check_output_samples.py FAIL→PASS / check_output_json_schema.py FAIL→PASS, no release / no version bump",
       "v0.11.17-dev (f6b65a4): mypy strict output_contracts 15 error 격상 — schemas/__init__.py __all__ 확장 (14 attribute attr-defined 해소) + output_contracts.py:360 unused type:ignore 제거, 누적 35 → 36 file clean, mypy 48 → 33 errors, 별도 발견: check_output_json_schema.py FAIL (기존 schema drift, 본 fix 무관), no release / no version bump",
       "v0.11.16-hotfix (1333cc8): R9 wiki source rule lint fix — wiki-maintainability-score.md dashboard emit line 405 표현이 R9 regex false-positive 트리거 → tool 수정 (line 405 multi-line 분리) + dashboard regenerate → R9 lint PASS, 2 file 변경, no release / no version bump",

@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-30 (workflow 종료 단계 commit/memory 순서 정정 entry 추가, `memory → commit → push` 정합)
+- 최종 수정일: 2026-06-30 (v0.11.17 release entry 추가, 누적 13 commit + GitHub Release tag push 완료)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -16,6 +16,9 @@
 - **세션 종료 절차는 [`../../workflow-source/core/global_workflow_standard.md`](../../workflow-source/core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서**
 
 ## 최근 작업 백로그
+
+### [[release/v0.11.17/backlog/2026-06-30.md]] {#release-v0-11-17}
+- 2026-06-30: v0.11.17 — **SemVer patch**, mypy strict cumulative 25 error 격상 (output_contracts 15 + cli/doctor+common/decorators 10) + schema drift housekeeping (sample 24 + schema 2) + in-scope fix (release_pipeline.py PYTHONPATH shadowing bug). 누적 mypy 35 → 38 file clean, 48 → 23 errors (-25). GitHub Release `v0.11.17-beta` tag push + gh release create exit 0 (https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.17-beta). PyPI 배포: no. breaking change: ❌.
 
 ### [[main/backlog/2026-06-30.md]] {#main-2026-06-30}
 - 2026-06-30: workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `workflow-source/core/global_workflow_standard.md` §8 + `MEMORY_GOVERNANCE.md` §3 + `phase5_governance_guide.md` §4 + `extensions/resiliency-baseline.md` RES-WF-08 + `harnesses/{pi-dev,codex,gemini-cli,opencode}/` AGENTS/apply_guide + `examples/{acme_delivery_platform,research_eval_hub}/work_backlog.md` + `templates/work_backlog_template.md` 모두 **`memory 갱신 → commit → push`** 순서로 정합. release: no / version bump: no (governance 문서 정정).

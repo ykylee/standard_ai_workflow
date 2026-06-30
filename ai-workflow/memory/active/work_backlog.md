@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-06-26 (v0.11.11~v0.11.15 release entries 추가, state drift fix)
+- 최종 수정일: 2026-06-30 (workflow 종료 단계 commit/memory 순서 정정 entry 추가, `memory → commit → push` 정합)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -13,8 +13,12 @@
 - anchor ID 로 직접 retrieval (session-start 의 index-based load)
 - 각 일자 백로그는 TASK-NNN 식별자를 가진 작업 항목 1개 이상 포함
 - 같은 일자에 여러 브랜치 작업이 있으면 브랜치별로 별도 백로그 파일
+- **세션 종료 절차는 [`../../workflow-source/core/global_workflow_standard.md`](../../workflow-source/core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서**
 
 ## 최근 작업 백로그
+
+### [[main/backlog/2026-06-30.md]] {#main-2026-06-30}
+- 2026-06-30: workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `workflow-source/core/global_workflow_standard.md` §8 + `MEMORY_GOVERNANCE.md` §3 + `phase5_governance_guide.md` §4 + `extensions/resiliency-baseline.md` RES-WF-08 + `harnesses/{pi-dev,codex,gemini-cli,opencode}/` AGENTS/apply_guide + `examples/{acme_delivery_platform,research_eval_hub}/work_backlog.md` + `templates/work_backlog_template.md` 모두 **`memory 갱신 → commit → push`** 순서로 정합. release: no / version bump: no (governance 문서 정정).
 
 ### [[release/v0.11.15/backlog/2026-06-26.md]] {#release-v0-11-15}
 - 2026-06-26: v0.11.15 — **SemVer patch**, release summary 1-line (jq-friendly verdict). `cmd_release` + `cmd_release_status` JSON output 에 `summary` 5-field (ci_mypy / local_mypy / ready / next / error|unreleased) 추가. `_summarize_release_status` (release_status.py) + `_attach_release_summary` (release_pipeline.py) 2 helper + 11 return point wrap. `_resolve_cross_verify_verdict` 정합 (local empty → no_local_verify, 이전 drift_warning 잘못). release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.15-beta>.

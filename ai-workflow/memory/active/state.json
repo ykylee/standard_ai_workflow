@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.16-hotfix (32185c7): workflow 종료 단계 commit/memory 순서 정정 — global_workflow_standard.md §8 + MEMORY_GOVERNANCE.md §3 + phase5_governance_guide.md §4 + resiliency-baseline.md RES-WF-08 + harness/examples/templates 정합 (memory → commit → push), 11 file 변경, no release / no version bump",
       "v0.11.10 (8b984f5): mypy strict 단계적 격상 25-26단계 (project_docs + profiling) — 🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors in 106 files) + cumulative 33→35 file",
       "v0.11.9 (5e33d5c): mypy strict 단계적 격상 23-24단계 (testing + runner) — 1+1=2 errors 해소 + cumulative 31→33 file + type ignore [import-not-found] + Path|None 명시적 annotation",
       "v0.11.8 (8c5946a): mypy strict 단계적 격상 21-22단계 (read_only_mcp_sdk + workflow_writes) — 1+1=2 errors 해소 + cumulative 29→31 file + type annotation 명시",
@@ -50,7 +51,7 @@
       "v0.6.3 (1923705): P4 harness overlay consistency + memory/log.md. v0.6.x series final.",
       "v0.6.3 PR (6b2bf00): fix broken relative links + bootstrap test leniency"
     ],
-    "latest_backlog_path": "ai-workflow/memory/release/v0.11.15/backlog/2026-06-26.md"
+    "latest_backlog_path": "ai-workflow/memory/main/backlog/2026-06-30.md"
   },
   "wiki": {
     "concepts_count": 28,

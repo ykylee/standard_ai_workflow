@@ -1,10 +1,10 @@
 ---
 type: concept
 status: active
-last_ingested_from: docs/architecture/ADR-001 + ADR-004 + .omo/plans/v0.6.1-plus-memory-raw-ops-design.md
-related_pages: [concepts/mcp-transport, concepts/orchestrator-subagent-pattern]
+last_ingested_from: docs/architecture/ADR-001 + ADR-004 + .omo/plans/v0.6.1-plus-memory-raw-ops-design.md + workflow-source/core/global_workflow_standard.md §8 (2026-06-30)
+related_pages: [concepts/mcp-transport, concepts/orchestrator-subagent-pattern, concepts/memory-3-state-lifecycle]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-30
 ---
 
 # Project Architecture: 3-Layer + LLM Wiki + Memory 3-State
@@ -25,8 +25,10 @@ Memory layer (v0.6.1+): 3-state lifecycle (active/archive/release). R8 Freeze �
 | Layer | 위치 | 갱신 정책 | 예시 |
 |---|---|---|---|
 | Source | `workflow-source/` | PR + review | `core/`, `templates/`, `skills/` |
-| Runtime | `ai-workflow/` | session-write | `memory/`, `wiki/` |
+| Runtime | `ai-workflow/` | session-write (`memory 갱신 → commit → push` 정합) | `memory/`, `wiki/` |
 | Project Docs | `docs/`, root | human + AI | `PROJECT_PROFILE.md`, runbooks |
+
+**Runtime layer 갱신 정합 (2026-06-30)**: 세션 종료 절차는 [`workflow-source/core/global_workflow_standard.md` §8](../../../workflow-source/core/global_workflow_standard.md) 정합 — **`memory 갱신 → commit → push`** 순서. memory 갱신이 commit 이후 별도 turn 으로 분리되면 push 시 누락 / 추가 commit 이 따라붙는 협업 결함이 생긴다 (§8 안티패턴).
 
 ## LLM Wiki Layer (ADR-004, v0.6.0)
 
@@ -40,7 +42,7 @@ Memory layer (v0.6.1+): 3-state lifecycle (active/archive/release). R8 Freeze �
 
 | State | 위치 | Mutability | Lifecycle |
 |---|---|---|---|
-| **Active** | `memory/active/` _(archive after freeze)_ | mutable (session write) | session start → end |
+| **Active** | `memory/active/` _(archive after freeze)_ | mutable (session write, commit 직전) | session start → end → commit → push |
 | **Archive** | `memory/archive/YYYY-MM-DD/` | immutable (R8 freeze) | session end → freeze |
 | **Release** | `memory/release/v0.5.X/` | immutable (release snapshot) | release time → deep freeze |
 
@@ -57,6 +59,7 @@ Freeze mechanism (R8):
 
 ## References
 
+- [Global Workflow Standard §8](../../../workflow-source/core/global_workflow_standard.md) — **세션 종료 절차 `memory 갱신 → commit → push`** (2026-06-30 정합)
 - [Karpathy LLM Wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) (2026-04)
 - [Plans: LLM Wiki Convergence](../../.omo/plans/llm-wiki-convergence-design.md)
 - [Plans: Distributed Rules](../../.omo/plans/v0.5.11-plus-llm-wiki-distributed-rules.md)

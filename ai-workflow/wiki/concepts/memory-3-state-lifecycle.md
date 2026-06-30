@@ -1,10 +1,10 @@
 ---
 type: concept
 status: active
-last_ingested_from: workflow-source/MEMORY_GOVERNANCE.md + .omo/plans/v0.6.1-plus-memory-raw-ops-design.md
+last_ingested_from: workflow-source/MEMORY_GOVERNANCE.md + .omo/plans/v0.6.1-plus-memory-raw-ops-design.md + workflow-source/core/global_workflow_standard.md §8 (2026-06-30)
 related_pages: [concepts/project-architecture, concepts/wiki-source-rule-r9, patterns/frozen-archive-immutability, decisions/adr-005-r9-wiki-source-rule]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-30
 r9_skip: true
 ---
 
@@ -13,7 +13,7 @@ r9_skip: true
 - 문서 목적: `ai-workflow/memory/` 의 3-state lifecycle (active ↔ archive ↔ release) 정책, R8 freeze 메커니즘, R9/R10 부수 규칙을 정리한다.
 - 범위: state 정의, lifecycle transition, R8 freeze protocol, related decisions
 - 관련 결정: ADR-005 (Memory as Raw Layer, proposed)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-06-30 (세션 종료 commit/memory 순서 정합 cross-ref 추가)
 
 ## §1 TL;DR  {#s1-tldr}
 
@@ -89,6 +89,7 @@ Active → archive 는 매 session 마다 발생. Archive → release 는 releas
 | **`.frozen` YAML 마커** | `frozen_at: <ISO>`, `source: active/`, `files: [<list>]` | R8 audit. 동일 날짜 중복 freeze 감지 |
 | **Same-date freeze = skip** | 이미 `archive/YYYY-MM-DD/` 가 존재하면 skip. status = `skipped` | immutability 보존. R10 위반 방지 |
 | **Active → archive 만 허용** | archive → active 역방향 금지 (rollback 안 됨) | R7. 잘못된 갱신은 next session 에 active/ 에서 |
+| **Active 갱신 = commit 직전** (2026-06-30) | 세션 종료 절차는 `memory 갱신 → commit → push` 순서 (협업 정합). 별도 turn "memory 에 적어줘" 분리 ❌ | [§8 Global Workflow Standard](../../../workflow-source/core/global_workflow_standard.md) §8 정합. push 시 협업자가 memory 변경을 함께 본다 |
 
 ## §5 Related Decisions  {#s5-related-decisions}
 
@@ -99,7 +100,8 @@ Active → archive 는 매 session 마다 발생. Archive → release 는 releas
 
 ## §6 References  {#s6-references}
 
-- [Memory Governance 원문](../../../workflow-source/MEMORY_GOVERNANCE.md) — §4 Freeze 규칙
+- [Memory Governance 원문](../../../workflow-source/MEMORY_GOVERNANCE.md) — §3 (세션 종료 §8 정합), §4 Freeze 규칙
+- [Global Workflow Standard §8](../../../workflow-source/core/global_workflow_standard.md) — **세션 종료 절차 `memory 갱신 → commit → push`** (2026-06-30 정합)
 - [Memory-Freeze skill](../../../workflow-source/skills/memory-freeze/SKILL.md) — R8 freeze 구현 spec
 - [v0.6.1+ Memory Raw Ops design](../../../.omo/plans/v0.6.1-plus-memory-raw-ops-design.md) — §3 architecture, §4 R8~R10, §10 ADR-005 draft
 - [Memory Operation Log](../../memory/log.md) — 실제 freeze 이벤트 기록 예시

@@ -4,9 +4,9 @@ status: active
 r9_skip: true
 title: Wiki Ingest/Query Log
 related_pages: [INGEST_GUIDE]
-last_touched: 2026-06-12
+last_touched: 2026-06-30
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-30
 ---
 
 # Wiki Ingest/Query Log
@@ -2029,3 +2029,31 @@ Bug fix (same commit): okf-validate JSON mode UnboundLocalError (err_count 가 e
 - 5 module audit 4차 (path_resolver / phishing_keywords)
 - mkdocs --strict 진짜 활성화 (wiki mirror 또는 multirepo)
 - v0.8.0 candidates: PyPI / stable API / mypy strict
+
+## [2026-06-30] governance | workflow 종료 단계 commit/memory 순서 정합 (commit `32185c7` + memory cycle `df3d802`)
+
+### Cross-ref 보강
+
+- `concepts/memory-3-state-lifecycle.md` — Active 갱신 = commit 직전 정책 row 추가, §6 References 에 `global_workflow_standard.md §8` cross-ref
+- `concepts/project-architecture.md` — Runtime layer 갱신 정합 row 추가 (3-Layer 표 + §6 References)
+
+### SSOT
+
+- [`workflow-source/core/global_workflow_standard.md` §8](../../../workflow-source/core/global_workflow_standard.md) — 8.1 memory → commit → push / 8.2 commit 이후 예외 / 8.3 안티패턴
+- [`workflow-source/MEMORY_GOVERNANCE.md` §3](../../../workflow-source/MEMORY_GOVERNANCE.md) — §8 cross-ref
+- [`workflow-source/core/phase5_governance_guide.md` §4](../../../workflow-source/core/phase5_governance_guide.md) — §8 정합
+- [`workflow-source/extensions/resiliency-baseline.md` RES-WF-08](../../../workflow-source/extensions/resiliency-baseline.md)
+- harness overlay (pi-dev/AGENTS + codex/gemini-cli/opencode apply_guide) 4 file
+- examples/{acme_delivery_platform,research_eval_hub}/work_backlog.md 2 file
+- templates/work_backlog_template.md 1 file
+
+### Audit 결과
+
+- 잔재 0 (다른 governance 문서 audit 결과 추가 정정 불필요)
+- §7.2 "TASK 완료 시 세션 종료 전 roadmap 반영" 은 commit/memory 무관 (TASK 완료 시점 roadmap 동기화)
+- Beta-v0.6.0.md "memory/archive/ ← 세션 종료 시 freeze" 는 R8 의도된 동작 (active → archive)
+
+### Note
+
+- 본 entry 는 wiki log.md 의 append-only 정책 준수 (기존 entry 편집 ❌, 마지막에만 append)
+- R9 skip (wiki log 자체가 R9 예외)

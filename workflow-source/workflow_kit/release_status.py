@@ -153,7 +153,7 @@ def _check_ci_mypy() -> dict[str, Any]:
     try:
         sys.path.insert(0, str(REPO_ROOT / "tools"))
         from release_pipeline import _cross_verify_ci_mypy  # type: ignore[import-not-found]
-        ci_mypy = _cross_verify_ci_mypy()
+        ci_mypy: dict[str, Any] = _cross_verify_ci_mypy()
         return ci_mypy
     except Exception as e:
         return {
@@ -183,7 +183,7 @@ def _run_auto_bump(new_version: str) -> dict[str, Any]:
     try:
         # importlib 으로 release_pipeline 의 cmd_version_bump 호출
         sys.path.insert(0, str(REPO_ROOT / "tools"))
-        from release_pipeline import cmd_version_bump  # type: ignore[import-not-found]
+        from release_pipeline import cmd_version_bump
         import argparse
         bump_args = argparse.Namespace(
             patch=True,
@@ -211,7 +211,7 @@ def _run_auto_bump(new_version: str) -> dict[str, Any]:
         }
 
 
-def cmd_release_status(args) -> dict[str, Any]:
+def cmd_release_status(args: Any) -> dict[str, Any]:
     """Release pipeline status aggregator (v0.11.14+, read-only).
 
     v0.11.16+: args.auto_bump=True 시 current_version == last_release_tag 분기에서

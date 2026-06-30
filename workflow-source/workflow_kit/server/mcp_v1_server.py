@@ -6,7 +6,7 @@ import sys
 from typing import Any, Callable
 
 try:
-    from mcp.server.fastmcp import FastMCP  # type: ignore[import-not-found]
+    from mcp.server.fastmcp import FastMCP
     HAS_FASTMCP = True
 except ImportError:
     HAS_FASTMCP = False
@@ -22,11 +22,11 @@ class WorkflowMCPv1Server:
         
         self.mcp = FastMCP(name)
 
-    def tool(self, name: str | None = None, description: str | None = None) -> Callable:
+    def tool(self, name: str | None = None, description: str | None = None) -> Callable[..., Any]:
         """Decorator to register a tool."""
         return self.mcp.tool(name=name, description=description)
 
-    def run(self):
+    def run(self) -> None:
         """Run the server over stdio."""
         self.mcp.run()
 

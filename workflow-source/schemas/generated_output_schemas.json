@@ -1110,6 +1110,84 @@
           "title": "Fields Requiring Confirmation",
           "type": "array"
         },
+        "graph_insights": {
+          "anyOf": [
+            {
+              "description": "v0.11.2 chapter 13 R-A follow-up cycle 4 deferred 통합: graph insights output.\n\nbacklog-update skill 의 context load 시 purpose_graph.run_graph_insights 호출 결과.\n- SessionStartPurposeCoTTrace 와 동일 schema (shared pattern)\n- coverage_pct + health_score + tier 정량화",
+              "properties": {
+                "coverage_pct": {
+                  "default": 0.0,
+                  "title": "Coverage Pct",
+                  "type": "number"
+                },
+                "covered_count": {
+                  "default": 0,
+                  "title": "Covered Count",
+                  "type": "integer"
+                },
+                "covered_goals": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Covered Goals",
+                  "type": "array"
+                },
+                "gaps_count": {
+                  "default": 0,
+                  "title": "Gaps Count",
+                  "type": "integer"
+                },
+                "health_score": {
+                  "default": 0,
+                  "title": "Health Score",
+                  "type": "integer"
+                },
+                "health_tier": {
+                  "default": "unknown",
+                  "title": "Health Tier",
+                  "type": "string"
+                },
+                "scope_creep_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Creep Warnings",
+                  "type": "array"
+                },
+                "surprising_count": {
+                  "default": 0,
+                  "title": "Surprising Count",
+                  "type": "integer"
+                },
+                "uncovered_count": {
+                  "default": 0,
+                  "title": "Uncovered Count",
+                  "type": "integer"
+                },
+                "uncovered_goals": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Uncovered Goals",
+                  "type": "array"
+                },
+                "warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Warnings",
+                  "type": "array"
+                }
+              },
+              "title": "GraphInsightsOutput",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "handoff_update_note": {
           "anyOf": [
             {
@@ -1138,6 +1216,184 @@
           "description": "Classified operation type (create_entry, update_entry, ...)",
           "title": "Operation Type",
           "type": "string"
+        },
+        "purpose_context": {
+          "anyOf": [
+            {
+              "description": "v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.\n\nbacklog-update skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.",
+              "properties": {
+                "body_excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Body Excerpt"
+                },
+                "body_excerpt_char_count": {
+                  "default": 0,
+                  "title": "Body Excerpt Char Count",
+                  "type": "integer"
+                },
+                "body_excerpt_truncated": {
+                  "default": false,
+                  "title": "Body Excerpt Truncated",
+                  "type": "boolean"
+                },
+                "purpose_digest": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest"
+                },
+                "purpose_digest_rev": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest Rev"
+                },
+                "purpose_path": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Path"
+                },
+                "scope_excluded": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Excluded",
+                  "type": "array"
+                },
+                "scope_included": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Included",
+                  "type": "array"
+                },
+                "scope_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Warnings",
+                  "type": "array"
+                }
+              },
+              "title": "BacklogUpdatePurposeContext",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "purpose_cot_trace": {
+          "anyOf": [
+            {
+              "description": "v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest trace.\n\nbacklog-update skill 의 context load 시 purpose_ingest.run_two_step_cot_ingest 호출 결과.",
+              "properties": {
+                "cross_ref_matched": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Matched",
+                  "type": "array"
+                },
+                "cross_ref_missing": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Missing",
+                  "type": "array"
+                },
+                "cross_ref_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Warnings",
+                  "type": "array"
+                },
+                "overall_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Overall Warnings",
+                  "type": "array"
+                },
+                "step1_char_count": {
+                  "default": 0,
+                  "title": "Step1 Char Count",
+                  "type": "integer"
+                },
+                "step1_raw_excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Step1 Raw Excerpt"
+                },
+                "step1_truncated": {
+                  "default": false,
+                  "title": "Step1 Truncated",
+                  "type": "boolean"
+                },
+                "step2_structured_summary": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Step2 Structured Summary"
+                }
+              },
+              "title": "BacklogUpdatePurposeCoTTrace",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scope_creep_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scope Creep Warnings",
+          "type": "array"
         },
         "source_context": {
           "properties": {
@@ -1935,6 +2191,100 @@
           "title": "Impacted Documents",
           "type": "array"
         },
+        "purpose_context": {
+          "anyOf": [
+            {
+              "description": "v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.\n\ndoc-sync skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.",
+              "properties": {
+                "body_excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Body Excerpt"
+                },
+                "body_excerpt_char_count": {
+                  "default": 0,
+                  "title": "Body Excerpt Char Count",
+                  "type": "integer"
+                },
+                "body_excerpt_truncated": {
+                  "default": false,
+                  "title": "Body Excerpt Truncated",
+                  "type": "boolean"
+                },
+                "purpose_digest": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest"
+                },
+                "purpose_digest_rev": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest Rev"
+                },
+                "purpose_path": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Path"
+                },
+                "scope_excluded": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Excluded",
+                  "type": "array"
+                },
+                "scope_included": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Included",
+                  "type": "array"
+                },
+                "scope_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Warnings",
+                  "type": "array"
+                }
+              },
+              "title": "DocSyncPurposeContext",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "reasoning_notes": {
           "items": {
             "type": "string"
@@ -2596,6 +2946,84 @@
           "title": "Environment Constraints",
           "type": "array"
         },
+        "graph_insights": {
+          "anyOf": [
+            {
+              "description": "v0.11.2 chapter 13 R-A follow-up cycle 4 deferred 통합: graph insights output.\n\nsession-start / backlog-update skill 의 context load 시\npurpose_graph.run_graph_insights 호출 결과 (cycle 4 의 2차 통합).\n- coverage_pct: 0.0-100.0 (Goals ↔ deliverables 매칭률)\n- health_score: 0-100 종합 점수\n- health_tier: excellent / good / fair / poor\n- scope_creep_warnings: scope_excluded 매칭 ❌ + Goals 매핑 0 deliverable",
+              "properties": {
+                "coverage_pct": {
+                  "default": 0.0,
+                  "title": "Coverage Pct",
+                  "type": "number"
+                },
+                "covered_count": {
+                  "default": 0,
+                  "title": "Covered Count",
+                  "type": "integer"
+                },
+                "covered_goals": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Covered Goals",
+                  "type": "array"
+                },
+                "gaps_count": {
+                  "default": 0,
+                  "title": "Gaps Count",
+                  "type": "integer"
+                },
+                "health_score": {
+                  "default": 0,
+                  "title": "Health Score",
+                  "type": "integer"
+                },
+                "health_tier": {
+                  "default": "unknown",
+                  "title": "Health Tier",
+                  "type": "string"
+                },
+                "scope_creep_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Creep Warnings",
+                  "type": "array"
+                },
+                "surprising_count": {
+                  "default": 0,
+                  "title": "Surprising Count",
+                  "type": "integer"
+                },
+                "uncovered_count": {
+                  "default": 0,
+                  "title": "Uncovered Count",
+                  "type": "integer"
+                },
+                "uncovered_goals": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Uncovered Goals",
+                  "type": "array"
+                },
+                "warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Warnings",
+                  "type": "array"
+                }
+              },
+              "title": "GraphInsightsOutput",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "in_progress_items": {
           "items": {
             "type": "string"
@@ -2622,33 +3050,193 @@
           "title": "Next Documents",
           "type": "array"
         },
+        "purpose_context": {
+          "anyOf": [
+            {
+              "description": "v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration.\n\nsession-start skill 이 PURPOSE.md + state.json.purpose_digest 를 자동 read 한 결과.",
+              "properties": {
+                "body_excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Body Excerpt"
+                },
+                "body_excerpt_char_count": {
+                  "default": 0,
+                  "title": "Body Excerpt Char Count",
+                  "type": "integer"
+                },
+                "body_excerpt_truncated": {
+                  "default": false,
+                  "title": "Body Excerpt Truncated",
+                  "type": "boolean"
+                },
+                "purpose_digest": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest"
+                },
+                "purpose_digest_rev": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Digest Rev"
+                },
+                "purpose_path": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Purpose Path"
+                },
+                "scope_excluded": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Excluded",
+                  "type": "array"
+                },
+                "scope_included": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Included",
+                  "type": "array"
+                },
+                "scope_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Scope Warnings",
+                  "type": "array"
+                }
+              },
+              "title": "SessionStartPurposeContext",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "purpose_cot_trace": {
+          "anyOf": [
+            {
+              "description": "v0.11.0 chapter 11 R-A follow-up cycle 3: two-step CoT ingest trace.\n\nsession-start skill 의 context load 시 purpose_ingest.run_two_step_cot_ingest 호출 결과.\n- step1: raw 본문 ≤800 char excerpt\n- step2: structured 4-element 요약\n- cross_ref: PURPOSE.md `[[mention]]` ↔ wiki concepts 매칭",
+              "properties": {
+                "cross_ref_matched": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Matched",
+                  "type": "array"
+                },
+                "cross_ref_missing": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Missing",
+                  "type": "array"
+                },
+                "cross_ref_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Cross Ref Warnings",
+                  "type": "array"
+                },
+                "overall_warnings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Overall Warnings",
+                  "type": "array"
+                },
+                "step1_char_count": {
+                  "default": 0,
+                  "title": "Step1 Char Count",
+                  "type": "integer"
+                },
+                "step1_raw_excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Step1 Raw Excerpt"
+                },
+                "step1_truncated": {
+                  "default": false,
+                  "title": "Step1 Truncated",
+                  "type": "boolean"
+                },
+                "step2_structured_summary": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Step2 Structured Summary"
+                }
+              },
+              "title": "SessionStartPurposeCoTTrace",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "recommended_next_action": {
           "default": "",
           "title": "Recommended Next Action",
           "type": "string"
         },
-        "source_documents": {
-          "properties": {
-            "project_profile_path": {
-              "title": "Project Profile Path",
-              "type": "string"
-            },
-            "session_handoff_path": {
-              "title": "Session Handoff Path",
-              "type": "string"
-            },
-            "work_backlog_index_path": {
-              "title": "Work Backlog Index Path",
-              "type": "string"
-            }
+        "self_bootstrap_init_commands": {
+          "items": {
+            "type": "string"
           },
-          "required": [
-            "session_handoff_path",
-            "work_backlog_index_path",
-            "project_profile_path"
-          ],
-          "title": "SessionStartSourceDocs",
-          "type": "object"
+          "title": "Self Bootstrap Init Commands",
+          "type": "array"
+        },
+        "self_bootstrap_suggested": {
+          "default": false,
+          "title": "Self Bootstrap Suggested",
+          "type": "boolean"
         },
         "status": {
           "enum": [
@@ -2688,8 +3276,7 @@
         }
       },
       "required": [
-        "tool_version",
-        "source_documents"
+        "tool_version"
       ],
       "title": "SessionStartOutput",
       "type": "object"

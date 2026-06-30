@@ -755,6 +755,10 @@
         "item_kind": "string",
         "kind": "list"
       },
+      "graph_insights": {
+        "allow_null": true,
+        "kind": "GraphInsightsOutput"
+      },
       "handoff_update_note": {
         "allow_null": true,
         "kind": "string"
@@ -766,6 +770,19 @@
       "operation_type": {
         "allow_null": false,
         "kind": "string"
+      },
+      "purpose_context": {
+        "allow_null": true,
+        "kind": "BacklogUpdatePurposeContext"
+      },
+      "purpose_cot_trace": {
+        "allow_null": true,
+        "kind": "BacklogUpdatePurposeCoTTrace"
+      },
+      "scope_creep_warnings": {
+        "allow_null": false,
+        "item_kind": "string",
+        "kind": "list"
       },
       "source_context": {
         "allow_null": false,
@@ -1114,6 +1131,10 @@
         "item_kind": "string",
         "kind": "list"
       },
+      "purpose_context": {
+        "allow_null": true,
+        "kind": "DocSyncPurposeContext"
+      },
       "reasoning_notes": {
         "allow_null": false,
         "item_kind": "string",
@@ -1381,6 +1402,10 @@
         "item_kind": "string",
         "kind": "list"
       },
+      "graph_insights": {
+        "allow_null": true,
+        "kind": "GraphInsightsOutput"
+      },
       "in_progress_items": {
         "allow_null": false,
         "item_kind": "string",
@@ -1395,13 +1420,26 @@
         "item_kind": "string",
         "kind": "list"
       },
+      "purpose_context": {
+        "allow_null": true,
+        "kind": "SessionStartPurposeContext"
+      },
+      "purpose_cot_trace": {
+        "allow_null": true,
+        "kind": "SessionStartPurposeCoTTrace"
+      },
       "recommended_next_action": {
         "allow_null": false,
         "kind": "string"
       },
-      "source_documents": {
+      "self_bootstrap_init_commands": {
         "allow_null": false,
-        "kind": "SessionStartSourceDocs"
+        "item_kind": "string",
+        "kind": "list"
+      },
+      "self_bootstrap_suggested": {
+        "allow_null": false,
+        "kind": "boolean"
       },
       "status": {
         "allow_null": false,

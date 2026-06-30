@@ -24,7 +24,7 @@
 
 ## 3. 워크플로우 상태 관리
 - 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/backlog/`의 해당 날짜 문서를 업데이트하십시오.
-- 세션 종료 전에는 `ai-workflow/memory/active/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
+- **세션 종료 절차는 [`core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서**. 종료 직전(commit 직전) `state.json` 과 `session_handoff.md` 를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오. 별도 turn "memory 에 적어줘" 분리 ❌ — push 시 협업자가 memory 변경을 함께 볼 수 있도록 같은 commit 에 포함시킵니다.
 
 ## 4. 도구 사용 가이드
 - 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 `python3 ai-workflow/scripts/` 아래의 도구들을 활용할 수 있습니다.

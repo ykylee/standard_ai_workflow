@@ -74,7 +74,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 2. `ai-workflow/memory/active/repository_assessment.md` 를 읽고 추정 스택, 명령, 문서 경로가 실제 저장소와 맞는지 검토한다.
 3. `PROJECT_PROFILE.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정한다.
 4. 루트 `GEMINI.md` 의 기본 명령과 문서 경로가 맞는지 확인한다.
-5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
+5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 직전(commit 직전) handoff 를 갱신한다. 종료 절차는 [`core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서.
 
 ## 5. Gemini CLI 에서 첫 세션 시작하는 방법
 

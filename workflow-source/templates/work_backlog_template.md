@@ -9,7 +9,7 @@
 
 ## 1. 운영 원칙
 1. 세션 시작 시 인덱스와 최신 백로그 확인
-2. 세션 종료 전 인덱스 및 Handoff 갱신
+2. **세션 종료 직전(commit 직전) 인덱스 및 Handoff 갱신** — [`../core/global_workflow_standard.md` §8](../core/global_workflow_standard.md) 정합 — `memory 갱신 → commit → push` 순서
 3. 모든 작업 상태는 날짜별 백로그에 기록
 
 ## 2. 날짜별 백로그

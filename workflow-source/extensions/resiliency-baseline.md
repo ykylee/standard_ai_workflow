@@ -87,7 +87,7 @@ AIDLC 의 resiliency-baseline 16 rule 중 8 rule 은 **cloud workload** (HA / DR
 **Rule**: `session_handoff.md` 가 *cross-session continuity* 보장. session 중단 시 다음 session 이 handoff 로 즉시 resume.
 
 **Verification**:
-- session 종료 시 handoff 자동 emit (state + backlog + next_documents)
+- **session 종료 절차는 [`../core/global_workflow_standard.md` §8](../core/global_workflow_standard.md) 정합 — `memory 갱신 → commit → push` 순서**. commit 직전 handoff 자동 emit (state + backlog + next_documents) → push 시 협업자가 변경사항을 함께 봄.
 - 다음 session 의 session-start 가 handoff 읽음
 - smoke test: `test_session_handoff_recovery`
 

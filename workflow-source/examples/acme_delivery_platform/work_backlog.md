@@ -11,7 +11,7 @@
 
 - 세션 시작 시 본 인덱스와 최신 날짜 백로그를 먼저 확인한다.
 - 새 작업은 브리핑 후 해당 날짜 백로그에 등록한다.
-- 세션 종료 전에는 handoff 문서를 갱신한다.
+- 세션 종료 직전(commit 직전) handoff 문서를 갱신한다. 종료 절차는 [`../../core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서.
 - 검증 결과와 미실행 사유는 날짜별 백로그에 남긴다.
 
 ## 날짜별 백로그 문서

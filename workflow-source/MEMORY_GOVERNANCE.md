@@ -76,7 +76,7 @@ created_at: YYYY-MM-DD
 
 ## 3. 에이전트 행동 지침
 
-- 세션 종료 시 `session_handoff.md`를 위 템플릿에 맞춰 갱신하십시오.
+- **세션 종료 절차는 [`core/global_workflow_standard.md`](./core/global_workflow_standard.md) §8 을 따른다 — `memory 갱신 → commit → push` 순서**. 별도 turn "memory 에 적어줘" 분리 ❌. handoff/state.json/work_backlog 갱신을 commit 직전 같은 turn 에 묶어서, push 시점에 협업자가 memory 변경을 함께 볼 수 있도록 한다.
 - 새로운 작업 시작 시 `tasks/` 폴더에 템플릿 기반의 신규 파일을 생성하십시오.
 - 날짜별 백로그에는 신규 task 파일 링크만 추가하고, 긴 상세 기록은 task 파일에 남기십시오.
 - 상태 업데이트 시 자연어 서술보다는 불렛 포인트와 상태 키워드를 우선하십시오.

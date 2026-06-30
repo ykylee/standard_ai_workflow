@@ -125,7 +125,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    특히 구현, 설정 변경, 빌드/컴파일 확인은 `workflow-code-worker` 에 우선 배정하는 편이 자연스럽다.
    작업 중 추가 질의는 genuinely blocking case 로 좁히고, 나머지는 worker 가 최소 가정으로 계속 진행하도록 두는 편이 좋다.
    모델을 나눠 운영한다면 기본값은 `main orchestrator + small workers` 로 두고, 구조 판단이 어려운 경우에만 worker 를 일시적으로 `main` 으로 올리는 편이 좋다.
-6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다.
+6. 첫 실제 작업을 backlog 에 반영하고 handoff 기준선을 갱신한다. 종료 절차는 [`core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서.
 
 ## 5. OpenCode 에서 첫 세션 시작하는 방법
 

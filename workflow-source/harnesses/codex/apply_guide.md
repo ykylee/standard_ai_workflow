@@ -123,7 +123,7 @@ python3 scripts/bootstrap_workflow_kit.py \
    작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토한다.
    export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
    가능하면 메인 에이전트가 직접 모든 읽기/쓰기를 떠안지 않도록, bounded scope worker 호출 원칙도 이 단계에서 같이 검토한다.
-5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 전에 handoff 를 갱신한다.
+5. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 직전(commit 직전) handoff 를 갱신한다. 종료 절차는 [`core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서.
 
 기존 배포본을 갱신하는 상황이라면 먼저 dry-run 으로 변경 예정 경로와 backup 대상부터 확인한다.
 

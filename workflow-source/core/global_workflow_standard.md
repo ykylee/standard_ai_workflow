@@ -126,12 +126,24 @@
 
 ## 8. 세션 종료 원칙 및 절차
 
-- 오늘 작업 결과를 상태 문서에 반영한다.
-- 미검증 항목과 남은 리스크를 명시한다.
-- **문서 정합성 동기화**: `maturity_matrix.json`을 업데이트하고 관련 계획 문서(Roadmap/Catalog)를 최신화한다.
-- **최종 검증**: `workflow-linter`를 실행하여 문서 간 불일치가 없는지 확인한다.
-- 다음 세션 시작 포인트를 짧게 적는다.
-- 종료 요약은 다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게 남긴다.
+세션 종료는 **memory 갱신 → commit → push** 순서로 진행한다. memory 갱신을 commit 이후 별도 turn 에 분리하지 않는다 (push 시 memory 갱신 내용이 동일 commit 에 포함되도록 협업 정합 보장).
+
+**8.1 종료 절차 (memory → commit → push)**
+1. **memory 갱신** (commit 직전): 오늘 작업 결과를 상태 문서에 반영한다.
+   - `state.json`, `session_handoff.md`, `work_backlog.md` 등 active memory 갱신
+   - 미검증 항목과 남은 리스크를 명시한다
+   - **문서 정합성 동기화**: `maturity_matrix.json`을 업데이트하고 관련 계획 문서(Roadmap/Catalog)를 최신화한다
+2. **최종 검증**: `workflow-linter`를 실행하여 문서 간 불일치가 없는지 확인한다.
+3. **다음 세션 시작 포인트** + **종료 요약** 을 handoff 에 짧게 적는다 (다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게).
+4. **commit + push**: memory 갱신이 *모두 포함된 상태* 로 단일 commit 작성 + push. (협업자가 push 시점에 memory 갱신까지 함께 본다)
+
+**8.2 commit 이후 추가 memory 작업 (예외, 의도적 허용)**
+- `summarize_git_history` 로 commit hash 를 handoff 에 반영하는 작업은 commit 이후에 의미가 있다. 이는 *예외*로 허용하되 그 자체가 별도 commit 의 대상은 아니다 (다음 작업의 memory 갱신 cycle 에 흡수).
+- 별도 turn "memory 에 적어줘" 호출은 deprecated. memory 갱신은 결과 commit 직전 같은 turn 에 묶어서 처리한다.
+
+**8.3 잘못된 순서 (안티패턴)**
+- ❌ commit → push → 별도 turn memory 갱신 → 또 commit → push (memory 갱신 누락 / 추가 commit 유발 → 협업 결함)
+- ❌ memory 갱신 누락 후 commit → push (협업자가 memory 변경을 push 시점에 못 봄)
 
 ## 9. 프로젝트 프로파일과의 관계
 

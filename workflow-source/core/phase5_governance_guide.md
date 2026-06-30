@@ -40,6 +40,7 @@ python3 workflow_kit/server/read_only_entrypoint.py --tool assess_milestone_prog
 ## 4. 권장 자동화 루틴
 
 - **세션 시작 시**: `assess_milestone_progress`를 실행하여 현재 마일스톤 상태 확인.
-- **세션 종료 시**:
-  1. `summarize_git_history`로 인계 문서 초안 작성.
-  2. `rotate_workflow_logs`를 실행하여 문서 크기 최적화.
+- **세션 종료 시** ([`./global_workflow_standard.md` §8](./global_workflow_standard.md) 정합 — **memory 갱신 → commit → push**):
+  1. **memory 갱신 (commit 직전)**: `session_handoff.md` / `state.json` / `work_backlog.md` 의 오늘 작업 결과 + 다음 세션 시작 포인트 + 종료 요약 갱신. `rotate_workflow_logs` 를 실행하여 문서 크기 최적화.
+  2. **commit + push**: memory 갱신을 포함하는 단일 commit 작성 후 push. 협업자가 push 시점에 memory 변경까지 함께 본다.
+  3. **commit 이후 추가 memory 작업 (예외, 의도적 허용)**: `summarize_git_history` 로 commit hash 를 handoff 에 반영하는 작업은 commit 이후에 의미가 있다 — 다음 memory cycle 에 흡수하되 그 자체가 별도 commit 의 대상은 아니다.

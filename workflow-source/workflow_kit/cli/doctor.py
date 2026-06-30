@@ -22,6 +22,9 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
+
+from workflow_kit.common.metadata import DoctorConfig
 
 # Resolve project_root default
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -38,7 +41,7 @@ ALL_BASELINES = [
 ]
 
 
-def evaluate(project_root: Path, baseline: str | None = None, config=None) -> dict:
+def evaluate(project_root: Path, baseline: str | None = None, config: DoctorConfig | None = None) -> dict[str, Any]:
     """7 baseline compliance 평가 (single or all).
 
     v0.7.8+ config (DoctorConfig) 인자 추가. config 있으면:
@@ -61,10 +64,10 @@ def evaluate(project_root: Path, baseline: str | None = None, config=None) -> di
         evaluate_all,
         evaluate_compliance,
     )
-    from workflow_kit.common.contracts.baselines import _read_state_json  # type: ignore
+    from workflow_kit.common.contracts.baselines import _read_state_json
 
     # v0.7.8+ in-memory state override
-    state: dict | None = None
+    state: dict[str, Any] | None = None
     if config is not None:
         state = _read_state_json(project_root)
         # config key (hyphen, e.g. "security-auth") → baselines.py key (underscore, "security_auth")
@@ -102,7 +105,7 @@ def evaluate(project_root: Path, baseline: str | None = None, config=None) -> di
     return {name: cs.to_dict() for name, cs in all_summaries.items()}
 
 
-def render_pretty(results: dict, config=None) -> str:
+def render_pretty(results: dict[str, Any], config: DoctorConfig | None = None) -> str:
     """7 baseline 결과를 사람이 읽기 좋은 table 로.
 
     v0.7.7+: config (DoctorConfig) 인자 추가. config 있으면:

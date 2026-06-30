@@ -65,7 +65,7 @@ def graceful_shutdown(
     # direct decoration: @graceful_shutdown (no parens)
     if fn is not None and callable(fn):
         # _wrap_with_shutdown returns F (cast for mypy Callable[[F], F] narrow)
-        return cast(F, _wrap_with_shutdown(fn, cleanup=cleanup, timeout_sec=timeout_sec))
+        return _wrap_with_shutdown(fn, cleanup=cleanup, timeout_sec=timeout_sec)
 
     # parameterized: @graceful_shutdown(cleanup=..., timeout_sec=...)
     def decorator(func: F) -> F:
@@ -92,10 +92,10 @@ def _wrap_with_shutdown(
             if shutdown_initiated.is_set():
                 return  # double signal → force exit
             shutdown_initiated.set()
-            sig_name = cast(str, {
+            sig_name = {
                 signal.SIGINT.value: "SIGINT",
                 signal.SIGTERM.value: "SIGTERM",
-            }.get(signum, f"signal-{signum}"))
+            }.get(signum, f"signal-{signum}")
             print(f"\n[{fn.__name__}] received {sig_name}, running cleanup...", file=sys.stderr)
             if cleanup is not None:
                 try:
@@ -129,7 +129,7 @@ def _wrap_with_shutdown(
             if prev_break is not None and hasattr(signal, "SIGBREAK"):
                 signal.signal(signal.SIGBREAK, prev_break)
 
-    wrapper.__wrapped__ = fn  # type: ignore[attr-defined]
+    wrapper.__wrapped__ = fn
     wrapper.__graceful_shutdown__ = True  # type: ignore[attr-defined]
     return wrapper  # type: ignore[return-value]
 
@@ -159,7 +159,7 @@ def v0_7_4_deprecated(reason: str = "", version: str = "0.8.0") -> Callable[[F],
                 msg += f": {reason}"
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             return fn(*args, **kwargs)
-        wrapper.__wrapped__ = fn  # type: ignore[attr-defined]
+        wrapper.__wrapped__ = fn
         wrapper.__deprecated__ = True  # type: ignore[attr-defined]
         return wrapper  # type: ignore[return-value]
     return decorator

@@ -1,42 +1,43 @@
 # Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
 
-> Generated: 2026-06-13T22:51:23
+> Generated: 2026-06-30T22:15:00
 > 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `python3 workflow-source/tools/score_wiki_maintainability.py --emit-dashboard`
 
 ## Overall
 
-**Overall Score**: 4.67 / 5.0 — **Grade A**
+**Overall Score**: 2.77 / 5.0 — **Grade F**
 
 | Dim | Score | Bar |
 |---|---|---|
-| Coverage | 4.17 / 5.0 | `████████████████░░░░` |
-| Freshness | 4.23 / 5.0 | `████████████████░░░░` |
-| Discoverability | 5.0 / 5.0 | `████████████████████` |
-| Cross-ref | 4.64 / 5.0 | `██████████████████░░` |
-| Lifecycle | 4.97 / 5.0 | `███████████████████░` |
+| Coverage | 3.19 / 5.0 | `████████████░░░░░░░░` |
+| Freshness | 4.04 / 5.0 | `████████████████░░░░` |
+| Discoverability | 0.0 / 5.0 | `░░░░░░░░░░░░░░░░░░░░` |
+| Cross-ref | 4.39 / 5.0 | `█████████████████░░░` |
+| Lifecycle | 0.0 / 5.0 | `░░░░░░░░░░░░░░░░░░░░` |
 | Operational | 5.0 / 5.0 | `████████████████████` |
 
 ## Detail
 
-### Coverage (4.17 / 5.0)
-- L1 wiki page with concept/topic/pattern + last_ingested_from + status: active
-- Total: 24 / Active: 20 (83%)
+### Coverage (3.19 / 5.0)
+- L1 wiki page with concept/topic/pattern + last_ingested_from marker
+- + frontmatter `status: active` 비율
+- Total: 36 / Active: 23 (63%)
 
-### Freshness (4.23 / 5.0)
+### Freshness (4.04 / 5.0)
 - drift (updated > 7일 vs code mtime) 비율의 (1 - ratio)
-- Total: 26 / Drift: 4 (15%)
+- Total: 26 / Drift: 5 (19%)
 
-### Discoverability (5.0 / 5.0)
+### Discoverability (0.0 / 5.0)
 - vault L2 page with 본문 ≥ 200자 비율 (frontmatter-only 제외)
-- Total: 539 / Searchable: 539 (100%)
+- Total: 0 / Searchable: 0 (0%)
 
-### Cross-ref (4.64 / 5.0)
+### Cross-ref (4.39 / 5.0)
 - L1 wiki with related_pages ≥ 2 비율
-- Total: 42 / Linked: 39 (92%)
+- Total: 74 / Linked: 65 (87%)
 
-### Lifecycle (4.97 / 5.0)
+### Lifecycle (0.0 / 5.0)
 - vault L2 page with status: reviewed 비율
-- Total: 539 / Reviewed: 536 (99%)
+- Total: 0 / Reviewed: 0 (0%)
 
 ### Operational (5.0 / 5.0)
 - wiki 관련 smoke test PASS 비율
@@ -72,6 +73,9 @@
 | `c72bdc3` | v0.7.0 L2 499 page metadata-only emit | 4.66 | A |
 | `f09034d` | v0.7.1 (follow-up 4건 + wiki 개선 4건) | 4.66 | A |
 | `bad14d8` | v0.7.1 (current HEAD) | 4.67 | A |
+| `3bffba3` | v0.7.2 (sub-cat + 4종 본 구현) | 4.66 | A |
+| `be49e0f` |  | 4.67 | A |
+| `1818dd6` |  | 4.67 | A |
 
 자동 추출: `python3 workflow-source/tools/score_wiki_trend.py --show`
 history: `workflow-source/tools/.score_history.jsonl` (v0.7.1+ 누적)

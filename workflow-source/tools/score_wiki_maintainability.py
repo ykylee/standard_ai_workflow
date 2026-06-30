@@ -402,7 +402,8 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 ## Detail
 
 ### Coverage ({scores['coverage']} / 5.0)
-- L1 wiki page with concept/topic/pattern + last_ingested_from + status: active
+- L1 wiki page with concept/topic/pattern + last_ingested_from marker
+- + frontmatter `status: active` 비율
 - Total: {details['coverage']['total']} / Active: {details['coverage']['active']} ({int(details['coverage']['ratio']*100)}%)
 
 ### Freshness ({scores['freshness']} / 5.0)

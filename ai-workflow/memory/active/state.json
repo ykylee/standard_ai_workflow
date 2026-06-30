@@ -5,6 +5,7 @@
   "session": {
     "in_progress_items": [],
     "recent_done_items": [
+      "v0.11.16-hotfix (1333cc8): R9 wiki source rule lint fix — wiki-maintainability-score.md dashboard emit line 405 표현이 R9 regex false-positive 트리거 → tool 수정 (line 405 multi-line 분리) + dashboard regenerate → R9 lint PASS, 2 file 변경, no release / no version bump",
       "v0.11.16-hotfix (298704f): workflow 종료 단계 §8 정합 후속 — audit 잔재 0 + wiki layer cross-ref 보강 (concepts/memory-3-state-lifecycle.md + concepts/project-architecture.md + log.md append), 3 file 변경, no release / no version bump",
       "v0.11.16-hotfix (32185c7): workflow 종료 단계 commit/memory 순서 정정 — global_workflow_standard.md §8 + MEMORY_GOVERNANCE.md §3 + phase5_governance_guide.md §4 + resiliency-baseline.md RES-WF-08 + harness/examples/templates 정합 (memory → commit → push), 11 file 변경, no release / no version bump",
       "v0.11.10 (8b984f5): mypy strict 단계적 격상 25-26단계 (project_docs + profiling) — 🎯 FULL mypy strict 도달 (전체 workflow_kit/ 0 errors in 106 files) + cumulative 33→35 file",

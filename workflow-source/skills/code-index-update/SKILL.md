@@ -3,7 +3,7 @@
 - 문서 목적: `code-index-update` skill 의 역할, 입력/출력, 실행 예시를 정리한다.
 - 범위: 색인 문서 갱신 후보 추천, stale 경고, 자동 색인 동기화
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: beta
+- 상태: stable (v0.11.19 stable 승격)
 - 최종 수정일: 2026-04-26
 - 관련 문서: `../../core/code_index_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`
 

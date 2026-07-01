@@ -3,7 +3,7 @@
 - 문서 목적: `validation-plan` skill 의 역할, 입력/출력, 실행 예시를 정리한다.
 - 범위: 검증 수준 판단, 권장 명령 구조화, 테스트 스캐폴딩 생성
 - 대상 독자: AI agent 설계자, 개발자, 운영자
-- 상태: beta
+- 상태: stable (v0.11.19 stable 승격)
 - 최종 수정일: 2026-04-26
 - 관련 문서: `../../core/validation_plan_skill_spec.md`, `../../core/workflow_skill_catalog.md`
 

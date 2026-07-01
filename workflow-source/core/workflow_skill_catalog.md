@@ -11,19 +11,19 @@
 
 | skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
 | --- | --- | --- | --- | --- | --- |
-| `session-start` | 세션 시작 기준선 복원 | handoff, 백로그, 프로젝트 프로파일 | 현재 상태 요약, 다음 문서 경로 | **Beta** (읽기/요약 안정화) | `global_workflow_standard.md` 의 세션 시작 순서를 수동 수행 |
-| `backlog-update` | 작업 등록/갱신 | 오늘 날짜 백로그, 작업 브리핑 | 신규 작업 항목 초안, 상태 갱신 문안 | **Beta** (쓰기 지원) | 백로그 템플릿을 복사해 수동 갱신 |
-| `doc-sync` | 문서 영향도와 허브 갱신 판단 | 변경 파일, 기준 문서, 허브 문서 | 영향 문서 후보, 허브 갱신 체크 | **Beta** (`--apply` 지원) | 변경 파일을 기준으로 관련 허브 문서를 수동 확인 |
-| `merge-doc-reconcile` | 병합 후 문서 정합성 복구 | 병합 결과, handoff, 인덱스 문서 | 병합 후 재확정 포인트 | **Beta** (정합성 자동 복구) | 병합 후 handoff, 허브, 색인 문서를 수동 재정리 |
-| `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | **Beta** (`--scaffold` 지원) | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
-| `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | **Beta** (`--apply` 지원) | 변경 경로를 기준으로 색인 문서를 수동 검토 |
+| `session-start` | 세션 시작 기준선 복원 | handoff, 백로그, 프로젝트 프로파일 | 현재 상태 요약, 다음 문서 경로 | **Stable** (v0.11.19 stable 승격) | `global_workflow_standard.md` 의 세션 시작 순서를 수동 수행 |
+| `backlog-update` | 작업 등록/갱신 | 오늘 날짜 백로그, 작업 브리핑 | 신규 작업 항목 초안, 상태 갱신 문안 | **Beta** (smoke FAIL + error_code 2 — follow-up batch) | 백로그 템플릿을 복사해 수동 갱신 |
+| `doc-sync` | 문서 영향도와 허브 갱신 판단 | 변경 파일, 기준 문서, 허브 문서 | 영향 문서 후보, 허브 갱신 체크 | **Stable** (v0.11.19 stable 승격) | 변경 파일을 기준으로 관련 허브 문서를 수동 확인 |
+| `merge-doc-reconcile` | 병합 후 문서 정합성 복구 | 병합 결과, handoff, 인덱스 문서 | 병합 후 재확정 포인트 | **Beta** (error_code 2 — follow-up batch) | 병합 후 handoff, 허브, 색인 문서를 수동 재정리 |
+| `validation-plan` | 변경 유형별 검증 수준 판단 | 변경 요약, 프로젝트 프로파일 | 검증 계획, 미실행 사유 | **Stable** (v0.11.19 stable 승격) | 프로젝트 프로파일과 공통 표준을 읽고 수동 판단 |
+| `code-index-update` | 색인 문서 갱신 판단 | 변경 파일, 기존 색인 문서 | 갱신 필요 색인 후보 | **Stable** (v0.11.19 stable 승격) | 변경 경로를 기준으로 색인 문서를 수동 검토 |
 
 ## 2. 운영 보조 및 지능화 skill (Beta 진입, v0.5.7+ 확장)
 
 | skill | 역할 | 주요 입력 | 기대 출력 | 구현 상태 | 수동 대체 |
 | --- | --- | --- | --- | --- | --- |
-| `workflow-linter` | 워크플로우 문서 정합성 교정 | state.json, handoff, 백로그 | 불일치 리포트 및 교정안 | **Beta** (정합성 자동 검사) | 문서 간 TASK 상태와 링크를 수동 대조 |
-| `project-status-assessment` | 프로젝트 도입 성숙도 진단 | 저장소 전체 구조, 테스트, 문서 | 성숙도 리포트, 보강 추천 | **Beta** (자동 진단 및 리포팅) | `repository_assessment.md` 를 수동 작성 |
+| `workflow-linter` | 워크플로우 문서 정합성 교정 | state.json, handoff, 백로그 | 불일치 리포트 및 교정안 | **Beta** (smoke FAIL warning — follow-up batch) | 문서 간 TASK 상태와 링크를 수동 대조 |
+| `project-status-assessment` | 프로젝트 도입 성숙도 진단 | 저장소 전체 구조, 테스트, 문서 | 성숙도 리포트, 보강 추천 | **Beta** (smoke FAIL + error_code 1 — follow-up batch) | `repository_assessment.md` 를 수동 작성 |
 | `automated-repro-scaffold` | 버그 재현 환경 자동 구축 | 버그 리포트, 기존 테스트 코드 | 재현 테스트 파일(`repro_*.py`) | 프로토타입 (`validation-plan` 연동) | 버그 리포트를 읽고 테스트 코드를 수동 작성 |
 | `robust-patcher` | 로컬 LLM 친화적 견고한 파일 수정 | 변경 대상 파일과 수정 명세 | Search-Replace + 퍼지 매칭 기반 패치 | **Beta** (`--apply` 지원) | 일반 편집 도구로 수동 수정 |
 | `git-conflict-resolver` | 컨텍스트 기반 Git 충돌 자동 해결 | 충돌 파일, session_handoff 문맥 | 최적 병합 버전 선택 제안 | **Alpha** (프로토타입) | 수동 3-way merge

@@ -29,16 +29,29 @@
 
 ## 3. 현재 Skill 수준
 
-| skill | prototype | beta |Gap|
-|------|-----------|------|---|
-| session-start | ✅ 실행 | ✅ beta | completed |
-| backlog-update | ✅ 실행 | ✅ beta | completed |
-| doc-sync | ✅ 읽기 | ✅ beta | completed |
-| merge-doc-reconcile | ✅ 읽기 | ✅ beta | completed |
-| validation-plan | ✅ 읽기 | ✅ beta | completed |
-| code-index-update | ✅ 읽기 | ✅ beta | completed |
-| workflow-linter | ✅ 실행 | ✅ beta | completed |
-| project-status-assessment | ✅ 실행 | ✅ beta | completed |
+| skill | prototype | beta | stable | Gap |
+|------|-----------|------|--------|-----|
+| session-start | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
+| backlog-update | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL + error_code 2) | follow-up batch |
+| doc-sync | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
+| merge-doc-reconcile | ✅ 읽기 | ✅ beta | ⏸ blocker (error_code 2) | follow-up batch |
+| validation-plan | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
+| code-index-update | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
+| workflow-linter | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL warning) | follow-up batch |
+| project-status-assessment | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL + error_code 1) | follow-up batch |
+
+### 3.1 Stable 승격 정합 조건 (v0.11.19 확정)
+
+- [x] 입력 파라미터 CLI 로 정의 (argparse `add_argument`)
+- [x] 출력 JSON 스키마 문서화 (skill spec + output_sample_contracts.json)
+- [x] error_code 분류 최소 3종 (`missing_required_document` / `missing_change_input` / `<skill>_runtime_error`)
+- [x] 실행 스크립트 단일 명령 (`scripts/run_<skill>.py`)
+- [x] SKILL.md 실행 예시 (`예시 실행` / `실행 예시` 섹션)
+- [x] smoke test 통과 (`tests/check_<skill>.py` PASS)
+
+**1차 stable 승격 batch (v0.11.19)**: session-start / doc-sync / validation-plan / code-index-update (4 skill).
+
+**Follow-up batch (v0.11.20+ 후보)**: backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment (4 skill). 각 skill 별 blocker 해결 후 stable 승격.
 
 ## 4. BetaUpgrade 계획
 

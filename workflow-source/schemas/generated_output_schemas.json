@@ -714,6 +714,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "project_status_assessment": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "session_start": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -2927,6 +2978,224 @@
         "source_context"
       ],
       "title": "ReconcileOutput",
+      "type": "object"
+    },
+    "project_status_assessment": {
+      "description": "Output contract for the project-status-assessment skill.\n\nReplaces the legacy ``build_runner_success_result`` dict emission (v0.11.20\nstable 정합 — 다른 stable skill 들과 동일하게 BaseOutput + nested dataclass).",
+      "properties": {
+        "assessment": {
+          "description": "Structured assessment data from analyze_repo_structure.",
+          "properties": {
+            "dirs": {
+              "description": "Detected directory categories for the analyzed project.",
+              "properties": {
+                "docs": {
+                  "description": "Documentation directories",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Docs",
+                  "type": "array"
+                },
+                "source": {
+                  "description": "Source code directories",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Source",
+                  "type": "array"
+                },
+                "test": {
+                  "description": "Test directories",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Test",
+                  "type": "array"
+                }
+              },
+              "title": "AssessmentDirs",
+              "type": "object"
+            },
+            "package_scripts": {
+              "additionalProperties": true,
+              "title": "Package Scripts",
+              "type": "object"
+            },
+            "primary_stack": {
+              "description": "Primary inferred stack (node/python/...)",
+              "title": "Primary Stack",
+              "type": "string"
+            },
+            "stack_labels": {
+              "description": "Detected stack labels",
+              "items": {
+                "type": "string"
+              },
+              "title": "Stack Labels",
+              "type": "array"
+            },
+            "structure_score": {
+              "description": "0..4 maturity score",
+              "title": "Structure Score",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "primary_stack",
+            "structure_score",
+            "dirs"
+          ],
+          "title": "AssessmentData",
+          "type": "object"
+        },
+        "orchestration_plan": {
+          "properties": {
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Note"
+            },
+            "orchestrator": {
+              "title": "Orchestrator",
+              "type": "string"
+            },
+            "worker_assignments": {
+              "items": {
+                "properties": {
+                  "responsibilities": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "title": "Responsibilities",
+                    "type": "array"
+                  },
+                  "worker": {
+                    "description": "Worker name/role",
+                    "title": "Worker",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "worker"
+                ],
+                "title": "OrchestratorAssignment",
+                "type": "object"
+              },
+              "title": "Worker Assignments",
+              "type": "array"
+            }
+          },
+          "required": [
+            "orchestrator"
+          ],
+          "title": "OrchestrationPlan",
+          "type": "object"
+        },
+        "recommended_actions": {
+          "items": {
+            "properties": {
+              "action": {
+                "description": "Machine-readable action identifier",
+                "title": "Action",
+                "type": "string"
+              },
+              "description": {
+                "description": "Human-readable description",
+                "title": "Description",
+                "type": "string"
+              },
+              "priority": {
+                "description": "high/medium/low",
+                "title": "Priority",
+                "type": "string"
+              }
+            },
+            "required": [
+              "action",
+              "priority",
+              "description"
+            ],
+            "title": "RecommendedAction",
+            "type": "object"
+          },
+          "title": "Recommended Actions",
+          "type": "array"
+        },
+        "report_preview": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Report Preview",
+          "type": "array"
+        },
+        "runner_inputs": {
+          "additionalProperties": true,
+          "title": "Runner Inputs",
+          "type": "object"
+        },
+        "source_context": {
+          "properties": {
+            "apply": {
+              "title": "Apply",
+              "type": "boolean"
+            },
+            "project_root": {
+              "title": "Project Root",
+              "type": "string"
+            }
+          },
+          "required": [
+            "project_root",
+            "apply"
+          ],
+          "title": "ProjectStatusAssessmentSourceContext",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "written_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Written Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "assessment",
+        "orchestration_plan",
+        "source_context"
+      ],
+      "title": "ProjectStatusAssessmentOutput",
       "type": "object"
     },
     "session_start": {

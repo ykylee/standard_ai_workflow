@@ -29,6 +29,11 @@ from workflow_kit.common.schemas.assessment import (
     OrchestratorAssignment,
     ProjectStatusAssessmentSourceContext,
 )
+from workflow_kit.common.schemas.patcher import (
+    RobustPatcherOutput,
+    AppliedPatchBlock,
+    RobustPatcherSourceContext,
+)
 from workflow_kit.common.schemas.read_only import (
     LatestBacklogOutput,
     CheckDocMetadataOutput,
@@ -72,6 +77,9 @@ __all__ = [
     "OrchestrationPlan",
     "OrchestratorAssignment",
     "ProjectStatusAssessmentSourceContext",
+    "RobustPatcherOutput",
+    "AppliedPatchBlock",
+    "RobustPatcherSourceContext",
     "LatestBacklogOutput",
     "CheckDocMetadataOutput",
     "CheckDocLinksOutput",

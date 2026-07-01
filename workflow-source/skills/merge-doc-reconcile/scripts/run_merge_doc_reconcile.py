@@ -21,7 +21,11 @@ from workflow_kit.common.exploration_scope import filter_project_scope_paths
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import dedupe_strings
-from workflow_kit.common.paths import project_workspace_root, resolve_existing_path
+from workflow_kit.common.paths import (
+    get_current_branch,
+    project_workspace_root,
+    resolve_existing_path,
+)
 from workflow_kit.common.project_docs import (
     parse_backlog,
     parse_handoff,
@@ -61,6 +65,23 @@ def main() -> int:
         profile_path = resolve_existing_path(args.project_profile_path)
         profile_data = parse_project_profile_merge(profile_path)
         project_root = project_workspace_root(profile_path)
+
+        # v0.11.20: merge_conflict_detected error_code (3rd stable error_code 정합)
+        # `--merge-result-summary` 가 git merge 의 미해결 conflict 마커 (`CONFLICT (...)`)
+        # 를 포함하면 reconcile 자체가 불가. 사전 차단.
+        if "CONFLICT" in args.merge_result_summary.upper():
+            result = build_error_result(
+                tool_version=TOOL_VERSION,
+                error="병합 결과 요약에 미해결 conflict 가 남아 있다.",
+                error_code="merge_conflict_detected",
+                warnings=[
+                    "`git merge` 의 conflict 를 모두 해결한 뒤 merge-doc-reconcile 을 실행해야 한다.",
+                    "해결 후 `git status` 가 clean 한 상태에서 본 skill 을 재실행한다.",
+                ],
+                source_context=source_context,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 1
 
         warnings: list[str] = []
         if "warnings" in profile_data:
@@ -102,6 +123,32 @@ def main() -> int:
 
         if work_backlog_index_path:
             reconcile_targets.append(str(work_backlog_index_path))
+
+            # v0.11.20: doc_index_stale error_code (4th stable error_code 정합)
+            # work_backlog index 가 latest_backlog 을 참조하지 않으면 reconcile 의
+            # `recommended_review_order` 가 stale index entry 를 우선으로 안내할 위험.
+            # 사전 차단.
+            if latest_backlog_path:
+                index_content = work_backlog_index_path.read_text(encoding="utf-8")
+                latest_name = latest_backlog_path.name
+                bare_ref = f"./backlog/{latest_name}"
+                branch_ref = f"./{get_current_branch()}/backlog/{latest_name}"
+                if bare_ref not in index_content and branch_ref not in index_content:
+                    result = build_error_result(
+                        tool_version=TOOL_VERSION,
+                        error=f"work_backlog index 가 최신 backlog({latest_name}) 를 참조하지 않는다.",
+                        error_code="doc_index_stale",
+                        warnings=[
+                            "backlog-update 를 먼저 실행해 work_backlog index 에 최신 항목을 추가한 뒤 재실행해야 한다.",
+                            f"누락된 참조: {bare_ref} (또는 branch-prefixed variant)",
+                        ],
+                        source_context=source_context | {
+                            "missing_reference": latest_name,
+                            "index_path": str(work_backlog_index_path),
+                        },
+                    )
+                    print(json.dumps(result, ensure_ascii=False, indent=2))
+                    return 1
 
         operations_doc = None
         if profile_data.get("operations_path"):

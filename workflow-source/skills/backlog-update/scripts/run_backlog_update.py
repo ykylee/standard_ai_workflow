@@ -161,6 +161,21 @@ def main() -> int:
         "mode": args.mode,
     }
 
+    # v0.11.20: invalid_task_brief error_code (3rd stable error_code 정합)
+    # task_brief 가 비어있거나 whitespace-only 면 backlog entry 의 `작업 내용` /
+    # `진행 현황` line 이 `-` placeholder 만 남아 downstream consumer 가
+    # 무엇을 했는지 알 수 없음. 명시적 차단.
+    if not args.task_brief or not args.task_brief.strip():
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error="backlog-update 의 task_brief 가 비어 있다.",
+            error_code="invalid_task_brief",
+            warnings=["--task-brief 에 작업의 핵심 변경/조치 1~2 문장을 입력해야 한다."],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
         profile_data = parse_project_profile_backlog(project_profile_path)
@@ -361,16 +376,36 @@ def main() -> int:
             "warnings": [],
         }
         if args.apply and operation_type != "cannot_determine":
-            backlog_action = upsert_backlog_entry(
-                backlog_path=daily_backlog_path,
-                task_id=task_id,
-                entry_lines=draft_entry,
-            )
-            apply_result["written_paths"].append(str(daily_backlog_path))
-            if backlog_action == "created":
-                apply_result["created_paths"].append(str(daily_backlog_path))
-            else:
-                apply_result["updated_paths"].append(str(daily_backlog_path))
+            # v0.11.20: backlog_write_failed error_code (4th stable error_code 정합)
+            # apply 모드에서 파일 쓰기 실패 시 (permission denied / disk full /
+            # read-only fs) 명시적 차단 + 원본 보존. silently skip ❌.
+            try:
+                backlog_action = upsert_backlog_entry(
+                    backlog_path=daily_backlog_path,
+                    task_id=task_id,
+                    entry_lines=draft_entry,
+                )
+                apply_result["written_paths"].append(str(daily_backlog_path))
+                if backlog_action == "created":
+                    apply_result["created_paths"].append(str(daily_backlog_path))
+                else:
+                    apply_result["updated_paths"].append(str(daily_backlog_path))
+            except OSError as exc:
+                result = build_error_result(
+                    tool_version=TOOL_VERSION,
+                    error="backlog 파일 쓰기에 실패했다.",
+                    error_code="backlog_write_failed",
+                    warnings=[
+                        "대상 backlog 파일의 쓰기 권한과 디스크 상태를 점검한 뒤 다시 시도해야 한다.",
+                        f"실패 경로: {daily_backlog_path}",
+                    ],
+                    source_context=source_context | {
+                        "exception_type": type(exc).__name__,
+                        "errno": getattr(exc, "errno", None),
+                    },
+                )
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 1
 
             if work_backlog_index_path.exists():
                 index_added = ensure_backlog_index_entry(

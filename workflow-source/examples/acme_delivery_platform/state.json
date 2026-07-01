@@ -1,11 +1,13 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-04-26",
+  "generated_at": "2026-07-01",
+  "purpose_digest": null,
+  "purpose_digest_rev": null,
   "source_of_truth": {
-    "project_profile_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
-    "session_handoff_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
-    "work_backlog_index_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/work_backlog.md",
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
+    "project_profile_path": "PROJECT_PROFILE.md",
+    "session_handoff_path": "session_handoff.md",
+    "work_backlog_index_path": "work_backlog.md",
+    "latest_backlog_path": "backlog/2026-04-18.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -35,11 +37,38 @@
       "TASK-020 운영 허브 링크 정리"
     ],
     "environment_constraints": [
-      "VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가"
+      "V",
+      "P",
+      "N",
+      "미",
+      "연",
+      "결",
+      "상",
+      "태",
+      "에",
+      "서",
+      "는",
+      "s",
+      "t",
+      "a",
+      "g",
+      "i",
+      "n",
+      "A",
+      "I",
+      "및",
+      "운",
+      "영",
+      "콘",
+      "솔",
+      "접",
+      "근",
+      "불",
+      "가"
     ]
   },
   "backlog": {
-    "latest_backlog_path": "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md",
+    "latest_backlog_path": "backlog/2026-04-18.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [
@@ -48,10 +77,10 @@
     "done_items": []
   },
   "next_documents": [
-    "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/PROJECT_PROFILE.md",
-    "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",
-    "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/work_backlog.md",
-    "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/backlog/2026-04-18.md"
+    "PROJECT_PROFILE.md",
+    "session_handoff.md",
+    "work_backlog.md",
+    "backlog/2026-04-18.md"
   ],
   "repository_assessment": {
     "path": null,

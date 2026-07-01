@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runner for the project-status-assessment skill."""
+"""Runner for the project-status-assessment skill (v0.11.20 stable 2nd batch)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,15 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.exploration import analyze_repo_structure, guess_run_command
+from workflow_kit.common.schemas.assessment import (
+    ProjectStatusAssessmentOutput,
+    AssessmentData,
+    AssessmentDirs,
+    RecommendedAction,
+    OrchestrationPlan,
+    OrchestratorAssignment,
+    ProjectStatusAssessmentSourceContext,
+)
 from workflow_kit.common.runner import (
     build_runner_success_result,
     build_top_level_step_error_result,
@@ -111,6 +120,24 @@ def main() -> int:
         "apply": args.apply,
     }
 
+    # v0.11.20: missing_required_document error_code (2nd stable error_code 정합)
+    # `--project-root` 로 지정한 경로가 존재하지 않으면 사전 차단.
+    # 기존 코드는 analyze_repo_structure 단계에서 FileNotFoundError 등이
+    # project_assessment_runtime_error 로 떨어졌음 → 명시적 분류.
+    if not root.exists():
+        result = build_error_result(
+            tool_version=TOOL_VERSION,
+            error=f"project_root 가 존재하지 않는다: {root}",
+            error_code="missing_required_document",
+            warnings=[
+                "--project-root 경로를 다시 확인해야 한다.",
+                f"지정된 경로: {root}",
+            ],
+            source_context=source_context,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 1
+
     try:
         data = analyze_repo_structure(root, ignore_dirs={"ai-workflow"})
         report_lines, score = build_assessment_report(root, data)
@@ -125,58 +152,79 @@ def main() -> int:
 
         if args.json:
             # Categorize recommended actions for JSON consumers
-            recommended_actions = []
+            recommended_actions: list[RecommendedAction] = []
             if score < 2:
-                recommended_actions.append({"action": "structure_refactoring", "priority": "high", "description": "기본 디렉토리 구조(src, tests, docs) 보강 필요"})
+                recommended_actions.append(RecommendedAction(
+                    action="structure_refactoring",
+                    priority="high",
+                    description="기본 디렉토리 구조(src, tests, docs) 보강 필요",
+                ))
             elif score < 4:
-                recommended_actions.append({"action": "test_and_doc_bolstering", "priority": "medium", "description": "테스트 코드 확충 및 문서화 표준 정립 권장"})
+                recommended_actions.append(RecommendedAction(
+                    action="test_and_doc_bolstering",
+                    priority="medium",
+                    description="테스트 코드 확충 및 문서화 표준 정립 권장",
+                ))
             else:
-                recommended_actions.append({"action": "immediate_adoption", "priority": "low", "description": "현재 구조에서 워크플로우 즉시 도입 가능"})
+                recommended_actions.append(RecommendedAction(
+                    action="immediate_adoption",
+                    priority="low",
+                    description="현재 구조에서 워크플로우 즉시 도입 가능",
+                ))
 
-            result = build_runner_success_result(
+            # v0.11.20: Pydantic schema 정합 (ProjectStatusAssessmentOutput).
+            # 기존 build_runner_success_result + extra_fields dict emission 은
+            # 다른 stable skill 의 Pydantic BaseOutput 패턴과 비대칭. v0.11.20
+            # 부터 동일하게 output_model.model_dump() + validate_output_payload.
+            orchestration_plan = OrchestrationPlan(
+                orchestrator="main",
+                worker_assignments=[
+                    OrchestratorAssignment(
+                        worker="assessment-specialist",
+                        responsibilities=["저장소 구조 분석", "기술 스택 판별", "명령어 추정"],
+                    )
+                ],
+                note="진단된 명령어와 구조를 기반으로 프로젝트 프로파일 초안을 구성할 수 있다.",
+            )
+
+            output_model = ProjectStatusAssessmentOutput(
                 tool_version=TOOL_VERSION,
-                warnings=data.get("warnings", []),
-                orchestration_plan={
-                    "orchestrator": "main",
-                    "worker_assignments": [
-                        {
-                            "worker": "assessment-specialist",
-                            "responsibilities": ["저장소 구조 분석", "기술 스택 판별", "명령어 추정"]
-                        }
-                    ],
-                    "note": "진단된 명령어와 구조를 기반으로 프로젝트 프로파일 초안을 구성할 수 있다."
-                },
-                source_context=source_context,
-                written_paths=written_paths,
+                warnings=list(data.get("warnings", [])),
+                assessment=AssessmentData(
+                    primary_stack=data["primary_stack"],
+                    stack_labels=list(data.get("stack_labels", [])),
+                    structure_score=score,
+                    dirs=AssessmentDirs(
+                        source=list(data.get("source_dirs", [])),
+                        docs=list(data.get("docs_dirs", [])),
+                        test=list(data.get("test_dirs", [])),
+                    ),
+                    package_scripts=dict(data.get("package_scripts", {})),
+                ),
+                recommended_actions=recommended_actions,
+                orchestration_plan=orchestration_plan,
                 runner_inputs={
                     "project_root": str(root),
-                    "apply_mode": args.apply
+                    "apply_mode": args.apply,
                 },
-                extra_fields={
-                    "assessment": {
-                        "primary_stack": data["primary_stack"],
-                        "stack_labels": data["stack_labels"],
-                        "structure_score": score,
-                        "dirs": {
-                            "source": data["source_dirs"],
-                            "docs": data["docs_dirs"],
-                            "test": data["test_dirs"]
-                        },
-                        "package_scripts": data["package_scripts"]
-                    },
-                    "recommended_actions": recommended_actions,
-                    "report_preview": report_lines[:15] # Top part of the report
-                }
+                report_preview=report_lines[:15],
+                written_paths=written_paths,
+                source_context=ProjectStatusAssessmentSourceContext(
+                    project_root=str(root),
+                    apply=bool(args.apply),
+                ),
             )
-                # v0.6.6 follow-up: stage_completion merge (pilot template)
-                project-status-assessment_completion = build_stage_completion(
+            result = output_model.model_dump()
+            result = merge_into_result(
+                result,
+                build_stage_completion(
                     stage_name="project-status-assessment",
-                    stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
+                    stage_status="ok",
                     artifacts=["(project_status_report)"],
                     next_stage=None,
-                    notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
-                )
-                result = merge_into_result(result, project-status-assessment_completion)
+                    notes=[],
+                ),
+            )
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
             print(report_content)

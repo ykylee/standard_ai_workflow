@@ -20,6 +20,15 @@ from workflow_kit.common.schemas.git import GitConflictResolverOutput, ConflictP
 from workflow_kit.common.schemas.orchestration import OnboardingOutput, DemoWorkflowOutput
 from workflow_kit.common.schemas.worker import WorkerTask, WorkerResponse
 from workflow_kit.common.schemas.linter import WorkflowLinterOutput
+from workflow_kit.common.schemas.assessment import (
+    ProjectStatusAssessmentOutput,
+    AssessmentData,
+    AssessmentDirs,
+    RecommendedAction,
+    OrchestrationPlan,
+    OrchestratorAssignment,
+    ProjectStatusAssessmentSourceContext,
+)
 from workflow_kit.common.schemas.read_only import (
     LatestBacklogOutput,
     CheckDocMetadataOutput,
@@ -56,6 +65,13 @@ __all__ = [
     "WorkerTask",
     "WorkerResponse",
     "WorkflowLinterOutput",
+    "ProjectStatusAssessmentOutput",
+    "AssessmentData",
+    "AssessmentDirs",
+    "RecommendedAction",
+    "OrchestrationPlan",
+    "OrchestratorAssignment",
+    "ProjectStatusAssessmentSourceContext",
     "LatestBacklogOutput",
     "CheckDocMetadataOutput",
     "CheckDocLinksOutput",

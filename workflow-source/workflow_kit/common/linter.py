@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from pathlib import Path
 from typing import cast, Dict, List, Any
@@ -190,10 +191,16 @@ def check_workflow_consistency(
                 # false-positive 보고. .absolute() 는 symlink 보존 + cwd 기준
                 # 정규화만 — 즉 *user 가 작성한 relative path* 가 그대로 유지됨.
                 link_path = (path.parent / clean_link).absolute()
+                # v0.11.20 fix: `..` segment 정규화 (v0.7.22+ 의 `.absolute()` 가
+                # `..` 를 풀지 않아 `/tmp/x/foo/../../bar.md` 형태 그대로 `.exists()`
+                # → False. `os.path.normpath` 로 정규화 후 검증 — symlink 따라가지
+                # 않으면서 `..` 만 풀어서 false-positive 해소. workflow-linter smoke
+                # test 의 `[README](../../../../README.md)` 케이스가 정확히 이 패턴.
+                normalized_path = Path(os.path.normpath(str(link_path)))
                 # v0.7.15+: excluded_paths glob match 시 broken link check skip
-                if excluded_paths and _is_excluded(link_path, excluded_paths):
+                if excluded_paths and _is_excluded(normalized_path, excluded_paths):
                     continue
-                if not link_path.exists():
+                if not normalized_path.exists():
                     issues.append({
                         "type": "broken_link",
                         "code": "file_not_found",

@@ -95,10 +95,13 @@ def test_linter_pass():
         paths["backlog"].write_text("## TASK-001 Test task\n- 상태: in_progress")
 
         # Valid link: relative to ai-workflow/memory/<branch>/session_handoff.md
-        # this resolves to README.md in the project root (4 levels up).
+        # this resolves to README.md in the project root (3 levels up:
+        # <branch>/ → ai-workflow/memory/ → ai-workflow/ → <root>/).
+        # v0.11.20 fix: 이전의 4 dot (`../../../../`) 는 `<root>` 위로 1 단계 더
+        # 올라가 false-positive broken link 보고. 3 dot 으로 정정.
         readme = root / "README.md"
         readme.write_text("Hello")
-        paths["handoff"].write_text(paths["handoff"].read_text() + "\n\n[README](../../../../README.md)")
+        paths["handoff"].write_text(paths["handoff"].read_text() + "\n\n[README](../../../README.md)")
 
         result = run_linter(root)
         if result["status"] != "ok":

@@ -39,6 +39,7 @@
 | code-index-update | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
 | workflow-linter | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
 | project-status-assessment | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
+| robust-patcher | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.21)** | completed |
 
 ### 3.1 Stable 승격 정합 조건 (v0.11.19 확정, v0.11.20 정합 검증)
 
@@ -56,6 +57,9 @@
 - merge-doc-reconcile: `merge_conflict_detected` (`--merge-result-summary` 의 `CONFLICT` 마커 사전 차단) / `doc_index_stale` (work_backlog index 가 최신 backlog 미참조 시 사전 차단) 2 error_code 추가 + 신규 smoke test (`tests/check_merge_doc_reconcile.py`).
 - workflow-linter: `os.path.normpath` 로 broken link check 의 `..` segment 정규화 (이전 v0.7.22 의 `.absolute()` 가 `..` 풀지 않아 false-positive 보고) + smoke test fixture 의 link depth 정합 (4 → 3 dot).
 - project-status-assessment: 신규 `ProjectStatusAssessmentOutput` Pydantic schema (legacy `build_runner_success_result` dict emission → 다른 stable skill 의 `BaseOutput` 패턴과 정합) + `missing_required_document` error_code 추가 + 신규 smoke test (`tests/check_project_status_assessment.py`).
+
+**3차 stable 승격 batch (v0.11.21)**: robust-patcher (1 skill). 후속 batch (v0.11.22+): automated-repro-scaffold / git-conflict-resolver (각각 별도 release).
+- robust-patcher: 기존 `patch_engine.py` 스크립트 명 + 표준 `run_robust_patcher.py` 로 표준화 (scripts/ 진입점 일관성) + 신규 `RobustPatcherOutput` Pydantic schema (legacy dict emission → `BaseOutput` 패턴 정합) + `missing_required_document` / `malformed_patch_block` / `fuzzy_match_failed` / `robust_patcher_runtime_error` 4종 error_code 추가 + `apply_robust_patch_detailed` helper (per-block matched / fuzzy_score / preview detail) + `tests/check_robust_patcher.py` 5 case smoke test (exact-match / dry-run / fuzzy-fail atomic rollback / malformed / missing patch file).
 
 ## 4. BetaUpgrade 계획
 

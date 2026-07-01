@@ -25,7 +25,7 @@
 | `workflow-linter` | 워크플로우 문서 정합성 교정 | state.json, handoff, 백로그 | 불일치 리포트 및 교정안 | **Stable** (v0.11.20 stable 승격) | 문서 간 TASK 상태와 링크를 수동 대조 |
 | `project-status-assessment` | 프로젝트 도입 성숙도 진단 | 저장소 전체 구조, 테스트, 문서 | 성숙도 리포트, 보강 추천 | **Stable** (v0.11.20 stable 승격) | `repository_assessment.md` 를 수동 작성 |
 | `automated-repro-scaffold` | 버그 재현 환경 자동 구축 | 버그 리포트, 기존 테스트 코드 | 재현 테스트 파일(`repro_*.py`) | 프로토타입 (`validation-plan` 연동) | 버그 리포트를 읽고 테스트 코드를 수동 작성 |
-| `robust-patcher` | 로컬 LLM 친화적 견고한 파일 수정 | 변경 대상 파일과 수정 명세 | Search-Replace + 퍼지 매칭 기반 패치 | **Beta** (`--apply` 지원) | 일반 편집 도구로 수동 수정 |
+| `robust-patcher` | 로컬 LLM 친화적 견고한 파일 수정 | 변경 대상 파일과 수정 명세 | Search-Replace + 퍼지 매칭 기반 패치 | **Stable** (v0.11.21 stable 승격) | 일반 편집 도구로 수동 수정 |
 | `git-conflict-resolver` | 컨텍스트 기반 Git 충돌 자동 해결 | 충돌 파일, session_handoff 문맥 | 최적 병합 버전 선택 제안 | **Alpha** (프로토타입) | 수동 3-way merge
 
 운영 보조 원칙:
@@ -96,7 +96,7 @@ v0.6.5 부터 11종 skill 의 출력은 v0.6.4 의 [Stage Gate Pattern](./stage_
 | `project-status-assessment` | `project-status-assessment` | (workflow end) | ✅ 5b16517 | ⏸ runtime script 없음 |
 | `memory-freeze` | `memory-freeze` | (workflow end) | ✅ 5b16517 | ⏸ runtime script 없음 |
 | `git-conflict-resolver` | `git-conflict-resolver` | (workflow end) | ✅ 5b16517 | ⏸ runtime script 없음 |
-| `robust-patcher` | `robust-patcher` | `validation-plan` | ✅ 5b16517 | ⏸ runtime script 없음 |
+| `robust-patcher` | `robust-patcher` | `validation-plan` | ✅ 5b16517 | ✅ run_robust_patcher.py (v0.11.21 standard) |
 
 **누적 12/12 일관성** (7 spec 보강 + 5 SKILL.md cross-ref, 모두 v0.6.5 spec 수준). Runtime 적용 7/7 (spec 보유 skill 전수).
 

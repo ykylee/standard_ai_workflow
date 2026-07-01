@@ -87,7 +87,12 @@ def main() -> int:
             return 1
 
         # state.json 생성 검증
-        state_path = project_root / "test" / "apply" / "state.json"
+        # v0.11.20 fix: cache.py 의 state.json default path 가
+        # `branch_dir / "active" / "state.json"` → `memory_dir / "state.json"` 으로
+        # 정정. PROJECT_PROFILE.md 가 `<workspace>/PROJECT_PROFILE.md` 일 때
+        # `workflow_memory_dir(...)` 가 `<workspace>/` 를 반환하므로
+        # `memory_dir / "state.json"` = `<workspace>/state.json` (branch 와 무관).
+        state_path = project_root / "state.json"
         if not state_path.exists():
             print("state.json not created after code-index-update --apply.")
             return 1

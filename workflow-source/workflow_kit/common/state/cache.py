@@ -20,10 +20,16 @@ def build_state_cache_refresh_hint(
     repository_assessment_path: Path | None = None,
 ) -> dict[str, str]:
     workspace_root = project_workspace_root(project_profile_path)
-    memory_dir = workflow_memory_dir(project_profile_path) / "active"
-    branch_dir = workflow_branch_dir(project_profile_path) / "active"
+    # v0.11.20 fix: workflow_memory_dir(...) 이 이미 `ai-workflow/memory/active/` (or
+    # `<workspace>/ai-workflow/memory/` when PROJECT_PROFILE.md is in docs/) 을 반환.
+    # v0.6.0.1 의 `/ "active"` 후속 fix 가 누락되어 state.json 이 `<branch>/active/state.json`
+    # 으로 잘못 쓰여졌었음 (테스트 fixture 의 path 기대와 production 양쪽 어긋남).
+    memory_dir = workflow_memory_dir(project_profile_path)
+    branch_dir = workflow_branch_dir(project_profile_path)
     generator_path = workspace_root / "workflow-source" / "scripts" / "generate_workflow_state.py"
-    state_path = branch_dir / "state.json"
+    # state.json 은 memory_dir (active/) 에서 공유 — workflow-linter 의
+    # `workflow_memory_dir(...) / "state.json"` 패턴과 정합.
+    state_path = memory_dir / "state.json"
     command_parts = [
         f"python3 {generator_path}",
         f"--project-profile-path {project_profile_path}",
@@ -52,8 +58,11 @@ def refresh_workflow_state_cache(
     workspace_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_project_profile_path = project_profile_path.resolve()
-    memory_dir = workflow_memory_dir(resolved_project_profile_path) / "active"
-    branch_dir = workflow_branch_dir(resolved_project_profile_path) / "active"
+    # v0.11.20 fix: build_state_cache_refresh_hint 와 정합 — memory_dir / branch_dir 모두
+    # `/ "active"` suffix 제거. PROJECT_PROFILE.md 가 이미 `<memory>/active/` 에 있으므로
+    # `workflow_memory_dir(...)` 가 active/ 까지 포함한 path 를 반환.
+    memory_dir = workflow_memory_dir(resolved_project_profile_path)
+    branch_dir = workflow_branch_dir(resolved_project_profile_path)
     actual_root = workspace_root or project_workspace_root(resolved_project_profile_path)
     resolved_session_handoff_path = (session_handoff_path or (branch_dir / "session_handoff.md")).resolve()
     resolved_work_backlog_index_path = (work_backlog_index_path or (memory_dir / "work_backlog.md")).resolve()
@@ -69,7 +78,7 @@ def refresh_workflow_state_cache(
         if not required_path.exists():
             missing_paths.append(str(required_path))
 
-    state_path = (output_path or (branch_dir / "state.json")).resolve()
+    state_path = (output_path or (memory_dir / "state.json")).resolve()
     refresh_hint = build_state_cache_refresh_hint(
         project_profile_path=resolved_project_profile_path,
         latest_backlog_path=resolved_latest_backlog_path,

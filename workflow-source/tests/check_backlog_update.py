@@ -100,7 +100,7 @@ def main() -> int:
         if payload["state_cache_status"] != "refreshed":
             raise AssertionError(f"Expected backlog-update to refresh state.json automatically. Got: {payload['state_cache_status']}")
 
-        state_path = (temp_branch_root / "state.json").resolve()
+        state_path = (temp_project_root / "state.json").resolve()
         if not state_path.exists():
             raise AssertionError(f"Expected state.json to exist at {state_path}, but it was not found.")
 

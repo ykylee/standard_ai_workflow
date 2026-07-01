@@ -1,153 +1,190 @@
 #!/usr/bin/env python3
-import os
-import sys
-import tempfile
-import subprocess
-from pathlib import Path
+"""Smoke test the robust-patcher skill (v0.11.21 stable 2nd batch)."""
 
-# 패치 엔진의 경로 설정
-SCRIPT_DIR = Path(__file__).resolve().parent
-SOURCE_ROOT = SCRIPT_DIR.parent
-SKILL_ROOT = SOURCE_ROOT / "skills" / "robust_patcher"
-ENGINE_PATH = SKILL_ROOT / "scripts" / "patch_engine.py"
-
-S = "<<<<<<<" + " SEARCH"
-E = "======="
-R = ">>>>>>>" + " REPLACE"
+from __future__ import annotations
 
 import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
-def run_patch(target_file, patch_content):
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as patch_file:
-        patch_file.write(patch_content)
-        patch_path = patch_file.name
 
-    try:
-        result = subprocess.run(
-            [sys.executable, str(ENGINE_PATH), "--file", str(target_file), "--patch-file", patch_path],
-            capture_output=True,
-            text=True
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+SCRIPT_PATH = SOURCE_ROOT / "skills" / "robust_patcher" / "scripts" / "run_robust_patcher.py"
+
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.output_contracts import validate_output_payload
+
+
+def run_patcher(*, expect_success: bool, args: list[str]) -> tuple[int, dict[str, object]]:
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), *args],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if expect_success and completed.returncode != 0:
+        raise AssertionError(f"Expected robust-patcher success but got {completed.returncode}: {completed.stderr}")
+    if not expect_success and completed.returncode == 0:
+        raise AssertionError("Expected robust-patcher failure path but command succeeded.")
+    return completed.returncode, json.loads(completed.stdout)
+
+
+def main() -> int:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # ----- Case 1: Exact-match SEARCH/REPLACE block — success path -----
+        target_path = Path(tmp_dir) / "module.py"
+        original_source = (
+            "def greet(name):\n"
+            "    return 'hello ' + name\n"
+            "\n"
+            "\n"
+            "def farewell(name):\n"
+            "    return 'bye ' + name\n"
         )
-        try:
-            payload = json.loads(result.stdout)
-            return payload.get("status") == "ok", payload.get("message", "") or payload.get("error", "")
-        except json.JSONDecodeError:
-            return False, f"Invalid JSON output: {result.stdout}\n{result.stderr}"
-    finally:
-        os.remove(patch_path)
+        target_path.write_text(original_source, encoding="utf-8")
 
-def test_exact_match():
-    print("Running test_exact_match...")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write("def hello():\n    print('world')\n")
-        target_path = f.name
+        patch_path = Path(tmp_dir) / "patch.txt"
+        patch_path.write_text(
+            "<<<<<<< SEARCH\n"
+            "def greet(name):\n"
+            "    return 'hello ' + name\n"
+            "=======\n"
+            "def greet(name):\n"
+            "    return f'hello {name}'\n"
+            ">>>>>>> REPLACE\n",
+            encoding="utf-8",
+        )
 
-    patch = f"""{S}
-def hello():
-    print('world')
-{E}
-def hello():
-    print('universe')
-{R}"""
+        _, payload = run_patcher(
+            expect_success=True,
+            args=["--file", str(target_path), "--patch-file", str(patch_path)],
+        )
+        output_errors = validate_output_payload(payload, family="robust_patcher")
+        if output_errors:
+            raise AssertionError(
+                f"Robust-patcher success payload violated output contract: {output_errors}"
+            )
+        if payload["status"] != "ok":
+            raise AssertionError(f"Expected ok status, got {payload['status']}")
+        if payload["dry_run"] is not False:
+            raise AssertionError("Expected dry_run=False when not requested.")
+        if not payload["applied_blocks"]:
+            raise AssertionError("Expected at least one applied_block entry.")
+        if not payload["applied_blocks"][0]["matched"]:
+            raise AssertionError("Expected first block to be matched.")
+        if payload["applied_blocks"][0]["fuzzy_score"] != 1.0:
+            raise AssertionError(
+                f"Expected exact-match fuzzy_score=1.0, got {payload['applied_blocks'][0]['fuzzy_score']}"
+            )
+        if not payload["syntax_validated"]:
+            raise AssertionError("Expected syntax_validated=True for valid .py patch.")
+        if "validation-plan" not in (payload.get("stage_completion", {}).get("next_stage") or ""):
+            raise AssertionError(
+                "Expected stage_completion.next_stage = 'validation-plan' (catalog wiring)."
+            )
 
-    try:
-        success, out = run_patch(target_path, patch)
-        assert success, f"Exact match failed: {out}"
-        content = Path(target_path).read_text()
-        assert "universe" in content
-        print("  - OK")
-    finally:
-        os.remove(target_path)
+        # Verify the file was actually patched
+        new_text = target_path.read_text(encoding="utf-8")
+        if "f'hello {name}'" not in new_text:
+            raise AssertionError(f"Target file was not patched. Got:\n{new_text}")
 
-def test_fuzzy_match():
-    print("Running test_fuzzy_match...")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write("def calc():\n    a = 1\n    \n    b = 2\n    return a + b\n")
-        target_path = f.name
+        # ----- Case 2: Dry-run (preview only, no write) -----
+        target2 = Path(tmp_dir) / "module2.py"
+        target2.write_text(original_source, encoding="utf-8")
+        patch2 = Path(tmp_dir) / "patch2.txt"
+        patch2.write_text(
+            "<<<<<<< SEARCH\n"
+            "def farewell(name):\n"
+            "    return 'bye ' + name\n"
+            "=======\n"
+            "def farewell(name):\n"
+            "    return f'bye {name}'\n"
+            ">>>>>>> REPLACE\n",
+            encoding="utf-8",
+        )
 
-    # 패치에 들여쓰기가 다르고, 빈 줄이 빠져 있음
-    patch = f"""{S}
-def calc():
-  a = 1
-  b = 2
-  return a + b
-{E}
-def calc():
-    a = 10
-    b = 20
-    return a + b
-{R}"""
+        _, dry_payload = run_patcher(
+            expect_success=True,
+            args=[
+                "--file", str(target2),
+                "--patch-file", str(patch2),
+                "--dry-run",
+            ],
+        )
+        if dry_payload["status"] != "ok":
+            raise AssertionError("Expected dry-run success.")
+        if dry_payload["dry_run"] is not True:
+            raise AssertionError("Expected dry_run=True in --dry-run mode.")
+        # File should NOT have been modified
+        if target2.read_text(encoding="utf-8") != original_source:
+            raise AssertionError("Dry-run should not modify the target file.")
 
-    try:
-        success, out = run_patch(target_path, patch)
-        assert success, f"Fuzzy match failed: {out}"
-        content = Path(target_path).read_text()
-        assert "a = 10" in content
-        assert "b = 20" in content
-        print("  - OK")
-    finally:
-        os.remove(target_path)
+        # ----- Case 3: fuzzy_match_failed — SEARCH block doesn't exist -----
+        target3 = Path(tmp_dir) / "module3.py"
+        target3.write_text(original_source, encoding="utf-8")
+        patch3 = Path(tmp_dir) / "patch3.txt"
+        patch3.write_text(
+            "<<<<<<< SEARCH\n"
+            "def nonexistent_function():\n"
+            "    return 'this code is not in target'\n"
+            "=======\n"
+            "def nonexistent_function():\n"
+            "    return 'replaced'\n"
+            ">>>>>>> REPLACE\n",
+            encoding="utf-8",
+        )
 
-def test_multi_block():
-    print("Running test_multi_block...")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write("def one():\n    return 1\n\ndef two():\n    return 2\n")
-        target_path = f.name
+        failure_code, failure_payload = run_patcher(
+            expect_success=False,
+            args=["--file", str(target3), "--patch-file", str(patch3)],
+        )
+        if failure_payload["error_code"] != "fuzzy_match_failed":
+            raise AssertionError(
+                f"Expected fuzzy_match_failed error_code, got {failure_payload['error_code']}"
+            )
+        # File should NOT have been modified (atomic semantics)
+        if target3.read_text(encoding="utf-8") != original_source:
+            raise AssertionError(
+                "Failed patch should leave the target file untouched (atomic semantics)."
+            )
 
-    patch = f"""{S}
-def one():
-    return 1
-{E}
-def one():
-    return 10
-{R}
-{S}
-def two():
-    return 2
-{E}
-def two():
-    return 20
-{R}"""
+        # ----- Case 4: malformed_patch_block — no valid SEARCH/REPLACE block -----
+        target4 = Path(tmp_dir) / "module4.py"
+        target4.write_text(original_source, encoding="utf-8")
+        patch4 = Path(tmp_dir) / "patch4.txt"
+        patch4.write_text(
+            "# Just a comment, no SEARCH/REPLACE markers\n",
+            encoding="utf-8",
+        )
 
-    try:
-        success, out = run_patch(target_path, patch)
-        assert success, f"Multi block failed: {out}"
-        content = Path(target_path).read_text()
-        assert "return 10" in content
-        assert "return 20" in content
-        print("  - OK")
-    finally:
-        os.remove(target_path)
+        mal_code, mal_payload = run_patcher(
+            expect_success=False,
+            args=["--file", str(target4), "--patch-file", str(patch4)],
+        )
+        if mal_payload["error_code"] != "malformed_patch_block":
+            raise AssertionError(
+                f"Expected malformed_patch_block error_code, got {mal_payload['error_code']}"
+            )
 
-def test_syntax_error():
-    print("Running test_syntax_error...")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write("def valid():\n    pass\n")
-        target_path = f.name
+        # ----- Case 5: missing_required_document — patch file missing -----
+        missing_code, missing_payload = run_patcher(
+            expect_success=False,
+            args=["--file", str(target4), "--patch-file", "/tmp/missing-patch-file-xyz.txt"],
+        )
+        if missing_payload["error_code"] != "missing_required_document":
+            raise AssertionError(
+                f"Expected missing_required_document error_code, got {missing_payload['error_code']}"
+            )
 
-    # 문법 오류 유발 (콜론 빠짐)
-    patch = f"""{S}
-def valid():
-    pass
-{E}
-def valid()
-    return True
-{R}"""
+    print("Robust-patcher smoke check passed.")
+    return 0
 
-    try:
-        success, out = run_patch(target_path, patch)
-        assert not success, "Syntax error test should have failed."
-        assert "SyntaxError" in out
-        content = Path(target_path).read_text()
-        assert "pass" in content # 원본 유지 확인
-        print("  - OK")
-    finally:
-        os.remove(target_path)
 
 if __name__ == "__main__":
-    print("Starting robust-patcher tests...\n")
-    test_exact_match()
-    test_fuzzy_match()
-    test_multi_block()
-    test_syntax_error()
-    print("\nAll tests passed successfully!")
+    raise SystemExit(main())

@@ -17,6 +17,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.11.19/backlog/2026-07-01.md]] {#release-v0-11-19}
+- 2026-07-01: v0.11.19 — **SemVer patch, 1차 batch 4 skill stable 승격**. roadmap §8 Phase 12 in-progress 의 "11 beta skill stable 승격 1차 batch" deliverable. v0.5.10-beta 부터 beta 상태로 운영된 **4 skill** (session-start / doc-sync / validation-plan / code-index-update) 의 stable 채널 승격 + skill_beta_criteria.md + workflow_skill_catalog.md spec layer 동기화. stable 승격 정합 조건 6 항목 (CLI argparse / JSON 스키마 / error_code 3종+ / 단일 명령 / SKILL.md 실행 예시 / smoke test PASS) 모두 충족. 누적 stable=4 / beta=7 / prototype=4. follow-up batch: backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment 4 skill 의 blocker 해결 후 stable (v0.11.20+). GitHub Release `v0.11.19-beta` tag push + gh release create exit 0 (https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.19-beta). PyPI 배포: no. breaking change: ❌.
+
 ### [[release/v0.11.18/backlog/2026-07-01.md]] {#release-v0-11-18}
 - 2026-07-01: v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → 0 error 격상 (`094cacf` mcp_v1_server + release_status 6 + `65f0b20` read_only_mcp_sdk + doc_sync 4 + `4253eed` 잔여 13 일괄) + in-scope fix CI mcp-sdk extra install (`7ffb17c` → amend `80470cd`, 4c83ed9 CI run 28453667753 의 `[import-not-found]` 해소). 누적 mypy 35 → **54 file clean**, 48 → **0 errors** (-48). 3-layer defense (Layer 1 CI ✅ / Layer 2 release-time gate ✅ / Cross-verify ci_sanity ✅). GitHub Release `v0.11.18-beta` tag push + gh release create exit 0 (https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.18-beta). PyPI 배포: no. breaking change: ❌.
 

@@ -1,10 +1,10 @@
 # Backlog-Update Skill
 
-- 문서 목적: `backlog-update` skill 프로토타입의 역할과 구현 진입점을 정리한다.
+- 문서 목적: `backlog-update` skill 의 역할과 구현 진입점을 정리한다.
 - 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
 - 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: beta
-- 최종 수정일: 2026-04-25
+- 상태: stable (v0.11.20 stable 승격)
+- 최종 수정일: 2026-07-01
 - 관련 문서: `../../core/backlog_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
 ## 1. 목적
@@ -47,12 +47,12 @@
 - handoff/index 후속 갱신은 메모로만 남기고 별도 단계로 분리
 - backlog 또는 handoff 상태를 갱신한 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
 
-## 7. 프로토타입 실행
+## 7. 예시 실행 (v0.11.20 stable 정합)
 
 - 실행 스크립트: [scripts/run_backlog_update.py](./scripts/run_backlog_update.py)
-- 기존 항목 갱신 예시:
 
 ```bash
+# 기존 항목 갱신 (JSON 초안만 출력)
 python3 skills/backlog-update/scripts/run_backlog_update.py \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -61,17 +61,19 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
   --task-name "배송 상태 동기화 실패 대응 절차 문서 정리" \
   --task-brief "runbook 및 handoff 반영 상태를 점검했다." \
   --status in_progress
-```
 
-- 신규 항목 생성 예시:
-
-```bash
+# --apply 로 backlog / index / handoff 까지 직접 반영
 python3 skills/backlog-update/scripts/run_backlog_update.py \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
-  --target-date 2026-04-19 \
-  --mode create \
-  --task-name "운영 허브 링크 무결성 재점검" \
-  --task-brief "새 runbook 링크 반영 여부를 확인한다."
+  --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
+  --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
+  --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
+  --mode update \
+  --task-id TASK-021 \
+  --task-name "배송 상태 동기화 실패 대응 절차 문서 정리" \
+  --task-brief "검증 대기 상태라 차단으로 되돌렸다." \
+  --status blocked \
+  --apply
 ```
 
 - 현재 프로토타입은 backlog 파일을 직접 수정하지 않고 JSON 초안만 출력한다.

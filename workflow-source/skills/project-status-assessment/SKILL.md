@@ -3,8 +3,8 @@
 - 문서 목적: 저장소의 기술 스택, 구조, 테스트, 문서화 수준을 진단하여 워크플로우 도입 성숙도를 평가하는 스킬을 설명한다.
 - 범위: 입력 및 출력 계약, 진단 항목, 실행 방법
 - 대상 독자: AI 에이전트, 워크플로우 온보딩 담당자
-- 상태: beta
-- 최종 수정일: 2026-04-26
+- 상태: stable (v0.11.20 stable 승격)
+- 최종 수정일: 2026-07-01
 - 관련 문서: `core/project_status_assessment.md`, `core/workflow_skill_catalog.md`
 
 ## 1. 개요
@@ -34,12 +34,19 @@
 3. **명령어 추정**: `scripts/` 또는 설정 파일을 분석하여 설치(`install`), 실행(`run`), 테스트(`test`) 명령어 후보 추출.
 4. **성숙도 평가**: 진단 결과에 따라 1~4단계 성숙도 판정.
 
-## 4. 실행 방법
+## 4. 예시 실행 (v0.11.20 stable 정합)
 
 ```bash
+# 사람 읽기용 마크다운 리포트 (default)
 python3 skills/project-status-assessment/scripts/run_project_status_assessment.py \
   --project-root /path/to/target/project \
   --apply
+
+# 오케스트레이터용 JSON 출력 (Pydantic schema)
+python3 skills/project-status-assessment/scripts/run_project_status_assessment.py \
+  --project-root /path/to/target/project \
+  --apply \
+  --json
 ```
 
 

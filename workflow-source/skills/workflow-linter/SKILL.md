@@ -3,8 +3,8 @@
 - 문서 목적: 워크플로우 핵심 문서(`state.json`, `handoff`, `backlog`) 간의 데이터 정합성을 검사하는 스킬을 설명한다.
 - 범위: 입력 및 출력 계약, 검사항목, 정합성 유지 규칙
 - 대상 독자: AI 에이전트, 워크플로우 운영자
-- 상태: beta
-- 최종 수정일: 2026-04-26
+- 상태: stable (v0.11.20 stable 승격)
+- 최종 수정일: 2026-07-01
 - 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`
 
 ## 1. 개요
@@ -32,7 +32,7 @@
 2. **링크 유효성 (`file_not_found`)**: 문서 내에서 참조하는 상대 경로가 실제로 존재하는가?
 3. **로테이션 체크 (`handoff_bloat`)**: `handoff`의 완료 목록이 너무 길지 않은가? (10개 초과 시 경고)
 
-## 4. 실행 방법 (CLI)
+## 4. 예시 실행 (v0.11.20 stable 정합)
 
 ```bash
 # 기본 실행 (텍스트 리포트)
@@ -43,8 +43,12 @@ python3 skills/workflow-linter/scripts/run_workflow_linter.py --json
 
 # 특정 경로 지정
 python3 skills/workflow-linter/scripts/run_workflow_linter.py \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --state-json-path ai-workflow/memory/active/state.json \
   --handoff-path ai-workflow/memory/active/session_handoff.md
+
+# maturity matrix + auto-fix (--apply)
+python3 skills/workflow-linter/scripts/run_workflow_linter.py --maturity --apply
 ```
 
 

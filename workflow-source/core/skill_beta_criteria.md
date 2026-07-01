@@ -32,15 +32,15 @@
 | skill | prototype | beta | stable | Gap |
 |------|-----------|------|--------|-----|
 | session-start | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
-| backlog-update | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL + error_code 2) | follow-up batch |
+| backlog-update | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
 | doc-sync | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
-| merge-doc-reconcile | ✅ 읽기 | ✅ beta | ⏸ blocker (error_code 2) | follow-up batch |
+| merge-doc-reconcile | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
 | validation-plan | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
 | code-index-update | ✅ 읽기 | ✅ beta | ✅ **stable (v0.11.19)** | completed |
-| workflow-linter | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL warning) | follow-up batch |
-| project-status-assessment | ✅ 실행 | ✅ beta | ⏸ blocker (smoke FAIL + error_code 1) | follow-up batch |
+| workflow-linter | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
+| project-status-assessment | ✅ 실행 | ✅ beta | ✅ **stable (v0.11.20)** | completed |
 
-### 3.1 Stable 승격 정합 조건 (v0.11.19 확정)
+### 3.1 Stable 승격 정합 조건 (v0.11.19 확정, v0.11.20 정합 검증)
 
 - [x] 입력 파라미터 CLI 로 정의 (argparse `add_argument`)
 - [x] 출력 JSON 스키마 문서화 (skill spec + output_sample_contracts.json)
@@ -51,7 +51,11 @@
 
 **1차 stable 승격 batch (v0.11.19)**: session-start / doc-sync / validation-plan / code-index-update (4 skill).
 
-**Follow-up batch (v0.11.20+ 후보)**: backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment (4 skill). 각 skill 별 blocker 해결 후 stable 승격.
+**2차 stable 승격 batch (v0.11.20)**: backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment (4 skill). 각 skill 별 blocker 해소:
+- backlog-update: temp dir fixture 정합 (`tests/check_backlog_update.py` 의 `state.json` 기대 path 가 `<branch>/state.json` → `<memory_dir>/state.json` 으로 v0.6.0.1 부터의 cache.py latent bug 와 정합) + `invalid_task_brief` / `backlog_write_failed` 2 error_code 추가.
+- merge-doc-reconcile: `merge_conflict_detected` (`--merge-result-summary` 의 `CONFLICT` 마커 사전 차단) / `doc_index_stale` (work_backlog index 가 최신 backlog 미참조 시 사전 차단) 2 error_code 추가 + 신규 smoke test (`tests/check_merge_doc_reconcile.py`).
+- workflow-linter: `os.path.normpath` 로 broken link check 의 `..` segment 정규화 (이전 v0.7.22 의 `.absolute()` 가 `..` 풀지 않아 false-positive 보고) + smoke test fixture 의 link depth 정합 (4 → 3 dot).
+- project-status-assessment: 신규 `ProjectStatusAssessmentOutput` Pydantic schema (legacy `build_runner_success_result` dict emission → 다른 stable skill 의 `BaseOutput` 패턴과 정합) + `missing_required_document` error_code 추가 + 신규 smoke test (`tests/check_project_status_assessment.py`).
 
 ## 4. BetaUpgrade 계획
 

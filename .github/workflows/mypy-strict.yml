@@ -34,15 +34,18 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install mypy 2.1.0 + workflow_kit (pydantic, anyio 포함)
+      - name: Install mypy 2.1.0 + workflow_kit (pydantic, anyio, mcp-sdk 포함)
         shell: bash
         run: |
           python3 -m pip install --upgrade pip
           # v0.11.10 release note 기준 mypy 2.1.0 strict 정합
           python3 -m pip install "mypy==2.1.0"
-          # workflow_kit 의 runtime dep (pydantic, anyio) + package 자체
-          # editable install — mypy 가 third-party type stub 해결 가능
-          python3 -m pip install -e "./workflow-source/workflow_kit"
+          # workflow_kit 의 runtime dep (pydantic, anyio) + optional mcp-sdk
+          # extra (mcp_v1_server.py 의 mcp.server.fastmcp import resolve).
+          # editable install — mypy 가 third-party type stub 해결 가능.
+          # v0.11.18 in-scope fix: mcp-sdk extra 추가 — CI 의 mypy strict 가
+          # local 과 동일 baseline 으로 동작하도록.
+          python3 -m pip install -e "./workflow-source/workflow_kit[mcp-sdk]"
 
       - name: Run mypy --no-incremental workflow_kit/
         shell: bash

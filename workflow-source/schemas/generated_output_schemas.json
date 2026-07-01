@@ -765,6 +765,57 @@
       "title": "ErrorOutput",
       "type": "object"
     },
+    "robust_patcher": {
+      "description": "Standard payload for failed tool executions.",
+      "properties": {
+        "error": {
+          "description": "Human-readable error message",
+          "title": "Error",
+          "type": "string"
+        },
+        "error_code": {
+          "description": "Stable machine-readable error code",
+          "title": "Error Code",
+          "type": "string"
+        },
+        "source_context": {
+          "additionalProperties": true,
+          "description": "Arbitrary context data to help diagnose the error",
+          "title": "Source Context",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "error",
+        "error_code",
+        "source_context"
+      ],
+      "title": "ErrorOutput",
+      "type": "object"
+    },
     "session_start": {
       "description": "Standard payload for failed tool executions.",
       "properties": {
@@ -3196,6 +3247,136 @@
         "source_context"
       ],
       "title": "ProjectStatusAssessmentOutput",
+      "type": "object"
+    },
+    "robust_patcher": {
+      "description": "Output contract for the robust-patcher skill.\n\nReplaces the legacy dict emission (v0.11.21 stable 정합 — 다른 stable skill\n들과 동일하게 BaseOutput + nested dataclass).",
+      "properties": {
+        "applied_blocks": {
+          "description": "Per-block detail (matched/fuzzy/preview).",
+          "items": {
+            "description": "Detail of a single applied SEARCH/REPLACE block.",
+            "properties": {
+              "block_index": {
+                "description": "0-based index of the block within the patch file",
+                "title": "Block Index",
+                "type": "integer"
+              },
+              "fuzzy_score": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Fuzzy match score (1.0 = exact, <1.0 = fuzzy)",
+                "title": "Fuzzy Score"
+              },
+              "matched": {
+                "description": "Whether the SEARCH block matched in the target file",
+                "title": "Matched",
+                "type": "boolean"
+              },
+              "preview": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "First 80 chars of the SEARCH block, for traceability",
+                "title": "Preview"
+              }
+            },
+            "required": [
+              "block_index",
+              "matched"
+            ],
+            "title": "AppliedPatchBlock",
+            "type": "object"
+          },
+          "title": "Applied Blocks",
+          "type": "array"
+        },
+        "dry_run": {
+          "default": false,
+          "description": "True if the patch was applied as a preview (no write)",
+          "title": "Dry Run",
+          "type": "boolean"
+        },
+        "file_path": {
+          "description": "Absolute path to the patched file",
+          "title": "File Path",
+          "type": "string"
+        },
+        "message": {
+          "description": "Human-readable summary of patch application result",
+          "title": "Message",
+          "type": "string"
+        },
+        "source_context": {
+          "description": "Source context for the robust-patcher skill.",
+          "properties": {
+            "file": {
+              "description": "Target file to patch",
+              "title": "File",
+              "type": "string"
+            },
+            "patch_file": {
+              "description": "Patch file containing SEARCH/REPLACE blocks",
+              "title": "Patch File",
+              "type": "string"
+            }
+          },
+          "required": [
+            "file",
+            "patch_file"
+          ],
+          "title": "RobustPatcherSourceContext",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "syntax_validated": {
+          "default": true,
+          "description": "False if post-patch Python syntax check failed (and the patch was rolled back).",
+          "title": "Syntax Validated",
+          "type": "boolean"
+        },
+        "tool_version": {
+          "description": "Version of the tool that generated this output",
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "List of non-fatal warnings encountered",
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tool_version",
+        "file_path",
+        "message",
+        "source_context"
+      ],
+      "title": "RobustPatcherOutput",
       "type": "object"
     },
     "session_start": {

@@ -17,6 +17,9 @@
 
 ## 최근 작업 백로그
 
+### [[release/v0.11.18/backlog/2026-07-01.md]] {#release-v0-11-18}
+- 2026-07-01: v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → 0 error 격상 (`094cacf` mcp_v1_server + release_status 6 + `65f0b20` read_only_mcp_sdk + doc_sync 4 + `4253eed` 잔여 13 일괄) + in-scope fix CI mcp-sdk extra install (`7ffb17c` → amend `80470cd`, 4c83ed9 CI run 28453667753 의 `[import-not-found]` 해소). 누적 mypy 35 → **54 file clean**, 48 → **0 errors** (-48). 3-layer defense (Layer 1 CI ✅ / Layer 2 release-time gate ✅ / Cross-verify ci_sanity ✅). GitHub Release `v0.11.18-beta` tag push + gh release create exit 0 (https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.18-beta). PyPI 배포: no. breaking change: ❌.
+
 ### [[release/v0.11.17/backlog/2026-06-30.md]] {#release-v0-11-17}
 - 2026-06-30: v0.11.17 — **SemVer patch**, mypy strict cumulative 25 error 격상 (output_contracts 15 + cli/doctor+common/decorators 10) + schema drift housekeeping (sample 24 + schema 2) + in-scope fix (release_pipeline.py PYTHONPATH shadowing bug). 누적 mypy 35 → 38 file clean, 48 → 23 errors (-25). GitHub Release `v0.11.17-beta` tag push + gh release create exit 0 (https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.17-beta). PyPI 배포: no. breaking change: ❌.
 

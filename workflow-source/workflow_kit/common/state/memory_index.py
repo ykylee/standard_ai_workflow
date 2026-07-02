@@ -11,7 +11,9 @@ ADR-005 cross-ref: docs/architecture/ADR-005-memora-inspired-memory-index.md
 from __future__ import annotations
 
 import json
+import math
 import re
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Final
@@ -261,14 +263,115 @@ def _linked_expansion(
     return visited, used_depth
 
 
+# --- Phase 2b: BM25 2단계 fallback (stdlib only, no external dep) ---
+
+_TOKEN_RE = re.compile(r"[A-Za-z0-9가-힣]+")
+
+
+def _bm25_text_for_entry(entry: MemoryEntry) -> str:
+    """BM25 corpus 의 document text — `primary_abstraction + cue_anchors + value_digest`."""
+    parts: list[str] = [entry.primary_abstraction]
+    parts.extend(entry.cue_anchors)
+    if entry.value_digest:
+        parts.append(entry.value_digest)
+    return " ".join(parts)
+
+
+def _bm25_tokenize(text: str) -> list[str]:
+    """영숫자 + 한글 토큰 분리, lower-case."""
+    return [t.lower() for t in _TOKEN_RE.findall(text) if t]
+
+
+def _bm25_build_index(entries: list[MemoryEntry]) -> dict[str, object]:
+    """BM25 inverted index 계산."""
+    corpus = [_bm25_text_for_entry(e) for e in entries]
+    N = len(corpus)
+    df: dict[str, int] = {}
+    doc_tf: list[Counter[str]] = []
+    doc_len: list[int] = []
+    for doc in corpus:
+        tokens = _bm25_tokenize(doc)
+        cnt = Counter(tokens)
+        doc_tf.append(cnt)
+        doc_len.append(len(tokens))
+        for term in cnt:
+            df[term] = df.get(term, 0) + 1
+    avgdl = sum(doc_len) / N if N else 0.0
+    return {
+        "entries": entries,
+        "doc_tf": doc_tf,
+        "doc_len": doc_len,
+        "df": df,
+        "avgdl": avgdl,
+        "N": N,
+    }
+
+
+def _bm25_score(
+    query_tokens: list[str],
+    index: dict[str, object],
+    *,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> list[tuple[int, float]]:
+    """각 entry 별 BM25 score. (index, score) desc sort, score 0 제외."""
+    entries = index["entries"]  # type: ignore[assignment]
+    doc_tf = index["doc_tf"]  # type: ignore[assignment]
+    doc_len = index["doc_len"]  # type: ignore[assignment]
+    df = index["df"]  # type: ignore[assignment]
+    avgdl = index["avgdl"]  # type: ignore[assignment]
+    N = index["N"]  # type: ignore[assignment]
+    assert isinstance(entries, list)
+    if not N:
+        return []
+    scores: list[float] = [0.0] * N
+    q_unique = list({t.strip().lower() for t in query_tokens if t and t.strip()})
+    for q in q_unique:
+        n = df.get(q, 0)  # type: ignore[union-attr]
+        if not n:
+            continue
+        # BM25+ smooth idf
+        idf = math.log((N - n + 0.5) / (n + 0.5) + 1)
+        for i, cnt in enumerate(doc_tf):  # type: ignore[assignment]
+            f = cnt.get(q, 0)
+            if not f:
+                continue
+            denom = (
+                f + k1 * (1 - b + b * doc_len[i] / avgdl)  # type: ignore[operator]
+                if avgdl > 0  # type: ignore[operator]
+                else f + k1
+            )
+            scores[i] += idf * (f * (k1 + 1)) / denom
+    out: list[tuple[int, float]] = [
+        (i, s) for i, s in enumerate(scores) if s > 0
+    ]
+    out.sort(key=lambda t: t[1], reverse=True)
+    return out
+
+
+def _bm25_retrieve(
+    entries: list[MemoryEntry],
+    query_tokens: list[str],
+    top_k: int,
+) -> list[MemoryEntry]:
+    """BM25 top-k retrieve. score 0 entry 는 제외."""
+    if top_k <= 0 or not entries:
+        return []
+    index = _bm25_build_index(entries)
+    scored = _bm25_score(query_tokens, index)
+    return [index["entries"][i] for i, _ in scored[:top_k]]  # type: ignore[index]
+
+
 def query_memory_index(
     workspace_root: Path,
     query: MemoryIndexQuery,
 ) -> MemoryIndexQueryResult:
-    """3-tuple retrieval: 1 anchor exact → 2 (Phase 2 BM25) → 3 linked expansion.
+    """3-tuple retrieval — 1 anchor exact → 2 BM25 fallback → 3 linked expansion.
 
-    Phase 1: 1 + 3 만. `max_depth=0` 이면 anchor exact only early termination.
-    Phase 2+: 2단계 (BM25 or embedding fallback) 추가 helper.
+    - 1단계: cue_anchor exact match (case-insensitive). hit 없으면 빈 set.
+    - 2단계 (Phase 2b, opt-in): `query.use_bm25_fallback=True` 일 때만 1단계/3단계 결과가
+      `top_k` 미달이면 BM25 top-k 로 fill. score 0 entry 는 제외.
+    - 3단계: `mentioned_in` + `source_paths` 1-hop expansion, max_depth cap.
     """
     entries = load_memory_index(workspace_root)
     entries_by_id = {e.id: e for e in entries}
@@ -276,26 +379,41 @@ def query_memory_index(
 
     seeds = _anchor_exact_match(query.query_tokens, anchor_index)
 
+    # Phase 2b: 2단계 BM25 fallback helper
+    def _bm25_fill(current: list[MemoryEntry], exclude_ids: set[str]) -> tuple[list[MemoryEntry], int]:
+        if not query.use_bm25_fallback or len(current) >= query.top_k:
+            return current, 0
+        needed = query.top_k - len(current)
+        bm25_pool = [e for e in entries if e.id not in exclude_ids]
+        bm25_picks = _bm25_retrieve(bm25_pool, query.query_tokens, needed)
+        return current + bm25_picks, len(bm25_picks)
+
     if query.max_depth <= 0:
-        selected = [entries_by_id[i] for i in sorted(seeds) if i in entries_by_id][: query.top_k]
+        cue_selected = [entries_by_id[i] for i in sorted(seeds) if i in entries_by_id]
+        cue_selected, bm25_added = _bm25_fill(cue_selected, seeds)
         return MemoryIndexQueryResult(
             query_tokens=list(query.query_tokens),
-            selected_entries=selected,
+            selected_entries= cue_selected[: query.top_k],
             expansion_depth_used=0,
             cue_hits=len(seeds),
             expansion_hits=0,
+            bm25_hits=bm25_added,
         )
 
     expanded_ids, used_depth = _linked_expansion(seeds, entries_by_id, query.max_depth)
     expansion_only = expanded_ids - seeds
-    selected_ids = sorted(seeds | expansion_only)[: query.top_k]
-    selected = [entries_by_id[i] for i in selected_ids if i in entries_by_id]
+    seed_and_linked = seeds | expansion_only
+
+    selected_ids = sorted(seed_and_linked)[: query.top_k]
+    selected: list[MemoryEntry] = [entries_by_id[i] for i in selected_ids if i in entries_by_id]
+    selected, bm25_added = _bm25_fill(selected, seed_and_linked)
     return MemoryIndexQueryResult(
         query_tokens=list(query.query_tokens),
-        selected_entries=selected,
+        selected_entries=selected[: query.top_k],
         expansion_depth_used=used_depth,
         cue_hits=len(seeds),
         expansion_hits=len(expansion_only),
+        bm25_hits=bm25_added,
     )
 
 

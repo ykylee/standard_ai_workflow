@@ -75,6 +75,8 @@ class MemoryIndexQuery(BaseModel):
     top_k: int = Field(default=10, ge=1, le=100)
     max_depth: int = Field(default=2, ge=0, le=3,
                            description="linked expansion depth cap (worker latency 보호)")
+    use_bm25_fallback: bool = Field(default=False,
+                                    description="Phase 2b: 1단계 cue anchor miss 시 BM25 2단계 fallback 활성화")
 
 
 class MemoryIndexQueryResult(BaseModel):
@@ -84,6 +86,7 @@ class MemoryIndexQueryResult(BaseModel):
     expansion_depth_used: int = 0
     cue_hits: int = 0
     expansion_hits: int = 0
+    bm25_hits: int = Field(default=0, description="Phase 2b: BM25 fallback 으로 추가된 entry 수")
 
 
 class MemoryIndexValidationIssue(BaseModel):

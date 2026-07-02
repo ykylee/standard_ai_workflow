@@ -267,6 +267,9 @@ def main() -> int:
         test_merge_request_validates_duplicate_source_ids,
         test_merge_dry_run_default_no_file_written,
         test_merge_apply_canonical_merge_atomic,
+        test_bm25_score_token_overlap_ranking,
+        test_bm25_fallback_fills_when_cue_miss,
+        test_bm25_fallback_disabled_no_fill,
     ]
 
     failed: list[str] = []
@@ -454,6 +457,84 @@ def test_merge_apply_canonical_merge_atomic() -> None:
         other = entries_by_id.get("MEM-2026-07-02-002")
         assert other is not None
         assert other.merge_state == MergeState.LINKED, f"source merge_state: {other.merge_state}"
+
+
+# --- Phase 2b 추가 3 case (BM25 2단계 fallback) ---
+
+
+def test_bm25_score_token_overlap_ranking() -> None:
+    """BM25 가 token overlap 많은 entry 를 더 높게 점수 매김."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        a = _entry("MEM-2026-07-02-001", "memora evaluation for memory retrieval",
+                   anchors=["memory", "retrieval"])
+        b = _entry("MEM-2026-07-02-002", "unrelated apple banana",
+                   anchors=["fruit", "food"])
+        c = _entry("MEM-2026-07-02-003", "memory memory retrieval retrieval",
+                   anchors=["memory", "retrieval", "memory retrieval"])
+        ranked = HELPER._bm25_retrieve([a, b, c], ["memory", "retrieval"], top_k=3)
+        ids = [e.id for e in ranked]
+        # 'memory' + 'retrieval' 가 c 가장 많이 등장 → 가장 높은 score
+        assert ids[0] == "MEM-2026-07-02-003", f"expected c top, got {ids}"
+        # b 는 겹치는 token 0 → 제외되어야 함 (score 0)
+        assert "MEM-2026-07-02-002" not in ids, f"unrelated entry should be excluded: {ids}"
+
+
+def test_bm25_fallback_fills_when_cue_miss() -> None:
+    """use_bm25_fallback=True + cue anchor miss → BM25 가 top_k 까지 fill."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        # cue anchor 가 일부러 query 와 다르게 — cue stage miss 유발
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "alpha bravo charlie",
+                                            anchors=["x-unrelated"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "alpha charlie delta",
+                                            anchors=["y-unrelated"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-003", "echo foxtrot",
+                                            anchors=["z-unrelated"]))
+        # query 는 'alpha charlie' — cue miss, BM25 가 alpha 가 있는 entry 2개 채움
+        result = HELPER.query_memory_index(
+            ws,
+            MemoryIndexQuery(
+                query_tokens=["alpha", "charlie"],
+                top_k=2,
+                max_depth=0,
+                use_bm25_fallback=True,
+            ),
+        )
+        ids = sorted(e.id for e in result.selected_entries)
+        # entry 1 (alpha, bravo, charlie) + entry 2 (alpha, charlie, delta) 가 BM25 top
+        # entry 3 (echo, foxtrot) 는 score 0 → 제외
+        assert ids == ["MEM-2026-07-02-001", "MEM-2026-07-02-002"], f"got {ids}"
+        assert result.cue_hits == 0, f"cue_hits should be 0, got {result.cue_hits}"
+        assert result.bm25_hits == 2, f"bm25_hits should be 2, got {result.bm25_hits}"
+
+
+def test_bm25_fallback_disabled_no_fill() -> None:
+    """use_bm25_fallback=False + cue miss → BM25 미사용 + bm25_hits=0."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "alpha bravo",
+                                            anchors=["x"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "charlie delta",
+                                            anchors=["y"]))
+        result = HELPER.query_memory_index(
+            ws,
+            MemoryIndexQuery(
+                query_tokens=["alpha"],
+                top_k=5,
+                max_depth=0,
+                use_bm25_fallback=False,
+            ),
+        )
+        assert result.selected_entries == [], "selected should be empty with disabled fallback"
+        assert result.cue_hits == 0
+        assert result.bm25_hits == 0, f"bm25_hits should be 0, got {result.bm25_hits}"
 
 
 if __name__ == "__main__":

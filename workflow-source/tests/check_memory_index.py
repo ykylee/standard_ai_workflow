@@ -34,6 +34,8 @@ from workflow_kit.common.schemas.memory_index import (  # noqa: E402
     MergeState,
 )
 from workflow_kit.common.state import memory_index as HELPER  # noqa: E402
+from workflow_kit.common.state.builder import build_workflow_state_payload  # noqa: E402
+from workflow_kit.common.state.cache import build_state_cache_refresh_hint  # noqa: E402
 
 HELPER_FILE = SOURCE_ROOT / "workflow_kit" / "common" / "state" / "memory_index.py"
 
@@ -258,6 +260,9 @@ def main() -> int:
         test_validate_detects_duplicate_primary,
         test_cue_anchor_index_inverse,
         test_query_with_linked_expansion,
+        test_payload_with_memory_entries_merged,
+        test_payload_without_memory_entries_absent,
+        test_refresh_hint_includes_memory_index_dir_flag,
     ]
 
     failed: list[str] = []
@@ -279,6 +284,94 @@ def main() -> int:
             print(f"  - {name}")
         return 1
     return 0
+
+
+# --- Phase 1.5 추가 3 case (state.json payload merge / zero-risk skip / hint flag) ---
+
+
+def _write_minimal_workflow_state_fixtures(tmp: Path) -> tuple[Path, Path, Path]:
+    """builder.py 가 silent fallback 으로 parse 가능하도록 최소 markdown 작성."""
+    pp = tmp / "PROJECT_PROFILE.md"
+    pp.write_text(
+        "---\n"
+        "project_name: test\n"
+        "document_home: docs/\n"
+        "operations_path: ai-workflow/operations/\n"
+        "backlog_path: ai-workflow/memory/active/work_backlog.md\n"
+        "handoff_path: ai-workflow/memory/active/session_handoff.md\n"
+        "environment_path: ai-workflow/memory/active/environment.md\n"
+        "quick_tests: echo quick\n"
+        "isolated_tests: echo isolated\n"
+        "runtime_checks: echo runtime\n"
+        "---\n"
+        "# test profile\n",
+        encoding="utf-8",
+    )
+    sh = tmp / "session_handoff.md"
+    sh.write_text("# session handoff\n", encoding="utf-8")
+    wb = tmp / "work_backlog.md"
+    wb.write_text("# work backlog index\n", encoding="utf-8")
+    return pp, sh, wb
+
+
+def test_payload_with_memory_entries_merged() -> None:
+    """build_workflow_state_payload 에 memory_entries list 전달 시 payload merge + count."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        pp, sh, wb = _write_minimal_workflow_state_fixtures(workspace)
+        entries = [
+            {"id": "MEM-2026-07-02-001", "primary_abstraction": "x"},
+            {"id": "MEM-2026-07-02-002", "primary_abstraction": "y"},
+        ]
+        payload = build_workflow_state_payload(
+            project_profile_path=pp,
+            session_handoff_path=sh,
+            work_backlog_index_path=wb,
+            generated_at="2026-07-02",
+            workspace_root=workspace,
+            memory_entries=entries,
+        )
+        assert payload.get("memory_entries") == entries, (
+            f"memory_entries merge failed: {payload.get('memory_entries')}"
+        )
+        assert payload.get("memory_entries_count") == 2, "count mismatch"
+
+
+def test_payload_without_memory_entries_absent() -> None:
+    """memory_entries 미지정 (default None) 시 payload 에 memory_entries key 부재."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        pp, sh, wb = _write_minimal_workflow_state_fixtures(workspace)
+        payload = build_workflow_state_payload(
+            project_profile_path=pp,
+            session_handoff_path=sh,
+            work_backlog_index_path=wb,
+            generated_at="2026-07-02",
+            workspace_root=workspace,
+        )
+        assert "memory_entries" not in payload, "memory_entries key 가 zero-risk 로 부재해야 함"
+        assert "memory_entries_count" not in payload, "count 도 부재해야 함"
+
+
+def test_refresh_hint_includes_memory_index_dir_flag() -> None:
+    """build_state_cache_refresh_hint 가 memory_index_dir 를 --memory-index-dir flag 로 emit."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        pp, sh, wb = _write_minimal_workflow_state_fixtures(workspace)
+        mi = workspace / "memory_index"
+        hint = build_state_cache_refresh_hint(
+            project_profile_path=pp,
+            memory_index_dir=mi,
+        )
+        cmd = hint["refresh_command"]
+        assert "--memory-index-dir" in cmd, f"--memory-index-dir flag missing: {cmd}"
+        assert str(mi) in cmd, f"memory_index_dir path not in command: {cmd}"
 
 
 if __name__ == "__main__":

@@ -12,12 +12,18 @@ from workflow_kit.common.paths import (
     workflow_memory_dir,
 )
 from workflow_kit.common.state.builder import build_workflow_state_payload
+from workflow_kit.common.state.memory_index import (
+    load_memory_index,
+    load_memory_index_at,
+    memory_index_root,
+)
 
 def build_state_cache_refresh_hint(
     *,
     project_profile_path: Path,
     latest_backlog_path: Path | None = None,
     repository_assessment_path: Path | None = None,
+    memory_index_dir: Path | None = None,
 ) -> dict[str, str]:
     workspace_root = project_workspace_root(project_profile_path)
     # v0.11.20 fix: workflow_memory_dir(...) 이 이미 `ai-workflow/memory/active/` (or
@@ -41,6 +47,9 @@ def build_state_cache_refresh_hint(
         command_parts.append(f"--latest-backlog-path {latest_backlog_path}")
     if repository_assessment_path:
         command_parts.append(f"--repository-assessment-path {repository_assessment_path}")
+    # v0.11.22+ Phase 1.5: memory_index_dir 가 명시되면 refresh hint command 에 포함.
+    if memory_index_dir:
+        command_parts.append(f"--memory-index-dir {memory_index_dir}")
     return {
         "state_path": str(state_path),
         "refresh_command": " ".join(str(part) for part in command_parts),
@@ -56,6 +65,7 @@ def refresh_workflow_state_cache(
     output_path: Path | None = None,
     generated_at: str,
     workspace_root: Path | None = None,
+    memory_index_dir: Path | None = None,
 ) -> dict[str, Any]:
     resolved_project_profile_path = project_profile_path.resolve()
     # v0.11.20 fix: build_state_cache_refresh_hint 와 정합 — memory_dir / branch_dir 모두
@@ -83,6 +93,7 @@ def refresh_workflow_state_cache(
         project_profile_path=resolved_project_profile_path,
         latest_backlog_path=resolved_latest_backlog_path,
         repository_assessment_path=resolved_repository_assessment_path,
+        memory_index_dir=memory_index_dir,
     )
     if missing_paths:
         return {
@@ -92,6 +103,17 @@ def refresh_workflow_state_cache(
             "missing_paths": missing_paths,
         }
 
+    # v0.11.22+ Phase 1.5: ADR-005 memory_entries optional merge.
+    # None 이면 zero-risk (key 미포함). 명시되면 load 후 dict 로 변환.
+    memory_entries_payload: list[dict[str, Any]] = []
+    if memory_index_dir is not None:
+        loaded_entries = load_memory_index_at(memory_index_dir)
+    elif actual_root is not None:
+        loaded_entries = load_memory_index(actual_root)
+    else:
+        loaded_entries = []
+    memory_entries_payload = [e.model_dump(mode="json") for e in loaded_entries]
+
     payload = build_workflow_state_payload(
         project_profile_path=resolved_project_profile_path,
         session_handoff_path=resolved_session_handoff_path,
@@ -100,6 +122,7 @@ def refresh_workflow_state_cache(
         repository_assessment_path=resolved_repository_assessment_path,
         generated_at=generated_at,
         workspace_root=actual_root,
+        memory_entries=memory_entries_payload,
     )
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

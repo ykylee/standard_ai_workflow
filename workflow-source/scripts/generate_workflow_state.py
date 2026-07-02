@@ -26,6 +26,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--repository-assessment-path")
     parser.add_argument("--workspace-root")
+    # v0.11.22+ Phase 1.5: ADR-005 memory_index_dir optional pass-through.
+    parser.add_argument("--memory-index-dir")
     parser.add_argument("--generated-at", default=date.today().isoformat())
     return parser.parse_args()
 
@@ -42,6 +44,7 @@ def main() -> int:
         output_path=output_path,
         generated_at=args.generated_at,
         workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
+        memory_index_dir=Path(args.memory_index_dir).resolve() if args.memory_index_dir else None,
     )
     print(
         json.dumps(
@@ -49,6 +52,7 @@ def main() -> int:
                 "status": "ok",
                 "output_path": str(output_path),
                 "state_cache_status": refresh_result["status"],
+                "memory_index_dir": str(args.memory_index_dir) if args.memory_index_dir else None,
             },
             ensure_ascii=False,
             indent=2,

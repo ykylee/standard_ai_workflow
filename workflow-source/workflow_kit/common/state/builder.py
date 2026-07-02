@@ -65,7 +65,13 @@ def build_workflow_state_payload(
     repository_assessment_path: Path | None = None,
     generated_at: str,
     workspace_root: Path | None = None,
+    memory_entries: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    """state.json payload build.
+
+    `memory_entries` (Phase 1.5, ADR-005) — None 또는 빈 list 면 `memory_entries` key 도
+    emit 하지 않아 zero-risk opt-in. dict list 일 때만 payload 에 merge.
+    """
     actual_root = workspace_root or project_workspace_root(project_profile_path)
     resolved_latest_backlog_path = latest_backlog_path or find_latest_backlog_path(work_backlog_index_path)
     if resolved_latest_backlog_path is not None and not resolved_latest_backlog_path.exists():
@@ -131,7 +137,7 @@ def build_workflow_state_payload(
     purpose_path = next((p for p in purpose_candidates if p.exists()), None)
     purpose_digest, purpose_digest_rev = _parse_purpose_summary(purpose_path)
 
-    return {
+    payload = {
         "schema_version": "1",
         "generated_at": generated_at,
         "purpose_digest": purpose_digest,
@@ -179,4 +185,11 @@ def build_workflow_state_payload(
             "path": safe_relpath(repository_assessment_path, actual_root) if repository_assessment_path else None,
             "present": bool(repository_assessment_path and repository_assessment_path.exists()),
         },
+        "schema_version_memory_entries": "1",
     }
+    # v0.11.22+ Phase 1.5: ADR-005 memory_entries optional merge.
+    # 부재 시 zero-risk (key 미포함), list 있을 때만 emit.
+    if memory_entries:
+        payload["memory_entries"] = memory_entries
+        payload["memory_entries_count"] = len(memory_entries)
+    return payload

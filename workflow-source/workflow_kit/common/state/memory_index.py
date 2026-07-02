@@ -82,8 +82,16 @@ def load_memory_index(workspace_root: Path) -> list[MemoryEntry]:
     알파벳 순 정렬. JSON decode 또는 schema validate 실패 시 silent skip
     (caller 가 `validate_memory_index` 로 진단).
     """
-    root = memory_index_root(workspace_root)
-    ed = entries_dir(memory_index=root)
+    return load_memory_index_at(memory_index_root(workspace_root))
+
+
+def load_memory_index_at(memory_index_dir: Path) -> list[MemoryEntry]:
+    """`memory_index/entries/` 의 절대 경로를 직접 받아 load.
+
+    `load_memory_index(workspace_root)` 가 default layout 사용, 본 함수는 override 가능.
+    state.json 생성자가 caller 지정 dir 로 load 시 사용 (Phase 1.5).
+    """
+    ed = entries_dir(memory_index=memory_index_dir)
     if not ed.exists():
         return []
     out: list[MemoryEntry] = []

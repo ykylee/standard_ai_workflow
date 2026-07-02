@@ -68,6 +68,7 @@
 - [ADR-004: LLM Wiki Layer 도입](./ADR-004-llm-wiki-layer.md) — wiki layer 설계 (v0.6.0 accepted, P1 implemented)
 - [Microsoft Memora Evaluation](./MICROSOFT_MEMORA_EVALUATION.md) — Microsoft Research `Memora` 개념과 우리 workflow memory 구조의 접점 정리 (2026-07-02)
 - [x] **ADR-005: Memora-inspired Memory Index** (v0.11.22+ Phase 1 계획) — [ADR-005](./ADR-005-memora-inspired-memory-index.md). 평가 문서 결론을 정식 결정으로: `memory_index/` 메타데이터 레이어 + retrieval flow 3-tuple + canonical merge 기본 advisory. 3-layer 분리 정합 유지.
+- [ADR-006: ADR-005 Memory Index Retrospective (Placeholder)](./ADR-006-memory-index-retrospective.md) — v0.11.22 의 8 release 누적 retrospective 자리. 회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성.
 - **컴포넌트 다이어그램** — `workflow-source/`, `ai-workflow/`, `docs/` 3-layer 시각화 (mermaid)
 - **CI smoke** 의 책임 영역 매트릭스 (어떤 smoke 이 어느 contract/spec 변경 시 깨지는지) — v0.5.10 baseline 52 + v0.5.10.1 hotfix 1 (`check_smart_update.py`) + v0.5.11 5 (wire 가이드 / contract v1 §6.5 / 회귀 test 강화) = 58+개
 

@@ -44,6 +44,15 @@ from workflow_kit.common.schemas.read_only import (
     CreateEnvironmentRecordStubOutput,
     SmartContextReaderOutput,
 )
+from workflow_kit.common.schemas.memory_index import (
+    MemoryEntry,
+    MemoryIndexOutput,
+    MemoryIndexQuery,
+    MemoryIndexQueryResult,
+    MemoryIndexValidationIssue,
+    MemoryIndexValidationOutput,
+    MergeState,
+)
 
 __all__ = [
     "BaseOutput",
@@ -80,6 +89,13 @@ __all__ = [
     "RobustPatcherOutput",
     "AppliedPatchBlock",
     "RobustPatcherSourceContext",
+    "MemoryEntry",
+    "MemoryIndexOutput",
+    "MemoryIndexQuery",
+    "MemoryIndexQueryResult",
+    "MemoryIndexValidationIssue",
+    "MemoryIndexValidationOutput",
+    "MergeState",
     "LatestBacklogOutput",
     "CheckDocMetadataOutput",
     "CheckDocLinksOutput",

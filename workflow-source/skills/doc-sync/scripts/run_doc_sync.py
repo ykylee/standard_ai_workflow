@@ -55,7 +55,60 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--latest-backlog-path")
     parser.add_argument("--change-summary")
     parser.add_argument("--apply", action="store_true")
+    # v0.11.22+ Phase 3c: ADR-005 memory_index retrieval 3-tuple opt-in wiring (session-start 와 동일 패턴).
+    parser.add_argument("--memory-index-dir",
+                        help="memory_index 절대 path. 부재 시 skip.")
+    parser.add_argument("--memory-query-tokens",
+                        help="comma-separated query tokens. 부재 시 skip.")
     return parser.parse_args()
+
+
+def _build_memory_index_query_output(
+    args: argparse.Namespace,
+    project_root: Path,
+    warnings: list[str],
+) -> dict[str, Any] | None:
+    """v0.11.22+ Phase 3c: optional ADR-005 memory_index retrieval 3-tuple 호출 (session-start 와 동일 패턴).
+
+    - 둘 다 미지정 → None (zero-risk skip).
+    - 한쪽만 지정 → advisory emit + None.
+    - 둘 다 지정 → helper 호출, `MemoryIndexQueryOutput` dict 변환 후 emit.
+    """
+    if not args.memory_index_dir and not args.memory_query_tokens:
+        return None
+    if not args.memory_index_dir or not args.memory_query_tokens:
+        warnings.append(
+            "memory_index wiring: --memory-index-dir 와 --memory-query-tokens 둘 다 지정해야 retrieval 활성."
+        )
+        return None
+    memory_index_dir = Path(args.memory_index_dir)
+    query_tokens = [t.strip() for t in args.memory_query_tokens.split(",") if t.strip()]
+    if not query_tokens:
+        warnings.append(
+            "memory_index wiring: --memory-query-tokens 가 비어있음. retrieval skip."
+        )
+        return None
+    try:
+        from workflow_kit.common.state.memory_index import (
+            query_memory_index_for_dispatcher,
+        )
+        target = project_root
+        try:
+            memory_index_dir.relative_to(project_root)
+            # subdir — project_root 그대로 사용 (helper 내부 `memory_index_root(<root>)` 자동 계산)
+        except ValueError:
+            warnings.append(
+                "memory_index wiring: --memory-index-dir 가 project_root 외부. "
+                "Phase 3d/ws 외부 정공법은 후속 release."
+            )
+            return None
+        result = query_memory_index_for_dispatcher(target, query_tokens)
+        return result.model_dump(mode="json")
+    except Exception as e:
+        warnings.append(
+            f"memory_index wiring: retrieval 실패 ({type(e).__name__}: {e}). doc-sync 본체는 계속 진행."
+        )
+        return None
 
 
 def main() -> int:
@@ -67,6 +120,8 @@ def main() -> int:
         "session_handoff_path": args.session_handoff_path,
         "work_backlog_index_path": args.work_backlog_index_path,
         "latest_backlog_path": args.latest_backlog_path,
+        "memory_index_dir": args.memory_index_dir,
+        "memory_query_tokens": args.memory_query_tokens,
     }
 
     if not args.changed_files and not args.change_summary:
@@ -148,6 +203,11 @@ def main() -> int:
             "warnings": graph_result.overall_warnings,
         }
         result.setdefault("warnings", []).extend(graph_result.overall_warnings)
+
+        # v0.11.22+ Phase 3c: ADR-005 memory_index retrieval 3-tuple opt-in wiring.
+        result["memory_index_query_output"] = _build_memory_index_query_output(
+            args, project_root, result.setdefault("warnings", []),
+        )
 
         if "warnings" in profile_data:
             result["warnings"] = list(set(result.get("warnings", []) + profile_data["warnings"]))

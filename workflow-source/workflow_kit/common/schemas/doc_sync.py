@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 from workflow_kit.common.schemas.base import BaseOutput, Status
 
@@ -48,3 +50,8 @@ class DocSyncOutput(BaseOutput):
     apply_status: str | None = None
     written_paths: list[str] = Field(default_factory=list)
     purpose_context: DocSyncPurposeContext | None = None
+    # v0.11.22+ Phase 3c: ADR-005 memory_index retrieval hints (optional, opt-in).
+    memory_index_query_output: dict[str, Any] | None = Field(
+        default=None,
+        description="Phase 3: query_memory_index_for_dispatcher 결과 dict. 부재 시 None (zero-risk).",
+    )

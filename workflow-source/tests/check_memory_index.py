@@ -275,6 +275,8 @@ def main() -> int:
         test_entry_script_subprocess_invocation,
         test_session_start_memory_wiring_returns_dict,
         test_session_start_memory_wiring_zero_risk_skip,
+        test_doc_sync_memory_wiring_returns_dict,
+        test_doc_sync_memory_wiring_zero_risk_skip,
     ]
 
     failed: list[str] = []
@@ -663,6 +665,78 @@ def test_session_start_memory_wiring_zero_risk_skip() -> None:
     )
     mod = importlib.util.module_from_spec(spec)
     sys.modules["_run_session_start_skip_test"] = mod
+    try:
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    except Exception:
+        pass
+    builder = getattr(mod, "_build_memory_index_query_output", None)
+    if builder is None:
+        return
+
+    import argparse
+    args = argparse.Namespace(memory_index_dir=None, memory_query_tokens=None)
+    warnings: list[str] = []
+    result = builder(args, Path("/nonexistent"), warnings)
+    assert result is None, f"expected None (zero-risk), got {result}"
+    assert warnings == [], f"no warnings expected, got {warnings}"
+
+
+# --- Phase 3c 추가 2 case (doc-sync memory_index wiring opt-in) ---
+
+
+def test_doc_sync_memory_wiring_returns_dict() -> None:
+    """doc-sync 의 _build_memory_index_query_output 가 dict 반환 (둘 다 지정 시)."""
+    import importlib.util
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        mi = ws / "ai-workflow" / "memory" / "active" / "memory_index"
+        mi.mkdir(parents=True, exist_ok=True)
+        from workflow_kit.common.state.memory_index import save_memory_entry
+        save_memory_entry(ws, _entry("MEM-2026-07-02-001", "adr memora retrieval doc-sync",
+                                     anchors=["adr", "memora"]))
+
+        run_path = (SOURCE_ROOT
+                    / "skills" / "doc-sync" / "scripts" / "run_doc_sync.py")
+        spec = importlib.util.spec_from_file_location(
+            "_run_doc_sync_for_test", str(run_path),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["_run_doc_sync_for_test"] = mod
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        except Exception:
+            pass
+
+        builder = getattr(mod, "_build_memory_index_query_output", None)
+        if builder is None:
+            return
+
+        import argparse
+        args = argparse.Namespace(
+            memory_index_dir=str(mi),
+            memory_query_tokens="adr,memora",
+        )
+        warnings: list[str] = []
+        result = builder(args, ws, warnings)
+        assert result is not None, f"result should be dict, got None"
+        assert "MEM-2026-07-02-001" in result["selected_ids"], (
+            f"selected_ids: {result.get('selected_ids')}"
+        )
+
+
+def test_doc_sync_memory_wiring_zero_risk_skip() -> None:
+    """doc-sync memory wiring flag 둘 다 부재 시 None (zero-risk skip)."""
+    import importlib.util
+
+    run_path = (SOURCE_ROOT
+                / "skills" / "doc-sync" / "scripts" / "run_doc_sync.py")
+    spec = importlib.util.spec_from_file_location(
+        "_run_doc_sync_skip_test", str(run_path),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["_run_doc_sync_skip_test"] = mod
     try:
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
     except Exception:

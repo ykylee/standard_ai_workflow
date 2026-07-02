@@ -4,7 +4,7 @@
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-07-02
 - 관련 문서: [Documentation Governance](./index.md) (저장소 governance 의 진입점), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
@@ -31,6 +31,7 @@
 *요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
 
 - **[Microsoft Memora Evaluation](./architecture/MICROSOFT_MEMORA_EVALUATION.md)**: Microsoft Research `Memora` 조사와 `standard_ai_workflow` 적용 가능성 검토.
+- **[ADR-005: Memora-inspired Memory Index](./architecture/ADR-005-memora-inspired-memory-index.md)** (v0.11.22+ Phase 1 예정): 평가 문서 결론을 정식 결정으로 — `ai-workflow/memory/active/memory_index/` 메타데이터 레이어 위에 retrieval flow 3-tuple (anchor exact → embedding/BM25 → linked expansion) 을 얹는다. canonical merge 는 기본 advisory, opt-in 으로 `merged` 활성화. 3-layer (source/state/knowledge) 분리 정합 유지.
 - 상위 로드맵은 [workflow-source/core/workflow_kit_roadmap.md](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md) (9단계 + Phase 11 pilot) 참고.
 
 ## 4. 보존 (Archive)

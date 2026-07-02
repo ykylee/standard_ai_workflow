@@ -51,6 +51,8 @@ from workflow_kit.common.schemas.memory_index import (
     MemoryIndexQueryResult,
     MemoryIndexValidationIssue,
     MemoryIndexValidationOutput,
+    MemoryMergeRequest,
+    MemoryMergeResult,
     MergeState,
 )
 
@@ -95,6 +97,8 @@ __all__ = [
     "MemoryIndexQueryResult",
     "MemoryIndexValidationIssue",
     "MemoryIndexValidationOutput",
+    "MemoryMergeRequest",
+    "MemoryMergeResult",
     "MergeState",
     "LatestBacklogOutput",
     "CheckDocMetadataOutput",

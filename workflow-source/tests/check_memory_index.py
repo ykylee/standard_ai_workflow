@@ -31,6 +31,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.common.schemas.memory_index import (  # noqa: E402
     MemoryEntry,
     MemoryIndexQuery,
+    MemoryMergeRequest,
     MergeState,
 )
 from workflow_kit.common.state import memory_index as HELPER  # noqa: E402
@@ -263,6 +264,9 @@ def main() -> int:
         test_payload_with_memory_entries_merged,
         test_payload_without_memory_entries_absent,
         test_refresh_hint_includes_memory_index_dir_flag,
+        test_merge_request_validates_duplicate_source_ids,
+        test_merge_dry_run_default_no_file_written,
+        test_merge_apply_canonical_merge_atomic,
     ]
 
     failed: list[str] = []
@@ -372,6 +376,84 @@ def test_refresh_hint_includes_memory_index_dir_flag() -> None:
         cmd = hint["refresh_command"]
         assert "--memory-index-dir" in cmd, f"--memory-index-dir flag missing: {cmd}"
         assert str(mi) in cmd, f"memory_index_dir path not in command: {cmd}"
+
+
+# --- Phase 2 추가 3 case (--merge opt-in canonical merge) ---
+
+
+def test_merge_request_validates_duplicate_source_ids() -> None:
+    """duplicate source_ids 면 ValueError (atomic 보장용 사전 차단)."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "first", anchors=["x"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "second", anchors=["y"]))
+        req = MemoryMergeRequest(
+            source_ids=["MEM-2026-07-02-001", "MEM-2026-07-02-001"],
+            apply=False,
+        )
+        try:
+            HELPER.apply_memory_merge(ws, req)
+        except ValueError as e:
+            assert "duplicate" in str(e).lower() or "중복" in str(e), f"unexpected message: {e}"
+            return
+        raise AssertionError("expected ValueError for duplicate source_ids")
+
+
+def test_merge_dry_run_default_no_file_written() -> None:
+    """apply=False (default) 은 disk 변경 없음 + MemoryMergeResult.applied=False."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        a = HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "shared topic",
+                                                 anchors=["x", "y"]))
+        b = HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "shared topic",
+                                                 anchors=["z", "y"]))
+        before_a = a.read_text(encoding="utf-8")
+        before_b = b.read_text(encoding="utf-8")
+
+        # dry-run (apply 미지정 → default False)
+        result = HELPER.apply_memory_merge(
+            ws,
+            MemoryMergeRequest(
+                source_ids=["MEM-2026-07-02-001", "MEM-2026-07-02-002"],
+            ),
+        )
+        assert result.applied is False, f"expected dry-run, got {result.applied}"
+        assert result.target_id == "MEM-2026-07-02-001", f"expected first source as target, got {result.target_id}"
+        assert sorted(result.merged_cue_anchors) == ["x", "y", "z"], f"cue union: {result.merged_cue_anchors}"
+        assert a.read_text(encoding="utf-8") == before_a, "file a changed during dry-run"
+        assert b.read_text(encoding="utf-8") == before_b, "file b changed during dry-run"
+
+
+def test_merge_apply_canonical_merge_atomic() -> None:
+    """apply=True 면 target emit (MERGED) + 다른 source 는 LINKED 로 atomic 갱신."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "shared topic",
+                                            anchors=["x", "y"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "shared topic",
+                                            anchors=["z", "y"]))
+        result = HELPER.apply_memory_merge(
+            ws,
+            MemoryMergeRequest(
+                source_ids=["MEM-2026-07-02-001", "MEM-2026-07-02-002"],
+                apply=True,
+            ),
+        )
+        assert result.applied is True, "expected applied"
+        entries_by_id = {e.id: e for e in HELPER.load_memory_index(ws)}
+        target = entries_by_id.get("MEM-2026-07-02-001")
+        assert target is not None
+        assert target.merge_state == MergeState.MERGED, f"target merge_state: {target.merge_state}"
+        assert sorted(target.cue_anchors) == ["x", "y", "z"]
+        other = entries_by_id.get("MEM-2026-07-02-002")
+        assert other is not None
+        assert other.merge_state == MergeState.LINKED, f"source merge_state: {other.merge_state}"
 
 
 if __name__ == "__main__":

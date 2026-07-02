@@ -105,3 +105,35 @@ class MemoryIndexOutput(BaseOutput):
     entries_loaded: int = 0
     issues: list[MemoryIndexValidationIssue] = Field(default_factory=list)
     source_context: dict[str, Any] = Field(default_factory=dict)
+
+
+# --- Phase 2: --merge opt-in canonical merge schemas (ADR-005 §4) ---
+
+
+class MemoryMergeRequest(BaseModel):
+    """ADR-005 §4 canonical merge 의 caller 입력.
+
+    `apply=False` (default) 는 dry-run preview. `apply=True` 일 때만 atomic write.
+    `target_id` 가 있으면 그 id 로 통합 (caller 가 새 id 회전), None 이면 첫 source id 사용.
+    """
+    source_ids: list[str] = Field(..., min_length=2,
+                                  description="merge 할 source entry id 들 (≥2)")
+    target_id: str | None = Field(default=None,
+                                  description="통합 entry 의 id; None 이면 첫 source id 사용")
+    apply: bool = Field(default=False, description="True 일 때만 atomic write; default dry-run")
+
+
+class MemoryMergeResult(BaseModel):
+    """`apply_memory_merge` 의 결과.
+
+    `applied` field 가 True 면 actual merge 발생 + caller 가 새 file 들을 commit 해야 함.
+    dry-run (default) 일 때 `applied=False` + `preview` dict 에 의도된 결과 emit.
+    """
+    request: MemoryMergeRequest
+    applied: bool
+    target_id: str
+    source_ids: list[str]
+    merged_source_paths: list[str]
+    merged_cue_anchors: list[str]
+    mentioned_in: list[str]
+    warnings: list[str] = Field(default_factory=list)

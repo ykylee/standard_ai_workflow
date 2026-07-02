@@ -25,6 +25,9 @@ from workflow_kit.common.schemas.memory_index import (
     MemoryIndexQueryResult,
     MemoryIndexValidationIssue,
     MemoryIndexValidationOutput,
+    MemoryMergeRequest,
+    MemoryMergeResult,
+    MergeState,
 )
 
 
@@ -307,4 +310,106 @@ def memory_index_status(workspace_root: Path) -> MemoryIndexOutput:
         entries_loaded=validation.total_entries,
         issues=validation.issues,
         source_context={"workspace_root": str(workspace_root)},
+    )
+
+
+# --- Phase 2: --merge opt-in canonical merge (ADR-005 §4) ---
+
+
+def _dedupe_keep_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for v in values:
+        if v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out
+
+
+def apply_memory_merge(
+    workspace_root: Path,
+    request: MemoryMergeRequest,
+) -> MemoryMergeResult:
+    """ADR-005 §4 canonical merge — `--merge` opt-in.
+
+    - `request.apply=False` (default) → dry-run preview 만. disk 변경 없음.
+    - `request.apply=True` → target emit + source entries 의 `merge_state=LINKED` 로 atomic 갱신.
+
+    target `primary_abstraction` 은 첫 source 의 값을 사용. caller 가 의도적 비대칭이면
+    `MemoryMergeResult.warnings` 에 advisory emit.
+    """
+    entries = load_memory_index(workspace_root)
+    entries_by_id = {e.id: e for e in entries}
+
+    # source_ids 검증
+    missing = [sid for sid in request.source_ids if sid not in entries_by_id]
+    if missing:
+        raise ValueError(f"source_ids 부재: {missing}")
+    if len(set(request.source_ids)) != len(request.source_ids):
+        raise ValueError(f"source_ids 가 중복: {request.source_ids}")
+
+    sources = [entries_by_id[sid] for sid in request.source_ids]
+    target_id = request.target_id or sources[0].id
+    primary = sources[0].primary_abstraction
+
+    warnings: list[str] = []
+    if any(s.primary_abstraction.strip().lower() != sources[0].primary_abstraction.strip().lower()
+           for s in sources[1:]):
+        warnings.append(
+            "source entries 의 primary_abstraction 가 case-insensitive 로 비대칭 — caller 의 의도 확인 권장"
+        )
+    if any(s.schema_version != sources[0].schema_version for s in sources[1:]):
+        warnings.append("source entries 의 schema_version 비대칭 — schema migration 권장")
+
+    merged_source_paths = _dedupe_keep_order([p for s in sources for p in s.source_paths])
+    merged_cue_anchors = _dedupe_keep_order([a for s in sources for a in s.cue_anchors])
+    mentioned_in = _dedupe_keep_order([m for s in sources for m in s.mentioned_in])
+    owners = _dedupe_keep_order([o for s in sources for o in s.owners])
+    scope = _dedupe_keep_order([sc for s in sources for sc in s.scope])
+
+    now = datetime.now(timezone.utc)
+    target_entry = MemoryEntry(
+        id=target_id,
+        schema_version=sources[0].schema_version,
+        source_paths=merged_source_paths,
+        primary_abstraction=primary,
+        cue_anchors=merged_cue_anchors,
+        value_digest=f"merged from {len(sources)} sources: " + ", ".join(request.source_ids),
+        owners=owners,
+        scope=scope,
+        merge_state=MergeState.MERGED,
+        mentioned_in=mentioned_in,
+        created_at=sources[0].created_at,
+        updated_at=now,
+    )
+
+    if not request.apply:
+        return MemoryMergeResult(
+            request=request,
+            applied=False,
+            target_id=target_id,
+            source_ids=list(request.source_ids),
+            merged_source_paths=merged_source_paths,
+            merged_cue_anchors=merged_cue_anchors,
+            mentioned_in=mentioned_in,
+            warnings=warnings,
+        )
+
+    # apply=True: target emit + source LINKED 갱신. atomic_write_json 호출은 save_memory_entry 경유.
+    save_memory_entry(workspace_root, target_entry)
+    for s in sources:
+        if s.id == target_id:
+            continue  # target 과 같은 id 면 따로 갱신 안 함 (target_entry 가 그 entry 의 새 모습)
+        linked_entry = s.model_copy(update={"merge_state": MergeState.LINKED, "updated_at": now})
+        save_memory_entry(workspace_root, linked_entry)
+
+    return MemoryMergeResult(
+        request=request,
+        applied=True,
+        target_id=target_id,
+        source_ids=list(request.source_ids),
+        merged_source_paths=merged_source_paths,
+        merged_cue_anchors=merged_cue_anchors,
+        mentioned_in=mentioned_in,
+        warnings=warnings,
     )

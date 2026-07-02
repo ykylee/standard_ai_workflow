@@ -30,7 +30,7 @@
 ## 3. 분석 및 계획 (Analysis & Planning)
 *요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
 
-- 분석 문서는 현재 작성 중. 향후 분석 결과/벤치마크/리서치 노트가 추가되면 이 섹션에 인덱싱.
+- **[Microsoft Memora Evaluation](./architecture/MICROSOFT_MEMORA_EVALUATION.md)**: Microsoft Research `Memora` 조사와 `standard_ai_workflow` 적용 가능성 검토.
 - 상위 로드맵은 [workflow-source/core/workflow_kit_roadmap.md](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md) (9단계 + Phase 11 pilot) 참고.
 
 ## 4. 보존 (Archive)

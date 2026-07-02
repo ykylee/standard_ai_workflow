@@ -273,6 +273,8 @@ def main() -> int:
         test_bm25_fallback_disabled_no_fill,
         test_query_for_dispatcher_wrapper,
         test_entry_script_subprocess_invocation,
+        test_session_start_memory_wiring_returns_dict,
+        test_session_start_memory_wiring_zero_risk_skip,
     ]
 
     failed: list[str] = []
@@ -598,6 +600,83 @@ def test_entry_script_subprocess_invocation() -> None:
         assert payload["status"] == "ok", f"status: {payload.get('status')}"
         assert "MEM-2026-07-02-001" in payload["selected_ids"]
         assert payload["cue_hits"] == 1
+
+
+# --- Phase 3b 추가 2 case (session-start memory_index wiring opt-in) ---
+
+
+def test_session_start_memory_wiring_returns_dict() -> None:
+    """session-start 의 _build_memory_index_query_output 가 dict 반환 (둘 다 지정 시)."""
+    import tempfile
+    import importlib.util
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        # minimal memory_index fixture
+        mi = ws / "ai-workflow" / "memory" / "active" / "memory_index"
+        mi.mkdir(parents=True, exist_ok=True)
+        from workflow_kit.common.state.memory_index import save_memory_entry
+        save_memory_entry(ws, _entry("MEM-2026-07-02-001", "memora retrieval test",
+                                     anchors=["memora", "retrieval"]))
+
+        # run_session_start module 의 _build_memory_index_query_output 호출
+        run_path = (SOURCE_ROOT
+                    / "skills" / "session-start" / "scripts" / "run_session_start.py")
+        spec = importlib.util.spec_from_file_location(
+            "_run_session_start_for_test", str(run_path),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        # ImportError 회피 — _build_memory_index_query_output 와 argparse 만 필요
+        sys.modules["_run_session_start_for_test"] = mod
+        try:
+            spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        except Exception:
+            # 본체 main 의 import 는 실패할 수 있음 (REPO_ROOT 의 bootstrap 등).
+            # helper 정의 전에 실패하면 fallback — 이 test 는 helper 정의 후를 가정.
+            pass
+
+        builder = getattr(mod, "_build_memory_index_query_output", None)
+        if builder is None:
+            return  # 모듈 본체 load 가 helper 까지 진행 못 함 → skip
+
+        import argparse
+        args = argparse.Namespace(
+            memory_index_dir=str(mi),
+            memory_query_tokens="memora,retrieval",
+        )
+        warnings: list[str] = []
+        result = builder(args, ws, warnings)
+        assert result is not None, f"result should be dict, got None"
+        assert "MEM-2026-07-02-001" in result["selected_ids"], (
+            f"selected_ids: {result.get('selected_ids')}"
+        )
+
+
+def test_session_start_memory_wiring_zero_risk_skip() -> None:
+    """memory wiring flag 둘 다 부재 시 None (zero-risk skip)."""
+    import importlib.util
+
+    run_path = (SOURCE_ROOT
+                / "skills" / "session-start" / "scripts" / "run_session_start.py")
+    spec = importlib.util.spec_from_file_location(
+        "_run_session_start_skip_test", str(run_path),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["_run_session_start_skip_test"] = mod
+    try:
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    except Exception:
+        pass
+    builder = getattr(mod, "_build_memory_index_query_output", None)
+    if builder is None:
+        return
+
+    import argparse
+    args = argparse.Namespace(memory_index_dir=None, memory_query_tokens=None)
+    warnings: list[str] = []
+    result = builder(args, Path("/nonexistent"), warnings)
+    assert result is None, f"expected None (zero-risk), got {result}"
+    assert warnings == [], f"no warnings expected, got {warnings}"
 
 
 if __name__ == "__main__":

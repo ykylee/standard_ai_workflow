@@ -30,12 +30,73 @@ from workflow_kit.common.reconcile import compare_state_lists
 from workflow_kit.common.session_outputs import build_session_summary, make_session_recommended_action
 
 
+def _build_memory_index_query_output(
+    args: argparse.Namespace,
+    workspace_root: Path,
+    warnings: list[str],
+) -> dict[str, Any] | None:
+    """v0.11.22+ Phase 3b: optional ADR-005 memory_index retrieval 3-tuple 호출.
+
+    - 둘 다 미지정 → None (zero-risk skip, 기존 caller 정합).
+    - 한쪽만 지정 → advisory emit + None.
+    - 둘 다 지정 → helper 호출, `MemoryIndexQueryOutput` dict 변환 후 emit.
+    """
+    if not args.memory_index_dir and not args.memory_query_tokens:
+        return None  # zero-risk default
+    if not args.memory_index_dir or not args.memory_query_tokens:
+        warnings.append(
+            "memory_index wiring: --memory-index-dir 와 --memory-query-tokens 둘 다 지정해야 retrieval 활성."
+        )
+        return None
+
+    memory_index_dir = Path(args.memory_index_dir)
+    query_tokens = [t.strip() for t in args.memory_query_tokens.split(",") if t.strip()]
+    if not query_tokens:
+        warnings.append(
+            "memory_index wiring: --memory-query-tokens 가 비어있음. retrieval skip."
+        )
+        return None
+
+    try:
+        from workflow_kit.common.state.memory_index import (
+            query_memory_index_for_dispatcher,
+        )
+        # helper 의 signature 가 `workspace_root` 한 개 받음. caller 가 명시한
+        # memory_index_dir 가 `workspace_root` 의 subdir 면 `workspace_root` 그대로
+        # (helper 내부 `memory_index_root(<root>)` 자동 계산). 아니면 ws 외부 dir →
+        # advisory + skip.
+        target = workspace_root
+        try:
+            memory_index_dir.relative_to(workspace_root)
+            # subdir — workspace_root 그대로 사용
+        except ValueError:
+            warnings.append(
+                "memory_index wiring: --memory-index-dir 가 workspace_root 외부. "
+                "현재 정공법은 ws 의 subdir 만 지원 (Phase 3c/d 개선 후보)."
+            )
+            return None
+        result = query_memory_index_for_dispatcher(target, query_tokens)
+        return result.model_dump(mode="json")
+    except Exception as e:
+        warnings.append(
+            f"memory_index wiring: retrieval 실패 ({type(e).__name__}: {e}). session-start 본체는 계속 진행."
+        )
+        return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the session-start prototype.")
     parser.add_argument("--session-handoff-path", required=True)
     parser.add_argument("--work-backlog-index-path", required=True)
     parser.add_argument("--project-profile-path", required=True)
     parser.add_argument("--latest-backlog-path")
+    # v0.11.22+ Phase 3b: ADR-005 memory_index retrieval 3-tuple opt-in wiring.
+    # 둘 다 지정되면 session-start 가 진입 시 memory_index 에서 query 후 hints emit.
+    # 부재 시 zero-risk skip (default) — 기존 caller 깨지지 않음.
+    parser.add_argument("--memory-index-dir",
+                        help="memory_index 절대 path. 부재 시 skip.")
+    parser.add_argument("--memory-query-tokens",
+                        help="comma-separated query tokens. 예: 'adr,memora,retrieval'. 부재 시 skip.")
     args = parser.parse_args()
 
     source_context = {
@@ -43,6 +104,8 @@ def main() -> int:
         "work_backlog_index_path": args.work_backlog_index_path,
         "project_profile_path": args.project_profile_path,
         "latest_backlog_path": args.latest_backlog_path,
+        "memory_index_dir": args.memory_index_dir,
+        "memory_query_tokens": args.memory_query_tokens,
     }
 
     try:
@@ -204,6 +267,9 @@ def main() -> int:
             graph_insights=graph_insights,
             self_bootstrap_suggested=self_bootstrap_suggested,
             self_bootstrap_init_commands=self_bootstrap_init_commands,
+            memory_index_query_output=_build_memory_index_query_output(
+                args, workspace_root, warnings
+            ),
         )
         result = output_model.model_dump()
     except FileNotFoundError as exc:

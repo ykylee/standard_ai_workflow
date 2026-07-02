@@ -1722,6 +1722,78 @@ def cmd_release_status(argv: list[str]) -> int:
         return 2
 
 
+@register("memory-index-query")
+def cmd_memory_index_query(argv: list[str]) -> int:
+    """Phase 3: ADR-005 memory_index retrieval 3-tuple 의 dispatcher subcommand.
+
+    ARGS:
+      --workspace-root <path>  (필수) memory_index/ entries/ 가 있는 workspace.
+      --query-tokens <csv>     (필수) 매칭 token 들. comma-separated.
+      --top-k <int>            default 10
+      --max-depth <int>        default 2 (linked expansion depth)
+      --use-bm25-fallback      bool flag (없으면 False = opt-out)
+      --json                   stdout JSON, 없으면 human-readable text
+
+    session-start / doc-sync / backlog-update 가 본 subcommand 호출 시
+    retrieval layer 자동 활용 (Phase 3 default-on 의 정공법).
+    """
+    import json as _json
+    from pathlib import Path as _P
+
+    workspace_root = _parse_flag(argv, "--workspace-root")
+    query_tokens_raw = _parse_flag(argv, "--query-tokens")
+    top_k_str = _parse_flag(argv, "--top-k") or "10"
+    max_depth_str = _parse_flag(argv, "--max-depth") or "2"
+    use_bm25 = _has_flag(argv, "--use-bm25-fallback")
+    use_json = _has_flag(argv, "--json")
+
+    if not workspace_root or not query_tokens_raw:
+        print(
+            "ERROR: --workspace-root 와 --query-tokens 둘 다 필수입니다.",
+            file=sys.stderr,
+        )
+        return 2
+    try:
+        top_k = int(top_k_str)
+        max_depth = int(max_depth_str)
+    except ValueError as e:
+        print(f"ERROR: --top-k / --max-depth 정수 parse 실패: {e}", file=sys.stderr)
+        return 2
+
+    query_tokens = [t.strip() for t in query_tokens_raw.split(",") if t.strip()]
+    if not query_tokens:
+        print("ERROR: --query-tokens 가 비어있음.", file=sys.stderr)
+        return 2
+
+    try:
+        from workflow_kit.common.schemas.memory_index import MemoryIndexQueryOutput
+        from workflow_kit.common.state.memory_index import (
+            query_memory_index_for_dispatcher,
+        )
+        result: MemoryIndexQueryOutput = query_memory_index_for_dispatcher(
+            _P(workspace_root),
+            query_tokens,
+            top_k=top_k,
+            max_depth=max_depth,
+            use_bm25_fallback=use_bm25,
+        )
+        if use_json:
+            payload = result.model_dump(mode="json")
+            print(_json.dumps(payload, ensure_ascii=False, indent=2))
+        else:
+            print(f"status: {result.status.value}")
+            print(f"selected_count: {result.selected_count}")
+            print(f"cue_hits: {result.cue_hits}")
+            print(f"bm25_hits: {result.bm25_hits}")
+            print(f"expansion_hits: {result.expansion_hits}")
+            print(f"expansion_depth_used: {result.expansion_depth_used}")
+            print(f"selected_ids: {','.join(result.selected_ids) or '<empty>'}")
+        return 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
     """Run workflow_kit_cli from argv (v0.7.52+)."""
     if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):

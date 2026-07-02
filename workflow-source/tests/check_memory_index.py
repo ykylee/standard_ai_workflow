@@ -31,6 +31,7 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit.common.schemas.memory_index import (  # noqa: E402
     MemoryEntry,
     MemoryIndexQuery,
+    MemoryIndexQueryOutput,
     MemoryMergeRequest,
     MergeState,
 )
@@ -270,6 +271,8 @@ def main() -> int:
         test_bm25_score_token_overlap_ranking,
         test_bm25_fallback_fills_when_cue_miss,
         test_bm25_fallback_disabled_no_fill,
+        test_query_for_dispatcher_wrapper,
+        test_entry_script_subprocess_invocation,
     ]
 
     failed: list[str] = []
@@ -535,6 +538,66 @@ def test_bm25_fallback_disabled_no_fill() -> None:
         assert result.selected_entries == [], "selected should be empty with disabled fallback"
         assert result.cue_hits == 0
         assert result.bm25_hits == 0, f"bm25_hits should be 0, got {result.bm25_hits}"
+
+
+# --- Phase 3 추가 2 case (dispatcher wrapper + entry script invocation) ---
+
+
+def test_query_for_dispatcher_wrapper() -> None:
+    """helper 의 query_memory_index_for_dispatcher 가 MemoryIndexQueryOutput 형태로 wrap."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "memora retrieval alpha",
+                                            anchors=["memora", "retrieval"]))
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-002", "unrelated banana",
+                                            anchors=["fruit"]))
+        out = HELPER.query_memory_index_for_dispatcher(
+            ws,
+            ["memora"],
+            top_k=5,
+            max_depth=0,
+            use_bm25_fallback=False,
+        )
+        assert isinstance(out, MemoryIndexQueryOutput), f"output type: {type(out)}"
+        assert "MEM-2026-07-02-001" in out.selected_ids, f"selected_ids: {out.selected_ids}"
+        assert out.cue_hits == 1
+        assert out.selected_count == 1
+        assert out.source_context["use_bm25_fallback"] is False
+
+
+def test_entry_script_subprocess_invocation() -> None:
+    """run_memory_index_query.py 가 CLI argv 받아 MemoryIndexQueryOutput JSON emit."""
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = Path(tmp)
+        HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "memora entry test",
+                                            anchors=["memora", "test"]))
+        venv_py = SOURCE_ROOT.parent / ".venv" / "bin" / "python3"
+        result = subprocess.run(
+            [
+                str(venv_py),
+                str(SOURCE_ROOT / "skills" / "memory-index-query" / "scripts" / "run_memory_index_query.py"),
+                "--workspace-root", str(ws),
+                "--query-tokens", "memora,test",
+                "--max-depth", "0",
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, (
+            f"exit non-zero: {result.returncode}\nstderr: {result.stderr}"
+        )
+        # stdout JSON parse + 정합 검증
+        import json as _json
+        payload = _json.loads(result.stdout)
+        assert payload["status"] == "ok", f"status: {payload.get('status')}"
+        assert "MEM-2026-07-02-001" in payload["selected_ids"]
+        assert payload["cue_hits"] == 1
 
 
 if __name__ == "__main__":

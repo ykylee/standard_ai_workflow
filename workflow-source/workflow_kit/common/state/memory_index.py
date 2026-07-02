@@ -24,6 +24,7 @@ from workflow_kit.common.schemas.memory_index import (
     MemoryEntry,
     MemoryIndexOutput,
     MemoryIndexQuery,
+    MemoryIndexQueryOutput,
     MemoryIndexQueryResult,
     MemoryIndexValidationIssue,
     MemoryIndexValidationOutput,
@@ -31,6 +32,12 @@ from workflow_kit.common.schemas.memory_index import (
     MemoryMergeResult,
     MergeState,
 )
+# tool_version SSOT (memory.md §v0.8.0 hotfix 정공법):
+# 사이트-packages editable install 의 workflow_kit.__version__ 우선, 부재 시 literal fallback.
+try:
+    from workflow_kit import __version__ as _WORKFLOW_KIT_VERSION
+except ImportError:  # pragma: no cover - editable install fallback
+    _WORKFLOW_KIT_VERSION = "v0.11.22-beta"
 
 
 # --- Constants ---
@@ -428,6 +435,45 @@ def memory_index_status(workspace_root: Path) -> MemoryIndexOutput:
         entries_loaded=validation.total_entries,
         issues=validation.issues,
         source_context={"workspace_root": str(workspace_root)},
+    )
+
+
+def query_memory_index_for_dispatcher(
+    workspace_root: Path,
+    query_tokens: list[str],
+    *,
+    top_k: int = 10,
+    max_depth: int = 2,
+    use_bm25_fallback: bool = False,
+) -> MemoryIndexQueryOutput:
+    """Phase 3: dispatcher `cmd_memory_index_query` 가 부르는 표준 entry.
+
+    `query_memory_index(workspace_root, query)` 결과를 `MemoryIndexQueryOutput` 으로 wrap.
+    다른 CLI subcommand 나 skill 이 본 wrapper 만 호출하면 retrieval layer 자동 활용.
+    """
+    query = MemoryIndexQuery(
+        query_tokens=list(query_tokens),
+        top_k=top_k,
+        max_depth=max_depth,
+        use_bm25_fallback=use_bm25_fallback,
+    )
+    result = query_memory_index(workspace_root, query)
+    return MemoryIndexQueryOutput(
+        tool_version=_WORKFLOW_KIT_VERSION,
+        status=Status.OK,
+        query_tokens=list(query_tokens),
+        selected_ids=[e.id for e in result.selected_entries],
+        selected_count=len(result.selected_entries),
+        cue_hits=result.cue_hits,
+        bm25_hits=result.bm25_hits,
+        expansion_hits=result.expansion_hits,
+        expansion_depth_used=result.expansion_depth_used,
+        source_context={
+            "workspace_root": str(workspace_root),
+            "top_k": top_k,
+            "max_depth": max_depth,
+            "use_bm25_fallback": use_bm25_fallback,
+        },
     )
 
 

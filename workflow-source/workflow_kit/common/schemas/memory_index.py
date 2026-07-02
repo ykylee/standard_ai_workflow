@@ -110,6 +110,23 @@ class MemoryIndexOutput(BaseOutput):
     source_context: dict[str, Any] = Field(default_factory=dict)
 
 
+class MemoryIndexQueryOutput(BaseOutput):
+    """Phase 3: dispatcher subcommand `memory-index-query` 의 output (BaseOutput 정합).
+
+    session-start / doc-sync / backlog-update 가 본 output 을 받아 retrieval layer 결과로
+    활용 가능. `selected_ids` + hit 분해 (cue / bm25 / expansion) caller 전달용.
+    """
+    status: Status = Status.OK
+    query_tokens: list[str] = Field(default_factory=list)
+    selected_ids: list[str] = Field(default_factory=list)
+    selected_count: int = 0
+    cue_hits: int = 0
+    bm25_hits: int = 0
+    expansion_hits: int = 0
+    expansion_depth_used: int = 0
+    source_context: dict[str, Any] = Field(default_factory=dict)
+
+
 # --- Phase 2: --merge opt-in canonical merge schemas (ADR-005 §4) ---
 
 

@@ -63,6 +63,10 @@ markdown_extensions:
 
 plugins:
   - search
+  # v0.11.23+ drift prevention P3: docs/*.md 의 '- 최종 수정일' 헤더를 build-time 에
+  # git log date 로 자동 patch. PYTHONPATH=workflow-source 필수 (CI build step 에서 설정).
+  # workflow-source/core/*.md 와 README.md 는 docs_dir 외부이므로 본 plugin 대상 ❌.
+  - tools.mkdocs_git_dates:GitDatesPlugin
 
 extra:
   generator: false

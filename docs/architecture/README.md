@@ -69,6 +69,7 @@
 - [Microsoft Memora Evaluation](./MICROSOFT_MEMORA_EVALUATION.md) — Microsoft Research `Memora` 개념과 우리 workflow memory 구조의 접점 정리 (2026-07-02)
 - [x] **ADR-005: Memora-inspired Memory Index** (v0.11.22 Phase 1~3d 완료) — [ADR-005](./ADR-005-memora-inspired-memory-index.md). 평가 문서 결론을 정식 결정으로: `memory_index/` 메타데이터 레이어 + retrieval flow 3-tuple + canonical merge 기본 advisory. 3-layer 분리 정합 유지. Phase 1~3d 8 release 완료 (helper + schema + smoke + state.json hook + --merge opt-in + BM25 fallback + dispatcher entry + 3 skill opt-in wiring).
 - [ADR-006: ADR-005 Memory Index Retrospective (Placeholder)](./ADR-006-memory-index-retrospective.md) — v0.11.22 의 8 release 누적 retrospective 자리. 회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성.
+- [ADR-007: Deprecation 3rd Cycle Candidate Identification (Placeholder)](./ADR-007-deprecation-3rd-cycle-candidates.md) — 1st (v0.9.0) + 2nd (v0.9.3) cycle 모두 v0.10.0 에서 removal 완료. 3rd cycle 의 영향 symbol 후보는 현재 codebase 에 부재 (재스캔 결과 0). 후속 영향 식별 시 본 ADR 의 본문 작성.
 - **컴포넌트 다이어그램** — `workflow-source/`, `ai-workflow/`, `docs/` 3-layer 시각화 (mermaid)
 - **CI smoke** 의 책임 영역 매트릭스 — v0.5.10 baseline 52 + 누적 200+ smoke + mypy-strict.yml workflow (v0.11.11+) + release-time gate (v0.11.12+) + cross-verify advisory (v0.11.13+)
 

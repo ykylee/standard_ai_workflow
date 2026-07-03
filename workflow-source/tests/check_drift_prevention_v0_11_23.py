@@ -52,7 +52,9 @@ EXPECTED_STABLE_SKILLS = {
     "workflow-linter",
     "project-status-assessment",
     "robust-patcher",
+    "automated-repro-scaffold",
     "task-modes",
+    "git-conflict-resolver",
 }
 
 EXPECTED_BANNER_HARNESSES = {

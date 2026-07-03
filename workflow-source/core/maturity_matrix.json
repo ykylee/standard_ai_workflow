@@ -142,11 +142,11 @@
       "promoted_in_release": "v0.11.0 (independent track — Phase 12 초입의 6-mode 안정화 명세)"
     },
     "git-conflict-resolver": {
-      "stage": "beta",
+      "stage": "stable",
       "apply": false,
       "scaffold": false,
       "test_path": "tests/check_git_conflict_resolver_v0_11_24.py",
-      "promoted_in_release": "v0.11.24 (alpha → beta — refactor + 4 error_code + smoke test)"
+      "promoted_in_release": "v0.11.24 (beta → stable — --apply 구현 + 8 case smoke + in-place 안전성)"
     }
   },
   "mcp_tools": {

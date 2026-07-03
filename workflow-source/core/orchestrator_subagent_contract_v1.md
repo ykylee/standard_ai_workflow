@@ -4,7 +4,7 @@
 - 범위: 위임 입력/출력 스키마, 4개 역할 경계, 위임 가능/불가 카탈로그, 에러/폴백 정책, 검증 시나리오, 멀티 컴포넌트 fan-out/in (v0.5.7 부터)
 - 대상 독자: standard_ai_workflow 도입자, 멀티 에이전트 운영자, AI 에이전트 설계자
 - 상태: stable (v1, 2026-06-08 — v0.5.7: §6.3 cross-ref row + §11 멀티 컴포넌트 1차 컷 + §4.1 required_model_tier + §5.1 sub_results fan-in)
-- 최종 수정일: 2026-06-08
+- 최종 수정일: 2026-07-03
 - 관련 문서:
   - 권장 운영 원칙: [./workflow_agent_topology.md](./workflow_agent_topology.md)
   - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)

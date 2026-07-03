@@ -4,7 +4,7 @@
 - 범위: 각 레이어의 책임, 갱신 정책, git tracked 여부, PRESERVE_RELATIVE_PATHS 정의, 후속 작업.
 - 대상 독자: maintainer, Mavis consumer, 새 contributor.
 - 상태: Accepted (v0.5.2)
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-07-03
 - 관련 문서: [`./README.md`](./README.md), [`../../workflow-source/core/workflow_state_vs_project_docs.md`](../../workflow-source/core/workflow_state_vs_project_docs.md), [`../../workflow-source/workflow_kit/constants.py`](../../workflow-source/workflow_kit/constants.py), [`./ADR-002-pydantic-v2-contract-v1-external-spec.md`](./ADR-002-pydantic-v2-contract-v1-external-spec.md)
 
 - **Status**: Accepted (v0.5.2, commit `96431f1 refactor(workflow): separate source from runtime layer`)

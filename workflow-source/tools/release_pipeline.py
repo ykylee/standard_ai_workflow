@@ -41,7 +41,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # v0.7.15+ atomic_write (POSIX os.replace guarantee)
@@ -615,11 +615,13 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
     """
     write_version(new_version)
     # __init__.py 의 literal fallback (loud fallback chain 의 3번째) 도 정합성 유지.
+    # suffix 가 "" 이면 그냥 "v{version}", 그 외는 "v{version}{suffix}" (suffix 가 이미 -beta 같은 suffix 포함).
+    # v0.11.22 → 0.11.23 사이에서 suffix 이중 처리 (v0.11.23-beta-beta) bug fix.
     text = WORKFLOW_KIT_INIT.read_text()
-    target = f'"v{new_version}{suffix or ""}-beta"'
+    replacement = f'v{new_version}{suffix or ""}'
     new_text, n = re.subn(
-        r'(return\s+")v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?-beta(")',
-        rf'\g<1>v{new_version}{suffix or ""}-beta\g<2>',
+        r'(return\s+")v\d+\.\d+(?:\.\d+)?(?:[-+][a-zA-Z0-9.]+)?(")',
+        rf'\g<1>{replacement}\g<2>',
         text,
     )
     if n == 0:
@@ -1199,6 +1201,361 @@ def find_dist_files(version: str) -> list[Path]:
     return sorted(dist.glob(f"standard_ai_workflow-{pep_version}*"))
 
 
+# ---------------------------------------------------------------------------
+# Drift prevention helpers (v0.11.23+, P1 — doc-headers-update)
+# ---------------------------------------------------------------------------
+
+README_PATH = REPO_ROOT / "README.md"
+CORE_DOCS_DIR = REPO_ROOT / "core"
+DOCS_DIR = REPO_ROOT.parent / "docs"
+
+DOC_HEADER_DATE_RE = re.compile(
+    r"^(-\s*최종\s*수정일:\s*)(\d{4}-\d{2}-\d{2})(\s*)$", re.MULTILINE
+)
+
+
+def _iter_doc_markdown_files(scope: str) -> list[Path]:
+    """drift-prevention 대상 .md 파일들을 scope 별로 반환.
+
+    scope:
+      - 'all'         → README.md + docs/**/*.md + workflow-source/core/*.md
+      - 'docs'        → docs/**/*.md 만
+      - 'core'        → workflow-source/core/*.md 만
+      - 'readme'      → README.md 만
+    """
+    out: list[Path] = []
+    if scope in ("all", "readme") and README_PATH.exists():
+        out.append(README_PATH)
+    if scope in ("all", "core") and CORE_DOCS_DIR.exists():
+        out.extend(sorted(CORE_DOCS_DIR.glob("*.md")))
+    if scope in ("all", "docs") and DOCS_DIR.exists():
+        out.extend(sorted(DOCS_DIR.rglob("*.md")))
+    # de-dup
+    seen: set[Path] = set()
+    uniq: list[Path] = []
+    for p in out:
+        rp = p.resolve()
+        if rp in seen:
+            continue
+        seen.add(rp)
+        uniq.append(p)
+    return uniq
+
+
+def _today_iso() -> str:
+    """UTC today ISO date (YYYY-MM-DD)."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def cmd_doc_headers_update(args) -> dict:
+    """docs/* + workflow-source/core/* + README.md 의 '- 최종 수정일: <date>' 헤더를 일괄 갱신.
+
+    v0.11.23+ 신규. P1 (drift 재발 방지) 의 핵심. 매 release 마다 caller 가
+    수동으로 "최종 수정일" 을 갱신하던 부담을 자동화. dry-run 으로 plan 검증 가능.
+
+    Args (Namespace):
+      scope    : 'all' (default) | 'docs' | 'core' | 'readme'
+      date     : YYYY-MM-DD override (default: UTC today)
+      dry_run  : True 면 plan 만 출력, write 안 함.
+
+    Returns: dict { mode, scope, date, scanned, updated, files: [str] }
+    """
+    scope = getattr(args, "scope", "all") or "all"
+    target_date = getattr(args, "date", None) or _today_iso()
+    dry_run = getattr(args, "dry_run", False)
+
+    files = _iter_doc_markdown_files(scope)
+    updated_paths: list[str] = []
+    scanned = 0
+    for path in files:
+        scanned += 1
+        try:
+            txt = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        new = DOC_HEADER_DATE_RE.sub(rf"\g<1>{target_date}\g<3>", txt)
+        if new == txt:
+            continue
+        if dry_run:
+            updated_paths.append(str(path.relative_to(REPO_ROOT.parent)))
+            continue
+        if atomic_write_text is not None:
+            atomic_write_text(path, new)
+        else:
+            path.write_text(new, encoding="utf-8")
+        updated_paths.append(str(path.relative_to(REPO_ROOT.parent)))
+
+    return {
+        "mode": "dry-run" if dry_run else "applied",
+        "scope": scope,
+        "date": target_date,
+        "scanned": scanned,
+        "updated": len(updated_paths),
+        "files": updated_paths,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Release note frontmatter sync — v0.11.23+ (P2 — sync-maturity-matrix)
+# ---------------------------------------------------------------------------
+#
+# Release note `Beta-v<X>.<Y>.<Z>.md` 의 YAML frontmatter 에 다음 key 를 적으면
+# cmd_maturity_matrix_sync 가 workflow-source/core/maturity_matrix.json 을 자동 patch 한다.
+#
+# ---
+# closed_phases: [11]
+# promoted_skills:
+#   - { name: session-start, to: stable, release: v0.11.19 }
+# added_harnesses:
+#   - { name: codewhale, release: v0.10.4 }
+# deprecated_symbols:
+#   - { module: phishing_federation_v4, name: fetch_federated_phishing_urls_v4, release: v0.9.0 }
+# ---
+#
+# 본 frontmatter schema 는 release note 의 첫 `---`/`---` block 안에 위치.
+
+
+_RE_FRONTMATTER_BLOCK = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
+
+
+def _parse_release_note_frontmatter(path: Path) -> tuple[dict, str]:
+    """Release note 의 첫 YAML frontmatter block 을 parse. 본 frontmatter 의 *subset* 만 지원:
+
+      key: value
+      key: [v1, v2]
+      key:
+        - item
+        - { name: x, release: y }
+
+    Returns: ({parsed dict}, rest_of_text)
+    """
+    text = path.read_text(encoding="utf-8")
+    m = _RE_FRONTMATTER_BLOCK.match(text)
+    if not m:
+        return {}, text
+    block = m.group(1)
+    rest = text[m.end():]
+    parsed: dict = {}
+    lines = block.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        s = line.strip()
+        if not s or s.startswith("#"):
+            i += 1
+            continue
+        m2 = re.match(r"^([A-Za-z_][\w-]*)\s*:\s*(.*)$", line)
+        if not m2:
+            i += 1
+            continue
+        key = m2.group(1)
+        rest_val = m2.group(2).strip()
+        if rest_val == "":
+            items: list = []
+            j = i + 1
+            while j < len(lines):
+                child = lines[j]
+                if not (child.startswith((" ", "\t"))):
+                    break
+                stripped = child.strip()
+                if stripped.startswith("- "):
+                    one = stripped[2:].strip()
+                    if one.startswith("{") and one.endswith("}"):
+                        items.append(_parse_inline_obj(one[1:-1]))
+                    elif one.startswith("[") and one.endswith("]"):
+                        items.append(_parse_inline_list(one[1:-1]))
+                    else:
+                        items.append(_scalar_or_str(one))
+                j += 1
+            parsed[key] = items
+            i = j
+            continue
+        if rest_val.startswith("[") and rest_val.endswith("]"):
+            parsed[key] = _parse_inline_list(rest_val[1:-1])
+        elif rest_val.startswith("{") and rest_val.endswith("}"):
+            parsed[key] = _parse_inline_obj(rest_val[1:-1])
+        elif rest_val.lower() in ("true", "false"):
+            parsed[key] = rest_val.lower() == "true"
+        elif re.match(r"^-?\d+$", rest_val):
+            parsed[key] = int(rest_val)
+        else:
+            parsed[key] = _scalar_or_str(rest_val.strip('"').strip("'"))
+        i += 1
+    return parsed, rest
+
+
+def _parse_inline_list(body: str) -> list:
+    out: list = []
+    cur = ""
+    depth = 0
+    for ch in body:
+        if ch in "[{": depth += 1
+        elif ch in "]}": depth -= 1
+        if ch == "," and depth == 0:
+            s = cur.strip()
+            cur = ""
+            if s:
+                out.append(_scalar_or_str(s))
+            continue
+        cur += ch
+    if cur.strip():
+        out.append(_scalar_or_str(cur.strip()))
+    return out
+
+
+def _parse_inline_obj(body: str) -> dict:
+    """`name: value, name: value` 형식의 inline dict object 를 parse.
+
+    본 frontmatter 의 subset 만 지원 — 값 은 string / int / bool (scalar) 만, nested ❌.
+    """
+    out: dict = {}
+    items = _split_top_level(body, ",")
+    for item in items:
+        if ":" not in item:
+            continue
+        # 첫 `:` 만 split 로 사용.
+        key, _, val = item.partition(":")
+        k = key.strip()
+        v = val.strip().strip('"').strip("'")
+        if k:
+            out[k] = _scalar_or_str(v)
+    return out
+
+
+def _split_top_level(body: str, sep: str) -> list[str]:
+    """bracket depth 를 추적하면서 top-level `sep` 으로 split. nested 가 있어도 안전."""
+    out: list[str] = []
+    cur = ""
+    depth = 0
+    for ch in body:
+        if ch in "[{":
+            depth += 1
+        elif ch in "]}":
+            depth -= 1
+        if ch == sep and depth == 0:
+            out.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    if cur.strip():
+        out.append(cur)
+    return out
+
+
+def _scalar_or_str(s: str):
+    if s.lower() == "true": return True
+    if s.lower() == "false": return False
+    if re.match(r"^-?\d+$", s): return int(s)
+    return s
+
+
+def cmd_maturity_matrix_sync(args) -> dict:
+    """Release note 의 frontmatter 를 읽어 maturity_matrix.json 의 SSOT 를 자동 patch.
+
+    P2 핵심. closed_phases → done, promoted_skills → stage 전이 + provenance,
+    added_harnesses → supported append. last_updated 도 today 로 갱신.
+
+    Args (Namespace):
+      from_release_note: Release note 경로 (required, YAML frontmatter 의 source)
+      dry_run           : True 면 plan 만 출력, write 안 함.
+
+    Returns: dict { mode, applied: [str], skipped: [str], files: [str], summary }
+    """
+    from_release_note = Path(args.from_release_note)
+    if not from_release_note.exists():
+        return {"mode": "error", "error": f"release note not found: {from_release_note}"}
+    dry_run = getattr(args, "dry_run", False)
+
+    fm, _rest = _parse_release_note_frontmatter(from_release_note)
+    closed_phases = fm.get("closed_phases") or []
+    promoted_skills = fm.get("promoted_skills") or []
+    added_harnesses = fm.get("added_harnesses") or []
+    deprecated_symbols = fm.get("deprecated_symbols") or []
+
+    maturity_path = REPO_ROOT / "core" / "maturity_matrix.json"
+    mm = json.loads(maturity_path.read_text(encoding="utf-8"))
+
+    applied_ops: list[str] = []
+
+    for phase_num in closed_phases:
+        key = f"Phase {phase_num}"
+        if key in mm["milestones"]:
+            if mm["milestones"][key]["status"] != "done":
+                mm["milestones"][key]["status"] = "done"
+                applied_ops.append(f"phase:{key}→done")
+
+    for entry in promoted_skills:
+        if isinstance(entry, dict):
+            name = entry.get("name", "")
+            to_stage = entry.get("to", "stable")
+            release = entry.get("release", "")
+            if name in mm["skills"]:
+                skill = mm["skills"][name]
+                if skill["stage"] != to_stage:
+                    skill["stage"] = to_stage
+                    applied_ops.append(f"skill:{name}→{to_stage}")
+                if release and "promoted_in_release" not in skill:
+                    skill["promoted_in_release"] = release
+                    applied_ops.append(f"skill:{name}.promoted_in_release=+{release}")
+
+    for entry in added_harnesses:
+        if isinstance(entry, dict):
+            name = entry.get("name", "")
+            release = entry.get("release", "")
+            if name:
+                supported = mm.setdefault("harnesses", {}).setdefault("supported", [])
+                if name not in supported:
+                    supported.append(name)
+                    applied_ops.append(f"harness:{name}+supported")
+                if release:
+                    mm["harnesses"].setdefault("added_harness_log", []).append(
+                        {"name": name, "release": release}
+                    )
+
+    for entry in deprecated_symbols:
+        if isinstance(entry, dict):
+            mod = entry.get("module", "")
+            sym = entry.get("name", "")
+            release = entry.get("release", "")
+            if mod and sym:
+                log = mm.setdefault("deprecation_log", [])
+                log.append({"module": mod, "name": sym, "release": release})
+                applied_ops.append(f"deprecated:{mod}.{sym}@{release}")
+
+    mm["last_updated"] = _today_iso()
+
+    summary = (
+        f"closed_phases={len(closed_phases)} promoted_skills={len(promoted_skills)} "
+        f"added_harnesses={len(added_harnesses)} deprecated_symbols={len(deprecated_symbols)}"
+    )
+
+    if dry_run:
+        return {
+            "mode": "dry-run",
+            "applied": applied_ops,
+            "summary": summary,
+            "last_updated_after": mm["last_updated"],
+            "files": [str(maturity_path.relative_to(REPO_ROOT.parent))],
+        }
+
+    # apply
+    if atomic_write_json is not None:
+        atomic_write_json(maturity_path, mm, indent=2, ensure_ascii=False)
+    else:
+        maturity_path.write_text(
+            json.dumps(mm, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    return {
+        "mode": "applied",
+        "applied": applied_ops,
+        "summary": summary,
+        "last_updated_after": mm["last_updated"],
+        "files": [str(maturity_path.relative_to(REPO_ROOT.parent))],
+    }
+
+
 def cmd_release(args) -> dict:
     """GitHub Release 생성 (gh release create).
 
@@ -1235,9 +1592,29 @@ def cmd_release(args) -> dict:
     # 정공법 정합 — release library wrapper 가 dispatcher 의 kwargs → Namespace 변환 후
     # *모든 skip flag / optional attr* 의 default fill.
     for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
-                 "skip_validate", "skip_cross_verify", "strict_cross_verify"):
+                 "skip_validate", "skip_cross_verify", "strict_cross_verify",
+                 "skip_doc_headers_update", "skip_maturity_matrix_sync"):
         if not hasattr(args, attr):
             setattr(args, attr, False)
+
+    def _attr_ns(**overrides) -> argparse.Namespace:
+        """Create a fresh argparse.Namespace with default attrs (False) + overrides.
+
+        본 helper 는 cmd_release 내부에서 drift-prevention helpers 를 자동 호출할 때 사용.
+        직접 argv → Namespace 변환 없이, 안전 default set 으로 helper 진입 가능.
+        """
+        base_defaults = {
+            "scope": "all",
+            "date": None,
+            "dry_run": False,
+            "from_release_note": None,
+            "json": False,
+            "apply": True,
+        }
+        for k, v in base_defaults.items():
+            base_defaults.setdefault(k, v)
+        ns = argparse.Namespace(**{**base_defaults, **overrides})
+        return ns
 
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
 
@@ -1295,6 +1672,34 @@ def cmd_release(args) -> dict:
     # 3. validate fail 시 early return (cross-verify 결과는 이미 results 에 포함됨)
     if validate_failed:
         return _attach_release_summary({**results, "error": "validate failed; abort release"})
+
+    # 3.0 drift prevention auto-step (v0.11.23+) — release 시 docs/* / SSOT 자동 동기화.
+    # 본 step 는 destructive 하지 않음 (write only on tracked files, atomic_write 보장).
+    # escape hatch: --skip-doc-headers-update / --skip-maturity-matrix-sync.
+    if not getattr(args, "skip_doc_headers_update", False):
+        dhu = cmd_doc_headers_update(_attr_ns())
+        results["doc_headers_update"] = dhu
+        # P0 smoke fail 가능성: scan 결과 >= 1 인데 updated = 0 인 경우도 정상 (이미 정합).
+        # 단, scan 결과 0 이면 silent skip (drift prevention 영역 밖).
+    if not getattr(args, "skip_maturity_matrix_sync", False):
+        # notes_file 결정은 3.4 step 에서 일어나므로, 그 전에 notes_file 가 이미 있는지 확인
+        # (--notes-template 사용 가능). 없으면 skip (release note 가 없는 backfill 시나리오).
+        try:
+            _notes_template = getattr(args, "notes_template", "default") or "default"
+            _notes_resolution = _resolve_notes_file(
+                read_version(), _notes_template, dry_run=args.dry_run
+            )
+            _notes_file = _notes_resolution["notes_file"]
+            if _notes_file.exists():
+                smm_ns = _attr_ns()
+                smm_ns.from_release_note = str(_notes_file)
+                smm = cmd_maturity_matrix_sync(smm_ns)
+                results["maturity_matrix_sync"] = smm
+        except Exception as exc:  # noqa: BLE001
+            results["maturity_matrix_sync"] = {
+                "mode": "skipped",
+                "reason": f"{type(exc).__name__}: {exc}",
+            }
 
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
@@ -1975,6 +2380,38 @@ def main() -> int:
     p_nd.add_argument("--dry-run", action="store_true", dest="dry_run")
     p_nd.add_argument("--apply", dest="apply", action="store_true", default=True)
 
+    # doc-headers-update (v0.11.23+ — drift prevention P1)
+    p_dhu = sub.add_parser(
+        "doc-headers-update",
+        help="docs/* + workflow-source/core/* + README.md 의 '- 최종 수정일' 헤더를 일괄 갱신 (drift prevention)",
+    )
+    p_dhu.add_argument("--scope", default="all", choices=["all", "docs", "core", "readme"],
+                       help="대상 scope (default: all)")
+    p_dhu.add_argument("--date", default=None,
+                       help="YYYY-MM-DD override (default: UTC today)")
+    p_dhu.add_argument("--dry-run", action="store_true", dest="dry_run",
+                       help="plan 만 출력 (write 안 함)")
+    p_dhu.add_argument("--apply", dest="apply", action="store_true", default=True,
+                       help="default: apply. --dry-run 으로 override")
+    p_dhu.add_argument("--json", action="store_true")
+
+    # sync-maturity-matrix (v0.11.23+ — drift prevention P2)
+    p_smm = sub.add_parser(
+        "sync-maturity-matrix",
+        help=(
+            "Release note (Beta-v<X>.md) 의 YAML frontmatter (closed_phases / promoted_skills / "
+            "added_harnesses / deprecated_symbols) 를 읽어 workflow-source/core/maturity_matrix.json 자동 patch. "
+            "drift prevention P2 핵심."
+        ),
+    )
+    p_smm.add_argument("--from-release-note", required=True, dest="from_release_note",
+                       help="Release note 경로 (e.g. workflow-source/releases/Beta-v0.11.23.md)")
+    p_smm.add_argument("--dry-run", action="store_true", dest="dry_run",
+                       help="plan 만 출력 (write 안 함)")
+    p_smm.add_argument("--apply", dest="apply", action="store_true", default=True,
+                       help="default: apply. --dry-run 으로 override")
+    p_smm.add_argument("--json", action="store_true")
+
     # changelog-gen (Phase 4 — v0.7.14+, Keep-a-Changelog 형식, v0.7.15+ filter)
     p_cl = sub.add_parser("changelog-gen", help="multi-release git log → CHANGELOG.md 본문 (Keep-a-Changelog 형식)")
     p_cl.add_argument("--output", default=None,
@@ -1996,6 +2433,12 @@ def main() -> int:
                        help="mypy CI cross-verify skip (v0.11.13+, advisory 만 default)")
     p_rel.add_argument("--strict-cross-verify", action="store_true",
                        help="mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)")
+    p_rel.add_argument("--skip-doc-headers-update", dest="skip_doc_headers_update",
+                       action="store_true", default=False,
+                       help="drift prevention: docs/ - 최종 수정일 헤더 자동 갱신 step skip (v0.11.23+)")
+    p_rel.add_argument("--skip-maturity-matrix-sync", dest="skip_maturity_matrix_sync",
+                       action="store_true", default=False,
+                       help="drift prevention: release note frontmatter → maturity_matrix.json 자동 patch step skip (v0.11.23+)")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,
@@ -2066,6 +2509,10 @@ def main() -> int:
         result = cmd_note_draft(args)
     elif args.command == "changelog-gen":
         result = cmd_changelog_gen(args)
+    elif args.command == "doc-headers-update":
+        result = cmd_doc_headers_update(args)
+    elif args.command == "sync-maturity-matrix":
+        result = cmd_maturity_matrix_sync(args)
     elif args.command == "release":
         result = cmd_release(args)
     elif args.command == "verify":

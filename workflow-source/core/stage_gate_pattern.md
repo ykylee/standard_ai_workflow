@@ -4,7 +4,7 @@
 - 범위: completion message 표준 형식, `output_schema_guide.md` 의 `stage_completion` 필드, audit log 통합, gate 위반 시 행동
 - 대상 독자: 워크플로우 skill/MCP 구현자, AI agent, 운영자
 - 상태: stable (v0.6.4 도입)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-03
 - 관련 문서: `./workflow_adoption_entrypoints.md` §7.2, `./question_file_format.md`, `./output_schema_guide.md` §3.2, AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` (1차 출처)
 - 1차 출처: AIDLC construction phase 의 "Standardized 2-option completion message" (2026-06-08 commit `b19c819`)
 

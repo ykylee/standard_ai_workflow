@@ -4,7 +4,7 @@
 - 범위: 파일 위치, format, lifecycle 정책, append-only 강제, 자동화 hook
 - 대상 독자: workflow 설계자, AI agent, 운영자, compliance 검토자
 - 상태: stable (v0.7.0 도입)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-03
 - 관련 문서: `./stage_gate_pattern.md` §6 (분산 정의), `./stage_gate_runtime_migration.md` §5, `./output_schema_guide.md` §3.4, [`../workflow_kit/common/contracts/stage_gate.py`](../workflow_kit/common/contracts/stage_gate.py) `append_audit_log`
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/process-overview.md` + `inception/requirements-analysis.md` 의 audit.md 정책 (commit `b19c819`, 2026-06-08)
 

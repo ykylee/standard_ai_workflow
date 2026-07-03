@@ -3,7 +3,7 @@
 - 문서 목적: brownfield (기존) 프로젝트에 standard_ai_workflow v0.7.0+ 도입 시, codebase 분석 결과를 9-Artifact 형식으로 자동 생성하는 절차를 정의한다.
 - 범위: brownfield project detection, 9 artifact 작성, state tracking, user approval, rerun policy
 - 상태: draft (v0.7.0 step 6)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-03
 - 1차 출처: AIDLC `aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (311 line, commit b19c819, 2026-06-08)
 - 관련 문서: `./global_workflow_standard.md`, `../templates/repository_assessment_template.md`, `../reverse-engineering/{01..09}-*.md` (9 artifact template)
 

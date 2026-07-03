@@ -4,7 +4,7 @@
 - 범위: 입력, 출력, 추천 규칙, 색인 문서 범위 정의, 보수적 경고 규칙, 프로토타입 범위
 - 대상 독자: AI agent 설계자, skill 구현자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-07-03
 - 관련 문서: `./workflow_skill_catalog.md`, `./doc_sync_skill_spec.md`, `../skills/code-index-update/SKILL.md`
 
 ## 1. 목적

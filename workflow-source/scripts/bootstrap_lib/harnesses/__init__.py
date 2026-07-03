@@ -42,6 +42,7 @@ SUPPORTED_HARNESSES: tuple[str, ...] = (
     "claude-code",
     "aider",
     "goose",
+    "codewhale",
     "custom",
 )
 
@@ -165,6 +166,18 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
             "표준 AI workflow 의 3 skill (session-start / backlog-update / doc-sync) 을 "
             "Goose 의 entry_points 로 등록 + read_files (5종) 명시. on_session_end hook 으로 "
             "handoff 자동 갱신 (session-start skill 의 update-handoff flag). language: ko."
+        ),
+    ),
+    "codewhale": HarnessSpec(
+        name="codewhale",
+        description="CodeWhale용 overlay. .codewhale/skills/codewhale-workflow/SKILL.md 진입점 (Constitution 보강).",
+        entry_files=(),
+        extra_files=(".codewhale/skills/codewhale-workflow/SKILL.md",),
+        long_description=(
+            "CodeWhale 환경용 오버레이. CodeWhale의 Constitution 은 이미 검증/병렬화/컨텍스트 관리 "
+            "규칙을 내장하므로, 워크플로우 고유 가치(세션 시작 순서, 한국어 보고, 백로그/handoff 관리, "
+            "프로젝트 프로파일 기반 탐색)만 얇은 skill 패키지로 주입한다. "
+            "Constitution 과 충돌하지 않는 additive rule 만 포함."
         ),
     ),
     "custom": HarnessSpec(

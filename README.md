@@ -66,7 +66,7 @@
 | MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 + read_only_mcp_sdk v1.0 SDK candidate |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `python3 -m bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
-| harness overlays | 사용 가능 | 6개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `pi-dev` |
+| harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `CodeWhale`, `Claude Code`, `Aider`, `Goose`, `pi-dev` |
 | harness interactive picker | 사용 가능 (v0.5.8 신규) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode orchestrator + doc/code/validation worker 분화 및 위임 패턴 |
 | contract v1 (orchestrator ↔ sub-agent) | 사용 가능 (v0.5.4+) | `workflow-source/core/orchestrator_subagent_contract_v1.md` 외부 spec + `workflow_kit/contract_v1/` enforcement helpers (output_validator, delegator.choose_roles). wire 가이드: `orchestrator_contract_v1_wire_guide.md` |
@@ -101,6 +101,7 @@
 - Gemini CLI: `GEMINI.md` 중심
 - Antigravity: `ANTIGRAVITY.md` 중심
 - MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.minimax/agents/` (orchestrator + doc/code/validation worker) 중심
+- CodeWhale: `.codewhale/skills/codewhale-workflow/SKILL.md` 중심 (Constitution 보강, 단일 skill 파일)
 - pi-dev: `AGENTS.md` + `SYSTEM.md` (에이전트 페르소나) 중심
 - 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_lib/__main__.py` 의 `register_harness_builder` 한 줄로 끝난다)
 

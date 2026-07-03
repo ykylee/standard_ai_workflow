@@ -115,7 +115,23 @@ MiniMax Code(미니맥스 코드) 타겟은 메인 orchestrator + doc/code/valid
 - 워커 페르소나는 OpenCode 와 동일한 4종 (orchestrator + 3 worker) 으로 시작하고, 도메인 추가 시 동일 패턴으로 `.MiniMax/agents/` 에 누적한다.
 - 새 하네스 추가는 `bootstrap_harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄과 `bootstrap_workflow_kit.py` 의 `register_harness_builder` 한 줄로 끝낸다.
 
-## 7. 유지보수 원칙
+## 7. CodeWhale 타겟
+
+CodeWhale 타겟은 기존 하네스와 근본적으로 다른 접근을 취한다. CodeWhale의 **Constitution**(Article I-VIII)이 이미 검증, 병렬화, 컨텍스트 관리, 실행 규율, 오케스트레이션을 내장하고 있으므로, overlay 는 Constitution 이 제공하지 않는 **워크플로우 고유 가치**만 얇게 추가한다.
+
+권장 산출물:
+
+- `.codewhale/skills/codewhale-workflow/SKILL.md` (project-local skill, 단일 파일)
+
+구성 원칙:
+
+- CodeWhale Constitution 이 이미 처리하는 규칙(검증, 병렬화, 컨텍스트 관리, plan 패턴, 서브 에이전트 위임)은 skill 에서 **반복하지 않는다**.
+- Skill 은 Constitution 아래 **additive rule**로 동작 — 세션 시작 순서, 한국어 보고, 백로그/handoff 관리, 프로젝트 프로파일 기반 탐색만 포함.
+- CodeWhale 의 `agent` 도구(explore/plan/review/implementer/verifier)는 workflow 의 orchestrator/worker 토폴로지와 정렬된다 — 별도 worker agent 파일 불필요.
+- Constitution Article VII (Domain Context)에 따라 워크플로우는 CodeWhale 의 운영 컨텍스트로 동작.
+- 다른 하네스와 달리 루트 진입 파일(`AGENTS.md` 등)을 생성하지 않는다 — CodeWhale 은 프로젝트 루트 파일 대신 `.codewhale/skills/` 를 진입점으로 사용.
+
+## 8. 유지보수 원칙
 
 - 하네스별 파일 안에 긴 정책 본문을 중복해서 넣지 않는다.
 - 공통 문서 경로가 바뀌면 Codex/OpenCode 오버레이도 함께 갱신한다.
@@ -124,7 +140,7 @@ MiniMax Code(미니맥스 코드) 타겟은 메인 orchestrator + doc/code/valid
 - MCP 관련 descriptor 와 예시는 패키지에 포함할 수 있지만, 이번 릴리즈 기본 소비 경로는 `workflow_adoption_entrypoints` 와 `workflow_skill_catalog` 이어야 한다.
 - 배포 패키지는 하네스별 개별 버전 디렉터리와 버전이 포함된 zip 이름으로 생성한다.
 
-## 7. 확장 포인트
+## 9. 확장 포인트
 
 다른 하네스를 추가할 때는 아래 순서를 권장한다.
 

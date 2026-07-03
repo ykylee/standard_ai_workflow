@@ -72,6 +72,7 @@
 - [ADR-007: Deprecation 3rd Cycle Candidate Identification (Placeholder)](./ADR-007-deprecation-3rd-cycle-candidates.md) — 1st (v0.9.0) + 2nd (v0.9.3) cycle 모두 v0.10.0 에서 removal 완료. 3rd cycle 의 영향 symbol 후보는 현재 codebase 에 부재 (재스캔 결과 0). 후속 영향 식별 시 본 ADR 의 본문 작성.
 - **컴포넌트 다이어그램** — `workflow-source/`, `ai-workflow/`, `docs/` 3-layer 시각화 (mermaid)
 - **CI smoke** 의 책임 영역 매트릭스 — v0.5.10 baseline 52 + 누적 200+ smoke + mypy-strict.yml workflow (v0.11.11+) + release-time gate (v0.11.12+) + cross-verify advisory (v0.11.13+)
+- **[MCP stdio-sdk Promotion Feasibility Report (v0.11.24)](./v1_0_0_promotion_feasibility_mcp_stdio_sdk.md)** — 정식 승격 feasibility 평가. `Connection closed` 회귀의 가설 root cause 3가지 + promotion roadmap (Phase A/B/C/D) + 권고: v0.11.25+ 별도 cycle 에서 점진 fix, v1.0.0 milestone 진입 시 *optional* (jsonrpc-bridge 만 stable 로 v1.0.0 진입 가능).
 
 ## 다음에 읽을 문서
 

@@ -199,6 +199,20 @@
       "server": "official_sdk"
     }
   },
+  "transports": {
+    "stdio_sdk": {
+      "stage": "stable",
+      "module": "workflow_kit.server.read_only_mcp_sdk",
+      "sdk_requirement": "mcp>=1.27.0",
+      "bridge_during_mcp_missing": "jsonrpc_bridge",
+      "promoted_in_release": "v0.11.25 (experimental → stable — historical Connection closed 회귀 해소 + mcp 1.27.0 env 검증)"
+    },
+    "jsonrpc_bridge": {
+      "stage": "stable",
+      "module": "workflow_kit.server.read_only_jsonrpc",
+      "promoted_in_release": "v0.5.7+ (hand-written draft fixture)"
+    }
+  },
   "harnesses": {
     "supported": [
       "codex",

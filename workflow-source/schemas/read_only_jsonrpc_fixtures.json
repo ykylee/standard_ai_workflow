@@ -25,9 +25,10 @@
               "listChanged": false
             }
           },
+          "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.5.10.1-beta"
+            "version": "v0.11.24-beta"
           }
         }
       }
@@ -71,9 +72,10 @@
               "listChanged": false
             }
           },
+          "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v0.5.10.1-beta"
+            "version": "v0.11.24-beta"
           }
         }
       }
@@ -1186,17 +1188,18 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.5.10.1-beta\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v0.11.24-beta\", \"warnings\": []}",
               "type": "text"
             }
           ],
           "structuredContent": {
             "candidates": [
+              "workflow-source/core/global_workflow_standard.md",
               "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md"
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "v0.5.10.1-beta",
+            "tool_version": "v0.11.24-beta",
             "warnings": []
           }
         }
@@ -1228,7 +1231,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "v0.5.10.1-beta",
+            "tool_version": "v0.11.24-beta",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1366,9 +1369,10 @@
                 "listChanged": false
               }
             },
+            "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.5.10.1-beta"
+              "version": "v0.11.24-beta"
             }
           }
         },
@@ -2369,9 +2373,10 @@
                 "listChanged": false
               }
             },
+            "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v0.5.10.1-beta"
+              "version": "v0.11.24-beta"
             }
           }
         },
@@ -2390,6 +2395,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "v0.5.10.1-beta",
+  "tool_version": "v0.11.24-beta",
   "transport_ready": false
 }

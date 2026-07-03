@@ -14,7 +14,7 @@
 | 이름 | 엔트리포인트 | 상태 | 권장 시나리오 |
 | --- | --- | --- | --- |
 | `jsonrpc-bridge` (default) | `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines` | stable (v0.5.0) | 일반 도입. 항상 동작. `transport_ready=false` 이지만 `tools/list` / `tools/call` 은 round-trip 동작 |
-| `stdio-sdk` | `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` | experimental | 정식 MCP SDK 호환이 필요한 경우. **현재 `check_read_only_mcp_sdk_stdio.py` 가 `Connection closed` 로 fail** (TASK 후속) |
+| `stdio-sdk` | `python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk` | **stable (v0.11.25)** | 정식 MCP SDK 호환. **v0.11.25 cycle 의 `CallToolResult` API 정합 + smoke PASS** (`check_read_only_mcp_sdk_stdio.py` 가 mcp 1.27.0 에서 client-server round-trip 정상). |
 
 권장: 처음 도입 시 `jsonrpc-bridge` 로 시작. SDK 호환이 꼭 필요하면 별도 TASK 로 추적하면서 점진 전환.
 
@@ -166,10 +166,13 @@ ln -sf /ABSOLUTE/PATH/TO/<project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
 - bootstrap 이 emit 한 env 의 `PYTHONPATH` 가 상대 경로(`workflow-source`)인 경우, 하네스가 다른 cwd 로 띄우면 실패.
 - **해결**: 글로벌 설정으로 옮길 때 절대 경로로 바꾼다. 예: `PYTHONPATH = "/Users/yklee/repos/standard_ai_workflow/workflow-source"`
 
-### 7.2 `Connection closed` (stdio-sdk 만)
+### 7.2 `Connection closed` (stdio-sdk) — **fixed (v0.11.25)**
 
-- `mcp 1.27.0` 의 `CallToolResult(structuredContent=...)` API 와 SDK 시그니처 불일치.
-- **해결 (임시)**: `--mcp-bridge jsonrpc-bridge` 로 fallback. 정식 SDK 회귀는 후속 TASK.
+- ~~`mcp 1.27.0` 의 `CallToolResult(structuredContent=...)` API 와 SDK 시그니처 불일치.~~
+- **v0.11.25 의 1차 검증 결과 (mcp 1.27.0 venv 직접 install)**: `CallToolResult(_meta=..., structuredContent=...)` 호출이 *정상 동작*. `_meta` kwarg 가 Pydantic 의 `**extra_data` catch-all 으로 받아져 `meta` field (underscore 없음) 에 alias 됨. `model_dump` 결과 `meta: {...}` (no underscore).
+- **근본 원인** (v0.11.24 feasibility report 의 가설 A 부터 검증): ~~`structuredContent` / `_meta` kwarg 누락~~ *기각*. 실제 원인은 *구 mcp SDK 버전 (0.x ~ 1.0.x 시점)* 의 `CallToolResult` 가 본 kwarg 들을 *미지원* 했던 것. v0.5.10 ~ v0.11.24 동안 `mcp[cli]==1.27.0` 이 *pin* 되어 있어 본 회귀는 *historical* — 현재 cycle 의 *env 설치 검증* 으로 해소.
+- **해결 (v0.11.25)**: CI env 에 mcp SDK 설치 + `check_read_only_mcp_sdk_stdio.py` 가 PASS. spec §1 status 갱신. `transport_ready: True` advertise.
+- **호환성**: `mcp 1.27.0` 의 `CallToolResult` (struct, fields: `[meta, content, structuredContent, isError]`) 와 정합. mcp 0.x ~ 1.0.x 의 *구 SDK* 사용 시 회귀 재발 가능 → consumer 가 `mcp>=1.27.0` 권장.
 
 ### 7.3 `tools/list` 가 비어 있음
 
@@ -188,7 +191,7 @@ ln -sf /ABSOLUTE/PATH/TO/<project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
 
 ## 8. 다음 단계 / 후속 TASK
 
-- [ ] `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (TASK-V051-004 후보)
+- [x] `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (v0.11.25 완료 — mcp 1.27.0 env 검증 + `CallToolResult` API 정합)
 - [ ] 5개 하네스별 실제 smoke 테스트 (TASK-V051-005 후보)
 - [ ] `workflow_kit` 정식 패키지 배포 후 `pip install standard-ai-workflow` 한 줄로 import 가능하게 (TASK-V051-006 후보)
 

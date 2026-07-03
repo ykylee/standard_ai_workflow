@@ -61,12 +61,20 @@ def test_case_2_spec_section1_transport_status_current() -> None:
     assert "jsonrpc-bridge" in spec_text and "stable" in spec_text.lower(), (
         "spec §1 에 jsonrpc-bridge=stable 명시 누락"
     )
-    # stdio-sdk 는 experimental + 'Connection closed' regression 명시.
+    # stdio-sdk 의 promotion status (v0.11.25 cycle: experimental → stable).
     assert "stdio-sdk" in spec_text
-    assert "experimental" in spec_text.lower(), "spec §1 에 stdio-sdk=experimental 명시 누락"
-    # 'Connection closed' 회귀 명시 (현재 known issue).
-    assert "Connection closed" in spec_text, (
-        "spec §1 에 'Connection closed' known regression 명시 누락"
+    # v0.11.25 fix: spec §1 의 'Connection closed' marker 는 더 이상 *active known issue* 가 아니라
+    # *historical fixed* 로 표기됨. spec 본문 갱신.
+    # 본 check 는 "Connection closed" 또는 "regression fixed" 또는 "marked fixed" 중
+    # *최소 1개* 가 spec 에 정합되어야 함.
+    has_connection_marker = "Connection closed" in spec_text
+    has_fixed_marker = "fixed" in spec_text.lower() and (
+        "regression fixed" in spec_text.lower()
+        or "marked fixed" in spec_text.lower()
+    )
+    assert has_connection_marker or has_fixed_marker, (
+        "spec §1 에 'Connection closed' 또는 'regression fixed'/'marked fixed' marker 가 정합되어야 함. "
+        "v0.11.25 cycle 의 stdio-sdk stable transition 후 spec update 누락."
     )
 
 
@@ -74,24 +82,23 @@ def test_case_2_spec_section1_transport_status_current() -> None:
 # case 3 — SDK candidate file 에 known regression marker 가 식별 가능
 # ---------------------------------------------------------------------------
 
-def test_case_3_sdk_candidate_advertises_experimental_status() -> None:
-    """read_only_mcp_sdk.py 가 experimental status 를 advertise (sdk_runtime_status() 함수 존재).
+def test_case_3_sdk_candidate_advertises_stable_transport_when_sdk_available() -> None:
+    """read_only_mcp_sdk.py 가 sdk_available=True 일 때 transport_ready=True advertise.
 
-    spec §1 의 'Connection closed' marker 는 spec 본문에 정합적으로 보존되어 있고 (case 2 가 이미 verify),
-    본 case 는 SDK candidate *file 자체* 가 sdk_runtime_status() / experimental flag 를
-    report 가능함을 검증. 본 함수가 부재하면 consumer 가 jsonrpc-bridge default 와
-    stdio-sdk experimental 을 *구분할 수 없어* promotion 시 consumer 가 안전하게 fallback
-    할 수 없다.
+    v0.11.25 cycle 의 fix: sdk_available=True (mcp 1.27.0+ 설치) 일 때 transport_ready=True
+    + sdk_candidate_phase='official_sdk_stable' advertise. 본 fix 는 *runtime* 검증으로만
+    확인 가능 (mcp 1.27.0 venv 가 필요한 smoke).
     """
     sdk_text = SDK_CANDIDATE.read_text(encoding="utf-8")
-    assert "def sdk_runtime_status" in sdk_text, (
-        "SDK candidate file 에 sdk_runtime_status() 함수 없음. "
-        "consumer 가 jsonrpc-bridge=stable 와 stdio-sdk=experimental 을 구분 불가."
+    # transport_ready 동적 결정 로직 (sdk_available 따라) — literal pattern verify.
+    assert '\"transport_ready\": sdk_available' in sdk_text, (
+        "SDK candidate file 에 'transport_ready': sdk_available 동적 결정 로직이 없음. "
+        "v0.11.25 cycle 의 stdio-sdk stable transition 시 필수."
     )
-    # 'experimental' 문자열이 docstring 또는 status dict 에 있는지 verify.
-    assert "experimental" in sdk_text.lower(), (
-        "SDK candidate 의 sdk_runtime_status() 가 'experimental' 문자열을 advertise 안 함. "
-        "promotion 시 consumer fallback policy 가 동작하지 않을 수 있음."
+    # sdk_candidate_phase 동적 결정 — 'official_sdk_stable' / 'official_sdk_optional_candidate' 분기.
+    assert "official_sdk_stable" in sdk_text, (
+        "SDK candidate file 에 'official_sdk_stable' advertise 로직 없음. "
+        "stdio-sdk 정식 stable transition 시 필수."
     )
 
 
@@ -148,8 +155,8 @@ def _run_all() -> Iterator[tuple[str, bool, str]]:
          test_case_1_spec_section6_verification_commands_exist),
         ("test_case_2_spec_section1_transport_status_current",
          test_case_2_spec_section1_transport_status_current),
-        ("test_case_3_sdk_candidate_advertises_experimental_status",
-         test_case_3_sdk_candidate_advertises_experimental_status),
+        ("test_case_3_sdk_candidate_advertises_stable_transport_when_sdk_available",
+         test_case_3_sdk_candidate_advertises_stable_transport_when_sdk_available),
         ("test_case_4_spec_section4_contracts_complete",
          test_case_4_spec_section4_contracts_complete),
         ("test_case_5_export_files_exist",

@@ -113,8 +113,10 @@ v0.11.23+ 부터 `datetime.utcnow()` (deprecated in Python 3.12+) → `datetime.
 
 ## 다음 (v0.11.24+ / Phase 12 후속)
 
-1. **deprecation 2nd cycle 적용** — phishing_federation_v4.build_default_sources_v4 candidate 식별 + DeprecationWarning.
-2. **automated-repro-scaffold / git-conflict-resolver 11/11 stable** — 현재 9/11.
-3. **ADR-006 Memory Index 회고 본문** — v0.11.22 의 8 release 누적 ≥ 14일 후 작성.
-4. **MCP stdio-sdk 정식 승격** — `Connection closed` 회귀 fix + read-only input schema Pydantic v2.
-5. **(P3, governance 동반) "최종 수정일" 헤더 → build-time 자동화** — mkdocs-macros2 plugin 도입 검토.
+1. ~~**deprecation 2nd cycle 적용**~~ — v0.10.0 (SemVer major) 에서 이미 `phishing_federation_v4.build_default_sources_v4` 가 **제거 완료** (release note Beta-v0.10.0.md §결제 표 참조). 본 release note 의 잔여 표 가 stale 했음 — P3 commit (e063710) 의 housekeeping 으로 정정.
+2. **deprecation 3rd cycle 후보 식별** — 1st (fetch_federated_phishing_urls_v4, v0.9.0) + 2nd (build_default_sources_v4, v0.9.3) cycle 모두 v0.10.0 에서 제거됨. 후속 cycle 의 *영향 symbol 후보* 를 (현재 codebase 로는 더 이상 식별 안 됨) 운영 데이터 기반 후속.
+3. **automated-repro-scaffold / git-conflict-resolver 11/11 stable** — 현재 9/11 stable + 1 beta (automated-repro-scaffold) + 1 alpha (git-conflict-resolver). 후속 release 의 smoke test + error_code 4종 + spec layer sync + 단일 명령 검증 후 stable 승격.
+4. **ADR-006 Memory Index 회고 본문** — v0.11.22 의 8 release 누적 ≥ 14일 후 작성. release_timestamp 2026-07-03 기준, ≥ 14일 후 = 2026-07-17 이후 회고 본문 작성 권장.
+5. **MCP stdio-sdk 정식 승격** — `Connection closed` 회귀 fix + read-only input schema Pydantic v2 전면 적용. 본 시점 jsonrpc-bridge 안정, stdio-sdk experimental.
+6. **P3 완료 — mkdocs build-time `최종 수정일` 자동화 (commit `e063710`)** — `tools.mkdocs_git_dates:GitDatesPlugin` 신규 도입. mkdocs-macros2 plugin 외부 dep 미도입. CI `PYTHONPATH=workflow-source mkdocs build --strict` 로 plugin import.
+7. (별도 후속) mkdocs-macros2 도입 *검토* — P3 custom plugin 이 1차 안전망 확보했으므로 v1.0.0 milestone 진입 시 *추가 평가* 대상. 본 시점 deferred.

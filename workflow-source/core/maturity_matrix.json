@@ -121,10 +121,11 @@
       "promoted_in_release": "v0.11.20 (2nd batch)"
     },
     "automated-repro-scaffold": {
-      "stage": "beta",
-      "apply": false,
+      "stage": "stable",
+      "apply": true,
       "scaffold": true,
-      "test_path": null
+      "test_path": "tests/check_automated_repro_scaffold_v0_11_24.py",
+      "promoted_in_release": "v0.11.24 (4th batch — automated-repro-scaffold stable)"
     },
     "robust-patcher": {
       "stage": "stable",
@@ -141,10 +142,11 @@
       "promoted_in_release": "v0.11.0 (independent track — Phase 12 초입의 6-mode 안정화 명세)"
     },
     "git-conflict-resolver": {
-      "stage": "alpha",
+      "stage": "beta",
       "apply": false,
       "scaffold": false,
-      "test_path": null
+      "test_path": "tests/check_git_conflict_resolver_v0_11_24.py",
+      "promoted_in_release": "v0.11.24 (alpha → beta — refactor + 4 error_code + smoke test)"
     }
   },
   "mcp_tools": {

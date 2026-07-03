@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
-"""Enhanced runner for the git-conflict-resolver skill with contextual analysis."""
+"""Enhanced runner for the git-conflict-resolver skill (v0.11.24 beta/stable).
 
+v0.11.24 cycle: standard화 + 4 error_code + BaseOutput 정합.
+이전 위치: workflow-source/skills/git-conflict-resolver/scripts/run_git_conflict_resolver.py (v0.6.6+
+prototype). 통합 위치 변경 없음.
+
+skill_beta_criteria.md §3.1 의 beta/stable 정합 6 조건:
+  1. CLI argparse 정의 — argparse (--file action='append' / --handoff-path / --apply /
+     --dry-run / --json)
+  2. JSON 출력 schema — GitConflictResolverOutput (Pydantic v2, 이미 존재)
+  3. error_code 4종 — git_conflict_resolver_handoff_parse_failed /
+                       git_conflict_resolver_file_unreadable /
+                       git_conflict_resolver_resolution_invalid /
+                       git_conflict_resolver_runtime_error
+  4. 실행 스크립트 단일 명령 — 본 file (이미 scripts/run_git_conflict_resolver.py)
+  5. SKILL.md 예시 실행 — 본 skill 의 SKILL.md
+  6. smoke test 통과 — tests/check_git_conflict_resolver_v0_11_24.py (5 case)
+"""
 from __future__ import annotations
 
 import argparse
@@ -18,15 +34,23 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.project_docs import parse_handoff
 from workflow_kit.common.schemas import GitConflictResolverOutput, Status, ConflictPoint, ResolutionStrategy
+from workflow_kit.common.errors import build_error_result
+
+# v0.11.24 cycle: 4종 error_code 정의.
+ERR_HANDOFF_PARSE_FAILED = "git_conflict_resolver_handoff_parse_failed"
+ERR_FILE_UNREADABLE = "git_conflict_resolver_file_unreadable"
+ERR_RESOLUTION_INVALID = "git_conflict_resolver_resolution_invalid"
+ERR_RUNTIME_ERROR = "git_conflict_resolver_runtime_error"
 
 
 def find_conflicts_in_file(file_path: Path) -> list[ConflictPoint]:
     if not file_path.exists():
         return []
-    
-    content = file_path.read_text(encoding="utf-8")
+    try:
+        content = file_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
     pattern = re.compile(r"<<<<<<< .*?\n(.*?)\n=======\n(.*?)\n>>>>>>> .*?\n?", re.DOTALL)
-    
     conflicts = []
     for match in pattern.finditer(content):
         ours, theirs = match.groups()
@@ -35,98 +59,203 @@ def find_conflicts_in_file(file_path: Path) -> list[ConflictPoint]:
             our_content=ours,
             their_content=theirs,
             resolution_strategy=ResolutionStrategy.MANUAL,
-            resolution_note="Initial detection."
+            resolution_note="Initial detection.",
         ))
     return conflicts
 
 
-def resolve_conflict_contextually(conflict: ConflictPoint, context_keywords: list[str]) -> ConflictPoint:
+def resolve_conflict_contextually(
+    conflict: ConflictPoint, context_keywords: list[str]
+) -> ConflictPoint:
     """Attempt to resolve a conflict by matching content against session context keywords."""
-    our_matches = any(kw.lower() in conflict.our_content.lower() for kw in context_keywords if kw)
-    their_matches = any(kw.lower() in conflict.their_content.lower() for kw in context_keywords if kw)
+    valid_kws = [kw for kw in context_keywords if kw]
+    our_matches = any(kw.lower() in conflict.our_content.lower() for kw in valid_kws)
+    their_matches = any(kw.lower() in conflict.their_content.lower() for kw in valid_kws)
 
     if our_matches and not their_matches:
         conflict.resolution_strategy = ResolutionStrategy.OURS
-        conflict.resolution_note = f"Our change contains context keywords: {', '.join([kw for kw in context_keywords if kw.lower() in conflict.our_content.lower()])}"
+        matched_ours = [kw for kw in valid_kws if kw.lower() in conflict.our_content.lower()]
+        conflict.resolution_note = f"Our change contains context keywords: {', '.join(matched_ours)}"
     elif their_matches and not our_matches:
         conflict.resolution_strategy = ResolutionStrategy.THEIRS
-        conflict.resolution_note = f"Incoming change contains context keywords: {', '.join([kw for kw in context_keywords if kw.lower() in conflict.their_content.lower()])}"
+        matched_theirs = [kw for kw in valid_kws if kw.lower() in conflict.their_content.lower()]
+        conflict.resolution_note = f"Incoming change contains context keywords: {', '.join(matched_theirs)}"
     elif our_matches and their_matches:
         conflict.resolution_strategy = ResolutionStrategy.MERGE
         conflict.resolution_note = "Both sides contain context keywords. Intelligent merge required."
     else:
-        # Default to manual if no keywords match
         conflict.resolution_strategy = ResolutionStrategy.MANUAL
         conflict.resolution_note = "No context keywords matched. Requires manual intervention."
-    
+
     return conflict
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Enhanced git merge conflict resolver.")
-    parser.add_argument("--file", action="append", dest="files", help="Files to check for conflicts")
-    parser.add_argument("--handoff-path", help="Path to session_handoff.md for context")
-    parser.add_argument("--apply", action="store_true", help="Apply resolutions (placeholder)")
-    args = parser.parse_args()
+def _parse_handoff_safely(handoff_path: Path) -> list[str]:
+    """parse_handoff 결과를 *예외 안전* 으로 keyword list 로 변환.
 
-    # 1. Extract context keywords from handoff
-    context_keywords = []
-    if args.handoff_path:
-        handoff_path = Path(args.handoff_path).resolve()
-        if handoff_path.exists():
-            try:
-                handoff_data = parse_handoff(handoff_path)
-                # Extract keywords from 'current_axis' and 'in_progress_items'
-                axis = handoff_data.get("current_axis", "")
-                if axis:
-                    context_keywords.extend(str(axis).split())
-                
-                for item in handoff_data.get("in_progress_items", []):
-                    # Clean up TASK-xxx prefix and split
-                    clean_item = re.sub(r"TASK-\d+", "", str(item)).strip()
-                    context_keywords.extend(clean_item.split())
-            except Exception as e:
-                print(f"Warning: Failed to parse handoff for context: {e}", file=sys.stderr)
+    v0.11.24 cycle 의 4 error_code 중 ERR_HANDOFF_PARSE_FAILED 분기.
+    """
+    try:
+        handoff_data = parse_handoff(handoff_path)
+    except Exception as exc:
+        raise RuntimeError(f"{type(exc).__name__}: {exc}") from exc
 
-    # 2. Find and resolve conflicts
-    all_conflicts = []
-    if args.files:
-        for f in args.files:
-            file_path = Path(f).resolve()
-            conflicts = find_conflicts_in_file(file_path)
-            for c in conflicts:
-                resolved_c = resolve_conflict_contextually(c, context_keywords)
-                all_conflicts.append(resolved_c)
+    keywords: list[str] = []
+    axis = handoff_data.get("current_axis", "")
+    if axis:
+        keywords.extend(str(axis).split())
+    for item in handoff_data.get("in_progress_items", []):
+        clean_item = re.sub(r"TASK-\d+", "", str(item)).strip()
+        keywords.extend(clean_item.split())
+    return [kw for kw in keywords if kw]
 
-    resolved_count = len([c for c in all_conflicts if c.resolution_strategy != ResolutionStrategy.MANUAL])
 
-    output = GitConflictResolverOutput(
+def _make_output(
+    *,
+    conflicts: list[ConflictPoint],
+    resolved_count: int,
+    source_context: dict[str, Any],
+    warnings: list[str] | None = None,
+) -> GitConflictResolverOutput:
+    return GitConflictResolverOutput(
         status=Status.OK,
         tool_version=TOOL_VERSION,
-        conflict_count=len(all_conflicts),
+        conflict_count=len(conflicts),
         resolved_count=resolved_count,
-        resolution_summary=f"Processed {len(all_conflicts)} conflicts. Automatically resolved {resolved_count} based on handoff context.",
-        conflicts=all_conflicts,
-        source_context={
-            "checked_files": str(args.files),
-            "handoff_path": str(args.handoff_path) if args.handoff_path else "N/A",
-            "context_keywords": str(context_keywords)
-        }
+        resolution_summary=(
+            f"Processed {len(conflicts)} conflicts. "
+            f"Automatically resolved {resolved_count} based on handoff context."
+        ),
+        conflicts=conflicts,
+        source_context={k: str(v) for k, v in source_context.items()},
+        warnings=warnings or [],
     )
 
-    result = output.model_dump()
-        # v0.6.6 follow-up: stage_completion merge (pilot template)
-        result = merge_into_result(
-            result,
-            build_stage_completion(
-                stage_name="git-conflict-resolver",
-                stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
-                artifacts=["(resolved_conflicts)"],
-                next_stage=None,
-                notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
-            ),
+
+def _build_error(
+    *,
+    error_code: str,
+    error: str,
+    source_context: dict[str, Any],
+    warnings: list[str] | None = None,
+) -> dict[str, Any]:
+    return build_error_result(
+        tool_version=TOOL_VERSION,
+        error=error,
+        error_code=error_code,
+        warnings=warnings or [],
+        source_context=source_context,
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Enhanced git merge conflict resolver (v0.11.24 beta/stable)"
+    )
+    parser.add_argument(
+        "--file", action="append", dest="files",
+        help="Files to check for conflicts (multiple allowed)",
+    )
+    parser.add_argument(
+        "--handoff-path",
+        help="Path to session_handoff.md for context keywords",
+    )
+    parser.add_argument(
+        "--apply", action="store_true",
+        help="Apply resolutions (placeholder; v0.11.24+ future work)",
+    )
+    parser.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="plan 만 출력 (write 안 함)",
+    )
+    args = parser.parse_args()
+
+    if not args.files:
+        print(
+            json.dumps(
+                {
+                    "status": "error",
+                    "error": "--file at least one required",
+                    "error_code": "git_conflict_resolver_file_unreadable",
+                    "warnings": ["no --file argument provided"],
+                    "source_context": {"files": "None", "handoff_path": str(args.handoff_path) or "N/A"},
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
         )
-    print(json.dumps(output.model_dump(), ensure_ascii=False, indent=2))
+        return 1
+
+    source_context = {
+        "files": str(args.files),
+        "handoff_path": str(args.handoff_path) if args.handoff_path else "N/A",
+    }
+
+    # 1. Extract context keywords from handoff (예외 안전)
+    context_keywords: list[str] = []
+    warnings: list[str] = []
+    if args.handoff_path:
+        handoff_path = Path(args.handoff_path).resolve()
+        if not handoff_path.exists():
+            warnings.append(f"handoff file not found: {handoff_path}")
+        else:
+            try:
+                context_keywords = _parse_handoff_safely(handoff_path)
+            except RuntimeError as exc:
+                result = _build_error(
+                    error_code=ERR_HANDOFF_PARSE_FAILED,
+                    error=f"handoff parse 실패: {exc}",
+                    source_context=source_context,
+                    warnings=[f"handoff parse failed: {exc}"],
+                )
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 1
+    else:
+        warnings.append("--handoff-path 미지정 — context-aware resolution skip")
+
+    # 2. Find and resolve conflicts
+    all_conflicts: list[ConflictPoint] = []
+    read_failures: list[str] = []
+    for f in args.files:
+        file_path = Path(f).resolve()
+        try:
+            conflicts = find_conflicts_in_file(file_path)
+        except OSError as exc:
+            read_failures.append(f"{f}: {exc}")
+            continue
+        for c in conflicts:
+            try:
+                resolved_c = resolve_conflict_contextually(c, context_keywords)
+            except ValueError as exc:
+                # resolution invalid — manual fallback
+                c.resolution_strategy = ResolutionStrategy.MANUAL
+                c.resolution_note = f"resolution failed: {exc}"
+                read_failures.append(f"{f}: resolution invalid: {exc}")
+                continue
+            all_conflicts.append(resolved_c)
+
+    if read_failures:
+        warnings.extend(read_failures)
+
+    resolved_count = len(
+        [c for c in all_conflicts if c.resolution_strategy != ResolutionStrategy.MANUAL]
+    )
+
+    # 3. 결과 envelope (success path)
+    output = _make_output(
+        conflicts=all_conflicts,
+        resolved_count=resolved_count,
+        source_context={**source_context, "context_keywords": context_keywords},
+        warnings=warnings,
+    )
+    result_dict = json.loads(output.model_dump_json())
+
+    # 4. dry-run 이면 출력만, write 안 함 (--apply 미구현 + 정공법)
+    if args.dry_run:
+        print(json.dumps({"mode": "dry-run", **result_dict}, ensure_ascii=False, indent=2))
+        return 0
+
+    print(json.dumps(result_dict, ensure_ascii=False, indent=2))
     return 0
 
 

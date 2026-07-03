@@ -3,9 +3,9 @@
 - 문서 목적: Standard AI Workflow를 **소스에서 설치해 개발/검증 환경**으로 쓰는 방법을 안내한다.
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
-- 상태: stable
-- 최종 수정일: 2026-06-12
-- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md)
+- 상태: stable (v0.11.22-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v0.11.22 와 정합)
+- 최종 수정일: 2026-07-03
+- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
 > 이 문서는 **개발자/통합 담당자** 관점의 설치·사용 가이드다. 일반 사용자가 미리 빌드된 패키지(`dist/harnesses/<harness>/v*.zip`)를 받아 AI 에이전트에게 적용하는 흐름은 [`QUICKSTART.md`](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md) 를 참고한다.

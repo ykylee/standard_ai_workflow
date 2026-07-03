@@ -3,11 +3,11 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: stable
-- 최종 수정일: 2026-06-12
-- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
+- 상태: stable (v0.11.22-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 최종 수정일: 2026-07-03
+- 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
-> **최종 갱신**: 2026-06-12
+> **최종 갱신**: 2026-07-03 (회귀 표를 v0.11.21 까지 확장, v0.11.22 본 release 처리 후속)
 > **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
 > **이유**: 토큰 회전 부담, 외부 공개 단계 미도달, downstream 은 `pip install <wheel>` 로 로컬 검증.
 
@@ -151,6 +151,40 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 | v0.5.11-beta | GitHub Release | ✅ (2026-06-09) | Mavis engine hook (§6.5) + ADR 정식 기록 + 비대화형 가이드 보강 |
 | v0.6.0-beta | GitHub Release | (planned) | LLM wiki layer git-tracked (ai-workflow/wiki/) |
 | v0.6.0.1-beta | GitHub Release | ✅ (2026-06-12) | memory/active/ rename + bootstrap --enable-wiki + 6 harness wiki/ stub (P1.5) |
+| v0.7.0~v0.7.62 | 누적 follow-up batch — AIDLC Extension 시스템 + 9-Artifact + UOW + audit log + wiki 운영 cross-link + release pipeline 정식화 + mkdocs strict + consumer feedback metrics | ✅ | 95+ 신규 smoke test 누적. 회귀 표 v0.5.7~v0.6.0.1 사이는 follow-up batch 로 통합 표기 |
+| v0.8.0-beta | GitHub Release | ✅ (2026-06-15 기준 추정, SemVer stable API frozen 시작) | Stable API frozen (2-year SemVer guarantee: v0.8.0 → v2.0.0). `deprecation 1st/2nd cycle` 정책 도입 |
+| v0.8.1~v0.8.15 | mypy strict 단계적 격상 cumulative (19 file clean) | ✅ | spec §5.3 정공법 1 release = 1-2 file 격상. workflow_kit_cli 49 error 는 mypy 1.x 기준, 후속 |
+| v0.8.10~v0.8.11 | read-only MCP manifest + transport | ✅ | phishing_keywords pre-existing fix 2 종 |
+| v0.8.15 | release-dist 1-command + housekeeping (spec §9 9/12) | ✅ |  |
+| v0.9.0-beta | **Phase 11 closed** + Phase 12 kickoff | ✅ (2026-06-18) | spec drift patch + release note + mypy config 정합 ([tool.workflow-doctor] section 분리) + deprecation 1st cycle 적용 (`phishing_federation_v4.fetch_federated_phishing_urls_v4` DeprecationWarning) |
+| v0.9.1-beta | mypy workflow_kit_cli strict + release --full-auto + deprecation contract | ✅ (2026-06-18+) |  |
+| v0.9.2-beta | purpose.md concept 흡수 (외부 reference 차용 정공법 1차 적용) | ✅ |  |
+| v0.9.3-beta | deprecation 2nd cycle 적용 (`phishing_federation_v4.build_default_sources_v4`) | ✅ |  |
+| v0.9.4-beta | R-A follow-up part 1 (state.json.purpose_digest 1-line 자동 생성) | ✅ |  |
+| v0.9.5-beta | R-A follow-up part 2 (skill context load integration) | ✅ |  |
+| v0.9.6-beta | R-A follow-up part 3 (wiki-event-sync R-A trigger) | ✅ |  |
+| v0.10.0-beta | deprecation 1st + 2nd cycle 동시 종료 (SemVer major) | ✅ |  |
+| v0.10.1-beta | skill-only entry mode + claude-code adapter (SemVer minor) | ✅ |  |
+| v0.10.2-beta | delivery layer 확장 (claude-code 진입점 정정 + aider/goose/custom + self-bootstrap) | ✅ |  |
+| v0.10.3-beta | wiki file deletion cascade cleanup (R-A follow-up cycle 2) | ✅ | 2026-06-24 release note 기준 본문 drift 발생 (CHANGELOG.md 본문) |
+| v0.10.4-beta | **CodeWhale 10번째 하네스** (commit `cf0060d`, 2026-07-03) | pending (release note 미작성, 본 release 직후) | 단일 SKILL.md overlay (Constitution handles verification/parallelism/context) |
+| v0.11.0-beta | two-step CoT ingest (R-A follow-up cycle 3) — `workflow_kit.common.purpose_ingest` helper (5 함수 + 5 dataclass) + 3 skill context load + dispatcher `ingest-purpose` + 6 acceptance test | ✅ |  |
+| v0.11.1-beta | graph insights (R-A follow-up cycle 4) — `workflow_kit.common.purpose_graph` helper (6 함수 + 7 dataclass) + dispatcher `graph-insights` + 8 acceptance test | ✅ |  |
+| v0.11.2~v0.11.10 | 누적 mypy strict 격상 21→35 file (cycle 3~26단계) + Layer 1/Layer 2 mypy defense + release pipeline 자동화 + consumer metrics | ✅ |  |
+| v0.11.11-beta | mypy strict CI 통합 (`.github/workflows/mypy-strict.yml` + dev extra `mypy==2.1.0`) | ✅ |  |
+| v0.11.12-beta | mypy strict release-time gate (`cmd_validate` 5번째 source `mypy`) | ✅ |  |
+| v0.11.13-beta | mypy CI cross-verify (Layer 1 ↔ Layer 2 정합 advisory, `_cross_verify_ci_mypy`) | ✅ |  |
+| v0.11.14-beta | release-status dispatcher (신규 `workflow_kit/release_status.py` + subcommand 36) | ✅ |  |
+| v0.11.15-beta | release summary 1-line (jq-friendly verdict) | ✅ |  |
+| v0.11.16-beta | release-status --auto-bump 확장 | ✅ |  |
+| v0.11.17-beta | (cumulative) | ✅ |  |
+| v0.11.18-beta | **FULL mypy strict 도달** 공식 release — 누적 35→54 file clean, 48→0 errors (-48) | ✅ (2026-06-30) | commit `4253eed` 12 file 일괄 격상. CI mypy-strict workflow passing |
+| v0.11.19-beta | 1st batch 4 skill stable (session-start / doc-sync / validation-plan / code-index-update) | ✅ | 누적 stable=4 |
+| v0.11.20-beta | 2nd batch 4 skill stable (backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment) + 2 latent bug fix | ✅ | 누적 stable=8 |
+| v0.11.21-beta | 3rd batch 1 skill stable (robust-patcher) — `workflow_kit/common/schemas/patcher.py` + `scripts/run_robust_patcher.py` + 5 smoke test | ✅ (2026-07-02) | 누적 stable=9. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.21-beta> |
+| v0.11.22-beta | **ADR-005 Memory Index Phase 1~3d** 8 release + ADR-006 retrospective 자리 박기 | in release (release note `Beta-v0.11.22.md` 작업 중) | tag push 후속. package: standard-ai-workflow 0.11.22 |
+
+> 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 
 ## 다음에 읽을 문서
 

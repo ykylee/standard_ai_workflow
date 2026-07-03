@@ -3,13 +3,13 @@
 - 문서 목적: `standard_ai_workflow` 저장소의 현재 성숙도와 다음 단계 작업을 상위 로드맵 형태로 정리한다.
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: 2026-06-18
-- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`
+- 상태: v0.11.22-beta 기준 (Phase 12 in_progress, mypy FULL strict + ADR-005 Memory Index Phase 1~3d + 9 skill stable + CodeWhale 10번째 하네스 반영)
+- 최종 수정일: 2026-07-03
+- 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`, `./maturity_matrix.json`
 
-## 1. 현재 단계 (Phase 11 close → Phase 12 in-progress: 운영 지능화 + deprecation 운영 안정화)
+## 1. 현재 단계 (Phase 12 in-progress: 운영 지능화 + deprecation 운영 안정화)
 
-현재 저장소는 아래 12단계 중 **Phase 11 close + Phase 12 in-progress** 상태다. (Phase 1–11 완료, Phase 12 in_progress)
+현재 저장소는 아래 12단계 중 **Phase 1–11 done, Phase 12 in_progress** 상태다. 정식 phase / skill / harness 상태는 `workflow-source/core/maturity_matrix.json` 을 SSOT 로 참조한다.
 
 1. 개념 정리 단계 — Phase 1 (완료)
 2. 표준 문서와 템플릿 분리 단계 — Phase 2 (완료)
@@ -21,22 +21,53 @@
 8. 실전 파일럿 배포 및 통합 고도화 단계 — Phase 8 (완료)
 9. 시스템 성숙도 및 다중 에이전트 진화 단계 — Phase 9 (완료)
 10. 문서 및 링크 위생 단계 — Phase 10 (완료)
-11. **실전 파일럿 검증 단계 — Phase 11 (완료, 2026-06-18 v0.9.0 release)**: DevHub 실전 파일럿 + contract v1 검증 + stable API frozen + generated JSON Schema SSOT + mypy strict 단계적 격상 18 file clean + read-only MCP transport + release-dist 1-command + **deprecation 1st cycle 실제 적용** (`phishing_federation_v4.fetch_federated_phishing_urls_v4` → DeprecationWarning) + SSOT 정합 + mypy config 정합
-12. **운영 지능화 + deprecation 운영 안정화 단계 — Phase 12 (진행 중, 2026-06-18~)**: Phase 11 의 *외부 consumer 정합* 위에서 *내부 운영 품질* 심화 — deprecation 2nd cycle (1st 검증 기반) + mypy strict cumulative 18 → 33+ file (full strict 도달은 v1.0.0 milestone) + release pipeline automation (--apply 만으로 cycle close) + deprecation policy contract test (`workflow_kit.__all__` 의 deprecation-free 검증) + consumer signal 2nd wave (v0.7.62 follow-up 2차)
+11. **실전 파일럿 검증 단계 — Phase 11 (v0.9.0 2026-06-18 완료)**: DevHub 실전 파일럿 + contract v1 검증 + stable API frozen + generated JSON Schema SSOT + mypy strict 단계적 격상 + read-only MCP transport + release-dist 1-command + deprecation 1st cycle 적용 + SSOT 정합 + mypy config 정합
+12. **운영 지능화 + deprecation 운영 안정화 단계 — Phase 12 (진행 중, 2026-06-18 ~)**: Phase 11 의 *외부 consumer 정합* 위에서 *내부 운영 품질* 심화 — mypy strict cumulative 누적 19 → 109 file (v0.11.18 FULL strict 도달) + 11종 skill → 9 stable (v0.11.19~v0.11.21 3 batch) + ADR-005 Memora-inspired Memory Index Phase 1~3d 8 release 완료 (v0.11.22) + CodeWhale 10번째 하네스 (v0.10.4) + release pipeline 자동화 + deprecation 1st/2nd cycle 운영 검증
 
-현재 판단 근거 (v0.9.0, 2026-06-18 기준):
+### 1.1 Phase 12 누적 성과 (v0.11.18 ~ v0.11.22, 2026-07-03 기준)
 
-- **Phase 1–11 완결**: Phase 11 의 모든 성공 기준 충족 (pilot A/B/C 실행 + contract v1 안정 + reusable package 1단계 + deprecation 1st cycle 적용 + SSOT 정합 회복 + mypy config 정합).
-- **Phase 12 진행 중**: v0.9.0 release 직후 kickoff. v0.9.x follow-up 으로 deprecation 2nd cycle + mypy strict cumulative 격상 + release pipeline automation.
-- **v0.9.0-beta 기준 (package: standard-ai-workflow 0.9.1, runtime `__version__` = v0.9.1-beta)**:
-  - Deprecation Policy Operational Spec 신규 (221 lines, 9 sections, spec §3 lifecycle + §3.3 1st cycle 영향 symbol)
-  - SSOT 정합: pyproject 0.8.1 → 0.9.1, runtime v0.9.1-beta (drift 정직하게 인정 — chapter 1 의 `version-bump --minor` 의 patch bump interaction, spec §4.2/§4.3 patch)
-  - mypy config 정합: `[tool.mypy]` unknown option 5개 → `[tool.workflow-doctor]` section 분리 (v0.8.0~v0.8.15 의 strict validation bypass 버그 fix)
-  - mypy strict cumulative: 18 file clean (mypy 2.1.0 stricter checking 으로 `workflow_kit_cli.py` 49 error 노출 — v0.8.6 release note 의 "44 error → 0" 은 mypy 1.x 기준, 별도 후속)
-  - 누적 smoke test: 162/162 PASS 유지 (신규 6 test 는 별도 subset)
-  - deprecation 1st cycle: `phishing_federation_v4.fetch_federated_phishing_urls_v4` → `DeprecationWarning` (stacklevel=2, deprecated + replacement + v0.10.0 removal 3-element message)
-  - 작업 모드(Task Modes) 정의: 분석, 설계, 구현 등 6가지 작업 성격에 따른 워크플로우 최적화 명세화 및 템플릿 통합 완료
-  - DevHub 파일럿 성공: 실제 대규모 프로젝트(DevHub)에 v0.9.0-beta 기반 운영 안정성 확인
+**mypy FULL strict 도달** (v0.11.18, commit `4253eed`):
+- v0.8.1 ~ v0.8.15: 19 file strict clean (aspirational).
+- v0.11.0 cycle 3: + purpose_ingest.py (20).
+- v0.11.1 cycle 4: + purpose_graph.py (21).
+- v0.11.4: 23, v0.11.5: 25, v0.11.6: 27, v0.11.7: 29, v0.11.8: 31, v0.11.9: 33, v0.11.10: 35.
+- v0.11.14: 36, v0.11.18: 107 file strict clean (12 file 일괄 격상), **FULL mypy strict 도달**.
+- v0.11.21: 109 file strict clean. 0 errors.
+
+**Skill stable 승격** (v0.11.19 ~ v0.11.21, 3 batch):
+- v0.11.19 1st batch (4): session-start, doc-sync, validation-plan, code-index-update.
+- v0.11.20 2nd batch (4): backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment.
+- v0.11.21 3rd batch (1): robust-patcher.
+- 누적 stable=9 / beta=2 (automated-repro-scaffold, git-conflict-resolver) / prototype=4. task-modes 별도 stable.
+- 안정화 정합 조건 6 종 (CLI argparse / Pydantic schema / error_code 4종 / 단일 명령 / 예시 실행 섹션 / smoke test PASS) 모두 충족.
+
+**ADR-005 Memory Index** (v0.11.22, 8 release, Phase 1~3d):
+- **Phase 1** (prototype): `workflow_kit/common/state/memory_index.py` helper + schema + smoke.
+- **Phase 1.5** (state.json hook): `state.json` 생성 시 optional `memory_entries[]` 추가.
+- **Phase 2** (--merge opt-in): canonical merge + provenance 합집합.
+- **Phase 2b** (BM25 fallback): stdlib only 2단계 fallback.
+- **Phase 3** (dispatcher entry): `memory-index-query` skill beta.
+- **Phase 3b1 / 3c / 3d** (3 skill opt-in wiring): session-start / doc-sync / backlog-update.
+- **ADR-006**: retrospective 자리 박기 (회고 본문은 v0.11.23+ 또는 30일 후 작성).
+
+**하네스 확장** (v0.10.4 `cf0060d` 2026-07-03):
+- CodeWhale: 10번째 하네스. 단일 `SKILL.md` overlay (Constitution handles verification/parallelism/context). `HARNESS_SPECS` + `register_harness_builder` 한 줄 등록.
+
+### 1.2 정공법 1-2 file 격상 정책 (Phase 12 in_progress)
+
+v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유지됐다. v0.11.10 의 35 file 도달 후, v0.11.18 에서 12 file 일괄 격상 (잔여 모두 정리) 으로 FULL strict 도달. 후속 release 부터는 신규 file 추가 시 *동시에 strict 격상* 정책 유지.
+
+### 1.3 현재 판단 근거 (v0.11.22, 2026-07-03):
+
+- **Phase 1–11 완결 + Phase 12 in_progress**: `maturity_matrix.json` SSOT 의 milestones 가 1–11 done + 12 in_progress.
+- **Phase 12 의 본질**: 외부 consumer 정합 (Phase 11 의 release-dist + read-only MCP + generated schema) 위에서 *내부 운영 품질* 심화. (1) mypy FULL strict (operational hygiene), (2) skill stable 9종 (maturity 격상), (3) Memory Index (retrieval layer 보강), (4) CodeWhale harness (하네스 호환성).
+- **v0.11.22-beta 기준 (package: standard-ai-workflow 0.11.22, runtime `__version__` = v0.11.22-beta)**:
+  - FULL mypy strict 도달: 109 file clean, 0 errors (v0.11.18 commit `4253eed`).
+  - 3 batch 9 skill stable (v0.11.19 ~ v0.11.21).
+  - ADR-005 Memory Index Phase 1~3d 8 release 완료.
+  - ADR-006 retrospective 자리 박기.
+  - CodeWhale 10번째 하네스 추가 (v0.10.4).
+  - 누적 smoke test 200+ PASS 유지.
 
 ## 1.1 현재 릴리즈 기준 정리 (v0.9.0-beta)
 
@@ -304,26 +335,39 @@
 - [x] SSOT 정합 (v0.9.0, pyproject 0.8.1 → 0.9.1, runtime v0.9.1-beta)
 - [x] mypy config 정합 (v0.9.0, [tool.workflow-doctor] section 분리)
 
-### Phase 12 완료 기준 (in-progress 기준 정의)
+### Phase 12 완료 기준 (v0.11.22-beta 기준, in-progress)
 
-- [ ] Deprecation 2nd cycle 적용 (1st cycle 의 정책 운영 검증 결과 기반, 2nd cycle 영향 symbol 식별 + DeprecationWarning 추가)
-- [ ] mypy strict cumulative 18 → 33+ file (1 release = 1-2 file 격상)
-- [ ] release pipeline automation (`--apply` 만으로 version-bump + note-draft + release cycle close)
-- [ ] deprecation policy contract test (`workflow_kit.__all__` 의 모든 symbol 이 *deprecation-free* 하거나 *명시적 deprecation marker* 가 있는지 contract test)
-- [ ] consumer signal 2nd wave (v0.7.62 consumer_metrics 의 *2차 follow-up* — trend + digest 의 *운영 활용*)
-- [ ] (별도 후속) workflow_kit_cli.py 49 mypy error 격상, full strict 도달 v1.0.0 milestone
+**Phase 12 초입 단계 (v0.11.18 ~ v0.11.22, 2026-07-03) 완료 ✅**:
 
-## 8. 현재 권장 다음 작업
+- [x] **mypy strict cumulative 35 → 109 file** (v0.11.18 FULL strict 도달 `4253eed`)
+- [x] **9 skill stable 승격** (v0.11.19~v0.11.21 3 batch; session-start / doc-sync / validation-plan / code-index-update / backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment / robust-patcher)
+- [x] **release pipeline automation** (`tools/release_pipeline.py` 8 subcommand + `--apply` flag)
+- [x] **ADR-005 Memory Index Phase 1~3d** (v0.11.22 8 release 완료)
+- [x] **CodeWhale 10번째 하네스** (v0.10.4 `cf0060d`)
 
-현재 시점에서 가장 권장하는 다음 작업은 아래 순서다 (Phase 12 기준).
+**Phase 12 후속 (v0.11.23 ~ v1.0.0) 잔여 / unfulfilled**:
 
-1. **deprecation 2nd cycle 영향 symbol 식별** — 1st cycle 의 *운영 검증 결과* (consumer 의 warning log 빈도, migration 비용) 기반
-2. **mypy strict cumulative 격상** — workflow_kit_cli.py 49 error 우선 처리 (가장 큰 단일 파일)
-3. **release pipeline automation** — `--apply` 만으로 cycle close 가능하도록 in-process 통합
-4. **deprecation policy contract test** — `workflow_kit.__all__` 의 모든 symbol 의 deprecation 상태 contract verify
-5. (별도 후속) read-only input schema Pydantic v2 전면 적용, MCP stdio-sdk `Connection closed` 회귀 해결
+- [ ] **deprecation 2nd cycle 적용** (Phase 11 1st cycle 의 정책 운영 검증 후 영향 symbol 식별 + DeprecationWarning 추가 — `phishing_federation_v4.build_default_sources_v4` 후속 candidate)
+- [ ] **deprecation policy contract test** (`workflow_kit.__all__` 의 모든 symbol 이 *deprecation-free* 하거나 *명시적 deprecation marker* 가 있는지 contract test)
+- [ ] **automated-repro-scaffold / git-conflict-resolver 11/11 stable** (현재 9/11)
+- [ ] **ADR-006 Memory Index 회고 본문** (v0.11.23+ 또는 30일 후 작성)
+- [ ] **CHANGELOG.md auto-gen 운영 안정화** (3 release 연속 auto-gen 결과 만족)
+- [ ] **MCP stdio-sdk 정식 승격** (`Connection closed` 회귀 fix + read-only input schema Pydantic v2 전면 적용)
+- [ ] (별도 후속) long-running CI mypy-strict + release pipeline 자동화 안정성 1+ months 검증
 
-이 순서는 현재 저장소가 가진 자산을 "Phase 12 = 운영 지능화 + deprecation 운영 안정화" 로 심화하는 데 초점을 둔다.
+## 8. 현재 권장 다음 작업 (Phase 12 후속 → v1.0.0 milestone)
+
+현재 시점에서 가장 권장하는 다음 작업은 아래 순서다 (Phase 12 후속 → v1.0.0 milestone 진입 평가).
+
+1. **CHANGELOG.md auto-gen 자동화 lockdown** — `tools/release_pipeline.py release --apply` 에 changelog-gen pre-step 추가. 본 시점에서 수동 1회 backfill (Unreleased 본문 = v0.7.10 ~ v0.11.22 누적).
+2. **deprecation 2nd cycle 영향 symbol 식별** — 1st cycle 의 운영 검증 결과 기반. `phishing_federation_v4.build_default_sources_v4` candidate (이미 v0.9.3 부분 적용).
+3. **automated-repro-scaffold stable 승격** — 현재 beta 에서 `--scaffold` 만 stable 진입. 5/6 정합 조건 충족 후 후속.
+4. **git-conflict-resolver beta 진입** — alpha 에서 beta 로 stable 직전 단계. smoke test + error_code 정리 + spec layer 동기화.
+5. **ADR-006 Memory Index 회고 본문** — v0.11.22 의 8 release 누적 후 ≥ 14일 또는 ≥ 30일 누적 사용 데이터 후 작성.
+6. **MCP stdio-sdk 정식 승격** + read-only input schema Pydantic v2 강타입 계약 전면 적용.
+7. (별도 후속) long-running CI mypy-strict + release pipeline 자동화 안정성 1+ months 검증.
+
+이 순서는 현재 저장소가 가진 자산을 "Phase 12 후속 → v1.0.0 (SemVer stable guarantee 2-year 진입)" 로 심화하는 데 초점을 둔다.
 
 추가 메모:
 

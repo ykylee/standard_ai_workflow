@@ -4,22 +4,31 @@
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-09
-- 관련 문서: [공통 표준](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
+- 최종 수정일: 2026-07-03
+- 관련 문서: [공통 표준](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [Project Status Assessment](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/project_status_assessment.md), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md), [Release Procedure](./RELEASE.md)
 
 ## 1. 프로젝트 개요
 - 프로젝트명: Standard AI Workflow
 - 프로젝트 슬러그: `standard-ai-workflow`
 - 프로젝트 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자: 저장소 maintainer (`ykylee`), 워크플로우 도입 검토자, 멀티 에이전트 운영자
-- 현재 베이스라인: **v0.5.10-beta** (v0.5.6 P0 enforcement + v0.5.7 multi-component + v0.5.8 interactive picker + v0.5.9.x wire 가이드 + v0.5.10 sub.delegation_id parent-prefix spec 정합)
+- 현재 베이스라인: **v0.11.22-beta** (package: standard-ai-workflow 0.11.22, runtime `__version__` = v0.11.22-beta)
+- Phase: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화). SSOT: `workflow-source/core/maturity_matrix.json`
+- 누적 release cycle (memory 스냅샷): **91+** (v0.5.1 ~ v0.11.21, v0.11.22 release memory cycle 진행 중)
+- 핵심 마일스톤 (v0.11.18 ~ v0.11.22):
+  - v0.11.18: **FULL mypy strict 도달** (109 file clean, 0 errors)
+  - v0.11.19: 1st batch 4 skill stable (session-start / doc-sync / validation-plan / code-index-update)
+  - v0.11.20: 2nd batch 4 skill stable (backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment) + 2 latent bug fix
+  - v0.11.21: 3rd batch 1 skill stable (robust-patcher)
+  - v0.11.22: **ADR-005 Memory Index Phase 1~3d** 8 release 완료 + ADR-006 retrospective 자리 박기
+  - v0.10.4: **CodeWhale 10번째 하네스** 추가 (2026-07-03)
 
 ## 2. 문서 구조 (Path)
-- 문서 위키 홈: docs/README.md
+- 문서 위키 홈: docs/index.md
 - 운영 문서 홈: ai-workflow/memory/
-- 백로그 위치: ai-workflow/memory/backlog/
-- 세션 인계 문서: `ai-workflow/memory/release/v0.5.10/session_handoff.md` (현 브랜치 v0.5.10 인계)
-- 환경 기록 위치: ai-workflow/memory/environments/
+- 백로그 위치: ai-workflow/memory/active/backlog/ (인덱스) + ai-workflow/memory/release/<version>/backlog/<날짜>.md (사이클별)
+- 세션 인계 문서: 사이클별 memory 사이클 (v0.11.22 는 cycle close 완료). state.json 의 `recent_done_items` 가 provenance SSOT.
+- 환경 기록 위치: ai-workflow/memory/active/environments/
 
 ## 3. 기본 명령 (Commands)
 

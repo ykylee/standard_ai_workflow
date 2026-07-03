@@ -24,15 +24,15 @@
 
 - **[Documentation Governance](./index.md)**: 문서 분류 체계 (`ai-workflow/memory/` 상태 vs `docs/` 지식) 및 PR 리뷰 프로세스.
 - **[Code Index](./CODE_INDEX.md)**: 코드베이스 구조 (`workflow-source/`, `workflow_kit/`, `contract_v1/`, `bootstrap_lib/`, `tools/`) 및 핵심 컴포넌트 안내.
-- **[Installation & Usage Guide](./INSTALLATION_AND_USAGE.md)** (v0.5.10 신규): 소스에서 설치해 개발/검증 환경으로 쓰는 절차. editable install, 스모크 테스트 실행, `workflow_kit` / `bootstrap_lib` 임포트, 부트스트랩, MCP 서버 (jsonrpc-bridge / stdio-sdk), 자주 만나는 문제 7가지.
-- **[Release Procedure](./RELEASE.md)** (v0.5.7+ 신규): GitHub Releases only, PyPI 폐기. wheel 빌드/스모크/릴리스 절차 + 회귀 표.
+- **[Installation & Usage Guide](./INSTALLATION_AND_USAGE.md)** (v0.5.10+ 도입, v0.11.22 까지 누적 갱신): 소스에서 설치해 개발/검증 환경으로 쓰는 절차. editable install, 스모크 테스트 실행, `workflow_kit` / `bootstrap_lib` 임포트, 부트스트랩, MCP 서버 (jsonrpc-bridge / stdio-sdk), 자주 만나는 문제 7가지.
+- **[Release Procedure](./RELEASE.md)** (v0.5.7+ 도입, v0.11.22 까지 회귀 표 확장): GitHub Releases only, PyPI 폐기. wheel 빌드/스모크/릴리스 절차 + 회귀 표 (v0.5.0 ~ v0.11.22).
 
 ## 3. 분석 및 계획 (Analysis & Planning)
 *요구사항 분석 및 상위 수준의 로드맵을 다룹니다.*
 
 - **[Microsoft Memora Evaluation](./architecture/MICROSOFT_MEMORA_EVALUATION.md)**: Microsoft Research `Memora` 조사와 `standard_ai_workflow` 적용 가능성 검토.
-- **[ADR-005: Memora-inspired Memory Index](./architecture/ADR-005-memora-inspired-memory-index.md)** (v0.11.22+ Phase 1 예정): 평가 문서 결론을 정식 결정으로 — `ai-workflow/memory/active/memory_index/` 메타데이터 레이어 위에 retrieval flow 3-tuple (anchor exact → embedding/BM25 → linked expansion) 을 얹는다. canonical merge 는 기본 advisory, opt-in 으로 `merged` 활성화. 3-layer (source/state/knowledge) 분리 정합 유지.
-- 상위 로드맵은 [workflow-source/core/workflow_kit_roadmap.md](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md) (9단계 + Phase 11 pilot) 참고.
+- **[ADR-005: Memora-inspired Memory Index](./architecture/ADR-005-memora-inspired-memory-index.md)** (v0.11.22 Phase 1~3d 완료): 평가 문서 결론을 정식 결정으로 — `ai-workflow/memory/active/memory_index/` 메타데이터 레이어 위에 retrieval flow 3-tuple (anchor exact → embedding/BM25 → linked expansion) 을 얹는다. canonical merge 는 기본 advisory, opt-in 으로 `merged` 활성화. 3-layer (source/state/knowledge) 분리 정합 유지. 후속: [ADR-006 retrospective](./architecture/ADR-006-memory-index-retrospective.md) (회고 본문은 v0.11.23+ 또는 30일 후 작성).
+- 상위 로드맵은 [workflow-source/core/workflow_kit_roadmap.md](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md) (12단계 + Phase 12 in_progress) 참고.
 
 ## 4. 보존 (Archive)
 *오래된 단계의 결정 기록과 폐기 후보.*

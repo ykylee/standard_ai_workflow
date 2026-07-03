@@ -4,10 +4,10 @@
 - 범위: 소스 코드 구조, 기술 스택, 핵심 모듈 설명
 - 대상 독자: 개발자, AI 에이전트
 - 상태: stable
-- 최종 수정일: 2026-06-09
-- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md)
+- 최종 수정일: 2026-07-03
+- 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
-이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (v0.5.10-beta 기준).
+이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (**v0.11.22-beta** 기준). Phase 위치: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화). 정식 status SSOT: [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json).
 
 ## 1. 프로젝트 구조 개요
 
@@ -32,9 +32,9 @@
 │   ├── core/                       # 35개 코어 표준 문서
 │   ├── prompts/                    # 코어 표준 문서
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
-│   ├── releases/                   # 19개 릴리스 노트 (Alpha v0.1~v0.3 + Beta v0.5.0~v0.5.10)
+│   ├── releases/                   # Beta v0.5.0 ~ v0.11.21 누적 (CHANGELOG.md 본문은 release_pipeline changelog-gen 으로 별도 발행)
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 0.5.10-beta)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 0.11.22)
 │
 ├── ai-workflow/                    # 런타임 state (bootstrap 으로 생성, .gitignore 일부)
 │   ├── memory/                     # 세션 상태/백로그/릴리스별 스냅샷
@@ -88,23 +88,24 @@ v0.5.2+ 리팩터. 6-module 패키지:
 
 권장 진입점: `python3 -m bootstrap_lib`. 레거시 호환 shim: `python3 workflow-source/scripts/bootstrap_workflow_kit.py`.
 
-### Skills (`workflow-source/skills/`) — 11종
-각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지.
-- **1차 핵심 6종** (v0.5.0+ stable/beta): `backlog-update`, `session-start`, `doc-sync`, `merge-doc-reconcile`, `validation-plan`, `workflow-linter`
-- **2차 운영 2종** (v0.5.7+): `code-index-update`, `project-status-assessment`
-- **3차 실전 3종** (v0.5.7+): `git-conflict-resolver`, `robust_patcher` (정밀 patch engine), `automated-repro-scaffold` (reproduction scaffold 생성)
-- **추가** (v0.5.7+): `workers/backlog_steward.py` (workers/ subdir, 미문서화)
+### Skills (`workflow-source/skills/`) — 11 + task-modes (12 total)
+각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. v0.11.19~v0.11.21 3 batch 로 9종 stable 승격 완료 (현재 stable=9 / beta=2 / alpha=1 + task-modes 별도 stable). 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
+- **1차 핵심 6종** (v0.5.0+): `backlog-update` (stable), `session-start` (stable), `doc-sync` (stable), `merge-doc-reconcile` (stable), `validation-plan` (stable), `workflow-linter` (stable)
+- **2차 운영 2종** (v0.5.7+): `code-index-update` (stable), `project-status-assessment` (stable)
+- **3차 실전 3종**: `git-conflict-resolver` (alpha), `robust-patcher` (stable, v0.11.21 3rd batch), `automated-repro-scaffold` (beta, scaffold only)
+- **추가 (v0.5.7+)**: `workers/` (workers/ subdir); v0.11.22 신규 `memory-index-query` skill (beta, dispatcher entry)
+- **task-modes** (v0.11.0+ stable): 작업 성격별 워크플로우 최적화 명세화 (분석/설계/구현 등 6 모드)
 
-### MCP Servers (`workflow-source/mcp_servers/`) — 8+ documented, 3 undocumented
+### MCP Servers (`workflow-source/mcp_servers/`) — 12 (stable 8 + beta 4)
 - 8 documented (with `MCP.md`): `latest-backlog` (v1), `check-doc-metadata` (v1), `check-doc-links`, `check-quickstart-stale-links`, `create-backlog-entry`, `git-history-summarizer`, `smart-context-reader` (implemented), `suggest-impacted-docs`
 - 3 scripts-only (no MCP.md): `apply_robust_patch`, `create-environment-record-stub`, `create-session-handoff-draft`
 - `lib/common_utils.py`: 공유 `TOOL_VERSION` helper
 - Transport: `--mcp-bridge jsonrpc-bridge` (default, 안정) / `--mcp-bridge stdio-sdk` (실험적, 알려진 회귀)
 
-### Harnesses (`workflow-source/harnesses/`) — 6 supported
-`codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `pi-dev` + `_template`.
-- 각 하네스: `README.md` + `apply_guide.md` (대부분) + `AGENTS.md` (pi-dev만) + 선택적 `overlay_spec.md` (antigravity만)
-- 부트스트랩 등록: `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` + `register_harness_builder`
+### Harnesses (`workflow-source/harnesses/`) — 10 supported
+`codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale` (v0.10.4 신규) + `_template`.
+- 각 하네스: `README.md` + `apply_guide.md` (대부분) + `AGENTS.md` (pi-dev만) + 선택적 `overlay_spec.md` (antigravity만) + CodeWhale 는 단일 `SKILL.md` overlay
+- 부트스트랩 등록: `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` + `register_harness_builder` 한 줄
 
 ## 3. 주요 진입점 (Entry Points)
 
@@ -129,8 +130,8 @@ v0.5.2+ 리팩터. 6-module 패키지:
 | Agent Protocol | MCP (Model Context Protocol) Python SDK `mcp[cli]` >= 1.0 |
 | Package Build | setuptools >= 68 + wheel |
 | Linting | ruff (line-length 100, py310) |
-| Type Checking | mypy (non-strict, py310) |
-| CI | GitHub Actions, ubuntu-latest, Python 3.11, 52개 smoke 매 push |
+| Type Checking | mypy (strict, 109 file clean, py310, **FULL strict 도달 v0.11.18**) |
+| CI | GitHub Actions (smoke.yml + mypy-strict.yml, ubuntu-latest, Python 3.11), 200+ smoke 매 push |
 
 ## 5. 에이전트 활용 팁
 - 코드 수정 시 `workflow-source/workflow_kit/common/`의 유틸리티를 먼저 확인하여 중복 구현을 방지하십시오.

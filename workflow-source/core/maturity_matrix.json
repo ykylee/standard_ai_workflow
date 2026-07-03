@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project_name": "Standard AI Workflow",
-  "last_updated": "2026-06-12",
+  "last_updated": "2026-07-03",
   "milestones": {
     "Phase 1": { "name": "Concept", "status": "done" },
     "Phase 2": { "name": "Template", "status": "done" },
@@ -13,20 +13,27 @@
     "Phase 8": { "name": "Pilot Deployment & Integration", "status": "done" },
     "Phase 9": { "name": "System Maturity & Multi-Agent Evolution", "status": "done" },
     "Phase 10": { "name": "Document & Link Hygiene", "status": "done" },
-    "Phase 11": { "name": "Real-world Pilot Validation", "status": "in_progress" }
+    "Phase 11": { "name": "Real-world Pilot Validation", "status": "done", "closed_in_release": "v0.9.0 (2026-06-18)", "closed_note": "DevHub 실전 파일럿 + contract v1 검증 + stable API frozen + generated JSON Schema SSOT + read-only MCP transport + release-dist 1-command + deprecation 1st cycle 적용" },
+    "Phase 12": { "name": "Operational Intelligence + Deprecation Stabilization", "status": "in_progress", "started": "2026-06-18", "target_milestone": "v1.0.0 stable guarantee", "in_progress_highlights": [
+      "v0.11.18 (80470cd): FULL mypy strict 도달 — 109 file clean, 0 errors (v0.11.10 cumulative 35 file → v0.11.18 107 file → v0.11.21 109 file)",
+      "v0.11.19~v0.11.21 (3 batch): 11 skill → 9 stable + 2 beta + 1 alpha (session-start, doc-sync, validation-plan, code-index-update, backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment, robust-patcher 모두 stable; automated-repro-scaffold, git-conflict-resolver 가 남은 2 beta + 1 alpha)",
+      "v0.11.22 (in release): ADR-005 Memora-inspired Memory Index Phase 1~3d 8 release 완료 (prototype + state.json hook + --merge opt-in + BM25 stdlib fallback + dispatcher entry + 3 skill opt-in wiring)",
+      "ADR-006: ADR-005 Memory Index retrospective 자리 박기 (회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성)",
+      "CodeWhale harness (v0.10.4, 2026-07-03): 10번째 하네스, 단일 SKILL.md overlay (Constitution 보강)"
+    ] }
   },
   "skills": {
-    "session-start": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_session_start.py" },
-    "backlog-update": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_backlog_update.py" },
-    "doc-sync": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_doc_sync.py" },
-    "merge-doc-reconcile": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_merge_doc_reconcile.py" },
-    "validation-plan": { "stage": "beta", "apply": true, "scaffold": true, "test_path": "tests/check_validation_plan.py" },
-    "code-index-update": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_code_index_update.py" },
-    "workflow-linter": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_workflow_linter.py" },
-    "project-status-assessment": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_project_status_assessment.py" },
+    "session-start": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_session_start.py", "promoted_in_release": "v0.11.19 (1st batch)" },
+    "backlog-update": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_backlog_update.py", "promoted_in_release": "v0.11.20 (2nd batch)" },
+    "doc-sync": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_doc_sync.py", "promoted_in_release": "v0.11.19 (1st batch)" },
+    "merge-doc-reconcile": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_merge_doc_reconcile.py", "promoted_in_release": "v0.11.20 (2nd batch)" },
+    "validation-plan": { "stage": "stable", "apply": true, "scaffold": true, "test_path": "tests/check_validation_plan.py", "promoted_in_release": "v0.11.19 (1st batch)" },
+    "code-index-update": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_code_index_update.py", "promoted_in_release": "v0.11.19 (1st batch)" },
+    "workflow-linter": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_workflow_linter.py", "promoted_in_release": "v0.11.20 (2nd batch)" },
+    "project-status-assessment": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_project_status_assessment.py", "promoted_in_release": "v0.11.20 (2nd batch)" },
     "automated-repro-scaffold": { "stage": "beta", "apply": false, "scaffold": true, "test_path": null },
-    "robust-patcher": { "stage": "beta", "apply": true, "scaffold": false, "test_path": "tests/check_robust_patcher.py" },
-    "task-modes": { "stage": "beta", "apply": true, "scaffold": false, "test_path": null },
+    "robust-patcher": { "stage": "stable", "apply": true, "scaffold": false, "test_path": "tests/check_robust_patcher.py", "promoted_in_release": "v0.11.21 (3rd batch)" },
+    "task-modes": { "stage": "stable", "apply": true, "scaffold": false, "test_path": null },
     "git-conflict-resolver": { "stage": "alpha", "apply": false, "scaffold": false, "test_path": null }
   },
   "mcp_tools": {
@@ -42,5 +49,21 @@
     "workflow_log_rotator": { "stage": "beta", "server": "official_sdk" },
     "smart_context_reader": { "stage": "beta", "server": "official_sdk" },
     "apply_robust_patch": { "stage": "beta", "server": "official_sdk" }
+  },
+  "harnesses": {
+    "supported": [
+      "codex",
+      "opencode",
+      "gemini-cli",
+      "antigravity",
+      "minimax-code",
+      "claude-code",
+      "aider",
+      "goose",
+      "pi-dev",
+      "codewhale"
+    ],
+    "codewhale_added_in_release": "v0.10.4 (2026-07-03, cf0060d)",
+    "codewhale_note": "단일 SKILL.md overlay, additive rules only (session start + Korean output + backlog mgmt); Constitution 이 verification/parallelism/context 담당"
   }
 }

@@ -4,8 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-06-23
-- 버전: v0.10.3-beta (chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; package: standard-ai-workflow 0.10.3, runtime __version__ = v0.10.3-beta, tag v0.10.3-beta released 2026-06-24)
+- 최종 수정일: 2026-07-03
+- 버전: v0.11.22-beta (chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; **Phase 12 in_progress** — v0.11.18 FULL mypy strict 도달, v0.11.19~v0.11.21 3 batch 9 skill stable 승격, v0.11.22 ADR-005 Memory Index Phase 1~3d 8 release 완료 + ADR-006 retrospective 자리 박기; package: standard-ai-workflow 0.11.22, runtime __version__ = v0.11.22-beta, latest tag **v0.11.21-beta**, head = CodeWhale harness support `cf0060d` on 2026-07-03)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -60,24 +60,26 @@
 | 공통 표준 문서 | 사용 가능 | 바로 복사 가능 |
 | 프로젝트/세션 템플릿 | 사용 가능 | 값 채우기 필요 |
 | 샘플 도입 예시 | 사용 가능 | `workflow-source/examples/acme_delivery_platform/` 참고 |
-| skill 프로토타입 | 사용 가능 | `workflow-source/skills/` 및 `workflow-source/scripts/` 참고. 11종 (1차 6종 + 2차 2종 + 3차 3종) |
-| skill 카탈로그 | 설계 완료, 프로토타입 포함 | 1차 핵심 skill 4종과 2차 skill 2종 실행형 초안 + 3차 (backlog-steward, robust-patcher, git-conflict-resolver) |
-| MCP 프로토타입 | 사용 가능 | `workflow-source/mcp_servers/` 및 MCP 데모 참고. jsonrpc-bridge (안정) + stdio-sdk (실험적) 양쪽 지원 |
-| MCP 카탈로그 | 설계 완료, 프로토타입 포함 | 우선순위 1 MCP 실행형 초안 + read_only_mcp_sdk v1.0 SDK candidate |
+| skill 프로토타입 | 사용 가능 | 12종 (1차 6종 + 2차 2종 + 3차 3종 + task-modes). **stable 9종 / beta 2종 / alpha 1종** (v0.11.19~v0.11.21 3 batch stable 승격 완료). 자세한 단계: `workflow-source/core/maturity_matrix.json` SSOT |
+| skill 카탈로그 | 설계 완료, stable 단계 진입 | 11개 core skill + task-modes. v0.11.21 기준 9 stable + 2 beta (automated-repro-scaffold, git-conflict-resolver) |
+| MCP 프로토타입 | 사용 가능 | 12종 (stable 8 + beta 4). jsonrpc-bridge (안정) + stdio-sdk (실험적) 양쪽 지원 |
+| MCP 카탈로그 | 설계 완료, stable 단계 진입 | 우선순위 1 MCP 정식 stable + read_only_mcp_sdk v1.0 SDK candidate + 베타 4종 |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `python3 -m bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
-| harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `CodeWhale`, `Claude Code`, `Aider`, `Goose`, `pi-dev` |
-| harness interactive picker | 사용 가능 (v0.5.8 신규) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
+| harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `CodeWhale` (v0.10.4 신규), `Claude Code`, `Aider`, `Goose`, `pi-dev` |
+| harness interactive picker | 사용 가능 (v0.5.8+) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode orchestrator + doc/code/validation worker 분화 및 위임 패턴 |
 | contract v1 (orchestrator ↔ sub-agent) | 사용 가능 (v0.5.4+) | `workflow-source/core/orchestrator_subagent_contract_v1.md` 외부 spec + `workflow_kit/contract_v1/` enforcement helpers (output_validator, delegator.choose_roles). wire 가이드: `orchestrator_contract_v1_wire_guide.md` |
 | 다중 컴포넌트 fan-out/in (v0.5.7) | 사용 가능 | `choose_roles` (multi-sub 위임) + `validate_fanin_output` (cross-ref 통합) |
 | 다중 에이전트 오케스트레이션 | 사용 가능 | `orchestration_demo.py` 및 피드백 루프 시뮬레이션 |
-| 워크플로우 린터 (Skill) | 사용 가능 | `run_workflow_linter.py`를 통한 문서 정합성 자동 검사 및 복구 |
-| 실전 스킬 (Git) | 사용 가능 | `run_git_conflict_resolver.py`를 통한 컨텍스트 기반 충돌 해결 |
-| harness package export | 사용 가능 | `workflow-source/scripts/export_harness_package.py` 로 dist 산출물 생성. v0.5.8 부터 packaging smoke 자동화 (`tools/check_packaging.py`) |
+| 워크플로우 린터 (Skill) | 사용 가능 | `run_workflow_linter.py`를 통한 문서 정합성 자동 검사 및 복구 (v0.11.20 stable) |
+| 실전 스킬 (Git) | 사용 가능 (alpha) | `run_git_conflict_resolver.py`를 통한 컨텍스트 기반 충돌 해결 |
+| Memora-inspired Memory Index | 사용 가능 (v0.11.22 Phase 1~3d 완료) | `workflow_kit.common.state.memory_index` helper + `ai-workflow/memory/active/memory_index/` 메타 레이어 + 3 skill opt-in wiring (session-start / doc-sync / backlog-update) + BM25 stdlib fallback. ADR-005/006 참조 |
+| harness package export | 사용 가능 | `workflow-source/scripts/export_harness_package.py` 로 dist 산출물 생성. packaging smoke 자동화 (`tools/check_packaging.py`) |
 | 출력 스키마 가이드 | 사용 가능 | `workflow-source/core/output_schema_guide.md` (Pydantic v2 기반) |
-| 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 |
-| workflow kit package | 사용 가능 | `workflow_kit` + `bootstrap_lib` + `contract_v1` (v0.5.6+), `common.{state,contracts,schemas,server}` (v0.5.7.1+ wheel 포함) |
+| 출력 샘플 JSON | 사용 가능 | skill/MCP/runner 성공/실패 샘플 (24 file, `examples/output_samples/`) |
+| workflow kit package | 사용 가능 (FULL mypy strict, v0.11.18+) | `workflow_kit` + `bootstrap_lib` + `contract_v1` + `common.{state,contracts,schemas,server,memory_index,...}` (109 file mypy strict clean, 0 errors) |
+| release pipeline 자동화 | 사용 가능 (v0.7.9+) | `tools/release_pipeline.py` 8 subcommand (validate / version-bump / note-draft / changelog-gen / release / gen-schema / verify / rollback / dist) + `--apply` flag |
 | agent 토폴로지 | 설계 완료, 구현 미포함 | 역할과 권한 경계 중심 |
 
 ## 4. 권장 도입 순서

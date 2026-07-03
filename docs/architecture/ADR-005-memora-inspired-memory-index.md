@@ -151,12 +151,21 @@ session-start / doc-sync / backlog-update 가 memory_index 를 사용할 때 다
 - **retrieve fail-safe**: retrieval 결과가 0 일 때 조용히 빈 결과 ❌ → caller 가 fallback (full read / wiki search) 가져야 함.
 - **merge 활성화 시 provenance 희석**: Phase 2 opt-in 시 caller 가 명시적 책임. 본 ADR 은 default advisory 만 확정.
 
-### 후속 작업
+### 후속 작업 (현황 반영, v0.11.22 2026-07-03 기준)
 
-- **Phase 1 (본 commit 후 다음 release, e.g. v0.11.22)**: zero-risk metadata prototype. `state.json` 생성 시 optional `memory_entries[]` 추가 + `memory_index/entries/*.json` 자동 emit. helper 1 종 (e.g. `workflow_kit/common/memory_index.py`) + smoke test 1 종.
-- **Phase 2 (v0.11.2x)**: `--merge` opt-in 의 canonical merge 활성화. `primary_abstraction` similarity + task lineage 기반. provenance 보존 위해 source_paths 합집합.
-- **Phase 3 (v0.11.3x+)**: retrieval policy integration. session-start / doc-sync / backlog-update 가 3-tuple 사용. `--memory-index` 옵션 default off → opt-in 으로 on.
-- **ADR-006 후보**: Phase 2 또는 Phase 3 완료 시 회고 ADR 작성. 본 ADR 의 merge 규칙이 그대로 유효했는지 / 갱신이 필요했는지.
+[v0.11.22 release memory cycle 진행 중 — 8 release / 8 commit 누적, 48ec7d → 2ab3b6c]
+
+- ✅ **Phase 1 (v0.11.22 release 1)**: zero-risk metadata prototype. `workflow_kit/common/state/memory_index.py` helper + `ai-workflow/memory/active/memory_index/entries/` `*.json` 자동 emit + smoke test.
+- ✅ **Phase 1.5**: `state.json` hook (state.json 생성 시 optional `memory_entries[]` 추가).
+- ✅ **Phase 2 (v0.11.22 release 3-4)**: `--merge` opt-in 의 canonical merge 활성화. `primary_abstraction` similarity + task lineage 기반. provenance 보존 위해 `source_paths` 합집합.
+- ✅ **Phase 2b (v0.11.22 release 5)**: BM25 stdlib 2단계 fallback (embedding 없이도 retrieval 동작 보장).
+- ✅ **Phase 3 (v0.11.22 release 6)**: dispatcher entry — `memory-index-query` skill beta, `cmd_memory_index_query` subcommand 신규.
+- ✅ **Phase 3b1 (v0.11.22 release 7)**: `session-start` memory_index opt-in wiring.
+- ✅ **Phase 3c (v0.11.22 release 8)**: `doc-sync` memory_index opt-in wiring.
+- ✅ **Phase 3d (v0.11.22 release 9, last skill)**: `backlog-update` memory_index opt-in wiring.
+- 📝 **ADR-006**: retrospective 자리 박기 (`34fb07f`). 회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성 — [./ADR-006-memory-index-retrospective.md](./ADR-006-memory-index-retrospective.md).
+
+본 ADR 의 Phase 1~3d 누적 후, 후속 작업은 ADR-006 회고 + Phase 4 (구 consumer 통합) 가 본 ADR 의 follow-up 으로 자리.
 
 ## References
 

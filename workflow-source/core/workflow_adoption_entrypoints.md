@@ -212,7 +212,7 @@ AIDLC 의 construction phase 가 2-option completion message (Request Changes / 
 ### 릴리스 상태: Phase 11 진행 중
 - 현재 워크플로우 키트는 **Phase 11: 실전 파일럿 검증** 단계에 있습니다.
 - Phase 1–10 완료. 주요 성과: contract v1 enforcement, multi-component fan-out, interactive harness picker, MCP dual transport, 52종 smoke test 안정 통과.
-- 정식 phase 상태: `workflow-source/core/maturity_matrix.json` 참조.
+- 정식 phase 상태: `core/maturity_matrix.json` 참조.
 
 ### 기술적 안정성 개선: 빈 프로젝트 오판 방지
 - **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.

@@ -686,8 +686,6 @@ def export_harness(
         "release_focus": "workflow_skill_onboarding",
         "optimization_profile": "agent_runtime_minimal",
         "exported_at": datetime.now(timezone.utc).isoformat(),
-        "source_root": str(REPO_ROOT),
-        "bundle_root": str(bundle_root),
         "included_files": sorted(included_files),
         "global_snippet_files": sorted(snippet_files),
         "recommended_entrypoints": recommended_entrypoints_for(harness),
@@ -719,10 +717,6 @@ def export_harness(
         "harness": harness,
         "package_name": package_name,
         "package_version": version,
-        "package_root": str(package_root),
-        "bundle_root": str(bundle_root),
-        "manifest_path": str(manifest_path),
-        "archive_path": archive_path,
         "included_files_count": len(included_files),
     }
 

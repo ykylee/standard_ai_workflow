@@ -164,7 +164,7 @@ ln -sf /ABSOLUTE/PATH/TO/<project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
 ### 7.1 `PYTHONPATH` 가 잘못 잡혀 `ModuleNotFoundError: workflow_kit`
 
 - bootstrap 이 emit 한 env 의 `PYTHONPATH` 가 상대 경로(`workflow-source`)인 경우, 하네스가 다른 cwd 로 띄우면 실패.
-- **해결**: 글로벌 설정으로 옮길 때 절대 경로로 바꾼다. 예: `PYTHONPATH = "/Users/yklee/repos/standard_ai_workflow/workflow-source"`
+- **해결**: 글로벌 설정으로 옮길 때 절대 경로로 바꾼다. 예: `PYTHONPATH = "~/repos/standard_ai_workflow/workflow-source"`
 
 ### 7.2 `Connection closed` (stdio-sdk) — **fixed (v0.11.25)**
 

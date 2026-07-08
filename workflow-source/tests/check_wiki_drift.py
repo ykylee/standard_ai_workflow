@@ -26,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-# workflow-source 의 부모가 in-repo root → /Users/yklee/repos/standard_ai_workflow_minimax
+# workflow-source 의 부모가 in-repo root → ~/repos/standard_ai_workflow_minimax
 REPO_ROOT = SOURCE_ROOT.parent
 INREPO_WIKI = REPO_ROOT / "ai-workflow" / "wiki"
 # v0.7.17+ in-repo storage: L2 sources 와 L1 raw mirror 모두 in-repo.

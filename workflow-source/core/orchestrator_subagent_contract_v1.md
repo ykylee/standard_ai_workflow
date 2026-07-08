@@ -139,7 +139,7 @@ contract v1 은 다음 4개 역할을 정의한다. 각 역할은 책임, 권한
   "context": {
     "branch": "release/v0.5.4",
     "memory_layer_root": "ai-workflow/memory/release/v0.5.4/",
-    "project_root": "/Users/yklee/repos/standard_ai_workflow_minimax"
+    "project_root": "~/repos/standard_ai_workflow_minimax"
   }
 }
 ```

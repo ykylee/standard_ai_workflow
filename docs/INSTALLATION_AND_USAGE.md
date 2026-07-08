@@ -236,7 +236,7 @@ from workflow_kit.contract_v1 import delegator           # delegate_to_subagent(
 `workflow_kit.common` 은 submodule 별로, `workflow_kit.contract_v1` 은 `__init__.py` 가 re-export 하므로 한 줄에 여러 이름 가능.
 
 > [!WARNING]
-> 저장소 루트(`/home/yklee/repos/standard_ai_workflow`)에서 실행하면 §8.7 의 namespace shadowing 때문에 **반드시 실패**한다. `/tmp` 등 저장소 밖에서 실행하거나, `cd workflow-source` 안에서 실행한다.
+> 저장소 루트(`~/repos/standard_ai_workflow`)에서 실행하면 §8.7 의 namespace shadowing 때문에 **반드시 실패**한다. `/tmp` 등 저장소 밖에서 실행하거나, `cd workflow-source` 안에서 실행한다.
 
 ```bash
 # 저장소 밖에서 (권장 — CWD 영향 없음)

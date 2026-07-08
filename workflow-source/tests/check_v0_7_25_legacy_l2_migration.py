@@ -25,7 +25,7 @@ TOOL = REPO_ROOT / "workflow-source" / "tools" / "migrate_legacy_l2.py"
 PYTHON = sys.executable
 
 # Use a tempdir-based REPO_ROOT for isolation (mimic R-4 격리 정공법)
-# 외부 wiki 는 실제 /Users/yklee/wiki/.../sources/ 의 read-only 사용
+# 외부 wiki 는 실제 ~/wiki/.../sources/ 의 read-only 사용
 EXTERNAL_WIKI = Path.home() / "wiki" / "wiki" / "projects" / "standard-ai-workflow" / "sources"
 
 

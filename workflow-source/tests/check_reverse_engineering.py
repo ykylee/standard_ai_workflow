@@ -185,7 +185,7 @@ def test_guide_has_workflow_pattern_adaptation() -> None:
 
 def test_aidlc_1차_출처_path_valid() -> None:
     """AIDLC 1차 출처 (commit b19c819) cross-reference 검증."""
-    aidlc_path = Path("/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md")
+    aidlc_path = Path.home() / "repos" / "aidlc-workflows" / "aidlc-rules" / "aws-aidlc-rule-details" / "inception" / "reverse-engineering.md"
     if not aidlc_path.exists():
         # SSOT 외부 — spec level 만 검증, skip
         return
@@ -197,7 +197,7 @@ def test_aidlc_1차_출처_path_valid() -> None:
 
 def test_aidlc_artifact_count_matches() -> None:
     """AIDLC 1차 출처가 9 artifact 모두 정의 (step 2-10)."""
-    aidlc_path = Path("/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md")
+    aidlc_path = Path.home() / "repos" / "aidlc-workflows" / "aidlc-rules" / "aws-aidlc-rule-details" / "inception" / "reverse-engineering.md"
     if not aidlc_path.exists():
         return
     content = aidlc_path.read_text(encoding="utf-8")

@@ -16,7 +16,7 @@ active_reason: "draft → active (commit 2916d49 + cross-channel 동기화 완�
 AWS AIDLC(AI-DLC, AI-Driven Development Life Cycle) 워크플로우의 설계 철학과 메커니즘을 벤치마킹하여, 우리 `standard_ai_workflow_minimax` (v0.6.3-beta) 의 보완 후보를 도출한다.
 
 - **레퍼런스**: `https://github.com/awslabs/aidlc-workflows` (commit `b19c819`, 2026-06-08)
-- **체크아웃 위치**: `/Users/yklee/repos/aidlc-workflows/`
+- **체크아웃 위치**: `~/repos/aidlc-workflows/`
 - **분석 일자**: 2026-06-12
 - **분석자**: Mavis (yklee 의뢰)
 - **분석 모드**: 풀 벤치마크 (yklee 명시)
@@ -271,26 +271,26 @@ AWS AIDLC(AI-DLC, AI-Driven Development Life Cycle) 워크플로우의 설계 �
 ## 7. 검증 방법 (analyst's evidence)
 
 본 분석은 다음 파일들을 직접 읽고 1차 출처 기반으로 작성됨:
-- `/Users/yklee/repos/aidlc-workflows/README.md` (962 lines)
-- `/Users/yklee/repos/aidlc-workflows/AGENTS.md` (182 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rules/core-workflow.md` (539 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/workspace-detection.md` (97 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/requirements-analysis.md` (190 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/units-generation.md` (188 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/workflow-planning.md` (469 lines, 1-120 read)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` (217 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/process-overview.md` (141 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/depth-levels.md` (73 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md` (369 lines)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md` (307 lines, 1-80 read)
-- `/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.opt-in.md` (20 lines)
-- `/Users/yklee/repos/aidlc-workflows/docs/GENERATED_DOCS_REFERENCE.md` (102 lines)
+- `~/repos/aidlc-workflows/README.md` (962 lines)
+- `~/repos/aidlc-workflows/AGENTS.md` (182 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rules/core-workflow.md` (539 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/workspace-detection.md` (97 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/requirements-analysis.md` (190 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/units-generation.md` (188 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/workflow-planning.md` (469 lines, 1-120 read)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` (217 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/process-overview.md` (141 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/depth-levels.md` (73 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md` (369 lines)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md` (307 lines, 1-80 read)
+- `~/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.opt-in.md` (20 lines)
+- `~/repos/aidlc-workflows/docs/GENERATED_DOCS_REFERENCE.md` (102 lines)
 
 우리 측:
-- `/Users/yklee/repos/standard_ai_workflow_minimax/README.md` (329 lines)
-- `/Users/yklee/repos/standard_ai_workflow_minimax/QUICKSTART.md` (139 lines)
-- `/Users/yklee/repos/standard_ai_workflow_minimax/workflow-source/core/global_workflow_standard.md` (149 lines)
-- `/Users/yklee/repos/standard_ai_workflow_minimax/workflow-source/core/workflow_task_modes.md` (65 lines)
+- `~/repos/standard_ai_workflow_minimax/README.md` (329 lines)
+- `~/repos/standard_ai_workflow_minimax/QUICKSTART.md` (139 lines)
+- `~/repos/standard_ai_workflow_minimax/workflow-source/core/global_workflow_standard.md` (149 lines)
+- `~/repos/standard_ai_workflow_minimax/workflow-source/core/workflow_task_modes.md` (65 lines)
 
 ## 8. 다음 단계
 

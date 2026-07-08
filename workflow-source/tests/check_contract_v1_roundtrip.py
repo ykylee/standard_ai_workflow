@@ -84,7 +84,7 @@ def _build_sample_input() -> dict[str, object]:
         "context": {
             "branch": "release/v0.5.4",
             "memory_layer_root": "ai-workflow/memory/release/v0.5.4/",
-            "project_root": "/Users/yklee/repos/standard_ai_workflow_minimax",
+            "project_root": "~/repos/standard_ai_workflow_minimax",
         },
     }
 

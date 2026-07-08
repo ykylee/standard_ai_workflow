@@ -26,7 +26,8 @@ from workflow_kit.common.contracts.stage_gate_runtime import (  # noqa: E402
     merge_into_result,
 )
 
-REPO_ROOT = Path("/Users/yklee/repos/standard_ai_workflow_minimax")
+# Linux/macOS 호환: $HOME 기반 경로. tools/*.py 의 _LEGACY_REPO_ROOT 와 동일 패턴.
+REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
 
 
 # --- Test 1: ensure_stage_completion 자동 생성 ---

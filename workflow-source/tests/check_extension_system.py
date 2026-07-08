@@ -284,7 +284,7 @@ def test_opt_in_state_schema() -> None:
 
 def test_aidlc_1차_출처_path_valid() -> None:
     """AIDLC 1차 출처 (security + testing) cross-reference 검증."""
-    aidlc_root = Path("/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details")
+    aidlc_root = Path.home() / "repos" / "aidlc-workflows" / "aidlc-rules" / "aws-aidlc-rule-details"
     if not aidlc_root.exists():
         return  # SSOT 외부 — skip
     for ext in EXTENSIONS:
@@ -296,7 +296,7 @@ def test_aidlc_1차_출처_path_valid() -> None:
 
 def test_aidlc_artifact_count() -> None:
     """AIDLC 1차 출처의 3 extension 모두 존재 (security + testing + resiliency)."""
-    aidlc_root = Path("/Users/yklee/repos/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions")
+    aidlc_root = Path.home() / "repos" / "aidlc-workflows" / "aidlc-rules" / "aws-aidlc-rule-details" / "extensions"
     if not aidlc_root.exists():
         return
     # AIDLC 3종 baseline 모두 존재

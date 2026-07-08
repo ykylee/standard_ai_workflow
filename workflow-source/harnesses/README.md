@@ -19,6 +19,8 @@
 - [gemini-cli/apply_guide.md](./gemini-cli/apply_guide.md)
 - [antigravity/README.md](./antigravity/README.md)
 - [antigravity/apply_guide.md](./antigravity/apply_guide.md)
+- [claude-code/README.md](./claude-code/README.md)
+- [claude-code/apply_guide.md](./claude-code/apply_guide.md)
 
 ## 추후 확장용 템플릿
 

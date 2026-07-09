@@ -1828,6 +1828,83 @@ def cmd_self_recover(args) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Phase 13 AC4+ bidir-link (v0.13.3+, wiki ↔ memory)
+# ---------------------------------------------------------------------------
+
+
+def cmd_bidir_link(args) -> dict:
+    """Phase 13 AC4+ — wiki ↔ memory 양방향 link 자동화 (v0.13.3+).
+
+    default: audit (R-C, read-only).
+    --apply: sync (R-A, memory entry.mentioned_in → wiki related_pages 자동 갱신).
+
+    sync --apply 시 pre-audit (drift 검출) → fix (sync) → post-audit (re-check, 정합 확인)
+    의 1-cycle orchestrator (v0.13.2 self-recover 와 동일 정공법).
+
+    Args (Namespace):
+      workspace_root: workspace root (default: REPO_ROOT.parent)
+      apply: True 면 sync 실행 (destructive, idempotent).
+      json: stdout JSON.
+
+    Returns:
+        dict { mode, audit (post-sync), pre_audit (if apply), sync, summary }
+    """
+    from workflow_kit.common.state.bidir_link import (
+        audit_bidirectional_links,
+        sync_memory_to_wiki,
+    )
+
+    workspace_root = getattr(args, "workspace_root", None)
+    ws = Path(workspace_root) if workspace_root else REPO_ROOT.parent
+
+    pre_audit = audit_bidirectional_links(ws)
+    apply = getattr(args, "apply", False)
+
+    sync = None
+    if apply:
+        sync = sync_memory_to_wiki(ws, dry_run=False)
+        # post-audit: sync 후 정합 확인
+        post_audit = audit_bidirectional_links(ws)
+    else:
+        post_audit = pre_audit
+
+    result = {
+        "mode": "applied" if apply else "audit",
+        "audit": {
+            "total_wiki_pages": post_audit.total_wiki_pages,
+            "total_memory_entries": post_audit.total_memory_entries,
+            "symmetric_links": post_audit.symmetric_links,
+            "asymmetric_count": len(post_audit.asymmetric),
+            "is_symmetric": post_audit.is_symmetric,
+            "asymmetric": [
+                {"memory_entry_id": a.memory_entry_id, "wiki_page": a.wiki_page, "direction": a.direction}
+                for a in post_audit.asymmetric
+            ],
+            "wiki_pages_with_related_memory": post_audit.wiki_pages_with_related_memory,
+            "memory_entries_with_mentioned_wiki": post_audit.memory_entries_with_mentioned_wiki,
+        },
+        "audited_at": post_audit.audited_at,
+    }
+    if apply:
+        result["pre_audit"] = {
+            "asymmetric_count": len(pre_audit.asymmetric),
+            "is_symmetric": pre_audit.is_symmetric,
+        }
+    if sync is not None:
+        result["sync"] = {
+            "mode": sync.mode,
+            "total_changes": sync.total_changes,
+            "summary": sync.summary,
+            "changes": [
+                {"wiki_page": c.wiki_page, "added_paths": c.added_paths,
+                 "already_present": c.already_present}
+                for c in sync.changes
+            ],
+        }
+    return result
+
+
 def cmd_release(args) -> dict:
     """GitHub Release 생성 (gh release create).
 
@@ -1872,7 +1949,8 @@ def cmd_release(args) -> dict:
                  "skip_validate", "skip_cross_verify", "strict_cross_verify",
                  "skip_doc_headers_update", "skip_maturity_matrix_sync",
                  "skip_dashboard_emit", "dashboard_output",
-                 "skip_self_recover"):  # v0.13.2+ Phase 13 AC3
+                 "skip_self_recover",
+                 "skip_bidir_link"):  # v0.13.3+ Phase 13 AC4+
         if not hasattr(args, attr):
             setattr(args, attr, False if attr == "skip_dashboard_emit" else None)
 
@@ -1972,6 +2050,24 @@ def cmd_release(args) -> dict:
                     f"fix 후 release 재실행 또는 --skip-self-recover 로 진행."
                 ),
             })
+
+    # 2.8 Phase 13 AC4+ wiki ↔ memory 양방향 link audit (v0.13.3+).
+    # cmd_bidir_link 의 audit 결과를 results 에 포함 (release note body injection 의 source).
+    # asymmetric > 0 이면 advisory (release 차단 ❌). wiki 갱신은 자동 (R-A) 가능하지만
+    # caller 가 --apply 명시해야 destructive. 본 step 는 default = audit 만.
+    # escape hatch: --skip-bidir-link.
+    if not getattr(args, "skip_bidir_link", False):
+        try:
+            bl_ns = _attr_ns()
+            bl_ns.workspace_root = None  # default = REPO_ROOT.parent
+            bl_ns.apply = False  # release step 은 audit 만 (caller 가 --apply 명시)
+            bl_result = cmd_bidir_link(bl_ns)
+            results["bidir_link_audit"] = bl_result
+        except Exception as exc:  # noqa: BLE001
+            results["bidir_link_audit"] = {
+                "mode": "error",
+                "error": f"{type(exc).__name__}: {exc}",
+            }
 
     # 3.0 drift prevention auto-step (v0.11.23+) — release 시 docs/* / SSOT 자동 동기화.
     # 본 step 는 destructive 하지 않음 (write only on tracked files, atomic_write 보장).
@@ -2194,6 +2290,14 @@ def cmd_release(args) -> dict:
             log_emit = _emit_self_recovery_log(args, recovery_log)
             results["self_recovery_log_emit"] = log_emit
 
+    # 6.6 v0.13.3+ bidir-link audit log emit (Phase 13 AC4+).
+    # results["bidir_link_audit"] 가 있으면 release note 본문 끝에 audit 요약 자동 append.
+    if "bidir_link_audit" in results:
+        bl_log = _format_bidir_link_audit(results["bidir_link_audit"])
+        if bl_log:
+            bl_log_emit = _emit_bidir_link_audit_log(args, bl_log)
+            results["bidir_link_log_emit"] = bl_log_emit
+
     return _attach_release_summary(results)
 
 
@@ -2357,6 +2461,68 @@ def _emit_self_recovery_log(args: argparse.Namespace, recovery_log: str) -> dict
             "status": "ok",
             "path": str(notes_file),
             "bytes_appended": len(recovery_log),
+        }
+    except Exception as e:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
+
+# ---------------------------------------------------------------------------
+# 4.7 Phase 13 AC4+ bidir-link audit log emit (v0.13.3+)
+# ---------------------------------------------------------------------------
+
+
+def _format_bidir_link_audit(audit_result: dict) -> str:
+    """cmd_bidir_link audit dict → release note body markdown 문자열.
+
+    asymmetric_count > 0 이면 비고 (advisory). 0 이면 *대칭* 표시.
+    """
+    audit = audit_result.get("audit") or {}
+    if not audit:
+        return ""
+    lines = ["", "## Bidirectional link audit", ""]
+    is_symmetric = bool(audit.get("is_symmetric"))
+    lines.append(f"_자동 emit (Phase 13 AC4+, {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})_")
+    lines.append("")
+    lines.append(f"- total wiki pages: **{audit.get('total_wiki_pages', 0)}**")
+    lines.append(f"- total memory entries: **{audit.get('total_memory_entries', 0)}**")
+    lines.append(f"- symmetric links: **{audit.get('symmetric_links', 0)}**")
+    lines.append(f"- asymmetric count: **{audit.get('asymmetric_count', 0)}**")
+    lines.append(f"- wiki pages with related memory: **{audit.get('wiki_pages_with_related_memory', 0)}**")
+    lines.append(f"- memory entries with mentioned wiki: **{audit.get('memory_entries_with_mentioned_wiki', 0)}**")
+    lines.append(f"- is_symmetric: **{is_symmetric}**")
+    asymmetric = audit.get("asymmetric") or []
+    if asymmetric:
+        lines.append("")
+        lines.append("### Asymmetric links (advisory)")
+        lines.append("")
+        for a in asymmetric[:20]:  # 최대 20건만 표시
+            lines.append(f"- `{a['direction']}`: `{a['memory_entry_id']}` ↔ `{a['wiki_page']}`")
+        if len(asymmetric) > 20:
+            lines.append(f"- ... and {len(asymmetric) - 20} more")
+    return "\n".join(lines) + "\n"
+
+
+def _emit_bidir_link_audit_log(args: argparse.Namespace, bl_log: str) -> dict:
+    """bidir-link audit log 를 release note 끝에 append (idempotent marker)."""
+    try:
+        version = getattr(args, "version", None) or read_version()
+        notes_resolution = _resolve_notes_file(version, "default", dry_run=False)
+        notes_file = notes_resolution.get("notes_file")
+        if not notes_file or not Path(notes_file).exists():
+            return {"status": "skipped", "reason": "release note not found (backfill scenario)"}
+        body = Path(notes_file).read_text(encoding="utf-8")
+        marker = "## Bidirectional link audit"
+        if marker in body:
+            return {"status": "skipped", "reason": "bidir link audit log already present (idempotent)"}
+        new_body = body.rstrip("\n") + "\n" + bl_log
+        if atomic_write_text is not None:
+            atomic_write_text(notes_file, new_body)
+        else:
+            notes_file.write_text(new_body, encoding="utf-8")
+        return {
+            "status": "ok",
+            "path": str(notes_file),
+            "bytes_appended": len(bl_log),
         }
     except Exception as e:  # noqa: BLE001
         return {"status": "error", "error": f"{type(e).__name__}: {e}"}
@@ -2896,6 +3062,21 @@ def main() -> int:
                        help="default: apply. --dry-run 으로 override")
     p_smm.add_argument("--json", action="store_true")
 
+    # bidir-link (Phase 13 AC4+ — v0.13.3+, wiki ↔ memory 양방향 link sync + audit)
+    p_bl = sub.add_parser(
+        "bidir-link",
+        help=(
+            "Phase 13 AC4+ wiki ↔ memory 양방향 link 자동화. "
+            "default: audit (read-only, R-C). --apply 로 sync (R-A). "
+            "memory entry.mentioned_in → wiki related_pages 자동 갱신."
+        ),
+    )
+    p_bl.add_argument("--workspace-root", dest="workspace_root", default=None,
+                      help="workspace root (default: release --apply 의 cwd)")
+    p_bl.add_argument("--apply", dest="apply", action="store_true", default=False,
+                      help="sync 적용 (R-A, default: audit only)")
+    p_bl.add_argument("--json", action="store_true")
+
     # self-recover (Phase 13 AC3 — v0.13.2+, drift prevention P3)
     p_sr = sub.add_parser(
         "self-recover",
@@ -2935,6 +3116,9 @@ def main() -> int:
     p_rel.add_argument("--skip-self-recover", dest="skip_self_recover",
                        action="store_true", default=False,
                        help="drift prevention: Phase 13 AC3 self-recover step skip (v0.13.2+, manual override 용)")
+    p_rel.add_argument("--skip-bidir-link", dest="skip_bidir_link",
+                       action="store_true", default=False,
+                       help="Phase 13 AC4+: wiki ↔ memory bidir-link audit step skip (v0.13.3+, manual override 용)")
     p_rel.add_argument("--skip-doc-headers-update", dest="skip_doc_headers_update",
                        action="store_true", default=False,
                        help="drift prevention: docs/ - 최종 수정일 헤더 자동 갱신 step skip (v0.11.23+)")
@@ -3025,6 +3209,8 @@ def main() -> int:
         result = cmd_maturity_matrix_sync(args)
     elif args.command == "self-recover":
         result = cmd_self_recover(args)
+    elif args.command == "bidir-link":
+        result = cmd_bidir_link(args)
     elif args.command == "release":
         result = cmd_release(args)
     elif args.command == "verify":

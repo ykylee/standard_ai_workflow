@@ -100,11 +100,21 @@ silent_failing_cycles_count = sum(
   - in-scope fix: sys.path standalone import bug + README_PATH root relative 정정
   - manual_required 2 case (`case_2` Phase status / `case_3` skill stage) — release note 의 `closed_phases` / `promoted_skills` frontmatter 가 제공되어야 fix 가능 (drift-prevention-91-cycle-classification §5 hook 와 후속 cycle 흡수 예정)
 
-#### AC4+. (선택) self-documenting
+#### AC4+. (선택) self-documenting — **v0.13.3 (2026-07-09) close ✅**
 
 - `audit_log_standard.md` §4 의 audit log 가 자동 emit.
 - 위키 / memory 양방향 link 가 자동 갱신 (P2-2).
 - 외부 consumer 가 wiki 의 자동 cross-link 를 *신뢰* 가능.
+- **v0.13.3 bidir-link close-out** (release v0.13.3-beta, 2026-07-09):
+  - `workflow_kit/common/state/bidir_link.py` 신규 (260 line, R-A sync + R-C audit 통합)
+  - `cmd_bidir_link` dispatcher subcommand 38 (`--apply` / `--json` flag, default = audit only)
+  - `cmd_release` step 2.8 — sync-maturity-matrix 후 bidir-link audit 자동 호출 (advisory only, `--skip-bidir-link` escape hatch)
+  - release note 본문에 `## Bidirectional link audit` 섹션 자동 append (idempotent marker)
+  - `check_bidir_link_v0_13_3.py` 6/6 PASS (audit shape / path normalization / dry-run / sync apply / re-audit / format)
+  - mypy strict 0 new error (21→21 errors 유지)
+  - drift prevention 6/6 PASS (clean state)
+  - **audit 실측**: `is_symmetric=true`, `asymmetric_count=0` (1 memory entry × 1 wiki page symmetric link)
+  - **R-B (Wiki → Memory reverse lookup)** 별도 sub-milestone (v0.13.4+ 후속)
 
 ### 2.4 검증 helper (제안)
 

@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-09T01:56:24Z`
-- tool_version: `v0.11.25-beta`
+- generated_at: `2026-07-09T04:48:11Z`
+- tool_version: `v0.13.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -73,8 +73,8 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `40`
-- cumulative_pass: `40`
+- cumulative_total: `41`
+- cumulative_pass: `41`
 - cumulative_pass_rate: `1.0000`
 - smoke_files_count: `171`
 
@@ -82,6 +82,7 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v0.13.0 | 41 | 41 |
 | Beta-v0.11.25 | 40 | 40 |
 | Beta-v0.11.24 | 40 | 40 |
 

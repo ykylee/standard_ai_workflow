@@ -71,11 +71,19 @@ silent_failing_cycles_count = sum(
 - 신규 추가 case (P1-3 §5.2 의 5 hook 후보) 가 모두 PASS.
 - silent_failing_cycles_count = 0 (연속 N release 동안).
 
-#### AC2. memory_index 활용도 (P1)
+#### AC2. memory_index 활용도 (P1) — **v0.13.1 (2026-07-09) close ✅**
 
 - 3 skill (session-start / doc-sync / backlog-update) 의 opt-in retrieval wiring 의 *실제 호출 횟수* 가 측정 가능.
 - 최소 사용 baseline: 1 release = 1+ retrieval 호출 (audit / retrospective 시).
 - memory_index entry 갯수가 누적 증가 추세.
+- **v0.13.1 telemetry sidecar 인프라** (release v0.13.1-beta, 2026-07-09):
+  - `ai-workflow/memory/active/memory_index/telemetry/events.jsonl` 에 3 skill + dispatcher 의 opt-in retrieval 호출 자동 emit
+  - `MemoryIndexTelemetryEvent` + `MemoryIndexTelemetrySummary` 2 schema
+  - `append_telemetry_event` (in-process lock + JSONL append) + `summarize_telemetry` (JSONL parse + malformed skip + error-flag skip)
+  - dashboard panel 3 의 `retrieval_hit_rate: 0.0` placeholder → 실측값 전환 (`retrieval_hit_rate_source: memory_index_telemetry_v0_13_1`)
+  - `cmd_memory_index_telemetry` subcommand 36 (read-only inspect, --json / --show-events)
+  - `check_memory_index_telemetry.py` 6/6 PASS (1 emit / 2-hit-1-miss / by_source / malformed skip / graceful empty / concurrent append 10 line 보존)
+  - mypy strict 0 new error + drift prevention 6/6 PASS + 3 skill smoke 3/3 PASS
 
 #### AC3. self-recovering (P2)
 
@@ -94,7 +102,7 @@ silent_failing_cycles_count = sum(
 | helper | 위치 | 검증 |
 |---|---|---|
 | `check_silent_failing_cycles.py` | `workflow-source/tests/check_silent_failing_cycles_v0_13_0.py` | N release 동안 drift prevention smoke 가 fail 한 적이 0 회 |
-| `check_memory_index_utilization.py` | 신규 | 3 skill 의 opt-in 호출 횟수 ≥ baseline |
+| `check_memory_index_utilization.py` | **v0.13.1 구현**: `workflow-source/tests/check_memory_index_telemetry.py` | 3 skill + dispatcher 의 opt-in 호출 ≥ baseline + by_source 분해 + error path 음성 예제 보존 |
 | `check_self_recovering.py` | 신규 | drift 발견 → fix 까지 cycle ≤ 1 release |
 | `tools/release_pipeline.py` enhancement | `release --apply` | changelog-gen / sync-maturity-matrix / docs-snapshot 자동 호출 |
 

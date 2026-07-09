@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Final
 
-from workflow_kit.common.atomic_write import atomic_write_json
+from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
 from workflow_kit.common.schemas.base import Status
 from workflow_kit.common.schemas.memory_index import (
     MemoryEntry,
@@ -26,6 +26,8 @@ from workflow_kit.common.schemas.memory_index import (
     MemoryIndexQuery,
     MemoryIndexQueryOutput,
     MemoryIndexQueryResult,
+    MemoryIndexTelemetryEvent,
+    MemoryIndexTelemetrySummary,
     MemoryIndexValidationIssue,
     MemoryIndexValidationOutput,
     MemoryMergeRequest,
@@ -45,6 +47,8 @@ except ImportError:  # pragma: no cover - editable install fallback
 ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^MEM-\d{4}-\d{2}-\d{2}-\d{3}$")
 MEMORY_INDEX_SUBDIR: Final[str] = "memory_index"
 ENTRIES_SUBDIR: Final[str] = "entries"
+TELEMETRY_SUBDIR: Final[str] = "telemetry"
+TELEMETRY_FILE: Final[str] = "events.jsonl"
 
 
 # --- Path helpers ---
@@ -65,6 +69,19 @@ def entries_dir(memory_index: Path | None = None, *, workspace_root: Path | None
             raise ValueError("either memory_index or workspace_root required")
         memory_index = memory_index_root(workspace_root)
     return memory_index / ENTRIES_SUBDIR
+
+
+def telemetry_dir(workspace_root: Path) -> Path:
+    """`memory_index/telemetry/` 경로 (sibling of entries/).
+
+    Phase 13 AC2 telemetry sidecar 위치. `events.jsonl` 1 file 로 모든 retrieval call 기록.
+    """
+    return memory_index_root(workspace_root) / TELEMETRY_SUBDIR
+
+
+def telemetry_path(workspace_root: Path) -> Path:
+    """`memory_index/telemetry/events.jsonl` 절대 경로."""
+    return telemetry_dir(workspace_root) / TELEMETRY_FILE
 
 
 def make_id(memory_index: Path, today: str | None = None) -> str:
@@ -577,3 +594,136 @@ def apply_memory_merge(
         mentioned_in=mentioned_in,
         warnings=warnings,
     )
+
+
+# --- Phase 13 AC2: telemetry sidecar (v0.13.1+) ---
+
+
+def append_telemetry_event(
+    workspace_root: Path,
+    event: MemoryIndexTelemetryEvent,
+) -> Path:
+    """memory_index retrieval 1 호출의 event 를 `telemetry/events.jsonl` 에 1 line append.
+
+    - file 부재 시 parent dir 자동 생성.
+    - JSON encode + newline 1 개 terminator (POSIX `text` mode).
+    - in-process lock (`threading.Lock`) 으로 동시 append 시 line race 방지.
+    - 본 helper 는 caller (3 skill + dispatcher subcommand) 의 *zero-effort* 호출이
+      정공법 — try/except 로 wrap 하여 retrieval 본체 실패가 와도 telemetry 자체가
+      깨지면 안 되므로, 본 helper 자체는 OSError 시 silent return + stderr 경고.
+
+    Returns:
+        telemetry events.jsonl Path (caller 가 commit 시 참조 가능).
+    """
+    import sys as _sys
+    import threading as _threading
+
+    target = telemetry_path(workspace_root)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    payload = event.model_dump(mode="json")
+    line = json.dumps(payload, ensure_ascii=False) + "\n"
+
+    # in-process lock — concurrent emit (3 skill 이 동시에 실행될 가능성) 시
+    # line race 방지. cross-process 동시성은 best-effort (crash-safe 는 consumer_metrics
+    # 의 open("a") + write + flush 패턴과 동일 정공법).
+    lock_attr = "_memory_index_telemetry_lock"
+    lock = getattr(append_telemetry_event, lock_attr, None)
+    if lock is None:
+        lock = _threading.Lock()
+        setattr(append_telemetry_event, lock_attr, lock)
+    with lock:
+        try:
+            with target.open("a", encoding="utf-8") as fp:
+                fp.write(line)
+                fp.flush()
+        except OSError as e:
+            # telemetry 부재가 retrieval 본체를 깨면 안 됨 (zero-risk default).
+            print(
+                f"WARN: memory_index telemetry append 실패: {type(e).__name__}: {e}",
+                file=_sys.stderr,
+            )
+    return target
+
+
+def _read_telemetry_events(tp: Path) -> tuple[list[MemoryIndexTelemetryEvent], int]:
+    """`events.jsonl` 의 모든 line 을 parse. malformed line skip + 카운트.
+
+    Returns:
+        (parsed events, skipped line count).
+    """
+    events: list[MemoryIndexTelemetryEvent] = []
+    skipped = 0
+    if not tp.exists():
+        return events, 0
+    try:
+        text = tp.read_text(encoding="utf-8")
+    except OSError:
+        return events, 0
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError:
+            skipped += 1
+            continue
+        try:
+            events.append(MemoryIndexTelemetryEvent.model_validate(data))
+        except Exception:
+            skipped += 1
+            continue
+    return events, skipped
+
+
+def summarize_telemetry(workspace_root: Path) -> MemoryIndexTelemetrySummary:
+    """`telemetry/events.jsonl` 의 read-time 집계.
+
+    - file 부재 / empty → total_calls=0, hit_rate=0.0 graceful return.
+    - malformed line skip → events_skipped 증가, events_parsed 불변.
+    - by_source 분해: source 별 {calls, hits} dict.
+    - first_event_at / last_event_at: 가장 이른/늦은 timestamp 의 ISO 8601 repr.
+    - hit 정의: selected_count > 0 (어떤 단계든 1+ entry 가 retrieval 됨).
+    """
+    tp = telemetry_path(workspace_root)
+    events, skipped = _read_telemetry_events(tp)
+
+    total_calls = len(events)
+    total_hits = sum(1 for e in events if e.selected_count > 0 and not e.error)
+    hit_rate = (total_hits / total_calls) if total_calls else 0.0
+
+    by_source: dict[str, dict[str, int]] = {}
+    for e in events:
+        bucket = by_source.setdefault(e.source, {"calls": 0, "hits": 0})
+        bucket["calls"] += 1
+        if e.selected_count > 0 and not e.error:
+            bucket["hits"] += 1
+
+    first_event_at = ""
+    last_event_at = ""
+    if events:
+        timestamps = [e.timestamp for e in events]
+        first_event_at = min(timestamps).isoformat()
+        last_event_at = max(timestamps).isoformat()
+
+    return MemoryIndexTelemetrySummary(
+        total_calls=total_calls,
+        total_hits=total_hits,
+        hit_rate=hit_rate,
+        by_source=by_source,
+        first_event_at=first_event_at,
+        last_event_at=last_event_at,
+        events_parsed=total_calls,
+        events_skipped=skipped,
+    )
+
+
+def read_telemetry_events(workspace_root: Path) -> list[MemoryIndexTelemetryEvent]:
+    """telemetry events 의 raw list (subcommand `--show-events` 용).
+
+    malformed line 은 skip. caller 가 timestamp 별 sort 필요 시 자체 처리.
+    """
+    tp = telemetry_path(workspace_root)
+    events, _ = _read_telemetry_events(tp)
+    return events

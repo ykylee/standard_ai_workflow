@@ -73,6 +73,7 @@ def _build_memory_index_query_output(
     - 둘 다 미지정 → None (zero-risk skip).
     - 한쪽만 지정 → advisory emit + None.
     - 둘 다 지정 → helper 호출, `MemoryIndexQueryOutput` dict 변환 후 emit.
+    - v0.13.1+ Phase 13 AC2: retrieval 성공/실패 후 telemetry sidecar 에 1 event append.
     """
     if not args.memory_index_dir and not args.memory_query_tokens:
         return None
@@ -88,25 +89,68 @@ def _build_memory_index_query_output(
             "memory_index wiring: --memory-query-tokens 가 비어있음. retrieval skip."
         )
         return None
+
+    from datetime import datetime as _dt, timezone as _tz
+    from workflow_kit.common.state.memory_index import (
+        MemoryIndexTelemetryEvent,
+        append_telemetry_event,
+        query_memory_index_for_dispatcher,
+    )
+    target = project_root
     try:
-        from workflow_kit.common.state.memory_index import (
-            query_memory_index_for_dispatcher,
+        memory_index_dir.relative_to(project_root)
+        # subdir — project_root 그대로 사용 (helper 내부 `memory_index_root(<root>)` 자동 계산)
+    except ValueError:
+        warnings.append(
+            "memory_index wiring: --memory-index-dir 가 project_root 외부. "
+            "Phase 3d/ws 외부 정공법은 후속 release."
         )
-        target = project_root
-        try:
-            memory_index_dir.relative_to(project_root)
-            # subdir — project_root 그대로 사용 (helper 내부 `memory_index_root(<root>)` 자동 계산)
-        except ValueError:
-            warnings.append(
-                "memory_index wiring: --memory-index-dir 가 project_root 외부. "
-                "Phase 3d/ws 외부 정공법은 후속 release."
-            )
-            return None
+        # Phase 13 AC2: 외부 dir 도 telemetry emit (negative example).
+        append_telemetry_event(
+            project_root,
+            MemoryIndexTelemetryEvent(
+                timestamp=_dt.now(_tz.utc),
+                source="doc-sync",
+                workspace_root=str(project_root),
+                query_tokens_count=len(query_tokens),
+                error=True,
+            ),
+        )
+        return None
+    try:
         result = query_memory_index_for_dispatcher(target, query_tokens)
+        # Phase 13 AC2: telemetry emit (success path).
+        append_telemetry_event(
+            project_root,
+            MemoryIndexTelemetryEvent(
+                timestamp=_dt.now(_tz.utc),
+                source="doc-sync",
+                workspace_root=str(project_root),
+                query_tokens_count=len(query_tokens),
+                selected_count=result.selected_count,
+                cue_hits=result.cue_hits,
+                bm25_hits=result.bm25_hits,
+                expansion_hits=result.expansion_hits,
+                top_k=10,
+                max_depth=2,
+                use_bm25_fallback=False,
+            ),
+        )
         return result.model_dump(mode="json")
     except Exception as e:
         warnings.append(
             f"memory_index wiring: retrieval 실패 ({type(e).__name__}: {e}). doc-sync 본체는 계속 진행."
+        )
+        # Phase 13 AC2: 예외 path 도 telemetry emit (negative example).
+        append_telemetry_event(
+            project_root,
+            MemoryIndexTelemetryEvent(
+                timestamp=_dt.now(_tz.utc),
+                source="doc-sync",
+                workspace_root=str(project_root),
+                query_tokens_count=len(query_tokens),
+                error=True,
+            ),
         )
         return None
 

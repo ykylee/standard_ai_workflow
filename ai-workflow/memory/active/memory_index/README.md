@@ -1,9 +1,9 @@
 # Memory Index (ADR-005 Phase 1)
 
-- 문서 목적: ADR-005 Memora-inspired Memory Index 의 *seed layer* 디렉토리. session-start / doc-sync / backlog-update 의 opt-in retrieval wiring (v0.11.22+ Phase 3b/c/d) 의 실 데이터 보존.
-- 범위: `entries/` 디렉토리 + 본 README + 스키마. 1 entry = 1 JSON file.
+- 문서 목적: ADR-005 Memora-inspired Memory Index 의 *seed layer* 디렉토리. session-start / doc-sync / backlog-update 의 opt-in retrieval wiring (v0.11.22+ Phase 3b/c/d) 의 실 데이터 보존. Phase 13 AC2 telemetry sidecar (v0.13.1+).
+- 범위: `entries/` + `telemetry/` 디렉토리 + 본 README + 스키마. entries 1 file = 1 MemoryEntry. telemetry 1 line = 1 retrieval call.
 - 대상 독자: AI agent (memory retrieval), maintainer
-- 상태: stable (seed: 2026-07-09)
+- 상태: stable (seed: 2026-07-09, telemetry wired: 2026-07-09 v0.13.1)
 - 최종 수정일: 2026-07-09
 - 관련 문서:
   - [ADR-005](../../../../workflow-source/docs/architecture/ADR-005-memora-inspired-memory-index.md) (architecture spec)
@@ -15,15 +15,22 @@
 ```
 memory_index/
 ├── README.md          # 본 문서
-└── entries/
-    ├── MEM-YYYY-MM-DD-001.json
-    ├── MEM-YYYY-MM-DD-002.json
-    └── ...
+├── entries/
+│   ├── MEM-YYYY-MM-DD-001.json
+│   ├── MEM-YYYY-MM-DD-002.json
+│   └── ...
+└── telemetry/         # v0.13.1+ Phase 13 AC2 (memory_index 활용도 측정)
+    ├── .gitkeep
+    └── events.jsonl   # opt-in retrieval 호출 누적 (1 line 1 event)
 ```
 
 - `entries/*.json` 1 file = 1 MemoryEntry (ADR-005 §2).
 - id 형식: `MEM-YYYY-MM-DD-NNN` (NNN = 같은 날짜에서 001~ 단조 증가).
 - 신규 entry 생성: helper `save_memory_entry(<workspace_root>, <entry>)` (Pydantic validate + atomic_write_json) 사용 권장.
+- `telemetry/events.jsonl` 1 line = 1 retrieval 호출 (Phase 13 AC2 telemetry sidecar).
+  schema: `MemoryIndexTelemetryEvent` (`workflow_kit/common/schemas/memory_index.py`).
+  자동 emit: 3 skill (session-start / doc-sync / backlog-update) + dispatcher `memory-index-query`.
+  read: `summarize_telemetry(workspace_root)` 또는 `cmd_memory_index_telemetry` subcommand 36.
 
 ## 2. Seed entries (2026-07-09)
 

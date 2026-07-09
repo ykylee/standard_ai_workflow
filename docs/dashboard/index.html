@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quality Dashboard · v0.13.0-beta</title>
+  <title>Quality Dashboard · v0.13.1-beta</title>
   <style>
 :root {
   color-scheme: light dark;
@@ -46,15 +46,15 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-09T04:49:19Z</code> · tool_version: <code>v0.13.0-beta</code></p>
-    <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
+    <p class="meta">generated_at: <code>2026-07-09T05:31:24Z</code> · tool_version: <code>v0.13.1-beta</code></p>
+    <p class="meta">workspace: <code>.</code></p>
   </header>
   <main>
   <section class="panel">
     <h2>Panel 1 — Drift Prevention Status</h2>
-    <p>guard_status: <span class="stat pass">pass</span></p>
-    <p>guard: 6/6 pass (expected 6)</p>
-    <p>guard_runtime_ms: 37</p>
+    <p>guard_status: <span class="stat unknown">unknown</span></p>
+    <p>guard: 0/6 pass (expected 6)</p>
+    <p>guard_runtime_ms: 0</p>
     <p>maturity_last_updated: <code>2026-07-09</code></p>
     <p>head_commit_date: <code>2026-07-09</code></p>
     <p>last_updated_delta_days: 0</p>
@@ -81,7 +81,8 @@ ul.timeline { padding-left: 1.2rem; }
     <p class="meta">total entries · unique cue anchors: 40</p>
     <p class="meta">first_entry_date: <code>2026-07-09</code></p>
     <p class="meta">last_entry_date: <code>2026-07-09</code></p>
-    <p class="meta">retrieval_hit_rate: 0.0000 (Phase 13 AC2 — pending telemetry)</p>
+    <p class="meta">retrieval_hit_rate: <strong>1.0000</strong> (Phase 13 AC2 telemetry)</p>
+    <p class="meta">telemetry calls/hits: 1/1 · by_source: dispatcher:calls=1,hits=1</p>
     <p class="meta">by merge_state: active=7</p>
     <canvas id="chart-memory" height="160"></canvas>
   </section>
@@ -89,7 +90,7 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 4 — Smoke Trend</h2>
     <p class="stat pass">41/41</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
-    <p class="meta">smoke test files: 171</p>
+    <p class="meta">smoke test files: 172</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">

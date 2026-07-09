@@ -59,7 +59,9 @@
         "v0.11.19~v0.11.21 (3 batch): 11 skill → 9 stable + 2 beta + 1 alpha (session-start, doc-sync, validation-plan, code-index-update, backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment, robust-patcher 모두 stable; automated-repro-scaffold, git-conflict-resolver 가 남은 2 beta + 1 alpha)",
         "v0.11.22 (in release): ADR-005 Memora-inspired Memory Index Phase 1~3d 8 release 완료 (prototype + state.json hook + --merge opt-in + BM25 stdlib fallback + dispatcher entry + 3 skill opt-in wiring)",
         "ADR-006: ADR-005 Memory Index retrospective 자리 박기 (회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성)",
-        "CodeWhale harness (v0.10.4, 2026-07-03): 10번째 하네스, 단일 SKILL.md overlay (Constitution 보강)"
+        "CodeWhale harness (v0.10.4, 2026-07-03): 10번째 하네스, 단일 SKILL.md overlay (Constitution 보강)",
+        "v0.13.0 (772ae09): Phase 13 Operational Intelligence v1.0 1차 deliverable — Quality Dashboard 5 panel (drift prevention / maturity distribution / memory_index utilization / smoke trend / recent release) + CLI --format json|markdown|html + drift guard inline (40ms 내) + release post-emit hook (gh release create 성공 시 dashboard markdown 자동 emit)",
+        "v0.13.1 (telemetry wiring commit, 2026-07-09): Phase 13 AC2 memory_index telemetry sidecar close — 3 skill (session-start / doc-sync / backlog-update) + dispatcher `memory-index-query` 의 opt-in retrieval 호출 자동 telemetry emit (JSONL append-only) + dashboard panel 3 의 `retrieval_hit_rate` placeholder → 실측값 전환 + `cmd_memory_index_telemetry` subcommand 36 (read-only inspect) + drift prevention 6/6 PASS + mypy 0 new error"
       ]
     }
   },

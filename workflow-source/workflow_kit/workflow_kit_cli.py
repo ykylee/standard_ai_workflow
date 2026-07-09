@@ -3,7 +3,7 @@ extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
 cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
 score-wiki-trend, v0.7.56 with okf-cleanup / cache-prune + score-wiki-trend
 in-process, v0.7.57 with cache-merge-multi / cache-import-csv / cache-export-json,
-v0.9.6 with refresh-purpose, v0.13.0-dev with dashboard).
+v0.9.6 with refresh-purpose, v0.13.0-dev with dashboard, v0.13.1 with memory-index-telemetry).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -1850,6 +1850,8 @@ def cmd_memory_index_query(argv: list[str]) -> int:
     try:
         from workflow_kit.common.schemas.memory_index import MemoryIndexQueryOutput
         from workflow_kit.common.state.memory_index import (
+            MemoryIndexTelemetryEvent,
+            append_telemetry_event,
             query_memory_index_for_dispatcher,
         )
         result: MemoryIndexQueryOutput = query_memory_index_for_dispatcher(
@@ -1858,6 +1860,24 @@ def cmd_memory_index_query(argv: list[str]) -> int:
             top_k=top_k,
             max_depth=max_depth,
             use_bm25_fallback=use_bm25,
+        )
+        # v0.13.1+ Phase 13 AC2: telemetry sidecar emit (dispatcher source)
+        from datetime import datetime as _dt, timezone as _tz
+        append_telemetry_event(
+            _P(workspace_root),
+            MemoryIndexTelemetryEvent(
+                timestamp=_dt.now(_tz.utc),
+                source="dispatcher",
+                workspace_root=str(_P(workspace_root)),
+                query_tokens_count=len(query_tokens),
+                selected_count=result.selected_count,
+                cue_hits=result.cue_hits,
+                bm25_hits=result.bm25_hits,
+                expansion_hits=result.expansion_hits,
+                top_k=top_k,
+                max_depth=max_depth,
+                use_bm25_fallback=use_bm25,
+            ),
         )
         if use_json:
             payload = result.model_dump(mode="json")
@@ -1870,6 +1890,89 @@ def cmd_memory_index_query(argv: list[str]) -> int:
             print(f"expansion_hits: {result.expansion_hits}")
             print(f"expansion_depth_used: {result.expansion_depth_used}")
             print(f"selected_ids: {','.join(result.selected_ids) or '<empty>'}")
+        return 0
+    except Exception as e:
+        # v0.13.1+ Phase 13 AC2: 예외 path 도 telemetry emit (negative example)
+        try:
+            from workflow_kit.common.schemas.memory_index import MemoryIndexTelemetryEvent as _MTE
+            from workflow_kit.common.state.memory_index import append_telemetry_event as _ate
+            from datetime import datetime as _dt2, timezone as _tz2
+            _ate(
+                _P(workspace_root),
+                _MTE(
+                    timestamp=_dt2.now(_tz2.utc),
+                    source="dispatcher",
+                    workspace_root=str(_P(workspace_root)),
+                    query_tokens_count=len(query_tokens),
+                    error=True,
+                ),
+            )
+        except Exception:
+            pass
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("memory-index-telemetry")
+def cmd_memory_index_telemetry(argv: list[str]) -> int:
+    """v0.13.1+ Phase 13 AC2: memory_index telemetry sidecar 의 read-only inspect.
+
+    ARGS:
+      --workspace-root <path>  (필수) memory_index/ 가 있는 workspace.
+      --json                   stdout JSON, 없으면 human-readable text.
+      --show-events            (--json 과 배타적) telemetry events raw list (newline-separated JSON).
+
+    Subcommand 36 (read-only, §6.3 MUST-NOT-delegate 정합).
+    호출 빈도 측정 (3 skill + dispatcher 의 opt-in retrieval 활용도) 의 SSOT.
+    """
+    import json as _json
+    from pathlib import Path as _P
+
+    workspace_root = _parse_flag(argv, "--workspace-root")
+    use_json = _has_flag(argv, "--json")
+    show_events = _has_flag(argv, "--show-events")
+
+    if not workspace_root:
+        print(
+            "ERROR: --workspace-root 는 필수입니다.",
+            file=sys.stderr,
+        )
+        return 2
+    if use_json and show_events:
+        print(
+            "ERROR: --json 와 --show-events 는 배타적입니다.",
+            file=sys.stderr,
+        )
+        return 2
+
+    try:
+        from workflow_kit.common.state.memory_index import (
+            read_telemetry_events,
+            summarize_telemetry,
+        )
+        ws = _P(workspace_root)
+        if show_events:
+            events = read_telemetry_events(ws)
+            for ev in events:
+                print(_json.dumps(ev.model_dump(mode="json"), ensure_ascii=False))
+            return 0
+        summary = summarize_telemetry(ws)
+        if use_json:
+            print(_json.dumps(summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
+        else:
+            print(f"total_calls: {summary.total_calls}")
+            print(f"total_hits: {summary.total_hits}")
+            print(f"hit_rate: {summary.hit_rate:.4f}")
+            print(f"by_source:")
+            if summary.by_source:
+                for source, bucket in sorted(summary.by_source.items()):
+                    print(f"  {source}: calls={bucket['calls']} hits={bucket['hits']}")
+            else:
+                print("  (none)")
+            print(f"first_event_at: {summary.first_event_at or '<empty>'}")
+            print(f"last_event_at: {summary.last_event_at or '<empty>'}")
+            print(f"events_parsed: {summary.events_parsed}")
+            print(f"events_skipped: {summary.events_skipped}")
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)

@@ -4,7 +4,7 @@
 - 범위: 인덱스 항목, 백로그 경로 규약, 갱신 규칙
 - 대상 독자: AI agent, 저장소 maintainer
 - 상태: stable
-- 최종 수정일: 2026-07-09 (audit-follow-up: P0 3 + P1 3 + P2 4 = 10건 후보 일괄 해소 entry 추가)
+- 최종 수정일: 2026-07-09 (v0.13.1 release entry 추가: Phase 13 AC2 telemetry sidecar close-out)
 - 관련 문서: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), 브랜치별 daily backlog (각 브랜치 디렉터리 아래 `backlog/YYYY-MM-DD.md`)
 
 ## 인덱스 규칙
@@ -16,6 +16,9 @@
 - **세션 종료 절차는 [`../../workflow-source/core/global_workflow_standard.md`](../../workflow-source/core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서**
 
 ## 최근 작업 백로그
+
+### [[release/v0.13.1/backlog/2026-07-09.md]] {#release-v0-13-1}
+- 2026-07-09: v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의 Panel 3 placeholder (`pending_phase_13_ac2_telemetry`) → 실측값 전환. **3 deliverable**: (1) Telemetry sidecar 인프라 — `MemoryIndexTelemetryEvent` + `MemoryIndexTelemetrySummary` 2 schema + `append_telemetry_event` (in-process lock + open("a") + flush) + `summarize_telemetry` (JSONL parse + malformed skip + error-flag skip) + `read_telemetry_events` 6 helper; (2) 3 skill + dispatcher 자동 wiring (4 source × 4 path = 12 emit point, output schema 변경 ❌); (3) Dashboard Panel 3 placeholder → 실측값 + by_source 분해 표시. **신규 subcommand**: `memory-index-telemetry` (subcommand 36, read-only) + `--json` / `--show-events` flag. **신규 smoke**: `check_memory_index_telemetry.py` 6/6 PASS (1 emit / 2-hit-1-miss / by_source / malformed skip / graceful empty / concurrent append). **housekeeping**: samples 24 file tool_version v0.11.20-beta → v0.13.1-beta + schemas regen 23 family + dashboard HTML regen + pyproject 0.13.1 + __init__.py loud fallback v0.13.1-beta + README header sync + maturity_matrix v0.13.0+v0.13.1 2줄. **검증**: drift prevention 6/6 PASS + mypy strict 0 new error (8 pre-existing) + 3 skill smoke 3/3 + quality dashboard 10/10 + memory_index 25/25 + output samples/schema validation 3/3 + memory freeze lint PASS. **누적 smoke 211+ PASS**. 산출물: 3 신규 file (smoke + .gitkeep + release note) + 12 수정 + 5 housekeeping. breaking change: ❌.
 
 ### [[active/session_analysis_2026-07-09.md]] {#active-session-analysis-2026-07-09}
 - 2026-07-09: 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP beta=4 / 10 harness / mypy 109 file clean). P0 3건 (project_status_assessment.md §2 점수 / PROJECT_PROFILE.md self-dogfood / memory_index/ 디렉토리 실재성) + P1 3건 (ADR-006 retrospective / MCP beta 승격 로드맵 / drift 91-cycle 사례 분류) + P2 4건 (Phase 13 정의 / wiki-memory 양방향 link / quality dashboard / automated-repro-scaffold AI 연동 강화). 산출물: `ai-workflow/memory/active/session_analysis_2026-07-09.md` (단기) + `ai-workflow/wiki/topics/workflow-audit-2026-07-09.md` (영구). state.json recent_done_items 1줄 추가. 다음 세션 권장 작업: P0 빠른 정리부터.

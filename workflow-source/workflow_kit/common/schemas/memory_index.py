@@ -127,6 +127,55 @@ class MemoryIndexQueryOutput(BaseOutput):
     source_context: dict[str, Any] = Field(default_factory=dict)
 
 
+# --- Phase 13 AC2: telemetry sidecar (v0.13.1+) ---
+
+
+class MemoryIndexTelemetryEvent(BaseModel):
+    """memory_index retrieval 1 호출의 telemetry row.
+
+    3 skill (session-start / doc-sync / backlog-update) + dispatcher subcommand 가
+    retrieval 성공/실패 후 본 event 를 `telemetry/events.jsonl` 에 1 line append.
+    dashboard panel 3 가 read-time 에 stream parse 해서 hit rate 집계.
+
+    `selected_count > 0` 이면 hit (어떤 단계든 1+ entry 가 retrieval 됨).
+    """
+    timestamp: datetime = Field(..., description="UTC ISO 8601 event 시각")
+    source: str = Field(..., min_length=1, max_length=64,
+                        description="호출 origin: 'session-start' / 'doc-sync' / 'backlog-update' / 'dispatcher'")
+    workspace_root: str = Field(default="", description="workspace_root 의 str repr (path trace)")
+    query_tokens_count: int = Field(default=0, ge=0, description="query token 갯수")
+    selected_count: int = Field(default=0, ge=0, description="최종 selected entry 갯수")
+    cue_hits: int = Field(default=0, ge=0, description="1단계 cue exact match hit")
+    bm25_hits: int = Field(default=0, ge=0, description="2단계 BM25 fallback hit")
+    expansion_hits: int = Field(default=0, ge=0, description="3단계 linked expansion hit")
+    top_k: int = Field(default=10, ge=1, description="query 시 사용된 top_k")
+    max_depth: int = Field(default=2, ge=0, description="query 시 사용된 max_depth")
+    use_bm25_fallback: bool = Field(default=False, description="query 시 use_bm25_fallback flag")
+    error: bool = Field(default=False, description="retrieval 실패 시 True (negative example)")
+
+
+class MemoryIndexTelemetrySummary(BaseModel):
+    """read-time 집계 결과.
+
+    dashboard panel 3 + dispatcher subcommand `memory-index-telemetry` 가 본 summary 사용.
+    `telemetry/` dir 부재 또는 events.jsonl empty 시 total_calls=0 + hit_rate=0.0 fallback.
+    """
+    total_calls: int = Field(default=0, ge=0, description="전체 event 갯수 (성공+실패)")
+    total_hits: int = Field(default=0, ge=0, description="selected_count > 0 인 event 갯수")
+    hit_rate: float = Field(default=0.0, ge=0.0, le=1.0,
+                            description="total_hits / total_calls (total_calls=0 시 0.0)")
+    by_source: dict[str, dict[str, int]] = Field(
+        default_factory=dict,
+        description="source 별 {calls, hits} 분해. 예: {'session-start': {'calls': 3, 'hits': 2}}",
+    )
+    first_event_at: str = Field(default="", description="가장 이른 event timestamp (ISO 8601)")
+    last_event_at: str = Field(default="", description="가장 늦은 event timestamp (ISO 8601)")
+    events_parsed: int = Field(default=0, ge=0, description="성공 parse 한 event 갯수")
+    events_skipped: int = Field(default=0, ge=0, description="malformed line 갯수 (JSON decode / schema validate 실패)")
+    source_version: str = Field(default="memory_index_telemetry_v0_13_1",
+                                description="summary 의 schema version marker (dashboard panel 3 의 source field 와 정합)")
+
+
 # --- Phase 2: --merge opt-in canonical merge schemas (ADR-005 §4) ---
 
 

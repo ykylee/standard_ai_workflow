@@ -468,8 +468,10 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
         cue_anchors_unique: unique anchor 갯수
         cumulative_timeline: [{date: 'YYYY-MM-DD', count: int}, ...]
         first_entry_date / last_entry_date: ISO date
-        retrieval_hit_rate: Phase 13 AC2 의 hit rate (현 release 는 0 — telemetry 미구현)
-        retrieval_hit_rate_source: 'pending_phase_13_ac2_telemetry'
+        retrieval_hit_rate: Phase 13 AC2 의 hit rate (telemetry events.jsonl 집계)
+        retrieval_hit_rate_source: 'memory_index_telemetry_v0_13_1'
+        telemetry: {total_calls, total_hits, by_source, events_parsed, events_skipped,
+                    first_event_at, last_event_at} — Phase 13 AC2 telemetry sidecar 집계
 
     Returns:
         dict — Panel 3 의 data shape.
@@ -479,11 +481,15 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
     entries_dir = memory_index_dir / "entries"
 
     if not entries_dir.is_dir():
-        return _empty_memory_index_utilization()
+        payload = _empty_memory_index_utilization()
+        _attach_telemetry_summary(root, payload)
+        return payload
 
     entry_files = sorted(entries_dir.glob("MEM-*.json"))
     if not entry_files:
-        return _empty_memory_index_utilization()
+        payload = _empty_memory_index_utilization()
+        _attach_telemetry_summary(root, payload)
+        return payload
 
     entries: list[dict[str, Any]] = []
     for entry_path in entry_files:
@@ -495,7 +501,37 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
         except (OSError, json.JSONDecodeError):
             continue
 
-    return _aggregate_memory_index(entries)
+    payload = _aggregate_memory_index(entries)
+    _attach_telemetry_summary(root, payload)
+    return payload
+
+
+def _attach_telemetry_summary(workspace_root: Path, payload: dict[str, Any]) -> None:
+    """Panel 3 payload 에 telemetry sidecar 집계 attach (in-place mutation).
+
+    v0.13.1+ Phase 13 AC2 정합: telemetry 부재 시에도 payload 는 *graceful* —
+    `telemetry.total_calls=0` + `retrieval_hit_rate=0.0` 유지 (placeholder 와 동일).
+    caller 는 `telemetry.source_version` 으로 fallback 구분 가능.
+    """
+    try:
+        from workflow_kit.common.state.memory_index import summarize_telemetry
+    except ImportError:
+        return
+    try:
+        summary = summarize_telemetry(workspace_root)
+    except Exception:
+        return
+    payload["retrieval_hit_rate"] = summary.hit_rate
+    payload["retrieval_hit_rate_source"] = summary.source_version
+    payload["telemetry"] = {
+        "total_calls": summary.total_calls,
+        "total_hits": summary.total_hits,
+        "by_source": summary.by_source,
+        "events_parsed": summary.events_parsed,
+        "events_skipped": summary.events_skipped,
+        "first_event_at": summary.first_event_at,
+        "last_event_at": summary.last_event_at,
+    }
 
 
 def _empty_memory_index_utilization() -> dict[str, Any]:
@@ -509,7 +545,16 @@ def _empty_memory_index_utilization() -> dict[str, Any]:
         "first_entry_date": "",
         "last_entry_date": "",
         "retrieval_hit_rate": 0.0,
-        "retrieval_hit_rate_source": "pending_phase_13_ac2_telemetry",
+        "retrieval_hit_rate_source": "memory_index_telemetry_v0_13_1",
+        "telemetry": {
+            "total_calls": 0,
+            "total_hits": 0,
+            "by_source": {},
+            "events_parsed": 0,
+            "events_skipped": 0,
+            "first_event_at": "",
+            "last_event_at": "",
+        },
     }
 
 
@@ -561,8 +606,8 @@ def _aggregate_memory_index(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "cumulative_timeline": cumulative,
         "first_entry_date": first_date,
         "last_entry_date": last_date,
-        "retrieval_hit_rate": 0.0,  # Phase 13 AC2 telemetry 후속
-        "retrieval_hit_rate_source": "pending_phase_13_ac2_telemetry",
+        "retrieval_hit_rate": 0.0,  # Phase 13 AC2 telemetry 후속 (collect_memory_index_utilization 의 post-hook 가 덮어씀)
+        "retrieval_hit_rate_source": "memory_index_telemetry_v0_13_1",
     }
 
 
@@ -1109,7 +1154,11 @@ def _render_html_panel_2(p: dict[str, Any]) -> str:
 
 
 def _render_html_panel_3(p: dict[str, Any]) -> str:
-    """Panel 3 HTML — memory index utilization + chart canvas."""
+    """Panel 3 HTML — memory index utilization + chart canvas.
+
+    v0.13.1+ Phase 13 AC2 telemetry 정합: retrieval_hit_rate 가 telemetry events.jsonl
+    집계값으로 emit. by_source 분해 + events_parsed/skipped 도 표시.
+    """
     entries_total = int(p.get("entries_total", 0))
     cue_unique = int(p.get("cue_anchors_unique", 0))
     first_date = str(p.get("first_entry_date", ""))
@@ -1119,13 +1168,24 @@ def _render_html_panel_3(p: dict[str, Any]) -> str:
     state_str = ", ".join(
         f"{_html_escape(str(k))}={int(v)}" for k, v in (by_state.items() if isinstance(by_state, dict) else [])
     )
+    telemetry = p.get("telemetry", {})
+    if not isinstance(telemetry, dict):
+        telemetry = {}
+    t_total_calls = int(telemetry.get("total_calls", 0))
+    t_total_hits = int(telemetry.get("total_hits", 0))
+    t_by_source = telemetry.get("by_source", {})
+    t_source_str = ", ".join(
+        f"{_html_escape(str(k))}:calls={int(v.get('calls', 0))},hits={int(v.get('hits', 0))}"
+        for k, v in (sorted(t_by_source.items()) if isinstance(t_by_source, dict) else [])
+    )
     return f"""  <section class="panel">
     <h2>Panel 3 — Memory Index Utilization</h2>
     <p class="stat">{entries_total}</p>
     <p class="meta">total entries · unique cue anchors: {cue_unique}</p>
     <p class="meta">first_entry_date: <code>{_html_escape(first_date)}</code></p>
     <p class="meta">last_entry_date: <code>{_html_escape(last_date)}</code></p>
-    <p class="meta">retrieval_hit_rate: {hit_rate:.4f} (Phase 13 AC2 — pending telemetry)</p>
+    <p class="meta">retrieval_hit_rate: <strong>{hit_rate:.4f}</strong> (Phase 13 AC2 telemetry)</p>
+    <p class="meta">telemetry calls/hits: {t_total_calls}/{t_total_hits} · by_source: {t_source_str or '(none)'}</p>
     <p class="meta">by merge_state: {state_str or '(none)'}</p>
     <canvas id="chart-memory" height="160"></canvas>
   </section>"""

@@ -1,12 +1,12 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-09T04:48:11Z`
-- tool_version: `v0.13.0-beta`
-- workspace_root: `/home/yklee/repos/standard_ai_workflow`
+- generated_at: `2026-07-09T05:31:24Z`
+- tool_version: `v0.13.1-beta`
+- workspace_root: `.`
 
 ## Panel 1 — Drift Prevention Status
 
-- guard_status: `pass`
+- guard_status: `unknown`
 - guard_cases: `6 / 6`
 - maturity_last_updated: `2026-07-09`
 - harness_supported_count: `10`
@@ -76,7 +76,7 @@
 - cumulative_total: `41`
 - cumulative_pass: `41`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `171`
+- smoke_files_count: `172`
 
 ### Recent release smoke counts
 

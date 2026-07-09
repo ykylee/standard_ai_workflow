@@ -4,7 +4,7 @@
 - 범위: public API surface, deprecation policy, breaking change list, mypy strict 단계, generated JSON Schema 단일 출처, PyPI 정식 배포 절차
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
 - 상태: draft (v0.7.62 종료 후 freeze)
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: [`./workflow_release_spec.md`](./workflow_release_spec.md), [`./output_schema_guide.md`](./output_schema_guide.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./prototype_promotion_scope.md`](./prototype_promotion_scope.md), [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md)
 
 ## 1. 목적

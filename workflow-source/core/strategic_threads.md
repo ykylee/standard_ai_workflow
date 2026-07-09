@@ -4,7 +4,7 @@
 - 범위: 전략 스레드 활성화 상태, 설계 가이드라인, 태스크 연결 관계
 - 대상 독자: 프로젝트 리드, AI 에이전트, 저장소 관리자
 - 상태: in-progress
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: `core/workflow_kit_roadmap.md`, `ai-workflow/memory/active/state.json`
 - 운영 원칙:
     1. 모든 계획(Strategy) 수립 시 이 문서의 관련 스레드를 먼저 확인한다.

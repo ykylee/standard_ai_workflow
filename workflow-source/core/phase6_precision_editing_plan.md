@@ -4,7 +4,7 @@
 - 범위: Search-Replace 블록 파서, 퍼지 매칭 엔진, AST 기반 함수/클래스 추출기
 - 대상 독자: 워크플로우 설계자, 에이전트 개발자
 - 상태: planned
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: `core/workflow_kit_roadmap.md`, `core/strategic_threads.md`
 
 ## 1. 배경 및 문제 의식

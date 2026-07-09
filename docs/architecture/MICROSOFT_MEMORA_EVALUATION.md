@@ -4,7 +4,7 @@
 - 범위: 공개 자료 요약, 현재 저장소와의 대응 관계, 도입 가능 범위, 권장 실험안
 - 대상 독자: 워크플로우 설계자, 메모리 계층 설계자, 연구 프로토타입 검토자
 - 상태: draft
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: [./README.md](./README.md), [./ADR-001-source-state-knowledge-3-layer-separation.md](./ADR-001-source-state-knowledge-3-layer-separation.md), [../../workflow-source/MEMORY_GOVERNANCE.md](../../workflow-source/MEMORY_GOVERNANCE.md), [../../workflow-source/core/workflow_agent_topology.md](../../workflow-source/core/workflow_agent_topology.md), [../../workflow-source/core/orchestrator_subagent_contract_v1.md](../../workflow-source/core/orchestrator_subagent_contract_v1.md)
 
 ## 1. Executive Summary

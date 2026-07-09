@@ -4,7 +4,7 @@
 - 범위: 마일스톤 정의, 릴리스 일정, 로드맵 백로그
 - 대상 독자: 프로젝트 매니저, 저장소 maintainer, 멀티 에이전트 운영자
 - 상태: draft
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md), [../RELEASE.md](../RELEASE.md), [../INSTALLATION_AND_USAGE.md](../INSTALLATION_AND_USAGE.md), [../../workflow-source/core/workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 
 > **Note**: 이 디렉토리는 v0.5.10 시점에 **초안** 상태. 정식 milestone 문서와 분기별 planning 회의록은 후속 세션에서 작성 예정. 아래 §1-§3 은 현재까지 진행 상황을 정리한 요약.

@@ -4,7 +4,7 @@
 - 범위: 공통 표준, skill spec, adoption/harness/configuration 가이드, release/read-only MCP 관련 문서
 - 대상 독자: 개발자, 운영자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: `./global_workflow_standard.md`, `./workflow_state_vs_project_docs.md`, `../README.md`
 
 ## 주요 진입 문서

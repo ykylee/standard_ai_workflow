@@ -4,7 +4,7 @@
 - 범위: 외부 spec 구조 (§1-§8), Python enforcement helper 책임, Mavis 측 wire 의무, 후속 결정 인용.
 - 대상 독자: maintainer, Mavis/Mavis engine 통합자, contract 진화 담당자.
 - 상태: Accepted (v0.5.4, 이후 v0.5.6 / v0.5.7 / v0.5.10 / v0.5.11 로 incremental 발전)
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`./README.md`](./README.md), [`../../workflow-source/core/orchestrator_subagent_contract_v1.md`](../../workflow-source/core/orchestrator_subagent_contract_v1.md), [`../../workflow-source/core/orchestrator_contract_v1_wire_guide.md`](../../workflow-source/core/orchestrator_contract_v1_wire_guide.md)
 
 - **Status**: Accepted (v0.5.4, 이후 v0.5.6 / v0.5.7 / v0.5.10 / v0.5.11 로 incremental 발전)

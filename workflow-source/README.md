@@ -4,7 +4,7 @@
 - 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-09
 - 관련 문서: `../docs/PROJECT_PROFILE.md`, `../ai-workflow/memory/codex/phase6/state.json`, `../ai-workflow/memory/codex/phase6/session_handoff.md`, `../ai-workflow/memory/work_backlog.md`
 
 ## 1. 도입 모드

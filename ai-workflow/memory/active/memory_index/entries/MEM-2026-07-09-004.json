@@ -1,0 +1,30 @@
+{
+  "id": "MEM-2026-07-09-004",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/releases/Beta-v0.11.25.md",
+    "workflow-source/core/maturity_matrix.json"
+  ],
+  "primary_abstraction": "StdIO SDK v0.11.25 정식 stable 승격 (Phase 12 close candidate)",
+  "cue_anchors": [
+    "stdio-sdk",
+    "v0.11.25",
+    "stable-promotion",
+    "mcp-transport"
+  ],
+  "value_digest": "stdio-sdk 정식 stable 승격 + ADR-007 placeholder + connection-closed 회귀 해결.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "mcp",
+    "phase-12"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/docs/architecture/v1_0_0_promotion_feasibility_mcp_stdio_sdk.md"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

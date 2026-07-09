@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "project_name": "Standard AI Workflow",
-  "last_updated": "2026-07-03",
+  "last_updated": "2026-07-09",
   "milestones": {
     "Phase 1": {
       "name": "Concept",
@@ -184,19 +184,59 @@
     },
     "git_history_summarizer": {
       "stage": "beta",
-      "server": "official_sdk"
+      "server": "official_sdk",
+      "promotion_target": "v0.11.26",
+      "promotion_batch": "1st",
+      "stable_acceptance_status": {
+        "pydantic_schema": false,
+        "stdio_sdk_registered": true,
+        "error_code_4": false,
+        "single_entry": true,
+        "skill_md_or_readme": false,
+        "smoke_test_5_cases": false
+      }
     },
     "workflow_log_rotator": {
       "stage": "beta",
-      "server": "official_sdk"
+      "server": "official_sdk",
+      "promotion_target": "v0.11.28",
+      "promotion_batch": "2nd",
+      "stable_acceptance_status": {
+        "pydantic_schema": false,
+        "stdio_sdk_registered": true,
+        "error_code_4": false,
+        "single_entry": true,
+        "skill_md_or_readme": false,
+        "smoke_test_5_cases": false
+      }
     },
     "smart_context_reader": {
       "stage": "beta",
-      "server": "official_sdk"
+      "server": "official_sdk",
+      "promotion_target": "v0.11.26",
+      "promotion_batch": "1st",
+      "stable_acceptance_status": {
+        "pydantic_schema": false,
+        "stdio_sdk_registered": true,
+        "error_code_4": false,
+        "single_entry": true,
+        "skill_md_or_readme": false,
+        "smoke_test_5_cases": false
+      }
     },
     "apply_robust_patch": {
       "stage": "beta",
-      "server": "official_sdk"
+      "server": "official_sdk",
+      "promotion_target": "v0.11.28",
+      "promotion_batch": "2nd",
+      "stable_acceptance_status": {
+        "pydantic_schema": false,
+        "stdio_sdk_registered": true,
+        "error_code_4": false,
+        "single_entry": true,
+        "skill_md_or_readme": false,
+        "smoke_test_5_cases": false
+      }
     }
   },
   "transports": {

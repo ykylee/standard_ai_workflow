@@ -1,0 +1,33 @@
+{
+  "id": "MEM-2026-07-09-001",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/session_analysis_2026-07-09.md"
+  ],
+  "primary_abstraction": "Workflow audit session (2026-07-09) baseline snapshot with 10 candidates",
+  "cue_anchors": [
+    "audit",
+    "workflow",
+    "2026-07-09",
+    "candidates",
+    "snapshot",
+    "P0",
+    "P1",
+    "P2"
+  ],
+  "value_digest": "Phase 12 in_progress baseline + P0 3 / P1 3 / P2 4 candidates 영구 기록.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "phase-12"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "ai-workflow/wiki/topics/workflow-audit-2026-07-09.md",
+    "ai-workflow/memory/active/work_backlog.md"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

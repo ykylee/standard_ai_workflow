@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quality Dashboard · v0.13.1-beta</title>
+  <title>Quality Dashboard · v0.13.2-beta</title>
   <style>
 :root {
   color-scheme: light dark;
@@ -46,7 +46,7 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-09T05:31:24Z</code> · tool_version: <code>v0.13.1-beta</code></p>
+    <p class="meta">generated_at: <code>2026-07-09T06:32:42Z</code> · tool_version: <code>v0.13.2-beta</code></p>
     <p class="meta">workspace: <code>.</code></p>
   </header>
   <main>
@@ -90,23 +90,23 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 4 — Smoke Trend</h2>
     <p class="stat pass">41/41</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
-    <p class="meta">smoke test files: 172</p>
+    <p class="meta">smoke test files: 173</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 5 — Recent Release Cycle</h2>
-    <p>items_total: <strong>60</strong> (top_n=10)</p>
+    <p>items_total: <strong>61</strong> (top_n=10)</p>
     <ul class="timeline">
-      <li>[0] 2026-07-09 (audit-follow-up): 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (no release, no version bump). **P0 (즉시 가치, 3건…</li>
-      <li>[1] 2026-07-09 (audit-session): 워크플로우 구성 점검 + 고도화 후보 도출 — 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP…</li>
-      <li>[2] v0.11.21 (c90b437): 3차 batch robust-patcher stable 승격 — GitHub Release v0.11.21-beta tag push + gh release create exit 0…</li>
-      <li>[3] v0.11.20 (af6baaf): 2차 batch 4 skill stable 승격 + 2 latent bug fix — GitHub Release v0.11.20-beta tag push + gh release c…</li>
-      <li>[4] v0.11.19 (dfafdc4): 1차 batch 4 skill stable 승격 — GitHub Release v0.11.19-beta tag push + gh release create exit 0 (https…</li>
-      <li>[5] v0.11.18 (80470cd): FULL mypy strict 도달 공식 release — GitHub Release v0.11.18-beta tag push + gh release create exit 0 (h…</li>
-      <li>[6] v0.11.18-dev (4253eed): mypy strict 잔여 13 error 일괄 격상 — FULL mypy strict 도달 (107 file clean). session 마무리. 12 file 일괄: a…</li>
-      <li>[7] v0.11.18-dev (65f0b20): mypy strict read_only_mcp_sdk + doc_sync 묶음 격상 — server + common cross-layer, read_only_mcp_sdk.…</li>
-      <li>[8] v0.11.18-dev (094cacf): mypy strict mcp_v1_server + release_status 묶음 격상 — mcp_v1_server.py 3 error (unused type:ignore …</li>
-      <li>[9] v0.11.17 (3d3387d): GitHub Release v0.11.17-beta — mypy strict cumulative 25 error 격상 (output_contracts 15 + cli/doctor+…</li>
+      <li>[0] v0.13.1 (telemetry wiring commit, 2026-07-09): Phase 13 AC2 (memory_index 활용도) close-out — Quality Dashboard Panel 3 의 `…</li>
+      <li>[1] 2026-07-09 (audit-follow-up): 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (no release, no version bump). **P0 (즉시 가치, 3건…</li>
+      <li>[2] 2026-07-09 (audit-session): 워크플로우 구성 점검 + 고도화 후보 도출 — 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP…</li>
+      <li>[3] v0.11.21 (c90b437): 3차 batch robust-patcher stable 승격 — GitHub Release v0.11.21-beta tag push + gh release create exit 0…</li>
+      <li>[4] v0.11.20 (af6baaf): 2차 batch 4 skill stable 승격 + 2 latent bug fix — GitHub Release v0.11.20-beta tag push + gh release c…</li>
+      <li>[5] v0.11.19 (dfafdc4): 1차 batch 4 skill stable 승격 — GitHub Release v0.11.19-beta tag push + gh release create exit 0 (https…</li>
+      <li>[6] v0.11.18 (80470cd): FULL mypy strict 도달 공식 release — GitHub Release v0.11.18-beta tag push + gh release create exit 0 (h…</li>
+      <li>[7] v0.11.18-dev (4253eed): mypy strict 잔여 13 error 일괄 격상 — FULL mypy strict 도달 (107 file clean). session 마무리. 12 file 일괄: a…</li>
+      <li>[8] v0.11.18-dev (65f0b20): mypy strict read_only_mcp_sdk + doc_sync 묶음 격상 — server + common cross-layer, read_only_mcp_sdk.…</li>
+      <li>[9] v0.11.18-dev (094cacf): mypy strict mcp_v1_server + release_status 묶음 격상 — mcp_v1_server.py 3 error (unused type:ignore …</li>
     </ul>
   </section>
   </main>

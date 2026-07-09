@@ -1848,9 +1848,11 @@ def cmd_memory_index_query(argv: list[str]) -> int:
         return 2
 
     try:
-        from workflow_kit.common.schemas.memory_index import MemoryIndexQueryOutput
-        from workflow_kit.common.state.memory_index import (
+        from workflow_kit.common.schemas.memory_index import (
+            MemoryIndexQueryOutput,
             MemoryIndexTelemetryEvent,
+        )
+        from workflow_kit.common.state.memory_index import (
             append_telemetry_event,
             query_memory_index_for_dispatcher,
         )

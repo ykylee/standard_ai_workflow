@@ -48,6 +48,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # v0.7.15+ atomic_write (POSIX os.replace guarantee)
+# workflow-source 를 sys.path 에 추가 (script 가 standalone 으로 실행될 때도
+# workflow_kit 모듈이 import 가능하도록). v0.13.2+ 추가.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 try:
     from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
 except ImportError:
@@ -1208,7 +1211,7 @@ def find_dist_files(version: str) -> list[Path]:
 # Drift prevention helpers (v0.11.23+, P1 — doc-headers-update)
 # ---------------------------------------------------------------------------
 
-README_PATH = REPO_ROOT / "README.md"
+README_PATH = REPO_ROOT.parent / "README.md"
 CORE_DOCS_DIR = REPO_ROOT / "core"
 DOCS_DIR = REPO_ROOT.parent / "docs"
 
@@ -1559,6 +1562,272 @@ def cmd_maturity_matrix_sync(args) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Phase 13 AC3 self-recovering (v0.13.2+)
+# ---------------------------------------------------------------------------
+#
+# drift prevention smoke (check_drift_prevention_v0_11_23.py) 의 6 case 가
+# 검출한 drift 를 *자동 fix* 한다. 1-cycle close:
+#   1. detect — smoke subprocess 실행, 6 case PASS/FAIL parse
+#   2. classify — FAIL 중 auto-fixable / manual_required 분리
+#   3. fix — auto-fixable case 각각 매핑된 fix 함수 호출
+#   4. re-check — 동일 smoke 재실행 → 6/6 PASS 확인
+#   5. emit — recovered / manual_required / re_check_pass 를 dict 로 반환
+#             cmd_release 가 release note body 에 "## Self-recovery log" 섹션
+#             자동 append.
+
+# 6 case 의 fix 분류 매핑 (v0.13.2 baseline). 새 case 추가 시 본 dict 만 갱신.
+# key = smoke 의 case func 이름, value = ("auto"|"manual", fix_callable_or_None)
+_SELF_RECOVER_CASE_MAP: dict[str, tuple[str, str | None]] = {
+    "test_case_1_pyproject_loud_fallback_sync": ("auto", "_fix_loud_fallback"),
+    "test_case_2_maturity_matrix_phase_status": ("manual", None),
+    "test_case_3_skill_stage_matches_promotion_set": ("manual", None),
+    "test_case_4_readme_header_version_sync": ("auto", "_fix_readme_header_version"),
+    "test_case_5_harness_supported_ssot_alignment": ("auto", "_fix_maturity_matrix_drift"),
+    "test_case_6_maturity_last_updated_freshness": ("auto", "_fix_maturity_matrix_drift"),
+}
+
+
+def _classify_drift_failures(cases_fail: list[str]) -> tuple[list[str], list[str]]:
+    """FAIL case 들을 (auto_fixable, manual_required) 2-bucket 분리.
+
+    _SELF_RECOVER_CASE_MAP 정합 — 미등록 case 는 manual_required (fail-safe).
+    """
+    auto_fixable: list[str] = []
+    manual_required: list[str] = []
+    for case_name in cases_fail:
+        entry = _SELF_RECOVER_CASE_MAP.get(case_name)
+        if entry is None:
+            manual_required.append(case_name)  # 미등록 → 보수적 manual
+            continue
+        bucket, _fix = entry
+        (auto_fixable if bucket == "auto" else manual_required).append(case_name)
+    return auto_fixable, manual_required
+
+
+def _read_pyproject_version_str() -> str:
+    """pyproject.toml [project] version 을 string 으로 read. atomic_write_text 의 source."""
+    return tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["project"]["version"]
+
+
+def _fix_loud_fallback() -> dict:
+    """workflow_kit/__init__.py 의 loud fallback literal 을 pyproject version 으로 정합.
+
+    return "v<X.Y.Z>-beta" 의 literal 을 regex 로 교체. pyproject 의 'X.Y.Z' 와
+    suffix ('-beta' or '') 를 모두 정합.
+    """
+    if atomic_write_text is None:
+        return {"ok": False, "error": "atomic_write_text unavailable"}
+    py_v = _read_pyproject_version_str()
+    src = WORKFLOW_KIT_INIT.read_text(encoding="utf-8")
+    new_literal = f'return "v{py_v}-beta"'
+    new_src, n = re.subn(r'return "v[\d.]+(?:-beta)?"', new_literal, src, count=1)
+    if n == 0:
+        return {"ok": False, "error": "loud fallback literal not found"}
+    atomic_write_text(WORKFLOW_KIT_INIT, new_src)
+    return {"ok": True, "old": "loud_fallback", "new": py_v, "file": str(WORKFLOW_KIT_INIT.relative_to(REPO_ROOT))}
+
+
+def _fix_readme_header_version() -> dict:
+    """README.md 의 '- 버전: vX.Y.Z-beta' 헤더 라인을 pyproject 와 정합."""
+    if atomic_write_text is None:
+        return {"ok": False, "error": "atomic_write_text unavailable"}
+    py_v = _read_pyproject_version_str()
+    src = README_PATH.read_text(encoding="utf-8")
+    new_src, n = re.subn(r"- 버전: v[\d.]+-beta", f"- 버전: v{py_v}-beta", src, count=1)
+    if n == 0:
+        return {"ok": False, "error": "README header version line not found"}
+    atomic_write_text(README_PATH, new_src)
+    try:
+        rel = str(README_PATH.relative_to(REPO_ROOT))
+    except ValueError:
+        rel = str(README_PATH.relative_to(REPO_ROOT.parent))
+    return {"ok": True, "old": "readme_header", "new": py_v, "file": rel}
+
+
+def _fix_maturity_matrix_drift() -> dict:
+    """case 5 / case 6 의 maturity_matrix drift 를 cmd_maturity_matrix_sync 로 fix.
+
+    release note 의 frontmatter 가 source. 부재 시 last_updated 만 갱신 (case 6 fix).
+    """
+    # release note 가 있으면 frontmatter 기반 sync. 없으면 last_updated 만 갱신.
+    try:
+        version = read_version()
+        notes_resolution = _resolve_notes_file(version, "default", dry_run=False)
+        notes_file = notes_resolution.get("notes_file")
+        if notes_file and Path(notes_file).exists():
+            smm_ns = argparse.Namespace(
+                from_release_note=str(notes_file),
+                dry_run=False,
+                apply=True,
+                json=False,
+            )
+            return cmd_maturity_matrix_sync(smm_ns)
+        # release note 부재: last_updated 만 today 로 patch.
+        maturity_path = REPO_ROOT / "core" / "maturity_matrix.json"
+        mm = json.loads(maturity_path.read_text(encoding="utf-8"))
+        mm["last_updated"] = _today_iso()
+        if atomic_write_json is not None:
+            atomic_write_json(maturity_path, mm, indent=2, ensure_ascii=False)
+        else:
+            maturity_path.write_text(
+                json.dumps(mm, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        return {"ok": True, "mode": "last_updated_only", "last_updated_after": mm["last_updated"]}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"{type(e).__name__}: {e}"}
+
+
+def _run_drift_prevention_smoke() -> dict:
+    """drift prevention smoke 를 subprocess 로 inline 실행.
+
+    Returns:
+        dict with fields:
+            guard_status: 'pass' | 'fail' | 'error'
+            cases_pass: int
+            cases_fail: int
+            cases_total: int
+            cases_fail_names: list[str]
+            runtime_ms: int
+    """
+    import subprocess
+    import time
+
+    smoke_path = REPO_ROOT / "tests" / "check_drift_prevention_v0_11_23.py"
+    if not smoke_path.exists():
+        return {"guard_status": "error", "cases_pass": 0, "cases_fail": 0,
+                "cases_total": 0, "cases_fail_names": [], "runtime_ms": 0,
+                "error": f"smoke not found: {smoke_path}"}
+
+    started = time.monotonic()
+    try:
+        completed = subprocess.run(
+            [sys.executable, str(smoke_path)],
+            cwd=str(REPO_ROOT),
+            capture_output=True, text=True, check=False, timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return {"guard_status": "error", "cases_pass": 0, "cases_fail": 0,
+                "cases_total": 0, "cases_fail_names": [], "runtime_ms": 30000,
+                "error": "smoke timeout (>30s)"}
+
+    runtime_ms = int((time.monotonic() - started) * 1000)
+    stdout = completed.stdout or ""
+    cases_pass = re.findall(r"^\s*PASS:\s+(\S+)", stdout, flags=re.MULTILINE)
+    cases_fail = re.findall(r"^\s*FAIL:\s+(\S+)", stdout, flags=re.MULTILINE)
+    summary_match = re.search(r"=== (PASS|FAIL):\s*(\d+)/6 ===", stdout)
+    total = (int(summary_match.group(2)) if summary_match else len(cases_pass) + len(cases_fail))
+
+    if completed.returncode == 0 and not cases_fail:
+        return {
+            "guard_status": "pass",
+            "cases_pass": len(cases_pass) or 6,
+            "cases_fail": 0,
+            "cases_total": 6,
+            "cases_fail_names": [],
+            "runtime_ms": runtime_ms,
+        }
+    return {
+        "guard_status": "fail",
+        "cases_pass": len(cases_pass),
+        "cases_fail": len(cases_fail),
+        "cases_total": total or 6,
+        "cases_fail_names": cases_fail,
+        "runtime_ms": runtime_ms,
+    }
+
+
+def _emit_recovery_summary(recovered: list[dict], manual_required: list[str],
+                           re_check: dict, dry_run: bool) -> dict:
+    """recovered + manual_required + re-check 결과를 1 dict 로 emit.
+
+    cmd_release 가 release note 본문에 본 dict 를 append 할 수 있도록 shape 안정.
+    """
+    return {
+        "mode": "dry-run" if dry_run else "applied",
+        "recovered": recovered,
+        "manual_required": manual_required,
+        "re_check": re_check,
+        "summary": (
+            f"recovered={len(recovered)} manual_required={len(manual_required)} "
+            f"re_check_status={re_check.get('guard_status', 'unknown')}"
+        ),
+    }
+
+
+def cmd_self_recover(args) -> dict:
+    """Phase 13 AC3 — drift 발견 시 자동 fix + release note log emit (v0.13.2+).
+
+    detect (smoke subprocess) → classify (auto/manual 2-bucket) → fix (auto case 만) →
+    re-check (smoke 재실행) → emit (dict).
+
+    Args (Namespace):
+        dry_run: True 면 fix 안 함, plan 만 emit. default True.
+        apply: True 면 fix 실행. --dry-run 과 배타적.
+        json: stdout JSON.
+
+    Returns:
+        dict { mode, recovered, manual_required, re_check, summary, detection }
+    """
+    dry_run = getattr(args, "dry_run", False)
+    apply = getattr(args, "apply", False)
+    if apply and not dry_run:
+        # _attr_ns 에서 apply=True 가 default 인 release step 과 정합
+        pass
+
+    # 1. detect
+    detection = _run_drift_prevention_smoke()
+
+    if detection["guard_status"] == "pass":
+        # drift 없음 — 즉시 pass
+        return _emit_recovery_summary(
+            recovered=[],
+            manual_required=[],
+            re_check=detection,
+            dry_run=dry_run,
+        ) | {"detection": detection}
+
+    if detection["guard_status"] == "error":
+        return _emit_recovery_summary(
+            recovered=[],
+            manual_required=[],
+            re_check=detection,
+            dry_run=dry_run,
+        ) | {"detection": detection, "error": detection.get("error", "smoke error")}
+
+    # 2. classify
+    auto_fixable, manual_required = _classify_drift_failures(detection["cases_fail_names"])
+
+    # 3. fix (auto case 만)
+    recovered: list[dict] = []
+    if not dry_run:
+        for case_name in auto_fixable:
+            entry = _SELF_RECOVER_CASE_MAP[case_name]
+            fix_callable_name = entry[1]
+            fix_fn = globals().get(fix_callable_name) if fix_callable_name else None
+            if fix_fn is None:
+                continue
+            try:
+                result = fix_fn()
+                recovered.append({"case": case_name, "fix": fix_callable_name, "result": result})
+            except Exception as e:  # noqa: BLE001
+                recovered.append({"case": case_name, "fix": fix_callable_name,
+                                  "result": {"ok": False, "error": f"{type(e).__name__}: {e}"}})
+    else:
+        # dry-run: fix skip, plan 만 emit
+        for case_name in auto_fixable:
+            entry = _SELF_RECOVER_CASE_MAP[case_name]
+            recovered.append({"case": case_name, "fix": entry[1], "result": {"ok": True, "dry_run": True}})
+
+    # 4. re-check (fix 후 smoke 재실행)
+    re_check = _run_drift_prevention_smoke()
+
+    return _emit_recovery_summary(recovered, manual_required, re_check, dry_run) | {
+        "detection": detection,
+    }
+
+
 def cmd_release(args) -> dict:
     """GitHub Release 생성 (gh release create).
 
@@ -1602,7 +1871,8 @@ def cmd_release(args) -> dict:
     for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
                  "skip_validate", "skip_cross_verify", "strict_cross_verify",
                  "skip_doc_headers_update", "skip_maturity_matrix_sync",
-                 "skip_dashboard_emit", "dashboard_output"):
+                 "skip_dashboard_emit", "dashboard_output",
+                 "skip_self_recover"):  # v0.13.2+ Phase 13 AC3
         if not hasattr(args, attr):
             setattr(args, attr, False if attr == "skip_dashboard_emit" else None)
 
@@ -1681,6 +1951,27 @@ def cmd_release(args) -> dict:
     # 3. validate fail 시 early return (cross-verify 결과는 이미 results 에 포함됨)
     if validate_failed:
         return _attach_release_summary({**results, "error": "validate failed; abort release"})
+
+    # 2.7 Phase 13 AC3 self-recovering (v0.13.2+) — drift 검출 시 자동 fix.
+    # cmd_self_recover 의 emit 결과를 results 에 포함 (release note body injection 의 source).
+    # manual_required > 0 이면 early return (drift fix 우선 — 사람의 명시 intervention 필요).
+    # escape hatch: --skip-self-recover.
+    if not getattr(args, "skip_self_recover", False):
+        sr_ns = _attr_ns()
+        sr_ns.apply = True
+        sr_ns.dry_run = False
+        sr_result = cmd_self_recover(sr_ns)
+        results["self_recover"] = sr_result
+        # manual_required 가 1+ 이면 early return (drift 가 사람이 fix 해야 함).
+        if sr_result.get("manual_required"):
+            return _attach_release_summary({
+                **results,
+                "error": (
+                    f"self-recover: {len(sr_result['manual_required'])} drift case 가 "
+                    f"manual_required (human review 필요): {sr_result['manual_required']}. "
+                    f"fix 후 release 재실행 또는 --skip-self-recover 로 진행."
+                ),
+            })
 
     # 3.0 drift prevention auto-step (v0.11.23+) — release 시 docs/* / SSOT 자동 동기화.
     # 본 step 는 destructive 하지 않음 (write only on tracked files, atomic_write 보장).
@@ -1895,6 +2186,14 @@ def cmd_release(args) -> dict:
     else:
         print(f"  [dashboard] WARN: {dashboard_emit.get('error', 'unknown error')}")
 
+    # 6.5 v0.13.2+ self-recovery log emit (Phase 13 AC3). release note 본문 끝에 자동 append.
+    # results["self_recover"] 가 있을 때만 (drift 가 검출/fix 되었을 때만). 미존재 시 no-op.
+    if "self_recover" in results:
+        recovery_log = _format_self_recovery_log(results["self_recover"])
+        if recovery_log:
+            log_emit = _emit_self_recovery_log(args, recovery_log)
+            results["self_recovery_log_emit"] = log_emit
+
     return _attach_release_summary(results)
 
 
@@ -1987,6 +2286,79 @@ def _emit_dashboard_post_release(args: argparse.Namespace, results: dict) -> dic
     except subprocess.TimeoutExpired:
         return {"status": "error", "error": "dashboard emit timeout (60s)"}
     except (OSError, ValueError) as e:
+        return {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
+
+# ---------------------------------------------------------------------------
+# 4.6 self-recovery log emit (v0.13.2+ Phase 13 AC3 close-out)
+# ---------------------------------------------------------------------------
+
+
+def _format_self_recovery_log(sr_result: dict) -> str:
+    """cmd_self_recover 의 results dict 를 release note 본문용 markdown 문자열로 format.
+
+    drift 가 없거나 (`recovered=[]` + `manual_required=[]`) 면 빈 문자열 반환.
+    """
+    recovered = sr_result.get("recovered") or []
+    manual_required = sr_result.get("manual_required") or []
+    re_check = sr_result.get("re_check") or {}
+    if not recovered and not manual_required:
+        return ""
+    lines = ["", "## Self-recovery log", ""]
+    lines.append(f"_자동 emit (Phase 13 AC3, {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})_")
+    lines.append("")
+    if recovered:
+        lines.append(f"### 자동 fix ({len(recovered)}건)")
+        lines.append("")
+        for r in recovered:
+            case = r.get("case", "?")
+            fix = r.get("fix", "?")
+            res = r.get("result", {})
+            file_hint = res.get("file", "")
+            new_val = res.get("new", "")
+            lines.append(f"- `{case}` → `{fix}`")
+            if new_val:
+                lines.append(f"  - new value: `{new_val}`")
+            if file_hint:
+                lines.append(f"  - file: `{file_hint}`")
+        lines.append("")
+    if manual_required:
+        lines.append(f"### Manual required ({len(manual_required)}건)")
+        lines.append("")
+        lines.append("- " + "\n- ".join(manual_required))
+        lines.append("")
+    lines.append(f"_re-check status: **{re_check.get('guard_status', 'unknown')}** "
+                 f"(pass={re_check.get('cases_pass', '?')}/fail={re_check.get('cases_fail', '?')}/total={re_check.get('cases_total', '?')})_")
+    return "\n".join(lines) + "\n"
+
+
+def _emit_self_recovery_log(args: argparse.Namespace, recovery_log: str) -> dict:
+    """release note 본문 끝에 self-recovery log append (Phase 13 AC3 close-out).
+
+    release note 가 없거나 (backfill 시나리오) recovery_log 가 empty 면 no-op.
+    """
+    try:
+        version = getattr(args, "version", None) or read_version()
+        notes_resolution = _resolve_notes_file(version, "default", dry_run=False)
+        notes_file = notes_resolution.get("notes_file")
+        if not notes_file or not Path(notes_file).exists():
+            return {"status": "skipped", "reason": "release note not found (backfill scenario)"}
+        body = Path(notes_file).read_text(encoding="utf-8")
+        # "## Self-recovery log" 헤더가 이미 있으면 중복 append 방지 (idempotent).
+        marker = "## Self-recovery log"
+        if marker in body:
+            return {"status": "skipped", "reason": "self-recovery log already present (idempotent)"}
+        new_body = body.rstrip("\n") + "\n" + recovery_log
+        if atomic_write_text is not None:
+            atomic_write_text(notes_file, new_body)
+        else:
+            notes_file.write_text(new_body, encoding="utf-8")
+        return {
+            "status": "ok",
+            "path": str(notes_file),
+            "bytes_appended": len(recovery_log),
+        }
+    except Exception as e:  # noqa: BLE001
         return {"status": "error", "error": f"{type(e).__name__}: {e}"}
 
 
@@ -2524,6 +2896,21 @@ def main() -> int:
                        help="default: apply. --dry-run 으로 override")
     p_smm.add_argument("--json", action="store_true")
 
+    # self-recover (Phase 13 AC3 — v0.13.2+, drift prevention P3)
+    p_sr = sub.add_parser(
+        "self-recover",
+        help=(
+            "drift prevention smoke 의 FAIL case 자동 fix (Phase 13 AC3). "
+            "detect → classify (auto_fixable / manual_required) → fix → re-check → emit. "
+            "default: dry-run. --apply 로 실제 fix."
+        ),
+    )
+    p_sr.add_argument("--apply", dest="apply", action="store_true", default=False,
+                      help="fix 적용 (default: dry-run)")
+    p_sr.add_argument("--dry-run", action="store_true", dest="dry_run",
+                      help="plan 만 출력 (write 안 함, default)")
+    p_sr.add_argument("--json", action="store_true")
+
     # changelog-gen (Phase 4 — v0.7.14+, Keep-a-Changelog 형식, v0.7.15+ filter)
     p_cl = sub.add_parser("changelog-gen", help="multi-release git log → CHANGELOG.md 본문 (Keep-a-Changelog 형식)")
     p_cl.add_argument("--output", default=None,
@@ -2545,6 +2932,9 @@ def main() -> int:
                        help="mypy CI cross-verify skip (v0.11.13+, advisory 만 default)")
     p_rel.add_argument("--strict-cross-verify", action="store_true",
                        help="mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)")
+    p_rel.add_argument("--skip-self-recover", dest="skip_self_recover",
+                       action="store_true", default=False,
+                       help="drift prevention: Phase 13 AC3 self-recover step skip (v0.13.2+, manual override 용)")
     p_rel.add_argument("--skip-doc-headers-update", dest="skip_doc_headers_update",
                        action="store_true", default=False,
                        help="drift prevention: docs/ - 최종 수정일 헤더 자동 갱신 step skip (v0.11.23+)")
@@ -2617,8 +3007,9 @@ def main() -> int:
     args = p.parse_args()
     if getattr(args, "dry_run", False):
         args.apply = False
-    if getattr(args, "dry_run", False):
-        args.apply = False
+    if not getattr(args, "dry_run", False) and not getattr(args, "apply", False):
+        # default = dry-run when neither flag is specified
+        args.dry_run = True
 
     if args.command == "validate":
         result = cmd_validate(args)
@@ -2632,6 +3023,8 @@ def main() -> int:
         result = cmd_doc_headers_update(args)
     elif args.command == "sync-maturity-matrix":
         result = cmd_maturity_matrix_sync(args)
+    elif args.command == "self-recover":
+        result = cmd_self_recover(args)
     elif args.command == "release":
         result = cmd_release(args)
     elif args.command == "verify":

@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "v0.13.1-beta",
+  "tool_version": "v0.13.2-beta",
   "detected_change_types": [
     "code",
     "docs",

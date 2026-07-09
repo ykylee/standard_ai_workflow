@@ -85,11 +85,20 @@ silent_failing_cycles_count = sum(
   - `check_memory_index_telemetry.py` 6/6 PASS (1 emit / 2-hit-1-miss / by_source / malformed skip / graceful empty / concurrent append 10 line 보존)
   - mypy strict 0 new error + drift prevention 6/6 PASS + 3 skill smoke 3/3 PASS
 
-#### AC3. self-recovering (P2)
+#### AC3. self-recovering (P2) — **v0.13.2 (2026-07-09) close ✅**
 
 - drift 발견 시 `release_pipeline.py sync-maturity-matrix` 가 *자동 fix* (manual intervention 0).
 - 1 release cycle 내 fix cycle closed.
 - self-recovery log 가 release note 본문에 자동 emit.
+- **v0.13.2 self-recover orchestrator** (release v0.13.2-beta, 2026-07-09):
+  - `cmd_self_recover` dispatcher subcommand 37 (`--apply` / `--dry-run` / `--json`)
+  - detect (`_run_drift_prevention_smoke` subprocess) + classify (`_classify_drift_failures` + `_SELF_RECOVER_CASE_MAP` dict) + fix (5 fix callable: `_fix_loud_fallback` / `_fix_readme_header_version` / `_fix_maturity_matrix_drift` × 2 case) + re-check (6/6 PASS) + emit (`_emit_recovery_summary` dict)
+  - `cmd_release` 의 validate step 후 `cmd_self_recover` 자동 호출 + manual_required > 0 시 early return + `--skip-self-recover` escape hatch
+  - `_emit_self_recovery_log` 가 release note 본문 끝에 `## Self-recovery log` 섹션 자동 append (idempotent marker)
+  - `check_self_recovering_v0_13_2.py` 8/8 PASS
+  - mypy strict 0 new error (22→21 errors via workflow_kit_cli import explicit export fix)
+  - in-scope fix: sys.path standalone import bug + README_PATH root relative 정정
+  - manual_required 2 case (`case_2` Phase status / `case_3` skill stage) — release note 의 `closed_phases` / `promoted_skills` frontmatter 가 제공되어야 fix 가능 (drift-prevention-91-cycle-classification §5 hook 와 후속 cycle 흡수 예정)
 
 #### AC4+. (선택) self-documenting
 

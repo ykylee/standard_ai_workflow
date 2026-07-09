@@ -9,6 +9,9 @@ Phase 2 (v0.7.10): release / verify / rollback — gh CLI 통합 + read-only ver
 Phase 3 (v0.7.11): dist — `python3 -m build` wheel + sdist 자동 빌드 (PEP 517/518).
 Phase 5 (v0.7.18): release coordination observability — cmd_release 의 --auto-bump
   + remote tag pre-check (`git ls-remote origin`). v0.7.16 의 race lesson 반영.
+Phase 6 (v0.13.1+): dashboard post-release emit — gh release create 성공 후
+  workflow_kit.workflow_kit_cli --command=dashboard --format=markdown 자동 호출.
+  --skip-dashboard-emit 으로 skip, --dashboard-output=PATH 로 경로 override.
 
 PyPI/TestPyPI 업로드 ❌ (memory #5 의 release 채널 정책 — GitHub Releases 만).
 
@@ -1584,6 +1587,11 @@ def cmd_release(args) -> dict:
     - "absent" / "skipped": gh CLI 부재 / no run (skip, advisory)
     default = advisory (release 진행). `--strict-cross-verify` flag 시 hard fail (drift / ci_stale / ci_fail).
 
+    **v0.13.1+ dashboard post-release emit**:
+    `gh release create` 성공 후 dashboard markdown snapshot 을 자동 emit.
+    --skip-dashboard-emit 으로 skip 가능. 실패 시 *warning* — release 자체는 성공.
+    --dashboard-output PATH 로 출력 위치 override (default: ai-workflow/dashboard/snapshot.md).
+
     gh auth 인증된 환경 가정. token 회전 부담은 caller 책임.
     """
     # v0.11.16+ args normalize: dispatcher (CLI argparse) 의 release subcommand 는
@@ -1593,9 +1601,10 @@ def cmd_release(args) -> dict:
     # *모든 skip flag / optional attr* 의 default fill.
     for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
                  "skip_validate", "skip_cross_verify", "strict_cross_verify",
-                 "skip_doc_headers_update", "skip_maturity_matrix_sync"):
+                 "skip_doc_headers_update", "skip_maturity_matrix_sync",
+                 "skip_dashboard_emit", "dashboard_output"):
         if not hasattr(args, attr):
-            setattr(args, attr, False)
+            setattr(args, attr, False if attr == "skip_dashboard_emit" else None)
 
     def _attr_ns(**overrides) -> argparse.Namespace:
         """Create a fresh argparse.Namespace with default attrs (False) + overrides.
@@ -1875,7 +1884,110 @@ def cmd_release(args) -> dict:
         results["gh_stderr_tail"] = proc.stderr.strip().split("\n")[-1]
     if proc.returncode != 0:
         return _attach_release_summary({**results, "error": f"gh release create failed: exit {proc.returncode}"})
+
+    # 6. v0.13.1+ dashboard post-release emit. Warning 만 — release 자체는 성공.
+    dashboard_emit = _emit_dashboard_post_release(args, results)
+    results["dashboard_emit"] = dashboard_emit
+    if dashboard_emit.get("status") == "ok":
+        print(f"  [dashboard] {dashboard_emit.get('path', '?')} ({dashboard_emit.get('bytes', 0)} bytes)")
+    elif dashboard_emit.get("status") == "skipped":
+        print(f"  [dashboard] skipped ({dashboard_emit.get('reason', '')})")
+    else:
+        print(f"  [dashboard] WARN: {dashboard_emit.get('error', 'unknown error')}")
+
     return _attach_release_summary(results)
+
+
+# ---------------------------------------------------------------------------
+# 4.5 dashboard emit (v0.13.1+ Phase 13 sub-milestone)
+# ---------------------------------------------------------------------------
+
+
+def _emit_dashboard_post_release(args: argparse.Namespace, results: dict) -> dict:
+    """gh release create 성공 후 dashboard markdown snapshot 자동 emit.
+
+    Returns:
+        dict with keys:
+            status: 'ok' | 'skipped' | 'error'
+            path: output file path (str, status='ok' 시)
+            bytes: output file size (int, status='ok' 시)
+            reason: skip reason (str, status='skipped' 시)
+            error: error message (str, status='error' 시)
+            executed_at: ISO 8601 timestamp (status='ok' 시)
+            duration_ms: int (status='ok' 시)
+    """
+    skip = bool(getattr(args, "skip_dashboard_emit", False))
+    if skip:
+        return {"status": "skipped", "reason": "--skip-dashboard-emit"}
+
+    # Project root = git repo root = REPO_ROOT.parent (workflow-source/tools/ 의 부모의 부모).
+    # ai-workflow/ 는 project root 아래에 있으므로 dashboard CLI 의 _repo_root() 와 정합.
+    project_root = REPO_ROOT.parent
+    output = getattr(args, "dashboard_output", None)
+    if not output:
+        output = "ai-workflow/dashboard/snapshot.md"
+
+    dashboard_path = project_root / output
+    dashboard_path.parent.mkdir(parents=True, exist_ok=True)
+
+    cli_module = "workflow_kit.workflow_kit_cli"
+    cmd = [
+        sys.executable, "-m", cli_module,
+        "--command=dashboard",
+        "--format=markdown",
+        f"--output={dashboard_path}",
+    ]
+
+    import time
+    started = time.monotonic()
+    # PYTHONPATH 에 workflow-source (= REPO_ROOT) 를 prepend. CI / release context
+    # 에서 subprocess 가 workflow_kit 모듈을 import 할 수 있도록. check_packaging 의
+    # *clean_env* 패턴의 반대 방향 — 본 helper 는 workflow_kit 이 *필요* 한 케이스.
+    sub_env = os.environ.copy()
+    existing_pp = sub_env.get("PYTHONPATH", "")
+    sub_env["PYTHONPATH"] = (
+        f"{REPO_ROOT}{os.pathsep}{existing_pp}" if existing_pp else str(REPO_ROOT)
+    )
+    try:
+        completed = subprocess.run(
+            cmd,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+            env=sub_env,
+        )
+        duration_ms = int((time.monotonic() - started) * 1000)
+        if completed.returncode != 0:
+            return {
+                "status": "error",
+                "error": (
+                    f"{cli_module} returned {completed.returncode}; "
+                    f"stderr_tail: {(completed.stderr or '').strip().split(chr(10))[-1][:200]}"
+                ),
+            }
+        if not dashboard_path.is_file():
+            return {
+                "status": "error",
+                "error": f"{dashboard_path} not created despite rc=0",
+            }
+        # path 표시는 project_root 기준 relative (absolute path 입력이면 그대로 노출).
+        try:
+            display_path = str(dashboard_path.relative_to(project_root))
+        except ValueError:
+            display_path = str(dashboard_path)
+        return {
+            "status": "ok",
+            "path": display_path,
+            "bytes": dashboard_path.stat().st_size,
+            "executed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "duration_ms": duration_ms,
+        }
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "error": "dashboard emit timeout (60s)"}
+    except (OSError, ValueError) as e:
+        return {"status": "error", "error": f"{type(e).__name__}: {e}"}
 
 
 # ---------------------------------------------------------------------------
@@ -2462,6 +2574,13 @@ def main() -> int:
                             "으로 cmd_release 호출 시 즉시 AttributeError).")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")
+    p_rel.add_argument("--skip-dashboard-emit", dest="skip_dashboard_emit",
+                       action="store_true", default=False,
+                       help="dashboard markdown post-release 자동 emit skip (v0.13.1+ Phase 13). "
+                            "default: emit. 실패 시 release 자체는 성공.")
+    p_rel.add_argument("--dashboard-output", dest="dashboard_output", default=None,
+                       help="dashboard snapshot 출력 경로 (default: ai-workflow/dashboard/snapshot.md). "
+                            "v0.13.1+ Phase 13.")
 
     # gen-schema (v0.8.0+ — runtime contract → JSON Schema SSOT)
     p_gs = sub.add_parser("gen-schema", help="JSON Schema bundle dump (Pydantic v2 → JSON Schema draft-07). v0.8.0+ SSOT")

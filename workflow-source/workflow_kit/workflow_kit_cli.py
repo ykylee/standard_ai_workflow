@@ -3,7 +3,7 @@ extended v0.7.53 with okf-export / okf-import, v0.7.54 with okf-validate /
 cache-migrate / release-doctor, v0.7.55 with okf-version-check / cache-decay /
 score-wiki-trend, v0.7.56 with okf-cleanup / cache-prune + score-wiki-trend
 in-process, v0.7.57 with cache-merge-multi / cache-import-csv / cache-export-json,
-v0.9.6 with refresh-purpose).
+v0.9.6 with refresh-purpose, v0.13.0-dev with dashboard).
 
 Replaces 6 per-feature CLI modules (cache_dashboard_cli, v_r13_layer2_cli,
 cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
@@ -51,6 +51,9 @@ Commands:
                        [--purpose-path=PATH] [--json]
     cascade-delete     --deleted-paths=PATH [--deleted-paths=PATH] ...
                        --wiki-root=PATH [--project=SLUG] [--apply] [--json]
+    dashboard          [--format=json|markdown|html] [--output=PATH] [--publish]
+                       [--workspace-root=PATH] [--recent-limit=N] [--top-n=N]
+                       [--inline-guard=true|false]
 
 Exit codes: 0 = success (or no alerts), 1 = alerts triggered / operation result, 2 = usage error.
 
@@ -659,6 +662,85 @@ def cmd_release_doctor(argv: list[str]) -> int:
             v.get("ok") is False for v in results.values() if isinstance(v, dict)
         )
         return 1 if any_fail else 0
+    except Exception as e:
+        print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
+        return 2
+
+
+@register("dashboard")
+def cmd_dashboard(argv: list[str]) -> int:
+    """Quality Dashboard 5-panel snapshot (Phase 13 v0.13.0+, dispatcher subcommand 38).
+
+    Read-only diagnostic. 5 panels:
+      1. drift_prevention: maturity_matrix.json freshness + harness count + smoke count
+      2. maturity_distribution: skill / mcp / transport / harness / milestone stage 분포
+      3. memory_index_utilization: entries 갯수 + cue_anchor frequency + cumulative timeline
+      4. smoke_trend: 누적 smoke count + 최근 release 의 smoke fail 갯수
+      5. recent_releases: state.json.session.recent_done_items timeline
+
+    Args:
+        --format=json|markdown|html  출력 포맷 (default: json). v0.13.2+ html 추가.
+        --output=PATH            출력 파일 (생략 시 stdout)
+        --workspace-root=PATH    workspace root (생략 시 CWD 에서 REPO_ROOT 자동 탐색)
+        --recent-limit=N         smoke_trend panel 의 release note 갯수 (default: 5)
+        --top-n=N                recent_releases panel 의 timeline 갯수 (default: 10)
+        --publish                (v0.13.2+ html 전용) output 외 추가 로 docs/dashboard/index.html copy.
+                                  GitHub Pages workflow 와 정합.
+        --inline-guard=false     (v0.13.1+) drift guard inline 실행 skip. true (default) 면 inline 결과 emit.
+    """
+    fmt = _parse_flag(argv, "--format") or "json"
+    if fmt not in ("json", "markdown", "html"):
+        print(
+            f"ERROR: invalid --format '{fmt}' (expected: json|markdown|html)",
+            file=sys.stderr,
+        )
+        return 2
+    output = _parse_flag(argv, "--output")
+    workspace_root_s = _parse_flag(argv, "--workspace-root")
+    recent_limit_s = _parse_flag(argv, "--recent-limit") or "5"
+    top_n_s = _parse_flag(argv, "--top-n") or "10"
+    publish = _has_flag(argv, "--publish")
+    inline_guard_s = _parse_flag(argv, "--inline-guard") or "true"
+    inline_guard = inline_guard_s.lower() not in ("0", "false", "no", "off")
+    try:
+        recent_limit = int(recent_limit_s)
+        top_n = int(top_n_s)
+    except ValueError as e:
+        print(f"ERROR: --recent-limit / --top-n 정수 parse 실패: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        from pathlib import Path as _P
+        from workflow_kit.common.dashboard_data import (
+            collect_dashboard_snapshot,
+            render_dashboard_markdown,
+            render_dashboard_html,
+        )
+        ws_root = _P(workspace_root_s) if workspace_root_s else None
+        snap = collect_dashboard_snapshot(ws_root, inline_guard=inline_guard)
+        if fmt == "json":
+            payload = json.dumps(snap, ensure_ascii=False, indent=2, sort_keys=True)
+        elif fmt == "markdown":
+            payload = render_dashboard_markdown(snap)
+        else:
+            payload = render_dashboard_html(snap)
+
+        if output:
+            out_path = _P(output)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(payload, encoding="utf-8")
+        else:
+            print(payload, end="" if payload.endswith("\n") else "\n")
+
+        # --publish: docs/dashboard/index.html 로 추가 copy (html format 전용 권장).
+        if publish:
+            from pathlib import Path as _Pp
+            publish_path = _Pp("docs/dashboard/index.html")
+            publish_path.parent.mkdir(parents=True, exist_ok=True)
+            publish_path.write_text(payload, encoding="utf-8")
+            print(f"  [publish] {publish_path}", file=sys.stderr)
+
+        return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quality Dashboard · v0.11.25-beta</title>
+  <style>
+:root {
+  color-scheme: light dark;
+  --bg: #fff;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #ddd;
+  --panel: #f9f9f9;
+  --pass: #1b8a3a;
+  --fail: #c0392b;
+  --error: #d68910;
+  --link: #1d6fb8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --fg: #e0e0e0; --muted: #aaa;
+    --border: #333; --panel: #252525;
+    --pass: #58c47e; --fail: #ff6b5b; --error: #ffd066;
+    --link: #5aa7e8;
+  }
+}
+body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 2rem; }
+h1 { font-size: 1.8rem; margin-bottom: 0.3rem; }
+.meta { color: var(--muted); font-size: 0.85rem; }
+code { background: var(--panel); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+main { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem; }
+.panel h2 { font-size: 1.1rem; margin: 0 0 0.8rem; }
+.panel .stat { font-size: 1.6rem; font-weight: 600; }
+.panel .stat.pass { color: var(--pass); }
+.panel .stat.fail { color: var(--fail); }
+.panel .stat.error { color: var(--error); }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td { padding: 0.35rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+canvas { max-width: 100%; }
+.timeline li { margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--muted); }
+ul.timeline { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quality Dashboard</h1>
+    <p class="meta">generated_at: <code>2026-07-09T04:04:47Z</code> · tool_version: <code>v0.11.25-beta</code></p>
+    <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
+  </header>
+  <main>
+  <section class="panel">
+    <h2>Panel 1 — Drift Prevention Status</h2>
+    <p>guard_status: <span class="stat pass">pass</span></p>
+    <p>guard: 6/6 pass (expected 6)</p>
+    <p>guard_runtime_ms: 36</p>
+    <p>maturity_last_updated: <code>2026-07-09</code></p>
+    <p>head_commit_date: <code>2026-07-09</code></p>
+    <p>last_updated_delta_days: 0</p>
+    <p>harness_supported_count: 10</p>
+    <p><strong>silent_failing_cycles_count: 0</strong> (Phase 13 AC1 north-star)</p>
+    <p class="meta">Phase 12 (in_progress) → Phase 13 (planned)</p>
+  </section>
+  <section class="panel">
+    <h2>Panel 2 — Maturity Distribution</h2>
+    <table>
+      <thead><tr><th>bucket</th><th>total</th><th>stable</th><th>beta</th><th>alpha</th></tr></thead>
+      <tbody>
+        <tr><td>skills</td><td>12</td><td>12</td><td>0</td><td>0</td></tr>
+        <tr><td>mcp_tools</td><td>12</td><td>8</td><td>4</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>harnesses.supported: <strong>10</strong></p>
+    <p>milestones: total=12 done=11 in_progress=1</p>
+    <canvas id="chart-maturity" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 3 — Memory Index Utilization</h2>
+    <p class="stat">7</p>
+    <p class="meta">total entries · unique cue anchors: 40</p>
+    <p class="meta">first_entry_date: <code>2026-07-09</code></p>
+    <p class="meta">last_entry_date: <code>2026-07-09</code></p>
+    <p class="meta">retrieval_hit_rate: 0.0000 (Phase 13 AC2 — pending telemetry)</p>
+    <p class="meta">by merge_state: active=7</p>
+    <canvas id="chart-memory" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 4 — Smoke Trend</h2>
+    <p class="stat pass">40/40</p>
+    <p class="meta">cumulative pass rate: 1.0000</p>
+    <p class="meta">smoke test files: 171</p>
+    <canvas id="chart-smoke" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 5 — Recent Release Cycle</h2>
+    <p>items_total: <strong>60</strong> (top_n=10)</p>
+    <ul class="timeline">
+      <li>[0] 2026-07-09 (audit-follow-up): 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (no release, no version bump). **P0 (즉시 가치, 3건…</li>
+      <li>[1] 2026-07-09 (audit-session): 워크플로우 구성 점검 + 고도화 후보 도출 — 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP…</li>
+      <li>[2] v0.11.21 (c90b437): 3차 batch robust-patcher stable 승격 — GitHub Release v0.11.21-beta tag push + gh release create exit 0…</li>
+      <li>[3] v0.11.20 (af6baaf): 2차 batch 4 skill stable 승격 + 2 latent bug fix — GitHub Release v0.11.20-beta tag push + gh release c…</li>
+      <li>[4] v0.11.19 (dfafdc4): 1차 batch 4 skill stable 승격 — GitHub Release v0.11.19-beta tag push + gh release create exit 0 (https…</li>
+      <li>[5] v0.11.18 (80470cd): FULL mypy strict 도달 공식 release — GitHub Release v0.11.18-beta tag push + gh release create exit 0 (h…</li>
+      <li>[6] v0.11.18-dev (4253eed): mypy strict 잔여 13 error 일괄 격상 — FULL mypy strict 도달 (107 file clean). session 마무리. 12 file 일괄: a…</li>
+      <li>[7] v0.11.18-dev (65f0b20): mypy strict read_only_mcp_sdk + doc_sync 묶음 격상 — server + common cross-layer, read_only_mcp_sdk.…</li>
+      <li>[8] v0.11.18-dev (094cacf): mypy strict mcp_v1_server + release_status 묶음 격상 — mcp_v1_server.py 3 error (unused type:ignore …</li>
+      <li>[9] v0.11.17 (3d3387d): GitHub Release v0.11.17-beta — mypy strict cumulative 25 error 격상 (output_contracts 15 + cli/doctor+…</li>
+    </ul>
+  </section>
+  </main>
+  <script>
+    (function() {
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 8], "beta": [0, 4], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.11.24", "Beta-v0.11.25"], "counts": [40, 40]}};
+      function ready(fn) {
+        if (typeof window.Chart !== 'undefined') { fn(); }
+        else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }
+      }
+      ready(function() {
+        try {
+          new Chart(document.getElementById('chart-maturity'), {
+            type: 'bar',
+            data: {
+              labels: data.maturity.labels,
+              datasets: [
+                { label: 'stable', data: data.maturity.stable, backgroundColor: '#1b8a3a' },
+                { label: 'beta', data: data.maturity.beta, backgroundColor: '#d68910' },
+                { label: 'alpha', data: data.maturity.alpha, backgroundColor: '#c0392b' },
+              ],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+          });
+          new Chart(document.getElementById('chart-memory'), {
+            type: 'line',
+            data: {
+              labels: data.memory.dates,
+              datasets: [{ label: 'cumulative entries', data: data.memory.counts, borderColor: '#1d6fb8', fill: false, tension: 0.1 }],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+          new Chart(document.getElementById('chart-smoke'), {
+            type: 'line',
+            data: {
+              labels: data.smoke.versions,
+              datasets: [{ label: 'pass count', data: data.smoke.counts, borderColor: '#1b8a3a', fill: false, tension: 0.1 }],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+        } catch (e) { /* silent — static fallback already visible */ }
+      });
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</body>
+</html>

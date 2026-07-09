@@ -72,14 +72,24 @@ DRIFT_GUARD_INLINE_TIMEOUT: Final[int] = 30
 # ---------------------------------------------------------------------------
 
 
-def _repo_root(workspace_root: Path) -> Path:
+def _repo_root(workspace_root: Path | str | None) -> Path:
     """workspace_root 가 주어지지 않으면 REPO 부모 디렉토리로 fallback.
 
     표준화 정공법: caller 가 명시한 workspace_root 가 우선 (테스트 용이성).
     caller 가 미지정 시 ``workflow-source`` 의 부모 디렉토리 (REPO_ROOT) 를 반환.
+    str path 도 허용 (test caller 용이성).
+
+    Args:
+        workspace_root: REPO_ROOT (Path) / git repo root 또는 "string path" / None.
     """
-    if workspace_root is not None:
-        return workspace_root
+    if isinstance(workspace_root, str):
+        candidate: Path | None = Path(workspace_root)
+    elif workspace_root is None:
+        candidate = None
+    else:
+        candidate = workspace_root
+    if candidate is not None:
+        return candidate
     # workflow-source/workflow_kit/common/dashboard_data.py → 4 단계 위 = REPO_ROOT
     return Path(__file__).resolve().parents[3]
 

@@ -200,10 +200,13 @@ def refresh_workflow_state_cache(
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    # v0.14.1 + v0.14.5: 1st/2nd deprecation cycle 통합 warning.
-    # - v0.14.1: 1st cycle 종결 — warning stage.
-    # - v0.14.5: 2nd cycle 시작 — strict opt-out stage (legacy_memory=False 명시 필요).
-    # - v0.15.0: 2nd cycle 종결 — `.bak` 완전 drop.
+    # v0.15.0: 2nd deprecation cycle 종결 — `work_backlog.md.bak` 완전 drop.
+    # 본 block 은 더 이상 emit 안 함 (legacy_bak 부재 시 자연스럽게 no-op). pre-v0.15.0
+    # caller 중 `legacy_memory` kwarg / `--legacy-memory` flag / `--legacy-memory opt-out`
+    # 명시 없이 branch_dir 하위 legacy fallback 사용하던 caller 는 **breaking change**
+    # — v0.15.0 부터는 explicit path 또는 `legacy_memory=True` 명시 필요.
+    # v0.15.0 release 시 `.bak` 파일이 drop 되어 legacy_bak.exists() 가 False 반환,
+    # 따라서 deprecation_warnings 모두 no-op (1st/2nd cycle warning 자동 stop).
     deprecation_warnings: list[str] = []
     deprecation_cycle: str | None = None
     legacy_bak = memory_dir / "work_backlog.md.bak"

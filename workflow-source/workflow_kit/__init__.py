@@ -140,7 +140,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v0.14.0-beta"
+    return "v0.15.0-beta"
 
 
 __version__: str = _read_pyproject_version()

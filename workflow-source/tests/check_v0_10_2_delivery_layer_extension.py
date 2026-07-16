@@ -52,7 +52,7 @@ def _make_ns(target: Path, harnesses: list[str], entry_mode: str) -> argparse.Na
         doc_home="README.md",
         operations_dir="ai-workflow/memory/active/",
         backlog_dir="ai-workflow/memory/active/backlog/",
-        session_doc_path="ai-workflow/memory/active/session_handoff.md",
+        session_doc_path="ai-workflow/memory/active/sessions",
         environment_dir="ai-workflow/memory/active/environments/",
         install_command=None,
         run_command=None,

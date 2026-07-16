@@ -135,8 +135,8 @@ python3 -m bootstrap_lib --target-root . --project-slug standard-ai-workflow \
 # 2) state.json 갱신
 python3 workflow-source/scripts/generate_workflow_state.py \
   --project-profile-path docs/PROJECT_PROFILE.md \
-  --session-handoff-path ai-workflow/memory/active/session_handoff.md \
-  --work-backlog-index-path ai-workflow/memory/active/work_backlog.md \
+  --session-handoff-path ai-workflow/memory/active/sessions \
+  --work-backlog-index-path ai-workflow/memory/active/backlog \
   --output-path ai-workflow/memory/active/state.json
 ```
 

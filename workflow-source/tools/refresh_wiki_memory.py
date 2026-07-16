@@ -366,7 +366,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
     state_body += (
         "\n## 다음에 읽을 문서\n\n"
         "- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json) (1차 출처)\n"
-        "- [in-repo/ai-workflow/memory/active/work_backlog.md](../../../memory/active/work_backlog.md)\n"
+        "- [in-repo/ai-workflow/memory/active/backlog](../../../memory/active/work_backlog.md)\n"
         "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)\n"
     )
 
@@ -395,7 +395,7 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
         "- TASK-NNN 식별자 (1+ 작업 항목 / 일자)\n"
         "- 동일 일자 다중 브랜치 작업 시 브랜치별 별도 파일\n\n"
         "## 다음에 읽을 문서\n\n"
-        "- [in-repo/ai-workflow/memory/active/work_backlog.md](../../../memory/active/work_backlog.md) (1차 출처)\n"
+        "- [in-repo/ai-workflow/memory/active/backlog](../../../memory/active/work_backlog.md) (1차 출처)\n"
     )
 
     # 3) active-session-handoff

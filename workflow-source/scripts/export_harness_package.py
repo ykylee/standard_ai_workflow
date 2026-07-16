@@ -240,8 +240,8 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
     common = [
         "bundle/ai-workflow/README.md",
         "bundle/ai-workflow/memory/active/state.json",
-        "bundle/ai-workflow/memory/active/session_handoff.md",
-        "bundle/ai-workflow/memory/active/work_backlog.md",
+        "bundle/ai-workflow/memory/active/sessions",
+        "bundle/ai-workflow/memory/active/backlog",
         "bundle/ai-workflow/memory/active/PROJECT_PROFILE.md",
         "bundle/ai-workflow/core/workflow_adoption_entrypoints.md",
         "bundle/ai-workflow/core/workflow_skill_catalog.md",
@@ -412,8 +412,8 @@ def render_package_contents(
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
 - `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md`
 - `bundle/ai-workflow/memory/active/state.json`
-- `bundle/ai-workflow/memory/active/session_handoff.md`
-- `bundle/ai-workflow/memory/active/work_backlog.md`
+- `bundle/ai-workflow/memory/active/sessions`
+- `bundle/ai-workflow/memory/active/backlog`
 {chr(10).join(backlog_entries)}
 
 ## 4. 하네스 runtime overlay 파일
@@ -485,8 +485,8 @@ def render_apply_guide(
         "codex": [
             "- `AGENTS.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
         "opencode": [
@@ -495,36 +495,36 @@ def render_apply_guide(
             "- `.opencode/skills/standard-ai-workflow/SKILL.md`",
             "- `.opencode/agents/workflow-orchestrator.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
         "gemini-cli": [
             "- `GEMINI.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
         "pi-dev": [
             "- `AGENTS.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
         "antigravity": [
             "- `ANTIGRAVITY.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
         "claude-code": [
             "- `CLAUDE.md`",
             "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/session_handoff.md`",
-            "- `ai-workflow/memory/active/work_backlog.md`",
+            "- `ai-workflow/memory/active/sessions`",
+            "- `ai-workflow/memory/active/backlog`",
             "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
         ],
     }[harness]
@@ -566,8 +566,8 @@ def render_apply_guide(
 
 - `ai-workflow/memory/active/state.json` 의 current_focus 와 next_documents
 - `ai-workflow/memory/active/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
-- `ai-workflow/memory/active/session_handoff.md` 의 현재 기준선
-- `ai-workflow/memory/active/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태
+- `ai-workflow/memory/active/sessions` 의 현재 기준선
+- `ai-workflow/memory/active/backlog` 와 최신 날짜 backlog 의 실제 작업 상태
 
 ## 6. 주의 사항
 

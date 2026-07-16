@@ -77,7 +77,7 @@
 - 추천 backlog 위치:
 - `ai-workflow/memory/active/backlog/`
 - 추천 session handoff 위치:
-- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/sessions`
 
 ## 6. 자동 분석 기반 다음 작업
 

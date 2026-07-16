@@ -22,8 +22,8 @@
 대표 경로:
 
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 - `ai-workflow/memory/active/state.json`
 
@@ -46,8 +46,8 @@
 권장 순서:
 
 1. `ai-workflow/memory/active/state.json`
-2. `ai-workflow/memory/active/session_handoff.md`
-3. `ai-workflow/memory/active/work_backlog.md`
+2. `ai-workflow/memory/active/sessions`
+3. `ai-workflow/memory/active/backlog`
 4. `ai-workflow/memory/active/PROJECT_PROFILE.md`
 5. 필요 시 최신 `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 
@@ -69,11 +69,11 @@
 
 - `backlog-update --apply`
   - 기본 write target: `ai-workflow/memory/active/backlog/*.md`
-  - 함께 동기화: `ai-workflow/memory/active/work_backlog.md`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/state.json`
+  - 함께 동기화: `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/state.json`
 - `doc-sync`, `code-index-update`
   - 기본 탐색 대상: profile 이 가리키는 실제 project docs
 - `merge-doc-reconcile --apply`
-  - 제한적 write target: `ai-workflow/memory/active/session_handoff.md` 운영 메모
+  - 제한적 write target: `ai-workflow/memory/active/sessions` 운영 메모
 
 ## 5. 탐색 경계
 

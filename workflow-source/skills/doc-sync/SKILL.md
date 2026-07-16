@@ -51,14 +51,14 @@
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
   --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path ai-workflow/memory/active/session_handoff.md \
+  --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file app/main.py
 ```
 - 실행 예시 (자동 반영):
 ```bash
 python3 skills/doc-sync/scripts/run_doc_sync.py \
   --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path ai-workflow/memory/active/session_handoff.md \
+  --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file app/main.py \
   --apply
 ```

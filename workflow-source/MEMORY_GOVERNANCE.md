@@ -74,6 +74,95 @@ created_at: YYYY-MM-DD
 - `backlog/YYYY-MM-DD.md` is a tracked lightweight index. Keep it small and link-oriented.
 - On merge conflicts, rebuild the daily index from task links and resolve detailed state in each task file.
 
+### 📂 Daily Backlog Index — v0.14.0+ layout (append-only)
+```markdown
+# Backlog Index — YYYY-MM-DD
+
+- 문서 목적: 해당 날짜의 작업 항목(task) SSOT link 모음.
+- 관련 문서: [./tasks/TASK-XXX.md](./tasks/TASK-XXX.md)
+
+## Tasks
+
+- **TASK-YYYY-MM-DD-001** [🔧 release] v0.13.3 — SemVer patch, Phase 13 AC4+ close-out
+  - path: `backlog/tasks/TASK-YYYY-MM-DD-001.md`
+  - source: `[[release/v0.13.3/backlog/2026-07-09.md]] {#release-v0-13-3}`
+- **TASK-YYYY-MM-DD-002** [🔧 release] v0.13.2 — SemVer patch, Phase 13 AC3 close-out
+  - path: `backlog/tasks/TASK-YYYY-MM-DD-002.md`
+  - source: `[[release/v0.13.2/backlog/2026-07-09.md]] {#release-v0-13-2}`
+```
+
+### 📂 Per-Task SSOT — v0.14.0+ layout
+```markdown
+---
+id: TASK-YYYY-MM-DD-NNN
+status: planned | in_progress | done | blocked
+created_at: YYYY-MM-DD
+source_anchor: <legacy work_backlog anchor>
+source_path: <legacy raw_path>
+kind: release | session | generic
+---
+
+# TASK-YYYY-MM-DD-NNN — <title>
+
+## 📝 Description
+- 출처: `[[legacy/raw_path]] {#legacy-anchor}` (legacy work_backlog.md inline section)
+- 분류: `<kind>`
+- 작성일: YYYY-MM-DD
+
+## 🛠️ Implementation / Content
+<본문 — legacy entry 의 inline 본문 보존>
+
+## ✅ Outcome
+- v0.14.0 migration 으로 per-task SSOT 로 분리됨.
+```
+
+### 📂 Per-Session File — v0.14.0+ layout (was `session_handoff.md`)
+```markdown
+# Session — YYYY-MM-DD / <topic>
+
+- 문서 목적: 특정 세션의 단기 메모리 (영구 보존은 wiki/topics/ 와 함께).
+- 날짜: YYYY-MM-DD
+- 주제: <session_analysis / audit_session / audit_follow_up / generic>
+- 출처: `[[legacy/raw_path]] {#anchor}`
+- 상태: stable
+
+## 📋 Session Summary
+<session 1-line summary>
+
+## 🛠️ Detail
+<session 본문>
+
+## ✅ Outcome
+- v0.14.0 migration 으로 per-session 파일로 분리됨.
+```
+
+### 📂 State.json — read-only snapshot (v0.14.0+)
+```json
+{
+  "schema_version": "1",
+  "source_of_truth": {
+    "project_profile_path": "ai-workflow/memory/active/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/active/sessions/",
+    "work_backlog_index_path": "ai-workflow/memory/active/backlog/",
+    "daily_backlog_dir": "ai-workflow/memory/active/backlog/",
+    "tasks_dir": "ai-workflow/memory/active/backlog/tasks/",
+    "sessions_dir": "ai-workflow/memory/active/sessions/"
+  },
+  "session": {
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": []
+  }
+}
+```
+
+**본 layout 결정의 동기**: sub-agent 2개+ 동시 fan-out 시 `state.json.recent_done_items` / `work_backlog.md` 의 3-way merge conflict 를 해소. 신규 layout 에서는 mutable 공유 파일이 `state.json` 단 1개 (rebuild race only), 나머지는 append-only 또는 자기 소유 파일. 자세한 분석: [`../../ai-workflow/memory/active/README.md`](../../ai-workflow/memory/active/README.md).
+
+**Deprecation timeline** (ADR-003 1st/2nd cycle):
+- v0.14.0 (1st cycle 시작): 신규 layout 활성 + `work_backlog.md` fallback 유지
+- v0.14.5 (2nd cycle 시작): `work_backlog.md` 는 `--legacy-memory` flag 있을 때만 read
+- v0.15.0 (2nd cycle 종결): `work_backlog.md` / `.bak` drop
+
 ## 3. 에이전트 행동 지침
 
 - **세션 종료 절차는 [`core/global_workflow_standard.md`](./core/global_workflow_standard.md) §8 을 따른다 — `memory 갱신 → commit → push` 순서**. 별도 turn "memory 에 적어줘" 분리 ❌. handoff/state.json/work_backlog 갱신을 commit 직전 같은 turn 에 묶어서, push 시점에 협업자가 memory 변경을 함께 볼 수 있도록 한다.

@@ -135,8 +135,8 @@ session-start skill 의 핵심 4 file (`session_handoff.md` / `work_backlog.md` 
 
 ```
 $ python3 skills/session-start/scripts/run_session_start.py \
-    --session-handoff-path ai-workflow/memory/active/session_handoff.md \
-    --work-backlog-index-path ai-workflow/memory/active/work_backlog.md \
+    --session-handoff-path ai-workflow/memory/active/sessions \
+    --work-backlog-index-path ai-workflow/memory/active/backlog \
     --project-profile-path docs/PROJECT_PROFILE.md
 {
   "status": "warning",

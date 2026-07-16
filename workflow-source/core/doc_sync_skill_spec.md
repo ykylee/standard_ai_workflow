@@ -100,7 +100,7 @@
 | `next_stage` | `validation-plan` | 다음 stage 이름. workflow 끝이면 `None` |
 | `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
 | `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
-| `artifacts` | [`ai-workflow/memory/active/session_handoff.md`] | 본 stage 의 검토 대상 artifact path |
+| `artifacts` | [`ai-workflow/memory/active/sessions`] | 본 stage 의 검토 대상 artifact path |
 | `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
 | `notes` | 1-3 line | AI summary |
 

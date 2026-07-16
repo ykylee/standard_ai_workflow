@@ -54,8 +54,8 @@ v0.6.3-beta 시점. 공통 정책 원문은 `workflow-source/core/` 와 `ai-work
 | `bundle/ai-workflow/core/{global_workflow_standard, workflow_adoption_entrypoints, workflow_skill_catalog}.md` | 공통 runtime 정책 문서 (3종 minimal core) |
 | `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md` | 프로젝트 프로파일 |
 | `bundle/ai-workflow/memory/active/state.json` | 세션 캐시 (state of truth 아님) |
-| `bundle/ai-workflow/memory/active/session_handoff.md` | 세션 인계 |
-| `bundle/ai-workflow/memory/active/work_backlog.md` + `backlog/YYYY-MM-DD.md` | 작업 백로그 |
+| `bundle/ai-workflow/memory/active/sessions` | 세션 인계 |
+| `bundle/ai-workflow/memory/active/backlog` + `backlog/YYYY-MM-DD.md` | 작업 백로그 |
 | `manifest.json` | 머신 파싱 가능. `included_files`, `recommended_entrypoints`, `excluded_by_default`, `deferred_release_items` 기록 |
 | `PACKAGE_CONTENTS.md` | 사람이 읽는 패키지 안내 (한글) |
 | `APPLY_GUIDE.md` | 대상 저장소 적용 절차 (복사 경로 매핑, 첫 세션 읽기 순서) |

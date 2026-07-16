@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: 2026-05-02
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`
 
 ## 1. 도입 모드
 
@@ -17,8 +17,8 @@
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - [ai-workflow/memory/active/state.json](./memory/active/state.json)
-- [ai-workflow/memory/active/session_handoff.md](./memory/gemini/phase10/session_handoff.md)
-- [ai-workflow/memory/active/work_backlog.md](./memory/gemini/phase10/work_backlog.md)
+- [ai-workflow/memory/active/sessions](./memory/gemini/phase10/session_handoff.md)
+- [ai-workflow/memory/active/backlog](./memory/gemini/phase10/work_backlog.md)
 - [ai-workflow/memory/active/backlog/2026-05-02.md](./memory/gemini/phase10/backlog/iyeong-gyun-ui-MacBookAir.local/192.168.0.139/2026-04-24.md)
 
 
@@ -39,10 +39,11 @@
 ## 5. 도입 직후 해야 할 일
 
 1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
-2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
+2. **v0.14.0+ 신규 layout**: `backlog/tasks/TASK-<date>-<NNN>.md` (per-task SSOT) 와 `backlog/<date>.md` (daily index) 신규 작성. `sessions/<sid>.md` 으로 per-session 분리. `state.json` 은 손 수정 ❌ — `python3 scripts/generate_workflow_state.py --apply` 로 rebuild. (legacy `session_handoff.md` / `work_backlog.md` 는 1st deprecation cycle 동안 fallback 으로 read 가능.)
 3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
 4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
 5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
+6. 자세한 운영 가이드: [`./memory/active/README.md`](./memory/active/README.md).
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
@@ -59,7 +60,7 @@
 - 문서 위키 홈: `docs/README.md`
 - 운영 문서 위치: `ai-workflow/memory/active/`
 - 백로그 위치: `ai-workflow/memory/active/backlog/`
-- 세션 인계 문서 위치: `ai-workflow/memory/active/session_handoff.md`
+- 세션 인계 문서 위치: `ai-workflow/memory/active/sessions`
 - 환경 기록 위치: `ai-workflow/memory/active/environments/`
 
 ## 다음에 읽을 문서

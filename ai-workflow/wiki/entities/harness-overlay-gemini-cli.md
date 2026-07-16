@@ -30,8 +30,8 @@ Single entry point: `GEMINI.md` at project root. No second-level config file is 
 |---|---|---|
 | `GEMINI.md` | Project instruction entry point for Gemini CLI | **Overrides system prompt** — strongest directive in the harness chain |
 | `ai-workflow/memory/active/PROJECT_PROFILE.md` | Project-specific rules (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
-| `ai-workflow/memory/active/session_handoff.md` | Last session's handoff (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
-| `ai-workflow/memory/active/work_backlog.md` | Backlog index (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
+| `ai-workflow/memory/active/sessions` | Last session's handoff (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
+| `ai-workflow/memory/active/backlog` | Backlog index (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
 | `ai-workflow/memory/active/repository_assessment.md` | Existing-project analysis | Read on first session of `existing` mode |
 
 `GEMINI.md` priority rule (from `apply_guide.md` §2): "Gemini CLI 에서는 `GEMINI.md` 가 시스템 프롬프트보다 우선하는 강력한 지침이므로, 핵심 운영 원칙을 여기에 명시한다." This is a sharper contract than Codex (where `AGENTS.md` is advisory) or OpenCode (where `opencode.json` shares authority).

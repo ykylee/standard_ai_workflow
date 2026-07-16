@@ -30,8 +30,8 @@
 - `ai-workflow/core/workflow_adoption_entrypoints.md`
 - `ai-workflow/core/workflow_skill_catalog.md`
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 
 개발 참고용 source docs, 파일럿 템플릿, draft MCP 자료는 기본 배포 묶음에서 제외하고 필요할 때만 opt-in 포함한다.

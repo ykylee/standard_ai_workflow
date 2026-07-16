@@ -68,7 +68,7 @@ def render_readme(
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
+- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`
 
 ## 1. 도입 모드
 
@@ -80,8 +80,8 @@ def render_readme(
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - [ai-workflow/memory/active/state.json](./memory/active/state.json)
-- [ai-workflow/memory/active/session_handoff.md](./memory/active/session_handoff.md)
-- [ai-workflow/memory/active/work_backlog.md](./memory/active/work_backlog.md)
+- [ai-workflow/memory/active/sessions](./memory/active/session_handoff.md)
+- [ai-workflow/memory/active/backlog](./memory/active/work_backlog.md)
 - [ai-workflow/memory/active/backlog/{args.today}.md](./memory/active/backlog/{args.today}.md)
 {generated_assessment}
 

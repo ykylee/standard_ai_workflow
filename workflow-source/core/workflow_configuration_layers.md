@@ -65,8 +65,8 @@
 예시:
 
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - 최신 날짜 backlog 문서
 
 주의:

@@ -79,7 +79,7 @@ def main() -> int:
             "--project-profile-path",
             str(example_root / "PROJECT_PROFILE.md"),
             "--merge-result-summary",
-            "CONFLICT (content): Merge conflict in ai-workflow/memory/main/session_handoff.md",
+            "CONFLICT (content): Merge conflict in ai-workflow/memory/main/sessions",
             "--session-handoff-path",
             str(example_root / "session_handoff.md"),
             "--work-backlog-index-path",

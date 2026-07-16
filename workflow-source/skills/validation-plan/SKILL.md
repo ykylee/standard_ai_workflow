@@ -58,7 +58,7 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
   --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path ai-workflow/memory/active/session_handoff.md \
+  --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file app/main.py \
   --change-summary "로그인 로직 수정" \
   --scaffold \

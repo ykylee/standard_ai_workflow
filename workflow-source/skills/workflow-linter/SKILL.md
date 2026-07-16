@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트, 워크플로우 운영자
 - 상태: stable (v0.11.20 stable 승격)
 - 최종 수정일: 2026-07-01
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`
 
 ## 1. 개요
 
@@ -45,7 +45,7 @@ python3 skills/workflow-linter/scripts/run_workflow_linter.py --json
 python3 skills/workflow-linter/scripts/run_workflow_linter.py \
   --project-profile-path docs/PROJECT_PROFILE.md \
   --state-json-path ai-workflow/memory/active/state.json \
-  --handoff-path ai-workflow/memory/active/session_handoff.md
+  --handoff-path ai-workflow/memory/active/sessions
 
 # maturity matrix + auto-fix (--apply)
 python3 skills/workflow-linter/scripts/run_workflow_linter.py --maturity --apply

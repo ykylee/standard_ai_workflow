@@ -138,8 +138,8 @@ python3 scripts/apply_harness_update.py \
 
 - 먼저 `AGENTS.md` 를 기준으로 현재 저장소 규칙을 읽는다.
 - 이어서 아래 세 문서를 순서대로 읽는다.
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
 - 기존 프로젝트 도입 직후라면 `ai-workflow/memory/active/repository_assessment.md` 도 함께 읽는다.
 

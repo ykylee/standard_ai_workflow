@@ -47,7 +47,7 @@ from workflow_kit.common.contracts.stage_gate_runtime import (
 sc = build_stage_completion(
     stage_name="session-start",
     stage_status="ok",
-    artifacts=["ai-workflow/memory/active/state.json", "ai-workflow/memory/active/session_handoff.md"],
+    artifacts=["ai-workflow/memory/active/state.json", "ai-workflow/memory/active/sessions"],
     next_stage=None,
     notes=["session restored, 3 in_progress items"],
 )

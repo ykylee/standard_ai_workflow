@@ -308,7 +308,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--doc-home", default="README.md")
     parser.add_argument("--operations-dir", default="ai-workflow/memory/active/")
     parser.add_argument("--backlog-dir", default="ai-workflow/memory/active/backlog/")
-    parser.add_argument("--session-doc-path", default="ai-workflow/memory/active/session_handoff.md")
+    parser.add_argument("--session-doc-path", default="ai-workflow/memory/active/sessions")
     parser.add_argument("--environment-dir", default="ai-workflow/memory/active/environments/")
     parser.add_argument("--install-command", default=None)
     parser.add_argument("--run-command", default=None)

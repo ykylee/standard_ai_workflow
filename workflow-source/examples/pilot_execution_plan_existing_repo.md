@@ -55,8 +55,8 @@
 ## 5. 기대 산출물
 
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 - `ai-workflow/memory/active/repository_assessment.md`
 - onboarding runner 결과 JSON

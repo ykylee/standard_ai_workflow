@@ -55,7 +55,7 @@ python3 skills/code-index-update/scripts/run_code_index_update.py \
 ```bash
 python3 skills/code-index-update/scripts/run_code_index_update.py \
   --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path ai-workflow/memory/active/session_handoff.md \
+  --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file docs/operations/runbooks/new-guide.md \
   --apply
 ```

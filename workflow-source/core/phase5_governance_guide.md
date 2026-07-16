@@ -24,7 +24,7 @@ python3 workflow_kit/server/read_only_entrypoint.py --tool summarize_git_history
 **실행 명령:**
 ```bash
 python3 workflow_kit/server/read_only_entrypoint.py --tool rotate_workflow_logs \
-  --payload-json '{"handoff_path": "ai-workflow/memory/active/session_handoff.md", "max_done_items": 10}'
+  --payload-json '{"handoff_path": "ai-workflow/memory/active/sessions", "max_done_items": 10}'
 ```
 
 ## 3. 마일스톤 진척도 관리 (`assess_milestone_progress`)

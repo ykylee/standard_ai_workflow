@@ -85,7 +85,7 @@ def main() -> int:
     workflow_meta_payload = run_index_update(
         "acme_delivery_platform",
         [
-            "ai-workflow/memory/active/session_handoff.md",
+            "ai-workflow/memory/active/sessions",
         ],
         "workflow 상태 문서만 수정",
     )

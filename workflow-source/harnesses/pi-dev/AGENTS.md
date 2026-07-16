@@ -5,14 +5,14 @@
 - 대상 독자: Pi Coding Agent, AI Agent 설계자
 - 상태: stable
 - 최종 수정일: 2026-04-29
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`
 - Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 
 - **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
 - **Priority Docs**:
     1. `ai-workflow/memory/active/state.json` (현재 세션의 진실의 원천)
-    2. `ai-workflow/memory/active/session_handoff.md` (이전 세션 인계 사항)
-    3. `ai-workflow/memory/active/work_backlog.md` (작업 목록)
+    2. `ai-workflow/memory/active/sessions` (이전 세션 인계 사항)
+    3. `ai-workflow/memory/active/backlog` (작업 목록)
 
 ## 1. 세션 시작 루틴 (Mandatory)
 세션이 시작되면 가장 먼저 `ai-workflow/memory/active/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.

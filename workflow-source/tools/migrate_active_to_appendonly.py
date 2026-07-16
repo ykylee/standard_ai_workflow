@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Migrate the legacy single `work_backlog.md` into the v0.14.0 append-only layout.
 
-입력: `ai-workflow/memory/active/work_backlog.md` (legacy)
+입력: `ai-workflow/memory/active/backlog` (legacy)
 출력:
   - `ai-workflow/memory/active/backlog/<YYYY-MM-DD>.md`  (per-day index, link-only)
   - `ai-workflow/memory/active/backlog/tasks/TASK-<YYYY-MM-DD>-<NNN>.md`  (per-task SSOT)

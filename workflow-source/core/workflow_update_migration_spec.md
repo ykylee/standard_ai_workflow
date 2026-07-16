@@ -29,7 +29,7 @@
 ### 2.1 항상 보존 (절대 덮어쓰지 않음)
 
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
-- `ai-workflow/memory/active/session_handoff.md`
+- `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/backlog/*.md`
 

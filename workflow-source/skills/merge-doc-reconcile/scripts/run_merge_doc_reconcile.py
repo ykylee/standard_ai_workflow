@@ -293,7 +293,7 @@ def main() -> int:
             build_stage_completion(
                 stage_name="merge-doc-reconcile",
                 stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
-                artifacts=["ai-workflow/memory/active/session_handoff.md"],
+                artifacts=["ai-workflow/memory/active/sessions"],
                 next_stage=None,
                 notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
             ),

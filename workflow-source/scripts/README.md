@@ -57,8 +57,8 @@ rm -rf .venv
 - `ai-workflow/README.md`
 - `ai-workflow/memory/active/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/session_handoff.md`
-- `ai-workflow/memory/active/work_backlog.md`
+- `ai-workflow/memory/active/sessions`
+- `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 - `ai-workflow/memory/active/repository_assessment.md` (`existing` 모드일 때만)
 - 선택 옵션:
@@ -173,8 +173,8 @@ python3 scripts/apply_harness_update.py \
 ```bash
 python3 scripts/generate_workflow_state.py \
   --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path /path/to/project/ai-workflow/memory/active/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/work_backlog.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/active/sessions \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/backlog \
   --latest-backlog-path /path/to/project/ai-workflow/memory/active/backlog/2026-04-24.md \
   --output-path /path/to/project/ai-workflow/memory/active/state.json
 ```
@@ -223,8 +223,8 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
   --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
-  --session-handoff-path /path/to/project/ai-workflow/memory/active/session_handoff.md \
-  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/work_backlog.md \
+  --session-handoff-path /path/to/project/ai-workflow/memory/active/sessions \
+  --work-backlog-index-path /path/to/project/ai-workflow/memory/active/backlog \
   --backlog-dir-path /path/to/project/ai-workflow/memory/active/backlog \
   --repository-assessment-path /path/to/project/ai-workflow/memory/active/repository_assessment.md
 ```

@@ -52,7 +52,7 @@ def _entry(eid: str, primary: str, *, anchors: list[str] | None = None,
     return MemoryEntry(
         id=eid,
         schema_version=1,
-        source_paths=[f"ai-workflow/memory/active/session_handoff.md#{eid}"],
+        source_paths=[f"ai-workflow/memory/active/sessions#{eid}"],
         primary_abstraction=primary,
         cue_anchors=anchors or [],
         value_digest=f"digest for {eid}",
@@ -313,8 +313,8 @@ def _write_minimal_workflow_state_fixtures(tmp: Path) -> tuple[Path, Path, Path]
         "project_name: test\n"
         "document_home: docs/\n"
         "operations_path: ai-workflow/operations/\n"
-        "backlog_path: ai-workflow/memory/active/work_backlog.md\n"
-        "handoff_path: ai-workflow/memory/active/session_handoff.md\n"
+        "backlog_path: ai-workflow/memory/active/backlog\n"
+        "handoff_path: ai-workflow/memory/active/sessions\n"
         "environment_path: ai-workflow/memory/active/environment.md\n"
         "quick_tests: echo quick\n"
         "isolated_tests: echo isolated\n"

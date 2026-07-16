@@ -44,7 +44,7 @@ PURPOSE.md 의 4-element (Goals / Key Questions / Research Scope / Evolving Thes
 - **외부 문서 홈**: [`../../docs/index.md`](../../docs/index.md) (GitHub Pages site)
 - **운영 문서 홈 (active memory)**: `ai-workflow/memory/active/`
 - **백로그 위치**:
-  - 인덱스: `ai-workflow/memory/active/work_backlog.md` (cross-version anchor)
+  - 인덱스: `ai-workflow/memory/active/backlog` (cross-version anchor)
   - 사이클별: `ai-workflow/memory/release/<version>/backlog/<YYYY-MM-DD>.md`
 - **세션 인계**: 본 저장소는 `session_handoff.md` 패턴 대신 **`session_analysis_YYYY-MM-DD.md`** 패턴 사용 (예: `session_analysis_2026-07-09.md`). state.json 의 `recent_done_items` 가 provenance SSOT.
 - **환경 기록 위치**: `ai-workflow/memory/active/environments/` (디렉토리 부재 — 부재 자체가 노트)

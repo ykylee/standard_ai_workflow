@@ -25,8 +25,8 @@
 
 ## 3. 공통 workflow 연결 규칙
 
-- 항상 `ai-workflow/memory/active/session_handoff.md` 를 우선 읽게 연결한다.
-- 항상 `ai-workflow/memory/active/work_backlog.md` 를 참조하게 연결한다.
+- 항상 `ai-workflow/memory/active/sessions` 를 우선 읽게 연결한다.
+- 항상 `ai-workflow/memory/active/backlog` 를 참조하게 연결한다.
 - 항상 `ai-workflow/memory/active/PROJECT_PROFILE.md` 를 참조하게 연결한다.
 - Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 - 필요하면 `ai-workflow/memory/active/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.

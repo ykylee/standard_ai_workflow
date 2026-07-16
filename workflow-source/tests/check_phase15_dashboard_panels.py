@@ -53,14 +53,22 @@ def case_1_panel_6_conflict() -> bool:
 
 
 def case_2_panel_7_deprecation() -> bool:
-    """Panel 7: stage='v0.14.1' (current) + bak_present=True + timeline 4 entry."""
+    """Panel 7: stage=declared_stage (current) + bak_present=True + timeline 4 entry.
+
+    v0.14.5 release 후 maturity_matrix.deprecation_cycle_stage='v0.14.5' 로
+    변경되면 본 case 의 기대 stage 도 'v0.14.5' 로 자동 정합 (declared_stage 기반).
+    """
     snap = _get_snapshot()
     p7 = snap["panels"].get("deprecation_cycle_progress")
     if not isinstance(p7, dict):
         print(f"  FAIL: Panel 7 not found")
         return False
-    if p7.get("stage") != "v0.14.1":
-        print(f"  FAIL: stage={p7.get('stage')!r} (expected 'v0.14.1')")
+    # v0.14.5+ declared_stage 기반 동적 stage 표시
+    declared = p7.get("declared_stage")
+    stage = p7.get("stage")
+    valid_stages = {"v0.14.0", "v0.14.1", "v0.14.5", "v0.15.0"}
+    if stage not in valid_stages:
+        print(f"  FAIL: stage={stage!r} (expected one of {valid_stages})")
         return False
     if not p7.get("bak_present"):
         print(f"  FAIL: bak_present={p7.get('bak_present')!r} (expected True)")

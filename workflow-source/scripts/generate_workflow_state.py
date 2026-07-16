@@ -37,6 +37,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workspace-root")
     # v0.11.22+ Phase 1.5: ADR-005 memory_index_dir optional pass-through.
     parser.add_argument("--memory-index-dir")
+    # v0.14.5+ 2nd cycle: --legacy-memory flag (default True for 1st cycle backward compat,
+    # --no-legacy-memory 로 strict opt-out 가능). v0.15.0 에서 강제 False.
+    parser.add_argument(
+        "--legacy-memory", dest="legacy_memory", action="store_true", default=None,
+        help="v0.14.5+ 2nd cycle: enable legacy fallback (work_backlog.md.bak). default True.",
+    )
+    parser.add_argument(
+        "--no-legacy-memory", dest="legacy_memory", action="store_false",
+        help="v0.14.5+ 2nd cycle: strict opt-out (legacy fallback OFF).",
+    )
     parser.add_argument("--generated-at", default=date.today().isoformat())
     return parser.parse_args()
 
@@ -57,6 +67,7 @@ def main() -> int:
         generated_at=args.generated_at,
         workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
         memory_index_dir=Path(args.memory_index_dir).resolve() if args.memory_index_dir else None,
+        legacy_memory=args.legacy_memory,  # v0.14.5+ 2nd cycle flag
     )
     print(
         json.dumps(

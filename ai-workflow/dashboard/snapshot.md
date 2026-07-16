@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-16T07:53:45Z`
+- generated_at: `2026-07-16T08:03:03Z`
 - tool_version: `v0.14.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
@@ -77,7 +77,7 @@
 - cumulative_total: `41`
 - cumulative_pass: `41`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `176`
+- smoke_files_count: `178`
 
 ### Recent release smoke counts
 
@@ -112,19 +112,19 @@
 
 ## Panel 7 — Deprecation Cycle Progress
 
-- stage: `v0.14.1`
+- stage: `v0.14.5`
 - bak_present: `True`
 - legacy_present: `False`
 - deprecation_warning_supported: `True`
-- next_release: `v0.14.5`
+- next_release: `v0.15.0`
 
 ### Timeline
 
 | Version | Stage |
 |---|---|
 | `v0.14.0` | 1st cycle 시작 (silent fallback) |
-| `v0.14.1` | 1st cycle 종결 (warning stage) — current ← **current** |
-| `v0.14.5` | 2nd cycle 시작 (--legacy-memory opt-out flag) |
+| `v0.14.1` | 1st cycle 종결 (warning stage) |
+| `v0.14.5` | 2nd cycle 시작 (--legacy-memory opt-out flag) — current ← **current** |
 | `v0.15.0` | 2nd cycle 종결 (.bak drop) |
 
 ## Panel 8 — Memory Index + Telemetry Utilization v2

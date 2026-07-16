@@ -408,6 +408,7 @@ def collect_deprecation_cycle_progress(workspace_root: Path) -> dict[str, Any]:
     - **v0.15.0** (2nd cycle 종결): `.bak` 완전 drop.
 
     본 panel 은 `bak_present` + `deprecation_stage` + timeline 명시.
+    v0.14.5+ 에서 `maturity_matrix.deprecation_cycle_stage` field 기반 stage 표시.
 
     Returns:
         dict {
@@ -427,33 +428,54 @@ def collect_deprecation_cycle_progress(workspace_root: Path) -> dict[str, Any]:
     bak_present = bak.exists()
     legacy_present = legacy.exists()
 
+    # v0.14.5+: maturity_matrix.deprecation_cycle_stage field 기반 동적 stage 표시
+    maturity_path = root / "workflow-source" / "core" / "maturity_matrix.json"
+    declared_stage: str | None = None
+    if maturity_path.is_file():
+        try:
+            import json as _json
+            mm = _json.loads(maturity_path.read_text(encoding="utf-8"))
+            declared_stage = mm.get("deprecation_cycle_stage")
+        except (OSError, ValueError):
+            pass
+
     if not bak_present and not legacy_present:
         # 둘 다 부재 — cycle 완전 drop (v0.15.0 도달)
         stage = "v0.15.0"
         next_release = "(complete)"
     elif bak_present and not legacy_present:
-        # 1st cycle 진행 중 (silent fallback or warning stage)
-        # v0.14.5 도달 여부는 별도 휴리스틱 (release tag 또는 maturity_matrix 기준)
-        stage = "v0.14.1"  # default: 현재 (warning stage 종결)
-        next_release = "v0.14.5"
+        # cycle 진행 중 — declared_stage (maturity_matrix.deprecation_cycle_stage) 우선 사용.
+        # default: v0.14.1 (1st cycle 종결 warning stage). v0.14.5 release 후
+        # maturity_matrix 에서 'v0.14.5' 로 갱신 시 자동 표시.
+        if declared_stage in ("v0.14.0", "v0.14.1", "v0.14.5", "v0.15.0"):
+            stage = declared_stage
+        else:
+            stage = "v0.14.1"
+        # next_release = declared_stage 다음 step
+        next_map = {
+            "v0.14.0": "(migrate to v0.14.0+)",
+            "v0.14.1": "v0.14.5",
+            "v0.14.5": "v0.15.0",
+            "v0.15.0": "(complete)",
+        }
+        next_release = next_map.get(stage, "v0.15.0")
     elif legacy_present and not bak_present:
-        # Phase 14 이전 상태 (legacy 만, bak 없음)
         stage = "v0.14.0"
         next_release = "(migrate to v0.14.0+ layout)"
     else:
-        # 둘 다 존재 (이상 상태 — migration 미완료)
         stage = "v0.14.0"
         next_release = "(migrate: remove legacy, keep bak)"
 
     return {
         "stage": stage,
+        "declared_stage": declared_stage,
         "bak_present": bak_present,
         "legacy_present": legacy_present,
         "deprecation_warning_supported": True,  # cache.py:refresh_workflow_state_cache
         "timeline": {
             "v0.14.0": "1st cycle 시작 (silent fallback)",
-            "v0.14.1": "1st cycle 종결 (warning stage) — current",
-            "v0.14.5": "2nd cycle 시작 (--legacy-memory opt-out flag)",
+            "v0.14.1": "1st cycle 종결 (warning stage)",
+            "v0.14.5": "2nd cycle 시작 (--legacy-memory opt-out flag) — current" if declared_stage == "v0.14.5" else "2nd cycle 시작 (--legacy-memory opt-out flag)",
             "v0.15.0": "2nd cycle 종결 (.bak drop)",
         },
         "next_release": next_release,

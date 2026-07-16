@@ -350,24 +350,28 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
     fan-out 시 mutable 공유 파일의 3-way merge conflict / overwrite race 가 working
     tree 에 잔존하는지 check.
 
-    측정원:
+    측정원 (v0.14.7 Phase 15 follow-up 통합):
     1. active/ 하위 working tree 의 git merge conflict marker (`<<<<<<<`)
        — agent 가 `<<<<<<<` / `=======` / `>>>>>>>` 잔존한 채 commit 한 경우 검출.
-    2. (planned) git reflog 의 merge conflict 발생 이력 — 본 release 에선 read-only
-       신중. 1번만 emit.
+    2. git log --all --merges 의 commit message 에 "CONFLICT" keyword 포함 (subprocess)
+       — historical merge conflict 검출.
 
     Returns:
         dict {
             north_star: 'multi_agent_concurrent_write_conflict_count',
-            conflict_count: int,
-            conflict_locations: list[str],
+            working_tree_conflict_count: int,   # working tree markers
+            git_log_conflict_count: int,         # git merge history
+            conflict_count: int,                 # combined (= working + git_log)
+            conflict_locations: list[str],       # working tree 만
             status: 'pass' | 'fail',
             threshold: int,
         }
     """
+    import subprocess as _subprocess
+
     root = _repo_root(workspace_root)
     active_dir = root / "ai-workflow" / "memory" / "active"
-    conflict_count = 0
+    working_tree_conflict_count = 0
     conflict_locations: list[str] = []
     if active_dir.is_dir():
         for f in active_dir.rglob("*"):
@@ -380,13 +384,33 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
             except (OSError, UnicodeDecodeError):
                 continue
             if "<<<<<<<" in text:
-                conflict_count += 1
+                working_tree_conflict_count += 1
                 try:
                     conflict_locations.append(str(f.relative_to(root)))
                 except ValueError:
                     conflict_locations.append(str(f))
+
+    # git log --all --merges 의 conflict keyword count (historical)
+    git_log_conflict_count = 0
+    try:
+        proc = _subprocess.run(
+            ["git", "log", "--all", "--merges", "--pretty=format:%H %s"],
+            cwd=str(root), capture_output=True, text=True, timeout=10, check=False,
+        )
+        if proc.returncode == 0:
+            git_log_conflict_count = sum(
+                1
+                for line in proc.stdout.splitlines()
+                if "CONFLICT" in line.upper()
+            )
+    except (_subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        pass
+
+    conflict_count = working_tree_conflict_count + git_log_conflict_count
     return {
         "north_star": "multi_agent_concurrent_write_conflict_count",
+        "working_tree_conflict_count": working_tree_conflict_count,
+        "git_log_conflict_count": git_log_conflict_count,
         "conflict_count": conflict_count,
         "conflict_locations": conflict_locations,
         "status": "pass" if conflict_count == 0 else "fail",
@@ -1365,6 +1389,10 @@ def render_dashboard_html(snapshot: dict[str, Any]) -> str:
     html.append(_render_html_panel_3(panels.get("memory_index_utilization", {})))
     html.append(_render_html_panel_4(panels.get("smoke_trend", {})))
     html.append(_render_html_panel_5(panels.get("recent_releases", {})))
+    # Phase 15 (v0.14.7+) — Panel 6/7/8 HTML render
+    html.append(_render_html_panel_6(panels.get("multi_agent_concurrent_write_conflict", {})))
+    html.append(_render_html_panel_7(panels.get("deprecation_cycle_progress", {})))
+    html.append(_render_html_panel_8(panels.get("memory_index_utilization_v2", {})))
     html.append("  </main>")
 
     # Charts (Chart.js) — graceful when JS off (canvas + static text fallback)
@@ -1557,6 +1585,100 @@ def _render_html_panel_5(p: dict[str, Any]) -> str:
     <ul class="timeline">
 {timeline_html}
     </ul>
+  </section>"""
+
+
+def _render_html_panel_6(p: dict[str, Any]) -> str:
+    """Panel 6 HTML — multi-agent concurrent write conflict (Phase 15 north-star)."""
+    north_star = _html_escape(str(p.get("north_star", "")))
+    working_tree_count = int(p.get("working_tree_conflict_count", 0))
+    git_log_count = int(p.get("git_log_conflict_count", 0))
+    conflict_count = int(p.get("conflict_count", 0))
+    status = _html_escape(str(p.get("status", "")))
+    threshold = int(p.get("threshold", 0))
+    locations = p.get("conflict_locations", [])
+    loc_items: list[str] = []
+    if isinstance(locations, list):
+        for loc in locations[:10]:
+            loc_items.append(f"      <li><code>{_html_escape(str(loc))}</code></li>")
+    loc_html = "\n".join(loc_items) if loc_items else "      <li>(none)</li>"
+    return f"""  <section class="panel panel-6">
+    <h2>Panel 6 — Multi-Agent Concurrent Write Conflict</h2>
+    <p class="meta">north_star: <code>{north_star}</code></p>
+    <p class="meta">conflict_count: <strong>{conflict_count}</strong> (threshold={threshold})</p>
+    <p class="meta">status: <strong>{status}</strong></p>
+    <p class="meta">breakdown: working_tree={working_tree_count} · git_log={git_log_count}</p>
+    <ul class="conflict-locations">
+{loc_html}
+    </ul>
+  </section>"""
+
+
+def _render_html_panel_7(p: dict[str, Any]) -> str:
+    """Panel 7 HTML — deprecation cycle progress."""
+    stage = _html_escape(str(p.get("stage", "")))
+    declared = _html_escape(str(p.get("declared_stage", "")))
+    bak = bool(p.get("bak_present", False))
+    legacy = bool(p.get("legacy_present", False))
+    warn = bool(p.get("deprecation_warning_supported", False))
+    next_rel = _html_escape(str(p.get("next_release", "")))
+    timeline = p.get("timeline", {})
+    rows: list[str] = []
+    if isinstance(timeline, dict):
+        for ver, desc in timeline.items():
+            marker = " ← <strong>current</strong>" if ver == stage else ""
+            rows.append(
+                f"      <tr><td><code>{_html_escape(str(ver))}</code></td>"
+                f"<td>{_html_escape(str(desc))}{marker}</td></tr>"
+            )
+    rows_html = "\n".join(rows) if rows else "      <tr><td>(none)</td><td></td></tr>"
+    return f"""  <section class="panel panel-7">
+    <h2>Panel 7 — Deprecation Cycle Progress</h2>
+    <p class="meta">stage: <strong>{stage}</strong></p>
+    <p class="meta">declared_stage: <code>{declared}</code></p>
+    <p class="meta">bak_present: <strong>{bak}</strong> · legacy_present: <strong>{legacy}</strong></p>
+    <p class="meta">deprecation_warning_supported: <strong>{warn}</strong></p>
+    <p class="meta">next_release: <code>{next_rel}</code></p>
+    <table class="timeline">
+      <thead><tr><th>Version</th><th>Stage</th></tr></thead>
+      <tbody>
+{rows_html}
+      </tbody>
+    </table>
+  </section>"""
+
+
+def _render_html_panel_8(p: dict[str, Any]) -> str:
+    """Panel 8 HTML — memory index + telemetry utilization v2."""
+    entries_total = int(p.get("entries_total", 0))
+    events_total = int(p.get("telemetry_events_total", 0))
+    queries = int(p.get("telemetry_total_queries", 0))
+    hits = int(p.get("telemetry_hit_count", 0))
+    hit_rate = float(p.get("telemetry_hit_rate", 0.0))
+    by_ms = p.get("entries_by_merge_state", {})
+    by_src = p.get("telemetry_by_source", {})
+    ms_rows = ""
+    if isinstance(by_ms, dict):
+        ms_rows = "".join(
+            f"<tr><td><code>{_html_escape(str(k))}</code></td><td>{v}</td></tr>"
+            for k, v in sorted(by_ms.items())
+        )
+    src_rows = ""
+    if isinstance(by_src, dict):
+        src_rows = "".join(
+            f"<tr><td><code>{_html_escape(str(k))}</code></td><td>{v}</td></tr>"
+            for k, v in sorted(by_src.items())
+        )
+    return f"""  <section class="panel panel-8">
+    <h2>Panel 8 — Memory Index + Telemetry Utilization v2</h2>
+    <p class="meta">phase_15_north_star: <code>{_html_escape(str(p.get('phase_15_north_star', '')))}</code></p>
+    <p class="meta">entries_total: <strong>{entries_total}</strong></p>
+    <p class="meta">telemetry_events_total: <strong>{events_total}</strong> · queries: {queries} · hits: {hits}</p>
+    <p class="meta">telemetry_hit_rate: <strong>{hit_rate:.4f}</strong></p>
+    <h4>Entries by merge_state</h4>
+    <table><tbody>{ms_rows}</tbody></table>
+    <h4>Telemetry by source</h4>
+    <table><tbody>{src_rows}</tbody></table>
   </section>"""
 
 

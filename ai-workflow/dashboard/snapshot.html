@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quality Dashboard · v0.14.0-beta</title>
+  <style>
+:root {
+  color-scheme: light dark;
+  --bg: #fff;
+  --fg: #1a1a1a;
+  --muted: #666;
+  --border: #ddd;
+  --panel: #f9f9f9;
+  --pass: #1b8a3a;
+  --fail: #c0392b;
+  --error: #d68910;
+  --link: #1d6fb8;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --fg: #e0e0e0; --muted: #aaa;
+    --border: #333; --panel: #252525;
+    --pass: #58c47e; --fail: #ff6b5b; --error: #ffd066;
+    --link: #5aa7e8;
+  }
+}
+body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 2rem; }
+h1 { font-size: 1.8rem; margin-bottom: 0.3rem; }
+.meta { color: var(--muted); font-size: 0.85rem; }
+code { background: var(--panel); padding: 0.1em 0.3em; border-radius: 3px; font-size: 0.9em; }
+main { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem; }
+.panel h2 { font-size: 1.1rem; margin: 0 0 0.8rem; }
+.panel .stat { font-size: 1.6rem; font-weight: 600; }
+.panel .stat.pass { color: var(--pass); }
+.panel .stat.fail { color: var(--fail); }
+.panel .stat.error { color: var(--error); }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td { padding: 0.35rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+canvas { max-width: 100%; }
+.timeline li { margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--muted); }
+ul.timeline { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quality Dashboard</h1>
+    <p class="meta">generated_at: <code>2026-07-16T08:28:42Z</code> · tool_version: <code>v0.14.0-beta</code></p>
+    <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
+  </header>
+  <main>
+  <section class="panel">
+    <h2>Panel 1 — Drift Prevention Status</h2>
+    <p>guard_status: <span class="stat pass">pass</span></p>
+    <p>guard: 6/6 pass (expected 6)</p>
+    <p>guard_runtime_ms: 36</p>
+    <p>maturity_last_updated: <code>2026-07-16</code></p>
+    <p>head_commit_date: <code>2026-07-16</code></p>
+    <p>last_updated_delta_days: 0</p>
+    <p>harness_supported_count: 10</p>
+    <p><strong>silent_failing_cycles_count: 0</strong> (Phase 13 AC1 north-star)</p>
+    <p class="meta">Phase 12 (in_progress) → Phase 13 (planned)</p>
+  </section>
+  <section class="panel">
+    <h2>Panel 2 — Maturity Distribution</h2>
+    <table>
+      <thead><tr><th>bucket</th><th>total</th><th>stable</th><th>beta</th><th>alpha</th></tr></thead>
+      <tbody>
+        <tr><td>skills</td><td>12</td><td>12</td><td>0</td><td>0</td></tr>
+        <tr><td>mcp_tools</td><td>12</td><td>11</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>harnesses.supported: <strong>10</strong></p>
+    <p>milestones: total=12 done=11 in_progress=1</p>
+    <canvas id="chart-maturity" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 3 — Memory Index Utilization</h2>
+    <p class="stat">7</p>
+    <p class="meta">total entries · unique cue anchors: 40</p>
+    <p class="meta">first_entry_date: <code>2026-07-09</code></p>
+    <p class="meta">last_entry_date: <code>2026-07-09</code></p>
+    <p class="meta">retrieval_hit_rate: <strong>1.0000</strong> (Phase 13 AC2 telemetry)</p>
+    <p class="meta">telemetry calls/hits: 1/1 · by_source: dispatcher:calls=1,hits=1</p>
+    <p class="meta">by merge_state: active=7</p>
+    <canvas id="chart-memory" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 4 — Smoke Trend</h2>
+    <p class="stat pass">41/41</p>
+    <p class="meta">cumulative pass rate: 1.0000</p>
+    <p class="meta">smoke test files: 179</p>
+    <canvas id="chart-smoke" height="160"></canvas>
+  </section>
+  <section class="panel">
+    <h2>Panel 5 — Recent Release Cycle</h2>
+    <p>items_total: <strong>10</strong> (top_n=10)</p>
+    <ul class="timeline">
+      <li>[0] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …</li>
+      <li>[1] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…</li>
+      <li>[2] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…</li>
+      <li>[3] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …</li>
+      <li>[4] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
+      <li>[5] Phase 10 MCP/JSON-RPC draft</li>
+      <li>[6] Phase 6 multi-agent delegation pilot</li>
+      <li>[7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
+      <li>[8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
+      <li>[9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…</li>
+    </ul>
+  </section>
+  <section class="panel panel-6">
+    <h2>Panel 6 — Multi-Agent Concurrent Write Conflict</h2>
+    <p class="meta">north_star: <code>multi_agent_concurrent_write_conflict_count</code></p>
+    <p class="meta">conflict_count: <strong>0</strong> (threshold=0)</p>
+    <p class="meta">status: <strong>pass</strong></p>
+    <p class="meta">breakdown: working_tree=0 · git_log=0</p>
+    <ul class="conflict-locations">
+      <li>(none)</li>
+    </ul>
+  </section>
+  <section class="panel panel-7">
+    <h2>Panel 7 — Deprecation Cycle Progress</h2>
+    <p class="meta">stage: <strong>v0.14.5</strong></p>
+    <p class="meta">declared_stage: <code>v0.14.5</code></p>
+    <p class="meta">bak_present: <strong>True</strong> · legacy_present: <strong>False</strong></p>
+    <p class="meta">deprecation_warning_supported: <strong>True</strong></p>
+    <p class="meta">next_release: <code>v0.15.0</code></p>
+    <table class="timeline">
+      <thead><tr><th>Version</th><th>Stage</th></tr></thead>
+      <tbody>
+      <tr><td><code>v0.14.0</code></td><td>1st cycle 시작 (silent fallback)</td></tr>
+      <tr><td><code>v0.14.1</code></td><td>1st cycle 종결 (warning stage)</td></tr>
+      <tr><td><code>v0.14.5</code></td><td>2nd cycle 시작 (--legacy-memory opt-out flag) — current ← <strong>current</strong></td></tr>
+      <tr><td><code>v0.15.0</code></td><td>2nd cycle 종결 (.bak drop)</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="panel panel-8">
+    <h2>Panel 8 — Memory Index + Telemetry Utilization v2</h2>
+    <p class="meta">phase_15_north_star: <code>telemetry_hit_rate (1 release ≥ 1 query + hit)</code></p>
+    <p class="meta">entries_total: <strong>7</strong></p>
+    <p class="meta">telemetry_events_total: <strong>1</strong> · queries: 1 · hits: 1</p>
+    <p class="meta">telemetry_hit_rate: <strong>1.0000</strong></p>
+    <h4>Entries by merge_state</h4>
+    <table><tbody><tr><td><code>active</code></td><td>7</td></tr></tbody></table>
+    <h4>Telemetry by source</h4>
+    <table><tbody><tr><td><code>dispatcher</code></td><td>1</td></tr></tbody></table>
+  </section>
+  </main>
+  <script>
+    (function() {
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.13.0"], "counts": [41]}};
+      function ready(fn) {
+        if (typeof window.Chart !== 'undefined') { fn(); }
+        else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }
+      }
+      ready(function() {
+        try {
+          new Chart(document.getElementById('chart-maturity'), {
+            type: 'bar',
+            data: {
+              labels: data.maturity.labels,
+              datasets: [
+                { label: 'stable', data: data.maturity.stable, backgroundColor: '#1b8a3a' },
+                { label: 'beta', data: data.maturity.beta, backgroundColor: '#d68910' },
+                { label: 'alpha', data: data.maturity.alpha, backgroundColor: '#c0392b' },
+              ],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+          });
+          new Chart(document.getElementById('chart-memory'), {
+            type: 'line',
+            data: {
+              labels: data.memory.dates,
+              datasets: [{ label: 'cumulative entries', data: data.memory.counts, borderColor: '#1d6fb8', fill: false, tension: 0.1 }],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+          new Chart(document.getElementById('chart-smoke'), {
+            type: 'line',
+            data: {
+              labels: data.smoke.versions,
+              datasets: [{ label: 'pass count', data: data.smoke.counts, borderColor: '#1b8a3a', fill: false, tension: 0.1 }],
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+          });
+        } catch (e) { /* silent — static fallback already visible */ }
+      });
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</body>
+</html>

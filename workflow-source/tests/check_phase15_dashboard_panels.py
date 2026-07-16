@@ -28,7 +28,7 @@ def _get_snapshot() -> dict:
 
 
 def case_1_panel_6_conflict() -> bool:
-    """Panel 6: conflict_count=0 + status='pass' + schema_version='1.1'."""
+    """Panel 6: conflict_count=0 + status='pass' + schema_version='1.1' + git reflog."""
     snap = _get_snapshot()
     if snap.get("schema_version") != "1.1":
         print(f"  FAIL: schema_version={snap.get('schema_version')!r} (expected '1.1')")
@@ -49,6 +49,12 @@ def case_1_panel_6_conflict() -> bool:
     if p6.get("threshold") != 0:
         print(f"  FAIL: threshold mismatch")
         return False
+    # v0.14.7+: git reflog 통합 — working_tree + git_log breakdown
+    for field in ("working_tree_conflict_count", "git_log_conflict_count"):
+        val = p6.get(field)
+        if not isinstance(val, int) or val < 0:
+            print(f"  FAIL: {field}={val!r} (expected non-negative int)")
+            return False
     return True
 
 

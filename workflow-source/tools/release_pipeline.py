@@ -53,10 +53,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 try:
     from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
+    from workflow_kit.common.state.cache import refresh_maturity_last_updated  # v0.14.6+ Task 3 follow-up
 except ImportError:
     # standalone script (no workflow_kit on sys.path) — fall back to direct write.
     atomic_write_json = None  # type: ignore[assignment]
     atomic_write_text = None  # type: ignore[assignment]
+    refresh_maturity_last_updated = None  # type: ignore[assignment]
 # 1차 출처
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -658,6 +660,75 @@ def parse_version(version: str) -> tuple[int, int, int]:
     m = re.match(r"^(\d+)\.(\d+)\.(\d+)", version)
     if not m:
         raise ValueError(f"invalid version: {version}")
+    return int(m.group(1)), int(m.group(2)), int(m.group(3))
+
+
+def cmd_refresh_maturity(args) -> dict:
+    """maturity_matrix.json 의 `last_updated` field 자동 갱신 (v0.14.6+ Task 3 follow-up).
+
+    v0.14.0+ dashboard Panel 1 freshness 보강을 위한 dispatcher subcommand.
+    helper `refresh_maturity_last_updated` (cache.py) 를 호출하여 `last_updated` 를
+    오늘 날짜로 갱신. idempotent (이미 today 면 no-op).
+
+    Args (CLI namespace):
+        apply (bool): default True. dry-run 모드 (--dry-run) 시 False.
+        today (str | None): 명시적 override (default: date.today().isoformat()).
+        maturity_path (str | None): 명시적 path (default: workflow-source/core/maturity_matrix.json).
+        json (bool): JSON 출력.
+
+    Returns:
+        dict { refreshed: bool, before: str, after: str, today: str,
+               maturity_path: str, mode: 'apply' | 'dry-run' }
+    """
+    from datetime import date as _date
+
+    mode = "apply" if getattr(args, "apply", True) else "dry-run"
+    today = getattr(args, "today", None) or _date.today().isoformat()
+    maturity_path_arg = getattr(args, "maturity_path", None)
+    if maturity_path_arg:
+        maturity_path = Path(maturity_path_arg)
+        if not maturity_path.is_absolute():
+            maturity_path = (REPO_ROOT / maturity_path_arg).resolve()
+    else:
+        # release_pipeline.py 의 REPO_ROOT 는 workflow-source/ (tools/ 의 parent). 본
+        # helper 는 root 기준이므로 REPO_ROOT.parent 사용 (doubled path 방지).
+        maturity_path = (REPO_ROOT.parent / "workflow-source" / "core" / "maturity_matrix.json").resolve()
+
+    result: dict[str, Any] = {
+        "mode": mode,
+        "today": today,
+        "maturity_path": str(maturity_path),
+        "refreshed": False,
+        "before": "",
+        "after": today,
+    }
+    if mode == "dry-run":
+        # dry-run: 실제 갱신 없이 plan 만 emit
+        if maturity_path.is_file():
+            try:
+                with maturity_path.open("r", encoding="utf-8") as fp:
+                    mm = json.load(fp)
+                result["before"] = str(mm.get("last_updated", ""))
+            except (OSError, json.JSONDecodeError):
+                pass
+        result["dry_run_note"] = (
+            "실제 last_updated 갱신 안 함. --apply 또는 --dry-run 미지정 시 자동 호출."
+        )
+        return result
+
+    # apply mode — refresh_maturity_last_updated helper 호출
+    if refresh_maturity_last_updated is None:
+        result["error"] = (
+            "refresh_maturity_last_updated helper unavailable (workflow_kit import 실패). "
+            "workflow-source 가 sys.path 에 있는지 확인."
+        )
+        return result
+
+    refreshed = refresh_maturity_last_updated(maturity_path, today=today)
+    result["refreshed"] = refreshed["updated"]
+    result["before"] = refreshed["before"]
+    result["after"] = refreshed["after"]
+    return result
     return int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
@@ -2290,6 +2361,21 @@ def cmd_release(args) -> dict:
             log_emit = _emit_self_recovery_log(args, recovery_log)
             results["self_recovery_log_emit"] = log_emit
 
+    # 6.7 v0.14.6+ maturity_last_updated 자동 갱신 (Task 3 follow-up).
+    # gh release create 성공 후 dashboard emit 와 self-recovery log 사이 호출.
+    # idempotent — 이미 today 면 no-op (dashboard Panel 1 freshness 보강).
+    if not getattr(args, "dry_run", False) and refresh_maturity_last_updated is not None:
+        try:
+            maturity_result = cmd_refresh_maturity(args)
+            results["maturity_refresh"] = maturity_result
+            if maturity_result.get("refreshed"):
+                print(f"  [maturity] {maturity_result['before']} → {maturity_result['after']}")
+            else:
+                print(f"  [maturity] no-op (already {maturity_result.get('before') or 'today'})")
+        except Exception as exc:  # noqa: BLE001 — release 자체는 성공
+            results["maturity_refresh"] = {"error": str(exc), "warning": True}
+            print(f"  [maturity] WARN: {exc}")
+
     # 6.6 v0.13.3+ bidir-link audit log emit (Phase 13 AC4+).
     # results["bidir_link_audit"] 가 있으면 release note 본문 끝에 audit 요약 자동 append.
     if "bidir_link_audit" in results:
@@ -3148,6 +3234,22 @@ def main() -> int:
                             "으로 cmd_release 호출 시 즉시 AttributeError).")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")
+
+    # refresh-maturity (v0.14.6+ Task 3 follow-up)
+    p_rm = sub.add_parser(
+        "refresh-maturity",
+        help="maturity_matrix.json 의 `last_updated` field 자동 갱신 (Task 3 follow-up, v0.14.6+). "
+             "idempotent. --dry-run 으로 plan 만 emit 가능. "
+             "default: workflow-source/core/maturity_matrix.json.",
+    )
+    p_rm.add_argument("--today", dest="today", default=None,
+                      help="명시적 today override (default: date.today().isoformat())")
+    p_rm.add_argument("--maturity-path", dest="maturity_path", default=None,
+                      help="maturity_matrix.json 의 path (default: workflow-source/core/maturity_matrix.json)")
+    p_rm.add_argument("--dry-run", action="store_true", dest="dry_run",
+                      help="dry-run mode — 실제 last_updated 갱신 안 함, plan 만 emit")
+    p_rm.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_rm.add_argument("--json", action="store_true")
     p_rel.add_argument("--skip-dashboard-emit", dest="skip_dashboard_emit",
                        action="store_true", default=False,
                        help="dashboard markdown post-release 자동 emit skip (v0.13.1+ Phase 13). "
@@ -3213,6 +3315,8 @@ def main() -> int:
         result = cmd_bidir_link(args)
     elif args.command == "release":
         result = cmd_release(args)
+    elif args.command == "refresh-maturity":
+        result = cmd_refresh_maturity(args)
     elif args.command == "verify":
         result = cmd_verify(args)
     elif args.command == "rollback":

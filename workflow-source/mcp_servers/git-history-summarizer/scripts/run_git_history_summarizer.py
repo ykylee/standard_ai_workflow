@@ -16,7 +16,7 @@ from common_utils import inject_workflow_source, mcp_main, standard_output_handl
 inject_workflow_source()
 from workflow_kit.common.read_only_bundle import summarize_git_history_payload
 
-TOOL_VERSION = "0.5.10-beta"
+TOOL_VERSION = "v0.14.1-beta"  # v0.14.1 1st batch stable 승격
 
 def build_args(parser):
     parser.add_argument("--commit-range", "--range", default="HEAD~3..HEAD", help="Commit range (e.g. HEAD~3..HEAD)")

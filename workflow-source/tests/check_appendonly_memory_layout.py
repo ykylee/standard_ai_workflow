@@ -40,6 +40,7 @@ TASK_FRONTMATTER_KEYS = frozenset({
 })
 
 errors: list[str] = []
+warnings: list[str] = []
 
 
 def _check_layout_existence() -> None:
@@ -60,10 +61,25 @@ def _check_layout_existence() -> None:
 
 
 def _check_legacy_absent() -> None:
-    """2) legacy `active/work_backlog.md` 부재 (`.bak` fallback 은 OK)."""
+    """2) legacy `active/work_backlog.md` 부재 (`.bak` fallback 은 OK, v0.14.1+ warning 단계).
+
+    v0.14.0 1st cycle: `.bak` 보존 (silent read fallback).
+    v0.14.1 1st cycle 종결: `.bak` 존재 시 warning 단계. 본 smoke 는 errors 와
+    warnings 분리 — `.bak` 부재 = PASS, `.bak` 존재 = WARNING (별도 메시지).
+    """
     legacy = ACTIVE_DIR / "work_backlog.md"
     if legacy.exists():
         errors.append(f"[legacy] {legacy} 가 여전히 존재 (1st deprecation cycle 단계)")
+
+    # v0.14.1: .bak fallback 의 1st cycle 종결 — warning 단계
+    bak = ACTIVE_DIR / "work_backlog.md.bak"
+    if bak.exists():
+        # WARNING 단계 — error 아님 (errors list 에 추가 안 함)
+        # main() 에서 errors 와 별도로 출력
+        warnings.append(
+            f"[legacy] {bak} 보존 중 (1st deprecation cycle). "
+            f"v0.14.5 부터 --legacy-memory opt-out flag 필요, v0.15.0 에서 drop."
+        )
 
 
 def _check_state_json_source_of_truth() -> None:
@@ -218,6 +234,16 @@ def main() -> int:
     print(f"  4) daily index links: TASK-* link 모두 tasks/ file 로 resolve")
     print(f"  5) task frontmatter: id/status/created_at/source_anchor/source_path/kind 모두 존재")
     print(f"  6) sessions cross-ref: per-session file {n_sessions}개")
+
+    # v0.14.1: 1st deprecation cycle 종결 warning
+    if warnings:
+        print()
+        print(f"=== WARNINGS ({len(warnings)}): ===")
+        for w in warnings:
+            print(f"[WARN] {w}")
+        print()
+        print("(warnings 는 errors 가 아니므로 PASS 유지. v0.14.5 부터는 --legacy-memory flag 필요, v0.15.0 drop.)")
+
     return 0
 
 

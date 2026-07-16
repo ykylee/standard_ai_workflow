@@ -172,9 +172,23 @@ def refresh_workflow_state_cache(
     )
     state_path.parent.mkdir(parents=True, exist_ok=True)
     state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    # v0.14.1: 1st deprecation cycle 종결 — `work_backlog.md.bak` 존재 시
+    # deprecation warning emit. v0.14.5 부터는 `--legacy-memory` flag 필요,
+    # v0.15.0 에서 완전 drop. (ADR-003 1st cycle 정공법)
+    deprecation_warnings: list[str] = []
+    legacy_bak = memory_dir / "work_backlog.md.bak"
+    if legacy_bak.exists():
+        deprecation_warnings.append(
+            f"[DEPRECATION WARNING v0.14.1] ai-workflow/memory/active/work_backlog.md.bak 발견됨. "
+            f"신규 layout (backlog/, sessions/) 사용 권장. "
+            f"v0.14.5 부터는 --legacy-memory opt-out flag 필요, v0.15.0 에서 완전 drop."
+        )
+
     return {
         "status": "refreshed",
         "state_path": str(state_path),
         "refresh_command": refresh_hint["refresh_command"],
         "missing_paths": [],
+        "deprecation_warnings": deprecation_warnings,
     }

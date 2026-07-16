@@ -153,6 +153,20 @@ def collect_drift_prevention(
     head_commit_date = _head_commit_date(root)
     last_updated_delta_days = _date_diff_days(maturity_last_updated, head_commit_date)
 
+    # Phase 14 dashboard freshness 보강 (v0.14.0):
+    # `maturity_last_updated` 가 head_commit_date 와 N+ 일 차이 → stale. 자동
+    # 갱신 helper (`workflow_kit.common.state.cache.refresh_maturity_last_updated`)
+    # 가 별도 dispatcher 로 존재. 본 호출은 *hint 만* emit, auto-mutation ❌
+    # (dashboard 는 read-only).
+    from datetime import date as _date
+    today_iso = _date.today().isoformat()
+    maturity_stale = bool(maturity_last_updated) and maturity_last_updated != today_iso
+    maturity_refresh_hint = (
+        "python3 -c \"from workflow_kit.common.state.cache import refresh_maturity_last_updated; "
+        "from pathlib import Path; "
+        "print(refresh_maturity_last_updated(Path('workflow-source/core/maturity_matrix.json')))\""
+    ) if maturity_stale else ""
+
     guard_panel: dict[str, Any] = {
         "guard_status": "unknown",
         "guard_cases_pass": 0,
@@ -167,14 +181,21 @@ def collect_drift_prevention(
         guard_result = run_drift_prevention_guard_inline(root)
         guard_panel.update(guard_result)
 
+    # silent_failing_cycles_count: maturity_stale 일 때 +1 (north-star proxy)
+    # 본 release 의 v0.14.0 dashboard 의 freshness drift 가 north-star 에 반영되도록
+    silent_failing_cycles_count = 1 if maturity_stale else 0
+
     return {
         **guard_panel,
         "maturity_last_updated": maturity_last_updated,
         "maturity_last_updated_source": "maturity_matrix.json",
+        "maturity_stale": maturity_stale,
+        "maturity_refresh_hint": maturity_refresh_hint,
+        "today_iso": today_iso,
         "harness_supported_count": harness_supported_count,
         "head_commit_date": head_commit_date,
         "last_updated_delta_days": last_updated_delta_days,
-        "silent_failing_cycles_count": 0,  # Phase 13 AC1 north-star — release note 후속 parse
+        "silent_failing_cycles_count": silent_failing_cycles_count,  # Phase 14 freshness proxy
         "phase": "Phase 12 (in_progress) → Phase 13 (planned)",
     }
 
@@ -870,11 +891,18 @@ def _render_panel_1(p: dict[str, Any]) -> list[str]:
     lines.append(f"- guard_status: `{p.get('guard_status', 'unknown')}`")
     lines.append(f"- guard_cases: `{p.get('guard_cases', 0)} / {p.get('expected_cases', 0)}`")
     lines.append(f"- maturity_last_updated: `{p.get('maturity_last_updated', '')}`")
+    lines.append(f"- maturity_stale: `{p.get('maturity_stale', False)}`")
     lines.append(f"- harness_supported_count: `{p.get('harness_supported_count', 0)}`")
     lines.append(f"- head_commit_date: `{p.get('head_commit_date', '')}`")
     delta = p.get("last_updated_delta_days")
     lines.append(f"- last_updated_delta_days: `{delta if delta is not None else 'unknown'}`")
     lines.append(f"- silent_failing_cycles_count: `{p.get('silent_failing_cycles_count', 0)}`")
+    if p.get("maturity_stale") and p.get("maturity_refresh_hint"):
+        lines.append("")
+        lines.append(
+            "> ⚠️ **maturity_last_updated stale**: "
+            f"refresh hint → `python3 -c \"{p.get('maturity_refresh_hint', '')}\"`"
+        )
     return lines + [""]
 
 

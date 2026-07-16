@@ -1,17 +1,18 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-16T06:10:23Z`
+- generated_at: `2026-07-16T07:27:51Z`
 - tool_version: `v0.14.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
-- guard_status: `fail`
+- guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-09`
+- maturity_last_updated: `2026-07-16`
+- maturity_stale: `False`
 - harness_supported_count: `10`
 - head_commit_date: `2026-07-16`
-- last_updated_delta_days: `7`
+- last_updated_delta_days: `0`
 - silent_failing_cycles_count: `0`
 
 ## Panel 2 — Maturity Distribution

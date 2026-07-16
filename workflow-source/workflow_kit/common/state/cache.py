@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -192,3 +193,55 @@ def refresh_workflow_state_cache(
         "missing_paths": [],
         "deprecation_warnings": deprecation_warnings,
     }
+
+
+def refresh_maturity_last_updated(
+    maturity_path: Path,
+    today: str | None = None,
+) -> dict[str, Any]:
+    """maturity_matrix.json 의 `last_updated` field 를 오늘 날짜로 자동 갱신.
+
+    Phase 14 dashboard freshness 보강:
+    - 기존: maturity_last_updated 가 release 시 manual 갱신 (release_pipeline 의
+      step 6). dashboard Panel 1 의 `last_updated_delta_days` 가 release cycle 동안
+      누적되어 drift.
+    - 보강: `refresh_maturity_last_updated()` 호출 시 오늘 날짜 (또는 명시된 today)
+      와 비교 — 다르면 in-place 갱신. release pipeline step + dashboard post-emit
+      모두에서 호출 가능.
+
+    atomic write 보장 (json.dump + write_text). freshness 의 SSOT 는 maturity_last_updated
+    그대로 유지 (외부 schema 변경 ❌).
+
+    Args:
+        maturity_path: workflow-source/core/maturity_matrix.json
+        today: 명시적 override (default: date.today().isoformat())
+
+    Returns:
+        dict {"updated": bool, "before": str, "after": str, "today": str, "maturity_path": str}
+    """
+    today = today or date.today().isoformat()
+    result: dict[str, Any] = {
+        "updated": False,
+        "before": "",
+        "after": today,
+        "today": today,
+        "maturity_path": str(maturity_path),
+    }
+    if not maturity_path.is_file():
+        return result
+    try:
+        with maturity_path.open("r", encoding="utf-8") as fp:
+            mm = json.load(fp)
+    except (OSError, json.JSONDecodeError):
+        return result
+    before = str(mm.get("last_updated", ""))
+    result["before"] = before
+    if before == today:
+        return result
+    mm["last_updated"] = today
+    maturity_path.write_text(
+        json.dumps(mm, ensure_ascii=False, indent=2) + "\n", encoding="utf-8",
+    )
+    result["updated"] = True
+    result["after"] = today
+    return result

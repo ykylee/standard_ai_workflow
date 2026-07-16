@@ -4,8 +4,8 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-07-09
-- 버전: v0.13.3-beta (chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; **Phase 13 in_progress (Operational Intelligence v1.0)** — v0.13.0 Quality Dashboard, v0.13.1 telemetry sidecar (AC2), v0.13.2 self-recovering (AC3), **v0.13.3 self-documenting wiki↔memory bidirectional link sync (AC4+ close)** — memory entry mentioned_in → wiki related_pages 자동 sync + 양방향 link audit smoke + cmd_bidir_link subcommand 38 + release note 본문 audit log 자동 append; package: standard-ai-workflow 0.13.3, runtime __version__ = v0.13.3-beta, latest tag **v0.13.3-beta**, head = bidir-link wiring commit)
+- 최종 수정일: 2026-07-16
+- 버전: v0.14.0-beta (chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; **Phase 14 in_progress (Append-only Memory Layout v1.0)** — v0.14.0 1st deprecation cycle 진입: \`work_backlog.md\` 단일 파일 (58KB) → \`backlog/<date>.md\` daily index + \`backlog/tasks/TASK-<date>-<NNN>.md\` per-task SSOT + \`sessions/<stem>.md\` per-session 파일 분할 (총 91 task + 2 session + 19 daily index) + state.json 의 source_of_truth 가 directory path 로 emit (legacy 1st cycle fallback 유지, v0.15.0 에서 .bak drop); package: standard-ai-workflow 0.14.0, runtime __version__ = v0.14.0-beta, latest tag **v0.14.0-beta**, head = Phase 14 close-out commit)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`

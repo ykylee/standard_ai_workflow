@@ -1,17 +1,17 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-09T07:10:09Z`
-- tool_version: `v0.13.3-beta`
-- workspace_root: `.`
+- generated_at: `2026-07-16T06:10:23Z`
+- tool_version: `v0.14.0-beta`
+- workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
-- guard_status: `unknown`
+- guard_status: `fail`
 - guard_cases: `6 / 6`
 - maturity_last_updated: `2026-07-09`
 - harness_supported_count: `10`
-- head_commit_date: `2026-07-09`
-- last_updated_delta_days: `0`
+- head_commit_date: `2026-07-16`
+- last_updated_delta_days: `7`
 - silent_failing_cycles_count: `0`
 
 ## Panel 2 — Maturity Distribution
@@ -76,31 +76,29 @@
 - cumulative_total: `41`
 - cumulative_pass: `41`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `174`
+- smoke_files_count: `175`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
 | Beta-v0.13.0 | 41 | 41 |
-| Beta-v0.11.25 | 40 | 40 |
-| Beta-v0.11.24 | 40 | 40 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `62`
+- items_total: `10`
 - top_n: `10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] v0.13.2 (self-recover wiring commit, 2026-07-09): Phase 13 AC3 (self-recovering) close-out — drift prevention 의 6 case 가…
-- [1] v0.13.1 (telemetry wiring commit, 2026-07-09): Phase 13 AC2 (memory_index 활용도) close-out — Quality Dashboard Panel 3 의 `…
-- [2] 2026-07-09 (audit-follow-up): 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (no release, no version bump). **P0 (즉시 가치, 3건…
-- [3] 2026-07-09 (audit-session): 워크플로우 구성 점검 + 고도화 후보 도출 — 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP…
-- [4] v0.11.21 (c90b437): 3차 batch robust-patcher stable 승격 — GitHub Release v0.11.21-beta tag push + gh release create exit 0…
-- [5] v0.11.20 (af6baaf): 2차 batch 4 skill stable 승격 + 2 latent bug fix — GitHub Release v0.11.20-beta tag push + gh release c…
-- [6] v0.11.19 (dfafdc4): 1차 batch 4 skill stable 승격 — GitHub Release v0.11.19-beta tag push + gh release create exit 0 (https…
-- [7] v0.11.18 (80470cd): FULL mypy strict 도달 공식 release — GitHub Release v0.11.18-beta tag push + gh release create exit 0 (h…
-- [8] v0.11.18-dev (4253eed): mypy strict 잔여 13 error 일괄 격상 — FULL mypy strict 도달 (107 file clean). session 마무리. 12 file 일괄: a…
-- [9] v0.11.18-dev (65f0b20): mypy strict read_only_mcp_sdk + doc_sync 묶음 격상 — server + common cross-layer, read_only_mcp_sdk.…
+- [0] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …
+- [1] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…
+- [2] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…
+- [3] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …
+- [4] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…
+- [5] Phase 10 MCP/JSON-RPC draft
+- [6] Phase 6 multi-agent delegation pilot
+- [7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…
+- [8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …
+- [9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…
 

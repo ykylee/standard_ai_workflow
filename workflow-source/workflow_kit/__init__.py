@@ -113,7 +113,7 @@ def _read_pyproject_version() -> str:
     Fallback chain (per spec v0.8.0 section 4.3):
         1. ``pyproject.toml`` (SSOT) - works in source tree.
         2. ``importlib.metadata`` - works for installed distribution.
-        3. Literal ``"v0.8.0-beta"`` - loud fallback when both fail.
+        3. Literal ``"v0.14.0-beta"`` - loud fallback when both fail.
     """
     # 1. pyproject.toml (SSOT)
     pyproject: Path = Path(__file__).parent.parent / "pyproject.toml"

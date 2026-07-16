@@ -1,11 +1,11 @@
 # Apply-Robust-Patch MCP
 
-- 문서 목적: `apply_robust_patch` MCP 프로토타입의 역할과 구현 진입점을 정리한다.
+- 문서 목적: `apply_robust_patch` MCP 의 역할과 구현 진입점을 정리한다.
 - 범위: 목적, 연결 카탈로그, 예상 입력/출력, 읽기/쓰기 성격, 구현 메모
 - 대상 독자: MCP 구현자, AI agent 설계자, 운영자
-- 상태: prototype
-- 최종 수정일: 2026-06-09
-- 관련 문서: `../../core/workflow_mcp_candidate_catalog.md`, `../../skills/robust_patcher/SKILL.md`
+- 상태: stable
+- 최종 수정일: 2026-07-16
+- 관련 문서: `../../core/workflow_mcp_candidate_catalog.md`, `../../skills/robust_patcher/SKILL.md`, `../../workflow_kit/common/schemas/apply_robust_patch.py` (Pydantic schema)
 
 ## 1. 목적
 

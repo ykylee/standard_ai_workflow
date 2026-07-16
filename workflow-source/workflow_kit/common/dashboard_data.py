@@ -340,8 +340,213 @@ def _date_diff_days(date_a: str, date_b: str) -> int | None:
 
 
 # ---------------------------------------------------------------------------
-# Panel 2 — Skill + MCP Maturity Distribution
+# Panel 6 — Multi-Agent Concurrent Write Conflict (Phase 15 north-star)
 # ---------------------------------------------------------------------------
+
+def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[str, Any]:
+    """Phase 14 north-star: `multi_agent_concurrent_write_conflict_count` = 0.
+
+    v0.14.0+ append-only layout 의 structural 정합성 검증 — sub-agent 2개+ 동시
+    fan-out 시 mutable 공유 파일의 3-way merge conflict / overwrite race 가 working
+    tree 에 잔존하는지 check.
+
+    측정원:
+    1. active/ 하위 working tree 의 git merge conflict marker (`<<<<<<<`)
+       — agent 가 `<<<<<<<` / `=======` / `>>>>>>>` 잔존한 채 commit 한 경우 검출.
+    2. (planned) git reflog 의 merge conflict 발생 이력 — 본 release 에선 read-only
+       신중. 1번만 emit.
+
+    Returns:
+        dict {
+            north_star: 'multi_agent_concurrent_write_conflict_count',
+            conflict_count: int,
+            conflict_locations: list[str],
+            status: 'pass' | 'fail',
+            threshold: int,
+        }
+    """
+    root = _repo_root(workspace_root)
+    active_dir = root / "ai-workflow" / "memory" / "active"
+    conflict_count = 0
+    conflict_locations: list[str] = []
+    if active_dir.is_dir():
+        for f in active_dir.rglob("*"):
+            if not f.is_file():
+                continue
+            if f.suffix not in (".md", ".json"):
+                continue
+            try:
+                text = f.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError):
+                continue
+            if "<<<<<<<" in text:
+                conflict_count += 1
+                try:
+                    conflict_locations.append(str(f.relative_to(root)))
+                except ValueError:
+                    conflict_locations.append(str(f))
+    return {
+        "north_star": "multi_agent_concurrent_write_conflict_count",
+        "conflict_count": conflict_count,
+        "conflict_locations": conflict_locations,
+        "status": "pass" if conflict_count == 0 else "fail",
+        "threshold": 0,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Panel 7 — Deprecation Cycle Progress (v0.14.0+ ADR-003)
+# ---------------------------------------------------------------------------
+
+def collect_deprecation_cycle_progress(workspace_root: Path) -> dict[str, Any]:
+    """v0.14.0+ 1st/2nd deprecation cycle 진행 상태 (Panel 7).
+
+    ADR-003 deprecation cycle 의 정공법:
+    - **v0.14.0** (1st cycle 시작): `work_backlog.md` → `.bak` silent fallback.
+    - **v0.14.1** (1st cycle 종결): `.bak` 존재 시 warning stage (cache.py 가 emit).
+    - **v0.14.5** (2nd cycle 시작): `--legacy-memory` opt-out flag 가 있을 때만 read.
+    - **v0.15.0** (2nd cycle 종결): `.bak` 완전 drop.
+
+    본 panel 은 `bak_present` + `deprecation_stage` + timeline 명시.
+
+    Returns:
+        dict {
+            stage: 'v0.14.0' | 'v0.14.1' | 'v0.14.5' | 'v0.15.0',
+            bak_present: bool,
+            legacy_present: bool,  # (구) work_backlog.md 부재 — True 면 cycle 진행
+            deprecation_warning_supported: bool,  # v0.14.1+ cache.py 정합
+            timeline: dict,
+            next_release: str,
+        }
+    """
+    root = _repo_root(workspace_root)
+    memory_dir = root / "ai-workflow" / "memory" / "active"
+    bak = memory_dir / "work_backlog.md.bak"
+    legacy = memory_dir / "work_backlog.md"
+
+    bak_present = bak.exists()
+    legacy_present = legacy.exists()
+
+    if not bak_present and not legacy_present:
+        # 둘 다 부재 — cycle 완전 drop (v0.15.0 도달)
+        stage = "v0.15.0"
+        next_release = "(complete)"
+    elif bak_present and not legacy_present:
+        # 1st cycle 진행 중 (silent fallback or warning stage)
+        # v0.14.5 도달 여부는 별도 휴리스틱 (release tag 또는 maturity_matrix 기준)
+        stage = "v0.14.1"  # default: 현재 (warning stage 종결)
+        next_release = "v0.14.5"
+    elif legacy_present and not bak_present:
+        # Phase 14 이전 상태 (legacy 만, bak 없음)
+        stage = "v0.14.0"
+        next_release = "(migrate to v0.14.0+ layout)"
+    else:
+        # 둘 다 존재 (이상 상태 — migration 미완료)
+        stage = "v0.14.0"
+        next_release = "(migrate: remove legacy, keep bak)"
+
+    return {
+        "stage": stage,
+        "bak_present": bak_present,
+        "legacy_present": legacy_present,
+        "deprecation_warning_supported": True,  # cache.py:refresh_workflow_state_cache
+        "timeline": {
+            "v0.14.0": "1st cycle 시작 (silent fallback)",
+            "v0.14.1": "1st cycle 종결 (warning stage) — current",
+            "v0.14.5": "2nd cycle 시작 (--legacy-memory opt-out flag)",
+            "v0.15.0": "2nd cycle 종결 (.bak drop)",
+        },
+        "next_release": next_release,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Panel 8 — Memory Index + Telemetry Utilization v2 (Phase 15)
+# ---------------------------------------------------------------------------
+
+def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
+    r"""Phase 15 Panel 8: memory_index entries + telemetry integration.
+
+    기존 Panel 3 (collect_memory_index_utilization) 의 강화판 — v0.13.1+ telemetry
+    sidecar 의 실측값 통합. AC2 north-star: telemetry_hit_rate = (cue + bm25 +
+    expansion hits) / total queries.
+
+    측정원:
+    1. entries_total + by_merge_state: ai-workflow/memory/active/memory_index/entries/MEM-*.json
+    2. telemetry_events_total + by_source + hit_rate: telemetry/events.jsonl
+
+    Returns:
+        dict { entries_total, entries_by_merge_state, telemetry_events_total,
+               telemetry_by_source, telemetry_total_queries, telemetry_hit_count,
+               telemetry_hit_rate, phase_15_north_star }
+    """
+    import json as _json
+
+    root = _repo_root(workspace_root)
+    memory_dir = root / "ai-workflow" / "memory" / "active"
+    memory_index_dir = memory_dir / "memory_index"
+
+    # 1. entries count by merge_state
+    entries_by_merge_state: dict[str, int] = {}
+    entries_total = 0
+    entries_dir = memory_index_dir / "entries"
+    if entries_dir.is_dir():
+        for f in entries_dir.glob("MEM-*.json"):
+            try:
+                data = _json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            state = data.get("merge_state", "active")
+            entries_by_merge_state[state] = entries_by_merge_state.get(state, 0) + 1
+            entries_total += 1
+
+    # 2. telemetry events parse
+    telemetry_path = memory_index_dir / "telemetry" / "events.jsonl"
+    telemetry_events_total = 0
+    telemetry_by_source: dict[str, int] = {}
+    telemetry_total_queries = 0
+    telemetry_hit_count = 0
+    if telemetry_path.is_file():
+        try:
+            for line in telemetry_path.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    ev = _json.loads(line)
+                except ValueError:
+                    continue
+                if ev.get("error"):
+                    continue
+                telemetry_events_total += 1
+                src = ev.get("source", "unknown")
+                telemetry_by_source[src] = telemetry_by_source.get(src, 0) + 1
+                hits = (
+                    (ev.get("cue_hits", 0) or 0)
+                    + (ev.get("bm25_hits", 0) or 0)
+                    + (ev.get("expansion_hits", 0) or 0)
+                )
+                if hits > 0:
+                    telemetry_hit_count += 1
+                telemetry_total_queries += 1
+        except OSError:
+            pass
+
+    hit_rate = (
+        telemetry_hit_count / telemetry_total_queries
+        if telemetry_total_queries > 0 else 0.0
+    )
+
+    return {
+        "entries_total": entries_total,
+        "entries_by_merge_state": entries_by_merge_state,
+        "telemetry_events_total": telemetry_events_total,
+        "telemetry_by_source": telemetry_by_source,
+        "telemetry_total_queries": telemetry_total_queries,
+        "telemetry_hit_count": telemetry_hit_count,
+        "telemetry_hit_rate": round(hit_rate, 4),
+        "phase_15_north_star": "telemetry_hit_rate (1 release ≥ 1 query + hit)",
+    }
+
 
 
 def collect_maturity_distribution(workspace_root: Path) -> dict[str, Any]:
@@ -831,7 +1036,7 @@ def collect_dashboard_snapshot(
     """
     ws_root = _repo_root(workspace_root) if workspace_root is None else workspace_root
     return {
-        "schema_version": "1.0",
+        "schema_version": "1.1",  # v0.14.3 Phase 15 — Panel 6/7/8 추가
         "tool_version": _workflow_kit_version(),
         "generated_at": _utcnow_iso(),
         "workspace_root": str(ws_root),
@@ -841,6 +1046,10 @@ def collect_dashboard_snapshot(
             "memory_index_utilization": collect_memory_index_utilization(ws_root),
             "smoke_trend": collect_smoke_trend(ws_root),
             "recent_releases": collect_recent_releases(ws_root),
+            # Phase 15 (v0.14.3+) Panel 6/7/8 — north-star metrics
+            "multi_agent_concurrent_write_conflict": collect_multi_agent_concurrent_write_conflict(ws_root),
+            "deprecation_cycle_progress": collect_deprecation_cycle_progress(ws_root),
+            "memory_index_utilization_v2": collect_memory_index_utilization_v2(ws_root),
         },
     }
 
@@ -883,6 +1092,10 @@ def render_dashboard_markdown(snapshot: dict[str, Any]) -> str:
         lines.extend(_render_panel_3(panels.get("memory_index_utilization", {})))
         lines.extend(_render_panel_4(panels.get("smoke_trend", {})))
         lines.extend(_render_panel_5(panels.get("recent_releases", {})))
+        # Phase 15 (v0.14.3+) — Panel 6/7/8 north-star metric
+        lines.extend(_render_panel_6(panels.get("multi_agent_concurrent_write_conflict", {})))
+        lines.extend(_render_panel_7(panels.get("deprecation_cycle_progress", {})))
+        lines.extend(_render_panel_8(panels.get("memory_index_utilization_v2", {})))
     return "\n".join(lines) + "\n"
 
 
@@ -1003,6 +1216,75 @@ def _render_panel_5(p: dict[str, Any]) -> list[str]:
                 idx = entry.get("index", 0)
                 preview = entry.get("preview", "")
                 lines.append(f"- [{idx}] {preview}")
+    return lines + [""]
+
+
+def _render_panel_6(p: dict[str, Any]) -> list[str]:
+    """Panel 6 — Multi-Agent Concurrent Write Conflict (Phase 15 north-star)."""
+    lines: list[str] = ["## Panel 6 — Multi-Agent Concurrent Write Conflict", ""]
+    lines.append(f"- north_star: `{p.get('north_star', 'unknown')}`")
+    lines.append(f"- conflict_count: `{p.get('conflict_count', 0)}`")
+    lines.append(f"- threshold: `{p.get('threshold', 0)}`")
+    lines.append(f"- status: `{p.get('status', 'unknown')}`")
+    locations = p.get("conflict_locations", [])
+    if locations:
+        lines.append("")
+        lines.append("### Conflict locations")
+        lines.append("")
+        for loc in locations[:10]:  # max 10 표시
+            lines.append(f"- `{loc}`")
+    return lines + [""]
+
+
+def _render_panel_7(p: dict[str, Any]) -> list[str]:
+    """Panel 7 — Deprecation Cycle Progress."""
+    lines: list[str] = ["## Panel 7 — Deprecation Cycle Progress", ""]
+    lines.append(f"- stage: `{p.get('stage', 'unknown')}`")
+    lines.append(f"- bak_present: `{p.get('bak_present', False)}`")
+    lines.append(f"- legacy_present: `{p.get('legacy_present', False)}`")
+    lines.append(f"- deprecation_warning_supported: `{p.get('deprecation_warning_supported', False)}`")
+    lines.append(f"- next_release: `{p.get('next_release', 'unknown')}`")
+    timeline = p.get("timeline", {})
+    if isinstance(timeline, dict) and timeline:
+        lines.append("")
+        lines.append("### Timeline")
+        lines.append("")
+        lines.append("| Version | Stage |")
+        lines.append("|---|---|")
+        for ver, desc in timeline.items():
+            # current stage marker
+            marker = " ← **current**" if ver == p.get("stage") else ""
+            lines.append(f"| `{ver}` | {desc}{marker} |")
+    return lines + [""]
+
+
+def _render_panel_8(p: dict[str, Any]) -> list[str]:
+    """Panel 8 — Memory Index + Telemetry Utilization v2."""
+    lines: list[str] = ["## Panel 8 — Memory Index + Telemetry Utilization v2", ""]
+    lines.append(f"- phase_15_north_star: `{p.get('phase_15_north_star', '')}`")
+    lines.append(f"- entries_total: `{p.get('entries_total', 0)}`")
+    lines.append(f"- telemetry_events_total: `{p.get('telemetry_events_total', 0)}`")
+    lines.append(f"- telemetry_total_queries: `{p.get('telemetry_total_queries', 0)}`")
+    lines.append(f"- telemetry_hit_count: `{p.get('telemetry_hit_count', 0)}`")
+    lines.append(f"- telemetry_hit_rate: `{p.get('telemetry_hit_rate', 0.0):.4f}`")
+    by_ms = p.get("entries_by_merge_state", {})
+    if isinstance(by_ms, dict) and by_ms:
+        lines.append("")
+        lines.append("### Entries by merge_state")
+        lines.append("")
+        lines.append("| merge_state | count |")
+        lines.append("|---|---|")
+        for state, count in sorted(by_ms.items()):
+            lines.append(f"| `{state}` | {count} |")
+    by_src = p.get("telemetry_by_source", {})
+    if isinstance(by_src, dict) and by_src:
+        lines.append("")
+        lines.append("### Telemetry by source")
+        lines.append("")
+        lines.append("| source | events |")
+        lines.append("|---|---|")
+        for src, count in sorted(by_src.items()):
+            lines.append(f"| `{src}` | {count} |")
     return lines + [""]
 
 

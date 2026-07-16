@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-16T07:27:51Z`
+- generated_at: `2026-07-16T07:53:45Z`
 - tool_version: `v0.14.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
@@ -31,8 +31,8 @@
 | metric | value |
 |---|---|
 | total | 12 |
-| stable | 8 |
-| beta | 4 |
+| stable | 11 |
+| beta | 0 |
 | alpha | 0 |
 
 ### milestones
@@ -77,7 +77,7 @@
 - cumulative_total: `41`
 - cumulative_pass: `41`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `175`
+- smoke_files_count: `176`
 
 ### Recent release smoke counts
 
@@ -102,4 +102,49 @@
 - [7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…
 - [8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …
 - [9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…
+
+## Panel 6 — Multi-Agent Concurrent Write Conflict
+
+- north_star: `multi_agent_concurrent_write_conflict_count`
+- conflict_count: `0`
+- threshold: `0`
+- status: `pass`
+
+## Panel 7 — Deprecation Cycle Progress
+
+- stage: `v0.14.1`
+- bak_present: `True`
+- legacy_present: `False`
+- deprecation_warning_supported: `True`
+- next_release: `v0.14.5`
+
+### Timeline
+
+| Version | Stage |
+|---|---|
+| `v0.14.0` | 1st cycle 시작 (silent fallback) |
+| `v0.14.1` | 1st cycle 종결 (warning stage) — current ← **current** |
+| `v0.14.5` | 2nd cycle 시작 (--legacy-memory opt-out flag) |
+| `v0.15.0` | 2nd cycle 종결 (.bak drop) |
+
+## Panel 8 — Memory Index + Telemetry Utilization v2
+
+- phase_15_north_star: `telemetry_hit_rate (1 release ≥ 1 query + hit)`
+- entries_total: `7`
+- telemetry_events_total: `1`
+- telemetry_total_queries: `1`
+- telemetry_hit_count: `1`
+- telemetry_hit_rate: `1.0000`
+
+### Entries by merge_state
+
+| merge_state | count |
+|---|---|
+| `active` | 7 |
+
+### Telemetry by source
+
+| source | events |
+|---|---|
+| `dispatcher` | 1 |
 

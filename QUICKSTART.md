@@ -133,6 +133,11 @@ python3 ai-workflow/workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
 - OpenCode: [`workflow-source/harnesses/opencode/README.md`](./workflow-source/harnesses/opencode/README.md)
 - Gemini CLI: [`workflow-source/harnesses/gemini-cli/README.md`](./workflow-source/harnesses/gemini-cli/README.md)
 - Antigravity: [`workflow-source/harnesses/antigravity/README.md`](./workflow-source/harnesses/antigravity/README.md)
+- Claude Code: [`workflow-source/harnesses/claude-code/README.md`](./workflow-source/harnesses/claude-code/README.md)
+- CodeWhale (v0.10.4 신규): [`workflow-source/harnesses/codewhale/README.md`](./workflow-source/harnesses/codewhale/README.md)
+- Aider: [`workflow-source/harnesses/aider/README.md`](./workflow-source/harnesses/aider/README.md)
+- Goose: [`workflow-source/harnesses/goose/README.md`](./workflow-source/harnesses/goose/README.md)
+- pi-dev: [`workflow-source/harnesses/pi-dev/README.md`](./workflow-source/harnesses/pi-dev/README.md)
 
 ---
 

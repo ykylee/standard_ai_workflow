@@ -107,7 +107,7 @@ python3 generate_workflow_state.py --legacy-memory ...
 - deprecation_cycle_v0_14_5 4/4
 - refresh_maturity_v0_14_6 4/4
 
-**누적 smoke 260+ PASS.**
+- 누적 smoke **260+ PASS** (회귀 ❌)
 
 ## 5. 의의
 

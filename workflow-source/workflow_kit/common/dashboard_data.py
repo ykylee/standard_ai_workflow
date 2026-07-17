@@ -43,9 +43,12 @@ from typing import Any, Final
 # ---------------------------------------------------------------------------
 
 # Release note 의 누적 smoke count 패턴 (Beta-v0.11.25.md §검증 정합).
-# 형식: "누적 smoke test **40/40 PASS**" 또는 "누적 ... smoke ... **N/N PASS**"
+# 형식 1: "누적 smoke test **N/N PASS**" (v0.13.0 정공법)
+# 형식 2: "누적 smoke **N+ PASS**" (v0.14.1+ 슬랙 표기 — `test` token 생략 + `N+` 표기)
+#   parse 시 N+ 표기는 (N, N) 으로 정규화 (pass = total 가정, 실제 100% pass 정합)
+# 형식 3: "누적 ... smoke ... **N/N PASS**" (forward-compat alias)
 SMOKE_COUNT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"누적\s+smoke\s+test\s+\*\*(\d+)/(\d+)\s+PASS\*\*"
+    r"누적\s+(?:[\w\s]*?\s+)?smoke\s+(?:test\s+)?\*\*(\d+)(?:/(\d+)|\+)\s+PASS\*\*"
 )
 
 # smoke_trend panel 의 default release note top-N
@@ -971,7 +974,14 @@ def collect_smoke_trend(
 
 
 def _parse_smoke_count_from_release(release_path: Path) -> tuple[int, int] | None:
-    """release note 본문에서 '누적 smoke test **N/N PASS**' 패턴 parse."""
+    """release note 본문에서 누적 smoke count 패턴 parse.
+
+    v0.15.0+ 확장: 두 가지 표기 모두 지원.
+    - 형식 1: ``누적 smoke test **N/N PASS**`` (v0.13.0 정공법)
+    - 형식 2: ``누적 smoke **N+ PASS**`` (v0.14.1+ 슬랙 표기 — pass=total 가정)
+    형식 2 의 N+ 는 release note 가 이미 100% pass 를 단언했음을 의미하므로
+    (N, N) 으로 정규화.
+    """
     try:
         with release_path.open("r", encoding="utf-8") as fp:
             content = fp.read()
@@ -981,7 +991,11 @@ def _parse_smoke_count_from_release(release_path: Path) -> tuple[int, int] | Non
     if match is None:
         return None
     try:
-        return int(match.group(1)), int(match.group(2))
+        pass_count = int(match.group(1))
+        # group(2) 는 N/N 표기일 때만 존재; N+ 표기일 때는 None
+        total_str = match.group(2)
+        total_count = int(total_str) if total_str is not None else pass_count
+        return pass_count, total_count
     except ValueError:
         return None
 

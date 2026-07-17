@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quality Dashboard · v0.14.0-beta</title>
+  <title>Quality Dashboard · v0.15.0-beta</title>
   <style>
 :root {
   color-scheme: light dark;
@@ -46,8 +46,8 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-16T08:36:33Z</code> · tool_version: <code>v0.14.0-beta</code></p>
-    <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
+    <p class="meta">generated_at: <code>2026-07-17T14:02:54Z</code> · tool_version: <code>v0.15.0-beta</code></p>
+    <p class="meta">workspace: <code>.</code></p>
   </header>
   <main>
   <section class="panel">
@@ -55,8 +55,8 @@ ul.timeline { padding-left: 1.2rem; }
     <p>guard_status: <span class="stat pass">pass</span></p>
     <p>guard: 6/6 pass (expected 6)</p>
     <p>guard_runtime_ms: 38</p>
-    <p>maturity_last_updated: <code>2026-07-16</code></p>
-    <p>head_commit_date: <code>2026-07-16</code></p>
+    <p>maturity_last_updated: <code>2026-07-17</code></p>
+    <p>head_commit_date: <code>2026-07-17</code></p>
     <p>last_updated_delta_days: 0</p>
     <p>harness_supported_count: 10</p>
     <p><strong>silent_failing_cycles_count: 0</strong> (Phase 13 AC1 north-star)</p>
@@ -88,25 +88,25 @@ ul.timeline { padding-left: 1.2rem; }
   </section>
   <section class="panel">
     <h2>Panel 4 — Smoke Trend</h2>
-    <p class="stat pass">41/41</p>
+    <p class="stat pass">260/260</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
     <p class="meta">smoke test files: 179</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 5 — Recent Release Cycle</h2>
-    <p>items_total: <strong>10</strong> (top_n=10)</p>
+    <p>items_total: <strong>11</strong> (top_n=10)</p>
     <ul class="timeline">
-      <li>[0] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …</li>
-      <li>[1] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…</li>
-      <li>[2] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…</li>
-      <li>[3] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …</li>
-      <li>[4] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
-      <li>[5] Phase 10 MCP/JSON-RPC draft</li>
-      <li>[6] Phase 6 multi-agent delegation pilot</li>
-      <li>[7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
-      <li>[8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
-      <li>[9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…</li>
+      <li>[0] TASK-2026-07-16-001 — v0.15.0 — **⚠️ SemVer minor, BREAKING — 2nd deprecation cycle 종결 (work_backlog.md.bak drop) + push…</li>
+      <li>[1] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …</li>
+      <li>[2] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…</li>
+      <li>[3] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…</li>
+      <li>[4] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …</li>
+      <li>[5] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
+      <li>[6] Phase 10 MCP/JSON-RPC draft</li>
+      <li>[7] Phase 6 multi-agent delegation pilot</li>
+      <li>[8] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
+      <li>[9] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
     </ul>
   </section>
   <section class="panel panel-6">
@@ -150,7 +150,7 @@ ul.timeline { padding-left: 1.2rem; }
   </main>
   <script>
     (function() {
-      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.13.0"], "counts": [41]}};
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.14.3", "Beta-v0.14.5", "Beta-v0.14.6", "Beta-v0.14.7", "Beta-v0.15.0"], "counts": [260, 260, 260, 260, 260]}};
       function ready(fn) {
         if (typeof window.Chart !== 'undefined') { fn(); }
         else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }

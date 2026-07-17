@@ -63,7 +63,7 @@ def _assert(condition: bool, message: str) -> None:
 
 
 def _check_snapshot_shape(snap: dict[str, object]) -> None:
-    """AC1: top-level shape + 5 panel 존재."""
+    """AC1: top-level shape + 8 panel 존재 (v0.14.3+ Phase 15 정합)."""
     required_top = {"schema_version", "tool_version", "generated_at", "workspace_root", "panels"}
     actual_top = set(snap.keys())
     _assert(
@@ -72,12 +72,17 @@ def _check_snapshot_shape(snap: dict[str, object]) -> None:
     )
     panels = snap.get("panels", {})
     _assert(isinstance(panels, dict), "panels must be dict")
+    # v0.14.3+ Phase 15: 5 panel → 8 panel (Panel 6 multi-agent conflict, Panel 7
+    # deprecation cycle, Panel 8 memory index + telemetry v2).
     expected_panels = {
         "drift_prevention",
         "maturity_distribution",
         "memory_index_utilization",
         "smoke_trend",
         "recent_releases",
+        "multi_agent_concurrent_write_conflict",
+        "deprecation_cycle_progress",
+        "memory_index_utilization_v2",
     }
     actual_panels = set(panels.keys()) if isinstance(panels, dict) else set()
     _assert(
@@ -183,17 +188,19 @@ def _check_cli_json() -> None:
 
 
 def _check_cli_markdown() -> None:
-    """CLI subcommand: --format=markdown 정상 동작."""
+    """CLI subcommand: --format=markdown 정상 동작 (v0.14.3+ 8 panel 정합)."""
     rc, stdout, stderr = _run_cli("--format=markdown")
     _assert(rc == 0, f"dashboard --format=markdown exit code: {rc}, stderr: {stderr}")
     _assert(
         "# Quality Dashboard Snapshot" in stdout,
         "markdown output missing header",
     )
-    _assert(
-        "## Panel 1" in stdout and "## Panel 5" in stdout,
-        "markdown output missing 5 panels",
-    )
+    # v0.14.3+ Phase 15: Panel 1 ~ Panel 8 모두 emit
+    for label in (
+        "## Panel 1", "## Panel 2", "## Panel 3", "## Panel 4",
+        "## Panel 5", "## Panel 6", "## Panel 7", "## Panel 8",
+    ):
+        _assert(label in stdout, f"markdown output missing {label}")
 
 
 def _check_cli_invalid_format() -> None:
@@ -286,7 +293,7 @@ def _check_release_pipeline_dashboard_emit() -> None:
 
 
 def _check_html_render() -> None:
-    """v0.13.2+: render_dashboard_html 직접 호출 — self-contained HTML emit."""
+    """v0.13.2+: render_dashboard_html 직접 호출 — self-contained HTML emit (v0.14.3+ 8 panel)."""
     from workflow_kit.common.dashboard_data import (
         collect_dashboard_snapshot,
         render_dashboard_html,
@@ -303,7 +310,11 @@ def _check_html_render() -> None:
         "<canvas" in html and "chart.js" in html,
         "HTML must include Chart.js CDN reference + <canvas> elements",
     )
-    for label in ("Panel 1", "Panel 2", "Panel 3", "Panel 4", "Panel 5"):
+    # v0.14.3+ Phase 15: 5 panel → 8 panel
+    for label in (
+        "Panel 1", "Panel 2", "Panel 3", "Panel 4",
+        "Panel 5", "Panel 6", "Panel 7", "Panel 8",
+    ):
         _assert(label in html, f"HTML missing {label}")
     _assert(
         "silent_failing_cycles_count" in html,
@@ -312,14 +323,19 @@ def _check_html_render() -> None:
 
 
 def _check_cli_html() -> None:
-    """v0.13.2+: CLI subcommand --format=html 정상 동작."""
+    """v0.13.2+: CLI subcommand --format=html 정상 동작 (v0.14.3+ 8 panel)."""
     rc, stdout, stderr = _run_cli("--format=html")
     _assert(rc == 0, f"dashboard --format=html exit code: {rc}, stderr: {stderr}")
     _assert(
         stdout.startswith("<!DOCTYPE html>"),
         f"--format=html stdout must be HTML doc, starts with: {stdout[:60]!r}",
     )
-    _assert("Panel 1" in stdout and "Panel 5" in stdout, "missing 5 panel labels")
+    # v0.14.3+ Phase 15: 8 panel 모두 emit
+    for label in (
+        "Panel 1", "Panel 2", "Panel 3", "Panel 4",
+        "Panel 5", "Panel 6", "Panel 7", "Panel 8",
+    ):
+        _assert(label in stdout, f"--format=html missing {label}")
 
 
 def _check_cli_html_publish(tmp_path: Path) -> None:
@@ -352,6 +368,73 @@ def _check_cli_html_publish(tmp_path: Path) -> None:
     )
 
 
+def _check_smoke_count_n_plus_pattern() -> None:
+    """v0.15.0+: _parse_smoke_count_from_release 가 N+ 표기도 (N, N) 으로 parse."""
+    import tempfile
+    from workflow_kit.common.dashboard_data import _parse_smoke_count_from_release
+
+    with tempfile.TemporaryDirectory() as td:
+        td_p = Path(td)
+
+        # Case A: '누적 smoke **260+ PASS**' (v0.14.1+ 슬랙 표기) → (260, 260)
+        f1 = td_p / "n_plus.md"
+        f1.write_text(
+            "# v0.15.0 release note\n\n"
+            "## 4. 검증 (10 smoke 모두 PASS, 회귀 ❌)\n\n"
+            "- **누적 smoke **260+ PASS** (회귀 ❌)**\n",
+            encoding="utf-8",
+        )
+        result = _parse_smoke_count_from_release(f1)
+        _assert(
+            result == (260, 260),
+            f"N+ 표기 parse 결과: expected (260, 260), got {result}",
+        )
+
+        # Case B: '누적 smoke test **41/41 PASS**' (v0.13.0 정공법) → (41, 41)
+        f2 = td_p / "n_over_n.md"
+        f2.write_text(
+            "# v0.13.0 release note\n\n"
+            "## 검증\n\n"
+            "- 누적 smoke test **41/41 PASS**\n",
+            encoding="utf-8",
+        )
+        result = _parse_smoke_count_from_release(f2)
+        _assert(
+            result == (41, 41),
+            f"N/N 표기 parse 결과: expected (41, 41), got {result}",
+        )
+
+        # Case C: 패턴 매치 안 되는 경우 → None
+        f3 = td_p / "no_match.md"
+        f3.write_text("# empty release note\n", encoding="utf-8")
+        result = _parse_smoke_count_from_release(f3)
+        _assert(
+            result is None,
+            f"매치 안 되는 본문은 None, got {result}",
+        )
+
+
+def _check_panel_4_with_n_plus_release_note(tmp_path: Path) -> None:
+    """v0.15.0+: 가장 최근 release note 가 N+ 표기여도 Panel 4 cumulative_total > 0.
+
+    임시 release note 를 releases/ 디렉토리에 두고 (실제론 안 만듦),
+    _collect_collect_smoke_trend 가 직접 cumulative_total/cumulative_pass 를 emit 하는지 확인.
+    여기서는 in-process 로 _parse_smoke_count_from_release 결과를 받아서 검증.
+    """
+    from workflow_kit.common.dashboard_data import _parse_smoke_count_from_release
+
+    fixture = tmp_path / "fixture_release.md"
+    fixture.write_text(
+        "- 누적 smoke **300+ PASS** (회귀 ❌)\n",
+        encoding="utf-8",
+    )
+    result = _parse_smoke_count_from_release(fixture)
+    _assert(
+        result is not None and result == (300, 300),
+        f"N+ 표기 300+ parse: expected (300, 300), got {result}",
+    )
+
+
 def main() -> int:
     print("[check_quality_dashboard_v0_13_0] starting")
     try:
@@ -366,49 +449,58 @@ def main() -> int:
         _check_memory_index(panels.get("memory_index_utilization", {}))
         _check_smoke_trend(panels.get("smoke_trend", {}))
         _check_recent_releases(panels.get("recent_releases", {}))
-        print("[1/10] snapshot shape + 5 panel content — PASS")
+        print("[1/12] snapshot shape + 5 panel content — PASS")
 
         # Case 2: CLI subcommand json
         _check_cli_json()
-        print("[2/10] CLI --format=json — PASS")
+        print("[2/12] CLI --format=json — PASS")
 
         # Case 3: CLI subcommand markdown
         _check_cli_markdown()
-        print("[3/10] CLI --format=markdown — PASS")
+        print("[3/12] CLI --format=markdown — PASS")
 
         # Case 4: CLI subcommand invalid format → exit 2
         _check_cli_invalid_format()
-        print("[4/10] CLI invalid format → exit 2 — PASS")
+        print("[4/12] CLI invalid format → exit 2 — PASS")
 
         # Case 5: CLI subcommand --output=PATH
         import tempfile
         with tempfile.TemporaryDirectory() as temp_dir:
             tmp_path = Path(temp_dir).resolve()
             _check_cli_output_file(tmp_path)
-        print("[5/10] CLI --output=PATH — PASS")
+        print("[5/12] CLI --output=PATH — PASS")
 
         # Case 6: v0.13.1+ inline drift guard (직접 호출)
         _check_drift_guard_inline_direct()
-        print("[6/10] inline drift guard (run_drift_prevention_guard_inline) — PASS")
+        print("[6/12] inline drift guard (run_drift_prevention_guard_inline) — PASS")
 
         # Case 7: v0.13.1+ release_pipeline dashboard emit hook
         _check_release_pipeline_dashboard_emit()
-        print("[7/10] release_pipeline._emit_dashboard_post_release — PASS")
+        print("[7/12] release_pipeline._emit_dashboard_post_release — PASS")
 
         # Case 8: v0.13.2+ render_dashboard_html 직접 호출
         _check_html_render()
-        print("[8/10] render_dashboard_html — PASS")
+        print("[8/12] render_dashboard_html — PASS")
 
         # Case 9: v0.13.2+ CLI subcommand --format=html
         _check_cli_html()
-        print("[9/10] CLI --format=html — PASS")
+        print("[9/12] CLI --format=html — PASS")
 
         # Case 10: v0.13.2+ --publish → docs/dashboard/index.html
         with tempfile.TemporaryDirectory() as td:
             _check_cli_html_publish(Path(td).resolve())
-        print("[10/10] CLI --format=html --publish — PASS")
+        print("[10/12] CLI --format=html --publish — PASS")
 
-        print("\nALL 10/10 CASES PASS")
+        # Case 11: v0.15.0+ N+ 표기 parse (260+, 41/41, no-match)
+        _check_smoke_count_n_plus_pattern()
+        print("[11/12] smoke count N+ 표기 parse (3 sub-case) — PASS")
+
+        # Case 12: v0.15.0+ Panel 4 fixture release note N+ 표기 → (300, 300)
+        with tempfile.TemporaryDirectory() as td:
+            _check_panel_4_with_n_plus_release_note(Path(td).resolve())
+        print("[12/12] Panel 4 N+ 표기 release note parse (300+) — PASS")
+
+        print("\nALL 12/12 CASES PASS")
         return 0
     except AssertionError as e:
         print(f"\nFAIL: {e}", file=sys.stderr)

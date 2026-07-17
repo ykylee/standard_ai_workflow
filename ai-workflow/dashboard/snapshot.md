@@ -1,17 +1,17 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-16T08:36:33Z`
-- tool_version: `v0.14.0-beta`
-- workspace_root: `/home/yklee/repos/standard_ai_workflow`
+- generated_at: `2026-07-17T14:02:54Z`
+- tool_version: `v0.15.0-beta`
+- workspace_root: `.`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-16`
+- maturity_last_updated: `2026-07-17`
 - maturity_stale: `False`
 - harness_supported_count: `10`
-- head_commit_date: `2026-07-16`
+- head_commit_date: `2026-07-17`
 - last_updated_delta_days: `0`
 - silent_failing_cycles_count: `0`
 
@@ -74,8 +74,8 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `41`
-- cumulative_pass: `41`
+- cumulative_total: `260`
+- cumulative_pass: `260`
 - cumulative_pass_rate: `1.0000`
 - smoke_files_count: `179`
 
@@ -83,25 +83,29 @@
 
 | version | pass | total |
 |---|---|---|
-| Beta-v0.13.0 | 41 | 41 |
+| Beta-v0.15.0 | 260 | 260 |
+| Beta-v0.14.7 | 260 | 260 |
+| Beta-v0.14.6 | 260 | 260 |
+| Beta-v0.14.5 | 260 | 260 |
+| Beta-v0.14.3 | 260 | 260 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `10`
+- items_total: `11`
 - top_n: `10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …
-- [1] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…
-- [2] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…
-- [3] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …
-- [4] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…
-- [5] Phase 10 MCP/JSON-RPC draft
-- [6] Phase 6 multi-agent delegation pilot
-- [7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…
-- [8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …
-- [9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…
+- [0] TASK-2026-07-16-001 — v0.15.0 — **⚠️ SemVer minor, BREAKING — 2nd deprecation cycle 종결 (work_backlog.md.bak drop) + push…
+- [1] TASK-2026-07-01-003 — v0.11.18 — **🎯 SemVer patch, FULL mypy strict 도달 공식 봉인 (107 file clean)**. 누적 mypy strict 잔여 23 → …
+- [2] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…
+- [3] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…
+- [4] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …
+- [5] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…
+- [6] Phase 10 MCP/JSON-RPC draft
+- [7] Phase 6 multi-agent delegation pilot
+- [8] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…
+- [9] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 

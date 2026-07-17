@@ -3,9 +3,9 @@
 - 문서 목적: Microsoft Research의 `Memora` 개념과 공개 구현을 조사하고, `standard_ai_workflow` 에 적용 가능한지 검토한다.
 - 범위: 공개 자료 요약, 현재 저장소와의 대응 관계, 도입 가능 범위, 권장 실험안
 - 대상 독자: 워크플로우 설계자, 메모리 계층 설계자, 연구 프로토타입 검토자
-- 상태: draft
-- 최종 수정일: 2026-07-09
-- 관련 문서: [./README.md](./README.md), [./ADR-001-source-state-knowledge-3-layer-separation.md](./ADR-001-source-state-knowledge-3-layer-separation.md), [../../workflow-source/MEMORY_GOVERNANCE.md](../../workflow-source/MEMORY_GOVERNANCE.md), [../../workflow-source/core/workflow_agent_topology.md](../../workflow-source/core/workflow_agent_topology.md), [../../workflow-source/core/orchestrator_subagent_contract_v1.md](../../workflow-source/core/orchestrator_subagent_contract_v1.md)
+- **상태: accepted (v0.15.10 close-out — Phase 1/2/3 도입 정합 확인, 권장 사항 적용 완료)**
+- 최종 수정일: 2026-07-17
+- 관련 문서: [./README.md](./README.md), [./ADR-001-source-state-knowledge-3-layer-separation.md](./ADR-001-source-state-knowledge-3-layer-separation.md), [./ADR-005-memora-inspired-memory-index.md](./ADR-005-memora-inspired-memory-index.md), [./ADR-006-memory-index-retrospective.md](./ADR-006-memory-index-retrospective.md), [../../workflow-source/MEMORY_GOVERNANCE.md](../../workflow-source/MEMORY_GOVERNANCE.md), [../../workflow-source/core/workflow_agent_topology.md](../../workflow-source/core/workflow_agent_topology.md), [../../workflow-source/core/orchestrator_subagent_contract_v1.md](../../workflow-source/core/orchestrator_subagent_contract_v1.md)
 
 ## 1. Executive Summary
 
@@ -31,6 +31,16 @@
 3. semantic top-k 1회 검색 대신 단계적 retrieval policy를 두는 방식
 
 결론적으로, **개념 차용 가치는 높고 즉시 실험도 가능하지만, 현재 저장소에 바로 full replacement로 넣을 단계는 아니다.**
+
+### 1.1 v0.15.10 close-out: 도입 결과 (현 시점)
+
+본 evaluation 의 권장 사항 (§6 + §7 + §11) 이 v0.11.22 ~ v0.13.1 의 6 release cycle 에 걸쳐 *metadata overlay 방식* 으로 모두 적용됐다. 현 시점 (v0.15.10) 의 도입 결과:
+
+- **Phase 1 (zero-risk metadata prototype)** ✅ v0.11.22 — `ai-workflow/memory/active/memory_index/entries/*.json` + `cue_anchors` + `primary_abstraction` 도입. 현 시점 7 entries (MEM-2026-07-09-001~007, 2026-07-09 audit-follow-up).
+- **Phase 2 (canonical memory merge)** ✅ v0.13.1 — `state.json` 의 `memory_entries[]` array opt-in + builder/cache signature 확장 + `state-builder --merge` flag + 3 skill opt-in wiring (session-start, doc-sync, backlog-update). 동일 topic 의 후속 업데이트를 같은 entry 로 누적.
+- **Phase 3 (retrieval policy integration)** ✅ v0.13.1 — 3 stage retrieval policy (cue exact match → BM25 fallback → linked entry expansion) + `memory-index-query` dispatcher subcommand + 3 skill + dispatcher opt-in retrieval + telemetry sidecar (memory_index_telemetry_v0_13_1).
+
+**결과: 3 layer 분리 (ADR-001) 유지 + retrieval layer 강화 (Memora-inspired metadata)** — §10 권장 사항 (4) 의 "metadata overlay 방식" 정합. 원본 Memora repo 의 RL/GRPO / 무거운 ML dependency 는 §6.3 의 "당장 가져오지 말아야 할 것" 으로 정합.
 
 ## 2. What Memora Is
 
@@ -102,20 +112,21 @@ Memora의 장점은 정확히 이 틈에 들어온다.
 
 ## 5. Mapping: Memora vs standard_ai_workflow
 
-| Memora 개념 | 우리 저장소의 현재 대응물 | 갭 | 도입 난이도 |
-| --- | --- | --- | --- |
-| `memory value` | `session_handoff.md`, backlog task 문서, wiki source body | 이미 강함 | 낮음 |
-| `primary abstraction` | `state.json` 요약, `purpose_digest`, 문서 제목/상태 요약 | canonical per-memory abstraction 부재 | 중간 |
-| `cue anchors` | wiki 링크, tags, related docs, task id, file path | 다중 anchor 체계 부재 | 중간 |
-| memory merge/update | backlog task 단위 업데이트, state 재생성 | 같은 주제의 장기 통합 메모리 없음 | 중간 |
-| policy retrieval | session-start / doc-sync / wiki-query의 규칙 기반 읽기 | iterative retrieval policy 부재 | 높음 |
-| shared memory space | `ai-workflow/memory/` + wiki | 에이전트별 접근 경계/공유 정책 더 필요 | 중간 |
+| Memora 개념 | 우리 저장소의 현재 대응물 | 갭 (v0.15.10 close-out 시점) | 도입 난이도 | 도입 결과 |
+| --- | --- | --- | --- | --- |
+| `memory value` | `session_handoff.md`, backlog task 문서, wiki source body | 이미 강함 | 낮음 | ✅ 현 시점 유지 |
+| `primary abstraction` | `state.json.memory_entries[].primary_abstraction` + `purpose_digest` + 문서 제목/상태 요약 | canonical per-memory abstraction | 중간 | ✅ v0.11.22 entries 도입 |
+| `cue anchors` | `memory_entries[].cue_anchors` + wiki 링크 + tags + related docs + task id + file path | 다중 anchor 체계 | 중간 | ✅ v0.11.22 cue_anchors 도입 |
+| memory merge/update | `--merge opt-in` + state-builder + cache signature + 3 skill opt-in wiring | 같은 주제의 장기 통합 메모리 | 중간 | ✅ v0.13.1 merge opt-in |
+| policy retrieval | 3-stage (cue exact → BM25 → expansion) + dispatcher `memory-index-query` + 3 skill + telemetry sidecar | iterative retrieval policy | 높음 | ✅ v0.13.1 3-stage + telemetry |
+| shared memory space | `ai-workflow/memory/` + wiki + `entries/` dir | 에이전트별 접근 경계/공유 정책 | 중간 | ✅ entries dir + scope field |
 
 핵심 해석:
 
 - 우리는 raw memory와 provenance는 이미 잘한다.
 - Memora는 retrieval-facing structure를 더 잘한다.
 - 따라서 **보완 관계** 가 크고, 대체 관계는 작다.
+- v0.15.10 close-out: 6 row 모두 ✅ 도입 완료 (metadata overlay 방식).
 
 ## 6. What We Should Borrow
 
@@ -143,9 +154,9 @@ Memora의 장점은 정확히 이 틈에 들어온다.
 - 무거운 Python/ML dependency 세트 전체
 - Memora repo 자체를 core runtime dependency로 직접 편입하는 것
 
-## 7. Recommended Adoption Shape
+## 7. Recommended Adoption Shape (v0.15.10 close-out 결과)
 
-가장 안전한 도입 방식은 `Memora-inspired metadata layer` 를 우리 memory layer 위에 얹는 것이다.
+가장 안전한 도입 방식은 `Memora-inspired metadata layer` 를 우리 memory layer 위에 얹는 것이다. **v0.15.10 close-out 시점 (2026-07-17), 이 권장 사항은 metadata overlay 방식으로 도입 완료됐다.**
 
 예시 구조:
 
@@ -249,6 +260,17 @@ ai-workflow/memory/active/
 4. **첫 실험은 state 생성기 또는 session-start 쪽에서 시작하는 것이 가장 싸다.**
    메모리 본문 저장 포맷을 바꾸지 않고도 효과를 측정할 수 있다.
 
+### 10.1 v0.15.10 close-out: 4 권장 사항 적용 결과
+
+| 권장 사항 | 적용 결과 | 적용 release |
+| --- | --- | --- |
+| 1. Memora 개념 채택 (`primary abstraction` + `cue anchors`) | ✅ `memory_entries[].primary_abstraction` + `cue_anchors` field 도입 | v0.11.22 |
+| 2. 원본 구현 미도입 (연구용 ref implementation) | ✅ RL/GRPO / torch / langgraph / mem0ai / chromadb / redis / transformers dependency 미도입 | (지속) |
+| 3. Metadata overlay 방식 | ✅ `ai-workflow/memory/` + wiki ingest 규칙 유지 + `memory_index/entries/` 추가 | v0.11.22 |
+| 4. state 생성기 / session-start 첫 실험 | ✅ 3 skill opt-in wiring (session-start / doc-sync / backlog-update) + `state.json` `memory_entries[]` | v0.13.1 |
+
+**결론**: 4 권장 사항 모두 ✅ 적용 완료. v0.15.10 close-out 시점, 본 evaluation 은 *accepted* 상태로 종결.
+
 ## 11. Suggested Next Step
 
 가장 실용적인 다음 단계는 둘 중 하나다.
@@ -259,6 +281,13 @@ ai-workflow/memory/active/
   - `state.json` 또는 별도 `memory_index/*.json` 에 `primary_abstraction` / `cue_anchors` 를 생성하는 실험 코드 추가
 
 이 저장소에는 `A -> B` 순서가 더 잘 맞는다.
+
+### 11.1 v0.15.10 close-out: A → B 적용 결과
+
+- **A. 설계 전용 후속 문서** ✅ v0.11.22 — [ADR-005-memora-inspired-memory-index.md](./ADR-005-memora-inspired-memory-index.md) 작성 + 회고 자리 [ADR-006-memory-index-retrospective.md](./ADR-006-memory-index-retrospective.md) 박기.
+- **B. 작은 프로토타입 구현** ✅ v0.11.22 ~ v0.13.1 — `ai-workflow/memory/active/memory_index/entries/MEM-*.json` + `cue_anchors` + `primary_abstraction` + `value_digest` + `owners` + `scope` field 도입. v0.13.1 `memory-index-query` dispatcher subcommand + 3 skill opt-in wiring + telemetry sidecar.
+
+**결론**: A → B 순서로 모두 적용 완료. 본 evaluation 의 *suggested next step* 모두 ✅ 종결.
 
 ## 12. References
 

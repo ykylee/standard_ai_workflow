@@ -59,10 +59,11 @@ def case_1_panel_6_conflict() -> bool:
 
 
 def case_2_panel_7_deprecation() -> bool:
-    """Panel 7: stage=declared_stage (current) + bak_present=True + timeline 4 entry.
+    """Panel 7: stage=declared_stage (current) + bak_present/legacy_present 분기 검증 + timeline 4 entry.
 
     v0.14.5 release 후 maturity_matrix.deprecation_cycle_stage='v0.14.5' 로
     변경되면 본 case 의 기대 stage 도 'v0.14.5' 로 자동 정합 (declared_stage 기반).
+    v0.15.0 release 시 `.bak` drop → bak_present=False 가 정상 (2nd cycle 종결).
     """
     snap = _get_snapshot()
     p7 = snap["panels"].get("deprecation_cycle_progress")
@@ -76,9 +77,16 @@ def case_2_panel_7_deprecation() -> bool:
     if stage not in valid_stages:
         print(f"  FAIL: stage={stage!r} (expected one of {valid_stages})")
         return False
-    if not p7.get("bak_present"):
-        print(f"  FAIL: bak_present={p7.get('bak_present')!r} (expected True)")
-        return False
+    # v0.15.0+: bak drop 이 정상 (2nd deprecation cycle 종결). 이전 stage 는 bak 보존이 정상.
+    bak_present = p7.get("bak_present")
+    if stage == "v0.15.0":
+        if bak_present is not False:
+            print(f"  FAIL: stage=v0.15.0 인데 bak_present={bak_present!r} (expected False, .bak drop)")
+            return False
+    else:
+        if not bak_present:
+            print(f"  FAIL: stage={stage} 인데 bak_present={bak_present!r} (expected True)")
+            return False
     if p7.get("legacy_present"):
         print(f"  FAIL: legacy_present={p7.get('legacy_present')!r} (expected False)")
         return False

@@ -115,6 +115,8 @@
 - Python 3.9 이하 환경에서는 `mcp` 패키지가 설치되지 않는다.
 - **자세한 설치 절차, editable install, 스모크 테스트 실행, 워크플로우 kit 호출, 부트스트랩, MCP 서버 실행, 자주 만나는 문제 해결은 [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md) 참고.**
 
+> **루트 레벨 placeholder 안내** (v0.15.0+): 루트의 `pyproject.toml` / `uv.lock` / `main.py` / `.python-version` 는 *placeholder scaffold* (v0.1.0) 이며, **정식 importable 패키지는 `workflow-source/`** 입니다. editable install / smoke 실행 / MCP 서버 실행 모두 `PYTHONPATH=workflow-source` 또는 `pip install -e workflow-source/` 로 진행하세요. 루트 `pyproject.toml` 의 `deepagents` / `fastmcp` / `langchain-openai` 의존성은 향후 root-level 부속 도구 진입용 보존치이며 *현재 활성화된 의존성 그래프가 아님* — 자세한 내용은 `docs/INSTALLATION_AND_USAGE.md` §3.A 참고.
+
 ## 6. 개발 및 온보딩 가이드 (Self-dogfooding)
 
 이 저장소 자체를 개발할 때(Self-dogfooding) 또는 처음 체크아웃한 후에는 [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md) 의 §3.A 절차로 editable install 한 뒤, 아래 명령어로 로컬 런타임 도구와 하네스 파일을 동기화한다.

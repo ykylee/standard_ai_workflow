@@ -5,7 +5,7 @@
 - 대상 독자: 표준 AI 워크플로우를 MiniMax Code로 처음 도입하는 개발자
 - 상태: beta
 - 최종 수정일: 2026-06-05
-- 관련 문서: `./README.md`, `../../../core/workflow_adoption_entrypoints.md`
+- 관련 문서: `./README.md`, `../../core/workflow_adoption_entrypoints.md`
 
 ## 1. 사전 점검
 

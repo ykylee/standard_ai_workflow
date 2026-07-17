@@ -2385,11 +2385,16 @@ def cmd_release(args) -> dict:
             results["self_recovery_log_emit"] = log_emit
 
     # 6.7 v0.14.6+ maturity_last_updated 자동 갱신 (Task 3 follow-up).
-    # gh release create 성공 후 dashboard emit 와 self-recovery log 사이 호출.
-    # idempotent — 이미 today 면 no-op (dashboard Panel 1 freshness 보강).
+    # v0.15.3+ 변경: release_error (results["error"] 존재) 시에만 maturity refresh
+    # 호출. v0.14.6 description 의 "Out of scope v0.15.0" 2건 중 2건 해소.
+    # rationale: release 성공 후 (operator 가 이미 gh release create 성공 확인)
+    # maturity 자체가 today 면 no-op 인 호출이 dashboard freshness 와 무관 —
+    # release_error (gh release create fail) 상황 에서만 operator 가 retry 할
+    # 수 있도록 panel 1 freshness 보강. release_error fallback 정공법.
     # v0.15.2+ legacy_memory strict opt-out (--no-legacy-memory) caller 정합 —
     # cmd_refresh_maturity 가 자체 skip + warning emit.
-    if not getattr(args, "dry_run", False) and refresh_maturity_last_updated is not None:
+    release_error = "error" in results
+    if release_error and not getattr(args, "dry_run", False) and refresh_maturity_last_updated is not None:
         try:
             maturity_result = cmd_refresh_maturity(args)
             results["maturity_refresh"] = maturity_result
@@ -2397,12 +2402,18 @@ def cmd_release(args) -> dict:
                 # v0.15.2+ strict opt-out caller — maturity refresh skip.
                 print(f"  [maturity] skip (--no-legacy-memory strict opt-out — v0.15.0+ ⚠️ BREAKING caller 정합)")
             elif maturity_result.get("refreshed"):
-                print(f"  [maturity] {maturity_result['before']} → {maturity_result['after']}")
+                print(f"  [maturity] {maturity_result['before']} → {maturity_result['after']} (release_error fallback)")
             else:
-                print(f"  [maturity] no-op (already {maturity_result.get('before') or 'today'})")
-        except Exception as exc:  # noqa: BLE001 — release 자체는 성공
+                print(f"  [maturity] no-op (already {maturity_result.get('before') or 'today'}) — release_error fallback")
+        except Exception as exc:  # noqa: BLE001 — release_error 자체가 이미 set
             results["maturity_refresh"] = {"error": str(exc), "warning": True}
             print(f"  [maturity] WARN: {exc}")
+    elif not release_error:
+        # v0.15.3+ release 성공 시 maturity refresh skip (rationale 위 주석 참조).
+        results["maturity_refresh"] = {
+            "skipped_due_to_release_success": True,
+            "reason": "v0.15.3+ release 성공 시 maturity refresh skip. release_error fallback 만 호출.",
+        }
 
     # 6.6 v0.13.3+ bidir-link audit log emit (Phase 13 AC4+).
     # results["bidir_link_audit"] 가 있으면 release note 본문 끝에 audit 요약 자동 append.

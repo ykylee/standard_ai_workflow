@@ -75,6 +75,7 @@ def _strip_code_blocks(text: str) -> str:
         else:
             # Strip inline code: `...` → ``
             cleaned = re.sub(r"`[^`]+`", "``", line)
+            out.append(cleaned)
     return "\n".join(out)
 
 

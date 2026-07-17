@@ -670,17 +670,40 @@ def cmd_refresh_maturity(args) -> dict:
     helper `refresh_maturity_last_updated` (cache.py) 를 호출하여 `last_updated` 를
     오늘 날짜로 갱신. idempotent (이미 today 면 no-op).
 
+    v0.15.2+ (out-of-scope 1 해소): `--no-legacy-memory` strict opt-out caller 정합.
+    legacy_memory=False 면 silent fallback 비활성 caller 로 간주, maturity refresh
+    skip + warning emit (release note 가 legacy caller 의 silent fallback 자체가
+    disable 된 caller 정합).
+
     Args (CLI namespace):
         apply (bool): default True. dry-run 모드 (--dry-run) 시 False.
         today (str | None): 명시적 override (default: date.today().isoformat()).
         maturity_path (str | None): 명시적 path (default: workflow-source/core/maturity_matrix.json).
         json (bool): JSON 출력.
+        legacy_memory (bool | None): v0.15.2+ strict opt-out flag. False 면 skip.
 
     Returns:
         dict { refreshed: bool, before: str, after: str, today: str,
-               maturity_path: str, mode: 'apply' | 'dry-run' }
+               maturity_path: str, mode: 'apply' | 'dry-run',
+               legacy_memory_strict_opt_out: bool (v0.15.2+) }
     """
     from datetime import date as _date
+
+    # v0.15.2+: legacy_memory strict opt-out (--no-legacy-memory) caller 정합.
+    # silent fallback 비활성 caller 는 maturity refresh 자체를 skip.
+    legacy_memory_strict_opt_out = getattr(args, "legacy_memory", None) is False
+    if legacy_memory_strict_opt_out:
+        return {
+            "refreshed": False,
+            "before": "",
+            "after": "",
+            "today": getattr(args, "today", None) or _date.today().isoformat(),
+            "maturity_path": "<skipped — --no-legacy-memory strict opt-out>",
+            "mode": "apply" if getattr(args, "apply", True) else "dry-run",
+            "legacy_memory_strict_opt_out": True,
+            "skip_reason": "v0.15.0+ ⚠️ BREAKING caller strict opt-out — silent fallback 비활성 정합. "
+                           "maturity refresh skip.",
+        }
 
     mode = "apply" if getattr(args, "apply", True) else "dry-run"
     today = getattr(args, "today", None) or _date.today().isoformat()
@@ -2364,11 +2387,16 @@ def cmd_release(args) -> dict:
     # 6.7 v0.14.6+ maturity_last_updated 자동 갱신 (Task 3 follow-up).
     # gh release create 성공 후 dashboard emit 와 self-recovery log 사이 호출.
     # idempotent — 이미 today 면 no-op (dashboard Panel 1 freshness 보강).
+    # v0.15.2+ legacy_memory strict opt-out (--no-legacy-memory) caller 정합 —
+    # cmd_refresh_maturity 가 자체 skip + warning emit.
     if not getattr(args, "dry_run", False) and refresh_maturity_last_updated is not None:
         try:
             maturity_result = cmd_refresh_maturity(args)
             results["maturity_refresh"] = maturity_result
-            if maturity_result.get("refreshed"):
+            if maturity_result.get("legacy_memory_strict_opt_out"):
+                # v0.15.2+ strict opt-out caller — maturity refresh skip.
+                print(f"  [maturity] skip (--no-legacy-memory strict opt-out — v0.15.0+ ⚠️ BREAKING caller 정합)")
+            elif maturity_result.get("refreshed"):
                 print(f"  [maturity] {maturity_result['before']} → {maturity_result['after']}")
             else:
                 print(f"  [maturity] no-op (already {maturity_result.get('before') or 'today'})")
@@ -3234,6 +3262,13 @@ def main() -> int:
                             "으로 cmd_release 호출 시 즉시 AttributeError).")
     p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rel.add_argument("--json", action="store_true")
+    p_rel.add_argument(
+        "--legacy-memory", dest="legacy_memory", default=None,
+        action=argparse.BooleanOptionalAction,
+        help="v0.15.0+ ⚠️ BREAKING 정렬. --no-legacy-memory (strict opt-out) 면 "
+             "step 6.7 maturity refresh skip (silent fallback 비활성 caller 정합). "
+             "default: None (정공법 진행).",
+    )
 
     # refresh-maturity (v0.14.6+ Task 3 follow-up)
     p_rm = sub.add_parser(
@@ -3250,6 +3285,13 @@ def main() -> int:
                       help="dry-run mode — 실제 last_updated 갱신 안 함, plan 만 emit")
     p_rm.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_rm.add_argument("--json", action="store_true")
+    p_rm.add_argument(
+        "--legacy-memory", dest="legacy_memory", default=None,
+        action=argparse.BooleanOptionalAction,
+        help="v0.15.0+ ⚠️ BREAKING 정렬. --no-legacy-memory (strict opt-out) 면 "
+             "maturity refresh skip + warning emit (silent fallback 비활성 caller 정합). "
+             "default: None (skip 없이 정공법 진행).",
+    )
     p_rel.add_argument("--skip-dashboard-emit", dest="skip_dashboard_emit",
                        action="store_true", default=False,
                        help="dashboard markdown post-release 자동 emit skip (v0.13.1+ Phase 13). "

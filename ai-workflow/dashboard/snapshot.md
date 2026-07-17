@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-17T14:02:54Z`
+- generated_at: `2026-07-17T14:12:06Z`
 - tool_version: `v0.15.0-beta`
 - workspace_root: `.`
 
@@ -77,7 +77,7 @@
 - cumulative_total: `260`
 - cumulative_pass: `260`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `179`
+- smoke_files_count: `180`
 
 ### Recent release smoke counts
 

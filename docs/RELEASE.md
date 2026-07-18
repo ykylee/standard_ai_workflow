@@ -4,6 +4,7 @@
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v0.15.15-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 현재 package version: 0.15.15 (`workflow-source/pyproject.toml`)
 - 최종 수정일: 2026-07-18
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
@@ -181,7 +182,7 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 | v0.10.1-beta | skill-only entry mode + claude-code adapter (SemVer minor) | ✅ |  |
 | v0.10.2-beta | delivery layer 확장 (claude-code 진입점 정정 + aider/goose/custom + self-bootstrap) | ✅ |  |
 | v0.10.3-beta | wiki file deletion cascade cleanup (R-A follow-up cycle 2) | ✅ | 2026-06-24 release note 기준 본문 drift 발생 (CHANGELOG.md 본문) |
-| v0.10.4-beta | **CodeWhale 10번째 하네스** (commit `cf0060d`, 2026-07-03) | pending (release note 미작성, 본 release 직후) | 단일 SKILL.md overlay (Constitution handles verification/parallelism/context) |
+| v0.10.4-beta | **CodeWhale 10번째 하네스** (commit `cf0060d`, 2026-07-03) | ✅ (release note 정정, 2026-07-18) | 단일 SKILL.md overlay (Constitution handles verification/parallelism/context) |
 | v0.11.0-beta | two-step CoT ingest (R-A follow-up cycle 3) — `workflow_kit.common.purpose_ingest` helper (5 함수 + 5 dataclass) + 3 skill context load + dispatcher `ingest-purpose` + 6 acceptance test | ✅ |  |
 | v0.11.1-beta | graph insights (R-A follow-up cycle 4) — `workflow_kit.common.purpose_graph` helper (6 함수 + 7 dataclass) + dispatcher `graph-insights` + 8 acceptance test | ✅ |  |
 | v0.11.2~v0.11.10 | 누적 mypy strict 격상 21→35 file (cycle 3~26단계) + Layer 1/Layer 2 mypy defense + release pipeline 자동화 + consumer metrics | ✅ |  |
@@ -199,7 +200,7 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 | v0.11.22-beta | **ADR-005 Memory Index Phase 1~3d** 8 release + ADR-006 retrospective 자리 박기 | ✅ | Phase 12 운영 지능화 기반 |
 | v0.13.0~v0.13.3-beta | Quality Dashboard, telemetry, self-recovery, wiki↔memory bidirectional link | ✅ | Operational Intelligence 1차 close-out |
 | v0.14.0~v0.15.0-beta | append-only memory layout + 2-cycle deprecation 안정화 | ✅ (2026-07-17) | v0.15.0은 `.bak` drop breaking release |
-| v0.15.1~v0.15.15-beta | dashboard·harness·sample·README·설치·quickstart cross-check와 stale 정정 | **in release** | 누적 20종 smoke PASS; v1.0.0 진입 평가 준비 |
+| v0.15.1~v0.15.15-beta | dashboard·harness·sample·README·설치·quickstart cross-check와 stale 정정 | ✅ (2026-07-18) | 누적 20종 smoke PASS; v1.0.0 진입 평가 준비. tag `v0.15.15-beta` push + gh release create 완료 |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

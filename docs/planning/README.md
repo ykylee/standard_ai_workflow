@@ -3,72 +3,57 @@
 - 문서 목적: Standard AI Workflow의 마일스톤, 릴리스 계획, 상위 로드맵을 영구 지식으로 관리한다.
 - 범위: 마일스톤 정의, 릴리스 일정, 로드맵 백로그
 - 대상 독자: 프로젝트 매니저, 저장소 maintainer, 멀티 에이전트 운영자
-- 상태: draft
-- 최종 수정일: 2026-07-09
+- 상태: stable
+- 최종 수정일: 2026-07-18
 - 관련 문서: [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md), [../RELEASE.md](../RELEASE.md), [../INSTALLATION_AND_USAGE.md](../INSTALLATION_AND_USAGE.md), [../../workflow-source/core/workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 
-> **Note**: 이 디렉토리는 v0.5.10 시점에 **초안** 상태. 정식 milestone 문서와 분기별 planning 회의록은 후속 세션에서 작성 예정. 아래 §1-§3 은 현재까지 진행 상황을 정리한 요약.
+> 이 문서는 상위 요약이다. 단계별 상태의 SSOT는 `workflow-source/core/maturity_matrix.json`이다.
 
-## 1. 현재 마일스톤 (v0.5.10-beta 기준)
+## 1. 현재 마일스톤 (v0.15.15-beta 기준)
 
-| Phase | 상태 | 주요 결과물 | 완료일 |
+| Phase | 상태 | 주요 결과물 | 완료·진행 기준 |
 |---|---|---|---|
-| Phase 1–5 (기반) | done | 글로벌 표준, 템플릿, 스킬 1차 | 2026-04 ~ 2026-05 |
-| Phase 6 (정밀 편집) | done | robust_patcher, smart-context-reader | 2026-04-28 (Beta v0.3.2) |
-| Phase 7 (지능형 task modes) | done | workflow_task_modes.md + modes registry | 2026-05-02 |
-| Phase 8 (Pilot deployment) | done | Devhub Example + external validation | 2026-05-02 |
-| Phase 9 (System maturity + multi-agent evolution) | done | strict Pydantic contracts, MCP v1.0 SDK | 2026-05-03 (commit `2bb8bc7`) |
-| Phase 10 (MCP/JSON-RPC draft) | done | read-only JSON-RPC bridge, fixture | 2026-05-03 (commit `2bb8bc7`) |
-| Phase 11 (Pilot validation) | **in_progress** | Devhub Example × Contract v1 실전 검증 | 2026-06-07 ~ ongoing |
-| Phase 12 (Package promotion) | planned | read-only MCP SDK server 정식 default 배포 | TBD (v0.5.11+) |
+| Phase 1–5 | done | 개념, 템플릿, prototype, beta/pilot, intelligence 기반 | 2026-04 ~ 2026-05 |
+| Phase 6–10 | done | 정밀 편집, task modes, pilot integration, system maturity, 문서·링크 hygiene | maturity matrix 기준 완료 |
+| Phase 11 | done | real-world pilot validation + contract v1 + stable API freeze 기반 | v0.9.0 (2026-06-18) |
+| Phase 12 | **in_progress** | operational intelligence + deprecation stabilization | target: **v1.0.0 stable guarantee** |
 
-상세: [`../../workflow-source/core/workflow_kit_roadmap.md`](../../workflow-source/core/workflow_kit_roadmap.md) + [`../../workflow-source/core/maturity_matrix.json`](../../workflow-source/core/maturity_matrix.json).
+Phase 12의 현재 근거:
 
-## 2. 릴리스 일정 (실제 진행, v0.5.0-beta 이후)
+- full mypy strict 도달 및 유지
+- skill 12종 stable
+- MCP 11종 stable + 1종 removed
+- 10개 harness 지원
+- Quality Dashboard Panel 1~8 및 telemetry/self-recovery/bidirectional-link 운영
+- append-only memory layout와 v0.15.0 deprecation cycle 완료
+- v0.15.1~v0.15.15 사용자 문서·sample·harness cross-check 완료
 
-| 버전 | 릴리스 일자 | 핵심 변경 | 비고 |
-|---|---|---|---|
-| v0.5.0-beta | 2026-05-04 | 다중 에이전트 + 워크플로우 인텔리전스 | Beta 시작점 |
-| v0.5.1 | 2026-06-05 | self-dogfooding bootstrap + MCP install 가이드 |  |
-| v0.5.2 | 2026-06-06 | bootstrap 풀 리팩터 → `bootstrap_lib/` 6-module |  |
-| v0.5.3 | 2026-06-07 | antigravity MCP config 표준화 |  |
-| v0.5.4 | 2026-06-07 | orchestrator ↔ sub-agent contract v1 (issue #1) |  |
-| v0.5.5 | 2026-06-07 | Phase 11 본격 pilot |  |
-| v0.5.6 | 2026-06-07 | contract v1 P0 enforcement (validator + delegator) |  |
-| v0.5.7 | 2026-06-08 | multi-component fan-out/in + cross-ref row |  |
-| v0.5.7.1 | 2026-06-08 | wheel packaging state/contracts/schemas fix |  |
-| v0.5.8 | 2026-06-08 | interactive --harness picker + packaging smoke |  |
-| v0.5.9 | 2026-06-08 | wire 가이드 §7/§8/§9 보강 |  |
-| v0.5.9.1 | 2026-06-08 | wire 가이드 §3 sub_payloads fix + 회귀 |  |
-| v0.5.10 | 2026-06-08 | choose_roles sub.delegation_id parent-prefix spec 정합 |  |
-| v0.5.10.1 | 2026-06-09 | smart update (VERSION marker + content hash 기반 silent 갱신) |  |
+## 2. 최근 릴리스 흐름
 
-릴리스 노트 전체: [`../../workflow-source/releases/`](../../workflow-source/releases/). 절차: [`../RELEASE.md`](../RELEASE.md).
+| 버전 범위 | 핵심 변경 | 상태 |
+|---|---|---|
+| v0.11.18~v0.11.22 | full mypy strict, skill stable promotion, Memora-inspired memory index | 완료 |
+| v0.13.0~v0.13.3 | dashboard, telemetry, self-recovery, wiki↔memory bidirectional link | 완료 |
+| v0.14.0~v0.15.0 | append-only memory + deprecation 2-cycle 안정화 | 완료 |
+| v0.15.1~v0.15.15 | dashboard·harness·sample·README·설치·quickstart 정합 보강 | release 준비 |
 
-## 3. 단기 백로그 (v0.5.11 ~ v0.5.12 후보)
+릴리스 노트 전체는 [`../../workflow-source/releases/`](../../workflow-source/releases/)에서 확인한다.
 
-`Beta-v0.5.10.1.md` 의 §6 "Known limitations" 에서 도출된 항목:
+## 3. 다음 우선순위: v1.0.0 진입 평가
 
-1. **sub_id uniqueness 옵션 (b)**: `choose_roles` 에 dedup check 추가 (breaking change 가능, 별도 plan)
-2. **`--report <path>` 옵션**: human-readable 갱신 리포트 (v0.5.10.1 hotfix 후속)
-3. **`--preserve-user-edits` 옵션**: marker 동일 + hash 다름 시 skip (사용자 편집 보호)
-2. **추가 회귀 test**: `parent_delegation_id` 누락, sub_id unique 위반 검출 (현재 17개 + 3개 회귀, 더 강화)
-3. **`_generate_delegation_id_with_suffix` deprecation 정리**: function body 살아있음, v0.6.x 에서 제거
-4. **bootstrap interactive picker (v0.5.8) 의 비대화형 환경 명세 강화**: `--no-interactive` 플래그 추가 검토
-5. **docs/architecture/ 본격 채우기**: ADR-001/002/003 정식 기록
-6. **docs/planning/ 분기별 planning 회의록 시작**
-
-장기 (v0.6+):
-- **contract v2 streaming/observability** — 대용량 sub-agent 출력의 streaming + observability
-- **공식 MCP SDK stdio 안정화** — 현재 `stdio-sdk` 의 connection-closed 회귀 해결 후 default 전환
-- **다중 실제 저장소 pilot 적용 사례** — `docs/examples/` 에 3건 이상 정식 기록
-- **Mavis/MiniMax 외 추가 하네스 (Claude Code, Cursor, Windsurf 등) 오버레이** — `HARNESS_SPECS` + `register_harness_builder` 한 줄 추가 패턴 확장
+1. public Python API와 CLI surface를 열거하고 stable 보장 대상을 확정한다.
+2. Pydantic output 및 generated JSON Schema의 호환성 정책을 명시한다.
+3. Python 최소 버전, dependency 범위, MCP transport 지원 단계를 확정한다.
+4. breaking change 및 deprecation cycle 정책을 v1.0.0 기준으로 재검증한다.
+5. 설치, upgrade, rollback, package verification 절차를 stable gate로 정리한다.
+6. repository-wide 검증의 historical fixture/archive exclusion 정책을 결정한다.
+7. 조건 충족 시 maturity matrix의 Phase 12를 close하고 v1.0.0 release plan을 승인한다.
 
 ## 다음에 읽을 문서
 
-- [`../PROJECT_PROFILE.md`](../PROJECT_PROFILE.md) — 운영 규칙/명령
+- [`../PROJECT_PROFILE.md`](../PROJECT_PROFILE.md) — 운영 규칙과 명령
 - [`../RELEASE.md`](../RELEASE.md) — 릴리스 절차
-- [`../../workflow-source/core/workflow_kit_roadmap.md`](../../workflow-source/core/workflow_kit_roadmap.md) — 9단계 + Phase 11 로드맵
-- [`../../workflow-source/core/maturity_matrix.json`](../../workflow-source/core/maturity_matrix.json) — phase/skill/MCP stage 정량 매트릭스
-- [`../../workflow-source/core/phase11_pilot_validation_plan.md`](../../workflow-source/core/phase11_pilot_validation_plan.md) — Phase 11 pilot 검증 계획
-- [`../../workflow-source/releases/`](../../workflow-source/releases/) — 전체 릴리스 노트
+- [`../../workflow-source/core/workflow_kit_roadmap.md`](../../workflow-source/core/workflow_kit_roadmap.md) — 상위 로드맵
+- [`../../workflow-source/core/maturity_matrix.json`](../../workflow-source/core/maturity_matrix.json) — 단계별 정량 SSOT
+- [`../architecture/v1_0_0_promotion_feasibility_mcp_stdio_sdk.md`](../architecture/v1_0_0_promotion_feasibility_mcp_stdio_sdk.md) — MCP stdio SDK 승격 평가
+- [`../../workflow-source/releases/Beta-v0.15.15.md`](../../workflow-source/releases/Beta-v0.15.15.md) — 현재 release close-out

@@ -4,7 +4,7 @@
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: [공통 표준](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [Project Status Assessment](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/project_status_assessment.md), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md), [Release Procedure](./RELEASE.md)
 
 ## 1. 프로젝트 개요
@@ -12,15 +12,18 @@
 - 프로젝트 슬러그: `standard-ai-workflow`
 - 프로젝트 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자: 저장소 maintainer (`ykylee`), 워크플로우 도입 검토자, 멀티 에이전트 운영자
-- 현재 베이스라인: **v0.11.22-beta** (package: standard-ai-workflow 0.11.22, runtime `__version__` = v0.11.22-beta)
-- Phase: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화). SSOT: `workflow-source/core/maturity_matrix.json`
-- 누적 release cycle (memory 스냅샷): **91+** (v0.5.1 ~ v0.11.21, v0.11.22 release memory cycle 진행 중)
-- 핵심 마일스톤 (v0.11.18 ~ v0.11.22):
+- 현재 베이스라인: **v0.15.15-beta** (package: standard-ai-workflow 0.15.15, runtime `__version__` = v0.15.15-beta)
+- Phase: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비). SSOT: `workflow-source/core/maturity_matrix.json`
+- 누적 release cycle (memory 스냅샷): **v0.15.15 follow-up close-out** (v0.15.1~v0.15.15 누적 정합 보강 + `PROJECT_PROFILE.md` canonical path 정리)
+- 핵심 마일스톤 (v0.11.18 ~ v0.15.15):
   - v0.11.18: **FULL mypy strict 도달** (109 file clean, 0 errors)
   - v0.11.19: 1st batch 4 skill stable (session-start / doc-sync / validation-plan / code-index-update)
   - v0.11.20: 2nd batch 4 skill stable (backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment) + 2 latent bug fix
   - v0.11.21: 3rd batch 1 skill stable (robust-patcher)
   - v0.11.22: **ADR-005 Memory Index Phase 1~3d** 8 release 완료 + ADR-006 retrospective 자리 박기
+  - v0.13.0~v0.13.3: **Operational Intelligence** dashboard, telemetry, self-recovery, wiki↔memory bidirectional link 도입
+  - v0.14.0~v0.15.0: append-only memory layout 및 2-cycle deprecation 안정화 완료 (`work_backlog.md.bak` drop)
+  - v0.15.1~v0.15.15: dashboard·harness·sample·사용자 문서 cross-check 및 stale 정정; 누적 20종 smoke PASS
   - v0.10.4: **CodeWhale 10번째 하네스** 추가 (2026-07-03)
 
 ## 2. 문서 구조 (Path)

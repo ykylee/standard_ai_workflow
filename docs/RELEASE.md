@@ -3,11 +3,11 @@
 - 문서 목적: Standard AI Workflow 릴리스 절차 (버전 박기 → 빌드 → 스모크 → GitHub Release attach) 를 한 자리에 정리한다.
 - 범위: 채널 정책, 사전 점검, 빌드, 로컬 smoke, GitHub Release 생성, 트러블슈팅, 회귀 표
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
-- 상태: stable (v0.11.22-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
-- 최종 수정일: 2026-07-09
+- 상태: stable (v0.15.15-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
+- 최종 수정일: 2026-07-18
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
-> **최종 갱신**: 2026-07-03 (회귀 표를 v0.11.21 까지 확장, v0.11.22 본 release 처리 후속)
+> **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
 > **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
 > **이유**: 토큰 회전 부담, 외부 공개 단계 미도달, downstream 은 `pip install <wheel>` 로 로컬 검증.
 
@@ -42,12 +42,26 @@ gh auth status             # gh CLI 로그인 확인 (keyring)
 
 ```toml
 name = "standard-ai-workflow"
-version = "<X>.<Y>.<Z>-beta"   # ← 매 release 마다 수동으로 올림
+version = "<X>.<Y>.<Z>"   # ← 매 release 마다 수동 또는 release_pipeline 으로 갱신
 ```
 
-**PEP 440 note**: `0.5.7-beta` → wheel 파일명은 `0.5.7b0` 으로 normalize 됨 (정상).
+runtime `workflow_kit.__version__` 은 이 값을 읽어 `v<X>.<Y>.<Z>-beta` 형태로 노출한다. 빌드 파일은 PEP 440 정규화 결과인 `<X>.<Y>.<Z>`를 사용한다.
 
-### 2.3 빌드
+### 2.3 자동화 경로 (권장)
+
+```bash
+# 저장소 루트
+python3 workflow-source/tools/release_pipeline.py validate --json
+python3 workflow-source/tools/release_pipeline.py dist --dry-run --json
+python3 workflow-source/tools/release_pipeline.py release \
+  --version <X>.<Y>.<Z> \
+  --dry-run \
+  --json
+```
+
+`--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
+
+### 2.4 수동 빌드
 
 ```bash
 cd workflow-source
@@ -62,7 +76,7 @@ python3 -m venv .venv-build
 #   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz: PASSED
 ```
 
-### 2.4 로컬 smoke (fresh venv)
+### 2.5 로컬 smoke (fresh venv)
 
 ```bash
 python3 -m venv /tmp/sawsmoke
@@ -75,7 +89,7 @@ from workflow_kit.contract_v1 import choose_role, choose_roles, validate_fanin_o
 
 spec 의 strict validation 이 red 로 빨개지면 그대로 멈추고 fix → 재빌드.
 
-### 2.5 GitHub Release 생성 + asset attach
+### 2.6 GitHub Release 생성 + asset attach
 
 ```bash
 # cwd 는 저장소 루트
@@ -100,7 +114,7 @@ gh release view "v<X>.<Y>.<Z>-beta" --repo "$REPO"
 #   asset: standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz
 ```
 
-### 2.6 downstream 안내 (선택)
+### 2.7 downstream 안내 (선택)
 
 릴리스 직후 본인 사용 프로젝트 (downstream 예: `Devhub_example`, `my_harness`) 의 dep 박스를
 `standard-ai-workflow @ https://github.com/<owner>/<repo>/releases/download/v<X>.<Y>.<Z>-beta/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl`
@@ -182,14 +196,17 @@ gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
 | v0.11.19-beta | 1st batch 4 skill stable (session-start / doc-sync / validation-plan / code-index-update) | ✅ | 누적 stable=4 |
 | v0.11.20-beta | 2nd batch 4 skill stable (backlog-update / merge-doc-reconcile / workflow-linter / project-status-assessment) + 2 latent bug fix | ✅ | 누적 stable=8 |
 | v0.11.21-beta | 3rd batch 1 skill stable (robust-patcher) — `workflow_kit/common/schemas/patcher.py` + `scripts/run_robust_patcher.py` + 5 smoke test | ✅ (2026-07-02) | 누적 stable=9. release URL: <https://github.com/ykylee/standard_ai_workflow/releases/tag/v0.11.21-beta> |
-| v0.11.22-beta | **ADR-005 Memory Index Phase 1~3d** 8 release + ADR-006 retrospective 자리 박기 | in release (release note `Beta-v0.11.22.md` 작업 중) | tag push 후속. package: standard-ai-workflow 0.11.22 |
+| v0.11.22-beta | **ADR-005 Memory Index Phase 1~3d** 8 release + ADR-006 retrospective 자리 박기 | ✅ | Phase 12 운영 지능화 기반 |
+| v0.13.0~v0.13.3-beta | Quality Dashboard, telemetry, self-recovery, wiki↔memory bidirectional link | ✅ | Operational Intelligence 1차 close-out |
+| v0.14.0~v0.15.0-beta | append-only memory layout + 2-cycle deprecation 안정화 | ✅ (2026-07-17) | v0.15.0은 `.bak` drop breaking release |
+| v0.15.1~v0.15.15-beta | dashboard·harness·sample·README·설치·quickstart cross-check와 stale 정정 | **in release** | 누적 20종 smoke PASS; v1.0.0 진입 평가 준비 |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 
 ## 다음에 읽을 문서
 
 - [릴리스 노트 디렉토리](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
-- [마지막 릴리스 노트 v0.5.11](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v0.5.11.md)
+- [현재 릴리스 노트 v0.15.15](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/releases/Beta-v0.15.15.md)
 - [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json)
 - [설치·사용 가이드](./INSTALLATION_AND_USAGE.md)
 - [Project Profile](./PROJECT_PROFILE.md)

@@ -4,10 +4,10 @@
 - 범위: 소스 코드 구조, 기술 스택, 핵심 모듈 설명
 - 대상 독자: 개발자, AI 에이전트
 - 상태: stable
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
-이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (**v0.11.22-beta** 기준). Phase 위치: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화). 정식 status SSOT: [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json).
+이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (**v0.15.15-beta** 기준). Phase 위치: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비). 정식 status SSOT: [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json).
 
 ## 1. 프로젝트 구조 개요
 
@@ -24,24 +24,24 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 52개 check_*.py 스모크 (CI 매 push)
+│   ├── tests/                      # 192개 check_*.py 스모크 (2026-07-18 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
-│   ├── harnesses/                  # 6개 하네스 오버레이 (codex, opencode, gemini-cli, antigravity, minimax-code, pi-dev) + _template
+│   ├── harnesses/                  # 10개 지원 하네스 오버레이 + 공통 문서/템플릿
 │   ├── templates/                  # 9개 템플릿 + prompts/ 3개 worker prompt
-│   ├── core/                       # 35개 코어 표준 문서
+│   ├── core/                       # 코어 표준·정책·로드맵 문서
 │   ├── prompts/                    # 코어 표준 문서
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
-│   ├── releases/                   # Beta v0.5.0 ~ v0.11.21 누적 (CHANGELOG.md 본문은 release_pipeline changelog-gen 으로 별도 발행)
+│   ├── releases/                   # Beta v0.5.0 ~ v0.15.15 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 0.11.22)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 0.15.15)
 │
 ├── ai-workflow/                    # 런타임 state (bootstrap 으로 생성, .gitignore 일부)
 │   ├── memory/                     # 세션 상태/백로그/릴리스별 스냅샷
-│   │   ├── release/v0.5.1~v0.5.10/ # 릴리스별 스냅샷
-│   │   ├── state.json              # 루트 baseline (latest_backlog_path)
-│   │   ├── session_handoff.md
-│   │   ├── work_backlog.md
+│   │   ├── release/                # 릴리스별 frozen 스냅샷
+│   │   ├── active/state.json       # 현재 read-only baseline cache
+│   │   ├── active/sessions/        # append-only 세션 인계
+│   │   ├── active/backlog/         # 날짜별 index + task 문서
 │   │   └── plans/                  # 7개 TASK 계획 문서
 │   ├── core/                       # 코어 문서 사본 (--copy-core-docs)
 │   ├── mcp_servers/
@@ -67,7 +67,7 @@
 ├── .codex/                         # Codex 설정 예시
 ├── requirements.txt                # pydantic>=2, anyio>=4, mcp>=1
 ├── requirements-dev.txt            # mcp[cli]==1.27.0
-├── .github/workflows/smoke.yml     # CI: 52개 check_*.py 병렬
+├── .github/workflows/smoke.yml     # CI: check_*.py smoke
 ├── AGENTS.md                       # Codex 진입 규칙 (bootstrap 생성)
 └── README.md                       # 저장소 홈
 ```
@@ -89,14 +89,14 @@ v0.5.2+ 리팩터. 6-module 패키지:
 권장 진입점: `python3 -m bootstrap_lib`. 레거시 호환 shim: `python3 workflow-source/scripts/bootstrap_workflow_kit.py`.
 
 ### Skills (`workflow-source/skills/`) — 11 + task-modes (12 total)
-각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. v0.11.19~v0.11.21 3 batch 로 9종 stable 승격 완료 (현재 stable=9 / beta=2 / alpha=1 + task-modes 별도 stable). 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
+각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. 현재 maturity matrix 기준 **12종 모두 stable**이다. 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
 - **1차 핵심 6종** (v0.5.0+): `backlog-update` (stable), `session-start` (stable), `doc-sync` (stable), `merge-doc-reconcile` (stable), `validation-plan` (stable), `workflow-linter` (stable)
 - **2차 운영 2종** (v0.5.7+): `code-index-update` (stable), `project-status-assessment` (stable)
-- **3차 실전 3종**: `git-conflict-resolver` (alpha), `robust-patcher` (stable, v0.11.21 3rd batch), `automated-repro-scaffold` (beta, scaffold only)
-- **추가 (v0.5.7+)**: `workers/` (workers/ subdir); v0.11.22 신규 `memory-index-query` skill (beta, dispatcher entry)
+- **3차 실전 3종**: `git-conflict-resolver`, `robust-patcher`, `automated-repro-scaffold` 모두 stable
+- **추가 (v0.5.7+)**: `workers/` subdir 및 `memory-index-query` dispatcher entry
 - **task-modes** (v0.11.0+ stable): 작업 성격별 워크플로우 최적화 명세화 (분석/설계/구현 등 6 모드)
 
-### MCP Servers (`workflow-source/mcp_servers/`) — 12 (stable 8 + beta 4)
+### MCP Servers (`workflow-source/mcp_servers/`) — 12 (stable 11 + removed 1)
 - 8 documented (with `MCP.md`): `latest-backlog` (v1), `check-doc-metadata` (v1), `check-doc-links`, `check-quickstart-stale-links`, `create-backlog-entry`, `git-history-summarizer`, `smart-context-reader` (implemented), `suggest-impacted-docs`
 - 3 scripts-only (no MCP.md): `apply_robust_patch`, `create-environment-record-stub`, `create-session-handoff-draft`
 - `lib/common_utils.py`: 공유 `TOOL_VERSION` helper

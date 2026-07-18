@@ -39,12 +39,12 @@
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/session_handoff.md`
 - `ai-workflow/memory/work_backlog.md`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 
 ## 5. 적용 후 바로 수정할 항목
 
 - `ai-workflow/memory/active/state.json` 의 current_focus 와 next_documents
-- `ai-workflow/memory/active/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
+- `docs/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
 - `ai-workflow/memory/session_handoff.md` 의 현재 기준선
 - `ai-workflow/memory/work_backlog.md` 와 최신 날짜 backlog 의 실제 작업 상태
 

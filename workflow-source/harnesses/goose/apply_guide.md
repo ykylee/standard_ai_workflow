@@ -92,7 +92,7 @@ read_files:
   - ai-workflow/memory/active/state.json
   - ai-workflow/memory/active/sessions
   - ai-workflow/memory/active/backlog
-  - ai-workflow/memory/active/PROJECT_PROFILE.md
+  - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
 hooks:

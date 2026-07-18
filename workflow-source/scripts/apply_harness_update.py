@@ -23,7 +23,7 @@ MANAGED_RELATIVE_PATHS = [
 PRESERVE_RELATIVE_PATHS = [
     Path("ai-workflow/memory"),
     Path("ai-workflow/WORKFLOW_INDEX.md"),
-    Path("ai-workflow/memory/active/PROJECT_PROFILE.md"),
+    Path("docs/PROJECT_PROFILE.md"),
     Path("ai-workflow/memory/active/sessions"),
     Path("ai-workflow/memory/active/state.json"),
 ]

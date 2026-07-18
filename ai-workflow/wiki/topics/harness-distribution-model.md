@@ -58,7 +58,7 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 | `bundle/.opencode/skills/standard-ai-workflow/SKILL.md` | code | project-local skill 진입점 |
 | `bundle/ai-workflow/README.md` | doc | runtime layer 진입 안내 ([[entities/ai-workflow-runtime]]) |
 | `bundle/ai-workflow/core/{global_workflow_standard, workflow_adoption_entrypoints, workflow_skill_catalog}.md` | doc | 공통 runtime 정책 문서 3종 (minimal core) |
-| `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md` | doc | 프로젝트 프로파일 |
+| `bundle/docs/PROJECT_PROFILE.md` | doc | 프로젝트 프로파일 |
 | `bundle/ai-workflow/memory/active/state.json` | doc | 세션 캐시 (state of truth 아님) |
 | `bundle/ai-workflow/memory/active/sessions` | doc | 세션 인계 |
 | `bundle/ai-workflow/memory/active/backlog` + `backlog/YYYY-MM-DD.md` | doc | 작업 백로그 |

@@ -55,7 +55,7 @@ rm -rf .venv
 - bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 추후 다른 하네스도 같은 패턴으로 추가할 수 있다.
 - 기본 생성 구조:
 - `ai-workflow/README.md`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
@@ -172,7 +172,7 @@ python3 scripts/apply_harness_update.py \
 
 ```bash
 python3 scripts/generate_workflow_state.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path /path/to/project/docs/PROJECT_PROFILE.md \
   --session-handoff-path /path/to/project/ai-workflow/memory/active/sessions \
   --work-backlog-index-path /path/to/project/ai-workflow/memory/active/backlog \
   --latest-backlog-path /path/to/project/ai-workflow/memory/active/backlog/2026-04-24.md \
@@ -222,7 +222,7 @@ python3 scripts/run_demo_workflow.py --example-project research_eval_hub
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path /path/to/project/docs/PROJECT_PROFILE.md \
   --session-handoff-path /path/to/project/ai-workflow/memory/active/sessions \
   --work-backlog-index-path /path/to/project/ai-workflow/memory/active/backlog \
   --backlog-dir-path /path/to/project/ai-workflow/memory/active/backlog \

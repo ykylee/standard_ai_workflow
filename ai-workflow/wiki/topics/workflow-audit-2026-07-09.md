@@ -49,7 +49,7 @@ git_history_summarizer, workflow_log_rotator, smart_context_reader, apply_robust
 | # | 후보 | 위치 | 영향 |
 |---|---|---|---|
 | P0-1 | `project_status_assessment.md` §2 자가진단 매트릭스 11항목 공란 | `ai-workflow/memory/active/project_status_assessment.md:30-43` | Phase 9 표기이나 정량 점수 부재 → 추세 추적 불가 |
-| P0-2 | `PROJECT_PROFILE.md` self-dogfood profile 미작성 | `ai-workflow/memory/active/PROJECT_PROFILE.md` §1/§3/§4/§5 TODO | 본 저장소의 운영 profile 부재 |
+| P0-2 | `PROJECT_PROFILE.md` self-dogfood profile 미작성 | `docs/PROJECT_PROFILE.md` §1/§3/§4/§5 TODO | 본 저장소의 운영 profile 부재 |
 | P0-3 | `ai-workflow/memory/active/memory_index/` 디렉토리 부재 | `ai-workflow/memory/active/` | opt-in wiring 의 실 데이터 부재 → retrieval silent fail 가능성 |
 
 ### 3.2 P1 — 운영 지능화 심화 (Phase 12 마감)

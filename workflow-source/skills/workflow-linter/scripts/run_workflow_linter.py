@@ -40,7 +40,7 @@ def main() -> int:
     
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        project_root = project_profile_path.parent.parent.parent # Assuming standard structure: <root>/ai-workflow/memory/active/PROJECT_PROFILE.md
+        project_root = project_profile_path.parent.parent.parent # Assuming standard structure: <root>/docs/PROJECT_PROFILE.md
         
         branch_dir = workflow_branch_dir(project_profile_path)
         

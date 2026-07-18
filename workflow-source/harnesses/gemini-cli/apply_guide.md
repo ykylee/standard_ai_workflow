@@ -52,7 +52,7 @@ python3 scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. 생성된 `ai-workflow/memory/active/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
+2. 생성된 `docs/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
 3. 루트 `GEMINI.md` 가 `ai-workflow/memory/active/` 문서를 먼저 읽도록 연결됐는지 확인한다.
    - Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 4. 첫 세션에서 `session_handoff.md` 와 오늘 날짜 backlog 를 채운다.
@@ -82,7 +82,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 - 이어서 아래 세 문서를 순서대로 읽는다.
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - 기존 프로젝트 도입 직후라면 `ai-workflow/memory/active/repository_assessment.md` 도 함께 읽는다.
 
 ## 6. 적용 후 확인 체크리스트

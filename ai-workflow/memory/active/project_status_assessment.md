@@ -20,7 +20,7 @@
 
 | 구분 | 진단 항목 | 현황 (0~3) | 비고 |
 | --- | --- | --- | --- |
-| **기본 문서** | `PROJECT_PROFILE.md`가 최신 상태인가? | **1** | `ai-workflow/memory/active/PROJECT_PROFILE.md` §1/§3/§4/§5 TODO 잔존 (P0-2 후보). 외부 배포용 `docs/PROJECT_PROFILE.md` 는 최신. |
+| **기본 문서** | `PROJECT_PROFILE.md`가 최신 상태인가? | **1** | `docs/PROJECT_PROFILE.md` §1/§3/§4/§5 TODO 잔존 (P0-2 후보). 외부 배포용 `docs/PROJECT_PROFILE.md` 는 최신. |
 | | `session_handoff.md`가 매 세션 갱신되는가? | **2** | `ai-workflow/memory/active/` 에 `session_handoff.md` 부재. `session_analysis_YYYY-MM-DD.md` 패턴으로 대체 (audit-session 2026-07-09 등). spec 의 `session_handoff_template.md` 와 명칭/위치 불일치 — 정규화 후보. |
 | | `work_backlog.md`가 실제 작업과 동기화되는가? | **3** | `work_backlog.md` 인덱스에 release/v0.11.x + active/session_analysis anchor 등록. session-start skill (v0.11.19 stable, opt-in wiring v0.11.22) 로 자동 load. |
 | **도구 활용** | MCP 도구를 사용하여 문서를 조회/수정하는가? | **3** | stable 8종 (`latest_backlog`, `check_doc_metadata`, `check_doc_links`, `create_backlog_entry`, `suggest_impacted_docs`, `create_session_handoff_draft`, `create_environment_record_stub`, `check_quickstart_stale_links`). stdio-sdk v0.11.25 stable. |
@@ -89,7 +89,7 @@
 
 ### 4.1 단기 — Phase 12 마감 (2026-Q3 이내)
 
-- [ ] **P0-2**: `ai-workflow/memory/active/PROJECT_PROFILE.md` self-dogfood profile 작성 (§1/§3/§4/§5 TODO 해소).
+- [ ] **P0-2**: `docs/PROJECT_PROFILE.md` self-dogfood profile 작성 (§1/§3/§4/§5 TODO 해소).
 - [ ] **P0-3**: `ai-workflow/memory/active/memory_index/` 디렉토리 실재성 확인 + opt-in wiring 실 데이터 시드.
 - [ ] **P1-1**: ADR-006 retrospective 본문 작성 (2026-08-02 ± 3일, lessons learned 잠금).
 - [ ] **P1-2**: Beta MCP 4종 stable 승격 로드맵 (`maturity_matrix.mcp_tools.promotion_in_release` 필드 추가).

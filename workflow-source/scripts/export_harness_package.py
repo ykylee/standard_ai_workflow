@@ -242,7 +242,7 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
         "bundle/ai-workflow/memory/active/state.json",
         "bundle/ai-workflow/memory/active/sessions",
         "bundle/ai-workflow/memory/active/backlog",
-        "bundle/ai-workflow/memory/active/PROJECT_PROFILE.md",
+        "bundle/docs/PROJECT_PROFILE.md",
         "bundle/ai-workflow/core/workflow_adoption_entrypoints.md",
         "bundle/ai-workflow/core/workflow_skill_catalog.md",
     ]
@@ -410,7 +410,7 @@ def render_package_contents(
 - `bundle/ai-workflow/core/global_workflow_standard.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
-- `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `bundle/docs/PROJECT_PROFILE.md`
 - `bundle/ai-workflow/memory/active/state.json`
 - `bundle/ai-workflow/memory/active/sessions`
 - `bundle/ai-workflow/memory/active/backlog`
@@ -487,7 +487,7 @@ def render_apply_guide(
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
         "opencode": [
             "- `AGENTS.md`",
@@ -497,35 +497,35 @@ def render_apply_guide(
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
         "gemini-cli": [
             "- `GEMINI.md`",
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
         "pi-dev": [
             "- `AGENTS.md`",
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
         "antigravity": [
             "- `ANTIGRAVITY.md`",
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
         "claude-code": [
             "- `CLAUDE.md`",
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",
-            "- `ai-workflow/memory/active/PROJECT_PROFILE.md`",
+            "- `docs/PROJECT_PROFILE.md`",
         ],
     }[harness]
     return f"""# Apply Guide
@@ -565,7 +565,7 @@ def render_apply_guide(
 ## 5. 적용 후 바로 수정할 항목
 
 - `ai-workflow/memory/active/state.json` 의 current_focus 와 next_documents
-- `ai-workflow/memory/active/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
+- `docs/PROJECT_PROFILE.md` 의 실행/테스트/검증 명령
 - `ai-workflow/memory/active/sessions` 의 현재 기준선
 - `ai-workflow/memory/active/backlog` 와 최신 날짜 backlog 의 실제 작업 상태
 
@@ -642,7 +642,7 @@ def export_harness(
                 included_files.append(rel(destination, package_root))
         profile_source = temp_repo / "docs" / "PROJECT_PROFILE.md"
         if profile_source.exists():
-            profile_destination = bundle_root / "ai-workflow" / "memory" / "active" / "PROJECT_PROFILE.md"
+            profile_destination = bundle_root / "docs" / "PROJECT_PROFILE.md"
             copy_file(profile_source, profile_destination)
             included_files.append(rel(profile_destination, package_root))
 

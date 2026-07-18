@@ -64,7 +64,7 @@
 
 예시:
 
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
 - 최신 날짜 backlog 문서

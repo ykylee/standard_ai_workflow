@@ -54,7 +54,7 @@
 
 ## 5. 기대 산출물
 
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`

@@ -65,7 +65,7 @@
 
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path /path/to/project/docs/PROJECT_PROFILE.md \
   --session-handoff-path /path/to/project/ai-workflow/memory/active/sessions \
   --work-backlog-index-path /path/to/project/ai-workflow/memory/active/backlog \
   --backlog-dir-path /path/to/project/ai-workflow/memory/active/backlog \

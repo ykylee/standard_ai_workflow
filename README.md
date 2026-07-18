@@ -247,7 +247,7 @@ python3 workflow-source/scripts/export_harness_package.py \
 이 export 는 이번 릴리즈 기준으로 workflow/skill 온보딩 묶음을 우선 배포한다.
 
 - 기본 소비 진입점: `workflow-source/README.md`, `workflow-source/core/workflow_adoption_entrypoints.md`, `workflow-source/core/workflow_skill_catalog.md`
-- 기본 현장 문서: `ai-workflow/memory/active/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
+- 기본 현장 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/session_handoff.md`, `ai-workflow/memory/active/work_backlog.md`
 - `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어로 보고, 일반 프로젝트 코드/문서 탐색 범위에서는 기본적으로 제외한다.
 - `backlog-update`, `merge-doc-reconcile` 는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성한다. 독립 실행이 필요할 때는 `workflow-source/scripts/generate_workflow_state.py` 를 직접 사용할 수 있다.
 - 기본 export 는 AI agent 컨텍스트 절약을 위해 런타임 파일만 포함하고, source docs 와 global snippet 예시는 제외한다.

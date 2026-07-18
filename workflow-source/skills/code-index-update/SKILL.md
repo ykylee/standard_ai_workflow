@@ -47,14 +47,14 @@
 - **분석 전용**:
 ```bash
 python3 skills/code-index-update/scripts/run_code_index_update.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --changed-file docs/operations/runbooks/new-guide.md
 ```
 
 - **자동 색인 동기화**:
 ```bash
 python3 skills/code-index-update/scripts/run_code_index_update.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file docs/operations/runbooks/new-guide.md \
   --apply

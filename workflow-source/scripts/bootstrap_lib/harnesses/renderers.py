@@ -46,7 +46,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -57,7 +57,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
@@ -134,7 +134,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 대상 독자: Antigravity, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -145,7 +145,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
@@ -225,7 +225,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - 대상 독자: MiniMax Code, 저장소 관리자, 멀티 에이전트 운영자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/PROJECT_PROFILE.md`, `AGENTS.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`, `AGENTS.md`
 
 ## 목적
 
@@ -236,7 +236,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `AGENTS.md` (워크플로우 규칙 요약)
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
@@ -508,7 +508,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -519,7 +519,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
@@ -643,7 +643,7 @@ Always read:
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 
 If the repository is still in adoption, also read:
 
@@ -689,7 +689,7 @@ Start each substantial task by reading:
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 
 Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
 
@@ -698,7 +698,7 @@ You may directly read only the minimum session-restoration set and tiny triage i
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - one clearly bounded file or path for tiny triage
 
 Project defaults:
@@ -998,7 +998,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 - (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent 1-line + body excerpt
 
@@ -1051,7 +1051,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 ## 다음에 읽을 문서
 
 - `ai-workflow/README.md` (kit 개요)
-- `ai-workflow/memory/active/PROJECT_PROFILE.md` (프로젝트 메타)
+- `docs/PROJECT_PROFILE.md` (프로젝트 메타)
 - `ai-workflow/memory/active/sessions` (현재 세션 인계)
 - `harnesses/claude-code/apply_guide.md` (Claude Code 적용 절차)
 """
@@ -1102,7 +1102,7 @@ def render_claude_code_session_start_command(args: argparse.Namespace, context: 
 - `ai-workflow/memory/active/state.json`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - (있으면) `ai-workflow/memory/active/PURPOSE.md`
 """
 
@@ -1250,7 +1250,7 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
 1. `ai-workflow/memory/active/state.json`
 2. `ai-workflow/memory/active/sessions`
 3. `ai-workflow/memory/active/backlog`
-4. `ai-workflow/memory/active/PROJECT_PROFILE.md`
+4. `docs/PROJECT_PROFILE.md`
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md`
 
 ## 작업 원칙
@@ -1286,7 +1286,7 @@ read:
   - ai-workflow/memory/active/state.json
   - ai-workflow/memory/active/sessions
   - ai-workflow/memory/active/backlog
-  - ai-workflow/memory/active/PROJECT_PROFILE.md
+  - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
 # model: default
@@ -1368,7 +1368,7 @@ read_files:
   - ai-workflow/memory/active/state.json
   - ai-workflow/memory/active/sessions
   - ai-workflow/memory/active/backlog
-  - ai-workflow/memory/active/PROJECT_PROFILE.md
+  - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
 # Goose 의 *pre/post hook* — session 종료 시 handoff 자동 갱신
@@ -1593,7 +1593,7 @@ def render_codewhale_skill(args: argparse.Namespace, context: dict[str, object])
 - 대상: CodeWhale agent, 저장소 관리자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 중요 — Constitution 과의 관계
 
@@ -1615,7 +1615,7 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 1. `ai-workflow/memory/active/state.json` — 현재 기준선
 2. `ai-workflow/memory/active/sessions` — 이전 세션 인계
 3. `ai-workflow/memory/active/backlog` — 작업 백로그 인덱스
-4. `ai-workflow/memory/active/PROJECT_PROFILE.md` — 프로젝트 특화 규칙
+4. `docs/PROJECT_PROFILE.md` — 프로젝트 특화 규칙
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — 프로젝트 목적
 
 ## 2. 언어와 보고 원칙

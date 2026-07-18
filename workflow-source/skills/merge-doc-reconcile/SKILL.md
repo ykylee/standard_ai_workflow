@@ -52,14 +52,14 @@
 - 실행 예시 (재정리 필요 항목 확인):
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
   --merge-result-summary "기능 브랜치 병합"
 ```
 - 실행 예시 (자동 반영):
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
   --merge-result-summary "기능 브랜치 병합" \
   --apply

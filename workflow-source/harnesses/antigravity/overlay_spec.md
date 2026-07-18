@@ -27,7 +27,7 @@
 
 - 항상 `ai-workflow/memory/active/sessions` 를 우선 읽게 연결한다.
 - 항상 `ai-workflow/memory/active/backlog` 를 참조하게 연결한다.
-- 항상 `ai-workflow/memory/active/PROJECT_PROFILE.md` 를 참조하게 연결한다.
+- 항상 `docs/PROJECT_PROFILE.md` 를 참조하게 연결한다.
 - Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 - 필요하면 `ai-workflow/memory/active/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.
 - read-only MCP draft descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 위치를 기준으로 검토한다.

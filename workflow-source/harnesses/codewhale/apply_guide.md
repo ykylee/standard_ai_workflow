@@ -50,7 +50,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-2. 생성된 `ai-workflow/memory/active/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
+2. 생성된 `docs/PROJECT_PROFILE.md` 에 실제 명령과 검증 규칙을 채운다.
 3. `.codewhale/skills/codewhale-workflow/SKILL.md` 가 생성되었는지 확인한다.
 4. 첫 세션에서 아래와 같이 요청한다:
 
@@ -83,7 +83,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   - `ai-workflow/memory/active/state.json`
   - `ai-workflow/memory/active/sessions`
   - `ai-workflow/memory/active/backlog`
-  - `ai-workflow/memory/active/PROJECT_PROFILE.md`
+  - `docs/PROJECT_PROFILE.md`
 - 기존 프로젝트 도입 직후라면 `ai-workflow/memory/active/repository_assessment.md` 도 함께 읽는다.
 
 ## 6. CodeWhale 특화 운영 팁

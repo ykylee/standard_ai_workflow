@@ -40,7 +40,7 @@
 ### bootstrap 직후 후속 루틴
 ```bash
 python3 scripts/run_existing_project_onboarding.py \
-  --project-profile-path /path/to/project/ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path /path/to/project/docs/PROJECT_PROFILE.md \
   --session-handoff-path /path/to/project/ai-workflow/memory/session_handoff.md \
   --work-backlog-index-path /path/to/project/ai-workflow/memory/work_backlog.md \
   --backlog-dir-path /path/to/project/ai-workflow/memory/backlog \

@@ -43,7 +43,7 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 def case_1_legacy_memory_with_bak() -> bool:
     """1) --legacy-memory 명시 + .bak 존재 → refresh 성공 + 1st cycle warning."""
     proc = _run(
-        "--project-profile-path", "ai-workflow/memory/active/PROJECT_PROFILE.md",
+        "--project-profile-path", "docs/PROJECT_PROFILE.md",
         "--legacy-memory",
         "--output-path", "/tmp/state_test_v0_14_5_case1.json",
     )
@@ -75,7 +75,7 @@ def case_2_no_legacy_memory_with_bak() -> bool:
     strict opt-out 검증은 `--no-legacy-memory` 명시 시. 본 case 는 default 동작 확인.
     """
     proc = _run(
-        "--project-profile-path", "ai-workflow/memory/active/PROJECT_PROFILE.md",
+        "--project-profile-path", "docs/PROJECT_PROFILE.md",
         "--output-path", "/tmp/state_test_v0_14_5_case2.json",
     )
     if proc.returncode != 0:
@@ -97,7 +97,7 @@ def case_3_no_legacy_path() -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         # bak 부재하는 임시 active dir 사용 (정상 case)
         proc = _run(
-            "--project-profile-path", "ai-workflow/memory/active/PROJECT_PROFILE.md",
+            "--project-profile-path", "docs/PROJECT_PROFILE.md",
             "--no-legacy-memory",
             "--output-path", str(Path(tmp) / "state.json"),
         )
@@ -118,7 +118,7 @@ def case_3_no_legacy_path() -> bool:
 def case_4_no_legacy_memory_explicit() -> bool:
     """4) --no-legacy-memory 명시 + hint command 정합."""
     proc = _run(
-        "--project-profile-path", "ai-workflow/memory/active/PROJECT_PROFILE.md",
+        "--project-profile-path", "docs/PROJECT_PROFILE.md",
         "--no-legacy-memory",
         "--output-path", "/tmp/state_test_v0_14_5_case4.json",
     )

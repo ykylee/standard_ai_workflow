@@ -49,7 +49,7 @@
 ## 3. 적용 범위
 
 - 생성/복사한 문서:
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/2026-04-22.md`
@@ -83,7 +83,7 @@
 ## 5. 적용 후 상태
 
 - 최종 project profile 경로:
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - 최종 session handoff 경로:
 - `ai-workflow/memory/active/sessions`
 - 최종 work backlog 경로:

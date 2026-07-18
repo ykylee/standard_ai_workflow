@@ -21,7 +21,7 @@
 
 대표 경로:
 
-- `ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `docs/PROJECT_PROFILE.md`
 - `ai-workflow/memory/active/sessions`
 - `ai-workflow/memory/active/backlog`
 - `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
@@ -48,7 +48,7 @@
 1. `ai-workflow/memory/active/state.json`
 2. `ai-workflow/memory/active/sessions`
 3. `ai-workflow/memory/active/backlog`
-4. `ai-workflow/memory/active/PROJECT_PROFILE.md`
+4. `docs/PROJECT_PROFILE.md`
 5. 필요 시 최신 `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
 
 그 다음 실제 project docs 를 읽는다.

@@ -49,7 +49,7 @@
 - **분석 전용**:
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --changed-file app/main.py \
   --change-summary "로그인 로직 수정"
 ```
@@ -57,7 +57,7 @@ python3 skills/validation-plan/scripts/run_validation_plan.py \
 - **테스트 뼈대 생성 및 반영**:
 ```bash
 python3 skills/validation-plan/scripts/run_validation_plan.py \
-  --project-profile-path ai-workflow/memory/active/PROJECT_PROFILE.md \
+  --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file app/main.py \
   --change-summary "로그인 로직 수정" \

@@ -41,7 +41,7 @@
 - `bundle/ai-workflow/README.md`
 - `bundle/ai-workflow/core/workflow_adoption_entrypoints.md`
 - `bundle/ai-workflow/core/workflow_skill_catalog.md`
-- `bundle/ai-workflow/memory/active/PROJECT_PROFILE.md`
+- `bundle/docs/PROJECT_PROFILE.md`
 - `bundle/ai-workflow/memory/active/sessions`
 - `bundle/ai-workflow/memory/active/backlog`
 - `bundle/ai-workflow/wiki/index.md` (Wiki 진입점, R4 anchor 기반)

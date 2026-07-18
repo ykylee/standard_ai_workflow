@@ -29,7 +29,7 @@ Single entry point: `GEMINI.md` at project root. No second-level config file is 
 | Path | Role | Priority |
 |---|---|---|
 | `GEMINI.md` | Project instruction entry point for Gemini CLI | **Overrides system prompt** — strongest directive in the harness chain |
-| `ai-workflow/memory/active/PROJECT_PROFILE.md` | Project-specific rules (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
+| `docs/PROJECT_PROFILE.md` | Project-specific rules (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
 | `ai-workflow/memory/active/sessions` | Last session's handoff (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
 | `ai-workflow/memory/active/backlog` | Backlog index (linked from `GEMINI.md`) | Read first per `GEMINI.md` instruction |
 | `ai-workflow/memory/active/repository_assessment.md` | Existing-project analysis | Read on first session of `existing` mode |

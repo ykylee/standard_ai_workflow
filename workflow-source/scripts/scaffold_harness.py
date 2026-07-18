@@ -126,7 +126,7 @@ def render_overlay_spec(display_name: str, slug: str, args: argparse.Namespace) 
 
 - 항상 `ai-workflow/memory/active/sessions` 를 우선 읽게 연결한다.
 - 항상 `ai-workflow/memory/active/backlog` 를 참조하게 연결한다.
-- 항상 `ai-workflow/memory/active/PROJECT_PROFILE.md` 를 참조하게 연결한다.
+- 항상 `docs/PROJECT_PROFILE.md` 를 참조하게 연결한다.
 - 필요하면 `ai-workflow/memory/active/repository_assessment.md` 를 adoption 단계 보조 문서로 사용한다.
 - read-only MCP draft descriptor 는 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 위치를 기준으로 검토한다.
 

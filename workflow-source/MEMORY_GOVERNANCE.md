@@ -141,7 +141,7 @@ kind: release | session | generic
 {
   "schema_version": "1",
   "source_of_truth": {
-    "project_profile_path": "ai-workflow/memory/active/PROJECT_PROFILE.md",
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": "ai-workflow/memory/active/sessions/",
     "work_backlog_index_path": "ai-workflow/memory/active/backlog/",
     "daily_backlog_dir": "ai-workflow/memory/active/backlog/",

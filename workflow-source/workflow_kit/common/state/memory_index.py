@@ -16,7 +16,7 @@ import re
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Final
+from typing import Final, TypedDict
 
 from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
 from workflow_kit.common.schemas.base import Status
@@ -306,7 +306,16 @@ def _bm25_tokenize(text: str) -> list[str]:
     return [t.lower() for t in _TOKEN_RE.findall(text) if t]
 
 
-def _bm25_build_index(entries: list[MemoryEntry]) -> dict[str, object]:
+class _BM25Index(TypedDict):
+    entries: list[MemoryEntry]
+    doc_tf: list[Counter[str]]
+    doc_len: list[int]
+    df: dict[str, int]
+    avgdl: float
+    N: int
+
+
+def _bm25_build_index(entries: list[MemoryEntry]) -> _BM25Index:
     """BM25 inverted index 계산."""
     corpus = [_bm25_text_for_entry(e) for e in entries]
     N = len(corpus)
@@ -333,36 +342,35 @@ def _bm25_build_index(entries: list[MemoryEntry]) -> dict[str, object]:
 
 def _bm25_score(
     query_tokens: list[str],
-    index: dict[str, object],
+    index: _BM25Index,
     *,
     k1: float = 1.5,
     b: float = 0.75,
 ) -> list[tuple[int, float]]:
     """각 entry 별 BM25 score. (index, score) desc sort, score 0 제외."""
-    entries = index["entries"]  # type: ignore[assignment]
-    doc_tf = index["doc_tf"]  # type: ignore[assignment]
-    doc_len = index["doc_len"]  # type: ignore[assignment]
-    df = index["df"]  # type: ignore[assignment]
-    avgdl = index["avgdl"]  # type: ignore[assignment]
-    N = index["N"]  # type: ignore[assignment]
-    assert isinstance(entries, list)
+    entries = index["entries"]
+    doc_tf = index["doc_tf"]
+    doc_len = index["doc_len"]
+    df = index["df"]
+    avgdl = index["avgdl"]
+    N = index["N"]
     if not N:
         return []
     scores: list[float] = [0.0] * N
     q_unique = list({t.strip().lower() for t in query_tokens if t and t.strip()})
     for q in q_unique:
-        n = df.get(q, 0)  # type: ignore[union-attr]
+        n = df.get(q, 0)
         if not n:
             continue
         # BM25+ smooth idf
         idf = math.log((N - n + 0.5) / (n + 0.5) + 1)
-        for i, cnt in enumerate(doc_tf):  # type: ignore[assignment]
+        for i, cnt in enumerate(doc_tf):
             f = cnt.get(q, 0)
             if not f:
                 continue
             denom = (
-                f + k1 * (1 - b + b * doc_len[i] / avgdl)  # type: ignore[operator]
-                if avgdl > 0  # type: ignore[operator]
+                f + k1 * (1 - b + b * doc_len[i] / avgdl)
+                if avgdl > 0
                 else f + k1
             )
             scores[i] += idf * (f * (k1 + 1)) / denom
@@ -383,7 +391,7 @@ def _bm25_retrieve(
         return []
     index = _bm25_build_index(entries)
     scored = _bm25_score(query_tokens, index)
-    return [index["entries"][i] for i, _ in scored[:top_k]]  # type: ignore[index]
+    return [index["entries"][i] for i, _ in scored[:top_k]]
 
 
 def query_memory_index(
@@ -448,6 +456,7 @@ def memory_index_status(workspace_root: Path) -> MemoryIndexOutput:
     """Top-level 진입점. CLI / caller 가 사용."""
     validation = validate_memory_index(workspace_root)
     return MemoryIndexOutput(
+        tool_version=_WORKFLOW_KIT_VERSION,
         status=Status.WARNING if validation.issues else Status.OK,
         entries_loaded=validation.total_entries,
         issues=validation.issues,

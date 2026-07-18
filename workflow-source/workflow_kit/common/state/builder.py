@@ -289,7 +289,7 @@ def build_workflow_state_payload(
         "repository_assessment_path": safe_relpath(repository_assessment_path, actual_root) if repository_assessment_path else None,
     }
 
-    payload = {
+    payload: dict[str, Any] = {
         "schema_version": "1",
         "generated_at": generated_at,
         "purpose_digest": purpose_digest,

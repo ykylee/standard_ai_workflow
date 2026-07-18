@@ -5,6 +5,7 @@ from typing import Any
 
 from workflow_kit.common.paths import resolve_existing_path
 from workflow_kit.common.patching import apply_robust_patch
+from workflow_kit.common.schemas.base import Status
 from workflow_kit.common.schemas.apply_robust_patch import (
     APPLY_ROBUST_PATCH_ERROR_CODES,
     ApplyRobustPatchOutput,
@@ -33,7 +34,7 @@ def apply_robust_patch_payload(
         path = resolve_existing_path(file_path)
     except FileNotFoundError:
         return ApplyRobustPatchOutput(
-            status="error",
+            status=Status.ERROR,
             tool_version=tool_version,
             file_path=file_path or "",
             message=f"file not found: {file_path!r}",
@@ -50,7 +51,7 @@ def apply_robust_patch_payload(
     # 2. malformed_patch_block check (SEARCH/REPLACE delimiter 부재)
     if not isinstance(patch_content, str) or "SEARCH" not in patch_content or "REPLACE" not in patch_content:
         return ApplyRobustPatchOutput(
-            status="error",
+            status=Status.ERROR,
             tool_version=tool_version,
             file_path=str(path),
             message="malformed patch block: SEARCH/REPLACE delimiters missing",
@@ -69,7 +70,7 @@ def apply_robust_patch_payload(
         success, message = apply_robust_patch(path, patch_content)
     except Exception as exc:  # noqa: BLE001 — top-level error envelope
         return ApplyRobustPatchOutput(
-            status="error",
+            status=Status.ERROR,
             tool_version=tool_version,
             file_path=str(path),
             message=f"runtime error: {exc}",
@@ -88,7 +89,7 @@ def apply_robust_patch_payload(
     if not success:
         error_code = "malformed_patch_block"
     return ApplyRobustPatchOutput(
-        status="ok" if success else "error",
+        status=Status.OK if success else Status.ERROR,
         tool_version=tool_version,
         file_path=str(path),
         message=message,

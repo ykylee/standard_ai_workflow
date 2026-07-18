@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-18T14:45:47Z",
+  "generated_at": "2026-07-18T14:47:51Z",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,9 +27,9 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": null,
-    "current_axis": null,
-    "current_focus": null,
+    "current_baseline": "v0.15.15-beta",
+    "current_axis": "Phase 12 in_progress (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비)",
+    "current_focus": "v0.15.15 정식 release 완료 + 4 follow-up + 누수 진단 종합 완료. 다음: v1.0.0 진입 평가 시작.",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
@@ -65,7 +65,11 @@
       "v0.15.15 follow-up #3 — `v0.14.6 out-of-scope` 후속 정리 (AST 분석 기반 dead code 3건 제거). AST 분석 (ast.NodeVisitor.DeadAfterReturn) 으로 release_pipeline.py 의 dead-after-return 3건 발견: (1) `cmd_refresh_maturity` line 755: `return int(m.group(1)), ...` (도달 불가, m 변수 미정의), (2) `cmd_rollback` line 2752-2758: 옛 `cmd_changelog` 의 argparse 7줄 잔재 (정본 line 3224 의 `cmd_changelog_gen` argparse 와 중복), (3) `_simulate_production_upload` line 3023: `return results` (도달 불가, results 변수 미정의). **commit 1개**: `5408c2c` refactor(release_pipeline): 12줄 삭제. **검증**: AST 재검증 0건, refresh_maturity_v0_14_6/15_2/15_3 smoke 4+4+3=11/11 PASS, 신규 smoke 4종 19/19 PASS, release_pipeline 핵심 subcommand (validate/refresh-maturity/self-recover/sync-maturity-matrix/changelog-gen) dry-run 정상.",
       "Python 프로세스 누적 / RSS 누수 진단 종합 (v0.15.15 release 직전 후속). **측정 환경**: workflow-source dispatcher + smoke + release pipeline + stdio MCP server + 빈발 short-lived + subprocess 직접 호출 6개 경로. **측정 방법**: ps + /proc/<pid>/status RSS sampling + 1000회 반복 (PERF-MEM-02 baseline). **결과**: (a) 100+ 회 dispatcher 호출 — python PID 베이스라인 2 → 종료 후 2 (누적 0); (b) 50 회 dashboard long-run — RSS delta +0.02 MB (안정); (c) 1000회 cache-dashboard 호출 (long-lived server) — RSS drift **+0.00 MB** (PERF-MEM-02 baseline 0%, ≤ 10 MB 정합); (d) 30 회 빈발 drift-prevention — 누적 0; (e) consumer_metrics.py gh API subprocess ×15 — 누적 0; (f) 종합 종료 후 5초 대기 — 베이스라인 2 유지. **결론**: 이 워크플로우 패키지의 모든 운영 경로에서 누적 누수 0건. **누수 의심 환경 안내**: 만약 운영 환경에서 누적 발생 시, 외부 MCP client / 다른 Python application / OS-level daemon 가능성 우선 점검 권장."
     ],
-    "environment_constraints": []
+    "environment_constraints": [
+      "MiniMax-M3 model_provider: 표준 Codex file-editor tool 미노출 → exec_command + heredoc + Python helper (search_replace 도구) 우회. ADR-003 read-only 정책과 정합.",
+      "누수 진단 종합 (2026-07-18): 6개 운영 경로 측정, 누적 0건 / RSS drift 0 MB. 본 워크플로우 패키지 자체의 정상 운영 경로에서는 누수 없음. 운영 환경 외부 가능성 우선 점검 권장.",
+      "누적 smoke 196종 PASS, 회귀 0건."
+    ]
   },
   "backlog": {
     "latest_backlog_path": null,
@@ -75,7 +79,13 @@
     "done_items": []
   },
   "next_documents": [
-    "PROJECT_PROFILE.md"
+    "PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/sessions/leak_diagnostics_2026-07-18.md",
+    "workflow-source/core/workflow_kit_roadmap.md",
+    "workflow-source/core/maturity_matrix.json",
+    "workflow-source/extensions/performance-baseline.md",
+    "workflow-source/extensions/performance/memory/memory-baseline.md",
+    "workflow-source/releases/Beta-v0.15.15.md"
   ],
   "repository_assessment": {
     "path": null,

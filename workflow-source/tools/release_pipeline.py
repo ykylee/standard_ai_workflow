@@ -752,7 +752,6 @@ def cmd_refresh_maturity(args) -> dict:
     result["before"] = refreshed["before"]
     result["after"] = refreshed["after"]
     return result
-    return int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
 def cmd_version_bump(args) -> dict:
@@ -2750,16 +2749,6 @@ def cmd_rollback(args) -> dict:
     results["ok"] = "error" not in results
     return results
 
-    p_cl.add_argument("--unreleased-label", default="Unreleased",
-                      help="unreleased commit group 의 label (default: 'Unreleased')")
-    p_cl.add_argument("--from-tag", default=None,
-                      help="git log 시작 ref (e.g. v0.7.0-beta). 미지정 시 --all (전체 history)")
-    p_cl.add_argument("--to-tag", default="HEAD",
-                      help="git log 종료 ref (default: HEAD)")
-    p_cl.add_argument("--dry-run", action="store_true", dest="dry_run")
-    p_cl.add_argument("--apply", dest="apply", action="store_true", default=True)
-    p_cl.add_argument("--json", action="store_true")
-
 
 # ---------------------------------------------------------------------------
 # 7. dist (Phase 3 — v0.7.11)
@@ -3012,7 +3001,6 @@ def _simulate_production_upload(
             "if PyPI production upload is needed."
         ),
     }
-    return results
 
 
 # ---------------------------------------------------------------------------

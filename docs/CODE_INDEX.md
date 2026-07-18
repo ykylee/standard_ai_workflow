@@ -24,10 +24,10 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 192개 check_*.py 스모크 (2026-07-18 기준)
+│   ├── tests/                      # 195개 check_*.py 스모크 (2026-07-18 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
-│   ├── harnesses/                  # 10개 지원 하네스 오버레이 + 공통 문서/템플릿
+│   ├── harnesses/                  # 11개 지원 하네스 오버레이 + 공통 문서/템플릿
 │   ├── templates/                  # 9개 템플릿 + prompts/ 3개 worker prompt
 │   ├── core/                       # 코어 표준·정책·로드맵 문서
 │   ├── prompts/                    # 코어 표준 문서
@@ -88,8 +88,8 @@ v0.5.2+ 리팩터. 6-module 패키지:
 
 권장 진입점: `python3 -m bootstrap_lib`. 레거시 호환 shim: `python3 workflow-source/scripts/bootstrap_workflow_kit.py`.
 
-### Skills (`workflow-source/skills/`) — 11 + task-modes (12 total)
-각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. 현재 maturity matrix 기준 **12종 모두 stable**이다. 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
+### Skills (`workflow-source/skills/`) — 13 + workers/ (14 dirs)
+각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. 현재 maturity matrix 기준 stable (12종) + beta (memory-freeze / memory-index-query) + `workers/` dir. 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
 - **1차 핵심 6종** (v0.5.0+): `backlog-update` (stable), `session-start` (stable), `doc-sync` (stable), `merge-doc-reconcile` (stable), `validation-plan` (stable), `workflow-linter` (stable)
 - **2차 운영 2종** (v0.5.7+): `code-index-update` (stable), `project-status-assessment` (stable)
 - **3차 실전 3종**: `git-conflict-resolver`, `robust-patcher`, `automated-repro-scaffold` 모두 stable
@@ -102,8 +102,8 @@ v0.5.2+ 리팩터. 6-module 패키지:
 - `lib/common_utils.py`: 공유 `TOOL_VERSION` helper
 - Transport: `--mcp-bridge jsonrpc-bridge` (default, 안정) / `--mcp-bridge stdio-sdk` (실험적, 알려진 회귀)
 
-### Harnesses (`workflow-source/harnesses/`) — 10 supported
-`codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale` (v0.10.4 신규) + `_template`.
+### Harnesses (`workflow-source/harnesses/`) — 11 supported
+`codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale` (v0.10.4 신규), `custom` (v0.10.2 신규) + `_template`.
 - 각 하네스: `README.md` + `apply_guide.md` (대부분) + `AGENTS.md` (pi-dev만) + 선택적 `overlay_spec.md` (antigravity만) + CodeWhale 는 단일 `SKILL.md` overlay
 - 부트스트랩 등록: `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` + `register_harness_builder` 한 줄
 

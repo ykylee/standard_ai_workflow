@@ -4,7 +4,7 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: v0.11.22-beta 기준 (Phase 12 in_progress, mypy FULL strict + ADR-005 Memory Index Phase 1~3d + 9 skill stable + CodeWhale 10번째 하네스 반영)
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`, `./maturity_matrix.json`
 
 ## 1. 현재 단계 (Phase 12 in-progress: 운영 지능화 + deprecation 운영 안정화)

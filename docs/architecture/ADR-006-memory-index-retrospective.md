@@ -4,7 +4,7 @@
 - 범위: merge rule / 3-tuple retrieval / skill wiring 의 실 사용 데이터 retrospective. helper API 의 backward compatibility / wiring latency 등.
 - 대상 독자: 워크플로우 설계자, 메모리 계층 설계자, 후속 release reviewer.
 - 상태: **draft (placeholder, 후속 release 에 본문 작성)**
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: [`./MICROSOFT_MEMORA_EVALUATION.md`](./MICROSOFT_MEMORA_EVALUATION.md), [`./ADR-005-memora-inspired-memory-index.md`](./ADR-005-memora-inspired-memory-index.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`./ADR-004-llm-wiki-layer.md`](./ADR-004-llm-wiki-layer.md)
 
 - **Status**: Accepted (placeholder 본 release, 회고 본문은 후속 release)

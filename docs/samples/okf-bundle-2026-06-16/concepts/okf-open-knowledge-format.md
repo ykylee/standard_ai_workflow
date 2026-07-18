@@ -14,7 +14,7 @@ r9_skip: true
 
 - 문서 목적: Google Cloud 가 2026-06-12 발표한 **Open Knowledge Format (OKF) v0.1** spec 의 구조·원칙·우리의 wiki (ai-workflow/wiki/) 와의 정합/갭을 정리한다. **status=active** — primary source 확보 완료.
 - 범위: 1차 출처 (`GoogleCloudPlatform/knowledge-catalog/okf/SPEC.md`, 457 lines) + 3 sample bundle (GA4 / Stack Overflow / Bitcoin) + 우리 schema 대비 정합
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 
 ## §0 Verification  {#s0-verification}
 

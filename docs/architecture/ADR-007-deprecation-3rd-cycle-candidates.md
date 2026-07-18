@@ -4,7 +4,7 @@
 - 범위: 영향 symbol 식별 절차, 3rd cycle 의 영향 후보 (현재 codebase 의 public API 재스캔), 운영 데이터 기반 후속.
 - 대상 독자: 워크플로우 설계자, deprecation 정책 운영자, 후속 release reviewer.
 - **상태: accepted (no-op) — v0.15.4+ codebase re-scan 결과, 3rd cycle 영향 symbol 부재 확인 (infrastructure only, 실제 mark 0개). 후속 영향 식별 시 본 ADR 본문 작성.**
-- 최종 수정일: 2026-07-17
+- 최종 수정일: 2026-07-18
 - 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md)
 
 - **Status**: Accepted (no-op)

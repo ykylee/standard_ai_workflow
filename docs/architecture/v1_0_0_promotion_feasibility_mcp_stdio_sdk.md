@@ -4,7 +4,7 @@
 - 범위: stdio-sdk 의 `Connection closed` 회귀 원인 추적 + fix scope + promotion readiness 검증 + 의존성.
 - 대상 독자: MCP server maintainer, v1.0.0 milestone reviewer, release manager.
 - 상태: **review (2026-07-03)**
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md), [`./mcp_installation_by_harness.md`](./mcp_installation_by_harness.md), [`../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py`](../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py), [`../ADR-007-deprecation-3rd-cycle-candidates.md`](../ADR-007-deprecation-3rd-cycle-candidates.md)
 
 ## 1. 결론 (TL;DR)

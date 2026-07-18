@@ -4,7 +4,7 @@
 - 범위: 입력, 출력, 판단 규칙, 보수적 예외 처리, 프로토타입 범위
 - 대상 독자: AI agent 설계자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: `./workflow_skill_catalog.md`, `../skills/validation-plan/SKILL.md`, `../templates/project_workflow_profile_template.md`
 
 ## 1. 목적

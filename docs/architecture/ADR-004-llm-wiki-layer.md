@@ -4,7 +4,7 @@
 - 범위: wiki 위치·git 추적 정책·ingest 트리거·7개 규칙 (R1~R7)·4개 안티패턴 (A1~A4)·8개 검증 (V-1~V-8)·4개 마이그레이션 phase (P1~P4)·alternatives considered.
 - 대상 독자: maintainer, Mavis consumer, 위키 운영자, 다음 마일스톤 설계자.
 - 상태: Accepted (v0.6.0, P1 prototype implemented)
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: [`./README.md`](./README.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`../../.omo/plans/v0.5.11-plus-llm-wiki-distributed-rules.md`](../../.omo/plans/v0.5.11-plus-llm-wiki-distributed-rules.md), [`../../.omo/plans/llm-wiki-convergence-design.md`](../../.omo/plans/llm-wiki-convergence-design.md), [`../../workflow-source/MEMORY_GOVERNANCE.md`](../../workflow-source/MEMORY_GOVERNANCE.md)
 
 - **Status**: Accepted (v0.6.0, P1 prototype implemented)

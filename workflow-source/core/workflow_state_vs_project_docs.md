@@ -4,7 +4,7 @@
 - 범위: 용어 정의, 읽기 우선순위, 쓰기 대상, 탐색 경계, 대표 예시
 - 대상 독자: 개발자, 운영자, AI agent, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: `./global_workflow_standard.md`, `./workflow_configuration_layers.md`, `./workflow_adoption_entrypoints.md`, `../scripts/README.md`
 
 ## 1. 한 줄 요약

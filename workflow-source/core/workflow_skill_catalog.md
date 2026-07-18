@@ -4,7 +4,7 @@
 - 범위: skill 후보, 역할, 입력 문서, 기대 출력, 도입 우선순위
 - 대상 독자: AI agent 설계자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: `workflow_agent_topology.md`, `workflow_mcp_candidate_catalog.md`, `../templates/project_workflow_profile_template.md`, `./orchestrator_subagent_contract_v1.md`
 
 ## 1. 핵심 도입 skill (v0.5.10-beta 기준, 11종)

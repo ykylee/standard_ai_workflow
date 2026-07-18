@@ -4,7 +4,7 @@
 - 범위: panel 별 data source, field 정의, acceptance criteria, edge cases, drift detection
 - 대상 독자: AI agent 설계자, dashboard consumer (release note 자동 emit, wiki sync), 운영자
 - 상태: draft
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서:
   - [`./quality-dashboard-implementation-guide.md`](./quality-dashboard-implementation-guide.md) — wiki topic (구현 가이드)
   - [`./maturity_matrix.json`](./maturity_matrix.json) — Panel 1/2 의 data source

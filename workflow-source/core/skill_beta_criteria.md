@@ -4,7 +4,7 @@
 - 범위: beta-level 정의, 각 skill별 현재 수준,upgrade checklist
 - 대상 독자: 개발자, 운영자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-07-09
+- 최종 수정일: 2026-07-18
 - 관련 문서: `./prototype_promotion_scope.md`, `../skills/README.md`
 
 ## 1. Beta-Level 정의

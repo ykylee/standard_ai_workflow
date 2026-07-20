@@ -40,7 +40,7 @@ STATUS_VERSION_RE = re.compile(r"v[\d.]+-beta\s*기준")
 
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 

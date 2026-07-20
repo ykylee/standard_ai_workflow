@@ -96,9 +96,13 @@ def case_1_smoke_count() -> bool:
 
 
 def case_2_harness_count() -> bool:
-    """2) 실제 harness 디렉터리 수가 CODE_INDEX 의 'NNN개 지원 하네스' 와 정합."""
+    """2) 실제 harness 디렉터리 수가 CODE_INDEX 의 'NNN개 지원 하네스' 와 정합.
+    
+    `_template` (신규 하네스 추가용 템플릿) + `custom` (caller 가 wire-up 하는 neutral adapter,
+    check_harness_v0_15_9 의 EXCLUDED 정공법과 정합) 제외.
+    """
     _, names = _count_harness_dirs()
-    actual_harness = [n for n in names if n != "_template"]
+    actual_harness = [n for n in names if n not in {"_template", "custom"}]
     content = _load_code_index()
     claim = _extract_count_from_text(content, r"(\d+)개\s+지원\s+하네스")
     if claim is None:
@@ -107,7 +111,7 @@ def case_2_harness_count() -> bool:
     if len(actual_harness) != claim:
         print(f"  FAIL: harness 수 불일치 — actual={len(actual_harness)} ({actual_harness}), claim={claim}")
         return False
-    print(f"  [info] {len(actual_harness)} harness (excluding _template) = CODE_INDEX '{claim}개 지원 하네스' 정합")
+    print(f"  [info] {len(actual_harness)} harness (excluding _template + custom) = CODE_INDEX '{claim}개 지원 하네스' 정합")
     return True
 
 
@@ -181,6 +185,28 @@ def main() -> int:
     if passed != len(cases):
         return 1
     return 0
+
+
+# v0.15.17+: pytest-friendly wrappers (TST-WF-01 정합 — def test_ 패턴 추가).
+# 기존 `def case_*` 와 `def main()` 정합 유지. pytest collection 에서도 5 case 모두 검증.
+def test_case_1_smoke_count() -> None:
+    assert case_1_smoke_count(), "case_1_smoke_count FAIL"
+
+
+def test_case_2_harness_count() -> None:
+    assert case_2_harness_count(), "case_2_harness_count FAIL"
+
+
+def test_case_3_skill_count() -> None:
+    assert case_3_skill_count(), "case_3_skill_count FAIL"
+
+
+def test_case_4_version_stamp() -> None:
+    assert case_4_version_stamp(), "case_4_version_stamp FAIL"
+
+
+def test_case_5_frontmatter_stamp() -> None:
+    assert case_5_frontmatter_stamp(), "case_5_frontmatter_stamp FAIL"
 
 
 if __name__ == "__main__":

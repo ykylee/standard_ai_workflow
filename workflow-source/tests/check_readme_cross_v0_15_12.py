@@ -36,7 +36,7 @@ README_PACKAGE_VERSION_RE = re.compile(
 # 10 harness 정합 (case_2) — README 본문에 등장해야 함
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 # Stale text 패턴 (case_4)

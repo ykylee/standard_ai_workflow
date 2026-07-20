@@ -1,18 +1,18 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-17T15:12:41Z`
-- tool_version: `v0.15.0-beta`
-- workspace_root: `.`
+- generated_at: `2026-07-20T13:33:11Z`
+- tool_version: `v0.15.16-beta`
+- workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-17`
+- maturity_last_updated: `2026-07-20`
 - maturity_stale: `False`
-- harness_supported_count: `10`
-- head_commit_date: `2026-07-17`
-- last_updated_delta_days: `0`
+- harness_supported_count: `11`
+- head_commit_date: `2026-07-19`
+- last_updated_delta_days: `1`
 - silent_failing_cycles_count: `0`
 
 ## Panel 2 — Maturity Distribution
@@ -46,8 +46,8 @@
 
 ### harnesses
 
-- supported: `10`
-- names: `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale`
+- supported: `11`
+- names: `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `grok-build`, `pi-dev`, `codewhale`
 
 ## Panel 3 — Memory Index Utilization
 
@@ -77,7 +77,7 @@
 - cumulative_total: `260`
 - cumulative_pass: `260`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `192`
+- smoke_files_count: `196`
 
 ### Recent release smoke counts
 
@@ -86,26 +86,11 @@
 | Beta-v0.15.0 | 260 | 260 |
 | Beta-v0.14.7 | 260 | 260 |
 | Beta-v0.14.6 | 260 | 260 |
-| Beta-v0.14.5 | 260 | 260 |
-| Beta-v0.14.3 | 260 | 260 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `26`
+- items_total: `0`
 - top_n: `10`
-
-### Timeline (preview, first 120 char)
-
-- [0] TASK-2026-07-17-015 — v0.15.15 — **docs(quickstart): QUICKSTART.md cross-check smoke + 2 in-scope issue 정정 — v0.15.0 rel…
-- [1] TASK-2026-07-17-014 — v0.15.14 — **docs(install): INSTALLATION_AND_USAGE.md cross-check smoke + stale text 정정 — v0.15.0 …
-- [2] TASK-2026-07-17-013 — v0.15.13 — **feat(harness): Harness apply_guide.md content cross-check smoke — 10 harness apply_gu…
-- [3] TASK-2026-07-17-012 — v0.15.12 — **docs(readme): README.md cross-check smoke + stale text 정정 — v0.15.0 release 의 README …
-- [4] TASK-2026-07-17-011 — v0.15.11 — **fix(release): sample tool_version housekeeping + 3-way cross-check smoke — v0.15.0 re…
-- [5] TASK-2026-07-17-010 — v0.15.10 — **docs(adr): MICROSOFT_MEMORA_EVALUATION.md close-out — Memora-inspired metadata layer …
-- [6] TASK-2026-07-17-009 — v0.15.9 — **SemVer patch, Harness verification smoke — 10 harness cross-check discipline anchor**.…
-- [7] TASK-2026-07-17-008 — v0.15.8 — **SemVer patch, Panel 1+2 maturity_distribution cross-validation smoke — v1.0.0 진입 평가의 c…
-- [8] TASK-2026-07-17-007 — v0.15.7 — **SemVer patch, Panel 3 memory_index cross-validation smoke — Phase 13 AC2 retrieval cro…
-- [9] TASK-2026-07-17-006 — v0.15.6 — **SemVer patch, Panel 6/8 telemetry cross-validation smoke — Phase 15 cross-check discip…
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 

@@ -12,7 +12,7 @@
 - 프로젝트 슬러그: `standard-ai-workflow`
 - 프로젝트 목적: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우 문서와 템플릿, skill/MCP/agent 구현 기준을 독립 프로젝트 형태로 제공한다.
 - 주요 이해관계자: 저장소 maintainer (`ykylee`), 워크플로우 도입 검토자, 멀티 에이전트 운영자
-- 현재 베이스라인: **v0.15.15-beta** (package: standard-ai-workflow 0.15.15, runtime `__version__` = v0.15.15-beta)
+- 현재 베이스라인: **v0.15.16-beta** (package: standard-ai-workflow 0.15.16, runtime `__version__` = v0.15.16-beta)
 - Phase: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비). SSOT: `workflow-source/core/maturity_matrix.json`
 - 누적 release cycle (memory 스냅샷): **v0.15.15 follow-up close-out** (v0.15.1~v0.15.15 누적 정합 보강 + `PROJECT_PROFILE.md` canonical path 정리)
 - 핵심 마일스톤 (v0.11.18 ~ v0.15.15):

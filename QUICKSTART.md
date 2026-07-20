@@ -24,6 +24,11 @@
   - OpenCode CLI
   - Gemini CLI
   - Antigravity
+  - Claude Code (CLAUDE.md root 진입점)
+  - CodeWhale (Constitution 보강 SKILL.md)
+  - Aider (CONVENTIONS.md 진입점)
+  - Goose (extension 등록 config.yaml)
+  - Grok Build (`grok-build`, xAI CLI TUI, v0.15.16 신규)
   - pi-dev
   - **배포 패키지**: `dist/harnesses/<선택한 하네스>/v0.6.5-beta/` 아래의 압축 파일.
 

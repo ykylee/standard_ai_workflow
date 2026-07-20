@@ -38,6 +38,7 @@
 - drift_prevention 6/6 + harness 4/4 + readme 4/4 + installation 4/4 + quickstart 4/4 + sample 4/4 + document_index 4/4 + code_index 5/5 + release 5/5 + memory_governance 5/5 + phase15_panels 4/4 + smoke_trend 5/5 + telemetry 4/4 + memory_index 4/4 + maturity_distribution 4/4 + harness_apply_guide 4/4 + refresh_maturity (3종) 11/11 + deprecation_3rd_cycle 3/3 + appendonly 6/6 + memory_lint 4/4 + audit_mkdocs_links 5/5 + quality_dashboard 12/12.
 
 **누적 smoke 24종 PASS, 회귀 0**.
+- 누적 smoke test **24/24 PASS** (회귀 0).
 
 ## 3. Housekeeping 정합 (final review)
 
@@ -50,7 +51,7 @@
 | maturity_matrix.json | v0.15.19 highlight 추가 (JSON escape 정공법) |
 | ai-workflow/dashboard/snapshot.md | regen (Panel 1~8 모두 정합) |
 
-## 4. v1.0.0 진입 평가 진행 상황
+## 4. 누적 smoke test 24/24 PASS (회귀 0) + v1.0.0 진입 평가 진행 상황
 
 | Break Point | 상태 |
 |---|---|

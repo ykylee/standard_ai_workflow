@@ -306,25 +306,26 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 
 ### 8.1 Verdict
 
-- **Gate 1 (Dashboard 정합)**: ⚠️ CONDITIONAL (Panel 5 fail)
-- **Gate 2 (Smoke 24종)**: ✅ PASS
-- **Gate 3 (mypy strict)**: ⚠️ NOT MEASURED (간접 verify)
+- **Gate 1 (Dashboard 정합)**: ✅ PASS (v0.15.17 + v0.15.19 close-out)
+- **Gate 2 (Smoke 24종)**: ✅ PASS (24/24, 회귀 0)
+- **Gate 3 (mypy strict)**: ⚠️ NOT MEASURED (venv 미활성, CI 3-layer defense 정합으로 운영 risk 낮음)
 - **Gate 4 (Backward compat)**: ✅ PASS (1 breaking, 2-cycle 종결)
-- **Gate 5 (Public API stability)**: ✅ PASS
-- **Gate 6 (Deprecation roadmap)**: ✅ PASS
+- **Gate 5 (Public API stability)**: ✅ PASS (25 __all__ entries + 12 skill + 11 MCP + 11 harness)
+- **Gate 6 (Deprecation roadmap)**: ✅ PASS (v0.15.0 complete, ADR-007 accepted)
 
-**종합**: ⚠️ **CONDITIONAL PASS** (5/6 gate PASS + 1 break point). 4 release 후속 (v0.15.17~v0.15.20) 으로 break point 해소 후 v1.0.0 진입 가능.
+**종합**: ⚠️ **CONDITIONAL PASS** (5/6 gate PASS + 1 conditional Gate 3 mypy strict). venv 활성화 후 mypy strict 0 errors verify 만 남음.
 
 ### 8.2 권장 사항
 
-1. **즉시 (다음 세션)**: Break Point #1 해소 (state.json 재생성 + TASK-2026-07-20-001.md 작성). **v0.15.17 release**.
-2. **단기 (1~2 release)**: Break Point #2 해소 (TST-WF-01 historical smoke 보강). **v0.15.18 release**.
-3. **중기 (3 release)**: cross-panel final 정합 + pre-release final. **v0.15.19 + v0.15.20 release**.
-4. **장기 (4 release 후)**: **v1.0.0 stable release** + SemVer 2-year guarantee 정식 + Phase 13 close-out.
+1. **완료 (v0.15.17)**: Break Point #1 해소 (state.json 재생성 + TASK-2026-07-20-001.md 작성).
+2. **완료 (v0.15.18)**: Break Point #2 해소 (TST-WF-01 historical smoke 보강 + 575 wrapper).
+3. **완료 (v0.15.19)**: Cross-panel final 정합 (Panel 1~8 + 24 smoke + 모든 housekeeping).
+4. **진행 (v0.15.20)**: v1.0.0 pre-release final (stable API 명세 final + SemVer 2-year guarantee doc).
+5. **후속**: venv 활성화 후 mypy strict 0 errors verify → **v1.0.0 stable release** + Phase 13 close-out.
 
 ### 8.3 v1.0.0 진입 시 보장 사항
 
-1. 모든 stable API 2-year backward compat (SemVer).
+1. 모든 stable API 2-year backward compat (SemVer). 상세: [`./stable_guarantee.md`](./stable_guarantee.md).
 2. 24종 smoke cross-check discipline anchor 자동 verify.
 3. 11 harness overlay 의 entry point 자동 read 정합.
 4. Breaking change 시 migration 가이드 정공법 (1 release warning + 1 release removal + contract test).
@@ -337,7 +338,8 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 - [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md) — Phase 12/13 로드맵
 - [./v0_9_0_deprecation_policy_spec.md](./v0_9_0_deprecation_policy_spec.md) — Deprecation 정책 spec
 - [./v0_8_0_stable_api_spec.md](./v0_8_0_stable_api_spec.md) — Stable API spec
+- [./stable_guarantee.md](./stable_guarantee.md) — **v1.0.0 Stable API Guarantee (SemVer 2-Year Backward Compat)** — v1.0.0 entry 시점의 public API guarantee scope, 한계, migration 가이드
 - [`../../ai-workflow/memory/active/session_analysis_2026-07-17.md`](../../ai-workflow/memory/active/session_analysis_2026-07-17.md) — 2026-07-17 v0.15.0 release 종합
 - [`../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md`](../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md) — 2026-07-09 audit 보고서
 - [`../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md`](../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md) — ADR-007 3rd cycle no-op
-- [`../../workflow-source/releases/Beta-v0.15.16.md`](../../workflow-source/releases/Beta-v0.15.16.md) — v0.15.16 release note
+- [`../../workflow-source/releases/Beta-v0.15.19.md`](../../workflow-source/releases/Beta-v0.15.19.md) — v0.15.19 cross-panel final 정합 release note

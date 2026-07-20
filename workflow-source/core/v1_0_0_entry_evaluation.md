@@ -204,6 +204,12 @@ ADR-007 (`deprecation-3rd-cycle-candidates`) accepted (v0.15.4) — 3rd cycle no
 
 ADR-007 (`docs/architecture/ADR-007-deprecation-3rd-cycle-candidates.md`): 3rd cycle 후보 검토 — workflow_log_rotator / deprecated skill 등 7개 검토 후 모두 no-op (replacement 또는 stable 운용 중). **accepted (no-op)**.
 
+### 4.4 Phase 12 close-out (v0.15.20)
+
+- **maturity_matrix.json Phase 12 `status: done`** + `closed_in_release: v0.15.20 (commit ab202d8)` + `closed_note` (Operational Intelligence + Deprecation Stabilization 완료).
+- **Phase 12 의 본질 (close-out)**: v0.11.18 FULL mypy strict (109 file clean) + v0.11.19~v0.11.21 3 batch 9 skill stable + ADR-005 Memora-inspired Memory Index + v0.13.0 Quality Dashboard 5 panel + v0.13.1 telemetry + v0.13.2 self-recover + v0.13.3 bidir-link + v0.14.0 append-only + v0.14.1~v0.14.2 MCP 1st/2nd batch stable + v0.14.3 Phase 15 dashboard Panel 6/7/8 + v0.15.0 2-cycle deprecation 종결 (⚠️ BREAKING `.bak` drop) + v0.15.1~v0.15.15 cross-check discipline anchor + v0.15.16 Grok Build 11번째 하네스 + v0.15.17 release memory cycle close-out + v0.15.18 TST-WF-01 historical smoke 보강 + v0.15.19 cross-panel final 정합 + v0.15.20 v1.0.0 pre-release final (stable API 25/25 + SemVer 2-year guarantee).
+- **Phase 13 follow-up 진입 대기**: v1.0.0 stable 진입 시점부터 정식 start. 상세 follow-up 작업: [`./phase_13_followup.md`](./phase_13_followup.md).
+
 ## 5. SemVer 2-Year Guarantee Audit
 
 ### 5.1 Guarantee Scope
@@ -320,8 +326,8 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 1. **완료 (v0.15.17)**: Break Point #1 해소 (state.json 재생성 + TASK-2026-07-20-001.md 작성).
 2. **완료 (v0.15.18)**: Break Point #2 해소 (TST-WF-01 historical smoke 보강 + 575 wrapper).
 3. **완료 (v0.15.19)**: Cross-panel final 정합 (Panel 1~8 + 24 smoke + 모든 housekeeping).
-4. **진행 (v0.15.20)**: v1.0.0 pre-release final (stable API 명세 final + SemVer 2-year guarantee doc).
-5. **후속**: venv 활성화 후 mypy strict 0 errors verify → **v1.0.0 stable release** + Phase 13 close-out.
+4. **완료 (v0.15.20)**: v1.0.0 pre-release final (stable API 명세 final + SemVer 2-year guarantee doc + 25/25 stable API frozen + Phase 12 close-out).
+5. **후속**: venv 활성화 후 mypy strict 0 errors verify → **v1.0.0 stable release** + **Phase 13 follow-up 진입** (2-year SemVer guarantee 운영).
 
 ### 8.3 v1.0.0 진입 시 보장 사항
 
@@ -330,7 +336,7 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 3. 11 harness overlay 의 entry point 자동 read 정합.
 4. Breaking change 시 migration 가이드 정공법 (1 release warning + 1 release removal + contract test).
 5. 누적 smoke 24종 + 누적 100+ release 의 backward compat 검증.
-6. Phase 13 (운영 지능화) close-out + v1.0.0 정식 entry.
+6. Phase 12 (운영 지능화 + deprecation 안정화) close-out + **Phase 13 (안정성 + 2-year SemVer guarantee follow-up) 진입**. 상세: [`./phase_13_followup.md`](./phase_13_followup.md).
 
 ## 다음에 읽을 문서
 
@@ -339,6 +345,7 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 - [./v0_9_0_deprecation_policy_spec.md](./v0_9_0_deprecation_policy_spec.md) — Deprecation 정책 spec
 - [./v0_8_0_stable_api_spec.md](./v0_8_0_stable_api_spec.md) — Stable API spec
 - [./stable_guarantee.md](./stable_guarantee.md) — **v1.0.0 Stable API Guarantee (SemVer 2-Year Backward Compat)** — v1.0.0 entry 시점의 public API guarantee scope, 한계, migration 가이드
+- [./phase_13_followup.md](./phase_13_followup.md) — **Phase 13 — Operational Intelligence v1.0 + 2-Year Guarantee Follow-up** — v1.0.0 stable 진입 후 2-year 운영 follow-up 정의 (AC1~AC6, follow-up 작업, success criteria)
 - [`../../ai-workflow/memory/active/session_analysis_2026-07-17.md`](../../ai-workflow/memory/active/session_analysis_2026-07-17.md) — 2026-07-17 v0.15.0 release 종합
 - [`../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md`](../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md) — 2026-07-09 audit 보고서
 - [`../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md`](../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md) — ADR-007 3rd cycle no-op

@@ -89,7 +89,7 @@ Data source: `workflow-source/core/maturity_matrix.json` + git HEAD commit
   "head_commit_date": "2026-07-09",
   "last_updated_delta_days": 0,
   "silent_failing_cycles_count": 0,
-  "phase": "Phase 12 (in_progress) → Phase 13 (planned)"
+  "phase": "Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)"
 }
 ```
 

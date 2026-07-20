@@ -122,11 +122,16 @@ def test_case_1_pyproject_loud_fallback_sync() -> None:
 
 
 # ---------------------------------------------------------------------------
-# case 2 — maturity_matrix phase monotonicity + Phase 11 done / Phase 12 in_progress
+# case 2 — maturity_matrix phase monotonicity + Phase 11/12 done / Phase 13 planned
 # ---------------------------------------------------------------------------
 
 def test_case_2_maturity_matrix_phase_status() -> None:
-    """Phase status 단조성 + Phase 11 done / Phase 12 in_progress 정합."""
+    """Phase status 단조성 + Phase 11/12 done / Phase 13 planned 정합.
+
+    Phase 12 close-out (v0.15.20, commit ab202d8): Operational Intelligence +
+    Deprecation Stabilization 완료. Phase 13 follow-up 진입 대기 (v1.0.0 stable 진입
+    후 정식 start). 상세: workflow-source/core/phase_13_followup.md.
+    """
     mm = _read_maturity()
     milestones = mm["milestones"]
     allowed = {"done", "in_progress", "planned"}
@@ -136,10 +141,17 @@ def test_case_2_maturity_matrix_phase_status() -> None:
         f"Phase 11 should be 'done' (closed in v0.9.0). "
         f"got {milestones['Phase 11']['status']!r}."
     )
-    assert milestones["Phase 12"]["status"] == "in_progress", (
-        f"Phase 12 should be 'in_progress' (current operational phase). "
+    assert milestones["Phase 12"]["status"] == "done", (
+        f"Phase 12 should be 'done' (closed in v0.15.20). "
         f"got {milestones['Phase 12']['status']!r}."
     )
+    # Phase 13 정합: v1.0.0 stable 진입 후 planned. 현 시점에는 maturity_matrix.json 에
+    # Phase 13 entry 가 없을 수 있음 (선택적 정의). 정의된 경우에만 검증.
+    if "Phase 13" in milestones:
+        assert milestones["Phase 13"]["status"] == "planned", (
+            f"Phase 13 should be 'planned' (v1.0.0 stable 진입 후 정식 start). "
+            f"got {milestones['Phase 13']['status']!r}."
+        )
 
 
 # ---------------------------------------------------------------------------

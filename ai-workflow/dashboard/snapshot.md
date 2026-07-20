@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-20T14:48:34Z`
-- tool_version: `v0.15.19-beta`
+- generated_at: `2026-07-20T15:00:45Z`
+- tool_version: `v0.15.20-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -40,8 +40,8 @@
 | metric | value |
 |---|---|
 | total | 12 |
-| done | 11 |
-| in_progress | 1 |
+| done | 12 |
+| in_progress | 0 |
 | planned | 0 |
 
 ### harnesses

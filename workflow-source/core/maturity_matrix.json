@@ -52,10 +52,17 @@
     },
     "Phase 12": {
       "name": "Operational Intelligence + Deprecation Stabilization",
-      "status": "in_progress",
+      "status": "done",
       "started": "2026-06-18",
+      "closed_in_release": "v0.15.20 (2026-07-20, ab202d8)",
       "target_milestone": "v1.0.0 stable guarantee",
-      "in_progress_highlights": [
+      "closed_note": "Operational Intelligence (Quality Dashboard 8 panel + telemetry + self-recover + bidir-link) + Deprecation Stabilization (2-cycle 종결 v0.15.0 + 3rd cycle no-op ADR-007 accepted) 완료. v1.0.0 pre-release final package (v0.15.17 + v0.15.18 + v0.15.19 + v0.15.20) 로 Phase 12 close-out. Phase 13 follow-up 정의: stable_guarantee.md + phase_13_followup.md.",
+      "highlights": [
+        "v0.11.18 (80470cd): FULL mypy strict 도달 — 109 file clean, 0 errors (v0.11.10 cumulative 35 file → v0.11.18 107 file → v0.11.21 109 file)",
+        "v0.11.19~v0.11.21 (3 batch): 11 skill → 9 stable + 2 beta + 1 alpha (session-start, doc-sync, validation-plan, code-index-update, backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment, robust-patcher 모두 stable; automated-repro-scaffold, git-conflict-resolver 가 남은 2 beta + 1 alpha)",
+        "v0.11.22 (in release): ADR-005 Memora-inspired Memory Index Phase 1~3d 8 release 완료 (prototype + state.json hook + --merge opt-in + BM25 stdlib fallback + dispatcher entry + 3 skill opt-in wiring)",
+        "ADR-006: ADR-005 Memory Index retrospective 자리 박기 (회고 본문은 v0.11.23+ 또는 실 사용 30일 후 작성)",
+        "CodeWhale harness (v0.10.4, 2026-07-03): 10번째 하네스, 단일 SKILL.md overlay (Constitution 보강)",
         "v0.11.18 (80470cd): FULL mypy strict 도달 — 109 file clean, 0 errors (v0.11.10 cumulative 35 file → v0.11.18 107 file → v0.11.21 109 file)",
         "v0.11.19~v0.11.21 (3 batch): 11 skill → 9 stable + 2 beta + 1 alpha (session-start, doc-sync, validation-plan, code-index-update, backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment, robust-patcher 모두 stable; automated-repro-scaffold, git-conflict-resolver 가 남은 2 beta + 1 alpha)",
         "v0.11.22 (in release): ADR-005 Memora-inspired Memory Index Phase 1~3d 8 release 완료 (prototype + state.json hook + --merge opt-in + BM25 stdlib fallback + dispatcher entry + 3 skill opt-in wiring)",

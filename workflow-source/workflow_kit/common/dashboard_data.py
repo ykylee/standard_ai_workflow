@@ -199,7 +199,7 @@ def collect_drift_prevention(
         "head_commit_date": head_commit_date,
         "last_updated_delta_days": last_updated_delta_days,
         "silent_failing_cycles_count": silent_failing_cycles_count,  # Phase 14 freshness proxy
-        "phase": "Phase 12 (in_progress) → Phase 13 (planned)",
+        "phase": "Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)",
     }
 
 

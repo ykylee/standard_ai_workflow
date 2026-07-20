@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-20T14:08:21Z`
-- tool_version: `v0.15.16-beta`
+- generated_at: `2026-07-20T14:32:32Z`
+- tool_version: `v0.15.18-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -84,8 +84,6 @@
 | version | pass | total |
 |---|---|---|
 | Beta-v0.15.0 | 260 | 260 |
-| Beta-v0.14.7 | 260 | 260 |
-| Beta-v0.14.6 | 260 | 260 |
 
 ## Panel 5 — Recent Release Cycle
 

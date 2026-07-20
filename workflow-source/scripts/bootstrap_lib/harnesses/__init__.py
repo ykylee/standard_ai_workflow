@@ -42,6 +42,7 @@ SUPPORTED_HARNESSES: tuple[str, ...] = (
     "claude-code",
     "aider",
     "goose",
+    "grok-build",
     "codewhale",
     "custom",
 )
@@ -166,6 +167,24 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
             "표준 AI workflow 의 3 skill (session-start / backlog-update / doc-sync) 을 "
             "Goose 의 entry_points 로 등록 + read_files (5종) 명시. on_session_end hook 으로 "
             "handoff 자동 갱신 (session-start skill 의 update-handoff flag). language: ko."
+        ),
+    ),
+    "grok-build": HarnessSpec(
+        name="grok-build",
+        description="Grok Build (xAI CLI TUI)용 overlay. AGENTS.md + GROK.md 진입점 + .grok/skills/ + .grok/config.toml.example.",
+        entry_files=("AGENTS.md", "GROK.md"),
+        extra_files=(
+            ".grok/skills/standard-ai-workflow/SKILL.md",
+            ".grok/config.toml.example",
+        ),
+        long_description=(
+            "Grok Build (xAI CLI TUI) 환경용 오버레이. Codex 와 동일한 `AGENTS.md` root 진입점 + "
+            "Grok Build 전용 `GROK.md` (한국어 baseline + subagent 활용 + MCP 등록 + memory opt-in) + "
+            "`.grok/skills/standard-ai-workflow/SKILL.md` (TUI picker 표시) + "
+            "`.grok/config.toml.example` (MCP stdio snippet + skill paths + memory opt-in). "
+            "Grok Build 는 Claude (`.claude.json`) / Cursor (`.cursor/mcp.json`) / `.mcp.json` "
+            "호환성을 가지므로 기존 workflow MCP 등록을 자동 import 가능 (config > claude > cursor > mcp). "
+            "AGENTS.md 와 GROK.md 의 baseline 원칙은 *동일하게 유지* 하며, GROK.md 는 additive rule 만 포함."
         ),
     ),
     "codewhale": HarnessSpec(

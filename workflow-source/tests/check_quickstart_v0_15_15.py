@@ -38,7 +38,7 @@ MCP_INSTALLATION_PATH = SOURCE_ROOT / "core" / "mcp_installation_by_harness.md"
 
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 # baseline mention (의도된 표기, fail ❌ 가 아닌 info 만)

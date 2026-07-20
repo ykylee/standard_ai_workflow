@@ -35,11 +35,11 @@ MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 # (정밀도: 둘 중 하나 이상).
 HARNESS_MIN_ENTRY_FILES = ["apply_guide.md", "AGENTS.md"]
 
-# 실제 검증 대상 10개 (maturity_matrix.harnesses.supported 와 정합 검증용)
-# 3-way cross-check 의 expected set.
+# 실제 검증 대상 11개 (maturity_matrix.harnesses.supported 와 정합 검증용)
+# 3-way cross-check 의 expected set. v0.15.16+ grok-build 추가 (11개).
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 

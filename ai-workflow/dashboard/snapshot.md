@@ -1,17 +1,17 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-17T15:12:41Z`
-- tool_version: `v0.15.0-beta`
-- workspace_root: `.`
+- generated_at: `2026-07-20T14:08:21Z`
+- tool_version: `v0.15.16-beta`
+- workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-17`
+- maturity_last_updated: `2026-07-20`
 - maturity_stale: `False`
-- harness_supported_count: `10`
-- head_commit_date: `2026-07-17`
+- harness_supported_count: `11`
+- head_commit_date: `2026-07-20`
 - last_updated_delta_days: `0`
 - silent_failing_cycles_count: `0`
 
@@ -46,8 +46,8 @@
 
 ### harnesses
 
-- supported: `10`
-- names: `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale`
+- supported: `11`
+- names: `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `grok-build`, `pi-dev`, `codewhale`
 
 ## Panel 3 — Memory Index Utilization
 
@@ -77,7 +77,7 @@
 - cumulative_total: `260`
 - cumulative_pass: `260`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `192`
+- smoke_files_count: `196`
 
 ### Recent release smoke counts
 
@@ -86,26 +86,24 @@
 | Beta-v0.15.0 | 260 | 260 |
 | Beta-v0.14.7 | 260 | 260 |
 | Beta-v0.14.6 | 260 | 260 |
-| Beta-v0.14.5 | 260 | 260 |
-| Beta-v0.14.3 | 260 | 260 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `26`
+- items_total: `10`
 - top_n: `10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-07-17-015 — v0.15.15 — **docs(quickstart): QUICKSTART.md cross-check smoke + 2 in-scope issue 정정 — v0.15.0 rel…
-- [1] TASK-2026-07-17-014 — v0.15.14 — **docs(install): INSTALLATION_AND_USAGE.md cross-check smoke + stale text 정정 — v0.15.0 …
-- [2] TASK-2026-07-17-013 — v0.15.13 — **feat(harness): Harness apply_guide.md content cross-check smoke — 10 harness apply_gu…
-- [3] TASK-2026-07-17-012 — v0.15.12 — **docs(readme): README.md cross-check smoke + stale text 정정 — v0.15.0 release 의 README …
-- [4] TASK-2026-07-17-011 — v0.15.11 — **fix(release): sample tool_version housekeeping + 3-way cross-check smoke — v0.15.0 re…
-- [5] TASK-2026-07-17-010 — v0.15.10 — **docs(adr): MICROSOFT_MEMORA_EVALUATION.md close-out — Memora-inspired metadata layer …
-- [6] TASK-2026-07-17-009 — v0.15.9 — **SemVer patch, Harness verification smoke — 10 harness cross-check discipline anchor**.…
-- [7] TASK-2026-07-17-008 — v0.15.8 — **SemVer patch, Panel 1+2 maturity_distribution cross-validation smoke — v1.0.0 진입 평가의 c…
-- [8] TASK-2026-07-17-007 — v0.15.7 — **SemVer patch, Panel 3 memory_index cross-validation smoke — Phase 13 AC2 retrieval cro…
-- [9] TASK-2026-07-17-006 — v0.15.6 — **SemVer patch, Panel 6/8 telemetry cross-validation smoke — Phase 15 cross-check discip…
+- [0] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…
+- [1] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…
+- [2] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …
+- [3] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…
+- [4] TASK-2026-07-20-001 — v0.15.16 — **SemVer patch, Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확…
+- [5] Phase 10 MCP/JSON-RPC draft
+- [6] Phase 6 multi-agent delegation pilot
+- [7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…
+- [8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …
+- [9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 

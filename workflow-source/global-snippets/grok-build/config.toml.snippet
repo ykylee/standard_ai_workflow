@@ -1,0 +1,87 @@
+# Merge manually into ~/.grok/config.toml if needed.
+# Keep this snippet additive: avoid model/provider overrides here.
+# The Grok Build default model ("grok-build") is preserved — do NOT set
+# [models] default in this snippet.
+
+# ---------------------------------------------------------------------------
+# 표준 AI 워크플로우 MCP (read-only)
+# ---------------------------------------------------------------------------
+[mcp_servers.standardAiWorkflowReadOnly]
+command = "python3"
+args = ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
+STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"
+
+[mcp_servers.standardAiWorkflowReadOnly.tool_descriptions]
+workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadata, ...) for the Standard AI Workflow kit."
+
+# stdio-sdk variant (실험적):
+# [mcp_servers.standardAiWorkflowReadOnly]
+# command = "python3"
+# args = ["-m", "workflow_kit.server.read_only_mcp_sdk", "--stdio-sdk"]
+# PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
+# STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"
+
+# ---------------------------------------------------------------------------
+# User-scoped skill paths (TUI picker 표시)
+# ---------------------------------------------------------------------------
+# [skills]
+# paths = ["~/my-team-skills"]
+# ignore = ["~/my-team-skills/wip"]
+# disabled = ["wip-skill"]
+
+# ---------------------------------------------------------------------------
+# Memory (opt-in)
+# ---------------------------------------------------------------------------
+# [memory]
+# enabled = true                       # default false; opt-in 필요
+#
+# [memory.session]
+# save_on_end = true                   # write metadata summary on session end
+#
+# [memory.watcher]
+# enabled = true                       # watch memory files for external edits
+#
+# [memory.search]
+# max_results = 6
+# min_score = 0.35
+#
+# [memory.initial_injection]
+# enabled = true
+# min_score = 0.0
+
+# ---------------------------------------------------------------------------
+# Subagent (bounded scope 분리)
+# ---------------------------------------------------------------------------
+# [subagents]
+# enabled = true
+#
+# [subagents.toggle]
+# explore = true
+# plan = true
+#
+# [subagents.models]
+# explore = "grok-4.20-multi-agent"   # 더 가벼운 모델로 분리
+# plan = "grok-4.20-multi-agent"
+
+# ---------------------------------------------------------------------------
+# 호환성 자동 import (선택)
+# ---------------------------------------------------------------------------
+# 기존 workflow MCP 가 Claude / Cursor / Codex 자산을 자동 import.
+# 의도치 않은 override 가 발생하면 false 로 비활성화.
+# [compat.claude]
+# mcps = true
+# rules = true
+# skills = true
+# agents = true
+# hooks = true
+#
+# [compat.cursor]
+# mcps = true
+# rules = true
+# skills = true
+# agents = true
+# hooks = true
+#
+# [compat.codex]
+# sessions = true

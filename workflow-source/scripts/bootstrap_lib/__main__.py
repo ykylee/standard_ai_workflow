@@ -924,6 +924,19 @@ def write_harness_files(
             _w(claude_agents, render_claude_code_agents(args, context))
             generated["claude_code_agents"] = str(claude_agents)
 
+    if "grok-build" in harnesses:
+        # Grok Build 는 GROK.md 를 root 진입점으로 자동 read. AGENTS.md 는
+        # codex/opencode/pi-dev dispatch block 의 render_codex_agents 결과로
+        # 이미 emit (grok-build 와 동시 선택 시 idempotent). grok-build 만
+        # 단독 선택 시 write_harness_files 의 grok-build branch 가 GROK.md 만 emit.
+        # entry-mode=skill-only: GROK.md 진입점 skip.
+        if getattr(args, "entry_mode", "aggressive") != "skill-only":
+            from bootstrap_lib.harnesses.renderers import render_grok_build_agents
+
+            grok_agents = paths.target_root / "GROK.md"
+            _w(grok_agents, render_grok_build_agents(args, context))
+            generated["grok_build_agents"] = str(grok_agents)
+
     if "aider" in harnesses:
         # Aider 는 CONVENTIONS.md 를 root 진입점으로 자동 read. entry-mode=skill-only skip.
         if getattr(args, "entry_mode", "aggressive") != "skill-only":

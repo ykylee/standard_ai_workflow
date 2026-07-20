@@ -105,6 +105,10 @@ def _check_state_json_source_of_truth() -> None:
             continue
         resolved = (ACTIVE_DIR / val).resolve()
         if not resolved.is_dir():
+            # v0.15.17 fix: state.json 의 path 가 *repo-relative* 로 emit 될 수도 있음
+            # (generate_workflow_state.py --workspace-root . 사용 시). 둘 다 시도.
+            resolved = (REPO_ROOT / val).resolve()
+        if not resolved.is_dir():
             errors.append(f"[state_json] source_of_truth.{key} → {val!r} 가 dir 아님 ({resolved})")
 
 

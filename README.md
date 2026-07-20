@@ -5,7 +5,7 @@
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
 - 최종 수정일: 2026-07-18
-- 버전: v0.15.17-beta(chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; **Phase 14 close (Append-only Memory Layout v1.0) + Phase 15 in_progress (2nd deprecation cycle 종결)** — v0.14.0 1st deprecation cycle 진입 → v0.14.1 1st cycle 종결 → v0.14.5 2nd cycle 진입 (\`--legacy-memory\` flag) → **v0.15.0 2nd cycle 종결 ⚠️ BREAKING**: \`work_backlog.md.bak\` (5.7 MB / 330 lines) drop, pre-v0.15.0 caller 중 silent fallback 사용은 자동 fallback 불가. Phase 15 dashboard Panel 6/7/8 (north-star + deprecation + telemetry + git reflog) 정합. v0.14.6 \`refresh-maturity\` dispatcher + \`cmd_release\` auto-wire. v0.14.2 \`apply_robust_patch\` 쓰기 MCP 정공법 stable. migration 가이드 3가지 (\`legacy_memory=True\` opt-in / 명시 path / \`.bak\` 미존재 정공법); package: standard-ai-workflow 0.15.16, runtime __version__ = v0.15.17-beta, latest tag **v0.15.0-beta**, head = 2nd deprecation cycle 종결 commit, v0.15.0 release 19커밋 보강 후 push 완료))
+- 버전: v0.15.18-beta(chapter 1+2+3+4 done, v0.9.1 chapter 5 done, v0.9.2 chapter 6 done, v0.9.3 chapter 7 done, v0.9.4 chapter 8 done, v0.9.5 chapter 9 done, v0.9.6 chapter 10 done, v0.10.0 chapter 11 done, v0.10.1 chapter 12 done, v0.10.2 chapter 13 done, v0.10.3 chapter 14 done; **Phase 14 close (Append-only Memory Layout v1.0) + Phase 15 in_progress (2nd deprecation cycle 종결)** — v0.14.0 1st deprecation cycle 진입 → v0.14.1 1st cycle 종결 → v0.14.5 2nd cycle 진입 (\`--legacy-memory\` flag) → **v0.15.0 2nd cycle 종결 ⚠️ BREAKING**: \`work_backlog.md.bak\` (5.7 MB / 330 lines) drop, pre-v0.15.0 caller 중 silent fallback 사용은 자동 fallback 불가. Phase 15 dashboard Panel 6/7/8 (north-star + deprecation + telemetry + git reflog) 정합. v0.14.6 \`refresh-maturity\` dispatcher + \`cmd_release\` auto-wire. v0.14.2 \`apply_robust_patch\` 쓰기 MCP 정공법 stable. migration 가이드 3가지 (\`legacy_memory=True\` opt-in / 명시 path / \`.bak\` 미존재 정공법); package: standard-ai-workflow 0.15.18, runtime __version__ = v0.15.18-beta, latest tag **v0.15.0-beta**, head = 2nd deprecation cycle 종결 commit, v0.15.0 release 19커밋 보강 후 push 완료))
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
 - 상위 로드맵 문서: `./workflow-source/core/workflow_kit_roadmap.md`
@@ -47,7 +47,7 @@
 | `workflow-source/mcp_servers/` | 향후 공통 MCP 구현 위치 |
 | `workflow-source/examples/` | 샘플 프로파일과 도입 예시 위치 |
 | `workflow-source/global-snippets/` | 하네스 전역 설정에 넣을 수 있는 비침투적 snippet 예시 |
-| `workflow-source/harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 (`grok-build` 포함 11개, v0.15.16 신규) |
+| `workflow-source/harnesses/` | Codex, OpenCode 같은 하네스별 배포 가이드 (`grok-build` 포함 11개, v0.15.16 신규, v0.15.18 정합) |
 | `workflow-source/scripts/` | end-to-end 데모와 통합 실행 스크립트 위치 |
 | `workflow-source/workflow_kit/` | 공통 파서, 분류, runner helper 를 담는 reusable package 루트 |
 | `workflow-source/tests/` | 링크/템플릿/구현 smoke test 위치 |

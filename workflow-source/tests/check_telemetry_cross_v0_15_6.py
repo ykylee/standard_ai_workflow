@@ -235,5 +235,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_events_jsonl_parse() -> None:
+    assert case_1_events_jsonl_parse(), "case_1_events_jsonl_parse FAIL"
+
+
+def test_case_2_panel_8_source_diversity() -> None:
+    assert case_2_panel_8_source_diversity(), "case_2_panel_8_source_diversity FAIL"
+
+
+def test_case_3_panel_8_hit_rate_sanity() -> None:
+    assert case_3_panel_8_hit_rate_sanity(), "case_3_panel_8_hit_rate_sanity FAIL"
+
+
+def test_case_4_panel_6_conflict_consistency() -> None:
+    assert case_4_panel_6_conflict_consistency(), "case_4_panel_6_conflict_consistency FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

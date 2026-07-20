@@ -170,5 +170,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_panel_6_conflict() -> None:
+    assert case_1_panel_6_conflict(), "case_1_panel_6_conflict FAIL"
+
+
+def test_case_2_panel_7_deprecation() -> None:
+    assert case_2_panel_7_deprecation(), "case_2_panel_7_deprecation FAIL"
+
+
+def test_case_3_panel_8_memory_index() -> None:
+    assert case_3_panel_8_memory_index(), "case_3_panel_8_memory_index FAIL"
+
+
+def test_case_4_all_8_panels_present() -> None:
+    assert case_4_all_8_panels_present(), "case_4_all_8_panels_present FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

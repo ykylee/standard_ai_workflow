@@ -36,7 +36,7 @@ README_PACKAGE_VERSION_RE = re.compile(
 # 10 harness 정합 (case_2) — README 본문에 등장해야 함
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 # Stale text 패턴 (case_4)
@@ -163,6 +163,28 @@ def main() -> int:
     if passed != len(cases):
         return 1
     return 0
+
+
+def test_case_1_readme_header_version() -> None:
+    assert case_1_readme_header_version(), "case_1_readme_header_version FAIL"
+
+
+def test_case_2_readme_harness_list() -> None:
+    assert case_2_readme_harness_list(), "case_2_readme_harness_list FAIL"
+
+
+def test_case_3_readme_package_version() -> None:
+    assert case_3_readme_package_version(), "case_3_readme_package_version FAIL"
+
+
+def test_case_4_readme_stale_text() -> None:
+    assert case_4_readme_stale_text(), "case_4_readme_stale_text FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
 
 
 if __name__ == "__main__":

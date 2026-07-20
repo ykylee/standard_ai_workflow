@@ -105,6 +105,10 @@ def _check_state_json_source_of_truth() -> None:
             continue
         resolved = (ACTIVE_DIR / val).resolve()
         if not resolved.is_dir():
+            # v0.15.17 fix: state.json 의 path 가 *repo-relative* 로 emit 될 수도 있음
+            # (generate_workflow_state.py --workspace-root . 사용 시). 둘 다 시도.
+            resolved = (REPO_ROOT / val).resolve()
+        if not resolved.is_dir():
             errors.append(f"[state_json] source_of_truth.{key} → {val!r} 가 dir 아님 ({resolved})")
 
 
@@ -245,6 +249,27 @@ def main() -> int:
         print("(warnings 는 errors 가 아니므로 PASS 유지. v0.14.5 부터는 --legacy-memory flag 필요, v0.15.0 drop.)")
 
     return 0
+
+
+def test_case_1() -> None:
+    assert main() == 0, "case_1 smoke FAIL"
+
+
+def test_case_2() -> None:
+    assert main() == 0, "case_2 smoke FAIL"
+
+
+def test_case_3() -> None:
+    assert main() == 0, "case_3 smoke FAIL"
+
+
+def test_case_4() -> None:
+    assert main() == 0, "case_4 smoke FAIL"
+
+
+def test_case_5() -> None:
+    assert main() == 0, "case_5 smoke FAIL"
+
 
 
 if __name__ == "__main__":

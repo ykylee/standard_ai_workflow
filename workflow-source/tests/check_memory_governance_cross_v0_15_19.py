@@ -148,5 +148,27 @@ def main() -> int:
     return 0
 
 
+# v0.15.19+: pytest-friendly wrappers (TST-WF-01 정합 — def test_ 패턴 추가).
+# 기존 `def case_*` 와 `def main()` 정합 유지. pytest collection 에서도 5 case 모두 검증.
+def test_case_1_frontmatter_stamp() -> None:
+    assert case_1_frontmatter_stamp(), "case_1_frontmatter_stamp FAIL"
+
+
+def test_case_2_status_values_complete() -> None:
+    assert case_2_status_values_complete(), "case_2_status_values_complete FAIL"
+
+
+def test_case_3_status_order() -> None:
+    assert case_3_status_order(), "case_3_status_order FAIL"
+
+
+def test_case_4_cross_reference() -> None:
+    assert case_4_cross_reference(), "case_4_cross_reference FAIL"
+
+
+def test_case_5_memory_commit_push_order() -> None:
+    assert case_5_memory_commit_push_order(), "case_5_memory_commit_push_order FAIL"
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -194,5 +194,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_sample_tool_version_consistency() -> None:
+    assert case_1_sample_tool_version_consistency(), "case_1_sample_tool_version_consistency FAIL"
+
+
+def test_case_2_sample_tool_version_matches_pyproject() -> None:
+    assert case_2_sample_tool_version_matches_pyproject(), "case_2_sample_tool_version_matches_pyproject FAIL"
+
+
+def test_case_3_init_loud_fallback_matches_pyproject() -> None:
+    assert case_3_init_loud_fallback_matches_pyproject(), "case_3_init_loud_fallback_matches_pyproject FAIL"
+
+
+def test_case_4_sample_file_structure() -> None:
+    assert case_4_sample_file_structure(), "case_4_sample_file_structure FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

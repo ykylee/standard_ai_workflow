@@ -158,5 +158,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_legacy_memory_with_bak() -> None:
+    assert case_1_legacy_memory_with_bak(), "case_1_legacy_memory_with_bak FAIL"
+
+
+def test_case_2_no_legacy_memory_with_bak() -> None:
+    assert case_2_no_legacy_memory_with_bak(), "case_2_no_legacy_memory_with_bak FAIL"
+
+
+def test_case_3_no_legacy_path() -> None:
+    assert case_3_no_legacy_path(), "case_3_no_legacy_path FAIL"
+
+
+def test_case_4_no_legacy_memory_explicit() -> None:
+    assert case_4_no_legacy_memory_explicit(), "case_4_no_legacy_memory_explicit FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

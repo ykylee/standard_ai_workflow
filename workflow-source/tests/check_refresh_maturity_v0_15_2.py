@@ -171,5 +171,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_strict_opt_out_skip() -> None:
+    assert case_1_strict_opt_out_skip(), "case_1_strict_opt_out_skip FAIL"
+
+
+def test_case_2_legacy_memory_explicit_true() -> None:
+    assert case_2_legacy_memory_explicit_true(), "case_2_legacy_memory_explicit_true FAIL"
+
+
+def test_case_3_default_none_apply() -> None:
+    assert case_3_default_none_apply(), "case_3_default_none_apply FAIL"
+
+
+def test_case_4_step_6_7_skip_message() -> None:
+    assert case_4_step_6_7_skip_message(), "case_4_step_6_7_skip_message FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

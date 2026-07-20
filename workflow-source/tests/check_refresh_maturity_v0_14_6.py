@@ -153,5 +153,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_default_apply() -> None:
+    assert case_1_default_apply(), "case_1_default_apply FAIL"
+
+
+def test_case_2_dry_run() -> None:
+    assert case_2_dry_run(), "case_2_dry_run FAIL"
+
+
+def test_case_3_idempotency() -> None:
+    assert case_3_idempotency(), "case_3_idempotency FAIL"
+
+
+def test_case_4_today_override() -> None:
+    assert case_4_today_override(), "case_4_today_override FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

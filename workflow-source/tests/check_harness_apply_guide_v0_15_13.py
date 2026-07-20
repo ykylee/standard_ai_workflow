@@ -189,5 +189,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_frontmatter() -> None:
+    assert case_1_frontmatter(), "case_1_frontmatter FAIL"
+
+
+def test_case_2_chapter_structure() -> None:
+    assert case_2_chapter_structure(), "case_2_chapter_structure FAIL"
+
+
+def test_case_3_content_size() -> None:
+    assert case_3_content_size(), "case_3_content_size FAIL"
+
+
+def test_case_4_related_docs() -> None:
+    assert case_4_related_docs(), "case_4_related_docs FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

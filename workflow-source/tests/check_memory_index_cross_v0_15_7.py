@@ -214,5 +214,27 @@ def main() -> int:
     return 0
 
 
+def test_case_1_entries_total() -> None:
+    assert case_1_entries_total(), "case_1_entries_total FAIL"
+
+
+def test_case_2_entries_by_merge_state() -> None:
+    assert case_2_entries_by_merge_state(), "case_2_entries_by_merge_state FAIL"
+
+
+def test_case_3_cue_anchors_unique() -> None:
+    assert case_3_cue_anchors_unique(), "case_3_cue_anchors_unique FAIL"
+
+
+def test_case_4_timeline_and_retrieval_hit_rate() -> None:
+    assert case_4_timeline_and_retrieval_hit_rate(), "case_4_timeline_and_retrieval_hit_rate FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

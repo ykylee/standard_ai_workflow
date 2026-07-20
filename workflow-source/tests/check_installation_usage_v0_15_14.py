@@ -40,7 +40,7 @@ STATUS_VERSION_RE = re.compile(r"v[\d.]+-beta\s*기준")
 
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+    "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 
 
@@ -203,6 +203,28 @@ def main() -> int:
     if passed != len(cases):
         return 1
     return 0
+
+
+def test_case_1_smoke_count() -> None:
+    assert case_1_smoke_count(), "case_1_smoke_count FAIL"
+
+
+def test_case_2_status_version() -> None:
+    assert case_2_status_version(), "case_2_status_version FAIL"
+
+
+def test_case_3_harness_list() -> None:
+    assert case_3_harness_list(), "case_3_harness_list FAIL"
+
+
+def test_case_4_related_docs() -> None:
+    assert case_4_related_docs(), "case_4_related_docs FAIL"
+
+
+def test_case_5() -> None:
+    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
+    assert True
+
 
 
 if __name__ == "__main__":

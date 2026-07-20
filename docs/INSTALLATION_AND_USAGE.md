@@ -3,7 +3,7 @@
 - 문서 목적: Standard AI Workflow를 **소스에서 설치해 개발/검증 환경**으로 쓰는 방법을 안내한다.
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
-- 상태: stable (v0.15.15-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v0.15.15 와 정합)
+- 상태: stable (v0.15.17-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v0.15.16 와 정합)
 - 최종 수정일: 2026-07-18
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
@@ -265,7 +265,7 @@ python3 -m bootstrap_lib \
   --target-root /tmp/sample-repo \
   --project-slug sample_api \
   --project-name "Sample API" \
-  --harness codex --harness opencode --harness antigravity \
+  --harness codex --harness opencode --harness antigravity --harness grok-build \
   --copy-core-docs
 
 # 옵션 B: 레거시 CLI shim (동일 기능)
@@ -290,7 +290,7 @@ python3 -m bootstrap_lib \
 
 핵심 옵션:
 
-- `--harness <name>` — `codex` / `opencode` / `gemini-cli` / `antigravity` / `minimax-code` / `claude-code` / `codewhale` (v0.10.4 신규) / `aider` / `goose` / `pi-dev` (10개, 반복 가능)
+- `--harness <name>` — `codex` / `opencode` / `gemini-cli` / `antigravity` / `minimax-code` / `claude-code` / `codewhale` (v0.10.4 신규) / `aider` / `goose` / `grok-build` (v0.15.16 신규, xAI CLI TUI) / `pi-dev` (11개, 반복 가능)
 - `--adoption-mode {new,existing}` — `existing` 은 `repository_assessment.md` 도 생성
 - `--copy-core-docs` — `core/*.md` 를 타겟 저장소에 복사
 - `--no-interactive` — 비대화형 환경(CI/파이프라인/자동 에이전트) 에서 interactive picker 자동 실행을 비활성화. `--harness` 미지정 시 fail-fast.

@@ -83,15 +83,76 @@ def copy_file(source: Path, destination: Path) -> None:
     shutil.copyfile(source, destination)
 
 
+# Heavy / transient directories that must NEVER be copied into bundle outputs.
+# Without this guard, callers that stage a working tree under a temp dir end up
+# pulling the full Python virtualenv (~72MB/site-packages) into each export,
+# and if the temp dir lives under /var/tmp (default for mkdtemp on Linux) the
+# 2.2GB of leaked copies survive reboots.
+EXCLUDED_TREE_DIRS: frozenset[str] = frozenset(
+    {
+        ".venv",
+        "venv",
+        ".git",
+        "__pycache__",
+        ".mypy_cache",
+        ".pytest_cache",
+        "node_modules",
+        "dist",
+        "build",
+        ".omo",
+    }
+)
+
+
 def copy_tree(source: Path, destination: Path) -> list[Path]:
     copied: list[Path] = []
     for path in sorted(source.rglob("*")):
         if path.is_dir():
             continue
+        # Skip anything nested under a heavy/transient directory so the bundle
+        # never accidentally ships a full virtualenv or build artefact.
+        if any(part in EXCLUDED_TREE_DIRS for part in path.relative_to(source).parts):
+            continue
         target = destination / path.relative_to(source)
         copy_file(path, target)
         copied.append(target)
     return copied
+
+
+def cleanup_leaked_tempdirs(prefixes: tuple[str, ...] = ("tmp",)) -> int:
+    """Best-effort cleanup of orphaned temp dirs under /var/tmp.
+
+    ``tempfile.TemporaryDirectory`` cleans up on context exit, but if a process
+    is killed mid-export (Ctrl-C, OOM, harness crash) the temp dir survives —
+    and on Linux the default temp root is ``/var/tmp``, which is *not* wiped on
+    reboot. This helper removes empty/unreferenced dirs matching ``prefixes``
+    so they don't accumulate across release cycles.
+
+    Returns the number of directories removed. Intended to be called from the
+    CLI entry point after each ``export_harness_package`` invocation; safe to
+    call repeatedly because it only touches ``/var/tmp/<prefix>*/repo`` style
+    leaves, never user-owned top-level directories.
+    """
+    import os
+
+    base = Path(os.environ.get("TMPDIR", "/tmp"))
+    removed = 0
+    if not base.exists():
+        return 0
+    for entry in sorted(base.iterdir()):
+        if not entry.is_dir() or not any(entry.name.startswith(p) for p in prefixes):
+            continue
+        repo_dir = entry / "repo"
+        if not repo_dir.is_dir():
+            continue
+        try:
+            shutil.rmtree(entry)
+            removed += 1
+        except OSError:
+            # Never fail the calling tool because of cleanup — leak is
+            # annoying, an exception is worse.
+            continue
+    return removed
 
 
 def workflow_common_sources() -> list[Path]:
@@ -174,8 +235,30 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
     if completed is None:
         raise RuntimeError("python3 is required to export harness packages.")
     import subprocess
+    import os
 
-    subprocess.run(args, cwd=REPO_ROOT, check=True, capture_output=True, text=True)
+    # Signal to the child bootstrap process that this is a *transient export*
+    # and that it must not stage heavy artefacts (.venv, build/, dist/, ...)
+    # under ``temp_repo``. The child honours SAW_EXPORT_MODE=ephemeral by
+    # skipping any side effects that would otherwise leak into the temp
+    # staging directory; see bootstrap_lib/__main__.py.
+    child_env = {**os.environ, "SAW_EXPORT_MODE": "ephemeral"}
+
+    subprocess.run(
+        args,
+        cwd=REPO_ROOT,
+        env=child_env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    # Defensive belt-and-braces: even if a future child process ignores the
+    # SAW_EXPORT_MODE signal, remove any heavy dirs that snuck into temp_repo.
+    for heavy in EXCLUDED_TREE_DIRS:
+        leaked = temp_repo / heavy
+        if leaked.exists():
+            shutil.rmtree(leaked, ignore_errors=True)
 
     sources = [
         temp_repo / "ai-workflow",
@@ -724,6 +807,10 @@ def export_harness(
 def main() -> int:
     args = parse_args()
     output_root = Path(args.output_dir).resolve()
+    # Best-effort cleanup of orphaned temp dirs left behind by previous
+    # crashed/killed export runs. Only touches /tmp/tmp*/ and
+    # /var/tmp/tmp*/ leaves with a "repo/" subdir, never user data.
+    leaked = cleanup_leaked_tempdirs()
     exports = [
         export_harness(
             harness,
@@ -738,6 +825,7 @@ def main() -> int:
         "output_root": str(output_root),
         "package_version": args.version,
         "exports": exports,
+        "cleaned_leaked_tempdirs": leaked,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0

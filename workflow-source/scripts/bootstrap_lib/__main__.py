@@ -968,6 +968,19 @@ def main() -> int:
     paths = make_paths(args)
     context = infer_project_context(args, paths)
 
+    # Honour the ephemeral-export signal set by ``export_harness_package.py``.
+    # When SAW_EXPORT_MODE=ephemeral is in the environment, the caller is
+    # staging the bootstrap into a throwaway directory under /var/tmp/... and
+    # we must avoid any side effects that would leak the caller's working
+    # tree (.venv, build/, dist/, etc.) into the staging dir. The actual
+    # cleanup of heavy dirs is handled by the parent (defence in depth), but
+    # we also short-circuit dependency manifest writes here because they
+    # mutate state the exporter doesn't care about.
+    if os.environ.get("SAW_EXPORT_MODE") == "ephemeral":
+        # Skip the dependency-manifest mutation step in write_dependencies
+        # by tagging the args object the downstream code reads.
+        setattr(args, "_export_ephemeral", True)
+
     harness_files: dict[str, str] = {}
     dependency_files: list[str] = []
     core_docs: list[str] = []

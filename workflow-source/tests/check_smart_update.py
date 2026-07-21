@@ -74,7 +74,11 @@ def test_bootstrap_first_run_creates_files() -> None:
         assert "opencode.json" in rels
         # Verify the marker was stamped on a markdown file.
         agents = (target / "AGENTS.md").read_text(encoding="utf-8")
-        assert "standard-ai-workflow-kit: v0.5.10.1-beta" in agents
+        # 특정 버전을 고정하면 릴리스마다 red 가 된다 (v0.5.10.1 고정이 v1.0.0 에서 깨짐).
+        # 검증 의도는 "marker 가 *현재 kit 버전* 으로 스탬프되는가" 이므로 동적으로 비교한다.
+        from workflow_kit import __version__ as _kit_version
+        assert f"standard-ai-workflow-kit: {_kit_version}" in agents, (
+            f"marker 가 현재 kit 버전({_kit_version})으로 스탬프되지 않았다")
 
 
 def test_bootstrap_second_run_ignores_matching_files() -> None:

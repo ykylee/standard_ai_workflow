@@ -17,8 +17,20 @@
 | 1 | 브랜치별 메모리 재설계 — session-start 자동 아카이브 wiring | ✅ 완료 (탐지+안내 기본, `--archive-stale-branches` 로 실이동) |
 | 2 | `MEMORY_GOVERNANCE.md` / `active/README.md` 의 branch-scoped layout 반영 | ✅ 완료 |
 | 3 | branch-scoped + 아카이브 전용 smoke 신규 | ✅ 완료 (`check_branch_scoped_memory.py` 8/8) |
-| 4 | 기존 red smoke 잔여분 (문서 lint / 빌드 의존 / `ci_stale`) 분류·해소 | ⏳ 일부 |
+| 4 | 기존 red smoke 잔여분 (문서 lint / 빌드 의존 / `ci_stale`) 분류·해소 | ⏳ 진행 중 (13건 회복, 잔여 ~19) |
 | 5 | CHANGELOG 재생성 + dashboard snapshot + tag/release | ⏳ 미착수 |
+
+### 잔여 red 성격별 (다음 세션 착수 지점)
+
+| 성격 | 대상 | 메모 |
+|---|---|---|
+| **구조적** | `deprecation_cycle_v0_14_5` | `docs/PROJECT_PROFILE.md` 사용 시 `workflow_memory_dir()` 이 `memory/` 를 반환하나 실제 layout 은 `memory/active/`. `cache.py` 주석의 "v0.6.0.1 `/ "active"` fix 누락" 과 같은 뿌리. **44개 참조 영향** → 별도 판단 |
+| **프로세스** | `wiki_source_rule` | wiki 가 `active/` 를 ingest source 로 참조(R9 위반). archive 에 해당 스냅샷이 없어 **freeze 선행** 필요 |
+| **품질 게이트** | `smoke_trend_cross` case_5 | "전량 PASS(rate=1.0)" 요구. 잔여 red 를 모두 해소해야 통과하는 **올바른 목표 지표** — 억지로 맞추지 않는다 |
+| **문서 lint** | `docs`, `source_without_runtime_layer`, `wiki_drift`, `wiki_trend` | `reverse-engineering/*.md` 메타데이터 누락 등 누적 부채 |
+| **빌드 의존** | `release_pipeline_lib/phase2/phase3`, `v0_7_4_followup` | `python -m build` / doctor 실행 환경 필요 |
+| **CI 상태 의존** | `mypy_ci_cross_verify`, `release_summary` | `ci_stale` — push 후 CI 결과가 있어야 판정 |
+| **미조사** | `export_harness_package`, `existing_project_onboarding`, `drift_prevention_helpers`, `refresh_wiki_memory`, `release_status_auto_bump`, `run_all_checks` | traceback 이 잘려 원인 미확정 |
 
 ## 1. 릴리스 요약
 

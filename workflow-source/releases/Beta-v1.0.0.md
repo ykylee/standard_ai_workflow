@@ -152,10 +152,30 @@ ai-workflow/memory/
 
 ## 3. 검증
 
-<!-- 198종 격리 스모크 회귀 결과로 채움 -->
+누적 smoke **176/199 PASS** (2026-07-21, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
-- **mypy**: `workflow_kit/` 무변경 (본 릴리스 변경은 `tools/` + `tests/` 한정).
-- breaking change: ❌.
+| 항목 | 결과 |
+|---|---|
+| 전량 smoke | **176/199 PASS** (187 test case) |
+| resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
+| 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |
+| `check_appendonly_memory_layout.py` | 6/6 PASS (branch-scoped 갱신) |
+| `check_v0_7_29_poststep_amend.py` | 9/9 PASS (재작성, 기존 red 회복) |
+| `check_tempdir_leak_guard.py` | 7/7 PASS |
+
+**본 사이클에서 회복시킨 red 8건**: `v0_7_29_poststep_amend` / `v0_10_2_delivery_layer` /
+`mypy_strict_ci_v0_11_11` / `release_md_v0_15_18` / `memory_freeze_lint` /
+`graph_insights_skill_integration` / `v0_7_28_archive_stale_memory`(TZ flaky) /
+`ingest_atomicity`(날짜 flaky) + `v0_7_24_release_notes_template`(CLI 옵션 누락).
+
+**잔여 red 21건** — 전부 v1.0.0 이전부터의 부채이며 성격별로 문서 lint(5) / 빌드·도구
+의존(5) / CI 상태 의존(2) / 기타 환경 의존(9). 상세는 §0 잔여 과제 4번.
+
+- **mypy**: venv mypy 2.1.0 `--strict` **117 source files, 0 errors** (Gate 3).
+  smoke 는 반드시 `.venv/bin/python3` 로 실행해야 한다 — 시스템 python3 에는 mypy 가 없어
+  mypy 의존 check 5종이 "exit 1 (0 errors)" 로 **위양성** 실패한다.
+- breaking change: ❌ (메모리 layout 은 legacy fallback 으로 additive).
 
 ## 4. 산출물
 

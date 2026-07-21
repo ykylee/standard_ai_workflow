@@ -78,6 +78,10 @@ def main() -> int:
                 "Existing Repo",
                 "--adoption-mode",
                 "existing",
+                # non-TTY 실행에서는 --harness 가 필수다 (bootstrap 이 대화형 선택으로
+                # fallback 하지 않고 즉시 실패한다).
+                "--harness",
+                "claude-code",
                 "--copy-core-docs",
             ],
             REPO_ROOT,

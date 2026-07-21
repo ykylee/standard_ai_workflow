@@ -186,7 +186,11 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     # case 8: --auto-bump=True + mock _run_auto_bump applied → auto_bump_applied=True verify
     # 실제 _run_auto_bump 호출하면 pyproject.toml + __init__.py write 발생.
     # mock 으로 logic verify 만. current_version re-read 도 mock.
+    # `_last_release_tag` 도 mock 한다 — auto-bump 분기 가드가 `last_tag == current`
+    # 를 요구하므로, 실제 저장소 태그에 의존하면 태그가 앞서가는 순간 분기 자체에
+    # 진입하지 못해 test 가 저장소 상태에 결합된다.
     with patch("workflow_kit.release_status._run_auto_bump") as mock_bump, \
+         patch("workflow_kit.release_status._last_release_tag", return_value="v0.11.15-beta"), \
          patch("workflow_kit.release_status._read_pyproject_version") as mock_read:
         # 첫 read = "0.11.15" (auto-bump 전), 두 번째 read = "0.11.16" (auto-bump 후 re-read)
         mock_read.side_effect = ["0.11.15", "0.11.16"]

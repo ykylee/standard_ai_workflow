@@ -52,7 +52,11 @@ def test_case_1_write_workflow_kit_version_no_double_suffix() -> None:
     에서 version-bump --to X.Y.Z 가 항상 well-formed literal 을 만들도록 보장.
     """
     src = INIT_PY.read_text(encoding="utf-8")
-    fallback_lines = [ln for ln in src.splitlines() if ln.strip().startswith("return ") and "v0." in ln]
+    # major 를 하드코딩하지 않는다 — v1.0.0 bump 때 `"v0."` 매치가 0 이 되어 red 였다.
+    fallback_lines = [
+        ln for ln in src.splitlines()
+        if ln.strip().startswith("return ") and re.search(r"v\d+\.\d+\.\d+", ln)
+    ]
     assert fallback_lines, "no loud fallback line found"
     line = fallback_lines[-1]
     # `return "vX.Y.Z-beta"` — "-beta" 정확히 1 회만 등장. 이중 suffix 미허용.

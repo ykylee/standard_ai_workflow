@@ -47,10 +47,19 @@ def main() -> int:
             raise AssertionError("Expected two exported harness packages.")
         if payload["package_version"] != EXPECTED_VERSION:
             raise AssertionError("Top-level export payload should report the package version.")
+        # v0.15.x (24b626b): export payload 은 `package_root` / `bundle_root` /
+        # `manifest_path` / `archive_path` 를 더 이상 싣지 않는다 — dist 산출물에
+        # 저장소 절대경로가 유출되던 것을 막기 위한 의도적 제거다. 경로는 caller 가
+        # output_root 로부터 유도한다.
+        for key in ("package_root", "bundle_root", "manifest_path", "archive_path"):
+            if any(key in export for export in exports):
+                raise AssertionError(
+                    f"Export payload should not leak repo-absolute path key {key!r}."
+                )
         for export in exports:
-            package_root = Path(export["package_root"])
-            manifest_path = Path(export["manifest_path"])
-            archive_path = Path(export["archive_path"])
+            package_root = output_root / "harnesses" / export["harness"] / EXPECTED_VERSION
+            manifest_path = package_root / "manifest.json"
+            archive_path = package_root / f"{export['package_name']}-{EXPECTED_VERSION}.zip"
             if not package_root.exists():
                 raise AssertionError(f"Missing package root: {package_root}")
             if not manifest_path.exists():
@@ -101,9 +110,9 @@ def main() -> int:
             if "bundle/global-snippets/codex/config.toml.snippet" in included:
                 raise AssertionError("Minimal deployment export should not include global snippets by default.")
 
-            expected_root = (output_root / "harnesses" / export["harness"] / EXPECTED_VERSION).resolve()
-            if package_root != expected_root:
-                raise AssertionError("Versioned package root path is incorrect.")
+            manifest_text = manifest_path.read_text(encoding="utf-8")
+            if str(REPO_ROOT) in manifest_text:
+                raise AssertionError("Manifest should not embed repo-absolute source paths.")
 
             with zipfile.ZipFile(archive_path) as archive:
                 names = set(archive.namelist())

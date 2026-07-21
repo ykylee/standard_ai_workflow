@@ -26,55 +26,52 @@ jobs:
           python3 -m pip install -r requirements.txt
           python3 -m pip install -r requirements-dev.txt
 
-      - name: Run workflow-source/tests/check_*.py
+      - name: Run smoke checks (run_all_checks + resource guard)
         shell: bash
         env:
           PYTHONPATH: ${{ github.workspace }}/workflow-source
         run: |
-          set -euo pipefail
-          failed=0
-          failed_tests=""
-          # v1.0.0: per-check timeout. timeout 이 없으면 hang 한 check 하나가 job
-          # 전체를 무한 대기시키고, 중간에 kill 될 때 tempfile.TemporaryDirectory
-          # 정리 코드가 돌지 않아 temp dir 이 누수된다 (/var/tmp 211GB 사건).
-          # `timeout --kill-after` 로 SIGTERM (정리 가능) 을 먼저 보낸다.
-          for t in workflow-source/tests/check_*.py; do
-            echo "::group::$t"
-            if timeout --signal=TERM --kill-after=10s 120s python3 "$t"; then
-              echo "[PASS] $t"
-              echo "::endgroup::"
-            else
-              rc=$?
-              echo "::endgroup::"
-              if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-                echo "::error file=$t::smoke check TIMEOUT (120s)"
-              else
-                echo "::error file=$t::smoke check failed (exit $rc)"
-              fi
-              failed=1
-              failed_tests="${failed_tests}${t}\n"
-            fi
-          done
-          if [ "$failed" -ne 0 ]; then
-            {
-              echo "## Smoke Failures"
-              echo
-              printf "%b" "$failed_tests" | sed 's/^/- /'
-              echo
-              echo "### Local Re-run"
-              echo '```bash'
-              printf "%b" "$failed_tests" | while IFS= read -r t; do
-                [ -n "$t" ] && echo "python3 $t"
-              done
-              echo '```'
-              echo
-              echo "See tests/README.md for failure triage order."
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            {
-              echo "## Smoke Passed"
-              echo
-              echo "- All \`workflow-source/tests/check_*.py\` scripts passed."
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-          exit "$failed"
+          set -uo pipefail
+          # v1.0.0: 통합 runner 로 단일화. runner 가 check 마다 (a) 전용 TMPDIR 을 주고
+          # 종료 후 삭제하고, (b) 프로세스 그룹째 정리하며, (c) 디스크/temp 상한을 강제한다.
+          # 과거 사고: temp 누수가 tmpfs 경유 OOM (RAM) / 디스크 211GB 점유를 일으켰고,
+          # per-check timeout 이 부모만 죽여 손자 프로세스가 고아로 누적됐다.
+          mkdir -p "${RUNNER_TEMP}/smoke-tmp"
+          python3 workflow-source/tests/run_all_checks.py \
+            --timeout=120 \
+            --tmp-dir="${RUNNER_TEMP}/smoke-tmp" \
+            --json > smoke-result.json
+          rc=$?
+          python3 - "$rc" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, sys, pathlib
+          rc = int(sys.argv[1])
+          data = json.loads(pathlib.Path("smoke-result.json").read_text(encoding="utf-8"))
+          failures = [r for r in data["results"] if r["exit_code"] != 0]
+          aborted = data.get("aborted_reason", "")
+          if aborted:
+              print("## Smoke ABORTED (resource guard)\n")
+              print(f"- {aborted}")
+              print(f"- 실행 완료: {data['total']} check (전량 아님)\n")
+          if failures:
+              print("## Smoke Failures\n")
+              for r in failures:
+                  label = "TIMEOUT" if r["last_line"] == "TIMEOUT" else f"exit {r['exit_code']}"
+                  print(f"- `{r['path']}` ({label}) — {r['error_excerpt'][:120]}")
+                  # annotation 은 stderr 로 (STEP_SUMMARY 오염 방지)
+                  print(f"::error file={r['path']}::smoke check failed ({label})", file=sys.stderr)
+              print("\n### Local Re-run\n")
+              print("```bash")
+              for r in failures:
+                  print(f"python3 {r['path']}")
+              print("```\n")
+              print("See tests/README.md for failure triage order.")
+          elif not aborted:
+              print("## Smoke Passed\n")
+              print(f"- All {data['total']} `check_*.py` scripts passed "
+                    f"({data['total_passed_tests']} test cases).")
+          leaky = [r for r in data["results"] if r["tmp_peak_mb"] or r["killed_children"]]
+          if leaky:
+              print(f"\n### Resource cleanup\n")
+              print(f"- {len(leaky)} check 가 temp/자식 프로세스를 남겨 runner 가 회수했습니다.")
+          PY
+          exit "$rc"

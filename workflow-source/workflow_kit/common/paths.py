@@ -58,13 +58,31 @@ def workflow_memory_dir(project_profile_path: Path) -> Path:
     return profile_dir
 
 
-def workflow_backlog_dir(project_profile_path: Path) -> Path:
-    """Return the daily-backlog directory (v0.14.0+ append-only layout).
+def _branch_scoped_dir(project_profile_path: Path, leaf: str) -> Path:
+    """branch-scoped path 를 반환하되, 미마이그레이션 저장소는 legacy 로 fallback.
 
-    본 directory 는 memory_dir / 'backlog' 으로, YYYY-MM-DD.md daily index 들을 포함.
+    v1.0.0 branch-scoped memory: 작업 상태(backlog / sessions / state.json)는
+    `active/<branch>/` 하위로 분리해 다중 동시 작업의 충돌을 물리적으로 없앤다.
+    다만 아직 마이그레이션하지 않은 저장소(`active/<leaf>` 가 직접 존재)를 깨뜨리지
+    않도록, branch-scoped 가 없고 legacy 가 있으면 legacy 를 반환한다.
+    **신규 생성은 항상 branch-scoped** 이므로 마이그레이션은 점진적으로 수렴한다.
+    """
+    branch_scoped = workflow_branch_dir(project_profile_path) / leaf
+    if branch_scoped.exists():
+        return branch_scoped
+    legacy = workflow_memory_dir(project_profile_path) / leaf
+    if legacy.exists():
+        return legacy
+    return branch_scoped
+
+
+def workflow_backlog_dir(project_profile_path: Path) -> Path:
+    """Return the daily-backlog directory (v1.0.0 branch-scoped append-only layout).
+
+    본 directory 는 `active/<branch>/backlog` 으로, YYYY-MM-DD.md daily index 들을 포함.
     MEMORY_GOVERNANCE.md §2 의 "Daily Backlog Index" 템플릿 정공법.
     """
-    return workflow_memory_dir(project_profile_path) / "backlog"
+    return _branch_scoped_dir(project_profile_path, "backlog")
 
 
 def workflow_tasks_dir(project_profile_path: Path) -> Path:
@@ -79,11 +97,11 @@ def workflow_tasks_dir(project_profile_path: Path) -> Path:
 def workflow_sessions_dir(project_profile_path: Path) -> Path:
     """Return the per-session directory (v0.14.0+ append-only layout).
 
-    본 directory 는 memory_dir / 'sessions' 으로, session-analysis / audit-follow-up
+    본 directory 는 `active/<branch>/sessions` 으로, session-analysis / audit-follow-up
     같은 per-session 파일들을 포함. 기존 legacy `session_handoff.md` (단일 파일,
     overwrite race) 의 후속.
     """
-    return workflow_memory_dir(project_profile_path) / "sessions"
+    return _branch_scoped_dir(project_profile_path, "sessions")
 
 
 def project_workspace_root(project_profile_path: Path) -> Path:
@@ -168,6 +186,61 @@ def workflow_branch_dir(project_profile_path: Path) -> Path:
     # Normalize branch name for filesystem safety if needed,
     # but here we allow nested folders if branch name has '/'
     return (base_dir / branch).resolve()
+
+
+def memory_root_dir(project_profile_path: Path) -> Path:
+    """Return `ai-workflow/memory/` — active/ 와 archived/ 의 공통 부모.
+
+    `workflow_memory_dir` 는 PROJECT_PROFILE.md 위치에 따라 `memory/active` 를 가리킬
+    수 있으므로, archived/ 를 조립할 때는 반드시 본 helper 로 부모를 얻는다.
+    """
+    memory_dir = workflow_memory_dir(project_profile_path)
+    if memory_dir.name == "active":
+        return memory_dir.parent
+    return memory_dir
+
+
+def workflow_state_path(project_profile_path: Path) -> Path:
+    """Return the branch-scoped `state.json` path.
+
+    state.json 은 builder 가 rebuild 하는 *생성물* 이고 브랜치마다 작업 상태가 다르므로
+    branch-scoped 가 옳다. 미마이그레이션 저장소는 legacy(`active/state.json`) fallback.
+    """
+    branch_scoped = workflow_branch_dir(project_profile_path) / "state.json"
+    if branch_scoped.exists():
+        return branch_scoped
+    legacy = workflow_memory_dir(project_profile_path) / "state.json"
+    if legacy.exists():
+        return legacy
+    return branch_scoped
+
+
+def state_path_for_workspace(workspace_root: Path, branch: str | None = None) -> Path:
+    """workspace root 기준 branch-scoped `state.json` 경로.
+
+    `PROJECT_PROFILE.md` 가 아니라 workspace root 만 아는 caller (dashboard / baselines /
+    ingest / CLI) 용. branch-scoped 가 없고 legacy(`active/state.json`) 가 있으면 legacy 를
+    반환하므로 미마이그레이션 저장소에서도 안전하다.
+    """
+    active = Path(workspace_root) / "ai-workflow" / "memory" / "active"
+    slug = _usable_branch_name(branch) or get_current_branch()
+    branch_scoped = active / slug / "state.json"
+    if branch_scoped.exists():
+        return branch_scoped
+    legacy = active / "state.json"
+    if legacy.exists():
+        return legacy
+    return branch_scoped
+
+
+def workflow_archived_branch_dir(project_profile_path: Path, branch: str | None = None) -> Path:
+    """Return `memory/archived/<branch>` — 종료된 브랜치의 메모리 보관 위치.
+
+    브랜치 작업이 끝나면(git 에서 해당 브랜치가 사라지면) `active/<branch>/` 를 이곳으로
+    옮겨 과거 이력 조회 대상으로 남긴다. 고아 디렉터리가 생기지 않게 하는 장치.
+    """
+    slug = _usable_branch_name(branch) or get_current_branch()
+    return (memory_root_dir(project_profile_path) / "archived" / slug).resolve()
 
 
 def path_exists_from_profile(project_profile_path: Path, raw: str | None) -> Path | None:

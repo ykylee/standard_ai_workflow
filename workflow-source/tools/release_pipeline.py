@@ -3384,6 +3384,11 @@ def main() -> int:
     p_rel.add_argument("--skip-maturity-matrix-sync", dest="skip_maturity_matrix_sync",
                        action="store_true", default=False,
                        help="drift prevention: release note frontmatter → maturity_matrix.json 자동 patch step skip (v0.11.23+)")
+    # v0.7.24 에서 _resolve_notes_file() 은 구현됐으나 argparse 등록이 누락돼 CLI 로는
+    # 쓸 수 없었다 (`unrecognized arguments: --notes-template`). v1.0.0 에서 노출 복원.
+    p_rel.add_argument("--notes-template", dest="notes_template", default="default",
+                       help="release notes 형식: default / detailed / simple / changelog / "
+                            "custom:<path> (v0.7.24+)")
     p_rel.add_argument("--skip-changelog-gen", dest="skip_changelog_gen",
                        action="store_true", default=False,
                        help="drift prevention: CHANGELOG.md git-log 재생성 step skip (v0.15.21+)")

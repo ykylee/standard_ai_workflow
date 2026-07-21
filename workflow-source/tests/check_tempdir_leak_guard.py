@@ -126,21 +126,37 @@ def case_4_cleanup_respects_ownership() -> bool:
 
 
 def case_5_ci_loop_has_timeout() -> bool:
-    """5) CI smoke 루프에 per-check timeout 이 걸려 있다."""
+    """5) CI smoke 가 per-check timeout 을 **보장**한다.
+
+    v1.0.0: *구현 형태* 가 아니라 *보장* 을 검증한다. 이전 구현은 `timeout ... python3 "$t"`
+    쉘 루프를 문자열로 고정했는데, CI 가 통합 runner(`run_all_checks.py --timeout=N`) 호출로
+    바뀌면 형태가 달라도 보장은 오히려 강해진다(러너는 per-check timeout 에 더해 전용 TMPDIR
+    삭제 + 프로세스 그룹 회수 + 디스크/temp 상한까지 수행). 둘 중 어느 형태든 통과시킨다.
+    """
     if not SMOKE_WORKFLOW.is_file():
         print(f"  FAIL: {SMOKE_WORKFLOW} 부재")
         return False
     src = SMOKE_WORKFLOW.read_text(encoding="utf-8")
-    if "timeout" not in src or "python3 \"$t\"" not in src:
-        print("  FAIL: smoke.yml 루프 형태가 예상과 다름")
-        return False
-    # `timeout ... python3 "$t"` 형태인지
-    if 'timeout --signal=TERM' not in src:
-        print("  FAIL: smoke 루프에 `timeout --signal=TERM` per-check 가드 부재")
-        print("        → hang 시 job 무한 대기 + kill 시 temp dir 누수")
-        return False
-    print("  [info] smoke.yml per-check timeout 존재 (SIGTERM 우선 → 정리 코드 실행 기회)")
-    return True
+
+    # (a) 통합 runner 경로 — --timeout 이 명시되어야 per-check 보장이 성립한다.
+    if "run_all_checks.py" in src:
+        if "--timeout" not in src:
+            print("  FAIL: run_all_checks 호출에 --timeout 부재 (per-check 보장 없음)")
+            return False
+        if "--tmp-dir" not in src:
+            print("  FAIL: run_all_checks 호출에 --tmp-dir 부재 (tmpfs 누수 회피 권장)")
+            return False
+        print("  [info] CI 가 통합 runner 사용 — per-check timeout + 전용 TMPDIR 보장")
+        return True
+
+    # (b) 직접 쉘 루프 경로 (legacy)
+    if 'python3 "$t"' in src and "timeout --signal=TERM" in src:
+        print("  [info] smoke.yml per-check timeout 존재 (SIGTERM 우선 → 정리 코드 실행 기회)")
+        return True
+
+    print("  FAIL: CI smoke 에 per-check timeout 보장이 없다")
+    print("        → hang 시 job 무한 대기 + kill 시 temp dir 누수")
+    return False
 
 
 def case_6_scaffold_leaves_no_orphan() -> bool:

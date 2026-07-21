@@ -215,6 +215,24 @@ def workflow_state_path(project_profile_path: Path) -> Path:
     return branch_scoped
 
 
+def state_path_in_active(active_dir: Path, branch: str | None = None) -> Path:
+    """`active/` 디렉터리를 **직접** 아는 caller 용 branch-scoped state 경로.
+
+    workspace root 를 역산하지 않는다 — caller 가 넘기는 active dir 은 표준
+    `<ws>/ai-workflow/memory/active` 가 아닐 수 있기 때문이다(테스트 fixture 등).
+    branch-scoped 가 없으면 legacy(`<active>/state.json`) 로 fallback.
+    """
+    active = Path(active_dir)
+    slug = _usable_branch_name(branch) or get_current_branch()
+    branch_scoped = active / slug / "state.json"
+    if branch_scoped.exists():
+        return branch_scoped
+    legacy = active / "state.json"
+    if legacy.exists():
+        return legacy
+    return branch_scoped
+
+
 def state_path_for_workspace(workspace_root: Path, branch: str | None = None) -> Path:
     """workspace root 기준 branch-scoped `state.json` 경로.
 

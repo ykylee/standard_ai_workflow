@@ -13,7 +13,6 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-from workflow_kit.common.paths import state_path_for_workspace
 
 
 #: Lock file path inside the active memory directory.
@@ -85,7 +84,10 @@ def ingest_session_atomic(
     backlog_dir = memory_active / "backlog"
     handoff_path = memory_active / "session_handoff.md"
     backlog_path = backlog_dir / f"{today_iso}.md"
-    state_path = state_path_for_workspace(memory_active.parent.parent)
+    # 본 함수는 v0.14.0 이전 **legacy 경로 세트**(session_handoff.md / backlog/)를 원자적으로
+    # 기록하는 API 다. state.json 만 branch-scoped 로 바꾸면 같은 호출 안에서 경로 규약이
+    # 섞이므로, 여기서는 legacy 규약을 그대로 유지한다.
+    state_path = memory_active / "state.json"
     worklog_path = memory_active / "work_backlog.md"
 
     # Acquire lock  -----------------------------------------------------------

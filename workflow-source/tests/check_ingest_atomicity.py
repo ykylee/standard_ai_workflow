@@ -8,6 +8,7 @@ T2: work_backlog anchor format (### [[path]] {#id}).
 from __future__ import annotations
 
 import json
+from datetime import date as _date
 import sys
 import tempfile
 from pathlib import Path
@@ -30,6 +31,9 @@ def test_atomic_write() -> list[str]:
             memory_active=active_dir,
             handoff_content="# Session Handoff\ntest content",
             backlog_content="# 2026-06-12 Backlog\ntest content",
+            # today 를 고정하지 않으면 ingest 는 *실행일* 로 파일명을 만들어
+            # 아래 2026-06-12.md 검증이 실행일마다 깨진다 (날짜 의존 flaky).
+            today=_date(2026, 6, 12),
             state_content={"session": {"active": True}},
             backlog_index_content="# Work Backlog Index\ntest",
         )

@@ -11,8 +11,8 @@
 
 - **현재 베이스라인**: v0.15.16-beta (package: standard-ai-workflow 0.15.16).
 - **누적 release cycle**: v0.5.1 ~ v0.15.15 누적 91 release + v0.15.16 release 종합 (5 신규 + 56 file 수정, 2026-07-20 fc834d1). 2026-Q3 v1.0.0 진입 평가.
-- **v1.0.0 진입 평가 verdict**: **⚠️ CONDITIONAL PASS** (gate 5/6 PASS + 1개 break point 식별, 후속 1~3 release 로 해소 가능).
-- **핵심 break point**: **(1) state.json / Panel 5 (recent_releases) 의 release memory cycle 미완료** — quality_dashboard smoke fail + appendonly_memory_layout fail 의 근본 원인. **(2) TST-WF-01 (`Smoke Test Coverage Required`) non_compliant 잔존** — 196 smoke 중 77 file (39%) 가 `def test_/case_` 0~4개. patch 도달 ❌.
+- **v1.0.0 진입 평가 verdict**: **✅ 6/6 gate PASS** (2026-07-21 갱신 — Gate 1 Panel 5 items_total=11 + Gate 3 mypy venv verify 0 errors close-out). 잔여는 non-blocking 품질 항목 (Break Point #2 TST-WF-01 coverage) 뿐.
+- **핵심 break point**: **(1) ✅ RESOLVED (2026-07-21)** — state.json recent_done_items 재populate + v0.15.21 post-release dashboard emit 로 Panel 5 items_total=11, quality_dashboard + appendonly_memory_layout smoke 모두 PASS. **(2) TST-WF-01 (`Smoke Test Coverage Required`) non_compliant 잔존 (non-blocking)** — 197 smoke 중 다수 file 이 `def test_/case_` < 5개. patch 도달 ❌ (품질 심화 항목, v1.0.0 blocking 아님).
 - **권장 follow-up**: v0.15.17 (release memory cycle close-out) → v0.15.18 (TST-WF-01 보강 또는 정책 명시) → v0.15.19 (cross-panel 정합 + 문서 final) → **v0.15.20 → v1.0.0**.
 
 ## 1. Entry Gate Criteria (v1.0.0 stable 진입 기준)
@@ -21,7 +21,7 @@
 
 | # | Gate | 기준 | 상태 |
 |---|---|---|---|
-| 1 | **Panel 1~8 dashboard 정합** | 8 panel 모두 SSOT (maturity_matrix + git log + file system) 와 정합 | ⚠️ CONDITIONAL (Panel 5 recent_releases items_total=0) |
+| 1 | **Panel 1~8 dashboard 정합** | 8 panel 모두 SSOT (maturity_matrix + git log + file system) 와 정합 | ✅ PASS (2026-07-21 갱신 — Panel 5 recent_releases items_total=11, state.json recent_done_items 재populate 후 Break Point #1 close-out) |
 | 2 | **누적 smoke PASS** | 24종 smoke 모두 PASS, 회귀 0건 | ✅ PASS (24/24 PASS) |
 | 3 | **mypy strict + 109 file clean** | mypy --strict --extra mcp-sdk 0 errors (v0.11.18 도달) | ✅ PASS (venv mypy 2.1.0 직접 verify 2026-07-21: `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors**. Break Point #3 close-out) |
 | 4 | **Backward compat** | v0.11.18 ~ v0.15.16 의 100+ release 중 breaking change ≤ 1건 (v0.15.0 `.bak` drop, 2-cycle deprecation 종결) + migration 가이드 정합 | ✅ PASS (1건 breaking, migration 가이드 + 1 release deprecation warning + 1 release removal 정공법 적용) |
@@ -79,16 +79,16 @@
 | smoke_files_count | 196 | ✅ (4종 신규 + 누적, v0.15.16 baseline) |
 | Recent releases | Beta-v0.15.0 / v0.14.7 / v0.14.6 모두 260/260 | ✅ |
 
-### 2.5 Panel 5 — Recent Release Cycle ⚠️ CONDITIONAL
+### 2.5 Panel 5 — Recent Release Cycle ✅ PASS (2026-07-21 close-out)
 
 | Metric | Value | 평가 |
 |---|---|---|
-| items_total | 0 | ⚠️ **FAIL** |
-| timeline | [] | ⚠️ **FAIL** |
+| items_total | 11 | ✅ **PASS** |
+| timeline | 11 items (newest = v0.15.21) | ✅ **PASS** |
 
-**원인**: `state.json` 의 `recent_done_items` 가 비어있음 (2026-07-18 누수 진단 후 reset). 2026-07-20 v0.15.16 release 종합 commit (fc834d1) 의 TASK-2026-07-20-001 item 이 `state.json` 에 등록되지 않아 Panel 5 가 비어 있음.
+**해소 (2026-07-21)**: `state.json` 의 `recent_done_items` 가 재populate 됨 (TASK-2026-07-21-001 v0.15.21 외 다수). v0.15.21 release 후 dashboard post-emit (commit 37233c9) 로 Panel 5 items_total=11 반영. 과거 원인은 2026-07-18 누수 진단 후 reset + v0.15.16 release item 미등록이었음.
 
-**연쇄 fail**: `check_appendonly_memory_layout.py` (state.json JSON parse fail) + `check_quality_dashboard_v0_13_0.py` (recent_releases items_total >= 1 fail) — **모두 동일 근본 원인**.
+**연쇄 fail 해소**: `check_appendonly_memory_layout.py` + `check_quality_dashboard_v0_13_0.py` 모두 **PASS** (2026-07-21 검증).
 
 ### 2.6 Panel 6 — Multi-Agent Concurrent Write Conflict ✅
 
@@ -254,9 +254,11 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 
 ## 6. Break Point 식별
 
-### Break Point #1 — state.json / Panel 5 recent_releases 미완료 (⚠️ HIGH)
+### Break Point #1 — state.json / Panel 5 recent_releases 미완료 (✅ RESOLVED 2026-07-21)
 
-**증상**:
+> **close-out (2026-07-21)**: state.json `recent_done_items` 재populate + v0.15.21 post-release dashboard emit 로 Panel 5 items_total=11. `check_appendonly_memory_layout` + `check_quality_dashboard_v0_13_0` 모두 PASS. 아래는 식별 시점 (v0.15.16) 기록.
+
+**증상** (식별 시점):
 - `ai-workflow/memory/active/state.json` 비어있음 (JSON parse fail).
 - Panel 5 `recent_releases.items_total = 0` (timeline 빈 array).
 - `check_appendonly_memory_layout.py` FAIL: `[state_json] JSON parse fail`.

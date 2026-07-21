@@ -139,8 +139,15 @@ def test_mypy_strict_ci_v0_11_11() -> None:
         "loud fallback literal parse 실패 (regex 패턴 미스)"
     )
     current_loud = loud_fallback_match.group(1)
-    assert current_loud == "v0.11.11-beta", (
-        f"loud fallback != v0.11.11-beta (current: {current_loud!r})"
+    # v1.0.0: 특정 버전을 하드코딩하면 *릴리스마다* 본 smoke 가 깨진다 (v0.11.11-beta 고정이
+    # v1.0.0-beta 로 올리며 red 가 된 사례). 검증 의도는 "loud fallback 이 현재 릴리스
+    # 버전과 정합하는가" 이므로 pyproject.toml 을 SSOT 로 삼아 동적으로 비교한다.
+    pyproject_text = (REPO_ROOT / "workflow-source" / "pyproject.toml").read_text(encoding="utf-8")
+    version_match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject_text, re.M)
+    assert version_match, "pyproject.toml 의 version parse 실패"
+    expected_loud = f"v{version_match.group(1)}-beta"
+    assert current_loud == expected_loud, (
+        f"loud fallback != {expected_loud} (pyproject 기준). current: {current_loud!r}"
     )
     print(f"  case 5 (loud fallback literal = {current_loud!r}): PASS")
 
@@ -152,13 +159,17 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     assert max_count >= 35, f"max cumulative strict clean count {max_count} < 35 (v0.11.10 baseline)"
     print(f"  case 6 (cumulative strict clean max={max_count} >= 35, v0.11.10 baseline 유지): PASS")
 
-    # case 7: pyproject.toml [project] version = 0.11.11 verify
+    # case 7: pyproject.toml [project] version 형식 verify
+    # v1.0.0: 특정 버전 고정은 릴리스마다 red 를 만든다. case 5 가 이미 __init__ loud
+    # fallback 과 pyproject 의 *정합* 을 검증하므로, 여기서는 semver 형식만 확인한다.
     proj_pyproject = REPO_ROOT / "workflow-source" / "pyproject.toml"
     proj_text = proj_pyproject.read_text(encoding="utf-8")
     version_match = re.search(r'^version\s*=\s*"([^"]+)"', proj_text, re.MULTILINE)
     assert version_match, "pyproject.toml version field 부재"
     current_version = version_match.group(1)
-    assert current_version == "0.11.11", f"pyproject version != 0.11.11 (current: {current_version!r})"
+    assert re.fullmatch(r"\d+\.\d+\.\d+", current_version), (
+        f"pyproject version 이 semver 형식이 아님: {current_version!r}"
+    )
     print(f"  case 7 (pyproject version = {current_version!r}): PASS")
 
     # case 8: CI 와 동일 invocation 실제 mypy 실행 verify (REPO_ROOT cwd, full path)

@@ -114,7 +114,7 @@ def test_version_bump_apply_sync_both() -> None:
 
     # apply
     proc = subprocess.run(
-        [sys.executable, str(TOOL), "version-bump", "--to", target, "--apply", "--json"],
+        [sys.executable, str(TOOL), "version-bump", "--to", target, "--apply", "--skip-sync-hash", "--json"],
         capture_output=True, text=True, timeout=30,
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
@@ -133,7 +133,7 @@ def test_version_bump_apply_sync_both() -> None:
 
     # restore
     proc2 = subprocess.run(
-        [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply"],
+        [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply", "--skip-sync-hash"],
         capture_output=True, text=True, timeout=30,
     )
     assert proc2.returncode == 0, f"restore exit {proc2.returncode}: {proc2.stderr}"
@@ -151,7 +151,7 @@ def test_version_bump_no_init_skips() -> None:
     target = _bump_patch(pre_py)
 
     proc = subprocess.run(
-        [sys.executable, str(TOOL), "version-bump", "--to", target, "--no-init", "--apply"],
+        [sys.executable, str(TOOL), "version-bump", "--to", target, "--no-init", "--apply", "--skip-sync-hash"],
         capture_output=True, text=True, timeout=30,
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
@@ -170,7 +170,7 @@ def test_version_bump_no_init_skips() -> None:
 
     # restore
     subprocess.run(
-        [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply"],
+        [sys.executable, str(TOOL), "version-bump", "--to", pre_py, "--apply", "--skip-sync-hash"],
         capture_output=True, text=True, timeout=30,
         check=True,
     )

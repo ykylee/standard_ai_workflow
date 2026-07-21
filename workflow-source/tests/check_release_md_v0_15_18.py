@@ -30,7 +30,10 @@ RELEASE_MD_PATH = REPO_ROOT / "docs" / "RELEASE.md"
 PYPROJECT_PATH = SOURCE_ROOT / "pyproject.toml"
 RELEASES_DIR = SOURCE_ROOT / "releases"
 
-EXPECTED_LAST_UPDATED = "2026-07-18"
+# v1.0.0: 특정 날짜 고정은 문서를 갱신할 때마다 red 를 만든다 (2026-07-18 고정이
+# 2026-07-21 갱신으로 깨진 사례). 본 case 의 의도는 *stale 검출* 이므로 "이 날짜보다
+# 과거로 퇴행하지 않았는가" 를 하한으로 검증한다. ISO-8601 은 문자열 비교로 순서가 성립한다.
+MIN_LAST_UPDATED = "2026-07-18"    # v0.15.15 release day — 이보다 과거면 stale
 
 # 회귀 표에 등장하는 주요 vN.N.N 패턴 (cross-check anchor)
 # 본문에 등장하면 Beta-v<pattern>.md 가 존재해야 함
@@ -143,8 +146,11 @@ def case_4_frontmatter_stamp() -> bool:
         print("  FAIL: frontmatter '최종 수정일' line 부재")
         return False
     actual = m.group(1).strip()
-    if actual != EXPECTED_LAST_UPDATED:
-        print(f"  FAIL: frontmatter stamp 불일치 — actual={actual} expected={EXPECTED_LAST_UPDATED}")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", actual):
+        print(f"  FAIL: frontmatter stamp 형식 오류 (YYYY-MM-DD 아님) — actual={actual}")
+        return False
+    if actual < MIN_LAST_UPDATED:
+        print(f"  FAIL: frontmatter stamp stale — actual={actual} < 하한 {MIN_LAST_UPDATED}")
         return False
     print(f"  [info] frontmatter stamp 정합: {actual}")
     return True

@@ -1,18 +1,25 @@
 #!/usr/bin/env python3
 """
-v0.7.29: TASK-V0727-001 (post-step 2-phase + amend 통합) smoke test (5/5 PASS)
+v0.7.29: TASK-V0727-001 (post-step 2-phase + amend 통합) smoke test
 
 Test cases:
 1. test_2_phase_sync_calls — sync_release_hash + git add + git commit --amend 모두 호출
-2. test_amend_integration — amend 후의 final_hash 가 state.json 의 v0.7.29 entry 와 정합
+2. test_amend_integration — amend 후의 final_hash 가 rev-parse 결과와 정합
 3. test_no_tbd_skip — TBD 부재 시 sync 가 *변경 0* (idempotent skip)
 4. test_sync_failure_graceful — sync_release_hash fail 시 amend 호출 안 함, ok=False
 5. test_amend_failure_graceful — git commit --amend fail 시 ok=False
+
+v1.0.0 amend guard (release-pipeline-auto-amend-hazard):
+6. test_dirty_tree_aborts — pre-flight dirty tree → mode=aborted, sync 호출 0
+7. test_allow_dirty_override — --allow-dirty 시 dirty 여도 진행
+8. test_pushed_head_refuses_amend — HEAD 가 upstream ancestor → amend 거부
+9. test_add_is_scoped — `git add -A` 가 아니라 dirty path 명시 add
+
+mock 은 *호출 순서*가 아니라 *명령 내용*으로 dispatch 한다 (call-count 취약성 제거 —
+v0.7.26 의 2-step rev-parse 도입 때 이 파일이 StopIteration 으로 red 였던 원인).
 """
 from __future__ import annotations
 
-import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -52,6 +59,8 @@ def _run_inproc(args: list[str], repo_root: Path) -> dict:
     parser.add_argument("--dry-run", action="store_true", dest="dry_run")
     parser.add_argument("--apply", dest="apply", action="store_true", default=True)
     parser.add_argument("--skip-sync-hash", action="store_true", dest="skip_sync_hash")
+    parser.add_argument("--allow-dirty", action="store_true", dest="allow_dirty")
+    parser.add_argument("--allow-pushed-amend", action="store_true", dest="allow_pushed_amend")
     parser.add_argument("--json", action="store_true")
 
     import unittest.mock
@@ -78,55 +87,90 @@ def _make_fake_proc(returncode: int = 0, stdout: str = "", stderr: str = ""):
     return proc
 
 
+DIRTY = " M pyproject.toml\n M workflow_kit/__init__.py\n"
+
+
+def _make_router(
+    *,
+    sync: tuple[int, str, str] = (0, "sync ok\n", ""),
+    add: tuple[int, str, str] = (0, "", ""),
+    amend: tuple[int, str, str] = (0, "[main abc1234] amend\n", ""),
+    preflight_status: str = "",
+    staging_status: str = DIRTY,
+    upstream: str | None = None,
+    head_pushed: bool = False,
+):
+    """subprocess.run 을 *명령 내용*으로 dispatch 하는 side_effect + 호출 기록.
+
+    Returns:
+        (side_effect, calls) — calls 는 실행된 argv list 의 기록.
+    """
+    calls: list[list[str]] = []
+    status_seen = [0]
+
+    def _side_effect(cmd, *a, **kw):
+        calls.append(list(cmd))
+        joined = " ".join(str(c) for c in cmd)
+        if "sync_release_hash" in joined:
+            return _make_fake_proc(*sync)
+        if cmd[:3] == ["git", "status", "--porcelain"]:
+            status_seen[0] += 1
+            out = preflight_status if status_seen[0] == 1 else staging_status
+            return _make_fake_proc(0, out)
+        if "--symbolic-full-name" in cmd:
+            if upstream is None:
+                return _make_fake_proc(128, "", "no upstream\n")
+            return _make_fake_proc(0, f"{upstream}\n")
+        if cmd[:2] == ["git", "merge-base"]:
+            return _make_fake_proc(0 if head_pushed else 1, "", "")
+        if cmd[:2] == ["git", "add"]:
+            return _make_fake_proc(*add)
+        if "--amend" in cmd:
+            return _make_fake_proc(*amend)
+        if "--short=7" in joined:
+            return _make_fake_proc(0, "abc1234\n")
+        if cmd[:2] == ["git", "rev-parse"]:
+            return _make_fake_proc(0, "abc1234def5678901234567890123456789012ab\n")
+        raise AssertionError(f"unrouted subprocess call: {cmd}")
+
+    return _side_effect, calls
+
+
+def _fake_repo(tmp: str) -> Path:
+    """git init 된 최소 repo (pyproject + workflow_kit)."""
+    repo_root = Path(tmp) / "fake_repo"
+    (repo_root / "workflow_kit").mkdir(parents=True, exist_ok=True)
+    (repo_root / "pyproject.toml").write_text(
+        '[project]\nname = "test"\nversion = "0.0.0"\n', encoding="utf-8")
+    (repo_root / "workflow_kit" / "__init__.py").write_text(
+        '__version__ = "v0.0.0-beta"\n', encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
+    subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
+    return repo_root
+
+
+def _ran(calls: list[list[str]], needle: str) -> bool:
+    return any(needle in " ".join(str(c) for c in call) for call in calls)
+
+
 # === Test 1: 2-phase sync calls ===
 def test_2_phase_sync_calls() -> bool:
     """sync_release_hash + git add + git commit --amend 모두 호출."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo_root = Path(tmp) / "fake_repo"
-        repo_root.mkdir(parents=True, exist_ok=True)
-        (repo_root / "pyproject.toml").write_text('[project]\nname = "test"\nversion = "0.0.0"\n', encoding="utf-8")
-        (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
-        (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.0.0-beta"\n', encoding="utf-8")
-
-        subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
-
-        # Mock sync_release_hash + git add + git commit --amend
-        import unittest.mock
-        with patch("subprocess.run") as mock_run:
-            # side_effect: 4 calls
-            # 1. sync_release_hash.py
-            # 2. git add
-            # 3. git commit --amend
-            # 4. git rev-parse HEAD --short=7
-            mock_run.side_effect = [
-                _make_fake_proc(0, "sync ok\n"),  # sync_release_hash
-                _make_fake_proc(0, ""),  # git add
-                _make_fake_proc(0, "[main abc1234] chore: amend\n"),  # git commit --amend
-                _make_fake_proc(0, "abc1234\n"),  # git rev-parse
-            ]
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router()
+        with patch("subprocess.run", side_effect=side_effect):
             result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
-            if result.get("error"):
-                print(f"  FAIL: tool error: {result['error']}")
+        if result.get("error"):
+            print(f"  FAIL: tool error: {result['error']}")
+            return False
+        for needle in ("sync_release_hash", "git add", "--amend"):
+            if not _ran(calls, needle):
+                print(f"  FAIL: {needle!r} not called. Calls: {calls}")
                 return False
-            if mock_run.call_count != 4:
-                print(f"  FAIL: expected 4 subprocess calls, got {mock_run.call_count}")
-                return False
-            # Verify call sequence
-            call_args = [c.args[0] for c in mock_run.call_args_list]
-            if not any("sync_release_hash" in str(args) for args in call_args):
-                print(f"  FAIL: sync_release_hash.py not called. Calls: {call_args}")
-                return False
-            if not any("add" in str(args) for args in call_args):
-                print(f"  FAIL: git add not called. Calls: {call_args}")
-                return False
-            if not any("amend" in str(args) for args in call_args):
-                print(f"  FAIL: git commit --amend not called. Calls: {call_args}")
-                return False
-        # result 검증
         sync_hash_result = result.get("sync_hash_result", {})
         if not sync_hash_result.get("ok"):
             print(f"  FAIL: sync_hash_result.ok=False. Got: {sync_hash_result}")
@@ -140,101 +184,51 @@ def test_2_phase_sync_calls() -> bool:
 
 # === Test 2: amend integration ===
 def test_amend_integration() -> bool:
-    """amend 후의 final_hash 가 state.json 의 v0.7.29 entry 와 정합."""
+    """amend 후의 final_hash 가 rev-parse (2-step full → short=7) 결과와 정합."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo_root = Path(tmp) / "fake_repo"
-        repo_root.mkdir(parents=True, exist_ok=True)
-        # state.json + backlog with v0.7.29 entry + TBD commit
-        (repo_root / "ai-workflow" / "memory" / "active").mkdir(parents=True, exist_ok=True)
-        state_path = repo_root / "ai-workflow" / "memory" / "active" / "state.json"
-        state_path.write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.7.29 (TBD): test"]}
-        }, indent=2), encoding="utf-8")
-        (repo_root / "ai-workflow" / "memory" / "release" / "v0.7.29" / "backlog").mkdir(parents=True, exist_ok=True)
-        backlog_path = repo_root / "ai-workflow" / "memory" / "release" / "v0.7.29" / "backlog" / "2026-06-15.md"
-        backlog_path.write_text("- **commit**: TBD\n", encoding="utf-8")
-        # real sync_release_hash.py 가 동작해야 (mock 안 함)
-        (repo_root / "pyproject.toml").write_text('[project]\nname = "test"\nversion = "0.7.0"\n', encoding="utf-8")
-        (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
-        (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.7.0-beta"\n', encoding="utf-8")
-
-        subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
-
-        # sync_release_hash.py mock + git add/amend/rev-parse mock
-        # real sync_release_hash.py 가 호출되지 *않도록* tool path 를 fake path 로
-        # release_pipeline.py 의 sync_tool = Path(__file__).resolve().parent / "sync_release_hash.py"
-        # → real sync_release_hash.py 가 있어. *real* 실행 시 state.json 의 TBD → HEAD hash 변경
-        # amend 후 의 final_hash 와 정합
-        import unittest.mock
-        # subprocess.run 의 *side_effect* — sync_release_hash.py 의 결과 (real) + git add/amend/rev-parse (mock)
-        # real sync_release_hash.py 가 동작하기 위해 *real* subprocess call 필요
-        # 방법: sync_release_hash.py 의 *return* 을 mock 으로 대체
-        with patch("subprocess.run") as mock_run:
-            # sync_release_hash.py: real 호출 (의미 있는 returncode) — mock 도 ok
-            # *단순화*: mock 이 모든 4 calls 처리
-            mock_run.side_effect = [
-                _make_fake_proc(0, "sync_release_hash ok\n"),  # sync_release_hash
-                _make_fake_proc(0, ""),  # git add
-                _make_fake_proc(0, "[main abc1234] amend\n"),  # git commit --amend
-                _make_fake_proc(0, "abc1234\n"),  # git rev-parse
-            ]
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router()
+        with patch("subprocess.run", side_effect=side_effect):
             result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
-            if result.get("error"):
-                print(f"  FAIL: tool error: {result['error']}")
-                return False
-            sync_hash_result = result.get("sync_hash_result", {})
-            if sync_hash_result.get("final_hash") != "abc1234":
-                print(f"  FAIL: final_hash != 'abc1234'. Got: {sync_hash_result.get('final_hash')}")
-                return False
-        # 검증: state.json 의 v0.7.29 entry 가 *어떤* hash 인지는 *real* flow 가 아니므로 검증 안 함
-        # (mocked sync_release_hash 가 file 변경 안 함)
-        print("  PASS: amend integration (final_hash = 'abc1234' from mocked amend)")
+        if result.get("error"):
+            print(f"  FAIL: tool error: {result['error']}")
+            return False
+        sync_hash_result = result.get("sync_hash_result", {})
+        if sync_hash_result.get("final_hash") != "abc1234":
+            print(f"  FAIL: final_hash != 'abc1234'. Got: {sync_hash_result.get('final_hash')}")
+            return False
+        if not _ran(calls, "--short=7"):
+            print(f"  FAIL: 2-step rev-parse (--short=7) not used. Calls: {calls}")
+            return False
+        print("  PASS: amend integration (final_hash='abc1234' via 2-step rev-parse)")
         return True
 
 
 # === Test 3: no TBD skip ===
 def test_no_tbd_skip() -> bool:
-    """TBD 부재 시 sync 가 *변경 0* (idempotent skip). amend 도 호출 0 (변경 없음)."""
+    """TBD 부재 (sync 변경 0) → staging 대상 0 → amend 호출 없이 ok=True."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo_root = Path(tmp) / "fake_repo"
-        repo_root.mkdir(parents=True, exist_ok=True)
-        (repo_root / "pyproject.toml").write_text('[project]\nname = "test"\nversion = "0.0.0"\n', encoding="utf-8")
-        (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
-        (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.0.0-beta"\n', encoding="utf-8")
-
-        subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
-
-        # state.json 에 v0.7.29 entry 가 *없음* (skip case)
-        # sync_release_hash.py 가 state_updated=False + backlog_updated=False 반환
-        import unittest.mock
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = [
-                _make_fake_proc(0, "mode: apply\nversion: v0.7.29\nnew_hash: abc1234\nstate_updated: False\nbacklog_updated: False\n"),  # sync_release_hash
-                _make_fake_proc(0, ""),  # git add (변경 0)
-                _make_fake_proc(0, "[main abc1234] amend\n"),  # git commit --amend (변경 0, no-op)
-                _make_fake_proc(0, "abc1234\n"),  # git rev-parse
-            ]
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(
+            sync=(0, "state_updated: False\nbacklog_updated: False\n", ""),
+            staging_status="",  # sync 가 아무것도 안 바꿈
+        )
+        with patch("subprocess.run", side_effect=side_effect):
             result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
-            if result.get("error"):
-                print(f"  FAIL: tool error: {result['error']}")
-                return False
-            sync_hash_result = result.get("sync_hash_result", {})
-            if not sync_hash_result.get("ok"):
-                print(f"  FAIL: sync_hash_result.ok=False despite no-op. Got: {sync_hash_result}")
-                return False
-            # *subprocess calls* 가 모두 호출됨 (4 calls) — amend no-op 이지만 *호출* 은 발생
-            if mock_run.call_count != 4:
-                print(f"  FAIL: expected 4 subprocess calls (no-op), got {mock_run.call_count}")
-                return False
-        print("  PASS: no TBD → 2-phase no-op (sync skip, amend no-op)")
+        if result.get("error"):
+            print(f"  FAIL: tool error: {result['error']}")
+            return False
+        sync_hash_result = result.get("sync_hash_result", {})
+        if not sync_hash_result.get("ok"):
+            print(f"  FAIL: sync_hash_result.ok=False despite no-op. Got: {sync_hash_result}")
+            return False
+        if _ran(calls, "--amend"):
+            print(f"  FAIL: amend called despite 0 change. Calls: {calls}")
+            return False
+        if sync_hash_result.get("skipped") != "no changes to amend":
+            print(f"  FAIL: expected skipped marker. Got: {sync_hash_result}")
+            return False
+        print("  PASS: no TBD → staging 0 → amend skipped (no empty-commit amend)")
         return True
 
 
@@ -242,42 +236,24 @@ def test_no_tbd_skip() -> bool:
 def test_sync_failure_graceful() -> bool:
     """sync_release_hash fail (returncode 1) 시 amend 호출 안 함, ok=False."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo_root = Path(tmp) / "fake_repo"
-        repo_root.mkdir(parents=True, exist_ok=True)
-        (repo_root / "pyproject.toml").write_text('[project]\nname = "test"\nversion = "0.0.0"\n', encoding="utf-8")
-        (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
-        (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.0.0-beta"\n', encoding="utf-8")
-
-        subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
-
-        import unittest.mock
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = [
-                _make_fake_proc(1, "", "sync_release_hash failed\n"),  # sync FAIL
-                # 2nd call (git add) should NOT happen
-            ]
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(sync=(1, "", "sync_release_hash failed\n"))
+        with patch("subprocess.run", side_effect=side_effect):
             result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
-            # version-bump 자체는 성공 (pyproject + workflow_kit 변경됨)
-            if result.get("mode") != "applied":
-                print(f"  FAIL: expected mode='applied', got {result.get('mode')!r}")
-                return False
-            sync_hash_result = result.get("sync_hash_result", {})
-            if sync_hash_result.get("ok") is not False:
-                print(f"  FAIL: sync_hash_result.ok should be False. Got: {sync_hash_result}")
-                return False
-            # amend 가 *호출되지* *않음* — only 1 subprocess call
-            if mock_run.call_count != 1:
-                print(f"  FAIL: expected 1 subprocess call (sync only, no amend), got {mock_run.call_count}")
-                return False
-            # error message 포함
-            if "sync_release_hash failed" not in sync_hash_result.get("error", ""):
-                print(f"  FAIL: error message missing. Got: {sync_hash_result.get('error')!r}")
-                return False
-        print("  PASS: sync failure → no amend, ok=False, graceful")
+        if result.get("mode") != "applied":
+            print(f"  FAIL: expected mode='applied', got {result.get('mode')!r}")
+            return False
+        sync_hash_result = result.get("sync_hash_result", {})
+        if sync_hash_result.get("ok") is not False:
+            print(f"  FAIL: sync_hash_result.ok should be False. Got: {sync_hash_result}")
+            return False
+        if _ran(calls, "--amend") or _ran(calls, "git add"):
+            print(f"  FAIL: add/amend called despite sync failure. Calls: {calls}")
+            return False
+        if "sync_release_hash failed" not in sync_hash_result.get("error", ""):
+            print(f"  FAIL: error message missing. Got: {sync_hash_result.get('error')!r}")
+            return False
+        print("  PASS: sync failure → no add/amend, ok=False, graceful")
         return True
 
 
@@ -285,52 +261,128 @@ def test_sync_failure_graceful() -> bool:
 def test_amend_failure_graceful() -> bool:
     """git commit --amend fail (returncode 1) 시 ok=False, final_hash=None."""
     with tempfile.TemporaryDirectory() as tmp:
-        repo_root = Path(tmp) / "fake_repo"
-        repo_root.mkdir(parents=True, exist_ok=True)
-        (repo_root / "pyproject.toml").write_text('[project]\nname = "test"\nversion = "0.0.0"\n', encoding="utf-8")
-        (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
-        (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.0.0-beta"\n', encoding="utf-8")
-
-        subprocess.run(["git", "init", "-q"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.email", "t@t"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "config", "user.name", "T"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(repo_root), check=True)
-        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=str(repo_root), check=True)
-
-        import unittest.mock
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = [
-                _make_fake_proc(0, "sync ok\n"),  # sync_release_hash OK
-                _make_fake_proc(0, ""),  # git add OK
-                _make_fake_proc(1, "", "amend failed\n"),  # git commit --amend FAIL
-                # 4th call (rev-parse) should NOT happen
-            ]
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(amend=(1, "", "amend failed\n"))
+        with patch("subprocess.run", side_effect=side_effect):
             result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
-            if result.get("mode") != "applied":
-                print(f"  FAIL: expected mode='applied', got {result.get('mode')!r}")
-                return False
-            sync_hash_result = result.get("sync_hash_result", {})
-            if sync_hash_result.get("ok") is not False:
-                print(f"  FAIL: sync_hash_result.ok should be False. Got: {sync_hash_result}")
-                return False
-            if sync_hash_result.get("final_hash") is not None:
-                print(f"  FAIL: final_hash should be None. Got: {sync_hash_result.get('final_hash')}")
-                return False
-            # sync OK + add OK + amend FAIL = 3 subprocess calls
-            if mock_run.call_count != 3:
-                print(f"  FAIL: expected 3 subprocess calls (sync + add + amend), got {mock_run.call_count}")
-                return False
-            if "amend failed" not in sync_hash_result.get("error", ""):
-                print(f"  FAIL: error message missing. Got: {sync_hash_result.get('error')!r}")
-                return False
+        if result.get("mode") != "applied":
+            print(f"  FAIL: expected mode='applied', got {result.get('mode')!r}")
+            return False
+        sync_hash_result = result.get("sync_hash_result", {})
+        if sync_hash_result.get("ok") is not False:
+            print(f"  FAIL: sync_hash_result.ok should be False. Got: {sync_hash_result}")
+            return False
+        if sync_hash_result.get("final_hash") is not None:
+            print(f"  FAIL: final_hash should be None. Got: {sync_hash_result.get('final_hash')}")
+            return False
+        if "amend failed" not in sync_hash_result.get("error", ""):
+            print(f"  FAIL: error message missing. Got: {sync_hash_result.get('error')!r}")
+            return False
         print("  PASS: amend failure → ok=False, final_hash=None, graceful")
+        return True
+
+
+# === Test 6 (v1.0.0 guard): dirty tree aborts ===
+def test_dirty_tree_aborts() -> bool:
+    """pre-flight 에서 dirty tree 감지 → mode=aborted, sync/amend 호출 0."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(preflight_status="?? unrelated_work.py\n")
+        with patch("subprocess.run", side_effect=side_effect):
+            result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
+        if result.get("mode") != "aborted":
+            print(f"  FAIL: expected mode='aborted', got {result.get('mode')!r}")
+            return False
+        if "unrelated_work.py" not in result.get("dirty_paths", []):
+            print(f"  FAIL: dirty_paths missing offender. Got: {result.get('dirty_paths')}")
+            return False
+        if _ran(calls, "sync_release_hash") or _ran(calls, "--amend"):
+            print(f"  FAIL: sync/amend ran despite dirty tree. Calls: {calls}")
+            return False
+        print("  PASS: dirty tree → aborted before any write (amend hazard blocked)")
+        return True
+
+
+# === Test 7 (v1.0.0 guard): --allow-dirty override ===
+def test_allow_dirty_override() -> bool:
+    """--allow-dirty 시 dirty tree 여도 기존 flow 진행."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(preflight_status="?? unrelated_work.py\n")
+        with patch("subprocess.run", side_effect=side_effect):
+            result = _run_inproc(
+                ["version-bump", "--to=0.7.29", "--apply", "--allow-dirty"], repo_root=repo_root)
+        if result.get("mode") != "applied":
+            print(f"  FAIL: expected mode='applied', got {result.get('mode')!r}")
+            return False
+        if not _ran(calls, "--amend"):
+            print(f"  FAIL: amend not called under --allow-dirty. Calls: {calls}")
+            return False
+        print("  PASS: --allow-dirty overrides the pre-flight guard")
+        return True
+
+
+# === Test 8 (v1.0.0 guard): pushed HEAD refuses amend ===
+def test_pushed_head_refuses_amend() -> bool:
+    """HEAD 가 upstream 의 ancestor (= 이미 push) → amend 거부, ok=False."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router(upstream="origin/main", head_pushed=True)
+        with patch("subprocess.run", side_effect=side_effect):
+            result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
+        sync_hash_result = result.get("sync_hash_result", {})
+        if sync_hash_result.get("ok") is not False:
+            print(f"  FAIL: ok should be False for pushed HEAD. Got: {sync_hash_result}")
+            return False
+        if _ran(calls, "--amend"):
+            print(f"  FAIL: amend ran on a pushed HEAD. Calls: {calls}")
+            return False
+        if "already pushed" not in sync_hash_result.get("error", ""):
+            print(f"  FAIL: error message missing. Got: {sync_hash_result.get('error')!r}")
+            return False
+        # override 로는 통과해야 함
+        side_effect2, calls2 = _make_router(upstream="origin/main", head_pushed=True)
+        with patch("subprocess.run", side_effect=side_effect2):
+            result2 = _run_inproc(
+                ["version-bump", "--to=0.7.29", "--apply", "--allow-pushed-amend"], repo_root=repo_root)
+        if not result2.get("sync_hash_result", {}).get("ok"):
+            print(f"  FAIL: --allow-pushed-amend should proceed. Got: {result2.get('sync_hash_result')}")
+            return False
+        print("  PASS: pushed HEAD → amend refused (--allow-pushed-amend overrides)")
+        return True
+
+
+# === Test 9 (v1.0.0 guard): scoped add ===
+def test_add_is_scoped() -> bool:
+    """`git add -A` 대신 dirty path 를 명시 add 하고 staged_paths 로 기록."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo_root = _fake_repo(tmp)
+        side_effect, calls = _make_router()
+        with patch("subprocess.run", side_effect=side_effect):
+            result = _run_inproc(["version-bump", "--to=0.7.29", "--apply"], repo_root=repo_root)
+        add_calls = [c for c in calls if c[:2] == ["git", "add"]]
+        if not add_calls:
+            print(f"  FAIL: no git add call. Calls: {calls}")
+            return False
+        add_cmd = add_calls[0]
+        if "-A" in add_cmd:
+            print(f"  FAIL: `git add -A` still used (amend hazard). Got: {add_cmd}")
+            return False
+        if "--" not in add_cmd or "pyproject.toml" not in add_cmd:
+            print(f"  FAIL: add is not path-scoped. Got: {add_cmd}")
+            return False
+        staged = result.get("sync_hash_result", {}).get("staged_paths")
+        if staged != ["pyproject.toml", "workflow_kit/__init__.py"]:
+            print(f"  FAIL: staged_paths not recorded correctly. Got: {staged}")
+            return False
+        print("  PASS: git add is path-scoped + staged_paths recorded")
         return True
 
 
 # === Main ===
 def main() -> int:
     print("=" * 60)
-    print("TASK-V0727-001 (2-phase post-step + amend) smoke test (v0.7.29)")
+    print("TASK-V0727-001 (2-phase post-step + amend) smoke test (v0.7.29 / v1.0.0 guard)")
     print("=" * 60)
 
     tests = [
@@ -339,6 +391,10 @@ def main() -> int:
         test_no_tbd_skip,
         test_sync_failure_graceful,
         test_amend_failure_graceful,
+        test_dirty_tree_aborts,
+        test_allow_dirty_override,
+        test_pushed_head_refuses_amend,
+        test_add_is_scoped,
     ]
     passed = 0
     for test in tests:

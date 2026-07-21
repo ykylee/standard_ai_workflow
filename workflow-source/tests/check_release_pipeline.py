@@ -101,7 +101,10 @@ def test_version_bump_apply_and_restore() -> None:
     original_init = mod.read_workflow_kit_version()
     try:
         # 0.7.8 → 0.7.9 patch
-        result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": False, "apply": True, "no_init": False})())
+        # skip_sync_hash=True: 본 test 는 pyproject/__init__ 갱신만 검증한다. post-step 을
+        # 켜면 *실제 repo* 의 HEAD commit 이 `git commit --amend` 되어 작업물이 흡수된다
+        # (v1.0.0 amend guard 참조). 검증 의도와 무관한 파괴적 부작용이므로 끈다.
+        result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": False, "apply": True, "no_init": False, "skip_sync_hash": True})())
         assert result["mode"] == "applied"
         assert result["previous_pyproject"] == original
         assert result["current_pyproject"] != original

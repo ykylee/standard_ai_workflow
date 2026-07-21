@@ -256,19 +256,24 @@ def test_custom_adapter_emits_v0_10_2() -> None:
 # Acceptance #7: SUPPORTED_HARNESSES 7→10 정합
 # ---------------------------------------------------------------------------
 def test_supported_harnesses_count_v0_10_2() -> None:
-    """Acceptance v0.10.2 #7: SUPPORTED_HARNESSES 7→10 (v0.10.1 + aider + goose + custom)."""
+    """Acceptance v0.10.2 #7: SUPPORTED_HARNESSES 7→10 (v0.10.1 + aider + goose + custom).
+
+    v1.0.0: 이후 릴리스에서 harness 가 *추가* 되므로 (grok-build, codewhale, ...) 정확한
+    개수/집합 고정이 아니라 **v0.10.2 당시 10종이 여전히 지원되는지** 를 회귀 검사한다.
+    """
     from bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
-    assert len(SUPPORTED_HARNESSES) == 10, (
-        f"v0.10.2: SUPPORTED_HARNESSES 10개 (v0.10.1 7 + aider + goose + custom). got: {SUPPORTED_HARNESSES}"
-    )
     expected = {
         "codex", "opencode", "gemini-cli", "pi-dev", "antigravity", "minimax-code",
         "claude-code", "aider", "goose", "custom",
     }
-    assert set(SUPPORTED_HARNESSES) == expected, (
-        f"v0.10.2: SUPPORTED_HARNESSES set 불일치. got: {set(SUPPORTED_HARNESSES)}, "
-        f"expected: {expected}"
+    missing = expected - set(SUPPORTED_HARNESSES)
+    assert not missing, (
+        f"v0.10.2: SUPPORTED_HARNESSES 에서 사라진 harness: {sorted(missing)}. "
+        f"got: {SUPPORTED_HARNESSES}"
+    )
+    assert len(SUPPORTED_HARNESSES) == len(set(SUPPORTED_HARNESSES)), (
+        f"v0.10.2: SUPPORTED_HARNESSES 에 중복 entry. got: {SUPPORTED_HARNESSES}"
     )
 
 

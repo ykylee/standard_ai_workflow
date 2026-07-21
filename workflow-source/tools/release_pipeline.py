@@ -780,6 +780,27 @@ def cmd_version_bump(args) -> dict:
         return result
     if args.to is None and not (args.patch or args.minor or args.major):
         args.patch = True
+
+    # v1.0.0 guard: post-step 이 `git commit --amend` 로 working tree 를 HEAD 에 흡수하므로,
+    # bump 이전에 *미커밋 작업이 있으면* 그것까지 release commit 에 빨려 들어간다.
+    # → amend 가 실제로 돌 때 (skip_sync_hash=False) 만 clean tree 를 강제. --allow-dirty override.
+    will_amend = not getattr(args, "skip_sync_hash", False)
+    if will_amend and not getattr(args, "allow_dirty", False):
+        dirty = _git_dirty_paths()
+        if dirty:
+            return {
+                "mode": "aborted",
+                "current_pyproject": current,
+                "current_workflow_kit": current_wk,
+                "dirty_paths": dirty[:50],
+                "dirty_count": len(dirty),
+                "error": (
+                    f"working tree is not clean ({len(dirty)} path) — post-step `git commit --amend` "
+                    f"가 미커밋 작업을 release commit 에 흡수합니다. commit/stash 후 재실행하거나 "
+                    f"--skip-sync-hash / --allow-dirty 를 사용하세요."
+                ),
+            }
+
     new = bump_version(
         current,
         patch=args.patch, minor=args.minor, major=args.major, to=args.to,
@@ -800,17 +821,68 @@ def cmd_version_bump(args) -> dict:
     # TASK-V0726-003 (v0.7.27): post-step 자동 sync — state.json + backlog 의 hash = latest
     # commit. --skip-sync-hash flag 시 skip (manual override).
     if not getattr(args, "skip_sync_hash", False):
-        sync_result = _run_post_step_sync_hash(new)
+        sync_result = _run_post_step_sync_hash(
+            new, allow_pushed_amend=getattr(args, "allow_pushed_amend", False),
+        )
         result["sync_hash_result"] = sync_result
     return result
 
 
-def _run_post_step_sync_hash(version: str) -> dict:
+def _git_dirty_paths(*, timeout: int = 15) -> list[str]:
+    """`git status --porcelain` 의 변경 path 목록 (untracked 포함).
+
+    rename (`R  old -> new`) 은 new path 만 반환. git 호출 실패 시 빈 list.
+    """
+    proc = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+    )
+    if proc.returncode != 0:
+        return []
+    paths = []
+    for line in proc.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:]
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        paths.append(path.strip().strip('"'))
+    return paths
+
+
+def _head_is_pushed(*, timeout: int = 15) -> dict:
+    """HEAD 가 upstream 에 이미 push 됐는지 판정.
+
+    Returns:
+        dict(checked, upstream, pushed). upstream 이 없으면 checked=False (판정 불가 →
+        호출측에서 amend 를 막지 않음).
+    """
+    proc_up = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+    )
+    if proc_up.returncode != 0 or not proc_up.stdout.strip():
+        return {"checked": False, "upstream": None, "pushed": False}
+    upstream = proc_up.stdout.strip()
+    proc_anc = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "HEAD", upstream],
+        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+    )
+    return {"checked": True, "upstream": upstream, "pushed": proc_anc.returncode == 0}
+
+
+def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) -> dict:
     """sync_release_hash.py 자동 호출 (TASK-V0726-003 post-step) + amend 통합 (TASK-V0727-001).
 
     2-phase:
     1. sync_release_hash.py 자동 호출 — state.json + backlog 의 TBD → *current HEAD* hash
     2. `git add` (sync 의 변경) + `git commit --amend --no-edit` — 1 commit 통합 (별도 fix(state) commit 불필요)
+
+    v1.0.0 guard: Phase 2 의 amend 는 **이미 push 된 commit 을 재작성**할 수 있으므로,
+    amend 직전에 HEAD 가 upstream 의 ancestor 인지 검사한다 (`allow_pushed_amend=True` 로
+    override 가능). staging 도 `git add -A` 대신 **현재 dirty path 를 명시적으로 나열**해
+    무엇이 amend 에 흡수됐는지 result 에 기록한다. dirty tree 자체의 차단은 호출측
+    (`cmd_version_bump`) 의 pre-flight 책임.
 
     sync_release_hash.py 는 release_pipeline.py 와 같은 dir (workflow-source/tools/) 에
     위치. REPO_ROOT 와 무관하게 __file__ 의 parents[1] (workflow-source/tools/) 기준.
@@ -851,8 +923,29 @@ def _run_post_step_sync_hash(version: str) -> dict:
     # amend 시 *HEAD* 의 *직전* commit (feat or chore) 이 amend 됨
     # sync_release_hash 의 변경 = state.json + backlog 의 TBD → HEAD hash
     # *이미* amend 후 의 *HEAD* 의 본 release 의 chore commit hash 와 정합
+    # Guard 1 (v1.0.0): 이미 push 된 commit 은 amend 금지 — 원격 history 재작성 방지
+    pushed_info = _head_is_pushed()
+    if pushed_info["pushed"] and not allow_pushed_amend:
+        return {
+            "ok": False, "sync_result": sync_result, "amend_result": None, "final_hash": None,
+            "head_pushed": pushed_info,
+            "error": (
+                f"HEAD is already pushed to {pushed_info['upstream']} — refusing to amend "
+                f"(원격 history 재작성 위험). 새 commit 으로 처리하거나 --allow-pushed-amend 로 override."
+            ),
+        }
+
+    # Guard 2 (v1.0.0): `git add -A` 대신 dirty path 명시 — 무엇이 흡수됐는지 기록
+    staged_paths = _git_dirty_paths()
+    if not staged_paths:
+        return {
+            "ok": True, "sync_result": sync_result, "amend_result": None, "final_hash": None,
+            "head_pushed": pushed_info, "staged_paths": [],
+            "skipped": "no changes to amend",
+            "error": None,
+        }
     proc_add = subprocess.run(
-        ["git", "add", "-A"],
+        ["git", "add", "--", *staged_paths],
         capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
     )
     add_result = {
@@ -863,6 +956,7 @@ def _run_post_step_sync_hash(version: str) -> dict:
     if proc_add.returncode != 0:
         return {
             "ok": False, "sync_result": sync_result, "amend_result": add_result, "final_hash": None,
+            "head_pushed": pushed_info, "staged_paths": staged_paths,
             "error": f"git add failed (returncode={proc_add.returncode}): {proc_add.stderr}",
         }
 
@@ -878,6 +972,7 @@ def _run_post_step_sync_hash(version: str) -> dict:
     if proc_amend.returncode != 0:
         return {
             "ok": False, "sync_result": sync_result, "amend_result": amend_result, "final_hash": None,
+            "head_pushed": pushed_info, "staged_paths": staged_paths,
             "error": f"git commit --amend failed (returncode={proc_amend.returncode}): {proc_amend.stderr}",
         }
 
@@ -902,6 +997,7 @@ def _run_post_step_sync_hash(version: str) -> dict:
 
     return {
         "ok": True, "sync_result": sync_result, "amend_result": amend_result, "final_hash": final_hash,
+        "head_pushed": pushed_info, "staged_paths": staged_paths,
         "error": None,
     }
 
@@ -3179,6 +3275,11 @@ def main() -> int:
     p_vb.add_argument("--apply", dest="apply", action="store_true", default=True)
     p_vb.add_argument("--skip-sync-hash", action="store_true", dest="skip_sync_hash",
                        help="post-step sync_release_hash 자동 호출 skip (TASK-V0726-003, manual override)")
+    p_vb.add_argument("--allow-dirty", action="store_true", dest="allow_dirty",
+                       help="dirty working tree 여도 진행 (v1.0.0 guard override — amend 가 "
+                            "미커밋 작업을 흡수할 수 있음)")
+    p_vb.add_argument("--allow-pushed-amend", action="store_true", dest="allow_pushed_amend",
+                       help="HEAD 가 이미 push 된 경우에도 post-step amend 허용 (원격 history 재작성)")
     p_vb.add_argument("--json", action="store_true", help="JSON output (CI integration)")
 
     # note-draft

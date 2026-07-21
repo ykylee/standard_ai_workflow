@@ -136,17 +136,17 @@ kind: release | session | generic
 - v0.14.0 migration 으로 per-session 파일로 분리됨.
 ```
 
-### 📂 State.json — read-only snapshot (v0.14.0+)
+### 📂 State.json — read-only snapshot (v1.0.0+ branch-scoped)
 ```json
 {
   "schema_version": "1",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/sessions/",
-    "work_backlog_index_path": "ai-workflow/memory/active/backlog/",
-    "daily_backlog_dir": "ai-workflow/memory/active/backlog/",
-    "tasks_dir": "ai-workflow/memory/active/backlog/tasks/",
-    "sessions_dir": "ai-workflow/memory/active/sessions/"
+    "session_handoff_path": "ai-workflow/memory/active/<branch>/sessions/",
+    "work_backlog_index_path": "ai-workflow/memory/active/<branch>/backlog/",
+    "daily_backlog_dir": "ai-workflow/memory/active/<branch>/backlog/",
+    "tasks_dir": "ai-workflow/memory/active/<branch>/backlog/tasks/",
+    "sessions_dir": "ai-workflow/memory/active/<branch>/sessions/"
   },
   "session": {
     "in_progress_items": [],
@@ -157,6 +157,34 @@ kind: release | session | generic
 ```
 
 **본 layout 결정의 동기**: sub-agent 2개+ 동시 fan-out 시 `state.json.recent_done_items` / `work_backlog.md` 의 3-way merge conflict 를 해소. 신규 layout 에서는 mutable 공유 파일이 `state.json` 단 1개 (rebuild race only), 나머지는 append-only 또는 자기 소유 파일. 자세한 분석: [`../../ai-workflow/memory/active/README.md`](../../ai-workflow/memory/active/README.md).
+
+### 📂 Branch-scoped layout (v1.0.0+)
+
+작업 상태는 **브랜치마다 물리적으로 분리**된다. 여러 브랜치/에이전트가 동시에 일해도
+daily index / task 번호 / `state.json` 이 서로를 덮어쓰지 않는다.
+
+```
+ai-workflow/memory/
+├── active/<branch>/          ← state.json, backlog/, sessions/  (main 도 동일)
+├── archived/<branch>/        ← 종료된 브랜치 (.archived.json 메타 동반)
+├── archive/YYYY-MM-DD/       ← R8 freeze (별개 개념 — 이름이 비슷하니 혼동 주의)
+└── release/<version>/        ← release cycle 아카이브
+```
+
+- **공유(브랜치 무관)**: `PROJECT_PROFILE.md` / `PURPOSE.md` / `*_assessment.md` /
+  `state.json.template` / `memory_index/`. `PROJECT_PROFILE.md` 가 `active/` 직속에 있어야
+  경로 해석(`workflow_memory_dir` → `active/`)이 성립한다.
+- **task ID**: `TASK-<date>-<slug>-<NNN>`. 순번을 *브랜치 안에서만* 매기므로 동시 생성해도
+  겹치지 않고, 아카이브로 합쳐진 뒤에도 전역 유일하다.
+- **자동 아카이브**: `active/<branch>/` 가 있는데 git 에 그 브랜치가 없으면 종료로 보고
+  `archived/<branch>/` 로 옮긴다(역방향 점검 — hook 은 브랜치 삭제를 못 잡는다). 고아
+  디렉터리가 구조적으로 생길 수 없다. 도구는 commit/push 를 하지 않으므로 **protected main
+  과 호환**되며, 작업 브랜치에서 실행해 그 PR 에 실어 보낸다(piggyback).
+- **집계는 파일이 아니라 뷰**: dashboard 가 `active/*/state.json` 을 모두 스캔해 합친다.
+  main 전용 집계 파일이 없으므로 merge 마다 갱신할 대상 자체가 없다.
+- **legacy fallback**: 경로 helper 는 branch-scoped 가 없고 legacy(`active/backlog/`)가 있으면
+  legacy 를 반환한다. 미마이그레이션 저장소도 깨지지 않고 신규 생성만 수렴한다.
+- 도구: `tools/migrate_memory_to_branch_scoped.py`, `tools/archive_branch_memory.py`.
 
 **Deprecation timeline** (ADR-003 1st/2nd cycle):
 - v0.14.0 (1st cycle 시작): 신규 layout 활성 + `work_backlog.md` fallback 유지

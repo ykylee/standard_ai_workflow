@@ -22,13 +22,17 @@ ARCHIVE_ROOT = REPO_ROOT / "ai-workflow" / "memory" / "archive"
 # - 신규 SSOT: `backlog/` + `backlog/tasks/` + `sessions/` directory tree
 #   (1 file = 1 task, 1 file = 1 daily-index, 1 file = 1 session).
 # - REQUIRED_DIRS 는 directory 자체 존재 검증 (R8 freeze 가 recursive copy 함).
-REQUIRED_FILES = [
+# v1.0.0 branch-scoped: 공유(브랜치 무관) 항목과 브랜치별 작업 상태를 분리해 검증한다.
+SHARED_FILES = [
     "PROJECT_PROFILE.md",
     "project_status_assessment.md",
     "repository_assessment.md",
-    "state.json",
     "state.json.template",
 ]
+BRANCH_FILES = [
+    "state.json",
+]
+REQUIRED_FILES = SHARED_FILES + BRANCH_FILES   # archive/ 검증용 (legacy freeze 는 평면)
 REQUIRED_DIRS = [
     "backlog",
     "backlog/tasks",
@@ -36,19 +40,35 @@ REQUIRED_DIRS = [
 ]
 
 
+def _resolve_layout_root() -> Path:
+    """브랜치별 작업 상태의 기준 dir (`active/<branch>/`). legacy 는 `active/` fallback."""
+    if (ACTIVE_DIR / "backlog").is_dir():
+        return ACTIVE_DIR
+    for cand in sorted(ACTIVE_DIR.rglob("*")):
+        if cand.is_dir() and (cand / "backlog").is_dir():
+            return cand
+    return ACTIVE_DIR
+
+
+LAYOUT_ROOT = _resolve_layout_root()
+
+
 def main() -> int:
     errors: list[str] = []
 
     # Check active/ files exist
-    for f in REQUIRED_FILES:
+    for f in SHARED_FILES:
         if not (ACTIVE_DIR / f).exists():
             errors.append(f"[V-R10] Missing in active/: {f}")
+    for f in BRANCH_FILES:
+        if not (LAYOUT_ROOT / f).exists():
+            errors.append(f"[V-R10] Missing in active/<branch>/: {f}")
 
     # v0.14.0+ append-only layout: 신규 SSOT directory 검증.
     # active/ 만 검증 (archive/ 는 R9 immutable — historical freeze 는 legacy layout).
     for d in REQUIRED_DIRS:
-        if not (ACTIVE_DIR / d).is_dir():
-            errors.append(f"[V-R10] Missing in active/: {d}/ (v0.14.0+ append-only layout)")
+        if not (LAYOUT_ROOT / d).is_dir():
+            errors.append(f"[V-R10] Missing in active/<branch>/: {d}/ (v1.0.0 branch-scoped layout)")
 
     # Check for the most recent archive (latest date)
     if ARCHIVE_ROOT.is_dir():

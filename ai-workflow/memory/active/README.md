@@ -10,43 +10,56 @@
   - [../../../workflow-source/core/workflow_state_vs_project_docs.md](../../../workflow-source/core/workflow_state_vs_project_docs.md)
   - 영구 참조: [../../wiki/decisions/adr-003-deprecation-cycle.md](../../wiki/decisions/adr-003-deprecation-cycle.md)
 
-## 1. 신규 layout (v0.14.0)
+## 1. 신규 layout (v0.14.0 append-only → **v1.0.0 branch-scoped**)
+
+작업 상태는 **브랜치마다 물리적으로 분리**된다 (`active/<branch>/`). 여러 브랜치가 동시에
+일해도 daily index / task 번호 / `state.json` 이 서로를 덮어쓰지 않는다.
 
 ```
-ai-workflow/memory/active/
-├── state.json                     ← read-only snapshot (state/builder.py 가 rebuild)
-├── state.json.template            ← unchanged (template)
-├── PROJECT_PROFILE.md             ← manually maintained (stable, infrequent rewrite)
-├── PURPOSE.md                     ← manually maintained
-├── project_status_assessment.md   ← manually maintained
-├── repository_assessment.md       ← manually maintained
-├── session_analysis_<date>.md     ← per-session (append 가능)
+ai-workflow/memory/
+├── active/
+│   ├── <branch>/                  ← 🆕 v1.0.0 브랜치별 작업 상태 (main 도 동일)
+│   │   ├── state.json             ← read-only snapshot (state/builder.py 가 rebuild)
+│   │   ├── backlog/               ← per-day + per-task append-only
+│   │   │   ├── YYYY-MM-DD.md      ← daily index (link to tasks/)
+│   │   │   └── tasks/
+│   │   │       └── TASK-2026-07-21-main-001.md   ← 1 file = 1 task (per-task SSOT)
+│   │   ├── sessions/              ← per-session (was session_handoff.md)
+│   │   │   └── 2026-07-09-audit.md
+│   │   └── session_analysis_<date>.md
+│   │
+│   ├── PROJECT_PROFILE.md         ← 공유 (브랜치 무관, manually maintained)
+│   ├── PURPOSE.md                 ← 공유
+│   ├── project_status_assessment.md / repository_assessment.md  ← 공유
+│   ├── state.json.template        ← 공유 (template)
+│   └── memory_index/              ← 공유 (통합 검색, 이미 append-only 정공법)
+│       ├── entries/MEM-YYYY-MM-DD-NNN.json
+│       └── telemetry/events.jsonl
 │
-├── backlog/                       ← 🆕 per-day + per-task append-only
-│   ├── YYYY-MM-DD.md              ← daily index (link to tasks/)
-│   └── tasks/
-│       ├── TASK-2026-07-09-001.md ← 1 file = 1 task (per-task SSOT)
-│       └── ...
-│
-├── sessions/                      ← 🆕 per-session (was session_handoff.md)
-│   ├── 2026-07-09-audit.md        ← per-session file
-│   └── ...
-│
-├── memory_index/                  ← unchanged (이미 append-only 정공법)
-│   ├── entries/MEM-YYYY-MM-DD-NNN.json
-│   └── telemetry/events.jsonl
-│
+├── archived/<branch>/             ← 🆕 종료된 브랜치 (.archived.json 메타 동반)
+├── archive/YYYY-MM-DD/            ← R8 freeze (별개 개념 — 이름 혼동 주의)
+├── release/<version>/             ← release cycle 아카이브
 └── log.md                         ← unchanged (append-only)
+```
+
+**브랜치 종료 시**: `active/<branch>/` 가 있는데 git 에 그 브랜치가 없으면 종료로 보고
+`archived/<branch>/` 로 옮긴다 (역방향 점검 — hook 은 브랜치 삭제를 못 잡는다).
+고아 디렉터리가 구조적으로 생길 수 없다. 도구는 commit/push 를 하지 않으므로
+**protected main 과 호환**되며, 작업 브랜치에서 실행해 그 PR 에 실어 보낸다(piggyback).
+
+```bash
+python3 workflow-source/tools/archive_branch_memory.py --dry-run   # 계획 확인
+python3 workflow-source/tools/archive_branch_memory.py --apply     # 이동 (commit 은 직접)
 ```
 
 ## 2. 충돌 표면 (multi-agent 동시 작업 시)
 
 | 파일 | 동시 작업 시 충돌? | 비고 |
 |---|---|---|
-| `state.json` | ✅ `--apply` flag 로 1 agent 만 rebuild | atomic_write 보장 |
-| `backlog/YYYY-MM-DD.md` | 🟡 3-way merge, 양쪽 항목 concat | 같은 날 다른 task 추가 시 |
-| `backlog/tasks/TASK-XXX.md` | ❌ **물리 격리** | 다른 agent 가 다른 task file |
-| `sessions/<date>-<topic>.md` | ❌ **물리 격리** | 다른 agent 가 다른 session file |
+| `<branch>/state.json` | ❌ **브랜치별 물리 격리** (v1.0.0) | 브랜치마다 자기 state |
+| `<branch>/backlog/YYYY-MM-DD.md` | ❌ **브랜치별 물리 격리** (v1.0.0) | 같은 브랜치 내 동시 작업은 🟡 3-way concat |
+| `<branch>/backlog/tasks/TASK-XXX.md` | ❌ **물리 격리** | task ID 에 브랜치 slug 포함 → 번호 충돌 0 |
+| `<branch>/sessions/<date>-<topic>.md` | ❌ **물리 격리** | 다른 agent 가 다른 session file |
 | `memory_index/entries/*.json` | ❌ **물리 격리** (기존) | v0.13.1 부터 |
 | `memory_index/telemetry/events.jsonl` | ❌ **append-only** (기존) | v0.13.1 부터 |
 | `log.md` | ❌ **append-only** (기존) | 2026-06-12 부터 |

@@ -22,11 +22,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
-# KST = UTC+9. test 의 archive date 가 KST 정합.
-def _today_kst() -> str:
-    """KST (UTC+9) 기준 오늘 날짜. archive target date 와 정합."""
-    kst = timezone(timedelta(hours=9))
-    return datetime.now(tz=kst).strftime("%Y-%m-%d")
+def _today_local() -> str:
+    """archive target date 와 **같은 기준**(로컬 날짜)의 오늘.
+
+    v1.0.0 fix: 이전 구현은 KST(UTC+9) 고정이었는데 `tools/archive_stale_memory.py` 는
+    `datetime.date.today()` (로컬)를 쓴다. 개발자가 KST 환경일 때만 우연히 일치했고,
+    UTC 환경에서는 **15:00 UTC 이후 하루가 어긋나** 실패하는 시한폭탄이었다.
+    도구와 동일한 기준을 쓰면 어느 TZ 에서든 정합한다.
+    """
+    return datetime.now().strftime("%Y-%m-%d")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 TOOL = REPO_ROOT / "workflow-source" / "tools" / "archive_stale_memory.py"
@@ -213,7 +217,7 @@ def test_apply_archives_old_dir() -> bool:
             print(f"  FAIL: archive dir not created")
             return False
         today = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-        target = archive_base / _today_kst() / "ff00ff3"
+        target = archive_base / _today_local() / "ff00ff3"
         if not target.exists():
             print(f"  FAIL: target dir not created: {target}")
             return False

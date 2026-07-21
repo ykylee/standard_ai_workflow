@@ -127,6 +127,55 @@ def _build_memory_index_query_output(
         return None
 
 
+
+def _detect_stale_branch_memories(
+    project_profile_path: Path,
+    warnings: list[str],
+    *,
+    apply: bool = False,
+) -> dict[str, Any] | None:
+    """v1.0.0: 종료된 브랜치의 메모리를 탐지(선택적으로 아카이브)한다.
+
+    브랜치별 메모리(`active/<branch>/`)는 브랜치가 사라져도 남아 **고아** 가 되므로,
+    세션 진입 시 역방향 점검한다 — git 에 없는 브랜치의 디렉터리를 찾는다.
+
+    기본은 **탐지 + 안내** 만 한다. session-start 는 read 중심 스킬이라 무단으로 파일을
+    옮기면 위험하기 때문이다. `--archive-stale-branches` 를 주면 실제 이동까지 수행한다.
+    도구는 commit/push 를 하지 않으므로 protected main 과 호환되며, 변경은 작업 브랜치의
+    PR 에 실려 나간다(piggyback).
+    """
+    try:
+        from workflow_kit.common.paths import memory_root_dir
+        memory_root = memory_root_dir(project_profile_path)
+    except Exception:  # noqa: BLE001
+        return None
+    tool = SOURCE_ROOT / "tools" / "archive_branch_memory.py"
+    if not tool.is_file() or not (memory_root / "active").is_dir():
+        return None
+    cmd = [sys.executable, str(tool), "--memory-root", str(memory_root), "--json"]
+    if apply:
+        cmd.append("--apply")
+    try:
+        import subprocess
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
+    except Exception as exc:  # noqa: BLE001
+        warnings.append(f"stale branch memory 점검 실패: {type(exc).__name__}")
+        return None
+    stale = [c["branch"] for c in payload.get("candidates", []) if c.get("action") == "archive"]
+    if stale:
+        if apply:
+            warnings.append(
+                f"종료된 브랜치 메모리 {len(stale)}건을 archived/ 로 이동했다: {', '.join(stale)}. "
+                f"이 변경을 현재 작업 브랜치의 commit 에 포함시켜라."
+            )
+        else:
+            warnings.append(
+                f"종료된 브랜치 메모리 {len(stale)}건이 active/ 에 남아 있다: {', '.join(stale)}. "
+                f"`python3 workflow-source/tools/archive_branch_memory.py --apply` 로 아카이브하라."
+            )
+    return {"stale_branches": stale, "archived": bool(apply and stale)}
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the session-start prototype.")
     parser.add_argument("--session-handoff-path", required=True)
@@ -140,6 +189,9 @@ def main() -> int:
                         help="memory_index 절대 path. 부재 시 skip.")
     parser.add_argument("--memory-query-tokens",
                         help="comma-separated query tokens. 예: 'adr,memora,retrieval'. 부재 시 skip.")
+    parser.add_argument("--archive-stale-branches", action="store_true",
+                        dest="archive_stale_branches",
+                        help="종료된 브랜치 메모리를 archived/ 로 실제 이동 (기본: 탐지+안내만)")
     args = parser.parse_args()
 
     source_context = {
@@ -168,6 +220,11 @@ def main() -> int:
         return 1
 
     warnings: list[str] = []
+    # v1.0.0: 종료된 브랜치 메모리 역방향 점검 (고아 방지). 실패해도 세션 진입을 막지 않는다.
+    _detect_stale_branch_memories(
+        project_profile_path, warnings,
+        apply=getattr(args, "archive_stale_branches", False),
+    )
     try:
         handoff = parse_handoff(session_handoff_path)
         warnings.extend(handoff.get("warnings", []))

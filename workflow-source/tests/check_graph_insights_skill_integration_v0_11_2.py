@@ -447,7 +447,8 @@ def test_graph_insights_skills_no_state_mutation_v0_11_2() -> None:
     - run_graph_insights 호출 후 state.json mtime 변화 ❌
     - run_graph_insights 호출 후 PURPOSE.md mtime 변화 ❌
     """
-    state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / "state.json"
+    from workflow_kit.common.paths import state_path_for_workspace
+    state_path = state_path_for_workspace(REPO_ROOT)
     purpose_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / "PURPOSE.md"
 
     state_mtime_before = state_path.stat().st_mtime if state_path.exists() else None

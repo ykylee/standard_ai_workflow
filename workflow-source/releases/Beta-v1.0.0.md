@@ -14,9 +14,9 @@
 
 | # | 항목 | 상태 |
 |---|---|---|
-| 1 | 브랜치별 메모리 재설계 — session-start 자동 아카이브 wiring | ⏳ 진행 중 |
-| 2 | `MEMORY_GOVERNANCE.md` / `active/README.md` 의 branch-scoped layout 반영 | ⏳ 미착수 |
-| 3 | branch-scoped + 아카이브 전용 smoke 신규 | ⏳ 미착수 |
+| 1 | 브랜치별 메모리 재설계 — session-start 자동 아카이브 wiring | ✅ 완료 (탐지+안내 기본, `--archive-stale-branches` 로 실이동) |
+| 2 | `MEMORY_GOVERNANCE.md` / `active/README.md` 의 branch-scoped layout 반영 | ✅ 완료 |
+| 3 | branch-scoped + 아카이브 전용 smoke 신규 | ✅ 완료 (`check_branch_scoped_memory.py` 8/8) |
 | 4 | 기존 red smoke 잔여분 (문서 lint / 빌드 의존 / `ci_stale`) 분류·해소 | ⏳ 일부 |
 | 5 | CHANGELOG 재생성 + dashboard snapshot + tag/release | ⏳ 미착수 |
 

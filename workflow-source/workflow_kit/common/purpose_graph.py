@@ -35,7 +35,13 @@ def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
 
 
 def _candidate_state_paths(workspace_root: Path) -> list[Path]:
+    # v1.0.0 branch-scoped: state.json 은 `active/<branch>/` 로 이동했다.
+    # state_path_for_workspace 가 branch-scoped → legacy 순으로 해석해 주므로 우선 사용하고,
+    # 나머지는 하위호환 후보로 남긴다.
+    from workflow_kit.common.paths import state_path_for_workspace
+
     return [
+        state_path_for_workspace(workspace_root),
         workspace_root / "ai-workflow" / "memory" / "active" / "state.json",
         workspace_root / "state.json",
     ]

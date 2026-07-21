@@ -4,7 +4,7 @@
 - 범위: 마일스톤 정의, 릴리스 일정, 로드맵 백로그
 - 대상 독자: 프로젝트 매니저, 저장소 maintainer, 멀티 에이전트 운영자
 - 상태: stable
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md), [../RELEASE.md](../RELEASE.md), [../INSTALLATION_AND_USAGE.md](../INSTALLATION_AND_USAGE.md), [../../workflow-source/core/workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md), [../../workflow-source/core/maturity_matrix.json](../../workflow-source/core/maturity_matrix.json)
 
 > 이 문서는 상위 요약이다. 단계별 상태의 SSOT는 `workflow-source/core/maturity_matrix.json`이다.

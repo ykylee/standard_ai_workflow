@@ -4,7 +4,7 @@
 - 범위: 버그 리포트 분석, 재현용 샌드박스 스크립트 생성
 - 대상 독자: AI 에이전트 개발자, 워크플로우 설계자
 - 상태: draft
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: `skills/automated-repro-scaffold/SKILL.md`, `core/workflow_kit_roadmap.md`
 
 ## 1. 역할

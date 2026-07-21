@@ -4,7 +4,7 @@
 - 범위: deprecation lifecycle, 1st cycle 영향 symbol, mypy strict full clean, SSOT drift 해소, Beta-prefix 유지
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
 - 상태: chapter 1+2 DONE, chapter 3 in-progress (drift patch + release note + roadmap 갱신)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md), [`./workflow_release_spec.md`](./workflow_release_spec.md), [`./output_schema_guide.md`](./output_schema_guide.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./prototype_promotion_scope.md`](./prototype_promotion_scope.md), [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md)
 
 ## 1. 목적

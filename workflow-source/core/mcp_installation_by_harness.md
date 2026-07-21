@@ -4,7 +4,7 @@
 - 범위: 하네스별 MCP config 위치 / 스키마 / 자동 심기 (`--enable-mcp`) / 수동 적용 / 트러블슈팅
 - 대상 독자: 워크플로우 도입자, AI agent 운영자, 멀티 에이전트 setup 담당자
 - 상태: beta
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-07-21
 - 관련 문서: [./workflow_harness_distribution.md](./workflow_harness_distribution.md), [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md), [../core/workflow_global_injection_policy.md](./workflow_global_injection_policy.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py), [../harnesses/*/apply_guide.md](../harnesses/)
 
 ## 1. 두 가지 MCP transport

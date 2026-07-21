@@ -1,18 +1,18 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-20T15:00:45Z`
-- tool_version: `v0.15.20-beta`
+- generated_at: `2026-07-21T02:02:16Z`
+- tool_version: `v0.15.21-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-20`
+- maturity_last_updated: `2026-07-21`
 - maturity_stale: `False`
 - harness_supported_count: `11`
 - head_commit_date: `2026-07-20`
-- last_updated_delta_days: `0`
+- last_updated_delta_days: `1`
 - silent_failing_cycles_count: `0`
 
 ## Panel 2 — Maturity Distribution
@@ -77,7 +77,7 @@
 - cumulative_total: `24`
 - cumulative_pass: `24`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `196`
+- smoke_files_count: `197`
 
 ### Recent release smoke counts
 
@@ -131,9 +131,9 @@
 
 - phase_15_north_star: `telemetry_hit_rate (1 release ≥ 1 query + hit)`
 - entries_total: `7`
-- telemetry_events_total: `1`
-- telemetry_total_queries: `1`
-- telemetry_hit_count: `1`
+- telemetry_events_total: `4`
+- telemetry_total_queries: `4`
+- telemetry_hit_count: `4`
 - telemetry_hit_rate: `1.0000`
 
 ### Entries by merge_state
@@ -146,5 +146,8 @@
 
 | source | events |
 |---|---|
+| `backlog-update` | 1 |
 | `dispatcher` | 1 |
+| `doc-sync` | 1 |
+| `session-start` | 1 |
 

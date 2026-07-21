@@ -4,7 +4,7 @@
 - 범위: 메모리 엔트리 스키마, merge 규칙, retrieval flow 3-tuple, 3-layer 분리와의 경계, 단계별 활성화 정책.
 - 대상 독자: 워크플로우 설계자, 메모리 계층 설계자, README/INDEX 유지보수자.
 - 상태: Accepted (draft phase 1)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [`./MICROSOFT_MEMORA_EVALUATION.md`](./MICROSOFT_MEMORA_EVALUATION.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`./ADR-004-llm-wiki-layer.md`](./ADR-004-llm-wiki-layer.md), [`../../workflow-source/core/workflow_state_vs_project_docs.md`](../../workflow-source/core/workflow_state_vs_project_docs.md)
 
 - **Status**: Accepted (v0.11.22 계획, 본 commit 은 설계 + Phase 1 zero-risk prototype 채택)

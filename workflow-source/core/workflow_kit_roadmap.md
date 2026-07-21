@@ -4,7 +4,7 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: **v0.15.20-beta 기준 (Phase 12 close-out `done`, v1.0.0 pre-release final anchor; Phase 13 follow-up 정의, planned 진입 대기)**
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-07-21
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `./phase_13_followup.md`, `./stable_guarantee.md`, `./v1_0_0_entry_evaluation.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`, `./maturity_matrix.json`
 
 ## 1. 현재 단계 (Phase 12 done, Phase 13 planned 진입 대기)
@@ -39,7 +39,7 @@
 - v0.11.19 1st batch (4): session-start, doc-sync, validation-plan, code-index-update.
 - v0.11.20 2nd batch (4): backlog-update, merge-doc-reconcile, workflow-linter, project-status-assessment.
 - v0.11.21 3rd batch (1): robust-patcher.
-- 누적 stable=9 / beta=2 (automated-repro-scaffold, git-conflict-resolver) / prototype=4. task-modes 별도 stable.
+- 누적 stable=9 / beta=2 (automated-repro-scaffold, git-conflict-resolver) / prototype=4. task-modes 별도 stable. (이후 v0.11.24 4th batch 에서 automated-repro-scaffold + git-conflict-resolver 도 stable 승격 → **최종 12 skill 전량 stable**, beta/prototype 0.)
 - 안정화 정합 조건 6 종 (CLI argparse / Pydantic schema / error_code 4종 / 단일 명령 / 예시 실행 섹션 / smoke test PASS) 모두 충족.
 
 **ADR-005 Memory Index** (v0.11.22, 8 release, Phase 1~3d):
@@ -361,10 +361,10 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다 (Phase 13 follow-up 진입 → 2-year SemVer guarantee 운영). 상세: [`./phase_13_followup.md`](./phase_13_followup.md) §3.
 
 1. **(P0-1, 즉시) mypy strict venv 직접 verify (Break Point #3 close-out)** — `.venv` 활성화 후 `mypy workflow-source/ --strict --extra mcp-sdk` 0 errors 확인. expected cycle: v1.0.0 stable 진입 1 release 전.
-2. **(P0-2, 즉시) telemetry source 다양성 ≥ 4 (AC2 수렴)** — 3 skill (session-start / doc-sync / backlog-update) 의 `memory-index-query` dispatcher 호출 활성화. expected cycle: v1.0.x 첫 patch release.
-3. **(P1-1, 단기) CHANGELOG.md auto-gen lockdown** — `tools/release_pipeline.py release --apply` 의 changelog-gen pre-step + Unreleased 본문 v0.7.10 ~ v0.15.20 누적 backfill.
-4. **(P1-2, 단기) automated-repro-scaffold stable 승격** — beta 에서 stable 로. 5/6 정합 조건 충족.
-5. **(P1-3, 단기) git-conflict-resolver alpha → beta** — smoke test + error_code 4종 + spec layer 동기화.
+2. **(P0-2, ✅ v0.15.21) telemetry source 다양성 ≥ 4 (AC2 수렴)** — 3 skill (session-start / doc-sync / backlog-update) 의 memory_index retrieval 게이트를 opt-in → **workspace memory_index 존재 시 자동 활성** 으로 전환 (flag override 유지, 부재 시 zero-risk skip). AC2 는 신규 자립형 smoke `check_telemetry_source_diversity.py` (temp workspace 4-source fixture → `by_source` ≥ 4 + hit_rate sanity) 로 CI 강제 (events.jsonl 은 gitignore 런타임 데이터라 live-file 의존 대신 self-contained fixture).
+3. **(P1-1, ✅ v0.15.21) CHANGELOG.md auto-gen lockdown** — `cmd_release` drift-prevention 블록에 `changelog-gen` pre-step 자동 wiring (`--skip-changelog-gen` escape hatch) + `RELEASE_RE` 를 bare `vX.Y.Z —` commit 형식까지 확장 + version 정렬을 semver key 로 교체 (두 자리 minor 뒤섞임 bug 해소) → v0.7.10 ~ v0.15.20 누적 backfill 정상 재생성.
+4. **(P1-2, ✅ v0.11.24 — 완료됨)** ~~automated-repro-scaffold stable 승격~~ — 이미 v0.11.24 4th batch 에서 stable 승격 완료 (`tests/check_automated_repro_scaffold_v0_11_24.py` 5/5 PASS, maturity_matrix `stage: stable`). 본 로드맵 텍스트가 stale 였음.
+5. **(P1-3, ✅ v0.11.24 — 완료됨)** ~~git-conflict-resolver alpha → beta~~ — 이미 v0.11.24 에서 beta → **stable** 승격 완료 (`--apply` 구현 + 8 case smoke). 본 로드맵 텍스트가 stale 였음.
 6. **(P2-1, 장기) ADR-006 Memory Index 회고 본문** — 2026-08-19 이후 (v0.11.22 + 30일) 작성.
 7. **(P2-2, 장기) long-running CI 안정성 검증** — 1+ month 누적 PASS + 누적 release ≥ 3.
 8. **(P2-3, 장기) 2-year 종료 후 v2.0.0_entry_evaluation.md** — 2028-07-20 시점 ADR-008 + Phase 14+ 정의.

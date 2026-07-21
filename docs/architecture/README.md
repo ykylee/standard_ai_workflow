@@ -4,7 +4,7 @@
 - 범위: 시스템 구조, 컴포넌트 명세, 설계 결정 기록 (ADR)
 - 대상 독자: 개발자, 설계자, 아키텍처 리뷰어
 - 상태: stable (v0.11.22-beta 기준)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [../PROJECT_PROFILE.md](../PROJECT_PROFILE.md), [../CODE_INDEX.md](../CODE_INDEX.md), [../INSTALLATION_AND_USAGE.md](../INSTALLATION_AND_USAGE.md), [../../workflow-source/core/workflow_agent_topology.md](../../workflow-source/core/workflow_agent_topology.md)
 
 > v0.11.22-beta 기준. ADR 6종 (001~006) + Memora 평가 + 3-layer 컴포넌트 명세 + ADR 백로그 포함. Phase 12 in_progress 본문은 [`../../workflow-source/core/project_status_assessment.md`](../../workflow-source/core/project_status_assessment.md) 참조.

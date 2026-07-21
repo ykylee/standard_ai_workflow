@@ -32,7 +32,7 @@ TESTS_DIR = SOURCE_ROOT / "tests"
 HARNESSES_DIR = SOURCE_ROOT / "harnesses"
 SKILLS_DIR = SOURCE_ROOT / "skills"
 
-EXPECTED_LAST_UPDATED = "2026-07-18"
+EXPECTED_LAST_UPDATED = "2026-07-21"
 
 
 def _load_code_index() -> str:

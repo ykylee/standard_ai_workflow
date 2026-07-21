@@ -161,20 +161,24 @@ def _build_memory_index_query_output(
 ) -> dict[str, Any] | None:
     """v0.11.22+ Phase 3d: optional ADR-005 memory_index retrieval 3-tuple 호출 (session-start / doc-sync 동일 패턴).
 
-    - 둘 다 미지정 → None (zero-risk skip).
-    - 한쪽만 지정 → advisory emit + None.
-    - 둘 다 지정 → helper 호출, `MemoryIndexQueryOutput` dict 변환 후 emit.
+    - flag 부재 + workspace memory_index dir 부재 → None (zero-risk skip).
+    - flag 부재 + workspace memory_index dir 존재 → 자동 활성 (v0.15.21+ AC2), default query token 사용.
+    - flag 명시 → override (외부 dir 지정 시 negative telemetry emit).
     - v0.13.1+ Phase 13 AC2: retrieval 성공/실패 후 telemetry sidecar 에 1 event append.
     """
-    if not args.memory_index_dir and not args.memory_query_tokens:
-        return None
-    if not args.memory_index_dir or not args.memory_query_tokens:
-        warnings.append(
-            "memory_index wiring: --memory-index-dir 와 --memory-query-tokens 둘 다 지정해야 retrieval 활성."
-        )
-        return None
-    memory_index_dir = Path(args.memory_index_dir)
-    query_tokens = [t.strip() for t in args.memory_query_tokens.split(",") if t.strip()]
+    # v0.15.21+ AC2 (telemetry source 다양성 ≥ 4): opt-in flag 부재 시에도
+    # workspace 표준 memory_index dir 이 존재하면 retrieval 자동 활성 (flag 는 override 유지).
+    # dir 부재 시 zero-risk skip — memory_index 없는 기존 caller 정합.
+    effective_dir = args.memory_index_dir
+    if not effective_dir:
+        _default_dir = workspace_root / "ai-workflow" / "memory" / "active" / "memory_index"
+        if _default_dir.is_dir():
+            effective_dir = str(_default_dir)
+    if not effective_dir:
+        return None  # zero-risk default (memory_index 부재)
+    effective_tokens = args.memory_query_tokens or "backlog,task,workflow"
+    memory_index_dir = Path(effective_dir)
+    query_tokens = [t.strip() for t in effective_tokens.split(",") if t.strip()]
     if not query_tokens:
         warnings.append(
             "memory_index wiring: --memory-query-tokens 가 비어있음. retrieval skip."

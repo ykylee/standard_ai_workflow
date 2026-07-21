@@ -6,7 +6,7 @@
 - 상태: planned (Phase 13 진입 대기, v1.0.0 stable release 후 정식 start).
 - 시작 예정: v1.0.0 stable release 직후 (target_milestone).
 - 종료 예정: v3.0.0 stable 진입 시점 (2-year guarantee 종결).
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-07-21
 - 관련 문서: [`./maturity_matrix.json`](./maturity_matrix.json), [`./quality_dashboard_spec.md`](./quality_dashboard_spec.md), [`./stable_guarantee.md`](./stable_guarantee.md), [`./v1_0_0_entry_evaluation.md`](./v1_0_0_entry_evaluation.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md`](../../ai-workflow/wiki/decisions/adr-007-deprecation-3rd-cycle-candidates.md)
 
 ## 0. Executive Summary

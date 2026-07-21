@@ -4,7 +4,7 @@
 - 범위: 모드 정의, 모드별 에이전트 토폴로지, 추천 스킬 및 도구 세트
 - 대상 독자: AI 에이전트, 워크플로우 설계자, 프로젝트 관리자
 - 상태: stable
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: `workflow_agent_topology.md`, `workflow_skill_catalog.md`, `workflow-source/workflow_kit/common/modes/registry.py`
 
 ## 1. 개요

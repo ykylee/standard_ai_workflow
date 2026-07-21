@@ -4,7 +4,7 @@
 - 범위: question file 형식, `[Answer]:` tag 규약, "Other" 옵션, contradiction/ambiguity 자동 점검, clarification file, gate 정책
 - 대상 독자: 워크플로우 skill 구현자, AI agent, 프로젝트 온보딩 담당자, 운영자
 - 상태: stable (v0.6.4 도입)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: `./workflow_adoption_entrypoints.md` §7.1, `./stage_gate_pattern.md`, `./output_schema_guide.md` §3.2, AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/common/question-format-guide.md` (1차 출처)
 - 1차 출처: AIDLC `common/question-format-guide.md` (369 lines, 2026-06-08 commit `b19c819`)
 

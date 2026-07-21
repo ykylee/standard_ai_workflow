@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quality Dashboard · v0.15.0-beta</title>
+  <title>Quality Dashboard · v0.15.21-beta</title>
   <style>
 :root {
   color-scheme: light dark;
@@ -46,21 +46,21 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-17T15:12:41Z</code> · tool_version: <code>v0.15.0-beta</code></p>
-    <p class="meta">workspace: <code>.</code></p>
+    <p class="meta">generated_at: <code>2026-07-21T02:02:17Z</code> · tool_version: <code>v0.15.21-beta</code></p>
+    <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
   </header>
   <main>
   <section class="panel">
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat pass">pass</span></p>
     <p>guard: 6/6 pass (expected 6)</p>
-    <p>guard_runtime_ms: 34</p>
-    <p>maturity_last_updated: <code>2026-07-17</code></p>
-    <p>head_commit_date: <code>2026-07-17</code></p>
-    <p>last_updated_delta_days: 0</p>
-    <p>harness_supported_count: 10</p>
+    <p>guard_runtime_ms: 37</p>
+    <p>maturity_last_updated: <code>2026-07-21</code></p>
+    <p>head_commit_date: <code>2026-07-20</code></p>
+    <p>last_updated_delta_days: 1</p>
+    <p>harness_supported_count: 11</p>
     <p><strong>silent_failing_cycles_count: 0</strong> (Phase 13 AC1 north-star)</p>
-    <p class="meta">Phase 12 (in_progress) → Phase 13 (planned)</p>
+    <p class="meta">Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)</p>
   </section>
   <section class="panel">
     <h2>Panel 2 — Maturity Distribution</h2>
@@ -71,8 +71,8 @@ ul.timeline { padding-left: 1.2rem; }
         <tr><td>mcp_tools</td><td>12</td><td>11</td><td>0</td><td>0</td></tr>
       </tbody>
     </table>
-    <p>harnesses.supported: <strong>10</strong></p>
-    <p>milestones: total=12 done=11 in_progress=1</p>
+    <p>harnesses.supported: <strong>11</strong></p>
+    <p>milestones: total=12 done=12 in_progress=0</p>
     <canvas id="chart-maturity" height="160"></canvas>
   </section>
   <section class="panel">
@@ -82,31 +82,31 @@ ul.timeline { padding-left: 1.2rem; }
     <p class="meta">first_entry_date: <code>2026-07-09</code></p>
     <p class="meta">last_entry_date: <code>2026-07-09</code></p>
     <p class="meta">retrieval_hit_rate: <strong>1.0000</strong> (Phase 13 AC2 telemetry)</p>
-    <p class="meta">telemetry calls/hits: 1/1 · by_source: dispatcher:calls=1,hits=1</p>
+    <p class="meta">telemetry calls/hits: 4/4 · by_source: backlog-update:calls=1,hits=1, dispatcher:calls=1,hits=1, doc-sync:calls=1,hits=1, session-start:calls=1,hits=1</p>
     <p class="meta">by merge_state: active=7</p>
     <canvas id="chart-memory" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 4 — Smoke Trend</h2>
-    <p class="stat pass">260/260</p>
+    <p class="stat pass">24/24</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
-    <p class="meta">smoke test files: 192</p>
+    <p class="meta">smoke test files: 197</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 5 — Recent Release Cycle</h2>
-    <p>items_total: <strong>26</strong> (top_n=10)</p>
+    <p>items_total: <strong>10</strong> (top_n=10)</p>
     <ul class="timeline">
-      <li>[0] TASK-2026-07-17-015 — v0.15.15 — **docs(quickstart): QUICKSTART.md cross-check smoke + 2 in-scope issue 정정 — v0.15.0 rel…</li>
-      <li>[1] TASK-2026-07-17-014 — v0.15.14 — **docs(install): INSTALLATION_AND_USAGE.md cross-check smoke + stale text 정정 — v0.15.0 …</li>
-      <li>[2] TASK-2026-07-17-013 — v0.15.13 — **feat(harness): Harness apply_guide.md content cross-check smoke — 10 harness apply_gu…</li>
-      <li>[3] TASK-2026-07-17-012 — v0.15.12 — **docs(readme): README.md cross-check smoke + stale text 정정 — v0.15.0 release 의 README …</li>
-      <li>[4] TASK-2026-07-17-011 — v0.15.11 — **fix(release): sample tool_version housekeeping + 3-way cross-check smoke — v0.15.0 re…</li>
-      <li>[5] TASK-2026-07-17-010 — v0.15.10 — **docs(adr): MICROSOFT_MEMORA_EVALUATION.md close-out — Memora-inspired metadata layer …</li>
-      <li>[6] TASK-2026-07-17-009 — v0.15.9 — **SemVer patch, Harness verification smoke — 10 harness cross-check discipline anchor**.…</li>
-      <li>[7] TASK-2026-07-17-008 — v0.15.8 — **SemVer patch, Panel 1+2 maturity_distribution cross-validation smoke — v1.0.0 진입 평가의 c…</li>
-      <li>[8] TASK-2026-07-17-007 — v0.15.7 — **SemVer patch, Panel 3 memory_index cross-validation smoke — Phase 13 AC2 retrieval cro…</li>
-      <li>[9] TASK-2026-07-17-006 — v0.15.6 — **SemVer patch, Panel 6/8 telemetry cross-validation smoke — Phase 15 cross-check discip…</li>
+      <li>[0] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…</li>
+      <li>[1] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…</li>
+      <li>[2] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …</li>
+      <li>[3] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
+      <li>[4] TASK-2026-07-20-001 — v0.15.16 — **SemVer patch, Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확…</li>
+      <li>[5] Phase 10 MCP/JSON-RPC draft</li>
+      <li>[6] Phase 6 multi-agent delegation pilot</li>
+      <li>[7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
+      <li>[8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
+      <li>[9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…</li>
     </ul>
   </section>
   <section class="panel panel-6">
@@ -140,17 +140,17 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 8 — Memory Index + Telemetry Utilization v2</h2>
     <p class="meta">phase_15_north_star: <code>telemetry_hit_rate (1 release ≥ 1 query + hit)</code></p>
     <p class="meta">entries_total: <strong>7</strong></p>
-    <p class="meta">telemetry_events_total: <strong>1</strong> · queries: 1 · hits: 1</p>
+    <p class="meta">telemetry_events_total: <strong>4</strong> · queries: 4 · hits: 4</p>
     <p class="meta">telemetry_hit_rate: <strong>1.0000</strong></p>
     <h4>Entries by merge_state</h4>
     <table><tbody><tr><td><code>active</code></td><td>7</td></tr></tbody></table>
     <h4>Telemetry by source</h4>
-    <table><tbody><tr><td><code>dispatcher</code></td><td>1</td></tr></tbody></table>
+    <table><tbody><tr><td><code>backlog-update</code></td><td>1</td></tr><tr><td><code>dispatcher</code></td><td>1</td></tr><tr><td><code>doc-sync</code></td><td>1</td></tr><tr><td><code>session-start</code></td><td>1</td></tr></tbody></table>
   </section>
   </main>
   <script>
     (function() {
-      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.14.3", "Beta-v0.14.5", "Beta-v0.14.6", "Beta-v0.14.7", "Beta-v0.15.0"], "counts": [260, 260, 260, 260, 260]}};
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19"], "counts": [24]}};
       function ready(fn) {
         if (typeof window.Chart !== 'undefined') { fn(); }
         else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }

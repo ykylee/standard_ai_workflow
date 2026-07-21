@@ -1,12 +1,15 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-02",
+  "generated_at": "2026-07-21",
   "purpose_digest": null,
   "purpose_digest_rev": null,
   "source_of_truth": {
     "project_profile_path": "PROJECT_PROFILE.md",
     "session_handoff_path": "session_handoff.md",
     "work_backlog_index_path": "work_backlog.md",
+    "daily_backlog_dir": "backlog",
+    "tasks_dir": "backlog/tasks",
+    "sessions_dir": "sessions",
     "latest_backlog_path": "backlog/2026-04-18.md",
     "repository_assessment_path": null
   },
@@ -85,5 +88,6 @@
   "repository_assessment": {
     "path": null,
     "present": false
-  }
+  },
+  "schema_version_memory_entries": "1"
 }

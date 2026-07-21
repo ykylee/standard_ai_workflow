@@ -1028,6 +1028,12 @@ def cmd_note_draft(args) -> dict:
 
 
 RELEASE_RE = re.compile(r"\(v(\d+\.\d+(?:\.\d+)?)\)")
+# v0.15.21+: bare `type(scope): vX.Y.Z ...` release-commit 형식도 인식한다.
+# 최근 commit 관례가 괄호형 `(vX.Y.Z)` → 맨몸 `... : vX.Y.Z — ...` 로 바뀌면서
+# parenthesized-only RELEASE_RE 가 v0.12~v0.15 대 를 전부 놓쳐 [Unreleased] 로 흡수하던 backfill bug 해소.
+# conventional-commit 접두사(`type(scope): `) *직후* 의 선행 version 만 매칭하여
+# prose 안의 version (예: `... v0.13.3-beta → v0.14.0-beta`) 오분류를 회피한다.
+RELEASE_RE_BARE = re.compile(r"^[a-z]+(?:\([^)]*\))?:\s+v(\d+\.\d+(?:\.\d+)?)\b")
 # commit subject prefix → Keep-a-Changelog section mapping
 SECTION_PREFIXES = {
     "feat": "Added",
@@ -1090,7 +1096,8 @@ def _parse_git_log(pretty_output: str) -> list[dict]:
         if len(parts) < 5:
             continue
         short, full, author, date, subject = parts
-        m = RELEASE_RE.search(subject)
+        # 괄호형 `(vX.Y.Z)` 우선, 없으면 선행 bare 형 `type(scope): vX.Y.Z` (v0.15.21+).
+        m = RELEASE_RE.search(subject) or RELEASE_RE_BARE.match(subject)
         version = m.group(1) if m else "unreleased"
         rows.append({
             "short": short, "full": full, "author": author,
@@ -1107,6 +1114,27 @@ def categorize_by_section(subject: str) -> str:
         return "Changed"
     prefix = m.group(1).lower()
     return SECTION_PREFIXES.get(prefix, "Changed")
+
+
+def _changelog_version_sort_key(version: str) -> tuple[int, int, int]:
+    """changelog 전용 semver 정렬 key. "unreleased" 는 최상단 sentinel.
+
+    (모듈 상단의 `_version_sort_key(tag)` 는 git *tag* (vX.Y.Z-suffix) 전용이라
+    "unreleased" sentinel + suffix-less version 을 처리하지 못한다 → 별도 helper.)
+
+    "0.11.2" → (0, 11, 2). patch 부재 시 0 padding. parse 실패 시 (0,0,0).
+    문자열 사전순 정렬의 두 자리 minor 오정렬 ("0.11" < "0.7") 를 해소한다.
+    """
+    if version == "unreleased":
+        return (10**9, 10**9, 10**9)
+    parts = version.split(".")
+    try:
+        nums = [int(p) for p in parts[:3]]
+    except ValueError:
+        return (0, 0, 0)
+    while len(nums) < 3:
+        nums.append(0)
+    return (nums[0], nums[1], nums[2])
 
 
 def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -> str:
@@ -1126,8 +1154,10 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
     for c in commits:
         by_version.setdefault(c["version"], []).append(c)
 
-    # version order: 사전 reverse (latest first)
-    versions = sorted(by_version.keys(), reverse=True)
+    # version order: semver 기준 최신 우선 (v0.15.21+).
+    # 기존 문자열 reverse 정렬은 두 자리 minor 를 오정렬했다 ("0.11" < "0.7" 사전순) →
+    # semver tuple key 로 교체. "unreleased" 는 항상 맨 위 (미배포 = 최신).
+    versions = sorted(by_version.keys(), key=_changelog_version_sort_key, reverse=True)
 
     lines = [
         "# Changelog",
@@ -2041,6 +2071,7 @@ def cmd_release(args) -> dict:
     for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
                  "skip_validate", "skip_cross_verify", "strict_cross_verify",
                  "skip_doc_headers_update", "skip_maturity_matrix_sync",
+                 "skip_changelog_gen",  # v0.15.21+ CHANGELOG auto-gen lockdown
                  "skip_dashboard_emit", "dashboard_output",
                  "skip_self_recover",
                  "skip_bidir_link"):  # v0.13.3+ Phase 13 AC4+
@@ -2189,6 +2220,20 @@ def cmd_release(args) -> dict:
                 "mode": "skipped",
                 "reason": f"{type(exc).__name__}: {exc}",
             }
+
+    # 3.5 changelog-gen auto-step (v0.15.21+) — CHANGELOG.md 를 git log 에서 재생성.
+    # 전체 파일을 deterministic 하게 rewrite 하므로 marker guard 불필요 (idempotent-by-regen).
+    # RELEASE_RE + RELEASE_RE_BARE 로 괄호형/맨몸형 release commit 를 모두 인식하며,
+    # semver 정렬로 version section 을 최신 우선 정렬한다. dry_run 시 preview dict 만 반환.
+    # escape hatch: --skip-changelog-gen.
+    if not getattr(args, "skip_changelog_gen", False):
+        results["changelog_gen"] = cmd_changelog_gen(_attr_ns(
+            dry_run=args.dry_run,
+            output=None,
+            from_tag=None,
+            to_tag="HEAD",
+            unreleased_label="Unreleased",
+        ))
 
     # 2. dist 파일 glob
     # v0.7.13+: --version override (backfill 시 staging 용도). default 는 read_version().
@@ -3238,6 +3283,9 @@ def main() -> int:
     p_rel.add_argument("--skip-maturity-matrix-sync", dest="skip_maturity_matrix_sync",
                        action="store_true", default=False,
                        help="drift prevention: release note frontmatter → maturity_matrix.json 자동 patch step skip (v0.11.23+)")
+    p_rel.add_argument("--skip-changelog-gen", dest="skip_changelog_gen",
+                       action="store_true", default=False,
+                       help="drift prevention: CHANGELOG.md git-log 재생성 step skip (v0.15.21+)")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,

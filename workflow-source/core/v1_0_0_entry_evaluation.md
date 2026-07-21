@@ -4,7 +4,7 @@
 - 범위: dashboard 8 panel, smoke 24종, mypy / backward compat, SemVer 2-year guarantee, public API stability, deprecation roadmap.
 - 대상 독자: 저장소 maintainer (`ykylee`), AI workflow 설계자, 외부 consumer, v1.0.0 stable release 검토자.
 - 상태: draft (v1.0.0 entry gate 평가 보고서, Phase 12 in_progress 의 close-out 평가).
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-07-21
 - 관련 문서: [./maturity_matrix.json](./maturity_matrix.json), [./workflow_kit_roadmap.md](./workflow_kit_roadmap.md), [./v0_9_0_deprecation_policy_spec.md](./v0_9_0_deprecation_policy_spec.md), [./v0_8_0_stable_api_spec.md](./v0_8_0_stable_api_spec.md), [`../../ai-workflow/memory/active/session_analysis_2026-07-17.md`](../../ai-workflow/memory/active/session_analysis_2026-07-17.md), [`../../ai-workflow/memory/release/v0.11.22/session_handoff.md`](../../ai-workflow/memory/release/v0.11.22/session_handoff.md) (Phase 12 시작점), [`../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md`](../../ai-workflow/wiki/topics/workflow-audit-2026-07-09.md) (2026-07-09 audit 보고서)
 
 ## 0. Executive Summary

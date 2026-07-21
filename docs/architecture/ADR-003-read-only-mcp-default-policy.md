@@ -4,7 +4,7 @@
 - 범위: MCP 서버 6+1 종의 read-only 정책, transport 우선순위, bootstrap 시 MCP 자동 emit, create_backlog_entry 의 draft-only 예외.
 - 대상 독자: maintainer, Mavis/Mavis consumer, MCP 통합자.
 - 상태: Accepted (v0.5.7)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [`../README.md`](../README.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`./ADR-002-pydantic-v2-contract-v1-external-spec.md`](./ADR-002-pydantic-v2-contract-v1-external-spec.md), [`../../workflow-source/core/read_only_mcp_transport_promotion.md`](../../workflow-source/core/read_only_mcp_transport_promotion.md)
 
 - **Status**: Accepted (v0.5.7, 6+1 MCP 서버 + jsonrpc-bridge / stdio-sdk 양 transport)

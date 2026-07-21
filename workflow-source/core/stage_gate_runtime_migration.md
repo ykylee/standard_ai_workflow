@@ -4,7 +4,7 @@
 - 범위: helper API, 기존 skill code 변경 절차, breaking change 회피, AIDLC 호환
 - 대상 독자: workflow_kit 구현자, skill implementor, 운영자
 - 상태: stable (v0.6.5 도입)
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: `./stage_gate_pattern.md` (이론), `./question_file_format.md` (입력 단계), `../output_schema_guide.md` §3.4 (schema), AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/construction/code-generation.md` §14
 - 1차 출처: AIDLC construction phase 의 completion message (2026-06-08 commit `b19c819`)
 

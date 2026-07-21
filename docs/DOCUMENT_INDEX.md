@@ -4,7 +4,7 @@
 - 범위: 프로젝트 설계, 개발 및 표준, 분석 및 계획
 - 대상 독자: 개발자, AI 에이전트, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [Documentation Governance](./index.md) (저장소 governance 의 진입점), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md)
 
 이 인덱스는 프로젝트의 영구 지식 자산(Knowledge Base)을 체계적으로 정리하여 개발자와 AI 에이전트의 온보딩 및 분석을 돕습니다.
@@ -24,7 +24,7 @@
 
 - **[Documentation Governance](./index.md)**: 문서 분류 체계 (`ai-workflow/memory/` 상태 vs `docs/` 지식) 및 PR 리뷰 프로세스.
 - **[Code Index](./CODE_INDEX.md)**: 코드베이스 구조 (`workflow-source/`, `workflow_kit/`, `contract_v1/`, `bootstrap_lib/`, `tools/`) 및 핵심 컴포넌트 안내.
-- **[Installation & Usage Guide](./INSTALLATION_AND_USAGE.md)** (v0.5.10+ 도입, v0.15.15 기준 cross-check): 소스에서 설치해 개발/검증 환경으로 쓰는 절차. editable install, 스모크 테스트 실행, `workflow_kit` / `bootstrap_lib` 임포트, 부트스트랩, MCP 서버 (jsonrpc-bridge / stdio-sdk), 자주 만나는 문제 안내.
+- **[Installation & Usage Guide](./INSTALLATION_AND_USAGE.md)** (v0.5.10+ 도입, v0.15.21 기준 cross-check): 소스에서 설치해 개발/검증 환경으로 쓰는 절차. editable install, 스모크 테스트 실행, `workflow_kit` / `bootstrap_lib` 임포트, 부트스트랩, MCP 서버 (jsonrpc-bridge / stdio-sdk), 자주 만나는 문제 안내.
 - **[Release Procedure](./RELEASE.md)** (v0.5.7+ 도입, v0.15.15 까지 회귀 표 확장): GitHub Releases only, PyPI 폐기. wheel 빌드/스모크/릴리스 절차 + 회귀 표.
 
 ## 3. 분석 및 계획 (Analysis & Planning)

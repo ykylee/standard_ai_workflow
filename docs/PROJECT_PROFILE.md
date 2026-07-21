@@ -4,7 +4,7 @@
 - 범위: 프로젝트 개요, 문서 구조, 기본 명령, 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-07-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: [공통 표준](https://github.com/ykylee/standard_ai_workflow/blob/main/ai-workflow/core/global_workflow_standard.md), [Orchestrator ↔ Sub-agent Contract v1](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/orchestrator_subagent_contract_v1.md), [Maturity Matrix](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [Project Status Assessment](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/project_status_assessment.md), [설치·사용 가이드](./INSTALLATION_AND_USAGE.md), [Release Procedure](./RELEASE.md)
 
 ## 1. 프로젝트 개요

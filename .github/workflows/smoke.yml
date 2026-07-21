@@ -34,14 +34,23 @@ jobs:
           set -euo pipefail
           failed=0
           failed_tests=""
+          # v1.0.0: per-check timeout. timeout 이 없으면 hang 한 check 하나가 job
+          # 전체를 무한 대기시키고, 중간에 kill 될 때 tempfile.TemporaryDirectory
+          # 정리 코드가 돌지 않아 temp dir 이 누수된다 (/var/tmp 211GB 사건).
+          # `timeout --kill-after` 로 SIGTERM (정리 가능) 을 먼저 보낸다.
           for t in workflow-source/tests/check_*.py; do
             echo "::group::$t"
-            if python3 "$t"; then
+            if timeout --signal=TERM --kill-after=10s 120s python3 "$t"; then
               echo "[PASS] $t"
               echo "::endgroup::"
             else
+              rc=$?
               echo "::endgroup::"
-              echo "::error file=$t::smoke check failed"
+              if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+                echo "::error file=$t::smoke check TIMEOUT (120s)"
+              else
+                echo "::error file=$t::smoke check failed (exit $rc)"
+              fi
               failed=1
               failed_tests="${failed_tests}${t}\n"
             fi

@@ -119,39 +119,86 @@ def copy_tree(source: Path, destination: Path) -> list[Path]:
     return copied
 
 
+def leaked_tempdir_roots() -> list[Path]:
+    """누수 temp dir 을 찾을 후보 root 목록 (존재하는 것만, 중복 제거).
+
+    v1.0.0 bug fix: 이전 impl 은 ``Path(os.environ.get("TMPDIR", "/tmp"))`` 하나만
+    훑었다. `TMPDIR` 이 미설정이면 `/tmp` 만 보는데, CPython `tempfile` 은 후보를
+    (`TMPDIR`/`TEMP`/`TMP` → `/tmp` → `/var/tmp` → `/usr/tmp`) 순으로 *쓰기 가능한
+    첫 번째* 를 고르므로, `/tmp` 가 가득 차면 (다수 배포판에서 `/tmp` 는 RAM 기반
+    tmpfs 다) 실제 누수는 `/var/tmp` 에 쌓인다. docstring 은 `/var/tmp` 라고 적혀
+    있었지만 코드는 `/tmp` 를 보고 있어서 가드가 통째로 헛돌았다 — 실측으로
+    `/var/tmp` 에 1431개 / 약 211GB 가 남아 루트 파일시스템이 100% 찼다.
+    """
+    import os
+    import tempfile
+
+    candidates = [
+        Path(tempfile.gettempdir()),
+        Path(os.environ.get("TMPDIR", "/tmp")),
+        Path("/tmp"),
+        Path("/var/tmp"),
+    ]
+    roots: list[Path] = []
+    seen: set[Path] = set()
+    for c in candidates:
+        try:
+            resolved = c.resolve()
+        except OSError:
+            continue
+        if resolved in seen or not resolved.is_dir():
+            continue
+        seen.add(resolved)
+        roots.append(resolved)
+    return roots
+
+
 def cleanup_leaked_tempdirs(prefixes: tuple[str, ...] = ("tmp",)) -> int:
-    """Best-effort cleanup of orphaned temp dirs under /var/tmp.
+    """Best-effort cleanup of orphaned temp dirs (``/tmp`` + ``/var/tmp``).
 
     ``tempfile.TemporaryDirectory`` cleans up on context exit, but if a process
-    is killed mid-export (Ctrl-C, OOM, harness crash) the temp dir survives —
-    and on Linux the default temp root is ``/var/tmp``, which is *not* wiped on
-    reboot. This helper removes empty/unreferenced dirs matching ``prefixes``
-    so they don't accumulate across release cycles.
+    is killed mid-export (Ctrl-C, OOM, harness crash, runner timeout) the temp
+    dir survives — and ``/var/tmp`` is *not* wiped on reboot. This helper
+    removes dirs matching ``prefixes`` that carry a ``repo/`` staging leaf so
+    they don't accumulate across release cycles.
 
-    Returns the number of directories removed. Intended to be called from the
-    CLI entry point after each ``export_harness_package`` invocation; safe to
-    call repeatedly because it only touches ``/var/tmp/<prefix>*/repo`` style
-    leaves, never user-owned top-level directories.
+    Returns the number of directories removed. Safe to call repeatedly: it only
+    touches ``<temp-root>/<prefix>*/repo`` style leaves owned by the current
+    user, never user-owned top-level directories or other users' temp dirs.
     """
     import os
 
-    base = Path(os.environ.get("TMPDIR", "/tmp"))
+    try:
+        my_uid = os.getuid()
+    except AttributeError:  # pragma: no cover - non-POSIX
+        my_uid = -1
+
     removed = 0
-    if not base.exists():
-        return 0
-    for entry in sorted(base.iterdir()):
-        if not entry.is_dir() or not any(entry.name.startswith(p) for p in prefixes):
-            continue
-        repo_dir = entry / "repo"
-        if not repo_dir.is_dir():
-            continue
+    for base in leaked_tempdir_roots():
         try:
-            shutil.rmtree(entry)
-            removed += 1
+            entries = sorted(base.iterdir())
         except OSError:
-            # Never fail the calling tool because of cleanup — leak is
-            # annoying, an exception is worse.
             continue
+        for entry in entries:
+            if entry.is_symlink() or not entry.is_dir():
+                continue
+            if not any(entry.name.startswith(p) for p in prefixes):
+                continue
+            if not (entry / "repo").is_dir():
+                continue
+            # 다른 사용자 소유의 temp dir 은 절대 건드리지 않는다.
+            try:
+                if my_uid >= 0 and entry.stat().st_uid != my_uid:
+                    continue
+            except OSError:
+                continue
+            try:
+                shutil.rmtree(entry)
+                removed += 1
+            except OSError:
+                # Never fail the calling tool because of cleanup — leak is
+                # annoying, an exception is worse.
+                continue
     return removed
 
 

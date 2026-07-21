@@ -343,9 +343,12 @@ def test_v0_10_0_v0_10_1_regression_v0_10_2() -> None:
         gen_aggr = _run_bootstrap(target, ["codex"], "aggressive")
         assert "codex_agents" in gen_aggr, "v0.10.1 회귀 깨짐: codex + aggressive 에서 AGENTS.md 부재"
         # skill-only mode
-        target2 = Path(tempfile.mkdtemp())
-        gen_skill = _run_bootstrap(target2, ["codex"], "skill-only")
-        assert "codex_agents" not in gen_skill, "v0.10.1 회귀 깨짐: codex + skill-only 에서 AGENTS.md emit 됨"
+        # v1.0.0: mkdtemp() → 중첩 TemporaryDirectory(). mkdtemp 은 자동 정리가
+        # 없어 *성공한 실행마다* temp dir 이 하나씩 남는다 (실측 확인).
+        with tempfile.TemporaryDirectory() as tmp2:
+            target2 = Path(tmp2)
+            gen_skill = _run_bootstrap(target2, ["codex"], "skill-only")
+            assert "codex_agents" not in gen_skill, "v0.10.1 회귀 깨짐: codex + skill-only 에서 AGENTS.md emit 됨"
 
 
 def main() -> int:

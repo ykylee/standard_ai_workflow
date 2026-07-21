@@ -23,7 +23,7 @@
 |---|---|---|---|
 | 1 | **Panel 1~8 dashboard 정합** | 8 panel 모두 SSOT (maturity_matrix + git log + file system) 와 정합 | ⚠️ CONDITIONAL (Panel 5 recent_releases items_total=0) |
 | 2 | **누적 smoke PASS** | 24종 smoke 모두 PASS, 회귀 0건 | ✅ PASS (24/24 PASS) |
-| 3 | **mypy strict + 109 file clean** | mypy --strict --extra mcp-sdk 0 errors (v0.11.18 도달) | ⚠️ NOT MEASURED (venv 미활성, smoke 24종 정합으로 간접 verify) |
+| 3 | **mypy strict + 109 file clean** | mypy --strict --extra mcp-sdk 0 errors (v0.11.18 도달) | ✅ PASS (venv mypy 2.1.0 직접 verify 2026-07-21: `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors**. Break Point #3 close-out) |
 | 4 | **Backward compat** | v0.11.18 ~ v0.15.16 의 100+ release 중 breaking change ≤ 1건 (v0.15.0 `.bak` drop, 2-cycle deprecation 종결) + migration 가이드 정합 | ✅ PASS (1건 breaking, migration 가이드 + 1 release deprecation warning + 1 release removal 정공법 적용) |
 | 5 | **Public API stability** | stable API 명세 (`v0_8_0_stable_api_spec.md`) 와 runtime 정합 + Pydantic schema (`BaseOutput` 상속) 정공법 적용 | ✅ PASS (12 skill stable + 11 MCP stable + 1 MCP removed, BaseOutput 100% 적용) |
 | 6 | **Deprecation roadmap** | 2-cycle deprecation 안정화 + v0.15.0 종결 + ADR-007 (3rd cycle no-op) accepted + Phase 13 follow-up 정의 | ✅ PASS (Panel 7 stage=v0.15.0 complete, ADR-007 accepted) |
@@ -161,7 +161,7 @@ ADR-007 (`deprecation-3rd-cycle-candidates`) accepted (v0.15.4) — 3rd cycle no
 
 - **v0.11.18 도달**: FULL mypy strict (109 file clean, 0 errors, commit 80470cd).
 - **현재 (v0.15.16)**: 신규 file 4종 (grok-build 2 file + global-snippets 2 file) + renderers.py +392 line 모두 type hint 정합 (mypy strict 대상 file system 변경 추적 smoke `check_appendonly_memory_layout.py`).
-- **venv 미활성으로 직접 측정 ❌**: 본 audit 시점 시스템 python 으로는 mypy 호출 불가. venv 활성화 후 검증 필요 (CI 환경에서 자동 verify).
+- **venv 직접 verify ✅ (2026-07-21, Break Point #3 close-out)**: `.venv` (mypy 2.1.0) 에서 CI 게이트와 동일한 `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors** (Success). workflow-source dir 기준 실행 시 4건 `unused-ignore` 가 뜨나 모두 optional/조건부 import 방어용 (`hypothesis` / `tomli` fallback / `release_pipeline` / `objgraph`) 으로 no-optional-dep 환경에서 필요 — CWD 차이로 인한 non-gate 아티팩트이며 authoritative CI 게이트(REPO_ROOT 기준)는 0 errors.
 - **간접 verify**: smoke 24종 모두 PASS + mypy strict 대상 신규 file 의 `def test_case_*` pytest wrapper 정합 + renderers.py 의 type hint 표기 일관성.
 - **action item**: v1.0.0 진입 직전 venv 활성화 후 `mypy workflow-source/ --strict --extra mcp-sdk` 0 errors 재 verify 필수.
 

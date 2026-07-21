@@ -3,7 +3,7 @@
 - 문서 목적: Standard AI Workflow를 **소스에서 설치해 개발/검증 환경**으로 쓰는 방법을 안내한다.
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
-- 상태: stable (v0.15.21-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v0.15.16 와 정합)
+- 상태: stable (v1.0.0-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v0.15.16 와 정합)
 - 최종 수정일: 2026-07-21
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` / `bootstrap_lib` 임포트와 기본 사용 예
-- 198개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v0.15.21+ 정합)
+- 198개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.0.0+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결

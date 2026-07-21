@@ -314,14 +314,14 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 
 ### 8.1 Verdict
 
-- **Gate 1 (Dashboard 정합)**: ✅ PASS (v0.15.17 + v0.15.19 close-out)
+- **Gate 1 (Dashboard 정합)**: ✅ PASS (v0.15.17 + v0.15.19 close-out + 2026-07-21 Panel 5 `items_total=11` 재정합, Break Point #1 close-out)
 - **Gate 2 (Smoke 24종)**: ✅ PASS (24/24, 회귀 0)
-- **Gate 3 (mypy strict)**: ⚠️ NOT MEASURED (venv 미활성, CI 3-layer defense 정합으로 운영 risk 낮음)
+- **Gate 3 (mypy strict)**: ✅ PASS (2026-07-21 venv mypy 2.1.0 직접 verify: `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors**. Break Point #3 close-out)
 - **Gate 4 (Backward compat)**: ✅ PASS (1 breaking, 2-cycle 종결)
 - **Gate 5 (Public API stability)**: ✅ PASS (25 __all__ entries + 12 skill + 11 MCP + 11 harness)
 - **Gate 6 (Deprecation roadmap)**: ✅ PASS (v0.15.0 complete, ADR-007 accepted)
 
-**종합**: ⚠️ **CONDITIONAL PASS** (5/6 gate PASS + 1 conditional Gate 3 mypy strict). venv 활성화 후 mypy strict 0 errors verify 만 남음.
+**종합**: ✅ **PASS** (2026-07-21 갱신 — **6/6 gate PASS**). §0 Executive Summary 와 §1 Entry Gate Criteria 표와 정합. 잔여는 Break Point #2 (TST-WF-01 historical smoke coverage) 뿐이며 **non-blocking 품질 항목** 이다. v1.0.0 stable release 진행 가능.
 
 ### 8.2 권장 사항
 
@@ -329,7 +329,8 @@ Phase 12 close-out 의 24종 smoke 가 v1.0.0 진입 평가의 cross-check ancho
 2. **완료 (v0.15.18)**: Break Point #2 해소 (TST-WF-01 historical smoke 보강 + 575 wrapper).
 3. **완료 (v0.15.19)**: Cross-panel final 정합 (Panel 1~8 + 24 smoke + 모든 housekeeping).
 4. **완료 (v0.15.20)**: v1.0.0 pre-release final (stable API 명세 final + SemVer 2-year guarantee doc + 25/25 stable API frozen + Phase 12 close-out).
-5. **후속**: venv 활성화 후 mypy strict 0 errors verify → **v1.0.0 stable release** + **Phase 13 follow-up 진입** (2-year SemVer guarantee 운영).
+5. **완료 (2026-07-21)**: Break Point #3 해소 — venv mypy strict 직접 verify (117 source files, 0 errors) + Break Point #1 해소 (Panel 5 `items_total=11`).
+6. **후속**: **v1.0.0 stable release** (전 gate 통과, 잔여 blocker 0) + **Phase 13 follow-up 진입** (2-year SemVer guarantee 운영).
 
 ### 8.3 v1.0.0 진입 시 보장 사항
 

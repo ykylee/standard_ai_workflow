@@ -145,11 +145,11 @@ def test_case_2_maturity_matrix_phase_status() -> None:
         f"Phase 12 should be 'done' (closed in v0.15.20). "
         f"got {milestones['Phase 12']['status']!r}."
     )
-    # Phase 13 정합: v1.0.0 stable 진입 후 planned. 현 시점에는 maturity_matrix.json 에
-    # Phase 13 entry 가 없을 수 있음 (선택적 정의). 정의된 경우에만 검증.
+    # Phase 13 정합: v1.0.0 stable 진입과 함께 정식 start (planned → in_progress).
+    # v1.0.0 이전에는 entry 자체가 없을 수 있으므로 정의된 경우에만 검증.
     if "Phase 13" in milestones:
-        assert milestones["Phase 13"]["status"] == "planned", (
-            f"Phase 13 should be 'planned' (v1.0.0 stable 진입 후 정식 start). "
+        assert milestones["Phase 13"]["status"] == "in_progress", (
+            f"Phase 13 should be 'in_progress' (v1.0.0 stable 진입과 함께 정식 start). "
             f"got {milestones['Phase 13']['status']!r}."
         )
 

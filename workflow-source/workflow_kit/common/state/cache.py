@@ -11,6 +11,7 @@ from workflow_kit.common.paths import (
     project_workspace_root,
     workflow_backlog_dir,
     workflow_branch_dir,
+    workflow_state_path,
     workflow_memory_dir,
     workflow_sessions_dir,
     workflow_tasks_dir,
@@ -41,9 +42,10 @@ def build_state_cache_refresh_hint(
     memory_dir = workflow_memory_dir(project_profile_path)
     branch_dir = workflow_branch_dir(project_profile_path)
     generator_path = workspace_root / "workflow-source" / "scripts" / "generate_workflow_state.py"
-    # state.json 은 memory_dir (active/) 에서 공유 — workflow-linter 의
-    # `workflow_memory_dir(...) / "state.json"` 패턴과 정합.
-    state_path = memory_dir / "state.json"
+    # v1.0.0 branch-scoped: state.json 은 builder 가 rebuild 하는 *생성물* 이고 브랜치마다
+    # 작업 상태가 다르므로 `active/<branch>/state.json`. 미마이그레이션 저장소는
+    # workflow_state_path() 내부에서 legacy(`active/state.json`) 로 fallback 한다.
+    state_path = workflow_state_path(project_profile_path)
     # v0.14.0+ 신규 layout (append-only) dir 자동 resolve.
     # 명시되지 않으면 memory_dir 하위 신규 layout 디렉토리로 default.
     resolved_daily_backlog_dir = daily_backlog_dir or workflow_backlog_dir(project_profile_path)

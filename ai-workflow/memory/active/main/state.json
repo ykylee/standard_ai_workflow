@@ -7,9 +7,9 @@
     "project_profile_path": "docs/PROJECT_PROFILE.md",
     "session_handoff_path": null,
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/backlog",
-    "tasks_dir": "ai-workflow/memory/active/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/sessions",
+    "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
+    "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/active/main/sessions",
     "latest_backlog_path": null,
     "repository_assessment_path": null
   },

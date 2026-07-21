@@ -34,6 +34,23 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ACTIVE_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active"
 
+
+def _resolve_layout_root() -> Path:
+    """v1.0.0 branch-scoped: layout 검증의 기준 디렉터리를 찾는다.
+
+    메모리는 `active/<branch>/` 로 분리되므로 layout 은 그 하위에 있다. 아직
+    마이그레이션하지 않은 저장소(`active/backlog` 가 직접 존재)는 legacy 로 취급한다.
+    """
+    if (ACTIVE_DIR / "backlog").is_dir():
+        return ACTIVE_DIR
+    for cand in sorted(ACTIVE_DIR.rglob("*")):
+        if cand.is_dir() and (cand / "backlog").is_dir():
+            return cand
+    return ACTIVE_DIR
+
+
+LAYOUT_ROOT = _resolve_layout_root()
+
 # MEMORY_GOVERNANCE.md §2 Task Detail 템플릿 정합 — TASK-*.md frontmatter 필수 keys
 TASK_FRONTMATTER_KEYS = frozenset({
     "id", "status", "created_at", "source_anchor", "source_path", "kind",
@@ -46,9 +63,9 @@ warnings: list[str] = []
 def _check_layout_existence() -> None:
     """1) backlog/, backlog/tasks/, sessions/ 디렉토리 존재 + 최소 1 file."""
     required_dirs = {
-        "backlog": ACTIVE_DIR / "backlog",
-        "backlog/tasks": ACTIVE_DIR / "backlog" / "tasks",
-        "sessions": ACTIVE_DIR / "sessions",
+        "backlog": LAYOUT_ROOT / "backlog",
+        "backlog/tasks": LAYOUT_ROOT / "backlog" / "tasks",
+        "sessions": LAYOUT_ROOT / "sessions",
     }
     for name, path in required_dirs.items():
         if not path.is_dir():
@@ -84,7 +101,7 @@ def _check_legacy_absent() -> None:
 
 def _check_state_json_source_of_truth() -> None:
     """3) state.json.source_of_truth 의 신규 dir 3개 모두 dir path."""
-    state_json = ACTIVE_DIR / "state.json"
+    state_json = LAYOUT_ROOT / "state.json"
     if not state_json.exists():
         errors.append(f"[state_json] {state_json} 부재")
         return
@@ -120,11 +137,11 @@ def _check_daily_index_links_resolve() -> None:
     overwrite 되지 않도록). daily index 의 `source: [[<path>]] {#anchor}` 라인의
     path stem 으로 session file 매칭.
     """
-    backlog_dir = ACTIVE_DIR / "backlog"
+    backlog_dir = LAYOUT_ROOT / "backlog"
     if not backlog_dir.is_dir():
         return  # 1) 에서 이미 error
-    tasks_dir = ACTIVE_DIR / "backlog" / "tasks"
-    sessions_dir = ACTIVE_DIR / "sessions"
+    tasks_dir = LAYOUT_ROOT / "backlog" / "tasks"
+    sessions_dir = LAYOUT_ROOT / "sessions"
     link_re = re.compile(r"\*\*TASK-(\d{4}-\d{2}-\d{2}-\d{3})\*\*\s*\[([^\]]+)\]")
     source_re = re.compile(r"\[\[([^\]]+)\]\]\s+\{#([^}]+)\}")
 
@@ -182,7 +199,7 @@ def _check_daily_index_links_resolve() -> None:
 
 def _check_task_frontmatter_schema() -> None:
     """5) TASK-*.md 의 frontmatter 가 MEMORY_GOVERNANCE.md §2 정합 (6 keys 모두 존재)."""
-    tasks_dir = ACTIVE_DIR / "backlog" / "tasks"
+    tasks_dir = LAYOUT_ROOT / "backlog" / "tasks"
     if not tasks_dir.is_dir():
         return
     fm_re = re.compile(r"^---\n(.+?)\n---", re.S)
@@ -205,7 +222,7 @@ def _check_task_frontmatter_schema() -> None:
 
 def _check_session_cross_ref() -> None:
     """6) sessions/*.md 가 1개 이상 존재 (cross-ref SSOT 부재 검증)."""
-    sessions_dir = ACTIVE_DIR / "sessions"
+    sessions_dir = LAYOUT_ROOT / "sessions"
     if not sessions_dir.is_dir():
         return
     real = [f for f in sessions_dir.glob("*.md") if f.name != ".gitkeep"]
@@ -227,9 +244,9 @@ def main() -> int:
         print(f"\n=== FAIL: {len(errors)} violation(s) ===")
         return 1
 
-    n_backlog = len(list((ACTIVE_DIR / "backlog").glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")))
-    n_tasks = len(list((ACTIVE_DIR / "backlog" / "tasks").glob("TASK-*.md")))
-    n_sessions = len([f for f in (ACTIVE_DIR / "sessions").glob("*.md") if f.name != ".gitkeep"])
+    n_backlog = len(list((LAYOUT_ROOT / "backlog").glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")))
+    n_tasks = len(list((LAYOUT_ROOT / "backlog" / "tasks").glob("TASK-*.md")))
+    n_sessions = len([f for f in (LAYOUT_ROOT / "sessions").glob("*.md") if f.name != ".gitkeep"])
 
     print("=== PASS: 6/6 ===")
     print(f"  1) layout existence: backlog/{n_backlog}d, backlog/tasks/{n_tasks}, sessions/{n_sessions}")

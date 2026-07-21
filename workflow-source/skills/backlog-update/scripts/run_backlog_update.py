@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import datetime as dt
 import re
 import sys
 from datetime import date, datetime
@@ -20,7 +21,12 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
-from workflow_kit.common.paths import resolve_existing_path, workflow_memory_dir, workflow_branch_dir
+from workflow_kit.common.paths import (
+    get_current_branch,
+    resolve_existing_path,
+    workflow_branch_dir,
+    workflow_memory_dir,
+)
 from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
 from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
@@ -33,13 +39,49 @@ def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
     return (branch_dir / "backlog" / f"{target_date}.md").resolve()
 
 
-def suggest_next_task_id(tasks: list[dict[str, Any]]) -> str:
+# TASK-<date>-<slug>-<NNN> / legacy TASK-<date>-<NNN> / legacy TASK-<NNN>
+TASK_ID_RE = re.compile(r"^TASK-(?:(\d{4}-\d{2}-\d{2})-)?(?:(.+?)-)?(\d{1,3})$")
+
+
+def branch_slug(branch: str | None = None) -> str:
+    """브랜치명을 파일명에 안전한 slug 로 정규화 (`feature/x` → `feature-x`)."""
+    raw = branch or get_current_branch()
+    slug = re.sub(r"[^0-9A-Za-z._-]+", "-", raw.replace("/", "-")).strip("-")
+    return slug or "main"
+
+
+def suggest_next_task_id(
+    tasks: list[dict[str, Any]],
+    *,
+    target_date: str | None = None,
+    branch: str | None = None,
+) -> str:
+    """`TASK-<date>-<slug>-<NNN>` 형식의 다음 task ID.
+
+    **왜 slug 를 넣나**: 순번을 *브랜치 안에서만* 매기면 두 브랜치가 같은 날 동시에
+    작업해도 ID 가 겹치지 않는다. 아카이브로 합쳐진 뒤에도 전역 유일하므로 과거 이력
+    조회가 안전하다.
+
+    **버그 수정**: 이전 구현은 `TASK-(\\d+)` 로 매칭해 `TASK-2026-07-20-001` 에서 연도
+    `2026` 을 순번으로 오인, 다음 ID 가 `TASK-2027` 이 됐다. 이제 날짜/slug/순번을
+    분리해 파싱하고, **같은 날짜 + 같은 브랜치** 인 것만 순번 비교 대상으로 삼는다.
+    """
+    date = target_date or dt.date.today().isoformat()
+    slug = branch_slug(branch)
     max_num = 0
     for task in tasks:
-        match = re.match(r"TASK-(\d+)", task["task_id"])
-        if match:
-            max_num = max(max_num, int(match.group(1)))
-    return f"TASK-{max_num + 1:03d}"
+        raw = str(task.get("task_id") or "")
+        match = TASK_ID_RE.match(raw)
+        if not match:
+            continue
+        task_date, task_slug, num = match.group(1), match.group(2), match.group(3)
+        # 날짜가 있으면 같은 날만, slug 가 있으면 같은 브랜치만 비교 대상.
+        if task_date and task_date != date:
+            continue
+        if task_slug and task_slug != slug:
+            continue
+        max_num = max(max_num, int(num))
+    return f"TASK-{date}-{slug}-{max_num + 1:03d}"
 
 
 def build_draft_entry(
@@ -351,7 +393,8 @@ def main() -> int:
                     operation_type = "cannot_determine"
                     warnings.append(f"`{args.task_id}` 항목을 대상 backlog 에서 찾지 못했다.")
 
-        task_id = args.task_id or suggest_next_task_id(existing_tasks)
+        task_id = args.task_id or suggest_next_task_id(
+            existing_tasks, target_date=getattr(args, 'target_date', None))
         status, status_warnings = determine_conservative_task_status(args.status, args.validation_result, operation_type)
         warnings.extend(status_warnings)
 

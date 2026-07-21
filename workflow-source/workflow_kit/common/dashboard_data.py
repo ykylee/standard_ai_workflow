@@ -37,6 +37,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final
+from workflow_kit.common.paths import state_path_for_workspace
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -1023,6 +1024,19 @@ def _release_version_key(path: Path) -> tuple[int, ...]:
 # ---------------------------------------------------------------------------
 
 
+def _branch_state_paths(root: Path) -> list[Path]:
+    """`active/<branch>/state.json` 을 모두 반환 (branch-scoped 집계용).
+
+    브랜치별 메모리에서는 각 브랜치가 자기 state.json 을 가지므로, 프로젝트 전체의
+    "현재 상태"는 이들을 합친 *뷰* 로 계산한다. 별도 집계 파일을 커밋하지 않으므로
+    protected main 에서도 merge 마다 갱신할 대상이 생기지 않는다.
+    """
+    active = Path(root) / "ai-workflow" / "memory" / "active"
+    if not active.is_dir():
+        return []
+    return sorted(p for p in active.rglob("state.json") if p.is_file())
+
+
 def collect_recent_releases(
     workspace_root: Path,
     *,
@@ -1039,24 +1053,30 @@ def collect_recent_releases(
         dict — Panel 5 의 data shape.
     """
     root = _repo_root(workspace_root)
-    state_path = root / "ai-workflow" / "memory" / "active" / "state.json"
+    # v1.0.0 branch-scoped: 메모리가 `active/<branch>/` 로 분리되므로 Panel 5 는 **모든
+    # 브랜치의 state.json 을 집계** 한 뷰로 만든다. 이렇게 하면 main 전용 집계 파일을
+    # 따로 커밋할 필요가 없어, protected main 에서도 merge 마다 갱신할 대상이 없다.
+    state_paths = _branch_state_paths(root)
+    if not state_paths:
+        legacy = state_path_for_workspace(root)
+        state_paths = [legacy] if legacy.is_file() else []
 
-    if not state_path.is_file():
+    if not state_paths:
         return {"items_total": 0, "top_n": top_n, "timeline": []}
 
-    try:
-        with state_path.open("r", encoding="utf-8") as fp:
-            state = json.load(fp)
-    except (OSError, json.JSONDecodeError):
-        return {"items_total": 0, "top_n": top_n, "timeline": []}
-
-    session = state.get("session", {})
-    if not isinstance(session, dict):
-        return {"items_total": 0, "top_n": top_n, "timeline": []}
-
-    items = session.get("recent_done_items", [])
-    if not isinstance(items, list):
-        return {"items_total": 0, "top_n": top_n, "timeline": []}
+    items: list[Any] = []
+    for path in state_paths:
+        try:
+            with path.open("r", encoding="utf-8") as fp:
+                state = json.load(fp)
+        except (OSError, json.JSONDecodeError):
+            continue
+        session = state.get("session", {})
+        if not isinstance(session, dict):
+            continue
+        branch_items = session.get("recent_done_items", [])
+        if isinstance(branch_items, list):
+            items.extend(branch_items)
 
     timeline: list[dict[str, Any]] = []
     for idx, item in enumerate(items[:top_n]):

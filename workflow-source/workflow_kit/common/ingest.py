@@ -13,6 +13,7 @@ import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from workflow_kit.common.paths import state_path_for_workspace
 
 
 #: Lock file path inside the active memory directory.
@@ -84,7 +85,7 @@ def ingest_session_atomic(
     backlog_dir = memory_active / "backlog"
     handoff_path = memory_active / "session_handoff.md"
     backlog_path = backlog_dir / f"{today_iso}.md"
-    state_path = memory_active / "state.json"
+    state_path = state_path_for_workspace(memory_active.parent.parent)
     worklog_path = memory_active / "work_backlog.md"
 
     # Acquire lock  -----------------------------------------------------------

@@ -2790,7 +2790,10 @@ def _append_drift_ledger_entry(args: argparse.Namespace, sr_result: dict) -> dic
             "auto_recovered_count": len(recovered),
             "re_check_status": re_check.get("guard_status", "unknown"),
         }
-        ledger = REPO_ROOT.parent / DRIFT_LEDGER_RELPATH
+        # workspace_root 는 test / 다중 workspace caller 가 주입할 수 있어야 한다.
+        # 저장소 경로로 고정돼 있으면 왕복 계약 테스트가 실저장소를 오염시킨다.
+        ws_override = getattr(args, "workspace_root", None)
+        ledger = (Path(ws_override) if ws_override else REPO_ROOT.parent) / DRIFT_LEDGER_RELPATH
         ledger.parent.mkdir(parents=True, exist_ok=True)
         with ledger.open("a", encoding="utf-8") as fp:
             fp.write(json.dumps(entry, ensure_ascii=False) + "\n")

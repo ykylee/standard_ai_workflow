@@ -470,9 +470,41 @@ apply 해도 중복되지 않고, 사람이 손으로 넣은 `source:` 주석도
 본문 문자열만 보고 **layout 자체를 규약으로 검사하지 않아** 이 드리프트를 1년 가까이
 놓쳤다. 구 writer 동작을 되돌려 주입해 **5 case 전부 FAIL** 하는 것을 확인했다.
 
+### 2.22 세 결함이 같은 모양이었다 — writer ↔ reader 왕복 계약 (**릴리스 후 보강**)
+
+§2.19 / §2.20 / §2.21 을 나란히 놓으면 하나의 결함이다: **같은 사실이 두 곳에 있는데
+둘을 이어주는 기계적 장치가 없다.**
+
+| 사례 | 두 곳 | 왜 기존 테스트가 못 잡았나 |
+|---|---|---|
+| §2.19 north-star | 지표 **정의**(wiki) ↔ **구현** | proxy 를 north-star 자리에 앉혀도 타입은 맞다 |
+| §2.20 `state.json` | **writer** 경로 ↔ **reader** 경로 | 각자 자기 경로에서 정상 동작, 서로 만나지 않는다 |
+| §2.21 task ID | 정규식 **4곳** 복제 | 각 정규식이 자기 테스트를 통과한다 |
+
+공통점은 **부품별 테스트가 전부 green 인데 조립하면 안 맞는다**는 것. 그래서 단언을
+하나로 통일한 smoke 를 둔다 — *프로덕션 writer 로 쓰고 **프로덕션 reader 로 되읽어
+같은 것이 나오는가***. `check_writer_reader_roundtrip.py` 신규, 8 pair:
+
+`state.json` · daily index/task · append-only 집계 · maturity 선언 · drift 원장 ·
+telemetry · memory_index entry · session handoff.
+
+**§2.20 과 §2.21 의 결함을 되돌려 주입해 해당 pair 가 실제로 FAIL 하는 것을 확인**했다
+(§2.19 는 duplication 이 아니라 *대체* 라 본 계열로는 안 잡힌다 — 지표가 판정 근거를
+함께 emit 하게 한 §2.19 의 장치가 그 몫이다).
+
+> **fixture 를 손으로 쓰면 이 결함을 못 잡는다.** 처음 작성한 `state.json` pair 는
+> 빈 workspace 에서 시작해 통과해버렸다 — writer 가 legacy 경로에 써도 reader 의
+> fallback 이 그 파일을 집어 우연히 일치했기 때문이다. **이미 갱신돼 온 파일이 있는**
+> 실제 저장소 상태를 재현하자 비로소 FAIL 했다. 계약 테스트는 *실제 상태를 닮은
+> 출발점* 에서 시작해야 한다.
+
+곁들여 `_append_drift_ledger_entry` 가 저장소 경로에 고정돼 있던 것을
+`workspace_root` 주입 가능하게 고쳤다 — 고정돼 있으면 계약 테스트가 실저장소를
+오염시킨다. **테스트 가능성이 곧 설계 압력**으로 작동한 사례.
+
 ## 3. 검증
 
-누적 smoke **206/206 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **207/207 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -492,8 +524,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **206/206 PASS** (릴리스 시점 199/199 + 발행 후 신규 7종, §2.16~2.21) |
-| 실효 smoke | **200/200 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **207/207 PASS** (릴리스 시점 199/199 + 발행 후 신규 8종, §2.16~2.22) |
+| 실효 smoke | **201/201 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

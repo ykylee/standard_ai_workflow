@@ -295,6 +295,41 @@ def test_case_6_release_dry_run_does_not_touch_repo() -> None:
 
 
 # ---------------------------------------------------------------------------
+# case 7 — release --auto-bump --dry-run 이 version 을 쓰지 않는다
+# ---------------------------------------------------------------------------
+
+def test_case_7_auto_bump_dry_run_does_not_write_version() -> None:
+    """`release --auto-bump --dry-run` 이 pyproject / __init__ 을 write 하지 않아야 한다.
+
+    회귀 배경: auto-bump 경로가 dry-run 을 보지 않고 in-place 로 version 을 고쳤다.
+    이 결함은 `last_tag == 현재 version` 일 때(= release 직후)만 발현하므로 오래
+    잠복해 있었고, 실제로 v1.0.0-beta 발행 직후 전량 smoke 가 저장소 version 을
+    1.0.0 → 1.0.1 로 bump 했다.
+
+    판정은 파일 diff 가 아니라 **보고된 mode** 로 한다 — auto-bump 는 bump 대상이
+    없으면 아무것도 쓰지 않아, 파일 변화 유무는 저장소 상태에 따라 달라진다.
+    """
+    proc = subprocess.run(
+        [
+            "python3", str(RELEASE_PIPELINE), "release",
+            "--auto-bump", "--skip-validate", "--dry-run", "--json",
+        ],
+        cwd=str(REPO), capture_output=True, text=True, timeout=120,
+        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+    )
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise AssertionError(f"JSON 파싱 실패: {exc}\n{proc.stdout[:400]}")
+    bump = payload.get("auto_bump")
+    if isinstance(bump, dict) and bump.get("bumped"):
+        assert bump.get("applied") is False, (
+            f"release --auto-bump --dry-run 인데 version 을 write 했다: {bump}"
+        )
+        assert bump.get("mode") == "dry-run", f"mode={bump.get('mode')!r}"
+
+
+# ---------------------------------------------------------------------------
 
 def _run_all() -> Iterator[tuple[str, bool, str]]:
     cases = [
@@ -310,6 +345,8 @@ def _run_all() -> Iterator[tuple[str, bool, str]]:
          test_case_5_release_dry_run_triggers_drift_step),
         ("test_case_6_release_dry_run_does_not_touch_repo",
          test_case_6_release_dry_run_does_not_touch_repo),
+        ("test_case_7_auto_bump_dry_run_does_not_write_version",
+         test_case_7_auto_bump_dry_run_does_not_write_version),
     ]
     for name, fn in cases:
         try:
@@ -330,7 +367,7 @@ def main() -> int:
         else:
             print(f"  FAIL: {name}\n    {msg}")
             failures += 1
-    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {6 - failures}/6 ===")
+    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {7 - failures}/7 ===")
     return 0 if failures == 0 else 1
 
 

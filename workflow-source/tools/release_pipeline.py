@@ -2360,16 +2360,25 @@ def cmd_release(args) -> dict:
             version = bump_info["next"]
             results["version_source"] = "auto-bump"
             results["auto_bump"] = bump_info
-            # version-bump 자동 적용 (in-place). write_version + write_workflow_kit_version
-            write_version(version)
-            suffix = "beta"
-            if read_workflow_kit_version().endswith("-beta"):
-                suffix = "beta"
-            elif read_workflow_kit_version().endswith("-alpha"):
-                suffix = "alpha"
+            # dry-run 은 **아무것도 쓰지 않는다.** auto-bump 는 pyproject.toml 과
+            # workflow_kit/__init__.py 를 in-place 로 고치므로 dry-run 에서는 계획만
+            # 보고한다. 이 결함은 `last_tag == 현재 version` 일 때만 발현하므로
+            # (= 방금 release 한 직후) 오래 잠복해 있었다 — 실제로 v1.0.0-beta 발행
+            # 직후 전량 smoke 가 저장소 version 을 1.0.0 → 1.0.1 로 bump 했다.
+            if getattr(args, "dry_run", False):
+                results["auto_bump"] = {**bump_info, "applied": False, "mode": "dry-run"}
             else:
-                suffix = ""  # default
-            write_workflow_kit_version(version, suffix=("-" + suffix) if suffix else "")
+                # version-bump 자동 적용 (in-place). write_version + write_workflow_kit_version
+                write_version(version)
+                suffix = "beta"
+                if read_workflow_kit_version().endswith("-beta"):
+                    suffix = "beta"
+                elif read_workflow_kit_version().endswith("-alpha"):
+                    suffix = "alpha"
+                else:
+                    suffix = ""  # default
+                write_workflow_kit_version(version, suffix=("-" + suffix) if suffix else "")
+                results["auto_bump"] = {**bump_info, "applied": True, "mode": "apply"}
         else:
             results["auto_bump"] = bump_info  # bumped=False, info only
 
@@ -2407,12 +2416,17 @@ def cmd_release(args) -> dict:
                     new_version = bump_info["next"]
                     results["version_source"] = "full-auto-bump"
                     results["auto_bump"] = bump_info
-                    # in-place version-bump
-                    write_version(new_version)
-                    suffix = "beta"
-                    if read_workflow_kit_version().endswith("-beta"):
+                    # dry-run 은 쓰지 않는다 (--full-auto 경로도 동일 계약).
+                    if getattr(args, "dry_run", False):
+                        results["auto_bump"] = {**bump_info, "applied": False, "mode": "dry-run"}
+                    else:
+                        # in-place version-bump
+                        write_version(new_version)
                         suffix = "beta"
-                    write_workflow_kit_version(new_version, suffix=("-beta" if suffix else ""))
+                        if read_workflow_kit_version().endswith("-beta"):
+                            suffix = "beta"
+                        write_workflow_kit_version(new_version, suffix=("-beta" if suffix else ""))
+                        results["auto_bump"] = {**bump_info, "applied": True, "mode": "apply"}
                     # re-flow with new version
                     version = new_version
                     tag = f"v{version}-beta"

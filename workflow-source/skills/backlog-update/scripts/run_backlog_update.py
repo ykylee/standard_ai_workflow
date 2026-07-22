@@ -577,13 +577,24 @@ def main() -> int:
 
             apply_result["status"] = "applied"
 
-        state_cache_refresh = refresh_workflow_state_cache(
-            project_profile_path=project_profile_path,
-            session_handoff_path=session_handoff_path if session_handoff_path.exists() else None,
-            work_backlog_index_path=work_backlog_index_path if work_backlog_index_path.exists() else None,
-            latest_backlog_path=daily_backlog_path if daily_backlog_path.exists() else None,
-            generated_at=date.today().isoformat(),
-        )
+        # v1.0.1 fix: state cache 재생성은 **write** 다. `--apply` 없이 부르면 초안만
+        # 달라는 호출이 저장소에 파일을 만든다 (skill 의 권한 경계 §5 "초안 생성 중심"
+        # 위반이자 dry-run 오염). draft 경로에서는 hint 만 내고 쓰지 않는다.
+        if args.apply:
+            state_cache_refresh = refresh_workflow_state_cache(
+                project_profile_path=project_profile_path,
+                session_handoff_path=session_handoff_path if session_handoff_path.exists() else None,
+                work_backlog_index_path=work_backlog_index_path if work_backlog_index_path.exists() else None,
+                latest_backlog_path=daily_backlog_path if daily_backlog_path.exists() else None,
+                generated_at=date.today().isoformat(),
+            )
+        else:
+            state_cache_refresh = {
+                "status": "skipped",
+                "state_path": state_cache_update["state_path"],
+                "refresh_command": state_cache_update["refresh_command"],
+                "missing_paths": [],
+            }
         warnings.extend(apply_result["warnings"])
 
         from workflow_kit.common.schemas import BacklogUpdateOutput
@@ -611,8 +622,8 @@ def main() -> int:
             state_cache_update_note=(
                 f"`--apply` 반영 결과를 포함한 현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
                 if args.apply and state_cache_refresh["status"] == "refreshed"
-                else f"현재 source-of-truth 문서를 기준으로 `{state_cache_update['state_path']}` 를 자동 재생성했다."
-                if state_cache_refresh["status"] == "refreshed"
+                else f"draft 모드라 `{state_cache_update['state_path']}` 를 쓰지 않았다 — 재생성하려면 `--apply` 또는 위 refresh command."
+                if not args.apply
                 else f"source-of-truth 문서가 아직 부족해 `{state_cache_update['state_path']}` 자동 재생성을 건너뛰었다."
             ),
             state_cache_refresh_command=state_cache_update["refresh_command"],

@@ -410,9 +410,40 @@ matrix 를 바꾸면서 `last_updated` 는 안 올렸다. 선언을 `2026-07-22`
 "재발 방지 test 는 버그 코드에서 실패하는지 확인" 규칙 정합. 곁들여 refresh hint 가
 `python3 -c "python3 -c "…""` 로 깨져 나가던 렌더 버그도 고쳤다.
 
+### 2.20 state.json 이 2026-07-21 이후 갱신되지 않고 있었다 (**릴리스 후 보강**)
+
+"v1.0.0 사이클이 워크플로우 메모리에 미기록" 이라는 증상을 파고들자 손이 게을렀던
+게 아니라 **코드가 조용히 실패하고 있었다**.
+
+v1.0.0 의 branch-scoped 전환에서 `state.json` 경로가 절반만 옮겨졌다:
+
+| | 경로 | |
+|---|---|---|
+| hint (`build_state_cache_refresh_hint`) | `active/<branch>/state.json` | ✅ 옮겨짐 |
+| writer (`refresh_workflow_state_cache`) | `active/state.json` | ❌ 남겨짐 |
+
+reader 는 전부 `workflow_state_path()` 를 통해 branch-scoped 를 보므로, refresh 는
+**아무도 읽지 않는 파일**을 새로 만들고 정작 읽히는 `active/main/state.json` 은 영원히
+갱신되지 않았다. 게다가 반환값은 `"refreshed"` 였다 — 성공했다고 보고하면서 실패한다.
+이것이 Phase 13 north-star 가 세려는 *silent failing* 의 교과서적 사례다.
+
+같은 호출 경로에서 두 번째 결함도 드러났다: **`backlog-update` 가 `--apply` 없이도
+state cache 를 재생성**했다. 초안만 달라는 호출이 저장소에 파일을 만드는 것으로,
+skill 권한 경계(§5 "초안 생성 중심") 위반이자 §2.15 auto-bump 와 같은 부류의 dry-run
+오염이다. 실제로 이 사실은 **스킬을 직접 돌려보다가** 발견했다 — 정적으로 읽을 때는
+안 보였다.
+
+`check_state_cache_branch_scoped_write.py` 신규 (4 case: writer 가 branch-scoped 로
+쓰는가 / hint 와 writer 의 경로가 같은가 / 미마이그레이션 저장소는 legacy 유지 /
+draft 모드가 아무것도 쓰지 않는가). **구 코드에서 3 case 가 FAIL** 하는 것을 확인했다.
+
+> **기존 테스트가 버그를 규약으로 굳혀 놓고 있었다.** `check_backlog_update.py` case 1 은
+> `--apply` 없이 호출한 뒤 `state_cache_status == "refreshed"` 를 *단언*하고 있었다.
+> 테스트가 dry-run 오염을 요구하고 있었으므로, 판정 자체를 뒤집어 고쳤다.
+
 ## 3. 검증
 
-누적 smoke **204/204 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **205/205 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -432,8 +463,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **204/204 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke 3종 + north-star 지표 체크 1종, §2.16~2.19) |
-| 실효 smoke | **198/198 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **205/205 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke 3종 + north-star 지표 체크 1종 + state cache 경로 체크 1종, §2.16~2.20) |
+| 실효 smoke | **199/199 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

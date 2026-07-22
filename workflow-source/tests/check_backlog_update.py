@@ -97,20 +97,18 @@ def main() -> int:
             raise AssertionError("Expected backlog-update to include a state cache refresh note.")
         if "generate_workflow_state.py" not in payload["state_cache_refresh_command"]:
             raise AssertionError("Expected backlog-update to include a state cache refresh command.")
-        if payload["state_cache_status"] != "refreshed":
-            raise AssertionError(f"Expected backlog-update to refresh state.json automatically. Got: {payload['state_cache_status']}")
+        # v1.0.1: draft 모드는 **쓰지 않는다**. 이전 버전의 본 case 는 정반대를
+        # 단언하고 있었다 — 초안만 달라는 호출이 state.json 을 만드는 dry-run 오염을
+        # 테스트가 규약으로 굳혀 놓은 셈이었다. hint 는 그대로 내되 write 는 안 한다.
+        if payload["state_cache_status"] != "skipped":
+            raise AssertionError(f"Expected draft mode to skip the state.json write. Got: {payload['state_cache_status']}")
 
-        state_path = (temp_project_root / "state.json").resolve()
-        if not state_path.exists():
-            raise AssertionError(f"Expected state.json to exist at {state_path}, but it was not found.")
-
-        state_payload = json.loads(state_path.read_text(encoding="utf-8"))
-        expected_profile_path = str((temp_project_root / "PROJECT_PROFILE.md").resolve())
-        # The path in state.json is now relative to workspace root (temp_project_root)
-        actual_profile_rel = state_payload["source_of_truth"]["project_profile_path"]
-        actual_profile_path = str((temp_project_root / actual_profile_rel).resolve())
-        if actual_profile_path != expected_profile_path:
-            raise AssertionError(f"Expected state.json to be refreshed from {expected_profile_path}, but got {actual_profile_path} (rel: {actual_profile_rel})")
+        for candidate in (
+            (temp_project_root / "state.json").resolve(),
+            (temp_branch_root / "state.json").resolve(),
+        ):
+            if candidate.exists():
+                raise AssertionError(f"draft 모드가 state.json 을 만들었다: {candidate}")
 
     # Case 2: Update with --apply
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -162,6 +160,20 @@ def main() -> int:
         )
         if apply_payload["apply_status"] != "applied":
             raise AssertionError("Expected backlog-update apply mode to report applied status.")
+
+        # v1.0.1: write 는 apply 모드에서만. 그리고 branch-scoped 경로로 간다
+        # (v1.0.0 에서 hint 만 옮겨지고 writer 는 legacy 에 남아 있던 결함의 회귀 방지).
+        if apply_payload["state_cache_status"] != "refreshed":
+            raise AssertionError(f"Expected apply mode to refresh state.json. Got: {apply_payload['state_cache_status']}")
+        branch_state_path = (temp_branch_root / "state.json").resolve()
+        if not branch_state_path.exists():
+            raise AssertionError(f"Expected branch-scoped state.json at {branch_state_path}.")
+        state_payload = json.loads(branch_state_path.read_text(encoding="utf-8"))
+        expected_profile_path = str((temp_project_root / "PROJECT_PROFILE.md").resolve())
+        actual_profile_rel = state_payload["source_of_truth"]["project_profile_path"]
+        actual_profile_path = str((temp_project_root / actual_profile_rel).resolve())
+        if actual_profile_path != expected_profile_path:
+            raise AssertionError(f"Expected state.json to be refreshed from {expected_profile_path}, but got {actual_profile_path} (rel: {actual_profile_rel})")
         backlog_text = temp_backlog_path.read_text(encoding="utf-8")
         if "- 상태: blocked" not in backlog_text:
             raise AssertionError("Expected apply mode to update the backlog task status in the target file.")

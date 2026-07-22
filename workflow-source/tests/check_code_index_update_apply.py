@@ -87,14 +87,20 @@ def main() -> int:
             return 1
 
         # state.json 생성 검증
-        # v0.11.20 fix: cache.py 의 state.json default path 가
-        # `branch_dir / "active" / "state.json"` → `memory_dir / "state.json"` 으로
-        # 정정. PROJECT_PROFILE.md 가 `<workspace>/PROJECT_PROFILE.md` 일 때
-        # `workflow_memory_dir(...)` 가 `<workspace>/` 를 반환하므로
-        # `memory_dir / "state.json"` = `<workspace>/state.json` (branch 와 무관).
-        state_path = project_root / "state.json"
-        if not state_path.exists():
-            print("state.json not created after code-index-update --apply.")
+        # v1.0.1: writer 가 branch-scoped 로 정정됐다 (v1.0.0 에서 hint 만 옮겨지고
+        # writer 는 legacy 에 남아, 갱신이 아무도 읽지 않는 파일로 흘러가던 결함).
+        # PROJECT_PROFILE.md 가 `<workspace>/PROJECT_PROFILE.md` 이므로
+        # `workflow_memory_dir(...)` = `<workspace>/`, state.json 은
+        # `<workspace>/<branch>/state.json`. legacy 파일이 이미 있는 저장소는 그대로
+        # legacy 를 갱신하므로 둘 중 하나면 통과로 본다.
+        # 브랜치는 위에서 `CODEX_WORKFLOW_BRANCH=test/apply` 로 고정했다 (슬래시는
+        # 중첩 디렉터리로 그대로 쓰인다 — paths.workflow_branch_dir 참조).
+        candidates = [
+            project_root / "test" / "apply" / "state.json",
+            project_root / "state.json",
+        ]
+        if not any(p.exists() for p in candidates):
+            print(f"state.json not created after code-index-update --apply. tried: {candidates}")
             return 1
 
         print("Code-index-update --apply smoke check passed.")

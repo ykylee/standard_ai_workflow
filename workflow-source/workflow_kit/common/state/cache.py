@@ -156,7 +156,12 @@ def refresh_workflow_state_cache(
         if not resolved_daily_backlog_dir.exists():
             missing_paths.append(str(resolved_daily_backlog_dir))
 
-    state_path = (output_path or (memory_dir / "state.json")).resolve()
+    # v1.0.1 fix: writer 도 branch-scoped 로. v1.0.0 branch-scoped 도입 때 *hint* 만
+    # `workflow_state_path()` 로 옮기고 writer 는 legacy(`active/state.json`) 에 남아
+    # 있었다. 그 결과 refresh 는 아무도 읽지 않는 `active/state.json` 을 새로 만들고
+    # 정작 reader 가 보는 `active/<branch>/state.json` 은 **영원히 갱신되지 않았다**
+    # (2026-07-21 이후 state.json 이 통째로 멈춰 있던 원인).
+    state_path = (output_path or workflow_state_path(resolved_project_profile_path)).resolve()
     refresh_hint = build_state_cache_refresh_hint(
         project_profile_path=resolved_project_profile_path,
         latest_backlog_path=resolved_latest_backlog_path,

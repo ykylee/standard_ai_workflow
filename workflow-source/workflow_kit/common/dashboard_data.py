@@ -36,7 +36,7 @@ import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, NamedTuple
 from workflow_kit.common.paths import state_path_for_workspace
 
 # ---------------------------------------------------------------------------
@@ -84,6 +84,43 @@ MATURITY_SURFACE_PATHS: Final[tuple[str, ...]] = (
 # Phase 13 AC1 north-star 의 원장 (append-only JSONL, release cycle 당 1 line).
 # release pipeline 이 self-recover 결과를 여기에 기록하고, dashboard 는 *읽기만* 한다.
 DRIFT_LEDGER_RELPATH: Final[str] = "ai-workflow/memory/release/drift_ledger.jsonl"
+
+
+class MetricContract(NamedTuple):
+    """판정 지표 하나가 지켜야 하는 계약.
+
+    Attributes:
+        panel: snapshot 의 panel key
+        metric: 값 field 이름
+        source: 판정 **근거** field 이름 (무엇을 보고 그 값을 냈는가)
+        measured: 측정 여부 field 이름 (north-star 만; 없으면 빈 문자열)
+    """
+    panel: str
+    metric: str
+    source: str
+    measured: str
+
+
+# **판정 지표는 값만 내지 않는다 — 무엇을 보고 그렇게 판정했는지 함께 낸다.**
+#
+# v0.14.0~v1.0.0 동안 north-star 자리에 freshness proxy 가 앉아 있어도 아무도 몰랐다.
+# 값의 타입은 맞았고, 근거를 말하지 않으니 대조할 것이 없었기 때문이다 (노트 §2.19).
+# 근거를 강제하면 "무엇을 재고 있는지" 가 payload 에 드러나고, proxy/placeholder 로
+# 때운 지표는 `check_metric_source_contract.py` 가 즉시 잡는다.
+JUDGMENT_METRICS: Final[tuple[MetricContract, ...]] = (
+    MetricContract("drift_prevention", "maturity_stale", "maturity_staleness_source", ""),
+    MetricContract("drift_prevention", "silent_failing_cycles_count",
+                   "silent_failing_cycles_source", "silent_failing_cycles_measured"),
+    MetricContract("multi_agent_concurrent_write_conflict", "conflict_count",
+                   "conflict_count_source", "conflict_count_measured"),
+    MetricContract("memory_index_utilization", "retrieval_hit_rate",
+                   "retrieval_hit_rate_source", ""),
+)
+
+# 근거 자리에 오면 안 되는 말들 — "아직 안 정했다" 를 값처럼 흘려보내는 표현.
+FORBIDDEN_SOURCE_TOKENS: Final[tuple[str, ...]] = (
+    "proxy", "placeholder", "pending", "tbd", "todo", "fixme",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -511,13 +548,18 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
                     conflict_locations.append(str(f))
 
     # git log --all --merges 의 conflict keyword count (historical)
+    #
+    # git 을 못 읽었을 때 0 을 그대로 두면 "충돌 없음" 과 "못 셌음" 이 같은 0 이 된다.
+    # 어느 측정원이 실제로 돌았는지를 `conflict_count_source` 로 함께 낸다 (§2.19 규칙).
     git_log_conflict_count = 0
+    git_log_measured = False
     try:
         proc = _subprocess.run(
             ["git", "log", "--all", "--merges", "--pretty=format:%H %s"],
             cwd=str(root), capture_output=True, text=True, timeout=10, check=False,
         )
         if proc.returncode == 0:
+            git_log_measured = True
             git_log_conflict_count = sum(
                 1
                 for line in proc.stdout.splitlines()
@@ -526,14 +568,25 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
     except (_subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
 
+    measured_sources = []
+    if active_dir.is_dir():
+        measured_sources.append("working_tree")
+    if git_log_measured:
+        measured_sources.append("git_log")
+
     conflict_count = working_tree_conflict_count + git_log_conflict_count
+    measured = bool(measured_sources)
     return {
         "north_star": "multi_agent_concurrent_write_conflict_count",
         "working_tree_conflict_count": working_tree_conflict_count,
         "git_log_conflict_count": git_log_conflict_count,
+        "git_log_measured": git_log_measured,
         "conflict_count": conflict_count,
+        "conflict_count_source": "+".join(measured_sources) if measured_sources else "unknown",
+        "conflict_count_measured": measured,
         "conflict_locations": conflict_locations,
-        "status": "pass" if conflict_count == 0 else "fail",
+        # 측정원이 하나도 안 돌았으면 pass 라고 말하지 않는다.
+        "status": ("pass" if conflict_count == 0 else "fail") if measured else "unknown",
         "threshold": 0,
     }
 
@@ -1476,7 +1529,14 @@ def _render_panel_6(p: dict[str, Any]) -> list[str]:
     """Panel 6 — Multi-Agent Concurrent Write Conflict (Phase 15 north-star)."""
     lines: list[str] = ["## Panel 6 — Multi-Agent Concurrent Write Conflict", ""]
     lines.append(f"- north_star: `{p.get('north_star', 'unknown')}`")
-    lines.append(f"- conflict_count: `{p.get('conflict_count', 0)}`")
+    if p.get("conflict_count_measured"):
+        lines.append(
+            f"- conflict_count: `{p.get('conflict_count', 0)}` "
+            f"(source: `{p.get('conflict_count_source', 'unknown')}`)"
+        )
+    else:
+        # 측정원이 하나도 안 돌았으면 0 을 초록으로 보여주지 않는다.
+        lines.append("- conflict_count: `미측정` (측정원 없음 — working_tree / git_log 모두 불가)")
     lines.append(f"- threshold: `{p.get('threshold', 0)}`")
     lines.append(f"- status: `{p.get('status', 'unknown')}`")
     locations = p.get("conflict_locations", [])

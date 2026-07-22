@@ -46,7 +46,7 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-22T12:36:07Z</code> · tool_version: <code>v1.0.0-beta</code></p>
+    <p class="meta">generated_at: <code>2026-07-22T14:28:05Z</code> · tool_version: <code>v1.0.0-beta</code></p>
     <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
   </header>
   <main>
@@ -54,7 +54,7 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat pass">pass</span></p>
     <p>guard: 6/6 pass (expected 6)</p>
-    <p>guard_runtime_ms: 36</p>
+    <p>guard_runtime_ms: 45</p>
     <p>maturity_last_updated: <code>2026-07-22</code></p>
     <p>maturity_surface_changed_at: <code>2026-07-22</code> (source: maturity_surface_commit)</p>
     <p>head_commit_date: <code>2026-07-22</code></p>
@@ -83,31 +83,31 @@ ul.timeline { padding-left: 1.2rem; }
     <p class="meta">first_entry_date: <code>2026-07-09</code></p>
     <p class="meta">last_entry_date: <code>2026-07-09</code></p>
     <p class="meta">retrieval_hit_rate: <strong>1.0000</strong> (Phase 13 AC2 telemetry)</p>
-    <p class="meta">telemetry calls/hits: 4/4 · by_source: backlog-update:calls=1,hits=1, dispatcher:calls=1,hits=1, doc-sync:calls=1,hits=1, session-start:calls=1,hits=1</p>
+    <p class="meta">telemetry calls/hits: 6/6 · by_source: backlog-update:calls=3,hits=3, dispatcher:calls=1,hits=1, doc-sync:calls=1,hits=1, session-start:calls=1,hits=1</p>
     <p class="meta">by merge_state: active=7</p>
     <canvas id="chart-memory" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 4 — Smoke Trend</h2>
-    <p class="stat pass">204/204</p>
+    <p class="stat pass">207/207</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
-    <p class="meta">smoke test files: 204</p>
+    <p class="meta">smoke test files: 208</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">
     <h2>Panel 5 — Recent Release Cycle</h2>
-    <p>items_total: <strong>11</strong> (top_n=10)</p>
+    <p>items_total: <strong>10</strong> (top_n=10)</p>
     <ul class="timeline">
-      <li>[0] TASK-2026-07-21-001 — v0.15.21 — **SemVer patch, Phase 13 follow-up 1차 — AC2 telemetry 다양성 + CHANGELOG auto-gen lockdown…</li>
-      <li>[1] TASK-2026-07-02-001 — v0.11.21 — **SemVer patch, 3차 batch robust-patcher stable 승격**. v0.11.20 (2차 batch 4 skill stable)…</li>
-      <li>[2] TASK-2026-07-09-001 — v0.13.3 — **SemVer patch, Phase 13 AC4+ (self-documenting wiki ↔ memory bidirectional link) close-…</li>
-      <li>[3] TASK-2026-07-09-002 — v0.13.2 — **SemVer patch, Phase 13 AC3 (self-recovering) close-out**. drift prevention 의 6 case 가 …</li>
-      <li>[4] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
-      <li>[5] TASK-2026-07-20-001 — v0.15.16 — **SemVer patch, Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확…</li>
-      <li>[6] Phase 10 MCP/JSON-RPC draft</li>
-      <li>[7] Phase 6 multi-agent delegation pilot</li>
-      <li>[8] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
-      <li>[9] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
+      <li>[0] TASK-2026-07-09-003 — v0.13.1 — **SemVer patch, Phase 13 AC2 (memory_index 활용도) close-out**. v0.13.0 Quality Dashboard 의…</li>
+      <li>[1] TASK-2026-07-20-001 — v0.15.16 — **SemVer patch, Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확…</li>
+      <li>[2] TASK-2026-07-21-001 — v0.15.21 — **SemVer patch, Phase 13 follow-up 1차 (AC2 telemetry 다양성 + CHANGELOG auto-gen lockdown)…</li>
+      <li>[3] TASK-2026-07-22-001 — v1.0.0-beta — **major, v1.0.0 진입 릴리스 발행**. entry gate 6/6 PASS + 전량 smoke 199/199 PASS 로 tag `v1.0…</li>
+      <li>[4] TASK-2026-07-22-002 — **v1.0.0 발행 후 보강 — &quot;지표가 무엇을 재고 있는가&quot; 3층 점검** (노트 §2.15~§2.20). 릴리스 후 발견/보강 6건: (1) §2.15 auto-bump …</li>
+      <li>[5] Phase 10 MCP/JSON-RPC draft</li>
+      <li>[6] Phase 6 multi-agent delegation pilot</li>
+      <li>[7] workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `work…</li>
+      <li>[8] 워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / …</li>
+      <li>[9] 2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 1…</li>
     </ul>
   </section>
   <section class="panel panel-6">
@@ -141,17 +141,17 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 8 — Memory Index + Telemetry Utilization v2</h2>
     <p class="meta">phase_15_north_star: <code>telemetry_hit_rate (1 release ≥ 1 query + hit)</code></p>
     <p class="meta">entries_total: <strong>7</strong></p>
-    <p class="meta">telemetry_events_total: <strong>4</strong> · queries: 4 · hits: 4</p>
+    <p class="meta">telemetry_events_total: <strong>6</strong> · queries: 6 · hits: 6</p>
     <p class="meta">telemetry_hit_rate: <strong>1.0000</strong></p>
     <h4>Entries by merge_state</h4>
     <table><tbody><tr><td><code>active</code></td><td>7</td></tr></tbody></table>
     <h4>Telemetry by source</h4>
-    <table><tbody><tr><td><code>backlog-update</code></td><td>1</td></tr><tr><td><code>dispatcher</code></td><td>1</td></tr><tr><td><code>doc-sync</code></td><td>1</td></tr><tr><td><code>session-start</code></td><td>1</td></tr></tbody></table>
+    <table><tbody><tr><td><code>backlog-update</code></td><td>3</td></tr><tr><td><code>dispatcher</code></td><td>1</td></tr><tr><td><code>doc-sync</code></td><td>1</td></tr><tr><td><code>session-start</code></td><td>1</td></tr></tbody></table>
   </section>
   </main>
   <script>
     (function() {
-      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [13, 11], "beta": [1, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 204]}};
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [13, 11], "beta": [1, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 207]}};
       function ready(fn) {
         if (typeof window.Chart !== 'undefined') { fn(); }
         else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }

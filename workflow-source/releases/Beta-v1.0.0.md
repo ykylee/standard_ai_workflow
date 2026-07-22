@@ -502,9 +502,35 @@ telemetry · memory_index entry · session handoff.
 `workspace_root` 주입 가능하게 고쳤다 — 고정돼 있으면 계약 테스트가 실저장소를
 오염시킨다. **테스트 가능성이 곧 설계 압력**으로 작동한 사례.
 
+### 2.23 판정 지표는 근거를 함께 낸다 (**릴리스 후 보강**)
+
+§2.22 의 왕복 계약이 잡는 것은 *복제로 인한 갈라짐* 이다. §2.19 는 복제가 아니라
+**대체**(진짜 측정 자리에 대충 계산한 값을 앉힘)라서 그 계열로는 안 잡힌다. 못 알아챈
+이유는 단순하다 — **값의 타입은 맞았고, 근거를 말하지 않으니 대조할 것이 없었다.**
+
+그래서 규칙을 하나 세운다: **판정 지표는 값과 함께 판정 근거(`*_source`)를 emit 한다.
+north-star 는 측정 여부(`*_measured`)도 emit 하고, 못 쟀으면 0 이 아니라 `미측정` 으로
+렌더한다.** `JUDGMENT_METRICS` registry 가 정본이고
+`check_metric_source_contract.py` (5 case) 가 강제한다.
+
+도입하면서 **Panel 6 의 north-star 도 같은 결함이었음**이 드러났다.
+`multi_agent_concurrent_write_conflict_count` 는 working tree marker + `git log` 두
+측정원을 쓰는데, git 호출이 실패하면 예외를 삼키고 0 을 그대로 뒀다 — **"충돌 없음" 과
+"못 셌음" 이 같은 0 이었고, 그 상태로 `status: pass` 를 냈다.** `conflict_count_source`
+(`working_tree+git_log`) + `conflict_count_measured` 를 추가하고, 측정원이 하나도 안
+돌면 `status: unknown` 을 내도록 고쳤다.
+
+검증: §2.19 형태(근거를 `freshness_proxy` 로 둔 proxy)와 Panel 6 의 근거 부재 상태를
+각각 주입해 해당 case 가 FAIL 하는 것을 확인했다.
+
+> **한계를 과장하지 않는다.** 근거 이름을 그럴듯하게 지어 붙이면 이 check 는 통과한다.
+> 구조적으로 보장하는 것은 (a) 근거 field 의 존재, (b) 'pending/tbd' 류 표현 배제,
+> (c) **새 north-star 가 registry 를 우회할 수 없음** — 이 셋이다. 근거가 *사실인지* 는
+> §2.22 의 실측 계약이 본다.
+
 ## 3. 검증
 
-누적 smoke **207/207 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **208/208 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -524,8 +550,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **207/207 PASS** (릴리스 시점 199/199 + 발행 후 신규 8종, §2.16~2.22) |
-| 실효 smoke | **201/201 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **208/208 PASS** (릴리스 시점 199/199 + 발행 후 신규 9종, §2.16~2.23) |
+| 실효 smoke | **202/202 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

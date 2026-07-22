@@ -1,0 +1,33 @@
+{
+  "id": "MEM-2026-07-09-007",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/core/orchestrator_subagent_contract_v1.md",
+    "workflow-source/core/orchestrator_contract_v1_wire_guide.md"
+  ],
+  "primary_abstraction": "Contract v1 P0 enforcement + Mavis engine hook 자동화 (Phase 12 follow-up)",
+  "cue_anchors": [
+    "contract-v1",
+    "enforcement",
+    "Mavis",
+    "engine-hook",
+    "P0",
+    "delegator"
+  ],
+  "value_digest": "validate_output + choose_role + choose_roles + validate_fanin_output 4 helper 자동 enforce. Mavis engine hook spec.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "contract-v1",
+    "multi-agent"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/workflow_kit/contract_v1/output_validator.py",
+    "workflow-source/workflow_kit/contract_v1/delegator.py"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

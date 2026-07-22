@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/memory/active/main/session_analysis_2026-07-09.md + workflow-source/tests/check_drift_prevention_v0_11_23.py
+last_ingested_from: ai-workflow/memory/archive/2026-07-22/main/session_analysis_2026-07-09.md + workflow-source/tests/check_drift_prevention_v0_11_23.py
 related_pages:
   - topics/workflow-audit-2026-07-09
   - topics/mcp-beta-promotion-roadmap-2026

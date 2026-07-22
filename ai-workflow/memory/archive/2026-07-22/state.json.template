@@ -1,0 +1,28 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-04-30T00:00:00Z",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "_v0140_comment": "v0.14.0+ append-only layout. legacy `session_handoff_path` + `work_backlog_index_path` 는 1st deprecation cycle 동안 fallback 으로 보존. 신규 SSOT 은 directory (backlog / backlog/tasks / sessions).",
+    "session_handoff_path": "ai-workflow/memory/active/sessions/",
+    "work_backlog_index_path": "ai-workflow/memory/active/backlog/",
+    "daily_backlog_dir": "ai-workflow/memory/active/backlog/",
+    "tasks_dir": "ai-workflow/memory/active/backlog/tasks/",
+    "sessions_dir": "ai-workflow/memory/active/sessions/"
+  },
+  "project": {
+    "project_name": "Standard AI Workflow"
+  },
+  "session": {
+    "current_focus": "Project Onboarding",
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": []
+  },
+  "next_documents": [
+    "AGENTS.md",
+    "ai-workflow/WORKFLOW_INDEX.md",
+    "ai-workflow/memory/active/README.md",
+    "docs/PROJECT_PROFILE.md"
+  ]
+}

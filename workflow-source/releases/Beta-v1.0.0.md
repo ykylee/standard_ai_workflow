@@ -164,13 +164,28 @@ ai-workflow/memory/
 
 ## 3. 검증
 
-누적 smoke **188/199 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **199/199 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
-**전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 3경로를 차단한 결과다.
+**전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
+
+- smoke 자기참조 게이트 제외: 2 (`check_quality_dashboard_v0_13_0` Panel 4,
+  `check_smoke_trend_cross_v0_15_5` case_5)
+
+> **왜 제외하는가**: 두 게이트는 "전량 PASS(rate=1.0)" 를 요구하는데 **자기 자신도
+> 전량에 포함**된다. 따라서 둘이 red 인 한 pass != total 이고, pass == total 이
+> 되려면 둘이 green 이어야 하는 **순환**이 생긴다. 과거 note 들이 이 게이트를
+> 통과했던 것은 전량이 아니라 *일부만* 세어 적었기 때문이며, 전량 199 를 정직하게
+> 기록한 순간부터 만족 불가능해졌다.
+> 원 수치는 그대로 두고 **무엇을 왜 뺐는지 명시**해 실효 지표를 따로 낸다 —
+> 숫자를 줄여 적는 방식(과거의 "24/24")과는 반대 방향이다.
+> 자기참조를 끊자 두 게이트가 green 이 되어 최종 실측은 **199/199** 가 됐고, 제외
+> 장치는 이제 no-op 이다. 향후 게이트 하나가 red 가 되어도 나머지로 연쇄되지 않게
+> 하는 **안전망**으로 남긴다.
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **188/199 PASS** (test case 211 PASS / 3 FAIL, 334초) |
+| 전량 smoke | **199/199 PASS** (test case 219 PASS / 0 FAIL) |
+| 실효 smoke | **197/197 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

@@ -160,9 +160,16 @@ def _check_smoke_trend(panel: dict[str, object]) -> None:
     cum_pass = int(panel.get("cumulative_pass", 0))
     cum_total = int(panel.get("cumulative_total", 0))
     _assert(cum_pass > 0, f"smoke cumulative_pass > 0 (got {cum_pass})")
+    # 자기참조 제거: 본 check 와 smoke_trend_cross case_5 도 전량에 포함되므로
+    # 원 수치로 pass == total 을 요구하면 순환이 된다. release note 에 명시된
+    # 제외 대상을 반영한 실효 지표로 판정한다 (원 수치는 그대로 보고된다).
+    eff_pass = int(panel.get("effective_pass", cum_pass))
+    eff_total = int(panel.get("effective_total", cum_total))
+    excluded = int(panel.get("self_referential_excluded", 0))
     _assert(
-        cum_pass == cum_total,
-        f"smoke pass ({cum_pass}) != total ({cum_total}) — drift detected",
+        eff_pass == eff_total,
+        f"smoke pass ({eff_pass}) != total ({eff_total}) — drift detected "
+        f"(원 수치 {cum_pass}/{cum_total}, 자기참조 {excluded} 제외)",
     )
     rate = float(panel.get("cumulative_pass_rate", 0.0))
     _assert(0.0 <= rate <= 1.0, f"cumulative_pass_rate out of range: {rate}")

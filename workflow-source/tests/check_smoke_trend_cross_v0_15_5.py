@@ -138,16 +138,22 @@ def case_4_delta_vs_v0_15_0_baseline() -> bool:
 def case_5_pass_rate_full() -> bool:
     """5) pass_rate = 1.0: v0.15.4 시점 모든 smoke PASS 정합."""
     p4 = _collect_panel_4()
-    rate = float(p4.get("cumulative_pass_rate", 0.0))
+    # **실효 지표**로 판정한다. 본 case 자신과 quality_dashboard Panel 4 도 전량에
+    # 포함되므로, 원 수치(cumulative_*)로 rate=1.0 을 요구하면 "둘이 green 이어야
+    # green 이 된다"는 순환이 된다. release note 에 제외 대상을 명시하고 그 실효
+    # 지표를 보는 것이 자기참조를 제거하는 정공법이다.
+    rate = float(p4.get("effective_pass_rate", 0.0))
     if rate != 1.0:
-        print(f"  FAIL: cumulative_pass_rate={rate} (expected 1.0 — full pass 정합)")
+        print(f"  FAIL: effective_pass_rate={rate} (expected 1.0 — 자기참조 게이트 제외 후 full pass)")
         return False
-    cum_total = int(p4.get("cumulative_total", 0))
-    cum_pass = int(p4.get("cumulative_pass", 0))
-    if cum_pass != cum_total:
-        print(f"  FAIL: cum_pass={cum_pass} != cum_total={cum_total} (rate=1.0 이지만 pass != total)")
+    eff_total = int(p4.get("effective_total", 0))
+    eff_pass = int(p4.get("effective_pass", 0))
+    if eff_pass != eff_total:
+        print(f"  FAIL: eff_pass={eff_pass} != eff_total={eff_total}")
         return False
-    print(f"  [info] full pass 정합: {cum_pass}/{cum_total} = 1.0")
+    excluded = int(p4.get("self_referential_excluded", 0))
+    print(f"  [info] full pass 정합: {eff_pass}/{eff_total} = 1.0 "
+          f"(원 수치 {p4.get('cumulative_pass')}/{p4.get('cumulative_total')}, 자기참조 {excluded} 제외)")
     return True
 
 

@@ -1,0 +1,31 @@
+{
+  "id": "MEM-2026-07-09-005",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/tests/check_drift_prevention_v0_11_23.py",
+    "workflow-source/tests/check_drift_prevention_helpers_v0_11_23.py"
+  ],
+  "primary_abstraction": "Drift prevention automation (v0.11.23, 6 case cross-check smoke)",
+  "cue_anchors": [
+    "drift-prevention",
+    "v0.11.23",
+    "cross-check",
+    "smoke",
+    "silent-fail"
+  ],
+  "value_digest": "pyproject ↔ __init__.py ↔ maturity_matrix ↔ README 6 case cross-check + sync-maturity-matrix helper.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "quality",
+    "release-automation"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/releases/Beta-v0.11.23.md"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

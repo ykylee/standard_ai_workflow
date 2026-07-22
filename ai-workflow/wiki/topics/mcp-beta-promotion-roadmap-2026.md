@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/memory/active/main/session_analysis_2026-07-09.md + workflow-source/core/maturity_matrix.json
+last_ingested_from: ai-workflow/memory/archive/2026-07-22/main/session_analysis_2026-07-09.md + workflow-source/core/maturity_matrix.json
 related_pages:
   - topics/workflow-audit-2026-07-09
   - concepts/project-architecture

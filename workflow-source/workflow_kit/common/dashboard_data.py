@@ -952,6 +952,11 @@ def collect_smoke_trend(
     # 가장 최근 (첫 번째) entry 의 pass/total
     if recent:
         latest = recent[0]
+        excluded = _parse_self_gate_excluded(
+            root / str(latest["release_note_path"])
+        )
+        eff_total = max(int(latest["total"]) - excluded, 0)
+        eff_pass = min(int(latest["pass"]), eff_total)
         return {
             "cumulative_total": int(latest["total"]),
             "cumulative_pass": int(latest["pass"]),
@@ -960,6 +965,12 @@ def collect_smoke_trend(
                 if int(latest["total"]) > 0
                 else 0.0
             ),
+            # 자기참조 게이트를 뺀 실효 지표. 원 수치(cumulative_*)는 그대로 남긴다 —
+            # 무엇을 왜 뺐는지 감사 가능해야 하므로 숫자를 줄여 적지 않는다.
+            "self_referential_excluded": excluded,
+            "effective_total": eff_total,
+            "effective_pass": eff_pass,
+            "effective_pass_rate": (eff_pass / eff_total if eff_total > 0 else 0.0),
             "recent_releases": recent,
             "smoke_files_count": smoke_files_count,
         }
@@ -969,9 +980,23 @@ def collect_smoke_trend(
         "cumulative_total": 0,
         "cumulative_pass": 0,
         "cumulative_pass_rate": 0.0,
+        "self_referential_excluded": 0,
+        "effective_total": 0,
+        "effective_pass": 0,
+        "effective_pass_rate": 0.0,
         "recent_releases": recent,
         "smoke_files_count": smoke_files_count,
     }
+
+
+def _parse_self_gate_excluded(release_path: Path) -> int:
+    """release note 의 자기참조 게이트 제외 수 (없으면 0)."""
+    try:
+        content = release_path.read_text(encoding="utf-8")
+    except OSError:
+        return 0
+    m = SMOKE_SELF_GATE_PATTERN.search(content)
+    return int(m.group(1)) if m else 0
 
 
 def _parse_smoke_count_from_release(release_path: Path) -> tuple[int, int] | None:
@@ -999,6 +1024,20 @@ def _parse_smoke_count_from_release(release_path: Path) -> tuple[int, int] | Non
         return pass_count, total_count
     except ValueError:
         return None
+
+
+# 자기참조 게이트 제외 표기 파서.
+# `quality_dashboard` Panel 4 와 `smoke_trend_cross` case_5 는 "전량 PASS" 를 요구하는데
+# **자기 자신도 전량에 포함**되어 있다. 따라서 두 게이트가 red 인 한 pass != total 이고,
+# pass == total 이 되려면 두 게이트가 green 이어야 하는 순환이 생긴다. 실제로 과거
+# release note 들이 이 게이트를 통과했던 것은 전량이 아니라 *일부만* 세어 적었기
+# 때문이며, 전량을 정직하게 기록한 순간 게이트는 만족 불가능해졌다.
+#
+# 해결: 원 수치(N/M)는 그대로 두고, **제외 대상을 note 에 명시**해 실효 지표를 따로 낸다.
+# 숫자를 줄여 적는 것이 아니라 무엇을 왜 뺐는지 감사 가능하게 남기는 방식이다.
+SMOKE_SELF_GATE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^-\s*smoke\s*자기참조\s*게이트\s*제외:\s*(\d+)", re.MULTILINE
+)
 
 
 _VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(r"v(\d+(?:\.\d+)*)")

@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/memory/active/main/session_analysis_2026-07-09.md + workflow-source/workflow_kit/common/state/memory_index.py + workflow-source/workflow_kit/okf_export.py + workflow-source/workflow_kit/common/wiki_cascade.py
+last_ingested_from: ai-workflow/memory/archive/2026-07-22/main/session_analysis_2026-07-09.md + workflow-source/workflow_kit/common/state/memory_index.py + workflow-source/workflow_kit/okf_export.py + workflow-source/workflow_kit/common/wiki_cascade.py
 related_pages:
   - topics/workflow-audit-2026-07-09
   - topics/phase-13-definition-north-star

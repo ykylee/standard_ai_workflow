@@ -89,11 +89,23 @@ def main() -> int:
             if "frozen_at" not in marker_text:
                 errors.append(f"[V-R8] .frozen marker in {latest.name} missing frozen_at")
 
-        # archive/ 는 R9 immutable (historical freeze, legacy layout) — file 만 검증.
+        # archive/ 는 R9 immutable (historical freeze) — file 존재만 검증.
         # 신규 layout dir (`backlog/` 등) 은 archive 에 없을 수 있음 (legacy freeze).
-        for f in REQUIRED_FILES:
+        for f in SHARED_FILES:
             if not (latest / f).exists():
                 errors.append(f"[V-R10] Archive {latest.name} missing: {f}")
+        # branch-scoped freeze 는 작업 상태를 `<branch>/` 하위에 둔다. legacy freeze 는
+        # 평면이었으므로 **둘 다 인정**한다 — 과거 archive 는 immutable 이라 재배치할
+        # 수 없고, 재배치하면 그 자체가 R9 위반이다.
+        for f in BRANCH_FILES:
+            if (latest / f).exists():
+                continue
+            if any((d / f).exists() for d in latest.iterdir() if d.is_dir()):
+                continue
+            errors.append(
+                f"[V-R10] Archive {latest.name} missing: {f} "
+                f"(평면 또는 <branch>/ 하위 어디에도 없음)"
+            )
     else:
         # No archives yet — this is acceptable for a fresh repo
         pass

@@ -1,0 +1,31 @@
+{
+  "id": "MEM-2026-07-09-002",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/docs/architecture/ADR-005-memora-inspired-memory-index.md"
+  ],
+  "primary_abstraction": "ADR-005 Memora-inspired Memory Index schema and retrieval 3-tuple",
+  "cue_anchors": [
+    "ADR-005",
+    "memory-index",
+    "memora",
+    "retrieval",
+    "3-tuple",
+    "cue-anchors"
+  ],
+  "value_digest": "memory_index/ entries/ + retrieval 3-tuple (cue match + linked expansion + BM25 fallback) Pydantic schema.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "state-layer"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "ai-workflow/memory/active/memory_index/README.md",
+    "workflow-source/workflow_kit/common/schemas/memory_index.py"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

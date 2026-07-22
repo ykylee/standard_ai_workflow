@@ -14,6 +14,15 @@ import sys
 from datetime import date
 from pathlib import Path
 
+SOURCE_ROOT = Path(__file__).resolve().parents[3]
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.contracts.stage_gate_runtime import (  # noqa: E402
+    build_stage_completion,
+    merge_into_result,
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Freeze active/ state to archive/")
@@ -55,12 +64,19 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
 
-    # Collect files to freeze
+    # Collect files to freeze — **recursive**.
+    # 이전 구현은 `active_dir.iterdir()` 로 최상위만 훑어서 `active/<branch>/` 하위의
+    # state.json / sessions / backlog 가 통째로 빠졌다. MEMORY_GOVERNANCE §4 는
+    # "active/ 내 모든 .md/.json/.template" 을 freeze 내용으로 규정하고,
+    # check_memory_freeze_lint 도 "R8 freeze 가 recursive copy 함" 을 전제한다.
+    # branch-scoped / append-only layout 도입 전의 구현이 남아 있던 것.
+    FREEZE_SUFFIXES = (".md", ".json", ".toml", ".txt", ".yaml", ".yml")
     frozen_files: list[str] = []
-    for item in sorted(active_dir.iterdir()):
-        if item.is_file() and (item.suffix in (".md", ".json", ".toml", ".txt", ".yaml", ".yml") or item.name.endswith(".template")):
-            rel = item.relative_to(active_dir)
-            frozen_files.append(str(rel))
+    for item in sorted(active_dir.rglob("*")):
+        if not item.is_file():
+            continue
+        if item.suffix in FREEZE_SUFFIXES or item.name.endswith(".template"):
+            frozen_files.append(str(item.relative_to(active_dir)))
 
     if not frozen_files:
         payload = {
@@ -76,6 +92,7 @@ def main() -> int:
     for rel in frozen_files:
         src = active_dir / rel
         dst = archive_dir / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)  # 하위 디렉터리 보존
         shutil.copy2(src, dst)
 
     # Write .frozen marker
@@ -99,15 +116,19 @@ def main() -> int:
         "frozen_files": frozen_files,
         "file_count": len(frozen_files),
     }
-        # v0.6.6 follow-up: stage_completion merge (pilot template)
-        memory-freeze_completion = build_stage_completion(
-            stage_name="memory-freeze",
-            stage_status="ok" if result.get("status") in ("ok", "success") else "warning" if result.get("status") == "warning" else "error",
-            artifacts=["ai-workflow/memory/archive/<target_date>/"],
-            next_stage=None,
-            notes=[result.get("summary", "")[:200]] if result.get("summary") else [],
-        )
-        result = merge_into_result(result, memory-freeze_completion)
+    # v0.6.6 follow-up: stage_completion merge.
+    # 이전 코드는 template 이 skill 이름을 그대로 식별자에 넣어
+    # `memory-freeze_completion = ...` 을 만들었다 — hyphen 때문에 **문법 오류**이고,
+    # 들여쓰기도 어긋났으며, 존재하지 않는 `result` 를 참조했다. 즉 v0.6.6 이후
+    # 본 스킬은 한 번도 실행된 적이 없다 (R8 freeze 가 수행되지 않은 원인).
+    stage_completion = build_stage_completion(
+        stage_name="memory-freeze",
+        stage_status="ok",
+        artifacts=[str(archive_dir)],
+        next_stage=None,
+        notes=[f"{len(frozen_files)} file frozen to {freeze_date}"],
+    )
+    payload = merge_into_result(payload, stage_completion)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0
 

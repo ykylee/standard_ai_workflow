@@ -1,0 +1,30 @@
+{
+  "id": "MEM-2026-07-09-006",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/core/maturity_matrix.json"
+  ],
+  "primary_abstraction": "CodeWhale 10번째 하네스 overlay (v0.10.4, single SKILL.md 패턴)",
+  "cue_anchors": [
+    "codewhale",
+    "harness",
+    "v0.10.4",
+    "overlay",
+    "10th",
+    "single-skill"
+  ],
+  "value_digest": "CodeWhale 10번째 하네스 (2026-07-03). HARNESS_SPECS + SUPPORTED_HARNESSES + builder 등록. 단일 SKILL.md overlay.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "harness-distribution"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/harnesses/codewhale/SKILL.md"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

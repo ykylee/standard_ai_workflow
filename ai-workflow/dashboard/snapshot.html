@@ -46,7 +46,7 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-22T01:36:34Z</code> · tool_version: <code>v1.0.0-beta</code></p>
+    <p class="meta">generated_at: <code>2026-07-22T03:10:57Z</code> · tool_version: <code>v1.0.0-beta</code></p>
     <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
   </header>
   <main>
@@ -54,7 +54,7 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat pass">pass</span></p>
     <p>guard: 6/6 pass (expected 6)</p>
-    <p>guard_runtime_ms: 38</p>
+    <p>guard_runtime_ms: 39</p>
     <p>maturity_last_updated: <code>2026-07-21</code></p>
     <p>head_commit_date: <code>2026-07-22</code></p>
     <p>last_updated_delta_days: 1</p>
@@ -88,8 +88,8 @@ ul.timeline { padding-left: 1.2rem; }
   </section>
   <section class="panel">
     <h2>Panel 4 — Smoke Trend</h2>
-    <p class="stat pass">188/199</p>
-    <p class="meta">cumulative pass rate: 0.9447</p>
+    <p class="stat pass">199/199</p>
+    <p class="meta">cumulative pass rate: 1.0000</p>
     <p class="meta">smoke test files: 199</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
@@ -150,7 +150,7 @@ ul.timeline { padding-left: 1.2rem; }
   </main>
   <script>
     (function() {
-      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 188]}};
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [12, 11], "beta": [0, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 199]}};
       function ready(fn) {
         if (typeof window.Chart !== 'undefined') { fn(); }
         else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }

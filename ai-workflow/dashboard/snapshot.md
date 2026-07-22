@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-22T01:36:25Z`
+- generated_at: `2026-07-22T03:10:57Z`
 - tool_version: `v1.0.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
@@ -77,15 +77,15 @@
 ## Panel 4 — Smoke Trend
 
 - cumulative_total: `199`
-- cumulative_pass: `188`
-- cumulative_pass_rate: `0.9447`
+- cumulative_pass: `199`
+- cumulative_pass_rate: `1.0000`
 - smoke_files_count: `199`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
-| Beta-v1.0.0 | 188 | 199 |
+| Beta-v1.0.0 | 199 | 199 |
 | Beta-v0.15.19 | 24 | 24 |
 
 ## Panel 5 — Recent Release Cycle

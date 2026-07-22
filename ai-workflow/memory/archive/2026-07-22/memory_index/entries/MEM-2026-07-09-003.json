@@ -1,0 +1,30 @@
+{
+  "id": "MEM-2026-07-09-003",
+  "schema_version": 1,
+  "source_paths": [
+    "workflow-source/core/maturity_matrix.json"
+  ],
+  "primary_abstraction": "FULL mypy strict 도달 milestone (v0.11.18, 109 file clean, 0 errors)",
+  "cue_anchors": [
+    "mypy",
+    "strict",
+    "type-check",
+    "v0.11.18",
+    "quality",
+    "milestone"
+  ],
+  "value_digest": "FULL mypy strict 도달 (109 file clean, 0 errors). v0.8.0 spec §5.3 정합 (1 release = 1-2 file 격상).",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "quality"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/releases/Beta-v0.11.18.md"
+  ],
+  "created_at": "2026-07-09T00:46:00Z",
+  "updated_at": "2026-07-09T00:46:00Z"
+}

@@ -32,6 +32,11 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+
+# task ID 패턴은 project_docs 가 단일 출처 — 여기서 따로 들고 있으면 갈라진다.
+from workflow_kit.common.project_docs import TASK_ID_PATTERN  # noqa: E402
+
 ACTIVE_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active"
 
 
@@ -142,7 +147,7 @@ def _check_daily_index_links_resolve() -> None:
         return  # 1) 에서 이미 error
     tasks_dir = LAYOUT_ROOT / "backlog" / "tasks"
     sessions_dir = LAYOUT_ROOT / "sessions"
-    link_re = re.compile(r"\*\*TASK-(\d{4}-\d{2}-\d{2}-\d{3})\*\*\s*\[([^\]]+)\]")
+    link_re = re.compile(rf"\*\*({TASK_ID_PATTERN})\*\*\s*\[([^\]]+)\]")
     source_re = re.compile(r"\[\[([^\]]+)\]\]\s+\{#([^}]+)\}")
 
     for daily_file in sorted(backlog_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")):
@@ -167,20 +172,20 @@ def _check_daily_index_links_resolve() -> None:
                     session_path = sessions_dir / f"{stem}.md"
                     if not session_path.exists():
                         errors.append(
-                            f"[daily-index] {daily_file.name} → TASK-{current_task_id} "
+                            f"[daily-index] {daily_file.name} → {current_task_id} "
                             f"session 매핑 부재: {session_path}"
                         )
                 else:
                     errors.append(
-                        f"[daily-index] {daily_file.name} → TASK-{current_task_id} "
+                        f"[daily-index] {daily_file.name} → {current_task_id} "
                         f"session kind 인데 source path 부재"
                     )
             else:
                 # release / generic → tasks/TASK-<id>.md
-                task_path = tasks_dir / f"TASK-{current_task_id}.md"
+                task_path = tasks_dir / f"{current_task_id}.md"
                 if not task_path.exists():
                     errors.append(
-                        f"[daily-index] {daily_file.name} → TASK-{current_task_id} 부재: {task_path}"
+                        f"[daily-index] {daily_file.name} → {current_task_id} 부재: {task_path}"
                     )
 
         for line in text.splitlines():

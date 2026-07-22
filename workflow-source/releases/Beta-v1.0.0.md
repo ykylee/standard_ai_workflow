@@ -441,9 +441,38 @@ draft 모드가 아무것도 쓰지 않는가). **구 코드에서 3 case 가 FA
 > `--apply` 없이 호출한 뒤 `state_cache_status == "refreshed"` 를 *단언*하고 있었다.
 > 테스트가 dry-run 오염을 요구하고 있었으므로, 판정 자체를 뒤집어 고쳤다.
 
+### 2.21 stable skill 이 governance 가 규정한 layout 을 만들지 못했다 (**릴리스 후 보강**)
+
+§2.20 의 close-out 을 하려고 `backlog-update` 를 실제로 돌려보니, stable 로 선언된
+skill 의 `--apply` 산출물이 **v0.14.0 append-only layout 이 아니었다**. v0.14.0 전환이
+절반만 적용돼 있었던 것:
+
+| | 산출물 | 현행 규약 |
+|---|---|---|
+| task file 이름 | `YYYY-MM-DD_TASK-….md` | `TASK-….md` |
+| daily index | task 본문을 **통째로 인라인** | link 모음 |
+| 덮어쓰기 | `.md.bak` 생성 | `.bak` 는 v0.15.0 에서 폐기 |
+
+그래서 이번 사이클의 메모리 파일은 손으로 썼고(§2.20), 그 사실을 후속 작업으로
+**선언해** 두었다. 본 절이 그 후속을 닫는다.
+
+**정본 ID 패턴을 단일 출처로.** 더 근본적인 문제는 task ID 정규식이 네 군데에 흩어져
+있었다는 것이다 — `TASK_HEADER_RE`(대문자만 허용), builder 의 daily-index 정규식,
+layout 체커, skill. v1.0.0 branch-scoped 가 도입한 `TASK-<date>-<slug>-<NNN>` 은
+소문자 slug 를 포함하므로 **앞의 셋 모두에서 인식되지 않았다**. 정본을
+`project_docs.TASK_ID_PATTERN` 하나로 모으고 나머지가 그것을 import 하게 했다.
+
+**`--kind` flag 신규** (`release` | `session` | `generic`) — frontmatter 의 `kind`
+이자 index 의 `[kind]` marker. index 갱신은 **block 단위 교체**라 같은 task 를 다시
+apply 해도 중복되지 않고, 사람이 손으로 넣은 `source:` 주석도 살아남는다.
+
+`check_backlog_update_layout.py` 신규 (5 case). 기존 smoke 는 "파일이 쓰였는가" 와
+본문 문자열만 보고 **layout 자체를 규약으로 검사하지 않아** 이 드리프트를 1년 가까이
+놓쳤다. 구 writer 동작을 되돌려 주입해 **5 case 전부 FAIL** 하는 것을 확인했다.
+
 ## 3. 검증
 
-누적 smoke **205/205 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **206/206 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -463,8 +492,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **205/205 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke 3종 + north-star 지표 체크 1종 + state cache 경로 체크 1종, §2.16~2.20) |
-| 실효 smoke | **199/199 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **206/206 PASS** (릴리스 시점 199/199 + 발행 후 신규 7종, §2.16~2.21) |
+| 실효 smoke | **200/200 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

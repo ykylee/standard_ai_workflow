@@ -18,7 +18,14 @@ from workflow_kit.common.text import (
 # Standard Regexes
 STATUS_RE = re.compile(r"- 상태:\s*(planned|in_progress|blocked|done)\s*$")
 MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")
-TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Z0-9-]+)\s+(.+)$")
+
+# 정본 task ID 패턴 — `TASK-<date>[-<branch-slug>]-<NNN>` (v1.0.0 branch-scoped).
+# 브랜치 slug 는 소문자를 포함할 수 있으므로(`main`, `feature-x`) 문자집합을 대문자로
+# 제한하면 안 된다. slug 없는 legacy(`TASK-2026-07-20-001`)도 같은 패턴으로 매칭된다.
+# **여기가 단일 출처다** — builder / layout check / skill 이 각자 정규식을 들고 있으면
+# 조용히 갈라진다 (실제로 갈라져서 slug ID 가 daily index 에서 인식되지 않았다).
+TASK_ID_PATTERN = r"TASK-\d{4}-\d{2}-\d{2}(?:-[A-Za-z0-9._-]+?)?-\d{3}"
+TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Za-z0-9._-]+)\s+(.+)$")
 WORK_STATUS_RE = re.compile(r"^-\s+((?:TASK|WF)-[A-Z0-9-]+)\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$")
 
 

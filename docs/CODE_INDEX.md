@@ -24,7 +24,7 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 205개 check_*.py 스모크 (2026-07-22 기준)
+│   ├── tests/                      # 206개 check_*.py 스모크 (2026-07-22 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
 │   ├── harnesses/                  # 11개 지원 하네스 오버레이 + 공통 문서/템플릿

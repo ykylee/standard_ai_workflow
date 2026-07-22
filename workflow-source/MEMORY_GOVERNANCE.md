@@ -91,6 +91,23 @@ created_at: YYYY-MM-DD
   - source: `[[release/v0.13.2/backlog/2026-07-09.md]] {#release-v0-13-2}`
 ```
 
+`backlog-update --apply` 가 자동 생성하는 형태는 아래와 같다 (`source:` 는 legacy
+migration 산출물에만 있고, 신규 task 는 `status:` 를 쓴다). `path:` 를 **markdown
+link** 로 적는 이유는 `BacklogParser` 가 링크를 따라가 task 본문을 되찾기 때문이다 —
+백틱만 쓰면 index 는 있는데 본문을 못 읽는 상태가 된다.
+
+```markdown
+- **TASK-2026-07-22-main-001** [release] v1.0.1 — 예시 작업
+  - path: [`./tasks/TASK-2026-07-22-main-001.md`](./tasks/TASK-2026-07-22-main-001.md)
+  - status: in_progress
+```
+
+**task ID 형식**: `TASK-<date>[-<branch-slug>]-<NNN>` (정본 패턴은
+`workflow_kit.common.project_docs.TASK_ID_PATTERN` 단일 출처). 순번을 *브랜치 안에서만*
+매기므로 두 브랜치가 같은 날 동시에 작업해도 겹치지 않고, 아카이브로 합쳐진 뒤에도
+전역 유일하다. slug 없는 `TASK-2026-07-20-001` 은 branch-scoped 이전의 legacy 이며
+같은 패턴으로 계속 인식된다.
+
 ### 📂 Per-Task SSOT — v0.14.0+ layout
 ```markdown
 ---

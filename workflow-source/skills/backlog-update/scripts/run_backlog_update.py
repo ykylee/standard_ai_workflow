@@ -31,7 +31,12 @@ from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
 from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
-from workflow_kit.common.workflow_writes import ensure_backlog_index_entry, sync_handoff_status, upsert_backlog_entry
+from workflow_kit.common.workflow_writes import (
+    ensure_backlog_index_entry,
+    render_task_file,
+    sync_handoff_status,
+    upsert_backlog_entry,
+)
 
 
 def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
@@ -102,45 +107,62 @@ def build_draft_entry(
     next_step: str | None,
     risks: str | None,
     follow_up: str | None,
+    kind: str = "generic",
+    source_anchor: str | None = None,
+    source_path: str | None = None,
 ) -> list[str]:
-    lines = [
-        f"## {task_id} {task_name}",
+    """per-task SSOT 파일 본문 (v0.14.0+ append-only layout).
+
+    v1.0.1 이전에는 legacy 인라인 항목(`## TASK-… ` + `- 상태:` 나열)을 만들어 daily
+    index 에 통째로 넣었다. 현행 layout 은 index=link 모음 / 본문=`tasks/TASK-….md`
+    이므로, 여기서 만드는 것은 **task 파일 자체**다.
+
+    `- 상태:` 라인은 frontmatter 와 중복이지만 남긴다 — `BacklogParser` 가 task 본문을
+    읽어 상태를 뽑을 때 쓰는 라인이고, 이걸 빼면 update 모드가 상태를 못 읽는다.
+    """
+    detail: list[str] = [
+        "## 📝 Description",
         "",
         f"- 상태: {status}",
         f"- 우선순위: {priority}",
         f"- 요청일: {request_date}",
-        "- 완료일:",
-        "- 담당:",
-        f"- {owner}" if owner else "- ",
-        "- 호스트명:",
-        f"- {host_name}" if host_name else "- ",
-        "- 호스트 IP:",
-        f"- {host_ip}" if host_ip else "- ",
+        f"- 담당: {owner}" if owner else "- 담당:",
+        f"- 호스트명: {host_name}" if host_name else "- 호스트명:",
+        f"- 호스트 IP: {host_ip}" if host_ip else "- 호스트 IP:",
         "- 영향 문서:",
     ]
     if affected_documents:
-        lines.extend([f"- `{doc}`" for doc in affected_documents])
+        detail.extend([f"  - `{doc}`" for doc in affected_documents])
     else:
-        lines.append("- ")
-    lines.extend(
+        detail.append("  - ")
+    detail.extend(
         [
-            "- 작업 내용:",
-            f"- {task_summary}" if task_summary else "- ",
-            "- 진행 현황:",
-            f"- {progress_note}" if progress_note else "- ",
-            "- 완료 기준:",
-            f"- {done_criteria}" if done_criteria else "- ",
-            "- 작업 결과:",
-            f"- {result_note}" if result_note else "- ",
-            "- 다음 세션 시작 포인트:",
-            f"- {next_step}" if next_step else "- ",
-            "- 남은 리스크:",
-            f"- {risks}" if risks else "- ",
-            "- 후속 작업:",
-            f"- {follow_up}" if follow_up else "- ",
+            "",
+            f"- 작업 내용: {task_summary}" if task_summary else "- 작업 내용:",
+            f"- 완료 기준: {done_criteria}" if done_criteria else "- 완료 기준:",
+            "",
+            "## 🛠️ Implementation / Content",
+            "",
+            f"- 진행 현황: {progress_note}" if progress_note else "- 진행 현황:",
+            f"- 다음 세션 시작 포인트: {next_step}" if next_step else "- 다음 세션 시작 포인트:",
+            f"- 남은 리스크: {risks}" if risks else "- 남은 리스크:",
+            "",
+            "## ✅ Outcome",
+            "",
+            f"- 작업 결과: {result_note}" if result_note else "- 작업 결과:",
+            f"- 후속 작업: {follow_up}" if follow_up else "- 후속 작업:",
         ]
     )
-    return lines
+    return render_task_file(
+        task_id=task_id,
+        title=task_name,
+        status=status,
+        created_at=request_date,
+        kind=kind,
+        source_anchor=source_anchor or f"{kind}-{task_id.lower()}",
+        source_path=source_path or f"backlog/{request_date}.md",
+        body_lines=detail,
+    )
 
 
 def detect_confirmation_fields(data: dict[str, Any]) -> list[str]:
@@ -172,6 +194,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-date")
     parser.add_argument("--task-id")
     parser.add_argument("--mode", choices=["create", "update", "auto"], default="auto")
+    parser.add_argument("--kind", choices=["release", "session", "generic"], default="generic",
+                        help="task SSOT frontmatter 의 kind (daily index 의 [kind] marker).")
     parser.add_argument("--status")
     parser.add_argument("--priority", default="high")
     parser.add_argument("--owner")
@@ -437,6 +461,7 @@ def main() -> int:
             next_step=args.next_step,
             risks=args.risks,
             follow_up=args.follow_up,
+            kind=args.kind,
         )
 
         if operation_type == "create_daily_backlog":
@@ -529,6 +554,9 @@ def main() -> int:
                     backlog_path=daily_backlog_path,
                     task_id=task_id,
                     entry_lines=draft_entry,
+                    title=args.task_name,
+                    kind=args.kind,
+                    status=status,
                 )
                 apply_result["written_paths"].append(str(daily_backlog_path))
                 if backlog_action == "created":

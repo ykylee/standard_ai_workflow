@@ -4,7 +4,7 @@
 - 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
 - 대상 독자: skill 구현자, AI agent 설계자, 운영자
 - 상태: stable (v0.11.20 stable 승격)
-- 최종 수정일: 2026-07-01
+- 최종 수정일: 2026-07-22
 - 관련 문서: `../../core/backlog_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
 ## 1. 목적
@@ -22,6 +22,7 @@
 - `task_brief`
 - 조건부로 `daily_backlog_path`, `target_date`, `task_id`
 - 선택적으로 `work_backlog_index_path`, `session_handoff_path`, `owner`, `affected_documents`, `validation_result`
+- `kind` (`release` | `session` | `generic`, default `generic`) — task SSOT frontmatter 의 `kind` 이자 daily index 의 `[kind]` marker
 
 ## 4. 예상 출력
 
@@ -33,9 +34,22 @@
 - `fields_requiring_confirmation`
 - `warnings`
 
+### 4.1 `--apply` 산출물 layout (v0.14.0+ append-only)
+
+- `backlog/tasks/TASK-<date>[-<branch-slug>]-<NNN>.md` — **본문의 SSOT**.
+  frontmatter 6 key (`id` / `status` / `created_at` / `source_anchor` /
+  `source_path` / `kind`) 필수.
+- `backlog/<date>.md` — **link 모음**. task 본문을 인라인하지 않는다. 같은 task 를
+  다시 apply 하면 해당 block 만 교체된다 (중복 ❌, 전체 재작성 ❌).
+- `.bak` 파일은 만들지 않는다 (v0.15.0 에서 폐기된 개념).
+
+규약은 `MEMORY_GOVERNANCE.md` §2 가 정본이고,
+`tests/check_backlog_update_layout.py` 가 산출물을 그 규약과 대조한다.
+
 ## 5. 권한 경계
 
 - 초안 생성과 갱신 제안 중심
+- **`--apply` 없이는 저장소에 아무것도 쓰지 않는다** (state cache 재생성 포함)
 - 검증 없는 `done` 확정 금지
 - 존재하지 않는 task 를 사실처럼 갱신 금지
 - `--apply` 를 주면 날짜별 backlog, backlog index, handoff 상태 목록을 좁은 범위에서 직접 갱신할 수 있다.

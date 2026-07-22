@@ -14,6 +14,7 @@ from workflow_kit.common.normalize import (
 )
 from workflow_kit.common.paths import project_workspace_root, safe_relpath
 from workflow_kit.common.project_docs import (
+    TASK_ID_PATTERN,
     find_latest_backlog_path,
     parse_backlog,
     parse_handoff,
@@ -125,7 +126,7 @@ def _aggregate_from_appendonly_layout(
             except OSError:
                 continue
             for line in text.splitlines():
-                m = re.match(r"-\s+\*\*(TASK-\d{4}-\d{2}-\d{2}-\d{3})\*\*", line)
+                m = re.match(rf"-\s+\*\*({TASK_ID_PATTERN})\*\*", line)
                 if m and m.group(1) not in done and m.group(1) not in in_progress and m.group(1) not in blocked:
                     done.append(m.group(1))
                     # daily index 의 "title" 부분 추출: `[🔧 release] title` → title 만

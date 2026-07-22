@@ -18,7 +18,7 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import dedupe_normalized_backticked
-from workflow_kit.common.paths import resolve_existing_path, workflow_state_path
+from workflow_kit.common.paths import resolve_existing_path, workflow_state_path, memory_active_dir
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
     parse_backlog,
@@ -47,7 +47,7 @@ def _build_memory_index_query_output(
     # dir 부재 시 zero-risk skip — memory_index 없는 기존 caller 정합.
     effective_dir = args.memory_index_dir
     if not effective_dir:
-        _default_dir = workspace_root / "ai-workflow" / "memory" / "active" / "memory_index"
+        _default_dir = memory_active_dir(workspace_root) / "memory_index"
         if _default_dir.is_dir():
             effective_dir = str(_default_dir)
     if not effective_dir:

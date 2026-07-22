@@ -34,6 +34,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from workflow_kit.common.paths import memory_dir_for_workspace
 
 # === Path setup ===
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
@@ -269,7 +270,7 @@ def cmd_migrate_legacy_l2(args: argparse.Namespace) -> dict:
         inrepo_release_count, files (list), drift, action_performed.
     """
     repo_root = get_repo_root(args.repo_root)
-    inrepo_release_dir = repo_root / "ai-workflow" / "memory" / "release"
+    inrepo_release_dir = memory_dir_for_workspace(repo_root) / "release"
     inrepo_mirror = inrepo_release_dir / "_external-wiki-legacy.md"
     external_wiki = get_external_wiki_path()
 

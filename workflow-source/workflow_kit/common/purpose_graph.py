@@ -25,11 +25,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from workflow_kit.common.paths import memory_active_dir, state_path_for_workspace
+
 # PURPOSE.md candidate locations (mirrors purpose_context / purpose_ingest).
 def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
     return [
-        workspace_root / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
-        workspace_root.parent / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
+        memory_active_dir(workspace_root) / "PURPOSE.md",
+        memory_active_dir(workspace_root.parent) / "PURPOSE.md",
         workspace_root / "PURPOSE.md",
     ]
 
@@ -38,11 +40,11 @@ def _candidate_state_paths(workspace_root: Path) -> list[Path]:
     # v1.0.0 branch-scoped: state.json 은 `active/<branch>/` 로 이동했다.
     # state_path_for_workspace 가 branch-scoped → legacy 순으로 해석해 주므로 우선 사용하고,
     # 나머지는 하위호환 후보로 남긴다.
-    from workflow_kit.common.paths import state_path_for_workspace
+    from workflow_kit.common.paths import state_path_for_workspace, memory_active_dir
 
     return [
         state_path_for_workspace(workspace_root),
-        workspace_root / "ai-workflow" / "memory" / "active" / "state.json",
+        memory_active_dir(workspace_root) / "state.json",
         workspace_root / "state.json",
     ]
 

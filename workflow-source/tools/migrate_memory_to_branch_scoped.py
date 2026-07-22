@@ -36,7 +36,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import get_current_branch  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    get_current_branch,
+    memory_active_dir,
+)
 
 # 브랜치별로 옮길 항목 (작업 상태)
 MOVE_DIRS = ("backlog", "sessions")
@@ -101,7 +104,7 @@ def rewrite_state_paths(state_path: Path, branch: str) -> bool:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--active-dir", default=str(REPO_ROOT / "ai-workflow" / "memory" / "active"))
+    p.add_argument("--active-dir", default=memory_active_dir(str(REPO_ROOT)))
     p.add_argument("--branch", default=None, help="대상 브랜치 slug (default: 현재 브랜치)")
     p.add_argument("--apply", action="store_true", help="실제 이동 (default: dry-run)")
     p.add_argument("--dry-run", action="store_true", dest="dry_run")

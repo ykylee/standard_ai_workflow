@@ -40,6 +40,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from workflow_kit.common.paths import memory_dir_for_workspace
 
 # === Path setup ===
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
@@ -84,7 +85,7 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
 # === Memory dir path ===
 def get_memory_dir(repo_root: Path) -> Path:
     """`ai-workflow/memory/` 의 path. v0.7.17 의 in-repo redirect 의 SSOT."""
-    return repo_root / "ai-workflow" / "memory"
+    return memory_dir_for_workspace(repo_root)
 
 
 # === Detection helpers ===
@@ -270,7 +271,7 @@ def append_metrics_log(
     """apply mode 의 metrics 를 memory_dir/archive_stale_memory.log 에 append.
 
     Args:
-        memory_dir: REPO_ROOT / "ai-workflow" / "memory" 의 path.
+        memory_dir: memory_dir_for_workspace(REPO_ROOT) 의 path.
         older_than: apply 시 사용된 N day.
         archived_count: 성공 archive 된 dir 수.
         skipped_count: skip 된 dir 수 (already-archived, too-recent, archive-target-exists, move-fail 모두).
@@ -298,7 +299,7 @@ def read_metrics_log(memory_dir: Path) -> list[dict]:
     """metrics log 의 모든 entry 를 dict list 로 read (post-mortem 분석용).
 
     Args:
-        memory_dir: REPO_ROOT / "ai-workflow" / "memory" 의 path.
+        memory_dir: memory_dir_for_workspace(REPO_ROOT) 의 path.
 
     Returns:
         list of {"timestamp": str, "older_than": int, "archived": int, "skipped": int, "error": int}.
@@ -355,7 +356,7 @@ def rotate_log_if_needed(memory_dir: Path, *, line_threshold: int = LOG_ROTATE_L
     """metrics log 의 line 수 > threshold 시 gzip + rotate.
 
     Args:
-        memory_dir: REPO_ROOT / "ai-workflow" / "memory".
+        memory_dir: memory_dir_for_workspace(REPO_ROOT).
         line_threshold: rotate trigger. default 10000 line.
 
     Returns:

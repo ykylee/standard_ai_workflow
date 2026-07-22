@@ -21,9 +21,10 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from workflow_kit.common.paths import memory_active_dir
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ACTIVE_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active"
+ACTIVE_DIR = memory_active_dir(REPO_ROOT)
 LEGACY_FILE = ACTIVE_DIR / "work_backlog.md"
 BACKLOG_DIR = ACTIVE_DIR / "backlog"
 TASKS_DIR = BACKLOG_DIR / "tasks"

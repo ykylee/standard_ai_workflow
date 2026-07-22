@@ -25,6 +25,11 @@
 > 위양성을 내는 check 는 무시당해 결국 아무것도 막지 못한다. 그래서 *등록된 규약* 만
 > 본다. `tests/` 는 제외한다 — 임시 fixture 경로 조립은 정당한 사용이다.
 
+**한계 (과장하지 않는다)**: 판정 단위가 *파일* 이라, 정본 symbol 을 어딘가에서 쓰는
+파일이 **다른 줄에서** 손으로 조립하면 통과한다. 파일 단위로 낮춘 것은 위양성을 0 으로
+유지하기 위한 선택이고, 그 대신 규약을 늘릴 때마다 **한 번은 전수 조사**해서 기존
+사본을 정리한 뒤 등록하는 것을 전제로 한다 (§2.24 / §2.25 가 그렇게 했다).
+
 Test list (4 case):
 1. test_no_duplicate_convention_literals
 2. test_every_canonical_symbol_exists
@@ -81,6 +86,14 @@ CONVENTIONS: tuple[Convention, ...] = (
         literal=re.compile(r"re\.compile\(\s*r?\"[^\"]*TASK-"),
         canonical="workflow_kit/common/project_docs.py",
         symbols=("TASK_ID_PATTERN", "TASK_ID_CAPTURE_RE", "TASK_HEADER_RE"),
+        exemptions={},
+    ),
+    Convention(
+        name="memory 루트 경로 조립",
+        literal=re.compile(r'"ai-workflow"\s*/\s*"memory"'),
+        canonical="workflow_kit/common/paths.py",
+        symbols=("memory_active_dir", "memory_dir_for_workspace", "memory_root_dir",
+                 "workflow_memory_dir"),
         exemptions={},
     ),
     Convention(

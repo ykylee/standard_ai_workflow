@@ -32,7 +32,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import get_current_branch  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    get_current_branch,
+    memory_dir_for_workspace,
+)
 
 # active/ 직속에서 브랜치가 아닌 공유 항목 (아카이브 대상에서 제외)
 SHARED_NAMES = {
@@ -129,7 +132,7 @@ def write_metadata(dst: Path, branch: str, *, repo_root: Path) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--memory-root", default=str(REPO_ROOT / "ai-workflow" / "memory"))
+    p.add_argument("--memory-root", default=str(memory_dir_for_workspace(REPO_ROOT)))
     p.add_argument("--branch", action="append", dest="branches", default=[],
                    help="강제로 아카이브할 브랜치 (git 존재 여부 무시)")
     p.add_argument("--keep", action="append", default=["main"],

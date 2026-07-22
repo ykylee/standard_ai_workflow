@@ -18,6 +18,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as WORKFLOW_KIT_VERSION
 from workflow_kit.common.doc_transformer import DocTransformer
+from workflow_kit.common.paths import memory_active_dir
 
 
 SUPPORTED_HARNESSES = (
@@ -503,7 +504,7 @@ def render_package_contents(
     }[harness]
     source_docs_state = "포함됨" if include_source_docs else "기본 제외"
     global_snippets_state = "포함됨" if include_global_snippets else "기본 제외"
-    backlog_dir = bundle_root / "ai-workflow" / "memory" / "active" / "backlog"
+    backlog_dir = memory_active_dir(bundle_root) / "backlog"
     if backlog_dir.is_dir():
         backlog_entries = sorted(
             f"- `bundle/ai-workflow/memory/active/backlog/{path.name}`"

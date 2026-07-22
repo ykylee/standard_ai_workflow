@@ -37,7 +37,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Final, NamedTuple
-from workflow_kit.common.paths import state_path_for_workspace
+from workflow_kit.common.paths import state_path_for_workspace, memory_active_dir
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -527,7 +527,7 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
     import subprocess as _subprocess
 
     root = _repo_root(workspace_root)
-    active_dir = root / "ai-workflow" / "memory" / "active"
+    active_dir = memory_active_dir(root)
     working_tree_conflict_count = 0
     conflict_locations: list[str] = []
     if active_dir.is_dir():
@@ -618,7 +618,7 @@ def collect_deprecation_cycle_progress(workspace_root: Path) -> dict[str, Any]:
         }
     """
     root = _repo_root(workspace_root)
-    memory_dir = root / "ai-workflow" / "memory" / "active"
+    memory_dir = memory_active_dir(root)
     bak = memory_dir / "work_backlog.md.bak"
     legacy = memory_dir / "work_backlog.md"
 
@@ -702,7 +702,7 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
     import json as _json
 
     root = _repo_root(workspace_root)
-    memory_dir = root / "ai-workflow" / "memory" / "active"
+    memory_dir = memory_active_dir(root)
     memory_index_dir = memory_dir / "memory_index"
 
     # 1. entries count by merge_state
@@ -922,7 +922,7 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
         dict — Panel 3 의 data shape.
     """
     root = _repo_root(workspace_root)
-    memory_index_dir = root / "ai-workflow" / "memory" / "active" / "memory_index"
+    memory_index_dir = memory_active_dir(root) / "memory_index"
     entries_dir = memory_index_dir / "entries"
 
     if not entries_dir.is_dir():
@@ -1239,7 +1239,7 @@ def _branch_state_paths(root: Path) -> list[Path]:
     "현재 상태"는 이들을 합친 *뷰* 로 계산한다. 별도 집계 파일을 커밋하지 않으므로
     protected main 에서도 merge 마다 갱신할 대상이 생기지 않는다.
     """
-    active = Path(root) / "ai-workflow" / "memory" / "active"
+    active = memory_active_dir(Path(root))
     if not active.is_dir():
         return []
     return sorted(p for p in active.rglob("state.json") if p.is_file())

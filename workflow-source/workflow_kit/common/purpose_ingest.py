@@ -25,12 +25,13 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from workflow_kit.common.paths import memory_active_dir
 
 # PURPOSE.md candidate locations (mirrors purpose_context.find_purpose_path).
 def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
     return [
-        workspace_root / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
-        workspace_root.parent / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
+        memory_active_dir(workspace_root) / "PURPOSE.md",
+        memory_active_dir(workspace_root.parent) / "PURPOSE.md",
         workspace_root / "PURPOSE.md",
     ]
 

@@ -12,7 +12,7 @@ from workflow_kit.common.normalize import (
     dedupe_strings as _dedupe_strings_base,
     dedupe_work_items,
 )
-from workflow_kit.common.paths import project_workspace_root, safe_relpath
+from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
 from workflow_kit.common.project_docs import (
     TASK_ID_PATTERN,
     find_latest_backlog_path,
@@ -270,8 +270,8 @@ def build_workflow_state_payload(
 
     # v0.9.4 chapter 8 R-A follow-up part 1: state.json.purpose_digest 1-line 자동 생성
     purpose_candidates = [
-        actual_root / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
-        actual_root.parent / "ai-workflow" / "memory" / "active" / "PURPOSE.md",
+        memory_active_dir(actual_root) / "PURPOSE.md",
+        memory_active_dir(actual_root.parent) / "PURPOSE.md",
         actual_root / "PURPOSE.md",  # workspace_root 의 직접 PURPOSE.md (fallback)
     ]
     purpose_path = next((p for p in purpose_candidates if p.exists()), None)

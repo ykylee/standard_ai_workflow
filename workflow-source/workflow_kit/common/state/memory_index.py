@@ -20,6 +20,7 @@ from typing import Final, TypedDict
 
 from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
 from workflow_kit.common.schemas.base import Status
+from workflow_kit.common.paths import memory_active_dir
 from workflow_kit.common.schemas.memory_index import (
     MemoryEntry,
     MemoryIndexOutput,
@@ -59,7 +60,7 @@ def memory_index_root(workspace_root: Path) -> Path:
 
     ADR-005 §1 의 state layer sub-area layout.
     """
-    return workspace_root / "ai-workflow" / "memory" / "active" / MEMORY_INDEX_SUBDIR
+    return memory_active_dir(workspace_root) / MEMORY_INDEX_SUBDIR
 
 
 def entries_dir(memory_index: Path | None = None, *, workspace_root: Path | None = None) -> Path:

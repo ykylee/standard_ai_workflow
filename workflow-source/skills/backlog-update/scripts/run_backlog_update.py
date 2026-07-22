@@ -22,6 +22,8 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
 from workflow_kit.common.paths import (
+    memory_active_dir,
+
     workflow_state_path,
     get_current_branch,
     resolve_existing_path,
@@ -242,7 +244,7 @@ def _build_memory_index_query_output(
     # dir 부재 시 zero-risk skip — memory_index 없는 기존 caller 정합.
     effective_dir = args.memory_index_dir
     if not effective_dir:
-        _default_dir = workspace_root / "ai-workflow" / "memory" / "active" / "memory_index"
+        _default_dir = memory_active_dir(workspace_root) / "memory_index"
         if _default_dir.is_dir():
             effective_dir = str(_default_dir)
     if not effective_dir:

@@ -264,6 +264,26 @@ def state_path_in_active(active_dir: Path, branch: str | None = None) -> Path:
     return path_in_active(active_dir, "state.json", branch)
 
 
+def memory_dir_for_workspace(workspace_root: Path) -> Path:
+    """workspace root 기준 `ai-workflow/memory/` — active/ 와 archived/ 의 공통 부모.
+
+    workspace root 만 아는 caller 가 **경로를 손으로 조립하지 않도록** 하는 정본 진입점.
+    `"ai-workflow" / "memory" / "active"` 를 각자 이어 붙이던 것이 18개 파일로 번져
+    있었고, 그중 하나만 어긋나도 조용히 다른 파일을 읽는다 (§2.20 과 같은 부류).
+    """
+    return Path(workspace_root) / "ai-workflow" / "memory"
+
+
+def memory_active_dir(workspace_root: Path) -> Path:
+    """workspace root 기준 `ai-workflow/memory/active/`.
+
+    브랜치 무관 **공유** 계층이다 (`PROJECT_PROFILE.md` / `PURPOSE.md` / `memory_index/`).
+    브랜치별 작업 상태는 `active/<branch>/` 이고, 그건 `state_path_for_workspace` 나
+    `workflow_branch_dir` 로 얻는다.
+    """
+    return memory_dir_for_workspace(workspace_root) / "active"
+
+
 def state_path_for_workspace(workspace_root: Path, branch: str | None = None) -> Path:
     """workspace root 기준 branch-scoped `state.json` 경로.
 
@@ -271,7 +291,7 @@ def state_path_for_workspace(workspace_root: Path, branch: str | None = None) ->
     ingest / CLI) 용. branch-scoped 가 없고 legacy(`active/state.json`) 가 있으면 legacy 를
     반환하므로 미마이그레이션 저장소에서도 안전하다.
     """
-    active = Path(workspace_root) / "ai-workflow" / "memory" / "active"
+    active = memory_active_dir(workspace_root)
     slug = _usable_branch_name(branch) or get_current_branch()
     branch_scoped = active / slug / "state.json"
     if branch_scoped.exists():

@@ -2175,23 +2175,27 @@ def cmd_release(args) -> dict:
             setattr(args, attr, False if attr == "skip_dashboard_emit" else None)
 
     def _attr_ns(**overrides) -> argparse.Namespace:
-        """Create a fresh argparse.Namespace with default attrs (False) + overrides.
+        """Create a fresh argparse.Namespace with default attrs + overrides.
 
         본 helper 는 cmd_release 내부에서 drift-prevention helpers 를 자동 호출할 때 사용.
         직접 argv → Namespace 변환 없이, 안전 default set 으로 helper 진입 가능.
+
+        **`dry_run` / `apply` 는 반드시 바깥 release 의 mode 를 상속한다.** 이전에는
+        `dry_run=False` / `apply=True` 가 하드코딩되어 있어, `release --dry-run` 이
+        doc-headers-update / maturity-matrix-sync 를 통해 **실제 저장소 문서 63개를
+        write** 했다(smoke 실행만으로 워킹트리가 더러워졌고, release_pipeline 의
+        `git add` 와 겹치면 무관한 변경이 release commit 에 흡수된다).
+        dry-run 은 아무것도 쓰지 않아야 한다.
         """
         base_defaults = {
             "scope": "all",
             "date": None,
-            "dry_run": False,
+            "dry_run": args.dry_run,
             "from_release_note": None,
             "json": False,
-            "apply": True,
+            "apply": not args.dry_run,
         }
-        for k, v in base_defaults.items():
-            base_defaults.setdefault(k, v)
-        ns = argparse.Namespace(**{**base_defaults, **overrides})
-        return ns
+        return argparse.Namespace(**{**base_defaults, **overrides})
 
     results: dict = {"pre_check": {}, "gh_commands": [], "mode": "dry-run" if args.dry_run else "apply"}
 
@@ -2255,9 +2259,9 @@ def cmd_release(args) -> dict:
     # manual_required > 0 이면 early return (drift fix 우선 — 사람의 명시 intervention 필요).
     # escape hatch: --skip-self-recover.
     if not getattr(args, "skip_self_recover", False):
+        # self-recover 는 drift 를 *고치는* step 이므로 dry-run 에서는 plan 만 낸다.
+        # (이전에는 apply=True / dry_run=False 를 강제해 dry-run 도 저장소를 고쳤다.)
         sr_ns = _attr_ns()
-        sr_ns.apply = True
-        sr_ns.dry_run = False
         sr_result = cmd_self_recover(sr_ns)
         results["self_recover"] = sr_result
         # manual_required 가 1+ 이면 early return (drift 가 사람이 fix 해야 함).

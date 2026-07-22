@@ -243,6 +243,58 @@ def test_case_5_release_dry_run_triggers_drift_step() -> None:
 # ---------------------------------------------------------------------------
 # runner
 # ---------------------------------------------------------------------------
+# case 6 — release --dry-run 은 저장소를 절대 수정하지 않는다
+# ---------------------------------------------------------------------------
+
+def test_case_6_release_dry_run_does_not_touch_repo() -> None:
+    """`release --dry-run` 의 모든 auto-step 이 write 하지 않는 mode 여야 한다.
+
+    회귀 배경: cmd_release 의 `_attr_ns()` 가 `dry_run=False` / `apply=True` 를
+    하드코딩해, dry-run 인데도 doc-headers-update / maturity-matrix-sync /
+    self-recover 가 **실제 저장소 문서 63개를 write** 했다. 본 smoke 를 돌리는
+    것만으로 워킹트리가 더러워졌고, release_pipeline 의 `git add` 와 겹치면
+    릴리스와 무관한 변경이 release commit 에 흡수된다.
+
+    검증은 워킹트리 diff 가 아니라 **각 step 이 보고한 mode** 로 한다. doc-headers
+    -update 는 날짜가 이미 오늘이면 write 할 것이 없어 멱등 noop 이 되므로, 파일
+    변화 유무로는 case_5 실행 뒤에 버그를 놓친다(실제로 놓쳤다). mode 는 대상
+    파일 상태와 무관하게 결정적이다.
+    """
+    proc = subprocess.run(
+        [
+            "python3",
+            str(RELEASE_PIPELINE),
+            "release",
+            "--dry-run",
+            "--skip-validate",
+            "--skip-cross-verify",
+            "--version=0.11.21",
+            "--json",
+        ],
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env={**os.environ, "PYTHONPATH": str(REPO / "workflow-source")},
+    )
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise AssertionError(f"release --dry-run --json 파싱 실패: {exc}\n{proc.stdout[:500]}")
+
+    assert payload.get("mode") == "dry-run", f"release mode={payload.get('mode')!r}"
+    for step in ("doc_headers_update", "maturity_matrix_sync", "self_recover", "changelog_gen"):
+        result = payload.get(step)
+        if not isinstance(result, dict):
+            continue  # step 이 skip 된 경우 (escape hatch / 선행 조건 부재)
+        mode = result.get("mode")
+        assert mode != "applied", (
+            f"release --dry-run 인데 auto-step {step!r} 가 mode={mode!r} 로 "
+            f"저장소에 write 했다"
+        )
+
+
+# ---------------------------------------------------------------------------
 
 def _run_all() -> Iterator[tuple[str, bool, str]]:
     cases = [
@@ -256,6 +308,8 @@ def _run_all() -> Iterator[tuple[str, bool, str]]:
          test_case_4_sync_maturity_matrix_applied_ops_convention),
         ("test_case_5_release_dry_run_triggers_drift_step",
          test_case_5_release_dry_run_triggers_drift_step),
+        ("test_case_6_release_dry_run_does_not_touch_repo",
+         test_case_6_release_dry_run_does_not_touch_repo),
     ]
     for name, fn in cases:
         try:
@@ -276,7 +330,7 @@ def main() -> int:
         else:
             print(f"  FAIL: {name}\n    {msg}")
             failures += 1
-    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {5 - failures}/5 ===")
+    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {6 - failures}/6 ===")
     return 0 if failures == 0 else 1
 
 

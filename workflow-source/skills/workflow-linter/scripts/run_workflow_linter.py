@@ -18,7 +18,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
-from workflow_kit.common.paths import resolve_existing_path, workflow_branch_dir, workflow_memory_dir
+from workflow_kit.common.paths import resolve_existing_path, workflow_branch_dir, workflow_memory_dir, workflow_state_path
 from workflow_kit.common.linter import check_workflow_consistency, check_maturity_consistency
 from workflow_kit.common.metadata import load_config  # v0.7.15+: excluded_paths from config
 from workflow_kit.common.schemas import WorkflowLinterOutput, Status
@@ -46,7 +46,7 @@ def main() -> int:
         
         state_json_path = (
             resolve_existing_path(args.state_json_path) if args.state_json_path
-            else (workflow_memory_dir(project_profile_path) / "state.json").resolve()
+            else workflow_state_path(project_profile_path)
         )
         session_handoff_path = (
             resolve_existing_path(args.session_handoff_path) if args.session_handoff_path

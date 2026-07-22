@@ -18,7 +18,7 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import dedupe_normalized_backticked
-from workflow_kit.common.paths import resolve_existing_path
+from workflow_kit.common.paths import resolve_existing_path, workflow_state_path
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
     parse_backlog,
@@ -266,7 +266,7 @@ def main() -> int:
         from workflow_kit.common.schemas import SessionStartOutput, SessionStartPurposeContext
 
         workspace_root = project_workspace_root(project_profile_path)
-        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        state_json_path = workflow_state_path(project_profile_path)
         purpose_context_data = build_purpose_context(
             workspace_root=workspace_root,
             state_path=state_json_path,

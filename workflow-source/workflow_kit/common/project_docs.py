@@ -26,6 +26,11 @@ MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implem
 # 조용히 갈라진다 (실제로 갈라져서 slug ID 가 daily index 에서 인식되지 않았다).
 TASK_ID_PATTERN = r"TASK-\d{4}-\d{2}-\d{2}(?:-[A-Za-z0-9._-]+?)?-\d{3}"
 TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Za-z0-9._-]+)\s+(.+)$")
+
+# 순번 채번용 분해 정규식 — (date, branch-slug, NNN). `TASK-021` 같은 초기 legacy 도
+# 받아야 하므로 `TASK_ID_PATTERN` 보다 관대하다. **문법의 정의는 여기 한 곳**이고,
+# backlog-update 가 이걸 import 한다 (skill 이 자기 사본을 들고 있어서 갈라졌었다).
+TASK_ID_CAPTURE_RE = re.compile(r"^TASK-(?:(\d{4}-\d{2}-\d{2})-)?(?:(.+?)-)?(\d{1,3})$")
 WORK_STATUS_RE = re.compile(r"^-\s+((?:TASK|WF)-[A-Z0-9-]+)\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$")
 
 

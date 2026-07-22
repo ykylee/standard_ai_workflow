@@ -22,13 +22,18 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
 from workflow_kit.common.paths import (
+    workflow_state_path,
     get_current_branch,
     resolve_existing_path,
     workflow_branch_dir,
     workflow_memory_dir,
 )
 from workflow_kit.common.planning import determine_conservative_task_status
-from workflow_kit.common.project_docs import parse_backlog_task_entries, parse_project_profile_backlog
+from workflow_kit.common.project_docs import (
+    TASK_ID_CAPTURE_RE,
+    parse_backlog_task_entries,
+    parse_project_profile_backlog,
+)
 from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import (
@@ -44,8 +49,8 @@ def infer_backlog_path(project_profile_path: Path, target_date: str) -> Path:
     return (branch_dir / "backlog" / f"{target_date}.md").resolve()
 
 
-# TASK-<date>-<slug>-<NNN> / legacy TASK-<date>-<NNN> / legacy TASK-<NNN>
-TASK_ID_RE = re.compile(r"^TASK-(?:(\d{4}-\d{2}-\d{2})-)?(?:(.+?)-)?(\d{1,3})$")
+# task ID 문법은 project_docs 가 단일 출처 — 여기서 사본을 들면 갈라진다.
+TASK_ID_RE = TASK_ID_CAPTURE_RE
 
 
 def branch_slug(branch: str | None = None) -> str:
@@ -473,7 +478,7 @@ def main() -> int:
         from workflow_kit.common.schemas import BacklogUpdateOutput, BacklogUpdatePurposeContext
 
         workspace_root = project_workspace_root(project_profile_path)
-        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        state_json_path = workflow_state_path(project_profile_path)
         purpose_context_data = build_purpose_context(
             workspace_root=workspace_root,
             state_path=state_json_path,

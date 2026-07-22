@@ -54,6 +54,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 try:
     from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
     from workflow_kit.common.dashboard_data import DRIFT_LEDGER_RELPATH  # v1.0.1+ north-star 원장
+    from workflow_kit.common.paths import state_path_for_workspace
     from workflow_kit.common.state.cache import refresh_maturity_last_updated  # v0.14.6+ Task 3 follow-up
 except ImportError:
     # standalone script (no workflow_kit on sys.path) — fall back to direct write.
@@ -62,6 +63,7 @@ except ImportError:
     refresh_maturity_last_updated = None  # type: ignore[assignment]
     # 원장 경로는 dashboard 와 **같은 문자열이어야** 한다 (writer ↔ reader 정합).
     DRIFT_LEDGER_RELPATH = "ai-workflow/memory/release/drift_ledger.jsonl"
+    state_path_for_workspace = None  # type: ignore[assignment]
 # 1차 출처
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -159,7 +161,8 @@ def cmd_validate(args) -> dict:
 
     # 3. state.json freshness
     if not args.skip_state:
-        state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / "state.json"
+        # 정본 helper 로만 경로를 얻는다 — legacy 문자열 조립은 §2.20 의 재발 경로다.
+        state_path = state_path_for_workspace(REPO_ROOT.parent)
         if state_path.exists():
             data = json.loads(state_path.read_text())
             last_freeze = data.get("memory", {}).get("last_freeze", "")

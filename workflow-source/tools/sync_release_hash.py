@@ -18,6 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from workflow_kit.common.paths import state_path_for_workspace  # noqa: E402
+
 # === Path setup ===
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
@@ -161,7 +164,8 @@ def cmd_sync_release_hash(args: argparse.Namespace) -> dict:
     new_hash = get_latest_commit_hash(repo_root)
 
     # 2. state.json + backlog path
-    state_path = repo_root / "ai-workflow" / "memory" / "active" / "state.json"
+    # 정본 helper 로만 경로를 얻는다 (branch-scoped → legacy fallback 내장).
+    state_path = state_path_for_workspace(repo_root)
     backlog_path = repo_root / "ai-workflow" / "memory" / "release" / version / "backlog" / "2026-06-15.md"
     if not backlog_path.exists():
         # 다른 날짜의 backlog 시도

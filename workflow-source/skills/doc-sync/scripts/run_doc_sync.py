@@ -19,7 +19,7 @@ from workflow_kit.common.doc_sync import build_doc_sync_candidates
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.markdown import rel_link_from_doc
-from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_memory_dir
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_memory_dir, workflow_state_path
 from workflow_kit.common.project_docs import parse_project_profile_core
 from workflow_kit.common.purpose_context import build_purpose_context
 from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading, update_next_documents_section
@@ -208,7 +208,7 @@ def main() -> int:
         # doc-sync 가 PURPOSE.md + state.json.purpose_digest 자동 read (directional intent 참조)
         from workflow_kit.common.schemas import DocSyncPurposeContext
 
-        state_json_path = workflow_memory_dir(project_profile_path) / "state.json"
+        state_json_path = workflow_state_path(project_profile_path)
         purpose_context_data = build_purpose_context(
             workspace_root=project_root,
             state_path=state_json_path,

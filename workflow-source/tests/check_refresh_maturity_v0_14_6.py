@@ -13,19 +13,31 @@ v0.14.0+ 의 Task 3 follow-up 정합성 검증. `cmd_refresh_maturity` 가 helpe
 
 from __future__ import annotations
 
+import atexit
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
-MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
+REAL_MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
+
+# refresh-maturity 는 apply 모드로 `last_updated` 를 **write** 한다. 실파일에 대고
+# 돌리면 smoke 실행만으로 추적 파일이 바뀌고(case 4 는 2027-01-01 까지 써 넣는다),
+# release_pipeline 의 `git add` 와 겹치면 무관한 변경이 release commit 에 흡수된다.
+# `--maturity-path` override 로 temp 사본 위에서만 돌린다.
+_FIXTURE_DIR = tempfile.mkdtemp(prefix="refresh-maturity-v0146-")
+atexit.register(shutil.rmtree, _FIXTURE_DIR, ignore_errors=True)
+MATURITY_PATH = Path(_FIXTURE_DIR) / "maturity_matrix.json"
+shutil.copyfile(REAL_MATURITY_PATH, MATURITY_PATH)
 
 
 def _run(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, str(SCRIPT), *args, "--json"],
+        [sys.executable, str(SCRIPT), *args, "--maturity-path", str(MATURITY_PATH), "--json"],
         cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=30,
     )
 

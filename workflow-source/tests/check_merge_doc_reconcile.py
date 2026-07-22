@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -36,7 +38,18 @@ def run_merge_doc_reconcile(*, expect_success: bool, args: list[str]) -> tuple[i
 
 
 def main() -> int:
-    example_root = SOURCE_ROOT / "examples" / "acme_delivery_platform"
+    with tempfile.TemporaryDirectory(prefix="merge-doc-reconcile-") as fixture_tmp:
+        return _run_cases(Path(fixture_tmp))
+
+
+def _run_cases(fixture_tmp: Path) -> int:
+    # case 1 은 state cache 를 refresh 하므로 fixture 의 state.json 을 **write** 한다.
+    # 추적 중인 저장소 파일을 smoke 가 수정하면 워킹트리가 더러워지고,
+    # release_pipeline 의 `git add` 와 겹치면 무관한 변경이 release commit 에
+    # 흡수된다. case 3 은 이미 같은 이유로 temp 사본을 쓰고 있었으므로 나머지
+    # case 도 사본 위에서 돌린다.
+    example_root = fixture_tmp / "acme_delivery_platform"
+    shutil.copytree(SOURCE_ROOT / "examples" / "acme_delivery_platform", example_root)
     latest_backlog = sorted((example_root / "backlog").glob("*.md"))[-1]
     branch = get_current_branch()
 
@@ -95,8 +108,6 @@ def main() -> int:
 
     # Case 3: doc_index_stale — when index doesn't reference latest backlog
     # Temporarily write a stale index (no link to latest_backlog.name)
-    import tempfile
-
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_root = Path(temp_dir).resolve()
         # Copy PROJECT_PROFILE / handoff / backlog files into a temp project layout

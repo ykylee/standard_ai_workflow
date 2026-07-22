@@ -17,14 +17,24 @@ from __future__ import annotations
 
 import argparse
 import io
+import atexit
 import json
+import shutil
 import sys
+import tempfile
 from contextlib import redirect_stdout
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
-MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
+REAL_MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
+
+# step 6.7 emulate 는 cmd_refresh_maturity 를 apply 모드로 호출해 `last_updated` 를
+# **write** 한다. 추적 중인 실파일을 smoke 가 고치지 않도록 temp 사본을 쓴다.
+_FIXTURE_DIR = tempfile.mkdtemp(prefix="refresh-maturity-v0153-")
+atexit.register(shutil.rmtree, _FIXTURE_DIR, ignore_errors=True)
+MATURITY_PATH = Path(_FIXTURE_DIR) / "maturity_matrix.json"
+shutil.copyfile(REAL_MATURITY_PATH, MATURITY_PATH)
 
 
 def _emulate_step_6_7(*, error_present: bool, legacy_memory: bool | None) -> dict:
@@ -38,6 +48,7 @@ def _emulate_step_6_7(*, error_present: bool, legacy_memory: bool | None) -> dic
         skip_self_recover=False,
         skip_bidir_link=False,
         legacy_memory=legacy_memory,
+        maturity_path=str(MATURITY_PATH),  # 실파일 write 금지 (temp 사본)
     )
     results: dict = {}
     if error_present:
@@ -100,10 +111,17 @@ def case_2_release_error_refresh() -> bool:
     if "error" in mr:
         print(f"  FAIL: release_error 시 error field: {mr}")
         return False
-    # 실제 file 정합 (already today 면 refreshed=False 이지만 호출은 됨)
+    # 실제 file 이 호출 결과와 정합해야 한다.
+    # 이전 판정은 "file 이 변하지 않아야 한다" 였는데, 이는 *앞선 다른 smoke* 가
+    # 실파일을 이미 오늘 날짜로 스탬프해 둔 덕에 우연히 통과하던 것이었다. 격리된
+    # 사본에서는 refresh 가 실제로 날짜를 옮기므로, 옳은 판정은 file 값이 호출이
+    # 보고한 `after` 와 일치하는지다 (refreshed=False 면 before 와도 같다).
     mm_after = json.loads(MATURITY_PATH.read_text(encoding="utf-8"))
-    if mm_after.get("last_updated") != last_updated_before:
-        print(f"  FAIL: file last_updated changed unexpectedly: {last_updated_before!r} -> {mm_after.get('last_updated')!r}")
+    if mm_after.get("last_updated") != mr.get("after"):
+        print(f"  FAIL: file last_updated={mm_after.get('last_updated')!r} != 보고된 after={mr.get('after')!r}")
+        return False
+    if mr.get("refreshed") is False and mm_after.get("last_updated") != last_updated_before:
+        print(f"  FAIL: refreshed=False 인데 file 이 변경됨: {last_updated_before!r} -> {mm_after.get('last_updated')!r}")
         return False
     return True
 

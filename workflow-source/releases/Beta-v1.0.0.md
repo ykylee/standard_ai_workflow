@@ -164,12 +164,14 @@ ai-workflow/memory/
 
 ## 3. 검증
 
-누적 smoke **176/199 PASS** (2026-07-21, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **188/199 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
+**전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 3경로를 차단한 결과다.
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **176/199 PASS** (187 test case) |
+| 전량 smoke | **188/199 PASS** (test case 211 PASS / 3 FAIL, 334초) |
+| 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |
 | `check_appendonly_memory_layout.py` | 6/6 PASS (branch-scoped 갱신) |
@@ -181,8 +183,16 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 `graph_insights_skill_integration` / `v0_7_28_archive_stale_memory`(TZ flaky) /
 `ingest_atomicity`(날짜 flaky) + `v0_7_24_release_notes_template`(CLI 옵션 누락).
 
-**잔여 red 21건** — 전부 v1.0.0 이전부터의 부채이며 성격별로 문서 lint(5) / 빌드·도구
-의존(5) / CI 상태 의존(2) / 기타 환경 의존(9). 상세는 §0 잔여 과제 4번.
+**잔여 red 11건** — 전부 v1.0.0 이전부터의 부채다. 성격별로 문서 lint(4:
+`docs` / `source_without_runtime_layer` / `wiki_drift` / `wiki_trend`) / 빌드·도구
+의존(4: `release_pipeline_lib` / `phase2` / `phase3` / `v0_7_4_followup`) /
+프로세스(1: `wiki_source_rule` — memory-freeze 선행 필요) / 품질 게이트(2:
+`smoke_trend_cross` case_5 + `quality_dashboard` Panel 4 — 둘 다 "전량 PASS(rate=1.0)"
+를 요구하는 **목표 지표**이며, 잔여 red 를 모두 해소해야 통과한다. 수치를 맞추려고
+릴리스 노트에 일부만 세지 않는다). 상세는 §0 잔여 과제 4번.
+
+> CI 상태 의존 2건(`mypy_ci_cross_verify` / `release_summary`)은 push 후 CI 결과가
+> 생기며 green 으로 전환됐다.
 
 - **mypy**: venv mypy 2.1.0 `--strict` **117 source files, 0 errors** (Gate 3).
   smoke 는 반드시 `.venv/bin/python3` 로 실행해야 한다 — 시스템 python3 에는 mypy 가 없어

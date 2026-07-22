@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-21T05:59:14Z`
-- tool_version: `v0.15.21-beta`
+- generated_at: `2026-07-22T01:36:25Z`
+- tool_version: `v1.0.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -9,11 +9,13 @@
 - guard_status: `pass`
 - guard_cases: `6 / 6`
 - maturity_last_updated: `2026-07-21`
-- maturity_stale: `False`
+- maturity_stale: `True`
 - harness_supported_count: `11`
-- head_commit_date: `2026-07-21`
-- last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0`
+- head_commit_date: `2026-07-22`
+- last_updated_delta_days: `1`
+- silent_failing_cycles_count: `1`
+
+> ⚠️ **maturity_last_updated stale**: refresh hint → `python3 -c "python3 -c "from workflow_kit.common.state.cache import refresh_maturity_last_updated; from pathlib import Path; print(refresh_maturity_last_updated(Path('workflow-source/core/maturity_matrix.json')))""`
 
 ## Panel 2 — Maturity Distribution
 
@@ -39,9 +41,9 @@
 
 | metric | value |
 |---|---|
-| total | 12 |
+| total | 13 |
 | done | 12 |
-| in_progress | 0 |
+| in_progress | 1 |
 | planned | 0 |
 
 ### harnesses
@@ -74,15 +76,16 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `24`
-- cumulative_pass: `24`
-- cumulative_pass_rate: `1.0000`
-- smoke_files_count: `197`
+- cumulative_total: `199`
+- cumulative_pass: `188`
+- cumulative_pass_rate: `0.9447`
+- smoke_files_count: `199`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.0.0 | 188 | 199 |
 | Beta-v0.15.19 | 24 | 24 |
 
 ## Panel 5 — Recent Release Cycle

@@ -5,10 +5,12 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집도 가능하나 다음 release 시 자동 갱신 시 충돌 가능.
 
-## [Unreleased] - 2026-07-20
+## [Unreleased] - 2026-07-22
 
 ### Added
 
+- feat(memory): branch-scoped 후속 — session-start 아카이브 wiring + 문서/smoke + TZ flaky 수정 (7dab09d)
+- feat(memory): 브랜치별 메모리(branch-scoped) + 종료 브랜치 자동 아카이브 (73b22a8)
 - feat(test): MEMORY_GOVERNANCE ↔ global_workflow_standard cross-check smoke 신규 (fd28356)
 - feat(test): DOCUMENT_INDEX / CODE_INDEX / RELEASE.md cross-check smoke 신규 (v0.15.16~18) (1158431)
 - feat(bidir-link): wiki↔memory 양방향 link 자동 sync + audit — Phase 13 AC4+ close-out (v0.13.3-beta) (1580aeb)
@@ -37,12 +39,12 @@ All notable changes to this project will be documented in this file.
 - feat(wiki): emit_wiki_l2_body.py --mode=metadata-only + 498 page 본문 emit (c72bdc3)
 - feat(wiki): maintainability score metric (6 dim dashboard) + 12 smoke test (49dfc78)
 - feat(wiki): emit_wiki_l2_body.py update_l2_full() 추가 + 전체 apply 검증 (7a4dbae)
-- feat(v0.7.0 follow-up): packaging + session-start opt-in + evaluate_compliance (71de1b0)
-- feat(v0.7.0 step 7): Extension 시스템 일반화 (5 file, +1150 line, 23 test PASS) (0052da1)
-- ... (32 more)
+- ... (34 more)
 
 ### Changed
 
+- docs: P0-1 mypy strict venv verify 완료 (Break Point #3 close-out) (277ceff)
+- docs(roadmap): §8 P0-2 + P1-1 완료 표기 (v0.15.21-beta) (35442d8)
 - docs(roadmap): Phase 12 close-out + Phase 13 follow-up 정의 + housekeeping (31f07f1)
 - chore(session): handoff state.json — v0.15.15 release + follow-up + 누수 진단 완료 (3bff888)
 - chore(session): 누수 진단 종합 결과 state.json + session 파일 기록 (23d5ee1)
@@ -71,12 +73,19 @@ All notable changes to this project will be documented in this file.
 - docs: add Memora evaluation note (95d6eba)
 - chore(samples): output_samples tool_version v0.11.19 → v0.11.20 housekeeping (c90b437)
 - chore(spec): robust-patcher SKILL.md status → stable + spec layer 동기화 (63c22c8)
-- chore(samples): output_samples tool_version v0.11.17 → v0.11.19 housekeeping (af6baaf)
-- chore(spec): 4 skill SKILL.md status → stable + skill catalog/beta_criteria 갱신 (cb32d6c)
-- ... (148 more)
+- ... (150 more)
 
 ### Fixed
 
+- fix(tests): smoke 가 추적 중인 저장소 파일을 write 하던 오염 2경로 차단 (677f0c8)
+- fix(release): release --dry-run 이 저장소를 수정하던 오염 차단 (6a95eae)
+- fix(memory): workflow_memory_dir docs/ 분기의 active/ 누락 수정 — 구조적 red 3종 회복 (71c4ed5)
+- fix(tests): 저장소 상태 결합 stale 테스트 4건 회복 (미조사 red 원인 확정) (263f75f)
+- fix(tests): 저장소 상태/버전 결합 테스트 2건 격리 + 잔여 red 착수 지점 문서화 (acf6c30)
+- fix(tests): 잔여 red 3건 수정 — CLI 옵션 누락 복원 + 날짜/형태 결합 테스트 정정 (ff89e18)
+- fix(release): release_pipeline --amend 3중 가드 + 저장소 히스토리 재작성 위험 차단 (c4df358)
+- fix(tooling): fork bomb + state.json 파괴 근절 — smoke 전량 실행 안전성 확보 (e6f8e3e)
+- fix(tooling): temp dir 누수 근절 — /var/tmp 211GB 회수 + 재발 방지 가드 (9a7a128)
 - fix(tooling): /var/tmp 누수 가드 + .venv 명시적 차단 (5706dda)
 - fix(docs): smoke count 195 → 196 (신규 MEMORY_GOVERNANCE cross-check 추가) (d4abac9)
 - fix(memory_governance): frontmatter stamp + status 템플릿 순서 정합 (f0ac5b3)
@@ -98,16 +107,7 @@ All notable changes to this project will be documented in this file.
 - fix(samples): schema drift 회귀 방지 — sample 24 + schema 2 갱신 (00cc83e)
 - fix(workflow_kit): mypy strict output_contracts 15 error 격상 (f6b65a4)
 - fix(wiki): R9 lint false-positive 회피 — dashboard emit multi-line 분리 (1333cc8)
-- fix(workflow): 세션 종료 단계 commit/memory 순서 정정 — memory → commit → push (32185c7)
-- fix(release_pipeline): cmd_release --dry-run flag + local tag create (f531adb)
-- fix(v0.5.10.1): smart update — VERSION marker + content hash 기반 silent 갱신 (332de1a)
-- fix(v0.5.9.1): wire 가이드 §3 sub_payloads fix + 회귀 test (c202634)
-- fix(v0.5.7.1): include workflow_kit.common.{state,contracts,schemas} in wheel packaging (8e5cd7b)
-- fix: 42/42 smoke tests green + MiniMax Code harness overlay (#13) (fd12017)
-- fix(mcp): remove unsupported version param from FastMCP init (fa0eee4)
-- fix(ci): update test paths and dependencies in smoke.yml (d6df3d0)
-- fix: address PR #10 review feedback (6d89752)
-- ... (8 more)
+- ... (17 more)
 
 ## [3.0.1] - 2026-04-27
 
@@ -120,6 +120,26 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - feat: Phase 5 official release (v3.0) with unified operations path and updated schemas (3a7e4c1)
+
+## [1.0.0] - 2026-07-21
+
+### Changed
+
+- docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b9)
+- chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (34c6248)
+- chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9)
+- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (01838d0)
+- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (6e24b81)
+
+## [0.15.21] - 2026-07-21
+
+### Added
+
+- feat(release): v0.15.21 — Phase 13 follow-up 1차 (AC2 telemetry 다양성 + CHANGELOG lockdown) (8a93afa)
+
+### Changed
+
+- chore(dashboard): v0.15.21 post-release snapshot refresh (37233c9)
 
 ## [0.15.20] - 2026-07-20
 

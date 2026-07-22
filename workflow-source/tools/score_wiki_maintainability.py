@@ -6,7 +6,7 @@
 2. Freshness: drift (updated > 7일 vs code mtime) 0 비율
 3. Discoverability: vault L2 page with 본문 ≥ 200자 비율
 4. Cross-ref: L1 wiki with related_pages ≥ 2 비율
-5. Lifecycle: vault L2 page with status: reviewed 비율
+5. Lifecycle: vault L2 page 의 last_touched 신선도 비율 (생성물 방치 탐지)
 6. Operational: wiki 관련 smoke test (5종) PASS 비율
 
 Usage:
@@ -264,22 +264,56 @@ def score_cross_ref() -> tuple[float, dict]:
     return round(ratio * 5.0, 2), {"total": total, "linked": linked, "ratio": round(ratio, 3)}
 
 
+# L2 stub 이 "신선하다" 고 볼 최대 경과일. emit 주기(release cycle)보다 넉넉히 잡는다.
+L2_FRESH_DAYS = 30
+
+
 def score_lifecycle() -> tuple[float | None, dict]:
-    """vault L2 page with status: reviewed 비율. Max 5.0."""
+    """vault L2 page 의 **last_touched 신선도** 비율. Max 5.0.
+
+    이전 정의는 `status: reviewed` 비율이었는데 두 가지가 어긋나 있었다:
+
+    1. `reviewed` 는 wiki SCHEMA 어디에도 정의된 적 없는 값이다. SCHEMA 가 규정하는
+       status 어휘는 `active|draft|deprecated` / `proposed|accepted|superseded` 뿐이다.
+    2. L2 stub 은 `refresh_wiki_memory --emit-l2` 가 **매 사이클 재생성하는 생성물**
+       이라 "사람이 검토함" 이라는 상태가 구조적으로 붙지 않는다. 실제로 stub 을
+       복원하자 lifecycle 이 0.00 으로 떨어졌는데, 이는 품질 저하가 아니라 **지표가
+       생성물에 맞지 않는다**는 신호였다.
+
+    생성물에 맞는 lifecycle 은 "얼마나 최근에 갱신됐는가" 다. `last_touched` 가
+    오늘로부터 L2_FRESH_DAYS 이내면 살아 있는 것으로 센다. stub emit 이 멈추면
+    자연히 점수가 떨어지므로 **L2 계층 방치**를 정확히 탐지한다.
+    """
     if not L2_SOURCES.exists():
         return 0.0, {"error": "vault L2 not found"}
+    today = datetime.now().date()
     total = 0
-    reviewed = 0
+    reviewed = 0  # = fresh (하위 호환 위해 key 이름 유지)
+    stale: list[str] = []
     for md in L2_SOURCES.glob("*.md"):
         total += 1
         content = md.read_text(encoding="utf-8", errors="ignore")
-        if "status: reviewed" in content:
+        m = re.search(r"^last_touched:\s*(\d{4}-\d{2}-\d{2})", content, re.MULTILINE)
+        if not m:
+            stale.append(f"{md.name}: last_touched 부재")
+            continue
+        try:
+            touched = datetime.strptime(m.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            stale.append(f"{md.name}: last_touched 형식 오류")
+            continue
+        if (today - touched).days <= L2_FRESH_DAYS:
             reviewed += 1
+        else:
+            stale.append(f"{md.name}: {(today - touched).days}일 경과")
     if total == 0:
         return None, {"total": 0, "reviewed": 0, "ratio": 0.0,
                       "error": "no L2 source pages — not measurable"}
     ratio = reviewed / total
-    return round(ratio * 5.0, 2), {"total": total, "reviewed": reviewed, "ratio": round(ratio, 3)}
+    return round(ratio * 5.0, 2), {
+        "total": total, "reviewed": reviewed, "ratio": round(ratio, 3),
+        "fresh_days": L2_FRESH_DAYS, "stale": stale,
+    }
 
 
 def score_operational() -> tuple[float, dict]:
@@ -438,7 +472,7 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 - Total: {details['cross_ref']['total']} / Linked: {details['cross_ref']['linked']} ({int(details['cross_ref']['ratio']*100)}%)
 
 ### Lifecycle ({fmt(scores['lifecycle'])} / 5.0)
-- vault L2 page with status: reviewed 비율
+- vault L2 page 의 `last_touched` 신선도 비율 (emit 이 멈추면 하락 — L2 계층 방치 탐지)
 - Total: {details['lifecycle']['total']} / Reviewed: {details['lifecycle']['reviewed']} ({int(details['lifecycle']['ratio']*100)}%)
 
 ### Operational ({fmt(scores['operational'])} / 5.0)

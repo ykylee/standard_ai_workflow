@@ -197,6 +197,13 @@
       "scaffold": false,
       "test_path": "tests/check_git_conflict_resolver_v0_11_24.py",
       "promoted_in_release": "v0.11.24 (beta → stable — --apply 구현 + 8 case smoke + in-place 안전성)"
+    },
+    "memory-freeze": {
+      "stage": "stable",
+      "apply": true,
+      "scaffold": false,
+      "test_path": "tests/check_memory_freeze_skill.py",
+      "promoted_in_release": "v1.0.1 (R8 freeze 실행 계약 확립)"
     }
   },
   "mcp_tools": {

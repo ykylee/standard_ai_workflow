@@ -286,6 +286,24 @@ P1 DoD: V-1·V-4 통과, 수동 1 page ingest 사이클 1회 완수. 본 bootstr
 - 인제스트 로그: [`./log.md`](./log.md)
 - 첫 concept: [`./concepts/mcp-transport.md`](./concepts/mcp-transport.md)
 
+## L2 sources (`wiki/sources/`) 규정
+
+L1 wiki page 와 달리 `wiki/sources/` 의 L2 stub 은 `refresh_wiki_memory --emit-l2` 가
+**매 사이클 재생성하는 생성물**이다. 따라서 L1 의 status 어휘를 그대로 쓰지 않는다.
+
+| 항목 | 규정 |
+|---|---|
+| `type` | `meta` |
+| `status` | `draft` (자동 생성 기본) / `active` (운영 편입 확인 시) |
+| `r9_skip` | `true` — 생성물이므로 R9 ingest-source 검사 대상이 아니다 |
+| `last_touched` | emit 시각(YYYY-MM-DD). **lifecycle 지표의 입력** |
+
+**`reviewed` 는 사용하지 않는다.** 과거 maintainability 의 lifecycle 지표가
+`status: reviewed` 비율을 셌으나, (1) 본 SCHEMA 에 정의된 적 없는 값이고 (2) 매 사이클
+재생성되는 생성물에 "사람이 검토함" 상태가 구조적으로 붙지 않는다. lifecycle 은
+`last_touched` 신선도(기본 30일)로 재정의됐다 — emit 이 멈추면 점수가 떨어져 **L2 계층
+방치**를 탐지한다.
+
 ## §9 Revision Log  {#s9-revision-log}
 
 | Date | Version | Change | Author |

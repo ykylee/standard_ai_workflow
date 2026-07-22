@@ -87,13 +87,26 @@ def main() -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 1
 
-    # Create archive dir and copy files
+    # Create archive dir and copy files.
+    # copy 실패는 **부분 freeze** 를 남긴다 — archive 는 R9 immutable 이므로 반쪽짜리
+    # 스냅샷이 그대로 굳으면 이후 ingest 의 출처가 오염된다. 실패 시 방금 만든
+    # archive_dir 을 지워 "성공 아니면 없음" 을 보장한다.
     archive_dir.mkdir(parents=True, exist_ok=True)
-    for rel in frozen_files:
-        src = active_dir / rel
-        dst = archive_dir / rel
-        dst.parent.mkdir(parents=True, exist_ok=True)  # 하위 디렉터리 보존
-        shutil.copy2(src, dst)
+    try:
+        for rel in frozen_files:
+            src = active_dir / rel
+            dst = archive_dir / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)  # 하위 디렉터리 보존
+            shutil.copy2(src, dst)
+    except OSError as exc:
+        shutil.rmtree(archive_dir, ignore_errors=True)
+        payload = {
+            "status": "error",
+            "error": f"Archive write failed: {exc}",
+            "error_code": "ARCHIVE_WRITE_FAILED",
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 1
 
     # Write .frozen marker
     frozen_meta = {

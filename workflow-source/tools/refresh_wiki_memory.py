@@ -375,9 +375,24 @@ def reemit_l2_stub(stub_name: str, dense_body: str, dry: bool = True) -> int:
     if not p.exists():
         if dry:
             return len(dense_body)
-        raise FileNotFoundError(
-            f"L2 stub 부재: {p} — apply 는 frontmatter 를 보존해야 하므로 기존 stub 이 있어야 한다."
+        # apply 는 부재 시 **bootstrap 생성**한다. 이전에는 loud 실패였는데, 그러면
+        # `wiki/sources/` 가 비어 있는 한 emit 이 영원히 불가능해 L2 계층이 복구되지
+        # 않는다(실제로 dashboard 의 discoverability / lifecycle 이 분모 0 이었다).
+        # 생성 시 status 는 `draft` — 자동 생성물이지 사람이 검토한 문서가 아니다.
+        p.parent.mkdir(parents=True, exist_ok=True)
+        today = datetime.now().strftime("%Y-%m-%d")
+        bootstrap_fm = (
+            "---\n"
+            "type: meta\n"
+            "status: draft\n"
+            "r9_skip: true\n"
+            f"title: {stub_name}\n"
+            f"created: {today}\n"
+            f"last_touched: {today}\n"
+            "---\n"
         )
+        p.write_text(bootstrap_fm + "\n" + dense_body, encoding="utf-8")
+        return len(dense_body)
     text = p.read_text()
     parts = text.split("---\n", 2)
     if len(parts) < 3:

@@ -3,8 +3,8 @@
 - 문서 목적: session 종료 시 `ai-workflow/memory/active/` 의 mutable 상태를 `ai-workflow/memory/archive/YYYY-MM-DD/` 로 freeze. R8 (Memory Raw Freeze) 규칙 구현.
 - 범위: freeze 트랜지션, `.frozen` 마커, atomic rename, archive 무결성
 - 대상 독자: AI agent, workflow 설계자
-- 상태: prototype (P2, v0.6.1)
-- 최종 수정일: 2026-06-12
+- 상태: stable (v1.0.1+, 실행 계약 smoke 6/6 — `../../tests/check_memory_freeze_skill.py`)
+- 최종 수정일: 2026-07-22
 - 관련 문서: `../../.omo/plans/v0.6.1-plus-memory-raw-ops-design.md` §4 R8, `../../MEMORY_GOVERNANCE.md`
 
 ## 1. 목적

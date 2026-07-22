@@ -1,6 +1,7 @@
 ---
 type: topic
 status: draft
+last_ingested_from: ai-workflow/memory/active/main/session_analysis_2026-07-09.md + workflow-source/skills/automated-repro-scaffold/SKILL.md + workflow-source/core/automated_repro_scaffold_skill_spec.md
 related_pages:
   - topics/workflow-audit-2026-07-09
   - topics/phase-13-definition-north-star

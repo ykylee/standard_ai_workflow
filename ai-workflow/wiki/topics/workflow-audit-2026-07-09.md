@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: ai-workflow/memory/active/session_analysis_2026-07-09.md + workflow-source/core/maturity_matrix.json + workflow-source/core/workflow_kit_roadmap.md
+last_ingested_from: ai-workflow/memory/active/main/session_analysis_2026-07-09.md + workflow-source/core/maturity_matrix.json + workflow-source/core/workflow_kit_roadmap.md
 related_pages: [topics/standard-ai-workflow-architecture-2026, concepts/memory-3-state-lifecycle, concepts/project-architecture, decisions/adr-005-r9-wiki-source-rule, decisions/adr-006-okf-compat-frontmatter, patterns/memory-write-merge]
 created: 2026-07-09
 updated: 2026-07-09
@@ -11,7 +11,7 @@ updated: 2026-07-09
 
 ## TL;DR
 
-본 토픽은 2026-07-09 세션에서 진행한 `standard_ai_workflow` 저장소의 워크플로우 구성 점검 결과를 영구 기록한 audit 보고서다. 현 상태 스냅샷, **P0/P1/P2 우선순위별 고도화 후보 10건**, 권장 작업 순서를 정리한다. 입력 SSOT 는 `maturity_matrix.json` (v0.11.22-beta 갱신일자 2026-07-03) 이며, 단기 메모리 (`memory/active/session_analysis_2026-07-09.md`) 와 상호 링크.
+본 토픽은 2026-07-09 세션에서 진행한 `standard_ai_workflow` 저장소의 워크플로우 구성 점검 결과를 영구 기록한 audit 보고서다. 현 상태 스냅샷, **P0/P1/P2 우선순위별 고도화 후보 10건**, 권장 작업 순서를 정리한다. 입력 SSOT 는 `maturity_matrix.json` (v0.11.22-beta 갱신일자 2026-07-03) 이며, 단기 메모리 (`memory/active/main/session_analysis_2026-07-09.md`) 와 상호 링크.
 
 ## 1. 점검 컨텍스트
 
@@ -77,7 +77,7 @@ git_history_summarizer, workflow_log_rotator, smart_context_reader, apply_robust
 
 ## 5. 인용 및 후속
 
-- 단기 메모리: `ai-workflow/memory/active/session_analysis_2026-07-09.md`
+- 단기 메모리: `ai-workflow/memory/active/main/session_analysis_2026-07-09.md`
 - SSOT: `workflow-source/core/maturity_matrix.json`
 - 로드맵: `workflow-source/core/workflow_kit_roadmap.md`
 - 후속 작업 시 wiki index (`ai-workflow/wiki/index.md`) 에 본 토픽 등록 여부 확인 필요.

@@ -1,6 +1,6 @@
 ---
 type: concept
-status: proposed
+status: draft
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
 verification_status: verified_via_adr-010 (proposed, v0.7.35+ candidate)

@@ -174,7 +174,11 @@ def test_inrepo_wiki_l1_drift() -> None:
             # updated 가 미래 = user 가 *예약* update (drift negative)
             continue
         if drift_days >= DRIFT_THRESHOLD_DAYS:
-            drift_pages.append((str(md.relative_to(SOURCE_ROOT)), drift_days))
+            # wiki page 는 `ai-workflow/` 아래에 있어 SOURCE_ROOT(`workflow-source/`)
+            # 기준으로는 relative_to 가 ValueError 를 낸다. 즉 **drift 를 실제로
+            # 발견하는 순간 report 대신 크래시**했고, 그래서 이 보고 경로는 한 번도
+            # 실행된 적이 없다.
+            drift_pages.append((str(md.relative_to(REPO_ROOT)), drift_days))
 
     if drift_pages:
         msg = "drift detected (updated > 7일 stale vs last_ingested_from code mtime):\n"
@@ -344,6 +348,14 @@ def test_v070_concept_pages_indexed() -> None:
 # --- Test 5: wiki status = active + last_ingested_from 양식 ---
 
 
+LIFECYCLE_STATUSES = ("active", "draft", "deprecated")
+
+
+def _has_lifecycle_status(fm: str) -> bool:
+    """concept / topic / pattern 의 status 어휘 (SCHEMA §page-type)."""
+    return any(f"status: {s}" in fm for s in LIFECYCLE_STATUSES)
+
+
 def test_l1_wiki_pages_format() -> None:
     """L1 wiki page 의 frontmatter 가 type 별 양식 준수.
 
@@ -361,14 +373,17 @@ def test_l1_wiki_pages_format() -> None:
             continue
         fm = fm_match.group(1)
         if "type: concept" in fm or "type: topic" in fm:
-            if "status: active" not in fm and "status: draft" not in fm:
-                bad.append((md.name, "missing status: active|draft"))
+            # SCHEMA §page-type 은 concept/topic/pattern 의 status 어휘를
+            # active | draft | deprecated 로 규정한다. `deprecated` 가 빠져 있어
+            # schema 를 지킨 page 가 red 가 될 수 있었다.
+            if not _has_lifecycle_status(fm):
+                bad.append((md.name, "missing status: active|draft|deprecated"))
             if "last_ingested_from:" not in fm:
                 bad.append((md.name, "missing last_ingested_from"))
         elif "type: pattern" in fm:
             # pattern 은 last_ingested_from optional (코드 reference 가 없을 수 있음)
-            if "status: active" not in fm and "status: draft" not in fm:
-                bad.append((md.name, "missing status: active|draft"))
+            if not _has_lifecycle_status(fm):
+                bad.append((md.name, "missing status: active|draft|deprecated"))
         elif "type: decision" in fm:
             if "status: accepted" not in fm and "status: proposed" not in fm and "status: deprecated" not in fm:
                 bad.append((md.name, "missing status: accepted|proposed|deprecated"))

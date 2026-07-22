@@ -234,10 +234,10 @@ class DimAlert:
     """dim 별 alert 결과."""
 
     dim: str
-    baseline: float
-    current: float
-    delta: float  # current - baseline
-    severity: str  # "alert" | "info" | "ok"
+    baseline: float | None
+    current: float | None
+    delta: float | None  # current - baseline
+    severity: str  # "alert" | "info" | "ok" | "n/a"
 
 
 def compare_scores(
@@ -262,6 +262,12 @@ def compare_scores(
     for dim in DIMS:
         b = baseline.get("scores", {}).get(dim, 0.0)
         c = current.get("scores", {}).get(dim, 0.0)
+        # 측정 불가(None) dim 은 비교 대상이 아니다. 0.0 으로 대체해 비교하면
+        # "측정하지 못했다"가 "0점으로 급락했다"는 **거짓 alert** 이 된다.
+        if b is None or c is None:
+            alerts.append(DimAlert(dim=dim, baseline=b, current=c, delta=None,
+                                   severity="n/a"))
+            continue
         delta = c - b
         if delta <= -alert_threshold:
             severity = "alert"
@@ -283,6 +289,9 @@ def print_alerts(alerts: list[DimAlert], baseline_label: str, current_label: str
     print(f"Dim alerts ({baseline_label} → {current_label}, threshold={alert_threshold}):")
     print()
     for a in alerts:
+        if a.severity == "n/a":
+            print(f"  ⚫ {a.dim:18s}   n/a →   n/a (측정 불가)")
+            continue
         sign = "+" if a.delta >= 0 else ""
         bar = ""
         if a.severity == "alert":

@@ -78,6 +78,11 @@ def test_score_range() -> None:
     """6 dim score 가 0.0 ~ 5.0 범위."""
     score = _run_score_tool()
     for dim, s in score["scores"].items():
+        # None = 측정 불가 (분모 0). 0.0 으로 세지 않는 것이 계약이므로 범위 검사 제외.
+        if s is None:
+            assert "error" in score["details"][dim], \
+                f"{dim}: 측정 불가면 details 에 error 사유가 있어야 한다"
+            continue
         assert 0.0 <= s <= 5.0, f"{dim}: {s} out of range"
     assert 0.0 <= score["overall"] <= 5.0
 
@@ -113,6 +118,8 @@ def test_details_consistency() -> None:
     score = _run_score_tool()
     for dim in score["scores"]:
         detail = score["details"][dim]
+        if score["scores"][dim] is None:
+            continue  # 측정 불가 dim 은 ratio ↔ score 정합 대상이 아니다
         if "ratio" in detail:
             # score = ratio * 5.0 (or (1-ratio)*5.0 for freshness)
             ratio = detail["ratio"]

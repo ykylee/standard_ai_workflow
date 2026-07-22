@@ -208,7 +208,7 @@ def score_freshness() -> tuple[float, dict]:
     return round((1 - ratio) * 5.0, 2), {"total": total, "drift": drift, "drift_ratio": round(ratio, 3)}
 
 
-def score_discoverability() -> tuple[float, dict]:
+def score_discoverability() -> tuple[float | None, dict]:
     """vault L2 page with 본문 ≥ 200자 비율. Max 5.0."""
     if not L2_SOURCES.exists():
         return 0.0, {"error": "vault L2 not found"}
@@ -228,7 +228,13 @@ def score_discoverability() -> tuple[float, dict]:
             continue
         if len(body) >= 200:
             searchable += 1
-    ratio = searchable / total if total > 0 else 0
+    if total == 0:
+        # 분모 0 은 "품질이 최악"이 아니라 **측정 불가**다. 0.0 을 내면 빈 L2 sources
+        # 디렉터리가 점수를 최악으로 끌어내려 지표를 왜곡한다 (디렉터리 *부재* 는
+        # 이미 error 로 다루면서 *빈* 경우만 0.0 이던 비대칭).
+        return None, {"total": 0, "searchable": 0, "ratio": 0.0,
+                      "error": "no L2 source pages — not measurable"}
+    ratio = searchable / total
     return round(ratio * 5.0, 2), {"total": total, "searchable": searchable, "ratio": round(ratio, 3)}
 
 
@@ -258,7 +264,7 @@ def score_cross_ref() -> tuple[float, dict]:
     return round(ratio * 5.0, 2), {"total": total, "linked": linked, "ratio": round(ratio, 3)}
 
 
-def score_lifecycle() -> tuple[float, dict]:
+def score_lifecycle() -> tuple[float | None, dict]:
     """vault L2 page with status: reviewed 비율. Max 5.0."""
     if not L2_SOURCES.exists():
         return 0.0, {"error": "vault L2 not found"}
@@ -269,7 +275,10 @@ def score_lifecycle() -> tuple[float, dict]:
         content = md.read_text(encoding="utf-8", errors="ignore")
         if "status: reviewed" in content:
             reviewed += 1
-    ratio = reviewed / total if total > 0 else 0
+    if total == 0:
+        return None, {"total": 0, "reviewed": 0, "ratio": 0.0,
+                      "error": "no L2 source pages — not measurable"}
+    ratio = reviewed / total
     return round(ratio * 5.0, 2), {"total": total, "reviewed": reviewed, "ratio": round(ratio, 3)}
 
 
@@ -321,7 +330,11 @@ def compute_scores() -> dict:
     lifecycle, lc_detail = score_lifecycle()
     operational, op_detail = score_operational()
 
-    overall = round((coverage + freshness + disc + cross_ref + lifecycle + operational) / 6, 2)
+    # 측정 불가(None) dim 은 평균에서 제외한다. 0 으로 세면 "측정하지 못했다"가
+    # "점수가 0이다"로 둔갑해 overall 과 grade 를 끌어내린다.
+    measurable = [s for s in (coverage, freshness, disc, cross_ref, lifecycle, operational)
+                  if s is not None]
+    overall = round(sum(measurable) / len(measurable), 2) if measurable else 0.0
     grade = "A" if overall >= 4.5 else "B" if overall >= 4.0 else "C" if overall >= 3.5 else "D" if overall >= 3.0 else "F"
 
     return {
@@ -355,8 +368,14 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
     scores = score["scores"]
     details = score["details"]
 
-    def bar(score: float) -> str:
-        """5.0 만점 → ASCII bar (20 chars)."""
+    def fmt(score: float | None) -> str:
+        """측정 불가 dim 은 숫자 대신 n/a 로 표기한다."""
+        return "n/a" if score is None else str(score)
+
+    def bar(score: float | None) -> str:
+        """5.0 만점 → ASCII bar (20 chars). 측정 불가면 빈 bar."""
+        if score is None:
+            return "─" * 20
         filled = int(score / 5.0 * 20)
         return "█" * filled + "░" * (20 - filled)
 
@@ -392,37 +411,37 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 
 | Dim | Score | Bar |
 |---|---|---|
-| Coverage | {scores['coverage']} / 5.0 | `{bar(scores['coverage'])}` |
-| Freshness | {scores['freshness']} / 5.0 | `{bar(scores['freshness'])}` |
-| Discoverability | {scores['discoverability']} / 5.0 | `{bar(scores['discoverability'])}` |
-| Cross-ref | {scores['cross_ref']} / 5.0 | `{bar(scores['cross_ref'])}` |
-| Lifecycle | {scores['lifecycle']} / 5.0 | `{bar(scores['lifecycle'])}` |
-| Operational | {scores['operational']} / 5.0 | `{bar(scores['operational'])}` |
+| Coverage | {fmt(scores['coverage'])} / 5.0 | `{bar(scores['coverage'])}` |
+| Freshness | {fmt(scores['freshness'])} / 5.0 | `{bar(scores['freshness'])}` |
+| Discoverability | {fmt(scores['discoverability'])} / 5.0 | `{bar(scores['discoverability'])}` |
+| Cross-ref | {fmt(scores['cross_ref'])} / 5.0 | `{bar(scores['cross_ref'])}` |
+| Lifecycle | {fmt(scores['lifecycle'])} / 5.0 | `{bar(scores['lifecycle'])}` |
+| Operational | {fmt(scores['operational'])} / 5.0 | `{bar(scores['operational'])}` |
 
 ## Detail
 
-### Coverage ({scores['coverage']} / 5.0)
+### Coverage ({fmt(scores['coverage'])} / 5.0)
 - L1 wiki page with concept/topic/pattern + last_ingested_from marker
 - + frontmatter `status: active` 비율
 - Total: {details['coverage']['total']} / Active: {details['coverage']['active']} ({int(details['coverage']['ratio']*100)}%)
 
-### Freshness ({scores['freshness']} / 5.0)
+### Freshness ({fmt(scores['freshness'])} / 5.0)
 - drift (updated > 7일 vs code mtime) 비율의 (1 - ratio)
 - Total: {details['freshness']['total']} / Drift: {details['freshness']['drift']} ({int(details['freshness']['drift_ratio']*100)}%)
 
-### Discoverability ({scores['discoverability']} / 5.0)
+### Discoverability ({fmt(scores['discoverability'])} / 5.0)
 - vault L2 page with 본문 ≥ 200자 비율 (frontmatter-only 제외)
 - Total: {details['discoverability']['total']} / Searchable: {details['discoverability']['searchable']} ({int(details['discoverability']['ratio']*100)}%)
 
-### Cross-ref ({scores['cross_ref']} / 5.0)
+### Cross-ref ({fmt(scores['cross_ref'])} / 5.0)
 - L1 wiki with related_pages ≥ 2 비율
 - Total: {details['cross_ref']['total']} / Linked: {details['cross_ref']['linked']} ({int(details['cross_ref']['ratio']*100)}%)
 
-### Lifecycle ({scores['lifecycle']} / 5.0)
+### Lifecycle ({fmt(scores['lifecycle'])} / 5.0)
 - vault L2 page with status: reviewed 비율
 - Total: {details['lifecycle']['total']} / Reviewed: {details['lifecycle']['reviewed']} ({int(details['lifecycle']['ratio']*100)}%)
 
-### Operational ({scores['operational']} / 5.0)
+### Operational ({fmt(scores['operational'])} / 5.0)
 - wiki 관련 smoke test PASS 비율
 - Total: {details['operational']['total']} / Passed: {details['operational']['passed']} ({int(details['operational']['ratio']*100)}%)
 
@@ -480,6 +499,9 @@ def main() -> int:
     print(f"Overall: {score['overall']} / 5.0 — Grade {score['grade']}")
     print()
     for dim, s in score["scores"].items():
+        if s is None:
+            print(f"  {dim:18s}   n/a / 5.0  {'─' * 20}  (측정 불가)")
+            continue
         bar = "█" * int(s / 5.0 * 20) + "░" * (20 - int(s / 5.0 * 20))
         print(f"  {dim:18s} {s:5.2f} / 5.0  {bar}")
     return 0

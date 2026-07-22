@@ -1,6 +1,6 @@
 ---
 type: concept
-status: accepted
+status: active
 last_ingested_from: internal (this page is the rule definition, not ingest of an external source)
 r9_skip: true
 verification_status: accepted_via_adr-023 (v0.7.43, formal documentation)

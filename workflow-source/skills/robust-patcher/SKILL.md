@@ -25,12 +25,12 @@
 
 ```bash
 # 1) 패치 적용 (정확 매칭)
-python3 skills/robust_patcher/scripts/run_robust_patcher.py \
+python3 skills/robust-patcher/scripts/run_robust_patcher.py \
   --file "src/main.py" \
   --patch-file "patch.txt"
 
 # 2) Dry-run (미리보기, 파일 변경 ❌)
-python3 skills/robust_patcher/scripts/run_robust_patcher.py \
+python3 skills/robust-patcher/scripts/run_robust_patcher.py \
   --file "src/main.py" \
   --patch-file "patch.txt" \
   --dry-run

@@ -119,91 +119,113 @@
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_session_start.py",
-      "promoted_in_release": "v0.11.19 (1st batch)"
+      "promoted_in_release": "v0.11.19 (1st batch)",
+      "kind": "executable"
     },
     "backlog-update": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_backlog_update.py",
-      "promoted_in_release": "v0.11.20 (2nd batch)"
+      "promoted_in_release": "v0.11.20 (2nd batch)",
+      "kind": "executable"
     },
     "doc-sync": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_doc_sync.py",
-      "promoted_in_release": "v0.11.19 (1st batch)"
+      "promoted_in_release": "v0.11.19 (1st batch)",
+      "kind": "executable"
     },
     "merge-doc-reconcile": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_merge_doc_reconcile.py",
-      "promoted_in_release": "v0.11.20 (2nd batch)"
+      "promoted_in_release": "v0.11.20 (2nd batch)",
+      "kind": "executable"
     },
     "validation-plan": {
       "stage": "stable",
       "apply": true,
       "scaffold": true,
       "test_path": "tests/check_validation_plan.py",
-      "promoted_in_release": "v0.11.19 (1st batch)"
+      "promoted_in_release": "v0.11.19 (1st batch)",
+      "kind": "executable"
     },
     "code-index-update": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_code_index_update.py",
-      "promoted_in_release": "v0.11.19 (1st batch)"
+      "promoted_in_release": "v0.11.19 (1st batch)",
+      "kind": "executable"
     },
     "workflow-linter": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_workflow_linter.py",
-      "promoted_in_release": "v0.11.20 (2nd batch)"
+      "promoted_in_release": "v0.11.20 (2nd batch)",
+      "kind": "executable"
     },
     "project-status-assessment": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_project_status_assessment.py",
-      "promoted_in_release": "v0.11.20 (2nd batch)"
+      "promoted_in_release": "v0.11.20 (2nd batch)",
+      "kind": "executable"
     },
     "automated-repro-scaffold": {
       "stage": "stable",
       "apply": true,
       "scaffold": true,
       "test_path": "tests/check_automated_repro_scaffold_v0_11_24.py",
-      "promoted_in_release": "v0.11.24 (4th batch — automated-repro-scaffold stable)"
+      "promoted_in_release": "v0.11.24 (4th batch — automated-repro-scaffold stable)",
+      "kind": "executable"
     },
     "robust-patcher": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_robust_patcher.py",
-      "promoted_in_release": "v0.11.21 (3rd batch)"
+      "promoted_in_release": "v0.11.21 (3rd batch)",
+      "kind": "executable"
     },
     "task-modes": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": null,
-      "promoted_in_release": "v0.11.0 (independent track — Phase 12 초입의 6-mode 안정화 명세)"
+      "promoted_in_release": "v0.11.0 (independent track — Phase 12 초입의 6-mode 안정화 명세)",
+      "kind": "spec",
+      "spec_path": "core/workflow_task_modes.md"
     },
     "git-conflict-resolver": {
       "stage": "stable",
       "apply": false,
       "scaffold": false,
       "test_path": "tests/check_git_conflict_resolver_v0_11_24.py",
-      "promoted_in_release": "v0.11.24 (beta → stable — --apply 구현 + 8 case smoke + in-place 안전성)"
+      "promoted_in_release": "v0.11.24 (beta → stable — --apply 구현 + 8 case smoke + in-place 안전성)",
+      "kind": "executable"
     },
     "memory-freeze": {
       "stage": "stable",
       "apply": true,
       "scaffold": false,
       "test_path": "tests/check_memory_freeze_skill.py",
-      "promoted_in_release": "v1.0.1 (R8 freeze 실행 계약 확립)"
+      "promoted_in_release": "v1.0.1 (R8 freeze 실행 계약 확립)",
+      "kind": "executable"
+    },
+    "memory-index-query": {
+      "stage": "beta",
+      "apply": true,
+      "scaffold": false,
+      "test_path": "tests/check_memory_index.py",
+      "promoted_in_release": "v0.11.22 (Phase 3, subcommand 36)",
+      "kind": "executable"
     }
   },
   "mcp_tools": {
@@ -324,5 +346,8 @@
     ],
     "codewhale_added_in_release": "v0.10.4 (2026-07-03, cf0060d)",
     "codewhale_note": "단일 SKILL.md overlay, additive rules only (session start + Korean output + backlog mgmt); Constitution 이 verification/parallelism/context 담당"
-  }
+  },
+  "skill_registry_exempt_dirs": [
+    "workers"
+  ]
 }

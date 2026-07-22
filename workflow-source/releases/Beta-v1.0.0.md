@@ -348,9 +348,40 @@ discoverability / lifecycle 이 분모 0(측정 불가)이었다. `--emit-l2 --a
 측정 결과: discoverability n/a → **5.00**, lifecycle n/a → **5.00**,
 overall **4.68 (Grade A)**, trend alert 0건.
 
+### 2.18 maturity registry 정합 — "선언이 사실인가" 를 CI 가 검사 (**릴리스 후 보강**)
+
+§2.16 의 `check_executable_surface` 가 "실행 가능한가" 를 본다면, 본 절은 **"선언이
+사실인가"** 를 본다. 한 사이클에 선언-실제 괴리가 두 번 나왔기 때문이다:
+`git-conflict-resolver`(stable 등재 + 실행 불가), `memory-freeze`(governance 필수
+규칙 구현인데 registry 미등재 + prototype 표기).
+
+**드리프트 3건 해소** — registry ↔ 디스크가 세 방향으로 어긋나 있었다:
+
+| 유형 | 대상 | 처리 |
+|---|---|---|
+| 디렉터리명 규약 이탈 | `robust_patcher`(underscore) vs 등재 `robust-patcher` | 다른 13개와 같은 hyphen 규약으로 디렉터리 rename (Python import 없음 확인, live 참조 3건 갱신). `family="robust_patcher"` 는 payload family 이름이라 별개로 유지 |
+| 등재됐으나 디스크 부재 | `task-modes` | 실행 skill 이 아니라 **명세**(`core/workflow_task_modes.md`) → `kind: "spec"` 명시. `test_path: null` + stable 이 조건과 충돌하던 것도 해소 |
+| 디스크에 있으나 미등재 | `memory-index-query` | 등재. SKILL.md 가 스스로 `beta` 라 선언하고 실행 예시 절도 없으므로 **beta 로 정직하게** 등재 |
+| skill 아님 | `workers/`(SKILL.md 없음) | `skill_registry_exempt_dirs` 로 명시적 제외 |
+
+**`check_maturity_registry.py` 신규** (3 case): registry ↔ 디스크 양방향 정합 /
+`stage: stable` 의 승격 조건 충족 / `test_path` 실재.
+
+도입 과정에서 `git-conflict-resolver` 의 **SKILL.md 에 실행 예시 절이 없다**는 실제
+누락을 잡아 CLI 실측 기준으로 추가했다.
+
+> **의도적으로 검증하지 않는 조건**: §3.1 의 "error_code 최소 3종" 은 선언 위치가
+> 통일돼 있지 않다 — run script inline literal / `.get("error_code", ...)` default /
+> 일부는 schema 의 `*_ERROR_CODES` tuple (게다가 schema module 명이 skill 명과 1:1 이
+> 아니다: workflow-linter → `linter.py`, git-conflict-resolver → `git.py`).
+> 어설픈 정규식 계수는 위양성을 냈고(초안이 정상 skill 4종을 오탐), **위양성을 내는
+> check 는 무시당해 결국 아무것도 막지 못한다.** 규약이 생기면 기계 검증으로 승격한다.
+
+세 메타 체크 모두 **드리프트를 주입해 FAIL 하는 것까지 확인**했다.
+
 ## 3. 검증
 
-누적 smoke **202/202 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **203/203 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -370,7 +401,7 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **202/202 PASS** (릴리스 시점 199/199 + 발행 후 §2.16 메타 체크 2종 + §2.17 memory-freeze skill smoke) |
+| 전량 smoke | **203/203 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke, §2.16~2.18) |
 | 실효 smoke | **197/197 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |

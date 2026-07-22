@@ -12,7 +12,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPT_PATH = SOURCE_ROOT / "skills" / "robust_patcher" / "scripts" / "run_robust_patcher.py"
+# 디렉터리명은 다른 13개 skill 과 같은 hyphen 규약(`robust-patcher`)으로 정렬됐다.
+# `family="robust_patcher"` 는 output contract 의 **payload family 이름**이라 별개다.
+SCRIPT_PATH = SOURCE_ROOT / "skills" / "robust-patcher" / "scripts" / "run_robust_patcher.py"
 
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))

@@ -1,4 +1,4 @@
-"""mkdocs plugin: docs/* 의 '- 최종 수정일: <date>' 헤더를 build-time 에 git log 로 자동 갱신.
+r"""mkdocs plugin: docs/* 의 '- 최종 수정일: <date>' 헤더를 build-time 에 git log 로 자동 갱신.
 
 v0.11.23+ 신규 (drift prevention P3). mkdocs serve / build 시 on_page_markdown hook 에서
 page.file.abs_src_path 의 git last-commit date 를 읽어 source markdown 의 '- 최종 수정일: <old>'

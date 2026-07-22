@@ -211,6 +211,30 @@ def _run_auto_bump(new_version: str) -> dict[str, Any]:
         }
 
 
+# release tag 에 붙는 pre-release suffix. `release_pipeline` 의
+# `suffix_order = {"": 0, "alpha": 1, "beta": 2, "rc": 3}` 와 같은 집합이다.
+_TAG_SUFFIXES = ("-alpha", "-beta", "-rc")
+
+
+def _tag_to_version(tag: str) -> str:
+    """release tag(`v1.0.0-beta`) → pyproject version(`1.0.0`).
+
+    이전 구현은 `tag.lstrip("v").rstrip("-beta")` 였는데 `rstrip` 은 **suffix 제거가
+    아니라 문자집합 제거**다. 집합 {'-','b','e','t','a'} 를 오른쪽에서 벗기므로:
+
+        "1.0.0-alpha" -> "1.0.0-alph"   (h 가 집합에 없어 거기서 멈춤)
+        "1.0.0-rc"    -> "1.0.0-rc"     (c 가 집합에 없어 그대로)
+
+    beta 만 쓰는 동안 우연히 맞았을 뿐이고, alpha / rc 릴리스에서는 version 비교가
+    조용히 어긋나 "이미 릴리스됨" 판정과 auto-bump 분기가 오작동한다.
+    """
+    version = tag[1:] if tag.startswith("v") else tag
+    for suffix in _TAG_SUFFIXES:
+        if version.endswith(suffix):
+            return version[: -len(suffix)]
+    return version
+
+
 def cmd_release_status(args: Any) -> dict[str, Any]:
     """Release pipeline status aggregator (v0.11.14+, read-only).
 
@@ -242,7 +266,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
     auto_bump_applied = False
     auto_bump_result: dict[str, Any] | None = None
     if getattr(args, "auto_bump", False) and last_tag \
-            and last_tag.lstrip("v").rstrip("-beta") == current:
+            and _tag_to_version(last_tag) == current:
         auto_bump_result = _run_auto_bump(next_ver["next"])
         auto_bump_applied = auto_bump_result.get("ok", False)
         if auto_bump_applied:
@@ -263,7 +287,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             f"auto-bumped to {current} (was {last_tag}); "
             "all checks pass + unreleased commits present"
         )
-    elif last_tag and last_tag.lstrip("v").rstrip("-beta") == current:
+    elif last_tag and _tag_to_version(last_tag) == current:
         # 이미 current 가 last_tag 와 같음 (release 안 됨)
         ready = False
         ready_reason = "current_version already at last_release_tag"

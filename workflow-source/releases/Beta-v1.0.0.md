@@ -282,9 +282,40 @@ module-level `REPO_ROOT` 기준으로 실제 origin 을 조회한다(주석은 "
 > 반드시 한 번 더 돌리고 `git status` 를 확인해야 한다.** 릴리스 전 green 이 릴리스 후
 > green 을 보장하지 않는다.
 
+### 2.16 실행 표면 / 저장소 오염 메타 체크 신규 (**릴리스 후 보강**)
+
+> 본 절도 `v1.0.0-beta` 발행 이후 추가분이다 (§2.15 와 동일).
+
+§2.11 의 오염 5경로와 §2.12 의 freeze 스킬 실행 불가는 **모두 사후에 사람이 발견**했다.
+경로를 하나씩 막는 대신 그 부류가 생기는 것 자체를 CI 가 잡도록 메타 체크 2종을 세운다.
+
+**`check_executable_surface.py`** — 실행 표면(skill / tool / script 62 file)이 실제로
+실행 가능한가. (1) 전량 compile, (2) `run_*.py` entrypoint 16종의 `--help` 응답으로
+import chain 검증, (3) hyphen 이 섞인 식별자 금지(v0.6.6 template 회귀 패턴 차단).
+
+> 도입 즉시 **두 번째 실행 불가 스킬을 잡아냈다** — `git-conflict-resolver` 가
+> 존재한 적 없는 `UnresolvedConflict` 를 import 해 entrypoint 가 ImportError 로
+> 죽어 있었다. maturity_matrix 에는 **stable 로 등재**된 상태였다. 출력 계약이
+> `list[dict[str, str]]` 이므로 dict emit 으로 정정했다(계약 변경 없음).
+
+**`check_no_repo_write.py`** — 감시 대상 check 실행 전후로 `git status --porcelain` +
+`git diff HEAD --stat` 해시를 비교해 추적 파일이 바뀌면 실패시킨다. 감시 목록은 과거에
+실제 오염을 일으켰던 check 8종(경로 1~5 전부 포함).
+
+- **전후 delta 로 판정**하므로 워킹트리가 이미 dirty 해도 동작한다.
+- `git status` 만으로는 §2.11 경로 4(HEAD 로 복원해 작업을 지우는 유형)를 놓치므로
+  내용 해시를 함께 본다.
+- **오염을 일으키는 임시 check 를 넣어 FAIL 하는 것까지 확인**했다 (통과만 하는
+  체크가 되지 않도록 — §2.11 의 교훈).
+
+부수: `release_status.py` 의 `.rstrip("-beta")` 를 정식 suffix 제거로 교체.
+문자집합 strip 이라 `"1.0.0-alpha"` → `"1.0.0-alph"`, `"1.0.0-rc"` → 그대로가 되어
+alpha / rc 릴리스에서 version 비교가 조용히 어긋났다(둘 다 `suffix_order` 에 정식
+지원되는 suffix). beta 만 쓰는 동안 우연히 맞았을 뿐이다.
+
 ## 3. 검증
 
-누적 smoke **199/199 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **201/201 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -304,7 +335,7 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **199/199 PASS** (test case 219 PASS / 0 FAIL) |
+| 전량 smoke | **201/201 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 2종, §2.16) |
 | 실효 smoke | **197/197 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |

@@ -240,6 +240,22 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     assert "auto-bumped" in result_bump["ready_reason"].lower() or "auto_bumped" in result_bump["ready_reason"].lower(), (
         f"--auto-bump 성공 후 ready_reason 의 auto-bump 명시 부재: {result_bump['ready_reason']!r}"
     )
+    # case 9: tag → version 변환이 alpha / rc suffix 에서도 정확한지
+    # 이전 구현 `tag.lstrip("v").rstrip("-beta")` 는 suffix 제거가 아니라 문자집합
+    # 제거였다: "1.0.0-alpha" -> "1.0.0-alph", "1.0.0-rc" -> "1.0.0-rc".
+    # beta 만 쓰는 동안 우연히 맞았고, alpha / rc 릴리스에서 조용히 오작동한다.
+    from workflow_kit.release_status import _tag_to_version
+    for tag, expected in (
+        ("v1.0.0-beta", "1.0.0"),
+        ("v1.0.0-alpha", "1.0.0"),
+        ("v1.0.0-rc", "1.0.0"),
+        ("v1.0.0", "1.0.0"),
+        ("1.2.3-beta", "1.2.3"),
+    ):
+        got = _tag_to_version(tag)
+        assert got == expected, f"_tag_to_version({tag!r}) = {got!r}, expected {expected!r}"
+    print("  case 9 (tag→version 변환: alpha / rc / suffix 없음 모두 정확): PASS")
+
     print(f"  case 8 (--auto-bump=True + mock applied → auto_bump_applied=True + re-read 정합): PASS")
 
 

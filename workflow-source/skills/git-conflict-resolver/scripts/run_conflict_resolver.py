@@ -14,7 +14,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.schemas.git import GitConflictResolverOutput, UnresolvedConflict
+from workflow_kit.common.schemas.git import GitConflictResolverOutput
 from workflow_kit.common.schemas.base import Status
 from conflict_analyzer import ConflictAnalyzer
 
@@ -76,16 +76,19 @@ def apply_resolution(file_path: Path, strategy: str) -> GitConflictResolverOutpu
         elif strategy == "smart":
             resolved_content = resolve_smart(conflict)
             if resolved_content is None:
-                unresolved.append(UnresolvedConflict(
-                    lines=f"{conflict.start_line}-{conflict.end_line}",
-                    reason="Smart merge failed: overlapping changes or non-list content."
-                ))
+                # `unresolved_conflicts` 의 선언 타입은 `list[dict[str, str]]` 이다.
+                # 이전 코드는 **정의된 적 없는** `UnresolvedConflict` 모델을 import 해
+                # entrypoint 가 ImportError 로 실행조차 되지 않았다 (stable 등재 상태로).
+                unresolved.append({
+                    "lines": f"{conflict.start_line}-{conflict.end_line}",
+                    "reason": "Smart merge failed: overlapping changes or non-list content.",
+                })
                 continue
         else:
-            unresolved.append(UnresolvedConflict(
-                lines=f"{conflict.start_line}-{conflict.end_line}",
-                reason=f"Unsupported strategy: {strategy}"
-            ))
+            unresolved.append({
+                "lines": f"{conflict.start_line}-{conflict.end_line}",
+                "reason": f"Unsupported strategy: {strategy}",
+            })
             continue
         
         # Replace the range of lines

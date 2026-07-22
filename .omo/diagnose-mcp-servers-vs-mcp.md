@@ -1,5 +1,12 @@
 # 즉시 진단 — 사용자가 본인 환경에서 실행
 
+- 문서 목적: `mcp.opencode.json` 의 최상위 key 가 `mcpServers` 인지 `mcp` 인지에서 오는 MCP 설정 불일치를 사용자 환경에서 즉시 진단한다.
+- 범위: bootstrap 이 emit 한 설정 파일 확인 절차
+- 대상 독자: MCP 를 설정하는 사용자, maintainer
+- 상태: draft (진단 노트)
+- 최종 수정일: 2026-06-12
+- 관련 문서: [`./diagnose-mcp-fail.md`](./diagnose-mcp-fail.md), [`../workflow-source/core/mcp_installation_by_harness.md`](../workflow-source/core/mcp_installation_by_harness.md)
+
 ## Step 1: `mcp.opencode.json` (또는 사용자의 `opencode.json`) 의 최상위 key 확인
 
 ```bash

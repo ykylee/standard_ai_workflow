@@ -1255,13 +1255,22 @@ def draft_changelog(commits: list[dict], unreleased_label: str = "Unreleased") -
     # semver tuple key 로 교체. "unreleased" 는 항상 맨 위 (미배포 = 최신).
     versions = sorted(by_version.keys(), key=_changelog_version_sort_key, reverse=True)
 
+    # metadata block 은 **생성기 안에** 둔다 — CHANGELOG.md 는 매 release 마다 전체가
+    # 재생성되므로, 파일에 직접 써 넣으면 다음 생성 때 지워져 doc lint 가 다시 깨진다.
     lines = [
         "# Changelog",
+        "",
+        "- 문서 목적: 저장소의 모든 주요 변경을 release 단위로 기록한다 (Keep a Changelog 형식).",
+        "- 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.",
+        "- 대상 독자: maintainer, 릴리스 매니저, 외부 consumer",
+        "- 상태: stable (자동 생성물)",
+        f"- 최종 수정일: {datetime.now().date().isoformat()}",
+        "- 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)",
         "",
         "All notable changes to this project will be documented in this file.",
         "",
         "본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).",
-        "수동 편집도 가능하나 다음 release 시 자동 갱신 시 충돌 가능.",
+        "수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.",
         "",
     ]
 

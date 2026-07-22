@@ -2,9 +2,10 @@
 
 - 문서 목적: standard_ai_workflow v0.7.2 의 resiliency-baseline extension (4종 중 1). AIDLC 의 16 rule 중 *우리 운영에 applicable 한 8 rule* 적응.
 - 범위: 8 RES-WF rule (RES-WF-01~08) + workflow_kit.common.resiliency helper + 8 smoke test
+- 대상 독자: workflow 설계자, AI agent, 운영자
 - 상태: stable (v0.7.2 도입)
 - 최종 수정일: 2026-06-13
-- 관련 문서: [`../SCHEMA.md`](../SCHEMA.md) (extension system SSOT)
+- 관련 문서: [`../SCHEMA.md`](./SCHEMA.md) (extension system SSOT)
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/resiliency/baseline/resiliency-baseline.md` (490 line, 16 rule, commit `b19c819`, 2026-06-08)
 
 ## §1 왜 Resiliency Baseline 이 필요한가

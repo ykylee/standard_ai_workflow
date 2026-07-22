@@ -156,7 +156,7 @@ kind: release | session | generic
 }
 ```
 
-**본 layout 결정의 동기**: sub-agent 2개+ 동시 fan-out 시 `state.json.recent_done_items` / `work_backlog.md` 의 3-way merge conflict 를 해소. 신규 layout 에서는 mutable 공유 파일이 `state.json` 단 1개 (rebuild race only), 나머지는 append-only 또는 자기 소유 파일. 자세한 분석: [`../../ai-workflow/memory/active/README.md`](../../ai-workflow/memory/active/README.md).
+**본 layout 결정의 동기**: sub-agent 2개+ 동시 fan-out 시 `state.json.recent_done_items` / `work_backlog.md` 의 3-way merge conflict 를 해소. 신규 layout 에서는 mutable 공유 파일이 `state.json` 단 1개 (rebuild race only), 나머지는 append-only 또는 자기 소유 파일. 자세한 분석: [`../ai-workflow/memory/active/README.md`](../ai-workflow/memory/active/README.md).
 
 ### 📂 Branch-scoped layout (v1.0.0+)
 

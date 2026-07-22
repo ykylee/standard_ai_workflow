@@ -77,7 +77,7 @@ AIDLC 의 extensions 시스템:
 
 ### 3.3 Rule SEC-WF-03: Question Format Validation (Q&A 모호성 검출)
 
-**Rule**: 모든 사용자 결정 (multi-choice question) 은 [Question File Format](./question_file_format.md) 준수. 모호 응답 자동 검출.
+**Rule**: 모든 사용자 결정 (multi-choice question) 은 [Question File Format](../core/question_file_format.md) 준수. 모호 응답 자동 검출.
 
 **Verification**:
 - 모든 [Answer]: tag 가 valid letter (A-Z)
@@ -110,7 +110,7 @@ AIDLC 의 extensions 시스템:
 - `pyproject.toml` 에 dependency version pinned (e.g., `>=0.6.0,<0.7.0`)
 - 자동 검증: 본 commit 범위 외 (별도 session, v0.7.1+)
 
-**Cross-ref**: [`../../workflow_kit/pyproject.toml`](../../workflow_kit/pyproject.toml), [`../../../requirements.txt`](../../../requirements.txt), [`../../../requirements-dev.txt`](../../../requirements-dev.txt)
+**Cross-ref**: [`../../workflow_kit/pyproject.toml`](../workflow_kit/pyproject.toml), [`../../../requirements.txt`](../../requirements.txt), [`../../../requirements-dev.txt`](../../requirements-dev.txt)
 
 ### 3.6 Rule SEC-WF-06: Documentation Compliance (R-9 Skip Marker)
 
@@ -121,7 +121,7 @@ AIDLC 의 extensions 시스템:
 - V-R9 naive grep false-positive 0건
 - 자동 검증: `tests/check_wiki_source_rule.py` (v0.6.1.5+ 기존, 50 line)
 
-**Cross-ref**: [`../concepts/wiki-source-rule-r9.md`](../concepts/wiki-source-rule-r9.md), [`../tests/check_wiki_source_rule.py`](../tests/check_wiki_source_rule.py)
+**Cross-ref**: [`../concepts/wiki-source-rule-r9.md`](../../ai-workflow/wiki/concepts/wiki-source-rule-r9.md), [`../tests/check_wiki_source_rule.py`](../tests/check_wiki_source_rule.py)
 
 ## 4. Compliance Summary (Stage Completion 시)
 

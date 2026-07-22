@@ -5,7 +5,7 @@
 - 대상 독자: MCP server maintainer, v1.0.0 milestone reviewer, release manager.
 - 상태: **review (2026-07-03)**
 - 최종 수정일: 2026-07-21
-- 관련 문서: [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md), [`./mcp_installation_by_harness.md`](./mcp_installation_by_harness.md), [`../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py`](../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py), [`../ADR-007-deprecation-3rd-cycle-candidates.md`](../ADR-007-deprecation-3rd-cycle-candidates.md)
+- 관련 문서: [`./read_only_mcp_transport_promotion.md`](../../workflow-source/core/read_only_mcp_transport_promotion.md), [`./mcp_installation_by_harness.md`](../../workflow-source/core/mcp_installation_by_harness.md), [`../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py`](../../workflow-source/tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py), [`../ADR-007-deprecation-3rd-cycle-candidates.md`](./ADR-007-deprecation-3rd-cycle-candidates.md)
 
 ## 1. 결론 (TL;DR)
 
@@ -188,10 +188,10 @@ stdio-sdk 정식 승격을 *skip* 하고 v1.0.0 milestone 진입 가능:
 
 ## Reference
 
-- spec: [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md)
-- harness 별 설치: [`./mcp_installation_by_harness.md`](./mcp_installation_by_harness.md) §7.2-§7.3
-- promotion readiness smoke: [`../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py`](../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py)
-- ADR-007 placeholder: [`../ADR-007-deprecation-3rd-cycle-candidates.md`](../ADR-007-deprecation-3rd-cycle-candidates.md)
+- spec: [`./read_only_mcp_transport_promotion.md`](../../workflow-source/core/read_only_mcp_transport_promotion.md)
+- harness 별 설치: [`./mcp_installation_by_harness.md`](../../workflow-source/core/mcp_installation_by_harness.md) §7.2-§7.3
+- promotion readiness smoke: [`../tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py`](../../workflow-source/tests/check_mcp_stdio_sdk_promotion_readiness_v0_11_24.py)
+- ADR-007 placeholder: [`../ADR-007-deprecation-3rd-cycle-candidates.md`](./ADR-007-deprecation-3rd-cycle-candidates.md)
 - SDK candidate: [`../../workflow-source/workflow_kit/server/read_only_mcp_sdk.py`](../../workflow-source/workflow_kit/server/read_only_mcp_sdk.py)
 - JSON-RPC bridge (stable): [`../../workflow-source/workflow_kit/server/read_only_jsonrpc.py`](../../workflow-source/workflow_kit/server/read_only_jsonrpc.py)
 - MCP v1 server wrapper: [`../../workflow-source/workflow_kit/server/mcp_v1_server.py`](../../workflow-source/workflow_kit/server/mcp_v1_server.py)

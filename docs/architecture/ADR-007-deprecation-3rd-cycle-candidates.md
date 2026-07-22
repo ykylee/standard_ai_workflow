@@ -5,7 +5,7 @@
 - 대상 독자: 워크플로우 설계자, deprecation 정책 운영자, 후속 release reviewer.
 - **상태: accepted (no-op) — v0.15.4+ codebase re-scan 결과, 3rd cycle 영향 symbol 부재 확인 (infrastructure only, 실제 mark 0개). 후속 영향 식별 시 본 ADR 본문 작성.**
 - 최종 수정일: 2026-07-21
-- 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](./v0_9_0_deprecation_policy_spec.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md)
+- 관련 문서: [`./v0_9_0_deprecation_policy_spec.md`](../../workflow-source/core/v0_9_0_deprecation_policy_spec.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md)
 
 - **Status**: Accepted (no-op)
 - **Date**: 2026-07-03 (initial), 2026-07-17 (v0.15.4 close-out)
@@ -102,7 +102,7 @@ v0.11.24 시점 (placeholder 작성) 의 재스캔 결과 (`DeprecationWarning` 
 
 ## References
 
-- 1st/2nd cycle 정공법: [./v0_9_0_deprecation_policy_spec.md](./v0_9_0_deprecation_policy_spec.md)
+- 1st/2nd cycle 정공법: [./v0_9_0_deprecation_policy_spec.md](../../workflow-source/core/v0_9_0_deprecation_policy_spec.md)
 - 1st cycle release note: [../../workflow-source/releases/Beta-v0.9.0.md](../../workflow-source/releases/Beta-v0.9.0.md) (chapter 2 §결제)
 - 2nd cycle release note: [../../workflow-source/releases/Beta-v0.9.3.md](../../workflow-source/releases/Beta-v0.9.3.md)
 - Removal release note (1st+2nd 동시 종료): [../../workflow-source/releases/Beta-v0.10.0.md](../../workflow-source/releases/Beta-v0.10.0.md) (SemVer major)

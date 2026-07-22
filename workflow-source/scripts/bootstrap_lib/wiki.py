@@ -27,14 +27,26 @@ WIKI_SOURCE_FILES: tuple[str, ...] = ("SCHEMA.md", "index.md", "log.md", ".gitig
 
 
 def _wiki_source_root() -> Path | None:
-    """Return the directory containing the wiki/ source files, if any."""
+    """Return the directory containing the wiki/ skeleton templates, if any.
+
+    스켈레톤은 **source 계층** (`workflow-source/templates/wiki/`) 에 있다. 이전에는
+    runtime 계층(`<repo>/ai-workflow/wiki/`)에서 읽었는데, 그 결과 두 가지 문제가
+    있었다:
+
+    1. runtime 계층이 없는 저장소(적용 전 / wheel 설치)에서는 최소 stub 으로 떨어져
+       `--enable-wiki` 산출물이 달라졌다. `check_source_without_runtime_layer` 가
+       잡아내는 "source 계층은 자립해야 한다" 계약 위반.
+    2. `ai-workflow/wiki/{index,log}.md` 는 **본 저장소의 실제 wiki 데이터**다
+       (log.md 2,000+ line 의 ingest 이력, index.md 의 concept 목록). 신규 프로젝트에
+       우리 지식 인덱스와 로그가 그대로 복사되고 있었다.
+    """
     # Local import to avoid circular import (__main__ imports wiki).
     from bootstrap_lib import __main__ as _bm
 
-    repo_root = _bm.REPO_ROOT
-    if repo_root is None:
+    source_root = _bm.SOURCE_ROOT
+    if source_root is None:
         return None
-    candidate = repo_root / "ai-workflow" / "wiki"
+    candidate = source_root / "templates" / "wiki"
     return candidate if candidate.is_dir() else None
 
 

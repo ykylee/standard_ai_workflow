@@ -70,8 +70,13 @@ def check_new_project_mode() -> None:
         copied_core_docs = payload["copied_core_docs"]
         if len(copied_core_docs) != 7:
             raise AssertionError("Expected seven copied core docs in new project mode.")
+        # `copied_core_docs` 는 **target root 기준 상대경로**다 (`generated_files` 만
+        # 절대경로). 이전에는 그대로 assert_exists 에 넘겨 CWD(=저장소 루트) 기준으로
+        # 해석했고, 그 결과 *생성된 사본이 아니라 저장소 자신의 파일*을 검사해 늘
+        # 통과했다. `check_source_without_runtime_layer` 가 `ai-workflow/` 를 숨기자
+        # 비로소 드러났다.
         for raw_path in copied_core_docs:
-            assert_exists(str(raw_path))
+            assert_exists(str(target_root / raw_path))
         for relative_path in (
             "ai-workflow/templates/project_workflow_profile_template.md",
             "ai-workflow/templates/session_handoff_template.md",
@@ -646,12 +651,27 @@ def check_enable_wiki_emission() -> None:
             if proto_name == "SCHEMA.md":
                 if "page type" not in emitted_text.lower():
                     raise AssertionError("Emitted SCHEMA.md missing 'page type' references")
+            # index.md / log.md 는 신규 프로젝트용 **빈 스켈레톤**이다. 항목이 들어
+            # 있는지를 요구하면 "본 저장소의 실제 wiki 데이터(concept 목록 / 2,000+
+            # line ingest 이력)를 신규 프로젝트에 복사한다" 는 버그를 계약으로 굳히게
+            # 된다. 검증 대상은 *구조* 여야 한다.
             elif proto_name == "index.md":
-                if "### [[" not in emitted_text:
-                    raise AssertionError("Emitted index.md missing ### [[ entry format")
+                for heading in ("# Master Knowledge Index", "## Concepts"):
+                    if heading not in emitted_text:
+                        raise AssertionError(f"Emitted index.md missing heading: {heading}")
+                if "### [[" in emitted_text:
+                    raise AssertionError(
+                        "Emitted index.md should start empty — source repo 의 wiki 항목이 "
+                        "신규 프로젝트로 복사되면 안 된다."
+                    )
             elif proto_name == "log.md":
-                if "## [" not in emitted_text:
-                    raise AssertionError("Emitted log.md missing ## [ date entry format")
+                if "# Wiki Ingest/Query Log" not in emitted_text:
+                    raise AssertionError("Emitted log.md missing title heading")
+                if "## [" in emitted_text:
+                    raise AssertionError(
+                        "Emitted log.md should start empty — source repo 의 ingest 이력이 "
+                        "신규 프로젝트로 복사되면 안 된다."
+                    )
     finally:
         if target_root.exists():
             import shutil

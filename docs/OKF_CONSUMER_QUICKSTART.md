@@ -1,5 +1,12 @@
 # OKF Consumer Quick-Start (5 min)
 
+- 문서 목적: external consumer 가 first-time setup 을 5분 안에 마칠 수 있는 copy-paste 가능한 quick-start.
+- 범위: 설치, bundle 생성, 검증, ingest 까지의 최소 명령 시퀀스
+- 대상 독자: 외부 consumer (첫 사용자)
+- 상태: stable (v0.7.44+, ADR-025)
+- 최종 수정일: 2026-06-17
+- 관련 문서: [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md) (산문 문서), [index](./index.md)
+
 > **Status**: stable (v0.7.44+, ADR-025)
 > **Companion to**: [OKF_CONSUMER_GUIDE.md](./OKF_CONSUMER_GUIDE.md) (prose documentation)
 > 본 문서는 external consumer 가 *first-time setup* 을 *5 min* 안에 완료할 수 있는 *machine-readable* 의 *copy-paste-able* 정공법.

@@ -1,9 +1,11 @@
 # Memory Baseline Opt-In (v0.7.2+)
 
 - 문서 목적: workflow 시작 시 사용자 opt-in prompt (memory-baseline)
+- 범위: opt-in question 1종 + 응답 옵션(Y/N/P) + 적용 범위 안내
+- 대상 독자: workflow 사용자, AI agent
 - 상태: stable (v0.7.2 도입)
 - 최종 수정일: 2026-06-13
-- 관련 문서: [`./memory-baseline.md`](./memory-baseline.md), [`../SCHEMA.md`](../SCHEMA.md)
+- 관련 문서: [`./memory-baseline.md`](./memory-baseline.md), [`../SCHEMA.md`](../../SCHEMA.md)
 
 ## 1. Question (workflow-start 시 1회 표시)
 

@@ -1,5 +1,12 @@
 # standard-ai-workflow
 
+- 문서 목적: `standard-ai-workflow` 의 public-facing 문서 사이트 랜딩 페이지. OKF consumer 가이드와 workflow_kit reference 로 가는 진입점.
+- 범위: 사이트 구성 안내, 주요 문서 링크. 운영/internal 문서는 범위 밖(`ai-workflow/wiki/`).
+- 대상 독자: 외부 consumer, OKF bundle 작성자, workflow_kit 사용자
+- 상태: stable
+- 최종 수정일: 2026-06-17
+- 관련 문서: [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md), [OKF Consumer Quick-Start](./OKF_CONSUMER_QUICKSTART.md), [Feedback & Support](./FEEDBACK.md)
+
 > OKF (Open Knowledge Format) v0.1 consumer guide + workflow_kit reference.
 > 본 사이트는 `ykylee/standard_ai_workflow` 의 **public-facing** 문서.
 > 운영 / internal 운영 문서는 [`ai-workflow/wiki/`](https://github.com/ykylee/standard_ai_workflow/tree/main/ai-workflow/wiki) 참조.

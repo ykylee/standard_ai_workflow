@@ -1,5 +1,12 @@
 # Feedback & Support (v0.7.56+)
 
+- 문서 목적: 외부 consumer 의 feedback channel 과 우선순위, response SLA 를 안내한다.
+- 범위: bug report / feature request / question 채널, 우선순위 기준, 응답 SLA
+- 대상 독자: 외부 consumer, maintainer
+- 상태: stable (v0.7.56+)
+- 최종 수정일: 2026-06-17
+- 관련 문서: [index](./index.md), [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md)
+
 외부 consumer 의 feedback 은 `standard-ai-workflow` 의 1차 입력입니다. 본 페이지는 feedback channel 과 우선순위, 그리고 response SLA 를 안내합니다.
 
 ## Feedback channel

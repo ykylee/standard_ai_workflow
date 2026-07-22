@@ -2,10 +2,11 @@
 
 - 문서 목적: standard_ai_workflow 의 Extension 시스템 (B) 의 file format + opt-in pattern + lint rule 의 SSOT.
 - 범위: extensions/ 디렉토리 layout, `<name>-baseline.md` + `<name>-baseline.opt-in.md` 형식, rule ID prefix convention, compliance summary, helper contract
+- 대상 독자: extension 작성자, workflow 설계자, AI agent
 - 상태: stable (v0.7.0 step 7)
 - 최종 수정일: 2026-06-12
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/` 3종 (security / testing / resiliency) — commit `b19c819` (2026-06-08)
-- 관련 문서: [`./security-baseline.md`](./security-baseline.md) (1차 출시), [`./security-baseline.opt-in.md`](./security-baseline.opt-in.md), [`./testing-baseline.md`](./testing-baseline.md), [`./testing-baseline.opt-in.md`](./testing-baseline.opt-in.md), [`./performance-baseline.md`](./performance-baseline.md), [`./performance-baseline.opt-in.md`](./performance-baseline.opt-in.md), [`../core/extension_helper_contract.md`](../core/extension_helper_contract.md) (v0.7.1+ follow-up), [`../tests/check_extension_system.py`](../tests/check_extension_system.py) (smoke test)
+- 관련 문서: [`./security-baseline.md`](./security-baseline.md) (1차 출시), [`./security-baseline.opt-in.md`](./security-baseline.opt-in.md), [`./testing-baseline.md`](./testing-baseline.md), [`./testing-baseline.opt-in.md`](./testing-baseline.opt-in.md), [`./performance-baseline.md`](./performance-baseline.md), [`./performance-baseline.opt-in.md`](./performance-baseline.opt-in.md), `../core/extension_helper_contract.md` (v0.7.1+ follow-up — **미작성**), [`../tests/check_extension_system.py`](../tests/check_extension_system.py) (smoke test)
 
 ## 1. 왜 Extension 시스템이 필요한가
 

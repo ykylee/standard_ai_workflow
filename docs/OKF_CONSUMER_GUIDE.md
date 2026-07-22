@@ -1,5 +1,12 @@
 # OKF Consumer Guide — write, validate, ingest an Open Knowledge Format bundle
 
+- 문서 목적: `standard_ai_workflow` 외부에서 OKF v0.1 bundle 을 작성·검증·ingest 하는 consumer 가이드.
+- 범위: 4 module(`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법
+- 대상 독자: 외부 consumer, OKF bundle 작성자
+- 상태: stable (v0.7.38)
+- 최종 수정일: 2026-06-17
+- 관련 문서: [OKF Consumer Quick-Start](./OKF_CONSUMER_QUICKSTART.md), [index](./index.md)
+
 > **Status**: stable (v0.7.38)
 > 본 문서는 `standard_ai_workflow` 외부에서 OKF v0.1 bundle 을 작성, 검증, ingest 하는 consumer 가이드. 우리 저장소 의 4 module (`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법 + 1차 출처 (1) ADR-006/007/008/018 (2) OKF spec v0.1 draft (3) wiki V-1/V-4/V-T1/V-R10/V-R11/V-R12/V-R13 rule.
 

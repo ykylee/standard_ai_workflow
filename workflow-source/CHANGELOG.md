@@ -1,9 +1,16 @@
 # Changelog
 
+- 문서 목적: 저장소의 모든 주요 변경을 release 단위로 기록한다 (Keep a Changelog 형식).
+- 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
+- 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
+- 상태: stable (자동 생성물)
+- 최종 수정일: 2026-07-22
+- 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
+
 All notable changes to this project will be documented in this file.
 
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
-수동 편집도 가능하나 다음 release 시 자동 갱신 시 충돌 가능.
+수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
 ## [Unreleased] - 2026-07-22
 
@@ -121,10 +128,11 @@ All notable changes to this project will be documented in this file.
 
 - feat: Phase 5 official release (v3.0) with unified operations path and updated schemas (3a7e4c1)
 
-## [1.0.0] - 2026-07-21
+## [1.0.0] - 2026-07-22
 
 ### Changed
 
+- docs(v1.0.0): dashboard snapshot + CHANGELOG 재생성 + 검증 수치 실측 정합 (17c3cb6)
 - docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b9)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (34c6248)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9)

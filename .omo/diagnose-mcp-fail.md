@@ -1,5 +1,12 @@
 # MCP Server Diagnostic — OpenCode 가 "4 of 5 requests failed" 시
 
+- 문서 목적: OpenCode 가 `standardAiWorkflowReadOnly` MCP server 호출에서 "4 of 5 requests failed" 를 낼 때의 진단 절차.
+- 범위: wheel 의 protocolVersion 노출 확인 등 사용자 환경에서 실행할 진단 단계
+- 대상 독자: MCP 를 설정하는 사용자, maintainer
+- 상태: draft (진단 노트)
+- 최종 수정일: 2026-06-12
+- 관련 문서: [`../workflow-source/core/mcp_installation_by_harness.md`](../workflow-source/core/mcp_installation_by_harness.md)
+
 OpenCode 가 `standardAiWorkflowReadOnly` MCP server 를 호출할 때 4 of 5 가 fail 하면, 다음을 순서대로 실행해 주세요.
 
 ## 1. 새 wheel 의 protocolVersion 노출 확인

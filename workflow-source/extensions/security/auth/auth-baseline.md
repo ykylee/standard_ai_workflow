@@ -2,9 +2,10 @@
 
 - 문서 목적: standard_ai_workflow v0.7.2 의 auth-baseline extension. **sub-cat** of `security-baseline` — authentication 측면 (OAuth / API key / session token) 의 cross-cutting rule.
 - 범위: 6 SEC-AUTH rule (SEC-WF-01~06 과 별도) + opt-in pattern + 8 smoke test
+- 대상 독자: workflow 설계자, AI agent, 보안 검토자
 - 상태: stable (v0.7.2 도입)
 - 최종 수정일: 2026-06-13
-- 관련 문서: [`../security-baseline.md`](../security-baseline.md) (parent baseline), [`../SCHEMA.md`](../SCHEMA.md) (extension system SSOT), [`../security-baseline.opt-in.md`](../security-baseline.opt-in.md)
+- 관련 문서: [`../security-baseline.md`](../../security-baseline.md) (parent baseline), [`../SCHEMA.md`](../../SCHEMA.md) (extension system SSOT), [`../security-baseline.opt-in.md`](../../security-baseline.opt-in.md)
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md` 의 *authentication* 측면 (AIDLC 의 SECURITY-04, SECURITY-09, SECURITY-10, SECURITY-11, SECURITY-12, SECURITY-13 적응)
 
 ## §1 왜 Auth Baseline 이 필요한가

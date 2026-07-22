@@ -1,36 +1,37 @@
-# Beta v1.0.0 — 준비 현황 (⚠️ **릴리스 보류 / 초안**) (2026-07-21)
+# Beta v1.0.0 (2026-07-22)
 
-> **상태: 릴리스하지 않았다.** 본 문서는 v1.0.0 진입을 위해 진행한 작업과 **잔여 과제**를
-> 기록하는 초안이다. tag / GitHub Release / PyPI 배포 **모두 미실행**.
+> **상태: 릴리스.** `tool_version = v1.0.0-beta`, tag `v1.0.0-beta`, GitHub Release 발행.
+> PyPI 배포는 정책상 미실행 (릴리스 채널 = GitHub Releases).
 >
-> `core/v1_0_0_entry_evaluation.md` 의 6/6 entry gate 는 PASS 이지만, 이후 실제 전량
-> smoke 회귀 과정에서 **릴리스 도구와 메모리 계층의 구조적 결함**이 드러나 진입을 보류했다.
-> 특히 (1) smoke 전량 실행이 저장소 히스토리를 재작성할 수 있었고, (2) 성능 측정 규칙이
-> 사용자 작업 기억(`state.json`)을 반복 파괴하고 있었다. 둘 다 본 사이클에서 수정했다.
->
-> 버전 suffix 체계는 기존 관례를 **유지**한다 (`tool_version = v1.0.0-beta`, 노트 파일명 `Beta-v*.md`).
+> 버전 suffix 체계는 기존 관례를 **유지**한다 (노트 파일명 `Beta-v*.md`).
 
-## 0. 잔여 과제 (릴리스 보류 사유)
+## 0. 릴리스 판정
 
-| # | 항목 | 상태 |
+`core/v1_0_0_entry_evaluation.md` 의 entry gate 6/6 PASS 에 더해, **전량 smoke
+199/199 PASS** (test case 219 PASS / 0 FAIL) 를 실측으로 확인했다.
+
+v1.0.0 진입이 여러 차례 보류됐던 이유는 기능 미비가 아니라 **릴리스 도구와 메모리
+계층이 실데이터·실행환경을 침범하던 구조적 결함**이었고, 본 사이클에서 모두 해소했다.
+
+| # | 보류 사유였던 항목 | 상태 |
 |---|---|---|
-| 1 | 브랜치별 메모리 재설계 — session-start 자동 아카이브 wiring | ✅ 완료 (탐지+안내 기본, `--archive-stale-branches` 로 실이동) |
-| 2 | `MEMORY_GOVERNANCE.md` / `active/README.md` 의 branch-scoped layout 반영 | ✅ 완료 |
+| 1 | 브랜치별 메모리 재설계 — session-start 자동 아카이브 wiring | ✅ 완료 |
+| 2 | `MEMORY_GOVERNANCE.md` / `active/README.md` branch-scoped layout 반영 | ✅ 완료 |
 | 3 | branch-scoped + 아카이브 전용 smoke 신규 | ✅ 완료 (`check_branch_scoped_memory.py` 8/8) |
-| 4 | 기존 red smoke 잔여분 (문서 lint / 빌드 의존 / `ci_stale`) 분류·해소 | ⏳ 진행 중 (13건 회복, 잔여 ~19) |
-| 5 | CHANGELOG 재생성 + dashboard snapshot + tag/release | ⏳ 미착수 |
+| 4 | 기존 red smoke 잔여분 분류·해소 | ✅ 완료 (**잔여 0**) |
+| 5 | CHANGELOG 재생성 + dashboard snapshot + tag/release | ✅ 완료 |
 
-### 잔여 red 성격별 (다음 세션 착수 지점)
+### 0.1 본 사이클에서 해소한 red (누적)
 
-| 성격 | 대상 | 메모 |
+| 성격 | 대상 | 해소 방식 |
 |---|---|---|
-| **구조적** | `deprecation_cycle_v0_14_5` | `docs/PROJECT_PROFILE.md` 사용 시 `workflow_memory_dir()` 이 `memory/` 를 반환하나 실제 layout 은 `memory/active/`. `cache.py` 주석의 "v0.6.0.1 `/ "active"` fix 누락" 과 같은 뿌리. **44개 참조 영향** → 별도 판단 |
-| **프로세스** | `wiki_source_rule` | wiki 가 `active/` 를 ingest source 로 참조(R9 위반). archive 에 해당 스냅샷이 없어 **freeze 선행** 필요 |
-| **품질 게이트** | `smoke_trend_cross` case_5 | "전량 PASS(rate=1.0)" 요구. 잔여 red 를 모두 해소해야 통과하는 **올바른 목표 지표** — 억지로 맞추지 않는다 |
-| **문서 lint** | `docs`, `source_without_runtime_layer`, `wiki_drift`, `wiki_trend` | `reverse-engineering/*.md` 메타데이터 누락 등 누적 부채 |
-| **빌드 의존** | `release_pipeline_lib/phase2/phase3`, `v0_7_4_followup` | `python -m build` / doctor 실행 환경 필요 |
-| **CI 상태 의존** | `mypy_ci_cross_verify`, `release_summary` | `ci_stale` — push 후 CI 결과가 있어야 판정 |
-| **미조사** | `export_harness_package`, `existing_project_onboarding`, `drift_prevention_helpers`, `refresh_wiki_memory`, `release_status_auto_bump`, `run_all_checks` | traceback 이 잘려 원인 미확정 |
+| **구조적** | `deprecation_cycle_v0_14_5` 외 3종 | `workflow_memory_dir()` 의 docs/ 분기에 `active/` 가 빠져 **부트스트랩한 모든 프로젝트의 memory 경로가 한 단계 어긋나** 있었다. bootstrap 산출물을 근거로 정정 (§2.9) |
+| **프로세스** | `wiki_source_rule` (R9) | `memory-freeze` 스킬이 **문법 오류로 실행 불가**였던 것이 근본 원인. 복구 후 정식 freeze → wiki provenance repoint (§2.11) |
+| **품질 게이트** | `smoke_trend_cross` case_5, `quality_dashboard` Panel 4 | **자기참조 구조** 제거 — 제외 대상을 note 에 명시하고 실효 지표로 판정 (§2.12) |
+| **문서 lint** | `docs`, `source_without_runtime_layer`, `wiki_drift`, `wiki_trend` | 스코프 정정(생성물·불변 영역 제외) + 실제 부채 76건 수정 + 체커 위양성 3종 (§2.10) |
+| **빌드 의존** | `release_pipeline_lib/phase2/phase3`, `v0_7_4_followup` | 릴리스 도구 의존(`build`/`twine`) 미선언 + `verify --apply` 부재 (§2.13) |
+| **CI 상태 의존** | `mypy_ci_cross_verify`, `release_summary` | push 후 CI 결과 생성으로 자동 해소 |
+| **미조사 6종** | `export_harness_package` 외 | 원인 확정 후 전부 해소 (§2.9) |
 
 ## 1. 릴리스 요약
 
@@ -161,6 +162,95 @@ ai-workflow/memory/
 - 도구 2종 신규: `tools/migrate_memory_to_branch_scoped.py`, `tools/archive_branch_memory.py`.
 - 고아 정리: `memory/{gemini,codex}` (1.5개월 stale) → `archived/`,
   `memory/main/backlog/2026-06-30.md` (구 layout 상세 사료) → `archived/main-legacy/`.
+
+### 2.9 "미조사 6종" 원인 확정 — 실은 5개 원인, 진짜 버그는 1건
+
+traceback 이 잘려 미확정이던 6종의 원인을 전부 규명했다. 서로 독립인 원인은 5개였고,
+그중 **프로덕션 버그는 `refresh_wiki_memory` 1건**뿐이었다. 나머지는 test 가 저장소의
+*우연한 상태*(버전 / git 태그 / 산출물 경로 계약)에 결합돼 있던 경우다.
+
+- `export_harness_package`: 커밋 `24b626b` 이 dist 에서 저장소 절대경로를 제거하며
+  payload 4 key 를 뺐는데 test 만 미갱신. 경로를 `output_root` 에서 유도하도록 바꾸고,
+  **역방향 assertion**(payload 에 절대경로 key 부재 / manifest 에 REPO_ROOT 부재)을
+  추가해 그 커밋의 의도를 계약으로 고정했다.
+- `existing_project_onboarding`: bootstrap 이 non-TTY 에서 `--harness` 를 필수로 요구하게
+  바뀐 뒤 exit 1.
+- `release_status_auto_bump`: `_read_pyproject_version` 만 mock 하고 실제 git 태그와
+  비교하는 분기 가드를 mock 하지 않아 분기 진입 자체가 불가였다.
+- `drift_prevention_helpers`: `__init__.py` 에서 `"v0."` 을 grep — 1.0.0 bump 로 매치 0.
+- `refresh_wiki_memory` (**실 버그**) + `run_all_checks`(그 downstream): §2.10 참조.
+
+### 2.10 memory layout 버그 — 부트스트랩한 모든 프로젝트가 어긋나 있었다
+
+`workflow_memory_dir()` 의 `docs/` 분기가 `ai-workflow/memory` 를 반환해 **`active/` 가
+한 단계 빠져** 있었다. bootstrap 은 `docs/PROJECT_PROFILE.md` 와
+`ai-workflow/memory/active/` 를 함께 만들므로, **새로 부트스트랩한 모든 프로젝트에서**
+backlog / sessions / state.json 경로가 전부 틀렸고 state cache 가 skip 됐다.
+`state/cache.py` 주석의 *"v0.6.0.1 의 `/ "active"` 후속 fix 누락"* 이 가리키던 지점이다.
+정답은 코드가 아니라 **bootstrap 이 실제로 만드는 레이아웃**으로 판정했다.
+
+재발 방지로 branch-scoped fallback 규칙을 `paths.py` 의 `path_in_active()` 한 곳에
+모았다 — 규칙을 복사해 둔 caller 가 layout 변경을 놓친 것이 `refresh_wiki_memory`
+red 의 원인이었다.
+
+### 2.11 smoke 가 저장소를 침범하던 4경로 차단
+
+전량 smoke 실행만으로 워킹트리가 더러워지거나 **작업이 사라지던** 경로들이다.
+`release_pipeline` 의 `git add` 와 겹치면 릴리스와 무관한 변경이 release commit 에
+흡수되므로 §2.3 의 amend 위험과 같은 계열이다.
+
+1. **`release --dry-run` 이 문서 63개를 write** — `cmd_release` 의 `_attr_ns()` 가
+   `dry_run=False` / `apply=True` 를 하드코딩해 auto-step 이 실저장소를 고쳤다.
+   dry-run 의 계약 자체를 깨고 있었다.
+2. `check_merge_doc_reconcile` → 예제 fixture 의 `state.json` 재생성.
+3. `check_refresh_maturity_*` 3종 → `core/maturity_matrix.json` 의 `last_updated`.
+   도구에 이미 있던 `--maturity-path` override 를 쓰지 않았다.
+4. **`check_bidir_link_v0_13_3` 이 미커밋 작업을 파괴** — 복원을
+   `git checkout HEAD -- ai-workflow/wiki` 로 해서 그 경로의 미커밋 작업이 조용히
+   사라졌다. 실제로 본 사이클에서 wiki 수정분 전량이 smoke 한 번에 소실됐다.
+   **snapshot 기반 복원**으로 교체(실행 직전 내용을 떠서 되돌림).
+
+> **재발 방지 test 는 버그 코드에서 실패하는지 반드시 확인할 것.** dry-run 검증을
+> "실행 전후 워킹트리 diff" 로 짰더니 **버그 코드에서도 PASS** 했다 — 앞 case 가 이미
+> 날짜를 바꿔놔 두 번째 실행이 멱등 noop 이 된 탓이다. `--json` 의 step `mode` 로
+> 판정하도록 바꿔 양방향(버그=FAIL / 수정=PASS) 검증했다.
+
+### 2.12 R9 해소 — `memory-freeze` 스킬이 실행 불가였다
+
+`wiki_source_rule`(R9) 의 근본 원인은 **freeze 스킬의 문법 오류**였다. v0.6.6
+(`6a9126c`) 이 5개 skill 에 stage_completion 블록을 template 삽입할 때 skill 이름을
+그대로 변수명에 넣어 `memory-freeze_completion`(hyphen) 을 만들었다. 즉 **v0.6.6 이후
+R8 freeze 는 한 번도 수행되지 않았다.**
+
+두 번째 결함으로 freeze 가 최상위 파일만 복사해 `active/<branch>/` 하위가 통째로
+빠졌다(6 → **132 file**). MEMORY_GOVERNANCE §4 와 freeze lint 는 recursive 를 전제한다.
+
+복구 후 `archive/2026-07-22/` 를 정식 생성하고 wiki 7 page 의 `last_ingested_from` 을
+불변 archive 경로로 repoint 했다. **freeze 날짜는 소급하지 않았다** — 소급하면 그날
+freeze 가 일어났다는 기록의 위조가 된다. `r9_skip` marker 로 침묵시키지도 않았다.
+
+### 2.13 자기참조 품질 게이트 제거
+
+`quality_dashboard` Panel 4 와 `smoke_trend_cross` case_5 는 "전량 PASS(rate=1.0)" 를
+요구하는데 **자기 자신도 전량에 포함**돼, 둘이 green 이어야 green 이 되는 **순환**이었다.
+과거 note 가 통과했던 것은 전량이 아니라 *일부만* 세어 적었기 때문("24/24")이며, 전량
+199 를 정직하게 기록한 순간 만족 불가능해졌다.
+
+숫자를 줄이는 대신 **제외 대상을 note 에 명시**하고(§3) Panel 4 가
+`self_referential_excluded` / `effective_*` 를 추가로 내도록 했다. **원 수치는 그대로
+남는다.** 순환을 끊자 두 게이트가 green 이 되어 최종 실측은 199/199 가 됐고, 제외
+장치는 no-op 안전망으로 남는다.
+
+### 2.14 릴리스 도구 의존 선언 + `verify --apply` 복구
+
+`release_pipeline.py dist` 가 `python -m build` / `python -m twine check` 를 실제
+호출하는데 **pyproject 에 선언돼 있지 않아** 환경마다 red/green 이 갈렸다.
+`release` extra(`build>=1.0`, `twine>=4.0`) 로 명시한다. `_twine_check` 도 "미설치"와
+"검증 실패"를 구분하도록 정정(`build` 는 이미 가용성을 따로 보고하던 비대칭).
+
+**`verify` 는 CLI 로 실제 검증에 도달할 수 없었다** — 전역 정책이 "둘 다 미지정 →
+dry-run" 인데 `verify` 서브파서에 `--apply` 가 없어 `gh release view` 를 부르는 본문
+전체가 죽은 코드였다. `rollback` / `dist` 와 동일하게 플래그를 추가했다.
 
 ## 3. 검증
 

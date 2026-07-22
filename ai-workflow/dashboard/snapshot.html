@@ -46,7 +46,7 @@ ul.timeline { padding-left: 1.2rem; }
 <body>
   <header>
     <h1>Quality Dashboard</h1>
-    <p class="meta">generated_at: <code>2026-07-22T07:30:47Z</code> · tool_version: <code>v1.0.0-beta</code></p>
+    <p class="meta">generated_at: <code>2026-07-22T12:36:07Z</code> · tool_version: <code>v1.0.0-beta</code></p>
     <p class="meta">workspace: <code>/home/yklee/repos/standard_ai_workflow</code></p>
   </header>
   <main>
@@ -54,12 +54,13 @@ ul.timeline { padding-left: 1.2rem; }
     <h2>Panel 1 — Drift Prevention Status</h2>
     <p>guard_status: <span class="stat pass">pass</span></p>
     <p>guard: 6/6 pass (expected 6)</p>
-    <p>guard_runtime_ms: 35</p>
-    <p>maturity_last_updated: <code>2026-07-21</code></p>
+    <p>guard_runtime_ms: 36</p>
+    <p>maturity_last_updated: <code>2026-07-22</code></p>
+    <p>maturity_surface_changed_at: <code>2026-07-22</code> (source: maturity_surface_commit)</p>
     <p>head_commit_date: <code>2026-07-22</code></p>
-    <p>last_updated_delta_days: 1</p>
+    <p>last_updated_delta_days: 0</p>
     <p>harness_supported_count: 11</p>
-    <p><strong>silent_failing_cycles_count: 1</strong> (Phase 13 AC1 north-star)</p>
+    <p><strong>silent_failing_cycles_count: 미측정 (원장 cycle 0건)</strong> (Phase 13 AC1 north-star)</p>
     <p class="meta">Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)</p>
   </section>
   <section class="panel">
@@ -88,9 +89,9 @@ ul.timeline { padding-left: 1.2rem; }
   </section>
   <section class="panel">
     <h2>Panel 4 — Smoke Trend</h2>
-    <p class="stat pass">203/203</p>
+    <p class="stat pass">204/204</p>
     <p class="meta">cumulative pass rate: 1.0000</p>
-    <p class="meta">smoke test files: 203</p>
+    <p class="meta">smoke test files: 204</p>
     <canvas id="chart-smoke" height="160"></canvas>
   </section>
   <section class="panel">
@@ -150,7 +151,7 @@ ul.timeline { padding-left: 1.2rem; }
   </main>
   <script>
     (function() {
-      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [13, 11], "beta": [1, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 203]}};
+      var data = {"maturity": {"labels": ["skills", "mcp_tools"], "stable": [13, 11], "beta": [1, 0], "alpha": [0, 0]}, "memory": {"dates": ["2026-07-09"], "counts": [7]}, "smoke": {"versions": ["Beta-v0.15.19", "Beta-v1.0.0"], "counts": [24, 204]}};
       function ready(fn) {
         if (typeof window.Chart !== 'undefined') { fn(); }
         else { window.addEventListener('load', function() { if (typeof window.Chart !== 'undefined') fn(); }); }

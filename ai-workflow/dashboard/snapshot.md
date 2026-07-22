@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-07-22T07:30:46Z`
+- generated_at: `2026-07-22T12:35:55Z`
 - tool_version: `v1.0.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
@@ -8,14 +8,13 @@
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-07-21`
-- maturity_stale: `True`
+- maturity_last_updated: `2026-07-22`
+- maturity_surface_changed_at: `2026-07-22`
+- maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `11`
 - head_commit_date: `2026-07-22`
-- last_updated_delta_days: `1`
-- silent_failing_cycles_count: `1`
-
-> ⚠️ **maturity_last_updated stale**: refresh hint → `python3 -c "python3 -c "from workflow_kit.common.state.cache import refresh_maturity_last_updated; from pathlib import Path; print(refresh_maturity_last_updated(Path('workflow-source/core/maturity_matrix.json')))""`
+- last_updated_delta_days: `0`
+- silent_failing_cycles_count: `미측정` (원장 `ai-workflow/memory/release/drift_ledger.jsonl` 에 cycle 0건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -76,16 +75,16 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `203`
-- cumulative_pass: `203`
+- cumulative_total: `204`
+- cumulative_pass: `204`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `203`
+- smoke_files_count: `204`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
-| Beta-v1.0.0 | 203 | 203 |
+| Beta-v1.0.0 | 204 | 204 |
 | Beta-v0.15.19 | 24 | 24 |
 
 ## Panel 5 — Recent Release Cycle

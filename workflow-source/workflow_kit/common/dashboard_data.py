@@ -70,6 +70,21 @@ DRIFT_GUARD_SUMMARY: Final[re.Pattern[str]] = re.compile(
 # drift smoke 의 inline 실행 timeout (default: 30초 — git log + 6 case subprocess 호출)
 DRIFT_GUARD_INLINE_TIMEOUT: Final[int] = 30
 
+# maturity 선언(`maturity_matrix.json`)이 *따라가야 하는* 실제 surface.
+# 이 경로들이 `last_updated` 이후에 바뀌었다면 선언이 뒤처진 것 = 진짜 drift.
+# (v1.0.1 재정의 이전에는 `last_updated != 오늘` 을 stale 로 봤다 — 파일을 매일
+#  스탬프하지 않는 한 영구히 red 인, 구조적으로 초록이 될 수 없는 판정이었다.)
+MATURITY_SURFACE_PATHS: Final[tuple[str, ...]] = (
+    "workflow-source/core/maturity_matrix.json",
+    "workflow-source/skills",
+    "workflow-source/mcp_servers",
+    "workflow-source/harnesses",
+)
+
+# Phase 13 AC1 north-star 의 원장 (append-only JSONL, release cycle 당 1 line).
+# release pipeline 이 self-recover 결과를 여기에 기록하고, dashboard 는 *읽기만* 한다.
+DRIFT_LEDGER_RELPATH: Final[str] = "ai-workflow/memory/release/drift_ledger.jsonl"
+
 
 # ---------------------------------------------------------------------------
 # Path helpers
@@ -130,7 +145,11 @@ def collect_drift_prevention(
         harness_supported_count: harness.supported 리스트 길이
         head_commit_date: HEAD commit 의 ISO date (subprocess git log -1)
         last_updated_delta_days: maturity_last_updated ↔ head_commit_date 의 일수 차이
-        silent_failing_cycles_count: Phase 13 AC1 의 north-star metric (현 release 까지 0)
+        maturity_surface_changed_at: maturity surface 를 마지막으로 바꾼 commit 의 ISO date
+        maturity_staleness_source: 'maturity_surface_commit' | 'unknown' (판정 근거)
+        silent_failing_cycles_count: Phase 13 AC1 north-star (원장 기반, 미측정이면 0 + measured=False)
+        silent_failing_cycles_measured: 원장에 cycle 이 1건 이상 기록됐는가
+        silent_failing_cycles_measured_cycles: 원장에 기록된 총 release cycle 갯수
 
     Returns:
         dict — Panel 1 의 data shape. field 누락 시 *unknown* marker 사용.
@@ -157,14 +176,28 @@ def collect_drift_prevention(
     head_commit_date = _head_commit_date(root)
     last_updated_delta_days = _date_diff_days(maturity_last_updated, head_commit_date)
 
-    # Phase 14 dashboard freshness 보강 (v0.14.0):
-    # `maturity_last_updated` 가 head_commit_date 와 N+ 일 차이 → stale. 자동
-    # 갱신 helper (`workflow_kit.common.state.cache.refresh_maturity_last_updated`)
-    # 가 별도 dispatcher 로 존재. 본 호출은 *hint 만* emit, auto-mutation ❌
-    # (dashboard 는 read-only).
+    # v1.0.1 재정의 — stale 은 *달력* 이 아니라 *drift* 다.
+    #
+    # 기존: `maturity_last_updated != 오늘` → 파일을 매일 스탬프하지 않는 한 항상 True.
+    #       지표를 초록으로 만드는 유일한 방법이 "날짜만 찍기" 였고, 그건 실질 없는
+    #       초록불이다 (Beta-v1.0.0.md §2.18 의 maturity_stale 경고 참조).
+    # 현재: maturity surface (skills / mcp_servers / harnesses / matrix 자신) 가
+    #       `last_updated` **이후** commit 으로 바뀌었으면 선언이 뒤처진 것 → stale.
+    #       surface 가 그대로면 며칠이 지나도 stale 아님. 스탬프로는 못 속이고,
+    #       선언을 실제로 갱신해야만 초록이 된다.
+    #
+    # git 을 못 읽거나 last_updated 가 비면 **stale 로 단정하지 않는다** (source=unknown).
+    # 판정 근거가 없을 때 red 를 내는 체크는 위양성으로 무시당한다.
     from datetime import date as _date
     today_iso = _date.today().isoformat()
-    maturity_stale = bool(maturity_last_updated) and maturity_last_updated != today_iso
+    maturity_surface_changed_at = _last_commit_date_for_paths(root, MATURITY_SURFACE_PATHS)
+    if maturity_last_updated and maturity_surface_changed_at:
+        # ISO date 는 사전순 = 시간순.
+        maturity_stale = maturity_surface_changed_at > maturity_last_updated
+        maturity_staleness_source = "maturity_surface_commit"
+    else:
+        maturity_stale = False
+        maturity_staleness_source = "unknown"
     maturity_refresh_hint = (
         "python3 -c \"from workflow_kit.common.state.cache import refresh_maturity_last_updated; "
         "from pathlib import Path; "
@@ -185,21 +218,30 @@ def collect_drift_prevention(
         guard_result = run_drift_prevention_guard_inline(root)
         guard_panel.update(guard_result)
 
-    # silent_failing_cycles_count: maturity_stale 일 때 +1 (north-star proxy)
-    # 본 release 의 v0.14.0 dashboard 의 freshness drift 가 north-star 에 반영되도록
-    silent_failing_cycles_count = 1 if maturity_stale else 0
+    # north-star 는 freshness proxy 가 아니다 (v1.0.1 분리).
+    # 정의(wiki/topics/phase-13-definition-north-star.md §2.2): "drift 를 guard 가
+    # 검출했으나 manual fix 까지 걸린 release cycle 의 누적 갯수". maturity 날짜
+    # 스탬프와는 아무 상관이 없다 — v0.14.0 에서 임시 proxy 로 붙였던 것을 떼어내고
+    # 실제 원장(`DRIFT_LEDGER_RELPATH`)에서 읽는다. 원장이 비면 0 이 아니라
+    # **미측정** 으로 표시한다 (measured=False).
+    north_star = collect_silent_failing_cycles(root)
 
     return {
         **guard_panel,
         "maturity_last_updated": maturity_last_updated,
         "maturity_last_updated_source": "maturity_matrix.json",
         "maturity_stale": maturity_stale,
+        "maturity_staleness_source": maturity_staleness_source,
+        "maturity_surface_changed_at": maturity_surface_changed_at,
         "maturity_refresh_hint": maturity_refresh_hint,
         "today_iso": today_iso,
         "harness_supported_count": harness_supported_count,
         "head_commit_date": head_commit_date,
         "last_updated_delta_days": last_updated_delta_days,
-        "silent_failing_cycles_count": silent_failing_cycles_count,  # Phase 14 freshness proxy
+        "silent_failing_cycles_count": north_star["count"],  # Phase 13 AC1 north-star
+        "silent_failing_cycles_measured": north_star["measured"],
+        "silent_failing_cycles_measured_cycles": north_star["measured_cycles"],
+        "silent_failing_cycles_source": north_star["source"],
         "phase": "Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)",
     }
 
@@ -329,6 +371,80 @@ def _head_commit_date(workspace_root: Path) -> str:
     except (OSError, subprocess.TimeoutExpired):
         pass
     return ""
+
+
+def _last_commit_date_for_paths(workspace_root: Path, paths: tuple[str, ...]) -> str:
+    """주어진 경로들을 마지막으로 건드린 commit 의 ISO date. git 실패 시 empty string.
+
+    실재하지 않는 pathspec 이 섞여도 git 이 나머지로 계산하도록 ``--`` 뒤에 그대로
+    넘긴다 (`--ignore-unmatch` 는 log 에 없으므로 존재하는 경로만 추려서 전달).
+    """
+    existing = [p for p in paths if (workspace_root / p).exists()]
+    if not existing:
+        return ""
+    try:
+        completed = subprocess.run(
+            ["git", "log", "-1", "--format=%cd", "--date=short", "--", *existing],
+            cwd=str(workspace_root),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
+        )
+        if completed.returncode == 0:
+            return completed.stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return ""
+
+
+def collect_silent_failing_cycles(workspace_root: Path | str | None = None) -> dict[str, Any]:
+    """Phase 13 AC1 north-star — drift 를 manual fix 해야 했던 release cycle 의 누적 갯수.
+
+    원장(`DRIFT_LEDGER_RELPATH`)은 release pipeline 이 cycle 당 1 line 씩 append 하는
+    JSONL 이다. 본 함수는 **읽기만** 한다.
+
+    원장이 없거나 비어 있으면 ``count=0`` 이되 ``measured=False`` 로 emit 한다.
+    "아직 안 재봤다" 와 "재봤더니 0" 은 다른 상태이고, 둘을 같은 0 으로 보여주면
+    실질 없는 초록불이 된다.
+
+    Returns:
+        dict {count, measured, measured_cycles, source, ledger_path}
+    """
+    root = _repo_root(workspace_root)
+    ledger = root / DRIFT_LEDGER_RELPATH
+    out: dict[str, Any] = {
+        "count": 0,
+        "measured": False,
+        "measured_cycles": 0,
+        "source": DRIFT_LEDGER_RELPATH,
+        "ledger_path": str(ledger),
+    }
+    if not ledger.is_file():
+        return out
+    count = 0
+    cycles = 0
+    try:
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                # malformed line 은 skip (telemetry summarize 와 동일 정공법).
+                continue
+            if not isinstance(entry, dict):
+                continue
+            cycles += 1
+            if int(entry.get("manual_required_count", 0)) > 0:
+                count += 1
+    except OSError:
+        return out
+    out["count"] = count
+    out["measured_cycles"] = cycles
+    out["measured"] = cycles > 0
+    return out
 
 
 def _date_diff_days(date_a: str, date_b: str) -> int | None:
@@ -1223,17 +1339,35 @@ def _render_panel_1(p: dict[str, Any]) -> list[str]:
     lines.append(f"- guard_status: `{p.get('guard_status', 'unknown')}`")
     lines.append(f"- guard_cases: `{p.get('guard_cases', 0)} / {p.get('expected_cases', 0)}`")
     lines.append(f"- maturity_last_updated: `{p.get('maturity_last_updated', '')}`")
-    lines.append(f"- maturity_stale: `{p.get('maturity_stale', False)}`")
+    lines.append(f"- maturity_surface_changed_at: `{p.get('maturity_surface_changed_at', '')}`")
+    lines.append(
+        f"- maturity_stale: `{p.get('maturity_stale', False)}` "
+        f"(source: `{p.get('maturity_staleness_source', 'unknown')}`)"
+    )
     lines.append(f"- harness_supported_count: `{p.get('harness_supported_count', 0)}`")
     lines.append(f"- head_commit_date: `{p.get('head_commit_date', '')}`")
     delta = p.get("last_updated_delta_days")
     lines.append(f"- last_updated_delta_days: `{delta if delta is not None else 'unknown'}`")
-    lines.append(f"- silent_failing_cycles_count: `{p.get('silent_failing_cycles_count', 0)}`")
+    if p.get("silent_failing_cycles_measured"):
+        lines.append(
+            f"- silent_failing_cycles_count: `{p.get('silent_failing_cycles_count', 0)}` "
+            f"(측정 cycle {p.get('silent_failing_cycles_measured_cycles', 0)}건)"
+        )
+    else:
+        # 0 을 초록으로 오독하지 않도록 *미측정* 임을 값 자리에 그대로 쓴다.
+        lines.append(
+            "- silent_failing_cycles_count: `미측정` "
+            f"(원장 `{p.get('silent_failing_cycles_source', DRIFT_LEDGER_RELPATH)}` 에 cycle 0건)"
+        )
     if p.get("maturity_stale") and p.get("maturity_refresh_hint"):
         lines.append("")
         lines.append(
-            "> ⚠️ **maturity_last_updated stale**: "
-            f"refresh hint → `python3 -c \"{p.get('maturity_refresh_hint', '')}\"`"
+            "> ⚠️ **maturity 선언이 surface 보다 뒤처짐** "
+            f"(surface `{p.get('maturity_surface_changed_at', '')}` > 선언 "
+            f"`{p.get('maturity_last_updated', '')}`): "
+            # hint 자체가 이미 완결된 `python3 -c "..."` 명령이다 — 접두사를 다시
+            # 붙이면 `python3 -c "python3 -c "..."` 로 깨진 명령이 나간다.
+            f"refresh hint → `{p.get('maturity_refresh_hint', '')}`"
         )
     return lines + [""]
 
@@ -1548,6 +1682,15 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     delta = p.get("last_updated_delta_days")
     harness_supported_count = int(p.get("harness_supported_count", 0))
     silent_failing = int(p.get("silent_failing_cycles_count", 0))
+    silent_failing_measured = bool(p.get("silent_failing_cycles_measured", False))
+    silent_failing_cycles = int(p.get("silent_failing_cycles_measured_cycles", 0))
+    silent_failing_text = (
+        f"{silent_failing} (측정 cycle {silent_failing_cycles}건)"
+        if silent_failing_measured
+        else "미측정 (원장 cycle 0건)"
+    )
+    surface_changed_at = str(p.get("maturity_surface_changed_at", ""))
+    staleness_source = str(p.get("maturity_staleness_source", "unknown"))
     phase = str(p.get("phase", ""))
 
     status_class = status if status in ("pass", "fail", "error") else "unknown"
@@ -1557,10 +1700,11 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     <p>guard: {guard_cases_pass}/{guard_cases} pass (expected {expected})</p>
     <p>guard_runtime_ms: {runtime_ms}</p>
     <p>maturity_last_updated: <code>{_html_escape(maturity_last_updated)}</code></p>
+    <p>maturity_surface_changed_at: <code>{_html_escape(surface_changed_at)}</code> (source: {_html_escape(staleness_source)})</p>
     <p>head_commit_date: <code>{_html_escape(head_commit_date)}</code></p>
     <p>last_updated_delta_days: {delta if delta is not None else 'unknown'}</p>
     <p>harness_supported_count: {harness_supported_count}</p>
-    <p><strong>silent_failing_cycles_count: {silent_failing}</strong> (Phase 13 AC1 north-star)</p>
+    <p><strong>silent_failing_cycles_count: {_html_escape(silent_failing_text)}</strong> (Phase 13 AC1 north-star)</p>
     <p class="meta">{_html_escape(phase)}</p>
   </section>"""
 

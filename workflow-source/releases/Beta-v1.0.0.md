@@ -379,9 +379,40 @@ overall **4.68 (Grade A)**, trend alert 0건.
 
 세 메타 체크 모두 **드리프트를 주입해 FAIL 하는 것까지 확인**했다.
 
+### 2.19 Panel 1 의 두 지표가 구조적으로 무의미했다 (**릴리스 후 보강**)
+
+§2.18 이 "선언이 사실인가" 를 물었다면, 본 절은 한 단계 더 올라가 **"지표 자체가
+무엇을 재고 있는가"** 를 묻는다. 답은 둘 다 *재고 있지 않았다* 였다.
+
+| 지표 | 기존 정의 | 문제 |
+|---|---|---|
+| `maturity_stale` | `last_updated != 오늘` | `maturity_matrix.json` 을 **매일** 스탬프하지 않는 한 항상 True. 초록으로 만드는 유일한 방법이 "날짜만 찍기" 였고, 그건 §2.18 이 하지 말라고 경고한 그 행위다 |
+| `silent_failing_cycles_count` | `1 if maturity_stale else 0` | Phase 13 AC1 north-star 의 정의(*drift 를 manual fix 해야 했던 release cycle 의 누적 갯수*)와 아무 관계 없는 freshness proxy 가 north-star 자리에 앉아 있었다 |
+
+**stale 재정의 — 달력이 아니라 drift.** maturity surface(`skills/` ·
+`mcp_servers/` · `harnesses/` · matrix 자신)를 마지막으로 바꾼 commit 날짜가 선언
+(`last_updated`)보다 **나중**이면 선언이 뒤처진 것 = stale. surface 가 그대로면
+몇 달이 지나도 stale 이 아니다. 스탬프로는 못 속이고 선언을 실제로 갱신해야만
+초록이 된다. 판정 근거가 없으면(git 불가 / 선언 부재) `source: unknown` 으로
+**stale 로 단정하지 않는다** — 근거 없이 red 를 내는 체크는 위양성으로 무시당한다.
+
+이 재정의를 켜자 곧바로 진짜 drift 가 하나 잡혔다: `43079c0` 이 skill 디렉터리와
+matrix 를 바꾸면서 `last_updated` 는 안 올렸다. 선언을 `2026-07-22` 로 갱신해 해소.
+
+**north-star 분리 — 원장에서만 나온다.** freshness proxy 를 떼어내고
+`ai-workflow/memory/release/drift_ledger.jsonl`(append-only, release cycle 당 1 line)
+에서 읽는다. release pipeline 이 self-recover 결과를 cycle 마다 기록하고 —
+**drift 가 없던 cycle 도 기록한다**. 분모가 없으면 "0건" 과 "안 재봄" 이 같은 0 으로
+보이기 때문이다. 원장이 비면 `0` 이 아니라 **`미측정`** 으로 렌더한다.
+
+`check_north_star_metric.py` 신규 (6 case). **구 판정 코드를 되돌려 주입해 case 2
+(달력 회귀)와 case 4(proxy 회귀)가 실제로 FAIL 하는 것을 확인**했다 — §0 의
+"재발 방지 test 는 버그 코드에서 실패하는지 확인" 규칙 정합. 곁들여 refresh hint 가
+`python3 -c "python3 -c "…""` 로 깨져 나가던 렌더 버그도 고쳤다.
+
 ## 3. 검증
 
-누적 smoke **203/203 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **204/204 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -401,8 +432,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **203/203 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke, §2.16~2.18) |
-| 실효 smoke | **197/197 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **204/204 PASS** (릴리스 시점 199/199 + 발행 후 메타 체크 3종 + memory-freeze skill smoke 3종 + north-star 지표 체크 1종, §2.16~2.19) |
+| 실효 smoke | **198/198 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

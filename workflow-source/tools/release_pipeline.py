@@ -53,12 +53,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 try:
     from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
+    from workflow_kit.common.dashboard_data import DRIFT_LEDGER_RELPATH  # v1.0.1+ north-star 원장
     from workflow_kit.common.state.cache import refresh_maturity_last_updated  # v0.14.6+ Task 3 follow-up
 except ImportError:
     # standalone script (no workflow_kit on sys.path) — fall back to direct write.
     atomic_write_json = None  # type: ignore[assignment]
     atomic_write_text = None  # type: ignore[assignment]
     refresh_maturity_last_updated = None  # type: ignore[assignment]
+    # 원장 경로는 dashboard 와 **같은 문자열이어야** 한다 (writer ↔ reader 정합).
+    DRIFT_LEDGER_RELPATH = "ai-workflow/memory/release/drift_ledger.jsonl"
 # 1차 출처
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
@@ -2551,6 +2554,13 @@ def cmd_release(args) -> dict:
             log_emit = _emit_self_recovery_log(args, recovery_log)
             results["self_recovery_log_emit"] = log_emit
 
+    # 6.5b v1.0.1+ north-star 원장 append (Phase 13 AC1).
+    # release note 는 drift 가 *있을 때만* 기록된다 — 그것만으로는 north-star 를 셀 수
+    # 없다 (분모가 없어 "0건" 과 "안 재봄" 이 구별되지 않는다). cycle 마다 1 line 을
+    # 남겨 dashboard 가 분자/분모를 함께 읽게 한다.
+    if "self_recover" in results:
+        results["drift_ledger_append"] = _append_drift_ledger_entry(args, results["self_recover"])
+
     # 6.7 v0.14.6+ maturity_last_updated 자동 갱신 (Task 3 follow-up).
     # v0.15.3+ 변경: release_error (results["error"] 존재) 시에만 maturity refresh
     # 호출. v0.14.6 description 의 "Out of scope v0.15.0" 2건 중 2건 해소.
@@ -2755,6 +2765,37 @@ def _emit_self_recovery_log(args: argparse.Namespace, recovery_log: str) -> dict
             "bytes_appended": len(recovery_log),
         }
     except Exception as e:  # noqa: BLE001
+        return {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
+
+def _append_drift_ledger_entry(args: argparse.Namespace, sr_result: dict) -> dict:
+    """north-star 원장에 release cycle 1건을 append (Phase 13 AC1, v1.0.1+).
+
+    원장은 append-only JSONL 이다. cycle 당 정확히 1 line — drift 가 없었던 cycle 도
+    기록한다. 그래야 dashboard 가 "0/N cycle" 을 말할 수 있다 (기록이 없으면 *미측정*).
+
+    dry-run 이면 아무것도 쓰지 않는다 (저장소 오염 금지).
+    """
+    if getattr(args, "dry_run", False):
+        return {"status": "skipped", "reason": "dry-run"}
+    try:
+        manual_required = sr_result.get("manual_required") or []
+        recovered = sr_result.get("recovered") or []
+        re_check = sr_result.get("re_check") or {}
+        entry = {
+            "version": getattr(args, "version", None) or read_version(),
+            "recorded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "manual_required_count": len(manual_required),
+            "manual_required": list(manual_required),
+            "auto_recovered_count": len(recovered),
+            "re_check_status": re_check.get("guard_status", "unknown"),
+        }
+        ledger = REPO_ROOT.parent / DRIFT_LEDGER_RELPATH
+        ledger.parent.mkdir(parents=True, exist_ok=True)
+        with ledger.open("a", encoding="utf-8") as fp:
+            fp.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        return {"status": "ok", "path": str(ledger), "entry": entry}
+    except Exception as e:  # noqa: BLE001 — 원장 기록 실패가 release 를 막지 않는다
         return {"status": "error", "error": f"{type(e).__name__}: {e}"}
 
 

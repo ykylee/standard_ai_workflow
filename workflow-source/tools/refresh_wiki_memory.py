@@ -63,6 +63,13 @@ except ImportError:
     atomic_write_json = None  # type: ignore[assignment]
     atomic_write_text = None  # type: ignore[assignment]
 
+# v1.0.0 branch-scoped memory: 작업 상태 파일은 `memory/active/` 바로 아래가 아니라
+# `memory/active/<branch>/` 에 있다. 규칙을 여기에 복사하지 않고 정식 resolver 를 쓴다.
+try:
+    from workflow_kit.common.paths import path_in_active
+except ImportError:
+    path_in_active = None  # type: ignore[assignment]
+
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
 
@@ -122,13 +129,43 @@ L1_BASE = REPO_ROOT / "ai-workflow"
 # 2차 출처 (L2 dense sources) — in-repo wiki/sources
 L2_BASE = L1_BASE / "wiki" / "sources"
 
+ACTIVE_BASE = L1_BASE / "memory" / "active"
+
+
+def _active_path(leaf: str) -> Path:
+    """`memory/active/` 하위 작업 상태 파일의 branch-scoped 경로."""
+    if path_in_active is not None:
+        return path_in_active(ACTIVE_BASE, leaf)
+    # standalone script fallback — branch 해석 불가 시 legacy 경로.
+    return ACTIVE_BASE / leaf
+
+
 # 갱신 대상 4 file (L1 raw mirror, in-repo)
 RAW_FILES = {
-    "state_json": L1_BASE / "memory/active/state.json",
-    "work_backlog": L1_BASE / "memory/active/work_backlog.md",
+    "state_json": _active_path("state.json"),
+    "work_backlog": _active_path("work_backlog.md"),
     "wiki_log": L1_BASE / "wiki/log.md",
     "memory_log": L1_BASE / "memory/log.md",
 }
+
+
+def _read_target(key: str, dry: bool) -> str:
+    """갱신 대상 파일을 읽는다.
+
+    `work_backlog.md` 는 v0.14.0 append-only layout(`backlog/` 일자별 index)으로
+    대체되어 저장소에 따라 부재할 수 있다. dry-run 은 파일 내용에 의존하지 않으므로
+    부재를 빈 문자열로 관용하고, **실제 write 를 하는 apply 는 loud 하게 실패**한다
+    (빈 내용으로 덮어써서 파일을 파괴하지 않기 위함).
+    """
+    p = RAW_FILES[key]
+    if p.exists():
+        return p.read_text()
+    if dry:
+        return ""
+    raise FileNotFoundError(
+        f"refresh 대상 부재: {p} — v0.14.0 append-only layout 으로 대체되었을 수 있다. "
+        "apply 는 대상 파일이 실제로 있을 때만 수행한다."
+    )
 
 # L2 stub 4 file (dense 재emit 대상, in-repo)
 L2_STUBS = {
@@ -206,7 +243,8 @@ def pick_feat_commit(commits: list[dict]) -> dict:
 def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
     """raw/.../memory/active/state.json 의 recent_done_items 보강."""
     p = RAW_FILES["state_json"]
-    data = json.loads(p.read_text())
+    raw = _read_target("state_json", dry)
+    data = json.loads(raw) if raw else {"session": {"recent_done_items": []}}
     existing = data["session"]["recent_done_items"]
     new_lines: list[str] = []
     rel_order = ["(v0.7.10)", "(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
@@ -233,7 +271,7 @@ def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
 def update_work_backlog(by_release: dict, dry: bool = True) -> list[str]:
     """raw/.../memory/active/work_backlog.md 의 release anchor 5종 추가."""
     p = RAW_FILES["work_backlog"]
-    text = p.read_text()
+    text = _read_target("work_backlog", dry)
     new_block: list[str] = []
     for rel in ["(v0.7.10)", "(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
         if rel not in by_release:
@@ -331,6 +369,15 @@ def update_memory_log(dry: bool = True) -> str:
 def reemit_l2_stub(stub_name: str, dense_body: str, dry: bool = True) -> int:
     """vault L2 stub 의 본문을 dense body 로 교체. frontmatter 의 last_touched 갱신."""
     p = L2_STUBS[stub_name]
+    # L2 stub 은 `wiki/sources/` 에 emit 되는 *생성물* 이라 clean checkout 에는 없다
+    # (v0.7.17 에서 디렉터리만 .gitkeep 으로 추가됨). dry-run 은 "무엇이 emit 될지"만
+    # 답하면 되므로 부재를 관용하고, frontmatter 를 필요로 하는 apply 만 loud 실패.
+    if not p.exists():
+        if dry:
+            return len(dense_body)
+        raise FileNotFoundError(
+            f"L2 stub 부재: {p} — apply 는 frontmatter 를 보존해야 하므로 기존 stub 이 있어야 한다."
+        )
     text = p.read_text()
     parts = text.split("---\n", 2)
     if len(parts) < 3:

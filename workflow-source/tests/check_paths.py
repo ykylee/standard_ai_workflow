@@ -74,7 +74,11 @@ def main() -> int:
         profile = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
         os.environ["CODEX_WORKFLOW_BRANCH"] = "codex/test-paths"
         branch_dir = workflow_branch_dir(profile)
-        expected = REPO_ROOT / "ai-workflow" / "memory" / "codex" / "test-paths"
+        # `docs/PROJECT_PROFILE.md` 기준 branch dir 은 `memory/active/<branch>` 다.
+        # 이전 기대값에는 `active/` 가 빠져 있었는데, 이는 workflow_memory_dir 의
+        # docs/ 분기 버그(정식 bootstrap layout 과 한 단계 어긋남)를 그대로 굳힌
+        # 것이었다. bootstrap 이 실제로 만드는 위치가 정답이다.
+        expected = REPO_ROOT / "ai-workflow" / "memory" / "active" / "codex" / "test-paths"
         if branch_dir != expected.resolve():
             raise AssertionError(f"Expected branch dir {expected}, got {branch_dir}")
     finally:

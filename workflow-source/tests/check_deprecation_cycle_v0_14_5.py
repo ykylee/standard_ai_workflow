@@ -41,31 +41,38 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 
 
 def case_1_legacy_memory_with_bak() -> bool:
-    """1) --legacy-memory 명시 + .bak 존재 → refresh 성공 + 1st cycle warning."""
-    proc = _run(
-        "--project-profile-path", "docs/PROJECT_PROFILE.md",
-        "--legacy-memory",
-        "--output-path", "/tmp/state_test_v0_14_5_case1.json",
-    )
-    if proc.returncode != 0:
-        print(f"  FAIL: legacy_memory returncode={proc.returncode}, stderr={proc.stderr[:200]}")
-        return False
-    try:
-        payload = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        print(f"  FAIL: JSON parse: {exc}")
-        return False
-    if payload.get("status") != "ok":
-        print(f"  FAIL: status={payload.get('status')!r}")
-        return False
-    cache = payload.get("state_cache_status") or payload.get("status")
-    # 1st cycle 종결 warning: deprecated_warnings 에 WARNING v0.14.1 emit 확인
-    # (cache.py 가 1st cycle warning 단계 emit)
-    state = json.loads(open("/tmp/state_test_v0_14_5_case1.json").read())
-    sot = state.get("source_of_truth", {})
-    # legacy_memory 명시 시 → session_handoff_path / work_backlog_index_path auto include
-    # (현 status 에서 둘 다 None — .bak 만 있고 work_backlog.md / session_handoff.md 부재)
-    return True  # JSON parse + ok status 만 정합
+    """1) --legacy-memory 명시 + .bak 존재 → refresh 성공 + state cache 실제 write."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out_path = Path(tmp) / "state.json"
+        proc = _run(
+            "--project-profile-path", "docs/PROJECT_PROFILE.md",
+            "--legacy-memory",
+            "--output-path", str(out_path),
+        )
+        if proc.returncode != 0:
+            print(f"  FAIL: legacy_memory returncode={proc.returncode}, stderr={proc.stderr[:200]}")
+            return False
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            print(f"  FAIL: JSON parse: {exc}")
+            return False
+        if payload.get("status") != "ok":
+            print(f"  FAIL: status={payload.get('status')!r}")
+            return False
+        # state cache 가 실제로 refresh 되어야 한다. `skipped` 는 memory layout 이
+        # 어긋나 daily_backlog_dir 을 못 찾은 상태이므로 회귀로 취급한다.
+        if payload.get("state_cache_status") != "refreshed":
+            print(f"  FAIL: state_cache_status={payload.get('state_cache_status')!r} (expected 'refreshed')")
+            return False
+        if not out_path.exists():
+            print(f"  FAIL: state cache 미생성: {out_path}")
+            return False
+        state = json.loads(out_path.read_text(encoding="utf-8"))
+        if "source_of_truth" not in state:
+            print("  FAIL: state cache 에 source_of_truth 부재")
+            return False
+    return True
 
 
 def case_2_no_legacy_memory_with_bak() -> bool:
@@ -74,21 +81,22 @@ def case_2_no_legacy_memory_with_bak() -> bool:
     Note: generate_workflow_state.py 의 기본값은 True (backward compat) 이므로,
     strict opt-out 검증은 `--no-legacy-memory` 명시 시. 본 case 는 default 동작 확인.
     """
-    proc = _run(
-        "--project-profile-path", "docs/PROJECT_PROFILE.md",
-        "--output-path", "/tmp/state_test_v0_14_5_case2.json",
-    )
-    if proc.returncode != 0:
-        print(f"  FAIL: no-legacy-memory returncode={proc.returncode}")
-        return False
-    try:
-        payload = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        print(f"  FAIL: JSON parse: {exc}")
-        return False
-    if payload.get("status") != "ok":
-        print(f"  FAIL: status={payload.get('status')!r}")
-        return False
+    with tempfile.TemporaryDirectory() as tmp:
+        proc = _run(
+            "--project-profile-path", "docs/PROJECT_PROFILE.md",
+            "--output-path", str(Path(tmp) / "state.json"),
+        )
+        if proc.returncode != 0:
+            print(f"  FAIL: no-legacy-memory returncode={proc.returncode}")
+            return False
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            print(f"  FAIL: JSON parse: {exc}")
+            return False
+        if payload.get("status") != "ok":
+            print(f"  FAIL: status={payload.get('status')!r}")
+            return False
     return True
 
 
@@ -117,24 +125,25 @@ def case_3_no_legacy_path() -> bool:
 
 def case_4_no_legacy_memory_explicit() -> bool:
     """4) --no-legacy-memory 명시 + hint command 정합."""
-    proc = _run(
-        "--project-profile-path", "docs/PROJECT_PROFILE.md",
-        "--no-legacy-memory",
-        "--output-path", "/tmp/state_test_v0_14_5_case4.json",
-    )
-    if proc.returncode != 0:
-        print(f"  FAIL: explicit no-legacy-memory returncode={proc.returncode}")
-        return False
-    try:
-        payload = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        print(f"  FAIL: JSON parse: {exc}")
-        return False
-    # legacy_memory 명시 시 hint command 에 영향. 직접 hint 확인 어려우므로
-    # cache 결과 검증으로 대체
-    if payload.get("status") != "ok":
-        print(f"  FAIL: status={payload.get('status')!r}")
-        return False
+    with tempfile.TemporaryDirectory() as tmp:
+        proc = _run(
+            "--project-profile-path", "docs/PROJECT_PROFILE.md",
+            "--no-legacy-memory",
+            "--output-path", str(Path(tmp) / "state.json"),
+        )
+        if proc.returncode != 0:
+            print(f"  FAIL: explicit no-legacy-memory returncode={proc.returncode}")
+            return False
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            print(f"  FAIL: JSON parse: {exc}")
+            return False
+        # legacy_memory 명시 시 hint command 에 영향. 직접 hint 확인 어려우므로
+        # cache 결과 검증으로 대체
+        if payload.get("status") != "ok":
+            print(f"  FAIL: status={payload.get('status')!r}")
+            return False
     return True
 
 

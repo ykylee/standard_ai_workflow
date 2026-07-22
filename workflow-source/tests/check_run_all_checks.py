@@ -117,13 +117,20 @@ def test_run_one_baselines() -> None:
 
 
 def test_run_one_refresh_wiki() -> None:
-    """run_one(check_refresh_wiki_memory.py) → exit 0, 10 test PASS."""
+    """run_one(check_refresh_wiki_memory.py) → exit 0, 전량 PASS + 파싱 정합."""
     mod = _import_runner()
     target = TESTS_DIR / "check_refresh_wiki_memory.py"
     result = mod.run_one(target, timeout=30)
     assert result.exit_code == 0
-    assert result.passed == 10
     assert result.failed == 0
+    # 대상 check 의 test 개수는 늘어난다(10 → 14). 리터럴을 박으면 test 추가마다
+    # 여기가 red 가 되므로, 파싱 정합은 대상이 스스로 보고한 숫자와 대조해 검증한다.
+    assert result.passed >= 10, f"passed={result.passed} (expected >= 10)"
+    reported = re.search(r"All (\d+) tests passed", result.last_line or "")
+    assert reported, f"last_line 파싱 실패: {result.last_line!r}"
+    assert result.passed == int(reported.group(1)), (
+        f"parse 불일치: passed={result.passed}, last_line={result.last_line!r}"
+    )
 
 
 # --- Test 4: aggregate ---

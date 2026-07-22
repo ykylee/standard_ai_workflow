@@ -51,10 +51,32 @@ def declared_doc_path(base: Path, raw: str | None) -> str | None:
 
 
 def workflow_memory_dir(project_profile_path: Path) -> Path:
-    """Return the base directory for workflow memory (ai-workflow/memory/active/)."""
+    """Return the base directory for workflow memory (ai-workflow/memory/active/).
+
+    `PROJECT_PROFILE.md` 는 두 위치에 놓일 수 있다:
+
+    - `<ws>/docs/PROJECT_PROFILE.md` — bootstrap 이 만드는 정식 배치(f23ba2f 로 통일).
+      메모리는 `<ws>/ai-workflow/memory/active/` 에 생성된다.
+    - `<ws>/ai-workflow/memory/active/PROJECT_PROFILE.md` — profile 이 메모리 안에
+      있는 배치. 이 경우 profile 의 부모가 곧 memory dir 이다.
+
+    두 배치 모두 **`active/` 를 포함한 같은 dir** 로 수렴해야 한다. docs/ 분기에서
+    `/ "active"` 가 빠져 있어(`memory/` 반환) 정식 배치의 backlog / sessions /
+    state.json 이 전부 `active/` 한 단계씩 어긋났고, 그 결과 state cache 가
+    daily_backlog_dir 부재로 skip 되었다. `state/cache.py` 주석의 "v0.6.0.1 의
+    `/ "active"` 후속 fix 누락" 이 가리키던 지점이 바로 여기다.
+
+    아직 마이그레이션하지 않은 저장소(`memory/` 바로 아래에 파일이 있고 `active/` 가
+    없는 경우)는 깨뜨리지 않도록 legacy 로 fallback 한다 — 저장소 전반의
+    `_branch_scoped_dir` / `workflow_state_path` 와 같은 관례.
+    """
     profile_dir = project_profile_path.resolve().parent
     if profile_dir.name == "docs":
-        return (profile_dir.parent / "ai-workflow" / "memory").resolve()
+        memory_root = (profile_dir.parent / "ai-workflow" / "memory").resolve()
+        active_dir = memory_root / "active"
+        if not active_dir.exists() and memory_root.exists():
+            return memory_root
+        return active_dir
     return profile_dir
 
 
@@ -215,22 +237,31 @@ def workflow_state_path(project_profile_path: Path) -> Path:
     return branch_scoped
 
 
-def state_path_in_active(active_dir: Path, branch: str | None = None) -> Path:
-    """`active/` 디렉터리를 **직접** 아는 caller 용 branch-scoped state 경로.
+def path_in_active(active_dir: Path, leaf: str, branch: str | None = None) -> Path:
+    """`active/` 디렉터리를 **직접** 아는 caller 용 branch-scoped 경로 조립.
 
     workspace root 를 역산하지 않는다 — caller 가 넘기는 active dir 은 표준
     `<ws>/ai-workflow/memory/active` 가 아닐 수 있기 때문이다(테스트 fixture 등).
-    branch-scoped 가 없으면 legacy(`<active>/state.json`) 로 fallback.
+    branch-scoped 가 없으면 legacy(`<active>/<leaf>`) 로 fallback 하고, 둘 다 없으면
+    branch-scoped 를 반환한다(신규 생성은 항상 branch-scoped).
+
+    branch-scoped fallback 규칙은 반드시 본 helper 한 곳에만 둔다 — 규칙을 복사해
+    둔 caller 가 layout 변경을 놓치는 것이 `refresh_wiki_memory` red 의 원인이었다.
     """
     active = Path(active_dir)
     slug = _usable_branch_name(branch) or get_current_branch()
-    branch_scoped = active / slug / "state.json"
+    branch_scoped = active / slug / leaf
     if branch_scoped.exists():
         return branch_scoped
-    legacy = active / "state.json"
+    legacy = active / leaf
     if legacy.exists():
         return legacy
     return branch_scoped
+
+
+def state_path_in_active(active_dir: Path, branch: str | None = None) -> Path:
+    """`active/` 디렉터리를 직접 아는 caller 용 branch-scoped `state.json` 경로."""
+    return path_in_active(active_dir, "state.json", branch)
 
 
 def state_path_for_workspace(workspace_root: Path, branch: str | None = None) -> Path:

@@ -52,13 +52,16 @@ def test_release_dry_run_no_dist() -> None:
     다음 단계인 release note 부재 error 가 먼저 발생할 수 있음. 둘 중 하나의
     error 가 발생하면 PASS — *graceful fail* 자체를 검증.
     """
+    # 저장소에 dist artifact 와 현재 version 의 release note 가 *존재하면* release 는
+    # 성공한다. 즉 "저장소에 아직 아무것도 없다"는 전제에 기대던 test 였다.
+    # 존재할 수 없는 version 을 지정해 graceful fail 조건을 **결정적으로** 만든다.
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release",
-         "--dry-run", "--skip-validate", "--json"],
-        capture_output=True, text=True, timeout=30,
+         "--dry-run", "--skip-validate", "--version=99.99.99", "--json"],
+        capture_output=True, text=True, timeout=60,
     )
     # dist 부재 또는 notes 부재 → error 키 존재, exit 1
-    assert proc.returncode == 1, f"expected 1 (graceful fail), got {proc.returncode}"
+    assert proc.returncode == 1, f"expected 1 (graceful fail), got {proc.returncode}: {proc.stdout[-300:]}"
     out = json.loads(proc.stdout)
     assert "error" in out
     # dist 부재 OR release note 부재 둘 다 acceptable graceful fail
@@ -79,8 +82,9 @@ def test_release_skip_validate_dry_run() -> None:
         capture_output=True, text=True, timeout=30,
     )
     out = json.loads(proc.stdout)
-    # error 가 dist 부재로 여전히 존재 (validate skip 과 무관)
-    assert "error" in out
+    # 이전에는 `assert "error" in out` 이 있었으나, 이는 dist/release note 가 저장소에
+    # *없다*는 전제에 기댄 것이었다. 본 test 의 의도는 아래 주석대로 "--skip-validate
+    # 가 argparse 에서 수용되고 pre_check 가 결과에 포함되는가" 이므로 그것만 본다.
     # gh_command 가 dict 에 있어야 함 (validate skip 후 gh plan 진입)
     # 또는 error 가 dist 부재로 인해 *gh_command build 전* 중단
     # 본 test 의 정공법: validate skip 옵션이 *parser level* 에서만 영향, dist glob 실패가 *먼저* 발생
@@ -113,7 +117,7 @@ def test_verify_apply_release_not_found() -> None:
     """verify --apply — 존재하지 않는 release 면 exit 1 + error."""
     proc = subprocess.run(
         [sys.executable, str(TOOL), "verify",
-         "--tag=v99.99.99-beta", "--json"],
+         "--tag=v99.99.99-beta", "--apply", "--json"],
         capture_output=True, text=True, timeout=30,
     )
     # gh auth 미인증 또는 release 부재 → exit 1

@@ -39,7 +39,7 @@ def test_doctor_json_output():
     """workflow doctor --json → JSON dict."""
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-m",
             "workflow_kit.cli.doctor",
             "--project-root",
@@ -63,14 +63,17 @@ def test_doctor_json_output():
         "performance-memory",
         "resiliency",
     }
-    assert set(data.keys()) == expected
+    # v0.7.4 이후 doctor 의 JSON 은 `{"config": ..., "results": {...}}` envelope 이다.
+    # 이전에는 baseline 이 top-level 에 평면으로 놓였다.
+    assert set(data.keys()) == {"config", "results"}, sorted(data.keys())
+    assert set(data["results"].keys()) == expected
 
 
 def test_doctor_single_baseline():
     """workflow doctor --baseline=resiliency → 단일 baseline."""
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-m",
             "workflow_kit.cli.doctor",
             "--project-root",
@@ -86,8 +89,8 @@ def test_doctor_single_baseline():
     )
     assert result.returncode == 0
     data = json.loads(result.stdout)
-    assert "resiliency" in data
-    assert len(data["resiliency"]["results"]) == 8
+    assert set(data["results"].keys()) == {"resiliency"}, sorted(data["results"].keys())
+    assert len(data["results"]["resiliency"]["results"]) == 8
 
 
 # --- @graceful_shutdown decorator ---

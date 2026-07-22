@@ -67,6 +67,13 @@ dev = [
     "ruff>=0.1",
     "mypy>=1.0",
 ]
+# 릴리스 파이프라인이 실제로 호출하는 도구. `release_pipeline.py dist` 가
+# `python -m build` 와 `python -m twine check` 를 subprocess 로 실행하는데도
+# 선언돼 있지 않아, 설치 여부가 환경마다 달라 smoke 가 red/green 을 오갔다.
+release = [
+    "build>=1.0",
+    "twine>=4.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/ykylee/standard_ai_workflow"

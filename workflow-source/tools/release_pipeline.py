@@ -3095,8 +3095,22 @@ def _twine_check(dist_dir: Path, *, timeout: int = 300) -> dict[str, object]:
         )
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": f"twine check timeout after {timeout}s"}
+    # "twine 이 설치돼 있지 않다" 와 "twine 이 metadata 를 거부했다" 는 전혀 다른
+    # 사건인데 둘 다 `ok=False, error=unknown` 으로 보고돼 원인 파악이 불가능했다.
+    # `build` 는 이미 `{"available": ..., "version": ...}` 로 가용성을 따로 보고하는데
+    # twine 만 빠져 있던 비대칭. twine 은 `release` extra 로 선언돼 있다.
+    if proc.returncode != 0 and "No module named twine" in proc.stderr:
+        return {
+            "ok": False,
+            "available": False,
+            "returncode": proc.returncode,
+            "error": "twine 미설치 — `pip install -e 'workflow-source[release]'` 로 설치",
+            "stdout_tail": [],
+            "stderr_tail": proc.stderr.strip().splitlines()[-5:],
+        }
     return {
         "ok": proc.returncode == 0,
+        "available": True,
         "returncode": proc.returncode,
         "stdout_tail": proc.stdout.strip().splitlines()[-5:] if proc.stdout.strip() else [],
         "stderr_tail": proc.stderr.strip().splitlines()[-5:] if proc.stderr.strip() else [],
@@ -3478,6 +3492,12 @@ def main() -> int:
     p_ver = sub.add_parser("verify", help="GitHub Release 의 tag + asset 검증 (read-only)")
     p_ver.add_argument("--tag", required=True, help="tag 이름 (e.g. v0.7.9-beta 또는 0.7.9)")
     p_ver.add_argument("--dry-run", action="store_true", dest="dry_run")
+    # `--apply` 가 없으면 아래의 "둘 다 미지정 → dry-run" 기본값 때문에 verify 는
+    # **항상** early return 하고, `gh release view` 를 부르는 본문 전체가 CLI 에서
+    # 도달 불가능한 죽은 코드가 된다. verify 는 read-only(조회만) 이므로 --apply 는
+    # 안전하며, rollback / dist 와 플래그 체계가 일치한다.
+    p_ver.add_argument("--apply", dest="apply", action="store_true",
+                       help="실제로 gh release view 를 호출해 검증 (기본은 command plan 만 출력)")
     p_ver.add_argument("--json", action="store_true")
 
     # rollback (Phase 2 — v0.7.10)

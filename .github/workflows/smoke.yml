@@ -25,6 +25,18 @@ jobs:
         run: |
           python3 -m pip install -r requirements.txt
           python3 -m pip install -r requirements-dev.txt
+          # v1.0.1: smoke 가 실제로 요구하는 도구를 설치한다.
+          #
+          # `dev` (mypy) 와 `release` (build, twine) extra 는 pyproject 에 이미
+          # 선언돼 있었는데 (§2.14), CI 는 requirements-dev.txt 만 깔았고 그 파일은
+          # `mcp[cli]` 한 줄뿐이었다. 그래서 mypy / build / twine 을 subprocess 로
+          # 부르는 check 들이 CI 에서만 red 였다 — 선언은 했는데 설치를 안 했다.
+          #
+          # editable install 은 `bootstrap_lib` 도 sys.path 에 올려
+          # check_bootstrap_interactive_picker 의 ModuleNotFoundError 도 함께 푼다.
+          #
+          # 실측: 이 한 줄로 CI 실패 11건 중 7건이 해소된다 (fresh venv 재현 확인).
+          python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"
 
       - name: Run smoke checks (run_all_checks + resource guard)
         shell: bash

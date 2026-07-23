@@ -42,7 +42,12 @@ jobs:
             --tmp-dir="${RUNNER_TEMP}/smoke-tmp" \
             --json > smoke-result.json
           rc=$?
-          python3 - "$rc" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          # v1.0.1: 요약을 파일로 먼저 받아 **step summary 와 job 로그 양쪽**에 낸다.
+          # 이전에는 step summary 로만 보냈고 stdout 은 smoke-result.json 으로
+          # 리다이렉트돼 있어, 실패해도 어떤 check 인지 로그/API 어디에서도 볼 수
+          # 없었다 (annotation 은 "exit code 1" 만 남는다). 무엇이 깨졌는지 볼 수
+          # 없으면 아무도 고치지 않는다 — 실제로 40회 연속 red 가 방치됐다.
+          python3 - "$rc" <<'PY' > smoke-summary.md
           import json, sys, pathlib
           rc = int(sys.argv[1])
           data = json.loads(pathlib.Path("smoke-result.json").read_text(encoding="utf-8"))
@@ -74,4 +79,18 @@ jobs:
               print(f"\n### Resource cleanup\n")
               print(f"- {len(leaky)} check 가 temp/자식 프로세스를 남겨 runner 가 회수했습니다.")
           PY
+          cat smoke-summary.md >> "$GITHUB_STEP_SUMMARY"
+          echo "----- smoke summary (job log) -----"
+          cat smoke-summary.md
           exit "$rc"
+
+      - name: Upload smoke result (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-result
+          path: |
+            smoke-result.json
+            smoke-summary.md
+          if-no-files-found: warn
+          retention-days: 30

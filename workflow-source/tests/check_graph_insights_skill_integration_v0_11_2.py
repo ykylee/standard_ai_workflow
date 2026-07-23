@@ -446,37 +446,60 @@ def test_graph_insights_skills_no_state_mutation_v0_11_2() -> None:
     helper module 의 read-only 특성을 verify:
     - run_graph_insights 호출 후 state.json mtime 변화 ❌
     - run_graph_insights 호출 후 PURPOSE.md mtime 변화 ❌
+
+    v1.0.1+ — **실저장소가 아니라 temp workspace 를 본다.** 두 가지 이유다:
+
+    1. 실저장소는 branch-scoped 메모리라 `active/<branch>/` 가 없는 checkout
+       (fresh clone / detached CI / 다른 branch 의 worktree) 에서는 파일이 없다.
+       그러면 `result.health` / `result.coverage` 가 None 이라 이 test 가 red 였다 —
+       CI 가 계속 실패하던 원인 중 하나다.
+    2. 더 중요한 것: 파일이 **없으면** mtime 비교가 `None == None` 이 되어
+       *아무것도 증명하지 않고 통과*한다. read-only 를 주장하려면 실제로 존재하는
+       파일을 대상으로 재야 한다.
     """
-    from workflow_kit.common.paths import state_path_for_workspace
-    state_path = state_path_for_workspace(REPO_ROOT)
-    purpose_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / "PURPOSE.md"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = Path(tmpdir)
+        ai_dir = ws / "ai-workflow" / "memory" / "active"
+        ai_dir.mkdir(parents=True, exist_ok=True)
+        purpose_path = ai_dir / "PURPOSE.md"
+        purpose_path.write_text(
+            "---\npurpose_version: 1\nlast_purpose_review: 2026-06-26\n---\n\n"
+            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n- **G2**: skill 분리\n\n"
+            "## 2. Key Questions\n\n- **Q1**: 어떻게?\n\n"
+            "## 3. Research Scope\n\n### 포함\n- 영역\n\n## 4. Evolving Thesis\n\nh: X\n",
+            encoding="utf-8",
+        )
+        (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
+        (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
+        (ai_dir / "state.json").write_text(json.dumps({
+            "session": {"recent_done_items": [
+                "v0.1.0 (aaaaaaa): 표준 워크플로우 release",
+                "v0.2.0 (bbbbbbb): skill 분리",
+            ]}
+        }, ensure_ascii=False), encoding="utf-8")
 
-    state_mtime_before = state_path.stat().st_mtime if state_path.exists() else None
-    purpose_mtime_before = purpose_path.stat().st_mtime if purpose_path.exists() else None
-    state_size_before = state_path.stat().st_size if state_path.exists() else None
-    purpose_size_before = purpose_path.stat().st_size if purpose_path.exists() else None
+        from workflow_kit.common.paths import state_path_for_workspace
+        state_path = state_path_for_workspace(ws)
+        assert state_path.exists(), f"fixture state.json 을 reader 가 못 찾는다: {state_path}"
 
-    # run_graph_insights 호출 (read-only helper)
-    from workflow_kit.common.purpose_graph import run_graph_insights
-    result = run_graph_insights(workspace_root=REPO_ROOT)
+        state_stat_before = (state_path.stat().st_mtime, state_path.stat().st_size)
+        purpose_stat_before = (purpose_path.stat().st_mtime, purpose_path.stat().st_size)
 
-    state_mtime_after = state_path.stat().st_mtime if state_path.exists() else None
-    purpose_mtime_after = purpose_path.stat().st_mtime if purpose_path.exists() else None
-    state_size_after = state_path.stat().st_size if state_path.exists() else None
-    purpose_size_after = purpose_path.stat().st_size if purpose_path.exists() else None
+        # run_graph_insights 호출 (read-only helper)
+        from workflow_kit.common.purpose_graph import run_graph_insights
+        result = run_graph_insights(workspace_root=ws)
 
-    # mtime 변화 ❌
-    assert state_mtime_before == state_mtime_after, "state.json mtime should NOT change"
-    assert purpose_mtime_before == purpose_mtime_after, "PURPOSE.md mtime should NOT change"
-    # size 변화 ❌
-    assert state_size_before == state_size_after, "state.json size should NOT change"
-    assert purpose_size_before == purpose_size_after, "PURPOSE.md size should NOT change"
-    print(f"  read-only verify (state.json + PURPOSE.md mtime/size preserved): PASS")
+        state_stat_after = (state_path.stat().st_mtime, state_path.stat().st_size)
+        purpose_stat_after = (purpose_path.stat().st_mtime, purpose_path.stat().st_size)
 
-    # 추가 verify: helper 가 정상 결과를 emit 했는지
-    assert result.health is not None
-    assert result.coverage is not None
-    print(f"  helper 정상 emit (health={result.health.score}, coverage_pct={result.coverage.coverage_pct}): PASS")
+        assert state_stat_before == state_stat_after, "state.json mtime/size should NOT change"
+        assert purpose_stat_before == purpose_stat_after, "PURPOSE.md mtime/size should NOT change"
+        print(f"  read-only verify (state.json + PURPOSE.md mtime/size preserved): PASS")
+
+        # 추가 verify: helper 가 정상 결과를 emit 했는지
+        assert result.health is not None
+        assert result.coverage is not None
+        print(f"  helper 정상 emit (health={result.health.score}, coverage_pct={result.coverage.coverage_pct}): PASS")
 
 
 # ---------------------------------------------------------------------------

@@ -27,27 +27,53 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "workflow-source" / "scripts" / "generate_workflow_state.py"
 
 
-def _run(*args: str) -> subprocess.CompletedProcess:
+BRANCH = "deprecation-cycle-smoke"
+
+
+def _run(*args: str, env_extra: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     env = os.environ.copy()
     existing_pythonpath = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = (
         f"{REPO_ROOT / 'workflow-source'}"
         + (os.pathsep + existing_pythonpath if existing_pythonpath else "")
     )
+    if env_extra:
+        env.update(env_extra)
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
         cwd=str(REPO_ROOT), env=env, capture_output=True, text=True, timeout=30,
     )
 
 
+def _branch_scoped_workspace(tmp: Path) -> Path:
+    """`docs/PROJECT_PROFILE.md` + `active/<BRANCH>/backlog` 를 갖춘 temp workspace.
+
+    v1.0.1+ — case_1 은 실저장소를 대상으로 `state_cache_status == 'refreshed'` 를
+    요구했었다. 그런데 refresh 는 `daily_backlog_dir` 이 없으면 `skipped` 를 낸다.
+    실저장소의 그 디렉터리는 **branch-scoped** (`active/<branch>/backlog`) 라
+    `main` 이 아닌 checkout — fresh clone / detached CI / 다른 branch 의 worktree —
+    에서는 존재하지 않는다. 그래서 이 case 가 CI 에서 계속 red 였다.
+
+    필요한 layout 을 직접 만들고 branch 를 env 로 고정하면 어디서 돌려도 같은 답이 된다.
+    """
+    (tmp / "docs").mkdir(parents=True, exist_ok=True)
+    (tmp / "docs" / "PROJECT_PROFILE.md").write_text("# Profile\n", encoding="utf-8")
+    branch_dir = tmp / "ai-workflow" / "memory" / "active" / BRANCH
+    (branch_dir / "backlog" / "tasks").mkdir(parents=True, exist_ok=True)
+    (branch_dir / "sessions").mkdir(parents=True, exist_ok=True)
+    return tmp
+
+
 def case_1_legacy_memory_with_bak() -> bool:
     """1) --legacy-memory 명시 + .bak 존재 → refresh 성공 + state cache 실제 write."""
     with tempfile.TemporaryDirectory() as tmp:
-        out_path = Path(tmp) / "state.json"
+        ws = _branch_scoped_workspace(Path(tmp))
+        out_path = ws / "state-out.json"
         proc = _run(
-            "--project-profile-path", "docs/PROJECT_PROFILE.md",
+            "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
             "--legacy-memory",
             "--output-path", str(out_path),
+            env_extra={"CODEX_WORKFLOW_BRANCH": BRANCH},
         )
         if proc.returncode != 0:
             print(f"  FAIL: legacy_memory returncode={proc.returncode}, stderr={proc.stderr[:200]}")

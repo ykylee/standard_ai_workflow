@@ -170,7 +170,15 @@ def get_current_branch() -> str:
         if branch:
             return branch
 
-    repo_root = Path(__file__).resolve().parents[3]
+    return _git_branch_slug(Path(__file__).resolve().parents[3]) or "main"
+
+
+def _git_branch_slug(repo_root: Path) -> str | None:
+    """``repo_root`` 를 기준으로 branch slug 를 조회. git 저장소가 아니면 None.
+
+    F-7 fix: detached HEAD (branch == "HEAD") 는 "main" 으로 흘리지 않고 commit
+    short SHA (7자) 를 돌려준다 — CI checkout / 특정 commit 참조의 안정적 식별자.
+    """
     try:
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
@@ -178,12 +186,9 @@ def get_current_branch() -> str:
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return "main"
+    except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError, OSError):
+        return None
 
-    # F-7 fix: detached HEAD (branch == "HEAD") — return commit short SHA
-    # instead of falling back to "main". Provides stable identifier for
-    # CI checkouts / specific commit references.
     if branch == "HEAD":
         try:
             short_sha = subprocess.check_output(
@@ -194,11 +199,32 @@ def get_current_branch() -> str:
             ).strip()
             if short_sha and len(short_sha) >= 7:
                 return short_sha
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        except (subprocess.CalledProcessError, FileNotFoundError, NotADirectoryError, OSError):
             pass
-        return "main"
+        return None
 
-    return _usable_branch_name(branch) or "main"
+    return _usable_branch_name(branch)
+
+
+def branch_for_workspace(workspace_root: Path) -> str:
+    """``workspace_root`` **자신의** git 컨텍스트에서 branch slug 를 얻는다 (v1.0.1+).
+
+    `get_current_branch()` 는 *이 모듈이 속한 저장소* 를 기준으로 본다 — sandbox 에서
+    호출하는 caller 를 위한 의도된 동작이다. 그러나 workspace 로 파라미터화된 함수에
+    그대로 합성하면 **접두는 인자에서, branch 는 딴 데서** 오게 된다:
+
+        cwd=repoA(main)     : state_path_for_workspace(repoB) → repoB/…/active/main/
+        cwd=repoB(feature)  : state_path_for_workspace(repoA) → repoA/…/active/feature/
+
+    같은 인자에 대해 호출 위치가 답을 바꾼다. 그래서 workspace 를 받는 쪽은 그
+    workspace 의 git 을 본다. workspace 가 git 저장소가 아니면(temp workspace 등)
+    기존 동작으로 되돌아간다.
+    """
+    for env_key in BRANCH_ENV_KEYS:
+        branch = _usable_branch_name(os.environ.get(env_key))
+        if branch:
+            return branch
+    return _git_branch_slug(Path(workspace_root)) or get_current_branch()
 
 
 def workflow_branch_dir(project_profile_path: Path) -> Path:
@@ -292,7 +318,8 @@ def state_path_for_workspace(workspace_root: Path, branch: str | None = None) ->
     반환하므로 미마이그레이션 저장소에서도 안전하다.
     """
     active = memory_active_dir(workspace_root)
-    slug = _usable_branch_name(branch) or get_current_branch()
+    # branch 는 **이 workspace 의** git 에서 얻는다 — 호출 위치가 답을 바꾸면 안 된다.
+    slug = _usable_branch_name(branch) or branch_for_workspace(Path(workspace_root))
     branch_scoped = active / slug / "state.json"
     if branch_scoped.exists():
         return branch_scoped

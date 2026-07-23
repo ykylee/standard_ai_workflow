@@ -15,16 +15,52 @@ v0.14.3+ Phase 15 의 dashboard Panel 6/7/8 정공법 검증. 본 smoke 는
 from __future__ import annotations
 
 import sys
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
 
 
-def _get_snapshot() -> dict:
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+def _get_snapshot(workspace_root: Path | None = None) -> dict:
     from workflow_kit.common.dashboard_data import collect_dashboard_snapshot
 
-    return collect_dashboard_snapshot(REPO_ROOT, inline_guard=False)
+    return collect_dashboard_snapshot(workspace_root or REPO_ROOT, inline_guard=False)
+
+
+def _seed_memory_index(ws: Path) -> Path:
+    """Panel 8 이 읽을 entry + telemetry 를 **프로덕션 writer 로** 심는다.
+
+    실저장소의 `events.jsonl` 은 gitignore 된 런타임 데이터라 fresh clone 에 없다.
+    거기에 기대면 작성자 워킹카피에서만 green 이고 CI 는 영구 red 다 (2026-07-23 조사).
+    """
+    from workflow_kit.common.schemas.memory_index import (
+        MemoryEntry,
+        MemoryIndexTelemetryEvent,
+    )
+    from workflow_kit.common.state.memory_index import (
+        append_telemetry_event,
+        save_memory_entry,
+    )
+
+    now = datetime.now(timezone.utc)
+    save_memory_entry(ws, MemoryEntry(
+        id="MEM-2026-07-23-001",
+        primary_abstraction="phase15 panel 8 fixture",
+        cue_anchors=["panel8", "fixture"],
+        created_at=now,
+        updated_at=now,
+    ))
+    append_telemetry_event(ws, MemoryIndexTelemetryEvent(
+        timestamp=now,
+        source="phase15-fixture",
+        workspace_root=str(ws),
+        query_tokens_count=2,
+        selected_count=1,
+        cue_hits=1,
+    ))
+    return ws
 
 
 def case_1_panel_6_conflict() -> bool:
@@ -102,29 +138,33 @@ def case_2_panel_7_deprecation() -> bool:
 
 
 def case_3_panel_8_memory_index() -> bool:
-    """Panel 8: entries_total + telemetry_events_total + hit_rate 정합."""
-    snap = _get_snapshot()
-    p8 = snap["panels"].get("memory_index_utilization_v2")
-    if not isinstance(p8, dict):
-        print(f"  FAIL: Panel 8 not found")
-        return False
-    # 7 seed entries 정합
-    if p8.get("entries_total", 0) < 1:
-        print(f"  FAIL: entries_total={p8.get('entries_total')!r}")
-        return False
-    if not isinstance(p8.get("entries_by_merge_state"), dict):
-        print(f"  FAIL: entries_by_merge_state not dict")
-        return False
-    # telemetry events ≥ 1 (Phase 14 commit 시 dispatcher 가 emit 한 event)
-    if p8.get("telemetry_events_total", 0) < 1:
-        print(f"  FAIL: telemetry_events_total={p8.get('telemetry_events_total')!r}")
-        return False
-    # telemetry hit_rate 정합 (0.0 ~ 1.0)
-    hr = p8.get("telemetry_hit_rate")
-    if not isinstance(hr, (int, float)) or hr < 0 or hr > 1:
-        print(f"  FAIL: telemetry_hit_rate={hr!r}")
-        return False
-    return True
+    """Panel 8: entries_total + telemetry_events_total + hit_rate 정합.
+
+    실저장소가 아니라 **프로덕션 writer 로 심은 temp workspace** 를 본다 (`_seed_memory_index`).
+    실저장소 의존은 gitignore 된 런타임 데이터를 요구해 fresh clone / CI 에서 영구 red 였다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _seed_memory_index(Path(td))
+        snap = _get_snapshot(ws)
+        p8 = snap["panels"].get("memory_index_utilization_v2")
+        if not isinstance(p8, dict):
+            print(f"  FAIL: Panel 8 not found")
+            return False
+        if p8.get("entries_total", 0) != 1:
+            print(f"  FAIL: entries_total={p8.get('entries_total')!r} (writer 로 1건 심었다)")
+            return False
+        if not isinstance(p8.get("entries_by_merge_state"), dict):
+            print(f"  FAIL: entries_by_merge_state not dict")
+            return False
+        if p8.get("telemetry_events_total", 0) != 1:
+            print(f"  FAIL: telemetry_events_total={p8.get('telemetry_events_total')!r} (writer 로 1건 심었다)")
+            return False
+        # telemetry hit_rate 정합 (0.0 ~ 1.0)
+        hr = p8.get("telemetry_hit_rate")
+        if not isinstance(hr, (int, float)) or hr < 0 or hr > 1:
+            print(f"  FAIL: telemetry_hit_rate={hr!r}")
+            return False
+        return True
 
 
 def case_4_all_8_panels_present() -> bool:

@@ -582,10 +582,12 @@ def test_entry_script_subprocess_invocation() -> None:
         ws = Path(tmp)
         HELPER.save_memory_entry(ws, _entry("MEM-2026-07-02-001", "memora entry test",
                                             anchors=["memora", "test"]))
-        venv_py = SOURCE_ROOT.parent / ".venv" / "bin" / "python3"
+        # 이 테스트를 돌리고 있는 인터프리터를 그대로 쓴다. 저장소 루트의 `.venv` 를
+        # 하드코딩하면 fresh clone (CI 는 system python 에 pip install 한다) 과 worktree
+        # 에서 FileNotFoundError 로 죽는다 — 실제로 CI 가 이것 때문에 계속 red 였다.
         result = subprocess.run(
             [
-                str(venv_py),
+                sys.executable,
                 str(SOURCE_ROOT / "skills" / "memory-index-query" / "scripts" / "run_memory_index_query.py"),
                 "--workspace-root", str(ws),
                 "--query-tokens", "memora,test",

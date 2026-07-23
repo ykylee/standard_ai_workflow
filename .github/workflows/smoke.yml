@@ -37,11 +37,15 @@ jobs:
           # 과거 사고: temp 누수가 tmpfs 경유 OOM (RAM) / 디스크 211GB 점유를 일으켰고,
           # per-check timeout 이 부모만 죽여 손자 프로세스가 고아로 누적됐다.
           mkdir -p "${RUNNER_TEMP}/smoke-tmp"
+          # `|| rc=$?` 가 필수다. GitHub 의 bash 는 `-e` 로 돌기 때문에, runner 가
+          # non-zero 로 끝나면 **다음 줄인 `rc=$?` 에 닿기도 전에 스텝이 중단**된다.
+          # 그래서 아래 요약 생성 블록이 실패 시에는 한 번도 실행된 적이 없었고,
+          # 어떤 check 가 깨졌는지 아무 데도 남지 않았다 (v1.0.1 에서 발견).
+          rc=0
           python3 workflow-source/tests/run_all_checks.py \
             --timeout=120 \
             --tmp-dir="${RUNNER_TEMP}/smoke-tmp" \
-            --json > smoke-result.json
-          rc=$?
+            --json > smoke-result.json || rc=$?
           # v1.0.1: 요약을 파일로 먼저 받아 **step summary 와 job 로그 양쪽**에 낸다.
           # 이전에는 step summary 로만 보냈고 stdout 은 smoke-result.json 으로
           # 리다이렉트돼 있어, 실패해도 어떤 check 인지 로그/API 어디에서도 볼 수

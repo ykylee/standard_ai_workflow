@@ -39,6 +39,23 @@ def _import_lib():
     return mod
 
 
+def _ensure_dist_built(lib) -> None:
+    """`--skip-existing` 을 검사하기 **전에** dist artifact 가 있도록 보장한다.
+
+    v1.0.1+ — 아래 두 test 는 "CI 의 venv dist/ 가 이미 build 된 상태" 를 *가정* 했다.
+    fresh clone 에는 `workflow-source/dist/` 가 없으므로 그 가정이 거짓이고, 그러면
+    `cmd_dist(skip_existing=True)` 가 build 를 수행해 `skipped=False` 를 내며 단언이
+    깨진다. 그리고 그 실행이 dist 를 남기기 때문에 **두 번째 실행부터는 통과**한다 —
+    앞선 실행 결과에 따라 결과가 바뀌는 상태 의존 test 였다 (CI 가 red 였던 원인 중 하나).
+
+    가정하지 말고 전제를 만든다. 이미 있으면 build 는 skip 되므로 비용도 1회뿐이다.
+    """
+    dist_dir = TOOLS_DIR.parent / "dist"
+    if dist_dir.is_dir() and any(dist_dir.glob("*.whl")):
+        return
+    lib.cmd_dist(apply=True, skip_existing=False, production=False)
+
+
 def test_cmd_validate_returns_4_keys_v0_7_55() -> None:
     """cmd_validate() returns dict with 4 expected keys."""
     lib = _import_lib()
@@ -102,10 +119,13 @@ def test_cmd_dist_dry_run_v0_7_56() -> None:
 def test_cmd_dist_1_command_build_check_testpypi_v0_8_15() -> None:
     """cmd_dist(--apply --skip-existing) 는 1-command 로 twine check + testpypi simulation 완료 (spec §9 #7).
 
-    Build step 은 skip-existing 으로 우회 (CI 의 venv dist/ 가 이미 build 된 상태 가정).
+    Build step 은 skip-existing 으로 우회한다. 그 전제(dist artifact 존재)는 *가정하지
+    않고* `_ensure_dist_built` 로 만든다 — v1.0.1 이전에는 "CI 의 venv dist/ 가 이미
+    build 된 상태" 를 가정해 fresh clone 에서 깨졌다.
     핵심: twine_check.ok=True + testpypi_simulation.artifacts non-empty.
     """
     lib = _import_lib()
+    _ensure_dist_built(lib)
     result = lib.cmd_dist(apply=True, skip_existing=True, production=False)
     assert result.get("ok") is True, f"expected ok=True, got {result}: {result.get('error')}"
     # skip-existing 트리거 확인
@@ -123,8 +143,12 @@ def test_cmd_dist_1_command_build_check_testpypi_v0_8_15() -> None:
 
 
 def test_cmd_dist_with_production_simulation_v0_8_15() -> None:
-    """cmd_dist(--apply --skip-existing --production) 는 production simulation 추가 (spec §7.1 step 5)."""
+    """cmd_dist(--apply --skip-existing --production) 는 production simulation 추가 (spec §7.1 step 5).
+
+    앞 test 가 dist 를 만들어 준 것에 기대지 않는다 — test 간 실행 순서 의존을 만들지 않는다.
+    """
     lib = _import_lib()
+    _ensure_dist_built(lib)
     result = lib.cmd_dist(apply=True, skip_existing=True, production=True)
     assert result.get("ok") is True
     assert "production_simulation" in result, "missing production_simulation with --production flag"

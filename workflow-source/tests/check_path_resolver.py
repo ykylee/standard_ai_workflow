@@ -13,15 +13,41 @@ Test list (12):
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 PATH_RESOLVER = SOURCE_ROOT / "workflow_kit" / "path_resolver.py"
+
+# path_resolver 는 origin 을 결정할 때 CI 환경변수를 git config 보다 **우선**한다.
+# 그래서 temp 저장소의 origin 을 근거로 URL 을 단언하는 test 는 이 변수들이 비어
+# 있어야 한다. GitHub Actions 에서는 항상 설정돼 있으므로, 비우지 않으면 그 test 는
+# **CI 에서 구조적으로 통과할 수 없다** (실제로 CI 가 10/12 로 red 였다).
+CI_ORIGIN_ENV_KEYS = ("GITHUB_SERVER_URL", "GITHUB_REPOSITORY")
+
+
+@contextlib.contextmanager
+def _without_ci_origin_env() -> Iterator[None]:
+    """`GITHUB_*` origin 힌트를 비운 채 실행하고 원상 복구한다.
+
+    저장/복원을 각 test 가 손으로 하던 것을 정본 한 곳으로 모은다 — 빠뜨린 test 가
+    실제로 있었고, 그것이 CI red 의 원인이었다.
+    """
+    saved = {k: os.environ.pop(k, None) for k in CI_ORIGIN_ENV_KEYS}
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def _import_path_resolver():
@@ -107,17 +133,9 @@ def test_detect_origin_git_config_v0_7_60() -> None:
             ["git", "remote", "add", "origin", "https://github.com/owner/repo.git"],
             cwd=tmp_path, check=True,
         )
-        # clear CI env
-        old_server = os.environ.pop("GITHUB_SERVER_URL", None)
-        old_repo = os.environ.pop("GITHUB_REPOSITORY", None)
-        try:
+        with _without_ci_origin_env():
             result = mod._detect_origin_url(tmp_path)
             assert result == "https://github.com/owner/repo"
-        finally:
-            if old_server:
-                os.environ["GITHUB_SERVER_URL"] = old_server
-            if old_repo:
-                os.environ["GITHUB_REPOSITORY"] = old_repo
 
 
 # ---------------------------------------------------------------------------
@@ -170,9 +188,10 @@ def test_resolve_in_repo_path_v0_7_60() -> None:
             cwd=tmp_path, check=True,
         )
         actual_branch = mod._detect_default_branch(tmp_path)
-        result = mod.resolve_in_repo_path_to_url(
-            "workflow-source/workflow_kit/README.md", tmp_path
-        )
+        with _without_ci_origin_env():
+            result = mod.resolve_in_repo_path_to_url(
+                "workflow-source/workflow_kit/README.md", tmp_path
+            )
         expected = f"https://github.com/owner/repo/blob/{actual_branch}/workflow-source/workflow_kit/README.md"
         assert result == expected, f"expected {expected}, got {result}"
 
@@ -191,15 +210,16 @@ def test_resolve_pinned_ref_v0_7_60() -> None:
             ["git", "remote", "add", "origin", "https://github.com/owner/repo.git"],
             cwd=tmp_path, check=True,
         )
-        result = mod.resolve_in_repo_path_to_url_pinned(
-            "README.md", tmp_path, ref="v0.7.60"
-        )
-        assert result == "https://github.com/owner/repo/blob/v0.7.60/README.md"
-        # Bad SHA format returns None
-        bad = mod.resolve_in_repo_path_to_url_pinned(
-            "README.md", tmp_path, commit_sha="not-hex!!"
-        )
-        assert bad is None
+        with _without_ci_origin_env():
+            result = mod.resolve_in_repo_path_to_url_pinned(
+                "README.md", tmp_path, ref="v0.7.60"
+            )
+            assert result == "https://github.com/owner/repo/blob/v0.7.60/README.md", result
+            # Bad SHA format returns None
+            bad = mod.resolve_in_repo_path_to_url_pinned(
+                "README.md", tmp_path, commit_sha="not-hex!!"
+            )
+            assert bad is None, bad
 
 
 def main() -> int:

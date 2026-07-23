@@ -77,16 +77,23 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
 
 
 # === External wiki path resolution (legacy location) ===
-def get_external_wiki_path() -> Path:
+def get_external_wiki_path(override: str | Path | None = None) -> Path:
     """외부 wiki 의 standard-ai-workflow project sources/ path 결정.
 
     v0.7.17 의 in-repo redirect 이전의 legacy 위치. v0.7.17+ 의 *신규* L2
     page 는 in-repo `ai-workflow/memory/` 에 생성되지만, *legacy* L2 page
     (= 2026-06-13 이전의 releases-*.md file) 는 외부 wiki 에만 존재.
 
+    v1.0.1+ `override` 신설 (`--external-wiki`). 기본값이 `~/wiki/...` 라
+    **저장소 밖, 특정 사용자 머신에만 있는 경로**에 묶여 있었고, 그 결과 이 경로를
+    쓰는 smoke 는 작성자 로컬에서만 green 이고 CI 에서는 영구 red 였다.
+    `--repo-root` 와 같은 방식으로 주입 가능하게 한다.
+
     Returns:
         Path. legacy location.
     """
+    if override:
+        return Path(override).expanduser()
     return Path.home() / "wiki" / "wiki" / "projects" / "standard-ai-workflow" / "sources"
 
 
@@ -138,7 +145,10 @@ def is_legacy_version(version: str, inrepo_releases: set[str]) -> bool:
     return version not in inrepo_releases
 
 
-def build_mirror_frontmatter(legacy_files: list[dict], migrated_at: str, commit: str) -> str:
+def build_mirror_frontmatter(
+    legacy_files: list[dict], migrated_at: str, commit: str,
+    external_wiki: Path | None = None,
+) -> str:
     """Mirror file 의 frontmatter 생성.
 
     Args:
@@ -163,7 +173,7 @@ def build_mirror_frontmatter(legacy_files: list[dict], migrated_at: str, commit:
         lines.append(f"  - {ext_str}")
     lines.extend(
         [
-            f"migrated_from: {get_external_wiki_path()}",
+            f"migrated_from: {external_wiki or get_external_wiki_path()}",
             f"migrated_at: {migrated_at}",
             f"commit: {commit}",
             f"versions: [{', '.join(versions)}]",
@@ -272,7 +282,7 @@ def cmd_migrate_legacy_l2(args: argparse.Namespace) -> dict:
     repo_root = get_repo_root(args.repo_root)
     inrepo_release_dir = memory_dir_for_workspace(repo_root) / "release"
     inrepo_mirror = inrepo_release_dir / "_external-wiki-legacy.md"
-    external_wiki = get_external_wiki_path()
+    external_wiki = get_external_wiki_path(getattr(args, "external_wiki", None))
 
     # in-repo 의 release dir set
     inrepo_releases: set[str] = set()
@@ -297,7 +307,7 @@ def cmd_migrate_legacy_l2(args: argparse.Namespace) -> dict:
     except (subprocess.TimeoutExpired, FileNotFoundError):
         commit = "TBD"
 
-    frontmatter = build_mirror_frontmatter(legacy_files, migrated_at, commit)
+    frontmatter = build_mirror_frontmatter(legacy_files, migrated_at, commit, external_wiki)
     body = build_mirror_body(legacy_files)
     new_content = frontmatter + body
 
@@ -366,6 +376,14 @@ def build_argparser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="REPO_ROOT override (priority 1, v0.7.12 정공법).",
+    )
+    p.add_argument(
+        "--external-wiki",
+        dest="external_wiki",
+        type=str,
+        default=None,
+        help="외부 wiki sources/ 경로 override (기본: ~/wiki/.../sources). "
+             "기본값은 저장소 밖 사용자 머신 경로라, 테스트/CI 는 이 flag 로 주입한다.",
     )
     p.add_argument(
         "--json",

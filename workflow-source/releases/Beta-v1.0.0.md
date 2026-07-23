@@ -583,11 +583,121 @@ workspace root 만 아는 caller 를 위한 정본 진입점이 없어서 각자
 > `check_v0_7_26_sync_release_hash` 1/5 로 즉시 잡았다 — **기계적 일괄 치환일수록
 > 전량 실행이 필수**라는 증거로 남긴다.
 
+### 2.26 north-star 의 분자가 도달 불가였다 — 원장에 첫 entry 가 생길 수 없었다 (**릴리스 후 보강**)
+
+§2.19 에서 north-star `silent_failing_cycles_count` 를 원장 기반으로 재정의하고
+"다음 릴리스에서 첫 entry 를 확인한다" 를 다음 작업으로 남겼다. 그 확인을 하려고
+경로를 따라가 보니, **첫 entry 가 생길 수 있는 호출 경로 자체가 없었다.**
+
+`cmd_release` 안에서 두 지점의 순서가 이랬다:
+
+```
+step 2.7  : self-recover → manual_required 1+ 이면 **early return**
+step 6.5b : (gh release create 성공 뒤) 원장 append      ← 도달 불가
+```
+
+원장의 분자는 `manual_required_count > 0` 인 line 인데, 그런 line 을 만들 수 있는
+cycle 은 **정확히 step 2.7 에서 멈추는 cycle** 이다. 즉 지표가 한 방향으로만 움직일
+수 있었다 — 영구히 0.
+
+단순 누락보다 나쁜 점이 있다. 릴리스가 한 번이라도 성공하면 clean line 이 쌓여
+`measured` 가 True 로 뒤집힌다. 그러면 정직한 `미측정` 이 **"N cycle 재봤더니 0건"**
+이라는 거짓 초록불로 바뀐다. §2.19 가 세운 "원장이 비면 미측정" 원칙이 바로 그
+구간에서 무력해진다.
+
+- `_self_recover_step` 추출 — self-recover 실행 / **원장 기록** / manual_required 판정을
+  한 단위로 묶고, 기록을 early return **앞**, 즉 drift 판정이 확정되는 지점에 둔다.
+  step 6.5b 는 제거하고 자리에 이유를 남겼다.
+- 부수 효과 1: step 6 dashboard emit 보다 앞이 되어, release 가 emit 하는 snapshot 이
+  **자기 cycle 을 포함**한다 (이전에는 항상 한 cycle 뒤처졌다).
+- 부수 효과 2: `--skip-self-recover` 면 drift 를 재지 않았으므로 원장에도 남기지
+  않는다. "안 쟀다" 를 "0건" 으로 적지 않는다.
+- reader `collect_silent_failing_cycles` 를 line 단위 → **version 단위 cycle 집계**로.
+  manual fix 후 재실행은 한 cycle 의 두 시도인데, line 을 그대로 세면 **정상 운영
+  흐름이 분모를 계속 부풀린다** (1 cycle 이 "1/2" 로 보인다). 한 cycle 안에서 한 번이라도
+  manual 개입이 있었으면 그 cycle 을 분자로 센다.
+
+**왜 §2.22 왕복 계약이 못 잡았나.** 왕복 테스트는 writer 를 *직접* 불러 dirty payload 를
+넣는다. 그래서 pair 는 green 이었다 — 프로덕션 orchestrator 는 writer 에게 그 payload 를
+건넬 수 없는데도. writer 와 reader 가 맞물리는지 보는 것만으로는 부족하고,
+**orchestrator 가 writer 를 그 값으로 부를 수 있는 경로가 있는가** 를 따로 봐야 한다.
+
+- 신규 `check_drift_ledger_cycle_recording.py` (5 case) — orchestrator 를 실제로 돌려
+  manual cycle / clean cycle / dry-run 무기록 / 같은 version 재시도 / 원장→north-star 를
+  검사한다. **원장 append 를 제거해 되돌려 주입하니 5/5 FAIL** 하는 것을 확인했다.
+- 기존 `check_writer_reader_roundtrip.py` 의 drift 원장 pair 가 "같은 version 2줄 =
+  2 cycle" 을 전제하고 있어 함께 갱신했다 (재시도 case 추가).
+
+> 이 결함은 §2.23 이 만든 근거 계약(`*_source` / `*_measured`)을 **통과한 채로**
+> 존재했다. 근거 이름은 정확했고 원장도 실재했다 — 다만 그 원장에 분자가 들어갈 수
+> 없었을 뿐이다. §2.23 이 스스로 명시한 한계("근거 이름을 그럴듯하게 지으면 통과")의
+> 실제 사례로 남긴다.
+
+### 2.27 "209/209" 는 작성자 워킹카피에서만 성립했다 — CI 는 계속 red 였다 (**릴리스 후 보강**)
+
+§2.26 을 고치고 전량을 다시 돌리다 5건이 실패했다. 처음엔 이 워크트리에 `.venv` 가 없어서인
+줄 알았는데, **깨끗한 HEAD 워크트리에서 정본 러너로 돌려도 같은 5건이 실패**했다. 확인해 보니
+GitHub Actions smoke workflow 는 **최근 40회 전량 failure** 였고 성공 기록이 없었다 —
+"전량 209/209", "208/208", "207/207" 을 적은 바로 그 커밋들 포함이다.
+
+CI 는 fresh clone 에 `pip install -r requirements*.txt` 만 한다. 즉 그 수치들은 `.venv` 와
+gitignore 된 런타임 데이터가 **누적된 원본 작업 사본에서만** 재현됐다. 이 저장소가 §2.19~§2.24
+동안 고쳐 온 것이 "지표가 무엇을 재고 있는가" 였는데, 정작 **전량 smoke 라는 최상위 지표
+자체가 재현 불가능한 환경에서 측정되고 있었다.**
+
+5건의 뿌리는 하나다 — *테스트가 실행 환경에 누적된 상태에 의존한다*:
+
+| check | 원인 | 조치 |
+|---|---|---|
+| `check_memory_index` | `<workspace>/.venv/bin/python3` 하드코딩 | `sys.executable` (저장소 관용구) |
+| `check_telemetry_cross_v0_15_6` | gitignore 된 live `events.jsonl` 의존 | 프로덕션 writer 로 fixture workspace 생성 |
+| `check_phase15_dashboard_panels` case_3 | 동일 | 동일 |
+| `check_deprecation_cycle_v0_14_5` case_1 | 실저장소 `active/<branch>/backlog` 의존 | branch-scoped temp workspace + env pin |
+| `check_graph_insights_..._v0_11_2` | 실저장소 `active/<branch>/state.json` 의존 | temp workspace |
+
+**skip 이 아니라 fixture 로 고쳤다.** 없는 파일을 만나면 skip 하게 두면 CI 에서 항상 skip 되고,
+그건 red 보다 나쁘다 — 도는 척하며 초록으로 보인다. fixture 는 손으로 쓰지 않고
+`append_telemetry_event` / `save_memory_entry` 같은 **프로덕션 writer 로** 만든다 (§2.22 와 같은 이유).
+
+고치는 과정에서 두 가지가 더 드러났다:
+
+- **`check_graph_insights` 의 read-only 단언은 무의미했다.** 파일이 없으면 mtime 비교가
+  `None == None` 이 되어 *아무것도 증명하지 않고 통과*한다. 이제 실제로 존재하는 파일을 잰다.
+- **`check_telemetry_cross` 에 `assert True` dummy case 가 있었다** (주석: "case 가 4개뿐이라
+  dummy 추가"). 자리를 채우던 것을 실제 검사(telemetry 부재 분기)로 교체했다 — 그 분기는
+  그때까지 한 번도 테스트된 적이 없었다.
+
+곁들여 **정본 helper 의 결함**을 하나 찾았다. `state_path_for_workspace(workspace_root)` 가
+접두는 인자에서 가져오면서 **branch 는 이 모듈이 속한 저장소**에서 가져오고 있었다:
+
+```
+cwd=repoA(main)    : state_path_for_workspace(repoB) → repoB/…/active/main/
+cwd=repoB(feature) : state_path_for_workspace(repoA) → repoA/…/active/feature/
+```
+
+같은 인자에 대해 **호출 위치가 답을 바꾼다.** `branch_for_workspace()` 를 신설해 workspace 를
+받는 쪽은 그 workspace 의 git 을 보게 했다 (`get_current_branch()` 는 sandbox caller 를 위한
+기존 동작 유지). §2.25 가 경로 조립을 정본으로 모았는데, **정본 자신이 두 출처를 섞고 있었다.**
+
 ## 3. 검증
 
-누적 smoke **209/209 PASS** (2026-07-22, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **210/210 PASS** (2026-07-23, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
+
+> **측정 환경 명시 (§2.27)**: 위 수치는 **`git worktree` 로 새로 체크아웃한 깨끗한 트리**에서
+> 잰 것이다. 이전 사이클의 "209/209" 는 작성자의 원본 작업 사본에서만 성립했고 CI 는 red 였다.
+> 앞으로 전량 수치를 적을 때는 **어디서 쟀는지** 를 함께 적는다 — 재현 불가능한 환경에서 잰
+> 수치는 지표가 아니다.
+
+> **`--tmp-dir` 이 tmpfs 면 흔들린다 (실측)**: 같은 트리를 tmpfs(RAM) 경로로 한 번,
+> ext4 실디스크로 한 번 돌렸더니 tmpfs 쪽에서만 `check_release_pipeline_lib` 가 8/9 로
+> 넘어졌다. 그 check 와 `check_release_summary_v0_11_15` 가 **동시에 격리 venv 를 만들고
+> `pip install`** 하는 구간이 있어 RAM 상의 temp 가 경합한다. 단독 실행이나 `--filter`
+> 격리에서는 9/9 라 결함으로 오인하기 쉽다. runner 가 이미 경고를 내주고 있으니
+> (`TMPDIR ... 이 tmpfs(RAM) 입니다`) 무시하지 말 것 — 이 경고를 흘렸다가 한 번 헛짚었다.
+> 실디스크 실행 결과: **210/210, 실패 0, temp 누수 0(peak 4KB), 고아 프로세스 0, abort 0,
+> 전량 실행 후 워킹트리 변경 0**.
 
 - smoke 자기참조 게이트 제외: 2 (`check_quality_dashboard_v0_13_0` Panel 4,
   `check_smoke_trend_cross_v0_15_5` case_5)
@@ -605,8 +715,8 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **209/209 PASS** (릴리스 시점 199/199 + 발행 후 신규 10종, §2.16~2.25) |
-| 실효 smoke | **203/203 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
+| 전량 smoke | **210/210 PASS** (릴리스 시점 199/199 + 발행 후 신규 11종, §2.16~2.27) |
+| 실효 smoke | **204/204 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |
 | 신규 `check_branch_scoped_memory.py` | **8/8 PASS** |

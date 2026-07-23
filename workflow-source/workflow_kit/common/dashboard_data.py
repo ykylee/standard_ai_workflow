@@ -438,8 +438,14 @@ def _last_commit_date_for_paths(workspace_root: Path, paths: tuple[str, ...]) ->
 def collect_silent_failing_cycles(workspace_root: Path | str | None = None) -> dict[str, Any]:
     """Phase 13 AC1 north-star — drift 를 manual fix 해야 했던 release cycle 의 누적 갯수.
 
-    원장(`DRIFT_LEDGER_RELPATH`)은 release pipeline 이 cycle 당 1 line 씩 append 하는
-    JSONL 이다. 본 함수는 **읽기만** 한다.
+    원장(`DRIFT_LEDGER_RELPATH`)은 release pipeline 이 release 시도마다 1 line 씩
+    append 하는 JSONL 이다. 본 함수는 **읽기만** 한다.
+
+    **line 과 cycle 은 1:1 이 아니다.** manual_required drift 가 나오면 release 는
+    중단되고, 사람이 고친 뒤 *같은 version 으로* 다시 돌린다 — 이 재시도는 한 cycle
+    안의 두 시도다. line 을 그대로 세면 정상 운영 흐름이 분모를 계속 부풀린다
+    (1 cycle 이 "1/2" 로 보인다). 그래서 ``version`` 으로 묶고, 한 cycle 안에서
+    **한 번이라도** manual 개입이 필요했으면 그 cycle 을 분자로 센다.
 
     원장이 없거나 비어 있으면 ``count=0`` 이되 ``measured=False`` 로 emit 한다.
     "아직 안 재봤다" 와 "재봤더니 0" 은 다른 상태이고, 둘을 같은 0 으로 보여주면
@@ -459,8 +465,10 @@ def collect_silent_failing_cycles(workspace_root: Path | str | None = None) -> d
     }
     if not ledger.is_file():
         return out
-    count = 0
-    cycles = 0
+    # version → "이 cycle 에서 manual 개입이 있었나". version 없는 line 은 묶을 근거가
+    # 없으므로 각자 별개 cycle 로 (합치면 서로 다른 cycle 을 하나로 눌러버린다).
+    cycles: dict[str, bool] = {}
+    unkeyed = 0
     try:
         for line in ledger.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -473,14 +481,23 @@ def collect_silent_failing_cycles(workspace_root: Path | str | None = None) -> d
                 continue
             if not isinstance(entry, dict):
                 continue
-            cycles += 1
-            if int(entry.get("manual_required_count", 0)) > 0:
-                count += 1
+            version = entry.get("version")
+            if isinstance(version, str) and version:
+                key = version
+            else:
+                unkeyed += 1
+                key = f"__unkeyed_{unkeyed}"
+            try:
+                dirty = int(entry.get("manual_required_count", 0)) > 0
+            except (TypeError, ValueError):
+                # 셀 수 없는 값은 판정하지 않는다 — cycle 자체는 분모에 남긴다.
+                dirty = False
+            cycles[key] = cycles.get(key, False) or dirty
     except OSError:
         return out
-    out["count"] = count
-    out["measured_cycles"] = cycles
-    out["measured"] = cycles > 0
+    out["count"] = sum(1 for is_dirty in cycles.values() if is_dirty)
+    out["measured_cycles"] = len(cycles)
+    out["measured"] = len(cycles) > 0
     return out
 
 

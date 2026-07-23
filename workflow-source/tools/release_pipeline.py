@@ -2272,23 +2272,15 @@ def cmd_release(args) -> dict:
     # 2.7 Phase 13 AC3 self-recovering (v0.13.2+) — drift 검출 시 자동 fix.
     # cmd_self_recover 의 emit 결과를 results 에 포함 (release note body injection 의 source).
     # manual_required > 0 이면 early return (drift fix 우선 — 사람의 명시 intervention 필요).
+    # 원장 기록은 _self_recover_step 안에서 — early return 보다 앞이다 (v1.0.1+, 아래 docstring).
     # escape hatch: --skip-self-recover.
     if not getattr(args, "skip_self_recover", False):
         # self-recover 는 drift 를 *고치는* step 이므로 dry-run 에서는 plan 만 낸다.
         # (이전에는 apply=True / dry_run=False 를 강제해 dry-run 도 저장소를 고쳤다.)
         sr_ns = _attr_ns()
-        sr_result = cmd_self_recover(sr_ns)
-        results["self_recover"] = sr_result
-        # manual_required 가 1+ 이면 early return (drift 가 사람이 fix 해야 함).
-        if sr_result.get("manual_required"):
-            return _attach_release_summary({
-                **results,
-                "error": (
-                    f"self-recover: {len(sr_result['manual_required'])} drift case 가 "
-                    f"manual_required (human review 필요): {sr_result['manual_required']}. "
-                    f"fix 후 release 재실행 또는 --skip-self-recover 로 진행."
-                ),
-            })
+        sr_error = _self_recover_step(args, results, sr_ns)
+        if sr_error:
+            return _attach_release_summary({**results, "error": sr_error})
 
     # 2.8 Phase 13 AC4+ wiki ↔ memory 양방향 link audit (v0.13.3+).
     # cmd_bidir_link 의 audit 결과를 results 에 포함 (release note body injection 의 source).
@@ -2557,12 +2549,10 @@ def cmd_release(args) -> dict:
             log_emit = _emit_self_recovery_log(args, recovery_log)
             results["self_recovery_log_emit"] = log_emit
 
-    # 6.5b v1.0.1+ north-star 원장 append (Phase 13 AC1).
-    # release note 는 drift 가 *있을 때만* 기록된다 — 그것만으로는 north-star 를 셀 수
-    # 없다 (분모가 없어 "0건" 과 "안 재봄" 이 구별되지 않는다). cycle 마다 1 line 을
-    # 남겨 dashboard 가 분자/분모를 함께 읽게 한다.
-    if "self_recover" in results:
-        results["drift_ledger_append"] = _append_drift_ledger_entry(args, results["self_recover"])
+    # 6.5b (제거됨, v1.0.1+) north-star 원장 append 는 여기가 아니라 step 2.7 이다.
+    # 여기에 두면 `gh release create` 성공 뒤라, manual_required 로 early return 한
+    # cycle — 즉 **north-star 의 분자가 될 바로 그 cycle** — 이 기록되지 않는다.
+    # 자세한 근거는 `_self_recover_step` docstring 참조.
 
     # 6.7 v0.14.6+ maturity_last_updated 자동 갱신 (Task 3 follow-up).
     # v0.15.3+ 변경: release_error (results["error"] 존재) 시에만 maturity refresh
@@ -2803,6 +2793,48 @@ def _append_drift_ledger_entry(args: argparse.Namespace, sr_result: dict) -> dic
         return {"status": "ok", "path": str(ledger), "entry": entry}
     except Exception as e:  # noqa: BLE001 — 원장 기록 실패가 release 를 막지 않는다
         return {"status": "error", "error": f"{type(e).__name__}: {e}"}
+
+
+def _self_recover_step(
+    args: argparse.Namespace, results: dict, sr_ns: argparse.Namespace
+) -> str | None:
+    """self-recover 실행 → **원장 기록** → manual_required 판정 (v1.0.1+).
+
+    원장 append 가 이 step 안에 있는 것이 핵심이다. v1.0.0 에서는 `gh release create`
+    성공 뒤(step 6.5b)에 있었는데, `manual_required` 가 1+ 이면 cmd_release 는 그보다
+    한참 앞(step 2.7)에서 early return 한다. 즉 **원장에 `manual_required_count > 0`
+    인 line 이 기록될 수 있는 경로가 존재하지 않았다** — north-star
+    `silent_failing_cycles_count` 는 분자가 구조적으로 도달 불가라 영구히 0 이고,
+    release 가 한 번이라도 성공하면 `measured=True` 로 뒤집혀 정직한 *미측정* 이
+    "N cycle 재봤더니 0건" 이라는 거짓 초록불이 된다.
+
+    measure 대상(= drift 판정)이 확정되는 지점에서 기록한다. 그래야 clean cycle 은
+    분모로, manual cycle 은 분자로 각각 들어간다.
+
+    부수 효과 1: step 6 dashboard emit 보다 앞이므로, release 가 emit 하는 snapshot 이
+    **자기 cycle 을 포함**한다 (이전에는 항상 한 cycle 씩 뒤처졌다).
+    부수 효과 2: `--skip-self-recover` 면 drift 를 재지 않았으므로 원장에도 남기지
+    않는다 (분모에서 빠진다). "안 쟀다" 를 "0건" 으로 적지 않는 쪽이 정직하다.
+
+    Args:
+        args: release 의 argparse Namespace (dry_run / version / workspace_root 참조).
+        results: cmd_release 의 results dict — self_recover / drift_ledger_append 를 주입.
+        sr_ns: cmd_self_recover 에 넘길 Namespace (`_attr_ns()` 산출 — dry_run 상속).
+
+    Returns:
+        manual_required 가 1+ 이면 release 를 멈출 error 문자열, 아니면 None.
+    """
+    sr_result = cmd_self_recover(sr_ns)
+    results["self_recover"] = sr_result
+    results["drift_ledger_append"] = _append_drift_ledger_entry(args, sr_result)
+    manual_required = sr_result.get("manual_required")
+    if manual_required:
+        return (
+            f"self-recover: {len(manual_required)} drift case 가 "
+            f"manual_required (human review 필요): {manual_required}. "
+            f"fix 후 release 재실행 또는 --skip-self-recover 로 진행."
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------

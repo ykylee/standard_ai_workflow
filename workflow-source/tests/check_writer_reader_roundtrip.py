@@ -210,18 +210,31 @@ def test_drift_ledger_write_then_north_star_read() -> None:
 
     with tempfile.TemporaryDirectory() as td:
         ws = Path(td)
-        args = argparse.Namespace(dry_run=False, version="v1.0.1", workspace_root=str(ws))
-        clean = _append_drift_ledger_entry(args, {"recovered": [], "manual_required": [],
-                                                  "re_check": {"guard_status": "pass"}})
+
+        def append(version: str, manual: list[str]) -> dict:
+            args = argparse.Namespace(dry_run=False, version=version, workspace_root=str(ws))
+            return _append_drift_ledger_entry(args, {
+                "recovered": [], "manual_required": manual,
+                "re_check": {"guard_status": "fail" if manual else "pass"},
+            })
+
+        clean = append("v1.0.1", [])
         assert clean["status"] == "ok", clean
-        dirty = _append_drift_ledger_entry(args, {"recovered": [], "manual_required": ["case_x"],
-                                                  "re_check": {"guard_status": "fail"}})
+        dirty = append("v1.0.2", ["case_x"])
         assert dirty["status"] == "ok", dirty
 
         north_star = collect_silent_failing_cycles(ws)
         assert north_star["measured_cycles"] == 2, north_star
         assert north_star["count"] == 1, north_star
         assert north_star["measured"] is True
+
+        # 같은 version 재시도(manual fix 후 재실행)는 **한 cycle** 이다. line 을 그대로
+        # 세면 정상 운영 흐름이 분모를 부풀린다.
+        retry = append("v1.0.2", [])
+        assert retry["status"] == "ok", retry
+        north_star = collect_silent_failing_cycles(ws)
+        assert north_star["measured_cycles"] == 2, north_star
+        assert north_star["count"] == 1, north_star
 
 
 def test_telemetry_write_then_summarize() -> None:

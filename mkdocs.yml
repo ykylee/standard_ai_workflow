@@ -63,10 +63,18 @@ markdown_extensions:
 
 plugins:
   - search
-  # v0.11.23+ drift prevention P3: docs/*.md 의 '- 최종 수정일' 헤더를 build-time 에
-  # git log date 로 자동 patch. PYTHONPATH=workflow-source 필수 (CI build step 에서 설정).
-  # workflow-source/core/*.md 와 README.md 는 docs_dir 외부이므로 본 plugin 대상 ❌.
-  - tools.mkdocs_git_dates:GitDatesPlugin
+
+# v0.11.23+ drift prevention P3: docs/*.md 의 '- 최종 수정일' 헤더를 build-time 에
+# git log date 로 자동 patch.
+# workflow-source/core/*.md 와 README.md 는 docs_dir 외부이므로 대상 ❌.
+#
+# v1.0.1: `plugins:` → `hooks:` 로 이동. mkdocs 는 `plugins:` 를 **entry point 이름**
+# 으로만 해석하므로 `tools.mkdocs_git_dates:GitDatesPlugin` 은 import 경로가 아니라
+# 이름으로 취급돼 `plugin is not installed` config error 를 냈다. PYTHONPATH 로는
+# 해결되지 않는 구조였고, 그래서 mkdocs build 가 한 번도 성공한 적이 없다.
+# `hooks:` 는 파일 경로로 모듈을 읽으므로 패키징 없이 저장소 로컬 훅을 붙일 수 있다.
+hooks:
+  - workflow-source/tools/mkdocs_git_dates.py
 
 extra:
   generator: false

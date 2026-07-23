@@ -151,3 +151,41 @@ class GitDatesPlugin:
         except Exception as exc:  # noqa: BLE001
             LOG.debug("git log exception for %s: %s", src_path, exc)
             return None
+
+# ---------------------------------------------------------------------------
+# mkdocs `hooks:` 진입점 (v1.0.1+)
+# ---------------------------------------------------------------------------
+#
+# **왜 plugin 이 아니라 hook 인가.** mkdocs 는 `plugins:` 항목을 `mkdocs.plugins`
+# **entry point 이름** 으로만 해석한다 (`plugins.get_plugins()` → `entry_points(group=...)`).
+# 즉 `- tools.mkdocs_git_dates:GitDatesPlugin` 은 import 경로가 아니라 *이름* 으로
+# 취급되고, 설치된 배포판이 그 이름을 등록하지 않았으므로
+# `The "..." plugin is not installed` config error 로 build 가 중단된다.
+# `PYTHONPATH` 를 아무리 맞춰도 해결되지 않는다 — 실제로 mkdocs workflow 는 이 이유로
+# 최근 100회 실행 중 성공이 0회였고, 문서 사이트가 한 번도 배포되지 못했다.
+# (덧붙여 `GitDatesPlugin` 은 `BasePlugin` 을 상속하지도 않아, entry point 를
+# 등록했더라도 mkdocs 가 거부했을 것이다.)
+#
+# `hooks:` 는 **파일 경로**로 모듈을 읽어 module-level 함수를 event handler 로 쓴다.
+# 저장소 로컬 훅을 패키징 없이 붙이라고 있는 수단이고, 이 경우에 정확히 들어맞는다
+# (`tools` 를 wheel 에 넣으면 소비자에게 저장소 내부 도구가 배포된다).
+#
+# 기존 `GitDatesPlugin` 클래스는 로직의 정본으로 남기고 아래에서 위임한다.
+
+_HOOK = GitDatesPlugin()
+
+
+def on_page_markdown(markdown: str, **kwargs: Any) -> str:
+    """mkdocs `hooks:` event — page markdown 의 '- 최종 수정일' 을 git date 로 patch.
+
+    `MKDOCS_GIT_DATES=off` 로 끌 수 있다 (구 plugin config `enabled: false` 대체).
+    """
+    import os
+
+    if os.environ.get("MKDOCS_GIT_DATES", "").lower() in {"off", "0", "false"}:
+        return markdown
+    try:
+        return _HOOK.on_page_markdown(markdown, **kwargs)
+    except Exception as exc:  # noqa: BLE001 — hook 실패가 build 를 깨지 않는다
+        LOG.debug("git-dates hook skipped: %s", exc)
+        return markdown

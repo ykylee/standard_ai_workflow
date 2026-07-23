@@ -679,9 +679,53 @@ cwd=repoB(feature) : state_path_for_workspace(repoA) → repoA/…/active/featur
 받는 쪽은 그 workspace 의 git 을 보게 했다 (`get_current_branch()` 는 sandbox caller 를 위한
 기존 동작 유지). §2.25 가 경로 조립을 정본으로 모았는데, **정본 자신이 두 출처를 섞고 있었다.**
 
+### 2.28 문서 사이트는 한 번도 배포된 적이 없었다 — mkdocs plugin 이 로드 불가였다 (**릴리스 후 보강**)
+
+`mkdocs.yml` 에 이렇게 적혀 있었다:
+
+```yaml
+plugins:
+  - search
+  - tools.mkdocs_git_dates:GitDatesPlugin
+```
+
+그리고 workflow 는 `PYTHONPATH=workflow-source` 를 주며 주석에 "plugin import 가능하게"
+라고 적어 두었다. **그러나 mkdocs 는 `plugins:` 항목을 `mkdocs.plugins` entry point
+*이름* 으로만 해석한다** (`plugins.get_plugins()` → `entry_points(group=...)`). import
+경로가 아니다. 그래서 매 build 가 이렇게 중단됐다:
+
+```
+ERROR - Config value 'plugins': The "tools.mkdocs_git_dates:GitDatesPlugin"
+        plugin is not installed
+```
+
+`PYTHONPATH` 로는 해결되지 않는 구조다. 최근 100회 실행 중 **성공 0회** — 즉
+**문서 사이트가 한 번도 배포되지 않았다** (build 실패 → Pages deploy job skip).
+덧붙여 `GitDatesPlugin` 은 `BasePlugin` 을 상속하지도 않아, entry point 를 등록했더라도
+mkdocs 가 거부했을 것이다. 두 겹으로 불가능했다.
+
+**수정: `plugins:` → `hooks:`.** mkdocs 의 `hooks:` 는 **파일 경로**로 모듈을 읽어
+module-level 함수를 event handler 로 쓴다 — 저장소 로컬 훅을 패키징 없이 붙이라고 있는
+수단이고 이 경우에 정확히 맞는다. `tools` 를 wheel 에 넣는 대안은 소비자에게 저장소 내부
+도구를 배포하게 되므로 택하지 않았다. 기존 `GitDatesPlugin` 클래스는 로직의 정본으로
+남기고 module-level `on_page_markdown` 이 위임한다 (`MKDOCS_GIT_DATES=off` 로 비활성).
+
+실측: `mkdocs build --strict` **성공**, 그리고 훅이 실제로 동작한다 —
+`docs/CODE_INDEX.md` 의 선언 `2026-07-21` 이 산출물에서 git 실제 날짜 `2026-07-23` 으로
+교체됐다.
+
+**신규 `check_mkdocs_config.py` (4 case)** — mkdocs 설치 없이 로드 가능성의 *필요조건*
+만 본다: `plugins:` 항목이 entry point 이름 모양인가(`module:Class` 면 즉시 fail) /
+`hooks:` 경로 실재 / hook 모듈이 **module level** event 함수를 노출하는가(클래스
+메서드만 있으면 호출되지 않는다) / 탐지기 자체 동작. 원래 결함을 되돌려 주입하니
+`test_plugins_are_entry_point_names` 가 **FAIL** 하는 것을 확인했다.
+
+> 이 결함이 오래 산 이유는 §2.27 과 같다. 설정은 그럴듯해 보였고, 로컬에서 `mkdocs build`
+> 를 돌리지 않으면 드러나지 않으며, CI 는 red 였지만 **무엇이 깨졌는지 볼 수 없었다**.
+
 ## 3. 검증
 
-누적 smoke **210/210 PASS** (2026-07-23, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **211/211 PASS** (2026-07-23, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -733,7 +777,7 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **210/210 PASS** (미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
+| 전량 smoke | **211/211 PASS** (미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
 | 실효 smoke | **204/204 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |

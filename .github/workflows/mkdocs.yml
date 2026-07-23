@@ -1,6 +1,10 @@
 name: mkdocs
-# Build mkdocs site on push to main, deploy to gh-pages branch.
+# Build mkdocs site on push to main, deploy via GitHub Pages (artifact 방식).
 # v0.7.53+ — public-facing consumer guide + reference (OKF_CONSUMER_GUIDE / QUICKSTART).
+#
+# NOTE (v1.0.1): 헤더에 "deploy to gh-pages branch" 라고 적혀 있었으나 실제로는
+# actions/upload-pages-artifact + actions/deploy-pages (artifact 방식) 를 쓴다.
+# gh-pages 브랜치를 쓰지 않으므로 contents 쓰기 권한도 필요 없다.
 
 on:
   push:
@@ -11,8 +15,15 @@ on:
       - '.github/workflows/mkdocs.yml'
   workflow_dispatch:
 
+# v1.0.1: `actions/deploy-pages@v4` 는 OIDC 토큰을 요구한다 — `id-token: write` 가
+# 없으면 `Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable` 로 실패한다.
+# 이 구멍은 지금까지 보이지 않았다: build 단계가 plugin config error 로 항상 중단돼
+# **deploy job 이 한 번도 실행된 적이 없었기** 때문이다 (§2.28). build 를 고치자마자
+# 다음 단계의 결함이 드러났다.
 permissions:
-  contents: write
+  contents: read   # gh-pages 브랜치를 쓰지 않으므로 write 불필요 (최소 권한)
+  pages: write
+  id-token: write
 
 concurrency:
   group: mkdocs-${{ github.ref }}

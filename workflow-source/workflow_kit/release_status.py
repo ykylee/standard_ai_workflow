@@ -120,8 +120,12 @@ def _check_local_mypy() -> dict[str, Any]:
          "skipped": bool (True if mypy not available)}
     """
     try:
+        # v1.0.2: config 명시. cwd 인 PROJECT_ROOT 에는 [tool.mypy] 가 없어
+        # 암묵적 탐색이 `Config File: Default` 로 떨어졌고, 이 Layer 2 게이트도
+        # strict 를 적용한 적이 없다 (CI / release gate 와 같은 결함의 사본).
         proc = subprocess.run(
             [sys.executable, "-m", "mypy", "--no-incremental",
+             "--config-file", str(REPO_ROOT / "pyproject.toml"),
              "workflow-source/workflow_kit/"],
             cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120,
         )
@@ -152,7 +156,9 @@ def _check_ci_mypy() -> dict[str, Any]:
     # importlib 으로 release_pipeline 의 helper 호출 (v0.11.13+)
     try:
         sys.path.insert(0, str(REPO_ROOT / "tools"))
-        from release_pipeline import _cross_verify_ci_mypy  # type: ignore[import-not-found]
+        # v1.0.2: import-not-found ignore 제거 — tools/ 는 mypy 의 crawl 대상이 아니고
+        # config 의 ignore_missing_imports=true 가 이미 덮으므로 unused 였다.
+        from release_pipeline import _cross_verify_ci_mypy
         ci_mypy: dict[str, Any] = _cross_verify_ci_mypy()
         return ci_mypy
     except Exception as e:

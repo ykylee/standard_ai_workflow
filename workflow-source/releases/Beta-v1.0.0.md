@@ -744,9 +744,73 @@ Error: Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable
 > 층이 셋이었다는 점을 기록해 둔다 — **plugin 로드 → deploy 권한 → Pages 활성화**.
 > 맨 아래 한 층이 막혀 있는 동안 위의 두 층은 존재조차 관측되지 않았다.
 
+> **후속 (2026-07-25)**: 맨 아래 층을 열었다. Pages 활성화
+> (`gh api -X POST .../pages -f build_type=workflow`) → run `30159275873` 에서
+> **deploy 성공 (9s)**, 사이트 게시. `exclude_docs` 4종은 404, 주요 페이지는 200 확인.
+> 덤으로 `hooks:` 전환이 *의도한 변환까지* 수행함이 처음 산출물로 확인됐다 — 원본 헤더가
+> stale 한 3건(`index` 06-17, `CODE_INDEX` 07-21, `FEEDBACK` 06-17)이 게시본에서 각각
+> git log 날짜(07-22 / 07-23 / 07-22)로 덮여 있다. **로드되는가**와 **일하는가**는
+> 다른 층인데, 배포된 적이 없어 후자를 볼 수단이 그때까지 없었다.
+
+### §2.29 — mypy strict 는 v0.11.11 이래 한 번도 적용된 적이 없다 (2026-07-25)
+
+`pyproject.toml` 3중 불일치를 정리하려다 발견했다. `mypy-strict.yml` 은 이렇게 돌고 있었다:
+
+```
+mypy --no-incremental workflow-source/workflow_kit/     # cwd = REPO_ROOT
+```
+
+헤더 주석은 "workflow-source/ 의 pyproject `[tool.mypy] strict=true` read" 라고 적고
+있었다. 사실이 아니었다. mypy 의 config 탐색은 **cwd 기준**이고, REPO_ROOT 의
+`pyproject.toml` 은 `uv init` 잔여물이라 `[tool.mypy]` 가 없다. 그래서 탐색이 전부
+실패하고 `Config File: Default` 로 떨어졌다 (`mypy -v` 의 `Config File:` 줄로 확인).
+
+| 실행 | Config | 결과 |
+|---|---|---|
+| CI 가 하던 것 | **Default** | 0 errors / 117 files → green |
+| 선언된 strict 를 물렸을 때 | `workflow-source/pyproject.toml` | **4 errors** |
+
+**AST 로 전수 조사하니 mypy 호출 지점이 23곳이었고, 그 중 21곳이 config 없이 돌고
+있었다** — CI, release-time gate(`release_pipeline.py`), Layer 2
+gate(`release_status.py`), 그리고 `check_mypy_strict_v0_11_3~10` 등 "strict clean" 을
+이름에 달고 있는 smoke 9종 전부. 처음엔 3곳인 줄 알고 목록을 손으로 적었다가 AST 로
+훑고 나서야 규모를 알았다. **손으로 유지하는 목록은 반드시 빠진다.**
+
+곁들여 `exclude` 결함: `"schemas/.*"` 는 anchor 가 없어 경로 어디서든 매치했다.
+의도한 대상은 `workflow-source/schemas/`(실은 `.py` 가 **0개**)였는데, 실제로 잘라낸
+것은 `workflow_kit/common/schemas/` 의 **실소스 20 file** 이었다 (117 → 97). exclude 는
+crawl 대상에서 조용히 빼므로 줄어들었다는 사실이 어디에도 남지 않는다.
+
+**v0.11.11 릴리스 노트의 인과 설명도 틀렸다** — mypy 는 config 를 merge 하지 않고,
+정확히 하나만 고른다. "sub-package config 와의 merge 회피" 라던 조치는 실제로는 *설정을
+통째로 잃는* 조치였고, 46 → 0 은 코드가 좋아져서가 아니라 검사를 안 하게 돼서였다.
+해당 노트에 정정 블록을 넣었다 (`600f6e1` 의 tmpfs 귀인 정정과 같은 처리).
+
+가장 나쁜 층은 재발 방지 test 였다. `check_mypy_strict_ci_v0_11_11.py` case 8 은 CI
+invocation 을 **충실히 재현**하고 exit 0 을 확인했다. 깨진 실행을 정확히 복제했으니
+green 이었다. **재현은 검증이 아니다** — 무엇을 재현하는지도 함께 봐야 한다.
+
+조치:
+
+| # | 내용 |
+|---|---|
+| 1 | `exclude` 를 디렉터리 경계에 anchor (cwd 두 곳 모두 대응) → 검사 대상 97 → **117 file** |
+| 2 | mypy 호출 **23곳 전부** `--config-file` 명시 |
+| 3 | 드러난 `unused-ignore` 4건 제거 (`testing` / `profiling` / `metadata` / `release_status`) |
+| 4 | 신규 `check_mypy_config_actually_loaded.py` (6 case) — AST 전수 조사 + `mypy -v` 의 `Config File:` 줄 실측 + **음성 대조**(config 를 빼면 정말 Default 로 떨어지는가) |
+| 5 | CI run 블록에 `Config File:` 가드 — 기대 경로가 아니면 `::error::` + exit 1 |
+
+3번은 2번과 **짝**이다. 그 ignore 들이 unused 였던 이유가 config 의
+`ignore_missing_imports = true` 이므로, config 없이 돌리면 되레 진짜 에러 3건이 뜬다.
+4·5번 가드가 그 전제를 강제한다.
+
+주입 검증 (전부 확인): exclude anchor 되돌림 → 2 case FAIL / CI 에서 `--config-file`
+제거 → 1 case FAIL (주석에 남은 `config-file` 문자열에 속지 않는다) / CI run 블록에서
+제거 → `::error::` + exit 1.
+
 ## 3. 검증
 
-누적 smoke **211/211 PASS** (2026-07-23, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **212/212 PASS** (2026-07-25, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
 
@@ -798,7 +862,7 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **211/211 PASS** (미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
+| 전량 smoke | **212/212 PASS** (2026-07-25 §2.29 반영. 미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
 | 실효 smoke | **204/204 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |

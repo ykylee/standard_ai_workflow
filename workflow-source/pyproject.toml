@@ -159,7 +159,21 @@ ignore_missing_imports = true
 # v0.9.0+: skills/* 는 non-Python (skill spec markdown + helper script) 디렉터리.
 # hyphen-named subpackage (e.g. "git-conflict-resolver") 가 mypy 의 package validation
 # 을 trigger 하므로 exclude. workflow_kit / tools / tests 만 mypy strict 대상.
-exclude = ["skills/.*", "prompts/.*", "examples/.*", "schemas/.*", "core/.*", "build/.*", "releases/.*", "scripts/.*"]
+#
+# v1.0.2: **anchor 추가.** 이전 값 `["schemas/.*", ...]` 는 anchor 가 없어 경로
+# *어디서든* 매치했다 — 의도한 대상은 `workflow-source/schemas/` 였는데
+# `workflow_kit/common/schemas/` 의 **실소스 20 file 까지 같이 잘라내고 있었다**
+# (117 → 97). exclude 는 crawl 대상에서 조용히 빼므로 줄어든 사실이 어디에도 안 보인다.
+#
+# mypy 의 exclude 는 config 파일 위치가 아니라 **cwd 기준 경로**에 re.search 로 매치되므로
+# cwd 마다 형태가 다르다. 두 가지 실행 위치를 모두 명시한다:
+#   - REPO_ROOT   : CI / release gate / smoke 의 실제 invocation
+#   - workflow-source : 로컬에서 `cd workflow-source && mypy workflow_kit/`
+# 두 패턴 모두 디렉터리 경계에 anchor 돼 있어 `workflow_kit/` 내부와는 절대 겹치지 않는다.
+exclude = [
+    "(?:^|/)workflow-source/(?:skills|prompts|examples|schemas|core|build|releases|scripts)/",
+    "^(?:skills|prompts|examples|schemas|core|build|releases|scripts)/",
+]
 # v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.
 # 현재 v0.8.0 은 workflow_kit/__init__.py 의 public API 만 strict clean.
 # 다른 module 은 `disallow_untyped_defs = false` (v0.8.x follow-up) 로 두고, base strict = true 가

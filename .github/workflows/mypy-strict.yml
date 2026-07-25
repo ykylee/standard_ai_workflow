@@ -8,7 +8,27 @@ name: mypy-strict
 # Triggers: push to main + pull_request to main (smoke / mkdocs 와 정합한 main-only 정책)
 # Python: 3.10 (workflow_kit python_version 정합)
 # Mypy: 2.1.0 (v0.11.10 release note 의 strict 기준 정합)
-# Mypy invocation: `mypy --no-incremental workflow_kit/` (workflow-source/ 의 pyproject [tool.mypy] strict=true read)
+#
+# Mypy invocation: `mypy --no-incremental --config-file workflow-source/pyproject.toml
+#                   workflow-source/workflow_kit/`
+#
+# v1.0.2 — **이 워크플로우는 v0.11.11 이래 strict 로 돈 적이 없다.** 이전 주석은
+# "workflow-source/ 의 pyproject [tool.mypy] strict=true read" 라고 적고 있었지만
+# 사실이 아니었다. mypy 의 config 탐색은 *cwd 기준* 으로
+#   ./mypy.ini → ./.mypy.ini → ./pyproject.toml ([tool.mypy] 가 있을 때만) → ./setup.cfg
+# 순인데, 이 job 의 cwd 는 REPO_ROOT 이고 루트 pyproject.toml 은 `uv init` 잔여물이라
+# [tool.mypy] 섹션이 없다. 그래서 전부 건너뛰고 `Config File: Default` 로 떨어졌다
+# (`mypy -v` 의 "Config File:" 줄로 확인). 결과: 설정 없이 117 file 0 error → green.
+# 선언된 strict 를 물리면 4 errors 였다.
+#
+# 부수적으로 v0.11.11 릴리스 노트의 인과 설명도 틀렸다 — mypy 는 config 를 **merge 하지
+# 않는다**. 정확히 하나만 고른다. "sub-package config 와의 merge 회피" 라고 적힌 조치는
+# 실제로는 *설정을 통째로 잃는* 조치였고, 46 → 0 은 코드가 좋아져서가 아니라 검사를
+# 안 하게 돼서였다.
+#
+# 재발 방지: cwd 에 의존하는 암묵적 탐색을 쓰지 말고 `--config-file` 로 명시한다.
+# `workflow-source/tests/check_mypy_config_actually_loaded.py` 가 세 호출 지점(CI /
+# release gate / smoke)이 모두 명시하고 있는지 + 실제로 그 파일이 로드되는지 검사한다.
 
 on:
   push:
@@ -50,9 +70,30 @@ jobs:
       - name: Run mypy --no-incremental workflow_kit/
         shell: bash
         run: |
-          set -euo pipefail
-          # REPO_ROOT 에서 실행 (workflow-source/path 절대경로).
-          # sub-package 의 workflow_kit/pyproject.toml (strict=false) 와 parent
-          # 의 workflow-source/pyproject.toml (strict=true) 의 merge 가 발생하지 않도록
-          # *target path* 를 REPO_ROOT 기준 절대경로로 명시.
-          mypy --no-incremental workflow-source/workflow_kit/
+          set -uo pipefail
+          # REPO_ROOT 에서 실행. v1.0.2: config 를 **명시**한다 — 암묵적 cwd 탐색은
+          # 루트 pyproject.toml 에 [tool.mypy] 가 없어 Default 로 떨어졌다 (헤더 주석 참조).
+          #
+          # `-v` 로 한 번만 돌리고 출력을 갈라 쓴다. 어떤 config 를 물었는지 로그에 남기는
+          # 것이 핵심이다 — 조용히 Default 로 떨어지는 것이 이 결함이 안 보인 이유였다.
+          OUT="${RUNNER_TEMP:-/tmp}/mypy-out.txt"
+          rc=0
+          mypy -v --no-incremental \
+            --config-file workflow-source/pyproject.toml \
+            workflow-source/workflow_kit/ > "$OUT" 2>&1 || rc=$?
+
+          # §2.27 교훈: `set -e` 는 러너가 non-zero 로 끝나는 순간 다음 줄에 닿기도 전에
+          # 스텝을 중단시킨다. 요약 블록이 실패 시 한 번도 실행되지 않는 사고가 있었다.
+          CONFIG_LINE="$(grep -E '^LOG:  Config File:' "$OUT" || true)"
+          echo "${CONFIG_LINE:-'⚠ Config File 줄 없음 — mypy -v 출력 형식 변경?'}"
+          grep -vE '^LOG:' "$OUT" || true
+
+          EXPECTED="workflow-source/pyproject.toml"
+          case "$CONFIG_LINE" in
+            *"$EXPECTED"*) ;;
+            *)
+              echo "::error::mypy 가 $EXPECTED 를 로드하지 않았다 — strict 가 적용되지 않은 상태다. ($CONFIG_LINE)"
+              exit 1
+              ;;
+          esac
+          exit $rc

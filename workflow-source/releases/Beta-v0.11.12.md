@@ -12,6 +12,11 @@ v0.11.10 의 FULL mypy strict 도달 (35 file strict clean) 을 release-time 강
   - cwd = `REPO_ROOT.parent` (project root)
   - target = **absolute path** (REPO_ROOT/workflow_kit/)
   - sub-package 의 `workflow_kit/pyproject.toml` (`strict=false`) 와 parent 의 `workflow-source/pyproject.toml` (`strict=true`) 의 merge 회피
+  - > **⚠️ 정정 (v1.0.2, 2026-07-25)**: 위 줄은 틀렸다 — mypy 는 config 를 merge 하지
+    > 않고, 이 invocation 은 cwd(project root)에 `[tool.mypy]` 가 없어 실제로는
+    > `Config File: Default` 로 떨어졌다. 즉 이 release-time gate 도 **strict 로 돈 적이
+    > 없다**. v1.0.2 에서 `--config-file` 명시로 수정. 자세한 경위는
+    > `Beta-v0.11.11.md` 의 정정 블록 참조.
 - **Result schema**: `{ok, exit_code, error_count, first_error}`
   - mypy 부재 시: `{ok: False, error: "mypy module not installed (run pip install -e ./workflow-source/workflow_kit[dev])"}`
   - timeout 시: `{ok: False, error: "mypy timeout (>120s)"}`

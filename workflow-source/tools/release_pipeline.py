@@ -197,16 +197,25 @@ def cmd_validate(args) -> dict:
     # v0.11.10 의 FULL mypy strict 도달 (35 file strict clean) 을 release-time 강제.
     # CI (.github/workflows/mypy-strict.yml) 가 PR-time 방어선이라면, 본 check 는
     # release-time 방어선. invocation 은 CI 와 동일:
-    #   `mypy --no-incremental workflow_kit/` (cwd = parent_of_REPO_ROOT, 절대경로)
-    # sub-package 의 workflow_kit/pyproject.toml (strict=false) 와 parent 의
-    # workflow-source/pyproject.toml (strict=true) 의 merge 회피.
+    #   `mypy --no-incremental --config-file <workflow-source/pyproject.toml> workflow_kit/`
+    #   (cwd = parent_of_REPO_ROOT, 절대경로)
+    #
+    # v1.0.2 — **이 gate 도 strict 로 돈 적이 없다.** cwd 가 project root 인데 그곳의
+    # pyproject.toml 은 `uv init` 잔여물이라 [tool.mypy] 가 없어, mypy 가 config 탐색을
+    # 모두 건너뛰고 `Config File: Default` 로 떨어졌다. CI 와 **똑같은 결함을 복제**하고
+    # 있었다 — 규약을 세 곳에 사본으로 두면 갈라지는 게 아니라 같이 틀린다.
+    # (이전 주석의 "sub-package config 와의 merge 회피" 는 사실이 아니다. mypy 는 config 를
+    #  merge 하지 않고 정확히 하나만 고른다.)
+    #
     # REPO_ROOT = workflow-source/ (release_pipeline.py 의 Path.__file__.parents[1] 정의)
     # 이므로, *project root* (REPO_ROOT.parent) 를 cwd 로 사용하고, target 을 절대경로.
     if not getattr(args, "skip_mypy", False):
         try:
             mypy_target = str(REPO_ROOT / "workflow_kit/")
+            mypy_config = str(REPO_ROOT / "pyproject.toml")
             mypy_proc = subprocess.run(
-                [sys.executable, "-m", "mypy", "--no-incremental", mypy_target],
+                [sys.executable, "-m", "mypy", "--no-incremental",
+                 "--config-file", mypy_config, mypy_target],
                 cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120,
             )
             # error count: lines like "file.py:LINE: error: ... [rule]"
@@ -215,11 +224,15 @@ def cmd_validate(args) -> dict:
                 if ".py:" in line and "error:" in line
             ]
             first_error = error_lines[0] if error_lines else None
+            # v1.0.2: 판정과 함께 **어떤 config 로 쟀는지**를 낸다 (d5be282 와 같은 원칙).
+            # 이 값이 없어서 "strict 0 errors" 라는 판정이 무엇을 근거로 한 것인지
+            # 아무도 확인할 수 없었다.
             results["mypy"] = {
                 "ok": mypy_proc.returncode == 0,
                 "exit_code": mypy_proc.returncode,
                 "error_count": len(error_lines),
                 "first_error": first_error,
+                "config_file": mypy_config,
             }
         except FileNotFoundError:
             # mypy module 부재 — dev extra install 누락. v0.11.11 pin 정합 이지만

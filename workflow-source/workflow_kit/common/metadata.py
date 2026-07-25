@@ -36,7 +36,10 @@ SECTION = "tool.workflow-doctor"
 if sys.version_info >= (3, 11):
     import tomllib
 else:  # pragma: no cover
-    import tomli as tomllib  # type: ignore[no-redef, import-not-found]
+    # v1.0.2: `type: ignore[no-redef, import-not-found]` 제거 — 둘 다 발동하지 않는다.
+    # python_version=3.10 에서 위 if 분기가 unreachable 이라 no-redef 가 생기지 않고,
+    # import-not-found 는 config 의 ignore_missing_imports=true 가 이미 덮는다.
+    import tomli as tomllib
 
 
 @dataclass

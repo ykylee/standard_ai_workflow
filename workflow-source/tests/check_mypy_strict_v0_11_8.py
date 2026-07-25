@@ -37,6 +37,9 @@ def test_mypy_strict_clean_v0_11_8() -> None:
     # case 1: read_only_mcp_sdk.py strict clean verify
     result_sdk = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/server/read_only_mcp_sdk.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,
@@ -55,6 +58,9 @@ def test_mypy_strict_clean_v0_11_8() -> None:
     # case 2: workflow_writes.py strict clean verify
     result_w = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/common/workflow_writes.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,

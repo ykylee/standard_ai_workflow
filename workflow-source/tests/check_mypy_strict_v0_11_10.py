@@ -38,6 +38,9 @@ def test_mypy_strict_clean_v0_11_10() -> None:
     # case 1: project_docs.py strict clean verify
     result_pd = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/common/project_docs.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,
@@ -56,6 +59,9 @@ def test_mypy_strict_clean_v0_11_10() -> None:
     # case 2: profiling.py strict clean verify
     result_pr = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/common/profiling.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,
@@ -84,6 +90,9 @@ def test_mypy_strict_clean_v0_11_10() -> None:
     # case 4: full strict 도달 verify (전체 workflow_kit/ 0 errors)
     result_full = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=120,

@@ -13,6 +13,29 @@ v0.11.10 의 FULL mypy strict 도달 을 CI 강제:
 - **mypy**: 2.1.0 (v0.11.10 release note 의 strict 기준 정합)
 - **Mypy invocation**: `mypy --no-incremental workflow-source/workflow_kit/` (**cwd = REPO_ROOT**, 절대경로로 명시). sub-package 의 `workflow_kit/pyproject.toml` (`strict=false`) 와 parent 의 `workflow-source/pyproject.toml` (`strict=true`) 의 merge 가 발생하지 않도록 *target path* 를 REPO_ROOT 기준 절대경로로 명시.
   - **Critical lesson**: `cd workflow-source && mypy workflow_kit/` (subdir 상대경로) 는 mypy 가 `workflow_kit/pyproject.toml` (`strict=false`) 을 발견하여 parent 의 `strict=true` 와 merge — strict check cascade 가 풀려 46 errors in 18 files 가 발생. REPO_ROOT 절대경로 invocation 은 이 merge 회피.
+
+> ### ⚠️ 정정 (v1.0.2, 2026-07-25) — 위 "Critical lesson" 의 인과 설명은 틀렸다
+>
+> 세 가지가 사실이 아니다.
+>
+> 1. **mypy 는 config 를 merge 하지 않는다.** 정확히 하나만 고른다. "두 pyproject 의
+>    merge" 라는 현상 자체가 존재하지 않는다.
+> 2. **발견된 config 는 sub-package 것이 아니었다.** mypy 의 탐색은 *target* 이 아니라
+>    *cwd* 기준이다. `cd workflow-source` 에서 걸리는 것은 `workflow-source/pyproject.toml`
+>    (`strict=true`) 이고, `workflow_kit/pyproject.toml` 은 어느 경로로도 읽히지 않았다.
+>    `mypy -v` 의 `Config File:` 줄로 확인된다.
+> 3. **따라서 "REPO_ROOT 절대경로 invocation" 은 merge 회피가 아니라 설정 상실이었다.**
+>    REPO_ROOT 의 `pyproject.toml` 은 `uv init` 잔여물이라 `[tool.mypy]` 가 없어 탐색이
+>    전부 실패하고 `Config File: Default` 로 떨어진다. 46 → 0 은 코드가 좋아져서가 아니라
+>    **strict 를 아예 적용하지 않게 되어서**였다.
+>
+> 결과적으로 `mypy-strict.yml` 은 v0.11.11(2026-06-26) 이래 **strict 로 돈 적이 없다.**
+> v0.11.12 의 release-time gate 도 같은 invocation 을 복제해 같은 상태였다.
+> v1.0.2 에서 `--config-file` 명시로 고쳤고, `Config File:` 줄을 실제로 확인하는
+> `check_mypy_config_actually_loaded.py` 를 두어 같은 방식으로 다시 조용해지지 않게 했다.
+>
+> 남길 교훈은 원문과 반대다: **cwd 에 의존하는 암묵적 config 탐색을 쓰지 말 것.**
+> 그리고 초록불이 무엇을 근거로 초록인지 — 어떤 설정으로 쟀는지 — 를 산출물에 남길 것.
 - **기존 workflow 정합**:
   - `smoke.yml` — `check_*.py` subprocess 실행 (느림, mypy wrapper 경유)
   - `mypy-strict.yml` (본 release) — direct `mypy` 실행 (빠름, dedicated)

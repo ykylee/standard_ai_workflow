@@ -92,22 +92,29 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     assert "pull_request" in triggers, f"workflow pull_request trigger 부재: {triggers}"
     print("  case 2 (workflow YAML valid + push/PR trigger): PASS")
 
-    # case 3: workflow 의 mypy invocation = `mypy --no-incremental workflow_kit/`
+    # case 3: workflow 의 mypy invocation.
     # (workflow_text 는 case 1 끝에서 early-declare 됨)
+    #
+    # v1.0.2: **`--config-file` 을 필수로 격상.** 이전 버전은
+    # `mypy --no-incremental workflow_kit/` 를 요구했는데, 그 invocation 은 cwd 의
+    # 암묵적 config 탐색에 기대고 있었고 REPO_ROOT 에는 [tool.mypy] 가 없어 실제로는
+    # `Config File: Default` 로 떨어졌다. 즉 이 case 는 **깨진 invocation 을 고정** 하고
+    # 있었다. 이제 config 명시를 요구한다.
+    #
+    # 이전 fallback regex `r"mypy[^\\n]*..."` 의 char class 는 raw string 이라
+    # `[^\n]` 이 아니라 **`[^\\n]` (역슬래시와 문자 n 을 제외)** 로 해석됐다.
+    # 줄바꿈 허용 의도가 전혀 동작하지 않았으므로 re.DOTALL 로 바로잡는다.
+    assert "--no-incremental" in workflow_text, "workflow 에 --no-incremental 부재"
     mypy_pattern = re.compile(
-        r"mypy\s+--no-incremental\s+workflow_kit/",
-        re.MULTILINE,
+        r"mypy\b.*?--config-file\s+workflow-source/pyproject\.toml.*?workflow-source/workflow_kit/",
+        re.DOTALL,
     )
     if not mypy_pattern.search(workflow_text):
-        # try fallback pattern (e.g. quoted or different spacing)
-        fallback_pattern = re.compile(
-            r"mypy[^\\n]*--no-incremental[^\\n]*workflow_kit/",
-            re.MULTILINE,
+        raise AssertionError(
+            "workflow mypy invocation 이 --config-file workflow-source/pyproject.toml 을 "
+            "명시하지 않는다 — 암묵적 cwd 탐색은 REPO_ROOT 에서 Config File: Default 로 "
+            f"떨어진다 (strict 미적용):\n{workflow_text[:800]}"
         )
-        if not fallback_pattern.search(workflow_text):
-            raise AssertionError(
-                f"workflow mypy invocation != 'mypy --no-incremental workflow_kit/':\n{workflow_text[:500]}"
-            )
     # also verify python-version 3.10 (workflow_kit 정합)
     assert "python-version" in workflow_text, "workflow python-version 누락"
     assert "3.10" in workflow_text, "workflow python-version != 3.10 (workflow_kit python_version 정합)"
@@ -173,13 +180,18 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     print(f"  case 7 (pyproject version = {current_version!r}): PASS")
 
     # case 8: CI 와 동일 invocation 실제 mypy 실행 verify (REPO_ROOT cwd, full path)
-    # CI 의 working pattern: `mypy --no-incremental workflow-source/workflow_kit/` from REPO_ROOT.
-    # sub-package 의 workflow_kit/pyproject.toml (strict=false) 와 parent 의
-    # workflow-source/pyproject.toml (strict=true) 의 merge 가 발생하지 않도록
-    # *target path* 를 REPO_ROOT 기준 절대경로로 명시.
+    # CI 의 working pattern (v1.0.2+):
+    #   `mypy --no-incremental --config-file workflow-source/pyproject.toml
+    #    workflow-source/workflow_kit/` from REPO_ROOT.
+    #
+    # v1.0.2: `--config-file` 추가. 이전 case 8 은 CI invocation 을 *충실히 재현* 했지만
+    # 재현 대상이 깨져 있었다 — 설정 없이 도는 실행을 그대로 복제하고 exit 0 을 확인하니
+    # 당연히 green 이었다. **재현이 곧 검증은 아니다**: 무엇을 재현하는지도 함께 봐야 한다.
+    # 그 "무엇" 은 check_mypy_config_actually_loaded.py 가 담당한다.
     try:
         result_ci = subprocess.run(
             [sys.executable, "-m", "mypy", "--no-incremental",
+             "--config-file", "workflow-source/pyproject.toml",
              "workflow-source/workflow_kit/"],
             cwd=str(REPO_ROOT),
             capture_output=True, text=True, timeout=120,

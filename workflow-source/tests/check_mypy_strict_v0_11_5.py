@@ -37,6 +37,9 @@ def test_mypy_strict_clean_v0_11_5() -> None:
     # case 1: decorators.py strict clean verify
     result_d = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/common/decorators.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,
@@ -55,6 +58,9 @@ def test_mypy_strict_clean_v0_11_5() -> None:
     # case 2: linter.py strict clean verify
     result_l = subprocess.run(
         [sys.executable, "-m", "mypy", "--no-incremental",
+             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
+             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
+             "--config-file", "workflow-source/pyproject.toml",
          "workflow-source/workflow_kit/common/linter.py"],
         cwd=str(REPO_ROOT),
         capture_output=True, text=True, timeout=60,

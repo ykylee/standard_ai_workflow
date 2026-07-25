@@ -1653,7 +1653,7 @@ wheels = [
 ]
 
 [[package]]
-name = "standard-ai-workflow"
+name = "standard-ai-workflow-root"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

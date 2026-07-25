@@ -115,7 +115,7 @@
 - Python 3.9 이하 환경에서는 `mcp` 패키지가 설치되지 않는다.
 - **자세한 설치 절차, editable install, 스모크 테스트 실행, 워크플로우 kit 호출, 부트스트랩, MCP 서버 실행, 자주 만나는 문제 해결은 [`./docs/INSTALLATION_AND_USAGE.md`](./docs/INSTALLATION_AND_USAGE.md) 참고.**
 
-> **루트 레벨 placeholder 안내** (v0.15.0+): 루트의 `pyproject.toml` / `uv.lock` / `main.py` / `.python-version` 는 *placeholder scaffold* (v0.1.0) 이며, **정식 importable 패키지는 `workflow-source/`** 입니다. editable install / smoke 실행 / MCP 서버 실행 모두 `PYTHONPATH=workflow-source` 또는 `pip install -e workflow-source/` 로 진행하세요. 루트 `pyproject.toml` 의 `deepagents` / `fastmcp` / `langchain-openai` 의존성은 향후 root-level 부속 도구 진입용 보존치이며 *현재 활성화된 의존성 그래프가 아님* — 자세한 내용은 `docs/INSTALLATION_AND_USAGE.md` §3.A 참고.
+> **루트 레벨 placeholder 안내** (v0.15.0+): 루트의 `pyproject.toml` / `uv.lock` / `main.py` / `.python-version` 는 *placeholder scaffold* (v0.1.0) 이며, **정식 importable 패키지는 `workflow-source/`** 입니다. v1.0.2 부터 루트 scaffold 의 배포 이름은 `standard-ai-workflow-**root**` 입니다 — 이전에는 실제 배포판과 같은 `standard-ai-workflow` 를 선언하고 있어 `pip show` 나 editable install 이 어느 쪽을 가리키는지 모호했습니다. 실제 배포판 이름은 그대로 `standard-ai-workflow` 입니다. editable install / smoke 실행 / MCP 서버 실행 모두 `PYTHONPATH=workflow-source` 또는 `pip install -e workflow-source/` 로 진행하세요. 루트 `pyproject.toml` 의 `deepagents` / `fastmcp` / `langchain-openai` 의존성은 향후 root-level 부속 도구 진입용 보존치이며 *현재 활성화된 의존성 그래프가 아님* — 자세한 내용은 `docs/INSTALLATION_AND_USAGE.md` §3.A 참고.
 
 ## 6. 개발 및 온보딩 가이드 (Self-dogfooding)
 

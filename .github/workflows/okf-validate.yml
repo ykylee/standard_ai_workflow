@@ -78,7 +78,7 @@ jobs:
           if [ "$url_count" -eq 0 ]; then
             echo "WARN: no URLs found to validate"
           fi
-          cat "$urls_file" | head -20
+          head -20 "$urls_file"   # v1.0.3(actionlint): SC2002 useless cat 해소
 
       - name: V-R10 offline + online + cache (24h)
         if: steps.extract.outputs.url_count > 0
@@ -119,7 +119,7 @@ jobs:
           {
             echo "## V-R10 Online Validation"
             echo
-            echo "- URLs checked: $(wc -l < $urls_file)"
+            echo "- URLs checked: $(wc -l < "$urls_file")"
             echo "- Cache: 24h TTL at \`$cache_dir\`"
             echo "- Mode: strict + online + cache"
             if [ "$failed" -ne 0 ]; then

@@ -1,7 +1,33 @@
+# 루트 레벨 placeholder scaffold (eb62f37, v0.15.0+).
+#
+# 이 파일은 배포되는 패키지가 아니다. uv.lock 에서 `source = { virtual = "." }` 로
+# 잡혀 있으며, 실제 importable 패키지(`workflow_kit`, `bootstrap_lib`)와 배포판은
+# 전부 `workflow-source/` 에 있다. 자세한 안내는 README.md 의 "루트 레벨 placeholder
+# 안내" 와 docs/INSTALLATION_AND_USAGE.md §3.A 참조.
+#
+# v1.0.2 — name 을 `standard-ai-workflow` → `standard-ai-workflow-root` 로 바꾼다.
+# 이전에는 `workflow-source/pyproject.toml` 의 실제 배포판과 **같은 이름**을 선언하고
+# 있었다. eb62f37 은 이 scaffold 를 "별개의 namespace" 로 두려던 것이었는데, 정작
+# 이름이 같아 `pip show standard-ai-workflow` / editable install 이 어느 쪽을 가리키는지
+# 문서를 읽어야만 알 수 있었다. 이름을 갈라 두면 그 모호함이 사라진다.
+#
+# ⚠️ 알려진 불일치 (의도적으로 남김): 이 scaffold 의 `requires-python >= 3.13` 과
+# `.python-version` 3.13 은 서로는 정합하지만, 실제 패키지의 `requires-python >= 3.10`
+# 및 CI 가 쓰는 Python 3.10~3.12 와는 어긋난다. 저장소 루트의 `.python-version` 은
+# pyenv/uv 를 쓰는 로컬 개발자를 3.13 으로 유도한다. 어느 쪽에 맞출지는 이 scaffold 를
+# 언제 실제 패키지로 승격할지에 달린 결정이므로 여기서 임의로 바꾸지 않았다.
+#
+# ⚠️ mypy 함정 (v1.0.2 에서 해소): 이 파일에 `[tool.mypy]` 가 없다는 사실이
+# mypy 의 cwd 기준 config 탐색을 저장소 루트에서 통째로 실패시켜, `mypy-strict` CI 와
+# release gate 가 v0.11.11 이래 `Config File: Default` 로 돌았다. 지금은 모든 호출이
+# `--config-file workflow-source/pyproject.toml` 을 명시하고,
+# `tests/check_mypy_config_actually_loaded.py` 가 이를 강제한다. 여기에
+# `[tool.mypy]` 를 새로 넣어 해결하려 하지 말 것 — 설정 출처가 둘로 갈라진다.
+
 [project]
-name = "standard-ai-workflow"
+name = "standard-ai-workflow-root"
 version = "0.1.0"
-description = "Add your description here"
+description = "Root-level placeholder scaffold. The real package lives in workflow-source/."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

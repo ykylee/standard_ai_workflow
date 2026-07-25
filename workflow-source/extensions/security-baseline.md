@@ -110,7 +110,11 @@ AIDLC 의 extensions 시스템:
 - `pyproject.toml` 에 dependency version pinned (e.g., `>=0.6.0,<0.7.0`)
 - 자동 검증: 본 commit 범위 외 (별도 session, v0.7.1+)
 
-**Cross-ref**: [`../../workflow_kit/pyproject.toml`](../workflow_kit/pyproject.toml), [`../../../requirements.txt`](../../requirements.txt), [`../../../requirements-dev.txt`](../../requirements-dev.txt)
+**Cross-ref**: [`workflow-source/pyproject.toml`](../pyproject.toml), [`../../../requirements.txt`](../../requirements.txt), [`../../../requirements-dev.txt`](../../requirements-dev.txt)
+
+> v1.0.2: 참조 대상을 `workflow_kit/pyproject.toml` → 정본 `workflow-source/pyproject.toml` 으로
+> 교정. sub-package pyproject 는 배포판으로서 깨져 있어(최상위에 `common`/`server`/`harness` 만
+> 실리고 `workflow_kit` 패키지가 없었다) 제거했고, dependency 선언은 정본 한 곳으로 단일화했다.
 
 ### 3.6 Rule SEC-WF-06: Documentation Compliance (R-9 Skip Marker)
 

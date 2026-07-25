@@ -240,7 +240,8 @@ def cmd_validate(args) -> dict:
             # 환경 문제 가능. hard fail (gate 가 무효 = release 정지).
             results["mypy"] = {
                 "ok": False,
-                "error": "mypy module not installed (run `pip install -e ./workflow-source/workflow_kit[dev]`)",
+                # v1.0.2: sub-package pyproject 제거에 따라 정본 배포판으로 교정.
+                "error": "mypy module not installed (run `pip install -e ./workflow-source[dev]`)",
             }
         except subprocess.TimeoutExpired:
             results["mypy"] = {"ok": False, "error": "mypy timeout (>120s)"}

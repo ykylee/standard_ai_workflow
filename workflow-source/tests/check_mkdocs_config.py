@@ -45,8 +45,6 @@ Cross-ref: releases/Beta-v1.0.0.md §2.28.
 from __future__ import annotations
 
 import ast
-import re
-import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -63,28 +61,31 @@ MKDOCS_EVENT_NAMES = {
 
 
 def _read_yaml_block(text: str, key: str) -> list[str]:
-    """`key:` 아래의 `  - value` 항목들을 뽑는다 (PyYAML 의존 없이).
+    """`key:` 아래의 목록 항목들을 뽑는다.
 
-    mkdocs.yml 은 이 저장소에서 단순한 형태만 쓴다. YAML 파서를 끌어오는 대신
-    필요한 최소한만 읽는다 — 이 check 는 의존성 없이 항상 돌아야 한다.
+    v1.0.3: 손으로 짠 줄 단위 파서를 **진짜 파서**로 교체했다. 이전 구현은
+    "의존성 없이 항상 돌아야 한다"는 이유로 정규식을 썼는데, 같은 이유로 만들어진
+    `check_mypy_strict_ci_v0_11_11.py` 의 자체 파서에서 실제로 결함이 나왔다
+    (raw string 의 `[^\\n]` 이 줄바꿈이 아니라 문자 `n` 을 제외하고 있었다).
+    `pyyaml` 은 dev extra 에 선언돼 있으므로 부재는 설치 결함이다.
+
+    mkdocs 의 `plugins:` 항목은 `- search`(문자열)와 `- name: {옵션}`(매핑) 두 모양이
+    모두 가능하므로, 매핑이면 그 키를 이름으로 본다.
     """
-    lines = text.splitlines()
+    import yaml
+
+    data = yaml.safe_load(text) or {}
+    if not isinstance(data, dict):
+        return []
+    value = data.get(key)
+    if not isinstance(value, list):
+        return []
     out: list[str] = []
-    in_block = False
-    for line in lines:
-        if re.match(rf"^{re.escape(key)}:\s*$", line):
-            in_block = True
-            continue
-        if in_block:
-            if re.match(r"^\s*#", line) or not line.strip():
-                continue
-            m = re.match(r"^\s+-\s+(.+?)\s*$", line)
-            if m:
-                out.append(m.group(1))
-                continue
-            # 들여쓰기가 끝나면 블록 종료
-            if not line.startswith((" ", "\t")):
-                break
+    for item in value:
+        if isinstance(item, str):
+            out.append(item)
+        elif isinstance(item, dict):
+            out.extend(str(k) for k in item)
     return out
 
 

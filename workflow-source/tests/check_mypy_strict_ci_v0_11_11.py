@@ -12,48 +12,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _read_yaml_simple(path: Path) -> dict[str, object] | None:
-    """YAML 의 key-value / nested dict 만 parse (workflow file 의 단순 검증용).
+def _load_workflow(path: Path) -> dict[str, object]:
+    """워크플로우 YAML 을 **진짜 파서**로 읽는다.
 
-    PyYAML 의존성을 피하기 위해 정규식 기반의 simple parser 사용.
-    workflow 의 구조 (name / on.<trigger> / jobs.<job>.steps) 만 검증.
+    v1.0.3: 이전의 `_read_yaml_simple` / `_read_yaml_text_based` 를 폐기했다.
+    PyYAML 이 없으면 정규식 fallback 으로 내려가는 구조였는데, 그 fallback 안에
+    결함이 있었다 — raw string 의 `[^\\n]` 이 "줄바꿈 제외"가 아니라 "역슬래시와
+    문자 n 제외"로 해석돼 여러 줄 invocation 허용이 전혀 동작하지 않았다.
+    게다가 fallback 이 도는 조건(PyYAML 부재)이 곧 CI 였다 — `pyyaml` 이 dev extra 에
+    선언돼 있지 않았기 때문이다. 즉 CI 에서는 항상 결함 있는 경로로 돌았다.
+
+    이제 `pyyaml` 은 dev extra 에 선언돼 있으므로 부재는 설치 결함이다 — hard fail 한다.
+    `check_yaml_surfaces.py` 가 자체 YAML 파서의 재등장을 금지한다.
     """
-    if not path.exists():
-        return None
-    try:
-        import yaml  # type: ignore[import-untyped]
-    except ImportError:
-        # PyYAML 없는 경우 simple text-based check 로 fallback
-        return _read_yaml_text_based(path)
-    try:
-        with path.open(encoding="utf-8") as f:
-            data = yaml.safe_load(f)
-        if not isinstance(data, dict):
-            return None
-        return data
-    except Exception:
-        return None
+    import yaml
 
-
-def _read_yaml_text_based(path: Path) -> dict[str, object] | None:
-    """YAML 의존성 없는 text-based 검증.
-
-    workflow file 의 top-level keys (name / on / jobs) 만 존재 여부 verify.
-    detailed 구조 검증은 별도 regex check.
-    """
-    text = path.read_text(encoding="utf-8")
-    result: dict[str, object] = {}
-    if re.search(r"^name:\s*mypy-strict\s*$", text, re.MULTILINE):
-        result["name"] = "mypy-strict"
-    if re.search(r"^on:\s*$", text, re.MULTILINE):
-        result["on"] = True
-    if re.search(r"^jobs:\s*$", text, re.MULTILINE):
-        result["jobs"] = True
-    return result if result else None
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert isinstance(data, dict), f"workflow 최상위가 매핑이 아니다: {path}"
+    return data
 
 
 def test_mypy_strict_ci_v0_11_11() -> None:
@@ -68,25 +47,13 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     workflow_text = workflow_path.read_text(encoding="utf-8")
 
     # case 2: workflow YAML valid + 필수 field
-    data = _read_yaml_simple(workflow_path)
-    assert data is not None, "workflow YAML parse 실패"
+    data = _load_workflow(workflow_path)
     assert data.get("name") == "mypy-strict", f"workflow name != mypy-strict: {data.get('name')!r}"
-    # YAML 1.1 quirk: `on` is parsed as Python `True` (boolean literal).
-    # Check both `on` and `True` keys.
-    on_block = data.get("on", data.get(True, {}))
-    if isinstance(on_block, dict):
-        triggers = list(on_block.keys())
-    elif on_block is True:
-        # text-based fallback when PyYAML not available
-        triggers_text = workflow_text
-        triggers = []
-        if re.search(r"^on:\s*$", triggers_text, re.MULTILINE):
-            # parse block-style on
-            for trig in ("push", "pull_request", "workflow_dispatch", "schedule"):
-                if re.search(rf"^\s+{trig}:\s*$", triggers_text, re.MULTILINE):
-                    triggers.append(trig)
-    else:
-        triggers = ["on"]
+    # YAML 1.1 quirk: 키 `on` 은 boolean `True` 로 파싱된다 — 두 키를 모두 본다.
+    # v1.0.3: 정규식 fallback 분기 제거. 진짜 파서만 쓰므로 `on` 블록은 항상 매핑이다.
+    on_block = data.get("on", data.get(True))
+    assert isinstance(on_block, dict), f"`on` 블록이 매핑이 아니다: {on_block!r}"
+    triggers = list(on_block)
     print(f"  triggers: {triggers}")
     assert "push" in triggers, f"workflow push trigger 부재: {triggers}"
     assert "pull_request" in triggers, f"workflow pull_request trigger 부재: {triggers}"
@@ -123,14 +90,27 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     print("  case 3 (mypy invocation + python 3.10 + mypy 2.1.0 pin): PASS")
 
     # case 4: dev extra mypy pin ==2.1.0
-    dev_pyproject = REPO_ROOT / "workflow-source" / "workflow_kit" / "pyproject.toml"
+    #
+    # v1.0.2: 참조 대상을 sub-package → 정본 `workflow-source/pyproject.toml` 로 교정.
+    # v0.11.11 이 선언한 pin 통일 규약("CI 는 ==2.1.0, local dev 가 >=1.0 이면 drift")은
+    # **sub-package pyproject 에만** 적용돼 있었고, 정작 smoke 가 설치하는 정본은
+    # `mypy>=1.0` 이라 실제로는 2.3.0 이 깔렸다 — 규약이 아무것도 지키지 못하는 파일에
+    # 걸려 있었다. sub-package 를 제거하고 핀을 정본으로 옮겼다.
+    dev_pyproject = REPO_ROOT / "workflow-source" / "pyproject.toml"
     dev_text = dev_pyproject.read_text(encoding="utf-8")
-    # mypy>=1.0 → mypy==2.1.0 정합 verify
-    if "mypy>=1.0" in dev_text:
-        raise AssertionError(
-            f"dev extra mypy pin != ==2.1.0 (stale 'mypy>=1.0' 잔존):\n{dev_text[:500]}"
-        )
-    assert "mypy==2.1.0" in dev_text, f"dev extra mypy pin != 'mypy==2.1.0'"
+    # v1.0.2: 판정 범위를 **`dev = [...]` 블록** 으로 좁힌다. 이전 판정은 파일 전체를
+    # 부분문자열로 훑어, 규약의 *유래를 설명하는 주석* 에 옛 표기가 등장하기만 해도
+    # FAIL 했다 (실제로 이 파일을 고치다 그렇게 걸렸다). 판정은 선언을 봐야지
+    # 선언에 대한 설명을 보면 안 된다.
+    dev_block_match = re.search(r"^dev\s*=\s*\[(.*?)\]", dev_text, re.MULTILINE | re.DOTALL)
+    assert dev_block_match, "pyproject.toml 에 dev extra 블록 부재"
+    dev_block = dev_block_match.group(1)
+    mypy_reqs = re.findall(r'"(mypy[^"]*)"', dev_block)
+    assert mypy_reqs == ["mypy==2.1.0"], (
+        f"dev extra mypy pin != ['mypy==2.1.0'] (실제: {mypy_reqs}). "
+        "CI 의 mypy-strict 는 ==2.1.0 을 깔고 smoke 는 이 extra 를 깐다 — "
+        f"하한 지정이면 서로 다른 버전으로 strict 결과가 갈린다.\n블록: {dev_block.strip()}"
+    )
     print("  case 4 (dev extra mypy pin ==2.1.0): PASS")
 
     # case 5: __version__ = v0.11.11-beta verify (loud fallback literal)

@@ -61,11 +61,23 @@ profiling = [
     "objgraph>=3.5",
 ]
 # Smoke test runner + linter + formatters.
+# v1.0.2: mypy 를 하한 지정에서 `==2.1.0` 고정으로 바꾼다. v0.11.11 이 이미
+# "CI 와 local 이 다른 mypy 를 깔면 strict 결과가 drift 하므로 핀을 통일한다" 는
+# 규약을 선언했는데, 그 핀은 sub-package pyproject 에만 걸려 있었다. 정작 smoke 가
+# 설치하는 것은 이 파일이고 여기는 하한만 있어 실제로는 2.3.0 이 깔렸다 — 규약이
+# 아무것도 지키지 못하는 파일에 걸려 있었던 셈이다. sub-package 를 제거하면서
+# 이 파일이 유일한 출처가 되므로 규약을 여기로 옮긴다.
+#
+# v1.0.3: `pyyaml` 추가. smoke 가 YAML 표면(워크플로우 5종 + mkdocs.yml + harness skill
+# frontmatter)을 **진짜 파서**로 검사한다. 이전에는 자체 정규식 파서로 읽고 있었고,
+# 그 안에서 실제로 결함이 나왔다 — raw string 의 `[^\\n]` 이 "줄바꿈 제외"가 아니라
+# "역슬래시와 문자 n 제외"로 해석돼 fallback 이 전혀 동작하지 않았다.
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
     "ruff>=0.1",
-    "mypy>=1.0",
+    "mypy==2.1.0",
+    "pyyaml>=6.0",
 ]
 # 릴리스 파이프라인이 실제로 호출하는 도구. `release_pipeline.py dist` 가
 # `python -m build` 와 `python -m twine check` 를 subprocess 로 실행하는데도

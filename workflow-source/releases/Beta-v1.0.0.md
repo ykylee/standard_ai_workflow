@@ -809,11 +809,69 @@ green 이었다. **재현은 검증이 아니다** — 무엇을 재현하는지
 제거 → 1 case FAIL (주석에 남은 `config-file` 문자열에 속지 않는다) / CI run 블록에서
 제거 → `::error::` + exit 1.
 
+### §2.30 — YAML·스킬·MCP 를 파서와 도구로 검사한다 (2026-07-25)
+
+§2.29 를 끝내고 보니, 이 저장소에서 **YAML 을 읽는 유일한 코드가 자체 정규식
+파서**였다. 그리고 그 안에 결함이 있었다:
+
+```python
+fallback_pattern = re.compile(r"mypy[^\\n]*--no-incremental[^\\n]*workflow_kit/")
+```
+
+raw string 이라 문자 클래스가 `[^\n]`(줄바꿈 제외)이 아니라 **`[^\\n]`(역슬래시와
+문자 `n` 제외)** 로 해석된다. 여러 줄 invocation 을 허용하려던 의도가 전혀 동작하지
+않았다. 더 나쁜 것은 이 fallback 이 도는 조건이 **PyYAML 부재**였고, `pyyaml` 은
+dev extra 에 선언돼 있지 않았다는 점이다 — 즉 *CI 에서는 항상 결함 있는 경로*로 돌았다.
+
+조치 (도구 선택: PyYAML + actionlint, Node 의존성 0 / 서버 기동이 필요한 층만 Node):
+
+| 층 | 산출물 | 무엇을 보는가 |
+|---|---|---|
+| 구문·스키마 | `check_yaml_surfaces.py` (4 case) | 전 YAML 파싱, 워크플로우 스키마, **자체 파서 금지**, errexit 안전 |
+| 스킬 | `check_harness_skill_frontmatter.py` (4 case) | harness frontmatter 7종 — `name` 형식/`description` 길이/`mode`·`permission` enum |
+| MCP 정적 | `check_mcp_tool_descriptors.py` (4 case) | tool 13개가 MCP 스펙 모양인가 + `tool_count` 선언↔사실 |
+| 워크플로우 셸 | `.github/workflows/actionlint.yml` | actionlint + shellcheck |
+| MCP 동작 | `.github/workflows/mcp-inspector.yml` | **서버를 실제로 띄워** `tools/list` ↔ 커밋된 descriptor 대조 |
+
+자체 정규식 YAML 파서 3곳(`_read_yaml_simple`, `_read_yaml_text_based`,
+`_read_yaml_block`)을 전부 `yaml.safe_load` 로 교체하고, 재등장을 금지하는 규칙을
+두었다. 그 판정은 **이름이 아니라 동작**으로 한다 — 처음에 `def _read_yaml*` 같은
+이름으로 잡았더니 내부를 이미 고친 함수까지 걸려 위양성이 났다.
+
+**실측**: 살아 있는 MCP 서버가 노출하는 tool 13개가 커밋된 descriptor 13개와
+이름·`inputSchema` 까지 완전히 일치. harness frontmatter 7종 모두 유효한 YAML 이고
+보간 0건.
+
+#### 내가 틀렸던 것 2건 (지우지 않고 남긴다)
+
+1. **actionlint 이 §2.27 사고를 잡을 것이라고 적었는데, 잡지 못한다.** `set -e` 아래
+   `rc=$?` 모양을 그대로 재현해 돌려 보니 exit 0 이었다 — shellcheck 에는 "errexit
+   때문에 이 줄에 닿지 못한다"는 규칙이 없다. 그 부류의 유일한 방어선은
+   `check_yaml_surfaces.py` 4번 case 다. actionlint 은 다른 층에서 값을 한다 —
+   도입 시점에 실제 결함 6건(SC2086 ×2, SC2129, SC2002, SC1072/1073)을 찾았다.
+2. **shellcheck 없이 actionlint 은 `run:` 블록을 아예 건너뛰고 조용히 exit 0** 이
+   된다. 이번 사이클이 내내 다룬 "조용히 초록" 그 모양이라, 워크플로우가 shellcheck
+   존재를 명시적으로 확인하게 했다. (덧붙여 그 확인을 설명하는 주석을
+   `# shellcheck` 로 시작했다가 shellcheck 가 directive 로 파싱해 SC1072/1073 을
+   냈다 — 도구를 도입하는 커밋이 그 도구에 걸린 셈이다.)
+
 ## 3. 검증
 
-누적 smoke **212/212 PASS** (2026-07-25, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
+누적 smoke **215/215 PASS** (2026-07-25, `run_all_checks.py --tmp-dir=<실디스크>` 격리 실행,
 resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 **전량 실행 후 워킹트리 변경 0** — smoke 가 추적 파일을 write 하던 경로를 차단한 결과다.
+
+> **위 수치는 푸시 후 기준이다. 미푸시 HEAD 실측은 213/215.** 나머지 2건
+> (`check_mypy_ci_cross_verify_v0_11_13`, `check_release_summary_v0_11_15`)은 같은 SHA 의
+> CI run 이 아직 없어 `ci_stale` 로 떨어진다 — 코드 결함이 아니고, 푸시 후 CI 가 돌면
+> green 으로 전환된다 (v1.0.0 사이클에서 관측). 예측을 실측처럼 적지 않기 위해 두 수치를
+> 함께 남긴다.
+>
+> **덧붙여 기록해 둘 약점 하나**: `smoke_trend_cross` / `quality_dashboard` Panel 4 는
+> 실행 결과가 아니라 **이 릴리스 노트에 손으로 적은 숫자**를 읽어 판정한다. 즉 노트의
+> 수치가 틀리면 게이트도 함께 틀린다. 이번에도 노트에 215/215 라고 적힌 상태에서
+> 실제 실행은 213/215 였는데 게이트는 green 이었다. 산출물을 직접 세는 쪽으로
+> 옮기는 것이 맞다 — 별도 과제로 남긴다.
 
 > **측정 환경 명시 (§2.27)**: 위 수치는 **`git worktree` 로 새로 체크아웃한 깨끗한 트리**에서
 > 잰 것이다. 이전 사이클의 "209/209" 는 작성자의 원본 작업 사본에서만 성립했고 CI 는 red 였다.
@@ -863,7 +921,7 @@ resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
 
 | 항목 | 결과 |
 |---|---|
-| 전량 smoke | **212/212 PASS** (2026-07-25 §2.29 반영. 미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
+| 전량 smoke | **215/215 PASS** (2026-07-25 §2.29~§2.30 반영. 미푸시 HEAD 에서는 CI 상태 의존 2건 + dist 경합 flake 1건이 붙는다 — 위 실측 기록 참조) |
 | 실효 smoke | **204/204 PASS** (자기참조 게이트 2건 제외 — 순환 재발 방지용 안전망) |
 | 저장소 오염 | **0 file** (이전에는 전량 실행 시 문서 63개 + fixture 2종이 수정됐다) |
 | resource guard | abort 0, 프로세스 최대 4개, temp 최대 1MB |

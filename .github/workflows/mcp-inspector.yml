@@ -1,0 +1,122 @@
+name: mcp-inspector
+
+# v1.0.3 — MCP 서버를 **실제로 띄워** tool 목록을 받고, 커밋된 descriptor 와 대조한다.
+#
+# 층이 둘이다:
+#   - smoke 의 `check_mcp_tool_descriptors.py` — 커밋된 산출물이 MCP 스펙 모양인가
+#     (의존성 없이, Python 으로)
+#   - 이 워크플로우 — 서버가 그 descriptor 를 **실제로 그대로 노출하는가**
+#
+# 두 층은 서로를 대신하지 못한다. 파일이 스펙에 맞아도 서버가 다른 것을 내보낼 수
+# 있고, 그 반대도 마찬가지다. 이번 사이클에 mkdocs 에서 정확히 그 구분을 놓쳐
+# `hooks:` 가 "로드되는가"와 "일하는가"로 갈렸고, mypy 에서는 "선언했는가"와
+# "실제로 그 설정으로 쟀는가"로 갈렸다.
+#
+# 공식 도구: https://github.com/modelcontextprotocol/inspector (CLI 모드, Node 필요)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'workflow-source/workflow_kit/server/**'
+      - 'workflow-source/schemas/read_only_transport_descriptors.json'
+      - '.github/workflows/mcp-inspector.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'workflow-source/workflow_kit/server/**'
+      - 'workflow-source/schemas/read_only_transport_descriptors.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: tools/list ↔ committed descriptors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          # Inspector 는 Node ^22.7.5 이상을 요구한다.
+          node-version: '22'
+
+      - name: Install workflow_kit + MCP SDK
+        shell: bash
+        run: |
+          set -uo pipefail
+          rc=0
+          python3 -m pip install --upgrade pip || rc=$?
+          python3 -m pip install -e "./workflow-source[mcp-sdk]" || rc=$?
+          exit "$rc"
+
+      - name: List tools via MCP Inspector (CLI)
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          rc=0
+          npx -y @modelcontextprotocol/inspector --cli \
+            python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk \
+            --method tools/list > live-tools.json 2> inspector-err.txt || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::Inspector 가 서버에서 tool 목록을 받지 못했다 (exit $rc)"
+            cat inspector-err.txt
+            exit "$rc"
+          fi
+          echo "받은 바이트: $(wc -c < live-tools.json)"
+
+      - name: Compare against committed descriptors
+        shell: bash
+        run: |
+          set -uo pipefail
+          rc=0
+          python3 - <<'PY' || rc=$?
+          import json, pathlib, sys
+
+          live = json.loads(pathlib.Path("live-tools.json").read_text())["tools"]
+          committed = json.loads(
+              pathlib.Path("workflow-source/schemas/read_only_transport_descriptors.json")
+              .read_text()
+          )["tools"]
+
+          ln = {t["name"] for t in live}
+          cn = {t["name"] for t in committed}
+          problems = []
+          if ln - cn:
+              problems.append(f"서버에만 있는 tool: {sorted(ln - cn)}")
+          if cn - ln:
+              problems.append(f"descriptor 에만 있는 tool: {sorted(cn - ln)}")
+          for name in sorted(ln & cn):
+              a = next(t for t in live if t["name"] == name).get("inputSchema")
+              b = next(t for t in committed if t["name"] == name).get("inputSchema")
+              if a != b:
+                  problems.append(f"{name}: inputSchema 불일치")
+
+          print(f"서버 {len(ln)}개 / descriptor {len(cn)}개")
+          for p in problems:
+              print(f"::error::{p}")
+          sys.exit(1 if problems else 0)
+          PY
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::살아 있는 서버와 커밋된 descriptor 가 갈렸다 — 둘 중 하나가 stale 하다."
+          fi
+          exit "$rc"
+
+      - name: Upload live tool list
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-live-tools
+          path: |
+            live-tools.json
+            inspector-err.txt
+          retention-days: 30
+          if-no-files-found: ignore

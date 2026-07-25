@@ -1,0 +1,73 @@
+name: actionlint
+
+# v1.0.3 — 워크플로우 YAML 안의 **셸까지** 검사한다.
+#
+# ⚠️ 도입 근거를 실측으로 정정한다 — **actionlint 는 §2.27 사고를 잡지 못한다.**
+# 처음에는 "`set -e` 아래에서 `rc=$?` 를 읽어 스텝이 끊긴 사고를 actionlint 가
+# 잡았을 것"이라고 적었으나, 그 모양을 그대로 재현해 돌려 보니 exit 0 이었다.
+# shellcheck 에는 "errexit 때문에 이 줄에 닿지 못한다"는 규칙이 없다.
+# 그 부류는 smoke 의 `check_yaml_surfaces.py` 4번 case 가 담당한다.
+#
+# 그래도 두는 이유: 도입 시점에 우리 워크플로우에서 **실제 결함 4건**을 찾았다
+# (SC2086 미인용 변수 2건, SC2129, SC2002). YAML 파서로는 보이지 않는 층이다.
+#
+# ⚠️ shellcheck 없이 돌면 `run:` 블록을 아예 검사하지 않고 조용히 exit 0 이 된다.
+# 이번 세션이 내내 다룬 "조용히 초록" 그 모양이라, 아래에서 존재를 **명시적으로
+# 확인**한다. ubuntu-latest 에는 기본 설치돼 있지만 전제를 검사 없이 믿지 않는다.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: Lint GitHub Actions workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install actionlint (+ require shellcheck)
+        shell: bash
+        run: |
+          set -uo pipefail
+          # 전제 확인: shellcheck 가 없으면 actionlint 는 `run:` 블록을 통째로
+          # 건너뛰고 exit 0 이 된다 — 검사한 척하는 초록불이 된다.
+          # (주석을 `# shellcheck` 로 시작하면 shellcheck 가 directive 로 파싱해
+          #  SC1072/SC1073 을 낸다. 실제로 이 주석에서 그 일이 났다.)
+          if ! command -v shellcheck > /dev/null; then
+            echo "::error::shellcheck 부재 — actionlint 가 run: 블록을 검사하지 않고 조용히 통과한다"
+            exit 1
+          fi
+          shellcheck --version | head -2
+
+          # 공식 설치 스크립트. 단일 Go 바이너리라 런타임 의존성이 없다.
+          rc=0
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::actionlint 설치 실패 (exit $rc)"
+            exit "$rc"
+          fi
+          ./actionlint --version
+
+      - name: Run actionlint
+        shell: bash
+        run: |
+          set -uo pipefail
+          # §2.27 교훈: 종료코드를 `|| rc=$?` 로 받는다. `set -e` 아래에서 `rc=$?` 를
+          # 그대로 쓰면 그 줄에 닿기 전에 스텝이 끊긴다.
+          rc=0
+          ./actionlint -color ./.github/workflows/*.yml || rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::actionlint 가 문제를 보고했다 (exit $rc). 위 출력 참조."
+          fi
+          exit "$rc"

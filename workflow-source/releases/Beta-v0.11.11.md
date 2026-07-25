@@ -25,8 +25,9 @@ v0.11.10 의 FULL mypy strict 도달 을 CI 강제:
 >    (`strict=true`) 이고, `workflow_kit/pyproject.toml` 은 어느 경로로도 읽히지 않았다.
 >    `mypy -v` 의 `Config File:` 줄로 확인된다.
 > 3. **따라서 "REPO_ROOT 절대경로 invocation" 은 merge 회피가 아니라 설정 상실이었다.**
->    REPO_ROOT 의 `pyproject.toml` 은 `uv init` 잔여물이라 `[tool.mypy]` 가 없어 탐색이
->    전부 실패하고 `Config File: Default` 로 떨어진다. 46 → 0 은 코드가 좋아져서가 아니라
+>    REPO_ROOT 의 `pyproject.toml` 은 의도된 root-level placeholder scaffold(`eb62f37`)라
+>    `[tool.mypy]` 가 없어 탐색이 전부 실패하고 `Config File: Default` 로 떨어진다.
+>    46 → 0 은 코드가 좋아져서가 아니라
 >    **strict 를 아예 적용하지 않게 되어서**였다.
 >
 > 결과적으로 `mypy-strict.yml` 은 v0.11.11(2026-06-26) 이래 **strict 로 돈 적이 없다.**

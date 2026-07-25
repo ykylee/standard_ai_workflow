@@ -201,7 +201,8 @@ def cmd_validate(args) -> dict:
     #   (cwd = parent_of_REPO_ROOT, 절대경로)
     #
     # v1.0.2 — **이 gate 도 strict 로 돈 적이 없다.** cwd 가 project root 인데 그곳의
-    # pyproject.toml 은 `uv init` 잔여물이라 [tool.mypy] 가 없어, mypy 가 config 탐색을
+    # pyproject.toml 은 의도된 root-level placeholder scaffold (eb62f37) 라
+    # [tool.mypy] 가 없어, mypy 가 config 탐색을
     # 모두 건너뛰고 `Config File: Default` 로 떨어졌다. CI 와 **똑같은 결함을 복제**하고
     # 있었다 — 규약을 세 곳에 사본으로 두면 갈라지는 게 아니라 같이 틀린다.
     # (이전 주석의 "sub-package config 와의 merge 회피" 는 사실이 아니다. mypy 는 config 를

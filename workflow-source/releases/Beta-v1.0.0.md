@@ -762,7 +762,8 @@ mypy --no-incremental workflow-source/workflow_kit/     # cwd = REPO_ROOT
 
 헤더 주석은 "workflow-source/ 의 pyproject `[tool.mypy] strict=true` read" 라고 적고
 있었다. 사실이 아니었다. mypy 의 config 탐색은 **cwd 기준**이고, REPO_ROOT 의
-`pyproject.toml` 은 `uv init` 잔여물이라 `[tool.mypy]` 가 없다. 그래서 탐색이 전부
+`pyproject.toml` 은 v0.15.0+ 의 **의도된 root-level placeholder scaffold**(`eb62f37`)라
+`[tool.mypy]` 가 없다. 그래서 탐색이 전부
 실패하고 `Config File: Default` 로 떨어졌다 (`mypy -v` 의 `Config File:` 줄로 확인).
 
 | 실행 | Config | 결과 |

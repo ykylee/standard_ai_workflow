@@ -11,8 +11,9 @@
 
     ./mypy.ini → ./.mypy.ini → ./pyproject.toml ([tool.mypy] 가 있을 때만) → ./setup.cfg
 
-순인데, REPO_ROOT 의 `pyproject.toml` 은 `uv init` 잔여물이라 `[tool.mypy]` 섹션이
-없다. 그래서 전부 건너뛰고 `Config File: Default` 로 떨어졌다. 결과:
+순인데, REPO_ROOT 의 `pyproject.toml` 은 의도된 root-level placeholder scaffold
+(`eb62f37`)라 `[tool.mypy]` 섹션이 없다. 그래서 전부 건너뛰고 `Config File: Default`
+로 떨어졌다. 결과:
 
 | 실행 | Config | 결과 |
 |---|---|---|
@@ -28,7 +29,8 @@
 
 ## 이 file 이 보는 것
 
-1. 선언 — 세 호출 지점이 모두 `--config-file` 을 명시하는가 (텍스트, mypy 불필요)
+1. 선언 — mypy 를 부르는 **모든** 지점이 `--config-file` 을 명시하는가
+   (AST 전수 조사 + workflow YAML, mypy 불필요)
 2. 선언 내용 — 그 config 가 실제로 `strict = true` 인가
 3. exclude anchor — 어떤 exclude 패턴도 `workflow_kit/` 내부를 잘라내지 않는가
 4. 사실 — mypy 를 실제로 돌렸을 때 그 config 를 물었다고 보고하는가 (`mypy -v`)

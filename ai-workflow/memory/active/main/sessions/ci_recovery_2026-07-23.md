@@ -97,7 +97,18 @@ job** 이 OIDC 권한 부족으로 실패했고, 그것도 고쳤다. 맨 아래
 |---|---|
 | plugin 로드 | ✅ 해소 (`hooks:`) |
 | deploy 권한 | ✅ 해소 (`id-token: write`) |
-| Pages 활성화 | ⬜ **미결정** (`gh api .../pages` → 404) |
+| Pages 활성화 | ✅ **해소 (2026-07-25)** — 아래 후속 참조 |
+
+> **후속 (2026-07-25)**: Pages 활성화 결정 → `gh api -X POST .../pages -f build_type=workflow`.
+> run `30159275873` 에서 build ✅ / **deploy ✅ 9s**, 사이트 게시
+> (https://ykylee.github.io/standard_ai_workflow/). `/`, 주요 4 페이지, `search_index.json`
+> 200 / 없는 경로 404 / `exclude_docs` 4종(samples·archive·planning·architecture) 404 확인.
+>
+> **덤으로, `hooks:` 전환이 실제로 동작한다는 것이 처음 산출물로 확인됐다.** 배포된 적이
+> 없어 그때까지는 확인할 방법이 없었다 — config 가 로드된다는 것과 의도한 변환을
+> 수행한다는 것은 다른 층인데, 후자를 볼 수단이 없었다. 원본 헤더가 stale 한 3건에서
+> 게시본이 git log 날짜로 덮여 있다: `index` 06-17→**07-22**, `CODE_INDEX` 07-21→**07-23**,
+> `FEEDBACK` 06-17→**07-22**.
 
 ### 6. GitHub 배포 정리
 
@@ -136,7 +147,7 @@ job** 이 OIDC 권한 부족으로 실패했고, 그것도 고쳤다. 맨 아래
 
 ## ⏭️ Next Actions
 
-- [ ] **Pages 활성화 여부 결정** — 켜기 전까지 deploy 는 계속 실패한다 (build 는 green).
+- [x] ~~**Pages 활성화 여부 결정**~~ — 2026-07-25 활성화, deploy ✅ (§2.28 표 참조)
 - [ ] `okf-validate` V-R10 온라인 URL 검증 / `consumer-metrics-digest` 이슈 포스팅
 - [ ] 릴리스 제목 형식 4종 혼재 + `v1.0.0-beta` 제목의 **"199/199 PASS"** (재현 불가
       조건에서 잰 수치가 Latest 릴리스 제목에 박혀 있다)

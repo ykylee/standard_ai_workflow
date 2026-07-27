@@ -1095,20 +1095,18 @@ requested_mode = "update" if args.task_id else "create"   # 존재 여부를 안
 (§2.32 린터)에도, 배포 계층(§2.31 렌더러)에도, 스킬 계층(여기)에도 똑같이 있었다.
 
 **(6) 그리고 (4)를 한 번 더 틀렸다 — 같은 자리에 환경 의존이 둘이었다.** `ci_mypy=sanity`
-만 고치고 push 했는데 CI 는 여전히 red 였다. 바로 옆줄의 `local_mypy=ok` 도 같은 부류였다
+만 고치고 push 했는데 CI 는 여전히 red 였다. 바로 옆줄의 `local_mypy=ok` 도 같은 부류다
 — 이 값은 **test 를 실행한 환경에서 mypy 를 돌린 결과** 이지, `cmd_release` 가 verdict 를
-summary 에 싣는가 하는 이 검사의 계약이 아니다. 로컬 `.venv` 에서는 `ok` 라 통과했고 CI 의
-smoke job 에서는 `FAIL` 이었다 — *내 환경에서만 green* 이었던 셈이다 (§2.27 이 경고한 그
-함정을 내가 다시 밟았다). (4)와 같은 방식으로 분리했다: 값은 알려진 집합에 드는지만 보고,
-매핑 자체는 case 7b 에서 주입으로 검증한다. 이번에는 mypy 가 있는 인터프리터와 없는
-인터프리터 **양쪽에서** 통과하는 것을 확인했다.
+summary 에 싣는가 하는 이 검사의 계약이 아니다. 로컬 시스템 `python3` (mypy 없음) 에서는
+`FAIL` 이고 `.venv` 에서는 `ok` 다 — 어느 쪽이든 *검사의 계약과 무관한 값*이다. (4)와 같은
+방식으로 분리했다: 값은 알려진 집합에 드는지만 보고, 매핑 자체는 case 7b 에서 주입으로
+검증한다. mypy 가 있는 인터프리터와 없는 인터프리터 **양쪽에서** 통과하는 것을 확인했다.
 
-> **미확정으로 남긴 것**: CI 에서 `local_mypy=FAIL` 이 난 *이유* 는 아직 측정하지 않았다.
-> "smoke 가 mypy 를 설치하지 않아서" 는 아니다 — smoke workflow 는 §2.14 이래 dev extra
-> (`mypy==2.1.0`)를 설치한다. 남은 후보는 (a) smoke 환경(py3.11 + dev/release extra)의
-> mypy 결과가 mypy-strict job 환경(py3.10 + mcp-sdk)과 다르다, (b) `_check_local_mypy` 의
-> 120초 subprocess timeout 에 걸렸다. (a)라면 mypy-strict job 이 green 인 것과 별개로
-> 실제 결함이 하나 더 있다는 뜻이므로, 후속 사이클에서 측정해 확정할 것.
+> **정정.** 이 항목을 처음 쓸 때 "CI 의 smoke job 에서 `local_mypy=FAIL` 이었다" 고 적었는데
+> **사실이 아니다.** 그 `FAIL` 은 내가 *로컬 시스템 python3* 로 돌려 본 결과였고, CI 의
+> 실제 실패 사유는 (7) 의 excerpt 결함 때문에 어디에도 남아 있지 않았다. 관측하지 못한
+> 값을 관측한 것처럼 적은 것이다 — 이 사이클이 내내 다루던 결함(덜 한 것을 통과로 셈하기)
+> 을 서술에서 그대로 반복했다. 실제 원인은 §2.36 에서 계측해 확정했다.
 
 **(7) 그 왕복을 한 번 더 쓰게 만든 관측성 결함.** CI 아티팩트에는
 `=== Result: 0/1 PASS ===` 만 남아 무엇이 왜 실패했는지 알 수 없었다. `run_all_checks.py`
@@ -1139,6 +1137,51 @@ run 과 같을 때 측정한 값이다. 반대로 CI 에서는 이 2건이 안 �
 주입으로 검증한다 (`check_release_summary` case 4b 신규 — 7행 전부). 느슨하게 푸는
 변경이므로 **반대 방향으로 확인했다** — `ci_sanity + local skipped → sanity` 로 결함을
 주입하니 case 4b 가 FAIL 한다.
+
+### §2.36 — 그 red 의 원인을 CI 안에서 계측했다: mypy 가 아니라 `gh` 였다 (2026-07-27)
+
+§2.35 (6) 은 원인을 `local_mypy` 로 지목했지만, 그건 **관측이 아니라 추측**이었다. CI 의
+실제 실패 사유는 (7) 의 excerpt 결함 때문에 아무 데도 남지 않았고, 내가 근거로 삼은
+`local_mypy=FAIL` 문자열은 *내 로컬 시스템 python3* 의 출력이었다. 그래서 계측했다.
+
+**계측 방법.** `smoke.yml` 이 `branches: ["**"]` 에서 도는 성질을 이용해, 진단 probe 2개를
+임시 브랜치에 얹어 CI 안에서 값을 찍고 아티팩트로 회수했다 (관측 후 브랜치 삭제). probe 는
+실패 표지 줄로 출력해 (7) 에서 고친 `_error_excerpt` 가 400자까지 싣게 했다 — **(7)이 없었으면
+이 계측 자체가 불가능했다**.
+
+**결과 — mypy 는 처음부터 정상이었다.**
+
+```
+A4 raw rc=0 6.8s o='Success: no issues found in 119 source files' e=''
+B1 clm 6.8s/ok=True/rc=0/n=0  6.8s/ok=True/rc=0/n=0  6.8s/ok=True/rc=0/n=0
+B3 c7 sum=ci_mypy=skipped, local_mypy=ok, ready=false, ...
+```
+
+진짜 변수는 `ci_mypy=skipped` 였다. smoke job 의 `gh` 는 인증이 없어 `gh run list` 가 실패하고,
+`_cross_verify_ci_mypy` 는 이를 `skipped` 로 돌려준다. 그런데 당시 case 4 는 `--skip-validate`
+경로의 verdict 를 `no_local_verify` 로 **박아 놨다**. 그 행은 매트릭스상 CI verdict 가
+`ci_sanity` 일 때만 나온다. 따라서 이 검사는 *`gh` 가 인증된 환경에서만* 통과할 수 있었다.
+
+소요 시간이 이를 뒷받침한다. 실패 run 은 **7.04초**였는데, 이 검사가 정상 완주하면 mypy 를
+4회 불러 CI 기준 **36.1초**다. 7.04초 = case 2 의 mypy 1회(6.8초) + case 4 즉시 실패. 
+로컬에서 `gh` 를 실패하도록 바꿔 4.58초에 같은 자리·같은 사유로 재현했다.
+
+즉 §2.35 (8) 에서 case 4 를 알려진 집합(= `skipped` 포함)으로 푼 것이 **바로 이 red 를 고친
+조치**였다. 원인을 잘못 적어 두고도 처방은 맞았던 셈인데, 그건 운이지 방법이 아니다.
+
+**교훈 2개.**
+
+1. **관측하지 못한 값을 관측한 것처럼 적지 말 것.** 로컬 재현의 출력과 CI 의 출력은 다른
+   증거다. (6)의 서술은 이 사이클이 내내 잡아 온 결함 — *덜 한 것을 통과로 셈하기* — 을
+   문장에서 그대로 반복한 것이다.
+2. **`gh` 인증 유무는 verdict 를 바꾸는 1급 환경 변수다.** CI 에서는 `skipped`, 로컬에서는
+   `ci_sanity`/`ci_stale`. 이 축이 검사 통과 여부를 가르지 않도록, verdict 를 보는 검사는
+   전부 집합 검사 + 주입 검증 형태여야 한다.
+
+**부수 관측 (미조치).** probe 브랜치 이름 `probe/local-mypy-diag` 처럼 **`/` 가 들어간 브랜치**
+에서 `check_branch_scoped_memory` 와 `check_self_application` 이 깨진다 — branch-scoped 경로가
+`active/probe/local-mypy-diag/` 로 한 단계 더 중첩되고, task ID 에 `/` 가 섞인다. main 에서는
+드러나지 않는 결함이다. 별도 과제로 남긴다.
 
 ## 3. 검증
 

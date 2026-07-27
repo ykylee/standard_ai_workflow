@@ -4,7 +4,7 @@
 - 범위: 도입 모드별 목표, 추천 시작 순서, 자동화 가능 범위, 주의점
 - 대상 독자: 저장소 관리자, 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-07-21
 - 관련 문서: `./global_workflow_standard.md`, `./project_status_assessment.md`, `./existing_project_onboarding_contract.md`, `../scripts/bootstrap_workflow_kit.py`
 - 상태 문서/프로젝트 문서 경계: `./workflow_state_vs_project_docs.md`
 
@@ -156,17 +156,63 @@ python3 scripts/run_existing_project_onboarding.py \
 
 ### 6.3 다음 릴리즈로 미루는 항목
 
-- 하네스 기본 연결 경로를 MCP server 로 승격하는 작업
-- read-only MCP draft bridge 를 기본 운영 경로로 바꾸는 작업
+- MCP stdio-sdk 정식 승격 (현재 `Connection closed` 회귀 해결 필요)
+- read-only MCP 운영 경로 단일화 (jsonrpc-bridge → stdio-sdk 전환)
 - MCP capability 확장과 정식 client 상호운용 범위 확대
 
-즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 “workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가” 에 둔다.
+즉, 이번 릴리즈의 성공 기준은 MCP 연결이 아니라 "workflow 문서/skill 묶음만으로 신규/기존 프로젝트 첫 세션을 안정적으로 시작할 수 있는가" 에 둔다.
 
-## 릴리스 및 안정성 업데이트 (2026-04-28)
+## 7. v0.6.4 권장 도입 묶음 (Question Format + Stage Gate)
 
-### 릴리스 상태: Phase 6 진입
-- 현재 워크플로우 키트는 **Phase 6: 편집 정밀화 및 지능형 도구 최적화** 단계에 진입했습니다.
-- 주요 성과: Phase 5에서 지능형 운영 도구(Git 요약, 로테이션 등)와 MCP SDK 통합을 완료했습니다.
+v0.6.4 부터는 두 가지 신규 패턴을 첫 도입 묶음에 추가한다. 두 패턴 모두 AIDLC (`awslabs/aidlc-workflows`) 의 3-Phase Lifecycle 와 Adaptive Execution 에서 차용한 메커니즘이며, 우리 v0.6.3-beta 의 inline Q&A + skill output 후 implicit next-step 의 약점을 보강한다.
+
+### 7.1 Question File Format 패턴 (★★★ 권장)
+
+AIDLC 의 `common/question-format-guide.md` 패턴을 차용. 핵심:
+
+- **모든 Q&A 는 별도 question 파일** (예: `<phase>-questions.md`) 에 작성. inline Q&A 또는 채팅으로 직접 묻기 ❌.
+- **multiple choice + `[Answer]:` tag** 형식 강제. 옵션 사이 빈 줄 (CommonMark strict renderer 호환).
+- **"Other" 옵션은 필수** — 모든 질문의 마지막 옵션. A/B/C/D + X 형식.
+- **Contradiction/ambiguity detection** 후 clarification file 자동 생성. 사용자가 모호한 답 ("mix of", "depends", "not sure") 을 하면 follow-up 질문 자동 추가.
+- **Gate**: 모든 `[Answer]:` tag 가 채워질 때까지 다음 stage 진행 금지.
+
+적용 위치:
+- `project_workflow_profile_template.md` — 프로젝트별 profile 작성 시 clarification file 자동 emit
+- `ask_user` 호출 빈도 ↓ (한 popup 에 multi-question 압축)
+- `workflow_kit/common/contracts/question_format.py` (v0.6.4 신규) — question file parser + answer validator
+
+상세 spec: [./question_file_format.md](./question_file_format.md)
+
+### 7.2 Stage Gate 명시화 패턴 (★★★ 권장)
+
+AIDLC 의 construction phase 가 2-option completion message (Request Changes / Continue to Next Stage) 를 강제하는 패턴을 차용. 우리 11종 skill 의 output 후 implicit next-step 의 약점을 보강.
+
+핵심:
+
+- **모든 skill output 후 표준 2-option approval prompt** 자동 emit. (1) Request Changes, (2) Continue to Next Stage.
+- **Output schema 보강**: `output_schema_guide.md` §3.2 에 `stage_completion` 필드 추가. `requested_changes` (free text) + `next_stage` (enum) + `approval_timestamp` (ISO 8601).
+- **Audit log 통합**: 각 stage completion 의 approval 을 `workflow_kit/memory/active/audit.md` 에 append-only 로 기록. ISO 8601 timestamp, raw user input 그대로.
+- **Gate 위반 시**: skill 다음 단계 자동 진행 ❌. 사용자 explicit approval 후에만 진행.
+
+적용 위치:
+- 11종 skill spec 의 §X "Completion Message" 표준화 (각 spec 의 §N 에 cross-ref 추가)
+- `workflow_kit/common/contracts/stage_gate.py` (v0.6.4 신규) — completion message schema + validator
+- `output_schema_guide.md` §3.2 — stage_completion 필드 정의
+
+상세 spec: [./stage_gate_pattern.md](./stage_gate_pattern.md)
+
+### 7.3 두 패턴의 결합 효과
+
+- **Question File Format** + **Stage Gate** = "사용자 결정의 SSOT 화" + "결정 시점의 강제 검증"
+- AIDLC 의 audit.md append-only 정책 + 우리 `wiki-prompt-log` 의 raw mirror 정책이 자연스럽게 정합
+- Phase 11 실전 파일럿 (Devhub Example × Contract v1) 의 후속으로 v0.6.4 Phase 12 실전 검증 진행 시 두 패턴을 1차 적용 대상으로
+
+## 릴리스 및 안정성 업데이트 (v0.5.10-beta, 2026-06-09)
+
+### 릴리스 상태: Phase 11 진행 중
+- 현재 워크플로우 키트는 **Phase 11: 실전 파일럿 검증** 단계에 있습니다.
+- Phase 1–10 완료. 주요 성과: contract v1 enforcement, multi-component fan-out, interactive harness picker, MCP dual transport, 52종 smoke test 안정 통과.
+- 정식 phase 상태: `core/maturity_matrix.json` 참조.
 
 ### 기술적 안정성 개선: 빈 프로젝트 오판 방지
 - **이슈**: 기존 프로젝트 도입 모드(`--adoption-mode existing`)에서 대상 프로젝트가 비어 있을 때, `ai-workflow` 키트 내부의 스크립트(scripts/, tests/ 등)를 프로젝트 코드로 오인하는 현상이 발견되었습니다.
@@ -180,3 +226,5 @@ python3 scripts/run_existing_project_onboarding.py \
 - 기존 프로젝트 온보딩 계약: [./existing_project_onboarding_contract.md](./existing_project_onboarding_contract.md)
 - 스크립트 안내: [../scripts/README.md](../scripts/README.md)
 - 파일럿 후보 선정 체크리스트: [../templates/pilot_candidate_checklist.md](../templates/pilot_candidate_checklist.md)
+- **v0.6.4 신규**: [./question_file_format.md](./question_file_format.md) — AIDLC 차용 multi-choice + [Answer]: tag 패턴
+- **v0.6.4 신규**: [./stage_gate_pattern.md](./stage_gate_pattern.md) — skill output 후 2-option approval gate

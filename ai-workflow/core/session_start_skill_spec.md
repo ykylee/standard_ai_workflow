@@ -4,8 +4,8 @@
 - 범위: 목표, 입력 계약, 출력 계약, 판단 절차, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/session_handoff_template.md`, `../templates/project_workflow_profile_template.md`
+- 최종 수정일: 2026-07-21
+- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/session_handoff_template.md`, `../templates/project_workflow_profile_template.md`, `./llm_wiki_concept_purpose_spec.md` (v0.9.5 part 2)
 
 ## 1. 목적
 
@@ -79,6 +79,32 @@
 - `environment_constraints`
 - 현재 세션에 영향을 주는 접근 제약 또는 환경 차이
 
+
+### 4.1. stage_completion (v0.6.5 신규)
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+| Field | 값 | 비고 |
+|---|---|---|
+| `stage_name` | `session-start` | 본 skill 의 stage 식별자 |
+| `stage_status` | `ok` / `warning` / `error` | skill 실행 결과 |
+| `next_stage` | `None` (workflow end) | 다음 stage 이름. workflow 끝이면 `None` |
+| `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
+| `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
+| `artifacts` | [`ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`] | 본 stage 의 검토 대상 artifact path |
+| `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
+| `notes` | 1-3 line | AI summary |
+
+Gate 정책:
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 gate 통과
+- `approval_actor: "auto"` 는 명시적 차단 (state 문서 갱신 skill)
+- 다음 stage 자동 진행 ❌ — user explicit approval 후에만 진행
+
+상세:
+- Pydantic v2 schema: [`../../workflow_kit/common/contracts/stage_gate.py`](../../workflow_kit/common/contracts/stage_gate.py) `StageCompletion`
+- Output schema 가이드: [`../output_schema_guide.md` §3.4](../output_schema_guide.md)
+- Stage Gate Pattern: [`../stage_gate_pattern.md`](../stage_gate_pattern.md)
+- smoke test: [`../../tests/check_stage_gate_compliance.py`](../../tests/check_stage_gate_compliance.py)
 ## 5. 권장 출력 예시
 
 ```text
@@ -188,7 +214,79 @@ tool 이 없거나 skill 구현이 아직 없으면 아래 순서로 수동 수�
 3. 프로젝트 프로파일을 읽고 문서 구조, 명령, 환경 제약을 확인한다.
 4. 현재 세션의 첫 행동과 확인할 문서를 짧게 요약한다.
 
-## 11. 구현 체크리스트
+## 11. Extension Baseline Opt-In 통합 (v0.7.0+)
+
+본 섹션은 v0.7.0 step 7 의 Extension 시스템 (`workflow-source/extensions/SCHEMA.md`) 과 session-start skill 의 통합 가이드.
+
+### 11.1 3종 Baseline 목록
+
+| Extension | Prefix | Rule Count | Opt-In File |
+|---|---|---|---|
+| security | SEC-WF | 6 | `extensions/security-baseline.opt-in.md` |
+| testing | TST-WF | 6 | `extensions/testing-baseline.opt-in.md` |
+| performance | PERF-WF | 6 | `extensions/performance-baseline.opt-in.md` |
+
+### 11.2 통합 흐름
+
+session-start 시 3종 baseline 에 대한 opt-in prompt 표시:
+
+1. **detect existing status**: 각 baseline 의 `ai-workflow/memory/active/<name>_baseline_status.md` 존재 여부 확인
+   - 존재: 기존 status 존중 (재 prompt 안 함)
+   - 없음: 신규 prompt 표시
+
+2. **단일 통합 prompt**: 3종 baseline 의 opt-in 을 한 prompt 에 표시 (선택). 또는 개별 prompt 3회 표시.
+
+3. **응답 처리**: 각 baseline 마다:
+   - `A) Yes` → `status: enabled, partial: false`
+   - `B) No` → `status: disabled, partial: false`
+   - `P) Partial` → `status: enabled, partial: true, partial_rules: [...]`
+   - `X) ...` → custom
+
+4. **status 파일 기록**:
+   - `ai-workflow/memory/active/security_baseline_status.md`
+   - `ai-workflow/memory/active/testing_baseline_status.md`
+   - `ai-workflow/memory/active/performance_baseline_status.md`
+   - 각 파일: `Extension Configuration` table + `decided_at` + `decided_by` + `standard_ref`
+
+5. **state.json sync**: `ai-workflow/memory/active/state.json` 의 `<name>_baseline` 필드 갱신
+
+6. **audit log**: `append_audit_log("opt_in", "<name>_baseline=<answer>")`
+
+### 11.3 Default 정책
+
+| 모드 | Default |
+|---|---|
+| Greenfield (신규 project) | security=A) Yes / testing=A) Yes / performance=P) Partial |
+| Brownfield (기존 project) | 기존 status 존중. 없으면 security=B) No / testing=B) No / performance=B) No |
+| CI/CD | opt-in prompt 표시 안 함, 기존 status 사용 |
+| PoC / Prototype | 모든 baseline = B) No 권장 |
+
+### 11.4 Session-Start 출력에 추가
+
+기존 session-start 출력 (`summary`, `in_progress_items`, 등) 에 다음 추가:
+
+```yaml
+extension_baselines:
+  security:
+    status: enabled | disabled | partial
+    source: extensions/security-baseline.opt-in.md
+    partial_rules: []  # partial 시만
+  testing: { ... }
+  performance: { ... }
+```
+
+`warnings` 필드에:
+- "Security baseline disabled — production-grade 강제 안 됨"
+- "Testing baseline partial mode — TST-WF-01 + 02 만 hard constraint"
+- "Performance baseline partial mode — PERF-WF-01 + 04 만 hard constraint"
+
+### 11.5 Runtime 통합 (v0.7.1+ follow-up)
+
+`workflow_kit.common.contracts.<name>_baseline.evaluate_compliance()` (v0.7.1+ follow-up) 가 session-start 출력의 `extension_baselines` 데이터를 받아 stage completion message 의 Compliance Summary 자동 emit.
+
+본 spec 은 v0.7.0 step 7 spec level. runtime helper 는 v0.7.1+ follow-up.
+
+## 12. 구현 체크리스트
 
 - 입력 경로 존재 여부를 검증하는가
 - backlog 최신 문서를 안정적으로 찾는가
@@ -197,8 +295,54 @@ tool 이 없거나 skill 구현이 아직 없으면 아래 순서로 수동 수�
 - 출력이 구조화되어 다음 agent 또는 사람이 재사용 가능한가
 - 읽기 전용 원칙을 지키는가
 
+## 13. Purpose Context Load (v0.9.5 chapter 9 R-A part 2)
+
+본 섹션은 [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) §4.3 part 2 의
+session-start 통합 가이드. v0.9.4 에서 `state.json.purpose_digest` 1-line 자동 생성이 완료된
+후속으로, v0.9.5 는 session-start 가 *directional intent* (PURPOSE.md + state.json) 를
+context load 시점에 자동 read 한다.
+
+### 13.1 추가 입력
+
+없음 (기존 입력으로 workspace_root + state.json 경로 도출).
+
+### 13.2 추가 출력
+
+- `purpose_context: SessionStartPurposeContext | None`
+  - `purpose_digest: str | None` — `state.json.purpose_digest` 1-line
+  - `purpose_digest_rev: str | None` — `state.json.purpose_digest_rev` (YYYY-MM-DD)
+  - `purpose_path: str | None` — 자동 detect 된 PURPOSE.md 절대 path
+  - `body_excerpt: str | None` — PURPOSE.md 본문 (frontmatter 제외) ≤800 char
+  - `body_excerpt_truncated: bool` — 원본 본문이 800 char 초과 시 true
+  - `body_excerpt_char_count: int` — 실제 excerpt 의 char 수
+  - `scope_included: list[str]` — PURPOSE.md §3 포함 영역
+  - `scope_excluded: list[str]` — PURPOSE.md §3 제외 영역
+  - `scope_warnings: list[str]` — §3 parse 실패 / PURPOSE.md 부재 시 advisory
+
+### 13.3 동작 절차 추가 (6.7 신규)
+
+1. workspace_root = `project_workspace_root(project_profile_path)`
+2. state.json path = `workflow_memory_dir(project_profile_path) / "state.json"`
+3. `build_purpose_context(workspace_root, state_path)` 호출 (helper module)
+4. output_model 에 `purpose_context` 채워서 반환
+5. `scope_warnings` 는 기존 `warnings` list 에 extend (graceful skip 시 "PURPOSE.md 부재" advisory 1줄 추가)
+
+### 13.4 Graceful skip 정책
+
+- `state.json` 부재 / JSON 파싱 실패 / `purpose_digest` field 부재 → `purpose_digest = None`
+- `PURPOSE.md` 부재 → `body_excerpt = None`, `scope_included = []`, `scope_excluded = []`, `scope_warnings = ["PURPOSE.md 부재 — scope check skipped"]`
+- 어떤 경우에도 skill 실행은 **실패하지 않음**. `purpose_context` field 가 null 또는 partial fill 만 된다.
+
+### 13.5 Acceptance Criterion (spec §4.3 part 2 #1)
+
+- session-start output_model 에 `purpose_context` field 존재
+- PURPOSE.md + state.json 모두 있는 경우, `purpose_digest` + `body_excerpt` (≤800 char) + `scope_included/excluded` 모두 populate
+- PURPOSE.md 부재 시 graceful skip (`scope_warnings` 에 advisory 1줄)
+
 ## 다음에 읽을 문서
 
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
+- Extension 시스템: [../extensions/SCHEMA.md](../extensions/SCHEMA.md)
+- 3종 baseline opt-in: [../extensions/security-baseline.opt-in.md](../extensions/security-baseline.opt-in.md), [../extensions/testing-baseline.opt-in.md](../extensions/testing-baseline.opt-in.md), [../extensions/performance-baseline.opt-in.md](../extensions/performance-baseline.opt-in.md)

@@ -4,8 +4,8 @@
 - 범위: 목표, 입력 계약, 출력 계약, 신규 작업 생성 규칙, 상태 갱신 규칙, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/daily_backlog_template.md`, `../templates/work_backlog_template.md`
+- 최종 수정일: 2026-07-21
+- 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/daily_backlog_template.md`, `../templates/work_backlog_template.md`, `./llm_wiki_concept_purpose_spec.md` (v0.9.5 part 2)
 
 ## 1. 목적
 
@@ -105,6 +105,32 @@
 - `validation_note`
 - 검증 결과와 미실행 사유 요약
 
+
+### 4.1. stage_completion (v0.6.5 신규)
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+| Field | 값 | 비고 |
+|---|---|---|
+| `stage_name` | `backlog-update` | 본 skill 의 stage 식별자 |
+| `stage_status` | `ok` / `warning` / `error` | skill 실행 결과 |
+| `next_stage` | `None` (workflow end) | 다음 stage 이름. workflow 끝이면 `None` |
+| `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
+| `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
+| `artifacts` | [`ai-workflow/memory/active/backlog/<target_date>.md`, `ai-workflow/memory/active/backlog`] | 본 stage 의 검토 대상 artifact path |
+| `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
+| `notes` | 1-3 line | AI summary |
+
+Gate 정책:
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 gate 통과
+- `approval_actor: "auto"` 는 명시적 차단 (state 문서 갱신 skill)
+- 다음 stage 자동 진행 ❌ — user explicit approval 후에만 진행
+
+상세:
+- Pydantic v2 schema: [`../../workflow_kit/common/contracts/stage_gate.py`](../../workflow_kit/common/contracts/stage_gate.py) `StageCompletion`
+- Output schema 가이드: [`../output_schema_guide.md` §3.4](../output_schema_guide.md)
+- Stage Gate Pattern: [`../stage_gate_pattern.md`](../stage_gate_pattern.md)
+- smoke test: [`../../tests/check_stage_gate_compliance.py`](../../tests/check_stage_gate_compliance.py)
 ## 5. 권장 출력 예시
 
 ```text
@@ -262,8 +288,59 @@ tool 이 없거나 skill 구현이 아직 없으면 아래 순서로 수동 수�
 - 누락 필드를 `fields_requiring_confirmation` 으로 분리하는가
 - handoff 와 backlog index 후속 갱신 필요성을 메모하는가
 
+## 12. Purpose Context Load + Scope Creep Check (v0.9.5 chapter 9 R-A part 2)
+
+본 섹션은 [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) §4.3 part 2 의
+backlog-update 통합 가이드. v0.9.5 의 backlog-update 는 두 가지 책임 추가:
+
+1. **Context load** — `state.json.purpose_digest` + PURPOSE.md 본문 (≤200 token) 자동 read
+2. **Scope creep check** — task_brief / affected_documents vs PURPOSE.md §3 Research Scope
+   *제외 영역* 매칭 → warning emit
+
+### 12.1 추가 입력
+
+없음 (기존 입력으로 workspace_root + state.json 경로 도출).
+
+### 12.2 추가 출력
+
+- `purpose_context: BacklogUpdatePurposeContext | None` — session-start 와 동일 schema
+- `scope_creep_warnings: list[str]` — 제외 영역 매칭 결과 (각 항목 = `scope creep 의심: ...`)
+
+### 12.3 Scope Creep Check 정공법
+
+`workflow_kit.common.purpose_context.check_scope_creep(task_brief, affected_documents, scope)` 호출:
+
+1. `scope["excluded"]` list 의 각 area 에 대해:
+   - area 전체가 task_brief / affected_documents 의 *normalized* (markdown marker 제거 + lowercase) 에 substring 으로 등장 → hard match
+   - 또는 area 의 첫 2 token (≥4 char) 가 등장 → keyword match
+2. 매칭 시 `scope_creep_warnings` 에 1줄 추가
+3. `scope["excluded"]` 비어있으면 no-op (early return)
+4. **포함 영역 매칭은 soft heuristic 이라 advisory only** — 본 hard warning 은 *제외* 만 다룬다
+
+### 12.4 동작 절차 추가 (6.9 신규)
+
+1. workspace_root = `project_workspace_root(project_profile_path)`
+2. state.json path = `workflow_memory_dir(project_profile_path) / "state.json"`
+3. `build_purpose_context(workspace_root, state_path)` 호출 → `purpose_context_obj` 채움
+4. `scope_warnings` 는 기존 `warnings` list 에 extend
+5. `check_scope_creep(args.task_brief, args.affected_documents, scope)` 호출 → `scope_creep_warnings`
+6. output_model 에 `purpose_context` + `scope_creep_warnings` 채워서 반환
+
+### 12.5 Graceful skip 정책
+
+- PURPOSE.md / state.json 어느 쪽이 부재해도 skill 실행 실패 ❌. `purpose_context` field 가 partial fill.
+- scope_creep_warnings 가 비어있으면 *방향 정합* — caller 가 silent pass 가능.
+
+### 12.6 Acceptance Criterion (spec §4.3 part 2 #2)
+
+- backlog-update output_model 에 `purpose_context` + `scope_creep_warnings` 2 field 추가
+- task_brief 가 PURPOSE.md §3 제외 영역과 매칭 시 `scope_creep_warnings` 1줄 이상 emit
+- task_brief 가 포함 영역과 매칭되면 no warning (soft heuristic, advisory only)
+- PURPOSE.md 부재 시 graceful skip (`scope_creep_warnings = []`, `purpose_context.scope_warnings` 에 advisory 1줄)
+
 ## 다음에 읽을 문서
 
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - 공통 표준: [./global_workflow_standard.md](./global_workflow_standard.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
+- Purpose spec: [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) (v0.9.5 part 2)

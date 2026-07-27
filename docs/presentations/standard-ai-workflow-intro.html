@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standard AI Workflow — 소개</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* @theme: saw-warm */
+/* mood: WARM */
+/* espresso + cream + amber — dark/light 모두 동일 난색 계열 */
+:root{
+  --bg-dark:#1C1917;
+  --bg-light:#FAF7F2;
+  --fg-on-dark:#FAF7F2;
+  --fg-on-light:#1C1917;
+  --accent:#F59E0B;
+  --muted:#78716C;
+  --muted-on-dark:#A8A29E;
+  --rule:#E7E0D6;
+  --rule-dark:#3A3330;
+  --font-display:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --font-body:var(--font-display);
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;background:#0B0A09;font-family:var(--font-body)}
+.deck-wrapper{position:fixed;inset:0;overflow:hidden}
+.deck{position:absolute;top:50%;left:50%;width:1920px;height:1080px;transform-origin:center center}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:110px 140px;
+  background:var(--bg-light);color:var(--fg-on-light);transition:opacity .18s ease}
+.slide.is-active{display:flex}
+.slide[data-bg="dark"]{background:var(--bg-dark);color:var(--fg-on-dark)}
+.slide[data-bg="dark"] .kicker,.slide[data-bg="dark"] .caption{color:var(--muted-on-dark)}
+.slide[data-bg="dark"] hr,.slide[data-bg="dark"] .rule{border-color:var(--rule-dark);background:var(--rule-dark)}
+
+h1{font-size:80px;line-height:1.14;font-weight:800;letter-spacing:-.02em;margin:0}
+h2{font-size:64px;line-height:1.18;font-weight:800;letter-spacing:-.02em;margin:0}
+h3{font-size:44px;line-height:1.25;font-weight:700;margin:0}
+p,li{font-size:32px;line-height:1.6;font-weight:400;margin:0}
+.kicker{font-size:22px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.caption{font-size:20px;line-height:1.5;color:var(--muted)}
+.lead{font-size:38px;line-height:1.5;font-weight:500}
+.big{font-size:160px;line-height:1;font-weight:800;letter-spacing:-.04em}
+.accent{color:var(--accent)}
+code,.mono{font-family:var(--font-mono);font-size:.9em}
+.rule{height:2px;background:var(--rule);border:0;margin:0}
+.stack{display:flex;flex-direction:column;gap:34px}
+.spacer{flex:1}
+.slide > .kicker{margin-bottom:26px}
+
+/* ---- layout primitives ---- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:96px;align-items:start}
+.cols.wide-left{grid-template-columns:1.25fr 1fr}
+.cols.wide-right{grid-template-columns:1fr 1.35fr}
+.steps{display:flex;flex-direction:column;gap:0}
+.steps > div{padding:26px 0;border-top:2px solid var(--rule);display:grid;
+  grid-template-columns:78px 1fr;align-items:baseline;gap:8px}
+.slide[data-bg="dark"] .steps > div{border-color:var(--rule-dark)}
+.steps .n{font-size:24px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+.steps .t{font-size:30px;line-height:1.45}
+.steps .t b{font-weight:700}
+.flow{display:flex;align-items:center;gap:0;font-size:26px;font-weight:600}
+.flow .box{padding:20px 26px;border:2px solid var(--rule);border-radius:4px;white-space:nowrap}
+.slide[data-bg="dark"] .flow .box{border-color:var(--rule-dark)}
+.flow .box.on{border-color:var(--accent);color:var(--accent)}
+.flow .arrow{padding:0 16px;color:var(--muted);font-size:22px}
+.cut{position:relative;padding:0 20px;color:#DC2626;font-size:24px;font-weight:700}
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat .v{font-size:120px;line-height:1;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.stat .l{font-size:22px;color:var(--muted);font-weight:600}
+.grid-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:56px;padding:44px 0;
+  border-top:2px solid var(--rule);border-bottom:2px solid var(--rule)}
+.slide[data-bg="dark"] .grid-stats{border-color:var(--rule-dark)}
+table.data{width:100%;border-collapse:collapse;font-size:28px}
+table.data th{text-align:left;font-size:20px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);font-weight:700;padding:0 0 16px}
+table.data td{padding:20px 0;border-top:2px solid var(--rule);vertical-align:baseline}
+.slide[data-bg="dark"] table.data td{border-color:var(--rule-dark)}
+table.data td.n{font-variant-numeric:tabular-nums;font-weight:800;color:var(--accent);width:170px}
+pre.cmd{font-family:var(--font-mono);font-size:24px;line-height:1.65;margin:0;
+  background:#F1EBE1;border-left:5px solid var(--accent);padding:26px 30px;overflow:hidden;white-space:pre-wrap}
+.slide[data-bg="dark"] pre.cmd{background:#262220}
+.layers{display:flex;flex-direction:column;gap:14px}
+.layers > div{display:grid;grid-template-columns:230px 1fr;gap:28px;align-items:center;
+  padding:24px 28px;border:2px solid var(--rule);border-radius:5px}
+.slide[data-bg="dark"] .layers > div{border-color:var(--rule-dark)}
+.layers .lname{font-size:28px;font-weight:800}
+.layers .ldesc{font-size:24px;color:var(--muted);line-height:1.5}
+.layers > div.hi{border-color:var(--accent)}
+.layers > div.hi .lname{color:var(--accent)}
+
+.notes,.notes-store{display:none}
+
+/* ---- chrome ---- */
+.chrome{position:fixed;z-index:40;font-family:var(--font-body);pointer-events:none}
+.counter{right:26px;bottom:20px;font-size:15px;font-weight:600;color:#A8A29E;
+  font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.hint{left:26px;bottom:20px;font-size:13px;color:#57534E}
+.progress{left:0;right:0;bottom:0;height:3px;background:transparent}
+.progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .2s ease}
+
+/* ---- panels ---- */
+.panel{position:fixed;z-index:50;display:none}
+.panel.open{display:block}
+.notes-panel{left:0;right:0;bottom:0;max-height:34vh;overflow:auto;background:#1C1917;
+  color:#E7E0D6;border-top:2px solid var(--accent);padding:24px 32px;font-size:17px;line-height:1.7}
+.notes-panel .np-title{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;font-weight:700}
+.overlay{inset:0;background:rgba(12,10,9,.97);overflow:auto;padding:40px}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.ov-item{position:relative;border:2px solid #3A3330;border-radius:6px;overflow:hidden;
+  cursor:pointer;background:var(--bg-light);aspect-ratio:16/9}
+.ov-item.cur{border-color:var(--accent)}
+.ov-item .thumb{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:top left;pointer-events:none}
+.ov-item .num{position:absolute;right:6px;bottom:4px;z-index:2;font-size:12px;font-weight:700;
+  color:#FAF7F2;background:rgba(28,25,23,.85);padding:2px 7px;border-radius:3px}
+.help-inner{max-width:760px;margin:0 auto;color:#E7E0D6}
+.help-inner h3{font-size:28px;margin-bottom:22px;color:var(--accent)}
+.help-inner table{width:100%;border-collapse:collapse;font-size:17px}
+.help-inner td{padding:9px 0;border-bottom:1px solid #3A3330}
+.help-inner td:first-child{width:210px;font-family:var(--font-mono);color:var(--accent)}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+@media print{
+  @page{size:16in 9in;margin:0}
+  html,body{background:#fff;height:auto}
+  .deck-wrapper{position:static;overflow:visible;height:auto}
+  .deck{position:static;transform:none !important;width:1920px;height:auto;zoom:.8}
+  .slide{position:static;display:flex !important;width:1920px;height:1080px;page-break-after:always;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .chrome,.panel,.notes-panel,.overlay,.help-overlay{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="deck-wrapper">
+  <div class="deck" id="deck">
+    <section class="slide" data-slide="1" data-bg="dark" data-role="Title">
+      <div class="kicker">Standard AI Workflow · v1.0.0</div>
+      <div class="spacer"></div>
+      <h1>AI와 함께 일하는 방식에도<br><span class="accent">표준</span>이 필요합니다</h1>
+      <p class="lead" style="margin-top:44px;max-width:1180px;color:var(--muted-on-dark)">왜 필요한지, 어떤 원리로 동작하는지, 여럿이 함께 굴릴 때 무엇이 달라지는지</p>
+      <div class="spacer"></div>
+      <hr class="rule">
+      <p class="caption" style="margin-top:26px">30분 · <span class="mono">f</span> 전체화면 · <span class="mono">→</span> 다음 · <span class="mono">o</span> 개요 · <span class="mono">?</span> 도움말</p>
+    </section>
+    <section class="slide" data-slide="2" data-role="Content">
+      <div class="kicker">결론부터</div>
+      <div class="cols wide-left" style="flex:1;align-items:center">
+        <div>
+          <h2>세션마다 맥락을<br>다시 설명하고 있다면,<br>문제는 AI가 아니라<br><span class="accent">일하는 방식</span>입니다.</h2>
+        </div>
+        <div class="steps">
+          <div><span class="n">01</span><span class="t"><b>왜 필요한가</b></span></div>
+          <div><span class="n">02</span><span class="t"><b>어떻게 동작하나</b></span></div>
+          <div><span class="n">03</span><span class="t"><b>어떻게 굴러가나</b></span></div>
+        </div>
+      </div>
+    </section>
+    <section class="slide" data-slide="3" data-bg="dark" data-role="Section">
+      <div class="kicker">Section 01</div>
+      <div class="spacer"></div>
+      <div style="display:flex;align-items:baseline;gap:56px">
+        <div class="big accent">01</div>
+        <h2>왜 필요한가</h2>
+      </div>
+      <p class="lead" style="margin-top:48px;max-width:1250px;color:var(--muted-on-dark)">AI와 일하면서 매번 새는 건 시간이 아니라 <span style="color:var(--fg-on-dark)">맥락 · 규칙 · 합의 · 확신</span> 이 네 가지입니다.</p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="4" data-role="Content">
+      <div class="kicker">문제 ① · 시간</div>
+      <h2>세션이 끝나면 맥락도 같이 사라집니다</h2>
+      <div class="spacer"></div>
+      <div class="flow" style="margin-bottom:60px">
+        <div class="box">세션 1 — 맥락이 쌓임</div>
+        <div class="cut">✕ 종료와 함께 사라짐</div>
+        <div class="box">세션 2 — 처음부터 다시 설명</div>
+      </div>
+      <hr class="rule">
+      <p style="margin-top:38px;max-width:1450px">무엇을 정했고 무엇을 확인했는지가 사람 머릿속에만 남습니다. <b>그래서 다음 세션은 같은 질문을 또 합니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="5" data-role="Content">
+      <div class="kicker">문제 ② · 도구</div>
+      <h2>도구를 바꿀 때마다 규칙이 흩어집니다</h2>
+      <div class="spacer"></div>
+      <div class="flow" style="flex-wrap:wrap;gap:14px;font-size:22px;max-width:1550px">
+        <div class="box">AGENTS.md</div><div class="box">CLAUDE.md</div><div class="box">GEMINI.md</div>
+        <div class="box">ANTIGRAVITY.md</div><div class="box">MiniMax.md</div><div class="box">CONVENTIONS.md</div>
+        <div class="box">SYSTEM.md</div><div class="box">SKILL.md</div><div class="box">config.yaml</div>
+        <div class="box">.codex/mcp.toml</div><div class="box">…</div>
+      </div>
+      <hr class="rule" style="margin-top:56px">
+      <p style="margin-top:38px;max-width:1500px">도구마다 진입점도 설정 형식도 제각각입니다. <b>복사해 둔 규칙은 언젠가 반드시 갈라집니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="6" data-role="Content">
+      <div class="kicker">문제 ③ · 사람</div>
+      <h2>각자의 AI가 각자의 맥락으로 일합니다</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1600px">
+        <div><span class="n">01</span><span class="t">같은 파일을 서로 다른 규칙으로 고칩니다 — 각자의 진입점 문서가 조금씩 다릅니다</span></div>
+        <div><span class="n">02</span><span class="t">어제 A가 검토 끝에 버린 방식을, 오늘 B의 에이전트가 다시 제안합니다</span></div>
+        <div><span class="n">03</span><span class="t">리뷰어는 왜 이렇게 했는지 묻지만, 근거는 남의 세션 안에 있습니다</span></div>
+      </div>
+      <hr class="rule" style="margin-top:44px">
+      <p style="margin-top:38px;max-width:1500px">코드 충돌은 git이 잡아 줍니다. <b>맥락 충돌은 아무도 잡아 주지 않습니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="7" data-role="Content">
+      <div class="kicker">문제 ④ · 품질</div>
+      <h2>“완료했습니다”가 사실인지<br>아무도 확인하지 않습니다</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1560px">
+        <div><span class="n">01</span><span class="t"><b>보고</b> — “상태 문서 갱신 완료”</span></div>
+        <div><span class="n">02</span><span class="t"><b>실제</b> — 예전 경로에 쓰는 바람에 갱신은 안 됨</span></div>
+        <div><span class="n">03</span><span class="t"><b>결과</b> — 아무도 모른 채 같은 사이클이 계속 돕니다</span></div>
+      </div>
+      <p class="caption" style="margin-top:34px">실제로 겪은 일입니다. 경로를 옮기면서 읽는 쪽만 새 경로로 바꾸고, 쓰는 쪽은 예전 경로에 그대로 남아 있었습니다.</p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="8" data-role="Content">
+      <div class="kicker">그래서 무엇을 봐야 하나</div>
+      <h2>말이 아니라 기록으로 확인합니다</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1620px">
+        <div><span class="n">01</span><span class="t"><b>조용히 실패한 사이클</b> — 완료라고 보고됐지만 실제로는 안 된 일이 몇 건인가</span></div>
+        <div><span class="n">02</span><span class="t"><b>규칙의 어긋남</b> — 원본과 생성물이 벌어져 있지 않은가</span></div>
+        <div><span class="n">03</span><span class="t"><b>기록의 신선도</b> — 마지막 갱신이 실제 변경보다 뒤처져 있지 않은가</span></div>
+      </div>
+      <hr class="rule" style="margin-top:44px">
+      <p style="margin-top:38px;max-width:1560px">값이 몇이냐보다 <b>이 값이 매번 계산되어 남는다는 사실</b>이 중요합니다. 측정하지 않으면 0인지 100인지 알 수가 없습니다.</p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="9" data-bg="dark" data-role="Section">
+      <div class="kicker">Section 02</div>
+      <div class="spacer"></div>
+      <div style="display:flex;align-items:baseline;gap:56px">
+        <div class="big accent">02</div>
+        <h2>어떻게 동작하나</h2>
+      </div>
+      <p class="lead" style="margin-top:48px;max-width:1250px;color:var(--muted-on-dark)">특별한 장치는 없습니다. <span style="color:var(--fg-on-dark)">세 가지 원리</span>가 전부입니다.</p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="10" data-role="Content">
+      <div class="kicker">원리 ① · 밖에 둔다</div>
+      <h2>기억을 세션 밖에 둡니다</h2>
+      <div class="spacer"></div>
+      <pre class="cmd">&lt;프로젝트&gt;/
+├── state      지금 어디까지 왔나        (에이전트가 세션 시작에 읽는 자리)
+├── handoff    다음 세션은 무엇부터      (사람이 읽는 인계 노트)
+└── backlog    무엇을 하기로 했고 뭐가 남았나</pre>
+      <div class="spacer"></div>
+      <p style="max-width:1560px">세션이 끝나면 컨텍스트 창은 비워집니다. 남기려면 결국 파일에 써야 하고, <b>파일이면 git diff로 보이고 리뷰가 됩니다.</b></p>
+      <p class="caption" style="margin-top:22px">파일 이름도 위치도 무엇이든 상관없습니다. 팀 안에서 하나로 정해져 있기만 하면 됩니다.</p>
+    </section>
+    <section class="slide" data-slide="11" data-role="Content">
+      <div class="kicker">원리 ② · 한 벌만 쓴다</div>
+      <h2>규칙은 한 벌만 쓰고, 도구별로 내보냅니다</h2>
+      <div class="spacer"></div>
+      <div class="flow" style="flex-wrap:wrap;gap:14px;font-size:24px">
+        <div class="box on">규칙 원본 한 벌</div><span class="arrow">→</span>
+        <div class="box">생성</div><span class="arrow">→</span>
+        <div class="box">CLAUDE.md</div><div class="box">AGENTS.md</div><div class="box">GEMINI.md</div><div class="box">…</div>
+      </div>
+      <hr class="rule" style="margin-top:56px">
+      <p style="margin-top:38px;max-width:1560px">손으로 복사한 규칙은 반드시 갈라집니다. <b>생성한 규칙은 갈라질 수가 없습니다.</b></p>
+      <p class="caption" style="margin-top:22px">쓰는 도구가 늘어나도 손댈 곳은 원본 한 곳뿐입니다. 새 도구는 내보낼 대상이 하나 느는 것에 그칩니다.</p>
+    </section>
+    <section class="slide" data-slide="12" data-role="Content">
+      <div class="kicker">원리 ② · 실제 모양</div>
+      <h2>원본 한 벌은 이렇게 생겼습니다</h2>
+      <div class="spacer"></div>
+      <pre class="cmd">rules/
+├── common.md            모든 도구에 똑같이 들어가는 규칙
+├── profiles/
+│   ├── cli-a.yaml       진입점 파일 이름, 지원하는 기능 차이
+│   └── cli-b.yaml
+└── (생성) ─────────▶  CLAUDE.md · AGENTS.md · GEMINI.md · …</pre>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">도구마다 다른 건 프로파일에만 둡니다. <b>공통 규칙을 도구별로 고치기 시작하는 순간부터 갈라집니다.</b></p>
+      <p class="caption" style="margin-top:22px">생성물은 손으로 고치지 않습니다. 고쳐야 하면 원본을 고치고 다시 내보냅니다.</p>
+    </section>
+    <section class="slide" data-slide="13" data-role="Content">
+      <div class="kicker">원리 ③ · 쓰는 법</div>
+      <h2>지켜지는 규칙은 이렇게 씁니다</h2>
+      <div class="spacer"></div>
+      <div class="cols">
+        <div>
+          <div class="kicker" style="margin-bottom:18px">지켜지지 않는 문장</div>
+          <div class="steps">
+            <div><span class="n" style="color:#DC2626">✕</span><span class="t">코드 품질을 유지한다</span></div>
+            <div><span class="n" style="color:#DC2626">✕</span><span class="t">문서를 항상 최신으로 유지한다</span></div>
+            <div><span class="n" style="color:#DC2626">✕</span><span class="t">신중하게 작업한다</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="kicker" style="margin-bottom:18px">지켜지는 문장</div>
+          <div class="steps">
+            <div><span class="n">✓</span><span class="t">테스트가 통과하지 않으면 완료로 적지 않는다</span></div>
+            <div><span class="n">✓</span><span class="t">상태 문서 갱신은 같은 커밋에 넣는다</span></div>
+            <div><span class="n">✓</span><span class="t">파일을 지우기 전에 먼저 읽는다</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">차이는 하나뿐입니다 — <b>검사로 옮길 수 있는 문장인가.</b> 옮길 수 없다면 그건 규칙이 아니라 소망입니다.</p>
+    </section>
+    <section class="slide" data-slide="14" data-role="Content">
+      <div class="kicker">원리 ③ · 검사로 지킨다</div>
+      <h2>지켜지는 규칙은 실행되는 규칙뿐입니다</h2>
+      <div class="spacer"></div>
+      <div class="layers">
+        <div><div class="lname">형식 검사</div><div class="ldesc">문서와 링크가 규약대로인가 — 빠르니까 매번 돌립니다</div></div>
+        <div><div class="lname">동작 검사</div><div class="ldesc">적어둔 대로 실제로 돌아가는가 — 릴리스마다 전량 돌립니다</div></div>
+        <div class="hi"><div class="lname">추세 관찰</div><div class="ldesc">어긋남이 늘고 있는가 — 대시보드에 숫자로 남깁니다</div></div>
+      </div>
+      <div class="spacer"></div>
+      <p class="caption">문서에만 적힌 규칙은 지켜지지 않습니다. 실제로 돌아가는 검사만 살아남습니다.</p>
+    </section>
+    <section class="slide" data-slide="15" data-role="Content">
+      <div class="kicker">원리 ③ · 실제 출력</div>
+      <h2>검사는 이런 모습으로 걸립니다</h2>
+      <div class="spacer"></div>
+      <pre class="cmd">$ workflow check
+
+✗  상태 기록    마지막 갱신이 커밋 12개 전입니다
+✗  규칙 사본    진입점 파일이 원본과 3줄 다릅니다 (손으로 고친 흔적)
+✓  문서 링크    42개 확인
+
+2 failed</pre>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">커밋을 막지 않아도 됩니다. <b>다음 세션 브리핑 첫 줄에 뜨는 것만으로 충분합니다.</b></p>
+      <p class="caption" style="margin-top:22px">사람을 혼내는 장치가 아니라, 잊은 것을 눈앞에 되돌려 놓는 장치입니다.</p>
+    </section>
+    <section class="slide" data-slide="16" data-bg="dark" data-role="Section">
+      <div class="kicker">Section 03</div>
+      <div class="spacer"></div>
+      <div style="display:flex;align-items:baseline;gap:56px">
+        <div class="big accent">03</div>
+        <h2>어떻게 굴러가나</h2>
+      </div>
+      <p class="lead" style="margin-top:48px;max-width:1250px;color:var(--muted-on-dark)">세션을 열고, 하루를 돌리고, <span style="color:var(--fg-on-dark)">다음 사람에게 넘기는</span> 방식.</p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="17" data-role="Content">
+      <div class="kicker">운영 ① · 세션 열기</div>
+      <h2>세션은 이렇게 열립니다</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1620px">
+        <div><span class="n">01</span><span class="t">도구가 진입점 문서를 읽습니다 — 규칙은 여기서 주입됩니다</span></div>
+        <div><span class="n">02</span><span class="t">진입점이 상태 파일을 가리킵니다 — 어디까지 왔는지 에이전트가 스스로 읽습니다</span></div>
+        <div><span class="n">03</span><span class="t">에이전트가 먼저 브리핑합니다 — “지난번엔 여기까지, 다음은 이것으로 보입니다”</span></div>
+        <div><span class="n">04</span><span class="t">사람은 맞다·아니다만 답합니다 — 어긋났다면 작업을 시작하기 전에 잡힙니다</span></div>
+      </div>
+      <hr class="rule" style="margin-top:44px">
+      <p style="margin-top:38px;max-width:1580px">사람이 맥락을 설명하는 게 아니라, <b>에이전트가 읽고 와서 확인을 받습니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="18" data-role="Content">
+      <div class="kicker">운영 ② · 하루</div>
+      <h2>하루 한 사이클</h2>
+      <div class="spacer"></div>
+      <div class="flow" style="flex-wrap:wrap;gap:12px;font-size:23px">
+        <div class="box">상태 문서 읽기</div><span class="arrow">→</span>
+        <div class="box">할 일과 범위 정리</div><span class="arrow">→</span>
+        <div class="box">작업</div><span class="arrow">→</span>
+        <div class="box">확인</div><span class="arrow">→</span>
+        <div class="box on">메모리 → 커밋 → 푸시</div>
+      </div>
+      <hr class="rule" style="margin-top:60px">
+      <p style="margin-top:38px;max-width:1520px">확인하지 않은 결과는 완료로 넘기지 않습니다. <b>메모리 갱신은 커밋과 한 묶음으로 처리합니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="19" data-role="Content">
+      <div class="kicker">운영 ③ · 시작 전</div>
+      <h2>맡기기 전에 세 가지를 못박습니다</h2>
+      <div class="spacer"></div>
+      <div class="layers">
+        <div><div class="lname">크기</div><div class="ldesc">한 세션에 끝나고, 커밋 하나로 설명되는 만큼</div></div>
+        <div class="hi"><div class="lname">완료 조건</div><div class="ldesc">무엇을 확인하면 끝인가 — 일을 시작하기 전에 적어 둡니다</div></div>
+        <div><div class="lname">건드리지 않을 것</div><div class="ldesc">범위 밖을 먼저 못박습니다. 에이전트는 친절해서 시키지 않은 것까지 고칩니다</div></div>
+      </div>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">완료 조건을 나중에 정하면 <b>결과에 맞춰 정하게 됩니다.</b> 조용한 실패는 대개 여기서 시작합니다.</p>
+    </section>
+    <section class="slide" data-slide="20" data-role="Content">
+      <div class="kicker">운영 ④ · 인계</div>
+      <h2>다음 세션에 무엇을 남길까</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1600px">
+        <div><span class="n">01</span><span class="t"><b>결정과 그 근거</b> — 무엇을 골랐고 무엇을 버렸는가</span></div>
+        <div><span class="n">02</span><span class="t"><b>확인한 것과 확인하지 못한 것</b> — 이게 빠지면 다음 사람이 처음부터 다시 확인합니다</span></div>
+        <div><span class="n">03</span><span class="t"><b>다음 한 걸음</b> — 지금 열면 어디부터 손대면 되는가</span></div>
+      </div>
+      <hr class="rule" style="margin-top:44px">
+      <p style="margin-top:38px;max-width:1520px">무엇을 했는지는 git이 기억합니다. <b>왜 그렇게 했는지는 아무도 기억하지 않습니다.</b></p>
+      <div class="spacer"></div>
+    </section>
+    <section class="slide" data-slide="21" data-role="Content">
+      <div class="kicker">운영 ④ · 인계 실물</div>
+      <h2>인계 노트는 이 정도면 충분합니다</h2>
+      <div class="spacer"></div>
+      <pre class="cmd">## 2026-07-27 · 결제 재시도 로직
+
+결정   지수 백오프 대신 고정 5초 × 3회
+근거   외부 API 제한이 분 단위라 백오프가 오히려 더 늦음
+확인   단위 테스트 통과 / <b>실제 결제 경로는 확인 못 함</b>
+다음   staging 에서 실패 케이스 재현부터</pre>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">형식은 자유입니다. <b>“확인 못 함” 한 줄이 다음 세션의 30분을 아낍니다.</b></p>
+    </section>
+    <section class="slide" data-slide="22" data-role="Content">
+      <div class="kicker">운영 ⑤ · 여럿이 함께</div>
+      <h2>맥락 충돌은 이렇게 수습합니다</h2>
+      <div class="spacer"></div>
+      <div class="layers">
+        <div><div class="lname">갈라 둔다</div><div class="ldesc">상태 기록을 브랜치별로 나눠 두면 동시에 일해도 서로 덮어쓰지 않습니다</div></div>
+        <div><div class="lname">합친다</div><div class="ldesc">기억이 파일이라 병합도 리뷰도 코드와 똑같은 방식으로 처리됩니다</div></div>
+        <div class="hi"><div class="lname">맞춘다</div><div class="ldesc">규칙이 원본 한 벌에서 나오므로 사람마다 다른 규칙이 생기지 않습니다</div></div>
+      </div>
+      <div class="spacer"></div>
+      <p style="max-width:1560px">결정과 근거가 저장소 안에 있으면 <b>리뷰어가 남의 세션을 뒤질 필요가 없습니다.</b></p>
+      <p class="caption" style="margin-top:22px">팀에서 새로 정할 규칙은 하나뿐입니다 — 메모리 갱신은 그 작업의 커밋과 같이 올린다.</p>
+    </section>
+    <section class="slide" data-slide="23" data-role="Content">
+      <div class="kicker">운영 ⑤ · PR 실물</div>
+      <h2>PR에는 이런 것이 같이 올라옵니다</h2>
+      <div class="spacer"></div>
+      <pre class="cmd">src/payment/retry.ts     | 24 ++++++-----
+memory/handoff.md        |  6 ++++++      ← 결정과 근거
+memory/backlog.md        |  2 +-
+
+3 files changed</pre>
+      <div class="spacer"></div>
+      <p style="max-width:1580px">리뷰어는 코드보다 <b>인계 노트를 먼저 읽습니다.</b> “왜 이렇게 했나”가 리뷰 코멘트가 아니라 diff 안에 있습니다.</p>
+      <p class="caption" style="margin-top:22px">기억을 파일로 둔 실익이 여기서 나옵니다. 기록이 부딪혀도 코드와 똑같은 방식으로 풉니다.</p>
+    </section>
+    <section class="slide" data-slide="24" data-role="Data">
+      <div class="kicker">운영 ⑥ · 실패</div>
+      <h2>무엇이 깨지고, 어떻게 알아채나</h2>
+      <div class="spacer"></div>
+      <table class="data">
+        <tr><th>자주 나는 조용한 실패</th><th>이걸 잡는 검사</th></tr>
+        <tr><td>보고와 실제가 다르다</td><td>산출물이 정말 바뀌었는지 확인</td></tr>
+        <tr><td>규칙 사본이 갈라졌다</td><td>생성물을 원본과 다시 대조</td></tr>
+        <tr><td>기록이 오래돼 현실과 어긋난다</td><td>마지막 갱신과 실제 변경 사이의 간격</td></tr>
+      </table>
+      <div class="spacer"></div>
+      <p class="caption">요점은 사람의 성실성에 기대지 않는 것입니다. 실패마다 대응하는 검사가 하나씩 있어야 합니다.</p>
+    </section>
+    <section class="slide" data-slide="25" data-role="Content">
+      <div class="kicker">도입</div>
+      <h2>얇게 시작하는 편이 낫습니다</h2>
+      <div class="spacer"></div>
+      <div class="steps" style="max-width:1600px">
+        <div><span class="n">01</span><span class="t">가장 자주 아픈 곳 하나만 고릅니다 — 대개는 “어제 뭐 했는지 모르겠다”</span></div>
+        <div><span class="n">02</span><span class="t">남길 자리를 정합니다 — 처음엔 파일 하나로 충분합니다</span></div>
+        <div><span class="n">03</span><span class="t">검사 하나를 붙입니다 — 갱신이 빠지면 알려 주는 것 하나면 됩니다</span></div>
+      </div>
+      <hr class="rule" style="margin-top:44px">
+      <p style="margin-top:38px;max-width:1560px">처음부터 다 갖출 필요는 없습니다. <b>한 바퀴가 돌기 시작하면 나머지는 필요할 때 붙습니다.</b></p>
+      <p class="caption" style="margin-top:22px">셋 다 오늘 반나절이면 붙습니다. 반대로 셋을 다 갖추기 전에는 아무것도 굴러가지 않습니다.</p>
+    </section>
+    <section class="slide" data-slide="26" data-bg="dark" data-role="CTA">
+      <div class="kicker">다음 한 걸음</div>
+      <div class="spacer"></div>
+      <h1>이번 주에 저장소 하나만<br><span class="accent">붙여보세요</span>.</h1>
+      <p class="lead" style="margin-top:44px;max-width:1400px;color:var(--muted-on-dark)">도구는 무엇을 쓰든 상관없습니다. <span style="color:var(--fg-on-dark)">남길 자리 하나와 검사 하나</span>면 시작됩니다.</p>
+      <div class="spacer"></div>
+      <p class="caption">기존 코드는 건드릴 일이 없습니다. 되돌리려면 새로 생긴 파일만 지우면 됩니다.</p>
+    </section>
+    <section class="slide" data-slide="27" data-bg="dark" data-role="ThankYou">
+      <div class="spacer"></div>
+      <h1>감사합니다</h1>
+      <div class="steps" style="margin-top:56px;max-width:1400px">
+        <div><span class="n">01</span><span class="t"><span class="mono">core/workflow_design_principles.md</span> — 오늘 이야기의 원본</span></div>
+        <div><span class="n">02</span><span class="t"><span class="mono">README.md</span> — 전체 구조를 한눈에</span></div>
+        <div><span class="n">03</span><span class="t"><span class="mono">QUICKSTART.md</span> — 5분 만에 붙여보기</span></div>
+      </div>
+      <div class="spacer"></div>
+    </section>
+  </div>
+</div>
+
+<div class="notes-store" hidden>
+  <aside class="notes" data-slide="1">표지에서 오래 머물지 마세요. 한 마디만 — 오늘은 도구 소개가 아니라 일하는 방식 얘기입니다. 전체화면(f)으로 바꾸고 바로 넘어갑니다. 자료는 발표 후 링크로 공유한다고 미리 알려두면 청중이 받아적느라 놓치지 않습니다.</aside>
+  <aside class="notes" data-slide="2">여기서 한 번 멈추세요. 오늘 할 얘기는 전부 이 문장입니다. 청중에게 물어보세요 — 어제 세션에서 뭘 결정했는지 지금 바로 말할 수 있는 사람? 대개 손이 안 올라옵니다. 그 침묵이 이 발표의 출발점입니다. 오른쪽 목차는 빠르게 읽고 넘기세요.</aside>
+  <aside class="notes" data-slide="3">섹션 전환. 여기서 호흡을 한 번 끊습니다. 맥락, 규칙, 합의, 확신 — 네 단어를 먼저 던져두고 다음 네 장에서 하나씩 풉니다. 순서를 미리 알려주면 청중이 따라오기 훨씬 쉽습니다. 5초 안에 넘기세요.</aside>
+  <aside class="notes" data-slide="4">가장 공감이 빠른 슬라이드입니다. 본인 경험을 하나 얹으세요 — 지난주에 같은 내용을 두 번 설명한 적이 있다면 그 얘기가 제일 셉니다. 붉은 '종료와 함께 사라짐'을 손으로 짚고 잠깐 멈추세요. 문제는 에이전트가 부족해서가 아니라 기억을 둘 자리가 없어서라는 점을 분명히 하고 넘어갑니다.</aside>
+  <aside class="notes" data-slide="5">박스를 하나씩 읽지 마세요. 대신 '여기 몇 개나 보이냐'고 물으세요. 열한 개입니다. 요점은 개수가 아니라 이게 전부 같은 규칙의 사본이라는 것. 사본은 반드시 갈라집니다. 팀에서 CLI를 두 개 이상 쓰고 있다면 이미 갈라져 있을 거라고 짚어주세요.</aside>
+  <aside class="notes" data-slide="6">팀 대상 발표라면 여기가 제일 아픈 장입니다. 세 줄을 천천히 읽고 마지막 문장에서 멈추세요. 코드 충돌은 git이 잡아 주는데, 맥락 충돌은 잡아 주는 게 없습니다. 실제 사례를 하나 얹으면 좋습니다 — 어제 논의 끝에 접은 방식이 오늘 다른 사람 PR로 다시 올라온 경험은 대부분 있습니다. 세 번째 줄(리뷰어)이 특히 반응이 옵니다.</aside>
+  <aside class="notes" data-slide="7">가장 조심스럽게 말해야 하는 장입니다. 누구를 탓하는 얘기가 아니라고 먼저 못박으세요. 세 줄을 천천히 읽고 아래 캡션의 실제 사례를 덧붙입니다. 읽는 쪽만 새 경로로 옮기고 쓰는 쪽은 예전 경로에 남아 있었는데, 보고는 계속 '갱신 완료'였습니다. 한동안 아무도 몰랐고요. 이런 걸 조용한 실패라고 부릅니다.</aside>
+  <aside class="notes" data-slide="8">숫자를 띄우지 않은 게 의도입니다. 우리 저장소 값이 몇인지는 청중에게 아무 의미가 없습니다. 세 줄을 읽고 아래 문장에서 멈추세요 — 값이 몇이냐가 아니라 이 값이 매번 계산되어 남느냐가 요점입니다. 측정하지 않으면 0인지 100인지 알 수 없습니다. 실제 수치가 궁금하다는 질문이 나오면 그때 대시보드를 열어 보여주면 됩니다. 여기서 1부를 닫습니다.</aside>
+  <aside class="notes" data-slide="9">섹션 전환. 앞이 문제였다면 여기부터는 원리입니다. 세 가지뿐이라고 먼저 못박으면 청중이 편하게 듣습니다. 우리 제품 자랑이 아니라 어느 팀이 직접 만들어도 결국 같은 결론에 닿는 얘기라고 덧붙이면 방어가 풀립니다.</aside>
+  <aside class="notes" data-slide="10">개발자 청중이 제일 좋아하는 장입니다. 파일 이름은 뭐든 상관없다고 먼저 말하세요. 중요한 건 에이전트가 세션을 열 때 반드시 읽는 자리가 정해져 있다는 것 하나입니다. 마법이 아니라 그냥 파일이라서 git diff로 보이고 리뷰가 된다는 점을 강조하세요. 우리가 실제로 쓰는 경로가 궁금하다는 질문이 나오면 그때 저장소를 열어 보여주면 됩니다.</aside>
+  <aside class="notes" data-slide="11">5번 슬라이드(도구마다 규칙이 흩어진다)와 짝입니다. 한 문장이면 됩니다 — 손으로 복사하면 갈라지고, 생성하면 갈라질 수가 없습니다. 청중 중에 진입점 문서를 두 개 이상 손으로 관리하는 사람이 있으면 여기서 표정이 바뀝니다. 그때 '지금 두 파일 내용이 같다고 확신하시냐'고 한 번 물어보세요.</aside>
+  <aside class="notes" data-slide="12">앞 장이 원리였다면 여기는 실물입니다. 세 덩어리만 짚으세요 — 공통 규칙 하나, 도구별 차이는 프로파일, 나머지는 생성물. 제일 중요한 건 마지막 캡션입니다. 생성물을 손으로 고치는 순간 단일 출처가 깨집니다. 실제로 팀에서 가장 많이 나는 사고가 이겁니다. 급하니까 CLAUDE.md만 직접 고쳐두고 원본에 반영을 안 하는 것.</aside>
+  <aside class="notes" data-slide="13">실무에서 제일 자주 쓰이는 장입니다. 왼쪽을 먼저 읽고 잠깐 멈추세요 — 대부분의 팀 규칙 문서가 왼쪽처럼 생겼습니다. 나쁜 뜻이 아니라 그냥 검사할 수가 없는 문장일 뿐입니다. 오른쪽으로 옮기면서 무엇이 달라졌는지 물어보세요. 판정할 수 있는 문장이 됐다는 것. 마지막 한 줄로 닫습니다 — 검사로 옮길 수 없으면 규칙이 아니라 소망입니다.</aside>
+  <aside class="notes" data-slide="14">이 워크플로우와 그냥 문서 모음의 차이가 여기서 갈립니다. 세 층을 읽고 마지막 캡션을 강조하세요. 문서에만 적힌 규칙은 지켜지지 않습니다. 검사가 무겁지 않아도 된다는 점도 덧붙이세요 — 처음엔 한 개로 시작해도 충분합니다.</aside>
+  <aside class="notes" data-slide="15">말로 하지 말고 화면을 보여주는 장입니다. 두 줄의 ✗를 손으로 짚으세요. 둘 다 사람이 알아채기 어려운 것들입니다 — 갱신을 깜빡한 것, 급해서 생성물을 직접 고친 것. 아래 문장이 이 장의 요점입니다. 검사가 커밋을 막을 필요는 없습니다. 다음 세션 첫 줄에 뜨기만 하면 됩니다. 강제로 막는 검사부터 만들면 팀이 검사를 우회하기 시작합니다.</aside>
+  <aside class="notes" data-slide="16">마지막 섹션입니다. 여기서 청중의 자세가 바뀝니다. 이제 '우리 팀에 어떻게 적용되나'를 듣고 싶어 합니다. 세 마디만 예고하세요. 하루 한 사이클, 인계, 여럿이 함께. 그리고 바로 넘어갑니다.</aside>
+  <aside class="notes" data-slide="17">이 덱에서 가장 실감나는 장입니다. 네 줄을 순서대로 짚되 세 번째와 네 번째 줄에서 멈추세요. 여기가 뒤집히는 지점입니다 — 보통은 사람이 맥락을 설명하며 세션을 시작하는데, 이 방식에서는 에이전트가 읽고 와서 브리핑하고 사람은 확인만 합니다. 브리핑이 틀렸다면 그것 자체로 수확입니다. 상태 기록이 낡았다는 뜻이니까요. 시연이 가능하면 여기서 30초만 실제로 보여주세요. 백 마디보다 낫습니다.</aside>
+  <aside class="notes" data-slide="18">이 사이클을 몸에 붙이는 게 도입의 전부입니다. 왼쪽부터 손으로 따라가세요. 마지막 노란 박스에서 멈춥니다. 순서가 중요합니다. 메모리를 먼저 갱신하고 그 상태로 커밋합니다. 커밋한 뒤에 따로 메모리를 적으면 협업자는 push 시점에 그 변경을 못 봅니다. 실제로 가장 자주 틀리는 지점입니다.</aside>
+  <aside class="notes" data-slide="19">AI와 일해 본 사람이면 세 번째에서 웃습니다. 시키지 않은 파일까지 고쳐 놓은 경험은 대부분 있습니다. 하지만 진짜 중요한 건 가운데입니다. 완료 조건을 먼저 적어 두면 나중에 결과에 맞춰 기준이 움직이는 걸 막을 수 있습니다. 7번에서 본 조용한 실패가 대부분 여기서 시작한다는 점을 연결해주세요. 시간이 모자라면 이 장은 가운데 한 줄만 말하고 넘어가도 됩니다.</aside>
+  <aside class="notes" data-slide="20">세 줄 중 두 번째가 핵심입니다. 확인하지 못한 걸 적는 게 확인한 걸 적는 것보다 값집니다. 다음 사람이 어디를 의심해야 하는지 알려 주니까요. 마지막 문장은 천천히 읽으세요 — git은 무엇을 했는지만 기억하고, 왜 그랬는지는 남기지 않습니다.</aside>
+  <aside class="notes" data-slide="21">앞 장의 세 항목이 실제로 어떻게 생겼는지 보여주는 장입니다. 네 줄짜리라는 점을 먼저 말하세요 — 문서를 쓰라는 게 아니라 네 줄을 남기라는 겁니다. 굵게 표시한 '확인 못 함'을 손으로 짚으세요. 이 한 줄이 없으면 다음 세션은 실제 결제 경로가 검증된 줄 알고 넘어갑니다. 여기서 시간이 남으면 청중에게 물어보세요 — 지금 하던 일을 네 줄로 남긴다면 뭐라고 쓰시겠습니까.</aside>
+  <aside class="notes" data-slide="22">팀 청중이면 여기서 시간을 쓰세요. 6번에서 던진 문제의 답입니다. 갈라 둔다, 합친다, 맞춘다 — 세 동사로 짚으면 기억에 남습니다. 브랜치별로 나눈다는 게 왜 중요한지는 실감나게 말하는 게 좋습니다. 같은 파일에 두 사람이 쓰면 결국 한쪽이 덮어씁니다. 마지막 줄이 제일 중요합니다 — 팀이 새로 외울 규칙은 딱 하나뿐이라는 점이 도입 저항을 크게 낮춥니다.</aside>
+  <aside class="notes" data-slide="23">앞 장의 '합친다'를 눈으로 보여주는 장입니다. diff 세 줄 중 가운데를 짚으세요. 코드 변경과 그 근거가 한 PR에 같이 올라옵니다. 리뷰어 입장에서 말해주면 효과가 큽니다 — 지금까지는 왜 이렇게 했는지 물어보려면 작성자를 붙잡아야 했는데, 이제 diff에 들어 있습니다. 코드 리뷰 문화가 이미 있는 팀이라면 여기서 도입 명분이 완성됩니다.</aside>
+  <aside class="notes" data-slide="24">표를 다 읽지 마세요. 왼쪽 세 줄만 짚고 오른쪽으로 눈을 옮기게 하세요. 요점은 각 실패마다 대응하는 검사가 하나씩 있다는 것입니다. 7번의 조용한 실패가 여기서 닫힙니다. 사람의 성실성에 기대는 규칙은 반드시 깨진다는 말로 마무리하면 앞뒤가 이어집니다.</aside>
+  <aside class="notes" data-slide="25">도입 저항을 낮추는 장입니다. 전부 갖추고 시작하려다 아무것도 못 하는 팀이 많습니다. 하나만 고르라고 하세요. 셋을 다 갖추기 전에는 굴러가지 않는다는 마지막 줄도 같이 짚어주세요 — 기록만 남기고 검사를 안 붙이면 결국 아무도 안 쓰게 됩니다. 도구를 뭘로 할지는 각자 정하면 된다고 열어두면 오히려 신뢰가 올라갑니다.</aside>
+  <aside class="notes" data-slide="26">요구는 하나만 하세요. 저장소 하나, 이번 주. 여러 개를 권하면 아무도 안 합니다. 특정 도구를 깔라는 얘기가 아니라는 점을 분명히 하세요 — 남길 자리 하나와 검사 하나면 오늘 시작할 수 있습니다. 되돌리기가 파일 삭제뿐이라는 점을 마지막에 말하면 결정 비용이 확 내려갑니다. 여기서 해볼 사람 있냐고 손을 들어보게 해도 좋습니다.</aside>
+  <aside class="notes" data-slide="27">마무리는 짧게. 첫 줄을 강조하세요 — 오늘 이야기한 원리는 발표용으로 만든 게 아니라 저장소 안의 규범 문서이고, 그 원리를 지키는지 검사가 따로 있습니다(check_self_application.py). 나머지 두 경로만 읽어주고 질문을 받습니다. 슬라이드 텍스트는 선택·복사가 되니 경로를 그대로 가져가면 된다고 알려주세요.</aside>
+</div>
+
+<div class="chrome counter" id="counter">1 / 27</div>
+<div class="chrome hint">? 도움말 · f 전체화면 · o 개요 · n 노트</div>
+<div class="chrome progress"><span id="progressBar"></span></div>
+
+<div class="panel notes-panel" id="notesPanel">
+  <div class="np-title">Speaker notes</div>
+  <div id="notesBody"></div>
+</div>
+
+<div class="panel overlay" id="overview"><div class="ov-grid" id="ovGrid"></div></div>
+
+<div class="panel overlay help-overlay" id="help">
+  <div class="help-inner">
+    <h3>키보드 단축키</h3>
+    <table>
+      <tr><td>→ / Space / PgDn</td><td>다음 슬라이드</td></tr>
+      <tr><td>← / PgUp</td><td>이전 슬라이드</td></tr>
+      <tr><td>Home / End</td><td>처음 / 마지막</td></tr>
+      <tr><td>1 – 9</td><td>해당 번호로 이동</td></tr>
+      <tr><td>g &lt;번호&gt; Enter</td><td>10번 이상으로 이동</td></tr>
+      <tr><td>f</td><td>전체화면 토글</td></tr>
+      <tr><td>o</td><td>슬라이드 개요</td></tr>
+      <tr><td>n</td><td>발표자 노트</td></tr>
+      <tr><td>?</td><td>이 도움말</td></tr>
+      <tr><td>Esc</td><td>패널 닫기</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='html-slides-builder-standard-ai-workflow-intro-index';
+  var deck=document.getElementById('deck');
+  var slides=[].slice.call(deck.querySelectorAll('.slide'));
+  var N=slides.length;
+  var counter=document.getElementById('counter');
+  var bar=document.getElementById('progressBar');
+  var notesPanel=document.getElementById('notesPanel');
+  var notesBody=document.getElementById('notesBody');
+  var overview=document.getElementById('overview');
+  var ovGrid=document.getElementById('ovGrid');
+  var help=document.getElementById('help');
+  var cur=0, gotoBuf=null;
+
+  function scale(){
+    var s=Math.min(window.innerWidth/1920, window.innerHeight/1080);
+    deck.style.transform='translate(-50%,-50%) scale('+s+')';
+  }
+  window.addEventListener('resize',scale);
+
+  function renderNotes(){
+    var el=document.querySelector('.notes-store .notes[data-slide="'+(cur+1)+'"]');
+    notesBody.textContent=el?el.textContent.trim():'(이 슬라이드에는 노트가 없습니다)';
+  }
+  function show(i){
+    cur=Math.max(0,Math.min(N-1,i));
+    slides.forEach(function(s,k){s.classList.toggle('is-active',k===cur)});
+    counter.textContent=(cur+1)+' / '+N;
+    bar.style.width=((cur+1)/N*100)+'%';
+    try{localStorage.setItem(KEY,String(cur))}catch(e){}
+    renderNotes();
+    var c=ovGrid.querySelector('.ov-item.cur'); if(c)c.classList.remove('cur');
+    var t=ovGrid.children[cur]; if(t)t.classList.add('cur');
+  }
+  function buildOverview(){
+    if(ovGrid.childElementCount)return;
+    slides.forEach(function(s,k){
+      var item=document.createElement('div');
+      item.className='ov-item';
+      var th=document.createElement('div');
+      th.className='thumb';
+      th.innerHTML=s.innerHTML;
+      th.style.background=getComputedStyle(s).backgroundColor;
+      th.style.color=getComputedStyle(s).color;
+      th.style.padding='110px 140px';
+      var num=document.createElement('span');
+      num.className='num'; num.textContent=(k+1);
+      item.appendChild(th); item.appendChild(num);
+      item.addEventListener('click',function(){toggle(overview,false);show(k)});
+      ovGrid.appendChild(item);
+    });
+    sizeThumbs();
+  }
+  function sizeThumbs(){
+    [].forEach.call(ovGrid.children,function(it){
+      var th=it.querySelector('.thumb');
+      if(th)th.style.transform='scale('+(it.clientWidth/1920)+')';
+    });
+  }
+  window.addEventListener('resize',function(){if(overview.classList.contains('open'))sizeThumbs()});
+
+  function toggle(el,force){
+    var open=(force===undefined)?!el.classList.contains('open'):force;
+    el.classList.toggle('open',open);
+    return open;
+  }
+  function closeAll(){toggle(overview,false);toggle(help,false)}
+
+  document.addEventListener('keydown',function(e){
+    var k=e.key;
+    if(gotoBuf!==null){
+      if(/^[0-9]$/.test(k)){gotoBuf+=k;e.preventDefault();return}
+      if(k==='Enter'){var n=parseInt(gotoBuf,10);gotoBuf=null;if(n>0)show(n-1);e.preventDefault();return}
+      gotoBuf=null;
+    }
+    if(k==='ArrowRight'||k===' '||k==='Spacebar'||k==='PageDown'){show(cur+1);e.preventDefault()}
+    else if(k==='ArrowLeft'||k==='PageUp'){show(cur-1);e.preventDefault()}
+    else if(k==='Home'){show(0);e.preventDefault()}
+    else if(k==='End'){show(N-1);e.preventDefault()}
+    else if(/^[1-9]$/.test(k)){show(parseInt(k,10)-1);e.preventDefault()}
+    else if(k==='g'||k==='G'){gotoBuf='';e.preventDefault()}
+    else if(k==='f'||k==='F'){
+      if(document.fullscreenElement)document.exitFullscreen();
+      else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
+      e.preventDefault();
+    }
+    else if(k==='o'||k==='O'){buildOverview();toggle(help,false);if(toggle(overview))sizeThumbs();e.preventDefault()}
+    else if(k==='n'||k==='N'){renderNotes();toggle(notesPanel);e.preventDefault()}
+    else if(k==='?'||k==='/'){toggle(overview,false);toggle(help);e.preventDefault()}
+    else if(k==='Escape'){closeAll();toggle(notesPanel,false);e.preventDefault()}
+  });
+
+  var saved=0;
+  try{saved=parseInt(localStorage.getItem(KEY)||'0',10)||0}catch(e){}
+  scale();
+  show(saved);
+})();
+</script>
+</body>
+</html>

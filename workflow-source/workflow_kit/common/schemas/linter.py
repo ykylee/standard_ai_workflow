@@ -19,6 +19,9 @@ class LinterSummary(BaseModel):
     sync_errors: int
     broken_links: int
     bloat_warnings: int
+    #: v1.0.2 — 부재/파손으로 **읽지 못한** 상태 문서 수. 이 값이 0 이 아니면 나머지
+    #: 정합 수치는 그만큼 덜 본 결과다 (빈 값끼리 비교해 통과한 몫이 섞여 있다).
+    missing_documents: int = 0
 
 
 class WorkflowLinterOutput(BaseOutput):

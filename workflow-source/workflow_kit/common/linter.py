@@ -2,6 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
+from collections.abc import Callable
 from typing import cast, Dict, List, Any
 
 from workflow_kit.common.project_docs import parse_backlog, parse_handoff
@@ -95,6 +96,40 @@ def check_maturity_consistency(
         "warnings": warnings
     }
 
+def _load_or_issue(
+    path: Path,
+    parser: Callable[[Path], Dict[str, Any]],
+    *,
+    name: str,
+    degrades: str,
+    fix: str,
+) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+    """문서를 읽되, 못 읽으면 **issue** 를 함께 돌려준다 (warning 으로 흘리지 않는다).
+
+    부재와 파싱 실패를 구분한다 — 원인이 다르면 조치도 다르기 때문이다.
+    어느 쪽이든 반환 dict 는 `{}` 라, 호출부의 정합 검사는 *빈 값으로* 계속 돈다.
+    그 사실 자체를 issue description 에 적어 둔다.
+    """
+    if not path.exists():
+        return {}, {
+            "type": "missing_document",
+            "code": "missing_required_document",
+            "description": f"{name} 문서가 없다: {path} — 이 문서를 읽는 검사({degrades})가 무력화된 채 통과한다.",
+            "severity": "high",
+            "fix_suggestion": fix,
+        }
+    try:
+        return parser(path), None
+    except Exception as e:  # noqa: BLE001 - 파서 종류가 다양해 광범위 포착이 의도된 동작
+        return {}, {
+            "type": "missing_document",
+            "code": "document_parse_failure",
+            "description": f"{name} 문서를 읽지 못했다: {path} ({e}) — 이 문서를 읽는 검사({degrades})가 무력화된 채 통과한다.",
+            "severity": "high",
+            "fix_suggestion": f"문서 형식을 템플릿에 맞게 복구한다. {fix}",
+        }
+
+
 def check_workflow_consistency(
     state_json_path: Path,
     handoff_path: Path,
@@ -123,17 +158,34 @@ def check_workflow_consistency(
     except Exception as e:
         return {"status": "error", "error_code": "state_json_load_failure", "description": f"Failed to load state.json: {e}"}
 
-    try:
-        handoff = parse_handoff(handoff_path)
-    except Exception as e:
-        warnings.append(f"Failed to parse handoff: {e}")
-        handoff = {}
+    # v1.0.2 — 문서 부재를 warning 으로 흘리지 않는다.
+    #
+    # 이전에는 handoff/backlog 가 없으면 warning 한 줄만 남기고 `{}` 로 계속 진행했다.
+    # 그러면 아래 정합 검사(state ↔ handoff ↔ backlog in_progress 대조)가 **빈 집합끼리
+    # 비교**하게 되어 언제나 통과하고, 린터는 `status: ok / total_issues: 0` 을 냈다.
+    # 실제로 이 저장소가 그 상태였다 — handoff 가 없는데 린터는 계속 green 이었고,
+    # 그 사이 session-start 는 `missing_required_document` 로 아예 실행되지 못했다.
+    # 검사를 무력화하는 조건은 검사 결과에 드러나야 한다.
+    handoff, handoff_issue = _load_or_issue(
+        handoff_path,
+        parse_handoff,
+        name="session_handoff",
+        degrades="state ↔ handoff in_progress 대조",
+        fix="세션 종료 절차(global_workflow_standard.md §8.1)대로 handoff 를 생성하거나, "
+            "PROJECT_PROFILE / state.json 의 handoff 경로를 실제 파일로 맞춘다.",
+    )
+    if handoff_issue:
+        issues.append(handoff_issue)
 
-    try:
-        backlog = parse_backlog(latest_backlog_path)
-    except Exception as e:
-        warnings.append(f"Failed to parse backlog: {e}")
-        backlog = {}
+    backlog, backlog_issue = _load_or_issue(
+        latest_backlog_path,
+        parse_backlog,
+        name="latest_backlog",
+        degrades="state ↔ backlog in_progress 대조 + backlog 링크 검사",
+        fix="오늘 날짜 backlog 를 생성하거나, state.json 의 `latest_backlog_path` 를 실제 파일로 맞춘다.",
+    )
+    if backlog_issue:
+        issues.append(backlog_issue)
 
     # 1. Check in_progress consistency
     # backlog/handoff/state 의 dict type 이 dict[str, object] 로 추정 → .get 결과 object.
@@ -174,7 +226,11 @@ def check_workflow_consistency(
 
     # 3. Check for broken links in handoff/backlog (simple regex)
     for path in [handoff_path, latest_backlog_path]:
-        if not path.exists():
+        # v1.0.2: `exists()` 는 디렉터리에도 True 라 `read_text()` 가 IsADirectoryError 로
+        # 터졌고, 러너의 최상위 catch 가 그걸 runtime_error 로 바꿔 **문서 부재 issue 자체가
+        # 보고되지 못했다**. 읽을 수 있는 파일일 때만 링크를 본다 — 못 읽는 사정은 위의
+        # `_load_or_issue` 가 이미 issue 로 보고한다.
+        if not path.is_file():
             continue
         content = path.read_text(encoding="utf-8")
         links = re.findall(r"\[.*?\]\((.*?)\)", content)
@@ -220,6 +276,7 @@ def check_workflow_consistency(
             "sync_errors": len([i for i in issues if i["type"] == "sync_error"]),
             "broken_links": len([i for i in issues if i["type"] == "broken_link"]),
             "bloat_warnings": len([i for i in issues if i["type"] == "bloat_warning"]),
+            "missing_documents": len([i for i in issues if i["type"] == "missing_document"]),
             "excluded_paths": excluded_paths,
         }
     }

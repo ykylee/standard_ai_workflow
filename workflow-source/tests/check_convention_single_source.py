@@ -103,6 +103,19 @@ CONVENTIONS: tuple[Convention, ...] = (
         symbols=("DRIFT_LEDGER_RELPATH",),
         exemptions={},
     ),
+    # v1.0.2 — 진입점에 주입되는 규칙 문장. 하네스 렌더러 6곳에 복제돼 있었고
+    # §8(memory → commit → push)은 12개 진입점 중 2개에만 실려 있었다.
+    # 정본은 core/global_workflow_standard.md, 추출기는 standard_rules.py 다.
+    Convention(
+        name="세션 종료 순서 문장 (§8)",
+        literal=re.compile(r"memory 갱신 → commit → push"),
+        canonical="workflow_kit/common/standard_rules.py",
+        symbols=("load_standard_rules", "render_entrypoint_rules", "parse_standard"),
+        exemptions={
+            "workflow_kit/common/_standard_rules_snapshot.py":
+                "정본에서 **생성된** 스냅샷 — check_standard_single_source.py 가 정본과의 동치를 강제한다",
+        },
+    ),
 )
 
 

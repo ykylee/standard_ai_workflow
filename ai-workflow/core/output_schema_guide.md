@@ -4,8 +4,8 @@
 - 범위: 공통 출력 원칙, skill 공통 필드, MCP 공통 필드, 개별 도구별 필수/선택 필드, 경고/실패 출력 규칙
 - 대상 독자: AI workflow 설계자, skill/MCP 구현자, 운영자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp_servers/README.md`
+- 최종 수정일: 2026-07-21
+- 관련 문서: `./workflow_kit_roadmap.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../workflow_kit/contract_v1/__init__.py`, `../workflow_kit/common/contracts/`, `../workflow_kit/common/schemas/`
 
 ## 1. 목적
 
@@ -82,6 +82,52 @@ MCP 류 프로토타입은 아래 성격의 필드를 우선 사용한다.
 | `candidates` | 후보 경로 또는 선택 후보 목록 |
 | `draft_entry` | 생성 초안 |
 | `reasoning_notes` | 추천 또는 판단 근거 |
+
+### 3.4 stage_completion 공통 필드 (v0.6.4 신규, v0.7.0 부터 required)
+
+skill/MCP output 의 stage 끝에 사용자 explicit approval 을 받기 위한 공통 필드. AIDLC 의 2-option completion message 패턴을 차용한 우리 표준. 자세한 형식/적용/예외는 [`./stage_gate_pattern.md`](./stage_gate_pattern.md) 참조.
+
+| 필드 | 의미 | 타입 |
+| --- | --- | --- |
+| `stage_name` | stage 식별자 (예: `code-generation`, `requirements-analysis`) | `str` |
+| `stage_status` | stage 자체의 실행 결과 (`ok`, `warning`, `error`) | `Literal` |
+| `next_stage` | 다음 stage 이름. workflow 끝이면 `None` | `str \| None` |
+| `requested_changes` | 사용자가 요청한 변경 사항 free text list | `list[str]` |
+| `approval_timestamp` | 사용자 승인 시각 (ISO 8601). 미승인이면 `None` | `str \| None` |
+| `approval_actor` | 승인 주체 (`user`, `orchestrator`, `auto`) | `str \| None` |
+| `artifacts` | 검토 대상 artifact path list | `list[str]` |
+| `notes` | AI 가 사용자에게 보여주는 1-3 line 요약 | `list[str]` |
+
+권장 규칙:
+
+- **v0.7.0 부터 required**: 모든 skill/MCP output 은 `stage_completion` 필드를 *반드시* 포함해야 한다 (11종 skill + 8+ MCP). 12/12 일관성 달성 후 격상. `stage_gate_runtime.ensure_stage_completion()` 으로 lazy fallback 보장.
+- `requested_changes` 가 비어있고 `approval_timestamp` 가 None 이면 stage gate 미통과. 자동 다음 stage 진행 ❌.
+- `approval_actor: "auto"` 는 CI/CD timeout / cron / P0 hotfix 에서만 허용. production 코드 변경 / state 문서 갱신 / release 는 user approval mandatory.
+- audit log (`ai-workflow/memory/active/audit.md`) 에 append-only 기록 필수. ISO 8601 timestamp, raw user input, stage context.
+
+마이그레이션 가이드 (v0.6.5 → v0.7.0):
+
+1. **runtime layer**: 모든 skill 의 `run_*.py` success path + error path 에 `stage_completion` 자동 merge. v0.6.5 batch + pilot + follow-up 으로 12/12 적용 완료. v0.7.0 부터 mandatory.
+2. **sample output**: `workflow-source/examples/output_samples/*.json` 의 legacy sample (stage_completion 없는) 들은 v0.7.0 에서 자동 migration (별도 follow-up). 그 전까지는 legacy 호환.
+3. **MCP server** (8+): read_only bundle 의 stage_completion 적용은 v0.7.1+ 후보. 본 commit 범위 외.
+
+Pydantic v2 schema (참고):
+
+```python
+from pydantic import BaseModel, Field
+from typing import Literal
+
+class StageCompletion(BaseModel):
+    """v0.6.4 신규. skill/MCP output 의 stage completion 승인 필드."""
+    stage_name: str = Field(..., description="stage 식별자")
+    stage_status: Literal["ok", "warning", "error"]
+    next_stage: str | None = Field(None, description="다음 stage 이름. workflow 끝이면 None")
+    requested_changes: list[str] = Field(default_factory=list, description="user 요청 변경")
+    approval_timestamp: str | None = Field(None, description="ISO 8601. 미승인이면 None")
+    approval_actor: Literal["user", "orchestrator", "auto"] | None = Field(None)
+    artifacts: list[str] = Field(default_factory=list, description="검토 대상 artifact path")
+    notes: list[str] = Field(default_factory=list, description="AI 1-3 line summary")
+```
 
 ## 4. 경고와 실패 규칙
 
@@ -461,6 +507,33 @@ runner 실패 규칙:
 1. nested object 와 enum 제약이 아직 느슨한 family 를 중심으로 output contract 를 계속 세분화
 2. generated schema 를 MCP manifest 나 외부 소비 지점과 어떻게 연결할지 정리
 3. `schemas/output_sample_contracts.json`, `schemas/generated_output_schemas.json`, `workflow_kit.common.output_contracts` 가 같은 기준을 보도록 함께 유지
+
+## 9. Contract v1 Output Envelope (v0.5.6+)
+
+v0.5.6 부터 orchestrator ↔ sub-agent delegation 에 contract v1 enforcement 가 적용되었다. contract v1 출력 envelope 는 아래 공통 필드를 포함한다.
+
+| 필드 | 의미 | 타입 |
+| --- | --- | --- |
+| `status` | 성공/실패 상태 (`ok`, `error`) | `str` |
+| `error` | 실패 요약 (실패 시) | `str \| null` |
+| `error_code` | 비교 가능한 실패 코드 | `str \| null` |
+| `warnings` | 실행 중 발생한 경고 | `list[str]` |
+| `source_context` | 입력 출처 및 위임 경로 | `object` |
+| `tool_version` | 도구 버전 식별자 | `str` |
+
+contract v1 enforcement 는 `workflow_kit/contract_v1/` 아래 `output_validator`, `delegator.choose_role`, `delegator.choose_roles` (v0.5.7 multi-component fan-out) 로 제공된다.
+
+### 9.1 Canonical Schema Generation Paths
+
+contract v1 에서 사용하는 스키마는 아래 경로에서 Pydantic v2 기반으로 관리된다.
+
+- **Contract enforcement**: `workflow-source/workflow_kit/contract_v1/`
+- **Common contracts**: `workflow-source/workflow_kit/common/contracts/` (`base.py`, `errors.py`, `high_value.py`, `read_only.py`)
+- **Common schemas**: `workflow-source/workflow_kit/common/schemas/` (`base.py`, `session.py`, `backlog.py`, `orchestration.py`, `worker.py`, `validation.py`, `index.py`, `reconcile.py`, `doc_sync.py`, `linter.py`, `read_only.py`, `git.py`)
+
+### 9.2 Multi-component Fan-out (v0.5.7+)
+
+`choose_roles` 를 통한 다중 sub-agent 위임 시, 각 sub-agent 로부터 반환된 contract v1 응답은 `validate_fanin_output` 으로 통합 검증된다. 통합 시 각 sub-agent 의 `delegation_id` 는 `{parent_id}-st-{N}` 형식의 parent-prefix rule 을 따른다 (v0.5.10).
 
 ## 다음에 읽을 문서
 

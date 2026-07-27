@@ -23,6 +23,7 @@ from bootstrap_lib.paths import (
     opencode_worker_agent_path,
 )
 from bootstrap_lib.writes import rel, write_text
+from workflow_kit.common.standard_rules import load_standard_rules, render_entrypoint_rules
 
 
 def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
@@ -39,6 +40,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# GEMINI.md
 
 - 문서 목적: Gemini CLI 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -62,12 +64,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 
 ## 언어와 컨텍스트 원칙
 
@@ -127,6 +124,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# ANTIGRAVITY.md
 
 - 문서 목적: Antigravity 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -150,12 +148,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 
 ## 언어와 컨텍스트 원칙
 
@@ -218,6 +211,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# MiniMax.md
 
 - 문서 목적: MiniMax Code(Mavis / 미니맥스 코드) 하네스가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙을 제공한다.
@@ -241,12 +235,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 - 가능한 한 메인 orchestrator는 조정과 통합에 집중하고, 도구 호출/탐색/수정은 `.MiniMax/agents/workflow-*.md` 워커에 위임한다.
 
 ## 오케스트레이터 / 워커 운영 원칙 (Multi-Agent Topology)
@@ -501,6 +490,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# AGENTS.md
 
 - 문서 목적: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
@@ -524,12 +514,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를 갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 
 ## 언어와 컨텍스트 원칙
 
@@ -629,7 +614,8 @@ def render_opencode_config(args: argparse.Namespace, paths: Paths) -> str:
 
 
 def render_opencode_skill() -> str:
-    return """---
+    _STANDARD_RULES = render_entrypoint_rules()
+    return f"""---
 name: standard-ai-workflow
 description: Load the project workflow docs before starting or updating work in this repository.
 ---
@@ -653,10 +639,10 @@ Follow these rules:
 
 - Write user-facing status updates, work reports, and document drafts in Korean by default.
 - Keep code, commands, file paths, config keys, and external product names in their original form when needed.
-- Brief the task before editing files.
-- Keep task status aligned with backlog records.
-- Do not mark work done without validation evidence.
-- Update `state.json`, the handoff, and the latest backlog before ending a session.
+{_STANDARD_RULES}
+
+Additional repository conventions:
+
 - Keep internal reasoning and intermediate classification compact, and avoid long repeated explanations to the user.
 - Leave only essential facts in handoff/backlog so session context stays lean.
 - Treat `ai-workflow/` as workflow metadata only. Ignore it during normal project document exploration unless the task is explicitly about workflow docs or session state.
@@ -972,7 +958,17 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
     잘못된 가정 정정). 본 render 는 표준 AI workflow 의 *지시* + AGENTS.md 와의
     *정합* 을 한국어로 명시. 기존 AGENTS.md 가 있으면 `@AGENTS.md` import 안내.
     """
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# CLAUDE.md (Claude Code 진입점)
+
+- 문서 목적: 표준 AI 워크플로우 의 *directional intent* + Claude Code 가 매 세션 알아야 할 진입 규칙
+- 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
+- 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
+- 상태: beta
+- 최종 수정일: {args.today}
+- 관련 문서: `ai-workflow/memory/active/state.json`, `docs/PROJECT_PROFILE.md`
+
+## 이 파일의 역할
 
 - **역할**: Claude Code 가 이 저장소에서 *세션 시작 시 자동 read* 하는 진입점 문서.
 - **위치**: `./CLAUDE.md` (또는 `./.claude/CLAUDE.md`) — 둘 다 자동 read.
@@ -986,12 +982,6 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
   # 또는 symlink 방식 (cross-platform 의 경우 import 권장)
   ln -s AGENTS.md CLAUDE.md
   ```
-
-- 문서 목적: 표준 AI 워크플로우 의 *directional intent* + Claude Code 가 매 세션 알아야 할
-  진입 규칙
-- 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
-- 상태: beta
-- 최종 수정일: {args.today}
 
 ## 항상 먼저 읽을 문서
 
@@ -1012,12 +1002,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 - `/workflow-backlog-update` — task 등록/갱신 + scope creep warning
 - `/workflow-doc-sync` — 영향 문서 동기화 (advisory)
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 
 ## 언어와 컨텍스트 원칙
 
@@ -1235,6 +1220,7 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
     파일을 자동 read. CONVENTIONS.md 를 root 와 .aider/ 양쪽에 emit 하면
     Aider 의 default 동작과 ``.aider.conf.yml`` 명시 read 둘 다 cover.
     """
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# Aider Conventions (CONVENTIONS.md)
 
 - **역할**: Aider 가 이 저장소에서 *세션 시작 시 자동 read* 하는 컨벤션 문서.
@@ -1253,12 +1239,12 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
 4. `docs/PROJECT_PROFILE.md`
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md`
 
-## 작업 원칙
+{_STANDARD_RULES}
+
+## 보고 원칙
 
 - 한국어 보고 (사용자), 원문 유지 (코드 / 명령어 / path / 설정 key)
 - handoff 와 backlog 에는 *다음 세션에 꼭 필요한 사실* 만
-- 작업 상태: `planned` / `in_progress` / `blocked` / `done` 4-state
-- 세션 종료 전: `state.json` + `session_handoff.md` + 최신 backlog 갱신
 
 ## Aider-specific config
 
@@ -1467,6 +1453,7 @@ def write_custom_harness_files(
 
 
 def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
+    _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""# AGENTS.md (Pi Coding Agent Profile)
 
 - **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
@@ -1486,6 +1473,7 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
 ## 3. 워크플로우 상태 관리
 - 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/backlog/`의 해당 날짜 문서를 업데이트하십시오.
 - 세션 종료 전에는 `ai-workflow/memory/active/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
+- {_STANDARD_CLOSE_ORDER}
 
 ## 4. 도구 사용 가이드
 - 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 `python3 ai-workflow/scripts/` 아래의 도구들을 활용할 수 있습니다.
@@ -1548,6 +1536,7 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# GROK.md (Grok Build 진입점)
 
 - 문서 목적: Grok Build (xAI CLI TUI) 가 이 저장소에서 매 세션 자동 read 하는 진입점 문서.
@@ -1583,12 +1572,7 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
 - `/` 입력 후 `standard-ai-workflow` 검색 → 본 하네스가 emit 한 `.grok/skills/standard-ai-workflow/SKILL.md` 가 표시됨.
 - skill 본문: 세션 시작, 백로그 갱신, 문서 동기화 절차.
 
-## 작업 원칙
-
-- 작업을 시작하기 전에 목적, 범위, 영향 문서를 짧게 정리한다.
-- 작업 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 `state.json`, `session_handoff.md`, 최신 backlog 를 갱신한다.
+{_STANDARD_RULES}
 - 가능한 한 메인 에이전트는 조정과 통합에 집중하고, bounded scope 작업은 subagent / custom agent 에 위임한다.
 
 ## Subagent 운영 원칙 (Grok Build Multi-Agent Topology)
@@ -1662,6 +1646,7 @@ Grok Build 는 다음 호환 파일을 자동 로드 (config > claude > cursor >
 
 def render_grok_build_skill(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``.grok/skills/standard-ai-workflow/SKILL.md`` (TUI picker 표시)."""
+    _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""---
 name: standard-ai-workflow
 description: Standard AI Workflow 진입 skill — 세션 시작, 백로그 갱신, 문서 동기화 절차를 한국어 baseline 으로 안내. Grok Build TUI picker 에서 `/standard-ai-workflow` 로 호출.
@@ -1737,7 +1722,7 @@ python3 ai-workflow/mcp_servers/suggest-impacted-docs/suggest_impacted_docs.py
 
 ## 4. 세션 종료 절차
 
-`global_workflow_standard.md` §8 정합 — `memory 갱신 → commit → push` 순서.
+{_STANDARD_CLOSE_ORDER}
 
 ```bash
 # 1. memory 갱신
@@ -1977,6 +1962,7 @@ def render_codewhale_skill(args: argparse.Namespace, context: dict[str, object])
         elif context['primary_stack'] == 'node':
             smoke_check = "node --version"
 
+    _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""# CodeWhale Standard AI Workflow Skill
 
 - skill 이름: `codewhale-workflow`
@@ -2033,7 +2019,7 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 
 ## 5. 세션 종료 원칙
 
-세션 종료는 **memory 갱신 → commit → push** 순서:
+{_STANDARD_CLOSE_ORDER}
 
 1. **memory 갱신**: `state.json`, `session_handoff.md`, `work_backlog.md` 갱신
 2. **최종 검증**: `workflow-linter` 실행 (문서 정합성)

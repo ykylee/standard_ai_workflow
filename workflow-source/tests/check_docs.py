@@ -9,6 +9,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+MARKER_RE = re.compile(r"^<!--\s*standard-ai-workflow-kit:")
+
 REQUIRED_METADATA = [
     "문서 목적",
     "범위",
@@ -166,7 +168,14 @@ def check_metadata(path: Path) -> list[str]:
         prefix = f"- {field}:"
         if not any(line.startswith(prefix) for line in header_lines):
             missing.append(field)
-    if not lines or not lines[0].startswith("# "):
+    # v1.0.2: bootstrap 이 배포물 첫 줄에 찍는 버전 마커
+    # (`<!-- standard-ai-workflow-kit: vX -->`)는 **기계 주석**이지 산문이 아니다.
+    # 위 frontmatter 예외와 같은 이유로, 마커 때문에 제목이 2번째 줄이 된 것을
+    # "제목 없음" 으로 판정하지 않는다. 마커를 지우라고 하면 생성물을 손으로 고치게
+    # 되고, 그건 smart-update 가 기대는 표식을 깨뜨린다.
+    body_lines = lines[1:] if lines and MARKER_RE.match(lines[0]) else lines
+    body_lines = body_lines[1:] if body_lines and not body_lines[0].strip() else body_lines
+    if not body_lines or not body_lines[0].startswith("# "):
         missing.append("제목 헤더")
     return missing
 

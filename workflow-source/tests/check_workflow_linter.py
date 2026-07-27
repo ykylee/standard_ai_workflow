@@ -167,6 +167,56 @@ def test_linter_fail_broken_link():
         print("✅ Broken link detection successful.")
 
 
+def test_missing_handoff_is_issue_not_warning() -> None:
+    """handoff 부재는 warning 이 아니라 issue 다 (v1.0.2).
+
+    이전에는 handoff 가 없어도 `status: ok / total_issues: 0` 이었다. 정합 검사가
+    빈 dict 로 계속 돌아 *비교할 것이 없으니 통과* 했기 때문이다. 실제로 이
+    저장소가 그 상태였고, 그 사이 session-start 는 아예 실행되지 못했다.
+    """
+    print("Testing missing-handoff case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        paths = _memory_paths(root)
+        paths["state_json"].write_text(json.dumps({
+            "source_of_truth": {"latest_backlog_path": str(paths["backlog"])},
+            "session": {"in_progress_items": []},
+            "project": {"project_name": "Test"},
+        }))
+        paths["backlog"].write_text("## TASK-001 Test task\n- 상태: done")
+        # handoff 를 **만들지 않는다** — 그것이 이 test 의 조건이다.
+
+        result = run_linter(root)
+        missing = [i for i in result.get("issues", []) if i["code"] == "missing_required_document"]
+        assert missing, f"handoff 부재가 issue 로 보고되지 않았다: {result.get('issues')}"
+        assert result["status"] != "ok", f"문서가 없는데 status 가 ok 다: {result['status']}"
+        assert result["summary"]["missing_documents"] >= 1, result["summary"]
+        assert "session_handoff" in missing[0]["description"], missing[0]
+        print("✅ Missing handoff reported as issue.")
+
+
+def test_unreadable_handoff_is_issue() -> None:
+    """읽히지 않는 handoff 도 issue 다 — 부재와 원인이 다르니 code 를 나눈다."""
+    print("Testing unreadable-handoff case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        paths = _memory_paths(root)
+        paths["state_json"].write_text(json.dumps({
+            "source_of_truth": {"latest_backlog_path": str(paths["backlog"])},
+            "session": {"in_progress_items": []},
+            "project": {"project_name": "Test"},
+        }))
+        paths["backlog"].write_text("## TASK-001 Test task\n- 상태: done")
+        # 디렉터리를 파일 자리에 둬서 파서가 읽지 못하게 한다.
+        paths["handoff"].mkdir(parents=True, exist_ok=True)
+
+        result = run_linter(root)
+        codes = {i["code"] for i in result.get("issues", [])}
+        assert codes & {"document_parse_failure", "missing_required_document"}, result.get("issues")
+        assert result["status"] != "ok", result["status"]
+        print("✅ Unreadable handoff reported as issue.")
+
+
 def test_case_4() -> None:
     # case_4: dummy wrapper (이 file 의 test 가 3개뿐이라 dummy 추가)
     assert True
@@ -183,6 +233,8 @@ if __name__ == "__main__":
         test_linter_pass()
         test_linter_fail_task_mismatch()
         test_linter_fail_broken_link()
+        test_missing_handoff_is_issue_not_warning()
+        test_unreadable_handoff_is_issue()
         print("\n🎉 All workflow-linter smoke tests passed!")
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")

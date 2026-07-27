@@ -141,6 +141,9 @@ from bootstrap_lib.writes import (  # noqa: E402
 # ---------------------------------------------------------------------------
 DEFAULT_CORE_DOCS: list[str] = [
     "global_workflow_standard.md",
+    # v1.0.2: 설계 원리(무엇을 믿고 왜 그렇게 하는가)도 함께 배포한다. 규칙만 받고
+    # 원리를 못 받으면 도입한 팀이 규칙을 조정할 때 근거 없이 조정하게 된다.
+    "workflow_design_principles.md",
     "workflow_skill_catalog.md",
     "workflow_mcp_candidate_catalog.md",
     "workflow_agent_topology.md",

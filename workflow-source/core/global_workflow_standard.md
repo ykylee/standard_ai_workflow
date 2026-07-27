@@ -113,6 +113,7 @@
 ### 7.1 단일 진실 공급원 (SSOT)
 - 모든 스킬, MCP, 마일스톤의 공식 상태는 `core/maturity_matrix.json`에서 관리한다.
 - 로드맵(`workflow_kit_roadmap.md`), 스킬 카탈로그(`workflow_skill_catalog.md`), MCP 카탈로그(`workflow_mcp_candidate_catalog.md`) 등은 이 JSON 데이터를 바탕으로 기술되어야 한다.
+- 하네스 진입점(`CLAUDE.md`, `AGENTS.md`, `GEMINI.md` 등)에 실리는 규칙 문장은 **본 문서의 §1 · §3 · §8 에서 생성**한다. 진입점 파일에도, 렌더러 코드에도 규칙을 직접 적지 않는다. 추출기는 `workflow_kit/common/standard_rules.py`, 강제 검사는 `tests/check_standard_single_source.py` 다.
 
 ### 7.2 동기화 루틴
 - **스킬 승급 시**: 코드 구현 완료 후 `maturity_matrix.json`의 `stage`를 변경하고, 즉시 관련 카탈로그 문서를 갱신한다.
@@ -144,6 +145,20 @@
 **8.3 잘못된 순서 (안티패턴)**
 - ❌ commit → push → 별도 turn memory 갱신 → 또 commit → push (memory 갱신 누락 / 추가 commit 유발 → 협업 결함)
 - ❌ memory 갱신 누락 후 commit → push (협업자가 memory 변경을 push 시점에 못 봄)
+
+## 8.4 자기 적용 (self-application)
+
+이 워크플로우는 **스스로에게 먼저 적용된다.** 배포하는 것을 우리가 쓰지 않으면 그것이
+실제로 동작하는지 알 방법이 없다. 구체적으로:
+
+- 이 저장소는 자기 진입점 파일을 **자기 렌더러로 생성해서** 가진다.
+- 이 저장소는 자기 상태를 자기 규약대로 둔다 (`ai-workflow/memory/active/<branch>/`).
+- 이 저장소의 린터와 session-start 는 **이 저장소에서 통과해야 한다.**
+- 새 규칙을 이 문서에 추가할 때는 **그 규칙을 검사할 방법을 함께 제안한다.** 검사할
+  방법이 없으면 규칙이 아니라 가이드로 분류한다.
+
+설계 원리와 원리별 강제 검사 매핑은 [`./workflow_design_principles.md`](./workflow_design_principles.md) 에 있고,
+자기 적용 여부는 `tests/check_self_application.py` 가 확인한다.
 
 ## 9. 프로젝트 프로파일과의 관계
 

@@ -4,8 +4,8 @@
 - 범위: 공통 코어와 하네스 오버레이의 관계, 타겟별 생성 파일, 배포 전략, 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
-- 관련 문서: `./global_workflow_standard.md`, `./workflow_adoption_entrypoints.md`, `./workflow_configuration_layers.md`, `./workflow_global_injection_policy.md`, `../scripts/bootstrap_workflow_kit.py`
+- 최종 수정일: 2026-07-21
+- 관련 문서: `./global_workflow_standard.md`, `./workflow_adoption_entrypoints.md`, `./workflow_configuration_layers.md`, `./workflow_global_injection_policy.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_lib/harnesses/__init__.py`
 
 ## 1. 기본 원칙
 
@@ -93,7 +93,65 @@ Antigravity 타겟은 프로젝트 루트의 `ANTIGRAVITY.md` 를 핵심 진입�
 - `ANTIGRAVITY.md` 는 `ai-workflow/memory/active/` 문서를 먼저 읽도록 안내한다.
 - 브라우저 서브 에이전트 등 적절한 서브 에이전트로 작업을 분리하는 패턴을 권장한다.
 
-## 6. 유지보수 원칙
+## 6. MiniMax Code 타겟
+
+MiniMax Code(미니맥스 코드) 타겟은 메인 orchestrator + doc/code/validation worker 분화 패턴을 그대로 가져간다.
+
+권장 산출물:
+
+- `AGENTS.md` (Codex/OpenCode 와 공통)
+- `MiniMax.md` (MiniMax Code 전용 진입점)
+- `MiniMax_config.example.json` (사용자 환경 `.MiniMax/config.json` 으로 복사해 사용)
+- `.MiniMax/agents/workflow-orchestrator.md`
+- `.MiniMax/agents/workflow-worker.md`
+- `.MiniMax/agents/workflow-doc-worker.md`
+- `.MiniMax/agents/workflow-code-worker.md`
+- `.MiniMax/agents/workflow-validation-worker.md`
+
+구성 원칙:
+
+- `MiniMax.md` 는 메인 orchestrator의 한국어 보고, `WorkerTask` / `WorkerResponse` 형식, 워커 책임 경계를 명시한다.
+- `MiniMax_config.example.json` 의 `mcp_servers` 항목은 read-only JSON-RPC draft bridge 만 참조하고, 사용자 토큰/시크릿은 환경 변수로 분리한다.
+- 워커 페르소나는 OpenCode 와 동일한 4종 (orchestrator + 3 worker) 으로 시작하고, 도메인 추가 시 동일 패턴으로 `.MiniMax/agents/` 에 누적한다.
+- 새 하네스 추가는 `bootstrap_harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄과 `bootstrap_workflow_kit.py` 의 `register_harness_builder` 한 줄로 끝낸다.
+
+## 7. CodeWhale 타겟
+
+CodeWhale 타겟은 기존 하네스와 근본적으로 다른 접근을 취한다. CodeWhale의 **Constitution**(Article I-VIII)이 이미 검증, 병렬화, 컨텍스트 관리, 실행 규율, 오케스트레이션을 내장하고 있으므로, overlay 는 Constitution 이 제공하지 않는 **워크플로우 고유 가치**만 얇게 추가한다.
+
+권장 산출물:
+
+- `.codewhale/skills/codewhale-workflow/SKILL.md` (project-local skill, 단일 파일)
+
+구성 원칙:
+
+- CodeWhale Constitution 이 이미 처리하는 규칙(검증, 병렬화, 컨텍스트 관리, plan 패턴, 서브 에이전트 위임)은 skill 에서 **반복하지 않는다**.
+- Skill 은 Constitution 아래 **additive rule**로 동작 — 세션 시작 순서, 한국어 보고, 백로그/handoff 관리, 프로젝트 프로파일 기반 탐색만 포함.
+- CodeWhale 의 `agent` 도구(explore/plan/review/implementer/verifier)는 workflow 의 orchestrator/worker 토폴로지와 정렬된다 — 별도 worker agent 파일 불필요.
+- Constitution Article VII (Domain Context)에 따라 워크플로우는 CodeWhale 의 운영 컨텍스트로 동작.
+- 다른 하네스와 달리 루트 진입 파일(`AGENTS.md` 등)을 생성하지 않는다 — CodeWhale 은 프로젝트 루트 파일 대신 `.codewhale/skills/` 를 진입점으로 사용.
+
+## 8. Grok Build 타겟
+
+Grok Build (xAI CLI TUI) 타겟은 Codex 와 동일한 `AGENTS.md` root 진입점 + Grok Build 전용 `GROK.md` root 진입점 + `.grok/` 디렉터리 통합을 사용한다. Codex 와 동시 사용 가능 (idempotent).
+
+권장 산출물:
+
+- `AGENTS.md` (root, Codex 와 공통 — codex/opencode/pi-dev dispatch block 에서 emit, grok-build 와 동시 선택 시 1회만 emit)
+- `GROK.md` (root, Grok Build 전용 진입점 — additive rule)
+- `.grok/skills/standard-ai-workflow/SKILL.md` (TUI picker 표시, frontmatter 5 field 정공법)
+- `.grok/config.toml.example` (MCP stdio snippet + skill paths + memory opt-in)
+
+구성 원칙:
+
+- `AGENTS.md` 는 Codex 와 공통 진입점. 메인 에이전트의 한국어 baseline, worker 분리 원칙, `ai-workflow/memory/active/` 문서 참조 순서를 정의. grok-build 단독 선택 시 dispatch block 이 emit 하지 않으므로, codex/opencode/pi-dev 중 하나와 *동시 선택* 하거나 `--harness codex --harness grok-build` 로 emit 보장.
+- `GROK.md` 는 Grok Build 가 자동 read 하는 *Grok Build 전용* 진입점. Codex 와의 관계는 `AGENTS.md` 가 master / `GROK.md` 는 additive rule. 두 문서의 한국어 baseline 은 *동일하게 유지*.
+- `.grok/config.toml.example` 는 caller 가 `cp .grok/config.toml.example .grok/config.toml` 로 실제 설정 파일 생성. 절대 경로 보정 필수 (`PYTHONPATH` / `STANDARD_AI_WORKFLOW_ROOT`).
+- Grok Build 는 Claude Code (`.claude.json`) / Cursor (`.cursor/mcp.json`) / `.mcp.json` 호환성을 가지므로 기존 workflow MCP 등록을 자동 import 가능 (config > claude > cursor > mcp 우선순위). 단, 동일 alias 의 `[mcp_servers]` 가 여러 소스에 있으면 config.toml 이 우선.
+- 본 하네스는 orchestrator / worker 분리 패턴을 강제하지 않는다. Grok Build 의 내장 subagent (`explore` / `plan`) 와 custom agent (`.grok/agents/`) 로 bounded scope 분리.
+- memory 는 opt-in (`--experimental-memory` 또는 `GROK_MEMORY=1`). opt-in 없이 `~/.grok/memory/` 를 신뢰하지 않는다.
+
+## 8. 유지보수 원칙
 
 - 하네스별 파일 안에 긴 정책 본문을 중복해서 넣지 않는다.
 - 공통 문서 경로가 바뀌면 Codex/OpenCode 오버레이도 함께 갱신한다.
@@ -102,7 +160,7 @@ Antigravity 타겟은 프로젝트 루트의 `ANTIGRAVITY.md` 를 핵심 진입�
 - MCP 관련 descriptor 와 예시는 패키지에 포함할 수 있지만, 이번 릴리즈 기본 소비 경로는 `workflow_adoption_entrypoints` 와 `workflow_skill_catalog` 이어야 한다.
 - 배포 패키지는 하네스별 개별 버전 디렉터리와 버전이 포함된 zip 이름으로 생성한다.
 
-## 7. 확장 포인트
+## 9. 확장 포인트
 
 다른 하네스를 추가할 때는 아래 순서를 권장한다.
 
@@ -112,7 +170,7 @@ Antigravity 타겟은 프로젝트 루트의 `ANTIGRAVITY.md` 를 핵심 진입�
 4. 하네스 레지스트리에 이름, 설명, 생성 함수를 등록한다.
 5. smoke test와 하네스 문서를 함께 추가한다.
 
-현재 bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 다음 타겟은 `SUPPORTED_HARNESSES`, `HARNESS_DEFINITIONS`, `HARNESS_FILE_BUILDERS` 에 등록하는 방식으로 확장한다.
+현재 bootstrap 스크립트는 하네스 레지스트리 기반으로 동작하므로, 다음 타겟은 `bootstrap_lib.harnesses.HARNESS_SPECS` 와 `HARNESS_FILE_BUILDERS` 두 군데에 등록하는 방식으로 확장한다. `HARNESS_SPECS` 가 `name` / `description` / `entry_files` / `extra_files` / `long_description` 을 한 곳에서 선언하는 single source of truth 이다. legacy `HARNESS_DEFINITIONS` 는 v0.5.8 부터 deprecated 되었으며, 새 하네스는 등록할 필요가 없고 기존 `pi-dev` 같이 누락된 항목도 더 이상 거기로 복원하지 않는다.
 
 ## 다음에 읽을 문서
 

@@ -4,8 +4,8 @@
 - 범위: 목표, 입력 계약, 출력 계약, 영향 문서 추천 규칙, 허브 갱신 판단 규칙, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
-- 관련 문서: `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/project_workflow_profile_template.md`
+- 최종 수정일: 2026-07-21
+- 관련 문서: `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `../templates/project_workflow_profile_template.md`, `./llm_wiki_concept_purpose_spec.md` (v0.9.5 part 2)
 
 ## 1. 목적
 
@@ -88,6 +88,32 @@
 - `validation_doc_candidates`
 - 검증 결과를 반영해야 할 문서 후보
 
+
+### 4.1. stage_completion (v0.6.5 신규)
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+| Field | 값 | 비고 |
+|---|---|---|
+| `stage_name` | `doc-sync` | 본 skill 의 stage 식별자 |
+| `stage_status` | `ok` / `warning` / `error` | skill 실행 결과 |
+| `next_stage` | `validation-plan` | 다음 stage 이름. workflow 끝이면 `None` |
+| `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
+| `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
+| `artifacts` | [`ai-workflow/memory/active/sessions`] | 본 stage 의 검토 대상 artifact path |
+| `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
+| `notes` | 1-3 line | AI summary |
+
+Gate 정책:
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 gate 통과
+- `approval_actor: "auto"` 는 명시적 차단 (state 문서 갱신 skill)
+- 다음 stage 자동 진행 ❌ — user explicit approval 후에만 진행
+
+상세:
+- Pydantic v2 schema: [`../../workflow_kit/common/contracts/stage_gate.py`](../../workflow_kit/common/contracts/stage_gate.py) `StageCompletion`
+- Output schema 가이드: [`../output_schema_guide.md` §3.4](../output_schema_guide.md)
+- Stage Gate Pattern: [`../stage_gate_pattern.md`](../stage_gate_pattern.md)
+- smoke test: [`../../tests/check_stage_gate_compliance.py`](../../tests/check_stage_gate_compliance.py)
 ## 5. 권장 출력 예시
 
 ```text
@@ -211,8 +237,53 @@ tool 이 없거나 skill 구현이 아직 없으면 아래 순서로 수동 수�
 - 추천 근거와 불확실성을 함께 출력하는가
 - 문서 자동 확정 없이 경고와 후보 중심으로 결과를 만드는가
 
+## 12. Purpose Context Load (v0.9.5 chapter 9 R-A part 2)
+
+본 섹션은 [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) §4.3 part 2 의
+doc-sync 통합 가이드. v0.9.5 의 doc-sync 는 *directional intent* (PURPOSE.md + state.json) 를
+context load 시점에 자동 read 하여 영향받는 문서 추천의 *방향성 검증* 에 참고한다.
+
+### 12.1 추가 입력
+
+없음 (기존 입력으로 workspace_root + state.json 경로 도출).
+
+### 12.2 추가 출력
+
+- `purpose_context: DocSyncPurposeContext | None` — session-start / backlog-update 와 동일 schema
+  - 9 field: `purpose_digest` / `purpose_digest_rev` / `purpose_path` / `body_excerpt` /
+    `body_excerpt_truncated` / `body_excerpt_char_count` / `scope_included` /
+    `scope_excluded` / `scope_warnings`
+
+### 12.3 동작 절차 추가 (6.7 신규)
+
+1. workspace_root = `project_workspace_root(project_profile_path)`
+2. state.json path = `workflow_memory_dir(project_profile_path) / "state.json"`
+3. `build_purpose_context(workspace_root, state_path)` 호출
+4. output dict 에 `purpose_context` 채워서 반환
+5. `scope_warnings` 는 기존 `warnings` list 에 extend
+
+### 12.4 doc-sync 의 purpose_context 활용 (advisory)
+
+doc-sync 는 backlog-update 와 달리 *hard scope check* 를 emit 하지 않는다. purpose_context 는
+*방향성 참고* 용도:
+
+- `scope_included` 와 `changed_files` 의 path keyword 가 매칭 → 영향받는 문서 추천에 *방향성 일치* 표시
+- `scope_excluded` 와 매칭되는 path → 영향받는 문서 추천에서 *advisory* 만 추가 (hard warning ❌)
+- 별도 scope_creep_warnings 필드 ❌ — `confidence_notes` 에 통합 (advisory)
+
+### 12.5 Graceful skip 정책
+
+session-start / backlog-update 와 동일: 어떤 경우에도 skill 실행은 실패하지 않음.
+
+### 12.6 Acceptance Criterion (spec §4.3 part 2 #3)
+
+- doc-sync output 에 `purpose_context` field 존재
+- PURPOSE.md + state.json 모두 있는 경우, `purpose_digest` + `body_excerpt` + `scope_included/excluded` 모두 populate
+- PURPOSE.md 부재 시 graceful skip
+
 ## 다음에 읽을 문서
 
 - skill 카탈로그: [./workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - MCP 후보 카탈로그: [./workflow_mcp_candidate_catalog.md](./workflow_mcp_candidate_catalog.md)
 - agent 토폴로지: [./workflow_agent_topology.md](./workflow_agent_topology.md)
+- Purpose spec: [./llm_wiki_concept_purpose_spec.md](./llm_wiki_concept_purpose_spec.md) (v0.9.5 part 2)

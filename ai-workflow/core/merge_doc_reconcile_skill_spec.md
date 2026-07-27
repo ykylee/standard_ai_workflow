@@ -4,7 +4,7 @@
 - 범위: 목표, 입력 계약, 출력 계약, 병합 후 충돌/불일치 판단 규칙, 재확정 포인트 생성 규칙, 실패 규칙, 쓰기 권한 제한, 수동 대체 절차
 - 대상 독자: AI agent 설계자, skill 구현자, 운영자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-07-21
 - 관련 문서: `./workflow_skill_catalog.md`, `./global_workflow_standard.md`, `./workflow_agent_topology.md`, `./session_start_skill_spec.md`, `./backlog_update_skill_spec.md`, `./doc_sync_skill_spec.md`
 
 ## 1. 목적
@@ -102,6 +102,32 @@
 - `validation_follow_up`
 - 병합 후 다시 실행해야 할 검증 또는 미실행 사유
 
+
+### 4.1. stage_completion (v0.6.5 신규)
+
+본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다. 이 필드는 다음 stage 로의 진행 gate 역할을 한다.
+
+| Field | 값 | 비고 |
+|---|---|---|
+| `stage_name` | `merge-doc-reconcile` | 본 skill 의 stage 식별자 |
+| `stage_status` | `ok` / `warning` / `error` | skill 실행 결과 |
+| `next_stage` | `None` (workflow end) | 다음 stage 이름. workflow 끝이면 `None` |
+| `approval_actor` | `user` mandatory | auto-approval 차단 (state 문서 갱신) |
+| `approval_timestamp` | ISO 8601 | user explicit approval 시각 |
+| `artifacts` | [`ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`] | 본 stage 의 검토 대상 artifact path |
+| `requested_changes` | (empty or list) | user 가 요청한 변경 사항 |
+| `notes` | 1-3 line | AI summary |
+
+Gate 정책:
+- `requested_changes` 비어있고 `approval_timestamp` + `approval_actor` 모두 있어야 gate 통과
+- `approval_actor: "auto"` 는 명시적 차단 (state 문서 갱신 skill)
+- 다음 stage 자동 진행 ❌ — user explicit approval 후에만 진행
+
+상세:
+- Pydantic v2 schema: [`../../workflow_kit/common/contracts/stage_gate.py`](../../workflow_kit/common/contracts/stage_gate.py) `StageCompletion`
+- Output schema 가이드: [`../output_schema_guide.md` §3.4](../output_schema_guide.md)
+- Stage Gate Pattern: [`../stage_gate_pattern.md`](../stage_gate_pattern.md)
+- smoke test: [`../../tests/check_stage_gate_compliance.py`](../../tests/check_stage_gate_compliance.py)
 ## 5. 권장 출력 예시
 
 ```text

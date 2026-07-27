@@ -15,6 +15,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 BOOTSTRAP_SCRIPT = SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"
 BACKLOG_UPDATE_SCRIPT = SOURCE_ROOT / "skills" / "backlog-update" / "scripts" / "run_backlog_update.py"
 
+# 배포 대상 core 문서의 **정본 목록**. 개수를 test 에 손으로 적지 않는다.
+sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
+from bootstrap_lib.__main__ import DEFAULT_CORE_DOCS  # noqa: E402
+
 
 def run_bootstrap(args: list[str]) -> dict[str, object]:
     completed = subprocess.run(
@@ -68,8 +72,20 @@ def check_new_project_mode() -> None:
             assert_exists(str(generated[key]))
 
         copied_core_docs = payload["copied_core_docs"]
-        if len(copied_core_docs) != 7:
-            raise AssertionError("Expected seven copied core docs in new project mode.")
+        # v1.0.2: 손으로 적은 숫자(7)를 쓰면 배포 목록을 늘릴 때마다 이 test 가 깨지고,
+        # 그때 숫자만 고치면 *무엇이 늘었는지* 는 아무도 안 본다. 선언 목록에서 끌어와
+        # **목록과 산출물이 일치하는지** 를 본다.
+        if len(copied_core_docs) != len(DEFAULT_CORE_DOCS):
+            raise AssertionError(
+                f"copied core docs {len(copied_core_docs)}건이 DEFAULT_CORE_DOCS "
+                f"{len(DEFAULT_CORE_DOCS)}건과 다르다: {sorted(copied_core_docs)}"
+            )
+        copied_names = {Path(rel).name for rel in copied_core_docs}
+        if copied_names != set(DEFAULT_CORE_DOCS):
+            raise AssertionError(
+                f"선언 목록과 산출물 이름이 다르다: 누락={set(DEFAULT_CORE_DOCS) - copied_names}, "
+                f"초과={copied_names - set(DEFAULT_CORE_DOCS)}"
+            )
         # `copied_core_docs` 는 **target root 기준 상대경로**다 (`generated_files` 만
         # 절대경로). 이전에는 그대로 assert_exists 에 넘겨 CWD(=저장소 루트) 기준으로
         # 해석했고, 그 결과 *생성된 사본이 아니라 저장소 자신의 파일*을 검사해 늘

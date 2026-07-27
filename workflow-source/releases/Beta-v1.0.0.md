@@ -1118,6 +1118,28 @@ smoke job 에서는 `FAIL` 이었다 — *내 환경에서만 green* 이었던 �
 있지 않은 줄들로 fallback). 2026-07-25 세션이 "별도 과제" 로 남겨 둔 항목이고, 바꾸자마자
 값을 했다 — 시스템 python3 전량 실행에서 7건의 실패 사유가 한 줄씩 그대로 보였다.
 
+**(8) 그리고 (7)이 곧바로 둘을 더 찾아냈다 — 같은 자기참조가 넷이었다.** (6)을 커밋한 뒤
+전량 smoke 를 돌리니 2건이 새로 red 였고, 고쳐 둔 excerpt 덕에 사유가 그대로 보였다:
+`check_mypy_ci_cross_verify_v0_11_13` case 7 (`ci_sanity` 가 아니면 실패)과
+`check_release_summary_v0_11_15` case 4 (`ci_mypy=no_local_verify` 고정). 둘 다
+`_resolve_cross_verify_verdict` 매트릭스의 **`ci_sanity` 행 하나만 정답으로 박아 둔** 것이다.
+
+이게 왜 문제인지가 이 사이클의 핵심이다. `ci_sanity` 는 "최신 mypy-strict run 이 success
+이고 그 headSha 가 HEAD 와 같다" 는 뜻이므로, **커밋한 직후부터 그 커밋이 CI 를 통과할
+때까지는 반드시 `ci_stale`** 이다. 즉 이 두 검사는 *push 직전 — 게이트가 정작 필요한
+순간 — 에 구조적으로 통과할 수 없었다*. 실측: HEAD=`44b1b78`(미push) 일 때 최신 run 은
+`1943026` 이라 verdict=`ci_stale`.
+
+그래서 앞선 사이클의 "217/217 PASS" 는 **조건부**였다 — 커밋 *전에*, HEAD 가 마지막 green
+run 과 같을 때 측정한 값이다. 반대로 CI 에서는 이 2건이 안 터진다. smoke job 에는
+`GH_TOKEN` 이 없어 verdict 가 `absent`/`skipped` 로 떨어지고 그 값은 통과하기 때문이다.
+**로컬에서만 red, CI 에서만 green 인 거울상**이었고, 그래서 지금까지 아무도 못 봤다.
+
+처방은 (4)/(6)과 같다: 관측한 값은 *알려진 verdict 집합에 드는가* 만 보고, 매트릭스 자체는
+주입으로 검증한다 (`check_release_summary` case 4b 신규 — 7행 전부). 느슨하게 푸는
+변경이므로 **반대 방향으로 확인했다** — `ci_sanity + local skipped → sanity` 로 결함을
+주입하니 case 4b 가 FAIL 한다.
+
 ## 3. 검증
 
 누적 smoke **217/217 PASS** (2026-07-27, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`

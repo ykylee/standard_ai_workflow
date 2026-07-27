@@ -119,6 +119,12 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
     assert "head_sha" in ci_mypy, "ci_mypy.head_sha 부재"
     assert "message" in ci_mypy, "ci_mypy.message 부재"
     verdict = ci_mypy.get("verdict")
+    # v1.0.2: `ci_sanity` 가 아니면 실패로 보던 것이 §2.35 (4)/(6) 과 같은 **자기참조**였다.
+    # `ci_sanity` 는 "최신 mypy-strict run 이 success 이고 그 headSha 가 HEAD 와 같다" 는
+    # 뜻이라, **커밋한 직후부터 그 커밋이 CI 를 통과할 때까지는 반드시 `ci_stale`** 이다.
+    # 즉 push 직전 — 이 게이트가 정작 필요한 순간 — 에는 구조적으로 통과할 수 없었다.
+    # 여기서 볼 것은 helper 가 *관측한 환경을 알려진 verdict 로 옮기는가* 이고,
+    # verdict 매트릭스 자체는 case 8 이 주입으로 검증한다.
     if verdict == "ci_sanity":
         # CI 정상: ci_run 도 있어야 함
         assert ci_mypy.get("ci_run") is not None, "ci_sanity verdict 인데 ci_run None"
@@ -126,6 +132,18 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
             f"ci_sanity 인데 ci_run.conclusion != success: {ci_mypy.get('ci_run', {}).get('conclusion')}"
         )
         print(f"  case 7 (_cross_verify_ci_mypy 실제 gh CLI integration: verdict={verdict!r}): PASS")
+    elif verdict == "ci_stale":
+        # HEAD 가 아직 CI 를 안 거쳤다 (커밋 직후의 정상 상태). run 은 있고 sha 가 다르다.
+        assert ci_mypy.get("ci_run") is not None, "ci_stale verdict 인데 ci_run None"
+        assert ci_mypy.get("ci_run", {}).get("headSha") != ci_mypy.get("head_sha"), (
+            f"ci_stale 인데 headSha 가 HEAD 와 같다: {ci_mypy.get('head_sha')!r}"
+        )
+        print(f"  case 7 (_cross_verify_ci_mypy: HEAD 미검증, verdict={verdict!r}): PASS")
+    elif verdict == "ci_fail":
+        assert ci_mypy.get("ci_run", {}).get("conclusion") != "success", (
+            "ci_fail 인데 ci_run.conclusion == success"
+        )
+        print(f"  case 7 (_cross_verify_ci_mypy: CI red, verdict={verdict!r}): PASS")
     elif verdict in ("absent", "skipped"):
         print(f"  case 7 (_cross_verify_ci_mypy: gh CLI absent/skipped, verdict={verdict!r}): SKIP")
     else:

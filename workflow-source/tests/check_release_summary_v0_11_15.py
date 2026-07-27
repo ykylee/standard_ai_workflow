@@ -83,12 +83,39 @@ def test_release_summary_v0_11_15() -> None:
     assert "local_mypy=skipped" in s, (
         f"--skip-validate summary 의 local_mypy != 'skipped': {s!r}"
     )
-    assert "ci_mypy=no_local_verify" in s, (
-        f"--skip-validate summary 의 ci_mypy != 'no_local_verify': {s!r}"
+    # v1.0.2: `no_local_verify` 로 값을 고정하던 것이 (4)/(6) 과 같은 **자기참조**였다.
+    # 이 값은 `_resolve_cross_verify_verdict` 매트릭스의 `ci_sanity` 행에서만 나온다.
+    # HEAD 에 아직 mypy-strict run 이 없으면 CI verdict 는 `ci_stale` 이고, 그것이
+    # *커밋 직후 push 직전* — 이 게이트가 정작 필요한 순간 — 의 정상 상태다.
+    # 값은 알려진 집합에 드는지만 보고, 매트릭스 행 자체는 case 4b 에서 주입으로 본다.
+    known_ci_skip = ("no_local_verify", "ci_stale", "ci_fail", "absent", "skipped")
+    ci_skip_value = dict(p.split("=", 1) for p in s.split(", ") if "=" in p).get("ci_mypy", "")
+    assert ci_skip_value in known_ci_skip, (
+        f"--skip-validate summary 의 알 수 없는 ci_mypy: {ci_skip_value!r} "
+        f"(알려진 값: {known_ci_skip}): {s!r}"
     )
     assert "ready=false" in s, f"summary ready != false: {s!r}"
     assert "error=" in s, f"summary 에 error field 부재: {s!r}"
     print(f"  case 4 (cmd_release_create --skip-validate --json summary): PASS")
+
+    # case 4b: `no_local_verify` 행을 **주입으로** 검증한다 — 환경이 아니라 매핑을 본다.
+    # (CI verdict = ci_sanity) x (local mypy 없음/skipped) → no_local_verify.
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    from release_pipeline import _resolve_cross_verify_verdict
+    for local in ({}, {"skipped": True}):
+        v = _resolve_cross_verify_verdict({"verdict": "ci_sanity"}, local)
+        assert v == "no_local_verify", (
+            f"ci_sanity + local={local!r} 는 no_local_verify 여야 한다: {v!r}"
+        )
+    # 매트릭스의 나머지 행도 함께 — CI verdict 가 sanity 가 아니면 그대로 통과시킨다.
+    for ci_v in ("ci_stale", "ci_fail", "absent", "skipped"):
+        v = _resolve_cross_verify_verdict({"verdict": ci_v}, {"ok": True})
+        assert v == ci_v, f"CI verdict {ci_v!r} 는 그대로 나와야 한다: {v!r}"
+    assert _resolve_cross_verify_verdict(
+        {"verdict": "ci_sanity"}, {"ok": True}) == "sanity"
+    assert _resolve_cross_verify_verdict(
+        {"verdict": "ci_sanity"}, {"ok": False}) == "drift_warning"
+    print("  case 4b (_resolve_cross_verify_verdict 매트릭스 7행 주입 검증): PASS")
 
     # case 5: cmd_release_status dispatcher 호출 — text mode + JSON mode 둘 다 summary 포함
     from workflow_kit.workflow_kit_cli import cmd_release_status as _dispatch

@@ -95,7 +95,7 @@ def main() -> int:
                 raise AssertionError("Manifest should include workflow skill catalog runtime docs.")
             if "bundle/ai-workflow/core/workflow_adoption_entrypoints.md" not in included:
                 raise AssertionError("Manifest should include workflow adoption entrypoint runtime docs.")
-            if "bundle/ai-workflow/memory/active/state.json" not in included:
+            if "bundle/ai-workflow/memory/active/main/state.json" not in included:
                 raise AssertionError("Manifest should include the workflow state cache.")
             if "bundle/docs/PROJECT_PROFILE.md" not in included:
                 raise AssertionError("Manifest should include the workflow project profile.")
@@ -122,7 +122,7 @@ def main() -> int:
                 raise AssertionError("Archive should include AGENTS.md for every harness package.")
             if "bundle/ai-workflow/README.md" not in names:
                 raise AssertionError("Archive should include the runtime workflow README.")
-            if "bundle/ai-workflow/memory/active/state.json" not in names:
+            if "bundle/ai-workflow/memory/active/main/state.json" not in names:
                 raise AssertionError("Archive should include the workflow state cache.")
             if "bundle/docs/PROJECT_PROFILE.md" not in names:
                 raise AssertionError("Archive should include the workflow project profile.")

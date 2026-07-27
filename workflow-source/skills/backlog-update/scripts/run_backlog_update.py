@@ -402,7 +402,12 @@ def main() -> int:
 
         requested_mode = args.mode
         if requested_mode == "auto":
-            requested_mode = "update" if args.task_id else "create"
+            # v1.0.2 정정 — 이전에는 `--task-id` 가 있으면 **무조건 update** 였다.
+            # 그래서 아직 없는 ID 로 새 작업을 등록하려 하면 `cannot_determine` 이 되어
+            # 아무것도 쓰지 않은 채 `status: ok` 를 냈다. auto 의 뜻은 "있으면 갱신,
+            # 없으면 생성" 이다 — 존재 여부를 실제로 보고 정한다.
+            known_ids = {t["task_id"] for t in existing_tasks}
+            requested_mode = "update" if (args.task_id and args.task_id in known_ids) else "create"
 
         operation_type = "create_entry"
         if not daily_backlog_path.exists():

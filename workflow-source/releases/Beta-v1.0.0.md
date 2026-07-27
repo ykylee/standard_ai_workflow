@@ -1014,6 +1014,86 @@ issue description 에 **"이 문서를 읽는 검사(state ↔ handoff in_progre
 수치는 지표가 아니다" 라고 적어 둔 것과 같은 함정이다. 추적되는 진입점만 요구하고,
 나머지는 *있으면 내용까지 검증* 으로 낮췄다. AGENTS.md 를 지우고 돌려 통과를 확인했다.
 
+### §2.35 — 남겨 뒀던 결함 3건 + CI 를 상시 red 로 만들던 자기참조 (2026-07-27)
+
+§2.33 에서 "이번에 고치지 않고 기록한다" 고 적어 둔 3건과, main 을 계속 red 로
+만들던 검사 1건을 함께 정리했다.
+
+**(1) `AGENTS.md` 파일 소유 충돌 — 덮어쓰기에서 합치기로.** codex/opencode 와 pi-dev 는
+둘 다 root `AGENTS.md` 를 읽는다. 코드에는 이미 자백이 적혀 있었다:
+
+```python
+# If both are selected, Pi's version will overwrite or vice versa.
+# Usually only one harness is selected for a project.
+```
+
+"보통 하나만 고른다" 는 가정이지 보장이 아니다. 둘 다 고르면 나중에 도는 pi-dev 가
+codex 판을 조용히 덮어썼고, manifest 는 `codex_agents` / `pi_dev_agents` 두 key 로
+**두 파일이 생긴 것처럼** 보고했다. 파일이 하나뿐이면 답은 덮어쓰기가 아니라 합치기다
+— codex 판 뒤에 pi-dev 전용 장을 이어 붙이고(`pi_dev_agents_supplement`), 이미 base 에
+있는 생성 블록(§8)은 빼서 **한 파일 안의 사본**도 만들지 않는다. 재실행에 멱등이다.
+충돌 사실은 manifest `warnings` 로 알린다.
+
+**(2) bootstrap 이 평평한 layout 을 만들고 있었다.** 런타임(`state_path_for_workspace`)은
+branch-scoped 를 먼저 보고 legacy 로 fallback 하는데, 정작 부트스트랩이 legacy 만
+만들었다. 즉 **브랜치별 분리는 이 저장소에만 있고, 우리가 배포한 프로젝트에는 없었다**
+— 발표자료가 "갈라 두면 서로 덮어쓰지 않는다" 고 말하는 바로 그 지점이다.
+
+| | 이전 | 지금 |
+|---|---|---|
+| 브랜치 상태 | `active/state.json` (공유) | `active/<branch>/{state.json, session_handoff.md, work_backlog.md, backlog/, sessions/}` |
+| 프로젝트 정체성 | 〃 같은 곳 | `active/{PROJECT_PROFILE, PURPOSE, *_assessment}` (브랜치 무관 공유) |
+| 기존 평면 프로젝트 | — | **그대로 둔다** — 재실행이 병렬 상태를 만들면 "진짜 상태는 어느 쪽인가" 가 모호해진다 |
+
+대상이 git 저장소가 아니면 `main` 으로 고정한다. `branch_for_workspace` 를 그대로 쓰면
+*내가 feature 브랜치에서 실행했다는 이유로* 남의 새 프로젝트에 `active/feature-x/` 가
+생긴다 — 호출 위치가 답을 바꾸는 그 함정이다.
+
+진입점 문서의 경로 93곳도 `<branch>` 로 맞추고, placeholder 의 뜻을 문서에 한 줄로
+적었다. 설명 없는 placeholder 는 에이전트가 그대로 열려고 한다.
+
+**(3) task ID 정규식이 갈라져 있었다.** `WORK_STATUS_RE` 는 `[A-Z0-9-]+` 로 **대문자만**
+받는데 `TASK_ID_PATTERN` 은 branch slug 에 소문자를 허용한다. 그래서
+`TASK-2026-07-27-main-001` 같은 *정본 문법에 맞는 ID* 를 handoff 의 Work Status 줄에서
+통째로 놓쳤다. `WORK_ITEM_ID_PATTERN` 으로 문법을 명시하고 셋의 포함 관계를 주석에
+적었다. 같은 파일 안의 분기라 리터럴 검사(파일 단위)로는 안 잡히므로 **동작으로**
+고정했다 (`check_convention_single_source` 5번째 case).
+
+**(4) CI 를 상시 red 로 만들던 자기참조.** `check_release_summary_v0_11_15` 의 case 7 이
+`ci_mypy=sanity` 를 요구했다. `sanity` 는 "최신 mypy-strict run 이 success 이고 그
+headSha 가 HEAD 와 같다" 는 뜻인데, 이 검사는 smoke 의 일부로 **바로 그 commit 의 CI
+안에서** 돈다. 그 시점엔 같은 SHA 의 run 이 아직 없다. 즉 **구조적으로 통과할 수 없는
+단언**이었고, 로컬에서도 push 하고 CI 가 끝나야만 green 이었다.
+
+검사의 본래 목적은 "cmd_release 가 verdict 를 summary 에 제대로 싣는가" 라는 *계약*이다.
+환경 관찰과 계약 검증을 분리했다 — case 7 은 verdict 가 *알려진 값 집합에 드는가* 만
+보고, 매핑 자체는 verdict 를 **주입해서** 검증한다 (case 7b, 기존 case 8 과 같은 방식).
+`gh` 유무와 무관하게 통과하는 것을 확인했다.
+
+**신규 검사 2 case** (`check_standard_single_source` → 7 case):
+같은 파일을 쓰는 두 하네스를 함께 골라도 지침이 사라지지 않는가 / **진입점이 가리키는
+경로에 실제로 파일이 있는가**. 후자는 도입하자마자 `sessions/` 를 잡아냈다 — 문서는
+"항상 먼저 읽을 문서" 로 안내하는데 bootstrap 이 그 디렉터리를 만들지 않고 있었다.
+
+되주입 확인: 평평한 layout 복귀 → case 7 FAIL, pi-dev 덮어쓰기 복귀 → case 3·6 FAIL,
+대문자 전용 정규식 복귀 → 규약 5번 FAIL.
+
+**(5) 정리하는 중에 같은 부류를 하나 더 만났다.** 위 4건을 끝내고 세션 종료 절차대로
+`backlog-update` 로 작업을 등록하려는데, 스킬이 `status: ok` 를 내면서 **아무것도 쓰지
+않았다**. `--mode auto` 가 `--task-id` 만 보고 무조건 update 로 잡은 탓이다:
+
+```python
+requested_mode = "update" if args.task_id else "create"   # 존재 여부를 안 본다
+```
+
+없는 ID 였으니 `cannot_determine` 이 되어 write 가 0건인데, 반환은 `ok` 였다. auto 의
+뜻은 "있으면 갱신, 없으면 생성" 이므로 **존재 여부를 실제로 보고** 정하도록 고쳤다.
+재발 방지 test 는 없는 ID → create, 있는 ID → update 양방향을 함께 본다 (한쪽만 보면
+반대로 넓어진 것을 놓친다).
+
+이 건이 이번 사이클의 요약이기도 하다 — **덜 한 것을 통과로 셈하는 코드**는 문서 계층
+(§2.32 린터)에도, 배포 계층(§2.31 렌더러)에도, 스킬 계층(여기)에도 똑같이 있었다.
+
 ## 3. 검증
 
 누적 smoke **217/217 PASS** (2026-07-27, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`

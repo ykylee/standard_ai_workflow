@@ -31,7 +31,19 @@ TASK_HEADER_RE = re.compile(r"^#{1,2}\s+(TASK-[A-Za-z0-9._-]+)\s+(.+)$")
 # 받아야 하므로 `TASK_ID_PATTERN` 보다 관대하다. **문법의 정의는 여기 한 곳**이고,
 # backlog-update 가 이걸 import 한다 (skill 이 자기 사본을 들고 있어서 갈라졌었다).
 TASK_ID_CAPTURE_RE = re.compile(r"^TASK-(?:(\d{4}-\d{2}-\d{2})-)?(?:(.+?)-)?(\d{1,3})$")
-WORK_STATUS_RE = re.compile(r"^-\s+((?:TASK|WF)-[A-Z0-9-]+)\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$")
+# handoff 의 `- <ID> <제목>: <상태>` 줄에서 쓰는 **작업 항목 ID** 문법.
+#
+# v1.0.2 정정: 이전에는 `[A-Z0-9-]+` 라 **대문자만** 받았는데, `TASK_ID_PATTERN` 은
+# branch slug 세그먼트에 `[A-Za-z0-9._-]` 를 허용한다. 그래서 `TASK-2026-07-27-main-001`
+# 처럼 *정본 문법에 맞는 ID* 를 handoff 의 Work Status 줄에서 인식하지 못했다. 같은
+# 규약의 두 정규식이 갈라져 있던 것이다 (§2.24 가 등록한 부류와 같은 모양).
+#
+# 셋의 관계: `TASK_ID_PATTERN`(정본 문법) ⊂ `WORK_ITEM_ID_PATTERN`(느슨, WF- 와 legacy
+# `TASK-021` 까지) 이고, `TASK_ID_CAPTURE_RE` 는 채번용 분해다.
+WORK_ITEM_ID_PATTERN = r"(?:TASK|WF)-[A-Za-z0-9._-]+"
+WORK_STATUS_RE = re.compile(
+    rf"^-\s+({WORK_ITEM_ID_PATTERN})\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$"
+)
 
 
 class WorkflowDocParser:

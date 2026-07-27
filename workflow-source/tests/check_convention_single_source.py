@@ -30,11 +30,12 @@
 유지하기 위한 선택이고, 그 대신 규약을 늘릴 때마다 **한 번은 전수 조사**해서 기존
 사본을 정리한 뒤 등록하는 것을 전제로 한다 (§2.24 / §2.25 가 그렇게 했다).
 
-Test list (4 case):
+Test list (5 case):
 1. test_no_duplicate_convention_literals
 2. test_every_canonical_symbol_exists
 3. test_exemptions_are_still_needed        ← 죽은 예외가 쌓이지 않게
 4. test_detector_catches_injected_copy     ← 탐지기 자체가 동작하는지
+5. test_task_id_syntax_is_accepted_by_work_status  ← 같은 파일 안의 분기는 동작으로 잡는다
 
 Cross-ref: releases/Beta-v1.0.0.md §2.24.
 """
@@ -222,12 +223,41 @@ def test_detector_catches_injected_copy() -> None:
         assert any(sym in ok_text for sym in conv.symbols), "정본 사용자를 사본으로 오판한다"
 
 
+
+
+
+def test_task_id_syntax_is_accepted_by_work_status() -> None:
+    """정본 문법(`TASK_ID_PATTERN`)을 따르는 ID 는 handoff Work Status 줄에서도 인식돼야 한다.
+
+    v1.0.2 이전에는 `WORK_STATUS_RE` 가 `[A-Z0-9-]+` 로 **대문자만** 받아,
+    `TASK-2026-07-27-main-001` 처럼 branch slug 가 들어간 정본 ID 를 통째로 놓쳤다.
+    같은 규약을 두 정규식이 각자 정의하면 이렇게 갈라진다 — 한쪽만 고쳐도 다른 쪽은
+    자기 test 를 계속 통과하므로 아무도 모른다. 위의 리터럴 검사(파일 단위)로는 같은
+    파일 안의 분기를 못 잡으므로, **동작으로** 고정한다.
+    """
+    from workflow_kit.common.project_docs import WORK_STATUS_RE
+
+    canonical_ids = [
+        "TASK-2026-07-27-main-001",      # branch slug (소문자)
+        "TASK-2026-01-01-feat_x-999",    # underscore 포함 slug
+        "TASK-2026-01-01-001",           # slug 없음
+        "TASK-2026-07-27-MAIN-001",      # 대문자 (기존 동작 유지)
+    ]
+    missed = [i for i in canonical_ids if not WORK_STATUS_RE.match(f"- {i} 제목: done")]
+    assert not missed, f"정본 문법 ID 를 Work Status 가 인식하지 못한다: {missed}"
+
+    # 범위를 좁히지 않았는지 — legacy 와 WF- 도 계속 받아야 한다.
+    legacy = [i for i in ("TASK-021", "WF-042-01") if not WORK_STATUS_RE.match(f"- {i} 제목: blocked")]
+    assert not legacy, f"legacy / WF- ID 인식 실패: {legacy}"
+
+
 def main() -> int:
     test_funcs = [
         test_no_duplicate_convention_literals,
         test_every_canonical_symbol_exists,
         test_exemptions_are_still_needed,
         test_detector_catches_injected_copy,
+        test_task_id_syntax_is_accepted_by_work_status,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

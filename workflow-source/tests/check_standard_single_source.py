@@ -35,12 +35,14 @@ f-string 에 손으로 복제돼 있었다. 정본 `core/global_workflow_standar
 위양성을 내는 검사는 무시당한다. 대신 3번이 "정본 문장이 산출물에 그대로 있는가" 를
 보므로, 의역본만 남기면 3번에서 걸린다.
 
-Test list (5 case):
+Test list (7 case):
 1. test_snapshot_matches_standard
 2. test_renderers_have_no_rule_literals
 3. test_generated_entrypoints_carry_rules
 4. test_distributed_core_matches_canonical
 5. test_detector_catches_injected_copy
+6. test_shared_entrypoint_merges_instead_of_overwriting  ← 같은 파일을 쓰는 두 하네스
+7. test_entrypoint_paths_match_generated_layout        ← 문서가 가리키는 곳에 파일이 있는가
 
 Cross-ref: `workflow_kit/common/standard_rules.py`, `core/global_workflow_standard.md` §1 §3 §8.
 """
@@ -77,6 +79,8 @@ PRIMARY_ENTRYPOINTS: dict[str, str] = {
     "minimax-code": "MiniMax.md",
     "grok-build": "GROK.md",
     "aider": "CONVENTIONS.md",
+    # v1.0.2: pi-dev 와의 파일 소유 충돌이 해소돼(합치기) 단독 판정이 가능해졌다.
+    "codex": "AGENTS.md",
     "opencode": ".opencode/skills/standard-ai-workflow/SKILL.md",
 }
 
@@ -84,8 +88,7 @@ PRIMARY_ENTRYPOINTS: dict[str, str] = {
 EXEMPT_HARNESSES: dict[str, str] = {
     "goose": "config-only overlay — 산문 진입점 없이 .goose/config.yaml 의 read_files 로 상태 문서를 지정한다",
     "custom": "사용자가 채우는 빈 템플릿 — 규칙을 미리 박으면 템플릿 목적에 어긋난다",
-    "codex": "AGENTS.md 를 pi-dev 와 공유한다 — 파일 소유가 겹쳐 단독 판정이 불가 (별도 이슈)",
-    "pi-dev": "번호 장 구조라 §1 을 자체 문장으로 서술 — §8 만 정본에서 주입한다",
+    "pi-dev": "codex 와 root AGENTS.md 를 공유한다 (덮어쓰지 않고 합쳐서 emit) — codex 항목으로 함께 판정된다",
     "codewhale": "보조 SKILL.md — §8 만 정본에서 주입한다",
 }
 
@@ -224,13 +227,120 @@ def test_detector_catches_injected_copy() -> None:
     )
 
 
+
+# --- Case 6 ----------------------------------------------------------------
+
+
+def test_shared_entrypoint_merges_instead_of_overwriting() -> None:
+    """같은 파일을 쓰는 두 하네스를 함께 고르면 **덮어쓰지 않고 합쳐진다** (v1.0.2).
+
+    codex/opencode 와 pi-dev 는 둘 다 root `AGENTS.md` 를 읽는다. 이전에는 나중에
+    도는 pi-dev 가 codex 판을 조용히 덮어써서 한쪽 지침이 통째로 사라졌고, manifest 는
+    두 key 로 *두 파일이 생긴 것처럼* 보고했다. 파일이 하나뿐이면 답은 합치기다.
+
+    동시에, 합친 결과에 **생성 블록이 두 번 들어가면 안 된다** — 한 파일 안의 사본도
+    사본이고, 나중에 한쪽만 고쳐지면 갈라진다.
+    """
+    rules = load_standard_rules(SOURCE_ROOT)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target = Path(tmpdir) / "target"
+        target.mkdir(parents=True)
+        completed = subprocess.run(
+            [
+                sys.executable, str(BOOTSTRAP_SCRIPT),
+                "--target-root", str(target),
+                "--project-slug", "shared_entry",
+                "--project-name", "Shared Entry",
+                "--adoption-mode", "existing",
+                "--no-interactive",
+                "--harness", "codex", "--harness", "pi-dev",
+            ],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+        if completed.returncode != 0:
+            _record("test_shared_entrypoint_merges_instead_of_overwriting", False,
+                    f"bootstrap 실패: {completed.stderr[-300:]}")
+            return
+        agents = target / "AGENTS.md"
+        if not agents.exists():
+            _record("test_shared_entrypoint_merges_instead_of_overwriting", False, "AGENTS.md 미생성")
+            return
+        text = agents.read_text(encoding="utf-8")
+
+    problems: list[str] = []
+    if "Codex" not in text:
+        problems.append("codex 지침이 사라졌다 (덮어쓰기 회귀)")
+    if "Pi Coding Agent" not in text:
+        problems.append("pi-dev 지침이 사라졌다")
+    if text.count(rules.close_order) != 1:
+        problems.append(f"§8 종료 순서가 {text.count(rules.close_order)}회 (정확히 1회여야 한다)")
+
+    _record("test_shared_entrypoint_merges_instead_of_overwriting", not problems, "; ".join(problems))
+
+
+
+# --- Case 7 ----------------------------------------------------------------
+
+
+def test_entrypoint_paths_match_generated_layout() -> None:
+    """진입점이 가리키는 상태 문서 경로가 **실제로 생성된 것과 일치한다** (v1.0.2).
+
+    bootstrap 은 평평한 `active/` 를 만드는데 진입점은 그 경로를 적고, 런타임은
+    branch-scoped 를 먼저 보는 — 세 층이 서로 다른 곳을 가리키고 있었다. 문서가
+    가리키는 곳에 파일이 없으면 에이전트는 첫 단계에서 길을 잃는다.
+
+    `<branch>` 는 문서용 placeholder 이므로 실제 branch slug 로 치환해서 확인한다.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        target = Path(tmpdir) / "target"
+        target.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(target)], capture_output=True, check=False)
+        completed = subprocess.run(
+            [
+                sys.executable, str(BOOTSTRAP_SCRIPT),
+                "--target-root", str(target),
+                "--project-slug", "layout_probe",
+                "--project-name", "Layout Probe",
+                "--adoption-mode", "existing",
+                "--no-interactive",
+                "--harness", "claude-code",
+            ],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+        if completed.returncode != 0:
+            _record("test_entrypoint_paths_match_generated_layout", False,
+                    f"bootstrap 실패: {completed.stderr[-300:]}")
+            return
+
+        entry = target / "CLAUDE.md"
+        text = entry.read_text(encoding="utf-8")
+        # 문서에 적힌 memory 경로를 모아 실제 존재를 확인한다.
+        # `(있으면)` 으로 표기된 줄은 **선택** 경로다 — 부재가 정상이므로 제외한다.
+        lines = [ln for ln in text.splitlines() if "(있으면)" not in ln]
+        referenced = sorted(set(re.findall(
+            r"ai-workflow/memory/active/[A-Za-z0-9_<>./-]+", "\n".join(lines))))
+        missing: list[str] = []
+        for ref in referenced:
+            concrete = ref.replace("<branch>", "main").rstrip("/.")
+            if not (target / concrete).exists():
+                missing.append(ref)
+
+    _record(
+        "test_entrypoint_paths_match_generated_layout",
+        bool(referenced) and not missing,
+        f"진입점이 가리키는데 생성되지 않은 경로: {missing}" if missing else "진입점에 memory 경로 참조가 없다",
+    )
+
+
 def main() -> int:
     test_snapshot_matches_standard()
     test_renderers_have_no_rule_literals()
     test_generated_entrypoints_carry_rules()
     test_distributed_core_matches_canonical()
     test_detector_catches_injected_copy()
-    total = 5
+    test_shared_entrypoint_merges_instead_of_overwriting()
+    test_entrypoint_paths_match_generated_layout()
+    total = 7
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

@@ -141,10 +141,36 @@ def test_release_summary_v0_11_15() -> None:
     assert "unreleased=" not in s_full, (
         f"cmd_release summary 에는 'unreleased' field 부재 (cmd_release_status 만): {s_full!r}"
     )
-    # local_mypy=ok (my mypy strict 통과), ci_mypy=sanity (Layer 1 + Layer 2 정합)
+    # v1.0.2 — 여기서 `ci_mypy=sanity` 를 요구하던 것이 **자기참조**였다.
+    #
+    # `sanity` 는 "GH Actions 의 최신 mypy-strict run 이 success 이고 그 headSha 가 HEAD 와
+    # 같다" 는 뜻이다. 그런데 이 test 는 smoke 의 일부로 **바로 그 commit 의 CI 안에서**
+    # 돈다. 그 시점에는 같은 SHA 의 run 이 아직 없거나 진행 중이라 `ci_stale` 이 되고,
+    # 결국 *구조적으로 통과할 수 없는* 단언이었다. 로컬에서도 push 하고 CI 가 끝나야만
+    # green 이라, 이 검사 하나가 main 을 상시 red 로 만들고 있었다.
+    #
+    # 검사의 본래 목적은 "cmd_release 가 verdict 를 summary 에 제대로 싣는가" 라는
+    # **계약**이다. 그 계약은 아래에서 verdict 를 주입해 검증한다 (case 7b / case 8).
+    # 여기서는 환경에 의존하지 않는 것만 본다 — 값이 *알려진 verdict 집합에 드는가*.
+    known_ci = ("sanity", "ci_sanity", "ci_stale", "ci_fail", "drift_warning",
+                "absent", "skipped", "no_local_verify")
+    ci_value = dict(p.split("=", 1) for p in s_full.split(", ") if "=" in p).get("ci_mypy", "")
+    assert ci_value in known_ci, (
+        f"알 수 없는 ci_mypy verdict: {ci_value!r} (알려진 값: {known_ci}) — "
+        f"verdict 를 늘렸다면 이 목록도 함께 늘린다: {s_full!r}"
+    )
     assert "local_mypy=ok" in s_full, f"full validate summary local_mypy != ok: {s_full!r}"
-    assert "ci_mypy=sanity" in s_full, f"full validate summary ci_mypy != sanity: {s_full!r}"
-    print(f"  case 7 (cmd_release full validate summary 5-field + sanity verdict): PASS")
+    print(f"  case 7 (cmd_release full validate summary 5-field + known verdict): PASS")
+
+    # case 7b: sanity verdict 주입 — 환경이 아니라 **매핑**을 검증한다.
+    summary_sanity = _attach_release_summary_via_helper({
+        "ci_mypy": {"verdict": "sanity"},
+        "pre_check": {"mypy": {"ok": True, "skipped": False, "error_count": 0}},
+    })
+    assert "ci_mypy=sanity" in summary_sanity, (
+        f"sanity verdict 가 summary 에 반영되지 않았다: {summary_sanity!r}"
+    )
+    print("  case 7b (sanity verdict 주입 → summary 반영): PASS")
 
     # case 8: --strict-cross-verify + ci_stale 시뮬레이션 — helper 가 drift/ci_stale/ci_fail 검출
     # helper 가 verdict 를 그대로 summary 에 반영하는지 verify (직접 호출)

@@ -23,6 +23,9 @@ from bootstrap_lib.paths import (
     opencode_worker_agent_path,
 )
 from bootstrap_lib.writes import rel, write_text
+
+#: pi-dev 전용 장의 제목 — 합쳐졌는지 판정하는 표식이자 idempotency key.
+PI_DEV_SUPPLEMENT_HEADING = "# Pi Coding Agent Profile (pi-dev 전용)"
 from workflow_kit.common.standard_rules import load_standard_rules, render_entrypoint_rules
 
 
@@ -48,7 +51,7 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 - 대상 독자: Gemini CLI, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -56,9 +59,11 @@ def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: di
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
@@ -132,7 +137,7 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 - 대상 독자: Antigravity, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -140,9 +145,11 @@ def render_antigravity_agents(args: argparse.Namespace, paths: Paths, context: d
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
@@ -219,7 +226,7 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - 대상 독자: MiniMax Code, 저장소 관리자, 멀티 에이전트 운영자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`, `AGENTS.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`, `AGENTS.md`
 
 ## 목적
 
@@ -227,9 +234,11 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `AGENTS.md` (워크플로우 규칙 요약)
 
@@ -324,10 +333,10 @@ def render_minimax_config_example() -> str:
   },
   "workflow": {
     "memory_dir": "ai-workflow/memory/active",
-    "session_handoff_path": "ai-workflow/memory/active/sessions",
-    "work_backlog_index_path": "ai-workflow/memory/active/backlog",
+    "session_handoff_path": "ai-workflow/memory/active/<branch>/sessions",
+    "work_backlog_index_path": "ai-workflow/memory/active/<branch>/backlog",
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "state_json_path": "ai-workflow/memory/active/state.json"
+    "state_json_path": "ai-workflow/memory/active/<branch>/state.json"
   },
   "session_protocol": {
     "language": "ko-KR",
@@ -498,7 +507,7 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 - 대상 독자: Codex, 저장소 관리자, workflow 설계자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -506,9 +515,11 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
@@ -626,9 +637,9 @@ Use this skill when you need to start a session, update backlog state, sync docu
 
 Always read:
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 
 If the repository is still in adoption, also read:
@@ -672,18 +683,18 @@ You are the workflow orchestrator for this repository.
 Start each substantial task by reading:
 
 - `AGENTS.md`
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 
 Treat `ai-workflow/` as a workflow metadata layer, not part of the normal project work scope. After session restoration, ignore it during project code or project document exploration unless the task explicitly asks for workflow doc maintenance.
 
 You may directly read only the minimum session-restoration set and tiny triage inputs:
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - one clearly bounded file or path for tiny triage
 
@@ -742,7 +753,7 @@ You are not the main orchestrator. Your role is to execute a tightly scoped task
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/memory/active/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/active/<branch>/state.json` when it helps restore the current task baseline quickly
 - the specific `ai-workflow/memory/active/` document or file paths that match your assigned scope
 
 Project defaults:
@@ -784,7 +795,7 @@ Your role is to read, compare, summarize, and update a tightly scoped set of doc
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/memory/active/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/active/<branch>/state.json` when it helps restore the current task baseline quickly
 - the assigned `ai-workflow/memory/active/` documents or directly named doc paths
 
 Worker rules:
@@ -824,7 +835,7 @@ Your role is to implement a tightly scoped code or config change, run the minimu
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/memory/active/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/active/<branch>/state.json` when it helps restore the current task baseline quickly
 - the specific source files, tests, and workflow docs tied to your assigned scope
 
 Project defaults:
@@ -873,7 +884,7 @@ Your role is to run bounded checks, inspect logs, gather evidence, and return a 
 Before starting, read only the minimum relevant context:
 
 - `AGENTS.md`
-- `ai-workflow/memory/active/state.json` when it helps restore the current task baseline quickly
+- `ai-workflow/memory/active/<branch>/state.json` when it helps restore the current task baseline quickly
 - the assigned validation scope, commands, and relevant backlog or handoff notes
 
 Project defaults:
@@ -966,7 +977,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 ## 이 파일의 역할
 
@@ -985,9 +996,11 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 
 ## 항상 먼저 읽을 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 - (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent 1-line + body excerpt
@@ -1019,7 +1032,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 동작. 사용자가 직접 `/workflow-session-start` 호출 시 (또는 자동 read 시) baseline 복원을
 *최소 effort* 로 시도:
 
-1. `ai-workflow/memory/active/state.json` 부재 → 사용자에게 scaffold 제안
+1. `ai-workflow/memory/active/<branch>/state.json` 부재 → 사용자에게 scaffold 제안
 2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
 3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
 
@@ -1037,7 +1050,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 
 - `ai-workflow/README.md` (kit 개요)
 - `docs/PROJECT_PROFILE.md` (프로젝트 메타)
-- `ai-workflow/memory/active/sessions` (현재 세션 인계)
+- `ai-workflow/memory/active/<branch>/sessions` (현재 세션 인계)
 - `harnesses/claude-code/apply_guide.md` (Claude Code 적용 절차)
 """
 
@@ -1065,7 +1078,7 @@ def render_claude_code_session_start_command(args: argparse.Namespace, context: 
 
 ## 절차
 
-1. `ai-workflow/memory/active/state.json` 부터 읽고 현재 baseline 요약
+1. `ai-workflow/memory/active/<branch>/state.json` 부터 읽고 현재 baseline 요약
 2. `session_handoff.md` + `work_backlog.md` 의 anchor 로 3~7개 후속 작업 후보 선정
 3. 한국어로 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고
 4. **중간 reasoning / 중복 요약 / 자기 설명 금지** — 사용자에게는 *결론* 만
@@ -1084,9 +1097,9 @@ def render_claude_code_session_start_command(args: argparse.Namespace, context: 
 
 ## 관련 문서
 
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - (있으면) `ai-workflow/memory/active/PURPOSE.md`
 """
@@ -1104,11 +1117,11 @@ def render_claude_code_backlog_update_command(args: argparse.Namespace, context:
 
 ## 역할
 
-오늘 작업 항목을 `ai-workflow/memory/active/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
+오늘 작업 항목을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
 
 ## 절차
 
-1. `ai-workflow/memory/active/backlog` 의 인덱스 anchor 확인
+1. `ai-workflow/memory/active/<branch>/backlog` 의 인덱스 anchor 확인
 2. 오늘 날짜의 `backlog/YYYY-MM-DD.md` 파일:
    - 없으면 신규 작성
    - 있으면 기존 항목에 append
@@ -1124,7 +1137,7 @@ scope_creep_warnings = `[]` (graceful skip). 본문 reference 불가, advisory �
 
 ## 다음에 읽을 문서
 
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/backlog`
 - (있으면) `ai-workflow/memory/active/PURPOSE.md`
 - 영향 받을 document 들
 
@@ -1233,9 +1246,9 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
 
 본 프로젝트는 표준 AI 워크플로우를 따른다. 우선 read 순서:
 
-1. `ai-workflow/memory/active/state.json`
-2. `ai-workflow/memory/active/sessions`
-3. `ai-workflow/memory/active/backlog`
+1. `ai-workflow/memory/active/<branch>/state.json`
+2. `ai-workflow/memory/active/<branch>/sessions`
+3. `ai-workflow/memory/active/<branch>/backlog`
 4. `docs/PROJECT_PROFILE.md`
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md`
 
@@ -1269,9 +1282,9 @@ def render_aider_config_example(args: argparse.Namespace, context: dict[str, obj
 # 자동 read 할 conventions / workflow 문서
 read:
   - CONVENTIONS.md
-  - ai-workflow/memory/active/state.json
-  - ai-workflow/memory/active/sessions
-  - ai-workflow/memory/active/backlog
+  - ai-workflow/memory/active/<branch>/state.json
+  - ai-workflow/memory/active/<branch>/sessions
+  - ai-workflow/memory/active/<branch>/backlog
   - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
@@ -1351,9 +1364,9 @@ entry_points:
 
 # 본 project 의 *진입 문서* (Goose 가 startup 에 read)
 read_files:
-  - ai-workflow/memory/active/state.json
-  - ai-workflow/memory/active/sessions
-  - ai-workflow/memory/active/backlog
+  - ai-workflow/memory/active/<branch>/state.json
+  - ai-workflow/memory/active/<branch>/sessions
+  - ai-workflow/memory/active/<branch>/backlog
   - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
@@ -1452,18 +1465,59 @@ def write_custom_harness_files(
     return generated
 
 
+def pi_dev_agents_supplement(
+    args: argparse.Namespace,
+    context: dict[str, object],
+    *,
+    base: str,
+) -> str:
+    """codex 판 `AGENTS.md` 뒤에 붙일 **pi-dev 전용 장**을 만들어 합친 문서를 돌려준다.
+
+    v1.0.2 — pi-dev 와 codex/opencode 는 같은 root `AGENTS.md` 를 읽는다. 이전에는
+    나중에 도는 쪽이 조용히 덮어써서 한쪽 하네스의 지침이 통째로 사라졌다. 파일이
+    하나뿐이라면 답은 덮어쓰기가 아니라 합치기다.
+
+    공통 규칙 블록(`## 작업 원칙` / `## 세션 종료 순서`)은 base 에 이미 있으므로
+    다시 넣지 않는다 — 정본에서 생성되는 블록을 한 파일에 두 번 두면 그 자체가
+    사본이 된다 (`check_standard_single_source.py` 가 보는 규약).
+
+    이미 붙어 있으면 그대로 돌려준다 (idempotent — bootstrap 재실행 안전).
+    """
+    if PI_DEV_SUPPLEMENT_HEADING in base:
+        return base
+    body = render_pi_dev_agents(args, context)
+    # pi-dev 판에서 harness-specific 장(`## 1.` 이후)만 떼어 낸다.
+    marker = "## 1. 세션 시작 루틴"
+    idx = body.find(marker)
+    specific = body[idx:] if idx >= 0 else body
+    # base 에 이미 있는 **생성 블록**(§8 종료 순서)은 빼고 붙인다. 한 파일에 두 번
+    # 들어가면 그 자체가 사본이고, 나중에 한쪽만 고쳐지면 갈라진다.
+    close_order = load_standard_rules().close_order
+    specific = "\n".join(
+        line for line in specific.splitlines() if close_order not in line
+    )
+    return (
+        base.rstrip()
+        + f"\n\n---\n\n{PI_DEV_SUPPLEMENT_HEADING}\n\n"
+        + "> 이 저장소는 codex/opencode 와 pi-dev 를 함께 쓴다. 위 공통 규칙은 두 하네스에\n"
+        + "> 모두 적용되고, 아래는 Pi Coding Agent 전용 지침이다.\n\n"
+        + specific.strip()
+        + "\n"
+    )
+
+
 def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
     _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""# AGENTS.md (Pi Coding Agent Profile)
 
 - **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
 - **Priority Docs**:
-    1. `ai-workflow/memory/active/state.json` (현재 세션의 진실의 원천)
-    2. `ai-workflow/memory/active/sessions` (이전 세션 인계 사항)
-    3. `ai-workflow/memory/active/backlog` (작업 목록)
+    1. `ai-workflow/memory/active/<branch>/state.json` (현재 세션의 진실의 원천)
+    2. `ai-workflow/memory/active/<branch>/sessions` (이전 세션 인계 사항)
+    3. `ai-workflow/memory/active/<branch>/backlog` (작업 목록)
 
 ## 1. 세션 시작 루틴 (Mandatory)
-세션이 시작되면 가장 먼저 `ai-workflow/memory/active/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.
+세션이 시작되면 가장 먼저 `ai-workflow/memory/active/<branch>/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.
 
 ## 2. 작업 원칙 (Research -> Strategy -> Execution)
 - **Research**: `grep_search`와 `read_file`을 사용하여 현재 코드와 문서 상태를 객관적으로 확인하십시오.
@@ -1471,8 +1525,8 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
 - **Execution**: `edit`, `write`, `bash` 도구를 사용하여 변경을 수행하십시오.
 
 ## 3. 워크플로우 상태 관리
-- 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/backlog/`의 해당 날짜 문서를 업데이트하십시오.
-- 세션 종료 전에는 `ai-workflow/memory/active/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
+- 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/<branch>/backlog/`의 해당 날짜 문서를 업데이트하십시오.
+- 세션 종료 전에는 `ai-workflow/memory/active/<branch>/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
 - {_STANDARD_CLOSE_ORDER}
 
 ## 4. 도구 사용 가이드
@@ -1544,7 +1598,7 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
 - 대상 독자: Grok Build, 저장소 관리자, 멀티 에이전트 운영자
 - 상태: beta
 - 최종 수정일: {args.today}
-- 관련 문서: `AGENTS.md` (Codex 와 공통), `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `AGENTS.md` (Codex 와 공통), `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 목적
 
@@ -1552,10 +1606,12 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
 
 ## 항상 먼저 읽을 문서
 
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로 갈라 두어 동시 작업이 서로 덮어쓰지 않게 한다.
+
 - `AGENTS.md` (Codex 와 공통 진입점 — 한국어 baseline + worker 분리 원칙)
-- `ai-workflow/memory/active/state.json`
-- `ai-workflow/memory/active/sessions`
-- `ai-workflow/memory/active/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+- `ai-workflow/memory/active/<branch>/sessions`
+- `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor 기반, AI agent query 시 먼저 로드
 
@@ -1678,10 +1734,10 @@ description: Standard AI Workflow 진입 skill — 세션 시작, 백로그 갱�
 
 ```bash
 # workflow state docs 우선 read
-cat ai-workflow/memory/active/state.json
-cat ai-workflow/memory/active/session_handoff.md
-cat ai-workflow/memory/active/work_backlog.md
-ls ai-workflow/memory/active/backlog/
+cat ai-workflow/memory/active/<branch>/state.json
+cat ai-workflow/memory/active/<branch>/session_handoff.md
+cat ai-workflow/memory/active/<branch>/work_backlog.md
+ls ai-workflow/memory/active/<branch>/backlog/
 cat docs/PROJECT_PROFILE.md
 cat ai-workflow/wiki/index.md   # R4 anchor 기반
 ```
@@ -1692,7 +1748,7 @@ cat ai-workflow/wiki/index.md   # R4 anchor 기반
 
 ```bash
 # 오늘 날짜 backlog 파일에 task 추가/갱신
-cat > ai-workflow/memory/active/backlog/{args.today}.md <<EOF
+cat > ai-workflow/memory/active/<branch>/backlog/{args.today}.md <<EOF
 # Backlog Index — {args.today}
 
 - 문서 목적: ...
@@ -1971,7 +2027,7 @@ def render_codewhale_skill(args: argparse.Namespace, context: dict[str, object])
 - 대상: CodeWhale agent, 저장소 관리자
 - 상태: draft
 - 최종 수정일: {args.today}
-- 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`, `docs/PROJECT_PROFILE.md`
+- 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## 중요 — Constitution 과의 관계
 
@@ -1990,9 +2046,9 @@ CodeWhale 의 Constitution (Article I-VIII) 이 이미 아래 규칙을 내장�
 
 CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 
-1. `ai-workflow/memory/active/state.json` — 현재 기준선
-2. `ai-workflow/memory/active/sessions` — 이전 세션 인계
-3. `ai-workflow/memory/active/backlog` — 작업 백로그 인덱스
+1. `ai-workflow/memory/active/<branch>/state.json` — 현재 기준선
+2. `ai-workflow/memory/active/<branch>/sessions` — 이전 세션 인계
+3. `ai-workflow/memory/active/<branch>/backlog` — 작업 백로그 인덱스
 4. `docs/PROJECT_PROFILE.md` — 프로젝트 특화 규칙
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — 프로젝트 목적
 
@@ -2029,7 +2085,7 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 ## 6. 백로그 관리
 
 - 각 작업 항목 최소 필드: 작업명, 상태, 우선순위, 요청일, 완료일, 담당, 호스트명, 호스트 IP, 영향 문서, 작업 내용, 진행 현황, 완료 기준, 작업 결과, 다음 세션 시작 포인트, 남은 리스크, 후속 작업
-- 날짜별 backlog: `ai-workflow/memory/active/backlog/YYYY-MM-DD.md`
+- 날짜별 backlog: `ai-workflow/memory/active/<branch>/backlog/YYYY-MM-DD.md`
 
 ## 7. 기본 검증 명령
 

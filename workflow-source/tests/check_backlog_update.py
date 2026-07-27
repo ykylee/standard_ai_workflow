@@ -286,8 +286,69 @@ def main() -> int:
     if failure_payload["error_code"] != "missing_required_document":
         raise AssertionError("Expected missing_required_document error code.")
 
+    _check_auto_mode_creates_unknown_id()
+
     print("Backlog-update smoke check passed.")
     return 0
+
+
+def _check_auto_mode_creates_unknown_id() -> None:
+    """`--mode auto` + 아직 없는 `--task-id` → **create** (v1.0.2).
+
+    이전에는 `--task-id` 가 있으면 무조건 update 로 잡혀서, 새 작업을 등록하려 하면
+    `cannot_determine` 이 되어 **아무것도 쓰지 않은 채 `status: ok`** 를 냈다. 세션
+    종료 절차대로 작업을 등록하려던 호출이 조용히 무시된 것이다 (실제로 이 저장소의
+    close-out 에서 겪었다). auto 의 뜻은 "있으면 갱신, 없으면 생성" 이므로 존재
+    여부를 실제로 보고 정해야 한다.
+    """
+    example_root = SOURCE_ROOT / "examples" / "acme_delivery_platform"
+    backlog_path = sorted((example_root / "backlog").glob("*.md"))[-1]
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        project_root = (Path(temp_dir) / "project").resolve()
+        branch_root = (project_root / get_current_branch()).resolve()
+        branch_root.mkdir(parents=True)
+        for relative_path in ("PROJECT_PROFILE.md", "work_backlog.md"):
+            (project_root / relative_path).write_text(
+                (example_root / relative_path).read_text(encoding="utf-8"), encoding="utf-8"
+            )
+        (branch_root / "session_handoff.md").write_text(
+            (example_root / "session_handoff.md").read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        backlog_dir = branch_root / "backlog"
+        backlog_dir.mkdir()
+        daily = backlog_dir / backlog_path.name
+        daily.write_text(backlog_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+        base_args = [
+            "--project-profile-path", str(project_root / "PROJECT_PROFILE.md"),
+            "--daily-backlog-path", str(daily),
+        ]
+
+        # 없는 ID → create
+        _, payload = run_backlog_update(expect_success=True, args=[
+            *base_args,
+            "--task-id", "TASK-2026-07-27-auto-901",
+            "--task-name", "auto 모드 신규 등록",
+            "--task-brief", "존재하지 않는 ID 를 auto 로 등록한다.",
+        ])
+        if payload["operation_type"] not in ("create_entry", "create_daily_backlog"):
+            raise AssertionError(
+                "auto 모드가 없는 ID 를 create 로 잡지 않았다: "
+                f"operation_type={payload['operation_type']!r}, warnings={payload.get('warnings')}"
+            )
+
+        # 있는 ID → update (반대 방향으로 넓히지 않았는지)
+        _, payload2 = run_backlog_update(expect_success=True, args=[
+            *base_args,
+            "--task-id", "TASK-021",
+            "--task-name", "배송 상태 동기화 실패 대응 절차 문서 정리",
+            "--task-brief", "이미 있는 ID 는 갱신이어야 한다.",
+        ])
+        if payload2["operation_type"] != "update_entry":
+            raise AssertionError(
+                f"auto 모드가 있는 ID 를 update 로 잡지 않았다: {payload2['operation_type']!r}"
+            )
 
 
 def test_case_1() -> None:

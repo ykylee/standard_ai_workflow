@@ -882,15 +882,34 @@ def write_harness_files(
             generated["codex_agents"] = str(codex_agents)
 
     if "pi-dev" in harnesses:
-        # Pi Coding Agent uses AGENTS.md at the root, same path as codex
-        # If both are selected, Pi's version will overwrite or vice versa.
-        # Usually only one harness is selected for a project.
+        # v1.0.2 — Pi Coding Agent 도 root `AGENTS.md` 를 읽는다. codex/opencode 와
+        # **같은 파일**이다.
+        #
+        # 이전에는 나중에 도는 pi-dev 가 codex 판을 **조용히 덮어썼다** (주석에
+        # "Usually only one harness is selected" 라고 적혀 있었지만, 그건 가정이지
+        # 보장이 아니다). manifest 는 `codex_agents` 와 `pi_dev_agents` 두 key 로
+        # *두 파일이 생긴 것처럼* 보고했는데 실제로는 하나였다.
+        #
+        # 두 에이전트가 같은 파일을 읽는 것이므로 정답은 덮어쓰기가 아니라 **합치기**다.
+        # codex 판이 이미 쓰였으면 pi-dev 의 harness-specific 장만 이어 붙인다
+        # (공통 규칙 블록은 codex 판에 이미 있으므로 중복시키지 않는다).
         # entry-mode=skill-only: AGENTS.md skip
         if getattr(args, "entry_mode", "aggressive") != "skill-only":
-            from bootstrap_lib.harnesses.renderers import render_pi_dev_agents
+            from bootstrap_lib.harnesses.renderers import (
+                pi_dev_agents_supplement,
+                render_pi_dev_agents,
+            )
 
             pi_agents = codex_agents_path(paths)
-            _w(pi_agents, render_pi_dev_agents(args, context))
+            shares_with_codex = "codex_agents" in generated
+            if shares_with_codex:
+                _w(pi_agents, pi_dev_agents_supplement(args, context, base=pi_agents.read_text(encoding="utf-8")))
+                context.setdefault("warnings", []).append(  # type: ignore[union-attr]
+                    "codex/opencode 와 pi-dev 가 모두 root `AGENTS.md` 를 진입점으로 쓴다. "
+                    "덮어쓰지 않고 pi-dev 전용 장을 이어 붙였다 — 파일 하나가 두 하네스를 함께 섬긴다."
+                )
+            else:
+                _w(pi_agents, render_pi_dev_agents(args, context))
             generated["pi_dev_agents"] = str(pi_agents)
 
     if "gemini-cli" in harnesses:
@@ -1042,6 +1061,13 @@ def main() -> int:
         _record_write(paths.handoff_path, render_session_handoff(args, context), force=args.force)
         _record_write(paths.backlog_index_path, render_backlog_index(args), force=args.force)
         _record_write(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
+        # v1.0.2 — 진입점 문서가 `<branch>/sessions` 를 "항상 먼저 읽을 문서" 로
+        # 안내하는데 정작 그 디렉터리를 만들지 않고 있었다. 문서가 가리키는 곳에
+        # 파일이 없으면 에이전트는 첫 단계에서 길을 잃는다
+        # (`check_standard_single_source.py` case 7 이 이 불일치를 잡는다).
+        sessions_dir = paths.memory_dir / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        (sessions_dir / ".gitkeep").touch(exist_ok=True)
         _record_write(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
         if args.adoption_mode == "existing":
             _record_write(paths.assessment_path, render_assessment(args, context), force=args.force)

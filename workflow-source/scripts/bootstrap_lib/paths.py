@@ -62,10 +62,46 @@ class HarnessDefinition:
     description: str
 
 
+def bootstrap_branch_slug(target_root: Path) -> str:
+    """대상 저장소의 branch slug. git 저장소가 아니면 ``main``.
+
+    v1.0.2 — `workflow_kit.common.paths.branch_for_workspace` 는 대상이 git 저장소가
+    아닐 때 **이 kit 저장소의** branch 로 떨어진다 (sandbox caller 를 위한 의도된
+    동작이다). 부트스트랩에서 그 동작을 그대로 쓰면 *내가 feature 브랜치에서 실행했다는
+    이유로* 남의 새 프로젝트에 `active/feature-x/` 가 생긴다. 대상이 git 이 아니면
+    ``main`` 이라는 고정 기본값을 쓴다.
+    """
+    from workflow_kit.common.paths import _git_branch_slug  # noqa: PLC0415 - 순환 import 회피
+
+    return _git_branch_slug(target_root) or "main"
+
+
 def make_paths(args: argparse.Namespace) -> Paths:
     target_root = Path(args.target_root).resolve()
     kit_root = target_root / args.kit_dir
-    memory_dir = kit_root / "memory" / "active"
+    shared_dir = kit_root / "memory" / "active"
+
+    # v1.0.2 — 세션 상태를 **브랜치별로** 둔다.
+    #
+    # 이전에는 평평한 `active/state.json` 하나였다. 그래서 두 사람이 각자 브랜치에서
+    # 일하면 같은 파일에 쓰고 한쪽이 덮어썼다 — 정작 이 워크플로우가 "브랜치별로
+    # 갈라 두면 서로 덮어쓰지 않는다" 고 주장하는 바로 그 지점이다. 런타임
+    # (`state_path_for_workspace`)은 이미 branch-scoped 를 먼저 보고 legacy 로
+    # fallback 하는데, 정작 **부트스트랩이 legacy 만 만들고 있었다**.
+    #
+    # 공유/브랜치 구분은 `tools/migrate_memory_to_branch_scoped.py` 의 규약과 같다:
+    #   공유   — PROJECT_PROFILE.md / PURPOSE.md / *_assessment.md / memory_index/
+    #   브랜치 — state.json / session_handoff.md / work_backlog.md / backlog/ / sessions/
+    #
+    # **기존 평면 layout 이 이미 있으면 그대로 쓴다.** 재실행이 병렬 상태를 만들어
+    # "진짜 상태는 어느 쪽인가" 를 모호하게 만드는 것이 더 나쁘다. 옮기려면
+    # 마이그레이션 도구를 명시적으로 돌린다.
+    legacy_state = shared_dir / "state.json"
+    if legacy_state.exists():
+        memory_dir = shared_dir
+    else:
+        memory_dir = shared_dir / bootstrap_branch_slug(target_root)
+
     backlog_dir = memory_dir / "backlog"
     return Paths(
         target_root=target_root,
@@ -79,8 +115,9 @@ def make_paths(args: argparse.Namespace) -> Paths:
         handoff_path=memory_dir / "session_handoff.md",
         backlog_index_path=memory_dir / "work_backlog.md",
         daily_backlog_path=backlog_dir / f"{args.today}.md",
-        assessment_path=memory_dir / "repository_assessment.md",
-        status_assessment_path=memory_dir / "project_status_assessment.md",
+        # 평가 문서는 브랜치와 무관한 **프로젝트 정체성** 이라 공유 계층에 둔다.
+        assessment_path=shared_dir / "repository_assessment.md",
+        status_assessment_path=shared_dir / "project_status_assessment.md",
     )
 
 

@@ -200,7 +200,7 @@ def test_aider_adapter_emits_v0_10_2() -> None:
         # CONVENTIONS.md 본문 verify
         content = (target / "CONVENTIONS.md").read_text(encoding="utf-8")
         assert "표준 AI 워크플로우 진입" in content
-        assert "ai-workflow/memory/active/state.json" in content
+        assert "ai-workflow/memory/active/<branch>/state.json" in content
 
         # .aider.conf.yml.example 본문 verify
         config = (target / ".aider.conf.yml.example").read_text(encoding="utf-8")
@@ -228,7 +228,7 @@ def test_goose_adapter_emits_v0_10_2() -> None:
         assert "backlog_update" in content
         assert "doc_sync" in content
         assert "read_files:" in content
-        assert "ai-workflow/memory/active/state.json" in content
+        assert "ai-workflow/memory/active/<branch>/state.json" in content
         assert "language: ko" in content
 
 

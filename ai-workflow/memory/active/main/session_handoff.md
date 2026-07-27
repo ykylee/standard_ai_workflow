@@ -19,12 +19,10 @@
 
 - 현재 `in_progress` 작업:
 -
-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
 -
-
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
@@ -32,17 +30,19 @@
 - TASK-2026-07-27-main-001 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정
 - TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소
 - TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
-
+- TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 ## 5. 다음 세션 시작 포인트
 
-TASK-2026-07-27-main-003 으로 종료했다. 세부는 릴리스 노트 §2.35 (6)~(8) 과 §2.36 에 있다.
-**CI 는 green 이다** — `origin/main` = `dac83e3`, smoke·mypy-strict 모두 success, 3커밋 연속.
+TASK-2026-07-27-main-004 로 종료했다. 세부는 릴리스 노트 §2.35 (6)~(8) / §2.36 / §2.37 에 있다.
+**CI 는 green 이었다** — `dac83e3` 에서 smoke·mypy-strict 모두 success (smoke 는 41회 red 끝의
+첫 green 이고 이후 유지). 이후 커밋(`2f20cb5`, `fbdc8f9`, 본 커밋)의 CI 는 **확인하지 않았다** —
+사용자 요청으로 확인을 중지했다. 다음 세션이 먼저 볼 것:
+`gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는 조용히 0건을 낸다).
 
-- [ ] **`backlog-update --apply` 가 state.json 을 손상시킨다.** 이번 세션에서 실측:
-      긴 `recent_done_items` 2건을 조용히 지우고 새 항목은 추가하지 않았다. `written_paths`
-      도 state.json 과 task SSOT 를 보고하지 않는다(4개 썼는데 2개만 보고). handoff 의
-      in_progress / blocked 에는 빈 bullet 을 계속 덧붙인다. 이번엔 손으로 되돌려 갱신했다.
-      → **stable 선언 skill 이 상태 문서를 파괴하는 것이라 우선순위 높다.**
+- [ ] **`recent_done_items` 는 파생물이고 10개 상한이다.** 손으로 쓴 긴 서술은 다음
+      `backlog-update` 실행에서 짧은 형태로 재생성돼 사라진다 — 상세의 집은 task SSOT 와
+      릴리스 노트다. 게다가 정렬이 시간순이 아니라 **오래된 항목이 남고 최근 항목이 밀린다**
+      (이번에 `TASK-2026-07-22-003` 이 밀려났다). 상한/정렬 재검토가 남은 과제다.
 - [ ] 슬래시(`/`) 가 들어간 브랜치에서 `check_branch_scoped_memory` 와
       `check_self_application` 이 깨진다 (probe 브랜치에서 실측). main 에서는 안 드러난다.
 - [ ] 스케줄 workflow 2건 여전히 red — `consumer-metrics-digest` (issue 게시 스텝),
@@ -58,6 +58,9 @@ TASK-2026-07-27-main-003 으로 종료했다. 세부는 릴리스 노트 §2.35 
   운이다. **로컬 재현의 출력과 CI 의 출력은 다른 증거다.**
 - **`gh` 인증 유무는 verdict 를 바꾸는 1급 환경 변수다** — CI 에서는 `skipped`, 로컬에서는
   `ci_sanity`/`ci_stale`. verdict 를 보는 검사는 전부 집합 검사 + 주입 검증이어야 한다.
+- **도구 산출물은 diff 로 검토한다**(§2.37). stable 로 선언된 skill 이 상태 문서를 파괴하고
+  있었고, `status: ok` 를 냈다. 발견 계기는 결과를 믿지 않고 `git diff` 를 읽은 것 하나다.
+  close-out 에서 `backlog-update --apply` 를 쓴 뒤에는 반드시 diff 를 확인할 것.
 - **확인 못 함**: 새로 생성한 진입점을 실제 에이전트 세션에서 로드해 보지는 않았다.
   파일 내용과 bootstrap 산출물, `check_self_application.py` 까지만 검증했다.
 - **확인 못 함**: branch-scoped bootstrap 을 *기존 소비자 프로젝트* 에 재실행해 본 적은

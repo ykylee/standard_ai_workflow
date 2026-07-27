@@ -27,18 +27,17 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + origin/main dac83e3 (CI smoke·mypy-strict green)",
-    "current_axis": "환경에 기대던 판정을 계약 검증으로 분리 + 원인은 관측으로 확정",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `dac83e3` (CI smoke·mypy-strict 모두 green)",
+    "current_axis": "환경에 기대던 판정을 계약 검증으로 분리 + 원인은 추측이 아니라 관측으로 확정",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-07-27-main-003 — **남은 자기참조 3건 해소 + CI red 원인 계측 확정** (§2.35 (6)~(8), §2.36). (6) `local_mypy=ok` 도 §2.35 (4) 와 같은 환경 의존이었다 — 값은 알려진 집합만 보고 매핑은 case 7b 주입으로 검증. (7) `run_all_checks` 의 excerpt 가 *마지막 3줄* 을 자르는데 요약 줄 + 빈 줄 때문에 **사유가 적힌 줄은 늘 뒤에서 4번째**라 CI 아티팩트에 `=== Result: 0/1 PASS ===` 만 남았다 — 실패 표지 기준으로 교체. (8) 같은 자기참조 2건 추가 (`check_mypy_ci_cross_verify` case 7 / `check_release_summary` case 4) — `ci_sanity` 행 하나만 정답으로 박아 둬 **커밋 직후부터 CI 통과 전까지는 반드시 `ci_stale`**, 즉 push 직전에 구조적으로 통과 불가였다. 매트릭스 7행을 주입으로 검증하는 case 4b 신규. 앞선 사이클의 '217/217' 이 조건부였던 이유이기도 하다. (§2.36) CI red 의 원인을 **CI 안에서 계측해 확정** — mypy 가 아니라 `gh` 였다. smoke job 의 `gh` 는 인증이 없어 verdict 가 `skipped` 로 떨어지는데 case 4 가 `no_local_verify` 를 박아 둬 *gh 가 인증된 환경에서만* 통과할 수 있었다. 실패 run 7.04초 vs 정상 36.1초, 로컬에서 gh 를 실패시켜 4.58초에 같은 자리·같은 사유로 재현. §2.35 (6) 에 CI 를 관측하지 않고 적어 둔 인과는 정정했다(그 `FAIL` 은 로컬 시스템 python3 출력이었다). 계측은 임시 브랜치 probe 2종 → 아티팩트 회수 → 브랜치 삭제로 했고, (7) 의 excerpt 수정이 없었으면 불가능했다. **smoke 41회 red 끝에 green, 3커밋 연속 유지** (44b1b78 / fbca6d7 / dac83e3). smoke 217/217, CI smoke·mypy-strict success. breaking change: ❌.",
-      "TASK-2026-07-27-main-002 — **남은 결함 3건 + CI 자기참조 해소** (§2.35). (1) AGENTS.md 파일 소유 충돌 — codex/pi-dev 가 같은 파일을 쓰는데 나중 것이 조용히 덮어썼다. 덮어쓰기 대신 합치기(pi_dev_agents_supplement) + base 에 있는 생성 블록은 제외 + 멱등. (2) bootstrap 이 평평한 active/ 를 만들어 브랜치 분리가 이 저장소에만 있었다 — active/<branch>/ 로 전환(기존 평면 프로젝트는 보존, 대상이 git 아니면 main 고정) + 진입점 경로 93곳 정정. (3) WORK_STATUS_RE 가 대문자만 받아 TASK_ID_PATTERN 준수 ID 를 놓쳤다 — WORK_ITEM_ID_PATTERN 으로 통일. (4) check_release_summary_v0_11_15 case 7 이 자기 커밋의 CI green 을 요구해 구조적으로 통과 불가였다 — 환경 관찰과 계약 검증을 분리(verdict 주입). (5) 정리 중 발견: backlog-update 의 --mode auto 가 존재 여부를 안 보고 무조건 update 로 잡아 write 0건인데 status:ok 를 냈다. 신규 검사 2 case + 되주입 4건. smoke 217/217, mypy strict 119 files 0 errors. breaking change: ❌ (기존 평면 layout 은 보존).",
       "TASK-2026-07-25-main-001 선언과 사실을 맞춘다 (Pages / mypy strict / YAML·스킬·MCP 검사층)",
       "TASK-2026-07-27-main-001 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
-      "TASK-2026-07-22-003 — **반복되던 결함의 구조적 방어 3층 + 같은 부류 전수 조사** (노트 §2.21~§2.25). TASK-2026-07-22-002 의 §2.19/§2.20 을 나란히 놓자 *같은 사실이 두 곳에 있는데 둘을 이어주는 기계적 장치가 없다* 는 하나의 결함으로 드러났고, 부품별 테스트는 전부 green 인데 조립하면 안 맞는 상태였다. **5 deliverable**: (1) **§2.21 backlog-update layout 정합** — stable 선언 skill 이 v0.14.0 append-only layout 을 만들지 못했다(task 파일명 / index 인라인 / `.bak` 재생성). 근본 원인은 task ID 정규식이 4곳에 복제돼 branch-scoped ID 를 셋이 인식 못 한 것 → `project_docs.TASK_ID_PATTERN` 단일 출처화 + `--kind` flag; (2) **§2.22 writer↔reader 왕복 계약 8쌍** — 프로덕션 writer 로 쓰고 프로덕션 reader 로 되읽는다. §2.20/§2.21 결함을 되돌려 주입해 해당 쌍이 FAIL 하는 것 확인; (3) **§2.23 판정 지표는 근거를 함께 낸다** — `JUDGMENT_METRICS` registry + `*_source` / `*_measured` 강제. 도입하며 Panel 6 north-star 도 같은 결함(git 실패를 삼키고 0 을 pass 로 보고)이었음이 드러나 `status: unknown` 도입; (4) **§2.24 규약 단일 출처 검사** — 정본 모듈이거나 정본 symbol 을 import 하거나. 도입 즉시 사본 7건 검출(4 skill 이 `purpose_digest` 없이 동작 / release validate 게이트 조용히 통과 / sync_release_hash 가 안 읽히는 파일에 기록); (5) **§2.25 같은 부류 전수 조사** — AST 로 문자열 상수 빈도를 내니 `ai-workflow`(28) > `memory`(21) > `active`(19) ≫ `state.json`(12) 로, 앞서 고친 것이 더 넓은 문제의 한 조각이었다. `memory_dir_for_workspace` / `memory_active_dir` 신규 + 14개 모듈 조립 교체 + 네 번째 규약 등록. 전량 smoke **203 → 209/209**, mypy strict 117 files 0 errors, 저장소 오염 0. breaking change: ❌.",
-      "TASK-2026-07-23-main-001 — CI 가 40회 연속 red 였던 이유 — 측정이 환경에 기대고 있었다 (§2.26~§2.28)",
+      "TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소",
+      "TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정",
+      "TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍",
       "Phase 10 MCP/JSON-RPC draft",
       "Phase 6 multi-agent delegation pilot",
       "workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `workflow-source/core/global_workflow_standard.md` §8 + `MEMORY_GOVERNANCE.md` §3 + `phase5_governance_guide.md` §4 + `extensions/resiliency-baseline.md` RES-WF-08 + `harnesses/{pi-dev,codex,gemini-cli,opencode}/` AGENTS/apply_guide + `examples/{acme_delivery_platform,research_eval_hub}/work_backlog.md` + `templates/work_backlog_template.md` 모두 **`memory 갱신 → commit → push`** 순서로 정합. release: no / version bump: no (governance 문서 정정).",

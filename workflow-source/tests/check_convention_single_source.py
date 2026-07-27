@@ -82,11 +82,19 @@ CONVENTIONS: tuple[Convention, ...] = (
                 "아카이브 대상 판별용 존재 확인 (경로 해석이 아니라 디렉터리 판정)",
         },
     ),
+    # v1.0.2 — literal 을 넓혔다. 이전 값 `...r?\"[^\"]*TASK-` 는 **`TASK-` 라는 문자열이
+    # 그대로 나올 때만** 잡았는데, `normalize.py` 의 사본은
+    # `re.compile(r"^((?:TASK|WF)-[A-Z0-9-]+)\b")` 처럼 교대(alternation)로 써서
+    # `TASK-` 가 등장하지 않았고, 그래서 이 검사를 조용히 통과했다. 그 사본은 문자
+    # 클래스가 대문자 전용이라 branch-scoped ID 를 잘라 먹었고, `dedupe_work_items` 가
+    # 같은 날짜 task 를 전부 한 key 로 뭉개 **state.json 에서 항목을 영구 소실**시켰다.
+    # `r?` → `[rfb]*` 로 넓힌 것은 `rf"..."` prefix 도 받기 위해서다.
     Convention(
         name="task ID 정규식",
-        literal=re.compile(r"re\.compile\(\s*r?\"[^\"]*TASK-"),
+        literal=re.compile(r"re\.compile\(\s*[rfb]*\"[^\"]*TASK[-|]"),
         canonical="workflow_kit/common/project_docs.py",
-        symbols=("TASK_ID_PATTERN", "TASK_ID_CAPTURE_RE", "TASK_HEADER_RE"),
+        symbols=("TASK_ID_PATTERN", "TASK_ID_CAPTURE_RE", "TASK_HEADER_RE",
+                 "WORK_ITEM_ID_PATTERN"),
         exemptions={},
     ),
     Convention(
@@ -145,10 +153,24 @@ def _violations(conv: Convention, *, files: list[Path] | None = None) -> list[st
             continue
         if not conv.literal.search(text):
             continue
-        if any(sym in text for sym in conv.symbols):
+        # v1.0.2: 면제 판정은 **코드**에서만 한다. 이전에는 파일 전체 텍스트에서 symbol
+        # 을 찾았기 때문에, 정본 symbol 을 *주석에 언급만 해도* 사본이 통과했다
+        # (되주입으로 실측: 정본 이름을 주석에 남긴 채 사본을 넣으면 검사가 green).
+        if any(sym in _code_only(text) for sym in conv.symbols):
             continue  # 정본을 import 해서 쓰는 파일
         problems.append(rel)
     return problems
+
+
+def _code_only(text: str) -> str:
+    """`#` 주석을 걷어낸 텍스트. 문자열 안의 `#` 까지 구분하지는 않는다 (보수적)."""
+    out: list[str] = []
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue
+        out.append(line.split("  #", 1)[0])
+    return "\n".join(out)
 
 
 # --- Tests ---

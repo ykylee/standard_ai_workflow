@@ -114,6 +114,7 @@ def build_draft_entry(
     next_step: str | None,
     risks: str | None,
     follow_up: str | None,
+    validation_result: str | None = None,
     kind: str = "generic",
     source_anchor: str | None = None,
     source_path: str | None = None,
@@ -157,9 +158,14 @@ def build_draft_entry(
             "## ✅ Outcome",
             "",
             f"- 작업 결과: {result_note}" if result_note else "- 작업 결과:",
-            f"- 후속 작업: {follow_up}" if follow_up else "- 후속 작업:",
         ]
     )
+    # v1.0.2: `--validation-result` 를 산출물에 싣는다. 이전에는 이 값이 *result_note 가
+    # 비어 있을 때만* 그 자리를 대신했고, 둘 다 주면 **검증 결과가 조용히 버려졌다** —
+    # `done` 판정의 근거가 되는 값인데 정작 task SSOT 어디에도 남지 않았다.
+    if validation_result and validation_result != result_note:
+        detail.append(f"- 검증 결과: {validation_result}")
+    detail.append(f"- 후속 작업: {follow_up}" if follow_up else "- 후속 작업:")
     return render_task_file(
         task_id=task_id,
         title=task_name,
@@ -473,6 +479,7 @@ def main() -> int:
             next_step=args.next_step,
             risks=args.risks,
             follow_up=args.follow_up,
+            validation_result=args.validation_result,
             kind=args.kind,
         )
 
@@ -571,10 +578,17 @@ def main() -> int:
                     status=status,
                 )
                 apply_result["written_paths"].append(str(daily_backlog_path))
+                # v1.0.2: `upsert_backlog_entry` 는 daily index 와 **task SSOT 두 파일**을
+                # 쓴다. 보고에는 index 만 실려 있어서, 호출자가 무엇이 쓰였는지 알 수
+                # 없었다 (실측: 4개를 쓰고 2개만 보고). 쓴 것은 전부 보고한다.
+                task_ssot_path = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
+                apply_result["written_paths"].append(str(task_ssot_path))
                 if backlog_action == "created":
                     apply_result["created_paths"].append(str(daily_backlog_path))
+                    apply_result["created_paths"].append(str(task_ssot_path))
                 else:
                     apply_result["updated_paths"].append(str(daily_backlog_path))
+                    apply_result["updated_paths"].append(str(task_ssot_path))
             except OSError as exc:
                 result = build_error_result(
                     tool_version=TOOL_VERSION,
@@ -628,6 +642,12 @@ def main() -> int:
                 latest_backlog_path=daily_backlog_path if daily_backlog_path.exists() else None,
                 generated_at=date.today().isoformat(),
             )
+            # v1.0.2: state cache 재생성도 **write** 다. 이 경로가 보고에 빠져 있어서,
+            # state.json 이 갱신된(그리고 손상될 수 있는) 사실이 호출자에게 안 보였다.
+            refreshed_state_path = state_cache_refresh.get("state_path")
+            if state_cache_refresh.get("status") == "refreshed" and refreshed_state_path:
+                apply_result["written_paths"].append(str(refreshed_state_path))
+                apply_result["updated_paths"].append(str(refreshed_state_path))
         else:
             state_cache_refresh = {
                 "status": "skipped",

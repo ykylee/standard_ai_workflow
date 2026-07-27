@@ -30,6 +30,31 @@ def _replace_scalar_value(lines: list[str], label: str, value: str) -> list[str]
     return lines
 
 
+def _is_list_line(stripped: str) -> bool:
+    """목록 구간에 속하는 줄인가 — 빈 bullet(`-`, `- `)과 빈 줄을 포함한다.
+
+    v1.0.2: 이전에는 `startswith("- ")` 만 봤다. 그런데 **빈 placeholder bullet 은
+    `strip()` 하면 `"-"` 가 되어** 이 판정을 통과하지 못했고, 스캐너가 거기서 목록이
+    끝났다고 보고 멈췄다. 그러면 교체 구간(`end`)이 시작점에 머물러 **교체가 아니라
+    삽입**이 되고, 호출할 때마다 빈 bullet 이 한 줄씩 늘어난다 (실측: `backlog-update
+    --apply` 1회마다 handoff 의 in_progress / blocked 가 각각 한 줄씩 성장).
+    """
+    if _is_section_label_line(stripped):
+        return False
+    return stripped == "" or stripped == "-" or stripped.startswith("- ")
+
+
+def _is_section_label_line(stripped: str) -> bool:
+    """`- <라벨>:` 형태의 **다음 구간 머리**인가 — 목록의 끝을 의미한다.
+
+    handoff 는 `- 현재 `in_progress` 작업:` / `- 최근 완료 작업 목록:` 처럼 라벨이
+    연속으로 놓인다. 빈 bullet 을 목록 줄로 인정하면서 이 종결 조건이 없으면, 스캔이
+    다음 구간까지 흘러 라벨 자체를 항목으로 집어삼킨다. 실제 항목은 task label 이라
+    `:` 로 끝나지 않는다.
+    """
+    return stripped.startswith("- ") and stripped.endswith(":")
+
+
 def _replace_list_after_label(lines: list[str], label: str, items: list[str]) -> list[str]:
     prefix = f"- {label}:"
     for idx, line in enumerate(lines):
@@ -41,14 +66,13 @@ def _replace_list_after_label(lines: list[str], label: str, items: list[str]) ->
             stripped = lines[end].strip()
             if stripped.startswith("## "):
                 break
-            if stripped.startswith("- "):
-                end += 1
-                continue
-            if stripped == "":
+            if _is_list_line(stripped):
                 end += 1
                 continue
             break
-        replacement = [f"- {item}" for item in items] if items else ["- "]
+        # 빈 목록의 placeholder 는 trailing space 없는 `-` 로 통일한다. `- ` 로 쓰면
+        # 다음 호출에서 스스로를 목록 줄로 못 알아보고 위 결함을 재발시킨다.
+        replacement = [f"- {item}" for item in items] if items else ["-"]
         return lines[:start] + replacement + lines[end:]
     return lines
 
@@ -268,16 +292,15 @@ def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> 
                     stripped = lines[pointer].strip()
                     if stripped.startswith("## "):
                         break
+                    if not _is_list_line(stripped):
+                        break
+                    # v1.0.2: 빈 bullet(`-` / `- `)에서 멈추지 않는다. 멈추면 그 아래의
+                    # 실제 항목이 목록에 없는 것으로 보여 조용히 사라진다.
                     if stripped.startswith("- "):
                         value = stripped[2:].strip().strip("`")
                         if value:
                             items.append(value)
-                        pointer += 1
-                        continue
-                    if stripped == "":
-                        pointer += 1
-                        continue
-                    break
+                    pointer += 1
                 current_lists[section_label] = items
                 break
 

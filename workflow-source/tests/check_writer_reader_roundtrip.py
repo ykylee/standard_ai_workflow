@@ -19,10 +19,11 @@ smoke 는 단언을 하나로 통일한다: *프로덕션 writer 로 쓰고 **�
 > reader 의 기대에 맞춰져 있어서, writer 가 딴 데다 쓰고 있어도 통과한다. 반드시
 > 실제 writer 를 호출해야 한다.
 
-Test list (7 pair):
+Test list (8 pair):
 1. state.json          — refresh_workflow_state_cache      → workflow_state_path + json
 2. daily index / task  — upsert_backlog_entry              → parse_backlog_task_entries
 3. append-only 집계    — upsert_backlog_entry              → builder aggregate
+3b. 같은 날짜 다건 보존 — upsert_backlog_entry x3           → state.json recent_done_items
 4. maturity 선언       — refresh_maturity_last_updated     → collect_drift_prevention
 5. drift 원장          — _append_drift_ledger_entry        → collect_silent_failing_cycles
 6. telemetry           — append_telemetry_event            → summarize_telemetry
@@ -191,6 +192,42 @@ def test_backlog_write_then_state_aggregate() -> None:
         assert any("완료된 것" in s for s in agg["recent_done_items"]), agg["recent_done_items"]
 
 
+@_with_branch
+def test_state_json_preserves_same_date_tasks() -> None:
+    """같은 날짜의 task 여러 개가 state.json 재생성에서 **살아남는다** (v1.0.2).
+
+    `dedupe_work_items` 는 work item ID 를 key 로 중복을 제거한다. 그 key 를 뽑는
+    `WORK_ITEM_ID_RE` 가 정본의 사본이었고 문자 클래스가 대문자 전용이라,
+    branch-scoped ID 의 소문자 브랜치 segment 에서 매치가 끊겼다:
+
+        TASK-2026-07-22-<branch>-001 → key 'TASK-2026-07-22-'
+        TASK-2026-07-22-<branch>-002 → key 'TASK-2026-07-22-'   ← 충돌
+
+    결과적으로 **같은 날짜의 task 가 전부 하나로 뭉개져 첫 개만 남았다**. state.json 은
+    자기 내용이 다시 입력으로 돌아오는 구조라 한 번 지워진 항목은 영구 소실된다
+    (실측: `backlog-update --apply` 1회에 recent_done_items 10건 → 8건).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        ids = [f"TASK-2026-07-22-{BRANCH}-00{n}" for n in (1, 2, 3)]
+        for n, task_id in enumerate(ids, start=1):
+            _write_task(ws, task_id=task_id, title=f"같은 날짜 {n}번", status="done")
+
+        profile = ws / "docs" / "PROJECT_PROFILE.md"
+        result = refresh_workflow_state_cache(
+            project_profile_path=profile, generated_at="2026-07-22",
+        )
+        assert result["status"] == "refreshed", result
+        state = json.loads(workflow_state_path(profile).read_text(encoding="utf-8"))
+        recent = state["session"]["recent_done_items"]
+
+        missing = [i for i in ids if not any(i in entry for entry in recent)]
+        assert not missing, (
+            f"같은 날짜 task 가 state.json 에서 사라졌다: {missing} — "
+            f"남은 것: {recent}"
+        )
+
+
 def test_maturity_write_then_panel_read() -> None:
     """refresh 가 쓴 last_updated 를 Panel 1 collector 가 그대로 읽는다."""
     with tempfile.TemporaryDirectory() as td:
@@ -297,6 +334,7 @@ def main() -> int:
         test_state_json_write_then_read,
         test_backlog_write_then_parse,
         test_backlog_write_then_state_aggregate,
+        test_state_json_preserves_same_date_tasks,
         test_maturity_write_then_panel_read,
         test_drift_ledger_write_then_north_star_read,
         test_telemetry_write_then_summarize,

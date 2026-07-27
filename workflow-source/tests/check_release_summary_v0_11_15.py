@@ -159,10 +159,19 @@ def test_release_summary_v0_11_15() -> None:
         f"알 수 없는 ci_mypy verdict: {ci_value!r} (알려진 값: {known_ci}) — "
         f"verdict 를 늘렸다면 이 목록도 함께 늘린다: {s_full!r}"
     )
-    assert "local_mypy=ok" in s_full, f"full validate summary local_mypy != ok: {s_full!r}"
+    # `local_mypy` 도 같은 이유로 값을 고정하지 않는다. 이 값은 **이 test 를 실행한
+    # 인터프리터에 mypy 가 설치돼 있는가** 에 달려 있다. smoke workflow 는 mypy 를
+    # 설치하지 않으므로(그건 mypy-strict workflow 의 몫이다) CI 에서는 `FAIL` 이 되고,
+    # 그러면 또 구조적으로 통과할 수 없는 단언이 된다. mypy 가 실제로 깨끗한지는
+    # `check_mypy_strict_*` 계열이 본다 — 여기서 볼 것은 summary 의 계약이다.
+    known_local = ("ok", "FAIL", "skipped")
+    local_value = dict(p.split("=", 1) for p in s_full.split(", ") if "=" in p).get("local_mypy", "")
+    assert local_value in known_local, (
+        f"알 수 없는 local_mypy 값: {local_value!r} (알려진 값: {known_local}): {s_full!r}"
+    )
     print(f"  case 7 (cmd_release full validate summary 5-field + known verdict): PASS")
 
-    # case 7b: sanity verdict 주입 — 환경이 아니라 **매핑**을 검증한다.
+    # case 7b: verdict 주입 — 환경이 아니라 **매핑**을 검증한다.
     summary_sanity = _attach_release_summary_via_helper({
         "ci_mypy": {"verdict": "sanity"},
         "pre_check": {"mypy": {"ok": True, "skipped": False, "error_count": 0}},
@@ -170,7 +179,10 @@ def test_release_summary_v0_11_15() -> None:
     assert "ci_mypy=sanity" in summary_sanity, (
         f"sanity verdict 가 summary 에 반영되지 않았다: {summary_sanity!r}"
     )
-    print("  case 7b (sanity verdict 주입 → summary 반영): PASS")
+    assert "local_mypy=ok" in summary_sanity, (
+        f"local mypy ok 가 summary 에 반영되지 않았다: {summary_sanity!r}"
+    )
+    print("  case 7b (sanity + local ok 주입 → summary 반영): PASS")
 
     # case 8: --strict-cross-verify + ci_stale 시뮬레이션 — helper 가 drift/ci_stale/ci_fail 검출
     # helper 가 verdict 를 그대로 summary 에 반영하는지 verify (직접 호출)

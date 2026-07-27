@@ -184,6 +184,38 @@ def test_cli_no_match_filter_errors() -> None:
 # --- 메인 실행 ---
 
 
+def test_error_excerpt_keeps_failure_reason() -> None:
+    """실패 사유가 excerpt 에 남는가 (v1.0.2).
+
+    이전 구현은 *마지막 3줄* 을 잘랐는데, check 들이 끝에 요약 줄 + 빈 줄을 붙이고
+    개행으로 끝나는 문자열은 split 시 빈 원소가 하나 더 생기므로, 사유가 적힌 줄은
+    뒤에서 4번째가 되어 **항상 잘렸다**. CI 아티팩트에 `=== Result: 0/1 PASS ===` 만
+    남아 원인을 알 수 없었다.
+    """
+    from run_all_checks import _error_excerpt
+
+    output = (
+        "  case 5 (...): PASS\n"
+        "  case 6 (...): PASS\n"
+        "  ✗ test_x FAIL: full validate summary local_mypy != ok\n"
+        "\n"
+        "=== Result: 0/1 PASS ===\n"
+    )
+    excerpt = _error_excerpt(output)
+    assert "local_mypy != ok" in excerpt, f"실패 사유가 excerpt 에 없다: {excerpt!r}"
+
+    # Traceback 형태도 사유가 남아야 한다.
+    tb = (
+        "Traceback (most recent call last):\n"
+        '  File "x.py", line 1, in <module>\n'
+        "AssertionError: 무언가 어긋났다\n"
+    )
+    assert "AssertionError" in _error_excerpt(tb), _error_excerpt(tb)
+
+    # 표지가 없으면 마지막 비어 있지 않은 줄들로 떨어진다 (빈 문자열 반환 금지).
+    assert _error_excerpt("a\nb\n\n").strip(), "표지 없는 출력에서 excerpt 가 비었다"
+
+
 def main() -> int:
     test_funcs = [
         test_discover_checks_all,
@@ -196,6 +228,7 @@ def main() -> int:
         test_aggregate,
         test_cli_json_output,
         test_cli_no_match_filter_errors,
+        test_error_excerpt_keeps_failure_reason,
     ]
 
     passed = 0

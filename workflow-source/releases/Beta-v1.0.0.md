@@ -1094,6 +1094,30 @@ requested_mode = "update" if args.task_id else "create"   # 존재 여부를 안
 이 건이 이번 사이클의 요약이기도 하다 — **덜 한 것을 통과로 셈하는 코드**는 문서 계층
 (§2.32 린터)에도, 배포 계층(§2.31 렌더러)에도, 스킬 계층(여기)에도 똑같이 있었다.
 
+**(6) 그리고 (4)를 한 번 더 틀렸다 — 같은 자리에 환경 의존이 둘이었다.** `ci_mypy=sanity`
+만 고치고 push 했는데 CI 는 여전히 red 였다. 바로 옆줄의 `local_mypy=ok` 도 같은 부류였다
+— 이 값은 **test 를 실행한 환경에서 mypy 를 돌린 결과** 이지, `cmd_release` 가 verdict 를
+summary 에 싣는가 하는 이 검사의 계약이 아니다. 로컬 `.venv` 에서는 `ok` 라 통과했고 CI 의
+smoke job 에서는 `FAIL` 이었다 — *내 환경에서만 green* 이었던 셈이다 (§2.27 이 경고한 그
+함정을 내가 다시 밟았다). (4)와 같은 방식으로 분리했다: 값은 알려진 집합에 드는지만 보고,
+매핑 자체는 case 7b 에서 주입으로 검증한다. 이번에는 mypy 가 있는 인터프리터와 없는
+인터프리터 **양쪽에서** 통과하는 것을 확인했다.
+
+> **미확정으로 남긴 것**: CI 에서 `local_mypy=FAIL` 이 난 *이유* 는 아직 측정하지 않았다.
+> "smoke 가 mypy 를 설치하지 않아서" 는 아니다 — smoke workflow 는 §2.14 이래 dev extra
+> (`mypy==2.1.0`)를 설치한다. 남은 후보는 (a) smoke 환경(py3.11 + dev/release extra)의
+> mypy 결과가 mypy-strict job 환경(py3.10 + mcp-sdk)과 다르다, (b) `_check_local_mypy` 의
+> 120초 subprocess timeout 에 걸렸다. (a)라면 mypy-strict job 이 green 인 것과 별개로
+> 실제 결함이 하나 더 있다는 뜻이므로, 후속 사이클에서 측정해 확정할 것.
+
+**(7) 그 왕복을 한 번 더 쓰게 만든 관측성 결함.** CI 아티팩트에는
+`=== Result: 0/1 PASS ===` 만 남아 무엇이 왜 실패했는지 알 수 없었다. `run_all_checks.py`
+의 excerpt 가 *마지막 3줄* 을 자르는데, check 들이 끝에 요약 줄 + 빈 줄을 붙이고 개행으로
+끝나는 문자열은 split 시 빈 원소가 하나 더 생기므로 **사유가 적힌 줄은 늘 뒤에서 4번째**
+였다. 고정 위치 대신 실패 표지가 있는 줄을 고르도록 바꿨다 (표지가 없으면 마지막 비어
+있지 않은 줄들로 fallback). 2026-07-25 세션이 "별도 과제" 로 남겨 둔 항목이고, 바꾸자마자
+값을 했다 — 시스템 python3 전량 실행에서 7건의 실패 사유가 한 줄씩 그대로 보였다.
+
 ## 3. 검증
 
 누적 smoke **217/217 PASS** (2026-07-27, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`

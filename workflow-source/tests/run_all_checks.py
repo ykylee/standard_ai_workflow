@@ -296,9 +296,32 @@ def run_one(
         exit_code=proc.returncode,
         duration_sec=round(duration, 2),
         passed=passed, failed=failed, last_line=last_line,
-        error_excerpt="".join(output.split("\n")[-3:])[:200] if proc.returncode != 0 else "",
+        error_excerpt=_error_excerpt(output) if proc.returncode != 0 else "",
         tmp_peak_mb=tmp_peak, killed_children=int(killed),
     )
+
+
+def _error_excerpt(output: str, *, limit: int = 400) -> str:
+    """실패 **사유**가 적힌 줄을 골라 낸다 (v1.0.2).
+
+    이전에는 `"".join(output.split("\\n")[-3:])` 로 *마지막 3줄* 을 잘랐다. 그런데
+    대부분의 check 는 끝에 요약 줄(`=== Result: 0/1 PASS ===`)과 빈 줄을 붙이고,
+    문자열이 개행으로 끝나면 split 결과의 마지막 원소는 빈 문자열이다. 그래서 정작
+    사유가 적힌 줄은 **뒤에서 4번째**가 되어 항상 잘려 나갔다.
+
+    결과적으로 CI 아티팩트에는 "=== Result: 0/1 PASS ===" 만 남아, 무엇이 왜 실패했는지
+    알 수 없었다. 실제로 이 결함 때문에 원인 파악에 push 왕복을 한 번 더 썼다.
+
+    고정 위치 대신 **실패 표지가 있는 줄**을 고르고, 없으면 마지막 비어 있지 않은
+    줄들로 떨어진다.
+    """
+    lines = [ln.rstrip() for ln in output.splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    markers = ("FAIL", "✗", "Error", "error:", "Traceback", "assert", "Exception", "AssertionError")
+    hits = [ln for ln in lines if any(m in ln for m in markers)]
+    chosen = hits[-4:] if hits else lines[-4:]
+    return " | ".join(chosen)[:limit]
 
 
 def aggregate(results: list[CheckResult], duration: float) -> RunSummary:

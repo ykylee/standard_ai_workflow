@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `dac83e3` (CI smoke·mypy-strict 모두 green)",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `c54220f` (CI smoke·mypy-strict 모두 green)",
     "current_axis": "환경에 기대던 판정을 계약 검증으로 분리 + 원인은 추측이 아니라 관측으로 확정",
     "current_focus": null,
     "in_progress_items": [],

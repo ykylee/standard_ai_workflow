@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `dac83e3` (CI smoke·mypy-strict 모두 green)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `c54220f` (CI smoke·mypy-strict 모두 green)
 - 현재 주 작업 축: 환경에 기대던 판정을 계약 검증으로 분리 + 원인은 추측이 아니라 관측으로 확정
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -34,10 +34,11 @@
 ## 5. 다음 세션 시작 포인트
 
 TASK-2026-07-27-main-004 로 종료했다. 세부는 릴리스 노트 §2.35 (6)~(8) / §2.36 / §2.37 에 있다.
-**CI 는 green 이었다** — `dac83e3` 에서 smoke·mypy-strict 모두 success (smoke 는 41회 red 끝의
-첫 green 이고 이후 유지). 이후 커밋(`2f20cb5`, `fbdc8f9`, 본 커밋)의 CI 는 **확인하지 않았다** —
-사용자 요청으로 확인을 중지했다. 다음 세션이 먼저 볼 것:
-`gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는 조용히 0건을 낸다).
+**CI 는 green 이다** — `dac83e3` 부터 `c54220f` 까지 4 커밋(`dac83e3`, `2f20cb5`, `fbdc8f9`,
+`c54220f`) 전부 smoke·mypy-strict success 로 실측 확인했다 (smoke 는 41회 red 끝의 첫 green 인
+`dac83e3` 이후 유지). 직전 세션이 미확인으로 남긴 3건은 이 세션에서 관측으로 닫았다.
+확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
+조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 로 나온다.
 
 - [ ] **`recent_done_items` 는 파생물이고 10개 상한이다.** 손으로 쓴 긴 서술은 다음
       `backlog-update` 실행에서 짧은 형태로 재생성돼 사라진다 — 상세의 집은 task SSOT 와

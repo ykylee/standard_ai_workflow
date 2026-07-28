@@ -35,7 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
 
 # task ID 패턴은 project_docs 가 단일 출처 — 여기서 따로 들고 있으면 갈라진다.
-from workflow_kit.common.project_docs import TASK_ID_PATTERN  # noqa: E402
+from workflow_kit.common.project_docs import TASK_ID_PATTERN, TASK_STATUSES  # noqa: E402
 
 ACTIVE_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active"
 
@@ -58,8 +58,14 @@ LAYOUT_ROOT = _resolve_layout_root()
 
 # MEMORY_GOVERNANCE.md §2 Task Detail 템플릿 정합 — TASK-*.md frontmatter 필수 keys
 TASK_FRONTMATTER_KEYS = frozenset({
-    "id", "status", "created_at", "source_anchor", "source_path", "kind",
+    "id", "created_at", "source_anchor", "source_path", "kind",
 })
+
+# `status` 는 **진행 상태 축**이라 판정 근거가 있을 때만 쓴다 (v1.0.3 §2.39). 근거가 없어
+# 비운 task 는 대신 **출처 축**(`provenance`)을 밝혀야 한다 — 둘 다 없으면 그 파일이 왜
+# 판정을 못 했는지 아무 데도 안 남는다. `status` 를 무조건 요구하면 도구가 근거 없이
+# 채우게 되고, 그게 `status: recorded` → daily fallback → "완료로 날조" 의 출발점이었다.
+TASK_JUDGMENT_KEYS = ("status", "provenance")
 
 errors: list[str] = []
 warnings: list[str] = []
@@ -219,10 +225,22 @@ def _check_task_frontmatter_schema() -> None:
         if not fm_match:
             errors.append(f"[task-fm] {task_file.name} frontmatter 부재")
             continue
-        keys = set(key_re.findall(fm_match.group(1)))
+        frontmatter = fm_match.group(1)
+        keys = set(key_re.findall(frontmatter))
         missing = TASK_FRONTMATTER_KEYS - keys
         if missing:
             errors.append(f"[task-fm] {task_file.name} keys 부재: {sorted(missing)}")
+        if not keys.intersection(TASK_JUDGMENT_KEYS):
+            errors.append(
+                f"[task-fm] {task_file.name} 에 `status` 도 `provenance` 도 없다 — "
+                f"판정하지 않았다면 출처를 밝힐 것"
+            )
+        status_match = re.search(r"^status:\s*(\S+)\s*$", frontmatter, re.M)
+        if status_match is not None and status_match.group(1) not in TASK_STATUSES:
+            errors.append(
+                f"[task-fm] {task_file.name} status `{status_match.group(1)}` 는 표준 어휘 밖 "
+                f"({'/'.join(TASK_STATUSES)}) — 출처는 `provenance` 로 적을 것"
+            )
 
 
 def _check_session_cross_ref() -> None:
@@ -258,7 +276,11 @@ def main() -> int:
     print(f"  2) legacy absent: work_backlog.md 부재 (.bak fallback 보존)")
     print(f"  3) state.json source_of_truth: daily_backlog_dir / tasks_dir / sessions_dir 모두 dir path")
     print(f"  4) daily index links: TASK-* link 모두 tasks/ file 로 resolve")
-    print(f"  5) task frontmatter: id/status/created_at/source_anchor/source_path/kind 모두 존재")
+    print(
+        "  5) task frontmatter: "
+        + "/".join(sorted(TASK_FRONTMATTER_KEYS))
+        + " 모두 존재 + status|provenance 중 1개 + status 는 표준 어휘 안"
+    )
     print(f"  6) sessions cross-ref: per-session file {n_sessions}개")
 
     # v0.14.1: 1st deprecation cycle 종결 warning

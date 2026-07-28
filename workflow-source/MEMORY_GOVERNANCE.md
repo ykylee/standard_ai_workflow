@@ -42,8 +42,9 @@
 ```markdown
 ---
 id: TASK-XXX
-status: [planned|in_progress|blocked|done]
+status: [planned|in_progress|blocked|done]   # 진행 상태 축 — 판정 근거가 있을 때만 기재
 created_at: YYYY-MM-DD
+provenance: [migrated-legacy]                # (선택) 출처 축 — 이 task 가 어디서 왔는가
 ---
 # [Task Title]
 
@@ -56,6 +57,23 @@ created_at: YYYY-MM-DD
 ## ✅ Outcome
 [완료 시 결과물 또는 검증 결과]
 ```
+
+#### 두 축을 섞지 않는다 (v1.0.0 §2.39)
+
+`status` 는 **진행 상태**만 담고, 어휘는 `planned` / `in_progress` / `blocked` / `done`
+넷으로 고정한다 (정본: `core/global_workflow_standard.md`, 코드 단일 출처:
+`workflow_kit.common.project_docs.TASK_STATUSES`).
+
+- **판정 근거가 없으면 `status` 를 쓰지 않는다.** 비워 두면 state builder 가
+  `unknown_status_items` 에 `<ID>: <미기재>` 로 드러낸다. 근거 없이 `planned` 로 적는 것도
+  판정이며, 이미 끝난 작업을 "아직 시작 안 함" 으로 기록하는 거짓이 된다.
+- **"어디서 왔는가" 는 `provenance` 로 적는다.** `migrate_active_to_appendonly.py` 가
+  어휘 밖의 `status: recorded` 를 쓰던 것이 이 경우다 — 그 값이 뜻한 것은 진행 상태가
+  아니라 "legacy `work_backlog.md` 에서 이관됐고 진행 상태는 모른다" 는 출처 사실이었다.
+  builder 는 그 값을 몰라 세 목록 어디에도 넣지 못했고, daily index fallback 이 "어느
+  목록에도 없으니 done" 으로 되살려 **미완료 3건을 완료로 보고**했다.
+- 자동화 도구는 `status` 를 **추측해서 채우지 않는다**. 근거를 가진 경우(예: 발행된 릴리스
+  노트에서 이관한 entry)에만 쓰고, 나머지는 사람이 근거를 확인해 채운다.
 
 ### 📂 Daily Backlog Index (`backlog/YYYY-MM-DD.md`)
 ```markdown

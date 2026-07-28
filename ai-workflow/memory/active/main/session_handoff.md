@@ -9,11 +9,12 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `e06fd37` (CI smoke·mypy-strict 모두 green)
-- 현재 주 작업 축: 같은 규약이 두 곳에 있으면 같이 틀린다 — 상한·어휘·판정을 단일 출처로
+- 현재 기준선: v1.0.0-beta + `origin/main` = `047d4e5` (CI smoke·mypy-strict·mkdocs 3종 green 실측)
+- 현재 주 작업 축: 판정과 근거는 다른 칸에 — 근거가 없으면 채우지 않고 드러낸다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.37~§2.38](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.39](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
 
@@ -32,23 +33,28 @@
 - TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
 - TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
+- TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 ## 5. 다음 세션 시작 포인트
 
-TASK-2026-07-28-main-001 로 종료했다. §2.37 이 "미조치" 로 남긴 `recent_done_items` 의
-상한/정렬을 닫았다 — 세부는 릴리스 노트 §2.38. **CI 는 green 이다** (`dac83e3` ~ `e06fd37`
-전 커밋 smoke·mypy-strict success 실측). 확인 방법: `gh run list --commit $(git rev-parse HEAD)`
-(**full SHA 필수** — short SHA 는 조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로
-push 직후 조회는 `in_progress` 로 나온다.
+TASK-2026-07-28-main-002 로 종료했다. §2.38 이 governance 결정으로 남긴 `status: recorded`
+어휘 문제를 **어휘 확장이 아니라 축 분리** 로 닫았다 — 세부는 릴리스 노트 §2.39.
+`status` 는 넷 고정에 판정 근거가 있을 때만 쓰고, 출처는 `provenance` 로 적는다.
+**CI 는 green 이다** (`047d4e5` 에서 smoke·mypy-strict·mkdocs 3종 success 실측).
+확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
+조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
 
+- [ ] **판정 근거가 없어 비워 둔 2건이 있다** — `TASK-2026-04-24-001`(Phase 10 MCP/JSON-RPC
+      draft), `TASK-2026-05-01-001`(Phase 6 multi-agent delegation pilot). legacy 본문이 한 줄
+      요약뿐이라 완료 여부를 못 정했다. `state.json.session.unknown_status_items` 에
+      `<미기재>` 로 보인다. **근거를 찾으면** (git log / 실제 산출물 확인) 넷 중 하나로 채울 것.
+      — 이건 결함이 아니라 의도된 상태다.
 - [ ] **`recent_done_items` 는 여전히 파생물이고 10개 상한이다.** 손으로 쓴 긴 서술은 다음
       `backlog-update` 실행에서 task SSOT 의 제목으로 재생성된다 — 상세의 집은 task SSOT 와
       릴리스 노트다. (정렬은 §2.38 에서 최신순으로 고쳤다. 상한 자체는 유지.)
-- [ ] **`migrate_active_to_appendonly.py` 가 표준 어휘 밖의 `status: recorded` 를 쓴다.**
-      뜻하는 상태("이관은 됐고 완료 여부는 확인 못 함")는 실재하는데 표준 어휘
-      (`planned`/`in_progress`/`blocked`/`done`)에 없다. **어휘를 늘릴지 기존 넷에 맞출지는
-      governance 결정** 이라 남겼다. 현재 3건(`TASK-2026-04-24-001`, `TASK-2026-05-01-001`,
-      `TASK-2026-06-30-002`)은 완료 여부 미확인이라 손대지 않았고, 이제 builder 의
-      `unknown_status_items` 에 드러난다.
+- [ ] **daily index 의 "`status` 줄이 없으면 done" fallback 은 남아 있다**(builder §2 구간).
+      task 파일이 있으면 그것이 SSOT 라 이 저장소에서는 발현하지 않지만(103건 전부 task 파일
+      보유), *구형 index 만 있는 legacy 저장소* 에서는 여전히 추측이다. task 쪽은 §2.39 에서
+      닫았고 이쪽은 호환 때문에 남겼다.
 - [ ] **dashboard Panel 5 (`collect_recent_releases`)는 브랜치 간 정렬 키가 없다.** 브랜치별
       `state.json` 을 이어 붙인 뒤 앞에서 자른다 — 브랜치 *안* 은 이제 최신순이지만 브랜치
       *간* 은 여전히 concat 순서다 (항목 문자열에 날짜가 없다).
@@ -61,7 +67,13 @@ push 직후 조회는 `in_progress` 로 나온다.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
-- **이번 세션의 교훈(§2.38)**: 증상은 "정렬이 시간순이 아니다" 한 줄이었는데, 열어 보니
+- **이번 세션의 교훈(§2.39)**: 어휘가 모자라 보일 때 **먼저 의심할 것은 축이 섞였는지**다.
+  `recorded` 는 다섯 번째 진행 상태가 아니라 *출처* 였다. 어휘를 늘렸다면 정본과 소비자
+  validator 를 다 깨면서도 축 혼재는 그대로 남았을 것이다.
+- **이번 세션에서 발견(§2.39)**: §2.38 이 만든 `unknown_status_items` 는 **payload 까지 오지
+  않고 aggregate 안에만 있었다**. 테스트에서만 보이고 `state.json` 을 읽는 사람에게는 안
+  보였다 — 노출을 만들었으면 **소비자가 실제로 보는 자리까지 왔는지** 확인할 것.
+- **이전 세션의 교훈(§2.38)**: 증상은 "정렬이 시간순이 아니다" 한 줄이었는데, 열어 보니
   **정렬 키라는 것이 애초에 없었다**. 상한 `10` 이 두 곳에 있었고 자르는 방향이 반대라
   서로를 무효화했고, 완료 판정이 task 파일과 daily index 두 곳에 있어 파생물이 SSOT 를
   덮어썼다. **셋 다 각자의 자리에서는 말이 됐다** — §2.24/§2.37 과 같은 모양이다.

@@ -24,6 +24,17 @@ from workflow_kit.common.text import (
 TASK_STATUSES: tuple[str, ...] = ("planned", "in_progress", "blocked", "done")
 _STATUS_ALT = "|".join(TASK_STATUSES)
 
+# `status` 는 **진행 상태 축**이고, 여기부터는 **출처 축**이다. 둘을 한 칸에 넣으면 둘 다
+# 망가진다 — `migrate_active_to_appendonly.py` 가 어휘 밖의 `recorded` 를 status 칸에
+# 적고 있었는데, 그 값이 뜻한 것은 진행 상태가 아니라 "legacy work_backlog.md 에서
+# 이관됐고 진행 상태는 모른다" 는 출처 사실이었다. 출처는 `provenance` 로 따로 적고,
+# 진행 상태는 **판정 근거가 있을 때만** 적는다.
+TASK_PROVENANCE_MIGRATED_LEGACY = "migrated-legacy"
+
+# frontmatter 에 `status:` 줄이 아예 없을 때 `unknown_status_items` 에 붙는 표식.
+# "판정하지 않았다" 와 "어휘 밖의 값을 적었다" 는 다른 사실이라 구분해서 드러낸다.
+MISSING_STATUS_MARKER = "<미기재>"
+
 # Standard Regexes
 STATUS_RE = re.compile(rf"- 상태:\s*({_STATUS_ALT})\s*$")
 MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")

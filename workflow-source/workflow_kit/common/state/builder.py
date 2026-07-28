@@ -14,6 +14,7 @@ from workflow_kit.common.normalize import (
 )
 from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
 from workflow_kit.common.project_docs import (
+    MISSING_STATUS_MARKER,
     TASK_ID_CAPTURE_RE,
     TASK_ID_PATTERN,
     TASK_STATUSES,
@@ -111,7 +112,8 @@ def _aggregate_from_appendonly_layout(
             "blocked_items": list[str],       # tasks_dir frontmatter status: blocked
             "done_items": list[str],          # tasks_dir frontmatter status: done
             "recent_done_items": list[str],   # done prose summary, **최신순 전량** (상한 ❌)
-            "unknown_status_items": list[str],  # "<id>: <status>" — 어휘 밖의 status
+            "unknown_status_items": list[str],  # "<id>: <status>" — 어휘 밖의 status,
+                                              #   `status:` 줄 자체가 없으면 `<미기재>`
             "sessions": list[str],            # sessions_dir 의 file stem list (참고용)
         }
 
@@ -149,7 +151,13 @@ def _aggregate_from_appendonly_layout(
             # task file 이 존재한다는 사실 자체를 기록한다. 아래 (2) 의 daily index
             # fallback 이 **이 파일의 판정을 덮어쓰지 않게** 하는 근거다.
             known_task_ids.add(task_id)
-            status = status_match.group(1) if status_match else "planned"
+            # `status:` 줄이 없으면 **추측하지 않는다**. 예전에는 `planned` 로 떨어뜨렸는데
+            # 그것도 판정이다 — 이미 끝난 legacy 이관 task 를 "아직 시작 안 함" 으로
+            # 적는다. 판정 근거가 없다는 사실 자체를 드러낸다.
+            if status_match is None:
+                unknown_status_items.append(f"{task_id}: {MISSING_STATUS_MARKER}")
+                continue
+            status = status_match.group(1)
             if status not in TASK_STATUSES:
                 # 어휘 밖의 값을 조용히 버리지 않는다. 버리면 (2) 가 done 으로 되살린다.
                 unknown_status_items.append(f"{task_id}: {status}")
@@ -411,6 +419,11 @@ def build_workflow_state_payload(
             "in_progress_items": in_progress_items,
             "blocked_items": blocked_items,
             "recent_done_items": recent_done_items,
+            # 판정하지 못한 task 를 **payload 까지** 들고 온다. aggregate 안에만 있으면
+            # `_aggregate_from_appendonly_layout` 을 직접 부르는 테스트에만 보이고,
+            # state.json 을 읽는 사람과 skill 에게는 여전히 안 보인다 — 조용히 사라지는
+            # 것과 같다. 빈 목록이어도 key 는 유지한다 (schema 일관성).
+            "unknown_status_items": _dedupe_strings_base(appendonly["unknown_status_items"]),
             "environment_constraints": dedupe_normalized_backticked(
                 [item for item in handoff_constraints if is_meaningful_text(item)]
             ),

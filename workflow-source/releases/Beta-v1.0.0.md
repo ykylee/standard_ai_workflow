@@ -1313,6 +1313,7 @@ writer(`upsert_backlog_entry`)로 만든다.
   "이관은 됐고 완료 여부는 확인 못 함" 은 실재하는 상태인데 표준 어휘에 없다. 어휘를 늘릴지
   (`global_workflow_standard.md` 개정) 기존 네 값에 맞출지는 governance 결정이라 남긴다.
   이미 만들어진 3건의 status 도 **완료 여부를 확인하지 않았으므로 손대지 않았다**.
+  → **§2.39 에서 결정·조치했다** (어휘 확장이 아니라 축 분리).
 - dashboard Panel 5(`collect_recent_releases`)는 브랜치별 `state.json` 을 이어 붙인 뒤 앞에서
   자른다. 브랜치 *안* 은 이제 최신순이지만 브랜치 *간* 정렬 키는 여전히 없다 (문자열에 날짜가
   없다). 별도 과제.
@@ -1321,11 +1322,69 @@ writer(`upsert_backlog_entry`)로 만든다.
 > 틀린다**. 상한 `10` 이 두 곳에 있었고, status 어휘가 두 정규식에 복제돼 있었으며, 완료 판정이
 > task 파일과 daily index 두 곳에 있었다. 셋 다 각자의 자리에서는 말이 됐다.
 
+### 2.39. `status` 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
+
+§2.38 이 governance 결정으로 남긴 건이다. `migrate_active_to_appendonly.py` 가 표준 어휘 밖의
+`status: recorded` 를 쓴다는 것까지는 §2.38 에서 확인했고, **어휘를 다섯으로 늘릴지 넷에
+맞출지**가 미결이었다.
+
+**결정: 어휘는 넷으로 유지하고, 축을 분리한다.**
+
+`recorded` 가 실제로 뜻한 것은 진행 상태가 아니었다. "legacy `work_backlog.md` 에서 이관됐고
+진행 상태는 모른다" — 이건 **출처(provenance)** 사실이다. 어휘를 다섯으로 늘리면 다섯 번째
+값만 진행 상태가 아닌 채로 남고, `global_workflow_standard.md` 정본과 그걸 소비하는
+프로젝트의 validator·bootstrap `choices` 를 전부 깨야 한다. 축이 둘이면 칸도 둘이어야 한다.
+
+| 축 | 필드 | 규칙 |
+|---|---|---|
+| 진행 상태 | `status` | `planned`/`in_progress`/`blocked`/`done` **고정**. 판정 근거가 있을 때만 쓴다 |
+| 출처 | `provenance` | `migrated-legacy` 등. 이 task 가 어디서 왔는가 |
+
+**"근거가 없으면 비운다" 가 이 결정의 핵심이다.** 도구가 모르는 것을 채우면 그게 곧 날조다.
+`migrate_active_to_appendonly.py` 는 이제 **release entry 에만** `status: done` 을 쓴다 —
+발행된 릴리스 노트가 근거다. generic/session entry 에는 `status` 줄을 아예 쓰지 않고
+`provenance` 만 남긴다.
+
+**같은 결함이 builder 에도 있었다.** `_aggregate_from_appendonly_layout` 은 `status:` 줄이
+없으면 `planned` 로 떨어뜨렸다. 그것도 판정이며, 이미 끝난 이관 task 를 "아직 시작 안 함"
+으로 기록한다. 이제 `unknown_status_items` 에 `<ID>: <미기재>` 로 드러낸다 — "판정하지
+않았다" 와 "어휘 밖 값을 적었다" 는 다른 사실이라 표식을 구분한다.
+
+**그리고 그 노출은 아무 데도 안 보이고 있었다.** §2.38 이 만든 `unknown_status_items` 는
+aggregate 의 반환값 안에만 있었고 **state payload 까지 오지 않았다**. `state.json` 을 읽는
+사람에게도, skill 에게도 안 보였으니 조용히 사라지는 것과 다르지 않다 — 이번에 발견해
+`session.unknown_status_items` 로 emit 한다 (빈 목록이어도 key 유지).
+
+**기존 3건의 처리.** 완료 여부를 *판정 가능한 것만* 확정했다.
+
+| task | 처리 | 근거 |
+|---|---|---|
+| `TASK-2026-06-30-002` | `status: done` | 본문에 commit 9건(`32185c7`…`4253eed`)이 결과와 함께 있고 **FULL mypy strict 도달(107 file clean)** 로 종료 |
+| `TASK-2026-04-24-001` | `status` 미기재 | legacy 본문이 한 줄 요약뿐 — 판정 근거 없음 |
+| `TASK-2026-05-01-001` | `status` 미기재 | 〃 |
+
+뒤의 두 건은 **모르는 채로 남겨 두는 것이 조치**다. `unknown_status_items` 에 드러나고,
+근거가 생기면 넷 중 하나로 채운다.
+
+**검사층.** `check_task_status_axis_separation.py` 6건 신규 (이관 도구가 근거 없이 status 를
+쓰지 않는가 / release 에만 done 인가 / 어떤 kind 든 어휘 안인가 / 미기재를 기본값으로 채우지
+않는가 / state.json 까지 완료로 새지 않는가 / 실저장소 task 103건 전수 어휘 검사).
+`check_appendonly_memory_layout.py` 의 frontmatter 규칙도 함께 고쳤다 — `status` 를 필수에서
+빼는 대신 **`status` 와 `provenance` 중 하나는 필수**, 그리고 `status` 가 있으면 어휘 안.
+
+**되주입 4건, 각각 다른 증상으로 실패 확인**: 이관 도구를 `recorded` 로 되돌리면 어휘 검사가
+잡고, builder 를 `planned` fallback 으로 되돌리면 미기재 검사가 잡고, 실파일에 `recorded` 를
+넣으면 layout 검사와 전수 검사가 각각 잡고, `provenance` 를 지우면 "둘 다 없다" 가 잡는다.
+
+> §2.23 이 판정 지표에 대해 한 것(`*_source` / `*_measured` 를 함께 낸다)을 task 상태에 대해
+> 한 셈이다. **판정과 그 근거는 다른 칸에 있어야 하고, 근거가 없으면 판정하지 않는다.**
+
 ## 3. 검증
 
-누적 smoke **218/218 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+누적 smoke **219/219 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
 격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 직전 수치는
-2026-07-27 의 217/217 이고, 늘어난 1건은 §2.38 의 `check_recent_done_items_order` 다.
+2026-07-28 의 218/218 이고, 늘어난 1건은 §2.39 의 `check_task_status_axis_separation` 이다
+(그 앞 217/217 → 218 은 §2.38 의 `check_recent_done_items_order`).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

@@ -22,6 +22,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 from workflow_kit.common.paths import memory_active_dir
+from workflow_kit.common.project_docs import TASK_PROVENANCE_MIGRATED_LEGACY
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ACTIVE_DIR = memory_active_dir(REPO_ROOT)
@@ -184,8 +185,22 @@ def build_task_file(entry: Entry) -> str:
     fm = [
         "---",
         f"id: {entry.task_id}",
-        f"status: {'done' if entry.kind == 'release' else 'recorded'}",
+    ]
+    # 진행 상태는 **판정 근거가 있을 때만** 쓴다.
+    #
+    # release entry 는 발행된 릴리스 노트가 곧 근거라 `done` 이 사실이다. 그러나
+    # generic/session entry 에 대해 이 툴이 아는 것은 "legacy work_backlog.md 에 적혀
+    # 있었다" 하나뿐이고, 그건 **출처(provenance)이지 진행 상태가 아니다**.
+    #
+    # 예전에는 그 자리에 표준 어휘 밖의 `recorded` 를 적었다. builder 는 그 값을 몰라
+    # 세 목록 어디에도 넣지 못했고, daily index fallback 이 "어느 목록에도 없으니 done"
+    # 으로 되살렸다 — 미완료 3건이 완료로 보고됐다(실측). 근거가 없으면 status 를 아예
+    # 쓰지 않고 `unknown_status_items` 에 드러나게 둔다. 사람이 근거를 보고 채운다.
+    if entry.kind == "release":
+        fm.append("status: done")
+    fm += [
         f"created_at: {entry.date}",
+        f"provenance: {TASK_PROVENANCE_MIGRATED_LEGACY}",
         f"source_anchor: {entry.anchor}",
         f"source_path: {entry.raw_path}",
         f"kind: {entry.kind}",

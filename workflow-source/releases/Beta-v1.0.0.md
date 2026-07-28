@@ -1234,10 +1234,98 @@ task SSOT 에 남아 있다). 범위 밖이라 손대지 않았다.
 > **"stable 로 선언된 도구가 상태 문서를 파괴한다"** 는 더 나쁜 형태였다. 그리고 그것을
 > 찾은 계기는 *도구의 산출물을 그냥 믿지 않고 diff 를 읽은 것* 하나다.
 
+### §2.38 — "최근 완료" 목록이 최신을 고른 적이 없었다 (2026-07-28)
+
+§2.37 이 미조치로 남긴 건을 집었다. 증상은 "정렬이 시간순이 아니다" 한 줄이었는데, 열어 보니
+**정렬 키라는 것이 애초에 없었다**. `recent_done_items` 는 이렇게 조립되고 있었다:
+
+```
+tasks_dir(파일명 사전순)  ++  daily index 잔여분(파일 날짜순)
+```
+
+그리고 두 번 잘렸다 — `_aggregate_from_appendonly_layout` 이 `[-10:]` (뒤 10개),
+`build_workflow_state_payload` 가 `[:10]` (앞 10개). **자르는 방향이 반대**라 서로를 무효화했고,
+어느 쪽도 *최신* 을 고르는 기준이 아니었다. 하필 뒤에 붙는 daily 잔여분이 저장소에서 가장
+오래된 task 들이라, `[-10:]` 가 그것들을 통째로 "최근 완료" 자리에 앉혔다.
+
+실측 (조치 전 `main`):
+
+```
+0 TASK-2026-07-25-main-001 …          5 Phase 10 MCP/JSON-RPC draft          ← 2026-04-24
+1 TASK-2026-07-27-main-001 …          6 Phase 6 multi-agent delegation pilot ← 2026-05-01
+2 TASK-2026-07-27-main-002 …          7 workflow 종료 단계 commit/memory …   ← 2026-06-30
+3 TASK-2026-07-27-main-003 …          8 워크플로우 구성 점검 …               ← 2026-07-09
+4 TASK-2026-07-27-main-004 …          9 2026-07-09 audit-session …           ← 2026-07-09
+```
+
+목록의 **뒤쪽 절반이 가장 오래된 5건**이고, 그 자리를 차지하느라 `TASK-2026-07-22-001~003`,
+`TASK-2026-07-23-main-001` 이 밀려났다.
+
+**세 번째 원인 — 파생물이 SSOT 를 밀어냈다.** 병합 순서가 `handoff §4` → `appendonly` 였다.
+handoff §4 는 `sync_handoff_status` 가 append-only 로 쌓는 파생물이고 **상한이 없다**. 그게
+앞에 있으면 가장 오래된 handoff 항목이 상한을 먼저 채운다. 되주입으로 실측하면 task 파일이
+3개 있어도 목록 10칸이 전부 handoff 의 옛 항목으로 찬다.
+
+**네 번째 원인 — 완료를 날조하고 있었다.** 같은 함수의 daily index fallback 은
+`done/in_progress/blocked` 어느 목록에도 없는 ID 를 **무조건 `done` 으로** 되살렸다. 그런데
+`migrate_active_to_appendonly.py` 는 legacy 이관 task 에 어휘 밖의 `status: recorded` 를 쓴다.
+builder 는 그 값을 몰라서 세 목록 어디에도 넣지 않았고 → fallback 이 done 으로 되살렸다.
+**실측 3건**(`TASK-2026-04-24-001` / `TASK-2026-05-01-001` / `TASK-2026-06-30-002`)이
+완료로 보고되고 있었다. task 파일이 SSOT 인데 파생물인 daily index 가 그 판정을 덮어썼다.
+
+**조치.**
+
+| 항목 | 조치 |
+|---|---|
+| 상한 | `RECENT_DONE_ITEMS_CAP` 단일 출처. aggregate 는 자르지 않고, builder 가 한 번만 자른다 |
+| 정렬 | `_task_recency_key` 도입 — `completed_at` → `updated_at` → `created_at` → ID 날짜 순 fallback. **최신순** 정렬 (소비자가 전부 앞에서 자른다) |
+| 병합 순서 | task SSOT 를 앞, handoff 를 tail fallback 으로. `tasks_dir` 이 없는 legacy 저장소에서는 handoff 가 그대로 살아난다 |
+| status 어휘 | `project_docs.TASK_STATUSES` 단일 출처 — `STATUS_RE` / `WORK_STATUS_RE` 가 여기서 조립된다 (같은 목록이 두 정규식에 리터럴로 복제돼 있었다) |
+| 어휘 밖 status | 조용히 버리지 않고 `unknown_status_items` 로 드러낸다. task 파일이 있으면 daily index 가 판정을 덮어쓰지 못한다 |
+
+`_task_recency_key` 는 **완료일이 아니라 근사값**이다 — 완료 시각을 담는 필드가 아직 표준이
+아니라서 등록일로 대신한다. 앞의 두 필드를 먼저 보게 해 뒀으니, writer 가 나중에 채우면 별도
+수정 없이 정확해진다. 근사라는 사실은 코드 주석에 남겼다.
+
+**회귀 테스트.** `check_recent_done_items_order.py` 5건 (최신순+상한 1회 / 어휘 밖 status
+되살리기 금지 / `planned` 완료 보고 금지 / 구형 index 항목의 날짜 자리 / handoff 가 SSOT 를
+밀어내지 않음). **되주입 시 5/5 가 각각 다른 증상으로 실패**하는 것을 확인했다 — 상한 slice 를
+되돌리면 최신 항목이 밀리고, fallback 을 되돌리면 `recorded`/`planned` 가 done 으로 나오고,
+병합 순서를 되돌리면 10칸이 전부 handoff 항목이 된다. 픽스처는 손으로 쓰지 않고 프로덕션
+writer(`upsert_backlog_entry`)로 만든다.
+
+조치 후 실측 (`main`, 최신순):
+
+```
+0 TASK-2026-07-27-main-004    5 TASK-2026-07-23-main-001    (…)
+1 TASK-2026-07-27-main-003    6 TASK-2026-07-22-003   ← 돌아왔다
+2 TASK-2026-07-27-main-002    7 TASK-2026-07-22-002
+3 TASK-2026-07-27-main-001    8 TASK-2026-07-22-001
+4 TASK-2026-07-25-main-001    9 TASK-2026-07-21-001
+```
+
+`done_items` 는 104 → 101 로 줄었다. 줄어든 3건이 위의 `recorded` 다 — **없어진 게 아니라
+완료가 아니었던 것**이고, 이제 `unknown_status_items` 에 보인다.
+
+**미조치 2건.**
+
+- `migrate_active_to_appendonly.py` 는 여전히 어휘 밖 `recorded` 를 쓴다. 이 값이 뜻하는
+  "이관은 됐고 완료 여부는 확인 못 함" 은 실재하는 상태인데 표준 어휘에 없다. 어휘를 늘릴지
+  (`global_workflow_standard.md` 개정) 기존 네 값에 맞출지는 governance 결정이라 남긴다.
+  이미 만들어진 3건의 status 도 **완료 여부를 확인하지 않았으므로 손대지 않았다**.
+- dashboard Panel 5(`collect_recent_releases`)는 브랜치별 `state.json` 을 이어 붙인 뒤 앞에서
+  자른다. 브랜치 *안* 은 이제 최신순이지만 브랜치 *간* 정렬 키는 여전히 없다 (문자열에 날짜가
+  없다). 별도 과제.
+
+> 이번 건의 모양은 §2.24/§2.37 과 같다 — **같은 규약이 두 곳에 있으면 갈라지는 게 아니라 같이
+> 틀린다**. 상한 `10` 이 두 곳에 있었고, status 어휘가 두 정규식에 복제돼 있었으며, 완료 판정이
+> task 파일과 daily index 두 곳에 있었다. 셋 다 각자의 자리에서는 말이 됐다.
+
 ## 3. 검증
 
-누적 smoke **217/217 PASS** (2026-07-27, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
-격리 실행 372초, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0).
+누적 smoke **218/218 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 직전 수치는
+2026-07-27 의 217/217 이고, 늘어난 1건은 §2.38 의 `check_recent_done_items_order` 다.
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-27",
+  "generated_at": "2026-07-28",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,22 +27,22 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `c54220f` (CI smoke·mypy-strict 모두 green)",
-    "current_axis": "환경에 기대던 판정을 계약 검증으로 분리 + 원인은 추측이 아니라 관측으로 확정",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `e06fd37` (CI smoke·mypy-strict 모두 green)",
+    "current_axis": "같은 규약이 두 곳에 있으면 같이 틀린다 — 상한·어휘·판정을 단일 출처로",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-07-25-main-001 선언과 사실을 맞춘다 (Pages / mypy strict / YAML·스킬·MCP 검사층)",
-      "TASK-2026-07-27-main-001 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
-      "TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소",
-      "TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정",
-      "TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍",
-      "Phase 10 MCP/JSON-RPC draft",
-      "Phase 6 multi-agent delegation pilot",
-      "workflow 종료 단계 commit/memory 순서 정정 (commit `32185c7`) — 협업 결함 (push 시 memory 갱신 누락 / 추가 commit 유발) 해결. 11 file 변경: `workflow-source/core/global_workflow_standard.md` §8 + `MEMORY_GOVERNANCE.md` §3 + `phase5_governance_guide.md` §4 + `extensions/resiliency-baseline.md` RES-WF-08 + `harnesses/{pi-dev,codex,gemini-cli,opencode}/` AGENTS/apply_guide + `examples/{acme_delivery_platform,research_eval_hub}/work_backlog.md` + `templates/work_backlog_template.md` 모두 **`memory 갱신 → commit → push`** 순서로 정합. release: no / version bump: no (governance 문서 정정).",
-      "워크플로우 구성 점검 + 고도화 후보 10건 도출 (audit-session, no release). 현 상태 v0.11.22-beta 스냅샷 (Phase 12 in_progress, skill stable=9 / MCP beta=4 / 10 harness / mypy 109 file clean). P0 3건 (project_status_assessment.md §2 점수 / PROJECT_PROFILE.md self-dogfood / memory_index/ 디렉토리 실재성) + P1 3건 (ADR-006 retrospective / MCP beta 승격 로드맵 / drift 91-cycle 사례 분류) + P2 4건 (Phase 13 정의 / wiki-memory 양방향 link / quality dashboard / automated-repro-scaffold AI 연동 강화). 산출물: `ai-workflow/memory/active/session_analysis_2026-07-09.md` (단기) + `ai-workflow/wiki/topics/workflow-audit-2026-07-09.md` (영구). state.json recent_done_items 1줄 추가. 다음 세션 권장 작업: P0 빠른 정리부터.",
-      "2026-07-09 audit-session 의 고도화 후보 10건 일괄 해소 (audit-follow-up, no release). P0 3건: project_status_assessment.md §2 매트릭스 11항목 점수 (합계 26/33, 78.8%) / PROJECT_PROFILE.md self-dogfood §1/§3/§4/§5/§6 (152 line) / memory_index/ 디렉토리 + 7 seed entry (MEM-2026-07-09-001~007) + retrieval 동작 검증. P1 3건: adr-006-retrospective-2026.md early observation (109 line, full review scheduled 2026-07-16) / Beta MCP 4종 stable 승격 로드맵 (1st batch v0.11.26 + 2nd batch v0.11.28) + maturity_matrix 필드 추가 / drift-prevention 91 cycle 사례 5 category 분류 (13 file 영향, hook 5 후보). P2 4건: Phase 13 정의 (north-star = silent_failing_cycles_count, 운영 지능화 1차 north-star) / Wiki↔Memory 양방향 link R-A~R-C / Quality dashboard 5 panel / automated-repro-scaffold AI 연동 강화 R-1~R-4. **검증**: drift prevention smoke 6/6 PASS + memory_index validation 0 issue + maturity_matrix schema v1 정합 + memory_index retrieval cue anchor 매칭 정상. **도구 제약 관측**: MiniMax-M3 model_provider 환경에서 표준 Codex file-editor tool 미노출 → exec_command + heredoc + Python helper (save_memory_entry 등) 우회. ADR-003 read-only 정책과 정합. **산출물**: 4 file edit (project_status_assessment.md / PROJECT_PROFILE.md / maturity_matrix.json / memory_index/README.md 포함) + 7 신규 file (adr-006-retrospective-2026.md / mcp-beta-promotion-roadmap-2026.md / drift-prevention-91-cycle-classification-2026.md / phase-13-definition-north-star.md / wiki-memory-bidirectional-link-design.md / quality-dashboard-implementation-guide.md / automated-repro-scaffold-ai-integration.md) + 7 memory_index entry JSON. state.json recent_done_items 1줄 추가 (P0/P1/P2 10건 종합 요약). breaking change: ❌."
+      "TASK-2026-07-28-main-001 — recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정",
+      "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍",
+      "TASK-2026-07-27-main-003 — 남은 자기참조 3건 해소 + CI red 원인 계측 확정",
+      "TASK-2026-07-27-main-002 — 남은 결함 3건 + CI 자기참조 해소",
+      "TASK-2026-07-27-main-001 — 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
+      "TASK-2026-07-25-main-001 — 선언과 사실을 맞춘다: Pages / mypy strict / YAML·스킬·MCP 검사 (§2.29~§2.30)",
+      "TASK-2026-07-23-main-001 — CI 가 40회 연속 red 였던 이유 — 측정이 환경에 기대고 있었다 (§2.26~§2.28)",
+      "TASK-2026-07-22-003 — **반복되던 결함의 구조적 방어 3층 + 같은 부류 전수 조사** (노트 §2.21~§2.25). TASK-2026-07-22-002 의 §2.19/§2.20 을 나란히 놓자 *같은 사실이 두 곳에 있는데 둘을 이어주는 기계적 장치가 없다* 는 하나의 결함으로 드러났고, 부품별 테스트는 전부 green 인데 조립하면 안 맞는 상태였다. **5 deliverable**: (1) **§2.21 backlog-update layout 정합** — stable 선언 skill 이 v0.14.0 append-only layout 을 만들지 못했다(task 파일명 / index 인라인 / `.bak` 재생성). 근본 원인은 task ID 정규식이 4곳에 복제돼 branch-scoped ID 를 셋이 인식 못 한 것 → `project_docs.TASK_ID_PATTERN` 단일 출처화 + `--kind` flag; (2) **§2.22 writer↔reader 왕복 계약 8쌍** — 프로덕션 writer 로 쓰고 프로덕션 reader 로 되읽는다. §2.20/§2.21 결함을 되돌려 주입해 해당 쌍이 FAIL 하는 것 확인; (3) **§2.23 판정 지표는 근거를 함께 낸다** — `JUDGMENT_METRICS` registry + `*_source` / `*_measured` 강제. 도입하며 Panel 6 north-star 도 같은 결함(git 실패를 삼키고 0 을 pass 로 보고)이었음이 드러나 `status: unknown` 도입; (4) **§2.24 규약 단일 출처 검사** — 정본 모듈이거나 정본 symbol 을 import 하거나. 도입 즉시 사본 7건 검출(4 skill 이 `purpose_digest` 없이 동작 / release validate 게이트 조용히 통과 / sync_release_hash 가 안 읽히는 파일에 기록); (5) **§2.25 같은 부류 전수 조사** — AST 로 문자열 상수 빈도를 내니 `ai-workflow`(28) > `memory`(21) > `active`(19) ≫ `state.json`(12) 로, 앞서 고친 것이 더 넓은 문제의 한 조각이었다. `memory_dir_for_workspace` / `memory_active_dir` 신규 + 14개 모듈 조립 교체 + 네 번째 규약 등록. 전량 smoke **203 → 209/209**, mypy strict 117 files 0 errors, 저장소 오염 0. breaking change: ❌.",
+      "TASK-2026-07-22-002 — **v1.0.0 발행 후 보강 — \"지표가 무엇을 재고 있는가\" 3층 점검** (노트 §2.15~§2.20). 릴리스 후 발견/보강 6건: (1) §2.15 auto-bump 이 dry-run 에서 version 을 write (릴리스 직후 발현); (2) §2.16 실행 표면 / 저장소 오염 메타 체크 2종 + `release_status` 의 `.rstrip(\"-beta\")` 문자집합 strip 버그; (3) §2.17 memory-freeze 조건 충족 후 stable 승격 + wiki L2 계층 복구 (과정에서 lifecycle 지표가 잘못 정의돼 있었음이 드러나 `last_touched` 신선도로 재정의); (4) §2.18 maturity registry 정합 메타 체크 신규 + 드리프트 3건 해소 (디렉터리명 규약 이탈 / 등재됐으나 디스크 부재 / 디스크에 있으나 미등재); (5) **§2.19 Panel 1 의 두 지표가 구조적으로 무의미했다** — `maturity_stale` 을 달력(`last_updated != 오늘`)에서 **drift**(maturity surface commit > 선언)로, north-star `silent_failing_cycles_count` 를 freshness proxy 에서 **원장**(`drift_ledger.jsonl`, 원장이 비면 `미측정`)으로 재정의; (6) **§2.20 state.json 이 2026-07-21 이후 갱신되지 않고 있었다** — branch-scoped 전환에서 hint 만 옮겨지고 writer 가 legacy 경로에 남아, refresh 가 아무도 읽지 않는 파일을 만들면서 `\"refreshed\"` 를 보고하던 silent failing + `backlog-update` 가 `--apply` 없이 write 하던 dry-run 오염. 신규 smoke 5종 (누적 199 → 205/205). breaking change: ❌.",
+      "TASK-2026-07-22-001 — v1.0.0-beta — **major, v1.0.0 진입 릴리스 발행**. entry gate 6/6 PASS + 전량 smoke 199/199 PASS 로 tag `v1.0.0-beta` + GitHub Release(Pre-release) 발행 (PyPI 는 정책상 미실행). v1.0.0 이 여러 차례 보류됐던 이유는 기능 미비가 아니라 **릴리스 도구와 메모리 계층이 실데이터·실행환경을 침범하던 구조적 결함**이었고 본 사이클에서 전부 해소했다: temp dir 누수 근절(/var/tmp 211GB 회수 + 누수 가드 7 case) · `release_pipeline --amend` 안전 가드 3중(무가드 `git add -A` + `--amend` 가 미커밋 작업을 push 된 커밋에 흡수하던 위험) · `state.json` 반복 소실(PERF-WF-05, 성능 규칙이 실파일을 50회 truncate-write) · **fork bomb 근절**(PERF-WF-01 의 자기참조 재귀 — 반복 OOM 의 진짜 원인) · smoke 가 저장소를 침범하던 5경로 차단 · memory layout 버그(`workflow_memory_dir` docs/ 분기의 `active/` 누락으로 부트스트랩한 모든 프로젝트가 한 단계 어긋나 있었음) · R9 해소(memory-freeze 스킬이 v0.6.6 이후 실행 불가였다) · 자기참조 품질 게이트 제거 · 브랜치별 메모리(branch-scoped) + 종료 브랜치 자동 아카이브 도입. 릴리스: https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.0.0-beta. breaking change: ❌ (메모리 layout 은 legacy fallback 으로 additive)."
     ],
     "environment_constraints": []
   },

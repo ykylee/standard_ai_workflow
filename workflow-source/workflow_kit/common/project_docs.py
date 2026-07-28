@@ -15,8 +15,17 @@ from workflow_kit.common.text import (
     normalize_inline_code,
 )
 
+# task 의 진행 상태 어휘 — **여기가 단일 출처다**. CLAUDE.md / global_workflow_standard
+# 이 선언하는 네 값이고, 아래 정규식들은 전부 이걸로 조립한다. 예전에는 같은 목록이
+# `STATUS_RE` 와 `WORK_STATUS_RE` 에 각각 리터럴로 박혀 있었고, builder 는 셋 중 어느
+# 것도 참조하지 않은 채 `in_progress`/`blocked`/`done` 만 비교해서 **그 밖의 값을 조용히
+# 버렸다** (실측: `status: recorded` 3건이 아무 목록에도 안 들어간 뒤 daily index
+# fallback 에 의해 done 으로 되살아났다).
+TASK_STATUSES: tuple[str, ...] = ("planned", "in_progress", "blocked", "done")
+_STATUS_ALT = "|".join(TASK_STATUSES)
+
 # Standard Regexes
-STATUS_RE = re.compile(r"- 상태:\s*(planned|in_progress|blocked|done)\s*$")
+STATUS_RE = re.compile(rf"- 상태:\s*({_STATUS_ALT})\s*$")
 MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")
 
 # 정본 task ID 패턴 — `TASK-<date>[-<branch-slug>]-<NNN>` (v1.0.0 branch-scoped).
@@ -42,7 +51,7 @@ TASK_ID_CAPTURE_RE = re.compile(r"^TASK-(?:(\d{4}-\d{2}-\d{2})-)?(?:(.+?)-)?(\d{
 # `TASK-021` 까지) 이고, `TASK_ID_CAPTURE_RE` 는 채번용 분해다.
 WORK_ITEM_ID_PATTERN = r"(?:TASK|WF)-[A-Za-z0-9._-]+"
 WORK_STATUS_RE = re.compile(
-    rf"^-\s+({WORK_ITEM_ID_PATTERN})\s+(.+?):\s*(planned|in_progress|blocked|done)\s*$"
+    rf"^-\s+({WORK_ITEM_ID_PATTERN})\s+(.+?):\s*({_STATUS_ALT})\s*$"
 )
 
 

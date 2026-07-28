@@ -14,13 +14,23 @@ from workflow_kit.common.normalize import (
 )
 from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
 from workflow_kit.common.project_docs import (
+    TASK_ID_CAPTURE_RE,
     TASK_ID_PATTERN,
+    TASK_STATUSES,
     find_latest_backlog_path,
     parse_backlog,
     parse_handoff,
     parse_project_profile_core,
     parse_project_profile_validation,
 )
+
+# `recent_done_items` 의 상한 — **여기가 단일 출처다**.
+#
+# 이전에는 상한이 두 곳에 있었고 **자르는 방향이 서로 반대**였다:
+# `_aggregate_from_appendonly_layout` 은 `[-10:]` (뒤 10개), `build_workflow_state_payload`
+# 는 `[:10]` (앞 10개). 그래서 aggregate 가 남긴 것을 builder 가 다시 앞에서 잘랐고,
+# 두 slice 어느 쪽도 *최신* 을 고르는 기준이 아니었다. 상한은 한 곳에서 한 번만 적용한다.
+RECENT_DONE_ITEMS_CAP = 10
 
 
 def _parse_purpose_summary(
@@ -57,6 +67,32 @@ def _parse_purpose_summary(
 def is_meaningful_text(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip()) and not value.strip().startswith("TODO:")
 
+
+# 완료 시각을 담는 frontmatter 필드 후보 (앞선 것 우선).
+_RECENCY_FIELDS = ("completed_at", "updated_at", "created_at")
+_ISO_DATE = r"(\d{4}-\d{2}-\d{2})"
+
+
+def _task_recency_key(frontmatter: str, task_id: str) -> str:
+    """done task 의 정렬 키(ISO date). 없으면 ID 의 날짜 segment, 그것도 없으면 "".
+
+    **완료일이 아니라 근사값이다.** 완료 시각을 기록하는 필드는 아직 표준이 아니라서,
+    `completed_at` / `updated_at` 이 있으면 그걸 쓰고(향후 writer 가 채우면 별도 수정
+    없이 정확해진다) 없으면 `created_at` 으로, 최후에는 ID 에 박힌 날짜로 떨어진다.
+
+    빈 문자열은 정렬에서 가장 오래된 쪽으로 가라앉는다 — 날짜를 모르는 항목이 최신
+    자리를 차지하지 않게 하려는 의도다.
+    """
+    for field in _RECENCY_FIELDS:
+        match = re.search(rf"^{field}\s*:\s*{_ISO_DATE}", frontmatter, re.M)
+        if match:
+            return match.group(1)
+    id_match = TASK_ID_CAPTURE_RE.match(task_id)
+    if id_match and id_match.group(1):
+        return id_match.group(1)
+    return ""
+
+
 def _aggregate_from_appendonly_layout(
     *,
     daily_backlog_dir: Path | None,
@@ -74,14 +110,22 @@ def _aggregate_from_appendonly_layout(
             "in_progress_items": list[str],   # tasks_dir frontmatter status: in_progress
             "blocked_items": list[str],       # tasks_dir frontmatter status: blocked
             "done_items": list[str],          # tasks_dir frontmatter status: done
-            "recent_done_items": list[str],   # done_items 의 최근 10개 (FIFO)
+            "recent_done_items": list[str],   # done prose summary, **최신순 전량** (상한 ❌)
+            "unknown_status_items": list[str],  # "<id>: <status>" — 어휘 밖의 status
             "sessions": list[str],            # sessions_dir 의 file stem list (참고용)
         }
+
+    `recent_done_items` 는 여기서 자르지 않는다. 상한은 `RECENT_DONE_ITEMS_CAP` 한 곳에서
+    `build_workflow_state_payload` 가 적용한다 — 두 곳에서 반대 방향으로 자르던 것이
+    "최근 항목이 밀려나는" 증상의 원인이었다.
     """
     in_progress: list[str] = []
     blocked: list[str] = []
     done: list[str] = []
-    done_summaries: list[str] = []  # prose 1줄 (dashboard / purpose_graph 정합)
+    # (recency_key, task_id, prose) — 정렬 후에야 prose 만 뽑는다.
+    done_records: list[tuple[str, str, str]] = []
+    unknown_status_items: list[str] = []
+    known_task_ids: set[str] = set()
     sessions: list[str] = []
 
     # 1) tasks_dir: TASK-<date>-<NNN>.md 의 frontmatter status aggregate
@@ -96,12 +140,20 @@ def _aggregate_from_appendonly_layout(
             fm_match = re.match(r"^---\n(.+?)\n---", text, re.S)
             if not fm_match:
                 continue
-            id_match = re.search(r"^id:\s*(\S+)", fm_match.group(1), re.M)
-            status_match = re.search(r"^status:\s*(\S+)", fm_match.group(1), re.M)
+            frontmatter = fm_match.group(1)
+            id_match = re.search(r"^id:\s*(\S+)", frontmatter, re.M)
+            status_match = re.search(r"^status:\s*(\S+)", frontmatter, re.M)
             if not id_match:
                 continue
             task_id = id_match.group(1)
+            # task file 이 존재한다는 사실 자체를 기록한다. 아래 (2) 의 daily index
+            # fallback 이 **이 파일의 판정을 덮어쓰지 않게** 하는 근거다.
+            known_task_ids.add(task_id)
             status = status_match.group(1) if status_match else "planned"
+            if status not in TASK_STATUSES:
+                # 어휘 밖의 값을 조용히 버리지 않는다. 버리면 (2) 가 done 으로 되살린다.
+                unknown_status_items.append(f"{task_id}: {status}")
+                continue
             if status == "in_progress":
                 in_progress.append(task_id)
             elif status == "blocked":
@@ -114,25 +166,55 @@ def _aggregate_from_appendonly_layout(
                     if line.startswith("# "):
                         prose = line[2:].strip()
                         break
-                done_summaries.append(prose or task_id)
+                done_records.append(
+                    (_task_recency_key(frontmatter, task_id), task_id, prose or task_id)
+                )
 
     # 2) daily_backlog_dir: YYYY-MM-DD.md 의 task link 보강 (legacy 데이터 호환)
-    #    tasks_dir aggregate 가 우선이지만, daily index 만 있고 task file 이
-    #    아직 migrate 안 된 경우를 대비해 daily index 의 TASK-* id 도 done 후보.
+    #    daily index 만 있고 task file 이 아직 migrate 안 된 경우의 fallback 이다.
+    #    **task file 이 있으면 그것이 SSOT** — daily index 로 덮어쓰지 않는다.
+    #    (예전에는 `done/in_progress/blocked` 어느 목록에도 없는 ID 를 전부 done 으로
+    #     되살려서, 어휘 밖 status 의 task 가 완료로 보고됐다.)
+    entry_split_re = re.compile(rf"(?m)^(?=-\s+\*\*{TASK_ID_PATTERN}\*\*)")
+    header_re = re.compile(rf"^-\s+\*\*({TASK_ID_PATTERN})\*\*")
+    status_line_re = re.compile(r"^\s*-\s*status:\s*(\S+)\s*$", re.M)
     if daily_backlog_dir is not None and daily_backlog_dir.exists() and daily_backlog_dir.is_dir():
         for daily_file in sorted(daily_backlog_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")):
             try:
                 text = daily_file.read_text(encoding="utf-8")
             except OSError:
                 continue
-            for line in text.splitlines():
-                m = re.match(rf"-\s+\*\*({TASK_ID_PATTERN})\*\*", line)
-                if m and m.group(1) not in done and m.group(1) not in in_progress and m.group(1) not in blocked:
-                    done.append(m.group(1))
-                    # daily index 의 "title" 부분 추출: `[🔧 release] title` → title 만
-                    after = line[m.end():].strip()
-                    title_m = re.match(r"(?:\[[^\]]+\]\s+)(.+)$", after)
-                    done_summaries.append(title_m.group(1).strip() if title_m else m.group(1))
+            daily_date = daily_file.stem
+            for block in entry_split_re.split(text):
+                header = header_re.match(block)
+                if header is None:
+                    continue
+                task_id = header.group(1)
+                if task_id in known_task_ids or task_id in done:
+                    continue
+                known_task_ids.add(task_id)
+                status_match = status_line_re.search(block)
+                # status 줄이 없는 구형 index 는 done 으로 본다 (migration fallback).
+                # 있으면 그 값을 따른다 — 여기서도 추측하지 않는다.
+                status = status_match.group(1) if status_match else "done"
+                if status not in TASK_STATUSES:
+                    unknown_status_items.append(f"{task_id}: {status}")
+                    continue
+                if status == "in_progress":
+                    in_progress.append(task_id)
+                    continue
+                if status == "blocked":
+                    blocked.append(task_id)
+                    continue
+                if status != "done":
+                    continue
+                done.append(task_id)
+                # daily index 의 "title" 부분 추출: `[🔧 release] title` → title 만
+                rest = block[header.end():].splitlines()
+                after = rest[0].strip() if rest else ""
+                title_m = re.match(r"(?:\[[^\]]+\]\s+)(.+)$", after)
+                title = title_m.group(1).strip() if title_m else task_id
+                done_records.append((daily_date, task_id, title))
 
     # 3) sessions_dir: per-session file stem (참고용 — state.json payload 에 직접
     #    들어가지 않고, dashboard 등에서 활용 가능하도록 list 로 emit)
@@ -140,11 +222,17 @@ def _aggregate_from_appendonly_layout(
         for session_file in sorted(sessions_dir.glob("*.md")):
             sessions.append(session_file.stem)
 
+    # **최신순**. 소비자(dashboard Panel 5 / purpose_graph / state.json 상한)가 모두
+    # 앞에서 잘라 쓰므로, 앞이 최신이어야 상한이 최신을 남긴다. 날짜가 같으면 ID 역순
+    # (같은 날 채번된 뒤 번호가 최신) — 결정적 순서를 보장한다.
+    done_records.sort(key=lambda record: (record[0], record[1]), reverse=True)
+
     return {
         "in_progress_items": in_progress,
         "blocked_items": blocked,
         "done_items": done,
-        "recent_done_items": done_summaries[-10:],
+        "recent_done_items": [prose for _, _, prose in done_records],
+        "unknown_status_items": unknown_status_items,
         "sessions": sessions,
     }
 
@@ -247,11 +335,18 @@ def build_workflow_state_payload(
         + [item for item in appendonly["blocked_items"] if is_meaningful_text(item)]
         + backlog_blocked
     )
+    # 최신순 + 상한 1회. 순서가 바뀐 이유:
+    #
+    # handoff §4 는 `sync_handoff_status` 가 **append-only 로 쌓는 파생물**이고 상한이
+    # 없다. 그게 앞에 있으면 가장 오래된 handoff 항목이 상한을 먼저 채우고, 정작 SSOT
+    # 인 task 파일의 최신 항목이 밀려난다 (실측: TASK-2026-07-22-003 이 밀려남).
+    # 그래서 task SSOT(appendonly, 이미 최신순) 를 앞에 두고 handoff 를 tail fallback
+    # 으로 내린다 — tasks_dir 이 없는 legacy 저장소에서는 handoff 가 그대로 살아난다.
     recent_done_items = dedupe_work_items(
-        [item for item in handoff_recent_done if is_meaningful_text(item)]
-        + [item for item in appendonly["recent_done_items"] if is_meaningful_text(item)]
+        [item for item in appendonly["recent_done_items"] if is_meaningful_text(item)]
+        + [item for item in handoff_recent_done if is_meaningful_text(item)]
         + backlog_done
-    )[:10]
+    )[:RECENT_DONE_ITEMS_CAP]
 
     next_documents = _dedupe_strings_base(
         [

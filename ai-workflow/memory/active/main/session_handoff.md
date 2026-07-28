@@ -43,11 +43,14 @@ TASK-2026-07-28-main-002 로 종료했다. §2.38 이 governance 결정으로 �
 확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
 조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
 
-- [ ] **판정 근거가 없어 비워 둔 2건이 있다** — `TASK-2026-04-24-001`(Phase 10 MCP/JSON-RPC
-      draft), `TASK-2026-05-01-001`(Phase 6 multi-agent delegation pilot). legacy 본문이 한 줄
-      요약뿐이라 완료 여부를 못 정했다. `state.json.session.unknown_status_items` 에
-      `<미기재>` 로 보인다. **근거를 찾으면** (git log / 실제 산출물 확인) 넷 중 하나로 채울 것.
-      — 이건 결함이 아니라 의도된 상태다.
+- [x] ~~판정 근거가 없어 비워 둔 2건~~ → **둘 다 `done` 으로 판정 완료**.
+      `archived/{codex/phase6,gemini/phase10}/` 의 handoff·day file 을 대조해 근거를 찾았다
+      (task 파일 Outcome 에 근거 기록). `unknown_status_items` 는 이제 빈 목록이다.
+- [ ] **이관 도구가 비-task section 도 task 로 만든다** — 위 2건은 legacy `work_backlog.md`
+      의 `### Historical archives` 아래 **아카이브 포인터 한 줄**이었는데
+      `migrate_active_to_appendonly.py` 가 `### [[path]] {#anchor}` block 을 일괄 task 화하면서
+      task 가 됐다. 본문이 한 줄이었던 이유가 이것이다. 이 저장소는 2건뿐이고 둘 다 닫혔지만,
+      **다른 저장소에서 같은 도구를 돌리면 아카이브 인덱스가 task 로 늘어난다.** 별건.
 - [ ] **`recent_done_items` 는 여전히 파생물이고 10개 상한이다.** 손으로 쓴 긴 서술은 다음
       `backlog-update` 실행에서 task SSOT 의 제목으로 재생성된다 — 상세의 집은 task SSOT 와
       릴리스 노트다. (정렬은 §2.38 에서 최신순으로 고쳤다. 상한 자체는 유지.)

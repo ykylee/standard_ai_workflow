@@ -1366,6 +1366,27 @@ aggregate 의 반환값 안에만 있었고 **state payload 까지 오지 않았
 뒤의 두 건은 **모르는 채로 남겨 두는 것이 조치**다. `unknown_status_items` 에 드러나고,
 근거가 생기면 넷 중 하나로 채운다.
 
+**후속 — 그 두 건을 곧바로 판정했다.** 노출된 김에 근거를 찾아봤더니 둘 다 남아 있었다.
+그리고 찾는 과정에서 **이 두 항목이 애초에 task 가 아니었다**는 게 드러났다. legacy
+`work_backlog.md` 에서 둘은 `### Historical archives` 아래의 **아카이브 포인터 한 줄**이었고,
+이관 도구가 `### [[path]] {#anchor}` block 을 일괄로 task 화하면서 포인터까지 task 가 됐다.
+그래서 본문이 한 줄이었던 것이다 — 내용은 가리키는 대상에 있었다.
+
+| task | 판정 | 근거 |
+|---|---|---|
+| `TASK-2026-05-01-001` | `done` | `archived/codex/phase6/backlog/2026-05-01.md` frontmatter `상태: done` + `session_handoff.md` `Status: done`(TASK-038~045 및 WF-042-01~06 전부 done, Next Actions 전 항목 `[x]`, "No active blocker") + 산출물 실재(`check_source_without_runtime_layer.py`, `workflow-source/`↔`ai-workflow/` 분리 = 현재 저장소 구조) |
+| `TASK-2026-04-24-001` | `done` | `archived/gemini/phase10/session_handoff.md`(Updated **2026-05-04**, 그 브랜치 메모리의 최신 기록) Work Status 에 `TASK-001 표준 AI 워크플로우 초기 도입: done` 명시 |
+
+두 번째 건은 **기록 셋이 서로 어긋나 있었다**: handoff(05-04)는 `done`, work_backlog §3
+체크박스(05-02)는 미체크, day file(04-24, 문서 상태 `draft`)은 `planned` 인 채 방치. 같은
+브랜치의 `2026-04-26.md` 는 `done` 으로 갱신돼 있어 그 날짜 파일만 안 고쳐진 것으로 보인다.
+**가장 나중이면서 유일하게 명시적인 상태 선언인 handoff 를 따랐고**, 어긋난다는 사실 자체는
+task 파일에 남겼다. 셋이 왜 어긋났는지는 알 수 없다 — 이것도 §2.38/§2.39 와 같은 부류다.
+
+> **관측**: 이관 도구는 `### Historical archives` 같은 **비-task section 도 task 로 만든다**.
+> 이 저장소에서는 2건이고 둘 다 판정으로 닫혔지만, 다른 저장소에서 같은 도구를 돌리면
+> 아카이브 인덱스가 그대로 task 로 늘어난다. 별도 과제로 남긴다.
+
 **검사층.** `check_task_status_axis_separation.py` 6건 신규 (이관 도구가 근거 없이 status 를
 쓰지 않는가 / release 에만 done 인가 / 어떤 kind 든 어휘 안인가 / 미기재를 기본값으로 채우지
 않는가 / state.json 까지 완료로 새지 않는가 / 실저장소 task 103건 전수 어휘 검사).

@@ -70,9 +70,30 @@
 > 노출을 만들었으면 **소비자가 실제로 보는 자리까지 왔는지** 확인할 것. 아무도 안 읽는
 > 자리에 놓인 지표는 없는 것과 같다.
 
+## 5-1. 후속 — 미판정 2건을 판정했다
+
+노출된 김에 근거를 찾았고 둘 다 남아 있었다. 찾는 과정에서 **이 둘이 애초에 task 가
+아니었다**는 게 드러났다 — legacy `work_backlog.md` 의 `### Historical archives` 아래
+**아카이브 포인터 한 줄**이었고, 이관 도구가 `### [[path]] {#anchor}` block 을 일괄
+task 화하면서 포인터까지 task 가 됐다. 본문이 한 줄이었던 이유가 이것이다.
+
+| task | 판정 | 근거 |
+|---|---|---|
+| `TASK-2026-05-01-001` | `done` | `archived/codex/phase6/backlog/2026-05-01.md` `상태: done` + handoff `Status: done` (TASK-038~045 / WF-042-01~06 전부 done, "No active blocker") + 산출물 실재 |
+| `TASK-2026-04-24-001` | `done` | `archived/gemini/phase10/session_handoff.md`(Updated 2026-05-04, 최신 기록) Work Status 에 `TASK-001 …: done` 명시 |
+
+두 번째 건은 **기록 셋이 어긋나 있었다** — handoff(05-04) `done` / work_backlog §3
+체크박스(05-02) 미체크 / day file(04-24, `draft`) `planned` 방치. 같은 브랜치의
+`2026-04-26.md` 는 `done` 으로 갱신돼 있어 그 날짜 파일만 안 고쳐진 것으로 보인다.
+가장 나중이면서 유일하게 명시적인 handoff 를 따랐고, **어긋난다는 사실 자체는 task 파일
+Outcome 에 남겼다**. 셋이 왜 어긋났는지는 알 수 없다.
+
+`unknown_status_items` 는 이제 빈 목록이다 (노출 기구는 그대로 유지).
+
 ## 6. 남긴 것
 
-- **미판정 2건은 의도된 상태다.** 근거(git log / 실제 산출물)를 확인하면 넷 중 하나로 채운다.
+- **이관 도구가 비-task section 도 task 로 만든다.** 이 저장소는 2건이고 둘 다 닫혔지만,
+  다른 저장소에서 같은 도구를 돌리면 아카이브 인덱스가 그대로 task 로 늘어난다. 별건.
 - **daily index 의 "`status` 줄 없으면 done" fallback 은 남겼다.** task 파일이 SSOT 라 이
   저장소(103건 전부 task 파일 보유)에서는 발현하지 않지만, 구형 index 만 있는 legacy
   저장소에서는 여전히 추측이다. 호환 때문에 두었다.

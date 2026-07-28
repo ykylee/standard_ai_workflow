@@ -90,10 +90,30 @@ Outcome 에 남겼다**. 셋이 왜 어긋났는지는 알 수 없다.
 
 `unknown_status_items` 는 이제 빈 목록이다 (노출 기구는 그대로 유지).
 
+## 5-2. 후속 2 — 이관 파서의 구분 heading 결함 (§2.40)
+
+위에서 "별건" 으로 적었던 것을 이어서 닫았다. 열어 보니 손실이 **둘**이었다.
+
+| 손실 | 실측 |
+|---|---|
+| 본문 오염 | `TASK-2026-06-05-001.md` Implementation 절에 `### Historical archives {#historical-archives}` 가 박혀 있었다 — 그 entry 의 내용이 아니라 다음 묶음의 시작 |
+| 소속 소실 | 아카이브 포인터와 작업 항목은 형태가 같다(`### [[path]] {#anchor}` + 한 줄). 구분 단서가 그 heading 뿐인데 파서가 버렸다 |
+
+**두 번째가 비쌌다.** §5-1 의 판정이 어려웠던 건 판정이 원래 어려워서가 아니라
+**판정에 필요한 사실이 이관에서 버려졌기 때문**이다.
+
+조치: `GROUP_HEADING_RE` 로 구분 heading 인식 → 직전 entry 를 닫고 소속 갱신,
+`Entry.group` → frontmatter `source_group:`, 이관 summary 에 "확인 필요" 묶음 노출.
+**"아카이브 포인터면 task 가 아니다" 는 판정은 도구가 하지 않는다** (§2.39 와 같은 원칙).
+
+검증: 실제 legacy 파일(git 이력 복원)로 entry **93건 그대로**, body 오염 **1→0**,
+포인터 2건 소속 부여. 신규 `check_migration_group_heading.py` 6건 + 되주입 3건 각각 다른
+증상으로 실패. 전량 smoke **220/220**.
+
 ## 6. 남긴 것
 
-- **이관 도구가 비-task section 도 task 로 만든다.** 이 저장소는 2건이고 둘 다 닫혔지만,
-  다른 저장소에서 같은 도구를 돌리면 아카이브 인덱스가 그대로 task 로 늘어난다. 별건.
+- **아카이브 포인터 2건을 task 로 둘지는 미결.** `source_group: Historical archives` 가
+  붙은 채 `done` 으로 남아 있다. 정리(삭제/이동) 여부는 프로젝트 결정.
 - **daily index 의 "`status` 줄 없으면 done" fallback 은 남겼다.** task 파일이 SSOT 라 이
   저장소(103건 전부 task 파일 보유)에서는 발현하지 않지만, 구형 index 만 있는 legacy
   저장소에서는 여전히 추측이다. 호환 때문에 두었다.

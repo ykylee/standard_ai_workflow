@@ -9,11 +9,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `047d4e5` (CI smoke·mypy-strict·mkdocs 3종 green 실측)
-- 현재 주 작업 축: 판정과 근거는 다른 칸에 — 근거가 없으면 채우지 않고 드러낸다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `0206ac3` (CI smoke·mypy-strict green 실측)
+- 현재 주 작업 축: 판정과 근거는 다른 칸에 — 근거를 버리지도, 없는 판정을 채우지도 않는다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.39](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.40](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
@@ -34,28 +34,32 @@
 - TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
+- TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 ## 5. 다음 세션 시작 포인트
 
-TASK-2026-07-28-main-002 로 종료했다. §2.38 이 governance 결정으로 남긴 `status: recorded`
-어휘 문제를 **어휘 확장이 아니라 축 분리** 로 닫았다 — 세부는 릴리스 노트 §2.39.
-`status` 는 넷 고정에 판정 근거가 있을 때만 쓰고, 출처는 `provenance` 로 적는다.
-**CI 는 green 이다** (`047d4e5` 에서 smoke·mypy-strict·mkdocs 3종 success 실측).
+TASK-2026-07-28-main-003 으로 종료했다. §2.39 후속으로 관측한 이관 파서 결함을 닫았다 —
+세부는 릴리스 노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 **그 줄이 직전
+entry 의 body 로 흘러들고**(실측 `TASK-2026-06-05-001`) **아래 entry 들의 소속이 소실**되고
+있었다. 소속 소실이 §2.39 후속의 판정 비용을 만든 원인이었다.
+**CI 는 green 이다** (`0206ac3` 에서 smoke·mypy-strict success 실측. `mkdocs` 는 해당 커밋의
+변경 경로가 path 필터에 안 걸려 미실행 — 그 앞 `5be5ba4` 에서 green).
 확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
 조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
 
 - [x] ~~판정 근거가 없어 비워 둔 2건~~ → **둘 다 `done` 으로 판정 완료**.
       `archived/{codex/phase6,gemini/phase10}/` 의 handoff·day file 을 대조해 근거를 찾았다
       (task 파일 Outcome 에 근거 기록). `unknown_status_items` 는 이제 빈 목록이다.
-- [ ] **이관 도구가 비-task section 도 task 로 만든다** — 위 2건은 legacy `work_backlog.md`
-      의 `### Historical archives` 아래 **아카이브 포인터 한 줄**이었는데
-      `migrate_active_to_appendonly.py` 가 `### [[path]] {#anchor}` block 을 일괄 task 화하면서
-      task 가 됐다. 본문이 한 줄이었던 이유가 이것이다. 이 저장소는 2건뿐이고 둘 다 닫혔지만,
-      **다른 저장소에서 같은 도구를 돌리면 아카이브 인덱스가 task 로 늘어난다.** 별건.
+- [x] ~~이관 도구가 비-task section 도 task 로 만든다~~ → **§2.40 에서 조치**. 파서가 구분
+      heading 을 인식해 직전 entry 를 닫고, 소속을 `source_group:` 으로 보존하며, 이관
+      summary 에 "확인 필요" 로 노출한다. **"아카이브 포인터면 task 가 아니다" 는 판정은
+      도구가 하지 않는다** — 프로젝트 결정이라 드러내기만 한다.
+- [ ] **아카이브 포인터 2건을 task 로 둘지는 미결.** 현재는 `source_group: Historical archives`
+      가 붙은 채 `done` 으로 남아 있다. 정리(삭제/이동)할지는 프로젝트 결정.
 - [ ] **`recent_done_items` 는 여전히 파생물이고 10개 상한이다.** 손으로 쓴 긴 서술은 다음
       `backlog-update` 실행에서 task SSOT 의 제목으로 재생성된다 — 상세의 집은 task SSOT 와
       릴리스 노트다. (정렬은 §2.38 에서 최신순으로 고쳤다. 상한 자체는 유지.)
 - [ ] **daily index 의 "`status` 줄이 없으면 done" fallback 은 남아 있다**(builder §2 구간).
-      task 파일이 있으면 그것이 SSOT 라 이 저장소에서는 발현하지 않지만(103건 전부 task 파일
+      task 파일이 있으면 그것이 SSOT 라 이 저장소에서는 발현하지 않지만(104건 전부 task 파일
       보유), *구형 index 만 있는 legacy 저장소* 에서는 여전히 추측이다. task 쪽은 §2.39 에서
       닫았고 이쪽은 호환 때문에 남겼다.
 - [ ] **dashboard Panel 5 (`collect_recent_releases`)는 브랜치 간 정렬 키가 없다.** 브랜치별
@@ -70,6 +74,10 @@ TASK-2026-07-28-main-002 로 종료했다. §2.38 이 governance 결정으로 �
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
+- **이번 세션의 교훈(§2.40)**: §2.39 는 "판정 근거가 없으면 채우지 말라" 였는데, 이건 그 앞
+  단계다 — **판정 근거를 애초에 버리지 말 것.** 아카이브 포인터인지 작업 항목인지 구분할
+  단서는 구분 heading 하나뿐이었고, 이관이 그걸 버려서 판정 자체가 불가능해졌다.
+  **이관은 형식을 바꾸는 일이지 사실을 줄이는 일이 아니다.**
 - **이번 세션의 교훈(§2.39)**: 어휘가 모자라 보일 때 **먼저 의심할 것은 축이 섞였는지**다.
   `recorded` 는 다섯 번째 진행 상태가 아니라 *출처* 였다. 어휘를 늘렸다면 정본과 소비자
   validator 를 다 깨면서도 축 혼재는 그대로 남았을 것이다.

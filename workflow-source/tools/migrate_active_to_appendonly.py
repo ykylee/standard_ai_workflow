@@ -35,6 +35,19 @@ ENTRY_RE = re.compile(r"^###\s+\[\[(?P<path>[^\]]+)\]\]\s+\{#(?P<anchor>[^}]+)\}
 DATE_BULLET_RE = re.compile(r"^-\s+(?P<date>\d{4}-\d{2}-\d{2})\s*:\s*(?P<summary>.*)$")
 H2_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$")
 
+# `### <제목>` 인데 `### [[path]] {#anchor}` 형태가 **아닌** 것 — entry 가 아니라
+# entry 들을 묶는 **구분 heading** 이다 (실측: `### Historical archives {#historical-archives}`).
+# 이걸 인식하지 못하면 두 가지가 동시에 깨진다:
+#   1. heading 줄이 **직전 entry 의 body 로 흘러든다** (실측: TASK-2026-06-05-001.md 의
+#      Implementation 절에 `### Historical archives {#historical-archives}` 가 박혀 있었다)
+#   2. 그 아래 entry 들이 **어느 묶음 소속인지 사라진다** — 아카이브 포인터와 실제 작업
+#      항목이 형태가 같아서(둘 다 `### [[path]] {#anchor}`) 구분할 단서가 이 heading 뿐인데,
+#      그걸 버리면 이관 후에는 알 수 없다 (실측: 아카이브 포인터 2건이 판정 불가 task 로
+#      남아 한 세션을 소모했다 — §2.39)
+GROUP_HEADING_RE = re.compile(r"^###\s+(?P<title>.+?)\s*$")
+# 구분 heading 제목 끝의 `{#anchor}` 는 표기용이라 소속 이름에서 뺀다.
+GROUP_ANCHOR_SUFFIX_RE = re.compile(r"\s*\{#[^}]+\}\s*$")
+
 
 @dataclass
 class Entry:
@@ -48,6 +61,9 @@ class Entry:
     kind: str = "generic"  # 'release' | 'session' | 'generic'
     task_id: str = ""
     output_path: Path | None = None
+    # 이 entry 를 감싸던 `### <제목>` 구분 heading (없으면 ''). 이관 후에도 "이게 작업
+    # 항목이었는지 아카이브 포인터였는지" 를 판단할 수 있는 유일한 단서다.
+    group: str = ""
 
 
 def parse_entries(text: str) -> tuple[list[str], list[Entry], list[str]]:
@@ -62,6 +78,7 @@ def parse_entries(text: str) -> tuple[list[str], list[Entry], list[str]]:
     footer_lines: list[str] = []
     current_entry: Entry | None = None
     current_section: str = ""  # '' | 'header' | 'recent' | 'footer'
+    current_group: str = ""
 
     for line in lines:
         h2_match = H2_RE.match(line)
@@ -98,7 +115,18 @@ def parse_entries(text: str) -> tuple[list[str], list[Entry], list[str]]:
                 date="",
                 summary="",
                 body_lines=[],
+                group=current_group,
             )
+            continue
+
+        # entry 형태가 아닌 `###` = 구분 heading. 직전 entry 를 **여기서 닫고**
+        # (그러지 않으면 이 줄이 직전 entry 의 body 로 흘러든다) 소속을 갱신한다.
+        group_match = GROUP_HEADING_RE.match(line)
+        if group_match:
+            if current_entry is not None:
+                entries.append(current_entry)
+                current_entry = None
+            current_group = GROUP_ANCHOR_SUFFIX_RE.sub("", group_match.group("title")).strip()
             continue
 
         if current_entry is not None:
@@ -201,6 +229,12 @@ def build_task_file(entry: Entry) -> str:
     fm += [
         f"created_at: {entry.date}",
         f"provenance: {TASK_PROVENANCE_MIGRATED_LEGACY}",
+    ]
+    # 구분 heading 소속을 남긴다. 이게 없으면 아카이브 포인터와 실제 작업 항목이
+    # 이관 후 구분되지 않는다 (둘 다 `### [[path]] {#anchor}` 한 줄짜리다).
+    if entry.group:
+        fm.append(f"source_group: {entry.group}")
+    fm += [
         f"source_anchor: {entry.anchor}",
         f"source_path: {entry.raw_path}",
         f"kind: {entry.kind}",
@@ -340,6 +374,23 @@ def main() -> int:
     for e in entries:
         kinds[e.kind] += 1
     print(", ".join(f"{k}={v}" for k, v in sorted(kinds.items())))
+
+    # 구분 heading 아래에서 온 entry 는 **작업 항목이 아닐 수 있다** (실측:
+    # `### Historical archives` 아래는 아카이브 포인터였다). 이 도구는 그걸 판정하지
+    # 않는다 — 대신 반드시 눈에 띄게 낸다. 조용히 task 로 만들면 나중에 "본문 한 줄짜리
+    # 정체불명 task" 로 남는다.
+    grouped: dict[str, list[Entry]] = defaultdict(list)
+    for e in entries:
+        if e.group:
+            grouped[e.group].append(e)
+    if grouped:
+        print()
+        print("[확인 필요] 구분 heading 아래의 entry — 작업 항목이 아닐 수 있다:")
+        for group, items in sorted(grouped.items()):
+            print(f"  ### {group} → {len(items)}건")
+            for e in items:
+                print(f"      {e.task_id or '(id 미할당)'}  {e.raw_path}")
+        print("  → task 가 아니면 이관 후 해당 파일을 정리하거나 status 를 판정할 것.")
 
     if not args.apply:
         print("[dry-run] --apply flag 없이 실행됨. 실제 write ❌. 위 plan 만 emit.")

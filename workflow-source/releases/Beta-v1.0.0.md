@@ -1385,7 +1385,55 @@ task 파일에 남겼다. 셋이 왜 어긋났는지는 알 수 없다 — 이�
 
 > **관측**: 이관 도구는 `### Historical archives` 같은 **비-task section 도 task 로 만든다**.
 > 이 저장소에서는 2건이고 둘 다 판정으로 닫혔지만, 다른 저장소에서 같은 도구를 돌리면
-> 아카이브 인덱스가 그대로 task 로 늘어난다. 별도 과제로 남긴다.
+> 아카이브 인덱스가 그대로 task 로 늘어난다. → **§2.40 에서 조치했다.**
+
+### 2.40. 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다
+
+§2.39 후속에서 관측한 건이다. legacy `work_backlog.md` 의 `## 최근 작업 백로그` 안에는
+`###` 가 **두 종류** 섞여 있다.
+
+```
+### [[release/v0.5.1/backlog/2026-06-05.md]] {#release-v0-5-1}   ← entry
+- 2026-06-05: v0.5.1 self-dogfooding bootstrap …
+
+### Historical archives {#historical-archives}                    ← 구분 heading
+### [[codex/phase6/backlog/2026-05-01.md]] {#codex-phase6}        ← entry (아카이브 포인터)
+- 2026-05-01: Phase 6 multi-agent delegation pilot
+```
+
+`migrate_active_to_appendonly.py` 의 파서는 `### [[path]] {#anchor}` 만 알았다. 두 번째
+종류를 만나면 `ENTRY_RE` 가 매치되지 않고, 그대로 **직전 entry 의 body 로 흘러갔다**.
+
+**손실 1 — 본문 오염.** 실측: `TASK-2026-06-05-001.md` 의 Implementation 절 안에
+`### Historical archives {#historical-archives}` 가 그대로 박혀 있었다. 그 entry 의 내용이
+아니라 *다음 묶음의 시작*을 알리는 줄이다.
+
+**손실 2 — 소속 소실. 이쪽이 실제로 비쌌다.** 아카이브 포인터와 실제 작업 항목은 형태가
+같다 — 둘 다 `### [[path]] {#anchor}` + 한 줄 요약. 구분할 단서는 위의 구분 heading
+**하나뿐**인데 파서가 그걸 버렸다. 그래서 이관 후에는 알 방법이 없었고, §2.39 에서 그
+2건이 "본문 한 줄짜리 정체불명 task" 로 남아 완료 판정에 세션 하나를 소모했다. **판정이
+어려웠던 게 아니라, 판정에 필요한 사실이 이관에서 버려진 것이다.**
+
+**조치.**
+
+| 항목 | 조치 |
+|---|---|
+| 파서 | `GROUP_HEADING_RE` — entry 형태가 아닌 `###` 는 **직전 entry 를 닫고** 현재 소속을 갱신 |
+| 소속 보존 | `Entry.group` → task frontmatter 의 `source_group:` (없으면 key 자체를 안 씀) |
+| 노출 | 이관 summary 에 `[확인 필요] 구분 heading 아래의 entry` 로 묶음별 목록 출력 |
+| 판정 | **하지 않는다.** "아카이브 포인터면 task 가 아니다" 는 프로젝트 결정이라 도구가 정하지 않고 드러내기만 한다 (§2.39 와 같은 원칙) |
+
+기존 산출물도 정리했다 — `TASK-2026-06-05-001.md` 의 유출 heading 제거, 포인터 2건에
+`source_group: Historical archives` 기록.
+
+**검증.** 실제 legacy 파일(`work_backlog.md.bak`, git 이력에서 복원)로 확인: entry
+**93건 그대로**(삼킴 0), body 오염 **1건 → 0건**, 포인터 2건에 소속 부여.
+신규 `check_migration_group_heading.py` 6건 + **되주입 3건이 각각 다른 증상으로 실패**
+(파서 인식 제거 → 오염·소속 3건 동시 실패 / frontmatter emit 제거 → 소속만 실패 /
+실파일 heading 복원 → 전수 검사만 실패).
+
+> §2.39 는 "판정 근거가 없으면 채우지 말라" 였고, 이건 그 앞 단계다 — **판정 근거를
+> 애초에 버리지 말 것.** 이관은 형식을 바꾸는 일이지 사실을 줄이는 일이 아니다.
 
 **검사층.** `check_task_status_axis_separation.py` 6건 신규 (이관 도구가 근거 없이 status 를
 쓰지 않는가 / release 에만 done 인가 / 어떤 kind 든 어휘 안인가 / 미기재를 기본값으로 채우지
@@ -1402,10 +1450,10 @@ task 파일에 남겼다. 셋이 왜 어긋났는지는 알 수 없다 — 이�
 
 ## 3. 검증
 
-누적 smoke **219/219 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
-격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 직전 수치는
-2026-07-28 의 218/218 이고, 늘어난 1건은 §2.39 의 `check_task_status_axis_separation` 이다
-(그 앞 217/217 → 218 은 §2.38 의 `check_recent_done_items_order`).
+누적 smoke **220/220 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 같은 날 누적
+추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
+`check_task_status_axis_separation`) → **220**(§2.40 `check_migration_group_heading`).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

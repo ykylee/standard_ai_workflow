@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `047d4e5` (CI smoke·mypy-strict·mkdocs 3종 green 실측)",
-    "current_axis": "판정과 근거는 다른 칸에 — 근거가 없으면 채우지 않고 드러낸다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `0206ac3` (CI smoke·mypy-strict green 실측)",
+    "current_axis": "판정과 근거는 다른 칸에 — 근거를 버리지도, 없는 판정을 채우지도 않는다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-07-28-main-003 — 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서",
       "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리",
       "TASK-2026-07-28-main-001 — recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정",
       "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍",
@@ -41,8 +42,7 @@
       "TASK-2026-07-27-main-001 — 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
       "TASK-2026-07-25-main-001 — 선언과 사실을 맞춘다: Pages / mypy strict / YAML·스킬·MCP 검사 (§2.29~§2.30)",
       "TASK-2026-07-23-main-001 — CI 가 40회 연속 red 였던 이유 — 측정이 환경에 기대고 있었다 (§2.26~§2.28)",
-      "TASK-2026-07-22-003 — **반복되던 결함의 구조적 방어 3층 + 같은 부류 전수 조사** (노트 §2.21~§2.25). TASK-2026-07-22-002 의 §2.19/§2.20 을 나란히 놓자 *같은 사실이 두 곳에 있는데 둘을 이어주는 기계적 장치가 없다* 는 하나의 결함으로 드러났고, 부품별 테스트는 전부 green 인데 조립하면 안 맞는 상태였다. **5 deliverable**: (1) **§2.21 backlog-update layout 정합** — stable 선언 skill 이 v0.14.0 append-only layout 을 만들지 못했다(task 파일명 / index 인라인 / `.bak` 재생성). 근본 원인은 task ID 정규식이 4곳에 복제돼 branch-scoped ID 를 셋이 인식 못 한 것 → `project_docs.TASK_ID_PATTERN` 단일 출처화 + `--kind` flag; (2) **§2.22 writer↔reader 왕복 계약 8쌍** — 프로덕션 writer 로 쓰고 프로덕션 reader 로 되읽는다. §2.20/§2.21 결함을 되돌려 주입해 해당 쌍이 FAIL 하는 것 확인; (3) **§2.23 판정 지표는 근거를 함께 낸다** — `JUDGMENT_METRICS` registry + `*_source` / `*_measured` 강제. 도입하며 Panel 6 north-star 도 같은 결함(git 실패를 삼키고 0 을 pass 로 보고)이었음이 드러나 `status: unknown` 도입; (4) **§2.24 규약 단일 출처 검사** — 정본 모듈이거나 정본 symbol 을 import 하거나. 도입 즉시 사본 7건 검출(4 skill 이 `purpose_digest` 없이 동작 / release validate 게이트 조용히 통과 / sync_release_hash 가 안 읽히는 파일에 기록); (5) **§2.25 같은 부류 전수 조사** — AST 로 문자열 상수 빈도를 내니 `ai-workflow`(28) > `memory`(21) > `active`(19) ≫ `state.json`(12) 로, 앞서 고친 것이 더 넓은 문제의 한 조각이었다. `memory_dir_for_workspace` / `memory_active_dir` 신규 + 14개 모듈 조립 교체 + 네 번째 규약 등록. 전량 smoke **203 → 209/209**, mypy strict 117 files 0 errors, 저장소 오염 0. breaking change: ❌.",
-      "TASK-2026-07-22-002 — **v1.0.0 발행 후 보강 — \"지표가 무엇을 재고 있는가\" 3층 점검** (노트 §2.15~§2.20). 릴리스 후 발견/보강 6건: (1) §2.15 auto-bump 이 dry-run 에서 version 을 write (릴리스 직후 발현); (2) §2.16 실행 표면 / 저장소 오염 메타 체크 2종 + `release_status` 의 `.rstrip(\"-beta\")` 문자집합 strip 버그; (3) §2.17 memory-freeze 조건 충족 후 stable 승격 + wiki L2 계층 복구 (과정에서 lifecycle 지표가 잘못 정의돼 있었음이 드러나 `last_touched` 신선도로 재정의); (4) §2.18 maturity registry 정합 메타 체크 신규 + 드리프트 3건 해소 (디렉터리명 규약 이탈 / 등재됐으나 디스크 부재 / 디스크에 있으나 미등재); (5) **§2.19 Panel 1 의 두 지표가 구조적으로 무의미했다** — `maturity_stale` 을 달력(`last_updated != 오늘`)에서 **drift**(maturity surface commit > 선언)로, north-star `silent_failing_cycles_count` 를 freshness proxy 에서 **원장**(`drift_ledger.jsonl`, 원장이 비면 `미측정`)으로 재정의; (6) **§2.20 state.json 이 2026-07-21 이후 갱신되지 않고 있었다** — branch-scoped 전환에서 hint 만 옮겨지고 writer 가 legacy 경로에 남아, refresh 가 아무도 읽지 않는 파일을 만들면서 `\"refreshed\"` 를 보고하던 silent failing + `backlog-update` 가 `--apply` 없이 write 하던 dry-run 오염. 신규 smoke 5종 (누적 199 → 205/205). breaking change: ❌."
+      "TASK-2026-07-22-003 — **반복되던 결함의 구조적 방어 3층 + 같은 부류 전수 조사** (노트 §2.21~§2.25). TASK-2026-07-22-002 의 §2.19/§2.20 을 나란히 놓자 *같은 사실이 두 곳에 있는데 둘을 이어주는 기계적 장치가 없다* 는 하나의 결함으로 드러났고, 부품별 테스트는 전부 green 인데 조립하면 안 맞는 상태였다. **5 deliverable**: (1) **§2.21 backlog-update layout 정합** — stable 선언 skill 이 v0.14.0 append-only layout 을 만들지 못했다(task 파일명 / index 인라인 / `.bak` 재생성). 근본 원인은 task ID 정규식이 4곳에 복제돼 branch-scoped ID 를 셋이 인식 못 한 것 → `project_docs.TASK_ID_PATTERN` 단일 출처화 + `--kind` flag; (2) **§2.22 writer↔reader 왕복 계약 8쌍** — 프로덕션 writer 로 쓰고 프로덕션 reader 로 되읽는다. §2.20/§2.21 결함을 되돌려 주입해 해당 쌍이 FAIL 하는 것 확인; (3) **§2.23 판정 지표는 근거를 함께 낸다** — `JUDGMENT_METRICS` registry + `*_source` / `*_measured` 강제. 도입하며 Panel 6 north-star 도 같은 결함(git 실패를 삼키고 0 을 pass 로 보고)이었음이 드러나 `status: unknown` 도입; (4) **§2.24 규약 단일 출처 검사** — 정본 모듈이거나 정본 symbol 을 import 하거나. 도입 즉시 사본 7건 검출(4 skill 이 `purpose_digest` 없이 동작 / release validate 게이트 조용히 통과 / sync_release_hash 가 안 읽히는 파일에 기록); (5) **§2.25 같은 부류 전수 조사** — AST 로 문자열 상수 빈도를 내니 `ai-workflow`(28) > `memory`(21) > `active`(19) ≫ `state.json`(12) 로, 앞서 고친 것이 더 넓은 문제의 한 조각이었다. `memory_dir_for_workspace` / `memory_active_dir` 신규 + 14개 모듈 조립 교체 + 네 번째 규약 등록. 전량 smoke **203 → 209/209**, mypy strict 117 files 0 errors, 저장소 오염 0. breaking change: ❌."
     ],
     "unknown_status_items": [],
     "environment_constraints": []

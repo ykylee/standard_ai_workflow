@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `d14d5f4` (CI smoke·mypy-strict·mkdocs green 실측)
-- 현재 주 작업 축: 판정과 근거는 다른 칸에 — 근거를 버리지도, 없는 판정을 채우지도 않는다
+- 현재 주 작업 축: 상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀으로 되돌리고, 원인을 가리는 층을 걷어낸다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.40](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -37,15 +37,44 @@
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 ## 5. 다음 세션 시작 포인트
 
-TASK-2026-07-28-main-003 으로 종료했다. §2.39 후속으로 관측한 이관 파서 결함을 닫았다 —
-세부는 릴리스 노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 **그 줄이 직전
-entry 의 body 로 흘러들고**(실측 `TASK-2026-06-05-001`) **아래 entry 들의 소속이 소실**되고
-있었다. 소속 소실이 §2.39 후속의 판정 비용을 만든 원인이었다.
-**CI 는 green 이다** (`d14d5f4` 에서 smoke·mypy-strict·mkdocs 3종 success 실측 — §2.40
-커밋 자체에서 세 workflow 가 모두 돌았다).
-확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
-조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
+**의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로 되돌리고 원인 2건을
+task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-strict 가 실패했는데, 커밋
+내용과 무관했다. CI 설치 로그에 **`mcp-2.0.0`** 이 찍혀 있고 (extra 가 `mcp[cli]>=1.0` 로
+상한이 없었다) 같은 소스에 버전만 갈아 끼워 재현했다 — `1.28.1` green / `2.0.0` 에서
+`mcp_v1_server.py:27 no-any-return`.
 
+**에러 메시지가 원인에서 한 칸 떨어진 곳을 가리키고 있었다.** 실제 사실은 mcp 2.0.0 이
+`mcp.server.fastmcp` 모듈 자체를 없애고 `mcp.server.mcpserver.MCPServer` 로 옮긴 것이다
+(2.0.0 의 `mcp.server` 하위 모듈 목록 실측). 즉 타입 문제가 아니라 `HAS_FASTMCP=False` →
+`sys.exit(1)` 인 **런타임 파손**인데, `pyproject.toml` 의 `ignore_missing_imports = true` 가
+사라진 모듈을 error 가 아니라 `Any` 로 바꿔 놓아 27번 줄에서야 표면화됐다.
+
+조치는 상한 핀뿐이다 (`mcp[cli]>=1.0,<2` + `requirements.txt` 도 동일). 핀이 해석하는
+`mcp 1.29.0`(로컬 1.28.1 보다 최신)에서 mypy strict 119 files 0 errors 와
+`from mcp.server.fastmcp import FastMCP` 성공을 각각 실측했다. **파손 자체는 그대로 남아
+있다** — TASK-2026-07-29-main-001(이관) / -002(탐지층).
+
+- 기준선은 아직 `d14d5f4` 다. 이 커밋의 CI 를 실측한 뒤에 옮긴다.
+- 확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
+  조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
+- smoke 가 이 드리프트에 안 걸린 것은 설계가 아니라 **설치 순서 덕**이다 —
+  `requirements-dev.txt` 의 `mcp[cli]==1.27.0` 이 뒤에 깔리며 되돌려 놓는다. mypy-strict
+  job 은 그 파일을 안 깔아서 그대로 맞았다.
+
+앞 세션(TASK-2026-07-28-main-003)은 §2.39 후속의 이관 파서 결함을 닫았다 — 세부는 릴리스
+노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 그 줄이 직전 entry 의 body 로
+흘러들고(실측 `TASK-2026-06-05-001`) 아래 entry 들의 소속이 소실되고 있었다.
+
+- [ ] **TASK-2026-07-29-main-001 — mcp 2.0.0 이관.** `FastMCP` → `MCPServer`. `.tool()`
+      시그니처 호환이 미확인이라 wrapper 계약(`Callable[..., Any]`)부터 재확인해야 한다.
+      1.x 지원을 끊을지는 별도 결정. 완료되면 상한 핀을 푼다.
+- [ ] **TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍.** 선언한 optional
+      dep 의 import 가 실제로 되는지 판정하는 층이 없다. 되주입했을 때 `no-any-return` 이
+      아니라 "모듈 없음" 으로 실패해야 한다. `mcp.*` 만 override 에서 빼면 SDK 미설치
+      로컬이 red 가 되므로 판정 기준을 먼저 정할 것.
+- [ ] **`state.json` 의 `backlog.task_count` 는 항상 0, `latest_backlog_path` 는 항상
+      `null` 이다.** 이번에 `--latest-backlog-path` 를 넘겨 재생성해도 그대로였다 (task 파일
+      107건 존재). 이번 변경으로 생긴 것이 아니라 그 전부터 그랬다 — 관측만 해 둔다.
 - [x] ~~판정 근거가 없어 비워 둔 2건~~ → **둘 다 `done` 으로 판정 완료**.
       `archived/{codex/phase6,gemini/phase10}/` 의 handoff·day file 을 대조해 근거를 찾았다
       (task 파일 Outcome 에 근거 기록). `unknown_status_items` 는 이제 빈 목록이다.

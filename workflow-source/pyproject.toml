@@ -50,7 +50,13 @@ dependencies = [
 # (experimental). ``jsonrpc-bridge`` is the draft fixture (always available).
 mcp-jsonrpc = []
 mcp-sdk = [
-    "mcp[cli]>=1.0",
+    # 상한 필수. mcp 2.0.0 은 `mcp.server.fastmcp` 모듈을 없애고
+    # `mcp.server.mcpserver.MCPServer` 로 옮겼다 — `mcp_v1_server.py` 의
+    # `from mcp.server.fastmcp import FastMCP` 가 항상 ImportError 로 떨어져
+    # `HAS_FASTMCP=False` → `sys.exit(1)` 이 된다 (런타임 파손).
+    # 상한 없이 두었더니 2.0.0 릴리스 당일 CI 가 red 로 넘어갔다 (2026-07-29).
+    # 상한 해제는 2.0.0 이관(TASK-2026-07-29-main-001) 이후에만.
+    "mcp[cli]>=1.0,<2",
 ]
 # v0.7.4+ Property-Based Testing (PBT) — hypothesis framework (optional)
 pbt = [

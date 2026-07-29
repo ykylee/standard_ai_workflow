@@ -34,6 +34,7 @@
     "blocked_items": [],
     "recent_done_items": [
       "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler",
+      "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층",
       "TASK-2026-07-29-main-001 — mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer",
       "TASK-2026-07-28-main-003 — 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서",
       "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리",
@@ -41,8 +42,7 @@
       "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍",
       "TASK-2026-07-27-main-003 — 남은 자기참조 3건 해소 + CI red 원인 계측 확정",
       "TASK-2026-07-27-main-002 — 남은 결함 3건 + CI 자기참조 해소",
-      "TASK-2026-07-27-main-001 — 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
-      "TASK-2026-07-25-main-001 — 선언과 사실을 맞춘다: Pages / mypy strict / YAML·스킬·MCP 검사 (§2.29~§2.30)"
+      "TASK-2026-07-27-main-001 — 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []

@@ -1631,14 +1631,63 @@ patch 를 되돌려, handler 안에서는 진짜 `invoke_tool` 이 불리고 있
 났던 바로 그 메시지** — 5건이 실패하고, `isError` 를 나중 대입으로 되돌리면 해당 1건만
 실패한다.
 
+### 2.44. 관대한 설정은 판정을 지운다 — optional dep 탐지층
+
+§2.41 이 남긴 마지막 조각이다. mcp 2.0.0 이 `mcp.server.fastmcp` 를 통째로 없앴을 때
+mypy 가 보고한 것은 "모듈이 없다" 가 아니라 엉뚱한 줄의 `no-any-return` 이었다.
+`[tool.mypy]` 의 `ignore_missing_imports = true` 가 **없는 모듈을 error 가 아니라 `Any`
+로** 바꿨기 때문이다. 판정이 지워진 자리에 그럴듯한 다른 판정이 들어앉았다.
+
+**먼저 정한 것은 "그 설정을 좁힐 것인가" 였고, 답은 아니오다.** optional dep 은 실제로
+optional 이라, `mcp.*` 만 override 에서 빼면 SDK 를 안 깐 로컬에서 mypy 가 red 가 된다.
+더 근본적으로 **mypy 는 "안 깔림" 과 "깔렸는데 모듈이 사라짐" 을 구분할 수 없다** —
+둘 다 그냥 "못 찾겠다" 다. 그 구분은 런타임 import 에서만 된다. 그래서 설정은 그대로
+두고 판정을 옮겼다.
+
+| 층 | 무엇을 아는가 |
+|---|---|
+| mypy (`ignore_missing_imports`) | 없는 모듈을 `Any` 로 — **구분하지 않는다** |
+| `check_optional_dep_imports.py` | 배포판 설치 여부 × 모듈 import 가능 여부 = **네 칸 중 어디인가** |
+
+`common/optional_deps.py` 에 import 대상 정본을 두었다. 두 종류로 나뉜다:
+
+- `required_modules` — 그 extra 를 깔았으면 **전부** 돼야 한다.
+- `alternative_modules` — 묶음에서 **하나만** 되면 된다 (`mcp.server.mcpserver` ↔
+  `mcp.server.fastmcp`). 이 구분이 없으면 검사가 2.x 환경에서 **틀린 실패**를 낸다 —
+  코드는 멀쩡히 도는데 검사만 우는 상황이다.
+
+`read_only_mcp_sdk.SDK_IMPORT_TARGETS` 는 사본이었고, 이제 정본에서 가져온다. 그 사본은
+mcp 2.0.0 이 이름을 옮겼을 때 **아무것도 몰랐다**.
+
+**skip 을 조용히 넘기지 않는다.** 안 깔린 extra 는 건너뛰되 몇 개를 왜 건너뛰었는지
+출력한다 — "어느 목록에도 없으면 통과" 는 §2.39 에서 이미 당한 결함이다. 실측: 로컬
+`.venv` 는 2건 skip(pbt/profiling), mcp 없는 venv 는 6건 skip 이 그대로 찍힌다.
+
+**완료 기준 확인 — 같은 상황, 다른 신호.** 이관 전 가정(`mcp.server.fastmcp` 를
+`required` 로)을 되주입하고 두 버전에서 돌렸다:
+
+| | mypy 가 낸 신호 | 이 층이 내는 신호 |
+|---|---|---|
+| mcp 1.28.1 | (green) | 6/6 PASS |
+| mcp 2.0.0 | `mcp_v1_server.py:27 no-any-return` | **`'mcp.server.fastmcp' 모듈이 없다 (ModuleNotFoundError)`** |
+
+**되주입 4건, 각각 다른 증상**: 이관 전 가정 → "모듈이 없다"; extra 를 registry 에서
+빼면 → "pyproject 에 있는데 정본 registry 에 없는 extra: ['pbt']"; 빈 extra 의 note 를
+지우면 → "빠뜨린 것인지 원래 없는 것인지 구분되지 않는다"; 소비자가 사본을 들면 →
+"정본과 다르다 — 사본이 갈라졌다".
+
+> §2.41 은 "상한 없는 의존성이 측정을 갈아 끼운다" 였고 이건 그 뒷면이다 — **관대한
+> 설정은 측정을 지운다.** 지워진 판정은 없어지지 않고 다른 이름으로 나타나서, 읽는
+> 사람을 원인에서 멀어지게 한다. 설정을 좁힐 수 없을 때는 **판정을 옮길 것.**
+
 ## 3. 검증
 
-누적 smoke **222/222 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+누적 smoke **223/223 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
 격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 누적
 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
-→ 221(§2.41 `check_mcp_server_sdk_compat`) → **222**(§2.43
-`check_mcp_lowlevel_sdk_compat`).
+→ 221(§2.41 `check_mcp_server_sdk_compat`) → 222(§2.43
+`check_mcp_lowlevel_sdk_compat`) → **223**(§2.44 `check_optional_dep_imports`).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

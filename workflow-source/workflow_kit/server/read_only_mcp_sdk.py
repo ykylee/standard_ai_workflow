@@ -18,16 +18,17 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.optional_deps import optional_dependency_for
 from workflow_kit.server.read_only_entrypoint import invoke_tool
 from workflow_kit.server.read_only_registry import READ_ONLY_SERVER_NAME, build_transport_tool_descriptors
 
 
-SDK_IMPORT_TARGETS = (
-    "mcp.types",
-    "mcp.server.stdio",
-    "mcp.server.lowlevel",
-    "mcp.server.models",
-)
+# import 대상의 정본은 `common/optional_deps.py` 다 (TASK-2026-07-29-main-002).
+# 여기에 복제해 두면 갈라진다 — 실제로 mcp 2.0.0 이 이름을 옮겼을 때 이 목록은
+# 아무것도 몰랐다. 이 모듈이 **직접 import 하는** required 목록만 가져온다
+# (alternative 묶음은 `mcp_v1_server.py` 쪽 관심사다).
+_MCP_SDK_DEPENDENCY = optional_dependency_for("mcp-sdk")
+SDK_IMPORT_TARGETS = _MCP_SDK_DEPENDENCY.required_modules if _MCP_SDK_DEPENDENCY else ()
 
 
 @dataclass(frozen=True)

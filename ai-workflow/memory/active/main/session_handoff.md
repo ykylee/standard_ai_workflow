@@ -13,7 +13,7 @@
 - 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.43](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.44](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-25-main-001 선언과 사실을 맞춘다 (Pages / mypy strict / YAML·스킬·MCP 검사층)
 - TASK-2026-07-27-main-001 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정
 - TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소
 - TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
@@ -37,6 +36,7 @@
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
+- TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
 ## 5. 다음 세션 시작 포인트
 
 **의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로 되돌리고 원인 2건을
@@ -108,10 +108,24 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - [ ] **핀 해제로 CI 가 두 major 를 동시에 밟는다** — smoke 는 `requirements-dev.txt` 의
       `mcp[cli]==1.27.0` 때문에 1.x, mypy-strict 와 mcp-inspector 는 2.x. 커버리지는
       넓어졌지만 **여전히 설치 순서에 기댄 우연**이다. 의도적 matrix 로 만들지는 미결.
-- [ ] **TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍.** 선언한 optional
-      dep 의 import 가 실제로 되는지 판정하는 층이 없다. 되주입했을 때 `no-any-return` 이
-      아니라 "모듈 없음" 으로 실패해야 한다. `mcp.*` 만 override 에서 빼면 SDK 미설치
-      로컬이 red 가 되므로 판정 기준을 먼저 정할 것.
+- [x] ~~TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍~~ → **완료(§2.44)**.
+      **판정 기준을 먼저 정했다: 설정을 좁히지 않는다.** optional dep 은 실제로 optional 이라
+      `mcp.*` 만 빼면 SDK 미설치 로컬이 red 가 되고, 더 근본적으로 **mypy 는 "안 깔림" 과
+      "깔렸는데 모듈이 사라짐" 을 구분할 수 없다** — 그 구분은 런타임 import 에서만 된다.
+      설정은 그대로 두고 판정을 옮겼다.
+      - `common/optional_deps.py` 가 import 대상 정본. `required`(전부) /
+        `alternative`(하나만) 두 종류로 나눴다 — 이 구분이 없으면 2.x 에서 검사가
+        **틀린 실패**를 낸다. `read_only_mcp_sdk.SDK_IMPORT_TARGETS` 의 사본은 제거.
+      - **완료 기준 확인**: 이관 전 가정을 되주입하면 1.28.1 은 통과, 2.0.0 은
+        `'mcp.server.fastmcp' 모듈이 없다 (ModuleNotFoundError)` 로 실패한다. 같은
+        상황에서 mypy 가 냈던 `no-any-return` 과 대비된다.
+      - skip 은 조용히 넘기지 않는다 — 몇 건을 왜 건너뛰었는지 출력한다
+        (로컬 2건, mcp 없는 venv 6건 실측).
+- [ ] **`backlog-update` 가 handoff §4 에 상한을 적용하지 않는다.** state.json 의
+      `recent_done_items` 는 10으로 잘리는데 handoff 의 markdown 목록은 `--apply` 마다
+      그냥 append 돼 11이 됐고, `check_self_application` 의 `handoff_bloat` 가 잡았다
+      (이번에 손으로 가장 오래된 1건을 지웠다). **상한이 한 곳에만 있다** — §2.38 이
+      고친 것과 같은 모양이다. 도구 쪽에서 자르게 할지는 미결.
 - [ ] **`state.json` 의 `backlog.task_count` 는 항상 0, `latest_backlog_path` 는 항상
       `null` 이다.** 이번에 `--latest-backlog-path` 를 넘겨 재생성해도 그대로였다 (task 파일
       107건 존재). 이번 변경으로 생긴 것이 아니라 그 전부터 그랬다 — 관측만 해 둔다.

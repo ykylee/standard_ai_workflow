@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `d14d5f4` (CI smoke·mypy-strict·mkdocs green 실측)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `71feef3` (CI smoke·mypy-strict green 실측, mcp 1.29.0)
 - 현재 주 작업 축: 상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀으로 되돌리고, 원인을 가리는 층을 걷어낸다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -54,7 +54,10 @@ task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-stri
 `from mcp.server.fastmcp import FastMCP` 성공을 각각 실측했다. **파손 자체는 그대로 남아
 있다** — TASK-2026-07-29-main-001(이관) / -002(탐지층).
 
-- 기준선은 아직 `d14d5f4` 다. 이 커밋의 CI 를 실측한 뒤에 옮긴다.
+- 기준선을 `71feef3` 으로 옮겼다. smoke(7m40s)·mypy-strict 둘 다 success 실측이고,
+  설치 로그에서 러너가 실제로 집은 버전이 `mcp-1.29.0` 임을 확인했다 — 핀이 상한을
+  걸고 있다는 것을 선언이 아니라 로그로 확인한 것이다. `mkdocs` 는 이번 변경 경로가
+  path 필터에 안 걸려 미실행.
 - 확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
   조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
 - smoke 가 이 드리프트에 안 걸린 것은 설계가 아니라 **설치 순서 덕**이다 —

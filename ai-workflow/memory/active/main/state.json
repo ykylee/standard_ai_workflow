@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `d14d5f4` (CI smoke·mypy-strict·mkdocs green 실측)",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `71feef3` (CI smoke·mypy-strict green 실측, mcp 1.29.0)",
     "current_axis": "상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀으로 되돌리고, 원인을 가리는 층을 걷어낸다",
     "current_focus": null,
     "in_progress_items": [],

@@ -4,12 +4,12 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-07-28
+- 최종 수정일: 2026-07-29
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `0206ac3` (CI smoke·mypy-strict green 실측)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `d14d5f4` (CI smoke·mypy-strict·mkdocs green 실측)
 - 현재 주 작업 축: 판정과 근거는 다른 칸에 — 근거를 버리지도, 없는 판정을 채우지도 않는다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -41,8 +41,8 @@ TASK-2026-07-28-main-003 으로 종료했다. §2.39 후속으로 관측한 이�
 세부는 릴리스 노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 **그 줄이 직전
 entry 의 body 로 흘러들고**(실측 `TASK-2026-06-05-001`) **아래 entry 들의 소속이 소실**되고
 있었다. 소속 소실이 §2.39 후속의 판정 비용을 만든 원인이었다.
-**CI 는 green 이다** (`0206ac3` 에서 smoke·mypy-strict success 실측. `mkdocs` 는 해당 커밋의
-변경 경로가 path 필터에 안 걸려 미실행 — 그 앞 `5be5ba4` 에서 green).
+**CI 는 green 이다** (`d14d5f4` 에서 smoke·mypy-strict·mkdocs 3종 success 실측 — §2.40
+커밋 자체에서 세 workflow 가 모두 돌았다).
 확인 방법: `gh run list --commit $(git rev-parse HEAD)` (**full SHA 필수** — short SHA 는
 조용히 0건을 낸다). smoke 는 러너에서 약 8분 걸리므로 push 직후 조회는 `in_progress` 다.
 

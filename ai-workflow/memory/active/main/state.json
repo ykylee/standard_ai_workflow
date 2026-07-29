@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-28",
+  "generated_at": "2026-07-29",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `0206ac3` (CI smoke·mypy-strict green 실측)",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `d14d5f4` (CI smoke·mypy-strict·mkdocs green 실측)",
     "current_axis": "판정과 근거는 다른 칸에 — 근거를 버리지도, 없는 판정을 채우지도 않는다",
     "current_focus": null,
     "in_progress_items": [],

@@ -1575,13 +1575,70 @@ NameError: name 'true' is not defined. Did you mean: 'True'?
 > 표면(lowlevel), 그리고 `npx -y` 의 인스펙터. **셋 다 "우리 코드는 안 바뀌었는데 결과가
 > 바뀌었다" 였다.** 검사 도구 자체도 고정하지 않으면 측정이 조용히 달라진다.
 
+### 2.43. lowlevel 이관 — 계약이 사라졌으면 계약의 존재로 가른다
+
+§2.41 이 남긴 두 번째 표면을 닫는다. mcp 2.0.0 의 `mcp.server.lowlevel.Server` 는
+`@list_tools()` / `@call_tool()` decorator 를 없애고
+`add_request_handler(method, params_type, handler)` 로 바꿨다.
+
+**분기 기준은 버전 문자열이 아니라 계약의 존재다** (`uses_handler_registration` =
+`hasattr(server, "add_request_handler")`). 버전 비교는 fork/backport 에서 틀리고, 여기서
+알고 싶은 것은 "그 method 가 있는가" 하나다.
+
+handler 계약은 SDK 소스에서 읽어 확정했다 (추측하지 않았다):
+
+| | 1.x | 2.x |
+|---|---|---|
+| 등록 | `@server.list_tools()` / `@server.call_tool(validate_input=False)` | `add_request_handler("tools/list", PaginatedRequestParams, …)` / `("tools/call", CallToolRequestParams, …)` |
+| list 반환 | `list[Tool]` | `ListToolsResult(tools=[...])` |
+| call 인자 | `(name, arguments)` | `(ctx, params)` — `params.name` / `params.arguments` |
+| Tool field | `inputSchema` | `input_schema` (**camel alias 로 양쪽 수용**) |
+
+field 이름이 snake_case 로 바뀌었지만 alias 로 camelCase 를 그대로 받는다(실측:
+`populate_by_name` + camel alias generator). 그래서 payload 조립은 **갈라 쓰지 않았다** —
+버전 분기가 하나 더 생길 이유가 없다.
+
+**한 군데는 갈라야 했다.** 예전 코드는 `result.isError = True` 로 **나중에** 덮었는데,
+2.x 에서 그 이름의 attribute 는 `is_error` 다. 대입이 조용히 빗나가 **실패한 tool 호출이
+성공으로 보고될** 자리였다. 생성 시점에 `force_error` 로 넣도록 바꿨다.
+
+**검증 — 프로토콜 왕복.** 파일 모양 검사는 이 층을 대신하지 못한다는 것이 §2.41 에서
+확인된 사실이라, 실제로 서버를 띄워 인스펙터로 왕복시켰다. 1.28.1 과 2.0.0 에서
+`tools/list` **13개**, `tools/call` 성공 경로(`isError=false`)와 실패 경로
+(`isError=true`) 모두, **두 버전의 wire 산출물이 JSON 으로 동일**하다. mypy strict 는
+1.27.0 / 1.28.1 / 1.29.0 / 2.0.0 네 버전에서 119 files 0 errors.
+
+**전수 조사를 이번엔 먼저 했다.** §2.41 의 실수(범위를 파일 하나로 잡음)를 되풀이하지
+않으려고 import 문법 네 가지(`from mcp` / `import mcp` / `importlib.import_module("mcp…")`
+/ `__import__`)로 쓸었다. 표면은 정확히 둘이고 둘 다 이관됐다. 확인 후 상한 핀을 해제했다.
+
+**검사층.** `check_mcp_lowlevel_sdk_compat.py` 8건 신규. 두 형태의 `Server` 를 흉내내
+조립기가 각각에 맞게 등록하는지 본다 (SDK 없이도 돈다).
+
+만들면서 또 걸렸고, 이번 것은 **검사가 조용히 통과하는** 쪽이었다. 결함을 되주입했는데
+8/8 PASS 였다. 되주입이 안 먹은 줄 알고 확인해 보니 적용은 됐고, 원인은 가짜를 심는
+**범위가 검사하려는 코드보다 좁았던 것**이다 — `finally` 가 handler 를 부르기 *전에*
+patch 를 되돌려, handler 안에서는 진짜 `invoke_tool` 이 불리고 있었다. context manager
+로 범위를 넓히자 그 되주입이 *"returncode != 0 인데 isError 가 생성 시점에 안 들어갔다
+(False)"* 로 정확히 실패한다.
+
+> §2.42 가 "도구도 의존성이다" 였다면 이건 그 짝이다 — **가짜도 범위가 있다.** 심은
+> 것이 실제로 불리는지까지 확인하지 않으면, 되주입이 통과하는 것을 "안전하다" 로 읽게
+> 된다. 이번엔 되주입이 있어서 알았다.
+
+**되주입 2건, 각각 다른 증상으로 실패 확인**: 2.x 분기를 없애면
+`AttributeError: '_HandlerServer' object has no attribute 'list_tools'` 로 — **프로덕션에서
+났던 바로 그 메시지** — 5건이 실패하고, `isError` 를 나중 대입으로 되돌리면 해당 1건만
+실패한다.
+
 ## 3. 검증
 
-누적 smoke **221/221 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+누적 smoke **222/222 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
 격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 누적
 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
-→ **221**(§2.41 `check_mcp_server_sdk_compat`).
+→ 221(§2.41 `check_mcp_server_sdk_compat`) → **222**(§2.43
+`check_mcp_lowlevel_sdk_compat`).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

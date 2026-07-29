@@ -1,5 +1,5 @@
 pydantic>=2.0.0
 anyio>=4.0.0
-# 상한 복원 — read_only_mcp_sdk.py 의 lowlevel 서버가 아직 2.0.0 에서 깨진다.
-# 근거와 해제 조건은 workflow-source/pyproject.toml 의 mcp-sdk extra 참조.
-mcp>=1.0.0,<2
+# 상한 없음 — mcp 를 쓰는 표면 2곳이 모두 1.x/2.x 를 해석한다.
+# 근거와 재확인 방법은 workflow-source/pyproject.toml 의 mcp-sdk extra 참조.
+mcp>=1.0.0

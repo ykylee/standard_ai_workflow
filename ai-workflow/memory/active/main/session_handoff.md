@@ -13,7 +13,7 @@
 - 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.42](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.43](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
@@ -36,6 +36,7 @@
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
+- TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
 ## 5. 다음 세션 시작 포인트
 
 **의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로 되돌리고 원인 2건을
@@ -56,12 +57,15 @@ task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-stri
 `MCP_SERVER_SOURCE` 로 남긴다. `1.27.0`/`1.28.1`/`1.29.0`/`2.0.0` 네 버전에서 mypy strict
 119 files 0 errors + 런타임(실제 서버 2종 tool 등록까지)을 각각 실측했다.
 
-**거기서 핀을 풀었는데 그것이 틀렸다.** "이관했다" 의 범위를 SDK 표면이 아니라 **파일
-하나**로 잡았다. 같은 SDK 를 쓰는 표면이 하나 더 있었고(`read_only_mcp_sdk.py` 의
+**거기서 핀을 한 번 풀었는데 그것이 틀렸다.** "이관했다" 의 범위를 SDK 표면이 아니라
+**파일 하나**로 잡았다. 같은 SDK 를 쓰는 표면이 하나 더 있었고(`read_only_mcp_sdk.py` 의
 lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `mcp-inspector` 를 깨우기
-전까지는 어느 검사도 그것을 보지 않았다. 핀은 복원했고 lowlevel 이관은
-TASK-2026-07-29-main-003 으로 분리했다. `grep '^from mcp'` 는 wrapper 만 짚어 준다 —
+전까지는 어느 검사도 그것을 보지 않았다. `grep '^from mcp'` 는 wrapper 만 짚어 준다 —
 두 번째 표면은 `importlib.import_module("mcp…")` 로 들어와서 안 걸렸다.
+
+**그 표면도 TASK-2026-07-29-main-003 으로 닫았다(§2.43).** import 문법 4가지로 전수
+조사해 표면이 정확히 둘임을 먼저 확인한 뒤 **상한 핀을 해제**했다. 지금 `mcp` 는 상한이
+없고, 두 표면 모두 1.x/2.x 를 해석한다.
 
 - 기준선을 `71feef3` 으로 옮겼다. smoke(7m40s)·mypy-strict 둘 다 success 실측이고,
   설치 로그에서 러너가 실제로 집은 버전이 `mcp-1.29.0` 임을 확인했다 — 핀이 상한을
@@ -87,16 +91,23 @@ TASK-2026-07-29-main-003 으로 분리했다. `grep '^from mcp'` 는 wrapper 만
       삼켰다 (argv wrapper 로 `ARGC=0` 실측 → 맨 python 이 REPL 로 떠서 JSON-RPC 의
       `true` 를 Python 으로 실행 → `NameError`). `--config`/`--server` 선언 방식 +
       `@2` major 고정 + 빈 응답 실패화. 로컬 전 구간 13/13 일치 확인.
-- [ ] **TASK-2026-07-29-main-003 — lowlevel 이관. 상한 핀은 복원된 상태다.** 핀을 풀었던
-      커밋이 처음으로 `server/**` 를 건드려 `mcp-inspector` workflow 를 깨웠고, 그제야
-      **두 번째 SDK 표면**이 드러났다. `read_only_mcp_sdk.py` 는 `FastMCP` 가 아니라
-      `mcp.server.lowlevel` 을 쓰는데 2.0.0 이 `list_tools`/`call_tool` decorator 를
-      `add_request_handler` 로 바꿨다 (`AttributeError`, 로컬에서 1.28.1 정상 /
-      2.0.0 실패로 재현). 프로토콜 왕복(initialize → tools/list → tools/call)을 실제로
-      돌려 확인해야 한다 — 파일 모양 검사는 이 층을 대신하지 못한다.
+- [x] ~~TASK-2026-07-29-main-003 — lowlevel 이관~~ → **완료(§2.43). 상한 핀 해제.**
+      분기 기준을 버전 문자열이 아니라 **계약의 존재**로 잡았다
+      (`uses_handler_registration` = `hasattr(server, "add_request_handler")`).
+      프로토콜 왕복을 실제로 돌려 확인했다 — 1.28.1/2.0.0 에서 `tools/list` 13개,
+      `tools/call` 성공·실패 경로, **두 버전의 wire 산출물이 JSON 동일**.
+      - `isError` 를 나중에 대입하던 것이 2.x 에서 `is_error` 라 빗나가 **실패한 tool
+        호출이 성공으로 보고될** 자리였다 → 생성 시점 `force_error` 로 이동.
+      - `Tool`/`CallToolResult` field 는 2.x 가 snake_case 로 바꿨지만 camel alias 로
+        양쪽을 받아 payload 조립은 갈라 쓰지 않았다.
+      - 핀 해제 전에 import 문법 4가지로 전수 조사해 표면이 정확히 **2개**임을 확인했다
+        (§2.41 에서 이 조사를 안 한 것이 그때의 실수였다).
       - `version` 은 계속 전달하지 않는다. 2.x `MCPServer` 는 받지만 1.x `FastMCP` 는
         받지 않고, 여기서 넘기기 시작하면 서버 2종이 광고하는 version 이 바뀐다 —
         이관 범위 밖이라 기존 동작을 유지했다. 바꾸려면 별도 결정이 필요하다.
+- [ ] **핀 해제로 CI 가 두 major 를 동시에 밟는다** — smoke 는 `requirements-dev.txt` 의
+      `mcp[cli]==1.27.0` 때문에 1.x, mypy-strict 와 mcp-inspector 는 2.x. 커버리지는
+      넓어졌지만 **여전히 설치 순서에 기댄 우연**이다. 의도적 matrix 로 만들지는 미결.
 - [ ] **TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍.** 선언한 optional
       dep 의 import 가 실제로 되는지 판정하는 층이 없다. 되주입했을 때 `no-any-return` 이
       아니라 "모듈 없음" 으로 실패해야 한다. `mcp.*` 만 override 에서 빼면 SDK 미설치

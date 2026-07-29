@@ -50,15 +50,17 @@ dependencies = [
 # (experimental). ``jsonrpc-bridge`` is the draft fixture (always available).
 mcp-jsonrpc = []
 mcp-sdk = [
-    # 상한 **복원**. `mcp_v1_server.py` 는 1.x/2.x 를 모두 해석하지만
-    # (TASK-2026-07-29-main-001), `read_only_mcp_sdk.py` 가 쓰는 **lowlevel**
-    # 서버는 아직 2.0.0 에서 깨진다 — 2.0.0 의 `mcp.server.lowlevel.Server` 는
-    # `list_tools` / `call_tool` decorator 를 없애고 `add_request_handler` 로
-    # 바꿨다 (`AttributeError: 'Server' object has no attribute 'list_tools'`,
-    # 로컬 재현). 이 파손은 `mcp-inspector` workflow 만 잡는다 — 그 workflow 는
-    # `server/**` 가 바뀔 때만 돌아서 핀을 풀었던 커밋에서야 드러났다.
-    # 해제는 TASK-2026-07-29-main-003 (lowlevel 이관) 이후에만.
-    "mcp[cli]>=1.0,<2",
+    # 상한 해제. mcp 를 쓰는 표면은 **둘**이고 (전수 조사: `from mcp` /
+    # `import mcp` / `import_module("mcp…")` / `__import__` 네 문법으로 sweep)
+    # 둘 다 1.x/2.x 를 해석한다:
+    #   - `mcp_v1_server.py`     — fastmcp.FastMCP ↔ mcpserver.MCPServer
+    #   - `read_only_mcp_sdk.py` — lowlevel decorator ↔ add_request_handler
+    # 1.27.0 / 1.28.1 / 1.29.0 / 2.0.0 에서 mypy strict + 프로토콜 왕복
+    # (initialize → tools/list → tools/call) 실측. 1.x 와 2.x 의 wire 산출물이
+    # tools/list·tools/call 모두 **동일**함을 확인했다.
+    # 다음 major 가 또 이름을 옮기면 `check_mcp_server_sdk_compat.py` 와
+    # `check_mcp_lowlevel_sdk_compat.py` 가 먼저 실패한다.
+    "mcp[cli]>=1.0",
 ]
 # v0.7.4+ Property-Based Testing (PBT) — hypothesis framework (optional)
 pbt = [

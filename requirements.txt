@@ -1,5 +1,5 @@
 pydantic>=2.0.0
 anyio>=4.0.0
-# 상한은 workflow-source/pyproject.toml 의 mcp-sdk extra 와 같은 이유다
-# (mcp 2.0.0 이 mcp.server.fastmcp 를 제거).
-mcp>=1.0.0,<2
+# 상한 없음 — mcp_v1_server.py 가 1.x/2.x 를 모두 해석한다.
+# 근거와 재확인 방법은 workflow-source/pyproject.toml 의 mcp-sdk extra 참조.
+mcp>=1.0.0

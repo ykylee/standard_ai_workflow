@@ -1448,12 +1448,85 @@ task 파일에 남겼다. 셋이 왜 어긋났는지는 알 수 없다 — 이�
 > §2.23 이 판정 지표에 대해 한 것(`*_source` / `*_measured` 를 함께 낸다)을 task 상태에 대해
 > 한 셈이다. **판정과 그 근거는 다른 칸에 있어야 하고, 근거가 없으면 판정하지 않는다.**
 
+### 2.41. 상한 없는 의존성이 측정을 갈아 끼웠다 — mcp 2.0.0 이관
+
+문서 2줄만 바꾼 커밋(`23874d1`)에서 `mypy-strict` 가 red 로 넘어갔다. **커밋 내용과
+무관했다.** `mcp-sdk` extra 가 `mcp[cli]>=1.0` 로 상한이 없어, 그 사이 릴리스된 mcp
+2.0.0 을 러너가 집은 것이다 (CI 설치 로그에 `mcp-2.0.0`). 같은 소스에 버전만 갈아 끼워
+재현했다 — `1.28.1` green / `2.0.0` 에서 fail.
+
+**보고된 에러는 원인에서 한 칸 떨어져 있었다.**
+
+```
+mcp_v1_server.py:27: error: Returning Any from function declared to return "Callable[..., Any]"
+```
+
+읽으면 타입 문제 같지만 사실은 아니다. mcp 2.0.0 은 `mcp.server.fastmcp` **모듈 자체를**
+없애고 `mcp.server.mcpserver.MCPServer` 로 옮겼다. `try: from mcp.server.fastmcp import
+FastMCP` 가 항상 `ImportError` 로 떨어져 `HAS_FASTMCP=False` → `sys.exit(1)` 이 되는
+**런타임 파손**이다. `[tool.mypy]` 의 `ignore_missing_imports = true` 가 사라진 모듈을
+error 가 아니라 `Any` 로 바꿔 놓아, 그 `Any` 가 반환되는 27번 줄에서야 표면화됐다.
+
+**1차 조치는 상한 핀이었다** (`>=1.0,<2`). red 를 켜 둔 채로는 다음 커밋의 신호를 읽을 수
+없기 때문이지, 그것이 해결이어서가 아니다. 파손은 그대로 남았다.
+
+**이관.** wrapper 가 두 이름을 모두 시도하고, 어느 쪽이 잡혔는지 `MCP_SERVER_SOURCE` 로
+남긴다 (진단에 필요하다). 두 클래스의 계약은 이 wrapper 가 쓰는 범위에서 동일함을
+실측으로 확인했다.
+
+| 항목 | 1.x `FastMCP` | 2.x `MCPServer` |
+|---|---|---|
+| `__init__` | 첫 위치 인자 `name` | 같음 (+`version` 키워드 추가) |
+| `.tool()` | `Callable[[AnyFunction], AnyFunction]` | `Callable[[_CallableT], _CallableT]` |
+| `.run()` | 인자 없이 stdio | 같음 |
+
+`version` 은 **일부러 전달하지 않는다** — 1.x 는 받지 않고, wrapper 의 `version` 은
+예전부터 서버에 전달되지 않고 있었다. 여기서 넘기기 시작하면 서버 2종이 광고하는 version
+이 바뀐다. 이관 범위 밖이라 기존 동작을 유지하고 사실만 적어 둔다.
+
+**검증 — 네 버전 × 두 층.** `1.27.0`(smoke 가 실제로 쓰는 버전) / `1.28.1` / `1.29.0` /
+`2.0.0` 각각에서 mypy strict **119 files 0 errors**, 그리고 런타임으로
+`create_v1_server` → `.tool()` decorator 가 원함수 반환 → `.run` 호출 가능까지 확인했다.
+실제 서버 2종(`latest-backlog`, `check-doc-metadata`)이 1.x/2.x 양쪽에서 tool 등록까지
+되는 것도 확인했다. 확인 후 상한 핀을 **해제**했다.
+
+**검사층.** `check_mcp_server_sdk_compat.py` 7건 신규. `sys.modules` 에 stub 을 심어
+2.x 만 / 1.x 만 / 둘 다 / 둘 다 없음 네 환경을 각각 재해석시킨다 — 설치된 한 버전에서만
+도는 검사는 다음 major 에서 또 같은 방식으로 놓치기 때문이다.
+
+만들면서 두 번 걸렸고, 둘 다 이 저장소가 이미 아는 부류였다.
+
+- **"없는 환경" 을 재현하지 못하고 있었다.** `sys.modules` 에서 지우기만 하면 디스크에
+  설치된 진짜 mcp 를 다시 찾아온다. `None` 을 심어야 미설치와 같은 신호가 된다.
+- **미설치면 skip** 이 다음 major 를 통째로 삼킨다. 두 이름이 다 사라져도 조용히
+  통과한다 — §2.39 의 "미분류는 통과" 와 같은 결함이다. 그래서 **mcp 자체가 없을 때만**
+  skip 하고, mcp 는 있는데 서버 구현을 못 잡으면 실패로 드러낸다. 되주입(두 import 를
+  존재하지 않는 이름으로 교체)으로 이 경로가 실제로 실패하는 것을 확인했다.
+
+**되주입 검증.** import 사슬만 fastmcp 단일로 되돌리면 `test_v2_only_resolves_mcpserver`
+가 *"2.x 만 있는데 SDK 없음으로 판정했다"* 로, `test_both_present_prefers_v2` 가
+*"둘 다 있으면 새 SDK 를 잡아야 한다"* 로 각각 다른 증상으로 실패한다. 이름만 바꿔도
+실패하는 약한 검사가 아니라는 확인이다. 이 과정에서 runner 결함도 하나 나왔다 —
+wrapper 의 fail-fast `sys.exit(1)` 이 `except Exception` 을 빠져나가 **첫 실패가 나머지
+검사와 요약 줄을 통째로 없앴다**. `SystemExit` 을 따로 잡아 실패로 세고 계속 돌린다.
+
+> 상한 없는 의존성은 커밋을 바꾸지 않아도 측정을 갈아 끼운다. 어제 green 이던 커밋이
+> 오늘 red 인데 diff 가 무관하다면, 의심할 곳은 코드가 아니라 **러너가 집은 버전**이다.
+> 그리고 관대한 설정(`ignore_missing_imports`)은 "없는 것" 을 "아무 타입" 으로 바꿔
+> 진단을 원인에서 멀리 떨어뜨린다 — §2.29 의 config 함정과 같은 부류다.
+
+**남은 관측** (고치지 않고 드러냄): smoke 가 이 드리프트에 걸리지 않은 것은 설계가 아니라
+**설치 순서 덕**이다. `requirements-dev.txt` 의 `mcp[cli]==1.27.0` 이 뒤에 깔리며 되돌려
+놓는다. mypy-strict job 은 그 파일을 깔지 않아 그대로 맞았다. 상한을 푼 지금은 두 job 이
+서로 다른 major 를 밟게 되어 커버리지가 넓어졌지만, 그것도 여전히 우연이다.
+
 ## 3. 검증
 
-누적 smoke **220/220 PASS** (2026-07-28, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
-격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 같은 날 누적
+누적 smoke **221/221 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
+격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 누적
 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
-`check_task_status_axis_separation`) → **220**(§2.40 `check_migration_group_heading`).
+`check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
+→ **221**(§2.41 `check_mcp_server_sdk_compat`).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

@@ -10,10 +10,10 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `71feef3` (CI smoke·mypy-strict green 실측, mcp 1.29.0)
-- 현재 주 작업 축: 상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀으로 되돌리고, 원인을 가리는 층을 걷어낸다
+- 현재 주 작업 축: 상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀은 시한을 미룰 뿐이고, 이관과 탐지층이 닫는다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.40](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.41](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
@@ -35,6 +35,7 @@
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
+- TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 ## 5. 다음 세션 시작 포인트
 
 **의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로 되돌리고 원인 2건을
@@ -49,10 +50,11 @@ task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-stri
 `sys.exit(1)` 인 **런타임 파손**인데, `pyproject.toml` 의 `ignore_missing_imports = true` 가
 사라진 모듈을 error 가 아니라 `Any` 로 바꿔 놓아 27번 줄에서야 표면화됐다.
 
-조치는 상한 핀뿐이다 (`mcp[cli]>=1.0,<2` + `requirements.txt` 도 동일). 핀이 해석하는
-`mcp 1.29.0`(로컬 1.28.1 보다 최신)에서 mypy strict 119 files 0 errors 와
-`from mcp.server.fastmcp import FastMCP` 성공을 각각 실측했다. **파손 자체는 그대로 남아
-있다** — TASK-2026-07-29-main-001(이관) / -002(탐지층).
+1차 조치는 상한 핀이었고(red 를 켜 둔 채로는 다음 커밋의 신호를 읽을 수 없어서지, 그것이
+해결이어서가 아니다), **이후 TASK-2026-07-29-main-001 로 이관을 마치고 핀을 해제했다** —
+세부는 릴리스 노트 §2.41. wrapper 가 2.x → 1.x 순으로 두 이름을 시도하고 어느 쪽을
+잡았는지 `MCP_SERVER_SOURCE` 로 남긴다. `1.27.0`/`1.28.1`/`1.29.0`/`2.0.0` 네 버전에서
+mypy strict 119 files 0 errors + 런타임(실제 서버 2종 tool 등록까지)을 각각 실측했다.
 
 - 기준선을 `71feef3` 으로 옮겼다. smoke(7m40s)·mypy-strict 둘 다 success 실측이고,
   설치 로그에서 러너가 실제로 집은 버전이 `mcp-1.29.0` 임을 확인했다 — 핀이 상한을
@@ -68,9 +70,13 @@ task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-stri
 노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 그 줄이 직전 entry 의 body 로
 흘러들고(실측 `TASK-2026-06-05-001`) 아래 entry 들의 소속이 소실되고 있었다.
 
-- [ ] **TASK-2026-07-29-main-001 — mcp 2.0.0 이관.** `FastMCP` → `MCPServer`. `.tool()`
-      시그니처 호환이 미확인이라 wrapper 계약(`Callable[..., Any]`)부터 재확인해야 한다.
-      1.x 지원을 끊을지는 별도 결정. 완료되면 상한 핀을 푼다.
+- [x] ~~TASK-2026-07-29-main-001 — mcp 2.0.0 이관~~ → **완료(§2.41)**. `.tool()` 은 두
+      SDK 모두 "함수를 그대로 돌려주는 decorator" 라 wrapper 계약(`Callable[..., Any]`)이
+      유효함을 확인했고, `cast` 로 좁혀 반환한다. **1.x 지원은 끊지 않았다** — 두 이름을
+      모두 시도한다. 상한 핀 해제 완료.
+      - `version` 은 계속 전달하지 않는다. 2.x `MCPServer` 는 받지만 1.x `FastMCP` 는
+        받지 않고, 여기서 넘기기 시작하면 서버 2종이 광고하는 version 이 바뀐다 —
+        이관 범위 밖이라 기존 동작을 유지했다. 바꾸려면 별도 결정이 필요하다.
 - [ ] **TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍.** 선언한 optional
       dep 의 import 가 실제로 되는지 판정하는 층이 없다. 되주입했을 때 `no-any-return` 이
       아니라 "모듈 없음" 으로 실패해야 한다. `mcp.*` 만 override 에서 빼면 SDK 미설치

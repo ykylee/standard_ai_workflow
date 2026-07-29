@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `1f1881c` (CI 4종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector. **핀 해제 후 mcp 2.0.0 으로** 인스펙터 왕복 13/13 + mypy 119 files 0 errors)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `ea1576c` (CI 4종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector. mcp 상한 없음 = 2.0.0 으로 인스펙터 왕복 13/13 + mypy 120 files 0 errors, 전량 smoke 223/223)
 - 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)

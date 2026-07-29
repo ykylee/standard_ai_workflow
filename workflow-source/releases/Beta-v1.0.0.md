@@ -1488,7 +1488,27 @@ error 가 아니라 `Any` 로 바꿔 놓아, 그 `Any` 가 반환되는 27번 �
 `2.0.0` 각각에서 mypy strict **119 files 0 errors**, 그리고 런타임으로
 `create_v1_server` → `.tool()` decorator 가 원함수 반환 → `.run` 호출 가능까지 확인했다.
 실제 서버 2종(`latest-backlog`, `check-doc-metadata`)이 1.x/2.x 양쪽에서 tool 등록까지
-되는 것도 확인했다. 확인 후 상한 핀을 **해제**했다.
+되는 것도 확인했다.
+
+**여기서 상한 핀을 풀었고, 그것이 틀렸다.** 핀을 푼 커밋이 처음으로 `server/**` 를
+건드렸고 — `mcp-inspector` workflow 는 그 경로가 바뀔 때만 돈다 — 그제야 **두 번째 SDK
+표면**이 드러났다. `read_only_mcp_sdk.py` 는 `FastMCP` 가 아니라 `mcp.server.lowlevel`
+을 쓰는데, 2.0.0 의 `Server` 는 `list_tools` / `call_tool` decorator 를 없애고
+`add_request_handler(method, params_type, handler)` 로 바꿨다.
+
+```
+AttributeError: 'Server' object has no attribute 'list_tools'
+```
+
+로컬에서 1.28.1(정상 initialize 응답) / 2.0.0(위 AttributeError) 로 재현했다.
+**상한 핀을 복원**했고, lowlevel 이관은 TASK-2026-07-29-main-003 으로 분리했다.
+
+> **"이관했다" 의 범위를 SDK 표면이 아니라 파일 하나로 잡았다.** `mcp_v1_server.py` 를
+> 고치고 나서 "mcp 2.0.0 이관 완료" 라고 적었는데, 같은 SDK 를 쓰는 표면이 하나 더
+> 있었다. §2.25 가 AST 로 문자열 상수 빈도를 낸 것과 같은 조사를 여기서 하지 않은 것이다
+> — 고친 곳이 *그 부류의 전부인지* 는 따로 세어 봐야 한다. import 지점을 세는 것으로는
+> 부족했다: `grep '^from mcp'` 는 wrapper 만 짚어 주고, `importlib.import_module("mcp…")`
+> 로 들어오는 두 번째 표면은 걸리지 않았다.
 
 **검사층.** `check_mcp_server_sdk_compat.py` 7건 신규. `sys.modules` 에 stub 을 심어
 2.x 만 / 1.x 만 / 둘 다 / 둘 다 없음 네 환경을 각각 재해석시킨다 — 설치된 한 버전에서만

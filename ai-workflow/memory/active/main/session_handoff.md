@@ -51,10 +51,17 @@ task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-stri
 사라진 모듈을 error 가 아니라 `Any` 로 바꿔 놓아 27번 줄에서야 표면화됐다.
 
 1차 조치는 상한 핀이었고(red 를 켜 둔 채로는 다음 커밋의 신호를 읽을 수 없어서지, 그것이
-해결이어서가 아니다), **이후 TASK-2026-07-29-main-001 로 이관을 마치고 핀을 해제했다** —
-세부는 릴리스 노트 §2.41. wrapper 가 2.x → 1.x 순으로 두 이름을 시도하고 어느 쪽을
-잡았는지 `MCP_SERVER_SOURCE` 로 남긴다. `1.27.0`/`1.28.1`/`1.29.0`/`2.0.0` 네 버전에서
-mypy strict 119 files 0 errors + 런타임(실제 서버 2종 tool 등록까지)을 각각 실측했다.
+해결이어서가 아니다), 이후 TASK-2026-07-29-main-001 로 **wrapper 이관**을 마쳤다 — 세부는
+릴리스 노트 §2.41. wrapper 가 2.x → 1.x 순으로 두 이름을 시도하고 어느 쪽을 잡았는지
+`MCP_SERVER_SOURCE` 로 남긴다. `1.27.0`/`1.28.1`/`1.29.0`/`2.0.0` 네 버전에서 mypy strict
+119 files 0 errors + 런타임(실제 서버 2종 tool 등록까지)을 각각 실측했다.
+
+**거기서 핀을 풀었는데 그것이 틀렸다.** "이관했다" 의 범위를 SDK 표면이 아니라 **파일
+하나**로 잡았다. 같은 SDK 를 쓰는 표면이 하나 더 있었고(`read_only_mcp_sdk.py` 의
+lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `mcp-inspector` 를 깨우기
+전까지는 어느 검사도 그것을 보지 않았다. 핀은 복원했고 lowlevel 이관은
+TASK-2026-07-29-main-003 으로 분리했다. `grep '^from mcp'` 는 wrapper 만 짚어 준다 —
+두 번째 표면은 `importlib.import_module("mcp…")` 로 들어와서 안 걸렸다.
 
 - 기준선을 `71feef3` 으로 옮겼다. smoke(7m40s)·mypy-strict 둘 다 success 실측이고,
   설치 로그에서 러너가 실제로 집은 버전이 `mcp-1.29.0` 임을 확인했다 — 핀이 상한을
@@ -70,10 +77,17 @@ mypy strict 119 files 0 errors + 런타임(실제 서버 2종 tool 등록까지)
 노트 §2.40. 구분 heading(`### Historical archives`)을 몰라서 그 줄이 직전 entry 의 body 로
 흘러들고(실측 `TASK-2026-06-05-001`) 아래 entry 들의 소속이 소실되고 있었다.
 
-- [x] ~~TASK-2026-07-29-main-001 — mcp 2.0.0 이관~~ → **완료(§2.41)**. `.tool()` 은 두
-      SDK 모두 "함수를 그대로 돌려주는 decorator" 라 wrapper 계약(`Callable[..., Any]`)이
+- [x] ~~TASK-2026-07-29-main-001 — mcp 2.0.0 이관(wrapper)~~ → **완료(§2.41)**. `.tool()` 은
+      두 SDK 모두 "함수를 그대로 돌려주는 decorator" 라 wrapper 계약(`Callable[..., Any]`)이
       유효함을 확인했고, `cast` 로 좁혀 반환한다. **1.x 지원은 끊지 않았다** — 두 이름을
-      모두 시도한다. 상한 핀 해제 완료.
+      모두 시도한다.
+- [ ] **TASK-2026-07-29-main-003 — lowlevel 이관. 상한 핀은 복원된 상태다.** 핀을 풀었던
+      커밋이 처음으로 `server/**` 를 건드려 `mcp-inspector` workflow 를 깨웠고, 그제야
+      **두 번째 SDK 표면**이 드러났다. `read_only_mcp_sdk.py` 는 `FastMCP` 가 아니라
+      `mcp.server.lowlevel` 을 쓰는데 2.0.0 이 `list_tools`/`call_tool` decorator 를
+      `add_request_handler` 로 바꿨다 (`AttributeError`, 로컬에서 1.28.1 정상 /
+      2.0.0 실패로 재현). 프로토콜 왕복(initialize → tools/list → tools/call)을 실제로
+      돌려 확인해야 한다 — 파일 모양 검사는 이 층을 대신하지 못한다.
       - `version` 은 계속 전달하지 않는다. 2.x `MCPServer` 는 받지만 1.x `FastMCP` 는
         받지 않고, 여기서 넘기기 시작하면 서버 2종이 광고하는 version 이 바뀐다 —
         이관 범위 밖이라 기존 동작을 유지했다. 바꾸려면 별도 결정이 필요하다.

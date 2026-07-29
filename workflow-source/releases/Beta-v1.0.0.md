@@ -1540,6 +1540,41 @@ wrapper 의 fail-fast `sys.exit(1)` 이 `except Exception` 을 빠져나가 **�
 놓는다. mypy-strict job 은 그 파일을 깔지 않아 그대로 맞았다. 상한을 푼 지금은 두 job 이
 서로 다른 major 를 밟게 되어 커버리지가 넓어졌지만, 그것도 여전히 우연이다.
 
+### 2.42. 같은 날 세 번째 드리프트 — 도구도 의존성이다
+
+§2.41 의 핀을 복원하고 `mcp-inspector` 를 수동 실행했더니 **여전히 red** 였다. 이번에는
+`AttributeError` 가 없고 `Connection timed out after 15000 ms` 만 남았다. 설치 로그를
+보니 러너가 집은 것은 `mcp-1.29.0` — 핀은 제대로 걸려 있었다. **Python 쪽이 아니었다.**
+
+로컬에서 `mcp 1.27.0` / `1.28.1` / `1.29.0` 각각에 `initialize` 를 넣어 보니 셋 다 정상
+응답한다. 서버는 멀쩡했다. 그런데 인스펙터를 통하면 재현된다:
+
+```
+File "<stdin>", line 1, in <module>
+NameError: name 'true' is not defined. Did you mean: 'True'?
+```
+
+`<stdin>` 이라는 건 **python 이 인자 없이 떴다**는 뜻이다. argv 를 기록하는 wrapper 를
+끼워 측정했더니 `ARGC=0 ARGV=[]` — 인스펙터가 `-m workflow_kit.server.read_only_mcp_sdk
+--stdio-sdk` 를 전부 자기 파서에 먹고 명령만 띄웠다. 맨 python 이 REPL 로 떠서 JSON-RPC
+의 `true` 를 Python 소스로 실행한 것이다. 15초 timeout 은 그 뒤의 표면 증상이었다.
+
+원인은 `npx -y @modelcontextprotocol/inspector` 가 **버전을 고정하지 않은 것**이다. Node
+쪽 인스펙터도 같은 시기에 **2.0.0** 이 됐고, `[target...]` 인자 처리가 바뀌었다.
+
+| | 조치 |
+|---|---|
+| 호출 | 명령을 위치 인자로 넘기지 않고 `--config` + `--server` 로 **선언**한다 (2.0.0 에서 tools/list 왕복 실측) |
+| 버전 | `@modelcontextprotocol/inspector@2` 로 major 고정 |
+| 빈 응답 | rc=0 인데 `tools` 가 비면 실패로 만든다 — "죽지 않았다" 는 "받았다" 가 아니다 |
+
+로컬 전 구간 재현: 인스펙터 → `live-tools.json` → 커밋된 descriptor 대조까지
+**서버 13개 / descriptor 13개, 불일치 0**.
+
+> 하루에 같은 부류가 세 번 나왔다 — Python `mcp` 상한 없음(§2.41), 그 안의 두 번째 SDK
+> 표면(lowlevel), 그리고 `npx -y` 의 인스펙터. **셋 다 "우리 코드는 안 바뀌었는데 결과가
+> 바뀌었다" 였다.** 검사 도구 자체도 고정하지 않으면 측정이 조용히 달라진다.
+
 ## 3. 검증
 
 누적 smoke **221/221 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`

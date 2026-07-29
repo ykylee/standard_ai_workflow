@@ -81,6 +81,12 @@ TASK-2026-07-29-main-003 으로 분리했다. `grep '^from mcp'` 는 wrapper 만
       두 SDK 모두 "함수를 그대로 돌려주는 decorator" 라 wrapper 계약(`Callable[..., Any]`)이
       유효함을 확인했고, `cast` 로 좁혀 반환한다. **1.x 지원은 끊지 않았다** — 두 이름을
       모두 시도한다.
+- [x] ~~`mcp-inspector` red — Python 문제인 줄 알았다~~ → **§2.42 에서 조치**. 핀 복원 후에도
+      red 였고, 이번엔 Python 이 아니었다. `npx -y @modelcontextprotocol/inspector` 가
+      버전 고정이 없어 Node 쪽 인스펙터도 **2.0.0** 으로 넘어갔고, `[target...]` 인자를
+      삼켰다 (argv wrapper 로 `ARGC=0` 실측 → 맨 python 이 REPL 로 떠서 JSON-RPC 의
+      `true` 를 Python 으로 실행 → `NameError`). `--config`/`--server` 선언 방식 +
+      `@2` major 고정 + 빈 응답 실패화. 로컬 전 구간 13/13 일치 확인.
 - [ ] **TASK-2026-07-29-main-003 — lowlevel 이관. 상한 핀은 복원된 상태다.** 핀을 풀었던
       커밋이 처음으로 `server/**` 를 건드려 `mcp-inspector` workflow 를 깨웠고, 그제야
       **두 번째 SDK 표면**이 드러났다. `read_only_mcp_sdk.py` 는 `FastMCP` 가 아니라

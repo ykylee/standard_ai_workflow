@@ -9,11 +9,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `71feef3` (CI smoke·mypy-strict green 실측, mcp 1.29.0)
-- 현재 주 작업 축: 상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀은 시한을 미룰 뿐이고, 이관과 탐지층이 닫는다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `7b1404b` (CI 4종 green 실측 — smoke·mypy-strict·actionlint·mcp-inspector, mcp 1.29.0 / inspector@2 / tool 13개)
+- 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.41](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.42](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업

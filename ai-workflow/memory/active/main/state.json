@@ -27,8 +27,8 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `71feef3` (CI smoke·mypy-strict green 실측, mcp 1.29.0)",
-    "current_axis": "상한 없는 의존성은 측정을 조용히 갈아 끼운다 — 핀은 시한을 미룰 뿐이고, 이관과 탐지층이 닫는다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `7b1404b` (CI 4종 green 실측 — smoke·mypy-strict·actionlint·mcp-inspector, mcp 1.29.0 / inspector@2 / tool 13개)",
+    "current_axis": "\"우리 코드는 안 바뀌었는데 결과가 바뀌었다\" — 의존성도 도구도 고정하지 않으면 측정이 갈린다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],

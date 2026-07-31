@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `2e13931` (§2.48 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 228 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 228/228, 되주입 5건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `607b84c` (§2.49 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 229 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 229/229, 되주입 4건)
 - 현재 주 작업 축: "결함을 고치면 같은 모양이 또 어디 있는지 묻는다" — §2.47 의 경로 결함이 형제 도구에 그대로 있었다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -61,8 +61,7 @@
   저장소에서 한 번도 apply 된 적이 없었다.
 - 검사 1종 신규(smoke 228 → **229**): `check_doctor_config_provenance.py`(6).
 - 실측: 전량 smoke **229/229**, mypy strict **122 files 0 errors**, 되주입 4건 각각
-  다른 신호. **CI 는 아직 안 봤다** — push 후
-  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  다른 신호. **CI 4종 green 실측 완료**(`607b84c`) — 러너 자기 측정 `All 229 …`.
 
 ---
 

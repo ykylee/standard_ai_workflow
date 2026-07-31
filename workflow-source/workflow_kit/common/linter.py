@@ -5,7 +5,7 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import cast, Dict, List, Any
 
-from workflow_kit.common.project_docs import parse_backlog, parse_handoff
+from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP, parse_backlog, parse_handoff
 
 # v0.7.15+: excluded_paths glob match helper. v0.7.7 deferred #4 해소.
 def _is_excluded(path: Path, excluded_patterns: List[str]) -> bool:
@@ -214,14 +214,17 @@ def check_workflow_consistency(
             })
 
     # 2. Check for bloat in handoff
+    # 상한 리터럴을 여기 다시 적지 않는다 — 쓰는 쪽(`sync_handoff_status`)과 조립하는
+    # 쪽(`build_workflow_state_payload`)이 같은 정본을 본다. 예전에는 여기만 `10` 을
+    # 들고 있어서, 상한을 바꾸면 보는 쪽만 조용히 갈라질 자리였다.
     done_items = cast("list[object]", handoff.get("recent_done_items", []))
-    if len(done_items) > 10:
+    if len(done_items) > RECENT_DONE_ITEMS_CAP:
         issues.append({
             "type": "bloat_warning",
             "code": "handoff_bloat",
             "description": f"Handoff has {len(done_items)} recently done items.",
             "severity": "low",
-            "fix_suggestion": "Move older tasks to baseline summary and keep only last 5-10 in recently done."
+            "fix_suggestion": f"backlog-update applies the cap ({RECENT_DONE_ITEMS_CAP}); drop the oldest entries if the list was written by hand."
         })
 
     # 3. Check for broken links in handoff/backlog (simple regex)

@@ -1764,15 +1764,107 @@ sweep) — 클라이언트 표면은 이 파일 **하나**였다.
 > 커밋에서 우연히 틀린 값이 되고, 그 사이에 아무 신호도 없다. 넓은 커버리지를 **선언**
 > 으로 바꾸는 값은, 그것이 사라질 때 무언가 실패한다는 것이다.
 
+### 2.46. 도구가 만든 초과를 사람이 치우고 있었다 — 파생물의 상한과 포인터
+
+두 결함을 닫는다. 둘 다 같은 모양이다: **파생물을 만드는 쪽이 규약을 모른다.**
+
+**(1) handoff §4 의 상한이 쓰는 쪽에 없었다.**
+
+`recent_done_items` 를 아는 자리가 셋인데 상한을 아는 자리는 하나였다.
+
+| 자리 | 하는 일 | 상한 |
+|---|---|---|
+| `sync_handoff_status` | handoff §4 에 append | **없음 — 무한히 쌓았다** |
+| `build_workflow_state_payload` | state.json 조립 | `RECENT_DONE_ITEMS_CAP` |
+| `linter.handoff_bloat` | 넘쳤는지 본다 | 리터럴 `10` (사본) |
+
+그래서 `backlog-update --apply` 를 돌릴 때마다 §4 가 11번째 줄을 얻었고, `handoff_bloat`
+가 그것을 잡으면 **사람이 손으로 가장 오래된 한 줄을 지웠다.** 2026-07-28 과 2026-07-31
+두 close-out 에서 연속으로 재발했다 — 즉 이건 사고가 아니라 **고정 비용**이었다.
+§2.38 이 "상한이 두 곳에 있고 자르는 방향이 반대" 를 고쳤는데, 그때 본 두 곳은 둘 다
+*읽는* 쪽이었다. 쓰는 쪽은 그 시야에 없었다.
+
+- 상한 정본을 `common/project_docs.RECENT_DONE_ITEMS_CAP` 으로 옮기고, 쓰는 쪽 /
+  조립하는 쪽 / 보는 쪽이 전부 그 이름을 읽는다. 이 상한의 리터럴 사본은 사라졌다.
+- `sync_handoff_status` 가 §4 에만 상한을 적용한다. **버리는 것은 가장 오래된 것**이다
+  (§4 는 뒤가 최신인 append 목록 — 사람이 손으로 하던 조작과 같다).
+  `in_progress` / `blocked` 는 상한이 없다. 전부 보여야 하는 사실이라서다.
+
+**(2) `latest_backlog_path` 는 항상 `null`, `task_count` 는 항상 `0` 이었다.**
+
+task 파일이 107건 있는 저장소에서 `state.json` 은 이렇게 적고 있었다.
+
+```
+source_of_truth.latest_backlog_path : null
+backlog.latest_backlog_path         : null
+backlog.task_count                  : 0        ← "모른다" 가 아니라 틀린 사실
+```
+
+경로 해석 세 갈래가 전부 `legacy_index_present`(구형 `work_backlog.md` 가 있는가) **하나**
+에 매달려 있었다. append-only layout 에는 그 파일이 없으니 전부 `None` 으로 떨어졌고,
+호출자가 `--latest-backlog-path` 로 **명시한 인자까지 버려졌다**(2026-07-31 실측: 넘겨도
+그대로 `null`). 그 결과 `backlog` block 을 채우는 `parse_backlog` 가 아예 호출되지 않아
+block 전체가 죽어 있었다 — `task_count` 만의 문제가 아니었다.
+
+- 해석을 세 경로로 분리했다: (a) 명시한 인자, (b) legacy index 가 가리키는 최신 파일,
+  (c) append-only layout 의 daily 디렉터리에서 가장 최신 `YYYY-MM-DD.md`. 실재하지 않는
+  경로는 `null` 로 떨어진다 — 없는 파일을 가리키지 않는다.
+- 파서는 손대지 않았다. `parse_backlog` 는 이미 신규 daily index(=link 모음)를 따라가
+  task 파일을 읽는다. **읽는 쪽이 아니라 부르는 쪽이 막혀 있었다.**
+- 이 필드는 `session-start` / `doc-sync` / `validation-plan` / `merge-doc-reconcile` 네
+  skill 의 입력이다. 즉 최신 backlog 를 가리키는 포인터를 넷이 통째로 잃고 있었다.
+
+**필드를 살리자 소비자 쪽 결함 둘이 곧바로 드러났다.** 값이 `null` 인 동안에는 그 값을
+쓰는 코드가 한 번도 실행되지 않았다 — 죽은 필드는 자기 소비자까지 같이 얼려 둔다.
+
+- `current_focus` 의 fallback 이 "최신 backlog 의 **첫** task" 였다. 그래서 전부 `done` 인
+  날에 **완료된 작업이 "현재 초점"** 으로 올라왔다(실측). 아직 안 끝난 것만 고르고,
+  없으면 비운다 — 없는 초점을 지어내지 않는다.
+- `run_workflow_linter.py` 가 state.json 의 상대 경로를 **`branch_dir` 기준**으로 붙이고
+  있었다. builder 는 workspace root 기준으로 적으므로 경로가 두 번 겹쳤고
+  (`…/active/main/ai-workflow/memory/active/main/…`), 린터는 자기 저장소에서
+  `missing_required_document` 를 냈다. 기준을 맞추고, **실재할 때만 채택**하도록 했다
+  (그 전에는 없는 경로를 채택해 아래 fallback 이 건너뛰어졌다). `check_self_application`
+  의 `test_own_linter_passes_on_own_repo` 가 이걸 잡았다.
+
+**검사 2건(smoke 224 → 226).** `check_handoff_done_cap.py`(7 case) 는 쓰는 쪽의 상한과
+버리는 방향, 그리고 **상한이 한 객체인지**를 본다 — 정본 값을 갈아 끼우고 쓰는 쪽과
+린터의 동작이 따라오는지로 잰다(리터럴을 들고 있으면 안 따라온다). 린터 판정을 여기서
+다시 쓰지 않고 프로덕션 `check_workflow_consistency` 를 그대로 부른다 — 판정을 복제하면
+재현일 뿐 검증이 아니다(§2.29). `check_state_backlog_block.py`(8 case) 는 fixture 7건
+(명시 인자 존중 / daily fallback / 빈 디렉터리 / 실재하지 않는 경로 / `task_count` 일치 /
+완료 task 는 초점이 아님 / legacy layout 회귀)에 더해 **이 저장소 자신의 `state.json`** 을 본다. 필드가 다시
+`null` 로 굳으면 거기서 실패한다.
+
+**되주입 9건, 각각 다른 신호**: 쓰는 쪽 상한 제거 → "§4 가 상한(10)을 넘었다: 13개";
+쓰는 쪽 리터럴화 → "상한을 3으로 바꿨는데 7개다"; 자르는 방향 반전 → "최신 10건이
+아니다"; 린터 리터럴화 → "정본을 8로 낮췄는데 `handoff_bloat` 가 안 켜졌다"; 경로 해석을
+legacy 에 재결합 → "명시한 인자를 버렸다"; daily fallback 제거 → "append-only layout 에서
+`latest_backlog_path` 가 null 이다"; fallback 이 최오래 파일 선택 → "최신이 아니다";
+`current_focus` fallback 되돌림 → "완료된 작업이 현재 초점이 됐다"; 린터 경로 해석
+되돌림 → "status=warning issues=['missing_required_document']".
+
+> **한 가지는 잡히지 않았다는 것도 적어 둔다.** 린터의 기준 경로만 `branch_dir` 로
+> 되돌리면 아무 검사도 실패하지 않는다 — 겹친 경로가 실재하지 않아 **실재 확인
+> 가드**가 걸러 내고 fallback 이 옳은 파일을 집기 때문이다. 즉 이 자리에서 실제로
+> 일하는 것은 가드 쪽이고, 기준 경로 교정은 그 위의 정합이다. 둘을 함께 되돌려야
+> 원래 증상이 재현된다.
+
+> §2.38 은 "상한이 두 곳에 있었다" 였고 이건 그 다음 칸이다 — **상한을 아는 곳과 값을
+> 만드는 곳이 다르면, 넘친 것을 사람이 치운다.** 수작업이 두 번 반복됐다는 사실 자체가
+> 신호였다. 검사가 잡아 주는데도 매번 손이 가면, 잡는 층이 아니라 **만드는 층**이
+> 규약을 모르는 것이다.
+
 ## 3. 검증
 
-누적 smoke **224/224 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **226/226 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
 → 221(§2.41 `check_mcp_server_sdk_compat`) → 222(§2.43
 `check_mcp_lowlevel_sdk_compat`) → 223(§2.44 `check_optional_dep_imports`)
-→ **224**(§2.45 `check_mcp_sdk_matrix`).
+→ 224(§2.45 `check_mcp_sdk_matrix`) → **226**(§2.46 `check_handoff_done_cap` +
+`check_state_backlog_block`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

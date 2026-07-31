@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": null,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector·actionlint·**mcp-sdk-matrix**. matrix 3 셀(1.27.0/1.29.0/2.0.0) 각각 요청=설치 일치 + subset 12/12 + SDK 왕복 증거 2/2. 러너가 집은 버전 실측: smoke `1.27.0`(pinned floor), mypy-strict·mcp-inspector `2.0.0`(floating). 전량 smoke 224/224, mypy 121 files 0 errors)",
-    "current_axis": "\"우리 코드는 안 바뀌었는데 결과가 바뀌었다\" — 의존성도 도구도 고정하지 않으면 측정이 갈린다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측). **로컬 HEAD 는 §2.46 적용본** — 전량 smoke **226/226**, mypy strict 121 files 0 errors, 되주입 9건. CI 는 push 후 실측 필요.",
+    "current_axis": "\"파생물을 만드는 쪽이 규약을 모른다\" — 상한/포인터가 읽는 쪽에만 있으면 사람이 매번 치운다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
       "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler",
       "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층",
@@ -41,22 +42,25 @@
       "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리",
       "TASK-2026-07-28-main-001 — recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정",
       "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍",
-      "TASK-2026-07-27-main-003 — 남은 자기참조 3건 해소 + CI red 원인 계측 확정",
-      "TASK-2026-07-27-main-002 — 남은 결함 3건 + CI 자기참조 해소"
+      "TASK-2026-07-27-main-003 — 남은 자기참조 3건 해소 + CI red 원인 계측 확정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": null,
-    "task_count": 0,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
+      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
+    "ai-workflow/memory/active/main/backlog/2026-07-31.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

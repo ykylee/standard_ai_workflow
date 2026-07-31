@@ -9,8 +9,8 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector·actionlint·**mcp-sdk-matrix**. matrix 3 셀(1.27.0/1.29.0/2.0.0) 각각 요청=설치 일치 + subset 12/12 + SDK 왕복 증거 2/2. 러너가 집은 버전 실측: smoke `1.27.0`(pinned floor), mypy-strict·mcp-inspector `2.0.0`(floating). 전량 smoke 224/224, mypy 121 files 0 errors)
-- 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측). **로컬 HEAD 는 §2.46 적용본** — 전량 smoke **226/226**, mypy strict 121 files 0 errors, 되주입 9건. CI 는 push 후 실측 필요.
+- 현재 주 작업 축: "파생물을 만드는 쪽이 규약을 모른다" — 상한/포인터가 읽는 쪽에만 있으면 사람이 매번 치운다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소
 - TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
 - TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
@@ -37,9 +36,36 @@
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
 - TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
 - TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
+- TASK-2026-07-31-main-002 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다
 ## 5. 다음 세션 시작 포인트
 
-**§2.43 이 남긴 "설치 순서에 기댄 우연" 을 선언으로 바꿨다 (TASK-2026-07-31-main-001,
+**close-out 마다 반복되던 수작업을 없앴다 (TASK-2026-07-31-main-002, §2.46).**
+두 결함 다 같은 모양이었다 — **파생물을 만드는 쪽이 규약을 모른다.**
+
+- **handoff §4 상한이 쓰는 쪽에 없었다.** 상한을 아는 자리가 셋(쓰는 쪽 /
+  state.json 조립 / 린터)인데 값을 만드는 쪽만 몰랐다. 그래서 `--apply` 마다 11번째
+  줄이 생겼고 사람이 손으로 지웠다(2026-07-28, 07-31 연속 2회). 정본을
+  `common/project_docs.RECENT_DONE_ITEMS_CAP` 한 곳으로 모으고 셋이 그 이름을 읽는다.
+  **이번 close-out 에서 실제로 10을 유지했다** — 가장 오래된 1건이 자동으로 빠졌다.
+- **`latest_backlog_path` 가 항상 null, `task_count` 가 항상 0 이었다.** 경로 해석
+  세 갈래가 `legacy_index_present` 하나에 매달려 있어서, append-only layout 에서는
+  **명시한 `--latest-backlog-path` 인자까지 버려졌다**. 이제 (명시 인자 → legacy
+  index → daily 디렉터리 최신) 순으로 보고, 실재할 때만 채택한다. `backlog` block 이
+  통째로 죽어 있던 것이라 `task_count` 만의 문제가 아니었다.
+- **죽은 필드는 소비자까지 얼려 둔다.** 살리자마자 두 건이 드러났다:
+  `current_focus` 가 전부 done 인 날 **완료된 작업을 초점으로** 집었고(→ 미완료만
+  고르도록), `run_workflow_linter` 가 state.json 의 상대 경로를 `branch_dir` 기준으로
+  붙여 경로가 겹쳤다(→ workspace root 기준 + 실재 확인). 후자는
+  `check_self_application` 이 잡았다.
+- 검사 2종 신규(smoke 224 → **226**): `check_handoff_done_cap.py`(7) /
+  `check_state_backlog_block.py`(8, 이 저장소 자신의 state.json 포함).
+- 실측: 전량 smoke **226/226**(`dev,release,mcp-sdk` venv, 워킹트리 변경 0),
+  mypy strict 121 files 0 errors, 되주입 9건 각각 다른 신호.
+  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+
+---
+
+이전 세션 기록: **§2.43 이 남긴 "설치 순서에 기댄 우연" 을 선언으로 바꿨다 (TASK-2026-07-31-main-001,
 §2.45).** 세 job 이 서로 다른 mcp 버전으로 돌고 있었는데 그렇게 정한 사람이 없었다.
 smoke 의 설치 3줄을 매 줄 관측했다 — `requirements.txt` 뒤 **2.0.0**,
 `requirements-dev.txt` 뒤 **1.27.0**, editable install 뒤 **1.27.0**. 즉 그 한 줄을
@@ -160,16 +186,21 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
         상황에서 mypy 가 냈던 `no-any-return` 과 대비된다.
       - skip 은 조용히 넘기지 않는다 — 몇 건을 왜 건너뛰었는지 출력한다
         (로컬 2건, mcp 없는 venv 6건 실측).
-- [ ] **`backlog-update` 가 handoff §4 에 상한을 적용하지 않는다** (2026-07-31 재발 —
-      이번에도 11이 됐고 `handoff_bloat` 가 잡아 손으로 1건 지웠다. **연속 2회 재발이라
-      close-out 마다 반복되는 수작업이다.**) state.json 의
-      `recent_done_items` 는 10으로 잘리는데 handoff 의 markdown 목록은 `--apply` 마다
-      그냥 append 돼 11이 됐고, `check_self_application` 의 `handoff_bloat` 가 잡았다
-      (이번에 손으로 가장 오래된 1건을 지웠다). **상한이 한 곳에만 있다** — §2.38 이
-      고친 것과 같은 모양이다. 도구 쪽에서 자르게 할지는 미결.
-- [ ] **`state.json` 의 `backlog.task_count` 는 항상 0, `latest_backlog_path` 는 항상
-      `null` 이다.** 이번에 `--latest-backlog-path` 를 넘겨 재생성해도 그대로였다 (task 파일
-      107건 존재). 이번 변경으로 생긴 것이 아니라 그 전부터 그랬다 — 관측만 해 둔다.
+- [x] ~~`backlog-update` 가 handoff §4 에 상한을 적용하지 않는다~~ → **완료(§2.46)**.
+      쓰는 쪽(`sync_handoff_status`)이 상한을 적용한다. 정본은
+      `common/project_docs.RECENT_DONE_ITEMS_CAP` 한 곳이고 린터의 리터럴 사본도 없앴다.
+- [x] ~~`state.json` 의 `backlog.task_count` 는 항상 0, `latest_backlog_path` 는 항상
+      `null`~~ → **완료(§2.46)**. 경로 해석을 세 갈래로 분리했다. `backlog` block 이
+      통째로 죽어 있던 것이라 `task_count` 만의 문제가 아니었다.
+- [ ] **`run_workflow_linter.py` 의 `project_root` 가 저장소 루트보다 한 단계 위를
+      가리킨다** (`profile.parent.parent.parent`). 그래서 `load_config` 가 pyproject 를
+      못 찾고 조용히 default 로 떨어진다 — `[tool.workflow-doctor]` 의 `excluded_paths`
+      가 적용된 적이 없다. 이 저장소는 정본이 `workflow-source/pyproject.toml` 이라
+      "루트로 고치면 된다" 도 아니다(루트 pyproject 에는 그 section 이 없다). 별건.
+- [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
+      저장소는 builder 가 task SSOT 를 먼저 쓰므로 무해하지만, legacy 저장소(task 파일
+      부재)에서는 handoff 가 tail fallback 이 되고 builder 가 **앞에서** 자르므로
+      오래된 것이 남는다.
 - [x] ~~판정 근거가 없어 비워 둔 2건~~ → **둘 다 `done` 으로 판정 완료**.
       `archived/{codex/phase6,gemini/phase10}/` 의 handoff·day file 을 대조해 근거를 찾았다
       (task 파일 Outcome 에 근거 기록). `unknown_status_items` 는 이제 빈 목록이다.

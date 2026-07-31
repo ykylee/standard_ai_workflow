@@ -23,7 +23,8 @@
 2. 상한은 `RECENT_DONE_ITEMS_CAP` **한 곳**에서 **한 번**만 적용된다.
 3. task 파일이 있으면 그것이 SSOT — daily index 가 판정을 덮어쓰지 않는다.
 4. 어휘 밖 status 는 조용히 버려지지 않고 `unknown_status_items` 로 드러난다.
-5. handoff §4(파생물, 상한 없는 append-only)가 task SSOT 를 밀어내지 않는다.
+5. handoff §4(손으로도 쌓일 수 있는 파생물)가 task SSOT 를 밀어내지 않는다.
+   — 쓰는 쪽의 상한은 v1.0.3 §2.46 에서 `check_handoff_done_cap.py` 가 따로 고정한다.
 
 Cross-ref: releases/Beta-v1.0.0.md §2.38.
 """
@@ -222,7 +223,7 @@ def test_daily_only_entry_keeps_its_chronological_slot() -> None:
 
 @_with_branch
 def test_handoff_does_not_crowd_out_task_ssot() -> None:
-    """상한 없는 handoff §4(파생물)가 최신 task 를 밀어내지 않는다."""
+    """손으로 쌓인 handoff §4(파생물)가 최신 task 를 밀어내지 않는다."""
     with tempfile.TemporaryDirectory() as td:
         ws = _workspace(td)
         handoff_lines = ["# Session Handoff", "", "- 최근 완료 작업 목록:"]

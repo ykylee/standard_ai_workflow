@@ -18,7 +18,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
-from workflow_kit.common.paths import resolve_existing_path, workflow_branch_dir, workflow_memory_dir, workflow_state_path
+from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_branch_dir, workflow_memory_dir, workflow_state_path
 from workflow_kit.common.linter import check_workflow_consistency, check_maturity_consistency
 from workflow_kit.common.metadata import load_config  # v0.7.15+: excluded_paths from config
 from workflow_kit.common.schemas import WorkflowLinterOutput, Status
@@ -61,8 +61,18 @@ def main() -> int:
             try:
                 state_data = json.loads(state_json_path.read_text(encoding="utf-8"))
                 raw_backlog = state_data["source_of_truth"]["latest_backlog_path"]
-                # Resolve relative to branch_dir
-                latest_backlog_path = (branch_dir / raw_backlog).resolve()
+                # **workspace root 기준**이다. builder 가 `safe_relpath(..., workspace_root)`
+                # 로 적기 때문이다. 예전에는 `branch_dir` 을 기준으로 붙여서 경로가
+                # 두 번 겹쳤고(`…/active/main/ai-workflow/memory/active/main/…`),
+                # 그 파일이 없으니 린터가 `missing_required_document` 를 냈다.
+                # 이 필드가 항상 `null` 이던 동안에는 이 줄이 실행된 적이 없다 —
+                # §2.46 이 필드를 살리자 곧바로 드러났다.
+                if raw_backlog:
+                    candidate = (project_workspace_root(project_profile_path) / raw_backlog).resolve()
+                    # 실재할 때만 채택한다. 안 그러면 아래 fallback 이 건너뛰어지고
+                    # 없는 경로가 그대로 판정에 들어간다.
+                    if candidate.is_file():
+                        latest_backlog_path = candidate
             except Exception:
                 pass
 

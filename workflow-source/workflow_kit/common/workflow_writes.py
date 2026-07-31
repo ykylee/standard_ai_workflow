@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 
 from workflow_kit.common.markdown import rel_link_from_doc
+from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP
 
 
 def _read_lines(path: Path) -> list[str]:
@@ -307,6 +308,17 @@ def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> 
     for section_label, items in current_lists.items():
         current_lists[section_label] = [item for item in items if item != task_label]
     current_lists[target_label].append(task_label)
+
+    # "최근 완료" 만 상한을 적용한다 — `in_progress` / `blocked` 는 상한이 없다
+    # (몇 건이든 전부 보여야 하는 사실이고, 끝나면 목록에서 빠진다).
+    #
+    # 이 목록은 **append-only 파생물**이다. SSOT 는 `backlog/tasks/` 이고 state.json 의
+    # `recent_done_items` 도 같은 상한으로 잘린다. 여기에만 상한이 없어서 close-out 마다
+    # 11번째 줄이 생겼고, `handoff_bloat` 가 그걸 잡으면 사람이 손으로 지웠다.
+    # 뒤가 최신이므로 **앞(가장 오래된 것)에서 버린다** — 손으로 하던 것과 같은 조작이다.
+    done_label = label_map["done"]
+    if len(current_lists[done_label]) > RECENT_DONE_ITEMS_CAP:
+        current_lists[done_label] = current_lists[done_label][-RECENT_DONE_ITEMS_CAP:]
 
     lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
     for section_label, items in current_lists.items():

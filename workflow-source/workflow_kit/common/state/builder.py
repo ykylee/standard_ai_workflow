@@ -15,6 +15,7 @@ from workflow_kit.common.normalize import (
 from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
 from workflow_kit.common.project_docs import (
     MISSING_STATUS_MARKER,
+    RECENT_DONE_ITEMS_CAP,
     TASK_ID_CAPTURE_RE,
     TASK_ID_PATTERN,
     TASK_STATUSES,
@@ -25,13 +26,15 @@ from workflow_kit.common.project_docs import (
     parse_project_profile_validation,
 )
 
-# `recent_done_items` 의 상한 — **여기가 단일 출처다**.
+# `recent_done_items` 의 상한은 `common/project_docs.RECENT_DONE_ITEMS_CAP` 이 정본이다.
+# 여기서는 re-export 만 한다 (기존 import 경로 호환).
 #
 # 이전에는 상한이 두 곳에 있었고 **자르는 방향이 서로 반대**였다:
 # `_aggregate_from_appendonly_layout` 은 `[-10:]` (뒤 10개), `build_workflow_state_payload`
 # 는 `[:10]` (앞 10개). 그래서 aggregate 가 남긴 것을 builder 가 다시 앞에서 잘랐고,
 # 두 slice 어느 쪽도 *최신* 을 고르는 기준이 아니었다. 상한은 한 곳에서 한 번만 적용한다.
-RECENT_DONE_ITEMS_CAP = 10
+# 그 뒤에도 **쓰는 쪽(handoff §4)** 과 **보는 쪽(linter)** 은 이 값을 모르고 있었다.
+# `from workflow_kit.common.state.builder import RECENT_DONE_ITEMS_CAP` 는 계속 유효하다.
 
 
 def _parse_purpose_summary(
@@ -92,6 +95,22 @@ def _task_recency_key(frontmatter: str, task_id: str) -> str:
     if id_match and id_match.group(1):
         return id_match.group(1)
     return ""
+
+
+_DAILY_BACKLOG_GLOB = "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md"
+
+
+def _find_latest_daily_backlog(daily_backlog_dir: Path | None) -> Path | None:
+    """append-only layout 의 daily 디렉터리에서 가장 최신 `YYYY-MM-DD.md`.
+
+    파일명이 ISO 날짜라 사전순 = 시간순이다. legacy `work_backlog.md` 인덱스가 없는
+    저장소에서 `latest_backlog_path` 를 **추측이 아니라 관측**으로 채우는 자리다 —
+    디렉터리에 실재하는 파일만 돌려준다.
+    """
+    if daily_backlog_dir is None or not daily_backlog_dir.is_dir():
+        return None
+    candidates = sorted(daily_backlog_dir.glob(_DAILY_BACKLOG_GLOB))
+    return candidates[-1] if candidates else None
 
 
 def _aggregate_from_appendonly_layout(
@@ -187,7 +206,7 @@ def _aggregate_from_appendonly_layout(
     header_re = re.compile(rf"^-\s+\*\*({TASK_ID_PATTERN})\*\*")
     status_line_re = re.compile(r"^\s*-\s*status:\s*(\S+)\s*$", re.M)
     if daily_backlog_dir is not None and daily_backlog_dir.exists() and daily_backlog_dir.is_dir():
-        for daily_file in sorted(daily_backlog_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")):
+        for daily_file in sorted(daily_backlog_dir.glob(_DAILY_BACKLOG_GLOB)):
             try:
                 text = daily_file.read_text(encoding="utf-8")
             except OSError:
@@ -278,11 +297,22 @@ def build_workflow_state_payload(
     legacy_handoff_present = session_handoff_path is not None and session_handoff_path.exists()
     legacy_index_present = work_backlog_index_path is not None and work_backlog_index_path.exists()
 
-    if legacy_index_present and work_backlog_index_path is not None:
-        resolved_latest_backlog_path = latest_backlog_path or find_latest_backlog_path(work_backlog_index_path)
-        if resolved_latest_backlog_path is not None and not resolved_latest_backlog_path.exists():
-            resolved_latest_backlog_path = None
-    else:
+    # `latest_backlog_path` 해석 — 세 경로를 **각각** 본다.
+    #
+    # 예전에는 셋 전부가 `legacy_index_present` 하나에 매달려 있었다. 그래서 append-only
+    # layout(= legacy `work_backlog.md` 없음)에서는 **명시적으로 넘긴 인자까지 버려졌고**,
+    # `latest_backlog_path` 는 항상 `null`, 그것을 파싱해 채우는 `backlog` block 은
+    # 항상 비어 있었다 (`task_count` 가 늘 `0`). task 파일이 107건 있는 저장소에서
+    # "task 0건" 이라고 적는 것은 모르는 것이 아니라 **틀린 사실을 적는 것**이다.
+    #
+    # 우선순위: (1) 호출자가 명시한 경로, (2) legacy index 가 가리키는 최신 파일,
+    # (3) append-only layout 의 daily 디렉터리에서 가장 최신 `YYYY-MM-DD.md`.
+    resolved_latest_backlog_path: Path | None = latest_backlog_path
+    if resolved_latest_backlog_path is None and legacy_index_present and work_backlog_index_path is not None:
+        resolved_latest_backlog_path = find_latest_backlog_path(work_backlog_index_path)
+    if resolved_latest_backlog_path is None:
+        resolved_latest_backlog_path = _find_latest_daily_backlog(daily_backlog_dir)
+    if resolved_latest_backlog_path is not None and not resolved_latest_backlog_path.exists():
         resolved_latest_backlog_path = None
 
     profile_core = parse_project_profile_core(project_profile_path)
@@ -345,9 +375,10 @@ def build_workflow_state_payload(
     )
     # 최신순 + 상한 1회. 순서가 바뀐 이유:
     #
-    # handoff §4 는 `sync_handoff_status` 가 **append-only 로 쌓는 파생물**이고 상한이
-    # 없다. 그게 앞에 있으면 가장 오래된 handoff 항목이 상한을 먼저 채우고, 정작 SSOT
-    # 인 task 파일의 최신 항목이 밀려난다 (실측: TASK-2026-07-22-003 이 밀려남).
+    # handoff §4 는 `sync_handoff_status` 가 append 하는 **파생물**이고, 오래된 것이
+    # 앞에 온다 (쓰는 쪽 상한은 §2.46 에서 생겼지만 정렬 기준은 여전히 없다). 그게
+    # 앞에 있으면 가장 오래된 handoff 항목이 상한을 먼저 채우고, 정작 SSOT 인 task
+    # 파일의 최신 항목이 밀려난다 (실측: TASK-2026-07-22-003 이 밀려남).
     # 그래서 task SSOT(appendonly, 이미 최신순) 를 앞에 두고 handoff 를 tail fallback
     # 으로 내린다 — tasks_dir 이 없는 legacy 저장소에서는 handoff 가 그대로 살아난다.
     recent_done_items = dedupe_work_items(
@@ -368,8 +399,14 @@ def build_workflow_state_payload(
 
     current_focus = in_progress_items[0] if in_progress_items else (blocked_items[0] if blocked_items else None)
     if current_focus is None and backlog_tasks:
-        first_task = backlog_tasks[0]
-        current_focus = f"{first_task['task_id']} {first_task['title']}"
+        # **끝난 일은 focus 가 아니다.** 이 fallback 은 진행/차단 목록이 비었을 때
+        # "그래도 최신 backlog 에 뭔가 있으면 그걸 가리키자" 는 자리인데, 첫 task 를
+        # 그냥 집으면 전부 `done` 인 날에 완료된 작업이 "현재 초점" 으로 올라온다
+        # (§2.46 에서 `backlog` block 이 살아나자마자 실제로 그렇게 됐다).
+        # 아직 안 끝난 것만 고르고, 없으면 **비운다** — 없는 초점을 지어내지 않는다.
+        pending = [task for task in backlog_tasks if task.get("status") != "done"]
+        if pending:
+            current_focus = f"{pending[0]['task_id']} {pending[0]['title']}"
 
     # v0.9.4 chapter 8 R-A follow-up part 1: state.json.purpose_digest 1-line 자동 생성
     purpose_candidates = [

@@ -35,6 +35,16 @@ TASK_PROVENANCE_MIGRATED_LEGACY = "migrated-legacy"
 # "판정하지 않았다" 와 "어휘 밖의 값을 적었다" 는 다른 사실이라 구분해서 드러낸다.
 MISSING_STATUS_MARKER = "<미기재>"
 
+# "최근 완료" 파생물의 상한 — **여기가 단일 출처다**.
+#
+# 이 값을 아는 자리가 셋이다: 쓰는 쪽(`sync_handoff_status` 가 handoff §4 에 append),
+# 조립하는 쪽(`build_workflow_state_payload` 의 `recent_done_items`), 보는 쪽
+# (`linter` 의 `handoff_bloat`). 상한이 조립 쪽에만 있어서 **쓰는 쪽은 무한히 쌓았고**,
+# 보는 쪽은 리터럴 `10` 을 따로 들고 있었다. 그래서 close-out 마다 handoff 가 11이 되고
+# 사람이 한 줄 지우는 수작업이 반복됐다 (2026-07-28 / 2026-07-31 연속 2회 실측).
+# 상한을 아는 곳은 전부 여기를 import 한다 — 리터럴을 다시 적지 않는다.
+RECENT_DONE_ITEMS_CAP = 10
+
 # Standard Regexes
 STATUS_RE = re.compile(rf"- 상태:\s*({_STATUS_ALT})\s*$")
 MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")

@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `15ee104` (§2.50 적용본, **CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 230 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `mkdocs`/`actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. **직전 `d6a23fe` 는 smoke red 였다** — 신규 검사가 CI 에서 무력화된 것을 `15ee104` 가 고쳤다. 로컬 전량 smoke 230/230, 되주입 3건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `1b52b85` (§2.51 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 231 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 231/231, 되주입 3건)
 - 현재 주 작업 축: "규칙을 세운 자리와 지켜지지 않은 자리가 같은 파일 안에 있다" — 근거를 요구하는 코드가 정작 자기 기준에는 근거를 안 냈다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -64,7 +64,7 @@
   expected_cases (6)`). 검사가 옳고 의존이 틀렸다 → `REPO_ROOT` 명시로 교정.
 - 실측: 전량 smoke **231/231**, mypy strict **122 files 0 errors**, dashboard 관련
   기존 검사 11종 PASS, 되주입 3건 각각 다른 신호.
-  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  **CI 4종 green 실측 완료**(`1b52b85`) — 러너 자기 측정 `All 231 …`.
 
 ---
 

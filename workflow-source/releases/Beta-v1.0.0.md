@@ -2144,9 +2144,72 @@ workspace root 자신은** 근거를 안 내고 있었다. 규칙을 세운 자�
 > 그 결함을 안 보고 있다는 뜻이다.
 
 
+### 2.52. 네 번을 손으로 찾았다 — 전수 조사를 저장소에 남긴다
+
+§2.47(린터) · §2.49(doctor) · §2.50(branch 해석기) · §2.51(dashboard) 은 **같은 결함
+네 번**이었다: *어떤 기준으로 재는지를 모듈 자신의 위치에서 유도하고, 그 사실을 말하지
+않는다.* 네 번 오는 동안 찾는 방법은 매번 "이 모양이 또 어디 있나" 를 손으로 세는 것이었다.
+
+§2.50 에서 한 번은 손으로 세지 않고 **AST 로 전수 조사**했다. 그런데 그 스크립트를
+**저장소에 남기지 않았다** (일회용 실행). 그래서 §2.51 은 다시 손으로 찾았다.
+조사를 남기지 않으면 조사는 없었던 것과 같다.
+
+**조치.** `tools/audit_root_anchors.py` — 그 조사를 저장소에 고정한다. 네 규칙:
+
+| 규칙 | 무엇을 보는가 | 어느 결함의 모양인가 |
+|---|---|---|
+| `anchor_outside_workspace` | 모듈 유도 기준이 **저장소 밖**에 착지 | §2.49 doctor (루트의 두 단계 위) |
+| `module_anchor_as_default` | workspace 인자가 미지정일 때 **모듈 위치**로 떨어짐 | §2.51 dashboard |
+| `branch_from_module_repo` | workspace 를 받는데 branch 는 `get_current_branch()` | §2.50 `workflow_branch_dir` |
+| `stale_ledger_entry` | 원장에 선언됐는데 코드에 없음 | (원장 부패 방지) |
+
+**R1 만으로는 부족하다 — 착지가 저장소 안이어도 틀릴 수 있다.** §2.51 은 editable
+install 이라 *우연히* 저장소 안에 착지했다. 그래서 R2 를 따로 둔다.
+
+**원장(ledger)이 있는 이유.** R1~R3 에 걸리는 것이 전부 결함은 아니다. `pyproject.toml`
+이 선언한 `<repo>/workflow-source/` 배치 가정처럼, **선언된 설계**는 지우지 않고 *이유와
+함께* 남긴다 — 선언되지 않은 것만 결함이다. 원장 key 는 `(rule, path, symbol)` 이라 줄이
+밀려도 안 깨지고, R4 가 잔재를 막는다(사라진 예외가 사실처럼 남으면 안 된다).
+
+**감사자가 자기가 감사하는 함정에 빠지지 않게.** 기준 경로는 (명시 인자 → **cwd**) 두
+갈래만 두고 `scan_root_source` 로 출처를 밝힌다 — §2.51 과 같은 규칙을 자신에게 적용한다.
+
+> **처음 쓴 버전은 조사 0건인데 "미선언 0건" 이라고 말했다.** 저장소 밖 cwd 에서 부르면
+> 대상 디렉터리가 하나도 없는데, 결함이 없다고 보고하고 exit 0 이었다. **조사 0건은 결함
+> 0건이 아니다** — 실행 못 한 검사는 통과가 아니다. `REQUIRED_SCAN_DIRS` 부재 또는
+> `scanned_files == 0` 이면 `scan_ok=False` 로 떨어뜨린다.
+
+**검사 1종 신규(smoke 231 → 232)**: `check_root_anchor_audit.py`(9).
+
+그중 두 case 가 **규칙이 무력화되는 것**을 막는다. `r2_candidate_functions` /
+`r3_candidate_functions` — 규칙이 *들여다본 함수 수*다. 인자 이름 목록
+(`WORKSPACE_PARAM_NAMES` 등)이 코드와 갈라지면 규칙은 깨지지 않고 **조용히 아무것도 안
+보게** 된다(§2.50 의 `GITHUB_REF_NAME` 과 같은 모양). 실측 바닥선: R2 21 / R3 138.
+
+**되주입은 fixture 가 아니라 실제 소스에 했다.** §2.49 · §2.50 · §2.51 의 결함을
+`doctor.py` / `paths.py` / `dashboard_data.py` 에 되돌려 넣고 잡히는지 봤다.
+
+> **§2.51 되주입이 처음엔 안 잡혔다.** R2 가 "기본값이 `None` 인 인자" 만 보고 있었는데,
+> 정작 결함이 있던 `resolve_workspace_root(workspace_root: Path | str | None)` 은
+> **기본값이 없고 型으로만 미지정을 받았다**. `X | None` / `Optional[X]` 도 미지정
+> 가능으로 세도록 고치자 잡혔다 — `parents[3] 로 떨어진다`. 되주입을 fixture 로만 했다면
+> 이 구멍을 못 봤다. **fixture 는 내가 상상한 모양이고, 실제 소스는 실제로 있던 모양이다.**
+
+**위양성도 case 로 고정한다**(§2.48 의 교훈: 위양성을 내는 검사는 무시당하고, 그러면 같은
+검사가 잡아 줄 진짜 결함도 함께 무시된다). 올바른 모양(명시 인자 → cwd,
+`branch_for_workspace`)은 무징후여야 한다.
+
+**현재 판정**: 미선언 **0건**. 선언된 예외 2건 — 둘 다 `paths.py` 의
+`branch_for_workspace`(R3 규칙 자체의 정본, git 아닌 workspace fallback) 와
+`path_in_active`(§2.50 에서 "workspace 를 역산하지 않는 것이 의도" 로 남긴 결정).
+**§2.50 이 handoff 에만 적어 두었던 그 결정이 이제 코드 옆 원장에 이유와 함께 있다.**
+
+실측 인벤토리: 419 file / 모듈 유도 기준 298 / `Path.cwd()` 17 / 기타 상승 연쇄(depth≥2) 3.
+
+
 ## 3. 검증
 
-누적 smoke **231/231 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -2157,7 +2220,8 @@ workspace root 자신은** 근거를 안 내고 있었다. 규칙을 세운 자�
 → 228(§2.48 `check_maturity_drift_judgment`)
 → 229(§2.49 `check_doctor_config_provenance`)
 → 230(§2.50 `check_branch_resolver_agreement`)
-→ **231**(§2.51 `check_dashboard_workspace_provenance`).
+→ 231(§2.51 `check_dashboard_workspace_provenance`)
+→ **232**(§2.52 `check_root_anchor_audit`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

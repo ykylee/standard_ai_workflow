@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `1b52b85` (§2.51 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 231 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 231/231, 되주입 3건)",
-    "current_axis": "\"규칙을 세운 자리와 지켜지지 않은 자리가 같은 파일 안에 있다\" — 근거를 요구하는 코드가 정작 자기 기준에는 근거를 안 냈다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `ee6a801` (§2.51 까지의 적용본). §2.52 는 **로컬 실측까지 완료, CI 미실측** — 격리 venv(`dev,release,mcp-sdk`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / mypy 2.1.0 / build 1.5.0)에서 전량 smoke **232/232 PASS**(abort 0, 워킹트리 변동 0), mypy strict `Success: no issues found in 122 source files`, `mkdocs build --strict` 성공, 되주입 3건(실제 소스). 다음 세션 첫 일은 CI 4종 실측 후 이 줄을 새 해시로 갱신하는 것",
+    "current_axis": "\"같은 결함을 네 번 손으로 찾았다\" — 조사를 저장소에 남기지 않으면 조사는 없었던 것과 같다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-07-31-main-008 — 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다",
       "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
       "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
@@ -41,15 +42,14 @@
       "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
       "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler",
-      "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층",
-      "TASK-2026-07-29-main-001 — mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer"
+      "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
-    "task_count": 7,
+    "task_count": 8,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -59,7 +59,8 @@
       "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
       "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
-      "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다"
+      "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
+      "TASK-2026-07-31-main-008 — 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다"
     ]
   },
   "next_documents": [

@@ -9,8 +9,8 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `1b52b85` (§2.51 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 231 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 231/231, 되주입 3건)
-- 현재 주 작업 축: "규칙을 세운 자리와 지켜지지 않은 자리가 같은 파일 안에 있다" — 근거를 요구하는 코드가 정작 자기 기준에는 근거를 안 냈다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `ee6a801` (§2.51 까지의 적용본). **§2.52 는 로컬 실측까지 완료, CI 미실측** — 격리 venv(`dev,release,mcp-sdk`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / mypy 2.1.0 / build 1.5.0)에서 전량 smoke **232/232 PASS**(abort 0, 워킹트리 변동 0), mypy strict `Success: no issues found in 122 source files`, `mkdocs build --strict` 성공. **다음 세션 첫 일: CI 4종 실측 후 이 줄을 새 해시로 갱신**
+- 현재 주 작업 축: "같은 결함을 네 번 손으로 찾았다" — 조사를 저장소에 남기지 않으면 조사는 없었던 것과 같다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
 - TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
 - TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
@@ -37,9 +36,43 @@
 - TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
 - TASK-2026-07-31-main-006 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
 - TASK-2026-07-31-main-007 모든 panel 의 기준이 자기 근거를 안 내고 있었다
+- TASK-2026-07-31-main-008 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다
 ## 5. 다음 세션 시작 포인트
 
-**모든 panel 의 기준이 자기 근거를 안 내고 있었다 (TASK-2026-07-31-main-007, §2.51).**
+**첫 일: CI 4종 실측**(smoke / mypy-strict / mkdocs / mcp-sdk-matrix). 이번 작업은 로컬
+실측까지만 끝났다. green 을 확인하면 §1 기준선 줄을 새 해시로 갱신할 것.
+
+---
+
+**네 번을 손으로 찾았다 — 전수 조사를 저장소에 남긴다 (TASK-2026-07-31-main-008, §2.52).**
+§2.47(린터)·§2.49(doctor)·§2.50(branch)·§2.51(dashboard)은 **같은 결함 네 번**이었다.
+§2.50 에서 한 번은 AST 로 전수 조사했지만 **그 스크립트를 저장소에 남기지 않아** §2.51 은
+다시 손으로 찾았다.
+
+- `tools/audit_root_anchors.py` — 네 규칙. `anchor_outside_workspace`(§2.49 모양) /
+  `module_anchor_as_default`(§2.51 모양) / `branch_from_module_repo`(§2.50 모양) /
+  `stale_ledger_entry`(원장 부패). **R1 만으로는 부족하다** — §2.51 은 editable install
+  이라 *우연히* 저장소 안에 착지했다.
+- **선언 원장(`ROOT_ANCHOR_LEDGER`)**. 걸린 것이 전부 결함은 아니라, 선언된 설계는 *이유와
+  함께* 남기고 선언 안 된 것만 결함으로 본다. key 는 `(rule, path, symbol)` 이라 줄이
+  밀려도 안 깨진다. 현재 2건 — `branch_for_workspace`(규칙 자체의 정본) /
+  `path_in_active`(§2.50 이 handoff 에만 적어 두었던 결정이 이제 코드 옆에 있다).
+- 검사 1종 신규(smoke 231 → **232**): `check_root_anchor_audit.py`(9).
+- **되주입을 실제 소스에 했더니 검출기 구멍이 나왔다.** R2 가 "기본값이 `None` 인 인자" 만
+  보고 있었는데 §2.51 의 `resolve_workspace_root(workspace_root: Path | str | None)` 은
+  **기본값이 없고 型으로만 미지정을 받았다** — 안 잡혔다. nullable annotation 도 세도록
+  고쳐 잡았다. fixture 는 내가 상상한 모양이고, 실제 소스는 실제로 있던 모양이다.
+- **처음 쓴 버전은 조사 0건인데 "미선언 0건" 이라고 말했다.** 저장소 밖 cwd 에서 부르면
+  대상이 하나도 없는데 exit 0 이었다 — `scan_ok` 로 닫았다.
+- 규칙 무력화 방어: `r2_candidate_functions` / `r3_candidate_functions`(규칙이 *들여다본*
+  함수 수)에 바닥선. 인자 이름 목록이 코드와 갈라지면 규칙은 깨지지 않고 조용히 아무것도
+  안 보게 된다.
+- 실측: 전량 smoke **232/232**, mypy strict 122 files 0 errors, `mkdocs build --strict`
+  성공, 인벤토리 419 file / 모듈 유도 기준 298 / cwd 17 / 기타 상승 연쇄 3.
+
+---
+
+이전 세션 기록: **모든 panel 의 기준이 자기 근거를 안 내고 있었다 (TASK-2026-07-31-main-007, §2.51).**
 §2.50 이 "선언된 fallback 이라 범위 밖" 으로 남긴 마지막 한 건을 닫았다.
 
 - `dashboard_data._repo_root(None)` 이 `Path(__file__).resolve().parents[3]` 로
@@ -380,7 +413,12 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       (명시 → cwd) 두 갈래로 바꿨다. snapshot 에 `workspace_root_source` 를 싣는다.
 - [ ] **`_branch_scoped_or_legacy(active_dir, ...)` 는 여전히 `get_current_branch()`**
       로 떨어진다. active dir 만 받아 workspace 를 역산하지 않는 것이 의도라 남겼다.
-- [ ] **전수 조사 스크립트를 저장소에 남기지 않았다** (일회용 실행). 정례화는 별건.
+- [x] ~~**전수 조사 스크립트를 저장소에 남기지 않았다**~~ → **완료(§2.52)**.
+      `tools/audit_root_anchors.py` + `check_root_anchor_audit.py`(9 case)로 정례화.
+      남은 한계 두 가지: (a) 조사 범위가 `SCAN_DIRS` **선언**에 묶여 있어, 새 최상위
+      소스 트리가 생기면 조사에서 빠지고 그 사실이 `missing_dirs` 로도 안 보인다
+      (선언 안 한 것은 "없는 대상" 이 아니다). (b) R1/R2 는 `Path` 계열 표현만 본다 —
+      `os.path.dirname` 연쇄는 미탐이다(현재 저장소에는 없다).
 - [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
       저장소는 builder 가 task SSOT 를 먼저 쓰므로 무해하지만, legacy 저장소(task 파일
       부재)에서는 handoff 가 tail fallback 이 되고 builder 가 **앞에서** 자르므로
@@ -413,6 +451,19 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
+- **이번 세션의 교훈(§2.52)**: **조사를 남기지 않으면 조사는 없었던 것과 같다.** §2.50 이
+  AST 로 전수 조사를 하고도 스크립트를 안 남겨서, 바로 다음 건(§2.51)을 또 손으로 찾았다.
+  일회용으로 돌린 조사는 그 순간의 답만 주고 *다음 번 답을 주지 않는다*.
+- **이번 세션의 교훈(§2.52, 되주입의 범위)**: 되주입을 **fixture 에만** 했다면 검출기의
+  구멍을 못 봤다. R2 가 "기본값 `None`" 만 보고 있었고, 정작 §2.51 의 결함 함수는 기본값
+  없이 **型으로만** 미지정을 받았다. fixture 는 내가 상상한 모양이고 실제 소스는 실제로
+  있던 모양이다 — **되주입은 실제 소스에 할 것.**
+- **이번 세션의 교훈(§2.52, 감사자도 감사 대상이다)**: 처음 쓴 조사 도구가 저장소 밖에서
+  불리면 조사 0건인데 "미선언 0건" 이라고 말하고 exit 0 이었다. **조사 0건은 결함 0건이
+  아니다.** 감사하는 함정(§2.51)에 감사자가 그대로 빠졌다.
+- **확인 못 함(§2.52)**: CI 4종을 아직 안 돌렸다 — 로컬 격리 venv 실측까지다. 그리고
+  조사 범위는 `SCAN_DIRS` 선언에 묶여 있어, **선언 안 한 트리는 "없는 대상" 으로도 안
+  보인다**(`missing_dirs` 는 선언했는데 없는 것만 센다). 이 축의 다음 구멍이 여기일 수 있다.
 - **이번 세션의 교훈(§2.48)**: 검사를 켜면 보고가 온다. 그때 **다 믿어서도 안 되고 다
   지워서도 안 된다** — 한 건은 문서를 고쳐야 했고 한 건은 검사를 고쳐야 했다. 둘을 가른
   것은 `kind: "spec"` 이라는 사실 하나였고, 그 사실은 **이미 저장소 안에 있었는데 읽는

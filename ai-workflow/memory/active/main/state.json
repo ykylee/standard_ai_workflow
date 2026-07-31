@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측). **로컬 HEAD 는 §2.46 적용본** — 전량 smoke **226/226**, mypy strict 121 files 0 errors, 되주입 9건. CI 는 push 후 실측 필요.",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `72bfbe0` (§2.46 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 smoke `All 226 check_*.py scripts passed`, 집힌 mcp `1.27.0`(pinned 선언대로). `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 226/226, mypy strict 121 files 0 errors, 되주입 9건)",
     "current_axis": "\"파생물을 만드는 쪽이 규약을 모른다\" — 상한/포인터가 읽는 쪽에만 있으면 사람이 매번 치운다",
     "current_focus": null,
     "in_progress_items": [],

@@ -31,15 +31,19 @@ Cross-ref: releases/Beta-v1.0.0.md §2.50.
 
 from __future__ import annotations
 
+import contextlib
+import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
+    BRANCH_ENV_KEYS,
     branch_for_workspace,
     get_current_branch,
     state_path_for_workspace,
@@ -48,6 +52,26 @@ from workflow_kit.common.paths import (  # noqa: E402
 )
 
 PROBE_BRANCH = "feature/branch-resolver-probe"
+
+
+@contextlib.contextmanager
+def _without_branch_env() -> Iterator[None]:
+    """`BRANCH_ENV_KEYS` 를 비운다 — **CI 에서 이게 없으면 검사가 무력화된다**.
+
+    GitHub Actions 는 `GITHUB_REF_NAME` 을 항상 세팅하고, 그 값이 *모든* workspace 에
+    우선한다. 그래서 env 를 안 지우면 어떤 workspace 를 물어도 CI 의 branch 가 나와서
+    "두 해석기가 합의한다" 가 자동으로 참이 된다 — 실제로 이 검사의 첫 버전이 로컬에서
+    통과하고 러너에서 `fixture 준비 실패: main` 으로 깨졌다.
+
+    env 우선 규칙 자체는 `test_branch_env_override_wins` 가 따로 고정한다.
+    """
+    saved = {k: os.environ.pop(k, None) for k in BRANCH_ENV_KEYS}
+    try:
+        yield
+    finally:
+        for key, value in saved.items():
+            if value is not None:
+                os.environ[key] = value
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -83,24 +107,25 @@ def _slug_after_memory(path: Path, marker: str) -> str:
 
 def test_resolvers_agree_on_a_foreign_workspace() -> None:
     """모듈 저장소와 **다른** branch 의 workspace 에서 셋이 같은 slug 를 쓴다."""
-    with tempfile.TemporaryDirectory() as td:
-        ws = _workspace(td)
-        profile = ws / "docs" / "PROJECT_PROFILE.md"
+    with _without_branch_env():
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            profile = ws / "docs" / "PROJECT_PROFILE.md"
 
-        actual = branch_for_workspace(ws)
-        assert actual == PROBE_BRANCH, f"fixture 준비 실패: {actual}"
-        assert get_current_branch() != PROBE_BRANCH, (
-            "모듈 저장소가 우연히 probe branch 와 같다 — 이 검사는 두 값이 달라야 의미가 있다."
-        )
+            actual = branch_for_workspace(ws)
+            assert actual == PROBE_BRANCH, f"fixture 준비 실패: {actual}"
+            assert get_current_branch() != PROBE_BRANCH, (
+                "모듈 저장소가 우연히 probe branch 와 같다 — 이 검사는 두 값이 달라야 의미가 있다."
+            )
 
-        active = _slug_after_memory(workflow_branch_dir(profile), "active")
-        archived = _slug_after_memory(workflow_archived_branch_dir(profile), "archived")
-        state = _slug_after_memory(state_path_for_workspace(ws), "active")
+            active = _slug_after_memory(workflow_branch_dir(profile), "active")
+            archived = _slug_after_memory(workflow_archived_branch_dir(profile), "archived")
+            state = _slug_after_memory(state_path_for_workspace(ws), "active")
 
-        assert active == archived == state == PROBE_BRANCH, (
-            f"해석기가 갈라졌다 — branch_dir={active} archived={archived} state={state} "
-            f"(workspace 의 실제 branch={PROBE_BRANCH}, 모듈 저장소={get_current_branch()})"
-        )
+            assert active == archived == state == PROBE_BRANCH, (
+                f"해석기가 갈라졌다 — branch_dir={active} archived={archived} state={state} "
+                f"(workspace 의 실제 branch={PROBE_BRANCH}, 모듈 저장소={get_current_branch()})"
+            )
 
 
 def test_state_and_docs_land_in_the_same_branch_dir() -> None:
@@ -108,32 +133,54 @@ def test_state_and_docs_land_in_the_same_branch_dir() -> None:
 
     갈라지면 한쪽만 갱신되고 다른 쪽은 조용히 옛 값을 읽는다.
     """
-    with tempfile.TemporaryDirectory() as td:
-        ws = _workspace(td)
-        profile = ws / "docs" / "PROJECT_PROFILE.md"
-        assert state_path_for_workspace(ws).parent == workflow_branch_dir(profile), (
-            f"{state_path_for_workspace(ws).parent} != {workflow_branch_dir(profile)}"
-        )
+    with _without_branch_env():
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            profile = ws / "docs" / "PROJECT_PROFILE.md"
+            assert state_path_for_workspace(ws).parent == workflow_branch_dir(profile), (
+                f"{state_path_for_workspace(ws).parent} != {workflow_branch_dir(profile)}"
+            )
 
 
 def test_non_git_workspace_falls_back_to_module_repo() -> None:
     """git 저장소가 아니면 기존 동작으로 되돌아간다 (temp fixture 호환)."""
-    with tempfile.TemporaryDirectory() as td:
-        ws = _workspace(td, git=False)
-        profile = ws / "docs" / "PROJECT_PROFILE.md"
-        slug = _slug_after_memory(workflow_branch_dir(profile), "active")
-        assert slug == get_current_branch(), (slug, get_current_branch())
+    with _without_branch_env():
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td, git=False)
+            profile = ws / "docs" / "PROJECT_PROFILE.md"
+            slug = _slug_after_memory(workflow_branch_dir(profile), "active")
+            assert slug == get_current_branch(), (slug, get_current_branch())
 
 
 def test_explicit_branch_argument_still_wins() -> None:
     """`--branch` 상당의 명시 인자가 있으면 그것이 우선한다."""
+    with _without_branch_env():
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            profile = ws / "docs" / "PROJECT_PROFILE.md"
+            slug = _slug_after_memory(
+                workflow_archived_branch_dir(profile, branch="release/x"), "archived"
+            )
+            assert slug == "release/x", slug
+
+
+def test_branch_env_override_wins() -> None:
+    """`GITHUB_REF_NAME` 등 env 는 workspace 의 git 보다 우선한다 (의도된 동작).
+
+    CI checkout 의 branch 를 그대로 쓰기 위한 장치다. 이 규칙을 **알고 있으라고**
+    고정해 둔다 — 모르면 위 검사들이 CI 에서 조용히 무력화된다.
+    """
     with tempfile.TemporaryDirectory() as td:
         ws = _workspace(td)
-        profile = ws / "docs" / "PROJECT_PROFILE.md"
-        slug = _slug_after_memory(
-            workflow_archived_branch_dir(profile, branch="release/x"), "archived"
-        )
-        assert slug == "release/x", slug
+        saved = {k: os.environ.pop(k, None) for k in BRANCH_ENV_KEYS}
+        try:
+            os.environ["GITHUB_REF_NAME"] = "release/from-env"
+            assert branch_for_workspace(ws) == "release/from-env", branch_for_workspace(ws)
+        finally:
+            os.environ.pop("GITHUB_REF_NAME", None)
+            for key, value in saved.items():
+                if value is not None:
+                    os.environ[key] = value
 
 
 def main() -> int:
@@ -142,6 +189,7 @@ def main() -> int:
         test_state_and_docs_land_in_the_same_branch_dir,
         test_non_git_workspace_falls_back_to_module_repo,
         test_explicit_branch_argument_still_wins,
+        test_branch_env_override_wins,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

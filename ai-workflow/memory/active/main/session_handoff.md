@@ -65,8 +65,17 @@
   신규 검사는 **모듈 저장소와 다른 branch 의 workspace 를 실제로 만들어** 셋의 합의를 본다.
 - 검사 1종 신규(smoke 229 → **230**): `check_branch_resolver_agreement.py`(4).
 - 실측: 전량 smoke **230/230**, mypy strict **122 files 0 errors**, 경로 관련 기존 검사
-  9종 PASS, 되주입 2건 각각 다른 신호. **CI 는 아직 안 봤다** — push 후
-  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  9종 PASS, 되주입 3건 각각 다른 신호.
+- **CI 1차 red 를 냈고 그것이 이번 세션의 가장 큰 교훈이다.** 로컬 230/230 통과 후
+  러너에서 `fixture 준비 실패: main`. GitHub Actions 는 `GITHUB_REF_NAME` 을 항상
+  세팅하고 `BRANCH_ENV_KEYS` 는 **모든 workspace 에 우선**한다 — CI 에서는 어떤
+  workspace 를 물어도 CI 의 branch 가 나와서 "두 해석기가 합의한다" 가 자동으로 참이
+  된다. **검사가 깨진 게 아니라 무력화된 것이다**(assert 순서가 달랐으면 조용히
+  통과했을 것). 합의 케이스는 env 를 비우고 측정하고, env 우선 규칙은
+  `test_branch_env_override_wins` 로 따로 고정했다. 검증은 `GITHUB_REF_NAME=main` 으로
+  **러너 환경을 재현**해서 했다.
+- **검사를 추가하면 러너 환경에서도 그 검사가 유효한지 확인할 것.** 로컬 통과는 절반의
+  증거다. CI 재확인 필요 — `gh run list --commit $(git rev-parse HEAD)` (full SHA).
 
 ---
 

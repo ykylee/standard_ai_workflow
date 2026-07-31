@@ -2073,8 +2073,18 @@ repoB(feature/probe-branch) 의 profile 로
 **검사 1종 신규(smoke 229 → 230)**: `check_branch_resolver_agreement.py`(4) — 해석기 합의 /
 state 와 문서가 같은 디렉터리 / 비-git workspace fallback / 명시 인자 우선.
 
-**되주입 2건, 각각 다른 신호**: `workflow_branch_dir` 되돌림 → `branch_dir=main
-archived=feature/… state=feature/…`; archived 되돌림 → `archived=main` 만 어긋남.
+**되주입 3건, 각각 다른 신호**: `workflow_branch_dir` 되돌림 → `branch_dir=main
+archived=feature/… state=feature/…`; archived 되돌림 → `archived=main` 만 어긋남;
+env 제거 가드 제거 → **CI 환경에서만** `fixture 준비 실패: main`.
+
+**그 세 번째 되주입은 실제 사고에서 나왔다.** 검사 첫 버전이 로컬 230/230 을 통과하고
+러너에서 red 였다 — `fixture 준비 실패: main`. GitHub Actions 는 `GITHUB_REF_NAME` 을
+항상 세팅하고, `BRANCH_ENV_KEYS` 는 **모든 workspace 에 우선**한다. 그래서 CI 에서는
+어떤 workspace 를 물어도 CI 의 branch 가 나오고, "두 해석기가 합의한다" 가 자동으로
+참이 된다 — 검사가 **깨진 게 아니라 무력화**된 것이다. 조치는 두 가지다: 합의를 보는
+케이스는 env 를 비우고 측정하고, env 우선 규칙 자체는 `test_branch_env_override_wins`
+로 따로 고정했다(모르면 또 조용히 무력화되므로). 검증은 `GITHUB_REF_NAME=main` 을
+걸어 **러너 환경을 재현**해서 했다 — 로컬 통과만으로는 같은 실수를 반복한다.
 
 > §2.47 → §2.49 → §2.50. 세 번 다 "**기준을 어디서 얻는가**" 였고, 세 번째는 경로가 아니라
 > branch 였다. 규칙을 선언한 것만으로는 부족하다 — **선언한 규칙을 따르지 않는 자리를

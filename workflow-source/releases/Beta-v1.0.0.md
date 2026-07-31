@@ -2092,9 +2092,61 @@ env 제거 가드 제거 → **CI 환경에서만** `fixture 준비 실패: main
 > 5개월 뒤 전수 조사에서 나왔다.
 
 
+### 2.51. 모든 panel 의 기준이 자기 근거를 안 내고 있었다 — dashboard workspace root
+
+§2.50 의 전수 조사에서 "선언된 fallback 이라 범위 밖" 으로 남긴 마지막 한 건.
+
+```python
+def _repo_root(workspace_root):
+    ...
+    return Path(__file__).resolve().parents[3]   # workspace_root 가 None 일 때
+```
+
+이 저장소는 editable install 이라 그 값이 **우연히** 저장소 루트였다. 설치본에서는
+아니다 — 패키지를 site-packages 배치로 복사해 실측했다.
+
+```
+모듈: <venv>/lib/python3.13/site-packages/workflow_kit/common/dashboard_data.py
+parents[3] → <venv>/lib/python3.13     실재하는 디렉터리, ai-workflow/ 없음
+```
+
+그러면 8 panel 이 전부 빈 값을 내고, 그 빈 값이 **그 경로의 측정 결과처럼** 보고된다.
+오류가 아니라 조용히 틀린 측정이다. `workspace_root` 는 payload 에 있었지만, 그 값을
+**어떻게 얻었는지**(명시인지 추측인지)는 없었다.
+
+**이 모듈이 이미 답을 적어 두고 있었다.** `JUDGMENT_METRICS` 위 주석: *"판정 지표는 값만
+내지 않는다 — 무엇을 보고 그렇게 판정했는지 함께 낸다."* 그런데 **모든 panel 의 기준인
+workspace root 자신은** 근거를 안 내고 있었다. 규칙을 세운 자리와 규칙이 적용되지 않은
+자리가 같은 파일 안에 있었다.
+
+**조치.** `resolve_workspace_root(ws) -> (Path, source)` 로 (명시 인자 → **cwd**) 두
+갈래만 두고, snapshot 에 `workspace_root_source` 를 싣는다. `_repo_root` 는 그것을
+부르는 얇은 wrapper다 — 보고하는 경로와 panel 이 쓰는 경로가 갈라지면 보고가 사실이
+아니게 된다. 기존 호출자는 전부 `--workspace-root` 나 인자를 넘기고 있어 영향이 없다
+(CLI 의 무인자 호출만 모듈 위치 → cwd 로 바뀐다).
+
+**검사 1종 신규(smoke 230 → 231)**: `check_dashboard_workspace_provenance.py`(4).
+
+**그리고 전량 smoke 가 곧바로 의존 하나를 잡았다.** `check_quality_dashboard_v0_13_0` 이
+`collect_dashboard_snapshot()` 을 **인자 없이** 부르며 모듈 위치 추측에 기대고 있었다.
+단독 실행은 저장소 루트에서 도니까 통과했고, `run_all_checks` 는 다른 cwd 라 red 가 됐다
+(`guard_cases (0) != expected_cases (6)`). 검사가 옳고 의존이 틀렸다 — 이 저장소를 재려는
+검사이므로 `REPO_ROOT` 를 **명시**하도록 고쳤다. 추측에 기대던 자리는 이렇게 드러난다.
+
+**되주입 3건, 각각 다른 신호**: 모듈 위치 fallback 복원 → `/tmp` 에 서 있는데
+`resolved=<저장소 루트>`; 출처 키 제거 → `KeyError: 'workspace_root_source'`;
+보고 경로와 사용 경로 분리 → `panel 이 쓰는 경로와 보고된 경로가 다르다`.
+
+> **세 번째 되주입은 처음엔 통과했다.** 검사가 저장소 루트에서 돌면 cwd 와
+> `parents[3]` 이 우연히 같아, 둘을 갈라 놓아도 차이가 안 보인다. §2.50 에서 배운
+> "자기 자신과 비교하는 검사" 를 **바로 다음 검사에서 또 썼다.** 다른 cwd 에서 재도록
+> 고치자 잡혔다. 되주입은 검사를 쓴 뒤 반드시 돌릴 것 — 통과하는 되주입은 그 검사가
+> 그 결함을 안 보고 있다는 뜻이다.
+
+
 ## 3. 검증
 
-누적 smoke **230/230 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **231/231 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -2104,7 +2156,8 @@ env 제거 가드 제거 → **CI 환경에서만** `fixture 준비 실패: main
 `check_state_backlog_block`) → 227(§2.47 `check_linter_config_resolution`)
 → 228(§2.48 `check_maturity_drift_judgment`)
 → 229(§2.49 `check_doctor_config_provenance`)
-→ **230**(§2.50 `check_branch_resolver_agreement`).
+→ 230(§2.50 `check_branch_resolver_agreement`)
+→ **231**(§2.51 `check_dashboard_workspace_provenance`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

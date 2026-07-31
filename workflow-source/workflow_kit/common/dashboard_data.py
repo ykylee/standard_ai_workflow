@@ -128,26 +128,41 @@ FORBIDDEN_SOURCE_TOKENS: Final[tuple[str, ...]] = (
 # ---------------------------------------------------------------------------
 
 
-def _repo_root(workspace_root: Path | str | None) -> Path:
-    """workspace_root 가 주어지지 않으면 REPO 부모 디렉토리로 fallback.
+#: workspace root 를 **어디서 얻었는지**. 판정이 아니라 출처다 (§2.51).
+WORKSPACE_SOURCE_ARGUMENT: Final[str] = "argument"
+WORKSPACE_SOURCE_CWD: Final[str] = "cwd"
 
-    표준화 정공법: caller 가 명시한 workspace_root 가 우선 (테스트 용이성).
-    caller 가 미지정 시 ``workflow-source`` 의 부모 디렉토리 (REPO_ROOT) 를 반환.
-    str path 도 허용 (test caller 용이성).
 
-    Args:
-        workspace_root: REPO_ROOT (Path) / git repo root 또는 "string path" / None.
+def resolve_workspace_root(workspace_root: Path | str | None) -> tuple[Path, str]:
+    """측정 대상 workspace 와 **그것을 어디서 얻었는지** 를 함께 돌려준다.
+
+    v1.0.7(§2.51) 이전에는 미지정 시 ``Path(__file__).resolve().parents[3]`` 로
+    떨어졌다. 이 저장소는 editable install 이라 그 값이 우연히 저장소 루트였지만,
+    **설치본에서는 workspace 가 아니다** — 실측:
+
+        모듈: <venv>/lib/python3.13/site-packages/workflow_kit/common/dashboard_data.py
+        parents[3] → <venv>/lib/python3.13     (실재하는 디렉터리, ai-workflow/ 없음)
+
+    그러면 8 panel 이 전부 빈 값을 내고, 그 빈 값이 **그 경로의 측정 결과처럼** 보고된다.
+    오류가 아니라 조용히 틀린 측정이다. 모듈 위치로 사용자의 workspace 를 추측할 수
+    있다는 전제 자체가 틀렸다 (doctor 의 §2.49 와 같은 축).
+
+    이제 (명시 인자 → cwd) 두 갈래뿐이고, 어느 쪽이었는지는 snapshot 의
+    ``workspace_root_source`` 에 남는다.
     """
-    if isinstance(workspace_root, str):
-        candidate: Path | None = Path(workspace_root)
-    elif workspace_root is None:
-        candidate = None
-    else:
-        candidate = workspace_root
-    if candidate is not None:
-        return candidate
-    # workflow-source/workflow_kit/common/dashboard_data.py → 4 단계 위 = REPO_ROOT
-    return Path(__file__).resolve().parents[3]
+    if workspace_root is None:
+        return Path.cwd(), WORKSPACE_SOURCE_CWD
+    return Path(workspace_root), WORKSPACE_SOURCE_ARGUMENT
+
+
+def _repo_root(workspace_root: Path | str | None) -> Path:
+    """`resolve_workspace_root` 의 값만 필요한 자리 (panel 내부용).
+
+    출처까지 필요하면 `resolve_workspace_root` 를 쓴다 — 보고하는 경로와 실제로 쓰는
+    경로가 갈라지면 보고가 사실이 아니게 된다.
+    """
+    root, _source = resolve_workspace_root(workspace_root)
+    return root
 
 
 # ---------------------------------------------------------------------------
@@ -1335,16 +1350,21 @@ def collect_dashboard_snapshot(
     """5 panel 의 data 를 1 dict 로 집계. read-only, atomic.
 
     Args:
-        workspace_root: REPO_ROOT (None 이면 자동 탐색)
+        workspace_root: workspace root. None 이면 **cwd** (v1.0.7+, 모듈 위치 추측 ❌).
+            어느 쪽이었는지는 결과의 `workspace_root_source` 에 남는다.
         inline_guard: True 면 Panel 1 의 drift guard 를 subprocess 로 inline 실행.
             False 면 legacy v0.13.0 behavior (guard_status='unknown').
     """
-    ws_root = _repo_root(workspace_root) if workspace_root is None else workspace_root
+    ws_root, ws_source = resolve_workspace_root(workspace_root)
     return {
         "schema_version": "1.1",  # v0.14.3 Phase 15 — Panel 6/7/8 추가
         "tool_version": _workflow_kit_version(),
         "generated_at": _utcnow_iso(),
         "workspace_root": str(ws_root),
+        # v1.0.7(§2.51): 값 옆에 출처. 어디를 쟀는지가 명시였는지 cwd 였는지 모르면
+        # 빈 panel 이 "그 workspace 에 아무것도 없다" 인지 "엉뚱한 데를 쟀다" 인지
+        # 구별되지 않는다.
+        "workspace_root_source": ws_source,
         "panels": {
             "drift_prevention": collect_drift_prevention(ws_root, inline_guard=inline_guard),
             "maturity_distribution": collect_maturity_distribution(ws_root),
@@ -2083,6 +2103,9 @@ __all__: list[str] = [
     "collect_smoke_trend",
     "collect_recent_releases",
     "collect_dashboard_snapshot",
+    "resolve_workspace_root",
+    "WORKSPACE_SOURCE_ARGUMENT",
+    "WORKSPACE_SOURCE_CWD",
     "render_dashboard_markdown",
     "render_dashboard_html",
     "run_drift_prevention_guard_inline",

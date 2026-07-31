@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `15ee104` (§2.50 적용본, **CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 230 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `mkdocs`/`actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. **직전 `d6a23fe` 는 smoke red 였다** — 신규 검사가 CI 에서 무력화된 것을 `15ee104` 가 고쳤다. 로컬 전량 smoke 230/230, 되주입 3건)
-- 현재 주 작업 축: "선언한 규칙을 따르지 않는 자리를 찾아 두는 검사" — 규칙을 적고 한 곳에만 적용하면 나머지는 몇 달 뒤 전수 조사에서 나온다
+- 현재 주 작업 축: "규칙을 세운 자리와 지켜지지 않은 자리가 같은 파일 안에 있다" — 근거를 요구하는 코드가 정작 자기 기준에는 근거를 안 냈다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
 - TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
@@ -37,9 +36,39 @@
 - TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
 - TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
 - TASK-2026-07-31-main-006 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
+- TASK-2026-07-31-main-007 모든 panel 의 기준이 자기 근거를 안 내고 있었다
 ## 5. 다음 세션 시작 포인트
 
-**세 번째를 찾으러 갔더니 다른 축에 있었다 (TASK-2026-07-31-main-006, §2.50).**
+**모든 panel 의 기준이 자기 근거를 안 내고 있었다 (TASK-2026-07-31-main-007, §2.51).**
+§2.50 이 "선언된 fallback 이라 범위 밖" 으로 남긴 마지막 한 건을 닫았다.
+
+- `dashboard_data._repo_root(None)` 이 `Path(__file__).resolve().parents[3]` 로
+  떨어졌다. 이 저장소는 editable install 이라 그 값이 **우연히** 저장소 루트였다.
+  설치본 배치로 복사해 재보니 **`<venv>/lib/python3.13`** — 실재하는 디렉터리인데
+  workspace 가 아니다(`ai-workflow/` 없음). 그러면 8 panel 이 전부 빈 값을 내고,
+  그 빈 값이 **그 경로의 측정 결과처럼** 보고된다.
+- **이 모듈이 이미 답을 적어 두고 있었다.** `JUDGMENT_METRICS` 위 주석: *"판정 지표는
+  값만 내지 않는다 — 무엇을 보고 그렇게 판정했는지 함께 낸다."* 그런데 **모든 panel 의
+  기준인 workspace root 자신은** 근거를 안 냈다. 규칙을 세운 자리와 안 지켜진 자리가
+  **같은 파일 안**에 있었다.
+- `resolve_workspace_root(ws) -> (Path, source)` 로 (명시 인자 → **cwd**) 두 갈래만
+  두고, snapshot 에 `workspace_root_source` 를 싣는다. `_repo_root` 는 그것을 부르는
+  얇은 wrapper다.
+- 검사 1종 신규(smoke 230 → **231**): `check_dashboard_workspace_provenance.py`(4).
+- **되주입 3번이 처음엔 통과했다.** 검사를 저장소 루트에서 돌리면 cwd 와 `parents[3]`
+  이 우연히 같아 둘을 갈라 놓아도 차이가 안 보인다 — §2.50 에서 배운 "자기 자신과
+  비교하는 검사" 를 **바로 다음 검사에서 또 썼다.** 다른 cwd 에서 재도록 고쳐 잡았다.
+- **전량 smoke 가 의존 하나를 곧바로 잡았다**: `check_quality_dashboard_v0_13_0` 이
+  `collect_dashboard_snapshot()` 을 인자 없이 부르며 모듈 위치 추측에 기대고 있었다.
+  단독 실행은 저장소 루트라 통과하고 smoke 는 다른 cwd 라 red(`guard_cases (0) !=
+  expected_cases (6)`). 검사가 옳고 의존이 틀렸다 → `REPO_ROOT` 명시로 교정.
+- 실측: 전량 smoke **231/231**, mypy strict **122 files 0 errors**, dashboard 관련
+  기존 검사 11종 PASS, 되주입 3건 각각 다른 신호.
+  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+
+---
+
+이전 세션 기록: **세 번째를 찾으러 갔더니 다른 축에 있었다 (TASK-2026-07-31-main-006, §2.50).**
 §2.47(린터)과 §2.49(doctor)가 같은 모양이라, "이 모양이 또 어디 있나" 를 손으로 세지
 않고 **AST 로 전수 조사**했다(`workflow-source/**/*.py`, build 제외).
 
@@ -346,9 +375,9 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       **완료(§2.50)**. AST 전수 조사 결과 경로 축에서는 세 번째가 없었고(저장소 밖 착지
       0건), 대신 **branch 축**에서 나왔다. `workflow_branch_dir` /
       `workflow_archived_branch_dir` 를 v1.0.1 규칙에 맞췄다.
-- [ ] **`dashboard_data._repo_root` 의 `workspace_root=None` fallback** 은 그대로다
-      (`Path(__file__).parents[3]`). 이 저장소에서는 맞지만 설치본에서는 무의미하다.
-      선언된 fallback 이라 바꾸려면 별도 결정.
+- [x] ~~**`dashboard_data._repo_root` 의 `workspace_root=None` fallback**~~ →
+      **완료(§2.51)**. 설치본 배치에서 `<venv>/lib/python3.13` 이 나오는 것을 실측하고
+      (명시 → cwd) 두 갈래로 바꿨다. snapshot 에 `workspace_root_source` 를 싣는다.
 - [ ] **`_branch_scoped_or_legacy(active_dir, ...)` 는 여전히 `get_current_branch()`**
       로 떨어진다. active dir 만 받아 workspace 를 역산하지 않는 것이 의도라 남겼다.
 - [ ] **전수 조사 스크립트를 저장소에 남기지 않았다** (일회용 실행). 정례화는 별건.

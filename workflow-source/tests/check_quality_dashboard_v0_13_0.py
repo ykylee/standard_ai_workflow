@@ -306,7 +306,10 @@ def _check_html_render() -> None:
         render_dashboard_html,
     )
 
-    snap = collect_dashboard_snapshot()
+    # v1.0.7(§2.51): workspace 를 **명시**한다. 예전에는 인자를 생략하고 모듈 위치
+    # 추측(`Path(__file__).parents[3]`)에 기대고 있었는데, 그 추측은 설치본에서
+    # 무의미하다. 이제 미지정은 cwd 이고, smoke 는 저장소 루트가 아닌 곳에서 돈다.
+    snap = collect_dashboard_snapshot(REPO_ROOT)
     html = render_dashboard_html(snap)
     stripped = html.rstrip()
     _assert(
@@ -448,7 +451,9 @@ def main() -> int:
         # Case 1: in-process snapshot 직접 호출 + 5 panel shape
         from workflow_kit.common.dashboard_data import collect_dashboard_snapshot
 
-        snap = collect_dashboard_snapshot()
+        # v1.0.7(§2.51): 인자 생략 = cwd. 이 검사는 **이 저장소**를 재려는 것이므로
+        # 명시한다 (run_all_checks 는 저장소 루트가 아닌 cwd 에서 돈다).
+        snap = collect_dashboard_snapshot(REPO_ROOT)
         _check_snapshot_shape(snap)
         panels = snap.get("panels", {})
         _check_drift_prevention(panels.get("drift_prevention", {}))

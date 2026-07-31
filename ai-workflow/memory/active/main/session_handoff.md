@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `ea1576c` (CI 4종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector. mcp 상한 없음 = 2.0.0 으로 인스펙터 왕복 13/13 + mypy 120 files 0 errors, 전량 smoke 223/223)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `4cfda75` (CI 6종 green 실측 — smoke·mypy-strict·mkdocs·mcp-inspector·actionlint·**mcp-sdk-matrix**. matrix 3 셀(1.27.0/1.29.0/2.0.0) 각각 요청=설치 일치 + subset 12/12 + SDK 왕복 증거 2/2. 러너가 집은 버전 실측: smoke `1.27.0`(pinned floor), mypy-strict·mcp-inspector `2.0.0`(floating). 전량 smoke 224/224, mypy 121 files 0 errors)
 - 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -69,8 +69,10 @@ mcp 2.x 에서 깨져 있었다(`serverInfo` → `server_info` 등). 서버는 �
   (`dev,release,mcp-sdk` venv, 누수 0, 워킹트리 변경 0). 되주입 7건 각각 다른 신호.
 - **수치에는 extra 조합을 함께 적을 것.** `release` 없는 venv 에서는 같은 트리가
   219/224 다 (3건은 문서가 223 이라 적고 있어서, 2건은 `build` 부재).
-- 확인 못 함: CI 러너에서의 실행. push 후 `mcp-sdk-matrix` 3 셀을 확인할 것
-  (`gh run list --commit $(git rev-parse HEAD)` — **full SHA 필수**).
+- **CI 러너 실측 완료**: 6종 green + matrix 3 셀 전부 요청=설치 일치·12/12·증거 2/2.
+  `gh run view --log` 가 일부 run 에서 **빈 출력**을 낸다 (rc=0, size=0) — 없는 것이
+  아니라 못 받은 것이다. `gh api repos/<o>/<r>/actions/jobs/<job_id>/logs` 로 받으면
+  나온다. 이 경로로 세 job 의 `mcp SDK 실측` 줄을 확인했다.
 
 ---
 

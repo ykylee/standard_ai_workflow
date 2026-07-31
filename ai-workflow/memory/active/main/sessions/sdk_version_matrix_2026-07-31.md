@@ -65,4 +65,5 @@
   path 필터로 안 돌면 경보도 안 온다 (`mcp-inspector` 가 그렇다).
 - `backlog-update` 가 handoff §4 에 상한을 적용하지 않는 문제가 **연속 2회 재발**했다.
   close-out 마다 손으로 1건 지우고 있다 — 도구 쪽에서 자르게 할지가 다음 후보다.
-- CI 러너에서의 `mcp-sdk-matrix` 실행은 push 후 확인해야 한다.
+- CI 러너 실측 완료(`4cfda75`): 6종 green, matrix 3 셀 전부 요청=설치 일치 + 12/12 +
+  증거 2/2. 러너가 집은 버전은 smoke `1.27.0`, mypy-strict·mcp-inspector `2.0.0`.

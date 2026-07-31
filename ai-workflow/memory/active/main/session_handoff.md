@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `ee6a801` (§2.51 까지의 적용본). **§2.52 는 로컬 실측까지 완료, CI 미실측** — 격리 venv(`dev,release,mcp-sdk`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / mypy 2.1.0 / build 1.5.0)에서 전량 smoke **232/232 PASS**(abort 0, 워킹트리 변동 0), mypy strict `Success: no issues found in 122 source files`, `mkdocs build --strict` 성공. **다음 세션 첫 일: CI 4종 실측 후 이 줄을 새 해시로 갱신**
+- 현재 기준선: v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`, mkdocs `--strict` WARNING 0. `actionlint`/`mcp-inspector` 는 이번에도 path 필터에 안 걸려 미실행. 로컬 격리 venv 전량 smoke 232/232, 되주입 3건(실제 소스))
 - 현재 주 작업 축: "같은 결함을 네 번 손으로 찾았다" — 조사를 저장소에 남기지 않으면 조사는 없었던 것과 같다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,11 +39,6 @@
 - TASK-2026-07-31-main-008 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: CI 4종 실측**(smoke / mypy-strict / mkdocs / mcp-sdk-matrix). 이번 작업은 로컬
-실측까지만 끝났다. green 을 확인하면 §1 기준선 줄을 새 해시로 갱신할 것.
-
----
-
 **네 번을 손으로 찾았다 — 전수 조사를 저장소에 남긴다 (TASK-2026-07-31-main-008, §2.52).**
 §2.47(린터)·§2.49(doctor)·§2.50(branch)·§2.51(dashboard)은 **같은 결함 네 번**이었다.
 §2.50 에서 한 번은 AST 로 전수 조사했지만 **그 스크립트를 저장소에 남기지 않아** §2.51 은
@@ -69,6 +64,7 @@
   안 보게 된다.
 - 실측: 전량 smoke **232/232**, mypy strict 122 files 0 errors, `mkdocs build --strict`
   성공, 인벤토리 419 file / 모듈 유도 기준 298 / cwd 17 / 기타 상승 연쇄 3.
+  **CI 4종 green 실측 완료**(`5c8a85f`) — 러너 자기 측정 `All 232 …`.
 
 ---
 
@@ -461,8 +457,7 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - **이번 세션의 교훈(§2.52, 감사자도 감사 대상이다)**: 처음 쓴 조사 도구가 저장소 밖에서
   불리면 조사 0건인데 "미선언 0건" 이라고 말하고 exit 0 이었다. **조사 0건은 결함 0건이
   아니다.** 감사하는 함정(§2.51)에 감사자가 그대로 빠졌다.
-- **확인 못 함(§2.52)**: CI 4종을 아직 안 돌렸다 — 로컬 격리 venv 실측까지다. 그리고
-  조사 범위는 `SCAN_DIRS` 선언에 묶여 있어, **선언 안 한 트리는 "없는 대상" 으로도 안
+- **확인 못 함(§2.52)**: 조사 범위는 `SCAN_DIRS` 선언에 묶여 있어, **선언 안 한 트리는 "없는 대상" 으로도 안
   보인다**(`missing_dirs` 는 선언했는데 없는 것만 센다). 이 축의 다음 구멍이 여기일 수 있다.
 - **이번 세션의 교훈(§2.48)**: 검사를 켜면 보고가 온다. 그때 **다 믿어서도 안 되고 다
   지워서도 안 된다** — 한 건은 문서를 고쳐야 했고 한 건은 검사를 고쳐야 했다. 둘을 가른

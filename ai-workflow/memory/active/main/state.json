@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `ee6a801` (§2.51 까지의 적용본). §2.52 는 **로컬 실측까지 완료, CI 미실측** — 격리 venv(`dev,release,mcp-sdk`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / mypy 2.1.0 / build 1.5.0)에서 전량 smoke **232/232 PASS**(abort 0, 워킹트리 변동 0), mypy strict `Success: no issues found in 122 source files`, `mkdocs build --strict` 성공, 되주입 3건(실제 소스). 다음 세션 첫 일은 CI 4종 실측 후 이 줄을 새 해시로 갱신하는 것",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`, mkdocs `--strict` WARNING 0. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 격리 venv 전량 smoke 232/232, 되주입 3건(실제 소스))",
     "current_axis": "\"같은 결함을 네 번 손으로 찾았다\" — 조사를 저장소에 남기지 않으면 조사는 없었던 것과 같다",
     "current_focus": null,
     "in_progress_items": [],

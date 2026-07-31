@@ -73,6 +73,12 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
     산출물의 `source_context` 에 남는다).
   - maturity 까지 보려면 `--maturity` 추가 (matrix 는
     `workflow-source/core/maturity_matrix.json` 이 자동 선택된다).
+- 7 baseline compliance: `PYTHONPATH=workflow-source python3 -m workflow_kit.cli.doctor --config-path workflow-source`
+  - **여기서도 `--config-path` 가 필요하다** (같은 이유). 생략하면 선언한
+    `partial_rules` / `opt_in` 이 평가에 도달하지 않고, 그 사실은 출력 footer 의
+    `Config source: default (section_missing)` 로 드러난다.
+  - `--project-root` 기본값은 **cwd** 다 (v1.0.5 이전에는 모듈 위치 기반이라 저장소
+    루트의 두 단계 위를 가리켰다). state.json 은 이 값을 기준으로 찾는다.
 
 ### 3.4 실행 확인 (상태 동기화)
 ```bash

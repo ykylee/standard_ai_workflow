@@ -1980,9 +1980,57 @@ suffix 가 왜 성숙도 주장이 아닌지 roadmap 에 근거로 남겼다.
 > 둘을 가른 것은 `kind: "spec"` 이라는 사실 하나였고, 그 사실은 이미 저장소 안에
 > 있었는데 **읽는 층이 하나뿐**이었다.
 
+### 2.49. 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
+
+§2.47 을 린터에서 닫으면서 "`workflow_kit.cli.doctor` 는 아직 provenance 를 안 쓴다" 를
+후속으로 남겼다. 열어 보니 **provenance 만의 문제가 아니었다.**
+
+```python
+DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+```
+
+이 저장소에서 그 값은 `/home/yklee/repos` — **저장소 루트의 두 단계 위**다(실측). 그리고
+kit 이 site-packages 에 설치되면 그 경로는 사용자의 프로젝트와 아무 관계도 없다.
+**모듈 위치로 사용자의 workspace 를 추측할 수 있다는 전제 자체가 틀렸다.** 그 값이
+`load_config` 와 `_read_state_json` 양쪽으로 갔으니, 기본 호출
+(`python -m workflow_kit.cli.doctor`)은 설정도 state.json 도 못 찾고 있었다.
+
+**기존 doctor smoke 는 전부 `--project-root` 를 명시해서 돌고 있었다.** 그래서 기본값이
+깨져 있어도 아무 검사도 실패하지 않았다 — §2.47 에서 지운 "통과하면서 아무것도 보장하지
+못하는 검사" 와 같은 자리다. 사용자가 실제로 치는 것은 인자 없는 쪽인데.
+
+**조치.**
+
+- `--project-root` 기본값을 **cwd** 로. 추측이 아니라 호출자가 서 있는 자리다.
+- `--config-path` 신설(린터와 같은 형태). 이 저장소는 `[tool.workflow-doctor]` 정본이
+  `workflow-source/pyproject.toml` 이라 이게 필요하다.
+- 출력 3종에 **`config_provenance`** 를 싣는다 — `--show-config`(기존 5 field 는
+  **top-level 그대로** 두고 옆에 붙인다), `--json`, 그리고 pretty footer 는
+  `Config source: default (section_missing) → 선언한 설정이 적용되지 않았다` 를
+  **표의 숫자보다 먼저** 적는다.
+
+**고치자마자 동작이 바뀌었다.** `--config-path workflow-source` 로 돌리면 선언한
+`partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }` 가 **평가 결과에 실제로
+반영된다**(`results.resiliency.partial_rules`). v0.7.8 이 "display only 를 actual apply 로
+격상" 이라고 적은 그 기능은, 이 저장소에서 한 번도 apply 된 적이 없었다.
+
+**검사 1종 신규(smoke 228 → 229)**: `check_doctor_config_provenance.py`(6) — 기준 경로 /
+기존 5 field 계약 유지 / 출처 2종 / 명시 우선 + **평가 도달** / pretty footer.
+`check_v0_7_4_followup` 의 JSON envelope 계약도 `config_provenance` 를 포함하도록 갱신했다.
+
+**되주입 4건, 각각 다른 신호**: default 를 모듈 위치로 되돌림 → `project_root:
+/home/yklee/repos`; `--config-path` 무시 → 선언한 설정이 평가에 도달하지 않음;
+pretty 출처 줄 제거 → footer 에 출처 없음; `--show-config` 를 nested 로 → 기존 5 field
+top-level 계약 파기.
+
+> §2.47 은 한 도구의 경로 하나를 고쳤다. 이건 **같은 결함이 형제 도구에 그대로 있었다**는
+> 이야기다. 결함을 고칠 때 "이 모양이 또 어디 있나" 를 묻지 않으면, 같은 것을 두 번
+> 발견하게 된다. 이번엔 후속 항목으로 적어 둬서 두 번째 발견이 하루 안에 왔다.
+
+
 ## 3. 검증
 
-누적 smoke **228/228 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **229/229 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -1990,7 +2038,8 @@ suffix 가 왜 성숙도 주장이 아닌지 roadmap 에 근거로 남겼다.
 `check_mcp_lowlevel_sdk_compat`) → 223(§2.44 `check_optional_dep_imports`)
 → 224(§2.45 `check_mcp_sdk_matrix`) → 226(§2.46 `check_handoff_done_cap` +
 `check_state_backlog_block`) → 227(§2.47 `check_linter_config_resolution`)
-→ **228**(§2.48 `check_maturity_drift_judgment`).
+→ 228(§2.48 `check_maturity_drift_judgment`)
+→ **229**(§2.49 `check_doctor_config_provenance`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

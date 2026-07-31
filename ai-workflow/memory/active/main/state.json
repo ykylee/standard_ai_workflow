@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `2e13931` (§2.48 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 228 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 228/228, 되주입 5건)",
-    "current_axis": "\"검사를 켜면 보고가 온다 — 다 믿어서도 다 지워서도 안 된다\" — 문서를 고칠 건과 검사를 고칠 건을 사실로 가른다",
+    "current_axis": "\"결함을 고치면 같은 모양이 또 어디 있는지 묻는다\" — §2.47 의 경로 결함이 형제 도구에 그대로 있었다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
       "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
       "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
       "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
@@ -41,22 +42,22 @@
       "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층",
       "TASK-2026-07-29-main-001 — mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer",
       "TASK-2026-07-28-main-003 — 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서",
-      "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리",
-      "TASK-2026-07-28-main-001 — recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정"
+      "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
       "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
       "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
-      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성"
+      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
+      "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처"
     ]
   },
   "next_documents": [

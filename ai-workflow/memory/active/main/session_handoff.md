@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `2e13931` (§2.48 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 228 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 228/228, 되주입 5건)
-- 현재 주 작업 축: "검사를 켜면 보고가 온다 — 다 믿어서도 다 지워서도 안 된다" — 문서를 고칠 건과 검사를 고칠 건을 사실로 가른다
+- 현재 주 작업 축: "결함을 고치면 같은 모양이 또 어디 있는지 묻는다" — §2.47 의 경로 결함이 형제 도구에 그대로 있었다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
@@ -37,9 +36,37 @@
 - TASK-2026-07-31-main-002 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다
 - TASK-2026-07-31-main-003 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
 - TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
+- TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
 ## 5. 다음 세션 시작 포인트
 
-**검사를 켰더니 보고가 왔고, 두 건은 종류가 달랐다 (TASK-2026-07-31-main-004, §2.48).**
+**같은 결함이 형제 도구에 그대로 있었다 (TASK-2026-07-31-main-005, §2.49).**
+§2.47 이 "doctor 는 아직 provenance 를 안 쓴다" 로 남긴 후속인데, 열어 보니
+**provenance 만의 문제가 아니었다.**
+
+- `DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parent × 5` 는 이 저장소에서
+  `/home/yklee/repos` — **저장소 루트의 두 단계 위**다(실측). 설치본에서는 아예 사용자
+  프로젝트와 무관한 경로다. **모듈 위치로 workspace 를 추측한다는 전제 자체가 틀렸다.**
+  그 값이 `load_config` 와 `_read_state_json` 양쪽으로 가서, 인자 없는 기본 호출은
+  설정도 state.json 도 못 찾고 있었다. 이제 기본값은 **cwd** 다.
+- **기존 doctor smoke 는 전부 `--project-root` 를 명시해서 돌고 있었다.** 그래서 기본값이
+  깨져 있어도 아무 검사도 실패하지 않았다 — 사용자가 실제로 치는 것은 인자 없는 쪽인데.
+  §2.47 에서 지운 "통과하면서 아무것도 보장하지 못하는 검사" 와 같은 자리다.
+- `--config-path` 신설(린터와 같은 형태) + 출력 3종에 `config_provenance`.
+  `--show-config` 는 기존 5 field 를 **top-level 그대로** 두고 옆에 붙였다(v0.7.7 계약).
+  pretty footer 는 `Config source: default (section_missing) → 선언한 설정이 적용되지
+  않았다` 를 **표의 숫자보다 먼저** 적는다.
+- **고치자마자 동작이 바뀌었다.** `--config-path workflow-source` 로 돌리면 선언한
+  `partial_rules = { resiliency = [RES-WF-01, RES-WF-02] }` 가 평가 결과에 **실제로
+  반영된다**. v0.7.8 이 "display only → actual apply 격상" 이라고 적은 기능은 이
+  저장소에서 한 번도 apply 된 적이 없었다.
+- 검사 1종 신규(smoke 228 → **229**): `check_doctor_config_provenance.py`(6).
+- 실측: 전량 smoke **229/229**, mypy strict **122 files 0 errors**, 되주입 4건 각각
+  다른 신호. **CI 는 아직 안 봤다** — push 후
+  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+
+---
+
+이전 세션 기록: **검사를 켰더니 보고가 왔고, 두 건은 종류가 달랐다 (TASK-2026-07-31-main-004, §2.48).**
 §2.47 이 남긴 후속 2건이다. 같은 "드리프트" 로 묶을 뻔했는데, 사실 확인을 해 보니
 하나는 **문서를 고쳐야 했고** 하나는 **검사를 고쳐야 했다.**
 
@@ -63,7 +90,7 @@
 - 검사 1종 신규(smoke 227 → **228**): `check_maturity_drift_judgment.py`(10).
 - 실측: 전량 smoke **228/228**, mypy strict **122 files 0 errors**, 실저장소
   `--maturity` issue 0 / warning 0, 되주입 5건 각각 다른 신호.
-  **CI 4종 green 실측 완료**(`2e13931`) — §1 기준선 참조.
+  **CI 4종 green 실측 완료**(`2e13931`) — 러너 자기 측정 `All 228 …`.
 - **정본만 고치면 배포 사본이 남는다.** 중간 smoke 에서 `check_standard_single_source`
   가 red 였다 — `workflow_kit_roadmap.md` 는 `ai-workflow/core/` 에 배포 사본이 있고
   정본과 byte 일치를 요구한다. 검사가 옳았다. `core/*.md` 를 고치면 사본도 함께 옮길 것.
@@ -271,8 +298,13 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - [x] ~~**`--maturity` 를 처음 실제로 돌리니 내용 드리프트 2건이 나왔다**~~ →
       **완료(§2.48)**. roadmap 은 진짜 드리프트라 문서를 고쳤고(matrix 를 사실로 채택),
       `task-modes` 는 `kind: "spec"` 을 린터가 몰라서 난 **위양성**이라 검사를 고쳤다.
-- [ ] **`workflow_kit.cli.doctor` 는 아직 provenance 를 안 쓴다** (`load_config(args.project_root)`).
-      같은 "조용한 default" 가 CLI 쪽에는 그대로 남아 있다.
+- [x] ~~**`workflow_kit.cli.doctor` 는 아직 provenance 를 안 쓴다**~~ → **완료(§2.49)**.
+      열어 보니 기준 경로가 **저장소 루트의 두 단계 위**였다 — provenance 만의 문제가
+      아니었다. 기본값을 cwd 로 바꾸고 `--config-path` + `config_provenance` 를 더했다.
+- [ ] **`--project-root` 는 state.json 기준과 설정 기준 두 역할을 겸한다.** 이 저장소처럼
+      둘이 갈라진 배치에서는 `--config-path` 를 매번 줘야 한다. 분리는 별도 결정.
+- [ ] **경로 기준을 잡는 다른 진입점이 더 있는지 전수 조사하지 않았다.** §2.47 → §2.49 로
+      같은 모양이 두 도구에서 나왔다.
 - [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
       저장소는 builder 가 task SSOT 를 먼저 쓰므로 무해하지만, legacy 저장소(task 파일
       부재)에서는 handoff 가 tail fallback 이 되고 builder 가 **앞에서** 자르므로

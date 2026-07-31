@@ -65,7 +65,10 @@ def test_doctor_json_output():
     }
     # v0.7.4 이후 doctor 의 JSON 은 `{"config": ..., "results": {...}}` envelope 이다.
     # 이전에는 baseline 이 top-level 에 평면으로 놓였다.
-    assert set(data.keys()) == {"config", "results"}, sorted(data.keys())
+    # v1.0.5(§2.49) `config_provenance` 추가 — 설정이 **어디서 왔는지**. 값과 출처를
+    # 같은 산출물에서 읽어야 "적용됨" 과 "조용히 기본값" 이 구별된다.
+    assert set(data.keys()) == {"config", "config_provenance", "results"}, sorted(data.keys())
+    assert data["config_provenance"]["config_source"] in ("pyproject", "default"), data["config_provenance"]
     assert set(data["results"].keys()) == expected
 
 

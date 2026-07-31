@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `607b84c` (§2.49 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 229 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 229/229, 되주입 4건)
-- 현재 주 작업 축: "결함을 고치면 같은 모양이 또 어디 있는지 묻는다" — §2.47 의 경로 결함이 형제 도구에 그대로 있었다
+- 현재 주 작업 축: "선언한 규칙을 따르지 않는 자리를 찾아 두는 검사" — 규칙을 적고 한 곳에만 적용하면 나머지는 몇 달 뒤 전수 조사에서 나온다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
@@ -37,9 +36,41 @@
 - TASK-2026-07-31-main-003 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
 - TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
 - TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
+- TASK-2026-07-31-main-006 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
 ## 5. 다음 세션 시작 포인트
 
-**같은 결함이 형제 도구에 그대로 있었다 (TASK-2026-07-31-main-005, §2.49).**
+**세 번째를 찾으러 갔더니 다른 축에 있었다 (TASK-2026-07-31-main-006, §2.50).**
+§2.47(린터)과 §2.49(doctor)가 같은 모양이라, "이 모양이 또 어디 있나" 를 손으로 세지
+않고 **AST 로 전수 조사**했다(`workflow-source/**/*.py`, build 제외).
+
+- **경로 축에서는 세 번째가 없었다.** `Path(__file__)` 유도 기준 **309건 중 저장소 밖
+  착지 0건** — doctor 가 마지막이었다. 인자 `.parent` 연쇄 depth≥2 는 3건(전부 근거
+  있음), `Path.cwd()` 9건(명시적 선택). 배포 패키지 안의 11건 중 `server/*` 4건 +
+  `harness` 1건이 `<repo>/workflow-source/` 배치를 가정하지만, `pyproject.toml` 이
+  "나머지는 저장소 디렉터리 레이아웃으로 소비한다" 고 적은 **선언된 설계**다.
+- **대신 다른 축에서 나왔다 — 경로만 기준이 아니다. branch 도 경로를 고른다.**
+  v1.0.1 이 "workspace 로 파라미터화된 함수는 그 workspace 의 git 을 본다" 를
+  선언했는데, 적용된 곳은 `state_path_for_workspace` **하나뿐**이었다. 실측:
+
+      repoB(feature/probe-branch) 의 profile 로
+        state_path_for_workspace → …/active/feature/probe-branch/state.json
+        workflow_branch_dir      → …/active/main        ← 모듈 저장소의 branch
+        workflow_archived_...    → …/archived/main
+
+  같은 workspace 에 대해 **state.json 과 handoff/backlog 가 다른 branch 디렉터리**를
+  가리켰다. 이 저장소는 모듈 저장소 == workspace 라 안 드러나고, **kit 을 쓰는 소비자
+  프로젝트에서만** 발현한다 — 정확히 이 kit 이 존재하는 이유인 그 상황이다.
+- **기존 검사가 못 본 이유: 자기 자신과 비교했다.** fixture 를 `get_current_branch()` 로
+  만들고 결과를 `get_current_branch()` 와 대조하니, 두 해석기가 갈라져도 통과한다.
+  신규 검사는 **모듈 저장소와 다른 branch 의 workspace 를 실제로 만들어** 셋의 합의를 본다.
+- 검사 1종 신규(smoke 229 → **230**): `check_branch_resolver_agreement.py`(4).
+- 실측: 전량 smoke **230/230**, mypy strict **122 files 0 errors**, 경로 관련 기존 검사
+  9종 PASS, 되주입 2건 각각 다른 신호. **CI 는 아직 안 봤다** — push 후
+  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+
+---
+
+이전 세션 기록: **같은 결함이 형제 도구에 그대로 있었다 (TASK-2026-07-31-main-005, §2.49).**
 §2.47 이 "doctor 는 아직 provenance 를 안 쓴다" 로 남긴 후속인데, 열어 보니
 **provenance 만의 문제가 아니었다.**
 
@@ -302,8 +333,16 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       아니었다. 기본값을 cwd 로 바꾸고 `--config-path` + `config_provenance` 를 더했다.
 - [ ] **`--project-root` 는 state.json 기준과 설정 기준 두 역할을 겸한다.** 이 저장소처럼
       둘이 갈라진 배치에서는 `--config-path` 를 매번 줘야 한다. 분리는 별도 결정.
-- [ ] **경로 기준을 잡는 다른 진입점이 더 있는지 전수 조사하지 않았다.** §2.47 → §2.49 로
-      같은 모양이 두 도구에서 나왔다.
+- [x] ~~**경로 기준을 잡는 다른 진입점이 더 있는지 전수 조사하지 않았다.**~~ →
+      **완료(§2.50)**. AST 전수 조사 결과 경로 축에서는 세 번째가 없었고(저장소 밖 착지
+      0건), 대신 **branch 축**에서 나왔다. `workflow_branch_dir` /
+      `workflow_archived_branch_dir` 를 v1.0.1 규칙에 맞췄다.
+- [ ] **`dashboard_data._repo_root` 의 `workspace_root=None` fallback** 은 그대로다
+      (`Path(__file__).parents[3]`). 이 저장소에서는 맞지만 설치본에서는 무의미하다.
+      선언된 fallback 이라 바꾸려면 별도 결정.
+- [ ] **`_branch_scoped_or_legacy(active_dir, ...)` 는 여전히 `get_current_branch()`**
+      로 떨어진다. active dir 만 받아 workspace 를 역산하지 않는 것이 의도라 남겼다.
+- [ ] **전수 조사 스크립트를 저장소에 남기지 않았다** (일회용 실행). 정례화는 별건.
 - [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
       저장소는 builder 가 task SSOT 를 먼저 쓰므로 무해하지만, legacy 저장소(task 파일
       부재)에서는 handoff 가 tail fallback 이 되고 builder 가 **앞에서** 자르므로

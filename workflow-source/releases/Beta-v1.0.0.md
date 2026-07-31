@@ -2028,9 +2028,63 @@ top-level 계약 파기.
 > 발견하게 된다. 이번엔 후속 항목으로 적어 둬서 두 번째 발견이 하루 안에 왔다.
 
 
+### 2.50. 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
+
+§2.47(린터)과 §2.49(doctor)가 **같은 모양**이었다. 그래서 "이 모양이 또 어디 있나" 를
+손으로 세지 않고 **AST 로 전수 조사**했다 (`workflow-source/**/*.py`, build 제외).
+
+| 부류 | 건수 | 판정 |
+|---|---|---|
+| A. `Path(__file__)` 에서 유도한 기준 | 309 | 저장소 밖 착지 **0건** (doctor 가 마지막이었다) |
+| B. 인자/변수의 `.parent` 연쇄 (depth ≥ 2) | 3 | 전부 근거 있음 |
+| C. `Path.cwd()` 기반 | 9 | 명시적 선택 |
+
+A 의 309건은 대부분 저장소 자산을 찾는 in-repo 스크립트라 정상이다. 배포 패키지
+(`workflow_kit/**`) 안의 11건을 따로 봤고, `server/*` 4건과 `harness` 1건이
+`<repo>/workflow-source/` 배치를 가정하지만 이는 **선언된 설계**다 —
+`pyproject.toml` 이 "나머지는 저장소 디렉터리 레이아웃으로 소비한다" 고 적고 있다.
+
+**그런데 B 를 보다가 다른 축에서 세 번째가 나왔다.** 기준이 되는 것은 경로만이 아니다 —
+**branch** 도 경로를 고른다.
+
+v1.0.1 이 `branch_for_workspace` 를 만들며 규칙을 선언했다: *workspace 로 파라미터화된
+함수는 그 workspace 의 git 을 본다. 호출 위치가 답을 바꾸면 안 된다.* 그런데 그 규칙을
+적용한 곳은 `state_path_for_workspace` **하나뿐**이었다. profile 을 받는
+`workflow_branch_dir` / `workflow_archived_branch_dir` 는 `get_current_branch()`
+(= 이 모듈이 속한 저장소)를 계속 쓰고 있었다. **실측**:
+
+```
+repoB(feature/probe-branch) 의 profile 로
+  state_path_for_workspace → …/active/feature/probe-branch/state.json
+  workflow_branch_dir      → …/active/main            ← 모듈 저장소의 branch
+  workflow_archived_...    → …/archived/main
+```
+
+같은 workspace 에 대해 **state.json 과 handoff/backlog 가 서로 다른 branch 디렉터리**를
+가리킨다. 한쪽만 갱신되고 다른 쪽은 조용히 옛 값을 읽는, §2.20 의 "branch-scoped 전환에서
+경로가 절반만 옮겨졌던" 것과 같은 자리다. 이 저장소에서는 모듈 저장소 == workspace 라 안 드러나고, **kit 을 쓰는
+소비자 프로젝트에서만** 발현한다 — 정확히 이 kit 이 존재하는 이유인 그 상황이다.
+
+**기존 검사들이 못 본 이유는 자기 자신과 비교했기 때문이다.** fixture 를
+`get_current_branch()` 로 만들고 결과를 `get_current_branch()` 와 대조하니, 두 해석기가
+갈라져도 통과한다. 신규 검사는 **모듈 저장소와 다른 branch 의 workspace 를 실제로 만들어**
+셋이 같은 slug 를 쓰는지 본다.
+
+**검사 1종 신규(smoke 229 → 230)**: `check_branch_resolver_agreement.py`(4) — 해석기 합의 /
+state 와 문서가 같은 디렉터리 / 비-git workspace fallback / 명시 인자 우선.
+
+**되주입 2건, 각각 다른 신호**: `workflow_branch_dir` 되돌림 → `branch_dir=main
+archived=feature/… state=feature/…`; archived 되돌림 → `archived=main` 만 어긋남.
+
+> §2.47 → §2.49 → §2.50. 세 번 다 "**기준을 어디서 얻는가**" 였고, 세 번째는 경로가 아니라
+> branch 였다. 규칙을 선언한 것만으로는 부족하다 — **선언한 규칙을 따르지 않는 자리를
+> 찾아 두는 검사**가 있어야 한다. v1.0.1 은 규칙을 적고 한 곳에 적용했고, 나머지 두 곳은
+> 5개월 뒤 전수 조사에서 나왔다.
+
+
 ## 3. 검증
 
-누적 smoke **229/229 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **230/230 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -2039,7 +2093,8 @@ top-level 계약 파기.
 → 224(§2.45 `check_mcp_sdk_matrix`) → 226(§2.46 `check_handoff_done_cap` +
 `check_state_backlog_block`) → 227(§2.47 `check_linter_config_resolution`)
 → 228(§2.48 `check_maturity_drift_judgment`)
-→ **229**(§2.49 `check_doctor_config_provenance`).
+→ 229(§2.49 `check_doctor_config_provenance`)
+→ **230**(§2.50 `check_branch_resolver_agreement`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

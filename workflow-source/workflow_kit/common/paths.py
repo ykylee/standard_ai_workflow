@@ -228,9 +228,21 @@ def branch_for_workspace(workspace_root: Path) -> str:
 
 
 def workflow_branch_dir(project_profile_path: Path) -> Path:
-    """Return the branch-specific directory within the memory dir."""
+    """Return the branch-specific directory within the memory dir.
+
+    v1.0.6(§2.50): branch 를 **이 workspace 의 git** 에서 얻는다. v1.0.1 이
+    `state_path_for_workspace` 에만 적용한 규칙이었는데(`branch_for_workspace` 참조),
+    profile 을 받는 이쪽은 `get_current_branch()` 를 그대로 쓰고 있었다. 그래서 같은
+    workspace 에 대해 두 해석기가 **다른 branch** 를 냈다 — 실측:
+
+        repoB(feature/probe-branch) 의 profile 로
+          state_path_for_workspace → …/active/feature/probe-branch/state.json
+          workflow_branch_dir      → …/active/main            ← 모듈 저장소의 branch
+
+    state.json 과 handoff/backlog 가 서로 다른 branch 디렉터리를 가리키게 된다.
+    """
     base_dir = workflow_memory_dir(project_profile_path)
-    branch = get_current_branch()
+    branch = branch_for_workspace(project_workspace_root(project_profile_path))
     # Normalize branch name for filesystem safety if needed,
     # but here we allow nested folders if branch name has '/'
     return (base_dir / branch).resolve()
@@ -335,7 +347,11 @@ def workflow_archived_branch_dir(project_profile_path: Path, branch: str | None 
     브랜치 작업이 끝나면(git 에서 해당 브랜치가 사라지면) `active/<branch>/` 를 이곳으로
     옮겨 과거 이력 조회 대상으로 남긴다. 고아 디렉터리가 생기지 않게 하는 장치.
     """
-    slug = _usable_branch_name(branch) or get_current_branch()
+    # v1.0.6(§2.50): 명시 인자 → **이 workspace 의 git** → 모듈 저장소 순.
+    # active/ 와 archived/ 가 다른 branch 를 가리키면 아카이브가 엉뚱한 곳으로 간다.
+    slug = _usable_branch_name(branch) or branch_for_workspace(
+        project_workspace_root(project_profile_path)
+    )
     return (memory_root_dir(project_profile_path) / "archived" / slug).resolve()
 
 

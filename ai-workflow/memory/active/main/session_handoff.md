@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `72bfbe0` (§2.46 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 smoke `All 226 check_*.py scripts passed`, 집힌 mcp `1.27.0`(pinned 선언대로). `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 226/226, mypy strict 121 files 0 errors, 되주입 9건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `14cd792` (§2.47 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 227 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 121 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 227/227, 되주입 3건)
 - 현재 주 작업 축: "관대한 fallback 이 자기가 무엇을 못 했는지 말하지 않는다" — 실패하지 않는 loader 는 결함을 감추는 데도 똑같이 안전하다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -70,8 +70,9 @@
   `test_path` 가 없다.
 - 실측: 전량 smoke **227/227**(`dev,release,mcp-sdk` venv, `--tmp-dir=/var/tmp/saw-smoke`),
   mypy strict 121 files 0 errors(`Config File:` 줄로 정본 로드 확인), 되주입 3건 스팟
-  체크 각각 다른 신호. **CI 는 아직 안 봤다** — push 후
-  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  체크 각각 다른 신호. **CI 4종 green 실측 완료**(`14cd792`) — §1 기준선 참조.
+  `gh run view --log` 대신 `gh api repos/<o>/<r>/actions/jobs/<job_id>/logs` 로 받아
+  러너의 자기 측정 줄(`All 227 …`, `Config File:`, `mcp SDK 실측`)을 직접 확인했다.
 - **스모크 중에 저장소를 건드리지 말 것.** 전량 smoke 가 도는 동안 backlog index 를
   편집했더니 `check_no_repo_write` 가 red 로 나왔다. 단독 재실행하면 PASS —
   검사가 옳고 편집이 틀렸다.

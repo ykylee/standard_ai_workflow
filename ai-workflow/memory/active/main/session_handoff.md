@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `72bfbe0` (§2.46 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 smoke `All 226 check_*.py scripts passed`, 집힌 mcp `1.27.0`(pinned 선언대로). `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 226/226, mypy strict 121 files 0 errors, 되주입 9건)
-- 현재 주 작업 축: "파생물을 만드는 쪽이 규약을 모른다" — 상한/포인터가 읽는 쪽에만 있으면 사람이 매번 치운다
+- 현재 주 작업 축: "관대한 fallback 이 자기가 무엇을 못 했는지 말하지 않는다" — 실패하지 않는 loader 는 결함을 감추는 데도 똑같이 안전하다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
 - TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
@@ -37,9 +36,49 @@
 - TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
 - TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
 - TASK-2026-07-31-main-002 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다
+- TASK-2026-07-31-main-003 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
 ## 5. 다음 세션 시작 포인트
 
-**close-out 마다 반복되던 수작업을 없앴다 (TASK-2026-07-31-main-002, §2.46).**
+**기준 경로가 한 칸 어긋나 있었고, 그 사실을 아무도 말해 주지 않았다
+(TASK-2026-07-31-main-003, §2.47).** §2.46 이 "별건" 으로 남긴 항목이다.
+
+- `run_workflow_linter.py` 의 `project_root = project_profile_path.parent.parent.parent`
+  는 `<root>/docs/PROJECT_PROFILE.md` 에서 root 가 아니라 **root 의 한 단계 위**다.
+  되주입하면 fixture 에서 `project_root=/tmp` 가 나온다. 그 값이 두 곳으로 갔다.
+  - `load_config(project_root)` → 없는 pyproject 를 물어 **언제나 기본값**.
+    `[tool.workflow-doctor]` 의 `excluded_paths` 는 v0.7.15 도입 이래 한 번도 적용된
+    적이 없다.
+  - `--maturity` 의 matrix/roadmap 경로 → 늘 `skipped`. 그런데 runner 가 `issues_found`
+    만 반영해서 **실행되지 못한 검사가 `status: ok / total_issues: 0`** 으로 보고됐다
+    (v0.11.17 backlog 에 "정합 검증 통과" 로 기록돼 있다 — 그 기록은 사실이 아니었다).
+- **둘 다 조용했던 이유는 같다.** `load_config` 는 어떤 경우에도 실패하지 않는다(운영
+  안정성). 그 대가로 "설정이 적용됨" 과 "조용히 기본값으로 떨어짐" 이 산출물에서
+  구별되지 않았다. `load_config_with_provenance` 가 **물어본 경로 / 얻은 파일 / 출처 /
+  기본값 이유**(`file_missing`·`section_missing`·`parse_error`)를 함께 돌려주고,
+  린터 산출물의 `source_context` 에 남는다. `load_config` 는 그것을 부르는 얇은 wrapper다.
+- **이 저장소는 `--config-path workflow-source` 가 필요하다.** `[tool.workflow-doctor]`
+  정본이 `workflow-source/pyproject.toml` 인데 workspace root 는 저장소 루트다. 사본을
+  하나 더 두지 않고 **호출을 명시**하는 쪽을 택했고 `docs/PROJECT_PROFILE.md` 의 린터
+  명령줄을 그 형태로 갱신했다(그 줄은 v0.5.5 릴리스 아카이브를 가리키는 죽은 명령이었다).
+- 검사 1종 신규 + 1종 교체(smoke 226 → **227**): `check_linter_config_resolution.py`(9).
+  그리고 `check_v0_7_15_config_thresholds.py` 의 9번째 case 를 **문자열 검사에서 동작
+  검사로** 바꿨다 — 그것은 runner 본문에서 `"load_config(project_root)"` 라는 *문자열*을
+  찾고 있었다. 그 줄은 내내 있었고 다만 없는 경로를 묻고 있었다.
+- **고치자마자 실제 드리프트가 나왔다** (내용 정정은 범위 밖, 드러낸 채로 남긴다):
+  matrix 는 `Phase 13` 을 `in_progress` 로 적는데 roadmap 은 그 단계를 현재로 말하지
+  않는다(메모리상 Phase 13 은 v0.13.3 에서 완료), `task-modes` 가 stable 인데
+  `test_path` 가 없다.
+- 실측: 전량 smoke **227/227**(`dev,release,mcp-sdk` venv, `--tmp-dir=/var/tmp/saw-smoke`),
+  mypy strict 121 files 0 errors(`Config File:` 줄로 정본 로드 확인), 되주입 3건 스팟
+  체크 각각 다른 신호. **CI 는 아직 안 봤다** — push 후
+  `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+- **스모크 중에 저장소를 건드리지 말 것.** 전량 smoke 가 도는 동안 backlog index 를
+  편집했더니 `check_no_repo_write` 가 red 로 나왔다. 단독 재실행하면 PASS —
+  검사가 옳고 편집이 틀렸다.
+
+---
+
+이전 세션 기록: **close-out 마다 반복되던 수작업을 없앴다 (TASK-2026-07-31-main-002, §2.46).**
 두 결함 다 같은 모양이었다 — **파생물을 만드는 쪽이 규약을 모른다.**
 
 - **handoff §4 상한이 쓰는 쪽에 없었다.** 상한을 아는 자리가 셋(쓰는 쪽 /
@@ -61,7 +100,7 @@
   `check_state_backlog_block.py`(8, 이 저장소 자신의 state.json 포함).
 - 실측: 전량 smoke **226/226**(`dev,release,mcp-sdk` venv, 워킹트리 변경 0),
   mypy strict 121 files 0 errors, 되주입 9건 각각 다른 신호.
-  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  **CI 4종 green 실측 완료**(`72bfbe0`) — §1 기준선 참조.
 
 ---
 
@@ -192,11 +231,16 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - [x] ~~`state.json` 의 `backlog.task_count` 는 항상 0, `latest_backlog_path` 는 항상
       `null`~~ → **완료(§2.46)**. 경로 해석을 세 갈래로 분리했다. `backlog` block 이
       통째로 죽어 있던 것이라 `task_count` 만의 문제가 아니었다.
-- [ ] **`run_workflow_linter.py` 의 `project_root` 가 저장소 루트보다 한 단계 위를
-      가리킨다** (`profile.parent.parent.parent`). 그래서 `load_config` 가 pyproject 를
-      못 찾고 조용히 default 로 떨어진다 — `[tool.workflow-doctor]` 의 `excluded_paths`
-      가 적용된 적이 없다. 이 저장소는 정본이 `workflow-source/pyproject.toml` 이라
-      "루트로 고치면 된다" 도 아니다(루트 pyproject 에는 그 section 이 없다). 별건.
+- [x] ~~**`run_workflow_linter.py` 의 `project_root` 가 저장소 루트보다 한 단계 위를
+      가리킨다**~~ → **완료(§2.47)**. 기준을 `project_workspace_root` 로 통일하고,
+      정본이 `workflow-source/pyproject.toml` 인 문제는 사본이 아니라 `--config-path`
+      명시로 풀었다. **같은 값이 `--maturity` 경로에도 쓰이고 있어서, 그쪽은 늘
+      `skipped` 인데 `status: ok` 로 보고되고 있었다** — 그것도 같이 닫았다.
+- [ ] **`--maturity` 를 처음 실제로 돌리니 내용 드리프트 2건이 나왔다** (§2.47 범위 밖):
+      matrix 의 `Phase 13` 이 `in_progress` 인데 roadmap 은 그 단계를 현재로 말하지
+      않는다, `task-modes` 가 stable 인데 `test_path` 가 없다.
+- [ ] **`workflow_kit.cli.doctor` 는 아직 provenance 를 안 쓴다** (`load_config(args.project_root)`).
+      같은 "조용한 default" 가 CLI 쪽에는 그대로 남아 있다.
 - [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
       저장소는 builder 가 task SSOT 를 먼저 쓰므로 무해하지만, legacy 저장소(task 파일
       부재)에서는 handoff 가 tail fallback 이 되고 builder 가 **앞에서** 자르므로
@@ -229,6 +273,15 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
+- **이번 세션의 교훈(§2.47)**: §2.44 는 "관대한 *설정* 이 판정을 지운다" 였고 이건 그
+  사촌이다 — **관대한 *fallback* 이 자기가 무엇을 못 했는지 말하지 않는다.** 실패하지
+  않는 loader 를 만들 거면, 무엇을 물었고 무엇을 얻었는지는 반드시 함께 내놓아야 한다.
+  그러지 않으면 "적용됨" 과 "떨어짐" 이 같은 모양이고, 같은 모양인 동안에는 아무도
+  결함을 볼 수 없다.
+- **이번 세션의 교훈(§2.47, 검사 쪽)**: `check_v0_7_15_config_thresholds` 의 9번째 case 는
+  runner 본문에서 `"load_config(project_root)"` 라는 **문자열**을 찾고 있었다. 그 줄은
+  내내 있었고 다만 없는 경로를 묻고 있었다 — **통과하면서 아무것도 보장하지 못하는
+  검사**였다. 문자열이 아니라 **산출물의 사실**로 판정할 것.
 - **이번 세션의 교훈(§2.40)**: §2.39 는 "판정 근거가 없으면 채우지 말라" 였는데, 이건 그 앞
   단계다 — **판정 근거를 애초에 버리지 말 것.** 아카이브 포인터인지 작업 항목인지 구분할
   단서는 구분 heading 하나뿐이었고, 이관이 그걸 버려서 판정 자체가 불가능해졌다.

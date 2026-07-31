@@ -64,7 +64,15 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   - `python workflow-source/tests/check_contract_v1_roundtrip.py`
   - `python workflow-source/tests/check_contract_v1_role_mapping.py`
   - `python workflow-source/tests/check_contract_v1_direct_only.py`
-- 워크플로우 linter: `PYTHONPATH=workflow-source python workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --state-json-path ai-workflow/memory/release/v0.5.5/state.json --session-handoff-path ai-workflow/memory/release/v0.5.5/session_handoff.md --latest-backlog-path ai-workflow/memory/release/v0.5.5/backlog/2026-06-07.md`
+- 워크플로우 linter: `PYTHONPATH=workflow-source python3 workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --config-path workflow-source`
+  - 경로 인자를 생략하면 branch-scoped 상태 문서(`ai-workflow/memory/active/<branch>/`)를
+    state.json 에서 찾아 쓴다. 예전 이 줄은 v0.5.5 릴리스 아카이브를 가리키고 있었다.
+  - **`--config-path` 는 이 저장소에서 필수다.** `[tool.workflow-doctor]` 정본이
+    `workflow-source/pyproject.toml` 에 있는데 workspace root 는 저장소 루트라,
+    생략하면 `config_source: default (section_missing)` 로 떨어진다 (그 사실은
+    산출물의 `source_context` 에 남는다).
+  - maturity 까지 보려면 `--maturity` 추가 (matrix 는
+    `workflow-source/core/maturity_matrix.json` 이 자동 선택된다).
 
 ### 3.4 실행 확인 (상태 동기화)
 ```bash

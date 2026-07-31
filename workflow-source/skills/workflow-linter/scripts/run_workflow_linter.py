@@ -20,7 +20,7 @@ from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.paths import project_workspace_root, resolve_existing_path, workflow_branch_dir, workflow_memory_dir, workflow_state_path
 from workflow_kit.common.linter import check_workflow_consistency, check_maturity_consistency
-from workflow_kit.common.metadata import load_config  # v0.7.15+: excluded_paths from config
+from workflow_kit.common.metadata import load_config_with_provenance  # v0.7.15+: excluded_paths from config
 from workflow_kit.common.schemas import WorkflowLinterOutput, Status
 
 
@@ -30,9 +30,46 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--state-json-path")
     parser.add_argument("--session-handoff-path")
     parser.add_argument("--latest-backlog-path")
+    parser.add_argument(
+        "--config-path",
+        help="[tool.workflow-doctor] 를 담은 pyproject.toml (또는 그것이 있는 디렉터리). "
+             "생략하면 workspace root 의 pyproject.toml 을 묻는다. 어느 파일을 물었고 "
+             "설정을 얻었는지는 출력의 source_context 에 남는다.",
+    )
     parser.add_argument("--maturity", action="store_true", help="Check project maturity matrix")
+    parser.add_argument(
+        "--maturity-path",
+        help="maturity_matrix.json 경로. 생략하면 consumer layout(`ai-workflow/core/`) → "
+             "kit layout(`workflow-source/core/`) 순으로 **실재하는 것**을 고르고, "
+             "고른 경로를 source_context 에 남긴다.",
+    )
     parser.add_argument("--apply", action="store_true", help="Attempt to auto-fix some issues")
     return parser.parse_args()
+
+
+#: `--maturity-path` 를 안 줬을 때 물어볼 후보 — **탐색이 아니라 목록이다**.
+#: 순서: bootstrap 된 consumer layout, 그다음 이 kit 저장소 자신의 layout
+#: (dashboard / release_pipeline 등 kit 안의 다른 도구가 전부 쓰는 위치).
+MATURITY_MATRIX_CANDIDATES = (
+    "ai-workflow/core/maturity_matrix.json",
+    "workflow-source/core/maturity_matrix.json",
+)
+
+
+def resolve_maturity_matrix_path(project_root: Path, explicit: str | None) -> Path:
+    """maturity_matrix.json 경로 — 명시가 있으면 그것, 없으면 실재하는 첫 후보.
+
+    후보가 전부 없으면 첫 후보를 그대로 돌려준다. 부재는 여기서 삼키지 않고
+    호출자가 `maturity_check_not_run` 으로 드러낸다 — 어디를 찾았는지 함께 적기
+    위해서다.
+    """
+    if explicit:
+        return Path(explicit).resolve()
+    for candidate in MATURITY_MATRIX_CANDIDATES:
+        path = (project_root / candidate).resolve()
+        if path.is_file():
+            return path
+    return (project_root / MATURITY_MATRIX_CANDIDATES[0]).resolve()
 
 
 def main() -> int:
@@ -40,8 +77,13 @@ def main() -> int:
     
     try:
         project_profile_path = resolve_existing_path(args.project_profile_path)
-        project_root = project_profile_path.parent.parent.parent # Assuming standard structure: <root>/docs/PROJECT_PROFILE.md
-        
+        # `<root>/docs/PROJECT_PROFILE.md` 에서 `.parent.parent.parent` 는 root 가
+        # 아니라 **root 의 한 단계 위**다 (docs → root → 그 위). 그 값으로
+        # `load_config` 를 부르고 있었으니 `[tool.workflow-doctor]` 는 한 번도 적용된
+        # 적이 없고, `--maturity` 의 matrix/roadmap 경로도 늘 빗나가 "skipped" 였다.
+        # 둘 다 조용했다. 기준은 정본 helper 하나로 잡는다.
+        project_root = project_workspace_root(project_profile_path)
+
         branch_dir = workflow_branch_dir(project_profile_path)
         
         state_json_path = (
@@ -85,16 +127,21 @@ def main() -> int:
             else:
                 latest_backlog_path = (backlog_dir / "tasks").resolve() # placeholder
 
+        # v0.7.15+: [tool.workflow-doctor] excluded_paths load → check_workflow_consistency
+        # v1.0.3(§2.47): **무엇을 물었고 얻었는지를 산출물에 남긴다.** load_config 는
+        # 어떤 경우에도 실패하지 않아서, 설정이 적용된 것과 조용히 기본값으로 떨어진
+        # 것이 구별되지 않았다 — 그래서 잘못된 기준 경로가 오래 살아남았다.
+        config, config_provenance = load_config_with_provenance(args.config_path or project_root)
+        excluded_paths = config.excluded_paths
+
         source_context = {
             "project_profile_path": str(project_profile_path),
+            "project_root": str(project_root),
             "state_json_path": str(state_json_path),
             "session_handoff_path": str(session_handoff_path),
             "latest_backlog_path": str(latest_backlog_path),
+            **config_provenance.to_dict(),
         }
-
-        # v0.7.15+: [tool.workflow-doctor] excluded_paths load → check_workflow_consistency
-        config = load_config(project_root)
-        excluded_paths = config.excluded_paths
 
         # 1. Workflow Consistency (Docs)
         linter_result = check_workflow_consistency(
@@ -117,14 +164,42 @@ def main() -> int:
 
         # 2. Maturity Consistency (Optional)
         if args.maturity:
-            matrix_path = project_root / "ai-workflow/core/maturity_matrix.json"
-            roadmap_path = project_root / "ai-workflow/core/workflow_kit_roadmap.md"
-            maturity_result = check_maturity_consistency(matrix_path, roadmap_path, project_root)
-            if maturity_result.get("status") == "issues_found":
+            matrix_path = resolve_maturity_matrix_path(project_root, args.maturity_path)
+            # roadmap 과 test_path 의 기준은 **matrix 가 있는 곳**이 정한다.
+            # `core/maturity_matrix.json` 을 담은 디렉터리가 kit root 이고, matrix 의
+            # `test_path` 는 그 root 기준의 상대 경로다 (`tests/check_*.py`).
+            # 저장소 루트를 기준으로 삼으면 consumer 의 앱 테스트를 가리키게 된다.
+            kit_root = matrix_path.parent.parent
+            roadmap_path = matrix_path.parent / "workflow_kit_roadmap.md"
+            maturity_result = check_maturity_consistency(matrix_path, roadmap_path, kit_root)
+            maturity_status = str(maturity_result.get("status", "unknown"))
+            source_context["maturity_status"] = maturity_status
+            source_context["maturity_matrix_path"] = str(matrix_path)
+            if maturity_status == "issues_found":
                 linter_result["issues"].extend(maturity_result["issues"])
                 linter_result["warnings"].extend(maturity_result["warnings"])
-                # Update summary
-                linter_result["summary"]["total_issues"] = len(linter_result["issues"])
+            elif maturity_status != "ok":
+                # **요청한 검사가 실행되지 못한 것은 통과가 아니다.** 예전에는
+                # `issues_found` 만 반영해서, matrix 를 못 찾으면(`skipped`) 아무 말 없이
+                # `status: ok / total_issues: 0` 이 나왔다 — 실제로 경로가 한 단계
+                # 어긋나 있어서 `--maturity` 는 한 번도 실행된 적이 없는데, 그 결과가
+                # "정합 검증 통과" 로 기록돼 있었다(v0.11.17 backlog).
+                linter_result["issues"].append({
+                    "type": "missing_document",
+                    "code": "maturity_check_not_run",
+                    "description": (
+                        f"--maturity 를 요청했지만 검사가 실행되지 못했다 "
+                        f"(status={maturity_status}, matrix={matrix_path}): "
+                        f"{maturity_result.get('reason') or maturity_result.get('description') or ''}"
+                    ).strip(),
+                    "severity": "high",
+                    "fix_suggestion": "--maturity-path 로 실제 maturity_matrix.json 을 지정한다.",
+                })
+                linter_result["warnings"].extend(maturity_result.get("warnings", []))
+            else:
+                linter_result["warnings"].extend(maturity_result.get("warnings", []))
+            # Update summary
+            linter_result["summary"]["total_issues"] = len(linter_result["issues"])
 
         # 3. Auto-fix (Optional)
         written_paths = []

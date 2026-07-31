@@ -233,20 +233,38 @@ def test_linter_excluded_paths_skip_broken_link():
 
 
 def test_run_workflow_linter_loads_config():
-    """run_workflow_linter 가 load_config 호출 → 정상 실행 (custom pyproject.toml).
+    """run_workflow_linter 가 config 를 **실제로 물어서 쓴다**.
 
-    pydantic / linter 가 system python 에 없는 경우를 위해 module import 만
-    검증 (subprocess 호출은 check_workflow_linter.py 의 role).
+    v1.0.3(§2.47): 예전 이 검사는 runner 본문에서 `load_config(project_root)` 라는
+    **문자열**을 찾았다. 그 줄은 내내 있었고, 다만 저장소 루트보다 한 단계 위를
+    묻고 있어서 설정이 한 번도 적용된 적이 없었다 — 즉 이 검사는 통과하면서
+    아무것도 보장하지 못했다. 이제 산출물의 `config_source` 로 판정한다.
+    (설정이 판정까지 도달하는지는 `check_linter_config_resolution.py` 가 본다.)
     """
-    # run_workflow_linter.py 본체에 load_config import + 호출이 존재하는지 확인
     runner = REPO_ROOT / "workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py"
     assert runner.exists(), f"runner not found: {runner}"
-    content = runner.read_text(encoding="utf-8")
-    assert "from workflow_kit.common.metadata import load_config" in content, (
-        "load_config import missing"
+
+    sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common.metadata import (
+        CONFIG_SOURCE_DEFAULT,
+        CONFIG_SOURCE_PYPROJECT,
+        load_config_with_provenance,
     )
-    assert "load_config(project_root)" in content, "load_config call missing"
-    assert "excluded_paths=excluded_paths" in content, "excluded_paths arg missing"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "pyproject.toml").write_text(
+            '[tool.workflow-doctor]\nexcluded_paths = ["vendor/*"]\n', encoding="utf-8"
+        )
+        config, provenance = load_config_with_provenance(root)
+        assert provenance.source == CONFIG_SOURCE_PYPROJECT, provenance
+        assert config.excluded_paths == ["vendor/*"], config.excluded_paths
+
+        empty = root / "empty"
+        empty.mkdir()
+        _config, provenance = load_config_with_provenance(empty)
+        assert provenance.source == CONFIG_SOURCE_DEFAULT, provenance
+
     # check_workflow_consistency 가 excluded_paths 인자를 받는지 확인
     linter = _import_linter()
     import inspect

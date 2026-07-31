@@ -1855,16 +1855,86 @@ legacy 에 재결합 → "명시한 인자를 버렸다"; daily fallback 제거 
 > 신호였다. 검사가 잡아 주는데도 매번 손이 가면, 잡는 층이 아니라 **만드는 층**이
 > 규약을 모르는 것이다.
 
+### 2.47. 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
+
+§2.46 이 남긴 "별건" 을 닫는다. `run_workflow_linter.py` 는 기준을 이렇게 잡았다.
+
+```python
+project_root = project_profile_path.parent.parent.parent
+```
+
+`<root>/docs/PROJECT_PROFILE.md` 에서 이 값은 root 가 아니라 **root 의 한 단계 위**다
+(docs → root → 그 위). 되주입해 보면 fixture 에서 `project_root=/tmp` 가 나온다.
+그 값이 두 곳으로 갔다.
+
+1. **`load_config(project_root)`** — 없는 pyproject 를 물어 **언제나 기본값**.
+   `[tool.workflow-doctor]` 의 `excluded_paths` 는 v0.7.15 도입 이래 한 번도 적용된
+   적이 없다.
+2. **`--maturity` 의 matrix/roadmap 경로** — 늘 빗나가 `status: skipped`. 그런데 runner
+   는 `issues_found` 만 반영해서, **실행되지 못한 검사가 `status: ok / total_issues: 0`**
+   으로 보고됐다. v0.11.17 backlog 에 `workflow_linter --maturity: status=ok,
+   total_issues=0` 이 **정합 검증 통과**로 기록돼 있다 — 그 기록은 사실이 아니었다.
+
+**둘 다 조용했던 이유는 같다.** `load_config` 는 어떤 경우에도 실패하지 않도록 설계돼
+있다(운영 안정성). 좋은 성질이지만, 그 대가로 **"설정이 적용됨" 과 "조용히 기본값으로
+떨어짐" 이 산출물에서 구별되지 않았다.** 안전한 fallback 은 결함을 감추는 데도 똑같이
+안전하다.
+
+**조치.**
+
+- 기준을 정본 helper 하나로 잡는다 — `project_workspace_root(project_profile_path)`.
+- `load_config_with_provenance` 신설. **물어본 경로 / 얻은 파일 / 출처 / 기본값으로
+  떨어진 이유**(`file_missing` / `section_missing` / `parse_error`)를 함께 돌려준다.
+  `load_config` 는 이걸 부르는 얇은 wrapper다 — 보고하는 경로와 쓰는 경로가 갈라지면
+  보고가 사실이 아니게 된다. 결과는 린터 산출물의 `source_context` 에 남는다.
+- `--config-path` 신설(파일이든 디렉터리든). **이 저장소에는 이게 필요하다** —
+  `[tool.workflow-doctor]` 정본이 `workflow-source/pyproject.toml` 인데 workspace root
+  는 저장소 루트라, 생략하면 정직하게 `config_source: default (section_missing)` 이
+  나온다. 사본을 하나 더 두지 않고 **호출을 명시**하는 쪽을 택했고,
+  `docs/PROJECT_PROFILE.md` 의 린터 명령줄을 그 형태로 갱신했다(그 줄은 v0.5.5 릴리스
+  아카이브를 가리키는 죽은 명령이었다).
+- `--maturity` 는 **못 돌았으면 통과라고 하지 않는다** — `maturity_check_not_run`
+  (severity high) + `maturity_status` / `maturity_matrix_path` 기록. matrix 는
+  `--maturity-path` 명시가 우선이고, 없으면 consumer layout(`ai-workflow/core/`) →
+  kit layout(`workflow-source/core/`) 순으로 **실재하는 것**을 고른다.
+- `test_path` 의 기준은 **matrix 를 담은 kit root**(= `core/` 의 부모)다. 저장소 루트를
+  기준으로 삼으면 consumer 의 앱 테스트를 가리킨다. 검사 fixture 에 그 decoy 를 두어
+  기준이 어긋나면 실패하게 했다.
+
+**고치자마자 실제 드리프트가 나왔다.** 이 저장소에서 `--maturity` 를 처음으로 *실제로*
+돌리니 `roadmap_milestone_mismatch` 1건(matrix 는 `Phase 13` 을 `in_progress` 로 적는데
+roadmap 은 그 단계를 현재로 말하지 않는다) + `task-modes` 에 `test_path` 없음 경고 1건.
+**내용 정정은 이 커밋의 범위가 아니라 그대로 드러내고 후속으로 남긴다.**
+
+**검사 1종 신규 + 1종 교체(smoke 226 → 227).** `check_linter_config_resolution.py`(9
+case)는 기준 경로 / 설정 도달 / 출처 기록 / 명시 우선 / maturity 4종을 프로덕션 runner
+를 subprocess 로 돌려 본다. 그리고 `check_v0_7_15_config_thresholds.py` 의 9번째 case
+를 **문자열 검사에서 동작 검사로 바꿨다** — 그것은 runner 본문에서
+`"load_config(project_root)"` 라는 *문자열*을 찾고 있었다. 그 줄은 내내 있었고, 다만
+없는 경로를 묻고 있었다. **통과하면서 아무것도 보장하지 못하는 검사였다.**
+
+**되주입 7건, 각각 다른 신호**: 기준 경로 되돌림 → "project_root=/tmp 가 workspace
+root 가 아니다"; `--config-path` 무시 → "명시가 우선하지 않는다"; maturity 기준을
+project_root 로 → decoy 때문에 "없는 test_path 를 못 잡았다"; `issues_found` 만 반영 →
+"matrix 부재인데 통과로 보고됐다: status=ok"; 후보 실재 확인 제거 → "kit layout 을
+못 고른다"; section 부재를 `pyproject` 로 보고 → "출처 날조"; 파일 부재와 section 부재를
+같은 이유로 뭉갬 → "두 사실이 구별되지 않는다".
+
+> §2.44 는 "관대한 설정이 판정을 지운다" 였고, 이건 그 사촌이다 — **관대한 fallback 이
+> 자기가 무엇을 못 했는지 말하지 않는다.** 실패하지 않는 loader 를 만들 거면, 무엇을
+> 물었고 무엇을 얻었는지는 반드시 함께 내놓아야 한다. 그러지 않으면 "적용됨" 과
+> "떨어짐" 이 같은 모양이고, 그 둘이 같은 모양인 동안에는 아무도 결함을 볼 수 없다.
+
 ## 3. 검증
 
-누적 smoke **226/226 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **227/227 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
 → 221(§2.41 `check_mcp_server_sdk_compat`) → 222(§2.43
 `check_mcp_lowlevel_sdk_compat`) → 223(§2.44 `check_optional_dep_imports`)
-→ 224(§2.45 `check_mcp_sdk_matrix`) → **226**(§2.46 `check_handoff_done_cap` +
-`check_state_backlog_block`).
+→ 224(§2.45 `check_mcp_sdk_matrix`) → 226(§2.46 `check_handoff_done_cap` +
+`check_state_backlog_block`) → **227**(§2.47 `check_linter_config_resolution`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

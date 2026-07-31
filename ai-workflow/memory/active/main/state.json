@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `72bfbe0` (§2.46 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 smoke `All 226 check_*.py scripts passed`, 집힌 mcp `1.27.0`(pinned 선언대로). `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 226/226, mypy strict 121 files 0 errors, 되주입 9건)",
-    "current_axis": "\"파생물을 만드는 쪽이 규약을 모른다\" — 상한/포인터가 읽는 쪽에만 있으면 사람이 매번 치운다",
+    "current_axis": "\"관대한 fallback 이 자기가 무엇을 못 했는지 말하지 않는다\" — 실패하지 않는 loader 는 결함을 감추는 데도 똑같이 안전하다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
       "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
       "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler",
@@ -41,20 +42,20 @@
       "TASK-2026-07-28-main-003 — 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서",
       "TASK-2026-07-28-main-002 — status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리",
       "TASK-2026-07-28-main-001 — recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정",
-      "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍",
-      "TASK-2026-07-27-main-003 — 남은 자기참조 3건 해소 + CI red 원인 계측 확정"
+      "TASK-2026-07-27-main-004 — backlog-update 결함 4건 + 정본 검사 구멍"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
-      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다"
+      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
+      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity"
     ]
   },
   "next_documents": [

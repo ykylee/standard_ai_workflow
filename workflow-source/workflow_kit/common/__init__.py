@@ -22,8 +22,11 @@ from workflow_kit.common.resiliency import (  # noqa: F401
     evaluate_compliance as evaluate_resiliency_compliance,
 )
 from workflow_kit.common.metadata import (  # noqa: F401
+    ConfigProvenance,
     DoctorConfig,
     load_config,
+    load_config_with_provenance,
+    resolve_config_path,
     should_fail,
 )
 from workflow_kit.common.atomic_write import (  # noqa: F401

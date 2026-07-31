@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `607b84c` (§2.49 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 229 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 229/229, 되주입 4건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `15ee104` (§2.50 적용본, **CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 230 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `mkdocs`/`actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. **직전 `d6a23fe` 는 smoke red 였다** — 신규 검사가 CI 에서 무력화된 것을 `15ee104` 가 고쳤다. 로컬 전량 smoke 230/230, 되주입 3건)
 - 현재 주 작업 축: "선언한 규칙을 따르지 않는 자리를 찾아 두는 검사" — 규칙을 적고 한 곳에만 적용하면 나머지는 몇 달 뒤 전수 조사에서 나온다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -75,7 +75,7 @@
   `test_branch_env_override_wins` 로 따로 고정했다. 검증은 `GITHUB_REF_NAME=main` 으로
   **러너 환경을 재현**해서 했다.
 - **검사를 추가하면 러너 환경에서도 그 검사가 유효한지 확인할 것.** 로컬 통과는 절반의
-  증거다. CI 재확인 필요 — `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  증거다. **CI 3종 green 실측 완료**(`15ee104`) — 러너 자기 측정 `All 230 …`.
 
 ---
 

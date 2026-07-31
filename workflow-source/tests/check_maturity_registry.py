@@ -36,6 +36,12 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 MATRIX = SOURCE_ROOT / "core" / "maturity_matrix.json"
 SKILLS_DIR = SOURCE_ROOT / "skills"
 
+sys.path.insert(0, str(SOURCE_ROOT))
+
+# v1.0.4(§2.48): `kind: "spec"` 규약을 이 파일이 리터럴로 들고 있었다. 같은 규약을
+# kit 의 린터는 몰라서 위양성을 냈다 — 어휘 정본은 common/maturity.py 한 곳이다.
+from workflow_kit.common.maturity import is_spec_entry, requires_test_path  # noqa: E402
+
 
 def _load() -> dict:
     return json.loads(MATRIX.read_text(encoding="utf-8"))
@@ -62,7 +68,7 @@ def test_case_1_registry_disk_parity() -> None:
     exempt = set(d.get("skill_registry_exempt_dirs", []))
     disk = _disk_skill_dirs(exempt)
     # spec 항목은 실행 디렉터리를 갖지 않는다.
-    registered_exec = {k for k, v in skills.items() if v.get("kind") != "spec"}
+    registered_exec = {k for k, v in skills.items() if not is_spec_entry(v)}
 
     unregistered = sorted(disk - registered_exec)
     missing_dir = sorted(registered_exec - disk)
@@ -93,7 +99,7 @@ def test_case_2_stable_meets_criteria() -> None:
     d = _load()
     violations: list[str] = []
     for name, entry in sorted(d["skills"].items()):
-        if entry.get("kind") == "spec" or entry.get("stage") != "stable":
+        if is_spec_entry(entry) or entry.get("stage") != "stable":
             continue
         skill_dir = SKILLS_DIR / name
         problems: list[str] = []
@@ -133,7 +139,7 @@ def test_case_2_stable_meets_criteria() -> None:
         + "\n\n→ 조건을 채우거나 stage 를 낮출 것. **라벨만 stable 로 두지 않는다.**"
     )
     stable = [k for k, v in d["skills"].items()
-              if v.get("stage") == "stable" and v.get("kind") != "spec"]
+              if v.get("stage") == "stable" and not is_spec_entry(v)]
     print(f"  case 2: stable {len(stable)}종 모두 승격 조건 충족")
 
 
@@ -145,8 +151,8 @@ def test_case_3_test_paths_exist() -> None:
     for name, entry in sorted(d["skills"].items()):
         tp = entry.get("test_path")
         if not tp:
-            if entry.get("kind") != "spec" and entry.get("stage") == "stable":
-                missing.append(f"{name}: test_path null 인데 stable")
+            if requires_test_path(entry):
+                missing.append(f"{name}: test_path null 인데 stage={entry.get('stage')}")
             continue
         checked += 1
         if not (SOURCE_ROOT / tp).exists():

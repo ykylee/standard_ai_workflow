@@ -1925,16 +1925,72 @@ project_root 로 → decoy 때문에 "없는 test_path 를 못 잡았다"; `issu
 > 물었고 무엇을 얻었는지는 반드시 함께 내놓아야 한다. 그러지 않으면 "적용됨" 과
 > "떨어짐" 이 같은 모양이고, 그 둘이 같은 모양인 동안에는 아무도 결함을 볼 수 없다.
 
+### 2.48. 검사가 처음 돌자 나온 2건 — 하나는 진짜였고 하나는 위양성이었다
+
+§2.47 이 `--maturity` 를 **처음으로 실제로** 돌게 만들자 두 건이 나왔다. 둘을 같은
+"드리프트" 로 묶을 뻔했는데, 사실 확인을 해 보니 종류가 달랐다.
+
+**(1) `task-modes` 는 위양성이었다.** "stable 인데 `test_path` 가 없다" 는 warning 이
+붙었지만, 그 항목은 `kind: "spec"` 이다 — 실행 표면이 없는 명세이고 근거는
+`spec_path: core/workflow_task_modes.md` 다. 그 규약을 아는 자리는
+`tests/check_maturity_registry.py` **하나뿐**이었고(`kind != "spec"` 리터럴 3곳),
+**kit 이 배포하는 린터는 몰랐다.** 소비자 저장소에서 `--maturity` 를 돌리면 영영 이
+위양성을 본다는 뜻이다. 위양성을 내는 검사는 무시당한다 — 그러면 같은 검사가 잡아 줄
+진짜 결함도 함께 무시된다.
+
+- 어휘 정본 `workflow_kit/common/maturity.py` 신설: `SKILL_KIND_SPEC` /
+  `TEST_REQUIRED_STAGES` / `is_spec_entry` / `requires_test_path` / `spec_path_of`.
+  린터와 registry 검사가 **같은 이름을 읽는다** (리터럴 사본 제거).
+- 명세 항목은 `test_path` 대신 **`spec_path` 실재**를 요구한다. 선언한 파일이 없으면
+  `missing_spec_file`(high), 선언 자체가 없으면 warning. **완화가 아니라 근거의 교체다.**
+
+**(2) roadmap 은 진짜 드리프트였다 — 그리고 판정이 그것을 잡을 수 없는 모양이었다.**
+`workflow_kit_roadmap.md` 와 `phase_13_followup.md` 는 둘 다 **2026-07-21** 자로
+"Phase 13 planned 진입 대기" 라고 적고 있었다. v1.0.0 은 **2026-07-22** 에 발행됐고
+(entry gate 6영역 전부 PASS, `-beta` suffix 는 릴리스 노트 머리말이 *명명 관례*라고
+명시한다), matrix 는 `Phase 13.status = in_progress` / `started = 2026-07-21` 다. 즉
+**두 문서가 릴리스 하루 전에서 멈춰 있었다.**
+
+문제는 판정이었다. 예전 검사는 milestone `name` 문자열이 roadmap 본문에 **있는지**만
+봤다. 그 한 줄만 넣으면 roadmap 이 같은 단계를 `planned` 라고 말해도 통과한다 — §2.47
+에서 지운 것과 같은 종류의 검사다. 그래서 판정을 둘로 나눴다.
+
+- **언급**: `name` 이 본문에 있는가 (기존 `roadmap_milestone_mismatch` 유지).
+- **모순 없음**: matrix 가 `in_progress` 라는 단계를 roadmap 이 `planned` / `진입 대기` /
+  `진입 예정` 으로 적고 있지 않은가 → 신규 `roadmap_milestone_still_planned`.
+  **어느 쪽이 사실인지는 도구가 정하지 않는다** — 모순을 드러내고 사람에게 넘긴다.
+  key 매칭은 숫자 경계를 본다(`Phase 1` 이 `Phase 13` 줄에 걸리면 없는 모순을 만든다).
+
+내용 정정은 **matrix 를 사실로** 채택했다: roadmap §1/§1.3/§7/§8 과
+`phase_13_followup.md` 의 상태 줄을 `in_progress` (2026-07-21 start) 로 맞추고, `-beta`
+suffix 가 왜 성숙도 주장이 아닌지 roadmap 에 근거로 남겼다.
+
+**검사 1종 신규(smoke 227 → 228)**: `check_maturity_drift_judgment.py`(10) — spec 어휘
+4종 + roadmap 정합 4종 + "소비자에 리터럴 사본이 없다" + 이 저장소 실제 상태.
+
+**되주입 5건, 각각 다른 신호**: spec 분기 제거 → 원래 위양성 문구가 그대로 재현
+(`Skill 'task-modes' is in stage 'stable' but has no test_path defined.`); 모순 판정 제거
+→ "이름만 적어도 통과한다"(`status: ok`); roadmap 내용 되돌림 → 실저장소 판정이
+`roadmap_milestone_still_planned` 로 실패; 숫자 경계 제거 → `Phase 1` 이 `Phase 13` 줄에
+걸림; registry 에 리터럴 복원 → "어휘 사본이 남아 있다".
+
+> §2.47 이 "관대한 fallback 이 자기가 못 한 일을 말하지 않는다" 였다면, 이건 그
+> **다음 날의 이야기**다. 검사를 켜면 보고가 온다. 그때 **보고를 다 믿어서도 안 되고
+> 다 지워서도 안 된다** — 한 건은 문서를 고쳐야 했고 한 건은 검사를 고쳐야 했다.
+> 둘을 가른 것은 `kind: "spec"` 이라는 사실 하나였고, 그 사실은 이미 저장소 안에
+> 있었는데 **읽는 층이 하나뿐**이었다.
+
 ## 3. 검증
 
-누적 smoke **227/227 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **228/228 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
 → 221(§2.41 `check_mcp_server_sdk_compat`) → 222(§2.43
 `check_mcp_lowlevel_sdk_compat`) → 223(§2.44 `check_optional_dep_imports`)
 → 224(§2.45 `check_mcp_sdk_matrix`) → 226(§2.46 `check_handoff_done_cap` +
-`check_state_backlog_block`) → **227**(§2.47 `check_linter_config_resolution`).
+`check_state_backlog_block`) → 227(§2.47 `check_linter_config_resolution`)
+→ **228**(§2.48 `check_maturity_drift_judgment`).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

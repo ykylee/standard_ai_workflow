@@ -6,6 +6,12 @@ from collections.abc import Callable
 from typing import cast, Dict, List, Any
 
 from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP, parse_backlog, parse_handoff
+from workflow_kit.common.maturity import (
+    is_spec_entry,
+    requires_test_path,
+    roadmap_planned_contradictions,
+    spec_path_of,
+)
 
 # v0.7.15+: excluded_paths glob match helper. v0.7.7 deferred #4 해소.
 def _is_excluded(path: Path, excluded_patterns: List[str]) -> bool:
@@ -54,6 +60,11 @@ def check_maturity_consistency(
         return {"status": "error", "error_code": "matrix_json_load_failure", "description": f"Failed to load maturity_matrix.json: {e}"}
 
     # 1. Check test_path existence
+    #
+    # v1.0.4(§2.48): 어휘 정본은 `common/maturity.py` 다. matrix 항목에는 실행 표면이
+    # 없는 명세(`kind: "spec"`)가 있고, 그 규약을 아는 자리가 registry 검사 하나뿐이라
+    # 이 린터는 `task-modes` 를 볼 때마다 위양성 warning 을 냈다. 명세 항목의 근거는
+    # `test_path` 가 아니라 `spec_path` 라, 그쪽을 대신 확인한다.
     skills = matrix.get("skills", {})
     for skill_name, info in skills.items():
         test_path_str = info.get("test_path")
@@ -68,10 +79,29 @@ def check_maturity_consistency(
                     "severity": "high",
                     "fix_suggestion": f"Create the missing test file at {test_path_str} or update the matrix."
                 })
-        elif info.get("stage") in ["beta", "stable"]:
+        elif is_spec_entry(info):
+            spec_path_str = spec_path_of(info)
+            if not spec_path_str:
+                warnings.append(
+                    f"Entry '{skill_name}' is kind='spec' but declares no spec_path — "
+                    f"명세 항목의 근거가 없다."
+                )
+            elif not (project_root / spec_path_str).absolute().exists():
+                issues.append({
+                    "type": "maturity_error",
+                    "code": "missing_spec_file",
+                    "description": f"Entry '{skill_name}' declares spec_path '{spec_path_str}', but the file does not exist.",
+                    "severity": "high",
+                    "fix_suggestion": f"Create the missing spec at {spec_path_str} or update the matrix."
+                })
+        elif requires_test_path(info):
             warnings.append(f"Skill '{skill_name}' is in stage '{info.get('stage')}' but has no test_path defined.")
 
-    # 2. Check Roadmap alignment (Basic Check)
+    # 2. Check Roadmap alignment
+    #
+    # v1.0.4(§2.48): 예전 판정은 milestone `name` 문자열의 **포함 여부** 하나였다. 그
+    # 문자열만 넣으면 roadmap 이 같은 단계를 `planned` 라고 적고 있어도 통과한다 —
+    # 통과하면서 아무것도 보장하지 못하는 검사다. 언급과 **모순 없음**을 나눠 본다.
     if roadmap_path.exists():
         roadmap_content = roadmap_path.read_text(encoding="utf-8")
         milestones = matrix.get("milestones", {})
@@ -79,7 +109,6 @@ def check_maturity_consistency(
         # Check if current Roadmap phase matches In-Progress milestone
         in_progress_milestones = [name for name, m in milestones.items() if m.get("status") == "in_progress"]
         for m_name in in_progress_milestones:
-            # Simple check: Does the roadmap mention the in-progress phase name?
             phase_name = milestones[m_name].get("name", "")
             if phase_name and phase_name not in roadmap_content:
                  issues.append({
@@ -88,6 +117,19 @@ def check_maturity_consistency(
                     "description": f"Milestone '{m_name}' ({phase_name}) is 'in_progress' in matrix, but not prominently mentioned as current phase in roadmap.md.",
                     "severity": "medium",
                     "fix_suggestion": "Update roadmap.md to reflect the current in-progress phase from maturity_matrix.json."
+                })
+            contradictions = roadmap_planned_contradictions(roadmap_content, m_name)
+            if contradictions:
+                issues.append({
+                    "type": "maturity_error",
+                    "code": "roadmap_milestone_still_planned",
+                    "description": (
+                        f"Milestone '{m_name}' is 'in_progress' in matrix, but roadmap.md still "
+                        f"describes it as not started ({len(contradictions)} line(s)): "
+                        + " / ".join(line[:120] for line in contradictions[:3])
+                    ),
+                    "severity": "medium",
+                    "fix_suggestion": "matrix 와 roadmap 중 어느 쪽이 사실인지 정하고 양쪽을 맞춘다.",
                 })
 
     return {

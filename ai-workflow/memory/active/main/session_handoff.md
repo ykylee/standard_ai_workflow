@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `14cd792` (§2.47 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 227 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 121 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 227/227, 되주입 3건)
-- 현재 주 작업 축: "관대한 fallback 이 자기가 무엇을 못 했는지 말하지 않는다" — 실패하지 않는 loader 는 결함을 감추는 데도 똑같이 안전하다
+- 현재 주 작업 축: "검사를 켜면 보고가 온다 — 다 믿어서도 다 지워서도 안 된다" — 문서를 고칠 건과 검사를 고칠 건을 사실로 가른다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
 - TASK-2026-07-28-main-001 recent_done_items 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정
 - TASK-2026-07-28-main-002 status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리
 - TASK-2026-07-28-main-003 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 — 이관 파서
@@ -37,9 +36,41 @@
 - TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
 - TASK-2026-07-31-main-002 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다
 - TASK-2026-07-31-main-003 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
+- TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
 ## 5. 다음 세션 시작 포인트
 
-**기준 경로가 한 칸 어긋나 있었고, 그 사실을 아무도 말해 주지 않았다
+**검사를 켰더니 보고가 왔고, 두 건은 종류가 달랐다 (TASK-2026-07-31-main-004, §2.48).**
+§2.47 이 남긴 후속 2건이다. 같은 "드리프트" 로 묶을 뻔했는데, 사실 확인을 해 보니
+하나는 **문서를 고쳐야 했고** 하나는 **검사를 고쳐야 했다.**
+
+- **`task-modes` 는 위양성이었다.** matrix 항목에는 실행 표면이 없는 명세
+  (`kind: "spec"`, 근거는 `spec_path`)가 있는데, 그 규약을 아는 자리가
+  `check_maturity_registry.py` **하나뿐**이었고 **kit 이 배포하는 린터는 몰랐다** —
+  소비자 저장소에서 `--maturity` 를 돌리면 영영 이 위양성을 본다는 뜻이다. 어휘 정본
+  `common/maturity.py` 를 만들고 둘이 같은 이름을 읽는다(리터럴 사본 3곳 제거).
+  명세의 근거는 `test_path` 가 아니라 **`spec_path` 실재**로 확인한다 — 완화가 아니라
+  근거의 교체다(`missing_spec_file`, high).
+- **roadmap 은 진짜 드리프트였다.** `workflow_kit_roadmap.md` 와
+  `phase_13_followup.md` 가 둘 다 **2026-07-21** 자로 "Phase 13 planned 진입 대기" 인데,
+  v1.0.0 은 **2026-07-22** 발행이고(entry gate 6영역 전부 PASS, `-beta` suffix 는 릴리스
+  노트 머리말이 *명명 관례*라고 명시) matrix 는 `in_progress` / `started: 2026-07-21` 다.
+  **두 문서가 릴리스 하루 전에서 멈춰 있었다.** matrix 를 사실로 채택해 양쪽을 맞췄고,
+  `-beta` 가 왜 성숙도 주장이 아닌지 근거를 roadmap 에 남겼다.
+- **판정도 같이 고쳤다.** 예전 검사는 milestone `name` 문자열의 **포함 여부** 하나라,
+  그 줄만 넣으면 roadmap 이 `planned` 라고 말해도 통과했다(§2.47 에서 지운 것과 같은
+  종류). 이제 언급과 **모순 없음**을 나눠 본다 — `roadmap_milestone_still_planned`.
+  **어느 쪽이 사실인지는 도구가 정하지 않는다.** key 매칭은 숫자 경계를 본다.
+- 검사 1종 신규(smoke 227 → **228**): `check_maturity_drift_judgment.py`(10).
+- 실측: 전량 smoke **228/228**, mypy strict **122 files 0 errors**, 실저장소
+  `--maturity` issue 0 / warning 0, 되주입 5건 각각 다른 신호.
+  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+- **정본만 고치면 배포 사본이 남는다.** 중간 smoke 에서 `check_standard_single_source`
+  가 red 였다 — `workflow_kit_roadmap.md` 는 `ai-workflow/core/` 에 배포 사본이 있고
+  정본과 byte 일치를 요구한다. 검사가 옳았다. `core/*.md` 를 고치면 사본도 함께 옮길 것.
+
+---
+
+이전 세션 기록: **기준 경로가 한 칸 어긋나 있었고, 그 사실을 아무도 말해 주지 않았다
 (TASK-2026-07-31-main-003, §2.47).** §2.46 이 "별건" 으로 남긴 항목이다.
 
 - `run_workflow_linter.py` 의 `project_root = project_profile_path.parent.parent.parent`
@@ -64,10 +95,10 @@
   그리고 `check_v0_7_15_config_thresholds.py` 의 9번째 case 를 **문자열 검사에서 동작
   검사로** 바꿨다 — 그것은 runner 본문에서 `"load_config(project_root)"` 라는 *문자열*을
   찾고 있었다. 그 줄은 내내 있었고 다만 없는 경로를 묻고 있었다.
-- **고치자마자 실제 드리프트가 나왔다** (내용 정정은 범위 밖, 드러낸 채로 남긴다):
-  matrix 는 `Phase 13` 을 `in_progress` 로 적는데 roadmap 은 그 단계를 현재로 말하지
-  않는다(메모리상 Phase 13 은 v0.13.3 에서 완료), `task-modes` 가 stable 인데
-  `test_path` 가 없다.
+- **고치자마자 실제 드리프트가 나왔다** (당시엔 범위 밖으로 드러내기만 했고,
+  **§2.48 에서 닫았다**): matrix 는 `Phase 13` 을 `in_progress` 로 적는데 roadmap 은
+  그 단계를 현재로 말하지 않았다, `task-modes` 가 stable 인데 `test_path` 가 없다.
+  후자는 위양성으로 판명됐다.
 - 실측: 전량 smoke **227/227**(`dev,release,mcp-sdk` venv, `--tmp-dir=/var/tmp/saw-smoke`),
   mypy strict 121 files 0 errors(`Config File:` 줄로 정본 로드 확인), 되주입 3건 스팟
   체크 각각 다른 신호. **CI 4종 green 실측 완료**(`14cd792`) — §1 기준선 참조.
@@ -237,9 +268,9 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       정본이 `workflow-source/pyproject.toml` 인 문제는 사본이 아니라 `--config-path`
       명시로 풀었다. **같은 값이 `--maturity` 경로에도 쓰이고 있어서, 그쪽은 늘
       `skipped` 인데 `status: ok` 로 보고되고 있었다** — 그것도 같이 닫았다.
-- [ ] **`--maturity` 를 처음 실제로 돌리니 내용 드리프트 2건이 나왔다** (§2.47 범위 밖):
-      matrix 의 `Phase 13` 이 `in_progress` 인데 roadmap 은 그 단계를 현재로 말하지
-      않는다, `task-modes` 가 stable 인데 `test_path` 가 없다.
+- [x] ~~**`--maturity` 를 처음 실제로 돌리니 내용 드리프트 2건이 나왔다**~~ →
+      **완료(§2.48)**. roadmap 은 진짜 드리프트라 문서를 고쳤고(matrix 를 사실로 채택),
+      `task-modes` 는 `kind: "spec"` 을 린터가 몰라서 난 **위양성**이라 검사를 고쳤다.
 - [ ] **`workflow_kit.cli.doctor` 는 아직 provenance 를 안 쓴다** (`load_config(args.project_root)`).
       같은 "조용한 default" 가 CLI 쪽에는 그대로 남아 있다.
 - [ ] **handoff §4 는 상한만 생겼고 정렬 기준은 여전히 없다.** `tasks_dir` 이 있는
@@ -274,6 +305,13 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
+- **이번 세션의 교훈(§2.48)**: 검사를 켜면 보고가 온다. 그때 **다 믿어서도 안 되고 다
+  지워서도 안 된다** — 한 건은 문서를 고쳐야 했고 한 건은 검사를 고쳐야 했다. 둘을 가른
+  것은 `kind: "spec"` 이라는 사실 하나였고, 그 사실은 **이미 저장소 안에 있었는데 읽는
+  층이 하나뿐**이었다. 규약을 아는 자리가 하나뿐이면 나머지 층은 위양성을 낸다.
+- **이번 세션의 교훈(§2.48, 위양성 비용)**: 위양성을 내는 검사는 무시당하고, 그러면 같은
+  검사가 잡아 줄 **진짜 결함도 함께 무시된다**. 실제로 이번 두 건은 같은 실행에서 같이
+  나왔다 — 하나를 노이즈로 치웠다면 다른 하나도 함께 사라졌을 것이다.
 - **이번 세션의 교훈(§2.47)**: §2.44 는 "관대한 *설정* 이 판정을 지운다" 였고 이건 그
   사촌이다 — **관대한 *fallback* 이 자기가 무엇을 못 했는지 말하지 않는다.** 실패하지
   않는 loader 를 만들 거면, 무엇을 물었고 무엇을 얻었는지는 반드시 함께 내놓아야 한다.

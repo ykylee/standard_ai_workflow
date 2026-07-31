@@ -1,0 +1,148 @@
+name: mcp-sdk-matrix
+
+# TASK-2026-07-31-main-001 — 두 major 커버리지를 **선언된 자리**로.
+#
+# 이전까지 CI 가 mcp 1.x 와 2.x 를 동시에 밟은 것은 설계가 아니라 설치 순서였다:
+# smoke 는 `requirements-dev.txt` 의 고정 핀이 editable install 뒤에 깔리며 되돌려서
+# 1.x 로 돌고, mypy-strict / mcp-inspector 는 그 파일을 안 깔아 상한 없는 extra 가
+# 최신(2.x)을 집는다. 그 한 줄을 지우면 1.x 커버리지가 조용히 사라지는데
+# **아무 검사도 실패하지 않는다.**
+#
+# 이 workflow 가 그 자리를 대신 맡는다. 버전 목록은 정본 registry
+# (`workflow_kit/common/sdk_matrix.py`) 에서 뽑는다 — 이 파일에 버전 문자열을
+# 적지 않는 것이 요점이다. 복제하면 갈라지고, 갈라진 쪽이 조용히 이긴다.
+#
+# path 필터를 두지 않는다. §2.43 에서 lowlevel 파손이 오래 안 보인 이유가 정확히
+# `mcp-inspector` 의 path 필터였다 — 의존성 파손은 커밋 경로와 상관없이 온다.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: 선언된 버전 목록
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.registry.outputs.versions }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Read version matrix from registry
+        id: registry
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # 설치가 필요 없다 — registry 는 stdlib 만 쓴다.
+          VERSIONS="$(python3 -m workflow_kit.common.sdk_matrix --github-matrix)"
+          echo "versions=${VERSIONS}" >> "$GITHUB_OUTPUT"
+          echo "선언된 mcp 버전: ${VERSIONS}"
+          {
+            echo "## mcp SDK 버전 정책 (정본: \`workflow_kit/common/sdk_matrix.py\`)"
+            echo
+            python3 -m workflow_kit.common.sdk_matrix --summary
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  checks:
+    name: mcp ${{ matrix.mcp }}
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      # 한 버전이 깨져도 나머지를 끝까지 본다. 어느 버전에서 갈렸는지가 정보다.
+      fail-fast: false
+      matrix:
+        mcp: ${{ fromJson(needs.prepare.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install workflow_kit + mcp ${{ matrix.mcp }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          rc=0
+          python3 -m pip install --upgrade pip || rc=$?
+          python3 -m pip install -e "./workflow-source[dev,mcp-sdk]" || rc=$?
+          # 고정은 **맨 뒤**에 온다. 앞의 어떤 requirement 도 이것을 되돌릴 수 없게 —
+          # 이 workflow 가 존재하는 이유 자체가 "뒤에 깔린 것이 이긴다" 였다.
+          python3 -m pip install "mcp[cli]==${{ matrix.mcp }}" || rc=$?
+          exit "$rc"
+
+      - name: 설치된 버전이 요청한 버전인가
+        shell: bash
+        env:
+          # editable install 만 믿지 않는다 — 저장소 루트에 같은 이름의 디렉터리가
+          # 있으면 namespace package 로 잡혀 조용히 그쪽이 이긴다 (로컬 실측).
+          # 암묵적 탐색에 기대지 말 것 (mypy config 사고와 같은 축).
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # 선언과 실측을 분리한다. pip 이 다른 것을 해결했는데 검사가 green 이면
+          # 이 matrix 는 자기가 안 밟은 버전을 밟았다고 보고하게 된다.
+          python3 -m workflow_kit.common.sdk_matrix --assert-installed "${{ matrix.mcp }}"
+
+      - name: Run mcp checks
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          mkdir -p "${RUNNER_TEMP}/matrix-tmp"
+          # `|| rc=$?` 없이는 러너가 non-zero 로 끝나는 순간 다음 줄에 닿기도 전에
+          # 스텝이 중단된다 (§2.27 에서 겪은 것).
+          rc=0
+          python3 workflow-source/tests/run_all_checks.py \
+            --filter mcp,optional_dep \
+            --timeout=120 \
+            --tmp-dir="${RUNNER_TEMP}/matrix-tmp" \
+            --json > matrix-result.json || rc=$?
+          python3 - "${{ matrix.mcp }}" <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json, pathlib, sys
+          version = sys.argv[1]
+          data = json.loads(pathlib.Path("matrix-result.json").read_text(encoding="utf-8"))
+          failures = [r for r in data["results"] if r["exit_code"] != 0]
+          print(f"### mcp {version} — {data['total'] - len(failures)}/{data['total']} PASS")
+          for r in failures:
+              print(f"- `{r['path']}` (exit {r['exit_code']}) — {r['error_excerpt'][:120]}")
+              print(f"::error file={r['path']}::mcp {version} 에서 실패", file=sys.stderr)
+          PY
+          exit "$rc"
+
+      - name: 검사가 SDK 를 실제로 밟았는가
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # `--assert-installed` 는 "깔렸는가" 까지만 본다. 이 스텝은 "그것으로
+          # 실제로 쟀는가" 를 본다 — SDK 미설치 skip 은 통과가 아니다.
+          # 왕복 검사 2건을 직접 돌려 성공 메시지를 요구한다. 앞 스텝의 요약 필드를
+          # 읽지 않는 이유는 그 필드가 증거를 못 나르기 때문이다 (1.x 는 SDK 로그가
+          # 뒤에 붙어 마지막 줄이 성공 메시지가 아니다 — 로컬 실측).
+          python3 -m workflow_kit.common.sdk_matrix --assert-exercised
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-matrix-result-${{ matrix.mcp }}
+          path: matrix-result.json
+          if-no-files-found: warn
+          retention-days: 30

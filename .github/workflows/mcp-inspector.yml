@@ -56,6 +56,17 @@ jobs:
           python3 -m pip install -e "./workflow-source[mcp-sdk]" || rc=$?
           exit "$rc"
 
+      - name: "집힌 mcp 버전 기록 (정책: floating)"
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # Python 쪽은 상한 없이 최신, Node 쪽 인스펙터는 `@2` 로 고정이다 (§2.42).
+          # 둘 다 "도구도 의존성" 이라 어느 버전으로 쟀는지가 결과의 일부다.
+          # 정본: workflow-source/workflow_kit/common/sdk_matrix.py
+          python3 -m workflow_kit.common.sdk_matrix --record mcp-inspector | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: List tools via MCP Inspector (CLI)
         shell: bash
         run: |

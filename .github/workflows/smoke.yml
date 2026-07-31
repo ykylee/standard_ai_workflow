@@ -38,6 +38,19 @@ jobs:
           # 실측: 이 한 줄로 CI 실패 11건 중 7건이 해소된다 (fresh venv 재현 확인).
           python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"
 
+      - name: "집힌 mcp 버전 기록 (정책: pinned floor)"
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # 이 job 이 1.x 로 도는 것은 위 세 줄의 **설치 순서** 때문이다
+          # (`requirements-dev.txt` 의 핀이 editable install 뒤에 깔려 되돌린다).
+          # 그 사실을 registry 에 정책으로 적어 두고 여기서 강제한다 — 핀이 사라지면
+          # 커버리지가 조용히 없어지는 대신 이 스텝이 실패한다.
+          # 정본: workflow-source/workflow_kit/common/sdk_matrix.py
+          python3 -m workflow_kit.common.sdk_matrix --record smoke | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Run smoke checks (run_all_checks + resource guard)
         shell: bash
         env:

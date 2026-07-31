@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-07-29
+- 최종 수정일: 2026-07-31
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -13,7 +13,7 @@
 - 현재 주 작업 축: "우리 코드는 안 바뀌었는데 결과가 바뀌었다" — 의존성도 도구도 고정하지 않으면 측정이 갈린다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
-  - [Beta-v1.0.0.md §2.38~§2.44](../../../../workflow-source/releases/Beta-v1.0.0.md)
+  - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
 ## 2. 진행 중 작업
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-27-main-001 진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정
 - TASK-2026-07-27-main-002 남은 결함 3건 + CI 자기참조 해소
 - TASK-2026-07-27-main-003 남은 자기참조 3건 해소 + CI red 원인 계측 확정
 - TASK-2026-07-27-main-004 backlog-update 결함 4건 + 정본 검사 구멍
@@ -37,10 +36,46 @@
 - TASK-2026-07-29-main-001 mcp 2.0.0 이관 — fastmcp.FastMCP → mcpserver.MCPServer
 - TASK-2026-07-29-main-003 read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler
 - TASK-2026-07-29-main-002 ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층
+- TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
 ## 5. 다음 세션 시작 포인트
 
-**의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로 되돌리고 원인 2건을
-task 로 등록한 상태다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-strict 가 실패했는데, 커밋
+**§2.43 이 남긴 "설치 순서에 기댄 우연" 을 선언으로 바꿨다 (TASK-2026-07-31-main-001,
+§2.45).** 세 job 이 서로 다른 mcp 버전으로 돌고 있었는데 그렇게 정한 사람이 없었다.
+smoke 의 설치 3줄을 매 줄 관측했다 — `requirements.txt` 뒤 **2.0.0**,
+`requirements-dev.txt` 뒤 **1.27.0**, editable install 뒤 **1.27.0**. 즉 그 한 줄을
+지우면 1.x 커버리지가 조용히 사라지는데 아무 검사도 실패하지 않았다.
+
+- 정본 `workflow_kit/common/sdk_matrix.py` 가 (a) 밟을 버전 3종과 근거, (b) 각 job 의
+  정책(`pinned`/`floating`/`matrix`)과 그 버전이 **어디서 오는지** 를 적는다.
+- `mcp-sdk-matrix` workflow 는 registry 에서 목록을 뽑아 `fromJson` 으로 matrix 를
+  만든다 — **yml 에 버전 문자열이 없다**. path 필터도 없다(§2.43 이 늦게 발견된 이유).
+- 기존 3 job 은 `--record <job>` 으로 집힌 버전을 step summary 첫 화면에 남긴다.
+  `pinned` 인 smoke 는 어긋나면 실패한다.
+- `check_mcp_sdk_matrix.py` 13건이 registry ↔ `requirements-dev.txt` ↔ pyproject extra
+  ↔ workflow yml 을 **양방향**으로 묶는다.
+
+**matrix 가 만들자마자 실제 결함을 하나 잡았다** — `check_read_only_mcp_sdk_stdio.py` 가
+mcp 2.x 에서 깨져 있었다(`serverInfo` → `server_info` 등). 서버는 §2.43 에서 이관했지만
+**읽는 쪽은 범위 밖**이었고, 이 검사는 smoke 에서만 = 1.x 로만 돌아서 아무도 못 봤다.
+이번엔 전수 sweep 을 먼저 해 클라이언트 표면이 이 파일 하나임을 확인하고 고쳤다.
+
+**판정을 두 번 고쳐 썼다** (§2.45): skip 문자열 탐지 → 위양성(`check_mcp_server_sdk_compat`
+가 fail-fast 를 확인하느라 그 문자열을 *의도적으로* 출력), `run_all_checks` 의 `last_line`
+→ 증거를 못 나름(1.x 는 SDK 로그가 뒤에 붙는다). 최종은 **판정이 왕복 검사 2건을 직접
+돌려** exit 0 + 성공 메시지를 요구한다.
+
+- 실측: 격리 venv 3종(1.27.0/1.29.0/2.0.0) 각각 요청=설치 일치 + subset 12/12 +
+  왕복 증거 2/2. mypy strict 121 files 0 errors. 전량 smoke **224/224**
+  (`dev,release,mcp-sdk` venv, 누수 0, 워킹트리 변경 0). 되주입 7건 각각 다른 신호.
+- **수치에는 extra 조합을 함께 적을 것.** `release` 없는 venv 에서는 같은 트리가
+  219/224 다 (3건은 문서가 223 이라 적고 있어서, 2건은 `build` 부재).
+- 확인 못 함: CI 러너에서의 실행. push 후 `mcp-sdk-matrix` 3 셀을 확인할 것
+  (`gh run list --commit $(git rev-parse HEAD)` — **full SHA 필수**).
+
+---
+
+이전 세션 기록: **의존성 드리프트로 `mypy-strict` 가 red 로 넘어갔다 — 상한 핀으로
+되돌리고 원인 2건을 task 로 등록했다.** 문서 2줄만 바꾼 `23874d1` 에서 mypy-strict 가 실패했는데, 커밋
 내용과 무관했다. CI 설치 로그에 **`mcp-2.0.0`** 이 찍혀 있고 (extra 가 `mcp[cli]>=1.0` 로
 상한이 없었다) 같은 소스에 버전만 갈아 끼워 재현했다 — `1.28.1` green / `2.0.0` 에서
 `mcp_v1_server.py:27 no-any-return`.
@@ -105,9 +140,11 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       - `version` 은 계속 전달하지 않는다. 2.x `MCPServer` 는 받지만 1.x `FastMCP` 는
         받지 않고, 여기서 넘기기 시작하면 서버 2종이 광고하는 version 이 바뀐다 —
         이관 범위 밖이라 기존 동작을 유지했다. 바꾸려면 별도 결정이 필요하다.
-- [ ] **핀 해제로 CI 가 두 major 를 동시에 밟는다** — smoke 는 `requirements-dev.txt` 의
-      `mcp[cli]==1.27.0` 때문에 1.x, mypy-strict 와 mcp-inspector 는 2.x. 커버리지는
-      넓어졌지만 **여전히 설치 순서에 기댄 우연**이다. 의도적 matrix 로 만들지는 미결.
+- [x] ~~핀 해제로 CI 가 두 major 를 동시에 밟는다 — 설치 순서에 기댄 우연~~ →
+      **완료(§2.45)**. matrix 는 `pinned` 3종만 본다. **새 major 조기 경보는 여전히
+      floating job(`mypy-strict`/`mcp-inspector`)에 의존한다 — 이것은 의도다.** 그 층이
+      2.0.0 을 물어 왔고, 없애면 경보를 잃는다. 대신 부동이라고 적고 집힌 값을 남긴다.
+      다음 major 를 matrix 에 넣는 것은 registry 에 한 줄 추가하는 일이다.
 - [x] ~~TASK-2026-07-29-main-002 — `ignore_missing_imports` 탐지 구멍~~ → **완료(§2.44)**.
       **판정 기준을 먼저 정했다: 설정을 좁히지 않는다.** optional dep 은 실제로 optional 이라
       `mcp.*` 만 빼면 SDK 미설치 로컬이 red 가 되고, 더 근본적으로 **mypy 는 "안 깔림" 과
@@ -121,7 +158,9 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
         상황에서 mypy 가 냈던 `no-any-return` 과 대비된다.
       - skip 은 조용히 넘기지 않는다 — 몇 건을 왜 건너뛰었는지 출력한다
         (로컬 2건, mcp 없는 venv 6건 실측).
-- [ ] **`backlog-update` 가 handoff §4 에 상한을 적용하지 않는다.** state.json 의
+- [ ] **`backlog-update` 가 handoff §4 에 상한을 적용하지 않는다** (2026-07-31 재발 —
+      이번에도 11이 됐고 `handoff_bloat` 가 잡아 손으로 1건 지웠다. **연속 2회 재발이라
+      close-out 마다 반복되는 수작업이다.**) state.json 의
       `recent_done_items` 는 10으로 잘리는데 handoff 의 markdown 목록은 `--apply` 마다
       그냥 append 돼 11이 됐고, `check_self_application` 의 `handoff_bloat` 가 잡았다
       (이번에 손으로 가장 오래된 1건을 지웠다). **상한이 한 곳에만 있다** — §2.38 이

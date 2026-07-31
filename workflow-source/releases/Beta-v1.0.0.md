@@ -1680,14 +1680,111 @@ mcp 2.0.0 이 이름을 옮겼을 때 **아무것도 몰랐다**.
 > 설정은 측정을 지운다.** 지워진 판정은 없어지지 않고 다른 이름으로 나타나서, 읽는
 > 사람을 원인에서 멀어지게 한다. 설정을 좁힐 수 없을 때는 **판정을 옮길 것.**
 
+### 2.45. 커버리지가 넓은 것과 넓다고 말할 수 있는 것 — SDK 버전 matrix
+
+§2.43 에서 상한 핀을 풀 때 남긴 문장이 있다: "핀 해제로 CI 가 두 major 를 동시에 밟는다
+— 커버리지는 넓어졌지만 **여전히 설치 순서에 기댄 우연이다**." 그 우연을 선언으로 바꾼
+것이 이번 작업이다.
+
+**우연의 정체.** 세 job 이 서로 다른 버전으로 돌고 있었는데, 그렇게 정한 사람이 없다:
+
+| job | 실제 mcp | 그 버전인 이유 |
+|---|---|---|
+| `smoke` | 1.x | `requirements-dev.txt` 의 고정 핀이 editable install **뒤에** 깔려 되돌린다 |
+| `mypy-strict` | 2.x | 그 파일을 안 깔아서, 상한 없는 extra 가 최신을 집는다 |
+| `mcp-inspector` | 2.x | 위와 같음 |
+
+smoke 의 설치 3줄을 그대로 밟아 버전을 매 줄 관측했다(빈 venv, 2026-07-31):
+`requirements.txt` 뒤 **2.0.0** → `requirements-dev.txt` 뒤 **1.27.0** → editable install
+뒤 **1.27.0**. 두 번째 줄이 첫 줄을 되돌리고, 세 번째 줄의 `mcp[cli]>=1.0` 은 이미
+만족돼서 손대지 않는다. 즉 `requirements-dev.txt` 한 줄을 지우면 **1.x 커버리지가 조용히
+사라지는데 아무 검사도 실패하지 않는다.** 커버리지가 넓은 것과, 넓다고 말할 수 있는
+것은 다른 일이다.
+
+**조치는 네 층이다.**
+
+1. `workflow_kit/common/sdk_matrix.py` — 밟을 버전(role + 근거)과 **각 job 의 버전
+   정책**(`pinned` / `floating` / `matrix`, 그 버전이 어디서 오는지)을 한 곳에 적는다.
+2. `mcp-sdk-matrix` workflow — `prepare` job 이 registry 에서 목록을 뽑아 `fromJson` 으로
+   matrix 를 만든다. **yml 에 버전 문자열이 없다.** 셀마다 고정 설치 → 실측 검증 →
+   `--filter mcp,optional_dep` 실행.
+3. 기존 3 job 에 `--record <job>` 스텝 — 집힌 버전을 step summary 첫 화면에 남기고,
+   `pinned` 로 선언한 job 은 어긋나면 실패한다.
+4. `check_mcp_sdk_matrix.py` — 정본과 `requirements-dev.txt` / `pyproject` extra /
+   workflow yml 이 갈라지지 않는지. **양방향**이다: mcp 를 깔면서 정책을 선언 안 한
+   workflow 가 있어도 실패한다.
+
+**floating 을 없애지 않았다.** 상한 없는 설치가 mcp 2.0.0 을 CI 로 끌고 들어왔고, 그래서
+§2.41~§2.44 를 할 수 있었다. 나쁜 것은 부동인 것이 아니라 **부동인 줄 몰랐던 것**이다.
+그래서 부동은 부동이라고 적고, 집힌 값을 로그에 남긴다.
+
+**그리고 matrix 가 만들자마자 실제 결함을 하나 잡았다.**
+`check_read_only_mcp_sdk_stdio.py` 는 mcp 2.x 에서 깨져 있었다 —
+`InitializeResult.serverInfo` 가 2.x 에서 `server_info` 로 바뀌었는데(`isError` →
+`is_error`, `structuredContent` → `structured_content` 도 같이), 이 파일은 camel 이름을
+그대로 읽고 있었다. **서버 쪽은 §2.43 에서 이관했지만 읽는 쪽은 그 범위에 없었다** —
+§2.41 에서 "이관 범위를 파일 하나로 잡았다" 와 같은 모양이다. 아무도 못 본 이유는
+이 검사가 smoke 에서만 돌고 smoke 는 1.x 로만 돌기 때문이다. 이번엔 먼저 전수 조사부터
+했다(`serverInfo` / `isError` / `structuredContent` / `readOnlyHint` 를 저장소 전체에서
+sweep) — 클라이언트 표면은 이 파일 **하나**였다.
+
+**판정을 두 번 고쳐 썼다. 둘 다 "무엇을 증거로 삼을 것인가" 의 문제였다.**
+
+- 1차: 출력에서 "skip 처럼 보이는 말"(`Skipping`, `not installed`)을 찾는 **부정 판정**.
+  → 위양성. `check_mcp_server_sdk_compat.py` 는 "둘 다 없을 때 fail-fast 하는가" 를
+  *의도적으로* 확인하느라, SDK 가 깔린 환경에서도 그 문자열을 출력한다.
+- 2차: `run_all_checks --json` 의 `last_line` 에서 성공 메시지를 찾는 **긍정 판정**.
+  → 여전히 틀렸다. mcp 1.x 는 서버 로그(`Processing request of type
+  ListToolsRequest`)를 stderr 로 뒤에 붙여서, 성공한 검사의 마지막 줄이 성공 메시지가
+  아니다.
+- 3차(채택): 판정이 **자기 측정을 직접 한다.** 왕복 검사 2건을 직접 돌려 exit 0 과
+  성공 메시지를 요구한다. 남이 요약한 필드를 믿지 않는다.
+
+`--assert-installed`("깔렸는가")와 `--assert-exercised`("그것으로 실제로 쟀는가")는 서로를
+대신하지 못한다 — 설치가 조용히 실패하면 두 왕복 검사가 `Skipping…` 을 찍고 **exit 0**
+으로 끝나서, 셀 전체가 아무것도 재지 않은 채 green 이 된다.
+
+**실측(로컬 venv 3개, 각각 격리 설치).**
+
+| mcp | 요청=실측 | 검사 subset | SDK 왕복 증거 | mypy strict |
+|---|---|---|---|---|
+| 1.27.0 (floor) | ✅ | 12/12 | 2/2 | 121 files 0 errors |
+| 1.29.0 (latest 1.x) | ✅ | 12/12 | 2/2 | — |
+| 2.0.0 (latest 2.x) | ✅ | 12/12 | 2/2 | 121 files 0 errors |
+
+**되주입 7건, 각각 다른 신호**: 핀 제거 → "고정 핀을 못 찾았다"; 핀 드리프트 → "핀(1.28.1)
+과 registry floor(1.27.0) 가 갈렸다"; extra 에 상한 부활 → "floating 이라고 선언돼 있는데
+더 이상 부동이 아니다"; `--record` 제거 → "실측이 어디에도 안 남는다"; 정책 없는 job 추가
+→ "정책이 선언 안 된 workflow: ['zz-probe']"; yml 에 버전 직접 기입 → "버전 문자열이 직접
+적혀 있다"; 판정 층 제거 → "`--assert-exercised` 를 부르지 않는다". SDK 미설치 환경에서
+`--assert-exercised` 는 두 검사 모두 "증거가 없다" 로 실패한다(실측).
+
+> §2.41 은 "상한 없는 의존성이 측정을 갈아 끼운다", §2.44 는 "관대한 설정이 측정을
+> 지운다" 였다. 이건 셋째 면이다 — **아무도 정하지 않은 측정.** 우연히 옳은 값은 다음
+> 커밋에서 우연히 틀린 값이 되고, 그 사이에 아무 신호도 없다. 넓은 커버리지를 **선언**
+> 으로 바꾸는 값은, 그것이 사라질 때 무언가 실패한다는 것이다.
+
 ## 3. 검증
 
-누적 smoke **223/223 PASS** (2026-07-29, `.venv/bin/python run_all_checks.py --tmp-dir=<실디스크>`
-격리 실행, resource guard 완주 — abort 0 / 고아 프로세스 0 / 디스크 변동 0). 누적
-추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
+누적 smoke **224/224 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+`run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
+디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
 → 221(§2.41 `check_mcp_server_sdk_compat`) → 222(§2.43
-`check_mcp_lowlevel_sdk_compat`) → **223**(§2.44 `check_optional_dep_imports`).
+`check_mcp_lowlevel_sdk_compat`) → 223(§2.44 `check_optional_dep_imports`)
+→ **224**(§2.45 `check_mcp_sdk_matrix`).
+
+> **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
+> 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /
+> 이 노트 — 셋 다 이번에 224 로 갱신), 나머지 2건(`check_release_pipeline_lib`,
+> `check_release_pipeline_phase3`)은 `build` 모듈 부재였다. 같은 트리를
+> `dev,release,mcp-sdk` venv 에서 돌리면 각각 9/9, 8/8 로 통과한다 — **코드 결함이 아니라
+> 어떤 환경으로 쟀는가**의 차이다. 위 §2 의 "인터프리터를 바꾸면 같은 트리가 208/216 이
+> 된다" 와 같은 부류라, 수치에는 extra 조합도 함께 적는다.
+>
+> **mcp SDK 버전별 실측(§2.45)**: `1.27.0` / `1.29.0` / `2.0.0` 세 격리 venv 에서 mcp 관련
+> subset 12/12 PASS + SDK 왕복 증거 2/2 + 요청 버전 = 설치 버전 일치. mypy strict 는
+> 1.27.0 과 2.0.0 에서 각각 **121 files 0 errors** (mypy 2.1.0, `--config-file` 명시).
 
 > **인터프리터를 바꾸면 같은 트리가 208/216 이 된다 (2026-07-27 실측).** 시스템
 > `python3` 로 돌리면 8건이 실패하는데, `.venv/bin/python` 으로 돌리면 0건이다. 실패하던

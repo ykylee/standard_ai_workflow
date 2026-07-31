@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `14cd792` (§2.47 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 227 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 121 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 227/227, 되주입 3건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `2e13931` (§2.48 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 228 check_*.py scripts passed`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로) / `2.0.0`(mypy-strict 정책 `floating`), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 success. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 전량 smoke 228/228, 되주입 5건)
 - 현재 주 작업 축: "검사를 켜면 보고가 온다 — 다 믿어서도 다 지워서도 안 된다" — 문서를 고칠 건과 검사를 고칠 건을 사실로 가른다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -63,7 +63,7 @@
 - 검사 1종 신규(smoke 227 → **228**): `check_maturity_drift_judgment.py`(10).
 - 실측: 전량 smoke **228/228**, mypy strict **122 files 0 errors**, 실저장소
   `--maturity` issue 0 / warning 0, 되주입 5건 각각 다른 신호.
-  **CI 는 아직 안 봤다** — push 후 `gh run list --commit $(git rev-parse HEAD)` (full SHA).
+  **CI 4종 green 실측 완료**(`2e13931`) — §1 기준선 참조.
 - **정본만 고치면 배포 사본이 남는다.** 중간 smoke 에서 `check_standard_single_source`
   가 red 였다 — `workflow_kit_roadmap.md` 는 `ai-workflow/core/` 에 배포 사본이 있고
   정본과 byte 일치를 요구한다. 검사가 옳았다. `core/*.md` 를 고치면 사본도 함께 옮길 것.

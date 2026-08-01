@@ -2207,6 +2207,50 @@ install 이라 *우연히* 저장소 안에 착지했다. 그래서 R2 를 따�
 실측 인벤토리: 419 file / 모듈 유도 기준 298 / `Path.cwd()` 17 / 기타 상승 연쇄(depth≥2) 3.
 
 
+### 2.53. 조사가 어디까지 보는지를 **선언**하고 있었다 — 포함 목록을 없앤다
+
+§2.52 가 남긴 한계 그대로다. 조사 범위를 `SCAN_DIRS` 라는 *포함* 목록으로 정하고 있었다:
+
+```python
+SCAN_DIRS = ("workflow-source/workflow_kit", "workflow-source/tools", ...)
+```
+
+**이 구조에서는 빠진 트리를 셀 수 없다.** "선언했는데 없는 것"(`missing_dirs`)은 셀 수
+있지만, **"있는데 선언 안 한 것"은 셀 방법이 자체적으로 존재하지 않는다.** 조사가
+스스로 자기 사각지대를 볼 수 없는 형태였다.
+
+실제로 **27 file 이 조용히 빠져 있었다**:
+
+| 트리 | file | 무엇인가 |
+|---|---|---|
+| `workflow-source/skills` | 19 | **상태 문서를 쓰는 skill runner 들** (`run_backlog_update.py` 등) |
+| `ai-workflow/mcp_servers` | 6 | 적용된 MCP 서버 — 자기 path anchor(`parents[4]`)를 가진 별개 소스다 |
+| `workflow-source/examples` | 2 | 예제 |
+
+`skills` 가 특히 나쁘다 — 이 세션에서 `state.json` 과 handoff 를 실제로 쓴 코드가
+거기 있고, 조사 대상은 정확히 "경로 기준을 잡는 자리" 다.
+
+**조치: 포함 목록을 없앴다.** 드리프트할 수 있는 선언을 검사로 감시하는 것보다 선언을
+지우는 쪽이 낫다. 이제 scan_root 아래 **모든** `.py` 를 보고, *제외*만
+`EXCLUDED_PARTS` 한 곳에 둔다. 제외도 조용하면 안 되므로 어떤 제외 이름이 몇 개 트리를
+잘랐는지 `excluded_trees` 로 낸다(`__pycache__` 36 / `.venv` 1 / `build` 1 / …).
+순회는 `os.walk` 가지치기로 바꿨다 — `rglob` 은 `.venv` 8000+ file 을 훑고 나서 버렸다.
+
+**검사 1종 추가**(신규 파일 없음, 9 → **10 case**): `case_10_scan_covers_every_source_file`.
+저장소의 모든 `.py` 를 **검사 쪽에서 독립적으로 다시 세어** 도구의 `scanned_paths` 와
+대조한다. 개수만 되읽으면 자기 자신과 비교하는 것밖에 못 한다(§2.50 의 교훈). 그래서
+도구가 *목록* 을 내보내도록 `scanned_paths` 를 payload 에 추가했다.
+
+> **바닥선은 이 결함을 절대 못 잡는다.** `skills`(19 file)를 조용히 빼는 되주입을 하면
+> 446 → 427 인데, `MIN_SCANNED_FILES = 200` 은 여유롭게 통과한다. 실제로 되주입에서
+> case_1 은 통과하고 case_10 만 red 가 됐다(빠진 19건을 이름까지 정확히 지목).
+> **바닥선은 "붕괴" 를 보고, 전수 대조는 "누락" 을 본다 — 다른 검사다.**
+
+실측: 조사 419 → **446 file**, 모듈 유도 기준 298 → 322, R2 후보 21 / R3 후보 147.
+새로 들어온 27 file 에서 **미선언 결함은 0건**이었다 — 즉 이번 확장은 결함을 찾은 것이
+아니라 *안 보던 곳을 안 보고 있었다는 사실* 을 없앤 것이다.
+
+
 ## 3. 검증
 
 누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
@@ -2221,7 +2265,7 @@ install 이라 *우연히* 저장소 안에 착지했다. 그래서 R2 를 따�
 → 229(§2.49 `check_doctor_config_provenance`)
 → 230(§2.50 `check_branch_resolver_agreement`)
 → 231(§2.51 `check_dashboard_workspace_provenance`)
-→ **232**(§2.52 `check_root_anchor_audit`).
+→ **232**(§2.52 `check_root_anchor_audit`; §2.53 은 같은 파일을 9 → 10 case 로 확장해 file 수는 그대로다).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

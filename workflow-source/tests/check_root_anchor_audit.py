@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""기준 전수 조사가 **저장소에 남아 돌고 있는가** (v1.0.8, 9 case).
+"""기준 전수 조사가 **저장소에 남아 돌고 있는가** (v1.0.8, 10 case).
 
 ## 왜 필요한가
 
@@ -21,8 +21,10 @@
    잡아 줄 진짜 결함도 함께 무시된다 (§2.48 의 교훈).
 7. 조사 도구 자신이 **모듈 위치에서 기준을 유도하지 않는다** — 감사하는 함정에 감사자가
    빠지면 안 된다. 그리고 기준이 틀렸을 때 **조용히 통과하지 않는다**.
+8. 저장소의 **모든** `.py` 가 조사되거나 제외 트리 안에 있다 (case 10). 여기서 독립적으로
+   다시 세서 대조한다 — 도구의 개수를 되읽으면 자기 자신과 비교하는 것밖에 못 한다.
 
-Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52.
+Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53.
 """
 
 from __future__ import annotations
@@ -32,12 +34,14 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "workflow-source" / "tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 from audit_root_anchors import (  # noqa: E402
+    EXCLUDED_PARTS,
     ROOT_ANCHOR_LEDGER,
     SCAN_SOURCE_ARGUMENT,
     SCAN_SOURCE_CWD,
@@ -47,8 +51,12 @@ from audit_root_anchors import (  # noqa: E402
 
 AUDIT_TOOL = TOOLS_DIR / "audit_root_anchors.py"
 
-# 바닥선. 실측(418 file / 297 기준 / R2 19 / R3 138)의 절반 근처로 잡아, 정상적인
-# 증감은 통과시키되 **조사 범위가 무너지면** 반드시 걸리게 한다.
+# 바닥선. 실측(446 file / 322 기준 / R2 21 / R3 147)의 절반 근처로 잡아, 정상적인
+# 증감은 통과시키되 **조사 범위가 무너지면** 걸리게 한다.
+#
+# **바닥선만으로는 부족하다.** `skills` 트리(19 file)를 조용히 빼는 되주입을 하면
+# 446 → 427 로 줄어드는데 이 바닥선은 전부 통과한다. 범위가 *줄어든 사실* 은
+# case_10 의 전수 대조가 잡는다 — 바닥선은 "붕괴" 를, 대조는 "누락" 을 본다.
 MIN_SCANNED_FILES = 200
 MIN_MODULE_ANCHORS = 120
 MIN_R2_CANDIDATES = 5
@@ -270,6 +278,48 @@ def case_8_wrong_root_fails_loudly() -> bool:
     return True
 
 
+def case_10_scan_covers_every_source_file() -> bool:
+    """10) 저장소의 **모든** `.py` 가 조사되거나 제외 트리 안에 있다 — 빠진 것이 없다.
+
+    첫 버전은 `SCAN_DIRS` 라는 *포함* 목록으로 조사 대상을 정했다. 그러면 새 소스 트리가
+    생겼을 때 조사에서 빠지는데 **그 사실이 어디에도 안 보인다** — "선언했는데 없는 것"
+    은 셀 수 있어도 "있는데 선언 안 한 것" 은 셀 수 없기 때문이다. 실제로 27 file 이
+    조용히 빠져 있었다(`skills` 19 / `ai-workflow/mcp_servers` 6 / `examples` 2).
+
+    그래서 포함 목록을 없앴다. 이 case 는 그 사실을 **독립적으로** 다시 센다 — 도구의
+    산출물을 되읽지 않고 여기서 직접 훑는다. 자기 자신과 비교하면 둘이 같이 틀려도
+    통과한다(§2.50 의 교훈).
+    """
+    expected: set[Path] = set()
+    for py in REPO_ROOT.rglob("*.py"):
+        rel = py.relative_to(REPO_ROOT)
+        if any(part in EXCLUDED_PARTS for part in rel.parts):
+            continue
+        expected.add(rel)
+
+    result = run_audit(REPO_ROOT)
+    scanned = {Path(f) for f in _scanned_relpaths(result)}
+    missed = sorted(expected - scanned)
+    extra = sorted(scanned - expected)
+    if missed:
+        print(f"  FAIL: 조사에서 빠진 소스 {len(missed)}건: {[str(p) for p in missed[:8]]}")
+        print("        → 제외 트리도 아닌데 안 봤다. 포함 목록이 되살아났나?")
+        return False
+    if extra:
+        print(f"  FAIL: 제외 대상인데 조사됨 {len(extra)}건: {[str(p) for p in extra[:8]]}")
+        return False
+    print(f"  [info] 저장소 .py {len(expected)}건 전부 조사됨 (제외 트리: "
+          f"{result['inventory']['excluded_trees']})")
+    return True
+
+
+def _scanned_relpaths(result: dict[str, Any]) -> list[str]:
+    """도구가 실제로 연 file 목록. 없으면 이 case 는 성립하지 않는다."""
+    paths = result.get("scanned_paths")
+    assert paths is not None, "run_audit 이 scanned_paths 를 내지 않는다 — 커버리지 판정 불가"
+    return list(paths)
+
+
 def case_9_cli_runs_green_on_this_repo() -> bool:
     """9) CLI 를 저장소 루트에서 돌리면 exit 0 (실제 invocation 형태)."""
     proc = subprocess.run(
@@ -296,6 +346,7 @@ CASES = [
     ("case_7_auditor_root_is_not_module_derived", case_7_auditor_root_is_not_module_derived),
     ("case_8_wrong_root_fails_loudly", case_8_wrong_root_fails_loudly),
     ("case_9_cli_runs_green_on_this_repo", case_9_cli_runs_green_on_this_repo),
+    ("case_10_scan_covers_every_source_file", case_10_scan_covers_every_source_file),
 ]
 
 
@@ -350,6 +401,10 @@ def test_case_8_wrong_root_fails_loudly() -> None:
 
 def test_case_9_cli_runs_green_on_this_repo() -> None:
     assert case_9_cli_runs_green_on_this_repo()
+
+
+def test_case_10_scan_covers_every_source_file() -> None:
+    assert case_10_scan_covers_every_source_file()
 
 
 if __name__ == "__main__":

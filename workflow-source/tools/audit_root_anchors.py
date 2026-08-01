@@ -32,6 +32,14 @@ R1~R3 에 걸리는 것이 전부 결함은 아니다. `<repo>/workflow-source/`
 적은 **선언된 설계**다. 그런 것은 지우지 않고 **이유와 함께 선언**한다 — 선언되지 않은
 것만 결함이다. 원장의 key 는 `(rule, path, symbol)` 이라 줄이 밀려도 안 깨진다.
 
+## 조사 범위
+
+scan_root 아래의 **모든** `.py` 를 본다. *포함* 목록은 두지 않는다 — 그러면 새 소스
+트리가 생겼을 때 조사에서 빠지는데 **그 사실을 셀 방법이 없다**(§2.53). 대신 *제외*는
+`EXCLUDED_PARTS` 한 곳이고, 무엇을 몇 개 잘랐는지 `excluded_trees` 로 낸다.
+조사한 file 목록은 `scanned_paths` 로 내보내, 소비자가 **독립적으로 센 목록과 대조**할
+수 있게 한다.
+
 ## 이 도구 자신의 기준
 
 자기가 감사하는 함정에 자기가 빠지지 않도록, 기준 경로는 **명시 인자 → cwd** 두 갈래만
@@ -43,7 +51,7 @@ R1~R3 에 걸리는 것이 전부 결함은 아니다. `<repo>/workflow-source/`
     python3 workflow-source/tools/audit_root_anchors.py --json     # 기계용
     python3 workflow-source/tools/audit_root_anchors.py --all      # 인벤토리 전량
 
-Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51.
+Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53.
 """
 
 from __future__ import annotations
@@ -51,6 +59,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import os
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -60,23 +69,22 @@ from typing import Any
 SCAN_SOURCE_ARGUMENT = "argument"
 SCAN_SOURCE_CWD = "cwd"
 
-#: 조사 대상 트리 (scan_root 기준 상대 경로). 없으면 조용히 건너뛰지 않고 보고한다.
-SCAN_DIRS: tuple[str, ...] = (
-    "workflow-source/workflow_kit",
-    "workflow-source/tools",
-    "workflow-source/tests",
-    "workflow-source/scripts",
-    "workflow-source/mcp_servers",
-    "workflow-source/extensions",
-    "workflow-source/harnesses",
-    "scripts",
-)
-
 #: 이것이 없으면 기준 경로가 틀린 것이다. **없는데 "미선언 0건" 이라고 말하면 안 된다** —
 #: 조사 0건은 결함 0건이 아니다 (실행 못 한 검사는 통과가 아니다).
 REQUIRED_SCAN_DIRS: tuple[str, ...] = ("workflow-source/workflow_kit",)
 
 #: 생성물/캐시/가상환경 — 소스가 아니다.
+#:
+#: **여기 없는 것은 전부 조사한다.** v1.0.8 의 첫 버전은 반대였다 — `SCAN_DIRS` 라는
+#: *포함* 목록을 두고 거기 적힌 트리만 봤다. 그러면 새 소스 트리가 생겼을 때 조사에서
+#: 빠지는데, 그 사실이 **어디에도 안 보인다**: "선언했는데 없는 것"(missing_dirs)은
+#: 세지만 "있는데 선언 안 한 것"은 셀 방법이 없기 때문이다. 실제로 27 file
+#: (`workflow-source/skills` 19 — 상태 문서를 쓰는 skill runner 들이 여기 있다 /
+#: `ai-workflow/mcp_servers` 6 / `workflow-source/examples` 2)이 조용히 빠져 있었다.
+#:
+#: 그래서 포함 목록을 **없앴다**. 드리프트할 수 있는 선언을 검사로 감시하는 것보다,
+#: 선언을 지우는 쪽이 낫다. 대신 *제외*는 조용하면 안 되므로 무엇을 몇 건 뺐는지
+#: `excluded_trees` 로 낸다.
 EXCLUDED_PARTS: frozenset[str] = frozenset(
     {"build", "dist", "site", "__pycache__", ".venv", "node_modules", ".git",
      "standard_ai_workflow.egg-info"}
@@ -167,6 +175,9 @@ class Inventory:
     scanned_files: int = 0
     unparsable_files: list[str] = field(default_factory=list)
     missing_dirs: list[str] = field(default_factory=list)
+    #: 제외 이름 → 잘라낸 트리 수. **제외도 조용하면 안 된다** — 제외 이름 하나가
+    #: 늘어나면 조사 범위가 줄어드는데, 줄어든 사실이 안 보이면 결함 0건과 구분되지 않는다.
+    excluded_trees: dict[str, int] = field(default_factory=dict)
     module_anchors: int = 0
     cwd_anchors: int = 0
     deep_parent_chains: int = 0
@@ -181,6 +192,7 @@ class Inventory:
             "scanned_files": self.scanned_files,
             "unparsable_files": self.unparsable_files,
             "missing_dirs": self.missing_dirs,
+            "excluded_trees": self.excluded_trees,
             "module_anchors": self.module_anchors,
             "cwd_anchors": self.cwd_anchors,
             "deep_parent_chains": self.deep_parent_chains,
@@ -202,20 +214,29 @@ def _is_excluded(path: Path) -> bool:
 
 
 def iter_source_files(scan_root: Path, inventory: Inventory) -> list[Path]:
+    """scan_root 아래의 **모든** `.py` — 제외 목록에 걸린 것만 뺀다.
+
+    포함 목록이 없으므로 "선언 안 해서 안 보이는 트리" 가 존재할 수 없다.
+    """
     files: list[Path] = []
-    for rel in SCAN_DIRS:
-        base = scan_root / rel
-        if not base.is_dir():
-            inventory.missing_dirs.append(rel)
-            continue
-        for py in sorted(base.rglob("*.py")):
-            if _is_excluded(py.relative_to(scan_root)):
-                continue
-            files.append(py)
-    root_main = scan_root / "main.py"
-    if root_main.is_file():
-        files.append(root_main)
-    return files
+    pruned: dict[str, int] = {}
+    for dirpath, dirnames, filenames in os.walk(scan_root):
+        here = Path(dirpath)
+        # 제외 트리는 **내려가기 전에** 잘라낸다 — `.venv` 는 여기서만 8000 file 이 넘는다.
+        keep = []
+        for d in sorted(dirnames):
+            if d in EXCLUDED_PARTS:
+                pruned[d] = pruned.get(d, 0) + 1
+            else:
+                keep.append(d)
+        dirnames[:] = keep
+        for name in sorted(filenames):
+            if name.endswith(".py"):
+                files.append(here / name)
+    # 제외 *이름*별로 몇 개 트리를 잘랐는지. 어느 제외 규칙이 실제로 발동했는지가 보인다.
+    inventory.excluded_trees = dict(sorted(pruned.items()))
+    inventory.missing_dirs = [d for d in REQUIRED_SCAN_DIRS if not (scan_root / d).is_dir()]
+    return sorted(files)
 
 
 def _dunder_file_depth(node: ast.AST) -> int | None:
@@ -529,6 +550,9 @@ def run_audit(scan_root: Path | str | None = None) -> dict[str, Any]:
     return {
         "scan_root": str(root),
         "scan_root_source": source,
+        # 조사한 file 목록. 소비자가 **독립적으로 센 목록과 대조**할 수 있어야 한다 —
+        # 개수만 내면 자기 자신과 비교하는 것밖에 못 한다.
+        "scanned_paths": [p.relative_to(root).as_posix() for p in files],
         "inventory": inventory.as_dict(),
         "findings": [f.as_dict() for f in findings],
         "undeclared": [f.as_dict() for f in undeclared],
@@ -559,12 +583,12 @@ def _print_human(result: dict[str, Any], show_all: bool) -> None:
           f"모듈 branch 호출 {inv['module_branch_calls']}")
     print(f"      규칙이 들여다본 함수: R2 {inv['r2_candidate_functions']} / "
           f"R3 {inv['r3_candidate_functions']}")
+    if inv["excluded_trees"]:
+        print(f"      제외: {inv['excluded_trees']}")
     if not result["scan_ok"]:
         print(f"\n  FAIL: 기준 경로가 틀렸다 — 필수 대상 부재 {result['missing_required_dirs']}, "
               f"조사 {inv['scanned_files']} file.")
         print("        조사 0건은 결함 0건이 아니다. --repo-root 로 저장소 루트를 줄 것.")
-    elif inv["missing_dirs"]:
-        print(f"  [warn] 조사 대상인데 없는 디렉터리: {inv['missing_dirs']}")
     if inv["unparsable_files"]:
         print(f"  [warn] 파싱 실패 {len(inv['unparsable_files'])}건: "
               f"{inv['unparsable_files'][:5]}")

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-31",
+  "generated_at": "2026-08-01",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-01.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`, mkdocs `--strict` WARNING 0. `actionlint`/`mcp-inspector` 는 path 필터에 안 걸려 미실행. 로컬 격리 venv 전량 smoke 232/232, 되주입 3건(실제 소스))",
-    "current_axis": "\"같은 결함을 네 번 손으로 찾았다\" — 조사를 저장소에 남기지 않으면 조사는 없었던 것과 같다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, CI 4종 green 실측). **§2.53 은 로컬 실측까지 완료, CI 미실측** — 격리 venv 에서 전량 smoke **232/232 PASS**(워킹트리 변동 0), `check_root_anchor_audit` 10/10, mypy strict 신규 2파일 clean. 다음 세션 첫 일은 CI 4종 실측 후 이 줄을 새 해시로 갱신하는 것",
+    "current_axis": "\"조사가 자기 사각지대를 볼 수 있는가\" — 포함 목록으로 범위를 정하면 빠진 것을 셀 방법이 없다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-01-main-001 — 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다",
       "TASK-2026-07-31-main-008 — 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다",
       "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
@@ -41,32 +42,24 @@
       "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
       "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
       "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
-      "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler",
-      "TASK-2026-07-29-main-002 — ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다 — 탐지층"
+      "TASK-2026-07-29-main-003 — read_only_mcp_sdk lowlevel 이관 — decorator → add_request_handler"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-07-31.md",
-    "task_count": 8,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-01.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-07-31-main-001 — mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
-      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다",
-      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
-      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
-      "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
-      "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
-      "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
-      "TASK-2026-07-31-main-008 — 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다"
+      "TASK-2026-08-01-main-001 — 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-07-31.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-01.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

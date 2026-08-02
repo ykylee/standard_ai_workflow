@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, **CI 4종 green 실측** — smoke·mypy-strict·mkdocs·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`, mkdocs `--strict` WARNING 0. `actionlint`/`mcp-inspector` 는 이번에도 path 필터에 안 걸려 미실행. 로컬 격리 venv 전량 smoke 232/232, 되주입 3건(실제 소스))
+- 현재 기준선: v1.0.0-beta + `origin/main` = `710ccea` (§2.53 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로). **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 이번 커밋이 `workflow-source/**` + memory 문서만 건드렸기 때문이고, 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 10/10, 되주입은 실제 소스에 3건 + 포함 목록 부활 1건)
 - 현재 주 작업 축: "조사가 자기 사각지대를 볼 수 있는가" — 포함 목록으로 범위를 정하면 빠진 것을 셀 방법이 없다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -61,7 +61,7 @@
 - 실측: 조사 419 → **446 file**, 모듈 유도 기준 298 → 322, R2 후보 21 / R3 후보 147.
   새로 들어온 27 file 에서 **미선언 결함 0건** — 결함을 찾은 게 아니라 *안 보던 곳을 안
   보고 있었다는 사실* 을 없앤 것이다. 전량 smoke **232/232**, mypy strict 신규 2파일 clean.
-  **CI 미실측** — 다음 세션 첫 일.
+  **트리거된 CI 3종 green 실측 완료**(`710ccea`) — 러너 자기 측정 `All 232 …`.
 
 ---
 
@@ -497,8 +497,12 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - **남은 리스크(§2.53)**: 제외는 여전히 **이름 기반**(`EXCLUDED_PARTS`)이다. `build` 라는
   이름의 진짜 소스 디렉터리가 생기면 조용히 빠진다 — 이름이 아니라 성질(생성물인가)로
   가르는 것이 옳지만, 지금은 그 판정 근거가 저장소에 없다.
-- **확인 못 함(§2.53)**: CI 4종 미실측 — 로컬 격리 venv 까지다. 그리고 R1/R2 는 `Path`
-  계열 표현만 본다(`os.path.dirname` 연쇄 미탐 — 현재 저장소에는 없다).
+- **확인 못 함(§2.53)**: R1/R2 는 `Path` 계열 표현만 본다(`os.path.dirname` 연쇄 미탐 —
+  현재 저장소에는 없다). 그리고 이번 커밋에서는 **mkdocs 가 트리거되지 않았다** — path
+  필터대로지만, "4종 green" 이 아니라 "트리거된 3종 green" 이 사실이다.
+- **별건(변동 없음)**: 스케줄 workflow `okf-validate`(V-R10 online URL 검증)는 2026-07-22
+  이후 **6회 연속 red** 다. 정기 실행이라 main 최신 SHA 에 붙어 커밋 옆에 실패로 보이지만
+  push 가 트리거한 것이 아니다(`exit code 123` 까지만 확인, 원인 미조사).
 - **이번 세션의 교훈(§2.48)**: 검사를 켜면 보고가 온다. 그때 **다 믿어서도 안 되고 다
   지워서도 안 된다** — 한 건은 문서를 고쳐야 했고 한 건은 검사를 고쳐야 했다. 둘을 가른
   것은 `kind: "spec"` 이라는 사실 하나였고, 그 사실은 **이미 저장소 안에 있었는데 읽는

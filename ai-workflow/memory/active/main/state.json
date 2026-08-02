@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `5c8a85f` (§2.52 적용본, CI 4종 green 실측). **§2.53 은 로컬 실측까지 완료, CI 미실측** — 격리 venv 에서 전량 smoke **232/232 PASS**(워킹트리 변동 0), `check_root_anchor_audit` 10/10, mypy strict 신규 2파일 clean. 다음 세션 첫 일은 CI 4종 실측 후 이 줄을 새 해시로 갱신하는 것",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `710ccea` (§2.53 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로). **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 이번 커밋이 `workflow-source/**` + memory 문서만 건드렸기 때문이고, 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 10/10, 되주입은 실제 소스에 3건 + 포함 목록 부활 1건)",
     "current_axis": "\"조사가 자기 사각지대를 볼 수 있는가\" — 포함 목록으로 범위를 정하면 빠진 것을 셀 방법이 없다",
     "current_focus": null,
     "in_progress_items": [],

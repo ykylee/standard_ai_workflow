@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `99eb05a` (§2.54 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. **러너에서 `source_selection=git` 경로가 실제로 도는 것까지 확인됐다**(fallback 이었으면 `case_11` 이 red). 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 11/11)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `dda0825` (§2.55 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy `Success: no issues found in 122 source files`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유. 로컬은 main **232/232** 에 더해 `feature/slash-probe` **232/232**(이 저장소 최초), 개별 검사는 다중 슬래시까지 통과, 되주입 4종)
 - 현재 주 작업 축: "한 환경에서만 재면 그 환경의 결함만 보인다" — main 에서만 도는 검사는 절반의 증거다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,10 +39,6 @@
 - TASK-2026-08-03-main-002 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: CI 실측**. §2.55 는 로컬 실측까지만 끝났다.
-
----
-
 **슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다 (TASK-2026-08-03-main-002, §2.55).**
 handoff 는 "2건" 이라고 적고 있었는데 재현하니 **셋**이었고, 그중 하나는 **슬래시와 무관**했다.
 
@@ -68,7 +64,8 @@ handoff 는 "2건" 이라고 적고 있었는데 재현하니 **셋**이었고, 
 - 실측: main **232/232**, `feature/slash-probe` **232/232**(이 저장소 최초),
   개별 검사는 `release/v1.2/hotfix`(다중 슬래시)까지 통과. 되주입 4종 각각 다른 신호 —
   그중 하나가 **"main 통과 / 슬래시 FAIL"** 로 갈렸다는 것이 이 건의 요약이다.
-  **CI 미실측**.
+  **트리거된 CI 3종 green 실측 완료**(`dda0825`) — 러너 자기 측정 `All 232 …`.
+  다만 **CI 는 여전히 main 에서만 쟀다** — 슬래시 브랜치 커버리지는 로컬 재현이 근거다.
 
 ---
 

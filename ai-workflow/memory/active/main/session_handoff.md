@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `dda0825` (§2.55 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy `Success: no issues found in 122 source files`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유. 로컬은 main **232/232** 에 더해 `feature/slash-probe` **232/232**(이 저장소 최초), 개별 검사는 다중 슬래시까지 통과, 되주입 4종)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `9efbd88` (§2.56 적용본, **트리거된 CI 4종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint. **smoke 가 처음으로 2셀로 돌았고 두 셀이 실제로 다른 브랜치를 쟀다** — 러너 자기 측정: `native` 는 `해석된 workflow 브랜치: main`, `slash` 는 `feature/ci-slash-probe`, 양쪽 다 `All 232 check_*.py scripts passed (220 test cases)`. `::error::` 0건 = 오버라이드 자기 검증 통과. 두 셀 6분 34초/6분 29초 병렬이라 wall-clock 동일. `actionlint` 는 `.github/workflows/**` 변경이라 이번엔 트리거됐다. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료)
 - 현재 주 작업 축: "한 환경에서만 재면 그 환경의 결함만 보인다" — main 에서만 도는 검사는 절반의 증거다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,12 +39,6 @@
 - TASK-2026-08-03-main-003 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: CI 실측** — 특히 smoke 가 **2셀로 뜨는지**, 각 셀 step summary 의 해석 브랜치가
-`native` / `feature/ci-slash-probe` 로 **실제로 갈리는지**. 오버라이드가 러너의
-`GITHUB_HEAD_REF` 등과 어떻게 어울리는지는 **CI 가 처음 잰다**(로컬 통과는 절반의 증거).
-
----
-
 **슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로 (TASK-2026-08-03-main-003, §2.56).**
 §2.55 의 검증 근거는 **로컬에서 env 를 손으로 덮어 돌린 것**이었다. smoke 는
 `branches: ["**"]` 로 돌지만 개발이 거의 main 에서 이뤄지므로, 슬래시 브랜치를 밟는
@@ -67,7 +61,11 @@
 - artifact 이름을 셀별로 갈랐다(`upload-artifact@v4` 는 중복 이름 두 번째에서 실패해
   통과한 셀의 증거가 사라진다).
 - 실측: 로컬 전량 **2컨텍스트 각각 232/232**, `check_branch_scoped_memory` 10/10 양쪽,
-  되주입 2종 각각 다른 신호. **CI 미실측**.
+  되주입 2종 각각 다른 신호.
+  **CI 4종 green 실측 완료**(`9efbd88`) — **두 셀이 실제로 갈렸다**: `native` 는
+  `해석된 workflow 브랜치: main`, `slash` 는 `feature/ci-slash-probe`, 양쪽 다
+  `All 232 …`. **CI 가 슬래시 브랜치 경로를 밟은 것은 이번이 처음이다.**
+  `::error::` 0건 = 오버라이드 자기 검증 통과. 6분 34초/6분 29초 병렬(wall-clock 동일).
 
 ---
 
@@ -579,8 +577,10 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - **이번 세션의 교훈(§2.56, 목록의 유혹)**: 싼 방법은 "슬래시에 민감한 검사 3개만" 돌리는
   것이었다. 그러나 §2.55 가 **그 목록이 틀린다는 증거 자체**였다 — 지목된 2건 중 1건이
   오귀속이었고 진짜 3번째는 목록에 없었다. 비용이 두 배여도 전량을 돌린다.
-- **확인 못 함(§2.56)**: 오버라이드가 러너에서 실제로 먹는지는 **CI 가 처음 잰다**.
-  자기 검증(`::error::`)을 넣어 두었지만 **그 자기 검증 자체도 CI 에서 처음 돈다**.
+- **확인됨(§2.56)**: 오버라이드가 러너에서 실제로 먹는다 — `CODEX_WORKFLOW_BRANCH` 가
+  `GITHUB_HEAD_REF`/`GITHUB_REF_NAME` 보다 우선함을 CI 자기 측정으로 확인했다. §2.50 이
+  정확히 이 축(`GITHUB_REF_NAME` 이 모든 workspace 에 우선해 검사를 무력화)에서 데였으므로
+  확인 없이 넘어갈 수 없는 자리였다. 자기 검증(`::error::`)도 함께 돌았고 0건이다.
 
 - **이번 세션의 교훈(§2.55)**: **한 환경에서만 재면 그 환경의 결함만 보인다.** 세 번째
   결함은 handoff 어디에도 없었고, 슬래시 브랜치로 **전량** smoke 를 한 번 돌린 것이

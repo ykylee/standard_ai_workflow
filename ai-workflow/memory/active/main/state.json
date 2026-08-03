@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `96e5826` (§2.55 까지의 적용본, 트리거된 CI 3종 green 실측). **§2.56 은 로컬 실측까지 완료, CI 미실측** — 전량 **2컨텍스트 각각 232/232**(native / `CODEX_WORKFLOW_BRANCH=feature/ci-slash-probe`), `check_branch_scoped_memory` 10/10 양쪽, 되주입 2종. 다음 세션 첫 일은 CI 실측(2셀이 실제로 다른 브랜치를 쟀는지) 후 이 줄을 새 해시로 갱신하는 것",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `9efbd88` (§2.56 적용본, **트리거된 CI 4종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint. **smoke 가 처음으로 2셀로 돌았고 두 셀이 실제로 다른 브랜치를 쟀다** — 러너 자기 측정: `native` 는 `해석된 workflow 브랜치: main`, `slash` 는 `feature/ci-slash-probe`, 양쪽 다 `All 232 check_*.py scripts passed (220 test cases)`. `::error::` 0건 = 오버라이드 자기 검증 통과. 두 셀 6분 34초/6분 29초 병렬이라 wall-clock 동일. `actionlint` 는 `.github/workflows/**` 변경이라 이번엔 트리거됐다. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료)",
     "current_axis": "\"고친 것을 누가 매번 재는가\" — 1회 수동 검증은 다음 결함을 못 막는다",
     "current_focus": null,
     "in_progress_items": [],

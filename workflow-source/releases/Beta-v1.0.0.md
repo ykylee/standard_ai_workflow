@@ -2395,6 +2395,67 @@ matrix 셀은 지우기 쉽고, 선언만 있고 검사가 없으면 드리프�
 사라진다).
 
 
+### 2.57. 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다
+
+"URL 검증이 실패한다" / "issue 게시가 실패한다" 로 알려져 있었는데, 열어 보니 **둘 다
+그 일과 무관한 원인**이었다.
+
+**(1) `okf-validate` — CLI 표면이 소비자를 두고 갈라졌다.**
+
+```
+workflow_kit.url_validity: error: ambiguous option:
+  --cache could match --cache-stats, --cache-clear, --cache-stats-strategy
+```
+
+`46b6b7a`(v0.7.41, *per-strategy eviction metric*)가 **무관한 커밋에서
+`p.add_argument("--cache", ...)` 한 줄만** 지웠다. 그런데 `main()` 의 `args.cache` 참조도,
+모듈 docstring 의 `--online --cache` 사용법도, `okf-validate` 워크플로우도 그대로였다.
+ADR-013 도 `--cache` 를 설계로 선언하고 있다.
+
+**CI 만의 문제가 아니었다** — `--online` CLI 경로가 통째로 죽어 있었다:
+
+| 호출 | 결과 |
+|---|---|
+| `--online --cache` | `ambiguous option` |
+| `--online` (만) | `AttributeError: 'Namespace' object has no attribute 'cache'` |
+| offline | 정상 |
+
+**그리고 같은 사고가 두 번이었다.** `--max-bytes` 도 `1da10ef`(v0.7.37, *`--body`/`--timeout`
+추가*)가 등록만 지우고 `args.max_bytes` 참조를 남겼다. 형제인 `--max-entries` 는 살아
+있어 비대칭이 눈에 안 띄었다. 둘 다 복원했다.
+
+> **왜 smoke 232건이 못 봤나.** `check_url_validity` 헤더가 답을 적고 있었다 —
+> *"online / cache 는 network 의존이라 명시적 skip"*. 그 판단은 옳다. 그러나
+> **네트워크 의존은 *호출* 을 건너뛸 이유이지 *인자 계약* 을 건너뛸 이유가 아니다.**
+> 파싱도 실행 분기도 오프라인이다. 유일한 소비자(`okf-validate`)는 red 인 채였고,
+> 오래 red 인 것은 아무도 안 본다.
+
+**검사 3종 추가**(12 → **15 case**, 신규 파일 없음). 셋의 층이 다르다:
+
+1. `test_cli_accepts_the_flags_ci_actually_passes` — **`okf-validate.yml` 에서 인자를
+   직접 뽑아** 파서와 대조한다. 손으로 베낀 목록은 소비자와 갈라진다.
+2. `test_online_path_parses_and_exposes_cache_attr` — `--online` 파싱 + `args.cache` 실재.
+3. `test_main_runs_the_ci_invocation_end_to_end` — **CI 의 실제 호출을 `main()` 으로 끝까지**
+   (네트워크만 스텁).
+
+> **3번이 없었으면 `--max-bytes` 는 안 잡혔다.** 실측: `--max-bytes` 등록만 되주입해
+> 지우면 1·2번은 **통과**하고 3번만 red 다(16/17). **파싱이 통과한다고 실행이 되는 것이
+> 아니다** — 계약 검사와 실행 검사는 다른 층이다.
+
+**(2) `consumer-metrics-digest` — 저장소의 보이지 않는 상태.**
+
+```
+could not add label: 'consumer-metrics-feed' not found   → exit 1
+```
+
+digest 생성은 멀쩡했다. 저장소 라벨이 GitHub 기본 9개뿐이라 `gh issue create --label`
+이 죽은 것이다(2026-07-06 이후 5주 연속 red). traffic API 403 도 뜨지만 그쪽은 WARN 처리다.
+
+라벨을 손으로 만들어 두면 지금은 고쳐지지만 fork·새 클론에서 되돌아온다.
+**의존은 그것을 쓰는 쪽이 보장한다** — 사용 직전에 `gh label create --force`(멱등)로
+확보하고, 실패하면 `issues:write` 를 지목하며 죽는다.
+
+
 ## 3. 검증
 
 누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서

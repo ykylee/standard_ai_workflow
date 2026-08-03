@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `9efbd88` (§2.56 적용본, **트리거된 CI 4종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint. **smoke 가 처음으로 2셀로 돌았고 두 셀이 실제로 다른 브랜치를 쟀다** — 러너 자기 측정: `native` 는 `해석된 workflow 브랜치: main`, `slash` 는 `feature/ci-slash-probe`, 양쪽 다 `All 232 check_*.py scripts passed (220 test cases)`. `::error::` 0건 = 오버라이드 자기 검증 통과. 두 셀 6분 34초/6분 29초 병렬이라 wall-clock 동일. `actionlint` 는 `.github/workflows/**` 변경이라 이번엔 트리거됐다. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료)",
-    "current_axis": "\"고친 것을 누가 매번 재는가\" — 1회 수동 검증은 다음 결함을 못 막는다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `19df5d7` (§2.56 까지의 적용본, 트리거된 CI 4종 green 실측). **§2.57 은 로컬 실측까지 완료, CI 미실측** — `check_url_validity` **17/17**, 전량 smoke **232/232**, mypy strict 122 files 0 errors, `okf-validate` 의 실제 CI 호출이 네트워크 포함 **exit 0**. 다음 세션 첫 일은 CI 실측 + 두 스케줄 workflow 수동 트리거",
+    "current_axis": "\"오래 red 인 것은 원인이 이름과 달라진다\" — 방치된 red 는 증상 이름만 남긴다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다",
       "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
       "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
       "TASK-2026-08-03-main-001 — 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다",
@@ -41,21 +42,21 @@
       "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
       "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
-      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
-      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity"
+      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-03.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-03-main-001 — 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다",
       "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
-      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로"
+      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
+      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다"
     ]
   },
   "next_documents": [

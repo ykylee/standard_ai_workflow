@@ -1208,7 +1208,21 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--ttl", type=int, default=DEFAULT_CACHE_TTL_SECONDS, help=f"cache TTL (default: {DEFAULT_CACHE_TTL_SECONDS})")
     p.add_argument("--max-retries", type=int, default=3, help="max retries for 5xx/429/timeout (default: 3)")
     p.add_argument("--timeout", type=float, default=10.0, help="online HEAD/body timeout in seconds (default: 10.0)")
+    # ADR-014 캐시 크기 상한. **이것도 한 번 사라졌었다** — `1da10ef`(v0.7.37,
+    # `--body`/`--timeout` 추가 커밋)가 무관하게 이 한 줄을 지웠고 `main()` 의
+    # `args.max_bytes` 참조는 남았다. `--cache`(§2.57) 와 **완전히 같은 사고가 두 번**이다.
+    # 형제인 `--max-entries` 는 살아 있어 비대칭이 눈에 띄지 않았다.
+    p.add_argument("--max-bytes", type=int, default=DEFAULT_CACHE_MAX_BYTES, help=f"cache size cap in bytes (default: {DEFAULT_CACHE_MAX_BYTES})")
     p.add_argument("--max-entries", type=int, default=DEFAULT_CACHE_MAX_ENTRIES, help=f"cache entry count cap (default: {DEFAULT_CACHE_MAX_ENTRIES})")
+    # ADR-013 이 선언한 opt-in 캐시 플래그. **한 번 사라졌었다** — `46b6b7a`(v0.7.41,
+    # per-strategy eviction metric)가 무관한 커밋에서 이 한 줄만 지웠고, `main()` 의
+    # `args.cache` 참조 · 모듈 docstring · `okf-validate` 워크플로우는 그대로 남았다.
+    # 결과: `--online` CLI 경로가 7주간 통째로 죽어 있었다 (`--cache` 를 주면 남은
+    # `--cache-*` 셋과 접두 충돌로 `ambiguous option`, 안 주면 `AttributeError`).
+    # smoke 는 네트워크를 피하느라 `--online` 을 안 밟아서 못 봤고, 유일한 소비자인
+    # okf-validate 는 red 인 채 방치됐다. `check_url_validity` 의 CLI 인자 계약
+    # case 가 이 회귀를 잡는다.
+    p.add_argument("--cache", action="store_true", help="use 24h disk cache (ADR-013)")
     p.add_argument("--cache-stats", action="store_true", help="print cache statistics and exit")
     p.add_argument("--cache-clear", action="store_true", help="clear disk cache and exit")
     p.add_argument("--body", action="store_true", help="run V-R11 body content audit (ADR-017, opt-in)")

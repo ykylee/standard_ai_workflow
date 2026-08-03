@@ -112,6 +112,25 @@ jobs:
             exit 1
           fi
 
+          # v1.0.9(§2.57): **라벨이 있는지 먼저 보장한다.**
+          #
+          # 이 워크플로우는 `consumer-metrics-feed` 라벨로 기존 issue 를 찾고, 없으면
+          # 그 라벨을 붙여 새로 만든다. 그런데 저장소에는 GitHub 기본 9개 라벨뿐이라
+          # `gh issue create` 가 `could not add label: 'consumer-metrics-feed' not found`
+          # 로 죽었다 — **2026-07-06 이후 5주 연속 red**. 실패 원인이 digest 생성이
+          # 아니라 *저장소의 보이지 않는 상태* 였다.
+          #
+          # 라벨을 손으로 만들어 두는 것으로도 지금은 고쳐지지만, 그러면 fork 나 새
+          # 클론에서 같은 실패가 되돌아온다. **의존은 그것을 쓰는 쪽이 보장한다.**
+          # `--force` 라 이미 있으면 갱신만 하고 넘어간다(멱등).
+          if ! gh label create "consumer-metrics-feed" \
+                 --repo "$GH_REPO" \
+                 --description "Weekly consumer metrics digest feed (automated)" \
+                 --color "0e8a16" --force; then
+            echo "::error::라벨 'consumer-metrics-feed' 를 만들 수 없다 — GITHUB_TOKEN 에 issues:write 가 있는지 볼 것"
+            exit 1
+          fi
+
           # Look for an open issue with the consumer-metrics-feed label or title marker
           # If found, comment on it; otherwise create a new issue.
           existing_issue=$(gh issue list \

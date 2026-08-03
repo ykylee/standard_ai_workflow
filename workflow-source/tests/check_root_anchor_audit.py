@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""기준 전수 조사가 **저장소에 남아 돌고 있는가** (v1.0.8, 10 case).
+"""기준 전수 조사가 **저장소에 남아 돌고 있는가** (v1.0.8, 11 case).
 
 ## 왜 필요한가
 
@@ -23,13 +23,16 @@
    빠지면 안 된다. 그리고 기준이 틀렸을 때 **조용히 통과하지 않는다**.
 8. 저장소의 **모든** `.py` 가 조사되거나 제외 트리 안에 있다 (case 10). 여기서 독립적으로
    다시 세서 대조한다 — 도구의 개수를 되읽으면 자기 자신과 비교하는 것밖에 못 한다.
+9. "생성물인가" 를 **이름이 아니라 `.gitignore`** 로 가른다 (case 11). `build` 라는 이름의
+   진짜 소스가 조용히 빠지지 않고, fallback 으로 떨어졌으면 그 사실이 산출물에 있다.
 
-Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53.
+Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53 / §2.54.
 """
 
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -41,10 +44,11 @@ TOOLS_DIR = REPO_ROOT / "workflow-source" / "tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 from audit_root_anchors import (  # noqa: E402
-    EXCLUDED_PARTS,
     ROOT_ANCHOR_LEDGER,
     SCAN_SOURCE_ARGUMENT,
     SCAN_SOURCE_CWD,
+    SELECTION_GIT,
+    SELECTION_NAME_FALLBACK,
     resolve_scan_root,
     run_audit,
 )
@@ -290,12 +294,21 @@ def case_10_scan_covers_every_source_file() -> bool:
     산출물을 되읽지 않고 여기서 직접 훑는다. 자기 자신과 비교하면 둘이 같이 틀려도
     통과한다(§2.50 의 교훈).
     """
+    # 기대값은 **git 에게 직접** 묻는다. 도구와 같은 정본을 쓰되 호출은 여기서 따로 한다
+    # — 이름 목록으로 세면 추적되는 `build/` 소스가 생겼을 때 위양성이 된다(§2.54).
     expected: set[Path] = set()
-    for py in REPO_ROOT.rglob("*.py"):
-        rel = py.relative_to(REPO_ROOT)
-        if any(part in EXCLUDED_PARTS for part in rel.parts):
-            continue
-        expected.add(rel)
+    for args in (["ls-files", "-z", "--", "*.py"],
+                 ["ls-files", "--others", "--exclude-standard", "-z", "--", "*.py"]):
+        proc = subprocess.run(["git", "-C", str(REPO_ROOT), *args],
+                              capture_output=True, text=True, timeout=60)
+        if proc.returncode != 0:
+            print(f"  FAIL: git 조회 실패 ({args}): {proc.stderr.strip()[:200]}")
+            return False
+        expected |= {Path(r) for r in proc.stdout.split("\0")
+                     if r and (REPO_ROOT / r).is_file()}
+    if not expected:
+        print("  FAIL: git 이 .py 를 한 건도 안 냈다 — 대조의 전제가 무너졌다")
+        return False
 
     result = run_audit(REPO_ROOT)
     scanned = {Path(f) for f in _scanned_relpaths(result)}
@@ -308,8 +321,70 @@ def case_10_scan_covers_every_source_file() -> bool:
     if extra:
         print(f"  FAIL: 제외 대상인데 조사됨 {len(extra)}건: {[str(p) for p in extra[:8]]}")
         return False
-    print(f"  [info] 저장소 .py {len(expected)}건 전부 조사됨 (제외 트리: "
-          f"{result['inventory']['excluded_trees']})")
+    print(f"  [info] git 기준 .py {len(expected)}건 전부 조사됨 "
+          f"(선정: {result['inventory']['source_selection']})")
+    return True
+
+
+def case_11_generated_is_decided_by_git_not_by_name() -> bool:
+    """11) "생성물인가" 를 **이름이 아니라 저장소 선언**(`.gitignore`)으로 가른다.
+
+    이름 기반 제외는 추측이다. `build` 라는 이름의 *진짜 소스* 디렉터리가 생기면
+    조용히 빠지고, 그 안의 결함은 "미선언 0건" 으로 보고된다 — 실행 못 한 검사가
+    통과로 보이는 바로 그 모양이다.
+
+    셋을 고정한다:
+      (a) 이 저장소는 `git` 으로 대상을 고른다 — 조용히 추측으로 떨어지지 않는다.
+      (b) git 이 추적하는 `build/` 안의 소스는 **조사되고 결함이 잡힌다**.
+      (c) git 루트가 아니면 fallback 이되, **그 사실을 산출물이 밝힌다**.
+    """
+    real = run_audit(REPO_ROOT)
+    if real["inventory"]["source_selection"] != SELECTION_GIT:
+        print(f"  FAIL: 이 저장소의 대상 선정이 {real['inventory']['source_selection']} "
+              f"(기대: {SELECTION_GIT}) — 이름 추측으로 조용히 떨어졌다")
+        return False
+
+    src = ("from pathlib import Path\n"
+           "def _root():\n"
+           "    return Path(__file__).resolve().parents[6]\n")
+    with tempfile.TemporaryDirectory() as td:
+        root = _fixture(td, "ok.py", "x = 1\n")
+        build = root / "build"          # 이름은 생성물, 실체는 소스
+        build.mkdir()
+        (build / "real_source.py").write_text(src, encoding="utf-8")
+
+        env = {"PATH": "/usr/bin:/bin", "HOME": str(root), "GIT_CONFIG_GLOBAL": "/dev/null"}
+        for args in (("init", "-q", "."), ("add", "-A"),
+                     ("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")):
+            proc = subprocess.run(["git", *args], cwd=str(root), capture_output=True,
+                                  text=True, timeout=60, env=env)
+            if proc.returncode != 0:
+                print(f"  FAIL: fixture git 준비 실패 ({args}): {proc.stderr.strip()[:200]}")
+                return False
+
+        got = run_audit(root)
+        if got["inventory"]["source_selection"] != SELECTION_GIT:
+            print(f"  FAIL: fixture 가 git 모드가 아니다 ({got['inventory']['source_selection']})")
+            return False
+        hit = [f for f in got["undeclared"] if f["path"] == "build/real_source.py"]
+        if not hit:
+            print("  FAIL: git 이 추적하는 build/ 안의 결함을 못 봤다 — 이름으로 잘라낸 것이다")
+            print(f"        조사 {got['inventory']['scanned_files']} file, "
+                  f"미선언 {len(got['undeclared'])}건")
+            return False
+
+        # (c) git 을 지우면 fallback 이고, 그 사실이 보여야 한다.
+        shutil.rmtree(root / ".git")
+        fb = run_audit(root)
+        if fb["inventory"]["source_selection"] != SELECTION_NAME_FALLBACK:
+            print(f"  FAIL: git 없는데 선정이 {fb['inventory']['source_selection']}")
+            return False
+        if [f for f in fb["undeclared"] if f["path"] == "build/real_source.py"]:
+            print("  FAIL: fallback 이 build/ 를 봤다 — 이 case 의 전제가 무너졌다")
+            return False
+
+    print("  [info] 저장소는 git 선정 / 추적되는 build/ 의 결함 검출 / "
+          "fallback 은 자기가 fallback 임을 밝힌다")
     return True
 
 
@@ -347,6 +422,7 @@ CASES = [
     ("case_8_wrong_root_fails_loudly", case_8_wrong_root_fails_loudly),
     ("case_9_cli_runs_green_on_this_repo", case_9_cli_runs_green_on_this_repo),
     ("case_10_scan_covers_every_source_file", case_10_scan_covers_every_source_file),
+    ("case_11_generated_is_decided_by_git_not_by_name", case_11_generated_is_decided_by_git_not_by_name),
 ]
 
 
@@ -405,6 +481,10 @@ def test_case_9_cli_runs_green_on_this_repo() -> None:
 
 def test_case_10_scan_covers_every_source_file() -> None:
     assert case_10_scan_covers_every_source_file()
+
+
+def test_case_11_generated_is_decided_by_git_not_by_name() -> None:
+    assert case_11_generated_is_decided_by_git_not_by_name()
 
 
 if __name__ == "__main__":

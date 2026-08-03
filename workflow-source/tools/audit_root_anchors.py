@@ -35,8 +35,15 @@ R1~R3 에 걸리는 것이 전부 결함은 아니다. `<repo>/workflow-source/`
 ## 조사 범위
 
 scan_root 아래의 **모든** `.py` 를 본다. *포함* 목록은 두지 않는다 — 그러면 새 소스
-트리가 생겼을 때 조사에서 빠지는데 **그 사실을 셀 방법이 없다**(§2.53). 대신 *제외*는
-`EXCLUDED_PARTS` 한 곳이고, 무엇을 몇 개 잘랐는지 `excluded_trees` 로 낸다.
+트리가 생겼을 때 조사에서 빠지는데 **그 사실을 셀 방법이 없다**(§2.53).
+
+무엇이 생성물인지는 **`.gitignore` 가 이미 선언했고 그것이 정본이다**(§2.54).
+git 저장소 루트에서는 `ls-files` + `ls-files --others --exclude-standard` 로 고른다 —
+이름이 아니라 저장소가 선언한 성질로 가르므로, `build` 라는 이름의 *진짜 소스* 가
+조용히 빠지지 않는다. git 루트가 아니면 `EXCLUDED_PARTS` 이름 기반으로 떨어지되
+**`source_selection` 으로 어느 쪽이었는지 밝힌다** — 조용한 fallback 은 "적용됨" 과
+"떨어짐" 을 같은 모양으로 만든다.
+
 조사한 file 목록은 `scanned_paths` 로 내보내, 소비자가 **독립적으로 센 목록과 대조**할
 수 있게 한다.
 
@@ -51,7 +58,7 @@ scan_root 아래의 **모든** `.py` 를 본다. *포함* 목록은 두지 않�
     python3 workflow-source/tools/audit_root_anchors.py --json     # 기계용
     python3 workflow-source/tools/audit_root_anchors.py --all      # 인벤토리 전량
 
-Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53.
+Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53 / §2.54.
 """
 
 from __future__ import annotations
@@ -60,6 +67,7 @@ import argparse
 import ast
 import json
 import os
+import subprocess
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -73,18 +81,19 @@ SCAN_SOURCE_CWD = "cwd"
 #: 조사 0건은 결함 0건이 아니다 (실행 못 한 검사는 통과가 아니다).
 REQUIRED_SCAN_DIRS: tuple[str, ...] = ("workflow-source/workflow_kit",)
 
-#: 생성물/캐시/가상환경 — 소스가 아니다.
+SELECTION_GIT = "git"
+SELECTION_NAME_FALLBACK = "name-fallback"
+
+#: **fallback 전용** 이름 목록 — git 저장소가 아닐 때만 쓴다 (§2.54).
 #:
-#: **여기 없는 것은 전부 조사한다.** v1.0.8 의 첫 버전은 반대였다 — `SCAN_DIRS` 라는
-#: *포함* 목록을 두고 거기 적힌 트리만 봤다. 그러면 새 소스 트리가 생겼을 때 조사에서
-#: 빠지는데, 그 사실이 **어디에도 안 보인다**: "선언했는데 없는 것"(missing_dirs)은
-#: 세지만 "있는데 선언 안 한 것"은 셀 방법이 없기 때문이다. 실제로 27 file
-#: (`workflow-source/skills` 19 — 상태 문서를 쓰는 skill runner 들이 여기 있다 /
-#: `ai-workflow/mcp_servers` 6 / `workflow-source/examples` 2)이 조용히 빠져 있었다.
+#: 이름으로 생성물을 가르는 것은 추측이다. `build` 라는 이름의 *진짜 소스* 디렉터리가
+#: 생기면 조용히 빠지는데, 이름만 보는 한 그것을 구분할 방법이 없다. 그리고 이 목록은
+#: **`.gitignore` 가 이미 선언한 것의 약한 사본**이다 — 사본은 반드시 갈라진다.
 #:
-#: 그래서 포함 목록을 **없앴다**. 드리프트할 수 있는 선언을 검사로 감시하는 것보다,
-#: 선언을 지우는 쪽이 낫다. 대신 *제외*는 조용하면 안 되므로 무엇을 몇 건 뺐는지
-#: `excluded_trees` 로 낸다.
+#: 그래서 정본을 쓴다: git 저장소에서는 `ls-files`(tracked) + `ls-files --others
+#: --exclude-standard`(untracked-but-not-ignored)가 "생성물이 아닌 것" 의 정의다.
+#: 이름이 아니라 **저장소가 선언한 성질**로 가른다. 이관 시점 실측에서 두 방식은
+#: 446건으로 **완전히 일치**했다 — 지금 바뀌는 것은 없고, 이름 충돌 위험만 사라진다.
 EXCLUDED_PARTS: frozenset[str] = frozenset(
     {"build", "dist", "site", "__pycache__", ".venv", "node_modules", ".git",
      "standard_ai_workflow.egg-info"}
@@ -175,8 +184,11 @@ class Inventory:
     scanned_files: int = 0
     unparsable_files: list[str] = field(default_factory=list)
     missing_dirs: list[str] = field(default_factory=list)
-    #: 제외 이름 → 잘라낸 트리 수. **제외도 조용하면 안 된다** — 제외 이름 하나가
-    #: 늘어나면 조사 범위가 줄어드는데, 줄어든 사실이 안 보이면 결함 0건과 구분되지 않는다.
+    #: 대상을 무엇으로 골랐는가 — `git`(정본) / `name-fallback`(추측).
+    #: 실행 못 한 검사가 통과로 보이지 않으려면, 어느 쪽이었는지가 산출물에 있어야 한다.
+    source_selection: str = ""
+    #: 제외 이름 → 잘라낸 트리 수. **fallback 일 때만 채워진다** (git 모드에서는
+    #: `.gitignore` 가 제외의 정본이라 여기서 다시 셀 것이 없다).
     excluded_trees: dict[str, int] = field(default_factory=dict)
     module_anchors: int = 0
     cwd_anchors: int = 0
@@ -192,6 +204,7 @@ class Inventory:
             "scanned_files": self.scanned_files,
             "unparsable_files": self.unparsable_files,
             "missing_dirs": self.missing_dirs,
+            "source_selection": self.source_selection,
             "excluded_trees": self.excluded_trees,
             "module_anchors": self.module_anchors,
             "cwd_anchors": self.cwd_anchors,
@@ -213,11 +226,54 @@ def _is_excluded(path: Path) -> bool:
     return any(part in EXCLUDED_PARTS for part in path.parts)
 
 
-def iter_source_files(scan_root: Path, inventory: Inventory) -> list[Path]:
-    """scan_root 아래의 **모든** `.py` — 제외 목록에 걸린 것만 뺀다.
+def _git_source_files(scan_root: Path) -> list[Path] | None:
+    """저장소가 선언한 "생성물이 아닌 `.py`". git 루트가 아니면 None.
 
-    포함 목록이 없으므로 "선언 안 해서 안 보이는 트리" 가 존재할 수 없다.
+    tracked + untracked-but-not-ignored = `.gitignore` 가 제외하지 않은 전부.
+    **scan_root 이 저장소 *루트* 일 때만** 쓴다 — 하위 디렉터리나, 우연히 저장소
+    안에 들어앉은 temp 디렉터리를 가리켰을 때 남의 저장소 목록을 자기 것으로
+    착각하지 않기 위해서다.
     """
+    def _run(*args: str) -> str | None:
+        try:
+            proc = subprocess.run(
+                ["git", "-C", str(scan_root), *args],
+                capture_output=True, text=True, timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return proc.stdout if proc.returncode == 0 else None
+
+    top = _run("rev-parse", "--show-toplevel")
+    if top is None or Path(top.strip()).resolve() != scan_root.resolve():
+        return None
+
+    out: list[Path] = []
+    for extra in (("ls-files", "-z", "--", "*.py"),
+                  ("ls-files", "--others", "--exclude-standard", "-z", "--", "*.py")):
+        raw = _run(*extra)
+        if raw is None:
+            return None
+        out.extend(scan_root / rel for rel in raw.split("\0") if rel)
+    # git 은 인덱스를 보므로 지워진 file 이 남아 있을 수 있다.
+    return sorted({p for p in out if p.is_file()})
+
+
+def iter_source_files(scan_root: Path, inventory: Inventory) -> list[Path]:
+    """조사 대상 `.py` 목록.
+
+    1순위는 **git** — 무엇이 생성물인지는 `.gitignore` 가 이미 선언했고, 그것이 정본이다.
+    git 루트가 아니면 이름 기반으로 떨어지되 **그 사실을 `source_selection` 으로 밝힌다**
+    (조용한 fallback 은 "적용됨" 과 "떨어짐" 을 같은 모양으로 만든다).
+    """
+    inventory.missing_dirs = [d for d in REQUIRED_SCAN_DIRS if not (scan_root / d).is_dir()]
+
+    from_git = _git_source_files(scan_root)
+    if from_git is not None:
+        inventory.source_selection = SELECTION_GIT
+        return from_git
+
+    inventory.source_selection = SELECTION_NAME_FALLBACK
     files: list[Path] = []
     pruned: dict[str, int] = {}
     for dirpath, dirnames, filenames in os.walk(scan_root):
@@ -235,7 +291,6 @@ def iter_source_files(scan_root: Path, inventory: Inventory) -> list[Path]:
                 files.append(here / name)
     # 제외 *이름*별로 몇 개 트리를 잘랐는지. 어느 제외 규칙이 실제로 발동했는지가 보인다.
     inventory.excluded_trees = dict(sorted(pruned.items()))
-    inventory.missing_dirs = [d for d in REQUIRED_SCAN_DIRS if not (scan_root / d).is_dir()]
     return sorted(files)
 
 
@@ -583,6 +638,9 @@ def _print_human(result: dict[str, Any], show_all: bool) -> None:
           f"모듈 branch 호출 {inv['module_branch_calls']}")
     print(f"      규칙이 들여다본 함수: R2 {inv['r2_candidate_functions']} / "
           f"R3 {inv['r3_candidate_functions']}")
+    print(f"      대상 선정: {inv['source_selection']}"
+          + ("  (.gitignore 가 제외의 정본)" if inv["source_selection"] == SELECTION_GIT
+             else "  ← git 루트가 아니라 이름으로 추측했다"))
     if inv["excluded_trees"]:
         print(f"      제외: {inv['excluded_trees']}")
     if not result["scan_ok"]:

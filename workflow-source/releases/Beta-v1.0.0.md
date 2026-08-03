@@ -2251,6 +2251,55 @@ SCAN_DIRS = ("workflow-source/workflow_kit", "workflow-source/tools", ...)
 아니라 *안 보던 곳을 안 보고 있었다는 사실* 을 없앤 것이다.
 
 
+### 2.54. 생성물인지를 **이름으로** 가르고 있었다 — 정본은 `.gitignore` 다
+
+§2.53 이 남긴 한계. 포함 목록은 없앴지만 *제외*는 여전히 이름이었다:
+
+```python
+EXCLUDED_PARTS = {"build", "dist", "site", "__pycache__", ".venv", ...}
+```
+
+**이름은 성질이 아니다.** `build` 라는 이름의 *진짜 소스* 디렉터리가 생기면 조사에서
+조용히 빠지고, 그 안의 결함은 **"미선언 0건"** 으로 보고된다 — 실행 못 한 검사가 통과로
+보이는 바로 그 모양이다. 그리고 이 목록은 애초에 **`.gitignore` 가 이미 선언한 것의
+약한 사본**이었다. 사본은 반드시 갈라진다(§2.39 와 같은 축).
+
+**조치: 정본을 쓴다.** git 저장소 루트에서는
+
+    git ls-files -- '*.py'                              # tracked
+    git ls-files --others --exclude-standard -- '*.py'  # untracked but not ignored
+
+의 합집합이 곧 "생성물이 아닌 `.py`" 의 정의다. 이름이 아니라 **저장소가 선언한
+성질**로 가른다. `--show-toplevel` 이 scan_root 과 같을 때만 쓴다 — 하위 디렉터리나,
+우연히 저장소 안에 들어앉은 temp 디렉터리를 가리켰을 때 남의 목록을 자기 것으로
+착각하지 않기 위해서다.
+
+**이관 시점 두 방식은 446건으로 완전히 일치했다**(git 전용 파일 0, 이름 전용 파일 0).
+지금 바뀌는 것은 없고 이름 충돌 위험만 사라진다 — 바꾸기 가장 좋은 순간이다.
+
+**fallback 은 자기가 fallback 임을 밝힌다.** git 루트가 아니면 이름 기반으로 떨어지되
+`source_selection` 을 `git` / `name-fallback` 으로 낸다. 조용한 fallback 은 "적용됨" 과
+"떨어짐" 을 같은 모양으로 만든다(§2.47 의 교훈).
+
+**검사 1종 추가**(9 → 10 → **11 case**, 신규 파일 없음):
+`case_11_generated_is_decided_by_git_not_by_name`. 실측으로 셋을 고정한다 —
+(a) 이 저장소는 `git` 으로 고른다(조용히 추측으로 안 떨어진다),
+(b) git 이 추적하는 `build/` 안의 §2.49 형 결함이 **잡힌다**,
+(c) `.git` 을 지우면 fallback 이고 그 사실이 산출물에 있다.
+
+> **되주입이 두 모드의 차이를 그대로 보여 줬다.** 같은 fixture(추적되는 `build/real_source.py`
+> 안에 `parents[6]`)에서:
+>
+>     git 모드      : 조사 2 file, 미선언 **1건** — `[anchor_outside_workspace] build/real_source.py`
+>     fallback 모드 : 조사 1 file, 미선언 **0건** — 이름으로 잘라내 결함을 못 본다
+>
+> 같은 코드, 같은 결함, 다른 판정. 그리고 틀린 쪽이 **더 조용하다.**
+
+**`case_10` 의 기대값도 git 으로 옮겼다.** 이름 목록으로 세면 추적되는 `build/` 소스가
+생겼을 때 *검사 쪽이* 위양성을 낸다. 도구와 같은 정본을 쓰되 git 호출은 검사에서 따로
+한다 — 정본을 공유하는 것과 산출물을 되읽는 것은 다르다.
+
+
 ## 3. 검증
 
 누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
@@ -2265,7 +2314,7 @@ SCAN_DIRS = ("workflow-source/workflow_kit", "workflow-source/tools", ...)
 → 229(§2.49 `check_doctor_config_provenance`)
 → 230(§2.50 `check_branch_resolver_agreement`)
 → 231(§2.51 `check_dashboard_workspace_provenance`)
-→ **232**(§2.52 `check_root_anchor_audit`; §2.53 은 같은 파일을 9 → 10 case 로 확장해 file 수는 그대로다).
+→ **232**(§2.52 `check_root_anchor_audit`; §2.53/§2.54 는 같은 파일을 9 → 10 → 11 case 로 확장해 file 수는 그대로다).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

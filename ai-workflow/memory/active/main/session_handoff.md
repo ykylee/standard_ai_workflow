@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `710ccea` (§2.53 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로). **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 이번 커밋이 `workflow-source/**` + memory 문서만 건드렸기 때문이고, 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 10/10, 되주입은 실제 소스에 3건 + 포함 목록 부활 1건)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `99eb05a` (§2.54 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. **러너에서 `source_selection=git` 경로가 실제로 도는 것까지 확인됐다**(fallback 이었으면 `case_11` 이 red). 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 11/11)
 - 현재 주 작업 축: "조사가 자기 사각지대를 볼 수 있는가" — 범위를 사본으로 선언하지 말고 정본에 물을 것
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,11 +39,6 @@
 - TASK-2026-08-03-main-001 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: CI 실측**(smoke / mypy-strict / mcp-sdk-matrix). §2.54 는 로컬 실측까지만 끝났다.
-mkdocs 는 `docs/**` 를 안 건드리면 트리거되지 않는다 — 안 돌았으면 green 이라고 적지 말 것.
-
----
-
 **생성물인지를 이름으로 가르고 있었다 — 정본은 `.gitignore` 다 (TASK-2026-08-03-main-001, §2.54).**
 §2.53 이 포함 목록을 없앴지만 *제외*는 여전히 이름이었다. **이름은 성질이 아니다** —
 `build` 라는 이름의 *진짜 소스* 가 생기면 조용히 빠지고 그 안의 결함이 "미선언 0건" 이
@@ -65,7 +60,9 @@ mkdocs 는 `docs/**` 를 안 건드리면 트리거되지 않는다 — 안 돌�
 - `case_10` 의 기대값도 이름 목록 → git 으로 옮겼다. 안 그러면 추적되는 `build/` 소스가
   생겼을 때 *검사 쪽이* 위양성을 낸다. 정본을 공유하되 git 호출은 검사에서 따로 한다.
 - 실측: 전량 smoke **232/232**, `check_root_anchor_audit` 11/11, mypy strict 2파일 clean.
-  **CI 미실측**.
+  **트리거된 CI 3종 green 실측 완료**(`99eb05a`) — 러너 자기 측정 `All 232 …`. `git` 을
+  subprocess 로 새로 부르기 시작한 변경이라 로컬 통과만으로는 부족했는데, 러너에서도
+  `source_selection=git` 으로 도는 것이 `case_11`(a)로 확인됐다(fallback 이었으면 red).
 
 ---
 

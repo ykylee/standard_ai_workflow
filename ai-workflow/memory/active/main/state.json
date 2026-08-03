@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `9764538` (§2.53 까지의 적용본, 트리거된 CI 3종 green 실측). **§2.54 는 로컬 실측까지 완료, CI 미실측** — 격리 venv 전량 smoke **232/232 PASS**(워킹트리 변동 0), `check_root_anchor_audit` 11/11, mypy strict 2파일 clean, 되주입으로 git/fallback 두 모드의 판정 차이 실측. 다음 세션 첫 일은 CI 실측 후 이 줄을 새 해시로 갱신하는 것",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `99eb05a` (§2.54 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. **러너에서 `source_selection=git` 경로가 실제로 도는 것까지 확인됐다**(fallback 이었으면 `case_11` 이 red). 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 11/11)",
     "current_axis": "\"조사가 자기 사각지대를 볼 수 있는가\" — 범위를 사본으로 선언하지 말고 정본에 물을 것",
     "current_focus": null,
     "in_progress_items": [],

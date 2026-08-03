@@ -94,14 +94,21 @@ def test_linter_pass():
         )
         paths["backlog"].write_text("## TASK-001 Test task\n- 상태: in_progress")
 
-        # Valid link: relative to ai-workflow/memory/<branch>/session_handoff.md
-        # this resolves to README.md in the project root (3 levels up:
-        # <branch>/ → ai-workflow/memory/ → ai-workflow/ → <root>/).
-        # v0.11.20 fix: 이전의 4 dot (`../../../../`) 는 `<root>` 위로 1 단계 더
-        # 올라가 false-positive broken link 보고. 3 dot 으로 정정.
+        # handoff 에서 프로젝트 루트로 올라가는 **유효한** 링크를 붙여, 린터가 이것을
+        # broken 으로 오인하지 않는지 본다.
+        #
+        # 깊이를 상수로 박으면 안 된다. `<branch>` 가 `feature/x` 처럼 슬래시를 가지면
+        # handoff 는 `ai-workflow/memory/feature/x/` 로 **한 단계 더 깊어**지고, 고정
+        # 3 dot 은 루트에 못 닿아 `file_not_found` 위양성이 난다(슬래시 브랜치에서
+        # 이 검사가 red 였던 이유). v0.11.20 이 4 dot → 3 dot 으로 고친 것도 같은
+        # 부류의 상수 문제였다 — 상수를 바꾸는 대신 **실제 깊이에서 계산**한다.
         readme = root / "README.md"
         readme.write_text("Hello")
-        paths["handoff"].write_text(paths["handoff"].read_text() + "\n\n[README](../../../README.md)")
+        depth = len(paths["handoff"].parent.relative_to(root).parts)
+        up = "../" * depth
+        paths["handoff"].write_text(
+            paths["handoff"].read_text() + f"\n\n[README]({up}README.md)"
+        )
 
         result = run_linter(root)
         if result["status"] != "ok":

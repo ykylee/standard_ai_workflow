@@ -10,7 +10,7 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: v1.0.0-beta + `origin/main` = `99eb05a` (§2.54 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy 는 `Config File: .../workflow-source/pyproject.toml` + `Success: no issues found in 122 source files`, matrix 3셀(1.27.0/1.29.0/2.0.0) 전부 `12/12 PASS`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — 직전 `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유로 미실행. **러너에서 `source_selection=git` 경로가 실제로 도는 것까지 확인됐다**(fallback 이었으면 `case_11` 이 red). 로컬 격리 venv 전량 smoke 232/232, `check_root_anchor_audit` 11/11)
-- 현재 주 작업 축: "조사가 자기 사각지대를 볼 수 있는가" — 범위를 사본으로 선언하지 말고 정본에 물을 것
+- 현재 주 작업 축: "한 환경에서만 재면 그 환경의 결함만 보인다" — main 에서만 도는 검사는 절반의 증거다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-31-main-001 mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로
 - TASK-2026-07-31-main-002 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다
 - TASK-2026-07-31-main-003 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity
 - TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
@@ -37,9 +36,43 @@
 - TASK-2026-07-31-main-008 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다
 - TASK-2026-08-01-main-001 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다
 - TASK-2026-08-03-main-001 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다
+- TASK-2026-08-03-main-002 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다
 ## 5. 다음 세션 시작 포인트
 
-**생성물인지를 이름으로 가르고 있었다 — 정본은 `.gitignore` 다 (TASK-2026-08-03-main-001, §2.54).**
+**첫 일: CI 실측**. §2.55 는 로컬 실측까지만 끝났다.
+
+---
+
+**슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다 (TASK-2026-08-03-main-002, §2.55).**
+handoff 는 "2건" 이라고 적고 있었는데 재현하니 **셋**이었고, 그중 하나는 **슬래시와 무관**했다.
+
+| 검사 | 무슬래시 새 브랜치 | 슬래시 브랜치 | 원인 |
+|---|---|---|---|
+| `check_branch_scoped_memory` | PASS | FAIL | fixture 가 파일명에 raw 브랜치 |
+| `check_workflow_linter` | PASS | FAIL | fixture 가 링크 깊이를 상수로 고정 |
+| `check_self_application` | **FAIL** | FAIL | **슬래시 무관 — 오귀속** |
+
+- **오귀속된 것이 더 큰 문제였다.** smoke 는 `branches: ["**"]` 로 돌기 때문에,
+  브랜치를 하나 따는 순간 자기 변경과 무관하게 CI 가 red 였다.
+- **세 번째(`check_workflow_linter`)는 전량 실행 전까지 아무도 몰랐다.** handoff 가
+  이름으로 지목한 2건만 봤다면 놓쳤다 — 발견 계기는 **슬래시 브랜치 환경으로 전량
+  smoke 를 한 번 돌린 것** 하나다.
+- **제품은 이미 옳았다.** `branch_slug` 정규화도 아카이버의 `rglob` 중첩 처리도 있었다.
+  깨진 건 전부 **검사 쪽**이었다 — fixture 가 제품이 만들지 않는 파일명을 만들고,
+  판정이 경로 한 컴포넌트를 다중 컴포넌트 브랜치명과 비교하고, 링크 깊이를 상수로 박고,
+  검사가 *저장소* 대신 *브랜치* 를 물었다.
+- 슬래시 브랜치를 **끝까지 밟는** case 신규(`check_branch_scoped_memory` 8 → 9 case).
+  이 경로를 밟는 case 가 없었던 것이 결함이 안 보인 이유다.
+- `check_self_application` 은 브랜치 메모리가 없으면 기존 브랜치로 검증하되
+  **바꿔치기한 사실을 출력**한다. 조용히 대체하면 거짓을 말하게 된다.
+- 실측: main **232/232**, `feature/slash-probe` **232/232**(이 저장소 최초),
+  개별 검사는 `release/v1.2/hotfix`(다중 슬래시)까지 통과. 되주입 4종 각각 다른 신호 —
+  그중 하나가 **"main 통과 / 슬래시 FAIL"** 로 갈렸다는 것이 이 건의 요약이다.
+  **CI 미실측**.
+
+---
+
+이전 세션 기록: **생성물인지를 이름으로 가르고 있었다 — 정본은 `.gitignore` 다 (TASK-2026-08-03-main-001, §2.54).**
 §2.53 이 포함 목록을 없앴지만 *제외*는 여전히 이름이었다. **이름은 성질이 아니다** —
 `build` 라는 이름의 *진짜 소스* 가 생기면 조용히 빠지고 그 안의 결함이 "미선언 0건" 이
 된다. 게다가 그 목록은 애초에 **`.gitignore` 가 선언한 것의 약한 사본**이었다.
@@ -494,14 +527,31 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - [ ] **dashboard Panel 5 (`collect_recent_releases`)는 브랜치 간 정렬 키가 없다.** 브랜치별
       `state.json` 을 이어 붙인 뒤 앞에서 자른다 — 브랜치 *안* 은 이제 최신순이지만 브랜치
       *간* 은 여전히 concat 순서다 (항목 문자열에 날짜가 없다).
-- [ ] 슬래시(`/`) 가 들어간 브랜치에서 `check_branch_scoped_memory` 와
-      `check_self_application` 이 깨진다 (probe 브랜치에서 실측). main 에서는 안 드러난다.
+- [x] ~~슬래시(`/`) 브랜치에서 `check_branch_scoped_memory` 와 `check_self_application`
+      이 깨진다~~ → **완료(§2.55)**. 실제로는 **셋**이었고(`check_workflow_linter` 추가),
+      `check_self_application` 은 **슬래시와 무관**했다(모든 새 브랜치에서 red).
+- [ ] **`session_handoff_template.md` 의 `../../docs/` 링크가 깊이 의존이다.** 슬래시와
+      무관하게 branch-scoped layout 전반의 문제다 — 템플릿이 legacy 평면 layout 기준으로
+      쓰였다. 이 저장소 handoff 는 손으로 쓴 링크라 현재는 동작한다. 별도 판단 필요.
+- [ ] **슬래시 브랜치 전량 smoke 를 CI 에 정례화할지 미결.** 지금은 로컬 env 재현
+      (`GITHUB_REF_NAME`)으로만 확인했다.
 - [ ] 스케줄 workflow 2건 여전히 red — `consumer-metrics-digest` (issue 게시 스텝),
       `okf-validate` (V-R10 online URL 검증). 이번 작업과 무관한 별건.
 - [ ] `active/<branch>/` 로 바뀐 bootstrap layout 을 실제 소비자 프로젝트에 적용해 볼 것
       (기존 평면 프로젝트는 유지되지만, 옮기려면 `tools/migrate_memory_to_branch_scoped.py`)
 
 ## 6. 남은 리스크 / 확인하지 못한 것
+
+- **이번 세션의 교훈(§2.55)**: **한 환경에서만 재면 그 환경의 결함만 보인다.** 세 번째
+  결함은 handoff 어디에도 없었고, 슬래시 브랜치로 **전량** smoke 를 한 번 돌린 것이
+  유일한 발견 계기였다. 이름으로 지목된 목록만 확인했으면 놓쳤다.
+- **이번 세션의 교훈(§2.55, 기록된 원인을 의심할 것)**: handoff 가 "슬래시에서 2건이
+  깨진다" 고 적었지만, 한 건은 **슬래시와 무관**했다(모든 새 브랜치에서 red). 증상이
+  같이 관측됐다고 원인이 같지는 않다 — **가르는 실험**(무슬래시 새 브랜치)을 한 번
+  돌리는 것으로 갈렸다.
+- **이번 세션의 교훈(§2.55, 깨진 것은 검사였다)**: 제품은 이미 슬래시를 감당하고 있었다.
+  fixture 가 **제품이 만들지 않는 모양**을 만들고 있었던 것이 결함의 정체다. 되주입과
+  같은 축이다 — fixture 는 내가 상상한 모양이고 제품은 실제 모양이다.
 
 - **이번 세션의 교훈(§2.52)**: **조사를 남기지 않으면 조사는 없었던 것과 같다.** §2.50 이
   AST 로 전수 조사를 하고도 스크립트를 안 남겨서, 바로 다음 건(§2.51)을 또 손으로 찾았다.

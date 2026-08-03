@@ -86,6 +86,36 @@ def _branch_dir() -> Path:
     return state_path_for_workspace(REPO_ROOT).parent
 
 
+def _self_application_target() -> tuple[Path, str]:
+    """자기 적용을 **어느 브랜치 메모리로** 검증할지 + 그 근거.
+
+    이 검사가 묻는 것은 "이 *저장소* 가 자기 kit 을 쓰는가" 이지 "이 *브랜치* 에서
+    세션을 시작한 적이 있는가" 가 아니다. 그런데 현재 브랜치 디렉터리만 보다 보니,
+    **session-start 를 아직 안 돌린 새 브랜치에서는 무조건 3건이 FAIL** 했다.
+    smoke 는 `branches: ["**"]` 로 모든 브랜치·PR 에서 도므로, 브랜치를 하나 따는
+    순간 자기 변경과 무관하게 CI 가 red 가 된다 — 위양성을 내는 검사는 무시당하고,
+    그러면 같은 검사가 잡아 줄 진짜 결함도 함께 무시된다(§2.48).
+
+    브랜치 메모리 부재는 **결함이 아니라 선언된 상태**다(CLAUDE.md self-bootstrap:
+    state.json 이 없으면 session-start 는 graceful skip 하고 scaffold 를 제안한다).
+    그래서 없으면 기존 브랜치 메모리로 검증하되, **바꿔치기한 사실을 반드시 밝힌다** —
+    조용히 대체하면 "이 브랜치가 자기 적용된다" 는 거짓을 말하게 된다.
+    """
+    current = _branch_dir()
+    if (current / "state.json").is_file():
+        return current, "current-branch"
+
+    active = memory_active_dir(REPO_ROOT)
+    fallbacks = sorted(
+        (p.parent for p in active.rglob("state.json") if p.parent != current),
+        key=lambda p: (p.name != "main", p.as_posix()),
+    )
+    if not fallbacks:
+        return current, "none"
+    chosen = fallbacks[0]
+    return chosen, f"fallback:{chosen.relative_to(active).as_posix()}"
+
+
 def _run_json(argv: list[str]) -> dict:
     completed = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True)
     try:
@@ -136,7 +166,14 @@ def test_repo_has_own_entrypoints() -> None:
 
 
 def test_repo_has_own_state_documents() -> None:
-    branch_dir = _branch_dir()
+    branch_dir, provenance = _self_application_target()
+    if provenance == "none":
+        _record("test_repo_has_own_state_documents", False,
+                f"어느 브랜치에도 상태 문서가 없다 ({memory_active_dir(REPO_ROOT)})")
+        return
+    if provenance != "current-branch":
+        print(f"  [info] 현재 브랜치({_branch_dir().name})에 상태 문서가 없어 "
+              f"{provenance} 로 검증한다 — session-start 미실행 상태다")
     required = {
         "state.json": branch_dir / "state.json",
         "session_handoff.md": branch_dir / "session_handoff.md",
@@ -153,11 +190,22 @@ def test_repo_has_own_state_documents() -> None:
 
 
 def test_own_linter_passes_on_own_repo() -> None:
-    result = _run_json([
+    branch_dir, provenance = _self_application_target()
+    # 경로를 **전부 명시**한다. state.json 만 넘기면 린터는 handoff/backlog 를 profile
+    # 에서 *현재 브랜치* 기준으로 다시 해석하므로, fallback 대상과 갈라져
+    # `missing_required_document` 가 난다 — 인자 하나만 바꾸면 나머지가 딴 데를 본다.
+    backlogs = sorted((branch_dir / "backlog").glob("*.md"), reverse=True)
+    argv = [
         sys.executable, str(LINTER),
         "--project-profile-path", str(PROFILE),
-        "--state-json-path", str(state_path_for_workspace(REPO_ROOT)),
-    ])
+        "--state-json-path", str(branch_dir / "state.json"),
+        "--session-handoff-path", str(branch_dir / "session_handoff.md"),
+    ]
+    if backlogs:
+        argv += ["--latest-backlog-path", str(backlogs[0])]
+    if provenance != "current-branch":
+        print(f"  [info] 린터를 {provenance} 의 문서로 실행한다")
+    result = _run_json(argv)
     issues = result.get("issues", [])
     _record(
         "test_own_linter_passes_on_own_repo",
@@ -170,7 +218,7 @@ def test_own_linter_passes_on_own_repo() -> None:
 
 
 def test_own_session_start_runs_on_own_repo() -> None:
-    branch_dir = _branch_dir()
+    branch_dir, _ = _self_application_target()
     backlogs = sorted((branch_dir / "backlog").glob("*.md"), reverse=True)
     if not backlogs:
         _record("test_own_session_start_runs_on_own_repo", False, "backlog 문서가 없어 실행할 수 없다")

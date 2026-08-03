@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (8 cases).
+"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (9 cases).
 
 검증 대상:
   1) path helper 가 `active/<branch>/` 를 반환한다
@@ -11,6 +11,7 @@
   6) 아카이버가 git 에 없는 브랜치를 탐지한다
   7) 아카이버가 살아있는 브랜치 / 현재 브랜치는 건드리지 않는다
   8) 아카이브 결과에 `.archived.json` 메타(task_ids 포함)가 남는다
+  9) 슬래시 브랜치가 끝까지 동작한다 — 중첩 dir + 슬러그 파일명 (main 에서는 안 드러난다)
 
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md §2 (Branch-scoped layout)
@@ -60,15 +61,22 @@ def _make_profile(root: Path, *, branch_scoped: bool, branch: str = "main") -> P
 def case_1_branch_scoped_paths() -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        profile = _make_profile(root, branch_scoped=True, branch=P.get_current_branch())
+        branch = P.get_current_branch()
+        profile = _make_profile(root, branch_scoped=True, branch=branch)
         backlog = P.workflow_backlog_dir(profile)
-        if backlog.parent.name != P.get_current_branch():
-            print(f"  FAIL: backlog 가 branch dir 하위가 아님: {backlog}")
+        # 슬래시 브랜치는 **중첩 디렉터리**가 된다(`active/feature/x/backlog`). 그래서
+        # 마지막 한 컴포넌트(`.name`)를 브랜치명과 비교하면 안 된다 — `slash-probe` 와
+        # `feature/slash-probe` 를 비교하게 되어, 경로가 옳은데도 FAIL 이 난다.
+        # active/ 로부터의 **상대 경로 전체**로 판정한다.
+        active = P.memory_active_dir(root)
+        got = backlog.parent.relative_to(active).as_posix()
+        if got != branch:
+            print(f"  FAIL: backlog 가 branch dir 하위가 아님: {backlog} (기대 branch={branch}, 실제={got})")
             return False
         if P.workflow_tasks_dir(profile) != backlog / "tasks":
             print("  FAIL: tasks_dir 불일치")
             return False
-        print(f"  PASS: active/<branch>/backlog 로 해석 ({backlog.parent.name})")
+        print(f"  PASS: active/<branch>/backlog 로 해석 ({got})")
         return True
 
 
@@ -145,9 +153,18 @@ def _run_archiver(memory_root: Path, *args: str) -> dict:
 
 
 def _seed_branch(memory_root: Path, branch: str) -> None:
+    """브랜치 메모리 하나를 만든다 — **제품이 실제로 쓰는 모양 그대로**.
+
+    디렉터리는 브랜치명 그대로라 슬래시가 있으면 중첩되지만(`active/feature/x/`),
+    **task 파일명은 슬러그**다(`TASK-<date>-feature-x-001.md`). 이전 구현은 파일명에도
+    raw 브랜치를 써서 `feature/x` 에서 `TASK-…-feature/x-001.md` 라는 *경로* 가 됐고,
+    없는 디렉터리에 쓰려다 `FileNotFoundError` 로 죽었다 — 제품은 그런 이름을 만들지
+    않으므로 **fixture 가 제품을 잘못 흉내 낸 것**이었다. 슬러그는 제품에서 가져온다.
+    """
+    slug = _backlog_mod().branch_slug(branch)
     d = memory_root / "active" / branch / "backlog" / "tasks"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"TASK-2026-07-21-{branch}-001.md").write_text("# t\n", encoding="utf-8")
+    (d / f"TASK-2026-07-21-{slug}-001.md").write_text("# t\n", encoding="utf-8")
 
 
 def case_6_detect_dead_branch() -> bool:
@@ -175,6 +192,63 @@ def case_7_keep_current_and_live() -> bool:
                 return False
         print(f"  PASS: 현재/살아있는 브랜치는 보존 ({current})")
         return True
+
+
+def case_9_slash_branch_end_to_end() -> bool:
+    """9) 슬래시 브랜치가 **끝까지** 동작한다 — 중첩 디렉터리 + 슬러그 파일명.
+
+    `feature/x` 는 `active/feature/x/` 라는 **중첩** 디렉터리가 되므로, 브랜치를
+    `iterdir()` 한 단계로 세는 코드는 `feature` 를 브랜치로 착각한다. 아카이버는
+    이미 `rglob` 으로 이 경우를 처리하지만, **그 사실을 밟아 보는 case 가 없었다** —
+    그래서 이 경로는 아무도 검증하지 않은 채로 있었다.
+
+    슬래시가 없으면 이 결함들이 전부 드러나지 않는다는 점이 핵심이다(main 에서는 안 보인다).
+    """
+    branch = "feature/slash-e2e-probe"
+    with tempfile.TemporaryDirectory() as tmp:
+        mr = Path(tmp)
+        _seed_branch(mr, branch)
+
+        # (a) 중첩 디렉터리로 만들어졌다 — 부모(`feature`)는 브랜치가 아니다.
+        nested = mr / "active" / "feature" / "slash-e2e-probe"
+        if not nested.is_dir():
+            print(f"  FAIL: 중첩 디렉터리 미생성: {nested}")
+            return False
+
+        # (b) 아카이버가 `feature` 가 아니라 `feature/slash-e2e-probe` 를 브랜치로 본다.
+        res = _run_archiver(mr)
+        names = {c["branch"] for c in res.get("candidates", [])}
+        if branch not in names:
+            print(f"  FAIL: 슬래시 브랜치를 브랜치로 못 봤다 — 후보={sorted(names)}")
+            return False
+        if "feature" in names:
+            print(f"  FAIL: 상위 디렉터리 `feature` 를 브랜치로 오인 — 후보={sorted(names)}")
+            return False
+
+        # (c) task ID 는 슬러그라 경로 구분자가 안 들어간다.
+        got = _backlog_mod().suggest_next_task_id([], target_date="2026-07-21", branch=branch)
+        if "/" in got:
+            print(f"  FAIL: task ID 에 경로 구분자: {got}")
+            return False
+
+        # (d) 실제로 아카이브하면 **중첩 경로 그대로** 옮겨지고 메타가 온전하다.
+        #     (task_ids 는 dry-run 후보가 아니라 `--apply` 후 `.archived.json` 에 있다.)
+        _run_archiver(mr, "--apply")
+        meta_path = mr / "archived" / "feature" / "slash-e2e-probe" / ".archived.json"
+        if not meta_path.is_file():
+            print(f"  FAIL: 중첩 경로로 아카이브되지 않았다: {meta_path}")
+            return False
+        data = json.loads(meta_path.read_text(encoding="utf-8"))
+        ids = data.get("task_ids", [])
+        if data.get("branch") != branch or not ids or any("/" in i for i in ids):
+            print(f"  FAIL: 메타 이상: {data}")
+            return False
+        if (mr / "active" / "feature" / "slash-e2e-probe").exists():
+            print("  FAIL: 원본이 active/ 에 남아있음")
+            return False
+
+    print(f"  PASS: 중첩 dir + 슬러그 ID ({got}) + 아카이버 인식 ({branch})")
+    return True
 
 
 def case_8_archive_emits_metadata() -> bool:
@@ -212,6 +286,7 @@ def main() -> int:
         case_6_detect_dead_branch,
         case_7_keep_current_and_live,
         case_8_archive_emits_metadata,
+        case_9_slash_branch_end_to_end,
     ]
     passed = 0
     for c in cases:

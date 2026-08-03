@@ -2300,6 +2300,60 @@ EXCLUDED_PARTS = {"build", "dist", "site", "__pycache__", ".venv", ...}
 한다 — 정본을 공유하는 것과 산출물을 되읽는 것은 다르다.
 
 
+### 2.55. 슬래시 브랜치에서 깨지던 것들 — 셋이었고, 원인이 서로 달랐다
+
+handoff 는 "슬래시 브랜치에서 검사 **2건**이 깨진다" 고 적고 있었다. 재현해 보니
+**셋이었고, 그중 하나는 슬래시와 무관**했다.
+
+| 검사 | 슬래시 없는 새 브랜치 | 슬래시 브랜치 | 진짜 원인 |
+|---|---|---|---|
+| `check_branch_scoped_memory` | PASS | **FAIL** | fixture 가 파일명에 raw 브랜치 사용 |
+| `check_workflow_linter` | PASS | **FAIL** | fixture 가 링크 깊이를 상수로 고정 |
+| `check_self_application` | **FAIL** | **FAIL** | **슬래시 무관** — 잘못 귀속돼 있었다 |
+
+**세 번째가 더 큰 문제였다.** smoke 는 `branches: ["**"]` 로 **모든 브랜치·PR** 에서
+돈다. 즉 브랜치를 하나 따는 순간, 자기 변경과 무관하게 CI 가 red 가 된다.
+
+**그리고 세 번째 검사(`check_workflow_linter`)는 전량 실행 전까지 아무도 몰랐다.**
+handoff 가 이름으로 지목한 2건만 봤다면 놓쳤을 것이다 — **슬래시 브랜치 환경으로 전량
+smoke 를 한 번 돌린 것**이 유일한 발견 계기다.
+
+**(1) `check_branch_scoped_memory` — 검사가 틀렸고 제품은 옳았다.**
+`_seed_branch` 가 파일명에 raw 브랜치를 써서 `TASK-…-feature/slash-probe-001.md` 라는
+*경로* 를 만들고 `FileNotFoundError` 로 죽었다. 제품(`branch_slug`)은 그런 이름을 만들지
+않는다 — **fixture 가 제품을 잘못 흉내 낸 것**이다. `case_1` 도 같은 부류로,
+`backlog.parent.name`(`slash-probe`)을 브랜치명(`feature/slash-probe`)과 비교해 경로가
+옳은데도 FAIL 이었다. `active/` 로부터의 **상대 경로 전체**로 판정하게 고쳤다.
+
+**슬래시 브랜치를 끝까지 밟는 case 를 새로 넣었다**(9 case). 중첩 dir 생성 / 아카이버가
+상위 `feature` 를 브랜치로 오인하지 않는지 / 슬러그 ID / `--apply` 후 중첩 경로 아카이브까지.
+**이 경로를 밟는 case 가 없었던 것**이 결함이 안 보인 이유다.
+
+**(2) `check_workflow_linter` — 깊이를 상수로 박았다.** fixture 가 handoff 에
+`[README](../../../README.md)` 를 붙이는데, 슬래시 브랜치는 한 단계 더 깊어 루트에 못
+닿고 `file_not_found` 위양성이 났다. v0.11.20 이 4 dot → 3 dot 으로 고쳤던 것도 같은
+부류였다 — **상수를 바꾸는 대신 실제 깊이에서 계산**하게 했다.
+
+**(3) `check_self_application` — 검사가 물어야 할 것을 잘못 물었다.** 이 검사가 묻는
+것은 *"이 저장소가 자기 kit 을 쓰는가"* 인데, *"이 브랜치에서 세션을 시작한 적이 있는가"*
+를 보고 있었다. 브랜치 메모리 부재는 결함이 아니라 **선언된 상태**다(CLAUDE.md
+self-bootstrap: state.json 이 없으면 session-start 는 graceful skip 하고 scaffold 를
+제안한다). 기존 브랜치 메모리로 검증하되 **바꿔치기한 사실을 반드시 출력**한다 —
+조용히 대체하면 "이 브랜치가 자기 적용된다" 는 거짓을 말하게 된다.
+
+> **인자 하나만 바꾸면 나머지가 딴 데를 본다.** 린터에 `--state-json-path` 만 넘겼더니
+> handoff/backlog 는 profile 에서 *현재 브랜치* 기준으로 다시 해석돼 갈라졌고
+> `missing_required_document` 가 났다. 경로를 **전부 명시**해야 한 곳을 본다.
+
+**검증**: `main` / 슬래시 없는 새 브랜치 / `feature/slash-probe` / `release/v1.2/hotfix`
+(다중 슬래시) 네 환경에서 전부 통과. 되주입 4종이 각각 다른 신호로 red —
+아카이버 `rglob`→`glob`(중첩 미탐), `state.json` 제거(자기 적용 없음), 링크 깊이 상수 복원
+(슬래시에서만 red, main 은 통과).
+
+> **되주입 하나가 "main 통과 / 슬래시 FAIL" 로 갈렸다는 것이 이 절의 요약이다.**
+> main 에서만 재면 이 부류는 영원히 안 보인다.
+
+
 ## 3. 검증
 
 누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서

@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `9efbd88` (§2.56 적용본, **트리거된 CI 4종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint. **smoke 가 처음으로 2셀로 돌았고 두 셀이 실제로 다른 브랜치를 쟀다** — 러너 자기 측정: `native` 는 `해석된 workflow 브랜치: main`, `slash` 는 `feature/ci-slash-probe`, 양쪽 다 `All 232 check_*.py scripts passed (220 test cases)`. `::error::` 0건 = 오버라이드 자기 검증 통과. 두 셀 6분 34초/6분 29초 병렬이라 wall-clock 동일. `actionlint` 는 `.github/workflows/**` 변경이라 이번엔 트리거됐다. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료)
+- 현재 기준선: v1.0.0-beta + `origin/main` = `7b076f8` (§2.57 적용본). **push 트리거 5종 중 4종 green 실측** — smoke(2셀 native/slash 모두 success)·mypy-strict·mcp-sdk-matrix·actionlint. **`okf-validate` 는 여전히 failure 지만 원인이 바뀌었다** — CLI 크래시가 아니라 도구가 처음으로 실제 돌아 검출 결과를 낸 exit 123 이고, 그 2건은 '죽은 링크' 가 아니라 추출기 위양성 1 + 데이터 결함 1 이다(§5 첫 항목). `workflow_dispatch` 실측: `consumer-metrics-digest` **success**(5주 연속 red 종료). mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행 — `5c8a85f` 에서 실측 완료
 - 현재 주 작업 축: "한 환경에서만 재면 그 환경의 결함만 보인다" — main 에서만 도는 검사는 절반의 증거다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,8 +39,20 @@
 - TASK-2026-08-03-main-004 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: CI 실측 + 두 스케줄 workflow 를 `workflow_dispatch` 로 수동 트리거**해서
-실제로 green 이 되는지 볼 것. 로컬 재현까지만 끝났다.
+**첫 일: `okf-validate` 가 새로 드러낸 2건.** §2.57 이 CLI 를 되살리자 도구가 **처음으로
+실제 돌았고**, 그 결과 7주간 가려져 있던 결함 2건이 나왔다. **둘 다 "죽은 링크" 가 아니다** —
+검사는 `V-R10-online-stale`(링크가 죽었다)로 보고하지만 사실은 *그 URL 이 애초에 존재한
+적이 없다* 는 것이라, **판정 이름이 원인과 다르다**.
+
+| 검출된 URL | 실제 원인 |
+|---|---|
+| `…/workflow_kit/README.md`).` | **추출기 결함(위양성)** — `docs/samples/…/README.md:96` 의 *산문* 한 줄에서 뽑혔다. grep 이 frontmatter 가 아니라 본문까지 훑고, 정규식 `[^ '\"]+` 이 백틱·괄호·마침표를 URL 에 포함시킨다. 깨끗한 `…/README.md` 는 따로 추출돼 **통과**했다 |
+| `…/blob/main/external` | **데이터 결함** — `concepts/okf-open-knowledge-format.md` 의 frontmatter 가 `resource: "<url> (<url2>, 2026-06-16)"` 처럼 괄호 주석을 넣어, 추출기가 공백에서 끊어 없는 경로가 됐다 |
+
+**권고: 둘 다 고칠 것.** 추출기만 고치면 2번 데이터가 여전히 규약 위반이고, 데이터만
+고치면 다음에 산문에 URL 을 쓰는 순간 같은 위양성이 돌아온다. 그리고 `resource:` 가
+**bare URL 이어야 한다**는 규약을 검사로 고정해야 데이터가 다시 어긋나지 않는다.
+(§2.48 과 같은 자리 — 검사를 켜면 보고가 온다. 다 믿어도 다 지워도 안 된다.)
 
 ---
 
@@ -64,7 +76,10 @@
   라벨을 손으로 만들면 fork·새 클론에서 되돌아오므로, **의존은 쓰는 쪽이 보장**하도록
   사용 직전 `gh label create --force`(멱등)로 확보하고 실패 시 `issues:write` 를 지목하며 죽는다.
 - 실측: `check_url_validity` **17/17**, 전량 smoke **232/232**, mypy strict 122 files 0 errors,
-  실제 CI 호출이 네트워크 포함 **exit 0**. **CI 미실측**.
+  실제 CI 호출이 네트워크 포함 **exit 0**.
+- **CI 실측 완료**: `consumer-metrics-digest` 를 `workflow_dispatch` 로 돌려 **success** —
+  5주 연속 red 가 닫혔다. `okf-validate` 는 **여전히 failure 지만 성격이 바뀌었다** —
+  CLI 크래시가 아니라 도구가 실제로 돌아 검출 결과를 낸 exit 123 이다(위 §5 첫 항목).
 
 ---
 
@@ -596,7 +611,12 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
       issue 게시)이 **아니었다** — CLI 옵션 등록 삭제 2건과 저장소 라벨 부재였다.
 - [ ] **`consumer-metrics-digest` 의 traffic API 403**(`Resource not accessible by
       integration`)은 WARN 처리라 치명적이지 않지만 남아 있다. `GITHUB_TOKEN` 권한 문제.
-- [ ] **두 스케줄 workflow 를 실제로 트리거해 보지 않았다** — 로컬 재현까지다.
+- [x] ~~**두 스케줄 workflow 를 실제로 트리거해 보지 않았다**~~ → **완료**.
+      `consumer-metrics-digest` success. `okf-validate` 는 실패하지만 **원인이 바뀌었다**.
+- [ ] **`okf-validate` 의 URL 추출기가 산문까지 훑고 마크다운 구문을 URL 에 포함시킨다**
+      (위양성 1건). frontmatter 만 훑고 URL 경계를 끊을 것.
+- [ ] **샘플 번들의 `resource:` 필드에 괄호 주석이 들어 있다** — bare URL 규약 위반.
+      데이터를 고치고, 그 규약을 검사로 고정할 것.
 - [ ] `active/<branch>/` 로 바뀐 bootstrap layout 을 실제 소비자 프로젝트에 적용해 볼 것
       (기존 평면 프로젝트는 유지되지만, 옮기려면 `tools/migrate_memory_to_branch_scoped.py`)
 

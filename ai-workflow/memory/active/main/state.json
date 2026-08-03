@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `19df5d7` (§2.56 까지의 적용본, 트리거된 CI 4종 green 실측). **§2.57 은 로컬 실측까지 완료, CI 미실측** — `check_url_validity` **17/17**, 전량 smoke **232/232**, mypy strict 122 files 0 errors, `okf-validate` 의 실제 CI 호출이 네트워크 포함 **exit 0**. 다음 세션 첫 일은 CI 실측 + 두 스케줄 workflow 수동 트리거",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `7b076f8` (§2.57 적용본). **push 트리거 5종 중 4종 green 실측** — smoke(2셀 native/slash 모두 success)·mypy-strict·mcp-sdk-matrix·actionlint. **`okf-validate` 는 여전히 failure 지만 원인이 바뀌었다** — CLI 크래시가 아니라 도구가 처음으로 실제 돌아 검출 결과를 낸 exit 123 이고, 그 2건은 '죽은 링크' 가 아니라 추출기 위양성 1 + 데이터 결함 1 이다(§5 첫 항목). `workflow_dispatch` 실측: `consumer-metrics-digest` **success**(5주 연속 red 종료). mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행 — `5c8a85f` 에서 실측 완료",
     "current_axis": "\"오래 red 인 것은 원인이 이름과 달라진다\" — 방치된 red 는 증상 이름만 남긴다",
     "current_focus": null,
     "in_progress_items": [],

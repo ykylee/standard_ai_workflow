@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (9 cases).
+"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (10 cases).
 
 검증 대상:
   1) path helper 가 `active/<branch>/` 를 반환한다
@@ -12,6 +12,7 @@
   7) 아카이버가 살아있는 브랜치 / 현재 브랜치는 건드리지 않는다
   8) 아카이브 결과에 `.archived.json` 메타(task_ids 포함)가 남는다
   9) 슬래시 브랜치가 끝까지 동작한다 — 중첩 dir + 슬러그 파일명 (main 에서는 안 드러난다)
+  10) CI 가 슬래시 브랜치 컨텍스트를 실제로 돌린다 (9 는 코드, 10 은 그 검증의 실행 보장)
 
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md §2 (Branch-scoped layout)
@@ -273,6 +274,56 @@ def case_8_archive_emits_metadata() -> bool:
         return True
 
 
+def case_10_ci_runs_a_slash_branch_context() -> bool:
+    """10) CI 가 **슬래시 브랜치 컨텍스트를 실제로 돌린다**.
+
+    §2.55 의 결함 3건이 오래 살아 있던 이유는 단순하다 — 개발이 거의 main 에서
+    이뤄지므로 슬래시 브랜치를 밟는 실행이 **아무도 보장하지 않는 우연**이었다.
+    §2.56 이 smoke 를 2셀 matrix 로 만들어 그 우연을 없앴는데, 그 셀은 지우기 쉽다.
+    선언만 있고 검사가 없으면 드리프트한다.
+
+    `case_9` 는 *코드* 가 슬래시를 감당하는지 보고, 이 case 는 *그 검증이 CI 에서
+    실제로 도는지* 를 본다 — 다른 층이다.
+    """
+    wf = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
+    if not wf.is_file():
+        print(f"  FAIL: {wf} 부재")
+        return False
+    try:
+        import yaml
+    except ImportError:
+        print("  [warn] PyYAML 부재 — 문자열 검사로 대체")
+        src = wf.read_text(encoding="utf-8")
+        ok = "branch_context" in src and "CODEX_WORKFLOW_BRANCH" in src and "/" in src
+        if not ok:
+            print("  FAIL: smoke.yml 에 슬래시 브랜치 셀의 흔적이 없다")
+        return ok
+
+    data = yaml.safe_load(wf.read_text(encoding="utf-8"))
+    cells = (data.get("jobs", {}).get("smoke", {})
+             .get("strategy", {}).get("matrix", {}).get("branch_context"))
+    if not cells:
+        print("  FAIL: smoke 가 branch_context matrix 를 안 쓴다 — 슬래시 컨텍스트 미보장")
+        return False
+    slashed = [c for c in cells if "/" in str(c.get("workflow_branch") or "")]
+    if not slashed:
+        print(f"  FAIL: 슬래시가 든 브랜치 셀이 없다: {cells}")
+        return False
+    native = [c for c in cells if not str(c.get("workflow_branch") or "")]
+    if not native:
+        print(f"  FAIL: 오버라이드 없는 셀이 없다 — 실제 브랜치를 재는 실행이 사라졌다: {cells}")
+        return False
+    # 오버라이드가 안 먹었을 때 조용히 넘어가지 않는지 (workflow 안의 자기 검증)
+    src = wf.read_text(encoding="utf-8")
+    if "브랜치 오버라이드가 적용되지 않았다" not in src:
+        print("  FAIL: 오버라이드 적용 여부를 workflow 가 강제하지 않는다 — "
+              "안 먹으면 두 셀이 같은 것을 재면서 '2셀 green' 이 된다")
+        return False
+    print(f"  PASS: CI 가 {len(cells)}셀로 돈다 "
+          f"(슬래시={slashed[0]['workflow_branch']}, native 셀 존재, 오버라이드 자기 검증 있음)")
+    return True
+
+
 def main() -> int:
     print("=" * 60)
     print("branch-scoped memory + 자동 아카이브 smoke (v1.0.0)")
@@ -287,6 +338,7 @@ def main() -> int:
         case_7_keep_current_and_live,
         case_8_archive_emits_metadata,
         case_9_slash_branch_end_to_end,
+        case_10_ci_runs_a_slash_branch_context,
     ]
     passed = 0
     for c in cases:

@@ -8,8 +8,30 @@ on:
 
 jobs:
   smoke:
-    name: Run smoke tests
+    name: Run smoke tests (${{ matrix.branch_context.label }})
     runs-on: ubuntu-latest
+    # v1.0.9(§2.56): **브랜치 컨텍스트를 2셀로 돌린다.**
+    #
+    # 이 workflow 는 `branches: ["**"]` 라 모든 브랜치에서 돌지만, 실제 개발이 거의
+    # main 에서 이뤄지므로 **슬래시가 들어간 브랜치를 밟는 실행은 아무도 보장하지
+    # 않았다**. 그래서 §2.55 의 결함 3건이 오래 살아 있었다 — 슬래시 브랜치는
+    # `active/feature/x/` 라는 *중첩* 디렉터리가 되어 경로 깊이와 이름 파싱이 전부
+    # 달라지는데, main 에서 재면 그 차이가 0이다.
+    #
+    # **"branch-sensitive 한 검사 목록" 을 선언해서 그것만 돌리지 않는다.** 그 목록은
+    # 반드시 드리프트하고, 빠진 것을 셀 방법이 없다(§2.53 에서 같은 모양의 포함 목록을
+    # 없앴다). 전량을 두 컨텍스트로 돌린다 — 두 셀은 병렬이라 wall-clock 은 그대로다.
+    #
+    # 오버라이드 키는 `CODEX_WORKFLOW_BRANCH`(BRANCH_ENV_KEYS 최우선)다.
+    # `GITHUB_REF_NAME` 을 덮으면 러너의 실제 컨텍스트까지 바뀌므로 쓰지 않는다.
+    strategy:
+      fail-fast: false
+      matrix:
+        branch_context:
+          - label: native
+            workflow_branch: ""
+          - label: slash
+            workflow_branch: "feature/ci-slash-probe"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,8 +77,30 @@ jobs:
         shell: bash
         env:
           PYTHONPATH: ${{ github.workspace }}/workflow-source
+          WORKFLOW_BRANCH_OVERRIDE: ${{ matrix.branch_context.workflow_branch }}
         run: |
           set -uo pipefail
+          # v1.0.9(§2.56): 슬래시 셀만 workflow 메모리 브랜치를 덮는다. **비어 있으면
+          # export 하지 않는다** — 빈 값을 넣으면 `_usable_branch_name` 이 None 을 내고
+          # 다음 env 키로 흘러가, "native 를 쟀다" 와 "빈 값이라 흘렀다" 가 같은 모양이 된다.
+          if [ -n "${WORKFLOW_BRANCH_OVERRIDE}" ]; then
+            export CODEX_WORKFLOW_BRANCH="${WORKFLOW_BRANCH_OVERRIDE}"
+          fi
+          # 무엇을 기준으로 쟀는지 먼저 남긴다 — 두 셀의 요약이 똑같아 보이면
+          # 어느 쪽이 통과한 것인지 알 수 없다.
+          RESOLVED="$(python3 -c 'from workflow_kit.common.paths import get_current_branch; print(get_current_branch())')"
+          {
+            echo "## 브랜치 컨텍스트: \`${{ matrix.branch_context.label }}\`"
+            echo
+            echo "- 해석된 workflow 브랜치: \`${RESOLVED}\`"
+            echo "- 오버라이드: \`${WORKFLOW_BRANCH_OVERRIDE:-(없음 — 러너의 실제 브랜치)}\`"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          # 선언한 셀이 실제로 그 컨텍스트로 도는지 여기서 강제한다. 오버라이드가
+          # 먹지 않으면 두 셀이 같은 것을 재면서 "2셀 green" 이라고 보고하게 된다.
+          if [ -n "${WORKFLOW_BRANCH_OVERRIDE}" ] && [ "${RESOLVED}" != "${WORKFLOW_BRANCH_OVERRIDE}" ]; then
+            echo "::error::브랜치 오버라이드가 적용되지 않았다 — 기대 ${WORKFLOW_BRANCH_OVERRIDE}, 실제 ${RESOLVED}"
+            exit 1
+          fi
           # v1.0.0: 통합 runner 로 단일화. runner 가 check 마다 (a) 전용 TMPDIR 을 주고
           # 종료 후 삭제하고, (b) 프로세스 그룹째 정리하며, (c) 디스크/temp 상한을 강제한다.
           # 과거 사고: temp 누수가 tmpfs 경유 OOM (RAM) / 디스크 211GB 점유를 일으켰고,
@@ -117,7 +161,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-result
+          # v1.0.9: 셀마다 이름이 달라야 한다 — upload-artifact@v4 는 같은 이름의
+          # 두 번째 업로드에서 실패한다(그러면 통과한 셀의 증거가 사라진다).
+          name: smoke-result-${{ matrix.branch_context.label }}
           path: |
             smoke-result.json
             smoke-summary.md

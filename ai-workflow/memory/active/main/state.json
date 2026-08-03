@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `dda0825` (§2.55 적용본, **트리거된 CI 3종 green 실측** — smoke·mypy-strict·mcp-sdk-matrix. 러너 자기 측정으로 `All 232 check_*.py scripts passed (220 test cases)`, 집힌 mcp `1.27.0`(smoke 정책 `pinned` 선언대로), mypy `Success: no issues found in 122 source files`. **mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행** — `5c8a85f` 에서 `--strict` green 실측 완료. `actionlint`/`mcp-inspector` 도 같은 이유. 로컬은 main **232/232** 에 더해 `feature/slash-probe` **232/232**(이 저장소 최초), 개별 검사는 다중 슬래시까지 통과, 되주입 4종)",
-    "current_axis": "\"한 환경에서만 재면 그 환경의 결함만 보인다\" — main 에서만 도는 검사는 절반의 증거다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `96e5826` (§2.55 까지의 적용본, 트리거된 CI 3종 green 실측). **§2.56 은 로컬 실측까지 완료, CI 미실측** — 전량 **2컨텍스트 각각 232/232**(native / `CODEX_WORKFLOW_BRANCH=feature/ci-slash-probe`), `check_branch_scoped_memory` 10/10 양쪽, 되주입 2종. 다음 세션 첫 일은 CI 실측(2셀이 실제로 다른 브랜치를 쟀는지) 후 이 줄을 새 해시로 갱신하는 것",
+    "current_axis": "\"고친 것을 누가 매번 재는가\" — 1회 수동 검증은 다음 결함을 못 막는다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
       "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
       "TASK-2026-08-03-main-001 — 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다",
       "TASK-2026-08-01-main-001 — 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다",
@@ -41,20 +42,20 @@
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
       "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
       "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
-      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity",
-      "TASK-2026-07-31-main-002 — 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다"
+      "TASK-2026-07-31-main-003 — 기준 경로가 한 칸 어긋나 있었다 — 린터의 설정과 maturity"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-03.md",
-    "task_count": 2,
+    "task_count": 3,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-03-main-001 — 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다",
-      "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다"
+      "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
+      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로"
     ]
   },
   "next_documents": [

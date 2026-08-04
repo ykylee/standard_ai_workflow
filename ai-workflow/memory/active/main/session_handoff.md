@@ -9,7 +9,8 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `4ac03ba` 위 §2.58 적용본. **`okf-validate` 가 낸 URL 2건을 세 층에서 함께 고쳤다** — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`). 로컬 실측: 전량 smoke **233/233**(native·slash 양쪽), mypy strict **123 files 0 errors**, actionlint exit 0, **CI 호출 재현이 네트워크 포함 exit 0**. 직전 기준선(`7b076f8`)의 CI 실측은 push 트리거 5종 중 4종 green + `consumer-metrics-digest` dispatch success 였고, 유일한 red 가 이번에 고친 `okf-validate` 다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)
+- CI 자기 측정(요약 필드 말고 로그의 사실): smoke 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, `::error::` 0건. `okf-validate` 는 `Extracted 4 unique URLs` → `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` → online 검증 exit 0. mkdocs 는 `docs/**` 를 밟아 **직전 두 사이클 만에 처음 트리거돼 통과**했다
 - 현재 주 작업 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
@@ -39,14 +40,15 @@
 - TASK-2026-08-04-main-001 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: push 후 CI 실측.** 로컬은 다 재 놨다(smoke 233/233 native·slash, mypy strict 123
-files, actionlint 0, CI 호출 재현 exit 0). 남은 건 **러너에서의 사실**이다. 이번 변경은
-`okf-validate` 의 push path 필터 3개(`ai-workflow/wiki/**`,
-`docs/samples/okf-bundle-2026-06-16/**`, 워크플로우 자신)를 모두 밟으므로 트리거된다 —
-**6주 연속 red 였던 workflow 가 닫히는지**가 판정 대상이다. smoke 는 2셀(native/slash),
-mypy-strict / mcp-sdk-matrix / actionlint 도 함께 돈다. mkdocs 는 `docs/**` 필터라
-`docs/CODE_INDEX.md`·`docs/INSTALLATION_AND_USAGE.md` 변경으로 **이번엔 트리거된다** —
-직전 두 사이클은 미실행이었으므로 처음 보는 결과일 수 있다.
+**CI 실측은 끝났다 — 트리거 6종 전부 green, red 0건**(§1 에 로그 근거까지 적어 뒀다).
+`okf-validate` 가 닫히면서 **이 저장소에 오래 red 인 workflow 가 남아 있지 않다**.
+다음 세션은 새 축을 잡고 시작하면 된다.
+
+후보(급하지 않은 순): (1) `okf_export` 의 Citations/`resource` 외에 **다른 파생 필드도
+생산자가 규약을 아는지** — 이번엔 `resource` 하나만 봤다. (2) `check_wiki_drift` 는
+`_parse_code_paths` 와 존재 검사가 **같은 파싱을 두 번** 구현하고 있다(이번에 URL 스킵도
+양쪽에 넣었다) — 규약 단일 출처로 접을 자리. (3) `last_ingested_from` 자유 서술은 그대로
+두기로 했지만, 그 값에서 뽑히는 URL 이 늘면 외부 의존도 같이 는다.
 
 **남은 리스크(이번 건 고유).** 이제 검사에 들어가는 URL 4건이 전부 외부 호스트다
 (`raw.githubusercontent.com` / `github.com` / `blog.scottlogic.com`). 그중 하나가 죽으면
@@ -666,6 +668,11 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - **확인 못 함(§2.58)**: 이제 검사에 들어가는 URL 4건이 **전부 외부 호스트**다. 그중 하나가
   실제로 죽으면 같은 이름으로 red 가 되지만 그때는 진짜 stale 이다 — 로그의 provenance
   줄로 구분할 것.
+- **이번 세션의 교훈(§2.58, 조회 실패가 완료로 보였다)**: CI 를 기다리려고 건 monitor 가
+  `gh run list --commit <sha>` 로 물었는데 **빈 결과**가 왔고, 스크립트는 그걸 "대기 0건" 으로
+  세어 *전부 끝났다* 고 알렸다. 실제로는 두 개가 돌고 있었다. 이번에 고친 결함과 **같은
+  모양**이다 — 못 본 것과 없는 것이 같은 값으로 나오면 그 판정은 무력화된다. 다시 걸 때는
+  run ID 를 직접 물어 각 run 의 상태를 확인하게 고쳤다.
 - **이번 세션의 교훈(§2.57)**: **오래 red 인 것은 아무도 안 보고, 그래서 원인이 이름과
   달라진다.** 두 건 다 알려진 이름("URL 검증 실패" / "issue 게시 실패")과 실제 원인이
   달랐다. red 를 방치하면 그 red 는 *증상 이름* 만 남고 사실은 사라진다.

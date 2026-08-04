@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `4ac03ba` 위에 §2.58 적용본(로컬). **검사 3층(추출기/데이터/규약)을 한 번에 고쳤다** — `okf-validate` 가 낸 URL 2건은 죽은 링크가 아니라 *태어난 적 없는* 링크였다. 추출을 `workflow_kit.frontmatter_urls` 로 옮기고(frontmatter 만, 값 안의 URL 전부, 출처 동반, 스캔 0건이면 exit 2), `okf_export._derive_resource` 에 가드 2종(공백=URI 아님 / 없는 경로=URL 아님), `resource` bare-URI 규약을 `V-R10-resource-not-bare-uri` 로 고정. 로컬 실측: 전량 smoke **233/233**(native·slash 양쪽), mypy strict 123 files 0 errors, actionlint exit 0, CI 호출 재현이 네트워크 포함 exit 0. **CI 실측은 push 후**",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(2026-07-22 이후 **6주 연속 red 종료**, 24초)·smoke(2셀 native/slash)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. smoke 는 두 셀이 각각 `main` / `feature/ci-slash-probe` 로 갈려 양쪽 다 `All 233 check_*.py scripts passed`, `::error::` 0건. `okf-validate` 자기 측정: `Extracted 4 unique URLs` + `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` + online 검증 exit 0. **push 트리거 red 0건이다**",
     "current_axis": "\"판정 이름이 원인과 다르다\" — 검사를 켜면 보고가 오지만, 그 보고의 *이름* 은 검출기가 아는 만큼만 말한다",
     "current_focus": null,
     "in_progress_items": [],

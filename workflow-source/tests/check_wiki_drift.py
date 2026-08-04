@@ -89,6 +89,10 @@ def _parse_code_paths(ingested_from: str) -> list[Path]:
     paths = []
     for part in ingested_from.split("+"):
         part = part.strip()
+        if part.startswith(("http://", "https://")):
+            # 외부 출처는 in-repo path 가 아니다. URL 이 `.md` 로 끝날 수 있으므로
+            # 확장자만 보면 저장소 안에서 찾다가 "없는 경로" 로 오판한다 (§2.58).
+            continue
         if not (part.endswith(".md") or part.endswith(".py")):
             continue
         if "{" in part and "}" in part:
@@ -285,6 +289,11 @@ def test_ingested_from_paths_exist() -> None:
             continue
         for part in ingested_match.group(1).split("+"):
             part = part.strip()
+            if part.startswith(("http://", "https://")):
+                # 외부 출처 URL — in-repo 존재 검사 대상이 아니다. URL 의 도달성은
+                # V-R10(`okf-validate`)이 본다. 여기서 보면 `.md` 로 끝나는 URL 을
+                # 저장소 경로로 오판한다 (§2.58).
+                continue
             if not (part.endswith(".md") or part.endswith(".py")):
                 continue
             if "{" in part and "}" in part:

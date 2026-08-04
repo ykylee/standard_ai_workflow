@@ -4,13 +4,13 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-03
+- 최종 수정일: 2026-08-04
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `7b076f8` (§2.57 적용본). **push 트리거 5종 중 4종 green 실측** — smoke(2셀 native/slash 모두 success)·mypy-strict·mcp-sdk-matrix·actionlint. **`okf-validate` 는 여전히 failure 지만 원인이 바뀌었다** — CLI 크래시가 아니라 도구가 처음으로 실제 돌아 검출 결과를 낸 exit 123 이고, 그 2건은 '죽은 링크' 가 아니라 추출기 위양성 1 + 데이터 결함 1 이다(§5 첫 항목). `workflow_dispatch` 실측: `consumer-metrics-digest` **success**(5주 연속 red 종료). mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행 — `5c8a85f` 에서 실측 완료
-- 현재 주 작업 축: "한 환경에서만 재면 그 환경의 결함만 보인다" — main 에서만 도는 검사는 절반의 증거다
+- 현재 기준선: v1.0.0-beta + `origin/main` = `4ac03ba` 위 §2.58 적용본. **`okf-validate` 가 낸 URL 2건을 세 층에서 함께 고쳤다** — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`). 로컬 실측: 전량 smoke **233/233**(native·slash 양쪽), mypy strict **123 files 0 errors**, actionlint exit 0, **CI 호출 재현이 네트워크 포함 exit 0**. 직전 기준선(`7b076f8`)의 CI 실측은 push 트리거 5종 중 4종 green + `consumer-metrics-digest` dispatch success 였고, 유일한 red 가 이번에 고친 `okf-validate` 다
+- 현재 주 작업 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -27,7 +27,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-31-main-004 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성
 - TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
 - TASK-2026-07-31-main-006 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
 - TASK-2026-07-31-main-007 모든 panel 의 기준이 자기 근거를 안 내고 있었다
@@ -37,22 +36,51 @@
 - TASK-2026-08-03-main-002 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다
 - TASK-2026-08-03-main-003 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로
 - TASK-2026-08-03-main-004 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다
+- TASK-2026-08-04-main-001 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크
 ## 5. 다음 세션 시작 포인트
 
-**첫 일: `okf-validate` 가 새로 드러낸 2건.** §2.57 이 CLI 를 되살리자 도구가 **처음으로
-실제 돌았고**, 그 결과 7주간 가려져 있던 결함 2건이 나왔다. **둘 다 "죽은 링크" 가 아니다** —
-검사는 `V-R10-online-stale`(링크가 죽었다)로 보고하지만 사실은 *그 URL 이 애초에 존재한
-적이 없다* 는 것이라, **판정 이름이 원인과 다르다**.
+**첫 일: push 후 CI 실측.** 로컬은 다 재 놨다(smoke 233/233 native·slash, mypy strict 123
+files, actionlint 0, CI 호출 재현 exit 0). 남은 건 **러너에서의 사실**이다. 이번 변경은
+`okf-validate` 의 push path 필터 3개(`ai-workflow/wiki/**`,
+`docs/samples/okf-bundle-2026-06-16/**`, 워크플로우 자신)를 모두 밟으므로 트리거된다 —
+**6주 연속 red 였던 workflow 가 닫히는지**가 판정 대상이다. smoke 는 2셀(native/slash),
+mypy-strict / mcp-sdk-matrix / actionlint 도 함께 돈다. mkdocs 는 `docs/**` 필터라
+`docs/CODE_INDEX.md`·`docs/INSTALLATION_AND_USAGE.md` 변경으로 **이번엔 트리거된다** —
+직전 두 사이클은 미실행이었으므로 처음 보는 결과일 수 있다.
 
-| 검출된 URL | 실제 원인 |
-|---|---|
-| `…/workflow_kit/README.md`).` | **추출기 결함(위양성)** — `docs/samples/…/README.md:96` 의 *산문* 한 줄에서 뽑혔다. grep 이 frontmatter 가 아니라 본문까지 훑고, 정규식 `[^ '\"]+` 이 백틱·괄호·마침표를 URL 에 포함시킨다. 깨끗한 `…/README.md` 는 따로 추출돼 **통과**했다 |
-| `…/blob/main/external` | **데이터 결함** — `concepts/okf-open-knowledge-format.md` 의 frontmatter 가 `resource: "<url> (<url2>, 2026-06-16)"` 처럼 괄호 주석을 넣어, 추출기가 공백에서 끊어 없는 경로가 됐다 |
+**남은 리스크(이번 건 고유).** 이제 검사에 들어가는 URL 4건이 전부 외부 호스트다
+(`raw.githubusercontent.com` / `github.com` / `blog.scottlogic.com`). 그중 하나가 죽으면
+`okf-validate` 는 **이번과 같은 이름으로 red** 가 되지만 그때는 *진짜* stale 이다 —
+로그의 provenance 줄(`파일:줄 key url`)로 구분할 것. 그 줄을 남기려고 추출기가 출처를
+같이 낸다.
 
-**권고: 둘 다 고칠 것.** 추출기만 고치면 2번 데이터가 여전히 규약 위반이고, 데이터만
-고치면 다음에 산문에 URL 을 쓰는 순간 같은 위양성이 돌아온다. 그리고 `resource:` 가
-**bare URL 이어야 한다**는 규약을 검사로 고정해야 데이터가 다시 어긋나지 않는다.
-(§2.48 과 같은 자리 — 검사를 켜면 보고가 온다. 다 믿어도 다 지워도 안 된다.)
+---
+
+**직전 세션 기록: 검사가 처음 돌자 나온 URL 2건 (TASK-2026-08-04-main-001, §2.58).**
+판정 이름은 `V-R10-online-stale`("링크가 죽었다")였는데 **둘 다 존재한 적 없는 URL** 이었다.
+결함이 세 층에 나뉘어 있었고 하나만 고치면 나머지가 되돌린다.
+
+- **추출기** — 규약을 아는 자리가 워크플로우 안의 `grep -rEho "resource: …"` 한 줄이었다.
+  frontmatter 가 아니라 **파일 전체**를 훑어 산문 예시를 URL 로 만들었고(백틱·괄호·마침표
+  포함), 값을 **공백에서 끊어** ``a + b`` 의 두 번째 출처를 조용히 버렸다 — ponytail page 의
+  blog URL 은 이번까지 **한 번도 검사된 적이 없다**. `workflow_kit.frontmatter_urls` 로
+  옮겼다: frontmatter 블록만, 값 안의 URL 전부, **출처(파일:줄:key) 동반**, 스캔 0건이면 exit 2.
+- **생산자** — `okf_export._derive_resource` 가 `last_ingested_from`(자유 서술)을 통째로
+  in-repo 경로로 넘겨 `…/blob/main/external` 을 만들었다. `external` 은 경로가 아니라
+  "외부 출처" 표식이었다. 가드 2종: **공백이 있으면 URI 가 아니다** / **저장소에 없는 경로는
+  URL 이 되지 않는다**. 커밋된 5-page 번들에 그런 `resource` 가 **2건** 있었고, 그중 하나는
+  추출기가 공백에서 끊어 준 덕에 우연히 통과 중이었다.
+- **규약** — `resource` 는 bare URI 하나(OKF §4.1). `V-R10-resource-not-bare-uri` 로 고정하고
+  워크플로우가 매 실행 `--check` 로 강제한다. `last_ingested_from` 은 자유 서술 그대로 둔다
+  (56개가 그렇게 쓰이고 있고, 거기를 조이면 사실이 줄어든다).
+- 검사 1종 신규(smoke 232 → **233**): `check_frontmatter_url_extraction`(12 case).
+  마지막 case 가 **커밋된 번들의 `resource` = 지금 생산자의 출력**을 본다 — 데이터를 손으로
+  고치고 생산자를 두면 다음 export 가 되돌리기 때문이다.
+- 부수 발견 2건: `check_wiki_drift` 가 `.md` 로 끝나는 **URL** 을 in-repo 경로로 오판했고
+  (이전 값은 괄호로 끝나 확장자 검사에 안 걸려 조용히 지나갔다), `check_okf_export` 의
+  pinning fixture 가 `repo_root=Path("/fake")` 로 **제품이 만들지 않는 모양**을 검사하고 있었다.
+- 되주입 5종 각각 다른 신호: 생산자 가드 제거 3건 red / 데이터 되돌림 2건 / frontmatter
+  경계 제거 3건 / 정규식 되돌림 2건 / 소비자 grep 복귀 1건.
 
 ---
 
@@ -622,6 +650,22 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
+- **이번 세션의 교훈(§2.58)**: **검사가 내는 이름은 검출기가 아는 만큼만 말한다.**
+  `V-R10-online-stale`("링크가 죽었다")로 보고된 2건은 죽은 링크가 아니라 *태어난 적 없는*
+  링크였다. 검출기는 "이 URL 에 접근이 안 된다" 까지만 알고, "그 URL 이 어떻게 만들어졌는지"
+  는 모른다. **red 를 그 이름대로 믿고 고치면 엉뚱한 곳을 고친다** — 값의 출처까지 거슬러
+  올라갈 것.
+- **이번 세션의 교훈(§2.58, 입력단도 검사 대상이다)**: 검사기(`url_validity`)는 17 case 로
+  덮여 있었는데 **무엇을 먹일지 정하는 층**은 워크플로우 안의 grep 한 줄이었고 검사가 0건
+  이었다. 그 한 줄이 위양성과 누락을 동시에 만들었다. **검사기를 검사했다고 그 검사가 옳은
+  것을 보는 것은 아니다.**
+- **이번 세션의 교훈(§2.58, 누락은 조용하다)**: 위양성 1건은 red 로 보였지만, 같은 결함이
+  만든 **누락**(``a + b`` 의 두 번째 URL)은 아무 신호도 안 냈다. blog URL 은 7주가 아니라
+  **처음부터** 검사된 적이 없다. §2.53/§2.54 와 같은 자리 — 0건은 "결함 없음" 과 "안 봤음"
+  을 같은 모양으로 낸다.
+- **확인 못 함(§2.58)**: 이제 검사에 들어가는 URL 4건이 **전부 외부 호스트**다. 그중 하나가
+  실제로 죽으면 같은 이름으로 red 가 되지만 그때는 진짜 stale 이다 — 로그의 provenance
+  줄로 구분할 것.
 - **이번 세션의 교훈(§2.57)**: **오래 red 인 것은 아무도 안 보고, 그래서 원인이 이름과
   달라진다.** 두 건 다 알려진 이름("URL 검증 실패" / "issue 게시 실패")과 실제 원인이
   달랐다. red 를 방치하면 그 red 는 *증상 이름* 만 남고 사실은 사라진다.

@@ -2456,9 +2456,80 @@ digest 생성은 멀쩡했다. 저장소 라벨이 GitHub 기본 9개뿐이라 `
 확보하고, 실패하면 `issues:write` 를 지목하며 죽는다.
 
 
+### 2.58. 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크
+
+§2.57 이 CLI 를 되살리자 `okf-validate` 가 **7주 만에 처음 실제로 돌았고**, `exit 123` 과
+함께 URL 2건을 냈다. 판정 이름은 `V-R10-online-stale`("링크가 죽었다")인데 **둘 다 죽은
+링크가 아니었다** — 그런 URL 은 애초에 존재한 적이 없다. 오래 red 인 것은 증상 이름만
+남긴다(§2.57)는 이야기가 한 층 더 안쪽에서 반복됐다.
+
+| 검출된 URL | 실제 원인 |
+|---|---|
+| ``…/workflow_kit/README.md`).`` | **추출기 위양성** — `docs/samples/…/README.md:96` 의 *산문* 한 칸 |
+| `…/blob/main/external` | **생산자 결함** — 자유 서술 값을 경로로 취급해 만든 주소 |
+
+**셋 다 고쳐야 하나가 되돌아온다.** 추출기만 고치면 2번 데이터가 규약 위반인 채 남고,
+데이터만 고치면 다음에 산문에 URL 을 쓰는 순간 1번이 돌아온다. 그리고 규약을 검사로
+고정하지 않으면 데이터가 다시 어긋난다.
+
+**(1) 추출기 — 규약을 아는 자리가 워크플로우 안의 grep 한 줄이었다.**
+
+```bash
+grep -rEho "resource: ['\"]?https?://[^ '\"]+" ai-workflow/wiki/
+```
+
+이 한 줄이 두 가지를 했다. **frontmatter 가 아니라 파일 전체를 훑었고**(산문·코드펜스
+포함), 값을 **공백에서 끊었다**. 그래서 `[^ '"]+` 가 백틱·괄호·마침표를 URL 에 넣어 없는
+주소를 만들고, 동시에 ``a + b`` 형태의 **두 번째 출처를 조용히 버렸다** —
+`topics/ponytail-adoption-design-2026-07-23` 의 blog URL 은 이번까지 **한 번도 검사된 적이
+없다**. 0건은 "결함 없음" 과 "안 봤음" 을 같은 모양으로 낸다(§2.53/§2.54 와 같은 자리).
+
+추출을 `workflow_kit.frontmatter_urls` 로 옮겼다. frontmatter 블록만 보고, 값 안의 URL 을
+**전부** 뽑고, **출처(파일:줄:key)를 함께** 낸다 — 이번 조사가 URL 문자열만 보고 어느
+파일에서 왔는지 손으로 찾아야 했던 것이 그 이유다. 스캔 대상이 0건이면 exit 2 다
+(감사자도 감사 대상이다, §2.52).
+
+**(2) 생산자 — `last_ingested_from` 은 URI 가 아니라 출처 메모다.**
+
+```
+last_ingested_from: external (https://…/okf/SPEC.md, 2026-06-16)
+→ resource: "https://github.com/ykylee/standard_ai_workflow/blob/main/external (https://…, 2026-06-16)"
+```
+
+`okf_export._derive_resource` 가 그 값을 **통째로 in-repo 경로로** 넘겨, `path_resolver`
+가 앞에 origin 만 붙였다. `external` 은 경로가 아니라 "외부 출처" 라는 표식이었고,
+저장소에 그런 경로는 없다. 56개 `last_ingested_from` 중 대부분이 ``a + b``/``§4``/괄호
+주석이 붙은 서술이므로 이건 한 페이지의 사고가 아니다 — **커밋된 5-page 샘플 번들에서
+2건이 이미 그렇게 만들어져 있었고**, 그중 하나는 추출기가 공백에서 끊어 준 덕에 우연히
+통과하고 있었다.
+
+생산자에 두 가드를 넣었다. **공백이 있으면 URI 가 아니다**(→ `resource` 를 비우고
+`last_ingested_from` extra key + Citations 로 사실을 보존한다). **저장소에 없는 경로는
+URL 이 되지 않는다** — 경로 해석은 문자열만 잇지 실재를 묻지 않으므로, 묻는 일은 부르는
+쪽 몫이다. 복합 값의 Citations 도 `[a + b](a + b)` 라는 깨진 링크 대신 평문으로 낸다.
+
+**(3) 규약 — `resource` 는 bare URI 하나다** (OKF §4.1). `V-R10-resource-not-bare-uri` 로
+고정했고, 워크플로우가 매 실행 `--check` 로 강제한다. `last_ingested_from` 은 자유 서술
+그대로 둔다 — 56개 데이터가 그렇게 쓰이고 있고, 거기를 조이면 사실이 줄어든다.
+
+**검사 1종 신규(smoke 232 → 233)**: `check_frontmatter_url_extraction.py`(**12 case**).
+저장소 전수 스캔(위반 0 + 스캔 0건 아님), 뽑힌 URL 의 V-R10 offline 통과, 소비자
+워크플로우가 실제로 이 모듈을 부르는지, 그리고 **커밋된 번들의 `resource` 가 지금 생산자가
+만드는 값과 같은지**까지 본다. 마지막 것이 핵심이다 — 데이터를 손으로 고치고 생산자를
+두면 다음 export 가 되돌린다.
+
+되주입 5종이 각각 다른 신호를 냈다: 생산자 가드 제거 → 3건 red, 데이터 되돌림 → 2건,
+frontmatter 경계 제거 → 3건, 정규식 되돌림 → 2건, 소비자 grep 복귀 → 1건.
+
+> **부수 효과 2건.** `check_wiki_drift` 는 `.md` 로 끝나는 **URL** 을 in-repo 경로로
+> 오판하고 있었다(그 전까지는 값이 괄호로 끝나 확장자 검사에 안 걸려 조용히 지나갔다).
+> `check_okf_export` 의 pinning fixture 는 `repo_root=Path("/fake")` 로 **제품이 만들지
+> 않는 모양**을 검사하고 있었다 — §2.55 와 같은 자리다.
+
+
 ## 3. 검증
 
-누적 smoke **232/232 PASS** (2026-07-31, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **233/233 PASS** (2026-08-04, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -2470,7 +2541,8 @@ digest 생성은 멀쩡했다. 저장소 라벨이 GitHub 기본 9개뿐이라 `
 → 229(§2.49 `check_doctor_config_provenance`)
 → 230(§2.50 `check_branch_resolver_agreement`)
 → 231(§2.51 `check_dashboard_workspace_provenance`)
-→ **232**(§2.52 `check_root_anchor_audit`; §2.53/§2.54 는 같은 파일을 9 → 10 → 11 case 로 확장해 file 수는 그대로다).
+→ 232(§2.52 `check_root_anchor_audit`; §2.53/§2.54 는 같은 파일을 9 → 10 → 11 case 로 확장해 file 수는 그대로다)
+→ **233**(§2.58 `check_frontmatter_url_extraction`; §2.55~§2.57 은 기존 파일을 case 로 확장해 file 수는 그대로다).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

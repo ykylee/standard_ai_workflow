@@ -258,19 +258,41 @@ def _derive_resource(
     """OKF `resource`: canonical URI for the underlying asset (ADR-006 + ADR-018).
 
     Resolution order:
-    1. URL form (`http://` / `https://`) → 그대로 사용
-    2. in-repo path + `vcs_commit` 명시 → commit-pinned URL (immutable, ADR-018)
-    3. in-repo path + `vcs_ref` 명시 → ref-pinned URL (mutable but explicit)
-    4. in-repo path + `resolve=True` + `repo_root` → `path_resolver.resolve_in_repo_path_to_url`
-    5. in-repo path + `resolve=False` → None (ADR-006 status quo)
-    6. None / empty → None
+    1. 복합 값(공백 포함) → None. `last_ingested_from` 은 자유 서술이고 URI 가 아니다.
+    2. URL form (`http://` / `https://`) → 그대로 사용
+    3. in-repo path 인데 **저장소에 없는 경로** → None (없는 URL 을 만들지 않는다)
+    4. in-repo path + `vcs_commit` 명시 → commit-pinned URL (immutable, ADR-018)
+    5. in-repo path + `vcs_ref` 명시 → ref-pinned URL (mutable but explicit)
+    6. in-repo path + `resolve=True` + `repo_root` → `path_resolver.resolve_in_repo_path_to_url`
+    7. in-repo path + `resolve=False` → None (ADR-006 status quo)
+    8. None / empty → None
+
+    **1 과 3 이 v1.0.4 에서 추가된 이유** (§2.58): 이 함수는 `last_ingested_from` 값을
+    통째로 경로로 취급했다. 그런데 wiki 의 그 필드는 ``a + b``, ``path §4``,
+    ``external (https://…, 2026-06-16)`` 같은 **출처 메모** 다. 그 값을 `path_resolver`
+    에 넘기면 앞에 origin 만 붙어서 ``…/blob/main/external`` 처럼 *존재한 적 없는*
+    URL 이 만들어지고, 그게 bundle 의 `resource` 로 커밋됐다. V-R10 은 그걸 "죽은 링크"
+    라고 보고했지만 죽은 것이 아니라 **태어난 적이 없는** 링크였다.
+
+    파생물을 만드는 쪽이 규약을 알아야 한다 — canonical URI 로 만들 수 없는 값이면
+    `resource` 를 비우고, 호출부가 `last_ingested_from` extra key + Citations 로
+    보존한다(사실을 줄이지 않으면서 URI 자리를 날조하지 않는 유일한 선택).
     """
     if not last_ingested_from:
         return None
-    if last_ingested_from.startswith(("http://", "https://")):
-        return last_ingested_from
+    value = last_ingested_from.strip()
+    if not value or value.split() != [value]:
+        # 공백이 있으면 URI 가 아니라 서술이다.
+        return None
+    if value.startswith(("http://", "https://")):
+        return value
     if not resolve or repo_root is None:
         return None
+    if not (repo_root / value).exists():
+        # 저장소에 없는 경로다 (`external`, glob 표기 등). 경로 해석은 사실 확인 없이
+        # 문자열만 이어 붙이므로, 존재 여부는 부르는 쪽이 물어야 한다.
+        return None
+    last_ingested_from = value
     # Lazy import to avoid hard dependency if not used
     try:
         from workflow_kit.path_resolver import (
@@ -457,7 +479,13 @@ def map_frontmatter_to_okf(
         body_suffix.append("")
         body_suffix.append("## Citations")
         body_suffix.append("")
-        body_suffix.append(f"[1] [{frontmatter.last_ingested_from}]({frontmatter.last_ingested_from})")
+        citation = frontmatter.last_ingested_from.strip()
+        if citation.split() == [citation]:
+            body_suffix.append(f"[1] [{citation}]({citation})")
+        else:
+            # 복합 출처 메모는 링크 대상이 아니다. `[a + b](a + b)` 는 깨진 링크다 —
+            # 사실은 그대로 남기고 링크만 만들지 않는다 (§2.58).
+            body_suffix.append(f"[1] {citation}")
     if frontmatter.related_pages:
         body_suffix.append("")
         body_suffix.append("## See Also")

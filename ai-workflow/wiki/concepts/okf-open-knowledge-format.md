@@ -1,7 +1,7 @@
 ---
 type: concept
 status: active
-last_ingested_from: external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16)
+last_ingested_from: https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md
 r9_skip: true
 verification_status: VERIFIED — primary source located 2026-06-16
 contradiction_flags: []

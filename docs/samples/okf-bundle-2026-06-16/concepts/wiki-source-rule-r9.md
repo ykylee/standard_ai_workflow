@@ -2,13 +2,13 @@
 type: concept
 title: "R9 Rule: wiki-ingest source = `archive/` only"
 description: "R9 (v0.6.1.5): **"wiki-ingest 는 `archive/` 만 source 로 사용한다. `active/` 는 절대 ingest 하지 않는다."**"
-resource: "https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/MEMORY_GOVERNANCE.md §4 + workflow-source/releases/Beta-v0.6.1.5.md"
 tags: [status:active, wiki-type:concept]
 timestamp: "2026-06-12T00:00:00Z"
 created: 2026-06-12
 status: active
 related_pages: [concepts/memory-3-state-lifecycle, concepts/project-architecture, decisions/adr-005-r9-wiki-source-rule, patterns/frozen-archive-immutability, INGEST_GUIDE]
 r9_skip: true
+last_ingested_from: workflow-source/MEMORY_GOVERNANCE.md §4 + workflow-source/releases/Beta-v0.6.1.5.md
 ---
 # R9 Rule: wiki-ingest source = `archive/` only
 
@@ -99,6 +99,10 @@ R9 는 **memory snapshot 의 wiki-ingest** 에만 적용된다. codebase 자체�
 - 릴리스 노트: [`../../workflow-source/releases/Beta-v0.6.1.5.md`](../../workflow-source/releases/Beta-v0.6.1.5.md)
 - 상위 메모리 raw ops plan: [`.omo/plans/v0.6.1-plus-memory-raw-ops-design.md`](../../.omo/plans/v0.6.1-plus-memory-raw-ops-design.md) §4 R8/R9
 - Wiki 운영 헌법: [`../SCHEMA.md`](../SCHEMA.md) §5.1 Rules
+
+## Citations
+
+[1] workflow-source/MEMORY_GOVERNANCE.md §4 + workflow-source/releases/Beta-v0.6.1.5.md
 
 ## See Also
 

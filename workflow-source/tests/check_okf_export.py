@@ -15,6 +15,7 @@ Test list:
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import re
 import sys
@@ -33,6 +34,25 @@ def _import_okf_export():
     sys.modules["okf_export"] = mod  # dataclass 가 require
     spec.loader.exec_module(mod)
     return mod
+
+
+@contextlib.contextmanager
+def _repo_containing(*relative_paths: str):
+    """지정한 파일이 **실제로 존재하는** 임시 repo root 를 yield.
+
+    §2.58 이후 `_derive_resource` 는 저장소에 없는 경로를 URL 로 만들지 않는다.
+    그 전까지 이 파일의 pinning fixture 들은 `repo_root=Path("/fake")` 처럼 존재하지
+    않는 root 를 넘기고 있었다 — 제품이 실제로 보는 모양이 아니었고, 그래서 없는
+    경로가 URL 이 되는 결함을 이 검사들이 잡을 수 없었다. fixture 를 제품 쪽 모양으로
+    맞춘다.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        for rel in relative_paths:
+            target = root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("fixture\n", encoding="utf-8")
+        yield root
 
 
 # --- Test 1: minimal frontmatter 파싱 ---
@@ -458,16 +478,22 @@ def test_vcs_commit_emits_pinned_url() -> None:
     )
     try:
         mod = _import_okf_export()
-        # in-repo path + vcs_commit → commit-pinned URL
-        url = mod._derive_resource(
-            "docs/spec.md", repo_root=Path("/fake"), vcs_commit="abc1234"
-        )
-        assert url == "https://github.com/foo/bar/blob/abc1234/docs/spec.md", f"got {url!r}"
-        # in-repo path + vcs_ref → ref-pinned URL
-        url = mod._derive_resource(
-            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="v0.7.37"
-        )
-        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+        with _repo_containing("docs/spec.md") as repo_root:
+            # in-repo path + vcs_commit → commit-pinned URL
+            url = mod._derive_resource(
+                "docs/spec.md", repo_root=repo_root, vcs_commit="abc1234"
+            )
+            assert url == "https://github.com/foo/bar/blob/abc1234/docs/spec.md", f"got {url!r}"
+            # in-repo path + vcs_ref → ref-pinned URL
+            url = mod._derive_resource(
+                "docs/spec.md", repo_root=repo_root, vcs_ref="v0.7.37"
+            )
+            assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+            # 저장소에 없는 경로는 pinning 여부와 무관하게 URL 이 되지 않는다 (§2.58)
+            missing = mod._derive_resource(
+                "docs/does-not-exist.md", repo_root=repo_root, vcs_commit="abc1234"
+            )
+            assert missing is None, f"없는 경로가 URL 이 됐다: {missing!r}"
         # URL form unchanged (vcs_commit ignored)
         url = mod._derive_resource("https://example.com/spec.md")
         assert url == "https://example.com/spec.md", f"got {url!r}"
@@ -509,9 +535,10 @@ def test_per_page_frontmatter_vcs_commit() -> None:
         fm = mod.Frontmatter.parse(text)
         assert fm.vcs_commit == "deadbeef", f"vcs_commit parse failed: {fm.vcs_commit!r}"
         # call _derive_resource with fm.vcs_commit (per-page frontmatter precedence)
-        url = mod._derive_resource(
-            fm.last_ingested_from, repo_root=Path("/fake"), vcs_commit=fm.vcs_commit,
-        )
+        with _repo_containing("workflow-source/docs/spec.md") as repo_root:
+            url = mod._derive_resource(
+                fm.last_ingested_from, repo_root=repo_root, vcs_commit=fm.vcs_commit,
+            )
         assert url == "https://github.com/foo/bar/blob/deadbeef/workflow-source/docs/spec.md", (
             f"got {url!r}"
         )
@@ -540,23 +567,24 @@ def test_tag_based_pinning_v0_7_37() -> None:
     )
     mod = _import_okf_export()
     try:
-        # release tag v0.7.37 → ref-pinned URL
-        url = mod._derive_resource(
-            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="v0.7.37"
-        )
-        assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
-        # branch name "main"
-        url = mod._derive_resource(
-            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="main"
-        )
-        assert url == "https://github.com/foo/bar/blob/main/docs/spec.md", f"got {url!r}"
-        # feature/branch with / → mocked ref always succeeds, so the real path_resolver
-        # would reject it. With our mock, ref is interpolated as-is. Test that the mock
-        # produces a URL with the ref embedded.
-        url = mod._derive_resource(
-            "docs/spec.md", repo_root=Path("/fake"), vcs_ref="feature/okf-export"
-        )
-        assert url == "https://github.com/foo/bar/blob/feature/okf-export/docs/spec.md", f"got {url!r}"
+        with _repo_containing("docs/spec.md") as repo_root:
+            # release tag v0.7.37 → ref-pinned URL
+            url = mod._derive_resource(
+                "docs/spec.md", repo_root=repo_root, vcs_ref="v0.7.37"
+            )
+            assert url == "https://github.com/foo/bar/blob/v0.7.37/docs/spec.md", f"got {url!r}"
+            # branch name "main"
+            url = mod._derive_resource(
+                "docs/spec.md", repo_root=repo_root, vcs_ref="main"
+            )
+            assert url == "https://github.com/foo/bar/blob/main/docs/spec.md", f"got {url!r}"
+            # feature/branch with / → mocked ref always succeeds, so the real path_resolver
+            # would reject it. With our mock, ref is interpolated as-is. Test that the mock
+            # produces a URL with the ref embedded.
+            url = mod._derive_resource(
+                "docs/spec.md", repo_root=repo_root, vcs_ref="feature/okf-export"
+            )
+            assert url == "https://github.com/foo/bar/blob/feature/okf-export/docs/spec.md", f"got {url!r}"
     finally:
         pr.resolve_in_repo_path_to_url = orig_url
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
@@ -634,6 +662,9 @@ def test_okf_resource_content_hash_v0_7_39() -> None:
                 "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# H\n\nbody\n",
                 encoding="utf-8",
             )
+            # §2.58: 참조 대상이 저장소에 실재해야 `resource` 가 만들어진다.
+            (Path(tmpdir) / "docs").mkdir()
+            (Path(tmpdir) / "docs" / "spec.md").write_text("spec\n", encoding="utf-8")
             # auto-compute content hash from full page text
             mod.export_wiki_to_okf(wiki_root, out_bundle, content_hash="auto", repo_root=Path(tmpdir))
             text = (out_bundle / "concepts" / "h.md").read_text(encoding="utf-8")
@@ -669,6 +700,8 @@ def test_okf_resource_range_refs_v0_7_40() -> None:
             out_bundle = Path(tmpdir) / "bundle"
             wiki_root.mkdir()
             (wiki_root / "concepts").mkdir()
+            (Path(tmpdir) / "docs").mkdir()
+            (Path(tmpdir) / "docs" / "spec.md").write_text("spec\n", encoding="utf-8")
             (wiki_root / "concepts" / "r.md").write_text(
                 "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# R\n\nbody\n",
                 encoding="utf-8",
@@ -708,6 +741,8 @@ def test_okf_resource_layer1_layer2_composite_v0_7_42() -> None:
             out_bundle = Path(tmpdir) / "bundle"
             wiki_root.mkdir()
             (wiki_root / "concepts").mkdir()
+            (Path(tmpdir) / "docs").mkdir()
+            (Path(tmpdir) / "docs" / "spec.md").write_text("spec\n", encoding="utf-8")
             (wiki_root / "concepts" / "c.md").write_text(
                 "---\ntype: concept\nlast_ingested_from: ./docs/spec.md\n---\n\n# C\n\nbody\n",
                 encoding="utf-8",

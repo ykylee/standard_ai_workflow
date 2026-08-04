@@ -2,7 +2,7 @@
 type: concept
 title: OKF (Open Knowledge Format) v0.1
 description: A bundle is a self-contained, hierarchical collection of knowledge documents — the unit of distribution.
-resource: "https://github.com/ykylee/standard_ai_workflow/blob/main/external (https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md, 2026-06-16)"
+resource: "https://raw.githubusercontent.com/GoogleCloudPlatform/knowledge-catalog/main/okf/SPEC.md"
 tags: [status:active, wiki-type:concept]
 timestamp: "2026-06-16T00:00:00Z"
 created: 2026-06-16

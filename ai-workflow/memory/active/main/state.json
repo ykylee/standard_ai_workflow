@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-03",
+  "generated_at": "2026-08-04",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-03.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-04.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `7b076f8` (§2.57 적용본). **push 트리거 5종 중 4종 green 실측** — smoke(2셀 native/slash 모두 success)·mypy-strict·mcp-sdk-matrix·actionlint. **`okf-validate` 는 여전히 failure 지만 원인이 바뀌었다** — CLI 크래시가 아니라 도구가 처음으로 실제 돌아 검출 결과를 낸 exit 123 이고, 그 2건은 '죽은 링크' 가 아니라 추출기 위양성 1 + 데이터 결함 1 이다(§5 첫 항목). `workflow_dispatch` 실측: `consumer-metrics-digest` **success**(5주 연속 red 종료). mkdocs 는 path 필터(`docs/**`)에 안 걸려 미실행 — `5c8a85f` 에서 실측 완료",
-    "current_axis": "\"오래 red 인 것은 원인이 이름과 달라진다\" — 방치된 red 는 증상 이름만 남긴다",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `4ac03ba` 위에 §2.58 적용본(로컬). **검사 3층(추출기/데이터/규약)을 한 번에 고쳤다** — `okf-validate` 가 낸 URL 2건은 죽은 링크가 아니라 *태어난 적 없는* 링크였다. 추출을 `workflow_kit.frontmatter_urls` 로 옮기고(frontmatter 만, 값 안의 URL 전부, 출처 동반, 스캔 0건이면 exit 2), `okf_export._derive_resource` 에 가드 2종(공백=URI 아님 / 없는 경로=URL 아님), `resource` bare-URI 규약을 `V-R10-resource-not-bare-uri` 로 고정. 로컬 실측: 전량 smoke **233/233**(native·slash 양쪽), mypy strict 123 files 0 errors, actionlint exit 0, CI 호출 재현이 네트워크 포함 exit 0. **CI 실측은 push 후**",
+    "current_axis": "\"판정 이름이 원인과 다르다\" — 검사를 켜면 보고가 오지만, 그 보고의 *이름* 은 검출기가 아는 만큼만 말한다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크",
       "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다",
       "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
       "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
@@ -41,28 +42,24 @@
       "TASK-2026-07-31-main-008 — 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다",
       "TASK-2026-07-31-main-007 — 모든 panel 의 기준이 자기 근거를 안 내고 있었다",
       "TASK-2026-07-31-main-006 — 세 번째를 찾으러 갔다 — 경로 기준 전수 조사",
-      "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처",
-      "TASK-2026-07-31-main-004 — 검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성"
+      "TASK-2026-07-31-main-005 — 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-03.md",
-    "task_count": 4,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-04.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-03-main-001 — 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다",
-      "TASK-2026-08-03-main-002 — 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다",
-      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
-      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다"
+      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-03.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-04.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

@@ -9,7 +9,25 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "scripts"))
+
+from bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+
 MARKER_RE = re.compile(r"^<!--\s*standard-ai-workflow-kit:")
+
+# harness overlay 의 `extra_files` 는 **하네스가 프롬프트로 먹는 파일** 이다
+# (slash command 본문, agent 정의, skill). 산문 계약(문서 목적/범위/대상 독자/…)을
+# 요구하면 그 블록이 매 호출마다 프롬프트에 섞여 들어간다 — 위 frontmatter 예외와
+# 같은 이유로, 기계가 읽는 포맷에 산문 스키마를 겹쳐 씌우지 않는다.
+#
+# 목록을 손으로 두지 않고 `HARNESS_SPECS` 정본에서 파생한다. 하네스가 파일을
+# 늘리면 여기도 따라온다. `entry_files`(CLAUDE.md 등)는 **제외하지 않는다** —
+# 그쪽은 사람이 읽는 진입점이고 렌더러가 이미 metadata 블록을 넣는다.
+HARNESS_OVERLAY_FILES = {
+    Path(relative)
+    for spec in HARNESS_SPECS.values()
+    for relative in spec.extra_files
+}
 
 REQUIRED_METADATA = [
     "문서 목적",
@@ -125,6 +143,8 @@ def iter_markdown_files() -> list[Path]:
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_WORKFLOW_SOURCE_SUBTREES:
             continue
         if len(rel_parts) >= 2 and tuple(rel_parts[:2]) in IGNORED_DOCS_SUBTREES:
+            continue
+        if Path(*rel_parts) in HARNESS_OVERLAY_FILES:
             continue
         markdown_files.append(path)
     return sorted(markdown_files)

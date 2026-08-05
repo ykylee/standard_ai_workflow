@@ -125,17 +125,22 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
     ),
     "claude-code": HarnessSpec(
         name="claude-code",
-        description="Claude Code용 overlay. CLAUDE.md 진입점 (root) + .claude/commands/workflow-{session-start,backlog-update,doc-sync}.md 3개 slash command.",
+        description="Claude Code용 overlay. CLAUDE.md 진입점 (root) + .claude/commands/workflow-{session-start,backlog-update,doc-sync}.md 3개 slash command + .claude/skills/standard-ai-workflow/SKILL.md.",
         entry_files=("CLAUDE.md",),
         extra_files=(
             ".claude/commands/workflow-session-start.md",
             ".claude/commands/workflow-backlog-update.md",
             ".claude/commands/workflow-doc-sync.md",
+            ".claude/skills/standard-ai-workflow/SKILL.md",
         ),
         long_description=(
             "Claude Code 환경용 오버레이. CLAUDE.md 를 root 진입점 (자동 read) 으로 emit + "
             ".claude/commands/ 아래 3개 slash command (`/workflow-session-start`, "
-            "`/workflow-backlog-update`, `/workflow-doc-sync`) 를 *additive tool* 로 emit. "
+            "`/workflow-backlog-update`, `/workflow-doc-sync`) 를 *additive tool* 로 emit + "
+            ".claude/skills/standard-ai-workflow/SKILL.md 를 *모델 호출* 진입점으로 emit "
+            "(v1.0.4+; command 는 사용자가 이름을 알아야 부르지만 skill 은 모델이 "
+            "description 을 보고 스스로 고른다 — opencode / grok-build 는 진작 skill 을 "
+            "내보내고 있었고 claude-code 만 없었다). "
             "v0.10.1 의 skill-only 진입 설계 오류 정정 (Claude Code 도 CLAUDE.md 자동 read). "
             "AGENTS.md 를 직접 read 하지는 않으므로, 기존 AGENTS.md 가 있으면 CLAUDE.md 에서 "
             "`@AGENTS.md` import 또는 symlink 으로 통합 가능."

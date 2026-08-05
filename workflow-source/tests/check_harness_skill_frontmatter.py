@@ -35,7 +35,11 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-RENDERERS = REPO_ROOT / "workflow-source" / "scripts" / "bootstrap_lib" / "harnesses" / "renderers.py"
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+RENDERERS = SOURCE_ROOT / "scripts" / "bootstrap_lib" / "harnesses" / "renderers.py"
+sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.upgrade_diff import stamp_marker  # noqa: E402
 
 NAME_RE = re.compile(r"^(?!-)(?!.*--)[a-z0-9-]{1,64}(?<!-)$")
 MODE_VALUES = {"primary", "subagent"}
@@ -180,12 +184,51 @@ def test_harness_schema() -> bool:
     return ok
 
 
+def test_survives_version_stamping() -> bool:
+    """5) **디스크에 쓰인 모양** 에서도 frontmatter 가 살아 있는가.
+
+    2026-08-05: 위 1-4번은 전부 통과하고 있었는데 실제 파일은 깨져 있었다.
+    ``write_text`` 가 `<!-- standard-ai-workflow-kit: v… -->` 를 **1행에** 붙여서
+    `---` 를 2행으로 밀어냈고, frontmatter 는 위치 계약이라 그 순간 평범한 산문이
+    된다. 검사는 *렌더러 안의 리터럴* 만 보고 있어서 아무것도 눈치채지 못했다 —
+    생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다.
+
+    그래서 리터럴을 실제 stamping 경로에 통과시킨 뒤, frontmatter 가 여전히
+    **1행에서 시작하고** 같은 값으로 파싱되는지 본다.
+    """
+    yaml = _yaml()
+    if yaml is None:
+        return False
+    ok = True
+    for name, fm in _frontmatter_blocks():
+        original = f"---\n{fm}\n---\n\n# body\n"
+        stamped = stamp_marker(original, "9.9.9", ".md")
+        if not stamped.startswith("---\n"):
+            first = stamped.splitlines()[0] if stamped.splitlines() else ""
+            print(f"  FAIL: {name} — stamping 후 1행이 `---` 가 아니다 ({first!r}); "
+                  "frontmatter 는 위치 계약이라 하네스가 skill 을 아예 못 본다")
+            ok = False
+            continue
+        after = stamped.split("---\n", 2)
+        if len(after) < 3 or yaml.safe_load(after[1]) != yaml.safe_load(fm):
+            print(f"  FAIL: {name} — stamping 후 frontmatter 내용이 달라졌다")
+            ok = False
+            continue
+        if "standard-ai-workflow-kit:" not in stamped:
+            print(f"  FAIL: {name} — 마커가 사라졌다 (버전 비교가 hash fallback 으로 떨어진다)")
+            ok = False
+    if ok:
+        print("  PASS: stamping 후에도 frontmatter 가 1행에서 시작하고 값이 보존된다")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_blocks_found", test_blocks_found),
         ("test_frontmatter_parses", test_frontmatter_parses),
         ("test_name_and_description", test_name_and_description),
         ("test_harness_schema", test_harness_schema),
+        ("test_survives_version_stamping", test_survives_version_stamping),
     ]
     results = []
     for name, fn in cases:

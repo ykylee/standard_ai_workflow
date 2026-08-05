@@ -209,6 +209,27 @@ def compare_marker(src_version: str, dst_version: str) -> int:
 # ---------------------------------------------------------------------------
 
 
+def frontmatter_end(content: str) -> Optional[int]:
+    """Character offset just past a *leading* YAML frontmatter block.
+
+    ``None`` when the content does not open with one. Used to keep the
+    VERSION marker from landing above ``---`` — for a Claude Code /
+    OpenCode / Grok ``SKILL.md`` (and OpenCode agent files) the
+    frontmatter **must** be the first thing in the file, so a marker
+    stamped on line 1 silently turns the block into ordinary prose and
+    the harness stops seeing the skill at all.
+    """
+    lines = content.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return None
+    offset = len(lines[0])
+    for line in lines[1:]:
+        offset += len(line)
+        if line.strip() == "---":
+            return offset
+    return None
+
+
 def parse_version_marker(text: str) -> Optional[str]:
     """Extract the kit version from a file's first few lines.
 
@@ -216,9 +237,15 @@ def parse_version_marker(text: str) -> Optional[str]:
     found, else ``None``. The marker may be on the first line of the
     file (most common) or within the first 5 lines (to accommodate
     files with a leading blank line or a separate comment block).
+
+    When the file opens with YAML frontmatter the marker sits *after*
+    the closing ``---`` (see :func:`stamp_marker`), so the frontmatter is
+    skipped before scanning. Files stamped the old way still parse —
+    they don't start with ``---``, so nothing is skipped.
     """
-    lines = text.splitlines()[:5]
-    for line in lines:
+    fm_end = frontmatter_end(text)
+    body = text[fm_end:] if fm_end is not None else text
+    for line in body.splitlines()[:5]:
         match = MARKER_REGEX.match(line)
         if match:
             return match.group("version")
@@ -248,6 +275,13 @@ def stamp_marker(content: str, version: str, suffix: str) -> str:
     The marker is placed on the very first line, followed by a blank
     line (if the content is non-empty and doesn't already start with a
     blank line).
+
+    **Exception — YAML frontmatter.** When the content opens with a
+    ``---`` block the marker goes *after* the closing delimiter. The
+    frontmatter contract is positional: it has to be the first thing in
+    the file. Stamping above it produced files whose ``name`` /
+    ``description`` the harness never read, and nothing failed loudly —
+    the skill just didn't exist as far as the tool was concerned.
     """
     if not suffix_marker_supported(suffix):
         return content
@@ -257,6 +291,12 @@ def stamp_marker(content: str, version: str, suffix: str) -> str:
         return content
     if not content:
         return f"{marker}\n"
+    fm_end = frontmatter_end(content)
+    if fm_end is not None:
+        head, tail = content[:fm_end], content[fm_end:]
+        if not head.endswith("\n"):
+            head += "\n"
+        return f"{head}\n{marker}\n{tail}"
     if content.startswith("\n"):
         return f"{marker}{content}"
     return f"{marker}\n\n{content}"

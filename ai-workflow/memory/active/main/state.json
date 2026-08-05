@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-04",
+  "generated_at": "2026-08-05",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-04.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-05.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(2026-07-22 이후 **6주 연속 red 종료**, 24초)·smoke(2셀 native/slash)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. smoke 는 두 셀이 각각 `main` / `feature/ci-slash-probe` 로 갈려 양쪽 다 `All 233 check_*.py scripts passed`, `::error::` 0건. `okf-validate` 자기 측정: `Extracted 4 unique URLs` + `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` + online 검증 exit 0. **push 트리거 red 0건이다**",
-    "current_axis": "\"판정 이름이 원인과 다르다\" — 검사를 켜면 보고가 오지만, 그 보고의 *이름* 은 검출기가 아는 만큼만 말한다",
+    "current_baseline": "v1.0.0-beta. **§2.59 작업본은 로컬 검증까지만 — 아직 push 전이다** (격리 venv 전량 smoke 233/233, mypy strict 123 files 0 errors). 직전 push 기준선은 아래와 같다: `origin/main` = `c58111d` (§2.58 적용본), **트리거된 CI 6종 전부 green 실측** — `okf-validate`(2026-07-22 이후 **6주 연속 red 종료**, 24초)·smoke(2셀 native/slash)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. smoke 는 두 셀이 각각 `main` / `feature/ci-slash-probe` 로 갈려 양쪽 다 `All 233 check_*.py scripts passed`, `::error::` 0건. `okf-validate` 자기 측정: `Extracted 4 unique URLs` + `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` + online 검증 exit 0. **push 트리거 red 0건이다**",
+    "current_axis": "\"생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다\" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크의 파일은 깨져 있었다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다",
       "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크",
       "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다",
       "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로",
@@ -48,12 +49,12 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-04.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-05.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크"
+      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다"
     ]
   },
   "next_documents": [

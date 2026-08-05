@@ -1189,22 +1189,87 @@ index 갱신 포인트를 정리.
 """
 
 
+def render_claude_code_skill(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/skills/standard-ai-workflow/SKILL.md`` (model-invoked skill).
+
+    slash command 3종과 **호출 주체가 다르다**: command 는 사용자가 `/` 로 부르고,
+    skill 은 모델이 `description` 을 보고 스스로 고른다. 사용자가 "세션 시작하자" 처럼
+    *명령 이름을 모르는 채* 말할 때 진입할 자리가 그동안 없었다.
+
+    frontmatter 는 정적으로 유지한다 — ``tests/check_harness_skill_frontmatter.py``
+    의 case 0 이 값 보간을 거부한다 (보간값이 `: ` 나 줄바꿈을 담으면 YAML 이
+    조용히 깨진다).
+    """
+    _STANDARD_RULES = render_entrypoint_rules()
+    return f"""---
+name: standard-ai-workflow
+description: 이 저장소의 표준 AI 워크플로우 진입점. 세션을 시작하거나 이어받을 때, 작업을 backlog 에 등록/갱신할 때, 변경 후 영향 문서를 동기화할 때, 세션을 종료하며 handoff 를 남길 때 사용한다.
+---
+
+# Standard AI Workflow
+
+- **역할**: 세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 한 자리에서 안내하는 진입 skill.
+- **위치**: `.claude/skills/standard-ai-workflow/SKILL.md`
+- **호출**: 모델이 위 `description` 에 해당하는 상황에서 자동 선택. 사용자가 직접 부르려면
+  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync` slash command.
+- 최종 수정일: {args.today}
+
+## 1. 세션 시작 — 항상 먼저 읽는다
+
+1. `ai-workflow/memory/active/<branch>/state.json` — 현재 기준선
+2. `ai-workflow/memory/active/<branch>/sessions` — 이전 세션 인계
+3. `ai-workflow/memory/active/<branch>/backlog` — 작업 백로그 인덱스
+4. `docs/PROJECT_PROFILE.md` — 프로젝트 메타
+5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent
+
+읽은 뒤 한국어로 **1줄 기준선 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동** 만 보고한다.
+중간 reasoning, 중복 요약, 자기 설명은 내지 않는다.
+
+`state.json` 이나 `PURPOSE.md` 가 없으면 실패로 처리하지 말고 *graceful skip* 후
+scaffold 를 제안한다.
+
+## 2. 백로그 갱신
+
+오늘 작업을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 와
+`./tasks/<TASK-ID>.md` 에 등록한다. 상태값은 `planned` / `in_progress` / `blocked` / `done`
+넷만 쓴다. `PURPOSE.md` §3 의 제외 영역과 겹치면 scope creep 경고를 1줄 남긴다.
+
+## 3. 문서 동기화 (advisory)
+
+변경된 파일에서 영향 문서 후보를 뽑고, `ai-workflow/wiki/index.md` anchor 기준으로
+갱신 포인트를 *권고* 한다. 자동 반영하지 않는다.
+
+{_STANDARD_RULES}
+
+## 언어와 컨텍스트 원칙
+
+- 사용자에게 보이는 보고 / 상태 요약 / 문서 문안은 한국어.
+- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 원문 그대로.
+- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남긴다.
+- `ai-workflow/` 는 workflow 메타 레이어다. 프로젝트 코드/문서 탐색 범위에 기본 포함하지 않는다.
+"""
+
+
 def write_claude_code_harness_files(
     args: argparse.Namespace,
     paths: Paths,
     context: dict[str, object],
 ) -> dict[str, str]:
-    """Generate Claude Code harness overlay files (v0.10.2+, CLAUDE.md + 3 slash commands).
+    """Generate Claude Code harness overlay files (v1.0.4+, 3 slash command + 1 skill).
 
     Claude Code 의 진입점 = CLAUDE.md (root, 자동 read) + .claude/commands/*.md
-    (slash command, user invocation). 본 함수는 *slash command 3종만* emit.
-    CLAUDE.md 자체는 ``write_harness_files`` 의 진입점 dispatch 에서 emit
-    (``render_claude_code_agents``).
+    (slash command, 사용자 호출) + .claude/skills/*/SKILL.md (모델 자동 선택).
+    본 함수는 `.claude/` 아래 4개 파일을 emit 한다. CLAUDE.md 자체는
+    ``write_harness_files`` 의 진입점 dispatch 에서 emit (``render_claude_code_agents``).
 
     3 slash command:
     - ``workflow-session-start`` — baseline 복원
     - ``workflow-backlog-update`` — 작업 등록/갱신
     - ``workflow-doc-sync`` — 영향 문서 동기화
+
+    1 skill (v1.0.4+):
+    - ``standard-ai-workflow`` — 위 3종의 *모델 호출* 진입점. opencode / grok-build 는
+      진작 skill 을 내보내고 있었는데 claude-code 만 없었다.
     """
     generated: dict[str, str] = {}
     claude_root = paths.target_root / ".claude" / "commands"
@@ -1212,6 +1277,7 @@ def write_claude_code_harness_files(
     session_start_cmd = claude_root / "workflow-session-start.md"
     backlog_update_cmd = claude_root / "workflow-backlog-update.md"
     doc_sync_cmd = claude_root / "workflow-doc-sync.md"
+    skill_file = paths.target_root / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md"
 
     write_text(session_start_cmd, render_claude_code_session_start_command(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_session_start_command"] = str(session_start_cmd)
@@ -1219,6 +1285,8 @@ def write_claude_code_harness_files(
     generated["claude_code_backlog_update_command"] = str(backlog_update_cmd)
     write_text(doc_sync_cmd, render_claude_code_doc_sync_command(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_doc_sync_command"] = str(doc_sync_cmd)
+    write_text(skill_file, render_claude_code_skill(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_skill"] = str(skill_file)
 
     return generated
 

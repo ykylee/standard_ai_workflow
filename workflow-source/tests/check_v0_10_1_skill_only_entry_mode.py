@@ -155,10 +155,17 @@ def test_claude_code_harness_registered_v0_10_1() -> None:
         f"v0.10.2 정정: claude-code entry_files 는 ('CLAUDE.md',) 여야 함 (Claude Code 도 "
         f"root 진입점 자동 read). got: {spec.entry_files}"
     )
-    # 3 slash command extra_files 유지 (additive 도구)
-    assert len(spec.extra_files) == 3, (
-        f"claude-code extra_files 는 3개 slash command 여야 함. got: {len(spec.extra_files)}"
-    )
+    # 3 slash command extra_files 유지 (additive 도구). **총 개수가 아니라 존재를 본다**
+    # — 개수 판정은 "3종이 유지되는가" 의 약한 대리물이라, v1.0.4 에서 skill 하나를
+    # 더하자 계약이 그대로인데도 깨졌다 (2026-08-05).
+    for command in (
+        ".claude/commands/workflow-session-start.md",
+        ".claude/commands/workflow-backlog-update.md",
+        ".claude/commands/workflow-doc-sync.md",
+    ):
+        assert command in spec.extra_files, (
+            f"claude-code extra_files 에 {command} 가 있어야 함. got: {spec.extra_files}"
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -4,14 +4,16 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-04
+- 최종 수정일: 2026-08-05
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)
+- **현재 상태(§2.59, 2026-08-05)**: 로컬 검증까지 끝났고 **아직 push 전이다**. 격리 venv(`dev,release,mcp-sdk`) 전량 smoke **233/233**, mypy strict **123 files 0 errors**. 다음 세션의 첫 일은 push 후 트리거되는 CI 실측(smoke 2셀 / mypy-strict).
+- 직전 push 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)
 - CI 자기 측정(요약 필드 말고 로그의 사실): smoke 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, `::error::` 0건. `okf-validate` 는 `Extracted 4 unique URLs` → `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` → online 검증 exit 0. mkdocs 는 `docs/**` 를 밟아 **직전 두 사이클 만에 처음 트리거돼 통과**했다
-- 현재 주 작업 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
+- 현재 주 작업 축: "생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다
+- 직전 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
@@ -28,7 +30,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-07-31-main-005 같은 결함이 CLI 에도 있었다 — doctor 의 기준 경로와 출처
 - TASK-2026-07-31-main-006 세 번째를 찾으러 갔다 — 경로 기준 전수 조사
 - TASK-2026-07-31-main-007 모든 panel 의 기준이 자기 근거를 안 내고 있었다
 - TASK-2026-07-31-main-008 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다
@@ -38,7 +39,24 @@
 - TASK-2026-08-03-main-003 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로
 - TASK-2026-08-03-main-004 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다
 - TASK-2026-08-04-main-001 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크
+- TASK-2026-08-05-main-001 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다
+
 ## 5. 다음 세션 시작 포인트
+
+**먼저 할 일: §2.59 를 push 하고 CI 실측.** 로컬은 격리 venv 전량 smoke 233/233 +
+mypy strict 123 files 0 errors 까지 끝났지만 push 는 안 했다.
+
+**그리고 결정이 하나 남아 있다.** `stamp_marker` 결함은 *이미 배포된* 소비자
+프로젝트의 opencode / grok-build skill 파일에도 있다. 마커 버전이 같으면
+`decide_action` 이 `IGNORED` 를 내므로 **재부트스트랩해도 안 고쳐진다** — kit 버전이
+올라가야 갱신된다. 이번 커밋에서 버전을 올리지 않았으니, 릴리스에서 이 건을 어떻게
+다룰지(버전 상승 / 별도 마이그레이션 안내) 정해야 한다.
+
+세 번째로, MCP 는 이번 범위 밖으로 남겨 뒀다 — `workflow-source/mcp_servers/` 에 서버
+11개와 `core/mcp_installation_by_harness.md` 의 설치 절차가 있는데 이 저장소에는
+`.mcp.json` 이 없다. 자기적용의 남은 한 층이다.
+
+--- 이전 세션(§2.58)의 시작 포인트 ---
 
 **CI 실측은 끝났다 — 트리거 6종 전부 green, red 0건**(§1 에 로그 근거까지 적어 뒀다).
 `okf-validate` 가 닫히면서 **이 저장소에 오래 red 인 workflow 가 남아 있지 않다**.
@@ -652,7 +670,27 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
-- **이번 세션의 교훈(§2.58)**: **검사가 내는 이름은 검출기가 아는 만큼만 말한다.**
+- **이번 세션의 교훈(§2.59)**: **생성기를 검사하는 것과 산출물을 검사하는 것은 다른
+  일이다.** `check_harness_skill_frontmatter` 는 렌더러 안의 문자열 리터럴을 4 case 로
+  검사하며 계속 PASS 였는데, 그 리터럴이 파일이 되는 마지막 한 걸음(`write_text` →
+  `stamp_marker`)에서 버전 마커가 1행에 붙어 `---` 를 2행으로 밀어냈다. frontmatter 는
+  **위치 계약** 이라 그 순간 평범한 산문이 되고, 하네스는 skill 을 아예 못 본다.
+  이미 배포된 opencode skill·agent 5종·grok skill 까지 8개 블록 전부가 같은 상태였다.
+  검사를 쓸 때는 **어느 층까지 검사하는지**를 적고, 산출물 층은 따로 덮을 것.
+- **이번 세션의 교훈(§2.59, 요구 목록은 파생시킨다)**: `.claude/` 가 통째로 없는데
+  자기적용 검사가 green 이었던 이유는 하나다 — `REQUIRED_ENTRYPOINTS = ("CLAUDE.md",)`
+  가 `HarnessSpec.entry_files` 의 **손복사본** 이라 `extra_files` 를 아예 보지 않았다.
+  같은 부류가 하루에 셋 더 나왔다: `total = 5`(케이스 수 하드코딩, 늘리자 "3/5" 로
+  갈라짐), `len(extra_files) == 3`(계약은 "3종이 있는가" 인데 개수로 대리 판정),
+  `check_docs` 의 overlay 노출. **판정 목록은 정본에서 파생시키면 따라온다.**
+- **이번 세션의 교훈(§2.59, 개수는 계약이 아니다)**: `len(...) == 3` 은 "3종이 유지되는가"
+  의 약한 대리물이다. 실제로 계약을 지킨 채 skill 하나를 더했을 뿐인데 두 검사가 깨졌다 —
+  **깨져야 할 때 안 깨지고, 안 깨져도 될 때 깨진다.** 이름으로 존재를 물을 것.
+- **확인 못 함(§2.59)**: 새로 발행한 `.claude/skills/standard-ai-workflow/SKILL.md` 와
+  slash command 3종을 **실제 에이전트 세션이 로드하는지**는 확인하지 못했다. 파일 내용,
+  frontmatter 파싱, stamping 후 위치까지만 검증했다 — `check_self_application` docstring
+  이 예전부터 적어 둔 그 한계가 이번에도 그대로다.
+- **이전 세션의 교훈(§2.58)**: **검사가 내는 이름은 검출기가 아는 만큼만 말한다.**
   `V-R10-online-stale`("링크가 죽었다")로 보고된 2건은 죽은 링크가 아니라 *태어난 적 없는*
   링크였다. 검출기는 "이 URL 에 접근이 안 된다" 까지만 알고, "그 URL 이 어떻게 만들어졌는지"
   는 모른다. **red 를 그 이름대로 믿고 고치면 엉뚱한 곳을 고친다** — 값의 출처까지 거슬러

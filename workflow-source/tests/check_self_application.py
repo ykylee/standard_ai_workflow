@@ -21,6 +21,10 @@
    전부 존재해야 한다. 없는 검사를 가리키는 표는 지켜지는 것처럼 보이는 장식이다.
 2. **자기 진입점을 가진다** — 루트 진입점이 존재하고, 정본에서 생성된 규칙(§1 · §8)을
    담고 있어야 한다.
+2b. **자기 harness 산출물을 *전부* 가진다** — `HARNESS_SPECS["claude-code"]` 가 선언한
+   파일(`entry_files` + `extra_files`)이 전부 실재해야 한다. 2번만 있을 때는
+   `entry_files` 한 장만 보고 있어서, `.claude/` 가 통째로 없는데도 green 이었다
+   (2026-08-05). 요구 목록을 손으로 유지하면 정본과 갈라진다.
 3. **자기 상태를 자기 규약대로 둔다** — 브랜치 메모리에 state / handoff / backlog 가
    모두 있어야 한다.
 4. **자기 린터가 자기 저장소에서 통과한다** — issue 0.
@@ -30,9 +34,10 @@
 로드하는지까지는 확인하지 못한다. 4·5번은 이 저장소의 현재 상태에 의존하므로, 소비자
 프로젝트에서는 의미가 없다 — 그래서 이 검사는 배포 대상이 아니라 우리 tests/ 에만 둔다.
 
-Test list (5 case):
+Test list (6 case):
 1. test_principle_check_mapping_exists
 2. test_repo_has_own_entrypoints
+2b. test_repo_has_own_harness_overlay
 3. test_repo_has_own_state_documents
 4. test_own_linter_passes_on_own_repo
 5. test_own_session_start_runs_on_own_repo
@@ -51,7 +56,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
+sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
+from bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     memory_active_dir,
     state_path_for_workspace,
@@ -60,11 +67,11 @@ from workflow_kit.common.standard_rules import load_standard_rules  # noqa: E402
 
 PRINCIPLES_DOC = SOURCE_ROOT / "core" / "workflow_design_principles.md"
 
-#: 반드시 있어야 하는 진입점. `.gitignore` 의 "Workflow layer (selective tracking)" 이
-#: `/AGENTS.md` · `/GEMINI.md` · `/ANTIGRAVITY.md` 를 의도적으로 제외하므로, 그것들을
-#: 요구하면 **깨끗한 clone 과 CI 에서 반드시 실패한다**. 추적되는 진입점만 요구한다.
-REQUIRED_ENTRYPOINTS = ("CLAUDE.md",)
-#: 있으면 내용까지 검증하되, 없다고 실패시키지는 않는 진입점 (로컬 전용 산출물).
+#: 이 저장소가 자기 자신에게 적용하는 harness. Claude Code 로 개발하므로 claude-code.
+SELF_HARNESS = "claude-code"
+#: 있으면 내용까지 검증하되, 없다고 실패시키지는 않는 *다른 harness* 의 진입점.
+#: `.gitignore` 의 "Workflow layer (selective tracking)" 이 이것들을 의도적으로
+#: 제외하므로 요구하면 깨끗한 clone 과 CI 에서 반드시 실패한다.
 OPTIONAL_ENTRYPOINTS = ("AGENTS.md", "GEMINI.md", "ANTIGRAVITY.md")
 LINTER = SOURCE_ROOT / "skills" / "workflow-linter" / "scripts" / "run_workflow_linter.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
@@ -147,11 +154,12 @@ def test_principle_check_mapping_exists() -> None:
 def test_repo_has_own_entrypoints() -> None:
     rules = load_standard_rules(SOURCE_ROOT)
     verify = next((p for p in rules.principles if "검증" in p), rules.principles[0])
+    required = HARNESS_SPECS[SELF_HARNESS].entry_files
     problems: list[str] = []
-    for name in (*REQUIRED_ENTRYPOINTS, *OPTIONAL_ENTRYPOINTS):
+    for name in (*required, *OPTIONAL_ENTRYPOINTS):
         path = REPO_ROOT / name
         if not path.exists():
-            if name in REQUIRED_ENTRYPOINTS:
+            if name in required:
                 problems.append(f"{name} 없음")
             continue
         text = path.read_text(encoding="utf-8")
@@ -160,6 +168,75 @@ def test_repo_has_own_entrypoints() -> None:
         if rules.close_order not in text:
             problems.append(f"{name}: §8 종료 순서 누락")
     _record("test_repo_has_own_entrypoints", not problems, "; ".join(problems))
+
+
+# --- Case 2b ---------------------------------------------------------------
+
+
+def _git_ignores(rel: str) -> bool | None:
+    """`.gitignore` 정본에게 묻는다. True=무시됨, False=추적 대상, None=판정 불가.
+
+    이름 목록으로 "이건 로컬 산출물" 을 손으로 유지하면 `.gitignore` 의 *약한 사본*
+    이 되고, 사본은 반드시 갈라진다. 무엇이 추적 대상인지는 git 이 정본이다.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "check-ignore", "-q", "--", rel],
+            cwd=REPO_ROOT, capture_output=True, text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode == 0:
+        return True
+    if completed.returncode == 1:
+        return False
+    return None
+
+
+def test_repo_has_own_harness_overlay() -> None:
+    """자기 harness 가 *선언한 파일 전부* 가 저장소에 실재하는가.
+
+    2026-08-05 조사에서 드러난 것: 루트 `CLAUDE.md` 는 slash command 3종을 광고하는데
+    `.claude/` 디렉터리 자체가 없었다. 같은 renderer 가 한 세트로 내보내는 산출물에서
+    **진입점 한 장만 가져온 상태** 였고, 이 검사의 요구 목록이 `HarnessSpec` 의 손복사본
+    (`entry_files` 만 나열)이라 `extra_files` 를 아예 보지 않았다 — 그래서 green 이었다.
+
+    이제 요구 목록을 `HARNESS_SPECS` 정본에서 파생한다. harness 에 파일이 추가되면
+    이 검사가 자동으로 그것을 요구한다.
+    """
+    spec = HARNESS_SPECS[SELF_HARNESS]
+    declared = (*spec.entry_files, *spec.extra_files)
+    if not declared:
+        _record("test_repo_has_own_harness_overlay", False,
+                f"{SELF_HARNESS} spec 이 파일을 하나도 선언하지 않는다 — 대상 0건은 통과가 아니다")
+        return
+
+    missing: list[str] = []
+    ignored: list[str] = []
+    undecided: list[str] = []
+    for rel in declared:
+        if (REPO_ROOT / rel).exists():
+            continue
+        verdict = _git_ignores(rel)
+        if verdict is True:
+            ignored.append(rel)
+        elif verdict is False:
+            missing.append(rel)
+        else:
+            undecided.append(rel)
+
+    # 무시 대상은 결함이 아니지만 **조용히 넘기지 않는다** — 검사가 무엇을 안 봤는지
+    # 말하지 않으면 "적용됨" 과 "면제됨" 이 같은 모양이 된다.
+    if ignored:
+        print(f"  [info] .gitignore 가 제외하므로 요구하지 않음: {ignored}")
+    problems = [f"부재: {missing}"] if missing else []
+    if undecided:
+        problems.append(f"git 판정 불가(부재로 처리하지 않음, 사유 미상): {undecided}")
+    _record(
+        "test_repo_has_own_harness_overlay",
+        not problems,
+        f"{SELF_HARNESS} 가 선언한 {len(declared)}개 중 — " + "; ".join(problems),
+    )
 
 
 # --- Case 3 ----------------------------------------------------------------
@@ -237,12 +314,19 @@ def test_own_session_start_runs_on_own_repo() -> None:
 
 
 def main() -> int:
-    test_principle_check_mapping_exists()
-    test_repo_has_own_entrypoints()
-    test_repo_has_own_state_documents()
-    test_own_linter_passes_on_own_repo()
-    test_own_session_start_runs_on_own_repo()
-    total = 5
+    # 케이스 목록이 곧 총계다. `total` 을 따로 두면 손복사본이 되고, 실제로
+    # case 를 하나 늘렸을 때 `total = 5` 가 그대로 남아 "3/5" 처럼 갈라졌다.
+    cases = (
+        test_principle_check_mapping_exists,
+        test_repo_has_own_entrypoints,
+        test_repo_has_own_harness_overlay,
+        test_repo_has_own_state_documents,
+        test_own_linter_passes_on_own_repo,
+        test_own_session_start_runs_on_own_repo,
+    )
+    for case in cases:
+        case()
+    total = len(cases)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

@@ -30,8 +30,22 @@ MCP_TOOL_DESCRIPTION = (
     "for the Standard AI Workflow kit."
 )
 
+#: harness → JSON 설정 파일의 **최상위 키**. 하네스마다 방언이 다르다.
+#:
+#: 이 표가 없던 동안 `scripts/generate_read_only_harness_mcp_examples.py` 의 OpenCode
+#: 예시가 `mcp_servers` 를 가르치고 있었다 — 실제 `render_opencode_mcp_config` 이
+#: 내보내는 키는 `mcp` 다. 예시대로 붙여넣으면 OpenCode 가 서버를 못 본다.
+#: 방언을 아는 자리를 하나로 둔다 (2026-08-05).
+MCP_CONFIG_ROOT_KEY: dict[str, str] = {
+    "opencode": "mcp",
+    "gemini-cli": "mcpServers",
+    "antigravity": "mcpServers",
+    "claude-code": "mcpServers",
+    "minimax-code": "mcp_servers",
+}
 
-def _mcp_server_command(bridge: str) -> list[str]:
+
+def mcp_server_command(bridge: str) -> list[str]:
     """Return the ``command + args`` that the per-harness MCP config should spawn.
 
     ``command`` is always ``python3`` (the same Python that runs the
@@ -86,7 +100,7 @@ def render_mcp_toml_block(
     """Return the ``[mcp_servers.<alias>]`` TOML block.
 
     Codex 와 Grok Build 는 **같은 TOML 방언**을 쓴다. 전에는 Codex 쪽만 이 모듈의
-    `_mcp_server_command` 를 쓰고, Grok 쪽은 `renderers.py` 안에 command/args/alias/
+    `mcp_server_command` 를 쓰고, Grok 쪽은 `renderers.py` 안에 command/args/alias/
     tool 설명을 **손으로 적어** 두고 있었다 (활성 블록 1 + 주석 처리된 stdio-sdk
     변형 1, 2026-08-05). 사본은 반드시 갈라진다 — transport 기본값이나 entry-point
     모듈명이 바뀌면 Grok 만 옛 값을 계속 내보낸다. 조립을 여기 한 곳에 둔다.
@@ -98,7 +112,7 @@ def render_mcp_toml_block(
 
     ``commented=True`` 면 모든 줄을 ``# `` 로 접두해 "대안 설정" 주석 블록이 된다.
     """
-    cmd = _mcp_server_command(bridge)
+    cmd = mcp_server_command(bridge)
     lines = [
         f"[mcp_servers.{MCP_SERVER_ALIAS}]",
         f"command = {json.dumps(cmd[0])}",
@@ -154,11 +168,11 @@ def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
         {
-            "mcp": {
+            MCP_CONFIG_ROOT_KEY["opencode"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "local",
-                    "command": _mcp_server_command(bridge)[0],
-                    "args": _mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge)[0],
+                    "args": mcp_server_command(bridge)[1:],
                     "env": _mcp_server_env(),
                     "timeout": 30000,
                 }
@@ -174,10 +188,10 @@ def render_gemini_cli_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
         {
-            "mcpServers": {
+            MCP_CONFIG_ROOT_KEY["gemini-cli"]: {
                 MCP_SERVER_ALIAS: {
-                    "command": _mcp_server_command(bridge)[0],
-                    "args": _mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge)[0],
+                    "args": mcp_server_command(bridge)[1:],
                     "env": _mcp_server_env(),
                     "trust": True,
                     "includeTools": [
@@ -205,11 +219,11 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
         {
-            "mcpServers": {
+            MCP_CONFIG_ROOT_KEY["antigravity"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "stdio",
-                    "command": _mcp_server_command(bridge)[0],
-                    "args": _mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge)[0],
+                    "args": mcp_server_command(bridge)[1:],
                     "env": _mcp_server_env(),
                 }
             }
@@ -229,8 +243,8 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     descriptor = {
         MCP_SERVER_ALIAS: {
-            "command": _mcp_server_command(bridge)[0],
-            "args": _mcp_server_command(bridge)[1:],
+            "command": mcp_server_command(bridge)[0],
+            "args": mcp_server_command(bridge)[1:],
             "env": _mcp_server_env(),
             "transport_ready": False,
             "transport": bridge,
@@ -253,7 +267,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
             ],
         }
     }
-    return json.dumps({"mcp_servers": descriptor}, ensure_ascii=False, indent=2) + "\n"
+    return json.dumps({MCP_CONFIG_ROOT_KEY["minimax-code"]: descriptor}, ensure_ascii=False, indent=2) + "\n"
 
 
 def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
@@ -275,11 +289,11 @@ def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
         {
-            "mcpServers": {
+            MCP_CONFIG_ROOT_KEY["claude-code"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "stdio",
-                    "command": _mcp_server_command(bridge)[0],
-                    "args": _mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge)[0],
+                    "args": mcp_server_command(bridge)[1:],
                     "env": _mcp_server_env(),
                 }
             }

@@ -21,6 +21,10 @@
 4. harness 설정 예시(JSON/TOML)가 전부 파싱되는가
 5. **렌더러가 뱉는 TOML** 이 파싱되고 `tool_descriptions` 키가 코드가 쓴 문자열인가
    — 4번은 커밋된 예시 파일만 본다. 생성기 출력은 아무도 파싱해 본 적이 없었다.
+6. 방언 표 `MCP_CONFIG_ROOT_KEY` 가 **독립 출처** (`examples/mcp_config_examples/`)
+   와 같은가 — draft 예시가 OpenCode 에 `mcp_servers` 를 가르치는 동안 렌더러는
+   `mcp` 를 내보내고 있었다. 표와 렌더러를 대조하면 둘 다 표를 읽으므로
+   **무엇을 되주입해도 통과한다**; 따로 작성된 예시 파일이 유일한 외부 증인이다.
 """
 from __future__ import annotations
 
@@ -200,6 +204,57 @@ def test_rendered_toml_keys_are_what_the_code_wrote() -> bool:
     return ok
 
 
+def test_root_key_table_matches_authored_examples() -> bool:
+    """6) 방언 표(`MCP_CONFIG_ROOT_KEY`)가 **따로 작성된 설정 예시** 와 같은가.
+
+    `scripts/generate_read_only_harness_mcp_examples.py` 의 OpenCode 예시가
+    `mcp_servers` 를 가르치는 동안 실제 `render_opencode_mcp_config` 은 `mcp` 를
+    내보내고 있었다 — 예시대로 붙여넣으면 OpenCode 가 서버를 못 본다 (2026-08-05).
+
+    **표와 렌더러를 대조하면 안 된다.** 이제 렌더러도 같은 표를 읽으므로 표를 바꾸면
+    양쪽이 함께 바뀌어 **무엇을 되주입해도 통과한다** (실제로 처음 이렇게 짰다가
+    결함 상태에서 6/6 PASS 가 나왔다). 자기 자신과 비교하는 검사는 아무것도 보장하지
+    않는다.
+
+    그래서 **독립 출처** 인 `examples/mcp_config_examples/<harness>-mcp.json` 과
+    대조한다. 이 파일들은 하네스 문서를 보고 따로 작성된 것이고, 실제로 이번 결함
+    당시에도 `opencode-mcp.json` 은 처음부터 `mcp` 를 쓰고 있었다 — 증인은 있었는데
+    아무도 대조하지 않았을 뿐이다.
+
+    Codex 는 TOML 이라 대상이 아니다 (그쪽은 case 5 가 파싱해서 본다).
+    """
+    sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
+    from bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY  # noqa: PLC0415
+
+    witnessed: list[str] = []
+    unwitnessed: list[str] = []
+    ok = True
+    for harness, declared in sorted(MCP_CONFIG_ROOT_KEY.items()):
+        witness = CONFIG_EXAMPLES / f"{harness}-mcp.json"
+        if not witness.is_file():
+            unwitnessed.append(harness)
+            continue
+        keys = list(json.loads(witness.read_text(encoding="utf-8")))
+        if keys != [declared]:
+            print(f"  FAIL: {harness} — 표는 {declared!r} 인데 "
+                  f"{witness.relative_to(REPO_ROOT)} 는 {keys} 를 쓴다")
+            ok = False
+            continue
+        witnessed.append(harness)
+
+    # 증인이 없는 하네스는 결함이 아니지만 **조용히 넘기지 않는다** — 대조하지 못한
+    # 것과 대조해서 맞은 것이 같은 모양이면 커버리지가 조용히 0 으로 떨어진다.
+    if unwitnessed:
+        print(f"  [info] 독립 예시가 없어 대조 못 함: {unwitnessed}")
+    if len(witnessed) < 3:
+        print(f"  FAIL: 대조된 하네스 {len(witnessed)}개 — 예시 파일 명명 규칙이 "
+              "바뀌었을 수 있다 (대상 0건은 통과가 아니다)")
+        return False
+    if ok:
+        print(f"  PASS: 방언 표 {len(witnessed)}종이 독립 설정 예시와 일치")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_descriptors_load", test_descriptors_load),
@@ -208,6 +263,8 @@ def main() -> int:
         ("test_config_examples_parse", test_config_examples_parse),
         ("test_rendered_toml_keys_are_what_the_code_wrote",
          test_rendered_toml_keys_are_what_the_code_wrote),
+        ("test_root_key_table_matches_authored_examples",
+         test_root_key_table_matches_authored_examples),
     ]
     results = []
     for name, fn in cases:

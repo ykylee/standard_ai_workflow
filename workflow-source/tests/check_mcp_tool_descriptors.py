@@ -19,6 +19,8 @@
    `inputSchema` 가 `type: "object"` + `properties` 를 가진 JSON Schema
 3. `tool_count` 선언이 실제 개수와 일치하는가 (선언 ↔ 사실)
 4. harness 설정 예시(JSON/TOML)가 전부 파싱되는가
+5. **렌더러가 뱉는 TOML** 이 파싱되고 `tool_descriptions` 키가 코드가 쓴 문자열인가
+   — 4번은 커밋된 예시 파일만 본다. 생성기 출력은 아무도 파싱해 본 적이 없었다.
 """
 from __future__ import annotations
 
@@ -147,12 +149,65 @@ def test_config_examples_parse() -> bool:
     return ok
 
 
+def test_rendered_toml_keys_are_what_the_code_wrote() -> bool:
+    """5) **렌더러가 실제로 뱉는 TOML** 이 파싱되고, 키가 코드가 쓴 문자열인가.
+
+    4번은 *커밋된 예시 파일* 만 본다. 생성기가 뱉는 것은 아무도 파싱해 본 적이
+    없었고, 그래서 `tool_descriptions` 의 키가 조용히 다른 것을 뜻하고 있었다:
+    `workflow_kit.read_only = "…"` 는 TOML 의 dotted key 규칙에 따라
+    ``{workflow_kit = {read_only = "…"}}`` 로 **중첩**된다. 코드는 `MCP_TOOL_NAME`
+    이라는 키 하나를 쓴다고 말하는데 파일은 다른 구조를 뜻했다 (2026-08-05).
+
+    Codex 와 Grok Build 가 같은 helper 를 쓰므로 이 case 가 양쪽을 함께 덮는다.
+    """
+    try:
+        import tomllib
+    except ImportError:  # pragma: no cover — Python 3.10
+        import tomli as tomllib
+
+    sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
+    from bootstrap_lib.mcp import (  # noqa: PLC0415
+        MCP_SERVER_ALIAS,
+        MCP_TOOL_NAME,
+        render_mcp_toml_block,
+    )
+
+    ok = True
+    for bridge in ("jsonrpc-bridge", "stdio-sdk"):
+        block = render_mcp_toml_block(bridge, {"STANDARD_AI_WORKFLOW_ROOT": "."})
+        try:
+            parsed = tomllib.loads(block)
+        except Exception as e:  # noqa: BLE001
+            print(f"  FAIL: {bridge} — TOML 파싱 실패 {type(e).__name__}: {str(e)[:90]}")
+            ok = False
+            continue
+        server = parsed.get("mcp_servers", {}).get(MCP_SERVER_ALIAS)
+        if not isinstance(server, dict):
+            print(f"  FAIL: {bridge} — `mcp_servers.{MCP_SERVER_ALIAS}` 가 없다")
+            ok = False
+            continue
+        descriptions = server.get("tool_descriptions")
+        if not isinstance(descriptions, dict) or MCP_TOOL_NAME not in descriptions:
+            print(f"  FAIL: {bridge} — `tool_descriptions` 의 키가 {MCP_TOOL_NAME!r} 가 아니다 "
+                  f"(실제: {sorted(descriptions) if isinstance(descriptions, dict) else descriptions!r}); "
+                  "점이 든 키는 따옴표로 감싸야 중첩되지 않는다")
+            ok = False
+        if not server.get("args"):
+            print(f"  FAIL: {bridge} — `args` 가 비어 있다")
+            ok = False
+    if ok:
+        print("  PASS: 렌더러 TOML 2종 파싱 + tool_descriptions 키가 코드가 쓴 문자열")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_descriptors_load", test_descriptors_load),
         ("test_tool_definitions", test_tool_definitions),
         ("test_declared_count_matches", test_declared_count_matches),
         ("test_config_examples_parse", test_config_examples_parse),
+        ("test_rendered_toml_keys_are_what_the_code_wrote",
+         test_rendered_toml_keys_are_what_the_code_wrote),
     ]
     results = []
     for name, fn in cases:

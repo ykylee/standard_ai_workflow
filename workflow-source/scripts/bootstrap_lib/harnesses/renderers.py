@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from bootstrap_lib.harnesses import register_harness_builder
+from bootstrap_lib.mcp import render_mcp_toml_block
 from bootstrap_lib.paths import (
     Paths,
     antigravity_agents_path,
@@ -1894,8 +1895,25 @@ git push
 
 
 def render_grok_build_config_example(args: argparse.Namespace, context: dict[str, object]) -> str:
-    """Render ``.grok/config.toml.example`` — MCP stdio snippet + skill paths + memory opt-in."""
-    return '''# Grok Build config (v0.15.16+, standard-ai-workflow overlay)
+    """Render ``.grok/config.toml.example`` — MCP stdio snippet + skill paths + memory opt-in.
+
+    MCP 블록은 `bootstrap_lib.mcp.render_mcp_toml_block` 로 조립한다. 전에는 여기에
+    command/args/alias/tool 설명을 **손으로 적어** 두고 있었다 (활성 1 + 주석 처리된
+    stdio-sdk 변형 1) — Codex 는 정본을 쓰는데 Grok 만 사본이라, transport 기본값이나
+    entry-point 모듈명이 바뀌면 Grok 만 옛 값을 계속 내보냈을 것이다 (2026-08-05).
+
+    env 는 정본의 상대 경로가 아니라 ``/ABSOLUTE/PATH/TO/...`` placeholder 다.
+    이 파일은 emit 되는 최종 설정이 아니라 **사용자가 `cp` 후 경로를 고치는 템플릿**
+    이고, Grok Build 는 cwd > repo > user 순으로 load 하므로 cwd = 프로젝트 루트
+    전제가 성립하지 않는다. 값은 다르되 *무엇을 실행하는가* 는 같아야 한다.
+    """
+    placeholder_env = {
+        "PYTHONPATH": "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source",
+        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>",
+    }
+    mcp_block = render_mcp_toml_block("jsonrpc-bridge", placeholder_env)
+    mcp_alt_block = render_mcp_toml_block("stdio-sdk", placeholder_env, commented=True)
+    return f'''# Grok Build config (v0.15.16+, standard-ai-workflow overlay)
 #
 # 사용: 본 파일을 `.grok/config.toml` 로 cp 후 절대 경로 보정.
 #
@@ -1928,22 +1946,11 @@ web_search = "grok-4.20-multi-agent"
 # ---------------------------------------------------------------------------
 # 표준 AI 워크플로우 MCP (read-only)
 # ---------------------------------------------------------------------------
-[mcp_servers.standardAiWorkflowReadOnly]
-command = "python3"
-args = ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
-PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
-STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"
-
-[mcp_servers.standardAiWorkflowReadOnly.tool_descriptions]
-workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadata, ...) for the Standard AI Workflow kit."
-
-# stdio-sdk variant (실험적):
-# [mcp_servers.standardAiWorkflowReadOnly]
-# command = "python3"
-# args = ["-m", "workflow_kit.server.read_only_mcp_sdk", "--stdio-sdk"]
-# PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
-# STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"
-
+{mcp_block}
+# stdio-sdk variant (실험적): `mcp` SDK 가 설치된 python3 에서만 뜬다.
+# 시스템 python3 에 SDK 가 없으면 `Connection closed` 로 죽는다 —
+# core/mcp_installation_by_harness.md §1.1 의 실측표 참조.
+{mcp_alt_block}
 # ---------------------------------------------------------------------------
 # Skills (project-local + user)
 # ---------------------------------------------------------------------------

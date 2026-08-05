@@ -25,6 +25,10 @@ from bootstrap_lib.writes import write_text
 
 MCP_SERVER_ALIAS = "standardAiWorkflowReadOnly"
 MCP_TOOL_NAME = "workflow_kit.read_only"
+MCP_TOOL_DESCRIPTION = (
+    "Read-only MCP tools (latest_backlog, check_doc_metadata, ...) "
+    "for the Standard AI Workflow kit."
+)
 
 
 def _mcp_server_command(bridge: str) -> list[str]:
@@ -71,6 +75,54 @@ def _mcp_server_env() -> dict[str, str]:
     return env
 
 
+def render_mcp_toml_block(
+    bridge: str,
+    env: dict[str, str],
+    *,
+    settings: dict[str, object] | None = None,
+    descriptions_comment: str | None = None,
+    commented: bool = False,
+) -> str:
+    """Return the ``[mcp_servers.<alias>]`` TOML block.
+
+    Codex 와 Grok Build 는 **같은 TOML 방언**을 쓴다. 전에는 Codex 쪽만 이 모듈의
+    `_mcp_server_command` 를 쓰고, Grok 쪽은 `renderers.py` 안에 command/args/alias/
+    tool 설명을 **손으로 적어** 두고 있었다 (활성 블록 1 + 주석 처리된 stdio-sdk
+    변형 1, 2026-08-05). 사본은 반드시 갈라진다 — transport 기본값이나 entry-point
+    모듈명이 바뀌면 Grok 만 옛 값을 계속 내보낸다. 조립을 여기 한 곳에 둔다.
+
+    ``env`` 는 caller 가 준다. project-local config 는 :func:`_mcp_server_env`
+    (상대 경로)이고, Grok 의 ``config.toml.example`` 은 사용자가 cp 후 고치는
+    템플릿이라 ``/ABSOLUTE/PATH/TO/...`` placeholder 를 쓴다 — 값은 다르지만
+    **무엇을 실행하는가는 같아야 한다.**
+
+    ``commented=True`` 면 모든 줄을 ``# `` 로 접두해 "대안 설정" 주석 블록이 된다.
+    """
+    cmd = _mcp_server_command(bridge)
+    lines = [
+        f"[mcp_servers.{MCP_SERVER_ALIAS}]",
+        f"command = {json.dumps(cmd[0])}",
+        "args = [" + ", ".join(json.dumps(part) for part in cmd[1:]) + "]",
+    ]
+    lines += [f"{key} = {json.dumps(value)}" for key, value in env.items()]
+    lines += [f"{key} = {json.dumps(value)}" for key, value in (settings or {}).items()]
+    lines.append("")
+    if descriptions_comment:
+        lines.append(f"# {descriptions_comment}")
+    lines += [
+        f"[mcp_servers.{MCP_SERVER_ALIAS}.tool_descriptions]",
+        # 키를 **따옴표로 감싼다**. `workflow_kit.read_only` 를 그냥 쓰면 TOML 의
+        # dotted key 규칙에 따라 `{{workflow_kit = {{read_only = "…"}}}}` 로 중첩된다 —
+        # 즉 코드가 쓴 키(`MCP_TOOL_NAME`)와 파일이 뜻하는 키가 달라진다. 조립을
+        # 여기로 접기 전까지는 아무도 산출물을 파싱해 본 적이 없어서 보이지 않았다
+        # (Codex·Grok 양쪽 동일, 2026-08-05).
+        f"{json.dumps(MCP_TOOL_NAME)} = {json.dumps(MCP_TOOL_DESCRIPTION)}",
+    ]
+    if commented:
+        lines = [("# " + line).rstrip() for line in lines]
+    return "\n".join(lines) + "\n"
+
+
 def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """Return a Codex ``.codex/config.toml`` snippet that registers the MCP server.
 
@@ -79,25 +131,17 @@ def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     their existing ``~/.codex/config.toml`` without losing other entries.
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
-    cmd = _mcp_server_command(bridge)
-    env = _mcp_server_env()
-    args_inline = ", ".join(json.dumps(part) for part in cmd[1:])
-    env_block = "\n".join(f"{key} = {json.dumps(value)}" for key, value in env.items())
+    block = render_mcp_toml_block(
+        bridge,
+        _mcp_server_env(),
+        settings={"startup_timeout_sec": 15, "tool_timeout_sec": 30},
+        descriptions_comment="Tool description shown in the Codex tool picker",
+    )
     return f"""# Codex MCP server snippet for the Standard AI Workflow kit.
 # Drop this into ~/.codex/config.toml under the [mcp_servers] table, or keep
 # the bootstrap-generated .codex/config.toml.example as a starting point.
 
-[mcp_servers.{MCP_SERVER_ALIAS}]
-command = "{cmd[0]}"
-args = [{args_inline}]
-{env_block}
-startup_timeout_sec = 15
-tool_timeout_sec = 30
-
-# Tool description shown in the Codex tool picker
-[mcp_servers.{MCP_SERVER_ALIAS}.tool_descriptions]
-{MCP_TOOL_NAME} = "Read-only MCP tools (latest_backlog, check_doc_metadata, ...) for the Standard AI Workflow kit."
-"""
+{block}"""
 
 
 def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:

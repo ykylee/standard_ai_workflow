@@ -18,7 +18,7 @@ def main() -> int:
     fixtures = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
     for key_phrase in (
-        "transport_ready=false",
+        "transport_phase",
         "manual_review_only",
         "annotations.readOnlyHint: true",
         "inputSchema",

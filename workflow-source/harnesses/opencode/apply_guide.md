@@ -118,7 +118,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 3. `PROJECT_PROFILE.md` 의 실행, 테스트, 검증 규칙을 실제 저장소 기준으로 수정한다.
 4. `AGENTS.md` 와 `opencode.json` 의 instruction 경로가 같이 맞는지 확인한다.
    작업 보고는 한국어, 내부 처리는 간결하게 유지한다는 원칙도 이 단계에서 같이 검토한다.
-   export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행한다.
+   export bundle 을 쓰는 경우 read-only MCP 예시의 `apply_mode` 를 먼저 확인한다 — `manual_review_only` 면 참고 산출물로 두고, `active_ok` 면 그대로 붙여도 된다 (승격 기준: `core/read_only_mcp_transport_promotion.md` §6.1).
 5. `.opencode/agents/` 권한 정책을 팀 기준에 맞게 조정한다.
    이때 오케스트레이터가 직접 `bash`/`edit`/`webfetch` 를 수행하지 않도록 task-only 권한 프로필을 우선 고려한다.
    worker agent 는 실제 수정과 확인 작업을 맡되, 책임 파일과 종료 조건이 분명한 형태로만 호출하는 패턴을 권장한다.

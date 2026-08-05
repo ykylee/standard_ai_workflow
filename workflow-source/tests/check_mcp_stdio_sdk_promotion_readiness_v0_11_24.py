@@ -83,16 +83,16 @@ def test_case_2_spec_section1_transport_status_current() -> None:
 # ---------------------------------------------------------------------------
 
 def test_case_3_sdk_candidate_advertises_stable_transport_when_sdk_available() -> None:
-    """read_only_mcp_sdk.py 가 sdk_available=True 일 때 transport_ready=True advertise.
+    """read_only_mcp_sdk.py 가 런타임 능력을 `sdk_available` 로 advertise 한다.
 
-    v0.11.25 cycle 의 fix: sdk_available=True (mcp 1.27.0+ 설치) 일 때 transport_ready=True
+    v0.11.25 cycle 의 fix + §1.3 축 분리: mcp 설치 시 sdk_available=True
     + sdk_candidate_phase='official_sdk_stable' advertise. 본 fix 는 *runtime* 검증으로만
     확인 가능 (mcp 1.27.0 venv 가 필요한 smoke).
     """
     sdk_text = SDK_CANDIDATE.read_text(encoding="utf-8")
-    # transport_ready 동적 결정 로직 (sdk_available 따라) — literal pattern verify.
-    assert '\"transport_ready\": sdk_available' in sdk_text, (
-        "SDK candidate file 에 'transport_ready': sdk_available 동적 결정 로직이 없음. "
+    # 런타임 능력 축(`sdk_available`)의 동적 결정 로직 — literal pattern verify.
+    assert '\"sdk_available\": sdk_available' in sdk_text, (
+        "SDK candidate file 에 'sdk_available': sdk_available 동적 결정 로직이 없음. "
         "v0.11.25 cycle 의 stdio-sdk stable transition 시 필수."
     )
     # sdk_candidate_phase 동적 결정 — 'official_sdk_stable' / 'official_sdk_optional_candidate' 분기.
@@ -126,7 +126,8 @@ def test_case_4_spec_section4_contracts_complete() -> None:
         "capabilities",
         "listChanged",
         "stdio-lines",
-        "transport_ready",
+        # §6.2 이전에는 `transport_ready` 였다. 그 계약 줄이 `apply_mode` 로 바뀌었다.
+        "apply_mode",
     ]
     missing = [p for p in required_phrases if p not in sec4]
     assert not missing, f"spec §4 에 다음 contract keyword 가 없음: {missing}"

@@ -328,7 +328,7 @@ def render_minimax_config_example() -> str:
       "env": {
         "PYTHONPATH": "./workflow-source"
       },
-      "transport_ready": false,
+      "transport_phase": "jsonrpc_draft",
       "description": "Read-only MCP draft fixture for the standard workflow kit. See workflow-source/schemas/read_only_transport_descriptors.json."
     }
   },

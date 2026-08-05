@@ -41,8 +41,13 @@ def main() -> int:
     descriptors = build_transport_tool_descriptors()
     if checked_in["descriptor_target"] != descriptors["descriptor_target"]:
         raise AssertionError("Harness examples should preserve descriptor target.")
-    if checked_in["transport_ready"] is not False:
-        raise AssertionError("Harness examples should remain transport_ready=false.")
+    # 예전에는 `transport_ready=false` 를 요구했다. 그 플래그는 능력·단계·정책을
+    # 한 boolean 에 섞고 있어 판정 불가였고 §6.2 로 제거됐다 — 이제 근거는
+    # `transport_phase`(단계)와 per-harness `apply_mode`(정책) 두 축이다.
+    if "transport_ready" in checked_in:
+        raise AssertionError("transport_ready 는 제거된 필드다 (§6.2).")
+    if checked_in.get("transport_phase") != "jsonrpc_draft":
+        raise AssertionError("harness 예시는 transport_phase=jsonrpc_draft 를 밝혀야 한다.")
     if checked_in["tool_names"] != [tool["name"] for tool in descriptors["tools"]]:
         raise AssertionError("Harness examples should list descriptor tool names in registry order.")
 
@@ -54,8 +59,8 @@ def main() -> int:
         content = example["content"]
         if example["bridge_entrypoint"] != "workflow_kit.server.read_only_jsonrpc":
             raise AssertionError(f"{harness} example should name the JSON-RPC draft bridge.")
-        if "transport_ready=false" not in content:
-            raise AssertionError(f"{harness} example should expose transport_ready=false.")
+        if "apply_mode=manual_review_only" not in content:
+            raise AssertionError(f"{harness} example 은 apply_mode 를 본문에 밝혀야 한다.")
         if "read_only_transport_descriptors.json" not in content:
             raise AssertionError(f"{harness} example should point back to the descriptor file.")
         if "workflow_kit.server.read_only_jsonrpc" not in content:

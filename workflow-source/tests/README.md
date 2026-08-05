@@ -75,7 +75,7 @@ for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 - read-only JSON-RPC fixture 가 runtime bridge 결과와 같은 request/response envelope 를 유지하는지 확인
 - read-only MCP transport 승격 기준 문서가 fixture 기준선과 유지할 descriptor 계약을 놓치지 않는지 확인
 - read-only transport descriptor 체크인 산출물과 생성 스크립트가 registry 결과와 같은지 확인
-- read-only harness MCP 예시가 descriptor 대상, tool 목록, `transport_ready=false`, manual-review-only 원칙을 유지하는지 확인
+- read-only harness MCP 예시가 descriptor 대상, tool 목록, `transport_phase`, `apply_mode: manual_review_only` 원칙을 유지하는지 확인
 - read-only MCP bundle entrypoint 자체 오류가 `read_only_entrypoint` output family 계약을 따르는지 확인
 - read-only MCP bundle entrypoint 가 필수 payload 누락을 schema 단계에서 실패시키는지 확인
 - generated JSON Schema draft 파일과 생성 스크립트 출력이 런타임 계약과 같은지 확인

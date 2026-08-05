@@ -27,18 +27,18 @@ def main() -> int:
         raise AssertionError("Expected sdk runtime status to be ok.")
     if runtime["server_name"] != READ_ONLY_SERVER_NAME:
         raise AssertionError("Expected sdk runtime status to use read-only bundle server name.")
-    # v0.11.25 cycle 의 fix: transport_ready 는 sdk_available 따라 동적 결정.
-    #   - sdk_available=True (mcp 1.27.0+ 설치) → transport_ready=True (정식 stable)
-    #   - sdk_available=False (mcp 미설치) → transport_ready=False (fallback)
+    # v0.11.25 cycle 의 fix: 런타임 능력 축은 `sdk_available` 이라는 이름으로 낸다 (§1.3 세 축).
+    #   - mcp 1.27.0+ 설치 → sdk_available=True (정식 stable)
+    #   - mcp 미설치 → sdk_available=False (fallback)
     # sdk_candidate_phase 도 sdk_available 따라 "official_sdk_stable" / "official_sdk_optional_candidate".
     if runtime["sdk_available"]:
-        if runtime["transport_ready"] is not True:
-            raise AssertionError("Expected sdk_available=True 시 transport_ready=True (정식 stable).")
+        if runtime["sdk_available"] is not True:
+            raise AssertionError("Expected sdk_available=True 시 sdk_available=True (정식 stable).")
         if runtime["sdk_candidate_phase"] != "official_sdk_stable":
             raise AssertionError("Expected sdk_available=True 시 sdk_candidate_phase='official_sdk_stable'.")
     else:
-        if runtime["transport_ready"] is not False:
-            raise AssertionError("Expected sdk_available=False 시 transport_ready=False.")
+        if runtime["sdk_available"] is not False:
+            raise AssertionError("Expected mcp 미설치 시 sdk_available=False.")
         if runtime["sdk_candidate_phase"] != "official_sdk_optional_candidate":
             raise AssertionError("Expected sdk_available=False 시 sdk_candidate_phase='official_sdk_optional_candidate'.")
     if runtime["descriptor_target"] != descriptors["descriptor_target"]:

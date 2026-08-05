@@ -39,8 +39,10 @@ def main() -> int:
 
     if checked_in["fixture_phase"] != "jsonrpc_draft_fixture":
         raise AssertionError("Expected JSON-RPC draft fixture phase.")
-    if checked_in["transport_ready"] is not False:
-        raise AssertionError("Expected fixtures to remain transport_ready=false.")
+    if checked_in.get("transport_phase") != "jsonrpc_draft":
+        raise AssertionError("fixtures 는 transport_phase=jsonrpc_draft 여야 한다 (§1.3 세 축).")
+    if "transport_ready" in checked_in:
+        raise AssertionError("transport_ready 는 제거된 필드다 (§6.2).")
     if checked_in["session_fixture_count"] != len(checked_in["session_fixtures"]):
         raise AssertionError("Expected session fixture count to match the checked-in session fixture list.")
     names = [fixture["name"] for fixture in checked_in["fixtures"]]

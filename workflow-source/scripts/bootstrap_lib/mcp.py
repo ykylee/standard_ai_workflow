@@ -268,8 +268,9 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
             "command": mcp_server_command(bridge)[0],
             "args": mcp_server_command(bridge)[1:],
             "env": _mcp_server_env(),
-            "transport_ready": False,
             "transport": bridge,
+            "transport_phase": MCP_BRIDGE_PHASE[bridge],
+            "apply_mode": MCP_BRIDGE_APPLY_MODE[bridge],
             "description": (
                 "Read-only MCP tools for the Standard AI Workflow kit. "
                 "Draft JSON-RPC bridge by default; switch to stdio-sdk once "

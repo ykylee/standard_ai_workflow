@@ -46,6 +46,7 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
 4. **Bootstrap 시 MCP 자동 emit**:
    - `python3 -m bootstrap_lib --enable-mcp` 가 하네스별 MCP config snippet emit (`.codex/mcp.toml`, `mcp.opencode.json`, `.gemini/mcp.json`, `.antigravity/mcp.json`, `.MiniMax/mcp.json`).
    - emit 시 tool descriptor 의 `transport_ready=false` 면 manual review only (자동 적용 안 함).
+   - **2026-08-05 supersede**: `transport_ready` 는 능력·단계·정책 셋을 한 boolean 에 섞고 있어 판정이 불가능했다. 같은 정책이 이제 `apply_mode`(`active_ok` / `manual_review_only`)로 표현되고 승격 기준은 `core/read_only_mcp_transport_promotion.md` §6.1 이 실행 가능한 검사로 고정한다.
 
 ## Consequences
 

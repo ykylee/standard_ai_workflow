@@ -63,7 +63,7 @@
 
 - generated JSON Schema draft 는 포함되며, `tests/check_generated_schema_validation.py` 가 Draft 2020-12 validator 로 대표 sample 검증까지 수행한다.
 - read-only MCP bundle manifest 는 runtime 계약에서 생성한 tool 별 JSON Schema draft 를 `output_schema.json_schema` 로 직접 노출한다.
-- 하네스별 MCP 예시는 `workflow_kit.server.read_only_jsonrpc --stdio-lines` draft bridge 를 가리키지만 실제 설정 파일이 아니라 `transport_ready=false` 인 참고 산출물이며, 정식 MCP SDK 서버 루프가 붙기 전에는 자동 적용 대상으로 보지 않는다.
+- 하네스별 MCP 예시는 `workflow_kit.server.read_only_jsonrpc --stdio-lines` draft bridge 를 가리키지만 실제 설정 파일이 아니라 `apply_mode: manual_review_only` 인 참고 산출물이며, 자동 적용 대상으로 보지 않는다. 활성 설정은 `bootstrap --enable-mcp` 가 emit 한다.
 - JSON-RPC fixture 는 SDK transport 승격 전 request/response envelope 비교용 기준선이며, 실제 MCP client 호환성 보장을 뜻하지 않는다.
 - 타입 수준 검증은 이전보다 넓어졌지만, 여전히 family 별 핵심 필드와 주요 nested object 중심이다.
 - error `source_context` shape 검증은 대표 skill/runner family 와 read-only entrypoint family 에 우선 적용돼 있다.

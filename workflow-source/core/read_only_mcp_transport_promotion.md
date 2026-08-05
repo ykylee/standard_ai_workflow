@@ -177,20 +177,28 @@ optional dep 의존은 못 잡는다). `mcp` SDK 가 없으면 이 검사는 **s
 말한다.** `jsonrpc-bridge` 라는 이름과 `transport_ready: false` 라는 옛 자기 선언이
 "MCP 가 아니다" 로 읽혔을 뿐이다.
 
-### 6.2 `transport_ready` 제거 계획
+### 6.2 `transport_ready` 제거 (2026-08-05 완료)
 
-`transport_ready` 는 §1.3 대로 **deprecated** 다. 남아 있는 자리와 처리:
+`transport_ready` 는 §1.3 대로 능력·단계·정책 셋을 한 boolean 에 섞고 있었다.
+**제거를 마쳤고**, 각 축은 답할 자격이 있는 자리에서만 나온다.
 
-| 자리 | 현재 | 처리 |
+| 자리 | 이전 | 현재 |
 | --- | --- | --- |
-| `read_only_mcp_sdk` tool-call `_meta` | ~~`False`~~ → `True` + `transport_phase` | ✅ 2026-08-05 자기모순 수정 |
-| `read_only_registry` ×4 | `False` 상수 | 제거 대상 — `schemas/read_only_transport_descriptors.json` 과 `read_only_jsonrpc_fixtures.json` 재생성이 함께 필요하다 |
-| `read_only_jsonrpc` `_meta` | `False` | `transport_phase: "jsonrpc_draft"` 로 대체 (같은 축을 `bridge_phase` 가 이미 표현 중) |
-| 하네스 예시 문구 | `transport_ready=false` | `apply_mode` 로 대체 |
+| `read_only_registry` (×4) | `transport_ready: false` 상수 | **없음** — registry 는 transport 를 모른다 |
+| `read_only_jsonrpc` `_meta` | `transport_ready: false` + `bridge_phase` | `transport_phase: "jsonrpc_draft"` (둘을 하나로) |
+| `read_only_mcp_sdk` status | `transport_ready: sdk_available` | `sdk_available` + `transport_phase: "official_sdk"` |
+| `read_only_mcp_sdk` tool-call `_meta` | `transport_ready: false` (자기모순) | `transport_phase: "official_sdk"` |
+| 하네스 예시 / bootstrap 산출물 | `transport_ready=false` | `transport_phase` + `apply_mode` |
 
-제거는 커밋된 wire 산출물 4종(총 52곳)을 건드리므로 **별도 사이클** 로 진행한다.
-소비자가 `_meta.transport_ready` 를 읽고 있다면 §1.3 의 세 축 중 무엇을 원했는지
-먼저 정할 것.
+재생성한 커밋 산출물: `read_only_transport_descriptors.json`(14곳),
+`read_only_jsonrpc_fixtures.json`(34곳), `read_only_harness_mcp_examples.json`(3곳).
+
+**소비자 영향**: `_meta.transport_ready` 를 읽던 코드는 §1.3 의 세 축 중 무엇을
+원했는지에 따라 `transport_phase`(단계) 또는 `apply_mode`(정책)로 옮긴다.
+런타임에 SDK 가 있는지 알고 싶었다면 `sdk_runtime_status()["sdk_available"]` 이다.
+
+`docs/architecture/ADR-003` 의 "`transport_ready=false` 면 manual review only" 정책은
+같은 뜻의 `apply_mode` 로 승계됐다 (그 ADR 에 supersede 를 표시해 뒀다).
 
 ## 7. 다음에 읽을 문서
 

@@ -167,7 +167,7 @@ python3 scripts/bootstrap_workflow_kit.py \
 2. `PROJECT_PROFILE.md` 의 설치, 실행, 테스트 명령을 실제 운영 기준으로 수정.
 3. 루트 `AGENTS.md` 와 `GROK.md` 의 기본 명령과 문서 경로가 맞는지 확인.
 4. 작업 보고 언어와 컨텍스트 절약 원칙도 이 단계에서 함께 검토.
-5. export bundle 을 쓰는 경우 read-only MCP descriptor 의 `transport_ready` 값이 `false` 임을 확인하고, 실제 MCP 연결은 별도 서버 루프가 준비된 뒤 진행.
+5. export bundle 을 쓰는 경우 read-only MCP 예시의 `apply_mode` 를 먼저 확인한다 — `manual_review_only` 면 참고 산출물로 두고, `active_ok` 면 그대로 붙여도 된다 (승격 기준: `core/read_only_mcp_transport_promotion.md` §6.1).
 6. 가능하면 메인 에이전트가 직접 모든 읽기/쓰기를 떠안지 않도록, bounded scope subagent 호출 원칙도 이 단계에서 같이 검토.
 7. 첫 실제 작업을 오늘 날짜 backlog 에 등록하고, 세션 종료 직전(commit 직전) handoff 를 갱신. 종료 절차는 [`core/global_workflow_standard.md`](../../core/global_workflow_standard.md) §8 정합 — `memory 갱신 → commit → push` 순서.
 

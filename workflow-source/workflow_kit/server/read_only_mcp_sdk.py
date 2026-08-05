@@ -73,7 +73,10 @@ def sdk_runtime_status() -> dict[str, object]:
         "status": "ok",
         "server_name": READ_ONLY_SERVER_NAME,
         "tool_version": TOOL_VERSION,
-        "transport_ready": sdk_available,
+        # 런타임 능력 축은 `sdk_available` 이라는 이름으로 낸다. 예전 이름
+        # `transport_ready` 는 능력·단계·정책 셋을 한 boolean 에 섞고 있었다 (§1.3).
+        "sdk_available": sdk_available,
+        "transport_phase": "official_sdk",
         "sdk_candidate_phase": (
             "official_sdk_stable" if sdk_available
             else "official_sdk_optional_candidate"
@@ -119,7 +122,6 @@ def _call_tool_result_for_payload(
             # `True` / `official_sdk_stable` 을 광고하는데, **상태 조회는 ready 라 하고
             # 모든 tool 호출은 not-ready 라 하는** 자기모순이었다 (2026-08-05, §2.63).
             # 여기까지 왔다는 것 자체가 SDK import 성공의 증거이므로 True 다.
-            "transport_ready": True,
             "transport_phase": "official_sdk",
             "sdk_candidate_phase": "official_sdk_stable",
             "tool": name,

@@ -79,7 +79,8 @@ def render_harness_readme(display_name: str, slug: str, args: argparse.Namespace
 - 상세 정책은 `ai-workflow/memory/active/` 문서를 먼저 읽도록 연결한다.
 - 설정 파일은 가능한 한 최소 예시만 두고, 긴 정책 본문은 공통 문서로 위임한다.
 - export bundle 의 `bundle/source-docs/schemas/read_only_transport_descriptors.json` 는 read-only MCP 연결 검토용 draft descriptor 로 취급한다.
-- descriptor 의 `transport_ready` 값이 `false` 인 동안에는 실제 MCP 연결보다 참고 산출물로 두는 편이 안전하다.
+- `apply_mode` 가 `manual_review_only` 인 bridge 는 실제 MCP 연결보다 참고 산출물로 두는 편이 안전하다
+  (승격 기준: `core/read_only_mcp_transport_promotion.md` §6.1).
 
 ## bootstrap 확장 TODO
 

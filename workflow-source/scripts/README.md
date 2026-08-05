@@ -286,7 +286,7 @@ python3 scripts/generate_read_only_transport_descriptors.py > schemas/read_only_
 
 - read-only MCP descriptor 를 Codex/OpenCode 하네스별 MCP 설정 예시 draft 로 변환한다.
 - 체크인 산출물은 `schemas/read_only_harness_mcp_examples.json` 이다.
-- 예시는 `workflow_kit.server.read_only_jsonrpc --stdio-lines` draft bridge 를 가리키지만 `manual_review_only` 이며, `transport_ready=false` 상태에서는 실제 설정으로 자동 적용하지 않는다.
+- 예시는 `workflow_kit.server.read_only_jsonrpc --stdio-lines` draft bridge 를 가리키며 `apply_mode: manual_review_only` 다 — 실제 설정으로 자동 적용하지 않는다.
 
 예시:
 

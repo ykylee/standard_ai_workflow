@@ -67,8 +67,7 @@ def build_initialize_result() -> dict[str, Any]:
             },
         },
         "_meta": {
-            "transport_ready": False,
-            "bridge_phase": "jsonrpc_draft_fixture",
+            "transport_phase": "jsonrpc_draft",
             "descriptor_target": descriptors["descriptor_target"],
         },
     }
@@ -155,7 +154,7 @@ def build_tools_list_result() -> dict[str, Any]:
     return {
         "tools": descriptors["tools"],
         "_meta": {
-            "transport_ready": descriptors["transport_ready"],
+            "transport_phase": "jsonrpc_draft",
             "descriptor_target": descriptors["descriptor_target"],
             "tool_count": descriptors["tool_count"],
         },
@@ -181,8 +180,7 @@ def build_tools_call_result(name: str, arguments: dict[str, Any]) -> tuple[int, 
         ],
         "structuredContent": payload,
         "_meta": {
-            "transport_ready": False,
-            "bridge_phase": "jsonrpc_draft_fixture",
+            "transport_phase": "jsonrpc_draft",
             "tool": name,
         },
     }

@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `0ceca6b` (§2.59~§2.62 적용본, 커밋 7건). **커밋마다 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. `0ceca6b` 자기 측정: 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, **실제 emit 된 `::error::` 0건** (grep 원건수는 워크플로우 자체 명령 에코를 포함하므로 `\\x1b[36;1m` 을 빼고 세야 한다). 미트리거 3종(actionlint / mkdocs / okf-validate)은 path filter 대로다 — 이번 변경이 `.github/workflows/**` · `docs/**` · okf 경로를 밟지 않았다. **\"3종 green\" 이지 \"6종 green\" 이 아니다.** push 트리거 red 0건이고, 이 저장소에 오래 red 인 workflow 도 없다.",
-    "current_axis": "\"금지 범위는 이름이 아니라 문맥으로 정한다\" — 전역 금지는 30건 중 28건이 위양성이었다",
+    "current_axis": "\"제거는 검사가 완주시킨다\" — 옛 필드를 고정하던 검사 8종 중 3종이 놓친 자리를 red 로 드러냈다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
       "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
       "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리",
@@ -41,18 +42,18 @@
       "TASK-2026-08-05-main-002 — 설치 문서가 존재하지 않는 배송을 선언하고 있었다 — Claude Code MCP",
       "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다",
       "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크",
-      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다",
-      "TASK-2026-08-03-main-003 — 슬래시 브랜치를 밟는 실행이 우연이었다 — smoke 를 2셀로"
+      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-05.md",
-    "task_count": 7,
+    "task_count": 8,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
       "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
       "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리",

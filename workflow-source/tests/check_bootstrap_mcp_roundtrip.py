@@ -311,7 +311,7 @@ def smoke_one_harness(harness: str) -> None:
                     },
                 },
             )["result"]
-            if call_result.get("_meta", {}).get("bridge_phase") != "jsonrpc_draft_fixture":
+            if call_result.get("_meta", {}).get("transport_phase") != "jsonrpc_draft":
                 raise AssertionError("latest_backlog call did not return the expected bridge phase.")
             structured = call_result.get("structuredContent", {})
             if structured.get("status") != "ok":

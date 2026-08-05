@@ -9,8 +9,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -99,8 +98,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -188,8 +186,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -277,8 +274,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -363,8 +359,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -448,8 +443,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -520,8 +514,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -595,8 +588,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -742,8 +734,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -777,8 +768,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -811,8 +801,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -846,8 +835,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -924,8 +912,7 @@
       "_meta": {
         "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
         "bundle_phase": "direct_call_adapter",
-        "descriptor_target": "mcp_tools_list_draft",
-        "transport_ready": false
+        "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
         "readOnlyHint": true
@@ -955,6 +942,5 @@
         "type": "object"
       }
     }
-  ],
-  "transport_ready": false
+  ]
 }

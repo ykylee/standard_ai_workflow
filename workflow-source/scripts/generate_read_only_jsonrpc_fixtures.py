@@ -209,7 +209,7 @@ def build_jsonrpc_fixtures() -> dict[str, Any]:
     return {
         "status": "ok",
         "fixture_phase": "jsonrpc_draft_fixture",
-        "transport_ready": False,
+        "transport_phase": "jsonrpc_draft",
         "descriptor_target": descriptors["descriptor_target"],
         "tool_version": descriptors["tool_version"],
         "fixture_count": len(fixtures),

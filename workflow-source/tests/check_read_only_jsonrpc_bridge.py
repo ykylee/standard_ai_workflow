@@ -58,8 +58,8 @@ def main() -> int:
     initialize = run_request({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
     if initialize["result"]["serverInfo"]["name"] != "workflow_read_only_bundle":
         raise AssertionError("Expected read-only bundle serverInfo name.")
-    if initialize["result"]["_meta"]["transport_ready"] is not False:
-        raise AssertionError("Expected draft bridge to remain transport_ready=false.")
+    if initialize["result"]["_meta"].get("transport_phase") != "jsonrpc_draft":
+        raise AssertionError("draft bridge 는 transport_phase=jsonrpc_draft 를 내야 한다 (§1.3).")
     if "protocolVersion" not in initialize["result"]:
         raise AssertionError(
             "OpenCode / 2025-03-26 client 가 initialize response 에서 "
@@ -140,7 +140,7 @@ def main() -> int:
         raise AssertionError("Expected latest_backlog JSON-RPC tool call to succeed.")
     if result["content"][0]["type"] != "text":
         raise AssertionError("Expected text content wrapper.")
-    if result["_meta"]["bridge_phase"] != "jsonrpc_draft_fixture":
+    if result["_meta"]["transport_phase"] != "jsonrpc_draft":
         raise AssertionError("Expected JSON-RPC draft bridge phase metadata.")
 
     error_call = run_request(

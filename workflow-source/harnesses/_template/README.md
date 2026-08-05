@@ -22,7 +22,7 @@
 - 가능한 한 `ai-workflow/memory/active/` 문서를 읽도록 연결한다.
 - 하네스가 요구하는 루트 파일과 최소 설정 파일만 생성한다.
 - 권한 정책이나 에이전트 정의는 보수적인 기본값으로 시작한다.
-- read-only MCP descriptor 는 draft 이므로 `transport_ready=false` 상태에서는 자동 연결보다 검토용 산출물로 다룬다.
+- read-only MCP 예시는 `apply_mode: manual_review_only` 이므로 자동 연결보다 검토용 산출물로 다룬다.
 
 ## 3. bootstrap 확장 포인트
 

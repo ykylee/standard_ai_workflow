@@ -40,8 +40,11 @@ def main() -> int:
 
     if checked_in["descriptor_target"] != "mcp_tools_list_draft":
         raise AssertionError("Expected mcp_tools_list_draft descriptor target.")
-    if checked_in["transport_ready"] is not False:
-        raise AssertionError("Expected draft descriptors to remain transport_ready=false.")
+    # registry 는 transport 사실을 선언하지 않는다 (§1.3 세 축). 예전에는
+    # `transport_ready=false` 를 요구했는데, registry 는 어느 bridge 가 자기를
+    # 서빙할지 모르므로 그 필드는 참·거짓을 가릴 명제가 아니었다.
+    if "transport_ready" in checked_in:
+        raise AssertionError("registry descriptor 는 transport_ready 를 내지 않아야 한다 (§1.3).")
 
     latest_backlog = next((tool for tool in checked_in["tools"] if tool["name"] == "latest_backlog"), None)
     if latest_backlog is None:

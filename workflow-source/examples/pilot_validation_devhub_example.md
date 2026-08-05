@@ -79,7 +79,7 @@ ai-workflow/memory/active/
 | `mcp.opencode.json` | OpenCode JSON with `"mcp": { "standardAiWorkflowReadOnly": { ... } }` |
 | `.gemini/mcp.json` | Gemini CLI JSON with `"mcpServers"` + `trust: true` |
 | `antigravity.mcp.json` | Antigravity JSON with `"mcpServers"` + `type: stdio` |
-| `.MiniMax/mcp.json` | MiniMax Code JSON with `"mcp_servers"` + `transport_ready: false` |
+| `.MiniMax/mcp.json` | MiniMax Code JSON with `"mcp_servers"` + `transport_phase` / `apply_mode` |
 
 ✅ 5개 모두 정상 생성. 각각의 하네스 dialect (TOML vs JSON, field 이름)에 맞게 렌더링됨.
 

@@ -441,7 +441,9 @@ def build_transport_tool_descriptor(spec: ReadOnlyToolSpec) -> dict[str, object]
             "readOnlyHint": True,
         },
         "_meta": {
-            "transport_ready": False,
+            # registry 는 **transport 를 모른다** — 어느 bridge 가 자기를 서빙할지
+            # 알 수 없으므로 `transport_ready` 같은 transport 사실을 선언하지 않는다
+            # (§1.3 세 축, 2026-08-05). `bundle_phase` 는 registry 자신의 사실이다.
             "bundle_phase": "direct_call_adapter",
             "adapter": "workflow_kit.server.read_only_tools.invoke_read_only_tool",
             "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
@@ -456,7 +458,6 @@ def build_transport_tool_descriptors() -> dict[str, object]:
         "tool_version": TOOL_VERSION,
         "server_name": READ_ONLY_SERVER_NAME,
         "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
-        "transport_ready": False,
         "tool_count": len(descriptors),
         "tools": descriptors,
     }
@@ -470,7 +471,6 @@ def build_server_manifest() -> dict[str, object]:
         "tool_count": len(READ_ONLY_TOOL_SPECS),
         "transport": {
             "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
-            "transport_ready": False,
             "descriptor_source": "workflow_kit.server.read_only_registry.build_transport_tool_descriptors",
         },
         "tools": [
@@ -478,7 +478,6 @@ def build_server_manifest() -> dict[str, object]:
                 "name": spec.name,
                 "description": spec.description,
                 "script_path": str(spec.script_path),
-                "transport_ready": False,
                 "bundle_phase": "direct_call_adapter",
                 "input_schema": {
                     "type": "object",

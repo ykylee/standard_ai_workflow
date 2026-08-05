@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `0ceca6b` (§2.59~§2.62 적용본, 커밋 7건). **커밋마다 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. `0ceca6b` 자기 측정: 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, **실제 emit 된 `::error::` 0건** (grep 원건수는 워크플로우 자체 명령 에코를 포함하므로 `\\x1b[36;1m` 을 빼고 세야 한다). 미트리거 3종(actionlint / mkdocs / okf-validate)은 path filter 대로다 — 이번 변경이 `.github/workflows/**` · `docs/**` · okf 경로를 밟지 않았다. **\"3종 green\" 이지 \"6종 green\" 이 아니다.** push 트리거 red 0건이고, 이 저장소에 오래 red 인 workflow 도 없다.",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `0f53458` (§2.59~§2.66 적용본, 커밋 14건). **트리거된 CI 5종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix(1.27.0/1.29.0/2.0.0)·**mcp-inspector**·mkdocs. wire 를 건드려 inspector 가, 문서를 건드려 mkdocs 가 함께 돌았다 — 평소 3종보다 넓다. smoke 자기 측정: 두 셀이 각각 `main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 234 check_*.py scripts passed (220 test cases)`, **실제 emit 된 `::error::` 0건** (grep 원건수는 워크플로우 자체 명령 에코를 포함하므로 `\\x1b[36;1m` 을 빼고 세야 한다). 미트리거 2종(actionlint / okf-validate)은 path filter 대로다. push 트리거 red 0건이고, 이 저장소에 오래 red 인 workflow 도 없다.",
     "current_axis": "\"제거는 검사가 완주시킨다\" — 옛 필드를 고정하던 검사 8종 중 3종이 놓친 자리를 red 로 드러냈다",
     "current_focus": null,
     "in_progress_items": [],

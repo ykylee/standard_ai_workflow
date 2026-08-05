@@ -222,6 +222,40 @@ def test_survives_version_stamping() -> bool:
     return ok
 
 
+def test_claude_code_surfaces_declare_description() -> bool:
+    """6) `.claude/` 로 나가는 파일이 **설명을 스스로 선언** 하는가.
+
+    2026-08-05 실측: skill 은 frontmatter 가 있어 정상 표시됐는데 slash command 3종은
+    없어서, Claude Code 가 첫 줄을 설명으로 집었고 거기 앉아 있던 것이
+    `<!-- standard-ai-workflow-kit: v1.0.0-beta -->` 였다. 명령 목록에 버전 마커가
+    설명으로 떴다. 위 1-5번은 *있는* frontmatter 만 검사하므로 **없는 것** 은 못 잡는다.
+
+    `render_claude_code_agents` 는 대상이 아니다 — 루트 `CLAUDE.md` 는 사람이 읽는
+    산문 진입점이고 `check_docs` 의 metadata 계약을 따른다.
+    """
+    src = RENDERERS.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    targets = [
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name.startswith("render_claude_code_")
+        and node.name != "render_claude_code_agents"
+    ]
+    if len(targets) < 4:
+        print(f"  FAIL: 대상 렌더러 {len(targets)}개 — 3 command + 1 skill 이상이어야 한다 "
+              "(이름 규칙이 바뀌어 대상 0건으로 조용히 통과하는 것을 막는다)")
+        return False
+    with_frontmatter = {name for name, _ in _frontmatter_blocks()}
+    missing = [name for name in targets if name not in with_frontmatter]
+    if missing:
+        print(f"  FAIL: frontmatter 없음 {missing} — Claude Code 가 첫 줄을 설명으로 쓰고, "
+              "그 자리에는 write_text 가 찍는 버전 마커가 앉는다")
+        return False
+    print(f"  PASS: `.claude/` 표면 {len(targets)}개 전부 description 선언")
+    return True
+
+
 def main() -> int:
     cases = [
         ("test_blocks_found", test_blocks_found),
@@ -229,6 +263,7 @@ def main() -> int:
         ("test_name_and_description", test_name_and_description),
         ("test_harness_schema", test_harness_schema),
         ("test_survives_version_stamping", test_survives_version_stamping),
+        ("test_claude_code_surfaces_declare_description", test_claude_code_surfaces_declare_description),
     ]
     results = []
     for name, fn in cases:

@@ -1,3 +1,7 @@
+---
+description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+---
+
 <!-- standard-ai-workflow-kit: v1.0.0-beta -->
 
 # /workflow-backlog-update

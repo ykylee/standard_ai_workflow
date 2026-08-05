@@ -686,10 +686,17 @@ lowlevel 서버), 핀을 푼 커밋이 처음으로 `server/**` 를 건드려 `m
 - **이번 세션의 교훈(§2.59, 개수는 계약이 아니다)**: `len(...) == 3` 은 "3종이 유지되는가"
   의 약한 대리물이다. 실제로 계약을 지킨 채 skill 하나를 더했을 뿐인데 두 검사가 깨졌다 —
   **깨져야 할 때 안 깨지고, 안 깨져도 될 때 깨진다.** 이름으로 존재를 물을 것.
-- **확인 못 함(§2.59)**: 새로 발행한 `.claude/skills/standard-ai-workflow/SKILL.md` 와
-  slash command 3종을 **실제 에이전트 세션이 로드하는지**는 확인하지 못했다. 파일 내용,
-  frontmatter 파싱, stamping 후 위치까지만 검증했다 — `check_self_application` docstring
-  이 예전부터 적어 둔 그 한계가 이번에도 그대로다.
+- **이번 세션의 교훈(§2.59, 있는 것만 검사하면 없는 것은 못 잡는다)**: push 직후 하네스가
+  실제로 로드하면서 "확인 못 함" 이 즉시 답을 냈다 — skill 은 정상 표시됐는데 **slash
+  command 3종의 설명이 `<!-- standard-ai-workflow-kit: v1.0.0-beta -->` 로 떴다.**
+  command 에는 frontmatter 가 없어 Claude Code 가 첫 줄을 설명으로 집었고, 거기 마커가
+  앉아 있었다. 무조건 prepend 의 **두 번째 피해자**다. 핵심은 이거다 —
+  `check_harness_skill_frontmatter` 의 1-5번은 전부 *있는* frontmatter 를 검증하므로
+  **없는 것을 구조적으로 못 잡는다.** "무엇이 있어야 하는가" 를 묻는 case 를 따로
+  뒀다(`test_claude_code_surfaces_declare_description`, 대상 <4 면 실패).
+- **확인 완료(§2.59, 위 항목이 갱신)**: 발행한 skill 과 command 3종을 **실제 에이전트
+  세션이 로드하는 것까지 실측했다** — 첫 커밋의 "확인 못 함" 은 push 가 해소했다.
+  다만 그 실측이 결함을 하나 더 냈고, 커밋 2개째가 그것이다.
 - **이전 세션의 교훈(§2.58)**: **검사가 내는 이름은 검출기가 아는 만큼만 말한다.**
   `V-R10-online-stale`("링크가 죽었다")로 보고된 2건은 죽은 링크가 아니라 *태어난 적 없는*
   링크였다. 검출기는 "이 URL 에 접근이 안 된다" 까지만 알고, "그 URL 이 어떻게 만들어졌는지"

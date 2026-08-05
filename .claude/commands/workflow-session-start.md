@@ -1,3 +1,7 @@
+---
+description: 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+---
+
 <!-- standard-ai-workflow-kit: v1.0.0-beta -->
 
 # /workflow-session-start

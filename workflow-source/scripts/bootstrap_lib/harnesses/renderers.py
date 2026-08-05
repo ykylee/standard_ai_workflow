@@ -1061,8 +1061,16 @@ def render_claude_code_session_start_command(args: argparse.Namespace, context: 
     Claude Code 의 `/workflow-session-start` slash command. session-start skill 의
     *진입점* 으로 작동 (AGENTS.md 가 없는 skill-only 진입 환경). command body 는
     표준 session-start skill 의 *역할* 을 한국어로 설명.
+
+    frontmatter 의 `description` 은 필수다. 없으면 Claude Code 가 **첫 줄을 설명으로
+    쓰는데**, 그 자리에는 `write_text` 가 찍는 버전 마커가 앉는다 — 실제로 명령 목록에
+    `<!-- standard-ai-workflow-kit: v… -->` 가 설명으로 떴다 (2026-08-05 실측).
     """
-    return f"""# /workflow-session-start
+    return f"""---
+description: 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+---
+
+# /workflow-session-start
 
 > Claude Code slash command. 표준 AI 워크플로우 의 *session-start* 진입점.
 
@@ -1110,8 +1118,14 @@ def render_claude_code_backlog_update_command(args: argparse.Namespace, context:
 
     backlog-update skill 의 *진입점*. task_brief + affected_documents vs
     PURPOSE.md §3 Research Scope *제외 영역* 매칭 → scope creep 경고.
+
+    `description` 이 필수인 이유는 ``render_claude_code_session_start_command`` 참조.
     """
-    return f"""# /workflow-backlog-update
+    return f"""---
+description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+---
+
+# /workflow-backlog-update
 
 > Claude Code slash command. 표준 AI 워크플로우 의 *backlog-update* 진입점.
 
@@ -1152,8 +1166,14 @@ def render_claude_code_doc_sync_command(args: argparse.Namespace, context: dict[
     """Render ``.claude/commands/workflow-doc-sync.md`` slash command.
 
     doc-sync skill 의 *진입점*. 영향 받은 문서 후보 추천 + 허브 / index 갱신 포인트.
+
+    `description` 이 필수인 이유는 ``render_claude_code_session_start_command`` 참조.
     """
-    return f"""# /workflow-doc-sync
+    return f"""---
+description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 wiki index 기준 갱신 포인트를 advisory 로 제안한다.
+---
+
+# /workflow-doc-sync
 
 > Claude Code slash command. 표준 AI 워크플로우 의 *doc-sync* 진입점.
 

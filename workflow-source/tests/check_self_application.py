@@ -34,10 +34,11 @@
 로드하는지까지는 확인하지 못한다. 4·5번은 이 저장소의 현재 상태에 의존하므로, 소비자
 프로젝트에서는 의미가 없다 — 그래서 이 검사는 배포 대상이 아니라 우리 tests/ 에만 둔다.
 
-Test list (6 case):
+Test list (7 case):
 1. test_principle_check_mapping_exists
 2. test_repo_has_own_entrypoints
 2b. test_repo_has_own_harness_overlay
+2c. test_repo_has_own_mcp_config
 3. test_repo_has_own_state_documents
 4. test_own_linter_passes_on_own_repo
 5. test_own_session_start_runs_on_own_repo
@@ -47,10 +48,12 @@ Cross-ref: `core/workflow_design_principles.md` §5, `core/global_workflow_stand
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -59,6 +62,8 @@ sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
 from bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+from bootstrap_lib.mcp import MCP_CONFIG_RENDERERS, write_mcp_config_files  # noqa: E402
+from bootstrap_lib.paths import Paths  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     memory_active_dir,
     state_path_for_workspace,
@@ -239,6 +244,43 @@ def test_repo_has_own_harness_overlay() -> None:
     )
 
 
+# --- Case 2c ---------------------------------------------------------------
+
+
+def test_repo_has_own_mcp_config() -> None:
+    """자기 harness 의 MCP 설정을 실제로 심었는가.
+
+    `core/mcp_installation_by_harness.md` §4 는 Claude Code 행(`<root>/.mcp.json`)을
+    처음부터 싣고 있었는데 **그것을 만드는 렌더러가 없었다** — 표가 존재하지 않는
+    배송을 선언하고 있었다 (2026-08-05). 그리고 그 사실을 아무 검사도 묻지 않았다.
+
+    기대 경로를 `.mcp.json` 이라고 적지 않는다. 임시 디렉터리에 실제로 한 번
+    emit 시켜서 **writer 가 고르는 파일명을 배운 뒤** 저장소에 그것이 있는지 본다 —
+    출력 경로를 아는 자리는 `write_mcp_config_files` 하나여야 한다.
+    """
+    if SELF_HARNESS not in MCP_CONFIG_RENDERERS:
+        _record("test_repo_has_own_mcp_config", False,
+                f"{SELF_HARNESS} 에 MCP 렌더러가 없다 — 설치 문서 §4 가 선언하는 배송이 비어 있다")
+        return
+
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp)
+        args = argparse.Namespace(force=True, mcp_bridge="jsonrpc-bridge")
+        fields = {name: target for name in Paths.__dataclass_fields__}
+        emitted = write_mcp_config_files(args, Paths(**fields), [SELF_HARNESS])
+        relatives = sorted(
+            Path(path).relative_to(target).as_posix() for path in emitted.values()
+        )
+
+    if not relatives:
+        _record("test_repo_has_own_mcp_config", False,
+                f"{SELF_HARNESS} 로 emit 된 MCP 설정이 0건 — 대상 0건은 통과가 아니다")
+        return
+    missing = [rel for rel in relatives if not (REPO_ROOT / rel).exists()]
+    _record("test_repo_has_own_mcp_config", not missing,
+            f"writer 가 내놓는 {relatives} 중 부재 {missing}" if missing else "")
+
+
 # --- Case 3 ----------------------------------------------------------------
 
 
@@ -320,6 +362,7 @@ def main() -> int:
         test_principle_check_mapping_exists,
         test_repo_has_own_entrypoints,
         test_repo_has_own_harness_overlay,
+        test_repo_has_own_mcp_config,
         test_repo_has_own_state_documents,
         test_own_linter_passes_on_own_repo,
         test_own_session_start_runs_on_own_repo,

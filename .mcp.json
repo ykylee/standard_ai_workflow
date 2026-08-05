@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "standardAiWorkflowReadOnly": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "-m",
+        "workflow_kit.server.read_only_jsonrpc",
+        "--stdio-lines"
+      ],
+      "env": {
+        "STANDARD_AI_WORKFLOW_ROOT": ".",
+        "PYTHONPATH": "workflow-source"
+      }
+    }
+  }
+}

@@ -36,6 +36,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
+sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
+
+from bootstrap_lib.mcp import MCP_CONFIG_RENDERERS  # noqa: E402
+
 #: Harness name → key in the bootstrap manifest's ``generated_harness_files``
 #: dict that points at the emitted MCP config file.
 HARNESS_CONFIG_KEY = {
@@ -44,7 +48,20 @@ HARNESS_CONFIG_KEY = {
     "gemini-cli": "gemini_cli_mcp_config",
     "antigravity": "antigravity_mcp_config",
     "minimax-code": "minimax_code_mcp_config",
+    "claude-code": "claude_code_mcp_config",
 }
+
+#: 이 목록은 `MCP_CONFIG_RENDERERS` 의 사본이므로 갈라질 수 있다. docstring 은
+#: "every supported harness" 를 돈다고 적어 두고 실제로는 손으로 유지되는 부분집합만
+#: 돌고 있었다 — claude-code 렌더러를 추가했을 때 여기 넣지 않으면 **새 하네스가
+#: 조용히 미검증으로 남는다**. import 시점에 정본과 대조해 즉시 깨뜨린다.
+_UNCOVERED = sorted(set(MCP_CONFIG_RENDERERS) - set(HARNESS_CONFIG_KEY))
+if _UNCOVERED:
+    raise SystemExit(
+        f"MCP 렌더러가 있는데 round-trip 대상에 없다: {_UNCOVERED}. "
+        "HARNESS_CONFIG_KEY 에 manifest key 를 추가할 것 "
+        "(대상에서 빠진 하네스는 '통과' 가 아니라 '안 봄' 이다)."
+    )
 
 
 def parse_args() -> argparse.Namespace:

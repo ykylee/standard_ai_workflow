@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 from typing import Callable
 
 from bootstrap_lib.paths import Paths
@@ -41,11 +40,21 @@ def _mcp_server_command(bridge: str) -> list[str]:
     return ["python3", "-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
 
 
-def _mcp_server_env(workspace_root: Path) -> dict[str, str]:
+def _mcp_server_env() -> dict[str, str]:
     """Return the per-harness MCP server ``env`` block.
 
-    ``STANDARD_AI_WORKFLOW_ROOT`` lets the server locate the kit root
-    even when invoked from a non-default cwd.
+    ``STANDARD_AI_WORKFLOW_ROOT`` lets the server locate the kit root.
+    Every file :func:`write_mcp_config_files` emits is **project-local**
+    (it lives under ``target_root`` and, for Claude Code's ``.mcp.json``,
+    is checked into the repository). So the value is ``"."``, not an
+    absolute path: an absolute path bakes one machine's checkout location
+    into a shared file and is wrong in every other clone.
+
+    이 블록은 이미 cwd = target_root 를 전제하고 있었다 — ``PYTHONPATH`` 가
+    상대 경로 ``"workflow-source"`` 다. ROOT 만 절대였던 것은 두 값이 서로
+    어긋나 있었다는 뜻이고, 절대 경로 쪽이 *기계 고유값* 이라 틀린 쪽이었다.
+    글로벌 설정(``~/.claude.json`` 등)에 손으로 심을 때는 절대 경로를 쓴다 —
+    거기서는 cwd 전제가 성립하지 않는다 (``core/mcp_installation_by_harness.md`` §2).
 
     ``PYTHONPATH`` is only set when the bootstrap itself is running
     from a source repo checkout (SOURCE_ROOT is available). In a wheel
@@ -56,7 +65,7 @@ def _mcp_server_env(workspace_root: Path) -> dict[str, str]:
     """
     from bootstrap_lib import __main__ as _bm  # local import to avoid cycle
 
-    env = {"STANDARD_AI_WORKFLOW_ROOT": str(workspace_root.resolve())}
+    env = {"STANDARD_AI_WORKFLOW_ROOT": "."}
     if _bm.SOURCE_ROOT is not None:
         env["PYTHONPATH"] = "workflow-source"
     return env
@@ -71,7 +80,7 @@ def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     cmd = _mcp_server_command(bridge)
-    env = _mcp_server_env(paths.target_root)
+    env = _mcp_server_env()
     args_inline = ", ".join(json.dumps(part) for part in cmd[1:])
     env_block = "\n".join(f"{key} = {json.dumps(value)}" for key, value in env.items())
     return f"""# Codex MCP server snippet for the Standard AI Workflow kit.
@@ -106,7 +115,7 @@ def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
                     "type": "local",
                     "command": _mcp_server_command(bridge)[0],
                     "args": _mcp_server_command(bridge)[1:],
-                    "env": _mcp_server_env(paths.target_root),
+                    "env": _mcp_server_env(),
                     "timeout": 30000,
                 }
             }
@@ -125,7 +134,7 @@ def render_gemini_cli_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
                 MCP_SERVER_ALIAS: {
                     "command": _mcp_server_command(bridge)[0],
                     "args": _mcp_server_command(bridge)[1:],
-                    "env": _mcp_server_env(paths.target_root),
+                    "env": _mcp_server_env(),
                     "trust": True,
                     "includeTools": [
                         "latest_backlog",
@@ -157,7 +166,7 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
                     "type": "stdio",
                     "command": _mcp_server_command(bridge)[0],
                     "args": _mcp_server_command(bridge)[1:],
-                    "env": _mcp_server_env(paths.target_root),
+                    "env": _mcp_server_env(),
                 }
             }
         },
@@ -178,7 +187,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
         MCP_SERVER_ALIAS: {
             "command": _mcp_server_command(bridge)[0],
             "args": _mcp_server_command(bridge)[1:],
-            "env": _mcp_server_env(paths.target_root),
+            "env": _mcp_server_env(),
             "transport_ready": False,
             "transport": bridge,
             "description": (
@@ -201,6 +210,39 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
         }
     }
     return json.dumps({"mcp_servers": descriptor}, ensure_ascii=False, indent=2) + "\n"
+
+
+def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
+    """Return a Claude Code ``.mcp.json`` (project-scoped MCP server registration).
+
+    Claude Code reads ``<root>/.mcp.json`` with the JSON ``mcpServers`` shape,
+    the same dialect as Gemini CLI / Antigravity. ``core/mcp_installation_by_harness.md``
+    §4 has listed this row from the start, but **no renderer produced it** — the
+    table declared a delivery that did not exist (2026-08-05).
+
+    **transport 는 `args.mcp_bridge` 를 그대로 따른다** (default ``jsonrpc-bridge``).
+    특별대우하지 않는 이유는 실측이다: emit 되는 ``command`` 는 `python3` 즉
+    **시스템 python3** 인데, `stdio-sdk` 는 거기에 `mcp` SDK 가 있어야 뜬다. 이 저장소
+    에서 재 보니 시스템 python3 로 `stdio-sdk` 는 `Connection closed` 로 죽고
+    `jsonrpc-bridge` 는 공식 MCP 클라이언트와 initialize / tools/list / tools/call
+    왕복이 정상이었다. 이름과 달리 두 transport 모두 MCP 프로토콜을 말하며, 의존성이
+    적은 default 가 더 넓게 뜬다. SDK 가 있는 환경은 ``--mcp-bridge stdio-sdk`` 로 전환.
+    """
+    bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
+    return json.dumps(
+        {
+            "mcpServers": {
+                MCP_SERVER_ALIAS: {
+                    "type": "stdio",
+                    "command": _mcp_server_command(bridge)[0],
+                    "args": _mcp_server_command(bridge)[1:],
+                    "env": _mcp_server_env(),
+                }
+            }
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
 
 
 def write_mcp_config_files(
@@ -236,6 +278,11 @@ def write_mcp_config_files(
         write_text(minimax_path, render_minimax_code_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["minimax_code_mcp_config"] = str(minimax_path)
 
+    if "claude-code" in harnesses:
+        claude_path = paths.target_root / ".mcp.json"
+        write_text(claude_path, render_claude_code_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
+        generated["claude_code_mcp_config"] = str(claude_path)
+
     return generated
 
 
@@ -248,6 +295,7 @@ MCP_CONFIG_RENDERERS: dict[str, Callable[[argparse.Namespace, Paths], str]] = {
     "gemini-cli": render_gemini_cli_mcp_config,
     "antigravity": render_antigravity_mcp_config,
     "minimax-code": render_minimax_code_mcp_config,
+    "claude-code": render_claude_code_mcp_config,
 }
 
 
@@ -256,6 +304,7 @@ __all__ = [
     "MCP_SERVER_ALIAS",
     "MCP_TOOL_NAME",
     "render_antigravity_mcp_config",
+    "render_claude_code_mcp_config",
     "render_codex_mcp_config",
     "render_gemini_cli_mcp_config",
     "render_minimax_code_mcp_config",

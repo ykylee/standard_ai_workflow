@@ -18,6 +18,35 @@
 
 권장: 처음 도입 시 `jsonrpc-bridge` 로 시작. SDK 호환이 꼭 필요하면 별도 TASK 로 추적하면서 점진 전환.
 
+### 1.1 두 transport 실측 (2026-08-05)
+
+이름이 오해를 부른다. **둘 다 공식 MCP 프로토콜을 말한다** — `mcp` SDK 의 클라이언트로
+`initialize` → `tools/list` → `tools/call` 왕복을 재 보면 양쪽 다 정상이다
+(`jsonrpc-bridge` 의 `transport_ready: false` 는 descriptor 의 오래된 자기 선언이다).
+
+갈리는 지점은 **무엇으로 실행되는가** 다. emit 되는 `command` 는 `python3`, 즉 하네스가
+보는 **시스템 python3** 인데 `stdio-sdk` 는 거기에 `mcp` SDK 가 설치돼 있어야 뜬다.
+같은 저장소에서 시스템 `python3` 로 재 보니:
+
+| transport | 시스템 python3 | `mcp` SDK 있는 venv |
+| --- | --- | --- |
+| `jsonrpc-bridge` (default) | ✅ 왕복 정상 | ✅ 왕복 정상 |
+| `stdio-sdk` | ❌ `Connection closed` (SDK 부재) | ✅ 왕복 정상 |
+
+그래서 default 를 바꾸지 않는다. **의존성이 적은 쪽이 더 넓게 뜬다.** SDK 가 보장된
+환경에서만 `--mcp-bridge stdio-sdk` 로 전환할 것.
+
+### 1.2 project-local config 의 `STANDARD_AI_WORKFLOW_ROOT` 는 상대 경로다
+
+`bootstrap --enable-mcp` 이 내보내는 파일은 전부 **project-local** 이고, Claude Code 의
+`.mcp.json` 은 **저장소에 커밋된다**. 그래서 `STANDARD_AI_WORKFLOW_ROOT` 는 `"."` 다 —
+절대 경로를 넣으면 한 사람의 체크아웃 위치가 공유 파일에 박혀 다른 클론에서 전부 틀린
+값이 된다. 같은 env 블록의 `PYTHONPATH` 가 이미 상대 경로(`workflow-source`)이므로
+cwd = 프로젝트 루트라는 전제는 원래부터 있었다.
+
+**글로벌 설정**(`~/.claude.json`, `~/.codex/config.toml` 등)에 손으로 심을 때는 §2 대로
+절대 경로를 쓴다 — 거기서는 cwd 전제가 성립하지 않는다.
+
 ## 2. 공통 환경 변수
 
 두 transport 모두 다음 환경 변수를 받는다.

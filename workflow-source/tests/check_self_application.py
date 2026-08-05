@@ -34,11 +34,12 @@
 로드하는지까지는 확인하지 못한다. 4·5번은 이 저장소의 현재 상태에 의존하므로, 소비자
 프로젝트에서는 의미가 없다 — 그래서 이 검사는 배포 대상이 아니라 우리 tests/ 에만 둔다.
 
-Test list (7 case):
+Test list (8 case):
 1. test_principle_check_mapping_exists
 2. test_repo_has_own_entrypoints
 2b. test_repo_has_own_harness_overlay
 2c. test_repo_has_own_mcp_config
+2d. test_repo_declares_its_own_run_commands
 3. test_repo_has_own_state_documents
 4. test_own_linter_passes_on_own_repo
 5. test_own_session_start_runs_on_own_repo
@@ -281,6 +282,45 @@ def test_repo_has_own_mcp_config() -> None:
             f"writer 가 내놓는 {relatives} 중 부재 {missing}" if missing else "")
 
 
+# --- Case 2d ---------------------------------------------------------------
+
+
+def test_repo_declares_its_own_run_commands() -> None:
+    """자기 진입점의 "프로젝트 실행 기본값" 이 placeholder 로 남아 있지 않은가.
+
+    bootstrap 산출물은 이 자리를 `TODO: … 명령 입력` 으로 내보내고 "실제 프로젝트
+    명령으로 보정 후 commit" 이라고 적는다. 그런데 **이 저장소는 그 보정을 한 번도
+    하지 않았다** — 실행 기본값을 배포하는 저장소가 자기 것은 TODO 로 두고 있었다
+    (2026-08-05). 새 세션은 저 자리를 읽고 명령을 찾으므로, TODO 는 "명령이 없다" 가
+    아니라 **"찾지 못했다"** 로 이어진다.
+
+    내용까지는 보지 않는다 — 명령이 실제로 도는지는 이 검사가 판정할 수 없다
+    (`quick test` 는 인자 자리가 비어 있고, `install` 은 네트워크가 필요하다).
+    여기서 막는 것은 **placeholder 로 되돌아가는 것** 하나다.
+    """
+    entry = REPO_ROOT / "CLAUDE.md"
+    if not entry.is_file():
+        _record("test_repo_declares_its_own_run_commands", False, "CLAUDE.md 부재")
+        return
+    text = entry.read_text(encoding="utf-8")
+    marker = "## 프로젝트 실행 기본값"
+    if marker not in text:
+        _record("test_repo_declares_its_own_run_commands", False,
+                f"{marker} 절이 없다 — 진입점 생성 규약이 바뀌었는가")
+        return
+    section = text.split(marker, 1)[1].split("\n## ", 1)[0]
+    labels = [line.split("**")[1] for line in section.splitlines()
+              if line.startswith("- **") and "**" in line[4:]]
+    if len(labels) < 5:
+        _record("test_repo_declares_its_own_run_commands", False,
+                f"실행 기본값 항목이 {len(labels)}개 — 5개(install/run/quick·isolated test/smoke)를 기대한다")
+        return
+    todo = [line.split("**")[1] for line in section.splitlines()
+            if line.startswith("- **") and "TODO" in line]
+    _record("test_repo_declares_its_own_run_commands", not todo,
+            f"placeholder 로 남은 항목 {todo}")
+
+
 # --- Case 3 ----------------------------------------------------------------
 
 
@@ -363,6 +403,7 @@ def main() -> int:
         test_repo_has_own_entrypoints,
         test_repo_has_own_harness_overlay,
         test_repo_has_own_mcp_config,
+        test_repo_declares_its_own_run_commands,
         test_repo_has_own_state_documents,
         test_own_linter_passes_on_own_repo,
         test_own_session_start_runs_on_own_repo,

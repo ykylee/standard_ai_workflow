@@ -88,13 +88,29 @@
 
 ## 프로젝트 실행 기본값
 
-- **install**: TODO: 설치 명령 입력
-- **run**: TODO: 로컬 실행 명령 입력
-- **quick test**: TODO: 빠른 테스트 명령 입력
-- **isolated test**: TODO: 격리 테스트 명령 입력
-- **smoke check**: TODO: 실행 확인 명령 입력
+- **install**: `python3 -m pip install -r requirements.txt -r requirements-dev.txt && python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"`
+- **run**: `PYTHONPATH=workflow-source python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json`
+- **quick test**: `python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
+- **isolated test**: `python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>` (격리 venv 에서 전량)
+- **smoke check**: `python3 workflow-source/tests/check_self_application.py`
 
-위 명령은 추정값이다. 실제 프로젝트 명령으로 보정 후 commit.
+### SDK 매트릭스는 push 전에 로컬에서 돌린다
+
+```bash
+PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
+```
+
+`mcp` SDK 를 쓰는 코드를 건드렸으면 **반드시** 이걸 먼저 돌린다. 개발 venv 는
+`requirements-dev.txt` 가 깐 하한(1.27.0) 하나뿐이라, 2.x 에서만 갈라지는 코드가
+**로컬에서는 통과하고 CI 의 `mcp-sdk-matrix` 에서만 red** 가 된다. 실제로 2026-08-05
+에 `CallToolResult.isError`(1.x 이름, 2.0.0 은 `is_error`) 때문에 그렇게 됐고,
+저장소가 이미 알고 있던 함정이었는데 로컬에 재현 수단이 없었다.
+
+버전 목록은 `workflow_kit/common/sdk_matrix.py` 의 `PINNED_VERSIONS` 가 정본이고
+CI yml 도 거기서 읽는다. venv 는 `.venv-sdk-matrix/` 에 캐시되므로 두 번째부터 빠르다.
+
+> `--tmp-dir` 를 실디스크 경로로 주는 이유: `TMPDIR` 가 tmpfs(RAM) 이면 temp 누수가
+> 곧 OOM 이 된다.
 
 ## 다음에 읽을 문서
 

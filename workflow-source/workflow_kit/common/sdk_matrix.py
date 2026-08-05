@@ -328,6 +328,102 @@ def observe_exercised() -> dict[str, tuple[int, str]]:
     return observations
 
 
+#: 로컬 매트릭스가 만드는 venv 의 위치 (저장소 루트 기준). `.venv` 접두라
+#: `.gitignore` 와 `check_docs` 의 기존 규칙이 그대로 적용된다.
+LOCAL_MATRIX_VENV_DIR = ".venv-sdk-matrix"
+
+#: 로컬 매트릭스가 도는 검사 filter. CI 의 `mcp-sdk-matrix` 셀과 같은 값이어야
+#: "로컬에서 통과했는데 CI 에서 깨졌다" 가 안 생긴다.
+LOCAL_MATRIX_FILTER = "mcp,optional_dep"
+
+
+def run_local_matrix(
+    repo_root: Path,
+    only_version: str | None = None,
+    keep_venvs: bool = True,
+) -> int:
+    """`PINNED_VERSIONS` 전부를 **로컬에서** 밟는다.
+
+    ## 왜 필요한가
+
+    매트릭스가 CI 에만 있어서 **"로컬 green → CI red" 가 구조적으로 발생했다.**
+    개발 venv 는 `requirements-dev.txt` 가 깐 하한(1.27.0) 하나뿐이라, 2.0.0 에서만
+    갈라지는 코드를 로컬에서 밟을 방법이 없다. 실제로 2026-08-05 에
+    `check_mcp_apply_mode_criterion` 이 `result.isError`(1.x 이름)를 써서 로컬은
+    통과하고 matrix 2.0.0 셀만 red 였다 — 저장소가 **이미 알고 있던 함정**인데
+    로컬에서 재현할 수단이 없었다.
+
+    버전 목록은 이 파일의 `PINNED_VERSIONS` 에서 읽는다. CI yml 과 같은 정본이므로
+    사본이 갈라질 자리가 없다.
+
+    ## 한계 (과장하지 않는다)
+
+    - CI 셀과 **완전히 같은 환경은 아니다** (러너 OS / 파이썬 패치 버전이 다르다).
+      이것은 CI 를 대신하는 것이 아니라 push 전에 *같은 부류의* 결함을 잡는 도구다.
+    - `extra` 는 `dev,release` 만 깐다. `mcp` 는 버전을 고정해 따로 깐다 —
+      `mcp-sdk` extra 를 쓰면 상한이 없어 매번 최신을 집어 매트릭스가 무의미해진다.
+    """
+    versions = [pinned.version for pinned in PINNED_VERSIONS]
+    if only_version is not None:
+        if only_version not in versions:
+            print(f"::error::{only_version} 은 PINNED_VERSIONS 에 없다 (선언: {versions})")
+            return 1
+        versions = [only_version]
+
+    venv_root = repo_root / LOCAL_MATRIX_VENV_DIR
+    tmp_root = venv_root / "_tmp"
+    tmp_root.mkdir(parents=True, exist_ok=True)
+    failures: list[str] = []
+
+    for version in versions:
+        venv_path = venv_root / version
+        python = venv_path / "bin" / "python"
+        print(f"\n=== mcp {version} ===")
+        if not python.is_file():
+            print(f"  venv 생성: {venv_path}")
+            subprocess.run([sys.executable, "-m", "venv", str(venv_path)], check=True)  # noqa: S603
+        installed = subprocess.run(  # noqa: S603
+            [str(python), "-c",
+             "import importlib.metadata as m;\ntry: print(m.version('mcp'))\nexcept Exception: print('')"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        if installed != version:
+            print(f"  설치: -e workflow-source[dev,release] + mcp=={version} (현재 {installed or '없음'})")
+            subprocess.run(  # noqa: S603
+                [str(python), "-m", "pip", "-q", "install",
+                 "-e", f"{repo_root / 'workflow-source'}[dev,release]", f"mcp=={version}"],
+                check=True,
+            )
+        # 설치가 조용히 딴 버전을 집었을 수 있다 — 선언이 아니라 실측으로 확인한다.
+        actual = subprocess.run(  # noqa: S603
+            [str(python), "-c", "import importlib.metadata as m; print(m.version('mcp'))"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        if actual != version:
+            print(f"  ::error::요청 {version} 인데 설치된 것은 {actual} 다")
+            failures.append(f"mcp {version}: 설치 버전 불일치 ({actual})")
+            continue
+
+        completed = subprocess.run(  # noqa: S603
+            [str(python), str(repo_root / "workflow-source" / "tests" / "run_all_checks.py"),
+             f"--filter={LOCAL_MATRIX_FILTER}", "--timeout=120", f"--tmp-dir={tmp_root}"],
+            cwd=str(repo_root),
+        )
+        if completed.returncode != 0:
+            failures.append(f"mcp {version}: 검사 실패 (exit {completed.returncode})")
+
+    print("\n=== 로컬 SDK 매트릭스 결과 ===")
+    for version in versions:
+        mark = "FAIL" if any(f.startswith(f"mcp {version}:") for f in failures) else "PASS"
+        print(f"  [{mark}] mcp {version}")
+    if failures:
+        for entry in failures:
+            print(f"  - {entry}")
+        return 1
+    print(f"  {len(versions)}개 버전 전부 통과 (filter={LOCAL_MATRIX_FILTER})")
+    return 0
+
+
 def render_summary() -> str:
     """registry 전체를 사람이 읽는 표로. 로그·문서 양쪽에서 쓴다."""
     lines = ["| 버전 | role | 근거 |", "|---|---|---|"]
@@ -365,7 +461,23 @@ def main(argv: list[str] | None = None) -> int:
         help="설치된 SDK 로 실제 왕복을 밟았는지 직접 돌려서 확인",
     )
     group.add_argument("--summary", action="store_true", help="registry 를 표로 출력")
+    group.add_argument(
+        "--run-local",
+        action="store_true",
+        help="PINNED_VERSIONS 전부를 로컬 venv 에서 밟는다 (push 전 매트릭스 재현)",
+    )
+    parser.add_argument(
+        "--only",
+        metavar="VERSION",
+        help="--run-local 에서 한 버전만 (기본: 선언된 전부)",
+    )
     args = parser.parse_args(argv)
+
+    if args.run_local:
+        return run_local_matrix(
+            Path(__file__).resolve().parents[3],
+            only_version=args.only,
+        )
 
     if args.github_matrix:
         print(github_matrix_json())

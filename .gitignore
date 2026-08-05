@@ -79,3 +79,6 @@ ai-workflow/wiki/.obsidian/
 
 # v0.8.x workflow-source build venv (build-time only, not runtime)
 workflow-source/.venv-build/
+
+# 로컬 SDK 매트릭스 venv (workflow_kit.common.sdk_matrix --run-local)
+/.venv-sdk-matrix/

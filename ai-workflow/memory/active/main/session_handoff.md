@@ -45,19 +45,37 @@
 
 ## 5. 다음 세션 시작 포인트
 
-**CI 실측은 끝났다 — 커밋 2건 각각 트리거된 3종 green, red 0건**(§1 에 로그 근거).
-이 저장소에 오래 red 인 workflow 도 없다.
+세션 기록: [sessions/self_application_and_mcp_2026-08-05.md](./sessions/self_application_and_mcp_2026-08-05.md)
+(§2.59~§2.66 여덟 사이클의 연쇄와 실측으로 뒤집힌 판단 4건).
 
-**결정이 하나 남아 있다.** `stamp_marker` 결함은 *이미 배포된* 소비자
-프로젝트의 opencode / grok-build skill 파일에도 있다. 마커 버전이 같으면
-`decide_action` 이 `IGNORED` 를 내므로 **재부트스트랩해도 안 고쳐진다** — kit 버전이
-올라가야 갱신된다. 이번 커밋에서 버전을 올리지 않았으니, 릴리스에서 이 건을 어떻게
-다룰지(버전 상승 / 별도 마이그레이션 안내) 정해야 한다.
+**CI 실측은 끝났다** — 마지막 커밋에서 트리거된 **5종 green**(smoke 2셀 · mypy-strict ·
+mcp-sdk-matrix · mcp-inspector · mkdocs). 이 저장소에 오래 red 인 workflow 는 없다.
 
-**MCP 는 붙였다(§2.60)** — `.mcp.json` 이 생겼고, 그 파일로 서버를 띄워 `tools/list`
-13종 + `tools/call` 성공까지 실측했다. 다만 **이 세션은 그 파일을 로드하지 못한다**
-(세션 시작 시점에 없었다). 다음 세션에서 MCP 도구 13종이 실제로 붙는지 확인할 것 —
-skill 때와 같은 순서다.
+### 첫 번째로 할 일 — MCP 도구 13종이 실제로 붙는지
+
+`.mcp.json` 은 §2.60 에서 만들었고 **파일로 서버를 띄워** `tools/list` 13종 +
+`tools/call` 성공까지 실측했지만, **세션이 그것을 로드한 상태는 아직 확인하지 못했다**
+(만든 세션에서는 시작 시점에 없던 파일이라 로드되지 않는다).
+
+skill 때 같은 확인이 결함을 하나 더 냈다 — 로드는 됐는데 slash command 3종의 *설명*이
+`<!-- standard-ai-workflow-kit: v… -->` 로 떴다(§2.59 후속). **그냥 넘기지 말 것.**
+
+### 결정이 하나 남아 있다 — 소비자 업그레이드
+
+`stamp_marker` 결함(§2.59)은 *이미 배포된* 소비자 프로젝트의 opencode / grok-build
+skill 파일에도 있다. 마커 버전이 같으면 `decide_action` 이 `IGNORED` 를 내므로
+**재부트스트랩해도 안 고쳐진다** — kit 버전이 올라가야 갱신된다. 이번 사이클에서
+버전을 올리지 않았으니, 릴리스에서 이 건을 어떻게 다룰지(버전 상승 / 마이그레이션
+안내) 정해야 한다. §2.66 의 `transport_ready` 제거도 breaking 이라 같이 다룰 건이다.
+
+### 후속 후보 (급하지 않은 순)
+
+1. `check_mcp_apply_mode_criterion` 을 mcp-sdk-matrix 의 `--assert-exercised` 대상에
+   넣을지 검토 — 파일명 덕에 `--filter mcp` 에는 이미 걸린다.
+2. `claude-code` 용 독립 설정 예시를 `examples/mcp_config_examples/` 에 추가 — 방언
+   대조가 4종 → 5종이 된다(지금은 `[info] 대조 못 함` 으로 매번 노출).
+3. A안의 사각지대 — mcp 를 import 하지 않는 파일이 남에게서 받은 SDK 객체를 읽는 경우.
+   범위를 넓히면 위양성이 압도하므로 지금은 열어 둔다.
 
 --- 이전 세션(§2.58)의 시작 포인트 ---
 

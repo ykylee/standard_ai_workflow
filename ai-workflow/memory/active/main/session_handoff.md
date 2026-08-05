@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- **현재 기준선(§2.59, 2026-08-05)**: v1.0.0-beta + `origin/main` = `33424fc` (커밋 2건). **커밋 2건 각각 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. push 트리거 red 0건이다.
+- **현재 기준선(§2.59+§2.60, 2026-08-05)**: v1.0.0-beta + `origin/main` = `6ebbd8b` (커밋 4건). **커밋마다 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. push 트리거 red 0건이다.
 - CI 자기 측정(요약 필드 말고 로그의 사실): smoke 네 셀(커밋 2 × 셀 2)이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 전부 `All 233 check_*.py scripts passed (220 test cases)`. **실제 emit 된 `::error::` 0건** — `grep '::error::'` 은 2건을 냈지만 둘 다 워크플로우 자체의 **명령 에코**(브랜치 가드가 실패 시 출력할 문자열의 원문)이지 emit 이 아니다. 명령 에코(`\x1b[36;1m`)를 빼고 세야 진짜 건수가 나온다.
 - **미트리거 3종은 결함이 아니다**: actionlint(`.github/workflows/**`) · mkdocs(`docs/**`, `mkdocs.yml`) · okf-validate(wiki / sample bundle / `url_validity`·`okf_export`·`frontmatter_urls`) — 이번 변경이 그 경로를 하나도 밟지 않았다. 그러니 **"트리거된 3종 green" 이지 "6종 green" 이 아니다**(§2.53 과 같은 구분).
 - 직전 push 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)

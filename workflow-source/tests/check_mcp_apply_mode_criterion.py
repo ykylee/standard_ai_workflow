@@ -127,11 +127,29 @@ async def _round_trip(server: dict[str, object], extra_pythonpath: str | None) -
                 if not tools.tools:
                     return False, "tools/list 가 0건"
                 result = await session.call_tool(PROBE_TOOL, PROBE_ARGS)
-                if result.isError:
-                    return False, f"tools/call {PROBE_TOOL} 이 isError=True"
+                if _is_error(result):
+                    return False, f"tools/call {PROBE_TOOL} 이 오류를 냈다"
                 return True, f"tools/list {len(tools.tools)}종 + tools/call 성공"
     except BaseException as exc:  # noqa: BLE001 — 서버가 안 뜨는 것도 판정 대상이다
         return False, _flatten(exc)
+
+
+def _is_error(result: object) -> bool:
+    """`CallToolResult` 의 오류 여부 — **SDK 버전마다 이름이 다르다.**
+
+    mcp 1.x 는 `isError`(camelCase), 2.0.0 은 `is_error`(snake_case) 다. 이 저장소는
+    이미 같은 함정을 겪었는데(`read_only_mcp_sdk._call_result` 의 주석: 2.0.0 에서
+    대입이 조용히 빗나가 실패가 성공으로 보고될 자리였다) 이 검사를 처음 쓸 때 또
+    `isError` 로 적었고, mcp-sdk-matrix 의 2.0.0 셀에서 걸렸다 (2026-08-05).
+    **매트릭스가 있는 이유가 이것이다** — 로컬 venv 는 1.27.0 이라 통과했다.
+    """
+    for name in ("is_error", "isError"):
+        value = getattr(result, name, None)
+        if value is not None:
+            return bool(value)
+    raise AttributeError(
+        "CallToolResult 에 is_error / isError 가 둘 다 없다 — SDK API 가 또 바뀌었다"
+    )
 
 
 def _flatten(exc: BaseException) -> str:

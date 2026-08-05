@@ -9,7 +9,9 @@
 
 ## 1. 현재 작업 요약
 
-- **현재 상태(§2.59, 2026-08-05)**: 로컬 검증까지 끝났고 **아직 push 전이다**. 격리 venv(`dev,release,mcp-sdk`) 전량 smoke **233/233**, mypy strict **123 files 0 errors**. 다음 세션의 첫 일은 push 후 트리거되는 CI 실측(smoke 2셀 / mypy-strict).
+- **현재 기준선(§2.59, 2026-08-05)**: v1.0.0-beta + `origin/main` = `33424fc` (커밋 2건). **커밋 2건 각각 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. push 트리거 red 0건이다.
+- CI 자기 측정(요약 필드 말고 로그의 사실): smoke 네 셀(커밋 2 × 셀 2)이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 전부 `All 233 check_*.py scripts passed (220 test cases)`. **실제 emit 된 `::error::` 0건** — `grep '::error::'` 은 2건을 냈지만 둘 다 워크플로우 자체의 **명령 에코**(브랜치 가드가 실패 시 출력할 문자열의 원문)이지 emit 이 아니다. 명령 에코(`\x1b[36;1m`)를 빼고 세야 진짜 건수가 나온다.
+- **미트리거 3종은 결함이 아니다**: actionlint(`.github/workflows/**`) · mkdocs(`docs/**`, `mkdocs.yml`) · okf-validate(wiki / sample bundle / `url_validity`·`okf_export`·`frontmatter_urls`) — 이번 변경이 그 경로를 하나도 밟지 않았다. 그러니 **"트리거된 3종 green" 이지 "6종 green" 이 아니다**(§2.53 과 같은 구분).
 - 직전 push 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)
 - CI 자기 측정(요약 필드 말고 로그의 사실): smoke 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, `::error::` 0건. `okf-validate` 는 `Extracted 4 unique URLs` → `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` → online 검증 exit 0. mkdocs 는 `docs/**` 를 밟아 **직전 두 사이클 만에 처음 트리거돼 통과**했다
 - 현재 주 작업 축: "생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다
@@ -43,10 +45,10 @@
 
 ## 5. 다음 세션 시작 포인트
 
-**먼저 할 일: §2.59 를 push 하고 CI 실측.** 로컬은 격리 venv 전량 smoke 233/233 +
-mypy strict 123 files 0 errors 까지 끝났지만 push 는 안 했다.
+**CI 실측은 끝났다 — 커밋 2건 각각 트리거된 3종 green, red 0건**(§1 에 로그 근거).
+이 저장소에 오래 red 인 workflow 도 없다.
 
-**그리고 결정이 하나 남아 있다.** `stamp_marker` 결함은 *이미 배포된* 소비자
+**결정이 하나 남아 있다.** `stamp_marker` 결함은 *이미 배포된* 소비자
 프로젝트의 opencode / grok-build skill 파일에도 있다. 마커 버전이 같으면
 `decide_action` 이 `IGNORED` 를 내므로 **재부트스트랩해도 안 고쳐진다** — kit 버전이
 올라가야 갱신된다. 이번 커밋에서 버전을 올리지 않았으니, 릴리스에서 이 건을 어떻게

@@ -113,8 +113,15 @@ def _call_tool_result_for_payload(
         structuredContent=payload,
         isError=force_error or payload.get("status") == "error",
         _meta={
-            "transport_ready": False,
-            "sdk_candidate_phase": "official_sdk_optional_candidate",
+            # 이 자리는 **공식 SDK 서버가 실행 중일 때만** 도달한다. 그런데
+            # `transport_ready: False` 와 `official_sdk_optional_candidate` 가 박혀
+            # 있었다 — 같은 파일의 `sdk_runtime_status()` 는 `sdk_available` 을 보고
+            # `True` / `official_sdk_stable` 을 광고하는데, **상태 조회는 ready 라 하고
+            # 모든 tool 호출은 not-ready 라 하는** 자기모순이었다 (2026-08-05, §2.63).
+            # 여기까지 왔다는 것 자체가 SDK import 성공의 증거이므로 True 다.
+            "transport_ready": True,
+            "transport_phase": "official_sdk",
+            "sdk_candidate_phase": "official_sdk_stable",
             "tool": name,
         },
     )

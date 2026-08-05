@@ -30,6 +30,28 @@ MCP_TOOL_DESCRIPTION = (
     "for the Standard AI Workflow kit."
 )
 
+#: bridge → **구현 단계** (transport_phase 축). 이 값은 "무엇으로 구현됐는가" 만
+#: 말한다 — 쓸 수 있는가(정책)도, SDK 를 import 할 수 있는가(런타임 능력)도 아니다.
+MCP_BRIDGE_PHASE: dict[str, str] = {
+    "jsonrpc-bridge": "jsonrpc_draft",
+    "stdio-sdk": "official_sdk",
+}
+
+#: bridge → **정책** (apply_mode 축). "사용자가 활성 설정으로 붙여도 되는가".
+#:
+#: 승격 기준은 `core/read_only_mcp_transport_promotion.md` §6 이고,
+#: `tests/check_mcp_apply_mode_criterion.py` 가 그것을 실행한다. 여기 `active_ok`
+#: 를 적으면 그 검사가 **실제로 서버를 띄워** 증명을 요구한다 — 선언만으로는
+#: 통과하지 못한다.
+#:
+#: `stdio-sdk` 가 `manual_review_only` 인 이유는 성숙도가 아니라 **의존성** 이다:
+#: emit 되는 command 는 `python3`(하네스가 보는 인터프리터)인데 거기에 `mcp` SDK 가
+#: 없으면 `Connection closed` 로 죽는다. `mcp` extra 가 보장된 환경에서만 쓸 것.
+MCP_BRIDGE_APPLY_MODE: dict[str, str] = {
+    "jsonrpc-bridge": "active_ok",
+    "stdio-sdk": "manual_review_only",
+}
+
 #: harness → JSON 설정 파일의 **최상위 키**. 하네스마다 방언이 다르다.
 #:
 #: 이 표가 없던 동안 `scripts/generate_read_only_harness_mcp_examples.py` 의 OpenCode

@@ -2529,7 +2529,7 @@ frontmatter 경계 제거 → 3건, 정규식 되돌림 → 2건, 소비자 grep
 
 ## 3. 검증
 
-누적 smoke **233/233 PASS** (2026-08-04, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
+누적 smoke **234/234 PASS** (2026-08-05, `dev,release,mcp-sdk` extra 를 깐 격리 venv 에서
 `run_all_checks.py --tmp-dir=<실디스크>`, resource guard 완주 — abort 0 / 고아 프로세스 0 /
 디스크 변동 0). 누적 추이는 217 → 218(§2.38 `check_recent_done_items_order`) → 219(§2.39
 `check_task_status_axis_separation`) → 220(§2.40 `check_migration_group_heading`)
@@ -2542,7 +2542,8 @@ frontmatter 경계 제거 → 3건, 정규식 되돌림 → 2건, 소비자 grep
 → 230(§2.50 `check_branch_resolver_agreement`)
 → 231(§2.51 `check_dashboard_workspace_provenance`)
 → 232(§2.52 `check_root_anchor_audit`; §2.53/§2.54 는 같은 파일을 9 → 10 → 11 case 로 확장해 file 수는 그대로다)
-→ **233**(§2.58 `check_frontmatter_url_extraction`; §2.55~§2.57 은 기존 파일을 case 로 확장해 file 수는 그대로다).
+→ 233(§2.58 `check_frontmatter_url_extraction`; §2.55~§2.57 은 기존 파일을 case 로 확장해 file 수는 그대로다)
+→ **234**(§2.63 `check_mcp_apply_mode_criterion`; §2.59~§2.62 는 기존 파일을 case 로 확장해 file 수는 그대로다).
 
 > **§2.45 작업 중 `release` extra 없는 venv 에서 먼저 돌렸더니 219/224 였다.** 5건 중
 > 3건은 문서가 아직 223 이라고 적고 있어서였고(`CODE_INDEX` / `INSTALLATION_AND_USAGE` /

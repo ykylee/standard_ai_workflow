@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[학습회] AI 에이전트 워크플로우 — 매일 아침 기억을 잃는 신입과 일하는 법</title>
+  <!-- Google Fonts: Pretendard alternative & System fallbacks -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* ------------------------------------------------------------------
+       1. Design System Tokens (Theme: saw-onboard, mood: WARM)
+       ------------------------------------------------------------------ */
+    :root {
+      /* mood: WARM */
+      /* Palette */
+      --bg-dark: #1C1917;
+      --bg-light: #FBFAF7;
+      --fg-on-dark: #FBFAF7;
+      --fg-on-light: #16232E;
+      --accent: #0D7C6B;
+      --accent-light: #E6F4F1;
+      --danger: #B4462E;
+      --danger-light: #FDF2F0;
+      --muted: #6B7A85;
+      --rule: #E3E0D9;
+      --card-bg: #FFFFFF;
+
+      /* Typography */
+      --font-display: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-code: 'Fira Code', monospace;
+
+      /* Canvas & Layout */
+      --canvas-width: 1920px;
+      --canvas-height: 1080px;
+      --slide-scale: 1;
+    }
+
+    /* ------------------------------------------------------------------
+       2. Base & Reset
+       ------------------------------------------------------------------ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    ul, ol {
+      list-style-position: inside;
+      padding-left: 0;
+      margin-left: 0;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      background-color: #0A0F14;
+      color: var(--fg-on-light);
+      font-family: var(--font-body);
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ------------------------------------------------------------------
+       3. Canvas & Scaling Wrapper
+       ------------------------------------------------------------------ */
+    .deck-wrapper {
+      width: var(--canvas-width);
+      height: var(--canvas-height);
+      transform: scale(var(--slide-scale));
+      transform-origin: center center;
+      position: relative;
+      background-color: var(--bg-light);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .deck {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    /* ------------------------------------------------------------------
+       4. Slide Base & Layout Primitives
+       ------------------------------------------------------------------ */
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1920px;
+      height: 1080px;
+      padding: 80px 96px 80px 96px;
+      display: none;
+      flex-direction: column;
+      justify-content: flex-start;
+      background-color: var(--bg-light);
+      color: var(--fg-on-light);
+      opacity: 0;
+      transition: opacity 0.25s ease-in-out;
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      z-index: 1;
+    }
+
+    /* Theme Variations */
+    .slide[data-bg="dark"] {
+      background-color: var(--bg-dark);
+      color: var(--fg-on-dark);
+    }
+
+    /* Header & Typography Helpers */
+    .slide-header {
+      margin-bottom: 48px;
+    }
+
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 16px;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 700;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+
+    .slide[data-bg="dark"] .slide-tag {
+      background-color: rgba(13, 124, 107, 0.25);
+      color: #34D399;
+    }
+
+    h1.title-main {
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 24px;
+    }
+
+    h2.slide-title {
+      font-size: 60px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -1px;
+    }
+
+    p.lead-text {
+      font-size: 32px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .slide[data-bg="dark"] p.lead-text {
+      color: #94A3B8;
+    }
+
+    /* Layout Grids */
+    .cols-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      height: 100%;
+    }
+
+    .cols-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 36px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      padding: 36px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .slide[data-bg="dark"] .card {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .card.accent-border {
+      border-left: 6px solid var(--accent);
+    }
+
+    .card.danger-border {
+      border-left: 6px solid var(--danger);
+    }
+
+    /* 4-Bit Case Layout */
+    .case-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .case-step {
+      background-color: #FFFFFF;
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .case-step .step-num {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .case-step h4 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .case-step p {
+      font-size: 22px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* Code / Terminal Block */
+    .terminal-box {
+      background-color: #1E293B;
+      color: #F8FAFC;
+      font-family: var(--font-code);
+      border-radius: 8px;
+      padding: 28px;
+      font-size: 24px;
+      line-height: 1.6;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .terminal-box .green { color: #34D399; }
+    .terminal-box .red { color: #F87171; }
+    .terminal-box .yellow { color: #FBBF24; }
+    .terminal-box .muted { color: #64748B; }
+
+    /* ------------------------------------------------------------------
+       5. Chrome Controls & UI Overlays
+       ------------------------------------------------------------------ */
+    .chrome {
+      position: absolute;
+      bottom: 24px;
+      left: 96px;
+      right: 96px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .slide[data-bg="dark"] ~ .chrome,
+    .slide.active[data-bg="dark"] .chrome-counter {
+      color: #94A3B8;
+    }
+
+    .chrome-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chrome-counter {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid var(--rule);
+      pointer-events: auto;
+    }
+
+    .slide[data-bg="dark"] .chrome-counter {
+      background: rgba(22, 35, 46, 0.85);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: var(--fg-on-dark);
+    }
+
+    /* Track selector pill */
+    .track-pill {
+      cursor: pointer;
+      background-color: var(--accent-light);
+      color: var(--accent);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-left: 12px;
+    }
+
+    /* Speaker Notes Panel */
+    .notes-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.95);
+      color: #F8FAFC;
+      padding: 24px 40px;
+      font-size: 24px;
+      line-height: 1.6;
+      border-top: 3px solid var(--accent);
+      display: none;
+      z-index: 100;
+      max-height: 30vh;
+      overflow-y: auto;
+    }
+
+    .notes-panel.active {
+      display: block;
+    }
+
+    /* Overview Grid Modal */
+    .overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 15, 20, 0.95);
+      z-index: 200;
+      display: none;
+      padding: 60px;
+      overflow-y: auto;
+    }
+
+    .overview-modal.active {
+      display: block;
+    }
+
+    .overview-header {
+      color: #FFF;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .thumb-card {
+      aspect-ratio: 16 / 9;
+      background: var(--bg-light);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease;
+    }
+
+    .thumb-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+    }
+
+    .thumb-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(13, 124, 107, 0.4);
+    }
+
+    .thumb-card .thumb-num {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .thumb-card .thumb-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--fg-on-light);
+      line-clamp: 2;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Help Overlay Modal */
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(6px);
+      z-index: 300;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      color: #FFF;
+    }
+
+    .help-overlay.active {
+      display: flex;
+    }
+
+    .help-card {
+      background: #1E293B;
+      padding: 48px;
+      border-radius: 16px;
+      max-width: 640px;
+      width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .help-card h3 {
+      font-size: 32px;
+      margin-bottom: 24px;
+      color: #34D399;
+    }
+
+    .help-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 22px;
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-family: var(--font-code);
+      font-weight: 600;
+    }
+
+    /* Print Styles */
+    @media print {
+      @page {
+        size: 16in 9in;
+        margin: 0;
+      }
+      body {
+        background: none;
+        overflow: visible;
+      }
+      .deck-wrapper {
+        transform: none !important;
+        width: 16in !important;
+        height: 9in !important;
+        box-shadow: none;
+      }
+      .slide {
+        display: flex !important;
+        opacity: 1 !important;
+        position: relative !important;
+        page-break-after: always;
+        width: 16in !important;
+        height: 9in !important;
+      }
+      .chrome, .notes-panel, .overview-modal, .help-overlay {
+        display: none !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide {
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Deck Wrapper Canvas -->
+  <div class="deck-wrapper" id="deckWrapper">
+    <div class="deck" id="deck">
+
+      <!-- =================================================================
+           0부: 당신은 이미 리더입니다 (4장)
+           ================================================================= -->
+      
+      <!-- Slide 1: Title (공통) -->
+      <section class="slide" data-slide="1" data-track="common" data-bg="dark">
+        <div class="slide-header">
+          <div class="slide-tag">AI 에이전트를 위한 워크플로우</div>
+        </div>
+        <div style="margin-top: 60px;">
+          <h1 class="title-main" style="color: #FFF;">매일 아침 기억을 잃는<br><span style="color: #34D399;">신입과 일하는 법</span></h1>
+          <p class="lead-text" style="font-size: 36px; color: #94A3B8; margin-top: 36px;">
+            에이전트에게 지시하는 사람에서, 시스템으로 지휘하는 리더로
+          </p>
+        </div>
+        <div style="margin-top: auto; display: flex; gap: 40px; color: #64748B; font-size: 22px;">
+          <span>발표: AI 에이전트 학습회</span>
+          <span>·</span>
+          <span>시간: 30분 / 60분 / 90분 마스터 덱</span>
+        </div>
+        <aside class="notes" data-slide="1">
+          오늘 발표는 AI 에이전트와 매일 일하면서 느끼는 가장 원초적인 답답함에서 시작합니다. 엄청 유능한데 왜 매번 같은 말을 반복해야 하고, 왜 가끔 허위 보고를 할까? 에이전트를 다루는 기술이 아닌 에이전트와 일하는 리더십과 워크플로우 이야기입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 2: Content (공통) -->
+      <section class="slide" data-slide="2" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">01. 현상의 발견</div>
+          <h2 class="slide-title">이 동료의 이력서는 화려합니다</h2>
+        </div>
+        <div class="cols-2">
+          <div class="card accent-border" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 32px; color: var(--accent); margin-bottom: 20px;">💪 압도적인 역량</h3>
+              <ul style="font-size: 26px; line-height: 1.8; color: var(--fg-on-light); list-style-position: inside; padding-left: 0; margin-left: 0;">
+                <li>전 세계 모든 라이브러리 문서를 아는 지식</li>
+                <li>초당 수천 줄의 코드를 작성하는 속도</li>
+                <li>지치지 않고 24시간 요청을 처리하는 체력</li>
+              </ul>
+            </div>
+            <div style="background: var(--accent-light); padding: 16px 20px; border-radius: 8px; font-weight: 700; color: var(--accent);">
+              완벽한 대형 언어 모델 (LLM)
+            </div>
+          </div>
+          <div class="card danger-border" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 32px; color: var(--danger); margin-bottom: 20px;">⚠️ 치명적인 치매 & 버릇</h3>
+              <ul style="font-size: 26px; line-height: 1.8; color: var(--fg-on-light); list-style-position: inside; padding-left: 0; margin-left: 0;">
+                <li><strong>세션 종료시 어제의 기억을 완전히 상실</strong></li>
+                <li>막히면 되묻지 않고 <strong>빈칸을 지어냄 (환각)</strong></li>
+                <li>요청하지 않은 파일까지 <strong>과잉 수정</strong></li>
+                <li>실제 테스트 없이 <strong>"완료했습니다" 허위 보고</strong></li>
+              </ul>
+            </div>
+            <div style="background: var(--danger-light); padding: 16px 20px; border-radius: 8px; font-weight: 700; color: var(--danger);">
+              매일 아침 기억을 잃는 유능한 신입
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="2">
+          이 신입은 정말 유능합니다. 하지만 세션이 닫히는 순간 어제 청소해둔 서랍 위치부터 지난주 결정된 협의 사항을 전부 잊어버립니다. 그리고 모르면 물어봐야 하는데 그럴듯하게 빈칸을 채워넣죠.
+        </aside>
+      </section>
+
+      <!-- Slide 3: Content (공통) -->
+      <section class="slide" data-slide="3" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">02. 프레임 전환</div>
+          <h2 class="slide-title">신입이 온 게 아니라, 당신이 PL이 된 겁니다</h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 32px; margin-top: 20px;">
+          <div class="card" style="display: flex; align-items: center; gap: 40px; padding: 40px;">
+            <div style="font-size: 48px;">👨‍💻</div>
+            <div>
+              <div style="font-size: 22px; color: var(--muted); font-weight: 700; margin-bottom: 8px;">이전의 나 (Individual Contributor)</div>
+              <div style="font-size: 32px; font-weight: 700;">내가 직접 생각하고, 내가 직접 구현하고, 내가 검수한다.</div>
+            </div>
+          </div>
+          <div style="text-align: center; font-size: 36px; color: var(--accent); font-weight: 900;">▼</div>
+          <div class="card accent-border" style="display: flex; align-items: center; gap: 40px; padding: 40px; background: var(--accent-light);">
+            <div style="font-size: 48px;">👑</div>
+            <div>
+              <div style="font-size: 22px; color: var(--accent); font-weight: 700; margin-bottom: 8px;">에이전트를 붙인 나 (Project Leader)</div>
+              <div style="font-size: 32px; font-weight: 700; color: var(--fg-on-light);">
+                업무를 <strong>위임</strong>하고, 맥락을 <strong>전달</strong>하며, 결과를 <strong>확인 및 검증</strong>한다.
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="lead-text" style="text-align: center; margin-top: 40px; font-weight: 700;">
+          "갑자기 준비 없이 리더가 되었기에, 지금 일하는 방식의 혼란이 오는 것은 당연합니다."
+        </p>
+        <aside class="notes" data-slide="3">
+          중요한 정체성의 전환입니다. 여러분이 에이전트를 켜는 순간 개발자 개인이 아니라 1인 PL(Project Leader)이 됩니다. 그런데 리더십을 배운 적이 없으니 프롬프트 창에 막 던지게 되고 사고가 나는 것입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 4: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="4" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">03. 오늘 가져갈 4가지</div>
+          <h2 class="slide-title">오늘 이 자리가 끝났을 때 손에 쥐는 것</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card accent-border">
+              <div style="font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 8px;">목표 1. 위임의 정밀화</div>
+              <div style="font-size: 26px; font-weight: 700;">완료 조건·범위 밖·방법 자율성 분리</div>
+              <div style="font-size: 20px; color: var(--muted); margin-top: 8px;">모호한 지시를 에이전트가 완수 가능한 한 문장 크기로 설계</div>
+            </div>
+            <div class="card accent-border">
+              <div style="font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 8px;">목표 2. 탐색의 태도 전환</div>
+              <div style="font-size: 26px; font-weight: 700;">"없습니다"를 결론이 아닌 가설로 취급</div>
+              <div style="font-size: 20px; color: var(--muted); margin-top: 8px;">검색 0건이 부재 증명이 아님을 알고 지도/상태 제공</div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card accent-border">
+              <div style="font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 8px;">목표 3. 워크플로우 이식</div>
+              <div style="font-size: 26px; font-weight: 700;">기록을 남길 위치 1개(인계/상태 파일) + 검사 1개</div>
+              <div style="font-size: 20px; color: var(--muted); margin-top: 8px;">성실성에 의존하지 않고 다음 세션 입력이 되도록 세팅</div>
+            </div>
+            <div class="card accent-border">
+              <div style="font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 8px;">목표 4. 기록 자산화</div>
+              <div style="font-size: 26px; font-weight: 700;">개인 메모리 vs 팀 공유 버전 관리 구분</div>
+              <div style="font-size: 20px; color: var(--muted); margin-top: 8px;">개인 툴 메모리를 넘어 저장소 차원의 맥락 기록 체계 구축</div>
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="4">
+          학습회의 4가지 명확한 목표입니다. 이론 설명에 그치지 않고 자기 팀과 자기 작업 공간에 바로 적용할 수 있는 4개 기준을 가져가게 됩니다.
+        </aside>
+      </section>
+
+      <!-- =================================================================
+           1부: 위임과 확인 — 다이얼은 두 개 (7장)
+           ================================================================= -->
+
+      <!-- Slide 5: Section (60분/90분 전용) -->
+      <section class="slide" data-slide="5" data-track="full" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">PART 1</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 90px;">위임과 확인<br><span style="color: #34D399;">다이얼은 두 개입니다</span></h1>
+          <p class="lead-text" style="color: #94A3B8; font-size: 36px; margin-top: 24px;">
+            어떤 리더가 에이전트와 가장 일 잘하는 리더인가?
+          </p>
+        </div>
+        <aside class="notes" data-slide="5">
+          1부로 진입합니다. 첫 번째 질문입니다. "과연 어떤 리더가 에이전트에게 좋은 리더일까요?"
+        </aside>
+      </section>
+
+      <!-- Slide 6: Content (공통) -->
+      <section class="slide" data-slide="6" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">1.1 리더십의 유형</div>
+          <h2 class="slide-title">던져주는 리더 vs 분해해 주는 리더</h2>
+        </div>
+        <div class="cols-2">
+          <div class="card danger-border">
+            <h3 style="font-size: 32px; color: var(--danger); margin-bottom: 16px;">💣 그냥 던지는 리더</h3>
+            <p style="font-size: 24px; color: var(--muted); margin-bottom: 24px;">"로그인 기능 알아서 구현해줘"</p>
+            <ul style="font-size: 24px; line-height: 1.6; list-style-position: inside; padding-left: 0; margin-left: 0;">
+              <li>사람 팀에선 시니어에게 통함</li>
+              <li>에이전트는 <strong>침묵하며 빈칸을 지어냄</strong></li>
+              <li>예상과 완전히 다른 결과물 출몰</li>
+            </ul>
+          </div>
+          <div class="card accent-border">
+            <h3 style="font-size: 32px; color: var(--accent); margin-bottom: 16px;">🔍 세세하게 다 분해하는 리더</h3>
+            <p style="font-size: 24px; color: var(--muted); margin-bottom: 24px;">"A파일 12줄에 if문 추가하고 B함수 호출해줘"</p>
+            <ul style="font-size: 24px; line-height: 1.6; list-style-position: inside; padding-left: 0; margin-left: 0;">
+              <li>에이전트의 속도 이점 소멸</li>
+              <li><strong>"내가 직접 짜는 게 빠르겠다"</strong> 피로감</li>
+              <li>리더가 전체 시스템의 결정적 병목</li>
+            </ul>
+          </div>
+        </div>
+        <div style="background: #F1F5F9; padding: 24px; border-radius: 8px; margin-top: 36px; text-align: center; font-size: 28px; font-weight: 700;">
+          💡 정답은 분해의 양이 아니라, <span style="color: var(--accent);">"무엇을 고정하고 무엇을 풀어주는가"</span>에 있습니다.
+        </div>
+        <aside class="notes" data-slide="6">
+          던지기는 에이전트에겐 대재앙입니다. 막히면 물어봐야 되는데 되묻지 않기 때문입니다. 그렇다고 코드를 한 줄 한 줄 지정해주면 에이전트를 쓸 이유가 없어지죠.
+        </aside>
+      </section>
+
+      <!-- Slide 7: Content (공통) -->
+      <section class="slide" data-slide="7" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">1.2 에이전트의 특이성</div>
+          <h2 class="slide-title">필요할 때 항상 되묻는다고 기대할 수 없습니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px;">
+          <div class="card" style="background: #F8FAFC;">
+            <h3 style="font-size: 28px; margin-bottom: 20px;">👤 사람 신입 개발자</h3>
+            <div style="font-size: 24px; line-height: 1.7; color: #334155;">
+              "팀장님, DB 스키마에 결제 상태 필드가 안 보이는데 기존 Enum을 써야 하나요, 아니면 추가해야 하나요?"
+              <br><br>
+              <span style="color: var(--accent); font-weight: 700;">➔ 막히면 멈추고 질문을 던진다.</span>
+            </div>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light);">
+            <h3 style="font-size: 28px; color: var(--danger); margin-bottom: 20px;">🤖 AI 에이전트</h3>
+            <div style="font-size: 24px; line-height: 1.7; color: var(--fg-on-light);">
+              "결제 상태 필드가 없으므로 기존 코드를 임의로 수정하여 `STATUS_UNKNOWN_V2`를 임의로 추가하고 작업을 마쳤습니다."
+              <br><br>
+              <span style="color: var(--danger); font-weight: 700;">➔ 되묻지 않고 그럴듯한 빈칸을 채운다.</span>
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="7">
+          에이전트는 사람 신입과 다릅니다. 되묻는 비용보다 모르는 채 자기 임의로 짐작해서 코드를 짜는 경향이 구조적으로 존재합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 8: Content (공통) -->
+      <section class="slide" data-slide="8" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">1.3 다이얼의 구조</div>
+          <h2 class="slide-title">다이얼은 하나가 아니라 둘입니다</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; height: 420px;">
+            <div style="background: #F1F5F9; padding: 20px; border-radius: 8px; border: 2px dashed #94A3B8;">
+              <div style="font-size: 18px; font-weight: 700; color: var(--muted);">Low 위임 / Low 확인</div>
+              <div style="font-size: 24px; font-weight: 700; margin-top: 12px;">방임형 / 무관심</div>
+              <div style="font-size: 18px; color: var(--muted); margin-top: 8px;">아무 시너지도 없음</div>
+            </div>
+            <div style="background: #FEF2F2; padding: 20px; border-radius: 8px; border: 2px solid var(--danger);">
+              <div style="font-size: 18px; font-weight: 700; color: var(--danger);">Low 위임 / High 확인</div>
+              <div style="font-size: 24px; font-weight: 700; margin-top: 12px; color: var(--danger);">마이크로매니저</div>
+              <div style="font-size: 18px; color: var(--muted); margin-top: 8px;">내가 다 지시, 내가 병목</div>
+            </div>
+            <div style="background: #FFFBEB; padding: 20px; border-radius: 8px; border: 2px solid #F59E0B;">
+              <div style="font-size: 18px; font-weight: 700; color: #D97706;">High 위임 / Low 확인</div>
+              <div style="font-size: 24px; font-weight: 700; margin-top: 12px; color: #D97706;">묻지마 던지기</div>
+              <div style="font-size: 18px; color: var(--muted); margin-top: 8px;">환각 사고 빈번</div>
+            </div>
+            <div style="background: var(--accent-light); padding: 20px; border-radius: 8px; border: 3px solid var(--accent);">
+              <div style="font-size: 18px; font-weight: 700; color: var(--accent);">High 위임 / High 확인 (정답)</div>
+              <div style="font-size: 24px; font-weight: 700; margin-top: 12px; color: var(--accent);">시스템적 리더</div>
+              <div style="font-size: 18px; color: var(--fg-on-light); margin-top: 8px;">방법 자율 + 자동 대조</div>
+            </div>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: center; padding: 36px;">
+            <h3 style="font-size: 30px; color: var(--accent); margin-bottom: 20px;">🔒 무조건 고정할 3가지</h3>
+            <ul style="font-size: 26px; line-height: 1.8; list-style-position: inside; padding-left: 0; margin-left: 0; margin-bottom: 28px;">
+              <li><strong>1. 완료 조건 (Done Definition)</strong></li>
+              <li><strong>2. 범위 밖 (Out of Scope)</strong></li>
+              <li><strong>3. 작업의 크기 (Single Task Size)</strong></li>
+            </ul>
+            <div style="font-size: 24px; font-weight: 700; color: var(--accent);">
+              🔓 풀어줄 것: 구현 방법과 알고리즘 선택 (자율성)
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="8">
+          위임과 확인은 1개의 일직선 다이얼이 아닙니다. 위임(방법 자율성)도 높이고, 확인(결과 검증)도 둘 다 최대로 올려야 '시스템적 리더'가 됩니다.
+        </aside>
+      </section>
+
+      <!-- Slide 9: Exercise (공통) -->
+      <section class="slide" data-slide="9" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">1.4 미니 실습 (2분)</div>
+          <h2 class="slide-title">이 일을 맡길 준비가 되었습니까?</h2>
+        </div>
+        <div class="card danger-border" style="margin-bottom: 24px; padding: 24px;">
+          <div style="font-size: 22px; color: var(--danger); font-weight: 700; margin-bottom: 8px;">✕ 모호하고 위험한 지시</div>
+          <div style="font-size: 32px; font-weight: 700;">"결제 실패 원인 조사하고 코드 고쳐줘"</div>
+        </div>
+        <div class="card accent-border" style="background: var(--accent-light); padding: 28px;">
+          <div style="font-size: 22px; color: var(--accent); font-weight: 700; margin-bottom: 12px;">✓ 3가지 다이얼이 고정된 지시 카드 (위임 카드)</div>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 24px; color: var(--fg-on-light);">
+            <div><strong>· 완료 조건:</strong> `logs/payment.log`에서 500 에러 원인을 찾고 테스트 케이스 1개 작성 통과</div>
+            <div><strong>· 범위 밖:</strong> 결제 PG사 연동 모듈 로직 본체는 수정 금지</div>
+            <div><strong>· 허용할 방법:</strong> 재시도(Retry) 핸들러 추가 또는 예외 로직 분기 자유</div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="9">
+          여러분 프롬프트 창을 열고 지시할 때 완료 조건, 범위 밖, 허용할 방법 3개를 작성할 수 있는 상태인지 2분간 점검합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 10: Content (공통) -->
+      <section class="slide" data-slide="10" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">1.5 확인의 위치</div>
+          <h2 class="slide-title">확인을 앞으로 당기면 판단이 대조가 됩니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px;">
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 22px; color: var(--muted); font-weight: 700;">기존: 확인을 뒤에 둘 때</div>
+              <h3 style="font-size: 32px; margin: 16px 0;">사람 리더의 "주관적 판단"</h3>
+              <p style="font-size: 24px; color: var(--muted); line-height: 1.5;">
+                에이전트가 수천 줄 짠 코드를 보고 "잘 짜였나?" 사람이 직접 눈으로 읽고 주관적으로 판단한다.
+              </p>
+            </div>
+            <div style="font-size: 26px; color: var(--danger); font-weight: 700;">➔ 리더 피로도 극대화</div>
+          </div>
+          <div class="card accent-border" style="background: var(--accent-light); display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 22px; color: var(--accent); font-weight: 700;">개선: 완료 조건을 사전에 확정할 때</div>
+              <h3 style="font-size: 32px; margin: 16px 0; color: var(--accent);">기계에 넘길 수 있는 "대조"</h3>
+              <p style="font-size: 24px; color: var(--fg-on-light); line-height: 1.5;">
+                완료 조건을 테스트/스크립트로 명시하고 결과 일치 여부만 대조한다.
+              </p>
+            </div>
+            <div style="font-size: 26px; color: var(--accent); font-weight: 700;">➔ 대조 작업은 자동화/기계 이관 가능</div>
+          </div>
+        </div>
+        <div style="margin-top: 36px; text-align: center; font-size: 28px; font-weight: 700;">
+          📌 업무 크기 기준 = <span style="color: var(--accent);">완료 조건을 한 문장으로 쓸 수 있는 크기</span>
+        </div>
+        <aside class="notes" data-slide="10">
+          확인을 뒤에서 주관으로 하려니 리더가 병목이 됩니다. 완료 조건을 앞으로 가져오면 판단이 단순한 '대조'로 바뀌고 대조는 기계에 넘길 수 있습니다.
+        </aside>
+      </section>
+
+      <!-- Slide 11: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="11" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">1.6 리더의 성장 경로</div>
+          <h2 class="slide-title">확인을 조이면 내가 병목이 됩니다</h2>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-top: 40px;">
+          <div class="card" style="flex: 1; text-align: center; padding: 40px 24px;">
+            <div style="font-size: 40px; margin-bottom: 12px;">1단계</div>
+            <h3 style="font-size: 28px; margin-bottom: 12px;">내가 직접 다 한다</h3>
+            <p style="font-size: 20px; color: var(--muted);">에이전트 미도입 또는 수동 작성</p>
+          </div>
+          <div style="font-size: 32px; color: var(--muted);">➔</div>
+          <div class="card" style="flex: 1; text-align: center; padding: 40px 24px; border-color: var(--danger);">
+            <div style="font-size: 40px; margin-bottom: 12px; color: var(--danger);">2단계</div>
+            <h3 style="font-size: 28px; margin-bottom: 12px;">맡기고 내가 확인한다</h3>
+            <p style="font-size: 20px; color: var(--danger);"><strong>리더의 시간이 병목</strong></p>
+          </div>
+          <div style="font-size: 32px; color: var(--accent);">➔</div>
+          <div class="card accent-border" style="flex: 1; text-align: center; padding: 40px 24px; background: var(--accent-light);">
+            <div style="font-size: 40px; margin-bottom: 12px; color: var(--accent);">3단계</div>
+            <h3 style="font-size: 28px; margin-bottom: 12px;">맡기고 확인이 저절로 걸린다</h3>
+            <p style="font-size: 20px; color: var(--accent); font-weight: 700;">시스템으로 굴러가는 워크플로우</p>
+          </div>
+        </div>
+        <p class="lead-text" style="text-align: center; margin-top: 60px; font-weight: 700;">
+          "2단계에 머무는 리더는 에이전트 도입 후 오히려 더 피곤해집니다."
+        </p>
+        <aside class="notes" data-slide="11">
+          발표 전체의 복선입니다. 내가 매번 눈으로 검수하면 2단계 병목에 갇힙니다. 3단계 '확인이 저절로 걸리는 장치'를 만드는 것이 오늘 학습회의 핵심입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 12: Section (기억과 탐색) -->
+      <section class="slide" data-slide="12" data-track="full" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">PART 2</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 90px;">이 부하는 매일<br><span style="color: #FBBF24;">기억을 잃습니다</span></h1>
+          <p class="lead-text" style="color: #94A3B8; font-size: 36px; margin-top: 24px;">
+            기억 상실과 탐색 실패가 불러오는 3겹의 비용
+          </p>
+        </div>
+        <aside class="notes" data-slide="12">
+          PART 2 시작합니다. 세션 경계에서 생기는 기억 상실 문제입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 13: Content (공통) -->
+      <section class="slide" data-slide="13" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">2.1 세션 경계</div>
+          <h2 class="slide-title">어제의 세션과 오늘의 세션은 다른 사람입니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px;">
+          <div class="card danger-border">
+            <h3 style="font-size: 28px; color: var(--danger); margin-bottom: 16px;">어제 세션 (Session A)</h3>
+            <p style="font-size: 24px; color: var(--muted); line-height: 1.6;">
+              "결제 실패 버그 원인을 분석해서 DB 인덱스 문제이고 `ORDER_V2` 테이블은 건드리지 않기로 결정함."
+            </p>
+          </div>
+          <div class="card danger-border">
+            <h3 style="font-size: 28px; color: var(--danger); margin-bottom: 16px;">오늘 새 세션 (Session B)</h3>
+            <p style="font-size: 24px; color: var(--muted); line-height: 1.6;">
+              "깨끗한 빈 화면. 어제 무언가 논의했다는 사실 자체를 모름. 다시 `ORDER_V2` 테이블을 고치자고 제안함."
+            </p>
+          </div>
+        </div>
+        <div style="background: var(--danger-light); padding: 24px; border-radius: 8px; margin-top: 36px; font-size: 28px; font-weight: 700; color: var(--danger); text-align: center;">
+          🚨 세션을 넘어선 맥락이 팀 공용 기록으로 파일화되지 않으면 매번 원점으로 리셋
+        </div>
+        <aside class="notes" data-slide="13">
+          세션 경계에서 일어나는 비극입니다. 어제 다 거절했던 아이디어를 오늘 에이전트가 다시 가져옵니다.
+        </aside>
+      </section>
+
+      <!-- Slide 14: Content (공통) -->
+      <section class="slide" data-slide="14" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">2.2 기억의 비용</div>
+          <h2 class="slide-title">비용은 세 겹입니다</h2>
+        </div>
+        <div class="cols-3" style="margin-top: 30px;">
+          <div class="card">
+            <h3 style="color: var(--accent); font-size: 28px; margin-bottom: 16px;">1. 재탐색</h3>
+            <p style="font-size: 22px; color: var(--muted); line-height: 1.6;">토큰·시간 낭비<br>(눈에 보이지만 가장 싼 비용)</p>
+          </div>
+          <div class="card">
+            <h3 style="color: var(--danger); font-size: 28px; margin-bottom: 16px;">2. 재현성 없음</h3>
+            <p style="font-size: 22px; color: var(--muted); line-height: 1.6;">그날 무엇을 읽었는가에 따라<br>결론이 매번 바뀜</p>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light);">
+            <h3 style="color: var(--danger); font-size: 28px; margin-bottom: 16px;">3. 버렸던 대안의 재시도 ★</h3>
+            <p style="font-size: 22px; color: var(--fg-on-light); line-height: 1.6;">하지 않기로 한 대안을 잊어버려<br><strong>잘못된 길을 다시 시도함 (가장 비쌈)</strong></p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="14">
+          가장 비싼 비용은 3번입니다. 하지 않기로 했던 대안을 잊고 다시 수행하면서 엄청난 시간을 허비하게 됩니다.
+        </aside>
+      </section>
+
+      <!-- Slide 15: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="15" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">2.3 git의 한계</div>
+          <h2 class="slide-title">git이 기억하지 못하는 것</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 30px;">
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="color: var(--accent); font-size: 30px; margin-bottom: 16px;">git이 기억하는 것</h3>
+              <p style="font-size: 26px; line-height: 1.6; color: var(--fg-on-light);">"무엇을 변경했는가" (코드 Diff, 커밋 메시지)</p>
+            </div>
+            <div style="background: var(--accent-light); padding: 16px; border-radius: 8px; font-weight: 700; color: var(--accent);">
+              결과물의 코드 변경 내역
+            </div>
+          </div>
+          <div class="card danger-border" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="color: var(--danger); font-size: 30px; margin-bottom: 16px;">git이 기억하지 못하는 것</h3>
+              <p style="font-size: 26px; line-height: 1.6; color: var(--fg-on-light);">
+                "무엇을 하지 않기로 결정했는가"<br>
+                "왜 대안 B가 아닌 대안 A를 선택했는가"
+              </p>
+            </div>
+            <div style="background: var(--danger-light); padding: 16px; border-radius: 8px; font-weight: 700; color: var(--danger);">
+              기각된 선택지와 판단 맥락 (소실됨)
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="15">
+          git commit 로그를 다 찾아봐도 '시도해보았으나 버렸던 대안'은 남지 않습니다. 파일 기반 인계 노트가 필요한 이유입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 16: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="16" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">2.4 규모 곡선</div>
+          <h2 class="slide-title">처음에는 괜찮다가 어느 순간 틀리기 시작합니다</h2>
+        </div>
+        <div style="font-size: 28px; line-height: 1.8; margin-top: 30px;" class="card accent-border">
+          <div style="margin-bottom: 24px;">
+            <strong style="color: var(--accent);">📈 프로젝트 초반 (파일 < 20개)</strong><br>
+            코드량이 적어 세션 시작 시 재탐색하는 것만으로 기억을 대체할 수 있음 (증상 없음)
+          </div>
+          <div>
+            <strong style="color: var(--danger);">📉 프로젝트 성숙 (코드베이스 확장)</strong><br>
+            어디를 볼지 자체가 이전 세션의 지식 ➔ <strong>증상 전환: 느려지다가 틀리기 시작함</strong>
+          </div>
+        </div>
+        <p class="lead-text" style="text-align: center; margin-top: 36px; font-weight: 700;">
+          "틀림은 바로 눈에 보이지 않으며, 늦은 인프라 도입은 이미 증발한 결정을 복원하지 못합니다."
+        </p>
+        <aside class="notes" data-slide="16">
+          처음엔 안 적어도 잘 되니까 '인계 파일 필요 없네' 하고 안 만듭니다. 하지만 프로젝트가 커지면 어느 순간 틀리기 시작합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 17: Content (공통) -->
+      <section class="slide" data-slide="17" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">2.5 탐색의 한계</div>
+          <h2 class="slide-title">찾기는 구조적으로 실패할 수 있습니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 24px;">
+          <div class="card">
+            <h4 style="font-size: 24px; margin-bottom: 8px;">1. 어휘 불일치</h4>
+            <p style="font-size: 20px; color: var(--muted);">내가 찾는 키워드 ≠ 기존 코드에 쓰인 키워드</p>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light);">
+            <h4 style="font-size: 24px; color: var(--danger); margin-bottom: 8px;">2. 부재 증명 불가 ★</h4>
+            <p style="font-size: 20px; color: var(--danger); font-weight: 700;">검색 0건 = 진짜 코드/규칙이 없는가?</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size: 24px; margin-bottom: 8px;">3. 비문자열 연결</h4>
+            <p style="font-size: 20px; color: var(--muted);">중요한 시스템간 의존성은 코드 문자열에 안 드러남</p>
+          </div>
+          <div class="card">
+            <h4 style="font-size: 24px; margin-bottom: 8px;">4. 부분 표본의 확신</h4>
+            <p style="font-size: 20px; color: var(--muted);">파일 1~2개 훑고 전체 구조를 다 파악했다고 착각</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="17">
+          탐색 실패 4가지 모드입니다. 특히 2번 부재 증명 불가가 가장 치명적입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 18: Content (공통) -->
+      <section class="slide" data-slide="18" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">2.6 판단의 전환</div>
+          <h2 class="slide-title">"없습니다"는 결론이 아니라 가설입니다</h2>
+        </div>
+        <div class="card danger-border" style="background: var(--danger-light); padding: 40px; margin-top: 30px;">
+          <h3 style="font-size: 32px; color: var(--danger); margin-bottom: 20px;">🤖 에이전트: "해당 함수를 검색한 결과 0건이므로 새로 작성하겠습니다."</h3>
+          <p style="font-size: 26px; line-height: 1.6; color: var(--fg-on-light);">
+            ➔ 기존 유틸리티가 <code>scripts/legacy_helper.py</code>에 다른 이름으로 존재하는데도<br>
+            <strong>조용히 중복 작성이 태어나는 결정적 오판 지점</strong>
+          </p>
+        </div>
+        <div style="margin-top: 36px; text-align: center; font-size: 28px; font-weight: 700;">
+          💡 운영 규칙: 에이전트의 "없습니다"에 대해 <span style="color: var(--accent);">진입점 지도/인계 노트를 사전에 쥐어준다.</span>
+        </div>
+        <aside class="notes" data-slide="18">
+          에이전트가 "없다"고 하면 "아, 아직 못 찾았구나" 또는 "다른 단어로 적혀 있겠구나" 가설로 다뤄야지 덥석 새로 짜게 두면 안 됩니다.
+        </aside>
+      </section>
+
+      <!-- Slide 19: Content (공통) -->
+      <section class="slide" data-slide="19" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">2.7 대안의 방향</div>
+          <h2 class="slide-title">찾지 않아도 되게 만들어 줍니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 30px;">
+          <div class="card accent-border">
+            <h3 style="font-size: 28px; color: var(--accent); margin-bottom: 16px;">🗺️ 진입점 (Entry Point)</h3>
+            <p style="font-size: 22px; color: var(--muted); line-height: 1.6;">
+              매 세션 접속 시 처음 읽어야 할 <strong>핵심 지도를 파일로 명시</strong> (AGENTS.md / README)
+            </p>
+          </div>
+          <div class="card accent-border">
+            <h3 style="font-size: 28px; color: var(--accent); margin-bottom: 16px;">📌 상태 파일 (State File)</h3>
+            <p style="font-size: 22px; color: var(--muted); line-height: 1.6;">
+              이전 세션이 어디까지 했고 <strong>무엇을 확인 못 했는지 인계 노트</strong> 제공
+            </p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="19">
+          더 검색을 잘하게 만드는 기술보다, '검색하지 않아도 처음 열었을 때 바로 눈에 띄게 만드는 구조'가 정답입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 20: Section (협업) -->
+      <section class="slide" data-slide="20" data-track="full" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">PART 3</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 90px;">신입이 한 명이 아닙니다<br><span style="color: #34D399;">여럿이면 문제가 종류를 바꿉니다</span></h1>
+          <p class="lead-text" style="color: #94A3B8; font-size: 36px; margin-top: 24px;">
+            혼자일 때와 팀일 때 생기는 파편화의 차이
+          </p>
+        </div>
+        <aside class="notes" data-slide="20">
+          PART 3입니다. 혼자 쓸 때는 개인 머리로 메웠던 문제가 여럿이 각자 에이전트를 쓸 때 어떻게 변하는지 봅니다.
+        </aside>
+      </section>
+
+      <!-- Slide 21: Content (공통) -->
+      <section class="slide" data-slide="21" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">3.1 협업의 위험</div>
+          <h2 class="slide-title">아무의 머릿속에도 없는 결정이 생깁니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 30px;">
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 28px; margin-bottom: 16px;">🙋‍♂️ 혼자 일할 때</h3>
+              <p style="font-size: 24px; color: var(--muted); line-height: 1.6;">
+                "내가 머릿속으로 기억하면 되지"가 어느 정도 통함. 임시 판단도 내 머리에 남아 있음.
+              </p>
+            </div>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light); display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 28px; color: var(--danger); margin-bottom: 16px;">👥 여럿이 각자 에이전트로 일할 때</h3>
+              <p style="font-size: 24px; color: var(--fg-on-light); line-height: 1.6;">
+                팀원 A와 에이전트 A1, 팀원 B와 에이전트 B1이 각자 다른 서랍에 <strong>아무의 머리에도 없는 암묵적 결정</strong>을 코드에 심어놓음.
+              </p>
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="21">
+          협업 시엔 규모의 문제가 아니라 '종류가 다른 문제'로 변화합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 22: Content (공통) -->
+      <section class="slide" data-slide="22" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">3.2 중복 vs 충돌</div>
+          <h2 class="slide-title">중복은 충돌보다 늦게 발견됩니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 30px;">
+          <div class="card">
+            <h3 style="font-size: 30px; margin-bottom: 16px;">💥 충돌 (Conflict)</h3>
+            <p style="font-size: 24px; color: var(--muted); line-height: 1.6;">
+              동일 파일 동일 줄을 건드림.<br>
+              ➔ git merge 시 <strong>그 자리에서 에러로 드러남 (안전)</strong>
+            </p>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light);">
+            <h3 style="font-size: 30px; color: var(--danger); margin-bottom: 16px;">👻 중복 (Duplication)</h3>
+            <p style="font-size: 24px; color: var(--fg-on-light); line-height: 1.6;">
+              각자 다른 파일/다른 함수명으로 같은 로직 구현.<br>
+              ➔ <strong>조용히 머지되고 한참 뒤 버그로 발견됨 (위험)</strong>
+            </p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="22">
+          충돌보다 나쁜 것이 중복입니다. 에러가 안 나니까 조용히 머지되고 6개월 뒤 엉뚱한 버그로 터집니다.
+        </aside>
+      </section>
+
+      <!-- Slide 23: Content (공통) -->
+      <section class="slide" data-slide="23" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">3.3 문제 종합</div>
+          <h2 class="slide-title">문제를 다 모았습니다</h2>
+        </div>
+        <div class="cols-3" style="margin-top: 24px;">
+          <div class="card danger-border">
+            <h3 style="font-size: 26px; color: var(--danger); margin-bottom: 12px;">1. 기억 상실</h3>
+            <p style="font-size: 20px; color: var(--muted); line-height: 1.6;">
+              세션이 닫히면 어제의 맥락 소실.<br>매 세션 처음부터 재탐색하는 비용 발생.
+            </p>
+          </div>
+          <div class="card danger-border">
+            <h3 style="font-size: 26px; color: var(--danger); margin-bottom: 12px;">2. 탐색 오판</h3>
+            <p style="font-size: 20px; color: var(--muted); line-height: 1.6;">
+              검색 0건을 '없다'고 오판.<br>기존 코드를 두고 조용한 중복 작성 태어남.
+            </p>
+          </div>
+          <div class="card danger-border">
+            <h3 style="font-size: 26px; color: var(--danger); margin-bottom: 12px;">3. 협업 파편화</h3>
+            <p style="font-size: 20px; color: var(--muted); line-height: 1.6;">
+              각자 에이전트로 암묵적 결정 생산.<br>충돌보다 위험한 조용한 중복 머지.
+            </p>
+          </div>
+        </div>
+        <div class="card accent-border" style="background: var(--accent-light); margin-top: 24px; padding: 28px; text-align: center;">
+          <div style="font-size: 28px; font-weight: 900; color: var(--accent);">
+            💡 이 3가지 문제 사슬을 끊는 결론 ➔ 저장소 수준의 '워크플로우'
+          </div>
+        </div>
+        <aside class="notes" data-slide="23">
+          문제의 인과 사슬이 다 쌓였습니다. 이제 왜 워크플로우라는 이름이 붙어야 하는지 대안을 제시합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 24: Section (대안과 워크플로우) -->
+      <section class="slide" data-slide="24" data-track="full" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">PART 4</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 90px;">워크플로우 —<br><span style="color: #34D399;">여기서 이름을 붙입니다</span></h1>
+          <p class="lead-text" style="color: #94A3B8; font-size: 36px; margin-top: 24px;">
+            사람의 성실성에 의존하던 지식을 저장소로 내려놓는 것
+          </p>
+        </div>
+        <aside class="notes" data-slide="24">
+          PART 4입니다. 워크플로우의 정의입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 25: Content (공통) -->
+      <section class="slide" data-slide="25" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">4.1 대안 매핑</div>
+          <h2 class="slide-title">문제마다 붙일 장치가 다릅니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px; gap: 24px;">
+          <div class="card accent-border" style="padding: 28px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">1. 기억 상실 문제</h4>
+            <div style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">➔ 메모리 & 상태 인계 파일</div>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">지난 세션의 작업 위치와 인계 노트를 다음 세션 첫 줄에 즉시 복원합니다.</p>
+          </div>
+          <div class="card accent-border" style="padding: 28px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">2. 규모·탐색 오판</h4>
+            <div style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">➔ Wiki & 진입점 인덱스</div>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">검색 없이 처음 읽어야 할 핵심 지도(AGENTS.md)를 주어 사각지대를 막습니다.</p>
+          </div>
+          <div class="card accent-border" style="padding: 28px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">3. 중복 작업 문제</h4>
+            <div style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">➔ 작업 사전 공개 (백로그)</div>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">각자 돌리는 에이전트의 작업 범위를 사전에 공개해 중복 작업을 방지합니다.</p>
+          </div>
+          <div class="card accent-border" style="padding: 28px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">4. 중구난방 산출물</h4>
+            <div style="font-size: 26px; font-weight: 700; margin-bottom: 8px;">➔ 규칙 한 벌 (Rules)</div>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">사본 드리프트 없이 저장소 중앙의 동일한 규약 한 벌을 전원에 강제합니다.</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="25">
+          문제마다 1:1로 대응되는 장치를 매핑합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 26: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="26" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.2 문서의 독자 분리</div>
+          <h2 class="slide-title">사람이 읽는 문서와 AI가 읽는 문서는 다릅니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 24px; gap: 24px;">
+          <div class="card" style="padding: 32px;">
+            <h3 style="font-size: 26px; color: var(--accent); margin-bottom: 12px;">👤 사람용 문서 (Human Docs)</h3>
+            <ul style="font-size: 20px; line-height: 1.7; color: var(--muted); padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <li><strong>목적:</strong> 맥락 이해, 의사결정 비하인드 파악, 팀 회고</li>
+              <li><strong>특징:</strong> 시각적 구조(헤더·요약), 친절한 서술, 가독성 중심</li>
+              <li><strong>종류:</strong> 기능 명세서, 시스템 아키텍처, 의사결정 기록(ADR)</li>
+            </ul>
+          </div>
+          <div class="card accent-border" style="padding: 32px; background: var(--accent-light);">
+            <h3 style="font-size: 26px; color: var(--accent); margin-bottom: 12px;">🤖 AI용 문서 (Machine Context)</h3>
+            <ul style="font-size: 20px; line-height: 1.7; color: var(--fg-on-light); padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <li><strong>목적:</strong> 환각 방지, 0.1초 단일 파싱, 조건 기계적 대조</li>
+              <li><strong>특징:</strong> 토큰 효율성, 명확한 정규식·경로, Key-Value 구조</li>
+              <li><strong>종류:</strong> `AGENTS.md`, `.agent/state.json`, 검사 스크립트</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card accent-border" style="background: #F1F5F9; margin-top: 20px; padding: 20px; text-align: center;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent);">
+            💡 둘을 분리하면 작성 공수는 절반으로 줄고, 에이전트의 참사 비율과 토큰 비용은 10배 절감됩니다.
+          </div>
+        </div>
+        <aside class="notes" data-slide="26">
+          기록을 남길 때 가장 큰 실수는 사람이 읽는 문서와 에이전트가 읽는 프롬프트 맥락을 섞어버리는 것입니다. 사람용은 맥락과 결정 이유를, AI용은 정규식과 수치, 상태 파일 형태(AGENTS.md/JSON)로 분리해야 최적화됩니다.
+        </aside>
+      </section>
+
+      <!-- Slide 27: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="27" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.3 지식 신선도</div>
+          <h2 class="slide-title">오래된 지도는 없는 지도보다 나쁩니다</h2>
+        </div>
+        <div class="card danger-border" style="font-size: 28px; line-height: 1.8; margin-top: 36px; padding: 40px;">
+          <div>❌ <strong>검색 실패:</strong> "못 찾았다"로 안전하게 끝남.</div>
+          <div style="margin-top: 16px; color: var(--danger);">
+            🚨 <strong>Stale Wiki (오래된 문서):</strong> 틀린 지식을 에이전트가 아주 자신 있게 읽고 잘못된 코드를 짬.
+          </div>
+        </div>
+        <p class="lead-text" style="text-align: center; margin-top: 36px; font-weight: 700;">
+          "문서를 자동으로 생성하거나, 신선도를 검사하는 장치가 반드시 따라와야 합니다."
+        </p>
+        <aside class="notes" data-slide="27">
+          stale wiki는 최악입니다. 에이전트는 환각과 결합되어 잘못된 옛날 문서대로 코드를 짭니다.
+        </aside>
+      </section>
+
+      <!-- Slide 28: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="28" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.4 버리는 설계</div>
+          <h2 class="slide-title">남기는 것만큼 버리는 것도 정합니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px; gap: 20px;">
+          <div class="card" style="padding: 24px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">1단계</div>
+            <h4 style="font-size: 24px; margin-bottom: 8px;">세션 전량 기록 (Raw Log)</h4>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">세션 내 모든 대화 및 코드 커밋 내역 수집</p>
+          </div>
+          <div class="card" style="padding: 24px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">2단계</div>
+            <h4 style="font-size: 24px; margin-bottom: 8px;">핵심 결정 추출 (Decision Log)</h4>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">왜 대안 A를 선택하고 대안 B를 버렸는지 이유 축적</p>
+          </div>
+          <div class="card accent-border" style="padding: 24px; background: var(--accent-light);">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">3단계</div>
+            <h4 style="font-size: 24px; margin-bottom: 8px;">지식 승격 (Doc Elevation)</h4>
+            <p style="font-size: 19px; color: var(--fg-on-light); line-height: 1.5;">검증된 결정을 팀 위키/진입점 문서로 정제 상향</p>
+          </div>
+          <div class="card danger-border" style="padding: 24px; background: var(--danger-light);">
+            <div style="font-size: 18px; font-weight: 700; color: var(--danger); margin-bottom: 4px;">4단계</div>
+            <h4 style="font-size: 24px; color: var(--danger); margin-bottom: 8px;">오래된 히스토리 폐기 (Purge)</h4>
+            <p style="font-size: 19px; color: var(--fg-on-light); line-height: 1.5;">승격 완료된 오래된 세션의 파편 로그 자동 청소</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="28">
+          다 기록하자면 읽는 비용으로 그대로 되돌아옵니다. 버리는 규칙이 있어야 유지 가능합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 29: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="29" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.5 단일 출처</div>
+          <h2 class="slide-title">규칙은 한 벌만 씁니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 24px;">
+          <div class="card danger-border" style="padding: 32px;">
+            <h3 style="color: var(--danger); font-size: 28px; margin-bottom: 12px;">✕ 손 복사 방식</h3>
+            <ul style="font-size: 21px; line-height: 1.7; color: var(--muted); padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <li>프로젝트마다 `.cursorrules`, `AGENTS.md`를 손 복사</li>
+              <li>시간이 지나며 사본 간 규약 드리프트 발생</li>
+              <li>테스트가 에러를 잡지 못해 오랫동안 방치됨</li>
+            </ul>
+          </div>
+          <div class="card accent-border" style="padding: 32px; background: var(--accent-light);">
+            <h3 style="color: var(--accent); font-size: 28px; margin-bottom: 12px;">✓ 단일 원본 + 동적 생성</h3>
+            <ul style="font-size: 21px; line-height: 1.7; color: var(--fg-on-light); padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <li>저장소 중앙에 단일 원본 규칙 한 벌만 유지</li>
+              <li>각 IDE/툴에 맞는 규약 파일은 빌드 시 자동 생성</li>
+              <li>사본 드리프트 없이 100% 동일한 컨벤션 보장</li>
+            </ul>
+          </div>
+        </div>
+        <aside class="notes" data-slide="29">
+          규칙 복사는 사본 드리프트를 만듭니다. 원본 한 벌 법칙입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 30: Case (60분/90분 전용) -->
+      <section class="slide" data-slide="30" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.6 사례 A (2분)</div>
+          <h2 class="slide-title">사례 A — 매뉴얼을 네 부 복사했더니</h2>
+        </div>
+        <div class="case-grid">
+          <div class="case-step">
+            <div class="step-num">01. 이렇게 됐다</div>
+            <h4>4부의 사본이 갈라짐</h4>
+            <p>Task ID 정규식 규약이 4곳에 복사되었다가 사본 간 차이 발생</p>
+          </div>
+          <div class="case-step">
+            <div class="step-num">02. 왜 못 잡았나</div>
+            <h4>검사 부재</h4>
+            <p>서로 달라도 아무 테스트도 실패하지 않아 1년간 방치됨</p>
+          </div>
+          <div class="case-step">
+            <div class="step-num">03. 무엇을 붙였나</div>
+            <h4>단일 출처화</h4>
+            <p>원본 한 벌 설정 및 빌드 타임 자동 생성 스크립트 연결</p>
+          </div>
+          <div class="case-step">
+            <div class="step-num">04. 당신 팀에서는</div>
+            <h4>사본 수색</h4>
+            <p>팀 내 복사된 rules 파일들을 수색해 단일 출처로 통합</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="30">
+          실제 우리 저장소 사례입니다. 규칙을 4군데 복사해두었더니 아무 에러 없이 1년 간 다르게 구르고 있었습니다.
+        </aside>
+      </section>
+
+      <!-- Slide 31: Content (공통) -->
+      <section class="slide" data-slide="31" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">4.7 자동화 4단계</div>
+          <h2 class="slide-title">자연스러운 시스템화 = 다음 행동 안에 들어가는 것입니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px; gap: 20px;">
+          <div class="card" style="padding: 24px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">1. 에이전트가 쓴다</h4>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">사람이 수동으로 쓰지 않고 세션 종료 시 에이전트가 인계 노트를 자동 작성</p>
+          </div>
+          <div class="card" style="padding: 24px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">2. 커밋에 동봉한다</h4>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">코드 변경 커밋에 인계 노트 파일도 단일 커밋으로 동봉하여 이력 관리</p>
+          </div>
+          <div class="card accent-border" style="background: var(--accent-light); padding: 24px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">3. 안 하면 다음이 막힌다 ★</h4>
+            <p style="font-size: 19px; color: var(--fg-on-light); font-weight: 700; line-height: 1.5;">
+              (예: 이전 세션 인계서가 없으면 오늘 에이전트가 '이전 상태 확인 불가' 경고 후 작업을 자동 중단)
+            </p>
+          </div>
+          <div class="card" style="padding: 24px;">
+            <h4 style="font-size: 22px; color: var(--accent); margin-bottom: 6px;">4. 빠지면 알려준다</h4>
+            <p style="font-size: 19px; color: var(--muted); line-height: 1.5;">다음 세션 브리핑 첫 줄에 인계 파일 누락 사실을 즉시 알려 리더가 인지</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="31">
+          기록을 성실성에 맡기면 안 됩니다. 안 적으면 다음 작업이 안 굴러가도록 파이프라인에 연결하는 것이 자연화입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 32: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="32" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">4.8 하루 사이클</div>
+          <h2 class="slide-title">하루 한 사이클</h2>
+        </div>
+        <div class="cols-3" style="margin-top: 20px; gap: 20px;">
+          <div class="card" style="padding: 20px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">1. 상태 읽기</div>
+            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">전 세션 인계서 및 이슈 상태 확인</p>
+          </div>
+          <div class="card" style="padding: 20px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">2. 범위 못박기</div>
+            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">완료 조건 & 범위 밖 명시 지정</p>
+          </div>
+          <div class="card" style="padding: 20px;">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">3. 작업</div>
+            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">방법 자율성 부여 후 구현 진행</p>
+          </div>
+        </div>
+        <div class="cols-2" style="margin-top: 20px; gap: 20px;">
+          <div class="card accent-border" style="padding: 20px; background: var(--accent-light);">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">4. 확인</div>
+            <p style="font-size: 18px; color: var(--fg-on-light); margin-top: 6px;">완료 조건 및 테스트 자동 대조</p>
+          </div>
+          <div class="card accent-border" style="padding: 20px; background: var(--accent-light);">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">5. 기록 & 커밋</div>
+            <p style="font-size: 18px; color: var(--fg-on-light); margin-top: 6px;">인계서 작성 후 코드와 동봉 커밋</p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="32">
+          하루 한 사이클의 표준 흐름입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 33: Section (검증과 결론) -->
+      <section class="slide" data-slide="33" data-track="full" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">PART 5</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 90px;">그런데, 그 기록은<br><span style="color: #34D399;">사실입니까</span></h1>
+          <p class="lead-text" style="color: #94A3B8; font-size: 36px; margin-top: 24px;">
+            자동 기록의 허위 보고를 검사하는 최소 검증 장치
+          </p>
+        </div>
+        <aside class="notes" data-slide="33">
+          마지막 PART 5입니다. 에이전트가 기록을 알아서 쓰게 했더니, 그 기록이 거짓말이면 어떻게 하나? 검증 장치 이야기입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 34: Case (공통) -->
+      <section class="slide" data-slide="34" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">5.1 통합 사례 (3분)</div>
+          <h2 class="slide-title">"썼다"와 "맞다"는 다릅니다</h2>
+        </div>
+        <div class="cols-2" style="margin-top: 20px;">
+          <div class="card danger-border">
+            <h3 style="font-size: 26px; color: var(--danger); margin-bottom: 12px;">사례 B: 다른 서랍에 인계</h3>
+            <p style="font-size: 20px; color: var(--muted); line-height: 1.5;">
+              읽는 쪽 reader만 새 경로로 바꾸고 쓰는 쪽 writer는 옛 자리에 둔 채 "인계서 갱신 완료" 보고서 제출.
+            </p>
+          </div>
+          <div class="card danger-border">
+            <h3 style="font-size: 26px; color: var(--danger); margin-bottom: 12px;">사례 C: 미완료 작업의 '완료' 오분류</h3>
+            <p style="font-size: 20px; color: var(--muted); line-height: 1.5;">
+              상태 미분류건이 fallback 처리로 Done 승격되어, 완료된 적 없는 3건이 완료 목록에 잘못 집계됨.
+            </p>
+          </div>
+        </div>
+        <div style="background: var(--danger-light); border: 1px solid var(--danger); padding: 20px; border-radius: 8px; margin-top: 24px; font-size: 24px; font-weight: 700; color: var(--danger); text-align: center;">
+          🚨 검사는 "썼는가"가 아니라 "쓴 내용이 실제 사실(State)과 맞는가"를 검증해야 합니다.
+        </div>
+        <aside class="notes" data-slide="34">
+          실제 발생했던 사례 두 가지입니다. 에이전트의 보고를 100% 믿으면 안 되고 검사 스크립트가 사실 여부를 판정해줘야 합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 35: Data / Content (공통) -->
+      <section class="slide" data-slide="35" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">5.2 검사 강도</div>
+          <h2 class="slide-title">검사는 위험에 맞는 강도로 겁니다</h2>
+        </div>
+        <div class="cols-3" style="margin-top: 30px;">
+          <div class="card">
+            <h3 style="font-size: 28px; color: var(--accent); margin-bottom: 12px;">1단계: 알림</h3>
+            <p style="font-size: 22px; color: var(--muted); line-height: 1.5;">
+              다음 세션 브리핑 첫 줄에 뜨게 함.<br>커밋을 막지 않음.
+            </p>
+          </div>
+          <div class="card accent-border">
+            <h3 style="font-size: 28px; color: var(--accent); margin-bottom: 12px;">2단계: 확인 요청</h3>
+            <p style="font-size: 22px; color: var(--fg-on-light); line-height: 1.5;">
+              불일치 발견 시 사용자의 explicit 승인 후 진행.
+            </p>
+          </div>
+          <div class="card danger-border" style="background: var(--danger-light);">
+            <h3 style="font-size: 28px; color: var(--danger); margin-bottom: 12px;">3단계: 차단</h3>
+            <p style="font-size: 22px; color: var(--danger); line-height: 1.5;">
+              치명적 규약 위반 시 작업 및 커밋 중단.
+            </p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="35">
+          모든 검사가 3단계 차단일 필요는 없습니다. 1단계 알림만으로도 90%의 기억 누실 사고를 예방합니다.
+        </aside>
+      </section>
+
+      <!-- Slide 36: Content (60분/90분 전용) -->
+      <section class="slide" data-slide="36" data-track="full">
+        <div class="slide-header">
+          <div class="slide-tag">5.3 사람과 AI의 차이</div>
+          <h2 class="slide-title">사람 신입과 AI 에이전트의 결정적 차이</h2>
+        </div>
+        <div class="card accent-border" style="padding: 40px; margin-top: 24px; background: var(--accent-light);">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; font-size: 24px;">
+            <div>
+              <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px;">사람 신입</div>
+              <div>· 경험이 쌓이고 온보딩은 한 번</div>
+              <div>· 막히면 질문을 던짐</div>
+              <div>· 신뢰가 쌓여 확인이 줄어듦</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--danger); margin-bottom: 8px;">AI 에이전트</div>
+              <div>· 매 세션 기억 상실</div>
+              <div>· 되묻지 않고 짐작함</div>
+              <div>· 맥락/신뢰가 미누적됨</div>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px;">그래서 워크플로우란</div>
+              <div>➔ <strong>온보딩 자동화</strong></div>
+              <div>➔ <strong>사각지대 문서화</strong></div>
+              <div>➔ <strong>확인을 장치 이관</strong></div>
+            </div>
+          </div>
+        </div>
+        <aside class="notes" data-slide="36">
+          오늘 사용한 신입 은유가 깨지는 3지점입니다. 이 깨지는 지점이 곧 워크플로우가 만들어져야 하는 이유입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 37: Content (공통) -->
+      <section class="slide" data-slide="37" data-track="common">
+        <div class="slide-header">
+          <div class="slide-tag">5.4 본질</div>
+          <h2 class="slide-title">좋은 리더는 자기 없이 굴러가게 만듭니다</h2>
+        </div>
+        <div class="cols-3" style="margin-top: 30px; gap: 24px;">
+          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
+            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">지시는 문서로</div>
+            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+              모호한 말 대신 완료 조건과 범위 밖을 사전에 파일 한 문장으로 완벽하게 명시합니다.
+            </p>
+          </div>
+          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
+            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">맥락은 기록으로</div>
+            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+              세션별 주요 결정 이유와 거절했던 대안을 저장소 인계 노트로 차곡차곡 축적합니다.
+            </p>
+          </div>
+          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
+            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">확인은 장치로</div>
+            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+              리더의 주관적 검수 피로 대신 테스트 및 자동 검사 스크립트에 대조를 위임합니다.
+            </p>
+          </div>
+        </div>
+        <aside class="notes" data-slide="37">
+          슬라이드 11의 복선 회수입니다. 리더가 매번 붙어있지 않아도 시스템이 확인해주는 구조를 만드는 것, 이것이 에이전트 시대의 리더십입니다.
+        </aside>
+      </section>
+
+      <!-- Slide 38: CTA (공통) -->
+      <section class="slide" data-slide="38" data-track="common" data-bg="dark">
+        <div style="margin: auto 0;">
+          <div class="slide-tag">CTA & 결론</div>
+          <h1 class="title-main" style="color: #FFF; font-size: 72px;">지금 사람의 기억에만<br><span style="color: #34D399;">맡겨둔 것은 무엇입니까</span></h1>
+          <div class="card" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); color: #FFF; padding: 36px; margin-top: 36px;">
+            <div style="font-size: 30px; font-weight: 700; color: #34D399; margin-bottom: 16px;">오늘 반나절이면 충분합니다:</div>
+            <div style="font-size: 26px; line-height: 1.8;">
+              ① 진입점 파일 1개 (AGENTS.md / README)<br>
+              ② 기록을 남길 위치 1개 (상태/인계 파일: state / notes)<br>
+              ③ 최소 검사 스크립트 1개 (verify script)
+            </div>
+          </div>
+          <div style="margin-top: 40px; display: flex; justify-content: space-between; color: #64748B; font-size: 22px;">
+            <span>참고 문서: standard-ai-workflow docs</span>
+            <span>감사합니다 (Q&A)</span>
+          </div>
+        </div>
+        <aside class="notes" data-slide="38">
+          오늘 강의를 마치며 질문을 던집니다. 여러분 팀에서 오직 사람의 머릿속 기억에만 의존하고 있는 부분 1개를 찾아 오늘 반나절 동안 최소 워크플로우 파일 3개를 만드시기 바랍니다. 감사합니다.
+        </aside>
+      </section>
+
+    </div><!-- /.deck -->
+
+    <!-- Chrome Footer Overlay -->
+    <div class="chrome">
+      <div class="chrome-brand">
+        <span>standard-ai-workflow</span>
+        <span class="track-pill" id="trackPill" onclick="toggleTrack()">트랙: 전체(60분)</span>
+      </div>
+      <div class="chrome-counter" id="slideCounter">
+        1 / 38
+      </div>
+    </div>
+  </div><!-- /.deck-wrapper -->
+
+  <!-- Speaker Notes Panel -->
+  <div class="notes-panel" id="notesPanel">
+    <strong>🎤 Presenter Notes:</strong>
+    <div id="notesContent" style="margin-top: 8px;"></div>
+  </div>
+
+  <!-- Overview Grid Modal -->
+  <div class="overview-modal" id="overviewModal">
+    <div class="overview-header">
+      <h2>슬라이드 전체 오버뷰 (Overview Grid)</h2>
+      <span style="font-size: 20px; color: var(--muted); cursor: pointer;" onclick="toggleOverview()">[ESC / O 닫기]</span>
+    </div>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </div>
+
+  <!-- Help Overlay Modal -->
+  <div class="help-overlay" id="helpOverlay">
+    <div class="help-card">
+      <h3>⌨️ 키보드 조작 안내</h3>
+      <div class="help-row"><span>다음 슬라이드</span><span class="key-badge">→ / Space / PgDn</span></div>
+      <div class="help-row"><span>이전 슬라이드</span><span class="key-badge">← / PgUp</span></div>
+      <div class="help-row"><span>첫 슬라이드 / 마지막</span><span class="key-badge">Home / End</span></div>
+      <div class="help-row"><span>전체 화면 토글</span><span class="key-badge">F</span></div>
+      <div class="help-row"><span>오버뷰 그리드</span><span class="key-badge">O</span></div>
+      <div class="help-row"><span>발표자 노트 토글</span><span class="key-badge">N</span></div>
+      <div class="help-row"><span>트랙 전환 (30/60/90분)</span><span class="key-badge">T</span></div>
+      <div class="help-row"><span>도움말 닫기</span><span class="key-badge">ESC / ?</span></div>
+    </div>
+  </div>
+
+  <!-- JavaScript Controller -->
+  <script>
+    (function() {
+      // Presentation State
+      let slides = Array.from(document.querySelectorAll('.slide'));
+      let currentIndex = 0;
+      let activeTrack = localStorage.getItem('html-slides-track') || 'full'; // 'common'(30분), 'full'(60분), 'all'(90분)
+
+      // Filtered slides based on track
+      function getActiveSlides() {
+        if (activeTrack === 'common') {
+          return slides.filter(s => s.dataset.track === 'common');
+        } else if (activeTrack === 'full') {
+          return slides.filter(s => s.dataset.track === 'common' || s.dataset.track === 'full');
+        }
+        return slides; // 'all' (90분 확장)
+      }
+
+      // Responsive Scale Math
+      function updateScale() {
+        const wrapper = document.getElementById('deckWrapper');
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        document.documentElement.style.setProperty('--slide-scale', scale);
+      }
+      window.addEventListener('resize', updateScale);
+      updateScale();
+
+      // Show Slide
+      function showSlide(index) {
+        const activeList = getActiveSlides();
+        if (index < 0) index = 0;
+        if (index >= activeList.length) index = activeList.length - 1;
+
+        slides.forEach(s => s.classList.remove('active'));
+        const target = activeList[index];
+        if (target) {
+          target.classList.add('active');
+          currentIndex = index;
+          localStorage.setItem('html-slides-builder-index', index);
+          updateChrome(activeList);
+          updateNotes(target);
+        }
+      }
+
+      // Update Chrome & Counter
+      function updateChrome(activeList) {
+        const counter = document.getElementById('slideCounter');
+        const pill = document.getElementById('trackPill');
+        
+        const trackNames = { 'common': '30분 핵심형', 'full': '60분 학습형', 'all': '90분 확장형' };
+        pill.innerText = `트랙: ${trackNames[activeTrack] || '60분'}`;
+        counter.innerText = `${currentIndex + 1} / ${activeList.length}`;
+      }
+
+      // Speaker Notes
+      function updateNotes(slideEl) {
+        const notesContent = document.getElementById('notesContent');
+        const noteEl = slideEl.querySelector('.notes');
+        if (noteEl) {
+          notesContent.innerHTML = noteEl.innerHTML;
+        } else {
+          notesContent.innerHTML = '<em>이 슬라이드에는 별도 구술 노트가 없습니다.</em>';
+        }
+      }
+
+      // Keyboard Event Handler
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+          showSlide(currentIndex + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          showSlide(currentIndex - 1);
+        } else if (e.key === 'Home') {
+          showSlide(0);
+        } else if (e.key === 'End') {
+          showSlide(getActiveSlides().length - 1);
+        } else if (e.key === 'f' || e.key === 'F') {
+          toggleFullscreen();
+        } else if (e.key === 'o' || e.key === 'O') {
+          toggleOverview();
+        } else if (e.key === 'n' || e.key === 'N') {
+          toggleNotes();
+        } else if (e.key === 't' || e.key === 'T') {
+          toggleTrack();
+        } else if (e.key === '?' || e.key === 'Slash') {
+          toggleHelp();
+        } else if (e.key === 'Escape') {
+          closeModals();
+        }
+      });
+
+      // Presenter Feature Toggles
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+
+      function toggleNotes() {
+        document.getElementById('notesPanel').classList.toggle('active');
+      }
+
+      function toggleHelp() {
+        document.getElementById('helpOverlay').classList.toggle('active');
+      }
+
+      function closeModals() {
+        document.getElementById('overviewModal').classList.remove('active');
+        document.getElementById('helpOverlay').classList.remove('active');
+        document.getElementById('notesPanel').classList.remove('active');
+      }
+
+      window.toggleTrack = function() {
+        const tracks = ['common', 'full', 'all'];
+        let nextIdx = (tracks.indexOf(activeTrack) + 1) % tracks.length;
+        activeTrack = tracks[nextIdx];
+        localStorage.setItem('html-slides-track', activeTrack);
+        showSlide(0);
+      };
+
+      window.toggleOverview = function() {
+        const modal = document.getElementById('overviewModal');
+        const grid = document.getElementById('overviewGrid');
+        
+        if (modal.classList.contains('active')) {
+          modal.classList.remove('active');
+          return;
+        }
+
+        const activeList = getActiveSlides();
+        grid.innerHTML = '';
+        activeList.forEach((slide, idx) => {
+          const title = slide.querySelector('h1, h2')?.innerText || `슬라이드 ${idx + 1}`;
+          const card = document.createElement('div');
+          card.className = `thumb-card ${idx === currentIndex ? 'active' : ''}`;
+          card.innerHTML = `<div class="thumb-num">#${idx + 1} (${slide.dataset.track || 'common'})</div><div class="thumb-title">${title}</div>`;
+          card.onclick = () => {
+            showSlide(idx);
+            modal.classList.remove('active');
+          };
+          grid.appendChild(card);
+        });
+
+        modal.classList.add('active');
+      };
+
+      // Restore Slide Index
+      const savedIndex = parseInt(localStorage.getItem('html-slides-builder-index') || '0', 10);
+      showSlide(savedIndex);
+    })();
+  </script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- **현재 기준선(§2.59~§2.67, 2026-08-05~2026-08-07)**: v1.0.0-beta + `origin/main` = `<HASH>` (커밋 8건, +1 §2.67). `<HASH>` 는 *commit 후* 채운다 (iterative amend).
+- **현재 기준선(§2.59~§2.67, 2026-08-05~2026-08-07)**: v1.0.0-beta + `origin/main` = `c63b54e` (커밋 8건, +1 §2.67).
 - **§2.67 까지 트리거된 CI 5종 green 실측** — smoke 2셀 · mypy-strict · mcp-sdk-matrix · mcp-inspector · mkdocs. push 트리거 red 0건. §2.67 은 *mcp attach 진단* 으로 트리거된 CI 변화 없음 (5종 그대로).
 - 현재 주 작업 축: "mavis attach 가 안 붙는다" — root cause = mavis 가 글로벌 mcp.json 만 읽음. 다음은 §2.68 — 글로벌 등록 + 새 세션 검증."
 - 직전 축: "생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다

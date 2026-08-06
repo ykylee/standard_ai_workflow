@@ -28,12 +28,13 @@
   },
   "session": {
     "current_baseline": null,
-    "current_axis": "마스터 38장 HTML 발표 덱 제작 완료, verify_deck Gate 1~4 통과, 사람/AI 문서 독자 분리 및 밸런스 개선",
+    "current_axis": "38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 고정 정렬 표준화 완료",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-08-06-main-002 — 학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 분리 반영",
+      "TASK-2026-08-06-main-003 — 학습회 마스터 HTML 발표 덱 38장 슬라이드 수직 고정 정렬 전수 픽스",
+      "TASK-2026-08-06-main-002 — 학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
       "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
       "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",

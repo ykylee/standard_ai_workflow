@@ -42,15 +42,12 @@
 - TASK-2026-08-05-main-007 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)
 - TASK-2026-08-05-main-008 transport_ready 를 wire 에서 제거했다 (§6.2 완료)
 - TASK-2026-08-06-main-001 학습회 발표자료 컨셉·설계 v2 — 인과 사슬 재설계
+- TASK-2026-08-06-main-002 학습회 마스터 HTML 발표 덱 제작·검증(`verify_deck` Gate 1~4 통과), 용어 직관화, 레이아웃 밸런스 개선 및 사람/AI 문서 독자 분리 반영
 
 ## 5. 다음 세션 시작 포인트
 
-**별도 트랙 — 학습회 발표자료 (2026-08-06, 코드 무관)**: 60분 학습회용 발표 설계를
-`docs/presentations/ai-agent-onboarding-deck-design.md` (v2) 로 확정했다. 컨셉은
-"기억 잃는 신입 + 당신은 그 신입의 PL", 척추는 인과 사슬, 44장/6부. 다음 단계는
-`html-slides-builder` 로 `docs/presentations/ai-agent-onboarding.html` 빌드 → 44장
-전수 검수. 결정 근거: [sessions/deck_design_2026-08-06.md](./sessions/deck_design_2026-08-06.md).
-기존 소개 덱(`standard-ai-workflow-intro.html`)은 보존한다.
+**별도 트랙 — 학습회 발표자료 (2026-08-06 완료)**:
+마스터 HTML 발표 덱(`docs/presentations/ai-agent-onboarding.html`, 38장) 제작 및 검증(`verify_deck.py` PASS), 30/60/90분 트랙 전환, 구술 노트, 레이아웃 밀도 보강, 사람용/AI용 문서 독자 분리 슬라이드 반영 완료. `main` 브랜치 커밋 및 푸시 완료.
 
 --- 이전 세션(§2.59~§2.66)의 시작 포인트 ---
 

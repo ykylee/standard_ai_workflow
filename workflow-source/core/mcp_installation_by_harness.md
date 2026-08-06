@@ -47,6 +47,15 @@ cwd = 프로젝트 루트라는 전제는 원래부터 있었다.
 **글로벌 설정**(`~/.claude.json`, `~/.codex/config.toml` 등)에 손으로 심을 때는 §2 대로
 절대 경로를 쓴다 — 거기서는 cwd 전제가 성립하지 않는다.
 
+#### 1.2.1 MiniMax Code (mavis 데스크탑) 글로벌은 cwd 전제 자체가 없다
+
+mavis 데스크탑 런타임이 MCP 서버를 띄울 때의 cwd 는 *프로젝트 루트가 아니다*. 글로벌
+설정(`{{DATA_DIR}}/mcp.json` = `~/.minimax/mcp/mcp.json`)에 손으로 등록할 때의 env 는
+**반드시 절대 경로** 여야 한다. 상대 경로(`workflow-source` 등)는 server boot 단계에서
+`ModuleNotFoundError: workflow_kit` 로 죽고 — 그렇게 죽어도 mavis 의 attach 자체는
+*succeed* 라(서버 proc 는 spawn 됐으므로), *조용히* 13종이 안 붙는다. → §6.5 의 mavis
+절을 *반드시* 따른다.
+
 ## 2. 공통 환경 변수
 
 두 transport 모두 다음 환경 변수를 받는다.
@@ -89,7 +98,8 @@ picker 가 선택한 하네스에 따라 `--enable-mcp` 와 결합 시 해당 �
 | **OpenCode** | `opencode.json` 의 `"mcp": { ... }` 키 | `<root>/mcp.opencode.json` | JSON (top-level `mcp` 키) |
 | **Gemini CLI** | `~/.gemini/settings.json` 의 `"mcpServers": { ... }` | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
 | **Antigravity** | `~/.MiniMax/antigravity.json` (가정, 하네스별 확인 필요) | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
-| **MiniMax Code** | `~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json` 의 `mcp_servers` | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
+| **MiniMax Code (legacy 빌드)** | `~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json` 의 `mcp_servers` | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
+| **MiniMax Code (mavis 데스크탑 런타임, 2026-08-07 확인)** | `~/.minimax/mcp/mcp.json` 의 `mcpServers` (**유일** — workspace 단위 자동 로드 없음) | (해당 없음 — 글로벌만; project-local emit ❌) | JSON (`mcpServers` 키) |
 | **Grok Build** | `~/.grok/config.toml` (`[mcp_servers.<alias>]` 섹션) | `<root>/.grok/config.toml` | TOML |
 | **Claude Code** | `~/.claude.json` (`mcpServers` 키) 또는 `~/.claude/settings.json` | `<root>/.mcp.json` (또는 `.claude/settings.json`) | JSON (`mcpServers` 키) |
 
@@ -180,9 +190,13 @@ workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadat
 
 Antigravity 의 정확한 글로벌 설정 경로는 하네스 문서를 참조. 일반적으로 `~/.antigravity/config.json` 에 `mcpServers` 키로 등록 (Gemini CLI 와 동일 스키마). bootstrap 이 emit 한 `.antigravity/mcp.json` 의 `mcpServers` 블록을 그대로 복사.
 
-### 6.5 MiniMax Code (`~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json`)
+### 6.5 MiniMax Code
 
-`mcp_servers` 키 사용. bootstrap 출력 (`<root>/.MiniMax/mcp.json`) 을 그대로 `~/.MiniMax/mcp.json` 으로 심거나 symlink.
+MiniMax Code 의 MCP config 위치는 *빌드 / 런타임에 따라 두 가지* 다. 둘 다 같은 `mcp_servers` (legacy) 또는 `mcpServers` (mavis) 키를 쓴다.
+
+#### 6.5.1 legacy 빌드 (`~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json`)
+
+bootstrap 출력 (`<root>/.MiniMax/mcp.json`) 을 그대로 `~/.MiniMax/mcp.json` 으로 심거나 symlink.
 
 ```bash
 mkdir -p ~/.MiniMax
@@ -190,6 +204,43 @@ ln -sf /ABSOLUTE/PATH/TO/<project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
 ```
 
 또는 전역 config 가 `~/.MiniMax/config.json` 인 경우, 그 파일의 `mcp_servers` 블록에 bootstrap 출력의 `standardAiWorkflowReadOnly` 항목을 복사.
+
+#### 6.5.2 mavis 데스크탑 런타임 (`~/.minimax/mcp/mcp.json`, 2026-08-07 확인)
+
+mavis 공식 user-guide: *"MCP servers live in `{{DATA_DIR}}/mcp.json`"* — `{{DATA_DIR}}` =
+`/Users/yklee/.minimax`. **글로벌 한 곳** 만 읽는다 (workspace 단위 자동 로드 ❌,
+`{{DATA_DIR}}-<profile>/` 패턴은 별개 profile). 기존 등록 5종 (`matrix` / `playwright` /
+`cu` / `trash` / `github`) 의 `mcpServers` 블록 아래에 직접 merge 한다. **반드시
+절대 경로** — mavis 가 서버를 띄울 때의 cwd 는 *프로젝트 루트가 아니라* 데스크탑 런타임
+자리의 home 부근이라, `STANDARD_AI_WORKFLOW_ROOT` / `PYTHONPATH` 둘 다 상대 경로면
+`ModuleNotFoundError` 로 *조용히* 죽는다 (mavis attach 자체는 succeed 라 13종이 안 붙은
+것으로만 드러남, §1.2.1).
+
+```json
+{
+  "mcpServers": {
+    "standardAiWorkflowReadOnly": {
+      "command": "python3",
+      "args": ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"],
+      "env": {
+        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>",
+        "PYTHONPATH": "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"
+      },
+      "enabled": true,
+      "configured": true
+    }
+  }
+}
+```
+
+검증: *"changing config affects new sessions; old sessions keep their existing runtime
+context until they rotate"* — **글로벌 mcp.json 을 고친 뒤 기존 세션은 그대로다**. rotate
+(새 세션) 으로 13종이 native tool 로 노출되는지 본다. 노출이 안 되면 §1.2.1 의 cwd 부재
+함정 — 절대 경로 두 env 모두 박혔는지, builtin 5종과 JSON 문법 충돌 (예: trailing comma)
+이 없는지 본다.
+
+> §2.60 의 `<root>/.mcp.json` 은 Claude Code 사용자용이며 mavis 가 자동으로 읽지 않는다.
+> mavis attach 를 원하면 *반드시* 이 §6.5.2 의 글로벌 mcp.json 에 등록해야 한다.
 
 ### 6.6 Grok Build (`~/.grok/config.toml`)
 
@@ -293,6 +344,8 @@ Grok Build 와 Codex 가 *동시에* 같은 저장소를 다룰 때, 동일 alia
 - [x] `check_read_only_mcp_sdk_stdio.py` 의 `Connection closed` 원인 추적 + 수정 (v0.11.25 완료 — mcp 1.27.0 env 검증 + `CallToolResult` API 정합)
 - [ ] 11개 하네스별 실제 smoke 테스트 (TASK-V051-005 후보, v0.15.16+ 신규 grok-build 포함)
 - [ ] `workflow_kit` 정식 패키지 배포 후 `pip install standard-ai-workflow` 한 줄로 import 가능하게 (TASK-V051-006 후보)
+- [ ] mavis 데스크탑 글로벌 mcp.json (`~/.minimax/mcp/mcp.json`) 에 `standardAiWorkflowReadOnly` 등록 + 새 세션에서 13종 attach 검증 (TASK-2026-08-07-main-001 후속, §6.5.2)
+- [ ] `bootstrap_workflow_kit.py --harness mavis` 가 §6.5.2 의 글로벌 mcp.json 까지 emit 하도록 (TASK-2026-08-07-main-001 후속 2)
 
 ## 다음에 읽을 문서
 

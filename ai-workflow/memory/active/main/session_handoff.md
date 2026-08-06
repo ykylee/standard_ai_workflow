@@ -9,17 +9,16 @@
 
 ## 1. 현재 작업 요약
 
-- **현재 기준선(§2.59~§2.62, 2026-08-05)**: v1.0.0-beta + `origin/main` = `0ceca6b` (커밋 7건). **커밋마다 트리거된 CI 3종 전부 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix. push 트리거 red 0건이다.
-- CI 자기 측정(요약 필드 말고 로그의 사실): smoke 네 셀(커밋 2 × 셀 2)이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 전부 `All 233 check_*.py scripts passed (220 test cases)`. **실제 emit 된 `::error::` 0건** — `grep '::error::'` 은 2건을 냈지만 둘 다 워크플로우 자체의 **명령 에코**(브랜치 가드가 실패 시 출력할 문자열의 원문)이지 emit 이 아니다. 명령 에코(`\x1b[36;1m`)를 빼고 세야 진짜 건수가 나온다.
-- **미트리거 3종은 결함이 아니다**: actionlint(`.github/workflows/**`) · mkdocs(`docs/**`, `mkdocs.yml`) · okf-validate(wiki / sample bundle / `url_validity`·`okf_export`·`frontmatter_urls`) — 이번 변경이 그 경로를 하나도 밟지 않았다. 그러니 **"트리거된 3종 green" 이지 "6종 green" 이 아니다**(§2.53 과 같은 구분).
-- 직전 push 기준선: v1.0.0-beta + `origin/main` = `c58111d` (§2.58 적용본). **트리거된 CI 6종 전부 green 실측** — `okf-validate`(**6주 연속 red 종료**, 24초)·smoke(2셀)·mypy-strict·mcp-sdk-matrix·actionlint·mkdocs. **push 트리거 red 0건**이다. `okf-validate` 가 낸 URL 2건을 세 층에서 함께 고친 결과다 — 추출기(워크플로우 안의 grep → `workflow_kit.frontmatter_urls`) / 데이터(wiki 의 `external (…)` → bare URL, sample bundle 2 page) / 규약(`resource` 는 bare URI, `V-R10-resource-not-bare-uri`)
-- CI 자기 측정(요약 필드 말고 로그의 사실): smoke 두 셀이 각각 `해석된 workflow 브랜치: main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 233 check_*.py scripts passed (220 test cases)`, `::error::` 0건. `okf-validate` 는 `Extracted 4 unique URLs` → `OK: 99 file(s) scanned, 4 unique URL(s), 0 convention issue(s)` → online 검증 exit 0. mkdocs 는 `docs/**` 를 밟아 **직전 두 사이클 만에 처음 트리거돼 통과**했다
-- 현재 주 작업 축: "생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다
-- 직전 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
+- **현재 기준선(§2.59~§2.67, 2026-08-05~2026-08-07)**: v1.0.0-beta + `origin/main` = `<HASH>` (커밋 8건, +1 §2.67). `<HASH>` 는 *commit 후* 채운다 (iterative amend).
+- **§2.67 까지 트리거된 CI 5종 green 실측** — smoke 2셀 · mypy-strict · mcp-sdk-matrix · mcp-inspector · mkdocs. push 트리거 red 0건. §2.67 은 *mcp attach 진단* 으로 트리거된 CI 변화 없음 (5종 그대로).
+- 현재 주 작업 축: "mavis attach 가 안 붙는다" — root cause = mavis 가 글로벌 mcp.json 만 읽음. 다음은 §2.68 — 글로벌 등록 + 새 세션 검증."
+- 직전 축: "생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다
+- 그 직전 축: "판정 이름이 원인과 다르다" — 검사가 내는 보고의 *이름* 은 검출기가 아는 만큼만 말한다
 - 최근 핵심 기준 문서:
   - [global_workflow_standard.md](../../../core/global_workflow_standard.md)
   - [Beta-v1.0.0.md §2.38~§2.45](../../../../workflow-source/releases/Beta-v1.0.0.md)
   - [MEMORY_GOVERNANCE.md "두 축을 섞지 않는다"](../../../../workflow-source/MEMORY_GOVERNANCE.md)
+  - [mcp_installation_by_harness.md §1.2.1/§4/§6.5.2/§8 (§2.67 1차 출처 보강)](../../../../workflow-source/core/mcp_installation_by_harness.md)
 
 ## 2. 진행 중 작업
 
@@ -61,12 +60,11 @@ mcp-sdk-matrix · mcp-inspector · mkdocs). 이 저장소에 오래 red 인 work
 
 ### 첫 번째로 할 일 — MCP 도구 13종이 실제로 붙는지
 
-`.mcp.json` 은 §2.60 에서 만들었고 **파일로 서버를 띄워** `tools/list` 13종 +
-`tools/call` 성공까지 실측했지만, **세션이 그것을 로드한 상태는 아직 확인하지 못했다**
-(만든 세션에서는 시작 시점에 없던 파일이라 로드되지 않는다).
+**§2.67 에서 닫았다** — [sessions/mcp_load_verification_2026-08-07.md](./sessions/mcp_load_verification_2026-08-07.md).
 
-skill 때 같은 확인이 결함을 하나 더 냈다 — 로드는 됐는데 slash command 3종의 *설명*이
-`<!-- standard-ai-workflow-kit: v… -->` 로 떴다(§2.59 후속). **그냥 넘기지 말 것.**
+13종은 *서버에는* 정상 (`initialize` / `tools/list` 13 / `tools/call latest_backlog` schema 정합 — 빈 payload 거부는 anyOf 의 *원래* 거동, 옳음, 3/3 실측). **이 mavis 세션에는 attach 되지 않음** — `mcp__*` prefix tool 0건. root cause = mavis 가 *글로벌* `~/.minimax/mcp/mcp.json` 만 읽음 (workspace 단위 자동 로드 ❌, mavis 공식 user-guide 정합). §2.60 의 `<root>/.mcp.json` 은 Claude Code 전용. **1차 출처 `core/mcp_installation_by_harness.md` §4 표 / §6.5 가 stale** 이라 mavis 가 안 읽는 legacy `~/.MiniMax/mcp.json` 위치를 가리키고 있었음 — §6.5.2 로 mavis (`~/.minimax/mcp/mcp.json`) / legacy 두 위치 + *반드시 절대 경로* (mavis 의 cwd 전제 자체가 없음) 정책으로 보강.
+
+§2.66 의 `transport_ready` 제거 / §2.59 의 `stamp_marker` 와는 별 부류지만, **mavis 의 글로벌 mcp.json 변경이 기존 세션에 전파되지 않는다**는 사실이 *consumer 에게 silent* 인 §2.66 breaking 들과 같은 자리일 수 있다 — 별도 사이클 후보.
 
 ### 결정이 하나 남아 있다 — 소비자 업그레이드
 
@@ -84,6 +82,15 @@ skill 파일에도 있다. 마커 버전이 같으면 `decide_action` 이 `IGNOR
    대조가 4종 → 5종이 된다(지금은 `[info] 대조 못 함` 으로 매번 노출).
 3. A안의 사각지대 — mcp 를 import 하지 않는 파일이 남에게서 받은 SDK 객체를 읽는 경우.
    범위를 넓히면 위양성이 압도하므로 지금은 열어 둔다.
+4. **§2.68 (급) — mavis 글로벌 mcp.json 등록**: `core/mcp_installation_by_harness.md` §6.5.2
+   의 JSON 스니펫 그대로 `~/.minimax/mcp/mcp.json` 의 `mcpServers` 에 merge + 새 세션
+   (rotate) 에서 13종 attach 검증. *반드시 절대 경로* (mavis 의 cwd 전제 ❌, §1.2.1).
+   `STANDARD_AI_WORKFLOW_ROOT` 와 `PYTHONPATH` 둘 다. **현재 세션은 rotate 후가 아니면
+   attach 안 됨** — mavis 의 *"old sessions keep their existing runtime context until
+   they rotate"* 정합. 닫히면 mavis 데스크탑이 workflow 의 *최초 consumer*.
+5. **§2.69 (중) — bootstrap 에 mavis 자동 등록**: `bootstrap_workflow_kit.py
+   --harness mavis` 가 §6.5.2 의 글로벌 mcp.json 까지 emit 하도록. 1차 출처 §6.5 가 두
+   위치를 다루니 bootstrap 도 두 위치 옵션 필요.
 
 --- 이전 세션(§2.58)의 시작 포인트 ---
 

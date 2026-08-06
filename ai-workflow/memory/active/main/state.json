@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-06",
+  "generated_at": "2026-08-07",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-06.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-07.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -28,48 +28,47 @@
   },
   "session": {
     "current_baseline": null,
-    "current_axis": "38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 고정 정렬 표준화 완료",
+    "current_axis": "\"mavis attach 가 안 붙는다\" — root cause = mavis 가 글로벌 mcp.json 만 읽음. 다음은 §2.68 — 글로벌 등록 + 새 세션 검증.\"",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-08-06-main-003 — 학습회 마스터 HTML 발표 덱 38장 슬라이드 수직 고정 정렬 전수 픽스",
-      "TASK-2026-08-06-main-002 — 학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+      "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)",
+      "학습회 발표자료 32번 장표('하루 한 사이클') 1행 5컬럼 그리드 레이아웃 개편 및 37번 장표 라이트 테마 카드 통일, PDF 재생성",
+      "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
+      "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
       "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
       "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
       "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
       "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리",
-      "TASK-2026-08-05-main-004 — 세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다",
-      "TASK-2026-08-05-main-003 — grok 의 MCP 사본을 접자 아무도 파싱해 본 적 없던 산출물이 드러났다",
-      "TASK-2026-08-05-main-002 — 설치 문서가 존재하지 않는 배송을 선언하고 있었다 — Claude Code MCP",
-      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 — 선언한 slash command 3종 부재 + claude-code 만 skill 미발행",
-      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크"
+      "TASK-2026-08-05-main-004 — 세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-06.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-07.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)"
+      "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-06.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-07.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
     "ai-workflow/core/global_workflow_standard.md",
     "workflow-source/releases/Beta-v1.0.0.md",
     "workflow-source/MEMORY_GOVERNANCE.md",
-    "ai-workflow/memory/active/main/sessions/deck_design_2026-08-06.md",
-    "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md"
+    "workflow-source/core/mcp_installation_by_harness.md",
+    "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md",
+    "ai-workflow/memory/active/main/sessions/mcp_load_verification_2026-08-07.md"
   ],
   "repository_assessment": {
     "path": null,

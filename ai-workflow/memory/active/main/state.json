@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-05",
+  "generated_at": "2026-08-06",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-05.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-06.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `0f53458` (§2.59~§2.66 적용본, 커밋 14건). **트리거된 CI 5종 green 실측** — smoke(2셀)·mypy-strict·mcp-sdk-matrix(1.27.0/1.29.0/2.0.0)·**mcp-inspector**·mkdocs. wire 를 건드려 inspector 가, 문서를 건드려 mkdocs 가 함께 돌았다 — 평소 3종보다 넓다. smoke 자기 측정: 두 셀이 각각 `main` / `feature/ci-slash-probe` 로 갈렸고 양쪽 다 `All 234 check_*.py scripts passed (220 test cases)`, **실제 emit 된 `::error::` 0건** (grep 원건수는 워크플로우 자체 명령 에코를 포함하므로 `\\x1b[36;1m` 을 빼고 세야 한다). 미트리거 2종(actionlint / okf-validate)은 path filter 대로다. push 트리거 red 0건이고, 이 저장소에 오래 red 인 workflow 도 없다.",
-    "current_axis": "\"제거는 검사가 완주시킨다\" — 옛 필드를 고정하던 검사 8종 중 3종이 놓친 자리를 red 로 드러냈다",
+    "current_baseline": null,
+    "current_axis": "\"생성기를 검사하는 것과 산출물을 검사하는 것은 다른 일이다\" — 렌더러 안의 리터럴은 4/4 PASS 였고 디스크에 쓰인 파일은 깨져 있었다",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
       "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
       "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
@@ -40,39 +41,33 @@
       "TASK-2026-08-05-main-004 — 세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다",
       "TASK-2026-08-05-main-003 — grok 의 MCP 사본을 접자 아무도 파싱해 본 적 없던 산출물이 드러났다",
       "TASK-2026-08-05-main-002 — 설치 문서가 존재하지 않는 배송을 선언하고 있었다 — Claude Code MCP",
-      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다",
-      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크",
-      "TASK-2026-08-03-main-004 — 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다"
+      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 — 선언한 slash command 3종 부재 + claude-code 만 skill 미발행",
+      "TASK-2026-08-04-main-001 — 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-05.md",
-    "task_count": 8,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-06.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
-      "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
-      "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
-      "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리",
-      "TASK-2026-08-05-main-004 — 세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다",
-      "TASK-2026-08-05-main-003 — grok 의 MCP 사본을 접자 아무도 파싱해 본 적 없던 산출물이 드러났다",
-      "TASK-2026-08-05-main-002 — 설치 문서가 존재하지 않는 배송을 선언하고 있었다 — Claude Code MCP",
-      "TASK-2026-08-05-main-001 — 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다"
+      "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-04.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-06.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
     "ai-workflow/core/global_workflow_standard.md",
     "workflow-source/releases/Beta-v1.0.0.md",
-    "workflow-source/MEMORY_GOVERNANCE.md"
+    "workflow-source/MEMORY_GOVERNANCE.md",
+    "ai-workflow/memory/active/main/sessions/deck_design_2026-08-06.md",
+    "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md"
   ],
   "repository_assessment": {
     "path": null,

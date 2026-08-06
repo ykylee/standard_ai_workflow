@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-05
+- 최종 수정일: 2026-08-06
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -32,7 +32,6 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-08-03-main-004 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다
 - TASK-2026-08-04-main-001 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크
 - TASK-2026-08-05-main-001 자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다
 - TASK-2026-08-05-main-002 설치 문서가 존재하지 않는 배송을 선언하고 있었다 — Claude Code MCP
@@ -42,8 +41,18 @@
 - TASK-2026-08-05-main-006 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로
 - TASK-2026-08-05-main-007 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)
 - TASK-2026-08-05-main-008 transport_ready 를 wire 에서 제거했다 (§6.2 완료)
+- TASK-2026-08-06-main-001 학습회 발표자료 컨셉·설계 v2 — 인과 사슬 재설계
 
 ## 5. 다음 세션 시작 포인트
+
+**별도 트랙 — 학습회 발표자료 (2026-08-06, 코드 무관)**: 60분 학습회용 발표 설계를
+`docs/presentations/ai-agent-onboarding-deck-design.md` (v2) 로 확정했다. 컨셉은
+"기억 잃는 신입 + 당신은 그 신입의 PL", 척추는 인과 사슬, 44장/6부. 다음 단계는
+`html-slides-builder` 로 `docs/presentations/ai-agent-onboarding.html` 빌드 → 44장
+전수 검수. 결정 근거: [sessions/deck_design_2026-08-06.md](./sessions/deck_design_2026-08-06.md).
+기존 소개 덱(`standard-ai-workflow-intro.html`)은 보존한다.
+
+--- 이전 세션(§2.59~§2.66)의 시작 포인트 ---
 
 세션 기록: [sessions/self_application_and_mcp_2026-08-05.md](./sessions/self_application_and_mcp_2026-08-05.md)
 (§2.59~§2.66 여덟 사이클의 연쇄와 실측으로 뒤집힌 판단 4건).

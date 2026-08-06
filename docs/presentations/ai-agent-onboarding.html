@@ -196,6 +196,12 @@
       gap: 36px;
     }
 
+    .cols-5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+
     .card {
       background-color: var(--card-bg);
       border: 1px solid var(--rule);
@@ -1403,32 +1409,45 @@
           <div class="slide-tag">4.8 하루 사이클</div>
           <h2 class="slide-title">하루 한 사이클</h2>
         </div>
-        <div class="cols-3" style="margin-top: 24px; gap: 20px;">
-          <div class="card" style="padding: 20px;">
-            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">1. 상태 읽기</div>
-            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">전 세션 인계서 및 이슈 상태 확인</p>
+        <div class="cols-5" style="margin-top: 36px;">
+          <div class="card" style="padding: 24px 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;">STEP 01</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--fg-on-light); margin-bottom: 12px;">상태 읽기</div>
+              <p style="font-size: 15px; color: var(--muted); line-height: 1.5; margin: 0;">전 세션 인계서 및 이슈 상태 확인</p>
+            </div>
           </div>
-          <div class="card" style="padding: 20px;">
-            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">2. 범위 못박기</div>
-            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">완료 조건 & 범위 밖 명시 지정</p>
+          <div class="card" style="padding: 24px 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;">STEP 02</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--fg-on-light); margin-bottom: 12px;">범위 못박기</div>
+              <p style="font-size: 15px; color: var(--muted); line-height: 1.5; margin: 0;">완료 조건 & 범위 밖 명시 지정</p>
+            </div>
           </div>
-          <div class="card" style="padding: 20px;">
-            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">3. 작업</div>
-            <p style="font-size: 18px; color: var(--muted); margin-top: 6px;">방법 자율성 부여 후 구현 진행</p>
+          <div class="card" style="padding: 24px 18px; display: flex; flex-direction: column; justify: space-between;">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;">STEP 03</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--fg-on-light); margin-bottom: 12px;">작업</div>
+              <p style="font-size: 15px; color: var(--muted); line-height: 1.5; margin: 0;">방법 자율성 부여 후 구현 진행</p>
+            </div>
           </div>
-        </div>
-        <div class="cols-2" style="margin-top: 20px; gap: 20px;">
-          <div class="card accent-border" style="padding: 20px; background: var(--accent-light);">
-            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">4. 확인</div>
-            <p style="font-size: 18px; color: var(--fg-on-light); margin-top: 6px;">완료 조건 및 테스트 자동 대조</p>
+          <div class="card" style="padding: 24px 18px; display: flex; flex-direction: column; justify: space-between;">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;">STEP 04</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--fg-on-light); margin-bottom: 12px;">확인</div>
+              <p style="font-size: 15px; color: var(--muted); line-height: 1.5; margin: 0;">완료 조건 및 테스트 자동 대조</p>
+            </div>
           </div>
-          <div class="card accent-border" style="padding: 20px; background: var(--accent-light);">
-            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">5. 기록 & 커밋</div>
-            <p style="font-size: 18px; color: var(--fg-on-light); margin-top: 6px;">인계서 작성 후 코드와 동봉 커밋</p>
+          <div class="card accent-border" style="padding: 24px 18px; background: var(--accent-light); display: flex; flex-direction: column; justify: space-between;">
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: var(--accent); letter-spacing: 1px; margin-bottom: 10px;">STEP 05</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">기록 & 커밋</div>
+              <p style="font-size: 15px; color: var(--fg-on-light); line-height: 1.5; margin: 0;">인계서 작성 후 코드와 동봉 커밋</p>
+            </div>
           </div>
         </div>
         <aside class="notes" data-slide="32">
-          하루 한 사이클의 표준 흐름입니다.
+          하루 한 사이클의 5단계 연속 프로세스 흐름입니다.
         </aside>
       </section>
 
@@ -1545,21 +1564,21 @@
           <h2 class="slide-title">좋은 리더는 자기 없이 굴러가게 만듭니다</h2>
         </div>
         <div class="cols-3" style="margin-top: 24px; gap: 24px;">
-          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
-            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">지시는 문서로</div>
-            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+          <div class="card accent-border" style="padding: 36px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 12px;">지시는 문서로</div>
+            <p style="font-size: 18px; color: var(--muted); line-height: 1.6; margin: 0;">
               모호한 말 대신 완료 조건과 범위 밖을 사전에 파일 한 문장으로 완벽하게 명시합니다.
             </p>
           </div>
-          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
-            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">맥락은 기록으로</div>
-            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+          <div class="card accent-border" style="padding: 36px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 12px;">맥락은 기록으로</div>
+            <p style="font-size: 18px; color: var(--muted); line-height: 1.6; margin: 0;">
               세션별 주요 결정 이유와 거절했던 대안을 저장소 인계 노트로 차곡차곡 축적합니다.
             </p>
           </div>
-          <div class="card accent-border" style="background: var(--bg-dark); color: #FFF; padding: 36px;">
-            <div style="font-size: 32px; font-weight: 900; color: #34D399; margin-bottom: 12px;">확인은 장치로</div>
-            <p style="font-size: 20px; color: #94A3B8; line-height: 1.6;">
+          <div class="card accent-border" style="padding: 36px;">
+            <div style="font-size: 28px; font-weight: 800; color: var(--accent); margin-bottom: 12px;">확인은 장치로</div>
+            <p style="font-size: 18px; color: var(--muted); line-height: 1.6; margin: 0;">
               리더의 주관적 검수 피로 대신 테스트 및 자동 검사 스크립트에 대조를 위임합니다.
             </p>
           </div>

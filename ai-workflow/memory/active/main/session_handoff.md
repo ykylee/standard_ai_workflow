@@ -100,7 +100,21 @@
   지표는 `%ct`(commit date), `%at` 는 rebase 시 부적합.
   (b) **`--force` 는 사용자 확인 후에만** — push `rejected` 는 장애가 아니라 "남이 이미
   가져갔다" 는 신호이므로 기본 대응은 다른 작업 선택.
-- **정식 반영 완료 (TASK-2026-08-07-main-003)**: 다중 작업·팀웍 워크플로우가 이제
+- **구현 1단계 완료 (TASK-2026-08-07-main-004)**: `tools/seed_workspace_memory.py` +
+`tests/check_seed_workspace_memory.py` 신규. 표준 §10.2 의 "상태 문서를 먼저 생성" 자동화.
+
+- **착수 순서를 바꿨다**: §7 은 registry 1순위였지만 **저장 위치가 미결**(§0.8)이라
+  지금 만들면 틀린 것을 만든다. seed 는 실측된 실패가 있고 열린 질문이 0 이라 먼저 했다.
+- **end-to-end 실측**: 실제 worktree 에서 seed 전 `missing_required_document` 재현 →
+  seed 후 **`status=ok`**. 격리 환경에서는 **warnings `[]`** (완전 무경고).
+- 설계: `state.json` 은 seed 안 함(파생 파일 — rebuild 담당) / 멱등(`--force` 없이 덮어쓰기 ❌)
+  / task 채번은 브랜치 안에서만 / 포맷은 기존 writer 재사용(사본 갈라짐 방지).
+- **구현 중 결함 3건을 잡았다** — 라벨 오타(`주 작업 축`≠`현재 주 작업 축`), 백틱 누출,
+  in_progress 목록 형식 불일치. 셋 다 *파일은 생겼는데 복원은 안 되는* 부류라,
+  회귀 검사를 **"seed 후 session-start 가 ok + warnings 0"** 으로 잡았다(파일 존재 ❌).
+- **다음**: 원격 조회/선점 자동화(§10.2 1~3단계는 아직 손으로) → registry(위치 결정 선행).
+
+**정식 반영 완료 (TASK-2026-08-07-main-003)**: 다중 작업·팀웍 워크플로우가 이제
 **표준의 일부**다 — 설계 문서 권고가 아니라 모든 소비자 프로젝트에 적용되는 규칙.
 
 - `core/global_workflow_standard.md` **§10 "다중 작업과 협업"** 신설 (10.1 격리 /

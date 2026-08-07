@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-07-main-004 — 메모리 seed 도구 구현 (표준 §10.2 자동화 1단계)",
       "TASK-2026-08-07-main-003 — 다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)",
       "TASK-2026-08-07-main-002 — 멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)",
       "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)",
@@ -41,21 +42,21 @@
       "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
       "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
       "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
-      "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
-      "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다"
+      "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-07.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)",
       "TASK-2026-08-07-main-002 — 멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)",
-      "TASK-2026-08-07-main-003 — 다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)"
+      "TASK-2026-08-07-main-003 — 다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)",
+      "TASK-2026-08-07-main-004 — 메모리 seed 도구 구현 (표준 §10.2 자동화 1단계)"
     ]
   },
   "next_documents": [

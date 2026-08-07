@@ -79,7 +79,7 @@
 | --- | --- | --- |
 | 조회 전 | `git fetch origin --prune` | 안 하면 되살아난 브랜치를 stale 로 오판 → §5D.4a |
 | 조회 | 1일 초과 무활동 = `STALE` → **사용자 문의** (삭제 ❌) | §5D.4a |
-| 선점 전 | **메모리 seed** (`active/<branch>/`) | 없으면 `session-start` 가 `missing_required_document` 로 실패 → §5A.2 |
+| 선점 전 | **메모리 seed** (`active/<branch>/`) — `tools/seed_workspace_memory.py` | 없으면 `session-start` 가 `missing_required_document` 로 실패 → §5A.2 |
 | 선점 | push 1회. `rejected` = 신호이지 장애가 아님 | §5D.2 |
 | 종료 | memory 갱신을 commit 과 같은 turn 에 | 표준 `global_workflow_standard.md` §8 |
 
@@ -110,10 +110,10 @@
 | **표준 §10 + §1 협업 규칙 2건** | ✅ **정식 반영** — 12 하네스 진입점에 자동 전파 |
 | `.gitattributes` union merge | ✅ 적용 (`git check-attr` + 실제 병합 검증) |
 | `memory/active/README.md` 규약 2건 | ✅ 적용 |
-| 브랜치 선점 플로우 | 📋 규칙은 표준 §10, **도구 구현 미착수** |
-| workspace registry | 📋 미구현 — §7 착수 1순위 |
-| 메모리 seed 도구 | 📋 미구현 — §7 착수 2순위 |
-| 복수 root 취합 | 📋 미구현 — §7 착수 3순위 |
+| **메모리 seed 도구** | ✅ **구현** — `tools/seed_workspace_memory.py` (+ smoke 8 assertions) |
+| 브랜치 선점 플로우 | 📋 규칙은 표준 §10, **조회/선점 자동화 미착수** |
+| workspace registry | 📋 미구현 — 저장 위치 미결(§0.8) |
+| 복수 root 취합 | 📋 미구현 |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -974,9 +974,21 @@ half     owner=T   idle= 12h   active
    메모리가 git-tracked 라 중앙이 in-flight 워크스페이스를 볼 수 없으므로, registry 는
    "있으면 좋은 것" 이 아니라 **중앙이 현재 상황을 아는 유일한 경로**다. git 밖에 두어야
    한다(브랜치에 실려 다니면 안 됨).
-2. **메모리 seed 도구** — 새 워크스페이스에 `active/<branch>/` 를 만들고 handoff +
-   backlog + task 를 쓴다. §5A.2 에서 이게 없으면 `missing_required_document` 로 세션이
-   시작조차 못 함을 실측했다. **배정 자동화의 최소 단위.**
+2. **메모리 seed 도구** — ✅ **구현됨**: `tools/seed_workspace_memory.py`.
+   `active/<branch>/` 에 handoff + daily index + task 를 만든다. `state.json` 은
+   만들지 않는다(파생 파일 — rebuild 담당). 멱등이며 `--force` 없이는 덮어쓰지 않는다.
+   회귀: `tests/check_seed_workspace_memory.py` 가 **seed 후 `session-start` 가
+   `status=ok` + warnings 0** 인지를 직접 확인한다 (파일 생성 여부가 아니라 *복원되는지*).
+
+   ```bash
+   python3 workflow-source/tools/seed_workspace_memory.py \
+     --branch feat-login --axis "로그인 세션 만료 처리" \
+     --task-title "세션 만료 시 재인증" --out-of-scope "결제 모듈" --apply
+   python3 workflow-source/scripts/generate_workflow_state.py \
+     --project-profile-path docs/PROJECT_PROFILE.md \
+     --output-path ai-workflow/memory/active/feat-login/state.json
+   ```
+
 3. **복수 root 취합** — `_branch_state_paths` 가 root 목록을 받도록. registry 가 무엇을
    훑을지 알려준다.
 4. **lease 도구** — **§5D 에서 대체됨**. 배타 점유는 브랜치 선점(`git push`)이 담당하므로

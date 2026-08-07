@@ -14,6 +14,7 @@
 - [workflow_adoption_entrypoints.md](./workflow_adoption_entrypoints.md)
 - [workflow_configuration_layers.md](./workflow_configuration_layers.md)
 - [workflow_harness_distribution.md](./workflow_harness_distribution.md)
+- [multi_workspace_orchestration.md](./multi_workspace_orchestration.md) — 다중 호스트/하네스 동시 작업, 브랜치 선점, 충돌 최소화 (§0 = 정본 요약)
 - [workflow_skill_catalog.md](./workflow_skill_catalog.md)
 - [output_schema_guide.md](./output_schema_guide.md)
 

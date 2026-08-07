@@ -62,9 +62,14 @@ python3 workflow-source/tools/archive_branch_memory.py --apply     # 이동 (com
 | `<branch>/sessions/<date>-<topic>.md` | ❌ **물리 격리** | 다른 agent 가 다른 session file |
 | `memory_index/entries/*.json` | ❌ **물리 격리** (기존) | v0.13.1 부터 |
 | `memory_index/telemetry/events.jsonl` | ❌ **append-only** (기존) | v0.13.1 부터 |
-| `log.md` | ❌ **append-only** (기존) | 2026-06-12 부터 |
+| `log.md` | ❌ **append-only** (기존) | 2026-06-12 부터. 🟡 **다중 호스트**에서는 충돌함 → `merge=union` 으로 해소 (아래 note) |
 
 → **신규 layout 에서는 mutable 공유 파일이 `state.json` 단 1개**. 나머지는 모두 append-only 또는 자기 소유.
+
+> ⚠️ **본 표는 *한 저장소* 를 전제한다** (2026-08-07 실측). 여러 호스트가 각자 clone 에서
+> 작업하면 브랜치별 격리 파일(`active/<branch>/**`)은 그대로 충돌 0 이지만, **브랜치 바깥의
+> 공유 파일**(`log.md`, telemetry, daily backlog index)은 병합 시 충돌한다. `.gitattributes`
+> 의 `merge=union` 이 이를 해소한다 — 단 `state.json` 은 제외(JSON 이 깨짐).
 
 ## 3. write 권한
 
@@ -87,6 +92,17 @@ python3 workflow-source/tools/archive_branch_memory.py --apply     # 이동 (com
 - **backlog/tasks/TASK-XXX.md**: 1 task = 1 file, frontmatter 는 `MEMORY_GOVERNANCE.md` §2 의 `Task Detail (TASK-XXX.md)` 템플릿 정합.
 - **sessions/<sid>.md**: 1 session = 1 file. 같은 session 내 append 가능, 다른 session 은 다른 file.
 - **memory_index/** + **log.md**: 코드 자동 emit, 사용자 손 수정 ❌.
+- **backlog / handoff 는 도구를 통해 갱신한다** — 파일을 통째로 다시 쓰지 않는다.
+  `backlog-update` skill (또는 `workflow_writes.upsert_backlog_entry`) 은
+  read-modify-write 라 해당 task block 만 교체하고 나머지를 보존한다. 도구를 우회해
+  손으로 덮어쓰면 **다른 에이전트가 추가한 task 가 충돌 없이 조용히 사라진다** (실측).
+- **공유 append-only 파일에 쓰는 줄에는 타임스탬프 + host 식별자를 포함한다** —
+  `log.md` / telemetry 는 `merge=union` (`.gitattributes`) 으로 병합되는데, union 은
+  *완전히 동일한 줄* 을 하나로 접기 때문에 식별자가 없으면 동시 기록 1건이 소실된다 (실측).
+
+> **병합 전략**: 위 두 규칙의 근거와 `.gitattributes` 설정은
+> [`../../../workflow-source/core/multi_workspace_orchestration.md`](../../../workflow-source/core/multi_workspace_orchestration.md) §5B~§5C 참조.
+> `state.json` 에는 union 을 걸지 않는다 (JSON 이 깨진다) — 충돌 시 rebuild 한다.
 
 ## 5. 마이그레이션 (v0.14.0)
 

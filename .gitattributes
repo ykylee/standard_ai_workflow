@@ -1,0 +1,27 @@
+# git 병합 전략 — workflow memory 전용
+#
+# 왜: 여러 호스트/에이전트가 각자 브랜치에서 작업하면, 브랜치별로 격리된
+# `active/<branch>/` 는 충돌하지 않지만 **브랜치 바깥의 공유 append-only 파일**은
+# 그대로 충돌한다 (2026-08-07 실측: log.md CONFLICT).
+#
+# union = 양쪽 줄을 모두 남긴다. 줄 단위로 의미가 독립적인 파일에만 안전하다.
+#
+# ⚠️ 주의 1 — state.json 에는 절대 걸지 않는다.
+#    union 은 `{"a":3}` + `{"a":2}` 를 두 줄로 남겨 JSON 을 깨뜨린다 (실측:
+#    JSONDecodeError). state.json 은 파생 파일이므로 충돌 시 한쪽을 고르고
+#    `scripts/generate_workflow_state.py` 로 rebuild 한다.
+#
+# ⚠️ 주의 2 — union 은 *완전히 동일한 줄* 을 하나로 접는다.
+#    두 호스트가 같은 문자열을 append 하면 1건이 조용히 사라진다 (실측).
+#    append 하는 로그 라인에는 반드시 타임스탬프 + host 식별자를 포함한다.
+#
+# 상세 근거: workflow-source/core/multi_workspace_orchestration.md §5B~§5C
+
+# append-only 로그 — 줄 단위 독립
+ai-workflow/memory/log.md                    merge=union
+
+# telemetry sidecar (jsonl) — 1 line = 1 event, union 후에도 각 줄이 valid JSON
+ai-workflow/memory/**/telemetry/*.jsonl      merge=union
+
+# daily backlog index — task link 모음 (append-only layout)
+ai-workflow/memory/active/**/backlog/*.md    merge=union

@@ -47,6 +47,82 @@
 
 ## 5. 다음 세션 시작 포인트
 
+**새 축 — 멀티 워크스페이스 오케스트레이션 (2026-08-07, 설계만 완료)**:
+설계 정본 [`workflow-source/core/multi_workspace_orchestration.md`](../../../../workflow-source/core/multi_workspace_orchestration.md) 신규 작성 (TASK-2026-08-07-main-002). **구현은 미착수** — 문서는 draft.
+
+- **결정**: 워크스페이스 격리 키 = **작업/브랜치**. 하네스는 격리 키가 아니라 워크스페이스의 *속성*.
+- **결정 근거 (실측)**: `tools/archive_branch_memory.py` 의 `find_branch_memories()` +
+  `branch_exists()` 를 임시 트리에 직접 호출 → `active/feat-x/codex`, `active/feat-x/claude`
+  가 `branch_exists=False` 로 **고아 판정 = 자동 아카이브 대상**. 하네스 이름 디렉터리는
+  기존 도구가 치운다. 격리 키는 git 이 검증 가능한 브랜치여야 한다.
+- **"같은 서버 여러 하네스" 답**: 하네스마다 자기 브랜치 + 자기 worktree, 점유는 lease 로 배타.
+  `get_current_branch()` 가 CWD 가 아니라 모듈 `parents[3]` 에 anchor 하므로 worktree 별로 자동 분리.
+- **재사용 확인 (실측)**: `dashboard_data.py:1267` `_branch_state_paths()` 가 `rglob("state.json")`
+  으로 이미 브랜치 횡단 집계 중 — MEMORY_GOVERNANCE.md:218 "집계는 파일이 아니라 뷰" 는 실제 코드.
+- **서버 식별자 결정 (실측 근거)**: hostname/IP 둘 다 식별자로 쓰지 않는다.
+  `host_id`(registry 발급) = 정본, hostname/IP = 자동 수집 진단용, `endpoint` = 접속 정보.
+  근거 = 전체 메모리 66 파일 실집계: `호스트 IP` 빈칸 87 / `127.0.0.1` 20 / `192.168.0.139` 12,
+  `호스트명` 빈칸 35 / `homelab` 2. 손으로 채우는 필드는 안 채워지고, 채워진 값도
+  `127.0.0.1`(식별 불가) · DHCP 사설 IP(재사용) · `homelab`(실제 hostname 과 이미 drift) 로
+  식별자 구실을 못 한다. 문서 §4.5.
+- **인벤토리(registry) 결정**: 별도 관리에 찬성하되 **소비자부터 만든다**. 근거 = 이미
+  같은 자리가 있고 비어 있다 — `state.json.environment_path`
+  (`ai-workflow/memory/active/environments/`) 가 **실재하지 않는 디렉터리**를 가리키고,
+  bootstrap 기본값 + `create_environment_record_stub` MCP 까지 있는데 **읽는 코드가 없다**
+  (`project_docs.py:266` → `builder.py:445` 로 state.json 에 옮겨 담기만 함).
+  조건 4개: 소비자 동시 구현 / 자동 등록 / git 밖 / `environments/`(사람용 진단) 와 역할
+  분리. 문서 §4.5.5~§4.5.6.
+- **다중 호스트 충돌 실측 (§5B)**: bare remote + 2 클론 재현 결과 — 브랜치별 메모리는
+  **충돌 0** (격리 키 결정 유효), 남은 충돌은 전부 *공유 파일*. 최악은 같은 브랜치에서
+  파일 통째 rewrite 시 **조용한 데이터 소실** (git 충돌 미보고). `.gitattributes`
+  `merge=union` 으로 `log.md` / daily backlog index 충돌 해소 실측, **단 `state.json` 에
+  걸면 JSON 깨짐**(파생 파일이므로 rebuild 로 해결). **이 저장소엔 `.gitattributes` 가
+  없어 log.md 충돌은 오늘도 재현 가능** — 즉시 적용 가능한 개선 후보 1순위.
+- **우선순위 상세 검토 (§5C, 실측)**: P1 union merge **채택**(단 동일 문자열 append 는
+  중복 제거로 1건 소실 → 로그 라인에 `host_id`+타임스탬프 필수). P2 는 **진단 정정** —
+  실제 도구는 read-modify-write 라 조용한 소실 없음, 규약 문구만 "도구를 통해 갱신"
+  으로 명시(구현 불필요). P3 lease 는 **구현 방식 변경** — TTL 회수에 race 가 있어
+  `os.link` 원자 claim 필수(순진한 구현은 2명 동시 획득 실측). P4 병합 직렬화는
+  **강등** — git 이 이미 non-fast-forward push 를 거부해 직렬화함.
+- **P1·P2 적용 완료 (커밋 전)**: `.gitattributes` **신규 생성**(저장소 최초) —
+  `log.md` / telemetry jsonl / daily backlog index = `merge=union`, `state.json` 은
+  **의도적 제외**(union 시 JSON 깨짐). `git check-attr` + 실제 clone 병합으로 검증.
+  `memory/active/README.md` §4 에 규약 2건 추가 + §2 충돌표에 "한 저장소 전제" note.
+- **§5D 신규 — 브랜치 선점이 lease 를 대체한다 (실측)**: 5개 클론이 같은 브랜치명을
+  동시 선점 → **정확히 1명 성공**. git ref 생성이 원자적이라 `git push` 자체가 분산 CAS.
+  §4.2/§5C.3 의 파일 lease(TTL race·NFS 취약·registry 위치 미해결)를 **전부 회피**하고
+  **새 인프라 0**. TOCTOU 도 안전(판정은 push 에서만). 원격 조회는
+  `ls-remote` / `log origin/<b>` / `show origin/<b>:<path>` 로 체크아웃 없이 가능.
+  **남은 취약점 2건은 사람 확인 게이트로 닫음 (ykylee 결정)**:
+  (a) stale 임계 = **마지막 활동 1일 초과 시 사용자 문의**(자동 삭제 ❌). 실측 검증
+  0h/12h → active, 72h → STALE. **`git fetch --prune` 선행 필수** — 안 하면 다른 호스트가
+  되살린 브랜치를 여전히 72h 로 오판해 *살아있는 작업을 지우자고 제안*하게 됨(실측).
+  지표는 `%ct`(commit date), `%at` 는 rebase 시 부적합.
+  (b) **`--force` 는 사용자 확인 후에만** — push `rejected` 는 장애가 아니라 "남이 이미
+  가져갔다" 는 신호이므로 기본 대응은 다른 작업 선택.
+- **§0 정본 요약 신설 (문서 정리 완료)**: 조사 순서로 쌓여 결론이 흩어져 있던 것을
+  **§0 "확정 워크플로우"** 로 앞에 모음 — 핵심 결정 5 / 세션 워크플로우 다이어그램 /
+  단계별 필수사항 / 충돌 규약 / 적용 상태 / 열린 질문. 헤더에 **뒤집힌 절 교체 표시 표**
+  (§4.2·§5B.2·§5B.8·§5C.3) 추가. `core/README.md` 에 1줄 등록.
+  **읽을 때는 §0 만 보면 되고, §1~§8 은 근거 기록이다.**
+- **⚠️ 배포본 제약 발견**: `ai-workflow/core/` 는 23개 파일 **부분집합** 이라
+  `multi_workspace_orchestration.md` 가 없다. 정본(`workflow-source/core/`)의 기존 문서에
+  신규 문서 링크를 넣으면 배포본 사본이 소비자에게 **깨진 링크**가 되고
+  `check_standard_single_source.py` 가 FAIL 한다 (실제로 겪고 되돌림).
+  → `workflow-source/core/*.md` 수정 시 배포본 동기화 제약을 먼저 확인할 것.
+- **공백**: `_branch_state_paths(root)` 가 단일 root 만 받음. 다음 구현 착수 순서는
+  workspace registry(역할 축소) → 메모리 seed 도구 → 복수 root 취합.
+
+**별건 발견 (미처리)**: `dashboard` 실행 시 `drift_prevention.guard_status: fail` —
+`test_case_6_maturity_last_updated_freshness`. `maturity_last_updated` 2026-07-22 vs
+surface 변경 2026-08-05 (16일 stale). 갱신 힌트는 dashboard 출력의 `maturity_refresh_hint`.
+
+**기존 red (본 세션 무관, 사전 존재 확인함)**: `check_standard_single_source.py` 의
+`test_distributed_core_matches_canonical` — `mcp_installation_by_harness.md` 사본이 정본과
+갈라짐. `c63b54e` 시점부터 존재 (stash 로 baseline 대조 확인).
+
+--- 이전 세션의 시작 포인트 ---
+
 **별도 트랙 — 학습회 발표자료 (2026-08-06 전량 완료)**:
 마스터 HTML 발표 덱(`docs/presentations/ai-agent-onboarding.html`, 38장) 제작, 4단계 검증(`verify_deck.py` PASS), 30/60/90분 트랙 전환, 구술 노트, 32번 장표 1행 5컬럼 그리드 개편 & 37번 장표 라이트 카드 테마 통일, 사람용/AI용 문서 독자 분리 및 슬라이드 간 수직 고정 정렬 픽스, 최신 PDF(`docs/presentations/ai-agent-onboarding.pdf`) 재발행 전량 완료. `main` 브랜치 커밋 및 푸시 완료.
 

@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-07-main-002 — 멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)",
       "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)",
       "학습회 발표자료 32번 장표('하루 한 사이클') 1행 5컬럼 그리드 레이아웃 개편 및 37번 장표 라이트 테마 카드 통일, PDF 재생성",
       "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
@@ -41,19 +42,19 @@
       "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
       "TASK-2026-08-05-main-007 — 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
       "TASK-2026-08-05-main-006 — 알고 있던 함정을 다시 밟았다 — SDK 매트릭스를 로컬로 내린다",
-      "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리",
-      "TASK-2026-08-05-main-004 — 세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다"
+      "TASK-2026-08-05-main-005 — 승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다 — transport_ready 축 분리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-07.md",
-    "task_count": 1,
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)"
+      "TASK-2026-08-07-main-001 — MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)",
+      "TASK-2026-08-07-main-002 — 멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)"
     ]
   },
   "next_documents": [
@@ -67,6 +68,7 @@
     "workflow-source/releases/Beta-v1.0.0.md",
     "workflow-source/MEMORY_GOVERNANCE.md",
     "workflow-source/core/mcp_installation_by_harness.md",
+    "workflow-source/core/multi_workspace_orchestration.md",
     "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md",
     "ai-workflow/memory/active/main/sessions/mcp_load_verification_2026-08-07.md"
   ],

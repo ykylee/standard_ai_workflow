@@ -100,7 +100,26 @@
   지표는 `%ct`(commit date), `%at` 는 rebase 시 부적합.
   (b) **`--force` 는 사용자 확인 후에만** — push `rejected` 는 장애가 아니라 "남이 이미
   가져갔다" 는 신호이므로 기본 대응은 다른 작업 선택.
-- **구현 2단계 완료 (TASK-2026-08-08-main-001)**: `tools/survey_remote_workspaces.py` +
+- **구현 3단계 완료 — §10.2 플로우 완결 (TASK-2026-08-08-main-002)**:
+`tools/claim_workspace.py` + 회귀 9종. 이제 **세션 시작 전 단계가 도구화**됐다:
+`survey_remote_workspaces`(조회) → `claim_workspace`(브랜치+seed+push) →
+`generate_workflow_state`(파생) → `session-start`.
+
+- **`--force` 를 의도적으로 제공하지 않는다** — 배타성이 규약일 뿐 강제가 아니라(§5D.4b)
+  도구가 수단을 가지면 언젠가 쓰인다. 강제로 밀어야 하면 사람이 직접.
+- **rejected 는 정상 경로**(exit 0). 재시도하지 않고 선점자를 알려준 뒤 다른 작업 안내.
+  **진 쪽 로컬 브랜치를 되돌리지 않는다** — 조용히 지우면 상태 확인이 불가능하다.
+- **실측 (bare remote + 4 에이전트 동시 경합)**: `agent3 -> ok`, 나머지 3 `lost_race`
+  = **정확히 1명**. 원격에 브랜치 1개만(덮어쓰기 ❌), 승자 seed 온전, 승자
+  `session-start` → **ok / warnings []**, 패자 로컬 브랜치 보존, 패자 survey 재조회 시
+  `owner=agent3` 갱신 확인.
+- **회귀 검사 음성 대조**: force 금지 검사가 공허하지 않은지 확인하려고 `push --force`
+  를 일시 주입 → FAIL 재현 후 원복. (초안은 안내 문구까지 잡는 위양성이 있어 git 호출
+  인자만 보도록 좁혔다.)
+- **다음**: registry(다중 호스트 경로 매핑만 남음 — 단일 호스트면 불필요) /
+  복수 root 취합 / 사전 존재 red 정리.
+
+**구현 2단계 완료 (TASK-2026-08-08-main-001)**: `tools/survey_remote_workspaces.py` +
 회귀 검사 8종. 표준 §10.2 의 1~3단계(원격 동기화 → 진행 상황 확인 → 작업 선정 근거)
 자동화. 직전 사이클의 seed 도구(§10.2 4단계)와 짝을 이룬다.
 

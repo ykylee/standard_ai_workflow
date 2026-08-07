@@ -73,6 +73,27 @@
                                       → archive_branch_memory 가 메모리 정리
 ```
 
+**도구** (§10.2 는 전 단계가 도구화돼 있다):
+
+```bash
+# 1~3. 원격 현황 — 활성 브랜치 = 진행 중 작업. stale 은 보고만 한다
+python3 workflow-source/tools/survey_remote_workspaces.py
+
+# 4~5. 선점 — 브랜치 + seed + commit + push 1회 (push 가 곧 배타 획득)
+python3 workflow-source/tools/claim_workspace.py \
+  --branch feat-login --axis "로그인 세션 만료 처리" \
+  --task-title "세션 만료 시 재인증" --apply
+
+# 6. 상태 파생물 생성 후 작업 시작
+python3 workflow-source/scripts/generate_workflow_state.py \
+  --project-profile-path docs/PROJECT_PROFILE.md \
+  --output-path ai-workflow/memory/active/feat-login/state.json
+```
+
+`claim_workspace.py` 가 `rejected` 를 받으면 **재시도하지 않고** 선점자를 알려준 뒤
+다른 작업을 고르라고 안내한다. `--force` 옵션은 **의도적으로 제공하지 않는다** —
+도구가 그 수단을 갖고 있으면 언젠가 쓰이기 때문이다(§5D.4b).
+
 **단계별 필수 사항**
 
 | 단계 | 반드시 | 근거 |
@@ -112,8 +133,9 @@
 | `memory/active/README.md` 규약 2건 | ✅ 적용 |
 | **메모리 seed 도구** | ✅ **구현** — `tools/seed_workspace_memory.py` (+ smoke 8 assertions) |
 | **원격 현황 조회 도구** | ✅ **구현** — `tools/survey_remote_workspaces.py` (+ smoke 8 assertions) |
-| 브랜치 선점 자동화 | 📋 미착수 — 선점 push 는 아직 손으로 (§10.2 4단계) |
-| workspace registry | 📋 미구현 — 저장 위치 미결(§0.8) |
+| **선점 도구** | ✅ **구현** — `tools/claim_workspace.py` (+ smoke 9 assertions) |
+| **§10.2 세션 시작 플로우** | ✅ **전 단계 도구화 완료** (조회 → 선정 근거 → seed → 선점) |
+| workspace registry | 📋 미구현 — 다중 호스트 경로 매핑만 남음(§7) |
 | 복수 root 취합 | 📋 미구현 |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
@@ -933,10 +955,12 @@ half     owner=T   idle= 12h   active
 
 4. 브랜치 생성 + **메모리 seed**(§5A.2 — 없으면 `session-start` 가 실패한다) +
    작업 예정 내역 작성.
-5. `git push origin <branch>` **1회**.
+5. `git push origin <branch>` **1회**. — `tools/claim_workspace.py` 가 4~5 를 함께 수행한다.
    - 성공 → 선점 완료. 이 순간이 lease 획득 시점이다.
    - **rejected → 남이 이미 가져갔다는 신호. 1로 돌아가 다른 작업을 고른다.**
      `--force` 로 뚫지 않는다 — 필요하다고 판단되면 **사용자 확인을 받는다**(§5D.4b).
+     도구는 `--force` 수단 자체를 갖지 않으며, 진 쪽의 로컬 브랜치를 조용히 지우지도
+     않는다 (사용자가 상태를 확인할 수 있어야 한다).
 
 **작업 / 종료**
 

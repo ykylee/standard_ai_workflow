@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
       "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
       "TASK-2026-08-07-main-004 — 메모리 seed 도구 구현 (표준 §10.2 자동화 1단계)",
       "TASK-2026-08-07-main-003 — 다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)",
@@ -41,19 +42,19 @@
       "학습회 발표자료 32번 장표('하루 한 사이클') 1행 5컬럼 그리드 레이아웃 개편 및 37번 장표 라이트 테마 카드 통일, PDF 재생성",
       "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
       "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
-      "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
-      "TASK-2026-08-05-main-008 — transport_ready 를 wire 에서 제거했다 (§6.2 완료)"
+      "TASK-2026-08-06-main-001 — 학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 1,
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)"
+      "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
+      "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)"
     ]
   },
   "next_documents": [

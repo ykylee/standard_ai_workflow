@@ -9,12 +9,12 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `c51d052` (2026-08-07~08 커밋 5건) + **후속 1건 (TASK-2026-08-08-main-003 완료)**.
-- 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합** 까지 닫혔다.
-  표준 §10.2 세션 시작 플로우 + dashboard Panel 5 가 모두 "여러 worktree" 친화.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `f97a9b1` (2026-08-07~08) + **registry 1건 (TASK-2026-08-08-main-004 완료)**.
+- 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합 → registry 신규** 까지 닫혔다.
+  표준 §10.2 세션 시작 플로우 + dashboard Panel 5 + workspace registry 가 모두 "여러 worktree" 친화.
 - 직전 축: "mavis attach 가 안 붙는다" — 글로벌 mcp.json 등록(§2.68)은 **아직 미완**.
 - 최근 핵심 기준 문서:
-  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.3 구현 표시**
+  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시**
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙
   - [MEMORY_GOVERNANCE.md](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
 - TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
 - TASK-2026-08-08-main-002 워크스페이스 선점 도구 — §10.2 플로우 완결 (smoke 9)
 - TASK-2026-08-08-main-001 원격 워크스페이스 현황 조회 도구 (smoke 8)
@@ -48,8 +49,8 @@
 
 ### 무엇이 끝났나
 
-`origin/main` = `c51d052` + 후속 1커밋 (TASK-2026-08-08-main-003). 5건 + 1건으로
-설계부터 도구화 + dashboard 다중 root 확장까지 닫았다.
+`origin/main` = `f97a9b1` + 후속 1커밋 (TASK-2026-08-08-main-004). 6건 + 1건으로
+설계 → 도구 → dashboard 다중 root → registry 까지 닫았다.
 
 - **표준 §10 "다중 작업과 협업"** 신설 + §1 bullet 2건 → **12 하네스 진입점에 자동 전파**
   (빈 저장소 bootstrap 으로 `AGENTS.md` 2/2 · `GEMINI.md` 2/2 실측).
@@ -62,8 +63,12 @@
 - **dashboard Panel 5 다중 root** (smoke 6/6):
   - `_branch_state_paths(*roots)` — union + dedupe + sort. **파생 뷰 원칙 유지**.
   - `collect_recent_releases(extra_roots=)` + `git worktree list --porcelain` 자동
-    합류 + `WORKFLOW_EXTRA_ROOTS` env. registry 가 들어오면 `extra_roots` 를 채워주는
-    자리가 된다.
+    합류 + `WORKFLOW_EXTRA_ROOTS` env + **registry** (실제 채워짐).
+- **workspace registry** (smoke 8/8, §7.1):
+  - `workflow_kit/common/workspace_registry.py` — host-scoped
+    `~/.cache/workflow_kit/registry.json` (atomic write, 0o600). `register` idempotent.
+  - `tools/workspace_registry.py` — `register/unregister/list/paths/host-id`.
+  - dashboard 가 registry paths 를 자동 합류 — §5A.3 *in-flight 가시성* 의 첫 소비자.
 
 세션 시작 플로우:
 
@@ -80,11 +85,11 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 
 ### 다음에 할 일 (순서)
 
-1. **registry 신규** — 후보 1 의 다음 단계. `_branch_state_paths` 가 `extra_roots` kwarg
-   로 이미 받으니, registry 가 `extra_roots` 를 만들어주는 자리가 자연스럽게 마련됐다.
-   단일 호스트면 아직 불필요.
-2. **사전 존재 red 정리** — §6. 2건 닫았고 2건 남았다
-   (`mcp_installation_by_harness.md` 사본 / bootstrap picker import).
+1. **사전 존재 red 2건 정리** — `check_standard_single_source` (mcp_installation
+   divergence) / `check_bootstrap_interactive_picker` (bootstrap_lib import).
+   dashboard 가 합격한 사이클에 정합 회복 좋은 시점.
+2. **§2.68 mavis 글로벌 mcp.json** — `standardAiWorkflowReadOnly` 13종 attach. 이전
+   축 미완. registry 가 들어왔으니 cross-host 발견 시 활용 가능 (후속 가능성).
 3. **registry** — 범위가 계속 줄어 *다중 호스트 경로 매핑* 만 남았다. 단일 호스트면 불필요하고,
    비어 있는 `environments/` 전례대로 **소비자가 생길 때** 만든다.
 4. **§2.68 (이전 축, 미완)** — mavis 글로벌 `~/.minimax/mcp/mcp.json` 에

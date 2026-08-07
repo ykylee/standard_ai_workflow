@@ -1362,6 +1362,39 @@ def _env_extra_roots() -> list[Path]:
     return out
 
 
+def _registry_extra_roots(self_root: Path) -> list[Path]:
+    """workspace_registry (§7.1) 가 알려주는 호스트의 추가 worktree 경로.
+
+    registry 가 알려주는 경로 중 ``self_root`` 와 다른 것만 합류시킨다
+    (자신은 이미 ``root`` 인자로 들어왔다). registry 부재 / read 실패 시
+    빈 리스트 — 호출자가 *조용히* fallback 한다.
+    """
+    try:
+        # local import: dashboard 가 registry 모듈에 *순환 의존* 으로 끌려 들어가는
+        # 일을 피한다. registry 자체가 dashboard 를 import 하지 않으니 안전.
+        from workflow_kit.common import workspace_registry as _wr
+    except ImportError:
+        return []
+    try:
+        candidates = _wr.registry_paths()
+    except Exception:
+        return []
+    try:
+        self_key = self_root.resolve()
+    except OSError:
+        self_key = self_root
+    out: list[Path] = []
+    for p in candidates:
+        try:
+            key = p.resolve()
+        except OSError:
+            key = p
+        if key == self_key:
+            continue
+        out.append(p)
+    return out
+
+
 def collect_recent_releases(
     workspace_root: Path,
     *,
@@ -1387,8 +1420,13 @@ def collect_recent_releases(
     # 브랜치의 state.json 을 집계** 한 뷰로 만든다. 이렇게 하면 main 전용 집계 파일을
     # 따로 커밋할 필요가 없어, protected main 에서도 merge 마다 갱신할 대상이 없다.
     if extra_roots is None:
-        # 0-config: 자기 worktree 외 + env 기반 추가
-        extras = [*_auto_extra_roots(root), *_env_extra_roots()]
+        # 0-config: 자기 worktree 외 + env 기반 추가 + registry(§7.1) 가 알려주는
+        # 호스트 워크스페이스 경로. registry 부재 시 자동 fallback (빈 리스트).
+        extras = [
+            *_auto_extra_roots(root),
+            *_env_extra_roots(),
+            *_registry_extra_roots(root),
+        ]
     else:
         extras = list(extra_roots)
     state_paths = _branch_state_paths(root, *extras)

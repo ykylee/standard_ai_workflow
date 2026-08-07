@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
       "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
       "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
       "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
@@ -50,13 +51,14 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
       "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
-      "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)"
+      "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
+      "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)"
     ]
   },
   "next_documents": [

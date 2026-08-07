@@ -135,8 +135,8 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **원격 현황 조회 도구** | ✅ **구현** — `tools/survey_remote_workspaces.py` (+ smoke 8 assertions) |
 | **선점 도구** | ✅ **구현** — `tools/claim_workspace.py` (+ smoke 9 assertions) |
 | **§10.2 세션 시작 플로우** | ✅ **전 단계 도구화 완료** (조회 → 선정 근거 → seed → 선점) |
-| workspace registry | 📋 미구현 — 다중 호스트 경로 매핑만 남음(§7) |
-| **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env. §7.3 |
+| workspace registry | ✅ **구현** (v0.15.20+) — host-scoped file, atomic write, §7.1 |
+| **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env + registry. §7.3 |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -996,10 +996,16 @@ half     owner=T   idle= 12h   active
 현재 `_branch_state_paths(root)` 는 **단일 root** 만 받는다. 여러 worktree 를 가로지르려면
 여기가 확장 지점이다.
 
-1. **workspace registry** — 서버 계층의 실체. `{path, branch, harness, host_id, endpoint, lease}`
-   목록 (§4.5 — `host_id` 발급 주체이기도 하다). **소비자(취합 뷰 / lease 중재)를 같은
-   사이클에 함께 만든다** — §4.5.5 의 `environments/` 가 소비자 없이 만들어져 비어 있는
-   전례가 있다. git 밖에 둔다.
+1. **workspace registry** — ✅ **구현** (v0.15.20+, TASK-2026-08-08-main-004). 모듈
+   `workflow_kit/common/workspace_registry.py` + CLI `tools/workspace_registry.py`.
+   `{path, branch, harness, endpoint, registered_at, last_seen_at}` entries. host-scoped
+   `~/.cache/workflow_kit/registry.json` (atomic write, 0o600). `host_id` 는
+   `WORKFLOW_HOST_ID` env > `hostname` > uuid. `register` 는 idempotent (동일 path
+   재등록 시 `last_seen_at` 만 갱신). `unregister` 는 `--path|--branch|--all`.
+   `is_stale` 7일 임계값은 *report 만* — 자동 비활성 ❌ (§5D.4 *확인 후* 원칙).
+   첫 소비자: `dashboard_data.collect_recent_releases` 가 registry paths 를
+   `_branch_state_paths` `extra_roots` 로 합류 (§7.3). 회귀
+   `tests/check_workspace_registry.py` 8/8 PASS.
 
    > **범위가 더 줄었다**: §5D 로 배타 제어를 git 이 맡고, 현황 조회는
    > `survey_remote_workspaces.py` 가 원격 브랜치에서 직접 읽는다. registry 가 남아서

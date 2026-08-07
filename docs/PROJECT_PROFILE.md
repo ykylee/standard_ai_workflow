@@ -25,6 +25,7 @@
   - v0.14.0~v0.15.0: append-only memory layout 및 2-cycle deprecation 안정화 완료 (`work_backlog.md.bak` drop)
   - v0.15.1~v0.15.15: dashboard·harness·sample·사용자 문서 cross-check 및 stale 정정; 누적 20종 smoke PASS
   - v0.15.20+: 다중 워크스페이스 오케스트레이션 — 표준 §10 + §1 정식 반영 + 도구 3종 + dashboard 복수 root 취합
+  - v0.15.20+: workspace registry 신규 (host-scoped, atomic write, §7.1 — §5A.3 in-flight 가시성)
   - v0.10.4: **CodeWhale 10번째 하네스** 추가 (2026-07-03)
 
 ## 2. 문서 구조 (Path)
@@ -70,6 +71,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   - `python workflow-source/tests/check_survey_remote_workspaces.py`
   - `python workflow-source/tests/check_claim_workspace.py`
   - `python workflow-source/tests/check_dashboard_multi_root_aggregator.py` (복수 root 취합)
+  - `python workflow-source/tests/check_workspace_registry.py` (호스트 레지스트리)
 - 워크플로우 linter: `PYTHONPATH=workflow-source python3 workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --config-path workflow-source`
   - 경로 인자를 생략하면 branch-scoped 상태 문서(`ai-workflow/memory/active/<branch>/`)를
     state.json 에서 찾아 쓴다. 예전 이 줄은 v0.5.5 릴리스 아카이브를 가리키고 있었다.

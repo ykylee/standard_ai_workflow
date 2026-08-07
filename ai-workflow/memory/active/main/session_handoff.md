@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `f97a9b1` (2026-08-07~08) + **registry 1건 (TASK-2026-08-08-main-004 완료)**.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `a3a9442` (2026-08-07~08) + **(예정 커밋) 사전 red 2건 정리 (TASK-2026-08-08-main-005)**.
 - 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합 → registry 신규** 까지 닫혔다.
   표준 §10.2 세션 시작 플로우 + dashboard Panel 5 + workspace registry 가 모두 "여러 worktree" 친화.
 - 직전 축: "mavis attach 가 안 붙는다" — 글로벌 mcp.json 등록(§2.68)은 **아직 미완**.
@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
 - TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
 - TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
 - TASK-2026-08-08-main-002 워크스페이스 선점 도구 — §10.2 플로우 완결 (smoke 9)
@@ -85,26 +86,19 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 
 ### 다음에 할 일 (순서)
 
-1. **사전 존재 red 2건 정리** — `check_standard_single_source` (mcp_installation
-   divergence) / `check_bootstrap_interactive_picker` (bootstrap_lib import).
-   dashboard 가 합격한 사이클에 정합 회복 좋은 시점.
-2. **§2.68 mavis 글로벌 mcp.json** — `standardAiWorkflowReadOnly` 13종 attach. 이전
-   축 미완. registry 가 들어왔으니 cross-host 발견 시 활용 가능 (후속 가능성).
-3. **registry** — 범위가 계속 줄어 *다중 호스트 경로 매핑* 만 남았다. 단일 호스트면 불필요하고,
-   비어 있는 `environments/` 전례대로 **소비자가 생길 때** 만든다.
-4. **§2.68 (이전 축, 미완)** — mavis 글로벌 `~/.minimax/mcp/mcp.json` 에
-   `standardAiWorkflowReadOnly` 등록 + 새 세션에서 13종 attach 검증. **절대 경로 필수**.
+1. **§2.68 mavis 글로벌 mcp.json** — `standardAiWorkflowReadOnly` 13종 attach. 이전 축.
+   registry 가 들어왔으니 cross-host 발견 시 활용 가능 (후속 가능성).
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
-**사전 존재 red — 2건 닫음, 2건 남음**:
+**사전 존재 red — 4건 모두 닫힘**:
 
 | 검사 | 상태 |
 | --- | --- |
 | `check_appendonly_memory_layout` | ✅ **닫음** — 2026-08-06 task 3건에 frontmatter 추가 |
 | `check_self_application` (`handoff_bloat`) | ✅ **닫음** — 본 문서 1096줄 → 106줄, done items 10/10. **8/8 passed** |
-| `check_standard_single_source` | ⚠️ 남음 — `mcp_installation_by_harness.md` 사본 divergence (`c63b54e`~) |
-| `check_bootstrap_interactive_picker` | ⚠️ 남음 — `ModuleNotFoundError: bootstrap_lib.__main__` |
+| `check_standard_single_source` | ✅ **닫음** (TASK-2026-08-08-main-005) — `ai-workflow/core/mcp_installation_by_harness.md` 사본을 정본(`workflow-source/core/...`)으로 cp 동기화. 7/7 PASS. 정본 = 2026-08-07 00:12 갱신본 (mavis 데스크탑 §1.2.1 + §6.5.2). |
+| `check_bootstrap_interactive_picker` | ✅ **닫음** (TASK-2026-08-08-main-005) — `bootstrap_lib.__main__` / `bootstrap_lib.harnesses` 가 `workflow-source/scripts/` 안에 있어 in-process tests 가 `sys.path` 에 `SCRIPTS_DIR` 를 올리도록 1줄 보강. 10/10 PASS. |
 
 **별건**: dashboard `drift_prevention.guard_status: fail` — `maturity_last_updated` stale.
 갱신 힌트는 dashboard 출력의 `maturity_refresh_hint`.

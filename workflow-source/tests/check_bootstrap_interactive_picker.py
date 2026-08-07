@@ -32,6 +32,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 SCRIPTS_DIR = SOURCE_ROOT / "scripts"
+# `bootstrap_lib` is `workflow-source/scripts/bootstrap_lib/` — the in-process tests
+# below import `bootstrap_lib.__main__` / `bootstrap_lib.harnesses`, so `scripts/`
+# must be on sys.path. Subprocess tests work via `cwd=SCRIPTS_DIR` (`-m bootstrap_lib`).
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 BOOTSTRAP_CLI = [sys.executable, "-m", "bootstrap_lib"]
 
 

@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `c51d052` (2026-08-07~08 커밋 5건).",
-    "current_axis": "다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 구현 완료**.",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `a3a9442` (2026-08-07~08 커밋 6건).",
+    "current_axis": "다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root → registry → 사전 red 2건 정리 완료**. 다음 축: §2.68 mavis 글로벌 mcp.json attach.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (check_standard_single_source 7/7 + check_bootstrap_interactive_picker 10/10)",
       "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
       "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
       "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
@@ -51,14 +52,15 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
       "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
       "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
-      "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)"
+      "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
+      "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (회귀 정합 회복)"
     ]
   },
   "next_documents": [

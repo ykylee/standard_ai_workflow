@@ -100,7 +100,25 @@
   지표는 `%ct`(commit date), `%at` 는 rebase 시 부적합.
   (b) **`--force` 는 사용자 확인 후에만** — push `rejected` 는 장애가 아니라 "남이 이미
   가져갔다" 는 신호이므로 기본 대응은 다른 작업 선택.
-- **구현 1단계 완료 (TASK-2026-08-07-main-004)**: `tools/seed_workspace_memory.py` +
+- **구현 2단계 완료 (TASK-2026-08-08-main-001)**: `tools/survey_remote_workspaces.py` +
+회귀 검사 8종. 표준 §10.2 의 1~3단계(원격 동기화 → 진행 상황 확인 → 작업 선정 근거)
+자동화. 직전 사이클의 seed 도구(§10.2 4단계)와 짝을 이룬다.
+
+- **활성 브랜치 = 진행 중 작업 목록** — 브랜치 선점이 곧 배타 획득이라 원격 저장소
+  자체가 현황판이다. 별도 registry 없이 동작한다.
+- **fetch 가 기본값**(`--no-fetch` 로만 생략). 낡은 ref 로 판정하면 *살아있는 작업을
+  지우자고 제안*하게 되기 때문.
+- **아무것도 삭제하지 않는다** — stale 은 판정이 아니라 질문. owner/idle/마지막 커밋/
+  작업 축을 근거로 함께 싣는다 (표준 §10.4).
+- **실측**: 실제 저장소에서 `origin/mooneye` idle=359h 탐지. bare remote + 3브랜치
+  시나리오에서 0h/12h active, 100h stale 정확 분리. **오판 경로 재현·교정 확인** —
+  다른 호스트가 되살린 브랜치가 `--no-fetch` 면 100h(stale), fetch 하면 0h(active).
+- **결함 1건**: `for-each-ref` 가 심볼릭 ref(`origin`)를 내놔 브랜치로 잡혔다 →
+  `%(symref)` 비어있지 않으면 제외. 회귀 case 2 로 고정.
+- **다음**: 선점 push 자동화(§10.2 4단계) / registry 는 **범위가 더 줄어** 다중 호스트
+  경로 매핑만 남음 — 단일 호스트면 아직 불필요.
+
+**구현 1단계 완료 (TASK-2026-08-07-main-004)**: `tools/seed_workspace_memory.py` +
 `tests/check_seed_workspace_memory.py` 신규. 표준 §10.2 의 "상태 문서를 먼저 생성" 자동화.
 
 - **착수 순서를 바꿨다**: §7 은 registry 1순위였지만 **저장 위치가 미결**(§0.8)이라

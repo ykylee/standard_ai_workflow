@@ -77,7 +77,7 @@
 
 | 단계 | 반드시 | 근거 |
 | --- | --- | --- |
-| 조회 전 | `git fetch origin --prune` | 안 하면 되살아난 브랜치를 stale 로 오판 → §5D.4a |
+| 조회 전 | `git fetch origin --prune` — `tools/survey_remote_workspaces.py` 가 기본 수행 | 안 하면 되살아난 브랜치를 stale 로 오판 → §5D.4a |
 | 조회 | 1일 초과 무활동 = `STALE` → **사용자 문의** (삭제 ❌) | §5D.4a |
 | 선점 전 | **메모리 seed** (`active/<branch>/`) — `tools/seed_workspace_memory.py` | 없으면 `session-start` 가 `missing_required_document` 로 실패 → §5A.2 |
 | 선점 | push 1회. `rejected` = 신호이지 장애가 아님 | §5D.2 |
@@ -111,7 +111,8 @@
 | `.gitattributes` union merge | ✅ 적용 (`git check-attr` + 실제 병합 검증) |
 | `memory/active/README.md` 규약 2건 | ✅ 적용 |
 | **메모리 seed 도구** | ✅ **구현** — `tools/seed_workspace_memory.py` (+ smoke 8 assertions) |
-| 브랜치 선점 플로우 | 📋 규칙은 표준 §10, **조회/선점 자동화 미착수** |
+| **원격 현황 조회 도구** | ✅ **구현** — `tools/survey_remote_workspaces.py` (+ smoke 8 assertions) |
+| 브랜치 선점 자동화 | 📋 미착수 — 선점 push 는 아직 손으로 (§10.2 4단계) |
 | workspace registry | 📋 미구현 — 저장 위치 미결(§0.8) |
 | 복수 root 취합 | 📋 미구현 |
 
@@ -879,6 +880,10 @@ for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin \
 done
 ```
 
+> **도구화됨**: 위 절차는 `tools/survey_remote_workspaces.py` 가 수행한다 (fetch 기본
+> 수행, `--stale-hours` 조정, `--json`). 심볼릭 ref(`origin` → `origin/main`)를 걸러야
+> 하는 것도 도구가 처리한다 — 안 거르면 `origin` 이 브랜치로 잡혀 매번 경고가 뜬다.
+
 실측 출력 (0h / 12h / 72h 브랜치):
 
 ```
@@ -970,7 +975,12 @@ half     owner=T   idle= 12h   active
 1. **workspace registry** — 서버 계층의 실체. `{path, branch, harness, host_id, endpoint, lease}`
    목록 (§4.5 — `host_id` 발급 주체이기도 하다). **소비자(취합 뷰 / lease 중재)를 같은
    사이클에 함께 만든다** — §4.5.5 의 `environments/` 가 소비자 없이 만들어져 비어 있는
-   전례가 있다. git 밖에 둔다. §1 표의 "서버 = 없음" 을 메우는 산출물. **§5A.3 실측으로 우선순위가 올라갔다** —
+   전례가 있다. git 밖에 둔다.
+
+   > **범위가 더 줄었다**: §5D 로 배타 제어를 git 이 맡고, 현황 조회는
+   > `survey_remote_workspaces.py` 가 원격 브랜치에서 직접 읽는다. registry 가 남아서
+   > 해야 할 일은 **여러 호스트에 흩어진 워크스페이스 *경로* 매핑**뿐이다. 단일 호스트
+   > 운영이면 아직 필요 없다. §1 표의 "서버 = 없음" 을 메우는 산출물. **§5A.3 실측으로 우선순위가 올라갔다** —
    메모리가 git-tracked 라 중앙이 in-flight 워크스페이스를 볼 수 없으므로, registry 는
    "있으면 좋은 것" 이 아니라 **중앙이 현재 상황을 아는 유일한 경로**다. git 밖에 두어야
    한다(브랜치에 실려 다니면 안 됨).

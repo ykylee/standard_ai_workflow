@@ -136,7 +136,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **선점 도구** | ✅ **구현** — `tools/claim_workspace.py` (+ smoke 9 assertions) |
 | **§10.2 세션 시작 플로우** | ✅ **전 단계 도구화 완료** (조회 → 선정 근거 → seed → 선점) |
 | workspace registry | 📋 미구현 — 다중 호스트 경로 매핑만 남음(§7) |
-| 복수 root 취합 | 📋 미구현 |
+| **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env. §7.3 |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -1023,8 +1023,13 @@ half     owner=T   idle= 12h   active
      --output-path ai-workflow/memory/active/feat-login/state.json
    ```
 
-3. **복수 root 취합** — `_branch_state_paths` 가 root 목록을 받도록. registry 가 무엇을
-   훑을지 알려준다.
+3. **복수 root 취합** — ✅ **구현** (v0.15.20+, TASK-2026-08-08-main-003).
+   `_branch_state_paths(*roots)` 가 union + dedupe + sort. 호출자
+   `collect_recent_releases` 는 `extra_roots` kwarg 로 *같은 저장소 다른 worktree* 경로
+   를 합류시킨다. 0-config: `git worktree list --porcelain` 1회 + `WORKFLOW_EXTRA_ROOTS`
+   env (`os.pathsep` 구분). registry 도입 시 registry 가 `extra_roots` 를 만들어주는
+   자리가 된다 (`§0.7` 정합). 회귀: `tests/check_dashboard_multi_root_aggregator.py`
+   6/6 PASS. §6 의 *파생 뷰* 원칙 그대로 — 새 집계 파일을 만들지 않는다.
 4. **lease 도구** — **§5D 에서 대체됨**. 배타 점유는 브랜치 선점(`git push`)이 담당하므로
    별도 lease 도구를 만들지 않는다. 대신 필요한 것은 (a) 원격 브랜치 현황 조회
    (`fetch --prune` 선행 필수), (b) **1일 초과 stale 브랜치를 사용자에게 문의**

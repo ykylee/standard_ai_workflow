@@ -30,6 +30,7 @@ Public API:
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -1264,23 +1265,108 @@ def _release_version_key(path: Path) -> tuple[int, ...]:
 # ---------------------------------------------------------------------------
 
 
-def _branch_state_paths(root: Path) -> list[Path]:
+def _branch_state_paths(*roots: Path) -> list[Path]:
     """`active/<branch>/state.json` 을 모두 반환 (branch-scoped 집계용).
 
     브랜치별 메모리에서는 각 브랜치가 자기 state.json 을 가지므로, 프로젝트 전체의
     "현재 상태"는 이들을 합친 *뷰* 로 계산한다. 별도 집계 파일을 커밋하지 않으므로
     protected main 에서도 merge 마다 갱신할 대상이 생기지 않는다.
+
+    v0.15.20+: 단일 `root` 호출은 그대로 동작 (후방 호환). 복수 `*roots` 를 넘기면
+    `active/<branch>/state.json` 들을 union + dedupe (정규화 경로) + sort 해서 돌려준다.
+    registry 가 무엇을 훑을지 알려주는 자리이며 (multi_workspace_orchestration.md §7.3),
+    registry 미존재 시 호출자(``collect_recent_releases``)가 자체적으로 worktree 경로를
+    합류시킨다.
     """
-    active = memory_active_dir(Path(root))
-    if not active.is_dir():
+    seen: set[Path] = set()
+    out: list[Path] = []
+    for raw in roots:
+        if raw is None:
+            continue
+        try:
+            root = Path(raw)
+        except TypeError:
+            continue
+        active = memory_active_dir(root)
+        if not active.is_dir():
+            continue
+        for p in active.rglob("state.json"):
+            if not p.is_file():
+                continue
+            try:
+                key = p.resolve()
+            except OSError:
+                key = p
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(p)
+    return sorted(out)
+
+
+def _auto_extra_roots(self_root: Path) -> list[Path]:
+    """`self_root` 외에 *같은 저장소* 의 worktree 경로를 자동으로 합류시킨다.
+
+    registry 없이도 한 저장소 안의 여러 worktree 메모리를 dashboard 가 모아 보게 하기
+    위한 0-config 경로 (TASK-2026-08-08-main-003, multi_workspace_orchestration.md §7.3).
+    `git` 부재 / `git worktree list` 실패 / 결과 0개 시 조용히 빈 리스트를 돌려준다.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=self_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
         return []
-    return sorted(p for p in active.rglob("state.json") if p.is_file())
+    if proc.returncode != 0 or not proc.stdout:
+        return []
+    try:
+        self_key = self_root.resolve()
+    except OSError:
+        self_key = self_root
+    extras: list[Path] = []
+    for line in proc.stdout.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("worktree "):
+            continue
+        candidate = Path(stripped[len("worktree "):].strip())
+        try:
+            key = candidate.resolve()
+        except OSError:
+            key = candidate
+        if key == self_key:
+            continue
+        extras.append(candidate)
+    return extras
+
+
+def _env_extra_roots() -> list[Path]:
+    """`WORKFLOW_EXTRA_ROOTS` env (`os.pathsep` 구분) → 경로 목록.
+
+    빈 항목 / 존재하지 않는 경로여도 *조용히* 유지한다 — 호출자(
+    ``_branch_state_paths``)가 `is_dir()` 체크로 알아서 거른다.
+    """
+    raw = os.environ.get("WORKFLOW_EXTRA_ROOTS", "")
+    if not raw:
+        return []
+    out: list[Path] = []
+    for piece in raw.split(os.pathsep):
+        p = piece.strip()
+        if not p:
+            continue
+        out.append(Path(p))
+    return out
 
 
 def collect_recent_releases(
     workspace_root: Path,
     *,
     top_n: int = DEFAULT_RECENT_RELEASES,
+    extra_roots: tuple[Path, ...] | None = None,
 ) -> dict[str, Any]:
     """state.json.session.recent_done_items 의 상위 N 개 item 을 timeline 으로 emit.
 
@@ -1291,12 +1377,21 @@ def collect_recent_releases(
 
     Returns:
         dict — Panel 5 의 data shape.
+
+    v0.15.20+: ``extra_roots`` 는 *같은 저장소의 다른 worktree 경로* 모음. 생략 시
+    `self_root` 의 `git worktree list --porcelain` 결과 + `WORKFLOW_EXTRA_ROOTS`
+    env 로 자동 보강한다. (registry 도입 시 registry 가 이 인자를 만들어주는 자리가 된다.)
     """
     root = _repo_root(workspace_root)
     # v1.0.0 branch-scoped: 메모리가 `active/<branch>/` 로 분리되므로 Panel 5 는 **모든
     # 브랜치의 state.json 을 집계** 한 뷰로 만든다. 이렇게 하면 main 전용 집계 파일을
     # 따로 커밋할 필요가 없어, protected main 에서도 merge 마다 갱신할 대상이 없다.
-    state_paths = _branch_state_paths(root)
+    if extra_roots is None:
+        # 0-config: 자기 worktree 외 + env 기반 추가
+        extras = [*_auto_extra_roots(root), *_env_extra_roots()]
+    else:
+        extras = list(extra_roots)
+    state_paths = _branch_state_paths(root, *extras)
     if not state_paths:
         legacy = state_path_for_workspace(root)
         state_paths = [legacy] if legacy.is_file() else []

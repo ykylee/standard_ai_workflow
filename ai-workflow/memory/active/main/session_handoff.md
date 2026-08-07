@@ -9,12 +9,12 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `c51d052` (2026-08-07~08 커밋 5건).
-- 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 구현 완료**.
-  표준 §10.2 세션 시작 플로우가 전 단계 도구화됐다.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `c51d052` (2026-08-07~08 커밋 5건) + **후속 1건 (TASK-2026-08-08-main-003 완료)**.
+- 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합** 까지 닫혔다.
+  표준 §10.2 세션 시작 플로우 + dashboard Panel 5 가 모두 "여러 worktree" 친화.
 - 직전 축: "mavis attach 가 안 붙는다" — 글로벌 mcp.json 등록(§2.68)은 **아직 미완**.
 - 최근 핵심 기준 문서:
-  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0 이 정본 요약**
+  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.3 구현 표시**
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙
   - [MEMORY_GOVERNANCE.md](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
 - TASK-2026-08-08-main-002 워크스페이스 선점 도구 — §10.2 플로우 완결 (smoke 9)
 - TASK-2026-08-08-main-001 원격 워크스페이스 현황 조회 도구 (smoke 8)
 - TASK-2026-08-07-main-004 메모리 seed 도구 (smoke 8)
@@ -47,7 +48,8 @@
 
 ### 무엇이 끝났나
 
-`origin/main` = `c51d052`. 커밋 5건으로 설계부터 도구화까지 닫았다.
+`origin/main` = `c51d052` + 후속 1커밋 (TASK-2026-08-08-main-003). 5건 + 1건으로
+설계부터 도구화 + dashboard 다중 root 확장까지 닫았다.
 
 - **표준 §10 "다중 작업과 협업"** 신설 + §1 bullet 2건 → **12 하네스 진입점에 자동 전파**
   (빈 저장소 bootstrap 으로 `AGENTS.md` 2/2 · `GEMINI.md` 2/2 실측).
@@ -57,20 +59,30 @@
   - `survey_remote_workspaces.py` — 원격 현황. fetch 기본, stale 은 **보고만**.
   - `claim_workspace.py` — 브랜치+seed+push 1회. **`--force` 수단 없음**.
   - `seed_workspace_memory.py` — `active/<branch>/` 생성. `state.json` 은 안 만든다.
+- **dashboard Panel 5 다중 root** (smoke 6/6):
+  - `_branch_state_paths(*roots)` — union + dedupe + sort. **파생 뷰 원칙 유지**.
+  - `collect_recent_releases(extra_roots=)` + `git worktree list --porcelain` 자동
+    합류 + `WORKFLOW_EXTRA_ROOTS` env. registry 가 들어오면 `extra_roots` 를 채워주는
+    자리가 된다.
 
 세션 시작 플로우:
 
 ```bash
 python3 workflow-source/tools/survey_remote_workspaces.py
 python3 workflow-source/tools/claim_workspace.py --branch <b> --axis "<축>" --task-title "<제목>" --apply
+python3 workflow-source/tools/seed_workspace_memory.py --branch <b> --axis "<축>" --task-title "<제목>" --apply  # 선점 시 자동 호출
 python3 workflow-source/scripts/generate_workflow_state.py \
   --project-profile-path docs/PROJECT_PROFILE.md --output-path ai-workflow/memory/active/<b>/state.json
 ```
 
+대시보드(Panel 5) 가 자동으로 모든 worktree 의 state.json 을 합쳐 본다. 다른 worktree
+를 명시적으로 합류시켜야 하면 `WORKFLOW_EXTRA_ROOTS=/path1:/path2` env 1개면 충분.
+
 ### 다음에 할 일 (순서)
 
-1. **복수 root 취합** — `_branch_state_paths(root)`(`dashboard_data.py:1267`)가 단일 root 만
-   받는다. **지금 바로 이득이 있는 유일한 항목.**
+1. **registry 신규** — 후보 1 의 다음 단계. `_branch_state_paths` 가 `extra_roots` kwarg
+   로 이미 받으니, registry 가 `extra_roots` 를 만들어주는 자리가 자연스럽게 마련됐다.
+   단일 호스트면 아직 불필요.
 2. **사전 존재 red 정리** — §6. 2건 닫았고 2건 남았다
    (`mcp_installation_by_harness.md` 사본 / bootstrap picker import).
 3. **registry** — 범위가 계속 줄어 *다중 호스트 경로 매핑* 만 남았다. 단일 호스트면 불필요하고,

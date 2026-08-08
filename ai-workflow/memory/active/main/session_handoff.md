@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `a3a9442` (2026-08-07~08) + **(예정 커밋) 사전 red 2건 정리 (TASK-2026-08-08-main-005)**.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `838b12f` (2026-08-07~08, 커밋 11건).
 - 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합 → registry 신규** 까지 닫혔다.
   표준 §10.2 세션 시작 플로우 + dashboard Panel 5 + workspace registry 가 모두 "여러 worktree" 친화.
 - 직전 축: "mavis attach 가 안 붙는다" — 글로벌 mcp.json 등록(§2.68)은 **아직 미완**.
@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-012 §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자) — Mavis 자동: §6.5.2 100% 정합 + smoke 6+6+6 PASS. collateral: TASK-009/010/011 L14 in_progress → done, baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일.
 - TASK-2026-08-08-main-011 endpoint 기반 mavis alias command/url 합성 — `cmd:` / `url:` / None / unknown 4가지 (smoke 6/6)
 - TASK-2026-08-08-main-010 RegistryEntry env 필드 + sync_mavis env 합성 — seed 가 env 자동 주입, sync_mavis 가 emit (smoke 6/6)
 - TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
@@ -38,16 +39,6 @@
 - TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
 - TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
 - TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
-- TASK-2026-08-08-main-002 워크스페이스 선점 도구 — §10.2 플로우 완결 (smoke 9)
-- TASK-2026-08-08-main-001 원격 워크스페이스 현황 조회 도구 (smoke 8)
-- TASK-2026-08-07-main-004 메모리 seed 도구 (smoke 8)
-- TASK-2026-08-07-main-003 다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)
-- TASK-2026-08-07-main-002 멀티 워크스페이스 오케스트레이션 설계 + union merge 적용
-- TASK-2026-08-07-main-001 MCP 도구 13종 세션 로드 검증 — 안 붙음 (mavis 가 글로벌 mcp.json 만 본다)
-- TASK-2026-08-06-main-004 학습회 발표자료 32번 장표 그리드 개편 + 37번 라이트 테마 통일
-- TASK-2026-08-06-main-003 학습회 덱 38장 헤더/본체 수직 정렬 표준화
-- TASK-2026-08-06-main-002 학습회 마스터 HTML 덱 제작·검증
-- TASK-2026-08-06-main-001 학습회 발표자료 컨셉·설계 v2
 
 ## 5. 다음 세션 시작 포인트
 
@@ -56,7 +47,7 @@
 
 ### 무엇이 끝났나
 
-`origin/main` = `f97a9b1` + 후속 1커밋 (TASK-2026-08-08-main-004). 6건 + 1건으로
+`origin/main` = `838b12f` (현재 HEAD). 6건 + 5건 후속 + 1건 collateral 로
 설계 → 도구 → dashboard 다중 root → registry 까지 닫았다.
 
 - **표준 §10 "다중 작업과 협업"** 신설 + §1 bullet 2건 → **12 하네스 진입점에 자동 전파**

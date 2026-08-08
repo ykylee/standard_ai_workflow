@@ -102,13 +102,51 @@ Homepage = "https://github.com/ykylee/standard_ai_workflow"
 Repository = "https://github.com/ykylee/standard_ai_workflow"
 Issues = "https://github.com/ykylee/standard_ai_workflow/issues"
 
+# v1.1.1+ (TASK-2026-08-08-main-020) — CLI 化 A안: 30+ tool 을 console_script 로 노출.
+# `pip install -e .` 후 30개 binary 가 자동 생성 (PATH 진입). dispatcher (B안) 는 후속.
+# naming: `workflow-{kebab-case}` (e.g., `workflow-registry`, `workflow-drift-detect`).
+# 기존 `python3 workflow-source/tools/X.py` 호출 경로 그대로 유지 (legacy).
+[project.scripts]
+workflow-apply-robust-patch = "tools.apply_robust_patch:main"
+workflow-archive-branch-memory = "tools.archive_branch_memory:main"
+workflow-archive-stale-memory = "tools.archive_stale_memory:main"
+workflow-audit-root-anchors = "tools.audit_root_anchors:main"
+workflow-check-packaging = "tools.check_packaging:main"
+workflow-check-quickstart-stale-links = "tools.check_quickstart_stale_links:main"
+workflow-claim-workspace = "tools.claim_workspace:main"
+workflow-consumer-metrics = "tools.consumer_metrics:main"
+workflow-create-environment-record-stub = "tools.create_environment_record_stub:main"
+workflow-detect-scope-drift = "tools.detect_scope_drift:main"
+workflow-emit-wiki-l2-body = "tools.emit_wiki_l2_body:main"
+workflow-fill-reverse-engineering-artifacts = "tools.fill_reverse_engineering_artifacts:main"
+workflow-fix-readme-for-release = "tools.fix_readme_for_release:main"
+workflow-host-pull-registry = "tools.host_pull_registry:main"
+workflow-install-pre-push-hook = "tools.install_pre_push_hook:main"
+workflow-migrate-active-to-appendonly = "tools.migrate_active_to_appendonly:main"
+workflow-migrate-legacy-l2 = "tools.migrate_legacy_l2:main"
+workflow-migrate-memory-to-branch-scoped = "tools.migrate_memory_to_branch_scoped:main"
+# Note: ``tools/mkdocs_git_dates.py`` 는 mkdocs plugin (on_page_markdown hook) 이지 CLI 가 아님.
+#   ``mkdocs`` 가 import 시점에 plugin 으로 등록. console_script 진입점 ❌.
+workflow-refresh-wiki-memory = "tools.refresh_wiki_memory:main"
+workflow-release-pipeline = "tools.release_pipeline:main"
+workflow-release-v0-13-0 = "tools.release_v0_13_0:main"
+workflow-rotate-workflow-logs = "tools.rotate_workflow_logs:main"
+workflow-score-wiki-maintainability = "tools.score_wiki_maintainability:main"
+workflow-score-wiki-trend = "tools.score_wiki_trend:main"
+workflow-seed-workspace-memory = "tools.seed_workspace_memory:main"
+workflow-survey-remote-workspaces = "tools.survey_remote_workspaces:main"
+workflow-sync-release-hash = "tools.sync_release_hash:main"
+workflow-wiki-emit = "tools.wiki_emit:main"
+workflow-workspace-registry = "tools.workspace_registry:main"
+
 [tool.setuptools]
 # ``workflow-source`` is not a single importable package — it's a bundle of:
 #   - ``workflow_kit/`` (importable, lives at workflow-source/workflow_kit/)
 #   - ``scripts/bootstrap_lib/`` (importable, lives at workflow-source/scripts/bootstrap_lib/)
+#   - ``tools/`` (v1.1.1+ importable — CLI 化 A안, [project.scripts] entry points)
 #   - skills/, mcp_servers/, templates/, examples/, etc. (non-code assets)
 #
-# For a full install we only need the two importable sub-packages on
+# For a full install we only need the importable sub-packages on
 # ``sys.path``. The rest is consumed via the repo's directory layout
 # (or copied into the consumer's project by the bootstrap script).
 packages = [
@@ -123,6 +161,7 @@ packages = [
     "workflow_kit.contract_v1",
     "workflow_kit.server",
     "workflow_kit.harness",
+    "tools",  # v1.1.1+ — CLI 化 A안: 30+ console_script entry points
 ]
 
 # Single-file modules that don't live inside a package directory.
@@ -133,8 +172,8 @@ py-modules = ["bootstrap_workflow_kit"]
 
 [tool.setuptools.package-dir]
 # Map package names to their on-disk locations. This lets us ship
-# ``workflow_kit`` and ``bootstrap_lib`` from the same distribution even
-# though they live in different subdirectories of the repo.
+# ``workflow_kit``, ``bootstrap_lib``, and ``tools`` from the same distribution
+# even though they live in different subdirectories of the repo.
 "workflow_kit" = "workflow_kit"
 "workflow_kit.common" = "workflow_kit/common"
 "workflow_kit.common.modes" = "workflow_kit/common/modes"
@@ -145,10 +184,12 @@ py-modules = ["bootstrap_workflow_kit"]
 "workflow_kit.harness" = "workflow_kit/harness"
 "bootstrap_lib" = "scripts/bootstrap_lib"
 "bootstrap_lib.harnesses" = "scripts/bootstrap_lib/harnesses"
+"tools" = "tools"  # v1.1.1+ — CLI 化 A안: 30+ console_script 의 source
 
 [tool.setuptools.package-data]
 workflow_kit = ["README.md", "py.typed"]
 bootstrap_lib = ["py.typed"]
+tools = ["hooks/pre-push-no-force.sh"]  # v1.1.1+ — pre-push hook script 도 패키지에 포함
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc", "*.pyo"]

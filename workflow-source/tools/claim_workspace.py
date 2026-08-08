@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import date
@@ -73,7 +74,10 @@ def holder_of(branch: str, *, repo_root: Path, remote: str) -> dict:
 
 def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
           task_title: str, out_of_scope: str | None, base: str,
-          today: str, apply: bool) -> dict:
+          today: str, apply: bool,
+          harness: str | None = None,
+          endpoint: str | None = None,
+          no_register: bool = False) -> dict:
     result: dict = {
         "status": "ok",
         "mode": "apply" if apply else "dry-run",
@@ -113,6 +117,20 @@ def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
         return result
 
     # --- 2) 메모리 seed ---------------------------------------------------
+    # seed 가 성공하면 자기 자신을 workspace registry 에 self-register 한다
+    # (TASK-2026-08-08-main-008, §5A.3 정합). WORKFLOW_HARNESS / WORKFLOW_ENDPOINT
+    # env 가 있으면 seed 가 그대로 채워 넣는다. claim 측에서도 명시적
+    # --harness / --endpoint forwarding 허용.
+    seed_env = {
+        "PYTHONPATH": str(SOURCE_ROOT),
+        "PATH": "/usr/bin:/bin:/usr/local/bin",
+        # 보안: 호출자 작업 디렉터리 컨텍스트 registry 가 그대로 쓰도록
+        # WORKFLOW_REGISTRY_PATH / WORKFLOW_HOST_ID 는 *덮어쓰지 않는다*.
+    }
+    for env_key in ("WORKFLOW_REGISTRY_PATH", "WORKFLOW_HOST_ID",
+                    "WORKFLOW_HARNESS", "WORKFLOW_ENDPOINT"):
+        if env_key in os.environ:
+            seed_env[env_key] = os.environ[env_key]
     seed_args = [
         sys.executable, str(SEED_TOOL),
         "--memory-root", str(memory_dir_for_workspace(repo_root)),
@@ -121,9 +139,14 @@ def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
     ]
     if out_of_scope:
         seed_args += ["--out-of-scope", out_of_scope]
+    if harness:
+        seed_args += ["--harness", harness]
+    if endpoint:
+        seed_args += ["--endpoint", endpoint]
+    if no_register:
+        seed_args += ["--no-register"]
     seed_proc = subprocess.run(seed_args, capture_output=True, text=True,
-                               env={"PYTHONPATH": str(SOURCE_ROOT),
-                                    "PATH": "/usr/bin:/bin:/usr/local/bin"})
+                               env=seed_env)
     if seed_proc.returncode != 0:
         result["status"] = "error"
         result["error"] = f"seed 실패: {seed_proc.stderr.strip()}"
@@ -207,12 +230,32 @@ def main() -> int:
     p.add_argument("--apply", action="store_true", help="실제 선점 (default: dry-run)")
     p.add_argument("--dry-run", action="store_true", dest="dry_run")
     p.add_argument("--json", action="store_true")
+    p.add_argument(
+        "--no-register",
+        action="store_true",
+        help=(
+            "seed 가 성공해도 workspace_registry 에 self-register 하지 않는다. "
+            "CI / 격리 / 회사 정책 등. 기본은 register."
+        ),
+    )
+    p.add_argument(
+        "--harness",
+        default=None,
+        help="registry entry 의 harness 필드 (env WORKFLOW_HARNESS 도 가능).",
+    )
+    p.add_argument(
+        "--endpoint",
+        default=None,
+        help="registry entry 의 endpoint 필드 (env WORKFLOW_ENDPOINT 도 가능).",
+    )
     args = p.parse_args()
     if args.dry_run:
         args.apply = False
 
     result = claim(
         repo_root=Path(args.repo_root).resolve(), remote=args.remote,
+        harness=args.harness, endpoint=args.endpoint,
+        no_register=args.no_register,
         branch=args.branch, axis=args.axis, task_title=args.task_title,
         out_of_scope=args.out_of_scope, base=args.base, today=args.today,
         apply=args.apply,

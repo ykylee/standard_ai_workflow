@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -247,6 +248,30 @@ def main() -> int:
                    help="이 워크스페이스가 건드리지 않을 영역 (다른 워크스페이스와의 충돌 방지)")
     p.add_argument("--today", default=date.today().isoformat())
     p.add_argument("--apply", action="store_true", help="실제 생성 (default: dry-run)")
+    p.add_argument(
+        "--no-register",
+        action="store_true",
+        help=(
+            "성공 시 workspace_registry 에 self-register 하지 않는다. CI / 격리 "
+            "테스트 / 회사 정책 (registry 외부 저장 금지) 등 용도. 기본은 register."
+        ),
+    )
+    p.add_argument(
+        "--harness",
+        default=None,
+        help=(
+            "Self-register 시 registry entry 의 harness 필드. 미지정이면 "
+            "WORKFLOW_HARNESS env 를 그대로 사용."
+        ),
+    )
+    p.add_argument(
+        "--endpoint",
+        default=None,
+        help=(
+            "Self-register 시 registry entry 의 endpoint 필드. 미지정이면 "
+            "WORKFLOW_ENDPOINT env 를 그대로 사용."
+        ),
+    )
     p.add_argument("--dry-run", action="store_true", dest="dry_run")
     p.add_argument("--force", action="store_true",
                    help="이미 있는 파일도 덮어쓴다 (진행 중 워크스페이스를 지울 수 있으니 주의)")
@@ -264,8 +289,38 @@ def main() -> int:
         today=args.today, apply=args.apply, force=args.force,
     )
 
+    # self-register: --apply 성공 시에만 (TASK-2026-08-08-main-008).
+    # register 는 *부가 정보* (in-flight 가시성) 이지 플로우의 본 동작이 아니므로
+    # 실패가 seed 성공 판정을 깨뜨리지 않게 격리한다. §5A.3 정합.
+    registry_status: dict[str, object] = {"attempted": False, "ok": False, "skipped": False}
+    if args.apply and not args.no_register:
+        registry_status["attempted"] = True
+        try:
+            from workflow_kit.common import workspace_registry as _wr
+            detected_harness = (
+                args.harness
+                or os.environ.get("WORKFLOW_HARNESS")
+            )
+            detected_endpoint = (
+                args.endpoint
+                or os.environ.get("WORKFLOW_ENDPOINT")
+            )
+            _wr.register(
+                REPO_ROOT,
+                branch=branch,
+                harness=detected_harness,
+                endpoint=detected_endpoint,
+            )
+            registry_status["ok"] = True
+        except Exception as exc:  # noqa: BLE001 — 5.A.3 격리
+            registry_status["error"] = f"{type(exc).__name__}: {exc}"
+    elif args.no_register:
+        registry_status["skipped"] = True
+
     if args.json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        payload = dict(result)
+        payload["registry"] = registry_status
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         print(f"=== workspace memory seed ({result['mode']}) — 브랜치: {branch} ===")
         for item in result["planned"]:
@@ -279,6 +334,13 @@ def main() -> int:
             print("  다음: python3 workflow-source/scripts/generate_workflow_state.py "
                   "--project-profile-path docs/PROJECT_PROFILE.md \\")
             print(f"          --output-path {result['branch_dir']}/state.json")
+            if registry_status["attempted"]:
+                if registry_status["ok"]:
+                    print("  registry: self-register OK")
+                elif registry_status.get("error"):
+                    print(f"  registry: self-register failed ({registry_status['error']}) — advisory")
+            elif registry_status["skipped"]:
+                print("  registry: --no-register (skipped)")
     return 0
 
 

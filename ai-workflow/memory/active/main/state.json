@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-008 — seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)",
       "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)",
       "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (~/.minimax/mcp/mcp.json merge, backup 보존, §6.5.2)",
       "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (check_standard_single_source 7/7 + check_bootstrap_interactive_picker 10/10)",
@@ -54,7 +55,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 7,
+    "task_count": 8,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -64,7 +65,8 @@
       "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
       "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (회귀 정합 회복)",
       "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
-      "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록"
+      "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록",
+      "TASK-2026-08-08-main-008 — seed_workspace_memory self-register (trigger: seed --apply 성공)"
     ]
   },
   "next_documents": [

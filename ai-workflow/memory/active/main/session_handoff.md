@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-008 seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)
 - TASK-2026-08-08-main-007 bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)
 - TASK-2026-08-08-main-006 §2.68 mavis 글로벌 mcp.json 표준 register attach — `~/.minimax/mcp/mcp.json` merge, backup 보존
 - TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
@@ -97,6 +98,9 @@ python3 workflow-source/scripts/generate_workflow_state.py \
   `python3 -m bootstrap_lib --harness mavis --enable-mcp` 가 호스트 글로벌
   `~/.minimax/mcp/mcp.json` 에 atomic merge. backup / builtin 5종 보존 / 절대
   경로 env. **mavis 데스크탑 새 세션 rotate 후 13종 attach 검증만 사용자 수동**.
+- **self-register** — ✅ **구현** (TASK-2026-08-08-main-008). seed_workspace_memory
+  의 --apply 가 자기 workspace 를 registry 에 자동 등록. claim 도 seed 를 부르므로
+  자연스럽게 따라옴.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

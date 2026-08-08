@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-010 RegistryEntry env 필드 + sync_mavis env 합성 — seed 가 env 자동 주입, sync_mavis 가 emit (smoke 6/6)
 - TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
 - TASK-2026-08-08-main-008 seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)
 - TASK-2026-08-08-main-007 bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)
@@ -105,6 +106,10 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - **registry ↔ mavis 글로벌 동기** — ✅ **구현** (TASK-2026-08-08-main-009).
   `tools/workspace_registry.py` 가 `import-mavis` / `export-mavis` / `sync-mavis` 3개
   서브커맨드. builtin 5종 보존, `__mavis__/<alias>` prefix 로 환원, default preview.
+- **RegistryEntry env + sync_mavis env 합성** — ✅ **구현** (TASK-2026-08-08-main-010).
+  env field 추가, register(env=...) kwarg, seed 가 STANDARD_AI_WORKFLOW_ROOT +
+  PYTHONPATH 자동 주입, sync_mavis 가 mavis alias env 로 emit. legacy entries
+  하위 호환.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

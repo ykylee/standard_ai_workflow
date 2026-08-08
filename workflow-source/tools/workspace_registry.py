@@ -57,6 +57,22 @@ def _print_json(payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
 
 
+def _parse_env_arg(raw: str | None) -> dict[str, str] | None:
+    if not raw:
+        return None
+    out: dict[str, str] = {}
+    for pair in raw.split(";"):
+        pair = pair.strip()
+        if not pair or "=" not in pair:
+            continue
+        k, _, v = pair.partition("=")
+        k = k.strip()
+        v = v.strip()
+        if k and v:
+            out[k] = v
+    return out or None
+
+
 def cmd_register(args: argparse.Namespace) -> int:
     if not args.path:
         print("ERROR: --path is required", file=sys.stderr)
@@ -64,6 +80,7 @@ def cmd_register(args: argparse.Namespace) -> int:
     if not args.branch:
         print("ERROR: --branch is required", file=sys.stderr)
         return 2
+    env_dict = _parse_env_arg(getattr(args, "env", None))
     summary = {
         "status": "ok" if args.apply else "dry_run",
         "action": "register",
@@ -71,6 +88,7 @@ def cmd_register(args: argparse.Namespace) -> int:
         "branch": args.branch,
         "harness": args.harness,
         "endpoint": args.endpoint,
+        "env": env_dict or {},
         "registry_path": str(R.registry_path()),
         "host_id": R.host_id(),
     }
@@ -80,6 +98,7 @@ def cmd_register(args: argparse.Namespace) -> int:
             branch=args.branch,
             harness=args.harness,
             endpoint=args.endpoint,
+            env=env_dict,
         )
         summary["entries_after"] = len(reg.entries)
     if args.json:
@@ -241,6 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--branch", required=True)
     sp.add_argument("--harness", default=None)
     sp.add_argument("--endpoint", default=None)
+    sp.add_argument("--env", default=None, help="env KEY=VAL 쌍을 ; 로 구분 (예: 'K1=V1;K2=V2')")
     sp.add_argument("--apply", action="store_true")
     sp.add_argument("--dry-run", action="store_true", help="기본 (물리적 default)")
     sp.add_argument("--json", action="store_true")

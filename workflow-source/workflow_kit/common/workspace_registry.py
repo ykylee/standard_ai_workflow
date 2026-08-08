@@ -72,6 +72,9 @@ class RegistryEntry:
 
     `path` 는 git-tracked 가 아니다 — registry 가 호스트 외부에 들고 있어야
     합쳐지지 않은(squash 못 한) worktree 도 dashboard 가 볼 수 있다 (§5A.3).
+    `env` 는 v0.15.21+ 에서 추가. mavis 글로벌 export 시 mavis alias env 로
+    그대로 emit (sync_mavis). 기존 entries (env field 누락) 는 *빈 dict* 로
+    load — 하위 호환.
     """
 
     path: str
@@ -80,12 +83,28 @@ class RegistryEntry:
     endpoint: str | None = None
     registered_at: str = ""
     last_seen_at: str = ""
+    env: tuple[tuple[str, str], ...] = ()
+
+    def env_dict(self) -> dict[str, str]:
+        return dict(self.env)
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d["env"] = dict(self.env)
+        return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "RegistryEntry":
+        env_raw = d.get("env")
+        env_items: tuple[tuple[str, str], ...] = ()
+        if isinstance(env_raw, dict):
+            env_items = tuple(
+                (str(k), str(v)) for k, v in env_raw.items() if k and v is not None
+            )
+        elif isinstance(env_raw, list):
+            # flat list of [k, v, k, v, ...] 도 호환 (defensive).
+            items = [(str(env_raw[i]), str(env_raw[i + 1])) for i in range(0, len(env_raw) - 1, 2)]
+            env_items = tuple(items)
         return cls(
             path=str(d.get("path", "")),
             branch=str(d.get("branch", "")),
@@ -93,6 +112,7 @@ class RegistryEntry:
             endpoint=(str(d["endpoint"]) if d.get("endpoint") is not None else None),
             registered_at=str(d.get("registered_at", "")),
             last_seen_at=str(d.get("last_seen_at", "")),
+            env=env_items,
         )
 
 
@@ -227,6 +247,7 @@ def register(
     branch: str,
     harness: str | None = None,
     endpoint: str | None = None,
+    env: dict[str, str] | None = None,
 ) -> Registry:
     """workspace 한 건을 등록. 동일 path 가 이미 있으면 `last_seen_at` 만 갱신.
 
@@ -235,6 +256,7 @@ def register(
         branch: 작업 브랜치 슬러그.
         harness: 하네스 식별자 (선택).
         endpoint: 외부에서 도달 가능한 endpoint (선택; 향후 cross-host 의 실마리).
+        env: 환경 변수 (선택; sync_mavis 가 mavis alias env 로 emit). v0.15.21+.
 
     Returns:
         갱신된 ``Registry``. *save 전에* 다른 일을 보고 싶을 때 쓰거나,
@@ -243,20 +265,27 @@ def register(
     reg = load()
     norm = _normalize(path)
     now = _utcnow_iso()
+    env_items: tuple[tuple[str, str], ...] = _env_to_items(env)
+
+    def _merge_existing(entry: RegistryEntry) -> RegistryEntry:
+        # env 가 명시되면 *덮어쓰기* (호출자가 의도적으로 바꾼 것으로 본다).
+        # 미지정이면 기존 env 유지.
+        merged_env = env_items if env is not None else entry.env
+        return RegistryEntry(
+            path=entry.path,
+            branch=branch or entry.branch,
+            harness=harness if harness is not None else entry.harness,
+            endpoint=endpoint if endpoint is not None else entry.endpoint,
+            registered_at=entry.registered_at or now,
+            last_seen_at=now,
+            env=merged_env,
+        )
+
     found = False
     new_entries: list[RegistryEntry] = []
     for entry in reg.entries:
         if entry.path == norm:
-            new_entries.append(
-                RegistryEntry(
-                    path=entry.path,
-                    branch=branch or entry.branch,
-                    harness=harness if harness is not None else entry.harness,
-                    endpoint=endpoint if endpoint is not None else entry.endpoint,
-                    registered_at=entry.registered_at or now,
-                    last_seen_at=now,
-                )
-            )
+            new_entries.append(_merge_existing(entry))
             found = True
         else:
             new_entries.append(entry)
@@ -269,11 +298,25 @@ def register(
                 endpoint=endpoint,
                 registered_at=now,
                 last_seen_at=now,
+                env=env_items,
             )
         )
     reg.entries = new_entries
     save(reg)
     return reg
+
+
+def _env_to_items(env: dict[str, str] | None) -> tuple[tuple[str, str], ...]:
+    """env dict → 정렬된 tuple (frozen 호환, JSON round-trip 안정)."""
+    if not env:
+        return ()
+    items = [
+        (str(k), str(v))
+        for k, v in env.items()
+        if k and v is not None and str(v) != ""
+    ]
+    items.sort()
+    return tuple(items)
 
 
 def unregister(
@@ -631,17 +674,18 @@ def sync_mavis(
     imp = import_mavis_aliases(target_path=target_path, force=False)
     # build a list of {branch, command, args, env, description, url, type} from
     # the *current* registry entries. caller (CLI) 가 가공한 형태 그대로 export.
+    # v0.15.21+ : entries.env 를 mavis alias env 로 emit.
     entries = list_entries()
     new_aliases: list[dict] = []
     for e in entries:
         if not e.branch or e.branch.startswith("__"):
             continue
-        env = {}
-        # registry entry 의 env 는 직접 없으므로, 표준 env 자동 합성 (있으면).
+        # mavis 가 cwd 가 데스크탑 런타임 자리인 점을 감안, *절대* path 만 env 에 남는다.
+        # (registry entry 의 env 가 이미 *그 workspace 의 표준 env* 라면 자동 사용.)
         new_aliases.append({
             "branch": e.branch,
             "command": None,
-            "env": env,
+            "env": e.env_dict(),
             "description": (
                 f"registry export (harness={e.harness or 'unknown'}, host={host_id()})"
             ),

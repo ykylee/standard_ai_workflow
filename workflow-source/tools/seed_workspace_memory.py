@@ -305,11 +305,19 @@ def main() -> int:
                 args.endpoint
                 or os.environ.get("WORKFLOW_ENDPOINT")
             )
+            # v0.15.21+ : env 자동 주입 — sync_mavis 가 mavis alias env 로
+            # 그대로 emit 한다. mavis 가 cwd 가 데스크탑 런타임 자리인 점을
+            # 감안, REPO_ROOT 와 PYTHONPATH 를 *절대* 경로로 박는다.
+            auto_env = {
+                "STANDARD_AI_WORKFLOW_ROOT": str(REPO_ROOT),
+                "PYTHONPATH": str(REPO_ROOT / "workflow-source"),
+            }
             _wr.register(
                 REPO_ROOT,
                 branch=branch,
                 harness=detected_harness,
                 endpoint=detected_endpoint,
+                env=auto_env,
             )
             registry_status["ok"] = True
         except Exception as exc:  # noqa: BLE001 — 5.A.3 격리

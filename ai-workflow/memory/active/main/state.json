@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit, smoke 6/6)",
       "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis, smoke 6/6)",
       "TASK-2026-08-08-main-008 — seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)",
       "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)",
@@ -56,7 +57,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 9,
+    "task_count": 10,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -68,7 +69,8 @@
       "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
       "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록",
       "TASK-2026-08-08-main-008 — seed_workspace_memory self-register (trigger: seed --apply 성공)",
-      "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)"
+      "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
+      "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit)"
     ]
   },
   "next_documents": [

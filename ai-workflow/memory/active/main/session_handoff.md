@@ -30,6 +30,7 @@
 
 - 최근 완료 작업 목록:
 - TASK-2026-08-08-main-012 §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자) — Mavis 자동: §6.5.2 100% 정합 + smoke 6+6+6 PASS. collateral: TASK-009/010/011 L14 in_progress → done, baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일.
+- TASK-2026-08-08-main-013 mavis attach end-to-end 회귀 smoke 자동화 — `check_mavis_attach_e2e.py` (stdlib only, 4-step ALL PASS — initialize / tools/list 13종 set equality / tools/call latest_backlog / tools/call check_doc_metadata). §2.68 cycle 의 *자동 검증* 닫음.
 - TASK-2026-08-08-main-011 endpoint 기반 mavis alias command/url 합성 — `cmd:` / `url:` / None / unknown 4가지 (smoke 6/6)
 - TASK-2026-08-08-main-010 RegistryEntry env 필드 + sync_mavis env 합성 — seed 가 env 자동 주입, sync_mavis 가 emit (smoke 6/6)
 - TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
@@ -38,7 +39,6 @@
 - TASK-2026-08-08-main-006 §2.68 mavis 글로벌 mcp.json 표준 register attach — `~/.minimax/mcp/mcp.json` merge, backup 보존
 - TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
 - TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
-- TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
 
 ## 5. 다음 세션 시작 포인트
 

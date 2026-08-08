@@ -35,6 +35,7 @@
     "recent_done_items": [
       "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지, smoke 6/6)",
       "TASK-2026-08-08-main-012 — §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (Mavis 자동: §6.5.2 100% 정합 + smoke 6+6+6 PASS / 사용자 수동: rotate 후 확인)",
+      "TASK-2026-08-08-main-013 — mavis attach end-to-end 회귀 smoke 자동화 (check_mavis_attach_e2e.py, stdlib only, 4-step verify ALL PASS — initialize / tools/list 13종 set equality / tools/call × 2)",
       "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit, smoke 6/6)",
       "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis, smoke 6/6)",
       "TASK-2026-08-08-main-008 — seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)",
@@ -59,7 +60,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 12,
+    "task_count": 13,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -74,7 +75,8 @@
       "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
       "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit)",
       "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지)",
-      "TASK-2026-08-08-main-012 — §2.68 mavis attach 수동 검증 (collateral: TASK-009/010/011 L14 in_progress → done, handoff baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일)"
+      "TASK-2026-08-08-main-012 — §2.68 mavis attach 수동 검증 (collateral: TASK-009/010/011 L14 in_progress → done, handoff baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일)",
+      "TASK-2026-08-08-main-013 — mavis attach e2e 회귀 smoke 자동화 (check_mavis_attach_e2e.py, stdlib only, 4-step ALL PASS)"
     ]
   },
   "next_documents": [

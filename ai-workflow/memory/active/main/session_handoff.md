@@ -4,15 +4,15 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-08 (22:06 KST, §2.68 cycle close + 갈래2 trust 채택)
+- 최종 수정일: 2026-08-08 (23:08 KST, v1.1.0-beta release 발행)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). **TASK-2026-08-08-main-014/015/016** 로 +3 (commit push 후).
-- 현재 주 작업 축: §2.68 cycle **전부 close** + **§0.8 #1 (federation 정공법)** + **§0.8 #2 (in-flight 신뢰도)** + **TASK-016 (HTTP pull + dashboard federation 통합)** close. federation *읽기* 까지 닫음.
-- 직전 축: TASK-016 *federation HTTP pull + dashboard 통합* — `pull_remote_registry()` / `merge_with_remotes()` / remote cache (TTL 1h, atomic 0o600) + `http.server` in thread 8 case smoke ALL PASS + `time.mktime` → `calendar.timegm` 함정 정정 + dashboard `_registry_extra_roots` 자동 통합. §7.4 *HTTP fetch* section 신설.
-- 다음 후보 축: TASK-017 (HTTP server 도구, 각 호스트가 자기 registry serving) / §0.8 #3 / §0.8 #4 / release 묶음.
+- 현재 기준선: **v1.1.0-beta** + `origin/main` = `564ce36` (2026-08-08, **§0.8 4건 close + dual mode + federation *읽기* 묶음 release**). tag `v1.1.0-beta` push + GitHub Release 발행.
+- 현재 주 작업 축: **v1.1.0-beta release** (Beta-v1.0.0 → v1.1.0-beta). §0.8 의 *열린 채로* 남아있던 4건 (registry federation / in-flight 신뢰도 / scope drift / --force 이중화) 모두 close. PROJECT_PROFILE.md 정합 회복.
+- 직전 축: **TASK-019** (3-layer defense — pre-push hook + 3-layer defense section) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 7 TASK + §2.68 cycle = release 묶음.
+- 다음 후보 축: TASK-021+ (HTTP server 도구, 각 호스트가 자기 registry serving) / v2 (title semantic drift, LLM-based) / Phase 13 진입 / release 운영자 결정.
 - 최근 핵심 기준 문서:
   - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시** + §0.8 *아직 열려 있는 것* 4건
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙

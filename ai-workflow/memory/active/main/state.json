@@ -28,12 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). §2.68 cycle (TASK-2026-08-08-main-006~013) 전부 닫힘.",
-    "current_axis": "§2.68 cycle + §0.8 #1 + #2 + #3 + #4 + TASK-016/017/018/019 close. 진행 중: (없음). 다음: release 묶음 (v0.15.20+~v0.15.27+, TASK-001~019).",
+    "current_axis": "v1.1.0-beta release 발행 (564ce36, tag v1.1.0-beta). §2.68 cycle + §0.8 4건 + dual mode CLI + federation *읽기* 묶음. 진행 중: (없음). 다음: 후속 (TASK-021+ HTTP server 도구 / v2 title semantic drift / release 운영자 결정).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-08-08-main-019 — --force server-side 이중화 (3-layer defense, pre-push hook + idempotent install + 7 case smoke ALL PASS)",
+      "TASK-2026-08-08-main-019 — --force server-side 이중화 (3-layer defense, pre-push hook + idempotent install + 7 case smoke ALL PASS) + v1.1.0-beta release 발행",
       "TASK-2026-08-08-main-018 — scope drift detection (병합 시점, §0.8 #3, 3-way enum + drift_score + 7 case smoke ALL PASS)",
       "TASK-2026-08-08-main-017 — operational MCP tool 4종 CLI wrapper (dual mode, 4 case smoke ALL PASS, CLI ↔ MCP byte-equal output)",
       "TASK-2026-08-08-main-016 — HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리, urllib only + cache TTL 1h + 8 case smoke ALL PASS)",

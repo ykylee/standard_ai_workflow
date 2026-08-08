@@ -886,6 +886,11 @@ class KnownHost:
     endpoint: str
     added_at: str = ""
     note: str = ""
+    #: v1.1.2+ (TASK-022, additive). 상대 호스트가 `--token-env` 로 떠 있을 때 쓸
+    #: **환경변수 이름**. 토큰 *값* 은 여기 담지 않는다 — known_hosts.json 은 0o600
+    #: 이지만 그래도 평문 파일이고, 백업 / 동기화로 쉽게 새어 나간다. 값은 pull
+    #: 시점에 환경에서 읽는다. 비어 있으면 인증 헤더를 안 붙인다 (기존 동작).
+    token_env: str = ""
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -898,6 +903,8 @@ class KnownHost:
             endpoint=str(d.get("endpoint", "")),
             added_at=str(d.get("added_at", "")),
             note=str(d.get("note", "")),
+            # missing → "" (하위호환: v1.1.1 이전 known_hosts.json 을 그대로 읽는다)
+            token_env=str(d.get("token_env", "")),
         )
 
 
@@ -968,7 +975,9 @@ def save_known_hosts(hosts: list[KnownHost]) -> None:
         raise
 
 
-def add_known_host(host_id: str, endpoint: str, *, note: str = "") -> list[KnownHost]:
+def add_known_host(
+    host_id: str, endpoint: str, *, note: str = "", token_env: str = ""
+) -> list[KnownHost]:
     """known host 1건 등록. 동일 host_id 가 있으면 endpoint / note 만 갱신 (idempotent).
 
     본 호스트 (현재 host_id) 는 *자동 제외* — 자기 자신을 known host 로 등록할
@@ -990,6 +999,9 @@ def add_known_host(host_id: str, endpoint: str, *, note: str = "") -> list[Known
                     endpoint=endpoint,
                     added_at=h.added_at or now,
                     note=note or h.note,
+                    # 빈 값이면 기존 것을 유지 — endpoint 만 고치려던 호출이 토큰
+                    # 설정을 조용히 날리면 다음 pull 이 401 로 죽는다.
+                    token_env=token_env or h.token_env,
                 )
             )
             found = True
@@ -1002,6 +1014,7 @@ def add_known_host(host_id: str, endpoint: str, *, note: str = "") -> list[Known
                 endpoint=endpoint,
                 added_at=now,
                 note=note,
+                token_env=token_env,
             )
         )
     save_known_hosts(sorted(new_hosts, key=lambda h: h.host_id))
@@ -1185,8 +1198,13 @@ def _save_remote_cache(host_id: str, registry_dict: dict) -> None:
         raise
 
 
-def _fetch_url(url: str, *, timeout: float) -> bytes:
+def _fetch_url(url: str, *, timeout: float, token_env: str = "") -> bytes:
     """``urllib.request.urlopen`` thin wrapper. ``http://`` 와 ``file://`` 만 지원.
+
+    Args:
+        token_env: v1.1.2+ (TASK-022). 비어 있지 않으면 그 *환경변수* 값을
+            ``Authorization: Bearer`` 로 붙인다. 이름만 받고 값은 여기서 읽는다 —
+            호출부가 토큰을 들고 다니지 않게 한다.
 
     Returns:
         response body (bytes).
@@ -1204,7 +1222,15 @@ def _fetch_url(url: str, *, timeout: float) -> bytes:
         return p.read_bytes()
     if not (url.startswith("http://") or url.startswith("https://")):
         raise OSError(f"unsupported URL scheme: {url.split(':', 1)[0]!r} (http/https/file 만)")
-    req = urllib.request.Request(url, headers={"User-Agent": "workflow_kit/0.15.24"})
+    headers = {"User-Agent": "workflow_kit/0.15.24"}
+    if token_env:
+        token = os.environ.get(token_env, "")
+        if not token:
+            raise OSError(
+                f"token_env {token_env!r} is set for this host but the env var is empty"
+            )
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
@@ -1230,7 +1256,7 @@ def pull_remote_registry(
         return {"ok": False, "error": f"host {host_id!r} not in known_hosts", "from_cache": False}
     endpoint = hosts[host_id].endpoint
     try:
-        body = _fetch_url(endpoint, timeout=timeout)
+        body = _fetch_url(endpoint, timeout=timeout, token_env=hosts[host_id].token_env)
     except Exception as e:  # noqa: BLE001 — timeout / OSError / urllib.error / JSON
         err = f"{type(e).__name__}: {e}"
         if use_cache:

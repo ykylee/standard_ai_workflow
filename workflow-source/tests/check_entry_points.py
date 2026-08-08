@@ -30,19 +30,44 @@ PYPROJECT = REPO_ROOT / "workflow-source" / "pyproject.toml"
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
 
+#: A안 규칙(`workflow-<name>` → `tools.X:main`)의 **의도된 예외**.
+#:
+#: v1.1.2 의 B안 dispatcher 다. 29개 tool 을 하나로 묶는 진입점이라 `tools.*` 를
+#: 가리킬 수 없고 (`workflow_kit_cli` 가 registry 를 들고 있다), 이름도 짧아야 쓴다
+#: (`wk survey-remote-workspaces` 가 요점이지 `workflow-wk` 가 아니다).
+#: 예외를 목록으로 두는 이유: 규칙을 느슨하게 풀면 A안 29개가 조용히 흐트러진다.
+DISPATCHER_EXCEPTIONS: dict[str, str] = {
+    "wk": "workflow_kit.workflow_kit_cli:wk_main",
+}
+
+
 def main() -> int:
     failures: list[str] = []
 
     # 1) pyproject.toml valid + 30+ entry points
     with PYPROJECT.open("rb") as f:
         data = tomllib.load(f)
-    scripts = data.get("project", {}).get("scripts", {})
+    all_scripts = data.get("project", {}).get("scripts", {})
+
+    # 예외는 *값까지* 맞아야 통과한다 — 이름만 비켜 두면 대상이 바뀌어도 안 걸린다.
+    for name, expected_target in DISPATCHER_EXCEPTIONS.items():
+        actual = all_scripts.get(name)
+        if actual is None:
+            failures.append(f"[1] dispatcher entry point 부재: {name}")
+        elif actual != expected_target:
+            failures.append(
+                f"[1] dispatcher target 불일치: {name}={actual!r} (expected {expected_target!r})"
+            )
+
+    # 나머지 검사는 A안 규칙 대상(= 예외를 뺀 것)만 본다.
+    scripts = {k: v for k, v in all_scripts.items() if k not in DISPATCHER_EXCEPTIONS}
+
     if len(scripts) < 25:
         failures.append(f"[1] entry points: {len(scripts)} < 25 (expected ≥30)")
 
     # sanity: 중복 command name + format
-    if len(scripts) != len(set(scripts.keys())):
-        dups = [k for k in scripts if list(scripts.keys()).count(k) > 1]
+    if len(all_scripts) != len(set(all_scripts.keys())):
+        dups = [k for k in all_scripts if list(all_scripts.keys()).count(k) > 1]
         failures.append(f"[1] duplicate command names: {set(dups)}")
     bad_fmt = [k for k in scripts if not k.startswith("workflow-")]
     if bad_fmt:

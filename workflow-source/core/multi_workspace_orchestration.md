@@ -144,6 +144,10 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **operational MCP tool CLI wrapper (dual mode)** | ✅ **구현** (v0.15.25+) — 4개 operational tool (`rotate_workflow_logs` / `apply_robust_patch` / `create_environment_record_stub` / `check_quickstart_stale_links`) 의 CLI wrapper. 같은 underlying `*_payload` 함수 호출 → CLI ↔ MCP *byte-equal* output. `tools/` 4 신규 + `tests/check_cli_wrappers.py` (4 case ALL PASS). 9 tool 은 MCP 유지 (LLM-interpretation 필수). (TASK-2026-08-08-main-017) |
 | **scope drift detection (병합 시점)** | ✅ **구현** (v0.15.26+) — `workflow_kit.common.drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI. 3-way enum (`planned_done` / `planned_undone` / `unplanned_done`, TASK-ID 기준) + drift_score (0.0~∞) + score_band (clean/minor/significant/major). pre handoff 의 *다음에 할 일* + post handoff 의 *최근 완료 작업* + git log 합집합 비교. advisory default, `--exit-on-drift` 명시 시 non-zero. (TASK-2026-08-08-main-018) |
 | **`--force` server-side 이중화 (3-layer defense)** | ✅ **구현** (v0.15.27+) — `tools/install_pre_push_hook.py` (install/uninstall/status) + `tools/hooks/pre-push-no-force.sh` (POSIX sh). 1st (claim_workspace.py 가 --force option 미제공) + 2nd (pre-push hook 이 사람 / 스크립트의 직접 `git push --force` 차단) + 3rd (server branch protection, 가이드). 7 case smoke ALL PASS. (TASK-2026-08-08-main-019) |
+| **CLI 化 B안 — 단일 dispatcher `wk`** | ✅ **구현** (v1.1.2+) — 새 dispatcher 를 만들지 않고 기존 `workflow_kit_cli.COMMANDS` 에 tools 29개를 lazy 등록. `wk <name>` positional + 기존 `--command=` 둘 다 유지 (38 + 27 = 65 command). `workflow_kit/common/tool_dispatch.py` 의 `TOOL_MODULES` 가 정본이고 `[project.scripts]` 와의 일치를 검사가 강제. `--list-commands` + bash/zsh completion. 10 case smoke ALL PASS + venv e2e. (TASK-2026-08-09-main-002) |
+| **registry HTTP server (federation *쓰기*)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/registry_server.py` + `tools/host_serve_registry.py`. loopback 기본 / read-only (쓰기 405) / 경로 2개만 (`/registry.json` + `/healthz`) / 토큰은 **환경변수 이름** 으로 (`--token-env`). pull 측에 `KnownHost.token_env` additive + `add-known-host` / `remove-known-host` CLI 신설 — **API 는 TASK-015 부터 있었지만 부르는 CLI 가 없어 federation 이 실제로는 돌 수 없었다.** 9 case smoke ALL PASS (실제 서버 ↔ pull 왕복). (TASK-2026-08-09-main-003) |
+| **branch protection 자동 check (3rd layer)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/branch_protection.py` (pure 판정) + `tools/check_branch_protection.py` (`gh api`). 보호를 *켜지 않는다* — 판정만 한다 (§5D.4). `gh` 부재/미인증은 graceful skip (모름 ≠ 없음), `--require-gh` 로 구분 가능. advisory default, `--exit-on-unprotected` 로 게이트. 8 case smoke ALL PASS. (TASK-2026-08-09-main-004) |
+| **title semantic drift v2** | ✅ **구현** (v1.1.2+) — v1 은 TASK-ID *집합* 만 봐서 같은 ID 안에서 내용이 바뀌면 언제나 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델 — API 직접 호출 ❌). `detect_scope_drift()` 에 `title_drift` additive. 11 case smoke ALL PASS. (TASK-2026-08-09-main-005) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -949,7 +953,7 @@ half     owner=T   idle= 12h   active
 |---|---|---|---|
 | 1st | **규약** | `tools/claim_workspace.py` | `--force` option *미제공* — 도구 자체가 force path 노출 안 함 |
 | 2nd | **Client hook** | `.git/hooks/pre-push` | 사람 / 외부 스크립트의 *직접* `git push --force` 차단 (TASK-019) |
-| 3rd | **Server branch protection** | GitHub / Gitea repo settings | 운영자 결정 (가이드, 자동 check ❌ — 후속) |
+| 3rd | **Server branch protection** | GitHub / Gitea repo settings | 운영자 결정 — 켜는 건 사람이, **켜졌는지 확인은 도구가** (v1.1.2+, TASK-023) |
 
 **Layer 2 (TASK-019) 설치**:
 
@@ -971,6 +975,31 @@ python3 workflow-source/tools/install_pre_push_hook.py uninstall --apply
 - 거부 대상: `--force` / `-f` / `--force-with-lease` / `--force-if-includes` / `+refspec`
 - 기존 hook 있으면 `pre-push.bak.<UTC-ISO>` 으로 backup 자동.
 - smoke `check_pre_push_hook.py` (7 case ALL PASS).
+
+**Layer 3 확인 (TASK-023, v1.1.2+)**:
+
+layer 2 는 **로컬 설치형** 이라 hook 을 안 깐 호스트는 그대로 통과한다. 그 구멍을
+메우는 게 서버측 branch protection 인데, 그건 *가이드* 로만 있었다 — 가이드는
+지켜졌는지 아무도 확인하지 않으므로 실질적으로 layer 가 둘뿐인 것과 같았다.
+
+```bash
+wk check-branch-protection                      # advisory (현재 저장소 main)
+wk check-branch-protection --json --branch main
+wk check-branch-protection --exit-on-unprotected  # CI 게이트
+```
+
+- **보호를 켜지 않는다. 판정만 한다.** branch protection 변경은 저장소 소유자의
+  결정이고, 도구가 조용히 바꿀 종류의 설정이 아니다.
+- `allow_force_pushes` / `allow_deletions` 가 모두 차단돼야 통과. `enforce_admins`
+  는 참고로만 보고한다 (팀마다 정책이 다르다).
+- **필드를 읽지 못하면 통과로 치지 않는다** — 권한 부족으로 `null` 이 온 것과
+  실제로 꺼져 있는 것을 섞으면 검사가 거짓 안심을 준다.
+- `gh` 부재/미인증은 **graceful skip** (rc 0). 보호 상태를 *모르는 것* 과 보호가
+  *없는 것* 은 다르다. CI 에서 그 구분이 필요하면 `--require-gh`.
+- smoke `check_branch_protection_smoke.py` (8 case ALL PASS, gh 없이 fixture 로).
+
+> **이 저장소의 현재 상태 (2026-08-09 실측)**: `ykylee/standard_ai_workflow@main` 에는
+> branch protection 이 **없다** (404). 3rd layer 가 비어 있다 — 켤지는 소유자 판단.
 
 push 가 `rejected` 되면 그것은 *뚫어야 할 장애* 가 아니라 **다른 에이전트가 이미
 그 작업을 가져갔다는 신호**다. 기본 대응은 §5D.5 5 번 — 다른 작업을 고른다.
@@ -1232,6 +1261,59 @@ remote 의 in-flight 가시성은 `Panel 5` 의 `confidence` + `source_host_id` 
   7. known_hosts remove (existing + missing no-op)
   8. merge determinism (입력 순서 무관 — `(source_host_id, branch, path)` 정렬)
 
+### HTTP serving — federation 의 *쓰기* 쪽 (v1.1.2+, TASK-022)
+
+TASK-016 이 pull 을 닫았지만 **상대편이 없었다.** 읽을 곳을 아무도 서빙하지 않으니
+`endpoint` 는 사실상 `file://` (sshfs mount 가정) 로만 쓸 수 있었고 `http://` 는
+문서상의 형식일 뿐이었다. 그리고 더 조용한 구멍이 하나 더 있었다 —
+`add_known_host()` API 는 TASK-015 부터 있었지만 **그걸 부르는 CLI 가 없었다.**
+서버를 띄워도 상대가 등록할 방법이 없으니 federation 은 어느 쪽으로도 돌지 않았다.
+
+| 구성 | 위치 |
+| --- | --- |
+| 서버 로직 | `workflow_kit/common/registry_server.py` |
+| CLI | `tools/host_serve_registry.py` (`wk host-serve-registry`) |
+| 등록 CLI | `tools/host_pull_registry.py add-known-host` / `remove-known-host` |
+
+**안전 기본값과 그 이유**:
+
+- **bind 는 `127.0.0.1`.** registry 에는 워크스페이스 **절대 경로와 브랜치 이름**
+  이 들어 있다. 파일은 0o600 으로 지키면서 HTTP 를 `0.0.0.0` 에 열면 그 보호가
+  무의미해진다. 외부 bind 는 명시해야 하고, 그때 경고한다 (거부하지는 않는다 —
+  LAN federation 은 정당한 사용이다).
+- **`SimpleHTTPRequestHandler` 를 쓰지 않는다.** 그건 디렉터리를 통째로 노출하고
+  path traversal 표면을 함께 들여온다. 아는 경로는 `/registry.json` 과
+  `/healthz` 둘뿐이고 나머지는 404 다.
+- **read-only.** POST/PUT/DELETE/PATCH 는 405. 원격이 남의 registry 를 고칠 수
+  있으면 "읽어서 판단한다" 는 federation 모델 자체가 무너진다.
+- **토큰은 값이 아니라 환경변수 *이름* 으로 받는다** (`--token-env`).
+  `--token=SECRET` 은 `ps` 와 shell history 에 그대로 남는다. `KnownHost.token_env`
+  도 같은 이유로 이름만 저장한다 — `known_hosts.json` 은 0o600 이지만 백업과
+  동기화로 쉽게 새어 나가는 평문 파일이다.
+- **registry 파일이 없으면 빈 registry 를 준다** (404 아님). 아직 아무것도 등록
+  안 한 호스트도 정상 참여자이고, 404 로 답하면 상대가 *호스트가 죽었다* 고
+  오해한다.
+- `Cache-Control: no-store` — 중간 캐시가 오래된 뷰를 주면 §0.8 #2 의
+  confidence 판정(`last_seen_at` 기반)이 통째로 거짓말이 된다.
+
+```bash
+# 서빙 (loopback)
+wk host-serve-registry --port 8765
+
+# LAN + 토큰
+export WK_REGISTRY_TOKEN=$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')
+wk host-serve-registry --bind 0.0.0.0 --port 8765 --token-env WK_REGISTRY_TOKEN
+
+# 상대 호스트에서 등록 후 pull
+wk host-pull-registry add-known-host --host-id hostA \
+    --endpoint http://hostA:8765/registry.json --token-env WK_REGISTRY_TOKEN --apply
+wk host-pull-registry pull --host hostA
+```
+
+`tests/check_registry_server.py` 9 case ALL PASS — 서버 응답만 보지 않고 **실제로
+띄워서 `pull_remote_registry()` 로 되받는다.** 서버 단독 검사는 `_fetch_url` 쪽
+계약 위반을 놓친다.
+
 ## 7.5 Scope drift detection — §0.8 #3 (v0.15.26+, TASK-018)
 
 **문제** (§0.8 #3 원문): "seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출."
@@ -1303,6 +1385,52 @@ python3 workflow-source/tools/detect_scope_drift.py --pre-commit origin/main
 
 # CI smoke — drift 발견 시 fail
 python3 workflow-source/tools/detect_scope_drift.py --exit-on-drift
+```
+
+### v2 — title semantic drift (v1.1.2+, TASK-024)
+
+v1 은 TASK-ID **집합** 만 비교했다. 그래서 "TASK-001 을 계획했고 TASK-001 을 했다"
+면 그 사이에서 내용이 통째로 바뀌었어도 **언제나 clean** 이었다. ID 는 범위 이탈의
+*일부* 만 본다.
+
+v2 는 같은 ID 의 **제목** 을 비교한다. 판정은 하지 않고 *후보* 만 고른다:
+
+| 단계 | 무엇 |
+| --- | --- |
+| 추출 | `extract_task_titles()` — 세 형식 지원 (아래 함정 참조) |
+| 비교 | `title_similarity()` — `difflib.SequenceMatcher` 문자 기반 |
+| 선별 | `detect_title_drift()` — `similarity < 0.6` 이면 `suspect` |
+| 판정 | `generate_title_drift_prompt()` — LLM 이 3 분류 (`same_work` / `refined_wording` / `different_work`) |
+
+LLM API 를 **직접 부르지 않는다.** `purpose_refresh` 와 같은 advisory 모델이다 —
+prompt 를 만들어 두면 하네스의 에이전트가 읽고 판단하고, 자동 적용은 없다. 제목이
+바뀐 이유를 아는 건 결국 사람이다.
+
+**함정 — TASK-ID 는 줄의 어디에나 온다.** 처음 구현은 ID *뒤* 만 제목으로 봤는데,
+handoff §5 는 ID 가 **뒤에** 오는 형식이라 설명의 꼬리를 집었다 (실측:
+`", 본 세션). 4-level enum + Panel 5"`). 지금은 ID 앞에 텍스트가 있으면 그쪽을 쓴다.
+
+```
+- TASK-xxx 제목 — 상세…               (handoff §4: 앞)
+- **TASK-xxx** [tag] 제목              (backlog:    앞)
+- **항목명** — ✅ 닫힘 (TASK-xxx, …)   (handoff §5: 뒤)  ← 놓쳤던 형식
+```
+
+임계 0.6 은 실측으로 고른 값이 아니라 출발점이다. 판정이 아니라 **후보 선별** 이라
+느슨한 쪽에 뒀다 — 실제로 이 저장소 handoff 에 돌리면 같은 일의 표현 차이
+(`§0.8 #2 in-flight 신뢰도` ↔ `in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)`,
+similarity 0.48) 도 후보로 올라온다. advisory 이므로 그대로 두되, 운영 데이터가
+쌓이면 조정할 자리다.
+
+```bash
+# 후보까지 같이 본다 (기본)
+wk detect-scope-drift
+
+# LLM 판정 prompt 만
+wk detect-scope-drift --emit-title-prompt
+
+# 임계 조정 / 게이트
+wk detect-scope-drift --title-threshold 0.4 --exit-on-title-drift
 ```
 
 ## 8. 범위 밖

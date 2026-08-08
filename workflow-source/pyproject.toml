@@ -107,10 +107,17 @@ Issues = "https://github.com/ykylee/standard_ai_workflow/issues"
 # naming: `workflow-{kebab-case}` (e.g., `workflow-registry`, `workflow-drift-detect`).
 # 기존 `python3 workflow-source/tools/X.py` 호출 경로 그대로 유지 (legacy).
 [project.scripts]
+# v1.1.2+ (CLI 化 B안): 단일 dispatcher. `wk <name>` 이 아래 29개 + workflow_kit_cli
+#   의 38 subcommand 를 같은 이름 공간에서 부른다. 정본은
+#   `workflow_kit/common/tool_dispatch.py` 의 TOOL_MODULES — 아래 목록과 갈라지면
+#   `tests/check_wk_dispatcher.py` 가 red 를 낸다.
+wk = "workflow_kit.workflow_kit_cli:wk_main"
+
 workflow-apply-robust-patch = "tools.apply_robust_patch:main"
 workflow-archive-branch-memory = "tools.archive_branch_memory:main"
 workflow-archive-stale-memory = "tools.archive_stale_memory:main"
 workflow-audit-root-anchors = "tools.audit_root_anchors:main"
+workflow-check-branch-protection = "tools.check_branch_protection:main"
 workflow-check-packaging = "tools.check_packaging:main"
 workflow-check-quickstart-stale-links = "tools.check_quickstart_stale_links:main"
 workflow-claim-workspace = "tools.claim_workspace:main"
@@ -121,6 +128,7 @@ workflow-emit-wiki-l2-body = "tools.emit_wiki_l2_body:main"
 workflow-fill-reverse-engineering-artifacts = "tools.fill_reverse_engineering_artifacts:main"
 workflow-fix-readme-for-release = "tools.fix_readme_for_release:main"
 workflow-host-pull-registry = "tools.host_pull_registry:main"
+workflow-host-serve-registry = "tools.host_serve_registry:main"
 workflow-install-pre-push-hook = "tools.install_pre_push_hook:main"
 workflow-migrate-active-to-appendonly = "tools.migrate_active_to_appendonly:main"
 workflow-migrate-legacy-l2 = "tools.migrate_legacy_l2:main"

@@ -112,7 +112,77 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"self_host_id: {R.host_id()}")
         print(f"known hosts: {len(hosts)}")
         for h in hosts:
-            print(f"  - {h.host_id} @ {h.endpoint}  (added {h.added_at})")
+            auth = f"  [token_env={h.token_env}]" if h.token_env else ""
+            print(f"  - {h.host_id} @ {h.endpoint}  (added {h.added_at}){auth}")
+    return 0
+
+
+def cmd_add_known_host(args: argparse.Namespace) -> int:
+    """known host 1건 등록 / 갱신 (v1.1.2+, TASK-022).
+
+    `add_known_host()` API 는 TASK-015 부터 있었지만 **부르는 CLI 가 없었다** —
+    운영자가 등록할 방법이 없으니 federation 이 실제로는 돌 수 없었다. HTTP
+    서버(TASK-022)를 띄워도 상대가 등록을 못 하면 그대로 반쪽이다.
+    """
+    if not args.apply:
+        _print_json({
+            "ok": True,
+            "dry_run": True,
+            "would_add": {
+                "host_id": args.host_id,
+                "endpoint": args.endpoint,
+                "note": args.note,
+                "token_env": args.token_env,
+            },
+            "hint": "--apply 를 붙이면 실제로 기록합니다.",
+        }) if args.json else print(
+            f"[dry-run] {args.host_id} @ {args.endpoint}"
+            + (f" (token_env={args.token_env})" if args.token_env else "")
+            + "\n--apply 를 붙이면 실제로 기록합니다."
+        )
+        return 0
+
+    hosts = R.add_known_host(
+        args.host_id, args.endpoint, note=args.note, token_env=args.token_env
+    )
+    # self-host 는 add_known_host 가 no-op 으로 흘린다 — 조용히 성공한 척하지 않는다.
+    registered = any(h.host_id == args.host_id for h in hosts)
+    payload = {
+        "ok": registered,
+        "host_id": args.host_id,
+        "count": len(hosts),
+        "hosts": [h.to_dict() for h in hosts],
+    }
+    if not registered:
+        payload["note"] = (
+            f"{args.host_id} 는 이 호스트 자신(self host_id)이라 등록하지 않았습니다."
+        )
+    if args.json:
+        _print_json(payload)
+    else:
+        if registered:
+            print(f"registered: {args.host_id} @ {args.endpoint}")
+        else:
+            print(f"skipped: {payload['note']}")
+        print(f"known hosts: {len(hosts)}")
+    return 0 if registered else 1
+
+
+def cmd_remove_known_host(args: argparse.Namespace) -> int:
+    """known host 1건 해제 (v1.1.2+, TASK-022)."""
+    before = {h.host_id for h in R.load_known_hosts()}
+    if args.host_id not in before:
+        print(f"ERROR: unknown host_id: {args.host_id}", file=sys.stderr)
+        return 1
+    if not args.apply:
+        print(f"[dry-run] would remove {args.host_id}\n--apply 를 붙이면 실제로 지웁니다.")
+        return 0
+    hosts = R.remove_known_host(args.host_id)
+    if args.json:
+        _print_json({"ok": True, "removed": args.host_id, "count": len(hosts)})
+    else:
+        print(f"removed: {args.host_id}")
+        print(f"known hosts: {len(hosts)}")
     return 0
 
 
@@ -163,6 +233,32 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("list", help="known hosts 목록")
     sp.add_argument("--json", action="store_true")
     sp.set_defaults(func=cmd_list)
+
+    # add-known-host (v1.1.2+, TASK-022)
+    sp = sub.add_parser("add-known-host", help="known host 등록 / 갱신")
+    sp.add_argument("--host-id", required=True, help="상대 호스트의 host_id")
+    sp.add_argument(
+        "--endpoint",
+        required=True,
+        help="registry 위치 (http://host:8765/registry.json 또는 file:///abs/path)",
+    )
+    sp.add_argument("--note", default="", help="메모")
+    sp.add_argument(
+        "--token-env",
+        default="",
+        metavar="NAME",
+        help="상대가 --token-env 로 떠 있을 때 쓸 ENV VAR 이름 (토큰 값이 아니라 이름)",
+    )
+    sp.add_argument("--apply", action="store_true", help="실제로 기록 (기본: dry-run)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_add_known_host)
+
+    # remove-known-host (v1.1.2+, TASK-022)
+    sp = sub.add_parser("remove-known-host", help="known host 해제")
+    sp.add_argument("--host-id", required=True)
+    sp.add_argument("--apply", action="store_true", help="실제로 삭제 (기본: dry-run)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_remove_known_host)
 
     # merge
     sp = sub.add_parser("merge", help="local + remote registry merge (read-only)")

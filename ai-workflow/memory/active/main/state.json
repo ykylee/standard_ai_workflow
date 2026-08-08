@@ -28,11 +28,15 @@
   },
   "session": {
     "current_baseline": "v1.1.1-beta + `origin/main` = `678806f` (2026-08-08, session close). 2 release 발행: v1.1.0-beta (564ce36, §0.8 4건 close + dual mode + federation *읽기* 묶음) → v1.1.1-beta (6b92a60, [project.scripts] 29 entry points patch). §0.8 4건 모두 close.",
-    "current_axis": "memory 문서 정합성 정리 완료 (TASK-2026-08-09-main-001). 진행 중: (없음). 다음: TASK-021+ (B안 dispatcher `wk` / registry HTTP server / gh api branch protection check / title drift v2).",
+    "current_axis": "handoff 다음 후보 축 4건 전부 close (TASK-002~005: wk dispatcher / registry HTTP server / branch protection check / title drift v2). 진행 중: (없음). 다음: v1.1.2-beta release 판단.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-005 — title semantic drift v2 (§7.5 후속, difflib 후보선별 + LLM prompt advisory, 11 case ALL PASS)",
+      "TASK-2026-08-09-main-004 — branch protection 자동 check (3-layer defense 3rd layer, pure 판정 + gh api, 8 case ALL PASS)",
+      "TASK-2026-08-09-main-003 — registry HTTP server (federation *쓰기*, loopback/read-only/token-env + known-host CLI 신설, 9 case ALL PASS)",
+      "TASK-2026-08-09-main-002 — CLI 化 B안 단일 dispatcher `wk` (기존 registry 확장, 65 command, 10 case ALL PASS + venv e2e)",
       "TASK-2026-08-09-main-001 — memory 문서 정합성 정리 (backlog status/링크 3건 + task 본문 상태 7건 + state.json done_items + handoff stale 4곳, check_self_application 7/8 → 8/8)",
       "TASK-2026-08-08-main-020 — [project.scripts] entry points (CLI 化 A안, 29 entry points + venv e2e 검증 + 4 case smoke ALL PASS) + v1.1.1-beta release",
       "TASK-2026-08-08-main-019 — --force server-side 이중화 (3-layer defense, pre-push hook + 7 case smoke ALL PASS) + v1.1.0-beta release",
@@ -68,11 +72,15 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
-    "task_count": 1,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-09-main-001 — memory 문서 정합성 정리 (backlog status/링크 + task 본문 상태 7건 + state.json done_items + handoff stale 4곳, check_self_application 8/8)"
+      "TASK-2026-08-09-main-001 — memory 문서 정합성 정리",
+      "TASK-2026-08-09-main-002 — CLI 化 B안 단일 dispatcher `wk`",
+      "TASK-2026-08-09-main-003 — registry HTTP server (federation *쓰기*)",
+      "TASK-2026-08-09-main-004 — branch protection 자동 check (3rd layer)",
+      "TASK-2026-08-09-main-005 — title semantic drift v2"
     ]
   },
   "next_documents": [

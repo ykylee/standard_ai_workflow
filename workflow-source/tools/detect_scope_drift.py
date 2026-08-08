@@ -44,7 +44,13 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.drift_detection import detect_scope_drift  # noqa: E402
+from workflow_kit.common.drift_detection import (  # noqa: E402
+    TITLE_SIMILARITY_THRESHOLD,
+    detect_scope_drift,
+    detect_title_drift,
+    extract_section,
+    generate_title_drift_prompt,
+)
 
 
 DEFAULT_POST_HANDOFF = (
@@ -121,6 +127,13 @@ def main(argv: list[str] | None = None) -> int:
                    help=f"git log 범위 (default: '{DEFAULT_GIT_RANGE}')")
     p.add_argument("--json", action="store_true", help="JSON 출력")
     p.add_argument("--exit-on-drift", action="store_true", help="drift 발견 시 non-zero exit (CI/pre-merge)")
+    # v2 (TASK-023): 같은 TASK-ID 인데 제목이 달라진 경우
+    p.add_argument("--emit-title-prompt", action="store_true",
+                   help="title drift 후보에 대한 LLM 판정 prompt 를 출력 (advisory)")
+    p.add_argument("--title-threshold", type=float, default=None,
+                   help=f"title 유사도 임계값 (default: {TITLE_SIMILARITY_THRESHOLD})")
+    p.add_argument("--exit-on-title-drift", action="store_true",
+                   help="title drift 후보가 있으면 non-zero exit")
     args = p.parse_args(argv)
 
     # pre handoff 결정: --pre-handoff 가 있으면 그 파일, 없으면 git show.
@@ -150,12 +163,39 @@ def main(argv: list[str] | None = None) -> int:
         git_log_text=git_log_text,
     )
 
+    # 임계값을 바꿨으면 title drift 만 다시 계산한다 (v1 판정은 영향 없음).
+    if args.title_threshold is not None:
+        payload["title_drift"] = detect_title_drift(
+            extract_section(pre_text, "다음에 할 일"),
+            extract_section(post_text, "최근 완료 작업"),
+            threshold=args.title_threshold,
+        )
+
+    title_drift = payload.get("title_drift", {})
+
+    if args.emit_title_prompt:
+        prompt = generate_title_drift_prompt(title_drift)
+        print(prompt if prompt else "# (title drift 후보 없음)")
+        return 1 if (args.exit_on_title_drift and title_drift.get("suspect_count")) else 0
+
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         _print_human(payload)
+        suspects = [p for p in title_drift.get("pairs", []) if p.get("suspect")]
+        if suspects:
+            print()
+            print(f"title drift 후보 {len(suspects)}건 "
+                  f"(비교 {title_drift.get('compared')}건, 임계 {title_drift.get('threshold')}):")
+            for pair in suspects:
+                print(f"  - {pair['task_id']} (similarity {pair['similarity']})")
+                print(f"      계획: {pair['pre_title']}")
+                print(f"      완료: {pair['post_title']}")
+            print("  → 판정 prompt: --emit-title-prompt (advisory, 자동 적용 ❌)")
 
     if args.exit_on_drift and (payload["planned_undone"] or payload["unplanned_done"]):
+        return 1
+    if args.exit_on_title_drift and title_drift.get("suspect_count"):
         return 1
     return 0
 

@@ -10,7 +10,13 @@ cache_analytics_trend_chart_cli, cache_dashboard_export_cli,
 phishing_federation_v5_cli, cache_analytics_alerting_cli).
 
 Usage:
+    wk <name> [args...]                                       # v1.1.2+ (CLI 化 B안)
     python -m workflow_kit.workflow_kit_cli --command=<name> [args...]
+
+두 형식은 같은 `COMMANDS` 를 본다. `--command=` 는 v0.7.52 부터의 약속이라 그대로
+두고, `wk <name>` positional 을 v1.1.2 에서 얹었다. `wk` 는 위 subcommand 에 더해
+`tools/*.py` 29개를 같은 이름 공간에서 부른다 (`wk survey-remote-workspaces --json`
+= `workflow-survey-remote-workspaces --json`). 목록은 `wk --list-commands`.
 
 Commands:
     cache-dashboard    [--cache-path=PATH]
@@ -83,7 +89,7 @@ def register(name: str) -> Callable[[Callable[[list[str]], int]], Callable[[list
 
 
 def _print_usage() -> None:
-    print("Usage: workflow_kit_cli --command=<name> [args...]")
+    print("Usage: wk <name> [args...]   |   workflow_kit_cli --command=<name> [args...]")
     print("Commands:")
     for name in sorted(COMMANDS):
         print(f"  {name}")
@@ -1982,26 +1988,85 @@ def cmd_memory_index_telemetry(argv: list[str]) -> int:
         return 2
 
 
+def _register_tool_commands() -> None:
+    """`tools/*.py` 29개를 `COMMANDS` 에 lazy 등록한다 (CLI 化 B안, v1.1.2+).
+
+    새 dispatcher 를 만들지 않고 기존 registry 에 얹는다 — 진입점이 둘로 갈리면
+    `--help` 도 둘로 갈리고, 어느 쪽이 정본인지가 곧 흐려진다. 이미 손으로 쓴
+    wrapper 가 있는 이름(`score-wiki-trend` / `consumer-metrics`)은 덮지 않는다:
+    그쪽 docstring 에 arg surface 가 적혀 있고 호출 경로도 v0.7.56 부터의 약속이다.
+    """
+    from workflow_kit.common.tool_dispatch import (
+        ALREADY_REGISTERED,
+        make_tool_runner,
+        tool_command_names,
+    )
+
+    for name in tool_command_names():
+        if name in ALREADY_REGISTERED or name in COMMANDS:
+            continue
+        COMMANDS[name] = make_tool_runner(name)
+
+
+_register_tool_commands()
+
+
 def run_workflow_kit_cli(argv: list[str]) -> int:
-    """Run workflow_kit_cli from argv (v0.7.52+)."""
-    if "--command" not in argv[0:1] and not any(a.startswith("--command=") for a in argv):
+    """Run workflow_kit_cli from argv (v0.7.52+, positional 형식 v1.1.2+).
+
+    받는 형식 두 가지 — 둘 다 같은 `COMMANDS` 를 본다:
+        ``--command=<name> [args...]``  (v0.7.52+, 기존 호출 경로 전부 보존)
+        ``<name> [args...]``            (v1.1.2+, `wk` 가 쓰는 형식)
+
+    `--list-commands` 는 이름만 줄바꿈으로 흘린다 — shell completion 이 이걸 먹는다.
+    """
+    if not argv:
         _print_usage()
         return 2
-    cmd_name = None
-    rest: list[str] = []
-    for arg in argv:
-        if arg == "--command" or arg.startswith("--command="):
-            if "=" in arg:
-                cmd_name = arg.split("=", 1)[1]
-        else:
-            rest.append(arg)
+
+    if argv[0] in ("--list-commands", "-l"):
+        for name in sorted(COMMANDS):
+            print(name)
+        return 0
+
+    if argv[0] in ("--help", "-h"):
+        _print_usage()
+        return 0
+
+    has_command_flag = any(
+        a == "--command" or a.startswith("--command=") for a in argv
+    )
+
+    if has_command_flag:
+        cmd_name = None
+        rest: list[str] = []
+        for arg in argv:
+            if arg == "--command" or arg.startswith("--command="):
+                if "=" in arg:
+                    cmd_name = arg.split("=", 1)[1]
+            else:
+                rest.append(arg)
+    else:
+        # positional 형식. 첫 인자가 flag 면 command 가 아니라 오타다 — usage 로 돌린다.
+        if argv[0].startswith("-"):
+            _print_usage()
+            return 2
+        cmd_name = argv[0]
+        rest = argv[1:]
+
     if cmd_name is None:
         _print_usage()
         return 2
     if cmd_name not in COMMANDS:
+        print(f"ERROR: unknown command: {cmd_name}", file=sys.stderr)
         _print_usage()
         return 2
     return COMMANDS[cmd_name](rest)
+
+
+def wk_main() -> int:
+    """`wk` console_script 진입점 (v1.1.2+, CLI 化 B안)."""
+    return run_workflow_kit_cli(sys.argv[1:])
 
 
 if __name__ == "__main__":

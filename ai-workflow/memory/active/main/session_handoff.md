@@ -4,17 +4,17 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-08
+- 최종 수정일: 2026-08-08 (22:06 KST, §2.68 cycle close + 갈래2 trust 채택)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `838b12f` (2026-08-07~08, 커밋 11건).
-- 현재 주 작업 축: 다중 워크스페이스 오케스트레이션 — **설계 → 표준 반영 → 도구 3종 → dashboard 복수 root 취합 → registry 신규** 까지 닫혔다.
-  표준 §10.2 세션 시작 플로우 + dashboard Panel 5 + workspace registry 가 모두 "여러 worktree" 친화.
-- 직전 축: "mavis attach 가 안 붙는다" — 글로벌 mcp.json 등록(§2.68)은 **아직 미완**.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건).
+- 현재 주 작업 축: §2.68 cycle **전부 close**. 다중 워크스페이스 오케스트레이션(설계 → 표준 §10 → 도구 3종 → dashboard 복수 root → registry) + §2.68 mavis attach (글로벌 mcp.json 등록 + bootstrap emit + registry sync + env 합성 + endpoint synth + e2e smoke) 가 한 축으로 묶여 release-준비 상태.
+- 직전 축: "mavis attach 가 안 붙는다" 회귀(글로벌 mcp.json 미등록) — §6.5.2 정합으로 닫혔다. 사용자 수동 검증 (TASK-012) = *갈래2 trust* 채택 (e2e smoke 가 attach 경로와 100% 동치 subprocess).
+- 다음 후보 축: §0.8 #2 *in-flight 워크스페이스 신뢰도 표시* (registry 의 §5A.3 *첫 소비자* 자리).
 - 최근 핵심 기준 문서:
-  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시**
+  - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시** + §0.8 *아직 열려 있는 것* 4건
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙
   - [MEMORY_GOVERNANCE.md](../../../../workflow-source/MEMORY_GOVERNANCE.md)
 
@@ -29,8 +29,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-08-08-main-012 §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자) — Mavis 자동: §6.5.2 100% 정합 + smoke 6+6+6 PASS. collateral: TASK-009/010/011 L14 in_progress → done, baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일.
 - TASK-2026-08-08-main-013 mavis attach end-to-end 회귀 smoke 자동화 — `check_mavis_attach_e2e.py` (stdlib only, 4-step ALL PASS — initialize / tools/list 13종 set equality / tools/call latest_backlog / tools/call check_doc_metadata). §2.68 cycle 의 *자동 검증* 닫음.
+- TASK-2026-08-08-main-012 §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자) — **갈래2 trust 채택**: mavis 데스크탑 새 세션 rotate 대신, e2e smoke (실제 attach 경로와 100% 동치 subprocess) 의 ALL PASS 로 갈음. mavis 가 *silent fail* 가능성 (사용자 보고 §1.2.1) — 갈래2 는 그 함정을 *subprocess 직접 검증* 으로 회피. collateral: TASK-009/010/011 L14 in_progress → done, baseline `a3a9442`/`f97a9b1`/`27010a5` → `e4470e5` 통일.
 - TASK-2026-08-08-main-011 endpoint 기반 mavis alias command/url 합성 — `cmd:` / `url:` / None / unknown 4가지 (smoke 6/6)
 - TASK-2026-08-08-main-010 RegistryEntry env 필드 + sync_mavis env 합성 — seed 가 env 자동 주입, sync_mavis 가 emit (smoke 6/6)
 - TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
@@ -83,28 +83,18 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 
 ### 다음에 할 일 (순서)
 
-- **§2.68 mavis attach 신규 세션 검증** — `~/.minimax/mcp/mcp.json` 에
-  `standardAiWorkflowReadOnly` 등록 완료 (TASK-2026-08-08-main-006, §6.5.2 형식,
-  절대 경로 env 두 개, backup 보존). **mavis 데스크탑 새 세션 rotate 후 13종
-  native tool 노출 확인은 사용자가 수동**. (mavis 가 글로벌 mcp.json 변경은
-  *새 세션* 부터 반영 — 기존 세션은 그대로.)
-- **bootstrap 자동 emit** — ✅ **구현** (TASK-2026-08-08-main-007).
-  `python3 -m bootstrap_lib --harness mavis --enable-mcp` 가 호스트 글로벌
-  `~/.minimax/mcp/mcp.json` 에 atomic merge. backup / builtin 5종 보존 / 절대
-  경로 env. **mavis 데스크탑 새 세션 rotate 후 13종 attach 검증만 사용자 수동**.
-- **self-register** — ✅ **구현** (TASK-2026-08-08-main-008). seed_workspace_memory
-  의 --apply 가 자기 workspace 를 registry 에 자동 등록. claim 도 seed 를 부르므로
-  자연스럽게 따라옴.
-- **registry ↔ mavis 글로벌 동기** — ✅ **구현** (TASK-2026-08-08-main-009).
-  `tools/workspace_registry.py` 가 `import-mavis` / `export-mavis` / `sync-mavis` 3개
-  서브커맨드. builtin 5종 보존, `__mavis__/<alias>` prefix 로 환원, default preview.
-- **RegistryEntry env + sync_mavis env 합성** — ✅ **구현** (TASK-2026-08-08-main-010).
-  env field 추가, register(env=...) kwarg, seed 가 STANDARD_AI_WORKFLOW_ROOT +
-  PYTHONPATH 자동 주입, sync_mavis 가 mavis alias env 로 emit. legacy entries
-  하위 호환.
-- **endpoint 기반 mavis alias command/url 합성** — ✅ **구현** (TASK-2026-08-08-main-011).
-  `cmd:/abs/path` → command+args, `url:http://...` → url+type, None → 메타만,
-  unknown → advisory 보존.
+- **§2.68 cycle** — ✅ **전부 닫힘** (TASK-006~013, 8커밋). 사용자가 본 세션 (2026-08-08 22:06 KST) 에서
+  *갈래2 trust* 채택 — e2e smoke 가 실제 attach 경로와 100% 동치 subprocess 라는 근거.
+- **다음 후보 축**: [§0.8 #2](../../../../workflow-source/core/multi_workspace_orchestration.md#08-아직-열려-있는-것) —
+  **in-flight 워크스페이스 신뢰도 표시**. registry 가 §5A.3 의 *첫 소비자* 자리인데 비어 있음. registry 자체는
+  §7.1 에서 구현됨. 대시보드 Panel 5 의 in-flight 항목 = seed/claim 도구가 만든 workspace 가 *현재* 살아있는지
+  *어떤 신뢰도로* 표시할지가 §0.8 의 미해결.
+- **그 외 §0.8 후보** (대기):
+  - #1 registry 저장 위치 — 여러 호스트로 흩어지면 파일 기반이 성립하지 않음.
+  - #3 seed 한 일 vs 실제 한 일 범위 이탈 검출 (병합 시점).
+  - #4 `--force` 서버측 branch protection 이중화.
+- **multi-workspace + registry + mavis attach 묶음 release** — v0.15.20+ beta cycle 단위 deliverable. 위
+  §0.8 #2 가 끝나면 자연스럽게 따라옴.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

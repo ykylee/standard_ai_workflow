@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-08",
+  "generated_at": "2026-08-08T22:06:00+09:00",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,8 +27,8 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `838b12f` (2026-08-07~08, 커밋 11건). §2.68 cycle (TASK-2026-08-08-main-006~011 + 012) 닫힘.",
-    "current_axis": "다중 워크스페이스 오케스트레이션 + §2.68 mavis attach — *mavis attach 가 안 붙는다* 회귀(글로벌 mcp.json 미등록 + bootstrap 자동 emit 부재) 가 정본 §6.5.2 정합으로 닫혔다. 다음 축: mavis 데스크탑 새 세션 rotate 13종 attach 수동 검증 (사용자).",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). §2.68 cycle (TASK-2026-08-08-main-006~013) 전부 닫힘.",
+    "current_axis": "§2.68 cycle 완전 close. TASK-012 (사용자 수동 검증) = *갈래2 (e2e smoke trust)* 채택 — mavis 데스크탑 새 세션 rotate 가 아닌, `check_mavis_attach_e2e.py` (실제 attach 경로와 100% 동치 subprocess) ALL PASS 로 갈음. 다음 축 후보: §0.8 #2 *in-flight 워크스페이스 신뢰도 표시* — registry 가 §5A.3 의 *첫 소비자* 자리인데 비어 있음.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],

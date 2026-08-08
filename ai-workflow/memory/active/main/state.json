@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). §2.68 cycle (TASK-2026-08-08-main-006~013) 전부 닫힘.",
-    "current_axis": "§2.68 cycle + §0.8 #1 + #2 닫힘. 진행 중: (없음). 다음 후보: TASK-016 (HTTP pull + dashboard federation 통합) / §0.8 #3 (범위 이탈 검출) / §0.8 #4 (`--force` 서버측 이중화) / release 묶음 (v0.15.20+~v0.15.23+ beta cycle).",
+    "current_axis": "§2.68 cycle + §0.8 #1 + #2 닫힘 + TASK-016 (HTTP pull + dashboard federation 통합) close. 진행 중: (없음). 다음 후보: TASK-017 (HTTP server 도구) / §0.8 #3 / §0.8 #4 / release 묶음.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-016 — HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리, urllib only + cache TTL 1h + 8 case smoke ALL PASS)",
       "TASK-2026-08-08-main-015 — registry federation 정공법 (표준 §0.8 #1, federation 모델, merge_entries + known_hosts CRUD, 8 case smoke ALL PASS)",
       "TASK-2026-08-08-main-014 — in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3, 4-level enum + Panel 5 inline badge, 8 case smoke ALL PASS)",
       "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지, smoke 6/6)",

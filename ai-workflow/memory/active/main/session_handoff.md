@@ -9,10 +9,10 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). **TASK-2026-08-08-main-014/015** 로 +2 (commit push 후).
-- 현재 주 작업 축: §2.68 cycle **전부 close** + **§0.8 #1 (federation 정공법)** + **§0.8 #2 (in-flight 신뢰도)** close. 다중 워크스페이스 + mavis attach + confidence + federation API 가 한 축으로 묶여 release-준비 상태.
-- 직전 축: §0.8 #1 *registry federation 정공법* — 4 후보 (central/git/S3/federation) 중 federation 채택. `merge_entries()` + `known_hosts` CRUD + `RegistryEntry.source_host_id` + 8 case smoke ALL PASS + §7.4 신설.
-- 다음 후보 축: TASK-2026-08-08-main-016 (HTTP pull + dashboard federation 통합) / §0.8 #3 (범위 이탈 검출) / §0.8 #4 (`--force` 서버측 이중화) / release 묶음.
+- 현재 기준선: v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). **TASK-2026-08-08-main-014/015/016** 로 +3 (commit push 후).
+- 현재 주 작업 축: §2.68 cycle **전부 close** + **§0.8 #1 (federation 정공법)** + **§0.8 #2 (in-flight 신뢰도)** + **TASK-016 (HTTP pull + dashboard federation 통합)** close. federation *읽기* 까지 닫음.
+- 직전 축: TASK-016 *federation HTTP pull + dashboard 통합* — `pull_remote_registry()` / `merge_with_remotes()` / remote cache (TTL 1h, atomic 0o600) + `http.server` in thread 8 case smoke ALL PASS + `time.mktime` → `calendar.timegm` 함정 정정 + dashboard `_registry_extra_roots` 자동 통합. §7.4 *HTTP fetch* section 신설.
+- 다음 후보 축: TASK-017 (HTTP server 도구, 각 호스트가 자기 registry serving) / §0.8 #3 / §0.8 #4 / release 묶음.
 - 최근 핵심 기준 문서:
   - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시** + §0.8 *아직 열려 있는 것* 4건
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙

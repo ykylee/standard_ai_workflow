@@ -56,6 +56,8 @@ import json
 import os
 import socket
 import tempfile
+import urllib.error
+import urllib.request
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -1090,3 +1092,240 @@ def merge_entries(
         out,
         key=lambda e: (e.source_host_id, e.branch, e.path),
     )
+
+
+# ---------------------------------------------------------------------------
+# v0.15.24+ (TASK-2026-08-08-main-016) — HTTP pull + remote cache
+# ---------------------------------------------------------------------------
+#
+# TASK-015 가 만든 federation *merge API* 를 *읽기* 경로로 마무리. known_hosts 의
+# endpoint 를 따라가서 *원격 호스트의 registry* 를 fetch 한 뒤 local 과 `merge_entries`
+# 로 합친다. dashboard 가 federation view 를 자동으로 보여주게. stdlib only.
+
+import time as _time  # local — top-level 회피
+from typing import Any  # noqa: F401 — 명시적 re-export
+
+
+DEFAULT_PULL_TIMEOUT_SECONDS: Final[float] = 2.0
+DEFAULT_CACHE_TTL_SECONDS: Final[int] = 60 * 60  # 1h
+
+
+def _remote_cache_dir() -> Path:
+    """``~/.cache/workflow_kit/remote_cache/`` (atomic 0o600 file 들의 dir)."""
+    return registry_path().parent / "remote_cache"
+
+
+def remote_cache_path(host_id: str) -> Path:
+    """원격 호스트 1건당 cache file. ``<host_id>.json`` (sanitized)."""
+    safe = "".join(c if c.isalnum() or c in "-_." else "_" for c in host_id)
+    return _remote_cache_dir() / f"{safe}.json"
+
+
+def _load_remote_cache(host_id: str, *, ttl_seconds: int = DEFAULT_CACHE_TTL_SECONDS) -> dict | None:
+    """cache file 읽기. 부재 / 깨짐 / TTL 초과 시 None.
+
+    Returns:
+        cache 의 raw dict (``{"_cached_at": iso, "registry": <raw>}``) 또는 None.
+
+    Note:
+        ``_cached_at`` 은 *UTC* ISO timestamp. ``time.mktime`` 은 local TZ 해석이라
+        *틀림* — KST 같은 환경에서 9h 차이가 나서 TTL (1h) 을 초과할 수 있다.
+        ``calendar.timegm`` (UTC 해석) 으로 정정.
+    """
+    import calendar as _calendar  # local — top-level 회피
+    path = remote_cache_path(host_id)
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    cached_at = data.get("_cached_at", "")
+    if not cached_at:
+        return None
+    try:
+        cached_dt = _time.strptime(cached_at, "%Y-%m-%dT%H:%M:%SZ")
+        cached_ts = _calendar.timegm(cached_dt)  # UTC 해석
+    except (ValueError, OSError):
+        return None
+    if (_time.time() - cached_ts) > ttl_seconds:
+        return None
+    return data
+
+
+def _save_remote_cache(host_id: str, registry_dict: dict) -> None:
+    """cache file atomic 저장. 0o600, ``_cached_at`` 자동 주입."""
+    path = remote_cache_path(host_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(
+        {
+            "_cached_at": _utcnow_iso(),
+            "_host_id": host_id,
+            "registry": registry_dict,
+        },
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=".remote_cache.", suffix=".tmp", dir=str(path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fp:
+            fp.write(payload)
+        os.chmod(tmp_name, 0o600)
+        os.replace(tmp_name, path)
+    except Exception:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+
+def _fetch_url(url: str, *, timeout: float) -> bytes:
+    """``urllib.request.urlopen`` thin wrapper. ``http://`` 와 ``file://`` 만 지원.
+
+    Returns:
+        response body (bytes).
+
+    Raises:
+        OSError: timeout / connection refused / DNS 실패 / HTTP 4xx/5xx.
+    """
+    if url.startswith("file://"):
+        path = url[len("file://"):]
+        # test-only: 운영자가 sshfs mount 가정. file:// loop / etc/passwd 회피 —
+        # absolute path + 일반 file 만.
+        p = Path(path)
+        if not p.is_absolute():
+            raise OSError(f"file:// URL must be absolute, got {path!r}")
+        return p.read_bytes()
+    if not (url.startswith("http://") or url.startswith("https://")):
+        raise OSError(f"unsupported URL scheme: {url.split(':', 1)[0]!r} (http/https/file 만)")
+    req = urllib.request.Request(url, headers={"User-Agent": "workflow_kit/0.15.24"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+
+def pull_remote_registry(
+    host_id: str,
+    *,
+    timeout: float | None = None,
+    use_cache: bool = True,
+) -> dict:
+    """한 호스트의 registry 를 fetch. 실패 시 cache fallback (use_cache=True).
+
+    Returns:
+        ``{"ok": True, "registry": <raw>, "from_cache": bool}`` 또는
+        ``{"ok": False, "error": <str>, "from_cache": bool}``.
+
+        ``from_cache=True`` 면 *cache 로 fallback* 이라는 의미. cache 도 없으면
+        ``ok=False`` 이고 ``from_cache=True`` (cache 가 *시도* 됐다).
+    """
+    timeout = timeout if timeout is not None else DEFAULT_PULL_TIMEOUT_SECONDS
+    hosts = {h.host_id: h for h in load_known_hosts()}
+    if host_id not in hosts:
+        return {"ok": False, "error": f"host {host_id!r} not in known_hosts", "from_cache": False}
+    endpoint = hosts[host_id].endpoint
+    try:
+        body = _fetch_url(endpoint, timeout=timeout)
+    except Exception as e:  # noqa: BLE001 — timeout / OSError / urllib.error / JSON
+        err = f"{type(e).__name__}: {e}"
+        if use_cache:
+            cached = _load_remote_cache(host_id)
+            if cached is not None:
+                return {
+                    "ok": True,
+                    "registry": cached.get("registry", {}),
+                    "from_cache": True,
+                    "fetch_error": err,
+                }
+        return {"ok": False, "error": err, "from_cache": False}
+    # response parse
+    try:
+        data = json.loads(body.decode("utf-8", errors="replace"))
+    except json.JSONDecodeError as e:
+        return {"ok": False, "error": f"JSONDecodeError: {e}", "from_cache": False}
+    if not isinstance(data, dict):
+        return {"ok": False, "error": f"registry not a dict: {type(data).__name__}", "from_cache": False}
+    # cache update (성공 시만)
+    try:
+        _save_remote_cache(host_id, data)
+    except OSError:
+        pass  # cache write 실패는 silent (read-only fs 등) — pull 자체는 성공
+    return {"ok": True, "registry": data, "from_cache": False}
+
+
+def pull_all_remote_registries(
+    *,
+    timeout: float | None = None,
+    use_cache: bool = True,
+) -> list[tuple[str, dict]]:
+    """모든 known hosts 순회. 각 (host_id, result) 페어. 실패 host 도 포함."""
+    return [(h.host_id, pull_remote_registry(h.host_id, timeout=timeout, use_cache=use_cache))
+            for h in load_known_hosts()]
+
+
+def merge_with_remotes(
+    local_entries: list[RegistryEntry],
+    *,
+    timeout: float | None = None,
+    use_cache: bool = True,
+) -> tuple[list[RegistryEntry], list[dict]]:
+    """local + pull 결과(원격 registries) 를 ``merge_entries`` 로 합친다.
+
+    Returns:
+        ``(merged_entries, errors)``. errors = pull 실패 / malformed entry list.
+        ``merged_entries`` 는 local 포함 dedup 결과. federation 의 winning view.
+
+    Note:
+        *read-only*. registry 자체는 변하지 않음 — caller 가 결과를 들고 *판단*.
+    """
+    sources: list[tuple[str, list[RegistryEntry]]] = [
+        (host_id() or "", list(local_entries)),
+    ]
+    errors: list[dict] = []
+    for host_id_label, result in pull_all_remote_registries(timeout=timeout, use_cache=use_cache):
+        if not result.get("ok"):
+            errors.append({
+                "host_id": host_id_label,
+                "error": result.get("error", "unknown"),
+                "from_cache": result.get("from_cache", False),
+            })
+            continue
+        raw_reg = result.get("registry", {})
+        raw_entries = raw_reg.get("entries", []) if isinstance(raw_reg, dict) else []
+        if not isinstance(raw_entries, list):
+            errors.append({
+                "host_id": host_id_label,
+                "error": "registry.entries not a list",
+            })
+            continue
+        # raw → RegistryEntry (source_host_id 가 비어 있으면 host_id_label 로 채움).
+        remote_entries: list[RegistryEntry] = []
+        for item in raw_entries:
+            if not isinstance(item, dict):
+                continue
+            try:
+                e = RegistryEntry.from_dict(item)
+            except Exception as ex:  # noqa: BLE001 — defensive
+                errors.append({
+                    "host_id": host_id_label,
+                    "error": f"RegistryEntry.from_dict: {type(ex).__name__}: {ex}",
+                })
+                continue
+            if not e.source_host_id:
+                e = dataclasses_replace(e, source_host_id=host_id_label)
+            remote_entries.append(e)
+        sources.append((host_id_label, remote_entries))
+    return merge_entries(sources), errors
+
+
+# `dataclasses.replace` alias — top-level 회피 (registry 본체 import 부담).
+def dataclasses_replace(entry: RegistryEntry, **changes: Any) -> RegistryEntry:
+    """``dataclasses.replace(entry, **changes)`` — frozen dataclass 한정."""
+    from dataclasses import replace as _dcr
+    return _dcr(entry, **changes)
+

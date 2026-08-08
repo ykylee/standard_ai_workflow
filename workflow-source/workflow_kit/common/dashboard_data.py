@@ -1475,9 +1475,14 @@ def _confidence_for_state_path(
 def _registry_extra_roots(self_root: Path) -> list[Path]:
     """workspace_registry (§7.1) 가 알려주는 호스트의 추가 worktree 경로.
 
-    registry 가 알려주는 경로 중 ``self_root`` 와 다른 것만 합류시킨다
-    (자신은 이미 ``root`` 인자로 들어왔다). registry 부재 / read 실패 시
-    빈 리스트 — 호출자가 *조용히* fallback 한다.
+    v0.15.24+ (TASK-2026-08-08-main-016) — local + remote (federation) 모두 합류.
+    ``merge_with_remotes()`` 가 local registry + known_hosts 의 remote registry 들을
+    dedup + last_seen_at 최신 우선으로 합친 결과를 path 화. registry 부재 / read
+    실패 / 모든 remote 가 unreachable 시 *조용히* local 만 반환 (caller 가 fallback).
+
+    Remote path 가 이 호스트의 filesystem 에 *없어도* rglob 가 silent skip
+    (``is_file()`` 체크) — 그래서 *조용히* 동작. remote 의 in-flight 가시성은
+    Panel 5 의 metadata (source_host_id) 로 식별 가능.
     """
     try:
         # local import: dashboard 가 registry 모듈에 *순환 의존* 으로 끌려 들어가는
@@ -1486,21 +1491,36 @@ def _registry_extra_roots(self_root: Path) -> list[Path]:
     except ImportError:
         return []
     try:
-        candidates = _wr.registry_paths()
-    except Exception:
+        local_entries = _wr.list_entries()
+        # dashboard 호출은 *짧은* timeout (default 1s) — 사용자 응답성을 우선.
+        # cache fallback 이 graceful skip 을 보장하므로 timeout 도 안전.
+        merged, _errors = _wr.merge_with_remotes(
+            local_entries,
+            timeout=float(os.environ.get("WORKFLOW_DASHBOARD_PULL_TIMEOUT", "1.0") or 1.0),
+            use_cache=True,
+        )
+    except Exception:  # noqa: BLE001 — 모든 registry 실패 시 조용히 empty
         return []
     try:
         self_key = self_root.resolve()
     except OSError:
         self_key = self_root
     out: list[Path] = []
-    for p in candidates:
+    seen: set[Path] = set()
+    for entry in merged:
+        path_str = getattr(entry, "path", None)
+        if not path_str:
+            continue
+        p = Path(path_str)
         try:
             key = p.resolve()
         except OSError:
             key = p
         if key == self_key:
             continue
+        if key in seen:
+            continue
+        seen.add(key)
         out.append(p)
     return out
 

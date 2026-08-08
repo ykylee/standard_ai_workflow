@@ -140,6 +140,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env + registry. §7.3 |
 | **in-flight 신뢰도 표시** | ✅ **구현** (v0.15.22+) — `workspace_registry.confidence()` 4-level enum (`fresh`/`recent`/`stale`/`orphan`) + Panel 5 inline badge. 3-way signal: `path.is_dir()` + `last_seen_at` + `worktree_branch`. §0.8 #2 close. (TASK-2026-08-08-main-014) |
 | **registry federation 정공법** | ✅ **구현** (v0.15.23+) — `merge_entries(sources)` API + `RegistryEntry.source_host_id` (additive) + `known_hosts.json` (atomic, 0o600) + `known_hosts_*` CRUD. 4 후보 (central / git / S3 / **federation**) 중 federation 채택. HTTP fetch + dashboard 통합 = TASK-016. §0.8 #1 close. (TASK-2026-08-08-main-015) |
+| **federation HTTP pull + dashboard 통합** | ✅ **구현** (v0.15.24+) — `pull_remote_registry()` / `pull_all_remote_registries()` / `merge_with_remotes()` + remote cache (TTL 1h, 0o600, `~/.cache/workflow_kit/remote_cache/<host>.json`) + dashboard `_registry_extra_roots` 통합. stdlib only (`urllib.request`). cache fallback on unreachable. §7.4 *읽기* 마무리. (TASK-2026-08-08-main-016) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -1117,10 +1118,76 @@ additive. `register()` 시 `host_id()` 자동 주입, `from_dict()` 시 missing 
 ### §0.8 #1 의 닫힘 + 후속
 
 - §0.8 #1 ✅ close (TASK-2026-08-08-main-015). 정공법 = **federation**.
-- HTTP fetch + dashboard 통합 = **TASK-2026-08-08-main-016** (별도). 본 task 는
-  *merge API* 까지만 — HTTP pull 미구현. caller 가 직접 registry file 을 fetch 한 뒤
-  `Registry.from_json` → `merge_entries` 에 넘기는 형태.
+- HTTP fetch + dashboard 통합 = ✅ close (TASK-2026-08-08-main-016, v0.15.24+).
+  `pull_remote_registry()` / `pull_all_remote_registries()` / `merge_with_remotes()` API.
+  remote cache (TTL 1h, `~/.cache/workflow_kit/remote_cache/<host>.json`, 0o600).
+  dashboard `_registry_extra_roots` 가 자동 fetch + merge.
 - 인증 / TLS / mutual TLS 는 *현재 scope 밖*. host 신뢰는 IP / 네트워크 정책으로.
+
+### HTTP fetch — pull / cache / merge (v0.15.24+, TASK-016)
+
+`merge_entries` 가 *읽기* 의 일부는 닫았지만, *fetch* 자체는 본 섹션. stdlib only
+(`urllib.request` + `json` + `tempfile`). TLS / 인증 / retry ❌ (§7.4 후속).
+
+#### API
+
+- `pull_remote_registry(host_id, *, timeout=None, use_cache=True) -> dict`
+  - `{"ok": True, "registry": <raw>, "from_cache": bool}` 또는
+    `{"ok": False, "error": <str>, "from_cache": bool}`
+  - `from_cache=True` 면 *cache fallback* 의미 (HTTP fail + cache hit).
+  - timeout default 2.0s (`WORKFLOW_PULL_TIMEOUT` env), `file://` URL 도 지원 (test only).
+- `pull_all_remote_registries(*, timeout=None, use_cache=True) -> list[(host_id, result)]`
+- `merge_with_remotes(local_entries, *, timeout=None, use_cache=True) -> (merged, errors)`
+  - local + 모든 known host 의 raw registry → `RegistryEntry` 변환 → `merge_entries`.
+  - errors = pull 실패 / malformed entry list. *in-memory* read-only.
+- `remote_cache_path(host_id) -> Path` — `~/.cache/workflow_kit/remote_cache/<host>.json`
+  (atomic 0o600, TTL 1h via `WORKFLOW_CACHE_TTL_SECONDS` env).
+
+#### 알려진 함정 (cache TTL)
+
+`_cached_at` 은 *UTC* ISO timestamp. `time.mktime` 은 *local TZ* 해석이라 KST(+9) 같은
+환경에서 9h 차이가 나서 TTL(1h) 을 초과 → cache miss 가 날 수 있다. `calendar.timegm`
+(UTC 해석) 으로 정정 (TASK-016 smoke 검증).
+
+#### CLI
+
+`tools/host_pull_registry.py`:
+- `pull --host <id>` / `pull --all` (default dry-run, fetch + cache read 만)
+- `--apply` → cache 갱신 + merge 결과 emit
+- `--json` → machine-readable
+- `list` / `merge`
+
+#### Dashboard 통합
+
+`dashboard_data._registry_extra_roots(self_root)` 가:
+1. local `list_entries()` 호출
+2. `merge_with_remotes()` 호출 (timeout 1s default, `WORKFLOW_DASHBOARD_PULL_TIMEOUT` env)
+3. merged entries 의 path 들을 dedup + ``self_key`` filter
+4. 반환 — `_branch_state_paths` 가 그 paths 의 `state.json` 을 rglob (실재 path 만 성공,
+   remote path 는 silent skip)
+
+remote 의 in-flight 가시성은 `Panel 5` 의 `confidence` + `source_host_id` (winning entry
+의 provenance) 로 식별.
+
+#### 검증
+
+- `tests/check_host_pull.py` (TASK-016, stdlib only) 8 case ALL PASS:
+  1. known_hosts 미등록 → 즉시 error
+  2. `http.server` in thread — 정상 pull + cache 0o600
+  3. unreachable + cache hit → cache fallback
+  4. unreachable + cache miss → error (from_cache=False)
+  5. malformed JSON → `JSONDecodeError`
+  6. `file://` URL — absolute path 검증
+  7. `merge_with_remotes` — local 우선 (last_seen_at 최신) + `source_host_id` 보존
+  8. cache TTL 만료 (24h stale) → cache 미사용 + 새 fetch
+
+#### 후속 (TASK-017+)
+
+- TASK-017: HTTP server 도구 (`http.server` 기반, 각 호스트가 자기 registry 를 serving)
+- TASK-018: TLS / 인증 / mutual TLS (운영 진입 시)
+- TASK-019: §0.8 #3 (범위 이탈 검출)
+- TASK-020: §0.8 #4 (`--force` 서버측 branch protection 이중화)
+- TASK-021: v0.15.20+~v0.15.24+ 묶음 release (TASK-001~016)
 
 ### 검증
 

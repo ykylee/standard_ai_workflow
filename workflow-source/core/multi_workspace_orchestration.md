@@ -143,6 +143,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **federation HTTP pull + dashboard 통합** | ✅ **구현** (v0.15.24+) — `pull_remote_registry()` / `pull_all_remote_registries()` / `merge_with_remotes()` + remote cache (TTL 1h, 0o600, `~/.cache/workflow_kit/remote_cache/<host>.json`) + dashboard `_registry_extra_roots` 통합. stdlib only (`urllib.request`). cache fallback on unreachable. §7.4 *읽기* 마무리. (TASK-2026-08-08-main-016) |
 | **operational MCP tool CLI wrapper (dual mode)** | ✅ **구현** (v0.15.25+) — 4개 operational tool (`rotate_workflow_logs` / `apply_robust_patch` / `create_environment_record_stub` / `check_quickstart_stale_links`) 의 CLI wrapper. 같은 underlying `*_payload` 함수 호출 → CLI ↔ MCP *byte-equal* output. `tools/` 4 신규 + `tests/check_cli_wrappers.py` (4 case ALL PASS). 9 tool 은 MCP 유지 (LLM-interpretation 필수). (TASK-2026-08-08-main-017) |
 | **scope drift detection (병합 시점)** | ✅ **구현** (v0.15.26+) — `workflow_kit.common.drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI. 3-way enum (`planned_done` / `planned_undone` / `unplanned_done`, TASK-ID 기준) + drift_score (0.0~∞) + score_band (clean/minor/significant/major). pre handoff 의 *다음에 할 일* + post handoff 의 *최근 완료 작업* + git log 합집합 비교. advisory default, `--exit-on-drift` 명시 시 non-zero. (TASK-2026-08-08-main-018) |
+| **`--force` server-side 이중화 (3-layer defense)** | ✅ **구현** (v0.15.27+) — `tools/install_pre_push_hook.py` (install/uninstall/status) + `tools/hooks/pre-push-no-force.sh` (POSIX sh). 1st (claim_workspace.py 가 --force option 미제공) + 2nd (pre-push hook 이 사람 / 스크립트의 직접 `git push --force` 차단) + 3rd (server branch protection, 가이드). 7 case smoke ALL PASS. (TASK-2026-08-08-main-019) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -155,8 +156,11 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - ~~in-flight 워크스페이스를 취합 뷰에 **어떤 신뢰도로** 표시할 것인가.~~ ✅ **닫힘**
   (TASK-2026-08-08-main-014, v0.15.22+). `confidence()` 4-level enum + Panel 5 inline badge.
 - ~~seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출.~~ ✅ **닫힘**
-  (TASK-2026-08-08-main-018, v0.15.26+). 3-way enum + drift_score + score_band. §5B.1 신설.
-- `--force` 를 서버측(branch protection)으로 이중화할지 — 규약만으로는 실수를 못 막는다.
+  (TASK-2026-08-08-main-018, v0.15.26+). 3-way enum + drift_score + score_band. §7.5 신설.
+- ~~`--force` 를 서버측(branch protection)으로 이중화할지 — 규약만으로는 실수를 못 못함.~~ ✅ **닫힘**
+  (TASK-2026-08-08-main-019, v0.15.27+). **3-layer defense** — 1st (claim_workspace.py 가
+  --force option 미제공) + 2nd (pre-push hook 이 사람 / 스크립트의 직접 차단) +
+  3rd (server branch protection 가이드, 운영자 결정). §5D.4 (b) 갱신.
 
 ---
 
@@ -935,17 +939,41 @@ half     owner=T   idle= 12h   active
 그리고 `git show origin/<branch>:<plan>` 로 읽은 작업 예정 내역. 판단 근거 없이
 "지울까요?" 만 묻지 않는다.
 
-#### (b) `--force` → **사용자 확인 없이 실행 금지**
+#### (b) `--force` → **사용자 확인 없이 실행 금지** (3-layer defense, v0.15.27+, TASK-019)
 
 `git push --force` 는 브랜치 선점의 배타성을 뚫는다 (실측: `forced update` 로 남의
-브랜치를 덮어씀). 배타성이 *규약* 이지 *강제* 가 아니므로:
+브랜치를 덮어씀). 배타성이 *규약* 이지 *강제* 가 아니므로 **3-layer defense** 로
+이중화한다:
 
-- **에이전트는 `--force` / `--force-with-lease` 를 자율적으로 실행하지 않는다.**
-  워크스페이스 브랜치에 대해서는 **반드시 사용자 확인을 받고 진행**한다.
-- push 가 `rejected` 되면 그것은 *뚫어야 할 장애* 가 아니라 **다른 에이전트가 이미
-  그 작업을 가져갔다는 신호**다. 기본 대응은 §5D.5 5 번 — 다른 작업을 고른다.
-- 가능하면 서버측 branch protection / pre-receive hook 으로 이중화한다. 규약만으로는
-  실수를 막지 못한다.
+| Layer | 무엇 | 어디 | 정공법 |
+|---|---|---|---|
+| 1st | **규약** | `tools/claim_workspace.py` | `--force` option *미제공* — 도구 자체가 force path 노출 안 함 |
+| 2nd | **Client hook** | `.git/hooks/pre-push` | 사람 / 외부 스크립트의 *직접* `git push --force` 차단 (TASK-019) |
+| 3rd | **Server branch protection** | GitHub / Gitea repo settings | 운영자 결정 (가이드, 자동 check ❌ — 후속) |
+
+**Layer 2 (TASK-019) 설치**:
+
+```bash
+# preview
+python3 workflow-source/tools/install_pre_push_hook.py install
+
+# 실제 install
+python3 workflow-source/tools/install_pre_push_hook.py install --apply
+
+# 상태
+python3 workflow-source/tools/install_pre_push_hook.py status
+
+# 제거 (가장 최근 backup 에서 복원)
+python3 workflow-source/tools/install_pre_push_hook.py uninstall --apply
+```
+
+- hook script = `tools/hooks/pre-push-no-force.sh` (POSIX `sh`).
+- 거부 대상: `--force` / `-f` / `--force-with-lease` / `--force-if-includes` / `+refspec`
+- 기존 hook 있으면 `pre-push.bak.<UTC-ISO>` 으로 backup 자동.
+- smoke `check_pre_push_hook.py` (7 case ALL PASS).
+
+push 가 `rejected` 되면 그것은 *뚫어야 할 장애* 가 아니라 **다른 에이전트가 이미
+그 작업을 가져갔다는 신호**다. 기본 대응은 §5D.5 5 번 — 다른 작업을 고른다.
 
 > 두 항목의 공통 원칙: **되돌릴 수 없는 작업(남의 브랜치 삭제·덮어쓰기)은 에이전트가
 > 단독으로 결정하지 않는다.**

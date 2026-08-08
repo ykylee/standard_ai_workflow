@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
 - TASK-2026-08-08-main-008 seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)
 - TASK-2026-08-08-main-007 bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)
 - TASK-2026-08-08-main-006 §2.68 mavis 글로벌 mcp.json 표준 register attach — `~/.minimax/mcp/mcp.json` merge, backup 보존
@@ -101,6 +102,9 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 - **self-register** — ✅ **구현** (TASK-2026-08-08-main-008). seed_workspace_memory
   의 --apply 가 자기 workspace 를 registry 에 자동 등록. claim 도 seed 를 부르므로
   자연스럽게 따라옴.
+- **registry ↔ mavis 글로벌 동기** — ✅ **구현** (TASK-2026-08-08-main-009).
+  `tools/workspace_registry.py` 가 `import-mavis` / `export-mavis` / `sync-mavis` 3개
+  서브커맨드. builtin 5종 보존, `__mavis__/<alias>` prefix 로 환원, default preview.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

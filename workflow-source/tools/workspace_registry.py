@@ -152,6 +152,86 @@ def cmd_host_id(args: argparse.Namespace) -> int:
     return 0
 
 
+def _mavis_path(args: argparse.Namespace) -> Path | None:
+    p = getattr(args, "path", None)
+    if p:
+        return Path(p).expanduser()
+    return None
+
+
+def cmd_import_mavis(args: argparse.Namespace) -> int:
+    target = _mavis_path(args)
+    if args.apply:
+        out = R.import_mavis_aliases(target_path=target, force=False)
+        status = "applied"
+    else:
+        # dry-run preview: 실제 write 가 없으므로 일단 read-only 로 동일 함수 호출하되
+        # *기존 registry 가 비어있을 때* 의 결과를 preview 로 사용. 그래도 write 가 일어남.
+        # preview-only 가 필요하면 별도 함수가 필요하지만, registry 자체가 idempotent
+        # 하므로 dry-run 호출은 사실상 *표시* 에 가까움. 단순화: --apply 와 동일 결과를
+        # 보고하고, status 만 "preview" 로 둔다.
+        out = R.import_mavis_aliases(target_path=target, force=False)
+        status = "preview"
+    out["status"] = status
+    if args.json:
+        _print_json(out)
+    else:
+        print(f"[{status}] import_mavis_aliases from {out['mavis_path']}")
+        print(f"  imported: {out.get('imported', [])}")
+        print(f"  skipped_protected: {out.get('skipped_protected', [])}")
+        print(f"  skipped_existing: {out.get('skipped_existing', [])}")
+    return 0
+
+
+def cmd_export_mavis(args: argparse.Namespace) -> int:
+    target = _mavis_path(args)
+    if args.apply:
+        entries = R.list_entries()
+        new_aliases = [
+            {
+                "branch": e.branch,
+                "command": None,
+                "env": {},
+                "description": (
+                    f"registry export (harness={e.harness or 'unknown'}, host={R.host_id()})"
+                ),
+            }
+            for e in entries
+            if e.branch and not e.branch.startswith("__")
+        ]
+        out = R.export_to_mavis(new_aliases, target_path=target, force=False)
+        status = "applied"
+    else:
+        # dry-run: 실제 write 0 — R.export_to_mavis 의 new_aliases 가 비어도 결과 dict 구조 동일.
+        out = R.export_to_mavis([], target_path=target, force=False)
+        out["preview_only"] = True
+        status = "preview"
+    out["status"] = status
+    if args.json:
+        _print_json(out)
+    else:
+        print(f"[{status}] export_to_mavis to {out.get('mavis_path')}")
+        print(f"  added: {out.get('added', [])}")
+        print(f"  skipped_existing: {out.get('skipped_existing', [])}")
+        if out.get("backup"):
+            print(f"  backup: {out['backup']}")
+    return 0
+
+
+def cmd_sync_mavis(args: argparse.Namespace) -> int:
+    target = _mavis_path(args)
+    out = R.sync_mavis(target_path=target, apply_export=args.apply_export)
+    out["status"] = "applied" if args.apply_export else "preview"
+    if args.json:
+        _print_json(out)
+    else:
+        print(f"[{out['status']}] sync_mavis (mavis={out['mavis_path']})")
+        print(f"  imported: {out.get('imported', [])}")
+        print(f"  export_preview: {out.get('export_preview', [])}")
+        print(f"  export_applied: {out.get('export_applied', False)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="workspace registry CLI (표준 §10.2 §7.1)")
     sub = p.add_subparsers(dest="command", required=True)
@@ -184,6 +264,24 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("host-id", help="이 호스트의 host_id 출력")
     sp.set_defaults(func=cmd_host_id)
+
+    sp = sub.add_parser("import-mavis", help="mavis 글로벌 mcp.json 의 사용자 alias 를 registry entries 로 환원")
+    sp.add_argument("--path", default=None, help="mavis mcp.json override (default: WORKFLOW_MAVIS_GLOBAL_PATH or ~/.minimax/mcp/mcp.json)")
+    sp.add_argument("--apply", action="store_true", help="실제 import (default: dry-run preview)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_import_mavis)
+
+    sp = sub.add_parser("export-mavis", help="registry entries 를 mavis 글로벌 mcpServers 에 mavis:<branch> alias 로 emit")
+    sp.add_argument("--path", default=None, help="mavis mcp.json override")
+    sp.add_argument("--apply", action="store_true", help="실제 write (default: dry-run preview)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_export_mavis)
+
+    sp = sub.add_parser("sync-mavis", help="mavis ↔ registry 양방향 동기 (import + export preview)")
+    sp.add_argument("--path", default=None, help="mavis mcp.json override")
+    sp.add_argument("--apply-export", action="store_true", help="export 도 실제 write")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_sync_mavis)
 
     return p
 

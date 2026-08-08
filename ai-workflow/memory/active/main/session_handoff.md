@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-006 §2.68 mavis 글로벌 mcp.json 표준 register attach — `~/.minimax/mcp/mcp.json` merge, backup 보존
 - TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
 - TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
 - TASK-2026-08-08-main-003 dashboard `_branch_state_paths` 복수 root 취합 (smoke 6/6)
@@ -86,8 +87,14 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 
 ### 다음에 할 일 (순서)
 
-1. **§2.68 mavis 글로벌 mcp.json** — `standardAiWorkflowReadOnly` 13종 attach. 이전 축.
-   registry 가 들어왔으니 cross-host 발견 시 활용 가능 (후속 가능성).
+- **§2.68 mavis attach 신규 세션 검증** — `~/.minimax/mcp/mcp.json` 에
+  `standardAiWorkflowReadOnly` 등록 완료 (TASK-2026-08-08-main-006, §6.5.2 형식,
+  절대 경로 env 두 개, backup 보존). **mavis 데스크탑 새 세션 rotate 후 13종
+  native tool 노출 확인은 사용자가 수동**. (mavis 가 글로벌 mcp.json 변경은
+  *새 세션* 부터 반영 — 기존 세션은 그대로.)
+- **bootstrap 자동 emit** — `bootstrap_workflow_kit.py --harness mavis` 가
+  §6.5.2 의 글로벌 mcp.json 까지 emit 하도록 (TASK-2026-08-07-main-001 후속 2,
+  별도 task).
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-007 bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)
 - TASK-2026-08-08-main-006 §2.68 mavis 글로벌 mcp.json 표준 register attach — `~/.minimax/mcp/mcp.json` merge, backup 보존
 - TASK-2026-08-08-main-005 사전 존재 red 2건 정리 — `check_standard_single_source` 7/7 + `check_bootstrap_interactive_picker` 10/10
 - TASK-2026-08-08-main-004 workspace registry 신규 — host-scoped file, §7.1 (smoke 8/8)
@@ -92,9 +93,10 @@ python3 workflow-source/scripts/generate_workflow_state.py \
   절대 경로 env 두 개, backup 보존). **mavis 데스크탑 새 세션 rotate 후 13종
   native tool 노출 확인은 사용자가 수동**. (mavis 가 글로벌 mcp.json 변경은
   *새 세션* 부터 반영 — 기존 세션은 그대로.)
-- **bootstrap 자동 emit** — `bootstrap_workflow_kit.py --harness mavis` 가
-  §6.5.2 의 글로벌 mcp.json 까지 emit 하도록 (TASK-2026-08-07-main-001 후속 2,
-  별도 task).
+- **bootstrap 자동 emit** — ✅ **구현** (TASK-2026-08-08-main-007).
+  `python3 -m bootstrap_lib --harness mavis --enable-mcp` 가 호스트 글로벌
+  `~/.minimax/mcp/mcp.json` 에 atomic merge. backup / builtin 5종 보존 / 절대
+  경로 env. **mavis 데스크탑 새 세션 rotate 후 13종 attach 검증만 사용자 수동**.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

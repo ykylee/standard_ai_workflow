@@ -2235,6 +2235,24 @@ register_harness_builder("codewhale", write_codewhale_harness_files)
 register_harness_builder("minimax-code", write_minimax_code_harness_files)
 
 
+def write_mavis_harness_files(
+    args: argparse.Namespace,
+    paths: Paths,
+    context: dict,
+) -> dict[str, str]:
+    """mavis 데스크탑 런타임 — project-local 산출물 0.
+
+    mavis 는 *글로벌 한 곳* (``~/.minimax/mcp/mcp.json``) 만 읽으므로 본
+    builder 는 no-op. ``--enable-mcp`` 와 함께 호출될 때
+    :func:`bootstrap_lib.mcp.write_mavis_global_mcp_files` 가 별도 진입으로
+    글로벌 merge 를 맡는다 (메인 bootstrap CLI).
+    """
+    return {}
+
+
+register_harness_builder("mavis", write_mavis_harness_files)
+
+
 # ---------------------------------------------------------------------------
 # Self-check: HARNESS_SPECS (single source of truth for harness metadata) must
 # agree with HARNESS_FILE_BUILDERS (the actual renderer registry). If they

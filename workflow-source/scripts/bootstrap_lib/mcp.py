@@ -11,12 +11,22 @@ Adding a new harness only requires:
 2. Adding an entry to :data:`MCP_CONFIG_RENDERERS`
 3. Adding a branch in :func:`write_mcp_config_files` that picks the right
    output path
+
+mavis 는 예외: project-local 산출물 0. *호스트 글로벌* ``~/.minimax/mcp/mcp.json``
+에 atomic merge 만 한다 (§6.5.2). 따라서 :func:`write_mavis_global_mcp_files`
+가 그 일을 들고, :func:`write_mcp_config_files` 의 mavis 분기는 호출하지
+*않고* dispatch 가 별도 진입으로 호출된다.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable
 
 from bootstrap_lib.paths import Paths
@@ -293,6 +303,143 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
     return json.dumps({MCP_CONFIG_ROOT_KEY["minimax-code"]: descriptor}, ensure_ascii=False, indent=2) + "\n"
 
 
+#: mavis 데스크탑 글로벌 mcp.json 의 고정 경로. mavis 공식 user-guide 기준
+#: (*"MCP servers live in {{DATA_DIR}}/mcp.json"*) — DATA_DIR = ~/.minimax. 본
+#: harness 는 workspace 단위 자동 로드 ❌ 라서 *project-local* 사본을 emit 하지
+#: 않고 이 한 곳만 merge 한다. CLI 옵션 ``--mavis-global-mcp-path`` 로 테스트
+#: 격리가 가능 (실 사용 시 default 고정).
+DEFAULT_MAVIS_GLOBAL_MCP_PATH: Path = Path.home() / ".minimax" / "mcp" / "mcp.json"
+
+
+def render_mavis_global_mcp_config(args: argparse.Namespace) -> dict:
+    """Return mavis 데스크탑 merge 의 **block** (dict).
+
+    정본 §6.5.2 형식. `args.mcp_bridge` 에 따라 같은 bridge 표를 따른다.
+    절대 경로 env 두 개 모두 박혀야 한다 — mavis 가 띄울 때 cwd 가 *프로젝트
+    루트가 아니라* 데스크탑 런타임 자리라, 상대 경로면 `ModuleNotFoundError` 로
+    *조용히* 죽는다 (§1.2.1).
+    """
+    bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
+    target_root = Path(getattr(args, "target_root", ".")).resolve()
+    pythonpath = (target_root / "workflow-source").resolve()
+    return {
+        MCP_SERVER_ALIAS: {
+            "command": mcp_server_command(bridge)[0],
+            "args": mcp_server_command(bridge)[1:],
+            "env": {
+                "STANDARD_AI_WORKFLOW_ROOT": str(target_root),
+                "PYTHONPATH": str(pythonpath),
+            },
+            "enabled": True,
+            "configured": True,
+        }
+    }
+
+
+def atomic_merge_mavis_global(
+    target_path: Path,
+    new_block: dict,
+    *,
+    force: bool = False,
+) -> dict:
+    """``~/.minimax/mcp/mcp.json`` 을 atomic merge 한다 (§6.5.2).
+
+    동작:
+      1. ``target_path`` 가 없으면 *신규* 작성 (backup 없음 — 부재 시).
+      2. 있으면 ``<path>.bak.<UTC-iso>`` 로 backup (기존 권한/소유권 보존).
+      3. ``mcpServers`` key 아래 ``new_block`` 을 merge. 동일 alias 가 이미
+         있으면 ``force=True`` 일 때만 덮어쓴다 (default = keep).
+      4. tmp 파일을 *같은 dir* 에 만들고 ``os.replace`` 로 atomic write.
+
+    Returns:
+        ``{"backup": Path | None, "merged": Path, "wrote": bool, "skipped": bool}``
+    """
+    result = {"backup": None, "merged": target_path, "wrote": False, "skipped": False}
+
+    if target_path.is_file():
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        backup = target_path.with_suffix(f".json.bak.{ts}")
+        shutil.copy2(target_path, backup)
+        result["backup"] = backup
+        raw = target_path.read_text(encoding="utf-8")
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise SystemExit(
+                f"existing mavis mcp.json broken at {target_path}: {e}"
+            )
+        if not isinstance(data, dict):
+            raise SystemExit(
+                f"existing mavis mcp.json top-level not dict: {target_path}"
+            )
+        servers = data.get("mcpServers")
+        if not isinstance(servers, dict):
+            servers = {}
+            data["mcpServers"] = servers
+    else:
+        # 신규 파일 — directory 확보 + 새 dict 시작.
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        data = {"mcpServers": {}}
+        servers = data["mcpServers"]
+
+    alias = MCP_SERVER_ALIAS
+    if alias in servers and not force:
+        # default: keep — 사용자 mimic → init 시 그대로 두는 게 기대.
+        result["skipped"] = True
+        return result
+
+    servers.update(new_block)
+
+    # atomic write — tmp + os.replace. 같은 dir.
+    fd, tmp_name = tempfile.mkstemp(prefix=".mcp.", suffix=".tmp", dir=str(target_path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fp:
+            json.dump(data, fp, ensure_ascii=False, indent=2)
+            fp.write("\n")
+        # 권한은 기존 파일이 있으면 그것을, 없으면 0o600.
+        if target_path.is_file():
+            os.chmod(tmp_name, target_path.stat().st_mode)
+        else:
+            os.chmod(tmp_name, 0o600)
+        os.replace(tmp_name, target_path)
+    except Exception:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+    result["wrote"] = True
+    return result
+
+
+def write_mavis_global_mcp_files(
+    args: argparse.Namespace,
+    *,
+    target_path: Path | None = None,
+) -> dict:
+    """``--harness mavis`` + ``--enable-mcp`` 의 실제 emit 진입.
+
+    ``write_mcp_config_files`` 와는 *별도* — project-local 산출물 0 이라
+    dispatch 표에서 *호출되지 않는다*. 메인 bootstrap CLI 가 직접 이 함수를
+    호출한다.
+
+    Args:
+        args: argparse namespace. ``args.target_root`` / ``args.mcp_bridge`` 사용.
+        target_path: 테스트 / 명시 override 용. None 이면
+            :data:`DEFAULT_MAVIS_GLOBAL_MCP_PATH`.
+
+    Returns:
+        :func:`atomic_merge_mavis_global` 의 dict + ``alias`` / ``path`` key.
+    """
+    actual_target = Path(target_path) if target_path is not None else DEFAULT_MAVIS_GLOBAL_MCP_PATH
+    block = render_mavis_global_mcp_config(args)
+    out = atomic_merge_mavis_global(actual_target, block, force=getattr(args, "force", False))
+    out["alias"] = MCP_SERVER_ALIAS
+    out["path"] = str(actual_target)
+    return out
+
+
 def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """Return a Claude Code ``.mcp.json`` (project-scoped MCP server registration).
 
@@ -359,6 +506,10 @@ def write_mcp_config_files(
         write_text(minimax_path, render_minimax_code_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["minimax_code_mcp_config"] = str(minimax_path)
 
+    # mavis 는 *project-local* 산출물 0. 글로벌 mcp.json merge 는
+    # write_mavis_global_mcp_files (별도 진입) 가 맡는다. 호출은 bootstrap CLI 의
+    # 메인 함수에서 --harness mavis && --enable-mcp 시점에 한다.
+
     if "claude-code" in harnesses:
         claude_path = paths.target_root / ".mcp.json"
         write_text(claude_path, render_claude_code_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
@@ -377,6 +528,8 @@ MCP_CONFIG_RENDERERS: dict[str, Callable[[argparse.Namespace, Paths], str]] = {
     "antigravity": render_antigravity_mcp_config,
     "minimax-code": render_minimax_code_mcp_config,
     "claude-code": render_claude_code_mcp_config,
+    # mavis 는 글로벌 mcp.json merge 만 하는 별도 진입이라 dispatch 표에
+    # str-returning 렌더러를 두지 않는다. (project-local 산출물 0.)
 }
 
 
@@ -384,11 +537,16 @@ __all__ = [
     "MCP_CONFIG_RENDERERS",
     "MCP_SERVER_ALIAS",
     "MCP_TOOL_NAME",
+    "MCP_TOOL_DESCRIPTION",
+    "DEFAULT_MAVIS_GLOBAL_MCP_PATH",
     "render_antigravity_mcp_config",
     "render_claude_code_mcp_config",
     "render_codex_mcp_config",
     "render_gemini_cli_mcp_config",
     "render_minimax_code_mcp_config",
     "render_opencode_mcp_config",
+    "render_mavis_global_mcp_config",
+    "atomic_merge_mavis_global",
+    "write_mavis_global_mcp_files",
     "write_mcp_config_files",
 ]

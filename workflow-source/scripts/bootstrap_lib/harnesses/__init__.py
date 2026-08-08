@@ -39,6 +39,7 @@ SUPPORTED_HARNESSES: tuple[str, ...] = (
     "pi-dev",
     "antigravity",
     "minimax-code",
+    "mavis",
     "claude-code",
     "aider",
     "goose",
@@ -121,6 +122,20 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
             "MiniMax Code(미니맥스 코드) 환경용 오버레이. 메인 orchestrator + doc/code/validation "
             "worker 분화 패턴과 한국어 우선 보고 원칙, 백로그/handoff 자동 동기화 규칙을 "
             "AGENTS.md + MiniMax.md + .minimax/agents/ 구조로 한 번에 적용한다."
+        ),
+    ),
+    "mavis": HarnessSpec(
+        name="mavis",
+        description="mavis 데스크탑 런타임 overlay. project-local 산출물 0 — 표준 §6.5.2 의 글로벌 mcp.json merge 만 emit.",
+        entry_files=(),
+        extra_files=(),
+        long_description=(
+            "mavis 데스크탑 런타임은 *글로벌 한 곳* (DATA_DIR = ~/.minimax/mcp/mcp.json) "
+            "만 읽는다. workspace 단위 자동 로드 ❌, AGENTS.md / MiniMax.md 자동 read ❌. "
+            "따라서 본 harness 는 project-local 산출물을 내지 않고, --enable-mcp 와 "
+            "같이 호출돼 *호스트 글로벌 mcp.json 에 standardAiWorkflowReadOnly 블록을 "
+            "atomic merge* 한다. backup / builtin 5종 보존 / 절대 경로 env 규칙은 "
+            "정본 §6.5.2 에서 그대로 승계. registry 와의 연계는 다음 사이클."
         ),
     ),
     "claude-code": HarnessSpec(

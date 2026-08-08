@@ -266,6 +266,10 @@ HARNESS_DEFINITIONS: dict[str, HarnessDefinition] = {
         name="minimax-code",
         description="Generate AGENTS.md + MiniMax.md + minimax_config_example.json + orchestrator/worker split.",
     ),
+    "mavis": HarnessDefinition(
+        name="mavis",
+        description="mavis 데스크탑 런타임 — 글로벌 mcp.json merge 만 (atomic, builtin 5종 보존, §6.5.2).",
+    ),
 }
 
 
@@ -381,6 +385,14 @@ def parse_args() -> argparse.Namespace:
             "'jsonrpc-bridge' is the draft fixture (always available). "
             "'stdio-sdk' uses the official mcp Python SDK stdio server "
             "(requires `mcp[cli]>=1.0` and known-good SDK API compatibility)."
+        ),
+    )
+    parser.add_argument(
+        "--mavis-global-mcp-path",
+        default=None,
+        help=(
+            "Override the mavis 데스크탑 글로벌 mcp.json 경로 (§6.5.2). 기본값 "
+            "~/.minimax/mcp/mcp.json. 테스트 격리용 옵션."
         ),
     )
     parser.add_argument(
@@ -974,6 +986,17 @@ def write_harness_files(
 
     if getattr(args, "enable_mcp", False):
         generated.update(write_mcp_config_files(args, paths, harnesses))
+        # mavis 는 글로벌 mcp.json merge 만 하는 별도 진입 (§6.5.2).
+        if "mavis" in harnesses:
+            from bootstrap_lib.mcp import write_mavis_global_mcp_files
+            explicit = getattr(args, "mavis_global_mcp_path", None)
+            mavis_path = Path(explicit).expanduser() if explicit else None
+            mavis_out = write_mavis_global_mcp_files(args, target_path=mavis_path)
+            generated["mavis_global_mcp"] = mavis_out["path"]
+            if mavis_out.get("backup"):
+                generated["mavis_global_mcp_backup"] = str(mavis_out["backup"])
+            if mavis_out.get("skipped"):
+                generated["mavis_global_mcp_skipped"] = "true"
 
     if getattr(args, "enable_wiki", False):
         generated.update(write_wiki_files(args, paths, harnesses))

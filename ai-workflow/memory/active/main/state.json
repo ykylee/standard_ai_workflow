@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.0.0-beta + `origin/main` = `a845c31` (2026-08-07~08 커밋 7건) + **호스트 외부 자원 1건 (TASK-2026-08-08-main-006 done)**.",
-    "current_axis": "다중 워크스페이스 오케스트레이션 + §2.68 mavis 글로벌 mcp.json attach — **mavis attach 가 안 붙는다** 회귀의 진짜 원인(글로벌 mcp.json 미등록)도 닫혔다. 다음 축: mavis 새 세션 rotate 13종 노출 수동 검증 + bootstrap 자동 emit (mavis) 별도.",
+    "current_baseline": "v1.0.0-beta + `origin/main` = `27010a5` (2026-08-07~08 커밋 8건) + **(예정 커밋) bootstrap 자동 emit (mavis) (TASK-2026-08-08-main-007 done)**.",
+    "current_axis": "다중 워크스페이스 오케스트레이션 + §2.68 mavis attach — *mavis attach 가 안 붙는다* 회귀(글로벌 mcp.json 미등록 + bootstrap 자동 emit 부재) 가 정본 §6.5.2 정합으로 닫혔다. 다음 축: mavis 데스크탑 새 세션 rotate 13종 attach 수동 검증 (사용자).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 표준 §6.5.2 atomic merge (smoke 7/7)",
       "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (~/.minimax/mcp/mcp.json merge, backup 보존, §6.5.2)",
       "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (check_standard_single_source 7/7 + check_bootstrap_interactive_picker 10/10)",
       "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
@@ -53,7 +54,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 6,
+    "task_count": 7,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -62,7 +63,8 @@
       "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
       "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
       "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (회귀 정합 회복)",
-      "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)"
+      "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
+      "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록"
     ]
   },
   "next_documents": [

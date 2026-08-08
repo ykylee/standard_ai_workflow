@@ -136,6 +136,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **선점 도구** | ✅ **구현** — `tools/claim_workspace.py` (+ smoke 9 assertions) |
 | **§10.2 세션 시작 플로우** | ✅ **전 단계 도구화 완료** (조회 → 선정 근거 → seed → 선점) |
 | workspace registry | ✅ **구현** (v0.15.20+) — host-scoped file, atomic write, §7.1 |
+| **mavis 데스크탑 attach** | ✅ **구현** (v0.15.20+) — `--harness mavis --enable-mcp` 표준 §6.5.2 자동 merge. backup + builtin 5종 보존 + 절대 경로 env. |
 | **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env + registry. §7.3 |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)

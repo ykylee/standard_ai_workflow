@@ -4,15 +4,22 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-08 (23:08 KST, v1.1.0-beta release 발행)
+- 최종 수정일: 2026-08-08 (23:25 KST, v1.1.1-beta + session close)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **v1.1.0-beta** + `origin/main` = `564ce36` (2026-08-08, **§0.8 4건 close + dual mode + federation *읽기* 묶음 release**). tag `v1.1.0-beta` push + GitHub Release 발행.
-- 현재 주 작업 축: **v1.1.0-beta release** (Beta-v1.0.0 → v1.1.0-beta). §0.8 의 *열린 채로* 남아있던 4건 (registry federation / in-flight 신뢰도 / scope drift / --force 이중화) 모두 close. PROJECT_PROFILE.md 정합 회복.
-- 직전 축: **TASK-019** (3-layer defense — pre-push hook + 3-layer defense section) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 7 TASK + §2.68 cycle = release 묶음.
-- 다음 후보 축: TASK-021+ (HTTP server 도구, 각 호스트가 자기 registry serving) / v2 (title semantic drift, LLM-based) / Phase 13 진입 / release 운영자 결정.
+- 현재 기준선: **v1.1.1-beta** + `origin/main` = `678806f` (2026-08-08, **§0.8 4건 close + dual mode + federation *읽기* + CLI 化 A안 묶음 release**). 2 release 발행 — v1.1.0-beta (564ce36) → v1.1.1-beta (6b92a60). tag `v1.1.1-beta` push + GitHub Release 발행.
+- 현재 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
+- 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
+- 다음 후보 축: TASK-021+ (B안 dispatcher `wk` 단일 binary + tab completion) / HTTP server 도구 / v2 title semantic drift (LLM-based) / Phase 13 진입.
+- 발견한 cross-project 패턴 (agent memory 추가):
+  - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
+  - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
+  - **3-layer defense** (규약 + client hook + server protection)
+  - **Scope drift detection** (3-way enum: planned_done / planned_undone / unplanned_done)
+  - **time.mktime → calendar.timegm** (UTC timestamp KST 환경 함정)
+  - **[project.scripts] entry points** (CLI 化 A안, venv e2e 검증)
 - 최근 핵심 기준 문서:
   - [multi_workspace_orchestration.md](../../../../workflow-source/core/multi_workspace_orchestration.md) — **§0.7 상태표 + §7.1·§7.3 구현 표시** + §0.8 *아직 열려 있는 것* 4건
   - [global_workflow_standard.md §10](../../../../workflow-source/core/global_workflow_standard.md) — 다중 작업·협업 규칙

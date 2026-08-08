@@ -29,6 +29,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-08-main-011 endpoint 기반 mavis alias command/url 합성 — `cmd:` / `url:` / None / unknown 4가지 (smoke 6/6)
 - TASK-2026-08-08-main-010 RegistryEntry env 필드 + sync_mavis env 합성 — seed 가 env 자동 주입, sync_mavis 가 emit (smoke 6/6)
 - TASK-2026-08-08-main-009 registry ↔ mavis 글로벌 양방향 동기 — `--import-mavis` / `--export-mavis` / `--sync-mavis` (smoke 6/6)
 - TASK-2026-08-08-main-008 seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)
@@ -110,6 +111,9 @@ python3 workflow-source/scripts/generate_workflow_state.py \
   env field 추가, register(env=...) kwarg, seed 가 STANDARD_AI_WORKFLOW_ROOT +
   PYTHONPATH 자동 주입, sync_mavis 가 mavis alias env 로 emit. legacy entries
   하위 호환.
+- **endpoint 기반 mavis alias command/url 합성** — ✅ **구현** (TASK-2026-08-08-main-011).
+  `cmd:/abs/path` → command+args, `url:http://...` → url+type, None → 메타만,
+  unknown → advisory 보존.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

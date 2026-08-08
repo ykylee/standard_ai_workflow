@@ -434,6 +434,39 @@ def _mavis_endpoint(entry: dict) -> str | None:
     return None
 
 
+def endpoint_to_mavis_fields(endpoint: str | None) -> dict:
+    """registry entry 의 ``endpoint`` 를 mavis alias block 의 *합성된 field* 로.
+
+    Args:
+        endpoint: registry entry 의 endpoint 문자열. 형식:
+          - ``"cmd:/abs/path"`` → ``{"command": "/abs/path", "args": []}``
+          - ``"url:http://..."`` → ``{"url": "http://...", "type": "streamable-http"}``
+          - ``None`` → ``{}`` (alias 는 메타만, instance 안 뜸)
+          - 그 외 → ``{"endpoint": <raw>}`` (mavis 가 이해 못 할 수 있어
+            caller 책임 — advisory 보존)
+
+    Returns:
+        mavis alias block 에 merge 할 dict. 비어 있으면 caller 가 ``command`` /
+        ``url`` 둘 다 안 박는 결과.
+    """
+    if endpoint is None:
+        return {}
+    if not isinstance(endpoint, str) or not endpoint:
+        return {}
+    if endpoint.startswith("cmd:"):
+        cmd = endpoint[len("cmd:"):].strip()
+        if cmd:
+            return {"command": cmd, "args": []}
+        return {}
+    if endpoint.startswith("url:"):
+        url = endpoint[len("url:"):].strip()
+        if url:
+            return {"url": url, "type": "streamable-http"}
+        return {}
+    # 그 외 형식 — advisory 보존.
+    return {"endpoint": endpoint}
+
+
 def import_mavis_aliases(
     target_path: Path | None = None,
     *,
@@ -611,6 +644,12 @@ def export_to_mavis(
             "description": entry.get("description")
             or f"Exported by workspace_registry from registry entry (branch={branch})",
         }
+        # v0.15.22+ : endpoint 합성 우선. 명시 command/url 있으면 그대로 사용.
+        endpoint_val = entry.get("endpoint")
+        if endpoint_val is not None:
+            synth = endpoint_to_mavis_fields(endpoint_val)
+            for k, v in synth.items():
+                block[k] = v
         if entry.get("command"):
             block["command"] = entry["command"]
             if entry.get("args"):
@@ -675,6 +714,7 @@ def sync_mavis(
     # build a list of {branch, command, args, env, description, url, type} from
     # the *current* registry entries. caller (CLI) 가 가공한 형태 그대로 export.
     # v0.15.21+ : entries.env 를 mavis alias env 로 emit.
+    # v0.15.22+ : entries.endpoint 를 mavis alias command/url 로 합성.
     entries = list_entries()
     new_aliases: list[dict] = []
     for e in entries:
@@ -684,8 +724,9 @@ def sync_mavis(
         # (registry entry 의 env 가 이미 *그 workspace 의 표준 env* 라면 자동 사용.)
         new_aliases.append({
             "branch": e.branch,
-            "command": None,
+            # command/url 은 endpoint 합성으로 채워진다 (None 이면 합성 ❌).
             "env": e.env_dict(),
+            "endpoint": e.endpoint,
             "description": (
                 f"registry export (harness={e.harness or 'unknown'}, host={host_id()})"
             ),

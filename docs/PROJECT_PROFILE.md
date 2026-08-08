@@ -77,6 +77,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   - `python workflow-source/tests/check_seed_self_register.py` (seed 성공 시 self-register)
   - `python workflow-source/tests/check_registry_mavis_sync.py` (registry ↔ mavis 양방향 동기)
   - `python workflow-source/tests/check_registry_entry_env.py` (RegistryEntry.env + sync_mavis env 합성)
+  - `python workflow-source/tests/check_registry_endpoint_synth.py` (endpoint → mavis alias command/url 합성)
 - 워크플로우 linter: `PYTHONPATH=workflow-source python3 workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py --project-profile-path docs/PROJECT_PROFILE.md --config-path workflow-source`
   - 경로 인자를 생략하면 branch-scoped 상태 문서(`ai-workflow/memory/active/<branch>/`)를
     state.json 에서 찾아 쓴다. 예전 이 줄은 v0.5.5 릴리스 아카이브를 가리키고 있었다.

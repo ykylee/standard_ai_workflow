@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지, smoke 6/6)",
       "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit, smoke 6/6)",
       "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis, smoke 6/6)",
       "TASK-2026-08-08-main-008 — seed_workspace_memory self-register — `--apply` 성공 시 registry 1건 자동 적재 (smoke 5/5)",
@@ -57,7 +58,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 10,
+    "task_count": 11,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -70,7 +71,8 @@
       "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록",
       "TASK-2026-08-08-main-008 — seed_workspace_memory self-register (trigger: seed --apply 성공)",
       "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
-      "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit)"
+      "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit)",
+      "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지)"
     ]
   },
   "next_documents": [

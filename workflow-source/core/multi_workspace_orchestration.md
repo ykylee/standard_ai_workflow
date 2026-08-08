@@ -142,6 +142,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **registry federation 정공법** | ✅ **구현** (v0.15.23+) — `merge_entries(sources)` API + `RegistryEntry.source_host_id` (additive) + `known_hosts.json` (atomic, 0o600) + `known_hosts_*` CRUD. 4 후보 (central / git / S3 / **federation**) 중 federation 채택. HTTP fetch + dashboard 통합 = TASK-016. §0.8 #1 close. (TASK-2026-08-08-main-015) |
 | **federation HTTP pull + dashboard 통합** | ✅ **구현** (v0.15.24+) — `pull_remote_registry()` / `pull_all_remote_registries()` / `merge_with_remotes()` + remote cache (TTL 1h, 0o600, `~/.cache/workflow_kit/remote_cache/<host>.json`) + dashboard `_registry_extra_roots` 통합. stdlib only (`urllib.request`). cache fallback on unreachable. §7.4 *읽기* 마무리. (TASK-2026-08-08-main-016) |
 | **operational MCP tool CLI wrapper (dual mode)** | ✅ **구현** (v0.15.25+) — 4개 operational tool (`rotate_workflow_logs` / `apply_robust_patch` / `create_environment_record_stub` / `check_quickstart_stale_links`) 의 CLI wrapper. 같은 underlying `*_payload` 함수 호출 → CLI ↔ MCP *byte-equal* output. `tools/` 4 신규 + `tests/check_cli_wrappers.py` (4 case ALL PASS). 9 tool 은 MCP 유지 (LLM-interpretation 필수). (TASK-2026-08-08-main-017) |
+| **scope drift detection (병합 시점)** | ✅ **구현** (v0.15.26+) — `workflow_kit.common.drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI. 3-way enum (`planned_done` / `planned_undone` / `unplanned_done`, TASK-ID 기준) + drift_score (0.0~∞) + score_band (clean/minor/significant/major). pre handoff 의 *다음에 할 일* + post handoff 의 *최근 완료 작업* + git log 합집합 비교. advisory default, `--exit-on-drift` 명시 시 non-zero. (TASK-2026-08-08-main-018) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -153,7 +154,8 @@ python3 workflow-source/scripts/generate_workflow_state.py \
   (TASK-2026-08-08-main-015, v0.15.23+). 4 후보 검토 후 **federation 모델** 채택. §7.4 신설.
 - ~~in-flight 워크스페이스를 취합 뷰에 **어떤 신뢰도로** 표시할 것인가.~~ ✅ **닫힘**
   (TASK-2026-08-08-main-014, v0.15.22+). `confidence()` 4-level enum + Panel 5 inline badge.
-- seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출.
+- ~~seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출.~~ ✅ **닫힘**
+  (TASK-2026-08-08-main-018, v0.15.26+). 3-way enum + drift_score + score_band. §5B.1 신설.
 - `--force` 를 서버측(branch protection)으로 이중화할지 — 규약만으로는 실수를 못 막는다.
 
 ---
@@ -1201,6 +1203,79 @@ remote 의 in-flight 가시성은 `Panel 5` 의 `confidence` + `source_host_id` 
   6. self-host idempotent (자기 자신 추가 시도 → no-op)
   7. known_hosts remove (existing + missing no-op)
   8. merge determinism (입력 순서 무관 — `(source_host_id, branch, path)` 정렬)
+
+## 7.5 Scope drift detection — §0.8 #3 (v0.15.26+, TASK-018)
+
+**문제** (§0.8 #3 원문): "seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출."
+
+seed/claim 시점에 적은 *다음에 할 일* 섹션 (planned) 과 실제 한 일 (post-handoff 의
+*최근 완료 작업* + git log) 의 TASK-ID 를 비교 → *범위 이탈* 을 3-way enum 으로 emit.
+
+### 결정 (3-way enum)
+
+| 카테고리 | 정의 |
+|---|---|
+| `planned_done` | pre 의 TASK-ID ∩ (post done ∪ git log) — *정상* |
+| `planned_undone` | pre 의 TASK-ID - (post done ∪ git log) — *놓친 일* |
+| `unplanned_done` | (post done ∪ git log) - pre 의 TASK-ID — *범위 creep* |
+
+### Drift score + band (advisory)
+
+```
+score = (|unplanned| + |undone|) / max(|planned|, 1)
+```
+
+| score | band | 의미 |
+|---|---|---|
+| 0.0 | clean | planned = done, drift 0 |
+| 0.0 < score < 0.3 | minor | small adjustments |
+| 0.3 ≤ score < 0.7 | significant | re-evaluate scope |
+| score ≥ 0.7 또는 plan=0 | major | unplanned 또는 no-plan |
+
+*advisory only* — 사람 판단 영역. `--exit-on-drift` 명시 시에만 non-zero.
+
+### API
+
+`workflow_kit.common.drift_detection`:
+- `extract_section(text, header_substring) -> str` — markdown 섹션 본문 추출
+- `extract_task_ids(text) -> set[str]` — TASK-xxx ID 추출 (regex `TASK-\d{4}-\d{2}-\d{2}-[a-z0-9-]+-\d+`)
+- `detect_scope_drift(*, pre_text, post_text, git_log_text="", pre_section_header="다음에 할 일", post_section_header="최근 완료 작업") -> dict`
+
+`tools/detect_scope_drift.py`:
+- `--pre-handoff <path>` 또는 `--pre-commit <hash>` (default `origin/main`, `git show`)
+- `--post-handoff <path>` (default `ai-workflow/memory/active/main/session_handoff.md`)
+- `--git-range <range>` (default `origin/main..HEAD`)
+- `--json` / `--exit-on-drift`
+
+### 알려진 함정
+
+- *Title semantic drift* (planned TASK-001: A → done TASK-001: B, 의미 변경) 는 v2
+  (LLM-based). 본 v1 은 *ID-기반* 비교 — 의미가 바뀌어도 같은 ID 면 *정상으로 본다*.
+- *Pre handoff 부재* (첫 commit) → 모든 done 은 *unplanned* 처리 + warning emit. *0
+  drift score 가 아니라는 점* (major band) 명시.
+- *Git range* 가 빈 경우 (커밋 0건) → post handoff 만 비교. drift score 가 *plan=0
+  으로 inf* 일 수 있음.
+
+### 검증
+
+`tests/check_scope_drift.py` (TASK-018, stdlib only, 7 case + sanity ALL PASS):
+1. clean — pre = post, score=0
+2. planned_undone — TASK-002 누락, score=0.5, band=significant
+3. unplanned_done — TASK-003 범위 creep, score=1.0, band=major
+4. both — undone + unplanned, score=1.0, band=major
+5. missing-section — pre 에 *다음에 할 일* 섹션 부재, warning emit + 모두 unplanned
+6. no-pre — pre_text=None, warning emit + 모두 unplanned + band=major
+7. band threshold — score 0.2 → minor (구분점 검증)
+
+### 사용 패턴
+
+```bash
+# PR merge 직전 — pre-merge advisory
+python3 workflow-source/tools/detect_scope_drift.py --pre-commit origin/main
+
+# CI smoke — drift 발견 시 fail
+python3 workflow-source/tools/detect_scope_drift.py --exit-on-drift
+```
 
 ## 8. 범위 밖
 

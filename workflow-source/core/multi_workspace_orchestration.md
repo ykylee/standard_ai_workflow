@@ -139,6 +139,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **mavis 데스크탑 attach** | ✅ **구현** (v0.15.20+) — `--harness mavis --enable-mcp` 표준 §6.5.2 자동 merge. backup + builtin 5종 보존 + 절대 경로 env. |
 | **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env + registry. §7.3 |
 | **in-flight 신뢰도 표시** | ✅ **구현** (v0.15.22+) — `workspace_registry.confidence()` 4-level enum (`fresh`/`recent`/`stale`/`orphan`) + Panel 5 inline badge. 3-way signal: `path.is_dir()` + `last_seen_at` + `worktree_branch`. §0.8 #2 close. (TASK-2026-08-08-main-014) |
+| **registry federation 정공법** | ✅ **구현** (v0.15.23+) — `merge_entries(sources)` API + `RegistryEntry.source_host_id` (additive) + `known_hosts.json` (atomic, 0o600) + `known_hosts_*` CRUD. 4 후보 (central / git / S3 / **federation**) 중 federation 채택. HTTP fetch + dashboard 통합 = TASK-016. §0.8 #1 close. (TASK-2026-08-08-main-015) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -146,7 +147,8 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 
 ### 0.8 아직 열려 있는 것
 
-- registry **저장 위치** — 여러 호스트로 흩어지면 파일 기반이 성립하지 않는다.
+- ~~registry **저장 위치** — 여러 호스트로 흩어지면 파일 기반이 성립하지 않는다.~~ ✅ **닫힘**
+  (TASK-2026-08-08-main-015, v0.15.23+). 4 후보 검토 후 **federation 모델** 채택. §7.4 신설.
 - ~~in-flight 워크스페이스를 취합 뷰에 **어떤 신뢰도로** 표시할 것인가.~~ ✅ **닫힘**
   (TASK-2026-08-08-main-014, v0.15.22+). `confidence()` 4-level enum + Panel 5 inline badge.
 - seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출.
@@ -1055,14 +1057,82 @@ half     owner=T   idle= 12h   active
 - 아직 병합되지 않은(in-flight) 워크스페이스의 상태를 취합 뷰에 어떤 신뢰도로 표시할
   것인가. 커밋 전 작업은 "사실" 이 아니다. (§5A.3 이 이 질문을 구체화했다 — 선택지는
   "안 보여준다" 와 "lease 기반으로 *진행 중* 이라고만 표시한다" 둘이다.)
-- 워크스페이스가 여러 **호스트**에 흩어지면 registry 를 어디에 두는가. (§5D 로 *배타
-  제어* 는 git 이 맡게 되어 이 질문의 범위가 줄었다 — registry 는 `host_id` 매핑과
-  in-flight 가시성만 담당한다.)
+- ~~워크스페이스가 여러 **호스트**에 흩어지면 registry 를 어디에 두는가.~~ — **§7.4 에서
+  결정 완료**: federation 모델. §5D 로 *배타 제어* 는 git 이, §7.4 로 *다중 호스트
+  가시성* 은 `merge_entries` + `known_hosts.json` 이 맡는다.
 - ~~lease TTL 만료와 실제 작업 중단 사이의 간극~~ — **§5D.4 에서 결정 완료**: 자동
   회수하지 않고, 마지막 활동 **1일 초과 시 사용자에게 문의**한다. 되돌릴 수 없는 작업은
   에이전트가 단독으로 결정하지 않는다.
 - seed 한 지시와 하네스가 실제로 한 일이 갈라졌을 때(범위 이탈) 병합 시점에 어떻게
   잡아낼 것인가.
+
+## 7.4 Registry federation — §0.8 #1 의 정공법
+
+**문제** (§0.8 #1 원문): "여러 호스트로 흩어지면 파일 기반이 성립하지 않는다."
+
+registry 의 현행 저장 위치는 `~/.cache/workflow_kit/registry.json` (per-host file,
+0o600, atomic write, §7.1). 한 호스트 안에서는 *완벽* 하지만, 여러 호스트의 registry 가
+*서로 안 보이는* 문제가 §0.8 #1.
+
+### 4 후보 검토
+
+| 후보 | 장점 | 단점 | 판정 |
+|---|---|---|---|
+| **A. Central server** (redis / postgres) | strong consistency, query 강력 | 항상-on infra 필요, single point of failure, 운영 부담 | ❌ |
+| **B. Git-tracked** | 1차 출처 = git, 무료 | §5A.3 의 "git 밖" 원칙 위반 (in-flight 정보는 per-host), per-host 별 branch 필요 → cycle 위험 | ❌ |
+| **C. S3 / GCS** | strong consistency, backup 자동 | 외부 의존성, 비용, secret 관리 | ❌ |
+| **D. **Federation**** (각 호스트의 host-scoped file 유지 + 호스트 *목록* 별도) | infra 0, central failure 0, §5A.3 "git 밖" 정합, 점진적 도입 가능 | *읽기* 가 dashboard 측 N회 fetch 필요 (HTTP 비용), eventual consistency | ✅ |
+
+### 정공법 — Federation
+
+각 호스트는 자기 registry 를 host-scoped file 에 그대로 유지 (현행 보존). *호스트
+목록* 만 별도 `~/.cache/workflow_kit/known_hosts.json` (atomic, 0o600,
+`WORKFLOW_KNOWN_HOSTS_PATH` env override) 으로 관리. dashboard 가 모든 known host 의
+registry 를 *읽기* 가능해지면 federation.
+
+```
+~/.cache/workflow_kit/
+├── registry.json          ← 이 호스트의 workspace registry (host-scoped, §7.1)
+└── known_hosts.json       ← 다른 호스트 목록 + endpoint (host-level, §7.4)
+```
+
+### API
+
+- `KnownHost` (frozen dataclass): `host_id` / `endpoint` / `added_at` / `note`
+- `known_hosts_path() -> Path`, `load_known_hosts() -> list[KnownHost]`,
+  `save_known_hosts(hosts) -> None` (atomic)
+- `add_known_host(host_id, endpoint, *, note="") -> list[KnownHost]` — idempotent.
+  자기 자신 (현재 `host_id()`) 추가 시도 → no-op (cycle 방지).
+- `remove_known_host(host_id) -> list[KnownHost]` — 없는 거 → no-op.
+- `merge_entries(sources) -> list[RegistryEntry]` — `[(host_id_label, entries), ...]`
+  입력 → deduped union. dedup key = `path` (logical workspace). 같은 path 의
+  `last_seen_at` 최신 우선. `source_host_id` 가 빈 legacy entry 는 *winning slot*
+  시점에 input label 로 `dataclasses.replace`.
+
+### `RegistryEntry.source_host_id` (v0.15.23+)
+
+additive. `register()` 시 `host_id()` 자동 주입, `from_dict()` 시 missing → `""` (legacy
+하위 호환). federation merge 의 *winning entry* 가 provenance 를 들고 다닐 수 있게.
+
+### §0.8 #1 의 닫힘 + 후속
+
+- §0.8 #1 ✅ close (TASK-2026-08-08-main-015). 정공법 = **federation**.
+- HTTP fetch + dashboard 통합 = **TASK-2026-08-08-main-016** (별도). 본 task 는
+  *merge API* 까지만 — HTTP pull 미구현. caller 가 직접 registry file 을 fetch 한 뒤
+  `Registry.from_json` → `merge_entries` 에 넘기는 형태.
+- 인증 / TLS / mutual TLS 는 *현재 scope 밖*. host 신뢰는 IP / 네트워크 정책으로.
+
+### 검증
+
+- `tests/check_host_federation.py` (TASK-015, stdlib only) 8 case ALL PASS:
+  1. single host merge (no-op)
+  2. multi-host dedup (3 hosts × 1 path = 3 entries)
+  3. conflict resolution (hostA 10d 전 < hostB 1d 전 → hostB 우선)
+  4. legacy `source_host_id=""` → input label fallback
+  5. known_hosts add → atomic save (0o600) → load roundtrip
+  6. self-host idempotent (자기 자신 추가 시도 → no-op)
+  7. known_hosts remove (existing + missing no-op)
+  8. merge determinism (입력 순서 무관 — `(source_host_id, branch, path)` 정렬)
 
 ## 8. 범위 밖
 

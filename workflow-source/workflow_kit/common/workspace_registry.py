@@ -84,6 +84,12 @@ class RegistryEntry:
     `env` 는 v0.15.21+ 에서 추가. mavis 글로벌 export 시 mavis alias env 로
     그대로 emit (sync_mavis). 기존 entries (env field 누락) 는 *빈 dict* 로
     load — 하위 호환.
+
+    `source_host_id` 는 v0.15.23+ (TASK-2026-08-08-main-015, §0.8 #1) federation
+    정공법에서 추가. 이 entry 가 *어느 호스트* 의 registry 에서 왔는지. local
+    register 시 `host_id()` 자동 주입, 원격 merge 시 caller 가 명시. 기존 entries
+    (field 누락) 는 *빈 string* 으로 load — caller 가 host_id 와 비교할 때
+    "this host" 의미로 해석 (legacy 동작과 정합).
     """
 
     path: str
@@ -93,6 +99,7 @@ class RegistryEntry:
     registered_at: str = ""
     last_seen_at: str = ""
     env: tuple[tuple[str, str], ...] = ()
+    source_host_id: str = ""
 
     def env_dict(self) -> dict[str, str]:
         return dict(self.env)
@@ -122,6 +129,7 @@ class RegistryEntry:
             registered_at=str(d.get("registered_at", "")),
             last_seen_at=str(d.get("last_seen_at", "")),
             env=env_items,
+            source_host_id=str(d.get("source_host_id", "")),
         )
 
 
@@ -288,6 +296,10 @@ def register(
             registered_at=entry.registered_at or now,
             last_seen_at=now,
             env=merged_env,
+            # source_host_id 는 등록 시점의 host_id 로 *고정* (재등록 시에도). 같은
+            # path 가 다른 host 의 file 에 생기면 그건 다른 entry (path 가 unique 아님,
+            # source_host_id 가 두 번째 dedup key).
+            source_host_id=entry.source_host_id or host_id(),
         )
 
     found = False
@@ -308,6 +320,7 @@ def register(
                 registered_at=now,
                 last_seen_at=now,
                 env=env_items,
+                source_host_id=host_id(),
             )
         )
     reg.entries = new_entries
@@ -838,3 +851,242 @@ def sync_mavis(
         "mavis_path": imp.get("mavis_path", ""),
         "registry_path": imp.get("registry_path", ""),
     }
+
+
+# ---------------------------------------------------------------------------
+# v0.15.23+ (TASK-2026-08-08-main-015, §0.8 #1) — federation primitives
+# ---------------------------------------------------------------------------
+#
+# §0.8 #1 의 정공법: central store ❌, git-tracking ❌, S3 ❌. 각 호스트는 자기
+# registry 를 host-scoped file 에 그대로 유지하고, 호스트 *목록* 만 별도
+# `known_hosts.json` 으로 관리. dashboard 가 모든 known host 의 registry 를
+# *읽기* 가능해지면 federation. 본 모듈이 그 *merge* 의 단일 결정 지점.
+#
+# HTTP fetch 는 본 task 범위 밖 (TASK-016). 본 모듈은 *읽은 entry 들* 의
+# merge 만 책임.
+
+KNOWN_HOSTS_SCHEMA_VERSION: Final[str] = "1"
+DEFAULT_KNOWN_HOSTS_FILENAME: Final[str] = "known_hosts.json"
+
+
+@dataclass(frozen=True)
+class KnownHost:
+    """federation 의 한 호스트. host_id + endpoint.
+
+    `endpoint` 는 그 호스트의 registry 를 어디서 *읽을 수 있는지* 의 위치.
+    형식: ``"http://<host>:<port>/registry.json"`` 또는 ``"file://<abs/path>"``
+    또는 ``"path:<abs/path>"``. *entry-level* endpoint (워크스페이스 단위) 와
+    *host-level* endpoint (registry 단위) 를 구분 — 본 모듈이 host-level 만
+    안다.
+    """
+
+    host_id: str
+    endpoint: str
+    added_at: str = ""
+    note: str = ""
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "KnownHost":
+        return cls(
+            host_id=str(d.get("host_id", "")),
+            endpoint=str(d.get("endpoint", "")),
+            added_at=str(d.get("added_at", "")),
+            note=str(d.get("note", "")),
+        )
+
+
+def known_hosts_path() -> Path:
+    """known_hosts.json 의 현재 위치. env override > XDG_CACHE_HOME > default.
+
+    registry.json 과 같은 디렉터리 (`~/.cache/workflow_kit/`) — federation 의
+    두 file 이 *한 자리에* 있어야 운영자가 찾기 쉽다.
+    """
+    override = os.environ.get("WORKFLOW_KNOWN_HOSTS_PATH", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return registry_path().parent / DEFAULT_KNOWN_HOSTS_FILENAME
+
+
+def load_known_hosts() -> list[KnownHost]:
+    """known_hosts.json 읽기. 부재 / 깨짐 시 *빈 리스트*. 정렬은 host_id 기준."""
+    path = known_hosts_path()
+    if not path.is_file():
+        return []
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    raw_hosts = data.get("hosts", [])
+    if not isinstance(raw_hosts, list):
+        return []
+    hosts: list[KnownHost] = []
+    for item in raw_hosts:
+        if isinstance(item, dict):
+            hosts.append(KnownHost.from_dict(item))
+    return sorted(hosts, key=lambda h: h.host_id)
+
+
+def save_known_hosts(hosts: list[KnownHost]) -> None:
+    """known_hosts.json atomic 저장. 0o600, schema_version 표기."""
+    path = known_hosts_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(
+        {
+            "schema_version": KNOWN_HOSTS_SCHEMA_VERSION,
+            "updated_at": _utcnow_iso(),
+            "hosts": [h.to_dict() for h in hosts],
+        },
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=".known_hosts.", suffix=".tmp", dir=str(path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fp:
+            fp.write(payload)
+        os.chmod(tmp_name, 0o600)
+        os.replace(tmp_name, path)
+    except Exception:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+
+def add_known_host(host_id: str, endpoint: str, *, note: str = "") -> list[KnownHost]:
+    """known host 1건 등록. 동일 host_id 가 있으면 endpoint / note 만 갱신 (idempotent).
+
+    본 호스트 (현재 host_id) 는 *자동 제외* — 자기 자신을 known host 로 등록할
+    필요 없음 (그리고 등록 시 merge 가 자기 자신을 또 읽어 cycle 위험).
+    """
+    self_id = host_id_uncached()
+    if host_id == self_id:
+        # 자기 자신은 무시 (no-op). caller 가 의도적일 수도 있어 *강제* X.
+        return load_known_hosts()
+    hosts = load_known_hosts()
+    now = _utcnow_iso()
+    found = False
+    new_hosts: list[KnownHost] = []
+    for h in hosts:
+        if h.host_id == host_id:
+            new_hosts.append(
+                KnownHost(
+                    host_id=host_id,
+                    endpoint=endpoint,
+                    added_at=h.added_at or now,
+                    note=note or h.note,
+                )
+            )
+            found = True
+        else:
+            new_hosts.append(h)
+    if not found:
+        new_hosts.append(
+            KnownHost(
+                host_id=host_id,
+                endpoint=endpoint,
+                added_at=now,
+                note=note,
+            )
+        )
+    save_known_hosts(sorted(new_hosts, key=lambda h: h.host_id))
+    return load_known_hosts()
+
+
+def remove_known_host(host_id: str) -> list[KnownHost]:
+    """known host 1건 제거. 없으면 no-op."""
+    hosts = load_known_hosts()
+    new_hosts = [h for h in hosts if h.host_id != host_id]
+    if len(new_hosts) == len(hosts):
+        return hosts
+    save_known_hosts(sorted(new_hosts, key=lambda h: h.host_id))
+    return load_known_hosts()
+
+
+def host_id_uncached() -> str:
+    """``host_id()`` 와 같지만 module-level import 시점 호출 안전. (lazy 결정
+    정합 — host_id() 와 동일, 단지 alias.)"""
+    return host_id()
+
+
+def _parse_last_seen_to_dt(s: str) -> datetime | None:
+    """``last_seen_at`` → UTC datetime. 깨지면 None (정합: §0.8 #2 와 동일)."""
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def merge_entries(
+    sources: list[tuple[str, list[RegistryEntry]]],
+) -> list[RegistryEntry]:
+    """여러 호스트의 registry entries 를 *단일 deduped list* 로 합친다.
+
+    Args:
+        sources: ``[(host_id, entries), ...]``. 각 entry 는 caller 가 미리
+            ``source_host_id`` 를 *명시적으로* 박았어야 한다 (이 함수는 entries 의
+            ``source_host_id`` 를 *trust* 한다 — caller 책임).
+
+    Returns:
+        deduped ``list[RegistryEntry]``. 정렬 = ``(source_host_id, branch, path)``.
+        결정:
+        - dedup key = ``(source_host_id, path)``
+        - 같은 key 이면 ``last_seen_at`` *최신* 우선 (ISO timestamp 문자열 비교 —
+          같은 형식이라는 전제. v0.15.23+ 의 UTC ISO 가정이 깨지면 caller 책임)
+        - 깨진 last_seen_at 은 ``min`` 으로 취급 (덮어쓰여질 수 있음)
+
+    Note:
+        *first-wins* 가 아니다. last_seen_at 최신이 conflict 시 이긴다.
+    """
+    from dataclasses import replace as _dc_replace  # local — top-level import 회피
+
+    bucket: dict[str, RegistryEntry] = {}
+    src_label: dict[str, str] = {}  # path → resolved source_host_id
+    for host_id_label, entries in sources:
+        if not isinstance(entries, list):
+            continue
+        for e in entries:
+            if not isinstance(e, RegistryEntry):
+                continue
+            cur = bucket.get(e.path)
+            if cur is None:
+                bucket[e.path] = e
+                src_label[e.path] = e.source_host_id or host_id_label
+                continue
+            # last_seen_at 비교 (ISO UTC 문자열 — §registry §0.7 정합)
+            cur_dt = _parse_last_seen_to_dt(cur.last_seen_at)
+            new_dt = _parse_last_seen_to_dt(e.last_seen_at)
+            # 둘 다 None → first-wins. 한쪽만 None → None 아닌 쪽 우선.
+            if cur_dt is None and new_dt is None:
+                continue
+            if new_dt is None:
+                continue  # cur 유지
+            if cur_dt is None or new_dt > cur_dt:
+                bucket[e.path] = e
+                src_label[e.path] = e.source_host_id or host_id_label
+    # source_host_id 가 비어 있던 legacy entry 는 *winning slot* 시점에 label 로 채움.
+    out: list[RegistryEntry] = []
+    for path in sorted(bucket.keys()):
+        e = bucket[path]
+        if not e.source_host_id:
+            e = _dc_replace(e, source_host_id=src_label[path])
+        out.append(e)
+    return sorted(
+        out,
+        key=lambda e: (e.source_host_id, e.branch, e.path),
+    )

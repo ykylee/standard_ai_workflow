@@ -64,6 +64,15 @@ from typing import Final
 
 SCHEMA_VERSION: Final[str] = "1"
 DEFAULT_STALE_SECONDS: Final[int] = 7 * 24 * 60 * 60  # 7일
+# v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — confidence 4-level enum 임계.
+# `fresh` 는 *24h 이내 + branch 정합* 의 강한 신호. `recent` 은 살아있지만 *확인 필요*.
+# `stale` 은 7일 초과 또는 branch mismatch. `orphan` 은 path 부재 (자동 unregister 후보,
+# *표시만* — §5D.4 정합).
+DEFAULT_FRESH_SECONDS: Final[int] = 24 * 60 * 60  # 24h
+#: confidence 4-level enum. dashboard Panel 5 inline badge 의 vocabulary.
+CONFIDENCE_LEVELS: Final[frozenset[str]] = frozenset(
+    {"fresh", "recent", "stale", "orphan"}
+)
 
 
 @dataclass(frozen=True)
@@ -382,6 +391,84 @@ def is_stale(
     except ValueError:
         return True
     return (cur - seen).total_seconds() > threshold_seconds
+
+
+def _parse_last_seen(entry: RegistryEntry) -> datetime | None:
+    """``last_seen_at`` 을 UTC ``datetime`` 으로. 깨졌거나 비어있으면 None."""
+    if not entry.last_seen_at:
+        return None
+    try:
+        return datetime.strptime(
+            entry.last_seen_at, "%Y-%m-%dT%H:%M:%SZ"
+        ).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def _entry_path(entry: RegistryEntry) -> Path | None:
+    """entry.path → ``Path``. 빈 값이면 None."""
+    if not entry.path:
+        return None
+    try:
+        return Path(entry.path)
+    except (OSError, ValueError):
+        return None
+
+
+def confidence(
+    entry: RegistryEntry,
+    *,
+    worktree_branch: str | None = None,
+    now: datetime | None = None,
+    fresh_seconds: int = DEFAULT_FRESH_SECONDS,
+    stale_seconds: int = DEFAULT_STALE_SECONDS,
+) -> str:
+    """§0.8 #2 / §5A.3 — in-flight 워크스페이스의 4-level 신뢰도.
+
+    Returns:
+        ``"fresh"``   — path.is_dir() ✓ AND last_seen_at < fresh_seconds AND
+                       worktree_branch == entry.branch (또는 branch 확인 생략 시 True)
+        ``"recent"``  — 위 3개 중 1개 fail (fresh_seconds ~ stale_seconds 사이, 살아있음)
+        ``"stale"``   — last_seen_at > stale_seconds OR worktree_branch 가 entry.branch 와 다름
+        ``"orphan"``  — path 부재 (worktree 삭제됨, 자동 unregister 후보 — 표시만, §5D.4)
+
+    결정 우선순위 (early-return):
+        1. ``path.is_dir()`` False → ``orphan`` (가장 강한 신호)
+        2. ``last_seen_at`` 비어있거나 깨짐 → ``stale``
+        3. last_seen 이 stale_seconds 초과 → ``stale``
+        4. worktree_branch 가 명시되었고 entry.branch 와 다름 → ``stale``
+        5. last_seen 이 fresh_seconds 이내 AND branch 정합 → ``fresh``
+        6. 그 외 (1개 fail, fresh_seconds~stale_seconds 사이) → ``recent``
+
+    Args:
+        entry: registry 의 한 건.
+        worktree_branch: ``git -C entry.path rev-parse --abbrev-ref HEAD`` 결과. None
+            이면 branch 정합 확인을 *건너뛴다* (그 자리는 fresh/recent 양쪽에 영향 없음).
+            caller 가 batch 로 모은 dict 에서 꺼내 쓰는 형태.
+        now: 테스트용 시각 override. None 이면 ``datetime.now(UTC)``.
+        fresh_seconds: ``fresh`` 임계 (default 24h).
+        stale_seconds: ``stale`` 임계 (default 7d, ``DEFAULT_STALE_SECONDS`` 와 정합).
+
+    Note:
+        registry 가 §5A.3 의 *첫 소비자* 자리이므로, 본 함수의 *호출자* (dashboard Panel 5)
+        는 ``entry.confidence`` 만 읽고 그 외 추측 ❌.
+    """
+    p = _entry_path(entry)
+    if p is None or not p.is_dir():
+        return "orphan"
+    seen = _parse_last_seen(entry)
+    cur = now or datetime.now(timezone.utc)
+    if seen is None:
+        return "stale"
+    age = (cur - seen).total_seconds()
+    if age > stale_seconds:
+        return "stale"
+    # branch mismatch 도 stale (사용자가 다른 브랜치로 옮긴 worktree = 사실상 죽은 entry).
+    if worktree_branch is not None and worktree_branch != entry.branch:
+        return "stale"
+    if age <= fresh_seconds:
+        return "fresh"
+    return "recent"
 
 
 # ---------------------------------------------------------------------------

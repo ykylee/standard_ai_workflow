@@ -138,6 +138,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | workspace registry | ✅ **구현** (v0.15.20+) — host-scoped file, atomic write, §7.1 |
 | **mavis 데스크탑 attach** | ✅ **구현** (v0.15.20+) — `--harness mavis --enable-mcp` 표준 §6.5.2 자동 merge. backup + builtin 5종 보존 + 절대 경로 env. |
 | **복수 root 취합** | ✅ **구현** (v0.15.20+) — `extra_roots` kwarg + worktree 자동 합류 + env + registry. §7.3 |
+| **in-flight 신뢰도 표시** | ✅ **구현** (v0.15.22+) — `workspace_registry.confidence()` 4-level enum (`fresh`/`recent`/`stale`/`orphan`) + Panel 5 inline badge. 3-way signal: `path.is_dir()` + `last_seen_at` + `worktree_branch`. §0.8 #2 close. (TASK-2026-08-08-main-014) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -146,7 +147,8 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 ### 0.8 아직 열려 있는 것
 
 - registry **저장 위치** — 여러 호스트로 흩어지면 파일 기반이 성립하지 않는다.
-- in-flight 워크스페이스를 취합 뷰에 **어떤 신뢰도로** 표시할 것인가.
+- ~~in-flight 워크스페이스를 취합 뷰에 **어떤 신뢰도로** 표시할 것인가.~~ ✅ **닫힘**
+  (TASK-2026-08-08-main-014, v0.15.22+). `confidence()` 4-level enum + Panel 5 inline badge.
 - seed 한 지시와 실제 한 일이 갈라졌을 때(범위 이탈) 병합 시점 검출.
 - `--force` 를 서버측(branch protection)으로 이중화할지 — 규약만으로는 실수를 못 막는다.
 

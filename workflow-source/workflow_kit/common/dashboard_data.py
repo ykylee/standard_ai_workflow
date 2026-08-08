@@ -1362,6 +1362,116 @@ def _env_extra_roots() -> list[Path]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — in-flight 신뢰도 (3-way signal)
+# ---------------------------------------------------------------------------
+
+
+def _worktree_branch_map(self_root: Path) -> dict[str, str]:
+    """`git worktree list --porcelain` → ``{abs_path_str: branch_str}`` 매핑.
+
+    `git` 부재 / 실패 / 결과 0개 시 빈 dict. registry 의 *branch 정합 확인* 용
+    단일 경로 — confidence() 의 3-way 신호 (path + last_seen + branch) 중 마지막.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=self_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    if proc.returncode != 0 or not proc.stdout:
+        return {}
+    out: dict[str, str] = {}
+    cur_path: Path | None = None
+    cur_branch: str | None = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("worktree "):
+            if cur_path is not None and cur_branch is not None:
+                try:
+                    out[str(cur_path.resolve())] = cur_branch
+                except OSError:
+                    out[str(cur_path)] = cur_branch
+            cur_path = Path(line[len("worktree "):].strip())
+            cur_branch = None
+        elif line.startswith("branch "):
+            ref = line[len("branch "):].strip()
+            # refs/heads/<name> → <name> 변환
+            if ref.startswith("refs/heads/"):
+                ref = ref[len("refs/heads/"):]
+            cur_branch = ref
+    # 마지막 entry
+    if cur_path is not None and cur_branch is not None:
+        try:
+            out[str(cur_path.resolve())] = cur_branch
+        except OSError:
+            out[str(cur_path)] = cur_branch
+    return out
+
+
+def _state_path_to_worktree_root(state_path: Path) -> Path | None:
+    """`<wt>/ai-workflow/memory/active/<branch>/state.json` → `<wt>/`.
+
+    state.json 의 `parents[4]` 가 worktree root (state.json, <branch>, active, memory,
+    ai-workflow, worktree_root). 5단계 위로 갈 수 없으면 None — 호출자가 fresh 로
+    fallback 한다.
+    """
+    try:
+        return state_path.parents[4]
+    except IndexError:
+        return None
+
+
+def _confidence_for_state_path(
+    state_path: Path,
+    *,
+    main_root: Path,
+    registry_entries: list[Any],
+    branch_map: dict[str, str],
+    now: datetime | None = None,
+) -> str:
+    """state.json 한 건의 in-flight 신뢰도 계산. dashboard Panel 5 가 호출.
+
+    결정 순서 (§0.8 #2 정공법):
+        1. worktree root 가 main_root 와 같으면 → ``fresh`` (merge 후라 신뢰)
+        2. registry 에 등록돼 있으면 → ``workspace_registry.confidence(entry, ...)``
+        3. 그 외 (registry 미등록) → ``fresh`` (penalty ❌ — 등록 누락을 *신뢰도 저하*
+           로 보지 않음. §0.8 #2 의 *표시* 가 *판정* 으로 번지지 않게.)
+    """
+    wt = _state_path_to_worktree_root(state_path)
+    if wt is None:
+        return "fresh"
+    try:
+        wt_key = str(wt.resolve())
+        main_key = str(main_root.resolve())
+    except OSError:
+        wt_key = str(wt)
+        main_key = str(main_root)
+    if wt_key == main_key:
+        return "fresh"
+    # local import: registry module 의 import cycle 회피 (§0.7 _registry_extra_roots 와 같은 패턴).
+    from workflow_kit.common import workspace_registry as _wr  # noqa: PLC0415
+    for entry in registry_entries:
+        if not getattr(entry, "path", None):
+            continue
+        try:
+            if str(Path(entry.path).resolve()) != wt_key:
+                continue
+        except OSError:
+            if str(entry.path) != wt_key:
+                continue
+        return _wr.confidence(
+            entry,
+            worktree_branch=branch_map.get(wt_key),
+            now=now,
+        )
+    return "fresh"
+
+
 def _registry_extra_roots(self_root: Path) -> list[Path]:
     """workspace_registry (§7.1) 가 알려주는 호스트의 추가 worktree 경로.
 
@@ -1435,9 +1545,20 @@ def collect_recent_releases(
         state_paths = [legacy] if legacy.is_file() else []
 
     if not state_paths:
-        return {"items_total": 0, "top_n": top_n, "timeline": []}
+        return {"items_total": 0, "top_n": top_n, "timeline": [], "confidence_counts": {}}
+
+    # §0.8 #2 / §5A.3 — in-flight 신뢰도 (3-way signal). registry + worktree branch +
+    # system path existence. 한 번만 호출 (per-collect).
+    branch_map = _worktree_branch_map(root)
+    registry_entries: list[Any] = []
+    try:
+        from workflow_kit.common import workspace_registry as _wr  # noqa: PLC0415
+        registry_entries = _wr.list_entries()
+    except Exception:  # noqa: BLE001 — registry 부재/실패 시 조용히 fresh 로 fallback
+        registry_entries = []
 
     items: list[Any] = []
+    item_confidences: list[str] = []  # items 와 1:1 대응
     for path in state_paths:
         try:
             with path.open("r", encoding="utf-8") as fp:
@@ -1449,10 +1570,19 @@ def collect_recent_releases(
             continue
         branch_items = session.get("recent_done_items", [])
         if isinstance(branch_items, list):
-            items.extend(branch_items)
+            conf = _confidence_for_state_path(
+                path,
+                main_root=root,
+                registry_entries=registry_entries,
+                branch_map=branch_map,
+            )
+            for it in branch_items:
+                items.append(it)
+                item_confidences.append(conf)
 
     timeline: list[dict[str, Any]] = []
-    for idx, item in enumerate(items[:top_n]):
+    confidence_counts: dict[str, int] = {}
+    for idx, (item, conf) in enumerate(zip(items[:top_n], item_confidences[:top_n])):
         if isinstance(item, str):
             preview = item[:120] + ("…" if len(item) > 120 else "")
             timeline.append(
@@ -1460,13 +1590,21 @@ def collect_recent_releases(
                     "index": idx,
                     "preview": preview,
                     "length": len(item),
+                    "confidence": conf,
                 }
             )
+            confidence_counts[conf] = confidence_counts.get(conf, 0) + 1
 
     return {
         "items_total": len(items),
         "top_n": top_n,
         "timeline": timeline,
+        # §0.8 #2 — Panel 5 summary: 4-level 분포. 0인 enum 도 emit (render 가
+        # "fresh: 5, recent: 0, stale: 0, orphan: 0" 으로 일관 표시).
+        "confidence_counts": {
+            level: confidence_counts.get(level, 0)
+            for level in ("fresh", "recent", "stale", "orphan")
+        },
     }
 
 
@@ -1682,6 +1820,15 @@ def _render_panel_5(p: dict[str, Any]) -> list[str]:
     lines: list[str] = ["## Panel 5 — Recent Release Cycle", ""]
     lines.append(f"- items_total: `{p.get('items_total', 0)}`")
     lines.append(f"- top_n: `{p.get('top_n', 0)}`")
+    # v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — 4-level confidence 분포.
+    counts = p.get("confidence_counts", {})
+    if isinstance(counts, dict) and counts:
+        lines.append(
+            "- confidence: "
+            + " · ".join(
+                f"`{k}={v}`" for k, v in counts.items() if v
+            )
+        )
     timeline = p.get("timeline", [])
     if isinstance(timeline, list) and timeline:
         lines.append("")
@@ -1691,7 +1838,10 @@ def _render_panel_5(p: dict[str, Any]) -> list[str]:
             if isinstance(entry, dict):
                 idx = entry.get("index", 0)
                 preview = entry.get("preview", "")
-                lines.append(f"- [{idx}] {preview}")
+                # inline badge: 4-level enum (fresh / recent / stale / orphan)
+                conf = entry.get("confidence", "fresh")
+                badge = f"  `[{conf}]`" if conf else ""
+                lines.append(f"- [{idx}] {preview}{badge}")
     return lines + [""]
 
 
@@ -1897,6 +2047,12 @@ th, td { padding: 0.35rem 0.5rem; text-align: left; border-bottom: 1px solid var
 canvas { max-width: 100%; }
 .timeline li { margin-bottom: 0.4rem; font-size: 0.85rem; color: var(--muted); }
 ul.timeline { padding-left: 1.2rem; }
+/* v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — in-flight 신뢰도 4-level badge */
+.confidence { display: inline-block; padding: 0.1em 0.45em; border-radius: 3px; font-size: 0.75rem; font-weight: 600; margin-left: 0.3em; }
+.confidence-fresh { background: rgba(27, 138, 58, 0.15); color: var(--pass); }
+.confidence-recent { background: rgba(214, 137, 16, 0.15); color: var(--error); }
+.confidence-stale { background: rgba(192, 57, 43, 0.15); color: var(--fail); }
+.confidence-orphan { background: rgba(102, 102, 102, 0.2); color: var(--muted); text-decoration: line-through; }
 """.strip()
 
 
@@ -2018,17 +2174,41 @@ def _render_html_panel_5(p: dict[str, Any]) -> str:
     items_total = int(p.get("items_total", 0))
     top_n = int(p.get("top_n", 0))
     timeline = p.get("timeline", [])
+    # v0.15.22+ (TASK-2026-08-08-main-014, §0.8 #2) — confidence 분포 + inline badge
+    counts = p.get("confidence_counts", {})
+    counts_html = ""
+    if isinstance(counts, dict) and counts:
+        badges: list[str] = []
+        for level, n in counts.items():
+            if n <= 0:
+                continue
+            badges.append(
+                f'<span class="confidence confidence-{_html_escape(str(level))}">'
+                f'{_html_escape(str(level))}={n}</span>'
+            )
+        if badges:
+            counts_html = (
+                '<p class="meta">confidence: ' + " ".join(badges) + "</p>"
+            )
     items: list[str] = []
     if isinstance(timeline, list):
         for entry in timeline:
             if isinstance(entry, dict):
                 idx = entry.get("index", 0)
                 preview = entry.get("preview", "")
-                items.append(f"      <li>[{idx}] {_html_escape(str(preview))}</li>")
+                conf = str(entry.get("confidence", "fresh") or "fresh")
+                badge_html = (
+                    f' <span class="confidence confidence-{_html_escape(conf)}">'
+                    f'[{_html_escape(conf)}]</span>'
+                )
+                items.append(
+                    f"      <li>[{idx}] {_html_escape(str(preview))}{badge_html}</li>"
+                )
     timeline_html = "\n".join(items) if items else "      <li>(no items)</li>"
     return f"""  <section class="panel">
     <h2>Panel 5 — Recent Release Cycle</h2>
     <p>items_total: <strong>{items_total}</strong> (top_n={top_n})</p>
+    {counts_html}
     <ul class="timeline">
 {timeline_html}
     </ul>

@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.0.0-beta + `origin/main` = `e4470e5` (2026-08-07~08, 커밋 16건). §2.68 cycle (TASK-2026-08-08-main-006~013) 전부 닫힘.",
-    "current_axis": "§2.68 cycle 완전 close. TASK-012 (사용자 수동 검증) = *갈래2 (e2e smoke trust)* 채택 — mavis 데스크탑 새 세션 rotate 가 아닌, `check_mavis_attach_e2e.py` (실제 attach 경로와 100% 동치 subprocess) ALL PASS 로 갈음. 다음 축 후보: §0.8 #2 *in-flight 워크스페이스 신뢰도 표시* — registry 가 §5A.3 의 *첫 소비자* 자리인데 비어 있음.",
+    "current_axis": "§2.68 cycle + §0.8 #2 (in-flight 신뢰도) 닫힘. 진행 중: (없음). 다음 후보: §0.8 #1 (registry 저장 위치, multi-host) / #3 (범위 이탈 검출) / #4 (`--force` 이중화) — 우선순위는 multi-host 운영 진입 시점에 결정.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-08-main-014 — in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3, 4-level enum + Panel 5 inline badge, 8 case smoke ALL PASS)",
       "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지, smoke 6/6)",
       "TASK-2026-08-08-main-012 — §2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (Mavis 자동: §6.5.2 100% 정합 + smoke 6+6+6 PASS / 사용자 수동: rotate 후 확인)",
       "TASK-2026-08-08-main-013 — mavis attach end-to-end 회귀 smoke 자동화 (check_mavis_attach_e2e.py, stdlib only, 4-step verify ALL PASS — initialize / tools/list 13종 set equality / tools/call × 2)",

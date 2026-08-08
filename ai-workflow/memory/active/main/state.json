@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-08T23:25:00+09:00",
+  "generated_at": "2026-08-09T00:00:00+09:00",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -28,13 +28,15 @@
   },
   "session": {
     "current_baseline": "v1.1.1-beta + `origin/main` = `678806f` (2026-08-08, session close). 2 release 발행: v1.1.0-beta (564ce36, §0.8 4건 close + dual mode + federation *읽기* 묶음) → v1.1.1-beta (6b92a60, [project.scripts] 29 entry points patch). §0.8 4건 모두 close.",
-    "current_axis": "v1.1.1-beta release (CLI 化 A안 close, 29 entry points). 진행 중: (없음). 다음: TASK-021+ (B안 dispatcher `wk` / HTTP server / tab completion).",
+    "current_axis": "memory 문서 정합성 정리 완료 (TASK-2026-08-09-main-001). 진행 중: (없음). 다음: TASK-021+ (B안 dispatcher `wk` / registry HTTP server / gh api branch protection check / title drift v2).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-001 — memory 문서 정합성 정리 (backlog status/링크 3건 + task 본문 상태 7건 + state.json done_items + handoff stale 4곳, check_self_application 7/8 → 8/8)",
       "TASK-2026-08-08-main-020 — [project.scripts] entry points (CLI 化 A안, 29 entry points + venv e2e 검증 + 4 case smoke ALL PASS) + v1.1.1-beta release",
       "TASK-2026-08-08-main-019 — --force server-side 이중화 (3-layer defense, pre-push hook + 7 case smoke ALL PASS) + v1.1.0-beta release",
+      "TASK-2026-08-08-main-018 — scope drift detection (표준 §0.8 #3, 3-way enum + drift_score + score_band, 7 case smoke ALL PASS)",
       "TASK-2026-08-08-main-017 — operational MCP tool 4종 CLI wrapper (dual mode, 4 case smoke ALL PASS, CLI ↔ MCP byte-equal output)",
       "TASK-2026-08-08-main-016 — HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리, urllib only + cache TTL 1h + 8 case smoke ALL PASS)",
       "TASK-2026-08-08-main-015 — registry federation 정공법 (표준 §0.8 #1, federation 모델, merge_entries + known_hosts CRUD, 8 case smoke ALL PASS)",
@@ -65,30 +67,18 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-08.md",
-    "task_count": 20,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-08-main-001 — 원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
-      "TASK-2026-08-08-main-002 — 워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
-      "TASK-2026-08-08-main-003 — dashboard `_branch_state_paths` 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
-      "TASK-2026-08-08-main-004 — workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
-      "TASK-2026-08-08-main-005 — 사전 존재 red 2건 정리 (회귀 정합 회복)",
-      "TASK-2026-08-08-main-006 — §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
-      "TASK-2026-08-08-main-007 — bootstrap 자동 emit (mavis) — `--harness mavis --enable-mcp` 신규 harness 'mavis' 등록",
-      "TASK-2026-08-08-main-008 — seed_workspace_memory self-register (trigger: seed --apply 성공)",
-      "TASK-2026-08-08-main-009 — registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
-      "TASK-2026-08-08-main-010 — RegistryEntry env 필드 + sync_mavis env 합성 (seed 자동 주입, sync_mavis emit)",
-      "TASK-2026-08-08-main-011 — endpoint 기반 mavis alias command/url 합성 (cmd:/url:/None/unknown 4가지)",
-      "TASK-2026-08-08-main-012 — §2.68 mavis attach 수동 검증 (collateral: TASK-009/010/011 L14 in_progress → done, handoff baseline `a3a9442`/`f97a9b1`/`27010a5` → `838b12f` 통일)",
-      "TASK-2026-08-08-main-013 — mavis attach e2e 회귀 smoke 자동화 (check_mavis_attach_e2e.py, stdlib only, 4-step ALL PASS)"
+      "TASK-2026-08-09-main-001 — memory 문서 정합성 정리 (backlog status/링크 + task 본문 상태 7건 + state.json done_items + handoff stale 4곳, check_self_application 8/8)"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-08.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-09.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

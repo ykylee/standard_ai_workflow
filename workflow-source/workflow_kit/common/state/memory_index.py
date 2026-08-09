@@ -14,7 +14,7 @@ import json
 import math
 import re
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Final, TypedDict
 
@@ -687,7 +687,16 @@ def _read_telemetry_events(tp: Path) -> tuple[list[MemoryIndexTelemetryEvent], i
     return events, skipped
 
 
-def summarize_telemetry(workspace_root: Path) -> MemoryIndexTelemetrySummary:
+#: 윈도 지표의 기본 크기(일). Phase 13 AC2 의 "지속적 사용" 을 재는 창.
+DEFAULT_TELEMETRY_WINDOW_DAYS: int = 30
+
+
+def summarize_telemetry(
+    workspace_root: Path,
+    *,
+    window_days: int = DEFAULT_TELEMETRY_WINDOW_DAYS,
+    now: "datetime | None" = None,
+) -> MemoryIndexTelemetrySummary:
     """`telemetry/events.jsonl` 의 read-time 집계.
 
     - file 부재 / empty → total_calls=0, hit_rate=0.0 graceful return.
@@ -695,6 +704,16 @@ def summarize_telemetry(workspace_root: Path) -> MemoryIndexTelemetrySummary:
     - by_source 분해: source 별 {calls, hits} dict.
     - first_event_at / last_event_at: 가장 이른/늦은 timestamp 의 ISO 8601 repr.
     - hit 정의: selected_count > 0 (어떤 단계든 1+ entry 가 retrieval 됨).
+
+    Args:
+        window_days: v1.1.3+. 최근 N일 윈도 지표를 함께 계산한다 (`window_*` 필드).
+            **전체 기간 필드는 그대로다** — 기존 소비자 정합. 0 이면 윈도 집계를
+            건너뛴다.
+        now: 윈도 기준 시각 (테스트 주입용). 생략 시 현재 UTC.
+
+    왜 윈도가 필요한가: 전체 기간 `by_source` 는 **각 경로를 한 번씩만 돌려도**
+    4 source 가 찬다. 2026-08-09 P0-2 가 실제로 그렇게 충족됐고, 그래서 그 숫자는
+    *지속적 사용* 을 재지 못한다. 윈도는 방치하면 값이 떨어진다.
     """
     tp = telemetry_path(workspace_root)
     events, skipped = _read_telemetry_events(tp)
@@ -717,6 +736,27 @@ def summarize_telemetry(workspace_root: Path) -> MemoryIndexTelemetrySummary:
         first_event_at = min(timestamps).isoformat()
         last_event_at = max(timestamps).isoformat()
 
+    # --- 윈도 집계 (v1.1.3+) ---------------------------------------------
+    window_calls = 0
+    window_hits = 0
+    window_by_source: dict[str, dict[str, int]] = {}
+    if window_days > 0 and events:
+        reference = now or datetime.now(timezone.utc)
+        cutoff = reference - timedelta(days=window_days)
+        for e in events:
+            ts = e.timestamp
+            # 과거 event 가 naive 로 들어온 경우 UTC 로 간주 — 비교에서 터지지 않게.
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            if ts < cutoff:
+                continue
+            window_calls += 1
+            bucket = window_by_source.setdefault(e.source, {"calls": 0, "hits": 0})
+            bucket["calls"] += 1
+            if e.selected_count > 0 and not e.error:
+                window_hits += 1
+                bucket["hits"] += 1
+
     return MemoryIndexTelemetrySummary(
         total_calls=total_calls,
         total_hits=total_hits,
@@ -726,6 +766,12 @@ def summarize_telemetry(workspace_root: Path) -> MemoryIndexTelemetrySummary:
         last_event_at=last_event_at,
         events_parsed=total_calls,
         events_skipped=skipped,
+        window_days=window_days,
+        window_calls=window_calls,
+        window_hits=window_hits,
+        window_hit_rate=(window_hits / window_calls) if window_calls else 0.0,
+        window_by_source=window_by_source,
+        window_source_count=len(window_by_source),
     )
 
 

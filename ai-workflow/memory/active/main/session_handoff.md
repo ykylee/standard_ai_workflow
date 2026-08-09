@@ -13,7 +13,7 @@
 - 현재 주 작업 축: **다음 후보 축 4건 전부 close** (TASK-2026-08-09-main-002~005, 본 세션). handoff §5 에 후보로 적어 뒀던 4건을 모두 구현했다 — CLI 化 B안 `wk` / registry HTTP server / branch protection 자동 check / title drift v2. 38 case smoke ALL PASS + venv e2e. 앞서 같은 세션에서 memory 정합성 정리(TASK-001, `check_self_application` 7/8 → **8/8**)를 먼저 했다.
 - 직전 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
 - 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
-- 다음 후보 축: **Phase 13 P1 묶음** (CHANGELOG auto-gen lockdown / `automated-repro-scaffold` stable / `git-conflict-resolver` beta) / telemetry acceptance 를 윈도 기반 지표로 / branch protection (소유자 결정).
+- 다음 후보 축: **Phase 13 P1 묶음** (CHANGELOG auto-gen lockdown / `automated-repro-scaffold` stable / `git-conflict-resolver` beta) / branch protection (소유자 결정).
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -40,6 +40,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-09-main-011 telemetry acceptance 를 **윈도 기반** 으로 — TASK-010 이 적은 사각을 메움. `summarize_telemetry(window_days=30)` 에 `window_source_count` 등 additive (전체 기간 필드 불변). `check_telemetry_window.py` 8/8 — **case 4 가 핵심**: *전체 4 source 인데 윈도 1* 을 잡는다. AC2 acceptance 를 "최근 30일 window_source_count ≥ 4" 로 갱신. 발견: `check_telemetry_source_diversity.py` docstring 은 자동 활성 전환을 **이미 정확히 적고 있었다** — TASK-010 의 문서 오류를 **검사는 알고 있었다**.
 - TASK-2026-08-09-main-010 Phase 13 **P0-2 close** — AC2 4 source + hit_rate 1.0 수렴. **문서가 두 군데 틀려 있었다**: 1 source 는 `dispatcher` 가 아니라 `session-start` 였고(132 calls), "3 skill 활성화 필요" 는 **이미 v0.15.21+ 에서 끝난 일**이었다 (세 스크립트 코드가 동일). 남은 건 wiring 이 아니라 **실행 이력의 부재** — 한 번씩 돌리자 즉시 4 source. acceptance 약점도 기록: "4 source 등장" 은 1회씩이면 충족돼 *지속적 사용* 을 못 잰다.
 - TASK-2026-08-09-main-009 릴리스 도구 결함 2건 수정 + 회귀 검사 — (1) `git add` 경로 중복: `release_pipeline.REPO_ROOT` 가 이름과 달리 `workflow-source/` 인데 porcelain 은 저장소 루트 기준 경로를 준다 → `_git_toplevel()` 신설. (2) `cmd_verify` AttributeError `dry_run` → defaults 안전측 True + wrapper 는 False 명시. (3) **`check_release_wrapper_args.py` 8/8 신설** — 릴리스 없이 잡히게 (AST 대조 + 두 cwd 의 `git add --dry-run` 대비로 **버그 자체를 회귀로 고정**). 검사 오탐 1건도 고쳤다 — 범위가 실제 호출 경로보다 넓으면 없는 결함을 만든다.
 - TASK-2026-08-09-main-008 v1.1.2-beta release — 본 세션 TASK-001~007 묶음. 릴리스 하나로 셋이 닫혔다: **`check_smoke_trend_cross`**(마지막 실질 red — 노트의 *누적 smoke* 줄이 `cumulative_total` 234 → 257) / **Phase 13 P0-1**(mypy strict venv verify, 128 files clean) / 문서 stamp 확정. **전체 257/257 PASS** — 오늘 아침 31 red → 0. **릴리스 도구 결함 2건 발견** — `release-bump` post-step 이 `git add` 경로를 중복 prefix 로 넘겨 실패 / `release-verify` 가 `AttributeError: 'dry_run'` 로 죽음. 둘 다 자동화 경로에만 있고 릴리스는 수동으로 완주했다. **릴리스 도구는 릴리스 때만 돌아 평소 검사에 안 걸린다** (`check_release_pipeline_lib` 9 case green 인데도 못 잡았다). + `release_pipeline_lib` dist skip 테스트가 버전 bump 직후 일회성 red.
@@ -49,7 +50,6 @@
 - TASK-2026-08-09-main-004 branch protection 자동 check (3rd layer) — layer 2 는 로컬 설치형이라 hook 미설치 호스트를 못 막는다. 그 구멍인 서버측 protection 이 *가이드* 로만 있었다. 판정을 pure function 으로 분리 (gh 없이 fixture 검사). **보호를 켜지 않고 판정만** 한다. 필드를 못 읽으면 통과로 치지 않는다. gh 부재는 graceful skip (모름 ≠ 없음). 8/8 PASS. **실측: 이 저장소 main 에 protection 없음(404)**.
 - TASK-2026-08-09-main-003 registry HTTP server (federation *쓰기*) — TASK-016 이 닫은 pull 의 상대편. 구멍이 둘이었다: 서빙하는 쪽 부재 + `add_known_host()` API 는 있는데 **부르는 CLI 가 없어** 상대가 등록조차 못 했다. loopback 기본 / read-only(405) / 경로 2개만 / 토큰은 환경변수 *이름* 으로 / registry 부재 → 빈 registry. 9/9 PASS — 실제로 서버를 띄워 pull 로 되받는다.
 - TASK-2026-08-09-main-002 CLI 化 B안 단일 dispatcher `wk` — **새 dispatcher 를 만들지 않았다**. `workflow_kit_cli.py` 가 이미 38 subcommand dispatcher 여서 기존 registry 를 확장했다 (사용자 확인). 정공법도 이미 있던 것(`sys.argv` 치환 + SystemExit → rc)을 29개로 일반화. `TOOL_MODULES` ↔ `[project.scripts]` 일치를 smoke 가 강제. 10/10 PASS + venv e2e (`wk` + 29 binary, 65 command).
-- TASK-2026-08-09-main-001 memory 문서 정합성 정리 — backlog 인덱스 TASK-020 `planned` → `done` + 깨진 `path:` href 3건(018·019·020, `-08-main` 누락) / task 본문 `- 상태: planned` 7건(014~020) → `done` / state.json `backlog.done_items` 에 014~020 + `recent_done_items` 에 018 / handoff stale 4곳. `check_self_application` 7/8 → **8/8 PASS**. state.json 전면 재생성은 **안 했다** — 재생성본이 `done_items` 를 10건으로 자르고 `current_focus` 를 끝난 TASK-014 로 잡아 정보가 깎인다.
 
 ## 5. 다음 세션 시작 포인트
 

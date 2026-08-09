@@ -1965,7 +1965,17 @@ def cmd_memory_index_telemetry(argv: list[str]) -> int:
             for ev in events:
                 print(_json.dumps(ev.model_dump(mode="json"), ensure_ascii=False))
             return 0
-        summary = summarize_telemetry(ws)
+        # v1.1.3+: 윈도 지표. 전체 기간 집계만으로는 "지속적 사용" 을 못 잰다.
+        from workflow_kit.common.state.memory_index import (
+            DEFAULT_TELEMETRY_WINDOW_DAYS,
+        )
+        window_raw = _parse_flag(argv, "--window-days")
+        try:
+            window_days = int(window_raw) if window_raw else DEFAULT_TELEMETRY_WINDOW_DAYS
+        except ValueError:
+            print(f"ERROR: --window-days 정수 parse 실패: {window_raw!r}", file=sys.stderr)
+            return 2
+        summary = summarize_telemetry(ws, window_days=window_days)
         if use_json:
             print(_json.dumps(summary.model_dump(mode="json"), ensure_ascii=False, indent=2))
         else:
@@ -1982,6 +1992,13 @@ def cmd_memory_index_telemetry(argv: list[str]) -> int:
             print(f"last_event_at: {summary.last_event_at or '<empty>'}")
             print(f"events_parsed: {summary.events_parsed}")
             print(f"events_skipped: {summary.events_skipped}")
+            if summary.window_days:
+                print(f"--- 최근 {summary.window_days}일 (지속적 사용 지표) ---")
+                print(f"window_calls: {summary.window_calls}")
+                print(f"window_hit_rate: {summary.window_hit_rate:.4f}")
+                print(f"window_source_count: {summary.window_source_count}")
+                for source, bucket in sorted(summary.window_by_source.items()):
+                    print(f"  {source}: calls={bucket['calls']} hits={bucket['hits']}")
         return 0
     except Exception as e:
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)

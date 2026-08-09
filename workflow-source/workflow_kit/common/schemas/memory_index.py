@@ -172,6 +172,26 @@ class MemoryIndexTelemetrySummary(BaseModel):
     last_event_at: str = Field(default="", description="가장 늦은 event timestamp (ISO 8601)")
     events_parsed: int = Field(default=0, ge=0, description="성공 parse 한 event 갯수")
     events_skipped: int = Field(default=0, ge=0, description="malformed line 갯수 (JSON decode / schema validate 실패)")
+
+    # --- v1.1.3+ 윈도 지표 (Phase 13 AC2 후속) -----------------------------
+    #
+    # 전체 기간 집계(`by_source`)는 **한 번씩만 돌려도 4 source 가 찬다** — 그래서
+    # "source 다양성 ≥ 4" 가 *지속적 사용* 을 재지 못했다 (2026-08-09 P0-2 에서
+    # 실제로 그렇게 충족됐다). 아래는 최근 `window_days` 안의 같은 지표다. 방치하면
+    # 윈도 밖으로 빠져나가므로 "지금도 쓰이는가" 를 묻는다.
+    window_days: int = Field(default=0, ge=0,
+                             description="윈도 크기(일). 0 이면 윈도 집계를 하지 않았다는 뜻")
+    window_calls: int = Field(default=0, ge=0, description="윈도 안 event 갯수")
+    window_hits: int = Field(default=0, ge=0, description="윈도 안 hit 갯수")
+    window_hit_rate: float = Field(default=0.0, ge=0.0, le=1.0,
+                                   description="window_hits / window_calls (0 이면 0.0)")
+    window_by_source: dict[str, dict[str, int]] = Field(
+        default_factory=dict,
+        description="윈도 안 source 별 {calls, hits} 분해",
+    )
+    window_source_count: int = Field(default=0, ge=0,
+                                     description="윈도 안 distinct source 갯수 (AC2 의 실질 지표)")
+
     source_version: str = Field(default="memory_index_telemetry_v0_13_1",
                                 description="summary 의 schema version marker (dashboard panel 3 의 source field 와 정합)")
 

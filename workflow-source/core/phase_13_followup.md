@@ -76,9 +76,14 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 > 이었다. 2026-08-09 에 doc-sync / backlog-update / memory-index-query 를 실제로
 > 한 번씩 돌리자 곧바로 4 source 가 됐다.
 >
-> **acceptance 자체의 약점**: "by_source 에 4 source 등장" 은 각 경로를 한 번씩만
-> 돌려도 충족된다 — *지속적 사용* 을 재지 않는다. 지표로 쓰려면 최근 N일 윈도 안의
-> source 다양성 같은 형태여야 한다. (후속 후보)
+> **acceptance 자체의 약점** → ✅ **보강됨** (2026-08-09, TASK-011).
+> "by_source 에 4 source 등장" 은 각 경로를 한 번씩만 돌려도 충족돼 *지속적 사용* 을
+> 재지 못했다. `summarize_telemetry(window_days=30)` 이 **최근 N일 윈도** 지표를 함께
+> 낸다 (`window_source_count` / `window_hit_rate` / `window_by_source`). 방치하면
+> 윈도 밖으로 빠져나가므로 값이 떨어진다.
+>
+> **AC2 의 실질 지표는 이제 `window_source_count`** 다. 전체 기간 `by_source` 는
+> 누적 기록으로 남긴다 (기존 소비자 정합 — additive).
 
 ### 2.3 AC3 — Self-Recover (drift detection → fix)
 
@@ -132,10 +137,13 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
   남아 있던 것은 **실행 이력의 부재** 였다 (§2.2 의 정정 블록 참조).
 - **작업(실제로 한 것)**: doc-sync / backlog-update / `--command=memory-index-query`
   를 실제 용도로 한 번씩 실행해 각 source 의 emit 경로를 실증.
-- **acceptance**: events.jsonl 의 by_source 에 4 source 모두 등장 + hit_rate ≥ 0.9
-  → **충족** (4 source / hit_rate 1.0 / 135 events).
-- **남은 것**: acceptance 가 *지속적 사용* 을 재지 않는다 (한 번씩 돌리면 충족).
-  윈도 기반 지표로 바꿀지는 별도 판단.
+- **acceptance (v1.1.3+ 갱신)**: **최근 30일** 윈도의 `window_source_count` ≥ 4 +
+  `window_hit_rate` ≥ 0.9. 전체 기간 `by_source` 는 누적 기록으로 유지.
+  → **충족** (2026-08-09 실측: window 4 source / window_hit_rate 1.0 / 136 events).
+- **왜 바꿨나**: 이전 acceptance 는 각 경로를 한 번씩만 돌려도 찼다 — 실제로 그렇게
+  충족됐다. 윈도는 방치하면 떨어지므로 "지금도 쓰이는가" 를 묻는다 (TASK-011).
+- **관련 smoke**: `check_telemetry_window.py` (8 case). 핵심은 case 4 —
+  *전체 4 source 인데 윈도는 1* 인 상황을 잡는다 (= 이전 acceptance 의 사각).
 
 ### 3.2 우선순위 P1 (단기, 1-3 release)
 

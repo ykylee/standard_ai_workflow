@@ -49,7 +49,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import get_current_branch  # noqa: E402
+from workflow_kit.common.paths import branch_slug_for  # noqa: E402
 
 DEFAULT_STALE_HOURS = 24
 # 워크스페이스 브랜치가 아닌 것 (통합 브랜치 / 심볼릭 ref)
@@ -142,7 +142,10 @@ def survey(*, repo_root: Path, remote: str, stale_hours: int, do_fetch: bool,
 
     now = int(time.time()) if now is None else now
     threshold = stale_hours * 3600
-    current = get_current_branch()
+    # `get_current_branch()` 가 아니다 — 그건 *이 모듈이 속한* 저장소를 본다.
+    # `--repo-root` 로 다른 저장소를 지목한 호출에서 `is_current` / `current_branch`
+    # 가 엉뚱한 브랜치를 가리키던 자리 (audit_root_anchors R3).
+    current = branch_slug_for(repo_root)
 
     active: list[dict] = []
     stale: list[dict] = []

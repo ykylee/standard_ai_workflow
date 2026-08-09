@@ -28,6 +28,8 @@ import json
 import os
 import subprocess
 import sys
+import atexit
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -40,6 +42,18 @@ if str(SCRIPTS_DIR) not in sys.path:
 from workflow_kit.common import workspace_registry as R  # noqa: E402
 
 
+#: mkdtemp + 프로세스 종료 시 정리 (v1.1.2, `check_tempdir_leak_guard` case 7).
+#:
+#: `mkdtemp` 은 `TemporaryDirectory` 와 달리 자동 정리가 **전혀** 없어서 성공한
+#: 실행마다 temp dir 이 하나씩 쌓인다. 컨텍스트 매니저가 정석이지만 이 파일의
+#: 테스트들은 함수 전체가 한 덩어리라 감싸려면 전부 재들여쓰기해야 한다. 정리
+#: 보장은 `atexit` 으로 같게 두고 변경면을 줄인다 — assert 가 중간에 터져도 정리된다.
+def _tmpdir(prefix: str) -> Path:
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
 def _assert(cond: bool, msg: str) -> None:
     if not cond:
         raise AssertionError(msg)
@@ -47,9 +61,9 @@ def _assert(cond: bool, msg: str) -> None:
 
 def _isolated_env(extra: dict[str, str] | None = None) -> tuple[Path, dict[str, str], Path]:
     """테스트 격리: registry tmp, host_id 결정, proj 디렉터리 준비."""
-    reg_dir = Path(tempfile.mkdtemp(prefix="seed-selfreg-"))
+    reg_dir = _tmpdir("seed-selfreg-")
     reg_path = reg_dir / "registry.json"
-    proj = Path(tempfile.mkdtemp(prefix="proj-"))
+    proj = _tmpdir("proj-")
     (proj / "ai-workflow" / "memory" / "active").mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
     env["WORKFLOW_REGISTRY_PATH"] = str(reg_path)

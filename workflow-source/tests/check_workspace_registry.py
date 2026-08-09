@@ -31,6 +31,8 @@ import os
 import stat
 import subprocess
 import sys
+import atexit
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -43,6 +45,18 @@ from workflow_kit.common import workspace_registry as R  # noqa: E402
 from workflow_kit.common.dashboard_data import collect_recent_releases  # noqa: E402
 
 
+#: mkdtemp + 프로세스 종료 시 정리 (v1.1.2, `check_tempdir_leak_guard` case 7).
+#:
+#: `mkdtemp` 은 `TemporaryDirectory` 와 달리 자동 정리가 **전혀** 없어서 성공한
+#: 실행마다 temp dir 이 하나씩 쌓인다. 컨텍스트 매니저가 정석이지만 이 파일의
+#: 테스트들은 함수 전체가 한 덩어리라 감싸려면 전부 재들여쓰기해야 한다. 정리
+#: 보장은 `atexit` 으로 같게 두고 변경면을 줄인다 — assert 가 중간에 터져도 정리된다.
+def _tmpdir(prefix: str) -> Path:
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
 def _assert(cond: bool, msg: str) -> None:
     if not cond:
         raise AssertionError(msg)
@@ -50,7 +64,7 @@ def _assert(cond: bool, msg: str) -> None:
 
 def _isolated_registry():
     """테스트 격리를 위해 WORKFLOW_REGISTRY_PATH 를 tmpdir 로 강제."""
-    tmp = Path(tempfile.mkdtemp(prefix="regtest-"))
+    tmp = _tmpdir("regtest-")
     os.environ["WORKFLOW_REGISTRY_PATH"] = str(tmp / "registry.json")
     os.environ["WORKFLOW_HOST_ID"] = "test-host-isolated"
     # 캐시 비우기

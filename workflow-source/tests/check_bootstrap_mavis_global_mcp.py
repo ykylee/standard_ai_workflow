@@ -33,6 +33,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import atexit
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -55,6 +57,18 @@ from bootstrap_lib.mcp import (  # noqa: E402
     render_mavis_global_mcp_config,
 )
 from bootstrap_lib.__main__ import HARNESS_DEFINITIONS  # noqa: E402
+
+
+#: mkdtemp + 프로세스 종료 시 정리 (v1.1.2, `check_tempdir_leak_guard` case 7).
+#:
+#: `mkdtemp` 은 `TemporaryDirectory` 와 달리 자동 정리가 **전혀** 없어서 성공한
+#: 실행마다 temp dir 이 하나씩 쌓인다. 컨텍스트 매니저가 정석이지만 이 파일의
+#: 테스트들은 함수 전체가 한 덩어리라 감싸려면 전부 재들여쓰기해야 한다. 정리
+#: 보장은 `atexit` 으로 같게 두고 변경면을 줄인다 — assert 가 중간에 터져도 정리된다.
+def _tmpdir(prefix: str) -> Path:
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
 
 
 def _assert(cond: bool, msg: str) -> None:
@@ -92,7 +106,7 @@ def test_dispatch_consistency() -> None:
 
 def test_fresh_create_no_backup() -> None:
     """case 1: 파일 부재 시 backup 0, 새 entry 1 추가."""
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-fresh-"))
+    tmp = _tmpdir("mavis-fresh-")
     target = tmp / "mcp.json"
     out = atomic_merge_mavis_global(target, render_mavis_global_mcp_config(_args(str(REPO_ROOT))))
     _assert(out["wrote"], "fresh create should write")
@@ -104,7 +118,7 @@ def test_fresh_create_no_backup() -> None:
 
 def test_existing_5_builtin_preserved_plus_alias() -> None:
     """case 2: 5 builtin 보존 + alias 1 추가."""
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-existing-"))
+    tmp = _tmpdir("mavis-existing-")
     target = tmp / "mcp.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     seed = {
@@ -128,7 +142,7 @@ def test_existing_5_builtin_preserved_plus_alias() -> None:
 
 def test_absolute_env_paths() -> None:
     """case 3: env 두 개 모두 abs."""
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-abs-"))
+    tmp = _tmpdir("mavis-abs-")
     target = tmp / "mcp.json"
     atomic_merge_mavis_global(target, render_mavis_global_mcp_config(_args(str(REPO_ROOT))))
     data = json.loads(target.read_text(encoding="utf-8"))
@@ -153,7 +167,7 @@ def test_absolute_env_paths() -> None:
 
 def test_resame_alias_skip_without_force() -> None:
     """case 4: 동일 alias 재실행 (force=False) → skip."""
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-skip-"))
+    tmp = _tmpdir("mavis-skip-")
     target = tmp / "mcp.json"
     block = render_mavis_global_mcp_config(_args(str(REPO_ROOT)))
     atomic_merge_mavis_global(target, block)
@@ -164,7 +178,7 @@ def test_resame_alias_skip_without_force() -> None:
 
 def test_resame_alias_overwrite_with_force() -> None:
     """case 5: 동일 alias 재실행 (force=True) → overwrite."""
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-force-"))
+    tmp = _tmpdir("mavis-force-")
     target = tmp / "mcp.json"
     block = render_mavis_global_mcp_config(_args(str(REPO_ROOT)))
     atomic_merge_mavis_global(target, block)
@@ -177,7 +191,7 @@ def test_argparse_accepts_mavis_with_overrides() -> None:
     """case 6: argparse 가 --harness mavis + --mavis-global-mcp-path 수용."""
     from bootstrap_lib import __main__ as _bm
 
-    tmp = Path(tempfile.mkdtemp(prefix="mavis-arg-"))
+    tmp = _tmpdir("mavis-arg-")
     target = tmp / "mcp.json"
     saved = sys.argv
     try:

@@ -105,10 +105,15 @@ def case_3_cleanup_scans_var_tmp() -> bool:
     except Exception as exc:  # pragma: no cover - import 실패 시 정적 검사로 충분
         print(f"  [warn] import 실패, 정적 검사만 수행: {exc}")
         return True
-    if "/var/tmp" not in roots:
-        print(f"  FAIL: leaked_tempdir_roots() 에 /var/tmp 없음 (got {roots})")
+    # v1.1.2: 문자열 `"/var/tmp"` 를 그대로 찾으면 **macOS 에서 늘 red** 다.
+    # `leaked_tempdir_roots()` 는 후보를 `resolve()` 해서 돌려주는데, macOS 는
+    # `/var` 가 `/private/var` 심볼릭이라 결과가 `/private/var/tmp` 가 된다.
+    # 구현은 정상이고 검사가 플랫폼을 못 넘긴 것이었다 — resolve 된 형태로 비교한다.
+    expected = str(Path("/var/tmp").resolve())
+    if expected not in roots:
+        print(f"  FAIL: leaked_tempdir_roots() 에 {expected} 없음 (got {roots})")
         return False
-    print(f"  [info] leaked_tempdir_roots() = {roots}")
+    print(f"  [info] leaked_tempdir_roots() = {roots} (expected root {expected})")
     return True
 
 

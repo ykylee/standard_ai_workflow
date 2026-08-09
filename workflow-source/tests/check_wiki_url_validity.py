@@ -474,6 +474,56 @@ def test_file_lock_context_manager_exists() -> None:
     assert callable(mod._CacheLock)
 
 
+#: multiprocessing worker 는 **모듈 레벨** 이어야 한다 (v1.1.2).
+#:
+#: 예전에는 test 함수 안의 local function 을 `Process(target=...)` 에 넘겼다.
+#: Linux 는 `fork` 가 기본이라 그대로 동작했지만, macOS / Windows 기본인 `spawn` 은
+#: target 을 **pickle** 하므로 local object 에서 `PicklingError` 가 난다 — 즉 이
+#: 두 케이스는 Linux 에서만 도는 검사였다. 모듈 레벨로 빼고 인자는 값으로 넘긴다.
+def _lock_write_worker(url_suffix: str, cache_file_str: str, url_validity_path: str) -> None:
+    """자식 프로세스: 캐시에 URL 하나를 쓴다 (네트워크는 모킹)."""
+    import importlib.util
+    import urllib.request as ur_local
+    from pathlib import Path as _Path
+
+    spec = importlib.util.spec_from_file_location("ok_url", url_validity_path)
+    mod_local = importlib.util.module_from_spec(spec)
+    sys.modules["ok_url"] = mod_local
+    spec.loader.exec_module(mod_local)
+
+    class _LocalMock:
+        def __init__(self) -> None:
+            self.status = 200
+            self.headers: dict[str, str] = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, *a):
+            return b""
+
+    ur_local.urlopen = lambda req, **kw: _LocalMock()
+    mod_local.check_url_with_cache(
+        f"https://w{url_suffix}.com/spec",
+        cache_file=_Path(cache_file_str),
+        ttl_seconds=60,
+    )
+
+
+def _lock_hold_worker(duration: float, lock_path_str: str) -> None:
+    """자식 프로세스: 잠금을 duration 초 동안 붙들고 있는다."""
+    import fcntl
+    import time as _time
+
+    with open(lock_path_str, "w") as fd:
+        fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
+        _time.sleep(duration)
+        fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
+
+
 def test_file_lock_serializes_concurrent_writes() -> None:
     """Concurrent processes writing to same cache should not corrupt the file.
 
@@ -486,37 +536,14 @@ def test_file_lock_serializes_concurrent_writes() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         cache_file = Path(tmpdir) / "cache.json"
 
-        def _worker(url_suffix: str) -> None:
-            # re-import inside the subprocess (each has its own interpreter)
-            import importlib.util
-            import urllib.request as ur_local
-
-            spec = importlib.util.spec_from_file_location("ok_url", str(SOURCE_ROOT / "workflow_kit" / "url_validity.py"))
-            mod_local = importlib.util.module_from_spec(spec)
-            sys.modules["ok_url"] = mod_local
-            spec.loader.exec_module(mod_local)
-
-            class _LocalMock:
-                def __init__(self):
-                    self.status = 200
-                    self.headers = {}
-                def __enter__(self):
-                    return self
-                def __exit__(self, *a):
-                    return False
-                def read(self, *a):
-                    return b""
-
-            ur_local.urlopen = lambda req, **kw: _LocalMock()
-            mod_local.check_url_with_cache(
-                f"https://w{url_suffix}.com/spec",
-                cache_file=cache_file,
-                ttl_seconds=60,
-            )
-
-        # spawn 2 workers
-        p1 = multiprocessing.Process(target=_worker, args=("1",))
-        p2 = multiprocessing.Process(target=_worker, args=("2",))
+        # spawn 2 workers (모듈 레벨 target — spawn 에서도 pickle 된다)
+        url_validity_path = str(SOURCE_ROOT / "workflow_kit" / "url_validity.py")
+        p1 = multiprocessing.Process(
+            target=_lock_write_worker, args=("1", str(cache_file), url_validity_path)
+        )
+        p2 = multiprocessing.Process(
+            target=_lock_write_worker, args=("2", str(cache_file), url_validity_path)
+        )
         p1.start()
         p2.start()
         p1.join(timeout=15)
@@ -776,15 +803,10 @@ def test_file_lock_timeout() -> None:
         cache_file = Path(tmpdir) / "cache.json"
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         lock_path = cache_file.with_suffix(cache_file.suffix + ".lock")
-        # Hold the lock from another process
-        def _hold_lock(duration: float) -> None:
-            fd = open(lock_path, "w")
-            fcntl.flock(fd.fileno(), fcntl.LOCK_EX)
-            _time.sleep(duration)
-            fcntl.flock(fd.fileno(), fcntl.LOCK_UN)
-            fd.close()
-
-        proc = multiprocessing.Process(target=_hold_lock, args=(0.5,))
+        # Hold the lock from another process (모듈 레벨 target)
+        proc = multiprocessing.Process(
+            target=_lock_hold_worker, args=(0.5, str(lock_path))
+        )
         proc.start()
         _time.sleep(0.1)  # let the holder grab the lock
         start = _time.monotonic()

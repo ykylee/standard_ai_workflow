@@ -173,6 +173,20 @@ def get_current_branch() -> str:
     return _git_branch_slug(Path(__file__).resolve().parents[3]) or "main"
 
 
+def branch_slug_for(repo_root: Path) -> str:
+    """``repo_root`` 저장소의 branch slug. 못 얻으면 ``"main"``.
+
+    `get_current_branch()` 와의 차이는 **누가 저장소를 고르는가** 다. 그쪽은 *이
+    모듈이 속한* 저장소에 앵커를 박고 env override 를 먼저 본다 — 호출자가
+    workspace 를 인자로 받는 자리에서는 그게 틀린 답을 준다 (`audit_root_anchors`
+    의 R3 `branch_from_module_repo`). 다른 저장소를 겨누는 도구는 이 함수를 쓴다.
+
+    env override 도 보지 않는다: `--repo-root` 로 특정 저장소를 지목한 호출에
+    `WORKFLOW_BRANCH` 가 끼어들면 지목이 무의미해진다.
+    """
+    return _git_branch_slug(repo_root) or "main"
+
+
 def _git_branch_slug(repo_root: Path) -> str | None:
     """``repo_root`` 를 기준으로 branch slug 를 조회. git 저장소가 아니면 None.
 

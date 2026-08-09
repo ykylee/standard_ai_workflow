@@ -29,6 +29,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+import atexit
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -41,15 +43,27 @@ if str(SCRIPTS_DIR) not in sys.path:
 from workflow_kit.common import workspace_registry as R  # noqa: E402
 
 
+#: mkdtemp + 프로세스 종료 시 정리 (v1.1.2, `check_tempdir_leak_guard` case 7).
+#:
+#: `mkdtemp` 은 `TemporaryDirectory` 와 달리 자동 정리가 **전혀** 없어서 성공한
+#: 실행마다 temp dir 이 하나씩 쌓인다. 컨텍스트 매니저가 정석이지만 이 파일의
+#: 테스트들은 함수 전체가 한 덩어리라 감싸려면 전부 재들여쓰기해야 한다. 정리
+#: 보장은 `atexit` 으로 같게 두고 변경면을 줄인다 — assert 가 중간에 터져도 정리된다.
+def _tmpdir(prefix: str) -> Path:
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    atexit.register(shutil.rmtree, path, ignore_errors=True)
+    return path
+
+
 def _assert(cond: bool, msg: str) -> None:
     if not cond:
         raise AssertionError(msg)
 
 
 def _isolated() -> tuple[Path, Path]:
-    reg_dir = Path(tempfile.mkdtemp(prefix="reg-ep-"))
+    reg_dir = _tmpdir("reg-ep-")
     reg_path = reg_dir / "registry.json"
-    mavis_dir = Path(tempfile.mkdtemp(prefix="mavis-ep-"))
+    mavis_dir = _tmpdir("mavis-ep-")
     mavis_path = mavis_dir / "mcp.json"
     os.environ["WORKFLOW_REGISTRY_PATH"] = str(reg_path)
     os.environ["WORKFLOW_MAVIS_GLOBAL_PATH"] = str(mavis_path)

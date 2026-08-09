@@ -62,7 +62,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 SCHEMA_VERSION: Final[str] = "1"
 DEFAULT_STALE_SECONDS: Final[int] = 7 * 24 * 60 * 60  # 7일
@@ -106,13 +106,13 @@ class RegistryEntry:
     def env_dict(self) -> dict[str, str]:
         return dict(self.env)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["env"] = dict(self.env)
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "RegistryEntry":
+    def from_dict(cls, d: dict[str, Any]) -> "RegistryEntry":
         env_raw = d.get("env")
         env_items: tuple[tuple[str, str], ...] = ()
         if isinstance(env_raw, dict):
@@ -523,7 +523,7 @@ def mavis_global_path() -> Path:
     return DEFAULT_MAVIS_GLOBAL_MCP_PATH
 
 
-def _mavis_endpoint(entry: dict) -> str | None:
+def _mavis_endpoint(entry: dict[str, Any]) -> str | None:
     """mavis 글로벌 alias 의 endpoint 추출 (command 또는 url)."""
     if not isinstance(entry, dict):
         return None
@@ -536,7 +536,7 @@ def _mavis_endpoint(entry: dict) -> str | None:
     return None
 
 
-def endpoint_to_mavis_fields(endpoint: str | None) -> dict:
+def endpoint_to_mavis_fields(endpoint: str | None) -> dict[str, Any]:
     """registry entry 의 ``endpoint`` 를 mavis alias block 의 *합성된 field* 로.
 
     Args:
@@ -573,7 +573,7 @@ def import_mavis_aliases(
     target_path: Path | None = None,
     *,
     force: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """mavis 글로벌 mcp.json 의 *workflow_kit 외* alias 들을 registry entries 로 환원.
 
     동작:
@@ -591,7 +591,7 @@ def import_mavis_aliases(
             "mavis_path": str}``
     """
     actual = Path(target_path) if target_path is not None else mavis_global_path()
-    result = {
+    result: dict[str, Any] = {
         "wrote": False,
         "imported": [],
         "skipped_existing": [],
@@ -668,11 +668,11 @@ def import_mavis_aliases(
 
 
 def export_to_mavis(
-    new_aliases: list[dict],
+    new_aliases: list[dict[str, Any]],
     *,
     target_path: Path | None = None,
     force: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """registry entries 를 mavis 글로벌에 ``mavis:<branch>`` alias 로 emit.
 
     Args:
@@ -688,7 +688,7 @@ def export_to_mavis(
             "skipped_protected": list[str], "mavis_path": str, "backup": str|None}``
     """
     actual = Path(target_path) if target_path is not None else mavis_global_path()
-    result = {
+    result: dict[str, Any] = {
         "wrote": False,
         "added": [],
         "skipped_existing": [],
@@ -795,7 +795,7 @@ def sync_mavis(
     target_path: Path | None = None,
     *,
     apply_export: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """mavis ↔ registry 양방향 동기 (import + export).
 
     - import 는 registry 가 *사용자 모르게 변하지 않게* default dry-run 처럼 동작
@@ -818,7 +818,7 @@ def sync_mavis(
     # v0.15.21+ : entries.env 를 mavis alias env 로 emit.
     # v0.15.22+ : entries.endpoint 를 mavis alias command/url 로 합성.
     entries = list_entries()
-    new_aliases: list[dict] = []
+    new_aliases: list[dict[str, Any]] = []
     for e in entries:
         if not e.branch or e.branch.startswith("__"):
             continue
@@ -892,12 +892,12 @@ class KnownHost:
     #: 시점에 환경에서 읽는다. 비어 있으면 인증 헤더를 안 붙인다 (기존 동작).
     token_env: str = ""
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "KnownHost":
+    def from_dict(cls, d: dict[str, Any]) -> "KnownHost":
         return cls(
             host_id=str(d.get("host_id", "")),
             endpoint=str(d.get("endpoint", "")),
@@ -1134,7 +1134,7 @@ def remote_cache_path(host_id: str) -> Path:
     return _remote_cache_dir() / f"{safe}.json"
 
 
-def _load_remote_cache(host_id: str, *, ttl_seconds: int = DEFAULT_CACHE_TTL_SECONDS) -> dict | None:
+def _load_remote_cache(host_id: str, *, ttl_seconds: int = DEFAULT_CACHE_TTL_SECONDS) -> dict[str, Any] | None:
     """cache file 읽기. 부재 / 깨짐 / TTL 초과 시 None.
 
     Returns:
@@ -1168,7 +1168,7 @@ def _load_remote_cache(host_id: str, *, ttl_seconds: int = DEFAULT_CACHE_TTL_SEC
     return data
 
 
-def _save_remote_cache(host_id: str, registry_dict: dict) -> None:
+def _save_remote_cache(host_id: str, registry_dict: dict[str, Any]) -> None:
     """cache file atomic 저장. 0o600, ``_cached_at`` 자동 주입."""
     path = remote_cache_path(host_id)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -1232,7 +1232,7 @@ def _fetch_url(url: str, *, timeout: float, token_env: str = "") -> bytes:
         headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read()
+        return bytes(resp.read())
 
 
 def pull_remote_registry(
@@ -1240,7 +1240,7 @@ def pull_remote_registry(
     *,
     timeout: float | None = None,
     use_cache: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """한 호스트의 registry 를 fetch. 실패 시 cache fallback (use_cache=True).
 
     Returns:
@@ -1288,7 +1288,7 @@ def pull_all_remote_registries(
     *,
     timeout: float | None = None,
     use_cache: bool = True,
-) -> list[tuple[str, dict]]:
+) -> list[tuple[str, dict[str, Any]]]:
     """모든 known hosts 순회. 각 (host_id, result) 페어. 실패 host 도 포함."""
     return [(h.host_id, pull_remote_registry(h.host_id, timeout=timeout, use_cache=use_cache))
             for h in load_known_hosts()]
@@ -1299,7 +1299,7 @@ def merge_with_remotes(
     *,
     timeout: float | None = None,
     use_cache: bool = True,
-) -> tuple[list[RegistryEntry], list[dict]]:
+) -> tuple[list[RegistryEntry], list[dict[str, Any]]]:
     """local + pull 결과(원격 registries) 를 ``merge_entries`` 로 합친다.
 
     Returns:
@@ -1312,7 +1312,7 @@ def merge_with_remotes(
     sources: list[tuple[str, list[RegistryEntry]]] = [
         (host_id() or "", list(local_entries)),
     ]
-    errors: list[dict] = []
+    errors: list[dict[str, Any]] = []
     for host_id_label, result in pull_all_remote_registries(timeout=timeout, use_cache=use_cache):
         if not result.get("ok"):
             errors.append({

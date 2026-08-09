@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **v1.1.1-beta** + `origin/main` = `678806f` (2026-08-08, **§0.8 4건 close + dual mode + federation *읽기* + CLI 化 A안 묶음 release**). 2 release 발행 — v1.1.0-beta (564ce36) → v1.1.1-beta (6b92a60). tag `v1.1.1-beta` push + GitHub Release 발행.
+- 현재 기준선: **v1.1.2-beta** (2026-08-09). 본 세션 TASK-001~008 을 묶어 발행. 전체 검사 **257/257 PASS** — 오늘 아침 baseline 31 red → 0. `workflow_kit/` mypy strict 128 files clean, dashboard `guard_status` pass. 직전: v1.1.0-beta (564ce36) → v1.1.1-beta (6b92a60).
 - 현재 주 작업 축: **다음 후보 축 4건 전부 close** (TASK-2026-08-09-main-002~005, 본 세션). handoff §5 에 후보로 적어 뒀던 4건을 모두 구현했다 — CLI 化 B안 `wk` / registry HTTP server / branch protection 자동 check / title drift v2. 38 case smoke ALL PASS + venv e2e. 앞서 같은 세션에서 memory 정합성 정리(TASK-001, `check_self_application` 7/8 → **8/8**)를 먼저 했다.
 - 직전 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
 - 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
@@ -40,6 +40,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-09-main-008 v1.1.2-beta release — 본 세션 TASK-001~007 묶음. 릴리스 하나로 셋이 닫혔다: **`check_smoke_trend_cross`**(마지막 실질 red — 노트의 *누적 smoke* 줄이 `cumulative_total` 234 → 257) / **Phase 13 P0-1**(mypy strict venv verify, 128 files clean) / 문서 stamp 확정. **전체 257/257 PASS** — 오늘 아침 31 red → 0. 발견: `release-bump` post-step 이 `git add` 경로를 중복 prefix 로 넘겨 실패(자동화 반쪽, 후속) + `release_pipeline_lib` dist skip 테스트가 버전 bump 직후 일회성 red.
 - TASK-2026-08-09-main-007 남은 red 4건 close — TASK-006 이 "범위 밖"으로 남긴 근거가 **내가 잘못 센 숫자**였다. fixture 3건 재생성(stamp 6건과 같은 뿌리인데 놓쳤다) / 정리 없는 `mkdtemp` 11건 / `"/var/tmp"` 문자열 비교가 macOS 에서 늘 red (**구현은 정상, 검사가 플랫폼을 못 넘김**) / worker 가 local function 이라 **Linux 에서만 돌던 검사** / `release-doctor` mypy gate 의 뿌리인 `workspace_registry.py` **24건** 정리 → `workflow_kit/` **128 files clean 복구**. 부수 R3 1건(`survey()` 가 `repo_root` 를 받는데 브랜치는 모듈 앵커에서 얻던 것) → `branch_slug_for()` 신설. 효과: Phase 13 **P0-1 acceptance 실측 충족** + dashboard `guard_status` fail → **pass**.
 - TASK-2026-08-09-main-006 rotate 도구 수정 + 사전 존재 red 검토 — **순서 규약을 최신-앞으로 통일했다**. `state.json.recent_done_items`(최신-앞)와 handoff §4 writer(뒤-최신 `append`)가 같은 사실을 반대로 들고 있었고, 실제 문서는 최신-앞이라 writer 를 고쳤다. `rotation.py` 는 결함이 둘 — 섹션 고정 문자열(늘 error) + `items[-max:]`; **섹션만 고쳤다면 도구가 동작하면서 최신을 지웠다**. `check_handoff_rotation.py` 9/9 신규 (이 도구엔 회귀 검사가 없었다). red: stamp 계열 6건 해소 + 내가 만든 신규 2건 즉시 해소 (`check_cli_wrappers` 가 저장소 실제 handoff 를 쓰고 있었다). **최종 전체 검사 red 5건, 전부 사전 존재**. 앞서 보고한 31/24 는 편집 중 실행이라 무효.
 - TASK-2026-08-09-main-005 title semantic drift v2 — v1 은 TASK-ID *집합* 만 봐서 "TASK-001 계획 → TASK-001 완료" 면 내용이 통째로 바뀌어도 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델). `title_drift` **additive** (v1 필드 불변). 실측 함정: handoff §5 는 ID 가 **뒤에** 와서 처음엔 설명 꼬리를 집었다 → ID 앞 텍스트 우선으로 수정 + 회귀 케이스. 11/11 PASS.
@@ -49,7 +50,6 @@
 - TASK-2026-08-09-main-001 memory 문서 정합성 정리 — backlog 인덱스 TASK-020 `planned` → `done` + 깨진 `path:` href 3건(018·019·020, `-08-main` 누락) / task 본문 `- 상태: planned` 7건(014~020) → `done` / state.json `backlog.done_items` 에 014~020 + `recent_done_items` 에 018 / handoff stale 4곳. `check_self_application` 7/8 → **8/8 PASS**. state.json 전면 재생성은 **안 했다** — 재생성본이 `done_items` 를 10건으로 자르고 `current_focus` 를 끝난 TASK-014 로 잡아 정보가 깎인다.
 - TASK-2026-08-08-main-020 `[project.scripts]` entry points (CLI 化 A안) — 29 entry point (`workflow-{name}`) + `tools` packages 등록. venv e2e (`pip install -e .` → 29 binary + `--help`) + 4 case smoke ALL PASS. **v1.1.1-beta release** (`6b92a60`). dispatcher `wk` (B안) = 후속.
 - TASK-2026-08-08-main-019 `--force` server-side 이중화 (§0.8 #4) — **3-layer defense**: 도구 미제공(기존) + **pre-push hook**(본 task) + server branch protection(가이드). `tools/hooks/pre-push-no-force.sh` (POSIX sh, force 5변형 거부) + `tools/install_pre_push_hook.py` (install/uninstall/status, dry-run default, backup 자동) + smoke 7 case ALL PASS. **v1.1.0-beta release** (`564ce36`).
-- TASK-2026-08-08-main-018 scope drift detection (§0.8 #3) — 3-way enum (`planned_done`/`planned_undone`/`unplanned_done`) + drift_score + score_band. `drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI (advisory default, `--exit-on-drift` 시 non-zero). smoke 7 case ALL PASS. title semantic drift = v2 (LLM-based).
 
 ## 5. 다음 세션 시작 포인트
 

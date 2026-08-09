@@ -46,6 +46,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
+from workflow_kit.common.paths import memory_active_dir  # noqa: E402
 from workflow_kit.common.read_only_bundle import (  # noqa: E402
     check_quickstart_stale_links_payload,
 )
@@ -55,11 +56,11 @@ def _default_target(label: str) -> str | None:
     """REPO_ROOT 기준 default path. 부재 시 None."""
     candidates = {
         "project_profile": REPO_ROOT / "docs" / "PROJECT_PROFILE.md",
-        "session_handoff": REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "session_handoff.md",
+        "session_handoff": memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md",
         "work_backlog": next(
-            (REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "backlog").glob("*.md"),
+            (memory_active_dir(REPO_ROOT) / "main" / "backlog").glob("*.md"),
             None,
-        ) if (REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "backlog").is_dir() else None,
+        ) if (memory_active_dir(REPO_ROOT) / "main" / "backlog").is_dir() else None,
         "agents": REPO_ROOT / "AGENTS.md",
     }
     p = candidates.get(label)

@@ -44,6 +44,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.paths import memory_active_dir  # noqa: E402
 from workflow_kit.common.drift_detection import (  # noqa: E402
     TITLE_SIMILARITY_THRESHOLD,
     detect_scope_drift,
@@ -54,7 +55,7 @@ from workflow_kit.common.drift_detection import (  # noqa: E402
 
 
 DEFAULT_POST_HANDOFF = (
-    REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "session_handoff.md"
+    memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
 )
 DEFAULT_PRE_COMMIT = "origin/main"
 DEFAULT_GIT_RANGE = "origin/main..HEAD"

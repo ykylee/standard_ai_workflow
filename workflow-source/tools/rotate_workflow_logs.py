@@ -40,13 +40,14 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
+from workflow_kit.common.paths import memory_active_dir  # noqa: E402
 from workflow_kit.common.read_only_bundle import (  # noqa: E402
     rotate_workflow_logs_payload,
 )
 
 
 DEFAULT_HANDOFF = (
-    REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "session_handoff.md"
+    memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
 )
 
 

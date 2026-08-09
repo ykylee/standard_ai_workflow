@@ -56,11 +56,29 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 
 ### 2.2 AC2 — Telemetry 활용도 (`retrieval_hit_rate`)
 
-- **정의**: memory_index telemetry 의 retrieval_hit_rate ≥ 0.9 + source 다양성 ≥ 4 (현 1 source: dispatcher).
-- **현 시점 (2026-07-20)**: hit_rate 1.0 ✅ / source 1 (dispatcher).
-- **Phase 13 success**: hit_rate ≥ 0.9 유지 + source 다양성 ≥ 4 (session-start / doc-sync / backlog-update / dispatcher 모두 활성).
+- **정의**: memory_index telemetry 의 retrieval_hit_rate ≥ 0.9 + source 다양성 ≥ 4.
+- **현 시점 (2026-08-09 실측)**: hit_rate **1.0** ✅ / source **4** ✅ —
+  `session-start` / `doc-sync` / `backlog-update` / `dispatcher`. **AC2 수렴.**
+- **Phase 13 success**: hit_rate ≥ 0.9 유지 + source 다양성 ≥ 4.
 - **관련 smoke**: `check_telemetry_cross_v0_15_6.py` (4 case) — events.jsonl parse + source 다양성 + hit_rate sanity.
-- **action item**: 3 skill 의 retrieval 호출 활성화 (현 dispatcher 만 활성). activation 방법 — skill 명시 호출 또는 opt-in flag 적용.
+
+> **2026-07-20 기록의 정정**: 이 절은 오래도록 *"현 1 source: dispatcher"* 라고 적고
+> 있었고 action item 도 *"3 skill 의 retrieval 호출 활성화"* 였다. **둘 다 틀렸다.**
+>
+> - 실측된 1 source 는 `dispatcher` 가 아니라 **`session-start`** 였다 (132 calls).
+>   `dispatcher` source 는 `--command=memory-index-query` 를 부를 때만 쌓이는데
+>   아무도 부른 적이 없었다.
+> - "활성화 필요" 도 이미 끝난 일이었다. **v0.15.21+ 에서 세 skill 모두 자동 활성**
+>   이 됐다 (`_build_memory_index_query_output`: flag 부재 + workspace
+>   `memory_index/` 존재 → 자동). 세 스크립트의 코드가 동일하다.
+>
+> 즉 남아 있던 것은 wiring 이 아니라 **그 skill 들이 실행된 적이 없다는 사실**
+> 이었다. 2026-08-09 에 doc-sync / backlog-update / memory-index-query 를 실제로
+> 한 번씩 돌리자 곧바로 4 source 가 됐다.
+>
+> **acceptance 자체의 약점**: "by_source 에 4 source 등장" 은 각 경로를 한 번씩만
+> 돌려도 충족된다 — *지속적 사용* 을 재지 않는다. 지표로 쓰려면 최근 N일 윈도 안의
+> source 다양성 같은 형태여야 한다. (후속 후보)
 
 ### 2.3 AC3 — Self-Recover (drift detection → fix)
 
@@ -108,10 +126,16 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 
 #### P0-2: telemetry source 다양성 ≥ 4 (AC2 수렴)
 
-- **근거**: 현 1 source (dispatcher) 만 활성. session-start / doc-sync / backlog-update 의 retrieval 호출 활성화 필요.
-- **작업**: 3 skill 의 `memory-index-query` dispatcher 호출 활성화 + opt-in wiring 보강.
-- **acceptance**: events.jsonl 의 by_source 에 4 source 모두 등장 + retrieval_hit_rate ≥ 0.9.
-- **expected cycle**: v1.0.x 첫 patch release (v1.0.1~).
+- **상태**: ✅ **닫힘** (2026-08-09, TASK-2026-08-09-main-010).
+- **근거 정정**: "현 1 source (dispatcher) 만 활성" 은 틀렸다 — 실측 1 source 는
+  `session-start` 였고, wiring 은 v0.15.21+ 에서 세 skill 모두 이미 자동 활성이었다.
+  남아 있던 것은 **실행 이력의 부재** 였다 (§2.2 의 정정 블록 참조).
+- **작업(실제로 한 것)**: doc-sync / backlog-update / `--command=memory-index-query`
+  를 실제 용도로 한 번씩 실행해 각 source 의 emit 경로를 실증.
+- **acceptance**: events.jsonl 의 by_source 에 4 source 모두 등장 + hit_rate ≥ 0.9
+  → **충족** (4 source / hit_rate 1.0 / 135 events).
+- **남은 것**: acceptance 가 *지속적 사용* 을 재지 않는다 (한 번씩 돌리면 충족).
+  윈도 기반 지표로 바꿀지는 별도 판단.
 
 ### 3.2 우선순위 P1 (단기, 1-3 release)
 

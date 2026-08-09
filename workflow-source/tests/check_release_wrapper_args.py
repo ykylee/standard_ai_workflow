@@ -22,6 +22,8 @@ v1.1.2 release 에서 릴리스 도구 결함 2건이 **발행 도중에** 드�
     6. 그 경로를 `_git_toplevel()` cwd 에서 `git add --dry-run` 하면 성공하고,
        `REPO_ROOT`(=`workflow-source/`) 에서는 실패한다 (= v1.1.2 버그의 직접 회귀)
     7. read-only wrapper 실호출에 AttributeError 가 없다
+    8. release note 의 누적 smoke 수치 검증이 동작한다 (표기 누락 / note 부재 검출)
+    9. 그 검증이 note 를 **쓰지 않는다** — "전량 PASS" 는 사람의 주장이다
 
 Stdlib only.
 """
@@ -178,7 +180,44 @@ def main() -> int:
             pass
     check("7) read-only wrapper 실호출에 AttributeError 없음", not errors, f"{errors}")
 
-    total = 8
+
+    # 9) release note 누적 smoke 수치 검증 (v1.1.3+)
+    #
+    #    v1.1.0 / v1.1.1 이 이 줄을 통째로 빠뜨렸고, 그동안 dashboard 는 옛 note 를
+    #    읽어 check_smoke_trend_cross 가 계속 red 였다. 릴리스 절차에 그걸 잡는
+    #    자리가 없었다 — 이 case 가 그 자리가 생겼는지 본다.
+    verify = rp.verify_release_note_smoke_count
+    actual_files = rp._count_smoke_files()
+
+    cur = verify(rp.read_version())
+    ok_current = cur["ok"] and cur["found"] == (actual_files, actual_files)
+
+    # 표기가 없는 note 는 잡아야 한다 (v1.1.0 이 실제 그 상태다)
+    missing = verify("1.1.0")
+    caught_missing = (not missing["ok"]) and "누적 smoke" in (missing["error"] or "")
+
+    # 존재하지 않는 version → note 부재로 잡는다
+    absent = verify("99.99.99")
+    caught_absent = (not absent["ok"]) and "부재" in (absent["error"] or "")
+
+    check(
+        "9) release note 누적 수치 검증 (현재 ok / 표기누락·note부재 검출)",
+        ok_current and caught_missing and caught_absent,
+        f"cur={cur} missing_ok={caught_missing} absent_ok={caught_absent}",
+    )
+
+    # 9b) 도구가 그 줄을 **대신 적지 않는다** — "전량 PASS" 는 사람의 주장이다.
+    src = (SOURCE_ROOT / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
+    fn_src = src[src.index("def verify_release_note_smoke_count"):]
+    fn_src = fn_src[: fn_src.index("\ndef ", 1)]
+    writes = any(w in fn_src for w in ("write_text(", "atomic_write", ".replace("))
+    check(
+        "9b) 검증만 하고 note 를 쓰지 않는다",
+        not writes,
+        "도구가 누적 수치를 대신 적으면 거짓 주장을 만든다",
+    )
+
+    total = 10
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

@@ -1174,6 +1174,12 @@ def cmd_note_draft(args) -> dict:
 # ---------------------------------------------------------------------------
 
 
+#: dashboard 의 `SMOKE_COUNT_PATTERN` 과 **같은 것을 본다**. 두 곳이 다른 정규식을
+#: 들면 "노트에 적었는데 dashboard 가 못 읽는" 상태가 조용히 생긴다.
+SMOKE_COUNT_RE = re.compile(
+    r"누적\s+(?:[\w\s]*?\s+)?smoke\s+(?:test\s+)?\*\*(\d+)(?:/(\d+)|\+)\s+PASS\*\*"
+)
+
 RELEASE_RE = re.compile(r"\(v(\d+\.\d+(?:\.\d+)?)\)")
 # v0.15.21+: bare `type(scope): vX.Y.Z ...` release-commit 형식도 인식한다.
 # 최근 commit 관례가 괄호형 `(vX.Y.Z)` → 맨몸 `... : vX.Y.Z — ...` 로 바뀌면서
@@ -2203,6 +2209,61 @@ def cmd_bidir_link(args) -> dict:
     return result
 
 
+def _count_smoke_files() -> int:
+    """`workflow-source/tests/check_*.py` 갯수 (dashboard 의 smoke_files_count 와 같은 기준)."""
+    tests_dir = REPO_ROOT / "tests"
+    if not tests_dir.is_dir():
+        return 0
+    return sum(1 for _ in tests_dir.glob("check_*.py"))
+
+
+def verify_release_note_smoke_count(version: str) -> dict:
+    """release note 의 `누적 smoke **N/N PASS**` 가 현재 smoke 파일 수와 맞는가.
+
+    **자동으로 채우지 않는다.** 그 줄은 *전량 PASS 했다* 는 주장이고, 실제로 전량을
+    돌린 사람만 할 수 있는 말이다. 도구가 대신 적으면 거짓 주장을 만든다 — 여기서는
+    **빠졌거나 어긋난 것을 알려 주기만** 한다.
+
+    왜 필요한가: 이 수치는 릴리스 시점 스냅샷이 아니라 *살아있는 지표* 이고
+    (`check_smoke_trend_cross` case 2 가 강제한다), 노트에 적는 일은 사람 몫이라
+    **v1.1.0 / v1.1.1 에서 통째로 빠졌다.** 그 사이 dashboard 는 옛 노트(v1.0.0 의
+    234)를 읽었고 검사는 계속 red 였다. 릴리스 절차에 그걸 잡는 자리가 없었다.
+
+    Returns:
+        {"ok": bool, "note_path": str, "expected": int, "found": tuple|None, "error": str|None}
+    """
+    note = RELEASES_DIR / f"Beta-v{version}.md"
+    expected = _count_smoke_files()
+    result: dict = {
+        "ok": False, "note_path": str(note), "expected": expected,
+        "found": None, "error": None,
+    }
+    if not note.is_file():
+        result["error"] = f"release note 부재: {note}"
+        return result
+
+    m = SMOKE_COUNT_RE.search(note.read_text(encoding="utf-8"))
+    if m is None:
+        result["error"] = (
+            f"release note 에 `누적 smoke **N/N PASS**` 줄이 없다. "
+            f"전량 smoke 를 돌린 뒤 `{expected}/{expected}` 로 적을 것 "
+            f"(이 줄이 없으면 dashboard 가 *이전* release note 를 읽는다)."
+        )
+        return result
+
+    found_pass = int(m.group(1))
+    found_total = int(m.group(2)) if m.group(2) else found_pass
+    result["found"] = (found_pass, found_total)
+    if found_total != expected:
+        result["error"] = (
+            f"release note 의 누적 수치 {found_pass}/{found_total} 가 현재 smoke 파일 수 "
+            f"{expected} 와 다르다. 전량 결과를 확인하고 갱신할 것."
+        )
+        return result
+    result["ok"] = True
+    return result
+
+
 def cmd_release(args) -> dict:
     """GitHub Release 생성 (gh release create).
 
@@ -2391,6 +2452,20 @@ def cmd_release(args) -> dict:
                 "mode": "skipped",
                 "reason": f"{type(exc).__name__}: {exc}",
             }
+
+    # 3.4 release note 누적 smoke 수치 검증 (v1.1.3+).
+    # 자동으로 채우지 않는다 — "전량 PASS" 는 사람이 확인해야 하는 주장이다.
+    # escape hatch: --skip-smoke-count-check.
+    if not getattr(args, "skip_smoke_count_check", False):
+        _note_version = getattr(args, "version", None) or read_version()
+        smoke_count_check = verify_release_note_smoke_count(_note_version)
+        results["smoke_count_check"] = smoke_count_check
+        if not smoke_count_check["ok"] and not args.dry_run:
+            return _attach_release_summary({
+                **results,
+                "ok": False,
+                "error": f"release note 누적 smoke 수치 검증 실패: {smoke_count_check['error']}",
+            })
 
     # 3.5 changelog-gen auto-step (v0.15.21+) — CHANGELOG.md 를 git log 에서 재생성.
     # 전체 파일을 deterministic 하게 rewrite 하므로 marker guard 불필요 (idempotent-by-regen).
@@ -3576,6 +3651,9 @@ def main() -> int:
     p_rel.add_argument("--skip-changelog-gen", dest="skip_changelog_gen",
                        action="store_true", default=False,
                        help="drift prevention: CHANGELOG.md git-log 재생성 step skip (v0.15.21+)")
+    p_rel.add_argument("--skip-smoke-count-check", dest="skip_smoke_count_check",
+                       action="store_true", default=False,
+                       help="release note 의 `누적 smoke **N/N PASS**` 검증 step skip (v1.1.3+)")
     p_rel.add_argument("--version", default=None,
                        help="version override (e.g. 0.7.5 for backfill). default: pyproject.toml [project] version")
     p_rel.add_argument("--auto-bump", dest="auto_bump", action="store_true", default=False,

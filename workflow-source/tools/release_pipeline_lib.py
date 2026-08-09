@@ -74,6 +74,8 @@ def _make_args(**kwargs):
         "skip_cross_verify": False,
         "strict_cross_verify": False,
         "skip_validate": False,
+        "skip_changelog_gen": False,
+        "skip_smoke_count_check": False,
         # v1.1.3: `dry_run` 누락으로 `cmd_verify` 가 AttributeError 로 죽었다
         # (v1.1.2 release 에서 실제로 터졌다). 기본을 **안전측(True)** 으로 두되,
         # 실제 수행이 목적인 wrapper 는 반드시 `dry_run=False` 를 명시한다.

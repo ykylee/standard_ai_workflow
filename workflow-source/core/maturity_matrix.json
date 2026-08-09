@@ -332,17 +332,17 @@
   },
   "harnesses": {
     "supported": [
-      "codex",
-      "opencode",
-      "gemini-cli",
-      "antigravity",
-      "minimax-code",
-      "claude-code",
       "aider",
+      "antigravity",
+      "claude-code",
+      "codewhale",
+      "codex",
+      "gemini-cli",
       "goose",
       "grok-build",
-      "pi-dev",
-      "codewhale"
+      "minimax-code",
+      "opencode",
+      "pi-dev"
     ],
     "codewhale_added_in_release": "v0.10.4 (2026-07-03, cf0060d)",
     "codewhale_note": "단일 SKILL.md overlay, additive rules only (session start + Korean output + backlog mgmt); Constitution 이 verification/parallelism/context 담당"

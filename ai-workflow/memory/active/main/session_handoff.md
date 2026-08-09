@@ -13,7 +13,7 @@
 - 현재 주 작업 축: **다음 후보 축 4건 전부 close** (TASK-2026-08-09-main-002~005, 본 세션). handoff §5 에 후보로 적어 뒀던 4건을 모두 구현했다 — CLI 化 B안 `wk` / registry HTTP server / branch protection 자동 check / title drift v2. 38 case smoke ALL PASS + venv e2e. 앞서 같은 세션에서 memory 정합성 정리(TASK-001, `check_self_application` 7/8 → **8/8**)를 먼저 했다.
 - 직전 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
 - 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
-- 다음 후보 축: **`memory-index-query` beta → stable** (유일 잔여 beta) / branch protection (소유자 결정) / **`phase_13_followup.md` 전반을 코드·matrix 와 실측 대조** (P0-2·P1 이 전부 stale 이었다).
+- 다음 후보 축: **`memory-index-query` beta → stable** (유일 잔여 beta) / branch protection (소유자 결정).
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -40,6 +40,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-09-main-013 `phase_13_followup` **전반 실측 대조** — 정합 5 / 정정 3. **harness 는 숫자가 아니라 정의가 문제였다**: `mavis` 를 matrix 에 넣자 `check_harness_v0_15_9` 가 깨졌고, 그건 **project-local 산출물 0** 인 harness 라 디렉터리 없는 게 설계였기 때문이다 (`custom` 도 같은 부류). `harnesses.supported` = *overlay 배포* 목록 → 11 이 맞다. `NON_OVERLAY_HARNESSES` 에 이유와 함께 선언. **검사도 하드코딩 10개에 갇혀 새 harness 를 몰랐다** → 정본 유도로 교체.
 - TASK-2026-08-09-main-012 Phase 13 **P1 묶음 close** — **세 항목이 전부 실제와 달랐다**. P1-1 "pre-step 부재" → v0.15.21+ 에 이미 있었고, 남은 건 (a) 최근 3 release 가 수동 발행이라 CHANGELOG 가 안 갱신된 것(**오늘 내가 그렇게 냈다**) (b) `(v3.0)` 오탐이 `[3.0.1]` 을 최신 자리에 앉힌 것 → `NON_RELEASE_VERSIONS` 선언 예외. P1-2/P1-3 은 **이미 v0.11.24 에서 stable**. 실측 skill stage **13 stable / 1 beta**(유일 beta = `memory-index-query`).
 - TASK-2026-08-09-main-011 telemetry acceptance 를 **윈도 기반** 으로 — TASK-010 이 적은 사각을 메움. `summarize_telemetry(window_days=30)` 에 `window_source_count` 등 additive (전체 기간 필드 불변). `check_telemetry_window.py` 8/8 — **case 4 가 핵심**: *전체 4 source 인데 윈도 1* 을 잡는다. AC2 acceptance 를 "최근 30일 window_source_count ≥ 4" 로 갱신. 발견: `check_telemetry_source_diversity.py` docstring 은 자동 활성 전환을 **이미 정확히 적고 있었다** — TASK-010 의 문서 오류를 **검사는 알고 있었다**.
 - TASK-2026-08-09-main-010 Phase 13 **P0-2 close** — AC2 4 source + hit_rate 1.0 수렴. **문서가 두 군데 틀려 있었다**: 1 source 는 `dispatcher` 가 아니라 `session-start` 였고(132 calls), "3 skill 활성화 필요" 는 **이미 v0.15.21+ 에서 끝난 일**이었다 (세 스크립트 코드가 동일). 남은 건 wiring 이 아니라 **실행 이력의 부재** — 한 번씩 돌리자 즉시 4 source. acceptance 약점도 기록: "4 source 등장" 은 1회씩이면 충족돼 *지속적 사용* 을 못 잰다.
@@ -49,7 +50,6 @@
 - TASK-2026-08-09-main-006 rotate 도구 수정 + 사전 존재 red 검토 — **순서 규약을 최신-앞으로 통일했다**. `state.json.recent_done_items`(최신-앞)와 handoff §4 writer(뒤-최신 `append`)가 같은 사실을 반대로 들고 있었고, 실제 문서는 최신-앞이라 writer 를 고쳤다. `rotation.py` 는 결함이 둘 — 섹션 고정 문자열(늘 error) + `items[-max:]`; **섹션만 고쳤다면 도구가 동작하면서 최신을 지웠다**. `check_handoff_rotation.py` 9/9 신규 (이 도구엔 회귀 검사가 없었다). red: stamp 계열 6건 해소 + 내가 만든 신규 2건 즉시 해소 (`check_cli_wrappers` 가 저장소 실제 handoff 를 쓰고 있었다). **최종 전체 검사 red 5건, 전부 사전 존재**. 앞서 보고한 31/24 는 편집 중 실행이라 무효.
 - TASK-2026-08-09-main-005 title semantic drift v2 — v1 은 TASK-ID *집합* 만 봐서 "TASK-001 계획 → TASK-001 완료" 면 내용이 통째로 바뀌어도 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델). `title_drift` **additive** (v1 필드 불변). 실측 함정: handoff §5 는 ID 가 **뒤에** 와서 처음엔 설명 꼬리를 집었다 → ID 앞 텍스트 우선으로 수정 + 회귀 케이스. 11/11 PASS.
 - TASK-2026-08-09-main-004 branch protection 자동 check (3rd layer) — layer 2 는 로컬 설치형이라 hook 미설치 호스트를 못 막는다. 그 구멍인 서버측 protection 이 *가이드* 로만 있었다. 판정을 pure function 으로 분리 (gh 없이 fixture 검사). **보호를 켜지 않고 판정만** 한다. 필드를 못 읽으면 통과로 치지 않는다. gh 부재는 graceful skip (모름 ≠ 없음). 8/8 PASS. **실측: 이 저장소 main 에 protection 없음(404)**.
-- TASK-2026-08-09-main-003 registry HTTP server (federation *쓰기*) — TASK-016 이 닫은 pull 의 상대편. 구멍이 둘이었다: 서빙하는 쪽 부재 + `add_known_host()` API 는 있는데 **부르는 CLI 가 없어** 상대가 등록조차 못 했다. loopback 기본 / read-only(405) / 경로 2개만 / 토큰은 환경변수 *이름* 으로 / registry 부재 → 빈 registry. 9/9 PASS — 실제로 서버를 띄워 pull 로 되받는다.
 
 ## 5. 다음 세션 시작 포인트
 

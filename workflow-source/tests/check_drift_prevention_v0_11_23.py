@@ -57,9 +57,28 @@ EXPECTED_STABLE_SKILLS = {
     "git-conflict-resolver",
 }
 
-EXPECTED_BANNER_HARNESSES = {
-    "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
-    "claude-code", "aider", "goose", "pi-dev", "codewhale",
+#: v1.1.3+: 하드코딩 목록을 **정본에서 유도** 로 바꿨다.
+#:
+#: 예전에는 10개를 손으로 적어 두고 `EXPECTED_BANNER_HARNESSES & specs_keys` 로
+#: 좁혀 비교했다. 그래서 **새 harness 가 추가돼도 이 검사는 몰랐다** — 이름은
+#: "SSOT alignment" 인데 정본 전체를 보지 않았다. 실제로 `mavis` (v1.1.0 에서 harness
+#: 로 등록) 가 `maturity_matrix.json` 에 빠져 있었는데 6/6 PASS 였다 (2026-08-09 실측).
+#:
+#: 이제 기대값은 `HARNESS_SPECS` 전체에서 아래 제외분을 뺀 것이다.
+#: `harnesses.supported` 는 **overlay 를 배포하는** harness 목록이다 (파일시스템의
+#: `harnesses/<name>/` 과 1:1). 아래 둘은 그 정의에 해당하지 않는다 — 넣으면
+#: `check_harness_v0_15_9` 의 *3-way set equality* 가 깨진다 (2026-08-09 실측).
+NON_OVERLAY_HARNESSES = {
+    "custom": (
+        "자사 harness 에 wire-up 하는 **어댑터 템플릿** 이다 "
+        "(`.workflow-kits/custom/SKILL.md`). 배포되는 overlay 가 아니다."
+    ),
+    "mavis": (
+        "**project-local 산출물이 0** 인 harness — 표준 §6.5.2 의 글로벌 "
+        "`~/.minimax/mcp/mcp.json` merge 만 emit 한다 (v1.1.0, TASK-2026-08-08-main-007). "
+        "`harnesses/mavis/` 디렉터리가 없는 것이 설계이므로 overlay 목록에 넣지 않는다. "
+        "`HARNESS_SPECS` 에는 있다 — bootstrap `--harness mavis` 는 정상 동작한다."
+    ),
 }
 
 
@@ -198,7 +217,10 @@ def test_case_5_harness_supported_ssot_alignment() -> None:
     mm = _read_maturity()
     declared = set(mm["harnesses"]["supported"])
     specs_keys = _harness_specs_keys()
-    expected_banner = EXPECTED_BANNER_HARNESSES & specs_keys
+    # 제외 목록에 이유가 없으면 그 자체가 결함이다 (원장은 이유가 정본).
+    for name, reason in NON_OVERLAY_HARNESSES.items():
+        assert reason.strip(), f"NON_OVERLAY_HARNESSES[{name}] 에 이유가 없다"
+    expected_banner = specs_keys - set(NON_OVERLAY_HARNESSES)
     missing_in_mm = expected_banner - declared
     extra_in_mm = declared - specs_keys
     assert not missing_in_mm, (

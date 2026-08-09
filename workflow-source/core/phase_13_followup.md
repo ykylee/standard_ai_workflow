@@ -60,7 +60,7 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 - **현 시점 (2026-08-09 실측)**: hit_rate **1.0** ✅ / source **4** ✅ —
   `session-start` / `doc-sync` / `backlog-update` / `dispatcher`. **AC2 수렴.**
 - **Phase 13 success**: hit_rate ≥ 0.9 유지 + source 다양성 ≥ 4.
-- **관련 smoke**: `check_telemetry_cross_v0_15_6.py` (4 case) — events.jsonl parse + source 다양성 + hit_rate sanity.
+- **관련 smoke**: `check_telemetry_cross_v0_15_6.py` (**5 case**) — events.jsonl parse + source 다양성 + hit_rate sanity. (문서가 4 로 적고 있었다)
 
 > **2026-07-20 기록의 정정**: 이 절은 오래도록 *"현 1 source: dispatcher"* 라고 적고
 > 있었고 action item 도 *"3 skill 의 retrieval 호출 활성화"* 였다. **둘 다 틀렸다.**
@@ -103,8 +103,28 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 
 ### 2.5 AC5 — stable API 2-year 운영 (Phase 13 의 본질)
 
-- **정의**: stable API 25 entries + 12 skill + 11 MCP + 11 harness 의 backward compat 2-year 보장.
-- **현 시점 (2026-07-20)**: 25 entries frozen (v0.8.0 spec) + 12 skill stable + 11 MCP stable (1 removed) + 11 harness overlay.
+- **정의**: stable API 25 entries + skill / MCP / harness 의 backward compat 2-year 보장.
+- **현 시점 (2026-08-09 실측)**: 25 entries frozen (v0.8.0 spec) + **13 skill stable**
+  (전체 14, 잔여 beta 1 = `memory-index-query`) + **11 MCP stable** (전체 12) +
+  **11 harness overlay** + **non-overlay 2** (`HARNESS_SPECS` 13 = overlay 11 +
+  `custom` + `mavis`).
+
+> **2026-08-09 실측으로 정리된 것**: 이 절은 "12 skill stable" 이라고 적고 있었다 —
+> v0.11.24 batch 이후 **13** 이다 (전체 14, 잔여 beta 1).
+>
+> harness 쪽은 숫자가 아니라 **정의가 흐렸다.** `maturity_matrix.json` 의
+> `harnesses.supported` 는 *overlay 를 배포하는* harness 목록이고 파일시스템의
+> `harnesses/<name>/` 과 1:1 이다 (`check_harness_v0_15_9` 의 3-way set equality).
+> `HARNESS_SPECS` 13 개 중 둘은 그 정의 밖이다:
+>
+> - `custom` — 자사 harness 에 wire-up 하는 어댑터 템플릿.
+> - `mavis` — **project-local 산출물이 0**. 표준 §6.5.2 의 글로벌 `mcp.json` merge 만
+>   emit 하므로 overlay 디렉터리가 없는 것이 설계다 (bootstrap `--harness mavis` 는
+>   정상 동작한다).
+>
+> 두 정본(`HARNESS_SPECS` ↔ matrix)이 다른 것을 세고 있었고, 그 차이를 아무도 적어
+> 두지 않아 "11 이 맞나 13 이 맞나" 가 매번 헷갈릴 자리였다. 이제
+> `check_drift_prevention` 의 `NON_OVERLAY_HARNESSES` 에 **이유와 함께** 선언돼 있다.
 - **Phase 13 success**: 2-year (2026-07-20 ~ 2028-07-20) 동안 backward compat 유지 + breaking change ≤ 1건 (semver minor patch).
 - **관련 정공법**: [`./stable_guarantee.md`](./stable_guarantee.md) — public API surface + 5개 명시 제외 영역 + migration 3가지 정공법.
 - **breaking change 정책**: 1 release `DeprecationWarning` → 다음 release `removal` (semver minor patch 이내).
@@ -220,7 +240,7 @@ Phase 12 의 24 smoke 가 Phase 13 의 cross-check anchor 유지. 매 major rele
 | 카테고리 | Smoke | Phase 13 success |
 |---|---|---|
 | Drift | check_drift_prevention_v0_11_23 | 6 case PASS (silent_failing 0, maturity fresh, harness 정합) |
-| Harness | check_harness_v0_15_9 + check_harness_apply_guide_v0_15_13 | 11 harness 3-way set 동등 |
+| Harness | check_harness_v0_15_9 + check_harness_apply_guide_v0_15_13 | **11 overlay** harness 3-way set 동등 (`custom` / `mavis` 는 non-overlay — §2.5) |
 | Documentation | check_readme_cross / check_installation_usage / check_quickstart / check_sample_version / check_document_index / check_code_index / check_release_md / check_memory_governance_cross | 8 문서 × metric cross-check |
 | Operational | check_quality_dashboard + check_phase15_dashboard_panels + check_smoke_trend_cross + check_telemetry_cross + check_memory_index_cross + check_maturity_distribution_cross | 6 panel/telemetry 정합 |
 | Refresh | check_refresh_maturity (3종) | strict opt-out + release_error fallback + today override |

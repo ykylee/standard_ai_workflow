@@ -52,6 +52,10 @@ WATCHED_CHECKS = (
     "check_bidir_link_v0_13_3.py",                  # wiki / memory_index 복원 (경로 4)
     "check_release_pipeline_release_coordination.py",  # auto-bump version write (경로 5)
     "check_quality_dashboard_v0_13_0.py",           # dashboard emit
+    # v1.1.2: rotate CLI 를 부른다. 예전에는 rotate 가 고장나 늘 `error` 였던 탓에
+    # 아무것도 안 썼고, 그래서 이 검사가 실제 handoff 를 겨누고 있다는 사실이
+    # 드러나지 않았다. 도구를 고치는 순간 저장소를 수정하기 시작했다.
+    "check_cli_wrappers.py",
 )
 
 CHECK_TIMEOUT_SEC = 300

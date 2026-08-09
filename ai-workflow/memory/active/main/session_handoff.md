@@ -13,7 +13,7 @@
 - 현재 주 작업 축: **다음 후보 축 4건 전부 close** (TASK-2026-08-09-main-002~005, 본 세션). handoff §5 에 후보로 적어 뒀던 4건을 모두 구현했다 — CLI 化 B안 `wk` / registry HTTP server / branch protection 자동 check / title drift v2. 38 case smoke ALL PASS + venv e2e. 앞서 같은 세션에서 memory 정합성 정리(TASK-001, `check_self_application` 7/8 → **8/8**)를 먼저 했다.
 - 직전 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
 - 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
-- 다음 후보 축: **v1.1.2-beta release 판단** (본 세션 4건 묶음) / rotate 도구 순서 규약 불일치 정리 (아래 §6) / Phase 13 진입.
+- 다음 후보 축: **v1.1.2-beta release 판단** (본 세션 5건 묶음) / Phase 13 진입.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -40,6 +40,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-09-main-006 rotate 도구 수정 + 사전 존재 red 검토 — **순서 규약을 최신-앞으로 통일했다**. `state.json.recent_done_items`(최신-앞)와 handoff §4 writer(뒤-최신 `append`)가 같은 사실을 반대로 들고 있었고, 실제 문서는 최신-앞이라 writer 를 고쳤다. `rotation.py` 는 결함이 둘 — 섹션 고정 문자열(늘 error) + `items[-max:]`; **섹션만 고쳤다면 도구가 동작하면서 최신을 지웠다**. `check_handoff_rotation.py` 9/9 신규 (이 도구엔 회귀 검사가 없었다). red: stamp 계열 6건 해소 + 내가 만든 신규 2건 즉시 해소 (`check_cli_wrappers` 가 저장소 실제 handoff 를 쓰고 있었다). **최종 전체 검사 red 5건, 전부 사전 존재**. 앞서 보고한 31/24 는 편집 중 실행이라 무효.
 - TASK-2026-08-09-main-005 title semantic drift v2 — v1 은 TASK-ID *집합* 만 봐서 "TASK-001 계획 → TASK-001 완료" 면 내용이 통째로 바뀌어도 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델). `title_drift` **additive** (v1 필드 불변). 실측 함정: handoff §5 는 ID 가 **뒤에** 와서 처음엔 설명 꼬리를 집었다 → ID 앞 텍스트 우선으로 수정 + 회귀 케이스. 11/11 PASS.
 - TASK-2026-08-09-main-004 branch protection 자동 check (3rd layer) — layer 2 는 로컬 설치형이라 hook 미설치 호스트를 못 막는다. 그 구멍인 서버측 protection 이 *가이드* 로만 있었다. 판정을 pure function 으로 분리 (gh 없이 fixture 검사). **보호를 켜지 않고 판정만** 한다. 필드를 못 읽으면 통과로 치지 않는다. gh 부재는 graceful skip (모름 ≠ 없음). 8/8 PASS. **실측: 이 저장소 main 에 protection 없음(404)**.
 - TASK-2026-08-09-main-003 registry HTTP server (federation *쓰기*) — TASK-016 이 닫은 pull 의 상대편. 구멍이 둘이었다: 서빙하는 쪽 부재 + `add_known_host()` API 는 있는데 **부르는 CLI 가 없어** 상대가 등록조차 못 했다. loopback 기본 / read-only(405) / 경로 2개만 / 토큰은 환경변수 *이름* 으로 / registry 부재 → 빈 registry. 9/9 PASS — 실제로 서버를 띄워 pull 로 되받는다.
@@ -49,7 +50,6 @@
 - TASK-2026-08-08-main-019 `--force` server-side 이중화 (§0.8 #4) — **3-layer defense**: 도구 미제공(기존) + **pre-push hook**(본 task) + server branch protection(가이드). `tools/hooks/pre-push-no-force.sh` (POSIX sh, force 5변형 거부) + `tools/install_pre_push_hook.py` (install/uninstall/status, dry-run default, backup 자동) + smoke 7 case ALL PASS. **v1.1.0-beta release** (`564ce36`).
 - TASK-2026-08-08-main-018 scope drift detection (§0.8 #3) — 3-way enum (`planned_done`/`planned_undone`/`unplanned_done`) + drift_score + score_band. `drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI (advisory default, `--exit-on-drift` 시 non-zero). smoke 7 case ALL PASS. title semantic drift = v2 (LLM-based).
 - TASK-2026-08-08-main-017 operational MCP tool 4종 CLI wrapper — **dual mode** (MCP server 무변경 + CLI 4개 추가). 같은 `*_payload` 호출 → CLI ↔ MCP *byte-equal*. rotate_workflow_logs / apply_robust_patch / create_environment_record_stub / check_quickstart_stale_links. smoke 4 case ALL PASS. 나머지 9 tool 은 MCP 유지 (LLM-interpretation 필수).
-- TASK-2026-08-08-main-016 HTTP pull + dashboard federation 통합 — TASK-015 의 *읽기* 마무리. stdlib only (`urllib`) + remote cache TTL 1h + timeout 2s. **함정**: `time.mktime` 는 local TZ 해석 → KST 에서 9h 차이로 TTL 초과 → `calendar.timegm` 으로 정정. `tools/host_pull_registry.py` CLI. smoke 8 case ALL PASS.
 
 ## 5. 다음 세션 시작 포인트
 
@@ -129,45 +129,31 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 **별건 1**: dashboard `drift_prevention.guard_status: fail` — `maturity_last_updated` stale.
 갱신 힌트는 dashboard 출력의 `maturity_refresh_hint`.
 
-**별건 3 (2026-08-09 실측) — 사전 존재 red 7건, 뿌리는 하나**:
+**별건 3 — 전체 검사 red (2026-08-09 최종 실측)**:
 
-전체 검사(`run_all_checks.py`, 격리 venv)에서 7건이 red 다. **전부 본 세션 이전부터**
-red 였고 (`git stash` 로 확인), 뿌리는 두 가지다:
+편집을 멈추고 돌린 전체 검사(격리 venv)에서 **red 5건, 전부 사전 존재**
+(`git stash` 로 개별 확인). 본 세션이 만든 red 는 0건이다.
 
-| 검사 | 증상 |
-| --- | --- |
-| `check_readme_cross_v0_15_12` | README 헤더 `v1.0.0-beta` ≠ pyproject `v1.1.1-beta` |
-| `check_installation_usage_v0_15_14` | INSTALLATION status version 동일 문제 |
-| `check_release_md_v0_15_18` | RELEASE.md 에 `1.1.1` stamp 부재 |
-| `check_sample_version_cross_v0_15_11` | sample `tool_version` 24건 mismatch |
-| `check_code_index_v0_15_17` | CODE_INDEX smoke count claim 234 ≠ actual |
-| `check_smoke_trend_cross_v0_15_5` | 같은 count 불일치 |
-| `check_mcp_apply_mode_criterion` | `mcp` SDK 부재 (dev venv 미설치, 환경 문제) |
+| 검사 | 증상 | 판단 |
+| --- | --- | --- |
+| `check_smoke_trend_cross_v0_15_5` | `cum_total=234 < smoke_files=257` | 릴리스 사이클에서 닫힌다 (아래) |
+| `check_source_without_runtime_layer` | `read_only_jsonrpc_fixtures.json` stale | fixture 재생성 필요 |
+| `check_tempdir_leak_guard` | 정리 없는 `mkdtemp` 11건 | 기존 테스트들의 문제 |
+| `check_wiki_url_validity` | `PicklingError` (local object) | 테스트 자체 결함 |
+| `check_workflow_kit_cli` | `test_release_doctor_all_skip` 1건 | — |
 
-1. **v1.1.0 / v1.1.1 릴리스 때 문서 버전 stamp 를 안 올렸다** (5건).
-2. **smoke 파일 수 claim(234)이 실제와 벌어졌다** (2건). 본 세션이 4개를 더해
-   256 이 됐으니 **내가 벌린 것도 있다** — 다만 234 claim 은 이전부터 틀려 있었다.
+**`check_smoke_trend_cross` 보류 이유**: `cumulative_total` 은 *가장 최근 릴리스 노트*
+에서 파싱하는데 v1.1.0 / v1.1.1 노트에 "누적 smoke **N/N PASS**" 줄이 없어 그보다
+이전인 v1.0.0 의 234 를 읽는다. 고치려면 **이미 발행된 노트를 사후 수정** 해야 한다.
+다음 릴리스 노트에 그 줄을 적으면 자연히 닫힌다.
 
-릴리스 판단(v1.1.2 발행 여부)과 엮여 있어 손대지 않았다. 발행한다면 그 사이클에서
-같이 정리하는 게 맞다.
+**해소한 것** (stamp 계열 6건): README / RELEASE.md / CODE_INDEX / INSTALLATION 의
+버전·smoke count stamp + `examples/output_samples/*.json` 24건의 `tool_version` +
+`check_mcp_apply_mode_criterion` (환경 — 시스템 python3 에 `mcp` 미설치, 설치 후 2/2 PASS).
 
-**별건 2 (2026-08-09 신규 발견) — rotate 도구가 이 저장소에서 한 번도 동작한 적이 없다**:
-
-`handoff_bloat` 경고를 해소하라고 있는 `rotate_workflow_logs` 가 `status: error` 로
-아무 일도 하지 않는다. 원인이 둘인데, 두 번째가 더 위험하다.
-
-1. **섹션 이름 불일치** — `rotation.py` 는 `## 5. 최근 완료 작업` / `## 6. 잔여 작업` 을
-   찾는데 실제 문서는 `## 4. 최근 완료 작업` / `## 5. 다음 세션 시작 포인트` 다.
-2. **정렬 방향 불일치** — `workflow_writes.py:319` 는 *뒤가 최신* 을 가정해 앞에서
-   버린다. 그런데 실제 §4 는 **최신이 위** 로 쌓여 왔다 (사람/에이전트가 앞에 붙였다).
-   **1번만 고치면 도구가 "동작하면서 최신 4건을 지운다".**
-
-`workflow_writes.py:317` 주석의 *"`handoff_bloat` 가 그걸 잡으면 사람이 손으로 지웠다"*
-가 이 상태의 흔적이다. 본 세션에서도 손으로 지웠다 (14 → 10).
-
-**먼저 규약을 정해야 한다** — (a) 문서를 오래된 순으로 뒤집어 도구에 맞출지,
-(b) 도구를 최신 우선으로 바꿀지. 자동 경로(`workflow_writes`)와 수동 관행이 반대로
-쌓고 있으므로 한쪽을 고르지 않으면 어느 수정도 다른 쪽을 깨뜨린다.
+> **숫자를 두 번 잘못 셌다**: `[FAIL]` 패턴만 grep 해 7건이라 한 것, 그리고 전체 실행
+> 두 번(31 / 24건)이 **편집 도중에** 돌아 반쯤 바뀐 트리를 본 것. 검사는 트리가
+> 멈춘 뒤에 돌려야 한다.
 
 **구현했지만 검증 못 한 것**:
 

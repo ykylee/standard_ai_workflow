@@ -6,7 +6,7 @@
 
 | 자리 | 하는 일 | 상한을 알았나 |
 |---|---|---|
-| `sync_handoff_status` | handoff §4 에 append | **몰랐다 — 무한히 쌓았다** |
+| `sync_handoff_status` | handoff §4 앞에 삽입 | **몰랐다 — 무한히 쌓았다** |
 | `build_workflow_state_payload` | state.json 조립 | 알았다 (`RECENT_DONE_ITEMS_CAP`) |
 | `linter.handoff_bloat` | 넘쳤는지 본다 | 리터럴 `10` 을 따로 들고 있었다 |
 
@@ -18,7 +18,12 @@
 ## 계약
 
 1. 쓰는 쪽이 상한을 적용한다 — `sync_handoff_status` 를 몇 번 부르든 §4 는 상한 이하다.
-2. 버리는 쪽은 **가장 오래된 것**이다 (§4 는 뒤가 최신인 append 목록).
+2. 버리는 쪽은 **가장 오래된 것**이다 (§4 는 **앞이 최신** — v1.1.2 에서 바로잡았다).
+
+   v1.0.3~v1.1.1 사이에는 writer 가 `append` 라 §4 만 "뒤가 최신"이었고, state.json 의
+   `recent_done_items` 는 최신순(`check_recent_done_items_order` 계약 1)이었다. 같은
+   사실을 두 문서가 반대로 들고 있었던 셈이다. 사람과 에이전트는 줄곧 §4 *앞* 에
+   붙여 왔으니 (읽을 때 최신이 위여야 한다) 문서가 맞고 writer 가 틀렸다.
 3. 상한은 `project_docs.RECENT_DONE_ITEMS_CAP` **한 곳**이 정본이다 — 쓰는 쪽/조립하는
    쪽/보는 쪽이 전부 그 이름을 읽는다 (사본을 들고 있으면 이 검사가 실패한다).
 4. `in_progress` / `blocked` 에는 상한이 없다 — 전부 보여야 하는 사실이다.
@@ -119,7 +124,11 @@ def test_writer_caps_done_section() -> None:
 
 
 def test_writer_drops_oldest_not_newest() -> None:
-    """버리는 것은 가장 오래된 것이다 — 최신이 사라지면 목록의 이름이 거짓이 된다."""
+    """버리는 것은 가장 오래된 것이다 — 최신이 사라지면 목록의 이름이 거짓이 된다.
+
+    v1.1.2: §4 는 **앞이 최신** 이다. 나중에 쓴 것이 앞에 오므로 기대값은 입력의
+    뒤 CAP 건을 **역순** 으로 늘어놓은 것이다.
+    """
     with tempfile.TemporaryDirectory() as td:
         path = _handoff(td)
         labels = [f"TASK-2026-06-{n:02d}-main-001 완료 {n}" for n in range(1, RECENT_DONE_ITEMS_CAP + 4)]
@@ -127,9 +136,11 @@ def test_writer_drops_oldest_not_newest() -> None:
             sync_handoff_status(handoff_path=path, task_label=label, status="done")
 
         items = _done_items(path)
-        assert items == labels[-RECENT_DONE_ITEMS_CAP:], (
-            f"최신 {RECENT_DONE_ITEMS_CAP}건이 아니다.\n기대: {labels[-RECENT_DONE_ITEMS_CAP:]}\n실제: {items}"
+        expected = list(reversed(labels[-RECENT_DONE_ITEMS_CAP:]))
+        assert items == expected, (
+            f"최신 {RECENT_DONE_ITEMS_CAP}건이 최신순이 아니다.\n기대: {expected}\n실제: {items}"
         )
+        assert items[0] == labels[-1], f"가장 최근 항목이 맨 앞이 아니다: {items[0]}"
         for dropped in labels[: len(labels) - RECENT_DONE_ITEMS_CAP]:
             assert dropped not in items, f"오래된 {dropped} 가 남았다: {items}"
 

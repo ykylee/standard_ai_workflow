@@ -307,18 +307,23 @@ def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> 
 
     for section_label, items in current_lists.items():
         current_lists[section_label] = [item for item in items if item != task_label]
-    current_lists[target_label].append(task_label)
+    # v1.1.2: **앞에 넣는다.** 예전에는 `append` 였는데, 그러면 §4 는 "뒤가 최신",
+    # state.json 의 `recent_done_items` 는 "앞이 최신"(`check_recent_done_items_order`
+    # 계약 1)으로 **같은 사실을 두 문서가 반대 순서로** 들고 있었다. 사람과 에이전트는
+    # 줄곧 §4 앞에 붙여 왔으므로 (읽을 때 최신이 위여야 한다) 문서 쪽이 맞고 writer 가
+    # 틀렸다. 이제 두 문서가 같은 규약이다.
+    current_lists[target_label].insert(0, task_label)
 
     # "최근 완료" 만 상한을 적용한다 — `in_progress` / `blocked` 는 상한이 없다
     # (몇 건이든 전부 보여야 하는 사실이고, 끝나면 목록에서 빠진다).
     #
-    # 이 목록은 **append-only 파생물**이다. SSOT 는 `backlog/tasks/` 이고 state.json 의
+    # 이 목록은 파생물이다. SSOT 는 `backlog/tasks/` 이고 state.json 의
     # `recent_done_items` 도 같은 상한으로 잘린다. 여기에만 상한이 없어서 close-out 마다
     # 11번째 줄이 생겼고, `handoff_bloat` 가 그걸 잡으면 사람이 손으로 지웠다.
-    # 뒤가 최신이므로 **앞(가장 오래된 것)에서 버린다** — 손으로 하던 것과 같은 조작이다.
+    # 앞이 최신이므로 **뒤(가장 오래된 것)에서 버린다**.
     done_label = label_map["done"]
     if len(current_lists[done_label]) > RECENT_DONE_ITEMS_CAP:
-        current_lists[done_label] = current_lists[done_label][-RECENT_DONE_ITEMS_CAP:]
+        current_lists[done_label] = current_lists[done_label][:RECENT_DONE_ITEMS_CAP]
 
     lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
     for section_label, items in current_lists.items():

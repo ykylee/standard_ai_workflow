@@ -48,12 +48,35 @@ def main() -> int:
     failures: list[str] = []
 
     # 1) rotate_workflow_logs CLI
-    cli_payload = _run_cli("rotate_workflow_logs", "--max-done-items", "10")
-    mcp_payload = rotate_workflow_logs_payload(
-        handoff_path=str(REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "session_handoff.md"),
-        max_done_items=10,
-        tool_version=TOOL_VERSION,
-    )
+    #
+    # v1.1.2: **저장소의 실제 handoff 를 쓰지 않는다.** 예전에는 두 호출 모두
+    # `ai-workflow/.../session_handoff.md` 를 겨눴는데, 그래도 됐던 이유는 rotate 가
+    # 고장나 늘 `error` 를 반환했기 때문이다 (섹션 탐색 실패). 도구를 고치자마자 두
+    # 문제가 한꺼번에 드러났다:
+    #   - 검사가 **추적 중인 저장소 파일을 수정한다** (`check_no_repo_write` 가 잡았다).
+    #   - 첫 호출이 상태를 바꾸므로 두 번째 호출은 no-op 이 되어 `rotated_count` 가
+    #     당연히 어긋난다 — 비교 자체가 불공정해진다.
+    # 그래서 **호출마다 새 복사본**을 준다. 같은 입력에 대한 두 경로의 출력을 보는
+    # 것이 이 검사의 목적이지, 실제 문서를 건드리는 것이 아니다.
+    real_handoff = REPO_ROOT / "ai-workflow" / "memory" / "active" / "main" / "session_handoff.md"
+    with tempfile.TemporaryDirectory() as rotate_tmp:
+        cli_copy = Path(rotate_tmp) / "cli_handoff.md"
+        mcp_copy = Path(rotate_tmp) / "mcp_handoff.md"
+        source_text = real_handoff.read_text(encoding="utf-8") if real_handoff.is_file() else ""
+        cli_copy.write_text(source_text, encoding="utf-8")
+        mcp_copy.write_text(source_text, encoding="utf-8")
+
+        cli_payload = _run_cli(
+            "rotate_workflow_logs", "--handoff-path", str(cli_copy), "--max-done-items", "10"
+        )
+        mcp_payload = rotate_workflow_logs_payload(
+            handoff_path=str(mcp_copy),
+            max_done_items=10,
+            tool_version=TOOL_VERSION,
+        )
+        # written_paths 는 서로 다른 복사본을 가리키므로 비교 대상에서 빼고 모양만 본다.
+        for payload in (cli_payload, mcp_payload):
+            payload["written_paths"] = ["<tmp>"] if payload.get("written_paths") else []
     # keys 정합
     cli_keys = set(cli_payload.keys())
     mcp_keys = set(mcp_payload.keys())

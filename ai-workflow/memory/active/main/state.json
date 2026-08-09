@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "v1.1.1-beta + `origin/main` = `678806f` (2026-08-08, session close). 2 release 발행: v1.1.0-beta (564ce36, §0.8 4건 close + dual mode + federation *읽기* 묶음) → v1.1.1-beta (6b92a60, [project.scripts] 29 entry points patch). §0.8 4건 모두 close.",
-    "current_axis": "handoff 다음 후보 축 4건 전부 close (TASK-002~005: wk dispatcher / registry HTTP server / branch protection check / title drift v2). 진행 중: (없음). 다음: v1.1.2-beta release 판단.",
+    "current_axis": "rotate 도구 수정 + 사전 존재 red 정리 (TASK-006). 진행 중: (없음). 다음: v1.1.2-beta release 판단 — 발행 시 릴리스 노트에 *누적 smoke* 줄을 넣어야 check_smoke_trend_cross 마지막 red 가 닫힌다.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-006 — rotate 도구 수정 (순서 규약 최신-앞 통일, 섹션 탐색 + 정렬 방향 2결함) + 사전 존재 red 7건 검토 (6건 해소, 1건 릴리스 사이클 대기), check_handoff_rotation 9/9 신규",
       "TASK-2026-08-09-main-005 — title semantic drift v2 (§7.5 후속, difflib 후보선별 + LLM prompt advisory, 11 case ALL PASS)",
       "TASK-2026-08-09-main-004 — branch protection 자동 check (3-layer defense 3rd layer, pure 판정 + gh api, 8 case ALL PASS)",
       "TASK-2026-08-09-main-003 — registry HTTP server (federation *쓰기*, loopback/read-only/token-env + known-host CLI 신설, 9 case ALL PASS)",
@@ -72,7 +73,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
-    "task_count": 5,
+    "task_count": 6,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -80,7 +81,8 @@
       "TASK-2026-08-09-main-002 — CLI 化 B안 단일 dispatcher `wk`",
       "TASK-2026-08-09-main-003 — registry HTTP server (federation *쓰기*)",
       "TASK-2026-08-09-main-004 — branch protection 자동 check (3rd layer)",
-      "TASK-2026-08-09-main-005 — title semantic drift v2"
+      "TASK-2026-08-09-main-005 — title semantic drift v2",
+      "TASK-2026-08-09-main-006 — rotate 도구 수정 + red 7건 검토"
     ]
   },
   "next_documents": [

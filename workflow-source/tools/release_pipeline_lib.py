@@ -74,6 +74,10 @@ def _make_args(**kwargs):
         "skip_cross_verify": False,
         "strict_cross_verify": False,
         "skip_validate": False,
+        # v1.1.3: `dry_run` 누락으로 `cmd_verify` 가 AttributeError 로 죽었다
+        # (v1.1.2 release 에서 실제로 터졌다). 기본을 **안전측(True)** 으로 두되,
+        # 실제 수행이 목적인 wrapper 는 반드시 `dry_run=False` 를 명시한다.
+        "dry_run": True,
     }
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -228,7 +232,9 @@ def cmd_verify(*, tag: str) -> dict:
         dict with tag, ok, url, asset_count, errors
     """
     mod = _load_release_pipeline()
-    args = _make_args(tag=tag)
+    # read-only 지만 **실제로 조회해야** 검증이다 — dry_run=True 면 gh 명령 문자열만
+    # 돌려주고 끝난다.
+    args = _make_args(tag=tag, dry_run=False)
     return mod.cmd_verify(args)
 
 

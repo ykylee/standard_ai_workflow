@@ -65,6 +65,13 @@ except ImportError:
     DRIFT_LEDGER_RELPATH = "ai-workflow/memory/release/drift_ledger.jsonl"
     state_path_for_workspace = None  # type: ignore[assignment]
 # 1차 출처
+#
+# ⚠️ 이름과 달리 **git 저장소 루트가 아니라 `workflow-source/`** 다 (`parents[1]`).
+# `pyproject.toml` / `releases/` / `workflow_kit/` 를 여는 데는 이게 맞지만, **git
+# 경로 인자와 섞으면 안 된다** — `git status --porcelain` 은 *저장소 루트* 기준
+# 경로를 내놓으므로 그걸 `cwd=REPO_ROOT` 에서 `git add` 에 넘기면
+# `workflow-source/workflow-source/...` 가 된다 (v1.1.2 release 에서 실제로 터졌다).
+# git 경로를 다루는 자리는 `_git_toplevel()` 을 쓴다.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 RELEASES_DIR = REPO_ROOT / "releases"
@@ -849,6 +856,27 @@ def cmd_version_bump(args) -> dict:
     return result
 
 
+def _git_toplevel(*, timeout: int = 15) -> Path:
+    """git 저장소 루트. 실패하면 `REPO_ROOT.parent` 로 떨어진다.
+
+    `REPO_ROOT` 는 이름과 달리 `workflow-source/` 라, `git status --porcelain` 이
+    내놓는 *저장소 루트 기준* 경로를 그대로 쓰려면 이 함수의 결과를 cwd 로 써야
+    한다. 둘을 섞으면 경로가 중복된다 (v1.1.2 release 에서 `git add` 가
+    `workflow-source/workflow-source/pyproject.toml` 을 찾다 실패했다).
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return REPO_ROOT.parent
+    top = proc.stdout.strip()
+    if proc.returncode != 0 or not top:
+        return REPO_ROOT.parent
+    return Path(top)
+
+
 def _git_dirty_paths(*, timeout: int = 15) -> list[str]:
     """`git status --porcelain` 의 변경 path 목록 (untracked 포함).
 
@@ -856,7 +884,7 @@ def _git_dirty_paths(*, timeout: int = 15) -> list[str]:
     """
     proc = subprocess.run(
         ["git", "status", "--porcelain"],
-        capture_output=True, text=True, timeout=timeout, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
     )
     if proc.returncode != 0:
         return []
@@ -965,9 +993,11 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
             "skipped": "no changes to amend",
             "error": None,
         }
+    # `staged_paths` 는 저장소 루트 기준이다 — cwd 도 루트여야 한다.
+    toplevel = _git_toplevel()
     proc_add = subprocess.run(
         ["git", "add", "--", *staged_paths],
-        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=30, cwd=str(toplevel),
     )
     add_result = {
         "stdout": proc_add.stdout,
@@ -983,7 +1013,7 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
 
     proc_amend = subprocess.run(
         ["git", "commit", "--amend", "--no-edit"],
-        capture_output=True, text=True, timeout=30, cwd=str(REPO_ROOT),
+        capture_output=True, text=True, timeout=30, cwd=str(toplevel),
     )
     amend_result = {
         "stdout": proc_amend.stdout,

@@ -53,45 +53,40 @@
 
 ## 5. 다음 세션 시작 포인트
 
-**이번 세션 기록**: [sessions/multi_workspace_orchestration_2026-08-08.md](./sessions/multi_workspace_orchestration_2026-08-08.md)
-— 판단을 뒤집은 실측 6건, 검사 설계 원칙, 사고 1건이 거기 있다. 맥락이 필요하면 그걸 읽는다.
+**이번 세션 기록**: [sessions/cli_dispatcher_and_rotation_2026-08-09.md](./sessions/cli_dispatcher_and_rotation_2026-08-09.md)
+— 이미 있는 것을 다시 만들 뻔한 일 2건, 고장난 도구가 숨긴 결함, 검사 설계 원칙,
+사고 1건이 거기 있다. 맥락이 필요하면 그걸 읽는다.
+
+이전 세션(설계 → §10.2 도구화 → registry)의 맥락은
+[2026-08-08 기록](./sessions/multi_workspace_orchestration_2026-08-08.md)에 있다.
 
 ### 무엇이 끝났나
 
-아래는 세션 전반부(`838b12f` 시점)의 묶음이다. 6건 + 5건 후속 + 1건 collateral 로
-설계 → 도구 → dashboard 다중 root → registry 까지 닫았다. 이후 TASK-014~020 이
-이어졌고 최종 `origin/main` = `c0224c6` (§1 참조).
+`origin/main` = `6cfb168`. 이번 세션 커밋 3건 / TASK 6건.
 
-- **표준 §10 "다중 작업과 협업"** 신설 + §1 bullet 2건 → **12 하네스 진입점에 자동 전파**
-  (빈 저장소 bootstrap 으로 `AGENTS.md` 2/2 · `GEMINI.md` 2/2 실측).
-- **`.gitattributes`** (저장소 최초) — `log.md` / telemetry / daily backlog 에 `merge=union`.
-  `state.json` 은 **의도적 제외** (union 이 JSON 을 깨뜨린다).
-- **도구 3종** (smoke 25 assertions, 전부 green):
-  - `survey_remote_workspaces.py` — 원격 현황. fetch 기본, stale 은 **보고만**.
-  - `claim_workspace.py` — 브랜치+seed+push 1회. **`--force` 수단 없음**.
-  - `seed_workspace_memory.py` — `active/<branch>/` 생성. `state.json` 은 안 만든다.
-- **dashboard Panel 5 다중 root** (smoke 6/6):
-  - `_branch_state_paths(*roots)` — union + dedupe + sort. **파생 뷰 원칙 유지**.
-  - `collect_recent_releases(extra_roots=)` + `git worktree list --porcelain` 자동
-    합류 + `WORKFLOW_EXTRA_ROOTS` env + **registry** (실제 채워짐).
-- **workspace registry** (smoke 8/8, §7.1):
-  - `workflow_kit/common/workspace_registry.py` — host-scoped
-    `~/.cache/workflow_kit/registry.json` (atomic write, 0o600). `register` idempotent.
-  - `tools/workspace_registry.py` — `register/unregister/list/paths/host-id`.
-  - dashboard 가 registry paths 를 자동 합류 — §5A.3 *in-flight 가시성* 의 첫 소비자.
+| 커밋 | 내용 |
+| --- | --- |
+| `4e31d8c` | memory 문서 정합성 정리 (TASK-001) |
+| `ad3ab02` | 후보 축 4건 close — `wk` / HTTP server / branch protection / title drift v2 (TASK-002~005) |
+| `6cfb168` | rotate 도구 순서 규약 통일 + 사전 존재 red 정리 (TASK-006) |
 
-세션 시작 플로우:
+세션 시작 플로우는 그대로다 (v1.1.2+ 부터는 `wk` 로도 부를 수 있다):
 
 ```bash
-python3 workflow-source/tools/survey_remote_workspaces.py
-python3 workflow-source/tools/claim_workspace.py --branch <b> --axis "<축>" --task-title "<제목>" --apply
-python3 workflow-source/tools/seed_workspace_memory.py --branch <b> --axis "<축>" --task-title "<제목>" --apply  # 선점 시 자동 호출
+wk survey-remote-workspaces
+wk claim-workspace --branch <b> --axis "<축>" --task-title "<제목>" --apply
 python3 workflow-source/scripts/generate_workflow_state.py \
   --project-profile-path docs/PROJECT_PROFILE.md --output-path ai-workflow/memory/active/<b>/state.json
 ```
 
-대시보드(Panel 5) 가 자동으로 모든 worktree 의 state.json 을 합쳐 본다. 다른 worktree
-를 명시적으로 합류시켜야 하면 `WORKFLOW_EXTRA_ROOTS=/path1:/path2` env 1개면 충분.
+federation 을 실제로 돌리려면 (v1.1.2+):
+
+```bash
+wk host-serve-registry --port 8765                      # 이 호스트가 서빙
+wk host-pull-registry add-known-host --host-id <상대> \
+    --endpoint http://<host>:8765/registry.json --apply  # 상대 등록
+wk host-pull-registry pull --host <상대>
+```
 
 ### 다음에 할 일 (순서)
 

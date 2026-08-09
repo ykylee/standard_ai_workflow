@@ -27,8 +27,8 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "v1.1.1-beta + `origin/main` = `678806f` (2026-08-08, session close). 2 release 발행: v1.1.0-beta (564ce36, §0.8 4건 close + dual mode + federation *읽기* 묶음) → v1.1.1-beta (6b92a60, [project.scripts] 29 entry points patch). §0.8 4건 모두 close.",
-    "current_axis": "rotate 도구 수정 + 사전 존재 red 정리 (TASK-006). 진행 중: (없음). 다음: v1.1.2-beta release 판단 — 발행 시 릴리스 노트에 *누적 smoke* 줄을 넣어야 check_smoke_trend_cross 마지막 red 가 닫힌다.",
+    "current_baseline": "v1.1.1-beta + `origin/main` = `6cfb168` (2026-08-09 session close). 릴리스는 v1.1.1-beta 가 마지막 — 본 세션 6 TASK 는 **미발행 상태**로 main 에 있다 (v1.1.2-beta 발행 여부는 다음 세션 판단).",
+    "current_axis": "2026-08-09 세션 close (TASK-001~006). 진행 중: (없음). 다음: v1.1.2-beta release 판단 — 발행 시 릴리스 노트에 *누적 smoke N/N PASS* 줄을 넣어야 check_smoke_trend_cross 가 닫힌다.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
@@ -95,6 +95,7 @@
     "workflow-source/core/multi_workspace_orchestration.md",
     "workflow-source/core/global_workflow_standard.md",
     "workflow-source/MEMORY_GOVERNANCE.md",
+    "ai-workflow/memory/active/main/sessions/cli_dispatcher_and_rotation_2026-08-09.md",
     "ai-workflow/memory/active/main/sessions/multi_workspace_orchestration_2026-08-08.md",
     "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md",
     "ai-workflow/memory/active/main/sessions/mcp_load_verification_2026-08-07.md",

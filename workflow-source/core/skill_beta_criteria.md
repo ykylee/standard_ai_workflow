@@ -59,6 +59,8 @@
 - project-status-assessment: 신규 `ProjectStatusAssessmentOutput` Pydantic schema (legacy `build_runner_success_result` dict emission → 다른 stable skill 의 `BaseOutput` 패턴과 정합) + `missing_required_document` error_code 추가 + 신규 smoke test (`tests/check_project_status_assessment.py`).
 
 **3차 stable 승격 batch (v0.11.21)**: robust-patcher (1 skill). 후속 batch (v0.11.22+): automated-repro-scaffold / git-conflict-resolver (각각 별도 release).
+
+**최종 batch (v1.1.3)**: `memory-index-query` (1 skill) — **이로써 14/14 stable, 잔여 beta 0**. blocker 2건 해소: (a) error_code 3종 추가 (`invalid_query_tokens` / `missing_required_document` / `memory_index_query_runtime_error`) — 이전에는 stderr 문자열 + rc 2 뿐이라 caller 가 실패 *종류* 를 구분할 수 없었다. (b) SKILL.md 실행 예시 절 (§4.2). smoke `check_memory_index.py` 에 `test_memory_index_query_error_codes` 추가 (26 case).
 - robust-patcher: 기존 `patch_engine.py` 스크립트 명 + 표준 `run_robust_patcher.py` 로 표준화 (scripts/ 진입점 일관성) + 신규 `RobustPatcherOutput` Pydantic schema (legacy dict emission → `BaseOutput` 패턴 정합) + `missing_required_document` / `malformed_patch_block` / `fuzzy_match_failed` / `robust_patcher_runtime_error` 4종 error_code 추가 + `apply_robust_patch_detailed` helper (per-block matched / fuzzy_score / preview detail) + `tests/check_robust_patcher.py` 5 case smoke test (exact-match / dry-run / fuzzy-fail atomic rollback / malformed / missing patch file).
 
 ## 4. BetaUpgrade 계획

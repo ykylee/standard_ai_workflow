@@ -19,6 +19,7 @@ Cross-ref: docs/architecture/ADR-005-memora-inspired-memory-index.md
 from __future__ import annotations
 
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,7 @@ from pathlib import Path
 # site-packages 의 stale workflow_kit 이 source tree 를 shadowing 하는 v0.11.18 패턴 회피:
 # sys.path 에 SOURCE_ROOT 를 [0] 으로 강제 주입하여 source tree 우선. (memory/standard-ai-workflow.md §1.5)
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = SOURCE_ROOT.parent
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.schemas.memory_index import (  # noqa: E402
@@ -249,6 +251,52 @@ def test_query_with_linked_expansion() -> None:
         assert result.expansion_depth_used >= 1
 
 
+def test_memory_index_query_error_codes() -> None:
+    """v1.1.3 stable 승격: error_code 3종이 stdout 에 ErrorOutput 으로 나온다.
+
+    `skill_beta_criteria.md` §3.1 의 "error_code 분류 최소 3종" 조건. 승격 전에는
+    stderr 문자열 + rc 2 뿐이라 caller 가 실패 *종류* 를 구분할 수 없었다.
+
+    기계가 읽는 것은 stdout 이다 — 사람용 메시지를 stderr 로 보내는 것과 구분한다.
+    """
+    import json as _json
+    import subprocess as _sp
+
+    script = (
+        REPO_ROOT / "workflow-source" / "skills" / "memory-index-query"
+        / "scripts" / "run_memory_index_query.py"
+    )
+    assert script.is_file(), f"run script 부재: {script}"
+
+    def _run(*args: str) -> dict:
+        proc = _sp.run(
+            [sys.executable, str(script), *args],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(REPO_ROOT),
+            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "workflow-source")},
+        )
+        assert proc.stdout.strip(), f"stdout 이 비었다 (rc={proc.returncode}) {proc.stderr[:200]}"
+        return _json.loads(proc.stdout)
+
+    # 1) 빈 query tokens
+    out = _run("--workspace-root", str(REPO_ROOT), "--query-tokens", ",,,")
+    assert out.get("error_code") == "invalid_query_tokens", out
+
+    # 2) workspace root 부재
+    out = _run("--workspace-root", "/nonexistent-xyz-9182", "--query-tokens", "t")
+    assert out.get("error_code") == "missing_required_document", out
+
+    # 3) 세 번째 code 가 소스에 선언돼 있다 (runtime 예외는 인위 재현이 불안정하다 —
+    #    선언 부재를 잡는 것이 이 case 의 목적)
+    src = script.read_text(encoding="utf-8")
+    assert "memory_index_query_runtime_error" in src, "3번째 error_code 선언 부재"
+
+    # 정상 경로는 error_code 를 내지 않는다
+    out_ok = _run("--workspace-root", str(REPO_ROOT), "--query-tokens", "telemetry", "--json")
+    assert out_ok.get("status") in ("ok", "warning"), out_ok
+    assert "error_code" not in out_ok, f"정상 경로에 error_code 가 있다: {out_ok}"
+
+
 # --- 메인 실행 ---
 
 
@@ -279,6 +327,7 @@ def main() -> int:
         test_doc_sync_memory_wiring_zero_risk_skip,
         test_backlog_update_memory_wiring_returns_dict,
         test_backlog_update_memory_wiring_zero_risk_skip,
+        test_memory_index_query_error_codes,
     ]
 
     failed: list[str] = []

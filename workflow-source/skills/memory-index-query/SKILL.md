@@ -56,6 +56,45 @@ python3 -m workflow_kit.workflow_kit_cli --command memory-index-query \
 | `expansion_depth_used` | 실제 적용된 expansion depth |
 | `source_context` | workspace_root, top_k, max_depth, use_bm25_fallback 등 호출 정보 |
 
+## 4.1 error_code (v1.1.3+, stable 승격)
+
+실패는 **stdout 에 `ErrorOutput` JSON** 으로 나온다 (기계가 읽는 것이 stdout,
+사람이 읽는 것이 stderr). `skill_beta_criteria.md` §3.1 의 "error_code 분류 최소
+3종" 정합.
+
+| error_code | 언제 |
+| --- | --- |
+| `invalid_query_tokens` | `--query-tokens` 가 비어 있다 (구분자만 준 경우 포함) |
+| `missing_required_document` | `--workspace-root` 경로가 없다 |
+| `memory_index_query_runtime_error` | retrieval 중 예외 (entries 손상 등) |
+
+## 4.2 실행 예시
+
+```bash
+# 기본 (human-readable)
+python3 workflow-source/skills/memory-index-query/scripts/run_memory_index_query.py \
+    --workspace-root . --query-tokens "telemetry,memory-index"
+
+# JSON + BM25 fallback opt-in
+python3 workflow-source/skills/memory-index-query/scripts/run_memory_index_query.py \
+    --workspace-root . --query-tokens "memora,retrieval" \
+    --top-k 5 --max-depth 1 --use-bm25-fallback --json
+
+# dispatcher 경유 (telemetry source = "dispatcher" 로 기록된다)
+wk memory-index-query --workspace-root=. --query-tokens="telemetry,phase-13"
+```
+
+실패 예시 — `error_code` 로 종류를 구분한다:
+
+```bash
+$ ... --workspace-root /nonexistent --query-tokens t
+{
+  "status": "error",
+  "error_code": "missing_required_document",
+  ...
+}
+```
+
 ## 5. 권한
 
 read-only — caller 가 `use_bm25_fallback=True` 해도 memory_index 디스크는 변경 없음.

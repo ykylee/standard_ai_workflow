@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "**v1.1.2-beta** 발행 완료 (2026-08-09, tag `v1.1.2-beta` → `b688a06`, GitHub Release). 본 세션 TASK-001~008. 전체 검사 **257/257 PASS** — 오늘 아침 baseline 31 red → 0. `workflow_kit/` mypy strict 128 files clean, dashboard guard_status pass.",
-    "current_axis": "phase_13_followup 실측 대조 close (TASK-013). 진행 중: (없음). 다음 후보: memory-index-query beta → stable (유일 잔여 beta) / branch protection (소유자 결정).",
+    "current_axis": "memory-index-query stable 승격 close (TASK-014). skill 14/14 stable. 진행 중: (없음). 다음 후보: v1.1.3 release 판단 (TASK-009~014 미발행 + check_smoke_trend_cross 가 릴리스 없이는 닫히지 않는 구조) / branch protection (소유자 결정).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-014 — memory-index-query beta → stable (error_code 3종 + SKILL.md 실행 예시 + smoke 26/26). skill 14 stable / 0 beta 달성",
       "TASK-2026-08-09-main-013 — phase_13_followup 전반 실측 대조 (정합 5 / 정정 3) + harness 정본 정의 확정 (NON_OVERLAY_HARNESSES, 검사 하드코딩 → 정본 유도)",
       "TASK-2026-08-09-main-012 — Phase 13 P1 묶음 close. 3건 모두 문서가 실제와 달랐다 (P1-1 구현 이미 존재 / P1-2·P1-3 이미 stable). CHANGELOG 재생성 + NON_RELEASE_VERSIONS 오탐 제거",
       "TASK-2026-08-09-main-011 — telemetry acceptance 윈도 기반으로 (window_source_count 신설, check_telemetry_window 8/8). 전체 4 / 윈도 1 을 잡는 case 4 가 핵심",
@@ -80,7 +81,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
-    "task_count": 13,
+    "task_count": 14,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -96,7 +97,8 @@
       "TASK-2026-08-09-main-010 — Phase 13 P0-2 close",
       "TASK-2026-08-09-main-011 — telemetry 윈도 지표",
       "TASK-2026-08-09-main-012 — Phase 13 P1 묶음 close",
-      "TASK-2026-08-09-main-013 — phase_13_followup 실측 대조"
+      "TASK-2026-08-09-main-013 — phase_13_followup 실측 대조",
+      "TASK-2026-08-09-main-014 — memory-index-query stable 승격"
     ]
   },
   "next_documents": [

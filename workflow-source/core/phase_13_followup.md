@@ -104,13 +104,15 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 ### 2.5 AC5 — stable API 2-year 운영 (Phase 13 의 본질)
 
 - **정의**: stable API 25 entries + skill / MCP / harness 의 backward compat 2-year 보장.
-- **현 시점 (2026-08-09 실측)**: 25 entries frozen (v0.8.0 spec) + **13 skill stable**
-  (전체 14, 잔여 beta 1 = `memory-index-query`) + **11 MCP stable** (전체 12) +
+- **현 시점 (2026-08-09 실측)**: 25 entries frozen (v0.8.0 spec) + **14 skill stable**
+  (전체 14 — **잔여 beta 0**, `memory-index-query` 를 TASK-014 에서 승격) +
+  **11 MCP stable** (전체 12) +
   **11 harness overlay** + **non-overlay 2** (`HARNESS_SPECS` 13 = overlay 11 +
   `custom` + `mavis`).
 
 > **2026-08-09 실측으로 정리된 것**: 이 절은 "12 skill stable" 이라고 적고 있었다 —
-> v0.11.24 batch 이후 **13** 이다 (전체 14, 잔여 beta 1).
+> v0.11.24 batch 이후 13 이었고, 같은 날 `memory-index-query` 승격으로 **14/14** 가 됐다
+> (잔여 beta 0).
 >
 > harness 쪽은 숫자가 아니라 **정의가 흐렸다.** `maturity_matrix.json` 의
 > `harnesses.supported` 는 *overlay 를 배포하는* harness 목록이고 파일시스템의

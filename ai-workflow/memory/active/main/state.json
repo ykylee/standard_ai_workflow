@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**v1.1.2-beta** 발행 + 이후 TASK-009~015 (미발행). 전체 검사 **259/259 PASS, red 0** (격리 venv, dev/release/mcp-sdk). skill **14/14 stable**, `workflow_kit/` mypy 128 files clean, dashboard guard_status pass.",
-    "current_axis": "릴리스 절차 검증 자리 신설 close (TASK-016). 진행 중: (없음). 다음 후보: v1.1.3 release 판단 (TASK-009~016 미발행) / branch protection (소유자 결정) / v1.1.0·v1.1.1 노트 표기 사후 삽입 여부.",
+    "current_baseline": "**v1.1.3-beta 발행 완료** (2026-08-09, tag → `6cadcca`, GitHub Release). 전체 검사 **259/259 PASS, red 0**. skill **14/14 stable**, `workflow_kit/` mypy 128 clean, dashboard guard_status pass.",
+    "current_axis": "v1.1.3-beta 발행 close (TASK-017). 진행 중: (없음). 다음 후보: **cmd_release 를 쓸 수 있게 만들기** (doctor/state 만성 실패 — 파이프라인이 있는데 아무도 그 경로로 릴리스하지 못한다) / `release` 기본값 dry-run 화 / branch protection (소유자 결정).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-017 — v1.1.3-beta release 발행 (TASK-009~016, 11 커밋). 오늘 고친 릴리스 도구 3건이 실제 릴리스에서 검증됨",
       "TASK-2026-08-09-main-016 — 릴리스 절차에 노트 누적 수치 검증 step 3.4 신설 (검증만, 자동 작성 ❌ — 전량 PASS 는 사람의 주장). check_release_wrapper_args 10/10",
       "TASK-2026-08-09-main-015 — check_smoke_trend_cross 오독 정정 (검사가 맞았다). 노트 누적 수치는 살아있는 지표 — 판정 복원 + Beta-v1.1.2 257→259 갱신. 전체 259/259 PASS",
       "TASK-2026-08-09-main-014 — memory-index-query beta → stable (error_code 3종 + SKILL.md 실행 예시 + smoke 26/26). skill 14 stable / 0 beta 달성",
@@ -83,7 +84,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
-    "task_count": 16,
+    "task_count": 17,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -102,7 +103,8 @@
       "TASK-2026-08-09-main-013 — phase_13_followup 실측 대조",
       "TASK-2026-08-09-main-014 — memory-index-query stable 승격",
       "TASK-2026-08-09-main-015 — smoke_trend 오독 정정",
-      "TASK-2026-08-09-main-016 — 릴리스 절차 검증 자리"
+      "TASK-2026-08-09-main-016 — 릴리스 절차 검증 자리",
+      "TASK-2026-08-09-main-017 — v1.1.3-beta release"
     ]
   },
   "next_documents": [

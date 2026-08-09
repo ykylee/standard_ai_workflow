@@ -39,6 +39,17 @@ def _import_lib():
     return mod
 
 
+def _import_release_pipeline():
+    """`release_pipeline` 본체 — dist 판정 기준(`find_dist_files` / `read_version`)의 정본."""
+    spec = importlib.util.spec_from_file_location(
+        "release_pipeline", str(TOOLS_DIR / "release_pipeline.py"),
+    )
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["release_pipeline"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _ensure_dist_built(lib) -> None:
     """`--skip-existing` 을 검사하기 **전에** dist artifact 가 있도록 보장한다.
 
@@ -49,9 +60,19 @@ def _ensure_dist_built(lib) -> None:
     앞선 실행 결과에 따라 결과가 바뀌는 상태 의존 test 였다 (CI 가 red 였던 원인 중 하나).
 
     가정하지 말고 전제를 만든다. 이미 있으면 build 는 skip 되므로 비용도 1회뿐이다.
+
+    v1.1.3+: **현재 버전** 으로 판정한다. 예전에는 `dist/*.whl` 이 *하나라도* 있으면
+    build 를 건너뛰었는데, `cmd_dist(skip_existing=True)` 는
+    `find_dist_files(current_version)` 로 **현재 버전** artifact 를 찾는다. 두 기준이
+    달라서 **버전 bump 직후** 첫 실행이 늘 red 였다 (dist 에는 직전 버전 whl 만 있고,
+    그 실행이 새 버전을 build 하면서 `skipped=False` → 단언 실패. 그 build 덕에
+    두 번째부터 통과). v1.1.2 release 에서 실제로 그 모양으로 터졌다.
+    fresh clone 을 고칠 때 같은 부류의 상태 의존이 하나 남아 있었던 것이다.
+
+    판정 기준을 `cmd_dist` 와 **같은 함수** 로 맞춘다 — 따로 적으면 또 갈라진다.
     """
-    dist_dir = TOOLS_DIR.parent / "dist"
-    if dist_dir.is_dir() and any(dist_dir.glob("*.whl")):
+    pipeline = _import_release_pipeline()
+    if pipeline.find_dist_files(pipeline.read_version()):
         return
     lib.cmd_dist(apply=True, skip_existing=False, production=False)
 

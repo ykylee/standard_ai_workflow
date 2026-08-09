@@ -222,6 +222,48 @@ def test_changelog_gen_out_of_range_graceful() -> None:
 # --- 메인 실행 ---
 
 
+
+def test_non_release_versions_are_not_sections() -> None:
+    """v1.1.3+: 선언된 예외 version 은 release section 이 되지 않는다.
+
+    `RELEASE_RE` 는 subject 안의 `(vX.Y)` 를 release 로 본다. 이 저장소 초기 commit
+    두 건은 *워크플로우 문서 체계* 의 Phase 5 버전을 그 형식으로 적었고 (package
+    release 가 아니다 — `pyproject.toml` 미변경), semver 정렬 탓에 `[3.0.1]` 이
+    **최신 release 자리에** 앉아 있었다. CHANGELOG 를 읽는 사람에게 거짓말이 된다.
+
+    git tag 대조는 쓸 수 없다 — 0.15.x 대 다수가 tag 없이 릴리스돼 진짜 release 를
+    대량으로 지운다 (2026-08-09 실측: CHANGELOG 152 vs tag 121). 그래서 선언된
+    예외로 둔다. 이 test 는 그 예외가 실제로 걸러지는지 + 명세가 비지 않았는지 본다.
+    """
+    mod = _import_tool()
+    assert getattr(mod, "NON_RELEASE_VERSIONS", None), "NON_RELEASE_VERSIONS 선언 부재"
+    for version, reason in mod.NON_RELEASE_VERSIONS.items():
+        assert reason.strip(), f"{version}: 예외에 이유가 없다 (원장은 이유가 정본)"
+
+    # 예외 version 을 담은 가짜 commit 이 'unreleased' 로 흡수되는지
+    sample = "\n".join([
+        "aaa1111|aaa1111full|dev|2026-04-27|feat: Phase 5 official release (v3.0) with schemas",
+        "bbb2222|bbb2222full|dev|2026-04-27|feat: add harness support (v3.0.1)",
+        "ccc3333|ccc3333full|dev|2026-08-09|chore(release): v1.1.2 — real package release",
+    ])
+    rows = mod._parse_git_log(sample)
+    by_version = {r["subject"][:20]: r["version"] for r in rows}
+    assert all(
+        v == "unreleased" for k, v in by_version.items() if "Phase 5" in k or "harness" in k
+    ), f"예외 version 이 release 로 분류됨: {by_version}"
+    assert any(v == "1.1.2" for v in by_version.values()), (
+        f"진짜 release 는 그대로 인식돼야 한다: {by_version}"
+    )
+
+    # 실제 CHANGELOG 에도 예외 section 이 없어야 한다
+    changelog = DEFAULT_OUTPUT
+    if changelog.is_file():
+        body = changelog.read_text(encoding="utf-8")
+        for version in mod.NON_RELEASE_VERSIONS:
+            assert f"## [{version}]" not in body, (
+                f"CHANGELOG 에 예외 section 이 남아 있다: [{version}] — 재생성 필요"
+            )
+
 def main() -> int:
     test_funcs = [
         test_changelog_gen_argparse,
@@ -230,6 +272,7 @@ def main() -> int:
         test_changelog_gen_section_categorization,
         test_changelog_gen_range_filter,
         test_changelog_gen_out_of_range_graceful,
+        test_non_release_versions_are_not_sections,
     ]
 
     failed: list[str] = []

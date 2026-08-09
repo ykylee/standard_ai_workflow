@@ -28,11 +28,12 @@
   },
   "session": {
     "current_baseline": "**v1.1.2-beta** 발행 완료 (2026-08-09, tag `v1.1.2-beta` → `b688a06`, GitHub Release). 본 세션 TASK-001~008. 전체 검사 **257/257 PASS** — 오늘 아침 baseline 31 red → 0. `workflow_kit/` mypy strict 128 files clean, dashboard guard_status pass.",
-    "current_axis": "telemetry 윈도 지표 close (TASK-011). 진행 중: (없음). 다음 후보: Phase 13 P1 묶음 (CHANGELOG auto-gen lockdown / automated-repro-scaffold stable / git-conflict-resolver beta) / branch protection (소유자 결정).",
+    "current_axis": "Phase 13 P1 close (TASK-012). 진행 중: (없음). 다음 후보: memory-index-query beta → stable (유일 잔여 beta) / branch protection (소유자 결정) / phase_13_followup 전반 실측 대조.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-09-main-012 — Phase 13 P1 묶음 close. 3건 모두 문서가 실제와 달랐다 (P1-1 구현 이미 존재 / P1-2·P1-3 이미 stable). CHANGELOG 재생성 + NON_RELEASE_VERSIONS 오탐 제거",
       "TASK-2026-08-09-main-011 — telemetry acceptance 윈도 기반으로 (window_source_count 신설, check_telemetry_window 8/8). 전체 4 / 윈도 1 을 잡는 case 4 가 핵심",
       "TASK-2026-08-09-main-010 — Phase 13 P0-2 close (telemetry 4 source + hit_rate 1.0). 문서가 실제와 달랐다 — 1 source 는 dispatcher 가 아니라 session-start 였고 wiring 은 이미 자동 활성이었다",
       "TASK-2026-08-09-main-009 — 릴리스 도구 결함 2건 수정 (git add 경로 중복 / cmd_verify dry_run) + check_release_wrapper_args 8/8 신설 (릴리스 없이 잡히게)",
@@ -78,7 +79,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-09.md",
-    "task_count": 11,
+    "task_count": 12,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -92,7 +93,8 @@
       "TASK-2026-08-09-main-008 — v1.1.2-beta release",
       "TASK-2026-08-09-main-009 — 릴리스 도구 결함 2건 + 회귀 검사",
       "TASK-2026-08-09-main-010 — Phase 13 P0-2 close",
-      "TASK-2026-08-09-main-011 — telemetry 윈도 지표"
+      "TASK-2026-08-09-main-011 — telemetry 윈도 지표",
+      "TASK-2026-08-09-main-012 — Phase 13 P1 묶음 close"
     ]
   },
   "next_documents": [

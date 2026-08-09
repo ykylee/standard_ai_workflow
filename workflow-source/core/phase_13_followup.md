@@ -149,21 +149,43 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 
 #### P1-1: CHANGELOG.md auto-gen lockdown (Phase 12 roadmap §8 권장 작업 후속)
 
-- **근거**: `tools/release_pipeline.py release --apply` 의 changelog-gen pre-step 부재.
-- **작업**: release pipeline 에 changelog auto-gen 추가 + Unreleased 본문 v0.7.10 ~ v0.15.20 누적 backfill.
-- **acceptance**: 3 release 연속 auto-gen 결과 만족 (no manual edit) + commit message 와 release note 자동 정합.
+- **상태**: ✅ **닫힘** (2026-08-09, TASK-2026-08-09-main-012).
+- **근거 정정**: "changelog-gen pre-step 부재" 는 틀렸다 — **v0.15.21+ 에 이미 있다**
+  (`cmd_release` 의 `# 3.5 changelog-gen auto-step`, escape hatch `--skip-changelog-gen`).
+- **실제로 남아 있던 것 2가지**:
+  1. **최근 3 release 가 그 경로를 타지 않았다.** v1.1.0 / v1.1.1 / v1.1.2 를
+     `cmd_release` 가 아니라 수동 절차(bump → tag → `gh release create`)로 발행해
+     CHANGELOG 가 v0.15.21 에서 멈춰 있었다. → 재생성으로 3건 반영.
+  2. **오탐 2건**: `RELEASE_RE` 가 subject 의 `(v3.0)` / `(v3.0.1)` 을 release 로
+     인식했다. 그 둘은 *워크플로우 문서 체계* 의 Phase 5 버전이고 package release 가
+     아니다 (해당 commit 은 `pyproject.toml` 미변경). semver 정렬 탓에 **`[3.0.1]` 이
+     최신 release 자리에** 앉아 있었다 → `NON_RELEASE_VERSIONS` 선언된 예외로 제외.
+     (git tag 대조는 불가 — 0.15.x 대 다수가 tag 없이 릴리스돼 진짜 release 를
+     대량으로 지운다. 실측 CHANGELOG 152 vs tag 121.)
+- **acceptance**: 3 release 연속 auto-gen + commit message ↔ release note 정합
+  → **충족** (`[1.1.2]` / `[1.1.1]` / `[1.1.0]` 이 최신 순으로 정렬, 오탐 0).
+- **관련 smoke**: `check_release_pipeline_changelog_gen.py` 7 case
+  (신규 `test_non_release_versions_are_not_sections`).
 
 #### P1-2: automated-repro-scaffold stable 승격
 
-- **근거**: 9/11 stable (현 2 beta + 1 alpha residual).
-- **작업**: 5/6 정합 조건 충족 (Pydantic schema + Error codes + smoke test + spec layer + frontmatter + apply field).
-- **acceptance**: cumulative stable 10/12 + smoke test 5+ case + TSD 정합.
+- **상태**: ✅ **이미 닫혀 있었다** — `maturity_matrix.json` 기준 `stage: stable`,
+  `promoted_in_release: v0.11.24 (4th batch)`. 이 절의 "9/11 stable (현 2 beta +
+  1 alpha residual)" 은 **stale** 이다.
 
 #### P1-3: git-conflict-resolver alpha → beta
 
-- **근거**: alpha stage 의 잔여. opt-out 명시적.
-- **작업**: smoke test + error_code 4종 정리 + spec layer 동기화.
-- **acceptance**: beta stage 승격 + smoke test 5+ case + cyclic discipline.
+- **상태**: ✅ **이미 닫혀 있었다 (그것도 beta 를 건너뛰고)** — `stage: stable`,
+  `promoted_in_release: v0.11.24 (beta → stable — --apply 구현 + 8 case smoke)`.
+  이 절이 요구하는 "alpha → beta" 는 두 단계 뒤처진 기술이다.
+
+> **2026-08-09 실측 — skill stage 현황**: 14개 중 **13 stable / 1 beta**.
+> 유일한 beta 는 **`memory-index-query`** (v0.11.22, Phase 3). P1-2/P1-3 이 가리키던
+> 대상이 아니라 이쪽이 남은 승격 후보다.
+>
+> P1 세 항목이 **모두** 실제와 달랐다 (P1-1 은 구현이 이미 있었고, P1-2/P1-3 은
+> 이미 stable). 이 문서가 `maturity_matrix.json` / 코드와 대조된 적이 없다는 뜻이다 —
+> 같은 세션의 P0-2 도 같은 모양이었다.
 
 ### 3.3 우선순위 P2 (장기, 6+ month / year 1 / year 2)
 

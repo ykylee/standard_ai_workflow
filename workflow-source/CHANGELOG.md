@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-07-22
+- 최종 수정일: 2026-08-09
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,131 +12,141 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-07-22
+## [Unreleased] - 2026-08-09
 
 ### Added
 
-- feat(memory): branch-scoped 후속 — session-start 아카이브 wiring + 문서/smoke + TZ flaky 수정 (7dab09d)
-- feat(memory): 브랜치별 메모리(branch-scoped) + 종료 브랜치 자동 아카이브 (73b22a8)
-- feat(test): MEMORY_GOVERNANCE ↔ global_workflow_standard cross-check smoke 신규 (fd28356)
-- feat(test): DOCUMENT_INDEX / CODE_INDEX / RELEASE.md cross-check smoke 신규 (v0.15.16~18) (1158431)
-- feat(bidir-link): wiki↔memory 양방향 link 자동 sync + audit — Phase 13 AC4+ close-out (v0.13.3-beta) (1580aeb)
-- feat(release): self-recovering drift prevention — Phase 13 AC3 close-out (v0.13.2-beta) (b857ff3)
-- feat(memory-index): telemetry sidecar — Phase 13 AC2 close-out (v0.13.1-beta) (216fd60)
-- feat(dist): add claude-code harness dist (v0.11.22-beta) (c2b201f)
-- feat(mcp+adr): stdio-sdk promotion readiness smoke + ADR-007 placeholder (8505aa2)
-- feat(mkdocs): drift prevention P3 — build-time git date inject plugin (e063710)
-- feat(release): drift prevention automation (v0.11.23 P0+P1+P2) (b623ae2)
-- feat(skill): ADR-005 Memory Index Phase 3d backlog-update memory_index wiring (last skill) (2ab3b6c)
-- feat(skill): ADR-005 Memory Index Phase 3c doc-sync memory_index wiring (opt-in) (c46d729)
-- feat(skill): ADR-005 Memory Index Phase 3b session-start memory_index wiring (opt-in) (73564d9)
-- feat(skill): ADR-005 Memory Index Phase 3 dispatcher entry (memory-index-query skill beta) (7be5029)
-- feat(skill): ADR-005 Memory Index Phase 2b BM25 2단계 fallback (stdlib only) (5973146)
-- feat(skill): ADR-005 Memory Index Phase 2 --merge opt-in canonical merge (d2d8a1c)
-- feat(skill): ADR-005 Memory Index Phase 1.5 state.json hook (memory_entries optional merge) (4655e7c)
-- feat(skill): ADR-005 Memory Index Phase 1 prototype (helper + schema + smoke) (e4c7343)
-- feat(test): robust-patcher smoke test 신규 (5 case) (ba689a3)
-- feat(skill): robust-patcher run_robust_patcher.py 표준화 + 4종 error_code (9249324)
-- feat(skill): robust-patcher Pydantic schema 정합 + apply_robust_patch_detailed helper (d90f786)
-- feat(test): 2 신규 smoke test (merge-doc-reconcile + project-status-assessment) (29ae1cc)
-- feat(skill): 2 skill stable error_code 추가 (backlog-update + merge-doc-reconcile) (ddac80e)
-- feat(skill): project-status-assessment Pydantic schema 정합 + missing_required_document error_code (65d5591)
-- feat(wiki): score trend dim 별 alert (--alert --baseline + 4 smoke test) (0224a76)
-- feat(wiki): score trend over time (commit 별 추적) + 10 smoke test (99e299f)
-- feat(wiki): emit_wiki_l2_body.py --mode=metadata-only + 498 page 본문 emit (c72bdc3)
-- feat(wiki): maintainability score metric (6 dim dashboard) + 12 smoke test (49dfc78)
-- feat(wiki): emit_wiki_l2_body.py update_l2_full() 추가 + 전체 apply 검증 (7a4dbae)
-- ... (34 more)
+- feat(telemetry): AC2 acceptance 를 윈도 기반 지표로 (c5b69d6)
+- feat(cli,registry,safety,drift): 다음 후보 축 4건 close — wk / HTTP server / branch protection / title drift v2 (ad3ab02)
+- feat(cli): [project.scripts] entry points (CLI 化 A안, v1.1.1+) (029ee39)
+- feat(safety): pre-push hook — --force server-side 이중화 (3-layer defense, §0.8 #4) (2b5969c)
+- feat(drift): scope drift detection (병합 시점, §0.8 #3) (c687dee)
+- feat(tools): operational MCP tool 4종 CLI wrapper (dual mode, TASK-017) (8b94db8)
+- feat(registry): federation HTTP pull + dashboard 통합 (§7.4 *읽기* 마무리, TASK-016) (1de3c81)
+- feat(registry): federation 정공법 — multi-host registry 합치기 (표준 §0.8 #1) (c32b336)
+- feat(registry): in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3) (9326a9c)
+- feat(smoke): mavis attach e2e 회귀 자동화 (§2.68 자동 검증 닫음, TASK-013) (e4470e5)
+- feat(registry): endpoint 기반 mavis alias command/url 합성 (838b12f)
+- feat(registry): RegistryEntry env 필드 + sync_mavis env 합성 (e0cdebe)
+- feat(registry): registry ↔ mavis 글로벌 양방향 동기 (TASK-2026-08-08-main-009) (a51f683)
+- feat(registry): seed_workspace_memory self-register (TASK-2026-08-08-main-008) (29c3e4b)
+- feat(bootstrap): mavis 데스크탑 harness 신규 등록 + 글로벌 mcp.json 자동 emit (322a792)
+- feat(registry): workspace registry 신규 (표준 §10.2 §7.1, §5A.3) (a3a9442)
+- feat(dashboard): `_branch_state_paths` 복수 root 취합 (표준 §10.2 §7.3) (f97a9b1)
+- feat(tools): 워크스페이스 선점 도구 — 표준 §10.2 플로우 완결 (c51d052)
+- feat(tools): 원격 워크스페이스 현황 조회 — 표준 §10.2 1~3단계 (e547942)
+- feat(tools): 워크스페이스 메모리 seed 도구 — 표준 §10.2 자동화 1단계 (9751cc5)
+- feat(standard)!: 다중 작업·팀웍 워크플로우를 표준에 정식 반영 (§10 + §1) (8a2a7a9)
+- feat(workflow): 다중 워크스페이스 오케스트레이션 설계 + union merge 적용 (7cfdb60)
+- feat(sdk-compat): 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안, §2.65) (0e9c5fa)
+- feat(sdk-matrix): 매트릭스를 로컬로 내렸다 — 알고 있던 함정을 다시 밟았다 (§2.64) (fff417b)
+- feat(mcp): transport_ready 축 분리 + apply_mode 승격 기준을 실행 가능한 검사로 (§2.63) (9835eeb)
+- feat(mcp): Claude Code MCP 를 붙였다 — 표가 선언만 하고 배송하지 않던 행 (§2.60) (6ebbd8b)
+- feat(tools): 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다 (§2.52) (5c8a85f)
+- feat(ci): 두 major 커버리지를 선언으로 — mcp SDK 버전 matrix (§2.45) (4cfda75)
+- feat(deps): optional dep import 탐지층 — 관대한 설정은 판정을 지운다 (§2.44) (ea1576c)
+- feat(rules): 진입점 규칙을 정본에서 생성 + 자기 적용을 검사로 고정 (§2.31~§2.34) (6563974)
+- ... (72 more)
 
 ### Changed
 
-- docs: P0-1 mypy strict venv verify 완료 (Break Point #3 close-out) (277ceff)
-- docs(roadmap): §8 P0-2 + P1-1 완료 표기 (v0.15.21-beta) (35442d8)
-- docs(roadmap): Phase 12 close-out + Phase 13 follow-up 정의 + housekeeping (31f07f1)
-- chore(session): handoff state.json — v0.15.15 release + follow-up + 누수 진단 완료 (3bff888)
-- chore(session): 누수 진단 종합 결과 state.json + session 파일 기록 (23d5ee1)
-- refactor(release_pipeline): dead code 3건 제거 (out-of-scope 후속 정리) (5408c2c)
-- chore(docs): 단순 stamp 갱신 — 2026-07-09 → 2026-07-18 (d100058)
-- refactor(workflow_kit): Status enum + TypedDict _BM25Index 적용 (17c44dd)
-- chore(session): 2026-07-17 세션 handoff — v0.15.1~v0.15.15 follow-up 종합 (733b44d)
-- docs(retrospective): ADR-006 Wiki OKF compat frontmatter full review (30일 cycle close-out, accepted) (414b6de)
-- chore(scaffold): root-level standard-ai-workflow package scaffold (v0.1.0 placeholder) (eb62f37)
-- docs(release): rename Phase 13 close-out summary file (5054063)
-- docs(release): 작업 내역 정리 — v0.13.1/2/3 release note + Phase 13 v1.0 close-out summary (6036e8d)
-- chore(docs): doc-headers-update v0.13.0 (60 file 동기화) (ed18eeb)
-- chore(release): Beta-v0.13.0 release note (Quality Dashboard) (7082dbd)
-- chore(release): README v0.13.0 header + auto-fix tooling (e0c1d33)
-- chore(audit-follow-up): 2026-07-09 audit 후보 10건 일괄 해소 (P0 3 + P1 3 + P2 4) (c966ca2)
-- audit-session 2026-07-09: 워크플로우 구성 점검 + 고도화 후보 10건 영구 기록 (6222981)
-- chore(cross-platform): 절대경로를 ~/ 표기로 통일 (10 files) (3b224f4)
-- docs(architecture): MCP stdio-sdk promotion feasibility report (v0.11.24 review) (fce8eb9)
-- docs(release): Beta-v0.11.23.md housekeeping — P3 완료 + 잔여 표 정정 (07343cd)
-- docs: resolve v0.5.x~v0.11.x documentation drift across 13 files (drift remediation) (4633d34)
-- chore(release): Beta-v0.11.22 release note (작업내역 정리) (c0b49cf)
-- chore(release): Beta-v0.11.22 release note (작업내역 정리) (185a1f1)
-- docs(adr): ADR-006 ADR-005 Memory Index implementation retrospective 자리 박기 (34fb07f)
-- chore(state): ADR-005 v0.11.22+ Phase 1 candidate memory cycle (0f10926)
-- docs(adr): ADR-005 Memora-inspired Memory Index 추가 (v0.11.22+ Phase 1 계획) (468ec7d)
-- docs: add Memora evaluation note (95d6eba)
-- chore(samples): output_samples tool_version v0.11.19 → v0.11.20 housekeeping (c90b437)
-- chore(spec): robust-patcher SKILL.md status → stable + spec layer 동기화 (63c22c8)
-- ... (150 more)
+- docs(phase13): P0-2 close — telemetry 4 source 수렴 + 문서 정정 (87d0ea2)
+- docs(memory): 2026-08-09 세션 close — 세션 기록 + state/handoff 최종 동기 (49a2b54)
+- docs(memory): 정합성 정리 — backlog status/링크 + task 상태 + state/handoff 동기 (4e31d8c)
+- docs(memory): session close — v1.1.1-beta + state/handoff final sync (c0224c6)
+- docs(memory): §2.68 cycle 완전 close — TASK-012 갈래2 trust 채택 (5fc1b6e)
+- docs(memory): §2.68 cycle close + baseline 통일 (838b12f) (4e85bab)
+- chore(mcp): §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축) (27010a5)
+- chore(red): 사전 존재 red 2건 정리 (회귀 정합 회복) (a845c31)
+- docs(memory): 세션 close-out — 다중 워크스페이스 오케스트레이션 + 사전 red 2건 정리 (2d2199f)
+- docs(memory): handoff L12 baseline hash 명시 (§2.67 c63b54e) (9ef3cd8)
+- chore(mcp): §2.67 — mavis attach 안 붙음 진단, 1차 출처 보강 (§6.5.2) (c63b54e)
+- docs(presentation): 발표자료 32번 장표 1행 5컬럼 레이아웃 개편 및 37번 장표 카드 테마 통일 (d9b87d4)
+- chore(memory): Update session handoff, state & backlog for TASK-2026-08-06-main-003 (6fe7692)
+- style(slide): Fix vertical content alignment and lock header baselines across 38 slides (8479cef)
+- chore(backlog): Add TASK-2026-08-06-main-002 to daily backlog (05cf955)
+- chore(memory): Update session handoff & state for TASK-2026-08-06-main-002 (3dc7231)
+- docs: Add master HTML deck & update AI Agent Onboarding presentation design v2.4 (3f3aaaa)
+- docs(presentation): 학습회 발표 설계 v2 — 인과 사슬 재설계 + 세션 종료 memory 갱신 (c0acc70)
+- docs(memory): 세션 종료 — §2.59~§2.66 세션 기록 + 다음 시작 포인트 정리 (1cafb87)
+- docs(memory): 기준선을 0f53458 로 갱신 (트리거된 CI 5종 green 실측) (76db79c)
+- refactor(mcp)!: transport_ready 를 wire 에서 제거했다 (§6.2 완료, §2.66) (0f53458)
+- docs(memory): 기준선을 0ceca6b 로 갱신 (§2.62 커밋의 트리거 3종 green 실측) (e6e4623)
+- refactor(mcp): 세 번째 사본을 접었다 — 이미 갈라져 있었다 (§2.62) (0ceca6b)
+- docs(memory): 기준선을 8e4dccb 로 갱신 (§2.61 커밋의 트리거 3종 green 실측) (2ffd4c9)
+- refactor(mcp): grok 의 하드코딩된 MCP 블록을 정본으로 접었다 + TOML 키 결함 (§2.61) (8e4dccb)
+- docs(memory): 기준선을 6ebbd8b 로 갱신 (§2.60 커밋의 트리거 3종 green 실측) (efca8b6)
+- docs(memory): 기준선을 33424fc 로 갱신 (커밋 2건 각각 트리거된 CI 3종 green 실측) (4bfbc20)
+- docs(memory): 기준선을 c58111d 로 갱신 (트리거된 CI 6종 전부 green 실측) (7d18f2f)
+- docs(memory): 기준선을 7b076f8 로 갱신 + okf-validate 가 새로 드러낸 2건 기록 (4ac03ba)
+- docs(memory): 기준선을 9efbd88 로 갱신 (트리거된 CI 4종 green 실측) (19df5d7)
+- ... (218 more)
 
 ### Fixed
 
-- fix(tests): smoke 가 추적 중인 저장소 파일을 write 하던 오염 2경로 차단 (677f0c8)
-- fix(release): release --dry-run 이 저장소를 수정하던 오염 차단 (6a95eae)
-- fix(memory): workflow_memory_dir docs/ 분기의 active/ 누락 수정 — 구조적 red 3종 회복 (71c4ed5)
-- fix(tests): 저장소 상태 결합 stale 테스트 4건 회복 (미조사 red 원인 확정) (263f75f)
-- fix(tests): 저장소 상태/버전 결합 테스트 2건 격리 + 잔여 red 착수 지점 문서화 (acf6c30)
-- fix(tests): 잔여 red 3건 수정 — CLI 옵션 누락 복원 + 날짜/형태 결합 테스트 정정 (ff89e18)
-- fix(release): release_pipeline --amend 3중 가드 + 저장소 히스토리 재작성 위험 차단 (c4df358)
-- fix(tooling): fork bomb + state.json 파괴 근절 — smoke 전량 실행 안전성 확보 (e6f8e3e)
-- fix(tooling): temp dir 누수 근절 — /var/tmp 211GB 회수 + 재발 방지 가드 (9a7a128)
-- fix(tooling): /var/tmp 누수 가드 + .venv 명시적 차단 (5706dda)
-- fix(docs): smoke count 195 → 196 (신규 MEMORY_GOVERNANCE cross-check 추가) (d4abac9)
-- fix(memory_governance): frontmatter stamp + status 템플릿 순서 정합 (f0ac5b3)
-- fix(docs): smoke count 192 → 195 + CODE_INDEX 카운트 자동 추출 정합 (ac7952f)
-- fix(samples): output_samples 24 file tool_version v0.15.0-beta → v0.15.15-beta (f831a99)
-- fix(workflow): PROJECT_PROFILE 경로를 docs로 통일 (f23ba2f)
-- fix(audit): audit_mkdocs_links.py _strip_code_blocks out.append 누락 fix (57a00dc)
-- fix(memory): work_backlog.md.bak 의 audit_follow_up dead link → sessions/ 로 redirect (9843775)
-- fix(release): __init__.py literal return v0.13.3-beta → v0.14.0-beta (12691df)
-- fix(dashboard): _repo_root 시그니처 Path | str | None 허용 (7a7f2fb)
-- fix(dist): strip repo-absolute paths from harness export (no runtime/source deps) (24b626b)
-- fix(linter): broken_link check 의 .. segment 정규화 + smoke test fixture 정합 (9960e8f)
-- fix(state): state.json path latent bug fix (v0.6.0.1 부터) + test fixture 정합 (4821b71)
-- fix(ci): mypy-strict workflow install mcp-sdk extra — CI 의 [import-not-found] 해소 (80470cd)
-- fix(workflow_kit): mypy strict 잔여 13 error 일괄 격상 — FULL mypy strict 도달 (107 file clean) (4253eed)
-- fix(workflow_kit): mypy strict read_only_mcp_sdk + doc_sync 4 error 묶음 격상 (65f0b20)
-- fix(workflow_kit): mypy strict mcp_v1_server + release_status 6 error 묶음 격상 (094cacf)
-- fix(workflow_kit): mypy strict cli/doctor + common/decorators 10 error 묶음 격상 (97795bc)
-- fix(samples): schema drift 회귀 방지 — sample 24 + schema 2 갱신 (00cc83e)
-- fix(workflow_kit): mypy strict output_contracts 15 error 격상 (f6b65a4)
-- fix(wiki): R9 lint false-positive 회피 — dashboard emit multi-line 분리 (1333cc8)
-- ... (17 more)
+- fix(tests): dist skip 전제를 cmd_dist 와 같은 기준으로 (63d2366)
+- fix(release): 릴리스 도구 결함 2건 + 릴리스 없이 잡히는 회귀 검사 (ca3c9c6)
+- fix(tools): memory 경로 조립을 정본 API 로 + v1.1.2 릴리스 노트 초안 (6652ba6)
+- fix(mypy,tests): 남은 red 4건 close — FULL mypy strict 128 files clean 복구 (c6fba3c)
+- fix(rotation,docs): rotate 도구 순서 규약 통일 + 사전 존재 red 정리 (6cfb168)
+- fix(test): 새 검사가 mcp 2.0.0 에서 죽었다 — isError 는 1.x 이름이다 (§2.63 후속) (c6f31ff)
+- fix(claude-code): slash command 설명 자리에 버전 마커가 앉아 있었다 (§2.59 후속) (33424fc)
+- fix(claude-code): 자기 harness 를 부분만 적용하고 있었다 + 마커가 frontmatter 를 깨고 있었다 (§2.59) (227219e)
+- fix(okf): 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크 (§2.58) (c58111d)
+- fix(cli): 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다 (§2.57) (7b076f8)
+- fix(tests): 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다 (§2.55) (dda0825)
+- fix(tools): 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다 (§2.54) (99eb05a)
+- fix(tools): 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다 (§2.53) (710ccea)
+- fix(dashboard): 모든 panel 의 기준이 자기 근거를 안 내고 있었다 (§2.51) (1b52b85)
+- fix(tests): 검사가 CI 에서 무력화되고 있었다 — branch env 우선 규칙 (§2.50) (15ee104)
+- fix(paths): 세 번째를 찾으러 갔더니 다른 축에 있었다 — branch 해석기 합의 (§2.50) (d6a23fe)
+- fix(doctor): 같은 결함이 CLI 에도 있었다 — 기준 경로와 설정 출처 (§2.49) (607b84c)
+- fix(maturity): 검사가 처음 돌자 나온 2건 — 하나는 진짜, 하나는 위양성 (§2.48) (2e13931)
+- fix(linter): 기준 경로가 한 칸 어긋나 있었다 — 설정과 maturity (§2.47) (14cd792)
+- fix(state): 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다 (§2.46) (72bfbe0)
+- fix(server): lowlevel 도 1.x/2.x 를 해석한다 — 상한 핀 해제 (§2.43) (1f1881c)
+- fix(ci): 인스펙터가 서버 인자를 삼키고 있었다 — 도구도 의존성이다 (§2.42) (7b1404b)
+- fix(deps): 상한 핀 복원 — 이관 범위를 파일 하나로 잡았다 (§2.41 정정) (7469fb1)
+- fix(server): mcp 1.x/2.x 양쪽을 해석한다 — 상한 핀 해제 (§2.41) (1b8a0eb)
+- fix(deps): mcp 상한 핀 — 2.0.0 이 fastmcp 모듈을 없애 CI 가 red 로 넘어갔다 (71feef3)
+- fix(migrate): 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 (§2.40) (d14d5f4)
+- fix(state): status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리 (§2.39) (5be5ba4)
+- fix(state): "최근 완료" 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정 (§2.38) (047d4e5)
+- fix(backlog-update): state.json 을 파괴하던 정규식 사본 + 결함 3건 (§2.37) (fbdc8f9)
+- fix(tests): 같은 자기참조가 넷이었다 — push 직전에는 통과할 수 없던 게이트 (§2.35 (8)) (fbca6d7)
+- ... (62 more)
 
-## [3.0.1] - 2026-04-27
+## [1.1.2] - 2026-08-09
 
-### Added
+### Changed
 
-- feat: add Pi Coding Agent (pi.dev) harness support (v3.0.1) (9c4fb1d)
+- docs(memory): v1.1.2-beta 발행 기록 + 릴리스 도구 결함 2건 (74161f8)
+- chore(release): v1.1.2-beta — federation 쓰기 / wk dispatcher / 3rd layer / drift v2 (b688a06)
 
-## [3.0] - 2026-04-27
+## [1.1.1] - 2026-08-08
 
-### Added
+### Changed
 
-- feat: Phase 5 official release (v3.0) with unified operations path and updated schemas (3a7e4c1)
+- docs(memory): v1.1.1-beta release 반영 — baseline + current_axis 갱신 (678806f)
+- chore(release): v1.1.1-beta — [project.scripts] 29 entry points (CLI 化 A안) (6b92a60)
+
+## [1.1.0] - 2026-08-08
+
+### Changed
+
+- docs(memory): v1.1.0-beta release 반영 — baseline + current_axis + handoff 갱신 (02f80f2)
+- chore(release): v1.1.0-beta — §0.8 4건 close + dual mode CLI + federation *읽기* (564ce36)
 
 ## [1.0.0] - 2026-07-22
 
 ### Changed
 
+- docs(memory): v1.0.0 사이클 close-out — task SSOT 3건 + 세션 + state.json 재생성 (3f017a2)
+- docs(v1.0.0): 릴리스 노트 §2.15 — auto-bump dry-run 결함 (릴리스 후 발견) 기록 (08391f2)
+- docs(v1.0.0): 릴리스 노트 확정 — 보류/초안 → 릴리스, 본 사이클 해소 내역 §2.9~2.14 추가 (2e6ae44)
 - docs(v1.0.0): dashboard snapshot + CHANGELOG 재생성 + 검증 수치 실측 정합 (17c3cb6)
 - docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b9)
-- chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (34c6248)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9)
-- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (01838d0)
 - docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (6e24b81)
 
 ## [0.15.21] - 2026-07-21
@@ -160,12 +170,14 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - fix(release): v0.15.19 — cross-panel final 정합 (v1.0.0 pre-release anchor) (0d87147)
+- fix(release): v0.15.19 — cross-panel final 정합 (v1.0.0 pre-release anchor) (271f96b)
 
 ## [0.15.18] - 2026-07-20
 
 ### Fixed
 
 - fix(test): v0.15.18 — TST-WF-01 historical smoke 보강 + v1.0.0 Break Point #2 해소 (e5225a9)
+- fix(test): v0.15.18 — TST-WF-01 historical smoke 보강 + v1.0.0 Break Point #2 해소 (a5c0cfc)
 
 ## [0.15.16] - 2026-07-20
 
@@ -560,6 +572,12 @@ All notable changes to this project will be documented in this file.
 
 - feat+chore(v0.9.4): R-A follow-up part 1 (state.json.purpose_digest 1-line 자동 생성) (48a3380)
 
+## [0.9.3] - 2026-06-19
+
+### Added
+
+- feat+chore(v0.9.3): deprecation 2nd cycle (build_default_sources_v4) (7e38e6f)
+
 ## [0.9.2] - 2026-06-19
 
 ### Added
@@ -933,9 +951,18 @@ All notable changes to this project will be documented in this file.
 
 ## [0.7.33] - 2026-06-16
 
+### Added
+
+- feat(v0.7.33): TASK-V0733-001 atomic rotation (3-step crash safety) + TASK-V0734-001 yearly aggregation + 10 smoke (5-run stable) (9648a6e)
+
 ### Changed
 
+- chore(v0.7.33): version bump 0.7.32 → 0.7.33 (auto-sync verified) + Beta-v0.7.33.md + state/work_backlog sync (f3ef05b)
 - chore(v0.7.33): ADR-006 accepted + Beta-v0.7.33 release note + version bump (00942ef)
+
+### Fixed
+
+- fix(state): v0.7.33 2nd hash sync (1c8d54b)
 
 ## [0.7.32] - 2026-06-16
 

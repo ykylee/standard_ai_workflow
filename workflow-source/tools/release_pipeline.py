@@ -1181,6 +1181,22 @@ RELEASE_RE = re.compile(r"\(v(\d+\.\d+(?:\.\d+)?)\)")
 # conventional-commit 접두사(`type(scope): `) *직후* 의 선행 version 만 매칭하여
 # prose 안의 version (예: `... v0.13.3-beta → v0.14.0-beta`) 오분류를 회피한다.
 RELEASE_RE_BARE = re.compile(r"^[a-z]+(?:\([^)]*\))?:\s+v(\d+\.\d+(?:\.\d+)?)\b")
+
+#: **release 가 아닌** version 문자열의 선언된 예외 (v1.1.3+).
+#:
+#: `RELEASE_RE` 는 subject 안의 `(vX.Y)` 를 release 로 본다. 그런데 이 저장소 초기
+#: commit 두 건은 *워크플로우 문서 체계* 의 Phase 5 버전을 그 형식으로 적었다 —
+#: package release 가 아니다 (둘 다 `pyproject.toml` 을 건드리지 않았다). 걸러내지
+#: 않으면 semver 정렬 때문에 `[3.0.1]` 이 **최신 release 자리에** 앉아, CHANGELOG 를
+#: 읽는 사람에게 "최신이 3.0.1" 이라고 거짓말한다.
+#:
+#: git tag 와 대조하는 방법은 쓸 수 없다 — 0.15.x 대 다수가 tag 없이 릴리스돼
+#: 진짜 release 를 대량으로 지운다 (2026-08-09 실측: CHANGELOG 152 vs tag 121).
+#: 그래서 *선언된 예외* 로 둔다 (`ROOT_ANCHOR_LEDGER` 와 같은 정공법).
+NON_RELEASE_VERSIONS: dict[str, str] = {
+    "3.0": "3a7e4c1 'Phase 5 official release (v3.0)' — 워크플로우 문서 체계 버전, package release ❌",
+    "3.0.1": "9c4fb1d 'add Pi Coding Agent harness support (v3.0.1)' — 같은 체계, package release ❌",
+}
 # commit subject prefix → Keep-a-Changelog section mapping
 SECTION_PREFIXES = {
     "feat": "Added",
@@ -1246,6 +1262,9 @@ def _parse_git_log(pretty_output: str) -> list[dict]:
         # 괄호형 `(vX.Y.Z)` 우선, 없으면 선행 bare 형 `type(scope): vX.Y.Z` (v0.15.21+).
         m = RELEASE_RE.search(subject) or RELEASE_RE_BARE.match(subject)
         version = m.group(1) if m else "unreleased"
+        # 선언된 예외는 release 로 치지 않는다 — 해당 commit 은 [Unreleased] 로 흡수.
+        if version in NON_RELEASE_VERSIONS:
+            version = "unreleased"
         rows.append({
             "short": short, "full": full, "author": author,
             "date": date[:10], "subject": subject, "version": version,

@@ -14,8 +14,9 @@ Panel 4 metrics 의미 (v0.13.0+):
 5 cases:
   1) sanity: cumulative_total > 0, smoke_files_count > 0, cumulative_pass <= total,
      0.0 <= cumulative_pass_rate <= 1.0
-  2) ratio sanity: cumulative_total >= smoke_files_count (한 file 에 여러 case
-     가능하므로 case >= file 정합)
+  2) cumulative_total >= smoke_files_count — 최신 release note 의 누적 수치가
+     현재 전량 결과를 반영하는가. red 는 "노트를 갱신하라" 는 알림이다
+     (case 2 주석의 관행 설명 참조)
   3) recent releases consistency: recent_releases[0] (가장 최근) 의 pass/total
      == panel top 의 cumulative_pass / cumulative_total
   4) delta vs v0.15.0 baseline: smoke_files_count >= v0.15.0 baseline (179).
@@ -81,12 +82,30 @@ def case_1_sanity() -> bool:
 
 
 def case_2_ratio_sanity() -> bool:
-    """2) ratio sanity: cumulative_total >= smoke_files_count (case >= file)."""
+    """2) 최신 release note 의 누적 수치가 **현재 전량 결과를 반영** 하는가.
+
+    `cumulative_total >= smoke_files_count` 를 요구한다.
+
+    **이 수치는 릴리스 시점 스냅샷이 아니라 "살아있는 지표" 다.** 저장소 관행상
+    smoke 가 늘면 *가장 최근 release note* 의 `누적 smoke **N/N PASS**` 줄을 함께
+    갱신해 왔다 (커밋 메시지 `... (전량 205/205)` / `... (전량 206/206)` 이 그 흔적,
+    `Beta-v1.0.0.md` 는 199 → 205 → 206 → … → 234 로 이어졌다). 그래서 red 는
+    *거짓 경보가 아니라* **"노트를 갱신하라" 는 알림** 이다.
+
+    2026-08-09 에 이 case 를 "정상적인 성장을 결함으로 본다" 고 오독해 판정을
+    느슨하게 바꿨다가 되돌렸다. 실제로는 v1.0.0(199/199) / v1.1.2(257/257) 모두
+    **발행 시점에 파일 수와 정합** 했고, red 가 난 구간은 v1.1.0 / v1.1.1 에서
+    **표기 자체를 빠뜨린** 탓에 파서가 옛 노트(234)를 읽던 때였다.
+
+    즉 고칠 것은 검사가 아니라 **노트 갱신을 빠뜨리는 절차** 다.
+    """
     p4 = _collect_panel_4()
     cum_total = int(p4.get("cumulative_total", 0))
     smoke_files = int(p4.get("smoke_files_count", 0))
     if cum_total < smoke_files:
-        print(f"  FAIL: cum_total={cum_total} < smoke_files={smoke_files} (case >= file 가정 위반)")
+        print(f"  FAIL: cum_total={cum_total} < smoke_files={smoke_files}")
+        print(f"        최신 release note 의 `누적 smoke **N/N PASS**` 를 "
+              f"{smoke_files}/{smoke_files} 로 갱신할 것 (전량 PASS 확인 후).")
         return False
     print(f"  [info] cum_total/smoke_files = {cum_total}/{smoke_files} = {cum_total/smoke_files:.2f}")
     return True

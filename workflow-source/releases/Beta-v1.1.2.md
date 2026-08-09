@@ -137,8 +137,10 @@ v1.1.0 / v1.1.1 릴리스에서 빠뜨린 갱신을 되돌렸다: `README.md` / 
 
 ## 3. smoke 회귀
 
-누적 smoke test **257/257 PASS** (2026-08-09, `dev,release,mcp-sdk` extra 를 깐 격리 venv,
-`--tmp-dir` 실디스크, 305s). 직전 v1.1.1 시점의 claim 은 234 였고 실제 파일은 257 이었다 —
+누적 smoke test **259/259 PASS** (2026-08-09, `dev,release,mcp-sdk` extra 를 깐 격리 venv,
+`--tmp-dir` 실디스크). 발행 시점은 257 이었고, 이후 본 사이클에서 smoke 2건이 늘어
+**259** 이 됐다 — 이 줄은 릴리스 시점 스냅샷이 아니라 *최신 전량 결과* 를 반영하는
+살아있는 지표다 (`check_smoke_trend_cross` 의 case 2 가 그것을 강제한다). 직전 v1.1.1 시점의 claim 은 234 였고 실제 파일은 257 이었다 —
 그 격차 자체가 `check_smoke_trend_cross` 의 red 였다.
 
 신규 smoke:

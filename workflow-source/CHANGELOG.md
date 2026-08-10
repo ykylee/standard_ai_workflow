@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(memory): ADR-006 W-4 지표 재정의 — utilization_3tuple north-star (TASK-2026-08-10-main-014) (91e1551)
+- feat(memory): ADR-006 W-3 entry 간 링크 — related_ids + expansion 첫 발동 (TASK-2026-08-10-main-013) (713faec)
+- feat(memory): ADR-006 W-2 질의 다양화 — 컨텍스트 유래 query + telemetry 질의 내용 기록 (TASK-2026-08-10-main-012) (1e50701)
+- feat(memory): ADR-006 회고 (P2-1) + W-1 write-path advisory 루프 (TASK-2026-08-10-main-010, -011) (051e41a)
+- feat(drift): title drift 임계 0.6 실측 캘리브레이션 + registry 비-loopback bind 실측 (TASK-2026-08-10-main-008, -009) (41b98db)
 - feat(quality): TST-WF-01 측정 재설계 — AST verification-signal, partial 예외 제거 (ff744b4)
 - feat(release): cmd_release 사용성 회복 — pre_check 만성 실패 3뿌리 + dry-run 기본값 (e741de6)
 - feat(release): 릴리스 절차에 노트 누적 수치 검증 자리 (step 3.4) (268ede7)
@@ -41,15 +46,11 @@ All notable changes to this project will be documented in this file.
 - feat(tools): 원격 워크스페이스 현황 조회 — 표준 §10.2 1~3단계 (e547942)
 - feat(tools): 워크스페이스 메모리 seed 도구 — 표준 §10.2 자동화 1단계 (9751cc5)
 - feat(standard)!: 다중 작업·팀웍 워크플로우를 표준에 정식 반영 (§10 + §1) (8a2a7a9)
-- feat(workflow): 다중 워크스페이스 오케스트레이션 설계 + union merge 적용 (7cfdb60)
-- feat(sdk-compat): 버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안, §2.65) (0e9c5fa)
-- feat(sdk-matrix): 매트릭스를 로컬로 내렸다 — 알고 있던 함정을 다시 밟았다 (§2.64) (fff417b)
-- feat(mcp): transport_ready 축 분리 + apply_mode 승격 기준을 실행 가능한 검사로 (§2.63) (9835eeb)
-- feat(mcp): Claude Code MCP 를 붙였다 — 표가 선언만 하고 배송하지 않던 행 (§2.60) (6ebbd8b)
-- ... (76 more)
+- ... (81 more)
 
 ### Changed
 
+- chore(backlog): TASK-2026-08-10-main-015 등록 — v1.1.6-beta 발행 착수 (87d80ae)
 - docs(memory): TASK-2026-08-10-main-003 등록 — v1.1.4-beta cmd_release 발행 (3236bca)
 - docs(phase13): P0-2 close — telemetry 4 source 수렴 + 문서 정정 (87d0ea2)
 - docs(memory): 2026-08-09 세션 close — 세션 기록 + state/handoff 최종 동기 (49a2b54)
@@ -79,11 +80,11 @@ All notable changes to this project will be documented in this file.
 - docs(memory): 기준선을 6ebbd8b 로 갱신 (§2.60 커밋의 트리거 3종 green 실측) (efca8b6)
 - docs(memory): 기준선을 33424fc 로 갱신 (커밋 2건 각각 트리거된 CI 3종 green 실측) (4bfbc20)
 - docs(memory): 기준선을 c58111d 로 갱신 (트리거된 CI 6종 전부 green 실측) (7d18f2f)
-- docs(memory): 기준선을 7b076f8 로 갱신 + okf-validate 가 새로 드러낸 2건 기록 (4ac03ba)
-- ... (219 more)
+- ... (220 more)
 
 ### Fixed
 
+- fix(tests): dashboard timeline 검사 2건 — 살아있는 저장소/registry 상태 대신 결정적 fixture (2661359)
 - fix(release): dist 기본값 dry-run 반전 — release 와 정합 (TASK-2026-08-10-main-005) (4c7895f)
 - fix(tests): doctor exit-on-fail 테스트 — 살아있는 저장소 상태 대신 결정적 fixture (c0ad1a6)
 - fix(tests): mavis e2e 호스트 사본 제거 + 세션 close memory 갱신 (4b67621)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(server): lowlevel 도 1.x/2.x 를 해석한다 — 상한 핀 해제 (§2.43) (1f1881c)
 - fix(ci): 인스펙터가 서버 인자를 삼키고 있었다 — 도구도 의존성이다 (§2.42) (7b1404b)
 - fix(deps): 상한 핀 복원 — 이관 범위를 파일 하나로 잡았다 (§2.41 정정) (7469fb1)
-- fix(server): mcp 1.x/2.x 양쪽을 해석한다 — 상한 핀 해제 (§2.41) (1b8a0eb)
-- ... (68 more)
+- ... (69 more)
+
+## [1.1.6] - 2026-08-10
+
+### Changed
+
+- chore(release): v1.1.6-beta 준비 — 노트 + 파생물 선재생성 + stamp (TASK-2026-08-10-main-015) (25e09d4)
 
 ## [1.1.5] - 2026-08-10
 
 ### Changed
 
+- docs(release): v1.1.5-beta 발행 후처리 + 세션 close memory (4e68c2e)
 - chore(release): v1.1.5-beta 준비 — 노트 + 파생물 선재생성 + stamp (6e77c14)
 
 ## [1.1.4] - 2026-08-10
@@ -197,7 +204,11 @@ All notable changes to this project will be documented in this file.
 - fix(release): v0.15.19 — cross-panel final 정합 (v1.0.0 pre-release anchor) (0d87147)
 - fix(release): v0.15.19 — cross-panel final 정합 (v1.0.0 pre-release anchor) (271f96b)
 
-## [0.15.18] - 2026-07-20
+## [0.15.18] - 2026-08-10
+
+### Changed
+
+- chore(tests): v0.15.18 dummy wrapper 물리 제거 — 153개/60파일 (TASK-2026-08-10-main-007) (f7b5217)
 
 ### Fixed
 

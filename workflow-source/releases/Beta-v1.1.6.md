@@ -104,3 +104,20 @@ v0.15.18 이 심은 `assert True` dummy 153개/60파일 제거 (-827줄). 신호
   federation cross-host).
 - v1.1.0 / v1.1.1 노트 누적 표기 사후 삽입 여부 (선택).
 - memory_index 3-tuple 지표의 실사용 추이 관찰 (정직한 저점에서 출발).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-10T11:30:53Z)_
+
+- total wiki pages: **93**
+- total memory entries: **8**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

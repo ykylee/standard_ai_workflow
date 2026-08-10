@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**ADR-006 회고 + 후속 W-1~W-4 완결** (TASK-010~014) — 실측 회고 (ADR accepted) → W-1 `wk suggest-memory-entries` (첫 신규 entry 적재) → W-2 컨텍스트 유래 질의 (+telemetry 질의 내용) → W-3 `related_ids` 링크 (expansion 첫 발동) → W-4 지표 재정의 (`utilization_3tuple` north-star, hit_rate 보조 강등, 미측정≠0). 첫 3-tuple 실측 = 정직한 저점 (diversity 1/8 · new_30d 1 · distinct 0/1). 직전: **2026-08-09 세션의 \"검증 못 한 것\" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.",
+    "current_baseline": "**v1.1.6-beta 발행 완료 — `cmd_release` 3번째 실전** (TASK-015, tag `v1.1.6-beta`, 2026-08-10T11:30:53Z, whl+sdist). 범위 = TASK-007~014 (smoke 261→266), pre_check 5/5 skip 없이, post-apply 잔여 4파일 (선재생성 절차 재현). 직전: **ADR-006 회고 + 후속 W-1~W-4 완결** (TASK-010~014) — 실측 회고 (ADR accepted) → W-1 `wk suggest-memory-entries` (첫 신규 entry 적재) → W-2 컨텍스트 유래 질의 (+telemetry 질의 내용) → W-3 `related_ids` 링크 (expansion 첫 발동) → W-4 지표 재정의 (`utilization_3tuple` north-star, hit_rate 보조 강등, 미측정≠0). 첫 3-tuple 실측 = 정직한 저점 (diversity 1/8 · new_30d 1 · distinct 0/1). 직전: **2026-08-09 세션의 \"검증 못 한 것\" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.",
     "current_axis": "릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-015 — v1.1.6-beta 발행 (cmd_release 3번째 실전)",
       "TASK-2026-08-10-main-014 — ADR-006 W-4: memory_index 지표 재정의 (3-tuple)",
       "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",
       "TASK-2026-08-10-main-012 — ADR-006 W-2: memory_index 질의 다양화",
@@ -41,18 +42,18 @@
       "TASK-2026-08-10-main-009 — registry server 비-loopback bind 실측",
       "TASK-2026-08-10-main-008 — title drift 임계 0.6 실측 보정",
       "TASK-2026-08-10-main-007 — v0.15.18 dummy wrapper 물리 제거",
-      "TASK-2026-08-10-main-006 — v1.1.5-beta 발행 (cmd_release 2번째 실전)",
-      "TASK-2026-08-10-main-005 — dist 기본값 dry-run 반전 (release 와 정합)"
+      "TASK-2026-08-10-main-006 — v1.1.5-beta 발행 (cmd_release 2번째 실전)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 14,
+    "task_count": 15,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-015 — v1.1.6-beta 발행 (cmd_release 3번째 실전)",
       "TASK-2026-08-10-main-014 — ADR-006 W-4: memory_index 지표 재정의 (3-tuple)",
       "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",
       "TASK-2026-08-10-main-012 — ADR-006 W-2: memory_index 질의 다양화",

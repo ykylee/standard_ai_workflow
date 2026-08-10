@@ -228,6 +228,15 @@ drift 캘리브레이션, ... — handoff / 세션 기록 / agent memory / wiki 
   `tests/check_entry_links.py` 9 case (되주입 포함).
 - **W-4 (지표 재정의)**: hit_rate 단독 → (질의 다양성, 30일 신규 entry 수,
   조회된 distinct entry 수) 3-tuple 로. 항상 1.0 인 지표는 은퇴시킨다.
+  ✅ **구현** (같은 날, TASK-2026-08-10-main-014): telemetry 에 `selected_ids`
+  additive (어떤 entry 가 읽히는지 — distinct 조회의 원천) + `summarize_telemetry`
+  가 3-tuple 계산 (단일 출처) + Panel 8 `utilization_3tuple` +
+  `phase_15_north_star` 교체 (hit_rate 는 은퇴 대신 **보조로 강등** — W-2 이후
+  더는 고정 1.0 이 아니고 기존 소비자 하위호환). measurable 판정은 값의
+  비어있음이 아니라 **필드의 존재** — 0건 조회(miss)도 어엿한 측정이고, 구
+  라인의 "미측정" 은 0 으로 위장하지 않는다. 첫 실측: diversity 1/8 ·
+  entries_new_30d 1 · distinct 0/1 (전부 정직한 저점 — 여기서부터 오른다).
+  `tests/check_utilization_3tuple.py` 9 case.
 - 기각 명시: BM25+ tuning ❌ / embedding 3단계 ❌ / merge default 변경 ❌
   (전부 실측 근거 부재 — 전제가 살아난 뒤 재평가).
 - 본 ADR status: `draft (placeholder)` → **`accepted` 전환 완료** (본 커밋).

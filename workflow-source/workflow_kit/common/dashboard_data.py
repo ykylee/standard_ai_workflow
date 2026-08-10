@@ -738,9 +738,12 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
     memory_dir = memory_active_dir(root)
     memory_index_dir = memory_dir / "memory_index"
 
-    # 1. entries count by merge_state
+    # 1. entries count by merge_state (+ W-4: 30일 신규 유입)
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    _cutoff = _dt.now(_tz.utc) - _td(days=30)
     entries_by_merge_state: dict[str, int] = {}
     entries_total = 0
+    entries_new_30d = 0
     entries_dir = memory_index_dir / "entries"
     if entries_dir.is_dir():
         for f in entries_dir.glob("MEM-*.json"):
@@ -751,6 +754,14 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
             state = data.get("merge_state", "active")
             entries_by_merge_state[state] = entries_by_merge_state.get(state, 0) + 1
             entries_total += 1
+            try:
+                created = _dt.fromisoformat(str(data.get("created_at", "")).replace("Z", "+00:00"))
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=_tz.utc)
+                if created >= _cutoff:
+                    entries_new_30d += 1
+            except ValueError:
+                pass
 
     # 2. telemetry events parse
     telemetry_path = memory_index_dir / "telemetry" / "events.jsonl"
@@ -788,6 +799,30 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
         if telemetry_total_queries > 0 else 0.0
     )
 
+    # W-4 (ADR-006): 3-tuple 지표 — hit_rate 단독은 33일간 1.0 으로 고정돼
+    # 정보가 없었다 (고정 질의 1종 → 고정 entry 1건). north-star 를 (질의
+    # 다양성 / 신규 entry / distinct 조회) 로 교체, hit_rate 는 보조로 강등.
+    # 값은 summarize_telemetry 단일 출처에서 온다. measurable=0 이면 해당
+    # 지표는 "미측정" — 0 으로 위장하지 않는다.
+    utilization_3tuple: dict[str, Any] = {
+        "query_diversity": 0,
+        "query_diversity_measurable": 0,
+        "entries_new_30d": entries_new_30d,
+        "distinct_entries_retrieved": 0,
+        "selected_ids_measurable": 0,
+    }
+    try:
+        from workflow_kit.common.state.memory_index import summarize_telemetry
+        _summary = summarize_telemetry(root)
+        utilization_3tuple.update({
+            "query_diversity": _summary.query_diversity,
+            "query_diversity_measurable": _summary.query_diversity_measurable,
+            "distinct_entries_retrieved": _summary.distinct_entries_retrieved,
+            "selected_ids_measurable": _summary.selected_ids_measurable,
+        })
+    except Exception:
+        pass
+
     return {
         "entries_total": entries_total,
         "entries_by_merge_state": entries_by_merge_state,
@@ -796,7 +831,11 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
         "telemetry_total_queries": telemetry_total_queries,
         "telemetry_hit_count": telemetry_hit_count,
         "telemetry_hit_rate": round(hit_rate, 4),
-        "phase_15_north_star": "telemetry_hit_rate (1 release ≥ 1 query + hit)",
+        "utilization_3tuple": utilization_3tuple,
+        "phase_15_north_star": (
+            "utilization_3tuple (query_diversity / entries_new_30d / "
+            "distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)"
+        ),
     }
 
 

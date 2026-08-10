@@ -1882,6 +1882,7 @@ def cmd_memory_index_query(argv: list[str]) -> int:
                 query_tokens=query_tokens[:16],
                 query_source="explicit",
                 selected_count=result.selected_count,
+                selected_ids=result.selected_ids[:16],
                 cue_hits=result.cue_hits,
                 bm25_hits=result.bm25_hits,
                 expansion_hits=result.expansion_hits,

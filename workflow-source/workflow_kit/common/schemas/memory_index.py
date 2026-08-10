@@ -167,6 +167,10 @@ class MemoryIndexTelemetryEvent(BaseModel):
     query_source: str = Field(
         default="", max_length=16,
         description="질의 출처: 'context' (유도) / 'default' (고정 fallback) / 'explicit' (caller 명시). 구 라인은 \"\"")
+    # W-4 (additive): 어떤 entry 가 실제로 읽히는지 — distinct 조회 지표의 원천.
+    selected_ids: list[str] = Field(
+        default_factory=list, max_length=16,
+        description="retrieval 이 돌려준 entry id (W-4 distinct 조회 측정용; 구 라인은 빈 list)")
     error: bool = Field(default=False, description="retrieval 실패 시 True (negative example)")
 
 
@@ -207,6 +211,23 @@ class MemoryIndexTelemetrySummary(BaseModel):
     )
     window_source_count: int = Field(default=0, ge=0,
                                      description="윈도 안 distinct source 갯수 (AC2 의 실질 지표)")
+
+    # --- W-4 (ADR-006 후속): 3-tuple 지표 ---------------------------------
+    #
+    # hit_rate 단독은 33일간 1.0 으로 고정돼 정보가 없었고 (고정 질의 1종 →
+    # 고정 entry 1건의 캐시 적중), 소비자 결함(패널 반올림 불일치)까지 숨겼다.
+    # 재정의: (질의 다양성 / 신규 entry / distinct 조회) 3-tuple. `*_measurable`
+    # 은 해당 내용 필드(W-2 query_tokens / W-4 selected_ids)를 가진 event 수 —
+    # 구 라인은 내용이 없으므로 "미측정" 을 0 과 구분한다 (0 은 사실의 주장,
+    # 미측정은 모름의 고백).
+    query_diversity: int = Field(default=0, ge=0,
+                                 description="distinct 질의 내용 수 (query_tokens 를 가진 event 기준)")
+    query_diversity_measurable: int = Field(default=0, ge=0,
+                                            description="query_tokens 가 기록된 event 수 (분모; 0 이면 diversity 는 미측정)")
+    distinct_entries_retrieved: int = Field(default=0, ge=0,
+                                            description="조회된 distinct entry 수 (selected_ids 합집합 크기)")
+    selected_ids_measurable: int = Field(default=0, ge=0,
+                                         description="selected_ids 가 기록된 event 수 (분모; 0 이면 distinct 는 미측정)")
 
     source_version: str = Field(default="memory_index_telemetry_v0_13_1",
                                 description="summary 의 schema version marker (dashboard panel 3 의 source field 와 정합)")

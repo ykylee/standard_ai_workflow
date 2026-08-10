@@ -805,10 +805,23 @@ def summarize_telemetry(
                 window_hits += 1
                 bucket["hits"] += 1
 
+    # W-4 3-tuple 원료: 내용 필드가 *기록된* event 만 잰다 — 구 라인(필드 부재)은
+    # measurable 분모에서 빠져 "미측정" 이 0 으로 위장하지 않는다. 판정은 값의
+    # 비어있음이 아니라 **필드의 존재** (`model_fields_set`) 다: 0건 조회(miss)의
+    # `selected_ids: []` 도 어엿한 측정이고, 구 라인의 기본값 [] 과 달라야 한다.
+    with_query = [e for e in events if "query_tokens" in e.model_fields_set]
+    with_selected = [e for e in events if "selected_ids" in e.model_fields_set]
+    query_diversity = len({tuple(e.query_tokens) for e in with_query})
+    distinct_entries = len({eid for e in with_selected for eid in e.selected_ids})
+
     return MemoryIndexTelemetrySummary(
         total_calls=total_calls,
         total_hits=total_hits,
         hit_rate=hit_rate,
+        query_diversity=query_diversity,
+        query_diversity_measurable=len(with_query),
+        distinct_entries_retrieved=distinct_entries,
+        selected_ids_measurable=len(with_selected),
         by_source=by_source,
         first_event_at=first_event_at,
         last_event_at=last_event_at,

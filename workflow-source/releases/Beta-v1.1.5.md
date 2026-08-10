@@ -26,7 +26,7 @@ v1.1.4 가 "게이트가 실제를 재게" 만들었다면, 본 릴리스는 그
 - 범위: `v1.1.4-beta..HEAD` (TASK-2026-08-10-main-004~006)
 - TST-WF-01: partial 예외 제거, **hard 복귀 + 정직하게 compliant**
 - `dist` 무인자 = dry-run (release 의 v1.1.4 반전과 정합)
-- 전량 검사 **265/265 PASS** (격리 venv, `--tmp-dir` 실디스크)
+- 전량 검사 **266/266 PASS** (격리 venv, `--tmp-dir` 실디스크)
 
 ## 2. deliverable
 
@@ -61,7 +61,7 @@ v1.1.4 에서 배운 파생물 재생성(fixtures 3종 + samples 24건 + stamp 4
 
 ## 3. smoke 회귀
 
-누적 smoke test **265/265 PASS** (2026-08-10, `dev,release,mcp-sdk` extra 를 깐
+누적 smoke test **266/266 PASS** (2026-08-10, `dev,release,mcp-sdk` extra 를 깐
 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신 전량
 결과* 를 반영하는 살아있는 지표다.
 

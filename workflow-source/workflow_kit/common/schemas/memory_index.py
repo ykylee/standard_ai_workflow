@@ -151,6 +151,15 @@ class MemoryIndexTelemetryEvent(BaseModel):
     top_k: int = Field(default=10, ge=1, description="query 시 사용된 top_k")
     max_depth: int = Field(default=2, ge=0, description="query 시 사용된 max_depth")
     use_bm25_fallback: bool = Field(default=False, description="query 시 use_bm25_fallback flag")
+    # --- W-2 (ADR-006 후속, additive): 질의 다양성을 측정 가능하게 ---
+    # 회고가 드러낸 것: query_tokens_count 만으로는 "고정 trio 1종이 33일" 을
+    # 볼 수 없었다. 내용과 출처를 남긴다. 구 라인은 기본값으로 하위호환.
+    query_tokens: list[str] = Field(
+        default_factory=list, max_length=16,
+        description="질의 token 내용 (W-2 다양성 측정용; 구 라인은 빈 list)")
+    query_source: str = Field(
+        default="", max_length=16,
+        description="질의 출처: 'context' (유도) / 'default' (고정 fallback) / 'explicit' (caller 명시). 구 라인은 \"\"")
     error: bool = Field(default=False, description="retrieval 실패 시 True (negative example)")
 
 

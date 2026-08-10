@@ -117,7 +117,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
 
 v0.15.21+ 부터 두 flag 는 **override** 다. flag 부재 시에도 workspace 표준
 `ai-workflow/memory/active/memory_index` dir 이 존재하면 retrieval 이 **자동 활성**
-(default query token `backlog,task,workflow`) 되어 telemetry source `backlog-update` 가
+(query token 은 **컨텍스트 유도** — state.json 의 current_axis + 최근 done 제목에서 뽑고, 유도 실패 시 `backlog,task,workflow` fallback + 출처를 telemetry `query_source` 에 기록; ADR-006 W-2, v1.1.5+) 되어 telemetry source `backlog-update` 가
 emit 된다 (Phase 13 AC2 source 다양성 ≥ 4 수렴). memory_index dir 이 없으면 zero-risk
 skip (기존 caller 정합). flag 를 명시하면 dir/token override.
 

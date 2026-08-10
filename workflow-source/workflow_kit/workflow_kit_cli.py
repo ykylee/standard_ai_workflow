@@ -1879,6 +1879,8 @@ def cmd_memory_index_query(argv: list[str]) -> int:
                 source="dispatcher",
                 workspace_root=str(_P(workspace_root)),
                 query_tokens_count=len(query_tokens),
+                query_tokens=query_tokens[:16],
+                query_source="explicit",
                 selected_count=result.selected_count,
                 cue_hits=result.cue_hits,
                 bm25_hits=result.bm25_hits,
@@ -1913,6 +1915,8 @@ def cmd_memory_index_query(argv: list[str]) -> int:
                     source="dispatcher",
                     workspace_root=str(_P(workspace_root)),
                     query_tokens_count=len(query_tokens),
+                    query_tokens=query_tokens[:16],
+                    query_source="explicit",
                     error=True,
                 ),
             )

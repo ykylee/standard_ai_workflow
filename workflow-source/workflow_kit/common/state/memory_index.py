@@ -720,7 +720,10 @@ def summarize_telemetry(
 
     total_calls = len(events)
     total_hits = sum(1 for e in events if e.selected_count > 0 and not e.error)
-    hit_rate = (total_hits / total_calls) if total_calls else 0.0
+    # round(4) 를 계산 지점(단일 출처)에서 한다. hit_rate 가 33일간 정확히 1.0
+    # 이던 시절에는 소비자별 반올림 차이가 보이지 않았고, 첫 miss (W-2 컨텍스트
+    # 질의) 가 Panel 3 (raw) != Panel 8 (round 4) cross-check 실패로 드러냈다.
+    hit_rate = round((total_hits / total_calls), 4) if total_calls else 0.0
 
     by_source: dict[str, dict[str, int]] = {}
     for e in events:
@@ -769,7 +772,7 @@ def summarize_telemetry(
         window_days=window_days,
         window_calls=window_calls,
         window_hits=window_hits,
-        window_hit_rate=(window_hits / window_calls) if window_calls else 0.0,
+        window_hit_rate=round((window_hits / window_calls), 4) if window_calls else 0.0,
         window_by_source=window_by_source,
         window_source_count=len(window_by_source),
     )
@@ -899,3 +902,57 @@ def suggest_memory_entry_candidates(
         "threshold": threshold,
         "entries_loaded": len(entries),
     }
+
+
+# --- W-2 (ADR-006 후속): 컨텍스트 유래 질의 token ---
+
+#: 질의 출처 값 (telemetry `query_source` 에 그대로 기록).
+QUERY_SOURCE_CONTEXT: Final[str] = "context"
+QUERY_SOURCE_DEFAULT: Final[str] = "default"
+QUERY_SOURCE_EXPLICIT: Final[str] = "explicit"
+
+#: 컨텍스트 유도 질의의 token 상한.
+_CONTEXT_QUERY_CAP: Final[int] = 8
+
+
+def derive_context_query_tokens(
+    state_path: Path | None,
+    *,
+    base_tokens: list[str],
+    max_tokens: int = _CONTEXT_QUERY_CAP,
+) -> tuple[list[str], str]:
+    """현재 작업 컨텍스트에서 질의 token 을 유도한다. 실패 시 (base_tokens, "default").
+
+    ADR-006 회고 (W-2): 3 skill 의 질의는 각자 고정 trio 였고 공통 token
+    "workflow" 가 항상 같은 entry 를 집어 33일간 질의 다양성이 1 이었다.
+    여기서는 state.json 의 `session.current_axis` + `backlog.done_items` 상위
+    3건 제목에서 token 을 뽑는다 — 질의가 지금 하는 일을 따라가면 조회 결과도
+    (그리고 miss 도) 정보를 갖는다.
+
+    유도 실패(state 부재/파싱 불가/유의미 token 없음)는 base_tokens 로
+    떨어지되 출처를 반드시 함께 돌려준다 — 조용한 fallback 은 출처를
+    내놓아야 한다. caller 는 출처를 telemetry `query_source` 에 기록한다.
+    """
+    if state_path is None or not state_path.is_file():
+        return list(base_tokens), QUERY_SOURCE_DEFAULT
+    try:
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return list(base_tokens), QUERY_SOURCE_DEFAULT
+    session = data.get("session") or {}
+    backlog = data.get("backlog") or {}
+    parts: list[str] = []
+    axis = session.get("current_axis")
+    if isinstance(axis, str):
+        parts.append(axis)
+    done_items = backlog.get("done_items")
+    if isinstance(done_items, list):
+        parts.extend(str(item) for item in done_items[:3])
+    tokens = [
+        t for t in _bm25_tokenize(" ".join(parts))
+        if len(t) >= 2 and not t.isdigit() and t not in _ANCHOR_STOPWORDS
+    ]
+    tokens = _dedupe_keep_order(tokens)[:max_tokens]
+    if not tokens:
+        return list(base_tokens), QUERY_SOURCE_DEFAULT
+    return tokens, QUERY_SOURCE_CONTEXT

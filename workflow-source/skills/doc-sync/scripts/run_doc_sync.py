@@ -85,21 +85,35 @@ def _build_memory_index_query_output(
             effective_dir = str(_default_dir)
     if not effective_dir:
         return None  # zero-risk default (memory_index 부재)
-    effective_tokens = args.memory_query_tokens or "doc,sync,workflow"
+    from datetime import datetime as _dt, timezone as _tz
+    from workflow_kit.common.state.memory_index import (
+        MemoryIndexTelemetryEvent,
+        QUERY_SOURCE_EXPLICIT,
+        append_telemetry_event,
+        derive_context_query_tokens,
+        query_memory_index_for_dispatcher,
+    )
+
+    # W-2 (ADR-006): 고정 trio 는 공통 token 이 항상 같은 entry 를 집었다 —
+    # flag 미지정 시 현재 컨텍스트(state.json 축 + 최근 done 제목)에서 유도.
+    if args.memory_query_tokens:
+        query_tokens = [t.strip() for t in args.memory_query_tokens.split(",") if t.strip()]
+        query_source = QUERY_SOURCE_EXPLICIT
+    else:
+        try:
+            _state_path = workflow_state_path(Path(args.project_profile_path))
+        except (OSError, ValueError):
+            _state_path = None
+        query_tokens, query_source = derive_context_query_tokens(
+            _state_path, base_tokens=["doc", "sync", "workflow"],
+        )
+
     memory_index_dir = Path(effective_dir)
-    query_tokens = [t.strip() for t in effective_tokens.split(",") if t.strip()]
     if not query_tokens:
         warnings.append(
             "memory_index wiring: --memory-query-tokens 가 비어있음. retrieval skip."
         )
         return None
-
-    from datetime import datetime as _dt, timezone as _tz
-    from workflow_kit.common.state.memory_index import (
-        MemoryIndexTelemetryEvent,
-        append_telemetry_event,
-        query_memory_index_for_dispatcher,
-    )
     target = project_root
     try:
         memory_index_dir.relative_to(project_root)
@@ -117,6 +131,8 @@ def _build_memory_index_query_output(
                 source="doc-sync",
                 workspace_root=str(project_root),
                 query_tokens_count=len(query_tokens),
+                query_tokens=query_tokens[:16],
+                query_source=query_source,
                 error=True,
             ),
         )
@@ -131,6 +147,8 @@ def _build_memory_index_query_output(
                 source="doc-sync",
                 workspace_root=str(project_root),
                 query_tokens_count=len(query_tokens),
+                query_tokens=query_tokens[:16],
+                query_source=query_source,
                 selected_count=result.selected_count,
                 cue_hits=result.cue_hits,
                 bm25_hits=result.bm25_hits,
@@ -153,6 +171,8 @@ def _build_memory_index_query_output(
                 source="doc-sync",
                 workspace_root=str(project_root),
                 query_tokens_count=len(query_tokens),
+                query_tokens=query_tokens[:16],
+                query_source=query_source,
                 error=True,
             ),
         )

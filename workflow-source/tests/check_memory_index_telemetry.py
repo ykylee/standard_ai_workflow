@@ -86,8 +86,9 @@ def test_two_hits_one_miss_hit_rate_two_thirds() -> None:
         assert summary.total_calls == 3, f"got {summary.total_calls}"
         # error=True event 는 selected_count 와 무관하게 hit 카운트 ❌ (정공법: error 는 negative example)
         assert summary.total_hits == 1, f"got {summary.total_hits}"
-        # 1/3 정확도 (오차 < 1e-9)
-        assert abs(summary.hit_rate - (1 / 3)) < 1e-9, f"got {summary.hit_rate}"
+        # hit_rate 는 계산 지점에서 round(4) — 소비자별 반올림이 갈라져
+        # Panel 3 != Panel 8 이 되던 것을 단일 출처로 통일 (W-2 에서 실측 발견).
+        assert summary.hit_rate == round(1 / 3, 4), f"got {summary.hit_rate}"
 
 
 def test_by_source_breakdown_distinguishes_skills() -> None:

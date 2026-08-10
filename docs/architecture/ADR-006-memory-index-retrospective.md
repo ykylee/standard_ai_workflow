@@ -205,6 +205,17 @@ drift 캘리브레이션, ... — handoff / 세션 기록 / agent memory / wiki 
   컨텍스트 유래 token (브랜치 축, 최근 backlog 키워드 등) 으로 확장. telemetry
   에 `query_tokens` 자체(개수 아니라 내용의 해시 또는 상위 토큰)를 남겨 질의
   다양성을 측정 가능하게.
+  ✅ **구현** (같은 날, TASK-2026-08-10-main-012): `derive_context_query_tokens()`
+  (state.json 의 current_axis + 최근 done 제목 3건 → token 유도, 실패 시 skill
+  별 기존 trio fallback + 출처 보고) 를 3 skill 공용으로. telemetry 에
+  `query_tokens`/`query_source`("context"/"default"/"explicit") additive.
+  실측 정밀화: 3 skill 의 고정 질의는 각자 다른 trio (`session,handoff,workflow`
+  / `doc,sync,workflow` / `backlog,task,workflow`) 였고 **공통 token
+  "workflow"** 가 항상 MEM-001 을 집었다. 첫 컨텍스트 질의는 정직한 miss
+  (cue 0) — 그리고 그 miss 가 33일간 hit_rate=1.0 뒤에 숨어 있던 **패널 간
+  반올림 불일치** (Panel 3 raw vs Panel 8 round-4) 를 즉시 드러내
+  round-at-source 로 통일했다. 변하지 않는 지표는 자기 소비자의 결함도 숨긴다.
+  `tests/check_context_query_tokens.py` 8 case.
 - **W-3 (entry 간 링크)**: 현재 7 entries 는 서로 고아라 expansion 이 구조적으로
   발동 불가. 신규 entry 적재 시 기존 entry 참조를 권장하는 규약 (agent memory
   의 `[[name]]` 링크 관행을 이식).

@@ -81,16 +81,27 @@ def test_single_root_backward_compatible() -> None:
 
 
 def test_extra_root_merges_into_timeline() -> None:
-    """case 2: 추가 root 의 state.json 이 Panel 5 timeline 에 합류."""
-    self_items = ["__self_marker__"]
-    baseline = collect_recent_releases(REPO_ROOT, top_n=50)
-    # 본 저장소 state.json 에는 self_marker 가 없을 가능성이 크므로 baseline 을
-    # 직접 비교하지 않고, 동일 root 단일 vs +extra 의 `items_total` 차이로 본다.
+    """case 2: 추가 root 의 state.json 이 Panel 5 timeline 에 합류.
+
+    v1.1.5: primary root 를 **실제 저장소가 아니라 tmp fixture** 로 바꿨다.
+    이전에는 REPO_ROOT 를 primary 로 써서 "저장소의 recent_done_items 가
+    top_n(50) 미만" 이라는 암묵 전제가 있었고, 목록이 50개를 넘자 fixture
+    marker 가 컷 밖으로 밀려 깨졌다 — 살아있는 저장소 상태는 기대값이 아니다
+    (doctor exit-on-fail smoke 와 같은 부류). 합류 *메커니즘* 검증에는
+    fixture 두 root 면 충분하다.
+    """
     with tempfile.TemporaryDirectory() as td:
-        tdp = Path(td)
-        _write_state(tdp, "demo-feat-x", ["__extra_marker__"])
+        base = Path(td)
+        primary = base / "primary"
+        extra = base / "extra"
+        _write_state(primary, "demo-feat-main", ["__primary_item__"])
+        _write_state(extra, "demo-feat-x", ["__extra_marker__"])
+        # baseline 도 extra_roots=() 명시 — 미지정이면 0-config 경로가 글로벌
+        # registry 에 등록된 실제 워크스페이스들을 자동 합류시켜 (설계된 기능)
+        # baseline 이 이 호스트의 registry 상태에 따라 달라진다.
+        baseline = collect_recent_releases(primary, top_n=50, extra_roots=())
         merged = collect_recent_releases(
-            REPO_ROOT, top_n=50, extra_roots=(tdp,)
+            primary, top_n=50, extra_roots=(extra,)
         )
     _assert(
         "__extra_marker__" in [it["preview"] for it in merged["timeline"]],

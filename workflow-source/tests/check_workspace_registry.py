@@ -201,8 +201,21 @@ def test_dashboard_aggregates_registry_paths() -> None:
                 encoding="utf-8",
             )
             R.register(td, branch="demo-feat-reg", harness="codex")
-            # 자기 root 외 추가 합류 검증
-            merged = collect_recent_releases(REPO_ROOT, top_n=50)
+            # 자기 root 외 추가 합류 검증. v1.1.5: primary 를 실제 저장소가 아니라
+            # tmp fixture 로 — REPO_ROOT 를 쓰면 저장소 recent_done_items 가
+            # top_n 을 넘는 순간 marker 가 컷 밖으로 밀려 깨진다 (살아있는
+            # 저장소 상태는 기대값이 아니다).
+            primary = tdp / "primary_root"
+            pstate = primary / "ai-workflow" / "memory" / "active" / "demo-feat-p"
+            pstate.mkdir(parents=True, exist_ok=True)
+            (pstate / "state.json").write_text(
+                json.dumps(
+                    {"session": {"recent_done_items": ["__primary_item__"]}},
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            merged = collect_recent_releases(primary, top_n=50)
             found = any(
                 "__registry_marker__" in t["preview"] for t in merged["timeline"]
             )
@@ -212,7 +225,7 @@ def test_dashboard_aggregates_registry_paths() -> None:
             )
             # registry 가 없으면 합류 ❌ (대조군)
             R.unregister(all=True)
-            baseline = collect_recent_releases(REPO_ROOT, top_n=50)
+            baseline = collect_recent_releases(primary, top_n=50)
             baseline_has = any(
                 "__registry_marker__" in t["preview"] for t in baseline["timeline"]
             )

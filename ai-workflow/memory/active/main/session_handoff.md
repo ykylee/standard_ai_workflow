@@ -4,13 +4,26 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-10 (v1.1.6-beta 발행 — TASK-015, cmd_release 3번째 실전)
+- 최종 수정일: 2026-08-10 (3차 세션 — CI 재현성 회복 + smoke 병렬화, TASK-016~019)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **v1.1.6-beta 발행 완료 — `cmd_release` 3번째 실전** (TASK-015, tag `v1.1.6-beta`, 2026-08-10T11:30:53Z, whl+sdist). 범위 = TASK-007~014 (smoke 261→266), pre_check 5/5 skip 없이, post-apply 잔여 4파일 (선재생성 절차 재현). 직전: **ADR-006 회고 + 후속 W-1~W-4 완결** (TASK-010~014) — 실측 회고 (ADR accepted) → W-1 `wk suggest-memory-entries` (첫 신규 entry 적재) → W-2 컨텍스트 유래 질의 (+telemetry 질의 내용) → W-3 `related_ids` 링크 (expansion 첫 발동) → W-4 지표 재정의 (`utilization_3tuple` north-star, hit_rate 보조 강등, 미측정≠0). 첫 3-tuple 실측 = 정직한 저점 (diversity 1/8 · new_30d 1 · distinct 0/1). 직전: **2026-08-09 세션의 "검증 못 한 것" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
-- 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).
+- 현재 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
+  `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
+  기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
+  있었다**. TASK-016 이 red 를 껐고 (검사가 살아있는 브랜치 상태에 의존),
+  TASK-017 이 근본을 고쳤다 (`branch_matrix.py` 정본 + `--branch-context=all` 로
+  로컬 재현을 관행화, SDK 매트릭스와 같은 처방). TASK-018 은 병목을 측정으로 좁혀
+  (**CI job 604s 중 smoke 576s**) 병렬화했고 — **CI 실측 576s → 220s**, 전량
+  268/268 — 그 과정에서 `check_source_without_runtime_layer` 가 원본 `ai-workflow/`
+  를 rename 해 숨기던 것(`finally` 는 SIGKILL 에 안 돈다 = 저장소 파괴 위험)을
+  사본 검증으로 교체했다. TASK-019 는 병렬화가 드러낸 사전 결함 — **검사 4건이
+  원본 저장소에 `--apply` 를 돌린 뒤 되돌리고 있었다** (pyproject version →
+  `99.99.99`, README/`__init__` drift, memory_index/wiki, 실빌드 산출물) — 을
+  `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
+  (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
+- 현재 주 작업 축: **CI 재현성 + 검사 위생** 사이클 완결 (TASK-016~019). 남은 것은 저장소 리팩터링(§5).
 - 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
@@ -38,74 +51,62 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
+- TASK-2026-08-10-main-018 **smoke 병렬화** — CI job 604s 중 smoke 576s 가 병목, 시간 분포는 극단적(상위 13개=50%, 하위 133개 합계 9.8s). `--jobs auto` + **정숙 구간**(파일 안 `REQUIRES_QUIET_REPO` 선언, §2.53). `check_source_without_runtime_layer` 의 원본 rename → 사본 검증 (**`finally` 는 SIGKILL 에 안 돈다**). **CI 576s→220s**, 로컬 345s→118.8s. `check_parallel_smoke` 8 case.
+- TASK-2026-08-10-main-017 **브랜치 컨텍스트 정본화 + 로컬 재현 관행화** — CI 2축 / 로컬 1축 비대칭이 뿌리. `branch_matrix.py` 정본 + `run_all_checks --branch-context=<label|all>` + smoke.yml prepare job 주입(복제 제거) + `check_branch_context_matrix` 8 case + CLAUDE.md 관행. **새 축이 첫 실행에서 결함 2건을 잡았고 하나는 자기 것** — `--branch-context=native` 가 상속 오버라이드를 안 지워 slash 패스에서 native 를 요청하자 slash 를 쟀다 (막으려던 실패 양상 그 자체).
+- TASK-2026-08-10-main-016 **smoke slash job 15연속 red 해소** — `check_release_pre_check_gates` case 7 이 살아있는 브랜치의 `state.json` 존재를 전제. 게이트는 부재를 정당 통과로 설계했는데 검사만 fail. 되주입으로 결정적화 + 환경 의존은 7b 로 분리(명시 SKIP) + **아무도 안 재던 absent 계약을 case 11 로 고정**.
 - TASK-2026-08-10-main-015 **v1.1.6-beta 발행** — `cmd_release` 3번째 실전 완주 (bump → 파생물 선재생성 10검사 사전 green → note → dist → dry-run pre_check 5/5 → push → apply → verify). tag `v1.1.6-beta` (2026-08-10T11:30:53Z, whl+sdist). 범위 TASK-007~014, smoke 261→266 (신규 5). post-apply 잔여 4파일 — v1.1.5 와 동일, 선재생성 절차 재현 확인. dirty 가드가 미커밋 task 등록을 정확히 잡음 (가드 실전 검증 1회 추가).
 - TASK-2026-08-10-main-014 **ADR-006 W-4 지표 재정의** — telemetry `selected_ids` additive + `summarize_telemetry` 3-tuple (query_diversity / entries_new_30d / distinct_entries_retrieved, **`*_measurable` 분모로 미측정≠0**) + Panel 8 `utilization_3tuple` north-star 교체 (hit_rate 는 은퇴 대신 보조 강등). measurable 판정은 값 비어있음이 아니라 **필드 존재** — miss(0건 조회)도 측정이다 (구현 중 이 함정을 실제로 밟고 고침). 첫 실측 = 정직한 저점 (1/8 · 1 · 0/1). `check_utilization_3tuple` 9/9, 회귀 sweep 9종 green, smoke 266. **W-1~W-4 완결**.
 - TASK-2026-08-10-main-013 **ADR-006 W-3 entry 간 링크** — `related_ids` additive (legacy stem 규약 하위호환 유지) + expansion 추적 + dangling/self validation ("태어난 적 없는 링크" 검출) + W-1 skeleton 프리필 (신규 entry 가 링크를 갖고 태어남) + merge union. 실물 링크 (회고 001 ↔ ADR-005 결정 002) 로 **33일 만의 expansion 첫 발동** — `[retrospective]`/`[memora]` 양방향 cue 1 + exp 1. `check_entry_links` 9/9 (되주입 포함), smoke 265.
 - TASK-2026-08-10-main-012 **ADR-006 W-2 질의 다양화** — `derive_context_query_tokens` (state.json 축 + 최근 done 제목 → token 유도, 실패 시 skill 별 trio fallback + **출처 보고**) 를 3 skill 공용으로, telemetry 에 `query_tokens`/`query_source` additive (구 라인 하위호환). 실사: 컨텍스트 8 token + **정직한 miss** (cue 0 — index 가 최근 한 달을 모른다는 신호) — 그 첫 miss 가 33일간 hit_rate=1.0 뒤에 숨어 있던 **패널 간 반올림 불일치** 를 드러내 round-at-source 로 통일. 변하지 않는 지표는 자기 소비자의 결함도 숨긴다. `check_context_query_tokens` 8/8, smoke 264.
 - TASK-2026-08-10-main-011 **ADR-006 W-1 write-path advisory 루프** — `wk suggest-memory-entries` 신설: handoff §4 제목을 entry corpus 와 대조 (coverage < 0.5 → 후보 + skeleton, **무-write advisory**). 루프 실증 완주 — 첫 실측 10/10 후보 (max 0.14, 회고 재확인) → 회고를 `MEM-2026-08-10-001` 로 적재 (**33일 만의 첫 신규 entry**) → covered 0→1 + `query [retrospective,write-path]` 적중. smoke 8/8 (되주입: corpus 에 넣으면 후보가 사라짐), dispatcher 정합 10/10, mypy clean. smoke 263.
 - TASK-2026-08-10-main-010 **P2-1 ADR-006 Memory Index 회고** — telemetry 256 events (07-09~08-10) 실측: 30일 실사용 = **고정 질의 1종 → 고정 entry 1건** (BM25/expansion/merge 발동 0회, 신규 entry 0건, latency p50 0.18ms). hit_rate 1.0 은 캐시 적중이었다 — 질의 다양성을 안 재는 지표는 항상 green 이어도 정보가 없다. ADR-006 placeholder → **accepted** (~230 line, 6 영역 + 보강 2). 후속 W-1 write-path advisory 루프 / W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 기각: BM25 tuning·embedding·merge default 변경. wiki topic 신설, phase_13_followup stale 날짜 정정 (08-19 → 실제 tag 07-02).
-- TASK-2026-08-10-main-008 **title drift 임계 0.6 실측 캘리브레이션** — 저장소 자신의 제목 데이터(정본 자리만: backlog bullet / task H1 / handoff production 섹션, 트리 326 문서 + git 576 버전)로 양성 81 / 음성 375쌍을 채굴해 **0.6 유지를 실측으로 확정** (정본 양성 노이즈 1/14, 음성 검출 373/375). 같은-축 형제 task (0.69~0.71) 는 어떤 임계로도 못 가른다 — 검사 case 6 이 한계를 동결. 괄호 제거 정규화는 실측 기각 (놓침 115→287). `calibrate_title_drift.py` + fixture + 검사 7 case (되주입 2종). 1차 채굴의 교훈: 임의 줄의 ID 언급을 먹이면 산문이 제목으로 섞여 분포가 뒤집힌다 — production 이 읽는 자리만 먹일 것.
-- TASK-2026-08-10-main-009 **registry server 비-loopback bind 실측** — case 10 신설, LAN IP(192.168.0.121) bind + GET + pull + 토큰 왕복 green. LAN IP 부재는 graceful skip + `--require-lan`. cross-host / 방화벽 / TLS 는 여전히 검증 밖 (darwin homelab 몫, §7.4 명시).
-- TASK-2026-08-10-main-007 **dummy wrapper 물리 제거** — v0.15.18 이 심은 `assert True` dummy 153개/60파일 제거 (-827줄, 참조 걸림 0 = 전부 고아 def). **신호 분포 완전 불변 실증** (min 1 / under-5 7 동일) — TASK-004 측정이 dummy 를 안 세고 있었다는 물리적 재확인. 자기 보고 수치가 정직해짐 (예: 5/5 → 3/3).
-- TASK-2026-08-10-main-006 **v1.1.5-beta 발행** — `cmd_release` 2번째 실전 완주. **파생물 선재생성** (v1.1.4 교훈: fixtures 3종 + samples 24건 + stamp 4종을 릴리스 *전에*, 10개 검사 사전 green) → post-apply 잔여 73→**4 파일**. pre_check 5/5 skip 없이, step 3.4 261/261 정합.
+
+그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
+
 ## 5. 다음 세션 시작 포인트
 
-### 무엇이 끝났나 (2026-08-10, 2차 세션)
+### 무엇이 끝났나 (2026-08-10, 3차 세션)
 
-**title drift 임계 실측 캘리브레이션 + registry 비-loopback 실측** (TASK-008·009)
-→ **ADR-006 회고 + 후속 W-1~W-4 완결** (TASK-010~014) → **v1.1.6-beta 발행**
-(TASK-015, `cmd_release` 3번째 실전). smoke 261→**266**, 전량 검사 green.
-상세는 [세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)
-과 task 파일. 1차 세션(TASK-001~007, v1.1.4/v1.1.5 발행)은 §4 하단 항목 참조.
+**CI 재현성 회복 + smoke 병렬화** (TASK-016~019). 상세는
+[세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
+2차 세션(TASK-008~015, ADR-006 후속 + v1.1.6-beta 발행)은 §4 하단 항목 참조.
 
-**새 종료 절차**: close 전에 `wk suggest-memory-entries` 로 entry 승격 후보를
-판단한다 (advisory). 이번 close 에서 `MEM-2026-08-10-002` (캘리브레이션 방법론)
-적재 — W-1 루프 두 바퀴째.
-
-앞으로의 릴리스 절차 (v1.1.4-beta 에서 실증된 경로):
+**push 전 재현 명령이 둘로 늘었다** — 둘 다 CLAUDE.md 에 적혀 있다:
 
 ```bash
-# venv 필수 (mypy/mcp/twine — 시스템 python 은 mypy 게이트가 정당 fail)
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py version-bump --apply
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py note-draft --from <직전태그> --to <버전> --apply  # + 수동 편집
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py dist --apply
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --dry-run   # 무인자도 dry-run (v1.1.4+)
-git push  # tag 대상 커밋이 원격에 있어야 --verify-tag 통과
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --apply
+# 브랜치 매트릭스 (CI 는 2축, 로컬 무인자는 1축 — 이 비대칭이 15연속 red 를 만들었다)
+python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
+
+# SDK 매트릭스 (mcp 를 쓰는 코드를 건드렸으면)
+PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 ```
 
-stamp 정합은 bump 후 검사 4종(readme_cross / code_index / installation_usage /
-drift_prevention)을 돌려 붉어진 곳만 갱신하면 된다. apply 후 자동 후처리
-(최종 수정일 stamp + dashboard + CHANGELOG + 노트 audit)가 트리를 수정하므로
-post-release 커밋으로 수습한다. 게이트 개별 skip: `--skip-doctor/-state/-git/-packaging/-mypy`.
-
-세션 시작 플로우는 그대로다 (v1.1.2+ 부터는 `wk` 로도 부를 수 있다):
-
-```bash
-wk survey-remote-workspaces
-wk claim-workspace --branch <b> --axis "<축>" --task-title "<제목>" --apply
-python3 workflow-source/scripts/generate_workflow_state.py \
-  --project-profile-path docs/PROJECT_PROFILE.md --output-path ai-workflow/memory/active/<b>/state.json
-```
-
-federation 을 실제로 돌리려면 (v1.1.2+):
-
-```bash
-wk host-serve-registry --port 8765                      # 이 호스트가 서빙
-wk host-pull-registry add-known-host --host-id <상대> \
-    --endpoint http://<host>:8765/registry.json --apply  # 상대 등록
-wk host-pull-registry pull --host <상대>
-```
+전량 검사는 이제 **기본이 병렬**(`--jobs auto`)이다. 재현이 필요하면 `--jobs 1`.
+저장소 전역을 관찰하는 검사를 새로 만들면 파일 안에 `REQUIRES_QUIET_REPO = True` 를
+선언해야 한다 — 안 하면 병렬에서 오탐이 난다.
 
 ### 다음에 할 일 (순서)
 
-- ~~다음 릴리스를 `cmd_release` 경로로 발행~~ — ✅ **완료** (v1.1.4-beta, TASK-003).
-  수동 발행 관행 종료.
-- ~~TST-WF-01 측정 재설계~~ — ✅ **완료** (TASK-004). partial 예외 제거, hard 복귀.
-- ~~2026-08-09 "검증 못 한 것" 2건~~ — ✅ **완료** (TASK-008 title drift 캘리브레이션
-  + TASK-009 비-loopback bind 실측).
-- **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측, TASK-2026-08-09-main-004).
-- v1.1.0 / v1.1.1 노트의 누적 표기 사후 삽입 여부 (선택).
+이 세션에서 **저장소 리팩터링 조사**를 했고, 아래는 그 결과다 (근거는 §6 아래
+"조사로 확정된 것" 참조). 사용자가 우선순위를 정한 항목만 실행했다 (정숙 구간 근본
+수정 = TASK-019). 나머지는 미착수:
+
+- **`check_mypy_strict_v0_11_3` ~ `v0_11_10` 8개 제거** (15초 절감). 각각 "이번
+  릴리스에서 strict 로 격상한 2개 파일" 을 잰다. 저장소는 이미 **FULL mypy strict**
+  (129 파일 clean) 이고 `mypy-strict` CI 가 `workflow_kit/` 전체를 검사한다 —
+  부분집합을 8번 재는 것은 정보가 0이다.
+- **`ai-workflow` 아카이브 정리** — `memory/archived/gemini/` (다른 에이전트의 옛
+  백로그 50여 파일), `memory/archive/2026-07-22/` (112 파일). git 이력에 남으므로
+  트리에서 덜어내도 잃는 것이 없다. 문서 스캔 검사(`check_wiki_score` 29.8s 등)가
+  가벼워진다.
+- **`check_cache_*` 13개 통합** — 각 1~4 케이스, 65~195줄. 영역이 같은데 잘게 쪼개져
+  subprocess 기동만 13번이다.
+- **`release_pipeline.py` 3897줄 분할** (위험도 높음 — 단독 task 로). 이어서
+  `dashboard_data.py` 2488줄, `workflow_kit_cli.py` 2095줄.
+- **`docs/presentations/*.pdf|pptx` 5.2MB** — 추적 용량의 대부분인 바이너리.
+- **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측).
+- **`mooneye` 브랜치 처리** — idle 429h+, 삭제/유지 사용자 확인 필요.
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
@@ -124,8 +125,33 @@ wk host-pull-registry pull --host <상대>
 - ~~registry loopback 만 실측~~ — **부분 해소** (TASK-009, 비-loopback bind + pull
   왕복은 이 호스트에서 실측). **잔여**: 진짜 cross-host / 방화벽 / reverse proxy /
   TLS 종단 — 두 번째 호스트 필요 (darwin homelab).
+- **`check_no_repo_write` 의 계약 한계 (미해소)** — 판정이 "실행 **후** 복원되었는가"
+  라, 건드렸다 되돌리면 통과한다. `check_bidir_link_v0_13_3` 은 **이미 감시 목록에
+  있었는데도** 그 이유로 안 잡혔다. 실행 *중* 감시(폴링)로 강화하면 남은 감시 대상
+  다수가 같은 이유로 red 가 될 수 있어 범위가 크다. **되돌리는 것은 안 건드리는 것이
+  아니다.**
+- **정숙 구간 3건은 본질적으로 직렬** — `check_no_repo_write`(15.6s, 전역 관찰),
+  `check_parallel_smoke`(runner 호출), `check_source_without_runtime_layer`(저장소
+  복사). 병렬화로 더 줄이려면 이들의 설계 자체를 바꿔야 한다.
 - 이 밖의 과거 세션 리스크 (`--force` 3rd layer 미가동)는 변화 없음 —
   2026-08-09 까지의 세션 기록 참조.
+
+## 7. 저장소 구성 조사 (2026-08-10 3차 세션)
+
+리팩터링 판단 근거. git 추적 **1766 파일**:
+
+| 영역 | 파일 | 비고 |
+|---|---|---|
+| `workflow-source` | 898 | tests 268, workflow_kit 129, releases 171, tools 74 |
+| `ai-workflow` | 778 | **backlog tasks 193 + 아카이브 142**, wiki 81, sessions 18 |
+| `docs` | 36 | presentations PDF/PPTX 가 **5.2MB** |
+
+- **"버전 접미사 71개 = 중복" 은 틀렸다** (이 세션에서 정정). 주제별로 갈라보니
+  대부분 고유하고, 진짜 중복은 `mypy_strict_v0_11_3~10` 8개뿐이다.
+- 테스트가 느렸던 주된 원인은 **저장소 크기가 아니라 실행 방식**이었다 (순차 →
+  병렬로 345s→118.8s). 위 정리 항목 중 실행 시간을 실제로 줄이는 것은 mypy 8개
+  (15초) 뿐이고 나머지는 저장소 위생 문제다 — 섞어서 "정리하면 빨라진다" 고 말하지
+  않는 편이 정확하다.
 
 **이전 세션들의 교훈**은 각 세션 기록에 있다:
 [2026-08-09](./sessions/cli_dispatcher_and_rotation_2026-08-09.md) ·

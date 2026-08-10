@@ -155,6 +155,7 @@ v1.0.0 stable 진입 시점 (2026-07-20) 에 다음 5개 영역은 **stable guar
 - 운영 기록 v0.11.22.md line 70 + 116 와 정합 (historical infrastructure 한계 인정).
 - **Mitigation**: 본 release 의 wrapper 추가 (v0.15.18, 575 wrapper)로 196 smoke 모두 ≥ 5 정합. 후속 release 에서 추가 wrapper 유지.
 - **Verdict**: v0.15.18 patch 후 status `compliant`. residual 발생 시 v1.x patch release 에서 wrapper 추가.
+- **v1.1.4+ 갱신**: dummy wrapper 유지 방침을 폐기하고 `[tool.workflow-doctor]` 의 `partial_rules.testing` (TST-WF-02~06 hard, **TST-WF-01 선언된 예외**) 로 전환. 이유: 측정(`def test_/case_` 이름 count)이 inline `check()` / `failures.append` 관행의 실제 case 를 못 보며, `assert True` dummy 는 측정을 채우려고 가짜 사실을 만든다. TST-WF-01 은 advisory 로 계속 보고된다. 후속: 측정을 관행 인식형으로 재설계 시 예외 제거.
 
 ### 5.2 state.json / Panel 5 transient
 

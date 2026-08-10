@@ -268,7 +268,16 @@ exclude = [
 # 의 partial_rules 인자로 전달. 해당 rule 의 non_compliant 는 hard fail (CI fail).
 [tool.workflow-doctor]
 # v0.7.6 default: resiliency 의 RES-WF-01/02 (변경 관리 + critical workload 식별).
-partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"] }
+#
+# v1.1.4+ testing partial: TST-WF-01 을 hard constraint 에서 제외한다 (선언된 예외).
+# 이유: TST-WF-01 의 측정(`^def test_/case_` 이름 count, min ≥ 5 per file)이
+# 이 저장소 smoke 의 정당한 3개 관행 중 2개 — inline `check(label, cond)` 호출식과
+# `failures.append` 수집식 — 을 못 본다. 실제 case 는 있는데 이름 count 가 0 이라
+# 만성 non_compliant 가 되고, v0.15.18 의 전례(`assert True` dummy wrapper 575개)는
+# 측정을 채우려고 가짜 사실을 만드는 쪽이라 답습하지 않는다. 항상 red 인 지표는
+# 판정식이 나쁜 것이다. TST-WF-02~06 은 hard 유지. 후속: 측정을 관행 인식형으로
+# 재설계하면 이 예외를 제거한다.
+partial_rules = { resiliency = ["RES-WF-01", "RES-WF-02"], testing = ["TST-WF-02", "TST-WF-03", "TST-WF-04", "TST-WF-05", "TST-WF-06"] }
 
 # baseline 별 opt-in rule dict. opt-in rule 은 default disable, 명시적 enable 시에만
 # evaluate 대상. (v0.7.6 시점: security-auth 의 2FA 는 opt-in 권장, default disable)

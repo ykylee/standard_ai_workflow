@@ -139,10 +139,26 @@ def cmd_validate(args) -> dict:
 
     # 2. workflow_kit.cli.doctor (v0.7.8)
     if not args.skip_doctor:
+        # v1.1.4: baselines 는 project_root 아래에서 `workflow-source/` 를 조립하므로
+        # project_root 는 **저장소 루트**(REPO_ROOT.parent)여야 한다. 이전에는
+        # REPO_ROOT(= workflow-source/)를 넘겨 tests 탐색이 workflow-source/workflow-source/
+        # 로 어긋났고, doctor 는 "0 tests across 0 files" 로 — 아무것도 재지 않은 채 —
+        # non_compliant 를 냈다. config 는 저장소 루트가 아니라 workflow-source/pyproject.toml
+        # 에 있으므로 --config-path 를 명시한다 (silent default fallback 방지, §2.49).
+        # PYTHONPATH 를 명시한다 — 이전에는 caller 환경 상속에 암묵 의존해,
+        # PYTHONPATH 없이 부른 caller 에서는 doctor 가 import 단계에서 죽고
+        # 게이트는 "실행 못 함" 을 fail 로 보고했다 (fail-closed 는 맞지만 만성).
+        # release_pipeline 은 source tree 의 도구이므로 같은 tree 를 재는 것이 맞다.
+        doctor_env = {**os.environ}
+        doctor_env["PYTHONPATH"] = str(REPO_ROOT) + (
+            os.pathsep + doctor_env["PYTHONPATH"] if doctor_env.get("PYTHONPATH") else ""
+        )
         proc = subprocess.run(
             [sys.executable, "-m", "workflow_kit.cli.doctor", "--json",
-             "--project-root", str(REPO_ROOT)],
+             "--project-root", str(REPO_ROOT.parent),
+             "--config-path", str(REPO_ROOT)],
             capture_output=True, text=True, timeout=60,
+            env=doctor_env,
         )
         if proc.returncode == 0:
             try:
@@ -171,15 +187,27 @@ def cmd_validate(args) -> dict:
         # 정본 helper 로만 경로를 얻는다 — legacy 문자열 조립은 §2.20 의 재발 경로다.
         state_path = state_path_for_workspace(REPO_ROOT.parent)
         if state_path.exists():
-            data = json.loads(state_path.read_text())
-            last_freeze = data.get("memory", {}).get("last_freeze", "")
-            last_ingest = data.get("wiki", {}).get("last_ingest", "")
-            # last_freeze 가 v0.7.9 cycle 의 commit 범위 내면 OK
-            results["state"] = {
-                "ok": bool(last_freeze),
-                "last_freeze": last_freeze,
-                "last_ingest": last_ingest,
-            }
+            # v1.1.4: 판정 필드를 현재 writer 의 계약으로 교체. 이전 판정
+            # (`memory.last_freeze` 존재) 은 v0.7.x raw-mirror 전용 도구
+            # (refresh_wiki_memory.update_state_json) 만 쓰는 필드였고, 현재 정본
+            # writer (scripts/generate_workflow_state.py, branch-scoped) 는 그 섹션을
+            # 아예 안 쓴다 — reader 만 legacy 에 남아 만성 fail 이던 자리다
+            # (state-json silent-failing 과 같은 모양: reader/writer 를 같이 옮겼는지
+            # 확인). 현 계약 = top-level `generated_at` stamp. legacy 스키마
+            # (`memory.last_freeze` 보유) 도 계속 인정한다.
+            try:
+                data = json.loads(state_path.read_text())
+            except json.JSONDecodeError as e:
+                results["state"] = {"ok": False, "error": f"state.json parse: {e}"}
+            else:
+                generated_at = data.get("generated_at", "")
+                last_freeze = data.get("memory", {}).get("last_freeze", "")
+                results["state"] = {
+                    "ok": bool(generated_at) or bool(last_freeze),
+                    "generated_at": generated_at,
+                    "last_freeze": last_freeze,
+                    "state_path": str(state_path),
+                }
         else:
             # state.json 부재도 OK (default empty state 시 v0.7.8 정합)
             results["state"] = {"ok": True, "absent": True}
@@ -242,6 +270,16 @@ def cmd_validate(args) -> dict:
                 "first_error": first_error,
                 "config_file": mypy_config,
             }
+            # v1.1.4: `-m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라
+            # rc 1 + stderr 로 죽는다 — 아래 except 분기는 이 호출 형태에서는
+            # 절대 타지 않았고, "mypy 가 오류를 찾음" 과 "mypy 실행 불가" 가
+            # 같은 모양(ok False, error_count 0)이 됐다. 판정은 그대로 fail
+            # (실행 못 한 검사는 통과가 아니다) — 출처만 구분해 보고한다.
+            if mypy_proc.returncode != 0 and "No module named mypy" in mypy_proc.stderr:
+                results["mypy"]["error"] = (
+                    "mypy unavailable in this interpreter (No module named mypy) — "
+                    "venv 에서 실행하거나 `pip install -e ./workflow-source[dev]`"
+                )
         except FileNotFoundError:
             # mypy module 부재 — dev extra install 누락. v0.11.11 pin 정합 이지만
             # 환경 문제 가능. hard fail (gate 가 무효 = release 정지).
@@ -2314,6 +2352,12 @@ def cmd_release(args) -> dict:
         if not hasattr(args, attr):
             setattr(args, attr, False if attr == "skip_dashboard_emit" else None)
 
+    # v1.1.4: destructive default 반전 — --apply 를 명시하지 않으면 dry-run 이다.
+    # --dry-run 과 --apply 를 함께 주면 안전측(dry-run)이 이긴다. apply attr 가
+    # 아예 없는 legacy caller 는 dry-run 으로 떨어진다 (모름 ≠ apply).
+    if not getattr(args, "apply", False):
+        args.dry_run = True
+
     def _attr_ns(**overrides) -> argparse.Namespace:
         """Create a fresh argparse.Namespace with default attrs + overrides.
 
@@ -3672,10 +3716,26 @@ def main() -> int:
                             "본 flag 는 --dry-run 과 동시 사용 가능 (plan 검증용).")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run",
                        help="destructive subcommand 정공법 (memory #5): tag push + gh release create 의 "
-                            "plan 만 출력, 실제 호출 0. --apply 가 default True 이므로 --dry-run 으로 "
-                            "override. v0.9.0 chapter 4 에서 --dry-run flag 추가 (이전엔 argparse 누락 "
-                            "으로 cmd_release 호출 시 즉시 AttributeError).")
-    p_rel.add_argument("--apply", dest="apply", action="store_true", default=True)
+                            "plan 만 출력, 실제 호출 0. v1.1.4+ 부터 --apply 미지정 시 dry-run 이 "
+                            "기본이므로 본 flag 는 명시용 (--apply 와 함께 주면 dry-run 이 이긴다).")
+    p_rel.add_argument("--apply", dest="apply", action="store_true", default=False,
+                       help="실제 발행 (tag push + gh release create). v1.1.4+ 기본값 반전 — "
+                            "이전에는 default True 라 무인자 `release` 가 APPLY 로 진입했다. "
+                            "되돌리기 어려운 명령의 기본은 dry-run 이다 (claim_workspace / "
+                            "install_pre_push_hook / host_pull_registry 와 정합).")
+    # 개별 pre_check skip (v1.1.4+): 이전에는 --skip-validate 뿐이라 doctor 하나를
+    # 건너뛰려면 packaging/git/mypy 게이트까지 통째로 꺼야 했다 — 게이트 무력화를
+    # 강요하는 all-or-nothing. validate subcommand 와 같은 5 flag 를 노출한다.
+    p_rel.add_argument("--skip-packaging", action="store_true", default=False,
+                       help="pre_check 중 packaging check 만 skip")
+    p_rel.add_argument("--skip-doctor", action="store_true", default=False,
+                       help="pre_check 중 doctor baseline check 만 skip")
+    p_rel.add_argument("--skip-state", action="store_true", default=False,
+                       help="pre_check 중 state.json freshness check 만 skip")
+    p_rel.add_argument("--skip-git", action="store_true", default=False,
+                       help="pre_check 중 git clean check 만 skip")
+    p_rel.add_argument("--skip-mypy", action="store_true", default=False,
+                       help="pre_check 중 mypy strict check 만 skip")
     p_rel.add_argument("--json", action="store_true")
     p_rel.add_argument(
         "--legacy-memory", dest="legacy_memory", default=None,

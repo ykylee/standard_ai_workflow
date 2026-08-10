@@ -62,6 +62,8 @@ python3 workflow-source/tools/release_pipeline.py release \
 
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 
+v1.1.4+ 기본값: `--apply` 를 명시하지 않으면 `release` 는 **dry-run** 이다 (이전에는 무인자 실행이 APPLY 로 진입했다). `--dry-run --apply` 동시 지정 시 dry-run 이 이긴다. pre_check 게이트는 `--skip-packaging` / `--skip-doctor` / `--skip-state` / `--skip-git` / `--skip-mypy` 로 개별 skip 할 수 있다 — `--skip-validate` 는 5 게이트 전부를 끄므로 개별 flag 를 우선한다.
+
 ### 2.4 수동 빌드
 
 ```bash

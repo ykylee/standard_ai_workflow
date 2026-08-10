@@ -149,9 +149,10 @@ red 구간은 v1.1.0 / v1.1.1 이 **표기를 빠뜨린** 탓이었다. 검사�
 
 ## 3. smoke 회귀
 
-누적 smoke test **259/259 PASS** (2026-08-09, `dev,release,mcp-sdk` extra 를 깐
+누적 smoke test **260/260 PASS** (2026-08-10, `dev,release,mcp-sdk` extra 를 깐
 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신 전량
-결과* 를 반영하는 살아있는 지표다 (§2.7 / §2.8).
+결과* 를 반영하는 살아있는 지표다 (§2.7 / §2.8). 260 번째는
+`check_release_pre_check_gates.py` (TASK-2026-08-10-main-001).
 
 신규 smoke:
 

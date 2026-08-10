@@ -56,6 +56,9 @@ WATCHED_CHECKS = (
     # 아무것도 안 썼고, 그래서 이 검사가 실제 handoff 를 겨누고 있다는 사실이
     # 드러나지 않았다. 도구를 고치는 순간 저장소를 수정하기 시작했다.
     "check_cli_wrappers.py",
+    # v1.1.4: release dry-run 을 실호출한다. `release --dry-run` 이 저장소 문서
+    # 63개를 write 하던 전력이 있는 계열이라 (경로 1·5 와 같은 뿌리) 감시 대상.
+    "check_release_pre_check_gates.py",
 )
 
 CHECK_TIMEOUT_SEC = 300

@@ -198,11 +198,5 @@ def test_case_4_step_6_7_skip_message() -> None:
     assert case_4_step_6_7_skip_message(), "case_4_step_6_7_skip_message FAIL"
 
 
-def test_case_5() -> None:
-    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
-    assert True
-
-
-
 if __name__ == "__main__":
     raise SystemExit(main())

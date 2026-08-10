@@ -224,17 +224,6 @@ def test_unreadable_handoff_is_issue() -> None:
         print("✅ Unreadable handoff reported as issue.")
 
 
-def test_case_4() -> None:
-    # case_4: dummy wrapper (이 file 의 test 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-def test_case_5() -> None:
-    # case_5: dummy wrapper (이 file 의 test 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-
 if __name__ == "__main__":
     try:
         test_linter_pass()

@@ -263,16 +263,5 @@ def test_case_3_v0_7_4_deprecated_no_actual_use() -> None:
     assert case_3_v0_7_4_deprecated_no_actual_use(), "case_3_v0_7_4_deprecated_no_actual_use FAIL"
 
 
-def test_case_4() -> None:
-    # case_4: dummy wrapper (이 file 의 case 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-def test_case_5() -> None:
-    # case_5: dummy wrapper (이 file 의 case 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-
 if __name__ == "__main__":
     raise SystemExit(main())

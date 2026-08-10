@@ -176,16 +176,5 @@ def test_case_3_release_error_with_legacy_strict() -> None:
     assert case_3_release_error_with_legacy_strict(), "case_3_release_error_with_legacy_strict FAIL"
 
 
-def test_case_4() -> None:
-    # case_4: dummy wrapper (이 file 의 case 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-def test_case_5() -> None:
-    # case_5: dummy wrapper (이 file 의 case 가 3개뿐이라 dummy 추가)
-    assert True
-
-
-
 if __name__ == "__main__":
     raise SystemExit(main())

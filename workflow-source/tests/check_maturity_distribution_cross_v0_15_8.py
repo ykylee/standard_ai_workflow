@@ -225,11 +225,5 @@ def test_case_4_panel_1_plus_2_harness_and_last_updated() -> None:
     assert case_4_panel_1_plus_2_harness_and_last_updated(), "case_4_panel_1_plus_2_harness_and_last_updated FAIL"
 
 
-def test_case_5() -> None:
-    # case_5: dummy wrapper (이 file 의 case 가 4개뿐이라 dummy 추가)
-    assert True
-
-
-
 if __name__ == "__main__":
     raise SystemExit(main())

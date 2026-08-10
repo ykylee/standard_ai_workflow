@@ -219,6 +219,13 @@ drift 캘리브레이션, ... — handoff / 세션 기록 / agent memory / wiki 
 - **W-3 (entry 간 링크)**: 현재 7 entries 는 서로 고아라 expansion 이 구조적으로
   발동 불가. 신규 entry 적재 시 기존 entry 참조를 권장하는 규약 (agent memory
   의 `[[name]]` 링크 관행을 이식).
+  ✅ **구현** (같은 날, TASK-2026-08-10-main-013): `related_ids` additive 필드
+  (기존 mentioned_in stem 암묵 규약 대신 명시 링크; legacy 는 하위호환 유지) +
+  expansion 이 따라가고 + validation 이 dangling/self 를 잡고 (`태어난 적 없는
+  링크` 검출) + W-1 suggest skeleton 이 겹치는 entry 를 related 로 프리필 —
+  신규 entry 가 링크를 갖고 태어난다. 실물 링크 (회고 001 ↔ ADR-005 결정
+  MEM-2026-07-09-002) 로 **33일 만의 expansion 첫 발동 실증** (양방향 exp=1).
+  `tests/check_entry_links.py` 9 case (되주입 포함).
 - **W-4 (지표 재정의)**: hit_rate 단독 → (질의 다양성, 30일 신규 entry 수,
   조회된 distinct entry 수) 3-tuple 로. 항상 1.0 인 지표는 은퇴시킨다.
 - 기각 명시: BM25+ tuning ❌ / embedding 3단계 ❌ / merge default 변경 ❌

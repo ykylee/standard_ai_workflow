@@ -52,5 +52,5 @@ merge 는 33일간 0회. entries 는 2026-07-09 의 7건 이후 신규 0. 후속
 
 - W-1 write-path 운영 루프 — ✅ 구현 (`wk suggest-memory-entries`, advisory 무-write, TASK-2026-08-10-main-011)
 - W-2 질의 다양화 — ✅ 구현 (`derive_context_query_tokens` + telemetry `query_tokens`/`query_source`, TASK-2026-08-10-main-012). 첫 컨텍스트 질의의 정직한 miss 가 hit_rate 1.0 뒤에 숨어 있던 패널 간 반올림 불일치까지 드러냈다
-- W-3 entry 간 링크 규약 (expansion 이 살아나는 전제)
+- W-3 entry 간 링크 — ✅ 구현 (`related_ids` additive + validation + skeleton 프리필, TASK-2026-08-10-main-013). 실물 링크로 33일 만의 expansion 첫 발동 실증
 - W-4 지표 재정의 (질의 다양성 / 신규 entry / distinct 조회 3-tuple)

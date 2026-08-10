@@ -209,10 +209,43 @@ def validate_no_duplicate_primary(entries: list[MemoryEntry]) -> list[MemoryInde
     return issues
 
 
+def validate_related_links(entries: list[MemoryEntry]) -> list[MemoryIndexValidationIssue]:
+    """W-3: `related_ids` 의 dangling / self-reference 검출.
+
+    링크는 태어날 때부터 검증한다 — "죽은 링크" 의 대부분은 죽은 게 아니라
+    태어난 적 없는 링크다. dangling 은 오타/삭제/미적재 어느 쪽이든 사람이
+    봐야 할 신호.
+    """
+    known = {e.id for e in entries}
+    issues: list[MemoryIndexValidationIssue] = []
+    dangling: dict[str, list[str]] = {}
+    self_refs: list[str] = []
+    for e in entries:
+        for rid in e.related_ids:
+            if rid == e.id:
+                self_refs.append(e.id)
+            elif rid not in known:
+                dangling.setdefault(e.id, []).append(rid)
+    if dangling:
+        issues.append(MemoryIndexValidationIssue(
+            code="dangling_related_id",
+            detail=f"존재하지 않는 entry 를 가리키는 related_ids: {dangling}",
+            affected_ids=sorted(dangling),
+        ))
+    if self_refs:
+        issues.append(MemoryIndexValidationIssue(
+            code="self_related_id",
+            detail=f"자기 자신을 가리키는 related_ids: {sorted(set(self_refs))}",
+            affected_ids=sorted(set(self_refs)),
+        ))
+    return issues
+
+
 def validate_memory_index(workspace_root: Path) -> MemoryIndexValidationOutput:
     """`memory_index/` 의 전체 validation 결과."""
     entries = load_memory_index(workspace_root)
     issues = validate_no_duplicate_primary(entries)
+    issues.extend(validate_related_links(entries))
     return MemoryIndexValidationOutput(total_entries=len(entries), issues=issues)
 
 
@@ -258,10 +291,12 @@ def _linked_expansion(
     entries_by_id: dict[str, MemoryEntry],
     max_depth: int,
 ) -> tuple[set[str], int]:
-    """3단계: `mentioned_in` + `source_paths` 따라 1-hop expansion, `max_depth` cap.
+    """3단계: `related_ids` + `mentioned_in` + `source_paths` 따라 1-hop expansion, `max_depth` cap.
 
-    `path` 의 마지막 stem (`MEM-YYYY-MM-DD-NNN` or `MEM-YYYY-MM-DD-NNN.json`) 만
-    ID 로 lookup 한다. 동일 entry 내 self-reference 는 cycle guard 가 visited set 으로 차단.
+    `related_ids` (W-3, 명시 링크) 는 id 그대로 lookup. `mentioned_in` /
+    `source_paths` 는 path 의 마지막 stem (`MEM-YYYY-MM-DD-NNN[.json]`) 만
+    ID 로 lookup (legacy 암묵 규약, 하위호환 유지). 동일 entry 내
+    self-reference 는 cycle guard 가 visited set 으로 차단.
     """
     if max_depth <= 0 or not seed_ids:
         return set(seed_ids), 0
@@ -277,6 +312,9 @@ def _linked_expansion(
             entry = entries_by_id.get(eid)
             if entry is None:
                 continue
+            for rid in entry.related_ids:
+                if rid in entries_by_id and rid not in visited:
+                    next_frontier.add(rid)
             for path in entry.mentioned_in + entry.source_paths:
                 stem = Path(path).name
                 if stem.endswith(".json"):
@@ -557,6 +595,12 @@ def apply_memory_merge(
     mentioned_in = _dedupe_keep_order([m for s in sources for m in s.mentioned_in])
     owners = _dedupe_keep_order([o for s in sources for o in s.owners])
     scope = _dedupe_keep_order([sc for s in sources for sc in s.scope])
+    # W-3: 링크도 병합한다 — 병합 대상 자신을 가리키게 되는 링크는 제거
+    # (self-reference 는 validation 이 잡는 결함이 된다).
+    related_ids = [
+        r for r in _dedupe_keep_order([r for s in sources for r in s.related_ids])
+        if r != target_id and r not in request.source_ids
+    ]
 
     now = datetime.now(timezone.utc)
     target_entry = MemoryEntry(
@@ -570,6 +614,7 @@ def apply_memory_merge(
         scope=scope,
         merge_state=MergeState.MERGED,
         mentioned_in=mentioned_in,
+        related_ids=related_ids,
         created_at=sources[0].created_at,
         updated_at=now,
     )
@@ -859,14 +904,21 @@ def suggest_memory_entry_candidates(
             continue
         best_coverage = 0.0
         nearest: str | None = None
+        overlapping: list[tuple[float, str]] = []
         for entry, etoks in entry_tokens:
             coverage = len(tokens & etoks) / len(tokens)
+            if coverage > 0.0:
+                overlapping.append((coverage, entry.id))
             if coverage > best_coverage:
                 best_coverage = coverage
                 nearest = entry.id
         if best_coverage >= threshold:
             covered += 1
             continue
+        # W-3: 부분적으로 겹치는 기존 entry 를 related_ids 후보로 프리필한다 —
+        # 신규 entry 가 링크를 갖고 태어나야 expansion 이 산다. 최종 채택은
+        # skeleton 을 채우는 사람이 결정한다 (advisory).
+        related = [eid for _, eid in sorted(overlapping, key=lambda x: (-x[0], x[1]))[:3]]
         anchors = [
             t for t in _bm25_tokenize(title)
             if len(t) >= 2 and t not in _ANCHOR_STOPWORDS and not t.isdigit()
@@ -877,6 +929,7 @@ def suggest_memory_entry_candidates(
             "title": title,
             "best_coverage": round(best_coverage, 4),
             "nearest_entry_id": nearest,
+            "related_entry_ids": related,
             "suggested_cue_anchors": anchors[:_SUGGESTED_ANCHORS_CAP],
             "skeleton": {
                 "id": next_id,
@@ -889,6 +942,7 @@ def suggest_memory_entry_candidates(
                 "scope": [],
                 "merge_state": "active",
                 "mentioned_in": [],
+                "related_ids": related,
                 "created_at": f"{date_str}T00:00:00Z",
                 "updated_at": f"{date_str}T00:00:00Z",
             },

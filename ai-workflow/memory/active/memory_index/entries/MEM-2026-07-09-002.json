@@ -26,6 +26,9 @@
     "ai-workflow/memory/active/memory_index/README.md",
     "workflow-source/workflow_kit/common/schemas/memory_index.py"
   ],
+  "related_ids": [
+    "MEM-2026-08-10-001"
+  ],
   "created_at": "2026-07-09T00:46:00Z",
-  "updated_at": "2026-07-09T00:46:00Z"
+  "updated_at": "2026-08-10T00:00:00Z"
 }

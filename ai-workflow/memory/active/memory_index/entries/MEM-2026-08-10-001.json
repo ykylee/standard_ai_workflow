@@ -27,6 +27,9 @@
   "mentioned_in": [
     "ai-workflow/wiki/topics/memory-index-retrospective-2026.md"
   ],
+  "related_ids": [
+    "MEM-2026-07-09-002"
+  ],
   "created_at": "2026-08-10T00:00:00Z",
   "updated_at": "2026-08-10T00:00:00Z"
 }

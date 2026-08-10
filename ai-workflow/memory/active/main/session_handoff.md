@@ -4,14 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-10 (ADR-006 회고 + 후속 W-1·W-2 — TASK-010~012)
+- 최종 수정일: 2026-08-10 (ADR-006 회고 + 후속 W-1~W-3 — TASK-010~013)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **ADR-006 회고 (TASK-010) + 후속 W-1·W-2 구현 (TASK-011·012)** — telemetry 256 events 실측 회고 (ADR accepted), `wk suggest-memory-entries` (W-1, `MEM-2026-08-10-001` 적재로 루프 실증), 컨텍스트 유래 질의 + telemetry `query_tokens`/`query_source` (W-2, 정직한 miss 가 패널 반올림 불일치까지 드러냄). 남은 후속: W-3 entry 간 링크 / W-4 지표 재정의. 직전: **2026-08-09 세션의 "검증 못 한 것" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
+- 현재 기준선: **ADR-006 회고 (TASK-010) + 후속 W-1~W-3 구현 (TASK-011~013)** — telemetry 256 events 실측 회고 (ADR accepted), W-1 `wk suggest-memory-entries` (`MEM-2026-08-10-001` 적재), W-2 컨텍스트 유래 질의 + telemetry 질의 내용 기록, W-3 `related_ids` 링크 (**33일 만의 expansion 첫 발동 실증**). 남은 후속: W-4 지표 재정의. 직전: **2026-08-09 세션의 "검증 못 한 것" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
 - 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).
-- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / ADR-006 후속 **W-3 entry 간 링크 → W-4 지표 재정의** (W-1·W-2 는 ✅ TASK-011·012) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
+- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / ADR-006 후속 **W-4 지표 재정의** (W-1~W-3 은 ✅ TASK-011~013) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -38,6 +38,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-013 **ADR-006 W-3 entry 간 링크** — `related_ids` additive (legacy stem 규약 하위호환 유지) + expansion 추적 + dangling/self validation ("태어난 적 없는 링크" 검출) + W-1 skeleton 프리필 (신규 entry 가 링크를 갖고 태어남) + merge union. 실물 링크 (회고 001 ↔ ADR-005 결정 002) 로 **33일 만의 expansion 첫 발동** — `[retrospective]`/`[memora]` 양방향 cue 1 + exp 1. `check_entry_links` 9/9 (되주입 포함), smoke 265.
 - TASK-2026-08-10-main-012 **ADR-006 W-2 질의 다양화** — `derive_context_query_tokens` (state.json 축 + 최근 done 제목 → token 유도, 실패 시 skill 별 trio fallback + **출처 보고**) 를 3 skill 공용으로, telemetry 에 `query_tokens`/`query_source` additive (구 라인 하위호환). 실사: 컨텍스트 8 token + **정직한 miss** (cue 0 — index 가 최근 한 달을 모른다는 신호) — 그 첫 miss 가 33일간 hit_rate=1.0 뒤에 숨어 있던 **패널 간 반올림 불일치** 를 드러내 round-at-source 로 통일. 변하지 않는 지표는 자기 소비자의 결함도 숨긴다. `check_context_query_tokens` 8/8, smoke 264.
 - TASK-2026-08-10-main-011 **ADR-006 W-1 write-path advisory 루프** — `wk suggest-memory-entries` 신설: handoff §4 제목을 entry corpus 와 대조 (coverage < 0.5 → 후보 + skeleton, **무-write advisory**). 루프 실증 완주 — 첫 실측 10/10 후보 (max 0.14, 회고 재확인) → 회고를 `MEM-2026-08-10-001` 로 적재 (**33일 만의 첫 신규 entry**) → covered 0→1 + `query [retrospective,write-path]` 적중. smoke 8/8 (되주입: corpus 에 넣으면 후보가 사라짐), dispatcher 정합 10/10, mypy clean. smoke 263.
 - TASK-2026-08-10-main-010 **P2-1 ADR-006 Memory Index 회고** — telemetry 256 events (07-09~08-10) 실측: 30일 실사용 = **고정 질의 1종 → 고정 entry 1건** (BM25/expansion/merge 발동 0회, 신규 entry 0건, latency p50 0.18ms). hit_rate 1.0 은 캐시 적중이었다 — 질의 다양성을 안 재는 지표는 항상 green 이어도 정보가 없다. ADR-006 placeholder → **accepted** (~230 line, 6 영역 + 보강 2). 후속 W-1 write-path advisory 루프 / W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 기각: BM25 tuning·embedding·merge default 변경. wiki topic 신설, phase_13_followup stale 날짜 정정 (08-19 → 실제 tag 07-02).
@@ -47,7 +48,6 @@
 - TASK-2026-08-10-main-006 **v1.1.5-beta 발행** — `cmd_release` 2번째 실전 완주. **파생물 선재생성** (v1.1.4 교훈: fixtures 3종 + samples 24건 + stamp 4종을 릴리스 *전에*, 10개 검사 사전 green) → post-apply 잔여 73→**4 파일**. pre_check 5/5 skip 없이, step 3.4 261/261 정합.
 - TASK-2026-08-10-main-005 **dist 기본값 dry-run 반전** — release 의 v1.1.4 반전과 같은 결함이 dist subparser 에 복제돼 있었다 (default True 가 main() 정규화를 무력화). 무인자 dist = plan 만. pre_check_gates 10 → **12/12** (default AST + 무인자 subprocess). 기존 소비자 전부 flag 명시라 회귀 없음.
 - TASK-2026-08-10-main-004 **TST-WF-01 측정 재설계** — 실측이 설계를 결정: AST 로 4개 관행(def/assert/reporter 호출/failures.append)을 세고 `assert True` dummy 153개를 배제하니 **260개 전 파일 ≥1 신호**. hard floor = 파일당 ≥1 (검증 없는/parse 불가 파일 검출), ≥5 는 권장으로 notes 노출. partial 예외 제거 + pre_check_gates case 10 을 예외 *부재* 고정으로 반전. `check_tst_wf01_signals` 9/9 (되주입 3종). 정본 문서 2곳 동기. smoke 261.
-- TASK-2026-08-10-main-003 **v1.1.4-beta 를 `cmd_release` 경로로 발행** — 수동 발행 관행 종료. version-bump(dirty 거부 → amend 가드 첫 정상 완주) → note-draft → stamp 정합(검사 4종으로 탐지) → dist(twine PASSED) → dry-run(pre_check **5/5 skip 없이 통과**) → apply(tag push + gh release + dashboard emit + audit append 자동 완주) → verify 실증. 자동 후처리(최종 수정일 68건 + CHANGELOG `[1.1.4]`)는 post-release 커밋으로 수습.
 ## 5. 다음 세션 시작 포인트
 
 ### 무엇이 끝났나 (2026-08-10 세션)

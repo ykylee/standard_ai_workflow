@@ -56,6 +56,13 @@ class MemoryEntry(BaseModel):
                                     description="merge lifecycle")
     mentioned_in: list[str] = Field(default_factory=list,
                                     description="이 entry 를 참조하는 영구 문서 / wiki / ADR 경로")
+    # W-3 (ADR-006 후속, additive): entry 간 명시 링크. 33일 실사용에서
+    # expansion(3단계)이 한 번도 발동하지 못한 원인은 entry 가 전부 고아라는
+    # 것이었다. agent memory 의 [[name]] 링크 관행을 이식 — 문서 경로 필드에
+    # id 를 섞는 암묵 규약 대신 명시 필드. expansion 이 따라가고, validation 이
+    # dangling 을 잡는다. 구 entry 는 기본값(빈 list)으로 하위호환.
+    related_ids: list[str] = Field(default_factory=list, max_length=16,
+                                   description="관련 entry id (MEM-YYYY-MM-DD-NNN). expansion 3단계가 따라간다 (W-3)")
     created_at: datetime = Field(..., description="최초 생성 시각")
     updated_at: datetime = Field(..., description="마지막 갱신 시각")
 

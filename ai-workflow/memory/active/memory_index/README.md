@@ -54,6 +54,10 @@ memory_index/
   `wk suggest-memory-entries` 를 돌리면 handoff §4 의 완료 작업 중 index 가
   모르는 것을 skeleton 과 함께 **advisory 제안** 한다 (자동 적재 ❌ — 채우는
   건 사람/에이전트). 30일간 신규 entry 0건이던 write-path 의 운영 루프.
+- **링크** (ADR-006 W-3, v1.1.5+): 신규 entry 는 관련 entry 를 `related_ids`
+  로 연결한다 (agent memory 의 `[[name]]` 관행). expansion(3단계)이 이 링크를
+  따라가고, `wk suggest-memory-entries` 의 skeleton 이 겹치는 entry 를
+  프리필한다. dangling/self 링크는 `validate_memory_index` 가 잡는다.
 - **생성**: 새 session 또는 새 concept 발견 시 helper 로 entry 1개 생성.
   ```python
   from workflow_kit.common.schemas.memory_index import MemoryEntry, MergeState

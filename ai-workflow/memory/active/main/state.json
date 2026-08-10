@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-016 — smoke slash job 15연속 red 해소 (검사가 살아있는 브랜치 상태에 의존)",
       "TASK-2026-08-10-main-015 — v1.1.6-beta 발행 (cmd_release 3번째 실전)",
       "TASK-2026-08-10-main-014 — ADR-006 W-4: memory_index 지표 재정의 (3-tuple)",
       "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",
@@ -41,18 +42,18 @@
       "TASK-2026-08-10-main-010 — P2-1 ADR-006 Memory Index 회고 본문 작성",
       "TASK-2026-08-10-main-009 — registry server 비-loopback bind 실측",
       "TASK-2026-08-10-main-008 — title drift 임계 0.6 실측 보정",
-      "TASK-2026-08-10-main-007 — v0.15.18 dummy wrapper 물리 제거",
-      "TASK-2026-08-10-main-006 — v1.1.5-beta 발행 (cmd_release 2번째 실전)"
+      "TASK-2026-08-10-main-007 — v0.15.18 dummy wrapper 물리 제거"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 15,
+    "task_count": 16,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-016 — smoke slash job 15연속 red 해소 (검사가 살아있는 브랜치 상태에 의존)",
       "TASK-2026-08-10-main-015 — v1.1.6-beta 발행 (cmd_release 3번째 실전)",
       "TASK-2026-08-10-main-014 — ADR-006 W-4: memory_index 지표 재정의 (3-tuple)",
       "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",

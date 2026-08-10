@@ -209,8 +209,12 @@ def cmd_validate(args) -> dict:
                     "state_path": str(state_path),
                 }
         else:
-            # state.json 부재도 OK (default empty state 시 v0.7.8 정합)
-            results["state"] = {"ok": True, "absent": True}
+            # state.json 부재도 OK (default empty state 시 v0.7.8 정합).
+            # v1.1.7: 어떤 경로를 보고 부재라 판정했는지 함께 보고한다 — 경로는
+            # 브랜치 컨텍스트(`CODEX_WORKFLOW_BRANCH`)에 따라 달라지므로, 이것이
+            # 없으면 "왜 absent 인지" 를 호출자가 알 수 없다 (실제로 CI slash job
+            # 진단을 어렵게 만든 자리다).
+            results["state"] = {"ok": True, "absent": True, "state_path": str(state_path)}
     else:
         results["state"] = {"ok": True, "skipped": True}
 

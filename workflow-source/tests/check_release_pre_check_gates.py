@@ -13,18 +13,27 @@ doctor / state 가 만성 실패였고 개별 skip 도 없었기 때문이다. �
 3. 무인자 `release` 의 기본이 APPLY 였다 (--apply default True 가 main() 의
    "둘 다 없으면 dry-run" 정규화를 무력화).
 
-검증 케이스 (12 — v1.1.5 에서 1b·3b dist 기본값 추가):
+검증 케이스 (14 — v1.1.5 에서 1b·3b dist 기본값, v1.1.7 에서 7b·11 추가):
     1. release subparser 의 `--apply` default 는 False (AST)
     2. 무인자 `release` 는 dry-run 으로 진입한다 (subprocess)
     3. `--dry-run --apply` 동시 지정 시 dry-run 이 이긴다 (subprocess)
     4. doctor 호출 argv 에 `REPO_ROOT.parent` + `--config-path` 가 있다 (AST)
     5. baselines 가 저장소 루트 기준으로 test 파일을 실제로 본다 (≥ 100 files)
     6. cmd_validate doctor 게이트가 통과한다 (functional)
-    7. cmd_validate state 게이트가 현 스키마(`generated_at`)로 통과한다
+    7. cmd_validate state 게이트가 현 스키마(`generated_at`)로 통과한다 (되주입)
+    7b. 살아있는 저장소의 state 도 통과한다 — 부재하는 브랜치 컨텍스트에서는 SKIP
     8. generated_at / last_freeze 둘 다 없는 state 는 fail 한다 (결함 되주입)
     9. legacy 스키마 (`memory.last_freeze` 만) 는 여전히 통과한다 (하위호환)
     10. pyproject 의 testing partial_rules 선언이 살아 있다 (TST-WF-01 제외,
         02~06 hard 유지) — 선언된 예외가 조용히 사라지면 여기서 잡는다
+    11. state.json 부재는 통과 + `absent`/`state_path` 를 보고한다 (되주입)
+
+v1.1.7 — case 7 이 *살아있는 저장소* 의 state.json 을 읽던 것이 CI smoke 의
+`slash` job (`CODEX_WORKFLOW_BRANCH` 로 브랜치를 강제) 을 15연속 red 로 만들었다.
+그 브랜치엔 state.json 이 없고, 게이트는 부재를 정당한 통과로 설계했는데 검사만
+결함으로 봤다. 판정은 되주입으로 결정적이어야 하고(7·8·9·11), 환경 의존은 분리해
+명시적으로 skip 을 보고해야 한다(7b). 같은 유형을 08-10 에만 세 번 고쳤다
+(doctor exit-on-fail, dashboard timeline 2건, 그리고 여기).
 
 Stdlib only.
 """
@@ -47,6 +56,11 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 PIPELINE_PY = SOURCE_ROOT / "tools" / "release_pipeline.py"
+
+# 전체 case 수. 7b 는 브랜치 컨텍스트에 state.json 이 없으면 skip 되므로, 기대치는
+# `TOTAL_CASES - (7b skip 이면 1)` 로 *계산* 한다 — 하한이 아니라 정확값이어야
+# case 가 조용히 사라지는 것을 잡는다 (v1.1.6 까지 하드코딩 total 이 하던 역할).
+TOTAL_CASES = 14
 
 
 def _subparser_defaults(command: str) -> dict[str, object]:
@@ -113,8 +127,10 @@ def _run_release(*extra: str) -> dict:
 
 def main() -> int:
     failures: list[str] = []
+    ran = [0]
 
     def check(label: str, cond: bool, detail: str = "") -> None:
+        ran[0] += 1
         if cond:
             print(f"PASS: {label}")
         else:
@@ -197,20 +213,29 @@ def main() -> int:
         f"doctor={doctor_res}",
     )
 
-    # 7) state 게이트 — 현 스키마 generated_at 로 통과
-    state_res = rp.cmd_validate(_validate_ns(skip_state=False))["state"]
-    check(
-        "7) state 게이트가 generated_at 로 통과",
-        state_res.get("ok") is True and bool(state_res.get("generated_at")),
-        f"state={state_res}",
-    )
-
-    # 8)~9) state 판정 되주입 — 경로만 tmp 로 바꿔 fail/legacy 를 확인
+    # 7)~9), 11) state 판정 되주입 — 경로만 tmp 로 바꿔 4 스키마를 결정적으로 확인.
+    # v1.1.7: case 7 이 여기로 들어왔다. 이전엔 *살아있는 저장소* 의 state.json 을
+    # 읽어 `generated_at` 을 요구했는데, 그 경로는 브랜치 컨텍스트에 따라 달라진다
+    # — CI smoke 의 `slash` job (`CODEX_WORKFLOW_BRANCH=feature/ci-slash-probe`)
+    # 에는 그 브랜치의 state.json 이 없어 게이트가 정당하게 absent 를 반환했고,
+    # 검사만 그것을 fail 로 봤다 (15연속 red, native job 은 내내 green).
+    # 판정 자체는 환경과 무관해야 한다 — 환경 의존은 아래 7b 로 분리한다.
     orig_path_fn = rp.state_path_for_workspace
     try:
         with tempfile.TemporaryDirectory() as tmp:
             fake = Path(tmp) / "state.json"
             rp.state_path_for_workspace = lambda _root: fake  # type: ignore[assignment]
+
+            fake.write_text(
+                json.dumps({"schema_version": "1", "generated_at": "2026-08-10"}),
+                encoding="utf-8",
+            )
+            res7 = rp.cmd_validate(_validate_ns(skip_state=False))["state"]
+            check(
+                "7) state 게이트가 generated_at 로 통과 (되주입)",
+                res7.get("ok") is True and res7.get("generated_at") == "2026-08-10",
+                f"state={res7}",
+            )
 
             fake.write_text(json.dumps({"schema_version": "1"}), encoding="utf-8")
             res8 = rp.cmd_validate(_validate_ns(skip_state=False))["state"]
@@ -230,8 +255,39 @@ def main() -> int:
                 res9.get("ok") is True,
                 f"state={res9}",
             )
+
+            # 11) 부재 = 정당한 통과. 이 계약을 아무도 안 재고 있었기 때문에
+            # case 7 이 그것을 결함으로 오인해도 드러나지 않았다. absent 응답은
+            # *어느 경로를 봤는지* 도 실어야 한다 (안 그러면 진단이 불가능하다).
+            fake.unlink()
+            res11 = rp.cmd_validate(_validate_ns(skip_state=False))["state"]
+            check(
+                "11) state.json 부재는 통과 + absent/state_path 보고 (되주입)",
+                res11.get("ok") is True
+                and res11.get("absent") is True
+                and res11.get("state_path") == str(fake),
+                f"state={res11}",
+            )
     finally:
         rp.state_path_for_workspace = orig_path_fn  # type: ignore[assignment]
+
+    # 7b) 살아있는 저장소의 state — 있으면 게이트를 통과해야 한다. 브랜치 컨텍스트에
+    # 따라 부재가 정상이므로(위 case 11 이 그 계약을 고정한다) 부재는 명시 SKIP 으로
+    # 남긴다. 조용히 통과시키지 않는 이유는 "모름 ≠ 안전" — 안 잰 것은 안 잰 것으로
+    # 보고한다.
+    live = rp.cmd_validate(_validate_ns(skip_state=False))["state"]
+    skipped_7b = bool(live.get("absent"))
+    if skipped_7b:
+        print(
+            "SKIP: 7b) 살아있는 저장소 state — 이 브랜치 컨텍스트엔 state.json 이 없다 "
+            f"(path={live.get('state_path')}). 판정 계약은 case 7~9·11 이 고정한다."
+        )
+    else:
+        check(
+            "7b) 살아있는 저장소의 state 가 게이트를 통과",
+            live.get("ok") is True and bool(live.get("generated_at")),
+            f"state={live}",
+        )
 
     # 10) testing partial 예외가 *제거된 상태* 로 유지되는지 고정.
     # v1.1.4 에서 TST-WF-01 측정 결함 탓에 잠시 선언 예외였고, v1.1.5 에서 측정을
@@ -245,7 +301,13 @@ def main() -> int:
         f"partial_rules={cfg.partial_rules}",
     )
 
-    total = 12
+    # v1.1.7: 총계는 하드코딩 대신 *계산* 한다 — 7b 는 브랜치 컨텍스트에 따라 skip
+    # 되므로 실행 수가 가변이지만, skip 여부를 알고 있으니 기대치는 정확하다.
+    expected = TOTAL_CASES - (1 if skipped_7b else 0)
+    total = ran[0]
+    if total != expected:
+        print(f"FAIL: 실행된 case {total} 개 ≠ 기대 {expected} 개 — case 가 사라졌거나 늘었다")
+        return 1
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")
         return 1

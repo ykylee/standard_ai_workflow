@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-10T14:30:00+09:00",
+  "generated_at": "2026-08-10T15:30:00+09:00",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,12 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**TST-WF-01 측정 재설계 완료** (2026-08-10, TASK-004) — AST verification-signal 기반, partial 예외 제거, hard 복귀 + 정직하게 compliant. 직전: v1.1.4-beta 발행 (cmd_release 경로 첫 실전 발행). 전량 검사 261/261 PASS.",
-    "current_axis": "릴리스 파이프라인 정상화 사이클 close (TASK-2026-08-10-main-001~004). 진행 중: (없음). 다음 후보: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v0.15.18 dummy wrapper 제거 (별건, 급하지 않음).",
+    "current_baseline": "**v1.1.5-beta 발행 완료 — cmd_release 2번째 실전** (2026-08-10, tag `v1.1.5-beta`). TST-WF-01 예외 제거 + dist dry-run 반전 묶음. 파생물 선재생성으로 post-apply 잔여 73→4. 전량 검사 261/261 PASS.",
+    "current_axis": "릴리스 파이프라인 정상화 사이클 완결 (TASK-2026-08-10-main-001~006, 릴리스 2회). 진행 중: (없음). 다음 후보: branch protection (소유자 결정) / darwin homelab mavis e2e 재확인 / dummy wrapper 물리 제거 / P2-1 ADR-006 회고 (08-19 이후).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-006 — v1.1.5-beta 발행 (cmd_release 2번째 실전, 파생물 선재생성으로 post-apply 잔여 73→4)",
+      "TASK-2026-08-10-main-005 — dist 기본값 dry-run 반전 (release 와 정합, pre_check_gates 12/12)",
       "TASK-2026-08-10-main-004 — TST-WF-01 측정 재설계 (AST signal 기반, dummy 배제, partial 예외 제거, check_tst_wf01_signals 9/9)",
       "TASK-2026-08-10-main-003 — v1.1.4-beta 를 cmd_release 경로로 발행 (수동 발행 관행 종료, pre_check 5/5 skip 없이 통과, amend 가드 첫 정상 완주)",
       "TASK-2026-08-10-main-001 — cmd_release 사용성 회복 (pre_check 만성 실패 3뿌리 해소 + release 기본 dry-run + 개별 skip 5종 + check_release_pre_check_gates 10/10). 전량 260/260 PASS",
@@ -88,10 +90,12 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 4,
+    "task_count": 6,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-006 — v1.1.5-beta 발행",
+      "TASK-2026-08-10-main-005 — dist 기본값 dry-run 반전",
       "TASK-2026-08-10-main-004 — TST-WF-01 측정 재설계",
       "TASK-2026-08-10-main-003 — v1.1.4-beta cmd_release 발행",
       "TASK-2026-08-10-main-001 — cmd_release 사용성 회복",

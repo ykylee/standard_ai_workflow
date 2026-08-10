@@ -9,9 +9,9 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
-- 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 close (TASK-001~004).
-- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v0.15.18 dummy wrapper 물리 제거 (별건, 급하지 않음) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
+- 현재 기준선: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
+- 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).
+- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v0.15.18 dummy wrapper 물리 제거 (별건) / **P2-1 ADR-006 회고 (2026-08-19 이후 착수 조건 충족)** / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -38,6 +38,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-006 **v1.1.5-beta 발행** — `cmd_release` 2번째 실전 완주. **파생물 선재생성** (v1.1.4 교훈: fixtures 3종 + samples 24건 + stamp 4종을 릴리스 *전에*, 10개 검사 사전 green) → post-apply 잔여 73→**4 파일**. pre_check 5/5 skip 없이, step 3.4 261/261 정합.
+- TASK-2026-08-10-main-005 **dist 기본값 dry-run 반전** — release 의 v1.1.4 반전과 같은 결함이 dist subparser 에 복제돼 있었다 (default True 가 main() 정규화를 무력화). 무인자 dist = plan 만. pre_check_gates 10 → **12/12** (default AST + 무인자 subprocess). 기존 소비자 전부 flag 명시라 회귀 없음.
 - TASK-2026-08-10-main-004 **TST-WF-01 측정 재설계** — 실측이 설계를 결정: AST 로 4개 관행(def/assert/reporter 호출/failures.append)을 세고 `assert True` dummy 153개를 배제하니 **260개 전 파일 ≥1 신호**. hard floor = 파일당 ≥1 (검증 없는/parse 불가 파일 검출), ≥5 는 권장으로 notes 노출. partial 예외 제거 + pre_check_gates case 10 을 예외 *부재* 고정으로 반전. `check_tst_wf01_signals` 9/9 (되주입 3종). 정본 문서 2곳 동기. smoke 261.
 - TASK-2026-08-10-main-003 **v1.1.4-beta 를 `cmd_release` 경로로 발행** — 수동 발행 관행 종료. version-bump(dirty 거부 → amend 가드 첫 정상 완주) → note-draft → stamp 정합(검사 4종으로 탐지) → dist(twine PASSED) → dry-run(pre_check **5/5 skip 없이 통과**) → apply(tag push + gh release + dashboard emit + audit append 자동 완주) → verify 실증. 자동 후처리(최종 수정일 68건 + CHANGELOG `[1.1.4]`)는 post-release 커밋으로 수습.
 - TASK-2026-08-10-main-001 **cmd_release 사용성 회복** — pre_check 만성 실패 3뿌리 해소: (1) doctor 호출이 `workflow-source/workflow-source/` 를 탐색해 **0 files 를 재고 non_compliant** → repo root + `--config-path` + env 명시 (2) TST-WF-01 이 inline `check()`/`failures.append` 관행을 못 봐 만성 red → dummy wrapper 전례 대신 `partial_rules.testing` **선언된 예외** (3) state 검사의 `memory.last_freeze` 는 writer 가 사라진 죽은 계약 → `generated_at` (legacy 하위호환). + **무인자 `release` dry-run 반전** + 개별 `--skip-*` 5종 + mypy "실행 불가 vs 오류" 출처 구분. `check_release_pre_check_gates` 10/10 신설. venv 실측 pre_check 5/5 통과. 전량 **260/260 PASS**.
@@ -46,8 +48,6 @@
 - TASK-2026-08-09-main-016 릴리스 절차에 **노트 누적 수치 검증** step 3.4 신설 — TASK-015 가 "검사가 아니라 절차 문제" 로 짚은 자리. note 부재 / 표기 부재 / 수치 불일치를 각각 잡고 조치를 안내한다. **자동으로 채우지 않는다** — 그 줄은 *전량 PASS 했다* 는 주장이고, 도구가 대신 적으면 거짓이 된다 (회귀 case 9b 가 쓰기 금지를 고정). 정규식은 dashboard 와 같은 것을 쓴다. 10/10 PASS.
 - TASK-2026-08-09-main-015 `check_smoke_trend_cross` **오독 정정 — 검사가 맞았다**. 노트의 누적 수치는 *릴리스 스냅샷이 아니라 살아있는 지표* 였다 (smoke 가 늘면 최신 노트를 갱신해 온 관행; `Beta-v1.0.0.md` 199→…→234). 내가 본 '모순' 은 **사후 갱신을 모르고** 한 오독 — 태그 시점엔 199/199 정합. red 구간은 v1.1.0·v1.1.1 이 **표기를 빠뜨린** 탓. 판정 복원 + 노트 257→**259**. **검사를 고치기 전에 그 검사가 지켜 온 관행을 먼저 확인한다.**
 - TASK-2026-08-09-main-014 `memory-index-query` **beta → stable** — §3.1 6 조건 중 2 미충족을 채움: **error_code 3종**(이전엔 stderr + rc 2 뿐이라 실패 종류 구분 불가 → `ErrorOutput` 을 stdout 에) + SKILL.md 실행 예시. smoke 26/26. **skill 14 stable / 0 beta**. **이번엔 문서가 맞았다** — 기준 문서(criteria)는 살아 있었고 상태 문서만 낡았다.
-- TASK-2026-08-09-main-013 `phase_13_followup` **전반 실측 대조** — 정합 5 / 정정 3. **harness 는 숫자가 아니라 정의가 문제였다**: `mavis` 를 matrix 에 넣자 `check_harness_v0_15_9` 가 깨졌고, 그건 **project-local 산출물 0** 인 harness 라 디렉터리 없는 게 설계였기 때문이다 (`custom` 도 같은 부류). `harnesses.supported` = *overlay 배포* 목록 → 11 이 맞다. `NON_OVERLAY_HARNESSES` 에 이유와 함께 선언. **검사도 하드코딩 10개에 갇혀 새 harness 를 몰랐다** → 정본 유도로 교체.
-- TASK-2026-08-09-main-012 Phase 13 **P1 묶음 close** — **세 항목이 전부 실제와 달랐다**. P1-1 "pre-step 부재" → v0.15.21+ 에 이미 있었고, 남은 건 (a) 최근 3 release 가 수동 발행이라 CHANGELOG 가 안 갱신된 것(**오늘 내가 그렇게 냈다**) (b) `(v3.0)` 오탐이 `[3.0.1]` 을 최신 자리에 앉힌 것 → `NON_RELEASE_VERSIONS` 선언 예외. P1-2/P1-3 은 **이미 v0.11.24 에서 stable**. 실측 skill stage **13 stable / 1 beta**(유일 beta = `memory-index-query`).
 ## 5. 다음 세션 시작 포인트
 
 ### 무엇이 끝났나 (2026-08-10 세션)

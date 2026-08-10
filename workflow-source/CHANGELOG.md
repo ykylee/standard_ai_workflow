@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(quality): TST-WF-01 측정 재설계 — AST verification-signal, partial 예외 제거 (ff744b4)
 - feat(release): cmd_release 사용성 회복 — pre_check 만성 실패 3뿌리 + dry-run 기본값 (e741de6)
 - feat(release): 릴리스 절차에 노트 누적 수치 검증 자리 (step 3.4) (268ede7)
 - feat(skill): memory-index-query beta → stable (14/14, 잔여 beta 0) (fd612ad)
@@ -45,8 +46,7 @@ All notable changes to this project will be documented in this file.
 - feat(sdk-matrix): 매트릭스를 로컬로 내렸다 — 알고 있던 함정을 다시 밟았다 (§2.64) (fff417b)
 - feat(mcp): transport_ready 축 분리 + apply_mode 승격 기준을 실행 가능한 검사로 (§2.63) (9835eeb)
 - feat(mcp): Claude Code MCP 를 붙였다 — 표가 선언만 하고 배송하지 않던 행 (§2.60) (6ebbd8b)
-- feat(tools): 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다 (§2.52) (5c8a85f)
-- ... (75 more)
+- ... (76 more)
 
 ### Changed
 
@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(release): dist 기본값 dry-run 반전 — release 와 정합 (TASK-2026-08-10-main-005) (4c7895f)
+- fix(tests): doctor exit-on-fail 테스트 — 살아있는 저장소 상태 대신 결정적 fixture (c0ad1a6)
 - fix(tests): mavis e2e 호스트 사본 제거 + 세션 close memory 갱신 (4b67621)
 - fix(tests): smoke_trend 판정 복원 — 검사가 맞았고 내 진단이 틀렸다 (15d5a22)
 - fix(phase13,harness): 문서 전반 실측 대조 + harness 정본 정의 확정 (6a1ecf7)
@@ -112,15 +114,24 @@ All notable changes to this project will be documented in this file.
 - fix(ci): 인스펙터가 서버 인자를 삼키고 있었다 — 도구도 의존성이다 (§2.42) (7b1404b)
 - fix(deps): 상한 핀 복원 — 이관 범위를 파일 하나로 잡았다 (§2.41 정정) (7469fb1)
 - fix(server): mcp 1.x/2.x 양쪽을 해석한다 — 상한 핀 해제 (§2.41) (1b8a0eb)
-- fix(deps): mcp 상한 핀 — 2.0.0 이 fastmcp 모듈을 없애 CI 가 red 로 넘어갔다 (71feef3)
-- fix(migrate): 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 (§2.40) (d14d5f4)
-- ... (66 more)
+- ... (68 more)
+
+## [1.1.5] - 2026-08-10
+
+### Changed
+
+- chore(release): v1.1.5-beta 준비 — 노트 + 파생물 선재생성 + stamp (6e77c14)
 
 ## [1.1.4] - 2026-08-10
 
 ### Changed
 
+- docs(release): v1.1.4-beta 발행 후처리 + 세션 close memory (ea7687b)
 - chore(release): v1.1.4-beta 준비 — 노트 + stamp 정합 (7a12490)
+
+### Fixed
+
+- fix(release): v1.1.4 파생물 재생성 — 릴리스 직후 전량 재실행이 잡은 9건 (890521f)
 
 ## [1.1.3] - 2026-08-10
 

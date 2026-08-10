@@ -81,3 +81,19 @@ v1.1.4 에서 배운 파생물 재생성(fixtures 3종 + samples 24건 + stamp 4
 - branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인.
 - v0.15.18 dummy wrapper 물리 제거 (측정에서는 이미 배제, 별건).
 - P2-1 ADR-006 Memory Index 회고 (2026-08-19 이후 착수 조건 충족).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-10T04:23:04Z)_
+
+- total wiki pages: **92**
+- total memory entries: **7**
+- symmetric links: **0**
+- asymmetric count: **1**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **1**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`

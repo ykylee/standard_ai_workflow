@@ -83,3 +83,19 @@ version-bump post-step (`sync_release_hash` + amend 가드) 이 **처음으로 �
 - **TST-WF-01 측정 재설계** — 관행 인식형 counting 이 되면 partial 예외를 제거.
 - **darwin homelab 에서 mavis e2e 재확인** — 정본 읽기 전환 후 첫 실행.
 - branch protection (소유자 결정) / `dist` 의 `--apply default True` 동류 (보류).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-10T02:48:54Z)_
+
+- total wiki pages: **92**
+- total memory entries: **7**
+- symmetric links: **0**
+- asymmetric count: **1**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **1**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`

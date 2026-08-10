@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-09
+- 최종 수정일: 2026-08-10
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,13 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-09
+## [Unreleased] - 2026-08-10
 
 ### Added
 
+- feat(release): cmd_release 사용성 회복 — pre_check 만성 실패 3뿌리 + dry-run 기본값 (e741de6)
+- feat(release): 릴리스 절차에 노트 누적 수치 검증 자리 (step 3.4) (268ede7)
+- feat(skill): memory-index-query beta → stable (14/14, 잔여 beta 0) (fd612ad)
 - feat(telemetry): AC2 acceptance 를 윈도 기반 지표로 (c5b69d6)
 - feat(cli,registry,safety,drift): 다음 후보 축 4건 close — wk / HTTP server / branch protection / title drift v2 (ad3ab02)
 - feat(cli): [project.scripts] entry points (CLI 化 A안, v1.1.1+) (029ee39)
@@ -43,13 +46,11 @@ All notable changes to this project will be documented in this file.
 - feat(mcp): transport_ready 축 분리 + apply_mode 승격 기준을 실행 가능한 검사로 (§2.63) (9835eeb)
 - feat(mcp): Claude Code MCP 를 붙였다 — 표가 선언만 하고 배송하지 않던 행 (§2.60) (6ebbd8b)
 - feat(tools): 네 번을 손으로 찾았다 — 기준 전수 조사를 저장소에 남긴다 (§2.52) (5c8a85f)
-- feat(ci): 두 major 커버리지를 선언으로 — mcp SDK 버전 matrix (§2.45) (4cfda75)
-- feat(deps): optional dep import 탐지층 — 관대한 설정은 판정을 지운다 (§2.44) (ea1576c)
-- feat(rules): 진입점 규칙을 정본에서 생성 + 자기 적용을 검사로 고정 (§2.31~§2.34) (6563974)
-- ... (72 more)
+- ... (75 more)
 
 ### Changed
 
+- docs(memory): TASK-2026-08-10-main-003 등록 — v1.1.4-beta cmd_release 발행 (3236bca)
 - docs(phase13): P0-2 close — telemetry 4 source 수렴 + 문서 정정 (87d0ea2)
 - docs(memory): 2026-08-09 세션 close — 세션 기록 + state/handoff 최종 동기 (49a2b54)
 - docs(memory): 정합성 정리 — backlog status/링크 + task 상태 + state/handoff 동기 (4e31d8c)
@@ -79,11 +80,14 @@ All notable changes to this project will be documented in this file.
 - docs(memory): 기준선을 33424fc 로 갱신 (커밋 2건 각각 트리거된 CI 3종 green 실측) (4bfbc20)
 - docs(memory): 기준선을 c58111d 로 갱신 (트리거된 CI 6종 전부 green 실측) (7d18f2f)
 - docs(memory): 기준선을 7b076f8 로 갱신 + okf-validate 가 새로 드러낸 2건 기록 (4ac03ba)
-- docs(memory): 기준선을 9efbd88 로 갱신 (트리거된 CI 4종 green 실측) (19df5d7)
-- ... (218 more)
+- ... (219 more)
 
 ### Fixed
 
+- fix(tests): mavis e2e 호스트 사본 제거 + 세션 close memory 갱신 (4b67621)
+- fix(tests): smoke_trend 판정 복원 — 검사가 맞았고 내 진단이 틀렸다 (15d5a22)
+- fix(phase13,harness): 문서 전반 실측 대조 + harness 정본 정의 확정 (6a1ecf7)
+- fix(changelog,docs): Phase 13 P1 close — 세 항목 모두 문서가 실제와 달랐다 (aeafaab)
 - fix(tests): dist skip 전제를 cmd_dist 와 같은 기준으로 (63d2366)
 - fix(release): 릴리스 도구 결함 2건 + 릴리스 없이 잡히는 회귀 검사 (ca3c9c6)
 - fix(tools): memory 경로 조립을 정본 API 로 + v1.1.2 릴리스 노트 초안 (6652ba6)
@@ -110,11 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(server): mcp 1.x/2.x 양쪽을 해석한다 — 상한 핀 해제 (§2.41) (1b8a0eb)
 - fix(deps): mcp 상한 핀 — 2.0.0 이 fastmcp 모듈을 없애 CI 가 red 로 넘어갔다 (71feef3)
 - fix(migrate): 구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다 (§2.40) (d14d5f4)
-- fix(state): status 칸에 출처를 적고 있었다 — 진행 상태 축과 출처 축의 분리 (§2.39) (5be5ba4)
-- fix(state): "최근 완료" 가 최신을 고른 적이 없었다 — 상한·정렬·완료 판정 (§2.38) (047d4e5)
-- fix(backlog-update): state.json 을 파괴하던 정규식 사본 + 결함 3건 (§2.37) (fbdc8f9)
-- fix(tests): 같은 자기참조가 넷이었다 — push 직전에는 통과할 수 없던 게이트 (§2.35 (8)) (fbca6d7)
-- ... (62 more)
+- ... (66 more)
+
+## [1.1.4] - 2026-08-10
+
+### Changed
+
+- chore(release): v1.1.4-beta 준비 — 노트 + stamp 정합 (7a12490)
+
+## [1.1.3] - 2026-08-10
+
+### Changed
+
+- docs(memory): v1.1.3-beta 발행 기록 + 릴리스 파이프라인 후속 2건 (e956f22)
+- chore(release): v1.1.3-beta 준비 — 노트 + version bump + stamp (6cadcca)
 
 ## [1.1.2] - 2026-08-09
 
@@ -147,6 +160,7 @@ All notable changes to this project will be documented in this file.
 - docs(v1.0.0): dashboard snapshot + CHANGELOG 재생성 + 검증 수치 실측 정합 (17c3cb6)
 - docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b9)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9)
+- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (01838d0)
 - docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (6e24b81)
 
 ## [0.15.21] - 2026-07-21
@@ -184,6 +198,8 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - feat(harness): v0.15.16 — Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확장 (v0.15.16~v0.15.19) (370cb23)
+- feat(harness): v0.15.16 — Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확장 (v0.15.16~v0.15.19) (dc64d2f)
+- feat(harness): v0.15.16 — Grok Build (xAI CLI TUI) 11번째 harness + cross-check discipline anchor 확장 (v0.15.16~v0.15.19) (fc834d1)
 
 ### Changed
 

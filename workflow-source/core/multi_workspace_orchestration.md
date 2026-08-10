@@ -4,7 +4,7 @@
 - 범위: 3계층 워크스페이스 구분, 격리 키 결정과 근거, 하네스 동시 운영 시 lease 규약, 중앙 취합 확장 지점, 미해결 질문
 - 대상 독자: AI workflow 설계자, 멀티 에이전트 운영자, 저장소 관리자
 - 상태: draft (설계 단계 — 구현 미착수)
-- 최종 수정일: 2026-08-07
+- 최종 수정일: 2026-08-10
 - 관련 문서: `./workflow_configuration_layers.md`, `./workflow_harness_distribution.md`, `./workflow_agent_topology.md`, `./orchestrator_subagent_contract_v1.md`, `./merge_doc_reconcile_skill_spec.md`, `../MEMORY_GOVERNANCE.md`
 
 > **상태 고지**: 본 문서는 *설계* 다. §2 의 "이미 있다" 항목과 §5A~§5D 의 실측은

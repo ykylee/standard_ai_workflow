@@ -9,9 +9,9 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **cmd_release 사용성 회복** (2026-08-10, TASK-2026-08-10-main-001~002). 전량 검사 **260/260 PASS** (격리 venv). `release --dry-run` 이 pre_check 5/5 를 실제로 통과한다 — v1.1.0~v1.1.3 네 릴리스를 수동 발행하게 만들던 doctor/state 만성 실패의 3뿌리(경로 이중 결함 / TST-WF-01 판정식 / state 죽은 계약)를 해소. **무인자 `release` 는 이제 dry-run** (`--apply` 명시 시에만 발행). 직전 기준선: v1.1.3-beta 발행 (2026-08-09, tag → `6cadcca`).
-- 현재 주 작업 축: 릴리스 파이프라인 정상화 close. **다음 릴리스는 `cmd_release` 경로로 발행해 실전 검증할 것** (수동 절차 불필요해졌는지 확인).
-- 다음 후보 축: TST-WF-01 측정 재설계 (관행 인식형 counting → partial 예외 제거) / branch protection (소유자 결정) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
+- 현재 기준선: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
+- 현재 주 작업 축: 릴리스 파이프라인 정상화(TASK-001~002) + 실전 검증(TASK-003) close.
+- 다음 후보 축: TST-WF-01 측정 재설계 (관행 인식형 counting → partial 예외 제거) / branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -38,6 +38,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-003 **v1.1.4-beta 를 `cmd_release` 경로로 발행** — 수동 발행 관행 종료. version-bump(dirty 거부 → amend 가드 첫 정상 완주) → note-draft → stamp 정합(검사 4종으로 탐지) → dist(twine PASSED) → dry-run(pre_check **5/5 skip 없이 통과**) → apply(tag push + gh release + dashboard emit + audit append 자동 완주) → verify 실증. 자동 후처리(최종 수정일 68건 + CHANGELOG `[1.1.4]`)는 post-release 커밋으로 수습.
 - TASK-2026-08-10-main-001 **cmd_release 사용성 회복** — pre_check 만성 실패 3뿌리 해소: (1) doctor 호출이 `workflow-source/workflow-source/` 를 탐색해 **0 files 를 재고 non_compliant** → repo root + `--config-path` + env 명시 (2) TST-WF-01 이 inline `check()`/`failures.append` 관행을 못 봐 만성 red → dummy wrapper 전례 대신 `partial_rules.testing` **선언된 예외** (3) state 검사의 `memory.last_freeze` 는 writer 가 사라진 죽은 계약 → `generated_at` (legacy 하위호환). + **무인자 `release` dry-run 반전** + 개별 `--skip-*` 5종 + mypy "실행 불가 vs 오류" 출처 구분. `check_release_pre_check_gates` 10/10 신설. venv 실측 pre_check 5/5 통과. 전량 **260/260 PASS**.
 - TASK-2026-08-10-main-002 **check_mavis_attach_e2e 호스트 사본 제거** — darwin 절대경로 하드코딩 사본 탓에 darwin 외 호스트에서 무조건 red 였던 것을 실제 `~/.minimax/mcp/mcp.json` 정본 읽기로 교체. 부재 시 graceful skip (`--require-mavis` 로 강제). 로드 경로는 fake 항목 실증 ALL PASS (13 tools + tool call 2종).
 - TASK-2026-08-09-main-017 **v1.1.3-beta 발행** (TASK-009~016, 11 커밋). 오늘 고친 릴리스 도구 3건이 **이번 릴리스에서 실제 검증됐다** — `_git_toplevel`(정당한 amend 거부) / `release-verify`(실제 조회 성공) / **step 3.4**(`ok: True, 259/259` — 실제 경로 동작). 수동 발행 이유: `cmd_release` pre_check 의 doctor/state 가 만성 실패인데 개별 skip 이 없다. **주의: `release` 는 `--dry-run` 없으면 기본이 APPLY**.
@@ -47,25 +48,30 @@
 - TASK-2026-08-09-main-013 `phase_13_followup` **전반 실측 대조** — 정합 5 / 정정 3. **harness 는 숫자가 아니라 정의가 문제였다**: `mavis` 를 matrix 에 넣자 `check_harness_v0_15_9` 가 깨졌고, 그건 **project-local 산출물 0** 인 harness 라 디렉터리 없는 게 설계였기 때문이다 (`custom` 도 같은 부류). `harnesses.supported` = *overlay 배포* 목록 → 11 이 맞다. `NON_OVERLAY_HARNESSES` 에 이유와 함께 선언. **검사도 하드코딩 10개에 갇혀 새 harness 를 몰랐다** → 정본 유도로 교체.
 - TASK-2026-08-09-main-012 Phase 13 **P1 묶음 close** — **세 항목이 전부 실제와 달랐다**. P1-1 "pre-step 부재" → v0.15.21+ 에 이미 있었고, 남은 건 (a) 최근 3 release 가 수동 발행이라 CHANGELOG 가 안 갱신된 것(**오늘 내가 그렇게 냈다**) (b) `(v3.0)` 오탐이 `[3.0.1]` 을 최신 자리에 앉힌 것 → `NON_RELEASE_VERSIONS` 선언 예외. P1-2/P1-3 은 **이미 v0.11.24 에서 stable**. 실측 skill stage **13 stable / 1 beta**(유일 beta = `memory-index-query`).
 - TASK-2026-08-09-main-011 telemetry acceptance 를 **윈도 기반** 으로 — TASK-010 이 적은 사각을 메움. `summarize_telemetry(window_days=30)` 에 `window_source_count` 등 additive (전체 기간 필드 불변). `check_telemetry_window.py` 8/8 — **case 4 가 핵심**: *전체 4 source 인데 윈도 1* 을 잡는다. AC2 acceptance 를 "최근 30일 window_source_count ≥ 4" 로 갱신. 발견: `check_telemetry_source_diversity.py` docstring 은 자동 활성 전환을 **이미 정확히 적고 있었다** — TASK-010 의 문서 오류를 **검사는 알고 있었다**.
-- TASK-2026-08-09-main-010 Phase 13 **P0-2 close** — AC2 4 source + hit_rate 1.0 수렴. **문서가 두 군데 틀려 있었다**: 1 source 는 `dispatcher` 가 아니라 `session-start` 였고(132 calls), "3 skill 활성화 필요" 는 **이미 v0.15.21+ 에서 끝난 일**이었다 (세 스크립트 코드가 동일). 남은 건 wiring 이 아니라 **실행 이력의 부재** — 한 번씩 돌리자 즉시 4 source. acceptance 약점도 기록: "4 source 등장" 은 1회씩이면 충족돼 *지속적 사용* 을 못 잰다.
 ## 5. 다음 세션 시작 포인트
 
 ### 무엇이 끝났나 (2026-08-10 세션)
 
-**cmd_release 사용성 회복** (TASK-001) + **mavis e2e 호스트 사본 제거** (TASK-002).
-전량 검사 **260/260 PASS**. 상세는 §4 두 항목과 task 파일에 있다.
+**cmd_release 사용성 회복** (TASK-001) + **mavis e2e 호스트 사본 제거** (TASK-002)
++ **v1.1.4-beta 를 `cmd_release` 경로로 실전 발행** (TASK-003). 전량 검사
+**260/260 PASS**. 상세는 §4 세 항목과 task 파일에 있다.
 
-**다음 릴리스가 실전 검증이다** — 이제 `cmd_release` 경로로 발행해 본다:
+앞으로의 릴리스 절차 (v1.1.4-beta 에서 실증된 경로):
 
 ```bash
-# 1. dry-run 으로 plan 검토 (무인자도 dry-run 이다, v1.1.4+)
-PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --dry-run
-# 2. pre_check 5/5 확인 후 발행
+# venv 필수 (mypy/mcp/twine — 시스템 python 은 mypy 게이트가 정당 fail)
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py version-bump --apply
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py note-draft --from <직전태그> --to <버전> --apply  # + 수동 편집
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py dist --apply
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --dry-run   # 무인자도 dry-run (v1.1.4+)
+git push  # tag 대상 커밋이 원격에 있어야 --verify-tag 통과
 PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --apply
 ```
 
-주의: **mypy/mcp/twine 이 있는 venv 에서 돌릴 것** (시스템 python 은 mypy 게이트가
-"mypy unavailable" 로 정당 fail). 게이트 개별 skip 은 `--skip-doctor/-state/-git/-packaging/-mypy`.
+stamp 정합은 bump 후 검사 4종(readme_cross / code_index / installation_usage /
+drift_prevention)을 돌려 붉어진 곳만 갱신하면 된다. apply 후 자동 후처리
+(최종 수정일 stamp + dashboard + CHANGELOG + 노트 audit)가 트리를 수정하므로
+post-release 커밋으로 수습한다. 게이트 개별 skip: `--skip-doctor/-state/-git/-packaging/-mypy`.
 
 세션 시작 플로우는 그대로다 (v1.1.2+ 부터는 `wk` 로도 부를 수 있다):
 
@@ -87,8 +93,8 @@ wk host-pull-registry pull --host <상대>
 
 ### 다음에 할 일 (순서)
 
-- **다음 릴리스를 `cmd_release` 경로로 발행** — 위 명령. 파이프라인 정상화의 실전 검증.
-  성공하면 "수동 발행" 관행을 종료한다.
+- ~~다음 릴리스를 `cmd_release` 경로로 발행~~ — ✅ **완료** (v1.1.4-beta, TASK-003).
+  수동 발행 관행 종료.
 - **TST-WF-01 측정 재설계** — 관행 인식형 counting (inline `check()` /
   `failures.append` / def test_·case_ 3종) 이 되면 `partial_rules.testing` 예외를
   제거한다. pyproject 주석과 stable_guarantee §5.1 에 조건이 적혀 있다.
@@ -97,9 +103,8 @@ wk host-pull-registry pull --host <상대>
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
-- **`cmd_release --apply` 는 아직 실전 미검증** — 이번 세션은 dry-run 완주 + pre_check
-  5/5 까지만 실측했다. apply 경로(tag push + gh release create + post-step)는 다음
-  릴리스에서 처음 검증된다.
+- ~~`cmd_release --apply` 실전 미검증~~ — ✅ **해소** (v1.1.4-beta 발행으로 apply
+  경로 전체 실증: tag push / gh release / dashboard emit / audit append).
 - **호스트 환경 의존 게이트** — 시스템 python 에는 mypy/mcp/twine 이 없어 관련 검사가
   fail 한다 (venv 에서 전부 PASS — `.venv` 에 dev,release,mcp-sdk 설치돼 있음).
   release 는 반드시 venv 에서 돌린다.

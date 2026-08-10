@@ -33,9 +33,16 @@ AIDLC PBT 의 9 rule 중:
 
 **Rule**: 모든 신규 workflow component (skill / MCP / runner / template) 는 smoke test (`tests/check_*.py`) 를 가져야 한다. design stage 에서 testable property 가 식별되어야 한다.
 
-**Verification**:
+**Verification** (v1.1.5 재설계 — AST verification-signal 기반):
 - 신규 component 추가 시 `tests/check_<component>.py` 가 함께 추가됨
-- 각 smoke test 가 ≥ 5 test case 보유
+- **각 smoke test 가 ≥ 1 verification signal 보유 (hard)** — 신호로 인정:
+  `def test_*`/`def case_*` 정의(단 `assert True` dummy 제외) / `assert` 문(상수
+  조건 제외) / inline reporter 호출식 (`check()`/`_record()` 등) / 실패 수집식
+  (`failures.append()` 등). parse 불가 파일은 신호 0. 측정 정본 =
+  `workflow_kit/common/contracts/baselines.py` 의 `_count_verification_signals`.
+- 파일당 ≥ 5 signal 은 **권장** — 미달 파일 수는 doctor notes 에 노출된다
+  (이전의 이름-count min ≥ 5 hard 는 정당한 case 관행 2종을 못 보는 측정이라
+  만성 red 였고, dummy wrapper 로 채워졌었다 — v0.15.18 → v1.1.5 재설계 이력).
 - design doc (UOW, handoff) 에 "Testable Properties" section 명시
 - property category (round-trip / invariant / idempotency / generator / verification) 중 1+ 식별
 

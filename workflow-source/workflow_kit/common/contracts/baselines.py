@@ -31,11 +31,13 @@ Reference:
 
 from __future__ import annotations
 
+import ast
 import importlib
 import re
 import tempfile
 import time
 import tracemalloc
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Literal, cast
@@ -299,28 +301,114 @@ def _eval_security_baseline(project_root: Path, *, state: dict[str, Any] | None 
 # ===================================================================
 
 
+_SIGNAL_REPORTERS = frozenset({"check", "_check", "_record", "_ok", "_fail", "_assert"})
+_SIGNAL_COLLECTORS = frozenset(
+    {"failures", "problems", "errors", "missing", "offenders", "bad", "failed"}
+)
+
+
+def _is_trivial_test_def(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """`assert True` / `pass` (± docstring) 만 있는 dummy wrapper 인가.
+
+    v0.15.18 이 TST-WF-01 의 이름-count 측정을 채우려고 `assert True` dummy 575개를
+    심었다 — 측정을 재설계하면서 그 가짜 신호를 세면 같은 거짓말을 반복하는 것이므로
+    (fake-has-a-scope), dummy 는 신호에서 제외한다. `main()` 을 호출하는 wrapper 는
+    실제 검증을 실행하므로 trivial 이 아니다.
+    """
+    for stmt in fn.body:
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
+            continue  # docstring / bare literal
+        if isinstance(stmt, ast.Pass):
+            continue
+        if (
+            isinstance(stmt, ast.Assert)
+            and isinstance(stmt.test, ast.Constant)
+            and stmt.test.value is True
+        ):
+            continue
+        return False
+    return True
+
+
+def _count_verification_signals(source: str) -> int:
+    """smoke 파일 하나의 *verification signal* 개수 (AST 기반, v1.1.5 재설계).
+
+    이전 측정(`^def test_/case_` 이름 count)은 이 저장소 smoke 의 정당한 관행 —
+    inline `check(label, cond)` 호출식과 `failures.append` 수집식 — 을 보지 못해
+    실제 case 가 있는 파일을 0 으로 셌고, TST-WF-01 을 만성 non_compliant 로
+    만들었다 (항상 red 인 지표는 판정식이 나쁜 것). 신호로 인정하는 것:
+
+    1. `def test_*` / `def case_*` 정의 — 단, `assert True` dummy 는 제외
+    2. `assert` 문 — 단, 상수 조건(`assert True`)은 제외
+    3. reporter 호출식: `check(...)` / `_record(...)` / `_ok(...)` / `_fail(...)`
+    4. 실패 수집식: `failures.append(...)` 등 관행 collector 이름의 `.append`
+
+    parse 불가 파일은 0 — 실행될 수 없는 검사는 아무것도 검증하지 않는다.
+    """
+    try:
+        with warnings.catch_warnings():
+            # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 doctor 출력에 새지 않게.
+            warnings.simplefilter("ignore", SyntaxWarning)
+            tree = ast.parse(source)
+    except SyntaxError:
+        return 0
+    count = 0
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (
+            node.name.startswith("test_") or node.name.startswith("case_")
+        ):
+            if not _is_trivial_test_def(node):
+                count += 1
+        elif isinstance(node, ast.Assert):
+            if not isinstance(node.test, ast.Constant):
+                count += 1
+        elif isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id in _SIGNAL_REPORTERS:
+                count += 1
+            elif (
+                isinstance(func, ast.Attribute)
+                and func.attr == "append"
+                and isinstance(func.value, ast.Name)
+                and func.value.id in _SIGNAL_COLLECTORS
+            ):
+                count += 1
+    return count
+
+
 def _eval_testing_baseline(project_root: Path, *, state: dict[str, Any] | None = None) -> ComplianceSummary:
     """6 TST-WF rule runtime 평가."""
     results: list[RuleResult] = []
     tests_dir = project_root / "workflow-source" / "tests"
 
-    # TST-WF-01: Smoke Test Coverage Required (≥ 5 test case)
-    # v0.15.16+ patch: historical `def case_*` 패턴도 인정. 196 file 중 77 file (39%) 가
-    # pre-existing 인프라로 `def test_` 0~4개 → patch 후에도 min < 5 residual (운영 기록 v0.11.22 와 정합).
+    # TST-WF-01: Smoke Test Coverage Required
+    # v1.1.5 재설계: 이름-count(min ≥ 5) → AST verification-signal(min ≥ 1).
+    # hard floor 는 "모든 smoke 파일이 최소 1개의 실제 검증 신호를 가진다" —
+    # 검증 없는(또는 parse 불가) 파일을 잡는다. 파일당 ≥ 5 는 권장으로 내려가
+    # notes 에 미달 파일 수를 노출한다 (visibility 는 유지, 만성 red 는 제거).
     smoke_test_files = list(tests_dir.glob("check_*.py")) if tests_dir.exists() else []
-    test_count_per_file = {}
+    signal_count_per_file: dict[str, int] = {}
     for tf in smoke_test_files:
         content = tf.read_text(encoding="utf-8", errors="ignore")
-        # "def test_" + "def case_" 모두 카운트 (historical compatibility)
-        n_test = len(re.findall(r"^def test_", content, re.MULTILINE))
-        n_case = len(re.findall(r"^def case_", content, re.MULTILINE))
-        test_count_per_file[tf.name] = n_test + n_case
-    min_tests = min(test_count_per_file.values()) if test_count_per_file else 0
+        signal_count_per_file[tf.name] = _count_verification_signals(content)
+    min_signals = min(signal_count_per_file.values()) if signal_count_per_file else 0
+    under_recommended = sorted(
+        name for name, n in signal_count_per_file.items() if n < 5
+    )
+    under_note = (
+        f"; under recommended 5: {len(under_recommended)}"
+        + (f" ({', '.join(under_recommended[:3])}…)" if under_recommended else "")
+        if smoke_test_files
+        else ""
+    )
     results.append(RuleResult(
         rule_id="TST-WF-01",
         title="Smoke Test Coverage Required",
-        status="compliant" if min_tests >= 5 else "non_compliant",
-        notes=f"min test count (test_ + case_): {min_tests} (need ≥ 5) across {len(smoke_test_files)} files",
+        status="compliant" if smoke_test_files and min_signals >= 1 else "non_compliant",
+        notes=(
+            f"min verification signals: {min_signals} (need ≥ 1) "
+            f"across {len(smoke_test_files)} files{under_note}"
+        ),
     ))
 
     # TST-WF-02: Round-Trip Properties for State Serialization

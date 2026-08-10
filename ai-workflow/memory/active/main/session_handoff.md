@@ -4,14 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-10 (cmd_release 사용성 회복 + session close)
+- 최종 수정일: 2026-08-10 (릴리스 파이프라인 정상화 사이클 TASK-001~004 close)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
-- 현재 주 작업 축: 릴리스 파이프라인 정상화(TASK-001~002) + 실전 검증(TASK-003) close.
-- 다음 후보 축: TST-WF-01 측정 재설계 (관행 인식형 counting → partial 예외 제거) / branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
+- 현재 기준선: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
+- 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 close (TASK-001~004).
+- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v0.15.18 dummy wrapper 물리 제거 (별건, 급하지 않음) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -38,6 +38,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-004 **TST-WF-01 측정 재설계** — 실측이 설계를 결정: AST 로 4개 관행(def/assert/reporter 호출/failures.append)을 세고 `assert True` dummy 153개를 배제하니 **260개 전 파일 ≥1 신호**. hard floor = 파일당 ≥1 (검증 없는/parse 불가 파일 검출), ≥5 는 권장으로 notes 노출. partial 예외 제거 + pre_check_gates case 10 을 예외 *부재* 고정으로 반전. `check_tst_wf01_signals` 9/9 (되주입 3종). 정본 문서 2곳 동기. smoke 261.
 - TASK-2026-08-10-main-003 **v1.1.4-beta 를 `cmd_release` 경로로 발행** — 수동 발행 관행 종료. version-bump(dirty 거부 → amend 가드 첫 정상 완주) → note-draft → stamp 정합(검사 4종으로 탐지) → dist(twine PASSED) → dry-run(pre_check **5/5 skip 없이 통과**) → apply(tag push + gh release + dashboard emit + audit append 자동 완주) → verify 실증. 자동 후처리(최종 수정일 68건 + CHANGELOG `[1.1.4]`)는 post-release 커밋으로 수습.
 - TASK-2026-08-10-main-001 **cmd_release 사용성 회복** — pre_check 만성 실패 3뿌리 해소: (1) doctor 호출이 `workflow-source/workflow-source/` 를 탐색해 **0 files 를 재고 non_compliant** → repo root + `--config-path` + env 명시 (2) TST-WF-01 이 inline `check()`/`failures.append` 관행을 못 봐 만성 red → dummy wrapper 전례 대신 `partial_rules.testing` **선언된 예외** (3) state 검사의 `memory.last_freeze` 는 writer 가 사라진 죽은 계약 → `generated_at` (legacy 하위호환). + **무인자 `release` dry-run 반전** + 개별 `--skip-*` 5종 + mypy "실행 불가 vs 오류" 출처 구분. `check_release_pre_check_gates` 10/10 신설. venv 실측 pre_check 5/5 통과. 전량 **260/260 PASS**.
 - TASK-2026-08-10-main-002 **check_mavis_attach_e2e 호스트 사본 제거** — darwin 절대경로 하드코딩 사본 탓에 darwin 외 호스트에서 무조건 red 였던 것을 실제 `~/.minimax/mcp/mcp.json` 정본 읽기로 교체. 부재 시 graceful skip (`--require-mavis` 로 강제). 로드 경로는 fake 항목 실증 ALL PASS (13 tools + tool call 2종).
@@ -47,14 +48,14 @@
 - TASK-2026-08-09-main-014 `memory-index-query` **beta → stable** — §3.1 6 조건 중 2 미충족을 채움: **error_code 3종**(이전엔 stderr + rc 2 뿐이라 실패 종류 구분 불가 → `ErrorOutput` 을 stdout 에) + SKILL.md 실행 예시. smoke 26/26. **skill 14 stable / 0 beta**. **이번엔 문서가 맞았다** — 기준 문서(criteria)는 살아 있었고 상태 문서만 낡았다.
 - TASK-2026-08-09-main-013 `phase_13_followup` **전반 실측 대조** — 정합 5 / 정정 3. **harness 는 숫자가 아니라 정의가 문제였다**: `mavis` 를 matrix 에 넣자 `check_harness_v0_15_9` 가 깨졌고, 그건 **project-local 산출물 0** 인 harness 라 디렉터리 없는 게 설계였기 때문이다 (`custom` 도 같은 부류). `harnesses.supported` = *overlay 배포* 목록 → 11 이 맞다. `NON_OVERLAY_HARNESSES` 에 이유와 함께 선언. **검사도 하드코딩 10개에 갇혀 새 harness 를 몰랐다** → 정본 유도로 교체.
 - TASK-2026-08-09-main-012 Phase 13 **P1 묶음 close** — **세 항목이 전부 실제와 달랐다**. P1-1 "pre-step 부재" → v0.15.21+ 에 이미 있었고, 남은 건 (a) 최근 3 release 가 수동 발행이라 CHANGELOG 가 안 갱신된 것(**오늘 내가 그렇게 냈다**) (b) `(v3.0)` 오탐이 `[3.0.1]` 을 최신 자리에 앉힌 것 → `NON_RELEASE_VERSIONS` 선언 예외. P1-2/P1-3 은 **이미 v0.11.24 에서 stable**. 실측 skill stage **13 stable / 1 beta**(유일 beta = `memory-index-query`).
-- TASK-2026-08-09-main-011 telemetry acceptance 를 **윈도 기반** 으로 — TASK-010 이 적은 사각을 메움. `summarize_telemetry(window_days=30)` 에 `window_source_count` 등 additive (전체 기간 필드 불변). `check_telemetry_window.py` 8/8 — **case 4 가 핵심**: *전체 4 source 인데 윈도 1* 을 잡는다. AC2 acceptance 를 "최근 30일 window_source_count ≥ 4" 로 갱신. 발견: `check_telemetry_source_diversity.py` docstring 은 자동 활성 전환을 **이미 정확히 적고 있었다** — TASK-010 의 문서 오류를 **검사는 알고 있었다**.
 ## 5. 다음 세션 시작 포인트
 
 ### 무엇이 끝났나 (2026-08-10 세션)
 
 **cmd_release 사용성 회복** (TASK-001) + **mavis e2e 호스트 사본 제거** (TASK-002)
-+ **v1.1.4-beta 를 `cmd_release` 경로로 실전 발행** (TASK-003). 전량 검사
-**260/260 PASS**. 상세는 §4 세 항목과 task 파일에 있다.
++ **v1.1.4-beta 를 `cmd_release` 경로로 실전 발행** (TASK-003) + **TST-WF-01 측정
+재설계** (TASK-004, partial 예외 제거·hard 복귀). 전량 검사 **261/261 PASS**.
+상세는 §4 네 항목과 task 파일에 있다.
 
 앞으로의 릴리스 절차 (v1.1.4-beta 에서 실증된 경로):
 
@@ -95,9 +96,7 @@ wk host-pull-registry pull --host <상대>
 
 - ~~다음 릴리스를 `cmd_release` 경로로 발행~~ — ✅ **완료** (v1.1.4-beta, TASK-003).
   수동 발행 관행 종료.
-- **TST-WF-01 측정 재설계** — 관행 인식형 counting (inline `check()` /
-  `failures.append` / def test_·case_ 3종) 이 되면 `partial_rules.testing` 예외를
-  제거한다. pyproject 주석과 stable_guarantee §5.1 에 조건이 적혀 있다.
+- ~~TST-WF-01 측정 재설계~~ — ✅ **완료** (TASK-004). partial 예외 제거, hard 복귀.
 - **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측, TASK-2026-08-09-main-004).
 - v1.1.0 / v1.1.1 노트의 누적 표기 사후 삽입 여부 (선택).
 
@@ -108,8 +107,9 @@ wk host-pull-registry pull --host <상대>
 - **호스트 환경 의존 게이트** — 시스템 python 에는 mypy/mcp/twine 이 없어 관련 검사가
   fail 한다 (venv 에서 전부 PASS — `.venv` 에 dev,release,mcp-sdk 설치돼 있음).
   release 는 반드시 venv 에서 돌린다.
-- **TST-WF-01 은 여전히 advisory red** — 선언된 예외일 뿐 측정이 고쳐진 게 아니다.
-  doctor 출력에 계속 보인다 (그래야 한다).
+- ~~TST-WF-01 advisory red~~ — ✅ **해소** (TASK-004, 측정 재설계로 hard 복귀 +
+  compliant). 남은 흔적: v0.15.18 dummy wrapper 는 측정에서 배제될 뿐 파일에
+  남아 있다 — 물리 제거는 115 파일 churn 이라 별건.
 - **darwin homelab 에서 mavis e2e 재확인 필요** — 검사를 정본 읽기로 바꿨으므로 mavis
   설치 호스트에서 한 번 돌려 기존과 동일하게 green 인지 확인하는 것이 안전하다.
 - 이 밖의 과거 세션 리스크 (registry loopback 만 실측 / title drift 임계 0.6 heuristic /

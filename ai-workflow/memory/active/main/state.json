@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-10T13:00:00+09:00",
+  "generated_at": "2026-08-10T14:30:00+09:00",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**v1.1.4-beta 발행 완료 — cmd_release 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, GitHub Release + whl/sdist). 수동 발행 관행 종료. pre_check 5/5 skip 없이 통과, 전량 검사 260/260 PASS.",
-    "current_axis": "릴리스 파이프라인 정상화 + 실전 검증 close (TASK-2026-08-10-main-001~003). 진행 중: (없음). 다음 후보: TST-WF-01 측정 재설계 (관행 인식형 → partial 예외 제거) / branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인.",
+    "current_baseline": "**TST-WF-01 측정 재설계 완료** (2026-08-10, TASK-004) — AST verification-signal 기반, partial 예외 제거, hard 복귀 + 정직하게 compliant. 직전: v1.1.4-beta 발행 (cmd_release 경로 첫 실전 발행). 전량 검사 261/261 PASS.",
+    "current_axis": "릴리스 파이프라인 정상화 사이클 close (TASK-2026-08-10-main-001~004). 진행 중: (없음). 다음 후보: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / v0.15.18 dummy wrapper 제거 (별건, 급하지 않음).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-004 — TST-WF-01 측정 재설계 (AST signal 기반, dummy 배제, partial 예외 제거, check_tst_wf01_signals 9/9)",
       "TASK-2026-08-10-main-003 — v1.1.4-beta 를 cmd_release 경로로 발행 (수동 발행 관행 종료, pre_check 5/5 skip 없이 통과, amend 가드 첫 정상 완주)",
       "TASK-2026-08-10-main-001 — cmd_release 사용성 회복 (pre_check 만성 실패 3뿌리 해소 + release 기본 dry-run + 개별 skip 5종 + check_release_pre_check_gates 10/10). 전량 260/260 PASS",
       "TASK-2026-08-10-main-002 — check_mavis_attach_e2e 호스트 사본 제거 (darwin 절대경로 하드코딩 → 실제 mcp.json 정본 읽기 + graceful skip / --require-mavis)",
@@ -87,10 +88,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-004 — TST-WF-01 측정 재설계",
       "TASK-2026-08-10-main-003 — v1.1.4-beta cmd_release 발행",
       "TASK-2026-08-10-main-001 — cmd_release 사용성 회복",
       "TASK-2026-08-10-main-002 — check_mavis_attach_e2e 호스트 사본 제거"

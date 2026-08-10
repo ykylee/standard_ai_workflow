@@ -60,7 +60,7 @@ version-bump post-step (`sync_release_hash` + amend 가드) 이 **처음으로 �
 
 ## 3. smoke 회귀
 
-누적 smoke test **260/260 PASS** (2026-08-10, `dev,release,mcp-sdk` extra 를 깐
+누적 smoke test **261/261 PASS** (2026-08-10, `dev,release,mcp-sdk` extra 를 깐
 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신 전량
 결과* 를 반영하는 살아있는 지표다.
 

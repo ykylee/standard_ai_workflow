@@ -212,14 +212,16 @@ def main() -> int:
     finally:
         rp.state_path_for_workspace = orig_path_fn  # type: ignore[assignment]
 
-    # 10) pyproject 의 testing partial 선언 고정
+    # 10) testing partial 예외가 *제거된 상태* 로 유지되는지 고정.
+    # v1.1.4 에서 TST-WF-01 측정 결함 탓에 잠시 선언 예외였고, v1.1.5 에서 측정을
+    # 재설계하며 제거했다 (TST-WF-01 다시 hard). 누군가 조용히 되살리면 여기서 잡힌다
+    # — 예외는 측정을 고치는 대신 쓰는 우회이므로 재도입은 명시적 결정이어야 한다.
     from workflow_kit.common.metadata import load_config  # noqa: E402
     cfg = load_config(SOURCE_ROOT)
-    testing_partial = set(cfg.partial_rules.get("testing", []))
     check(
-        "10) testing partial_rules = TST-WF-02~06 (01 은 선언된 예외)",
-        testing_partial == {"TST-WF-02", "TST-WF-03", "TST-WF-04", "TST-WF-05", "TST-WF-06"},
-        f"partial={sorted(testing_partial)}",
+        "10) testing 은 partial_rules 에 없다 (TST-WF-01 hard 복귀, v1.1.5)",
+        "testing" not in cfg.partial_rules,
+        f"partial_rules={cfg.partial_rules}",
     )
 
     total = 10

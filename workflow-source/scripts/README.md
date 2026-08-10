@@ -4,7 +4,7 @@
 - 범위: bootstrap 스크립트, 신규/기존 프로젝트 도입 모드, Codex/OpenCode 하네스 오버레이, end-to-end 데모 runner, 출력 형태
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-08-10
 - 관련 문서: `../README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../core/existing_project_onboarding_contract.md`
 
 ## 현재 포함된 스크립트
@@ -304,6 +304,20 @@ python3 scripts/generate_read_only_harness_mcp_examples.py > schemas/read_only_h
 
 ```bash
 python3 scripts/generate_read_only_jsonrpc_fixtures.py > schemas/read_only_jsonrpc_fixtures.json
+```
+
+## calibrate_title_drift.py
+
+- `TITLE_SIMILARITY_THRESHOLD` 의 실측 캘리브레이션 fixture 를 재생성한다.
+- 저장소 자신의 제목 데이터(backlog bullet / task H1 / handoff production 섹션 + git 히스토리)로 양성/음성 쌍을 채굴한다.
+- 체크인 산출물은 `schemas/title_drift_calibration.json` 이고, `tests/check_title_drift_calibration.py` 가 임계의 성질을 고정한다.
+- 임계를 바꾸려면 이 스크립트로 재캘리브레이션을 같이 한다 (검사가 강제).
+
+예시:
+
+```bash
+python3 scripts/calibrate_title_drift.py --date 2026-08-10          # dry-run 요약
+python3 scripts/calibrate_title_drift.py --date 2026-08-10 --apply  # fixture 고정
 ```
 - manifest 추가 정보:
 - `global_snippet_files` 필드로 관련 전역 snippet 파일이 bundle 에 함께 포함됐는지 추적한다.

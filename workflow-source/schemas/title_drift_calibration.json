@@ -1,0 +1,2923 @@
+{
+ "_meta": {
+  "generated_by": "scripts/calibrate_title_drift.py",
+  "calibrated_at": "2026-08-10",
+  "calibrated_threshold": 0.6,
+  "task_id_source": "TASK-2026-08-10-main-008",
+  "docs_read": 326,
+  "history_versions_read": 576,
+  "task_ids": 88,
+  "method": "양성 = 같은 TASK-ID 의 distinct 제목 쌍 (정본 자리만: backlog bullet / task H1 / handoff production 섹션; 현재 트리 + git 히스토리). 음성 = 다른 ID 의 대표 제목 쌍 (인접 3 = hard, +29~30 = far). 정규화 없음 — 꼬리 괄호 제거는 실측 기각 (음성 놓침 115→287)."
+ },
+ "representative_titles": {
+  "TASK-2026-07-23-main-001": "CI 가 40회 연속 red 였던 이유",
+  "TASK-2026-07-25-main-001": "선언과 사실을 맞춘다: Pages / mypy strict / YAML·스킬·MCP 검사 (§2.29~§2.30)",
+  "TASK-2026-07-27-main-001": "진입점 규칙 단일 출처화 + 자기 적용을 검사로 고정",
+  "TASK-2026-07-27-main-002": "남은 결함 3건 + CI 자기참조 해소",
+  "TASK-2026-07-27-main-003": "남은 자기참조 3건 해소 + CI red 원인 계측 확정",
+  "TASK-2026-07-27-main-004": "backlog-update 결함 4건 + 정본 검사 구멍",
+  "TASK-2026-07-28-main-001": "recent_done_items 가 최신을 고른 적이 없었다",
+  "TASK-2026-07-28-main-002": "status 칸에 출처를 적고 있었다",
+  "TASK-2026-07-28-main-003": "구분 heading 을 몰라서 두 가지를 동시에 잃고 있었다",
+  "TASK-2026-07-29-main-001": "mcp 2.0.0 이관",
+  "TASK-2026-07-29-main-002": "ignore_missing_imports 가 사라진 optional dep 을 Any 로 덮는다",
+  "TASK-2026-07-29-main-003": "read_only_mcp_sdk lowlevel 이관",
+  "TASK-2026-07-31-main-001": "mcp SDK 두 major 커버리지를 설치 순서의 우연에서 선언된 matrix 로",
+  "TASK-2026-07-31-main-002": "파생물의 상한과 포인터",
+  "TASK-2026-07-31-main-003": "기준 경로가 한 칸 어긋나 있었다",
+  "TASK-2026-07-31-main-004": "검사가 처음 돌자 나온 2건, 하나는 진짜 하나는 위양성",
+  "TASK-2026-07-31-main-005": "같은 결함이 CLI 에도 있었다",
+  "TASK-2026-07-31-main-006": "세 번째를 찾으러 갔다",
+  "TASK-2026-07-31-main-007": "모든 panel 의 기준이 자기 근거를 안 내고 있었다",
+  "TASK-2026-07-31-main-008": "네 번을 손으로 찾았다",
+  "TASK-2026-08-01-main-001": "조사가 어디까지 보는지를 선언하고 있었다",
+  "TASK-2026-08-03-main-001": "생성물인지를 이름으로 가르고 있었다",
+  "TASK-2026-08-03-main-002": "슬래시 브랜치에서 깨지던 것들",
+  "TASK-2026-08-03-main-003": "슬래시 브랜치를 밟는 실행이 우연이었다",
+  "TASK-2026-08-03-main-004": "오래 red 인 스케줄 workflow 2건",
+  "TASK-2026-08-04-main-001": "검사가 처음 돌자 나온 URL 2건",
+  "TASK-2026-08-05-main-001": "자기 harness 를 부분만 적용하고 있었다",
+  "TASK-2026-08-05-main-002": "설치 문서가 존재하지 않는 배송을 선언하고 있었다",
+  "TASK-2026-08-05-main-003": "grok 의 MCP 사본을 접자 아무도 파싱해 본 적 없던 산출물이 드러났다",
+  "TASK-2026-08-05-main-004": "세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다",
+  "TASK-2026-08-05-main-005": "승격 조건을 못 적은 게 아니라 적을 수 있는 조건이 없었다",
+  "TASK-2026-08-05-main-006": "알고 있던 함정을 다시 밟았다",
+  "TASK-2026-08-05-main-007": "버전 고정 SDK 필드 이름을 작성 시점에 막는다 (A안)",
+  "TASK-2026-08-05-main-008": "transport_ready 를 wire 에서 제거했다 (§6.2 완료)",
+  "TASK-2026-08-06-main-001": "학습회 발표자료 컨셉·설계 v2",
+  "TASK-2026-08-06-main-002": "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+  "TASK-2026-08-06-main-003": "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
+  "TASK-2026-08-06-main-004": "학습회 발표자료 32번 장표('하루 한 사이클') 1행 5컬럼 그리드 레이아웃 개편 및 37번 장표 라이트 테마 카드 통일, PDF 재생성",
+  "TASK-2026-08-07-main-001": "MCP 도구 13종 세션 로드 검증",
+  "TASK-2026-08-07-main-002": "멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)",
+  "TASK-2026-08-07-main-003": "다중 작업·팀웍 워크플로우 정식 반영 (표준 §10 + §1)",
+  "TASK-2026-08-07-main-004": "메모리 seed 도구 구현 (표준 §10.2 자동화 1단계)",
+  "TASK-2026-08-08-main-001": "원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
+  "TASK-2026-08-08-main-002": "워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
+  "TASK-2026-08-08-main-003": "dashboard _branch_state_paths 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
+  "TASK-2026-08-08-main-004": "workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
+  "TASK-2026-08-08-main-005": "사전 존재 red 2건 정리 (회귀 정합 회복)",
+  "TASK-2026-08-08-main-006": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축 미완)",
+  "TASK-2026-08-08-main-007": "bootstrap 자동 emit",
+  "TASK-2026-08-08-main-008": "seed_workspace_memory self-register (Trigger: seed --apply 성공)",
+  "TASK-2026-08-08-main-009": "registry ↔ mavis 글로벌 양방향 동기",
+  "TASK-2026-08-08-main-010": "RegistryEntry env 필드 + sync_mavis env 합성",
+  "TASK-2026-08-08-main-011": "endpoint 기반 mavis alias command/url 합성 (§6.5.2 정합)",
+  "TASK-2026-08-08-main-012": "§2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자)",
+  "TASK-2026-08-08-main-013": "mavis attach end-to-end 회귀 smoke 자동화",
+  "TASK-2026-08-08-main-014": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3",
+  "TASK-2026-08-08-main-015": "registry federation 정공법 (표준 §0.8 #1, 다중 호스트)",
+  "TASK-2026-08-08-main-016": "HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리)",
+  "TASK-2026-08-08-main-017": "operational MCP tool 4종 CLI wrapper (dual mode)",
+  "TASK-2026-08-08-main-018": "scope drift detection (병합 시점, §0.8 #3)",
+  "TASK-2026-08-08-main-019": "--force server-side 이중화 (pre-push hook, §0.8 #4)",
+  "TASK-2026-08-08-main-020": "[project.scripts] entry points (CLI 化 A안)",
+  "TASK-2026-08-09-main-001": "memory 문서 정합성 정리 (v1.1.1-beta 세션 종료 잔여)",
+  "TASK-2026-08-09-main-002": "CLI 化 B안",
+  "TASK-2026-08-09-main-003": "registry HTTP server",
+  "TASK-2026-08-09-main-004": "branch protection 자동 check",
+  "TASK-2026-08-09-main-005": "title semantic drift v2",
+  "TASK-2026-08-09-main-006": "rotate 도구 수정 (순서 규약 통일) + 사전 존재 red 검토",
+  "TASK-2026-08-09-main-007": "남은 red 4건 close (FULL mypy strict 복구 포함)",
+  "TASK-2026-08-09-main-008": "v1.1.2-beta release",
+  "TASK-2026-08-09-main-009": "릴리스 도구 결함 2건 수정 + 회귀 검사 신설",
+  "TASK-2026-08-09-main-010": "Phase 13 P0-2 (telemetry source 다양성) close",
+  "TASK-2026-08-09-main-011": "telemetry acceptance 를 윈도 기반 지표로",
+  "TASK-2026-08-09-main-012": "Phase 13 P1 묶음 close (3건 모두 문서가 실제와 달랐다)",
+  "TASK-2026-08-09-main-013": "phase_13_followup 전반 실측 대조 + harness 정본 정의 확정",
+  "TASK-2026-08-09-main-014": "memory-index-query beta → stable (14/14, 잔여 beta 0)",
+  "TASK-2026-08-09-main-015": "check_smoke_trend_cross 를 오독해 고쳤다가 되돌린 건",
+  "TASK-2026-08-09-main-016": "릴리스 절차에 \"노트 누적 수치\" 검증 자리 신설",
+  "TASK-2026-08-09-main-017": "v1.1.3-beta release",
+  "TASK-2026-08-10-main-001": "cmd_release 를 쓸 수 있게 만들기",
+  "TASK-2026-08-10-main-002": "check_mavis_attach_e2e 호스트 사본 제거",
+  "TASK-2026-08-10-main-003": "v1.1.4-beta 를 cmd_release 경로로 발행",
+  "TASK-2026-08-10-main-004": "TST-WF-01 측정 재설계",
+  "TASK-2026-08-10-main-005": "dist 기본값 dry-run 반전 (release 와 정합)",
+  "TASK-2026-08-10-main-006": "v1.1.5-beta 발행 (TASK-004~005 묶음, cmd_release 2번째 실전)",
+  "TASK-2026-08-10-main-007": "v0.15.18 dummy wrapper 물리 제거",
+  "TASK-2026-08-10-main-008": "title drift 임계 0.6 실측 보정",
+  "TASK-2026-08-10-main-009": "registry server 비-loopback bind 실측"
+ },
+ "positive_pairs": [
+  {
+   "task_id": "TASK-2026-07-25-main-001",
+   "a": "선언과 사실을 맞춘다 (Pages / mypy strict / YAML·스킬·MCP 검사층)",
+   "b": "선언과 사실을 맞춘다: Pages / mypy strict / YAML·스킬·MCP 검사 (§2.29~§2.30)",
+   "class": "handoff",
+   "similarity": 0.8596
+  },
+  {
+   "task_id": "TASK-2026-08-05-main-001",
+   "a": "자기 harness 를 부분만 적용하고 있었다",
+   "b": "자기 harness 를 부분만 적용하고 있었다 + 버전 마커가 frontmatter 를 깨고 있었다",
+   "class": "handoff",
+   "similarity": 0.625
+  },
+  {
+   "task_id": "TASK-2026-08-05-main-004",
+   "a": "세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사",
+   "b": "세 번째 사본은 이미 갈라져 있었다 + 자기 자신과 비교하는 검사를 썼다가 되주입에서 걸렸다",
+   "class": "handoff",
+   "similarity": 0.8276
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-001",
+   "a": "학습회 발표자료 컨셉·설계 v2",
+   "b": "학습회 발표자료 컨셉·설계 v2 (인과 사슬 재설계)",
+   "class": "canonical",
+   "similarity": 0.7391
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-002",
+   "a": "학습회 마스터 HTML 덱 제작·검증",
+   "b": "학습회 마스터 HTML 발표 덱 제작·검증(verify_deck Gate 1~4 통과), 용어 직관화, 레이아웃 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+   "class": "handoff",
+   "similarity": 0.367
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-002",
+   "a": "학습회 마스터 HTML 덱 제작·검증",
+   "b": "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+   "class": "handoff",
+   "similarity": 0.5063
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-002",
+   "a": "학습회 마스터 HTML 발표 덱 제작·검증(verify_deck Gate 1~4 통과), 용어 직관화, 레이아웃 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+   "b": "학습회 마스터 HTML 발표 덱 제작·검증, 용어 직관화, 밸런스 개선 및 사람/AI 문서 독자 분리 반영",
+   "class": "handoff",
+   "similarity": 0.7973
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-003",
+   "a": "학습회 덱 38장 헤더/본체 수직 정렬 표준화",
+   "b": "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 고정 정렬 표준화 완료",
+   "class": "handoff",
+   "similarity": 0.4364
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-003",
+   "a": "학습회 덱 38장 헤더/본체 수직 정렬 표준화",
+   "b": "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
+   "class": "handoff",
+   "similarity": 0.3853
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-003",
+   "a": "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 고정 정렬 표준화 완료",
+   "b": "학습회 마스터 HTML 발표 덱 38장 슬라이드 헤더 min-height(104px) 및 본체 margin-top(24px) 수직 정렬 전수 고정 픽스",
+   "class": "handoff",
+   "similarity": 0.8994
+  },
+  {
+   "task_id": "TASK-2026-08-06-main-004",
+   "a": "학습회 발표자료 32번 장표 그리드 개편 + 37번 라이트 테마 통일",
+   "b": "학습회 발표자료 32번 장표('하루 한 사이클') 1행 5컬럼 그리드 레이아웃 개편 및 37번 장표 라이트 테마 카드 통일, PDF 재생성",
+   "class": "handoff",
+   "similarity": 0.6435
+  },
+  {
+   "task_id": "TASK-2026-08-07-main-001",
+   "a": "MCP 도구 13종 세션 로드 검증",
+   "b": "§6.5.2 의 글로벌 mcp.json 까지 emit 하도록",
+   "class": "handoff",
+   "similarity": 0.0769
+  },
+  {
+   "task_id": "TASK-2026-08-07-main-002",
+   "a": "멀티 워크스페이스 오케스트레이션 설계 (사용자 · 서버 · 하네스 3계층)",
+   "b": "멀티 워크스페이스 오케스트레이션 설계 + union merge 적용",
+   "class": "handoff",
+   "similarity": 0.5641
+  },
+  {
+   "task_id": "TASK-2026-08-07-main-004",
+   "a": "메모리 seed 도구 (smoke 8)",
+   "b": "메모리 seed 도구 구현 (표준 §10.2 자동화 1단계)",
+   "class": "handoff",
+   "similarity": 0.5556
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-001",
+   "a": "원격 워크스페이스 현황 조회 도구 (smoke 8)",
+   "b": "원격 워크스페이스 현황 조회 도구 (표준 §10.2 1~3단계)",
+   "class": "handoff",
+   "similarity": 0.6984
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-002",
+   "a": "워크스페이스 선점 도구",
+   "b": "워크스페이스 선점 도구 (표준 §10.2 4~5단계, 플로우 완결)",
+   "class": "handoff",
+   "similarity": 0.4898
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-003",
+   "a": "dashboard _branch_state_paths 복수 root 취합 (smoke 6/6)",
+   "b": "dashboard _branch_state_paths 복수 root 취합 (표준 §10.2 §0.4, §7.3)",
+   "class": "handoff",
+   "similarity": 0.7719
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-004",
+   "a": "workspace registry 신규",
+   "b": "workspace registry 신규 (표준 §10.2 §7.1, §5A.3)",
+   "class": "handoff",
+   "similarity": 0.6462
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-005",
+   "a": "사전 존재 red 2건 정리",
+   "b": "사전 존재 red 2건 정리 (회귀 정합 회복)",
+   "class": "handoff",
+   "similarity": 0.7317
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "standardAiWorkflowReadOnly 등록 완료",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach",
+   "class": "handoff",
+   "similarity": 0.1067
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "standardAiWorkflowReadOnly 등록 완료",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축 미완)",
+   "class": "handoff",
+   "similarity": 0.1647
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "standardAiWorkflowReadOnly 등록 완료",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
+   "class": "handoff",
+   "similarity": 0.1333
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "§2.68 mavis 글로벌 mcp.json 표준 register attach",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축 미완)",
+   "class": "handoff",
+   "similarity": 0.8958
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "§2.68 mavis 글로벌 mcp.json 표준 register attach",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
+   "class": "handoff",
+   "similarity": 0.8515
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-006",
+   "a": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축 미완)",
+   "b": "§2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축, §6.5.2)",
+   "class": "canonical",
+   "similarity": 0.9189
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-007",
+   "a": "bootstrap 자동 emit",
+   "b": "bootstrap 자동 emit (mavis)",
+   "class": "canonical",
+   "similarity": 0.8095
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory self-register",
+   "b": "seed_workspace_memory self-register (Trigger: seed --apply 성공)",
+   "class": "handoff",
+   "similarity": 0.7216
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory self-register",
+   "b": "seed_workspace_memory 가 self-register (registry 자동 등록)",
+   "class": "handoff",
+   "similarity": 0.7865
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory self-register",
+   "b": "self-register",
+   "class": "handoff",
+   "similarity": 0.5417
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory self-register (Trigger: seed --apply 성공)",
+   "b": "seed_workspace_memory 가 self-register (registry 자동 등록)",
+   "class": "canonical",
+   "similarity": 0.7414
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory self-register (Trigger: seed --apply 성공)",
+   "b": "self-register",
+   "class": "handoff",
+   "similarity": 0.3467
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-008",
+   "a": "seed_workspace_memory 가 self-register (registry 자동 등록)",
+   "b": "self-register",
+   "class": "handoff",
+   "similarity": 0.3881
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-009",
+   "a": "registry ↔ mavis 글로벌 동기",
+   "b": "registry ↔ mavis 글로벌 양방향 동기",
+   "class": "handoff",
+   "similarity": 0.92
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-009",
+   "a": "registry ↔ mavis 글로벌 동기",
+   "b": "registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
+   "class": "handoff",
+   "similarity": 0.4646
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-009",
+   "a": "registry ↔ mavis 글로벌 양방향 동기",
+   "b": "registry ↔ mavis 글로벌 양방향 동기 (--import-mavis / --export-mavis / --sync-mavis)",
+   "class": "canonical",
+   "similarity": 0.5243
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-010",
+   "a": "RegistryEntry env + sync_mavis env 합성",
+   "b": "RegistryEntry env 필드 + sync_mavis env 합성",
+   "class": "handoff",
+   "similarity": 0.961
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-011",
+   "a": "endpoint 기반 mavis alias command/url 합성",
+   "b": "endpoint 기반 mavis alias command/url 합성 (§6.5.2 정합)",
+   "class": "handoff",
+   "similarity": 0.8636
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-011",
+   "a": "endpoint 기반 mavis alias command/url 합성",
+   "b": "registry endpoint 기반 mavis alias command/url 합성",
+   "class": "handoff",
+   "similarity": 0.8941
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-011",
+   "a": "endpoint 기반 mavis alias command/url 합성 (§6.5.2 정합)",
+   "b": "registry endpoint 기반 mavis alias command/url 합성",
+   "class": "canonical",
+   "similarity": 0.7835
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-012",
+   "a": "§2.68 mavis attach 수동 검증",
+   "b": "§2.68 mavis attach 신규 세션 rotate 13종 native tool 노출 수동 검증 (사용자)",
+   "class": "handoff",
+   "similarity": 0.5581
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-013",
+   "a": "mavis attach end-to-end 회귀 smoke 자동화",
+   "b": "mavis attach end-to-end 회귀 smoke 자동화 (check_mavis_attach_e2e.py)",
+   "class": "canonical",
+   "similarity": 0.72
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)",
+   "b": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3",
+   "class": "handoff",
+   "similarity": 0.8533
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)",
+   "b": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3)",
+   "class": "handoff",
+   "similarity": 0.8684
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)",
+   "b": "§0.8 #2 in-flight 신뢰도",
+   "class": "handoff",
+   "similarity": 0.4815
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3",
+   "b": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3)",
+   "class": "canonical",
+   "similarity": 0.9882
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3",
+   "b": "§0.8 #2 in-flight 신뢰도",
+   "class": "handoff",
+   "similarity": 0.4127
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-014",
+   "a": "in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3)",
+   "b": "§0.8 #2 in-flight 신뢰도",
+   "class": "handoff",
+   "similarity": 0.4062
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-015",
+   "a": "registry federation 정공법 (§0.8 #1)",
+   "b": "registry federation 정공법 (표준 §0.8 #1, 다중 호스트)",
+   "class": "handoff",
+   "similarity": 0.8571
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-016",
+   "a": "HTTP pull + dashboard federation 통합",
+   "b": "HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리)",
+   "class": "handoff",
+   "similarity": 0.7778
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-016",
+   "a": "HTTP pull + dashboard federation 통합",
+   "b": "HTTP pull + dashboard federation 통합 (federation 정공법 §7.4 마무리)",
+   "class": "handoff",
+   "similarity": 0.7292
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-016",
+   "a": "HTTP pull + dashboard federation 통합 (TASK-015 *읽기* 마무리)",
+   "b": "HTTP pull + dashboard federation 통합 (federation 정공법 §7.4 마무리)",
+   "class": "canonical",
+   "similarity": 0.7414
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-017",
+   "a": "operational MCP tool 4종 CLI wrapper",
+   "b": "operational MCP tool 4종 CLI wrapper (dual mode)",
+   "class": "handoff",
+   "similarity": 0.8537
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-018",
+   "a": "scope drift detection (§0.8 #3)",
+   "b": "scope drift detection (병합 시점, §0.8 #3)",
+   "class": "handoff",
+   "similarity": 0.8986
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-019",
+   "a": "--force server-side 이중화 (pre-push hook, §0.8 #4)",
+   "b": "--force server-side 이중화 (§0.8 #4)",
+   "class": "handoff",
+   "similarity": 0.8148
+  },
+  {
+   "task_id": "TASK-2026-08-08-main-020",
+   "a": "[project.scripts] entry points (CLI 化 A안)",
+   "b": "[project.scripts] entry points (CLI 化 A안, 점진적 도입 1단계)",
+   "class": "canonical",
+   "similarity": 0.8723
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-001",
+   "a": "memory 문서 정합성 정리",
+   "b": "memory 문서 정합성 정리 (v1.1.1-beta 세션 종료 잔여)",
+   "class": "handoff",
+   "similarity": 0.5818
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-002",
+   "a": "CLI 化 B안",
+   "b": "CLI 化 B안 단일 dispatcher wk",
+   "class": "handoff",
+   "similarity": 0.4848
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-003",
+   "a": "registry HTTP server",
+   "b": "registry HTTP server (federation *쓰기*)",
+   "class": "handoff",
+   "similarity": 0.6897
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-004",
+   "a": "branch protection (소유자 결정)",
+   "b": "branch protection 자동 check",
+   "class": "handoff",
+   "similarity": 0.7692
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-004",
+   "a": "branch protection (소유자 결정)",
+   "b": "branch protection 자동 check (3rd layer)",
+   "class": "handoff",
+   "similarity": 0.6562
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-004",
+   "a": "branch protection 자동 check",
+   "b": "branch protection 자동 check (3rd layer)",
+   "class": "handoff",
+   "similarity": 0.8125
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-006",
+   "a": "rotate 도구 수정 (순서 규약 통일) + 사전 존재 red 검토",
+   "b": "rotate 도구 수정 + 사전 존재 red 검토",
+   "class": "handoff",
+   "similarity": 0.8308
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-007",
+   "a": "남은 red 4건 close",
+   "b": "남은 red 4건 close (FULL mypy strict 복구 포함)",
+   "class": "handoff",
+   "similarity": 0.5455
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-009",
+   "a": "릴리스 도구 결함 2건 수정 + 회귀 검사",
+   "b": "릴리스 도구 결함 2건 수정 + 회귀 검사 신설",
+   "class": "handoff",
+   "similarity": 0.9388
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-010",
+   "a": "Phase 13 P0-2 (telemetry source 다양성) close",
+   "b": "Phase 13 P0-2 close",
+   "class": "handoff",
+   "similarity": 0.623
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-011",
+   "a": "telemetry acceptance 를 윈도 기반 으로",
+   "b": "telemetry acceptance 를 윈도 기반 지표로",
+   "class": "handoff",
+   "similarity": 0.9524
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-012",
+   "a": "Phase 13 P1 묶음 close",
+   "b": "Phase 13 P1 묶음 close (3건 모두 문서가 실제와 달랐다)",
+   "class": "handoff",
+   "similarity": 0.6667
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-013",
+   "a": "phase_13_followup 전반 실측 대조",
+   "b": "phase_13_followup 전반 실측 대조 + harness 정본 정의 확정",
+   "class": "handoff",
+   "similarity": 0.7324
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-014",
+   "a": "memory-index-query beta → stable",
+   "b": "memory-index-query beta → stable (14/14, 잔여 beta 0)",
+   "class": "handoff",
+   "similarity": 0.7711
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-015",
+   "a": "check_smoke_trend_cross 를 오독해 고쳤다가 되돌린 건",
+   "b": "check_smoke_trend_cross 오독 정정",
+   "class": "handoff",
+   "similarity": 0.7826
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-016",
+   "a": "릴리스 절차에 \"노트 누적 수치\" 검증 자리 신설",
+   "b": "릴리스 절차에 노트 누적 수치 검증 step 3.4 신설",
+   "class": "handoff",
+   "similarity": 0.7931
+  },
+  {
+   "task_id": "TASK-2026-08-09-main-017",
+   "a": "v1.1.3-beta release",
+   "b": "v1.1.3-beta 발행 (TASK-009~016, 11 커밋). 오늘 고친 릴리스 도구 3건이 이번 릴리스에서 실제 검증됐다",
+   "class": "handoff",
+   "similarity": 0.2667
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-001",
+   "a": "cmd_release 를 쓸 수 있게 만들기",
+   "b": "cmd_release 사용성 회복",
+   "class": "handoff",
+   "similarity": 0.619
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-002",
+   "a": "check_mavis_attach_e2e 호스트 사본 제거",
+   "b": "check_mavis_attach_e2e 호스트 사본 제거 (darwin 외 호스트 무조건 red)",
+   "class": "canonical",
+   "similarity": 0.7356
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-003",
+   "a": "v1.1.4-beta 를 cmd_release 경로로 발행",
+   "b": "v1.1.4-beta 를 cmd_release 경로로 발행 (파이프라인 실전 검증)",
+   "class": "canonical",
+   "similarity": 0.8205
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-004",
+   "a": "TST-WF-01 측정 재설계",
+   "b": "TST-WF-01 측정 재설계 (관행 인식형)",
+   "class": "canonical",
+   "similarity": 0.7805
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-005",
+   "a": "dist 기본값 dry-run 반전",
+   "b": "dist 기본값 dry-run 반전 (release 와 정합)",
+   "class": "handoff",
+   "similarity": 0.717
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-006",
+   "a": "v1.1.5-beta 발행",
+   "b": "v1.1.5-beta 발행 (TASK-004~005 묶음, cmd_release 2번째 실전)",
+   "class": "handoff",
+   "similarity": 0.4242
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-006",
+   "a": "v1.1.5-beta 발행",
+   "b": "v1.1.5-beta 발행 (cmd_release 2번째 실전)",
+   "class": "handoff",
+   "similarity": 0.5714
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-006",
+   "a": "v1.1.5-beta 발행 (TASK-004~005 묶음, cmd_release 2번째 실전)",
+   "b": "v1.1.5-beta 발행 (cmd_release 2번째 실전)",
+   "class": "canonical",
+   "similarity": 0.8046
+  },
+  {
+   "task_id": "TASK-2026-08-10-main-007",
+   "a": "dummy wrapper 물리 제거",
+   "b": "v0.15.18 dummy wrapper 물리 제거",
+   "class": "handoff",
+   "similarity": 0.8085
+  }
+ ],
+ "negative_pairs": [
+  {
+   "a_id": "TASK-2026-07-23-main-001",
+   "b_id": "TASK-2026-07-25-main-001",
+   "class": "hard",
+   "similarity": 0.0952
+  },
+  {
+   "a_id": "TASK-2026-07-23-main-001",
+   "b_id": "TASK-2026-07-27-main-001",
+   "class": "hard",
+   "similarity": 0.24
+  },
+  {
+   "a_id": "TASK-2026-07-23-main-001",
+   "b_id": "TASK-2026-07-27-main-002",
+   "class": "hard",
+   "similarity": 0.1905
+  },
+  {
+   "a_id": "TASK-2026-07-23-main-001",
+   "b_id": "TASK-2026-08-05-main-004",
+   "class": "far",
+   "similarity": 0.1111
+  },
+  {
+   "a_id": "TASK-2026-07-23-main-001",
+   "b_id": "TASK-2026-08-05-main-005",
+   "class": "far",
+   "similarity": 0.2593
+  },
+  {
+   "a_id": "TASK-2026-07-25-main-001",
+   "b_id": "TASK-2026-07-27-main-001",
+   "class": "hard",
+   "similarity": 0.1304
+  },
+  {
+   "a_id": "TASK-2026-07-25-main-001",
+   "b_id": "TASK-2026-07-27-main-002",
+   "class": "hard",
+   "similarity": 0.1429
+  },
+  {
+   "a_id": "TASK-2026-07-25-main-001",
+   "b_id": "TASK-2026-07-27-main-003",
+   "class": "hard",
+   "similarity": 0.1489
+  },
+  {
+   "a_id": "TASK-2026-07-25-main-001",
+   "b_id": "TASK-2026-08-05-main-005",
+   "class": "far",
+   "similarity": 0.0833
+  },
+  {
+   "a_id": "TASK-2026-07-25-main-001",
+   "b_id": "TASK-2026-08-05-main-006",
+   "class": "far",
+   "similarity": 0.1266
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-001",
+   "b_id": "TASK-2026-07-27-main-002",
+   "class": "hard",
+   "similarity": 0.32
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-001",
+   "b_id": "TASK-2026-07-27-main-003",
+   "class": "hard",
+   "similarity": 0.3333
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-001",
+   "b_id": "TASK-2026-07-27-main-004",
+   "class": "hard",
+   "similarity": 0.3
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-001",
+   "b_id": "TASK-2026-08-05-main-006",
+   "class": "far",
+   "similarity": 0.2222
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-001",
+   "b_id": "TASK-2026-08-05-main-007",
+   "class": "far",
+   "similarity": 0.0984
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-002",
+   "b_id": "TASK-2026-07-27-main-003",
+   "class": "hard",
+   "similarity": 0.5
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-002",
+   "b_id": "TASK-2026-07-27-main-004",
+   "class": "hard",
+   "similarity": 0.3846
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-002",
+   "b_id": "TASK-2026-07-28-main-001",
+   "class": "hard",
+   "similarity": 0.1852
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-002",
+   "b_id": "TASK-2026-08-05-main-007",
+   "class": "far",
+   "similarity": 0.2264
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-002",
+   "b_id": "TASK-2026-08-05-main-008",
+   "class": "far",
+   "similarity": 0.1967
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-003",
+   "b_id": "TASK-2026-07-27-main-004",
+   "class": "hard",
+   "similarity": 0.2581
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-003",
+   "b_id": "TASK-2026-07-28-main-001",
+   "class": "hard",
+   "similarity": 0.1875
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-003",
+   "b_id": "TASK-2026-07-28-main-002",
+   "class": "hard",
+   "similarity": 0.1569
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-003",
+   "b_id": "TASK-2026-08-05-main-008",
+   "class": "far",
+   "similarity": 0.169
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-003",
+   "b_id": "TASK-2026-08-06-main-001",
+   "class": "far",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-004",
+   "b_id": "TASK-2026-07-28-main-001",
+   "class": "hard",
+   "similarity": 0.2812
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-004",
+   "b_id": "TASK-2026-07-28-main-002",
+   "class": "hard",
+   "similarity": 0.2353
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-004",
+   "b_id": "TASK-2026-07-28-main-003",
+   "class": "hard",
+   "similarity": 0.25
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-004",
+   "b_id": "TASK-2026-08-06-main-001",
+   "class": "far",
+   "similarity": 0.125
+  },
+  {
+   "a_id": "TASK-2026-07-27-main-004",
+   "b_id": "TASK-2026-08-06-main-002",
+   "class": "far",
+   "similarity": 0.1778
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-001",
+   "b_id": "TASK-2026-07-28-main-002",
+   "class": "hard",
+   "similarity": 0.3774
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-001",
+   "b_id": "TASK-2026-07-28-main-003",
+   "class": "hard",
+   "similarity": 0.303
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-001",
+   "b_id": "TASK-2026-07-29-main-001",
+   "class": "hard",
+   "similarity": 0.1778
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-001",
+   "b_id": "TASK-2026-08-06-main-002",
+   "class": "far",
+   "similarity": 0.1087
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-001",
+   "b_id": "TASK-2026-08-06-main-003",
+   "class": "far",
+   "similarity": 0.1538
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-002",
+   "b_id": "TASK-2026-07-28-main-003",
+   "class": "hard",
+   "similarity": 0.3396
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-002",
+   "b_id": "TASK-2026-07-29-main-001",
+   "class": "hard",
+   "similarity": 0.125
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-002",
+   "b_id": "TASK-2026-07-29-main-002",
+   "class": "hard",
+   "similarity": 0.2192
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-002",
+   "b_id": "TASK-2026-08-06-main-003",
+   "class": "far",
+   "similarity": 0.1538
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-002",
+   "b_id": "TASK-2026-08-06-main-004",
+   "class": "far",
+   "similarity": 0.0825
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-003",
+   "b_id": "TASK-2026-07-29-main-001",
+   "class": "hard",
+   "similarity": 0.0889
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-003",
+   "b_id": "TASK-2026-07-29-main-002",
+   "class": "hard",
+   "similarity": 0.2326
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-003",
+   "b_id": "TASK-2026-07-29-main-003",
+   "class": "hard",
+   "similarity": 0.1935
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-003",
+   "b_id": "TASK-2026-08-06-main-004",
+   "class": "far",
+   "similarity": 0.1636
+  },
+  {
+   "a_id": "TASK-2026-07-28-main-003",
+   "b_id": "TASK-2026-08-07-main-001",
+   "class": "far",
+   "similarity": 0.1923
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-001",
+   "b_id": "TASK-2026-07-29-main-002",
+   "class": "hard",
+   "similarity": 0.1231
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-001",
+   "b_id": "TASK-2026-07-29-main-003",
+   "class": "hard",
+   "similarity": 0.3415
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-001",
+   "b_id": "TASK-2026-07-31-main-001",
+   "class": "hard",
+   "similarity": 0.1724
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-001",
+   "b_id": "TASK-2026-08-07-main-001",
+   "class": "far",
+   "similarity": 0.129
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-001",
+   "b_id": "TASK-2026-08-07-main-002",
+   "class": "far",
+   "similarity": 0.1132
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-002",
+   "b_id": "TASK-2026-07-29-main-003",
+   "class": "hard",
+   "similarity": 0.1951
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-002",
+   "b_id": "TASK-2026-07-31-main-001",
+   "class": "hard",
+   "similarity": 0.1212
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-002",
+   "b_id": "TASK-2026-07-31-main-002",
+   "class": "hard",
+   "similarity": 0.0615
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-002",
+   "b_id": "TASK-2026-08-07-main-002",
+   "class": "far",
+   "similarity": 0.1702
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-002",
+   "b_id": "TASK-2026-08-07-main-003",
+   "class": "far",
+   "similarity": 0.1839
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-003",
+   "b_id": "TASK-2026-07-31-main-001",
+   "class": "hard",
+   "similarity": 0.16
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-003",
+   "b_id": "TASK-2026-07-31-main-002",
+   "class": "hard",
+   "similarity": 0.0976
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-003",
+   "b_id": "TASK-2026-07-31-main-003",
+   "class": "hard",
+   "similarity": 0.0851
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-003",
+   "b_id": "TASK-2026-08-07-main-003",
+   "class": "far",
+   "similarity": 0.0635
+  },
+  {
+   "a_id": "TASK-2026-07-29-main-003",
+   "b_id": "TASK-2026-08-07-main-004",
+   "class": "far",
+   "similarity": 0.129
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-001",
+   "b_id": "TASK-2026-07-31-main-002",
+   "class": "hard",
+   "similarity": 0.1034
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-001",
+   "b_id": "TASK-2026-07-31-main-003",
+   "class": "hard",
+   "similarity": 0.1562
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-001",
+   "b_id": "TASK-2026-07-31-main-004",
+   "class": "hard",
+   "similarity": 0.2078
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-001",
+   "b_id": "TASK-2026-08-07-main-004",
+   "class": "far",
+   "similarity": 0.1772
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-001",
+   "b_id": "TASK-2026-08-08-main-001",
+   "class": "far",
+   "similarity": 0.1728
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-002",
+   "b_id": "TASK-2026-07-31-main-003",
+   "class": "hard",
+   "similarity": 0.2
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-002",
+   "b_id": "TASK-2026-07-31-main-004",
+   "class": "hard",
+   "similarity": 0.093
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-002",
+   "b_id": "TASK-2026-07-31-main-005",
+   "class": "hard",
+   "similarity": 0.1379
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-002",
+   "b_id": "TASK-2026-08-08-main-001",
+   "class": "far",
+   "similarity": 0.0851
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-002",
+   "b_id": "TASK-2026-08-08-main-002",
+   "class": "far",
+   "similarity": 0.0816
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-003",
+   "b_id": "TASK-2026-07-31-main-004",
+   "class": "hard",
+   "similarity": 0.2449
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-003",
+   "b_id": "TASK-2026-07-31-main-005",
+   "class": "hard",
+   "similarity": 0.4
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-003",
+   "b_id": "TASK-2026-07-31-main-006",
+   "class": "hard",
+   "similarity": 0.2667
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-003",
+   "b_id": "TASK-2026-08-08-main-002",
+   "class": "far",
+   "similarity": 0.1455
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-003",
+   "b_id": "TASK-2026-08-08-main-003",
+   "class": "far",
+   "similarity": 0.1
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-004",
+   "b_id": "TASK-2026-07-31-main-005",
+   "class": "hard",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-004",
+   "b_id": "TASK-2026-07-31-main-006",
+   "class": "hard",
+   "similarity": 0.1395
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-004",
+   "b_id": "TASK-2026-07-31-main-007",
+   "class": "hard",
+   "similarity": 0.2295
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-004",
+   "b_id": "TASK-2026-08-08-main-003",
+   "class": "far",
+   "similarity": 0.1505
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-004",
+   "b_id": "TASK-2026-08-08-main-004",
+   "class": "far",
+   "similarity": 0.1867
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-005",
+   "b_id": "TASK-2026-07-31-main-006",
+   "class": "hard",
+   "similarity": 0.2759
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-005",
+   "b_id": "TASK-2026-07-31-main-007",
+   "class": "hard",
+   "similarity": 0.3404
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-005",
+   "b_id": "TASK-2026-07-31-main-008",
+   "class": "hard",
+   "similarity": 0.2759
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-005",
+   "b_id": "TASK-2026-08-08-main-004",
+   "class": "far",
+   "similarity": 0.1311
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-005",
+   "b_id": "TASK-2026-08-08-main-005",
+   "class": "far",
+   "similarity": 0.186
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-006",
+   "b_id": "TASK-2026-07-31-main-007",
+   "class": "hard",
+   "similarity": 0.2381
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-006",
+   "b_id": "TASK-2026-07-31-main-008",
+   "class": "hard",
+   "similarity": 0.4167
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-006",
+   "b_id": "TASK-2026-08-01-main-001",
+   "class": "hard",
+   "similarity": 0.2941
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-006",
+   "b_id": "TASK-2026-08-08-main-005",
+   "class": "far",
+   "similarity": 0.1579
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-006",
+   "b_id": "TASK-2026-08-08-main-006",
+   "class": "far",
+   "similarity": 0.0923
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-007",
+   "b_id": "TASK-2026-07-31-main-008",
+   "class": "hard",
+   "similarity": 0.1905
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-007",
+   "b_id": "TASK-2026-08-01-main-001",
+   "class": "hard",
+   "similarity": 0.3462
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-007",
+   "b_id": "TASK-2026-08-03-main-001",
+   "class": "hard",
+   "similarity": 0.3265
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-007",
+   "b_id": "TASK-2026-08-08-main-006",
+   "class": "far",
+   "similarity": 0.1446
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-007",
+   "b_id": "TASK-2026-08-08-main-007",
+   "class": "far",
+   "similarity": 0.1702
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-008",
+   "b_id": "TASK-2026-08-01-main-001",
+   "class": "hard",
+   "similarity": 0.2353
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-008",
+   "b_id": "TASK-2026-08-03-main-001",
+   "class": "hard",
+   "similarity": 0.3226
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-008",
+   "b_id": "TASK-2026-08-03-main-002",
+   "class": "hard",
+   "similarity": 0.2143
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-008",
+   "b_id": "TASK-2026-08-08-main-007",
+   "class": "far",
+   "similarity": 0.1379
+  },
+  {
+   "a_id": "TASK-2026-07-31-main-008",
+   "b_id": "TASK-2026-08-08-main-008",
+   "class": "far",
+   "similarity": 0.0811
+  },
+  {
+   "a_id": "TASK-2026-08-01-main-001",
+   "b_id": "TASK-2026-08-03-main-001",
+   "class": "hard",
+   "similarity": 0.3902
+  },
+  {
+   "a_id": "TASK-2026-08-01-main-001",
+   "b_id": "TASK-2026-08-03-main-002",
+   "class": "hard",
+   "similarity": 0.1579
+  },
+  {
+   "a_id": "TASK-2026-08-01-main-001",
+   "b_id": "TASK-2026-08-03-main-003",
+   "class": "hard",
+   "similarity": 0.2791
+  },
+  {
+   "a_id": "TASK-2026-08-01-main-001",
+   "b_id": "TASK-2026-08-08-main-008",
+   "class": "far",
+   "similarity": 0.0952
+  },
+  {
+   "a_id": "TASK-2026-08-01-main-001",
+   "b_id": "TASK-2026-08-08-main-009",
+   "class": "far",
+   "similarity": 0.1633
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-001",
+   "b_id": "TASK-2026-08-03-main-002",
+   "class": "hard",
+   "similarity": 0.1143
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-001",
+   "b_id": "TASK-2026-08-03-main-003",
+   "class": "hard",
+   "similarity": 0.3
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-001",
+   "b_id": "TASK-2026-08-03-main-004",
+   "class": "hard",
+   "similarity": 0.186
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-001",
+   "b_id": "TASK-2026-08-08-main-009",
+   "class": "far",
+   "similarity": 0.1739
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-001",
+   "b_id": "TASK-2026-08-08-main-010",
+   "class": "far",
+   "similarity": 0.0339
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-002",
+   "b_id": "TASK-2026-08-03-main-003",
+   "class": "hard",
+   "similarity": 0.4865
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-002",
+   "b_id": "TASK-2026-08-03-main-004",
+   "class": "hard",
+   "similarity": 0.2
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-002",
+   "b_id": "TASK-2026-08-04-main-001",
+   "class": "hard",
+   "similarity": 0.1714
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-002",
+   "b_id": "TASK-2026-08-08-main-010",
+   "class": "far",
+   "similarity": 0.1071
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-002",
+   "b_id": "TASK-2026-08-08-main-011",
+   "class": "far",
+   "similarity": 0.0909
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-003",
+   "b_id": "TASK-2026-08-03-main-004",
+   "class": "hard",
+   "similarity": 0.2222
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-003",
+   "b_id": "TASK-2026-08-04-main-001",
+   "class": "hard",
+   "similarity": 0.2
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-003",
+   "b_id": "TASK-2026-08-05-main-001",
+   "class": "hard",
+   "similarity": 0.3043
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-003",
+   "b_id": "TASK-2026-08-08-main-011",
+   "class": "far",
+   "similarity": 0.1127
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-003",
+   "b_id": "TASK-2026-08-08-main-012",
+   "class": "far",
+   "similarity": 0.0964
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-004",
+   "b_id": "TASK-2026-08-04-main-001",
+   "class": "hard",
+   "similarity": 0.3256
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-004",
+   "b_id": "TASK-2026-08-05-main-001",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-004",
+   "b_id": "TASK-2026-08-05-main-002",
+   "class": "hard",
+   "similarity": 0.1961
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-004",
+   "b_id": "TASK-2026-08-08-main-012",
+   "class": "far",
+   "similarity": 0.2093
+  },
+  {
+   "a_id": "TASK-2026-08-03-main-004",
+   "b_id": "TASK-2026-08-08-main-013",
+   "class": "far",
+   "similarity": 0.2
+  },
+  {
+   "a_id": "TASK-2026-08-04-main-001",
+   "b_id": "TASK-2026-08-05-main-001",
+   "class": "hard",
+   "similarity": 0.2273
+  },
+  {
+   "a_id": "TASK-2026-08-04-main-001",
+   "b_id": "TASK-2026-08-05-main-002",
+   "class": "hard",
+   "similarity": 0.2609
+  },
+  {
+   "a_id": "TASK-2026-08-04-main-001",
+   "b_id": "TASK-2026-08-05-main-003",
+   "class": "hard",
+   "similarity": 0.1967
+  },
+  {
+   "a_id": "TASK-2026-08-04-main-001",
+   "b_id": "TASK-2026-08-08-main-013",
+   "class": "far",
+   "similarity": 0.1091
+  },
+  {
+   "a_id": "TASK-2026-08-04-main-001",
+   "b_id": "TASK-2026-08-08-main-014",
+   "class": "far",
+   "similarity": 0.1967
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-001",
+   "b_id": "TASK-2026-08-05-main-002",
+   "class": "hard",
+   "similarity": 0.3846
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-001",
+   "b_id": "TASK-2026-08-05-main-003",
+   "class": "hard",
+   "similarity": 0.2388
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-001",
+   "b_id": "TASK-2026-08-05-main-004",
+   "class": "hard",
+   "similarity": 0.2105
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-001",
+   "b_id": "TASK-2026-08-08-main-014",
+   "class": "far",
+   "similarity": 0.1493
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-001",
+   "b_id": "TASK-2026-08-08-main-015",
+   "class": "far",
+   "similarity": 0.2319
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-002",
+   "b_id": "TASK-2026-08-05-main-003",
+   "class": "hard",
+   "similarity": 0.2029
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-002",
+   "b_id": "TASK-2026-08-05-main-004",
+   "class": "hard",
+   "similarity": 0.2051
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-002",
+   "b_id": "TASK-2026-08-05-main-005",
+   "class": "hard",
+   "similarity": 0.2667
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-002",
+   "b_id": "TASK-2026-08-08-main-015",
+   "class": "far",
+   "similarity": 0.1972
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-002",
+   "b_id": "TASK-2026-08-08-main-016",
+   "class": "far",
+   "similarity": 0.1463
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-003",
+   "b_id": "TASK-2026-08-05-main-004",
+   "class": "hard",
+   "similarity": 0.2796
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-003",
+   "b_id": "TASK-2026-08-05-main-005",
+   "class": "hard",
+   "similarity": 0.2667
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-003",
+   "b_id": "TASK-2026-08-05-main-006",
+   "class": "hard",
+   "similarity": 0.2069
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-003",
+   "b_id": "TASK-2026-08-08-main-016",
+   "class": "far",
+   "similarity": 0.1031
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-003",
+   "b_id": "TASK-2026-08-08-main-017",
+   "class": "far",
+   "similarity": 0.2697
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-004",
+   "b_id": "TASK-2026-08-05-main-005",
+   "class": "hard",
+   "similarity": 0.2381
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-004",
+   "b_id": "TASK-2026-08-05-main-006",
+   "class": "hard",
+   "similarity": 0.1493
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-004",
+   "b_id": "TASK-2026-08-05-main-007",
+   "class": "hard",
+   "similarity": 0.1928
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-004",
+   "b_id": "TASK-2026-08-08-main-017",
+   "class": "far",
+   "similarity": 0.1429
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-004",
+   "b_id": "TASK-2026-08-08-main-018",
+   "class": "far",
+   "similarity": 0.1348
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-005",
+   "b_id": "TASK-2026-08-05-main-006",
+   "class": "hard",
+   "similarity": 0.2041
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-005",
+   "b_id": "TASK-2026-08-05-main-007",
+   "class": "hard",
+   "similarity": 0.1846
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-005",
+   "b_id": "TASK-2026-08-05-main-008",
+   "class": "hard",
+   "similarity": 0.1644
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-005",
+   "b_id": "TASK-2026-08-08-main-018",
+   "class": "far",
+   "similarity": 0.169
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-005",
+   "b_id": "TASK-2026-08-08-main-019",
+   "class": "far",
+   "similarity": 0.1481
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-006",
+   "b_id": "TASK-2026-08-05-main-007",
+   "class": "hard",
+   "similarity": 0.2917
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-006",
+   "b_id": "TASK-2026-08-05-main-008",
+   "class": "hard",
+   "similarity": 0.1786
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-006",
+   "b_id": "TASK-2026-08-06-main-001",
+   "class": "hard",
+   "similarity": 0.1818
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-006",
+   "b_id": "TASK-2026-08-08-main-019",
+   "class": "far",
+   "similarity": 0.125
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-006",
+   "b_id": "TASK-2026-08-08-main-020",
+   "class": "far",
+   "similarity": 0.1404
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-007",
+   "b_id": "TASK-2026-08-05-main-008",
+   "class": "hard",
+   "similarity": 0.2222
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-007",
+   "b_id": "TASK-2026-08-06-main-001",
+   "class": "hard",
+   "similarity": 0.1224
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-007",
+   "b_id": "TASK-2026-08-06-main-002",
+   "class": "hard",
+   "similarity": 0.2198
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-007",
+   "b_id": "TASK-2026-08-08-main-020",
+   "class": "far",
+   "similarity": 0.1918
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-007",
+   "b_id": "TASK-2026-08-09-main-001",
+   "class": "far",
+   "similarity": 0.1972
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-008",
+   "b_id": "TASK-2026-08-06-main-001",
+   "class": "hard",
+   "similarity": 0.1404
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-008",
+   "b_id": "TASK-2026-08-06-main-002",
+   "class": "hard",
+   "similarity": 0.1414
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-008",
+   "b_id": "TASK-2026-08-06-main-003",
+   "class": "hard",
+   "similarity": 0.1452
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-008",
+   "b_id": "TASK-2026-08-09-main-001",
+   "class": "far",
+   "similarity": 0.3038
+  },
+  {
+   "a_id": "TASK-2026-08-05-main-008",
+   "b_id": "TASK-2026-08-09-main-002",
+   "class": "far",
+   "similarity": 0.0833
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-001",
+   "b_id": "TASK-2026-08-06-main-002",
+   "class": "hard",
+   "similarity": 0.2368
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-001",
+   "b_id": "TASK-2026-08-06-main-003",
+   "class": "hard",
+   "similarity": 0.1782
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-001",
+   "b_id": "TASK-2026-08-06-main-004",
+   "class": "hard",
+   "similarity": 0.2128
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-001",
+   "b_id": "TASK-2026-08-09-main-002",
+   "class": "far",
+   "similarity": 0.16
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-001",
+   "b_id": "TASK-2026-08-09-main-003",
+   "class": "far",
+   "similarity": 0.1622
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-002",
+   "b_id": "TASK-2026-08-06-main-003",
+   "class": "hard",
+   "similarity": 0.3916
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-002",
+   "b_id": "TASK-2026-08-06-main-004",
+   "class": "hard",
+   "similarity": 0.2941
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-002",
+   "b_id": "TASK-2026-08-07-main-001",
+   "class": "hard",
+   "similarity": 0.1795
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-002",
+   "b_id": "TASK-2026-08-09-main-003",
+   "class": "far",
+   "similarity": 0.1013
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-002",
+   "b_id": "TASK-2026-08-09-main-004",
+   "class": "far",
+   "similarity": 0.0706
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-003",
+   "b_id": "TASK-2026-08-06-main-004",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-003",
+   "b_id": "TASK-2026-08-07-main-001",
+   "class": "hard",
+   "similarity": 0.1165
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-003",
+   "b_id": "TASK-2026-08-07-main-002",
+   "class": "hard",
+   "similarity": 0.128
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-003",
+   "b_id": "TASK-2026-08-09-main-004",
+   "class": "far",
+   "similarity": 0.0909
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-003",
+   "b_id": "TASK-2026-08-09-main-005",
+   "class": "far",
+   "similarity": 0.1495
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-004",
+   "b_id": "TASK-2026-08-07-main-001",
+   "class": "hard",
+   "similarity": 0.1458
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-004",
+   "b_id": "TASK-2026-08-07-main-002",
+   "class": "hard",
+   "similarity": 0.0847
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-004",
+   "b_id": "TASK-2026-08-07-main-003",
+   "class": "hard",
+   "similarity": 0.1081
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-004",
+   "b_id": "TASK-2026-08-09-main-005",
+   "class": "far",
+   "similarity": 0.06
+  },
+  {
+   "a_id": "TASK-2026-08-06-main-004",
+   "b_id": "TASK-2026-08-09-main-006",
+   "class": "far",
+   "similarity": 0.1913
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-001",
+   "b_id": "TASK-2026-08-07-main-002",
+   "class": "hard",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-001",
+   "b_id": "TASK-2026-08-07-main-003",
+   "class": "hard",
+   "similarity": 0.1887
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-001",
+   "b_id": "TASK-2026-08-07-main-004",
+   "class": "hard",
+   "similarity": 0.2692
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-001",
+   "b_id": "TASK-2026-08-09-main-006",
+   "class": "far",
+   "similarity": 0.2807
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-001",
+   "b_id": "TASK-2026-08-09-main-007",
+   "class": "far",
+   "similarity": 0.1017
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-002",
+   "b_id": "TASK-2026-08-07-main-003",
+   "class": "hard",
+   "similarity": 0.2933
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-002",
+   "b_id": "TASK-2026-08-07-main-004",
+   "class": "hard",
+   "similarity": 0.2432
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-002",
+   "b_id": "TASK-2026-08-08-main-001",
+   "class": "hard",
+   "similarity": 0.4211
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-002",
+   "b_id": "TASK-2026-08-09-main-007",
+   "class": "far",
+   "similarity": 0.2469
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-002",
+   "b_id": "TASK-2026-08-09-main-008",
+   "class": "far",
+   "similarity": 0.0333
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-003",
+   "b_id": "TASK-2026-08-07-main-004",
+   "class": "hard",
+   "similarity": 0.4478
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-003",
+   "b_id": "TASK-2026-08-08-main-001",
+   "class": "hard",
+   "similarity": 0.4638
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-003",
+   "b_id": "TASK-2026-08-08-main-002",
+   "class": "hard",
+   "similarity": 0.4225
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-003",
+   "b_id": "TASK-2026-08-09-main-008",
+   "class": "far",
+   "similarity": 0.0377
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-003",
+   "b_id": "TASK-2026-08-09-main-009",
+   "class": "far",
+   "similarity": 0.2333
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-004",
+   "b_id": "TASK-2026-08-08-main-001",
+   "class": "hard",
+   "similarity": 0.5588
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-004",
+   "b_id": "TASK-2026-08-08-main-002",
+   "class": "hard",
+   "similarity": 0.5143
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-004",
+   "b_id": "TASK-2026-08-08-main-003",
+   "class": "hard",
+   "similarity": 0.3579
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-004",
+   "b_id": "TASK-2026-08-09-main-009",
+   "class": "far",
+   "similarity": 0.3051
+  },
+  {
+   "a_id": "TASK-2026-08-07-main-004",
+   "b_id": "TASK-2026-08-09-main-010",
+   "class": "far",
+   "similarity": 0.1067
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-001",
+   "b_id": "TASK-2026-08-08-main-002",
+   "class": "hard",
+   "similarity": 0.6944
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-001",
+   "b_id": "TASK-2026-08-08-main-003",
+   "class": "hard",
+   "similarity": 0.3505
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-001",
+   "b_id": "TASK-2026-08-08-main-004",
+   "class": "hard",
+   "similarity": 0.4051
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-001",
+   "b_id": "TASK-2026-08-09-main-010",
+   "class": "far",
+   "similarity": 0.1818
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-001",
+   "b_id": "TASK-2026-08-09-main-011",
+   "class": "far",
+   "similarity": 0.1791
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-002",
+   "b_id": "TASK-2026-08-08-main-003",
+   "class": "hard",
+   "similarity": 0.3434
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-002",
+   "b_id": "TASK-2026-08-08-main-004",
+   "class": "hard",
+   "similarity": 0.3951
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-002",
+   "b_id": "TASK-2026-08-08-main-005",
+   "class": "hard",
+   "similarity": 0.2222
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-002",
+   "b_id": "TASK-2026-08-09-main-011",
+   "class": "far",
+   "similarity": 0.1739
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-002",
+   "b_id": "TASK-2026-08-09-main-012",
+   "class": "far",
+   "similarity": 0.2338
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-003",
+   "b_id": "TASK-2026-08-08-main-004",
+   "class": "hard",
+   "similarity": 0.4528
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-003",
+   "b_id": "TASK-2026-08-08-main-005",
+   "class": "hard",
+   "similarity": 0.2045
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-003",
+   "b_id": "TASK-2026-08-08-main-006",
+   "class": "hard",
+   "similarity": 0.2087
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-003",
+   "b_id": "TASK-2026-08-09-main-012",
+   "class": "far",
+   "similarity": 0.2157
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-003",
+   "b_id": "TASK-2026-08-09-main-013",
+   "class": "far",
+   "similarity": 0.2056
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-004",
+   "b_id": "TASK-2026-08-08-main-005",
+   "class": "hard",
+   "similarity": 0.2571
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-004",
+   "b_id": "TASK-2026-08-08-main-006",
+   "class": "hard",
+   "similarity": 0.3093
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-004",
+   "b_id": "TASK-2026-08-08-main-007",
+   "class": "hard",
+   "similarity": 0.1967
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-004",
+   "b_id": "TASK-2026-08-09-main-013",
+   "class": "far",
+   "similarity": 0.1348
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-004",
+   "b_id": "TASK-2026-08-09-main-014",
+   "class": "far",
+   "similarity": 0.2947
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-005",
+   "b_id": "TASK-2026-08-08-main-006",
+   "class": "hard",
+   "similarity": 0.2532
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-005",
+   "b_id": "TASK-2026-08-08-main-007",
+   "class": "hard",
+   "similarity": 0.1395
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-005",
+   "b_id": "TASK-2026-08-08-main-008",
+   "class": "hard",
+   "similarity": 0.1818
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-005",
+   "b_id": "TASK-2026-08-09-main-014",
+   "class": "far",
+   "similarity": 0.2078
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-005",
+   "b_id": "TASK-2026-08-09-main-015",
+   "class": "far",
+   "similarity": 0.1515
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-006",
+   "b_id": "TASK-2026-08-08-main-007",
+   "class": "hard",
+   "similarity": 0.1429
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-006",
+   "b_id": "TASK-2026-08-08-main-008",
+   "class": "hard",
+   "similarity": 0.2435
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-006",
+   "b_id": "TASK-2026-08-08-main-009",
+   "class": "hard",
+   "similarity": 0.3
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-006",
+   "b_id": "TASK-2026-08-09-main-015",
+   "class": "far",
+   "similarity": 0.1505
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-006",
+   "b_id": "TASK-2026-08-09-main-016",
+   "class": "far",
+   "similarity": 0.175
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-007",
+   "b_id": "TASK-2026-08-08-main-008",
+   "class": "hard",
+   "similarity": 0.2025
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-007",
+   "b_id": "TASK-2026-08-08-main-009",
+   "class": "hard",
+   "similarity": 0.2727
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-007",
+   "b_id": "TASK-2026-08-08-main-010",
+   "class": "hard",
+   "similarity": 0.2456
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-007",
+   "b_id": "TASK-2026-08-09-main-016",
+   "class": "far",
+   "similarity": 0.1364
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-007",
+   "b_id": "TASK-2026-08-09-main-017",
+   "class": "far",
+   "similarity": 0.2222
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-008",
+   "b_id": "TASK-2026-08-08-main-009",
+   "class": "hard",
+   "similarity": 0.2022
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-008",
+   "b_id": "TASK-2026-08-08-main-010",
+   "class": "hard",
+   "similarity": 0.2353
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-008",
+   "b_id": "TASK-2026-08-08-main-011",
+   "class": "hard",
+   "similarity": 0.1964
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-008",
+   "b_id": "TASK-2026-08-09-main-017",
+   "class": "far",
+   "similarity": 0.0494
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-008",
+   "b_id": "TASK-2026-08-10-main-001",
+   "class": "far",
+   "similarity": 0.1628
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-009",
+   "b_id": "TASK-2026-08-08-main-010",
+   "class": "hard",
+   "similarity": 0.4776
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-009",
+   "b_id": "TASK-2026-08-08-main-011",
+   "class": "hard",
+   "similarity": 0.3377
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-009",
+   "b_id": "TASK-2026-08-08-main-012",
+   "class": "hard",
+   "similarity": 0.2247
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-009",
+   "b_id": "TASK-2026-08-10-main-001",
+   "class": "far",
+   "similarity": 0.3529
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-009",
+   "b_id": "TASK-2026-08-10-main-002",
+   "class": "far",
+   "similarity": 0.3051
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-010",
+   "b_id": "TASK-2026-08-08-main-011",
+   "class": "hard",
+   "similarity": 0.3556
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-010",
+   "b_id": "TASK-2026-08-08-main-012",
+   "class": "hard",
+   "similarity": 0.2157
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-010",
+   "b_id": "TASK-2026-08-08-main-013",
+   "class": "hard",
+   "similarity": 0.2368
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-010",
+   "b_id": "TASK-2026-08-10-main-002",
+   "class": "far",
+   "similarity": 0.2778
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-010",
+   "b_id": "TASK-2026-08-10-main-003",
+   "class": "far",
+   "similarity": 0.1111
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-011",
+   "b_id": "TASK-2026-08-08-main-012",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-011",
+   "b_id": "TASK-2026-08-08-main-013",
+   "class": "hard",
+   "similarity": 0.3256
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-011",
+   "b_id": "TASK-2026-08-08-main-014",
+   "class": "hard",
+   "similarity": 0.2609
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-011",
+   "b_id": "TASK-2026-08-10-main-003",
+   "class": "far",
+   "similarity": 0.1707
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-011",
+   "b_id": "TASK-2026-08-10-main-004",
+   "class": "far",
+   "similarity": 0.0606
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-012",
+   "b_id": "TASK-2026-08-08-main-013",
+   "class": "hard",
+   "similarity": 0.3878
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-012",
+   "b_id": "TASK-2026-08-08-main-014",
+   "class": "hard",
+   "similarity": 0.1154
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-012",
+   "b_id": "TASK-2026-08-08-main-015",
+   "class": "hard",
+   "similarity": 0.2075
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-012",
+   "b_id": "TASK-2026-08-10-main-004",
+   "class": "far",
+   "similarity": 0.0513
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-012",
+   "b_id": "TASK-2026-08-10-main-005",
+   "class": "far",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-013",
+   "b_id": "TASK-2026-08-08-main-014",
+   "class": "hard",
+   "similarity": 0.1538
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-013",
+   "b_id": "TASK-2026-08-08-main-015",
+   "class": "hard",
+   "similarity": 0.225
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-013",
+   "b_id": "TASK-2026-08-08-main-016",
+   "class": "hard",
+   "similarity": 0.1978
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-013",
+   "b_id": "TASK-2026-08-10-main-005",
+   "class": "far",
+   "similarity": 0.2
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-013",
+   "b_id": "TASK-2026-08-10-main-006",
+   "class": "far",
+   "similarity": 0.2045
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-014",
+   "b_id": "TASK-2026-08-08-main-015",
+   "class": "hard",
+   "similarity": 0.3721
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-014",
+   "b_id": "TASK-2026-08-08-main-016",
+   "class": "hard",
+   "similarity": 0.1443
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-014",
+   "b_id": "TASK-2026-08-08-main-017",
+   "class": "hard",
+   "similarity": 0.2247
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-014",
+   "b_id": "TASK-2026-08-10-main-006",
+   "class": "far",
+   "similarity": 0.1702
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-014",
+   "b_id": "TASK-2026-08-10-main-007",
+   "class": "far",
+   "similarity": 0.1429
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-015",
+   "b_id": "TASK-2026-08-08-main-016",
+   "class": "hard",
+   "similarity": 0.3636
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-015",
+   "b_id": "TASK-2026-08-08-main-017",
+   "class": "hard",
+   "similarity": 0.2637
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-015",
+   "b_id": "TASK-2026-08-08-main-018",
+   "class": "hard",
+   "similarity": 0.4878
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-015",
+   "b_id": "TASK-2026-08-10-main-007",
+   "class": "far",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-015",
+   "b_id": "TASK-2026-08-10-main-008",
+   "class": "far",
+   "similarity": 0.2647
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-016",
+   "b_id": "TASK-2026-08-08-main-017",
+   "class": "hard",
+   "similarity": 0.2549
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-016",
+   "b_id": "TASK-2026-08-08-main-018",
+   "class": "hard",
+   "similarity": 0.3656
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-016",
+   "b_id": "TASK-2026-08-08-main-019",
+   "class": "hard",
+   "similarity": 0.1748
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-016",
+   "b_id": "TASK-2026-08-10-main-008",
+   "class": "far",
+   "similarity": 0.2025
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-016",
+   "b_id": "TASK-2026-08-10-main-009",
+   "class": "far",
+   "similarity": 0.1348
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-017",
+   "b_id": "TASK-2026-08-08-main-018",
+   "class": "hard",
+   "similarity": 0.2824
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-017",
+   "b_id": "TASK-2026-08-08-main-019",
+   "class": "hard",
+   "similarity": 0.2316
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-017",
+   "b_id": "TASK-2026-08-08-main-020",
+   "class": "hard",
+   "similarity": 0.2727
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-017",
+   "b_id": "TASK-2026-08-10-main-009",
+   "class": "far",
+   "similarity": 0.1728
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-018",
+   "b_id": "TASK-2026-08-08-main-019",
+   "class": "hard",
+   "similarity": 0.4419
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-018",
+   "b_id": "TASK-2026-08-08-main-020",
+   "class": "hard",
+   "similarity": 0.3038
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-018",
+   "b_id": "TASK-2026-08-09-main-001",
+   "class": "hard",
+   "similarity": 0.2338
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-019",
+   "b_id": "TASK-2026-08-08-main-020",
+   "class": "hard",
+   "similarity": 0.2247
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-019",
+   "b_id": "TASK-2026-08-09-main-001",
+   "class": "hard",
+   "similarity": 0.2529
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-019",
+   "b_id": "TASK-2026-08-09-main-002",
+   "class": "hard",
+   "similarity": 0.0714
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-020",
+   "b_id": "TASK-2026-08-09-main-001",
+   "class": "hard",
+   "similarity": 0.225
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-020",
+   "b_id": "TASK-2026-08-09-main-002",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-08-main-020",
+   "b_id": "TASK-2026-08-09-main-003",
+   "class": "hard",
+   "similarity": 0.2623
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-001",
+   "b_id": "TASK-2026-08-09-main-002",
+   "class": "hard",
+   "similarity": 0.0851
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-001",
+   "b_id": "TASK-2026-08-09-main-003",
+   "class": "hard",
+   "similarity": 0.2373
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-001",
+   "b_id": "TASK-2026-08-09-main-004",
+   "class": "hard",
+   "similarity": 0.1538
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-002",
+   "b_id": "TASK-2026-08-09-main-003",
+   "class": "hard",
+   "similarity": 0.1429
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-002",
+   "b_id": "TASK-2026-08-09-main-004",
+   "class": "hard",
+   "similarity": 0.1176
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-002",
+   "b_id": "TASK-2026-08-09-main-005",
+   "class": "hard",
+   "similarity": 0.129
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-003",
+   "b_id": "TASK-2026-08-09-main-004",
+   "class": "hard",
+   "similarity": 0.2609
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-003",
+   "b_id": "TASK-2026-08-09-main-005",
+   "class": "hard",
+   "similarity": 0.2791
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-003",
+   "b_id": "TASK-2026-08-09-main-006",
+   "class": "hard",
+   "similarity": 0.1034
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-004",
+   "b_id": "TASK-2026-08-09-main-005",
+   "class": "hard",
+   "similarity": 0.2449
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-004",
+   "b_id": "TASK-2026-08-09-main-006",
+   "class": "hard",
+   "similarity": 0.2188
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-004",
+   "b_id": "TASK-2026-08-09-main-007",
+   "class": "hard",
+   "similarity": 0.2727
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-005",
+   "b_id": "TASK-2026-08-09-main-006",
+   "class": "hard",
+   "similarity": 0.1967
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-005",
+   "b_id": "TASK-2026-08-09-main-007",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-005",
+   "b_id": "TASK-2026-08-09-main-008",
+   "class": "hard",
+   "similarity": 0.2381
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-006",
+   "b_id": "TASK-2026-08-09-main-007",
+   "class": "hard",
+   "similarity": 0.1282
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-006",
+   "b_id": "TASK-2026-08-09-main-008",
+   "class": "hard",
+   "similarity": 0.1754
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-006",
+   "b_id": "TASK-2026-08-09-main-009",
+   "class": "hard",
+   "similarity": 0.3438
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-007",
+   "b_id": "TASK-2026-08-09-main-008",
+   "class": "hard",
+   "similarity": 0.2034
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-007",
+   "b_id": "TASK-2026-08-09-main-009",
+   "class": "hard",
+   "similarity": 0.2424
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-007",
+   "b_id": "TASK-2026-08-09-main-010",
+   "class": "hard",
+   "similarity": 0.2439
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-008",
+   "b_id": "TASK-2026-08-09-main-009",
+   "class": "hard",
+   "similarity": 0.0889
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-008",
+   "b_id": "TASK-2026-08-09-main-010",
+   "class": "hard",
+   "similarity": 0.2623
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-008",
+   "b_id": "TASK-2026-08-09-main-011",
+   "class": "hard",
+   "similarity": 0.2353
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-009",
+   "b_id": "TASK-2026-08-09-main-010",
+   "class": "hard",
+   "similarity": 0.1765
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-009",
+   "b_id": "TASK-2026-08-09-main-011",
+   "class": "hard",
+   "similarity": 0.1379
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-009",
+   "b_id": "TASK-2026-08-09-main-012",
+   "class": "hard",
+   "similarity": 0.2424
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-010",
+   "b_id": "TASK-2026-08-09-main-011",
+   "class": "hard",
+   "similarity": 0.3784
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-010",
+   "b_id": "TASK-2026-08-09-main-012",
+   "class": "hard",
+   "similarity": 0.4146
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-010",
+   "b_id": "TASK-2026-08-09-main-013",
+   "class": "hard",
+   "similarity": 0.2299
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-011",
+   "b_id": "TASK-2026-08-09-main-012",
+   "class": "hard",
+   "similarity": 0.1667
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-011",
+   "b_id": "TASK-2026-08-09-main-013",
+   "class": "hard",
+   "similarity": 0.1299
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-011",
+   "b_id": "TASK-2026-08-09-main-014",
+   "class": "hard",
+   "similarity": 0.3373
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-012",
+   "b_id": "TASK-2026-08-09-main-013",
+   "class": "hard",
+   "similarity": 0.2824
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-012",
+   "b_id": "TASK-2026-08-09-main-014",
+   "class": "hard",
+   "similarity": 0.2198
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-012",
+   "b_id": "TASK-2026-08-09-main-015",
+   "class": "hard",
+   "similarity": 0.3
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-013",
+   "b_id": "TASK-2026-08-09-main-014",
+   "class": "hard",
+   "similarity": 0.1458
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-013",
+   "b_id": "TASK-2026-08-09-main-015",
+   "class": "hard",
+   "similarity": 0.2588
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-013",
+   "b_id": "TASK-2026-08-09-main-016",
+   "class": "hard",
+   "similarity": 0.1944
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-014",
+   "b_id": "TASK-2026-08-09-main-015",
+   "class": "hard",
+   "similarity": 0.2637
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-014",
+   "b_id": "TASK-2026-08-09-main-016",
+   "class": "hard",
+   "similarity": 0.1795
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-014",
+   "b_id": "TASK-2026-08-09-main-017",
+   "class": "hard",
+   "similarity": 0.2571
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-015",
+   "b_id": "TASK-2026-08-09-main-016",
+   "class": "hard",
+   "similarity": 0.1493
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-015",
+   "b_id": "TASK-2026-08-09-main-017",
+   "class": "hard",
+   "similarity": 0.1695
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-015",
+   "b_id": "TASK-2026-08-10-main-001",
+   "class": "hard",
+   "similarity": 0.3438
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-016",
+   "b_id": "TASK-2026-08-09-main-017",
+   "class": "hard",
+   "similarity": 0.0435
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-016",
+   "b_id": "TASK-2026-08-10-main-001",
+   "class": "hard",
+   "similarity": 0.2353
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-016",
+   "b_id": "TASK-2026-08-10-main-002",
+   "class": "hard",
+   "similarity": 0.1356
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-017",
+   "b_id": "TASK-2026-08-10-main-001",
+   "class": "hard",
+   "similarity": 0.3256
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-017",
+   "b_id": "TASK-2026-08-10-main-002",
+   "class": "hard",
+   "similarity": 0.1569
+  },
+  {
+   "a_id": "TASK-2026-08-09-main-017",
+   "b_id": "TASK-2026-08-10-main-003",
+   "class": "hard",
+   "similarity": 0.7059
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-001",
+   "b_id": "TASK-2026-08-10-main-002",
+   "class": "hard",
+   "similarity": 0.2857
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-001",
+   "b_id": "TASK-2026-08-10-main-003",
+   "class": "hard",
+   "similarity": 0.4643
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-001",
+   "b_id": "TASK-2026-08-10-main-004",
+   "class": "hard",
+   "similarity": 0.1
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-002",
+   "b_id": "TASK-2026-08-10-main-003",
+   "class": "hard",
+   "similarity": 0.2812
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-002",
+   "b_id": "TASK-2026-08-10-main-004",
+   "class": "hard",
+   "similarity": 0.0833
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-002",
+   "b_id": "TASK-2026-08-10-main-005",
+   "class": "hard",
+   "similarity": 0.1818
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-003",
+   "b_id": "TASK-2026-08-10-main-004",
+   "class": "hard",
+   "similarity": 0.125
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-003",
+   "b_id": "TASK-2026-08-10-main-005",
+   "class": "hard",
+   "similarity": 0.3636
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-003",
+   "b_id": "TASK-2026-08-10-main-006",
+   "class": "hard",
+   "similarity": 0.5952
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-004",
+   "b_id": "TASK-2026-08-10-main-005",
+   "class": "hard",
+   "similarity": 0.12
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-004",
+   "b_id": "TASK-2026-08-10-main-006",
+   "class": "hard",
+   "similarity": 0.1765
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-004",
+   "b_id": "TASK-2026-08-10-main-007",
+   "class": "hard",
+   "similarity": 0.1818
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-005",
+   "b_id": "TASK-2026-08-10-main-006",
+   "class": "hard",
+   "similarity": 0.3256
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-005",
+   "b_id": "TASK-2026-08-10-main-007",
+   "class": "hard",
+   "similarity": 0.1935
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-005",
+   "b_id": "TASK-2026-08-10-main-008",
+   "class": "hard",
+   "similarity": 0.3448
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-006",
+   "b_id": "TASK-2026-08-10-main-007",
+   "class": "hard",
+   "similarity": 0.175
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-006",
+   "b_id": "TASK-2026-08-10-main-008",
+   "class": "hard",
+   "similarity": 0.1579
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-006",
+   "b_id": "TASK-2026-08-10-main-009",
+   "class": "hard",
+   "similarity": 0.1628
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-007",
+   "b_id": "TASK-2026-08-10-main-008",
+   "class": "hard",
+   "similarity": 0.1538
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-007",
+   "b_id": "TASK-2026-08-10-main-009",
+   "class": "hard",
+   "similarity": 0.2258
+  },
+  {
+   "a_id": "TASK-2026-08-10-main-008",
+   "b_id": "TASK-2026-08-10-main-009",
+   "class": "hard",
+   "similarity": 0.2069
+  }
+ ]
+}

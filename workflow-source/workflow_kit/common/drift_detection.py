@@ -189,9 +189,13 @@ def detect_scope_drift(
 
 #: 제목 유사도가 이 아래면 *의심* 으로 표시한다. `difflib` 비율이라 문자 단위다.
 #:
-#: 0.6 은 실측으로 고른 값이 아니라 출발점이다. 낮추면 표기 차이(백틱, 괄호)까지
-#: 걸리고, 높이면 진짜 교체를 놓친다. **판정이 아니라 후보 선별** 이므로 느슨한
-#: 쪽에 둔다 — 최종 판단은 LLM(또는 사람)이 prompt 를 보고 한다.
+#: 0.6 은 2026-08-10 에 저장소 자신의 제목 데이터로 실측 캘리브레이션한 값이다
+#: (`scripts/calibrate_title_drift.py` → `schemas/title_drift_calibration.json`,
+#: 검사는 `tests/check_title_drift_calibration.py`). 실측: 정본 소스 표기 변형의
+#: 노이즈 1/14, 실질-다른-task 프록시 검출 373/375. 못 잡는 것도 실측으로
+#: 확인됐다 — 같은-축 형제 task (0.69~0.71) 는 어떤 임계로도 유사도로는 못
+#: 가른다. **판정이 아니라 후보 선별** 이고 최종 판단은 LLM(또는 사람)이
+#: prompt 를 보고 한다. 값을 바꾸려면 재캘리브레이션을 같이 한다 (검사가 강제).
 TITLE_SIMILARITY_THRESHOLD: Final[float] = 0.6
 
 #: TASK-ID 뒤에 붙는 제목의 끝을 알리는 구분자. handoff 는 `— 상세` 로,

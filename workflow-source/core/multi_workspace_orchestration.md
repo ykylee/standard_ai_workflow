@@ -145,9 +145,9 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **scope drift detection (병합 시점)** | ✅ **구현** (v0.15.26+) — `workflow_kit.common.drift_detection.detect_scope_drift()` pure function + `tools/detect_scope_drift.py` CLI. 3-way enum (`planned_done` / `planned_undone` / `unplanned_done`, TASK-ID 기준) + drift_score (0.0~∞) + score_band (clean/minor/significant/major). pre handoff 의 *다음에 할 일* + post handoff 의 *최근 완료 작업* + git log 합집합 비교. advisory default, `--exit-on-drift` 명시 시 non-zero. (TASK-2026-08-08-main-018) |
 | **`--force` server-side 이중화 (3-layer defense)** | ✅ **구현** (v0.15.27+) — `tools/install_pre_push_hook.py` (install/uninstall/status) + `tools/hooks/pre-push-no-force.sh` (POSIX sh). 1st (claim_workspace.py 가 --force option 미제공) + 2nd (pre-push hook 이 사람 / 스크립트의 직접 `git push --force` 차단) + 3rd (server branch protection, 가이드). 7 case smoke ALL PASS. (TASK-2026-08-08-main-019) |
 | **CLI 化 B안 — 단일 dispatcher `wk`** | ✅ **구현** (v1.1.2+) — 새 dispatcher 를 만들지 않고 기존 `workflow_kit_cli.COMMANDS` 에 tools 29개를 lazy 등록. `wk <name>` positional + 기존 `--command=` 둘 다 유지 (38 + 27 = 65 command). `workflow_kit/common/tool_dispatch.py` 의 `TOOL_MODULES` 가 정본이고 `[project.scripts]` 와의 일치를 검사가 강제. `--list-commands` + bash/zsh completion. 10 case smoke ALL PASS + venv e2e. (TASK-2026-08-09-main-002) |
-| **registry HTTP server (federation *쓰기*)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/registry_server.py` + `tools/host_serve_registry.py`. loopback 기본 / read-only (쓰기 405) / 경로 2개만 (`/registry.json` + `/healthz`) / 토큰은 **환경변수 이름** 으로 (`--token-env`). pull 측에 `KnownHost.token_env` additive + `add-known-host` / `remove-known-host` CLI 신설 — **API 는 TASK-015 부터 있었지만 부르는 CLI 가 없어 federation 이 실제로는 돌 수 없었다.** 9 case smoke ALL PASS (실제 서버 ↔ pull 왕복). (TASK-2026-08-09-main-003) |
+| **registry HTTP server (federation *쓰기*)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/registry_server.py` + `tools/host_serve_registry.py`. loopback 기본 / read-only (쓰기 405) / 경로 2개만 (`/registry.json` + `/healthz`) / 토큰은 **환경변수 이름** 으로 (`--token-env`). pull 측에 `KnownHost.token_env` additive + `add-known-host` / `remove-known-host` CLI 신설 — **API 는 TASK-015 부터 있었지만 부르는 CLI 가 없어 federation 이 실제로는 돌 수 없었다.** 10 case smoke ALL PASS (실제 서버 ↔ pull 왕복 + 비-loopback bind 실측, TASK-2026-08-10-main-009). (TASK-2026-08-09-main-003) |
 | **branch protection 자동 check (3rd layer)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/branch_protection.py` (pure 판정) + `tools/check_branch_protection.py` (`gh api`). 보호를 *켜지 않는다* — 판정만 한다 (§5D.4). `gh` 부재/미인증은 graceful skip (모름 ≠ 없음), `--require-gh` 로 구분 가능. advisory default, `--exit-on-unprotected` 로 게이트. 8 case smoke ALL PASS. (TASK-2026-08-09-main-004) |
-| **title semantic drift v2** | ✅ **구현** (v1.1.2+) — v1 은 TASK-ID *집합* 만 봐서 같은 ID 안에서 내용이 바뀌면 언제나 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델 — API 직접 호출 ❌). `detect_scope_drift()` 에 `title_drift` additive. 11 case smoke ALL PASS. (TASK-2026-08-09-main-005) |
+| **title semantic drift v2** | ✅ **구현** (v1.1.2+) — v1 은 TASK-ID *집합* 만 봐서 같은 ID 안에서 내용이 바뀌면 언제나 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델 — API 직접 호출 ❌). `detect_scope_drift()` 에 `title_drift` additive. 11 case smoke ALL PASS. 임계 0.6 은 2026-08-10 에 저장소 자신의 제목 데이터로 실측 캘리브레이션 (`scripts/calibrate_title_drift.py` + `schemas/title_drift_calibration.json` + 검사 7 case, TASK-2026-08-10-main-008). (TASK-2026-08-09-main-005) |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -1310,9 +1310,16 @@ wk host-pull-registry add-known-host --host-id hostA \
 wk host-pull-registry pull --host hostA
 ```
 
-`tests/check_registry_server.py` 9 case ALL PASS — 서버 응답만 보지 않고 **실제로
+`tests/check_registry_server.py` 10 case ALL PASS — 서버 응답만 보지 않고 **실제로
 띄워서 `pull_remote_registry()` 로 되받는다.** 서버 단독 검사는 `_fetch_url` 쪽
 계약 위반을 놓친다.
+
+**비-loopback bind 실측** (2026-08-10, TASK-2026-08-10-main-009): case 10 이
+이 호스트의 LAN 인터페이스 IP 로 bind 하고 그 주소로 GET + pull + 토큰 왕복을
+실측한다 (2026-08-09 까지는 loopback 왕복만 실측이었다). LAN IP 를 못 얻는
+호스트(오프라인 컨테이너 등)는 graceful skip, `--require-lan` 으로 강제.
+**여전히 검증 밖**: 진짜 cross-host / 방화벽 통과 / reverse proxy / TLS 종단 —
+darwin homelab 등 두 번째 호스트가 있어야 한다.
 
 ## 7.5 Scope drift detection — §0.8 #3 (v0.15.26+, TASK-018)
 
@@ -1416,11 +1423,29 @@ handoff §5 는 ID 가 **뒤에** 오는 형식이라 설명의 꼬리를 집었
 - **항목명** — ✅ 닫힘 (TASK-xxx, …)   (handoff §5: 뒤)  ← 놓쳤던 형식
 ```
 
-임계 0.6 은 실측으로 고른 값이 아니라 출발점이다. 판정이 아니라 **후보 선별** 이라
-느슨한 쪽에 뒀다 — 실제로 이 저장소 handoff 에 돌리면 같은 일의 표현 차이
-(`§0.8 #2 in-flight 신뢰도` ↔ `in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)`,
-similarity 0.48) 도 후보로 올라온다. advisory 이므로 그대로 두되, 운영 데이터가
-쌓이면 조정할 자리다.
+**임계 0.6 은 실측으로 캘리브레이션됐다** (2026-08-10, TASK-2026-08-10-main-008).
+저장소 자신의 제목 데이터 — 정본 자리(backlog bullet / task H1 / handoff production
+섹션)의 현재 트리 + git 히스토리 576 버전 — 로 양성(같은 ID 표기 변형 81쌍) /
+음성(다른 ID 프록시 375쌍)을 만들어 잰 결과:
+
+| 실측 | 값 | 의미 |
+| --- | --- | --- |
+| 정본 양성 노이즈 | 1/14 | 유일 사례 = "제목 vs 제목+괄호 부연" |
+| handoff 양성 노이즈 | 25/67 | 계획 문구 vs 완료 제목의 정당한 재표현 — LLM 판정으로 가는 것이 설계 (예: `§0.8 #2 in-flight 신뢰도` ↔ `in-flight 워크스페이스 신뢰도 표시 (§0.8 #2)`, 0.41) |
+| 음성 검출률 | 373/375 | 임계는 음성 p95(0.41)와 정본 양성 사이에 여유 있게 위치 |
+| **구조적 한계** | 2건 (0.69·0.71) | **같은-축 형제 task 는 어떤 임계로도 유사도로 못 가른다** — ID 층·LLM 층의 몫 |
+
+기각된 대안 (실측): 꼬리 괄호 제거 정규화 — 양성 노이즈 26→17 로 주는 대신 음성
+놓침 115→287 로 는다. 괄호 부연이 정확히 변별 정보였다. 캘리브레이션은
+`scripts/calibrate_title_drift.py` 로 재실행 가능하고 (일회용 조사 금지),
+`schemas/title_drift_calibration.json` + `tests/check_title_drift_calibration.py` 가
+자기 정합·노이즈 상한·검출률 하한·한계 표본을 고정한다 — 임계를 바꾸려면
+재캘리브레이션이 같이 가야 한다 (검사가 강제).
+
+부수 실측: 캘리브레이션 1차 채굴이 임의 줄의 TASK-ID 언급을 전부 먹였더니 제목
+아닌 산문("있다", "[x] ~~")이 섞여 분포가 뒤집혔다. production 경로
+(`extract_section` 두 섹션 + `extract_task_titles`)로 다시 재니 쓰레기 제목 0건 —
+**입력층은 production 에서는 건강하다** 는 것도 이번에 확인된 사실이다.
 
 ```bash
 # 후보까지 같이 본다 (기본)

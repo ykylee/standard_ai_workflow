@@ -14,14 +14,19 @@ TASK-016 은 pull(*읽기*) 을 닫았지만 서빙하는 쪽이 없어 `http://
     7. pull_remote_registry() 왕복 — 서버 → known_hosts → pull → entries
     8. token_env 왕복 — 서버가 요구하고 pull 이 붙인다
     9. is_loopback() 판정 + KnownHost.token_env 하위호환 (missing → "")
+    10. 비-loopback bind 왕복 (TASK-2026-08-10-main-009) — LAN 인터페이스 IP 로
+        bind 하고 그 주소로 pull (토큰 포함). 2026-08-09 까지는 loopback 왕복만
+        실측이었다. LAN IP 를 못 얻는 호스트는 graceful skip (`--require-lan`
+        으로 강제). 진짜 cross-host / 방화벽 / TLS 는 여전히 이 검사 밖이다.
 
-Stdlib only. http.server + threading + urllib + tempfile.
+Stdlib only. http.server + threading + urllib + socket + tempfile.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import socket
 import sys
 import tempfile
 import threading
@@ -55,10 +60,11 @@ SAMPLE_REGISTRY = {
 class _Server:
     """thread 에서 띄우고 확실히 접는다."""
 
-    def __init__(self, registry_path: Path, token_env: str = "") -> None:
+    def __init__(self, registry_path: Path, token_env: str = "", bind: str = "127.0.0.1") -> None:
         # port 0 → OS 가 빈 포트를 준다. 고정 포트는 CI 에서 충돌한다.
+        self.bind = bind
         self.httpd = S.serve_registry(
-            registry_path=registry_path, bind="127.0.0.1", port=0,
+            registry_path=registry_path, bind=bind, port=0,
             token_env=token_env, quiet=True,
         )
         self.port = self.httpd.server_address[1]
@@ -74,7 +80,22 @@ class _Server:
         self.thread.join(timeout=5)
 
     def url(self, route: str = S.REGISTRY_ROUTE) -> str:
-        return f"http://127.0.0.1:{self.port}{route}"
+        return f"http://{self.bind}:{self.port}{route}"
+
+
+def _lan_ip() -> str | None:
+    """이 호스트의 비-loopback IPv4. 못 얻으면 None (→ case 10 graceful skip).
+
+    UDP connect 는 패킷을 보내지 않는다 — 목적지는 TEST-NET-1 (RFC 5737) 이라
+    실제로 닿을 일도 없고, OS 가 라우팅으로 고를 source IP 만 얻는다.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("192.0.2.1", 9))
+            ip = str(sock.getsockname()[0])
+    except OSError:
+        return None
+    return None if S.is_loopback(ip) else ip
 
 
 def _get(url: str, *, token: str | None = None, method: str = "GET") -> tuple[int, bytes, dict]:
@@ -90,8 +111,11 @@ def _get(url: str, *, token: str | None = None, method: str = "GET") -> tuple[in
 
 def main() -> int:
     failures: list[str] = []
+    ran = 0
 
     def check(label: str, cond: bool, detail: str = "") -> None:
+        nonlocal ran
+        ran += 1
         if cond:
             print(f"PASS: {label}")
         else:
@@ -192,6 +216,38 @@ def main() -> int:
                     ok_result.get("ok") is True and bad_result.get("ok") is False,
                     f"ok={ok_result.get('ok')} bad={bad_result.get('error')}",
                 )
+
+            # 10) 비-loopback bind 왕복 — 2026-08-09 까지는 loopback 만 실측이었다.
+            #     LAN IP 부재(오프라인 컨테이너 등)는 skip — 모름 ≠ 실패.
+            #     cross-host / 방화벽 / TLS 는 여기서 못 본다 (darwin homelab 몫).
+            lan_ip = _lan_ip()
+            if lan_ip is None:
+                msg = (
+                    "SKIP: 10) 비-loopback bind — 이 호스트의 LAN IPv4 를 못 얻었다. "
+                    "강제하려면 --require-lan."
+                )
+                if "--require-lan" in sys.argv:
+                    print(f"FAIL(require-lan): {msg}")
+                    failures.append("10) 비-loopback bind (require-lan)")
+                    ran += 1
+                else:
+                    print(msg)
+            else:
+                with _Server(reg_file, token_env="WK_TEST_TOKEN", bind=lan_ip) as srv:
+                    code, body, _ = _get(srv.url(), token="s3cret-value")
+                    direct_ok = code == 200 and json.loads(body) == SAMPLE_REGISTRY
+
+                    R.add_known_host("hostLan", srv.url(), token_env="WK_TEST_TOKEN")
+                    lan_result = R.pull_remote_registry("hostLan", timeout=5, use_cache=False)
+                    lan_entries = lan_result.get("registry", {}).get("entries", [])
+                    check(
+                        f"10) 비-loopback bind 왕복 ({lan_ip}) — GET + pull + 토큰",
+                        direct_ok
+                        and lan_result.get("ok") is True
+                        and len(lan_entries) == 1,
+                        f"direct code={code} pull_ok={lan_result.get('ok')} "
+                        f"err={lan_result.get('error')}",
+                    )
         finally:
             for k, v in old_env.items():
                 if v is None:
@@ -215,12 +271,11 @@ def main() -> int:
         f"loopback_ok={loopback_ok} token_env={legacy.token_env!r}",
     )
 
-    total = 9
     print()
     if failures:
-        print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")
+        print(f"{ran - len(failures)}/{ran} PASS — FAILED: {failures}")
         return 1
-    print(f"{total}/{total} PASS")
+    print(f"{ran}/{ran} PASS")
     return 0
 
 

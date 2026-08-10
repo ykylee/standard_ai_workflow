@@ -4,7 +4,7 @@
 - 범위: 현재 포함된 schema 초안, 사용 방식, 한계
 - 대상 독자: AI workflow 설계자, 구현자, 테스트 작성자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-08-10
 - 관련 문서: `../core/output_schema_guide.md`, `../tests/README.md`, `../workflow_kit/README.md`
 
 ## 1. 목적
@@ -25,6 +25,7 @@
 - [read_only_transport_descriptors.json](./read_only_transport_descriptors.json)
 - [read_only_harness_mcp_examples.json](./read_only_harness_mcp_examples.json)
 - [read_only_jsonrpc_fixtures.json](./read_only_jsonrpc_fixtures.json)
+- [title_drift_calibration.json](./title_drift_calibration.json)
 
 이 파일들은 아래 정보를 담는다.
 
@@ -56,6 +57,8 @@
 - `tests/check_read_only_transport_descriptors.py` 는 read-only transport descriptor 파일과 생성 스크립트 출력이 registry 와 같은지 검증한다.
 - `tests/check_read_only_harness_mcp_examples.py` 는 하네스별 MCP 예시 파일과 생성 스크립트 출력이 descriptor 기준과 같은지 검증한다.
 - `tests/check_read_only_jsonrpc_fixtures.py` 는 체크인된 JSON-RPC fixture 와 생성 스크립트 출력이 runtime bridge 결과와 같은지 검증한다.
+- `scripts/calibrate_title_drift.py` 는 저장소 자신의 제목 데이터(backlog bullet / task H1 / handoff production 섹션 + git 히스토리)로 [title_drift_calibration.json](./title_drift_calibration.json) 을 생성한다 — `TITLE_SIMILARITY_THRESHOLD` 의 실측 근거.
+- `tests/check_title_drift_calibration.py` 는 캘리브레이션 fixture 의 자기 정합(저장 similarity == production 재계산)과 임계의 성질(노이즈 상한 / 검출률 하한 / 구조적 한계 표본)을 검증한다.
 - `tests/check_generated_schema_validation.py` 는 generated schema draft 로 실제 sample JSON 이 통과하는지 검증한다.
 - 두 표현이 어긋나면 smoke test 가 실패하도록 유지하는 것이 권장된다.
 

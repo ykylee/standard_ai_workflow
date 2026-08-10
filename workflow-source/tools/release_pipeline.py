@@ -3809,7 +3809,11 @@ def main() -> int:
     p_dist.add_argument("--skip-existing", action="store_true", help="dist/ 의 current-version 파일 있으면 skip")
     p_dist.add_argument("--timeout", type=int, default=300, help="subprocess timeout in sec (default 300)")
     p_dist.add_argument("--dry-run", action="store_true", dest="dry_run")
-    p_dist.add_argument("--apply", dest="apply", action="store_true", default=True)
+    p_dist.add_argument("--apply", dest="apply", action="store_true", default=False,
+                        help="실제 빌드 실행. v1.1.5+ 기본값 반전 — 이전에는 default True 라 "
+                             "무인자 `dist` 가 빌드를 수행했다 (release 와 같은 결함, "
+                             "main() 의 '둘 다 없으면 dry-run' 정규화가 무력화돼 있었다). "
+                             "lib wrapper (`cmd_dist(apply=False)`) 와 이제 정합.")
     p_dist.add_argument("--production", action="store_true", help="simulate production PyPI upload (after TestPyPI sim). actual upload not performed per release policy.")
     p_dist.add_argument("--json", action="store_true")
 

@@ -13,7 +13,7 @@ doctor / state 가 만성 실패였고 개별 skip 도 없었기 때문이다. �
 3. 무인자 `release` 의 기본이 APPLY 였다 (--apply default True 가 main() 의
    "둘 다 없으면 dry-run" 정규화를 무력화).
 
-검증 케이스 (10):
+검증 케이스 (12 — v1.1.5 에서 1b·3b dist 기본값 추가):
     1. release subparser 의 `--apply` default 는 False (AST)
     2. 무인자 `release` 는 dry-run 으로 진입한다 (subprocess)
     3. `--dry-run --apply` 동시 지정 시 dry-run 이 이긴다 (subprocess)
@@ -49,9 +49,9 @@ if str(SOURCE_ROOT) not in sys.path:
 PIPELINE_PY = SOURCE_ROOT / "tools" / "release_pipeline.py"
 
 
-def _release_subparser_defaults() -> dict[str, object]:
-    """main() 안에서 `sub.add_parser("release")` 로 만든 parser 변수의
-    add_argument 호출들에서 dest → default 를 뽑는다 (AST)."""
+def _subparser_defaults(command: str) -> dict[str, object]:
+    """main() 안에서 `sub.add_parser(command)` 로 만든 parser 변수의
+    add_argument 호출들에서 flag → default 를 뽑는다 (AST)."""
     tree = ast.parse(PIPELINE_PY.read_text(encoding="utf-8"))
     release_vars: set[str] = set()
     defaults: dict[str, object] = {}
@@ -60,7 +60,7 @@ def _release_subparser_defaults() -> dict[str, object]:
             call = node.value
             if (isinstance(call.func, ast.Attribute) and call.func.attr == "add_parser"
                     and call.args and isinstance(call.args[0], ast.Constant)
-                    and call.args[0].value == "release"
+                    and call.args[0].value == command
                     and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)):
                 release_vars.add(node.targets[0].id)
     for node in ast.walk(tree):
@@ -123,12 +123,20 @@ def main() -> int:
 
     from tools import release_pipeline as rp  # noqa: E402
 
-    # 1) --apply default False
-    defaults = _release_subparser_defaults()
+    # 1) --apply default False — release 와 dist 둘 다 (destructive/부작용 있는
+    # subcommand 의 무인자 실행은 dry-run 이어야 한다. release 는 v1.1.4, dist 는
+    # v1.1.5 에서 반전 — 같은 결함이 두 subparser 에 복제돼 있었다).
+    rel_defaults = _subparser_defaults("release")
     check(
         "1) release subparser --apply default 는 False",
-        defaults.get("--apply") is False,
-        f"defaults={defaults}",
+        rel_defaults.get("--apply") is False,
+        f"defaults={rel_defaults}",
+    )
+    dist_defaults = _subparser_defaults("dist")
+    check(
+        "1b) dist subparser --apply default 는 False",
+        dist_defaults.get("--apply") is False,
+        f"defaults={dist_defaults}",
     )
 
     # 2) 무인자 release → dry-run
@@ -145,6 +153,19 @@ def main() -> int:
         "3) --dry-run --apply 는 dry-run (안전측)",
         both.get("mode") == "dry-run",
         f"mode={both.get('mode')!r}",
+    )
+
+    # 3b) 무인자 dist → dry-run (빌드를 수행하지 않는다)
+    dist_proc = subprocess.run(
+        [sys.executable, str(PIPELINE_PY), "dist", "--json"],
+        capture_output=True, text=True, timeout=120,
+        env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+    )
+    dist_out = json.loads(dist_proc.stdout)
+    check(
+        "3b) 무인자 dist 는 dry-run",
+        dist_out.get("mode") == "dry-run",
+        f"mode={dist_out.get('mode')!r}",
     )
 
     # 4) doctor 호출 argv — 저장소 루트 + --config-path
@@ -224,7 +245,7 @@ def main() -> int:
         f"partial_rules={cfg.partial_rules}",
     )
 
-    total = 10
+    total = 12
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")
         return 1

@@ -783,3 +783,119 @@ def read_telemetry_events(workspace_root: Path) -> list[MemoryIndexTelemetryEven
     tp = telemetry_path(workspace_root)
     events, _ = _read_telemetry_events(tp)
     return events
+
+
+# --- W-1 (ADR-006 후속): write-path advisory — entry 승격 후보 제안 ---
+
+#: 제목 token 이 기존 entry corpus 에 이만큼 미만으로 덮이면 "index 가 모르는
+#: 작업" 후보로 본다. 실측 근거는 tests/check_memory_entry_suggestions.py 참조.
+#: 판정이 아니라 후보 선별 — 최종 적재 여부는 사람/에이전트가 결정한다.
+SUGGESTION_COVERAGE_THRESHOLD: Final[float] = 0.5
+
+#: 후보 제안 시 cue_anchors 로 제시할 token 의 최대 개수.
+_SUGGESTED_ANCHORS_CAP: Final[int] = 8
+
+#: cue 로서 정보가 없는 범용 token (handoff 제목에 항상 나오는 것들).
+_ANCHOR_STOPWORDS: Final[frozenset[str]] = frozenset({
+    "task", "main", "2026", "the", "and", "for",
+})
+
+
+def _next_entry_id(entries: list[MemoryEntry], date_str: str) -> str:
+    """`MEM-<date>-NNN` 의 다음 빈 sequence. 같은 날짜 entry 가 없으면 001."""
+    prefix = f"MEM-{date_str}-"
+    used = [
+        int(e.id[len(prefix):])
+        for e in entries
+        if e.id.startswith(prefix) and e.id[len(prefix):].isdigit()
+    ]
+    return f"{prefix}{(max(used) + 1) if used else 1:03d}"
+
+
+def suggest_memory_entry_candidates(
+    entries: list[MemoryEntry],
+    handoff_text: str,
+    *,
+    date_str: str,
+    threshold: float = SUGGESTION_COVERAGE_THRESHOLD,
+    max_candidates: int = 5,
+) -> dict[str, object]:
+    """세션이 남긴 완료 작업 중 memory_index 가 모르는 것을 entry 후보로 제안한다.
+
+    **advisory 다 — 아무것도 쓰지 않는다.** ADR-006 회고의 W-1: 30일간 신규
+    entry 0건의 원인은 쓰기 운영 루프 부재였다. 자동 적재는 하지 않는다 —
+    entry 의 primary_abstraction/value_digest 는 *무엇이 기억할 가치가 있는가*
+    라는 판단이고, 도구가 대신 쓰면 거짓이 된다.
+
+    판정: handoff §4 (최근 완료 작업) 의 제목 token 이 기존 entry corpus
+    (`primary_abstraction + cue_anchors + value_digest`) 로 얼마나 덮이는지
+    (coverage = |제목 ∩ entry| / |제목|). 최대 coverage 가 threshold 미만이면
+    후보. 후보에는 스키마 모양의 skeleton 을 함께 준다 — 채우는 건 사람이다.
+
+    Returns:
+        ``{"candidates": [...], "compared": int, "covered": int,
+        "threshold": float, "entries_loaded": int}``
+        각 candidate: ``{"task_id", "title", "best_coverage",
+        "nearest_entry_id", "suggested_cue_anchors", "skeleton"}``
+    """
+    from workflow_kit.common.drift_detection import extract_section, extract_task_titles
+
+    section = extract_section(handoff_text, "최근 완료 작업")
+    titles = extract_task_titles(section)
+
+    entry_tokens: list[tuple[MemoryEntry, set[str]]] = [
+        (e, set(_bm25_tokenize(_bm25_text_for_entry(e)))) for e in entries
+    ]
+
+    candidates: list[dict[str, object]] = []
+    covered = 0
+    next_id = _next_entry_id(entries, date_str)
+    for task_id, title in titles.items():
+        tokens = set(_bm25_tokenize(title))
+        if not tokens:
+            continue
+        best_coverage = 0.0
+        nearest: str | None = None
+        for entry, etoks in entry_tokens:
+            coverage = len(tokens & etoks) / len(tokens)
+            if coverage > best_coverage:
+                best_coverage = coverage
+                nearest = entry.id
+        if best_coverage >= threshold:
+            covered += 1
+            continue
+        anchors = [
+            t for t in _bm25_tokenize(title)
+            if len(t) >= 2 and t not in _ANCHOR_STOPWORDS and not t.isdigit()
+        ]
+        anchors = _dedupe_keep_order(anchors)
+        candidates.append({
+            "task_id": task_id,
+            "title": title,
+            "best_coverage": round(best_coverage, 4),
+            "nearest_entry_id": nearest,
+            "suggested_cue_anchors": anchors[:_SUGGESTED_ANCHORS_CAP],
+            "skeleton": {
+                "id": next_id,
+                "schema_version": 1,
+                "source_paths": ["<원문 경로 — task 파일 / 세션 기록>"],
+                "primary_abstraction": f"<6-8 단어 canonical 요약: {title[:60]}>",
+                "cue_anchors": anchors[:_SUGGESTED_ANCHORS_CAP],
+                "value_digest": "<본문 1줄 요약 — 사람이 채울 것>",
+                "owners": [],
+                "scope": [],
+                "merge_state": "active",
+                "mentioned_in": [],
+                "created_at": f"{date_str}T00:00:00Z",
+                "updated_at": f"{date_str}T00:00:00Z",
+            },
+        })
+    candidates.sort(key=lambda c: (float(str(c["best_coverage"])), str(c["task_id"])))
+    return {
+        "candidates": candidates[:max_candidates],
+        "candidates_total": len(candidates),
+        "compared": len(titles),
+        "covered": covered,
+        "threshold": threshold,
+        "entries_loaded": len(entries),
+    }

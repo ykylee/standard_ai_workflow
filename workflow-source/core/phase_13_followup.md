@@ -211,11 +211,14 @@ Phase 12 의 4 acceptance criteria (AC1~AC4+) 의 **수렴 + 유지** 가 Phase 
 
 ### 3.3 우선순위 P2 (장기, 6+ month / year 1 / year 2)
 
-#### P2-1: ADR-006 Memory Index 회고 본문 작성 (30일 누적 사용 후)
+#### P2-1: ADR-006 Memory Index 회고 본문 작성 (30일 누적 사용 후) — ✅ 완료 (2026-08-10)
 
 - **근거**: v0.11.22 자리 박기, 30일 누적 사용 데이터 후 작성 예정.
-- **작업**: 2026-08-19 이후 (v0.11.22 + 30일) 회고 본문 작성 + ai-workflow/wiki/topics/ 추가.
-- **acceptance**: 회고 본문 ≥ 200 line + 6 영역 (prototype / state.json hook / --merge opt-in / BM25 fallback / dispatcher entry / 3 skill wiring) + 회고 결론 + 후속 작업.
+- **작업**: ~~2026-08-19 이후 (v0.11.22 + 30일)~~ **날짜 정정**: v0.11.22 tag 는
+  2026-07-20 이 아니라 **2026-07-02** (git tag 실측) — 30일 조건은 2026-08-01
+  충족, ADR 권장 창은 2026-08-01~08-15. 회고 본문 + wiki topic 작성 완료
+  (TASK-2026-08-10-main-010, telemetry 256 events 실측 기반).
+- **acceptance**: ✅ 회고 본문 ≥ 200 line + 6 영역 (prototype / state.json hook / --merge opt-in / BM25 fallback / dispatcher entry / 3 skill wiring) + 회고 결론 + 후속 작업 (W-1~W-4). wiki topic: `topics/memory-index-retrospective-2026`. ADR-006 status: placeholder → **accepted**.
 
 #### P2-2: long-running CI 안정성 검증 (1+ month)
 

@@ -4,14 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-10 (2026-08-09 "검증 못 한 것" 2건 close — TASK-008·009)
+- 최종 수정일: 2026-08-10 (ADR-006 회고 + W-1 write-path 루프 — TASK-010·011)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **2026-08-09 세션의 "검증 못 한 것" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
+- 현재 기준선: **ADR-006 회고 (TASK-010) + W-1 write-path advisory 루프 구현 (TASK-011)** — telemetry 256 events 실측 회고 (ADR accepted), `wk suggest-memory-entries` 신설, 루프 실증 완주 (회고를 `MEM-2026-08-10-001` 로 적재 — **33일 만의 첫 신규 entry**, covered 0→1). 남은 후속: W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 직전: **2026-08-09 세션의 "검증 못 한 것" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.
 - 현재 주 작업 축: 릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).
-- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e 재확인 / **P2-1 ADR-006 회고 (2026-08-19 이후 착수 조건 충족)** / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
+- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / ADR-006 후속 **W-2 질의 다양화 → W-3 entry 간 링크 → W-4 지표 재정의** (W-1 은 ✅ TASK-011) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -38,6 +38,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-011 **ADR-006 W-1 write-path advisory 루프** — `wk suggest-memory-entries` 신설: handoff §4 제목을 entry corpus 와 대조 (coverage < 0.5 → 후보 + skeleton, **무-write advisory**). 루프 실증 완주 — 첫 실측 10/10 후보 (max 0.14, 회고 재확인) → 회고를 `MEM-2026-08-10-001` 로 적재 (**33일 만의 첫 신규 entry**) → covered 0→1 + `query [retrospective,write-path]` 적중. smoke 8/8 (되주입: corpus 에 넣으면 후보가 사라짐), dispatcher 정합 10/10, mypy clean. smoke 263.
+- TASK-2026-08-10-main-010 **P2-1 ADR-006 Memory Index 회고** — telemetry 256 events (07-09~08-10) 실측: 30일 실사용 = **고정 질의 1종 → 고정 entry 1건** (BM25/expansion/merge 발동 0회, 신규 entry 0건, latency p50 0.18ms). hit_rate 1.0 은 캐시 적중이었다 — 질의 다양성을 안 재는 지표는 항상 green 이어도 정보가 없다. ADR-006 placeholder → **accepted** (~230 line, 6 영역 + 보강 2). 후속 W-1 write-path advisory 루프 / W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 기각: BM25 tuning·embedding·merge default 변경. wiki topic 신설, phase_13_followup stale 날짜 정정 (08-19 → 실제 tag 07-02).
 - TASK-2026-08-10-main-008 **title drift 임계 0.6 실측 캘리브레이션** — 저장소 자신의 제목 데이터(정본 자리만: backlog bullet / task H1 / handoff production 섹션, 트리 326 문서 + git 576 버전)로 양성 81 / 음성 375쌍을 채굴해 **0.6 유지를 실측으로 확정** (정본 양성 노이즈 1/14, 음성 검출 373/375). 같은-축 형제 task (0.69~0.71) 는 어떤 임계로도 못 가른다 — 검사 case 6 이 한계를 동결. 괄호 제거 정규화는 실측 기각 (놓침 115→287). `calibrate_title_drift.py` + fixture + 검사 7 case (되주입 2종). 1차 채굴의 교훈: 임의 줄의 ID 언급을 먹이면 산문이 제목으로 섞여 분포가 뒤집힌다 — production 이 읽는 자리만 먹일 것.
 - TASK-2026-08-10-main-009 **registry server 비-loopback bind 실측** — case 10 신설, LAN IP(192.168.0.121) bind + GET + pull + 토큰 왕복 green. LAN IP 부재는 graceful skip + `--require-lan`. cross-host / 방화벽 / TLS 는 여전히 검증 밖 (darwin homelab 몫, §7.4 명시).
 - TASK-2026-08-10-main-007 **dummy wrapper 물리 제거** — v0.15.18 이 심은 `assert True` dummy 153개/60파일 제거 (-827줄, 참조 걸림 0 = 전부 고아 def). **신호 분포 완전 불변 실증** (min 1 / under-5 7 동일) — TASK-004 측정이 dummy 를 안 세고 있었다는 물리적 재확인. 자기 보고 수치가 정직해짐 (예: 5/5 → 3/3).
@@ -46,8 +48,6 @@
 - TASK-2026-08-10-main-004 **TST-WF-01 측정 재설계** — 실측이 설계를 결정: AST 로 4개 관행(def/assert/reporter 호출/failures.append)을 세고 `assert True` dummy 153개를 배제하니 **260개 전 파일 ≥1 신호**. hard floor = 파일당 ≥1 (검증 없는/parse 불가 파일 검출), ≥5 는 권장으로 notes 노출. partial 예외 제거 + pre_check_gates case 10 을 예외 *부재* 고정으로 반전. `check_tst_wf01_signals` 9/9 (되주입 3종). 정본 문서 2곳 동기. smoke 261.
 - TASK-2026-08-10-main-003 **v1.1.4-beta 를 `cmd_release` 경로로 발행** — 수동 발행 관행 종료. version-bump(dirty 거부 → amend 가드 첫 정상 완주) → note-draft → stamp 정합(검사 4종으로 탐지) → dist(twine PASSED) → dry-run(pre_check **5/5 skip 없이 통과**) → apply(tag push + gh release + dashboard emit + audit append 자동 완주) → verify 실증. 자동 후처리(최종 수정일 68건 + CHANGELOG `[1.1.4]`)는 post-release 커밋으로 수습.
 - TASK-2026-08-10-main-001 **cmd_release 사용성 회복** — pre_check 만성 실패 3뿌리 해소: (1) doctor 호출이 `workflow-source/workflow-source/` 를 탐색해 **0 files 를 재고 non_compliant** → repo root + `--config-path` + env 명시 (2) TST-WF-01 이 inline `check()`/`failures.append` 관행을 못 봐 만성 red → dummy wrapper 전례 대신 `partial_rules.testing` **선언된 예외** (3) state 검사의 `memory.last_freeze` 는 writer 가 사라진 죽은 계약 → `generated_at` (legacy 하위호환). + **무인자 `release` dry-run 반전** + 개별 `--skip-*` 5종 + mypy "실행 불가 vs 오류" 출처 구분. `check_release_pre_check_gates` 10/10 신설. venv 실측 pre_check 5/5 통과. 전량 **260/260 PASS**.
-- TASK-2026-08-10-main-002 **check_mavis_attach_e2e 호스트 사본 제거** — darwin 절대경로 하드코딩 사본 탓에 darwin 외 호스트에서 무조건 red 였던 것을 실제 `~/.minimax/mcp/mcp.json` 정본 읽기로 교체. 부재 시 graceful skip (`--require-mavis` 로 강제). 로드 경로는 fake 항목 실증 ALL PASS (13 tools + tool call 2종).
-- TASK-2026-08-09-main-017 **v1.1.3-beta 발행** (TASK-009~016, 11 커밋). 오늘 고친 릴리스 도구 3건이 **이번 릴리스에서 실제 검증됐다** — `_git_toplevel`(정당한 amend 거부) / `release-verify`(실제 조회 성공) / **step 3.4**(`ok: True, 259/259` — 실제 경로 동작). 수동 발행 이유: `cmd_release` pre_check 의 doctor/state 가 만성 실패인데 개별 skip 이 없다. **주의: `release` 는 `--dry-run` 없으면 기본이 APPLY**.
 ## 5. 다음 세션 시작 포인트
 
 ### 무엇이 끝났나 (2026-08-10 세션)

@@ -27,12 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**2026-08-09 세션의 \"검증 못 한 것\" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.",
+    "current_baseline": "**ADR-006 회고 (TASK-010) + W-1 write-path advisory 루프 구현 (TASK-011)** — telemetry 256 events 실측 회고 (ADR accepted), `wk suggest-memory-entries` 신설, 루프 실증 완주 (회고를 `MEM-2026-08-10-001` 로 적재 — **33일 만의 첫 신규 entry**, covered 0→1). 남은 후속: W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 직전: **2026-08-09 세션의 \"검증 못 한 것\" 2건 close** (TASK-008·009) — title drift 임계 0.6 실측 캘리브레이션 (저장소 자신의 제목 데이터 양성 81/음성 375쌍, **0.6 유지 + 구조적 한계 동결 + 조사를 검사로 고정**) + registry server 비-loopback bind 왕복 실측 (LAN IP bind + pull + 토큰, 10/10). 직전: **dummy wrapper 물리 제거 완료** (TASK-007, 153개/60파일 -827줄, 신호 분포 불변 실증). 직전: **v1.1.5-beta 발행 완료 — `cmd_release` 2번째 실전** (2026-08-10, tag `v1.1.5-beta`, TASK-004~006 묶음: TST-WF-01 예외 제거 + dist dry-run 반전). **파생물 선재생성** 으로 post-apply 잔여 73→4 파일. 전량 검사 **261/261 PASS**. 직전: **TST-WF-01 측정 재설계 완료** (TASK-004) — AST verification-signal 기반, `assert True` dummy 배제, `partial_rules.testing` 예외 제거, **hard 복귀 + 정직하게 compliant**. 전량 검사 **261/261 PASS**. 직전: **v1.1.4-beta 발행 완료 — `cmd_release` 경로 첫 실전 발행** (2026-08-10, tag `v1.1.4-beta`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.4-beta), whl+sdist). **수동 발행 관행 종료** (v1.1.0 부터 4연속이던 것). pre_check **5/5 를 skip 플래그 없이 통과**, 전량 검사 **260/260 PASS**. version-bump post-step(amend 가드)도 첫 정상 완주.",
     "current_axis": "릴리스 파이프라인 정상화 사이클 **완결** (TASK-001~006, 릴리스 2회 실전).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-011 — ADR-006 W-1: memory_index write-path advisory 루프",
+      "TASK-2026-08-10-main-010 — P2-1 ADR-006 Memory Index 회고 본문 작성",
       "TASK-2026-08-10-main-009 — registry server 비-loopback bind 실측",
       "TASK-2026-08-10-main-008 — title drift 임계 0.6 실측 보정",
       "TASK-2026-08-10-main-007 — v0.15.18 dummy wrapper 물리 제거",
@@ -40,19 +42,19 @@
       "TASK-2026-08-10-main-005 — dist 기본값 dry-run 반전 (release 와 정합)",
       "TASK-2026-08-10-main-004 — TST-WF-01 측정 재설계 (관행 인식형)",
       "TASK-2026-08-10-main-003 — v1.1.4-beta 를 cmd_release 경로로 발행",
-      "TASK-2026-08-10-main-002 — check_mavis_attach_e2e 호스트 사본 제거",
-      "TASK-2026-08-10-main-001 — cmd_release 를 쓸 수 있게 만들기",
-      "TASK-2026-08-09-main-017 — v1.1.3-beta release"
+      "TASK-2026-08-10-main-002 — check_mavis_attach_e2e 호스트 사본 제거"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 9,
+    "task_count": 11,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-011 — ADR-006 W-1: memory_index write-path advisory 루프",
+      "TASK-2026-08-10-main-010 — P2-1 ADR-006 Memory Index 회고 본문 작성",
       "TASK-2026-08-10-main-008 — title drift 임계 0.6 실측 보정",
       "TASK-2026-08-10-main-009 — registry server 비-loopback bind 실측",
       "TASK-2026-08-10-main-007 — v0.15.18 dummy wrapper 물리 제거",
@@ -303,7 +305,39 @@
       ],
       "created_at": "2026-07-09T00:46:00Z",
       "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-08-10-001",
+      "schema_version": 1,
+      "source_paths": [
+        "docs/architecture/ADR-006-memory-index-retrospective.md"
+      ],
+      "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
+      "cue_anchors": [
+        "memory-index",
+        "retrospective",
+        "adr-006",
+        "write-path",
+        "hit-rate",
+        "telemetry",
+        "bm25",
+        "suggest-memory-entries"
+      ],
+      "value_digest": "30일 실사용 = 고정 질의 1종→고정 entry 1건. 병목은 검색이 아니라 운영 — 후속 W-1~W-4, W-1 은 suggest-memory-entries 로 구현.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "memory-index"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "ai-workflow/wiki/topics/memory-index-retrospective-2026.md"
+      ],
+      "created_at": "2026-08-10T00:00:00Z",
+      "updated_at": "2026-08-10T00:00:00Z"
     }
   ],
-  "memory_entries_count": 7
+  "memory_entries_count": 8
 }

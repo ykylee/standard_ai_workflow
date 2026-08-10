@@ -69,6 +69,7 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "score-wiki-maintainability": "tools.score_wiki_maintainability",
     "score-wiki-trend": "tools.score_wiki_trend",
     "seed-workspace-memory": "tools.seed_workspace_memory",
+    "suggest-memory-entries": "tools.suggest_memory_entries",
     "survey-remote-workspaces": "tools.survey_remote_workspaces",
     "sync-release-hash": "tools.sync_release_hash",
     "wiki-emit": "tools.wiki_emit",

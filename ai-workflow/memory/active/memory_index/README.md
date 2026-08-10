@@ -50,6 +50,10 @@ memory_index/
 
 ## 3. 운영 규칙
 
+- **생성 후보 찾기** (ADR-006 W-1, v1.1.5+): 세션 종료의 memory 갱신 단계에서
+  `wk suggest-memory-entries` 를 돌리면 handoff §4 의 완료 작업 중 index 가
+  모르는 것을 skeleton 과 함께 **advisory 제안** 한다 (자동 적재 ❌ — 채우는
+  건 사람/에이전트). 30일간 신규 entry 0건이던 write-path 의 운영 루프.
 - **생성**: 새 session 또는 새 concept 발견 시 helper 로 entry 1개 생성.
   ```python
   from workflow_kit.common.schemas.memory_index import MemoryEntry, MergeState

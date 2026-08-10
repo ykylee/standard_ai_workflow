@@ -1,0 +1,32 @@
+{
+  "id": "MEM-2026-08-10-001",
+  "schema_version": 1,
+  "source_paths": [
+    "docs/architecture/ADR-006-memory-index-retrospective.md"
+  ],
+  "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
+  "cue_anchors": [
+    "memory-index",
+    "retrospective",
+    "adr-006",
+    "write-path",
+    "hit-rate",
+    "telemetry",
+    "bm25",
+    "suggest-memory-entries"
+  ],
+  "value_digest": "30일 실사용 = 고정 질의 1종→고정 entry 1건. 병목은 검색이 아니라 운영 — 후속 W-1~W-4, W-1 은 suggest-memory-entries 로 구현.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "memory-index"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "ai-workflow/wiki/topics/memory-index-retrospective-2026.md"
+  ],
+  "created_at": "2026-08-10T00:00:00Z",
+  "updated_at": "2026-08-10T00:00:00Z"
+}

@@ -64,6 +64,12 @@ WATCHED_CHECKS = (
 CHECK_TIMEOUT_SEC = 300
 
 
+REQUIRES_QUIET_REPO = True
+"""이 check 는 실행 전후의 `git status` + tracked digest 를 **전역으로** 비교한다.
+
+같은 순간 다른 check 가 무엇이든 건드리면 그것을 감시 대상의 소행으로 오탐한다 —
+관찰 대상이 저장소 자신이라 격리로는 풀리지 않는다. runner 가 이 선언을 보고
+정숙 구간(병렬 구간이 끝난 뒤 직렬)에 배치한다."""
 def _porcelain() -> str:
     return subprocess.run(
         ["git", "status", "--porcelain"],

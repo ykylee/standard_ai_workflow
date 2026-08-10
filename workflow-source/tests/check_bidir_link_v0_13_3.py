@@ -32,6 +32,11 @@ WIKI_DIR = REPO_ROOT / "ai-workflow" / "wiki"
 ENTRIES_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active" / "memory_index" / "entries"
 
 
+REQUIRES_QUIET_REPO = True
+"""memory_index entry 와 wiki topic 을 실제 경로에서 갱신했다 되돌린다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _run_bidir_link(args: list[str]) -> dict:
     """bidir-link CLI invocation → dict parse."""
     cmd = [sys.executable, "workflow-source/tools/release_pipeline.py",

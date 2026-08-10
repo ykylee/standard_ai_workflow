@@ -26,6 +26,11 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
 
 
+REQUIRES_QUIET_REPO = True
+"""저장소 안에 dist 산출물 디렉터리를 만들었다 지운다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _import_tool():
     """release_pipeline.py 를 importlib 로 로드."""
     spec = importlib.util.spec_from_file_location("release_pipeline", TOOL)

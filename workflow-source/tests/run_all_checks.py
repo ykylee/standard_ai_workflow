@@ -42,6 +42,7 @@ Reference:
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -51,6 +52,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
@@ -74,6 +77,31 @@ from workflow_kit.common.branch_matrix import (  # noqa: E402
 DEFAULT_MIN_DISK_FREE_MB = 1024    # 여유가 1GB 미만이면 무조건 중단
 DEFAULT_MIN_DISK_FREE_RATIO = 0.05  # 또는 전체의 5% 미만이면 중단
 DEFAULT_MAX_TMP_MB = 2048          # temp 총량이 2GB 초과하면 누수 폭주로 보고 중단
+
+# --- v1.1.7 병렬 실행 (TASK-018) ---------------------------------------------
+# 측정: CI job 604s 중 smoke 실행이 576s 였고, 267개 check 의 시간 분포는 극단적이다
+# (상위 13개가 50%, 하위 133개 합계 9.8s). 개별 최적화보다 병렬화가 압도적이라
+# 8-way 실측에서 345s → 69.8s (4.9배) 였다.
+#
+# 각 check 는 이미 전용 TMPDIR + 전용 프로세스 그룹으로 격리돼 있어 대체로 병렬
+# 안전하다. 유일한 장애물이던 `check_source_without_runtime_layer` (원본 저장소의
+# `ai-workflow/` 를 rename 해 숨기던 것) 는 같은 task 에서 사본 검증으로 고쳤다.
+MAX_AUTO_JOBS = 8
+"""`--jobs auto` 의 상한. 코어가 더 많아도 여기서 멈춘다 — check 는 subprocess 라
+I/O 대기가 많지만, 동시 temp 사용량도 함께 늘기 때문이다 (guard 의 2GB 상한)."""
+
+QUIET_MARKER = "REQUIRES_QUIET_REPO"
+"""check 가 **저장소 전역 상태** 를 관찰한다고 스스로 선언하는 이름.
+
+이런 check 는 격리로 해결되지 않는다 — 관찰 대상이 저장소 자신이기 때문이다.
+`check_no_repo_write` 는 실행 전후의 `git status` 를 비교하므로 같은 순간 누가
+무엇이든 건드리면 오탐하고, `check_source_without_runtime_layer` 는 저장소를
+통째로 복사하므로 복사 순간의 일시 상태를 그대로 굳힌다. 실측에서 병렬로 돌린
+전량 검사가 정확히 이 둘만 추가로 깨뜨렸다.
+
+그래서 이들은 **아무도 저장소를 건드리지 않는 동안**(정숙 구간) 직렬로 돌린다.
+소속을 runner 안의 목록으로 두지 않는 이유는 §2.53 과 같다 — 목록은 파일에서
+멀어지면 드리프트한다. 선언을 check 파일 안에 두면 파일과 함께 움직인다."""
 
 
 @dataclass
@@ -378,25 +406,115 @@ def print_human(summary: RunSummary) -> None:
                 print(f"  ✗ {r.name}: {r.error_excerpt}")
 
 
+def requires_quiet_repo(check_path: Path) -> bool:
+    """check 가 `REQUIRES_QUIET_REPO = True` 를 선언했는가 (AST — import 하지 않는다)."""
+    try:
+        with warnings.catch_warnings():
+            # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 runner 출력에 새지 않게
+            # — baselines 의 신호 계수와 같은 처리다.
+            warnings.simplefilter("ignore", SyntaxWarning)
+            tree = ast.parse(check_path.read_text(encoding="utf-8"))
+    except (SyntaxError, OSError):
+        # parse 못 하는 파일은 어차피 실행도 못 한다. 병렬 구간에 두고 거기서 실패하게
+        # 둔다 — 여기서 조용히 정숙 구간으로 보내면 분류만 흐려진다.
+        return False
+    for node in tree.body:
+        targets = (node.targets if isinstance(node, ast.Assign)
+                   else [node.target] if isinstance(node, ast.AnnAssign) else [])
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == QUIET_MARKER:
+                value = node.value
+                if isinstance(value, ast.Constant) and value.value is True:
+                    return True
+    return False
+
+
+def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
+    """(병렬 가능, 정숙 구간 필요) 로 가른다. 순서는 각각 원래 순서를 지킨다."""
+    parallel = [p for p in checks if not requires_quiet_repo(p)]
+    quiet = [p for p in checks if requires_quiet_repo(p)]
+    return parallel, quiet
+
+
+def _resolve_jobs(raw: str) -> int:
+    """`--jobs` 값 해석. `auto` = min(코어, MAX_AUTO_JOBS)."""
+    if raw == "auto":
+        return max(1, min(os.cpu_count() or 4, MAX_AUTO_JOBS))
+    try:
+        n = int(raw)
+    except ValueError:
+        raise ValueError(f"--jobs 는 정수 또는 'auto': {raw!r}") from None
+    if n < 1:
+        raise ValueError(f"--jobs 는 1 이상: {n}")
+    return n
+
+
 def run_pass(
     checks: list[Path],
     args: argparse.Namespace,
     guard: "ResourceGuard",
     branch_context: "BranchContext | None",
+    jobs: int = 1,
 ) -> RunSummary:
-    """check 전량을 **한 컨텍스트로** 한 바퀴 돌린다."""
+    """check 전량을 **한 컨텍스트로** 한 바퀴 돌린다.
+
+    `jobs == 1` 은 **기존 순차 경로 그대로** 다. 재현이 필요할 때 `--jobs 1` 이 옛
+    동작과 한 치도 다르지 않아야 하므로, 병렬 경로를 1-worker 로 돌려 대신하지 않는다.
+    """
     start = time.time()
     results: list[CheckResult] = []
     aborted = ""
-    for check_path in checks:
-        aborted = guard.violation()
-        if aborted:
-            break
-        result = run_one(check_path, timeout=args.timeout, guard=guard,
-                         branch_context=branch_context)
-        results.append(result)
-        if args.fail_fast and result.exit_code != 0:
-            break
+
+    # 정숙 구간이 필요한 check 는 병렬 구간에서 빼둔다 (jobs == 1 이면 가를 이유가 없다).
+    quiet: list[Path] = []
+    if jobs > 1:
+        checks, quiet = partition_checks(checks)
+
+    if jobs == 1:
+        for check_path in checks:
+            aborted = guard.violation()
+            if aborted:
+                break
+            result = run_one(check_path, timeout=args.timeout, guard=guard,
+                             branch_context=branch_context)
+            results.append(result)
+            if args.fail_fast and result.exit_code != 0:
+                break
+    else:
+        done: dict[Path, CheckResult] = {}
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            futures = {
+                pool.submit(run_one, path, timeout=args.timeout, guard=guard,
+                            branch_context=branch_context): path
+                for path in checks
+            }
+            for fut in as_completed(futures):
+                done[futures[fut]] = fut.result()
+                aborted = guard.violation()
+                if aborted or (args.fail_fast
+                               and done[futures[fut]].exit_code != 0):
+                    # 남은 작업을 취소한다. 이미 실행 중인 것은 끝나므로 결과가
+                    # 조금 더 모일 수 있다 — 그건 버리지 않고 그대로 보고한다.
+                    for pending in futures:
+                        pending.cancel()
+                    break
+        # 완료 순서가 아니라 **discover 순서** 로 정렬한다. 출력이 실행 타이밍에
+        # 따라 흔들리면 두 실행을 나란히 비교할 수 없다.
+        results = [done[path] for path in checks if path in done]
+
+    # 정숙 구간 — 병렬 구간이 **완전히 끝난 뒤** 직렬로. 이들은 저장소 전역을
+    # 관찰하므로 옆에서 아무것도 돌지 않아야 정확하다.
+    if quiet and not aborted:
+        for check_path in quiet:
+            aborted = guard.violation()
+            if aborted:
+                break
+            result = run_one(check_path, timeout=args.timeout, guard=guard,
+                             branch_context=branch_context)
+            results.append(result)
+            if args.fail_fast and result.exit_code != 0:
+                break
+
     summary = aggregate(results, time.time() - start)
     summary.aborted_reason = aborted
     return summary
@@ -426,6 +544,9 @@ def main() -> int:
                    help=f"temp 총량 상한 (default: {DEFAULT_MAX_TMP_MB}MB). 초과하면 중단")
     p.add_argument("--no-guard", action="store_true", dest="no_guard",
                    help="resource guard 비활성 (권장하지 않음)")
+    p.add_argument("--jobs", "-j", default="auto", dest="jobs", metavar="N",
+                   help=f"동시 실행 수 (default: auto = min(코어, {MAX_AUTO_JOBS})). "
+                        "`1` 은 순차 — 재현이 필요할 때 쓴다")
     p.add_argument("--branch-context", default=None, dest="branch_context",
                    metavar="LABEL",
                    help="브랜치 컨텍스트로 돌린다 (정본: workflow_kit/common/branch_matrix.py). "
@@ -433,6 +554,12 @@ def main() -> int:
                         "미지정이면 호출자 환경 그대로 (기존 동작). "
                         "push 전 CI 재현은 --branch-context=all")
     args = p.parse_args()
+
+    try:
+        jobs = _resolve_jobs(args.jobs)
+    except ValueError as e:
+        print(f"[error] {e}", file=sys.stderr)
+        return 2
 
     tests_dir = Path(args.tests_dir)
     if not tests_dir.exists():
@@ -475,7 +602,7 @@ def main() -> int:
         if len(selected) > 1 and not args.json:
             branch = ctx.workflow_branch if ctx and ctx.workflow_branch else "덮지 않음"
             print(f"\n=== 브랜치 컨텍스트: {label} ({branch}) ===\n")
-        summary = run_pass(checks, args, guard, ctx)
+        summary = run_pass(checks, args, guard, ctx, jobs=jobs)
         passes.append((label, summary))
         if summary.aborted_reason and not args.json:
             print(f"\n[abort] resource guard: {summary.aborted_reason}", file=sys.stderr)

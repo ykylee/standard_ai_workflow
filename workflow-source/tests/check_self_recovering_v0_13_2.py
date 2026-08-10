@@ -40,6 +40,11 @@ INIT_PY = REPO_ROOT / "workflow-source" / "workflow_kit" / "__init__.py"
 README = REPO_ROOT / "README.md"
 
 
+REQUIRES_QUIET_REPO = True
+"""README + pyproject + __init__ 을 실제로 갱신했다 되돌린다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     """subprocess wrapper: cwd = REPO_ROOT, capture stdout/stderr, text mode."""
     return subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True,

@@ -26,6 +26,11 @@ PYPROJECT = SOURCE_ROOT / "pyproject.toml"
 WORKFLOW_KIT_INIT = SOURCE_ROOT / "workflow_kit" / "__init__.py"
 
 
+REQUIRES_QUIET_REPO = True
+"""`pyproject.toml` 과 `workflow_kit/__init__.py` 를 --apply 로 바꿨다 되돌린다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _read_pyproject_version() -> str:
     """pyproject.toml [project] version 읽기."""
     text = PYPROJECT.read_text()

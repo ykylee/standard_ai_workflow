@@ -11,8 +11,14 @@
 저장소 루트에서 다음 명령을 실행하여 모든 smoke test를 한 번에 검증할 수 있습니다:
 
 ```bash
-for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
+python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>
 ```
+
+전량 검사는 **기본이 병렬**이다 (v1.1.7). 267개를 순차로 돌면 345s, 병렬은 85s 다.
+재현이 필요하면 `--jobs 1` 로 순차 실행한다. 저장소 전역 상태를 관찰하는 check
+(`REQUIRES_QUIET_REPO = True` 선언) 는 병렬 구간 뒤 **정숙 구간**에서 직렬로 돈다 —
+`check_no_repo_write` 처럼 `git status` 를 전후 비교하거나 저장소를 통째로 복사하는
+검사를 새로 만들면 그 선언을 넣어야 한다. 안 넣으면 병렬에서 오탐이 난다.
 
 **push 전에는 브랜치 컨텍스트 양쪽을 밟는다** — CI 의 `smoke` 는 전량을 두
 컨텍스트(`native`/`slash`)로 돌리지만, 위 명령과 무인자 `run_all_checks.py` 는

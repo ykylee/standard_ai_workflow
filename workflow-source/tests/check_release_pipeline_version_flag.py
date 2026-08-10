@@ -25,6 +25,11 @@ TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
 # --- Test 1: --version argparse 인식 + cli-flag source ---
 
 
+REQUIRES_QUIET_REPO = True
+"""`pyproject.toml` 을 --apply 로 바꿨다 되돌린다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def test_version_argparse_recognized() -> None:
     """release --version=<X.Y.Z> 가 argparse error 없이 받아들여짐 + version_source=cli-flag."""
     proc = subprocess.run(

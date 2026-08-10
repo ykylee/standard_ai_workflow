@@ -9,6 +9,11 @@ import sys
 from pathlib import Path
 
 
+REQUIRES_QUIET_REPO = True
+"""README + pyproject + __init__ 을 실제로 갱신했다 되돌린다 (TASK-018 실측).
+
+되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
+병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 SCRIPT_PATH = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"

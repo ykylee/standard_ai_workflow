@@ -289,38 +289,37 @@ def case_10_ci_runs_a_slash_branch_context() -> bool:
     if not wf.is_file():
         print(f"  FAIL: {wf} 부재")
         return False
-    try:
-        import yaml
-    except ImportError:
-        print("  [warn] PyYAML 부재 — 문자열 검사로 대체")
-        src = wf.read_text(encoding="utf-8")
-        ok = "branch_context" in src and "CODEX_WORKFLOW_BRANCH" in src and "/" in src
-        if not ok:
-            print("  FAIL: smoke.yml 에 슬래시 브랜치 셀의 흔적이 없다")
-        return ok
 
-    data = yaml.safe_load(wf.read_text(encoding="utf-8"))
-    cells = (data.get("jobs", {}).get("smoke", {})
-             .get("strategy", {}).get("matrix", {}).get("branch_context"))
-    if not cells:
-        print("  FAIL: smoke 가 branch_context matrix 를 안 쓴다 — 슬래시 컨텍스트 미보장")
-        return False
-    slashed = [c for c in cells if "/" in str(c.get("workflow_branch") or "")]
+    # v1.1.7(TASK-017): 셀 목록은 더 이상 yml 인라인이 아니다 — 정본
+    # (`branch_matrix.BRANCH_CONTEXTS`) 을 prepare job 이 주입한다. 그래서 여기서도
+    # 정본을 읽는다. yml 을 파싱해 셀을 세던 이전 판은 그 전환에서 정확히 깨졌고
+    # (`fromJSON` 표현식은 dict 가 아니라 문자열이다), 그것이 이 case 가 살아 있다는
+    # 증거이기도 하다.
+    from workflow_kit.common.branch_matrix import BRANCH_CONTEXTS
+
+    cells = BRANCH_CONTEXTS
+    slashed = [c for c in cells if "/" in c.workflow_branch]
     if not slashed:
-        print(f"  FAIL: 슬래시가 든 브랜치 셀이 없다: {cells}")
+        print(f"  FAIL: 슬래시가 든 브랜치 셀이 없다: {[c.label for c in cells]}")
         return False
-    native = [c for c in cells if not str(c.get("workflow_branch") or "")]
+    native = [c for c in cells if not c.workflow_branch]
     if not native:
-        print(f"  FAIL: 오버라이드 없는 셀이 없다 — 실제 브랜치를 재는 실행이 사라졌다: {cells}")
+        print("  FAIL: 오버라이드 없는 셀이 없다 — 실제 브랜치를 재는 실행이 사라졌다: "
+              f"{[c.label for c in cells]}")
+        return False
+
+    src = wf.read_text(encoding="utf-8")
+    # CI 가 그 정본을 실제로 소비하는가 (선언만 있고 CI 가 안 읽으면 의미가 없다).
+    if "workflow_kit.common.branch_matrix --github-matrix" not in src:
+        print("  FAIL: smoke.yml 이 정본에서 셀 목록을 받지 않는다 — 슬래시 컨텍스트 미보장")
         return False
     # 오버라이드가 안 먹었을 때 조용히 넘어가지 않는지 (workflow 안의 자기 검증)
-    src = wf.read_text(encoding="utf-8")
     if "브랜치 오버라이드가 적용되지 않았다" not in src:
         print("  FAIL: 오버라이드 적용 여부를 workflow 가 강제하지 않는다 — "
               "안 먹으면 두 셀이 같은 것을 재면서 '2셀 green' 이 된다")
         return False
-    print(f"  PASS: CI 가 {len(cells)}셀로 돈다 "
-          f"(슬래시={slashed[0]['workflow_branch']}, native 셀 존재, 오버라이드 자기 검증 있음)")
+    print(f"  PASS: CI 가 정본의 {len(cells)}셀로 돈다 "
+          f"(슬래시={slashed[0].workflow_branch}, native 셀 존재, 오버라이드 자기 검증 있음)")
     return True
 
 

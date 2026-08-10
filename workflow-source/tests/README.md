@@ -14,6 +14,17 @@
 for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done
 ```
 
+**push 전에는 브랜치 컨텍스트 양쪽을 밟는다** — CI 의 `smoke` 는 전량을 두
+컨텍스트(`native`/`slash`)로 돌리지만, 위 명령과 무인자 `run_all_checks.py` 는
+`native` 하나만 돈다. 2026-08-10 에 그 비대칭으로 CI 가 15연속 red 인 동안 로컬은
+계속 green 이었다 (TASK-016·017):
+
+```bash
+python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
+```
+
+컨텍스트 정본은 `workflow_kit/common/branch_matrix.py` 다.
+
 ## 현재 상태
 
 - 기본 문서 스모크 체크 스크립트 `check_docs.py` 를 제공한다.

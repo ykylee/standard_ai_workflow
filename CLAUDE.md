@@ -111,6 +111,28 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 버전 목록은 `workflow_kit/common/sdk_matrix.py` 의 `PINNED_VERSIONS` 가 정본이고
 CI yml 도 거기서 읽는다. venv 는 `.venv-sdk-matrix/` 에 캐시되므로 두 번째부터 빠르다.
 
+### 브랜치 매트릭스도 push 전에 로컬에서 돌린다
+
+```bash
+python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
+```
+
+CI 의 `smoke` 는 전량을 **두 브랜치 컨텍스트**로 돌린다 (`native` / `slash`).
+`ai-workflow/memory/active/<branch>/` 는 브랜치 이름으로 경로가 갈리고, 슬래시가 든
+브랜치는 중첩 디렉터리가 되며 **그 브랜치의 `state.json` 은 존재하지 않는다** —
+main 에서 재면 그 차이가 전부 0이다.
+
+무인자 `run_all_checks.py` 는 `native` 하나만 밟으므로, 위 SDK 매트릭스와 **똑같이**
+로컬 green + CI red 가 성립한다. 실제로 2026-08-10 에 그렇게 됐다: 검사 하나가
+브랜치의 `state.json` 존재를 전제해 `slash` 셀에서만 red 였고, **15연속 red 인
+동안 로컬은 계속 green 이었으며 handoff 는 내내 "전량 검사 green" 을 기록했다.**
+열흘 가까이 걸린 이유는 결함이 어려워서가 아니라 로컬에 그 축이 없어서였다.
+
+컨텍스트 목록은 `workflow_kit/common/branch_matrix.py` 의 `BRANCH_CONTEXTS` 가
+정본이고 `smoke.yml` 의 prepare job 도 거기서 읽는다
+(`check_branch_context_matrix.py` 가 복제를 검출한다). 한 축만 볼 때는
+`--branch-context=slash` 로 줄인다.
+
 > `--tmp-dir` 를 실디스크 경로로 주는 이유: `TMPDIR` 가 tmpfs(RAM) 이면 temp 누수가
 > 곧 OOM 이 된다.
 

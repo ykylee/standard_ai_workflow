@@ -57,6 +57,13 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TESTS_DIR = SOURCE_ROOT / "tests"
 
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.branch_matrix import (  # noqa: E402
+    BranchContext, apply_context, context_for, contexts, labels,
+)
+
 # --- v1.0.0 resource guard 기본 임계 -----------------------------------------
 # 배경: smoke 전량 실행 중 두 종류의 사고가 실제로 발생했다.
 #   (1) TMPDIR 이 tmpfs(/tmp) 였을 때 — temp 누수가 *RAM* 을 잠식해 OOM → 세션 kill.
@@ -241,6 +248,7 @@ def run_one(
     timeout: int = 60,
     *,
     guard: "ResourceGuard | None" = None,
+    branch_context: "BranchContext | None" = None,
 ) -> CheckResult:
     """단일 check_*.py 를 *격리* 실행 + CheckResult 반환.
 
@@ -260,6 +268,11 @@ def run_one(
     env = os.environ.copy()
     env["TMPDIR"] = str(tmp_dir)
     env.setdefault("PYTHONPATH", str(SOURCE_ROOT))
+    # 브랜치 컨텍스트 (v1.1.7). 요청한 컨텍스트가 호출자 환경에 밀리면 "그 축을
+    # 쟀다" 는 보고가 거짓이 되므로, native 는 상속된 오버라이드를 지우기까지 한다
+    # (`apply_context` 주석 참조).
+    if branch_context is not None:
+        env = apply_context(env, branch_context)
 
     proc = subprocess.Popen(
         [sys.executable, str(check_path)],
@@ -365,6 +378,30 @@ def print_human(summary: RunSummary) -> None:
                 print(f"  ✗ {r.name}: {r.error_excerpt}")
 
 
+def run_pass(
+    checks: list[Path],
+    args: argparse.Namespace,
+    guard: "ResourceGuard",
+    branch_context: "BranchContext | None",
+) -> RunSummary:
+    """check 전량을 **한 컨텍스트로** 한 바퀴 돌린다."""
+    start = time.time()
+    results: list[CheckResult] = []
+    aborted = ""
+    for check_path in checks:
+        aborted = guard.violation()
+        if aborted:
+            break
+        result = run_one(check_path, timeout=args.timeout, guard=guard,
+                         branch_context=branch_context)
+        results.append(result)
+        if args.fail_fast and result.exit_code != 0:
+            break
+    summary = aggregate(results, time.time() - start)
+    summary.aborted_reason = aborted
+    return summary
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="workflow-source 의 check_*.py 통합 runner (v0.7.6+)",
@@ -389,6 +426,12 @@ def main() -> int:
                    help=f"temp 총량 상한 (default: {DEFAULT_MAX_TMP_MB}MB). 초과하면 중단")
     p.add_argument("--no-guard", action="store_true", dest="no_guard",
                    help="resource guard 비활성 (권장하지 않음)")
+    p.add_argument("--branch-context", default=None, dest="branch_context",
+                   metavar="LABEL",
+                   help="브랜치 컨텍스트로 돌린다 (정본: workflow_kit/common/branch_matrix.py). "
+                        f"선언: {', '.join(labels())}, all. "
+                        "미지정이면 호출자 환경 그대로 (기존 동작). "
+                        "push 전 CI 재현은 --branch-context=all")
     args = p.parse_args()
 
     tests_dir = Path(args.tests_dir)
@@ -412,30 +455,53 @@ def main() -> int:
     if warning and not args.json:
         print(f"[warn] {warning}\n", file=sys.stderr)
 
-    start = time.time()
-    results: list[CheckResult] = []
-    aborted = ""
-    for check_path in checks:
-        aborted = guard.violation()
-        if aborted:
+    # 브랜치 컨텍스트 해석 (v1.1.7). 미지정 = 호출자 환경 그대로 (기존 동작).
+    selected: list[BranchContext | None]
+    if args.branch_context is None:
+        selected = [None]
+    elif args.branch_context == "all":
+        selected = list(contexts())
+    else:
+        ctx = context_for(args.branch_context)
+        if ctx is None:
+            print(f"[error] 알 수 없는 브랜치 컨텍스트: {args.branch_context!r} "
+                  f"(선언: {', '.join(labels())}, all)", file=sys.stderr)
+            return 2
+        selected = [ctx]
+
+    passes: list[tuple[str, RunSummary]] = []
+    for ctx in selected:
+        label = ctx.label if ctx else "(환경 그대로)"
+        if len(selected) > 1 and not args.json:
+            branch = ctx.workflow_branch if ctx and ctx.workflow_branch else "덮지 않음"
+            print(f"\n=== 브랜치 컨텍스트: {label} ({branch}) ===\n")
+        summary = run_pass(checks, args, guard, ctx)
+        passes.append((label, summary))
+        if summary.aborted_reason and not args.json:
+            print(f"\n[abort] resource guard: {summary.aborted_reason}", file=sys.stderr)
+        # guard 가 발동했으면 남은 컨텍스트를 더 돌리지 않는다 — 자원이 이미 한계다.
+        if summary.aborted_reason:
             break
-        result = run_one(check_path, timeout=args.timeout, guard=guard)
-        results.append(result)
-        if args.fail_fast and result.exit_code != 0:
-            break
-    summary = aggregate(results, time.time() - start)
-    summary.aborted_reason = aborted
-    if aborted and not args.json:
-        print(f"\n[abort] resource guard: {aborted}", file=sys.stderr)
 
     if args.json:
-        print(json.dumps(asdict(summary), ensure_ascii=False, indent=2))
+        if len(selected) > 1:
+            # 다중 컨텍스트는 새 형태. 단일은 아래에서 기존 형태를 유지한다 —
+            # CI 의 요약 스크립트가 `data["total"]` / `data["results"]` 를 직접 읽는다.
+            print(json.dumps(
+                {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes]},
+                ensure_ascii=False, indent=2,
+            ))
+        else:
+            print(json.dumps(asdict(passes[0][1]), ensure_ascii=False, indent=2))
     else:
-        print_human(summary)
+        for label, summary in passes:
+            if len(passes) > 1:
+                print(f"\n----- {label} -----")
+            print_human(summary)
 
-    if summary.aborted_reason:
+    if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
-    return 0 if summary.failed == 0 else 1
+    return 0 if all(s.failed == 0 for _, s in passes) else 1
 
 
 if __name__ == "__main__":

@@ -7,8 +7,38 @@ on:
     branches: ["**"]
 
 jobs:
+  prepare:
+    name: 선언된 브랜치 컨텍스트
+    runs-on: ubuntu-latest
+    outputs:
+      contexts: ${{ steps.registry.outputs.contexts }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Read branch matrix from registry
+        id: registry
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/workflow-source
+        run: |
+          set -uo pipefail
+          # 설치가 필요 없다 — registry 는 stdlib 만 쓴다 (mcp-sdk-matrix 와 같은 패턴).
+          CONTEXTS="$(python3 -m workflow_kit.common.branch_matrix --github-matrix)"
+          echo "contexts=${CONTEXTS}" >> "$GITHUB_OUTPUT"
+          echo "선언된 브랜치 컨텍스트: ${CONTEXTS}"
+          {
+            echo "## 브랜치 컨텍스트 (정본: \`workflow_kit/common/branch_matrix.py\`)"
+            echo
+            python3 -m workflow_kit.common.branch_matrix --summary
+          } >> "$GITHUB_STEP_SUMMARY"
+
   smoke:
     name: Run smoke tests (${{ matrix.branch_context.label }})
+    needs: prepare
     runs-on: ubuntu-latest
     # v1.0.9(§2.56): **브랜치 컨텍스트를 2셀로 돌린다.**
     #
@@ -22,16 +52,19 @@ jobs:
     # 반드시 드리프트하고, 빠진 것을 셀 방법이 없다(§2.53 에서 같은 모양의 포함 목록을
     # 없앴다). 전량을 두 컨텍스트로 돌린다 — 두 셀은 병렬이라 wall-clock 은 그대로다.
     #
-    # 오버라이드 키는 `CODEX_WORKFLOW_BRANCH`(BRANCH_ENV_KEYS 최우선)다.
+    # v1.1.7(TASK-017): **셀 목록을 여기 적지 않는다.** 정본은
+    # `workflow_kit/common/branch_matrix.py` 이고 위 prepare job 이 주입한다.
+    # 이유는 재현 수단의 비대칭이었다 — CI 는 두 컨텍스트를 돌고 로컬 전량 검사는
+    # native 하나만 돌아, TASK-016 의 결함이 15연속 red 인 동안 로컬은 계속 green
+    # 이었다. 이제 로컬도 같은 정본을 읽는다:
+    #     python3 workflow-source/tests/run_all_checks.py --branch-context=all
+    #
+    # 오버라이드 키도 정본(`BRANCH_ENV_KEYS[0]` = `CODEX_WORKFLOW_BRANCH`)에서 온다.
     # `GITHUB_REF_NAME` 을 덮으면 러너의 실제 컨텍스트까지 바뀌므로 쓰지 않는다.
     strategy:
       fail-fast: false
       matrix:
-        branch_context:
-          - label: native
-            workflow_branch: ""
-          - label: slash
-            workflow_branch: "feature/ci-slash-probe"
+        branch_context: ${{ fromJSON(needs.prepare.outputs.contexts) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -80,6 +80,7 @@
     "workflow-source/core/multi_workspace_orchestration.md",
     "workflow-source/core/global_workflow_standard.md",
     "workflow-source/MEMORY_GOVERNANCE.md",
+    "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/cli_dispatcher_and_rotation_2026-08-09.md",
     "ai-workflow/memory/active/main/sessions/multi_workspace_orchestration_2026-08-08.md",
     "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md",
@@ -353,7 +354,40 @@
       ],
       "created_at": "2026-08-10T00:00:00Z",
       "updated_at": "2026-08-10T00:00:00Z"
+    },
+    {
+      "id": "MEM-2026-08-10-002",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-10-main-008.md",
+        "workflow-source/schemas/title_drift_calibration.json"
+      ],
+      "primary_abstraction": "threshold calibration mines production path freezes with check",
+      "cue_anchors": [
+        "calibration",
+        "threshold",
+        "title-drift",
+        "fixture",
+        "production-path",
+        "similarity"
+      ],
+      "value_digest": "임계 캘리브레이션 방법론: production 소비 경로로 채굴, 개선안은 A/B 실측 기각, fixture+검사로 상수 동결 (변경 시 재캘리브레이션 강제). title drift 0.6 실측 확정 사례.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "drift-detection",
+        "methodology"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-08-10-001"
+      ],
+      "created_at": "2026-08-10T00:00:00Z",
+      "updated_at": "2026-08-10T00:00:00Z"
     }
   ],
-  "memory_entries_count": 8
+  "memory_entries_count": 9
 }

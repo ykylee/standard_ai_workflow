@@ -50,12 +50,17 @@
 - TASK-2026-08-10-main-006 **v1.1.5-beta 발행** — `cmd_release` 2번째 실전 완주. **파생물 선재생성** (v1.1.4 교훈: fixtures 3종 + samples 24건 + stamp 4종을 릴리스 *전에*, 10개 검사 사전 green) → post-apply 잔여 73→**4 파일**. pre_check 5/5 skip 없이, step 3.4 261/261 정합.
 ## 5. 다음 세션 시작 포인트
 
-### 무엇이 끝났나 (2026-08-10 세션)
+### 무엇이 끝났나 (2026-08-10, 2차 세션)
 
-**cmd_release 사용성 회복** (TASK-001) + **mavis e2e 호스트 사본 제거** (TASK-002)
-+ **v1.1.4-beta 를 `cmd_release` 경로로 실전 발행** (TASK-003) + **TST-WF-01 측정
-재설계** (TASK-004, partial 예외 제거·hard 복귀). 전량 검사 **261/261 PASS**.
-상세는 §4 네 항목과 task 파일에 있다.
+**title drift 임계 실측 캘리브레이션 + registry 비-loopback 실측** (TASK-008·009)
+→ **ADR-006 회고 + 후속 W-1~W-4 완결** (TASK-010~014) → **v1.1.6-beta 발행**
+(TASK-015, `cmd_release` 3번째 실전). smoke 261→**266**, 전량 검사 green.
+상세는 [세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)
+과 task 파일. 1차 세션(TASK-001~007, v1.1.4/v1.1.5 발행)은 §4 하단 항목 참조.
+
+**새 종료 절차**: close 전에 `wk suggest-memory-entries` 로 entry 승격 후보를
+판단한다 (advisory). 이번 close 에서 `MEM-2026-08-10-002` (캘리브레이션 방법론)
+적재 — W-1 루프 두 바퀴째.
 
 앞으로의 릴리스 절차 (v1.1.4-beta 에서 실증된 경로):
 

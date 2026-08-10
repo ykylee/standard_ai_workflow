@@ -2,7 +2,9 @@
 
 §2.68 cycle 의 *자동 검증* — mavis 글로벌 mcp.json 의 standardAiWorkflowReadOnly
 항목이 실제로 attach 가능한지 *기동* 단에서 확인. mavis 데스크탑 새 세션 rotate
-없이 *mavis mcp.json env 그대로* subprocess 로 띄워서:
+없이 *mavis mcp.json env 그대로* subprocess 로 띄워서 (v1.1.4+: 항목을 하드코딩
+사본이 아니라 실제 `~/.minimax/mcp/mcp.json` 에서 읽는다. 파일/항목 부재 =
+mavis 미설치 호스트 → graceful skip, `--require-mavis` 로 강제):
   1. initialize → serverInfo / protocolVersion 확인
   2. tools/list → 13종 노출 확인
   3. tools/call latest_backlog → 정상 응답 (candidates + latest_backlog_path)
@@ -29,18 +31,33 @@ import subprocess
 import sys
 from pathlib import Path
 
-# §6.5.2 형식 — mavis 글로벌 mcp.json 의 standardAiWorkflowReadOnly 와 100% 일치해야 함.
-REPO_ROOT = "/Users/yklee/repos/standard_ai_workflow"
-MCP_ENV = {
-    "STANDARD_AI_WORKFLOW_ROOT": REPO_ROOT,
-    "PYTHONPATH": f"{REPO_ROOT}/workflow-source",
-}
-MCP_CMD = [
-    "python3",
-    "-m",
-    "workflow_kit.server.read_only_jsonrpc",
-    "--stdio-lines",
-]
+# §6.5.2 — mavis 글로벌 mcp.json 의 standardAiWorkflowReadOnly 를 **파일에서 직접**
+# 읽는다 (v1.1.4). 이전에는 그 항목의 *사본* 을 여기 하드코딩했는데, 사본에는 darwin
+# 호스트의 절대 경로(`/Users/...`)가 박혀 있어 다른 호스트에서는 존재하지 않는 경로로
+# subprocess 를 띄우다 늘 red 였다 — 검사가 재는 것은 "이 호스트의 mavis 가 실제로
+# attach 가능한가" 이므로, 정본(실제 mcp.json)을 읽어야 사본 갈라짐도 함께 사라진다.
+# mavis 미설치 호스트(파일/항목 부재)는 graceful skip — 모름 ≠ 실패. 강제하려면
+# --require-mavis (TASK-2026-08-09-main-004 의 gh 부재 + --require-gh 와 같은 패턴).
+MAVIS_MCP_JSON = Path.home() / ".minimax" / "mcp" / "mcp.json"
+SERVER_KEY = "standardAiWorkflowReadOnly"
+
+
+def load_mavis_entry() -> tuple[list[str], dict[str, str]] | None:
+    """실제 글로벌 mcp.json 의 항목에서 (command+args, env) 를 얻는다. 부재 시 None."""
+    if not MAVIS_MCP_JSON.is_file():
+        return None
+    data = json.loads(MAVIS_MCP_JSON.read_text(encoding="utf-8"))
+    entry = data.get("mcpServers", {}).get(SERVER_KEY)
+    if not isinstance(entry, dict):
+        return None
+    cmd = [entry["command"], *entry.get("args", [])]
+    env = {str(k): str(v) for k, v in entry.get("env", {}).items()}
+    return cmd, env
+
+
+# module-level 로 유지 — 기존 테스트 함수들이 그대로 쓴다. 부재 시 main() 이 skip.
+_LOADED = load_mavis_entry()
+MCP_CMD, MCP_ENV = _LOADED if _LOADED else ([], {})
 EXPECTED_PROTOCOL = "2025-03-26"
 EXPECTED_TOOL_COUNT = 13
 EXPECTED_TOOL_NAMES = {
@@ -239,6 +256,17 @@ def test_tool_call(s: McpSession, failures: list) -> None:
 def main() -> int:
     print("=" * 60)
     print("mavis attach end-to-end smoke (TASK-2026-08-08-main-013)")
+    if _LOADED is None:
+        msg = (
+            f"SKIP: mavis 글로벌 mcp.json 부재 또는 {SERVER_KEY} 항목 없음 "
+            f"({MAVIS_MCP_JSON}) — mavis 미설치 호스트로 판단. "
+            "attach 검증을 강제하려면 --require-mavis."
+        )
+        if "--require-mavis" in sys.argv:
+            print(f"FAIL(require-mavis): {msg}")
+            return 1
+        print(msg)
+        return 0
     print(f"MCP_ENV = {MCP_ENV}")
     print(f"MCP_CMD = {MCP_CMD}")
     print("=" * 60)

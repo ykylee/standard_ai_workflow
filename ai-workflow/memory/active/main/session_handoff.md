@@ -4,16 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-09 (memory 정합성 정리 + session close)
+- 최종 수정일: 2026-08-10 (cmd_release 사용성 회복 + session close)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **v1.1.2-beta 발행 완료** (2026-08-09, tag `v1.1.2-beta` → `b688a06`, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.1.2-beta)). 본 세션 TASK-001~008. 전체 검사 **257/257 PASS** — 오늘 아침 baseline 31 red → 0. `workflow_kit/` mypy strict 128 files clean, dashboard `guard_status` pass. 직전: v1.1.0-beta (564ce36) → v1.1.1-beta (6b92a60).
-- 현재 주 작업 축: **다음 후보 축 4건 전부 close** (TASK-2026-08-09-main-002~005, 본 세션). handoff §5 에 후보로 적어 뒀던 4건을 모두 구현했다 — CLI 化 B안 `wk` / registry HTTP server / branch protection 자동 check / title drift v2. 38 case smoke ALL PASS + venv e2e. 앞서 같은 세션에서 memory 정합성 정리(TASK-001, `check_self_application` 7/8 → **8/8**)를 먼저 했다.
-- 직전 주 작업 축: **v1.1.1-beta release** (CLI 化 A안 — `[project.scripts]` 29 entry point). venv e2e 검증 완료 (`pip install -e .` → 29 binary + `--help` 정상). §0.8 의 *열린 채로* 남아있던 4건 모두 close + CLI 化 A안 close.
-- 직전 축: **TASK-020** (29 entry points + venv e2e + 4 case smoke ALL PASS) + **TASK-019** (3-layer defense — pre-push hook) + **TASK-018** (scope drift detection) + **TASK-017** (operational CLI dual mode) + **TASK-016** (federation HTTP pull) + **TASK-015** (federation 정공법) + **TASK-014** (in-flight confidence 4-level) + **TASK-013** (mavis attach e2e) + **TASK-012** (갈래2 trust). 9 TASK + §2.68 cycle + CLI 化 A안 = 2 release.
-- 다음 후보 축: **`memory-index-query` beta → stable** (유일 잔여 beta) / branch protection (소유자 결정).
+- 현재 기준선: **cmd_release 사용성 회복** (2026-08-10, TASK-2026-08-10-main-001~002). 전량 검사 **260/260 PASS** (격리 venv). `release --dry-run` 이 pre_check 5/5 를 실제로 통과한다 — v1.1.0~v1.1.3 네 릴리스를 수동 발행하게 만들던 doctor/state 만성 실패의 3뿌리(경로 이중 결함 / TST-WF-01 판정식 / state 죽은 계약)를 해소. **무인자 `release` 는 이제 dry-run** (`--apply` 명시 시에만 발행). 직전 기준선: v1.1.3-beta 발행 (2026-08-09, tag → `6cadcca`).
+- 현재 주 작업 축: 릴리스 파이프라인 정상화 close. **다음 릴리스는 `cmd_release` 경로로 발행해 실전 검증할 것** (수동 절차 불필요해졌는지 확인).
+- 다음 후보 축: TST-WF-01 측정 재설계 (관행 인식형 counting → partial 예외 제거) / branch protection (소유자 결정) / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -40,6 +38,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-10-main-001 **cmd_release 사용성 회복** — pre_check 만성 실패 3뿌리 해소: (1) doctor 호출이 `workflow-source/workflow-source/` 를 탐색해 **0 files 를 재고 non_compliant** → repo root + `--config-path` + env 명시 (2) TST-WF-01 이 inline `check()`/`failures.append` 관행을 못 봐 만성 red → dummy wrapper 전례 대신 `partial_rules.testing` **선언된 예외** (3) state 검사의 `memory.last_freeze` 는 writer 가 사라진 죽은 계약 → `generated_at` (legacy 하위호환). + **무인자 `release` dry-run 반전** + 개별 `--skip-*` 5종 + mypy "실행 불가 vs 오류" 출처 구분. `check_release_pre_check_gates` 10/10 신설. venv 실측 pre_check 5/5 통과. 전량 **260/260 PASS**.
+- TASK-2026-08-10-main-002 **check_mavis_attach_e2e 호스트 사본 제거** — darwin 절대경로 하드코딩 사본 탓에 darwin 외 호스트에서 무조건 red 였던 것을 실제 `~/.minimax/mcp/mcp.json` 정본 읽기로 교체. 부재 시 graceful skip (`--require-mavis` 로 강제). 로드 경로는 fake 항목 실증 ALL PASS (13 tools + tool call 2종).
 - TASK-2026-08-09-main-017 **v1.1.3-beta 발행** (TASK-009~016, 11 커밋). 오늘 고친 릴리스 도구 3건이 **이번 릴리스에서 실제 검증됐다** — `_git_toplevel`(정당한 amend 거부) / `release-verify`(실제 조회 성공) / **step 3.4**(`ok: True, 259/259` — 실제 경로 동작). 수동 발행 이유: `cmd_release` pre_check 의 doctor/state 가 만성 실패인데 개별 skip 이 없다. **주의: `release` 는 `--dry-run` 없으면 기본이 APPLY**.
 - TASK-2026-08-09-main-016 릴리스 절차에 **노트 누적 수치 검증** step 3.4 신설 — TASK-015 가 "검사가 아니라 절차 문제" 로 짚은 자리. note 부재 / 표기 부재 / 수치 불일치를 각각 잡고 조치를 안내한다. **자동으로 채우지 않는다** — 그 줄은 *전량 PASS 했다* 는 주장이고, 도구가 대신 적으면 거짓이 된다 (회귀 case 9b 가 쓰기 금지를 고정). 정규식은 dashboard 와 같은 것을 쓴다. 10/10 PASS.
 - TASK-2026-08-09-main-015 `check_smoke_trend_cross` **오독 정정 — 검사가 맞았다**. 노트의 누적 수치는 *릴리스 스냅샷이 아니라 살아있는 지표* 였다 (smoke 가 늘면 최신 노트를 갱신해 온 관행; `Beta-v1.0.0.md` 199→…→234). 내가 본 '모순' 은 **사후 갱신을 모르고** 한 오독 — 태그 시점엔 199/199 정합. red 구간은 v1.1.0·v1.1.1 이 **표기를 빠뜨린** 탓. 판정 복원 + 노트 257→**259**. **검사를 고치기 전에 그 검사가 지켜 온 관행을 먼저 확인한다.**
@@ -48,27 +48,24 @@
 - TASK-2026-08-09-main-012 Phase 13 **P1 묶음 close** — **세 항목이 전부 실제와 달랐다**. P1-1 "pre-step 부재" → v0.15.21+ 에 이미 있었고, 남은 건 (a) 최근 3 release 가 수동 발행이라 CHANGELOG 가 안 갱신된 것(**오늘 내가 그렇게 냈다**) (b) `(v3.0)` 오탐이 `[3.0.1]` 을 최신 자리에 앉힌 것 → `NON_RELEASE_VERSIONS` 선언 예외. P1-2/P1-3 은 **이미 v0.11.24 에서 stable**. 실측 skill stage **13 stable / 1 beta**(유일 beta = `memory-index-query`).
 - TASK-2026-08-09-main-011 telemetry acceptance 를 **윈도 기반** 으로 — TASK-010 이 적은 사각을 메움. `summarize_telemetry(window_days=30)` 에 `window_source_count` 등 additive (전체 기간 필드 불변). `check_telemetry_window.py` 8/8 — **case 4 가 핵심**: *전체 4 source 인데 윈도 1* 을 잡는다. AC2 acceptance 를 "최근 30일 window_source_count ≥ 4" 로 갱신. 발견: `check_telemetry_source_diversity.py` docstring 은 자동 활성 전환을 **이미 정확히 적고 있었다** — TASK-010 의 문서 오류를 **검사는 알고 있었다**.
 - TASK-2026-08-09-main-010 Phase 13 **P0-2 close** — AC2 4 source + hit_rate 1.0 수렴. **문서가 두 군데 틀려 있었다**: 1 source 는 `dispatcher` 가 아니라 `session-start` 였고(132 calls), "3 skill 활성화 필요" 는 **이미 v0.15.21+ 에서 끝난 일**이었다 (세 스크립트 코드가 동일). 남은 건 wiring 이 아니라 **실행 이력의 부재** — 한 번씩 돌리자 즉시 4 source. acceptance 약점도 기록: "4 source 등장" 은 1회씩이면 충족돼 *지속적 사용* 을 못 잰다.
-- TASK-2026-08-09-main-009 릴리스 도구 결함 2건 수정 + 회귀 검사 — (1) `git add` 경로 중복: `release_pipeline.REPO_ROOT` 가 이름과 달리 `workflow-source/` 인데 porcelain 은 저장소 루트 기준 경로를 준다 → `_git_toplevel()` 신설. (2) `cmd_verify` AttributeError `dry_run` → defaults 안전측 True + wrapper 는 False 명시. (3) **`check_release_wrapper_args.py` 8/8 신설** — 릴리스 없이 잡히게 (AST 대조 + 두 cwd 의 `git add --dry-run` 대비로 **버그 자체를 회귀로 고정**). 검사 오탐 1건도 고쳤다 — 범위가 실제 호출 경로보다 넓으면 없는 결함을 만든다.
-- TASK-2026-08-09-main-008 v1.1.2-beta release — 본 세션 TASK-001~007 묶음. 릴리스 하나로 셋이 닫혔다: **`check_smoke_trend_cross`**(마지막 실질 red — 노트의 *누적 smoke* 줄이 `cumulative_total` 234 → 257) / **Phase 13 P0-1**(mypy strict venv verify, 128 files clean) / 문서 stamp 확정. **전체 257/257 PASS** — 오늘 아침 31 red → 0. **릴리스 도구 결함 2건 발견** — `release-bump` post-step 이 `git add` 경로를 중복 prefix 로 넘겨 실패 / `release-verify` 가 `AttributeError: 'dry_run'` 로 죽음. 둘 다 자동화 경로에만 있고 릴리스는 수동으로 완주했다. **릴리스 도구는 릴리스 때만 돌아 평소 검사에 안 걸린다** (`check_release_pipeline_lib` 9 case green 인데도 못 잡았다). + `release_pipeline_lib` dist skip 테스트가 버전 bump 직후 일회성 red.
-
 ## 5. 다음 세션 시작 포인트
 
-**이번 세션 기록**: [sessions/cli_dispatcher_and_rotation_2026-08-09.md](./sessions/cli_dispatcher_and_rotation_2026-08-09.md)
-— 이미 있는 것을 다시 만들 뻔한 일 2건, 고장난 도구가 숨긴 결함, 검사 설계 원칙,
-사고 1건이 거기 있다. 맥락이 필요하면 그걸 읽는다.
+### 무엇이 끝났나 (2026-08-10 세션)
 
-이전 세션(설계 → §10.2 도구화 → registry)의 맥락은
-[2026-08-08 기록](./sessions/multi_workspace_orchestration_2026-08-08.md)에 있다.
+**cmd_release 사용성 회복** (TASK-001) + **mavis e2e 호스트 사본 제거** (TASK-002).
+전량 검사 **260/260 PASS**. 상세는 §4 두 항목과 task 파일에 있다.
 
-### 무엇이 끝났나
+**다음 릴리스가 실전 검증이다** — 이제 `cmd_release` 경로로 발행해 본다:
 
-`origin/main` = `6cfb168`. 이번 세션 커밋 3건 / TASK 6건.
+```bash
+# 1. dry-run 으로 plan 검토 (무인자도 dry-run 이다, v1.1.4+)
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --dry-run
+# 2. pre_check 5/5 확인 후 발행
+PYTHONPATH=workflow-source .venv/bin/python workflow-source/tools/release_pipeline.py release --apply
+```
 
-| 커밋 | 내용 |
-| --- | --- |
-| `4e31d8c` | memory 문서 정합성 정리 (TASK-001) |
-| `ad3ab02` | 후보 축 4건 close — `wk` / HTTP server / branch protection / title drift v2 (TASK-002~005) |
-| `6cfb168` | rotate 도구 순서 규약 통일 + 사전 존재 red 정리 (TASK-006) |
+주의: **mypy/mcp/twine 이 있는 venv 에서 돌릴 것** (시스템 python 은 mypy 게이트가
+"mypy unavailable" 로 정당 fail). 게이트 개별 skip 은 `--skip-doctor/-state/-git/-packaging/-mypy`.
 
 세션 시작 플로우는 그대로다 (v1.1.2+ 부터는 `wk` 로도 부를 수 있다):
 
@@ -90,80 +87,31 @@ wk host-pull-registry pull --host <상대>
 
 ### 다음에 할 일 (순서)
 
-- **§2.68 cycle** — ✅ **전부 닫힘** (TASK-006~013, 8커밋). 사용자가 본 세션 (2026-08-08 22:06 KST) 에서
-  *갈래2 trust* 채택 — e2e smoke 가 실제 attach 경로와 100% 동치 subprocess 라는 근거.
-- **§0.8 #2 in-flight 신뢰도** — ✅ **닫힘** (TASK-2026-08-08-main-014, 본 세션). 4-level enum + Panel 5
-  inline badge + 8 case smoke ALL PASS. registry 의 §5A.3 *첫 소비자* 자리 채워짐.
-- **§0.8 잔존 3건** — ✅ **전부 닫힘** (본 세션 후반):
-  - #1 registry 저장 위치 → **TASK-015** federation 정공법 (`merge_entries` + known_hosts) + **TASK-016** HTTP pull.
-  - #3 범위 이탈 검출 → **TASK-018** scope drift detection (3-way enum + drift_score).
-  - #4 `--force` 이중화 → **TASK-019** 3-layer defense (pre-push hook).
-- **묶음 release** — ✅ **발행 완료**. v1.1.0-beta (`564ce36`, §0.8 4건 + dual mode + federation *읽기*)
-  → v1.1.1-beta (`6b92a60`, CLI 化 A안 29 entry points).
-- **다음 후보 축 4건** — ✅ **전부 닫힘** (2026-08-09, TASK-002~005):
-  - CLI 化 B안 `wk` → **TASK-002**. 기존 `workflow_kit_cli` 확장 (새 dispatcher ❌). 65 command.
-  - registry HTTP server → **TASK-003**. serving + `add-known-host` CLI (둘 다 없었다).
-  - branch protection 자동 check → **TASK-004**. 판정만 한다. 실측 결과 이 저장소는 **미보호**.
-  - title semantic drift v2 → **TASK-005**. `difflib` 후보 선별 + LLM prompt (advisory).
-- **다음 후보 축** (다음 세션에서 결정):
-  - **v1.1.2-beta release** — 위 4건 묶음. 발행 여부/시점 판단 필요.
-  - **rotate 도구 순서 규약 불일치** (아래 §6, 신규 발견) — 규약 결정이 선행돼야 한다.
-  - Phase 13 진입.
+- **다음 릴리스를 `cmd_release` 경로로 발행** — 위 명령. 파이프라인 정상화의 실전 검증.
+  성공하면 "수동 발행" 관행을 종료한다.
+- **TST-WF-01 측정 재설계** — 관행 인식형 counting (inline `check()` /
+  `failures.append` / def test_·case_ 3종) 이 되면 `partial_rules.testing` 예외를
+  제거한다. pyproject 주석과 stable_guarantee §5.1 에 조건이 적혀 있다.
+- **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측, TASK-2026-08-09-main-004).
+- v1.1.0 / v1.1.1 노트의 누적 표기 사후 삽입 여부 (선택).
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 
-**사전 존재 red — 4건 모두 닫힘**:
-
-| 검사 | 상태 |
-| --- | --- |
-| `check_appendonly_memory_layout` | ✅ **닫음** — 2026-08-06 task 3건에 frontmatter 추가 |
-| `check_self_application` (`handoff_bloat`) | ✅ **닫음** — 본 문서 1096줄 → 106줄, done items 10/10. **8/8 passed** |
-| `check_standard_single_source` | ✅ **닫음** (TASK-2026-08-08-main-005) — `ai-workflow/core/mcp_installation_by_harness.md` 사본을 정본(`workflow-source/core/...`)으로 cp 동기화. 7/7 PASS. 정본 = 2026-08-07 00:12 갱신본 (mavis 데스크탑 §1.2.1 + §6.5.2). |
-| `check_bootstrap_interactive_picker` | ✅ **닫음** (TASK-2026-08-08-main-005) — `bootstrap_lib.__main__` / `bootstrap_lib.harnesses` 가 `workflow-source/scripts/` 안에 있어 in-process tests 가 `sys.path` 에 `SCRIPTS_DIR` 를 올리도록 1줄 보강. 10/10 PASS. |
-
-**별건 1**: dashboard `drift_prevention.guard_status: fail` — `maturity_last_updated` stale.
-갱신 힌트는 dashboard 출력의 `maturity_refresh_hint`.
-
-**별건 3 — 전체 검사 red (2026-08-09 최종 실측)**:
-
-편집을 멈추고 돌린 전체 검사(격리 venv)에서 **red 5건, 전부 사전 존재**
-(`git stash` 로 개별 확인). 본 세션이 만든 red 는 0건이다.
-
-| 검사 | 증상 | 판단 |
-| --- | --- | --- |
-| `check_smoke_trend_cross_v0_15_5` | `cum_total=234 < smoke_files=257` | 릴리스 사이클에서 닫힌다 (아래) |
-| `check_source_without_runtime_layer` | `read_only_jsonrpc_fixtures.json` stale | fixture 재생성 필요 |
-| `check_tempdir_leak_guard` | 정리 없는 `mkdtemp` 11건 | 기존 테스트들의 문제 |
-| `check_wiki_url_validity` | `PicklingError` (local object) | 테스트 자체 결함 |
-| `check_workflow_kit_cli` | `test_release_doctor_all_skip` 1건 | — |
-
-**`check_smoke_trend_cross` 보류 이유**: `cumulative_total` 은 *가장 최근 릴리스 노트*
-에서 파싱하는데 v1.1.0 / v1.1.1 노트에 "누적 smoke **N/N PASS**" 줄이 없어 그보다
-이전인 v1.0.0 의 234 를 읽는다. 고치려면 **이미 발행된 노트를 사후 수정** 해야 한다.
-다음 릴리스 노트에 그 줄을 적으면 자연히 닫힌다.
-
-**해소한 것** (stamp 계열 6건): README / RELEASE.md / CODE_INDEX / INSTALLATION 의
-버전·smoke count stamp + `examples/output_samples/*.json` 24건의 `tool_version` +
-`check_mcp_apply_mode_criterion` (환경 — 시스템 python3 에 `mcp` 미설치, 설치 후 2/2 PASS).
-
-> **숫자를 두 번 잘못 셌다**: `[FAIL]` 패턴만 grep 해 7건이라 한 것, 그리고 전체 실행
-> 두 번(31 / 24건)이 **편집 도중에** 돌아 반쯤 바뀐 트리를 본 것. 검사는 트리가
-> 멈춘 뒤에 돌려야 한다.
-
-**구현했지만 검증 못 한 것**:
-
-- 도구 3종은 **로컬 bare remote** 로만 검증했다. GitHub 등 실제 원격의 protected branch /
-  push 권한 정책 아래에서는 다르게 동작할 수 있다.
-- `--force` 는 **2-layer 까지 적용** (도구 미제공 + pre-push hook, TASK-019). hook 은 로컬
-  설치형이라 **미설치 호스트는 여전히 막지 못한다.** 3rd layer 는 이제 *확인* 은 되지만
-  (TASK-004) **이 저장소 `main` 에 실제로 켜져 있지 않다** (404 실측). 켜는 건 소유자 판단.
-- registry HTTP server (TASK-003) 는 **loopback 왕복만 실측**했다. 실제 LAN / 방화벽 너머,
-  reverse proxy 뒤, TLS 종단 환경에서는 확인한 적이 없다.
-- title drift 임계 0.6 (TASK-005) 은 **운영 데이터로 고른 값이 아니다.** 이 저장소 실측에서
-  같은 일의 표현 차이도 후보로 올라온다 (similarity 0.48).
-- stale 임계 24h 는 heuristic 이다. 실제 운영 데이터로 조정한 적 없다.
+- **`cmd_release --apply` 는 아직 실전 미검증** — 이번 세션은 dry-run 완주 + pre_check
+  5/5 까지만 실측했다. apply 경로(tag push + gh release create + post-step)는 다음
+  릴리스에서 처음 검증된다.
+- **호스트 환경 의존 게이트** — 시스템 python 에는 mypy/mcp/twine 이 없어 관련 검사가
+  fail 한다 (venv 에서 전부 PASS — `.venv` 에 dev,release,mcp-sdk 설치돼 있음).
+  release 는 반드시 venv 에서 돌린다.
+- **TST-WF-01 은 여전히 advisory red** — 선언된 예외일 뿐 측정이 고쳐진 게 아니다.
+  doctor 출력에 계속 보인다 (그래야 한다).
+- **darwin homelab 에서 mavis e2e 재확인 필요** — 검사를 정본 읽기로 바꿨으므로 mavis
+  설치 호스트에서 한 번 돌려 기존과 동일하게 green 인지 확인하는 것이 안전하다.
+- 이 밖의 과거 세션 리스크 (registry loopback 만 실측 / title drift 임계 0.6 heuristic /
+  `--force` 3rd layer 미가동)는 변화 없음 — 2026-08-09 까지의 세션 기록 참조.
 
 **이전 세션들의 교훈**은 각 세션 기록에 있다:
+[2026-08-09](./sessions/cli_dispatcher_and_rotation_2026-08-09.md) ·
 [2026-08-08](./sessions/multi_workspace_orchestration_2026-08-08.md) ·
 [2026-08-05](./sessions/self_application_and_mcp_2026-08-05.md) ·
 [2026-08-07 MCP](./sessions/mcp_load_verification_2026-08-07.md) ·

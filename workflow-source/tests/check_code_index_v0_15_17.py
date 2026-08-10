@@ -35,7 +35,7 @@ SKILLS_DIR = SOURCE_ROOT / "skills"
 #: CODE_INDEX 를 고칠 때 **함께** 올려야 하는 값이다 (하드코딩이 의도 — 문서가
 #: 조용히 늙는 것을 막는 게 이 case 의 목적이다). v1.1.2: 2026-07-21 → 2026-08-09
 #: (smoke count 234→257, package version 1.0.0→1.1.1 갱신과 같은 커밋).
-EXPECTED_LAST_UPDATED = "2026-08-09"
+EXPECTED_LAST_UPDATED = "2026-08-10"
 
 
 def _load_code_index() -> str:

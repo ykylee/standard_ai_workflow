@@ -22,15 +22,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _repo_sandbox import repo_sandbox  # noqa: E402
+
+# v1.1.7(TASK-019): 아래 경로들은 `main()` 이 **저장소 사본** 으로 갈아끼운다.
+# `dist --apply` 는 실제 빌드라, 원본에서 돌리면 `standard_ai_workflow-<ver>/`
+# 빌드 디렉터리와 `dist/` 산출물이 저장소 안에 생긴다.
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
 
-
-REQUIRES_QUIET_REPO = True
-"""저장소 안에 dist 산출물 디렉터리를 만들었다 지운다 (TASK-018 실측).
-
-되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
-병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _import_tool():
     """release_pipeline.py 를 importlib 로 로드."""
     spec = importlib.util.spec_from_file_location("release_pipeline", TOOL)
@@ -222,6 +223,20 @@ def test_dist_skip_existing_argparse() -> None:
 
 
 def main() -> int:
+    """저장소 **사본** 에서 돌린다 — 실제 빌드 산출물이 원본에 남지 않게 (TASK-019)."""
+    global SOURCE_ROOT, TOOL
+    origin = SOURCE_ROOT
+    with repo_sandbox(origin.parent) as sandbox:
+        SOURCE_ROOT = sandbox / "workflow-source"
+        TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+        rc = _run_cases()
+
+    leaked = sorted(q.name for q in origin.glob("standard_ai_workflow-*") if q.is_dir())
+    assert not leaked, f"원본에 빌드 디렉터리가 남았다: {leaked}"
+    return rc
+
+
+def _run_cases() -> int:
     test_funcs = [
         test_dist_dry_run_no_build_module,
         test_dist_dry_run_with_build_module,

@@ -27,16 +27,18 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _repo_sandbox import repo_sandbox  # noqa: E402
+
+# v1.1.7(TASK-019): 아래 경로들은 `main()` 이 **저장소 사본** 으로 갈아끼운다.
+# 이전에는 실제 `ai-workflow/` 의 memory_index entry 와 wiki topic 을 --apply 로
+# 갱신했다 되돌렸다. 되돌리므로 전후 비교는 통과하지만, 그 사이 다른 에이전트가
+# 읽으면 주입된 값을 본다.
 REPO_ROOT = SOURCE_ROOT.parent  # workflow-source/ 의 부모
 WIKI_DIR = REPO_ROOT / "ai-workflow" / "wiki"
 ENTRIES_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active" / "memory_index" / "entries"
 
-
-REQUIRES_QUIET_REPO = True
-"""memory_index entry 와 wiki topic 을 실제 경로에서 갱신했다 되돌린다 (TASK-018 실측).
-
-되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
-병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _run_bidir_link(args: list[str]) -> dict:
     """bidir-link CLI invocation → dict parse."""
     cmd = [sys.executable, "workflow-source/tools/release_pipeline.py",
@@ -230,6 +232,31 @@ def test_format_bidir_link_audit_returns_markdown() -> None:
 
 
 def main() -> int:
+    """저장소 **사본** 에서 돌린다 — 원본은 읽기만 한다 (TASK-019)."""
+    global REPO_ROOT, WIKI_DIR, ENTRIES_DIR
+    origin = REPO_ROOT
+    watched = sorted((origin / "ai-workflow").rglob("*.json")) + \
+              sorted((origin / "ai-workflow" / "wiki").rglob("*.md"))
+    before = {q: q.read_bytes() for q in watched if q.is_file()}
+
+    with repo_sandbox(origin) as sandbox:
+        REPO_ROOT = sandbox
+        WIKI_DIR = sandbox / "ai-workflow" / "wiki"
+        ENTRIES_DIR = sandbox / "ai-workflow" / "memory" / "active" / "memory_index" / "entries"
+        # snapshot 도 사본 기준으로 다시 잡는다. 모듈 로드 시점의 것은 원본 경로를
+        # 가리키므로, 그대로 두면 `_restore_state()` 가 사본이 아니라 **원본** 에 쓴다.
+        global _SNAPSHOT_ROOTS, _SNAPSHOT
+        _SNAPSHOT_ROOTS = (WIKI_DIR, ENTRIES_DIR)
+        _SNAPSHOT = _take_snapshot()
+        rc = _run_cases()
+
+    changed = [str(q.relative_to(origin)) for q, b in before.items()
+               if q.is_file() and q.read_bytes() != b]
+    assert not changed, f"원본을 건드렸다: {changed[:5]} — 사본에서만 --apply 해야 한다"
+    return rc
+
+
+def _run_cases() -> int:
     test_funcs = [
         test_audit_returns_correct_shape,
         test_path_normalization_round_trip,

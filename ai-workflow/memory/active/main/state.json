@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-10-main-019 — 원본 저장소에 `--apply` 하던 검사 4건을 사본으로",
       "TASK-2026-08-10-main-018 — smoke 병렬화 + 저장소를 rename 하던 check 격리",
       "TASK-2026-08-10-main-017 — 브랜치 컨텍스트를 정본화하고 로컬 재현을 관행으로",
       "TASK-2026-08-10-main-016 — smoke slash job 15연속 red 해소 (검사가 살아있는 브랜치 상태에 의존)",
@@ -41,18 +42,18 @@
       "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",
       "TASK-2026-08-10-main-012 — ADR-006 W-2: memory_index 질의 다양화",
       "TASK-2026-08-10-main-011 — ADR-006 W-1: memory_index write-path advisory 루프",
-      "TASK-2026-08-10-main-010 — P2-1 ADR-006 Memory Index 회고 본문 작성",
-      "TASK-2026-08-10-main-009 — registry server 비-loopback bind 실측"
+      "TASK-2026-08-10-main-010 — P2-1 ADR-006 Memory Index 회고 본문 작성"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-10.md",
-    "task_count": 18,
+    "task_count": 19,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-10-main-019 — 원본 저장소에 `--apply` 하던 검사 4건을 사본으로",
       "TASK-2026-08-10-main-018 — smoke 병렬화 + 저장소를 rename 하던 check 격리",
       "TASK-2026-08-10-main-017 — 브랜치 컨텍스트를 정본화하고 로컬 재현을 관행으로",
       "TASK-2026-08-10-main-016 — smoke slash job 15연속 red 해소 (검사가 살아있는 브랜치 상태에 의존)",

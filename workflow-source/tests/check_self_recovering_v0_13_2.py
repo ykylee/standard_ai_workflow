@@ -30,21 +30,19 @@ from pathlib import Path
 # site-packages 의 stale workflow_kit 이 source tree 를 shadowing 하는 v0.11.18 패턴 회피.
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# release_pipeline 의 cwd-independent state 를 위해 REPO_ROOT 를 fixed-point.
-# 본 smoke 는 실제 repo 에 drift 를 주입한 뒤 복구 → cleanup 까지 한다.
-# 임시 워크스페이스를 만들지 않고 *in-place* fix → fix → cleanup 으로 운영.
+from _repo_sandbox import repo_sandbox  # noqa: E402
+
+# v1.1.7(TASK-019): 아래 경로들은 `main()` 이 **저장소 사본** 으로 갈아끼운다.
+# 이전에는 주석대로 "임시 워크스페이스를 만들지 않고 *in-place*" 로 실제 저장소에
+# drift 를 주입했다 복구했다. 복구하므로 전후 비교는 통과하지만, 그 사이 README /
+# pyproject / __init__ 이 흔들린 상태로 남고 죽으면 되돌아오지 않는다.
 REPO_ROOT = SOURCE_ROOT.parent  # standard_ai_workflow/ = workflow-source/ 의 부모
 PYPROJECT = REPO_ROOT / "workflow-source" / "pyproject.toml"
 INIT_PY = REPO_ROOT / "workflow-source" / "workflow_kit" / "__init__.py"
 README = REPO_ROOT / "README.md"
 
-
-REQUIRES_QUIET_REPO = True
-"""README + pyproject + __init__ 을 실제로 갱신했다 되돌린다 (TASK-018 실측).
-
-되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
-병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
     """subprocess wrapper: cwd = REPO_ROOT, capture stdout/stderr, text mode."""
     return subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True,
@@ -256,6 +254,29 @@ def test_emit_self_recovery_log_appends_to_release_note() -> None:
 
 
 def main() -> int:
+    """저장소 **사본** 에서 돌린다 — 원본은 읽기만 한다 (TASK-019)."""
+    global REPO_ROOT, PYPROJECT, INIT_PY, README
+    origin = REPO_ROOT
+    watched = [origin / "README.md",
+               origin / "workflow-source" / "pyproject.toml",
+               origin / "workflow-source" / "workflow_kit" / "__init__.py"]
+    before = {q: q.read_bytes() for q in watched}
+
+    with repo_sandbox(origin) as sandbox:
+        REPO_ROOT = sandbox
+        PYPROJECT = sandbox / "workflow-source" / "pyproject.toml"
+        INIT_PY = sandbox / "workflow-source" / "workflow_kit" / "__init__.py"
+        README = sandbox / "README.md"
+        rc = _run_cases()
+
+    for q in watched:
+        assert q.read_bytes() == before[q], (
+            f"원본을 건드렸다: {q} — 사본에서만 drift 를 주입해야 한다"
+        )
+    return rc
+
+
+def _run_cases() -> int:
     test_funcs = [
         test_no_drift_no_fix_needed_clean_state,
         test_loud_fallback_drift_auto_fixed_via_apply,

@@ -20,17 +20,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _repo_sandbox import repo_sandbox  # noqa: E402
+
+# v1.1.7(TASK-019): 아래 경로들은 `main()` 이 **저장소 사본** 으로 갈아끼운다.
+# 이전에는 원본 `workflow-source/pyproject.toml` 을 `--apply` 로 99.99.99 로 바꿨다
+# 되돌렸다. 되돌리므로 `check_no_repo_write` 의 전후 비교는 통과하지만, 그 사이
+# 저장소를 읽는 누구든 잘못된 버전을 본다 — 죽으면 되돌아오지도 않는다.
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
 PYPROJECT = SOURCE_ROOT / "pyproject.toml"
 WORKFLOW_KIT_INIT = SOURCE_ROOT / "workflow_kit" / "__init__.py"
-
-
-REQUIRES_QUIET_REPO = True
-"""`pyproject.toml` 과 `workflow_kit/__init__.py` 를 --apply 로 바꿨다 되돌린다 (TASK-018 실측).
-
-되돌리므로 전후 비교로는 안 걸리지만, 그 **사이** 를 다른 check 가 보면 깨진다.
-병렬 구간이 끝난 뒤 정숙 구간에서 직렬로 돈다."""
 def _read_pyproject_version() -> str:
     """pyproject.toml [project] version 읽기."""
     text = PYPROJECT.read_text()
@@ -186,6 +187,32 @@ def test_version_bump_no_init_skips() -> None:
 
 
 def main() -> int:
+    # 테스트 함수들이 모듈 전역 경로를 읽으므로, 사본으로 **재바인딩** 한 뒤 돌린다.
+    # 함수마다 경로를 주입하도록 고치는 편이 깔끔하지만, 그러면 이 파일 전체를
+    # 손대야 한다 — 원본을 안 건드린다는 계약은 이것으로 충분히 지켜진다.
+    global SOURCE_ROOT, TOOL, PYPROJECT, WORKFLOW_KIT_INIT
+    origin_source_root = SOURCE_ROOT
+    watched = [origin_source_root / "pyproject.toml",
+               origin_source_root / "workflow_kit" / "__init__.py"]
+    before = {p: p.read_bytes() for p in watched}
+
+    with repo_sandbox(origin_source_root.parent) as sandbox:
+        SOURCE_ROOT = sandbox / "workflow-source"
+        TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+        PYPROJECT = SOURCE_ROOT / "pyproject.toml"
+        WORKFLOW_KIT_INIT = SOURCE_ROOT / "workflow_kit" / "__init__.py"
+        rc = _run_cases()
+
+    # 원본 무손상 계약을 실행 경로에서 직접 잰다 (TASK-019). 이 검사는 원본을
+    # `--apply` 로 바꿨다 되돌리던 전력이 있으므로, 계약을 말로만 두지 않는다.
+    for path in watched:
+        assert path.read_bytes() == before[path], (
+            f"원본을 건드렸다: {path} — 이 검사는 사본에서만 --apply 해야 한다"
+        )
+    return rc
+
+
+def _run_cases() -> int:
     test_funcs = [
         test_version_bump_argparse,
         test_version_bump_dry_run_no_change,

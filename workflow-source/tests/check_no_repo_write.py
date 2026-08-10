@@ -59,6 +59,12 @@ WATCHED_CHECKS = (
     # v1.1.4: release dry-run 을 실호출한다. `release --dry-run` 이 저장소 문서
     # 63개를 write 하던 전력이 있는 계열이라 (경로 1·5 와 같은 뿌리) 감시 대상.
     "check_release_pre_check_gates.py",
+    # v1.1.7(TASK-019): 원본 저장소에 `--apply` 하던 것을 사본으로 옮긴 4건.
+    # 각 파일이 자체적으로 "원본 무손상" 을 assert 하지만, 이 목록에도 넣어 이중으로
+    # 막는다. 되돌리는 구현으로 회귀하면 여기서도 걸리게 하려는 것이다.
+    "check_release_pipeline_version_auto_sync.py",   # pyproject / __init__ (--apply)
+    "check_self_recovering_v0_13_2.py",              # README / pyproject / __init__ (drift 주입)
+    "check_release_pipeline_phase3.py",              # dist 실빌드 산출물
 )
 
 CHECK_TIMEOUT_SEC = 300

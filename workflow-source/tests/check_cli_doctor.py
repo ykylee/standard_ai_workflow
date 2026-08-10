@@ -98,12 +98,18 @@ def test_pretty_renders_config_footer() -> None:
 def test_exit_on_fail_non_compliant_threshold() -> None:
     """fail_on=non_compliant (default) + non_compliant 발견 시 exit 1.
 
-    workflow-source/ 의 default project root 에서는 *1+ baseline* 이 non_compliant
-    (security baseline 의 SEC-WF-01 등). cs.status = non_compliant → should_fail True → exit 1.
+    v1.1.5 이전에는 *실제 저장소가 늘 non_compliant 라는 사실* 을 fixture 로 썼다
+    (TST-WF-01 만성 red 가 전제). 측정 재설계로 저장소가 compliant 가 되자 전제가
+    사라져 깨졌다 — 살아있는 저장소 상태를 기대값으로 쓰면 저장소가 좋아질 때
+    테스트가 부서진다. 이제 **결정적 fixture** 를 만든다: verification signal 0 인
+    smoke 파일 하나 → TST-WF-01 non_compliant 확정 → exit 1.
     """
-    proc = _run_doctor("--exit-on-fail")
-    # workflow-source/ 의 default project root 에는 *1+ non_compliant* 가 정상
-    assert proc.returncode == 1, f"expected 1 (non_compliant found), got {proc.returncode}"
+    with tempfile.TemporaryDirectory() as tmp:
+        tests_dir = Path(tmp, "workflow-source", "tests")
+        tests_dir.mkdir(parents=True)
+        (tests_dir / "check_no_signals.py").write_text("print('verifies nothing')\n")
+        proc = _run_doctor("--project-root", tmp, "--baseline=testing", "--exit-on-fail")
+        assert proc.returncode == 1, f"expected 1 (non_compliant found), got {proc.returncode}"
 
 
 # --- Test 5: --exit-on-fail with fail_on=advisory (custom config) ---

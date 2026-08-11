@@ -1,7 +1,7 @@
-# 세션 기록 — 저장소 리팩터링 사이클 + 결함 수정 (2026-08-11)
+# 세션 기록 — 저장소 리팩터링 사이클 + 대형 파일 분할 + 결함 수정 (2026-08-11)
 
 - 문서 목적: 2026-08-11 세션 (TASK-2026-08-11-main-001~008) 의 요약과 교훈을 남긴다.
-- 범위: 3차 세션 조사(§7) 후보 4건 실행 + 도중 발견한 결함 4건 수정
+- 범위: 3차 세션 조사(§7) 후보 전량 + 대형 파일 3건 분할 + 도중 발견한 결함 4건 수정 (TASK-001~011)
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: done
 - 최종 수정일: 2026-08-11
@@ -17,6 +17,9 @@
 | 003 | 아카이브 정리 (`archived/gemini` + `archive/2026-07-22`) | 185파일, 보존 7건 |
 | 004 | `check_cache_*` 13개 → `check_cache.py` 1개 | 31 case verbatim, smoke 260→248 |
 | 007 | `release_pipeline.py` 안전 부분 분할 | 3908→3174줄, 모듈 4개, 검사 무수정 |
+| 009 | presentations 파생 바이너리 제거 | 5.3MB (소스 보존) |
+| 010 | `dashboard_data.py` 안전 부분 분할 | 2488→1526줄, 모듈 3개, mypy strict clean |
+| 011 | `workflow_kit_cli.py` 안전 부분 분할 | 2095→583줄, 모듈 5개 (`cli_registry` 선행 분리) |
 
 **결함 수정 (전부 이 세션에서 발견)**:
 
@@ -57,3 +60,15 @@
 - presentations 바이너리 5.2MB (소유자 결정), `dashboard_data.py` 2488 /
   `workflow_kit_cli.py` 2095 분할 (분석 지도 먼저), branch protection,
   `mooneye` 브랜치, darwin homelab 검증 항목들 (기존 §6).
+
+## 후속 추가 (같은 날, TASK-009~011)
+
+- 대형 파일 분할 3건 완결 — 누적 **−3,208줄** (release_pipeline −734 /
+  dashboard_data −962 / workflow_kit_cli −1512). 전부 "분석 지도 먼저" 절차:
+  소스-스캔/monkeypatch 바인딩을 전수 분류한 뒤 안전 그룹만 verbatim 추출,
+  테스트 수정 0.
+- 파일별 지배 제약이 전부 달랐다: release_pipeline 은 25검사 소스-바인딩
+  (재수출 `__all__` + package-less 절대 import), dashboard_data 는 mypy strict
+  `no_implicit_reexport` (명시 from-import), workflow_kit_cli 는 `@register`
+  레지스트리 (registry 선행 분리로 순환·이중-인스턴스 회피). **분할 기법은
+  복사되지 않는다 — 지도가 기법을 결정한다.**

@@ -50,7 +50,11 @@ def main() -> int:
     os.environ["CODEX_WORKFLOW_BRANCH"] = BRANCH
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            # macOS 에서 `/tmp`·`/var` 는 `/private/...` 로 가는 symlink 라
+            # mktemp 의 raw 경로와 helper 가 돌려주는 resolve 된 경로가 갈린다
+            # (TASK-2026-08-11-main-017 §2챕터). fixture root 를 처음부터
+            # resolve 해 기대값과 실제값을 같은 표기로 맞춘다.
+            root = Path(tmp).resolve()
             profile, memory_root, branch_dir, latest = _build_fixture(root)
             hint = build_state_cache_refresh_hint(
                 project_profile_path=profile.resolve(),

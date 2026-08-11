@@ -69,7 +69,12 @@ def case_1_branch_scoped_paths() -> bool:
         # 마지막 한 컴포넌트(`.name`)를 브랜치명과 비교하면 안 된다 — `slash-probe` 와
         # `feature/slash-probe` 를 비교하게 되어, 경로가 옳은데도 FAIL 이 난다.
         # active/ 로부터의 **상대 경로 전체**로 판정한다.
-        active = P.memory_active_dir(root)
+        # macOS /tmp symlink 함정 (TASK-2026-08-11-main-017 §2챕터) — `P.workflow_backlog_dir`
+        # 가 `Path.resolve()` 후 `/private/var/folders/...` prefix 를 돌려주지만
+        # `root` 가 mktemp 의 raw `/var/folders/...` 라 prefix mismatch 로
+        # `relative_to()` 가 `ValueError: ... is not in the subpath of ...` 를 raise.
+        # `active` 도 resolve() 로 통일한다.
+        active = P.memory_active_dir(root).resolve()
         got = backlog.parent.relative_to(active).as_posix()
         if got != branch:
             print(f"  FAIL: backlog 가 branch dir 하위가 아님: {backlog} (기대 branch={branch}, 실제={got})")

@@ -137,7 +137,11 @@ def test_state_and_docs_land_in_the_same_branch_dir() -> None:
         with tempfile.TemporaryDirectory() as td:
             ws = _workspace(td)
             profile = ws / "docs" / "PROJECT_PROFILE.md"
-            assert state_path_for_workspace(ws).parent == workflow_branch_dir(profile), (
+            # macOS 에서 `Path.resolve()` 가 `/private/var/folders/...` prefix 를
+            # 추가한다 (TASK-2026-08-11-main-017 §2챕터 — mktemp 가 `/var/folders/...`
+            # 를 반환하고 helper 가 resolve 후 `/private/...` 를 반환하면 raw vs
+            # resolve 비교가 fail). 비교 양쪽을 resolve() 로 통일한다.
+            assert state_path_for_workspace(ws).parent.resolve() == workflow_branch_dir(profile).resolve(), (
                 f"{state_path_for_workspace(ws).parent} != {workflow_branch_dir(profile)}"
             )
 

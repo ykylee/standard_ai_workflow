@@ -4,18 +4,19 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (5차 세션 시작 — TASK-2026-08-11-main-017 1챕터 done: macOS 1패스 245/249, 4 FAIL 발견. 2챕터 4 FAIL fix 진행)
+- 최종 수정일: 2026-08-11 (5차 세션 — TASK-2026-08-11-main-017 종결: macOS 회귀 4건 발견 후 검사 이식성 fix, 2026-08-11 backlog 17건 전부 종결)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **5차 세션 시작** (TASK-2026-08-11-main-017 in_progress). 4차 baseline (16건 종결) 유지, **darwin homelab 검증** 진행.
-  - **1챕터 (done)**: `run_all_checks.py --branch-context=all` 2축 매트릭스 1패스 (4분11초) — **245/249 PASS, 4 FAIL, 0 TIMEOUT**. handoff 4차 "4패스 249/249" 은 Linux CI 환경, macOS 환경의 **회귀 4건 발견** (5차의 1차 기여).
-  - **2챕터 (in_progress)**: 4 FAIL fix — (1)+(2) macOS `/tmp` symlink (단일 fix 가능, `Path.resolve()` 가 `/private/var/folders/...` prefix, 검사 코드는 `/var/folders/...` 와 string 비교) / (3)+(4) 별도 분석.
+- 현재 기준선: **2026-08-11 backlog 17건 전부 종결** (5차 세션 TASK-017 추가 종결). **darwin homelab (macOS) 검증 완료** — 이 호스트에서 전량 2축 green.
+  - **TASK-017 (done)**: 1챕터에서 macOS 1패스 **245/249, 4 FAIL** 발견 (4차 handoff 의 "249/249" 는 Linux CI 환경). 2챕터에서 4건이 **전부 같은 뿌리**로 판명 — macOS 에서 `/var`·`/tmp` 가 `/private/...` 로 가는 symlink 라, 정규 경로를 방출하는 production 과 `mktemp` raw 경로를 string 비교한 **검사** 가 갈렸다. **production 무수정, 검사 fixture 4곳을 `.resolve()` 로 통일.** 3챕터에서 재검증 중 별개 FAIL 2건 (이 task 파일의 frontmatter 부재 + handoff 미등재로 인한 `task_status_mismatch`) = 1챕터가 남긴 메모리 문서 드리프트, 3문서 정합으로 해소.
+  - **얻은 것**: 기능 회귀가 아니라 **검사의 플랫폼 이식성 결함**이었고, Linux CI 에서는 `/tmp` 가 symlink 가 아니라 **영영 안 드러난다**. SDK 매트릭스·브랜치 매트릭스와 같은 계열의 "로컬에 그 축이 없어서 못 보던 것" 이 하나 더 닫혔다 — **darwin homelab 이 그 축이다.**
   - 부수: `.venv` 미존재 → uv venv 신설 (3.13.13) + `uv pip install -e 'workflow-source/[dev,release,mcp-sdk]'`. mavis 데몬 system-wide 정상. `~/.mavis/bin/mavis` symlink broken = user-level (구 격리) stale, 무시 가능.
 - 직전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: TASK-2026-08-11-main-017 (darwin homelab 검증) — 1챕터 done, 2챕터 (4 FAIL fix) in_progress.
-- 다음 후보 축: 4 FAIL fix 완료 후 → federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
+- 현재 주 작업 축: (없음 — TASK-2026-08-11-main-017 종결로 2026-08-11 backlog 17건 전부 done).
+- **소유자 결정 대기 (1건)**: `state.json` 을 **생성물로 볼 것인가, 손 문서로 볼 것인가**. TASK-017 4챕터에서 기계 판독 필드는 생성기와 정합시켰으나, `recent_done_items` 의 산문·정렬은 여전히 다르다 (생성기 = task 제목 + 날짜 정렬 / 유지본 = 상세 요약 + 손 정렬). 어느 쪽도 명시돼 있지 않아 다음 사람이 또 밟는다.
+- 다음 후보 축: federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -34,7 +35,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- (없음 — planned/blocked 도 0건, 2026-08-11 backlog 16건 전부 종결)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -42,6 +43,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-017 **darwin homelab 검증** — macOS 에서 전량 2축 1패스 → **245/249, 4 FAIL 발견** (4차의 "249/249" 는 Linux CI 환경). 4건이 **전부 같은 뿌리**: macOS 에서 `/var`·`/tmp` 가 `/private/...` 로 가는 symlink 라, **정규 경로를 방출하는 production 과 `mktemp` raw 경로를 string 비교한 검사**가 갈렸다. production 무수정, 검사 fixture 4곳을 `.resolve()` 로 통일 (`branch_resolver_agreement` 5/5 · `branch_scoped_memory` 10/10 · `git_conflict_resolver_v0_11_24` 8/8 · `workflow_state_refresh_hint` PASS). `git_conflict_resolver` 는 한 응답 안에 `conflicts[].file_path`(resolve) 와 `source_context.files`(raw) 가 **공존**해 case 4 만 실패했다. **기능 회귀가 아니라 검사의 플랫폼 이식성 결함이고, Linux CI 에서는 영영 안 드러난다** — SDK 매트릭스·브랜치 매트릭스와 같은 계열의 "로컬에 없던 축". 재검증 중 별개 FAIL 2건 (이 task 파일 frontmatter 부재 + handoff 미등재 `task_status_mismatch`) 은 1챕터가 남긴 메모리 문서 드리프트로, **task 를 열 때 3문서를 동시에 맞추지 않으면 그 자체가 red** 라는 것을 검사가 잡아냈다.
 - TASK-2026-08-11-main-015 **로컬 병렬 TIMEOUT flake 해소** — `CHECK_TIMEOUT_S` 파일 안 선언 신설 (runner 가 AST 로 읽어 `--timeout` 과 **max** — 상한을 늘릴 수만 있음, `REQUIRES_QUIET_REPO` 와 같은 패턴). 부하 실측 ≥40s 위험군 6검사 (wiki_score 57s / release_status·auto_bump·summary 53~55s / release_pipeline_lib 44s / mypy_config_actually_loaded 43s) 에 150s 선언. `check_parallel_smoke` case 10 (되주입 양방향 + decoy 불인정 + max 의미론) + `--tests-dir` 외부 경로 ValueError 수정. **전량 2축 ×2회 = 4패스 249/249, TIMEOUT 0.** CLAUDE.md 에 규약 문서화 (solo ~25s+ 는 선언).
 - TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 4회전** — ①내용 (실명 오류·전재 누락), ②수치 전수 (기간 "14개월" 날조 → 4개월, "smoke 24→249" → 199→249, CLI 65+ → 68 등 정정 8건 — 교훈: **산문 속 수치가 날조의 주 경로**), ③문체·어휘 (비일상 어휘 12종 교체/풀이, 3원리 일상어 표기, 폭 920px·부제 축약), ④**학습회 독립화** (사용자 결정 — 보고서에서 학습회·발표 서술 전부 제거, 참고문헌의 덱 항목 삭제. 계획 문서는 이력이므로 유지). placeholder (작성자/문서번호) 는 사용자 기입. 부수: 검증 중 CI flake 발견 → watch_transient_writer ready handshake 수정 (708eb94).
 - TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
@@ -51,7 +53,6 @@
 - TASK-2026-08-11-main-008 **원본-무결성 관찰 검사 3건 정숙화** — TASK-007 검증에서 `version_auto_sync` 가 "원본을 건드렸다: pyproject.toml" assert 로 1회 flake. 단독 green + 재현 시도 (표적 3회 + 전량 2회 + md5 watcher) 전부 미재현, 용의자 2건 (`auto_bump` 검사 / drift case 7 auto-bump dry-run) 은 코드·실측 무혐의. 같은 byte-대조 assert 를 가진 3검사 (`version_auto_sync`/`self_recovering`/`bidir_link`) 는 **전역 관찰**이므로 `REQUIRES_QUIET_REPO` 선언 대상이었다 (TASK-018 §2.53 규칙의 적용 누락). 정숙 3→6. **잔여**: transient pyproject writer 정체 미상 (§6).
 - TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
 - TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
-- TASK-2026-08-11-main-002 **amend Guard 2 staged-삭제 fatal 수정** — `git add -- *dirty` 가 이미 staged 된 삭제 (`D `, worktree·index 모두 부재) 에서 pathspec fatal. `_git_dirty_paths(needs_add_only=True)` 신설 (porcelain worktree 열 기준 add 대상 선별, 기본 동작 불변 — bump clean-tree 가드는 계속 전체를 봄) + Guard 2 에서 보고용 전체와 add 대상 분리 (add 대상이 비면 amend 직행). unstaged 삭제 (` D`) 는 선별에 **포함** — add 로 삭제를 stage 하는 정당 경로. 검사: case 5 삭제-인지 / case 6 선별 대조 / **case 10 되주입** (tmp repo + `_git_toplevel` monkeypatch — full add rc=128 함정과 해법을 결정적 고정). 11/11, 무력화 시 case 10 이 잡음. mypy 전후 89 동일 (신규 0).
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

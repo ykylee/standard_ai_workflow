@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**2026-08-11 backlog 16건 전부 종결** — 리팩터링 사이클 (TASK-001~013, 누적 −3,208줄, smoke 268→249) + 4차 세션 (기술보고서 논문 양식 문서 docs/reports/ + TASK-015 CHECK_TIMEOUT_S 선언 신설 + watcher ready handshake + 소유자 결정 2건). CI green (b636e2f).",
-    "current_axis": "TASK-2026-08-11-main-017 (darwin homelab 검증) 진행 — 1챕터 1패스 245/249 done (4 FAIL: macOS /tmp symlink 2건 + 별도 2건), 2챕터 fix 진행. memory_index 3-tuple 지표 추이 관찰 = 보류. 4차 baseline (16건 종결) 유지.",
-    "current_focus": "TASK-2026-08-11-main-017: 1챕터 done (1패스 245/249, 4 FAIL 발견), 2챕터 진행 (4 FAIL fix — macOS /tmp symlink 2건 + 별도 2건)",
-    "in_progress_items": ["TASK-2026-08-11-main-017"],
+    "current_baseline": "**2026-08-11 backlog 17건 전부 종결** — 리팩터링 사이클 (TASK-001~013, 누적 −3,208줄, smoke 268→249) + 4차 세션 (기술보고서 논문 양식 문서 docs/reports/ + TASK-015 CHECK_TIMEOUT_S 선언 신설 + watcher ready handshake + 소유자 결정 2건) + 5차 세션 (TASK-017 darwin homelab 검증 — macOS 회귀 4건 발견 후 검사 이식성 fix).",
+    "current_axis": "(없음 — 2026-08-11 backlog 17건 전부 done). 다음 후보: federation self-host add → cross-host federation (두 번째 호스트 = 사용자 결정). memory_index 3-tuple 지표 추이 관찰 = 보류.",
+    "current_focus": "(없음 — planned/in_progress/blocked 0건. darwin homelab 검증 완료로 macOS 축이 로컬 재현 수단에 추가됨)",
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-017 — darwin homelab (macOS) 검증: 전량 2축 1패스에서 4 FAIL 발견 → 4건 전부 같은 뿌리 (macOS 에서 /var·/tmp 가 /private/... symlink, 정규 경로를 방출하는 production 과 mktemp raw 경로를 string 비교한 검사가 갈림). production 무수정, 검사 fixture 4곳 .resolve() 통일. 기능 회귀가 아니라 검사의 플랫폼 이식성 결함 — Linux CI 에서는 영영 안 드러난다",
       "TASK-2026-08-11-main-015 — 로컬 병렬 TIMEOUT flake 해소 (CHECK_TIMEOUT_S 선언 신설 + 위험군 6검사 150s + parallel_smoke case 10 양방향, 전량 2축 ×2회 TIMEOUT 0)",
       "TASK-2026-08-11-main-016 — 학습회 자료 → 사내 기술보고서 논문 양식 문서 (계획 md + 보고서 html 12p, 실명 승격, 사후 검토 4회전 — 수치 날조 정정 + 어휘 정리 + 학습회 독립화)",
       "TASK-2026-08-11-main-014 — v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정 (당시 전량 green 기록 부재 — N/N PASS 사후 삽입은 날조, 파서는 최신 노트만 읽음, 두 노트 무수정)",
@@ -41,24 +42,18 @@
       "TASK-2026-08-11-main-011 — workflow_kit_cli.py 안전 부분 분할 (2095→583, 모듈 5개, CLI 53/53)",
       "TASK-2026-08-11-main-010 — dashboard_data.py 안전 부분 분할 (2488→1526, 모듈 3개, mypy strict clean)",
       "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 제거 (5.3MB, 소스 보존)",
-      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)",
-      "TASK-2026-08-11-main-007 — release_pipeline.py 안전 부분 분할 (3908→3174, 모듈 4개, 검사 무수정)",
-      "TASK-2026-08-11-main-006 — PERF-WF-04 저장소 오염 제거 + sandbox 복사 소멸-파일 내성",
-      "TASK-2026-08-11-main-002 — amend Guard 2 staged-삭제 fatal 수정 (needs_add_only 선별 + 되주입 case 10)",
-      "TASK-2026-08-11-main-005 — smoke CI red 해소 (version_flag 가 phase3 의 dist 오염에 우연히 의존)",
-      "TASK-2026-08-11-main-004 — check_cache_* 13개를 1개로 통합 (31 case 보존, smoke 260→248)",
-      "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)"
+      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 16,
-    "planned_items": [],
-    "in_progress_items": ["TASK-2026-08-11-main-017"],
+    "task_count": 17,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-017 — darwin homelab (macOS) 검증: 4 FAIL 발견 → 전부 macOS /private symlink 뿌리, 검사 fixture 4곳 .resolve() 통일 (production 무수정)",
       "TASK-2026-08-11-main-015 — 로컬 병렬 TIMEOUT flake 해소 (CHECK_TIMEOUT_S 선언 신설 + 위험군 6검사 150s + parallel_smoke case 10 양방향, 전량 2축 ×2회 TIMEOUT 0)",
       "TASK-2026-08-11-main-016 — 학습회 자료 → 사내 기술보고서 논문 양식 문서 (계획 md + 보고서 html 12p, 실명 승격, 사후 검토 4회전 — 수치 날조 정정 + 어휘 정리 + 학습회 독립화)",
       "TASK-2026-08-11-main-014 — v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정 (당시 전량 green 기록 부재 — N/N PASS 사후 삽입은 날조, 파서는 최신 노트만 읽음, 두 노트 무수정)",

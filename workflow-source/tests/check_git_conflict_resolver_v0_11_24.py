@@ -102,7 +102,11 @@ def test_case_3_error_codes_defined() -> None:
 def test_case_4_conflict_detection_in_file() -> None:
     """conflict marker 가 들어 있는 file 에 대해 script 가 정상 detection + resolution_summary 출력."""
     with tempfile.TemporaryDirectory() as td:
-        td_path = Path(td)
+        # macOS 에서 `/var` 는 `/private/var` 로 가는 symlink 라, 도구가 돌려주는
+        # `conflicts[].file_path` (resolve 된 정규 경로) 와 mktemp 의 raw 경로가
+        # string 비교에서 갈린다 (TASK-2026-08-11-main-017 §2챕터). fixture 쪽을
+        # resolve 해 맞춘다 — 정규 경로를 방출하는 도구 동작이 옳다.
+        td_path = Path(td).resolve()
         conf_file = td_path / "conflicted.py"
         conf_file.write_text(
             "# Section\n"

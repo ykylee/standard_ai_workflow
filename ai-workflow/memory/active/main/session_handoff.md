@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 — TASK-2026-08-11-main-001~005)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 결함 수정 — TASK-2026-08-11-main-001~005 전부 done)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -16,9 +16,9 @@
   **`check_cache_*` 13개 → 1개 통합** (TASK-004, 31 case verbatim 보존).
   smoke **268→248**, 파생 수치 3문서는 매번 동기 (대조 검사 3종이 강제).
   중간에 **CI smoke red 를 발견·해소** (TASK-005 — 전 세션 TASK-019 부터 red,
-  version_flag 가 phase3 의 dist 오염에 우연히 의존, §4 참조). 부산물로
-  **amend Guard 2 의 staged-삭제 fatal** 결함 발견 →
-  TASK-2026-08-11-main-002 (planned). 남은 리팩터링 후보는 §5.
+  version_flag 가 phase3 의 dist 오염에 우연히 의존, §4 참조). 부산물로 발견한
+  **amend Guard 2 의 staged-삭제 fatal** 도 수정 완료 (TASK-002,
+  `needs_add_only` 선별 + 되주입 case 10). 남은 리팩터링 후보는 §5.
 - 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
   `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
   기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
@@ -61,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-002 **amend Guard 2 staged-삭제 fatal 수정** — `git add -- *dirty` 가 이미 staged 된 삭제 (`D `, worktree·index 모두 부재) 에서 pathspec fatal. `_git_dirty_paths(needs_add_only=True)` 신설 (porcelain worktree 열 기준 add 대상 선별, 기본 동작 불변 — bump clean-tree 가드는 계속 전체를 봄) + Guard 2 에서 보고용 전체와 add 대상 분리 (add 대상이 비면 amend 직행). unstaged 삭제 (` D`) 는 선별에 **포함** — add 로 삭제를 stage 하는 정당 경로. 검사: case 5 삭제-인지 / case 6 선별 대조 / **case 10 되주입** (tmp repo + `_git_toplevel` monkeypatch — full add rc=128 함정과 해법을 결정적 고정). 11/11, 무력화 시 case 10 이 잡음. mypy 전후 89 동일 (신규 0).
 - TASK-2026-08-11-main-005 **smoke CI red 해소 (version_flag ← phase3 dist 오염 우연 의존)** — CI smoke 는 **전 세션 TASK-019 (59f3365) 부터 red** 였다 (f4f7fc6 까지 green, 이후 4연속 red — 전 세션 마지막 2 push 는 CI 미확인 종료, handoff 는 로컬 green 만 기록). 원인: `check_release_pipeline_phase3` 가 원본 `dist/` 에 실빌드를 남기던 오염을 TASK-019 가 격리하자, 그 부산물에 우연히 의존하던 `check_release_pipeline_version_flag` test 3 의 무조건 `out["tag"]` 기대가 CI (dist 부재) 에서 KeyError. 로컬은 릴리스가 남긴 dist (gitignored) 로 계속 green — 로컬/CI 비대칭 4번째 사례. test 2 의 `has_staging` 분기와 같은 처방, dist 유/무 **양방향 3/3 실증**. **오염 제거는 그 오염에 기대던 소비자를 드러낸다 + push 후 CI 확인까지가 검증이다.**
 - TASK-2026-08-11-main-004 **check_cache_* 13개 → check_cache.py 1개 통합** — test 본문 verbatim 보존 (31 case, 버전 이력이 담긴 함수명 유지), 변경은 로더 보일러플레이트 공용화뿐 (`_load` bare 등록 / `_load_wk` package 등록 — 로드 의미론이 달라 2계보를 하나로 합치지 않음). 충돌 상수 5건은 byte-identical 로드라 최초 정의로 dedupe (본문 수정 0). 31/31 PASS, smoke 260→248, 파생 수치 3문서 동기.
 - TASK-2026-08-11-main-003 **ai-workflow 아카이브 정리** — `archived/gemini` (59) + `archive/2026-07-22` 트리 제거, 총 185파일 (git 이력 보존). 보존 7건: wiki topic 7페이지가 `last_ingested_from` 으로 참조하는 `main/session_analysis_2026-07-09.md` (V-R9) + **freeze 스냅샷 최소 세트 6건** (`.frozen` + SHARED 4종 + `main/state.json`) — `check_memory_freeze_lint` V-R8/V-R10 이 *최신* archive 에 요구, 전량 검사가 잡아 복원. 참조 대조만으로는 **디렉터리 형태 계약**을 못 본다. README stale 링크 5개 (문안 active / 타깃 gemini 아카이브) 를 active/main 실경로로 교정. `check_wiki_score` 55.2→47.2s. `archived/codex`·`main-legacy`·`archive/2026-06-12*` (35파일) 는 조사 문서 밖이라 유보.
@@ -70,7 +71,6 @@
 - TASK-2026-08-10-main-017 **브랜치 컨텍스트 정본화 + 로컬 재현 관행화** — CI 2축 / 로컬 1축 비대칭이 뿌리. `branch_matrix.py` 정본 + `run_all_checks --branch-context=<label|all>` + smoke.yml prepare job 주입(복제 제거) + `check_branch_context_matrix` 8 case + CLAUDE.md 관행. **새 축이 첫 실행에서 결함 2건을 잡았고 하나는 자기 것** — `--branch-context=native` 가 상속 오버라이드를 안 지워 slash 패스에서 native 를 요청하자 slash 를 쟀다 (막으려던 실패 양상 그 자체).
 - TASK-2026-08-10-main-016 **smoke slash job 15연속 red 해소** — `check_release_pre_check_gates` case 7 이 살아있는 브랜치의 `state.json` 존재를 전제. 게이트는 부재를 정당 통과로 설계했는데 검사만 fail. 되주입으로 결정적화 + 환경 의존은 7b 로 분리(명시 SKIP) + **아무도 안 재던 absent 계약을 case 11 로 고정**.
 - TASK-2026-08-10-main-015 **v1.1.6-beta 발행** — `cmd_release` 3번째 실전 완주 (bump → 파생물 선재생성 10검사 사전 green → note → dist → dry-run pre_check 5/5 → push → apply → verify). tag `v1.1.6-beta` (2026-08-10T11:30:53Z, whl+sdist). 범위 TASK-007~014, smoke 261→266 (신규 5). post-apply 잔여 4파일 — v1.1.5 와 동일, 선재생성 절차 재현 확인. dirty 가드가 미커밋 task 등록을 정확히 잡음 (가드 실전 검증 1회 추가).
-- TASK-2026-08-10-main-014 **ADR-006 W-4 지표 재정의** — telemetry `selected_ids` additive + `summarize_telemetry` 3-tuple (query_diversity / entries_new_30d / distinct_entries_retrieved, **`*_measurable` 분모로 미측정≠0**) + Panel 8 `utilization_3tuple` north-star 교체 (hit_rate 는 은퇴 대신 보조 강등). measurable 판정은 값 비어있음이 아니라 **필드 존재** — miss(0건 조회)도 측정이다 (구현 중 이 함정을 실제로 밟고 고침). 첫 실측 = 정직한 저점 (1/8 · 1 · 0/1). `check_utilization_3tuple` 9/9, 회귀 sweep 9종 green, smoke 266. **W-1~W-4 완결**.
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -135,11 +135,8 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   있었는데도** 그 이유로 안 잡혔다. 실행 *중* 감시(폴링)로 강화하면 남은 감시 대상
   다수가 같은 이유로 red 가 될 수 있어 범위가 크다. **되돌리는 것은 안 건드리는 것이
   아니다.**
-- **amend Guard 2 의 staged-삭제 fatal (TASK-2026-08-11-main-002, planned)** —
-  `_git_dirty_paths()` 를 `git add -- ` 에 넘기는 경로가 이미 staged 된 삭제
-  (`D `) 에서 pathspec 불일치로 fatal. `--allow-dirty` + staged 삭제 조합의 실전
-  release 에서 재현 가능. `check_release_wrapper_args` case 5·6 도 같은 상태에서
-  red (tree clean 이면 자동 통과라 평소엔 안 보인다).
+- ~~amend Guard 2 의 staged-삭제 fatal~~ — ✅ **해소** (TASK-2026-08-11-main-002,
+  `needs_add_only` 선별 + case 10 되주입으로 고정. §4 참조).
 - **정숙 구간 3건은 본질적으로 직렬** — `check_no_repo_write`(15.6s, 전역 관찰),
   `check_parallel_smoke`(runner 호출), `check_source_without_runtime_layer`(저장소
   복사). 병렬화로 더 줄이려면 이들의 설계 자체를 바꿔야 한다.

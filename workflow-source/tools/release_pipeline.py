@@ -919,10 +919,15 @@ def _git_toplevel(*, timeout: int = 15) -> Path:
     return Path(top)
 
 
-def _git_dirty_paths(*, timeout: int = 15) -> list[str]:
+def _git_dirty_paths(*, timeout: int = 15, needs_add_only: bool = False) -> list[str]:
     """`git status --porcelain` 의 변경 path 목록 (untracked 포함).
 
     rename (`R  old -> new`) 은 new path 만 반환. git 호출 실패 시 빈 list.
+
+    needs_add_only=True 는 worktree 열(Y)이 index 와 다른 entry 만 남긴다 —
+    `git add` 대상 선별용. index 에만 있는 변경 (`M `/`D `/`A ` 등, Y=' ') 은
+    이미 staged 라 add 가 불필요하고, 특히 **staged 삭제 (`D `) 는 worktree 에도
+    index 에도 없어 `git add -- <path>` 가 pathspec fatal** 을 낸다.
     """
     proc = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -933,6 +938,8 @@ def _git_dirty_paths(*, timeout: int = 15) -> list[str]:
     paths = []
     for line in proc.stdout.splitlines():
         if len(line) < 4:
+            continue
+        if needs_add_only and line[1] == " ":
             continue
         path = line[3:]
         if " -> " in path:
@@ -1036,22 +1043,26 @@ def _run_post_step_sync_hash(version: str, *, allow_pushed_amend: bool = False) 
             "error": None,
         }
     # `staged_paths` 는 저장소 루트 기준이다 — cwd 도 루트여야 한다.
+    # add 는 worktree 측 변경만 — 이미 staged 된 삭제 (`D `) 를 pathspec 으로 주면
+    # fatal 이고, staged-only 변경은 add 없이도 amend 에 흡수된다.
     toplevel = _git_toplevel()
-    proc_add = subprocess.run(
-        ["git", "add", "--", *staged_paths],
-        capture_output=True, text=True, timeout=30, cwd=str(toplevel),
-    )
-    add_result = {
-        "stdout": proc_add.stdout,
-        "stderr": proc_add.stderr,
-        "returncode": proc_add.returncode,
-    }
-    if proc_add.returncode != 0:
-        return {
-            "ok": False, "sync_result": sync_result, "amend_result": add_result, "final_hash": None,
-            "head_pushed": pushed_info, "staged_paths": staged_paths,
-            "error": f"git add failed (returncode={proc_add.returncode}): {proc_add.stderr}",
+    add_targets = _git_dirty_paths(needs_add_only=True)
+    if add_targets:
+        proc_add = subprocess.run(
+            ["git", "add", "--", *add_targets],
+            capture_output=True, text=True, timeout=30, cwd=str(toplevel),
+        )
+        add_result = {
+            "stdout": proc_add.stdout,
+            "stderr": proc_add.stderr,
+            "returncode": proc_add.returncode,
         }
+        if proc_add.returncode != 0:
+            return {
+                "ok": False, "sync_result": sync_result, "amend_result": add_result, "final_hash": None,
+                "head_pushed": pushed_info, "staged_paths": staged_paths,
+                "error": f"git add failed (returncode={proc_add.returncode}): {proc_add.stderr}",
+            }
 
     proc_amend = subprocess.run(
         ["git", "commit", "--amend", "--no-edit"],

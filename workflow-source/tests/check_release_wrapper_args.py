@@ -18,12 +18,18 @@ v1.1.2 release 에서 릴리스 도구 결함 2건이 **발행 도중에** 드�
     2. `dry_run` 기본값은 **안전측(True)** 이다
     3. `cmd_verify` wrapper 는 `dry_run=False` 를 명시한다 (조회가 목적)
     4. `_git_toplevel()` 이 실제 저장소 루트를 반환한다 (`REPO_ROOT` 와 다르다)
-    5. `_git_dirty_paths()` 의 경로가 **저장소 루트 기준** 이다
-    6. 그 경로를 `_git_toplevel()` cwd 에서 `git add --dry-run` 하면 성공하고,
-       `REPO_ROOT`(=`workflow-source/`) 에서는 실패한다 (= v1.1.2 버그의 직접 회귀)
+    5. `_git_dirty_paths()` 의 경로가 **저장소 루트 기준** 이다 (삭제 entry 는
+       존재 검사에서 제외 — 삭제 경로는 정의상 존재하지 않는다)
+    6. add 대상 선별 (`needs_add_only=True`) 을 `_git_toplevel()` cwd 에서
+       `git add --dry-run` 하면 성공하고, `REPO_ROOT`(=`workflow-source/`) 에서는
+       실패한다 (= v1.1.2 버그의 직접 회귀)
     7. read-only wrapper 실호출에 AttributeError 가 없다
     8. release note 의 누적 smoke 수치 검증이 동작한다 (표기 누락 / note 부재 검출)
     9. 그 검증이 note 를 **쓰지 않는다** — "전량 PASS" 는 사람의 주장이다
+    10. (되주입, tmp repo) staged 삭제가 있으면 full dirty list 의 `git add` 는
+        pathspec fatal 이고 (TASK-2026-08-11-main-002 의 함정 실증),
+        `needs_add_only=True` 선별은 그걸 제외해 성공한다. unstaged 삭제는
+        선별에 **포함** 되어야 한다 (add 로 삭제를 stage 하는 정당 경로).
 
 Stdlib only.
 """
@@ -33,6 +39,7 @@ from __future__ import annotations
 import ast
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -131,28 +138,45 @@ def main() -> int:
 
     # 5) dirty paths 가 저장소 루트 기준
     #    (변경이 없으면 이 case 는 자동 통과 — 비교할 대상이 없다)
+    #    삭제 entry (index 든 worktree 든 D) 는 존재 검사에서 제외 — 삭제 경로는
+    #    정의상 존재하지 않는 것이 정상이다 (TASK-2026-08-11-main-002).
     dirty = rp._git_dirty_paths()
-    bad = [p for p in dirty if not (REPO_ROOT / p).exists()]
+    proc_st = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, timeout=15, cwd=str(toplevel),
+    )
+    deleted = set()
+    for line in proc_st.stdout.splitlines():
+        if len(line) >= 4 and "D" in line[:2]:
+            p = line[3:]
+            if " -> " in p:
+                p = p.split(" -> ", 1)[1]
+            deleted.add(p.strip().strip('"'))
+    bad = [p for p in dirty if p not in deleted and not (REPO_ROOT / p).exists()]
     check(
-        "5) _git_dirty_paths() 경로가 저장소 루트 기준",
+        "5) _git_dirty_paths() 경로가 저장소 루트 기준 (삭제 제외)",
         not bad,
         f"루트 기준으로 존재하지 않는 path={bad[:3]}",
     )
 
-    # 6) v1.1.2 에서 터진 조합의 직접 회귀 — 같은 경로를 toplevel cwd 에서 add
-    if dirty:
+    # 6) v1.1.2 에서 터진 조합의 직접 회귀 — add 대상 선별을 toplevel cwd 에서 add.
+    #    full list 가 아니라 needs_add_only 선별을 쓴다 — production (amend Guard 2)
+    #    이 실제로 add 하는 집합이 이것이고, staged 삭제가 섞인 full list 는
+    #    pathspec fatal 이 정상이다 (그 함정은 case 10 이 tmp repo 로 고정한다).
+    add_targets = rp._git_dirty_paths(needs_add_only=True)
+    if add_targets:
         proc = subprocess.run(
-            ["git", "add", "--dry-run", "--", *dirty],
+            ["git", "add", "--dry-run", "--", *add_targets],
             capture_output=True, text=True, timeout=30, cwd=str(toplevel),
         )
         check(
-            "6) dirty paths 를 toplevel cwd 에서 git add 할 수 있다",
+            "6) add 대상 선별을 toplevel cwd 에서 git add 할 수 있다",
             proc.returncode == 0,
             f"rc={proc.returncode} stderr={proc.stderr[:160]}",
         )
         # 반대로 REPO_ROOT(=workflow-source) 에서 하면 실패해야 정상 — 그게 v1.1.2 의 버그다.
         proc_bad = subprocess.run(
-            ["git", "add", "--dry-run", "--", *dirty],
+            ["git", "add", "--dry-run", "--", *add_targets],
             capture_output=True, text=True, timeout=30, cwd=str(rp.REPO_ROOT),
         )
         check(
@@ -161,8 +185,8 @@ def main() -> int:
             "이게 성공하면 두 기준이 우연히 같아진 것 — case 6 의 의미가 사라진다",
         )
     else:
-        print("PASS: 6) (working tree clean — dirty path 비교 생략)")
-        print("PASS: 6b) (working tree clean — 생략)")
+        print("PASS: 6) (add 대상 없음 — 생략)")
+        print("PASS: 6b) (add 대상 없음 — 생략)")
 
     # 7) read-only wrapper 실호출 — AttributeError 류를 잡는다
     errors: list[str] = []
@@ -217,7 +241,52 @@ def main() -> int:
         "도구가 누적 수치를 대신 적으면 거짓 주장을 만든다",
     )
 
-    total = 10
+    # 10) 되주입 (tmp repo): staged 삭제가 있으면 full dirty list 의 add 는
+    #     pathspec fatal — TASK-2026-08-11-main-002 의 함정을 결정적으로 고정.
+    #     needs_add_only 선별은 staged 삭제 (`D `) 를 제외하고, unstaged 삭제
+    #     (` D`) 는 **포함** 한다 (add 로 삭제를 stage 하는 정당 경로).
+    with tempfile.TemporaryDirectory(prefix="wrapper_args_case10_") as td:
+        tr = Path(td).resolve()
+
+        def _g(*args: str) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                ["git", *args],
+                capture_output=True, text=True, timeout=15, cwd=str(tr),
+            )
+
+        _g("init", "-q")
+        _g("config", "user.email", "case10@test")
+        _g("config", "user.name", "case10")
+        (tr / "a.txt").write_text("a\n", encoding="utf-8")
+        (tr / "b.txt").write_text("b\n", encoding="utf-8")
+        (tr / "d.txt").write_text("d\n", encoding="utf-8")
+        _g("add", "-A")
+        _g("commit", "-qm", "init")
+        _g("rm", "-q", "a.txt")                              # staged 삭제 (D )
+        (tr / "b.txt").write_text("b2\n", encoding="utf-8")  # unstaged 수정 ( M)
+        (tr / "c.txt").write_text("c\n", encoding="utf-8")   # untracked (??)
+        (tr / "d.txt").unlink()                              # unstaged 삭제 ( D)
+
+        orig_toplevel = rp._git_toplevel
+        rp._git_toplevel = lambda **kw: tr  # type: ignore[assignment]
+        try:
+            full = rp._git_dirty_paths()
+            sel = rp._git_dirty_paths(needs_add_only=True)
+        finally:
+            rp._git_toplevel = orig_toplevel
+
+        proc_trap = _g("add", "--dry-run", "--", *full)
+        proc_fix = _g("add", "--dry-run", "--", *sel)
+        check(
+            "10) staged 삭제: full list add 는 fatal, needs_add_only 선별은 성공",
+            set(full) == {"a.txt", "b.txt", "c.txt", "d.txt"}
+            and set(sel) == {"b.txt", "c.txt", "d.txt"}
+            and proc_trap.returncode != 0
+            and proc_fix.returncode == 0,
+            f"full={full} sel={sel} trap_rc={proc_trap.returncode} fix_rc={proc_fix.returncode}",
+        )
+
+    total = 11
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

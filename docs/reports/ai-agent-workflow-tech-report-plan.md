@@ -5,7 +5,7 @@
 - 대상 독자: 보고서 작성자, 리뷰어
 - 상태: draft (v1.0)
 - 최종 수정일: 2026-08-11
-- 관련 문서: [../presentations/ai-agent-onboarding-deck-design.md](../presentations/ai-agent-onboarding-deck-design.md) (원본 발표 설계 v2.3), [../../ai-workflow/core/workflow_design_principles.md](../../ai-workflow/core/workflow_design_principles.md) (설계 원리 정본)
+- 관련 문서: [../presentations/ai-agent-onboarding-deck-design.md](../presentations/ai-agent-onboarding-deck-design.md) (원본 발표 설계 v2.3), `../../ai-workflow/core/workflow_design_principles.md` (설계 원리 정본 — docs 트리 밖이라 code span 표기)
 
 ---
 

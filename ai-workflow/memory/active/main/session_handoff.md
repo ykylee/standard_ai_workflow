@@ -4,15 +4,19 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (5차 세션 — TASK-2026-08-11-main-017 종결: macOS 회귀 4건 발견 후 검사 이식성 fix, 2026-08-11 backlog 17건 전부 종결)
+- 최종 수정일: 2026-08-12 (5차 세션 종료 — TASK-017/020/021/022 종결. 하네스 파생본 통일 + wk 창구 확보. TASK-018 in_progress, 019 planned)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **2026-08-11 backlog 17건 전부 종결** (5차 세션 TASK-017 추가 종결). **darwin homelab (macOS) 검증 완료** — 이 호스트에서 전량 2축 green.
-  - **TASK-017 (done)**: 1챕터에서 macOS 1패스 **245/249, 4 FAIL** 발견 (4차 handoff 의 "249/249" 는 Linux CI 환경). 2챕터에서 4건이 **전부 같은 뿌리**로 판명 — macOS 에서 `/var`·`/tmp` 가 `/private/...` 로 가는 symlink 라, 정규 경로를 방출하는 production 과 `mktemp` raw 경로를 string 비교한 **검사** 가 갈렸다. **production 무수정, 검사 fixture 4곳을 `.resolve()` 로 통일.** 3챕터에서 재검증 중 별개 FAIL 2건 (이 task 파일의 frontmatter 부재 + handoff 미등재로 인한 `task_status_mismatch`) = 1챕터가 남긴 메모리 문서 드리프트, 3문서 정합으로 해소.
-  - **얻은 것**: 기능 회귀가 아니라 **검사의 플랫폼 이식성 결함**이었고, Linux CI 에서는 `/tmp` 가 symlink 가 아니라 **영영 안 드러난다**. SDK 매트릭스·브랜치 매트릭스와 같은 계열의 "로컬에 그 축이 없어서 못 보던 것" 이 하나 더 닫혔다 — **darwin homelab 이 그 축이다.**
-  - 부수: `.venv` 미존재 → uv venv 신설 (3.13.13) + `uv pip install -e 'workflow-source/[dev,release,mcp-sdk]'`. mavis 데몬 system-wide 정상. `~/.mavis/bin/mavis` symlink broken = user-level (구 격리) stale, 무시 가능.
+- 현재 기준선: **5차 세션 종료 — 하네스 파생본이 정본 하나로 통일됐다.** 2026-08-11 backlog 22건 중 20건 종결 (TASK-018 in_progress, 019 planned).
+  - **층위가 계속 내려간 세션이었다**: 검사 4건 FAIL → 전부 macOS `/private` symlink 하나 → 재검증에서 state.json 이 생성기와 갈라짐 → 왜 갈라지나(아무도 생성기를 안 돌리고 에이전트가 손으로 쓴다) → **왜 손으로 쓰나: 소비자에게 실행 가능한 경로가 처음부터 없었다.** 마지막이 뿌리였다.
+  - **TASK-017** — macOS 회귀 4건이 전부 `/private` symlink 뿌리. production 무수정, 검사 fixture 4곳 `.resolve()` 통일. **기능 회귀가 아니라 검사의 플랫폼 이식성 결함이고 Linux CI 에서는 영영 안 드러난다** — darwin homelab 이 그 축이다.
+  - **TASK-020** — 렌더러 32개 전수검사: **26개**가 메모리 갱신을 지시하며 방법을 안 알려줬고, 유일한 '정상' 1개조차 **존재하지 않는 경로**를 가리켰다 (goose config 형식이 강제한 부산물). 배포물 확인 결과 skill 스크립트는 pip 패키지에도 bootstrap 번들에도 없고 `wk` 68개 중 해당 기능 0개 — `pyproject` 주석의 "bootstrap 이 복사한다" 는 **거짓 전제**였다.
+  - **TASK-021** — skill 구현 3개(1,561줄)를 배포되는 `tools/` 로, 원 경로엔 wrapper. **wk 68→71 명령.** 소비자에게 실행 경로가 생겼다.
+  - **TASK-022** — 정본 **§11 (메모리 갱신 경로 + 파싱 계약)** 신설 → `render_entrypoint_rules()` 로 전 하네스 주입 → `check_standard_single_source` 강제. **결함 26→14.** 자기 적용으로 이 저장소 CLAUDE.md·commands 재생성.
+  - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
+
 - 직전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
 - 현재 주 작업 축: (없음 — TASK-2026-08-11-main-017 종결로 2026-08-11 backlog 17건 전부 done).
 - **소유자 결정 대기 (1건)**: `state.json` 을 **생성물로 볼 것인가, 손 문서로 볼 것인가**. TASK-017 4챕터에서 기계 판독 필드는 생성기와 정합시켰으나, `recent_done_items` 의 산문·정렬은 여전히 다르다 (생성기 = task 제목 + 날짜 정렬 / 유지본 = 상세 요약 + 손 정렬). 어느 쪽도 명시돼 있지 않아 다음 사람이 또 밟는다.

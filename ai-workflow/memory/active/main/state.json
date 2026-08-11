@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**2026-08-11 backlog 17건 전부 종결** — 리팩터링 사이클 (TASK-001~013, 누적 −3,208줄, smoke 268→249) + 4차 세션 (기술보고서 논문 양식 문서 docs/reports/ + TASK-015 CHECK_TIMEOUT_S 선언 신설 + watcher ready handshake + 소유자 결정 2건) + 5차 세션 (TASK-017 darwin homelab 검증 — macOS 회귀 4건 발견 후 검사 이식성 fix).",
+    "current_baseline": "**5차 세션 종료 — 하네스 파생본이 정본 하나로 통일됐다.** 정본(규약 global_workflow_standard.md §11 / 구현 workflow_kit) + 노출 창구 하나(wk 71명령) + 하네스별 파생본(정본 주입 + check_standard_single_source 강제). 렌더러 결함 26→14. 그 이전: darwin homelab 검증(TASK-017, macOS 회귀 4건).",
     "current_axis": "TASK-018 (state.json 을 생성물로 전환) 만 남음 — TASK-020(진단)·021(wk 노출)·022(하네스 파생본 통일) 완료로 선행 조건이 모두 섰다. TASK-019(전량 검사 배타 락) planned.",
     "current_focus": "아키텍처 확립 완료: 정본 하나(규약=global_workflow_standard.md §11 포함 / 구현=workflow_kit) + 노출 창구 하나(wk, 71명령) + 하네스별 파생본(정본 주입 + 검사 강제). 남은 것은 state.json 을 그 체계 안으로 넣는 TASK-018.",
     "in_progress_items": [
@@ -105,6 +105,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/darwin_verify_and_harness_unification_2026-08-11.md",
     "ai-workflow/memory/active/main/sessions/tech_report_and_timeout_fix_2026-08-11.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "workflow-source/core/multi_workspace_orchestration.md",

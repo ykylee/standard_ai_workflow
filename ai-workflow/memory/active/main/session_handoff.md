@@ -4,21 +4,20 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 결함 수정 — TASK-2026-08-11-main-001~006 전부 done)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 완결 — TASK-2026-08-11-main-001~007 전부 done)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **저장소 리팩터링 사이클** (2026-08-11). 3차 세션 조사(§7)의
-  후보 1·2·3 완료 — `check_mypy_strict_v0_11_3~10` 8개 제거
-  (TASK-2026-08-11-main-001) + **아카이브 185파일 정리** (TASK-003, wiki 참조
-  1건 + freeze 최소 세트 6건 보존, README stale 링크 5개 교정) +
-  **`check_cache_*` 13개 → 1개 통합** (TASK-004, 31 case verbatim 보존).
-  smoke **268→248**, 파생 수치 3문서는 매번 동기 (대조 검사 3종이 강제).
-  중간에 **CI smoke red 를 발견·해소** (TASK-005 — 전 세션 TASK-019 부터 red,
-  version_flag 가 phase3 의 dist 오염에 우연히 의존, §4 참조). 부산물로 발견한
-  **amend Guard 2 의 staged-삭제 fatal** 도 수정 완료 (TASK-002,
-  `needs_add_only` 선별 + 되주입 case 10). 남은 리팩터링 후보는 §5.
+- 현재 기준선: **저장소 리팩터링 사이클 완결** (2026-08-11, TASK-001~007).
+  3차 세션 조사(§7) 후보 4건 전부 완료 — mypy strict 부분집합 8개 제거
+  (TASK-001) + **아카이브 185파일 정리** (TASK-003) + **`check_cache_*` 13개
+  → 1개 통합** (TASK-004) + **`release_pipeline.py` 안전 부분 분할**
+  (TASK-007, 3908→3174줄 + 모듈 4개 — 소스-스캔 검사 25종 기준 분석 지도를
+  먼저 만들고 ATTR-ONLY 그룹만 추출, 검사 무수정 21종 green). smoke
+  **268→248**. 도중 결함 수정 3건: **CI smoke red 해소** (TASK-005),
+  **amend Guard 2 staged-삭제 fatal** (TASK-002), **PERF-WF-04 저장소 오염 +
+  sandbox race** (TASK-006). 남은 후보는 §5.
 - 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
   `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
   기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
@@ -33,7 +32,7 @@
   `99.99.99`, README/`__init__` drift, memory_index/wiki, 실빌드 산출물) — 을
   `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
   (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
-- 현재 주 작업 축: **저장소 리팩터링** (조사 근거 §7). 다음 후보: 아카이브 정리 / `check_cache_*` 통합 / `release_pipeline.py` 분할 / presentations 바이너리 (§5).
+- 현재 주 작업 축: **리팩터링 사이클 마감** — 조사 후보는 presentations 바이너리 (소유자 결정) 만 남음. 후속 대형 파일 분할 (`dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095) 은 새 조사·분석 지도 필요 (§5).
 - 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
@@ -61,6 +60,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
 - TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
 - TASK-2026-08-11-main-002 **amend Guard 2 staged-삭제 fatal 수정** — `git add -- *dirty` 가 이미 staged 된 삭제 (`D `, worktree·index 모두 부재) 에서 pathspec fatal. `_git_dirty_paths(needs_add_only=True)` 신설 (porcelain worktree 열 기준 add 대상 선별, 기본 동작 불변 — bump clean-tree 가드는 계속 전체를 봄) + Guard 2 에서 보고용 전체와 add 대상 분리 (add 대상이 비면 amend 직행). unstaged 삭제 (` D`) 는 선별에 **포함** — add 로 삭제를 stage 하는 정당 경로. 검사: case 5 삭제-인지 / case 6 선별 대조 / **case 10 되주입** (tmp repo + `_git_toplevel` monkeypatch — full add rc=128 함정과 해법을 결정적 고정). 11/11, 무력화 시 case 10 이 잡음. mypy 전후 89 동일 (신규 0).
 - TASK-2026-08-11-main-005 **smoke CI red 해소 (version_flag ← phase3 dist 오염 우연 의존)** — CI smoke 는 **전 세션 TASK-019 (59f3365) 부터 red** 였다 (f4f7fc6 까지 green, 이후 4연속 red — 전 세션 마지막 2 push 는 CI 미확인 종료, handoff 는 로컬 green 만 기록). 원인: `check_release_pipeline_phase3` 가 원본 `dist/` 에 실빌드를 남기던 오염을 TASK-019 가 격리하자, 그 부산물에 우연히 의존하던 `check_release_pipeline_version_flag` test 3 의 무조건 `out["tag"]` 기대가 CI (dist 부재) 에서 KeyError. 로컬은 릴리스가 남긴 dist (gitignored) 로 계속 green — 로컬/CI 비대칭 4번째 사례. test 2 의 `has_staging` 분기와 같은 처방, dist 유/무 **양방향 3/3 실증**. **오염 제거는 그 오염에 기대던 소비자를 드러낸다 + push 후 CI 확인까지가 검증이다.**
@@ -70,7 +70,6 @@
 - TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
 - TASK-2026-08-10-main-018 **smoke 병렬화** — CI job 604s 중 smoke 576s 가 병목, 시간 분포는 극단적(상위 13개=50%, 하위 133개 합계 9.8s). `--jobs auto` + **정숙 구간**(파일 안 `REQUIRES_QUIET_REPO` 선언, §2.53). `check_source_without_runtime_layer` 의 원본 rename → 사본 검증 (**`finally` 는 SIGKILL 에 안 돈다**). **CI 576s→220s**, 로컬 345s→118.8s. `check_parallel_smoke` 8 case.
 - TASK-2026-08-10-main-017 **브랜치 컨텍스트 정본화 + 로컬 재현 관행화** — CI 2축 / 로컬 1축 비대칭이 뿌리. `branch_matrix.py` 정본 + `run_all_checks --branch-context=<label|all>` + smoke.yml prepare job 주입(복제 제거) + `check_branch_context_matrix` 8 case + CLAUDE.md 관행. **새 축이 첫 실행에서 결함 2건을 잡았고 하나는 자기 것** — `--branch-context=native` 가 상속 오버라이드를 안 지워 slash 패스에서 native 를 요청하자 slash 를 쟀다 (막으려던 실패 양상 그 자체).
-- TASK-2026-08-10-main-016 **smoke slash job 15연속 red 해소** — `check_release_pre_check_gates` case 7 이 살아있는 브랜치의 `state.json` 존재를 전제. 게이트는 부재를 정당 통과로 설계했는데 검사만 fail. 되주입으로 결정적화 + 환경 의존은 7b 로 분리(명시 SKIP) + **아무도 안 재던 absent 계약을 case 11 로 고정**.
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -107,8 +106,9 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   185파일 제거, wiki 참조 1건 + freeze 최소 세트 6건 보존, README 링크 교정).
 - ~~`check_cache_*` 13개 통합~~ — ✅ **완료** (TASK-2026-08-11-main-004,
   31 case verbatim 보존, smoke 260→248).
-- **`release_pipeline.py` 3897줄 분할** (위험도 높음 — 단독 task 로). 이어서
-  `dashboard_data.py` 2488줄, `workflow_kit_cli.py` 2095줄.
+- ~~`release_pipeline.py` 분할~~ — ✅ **완료** (TASK-2026-08-11-main-007,
+  3908→3174 + 모듈 4개, 분석 지도 방식). 이어서 `dashboard_data.py` 2488줄,
+  `workflow_kit_cli.py` 2095줄 — 같은 "분석 지도 먼저" 절차로.
 - **`docs/presentations/*.pdf|pptx` 5.2MB** — 추적 용량의 대부분인 바이너리.
 - **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측).
 - **`mooneye` 브랜치 처리** — idle 429h+, 삭제/유지 사용자 확인 필요.

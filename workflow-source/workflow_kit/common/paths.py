@@ -15,6 +15,29 @@ BRANCH_ENV_KEYS = (
 )
 
 
+def discover_project_profile_path(start: Path | None = None) -> Path | None:
+    """cwd(또는 ``start``)에서 위로 거슬러 `PROJECT_PROFILE.md` 를 찾는다.
+
+    정본 §11 의 `wk session-start` / `wk refresh-state` 무인자 호출을 위한
+    workspace 자동 탐색. 인정하는 배치는 :func:`workflow_memory_dir` 와 같다:
+
+    - ``<ws>/docs/PROJECT_PROFILE.md`` (bootstrap 정식 배치)
+    - ``<ws>/ai-workflow/memory/active/PROJECT_PROFILE.md`` (메모리 내 배치)
+
+    못 찾으면 ``None`` — 호출자가 명시 인자를 요구하는 오류를 내야 한다
+    (조용한 기본값 금지).
+    """
+    base = (start or Path.cwd()).resolve()
+    for candidate in (base, *base.parents):
+        docs_profile = candidate / "docs" / "PROJECT_PROFILE.md"
+        if docs_profile.is_file():
+            return docs_profile
+        memory_profile = candidate / "ai-workflow" / "memory" / "active" / "PROJECT_PROFILE.md"
+        if memory_profile.is_file():
+            return memory_profile
+    return None
+
+
 def resolve_existing_path(raw: str) -> Path:
     """Resolve a path and fail early when the target does not exist."""
     path = Path(raw).expanduser().resolve()

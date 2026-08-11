@@ -18,7 +18,15 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import dedupe_normalized_backticked
-from workflow_kit.common.paths import resolve_existing_path, workflow_state_path, memory_active_dir
+from workflow_kit.common.paths import (
+    discover_project_profile_path,
+    memory_active_dir,
+    resolve_existing_path,
+    workflow_backlog_dir,
+    workflow_branch_dir,
+    workflow_state_path,
+)
+from workflow_kit.common.state.builder import find_latest_daily_backlog
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
     parse_backlog,
@@ -199,9 +207,15 @@ def _detect_stale_branch_memories(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the session-start prototype.")
-    parser.add_argument("--session-handoff-path", required=True)
-    parser.add_argument("--work-backlog-index-path", required=True)
-    parser.add_argument("--project-profile-path", required=True)
+    # v1.1.7: 정본 §11 은 `wk session-start` 를 그대로 안내한다 — 무인자 호출이
+    # 실행 가능해야 한다. 미지정 시 cwd 에서 workspace 를 자동 탐색하고
+    # branch-scoped 기본 경로로 떨어진다. 탐색 실패는 조용한 기본값이 아니라
+    # missing_required_document 오류다.
+    parser.add_argument("--session-handoff-path", required=False, default=None)
+    # branch-scoped 레이아웃(v1.0.0+)은 인덱스 문서가 없다 — optional.
+    # 미지정 시 daily backlog 디렉터리 관측(find_latest_daily_backlog)으로 대체.
+    parser.add_argument("--work-backlog-index-path", required=False, default=None)
+    parser.add_argument("--project-profile-path", required=False, default=None)
     parser.add_argument("--latest-backlog-path")
     # v0.11.22+ Phase 3b: ADR-005 memory_index retrieval 3-tuple opt-in wiring.
     # 둘 다 지정되면 session-start 가 진입 시 memory_index 에서 query 후 hints emit.
@@ -225,9 +239,30 @@ def main() -> int:
     }
 
     try:
-        session_handoff_path = resolve_existing_path(args.session_handoff_path)
-        work_backlog_index_path = resolve_existing_path(args.work_backlog_index_path)
-        project_profile_path = resolve_existing_path(args.project_profile_path)
+        profile_raw = args.project_profile_path
+        if not profile_raw:
+            discovered = discover_project_profile_path()
+            if discovered is None:
+                raise FileNotFoundError(
+                    "PROJECT_PROFILE.md 를 cwd 상위에서 찾지 못했다 "
+                    "(docs/PROJECT_PROFILE.md 또는 ai-workflow/memory/active/PROJECT_PROFILE.md). "
+                    "--project-profile-path 로 명시하라."
+                )
+            profile_raw = str(discovered)
+        project_profile_path = resolve_existing_path(profile_raw)
+        session_handoff_path = resolve_existing_path(
+            args.session_handoff_path
+            or str(workflow_branch_dir(project_profile_path) / "session_handoff.md")
+        )
+        work_backlog_index_path = (
+            resolve_existing_path(args.work_backlog_index_path)
+            if args.work_backlog_index_path
+            else None
+        )
+        # 자동 탐색 결과를 args 에도 반영 — 아래 helper 들(_build_memory_index_query_output)
+        # 이 args 경유로 profile 경로를 읽는다.
+        args.project_profile_path = str(project_profile_path)
+        args.session_handoff_path = str(session_handoff_path)
     except FileNotFoundError as exc:
         result = build_error_result(
             tool_version=TOOL_VERSION,
@@ -257,10 +292,23 @@ def main() -> int:
         if args.latest_backlog_path:
             latest_backlog_path = resolve_existing_path(args.latest_backlog_path)
         else:
-            latest_backlog_path = find_latest_backlog_path(work_backlog_index_path)
+            # legacy 인덱스 문서가 주어졌을 때만 링크 기반 판정을 쓴다.
+            # branch-scoped 레이아웃(인덱스 없음)은 daily 디렉터리 관측이 정본이다 —
+            # 인덱스 자리에 daily 파일을 넣으면 task 상세 파일을 최신 backlog 로
+            # 오판하던 결함(TASK-018 확장분)의 처방.
+            latest_backlog_path = (
+                find_latest_backlog_path(work_backlog_index_path)
+                if work_backlog_index_path is not None
+                else None
+            )
             if latest_backlog_path is None or not latest_backlog_path.exists():
-                latest_backlog_path = None
-                warnings.append("최신 backlog 경로를 backlog index 에서 확인하지 못했다.")
+                latest_backlog_path = find_latest_daily_backlog(
+                    workflow_backlog_dir(project_profile_path)
+                )
+            if latest_backlog_path is None:
+                warnings.append(
+                    "최신 backlog 를 확인하지 못했다 (index 문서도, daily backlog 디렉터리도 없음)."
+                )
 
         backlog: dict[str, Any] = {"tasks": [], "in_progress_items": [], "blocked_items": [], "done_items": [], "warnings": []}
         if latest_backlog_path is not None:
@@ -340,7 +388,7 @@ def main() -> int:
         # AGENTS.md 부재 환경 (skill-only entry) 의 *최소 effort* 진입 정공법.
         all_missing = (
             not session_handoff_path.exists()
-            and not work_backlog_index_path.exists()
+            and (work_backlog_index_path is None or not work_backlog_index_path.exists())
             and not state_json_path.exists()
         )
         self_bootstrap_suggested = all_missing
@@ -350,10 +398,9 @@ def main() -> int:
                 f"python3 scripts/bootstrap_workflow_kit.py --target-root {workspace_root} "
                 f"--project-slug <slug> --project-name <name> --adoption-mode new "
                 f"--harness claude-code --entry-mode skill-only",
-                f"python3 skills/session-start/scripts/run_session_start.py "
-                f"--session-handoff-path {session_handoff_path} "
-                f"--work-backlog-index-path {work_backlog_index_path} "
-                f"--project-profile-path {project_profile_path}",
+                # v1.1.7: 소비자 실행 경로는 wk 하나다 (정본 §11) — skills/ 스크립트
+                # 경로는 배포물에 없다 (TASK-021).
+                "wk session-start",
             ]
             warnings.append(
                 "self-bootstrap mode: 핵심 4 file 모두 부재. "
@@ -380,7 +427,9 @@ def main() -> int:
             ),
             source_documents={
                 "session_handoff_path": str(session_handoff_path),
-                "work_backlog_index_path": str(work_backlog_index_path),
+                # branch-scoped 레이아웃은 인덱스 문서가 없다 — 계약 키는 유지하되
+                # 빈 문자열로 "관측된 인덱스 없음" 을 표기한다.
+                "work_backlog_index_path": str(work_backlog_index_path) if work_backlog_index_path else "",
                 "project_profile_path": str(project_profile_path),
             },
             purpose_context=purpose_context,

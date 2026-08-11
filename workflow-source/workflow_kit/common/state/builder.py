@@ -100,17 +100,22 @@ def _task_recency_key(frontmatter: str, task_id: str) -> str:
 _DAILY_BACKLOG_GLOB = "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md"
 
 
-def _find_latest_daily_backlog(daily_backlog_dir: Path | None) -> Path | None:
+def find_latest_daily_backlog(daily_backlog_dir: Path | None) -> Path | None:
     """append-only layout 의 daily 디렉터리에서 가장 최신 `YYYY-MM-DD.md`.
 
     파일명이 ISO 날짜라 사전순 = 시간순이다. legacy `work_backlog.md` 인덱스가 없는
     저장소에서 `latest_backlog_path` 를 **추측이 아니라 관측**으로 채우는 자리다 —
-    디렉터리에 실재하는 파일만 돌려준다.
+    디렉터리에 실재하는 파일만 돌려준다. session-start 도 branch-scoped 레이아웃에서
+    같은 판정을 쓴다 (인덱스 문서의 링크 순서가 아니라 daily 파일명 관측).
     """
     if daily_backlog_dir is None or not daily_backlog_dir.is_dir():
         return None
     candidates = sorted(daily_backlog_dir.glob(_DAILY_BACKLOG_GLOB))
     return candidates[-1] if candidates else None
+
+
+# 기존 내부 호출부 호환 별칭 — 판정은 위의 공개 함수 하나다.
+_find_latest_daily_backlog = find_latest_daily_backlog
 
 
 def _aggregate_from_appendonly_layout(

@@ -282,6 +282,37 @@ def test_unknown_baseline_raises() -> None:
         pass
 
 
+def test_perf_wf04_benchmark_writes_outside_project_root() -> None:
+    """PERF-WF-04 벤치마크가 project_root 안에 쓰지 않는다 (TASK-2026-08-11-main-006).
+
+    원래 구현은 `project_root/tmp_audit_perf.log` 에 100회 append 후 unlink —
+    살아있는 저장소에 임시 파일이 명멸해 병렬 sandbox 복사와 race 했다
+    (PERF-WF-05 는 v1.0.0 에 같은 처방을 받았는데 04 만 누락). append 대상
+    경로를 포착해 temp 사용을 고정한다.
+    """
+    import tempfile
+    from workflow_kit.common.contracts import stage_gate
+    from workflow_kit.common.contracts.baselines import _eval_performance_baseline
+
+    captured: list[Path] = []
+    orig = stage_gate.append_audit_log
+
+    def _recorder(path, completion):  # noqa: ANN001 — 원 시그니처 대체
+        captured.append(Path(path))
+
+    stage_gate.append_audit_log = _recorder
+    try:
+        with tempfile.TemporaryDirectory(prefix="perf04-root-") as td:
+            root = Path(td).resolve()
+            _eval_performance_baseline(root)
+            assert captured, "append_audit_log 가 호출되지 않았다 — PERF-WF-04 측정 경로 변경 여부 확인"
+            inside = [p for p in captured if root in p.resolve().parents]
+            assert not inside, f"PERF-WF-04 가 project_root 안에 썼다: {inside[:2]}"
+            assert not (root / "tmp_audit_perf.log").exists(), "project_root 에 벤치마크 잔재"
+    finally:
+        stage_gate.append_audit_log = orig
+
+
 # --- 메인 실행 ---
 
 
@@ -304,6 +335,7 @@ def main() -> int:
         test_partial_rules_applied,
         test_total_rule_results,
         test_unknown_baseline_raises,
+        test_perf_wf04_benchmark_writes_outside_project_root,
     ]
 
     passed = 0

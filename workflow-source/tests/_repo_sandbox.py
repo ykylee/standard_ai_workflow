@@ -43,6 +43,25 @@ _BASE_IGNORE = (
 """검증에 쓰이지 않으면서 복사만 비싸지는 것들."""
 
 
+def _copy_ignore_vanished(src: str, dst: str) -> None:
+    """스캔 시점엔 있었지만 복사 시점에 사라진 파일은 건너뛴다.
+
+    병렬 실행 중 다른 check/도구가 만든 임시 파일은 복사 도중 소멸할 수 있다
+    (실사례: PERF 벤치마크의 transient log 와 race → shutil.Error). 스냅샷
+    복사에서 "지금은 없는 파일" 은 결함이 아니라 정상 상태다.
+    """
+    try:
+        shutil.copy2(src, dst)
+    except FileNotFoundError:
+        pass
+
+
+def _vanished_only(exc: shutil.Error) -> bool:
+    """copytree 집계 오류가 전부 '파일 소멸(ENOENT)' 인지 판정."""
+    errors = exc.args[0] if exc.args else []
+    return bool(errors) and all("[Errno 2]" in str(err) for err in errors)
+
+
 @contextmanager
 def repo_sandbox(repo_root: Path, *, include_git: bool = False) -> Iterator[Path]:
     """`repo_root` 의 사본을 만들어 그 경로를 준다. 원본은 **읽기만** 한다.
@@ -59,6 +78,14 @@ def repo_sandbox(repo_root: Path, *, include_git: bool = False) -> Iterator[Path
         patterns.append(".git")
     with tempfile.TemporaryDirectory(prefix="repo-sandbox-") as tmp:
         sandbox = Path(tmp) / "repo"
-        shutil.copytree(repo_root, sandbox,
-                        ignore=shutil.ignore_patterns(*patterns), symlinks=True)
+        try:
+            shutil.copytree(repo_root, sandbox,
+                            ignore=shutil.ignore_patterns(*patterns), symlinks=True,
+                            copy_function=_copy_ignore_vanished)
+        except shutil.Error as exc:
+            # copy_function 이 파일 본문 소멸은 삼키지만, 디렉터리 stat/목록 단계의
+            # 소멸은 여기로 온다. 소멸 이외의 오류가 하나라도 섞였으면 그대로 던진다
+            # — 조용한 쪽이 틀린 쪽이다.
+            if not _vanished_only(exc):
+                raise
         yield sandbox

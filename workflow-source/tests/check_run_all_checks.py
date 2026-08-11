@@ -107,12 +107,12 @@ def test_parse_output_fail() -> None:
 
 
 def test_run_one_baselines() -> None:
-    """run_one(check_baselines_compliance.py) → exit 0, 16 test PASS."""
+    """run_one(check_baselines_compliance.py) → exit 0, 17 test PASS."""
     mod = _import_runner()
     target = TESTS_DIR / "check_baselines_compliance.py"
     result = mod.run_one(target, timeout=30)
     assert result.exit_code == 0, f"exit {result.exit_code}: {result.error_excerpt}"
-    assert result.passed == 16, f"expected 16, got {result.passed}"
+    assert result.passed == 17, f"expected 17, got {result.passed}"
     assert result.failed == 0
 
 

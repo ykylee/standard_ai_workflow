@@ -82,3 +82,6 @@ workflow-source/.venv-build/
 
 # 로컬 SDK 매트릭스 venv (workflow_kit.common.sdk_matrix --run-local)
 /.venv-sdk-matrix/
+
+# Claude Code worktree isolation (harness-internal)
+.claude/worktrees/

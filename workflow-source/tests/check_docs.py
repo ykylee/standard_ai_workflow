@@ -51,6 +51,7 @@ INLINE_BACKTICK_RE = re.compile(r"`[^`\n]*`")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "#")
 IGNORED_PARTS = {
     ".git",
+    ".claude",
     ".codex",
     ".opencode",
     ".venv",

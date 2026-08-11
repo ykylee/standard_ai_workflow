@@ -22,6 +22,8 @@ CI job 604s 중 576s 가 smoke 실행이었고, 267개 check 의 시간 분포�
     6. 병렬이 실제로 동시 실행한다 (벽시계 < 합계)
     7. `--jobs 1` 과 병렬의 판정이 같다 (표본)
     8. 정숙 구간이 병렬 구간 **뒤** 에 온다 (결과 순서로 관찰)
+    9. sandbox 사본 복사는 **소멸 파일에 내성** 이 있다 (병렬 중 transient 파일
+       race — TASK-2026-08-11-main-006). 소멸 아닌 오류는 그대로 던진다.
 
 Stdlib only.
 """
@@ -195,6 +197,56 @@ def test_quiet_runs_after_parallel() -> None:
     )
 
 
+def test_sandbox_copy_tolerates_vanished_files() -> None:
+    """사본 복사는 소멸 파일을 건너뛰고, 소멸 아닌 오류는 던진다 (TASK-2026-08-11-main-006).
+
+    실사례: PERF 벤치마크가 저장소에 남기던 transient 파일이 `copytree` 스캔과
+    복사 사이에 사라져 `check_bidir_link_v0_13_3` 가 shutil.Error 로 flake.
+    `shutil.copy2` 를 감싸 소멸/권한 오류를 결정적으로 주입한다.
+    """
+    import shutil
+
+    from _repo_sandbox import repo_sandbox
+
+    with tempfile.TemporaryDirectory(prefix="vanish-src-") as td:
+        src = Path(td) / "tree"
+        (src / "sub").mkdir(parents=True)
+        (src / "keep.txt").write_text("k", encoding="utf-8")
+        (src / "sub" / "vanish.txt").write_text("v", encoding="utf-8")
+        orig_copy2 = shutil.copy2
+
+        def _vanishing_copy2(s, d, *a, **kw):  # noqa: ANN001
+            if str(s).endswith("vanish.txt"):
+                raise FileNotFoundError(2, "No such file or directory", str(s))
+            return orig_copy2(s, d, *a, **kw)
+
+        shutil.copy2 = _vanishing_copy2
+        try:
+            with repo_sandbox(src) as sandbox:
+                assert (sandbox / "keep.txt").exists(), "정상 파일이 복사되지 않았다"
+                assert not (sandbox / "sub" / "vanish.txt").exists(), "소멸 파일이 복사됐다?"
+        finally:
+            shutil.copy2 = orig_copy2
+
+        # 소멸이 아닌 오류 (권한 등) 는 삼키면 안 된다 — 조용한 쪽이 틀린 쪽이다.
+        def _denied_copy2(s, d, *a, **kw):  # noqa: ANN001
+            if str(s).endswith("keep.txt"):
+                raise PermissionError(13, "Permission denied", str(s))
+            return orig_copy2(s, d, *a, **kw)
+
+        shutil.copy2 = _denied_copy2
+        try:
+            raised = False
+            try:
+                with repo_sandbox(src):
+                    pass
+            except (shutil.Error, PermissionError):
+                raised = True
+            assert raised, "소멸 아닌 오류가 조용히 삼켜졌다"
+        finally:
+            shutil.copy2 = orig_copy2
+
+
 def main() -> int:
     test_funcs = [
         test_resolve_jobs_contract,
@@ -205,6 +257,7 @@ def main() -> int:
         test_parallel_actually_overlaps,
         test_serial_and_parallel_agree,
         test_quiet_runs_after_parallel,
+        test_sandbox_copy_tolerates_vanished_files,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

@@ -579,21 +579,22 @@ def _eval_performance_baseline(project_root: Path, *, state: dict[str, Any] | No
     # PERF-WF-04: Audit Log Append Latency (≤ 10ms avg)
     try:
         from workflow_kit.common.contracts.stage_gate import append_audit_log
-        # 100회 호출 시 평균 latency
+        # 100회 호출 시 평균 latency. 벤치마크 파일은 temp 에 쓴다 — PERF-WF-05 와
+        # 같은 이유 (살아있는 저장소에 임시 파일이 명멸하면 병렬 실행/사본 복사와
+        # race 하고, 도중에 죽으면 쓰레기가 남는다).
         latencies = []
         dummy = _dummy_completion()
-        for _ in range(100):
-            start = time.time()
-            try:
-                # append_audit_log(audit_path, completion) — original had args swapped
-                # (real bug fix alongside v0.8.14 mypy strict 10단계).
-                append_audit_log(
-                    test_audit_path := project_root / "tmp_audit_perf.log",
-                    dummy,
-                )
-            except (TypeError, OSError):
-                pass
-            latencies.append((time.time() - start) * 1000)
+        with tempfile.TemporaryDirectory(prefix="audit-perf-") as perf_tmp:
+            test_audit_path = Path(perf_tmp) / "tmp_audit_perf.log"
+            for _ in range(100):
+                start = time.time()
+                try:
+                    # append_audit_log(audit_path, completion) — original had args swapped
+                    # (real bug fix alongside v0.8.14 mypy strict 10단계).
+                    append_audit_log(test_audit_path, dummy)
+                except (TypeError, OSError):
+                    pass
+                latencies.append((time.time() - start) * 1000)
         avg_latency = sum(latencies) / len(latencies) if latencies else 0
         results.append(RuleResult(
             rule_id="PERF-WF-04",
@@ -601,9 +602,6 @@ def _eval_performance_baseline(project_root: Path, *, state: dict[str, Any] | No
             status="compliant" if avg_latency <= 10 else "advisory",
             notes=f"avg latency: {avg_latency:.2f}ms (need ≤ 10ms)",
         ))
-        # cleanup
-        if (project_root / "tmp_audit_perf.log").exists():
-            (project_root / "tmp_audit_perf.log").unlink()
     except ImportError:
         results.append(RuleResult("PERF-WF-04", "Audit Log Append Latency", "not_applicable"))
 

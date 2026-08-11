@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**저장소 리팩터링 사이클** — 후보 1·2 완료 (TASK-2026-08-11-main-001 mypy strict 부분집합 8개 제거 smoke 268→260, TASK-003 아카이브 185파일 정리).",
-    "current_axis": "**저장소 리팩터링** (2026-08-10 3차 세션 조사 §7 기반). 다음 후보: check_cache_* 통합 / release_pipeline.py 분할 / presentations 바이너리.",
+    "current_baseline": "**저장소 리팩터링 사이클** — 후보 1·2·3 완료 (TASK-2026-08-11-main-001 mypy 부분집합 8개 제거, TASK-003 아카이브 185파일 정리, TASK-004 check_cache 13→1 통합). smoke 268→248.",
+    "current_axis": "**저장소 리팩터링** (2026-08-10 3차 세션 조사 §7 기반). 다음 후보: release_pipeline.py 분할 (위험도 높음, 단독 task) / presentations 바이너리 5.2MB.",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-004 — check_cache_* 13개를 1개로 통합 (31 case 보존, smoke 260→248)",
       "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)",
       "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (smoke 268→260)",
       "TASK-2026-08-10-main-019 — 원본 저장소에 `--apply` 하던 검사 4건을 사본으로",
@@ -41,18 +42,18 @@
       "TASK-2026-08-10-main-016 — smoke slash job 15연속 red 해소 (검사가 살아있는 브랜치 상태에 의존)",
       "TASK-2026-08-10-main-015 — v1.1.6-beta 발행 (cmd_release 3번째 실전)",
       "TASK-2026-08-10-main-014 — ADR-006 W-4: memory_index 지표 재정의 (3-tuple)",
-      "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)",
-      "TASK-2026-08-10-main-012 — ADR-006 W-2: memory_index 질의 다양화"
+      "TASK-2026-08-10-main-013 — ADR-006 W-3: entry 간 링크 (expansion 이 사는 전제)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-004 — check_cache_* 13개를 1개로 통합 (31 case 보존, smoke 260→248)",
       "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)",
       "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (smoke 268→260)",
       "TASK-2026-08-10-main-019 — 원본 저장소에 `--apply` 하던 검사 4건을 사본으로",

@@ -10,10 +10,11 @@
 ## 1. 현재 작업 요약
 
 - 현재 기준선: **저장소 리팩터링 사이클** (2026-08-11). 3차 세션 조사(§7)의
-  후보 1·2 완료 — `check_mypy_strict_v0_11_3~10` 8개 제거 (TASK-2026-08-11-main-001,
-  smoke **268→260**, 파생 수치 3문서 동기) + **아카이브 185파일 정리**
-  (TASK-003, `archived/gemini` + `archive/2026-07-22`, wiki 참조 1건 +
-  freeze 최소 세트 6건 보존, README stale 링크 5개 교정).
+  후보 1·2·3 완료 — `check_mypy_strict_v0_11_3~10` 8개 제거
+  (TASK-2026-08-11-main-001) + **아카이브 185파일 정리** (TASK-003, wiki 참조
+  1건 + freeze 최소 세트 6건 보존, README stale 링크 5개 교정) +
+  **`check_cache_*` 13개 → 1개 통합** (TASK-004, 31 case verbatim 보존).
+  smoke **268→248**, 파생 수치 3문서는 매번 동기 (대조 검사 3종이 강제).
   부산물로 **amend Guard 2 의 staged-삭제 fatal** 결함 발견 →
   TASK-2026-08-11-main-002 (planned). 남은 리팩터링 후보는 §5.
 - 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
@@ -58,6 +59,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-004 **check_cache_* 13개 → check_cache.py 1개 통합** — test 본문 verbatim 보존 (31 case, 버전 이력이 담긴 함수명 유지), 변경은 로더 보일러플레이트 공용화뿐 (`_load` bare 등록 / `_load_wk` package 등록 — 로드 의미론이 달라 2계보를 하나로 합치지 않음). 충돌 상수 5건은 byte-identical 로드라 최초 정의로 dedupe (본문 수정 0). 31/31 PASS, smoke 260→248, 파생 수치 3문서 동기.
 - TASK-2026-08-11-main-003 **ai-workflow 아카이브 정리** — `archived/gemini` (59) + `archive/2026-07-22` 트리 제거, 총 185파일 (git 이력 보존). 보존 7건: wiki topic 7페이지가 `last_ingested_from` 으로 참조하는 `main/session_analysis_2026-07-09.md` (V-R9) + **freeze 스냅샷 최소 세트 6건** (`.frozen` + SHARED 4종 + `main/state.json`) — `check_memory_freeze_lint` V-R8/V-R10 이 *최신* archive 에 요구, 전량 검사가 잡아 복원. 참조 대조만으로는 **디렉터리 형태 계약**을 못 본다. README stale 링크 5개 (문안 active / 타깃 gemini 아카이브) 를 active/main 실경로로 교정. `check_wiki_score` 55.2→47.2s. `archived/codex`·`main-legacy`·`archive/2026-06-12*` (35파일) 는 조사 문서 밖이라 유보.
 - TASK-2026-08-11-main-001 **check_mypy_strict_v0_11_3~10 8개 제거** — 릴리스별 2파일 부분집합 재측정은 FULL mypy strict (129 파일) + `mypy-strict` CI 전체 검사 아래서 정보 0. `ci_v0_11_11` / `release_gate_v0_11_12` 는 전체-범위 계약이라 보존. smoke 268→260, 파생 수치 3문서 동기 (CODE_INDEX / INSTALLATION / v1.1.6 노트 누적 줄 — 대조 검사 3종이 전부 잡아냄). **부산물**: staged 삭제 상태에서 amend Guard 2 (`release_pipeline.py:1030`) 가 `git add` pathspec fatal → TASK-2026-08-11-main-002 (planned).
 - TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
@@ -67,7 +69,6 @@
 - TASK-2026-08-10-main-015 **v1.1.6-beta 발행** — `cmd_release` 3번째 실전 완주 (bump → 파생물 선재생성 10검사 사전 green → note → dist → dry-run pre_check 5/5 → push → apply → verify). tag `v1.1.6-beta` (2026-08-10T11:30:53Z, whl+sdist). 범위 TASK-007~014, smoke 261→266 (신규 5). post-apply 잔여 4파일 — v1.1.5 와 동일, 선재생성 절차 재현 확인. dirty 가드가 미커밋 task 등록을 정확히 잡음 (가드 실전 검증 1회 추가).
 - TASK-2026-08-10-main-014 **ADR-006 W-4 지표 재정의** — telemetry `selected_ids` additive + `summarize_telemetry` 3-tuple (query_diversity / entries_new_30d / distinct_entries_retrieved, **`*_measurable` 분모로 미측정≠0**) + Panel 8 `utilization_3tuple` north-star 교체 (hit_rate 는 은퇴 대신 보조 강등). measurable 판정은 값 비어있음이 아니라 **필드 존재** — miss(0건 조회)도 측정이다 (구현 중 이 함정을 실제로 밟고 고침). 첫 실측 = 정직한 저점 (1/8 · 1 · 0/1). `check_utilization_3tuple` 9/9, 회귀 sweep 9종 green, smoke 266. **W-1~W-4 완결**.
 - TASK-2026-08-10-main-013 **ADR-006 W-3 entry 간 링크** — `related_ids` additive (legacy stem 규약 하위호환 유지) + expansion 추적 + dangling/self validation ("태어난 적 없는 링크" 검출) + W-1 skeleton 프리필 (신규 entry 가 링크를 갖고 태어남) + merge union. 실물 링크 (회고 001 ↔ ADR-005 결정 002) 로 **33일 만의 expansion 첫 발동** — `[retrospective]`/`[memora]` 양방향 cue 1 + exp 1. `check_entry_links` 9/9 (되주입 포함), smoke 265.
-- TASK-2026-08-10-main-012 **ADR-006 W-2 질의 다양화** — `derive_context_query_tokens` (state.json 축 + 최근 done 제목 → token 유도, 실패 시 skill 별 trio fallback + **출처 보고**) 를 3 skill 공용으로, telemetry 에 `query_tokens`/`query_source` additive (구 라인 하위호환). 실사: 컨텍스트 8 token + **정직한 miss** (cue 0 — index 가 최근 한 달을 모른다는 신호) — 그 첫 miss 가 33일간 hit_rate=1.0 뒤에 숨어 있던 **패널 간 반올림 불일치** 를 드러내 round-at-source 로 통일. 변하지 않는 지표는 자기 소비자의 결함도 숨긴다. `check_context_query_tokens` 8/8, smoke 264.
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -102,8 +103,8 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   (TASK-2026-08-11-main-001, smoke 268→260).
 - ~~`ai-workflow` 아카이브 정리~~ — ✅ **완료** (TASK-2026-08-11-main-003,
   185파일 제거, wiki 참조 1건 + freeze 최소 세트 6건 보존, README 링크 교정).
-- **`check_cache_*` 13개 통합** — 각 1~4 케이스, 65~195줄. 영역이 같은데 잘게 쪼개져
-  subprocess 기동만 13번이다.
+- ~~`check_cache_*` 13개 통합~~ — ✅ **완료** (TASK-2026-08-11-main-004,
+  31 case verbatim 보존, smoke 260→248).
 - **`release_pipeline.py` 3897줄 분할** (위험도 높음 — 단독 task 로). 이어서
   `dashboard_data.py` 2488줄, `workflow_kit_cli.py` 2095줄.
 - **`docs/presentations/*.pdf|pptx` 5.2MB** — 추적 용량의 대부분인 바이너리.

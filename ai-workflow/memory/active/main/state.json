@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**저장소 리팩터링 사이클 + 후속 완결** (TASK-2026-08-11-main-001~010) — 조사 후보 전량 (mypy 8개 / 아카이브 185파일 / check_cache 13→1 / release_pipeline 3908→3174 / presentations 5.3MB / dashboard_data 2488→1526) + 결함 수정 4건 (TASK-002·005·006·008). smoke 268→248, CI green.",
-    "current_axis": "리팩터링 후속 완료: dashboard_data.py 분할 (TASK-010, 2488→1526). 남은 후보: workflow_kit_cli.py 2095줄 분할 (분석 지도 먼저) / branch protection / mooneye 브랜치 / darwin homelab 검증.",
+    "current_baseline": "**저장소 리팩터링 사이클 + 후속 완결** (TASK-2026-08-11-main-001~011) — 조사 후보 전량 + 대형 파일 3건 분할 (release_pipeline / dashboard_data / workflow_kit_cli, 누적 −3,208줄) + 결함 수정 4건. smoke 268→248, CI green.",
+    "current_axis": "대형 파일 분할 완결 (3/3). 남은 후보: branch protection (소유자 결정) / mooneye 브랜치 / darwin homelab 검증 / transient pyproject writer (§6 리스크).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-011 — workflow_kit_cli.py 안전 부분 분할 (2095→583, 모듈 5개, CLI 53/53)",
       "TASK-2026-08-11-main-010 — dashboard_data.py 안전 부분 분할 (2488→1526, 모듈 3개, mypy strict clean)",
       "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 제거 (5.3MB, 소스 보존)",
       "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)",
@@ -41,18 +42,18 @@
       "TASK-2026-08-11-main-002 — amend Guard 2 staged-삭제 fatal 수정 (needs_add_only 선별 + 되주입 case 10)",
       "TASK-2026-08-11-main-005 — smoke CI red 해소 (version_flag 가 phase3 의 dist 오염에 우연히 의존)",
       "TASK-2026-08-11-main-004 — check_cache_* 13개를 1개로 통합 (31 case 보존, smoke 260→248)",
-      "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)",
-      "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (smoke 268→260)"
+      "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 10,
+    "task_count": 11,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-011 — workflow_kit_cli.py 안전 부분 분할 (2095→583, 모듈 5개, CLI 53/53)",
       "TASK-2026-08-11-main-010 — dashboard_data.py 안전 부분 분할 (2488→1526, 모듈 3개, mypy strict clean)",
       "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 제거 (5.3MB, 소스 보존)",
       "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)",

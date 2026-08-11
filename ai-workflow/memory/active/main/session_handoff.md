@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-001~011 done, 후속 TASK-012 mooneye 삭제·TASK-013 transient writer 감시 도구화 done / TASK-014 planned)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-001~013 done, TASK-014 릴리스 노트 누적 표기 **미삽입 확정** 으로 close — 2026-08-11 backlog 14건 전부 종결)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -34,7 +34,7 @@
   `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
   (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
 - 현재 주 작업 축: **대형 파일 분할 완결 (3/3)** — release_pipeline (TASK-007) + dashboard_data (TASK-010) + workflow_kit_cli (TASK-011, 2095→583 + 모듈 5개). 누적 −3,208줄, 전부 verbatim 이동·테스트 무수정. 남은 후보는 소유자 결정 항목들 (§5).
-- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**.
+- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정** — 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -61,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
 - TASK-2026-08-11-main-011 **workflow_kit_cli.py 안전 부분 분할** — 2095→**583줄** (−1512) + 모듈 5개 (`cli_registry` 48 / cache 619 / memory 618 / release 262 / okf 216). 디스패처가 argparse 가 아니라 **`@register` 레지스트리**라 `cli_registry.py` 선행 분리가 핵심 처방 — 신규 모듈이 registry 만 import 해 순환 0 이고, `check_workflow_kit_cli` 의 최상위-이름 재-exec 방식과도 양립 (COMMANDS 가 캐시된 registry 에 산다). SOURCE-BOUND 2핸들러 (`cmd_release_create`/`cmd_release_status`) 잔류, 신규 import 는 tool 등록 호출보다 위 (ALREADY_REGISTERED 순서), `python -m`·`[project.scripts] wk` 계약 보존. mypy strict 137파일 0 오류, CLI **53/53** · dispatcher **10/10** · entry points 32종 · release 5종 green, 테스트 수정 0.
 - TASK-2026-08-11-main-010 **dashboard_data.py 안전 부분 분할** — 2488→**1526줄** (−962) + 모듈 3개 (HTML 렌더러 515 / MD 렌더러 283 / workspace-roots 헬퍼 287). 분석 지도: 소스-바인딩은 `check_convention_single_source` 의 `DRIFT_LEDGER_RELPATH` **정의 잔류** 1건뿐, monkeypatch 0 — release_pipeline (25검사 바인딩) 보다 자유. package 라 명시 from-import 재수출 + `__all__` 확장 (underscore 16개 — mypy `no_implicit_reexport` + ruff F401 동시 충족), `_render_panel_1` 의 `DRIFT_LEDGER_RELPATH` 는 function-level import 로 순환 회피. **mypy strict 132파일 0 오류** (CI 게이트), 관련 검사 12종 green, 테스트 수정 0, verbatim 이동 byte 대조.
 - TASK-2026-08-11-main-009 **docs/presentations 파생 바이너리 제거** — `ai-agent-onboarding.pdf` (5.2MB, 트리 추적 용량 대부분) + `.pptx` (134KB) 제거, 소스 3건 (`.html` deck + design md + intro html) 보존. PDF 는 HTML 에서 Chrome headless 로 재생성 가능 (TASK-2026-08-06-main-004 기록 확인). 참조는 과거 task 기록뿐, git 이력 보존 (TASK-003 처방).

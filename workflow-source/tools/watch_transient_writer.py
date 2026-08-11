@@ -217,6 +217,12 @@ def watch(target: Path, target_source: str, log_dir: Path, interval_s: float,
         interval_s=interval_s, started_at=_now_human(),
     )
     prev = _read_state(target)
+    # baseline 을 뜬 "뒤"에 ready 마커를 남긴다 — 감시가 실제로 무장된 시점의
+    # 증거이자, 호출자(검사 포함)가 sleep 추측 대신 기다릴 수 있는 handshake.
+    (log_dir / "watcher_ready.json").write_text(
+        json.dumps({"started_at": result.started_at,
+                    "baseline_present": prev is not None}, ensure_ascii=False),
+        encoding="utf-8")
     deadline = time.monotonic() + duration_s if duration_s > 0 else None
     seq = 0
 

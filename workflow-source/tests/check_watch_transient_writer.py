@@ -38,7 +38,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOL_PATH = REPO_ROOT / "workflow-source" / "tools" / "watch_transient_writer.py"
 
-START_GRACE_S = 0.5   # watcher 기동 대기
+READY_TIMEOUT_S = 10  # watcher 기동 신호 대기 상한
 SETTLE_S = 0.4        # 변화 사이 간격 (interval 0.02 의 20배 — 폴링 누락 여지 없음)
 
 
@@ -49,7 +49,16 @@ def _spawn_watcher(target: Path, log_dir: Path) -> subprocess.Popen[str]:
          "--interval", "0.02", "--duration", "30"],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
     )
-    time.sleep(START_GRACE_S)
+    # 고정 sleep 은 handshake 가 아니다 — CI 부하에서 기동이 늦으면 baseline 이
+    # 첫 주입 "뒤"에 잡혀 변경 2건이 1건으로 접힌다 (2026-08-11 CI 실측 flake).
+    # 도구가 baseline 확보 후 남기는 ready 마커를 기다린다.
+    ready = log_dir / "watcher_ready.json"
+    wait_deadline = time.monotonic() + READY_TIMEOUT_S
+    while not ready.is_file():
+        assert proc.poll() is None, \
+            f"watcher 조기 종료: rc={proc.returncode} err={proc.stderr.read() if proc.stderr else ''}"
+        assert time.monotonic() < wait_deadline, f"watcher 기동 신호 {READY_TIMEOUT_S}s 대기 초과"
+        time.sleep(0.02)
     return proc
 
 

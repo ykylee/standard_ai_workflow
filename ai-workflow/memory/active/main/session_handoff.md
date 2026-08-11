@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (세션 종료 — backlog 14건 전부 종결: TASK-014 릴리스 노트 누적 표기 **미삽입 확정** + branch protection **보류 결정** (둘 다 소유자 결정). 남은 후보 축 2건은 이 호스트에서 즉시 진행 불가 성격 — §1 참조)
+- 최종 수정일: 2026-08-11 (세션 종료 — TASK-016 기술보고서 논문 양식 문서 완료 (검토 2회전 정정 8건 포함, docs/reports/). 잔여 planned 1건: TASK-015 로컬 병렬 TIMEOUT flake. 소유자 결정 2건 기록: TASK-014 미삽입 / branch protection 보류)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -61,7 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`, 덱→보고서 매핑 + 실명 승격 목록) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 구조 8장 + 참고문헌, 단일 파일, A4 인쇄 12p). 사례 3건 실명 승격 (A: task ID 정규식 4곳 복제 / B: state.json writer-reader 분리 / C: 미분류 fallback done 승격), 수치는 dashboard·태그 트리 실측만. 문서 검사 green + Chrome 렌더/인쇄 검증. placeholder (작성자/문서번호) 는 사용자 기입.
+- TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 2회전에서 정정 8건** — 기간 "14개월" 날조 → 4개월 (최초 커밋 2026-04-18, 사용자 지적) / "smoke 24→249" → 199→249 / CLI 65+ → 68 / §8 조항 명칭 / 표3 전재 누락 / 되주입 과장 완화 등. 교훈: **산문 속 수치가 날조의 주 경로** (표 수치는 실측 인용, 서술 수치가 검증을 비껴감). placeholder (작성자/문서번호) 는 사용자 기입. 최종 e5ba939, CI 4 워크플로 green.
 - TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
 - TASK-2026-08-11-main-011 **workflow_kit_cli.py 안전 부분 분할** — 2095→**583줄** (−1512) + 모듈 5개 (`cli_registry` 48 / cache 619 / memory 618 / release 262 / okf 216). 디스패처가 argparse 가 아니라 **`@register` 레지스트리**라 `cli_registry.py` 선행 분리가 핵심 처방 — 신규 모듈이 registry 만 import 해 순환 0 이고, `check_workflow_kit_cli` 의 최상위-이름 재-exec 방식과도 양립 (COMMANDS 가 캐시된 registry 에 산다). SOURCE-BOUND 2핸들러 (`cmd_release_create`/`cmd_release_status`) 잔류, 신규 import 는 tool 등록 호출보다 위 (ALREADY_REGISTERED 순서), `python -m`·`[project.scripts] wk` 계약 보존. mypy strict 137파일 0 오류, CLI **53/53** · dispatcher **10/10** · entry points 32종 · release 5종 green, 테스트 수정 0.
 - TASK-2026-08-11-main-010 **dashboard_data.py 안전 부분 분할** — 2488→**1526줄** (−962) + 모듈 3개 (HTML 렌더러 515 / MD 렌더러 283 / workspace-roots 헬퍼 287). 분석 지도: 소스-바인딩은 `check_convention_single_source` 의 `DRIFT_LEDGER_RELPATH` **정의 잔류** 1건뿐, monkeypatch 0 — release_pipeline (25검사 바인딩) 보다 자유. package 라 명시 from-import 재수출 + `__all__` 확장 (underscore 16개 — mypy `no_implicit_reexport` + ruff F401 동시 충족), `_render_panel_1` 의 `DRIFT_LEDGER_RELPATH` 는 function-level import 로 순환 회피. **mypy strict 132파일 0 오류** (CI 게이트), 관련 검사 12종 green, 테스트 수정 0, verbatim 이동 byte 대조.

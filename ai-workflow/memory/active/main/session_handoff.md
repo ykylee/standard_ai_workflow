@@ -34,7 +34,7 @@
   `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
   (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
 - 현재 주 작업 축: **대형 파일 분할 완결 (3/3)** — release_pipeline (TASK-007) + dashboard_data (TASK-010) + workflow_kit_cli (TASK-011, 2095→583 + 모듈 5개). 누적 −3,208줄, 전부 verbatim 이동·테스트 무수정. 남은 후보는 소유자 결정 항목들 (§5).
-- 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정** — 후보 축에서 제거.)
+- 다음 후보 축: darwin homelab 에서 mavis e2e + federation cross-host 재확인 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거. 소유자가 다시 원하면 `wk check-branch-protection` 으로 현황 판정부터.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -111,7 +111,9 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   3908→3174 + 모듈 4개, 분석 지도 방식). `dashboard_data.py` ✅ (TASK-010, 2488→1526),
   `workflow_kit_cli.py` ✅ (TASK-011, 2095→583) — **대형 파일 분할 완결**.
 - ~~`docs/presentations/*.pdf|pptx` 5.2MB~~ — ✅ **완료** (TASK-2026-08-11-main-009, 파생 바이너리 제거·소스 보존).
-- **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측).
+- ~~branch protection~~ — **보류 결정** (2026-08-11, 소유자). `main` 미보호 (404 실측)
+  상태를 인지한 채 일단 켜지 않기로 함. 재검토 시 `wk check-branch-protection` 으로
+  현황 판정부터 (도구는 판정만 한다 — v1.1.2 §2.3).
 - ~~`mooneye` 브랜치 처리~~ — ✅ **완료** (TASK-2026-08-11-main-012, `origin/mooneye`
   삭제. 고유 커밋 0 — 172 커밋 전부 main 에 존재, `active/mooneye/` 부재로
   memory 아카이브 해당 없음).

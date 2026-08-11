@@ -105,11 +105,18 @@ def test_case_2_stable_meets_criteria() -> None:
         problems: list[str] = []
 
         run_script = skill_dir / "scripts" / f"run_{name.replace('-', '_')}.py"
+        # v1.1.7+ (TASK-2026-08-11-main-021): 일부 skill 은 구현이 `tools/` 로 올라갔고
+        # `skills/.../run_*.py` 에는 wrapper 만 남았다. 판정 대상은 **구현체**다 —
+        # 기준의 뜻은 "이 skill 이 파라미터를 받는 CLI 를 갖는가" 이지 "특정 파일에
+        # argparse 리터럴이 있는가" 가 아니다. 두 자리 중 하나라도 충족하면 통과한다.
+        impl_candidates = [run_script, SOURCE_ROOT / "tools" / f"{name.replace('-', '_')}.py"]
         if not run_script.exists():
             problems.append(f"실행 스크립트 부재({run_script.name})")
         else:
-            src = run_script.read_text(encoding="utf-8", errors="ignore")
-            if "add_argument" not in src:
+            if not any(
+                p.exists() and "add_argument" in p.read_text(encoding="utf-8", errors="ignore")
+                for p in impl_candidates
+            ):
                 problems.append("argparse add_argument 부재")
             # error_code 최소 3종은 §3.1 의 조건이지만 **정적으로 검증하지 않는다.**
             # 선언 위치가 통일돼 있지 않기 때문이다: run script 의 inline literal,

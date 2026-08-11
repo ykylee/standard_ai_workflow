@@ -35,7 +35,8 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-08-11-main-018 — state.json 을 생성물로 전환 (정본 선언 + 종료 절차 + drift 검사)
+- TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다 (렌더러 32개 중 26개 결함, 정본 블록 신설로 처방)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -43,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-021 **`wk` 에 session-start / backlog-update / doc-sync 노출** — skill 구현 3개(1,561줄)를 배포되는 `tools/` 로 올려 **소비자에게 없던 실행 경로를 만들었다**. `skills/` 는 pip 패키지에도 bootstrap 번들에도 안 들어가서, `pip install` 을 해도 이 기능을 부를 방법이 없었고 그래서 모든 하네스에서 에이전트가 메모리 문서를 손으로 썼다 (`workflow_writes.py` 의 계약이 한 번도 적용되지 않은 이유). 원 경로엔 wrapper 만, **wk 68→71 명령**. 이동이 검사 3종을 깼고 전량 2축이 잡았다 — **참조 지도를 `read_text` 만으로 뜬 것이 화근**이었다 (모듈 로드·소스 문자열 스캔이 같은 결합). 검증: 정숙 저장소 2축 249/249.
 - TASK-2026-08-11-main-017 **darwin homelab 검증** — macOS 에서 전량 2축 1패스 → **245/249, 4 FAIL 발견** (4차의 "249/249" 는 Linux CI 환경). 4건이 **전부 같은 뿌리**: macOS 에서 `/var`·`/tmp` 가 `/private/...` 로 가는 symlink 라, **정규 경로를 방출하는 production 과 `mktemp` raw 경로를 string 비교한 검사**가 갈렸다. production 무수정, 검사 fixture 4곳을 `.resolve()` 로 통일 (`branch_resolver_agreement` 5/5 · `branch_scoped_memory` 10/10 · `git_conflict_resolver_v0_11_24` 8/8 · `workflow_state_refresh_hint` PASS). `git_conflict_resolver` 는 한 응답 안에 `conflicts[].file_path`(resolve) 와 `source_context.files`(raw) 가 **공존**해 case 4 만 실패했다. **기능 회귀가 아니라 검사의 플랫폼 이식성 결함이고, Linux CI 에서는 영영 안 드러난다** — SDK 매트릭스·브랜치 매트릭스와 같은 계열의 "로컬에 없던 축". 재검증 중 별개 FAIL 2건 (이 task 파일 frontmatter 부재 + handoff 미등재 `task_status_mismatch`) 은 1챕터가 남긴 메모리 문서 드리프트로, **task 를 열 때 3문서를 동시에 맞추지 않으면 그 자체가 red** 라는 것을 검사가 잡아냈다.
 - TASK-2026-08-11-main-015 **로컬 병렬 TIMEOUT flake 해소** — `CHECK_TIMEOUT_S` 파일 안 선언 신설 (runner 가 AST 로 읽어 `--timeout` 과 **max** — 상한을 늘릴 수만 있음, `REQUIRES_QUIET_REPO` 와 같은 패턴). 부하 실측 ≥40s 위험군 6검사 (wiki_score 57s / release_status·auto_bump·summary 53~55s / release_pipeline_lib 44s / mypy_config_actually_loaded 43s) 에 150s 선언. `check_parallel_smoke` case 10 (되주입 양방향 + decoy 불인정 + max 의미론) + `--tests-dir` 외부 경로 ValueError 수정. **전량 2축 ×2회 = 4패스 249/249, TIMEOUT 0.** CLAUDE.md 에 규약 문서화 (solo ~25s+ 는 선언).
 - TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 4회전** — ①내용 (실명 오류·전재 누락), ②수치 전수 (기간 "14개월" 날조 → 4개월, "smoke 24→249" → 199→249, CLI 65+ → 68 등 정정 8건 — 교훈: **산문 속 수치가 날조의 주 경로**), ③문체·어휘 (비일상 어휘 12종 교체/풀이, 3원리 일상어 표기, 폭 920px·부제 축약), ④**학습회 독립화** (사용자 결정 — 보고서에서 학습회·발표 서술 전부 제거, 참고문헌의 덱 항목 삭제. 계획 문서는 이력이므로 유지). placeholder (작성자/문서번호) 는 사용자 기입. 부수: 검증 중 CI flake 발견 → watch_transient_writer ready handshake 수정 (708eb94).
@@ -52,7 +54,6 @@
 - TASK-2026-08-11-main-009 **docs/presentations 파생 바이너리 제거** — `ai-agent-onboarding.pdf` (5.2MB, 트리 추적 용량 대부분) + `.pptx` (134KB) 제거, 소스 3건 (`.html` deck + design md + intro html) 보존. PDF 는 HTML 에서 Chrome headless 로 재생성 가능 (TASK-2026-08-06-main-004 기록 확인). 참조는 과거 task 기록뿐, git 이력 보존 (TASK-003 처방).
 - TASK-2026-08-11-main-008 **원본-무결성 관찰 검사 3건 정숙화** — TASK-007 검증에서 `version_auto_sync` 가 "원본을 건드렸다: pyproject.toml" assert 로 1회 flake. 단독 green + 재현 시도 (표적 3회 + 전량 2회 + md5 watcher) 전부 미재현, 용의자 2건 (`auto_bump` 검사 / drift case 7 auto-bump dry-run) 은 코드·실측 무혐의. 같은 byte-대조 assert 를 가진 3검사 (`version_auto_sync`/`self_recovering`/`bidir_link`) 는 **전역 관찰**이므로 `REQUIRES_QUIET_REPO` 선언 대상이었다 (TASK-018 §2.53 규칙의 적용 누락). 정숙 3→6. **잔여**: transient pyproject writer 정체 미상 (§6).
 - TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
-- TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

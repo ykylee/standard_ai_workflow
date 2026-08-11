@@ -28,11 +28,15 @@
   },
   "session": {
     "current_baseline": "**2026-08-11 backlog 17건 전부 종결** — 리팩터링 사이클 (TASK-001~013, 누적 −3,208줄, smoke 268→249) + 4차 세션 (기술보고서 논문 양식 문서 docs/reports/ + TASK-015 CHECK_TIMEOUT_S 선언 신설 + watcher ready handshake + 소유자 결정 2건) + 5차 세션 (TASK-017 darwin homelab 검증 — macOS 회귀 4건 발견 후 검사 이식성 fix).",
-    "current_axis": "(없음 — 2026-08-11 backlog 17건 전부 done). 다음 후보: federation self-host add → cross-host federation (두 번째 호스트 = 사용자 결정). memory_index 3-tuple 지표 추이 관찰 = 보류.",
-    "current_focus": "(없음 — planned/in_progress/blocked 0건. darwin homelab 검증 완료로 macOS 축이 로컬 재현 수단에 추가됨)",
-    "in_progress_items": [],
+    "current_axis": "TASK-022 (하네스 파생본 통일) 착수 대기 — 선행 TASK-021 완료로 가리킬 대상(wk 3명령) 확보. TASK-018(state.json 생성물) 은 022 뒤, TASK-019(전량 검사 배타 락) planned.",
+    "current_focus": "아키텍처: 정본 하나(규약=global_workflow_standard.md / 구현=workflow_kit) + 노출 창구 하나(wk CLI, 71명령) + 하네스별 파생본. TASK-021 이 창구를 만들었고 TASK-022 가 파생본을 통일한다.",
+    "in_progress_items": [
+      "TASK-2026-08-11-main-018",
+      "TASK-2026-08-11-main-020"
+    ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-021 — wk 에 session-start/backlog-update/doc-sync 노출: skill 구현 3개(1,561줄)를 배포되는 tools/ 로 올려 소비자에게 없던 실행 경로를 만들었다 (skills/ 는 pip 패키지에도 bootstrap 번들에도 없어 pip install 해도 부를 방법이 없었다). 원 경로엔 wrapper, wk 68→71 명령. 이동이 검사 3종을 깼고 전량 2축이 잡았다 — 참조 지도를 read_text 만으로 뜬 것이 화근 (모듈 로드·소스 문자열 스캔이 같은 결합)",
       "TASK-2026-08-11-main-017 — darwin homelab (macOS) 검증: 전량 2축 1패스에서 4 FAIL 발견 → 4건 전부 같은 뿌리 (macOS 에서 /var·/tmp 가 /private/... symlink, 정규 경로를 방출하는 production 과 mktemp raw 경로를 string 비교한 검사가 갈림). production 무수정, 검사 fixture 4곳 .resolve() 통일. 기능 회귀가 아니라 검사의 플랫폼 이식성 결함 — Linux CI 에서는 영영 안 드러난다",
       "TASK-2026-08-11-main-015 — 로컬 병렬 TIMEOUT flake 해소 (CHECK_TIMEOUT_S 선언 신설 + 위험군 6검사 150s + parallel_smoke case 10 양방향, 전량 2축 ×2회 TIMEOUT 0)",
       "TASK-2026-08-11-main-016 — 학습회 자료 → 사내 기술보고서 논문 양식 문서 (계획 md + 보고서 html 12p, 실명 승격, 사후 검토 4회전 — 수치 날조 정정 + 어휘 정리 + 학습회 독립화)",
@@ -41,18 +45,21 @@
       "TASK-2026-08-11-main-012 — origin/mooneye 삭제 (고유 커밋 0, active/mooneye 부재로 아카이브 해당 없음)",
       "TASK-2026-08-11-main-011 — workflow_kit_cli.py 안전 부분 분할 (2095→583, 모듈 5개, CLI 53/53)",
       "TASK-2026-08-11-main-010 — dashboard_data.py 안전 부분 분할 (2488→1526, 모듈 3개, mypy strict clean)",
-      "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 제거 (5.3MB, 소스 보존)",
-      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)"
+      "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 제거 (5.3MB, 소스 보존)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 17,
-    "in_progress_items": [],
+    "task_count": 22,
+    "in_progress_items": [
+      "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환",
+      "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다"
+    ],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-021 — wk 에 session-start/backlog-update/doc-sync 노출 (skill 구현 3개 1,561줄을 tools/ 로, wk 68→71)",
       "TASK-2026-08-11-main-017 — darwin homelab (macOS) 검증: 4 FAIL 발견 → 전부 macOS /private symlink 뿌리, 검사 fixture 4곳 .resolve() 통일 (production 무수정)",
       "TASK-2026-08-11-main-015 — 로컬 병렬 TIMEOUT flake 해소 (CHECK_TIMEOUT_S 선언 신설 + 위험군 6검사 150s + parallel_smoke case 10 양방향, 전량 2축 ×2회 TIMEOUT 0)",
       "TASK-2026-08-11-main-016 — 학습회 자료 → 사내 기술보고서 논문 양식 문서 (계획 md + 보고서 html 12p, 실명 승격, 사후 검토 4회전 — 수치 날조 정정 + 어휘 정리 + 학습회 독립화)",

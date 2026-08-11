@@ -105,8 +105,12 @@ def case_2_legacy_fallback() -> bool:
 
 # --- case 3~5: task ID ---
 def _backlog_mod():
-    return _load(SOURCE_ROOT / "skills" / "backlog-update" / "scripts" / "run_backlog_update.py",
-                 "_bu_mod")
+    # v1.1.7+ (TASK-2026-08-11-main-021): 구현이 `tools/backlog_update.py` 로 옮겨졌다.
+    # `skills/.../run_backlog_update.py` 는 이제 `main` 만 재수출하는 wrapper 라
+    # `branch_slug` / `suggest_next_task_id` 같은 내부 심볼이 없다. 검사는 **구현체**를
+    # 본다 — skills/ 는 pip 패키지에도 bootstrap 번들에도 안 들어가서 소비자에게는
+    # 존재하지 않는 경로다 (TASK-020 진단).
+    return _load(SOURCE_ROOT / "tools" / "backlog_update.py", "_bu_mod")
 
 
 def case_3_task_id_no_year_confusion() -> bool:

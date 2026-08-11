@@ -46,6 +46,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "archive-branch-memory": "tools.archive_branch_memory",
     "archive-stale-memory": "tools.archive_stale_memory",
     "audit-root-anchors": "tools.audit_root_anchors",
+    # v1.1.7+ (TASK-2026-08-11-main-021) — doc-sync / session-start 와 한 묶음.
+    "backlog-update": "tools.backlog_update",
     "check-branch-protection": "tools.check_branch_protection",
     "check-packaging": "tools.check_packaging",
     "check-quickstart-stale-links": "tools.check_quickstart_stale_links",
@@ -53,6 +55,9 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "consumer-metrics": "tools.consumer_metrics",
     "create-environment-record-stub": "tools.create_environment_record_stub",
     "detect-scope-drift": "tools.detect_scope_drift",
+    # v1.1.7+ (TASK-2026-08-11-main-021): skills/ 는 배포되지 않아 소비자에게
+    # 실행 경로가 없었다 (TASK-020). 구현을 tools/ 로 올려 wk 로 노출한다.
+    "doc-sync": "tools.doc_sync",
     "emit-wiki-l2-body": "tools.emit_wiki_l2_body",
     "fill-reverse-engineering-artifacts": "tools.fill_reverse_engineering_artifacts",
     "fix-readme-for-release": "tools.fix_readme_for_release",
@@ -69,6 +74,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "score-wiki-maintainability": "tools.score_wiki_maintainability",
     "score-wiki-trend": "tools.score_wiki_trend",
     "seed-workspace-memory": "tools.seed_workspace_memory",
+    # v1.1.7+ (TASK-2026-08-11-main-021) — doc-sync / backlog-update 와 한 묶음.
+    "session-start": "tools.session_start",
     "suggest-memory-entries": "tools.suggest_memory_entries",
     "survey-remote-workspaces": "tools.survey_remote_workspaces",
     "sync-release-hash": "tools.sync_release_hash",

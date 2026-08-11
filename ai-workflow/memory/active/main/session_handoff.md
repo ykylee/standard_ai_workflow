@@ -9,31 +9,19 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **저장소 리팩터링 사이클 완결** (2026-08-11, TASK-001~008).
-  3차 세션 조사(§7) 후보 4건 전부 완료 — mypy strict 부분집합 8개 제거
-  (TASK-001) + **아카이브 185파일 정리** (TASK-003) + **`check_cache_*` 13개
-  → 1개 통합** (TASK-004) + **`release_pipeline.py` 안전 부분 분할**
-  (TASK-007, 3908→3174줄 + 모듈 4개 — 소스-스캔 검사 25종 기준 분석 지도를
-  먼저 만들고 ATTR-ONLY 그룹만 추출, 검사 무수정 21종 green). smoke
-  **268→248**. 도중 결함 수정 4건: **CI smoke red 해소** (TASK-005),
-  **amend Guard 2 staged-삭제 fatal** (TASK-002), **PERF-WF-04 저장소 오염 +
-  sandbox race** (TASK-006), **원본-무결성 관찰 검사 3건 정숙화** (TASK-008).
-  남은 후보는 §5. 상세: [세션 기록](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md).
-- 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
-  `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
-  기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
-  있었다**. TASK-016 이 red 를 껐고 (검사가 살아있는 브랜치 상태에 의존),
-  TASK-017 이 근본을 고쳤다 (`branch_matrix.py` 정본 + `--branch-context=all` 로
-  로컬 재현을 관행화, SDK 매트릭스와 같은 처방). TASK-018 은 병목을 측정으로 좁혀
-  (**CI job 604s 중 smoke 576s**) 병렬화했고 — **CI 실측 576s → 220s**, 전량
-  268/268 — 그 과정에서 `check_source_without_runtime_layer` 가 원본 `ai-workflow/`
-  를 rename 해 숨기던 것(`finally` 는 SIGKILL 에 안 돈다 = 저장소 파괴 위험)을
-  사본 검증으로 교체했다. TASK-019 는 병렬화가 드러낸 사전 결함 — **검사 4건이
-  원본 저장소에 `--apply` 를 돌린 뒤 되돌리고 있었다** (pyproject version →
-  `99.99.99`, README/`__init__` drift, memory_index/wiki, 실빌드 산출물) — 을
-  `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
-  (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
-- 현재 주 작업 축: **대형 파일 분할 완결 (3/3)** — release_pipeline (TASK-007) + dashboard_data (TASK-010) + workflow_kit_cli (TASK-011, 2095→583 + 모듈 5개). 누적 −3,208줄, 전부 verbatim 이동·테스트 무수정. 남은 후보는 소유자 결정 항목들 (§5).
+- 현재 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016).
+  **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html,
+  사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) +
+  **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설,
+  위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake**
+  (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch
+  protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md).
+- 직전 기준선: **저장소 리팩터링 사이클 완결** (TASK-001~013) — 대형 파일
+  3건 분할 (누적 −3,208줄) + 결함 수정 4건 + 아카이브 정리 + check 통합,
+  smoke 268→249. 상세: [리팩터링 세션 기록](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md).
+  그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소):
+  [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
+- 현재 주 작업 축: (없음 — 전부 종결. 다음 후보 축은 아래 참조.)
 - 다음 후보 축: darwin homelab 에서 mavis e2e + federation cross-host 재확인 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거. 소유자가 다시 원하면 `wk check-branch-protection` 으로 현황 판정부터.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)

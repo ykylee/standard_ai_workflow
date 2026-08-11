@@ -4,25 +4,18 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (backlog 16건 전부 종결 — TASK-015 TIMEOUT flake 해소 (`CHECK_TIMEOUT_S` 선언 신설) + TASK-016 기술보고서 (검토 4회전). 소유자 결정 2건 기록: TASK-014 미삽입 / branch protection 보류)
+- 최종 수정일: 2026-08-11 (5차 세션 시작 — TASK-2026-08-11-main-017 1챕터 done: macOS 1패스 245/249, 4 FAIL 발견. 2챕터 4 FAIL fix 진행)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016).
-  **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html,
-  사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) +
-  **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설,
-  위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake**
-  (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch
-  protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md).
-- 직전 기준선: **저장소 리팩터링 사이클 완결** (TASK-001~013) — 대형 파일
-  3건 분할 (누적 −3,208줄) + 결함 수정 4건 + 아카이브 정리 + check 통합,
-  smoke 268→249. 상세: [리팩터링 세션 기록](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md).
-  그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소):
-  [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: (없음 — 전부 종결. 다음 후보 축은 아래 참조.)
-- 다음 후보 축: darwin homelab 에서 mavis e2e + federation cross-host 재확인 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거. 소유자가 다시 원하면 `wk check-branch-protection` 으로 현황 판정부터.)
+- 현재 기준선: **5차 세션 시작** (TASK-2026-08-11-main-017 in_progress). 4차 baseline (16건 종결) 유지, **darwin homelab 검증** 진행.
+  - **1챕터 (done)**: `run_all_checks.py --branch-context=all` 2축 매트릭스 1패스 (4분11초) — **245/249 PASS, 4 FAIL, 0 TIMEOUT**. handoff 4차 "4패스 249/249" 은 Linux CI 환경, macOS 환경의 **회귀 4건 발견** (5차의 1차 기여).
+  - **2챕터 (in_progress)**: 4 FAIL fix — (1)+(2) macOS `/tmp` symlink (단일 fix 가능, `Path.resolve()` 가 `/private/var/folders/...` prefix, 검사 코드는 `/var/folders/...` 와 string 비교) / (3)+(4) 별도 분석.
+  - 부수: `.venv` 미존재 → uv venv 신설 (3.13.13) + `uv pip install -e 'workflow-source/[dev,release,mcp-sdk]'`. mavis 데몬 system-wide 정상. `~/.mavis/bin/mavis` symlink broken = user-level (구 격리) stale, 무시 가능.
+- 직전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
+- 현재 주 작업 축: TASK-2026-08-11-main-017 (darwin homelab 검증) — 1챕터 done, 2챕터 (4 FAIL fix) in_progress.
+- 다음 후보 축: 4 FAIL fix 완료 후 → federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)

@@ -13,6 +13,14 @@ description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에�
 작업 후 영향 받은 문서 후보를 식별하고 `ai-workflow/memory/active/` 의 허브 /
 index 갱신 포인트를 정리.
 
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk doc-sync --help
+```
+
 ## 절차
 
 1. 현재 변경된 file list + 영향 받은 document 후보 식별

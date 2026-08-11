@@ -1,7 +1,7 @@
 """정본 규칙의 **생성된 스냅샷** — 직접 고치지 않는다.
 
 생성: ``python3 -m workflow_kit.common.standard_rules --apply``
-정본: ``core/global_workflow_standard.md`` §1 · §3 · §8
+정본: ``core/global_workflow_standard.md`` §1 · §3 · §8 · §11
 검증: ``tests/check_standard_single_source.py``
 
 wheel 설치처럼 ``core/`` 가 함께 배포되지 않는 환경에서 진입점 렌더링이 규칙을
@@ -30,3 +30,15 @@ TASK_STATES: tuple[str, ...] = (
 )
 
 CLOSE_ORDER: str = '세션 종료는 **memory 갱신 → commit → push** 순서로 진행한다. memory 갱신을 commit 이후 별도 turn 에 분리하지 않는다 (push 시 memory 갱신 내용이 동일 commit 에 포함되도록 협업 정합 보장).'
+
+MEMORY_COMMANDS: tuple[tuple[str, str], ...] = (
+    ('세션 시작 baseline 복원', 'wk session-start'),
+    ('task 등록 / 갱신', 'wk backlog-update'),
+    ('영향 문서 동기화 (advisory)', 'wk doc-sync'),
+)
+
+PARSE_CONTRACT: tuple[str, ...] = (
+    'handoff 의 `in_progress` / `blocked` 목록이 비면 **빈 bullet `-`** 로 둔다. 산문을 쓰면 작업 항목으로 파싱된다.',
+    'handoff 의 최근 완료 목록 항목은 `TASK-` 로 시작하고, 10건을 넘지 않는다.',
+    'backlog task 의 `status` 는 `planned` / `in_progress` / `blocked` / `done` 중 하나다.',
+)

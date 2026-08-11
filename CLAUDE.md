@@ -11,7 +11,8 @@
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
 > 나뉜다. bootstrap 산출물의 기본값은 평평한 `active/` 라, 상태 문서 경로만 실제에 맞춰
-> 조정했다. 규칙 블록(`## 작업 원칙` / `## 세션 종료 순서`)은 손대지 않는다 —
+> 조정했다. 규칙 블록(`## 작업 원칙` / `## 세션 종료 순서` / `## 메모리 갱신 경로`)은
+> 손대지 않는다 —
 > `core/global_workflow_standard.md` 에서 생성되며 `check_standard_single_source.py`
 > 가 정본과의 일치를 강제한다.
 
@@ -52,7 +53,7 @@
 
 ## 작업 원칙
 
-<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 — 이 블록은 직접 고치지 않는다. 표준 문서를 고치고 다시 생성한다. -->
+<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — 이 블록은 직접 고치지 않는다. 표준 문서를 고치고 다시 생성한다. -->
 
 - 새 세션은 항상 현재 상태 요약 문서부터 읽는다.
 - 작업은 시작 전에 목적, 범위, 예상 산출물, 영향 문서를 짧게 브리핑한다.
@@ -68,6 +69,16 @@
 세션 종료는 **memory 갱신 → commit → push** 순서로 진행한다. memory 갱신을 commit 이후 별도 turn 에 분리하지 않는다 (push 시 memory 갱신 내용이 동일 commit 에 포함되도록 협업 정합 보장).
 
 - 종료 전 갱신 대상: `state.json`, `session_handoff.md`, 최신 backlog
+
+## 메모리 갱신 경로
+
+- 세션 시작 baseline 복원: `wk session-start`
+- task 등록 / 갱신: `wk backlog-update`
+- 영향 문서 동기화 (advisory): `wk doc-sync`
+
+- handoff 의 `in_progress` / `blocked` 목록이 비면 **빈 bullet `-`** 로 둔다. 산문을 쓰면 작업 항목으로 파싱된다.
+- handoff 의 최근 완료 목록 항목은 `TASK-` 로 시작하고, 10건을 넘지 않는다.
+- backlog task 의 `status` 는 `planned` / `in_progress` / `blocked` / `done` 중 하나다.
 
 ## 언어와 컨텍스트 원칙
 

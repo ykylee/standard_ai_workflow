@@ -12,6 +12,14 @@ description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlo
 
 오늘 작업 항목을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
 
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk backlog-update --help
+```
+
 ## 절차
 
 1. `ai-workflow/memory/active/<branch>/backlog` 의 인덱스 anchor 확인

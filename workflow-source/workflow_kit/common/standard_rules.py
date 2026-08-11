@@ -71,7 +71,7 @@ STANDARD_RELPATH = Path("core") / "global_workflow_standard.md"
 
 #: 진입점 블록 맨 위에 찍히는 표식. 검사기가 이 문자열로 생성 블록을 찾는다.
 GENERATED_MARKER = (
-    "<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 "
+    "<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 "
     "— 이 블록은 직접 고치지 않는다. 표준 문서를 고치고 다시 생성한다. -->"
 )
 
@@ -81,6 +81,7 @@ DEFAULT_STATE_DOCS: tuple[str, ...] = ("state.json", "session_handoff.md", "최�
 _SECTION_PRINCIPLES = "## 1. 공통 원칙"
 _SECTION_STATES = "## 3. 작업 상태값"
 _SECTION_CLOSE = "## 8. 세션 종료 원칙 및 절차"
+_SECTION_MEMORY = "## 11. 메모리 갱신 경로와 파싱 계약"
 
 
 class StandardParseError(RuntimeError):
@@ -99,11 +100,19 @@ class StandardRules(NamedTuple):
     close_order: str
     """§8 첫 문단 — 세션 종료 순서 원문."""
 
+    memory_commands: tuple[tuple[str, str], ...]
+    """§11.1 표 — (목적, 명령) 쌍. 소비자에게 배포되는 `wk` 명령이 정본이다."""
+
+    parse_contract: tuple[str, ...]
+    """§11.2 bullet — 손으로 쓸 때도 지켜야 하는 파싱 계약."""
+
     def as_dict(self) -> dict[str, object]:
         return {
             "principles": list(self.principles),
             "task_states": list(self.task_states),
             "close_order": self.close_order,
+            "memory_commands": [list(pair) for pair in self.memory_commands],
+            "parse_contract": list(self.parse_contract),
         }
 
 
@@ -152,7 +161,30 @@ def parse_standard(text: str) -> StandardRules:
     if not close_order:
         raise StandardParseError(f"{_SECTION_CLOSE}: 종료 순서 문단을 찾지 못했다")
 
-    return StandardRules(principles=principles, task_states=states, close_order=close_order)
+    memory_body = _section_body(text, _SECTION_MEMORY)
+    memory_commands = tuple(
+        (m.group(1).strip(), m.group(2).strip())
+        for m in re.finditer(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|", memory_body, re.M)
+    )
+    if not memory_commands:
+        raise StandardParseError(f"{_SECTION_MEMORY}: 갱신 명령 표를 찾지 못했다")
+
+    # §11.2 는 `- ` bullet 만 모은다 (표의 행이나 소제목은 제외).
+    parse_contract = tuple(
+        line[2:].strip()
+        for line in memory_body.splitlines()
+        if line.startswith("- ") and line[2:].strip()
+    )
+    if not parse_contract:
+        raise StandardParseError(f"{_SECTION_MEMORY}: 파싱 계약 bullet 을 찾지 못했다")
+
+    return StandardRules(
+        principles=principles,
+        task_states=states,
+        close_order=close_order,
+        memory_commands=memory_commands,
+        parse_contract=parse_contract,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +226,8 @@ def load_standard_rules(source_root: Path | None = None) -> StandardRules:
         principles=snapshot.PRINCIPLES,
         task_states=snapshot.TASK_STATES,
         close_order=snapshot.CLOSE_ORDER,
+        memory_commands=snapshot.MEMORY_COMMANDS,
+        parse_contract=snapshot.PARSE_CONTRACT,
     )
 
 
@@ -215,6 +249,8 @@ def render_entrypoint_rules(
     resolved = rules if rules is not None else load_standard_rules(source_root)
     bullets = "\n".join(f"- {p}" for p in resolved.principles)
     targets = ", ".join(f"`{d}`" if not d.startswith("최신") else d for d in state_docs)
+    commands = "\n".join(f"- {purpose}: `{cmd}`" for purpose, cmd in resolved.memory_commands)
+    contract = "\n".join(f"- {rule}" for rule in resolved.parse_contract)
     return (
         "## 작업 원칙\n"
         f"\n{GENERATED_MARKER}\n"
@@ -222,6 +258,9 @@ def render_entrypoint_rules(
         "\n## 세션 종료 순서\n"
         f"\n{resolved.close_order}\n"
         f"\n- 종료 전 갱신 대상: {targets}"
+        "\n\n## 메모리 갱신 경로\n"
+        f"\n{commands}\n"
+        f"\n{contract}"
     )
 
 
@@ -234,7 +273,7 @@ _SNAPSHOT_PATH = Path(__file__).resolve().parent / "_standard_rules_snapshot.py"
 _SNAPSHOT_HEADER = '''"""정본 규칙의 **생성된 스냅샷** — 직접 고치지 않는다.
 
 생성: ``python3 -m workflow_kit.common.standard_rules --apply``
-정본: ``core/global_workflow_standard.md`` §1 · §3 · §8
+정본: ``core/global_workflow_standard.md`` §1 · §3 · §8 · §11
 검증: ``tests/check_standard_single_source.py``
 
 wheel 설치처럼 ``core/`` 가 함께 배포되지 않는 환경에서 진입점 렌더링이 규칙을
@@ -257,6 +296,14 @@ def render_snapshot_module(rules: StandardRules) -> str:
     lines.append(")")
     lines.append("")
     lines.append(f"CLOSE_ORDER: str = {rules.close_order!r}")
+    lines.append("")
+    lines.append("MEMORY_COMMANDS: tuple[tuple[str, str], ...] = (")
+    lines.extend(f"    ({purpose!r}, {cmd!r})," for purpose, cmd in rules.memory_commands)
+    lines.append(")")
+    lines.append("")
+    lines.append("PARSE_CONTRACT: tuple[str, ...] = (")
+    lines.extend(f"    {rule!r}," for rule in rules.parse_contract)
+    lines.append(")")
     lines.append("")
     return "\n".join(lines)
 

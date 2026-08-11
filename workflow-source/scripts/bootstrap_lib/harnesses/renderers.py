@@ -1085,6 +1085,14 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 4. `PROJECT_PROFILE.md` 읽기 — 프로젝트 메타
 5. (있으면) `PURPOSE.md` 읽기 — directional intent 1-line + body excerpt ≤200 token
 
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk session-start --help
+```
+
 ## 절차
 
 1. `ai-workflow/memory/active/<branch>/state.json` 부터 읽고 현재 baseline 요약
@@ -1134,6 +1142,14 @@ description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlo
 
 오늘 작업 항목을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
 
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk backlog-update --help
+```
+
 ## 절차
 
 1. `ai-workflow/memory/active/<branch>/backlog` 의 인덱스 anchor 확인
@@ -1182,6 +1198,14 @@ description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에�
 
 작업 후 영향 받은 문서 후보를 식별하고 `ai-workflow/memory/active/` 의 허브 /
 index 갱신 포인트를 정리.
+
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk doc-sync --help
+```
 
 ## 절차
 
@@ -1440,15 +1464,15 @@ project:
 entry_points:
   session_start:
     description: "state.json + handoff + work_backlog baseline 복원"
-    command: "python3 ai-workflow/skills/session-start/scripts/run_session_start.py"
+    command: "wk session-start"
     trigger: on_session_start
   backlog_update:
     description: "task 등록/갱신 + scope creep warning"
-    command: "python3 ai-workflow/skills/backlog-update/scripts/run_backlog_update.py"
+    command: "wk backlog-update"
     trigger: manual
   doc_sync:
     description: "영향 문서 동기화 (advisory)"
-    command: "python3 ai-workflow/skills/doc-sync/scripts/run_doc_sync.py"
+    command: "wk doc-sync"
     trigger: manual
 
 # 본 project 의 *진입 문서* (Goose 가 startup 에 read)

@@ -219,6 +219,27 @@ push 가 거부되면 **다른 에이전트가 이미 그 작업을 가져갔다
 
 원칙: **되돌릴 수 없는 작업은 에이전트가 단독으로 결정하지 않는다.**
 
+## 11. 메모리 갱신 경로와 파싱 계약
+
+메모리 문서(`state.json` / `session_handoff.md` / backlog)는 **도구를 거쳐 갱신한다.**
+도구가 그 문서들의 형식 계약을 알고 있고, 손으로 쓰면 그 계약이 조용히 깨진다.
+실측(2026-08-11): handoff 의 빈 목록에 산문 "(없음 …)" 을 써 두었더니 `state.json` 이
+그것을 **작업 항목 하나로** 읽었고, 아무 검사도 그것을 오류로 보지 않았다.
+
+**11.1 갱신 명령**
+
+| 목적 | 명령 |
+|---|---|
+| 세션 시작 baseline 복원 | `wk session-start` |
+| task 등록 / 갱신 | `wk backlog-update` |
+| 영향 문서 동기화 (advisory) | `wk doc-sync` |
+
+**11.2 파싱 계약** — 도구를 쓰지 않고 손으로 쓸 때도 지켜야 한다
+
+- handoff 의 `in_progress` / `blocked` 목록이 비면 **빈 bullet `-`** 로 둔다. 산문을 쓰면 작업 항목으로 파싱된다.
+- handoff 의 최근 완료 목록 항목은 `TASK-` 로 시작하고, 10건을 넘지 않는다.
+- backlog task 의 `status` 는 `planned` / `in_progress` / `blocked` / `done` 중 하나다.
+
 ## 다음에 읽을 문서
 
 - 프로젝트 프로파일 템플릿: [../templates/project_workflow_profile_template.md](../templates/project_workflow_profile_template.md)

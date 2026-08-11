@@ -18,6 +18,14 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 4. `PROJECT_PROFILE.md` 읽기 — 프로젝트 메타
 5. (있으면) `PURPOSE.md` 읽기 — directional intent 1-line + body excerpt ≤200 token
 
+## 실행
+
+이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+
+```bash
+wk session-start --help
+```
+
 ## 절차
 
 1. `ai-workflow/memory/active/<branch>/state.json` 부터 읽고 현재 baseline 요약

@@ -159,8 +159,14 @@ workflow-workspace-registry = "tools.workspace_registry:main"
 #   - skills/, mcp_servers/, templates/, examples/, etc. (non-code assets)
 #
 # For a full install we only need the importable sub-packages on
-# ``sys.path``. The rest is consumed via the repo's directory layout
-# (or copied into the consumer's project by the bootstrap script).
+# ``sys.path``. The rest is consumed via the repo's directory layout.
+#
+# v1.1.7 (TASK-2026-08-11-main-020) 정정: 이 주석은 원래 "or copied into the
+# consumer's project by the bootstrap script" 라고 적고 있었는데 **사실이 아니다.**
+# bootstrap 은 진입점 문서와 최소 런타임 문서만 쓰고 ``skills/`` 를 복사하지 않는다
+# (``export_harness_package`` 의 번들 목록에도 없다). 그 거짓 전제 때문에 skill
+# 스크립트에만 있던 구현이 소비자에게 **실행 경로가 없는 상태**로 남아 있었다.
+# 소비자가 실제로 쓸 수 있는 표면은 ``wk`` (아래 [project.scripts]) 하나다.
 packages = [
     "bootstrap_lib",
     "bootstrap_lib.harnesses",

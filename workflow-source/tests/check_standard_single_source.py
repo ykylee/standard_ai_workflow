@@ -152,6 +152,9 @@ def test_generated_entrypoints_carry_rules() -> None:
     rules = load_standard_rules(SOURCE_ROOT)
     verify = next((p for p in rules.principles if "검증" in p), rules.principles[0])
     close = rules.close_order
+    # §11 은 표(명령)와 bullet(계약) 두 축이라 각각 한 개씩 대표를 뽑아 본다.
+    memory_cmd = rules.memory_commands[0][1]
+    contract_probe = rules.parse_contract[0]
 
     harnesses = sorted(set(PRIMARY_ENTRYPOINTS) | set(EXEMPT_HARNESSES))
     args: list[str] = []
@@ -189,6 +192,14 @@ def test_generated_entrypoints_carry_rules() -> None:
                 missing.append(f"{harness}: §1 원칙 누락")
             if close not in text:
                 missing.append(f"{harness}: §8 종료 순서 누락")
+            # v1.1.7+ (TASK-2026-08-11-main-022): §11 메모리 갱신 경로.
+            # 진입점이 "메모리 문서를 갱신하라" 고 지시하면서 **방법을 안 알려주면**
+            # 에이전트는 손으로 쓰고, 그 순간 §11.2 파싱 계약이 조용히 깨진다
+            # (실측: 렌더러 32개 중 26개가 그 상태였다 — TASK-020 전수검사).
+            if memory_cmd not in text:
+                missing.append(f"{harness}: §11 메모리 갱신 경로 누락")
+            if contract_probe not in text:
+                missing.append(f"{harness}: §11.2 파싱 계약 누락")
 
     _record("test_generated_entrypoints_carry_rules", not missing, "; ".join(missing[:4]))
 

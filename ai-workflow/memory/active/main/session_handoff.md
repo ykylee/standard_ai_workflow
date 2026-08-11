@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 착수 — TASK-2026-08-11-main-001)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 — TASK-2026-08-11-main-001~005)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -15,7 +15,9 @@
   1건 + freeze 최소 세트 6건 보존, README stale 링크 5개 교정) +
   **`check_cache_*` 13개 → 1개 통합** (TASK-004, 31 case verbatim 보존).
   smoke **268→248**, 파생 수치 3문서는 매번 동기 (대조 검사 3종이 강제).
-  부산물로 **amend Guard 2 의 staged-삭제 fatal** 결함 발견 →
+  중간에 **CI smoke red 를 발견·해소** (TASK-005 — 전 세션 TASK-019 부터 red,
+  version_flag 가 phase3 의 dist 오염에 우연히 의존, §4 참조). 부산물로
+  **amend Guard 2 의 staged-삭제 fatal** 결함 발견 →
   TASK-2026-08-11-main-002 (planned). 남은 리팩터링 후보는 §5.
 - 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
   `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
@@ -59,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-005 **smoke CI red 해소 (version_flag ← phase3 dist 오염 우연 의존)** — CI smoke 는 **전 세션 TASK-019 (59f3365) 부터 red** 였다 (f4f7fc6 까지 green, 이후 4연속 red — 전 세션 마지막 2 push 는 CI 미확인 종료, handoff 는 로컬 green 만 기록). 원인: `check_release_pipeline_phase3` 가 원본 `dist/` 에 실빌드를 남기던 오염을 TASK-019 가 격리하자, 그 부산물에 우연히 의존하던 `check_release_pipeline_version_flag` test 3 의 무조건 `out["tag"]` 기대가 CI (dist 부재) 에서 KeyError. 로컬은 릴리스가 남긴 dist (gitignored) 로 계속 green — 로컬/CI 비대칭 4번째 사례. test 2 의 `has_staging` 분기와 같은 처방, dist 유/무 **양방향 3/3 실증**. **오염 제거는 그 오염에 기대던 소비자를 드러낸다 + push 후 CI 확인까지가 검증이다.**
 - TASK-2026-08-11-main-004 **check_cache_* 13개 → check_cache.py 1개 통합** — test 본문 verbatim 보존 (31 case, 버전 이력이 담긴 함수명 유지), 변경은 로더 보일러플레이트 공용화뿐 (`_load` bare 등록 / `_load_wk` package 등록 — 로드 의미론이 달라 2계보를 하나로 합치지 않음). 충돌 상수 5건은 byte-identical 로드라 최초 정의로 dedupe (본문 수정 0). 31/31 PASS, smoke 260→248, 파생 수치 3문서 동기.
 - TASK-2026-08-11-main-003 **ai-workflow 아카이브 정리** — `archived/gemini` (59) + `archive/2026-07-22` 트리 제거, 총 185파일 (git 이력 보존). 보존 7건: wiki topic 7페이지가 `last_ingested_from` 으로 참조하는 `main/session_analysis_2026-07-09.md` (V-R9) + **freeze 스냅샷 최소 세트 6건** (`.frozen` + SHARED 4종 + `main/state.json`) — `check_memory_freeze_lint` V-R8/V-R10 이 *최신* archive 에 요구, 전량 검사가 잡아 복원. 참조 대조만으로는 **디렉터리 형태 계약**을 못 본다. README stale 링크 5개 (문안 active / 타깃 gemini 아카이브) 를 active/main 실경로로 교정. `check_wiki_score` 55.2→47.2s. `archived/codex`·`main-legacy`·`archive/2026-06-12*` (35파일) 는 조사 문서 밖이라 유보.
 - TASK-2026-08-11-main-001 **check_mypy_strict_v0_11_3~10 8개 제거** — 릴리스별 2파일 부분집합 재측정은 FULL mypy strict (129 파일) + `mypy-strict` CI 전체 검사 아래서 정보 0. `ci_v0_11_11` / `release_gate_v0_11_12` 는 전체-범위 계약이라 보존. smoke 268→260, 파생 수치 3문서 동기 (CODE_INDEX / INSTALLATION / v1.1.6 노트 누적 줄 — 대조 검사 3종이 전부 잡아냄). **부산물**: staged 삭제 상태에서 amend Guard 2 (`release_pipeline.py:1030`) 가 `git add` pathspec fatal → TASK-2026-08-11-main-002 (planned).
@@ -68,7 +71,6 @@
 - TASK-2026-08-10-main-016 **smoke slash job 15연속 red 해소** — `check_release_pre_check_gates` case 7 이 살아있는 브랜치의 `state.json` 존재를 전제. 게이트는 부재를 정당 통과로 설계했는데 검사만 fail. 되주입으로 결정적화 + 환경 의존은 7b 로 분리(명시 SKIP) + **아무도 안 재던 absent 계약을 case 11 로 고정**.
 - TASK-2026-08-10-main-015 **v1.1.6-beta 발행** — `cmd_release` 3번째 실전 완주 (bump → 파생물 선재생성 10검사 사전 green → note → dist → dry-run pre_check 5/5 → push → apply → verify). tag `v1.1.6-beta` (2026-08-10T11:30:53Z, whl+sdist). 범위 TASK-007~014, smoke 261→266 (신규 5). post-apply 잔여 4파일 — v1.1.5 와 동일, 선재생성 절차 재현 확인. dirty 가드가 미커밋 task 등록을 정확히 잡음 (가드 실전 검증 1회 추가).
 - TASK-2026-08-10-main-014 **ADR-006 W-4 지표 재정의** — telemetry `selected_ids` additive + `summarize_telemetry` 3-tuple (query_diversity / entries_new_30d / distinct_entries_retrieved, **`*_measurable` 분모로 미측정≠0**) + Panel 8 `utilization_3tuple` north-star 교체 (hit_rate 는 은퇴 대신 보조 강등). measurable 판정은 값 비어있음이 아니라 **필드 존재** — miss(0건 조회)도 측정이다 (구현 중 이 함정을 실제로 밟고 고침). 첫 실측 = 정직한 저점 (1/8 · 1 · 0/1). `check_utilization_3tuple` 9/9, 회귀 sweep 9종 green, smoke 266. **W-1~W-4 완결**.
-- TASK-2026-08-10-main-013 **ADR-006 W-3 entry 간 링크** — `related_ids` additive (legacy stem 규약 하위호환 유지) + expansion 추적 + dangling/self validation ("태어난 적 없는 링크" 검출) + W-1 skeleton 프리필 (신규 entry 가 링크를 갖고 태어남) + merge union. 실물 링크 (회고 001 ↔ ADR-005 결정 002) 로 **33일 만의 expansion 첫 발동** — `[retrospective]`/`[memora]` 양방향 cue 1 + exp 1. `check_entry_links` 9/9 (되주입 포함), smoke 265.
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

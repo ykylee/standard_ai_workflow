@@ -127,11 +127,18 @@ def test_version_override_pyproject() -> None:
 
 
 def test_version_default_pyproject() -> None:
-    """--version 미지정 시 version_source=pyproject.toml (default)."""
+    """--version 미지정 시 version_source=pyproject.toml (default).
+
+    dist/ 에 현재 버전 산출물이 없으면 (fresh CI checkout) dry-run 은 error 를
+    반환하고 `tag` 키가 없다 — test 2 와 같은 분기. 예전에는 phase3 검사가
+    원본 dist/ 에 실빌드를 남겨 이 부재 경로가 CI 에서 밟힌 적이 없었다.
+    """
     spec = importlib.util.spec_from_file_location("release_pipeline", str(TOOL))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     current = mod.read_version()
+    dist_dir = SOURCE_ROOT / "dist"
+    has_dist = dist_dir.is_dir() and any(dist_dir.glob(f"*{current}*"))
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run", "--json"],
@@ -140,8 +147,13 @@ def test_version_default_pyproject() -> None:
     out = json.loads(proc.stdout)
     assert out["version_source"] == "pyproject.toml", \
         f"expected pyproject.toml, got {out.get('version_source')}"
-    # default version 은 pyproject 의 current (HEAD 정합, release 마다 갱신)
-    assert out["tag"] == f"v{current}-beta", f"expected v{current}-beta, got {out.get('tag')}"
+    if has_dist:
+        # default version 은 pyproject 의 current (HEAD 정합, release 마다 갱신)
+        assert out["tag"] == f"v{current}-beta", f"expected v{current}-beta, got {out.get('tag')}"
+    else:
+        # dist 부재 → error return (no dist files). version 만 검증.
+        assert current in out.get("error", ""), \
+            f"expected {current} in error, got {out.get('error')}"
 
 
 # --- 메인 실행 ---

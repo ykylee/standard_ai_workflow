@@ -4,12 +4,16 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-10 (3차 세션 — CI 재현성 회복 + smoke 병렬화, TASK-016~019)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 착수 — TASK-2026-08-11-main-001)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
+- 현재 기준선: **저장소 리팩터링 사이클 착수** (2026-08-11). 3차 세션 조사(§7)의
+  후보 1 완료 — `check_mypy_strict_v0_11_3~10` 8개 제거 (TASK-2026-08-11-main-001,
+  smoke **268→260**, 파생 수치 3문서 동기). 부산물로 **amend Guard 2 의 staged-삭제
+  fatal** 결함 발견 → TASK-2026-08-11-main-002 (planned). 남은 리팩터링 후보는 §5.
+- 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
   `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
   기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
   있었다**. TASK-016 이 red 를 껐고 (검사가 살아있는 브랜치 상태에 의존),
@@ -23,7 +27,7 @@
   `99.99.99`, README/`__init__` drift, memory_index/wiki, 실빌드 산출물) — 을
   `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
   (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
-- 현재 주 작업 축: **CI 재현성 + 검사 위생** 사이클 완결 (TASK-016~019). 남은 것은 저장소 리팩터링(§5).
+- 현재 주 작업 축: **저장소 리팩터링** (조사 근거 §7). 다음 후보: 아카이브 정리 / `check_cache_*` 통합 / `release_pipeline.py` 분할 / presentations 바이너리 (§5).
 - 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
@@ -51,6 +55,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-001 **check_mypy_strict_v0_11_3~10 8개 제거** — 릴리스별 2파일 부분집합 재측정은 FULL mypy strict (129 파일) + `mypy-strict` CI 전체 검사 아래서 정보 0. `ci_v0_11_11` / `release_gate_v0_11_12` 는 전체-범위 계약이라 보존. smoke 268→260, 파생 수치 3문서 동기 (CODE_INDEX / INSTALLATION / v1.1.6 노트 누적 줄 — 대조 검사 3종이 전부 잡아냄). **부산물**: staged 삭제 상태에서 amend Guard 2 (`release_pipeline.py:1030`) 가 `git add` pathspec fatal → TASK-2026-08-11-main-002 (planned).
 - TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
 - TASK-2026-08-10-main-018 **smoke 병렬화** — CI job 604s 중 smoke 576s 가 병목, 시간 분포는 극단적(상위 13개=50%, 하위 133개 합계 9.8s). `--jobs auto` + **정숙 구간**(파일 안 `REQUIRES_QUIET_REPO` 선언, §2.53). `check_source_without_runtime_layer` 의 원본 rename → 사본 검증 (**`finally` 는 SIGKILL 에 안 돈다**). **CI 576s→220s**, 로컬 345s→118.8s. `check_parallel_smoke` 8 case.
 - TASK-2026-08-10-main-017 **브랜치 컨텍스트 정본화 + 로컬 재현 관행화** — CI 2축 / 로컬 1축 비대칭이 뿌리. `branch_matrix.py` 정본 + `run_all_checks --branch-context=<label|all>` + smoke.yml prepare job 주입(복제 제거) + `check_branch_context_matrix` 8 case + CLAUDE.md 관행. **새 축이 첫 실행에서 결함 2건을 잡았고 하나는 자기 것** — `--branch-context=native` 가 상속 오버라이드를 안 지워 slash 패스에서 native 를 요청하자 slash 를 쟀다 (막으려던 실패 양상 그 자체).
@@ -60,8 +65,6 @@
 - TASK-2026-08-10-main-013 **ADR-006 W-3 entry 간 링크** — `related_ids` additive (legacy stem 규약 하위호환 유지) + expansion 추적 + dangling/self validation ("태어난 적 없는 링크" 검출) + W-1 skeleton 프리필 (신규 entry 가 링크를 갖고 태어남) + merge union. 실물 링크 (회고 001 ↔ ADR-005 결정 002) 로 **33일 만의 expansion 첫 발동** — `[retrospective]`/`[memora]` 양방향 cue 1 + exp 1. `check_entry_links` 9/9 (되주입 포함), smoke 265.
 - TASK-2026-08-10-main-012 **ADR-006 W-2 질의 다양화** — `derive_context_query_tokens` (state.json 축 + 최근 done 제목 → token 유도, 실패 시 skill 별 trio fallback + **출처 보고**) 를 3 skill 공용으로, telemetry 에 `query_tokens`/`query_source` additive (구 라인 하위호환). 실사: 컨텍스트 8 token + **정직한 miss** (cue 0 — index 가 최근 한 달을 모른다는 신호) — 그 첫 miss 가 33일간 hit_rate=1.0 뒤에 숨어 있던 **패널 간 반올림 불일치** 를 드러내 round-at-source 로 통일. 변하지 않는 지표는 자기 소비자의 결함도 숨긴다. `check_context_query_tokens` 8/8, smoke 264.
 - TASK-2026-08-10-main-011 **ADR-006 W-1 write-path advisory 루프** — `wk suggest-memory-entries` 신설: handoff §4 제목을 entry corpus 와 대조 (coverage < 0.5 → 후보 + skeleton, **무-write advisory**). 루프 실증 완주 — 첫 실측 10/10 후보 (max 0.14, 회고 재확인) → 회고를 `MEM-2026-08-10-001` 로 적재 (**33일 만의 첫 신규 entry**) → covered 0→1 + `query [retrospective,write-path]` 적중. smoke 8/8 (되주입: corpus 에 넣으면 후보가 사라짐), dispatcher 정합 10/10, mypy clean. smoke 263.
-- TASK-2026-08-10-main-010 **P2-1 ADR-006 Memory Index 회고** — telemetry 256 events (07-09~08-10) 실측: 30일 실사용 = **고정 질의 1종 → 고정 entry 1건** (BM25/expansion/merge 발동 0회, 신규 entry 0건, latency p50 0.18ms). hit_rate 1.0 은 캐시 적중이었다 — 질의 다양성을 안 재는 지표는 항상 green 이어도 정보가 없다. ADR-006 placeholder → **accepted** (~230 line, 6 영역 + 보강 2). 후속 W-1 write-path advisory 루프 / W-2 질의 다양화 / W-3 entry 간 링크 / W-4 지표 재정의. 기각: BM25 tuning·embedding·merge default 변경. wiki topic 신설, phase_13_followup stale 날짜 정정 (08-19 → 실제 tag 07-02).
-
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -92,10 +95,8 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 "조사로 확정된 것" 참조). 사용자가 우선순위를 정한 항목만 실행했다 (정숙 구간 근본
 수정 = TASK-019). 나머지는 미착수:
 
-- **`check_mypy_strict_v0_11_3` ~ `v0_11_10` 8개 제거** (15초 절감). 각각 "이번
-  릴리스에서 strict 로 격상한 2개 파일" 을 잰다. 저장소는 이미 **FULL mypy strict**
-  (129 파일 clean) 이고 `mypy-strict` CI 가 `workflow_kit/` 전체를 검사한다 —
-  부분집합을 8번 재는 것은 정보가 0이다.
+- ~~`check_mypy_strict_v0_11_3` ~ `v0_11_10` 8개 제거~~ — ✅ **완료**
+  (TASK-2026-08-11-main-001, smoke 268→260).
 - **`ai-workflow` 아카이브 정리** — `memory/archived/gemini/` (다른 에이전트의 옛
   백로그 50여 파일), `memory/archive/2026-07-22/` (112 파일). git 이력에 남으므로
   트리에서 덜어내도 잃는 것이 없다. 문서 스캔 검사(`check_wiki_score` 29.8s 등)가
@@ -130,6 +131,11 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   있었는데도** 그 이유로 안 잡혔다. 실행 *중* 감시(폴링)로 강화하면 남은 감시 대상
   다수가 같은 이유로 red 가 될 수 있어 범위가 크다. **되돌리는 것은 안 건드리는 것이
   아니다.**
+- **amend Guard 2 의 staged-삭제 fatal (TASK-2026-08-11-main-002, planned)** —
+  `_git_dirty_paths()` 를 `git add -- ` 에 넘기는 경로가 이미 staged 된 삭제
+  (`D `) 에서 pathspec 불일치로 fatal. `--allow-dirty` + staged 삭제 조합의 실전
+  release 에서 재현 가능. `check_release_wrapper_args` case 5·6 도 같은 상태에서
+  red (tree clean 이면 자동 통과라 평소엔 안 보인다).
 - **정숙 구간 3건은 본질적으로 직렬** — `check_no_repo_write`(15.6s, 전역 관찰),
   `check_parallel_smoke`(runner 호출), `check_source_without_runtime_layer`(저장소
   복사). 병렬화로 더 줄이려면 이들의 설계 자체를 바꿔야 한다.

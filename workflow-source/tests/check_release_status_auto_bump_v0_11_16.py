@@ -18,6 +18,10 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+# 병렬 전량(--jobs auto)에서 55s 실측 (2026-08-11) — 기본 60s 상한과 여유가
+# 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.
+CHECK_TIMEOUT_S = 150
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

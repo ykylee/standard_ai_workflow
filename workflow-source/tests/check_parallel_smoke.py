@@ -24,6 +24,10 @@ CI job 604s 중 576s 가 smoke 실행이었고, 267개 check 의 시간 분포�
     8. 정숙 구간이 병렬 구간 **뒤** 에 온다 (결과 순서로 관찰)
     9. sandbox 사본 복사는 **소멸 파일에 내성** 이 있다 (병렬 중 transient 파일
        race — TASK-2026-08-11-main-006). 소멸 아닌 오류는 그대로 던진다.
+    10. `CHECK_TIMEOUT_S` 선언은 timeout 을 **늘릴 수만** 있고 실제로 적용된다
+        (TASK-2026-08-11-main-015 — 무거운 check 가 병렬 부하에서 60s 를 넘던
+        flake). 선언한 check 는 짧은 `--timeout` 에도 살아남고, 무선언 check 는
+        같은 조건에서 TIMEOUT 으로 죽는다 — 양방향이어야 계약이다.
 
 Stdlib only.
 """
@@ -247,6 +251,55 @@ def test_sandbox_copy_tolerates_vanished_files() -> None:
             shutil.copy2 = orig_copy2
 
 
+def test_declared_timeout_extends_and_default_kills() -> None:
+    """`CHECK_TIMEOUT_S` 계약 (TASK-2026-08-11-main-015).
+
+    같은 3s 짜리 check 를 `--timeout=1` 로 돌린다: 선언(30s) 이 있으면 살아남고
+    없으면 TIMEOUT — 선언이 장식이 아니라 실제 적용됨을 양방향으로 고정한다.
+    decoy (주석/문자열/음수) 는 선언으로 치지 않는다.
+    """
+    # 단위 계약: 선언은 max 로만 합쳐진다 + AST 기반이라 decoy 에 속지 않는다.
+    with tempfile.TemporaryDirectory() as tmp:
+        declared = Path(tmp) / "check_u_declared.py"
+        declared.write_text(f"{R.TIMEOUT_MARKER} = 150\n", encoding="utf-8")
+        assert R.effective_timeout(declared, 60) == 150, "선언이 CLI 값을 못 늘렸다"
+        assert R.effective_timeout(declared, 300) == 300, "선언이 CLI 값을 줄였다 — max 여야 한다"
+
+        decoy = Path(tmp) / "check_u_decoy.py"
+        decoy.write_text(
+            f'"""{R.TIMEOUT_MARKER} = 999 를 언급만 한다."""\n'
+            f"# {R.TIMEOUT_MARKER} = 999\n"
+            f'NOTE = "{R.TIMEOUT_MARKER} = 999"\n'
+            f"{R.TIMEOUT_MARKER} = -5\n",
+            encoding="utf-8",
+        )
+        assert R.effective_timeout(decoy, 60) == 60, "decoy/음수 선언을 적용했다"
+
+    # 실행 계약: runner subprocess 로 양방향 실증.
+    with tempfile.TemporaryDirectory() as tmp:
+        body = "import time\ntime.sleep(3)\nraise SystemExit(0)\n"
+        (Path(tmp) / "check_slow_declared.py").write_text(
+            f"{R.TIMEOUT_MARKER} = 30\n{body}", encoding="utf-8")
+        (Path(tmp) / "check_slow_undeclared.py").write_text(body, encoding="utf-8")
+
+        proc = subprocess.run(
+            [sys.executable, str(RUNNER), f"--tests-dir={tmp}", "--timeout=1",
+             "--jobs=2", "--json", "--no-guard"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "PYTHONPATH": str(SOURCE_ROOT)},
+        )
+        data = json.loads(proc.stdout)
+        by_name = {r["name"]: r for r in data["results"]}
+        assert by_name["check_slow_declared"]["exit_code"] == 0, (
+            f"선언(30s)한 3s check 가 --timeout=1 에 죽었다 — 선언이 적용되지 않는다: "
+            f"{by_name['check_slow_declared']}"
+        )
+        undeclared = by_name["check_slow_undeclared"]
+        assert undeclared["exit_code"] != 0 and "timeout" in undeclared["error_excerpt"], (
+            f"무선언 3s check 가 --timeout=1 을 살아남았다 — timeout 자체가 죽었다: {undeclared}"
+        )
+
+
 def main() -> int:
     test_funcs = [
         test_resolve_jobs_contract,
@@ -258,6 +311,7 @@ def main() -> int:
         test_serial_and_parallel_agree,
         test_quiet_runs_after_parallel,
         test_sandbox_copy_tolerates_vanished_files,
+        test_declared_timeout_extends_and_default_kills,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

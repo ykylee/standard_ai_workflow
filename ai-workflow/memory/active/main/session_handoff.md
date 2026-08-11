@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (세션 종료 — TASK-016 기술보고서 논문 양식 문서 완료 (검토 2회전 정정 8건 포함, docs/reports/). 잔여 planned 1건: TASK-015 로컬 병렬 TIMEOUT flake. 소유자 결정 2건 기록: TASK-014 미삽입 / branch protection 보류)
+- 최종 수정일: 2026-08-11 (backlog 16건 전부 종결 — TASK-015 TIMEOUT flake 해소 (`CHECK_TIMEOUT_S` 선언 신설) + TASK-016 기술보고서 (검토 4회전). 소유자 결정 2건 기록: TASK-014 미삽입 / branch protection 보류)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -53,7 +53,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- (없음) planned: TASK-2026-08-11-main-015 (로컬 병렬 TIMEOUT flake 2건 — 2026-08-11 전체 검토 발견, CI 는 green).
+- (없음 — planned/blocked 도 0건, 2026-08-11 backlog 16건 전부 종결)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -61,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-015 **로컬 병렬 TIMEOUT flake 해소** — `CHECK_TIMEOUT_S` 파일 안 선언 신설 (runner 가 AST 로 읽어 `--timeout` 과 **max** — 상한을 늘릴 수만 있음, `REQUIRES_QUIET_REPO` 와 같은 패턴). 부하 실측 ≥40s 위험군 6검사 (wiki_score 57s / release_status·auto_bump·summary 53~55s / release_pipeline_lib 44s / mypy_config_actually_loaded 43s) 에 150s 선언. `check_parallel_smoke` case 10 (되주입 양방향 + decoy 불인정 + max 의미론) + `--tests-dir` 외부 경로 ValueError 수정. **전량 2축 ×2회 = 4패스 249/249, TIMEOUT 0.** CLAUDE.md 에 규약 문서화 (solo ~25s+ 는 선언).
 - TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 4회전** — ①내용 (실명 오류·전재 누락), ②수치 전수 (기간 "14개월" 날조 → 4개월, "smoke 24→249" → 199→249, CLI 65+ → 68 등 정정 8건 — 교훈: **산문 속 수치가 날조의 주 경로**), ③문체·어휘 (비일상 어휘 12종 교체/풀이, 3원리 일상어 표기, 폭 920px·부제 축약), ④**학습회 독립화** (사용자 결정 — 보고서에서 학습회·발표 서술 전부 제거, 참고문헌의 덱 항목 삭제. 계획 문서는 이력이므로 유지). placeholder (작성자/문서번호) 는 사용자 기입. 부수: 검증 중 CI flake 발견 → watch_transient_writer ready handshake 수정 (708eb94).
 - TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
 - TASK-2026-08-11-main-011 **workflow_kit_cli.py 안전 부분 분할** — 2095→**583줄** (−1512) + 모듈 5개 (`cli_registry` 48 / cache 619 / memory 618 / release 262 / okf 216). 디스패처가 argparse 가 아니라 **`@register` 레지스트리**라 `cli_registry.py` 선행 분리가 핵심 처방 — 신규 모듈이 registry 만 import 해 순환 0 이고, `check_workflow_kit_cli` 의 최상위-이름 재-exec 방식과도 양립 (COMMANDS 가 캐시된 registry 에 산다). SOURCE-BOUND 2핸들러 (`cmd_release_create`/`cmd_release_status`) 잔류, 신규 import 는 tool 등록 호출보다 위 (ALREADY_REGISTERED 순서), `python -m`·`[project.scripts] wk` 계약 보존. mypy strict 137파일 0 오류, CLI **53/53** · dispatcher **10/10** · entry points 32종 · release 5종 green, 테스트 수정 0.
@@ -70,7 +71,6 @@
 - TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
 - TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
 - TASK-2026-08-11-main-002 **amend Guard 2 staged-삭제 fatal 수정** — `git add -- *dirty` 가 이미 staged 된 삭제 (`D `, worktree·index 모두 부재) 에서 pathspec fatal. `_git_dirty_paths(needs_add_only=True)` 신설 (porcelain worktree 열 기준 add 대상 선별, 기본 동작 불변 — bump clean-tree 가드는 계속 전체를 봄) + Guard 2 에서 보고용 전체와 add 대상 분리 (add 대상이 비면 amend 직행). unstaged 삭제 (` D`) 는 선별에 **포함** — add 로 삭제를 stage 하는 정당 경로. 검사: case 5 삭제-인지 / case 6 선별 대조 / **case 10 되주입** (tmp repo + `_git_toplevel` monkeypatch — full add rc=128 함정과 해법을 결정적 고정). 11/11, 무력화 시 case 10 이 잡음. mypy 전후 89 동일 (신규 0).
-- TASK-2026-08-11-main-005 **smoke CI red 해소 (version_flag ← phase3 dist 오염 우연 의존)** — CI smoke 는 **전 세션 TASK-019 (59f3365) 부터 red** 였다 (f4f7fc6 까지 green, 이후 4연속 red — 전 세션 마지막 2 push 는 CI 미확인 종료, handoff 는 로컬 green 만 기록). 원인: `check_release_pipeline_phase3` 가 원본 `dist/` 에 실빌드를 남기던 오염을 TASK-019 가 격리하자, 그 부산물에 우연히 의존하던 `check_release_pipeline_version_flag` test 3 의 무조건 `out["tag"]` 기대가 CI (dist 부재) 에서 KeyError. 로컬은 릴리스가 남긴 dist (gitignored) 로 계속 green — 로컬/CI 비대칭 4번째 사례. test 2 의 `has_staging` 분기와 같은 처방, dist 유/무 **양방향 3/3 실증**. **오염 제거는 그 오염에 기대던 소비자를 드러낸다 + push 후 CI 확인까지가 검증이다.**
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

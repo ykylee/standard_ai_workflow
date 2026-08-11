@@ -100,6 +100,9 @@
 > 저장소 전역 상태를 관찰하는 check (`REQUIRES_QUIET_REPO = True` 를 선언한 것들)
 > 는 병렬 구간이 끝난 뒤 **정숙 구간**에서 직렬로 돈다 — 새로 그런 check 를 만들면
 > 그 선언을 파일 안에 넣어야 한다. 안 넣으면 병렬에서 오탐이 난다.
+> 단독 실행이 ~25s 를 넘는 무거운 check 는 `CHECK_TIMEOUT_S = 150` 을 파일 안에
+> 선언한다 (v1.1.7+) — 기본 60s 상한은 병렬 부하에서 2배로 늘어진 실행을 죽인다.
+> 선언은 CLI `--timeout` 과 max 로 합쳐져 상한을 **늘릴 수만** 있다.
 - **smoke check**: `python3 workflow-source/tests/check_self_application.py`
 
 ### SDK 매트릭스는 push 전에 로컬에서 돌린다

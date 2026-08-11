@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import functools
 import json
 import os
 import re
@@ -102,6 +103,18 @@ QUIET_MARKER = "REQUIRES_QUIET_REPO"
 그래서 이들은 **아무도 저장소를 건드리지 않는 동안**(정숙 구간) 직렬로 돌린다.
 소속을 runner 안의 목록으로 두지 않는 이유는 §2.53 과 같다 — 목록은 파일에서
 멀어지면 드리프트한다. 선언을 check 파일 안에 두면 파일과 함께 움직인다."""
+
+TIMEOUT_MARKER = "CHECK_TIMEOUT_S"
+"""check 가 **자기 timeout 상한(초)** 을 스스로 선언하는 이름.
+
+기본 60s 는 행(hang) 을 잡기 위한 상한인데, 단독 실행 ~30s 인 무거운 check 는
+병렬 부하(12코어 jobs=8+)에서 2배까지 늘어져 상한을 넘는다 — 2026-08-11 로컬
+전량에서 `check_release_summary_v0_11_15` / `check_release_status_auto_bump_v0_11_16`
+이 정확히 그렇게 TIMEOUT flake 났다 (solo 28~31s, 부하 시 52~55s 관측).
+
+선언 값은 CLI `--timeout` 과 **max** 로 합친다 — 선언은 상한을 늘릴 수만 있다.
+행 검출은 유지된다 (150s 선언도 무한 행은 잡는다). 목록이 아니라 파일 안 선언인
+이유는 QUIET_MARKER 와 같다."""
 
 
 @dataclass
@@ -288,7 +301,12 @@ def run_one(
     3. **timeout**: 만료 시 그룹 전체에 SIGTERM → SIGKILL.
     """
     start = time.time()
-    rel = str(check_path.relative_to(SOURCE_ROOT))
+    try:
+        rel = str(check_path.relative_to(SOURCE_ROOT))
+    except ValueError:
+        # `--tests-dir` 가 저장소 밖(fixture dir 등)을 가리키면 상대화가 불가능하다
+        # — 표시용 경로일 뿐이므로 절대 경로로 보고한다.
+        rel = str(check_path)
     tmp_root = Path(guard.tmp_root) if guard else Path(tempfile.gettempdir())
     tmp_root.mkdir(parents=True, exist_ok=True)
     tmp_dir = Path(tempfile.mkdtemp(prefix=f"{check_path.stem}-", dir=str(tmp_root)))
@@ -406,27 +424,48 @@ def print_human(summary: RunSummary) -> None:
                 print(f"  ✗ {r.name}: {r.error_excerpt}")
 
 
-def requires_quiet_repo(check_path: Path) -> bool:
-    """check 가 `REQUIRES_QUIET_REPO = True` 를 선언했는가 (AST — import 하지 않는다)."""
+@functools.lru_cache(maxsize=None)
+def _scan_markers(check_path_str: str) -> tuple[bool, int]:
+    """(REQUIRES_QUIET_REPO, CHECK_TIMEOUT_S) 를 한 번의 AST parse 로 읽는다.
+
+    import 하지 않는다 — 선언은 파일의 최상위 상수라야 한다. parse 못 하는
+    파일은 (False, 0): 어차피 실행도 못 하며, 병렬 구간에서 실패하게 둔다.
+    """
+    quiet = False
+    timeout_s = 0
     try:
         with warnings.catch_warnings():
             # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 runner 출력에 새지 않게
             # — baselines 의 신호 계수와 같은 처리다.
             warnings.simplefilter("ignore", SyntaxWarning)
-            tree = ast.parse(check_path.read_text(encoding="utf-8"))
+            tree = ast.parse(Path(check_path_str).read_text(encoding="utf-8"))
     except (SyntaxError, OSError):
-        # parse 못 하는 파일은 어차피 실행도 못 한다. 병렬 구간에 두고 거기서 실패하게
-        # 둔다 — 여기서 조용히 정숙 구간으로 보내면 분류만 흐려진다.
-        return False
+        return False, 0
     for node in tree.body:
         targets = (node.targets if isinstance(node, ast.Assign)
                    else [node.target] if isinstance(node, ast.AnnAssign) else [])
         for target in targets:
-            if isinstance(target, ast.Name) and target.id == QUIET_MARKER:
-                value = node.value
-                if isinstance(value, ast.Constant) and value.value is True:
-                    return True
-    return False
+            if not isinstance(target, ast.Name):
+                continue
+            value = node.value
+            if not isinstance(value, ast.Constant):
+                continue
+            if target.id == QUIET_MARKER and value.value is True:
+                quiet = True
+            elif (target.id == TIMEOUT_MARKER
+                  and isinstance(value.value, int) and value.value > 0):
+                timeout_s = value.value
+    return quiet, timeout_s
+
+
+def requires_quiet_repo(check_path: Path) -> bool:
+    """check 가 `REQUIRES_QUIET_REPO = True` 를 선언했는가."""
+    return _scan_markers(str(check_path))[0]
+
+
+def effective_timeout(check_path: Path, cli_timeout: int) -> int:
+    """CLI `--timeout` 과 파일 안 `CHECK_TIMEOUT_S` 선언의 max — 선언은 늘릴 수만 있다."""
+    return max(cli_timeout, _scan_markers(str(check_path))[1])
 
 
 def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
@@ -475,8 +514,8 @@ def run_pass(
             aborted = guard.violation()
             if aborted:
                 break
-            result = run_one(check_path, timeout=args.timeout, guard=guard,
-                             branch_context=branch_context)
+            result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
+                             guard=guard, branch_context=branch_context)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break
@@ -484,8 +523,8 @@ def run_pass(
         done: dict[Path, CheckResult] = {}
         with ThreadPoolExecutor(max_workers=jobs) as pool:
             futures = {
-                pool.submit(run_one, path, timeout=args.timeout, guard=guard,
-                            branch_context=branch_context): path
+                pool.submit(run_one, path, timeout=effective_timeout(path, args.timeout),
+                            guard=guard, branch_context=branch_context): path
                 for path in checks
             }
             for fut in as_completed(futures):
@@ -509,8 +548,8 @@ def run_pass(
             aborted = guard.violation()
             if aborted:
                 break
-            result = run_one(check_path, timeout=args.timeout, guard=guard,
-                             branch_context=branch_context)
+            result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
+                             guard=guard, branch_context=branch_context)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break

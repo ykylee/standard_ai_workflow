@@ -4,20 +4,21 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 완결 — TASK-2026-08-11-main-001~007 전부 done)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 완결 — TASK-2026-08-11-main-001~008 전부 done, 세션 close)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **저장소 리팩터링 사이클 완결** (2026-08-11, TASK-001~007).
+- 현재 기준선: **저장소 리팩터링 사이클 완결** (2026-08-11, TASK-001~008).
   3차 세션 조사(§7) 후보 4건 전부 완료 — mypy strict 부분집합 8개 제거
   (TASK-001) + **아카이브 185파일 정리** (TASK-003) + **`check_cache_*` 13개
   → 1개 통합** (TASK-004) + **`release_pipeline.py` 안전 부분 분할**
   (TASK-007, 3908→3174줄 + 모듈 4개 — 소스-스캔 검사 25종 기준 분석 지도를
   먼저 만들고 ATTR-ONLY 그룹만 추출, 검사 무수정 21종 green). smoke
-  **268→248**. 도중 결함 수정 3건: **CI smoke red 해소** (TASK-005),
+  **268→248**. 도중 결함 수정 4건: **CI smoke red 해소** (TASK-005),
   **amend Guard 2 staged-삭제 fatal** (TASK-002), **PERF-WF-04 저장소 오염 +
-  sandbox race** (TASK-006). 남은 후보는 §5.
+  sandbox race** (TASK-006), **원본-무결성 관찰 검사 3건 정숙화** (TASK-008).
+  남은 후보는 §5. 상세: [세션 기록](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md).
 - 직전 기준선: **CI 재현성 회복 + smoke 병렬화 완결** (TASK-016~019). 시작은
   `smoke` **15연속 red** 발견이었다 — 그런데 handoff 는 내내 "전량 검사 green" 을
   기록하고 있었다. 로컬(native 1축)과 CI(native+slash 2축)가 **다른 것을 재고
@@ -60,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-008 **원본-무결성 관찰 검사 3건 정숙화** — TASK-007 검증에서 `version_auto_sync` 가 "원본을 건드렸다: pyproject.toml" assert 로 1회 flake. 단독 green + 재현 시도 (표적 3회 + 전량 2회 + md5 watcher) 전부 미재현, 용의자 2건 (`auto_bump` 검사 / drift case 7 auto-bump dry-run) 은 코드·실측 무혐의. 같은 byte-대조 assert 를 가진 3검사 (`version_auto_sync`/`self_recovering`/`bidir_link`) 는 **전역 관찰**이므로 `REQUIRES_QUIET_REPO` 선언 대상이었다 (TASK-018 §2.53 규칙의 적용 누락). 정숙 3→6. **잔여**: transient pyproject writer 정체 미상 (§6).
 - TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
 - TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
 - TASK-2026-08-11-main-002 **amend Guard 2 staged-삭제 fatal 수정** — `git add -- *dirty` 가 이미 staged 된 삭제 (`D `, worktree·index 모두 부재) 에서 pathspec fatal. `_git_dirty_paths(needs_add_only=True)` 신설 (porcelain worktree 열 기준 add 대상 선별, 기본 동작 불변 — bump clean-tree 가드는 계속 전체를 봄) + Guard 2 에서 보고용 전체와 add 대상 분리 (add 대상이 비면 amend 직행). unstaged 삭제 (` D`) 는 선별에 **포함** — add 로 삭제를 stage 하는 정당 경로. 검사: case 5 삭제-인지 / case 6 선별 대조 / **case 10 되주입** (tmp repo + `_git_toplevel` monkeypatch — full add rc=128 함정과 해법을 결정적 고정). 11/11, 무력화 시 case 10 이 잡음. mypy 전후 89 동일 (신규 0).
@@ -69,7 +71,6 @@
 - TASK-2026-08-11-main-001 **check_mypy_strict_v0_11_3~10 8개 제거** — 릴리스별 2파일 부분집합 재측정은 FULL mypy strict (129 파일) + `mypy-strict` CI 전체 검사 아래서 정보 0. `ci_v0_11_11` / `release_gate_v0_11_12` 는 전체-범위 계약이라 보존. smoke 268→260, 파생 수치 3문서 동기 (CODE_INDEX / INSTALLATION / v1.1.6 노트 누적 줄 — 대조 검사 3종이 전부 잡아냄). **부산물**: staged 삭제 상태에서 amend Guard 2 (`release_pipeline.py:1030`) 가 `git add` pathspec fatal → TASK-2026-08-11-main-002 (planned).
 - TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
 - TASK-2026-08-10-main-018 **smoke 병렬화** — CI job 604s 중 smoke 576s 가 병목, 시간 분포는 극단적(상위 13개=50%, 하위 133개 합계 9.8s). `--jobs auto` + **정숙 구간**(파일 안 `REQUIRES_QUIET_REPO` 선언, §2.53). `check_source_without_runtime_layer` 의 원본 rename → 사본 검증 (**`finally` 는 SIGKILL 에 안 돈다**). **CI 576s→220s**, 로컬 345s→118.8s. `check_parallel_smoke` 8 case.
-- TASK-2026-08-10-main-017 **브랜치 컨텍스트 정본화 + 로컬 재현 관행화** — CI 2축 / 로컬 1축 비대칭이 뿌리. `branch_matrix.py` 정본 + `run_all_checks --branch-context=<label|all>` + smoke.yml prepare job 주입(복제 제거) + `check_branch_context_matrix` 8 case + CLAUDE.md 관행. **새 축이 첫 실행에서 결함 2건을 잡았고 하나는 자기 것** — `--branch-context=native` 가 상속 오버라이드를 안 지워 slash 패스에서 native 를 요청하자 slash 를 쟀다 (막으려던 실패 양상 그 자체).
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -137,9 +138,18 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   아니다.**
 - ~~amend Guard 2 의 staged-삭제 fatal~~ — ✅ **해소** (TASK-2026-08-11-main-002,
   `needs_add_only` 선별 + case 10 되주입으로 고정. §4 참조).
-- **정숙 구간 3건은 본질적으로 직렬** — `check_no_repo_write`(15.6s, 전역 관찰),
-  `check_parallel_smoke`(runner 호출), `check_source_without_runtime_layer`(저장소
-  복사). 병렬화로 더 줄이려면 이들의 설계 자체를 바꿔야 한다.
+- **transient pyproject writer 정체 미상 (2026-08-11 1회 관측)** — 병렬 전량
+  실행 중 원본 `pyproject.toml` 이 일시 변경됐다 되돌아왔다 (version_auto_sync
+  byte-대조가 포착). 재현 실패 (표적 3회 + 전량 2회 + 50ms md5 watcher).
+  관찰자 3검사는 정숙화(TASK-008)로 위양성 차단됨. 재발 시
+  `/home/yklee/tmp/watch_pyproject.sh` 패턴 (md5 폴링 + 프로세스 스냅샷) 으로
+  writer 를 특정할 것. `check_no_repo_write` 의 "실행 후 복원" 계약 한계와
+  같은 뿌리로 추정.
+- **정숙 구간 6건** (TASK-008 로 3→6) — `check_no_repo_write`(전역 관찰) /
+  `check_parallel_smoke`(runner 호출) / `check_source_without_runtime_layer`
+  (저장소 복사) 는 본질적 직렬이고, `version_auto_sync` / `self_recovering` /
+  `bidir_link` 는 원본 byte-대조 관찰 때문 (TASK-008). 병렬화로 더 줄이려면
+  이들의 설계 자체를 바꿔야 한다.
 - 이 밖의 과거 세션 리스크 (`--force` 3rd layer 미가동)는 변화 없음 —
   2026-08-09 까지의 세션 기록 참조.
 

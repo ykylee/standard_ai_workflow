@@ -24,6 +24,13 @@ if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _repo_sandbox import repo_sandbox  # noqa: E402
 
+REQUIRES_QUIET_REPO = True
+"""이 check 는 도구를 사본에서 돌리지만, **원본 무손상을 byte 대조로 관찰** 한다
+(`원본을 건드렸다` assert). 병렬 구간에서는 다른 check 의 transient write 와
+race 해 위양성이 난다 (2026-08-11 실측 flake, TASK-2026-08-11-main-008) —
+전역 관찰 검사는 정숙 구간에서 돈다.
+"""
+
 # v1.1.7(TASK-019): 아래 경로들은 `main()` 이 **저장소 사본** 으로 갈아끼운다.
 # 이전에는 원본 `workflow-source/pyproject.toml` 을 `--apply` 로 99.99.99 로 바꿨다
 # 되돌렸다. 되돌리므로 `check_no_repo_write` 의 전후 비교는 통과하지만, 그 사이

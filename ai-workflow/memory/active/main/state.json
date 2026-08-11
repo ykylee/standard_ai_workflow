@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)",
       "TASK-2026-08-11-main-007 — release_pipeline.py 안전 부분 분할 (3908→3174, 모듈 4개, 검사 무수정)",
       "TASK-2026-08-11-main-006 — PERF-WF-04 저장소 오염 제거 + sandbox 복사 소멸-파일 내성",
       "TASK-2026-08-11-main-002 — amend Guard 2 staged-삭제 fatal 수정 (needs_add_only 선별 + 되주입 case 10)",
@@ -41,18 +42,18 @@
       "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (185파일, wiki 참조 1건 + freeze 최소 세트 6건 보존)",
       "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (smoke 268→260)",
       "TASK-2026-08-10-main-019 — 원본 저장소에 `--apply` 하던 검사 4건을 사본으로",
-      "TASK-2026-08-10-main-018 — smoke 병렬화 + 저장소를 rename 하던 check 격리",
-      "TASK-2026-08-10-main-017 — 브랜치 컨텍스트를 정본화하고 로컬 재현을 관행으로"
+      "TASK-2026-08-10-main-018 — smoke 병렬화 + 저장소를 rename 하던 check 격리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 7,
+    "task_count": 8,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건 REQUIRES_QUIET_REPO 선언 (병렬 race 위양성)",
       "TASK-2026-08-11-main-007 — release_pipeline.py 안전 부분 분할 (3908→3174, 모듈 4개, 검사 무수정)",
       "TASK-2026-08-11-main-006 — PERF-WF-04 저장소 오염 제거 + sandbox 복사 소멸-파일 내성",
       "TASK-2026-08-11-main-002 — amend Guard 2 staged-삭제 fatal 수정 (needs_add_only 선별 + 되주입 case 10)",

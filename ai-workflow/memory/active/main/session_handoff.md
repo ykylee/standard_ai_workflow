@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-2026-08-11-main-001~011 전부 done)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-001~011 done, 후속 TASK-012 mooneye 삭제 done / TASK-013·014 planned)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -112,7 +112,9 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
   `workflow_kit_cli.py` ✅ (TASK-011, 2095→583) — **대형 파일 분할 완결**.
 - ~~`docs/presentations/*.pdf|pptx` 5.2MB~~ — ✅ **완료** (TASK-2026-08-11-main-009, 파생 바이너리 제거·소스 보존).
 - **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측).
-- **`mooneye` 브랜치 처리** — idle 429h+, 삭제/유지 사용자 확인 필요.
+- ~~`mooneye` 브랜치 처리~~ — ✅ **완료** (TASK-2026-08-11-main-012, `origin/mooneye`
+  삭제. 고유 커밋 0 — 172 커밋 전부 main 에 존재, `active/mooneye/` 부재로
+  memory 아카이브 해당 없음).
 
 ## 6. 남은 리스크 / 확인하지 못한 것
 

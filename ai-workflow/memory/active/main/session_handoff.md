@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 완결 — TASK-2026-08-11-main-001~008 전부 done, 세션 close)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 완결 + 후속 — TASK-2026-08-11-main-001~009 전부 done)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -33,7 +33,7 @@
   `99.99.99`, README/`__init__` drift, memory_index/wiki, 실빌드 산출물) — 을
   `_repo_sandbox.py` 로 격리했다. 정숙 구간 9→3. 직전: **v1.1.6-beta 발행 완료**
   (TASK-015, `cmd_release` 3번째 실전). 그 이전 이력은 §4 와 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md) 참조.
-- 현재 주 작업 축: **리팩터링 사이클 마감** — 조사 후보는 presentations 바이너리 (소유자 결정) 만 남음. 후속 대형 파일 분할 (`dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095) 은 새 조사·분석 지도 필요 (§5).
+- 현재 주 작업 축: **리팩터링 후속** — presentations 바이너리 제거 완료 (TASK-009, 조사 후보 전량 소진). `dashboard_data.py` 분할은 분석 지도 작성 중, `workflow_kit_cli.py` 는 그 다음 (§5).
 - 다음 후보 축: branch protection (소유자 결정) / darwin homelab 에서 mavis e2e + federation cross-host 재확인 / v1.1.0·v1.1.1 노트 누적 표기 사후 삽입 여부 / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**.
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
@@ -61,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-009 **docs/presentations 파생 바이너리 제거** — `ai-agent-onboarding.pdf` (5.2MB, 트리 추적 용량 대부분) + `.pptx` (134KB) 제거, 소스 3건 (`.html` deck + design md + intro html) 보존. PDF 는 HTML 에서 Chrome headless 로 재생성 가능 (TASK-2026-08-06-main-004 기록 확인). 참조는 과거 task 기록뿐, git 이력 보존 (TASK-003 처방).
 - TASK-2026-08-11-main-008 **원본-무결성 관찰 검사 3건 정숙화** — TASK-007 검증에서 `version_auto_sync` 가 "원본을 건드렸다: pyproject.toml" assert 로 1회 flake. 단독 green + 재현 시도 (표적 3회 + 전량 2회 + md5 watcher) 전부 미재현, 용의자 2건 (`auto_bump` 검사 / drift case 7 auto-bump dry-run) 은 코드·실측 무혐의. 같은 byte-대조 assert 를 가진 3검사 (`version_auto_sync`/`self_recovering`/`bidir_link`) 는 **전역 관찰**이므로 `REQUIRES_QUIET_REPO` 선언 대상이었다 (TASK-018 §2.53 규칙의 적용 누락). 정숙 3→6. **잔여**: transient pyproject writer 정체 미상 (§6).
 - TASK-2026-08-11-main-007 **release_pipeline.py 안전 부분 분할** — 3908→**3174줄** (−734) + 모듈 4개 (changelog 335 / dist 163 / frontmatter 178 / emit 187). **분석 지도 먼저**: 25개 검사가 이 파일 소스를 스캔하므로 심볼 전수를 SOURCE-BOUND (문자열/AST/monkeypatch 바인딩 — 잔류) vs ATTR-ONLY (재수출로 이동 가능) 로 분류 후 안전 그룹만 추출. 함정 2건 명중: `import *` 는 `_` 이름을 안 가져온다 (`__all__` 명시로 해결) / package-less 로드라 상대 import 불가 (sys.path + 절대 import). 순환이 필요해지는 emit 2함수 (`read_version` 직접 호출) 는 잔류 — 작은 안전한 분할 > 영리한 깨진 분할. 격리 worktree 에서 구현·검증 (관련 검사 21종 green, 테스트 수정 0) 후 반영. 잔여 대형 파일: `dashboard_data.py` 2488 / `workflow_kit_cli.py` 2095 — 같은 절차 권장.
 - TASK-2026-08-11-main-006 **PERF-WF-04 저장소 오염 제거 + sandbox 소멸-파일 내성** — 전량 실행 중 `check_bidir_link_v0_13_3` flake (`shutil.Error`, `tmp_audit_perf.log` 소멸 race). 근본 2겹: PERF-WF-04 벤치마크가 **살아있는 저장소 루트에** 임시 파일을 100회 명멸 (PERF-WF-05 는 v1.0.0 에 temp 처방을 받았는데 04 만 누락) → temp 로; `_repo_sandbox` copytree 에 소멸(ENOENT)-내성 (`copy_function` + 선별 재던짐 — 그 외 오류는 그대로). 테스트 2건 (경로 포착 / 소멸·권한 주입), **되주입 양방향 실증**. 부수 교훈: **게이트 명령을 파이프에 넣으면 exit 이 덮인다** — 이 flake 가 push 를 통과한 이유 (pushed commit 은 사후 무결 확인). 이후 검증 체인은 pipefail/단계 분리.
@@ -69,7 +70,6 @@
 - TASK-2026-08-11-main-004 **check_cache_* 13개 → check_cache.py 1개 통합** — test 본문 verbatim 보존 (31 case, 버전 이력이 담긴 함수명 유지), 변경은 로더 보일러플레이트 공용화뿐 (`_load` bare 등록 / `_load_wk` package 등록 — 로드 의미론이 달라 2계보를 하나로 합치지 않음). 충돌 상수 5건은 byte-identical 로드라 최초 정의로 dedupe (본문 수정 0). 31/31 PASS, smoke 260→248, 파생 수치 3문서 동기.
 - TASK-2026-08-11-main-003 **ai-workflow 아카이브 정리** — `archived/gemini` (59) + `archive/2026-07-22` 트리 제거, 총 185파일 (git 이력 보존). 보존 7건: wiki topic 7페이지가 `last_ingested_from` 으로 참조하는 `main/session_analysis_2026-07-09.md` (V-R9) + **freeze 스냅샷 최소 세트 6건** (`.frozen` + SHARED 4종 + `main/state.json`) — `check_memory_freeze_lint` V-R8/V-R10 이 *최신* archive 에 요구, 전량 검사가 잡아 복원. 참조 대조만으로는 **디렉터리 형태 계약**을 못 본다. README stale 링크 5개 (문안 active / 타깃 gemini 아카이브) 를 active/main 실경로로 교정. `check_wiki_score` 55.2→47.2s. `archived/codex`·`main-legacy`·`archive/2026-06-12*` (35파일) 는 조사 문서 밖이라 유보.
 - TASK-2026-08-11-main-001 **check_mypy_strict_v0_11_3~10 8개 제거** — 릴리스별 2파일 부분집합 재측정은 FULL mypy strict (129 파일) + `mypy-strict` CI 전체 검사 아래서 정보 0. `ci_v0_11_11` / `release_gate_v0_11_12` 는 전체-범위 계약이라 보존. smoke 268→260, 파생 수치 3문서 동기 (CODE_INDEX / INSTALLATION / v1.1.6 노트 누적 줄 — 대조 검사 3종이 전부 잡아냄). **부산물**: staged 삭제 상태에서 amend Guard 2 (`release_pipeline.py:1030`) 가 `git add` pathspec fatal → TASK-2026-08-11-main-002 (planned).
-- TASK-2026-08-10-main-019 **원본 저장소에 --apply 하던 검사 4건을 사본으로** — `_repo_sandbox.py` 신설. `version_auto_sync`(pyproject→99.99.99, `__init__`) / `self_recovering_v0_13_2`(README·pyproject·`__init__` drift) / `bidir_link_v0_13_3`(memory_index·wiki) / `release_pipeline_phase3`(실빌드 산출물) 이 **원본을 바꿨다 되돌리고** 있었다. 되돌리므로 `no_repo_write` 전후 비교는 통과 — 그러나 그 사이 다른 에이전트가 읽으면 잘못된 값을 본다. 원본 무손상을 **실행 경로에서** assert. 정숙 9→3, 전량 268/268 × 2 컨텍스트. **성능 이득은 사실상 0** (사본 복사가 정숙 절감을 상쇄) — 값어치는 협업 안전.
 - TASK-2026-08-10-main-018 **smoke 병렬화** — CI job 604s 중 smoke 576s 가 병목, 시간 분포는 극단적(상위 13개=50%, 하위 133개 합계 9.8s). `--jobs auto` + **정숙 구간**(파일 안 `REQUIRES_QUIET_REPO` 선언, §2.53). `check_source_without_runtime_layer` 의 원본 rename → 사본 검증 (**`finally` 는 SIGKILL 에 안 돈다**). **CI 576s→220s**, 로컬 345s→118.8s. `check_parallel_smoke` 8 case.
 그 이전 완료 항목은 [2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
@@ -110,7 +110,7 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 - ~~`release_pipeline.py` 분할~~ — ✅ **완료** (TASK-2026-08-11-main-007,
   3908→3174 + 모듈 4개, 분석 지도 방식). 이어서 `dashboard_data.py` 2488줄,
   `workflow_kit_cli.py` 2095줄 — 같은 "분석 지도 먼저" 절차로.
-- **`docs/presentations/*.pdf|pptx` 5.2MB** — 추적 용량의 대부분인 바이너리.
+- ~~`docs/presentations/*.pdf|pptx` 5.2MB~~ — ✅ **완료** (TASK-2026-08-11-main-009, 파생 바이너리 제거·소스 보존).
 - **branch protection** (소유자 결정) — 이 저장소 `main` 은 미보호 (404 실측).
 - **`mooneye` 브랜치 처리** — idle 429h+, 삭제/유지 사용자 확인 필요.
 

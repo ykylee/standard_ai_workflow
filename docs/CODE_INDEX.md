@@ -24,7 +24,7 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 248개 check_*.py 스모크 (2026-08-11 기준)
+│   ├── tests/                      # 249개 check_*.py 스모크 (2026-08-11 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
 │   ├── harnesses/                  # 11개 지원 하네스 오버레이 + 공통 문서/템플릿
@@ -120,6 +120,10 @@ v0.5.2+ 리팩터. 6-module 패키지:
   — 경로/branch 기준을 잡는 자리를 AST 로 전수 조사한다. 저장소 루트에서 실행할 것
   (미지정이면 cwd 기준이고, 대상이 없으면 통과가 아니라 실패한다).
   smoke 의 `check_root_anchor_audit.py` 가 같은 조사를 돌린다.
+- **transient writer 감시 (opt-in)**: `python3 workflow-source/tools/watch_transient_writer.py`
+  — 파일을 고쳤다 되돌리는 writer 를 현장에서 잡는다 (diff + ps 전량 + fuser,
+  기본 대상 `workflow-source/pyproject.toml`). 로그는 temp 에만 남긴다 —
+  저장소 안 로그는 거부한다. 재발 의심 시 전량 검사 옆에 세워 둘 것.
 - **배포 패키지 생성**: `python3 workflow-source/scripts/export_harness_package.py --harness codex --harness opencode`
 - **MCP 서버 (안정)**: `PYTHONPATH=workflow-source python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines`
 - **MCP 서버 (SDK)**: `PYTHONPATH=workflow-source python3 -m workflow_kit.server.read_only_mcp_sdk --stdio-sdk`

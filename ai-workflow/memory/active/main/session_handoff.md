@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-001~011 done, 후속 TASK-012 mooneye 삭제 done / TASK-013·014 planned)
+- 최종 수정일: 2026-08-11 (리팩터링 사이클 + 후속 완결 — TASK-001~011 done, 후속 TASK-012 mooneye 삭제·TASK-013 transient writer 감시 도구화 done / TASK-014 planned)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
@@ -143,10 +143,13 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 - **transient pyproject writer 정체 미상 (2026-08-11 1회 관측)** — 병렬 전량
   실행 중 원본 `pyproject.toml` 이 일시 변경됐다 되돌아왔다 (version_auto_sync
   byte-대조가 포착). 재현 실패 (표적 3회 + 전량 2회 + 50ms md5 watcher).
-  관찰자 3검사는 정숙화(TASK-008)로 위양성 차단됨. 재발 시
-  `/home/yklee/tmp/watch_pyproject.sh` 패턴 (md5 폴링 + 프로세스 스냅샷) 으로
-  writer 를 특정할 것. `check_no_repo_write` 의 "실행 후 복원" 계약 한계와
-  같은 뿌리로 추정.
+  관찰자 3검사는 정숙화(TASK-008)로 위양성 차단됨. **감시 수단은 저장소에
+  고정됨** (TASK-013, `workflow-source/tools/watch_transient_writer.py` —
+  일회용 `~/tmp` 스크립트의 승격판): 재발 의심 시 전량 검사 옆에 백그라운드로
+  세워 두면 diff + ps 전량 + fuser 를 이벤트별로 남긴다 (로그는 temp 에만,
+  저장소 안 로그는 거부). `check_watch_transient_writer` 5 case 가 되주입
+  양방향으로 계약을 고정. `check_no_repo_write` 의 "실행 후 복원" 계약 한계와
+  같은 뿌리로 추정 — writer 특정 자체는 재발 시의 일이다.
 - **정숙 구간 6건** (TASK-008 로 3→6) — `check_no_repo_write`(전역 관찰) /
   `check_parallel_smoke`(runner 호출) / `check_source_without_runtime_layer`
   (저장소 복사) 는 본질적 직렬이고, `version_auto_sync` / `self_recovering` /

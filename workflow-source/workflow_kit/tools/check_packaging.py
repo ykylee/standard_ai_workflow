@@ -63,6 +63,9 @@ REQUIRED_IMPORTS: tuple[str, ...] = (
     # tools 가 빠지면 소비자 전원의 wk 가 깨지는데 이 검사는 green 이었다.
     "workflow_kit.tools",
     "workflow_kit.tools.session_start",
+    # v1.1.8 2단계: bootstrap_lib 정위치 (1단계 tools 와 동일 처방)
+    "workflow_kit.bootstrap_lib",
+    "workflow_kit.bootstrap_lib.harnesses",
     # v1.1.8 1st cycle: 구경로 shim 도 wheel 에 실려야 한다 (기존 소비자 호환).
     "tools",
     "tools.session_start",

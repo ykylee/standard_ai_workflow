@@ -1,6 +1,6 @@
 """v0.10.1 skill-only entry mode + claude-code adapter verify.
 
-Acceptance criteria (workflow-source/core/llm_wiki_concept_purpose_spec.md §4.5 + workflow-source/scripts/bootstrap_lib/harnesses/__init__.py HARNESS_SPECS):
+Acceptance criteria (workflow-source/core/llm_wiki_concept_purpose_spec.md §4.5 + workflow-source/workflow_kit/bootstrap_lib/harnesses/__init__.py HARNESS_SPECS):
 1. `--entry-mode skill-only` option 추가 + 3-mode (aggressive / safe / skill-only) validate
 2. `--harness claude-code` adapter 등록 + HARNESS_SPECS entry 정합
 3. claude-code + skill-only mode → 3 slash command (`.claude/commands/workflow-{session-start,backlog-update,doc-sync}.md`) emit + AGENTS.md 부재
@@ -72,7 +72,7 @@ def _make_ns(
 
 def _run_bootstrap(target: Path, harnesses: list[str], entry_mode: str) -> dict[str, str]:
     """bootstrap_lib write_harness_files 실행 → generated file map."""
-    from bootstrap_lib.__main__ import (
+    from workflow_kit.bootstrap_lib.__main__ import (
         write_harness_files,
         make_paths,
         infer_project_context,
@@ -89,7 +89,7 @@ def _run_bootstrap(target: Path, harnesses: list[str], entry_mode: str) -> dict[
 # ---------------------------------------------------------------------------
 def test_entry_mode_option_present_v0_10_1() -> None:
     """Acceptance §4.5 #1: parse_args 가 --entry-mode option 을 3-mode (aggressive/safe/skill-only) 로 받음."""
-    from bootstrap_lib.__main__ import parse_args
+    from workflow_kit.bootstrap_lib.__main__ import parse_args
 
     # sys.argv 조작 (parse_args 는 sys.argv 를 직접 읽음)
     base_argv = [
@@ -133,7 +133,7 @@ def test_claude_code_harness_registered_v0_10_1() -> None:
     **v0.10.2 갱신**: v0.10.1 의 "Claude Code 는 root 진입점 안 읽음" 가설이 잘못. Claude Code 도
     CLAUDE.md 를 root 진입점으로 자동 read. entry_files 는 ('CLAUDE.md',) 로 정정됨.
     """
-    from bootstrap_lib.harnesses import (
+    from workflow_kit.bootstrap_lib.harnesses import (
         HARNESS_SPECS,
         HARNESS_FILE_BUILDERS,
         SUPPORTED_HARNESSES,

@@ -17,7 +17,7 @@ BACKLOG_UPDATE_SCRIPT = SOURCE_ROOT / "skills" / "backlog-update" / "scripts" / 
 
 # 배포 대상 core 문서의 **정본 목록**. 개수를 test 에 손으로 적지 않는다.
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
-from bootstrap_lib.__main__ import DEFAULT_CORE_DOCS  # noqa: E402
+from workflow_kit.bootstrap_lib.__main__ import DEFAULT_CORE_DOCS  # noqa: E402
 
 
 def run_bootstrap(args: list[str]) -> dict[str, object]:

@@ -1,6 +1,6 @@
 """v0.10.2 delivery layer 확장 verify.
 
-Acceptance criteria (workflow-source/scripts/bootstrap_lib + workflow_kit schema + session-start skill):
+Acceptance criteria (workflow-source/workflow_kit/bootstrap_lib + workflow_kit schema + session-start skill):
 1. claude-code adapter 진입점 정정 (entry_files=('CLAUDE.md',) + CLAUDE.md render + write_harness_files dispatch)
 2. claude-code + aggressive (default) → CLAUDE.md + 3 slash commands emit
 3. claude-code + skill-only → 3 slash commands only, CLAUDE.md skip
@@ -34,9 +34,9 @@ if str(SOURCE_ROOT) not in sys.path:
 # Force import of renderers module so HARNESS_FILE_BUILDERS is populated
 # (register_harness_builder calls run at module-load time of renderers).
 # Without this, the early tests that import HARNESS_FILE_BUILDERS directly
-# from bootstrap_lib.harnesses would see an empty dict because renderers
+# from workflow_kit.bootstrap_lib.harnesses would see an empty dict because renderers
 # hasn't been imported yet.
-import bootstrap_lib.harnesses.renderers  # noqa: E402,F401
+import workflow_kit.bootstrap_lib.harnesses.renderers  # noqa: E402,F401
 
 
 def _make_ns(target: Path, harnesses: list[str], entry_mode: str) -> argparse.Namespace:
@@ -77,7 +77,7 @@ def _make_ns(target: Path, harnesses: list[str], entry_mode: str) -> argparse.Na
 
 
 def _run_bootstrap(target: Path, harnesses: list[str], entry_mode: str) -> dict[str, str]:
-    from bootstrap_lib.__main__ import (
+    from workflow_kit.bootstrap_lib.__main__ import (
         write_harness_files,
         make_paths,
         infer_project_context,
@@ -94,7 +94,7 @@ def _run_bootstrap(target: Path, harnesses: list[str], entry_mode: str) -> dict[
 # ---------------------------------------------------------------------------
 def test_claude_code_entry_point_corrected_v0_10_2() -> None:
     """Acceptance v0.10.2 #1: claude-code entry_files 가 ('CLAUDE.md',) 로 정정됨 (v0.10.1 의 skill-only 오류 정정)."""
-    from bootstrap_lib.harnesses import HARNESS_SPECS, HARNESS_FILE_BUILDERS, SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS, HARNESS_FILE_BUILDERS, SUPPORTED_HARNESSES
 
     # SUPPORTED_HARNESSES 7→10
     for h in ("claude-code", "aider", "goose", "custom"):
@@ -268,7 +268,7 @@ def test_supported_harnesses_count_v0_10_2() -> None:
     v1.0.0: 이후 릴리스에서 harness 가 *추가* 되므로 (grok-build, codewhale, ...) 정확한
     개수/집합 고정이 아니라 **v0.10.2 당시 10종이 여전히 지원되는지** 를 회귀 검사한다.
     """
-    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
     expected = {
         "codex", "opencode", "gemini-cli", "pi-dev", "antigravity", "minimax-code",

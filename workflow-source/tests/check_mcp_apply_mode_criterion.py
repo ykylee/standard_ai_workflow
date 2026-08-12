@@ -64,13 +64,13 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
-from bootstrap_lib.mcp import (  # noqa: E402
+from workflow_kit.bootstrap_lib.mcp import (  # noqa: E402
     MCP_BRIDGE_APPLY_MODE,
     MCP_BRIDGE_PHASE,
     MCP_SERVER_ALIAS,
     render_claude_code_mcp_config,
 )
-from bootstrap_lib.paths import Paths  # noqa: E402
+from workflow_kit.bootstrap_lib.paths import Paths  # noqa: E402
 
 #: 왕복에 쓸 tool 과 payload. 인자 없는 호출은 schema error 를 내므로 실제 값을 준다.
 PROBE_TOOL = "latest_backlog"

@@ -38,7 +38,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
-from bootstrap_lib.mcp import MCP_CONFIG_RENDERERS  # noqa: E402
+from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_RENDERERS  # noqa: E402
 
 #: Harness name → key in the bootstrap manifest's ``generated_harness_files``
 #: dict that points at the emitted MCP config file.

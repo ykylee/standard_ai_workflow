@@ -11,7 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "scripts"))
 
-from bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
 
 MARKER_RE = re.compile(r"^<!--\s*standard-ai-workflow-kit:")
 

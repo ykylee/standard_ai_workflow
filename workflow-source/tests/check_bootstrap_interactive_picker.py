@@ -32,7 +32,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 SCRIPTS_DIR = SOURCE_ROOT / "scripts"
-# `bootstrap_lib` is `workflow-source/scripts/bootstrap_lib/` — the in-process tests
+# `bootstrap_lib` is `workflow-source/workflow_kit/bootstrap_lib/` — the in-process tests
 # below import `bootstrap_lib.__main__` / `bootstrap_lib.harnesses`, so `scripts/`
 # must be on sys.path. Subprocess tests work via `cwd=SCRIPTS_DIR` (`-m bootstrap_lib`).
 if str(SCRIPTS_DIR) not in sys.path:
@@ -56,8 +56,8 @@ def _run_cli(*extra: str, stdin_text: str | None = None) -> subprocess.Completed
 # 1-6. prompt_for_harnesses unit tests (in-process)
 # ---------------------------------------------------------------------------
 def test_picker_parses_indices() -> None:
-    from bootstrap_lib.__main__ import prompt_for_harnesses
-    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.__main__ import prompt_for_harnesses
+    from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
     out = io.StringIO()
     picker_input = io.StringIO("1,3\n")
@@ -72,8 +72,8 @@ def test_picker_parses_indices() -> None:
 
 
 def test_picker_empty_input_keeps_selection() -> None:
-    from bootstrap_lib.__main__ import prompt_for_harnesses
-    from bootstrap_lib.harnesses import HARNESS_SPECS
+    from workflow_kit.bootstrap_lib.__main__ import prompt_for_harnesses
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 
     out = io.StringIO()
     picker_input = io.StringIO("\n")
@@ -88,8 +88,8 @@ def test_picker_empty_input_keeps_selection() -> None:
 
 
 def test_picker_q_keeps_selection() -> None:
-    from bootstrap_lib.__main__ import prompt_for_harnesses
-    from bootstrap_lib.harnesses import HARNESS_SPECS
+    from workflow_kit.bootstrap_lib.__main__ import prompt_for_harnesses
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 
     out = io.StringIO()
     picker_input = io.StringIO("q\n")
@@ -104,8 +104,8 @@ def test_picker_q_keeps_selection() -> None:
 
 
 def test_picker_a_selects_all() -> None:
-    from bootstrap_lib.__main__ import prompt_for_harnesses
-    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.__main__ import prompt_for_harnesses
+    from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
     out = io.StringIO()
     picker_input = io.StringIO("a\n")
@@ -125,8 +125,8 @@ def test_picker_a_selects_all() -> None:
 
 
 def test_picker_ignores_garbage() -> None:
-    from bootstrap_lib.__main__ import prompt_for_harnesses
-    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.__main__ import prompt_for_harnesses
+    from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
     out = io.StringIO()
     # 99 is out of range, abc is non-numeric, 1 is valid
@@ -145,7 +145,7 @@ def test_enforce_raises_on_empty() -> None:
     """enforce_harness_selection must fail fast in non-picker contexts."""
     import argparse
 
-    from bootstrap_lib.__main__ import enforce_harness_selection
+    from workflow_kit.bootstrap_lib.__main__ import enforce_harness_selection
 
     args = argparse.Namespace(harnesses=[], no_interactive=True)
     try:
@@ -217,8 +217,8 @@ def test_harness_specs_is_complete_sot() -> None:
     The legacy HARNESS_DEFINITIONS dict (kept for back-compat) does not have
     pi-dev. New code must use HARNESS_SPECS so pi-dev is selectable.
     """
-    from bootstrap_lib.harnesses import HARNESS_SPECS, SUPPORTED_HARNESSES
-    from bootstrap_lib.__main__ import HARNESS_DEFINITIONS
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS, SUPPORTED_HARNESSES
+    from workflow_kit.bootstrap_lib.__main__ import HARNESS_DEFINITIONS
 
     spec_keys = set(HARNESS_SPECS)
     supported = set(SUPPORTED_HARNESSES)
@@ -247,7 +247,7 @@ def test_registry_consistency_check() -> None:
     ``RuntimeError`` (registered at the bottom of renderers.py). This test
     exercises the import path so the failure mode is observable.
     """
-    from bootstrap_lib.harnesses import renderers  # noqa: F401
+    from workflow_kit.bootstrap_lib.harnesses import renderers  # noqa: F401
 
     # If the consistency check ran during import, the test passes. The fact
     # that we got here without RuntimeError is the assertion.

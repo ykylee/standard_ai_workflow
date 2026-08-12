@@ -25,7 +25,7 @@ merge* 되는지 확인한다. 정본 §6.5.2 는
 
 Refs:
   - workflow-source/core/mcp_installation_by_harness.md §6.5.2
-  - workflow-source/scripts/bootstrap_lib/mcp.py
+  - workflow-source/workflow_kit/bootstrap_lib/mcp.py
 """
 
 from __future__ import annotations
@@ -44,19 +44,19 @@ SCRIPTS_DIR = SOURCE_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from bootstrap_lib.harnesses import (  # noqa: E402
+from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
     HARNESS_SPECS,
     SUPPORTED_HARNESSES,
     HARNESS_FILE_BUILDERS,
 )
-from bootstrap_lib.mcp import (  # noqa: E402
+from workflow_kit.bootstrap_lib.mcp import (  # noqa: E402
     DEFAULT_MAVIS_GLOBAL_MCP_PATH,
     MCP_CONFIG_RENDERERS,
     MCP_SERVER_ALIAS,
     atomic_merge_mavis_global,
     render_mavis_global_mcp_config,
 )
-from bootstrap_lib.__main__ import HARNESS_DEFINITIONS  # noqa: E402
+from workflow_kit.bootstrap_lib.__main__ import HARNESS_DEFINITIONS  # noqa: E402
 
 
 #: mkdtemp + 프로세스 종료 시 정리 (v1.1.2, `check_tempdir_leak_guard` case 7).
@@ -192,7 +192,7 @@ def test_resame_alias_overwrite_with_force() -> None:
 
 def test_argparse_accepts_mavis_with_overrides() -> None:
     """case 6: argparse 가 --harness mavis + --mavis-global-mcp-path 수용."""
-    from bootstrap_lib import __main__ as _bm
+    from workflow_kit.bootstrap_lib import __main__ as _bm
 
     tmp = _tmpdir("mavis-arg-")
     target = tmp / "mcp.json"

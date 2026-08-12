@@ -66,7 +66,7 @@ from workflow_kit.common.standard_rules import (  # noqa: E402
     render_snapshot_module,
 )
 
-RENDERERS = SOURCE_ROOT / "scripts" / "bootstrap_lib" / "harnesses" / "renderers.py"
+RENDERERS = SOURCE_ROOT / "workflow_kit" / "bootstrap_lib" / "harnesses" / "renderers.py"
 SNAPSHOT = SOURCE_ROOT / "workflow_kit" / "common" / "_standard_rules_snapshot.py"
 BOOTSTRAP_SCRIPT = SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"
 DISTRIBUTED_CORE = REPO_ROOT / "ai-workflow" / "core"
@@ -375,7 +375,7 @@ def test_harness_registry_fully_classified() -> None:
     scripts_dir = SOURCE_ROOT / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
-    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES  # noqa: E402
+    from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES  # noqa: E402
 
     classified = set(PRIMARY_ENTRYPOINTS) | set(EXEMPT_HARNESSES)
     registered = set(SUPPORTED_HARNESSES)
@@ -432,8 +432,8 @@ def test_secondary_renderers_carry_or_declare() -> None:
     scripts_dir = SOURCE_ROOT / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
-    from bootstrap_lib.harnesses import renderers as renderer_module  # noqa: E402
-    from bootstrap_lib.paths import Paths  # noqa: E402
+    from workflow_kit.bootstrap_lib.harnesses import renderers as renderer_module  # noqa: E402
+    from workflow_kit.bootstrap_lib.paths import Paths  # noqa: E402
 
     rules = load_standard_rules(SOURCE_ROOT)
     memory_cmd = rules.memory_commands[0][1]

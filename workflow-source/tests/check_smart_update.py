@@ -213,8 +213,8 @@ def test_bootstrap_wheel_install_graceful_when_no_source() -> None:
     """
     sys.path.insert(0, str(SOURCE_ROOT))
     sys.path.insert(0, str(SCRIPTS_ROOT))
-    import bootstrap_lib.__main__ as BM  # type: ignore[import-not-found]
-    from bootstrap_lib.discovery import global_snippet_sources  # type: ignore[import-not-found]
+    import workflow_kit.bootstrap_lib.__main__ as BM  # type: ignore[import-not-found]
+    from workflow_kit.bootstrap_lib.discovery import global_snippet_sources  # type: ignore[import-not-found]
 
     assert global_snippet_sources(None) == {}, (
         "global_snippet_sources must return empty dict when source_root is None"

@@ -38,7 +38,7 @@ PYPROJECT = REPO / "workflow-source" / "pyproject.toml"
 INIT_PY = REPO / "workflow-source" / "workflow_kit" / "__init__.py"
 MATURITY = REPO / "workflow-source" / "core" / "maturity_matrix.json"
 README = REPO / "README.md"
-HARNESS_SPECS_PATH = REPO / "workflow-source" / "scripts" / "bootstrap_lib" / "harnesses" / "__init__.py"
+HARNESS_SPECS_PATH = REPO / "workflow-source" / "workflow_kit" / "bootstrap_lib" / "harnesses" / "__init__.py"
 
 # 본 smoke 가 안정적으로 유지될 expected promotion 결과 (v0.11.21 기준).
 # 본 release 에서 추가 stable 승격이 일어나면 이 set 을 갱신해야 한다.

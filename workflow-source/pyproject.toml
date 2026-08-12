@@ -173,6 +173,10 @@ workflow-workspace-registry = "workflow_kit.tools.workspace_registry:main"
 # 복사한다 — session-start 류 wrapper 스크립트는 pip 설치 없이는 동작하지 않는
 # 껍데기라 복사 목록에서 뺐다 (bootstrap_lib/__main__.py DEFAULT_CORE_SUPPORT_PATHS).
 packages = [
+    # v1.1.8 2단계 (TASK-2026-08-12-main-007): 구현의 정위치.
+    "workflow_kit.bootstrap_lib",
+    "workflow_kit.bootstrap_lib.harnesses",
+    # 1st cycle 구경로 shim — 다음 cycle 에 tools shim 과 함께 drop.
     "bootstrap_lib",
     "bootstrap_lib.harnesses",
     "workflow_kit",
@@ -272,6 +276,12 @@ exclude = [
 # 별건 (v0.8.0 §5.3 단계적 격상 규약).
 [[tool.mypy.overrides]]
 module = "workflow_kit.tools.*"
+ignore_errors = true
+
+# v1.1.8 2단계 (TASK-2026-08-12-main-007): bootstrap_lib 도 같은 이유 —
+# top-level 시절부터 strict 밖이었고, 격상은 별건.
+[[tool.mypy.overrides]]
+module = "workflow_kit.bootstrap_lib.*"
 ignore_errors = true
 
 # v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.

@@ -9,7 +9,7 @@ API and forwards the CLI entry point so that legacy invocations
 For new code, prefer:
 
 - ``python -m bootstrap_lib`` — CLI entry point
-- ``from bootstrap_lib import ...`` — programmatic API
+- ``from workflow_kit.bootstrap_lib import ...`` — programmatic API
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ if str(_THIS_DIR) not in sys.path:
 # Re-export every public symbol from the bootstrap_lib package so that
 # ``from bootstrap_workflow_kit import …`` keeps working for any downstream
 # caller that still imports the legacy module name.
-from bootstrap_lib.__main__ import (  # noqa: E402,F401
+from workflow_kit.bootstrap_lib.__main__ import (  # noqa: E402,F401
     DEFAULT_CORE_DOCS,
     DEFAULT_CORE_SUPPORT_PATHS,
     HARNESS_DEFINITIONS,
@@ -41,14 +41,14 @@ from bootstrap_lib.__main__ import (  # noqa: E402,F401
     update_dependencies,
     write_harness_files,
 )
-from bootstrap_lib.harnesses import (  # noqa: E402,F401
+from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402,F401
     HARNESS_FILE_BUILDERS,
     HARNESS_SPECS,
     SUPPORTED_HARNESSES,
     HarnessSpec,
     spec_for,
 )
-from bootstrap_lib.paths import HarnessDefinition, Paths  # noqa: E402,F401
+from workflow_kit.bootstrap_lib.paths import HarnessDefinition, Paths  # noqa: E402,F401
 
 # CLI entry point — preserves the original ``python bootstrap_workflow_kit.py`` UX.
 if __name__ == "__main__":

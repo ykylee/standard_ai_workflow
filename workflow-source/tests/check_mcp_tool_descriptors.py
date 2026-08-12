@@ -170,7 +170,7 @@ def test_rendered_toml_keys_are_what_the_code_wrote() -> bool:
         import tomli as tomllib
 
     sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
-    from bootstrap_lib.mcp import (  # noqa: PLC0415
+    from workflow_kit.bootstrap_lib.mcp import (  # noqa: PLC0415
         MCP_SERVER_ALIAS,
         MCP_TOOL_NAME,
         render_mcp_toml_block,
@@ -224,7 +224,7 @@ def test_root_key_table_matches_authored_examples() -> bool:
     Codex 는 TOML 이라 대상이 아니다 (그쪽은 case 5 가 파싱해서 본다).
     """
     sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
-    from bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY  # noqa: PLC0415
+    from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY  # noqa: PLC0415
 
     witnessed: list[str] = []
     unwitnessed: list[str] = []

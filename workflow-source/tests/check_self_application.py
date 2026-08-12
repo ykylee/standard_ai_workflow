@@ -62,9 +62,9 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
-from bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
-from bootstrap_lib.mcp import MCP_CONFIG_RENDERERS, write_mcp_config_files  # noqa: E402
-from bootstrap_lib.paths import Paths  # noqa: E402
+from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_RENDERERS, write_mcp_config_files  # noqa: E402
+from workflow_kit.bootstrap_lib.paths import Paths  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     memory_active_dir,
     state_path_for_workspace,

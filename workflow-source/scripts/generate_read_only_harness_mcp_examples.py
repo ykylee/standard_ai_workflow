@@ -27,7 +27,7 @@ if str(SOURCE_ROOT) not in sys.path:
 if str(SOURCE_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT / "scripts"))
 
-from bootstrap_lib.mcp import (
+from workflow_kit.bootstrap_lib.mcp import (
     MCP_BRIDGE_PHASE,
     MCP_CONFIG_ROOT_KEY,
     MCP_SERVER_ALIAS,

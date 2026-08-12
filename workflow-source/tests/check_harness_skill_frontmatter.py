@@ -2,7 +2,7 @@
 
 ## 왜 필요한가
 
-`scripts/bootstrap_lib/harnesses/renderers.py` 는 harness 별 skill/agent 파일을
+`workflow_kit/bootstrap_lib/harnesses/renderers.py` 는 harness 별 skill/agent 파일을
 **Python 문자열 리터럴** 로 생성한다. 그 안에 YAML frontmatter 가 들어 있는데,
 파일로 나가기 전까지 파서를 한 번도 통과하지 않는다. 예를 들어
 `render_grok_build_skill` 의 `description` 은 따옴표 없는 plain scalar 인데 백틱과
@@ -36,7 +36,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-RENDERERS = SOURCE_ROOT / "scripts" / "bootstrap_lib" / "harnesses" / "renderers.py"
+RENDERERS = SOURCE_ROOT / "workflow_kit" / "bootstrap_lib" / "harnesses" / "renderers.py"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.upgrade_diff import stamp_marker  # noqa: E402

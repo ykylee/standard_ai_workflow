@@ -74,7 +74,7 @@ CONVENTIONS: tuple[Convention, ...] = (
                 "freeze/ingest 는 legacy 규약을 의도적으로 유지 (본문 주석에 근거 명시)",
             "workflow_kit/common/contracts/baselines.py":
                 "temp 벤치 **사본** 파일명이라 실제 메모리 경로가 아니다",
-            "scripts/bootstrap_lib/paths.py":
+            "workflow_kit/bootstrap_lib/paths.py":
                 "신규 프로젝트 템플릿 경로 emit — workflow_kit 에 의존하지 않는 부트스트랩 계층",
             "workflow_kit/tools/migrate_memory_to_branch_scoped.py":
                 "마이그레이션 도구 — legacy → branch-scoped 이동이 목적이라 양쪽 경로를 직접 다룬다",

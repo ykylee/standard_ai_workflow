@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-11 (6차 세션 종료 — TASK-018 종결. state.json 생성물 전환 + wk refresh-state + session-start 결함 2건. TASK-019 planned)
+- 최종 수정일: 2026-08-12 (7차 세션 종료 — TASK-023 종결. backlog-update 병합 의미론 + handoff ID dedupe)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **6차 세션 종료 — state.json 이 생성물로 선언되고 절차·검사가 붙었다.** 정본 §11.1 에 `wk refresh-state` 행, §11.2 에 생성물 선언 + "handoff/backlog 는 생성기 입력" 선언. `wk session-start` 무인자 동작 (workspace 자동 탐색 + branch-scoped daily 관측 — 인덱스 전제 오판 결함 해소). `check_state_json_generated` 6 case (되주입 + 자기 적용 + 선언↔창구 정합). smoke 249→**250**, 전량 2축 250/250 ×2 green. 리뷰 3종(하네스/스킬·CLI/MCP) 결함 목록은 [6차 세션 기록](./sessions/state_generated_and_composition_review_2026-08-11.md) §3·§4 — readOnlyHint 허위 주석, goose hook 깨진 경로, §11.1 손 사본 7곳, `wk backlog-update` 파괴적 update 등.
-- 직전 기준선: **5차 세션 종료 — 하네스 파생본이 정본 하나로 통일됐다.** 2026-08-11 backlog 22건 중 20건 종결 (TASK-018 in_progress, 019 planned).
+- 현재 기준선: **7차 세션 종료 — backlog-update 가 재생성에서 병합으로 바뀌었다 (TASK-023).** `merge_task_file` (명시 인자만 반영) + index block 보존 (status 줄만 교체) + handoff task ID dedupe + `--kind`/`--priority` 미지정 시 보존. `check_backlog_update_layout` 5→8 case, 신설 3 case 는 버그 코드에서 FAIL 실증. 종결을 고친 도구 자신으로 수행. 상세: [7차 세션 기록](./sessions/backlog_update_merge_semantics_2026-08-12.md).
+- 직전 기준선: **6차 세션 종료 — state.json 이 생성물로 선언되고 절차·검사가 붙었다.** 정본 §11.1 에 `wk refresh-state` 행, §11.2 에 생성물 선언 + "handoff/backlog 는 생성기 입력" 선언. `wk session-start` 무인자 동작 (workspace 자동 탐색 + branch-scoped daily 관측 — 인덱스 전제 오판 결함 해소). `check_state_json_generated` 6 case (되주입 + 자기 적용 + 선언↔창구 정합). smoke 249→**250**, 전량 2축 250/250 ×2 green. 리뷰 3종(하네스/스킬·CLI/MCP) 결함 목록은 [6차 세션 기록](./sessions/state_generated_and_composition_review_2026-08-11.md) §3·§4 — readOnlyHint 허위 주석, goose hook 깨진 경로, §11.1 손 사본 7곳, `wk backlog-update` 파괴적 update 등.
+- 그 이전 기준선: **5차 세션 종료 — 하네스 파생본이 정본 하나로 통일됐다.** 2026-08-11 backlog 22건 중 20건 종결 (TASK-018 in_progress, 019 planned).
   - **층위가 계속 내려간 세션이었다**: 검사 4건 FAIL → 전부 macOS `/private` symlink 하나 → 재검증에서 state.json 이 생성기와 갈라짐 → 왜 갈라지나(아무도 생성기를 안 돌리고 에이전트가 손으로 쓴다) → **왜 손으로 쓰나: 소비자에게 실행 가능한 경로가 처음부터 없었다.** 마지막이 뿌리였다.
   - **TASK-017** — macOS 회귀 4건이 전부 `/private` symlink 뿌리. production 무수정, 검사 fixture 4곳 `.resolve()` 통일. **기능 회귀가 아니라 검사의 플랫폼 이식성 결함이고 Linux CI 에서는 영영 안 드러난다** — darwin homelab 이 그 축이다.
   - **TASK-020** — 렌더러 32개 전수검사: **26개**가 메모리 갱신을 지시하며 방법을 안 알려줬고, 유일한 '정상' 1개조차 **존재하지 않는 경로**를 가리켰다 (goose config 형식이 강제한 부산물). 배포물 확인 결과 skill 스크립트는 pip 패키지에도 bootstrap 번들에도 없고 `wk` 68개 중 해당 기능 0개 — `pyproject` 주석의 "bootstrap 이 복사한다" 는 **거짓 전제**였다.
@@ -19,7 +20,7 @@
   - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
 
 - 그 이전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: (없음 — 2026-08-11 backlog 28건 중 21건 done, planned 7건: TASK-019 배타 락 + 6차 리뷰 후속 TASK-023~028. 우선순위 high = 023 backlog-update 파괴적 update / 024 readOnlyHint 허위 / 026 §11 단일출처 검사 강화).
+- 현재 주 작업 축: (없음 — 2026-08-11 backlog 28건 중 22건 done, planned 6건: TASK-019 배타 락 + 리뷰 후속 TASK-024~028. 우선순위 high = 024 readOnlyHint 허위 / 026 §11 단일출처 검사 강화).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -48,6 +49,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-023 wk backlog-update update 모드 파괴적 재생성 수정
 - TASK-2026-08-11-main-018 **state.json 을 생성물로 전환** — 정본 §11.1 `wk refresh-state` 행 + §11.2 생성물·생성기 입력 선언, 재생성/`--check` 창구 신설 (wk 72명령), `check_state_json_generated` 6 case (되주입 양방향 + **자기 적용** + 선언↔창구 정합, 정숙 구간). 확장분: `wk session-start` 무인자 자동 탐색 + branch-scoped daily 관측 (인덱스 전제가 task 상세 파일을 최신 backlog 로 오판하던 결함), args 경유 TypeError, self-bootstrap 의 skills/ 경로 → wk. smoke 249→250, 전량 2축 250/250 ×2. 진행 중 실측: `wk backlog-update --mode update` 가 task 파일을 전체 재생성하며 내용을 삭제 + handoff 중복 bullet — 후속 후보로 기록
 - TASK-2026-08-11-main-022 **하네스 파생본 통일** — 정본에 **§11 메모리 갱신 경로 + 파싱 계약**을 신설하고 `render_entrypoint_rules()` 경로로 전 하네스에 주입, `check_standard_single_source` 가 진입점의 §11 누락을 잡는다. **결함 26→14** (주요 진입점 8개는 기존 주입점을 타고 자동, `.claude/commands/*` 3개는 직접 주입 — 이번 조사의 출발점이던 파일들). 부수: goose 가 emit 하던 **존재하지 않는 경로**를 `wk` 로 교체 + `pyproject` 의 "bootstrap 이 skills 를 복사한다" 거짓 전제 정정. **커밋 전 FAIL 10건이 단일 뿌리로 잡혔다** — 필드 추가 시 스냅샷 fallback 생성자를 놓쳤고, **정본이 없는 환경에서만 실행되는 경로**라 mypy strict 가 아니었으면 배포처에서만 터졌을 결함이다. 교훈: **정본·추출기·스냅샷은 한 커밋 안에서 같이 움직인다.**
 - TASK-2026-08-11-main-020 **하네스 진입점 전수검사 (진단)** — 렌더러 32개 중 **26개**가 메모리 갱신을 지시하며 방법을 안 알려줬고, 유일한 '정상' 1개조차 **존재하지 않는 경로**를 가리켰다. 배포물을 전수 확인해 근본이 뒤집혔다: 이건 문서 결함이 아니라 **소비자에게 실행 가능한 경로가 처음부터 없는 것**이었다 (`skills/` 는 pip 패키지에도 bootstrap 번들에도 없고, `wk` 68개 명령 중 해당 기능 0개). 에이전트가 손으로 쓴 것은 규율 부족이 아니라 다른 선택지가 없어서였다. 아키텍처 결정(정본 하나 + `wk` 창구 하나 + 하네스별 파생본) 기록 후 TASK-021/022/018 로 분해.
@@ -57,7 +59,6 @@
 - TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 4회전** — ①내용 (실명 오류·전재 누락), ②수치 전수 (기간 "14개월" 날조 → 4개월, "smoke 24→249" → 199→249, CLI 65+ → 68 등 정정 8건 — 교훈: **산문 속 수치가 날조의 주 경로**), ③문체·어휘 (비일상 어휘 12종 교체/풀이, 3원리 일상어 표기, 폭 920px·부제 축약), ④**학습회 독립화** (사용자 결정 — 보고서에서 학습회·발표 서술 전부 제거, 참고문헌의 덱 항목 삭제. 계획 문서는 이력이므로 유지). placeholder (작성자/문서번호) 는 사용자 기입. 부수: 검증 중 CI flake 발견 → watch_transient_writer ready handshake 수정 (708eb94).
 - TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
 - TASK-2026-08-11-main-011 **workflow_kit_cli.py 안전 부분 분할** — 2095→**583줄** (−1512) + 모듈 5개 (`cli_registry` 48 / cache 619 / memory 618 / release 262 / okf 216). 디스패처가 argparse 가 아니라 **`@register` 레지스트리**라 `cli_registry.py` 선행 분리가 핵심 처방 — 신규 모듈이 registry 만 import 해 순환 0 이고, `check_workflow_kit_cli` 의 최상위-이름 재-exec 방식과도 양립 (COMMANDS 가 캐시된 registry 에 산다). SOURCE-BOUND 2핸들러 (`cmd_release_create`/`cmd_release_status`) 잔류, 신규 import 는 tool 등록 호출보다 위 (ALREADY_REGISTERED 순서), `python -m`·`[project.scripts] wk` 계약 보존. mypy strict 137파일 0 오류, CLI **53/53** · dispatcher **10/10** · entry points 32종 · release 5종 green, 테스트 수정 0.
-- TASK-2026-08-11-main-010 **dashboard_data.py 안전 부분 분할** — 2488→**1526줄** (−962) + 모듈 3개 (HTML 렌더러 515 / MD 렌더러 283 / workspace-roots 헬퍼 287). 분석 지도: 소스-바인딩은 `check_convention_single_source` 의 `DRIFT_LEDGER_RELPATH` **정의 잔류** 1건뿐, monkeypatch 0 — release_pipeline (25검사 바인딩) 보다 자유. package 라 명시 from-import 재수출 + `__all__` 확장 (underscore 16개 — mypy `no_implicit_reexport` + ruff F401 동시 충족), `_render_panel_1` 의 `DRIFT_LEDGER_RELPATH` 는 function-level import 로 순환 회피. **mypy strict 132파일 0 오류** (CI 게이트), 관련 검사 12종 green, 테스트 수정 0, verbatim 이동 byte 대조.
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

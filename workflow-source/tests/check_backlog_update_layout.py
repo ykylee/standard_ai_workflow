@@ -13,12 +13,15 @@ stable 로 선언된 `backlog-update` 가 **governance 가 규정한 layout 을 
 **layout 자체를 규약으로 검사하지 않았다.** 그래서 skill 을 실제로 돌려 산출물을
 governance 규약과 대조하는 본 smoke 를 둔다 (§2.18 "선언이 사실인가" 의 연장).
 
-Test list (5 case):
+Test list (8 case):
 1. test_daily_index_is_link_only
 2. test_task_file_naming_and_frontmatter
 3. test_no_bak_file_written
 4. test_second_apply_replaces_block_not_duplicates
 5. test_index_links_resolve_with_layout_checker_regex
+6. test_update_preserves_unspecified_fields (TASK-2026-08-11-main-023 되주입)
+7. test_update_preserves_index_extras (TASK-2026-08-11-main-023 되주입)
+8. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
 
 Cross-ref: workflow-source/MEMORY_GOVERNANCE.md §2 +
 workflow-source/tests/check_appendonly_memory_layout.py (저장소 실물 검사).
@@ -152,6 +155,80 @@ def test_index_links_resolve_with_layout_checker_regex() -> None:
             assert (backlog_dir / "tasks" / f"{task_id}.md").exists(), task_id
 
 
+def test_update_preserves_unspecified_fields() -> None:
+    """update 는 재생성이 아니라 병합이다 (TASK-2026-08-11-main-023).
+
+    되주입 근거: 이전 구현은 인자만으로 문서를 다시 만들어, kind/우선순위/담당/
+    작업 내용/완료 기준이 미지정 호출 한 번에 삭제됐다 (실측: TASK-018 손 복원).
+    이 case 는 그 버전이라면 전부 FAIL 한다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _run_apply(
+            ws, "--task-name", "원래 제목", "--task-brief", "원래 작업 내용",
+            "--mode", "create", "--kind", "session", "--priority", "medium",
+            "--owner", "Agent A", "--done-criteria", "기준 X", "--status", "planned",
+        )["task_id"]
+        # 미지정 update — 상태와 진행 현황만 바뀌어야 한다.
+        payload = _run_apply(ws, "--task-name", "다르게 쓴 제목", "--task-brief", "진행 한 줄",
+                             "--task-id", task_id, "--mode", "update", "--status", "in_progress")
+        text = (_branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md").read_text(encoding="utf-8")
+        assert "kind: session" in text, "kind 가 기본값으로 덮였다"
+        assert "- 우선순위: medium" in text, "우선순위가 기본값으로 덮였다"
+        assert "- 담당: Agent A" in text, "담당이 삭제됐다"
+        assert "- 작업 내용: 원래 작업 내용" in text, "작업 내용이 brief 로 덮였다"
+        assert "- 완료 기준: 기준 X" in text, "완료 기준이 삭제됐다"
+        assert "status: in_progress" in text and "- 상태: in_progress" in text, "상태 미갱신"
+        assert "진행 한 줄" in text, "진행 현황 미갱신"
+        assert f"# {task_id} — 원래 제목" in text, "제목이 입력값으로 덮였다"
+        assert any("제목이 기존과 다르다" in w for w in payload["warnings"]), "제목 차이 경고 부재"
+
+
+def test_update_preserves_index_extras() -> None:
+    """update 는 index block 의 부가 sub-bullet(notes 등)과 head 를 보존한다."""
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _seed(ws)["task_id"]
+        index_path = _branch_dir(ws) / "backlog" / "2026-07-22.md"
+        text = index_path.read_text(encoding="utf-8")
+        text = re.sub(r"(  - status: \w+)", r"\1\n  - notes: 손으로 쓴 노트", text, count=1)
+        index_path.write_text(text, encoding="utf-8")
+        _run_apply(ws, "--task-name", "레이아웃 검증", "--task-brief", "갱신",
+                   "--task-id", task_id, "--mode", "update", "--status", "in_progress")
+        index = index_path.read_text(encoding="utf-8")
+        assert "  - notes: 손으로 쓴 노트" in index, "index 의 손 sub-bullet 이 삭제됐다"
+        assert "[release] 레이아웃 검증" in index, "index head 의 kind/제목이 덮였다"
+        assert "  - status: in_progress" in index, "index status 미갱신"
+
+
+def test_handoff_dedupes_by_task_id() -> None:
+    """handoff 반영은 표기가 아니라 task ID 로 dedupe 한다 (중복 bullet 방지)."""
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _seed(ws)["task_id"]
+        handoff = _branch_dir(ws) / "session_handoff.md"
+        handoff.write_text(
+            "# Session Handoff\n\n## 2. 진행 중 작업\n\n- 현재 `in_progress` 작업:\n"
+            f"- {task_id} — 다른 표기의 같은 작업 (부가 설명)\n\n"
+            "## 3. 차단 작업\n\n- 현재 `blocked` 작업:\n-\n\n"
+            "## 4. 최근 완료 작업\n\n- 최근 완료 작업 목록:\n-\n",
+            encoding="utf-8",
+        )
+        _run_apply(ws, "--task-name", "레이아웃 검증", "--task-brief", "갱신",
+                   "--task-id", task_id, "--mode", "update", "--status", "in_progress")
+        text = handoff.read_text(encoding="utf-8")
+        assert text.count(task_id) == 1, f"handoff 에 같은 task 가 중복됐다:\n{text}"
+        # done 전이 시 in_progress 에서 빠지고 완료 목록에 1건만 남는다.
+        _run_apply(ws, "--task-name", "레이아웃 검증", "--task-brief", "완료",
+                   "--task-id", task_id, "--mode", "update", "--status", "done",
+                   "--validation-result", "smoke PASS")
+        text = handoff.read_text(encoding="utf-8")
+        in_progress_section = text.split("## 2.")[1].split("## 3.")[0]
+        done_section = text.split("## 4.")[1]
+        assert task_id not in in_progress_section, "done 전이 후에도 in_progress 에 남았다"
+        assert done_section.count(task_id) == 1, "완료 목록 중복/누락"
+
+
 def main() -> int:
     test_funcs = [
         test_daily_index_is_link_only,
@@ -159,6 +236,9 @@ def main() -> int:
         test_no_bak_file_written,
         test_second_apply_replaces_block_not_duplicates,
         test_index_links_resolve_with_layout_checker_regex,
+        test_update_preserves_unspecified_fields,
+        test_update_preserves_index_extras,
+        test_handoff_dedupes_by_task_id,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

@@ -7,7 +7,17 @@ from pathlib import Path
 import re
 
 from workflow_kit.common.markdown import rel_link_from_doc
-from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP
+from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP, TASK_ID_PATTERN
+
+#: handoff 항목 맨 앞의 task ID. dedupe 는 **표기가 아니라 ID** 로 한다 —
+#: 같은 task 를 "TASK-X — 제목" 과 "TASK-X 제목" 으로 두 번 들고 있던 실측
+#: (TASK-2026-08-11-main-023) 의 처방. 문법은 `project_docs.TASK_ID_PATTERN` 정본에서 파생.
+_LEADING_TASK_ID_RE = re.compile(rf"^({TASK_ID_PATTERN})\b")
+
+
+def _leading_task_id(text: str) -> str | None:
+    match = _LEADING_TASK_ID_RE.match(text.strip().strip("*").strip())
+    return match.group(1) if match else None
 
 
 def _read_lines(path: Path) -> list[str]:
@@ -147,6 +157,82 @@ def _daily_index_entry_lines(*, task_id: str, title: str, kind: str, status: str
     ]
 
 
+def _set_inline_field(lines: list[str], label: str, value: str) -> tuple[list[str], bool]:
+    """`- <label>: …` 한 줄짜리 필드의 값을 교체한다. 없으면 (원본, False)."""
+    prefix = f"- {label}:"
+    for idx, line in enumerate(lines):
+        if line.strip() == prefix or line.strip().startswith(prefix + " "):
+            indent = line[: len(line) - len(line.lstrip())]
+            updated = list(lines)
+            updated[idx] = f"{indent}- {label}: {value}"
+            return updated, True
+    return lines, False
+
+
+def _set_frontmatter_value(lines: list[str], key: str, value: str) -> list[str]:
+    """frontmatter (`--- … ---`) 안의 `key: …` 를 교체한다."""
+    if not lines or lines[0].strip() != "---":
+        return lines
+    updated = list(lines)
+    for idx in range(1, len(updated)):
+        stripped = updated[idx].strip()
+        if stripped == "---":
+            break
+        if stripped.startswith(f"{key}:"):
+            updated[idx] = f"{key}: {value}"
+            break
+    return updated
+
+
+def merge_task_file(
+    existing_lines: list[str],
+    *,
+    status: str,
+    kind: str | None = None,
+    scalar_updates: dict[str, str] | None = None,
+    affected_documents: list[str] | None = None,
+) -> tuple[list[str], list[str]]:
+    """기존 task SSOT 파일에 **명시된 갱신만** 반영한다 (TASK-2026-08-11-main-023).
+
+    이전 update 모드는 인자로 문서를 통째로 재생성해, 미지정 필드(작업 내용·완료
+    기준·담당·kind)를 삭제했다 (실측: TASK-018 파일이 깎여 손 복원). 파생 writer 는
+    원문을 보존해야 한다 — 여기서는 상태 + 호출자가 실제로 준 값만 바꾼다.
+
+    Returns: (merged_lines, missing_labels) — 문서에 해당 라벨 줄이 없어 반영하지
+    못한 항목. 조용히 버리지 않고 호출자가 경고로 노출한다.
+    """
+    lines = _set_frontmatter_value(existing_lines, "status", status)
+    if kind:
+        lines = _set_frontmatter_value(lines, "kind", kind)
+    lines, _ = _set_inline_field(lines, "상태", status)
+
+    missing: list[str] = []
+    for label, value in (scalar_updates or {}).items():
+        lines, found = _set_inline_field(lines, label, value)
+        if not found and label == "검증 결과":
+            # done 판정의 근거라 조용히 버릴 수 없다. 원문에 줄이 없으면 (구버전
+            # create 는 이 줄을 조건부로만 만들었다) `작업 결과` 바로 뒤에 넣는다.
+            for idx, line in enumerate(lines):
+                if line.strip().startswith("- 작업 결과:"):
+                    lines = lines[: idx + 1] + [f"- 검증 결과: {value}"] + lines[idx + 1 :]
+                    found = True
+                    break
+        if not found:
+            missing.append(label)
+
+    if affected_documents:
+        for idx, line in enumerate(lines):
+            if line.strip() == "- 영향 문서:":
+                end = idx + 1
+                while end < len(lines) and lines[end].startswith("  - "):
+                    end += 1
+                lines = lines[: idx + 1] + [f"  - `{doc}`" for doc in affected_documents] + lines[end:]
+                break
+        else:
+            missing.append("영향 문서")
+    return lines, missing
+
+
 def upsert_backlog_entry(
     *,
     backlog_path: Path,
@@ -155,6 +241,7 @@ def upsert_backlog_entry(
     title: str = "",
     kind: str = "generic",
     status: str = "planned",
+    preserve_index_block: bool = False,
 ) -> str:
     """task SSOT 파일을 쓰고 daily index 에 link 를 반영한다 (v0.14.0+ layout).
 
@@ -182,7 +269,9 @@ def upsert_backlog_entry(
     if backlog_path.exists():
         lines = _read_lines(backlog_path)
         lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
-        lines = _upsert_index_block(lines, task_id=task_id, entry=entry)
+        lines = _upsert_index_block(
+            lines, task_id=task_id, entry=entry, preserve_block=preserve_index_block, status=status,
+        )
     else:
         lines = render_daily_backlog_header(backlog_path=backlog_path) + entry
 
@@ -190,10 +279,22 @@ def upsert_backlog_entry(
     return action
 
 
-def _upsert_index_block(lines: list[str], *, task_id: str, entry: list[str]) -> list[str]:
-    """daily index 에서 `- **<task_id>**` block 을 교체하거나 끝에 덧붙인다.
+def _upsert_index_block(
+    lines: list[str],
+    *,
+    task_id: str,
+    entry: list[str],
+    preserve_block: bool = False,
+    status: str = "planned",
+) -> list[str]:
+    """daily index 에서 `- **<task_id>**` block 을 갱신하거나 끝에 덧붙인다.
 
     block 은 다음 `- **TASK-` 를 만나거나 `## ` heading 을 만날 때까지로 본다.
+
+    `preserve_block=True` (update 모드, TASK-2026-08-11-main-023): block 을 표준
+    3줄로 **교체하지 않고** `- status:` 줄만 바꾼다. 이전에는 교체가 head 의
+    `[kind]`·제목과 `notes:`·`scope_creep_warnings:` 같은 부가 sub-bullet 을
+    요약본으로 덮었다 (실측: [feature]→[generic] + notes 소실).
     """
     start: int | None = None
     for idx, line in enumerate(lines):
@@ -212,7 +313,20 @@ def _upsert_index_block(lines: list[str], *, task_id: str, entry: list[str]) -> 
         if stripped.startswith("- **TASK-") or stripped.startswith("## "):
             break
         end += 1
-    return lines[:start] + entry + lines[end:]
+
+    if not preserve_block:
+        return lines[:start] + entry + lines[end:]
+
+    updated = list(lines)
+    for idx in range(start + 1, end):
+        stripped = updated[idx].strip()
+        if stripped.startswith("- status:"):
+            indent = updated[idx][: len(updated[idx]) - len(updated[idx].lstrip())]
+            updated[idx] = f"{indent}- status: {status}"
+            break
+    else:
+        updated = updated[:end] + [f"  - status: {status}"] + updated[end:]
+    return updated
 
 
 def ensure_backlog_index_entry(*, work_backlog_index_path: Path, daily_backlog_path: Path) -> bool:
@@ -305,8 +419,17 @@ def sync_handoff_status(*, handoff_path: Path, task_label: str, status: str) -> 
                 current_lists[section_label] = items
                 break
 
+    # v1.1.7 (TASK-2026-08-11-main-023): 같은 task 는 표기가 달라도 하나다.
+    # exact 문자열 비교만 하면 "TASK-X — 제목" 이 있는 목록에 "TASK-X 제목" 이
+    # 한 줄 더 들어간다 (실측). ID 를 못 뽑는 항목만 exact 비교로 남긴다.
+    new_task_id = _leading_task_id(task_label)
     for section_label, items in current_lists.items():
-        current_lists[section_label] = [item for item in items if item != task_label]
+        current_lists[section_label] = [
+            item
+            for item in items
+            if item != task_label
+            and (new_task_id is None or _leading_task_id(item) != new_task_id)
+        ]
     # v1.1.2: **앞에 넣는다.** 예전에는 `append` 였는데, 그러면 §4 는 "뒤가 최신",
     # state.json 의 `recent_done_items` 는 "앞이 최신"(`check_recent_done_items_order`
     # 계약 1)으로 **같은 사실을 두 문서가 반대 순서로** 들고 있었다. 사람과 에이전트는

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-11",
+  "generated_at": "2026-08-12",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**6차 세션 종료 — state.json 이 생성물로 선언되고 절차·검사가 붙었다.** 정본 §11.1 에 `wk refresh-state` 행, §11.2 에 생성물 선언 + \"handoff/backlog 는 생성기 입력\" 선언. `wk session-start` 무인자 동작 (workspace 자동 탐색 + branch-scoped daily 관측 — 인덱스 전제 오판 결함 해소). `check_state_json_generated` 6 case (되주입 + 자기 적용 + 선언↔창구 정합). smoke 249→**250**, 전량 2축 250/250 ×2 green. 리뷰 3종(하네스/스킬·CLI/MCP) 결함 목록은 [6차 세션 기록](./sessions/state_generated_and_composition_review_2026-08-11.md) §3·§4 — readOnlyHint 허위 주석, goose hook 깨진 경로, §11.1 손 사본 7곳, `wk backlog-update` 파괴적 update 등.",
-    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 21건 done, planned 7건: TASK-019 배타 락 + 6차 리뷰 후속 TASK-023~028. 우선순위 high = 023 backlog-update 파괴적 update / 024 readOnlyHint 허위 / 026 §11 단일출처 검사 강화).",
+    "current_baseline": "**7차 세션 종료 — backlog-update 가 재생성에서 병합으로 바뀌었다 (TASK-023).** `merge_task_file` (명시 인자만 반영) + index block 보존 (status 줄만 교체) + handoff task ID dedupe + `--kind`/`--priority` 미지정 시 보존. `check_backlog_update_layout` 5→8 case, 신설 3 case 는 버그 코드에서 FAIL 실증. 종결을 고친 도구 자신으로 수행. 상세: [7차 세션 기록](./sessions/backlog_update_merge_semantics_2026-08-12.md).",
+    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 22건 done, planned 6건: TASK-019 배타 락 + 리뷰 후속 TASK-024~028. 우선순위 high = 024 readOnlyHint 허위 / 026 §11 단일출처 검사 강화).",
     "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
       "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
       "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다",
@@ -41,8 +42,7 @@
       "TASK-2026-08-11-main-016 — 학습회 자료를 사내 기술보고서 논문 양식 문서로 발전",
       "TASK-2026-08-11-main-015 — 로컬 병렬 전량 검사 TIMEOUT flake 2건 해소",
       "TASK-2026-08-11-main-014 — v1.1.0·v1.1.1 릴리스 노트 누적 표기 사후 삽입 여부 결정 + 적용",
-      "TASK-2026-08-11-main-013 — transient pyproject writer 추적 (감시 체계 보강)",
-      "TASK-2026-08-11-main-012 — mooneye 브랜치 처리 (idle 429h+, 삭제/유지 결정 후 정리)"
+      "TASK-2026-08-11-main-013 — transient pyproject writer 추적 (감시 체계 보강)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -67,7 +67,8 @@
       "TASK-2026-08-11-main-004 — check_cache_* 13개를 check_cache.py 1개로 통합",
       "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (archived/gemini + archive/2026-07-22)",
       "TASK-2026-08-11-main-002 — release amend Guard 2 가 staged 삭제 경로에서 fatal (git add pathspec 불일치)",
-      "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (정보량 0 인 부분집합 재측정)"
+      "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (정보량 0 인 부분집합 재측정)",
+      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정"
     ]
   },
   "next_documents": [
@@ -77,6 +78,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/backlog_update_merge_semantics_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/state_generated_and_composition_review_2026-08-11.md",
     "ai-workflow/memory/active/main/sessions/darwin_verify_and_harness_unification_2026-08-11.md",
     "ai-workflow/memory/active/main/sessions/tech_report_and_timeout_fix_2026-08-11.md",

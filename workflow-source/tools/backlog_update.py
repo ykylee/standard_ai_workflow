@@ -40,6 +40,7 @@ from workflow_kit.common.purpose_context import build_purpose_context, check_sco
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import (
     ensure_backlog_index_entry,
+    merge_task_file,
     render_task_file,
     sync_handoff_status,
     upsert_backlog_entry,
@@ -207,10 +208,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-date")
     parser.add_argument("--task-id")
     parser.add_argument("--mode", choices=["create", "update", "auto"], default="auto")
-    parser.add_argument("--kind", choices=["release", "session", "generic"], default="generic",
-                        help="task SSOT frontmatter 의 kind (daily index 의 [kind] marker).")
+    # v1.1.7 (TASK-2026-08-11-main-023): kind/priority 의 default 를 None 으로.
+    # argparse default 가 있으면 update 모드에서 "명시 안 함" 과 "기본값 요청" 을
+    # 구분할 수 없어, 미지정 호출이 기존 값(kind: feature 등)을 기본값으로 덮었다.
+    parser.add_argument("--kind", choices=["release", "session", "generic"], default=None,
+                        help="task SSOT frontmatter 의 kind (daily index 의 [kind] marker). create 기본값 generic, update 는 미지정 시 보존.")
     parser.add_argument("--status")
-    parser.add_argument("--priority", default="high")
+    parser.add_argument("--priority", default=None,
+                        help="create 기본값 high, update 는 미지정 시 보존.")
     parser.add_argument("--owner")
     parser.add_argument("--host-name")
     parser.add_argument("--host-ip")
@@ -483,26 +488,85 @@ def main() -> int:
         }
         fields_requiring_confirmation = [normalize_backticked(item) for item in detect_confirmation_fields(fields_data)]
 
-        draft_entry = build_draft_entry(
-            task_id=task_id,
-            task_name=args.task_name,
-            status=status,
-            priority=args.priority,
-            request_date=request_date,
-            owner=args.owner,
-            host_name=args.host_name,
-            host_ip=args.host_ip,
-            affected_documents=args.affected_documents,
-            task_summary=args.task_brief,
-            progress_note=progress_note,
-            done_criteria=args.done_criteria,
-            result_note=result_note,
-            next_step=args.next_step,
-            risks=args.risks,
-            follow_up=args.follow_up,
-            validation_result=args.validation_result,
-            kind=args.kind,
-        )
+        resolved_kind = args.kind or "generic"
+        resolved_priority = args.priority or "high"
+
+        # v1.1.7 (TASK-2026-08-11-main-023): update 모드는 재생성이 아니라 **병합**이다.
+        # 기존 task SSOT 파일이 있으면 그것을 원본으로 삼고 명시된 값만 반영한다 —
+        # 이전에는 인자만으로 문서를 다시 만들어 미지정 필드(작업 내용·완료 기준·담당·
+        # kind)를 삭제했다 (실측: TASK-018 파일 손 복원). draft(무-apply)에도 병합
+        # 결과를 보여 준다 — 쓸 내용과 보여 준 초안이 달라선 안 된다.
+        task_ssot_path = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
+        update_merge = requested_mode == "update" and task_ssot_path.exists()
+
+        if update_merge:
+            existing_lines = task_ssot_path.read_text(encoding="utf-8").splitlines()
+            scalar_updates: dict[str, str] = {"진행 현황": progress_note}
+            if args.priority:
+                scalar_updates["우선순위"] = args.priority
+            if args.owner:
+                scalar_updates["담당"] = args.owner
+            if args.host_name:
+                scalar_updates["호스트명"] = args.host_name
+            if args.host_ip:
+                scalar_updates["호스트 IP"] = args.host_ip
+            if args.done_criteria:
+                scalar_updates["완료 기준"] = args.done_criteria
+            if result_note:
+                scalar_updates["작업 결과"] = result_note
+            if args.validation_result and args.validation_result != result_note:
+                scalar_updates["검증 결과"] = args.validation_result
+            if args.next_step:
+                scalar_updates["다음 세션 시작 포인트"] = args.next_step
+            if args.risks:
+                scalar_updates["남은 리스크"] = args.risks
+            if args.follow_up:
+                scalar_updates["후속 작업"] = args.follow_up
+            # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
+            if any(line.strip() == "- 작업 내용:" for line in existing_lines):
+                scalar_updates["작업 내용"] = args.task_brief
+            draft_entry, merge_missing = merge_task_file(
+                existing_lines,
+                status=status,
+                kind=args.kind,
+                scalar_updates=scalar_updates,
+                affected_documents=args.affected_documents or None,
+            )
+            if merge_missing:
+                warnings.append(
+                    "update 병합에서 다음 라벨 줄을 문서에서 찾지 못해 반영하지 못했다: "
+                    + ", ".join(merge_missing)
+                )
+            existing_title_match = next(
+                (re.match(rf"^# {re.escape(task_id)} — (.+)$", line.strip()) for line in existing_lines
+                 if line.strip().startswith(f"# {task_id} — ")),
+                None,
+            )
+            if existing_title_match and existing_title_match.group(1) != args.task_name:
+                warnings.append(
+                    f"task 제목이 기존과 다르다 (기존 유지): 기존 `{existing_title_match.group(1)}` / 입력 `{args.task_name}`."
+                )
+        else:
+            draft_entry = build_draft_entry(
+                task_id=task_id,
+                task_name=args.task_name,
+                status=status,
+                priority=resolved_priority,
+                request_date=request_date,
+                owner=args.owner,
+                host_name=args.host_name,
+                host_ip=args.host_ip,
+                affected_documents=args.affected_documents,
+                task_summary=args.task_brief,
+                progress_note=progress_note,
+                done_criteria=args.done_criteria,
+                result_note=result_note,
+                next_step=args.next_step,
+                risks=args.risks,
+                follow_up=args.follow_up,
+                validation_result=args.validation_result,
+                kind=resolved_kind,
+            )
 
         if operation_type == "create_daily_backlog":
             warnings.append("대상 날짜 backlog 파일이 없어 새 파일 초안 생성이 필요하다.")
@@ -595,14 +659,15 @@ def main() -> int:
                     task_id=task_id,
                     entry_lines=draft_entry,
                     title=args.task_name,
-                    kind=args.kind,
+                    kind=resolved_kind,
                     status=status,
+                    # update 병합 시 index block 도 보존 — status 줄만 바꾼다.
+                    preserve_index_block=update_merge,
                 )
                 apply_result["written_paths"].append(str(daily_backlog_path))
                 # v1.0.2: `upsert_backlog_entry` 는 daily index 와 **task SSOT 두 파일**을
                 # 쓴다. 보고에는 index 만 실려 있어서, 호출자가 무엇이 쓰였는지 알 수
                 # 없었다 (실측: 4개를 쓰고 2개만 보고). 쓴 것은 전부 보고한다.
-                task_ssot_path = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
                 apply_result["written_paths"].append(str(task_ssot_path))
                 if backlog_action == "created":
                     apply_result["created_paths"].append(str(daily_backlog_path))

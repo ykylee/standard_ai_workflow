@@ -49,6 +49,22 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
    - emit 시 tool descriptor 의 `transport_ready=false` 면 manual review only (자동 적용 안 함).
    - **2026-08-05 supersede**: `transport_ready` 는 능력·단계·정책 셋을 한 boolean 에 섞고 있어 판정이 불가능했다. 같은 정책이 이제 `apply_mode`(`active_ok` / `manual_review_only`)로 표현되고 승격 기준은 `core/read_only_mcp_transport_promotion.md` §6.1 이 실행 가능한 검사로 고정한다.
 
+### MCP 표면과 `wk` CLI 표면의 관계 (v1.1.7 명시)
+
+MCP bundle (`READ_ONLY_TOOL_SPECS`, 13 도구) 과 `wk` CLI (`COMMANDS`/`TOOL_MODULES`,
+70+ 명령) 는 **의도적으로 별개의 표면**이다:
+
+- `wk` 는 **소비자의 전체 창구**다 — 정본 §11 의 메모리 갱신 경로를 포함해 kit 의
+  모든 운영 기능을 노출한다.
+- MCP bundle 은 **하네스에 자동 노출해도 안전한 조회·초안 중심의 선별 부분집합**이다
+  (read-only default + 명시 선언된 write 2종). `wk` 전체를 MCP 로 노출하는 것은
+  이 ADR 의 read-only 우선 결정에 어긋난다.
+- 두 레지스트리는 이름이 같은 기능을 공유 구현(`workflow_kit/common/*`)으로 부르되,
+  표면 등재는 각자 결정한다. session-start / backlog-update / doc-sync / refresh-state
+  는 **CLI 전용**이다 — 메모리 문서를 쓰는 경로라 MCP 자동 노출 대상이 아니다.
+- 목록이 겹치는 지점의 파생물(설정 예시의 `tools` 배열 등)은 registry 에서
+  파생하고 검사로 대조한다 (`check_mcp_tool_descriptors` case 7).
+
 ## Consequences
 
 ### Positive

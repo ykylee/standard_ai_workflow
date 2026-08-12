@@ -27,13 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**9차 세션 종료 — §11.1 명령의 손 사본 7곳이 정본 파생으로 바뀌었다 (TASK-026).** `find_memory_command` 로 렌더러가 정본 §11.1 에서 명령을 꺼내 쓰고, goose `on_session_end` 는 깨진 skills/ 경로 대신 `wk refresh-state`. 검출기가 §11.1 명령·§11.2 계약을 판정 대상에 추가, case 8 이 `PRIMARY ∪ EXEMPT == SUPPORTED_HARNESSES` 단언 (mavis 분류), self_application 이 §11 탐침 (낡은 루트 AGENTS.md 재생성). 되주입 3종 실증. 상세: [9차 세션 기록](./sessions/s11_single_source_hardening_2026-08-12.md).",
-    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 24건 done, planned 4건: TASK-019 배타 락 + 리뷰 후속 TASK-025 (MCP 목록 단일출처) / 027 (소비자 안내 표면) / 028 (잔여 렌더러 §11 주입). high 전부 종결).",
+    "current_baseline": "**10차 세션 종료 — MCP 도구 목록 사본 3계열이 registry 하나로 수렴했다 (TASK-025).** MiniMax 렌더러 손 목록(10개, 3개 누락)→registry 파생, 유령 script_path 2건은 mcp_servers/ 실물 생성 + 실존 강제, 예시 tools 배열은 case 7 이 registry 와 대조. ADR-003 에 MCP(선별 부분집합)↔wk(전체 창구) 이원 표면 의도 명시. 상세: [10차 세션 기록](./sessions/mcp_tool_list_single_source_2026-08-12.md).",
+    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 25건 done, planned 3건: TASK-019 배타 락 / 027 소비자 안내 표면 / 028 잔여 렌더러 §11 주입).",
     "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
+      "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
       "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
       "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
@@ -41,8 +42,7 @@
       "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다",
       "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환",
       "TASK-2026-08-11-main-017 — darwin homelab 검증",
-      "TASK-2026-08-11-main-016 — 학습회 자료를 사내 기술보고서 논문 양식 문서로 발전",
-      "TASK-2026-08-11-main-015 — 로컬 병렬 전량 검사 TIMEOUT flake 2건 해소"
+      "TASK-2026-08-11-main-016 — 학습회 자료를 사내 기술보고서 논문 양식 문서로 발전"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -70,6 +70,7 @@
       "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (정보량 0 인 부분집합 재측정)",
       "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
+      "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로"
     ]
   },
@@ -80,6 +81,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/mcp_tool_list_single_source_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/s11_single_source_hardening_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/mcp_readonly_hint_truthful_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/backlog_update_merge_semantics_2026-08-12.md",

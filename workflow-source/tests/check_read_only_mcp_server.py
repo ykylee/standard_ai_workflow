@@ -70,6 +70,11 @@ def main() -> int:
             raise AssertionError(
                 f"{tool_name}: read_only={spec.read_only} 가 WRITE_CAPABLE_TOOL_NAMES 사실 목록과 어긋난다."
             )
+        # v1.1.7 (TASK-2026-08-11-main-025): manifest 가 광고하는 script_path 는
+        # 실물이어야 한다 — rotate/milestone 2종이 registry 에만 등록되고
+        # 디렉터리가 없어 유령 경로를 광고했고, 아무 검사도 resolve 하지 않았다.
+        if not spec.script_path.is_file():
+            raise AssertionError(f"{tool_name}: manifest 의 script_path 가 실물이 아니다: {spec.script_path}")
 
     _, transport_descriptors = run_json(["--list-transport-tools"])
     if transport_descriptors["descriptor_target"] != "mcp_tools_list_draft":

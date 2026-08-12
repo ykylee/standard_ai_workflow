@@ -265,6 +265,18 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     ) + "\n"
 
 
+def _read_only_tool_names() -> list[str]:
+    """MCP config 에 싣는 도구 이름 목록 — registry 가 정본이다.
+
+    `workflow_kit.server.read_only_registry.READ_ONLY_TOOL_SPECS` 에서 파생한다.
+    렌더러가 이름을 직접 나열하면 registry 확장 시 그 사본만 낡는다
+    (실측: 13개 중 10개에서 멈춰 있었다 — TASK-2026-08-11-main-025).
+    """
+    from workflow_kit.server.read_only_registry import READ_ONLY_TOOL_SPECS
+
+    return [spec.name for spec in READ_ONLY_TOOL_SPECS]
+
+
 def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """Return a MiniMax Code ``.MiniMax/mcp.json`` config.
 
@@ -286,18 +298,11 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
                 "Draft JSON-RPC bridge by default; switch to stdio-sdk once "
                 "check_read_only_mcp_sdk_stdio.py is green."
             ),
-            "tools": [
-                "latest_backlog",
-                "check_doc_metadata",
-                "check_doc_links",
-                "suggest_impacted_docs",
-                "create_backlog_entry",
-                "create_session_handoff_draft",
-                "create_environment_record_stub",
-                "check_quickstart_stale_links",
-                "summarize_git_history",
-                "smart_context_reader",
-            ],
+            # v1.1.7 (TASK-2026-08-11-main-025): 도구 목록은 registry 가 정본이다.
+            # 손 목록은 10개에서 멈춰 있었고 (rotate_workflow_logs /
+            # assess_milestone_progress / apply_robust_patch 누락) 아무 검사도
+            # 그 어긋남을 보지 않았다 — 요구 목록은 파생시킨다.
+            "tools": _read_only_tool_names(),
         }
     }
     return json.dumps({MCP_CONFIG_ROOT_KEY["minimax-code"]: descriptor}, ensure_ascii=False, indent=2) + "\n"

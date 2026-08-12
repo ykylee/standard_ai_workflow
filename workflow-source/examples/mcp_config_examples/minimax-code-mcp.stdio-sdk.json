@@ -24,9 +24,11 @@
         "create_environment_record_stub",
         "check_quickstart_stale_links",
         "summarize_git_history",
-        "smart_context_reader"
+        "rotate_workflow_logs",
+        "assess_milestone_progress",
+        "smart_context_reader",
+        "apply_robust_patch"
       ]
     }
   }
 }
-

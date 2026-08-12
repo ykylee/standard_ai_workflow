@@ -255,6 +255,52 @@ def test_root_key_table_matches_authored_examples() -> bool:
     return ok
 
 
+def test_example_tools_lists_match_registry() -> bool:
+    """7) 예시 설정의 `tools` 배열이 registry 도구 목록과 같은가 (v1.1.7).
+
+    TASK-2026-08-11-main-025: MiniMax 렌더러의 손 목록이 10개에서 멈춰 registry
+    13개와 어긋났는데 아무 검사도 대조하지 않았다. 렌더러는 이제 registry 에서
+    파생하지만, **커밋된 예시 파일** 은 여전히 따로 작성된 사본이다 — 예시에
+    `tools` 배열이 있으면 registry 와 같아야 한다. 대상 0건은 통과가 아니다.
+    """
+    if str(SOURCE_ROOT) not in sys.path:
+        sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.server.read_only_registry import READ_ONLY_TOOL_SPECS  # noqa: PLC0415
+
+    registry_names = [spec.name for spec in READ_ONLY_TOOL_SPECS]
+
+    def _tools_arrays(node: object) -> list[list[str]]:
+        found: list[list[str]] = []
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "tools" and isinstance(value, list):
+                    found.append([str(v) for v in value])
+                else:
+                    found.extend(_tools_arrays(value))
+        elif isinstance(node, list):
+            for item in node:
+                found.extend(_tools_arrays(item))
+        return found
+
+    ok = True
+    compared = 0
+    for example in sorted(CONFIG_EXAMPLES.glob("*.json")):
+        for tools in _tools_arrays(json.loads(example.read_text(encoding="utf-8"))):
+            compared += 1
+            if tools != registry_names:
+                missing = sorted(set(registry_names) - set(tools))
+                extra = sorted(set(tools) - set(registry_names))
+                print(f"  FAIL: {example.name} 의 tools 가 registry 와 다르다 — "
+                      f"누락 {missing} / 잉여 {extra}")
+                ok = False
+    if compared == 0:
+        print("  FAIL: tools 배열을 가진 예시가 0건 — 대상 0건은 통과가 아니다")
+        return False
+    if ok:
+        print(f"  PASS: 예시 {compared}건의 tools 배열이 registry {len(registry_names)}종과 일치")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_descriptors_load", test_descriptors_load),
@@ -265,6 +311,8 @@ def main() -> int:
          test_rendered_toml_keys_are_what_the_code_wrote),
         ("test_root_key_table_matches_authored_examples",
          test_root_key_table_matches_authored_examples),
+        ("test_example_tools_lists_match_registry",
+         test_example_tools_lists_match_registry),
     ]
     results = []
     for name, fn in cases:

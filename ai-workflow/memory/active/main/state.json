@@ -27,8 +27,8 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).",
-    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 27건 done, planned 1건: TASK-019 전량 검사 배타 락. 6차 리뷰 후속 023~028 전부 종결).",
+    "current_baseline": "**13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).",
+    "current_axis": "(없음 — **2026-08-11 backlog 28건 전부 done**. 다음 축은 후보 축 참조: federation self-host add / darwin mavis e2e / memory_index 3-tuple 추이).",
     "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
     "in_progress_items": [],
     "blocked_items": [],
@@ -42,7 +42,7 @@
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
       "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
       "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다",
-      "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환"
+      "TASK-2026-08-11-main-019 — 전량 검사 배타 락 (동시 실행 방지)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -53,6 +53,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-11-main-019 — 전량 검사 배타 락 (동시 실행 방지)",
       "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환",
       "TASK-2026-08-11-main-017 — darwin homelab 검증",
       "TASK-2026-08-11-main-013 — transient pyproject writer 추적 (감시 체계 보강)",
@@ -83,6 +84,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/runner_exclusive_lock_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/secondary_renderer_s11_injection_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/consumer_surface_cleanup_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/mcp_tool_list_single_source_2026-08-12.md",

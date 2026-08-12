@@ -43,7 +43,9 @@ from __future__ import annotations
 
 import argparse
 import ast
+import datetime
 import functools
+import hashlib
 import json
 import os
 import re
@@ -92,6 +94,7 @@ MAX_AUTO_JOBS = 8
 I/O 대기가 많지만, 동시 temp 사용량도 함께 늘기 때문이다 (guard 의 2GB 상한)."""
 
 QUIET_MARKER = "REQUIRES_QUIET_REPO"
+
 """check 가 **저장소 전역 상태** 를 관찰한다고 스스로 선언하는 이름.
 
 이런 check 는 격리로 해결되지 않는다 — 관찰 대상이 저장소 자신이기 때문이다.
@@ -103,6 +106,111 @@ QUIET_MARKER = "REQUIRES_QUIET_REPO"
 그래서 이들은 **아무도 저장소를 건드리지 않는 동안**(정숙 구간) 직렬로 돌린다.
 소속을 runner 안의 목록으로 두지 않는 이유는 §2.53 과 같다 — 목록은 파일에서
 멀어지면 드리프트한다. 선언을 check 파일 안에 두면 파일과 함께 움직인다."""
+
+# --- v1.1.7 전량 검사 배타 락 (TASK-2026-08-11-main-019) ----------------------
+# 2026-08-11 실측: 두 에이전트가 같은 워킹 트리에서 전량 검사를 동시에 돌렸다.
+# REQUIRES_QUIET_REPO 검사는 살아있는 저장소 전역 상태를 관찰하므로 runner 두 개가
+# 서로의 정숙 구간을 침범하면 **그 실행의 PASS 도 FAIL 도 근거로 쓸 수 없다.**
+# 그래서 진입에서 워킹 트리 루트 기준 배타 락을 잡고, 이미 잡혀 있으면 보유자
+# 정보를 찍고 즉시 실패한다 (조용히 진행 금지 — "모름 ≠ 안전").
+#
+# 설계 (선례: workflow_kit/url_validity.py `_CacheLock`, ADR-015):
+# - `fcntl.flock` advisory lock. 프로세스가 죽으면 커널이 자동 해제하므로
+#   stale 락이 다음 실행을 막는 일이 없다 (PID 생존 확인이 따로 필요 없는 이유).
+# - 락 파일은 **`.git/` 안** — 워킹 트리에 두면 `check_no_repo_write` 가 오염으로
+#   잡는다. git worktree 는 `.git` 이 파일이라 gitdir 을 따라간다.
+# - **재진입**: runner 를 부르는 검사(check_parallel_smoke 등)가 낳은 자식 runner 는
+#   env 마커로 부모의 락을 물려받는다 (flock 은 fd 단위라 같은 파일을 다시 열면
+#   자기 자신도 막는다).
+# - 파일은 unlink 하지 않는다 — 삭제/재생성 경쟁이 두 프로세스에 서로 다른 inode
+#   의 락을 쥐여 줄 수 있다. 내용(보유자 정보)은 정보용이다.
+# - 한계: 이 락은 **runner 동시 실행**만 막는다. 에이전트가 파일을 직접 편집하는
+#   충돌은 워크스페이스 분리(worktree)가 정공법이고, 락은 그 위의 안전망이다.
+RUNNER_LOCK_ENV = "RUN_ALL_CHECKS_LOCK_HELD"
+
+
+def _runner_lock_path(repo_root: Path) -> Path:
+    gitdir = repo_root / ".git"
+    if gitdir.is_dir():
+        return gitdir / "run_all_checks.lock"
+    if gitdir.is_file():
+        # worktree: `.git` 은 "gitdir: <path>" 한 줄짜리 파일이다.
+        text = gitdir.read_text(encoding="utf-8").strip()
+        if text.startswith("gitdir:"):
+            actual = Path(text.split(":", 1)[1].strip())
+            if not actual.is_absolute():
+                actual = (repo_root / actual).resolve()
+            if actual.is_dir():
+                return actual / "run_all_checks.lock"
+    # git 저장소가 아니면 (사본 검증 등) 루트 경로로 갈린 temp 락을 쓴다.
+    digest = hashlib.sha256(str(repo_root).encode("utf-8")).hexdigest()[:16]
+    return Path(tempfile.gettempdir()) / f"run_all_checks-{digest}.lock"
+
+
+class RunnerLock:
+    """전량 runner 의 워킹 트리 배타 락. 획득 실패 시 보유자 정보를 돌려준다."""
+
+    def __init__(self, repo_root: Path) -> None:
+        self.lock_path = _runner_lock_path(repo_root)
+        self._fd: object | None = None
+        self._nested = os.environ.get(RUNNER_LOCK_ENV) == str(self.lock_path)
+
+    def acquire(self) -> tuple[bool, str]:
+        """(획득/승계 성공?, 실패 시 보유자 설명)."""
+        if self._nested:
+            return True, "(부모 runner 의 락을 승계)"
+        try:
+            import fcntl
+        except ImportError:  # Windows: advisory no-op (선례와 동일)
+            return True, "(fcntl 없음 — 락 없이 진행)"
+        self.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        fd = open(self.lock_path, "a+", encoding="utf-8")
+        try:
+            fcntl.flock(fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            fd.seek(0)
+            holder = fd.read().strip() or "(보유자 정보 없음)"
+            fd.close()
+            return False, holder
+        branch = ""
+        try:
+            proc = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True, text=True, timeout=5,
+                cwd=str(self.lock_path.parent),
+            )
+            branch = proc.stdout.strip()
+        except Exception:  # noqa: BLE001 - 보유자 정보는 best effort
+            pass
+        fd.seek(0)
+        fd.truncate()
+        fd.write(json.dumps({
+            "pid": os.getpid(),
+            "started_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "branch": branch,
+            "argv": sys.argv[1:],
+        }, ensure_ascii=False))
+        fd.flush()
+        self._fd = fd
+        # 자식 runner (runner 를 부르는 검사) 는 이 마커로 락을 승계한다.
+        os.environ[RUNNER_LOCK_ENV] = str(self.lock_path)
+        return True, ""
+
+    def release(self) -> None:
+        if self._fd is None:
+            return
+        try:
+            import fcntl
+            fcntl.flock(self._fd.fileno(), fcntl.LOCK_UN)  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            self._fd.close()  # type: ignore[attr-defined]
+        except Exception:  # noqa: BLE001
+            pass
+        self._fd = None
+        os.environ.pop(RUNNER_LOCK_ENV, None)
+
 
 TIMEOUT_MARKER = "CHECK_TIMEOUT_S"
 """check 가 **자기 timeout 상한(초)** 을 스스로 선언하는 이름.
@@ -592,7 +700,27 @@ def main() -> int:
                         f"선언: {', '.join(labels())}, all. "
                         "미지정이면 호출자 환경 그대로 (기존 동작). "
                         "push 전 CI 재현은 --branch-context=all")
+    p.add_argument("--no-lock", action="store_true", dest="no_lock",
+                   help="워킹 트리 배타 락을 잡지 않는다 (권장하지 않음 — 동시 실행된 "
+                        "전량 결과는 PASS 도 FAIL 도 근거가 못 된다)")
     args = p.parse_args()
+
+    # v1.1.7 (TASK-2026-08-11-main-019): 전량 검사 배타 락. 다른 runner 가 이미
+    # 이 워킹 트리에서 돌고 있으면 즉시 실패한다 — 정숙 구간을 서로 침범한 실행의
+    # 결과는 근거로 쓸 수 없기 때문이다.
+    lock = RunnerLock(SOURCE_ROOT.parent)
+    if args.no_lock:
+        print("[warn] --no-lock: 배타 락 없이 진행한다. 다른 runner 와 동시 실행이면 "
+              "이 실행의 결과는 근거로 쓸 수 없다.", file=sys.stderr)
+    else:
+        acquired, holder = lock.acquire()
+        if not acquired:
+            print("[error] 다른 전량 runner 가 이 워킹 트리의 락을 쥐고 있다 — "
+                  f"동시 실행은 정숙 구간을 침범한다 ({lock.lock_path}).\n"
+                  f"[error] 보유자: {holder}", file=sys.stderr)
+            return 2
+        # 명시적 release 는 두지 않는다 — flock 은 프로세스 종료 시 커널이 해제하고,
+        # runner 는 main 반환 즉시 종료한다. 중간 예외/타임아웃/kill 모두 안전하다.
 
     try:
         jobs = _resolve_jobs(args.jobs)

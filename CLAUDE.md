@@ -117,6 +117,10 @@
 > 단독 실행이 ~25s 를 넘는 무거운 check 는 `CHECK_TIMEOUT_S = 150` 을 파일 안에
 > 선언한다 (v1.1.7+) — 기본 60s 상한은 병렬 부하에서 2배로 늘어진 실행을 죽인다.
 > 선언은 CLI `--timeout` 과 max 로 합쳐져 상한을 **늘릴 수만** 있다.
+> 전량 runner 는 **워킹 트리 배타 락**을 잡는다 (v1.1.7+, `.git/run_all_checks.lock`).
+> 다른 runner 가 돌고 있으면 보유자 정보를 찍고 즉시 실패한다 — 동시 실행된 전량의
+> 결과는 PASS 도 FAIL 도 근거가 못 된다. 같은 워킹 트리에서 두 에이전트가 전량을
+> 돌려야 하면 락을 우회(`--no-lock`)하지 말고 **worktree 를 분리**한다.
 - **smoke check**: `python3 workflow-source/tests/check_self_application.py`
 
 ### SDK 매트릭스는 push 전에 로컬에서 돌린다

@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(safety): backlog-update status 보존 + no_repo_write 실행-중 감시 (TASK-2026-08-12-main-008, -009) (5b89813)
+- feat(cli): cross-platform 지원 1단계 — OS 매트릭스 CI + Windows 가드 (TASK-2026-08-12-main-005) (9351e17)
+- feat(mcp): bundle 분리 — write 도구 별도 서버 + 배포 검토 (TASK-2026-08-12-main-003, -004) (bd121f5)
 - feat(federation): self-host add — plex 상시 serving 편입 + --print-systemd-unit (TASK-2026-08-12-main-001) (e625c91)
 - feat(safety): 전량 검사 배타 락 — 동시 runner 의 정숙 구간 침범 차단 (TASK-2026-08-11-main-019) (e7f3ef1)
 - feat(harness): 보조 렌더러 §11 주입 완결 — TASK-020 발 결함 26→0 (TASK-2026-08-11-main-028) (d35fe61)
@@ -43,13 +46,15 @@ All notable changes to this project will be documented in this file.
 - feat(registry): federation 정공법 — multi-host registry 합치기 (표준 §0.8 #1) (c32b336)
 - feat(registry): in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3) (9326a9c)
 - feat(smoke): mavis attach e2e 회귀 자동화 (§2.68 자동 검증 닫음, TASK-013) (e4470e5)
-- feat(registry): endpoint 기반 mavis alias command/url 합성 (838b12f)
-- feat(registry): RegistryEntry env 필드 + sync_mavis env 합성 (e0cdebe)
-- feat(registry): registry ↔ mavis 글로벌 양방향 동기 (TASK-2026-08-08-main-009) (a51f683)
-- ... (89 more)
+- ... (92 more)
 
 ### Changed
 
+- release(v1.1.8-beta): 파생물 선재생성 + 노트 + dist (79e2f51)
+- docs(backlog): TASK-2026-08-12-main-010 등록 — v1.1.8-beta 발행 (6f053a0)
+- refactor(namespace): bootstrap_lib → workflow_kit.bootstrap_lib (2단계) — PyPI 이동 단계 완결 (TASK-2026-08-12-main-007) (bcd2c7d)
+- refactor(namespace): tools → workflow_kit.tools 물리 이동 (1st cycle) — PyPI blocker 절반 해소 (TASK-2026-08-12-main-006) (74889f3)
+- release(v1.1.7-beta): post-apply 정합 — 파이프라인 산출물 + 재실행이 잡은 3건 + 메모리 종결 (21b3e3c)
 - release(v1.1.7-beta): docs/RELEASE.md version stamp 갱신 — CI 가 잡은 누락 (e3e6df2)
 - release(v1.1.7-beta): 파생물 선재생성 + 노트 + dist — bump 후 stamp/fixtures/samples 일괄 (2d22877)
 - docs(backlog): TASK-2026-08-12-main-002 등록 — v1.1.7-beta 발행 (552e6f9)
@@ -75,12 +80,7 @@ All notable changes to this project will be documented in this file.
 - refactor(cli): workflow_kit_cli.py 안전 부분 분할 — 2095→583줄 + 모듈 5개 (TASK-2026-08-11-main-011) (487d4d9)
 - refactor(dashboard): dashboard_data.py 안전 부분 분할 — 2488→1526줄 + 모듈 3개 (TASK-2026-08-11-main-010) (5758370)
 - chore(docs): presentations 파생 바이너리 트리 제거 — 5.3MB (TASK-2026-08-11-main-009) (90dab22)
-- refactor(release): release_pipeline.py 안전 부분 분할 — 3908→3174줄 + 모듈 4개 (TASK-2026-08-11-main-007) (4d311b5)
-- refactor(tests): check_cache_* 13개를 check_cache.py 1개로 통합 — smoke 260→248 (TASK-2026-08-11-main-004) (286f543)
-- chore(memory): ai-workflow 아카이브 185파일 정리 — gemini + 2026-07-22 freeze (TASK-2026-08-11-main-003) (3f04bb7)
-- refactor(tests): mypy strict 부분집합 검사 8개 제거 — smoke 268→260 (TASK-2026-08-11-main-001) (beaaa71)
-- docs(memory): 2026-08-10 3차 세션 기록 + handoff/state 동기 (TASK-016~019) (eb3b0a2)
-- ... (252 more)
+- ... (257 more)
 
 ### Fixed
 

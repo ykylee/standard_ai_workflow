@@ -108,3 +108,20 @@ v1.1.7-beta 발행 자체는 [Beta-v1.1.7.md](./Beta-v1.1.7.md) 참조 — 본 �
   PyPI 발행은 소유자 결정만 남는다.
 - cross-host federation — 두 번째 호스트 = MacBook 확정 (시점 추후).
 - stdio-sdk bundle 지원 (승격 기준과 함께).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-12T08:07:57Z)_
+
+- total wiki pages: **93**
+- total memory entries: **9**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-12T04:11:20Z`
-- tool_version: `v1.1.7-beta`
+- generated_at: `2026-08-12T08:07:57Z`
+- tool_version: `v1.1.8-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `11`
 - head_commit_date: `2026-08-12`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 4건)
+- silent_failing_cycles_count: `0` (측정 cycle 5건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.1.8 | 251 | 251 |
 | Beta-v1.1.7 | 251 | 251 |
 | Beta-v1.1.6 | 251 | 251 |
 | Beta-v1.1.5 | 266 | 266 |
 | Beta-v1.1.4 | 261 | 261 |
-| Beta-v1.1.3 | 260 | 260 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입  `[fresh]`
-- [1] TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)  `[fresh]`
-- [2] TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)  `[fresh]`
-- [3] TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로  `[fresh]`
-- [4] TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)  `[fresh]`
-- [5] TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정  `[fresh]`
-- [6] TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정  `[fresh]`
-- [7] TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)  `[fresh]`
-- [8] TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출  `[fresh]`
-- [9] TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다  `[fresh]`
+- [0] TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화  `[fresh]`
+- [1] TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존  `[fresh]`
+- [2] TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로  `[fresh]`
+- [3] TASK-2026-08-12-main-006 — 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로  `[fresh]`
+- [4] TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)  `[fresh]`
+- [5] TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토  `[fresh]`
+- [6] TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로  `[fresh]`
+- [7] TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)  `[fresh]`
+- [8] TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입  `[fresh]`
+- [9] TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `9`
-- telemetry_events_total: `588`
-- telemetry_total_queries: `588`
-- telemetry_hit_count: `305`
-- telemetry_hit_rate: `0.5187`
+- telemetry_events_total: `732`
+- telemetry_total_queries: `732`
+- telemetry_hit_count: `326`
+- telemetry_hit_rate: `0.4454`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 69 |
+| `backlog-update` | 86 |
 | `dispatcher` | 1 |
 | `doc-sync` | 1 |
-| `session-start` | 517 |
+| `session-start` | 644 |
 

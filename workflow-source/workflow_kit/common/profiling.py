@@ -18,8 +18,12 @@ from __future__ import annotations
 import gc
 import json
 import os
-import resource
 import sys
+
+try:  # POSIX only — Windows 에는 없다 (TASK-2026-08-12-main-005 cross-platform)
+    import resource
+except ImportError:  # pragma: no cover - Windows
+    resource = None  # type: ignore[assignment]
 import time
 import tracemalloc
 from dataclasses import dataclass
@@ -48,7 +52,9 @@ REGRESSION_RATIO = 0.10  # ±10%
 
 
 def _rss_bytes() -> int:
-    """현재 process 의 RSS in bytes (macOS resource)."""
+    """현재 process 의 RSS in bytes. Windows(resource 부재)는 0 — 측정 불가 표시."""
+    if resource is None:
+        return 0
     usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     # macOS: ru_maxrss is bytes; Linux: kilobytes
     if sys.platform == "darwin":

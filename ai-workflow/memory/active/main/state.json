@@ -29,8 +29,10 @@
   "session": {
     "current_baseline": "**16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토 (TASK-2026-08-12-main-003·004).** ①bundle 선택자 (read-only 11 / write 2 = `workflow_write_bundle` / all 13 기본+경고) + 렌더러 정직한 기본 (`--bundle read-only`, claude-code·MiniMax 는 write entry 동시 emit) + 검사 강제 + 자기 적용 (.mcp.json 2-server). 다음 cycle: 기본 all→read-only. ②배포 검토 (docs/planning/cli-distribution-review-2026-08.md): wheel top-level 에 일반명 `tools`/`bootstrap_lib` 실측 → PyPI 는 네임스페이스 격상 선행 필수. 권고 = uv/pipx + GH Release wheel 격리 설치 (INSTALLATION §3 반영). 상세: [16차 세션 기록](./sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md).",
     "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 으로 확정, 시점은 추후** (사용자 결정 2026-08-12, 현재 MacBook 전원 꺼짐). 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령 (`add-known-host` + `pull`, 토큰 값 전달 필요) / darwin mavis e2e / memory_index 3-tuple 추이).",
-    "current_focus": null,
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-08-12-main-005 CLI cross-platform 지원 (Linux/macOS/Windows)",
+    "in_progress_items": [
+      "TASK-2026-08-12-main-005 CLI cross-platform 지원 (Linux/macOS/Windows)"
+    ],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토",
@@ -49,8 +51,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
-    "task_count": 4,
-    "in_progress_items": [],
+    "task_count": 6,
+    "in_progress_items": [
+      "TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",

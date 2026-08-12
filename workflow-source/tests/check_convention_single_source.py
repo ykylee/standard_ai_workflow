@@ -103,7 +103,13 @@ CONVENTIONS: tuple[Convention, ...] = (
         canonical="workflow_kit/common/paths.py",
         symbols=("memory_active_dir", "memory_dir_for_workspace", "memory_root_dir",
                  "workflow_memory_dir"),
-        exemptions={},
+        exemptions={
+            # cross-platform probe 의 fixture 는 **외부 증인**이다 — 레이아웃을
+            # paths.py 헬퍼로 조립하면 검증 대상 코드로 검증 대상을 만드는
+            # 동어반복이 된다 (사본을 접으면 외부 증인이 필요하다, 2026-08-05).
+            "scripts/cross_platform_cli_probe.py":
+                "OS 매트릭스 probe 의 fixture — 정본 레이아웃의 독립 표기 (TASK-2026-08-12-main-005)",
+        },
     ),
     Convention(
         name="drift 원장 경로",

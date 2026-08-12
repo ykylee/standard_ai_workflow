@@ -31,7 +31,7 @@
 
 | 항목 | 권장 버전 | 비고 |
 | --- | --- | --- |
-| OS | macOS / Linux | Windows는 미검증 (CI는 ubuntu-latest) |
+| OS | Linux / macOS / Windows | **지원 tier** (v1.1.8+): Linux = 전량 smoke (CI 2축) · macOS = CLI probe (CI, `os-matrix.yml`) + 전량 2축 (darwin 실측 2026-08-11) · Windows = CLI probe (CI — wk 핵심 명령 + MCP 브리지; 전량 smoke 이식은 별건) |
 | Python | **3.11+** (저장소는 `>=3.10` 선언) | 3.11.15 / 3.12.x / 3.13.x 모두 동작 확인됨 |
 | Git | 2.30+ |  |
 | 선택 도구 | `make`, `curl`, `unzip` |  |

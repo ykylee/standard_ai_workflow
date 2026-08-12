@@ -65,6 +65,7 @@ __all__ = [
     "load_standard_rules",
     "parse_standard",
     "render_entrypoint_rules",
+    "render_memory_update_section",
     "DEFAULT_STATE_DOCS",
 ]
 
@@ -277,6 +278,30 @@ def render_entrypoint_rules(
         f"\n{resolved.close_order}\n"
         f"\n- 종료 전 갱신 대상: {targets}"
         "\n\n## 메모리 갱신 경로\n"
+        f"\n{commands}\n"
+        f"\n{contract}"
+    )
+
+
+def render_memory_update_section(
+    rules: StandardRules | None = None,
+    *,
+    source_root: Path | None = None,
+) -> str:
+    """보조 문서용 §11 섹션 — `## 메모리 갱신 경로` (명령 + 파싱 계약)만.
+
+    주요 진입점은 :func:`render_entrypoint_rules` 로 전체 블록(§1·§3·§8·§11)을
+    싣는다. persona / 보조 skill 문서처럼 **메모리 갱신을 지시하지만 전체 규칙
+    블록이 과한** 자리에는 이 섹션만 싣는다 — 지시만 있고 방법이 없으면 에이전트는
+    손으로 쓰고 §11.2 계약이 조용히 깨진다 (TASK-2026-08-11-main-020 전수검사,
+    TASK-028 주입).
+    """
+    resolved = rules if rules is not None else load_standard_rules(source_root)
+    commands = "\n".join(f"- {purpose}: `{cmd}`" for purpose, cmd in resolved.memory_commands)
+    contract = "\n".join(f"- {rule}" for rule in resolved.parse_contract)
+    return (
+        "## 메모리 갱신 경로\n"
+        f"\n{GENERATED_MARKER}\n"
         f"\n{commands}\n"
         f"\n{contract}"
     )

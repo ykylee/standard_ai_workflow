@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**11차 세션 종료 — 소비자 안내 표면이 전부 `wk` 를 가리킨다 (TASK-027).** SKILL.md 3종·apply_guide 의 미배포 `skills/` 경로 안내 제거, `check_packaging` 이 `tools` 배포를 wheel 에서 검증 (구판 1.1.6 wheel 에서 즉시 FAIL 실증), `--copy-core-docs` 는 죽는 wrapper 대신 SKILL.md 문서만 복사. 상세: [11차 세션 기록](./sessions/consumer_surface_cleanup_2026-08-12.md).",
-    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 26건 done, planned 2건: TASK-019 전량 검사 배타 락 / TASK-028 잔여 렌더러 14개 §11 주입).",
+    "current_baseline": "**12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).",
+    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 27건 done, planned 1건: TASK-019 전량 검사 배타 락. 6차 리뷰 후속 023~028 전부 종결).",
     "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)",
       "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)",
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
       "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
@@ -41,8 +42,7 @@
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
       "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
       "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다",
-      "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환",
-      "TASK-2026-08-11-main-017 — darwin homelab 검증"
+      "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -72,7 +72,8 @@
       "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
       "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
-      "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)"
+      "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)",
+      "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)"
     ]
   },
   "next_documents": [
@@ -82,6 +83,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/secondary_renderer_s11_injection_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/consumer_surface_cleanup_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/mcp_tool_list_single_source_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/s11_single_source_hardening_2026-08-12.md",

@@ -390,6 +390,83 @@ def test_harness_registry_fully_classified() -> None:
     _record("test_harness_registry_fully_classified", not problems, "; ".join(problems))
 
 
+# --- Case 9 ----------------------------------------------------------------
+
+#: §11 을 실어야 하는 보조 렌더러 (TASK-2026-08-11-main-028 — TASK-020 1순위).
+#: 주요 진입점(case 3)과 달리 bootstrap 산출물이 아니라 렌더러 출력을 직접 판정한다.
+SECONDARY_INJECTED_RENDERERS: tuple[str, ...] = (
+    "render_minimax_orchestrator",
+    "render_opencode_agent",
+    "render_pi_dev_agents",
+    "render_grok_build_skill",
+    "render_codewhale_skill",
+    "render_custom_skill_template",
+)
+
+#: §11 미주입 잔여 렌더러 **원장** — 이유와 함께 명시한다 (조용한 사각지대 금지).
+#: 여기 든 렌더러가 §11 을 싣게 되면 이 원장에서 빼야 검사가 통과한다 (양방향).
+SECONDARY_UNINJECTED_RENDERERS: dict[str, str] = {
+    "render_minimax_config_example": "설정 예시 — 규칙 산문을 싣는 문서가 아니다",
+    "render_minimax_doc_worker": "worker 페르소나 — 메모리 갱신은 orchestrator 의 책임 (분리 유지)",
+    "render_opencode_config": "설정 파일 — 규칙 산문을 싣는 문서가 아니다",
+    "render_opencode_worker_agent": "worker 페르소나 — 메모리 갱신은 orchestrator 의 책임",
+    "render_opencode_doc_worker_agent": "worker 페르소나 — 메모리 갱신은 orchestrator 의 책임",
+    "render_opencode_code_worker_agent": "worker 페르소나 — 메모리 갱신은 orchestrator 의 책임",
+    "render_opencode_validation_worker_agent": "worker 페르소나 — 메모리 갱신은 orchestrator 의 책임",
+    "render_aider_config_example": "설정 예시 — 규칙 산문을 싣는 문서가 아니다",
+}
+
+
+def test_secondary_renderers_carry_or_declare() -> None:
+    """보조 렌더러의 §11 상태를 **전수 판정**한다 (v1.1.7, TASK-028).
+
+    TASK-020 전수검사에서 26개 렌더러가 메모리 갱신을 지시하며 방법을 안 알려줬다.
+    주요 진입점 8개는 case 3 이, 직접 주입 4개는 case 2 의 리터럴 검출이 덮는다 —
+    남은 보조 렌더러는 여기서: 주입 목록은 §11 을 실어야 하고, 미주입 원장은
+    이유와 함께 §11 이 **없어야** 한다 (원장이 낡으면 그 자체가 red).
+    """
+    import argparse
+    import collections
+    import inspect
+
+    scripts_dir = SOURCE_ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from bootstrap_lib.harnesses import renderers as renderer_module  # noqa: E402
+    from bootstrap_lib.paths import Paths  # noqa: E402
+
+    rules = load_standard_rules(SOURCE_ROOT)
+    memory_cmd = rules.memory_commands[0][1]
+    contract_probe = rules.parse_contract[0]
+    dummy_args = argparse.Namespace(today="2026-01-01", adoption_mode="existing", force=True)
+    dummy_context: dict[str, object] = collections.defaultdict(lambda: "probe")
+    dummy_paths = Paths(*[Path("/nonexistent/probe")] * 13)
+    by_param = {"args": dummy_args, "context": dummy_context, "paths": dummy_paths}
+
+    def _render(name: str) -> str:
+        fn = getattr(renderer_module, name)
+        # 렌더러 시그니처가 (args, context) / (args, paths) / () 로 갈린다 —
+        # 파라미터 이름으로 dummy 를 맞춘다.
+        kwargs = {p: by_param[p] for p in inspect.signature(fn).parameters if p in by_param}
+        return str(fn(**kwargs))
+
+    problems: list[str] = []
+    for name in SECONDARY_INJECTED_RENDERERS:
+        out = _render(name)
+        if memory_cmd not in out:
+            problems.append(f"{name}: §11 갱신 명령 누락")
+        if contract_probe not in out:
+            problems.append(f"{name}: §11.2 파싱 계약 누락")
+    for name in SECONDARY_UNINJECTED_RENDERERS:
+        out = _render(name)
+        if memory_cmd in out:
+            problems.append(f"{name}: §11 이 실렸는데 미주입 원장에 남아 있다 — 원장을 갱신하라")
+    overlap = set(SECONDARY_INJECTED_RENDERERS) & set(SECONDARY_UNINJECTED_RENDERERS)
+    if overlap:
+        problems.append(f"양쪽에 모두 등재: {sorted(overlap)}")
+    _record("test_secondary_renderers_carry_or_declare", not problems, "; ".join(problems[:4]))
+
+
 def main() -> int:
     test_snapshot_matches_standard()
     test_renderers_have_no_rule_literals()
@@ -399,7 +476,8 @@ def main() -> int:
     test_shared_entrypoint_merges_instead_of_overwriting()
     test_entrypoint_paths_match_generated_layout()
     test_harness_registry_fully_classified()
-    total = 8
+    test_secondary_renderers_carry_or_declare()
+    total = 9
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

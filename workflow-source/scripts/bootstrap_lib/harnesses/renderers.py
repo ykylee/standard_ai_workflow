@@ -31,6 +31,7 @@ from workflow_kit.common.standard_rules import (
     find_memory_command,
     load_standard_rules,
     render_entrypoint_rules,
+    render_memory_update_section,
 )
 
 
@@ -353,7 +354,12 @@ def render_minimax_config_example() -> str:
 
 
 def render_minimax_orchestrator(args: argparse.Namespace, context: dict[str, object]) -> str:
-    """Render the orchestrator overlay describing the orchestrator's role."""
+    """Render the orchestrator overlay describing the orchestrator's role.
+
+    책임 3 이 state.json/handoff/backlog 갱신을 지시하므로 **방법**(§11)을 같이
+    싣는다 — 지시만 있으면 에이전트는 손으로 쓴다 (TASK-020 전수검사, TASK-028 주입).
+    """
+    _MEMORY_SECTION = render_memory_update_section()
     return f"""# workflow-orchestrator
 
 - 문서 목적: MiniMax Code 메인 orchestrator 페르소나의 책임/경계/산출물을 정의한다.
@@ -381,6 +387,8 @@ def render_minimax_orchestrator(args: argparse.Namespace, context: dict[str, obj
 - 모든 위임 작업이 `WorkerResponse.status == "ok"` 또는 명시적 blocked 사유와 함께 반환됨
 - `state.json` 의 `session.last_orchestrator_action` 이 이번 세션의 최종 행동으로 갱신됨
 - `session_handoff.md` 의 "다음 세션 시작 포인트" 가 한 문장으로 갱신됨
+
+{_MEMORY_SECTION}
 """
 
 
@@ -730,6 +738,11 @@ User-facing workflow rules:
 - Prefer `workflow-doc-worker` for large document reads and draft updates, `workflow-code-worker` for bounded implementation, config edits, and build-oriented tasks, and `workflow-validation-worker` for checks and evidence collection.
 - If your harness supports per-agent model selection, prefer the main model for this orchestrator and a smaller model for the worker agents by default.
 - Do not treat `ai-workflow/` as part of normal project document discovery. Use it only for workflow-state restoration or explicit workflow-maintenance tasks.
+
+{render_memory_update_section()}
+
+> 이 orchestrator 는 bash 가 deny 라 위 명령을 직접 실행하지 않는다 — 메모리 문서
+> 갱신이 필요하면 위 명령의 실행을 worker 에 위임하고, 손으로 문서를 다시 쓰지 않는다.
 """
 
 
@@ -1570,6 +1583,8 @@ with open(".workflow-kits/custom/SKILL.md") as f:
 2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
 3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
 
+{render_memory_update_section()}
+
 ## 다음에 읽을 문서
 
 - `harnesses/custom/apply_guide.md` (caller wire-up 절차)
@@ -1617,8 +1632,11 @@ def pi_dev_agents_supplement(
     marker = "## 1. 세션 시작 루틴"
     idx = body.find(marker)
     specific = body[idx:] if idx >= 0 else body
-    # base 에 이미 있는 **생성 블록**(§8 종료 순서)은 빼고 붙인다. 한 파일에 두 번
-    # 들어가면 그 자체가 사본이고, 나중에 한쪽만 고쳐지면 갈라진다.
+    # base 에 이미 있는 **생성 블록**은 빼고 붙인다. 한 파일에 두 번 들어가면 그
+    # 자체가 사본이고, 나중에 한쪽만 고쳐지면 갈라진다. v1.1.7 (TASK-028) 부터
+    # pi-dev 단독판은 전체 블록(§1·§3·§8·§11)을 실으므로, 병합 시에는 그 블록을
+    # **통째로** 제거한다 (렌더 문자열이 같으므로 exact substring 제거가 성립).
+    specific = specific.replace(render_entrypoint_rules(), "")
     close_order = load_standard_rules().close_order
     specific = "\n".join(
         line for line in specific.splitlines() if close_order not in line
@@ -1634,7 +1652,10 @@ def pi_dev_agents_supplement(
 
 
 def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
-    _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
+    # v1.1.7 (TASK-2026-08-11-main-028): §8 한 줄만 pull 하던 것을 전체 생성 블록으로.
+    # 단독 사용 시에도 §1·§3·§8·§11 이 실린다. codex 와 병합될 때는
+    # `render_codex_pi_dev_shared_agents` 가 이 블록을 통째로 제거해 중복을 막는다.
+    _STANDARD_RULES = render_entrypoint_rules()
     return f"""# AGENTS.md (Pi Coding Agent Profile)
 
 - **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
@@ -1654,15 +1675,17 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
 ## 3. 워크플로우 상태 관리
 - 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/<branch>/backlog/`의 해당 날짜 문서를 업데이트하십시오.
 - 세션 종료 전에는 `ai-workflow/memory/active/<branch>/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
-- {_STANDARD_CLOSE_ORDER}
+- 상태 문서 갱신은 아래 "메모리 갱신 경로" 의 도구를 사용하십시오 — 손으로 쓰면 파싱 계약이 조용히 깨집니다.
 
 ## 4. 도구 사용 가이드
-- 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 `python3 ai-workflow/scripts/` 아래의 도구들을 활용할 수 있습니다.
+- 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 아래 "메모리 갱신 경로" 의 `wk` 도구들을 활용하십시오.
 - 모든 도구 호출 결과는 구조화된 JSON으로 처리하는 것을 선호합니다.
 
 ## 5. 언어 가이드
 - 사용자에게 보고하거나 문서를 작성할 때는 한국어를 사용하십시오.
 - 코드와 기술적 명칭은 원문을 유지하십시오.
+
+{_STANDARD_RULES}
 """
 
 
@@ -1908,12 +1931,8 @@ python3 ai-workflow/mcp_servers/suggest-impacted-docs/suggest_impacted_docs.py
 {_STANDARD_CLOSE_ORDER}
 
 ```bash
-# 1. memory 갱신
-python3 workflow-source/scripts/generate_workflow_state.py \\
-  --project-profile-path docs/PROJECT_PROFILE.md \\
-  --session-handoff-path ai-workflow/memory/session_handoff.md \\
-  --work-backlog-index-path ai-workflow/memory/work_backlog.md \\
-  --output-path ai-workflow/memory/state.json
+# 1. memory 갱신 — handoff/backlog 를 도구로 갱신한 뒤 state.json 재생성
+{find_memory_command(load_standard_rules(), "재생성")}
 
 # 2. commit
 git add -A
@@ -1922,6 +1941,8 @@ git commit -m "..."
 # 3. push
 git push
 ```
+
+{render_memory_update_section()}
 
 ## 5. 다음에 읽을 문서
 
@@ -2238,6 +2259,8 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 - CodeWhale 의 `agent` 도구 (explore/plan/review/implementer/verifier) 는 workflow agent 토폴로지의 worker 분화와 정렬된다.
 - 메인 오케스트레이터(parent) 는 조정/통합/사용자 보고에 집중하고, 대량 탐색/구현/검증은 서브 에이전트로 위임한다.
 - Constitution Article VII (Domain Context) 에 따라, 본 workflow 는 CodeWhale 의 운영 컨텍스트로 동작한다.
+
+{render_memory_update_section()}
 
 ## 다음에 읽을 문서
 

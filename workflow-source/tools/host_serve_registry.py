@@ -110,6 +110,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="print resolved configuration and exit without binding",
     )
+    parser.add_argument(
+        "--print-systemd-unit",
+        action="store_true",
+        dest="print_systemd_unit",
+        help="상시 가동용 systemd user unit 을 stdout 에 출력하고 종료한다 "
+             "(~/.config/systemd/user/ 에 저장 후 `systemctl --user enable --now`). "
+             "토큰은 EnvironmentFile (%%h/.config/workflow_kit/registry_server.env) 로 공급",
+    )
     parser.add_argument("--json", action="store_true", help="JSON output")
     args = parser.parse_args(argv)
 
@@ -118,6 +126,51 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     info = _describe(args, registry_path)
+
+    if args.print_systemd_unit:
+        # 상시 가동의 **실행 가능한 경로** (TASK-2026-08-12-main-001). 절차를 산문으로만
+        # 두면 호스트마다 손으로 unit 을 짜게 되고, 그 사본이 낡는다 (§11 과 같은 원리).
+        # 토큰 검사는 하지 않는다 — unit 은 EnvironmentFile 에서 실행 시점에 읽는다.
+        exec_parts = [
+            sys.executable,
+            str(Path(__file__).resolve()),
+            "--bind", str(args.bind),
+            "--port", str(args.port),
+            "--quiet",
+        ]
+        if args.token_env:
+            exec_parts += ["--token-env", args.token_env]
+        if args.registry_path:
+            exec_parts += ["--registry-path", str(registry_path)]
+        env_file_line = (
+            "EnvironmentFile=%h/.config/workflow_kit/registry_server.env\n"
+            if args.token_env
+            else ""
+        )
+        unit = (
+            "[Unit]\n"
+            "Description=Standard AI Workflow registry server (read-only federation serving)\n"
+            "After=network.target\n"
+            "\n"
+            "[Service]\n"
+            "Type=simple\n"
+            f"{env_file_line}"
+            f"ExecStart={' '.join(exec_parts)}\n"
+            "Restart=on-failure\n"
+            "RestartSec=5\n"
+            "\n"
+            "[Install]\n"
+            "WantedBy=default.target\n"
+        )
+        print(unit, end="")
+        print(
+            "# 설치: 위 내용을 ~/.config/systemd/user/wk-registry.service 로 저장 후\n"
+            "#   systemctl --user daemon-reload && systemctl --user enable --now wk-registry\n"
+            + ("#   (토큰: ~/.config/workflow_kit/registry_server.env 에 "
+               f"`{args.token_env}=<값>` 을 0o600 으로 저장)\n" if args.token_env else ""),
+            file=sys.stderr,
+        )
+        return 0
 
     if args.token_env and not info["token_present"]:
         print(

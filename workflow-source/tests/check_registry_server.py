@@ -4,7 +4,7 @@ TASK-016 은 pull(*읽기*) 을 닫았지만 서빙하는 쪽이 없어 `http://
 문서상의 형식일 뿐이었다. 본 검사는 **실제로 서버를 띄우고 pull 로 되받아** 왕복이
 성립하는지 본다 — 서버 단독 응답만 보면 `_fetch_url` 쪽 계약 위반을 놓친다.
 
-검증 케이스 (9):
+검증 케이스 (11):
     1. GET /registry.json — 200, 파일 내용 그대로
     2. GET /healthz — 200, 인증 없이도 답한다
     3. 알 수 없는 경로 — 404 (파일 시스템 탐색 없음)
@@ -18,6 +18,8 @@ TASK-016 은 pull(*읽기*) 을 닫았지만 서빙하는 쪽이 없어 `http://
         bind 하고 그 주소로 pull (토큰 포함). 2026-08-09 까지는 loopback 왕복만
         실측이었다. LAN IP 를 못 얻는 호스트는 graceful skip (`--require-lan`
         으로 강제). 진짜 cross-host / 방화벽 / TLS 는 여전히 이 검사 밖이다.
+    11. --print-systemd-unit — 상시 가동 unit 출력 (토큰 env 미설정에도 성공,
+        인자 반영, EnvironmentFile 은 --token-env 지정 시에만)
 
 Stdlib only. http.server + threading + urllib + socket + tempfile.
 """
@@ -27,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -269,6 +272,41 @@ def main() -> int:
         "9) is_loopback 판정 + token_env 하위호환 (missing → \"\")",
         loopback_ok and legacy.token_env == "",
         f"loopback_ok={loopback_ok} token_env={legacy.token_env!r}",
+    )
+
+    # 11) --print-systemd-unit — 상시 가동의 실행 가능 경로 (TASK-2026-08-12-main-001).
+    # 토큰 env 가 *비어 있어도* unit 출력은 성공해야 한다 (실행 시점에
+    # EnvironmentFile 로 공급). ExecStart 는 인자를 그대로 실어야 한다.
+    unit_env = {k: v for k, v in os.environ.items() if k != "WK_REGISTRY_TOKEN"}
+    unit_env["PYTHONPATH"] = str(SOURCE_ROOT)
+    proc = subprocess.run(
+        [sys.executable, str(SOURCE_ROOT / "tools" / "host_serve_registry.py"),
+         "--print-systemd-unit", "--bind", "192.168.1.10", "--port", "8765",
+         "--token-env", "WK_REGISTRY_TOKEN"],
+        capture_output=True, text=True, timeout=30, env=unit_env,
+    )
+    unit_ok = (
+        proc.returncode == 0
+        and "[Service]" in proc.stdout
+        and "--bind 192.168.1.10" in proc.stdout
+        and "--port 8765" in proc.stdout
+        and "--token-env WK_REGISTRY_TOKEN" in proc.stdout
+        and "EnvironmentFile=%h/.config/workflow_kit/registry_server.env" in proc.stdout
+        and "WantedBy=default.target" in proc.stdout
+    )
+    proc_no_token = subprocess.run(
+        [sys.executable, str(SOURCE_ROOT / "tools" / "host_serve_registry.py"),
+         "--print-systemd-unit"],
+        capture_output=True, text=True, timeout=30, env=unit_env,
+    )
+    no_token_ok = (
+        proc_no_token.returncode == 0
+        and "EnvironmentFile" not in proc_no_token.stdout  # 토큰 없으면 env file 도 없다
+    )
+    check(
+        "11) --print-systemd-unit (토큰 미설정에도 출력 + 인자 반영 + EnvironmentFile 유무)",
+        unit_ok and no_token_ok,
+        f"rc={proc.returncode}/{proc_no_token.returncode}\n{proc.stdout[:300]}",
     )
 
     print()

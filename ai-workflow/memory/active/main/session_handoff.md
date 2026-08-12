@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (13차 세션 종료 — TASK-019 종결. 전량 검사 배타 락, 2026-08-11 backlog 28건 완결)
+- 최종 수정일: 2026-08-12 (14차 세션 종료 — federation self-host add. plex 상시 serving 가동)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).
-- 직전 기준선: **12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).
+- 현재 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
+- 직전 기준선: **13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).
+- 그 이전 기준선: **12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).
 - 그 이전 기준선: **11차 세션 종료 — 소비자 안내 표면이 전부 `wk` 를 가리킨다 (TASK-027).** SKILL.md 3종·apply_guide 의 미배포 `skills/` 경로 안내 제거, `check_packaging` 이 `tools` 배포를 wheel 에서 검증 (구판 1.1.6 wheel 에서 즉시 FAIL 실증), `--copy-core-docs` 는 죽는 wrapper 대신 SKILL.md 문서만 복사. 상세: [11차 세션 기록](./sessions/consumer_surface_cleanup_2026-08-12.md).
 - 그 이전 기준선: **10차 세션 종료 — MCP 도구 목록 사본 3계열이 registry 하나로 수렴했다 (TASK-025).** MiniMax 렌더러 손 목록(10개, 3개 누락)→registry 파생, 유령 script_path 2건은 mcp_servers/ 실물 생성 + 실존 강제, 예시 tools 배열은 case 7 이 registry 와 대조. ADR-003 에 MCP(선별 부분집합)↔wk(전체 창구) 이원 표면 의도 명시. 상세: [10차 세션 기록](./sessions/mcp_tool_list_single_source_2026-08-12.md).
 - 그 이전 기준선: **9차 세션 종료 — §11.1 명령의 손 사본 7곳이 정본 파생으로 바뀌었다 (TASK-026).** `find_memory_command` 로 렌더러가 정본 §11.1 에서 명령을 꺼내 쓰고, goose `on_session_end` 는 깨진 skills/ 경로 대신 `wk refresh-state`. 검출기가 §11.1 명령·§11.2 계약을 판정 대상에 추가, case 8 이 `PRIMARY ∪ EXEMPT == SUPPORTED_HARNESSES` 단언 (mavis 분류), self_application 이 §11 탐침 (낡은 루트 AGENTS.md 재생성). 되주입 3종 실증. 상세: [9차 세션 기록](./sessions/s11_single_source_hardening_2026-08-12.md).
@@ -26,9 +27,9 @@
   - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
 
 - 그 이전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: (없음 — **2026-08-11 backlog 28건 전부 done**. 다음 축은 후보 축 참조: federation self-host add / darwin mavis e2e / memory_index 3-tuple 추이).
+- 현재 주 작업 축: (없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation (두 번째 호스트 = 사용자 결정, 합류 절차는 environments/plex.md) / darwin mavis e2e / memory_index 3-tuple 추이).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
-- 다음 후보 축: federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
+- 다음 후보 축: ~~federation self-host add~~ ✅ (14차, plex 상시 가동) → cross-host federation (두 번째 호스트 = ? — 사용자 결정, 합류 두 명령) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -55,6 +56,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-001 federation self-host add — plex 상시 serving 편입
 - TASK-2026-08-11-main-019 전량 검사 배타 락
 - TASK-2026-08-11-main-028 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)
 - TASK-2026-08-11-main-027 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)
@@ -64,7 +66,6 @@
 - TASK-2026-08-11-main-023 wk backlog-update update 모드 파괴적 재생성 수정
 - TASK-2026-08-11-main-018 **state.json 을 생성물로 전환** — 정본 §11.1 `wk refresh-state` 행 + §11.2 생성물·생성기 입력 선언, 재생성/`--check` 창구 신설 (wk 72명령), `check_state_json_generated` 6 case (되주입 양방향 + **자기 적용** + 선언↔창구 정합, 정숙 구간). 확장분: `wk session-start` 무인자 자동 탐색 + branch-scoped daily 관측 (인덱스 전제가 task 상세 파일을 최신 backlog 로 오판하던 결함), args 경유 TypeError, self-bootstrap 의 skills/ 경로 → wk. smoke 249→250, 전량 2축 250/250 ×2. 진행 중 실측: `wk backlog-update --mode update` 가 task 파일을 전체 재생성하며 내용을 삭제 + handoff 중복 bullet — 후속 후보로 기록
 - TASK-2026-08-11-main-022 **하네스 파생본 통일** — 정본에 **§11 메모리 갱신 경로 + 파싱 계약**을 신설하고 `render_entrypoint_rules()` 경로로 전 하네스에 주입, `check_standard_single_source` 가 진입점의 §11 누락을 잡는다. **결함 26→14** (주요 진입점 8개는 기존 주입점을 타고 자동, `.claude/commands/*` 3개는 직접 주입 — 이번 조사의 출발점이던 파일들). 부수: goose 가 emit 하던 **존재하지 않는 경로**를 `wk` 로 교체 + `pyproject` 의 "bootstrap 이 skills 를 복사한다" 거짓 전제 정정. **커밋 전 FAIL 10건이 단일 뿌리로 잡혔다** — 필드 추가 시 스냅샷 fallback 생성자를 놓쳤고, **정본이 없는 환경에서만 실행되는 경로**라 mypy strict 가 아니었으면 배포처에서만 터졌을 결함이다. 교훈: **정본·추출기·스냅샷은 한 커밋 안에서 같이 움직인다.**
-- TASK-2026-08-11-main-020 **하네스 진입점 전수검사 (진단)** — 렌더러 32개 중 **26개**가 메모리 갱신을 지시하며 방법을 안 알려줬고, 유일한 '정상' 1개조차 **존재하지 않는 경로**를 가리켰다. 배포물을 전수 확인해 근본이 뒤집혔다: 이건 문서 결함이 아니라 **소비자에게 실행 가능한 경로가 처음부터 없는 것**이었다 (`skills/` 는 pip 패키지에도 bootstrap 번들에도 없고, `wk` 68개 명령 중 해당 기능 0개). 에이전트가 손으로 쓴 것은 규율 부족이 아니라 다른 선택지가 없어서였다. 아키텍처 결정(정본 하나 + `wk` 창구 하나 + 하네스별 파생본) 기록 후 TASK-021/022/018 로 분해.
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

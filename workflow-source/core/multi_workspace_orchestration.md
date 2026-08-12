@@ -148,6 +148,7 @@ python3 workflow-source/scripts/generate_workflow_state.py \
 | **registry HTTP server (federation *쓰기*)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/registry_server.py` + `tools/host_serve_registry.py`. loopback 기본 / read-only (쓰기 405) / 경로 2개만 (`/registry.json` + `/healthz`) / 토큰은 **환경변수 이름** 으로 (`--token-env`). pull 측에 `KnownHost.token_env` additive + `add-known-host` / `remove-known-host` CLI 신설 — **API 는 TASK-015 부터 있었지만 부르는 CLI 가 없어 federation 이 실제로는 돌 수 없었다.** 10 case smoke ALL PASS (실제 서버 ↔ pull 왕복 + 비-loopback bind 실측, TASK-2026-08-10-main-009). (TASK-2026-08-09-main-003) |
 | **branch protection 자동 check (3rd layer)** | ✅ **구현** (v1.1.2+) — `workflow_kit/common/branch_protection.py` (pure 판정) + `tools/check_branch_protection.py` (`gh api`). 보호를 *켜지 않는다* — 판정만 한다 (§5D.4). `gh` 부재/미인증은 graceful skip (모름 ≠ 없음), `--require-gh` 로 구분 가능. advisory default, `--exit-on-unprotected` 로 게이트. 8 case smoke ALL PASS. (TASK-2026-08-09-main-004) |
 | **title semantic drift v2** | ✅ **구현** (v1.1.2+) — v1 은 TASK-ID *집합* 만 봐서 같은 ID 안에서 내용이 바뀌면 언제나 clean 이었다. v2 는 같은 ID 의 **제목** 을 `difflib` 로 비교해 후보를 고르고 판정은 LLM prompt 로 넘긴다 (`purpose_refresh` 와 같은 advisory 모델 — API 직접 호출 ❌). `detect_scope_drift()` 에 `title_drift` additive. 11 case smoke ALL PASS. 임계 0.6 은 2026-08-10 에 저장소 자신의 제목 데이터로 실측 캘리브레이션 (`scripts/calibrate_title_drift.py` + `schemas/title_drift_calibration.json` + 검사 7 case, TASK-2026-08-10-main-008). (TASK-2026-08-09-main-005) |
+| **federation self-host 상시 가동** | ✅ **가동** (2026-08-12, TASK-2026-08-12-main-001) — `host-serve-registry --print-systemd-unit` 신설 (상시 가동의 실행 가능 경로, EnvironmentFile 로 토큰 공급) + plex 에 systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + 토큰, LAN 실측: healthz 200 / 무토큰 401 / 토큰 200 / POST 405) + registry 위생 (stale entry 정리, `main` 등록 + endpoint). 합류 절차는 `ai-workflow/memory/active/environments/plex.md`. 잔여: 진짜 cross-host 는 두 번째 호스트 결정 후. |
 
 > **정본 관계**: 운영 *규칙* 의 정본은 [`./global_workflow_standard.md`](./global_workflow_standard.md)
 > §10 이다 (모든 소비자 프로젝트에 적용, 진입점에 주입). 본 문서는 그 규칙의 **설계 근거와
@@ -1310,7 +1311,7 @@ wk host-pull-registry add-known-host --host-id hostA \
 wk host-pull-registry pull --host hostA
 ```
 
-`tests/check_registry_server.py` 10 case ALL PASS — 서버 응답만 보지 않고 **실제로
+`tests/check_registry_server.py` 11 case ALL PASS — 서버 응답만 보지 않고 **실제로
 띄워서 `pull_remote_registry()` 로 되받는다.** 서버 단독 검사는 `_fetch_url` 쪽
 계약 위반을 놓친다.
 
@@ -1320,6 +1321,13 @@ wk host-pull-registry pull --host hostA
 호스트(오프라인 컨테이너 등)는 graceful skip, `--require-lan` 으로 강제.
 **여전히 검증 밖**: 진짜 cross-host / 방화벽 통과 / reverse proxy / TLS 종단 —
 darwin homelab 등 두 번째 호스트가 있어야 한다.
+
+**상시 가동 (self-host add, 2026-08-12, TASK-2026-08-12-main-001)**: serving 을 손으로
+띄우는 동안 federation 은 "명령이 있는 것" 이지 "돌고 있는 것" 이 아니었다.
+`--print-systemd-unit` 이 상시 가동의 실행 가능한 경로다 — bind/port/token-env 를
+반영한 systemd user unit 을 출력하고, 토큰은 실행 시점에
+`~/.config/workflow_kit/registry_server.env` (0o600) 에서 읽는다 (unit 파일에 값이
+남지 않는다). plex 가 첫 상시 참여자다 (case 11 이 unit 계약을 고정).
 
 ## 7.5 Scope drift detection — §0.8 #3 (v0.15.26+, TASK-018)
 

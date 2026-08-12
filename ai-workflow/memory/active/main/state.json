@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).",
-    "current_axis": "(없음 — **2026-08-11 backlog 28건 전부 done**. 다음 축은 후보 축 참조: federation self-host add / darwin mavis e2e / memory_index 3-tuple 추이).",
-    "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
+    "current_baseline": "**14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).",
+    "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation (두 번째 호스트 = 사용자 결정, 합류 절차는 environments/plex.md) / darwin mavis e2e / memory_index 3-tuple 추이).",
+    "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
       "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)",
       "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)",
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
@@ -41,49 +42,29 @@
       "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
       "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
-      "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다",
-      "TASK-2026-08-11-main-019 — 전량 검사 배타 락 (동시 실행 방지)"
+      "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-11.md",
-    "task_count": 28,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-11-main-019 — 전량 검사 배타 락 (동시 실행 방지)",
-      "TASK-2026-08-11-main-018 — state.json 을 생성물로 전환",
-      "TASK-2026-08-11-main-017 — darwin homelab 검증",
-      "TASK-2026-08-11-main-013 — transient pyproject writer 추적 (감시 체계 보강)",
-      "TASK-2026-08-11-main-012 — mooneye 브랜치 처리 (idle 429h+, 삭제/유지 결정 후 정리)",
-      "TASK-2026-08-11-main-011 — workflow_kit_cli.py 안전 부분 분할 (2095줄 → 목표 ~500줄 + 모듈 5개)",
-      "TASK-2026-08-11-main-010 — dashboard_data.py 안전 부분 분할 (2488 → 1526줄 + 모듈 3개)",
-      "TASK-2026-08-11-main-009 — docs/presentations 파생 바이너리 트리 제거 (PDF 5.2MB + PPTX)",
-      "TASK-2026-08-11-main-008 — 원본-무결성 관찰 검사 3건을 정숙 구간으로 (병렬 race 위양성 제거)",
-      "TASK-2026-08-11-main-007 — release_pipeline.py 안전 부분 분할 (3908 → 3174줄 + 모듈 4개)",
-      "TASK-2026-08-11-main-006 — PERF-WF-04 벤치마크의 저장소 오염 제거 + sandbox 복사 race 내성",
-      "TASK-2026-08-11-main-005 — smoke CI red 해소: version_flag test 3 이 다른 검사의 dist 오염에 우연히 의존",
-      "TASK-2026-08-11-main-004 — check_cache_* 13개를 check_cache.py 1개로 통합",
-      "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (archived/gemini + archive/2026-07-22)",
-      "TASK-2026-08-11-main-002 — release amend Guard 2 가 staged 삭제 경로에서 fatal (git add pathspec 불일치)",
-      "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (정보량 0 인 부분집합 재측정)",
-      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
-      "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
-      "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
-      "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
-      "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)",
-      "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)"
+      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-11.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-12.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/environments/plex.md",
+    "ai-workflow/memory/active/main/sessions/federation_self_host_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/runner_exclusive_lock_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/secondary_renderer_s11_injection_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/consumer_surface_cleanup_2026-08-12.md",

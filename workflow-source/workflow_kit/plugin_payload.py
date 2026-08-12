@@ -62,7 +62,6 @@ import sys
 from pathlib import Path
 from typing import Callable, NamedTuple, Sequence
 
-from workflow_kit import __version__ as KIT_VERSION
 from workflow_kit.common.standard_rules import (
     StandardRules,
     find_memory_command,
@@ -77,6 +76,7 @@ __all__ = [
     "PLUGIN_SKILLS",
     "MARKETPLACE_RELPATH",
     "PluginSkillSpec",
+    "current_kit_version",
     "default_payload_root",
     "default_repo_root",
     "render_agent_plugin",
@@ -97,11 +97,6 @@ PAYLOAD_DIRNAME = "plugin"
 #: 플러그인 식별자. Claude Code 는 스킬을 ``/<plugin-name>:<skill-name>`` 으로
 #: 네임스페이스 하므로, bootstrap 이 심는 동명 스킬과 충돌하지 않는다 (계획 §5).
 PLUGIN_NAME = "standard-ai-workflow"
-
-PLUGIN_DESCRIPTION = (
-    "세션 시작 / 백로그 갱신 / 문서 동기화를 표준 AI 워크플로우 절차로 수행하는 "
-    "스킬 3종과 read-only MCP 도구 번들."
-)
 
 #: MCP 서버 등록에 쓰는 bundle 선택자. write bundle 은 payload 에 싣지 않는다.
 PAYLOAD_MCP_BUNDLE = "read-only"
@@ -229,7 +224,38 @@ def _doc_sync_body(rules: StandardRules) -> str:
 ```"""
 
 
-#: payload 가 싣는 스킬 3종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
+def _session_end_body(rules: StandardRules) -> str:
+    command = find_memory_command(rules, "state.json 재생성")
+    states = " / ".join(f"`{state}`" for state in rules.task_states)
+    return f"""## 역할
+
+세션을 종료하며, 다음 세션이 바로 이어받을 수 있게 상태를 남긴다.
+
+## 순서
+
+{rules.close_order}
+
+## 절차
+
+1. `session_handoff.md` 를 갱신한다 — 현재 기준선, 진행 중 / 차단 / 최근 완료 목록.
+2. 오늘 날짜 backlog 의 task 상태를 실제 결과에 맞춘다 ({states}).
+3. `state.json` 을 **재생성**한다 (손으로 고치지 않는다 — 아래 §11 계약).
+4. 1~3 의 갱신분이 **같은 commit 에** 담기게 한 뒤 push 한다.
+
+## 실행
+
+```bash
+{command}
+```
+
+`{command.split()[0]}` 가 없으면 조용히 넘어가지 않는다 — 설치 안내를 보고하고
+멈춘다 (`INSTALLATION_AND_USAGE.md` §3). 재생성 없이 손으로 쓴 `state.json` 은
+입력 문서와 갈라진다."""
+
+
+#: payload 가 싣는 스킬 4종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
+#: 정본 §11.1 의 명령 4개와 1:1 대응한다 — 명령만 있고 스킬이 없으면 하네스가
+#: 그 단계를 밟을 방법을 모른다 (session-end 가 정확히 그 상태였다).
 PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
     PluginSkillSpec(
         slug="session-start",
@@ -255,6 +281,24 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
         ),
         body=_doc_sync_body,
     ),
+    PluginSkillSpec(
+        slug="session-end",
+        description=(
+            "표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를 갱신하고 state.json 을 "
+            "재생성해 다음 세션이 그대로 이어받게 남긴다."
+        ),
+        body=_session_end_body,
+    ),
+)
+
+#: 스킬 개수는 :data:`PLUGIN_SKILLS` 에서 **파생**한다. 손으로 적으면 스킬을 늘릴 때
+#: 이 문장만 낡는다 — 실측으로 확인했다: `session-end` 를 넣은 직후
+#: `claude plugin details` 의 인벤토리는 ``Skills (4)`` 인데 그 바로 위 설명은
+#: 여전히 "스킬 3종" 이었다. 이 저장소가 §11.1 명령 사본·MCP 도구 목록 사본에서
+#: 이미 두 번 겪은 것과 같은 계열이다.
+PLUGIN_DESCRIPTION = (
+    f"세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 "
+    f"수행하는 스킬 {len(PLUGIN_SKILLS)}종과 read-only MCP 도구 번들."
 )
 
 
@@ -263,16 +307,38 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
 # ---------------------------------------------------------------------------
 
 
-def render_plugin_manifest(version: str = KIT_VERSION) -> str:
+def current_kit_version() -> str:
+    """**호출 시점**의 kit 버전.
+
+    모듈 수준에서 읽은 버전을 기본 인자로 박으면 값이 두 겹으로 굳는다:
+    ``workflow_kit.__version__`` 은 import 시점에 pyproject 를 1회 파싱하고,
+    기본 인자는 **함수 정의 시점**에 그 값으로 고정된다. 그래서 같은 프로세스에서
+    version bump 를 한 뒤 재생성하면 **낡은 버전이 조용히 박힌다** — 실측으로
+    확인했다 (P4, TASK-2026-08-12-main-017): ``__version__`` 을 바꿔도 재생성된
+    manifest 는 bump 이전 값이었다.
+
+    검사는 매번 새 프로세스라 이 자리를 못 잡는다. 릴리스 파이프라인이 bump 와
+    재생성을 한 프로세스에서 이어 하는 순간에만 발현하므로, 그 자리를 만들기
+    전에 뿌리를 없애 둔다. 정본(pyproject → installed metadata) 을 호출 시점에
+    다시 읽는다.
+    """
+    from workflow_kit import _read_pyproject_version
+
+    return _read_pyproject_version()
+
+
+def render_plugin_manifest(version: str | None = None) -> str:
     """``plugin/plugin.json`` — Agent Plugins 1.0 manifest.
 
     필드는 계획 §3-P1 이 명시한 3개뿐이다. 스펙 원문으로 확인하지 못한 선택 필드는
     넣지 않는다 — 지어낸 필드는 스펙 확정 시 조용히 틀린 값이 된다.
+
+    ``version`` 기본값이 :func:`current_kit_version` 인 이유는 그 docstring 참조.
     """
     return json.dumps(
         {
             "name": PLUGIN_NAME,
-            "version": version,
+            "version": version if version is not None else current_kit_version(),
             "description": PLUGIN_DESCRIPTION,
         },
         ensure_ascii=False,
@@ -311,7 +377,7 @@ def render_plugin_mcp_config() -> str:
     ) + "\n"
 
 
-def render_claude_code_manifest(version: str = KIT_VERSION) -> str:
+def render_claude_code_manifest(version: str | None = None) -> str:
     """``plugin/.claude-plugin/plugin.json`` — Claude Code 어댑터 manifest.
 
     payload 를 **참조만** 한다. `skills/` 와 `.mcp.json` 은 Claude Code 의 관례
@@ -327,7 +393,7 @@ def render_claude_code_manifest(version: str = KIT_VERSION) -> str:
     return json.dumps(
         {
             "name": PLUGIN_NAME,
-            "version": version,
+            "version": version if version is not None else current_kit_version(),
             "description": PLUGIN_DESCRIPTION,
             "author": PLUGIN_AUTHOR,
             "hooks": f"./{CLAUDE_CODE_HOOKS_RELPATH}",
@@ -395,7 +461,7 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     ) + "\n"
 
 
-def render_marketplace_manifest(version: str = KIT_VERSION) -> str:
+def render_marketplace_manifest(version: str | None = None) -> str:
     """``<repo>/.claude-plugin/marketplace.json`` — 이 저장소가 곧 marketplace.
 
     `/plugin marketplace add <owner>/<repo>` → `/plugin install <name>@<market>`
@@ -407,14 +473,14 @@ def render_marketplace_manifest(version: str = KIT_VERSION) -> str:
             "name": PLUGIN_NAME,
             "owner": PLUGIN_AUTHOR,
             "description": (
-                "표준 AI 워크플로우 — 세션 시작 / 백로그 갱신 / 문서 동기화 스킬과 "
-                "read-only MCP 도구를 배포하는 marketplace."
+                f"표준 AI 워크플로우 — 세션 경계 / 백로그 / 문서 동기화 스킬 "
+                f"{len(PLUGIN_SKILLS)}종과 read-only MCP 도구를 배포하는 marketplace."
             ),
             "plugins": [
                 {
                     "name": PLUGIN_NAME,
                     "source": f"./{PAYLOAD_DIRNAME}",
-                    "version": version,
+                    "version": version if version is not None else current_kit_version(),
                     "description": PLUGIN_DESCRIPTION,
                 }
             ],
@@ -448,7 +514,7 @@ def render_plugin_skill(spec: PluginSkillSpec, rules: StandardRules) -> str:
 def render_agent_plugin(
     rules: StandardRules | None = None,
     *,
-    version: str = KIT_VERSION,
+    version: str | None = None,
     source_root: Path | None = None,
 ) -> dict[str, str]:
     """payload 전체를 ``{상대 경로: 내용}`` 으로 돌려준다.
@@ -475,7 +541,7 @@ def render_agent_plugin(
 def render_repo_plugin_files(
     rules: StandardRules | None = None,
     *,
-    version: str = KIT_VERSION,
+    version: str | None = None,
     source_root: Path | None = None,
 ) -> dict[str, str]:
     """payload + marketplace 를 **저장소 루트 기준 상대 경로**로 돌려준다.

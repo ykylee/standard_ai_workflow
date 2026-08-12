@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-12",
+  "generated_at": "2026-08-13",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,12 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**25차 세션 종료 — 플러그인 Claude Code 채널이 개통됐다 (TASK-2026-08-12-main-015, P2).** 어댑터 2장 (`.claude-plugin/plugin.json` + `adapters/claude-code/hooks.json`) + 관례 경로 `.mcp.json` + 저장소 루트 `marketplace.json` — 전부 렌더러 생성물. 검사 7→**9 case**. **`claude plugin` CLI 실측이 계획을 두 번 고쳤다**: ①경로 필드의 `..` 를 거부 → 플러그인 루트 = payload 루트 (어댑터가 manifest+hooks 두 장으로 더 얇아짐) ②manifest 의 `mcpServers` 경로 필드는 **validate 는 통과하는데 로드가 안 된다** (인벤토리 MCP 0) → 관례 `.mcp.json` 으로 옮겨 1 확인. **validate 통과는 로드 증명이 아니다.** 자기 적용 성공: `marketplace add ./` + `install` (scope user, enabled, Skills 3/Hooks 2/MCP 1), `wk` 부재 graceful 두 hook 실측. 전량 2축 **252/252 ×2 green**. **다음 세션 첫 확인 = 스킬 네임스페이스(`/standard-ai-workflow:session-start`) + MCP 승인 UX** (설치는 현재 세션에 소급 적용 안 됨) → 계획 §3-P2 실측표에 추가. 상세: [25차 세션 기록](./sessions/plugin_claude_code_adapter_2026-08-12.md).",
-    "current_axis": "**플러그인 배포 전환 (P1·P2 ✅ 완료 / P3~P5 planned, TASK-2026-08-12-main-016~018)** — 다음 릴리스 목표 범위(P1+P2)가 채워졌다. 다음 작업 = TASK-016 (P3 멀티 하네스 어댑터) 또는 TASK-017 (P4 릴리스 파이프라인 통합 — `plugin/` 이 아직 bump 자동 동기 밖이라는 리스크를 닫는다). 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
+    "current_baseline": "**26차 세션 종료 — 플러그인 전환 P4 완료 + 스킬 4종 (TASK-2026-08-12-main-017·019·020).** 릴리스↔플러그인 연결이 **자동 재생성이 아니라 게이트**로 확정됐다 (소유자 판정). ①**stale 기본인자 제거**: `render_*` 의 version 기본값이 함수 정의 시점에 굳어 bump 후 재생성이 낡은 값을 쓰던 자리를 `current_kit_version()` 호출 시점 조회로 해소 — 검사는 매번 새 프로세스라 **디스크 대조로는 영영 못 잡는 자리**였다. ②bump 3경로가 정합 보고, `release-doctor` **6번째 source** 가 어긋남을 `ok=False`+`fix` 로 차단. ③**dist 자산 미포함 판정** — marketplace 설치 경로가 git 이라 wheel 자산을 안 읽는다. ④`session-end` 스킬 추가로 payload 스킬이 §11.1 명령 4개와 1:1 대응 (`plugin details` 실측 Skills **4**, always-on ~121 tok). **사고 1건**: 처음엔 bump 가 곧바로 재생성하게 짰는데, 릴리스 검사들이 원본에서 bump 를 apply 했다 되돌리고(실측 pyproject 1.1.8→1.1.9→1.1.8, **86ms 왕복**) 그 복원이 플러그인을 몰라 manifest 3장만 낡은 채 남았다. 게다가 목적지를 **모듈 위치**로 잡아 sandbox 실행이 원본을 v0.7.29 로 덮었다 (HEAD 무손상, 복원 완료). → 별건 [TASK-2026-08-13-main-001] 등록. 검사 9→**13 case** (되주입 3종 실증). 전량 2축 **252/252 ×2 green**. **P2 잔여 실측도 이 세션에서 전부 성립** (스킬 네임스페이스 / MCP 승인 / SessionStart hook) — 다만 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 **비어 있다** (P3 판정 대상). 상세: 계획 §3-P2·§3-P4.",
+    "current_axis": "**플러그인 배포 전환 (P1·P2·P4 ✅ 완료 / P3·P5 planned, TASK-2026-08-12-main-016·018)** — 다음 릴리스 목표 범위(P1+P2)는 이미 채워졌고 P4 까지 앞당겨 닫았다. **다음 작업 = TASK-016 (P3 멀티 하네스 어댑터)** — 첫 확인 항목으로 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 비어 있는 건을 판정한다 (플러그인이 `wk` 를 직접 배포할 통로가 이미 열려 있다는 뜻이라, 원칙 4 의 \"설치를 대신 못 해 준다\" 전제를 건드린다). 그 다음 TASK-018 (P5 채널 전환 판정). 별건 대기: [TASK-2026-08-13-main-001] 원본 bump 검사 sandbox 이관, [TASK-2026-08-12-main-019] CLAUDE.md install 이 macOS homebrew 에서 PEP 668 로 실패. 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
+    "current_focus": "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
+      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용",
       "TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)",
       "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS",
@@ -40,40 +42,24 @@
       "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
       "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
       "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
-      "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존",
-      "TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로",
-      "TASK-2026-08-12-main-006 — 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로"
+      "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
-    "task_count": 18,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
-      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)",
-      "TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로",
-      "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토",
-      "TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)",
-      "TASK-2026-08-12-main-006 — 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로",
-      "TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로",
-      "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존",
-      "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
-      "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
-      "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
-      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토",
-      "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS",
-      "TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)",
-      "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용"
+      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-12.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-13.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

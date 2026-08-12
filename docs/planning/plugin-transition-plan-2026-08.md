@@ -3,7 +3,7 @@
 - 문서 목적: 표준 AI 워크플로우의 배포 전략을 **플러그인 배포 중심**으로 전환하는 실행 계획 — 전환 원칙, 단계별 로드맵 (P1~P5), WBS, 완료 기준을 확정한다 (TASK-2026-08-12-main-013, 사용자 지시).
 - 범위: TASK-011 (Claude Code 플러그인 검토) + TASK-012 (멀티 하네스 공유 검토) 의 권고를 실행 계획으로 통합. 구현은 본 계획의 WBS task 들 (TASK-014~018) 로 수행한다.
 - 대상 독자: maintainer, 배포 정책 소유자, 구현 담당 AI agent
-- 상태: 실행 중 — **P1 완료** (TASK-014, 2026-08-12), P2 착수 대기
+- 상태: 실행 중 — **P1·P2·P4 완료** (TASK-014·015·017, 2026-08-12), P3·P5 planned
 - 최종 수정일: 2026-08-12
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [multi-harness-plugin-review-2026-08.md](./multi-harness-plugin-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md), [workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md)
 
@@ -30,8 +30,10 @@
    대신 설치해 주지 못한다 (자동 설치는 npm 만). 설치 전제 (uv/pipx + GH Release
    wheel) 를 문서화하고, hook 은 `wk` 부재 시 **조용히 실패하지 않고 안내**한다
    (graceful degradation — 조용한 fallback 금지 원칙).
-5. **버전은 릴리스 절차와 동기.** plugin.json 의 version 은 `cmd_release` bump 의
-   파생물 선재생성 목록에 들어간다 — 릴리스마다 손으로 맞추는 필드를 만들지 않는다.
+5. **버전은 릴리스 절차와 동기.** plugin.json 의 version 이 pyproject 와 어긋나면
+   **릴리스 게이트가 막는다** (`release-doctor`) — 릴리스마다 손으로 확인하는 필드를
+   만들지 않는다. *(P4 실측으로 "bump 가 자동 재생성" → "게이트가 강제" 로 정정.
+   근거는 §3-P4 실행 결과 2-1.)*
 
 ## 2. 현행 → 목표 상태
 
@@ -112,6 +114,9 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 | `claude plugin validate --strict .` (marketplace) | ✔ passed |
 | `claude --plugin-dir plugin plugin details` | Skills **3** / Hooks **2** (SessionStart·SessionEnd) / MCP servers **1** |
 | always-on 토큰 비용 | ~92 tok (스킬 3종 각 ~30, 호출 시 270~350) |
+
+> 이 표는 **P2 시점(TASK-015)의 기록**이다. 이후 `session-end` 가 추가되어 현재는
+> Skills **4** / always-on ~121 tok 이다 (TASK-020, 아래 P4 절 참조).
 | `wk` 부재 graceful | 두 hook 모두 안내 출력 + exit 0 — 조용한 실패 없음 |
 | **자기 적용** `claude plugin marketplace add ./` | ✔ `standard-ai-workflow` (user settings 선언) |
 | **자기 적용** `claude plugin install standard-ai-workflow@standard-ai-workflow` | ✔ scope user, **enabled**, v1.1.8-beta — 설치본 인벤토리도 3/2/1 동일 |
@@ -120,10 +125,23 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 `marketplace add` 의 경로 인자는 `.` 을 거부한다 — `./` 또는 절대 경로여야 한다
 (*"Invalid marketplace source format. Try: owner/repo, https://..., or ./path"*).
 
-**아직 실측 안 된 것**: 스킬 네임스페이스 호출
-(`/standard-ai-workflow:session-start`) 과 MCP 서버 승인 UX 는 **다음 세션**에서야
-확인된다 — 설치는 현재 세션에 소급 적용되지 않는다. 규칙 상시 주입(SessionStart
-hook) 실효는 원래 P5 의 실측 항목이다.
+**P2 잔여 실측 (2026-08-12, 26차 세션에서 확인)** — 설치 다음 세션에서 전부 성립했다.
+이 세션 자체가 설치본으로 열렸다:
+
+| 항목 | 결과 |
+|---|---|
+| 스킬 네임스페이스 `/standard-ai-workflow:session-start` | ✔ 호출 성립 — 이 세션이 그 경로로 시작했다 |
+| MCP 승인 UX | ✔ 별도 승인 프롬프트 없이 로드 (read-only 12 + write 2 도구) |
+| SessionStart hook 실효 | ✔ `wk` 부재를 세션 시작 시 안내, 세션은 중단되지 않음 (graceful) |
+| 플러그인 `<plugin>/bin` PATH 주입 | ⚠ 호스트가 `<plugin>/bin` 을 PATH 에 넣지만 payload 에 `bin/` 이 **없다** |
+
+마지막 항목이 P3·P4 설계에 걸린다: 호스트가 이미 **플러그인이 실행 파일을 배포할
+자리**를 열어 두고 있는데 payload 가 비워 두고 있다. `wk` 부재 graceful 경로를
+타는 근본 원인이기도 하다 (원칙 4 는 "설치를 대신 못 해 준다" 였는데, 이 통로가
+있으면 전제가 달라진다). **실측만 기록하고 판정은 P3 으로 넘긴다** — payload 에
+바이너리를 싣는 것은 "플러그인은 파생본" 원칙과 Python 의존 전제를 함께 건드린다.
+
+규칙 상시 주입(SessionStart hook) 의 *실효* 판정은 원래대로 P5 항목이다.
 
 ### P3 — 멀티 하네스 어댑터 (TASK-016)
 
@@ -140,6 +158,57 @@ hook) 실효는 원래 P5 의 실측 항목이다.
   (bump → plugin.json version 자동 동기)
 - dist 자산에 플러그인 포함 (release-dist), 배포 사본 날짜/버전 드리프트 검사 확장
 - CI: 플러그인 산출물 정합 검사가 smoke 에 편입되어 있는지 확인 (P1 검사의 CI 편입 검증)
+
+**P4 실행 결과 (2026-08-12, TASK-017)** — 계획이 예측한 리스크가 실재했고,
+예측한 것보다 한 겹 깊은 곳에 있었다.
+
+1. **버전이 두 겹으로 굳어 있었다.** `workflow_kit.__version__` 은 import 시점에
+   pyproject 를 1회 파싱하고, 렌더러의 `version: str = KIT_VERSION` **기본 인자는
+   함수 정의 시점**에 그 값으로 고정된다. 그래서 bump 를 파이프라인에 편입하는
+   순간 — 즉 한 프로세스에서 bump 후 재생성하는 순간 — **낡은 버전이 조용히
+   박힌다.** 실측으로 확인했다 (`__version__` 을 바꿔도 재생성 결과는 bump 이전 값).
+   기존 검사는 매번 새 프로세스라 이 자리를 **영영 못 잡는다**. `current_kit_version()`
+   (호출 시점 조회) 으로 뿌리를 없앤 뒤에 파이프라인을 붙였다.
+2. **bump 경로는 하나가 아니라 셋이다** — `cmd_version_bump` / auto-bump /
+   full-auto. 하나만 빠져도 *그 경로로 낸 릴리스만* 낡는다. 셋 전부에서 정합을
+   보고하고, 검사가 각 bump 호출 뒤 12줄 안에 보고 호출이 있는지 강제한다.
+
+2-1. **자동 재생성은 하지 않는다 (소유자 판정, 2026-08-12).** 처음에는 bump 가 곧바로
+   `plugin/` 을 재생성하게 짰는데, 그 설계가 이 저장소와 정면으로 충돌했다. 릴리스
+   검사 여럿이 **원본 저장소에서 bump 를 apply 한 뒤 되돌리는데** (실측:
+   `pyproject.toml` 이 1.1.8 → 1.1.9 → 1.1.8 로 **86ms 만에 왕복**), 그 복원 로직은
+   플러그인 산출물을 모른다 — pyproject 는 제자리로 오는데 **manifest 3장만 낡은 채
+   남아** 전량 검사가 매번 FAIL 했다. 그래서 `state.json` 과 **같은 규율**로 바꿨다:
+   생성물은 사람이 명령(`python3 -m workflow_kit.plugin_payload --apply`)으로
+   재생성하고, **게이트가 정합을 강제한다** — `release-doctor` 의 6번째 source 로
+   편입했고, 어긋나면 `fix` 필드에 그 명령이 담긴 채 `ok=False` 가 된다.
+   파이프라인이 플러그인을 **쓰지 않는다는 것 자체**를 검사 case 11 이 고정한다
+   (소스에 `write_repo_plugin_files` 가 있으면 FAIL).
+
+   여기서 얻은 것: **bump 에 파일 쓰기 부수효과를 붙이면, 그 bump 를 원본에서
+   돌리는 모든 검사가 잠재적 오염원이 된다.** 원본 bump 검사들을 sandbox 로 옮기는
+   일은 별건으로 남는다 (`_repo_sandbox` 가 이미 그 방향으로 만들어졌다).
+3. **dist 자산 포함은 하지 않는다 (판정).** wheel/sdist 는 importable 코드만 싣는
+   것이 이 저장소의 방침이고 (`pyproject` 주석), non-code asset 이 실린다고 착각한
+   주석 때문에 v1.1.7 에 실제 사고가 났다 (skill 스크립트가 소비자에게 실행 경로
+   없이 남음). 게다가 marketplace 설치 경로는 git (`owner/repo` 또는 `./path`) 이라
+   **wheel 자산을 보지 않는다** — 넣으면 아무도 안 읽는 14번째 사본이 하나 더 는다.
+   릴리스와 플러그인을 잇는 것은 자산이 아니라 **버전 동기**이고, 그건 위 1·2 와
+   case 4·9·10·11 이 담당한다.
+4. **CI 편입은 이미 되어 있었다** — 전량 runner 가 `tests/check_*.py` 를 glob 으로
+   발견하므로 (`discover_checks`) 신설 검사는 자동으로 smoke 와 CI 2축에 들어간다.
+
+`check_agent_plugin_payload` 9 → **12 case** (10·11 은 위 1·2, 12 는 아래 P4+ 참조).
+
+**P4 에서 파생된 발견 (TASK-020)** — payload 에 `session-end` 스킬이 추가되면서
+(사용자 지시), 실측이 결함 하나를 더 드러냈다: `claude plugin details` 인벤토리는
+`Skills (4)` 인데 **바로 위에 뜨는 플러그인 설명은 "스킬 3종"** 이었다. 개수를 손으로
+적어 둔 사본이라 스킬을 늘릴 때 갈라진다 — §11.1 명령 사본 7곳, MCP 도구 목록이
+13 중 10 에서 멈춰 있던 사본과 같은 계열이고, **사용자에게 가장 먼저 보이는 문장인데
+아무 검사도 보고 있지 않았다.** `len(PLUGIN_SKILLS)` 파생으로 바꾸고 case 12 로 고정.
+
+스킬 4종은 정본 §11.1 의 명령 4개와 1:1 대응한다 — 그 전까지 `wk refresh-state`
+하나만 대응 스킬 없이 남아 있었다 (하네스가 세션 종료 단계를 밟을 방법을 몰랐다).
 
 ### P5 — 실측 게이트 + 채널 전환 판정 (TASK-018)
 
@@ -158,7 +227,7 @@ hook) 실효는 원래 P5 의 실측 항목이다.
 | TASK-2026-08-12-main-014 | P1 | `render_agent_plugin()` + `plugin/` payload + 검사 확장 | payload 3축 (plugin.json/skills/mcp.json) 정본 파생 + 되주입 FAIL 실증 + 전량 2축 green | 013 | M |
 | TASK-2026-08-12-main-015 | P2 | Claude Code 어댑터 + marketplace.json + 자기 적용 실측 | `/plugin install` 이 이 저장소에서 성립 (스킬 3종 호출 + SessionEnd hook + MCP 등록 실측 기록) + `wk` 부재 graceful 실측 | 014 | M |
 | TASK-2026-08-12-main-016 | P3 | gemini-cli/goose/opencode 어댑터 + `.agents/skills/` 수렴 판정 | 어댑터 3장 렌더러 생성 + 검사 편입 + Gemini GEMINI.md 주입·Claude Code `.agents/skills/` 판독 실측 기록 | 014 | M |
-| TASK-2026-08-12-main-017 | P4 | cmd_release 통합 (bump 동기 + dist 자산 + 드리프트 검사) | 릴리스 dry-run 에서 plugin version 자동 동기 확인 + 드리프트 검사 되주입 실증 | 014, 015 | S |
+| TASK-2026-08-12-main-017 ✅ | P4 | cmd_release 통합 (bump 정합 보고 + 릴리스 게이트 + 드리프트 검사) | ✅ bump 3경로가 정합 보고 + `release-doctor` 가 어긋남을 `ok=False` 로 차단 + 되주입 실증 3종 (dist 자산은 **미포함 판정**) | 014, 015 | S |
 | TASK-2026-08-12-main-018 | P5 | 실측 종합 + INSTALLATION 개편 + 채널 전환 판정 기록 | 실측 3건 기록 + 문서 갱신 + 소유자 판정 본 문서 §3-P5 에 기록 | 015, 016, 017 | M |
 
 규모: S = 1세션 내, M = 1~2세션. 015 와 016 은 014 완료 후 **병렬 가능**
@@ -174,7 +243,7 @@ hook) 실효는 원래 P5 의 실측 항목이다.
 |---|---|
 | SessionStart hook 주입이 실측에서 불성립 → 규칙 주입 갭 지속 | 원칙 3: bootstrap 주입 병행 유지가 기본값. 플러그인은 스킬/훅/MCP 채널로도 가치 성립 (P5 에서 (b) 판정) |
 | 플러그인 산출물이 손 편집으로 오염 | P1 검사 강제 + 되주입 실증. `plugin/` 은 생성물 선언 (state.json 과 동일 지위) |
-| plugin.json version 드리프트 (v1.1.7 stamp 누락 동형) | P4 에서 선재생성 목록 편입 + 드리프트 검사. "bump 후 전량" 관행 적용 |
+| plugin.json version 드리프트 (v1.1.7 stamp 누락 동형) | ✅ P4 완료 — `release-doctor` 6번째 source 가 어긋남을 `ok=False` 로 막고 `fix` 명령을 낸다. 자동 재생성은 **하지 않는다** (§3-P4 실행 결과 2-1) |
 | Agent Plugins 1.0 스키마 변동 (신생 표준) | 어댑터가 얇아 payload 재배치 비용 낮음. 스키마 버전을 검사 fixture 로 고정하고 갱신은 명시 task 로 |
 | 스킬 이중 배포 (bootstrap 산출 + 플러그인) 시 동명 충돌 | 플러그인 스킬은 네임스페이스 (`/standard-ai-workflow:*`) 로 분리. P2 자기 적용에서 공존 동작 실측 |
 | Python 의존 자동 설치 부재로 첫 실행 실패 | 원칙 4: hook 이 부재 감지 시 설치 명령 안내. 조용한 실패 경로 금지 |
@@ -185,5 +254,5 @@ hook) 실효는 원래 P5 의 실측 항목이다.
 
 1. `plugin/` payload 와 어댑터 전부가 렌더러 생성물이고 검사가 정본 일치를 강제한다 (P1~P3).
 2. 이 저장소가 자기 자신을 플러그인으로 설치해 쓰고 있다 — 자기 적용 (P2).
-3. 릴리스 절차가 플러그인 버전·자산을 자동 동기한다 (P4).
+3. 릴리스 절차가 플러그인 버전 정합을 **게이트로 강제**한다 (P4).
 4. INSTALLATION 이 플러그인을 권장 경로로 안내하고, 채널 전환 판정 (a/b) 이 기록돼 있다 (P5).

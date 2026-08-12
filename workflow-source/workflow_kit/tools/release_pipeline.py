@@ -312,6 +312,24 @@ def cmd_validate(args) -> dict:
     else:
         results["mypy"] = {"ok": True, "skipped": True}
 
+    # 6. 플러그인 산출물 정합 (P4, TASK-2026-08-12-main-017)
+    # manifest 3장이 pyproject version 을 **복사해 담는다** — 어긋난 채 릴리스하면
+    # marketplace 가 낡은 버전을 광고한다 (v1.1.7 stamp 누락 동형).
+    #
+    # 여기가 강제 지점인 이유: bump 가 부수효과로 재생성하게 짰더니, 원본 저장소에서
+    # bump 를 apply 했다 되돌리는 릴리스 검사들이 pyproject 만 복원하고 manifest 는
+    # 낡은 채 남겼다 (실측). 그래서 `state.json` 과 같은 규율로 바꿨다 — **생성물은
+    # 사람이 명령으로 재생성하고, 게이트가 정합을 강제한다.** 실패 시 `fix` 에 그
+    # 명령이 담긴다.
+    if not getattr(args, "skip_plugin_payload", False):
+        status = plugin_payload_status(read_workflow_kit_version())
+        results["plugin_payload"] = {
+            "ok": bool(status.get("ok")) and bool(status.get("in_sync")),
+            **{k: v for k, v in status.items() if k != "ok"},
+        }
+    else:
+        results["plugin_payload"] = {"ok": True, "skipped": True}
+
     return results
 
 
@@ -724,6 +742,59 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
         WORKFLOW_KIT_INIT.write_text(new_text)
     return f"v{new_version}{suffix or ''}"
 
+def plugin_payload_status(version_label: str, *, repo_root: Path | None = None) -> dict:
+    """플러그인 산출물이 주어진 버전과 정합인지 **판정만** 한다. 쓰지 않는다.
+
+    bump 는 pyproject 만 고치는데 플러그인 manifest 3장은 그 버전을 **복사해
+    담는다** — 어긋난 채 릴리스하면 marketplace 가 낡은 버전을 광고한다. v1.1.7 의
+    RELEASE.md stamp 누락과 같은 계열이다.
+
+    **왜 자동으로 쓰지 않는가** (소유자 판정, 2026-08-12): 처음에는 bump 가 곧바로
+    재생성하게 짰는데, 그 설계가 이 저장소와 충돌한다. 릴리스 검사 여럿이 *원본
+    저장소*에서 bump 를 apply 한 뒤 되돌리는데 (실측: `pyproject.toml` 이 1.1.8 →
+    1.1.9 → 1.1.8 로 86ms 만에 왕복), 그 복원 로직은 플러그인 산출물을 모른다.
+    그래서 pyproject 는 제자리로 오는데 **manifest 3장만 낡은 채 남는다** — 전량
+    검사가 매번 FAIL 했다. 부수효과로 파일을 쓰는 대신, `state.json` 과 같은 규율을
+    쓴다: **생성물은 사람이 명령으로 재생성하고, 게이트가 정합을 강제한다.**
+
+    판정 대상 트리는 **이 파이프라인이 실제로 다루는 트리**다 (``REPO_ROOT.parent``).
+    ``plugin_payload.default_repo_root()`` 를 쓰면 안 된다 — 그건 *모듈이 로드된
+    위치*라 사본과 원본을 못 가른다 (sandbox 실행이 원본을 가리키는 사고를 실제로
+    냈다).
+
+    Args:
+        version_label: 정합 기준 버전 문자열 (``v`` 접두 포함, 예 ``v1.1.9-beta``).
+        repo_root: 판정할 저장소 루트. 기본값은 이 파이프라인의 작업 대상 트리.
+
+    Returns:
+        ``{"ok": bool, "in_sync": bool, "version": str, "repo_root": str,
+          "drifted": [상대경로], "drifted_count": int, "fix": "<재생성 명령>"}``
+    """
+    fix_cmd = "python3 -m workflow_kit.plugin_payload --apply"
+    try:
+        from workflow_kit.plugin_payload import (
+            diff_repo_plugin_files,
+            render_repo_plugin_files,
+        )
+    except Exception as e:  # noqa: BLE001 - 플러그인 모듈 부재는 릴리스를 막지 않는다
+        return {"ok": False, "error": f"{type(e).__name__}: {e}", "version": version_label}
+
+    try:
+        root = Path(repo_root) if repo_root is not None else REPO_ROOT.parent
+        drifted = diff_repo_plugin_files(root, render_repo_plugin_files(version=version_label))
+        return {
+            "ok": True,
+            "in_sync": not drifted,
+            "version": version_label,
+            "repo_root": str(root),
+            "drifted": drifted,
+            "drifted_count": len(drifted),
+            "fix": fix_cmd,
+        }
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": f"{type(e).__name__}: {e}", "version": version_label}
+
+
 def bump_version(version: str, *, patch: bool = False, minor: bool = False, major: bool = False, to: str | None = None) -> str:
     """version bump.
 
@@ -902,6 +973,10 @@ def cmd_version_bump(args) -> dict:
         result["current_workflow_kit"] = written
     else:
         result["workflow_kit_skipped"] = True
+
+    # 플러그인 산출물 정합을 **보고만** 한다 (P4). 여기서 쓰지 않는 이유는
+    # `plugin_payload_status` docstring 참조 — 강제는 릴리스 게이트가 한다.
+    result["plugin_payload_status"] = plugin_payload_status(f"v{new}-beta")
 
     # TASK-V0726-003 (v0.7.27): post-step 자동 sync — state.json + backlog 의 hash = latest
     # commit. --skip-sync-hash flag 시 skip (manual override).
@@ -2125,6 +2200,9 @@ def cmd_release(args) -> dict:
             # 직후 전량 smoke 가 저장소 version 을 1.0.0 → 1.0.1 로 bump 했다.
             if getattr(args, "dry_run", False):
                 results["auto_bump"] = {**bump_info, "applied": False, "mode": "dry-run"}
+                # 플러그인 산출물이 bump 를 따라가는지 dry-run 에서 확인할 수 있어야
+                # 한다 (P4 완료 기준). 판정만 하고 쓰지 않는다.
+                results["plugin_payload_status"] = plugin_payload_status(f"v{version}-beta")
             else:
                 # version-bump 자동 적용 (in-place). write_version + write_workflow_kit_version
                 write_version(version)
@@ -2137,6 +2215,10 @@ def cmd_release(args) -> dict:
                     suffix = ""  # default
                 write_workflow_kit_version(version, suffix=("-" + suffix) if suffix else "")
                 results["auto_bump"] = {**bump_info, "applied": True, "mode": "apply"}
+                # 플러그인 산출물 정합 보고 (P4) — bump 3경로 전부에 건다. 쓰지 않는다.
+                results["plugin_payload_status"] = plugin_payload_status(
+                    f"v{version}{('-' + suffix) if suffix else ''}"
+                )
         else:
             results["auto_bump"] = bump_info  # bumped=False, info only
 
@@ -2177,6 +2259,9 @@ def cmd_release(args) -> dict:
                     # dry-run 은 쓰지 않는다 (--full-auto 경로도 동일 계약).
                     if getattr(args, "dry_run", False):
                         results["auto_bump"] = {**bump_info, "applied": False, "mode": "dry-run"}
+                        results["plugin_payload_status"] = plugin_payload_status(
+                            f"v{new_version}-beta"
+                        )
                     else:
                         # in-place version-bump
                         write_version(new_version)
@@ -2185,6 +2270,10 @@ def cmd_release(args) -> dict:
                             suffix = "beta"
                         write_workflow_kit_version(new_version, suffix=("-beta" if suffix else ""))
                         results["auto_bump"] = {**bump_info, "applied": True, "mode": "apply"}
+                        # 플러그인 산출물 정합 보고 (P4) — full-auto 경로도 동일 계약.
+                        results["plugin_payload_status"] = plugin_payload_status(
+                            f"v{new_version}{'-beta' if suffix else ''}"
+                        )
                     # re-flow with new version
                     version = new_version
                     tag = f"v{version}-beta"

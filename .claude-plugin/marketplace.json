@@ -3,13 +3,13 @@
   "owner": {
     "name": "ykylee"
   },
-  "description": "표준 AI 워크플로우 — 세션 시작 / 백로그 갱신 / 문서 동기화 스킬과 read-only MCP 도구를 배포하는 marketplace.",
+  "description": "표준 AI 워크플로우 — 세션 경계 / 백로그 / 문서 동기화 스킬 4종과 read-only MCP 도구를 배포하는 marketplace.",
   "plugins": [
     {
       "name": "standard-ai-workflow",
       "source": "./plugin",
       "version": "v1.1.8-beta",
-      "description": "세션 시작 / 백로그 갱신 / 문서 동기화를 표준 AI 워크플로우 절차로 수행하는 스킬 3종과 read-only MCP 도구 번들."
+      "description": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 수행하는 스킬 4종과 read-only MCP 도구 번들."
     }
   ]
 }

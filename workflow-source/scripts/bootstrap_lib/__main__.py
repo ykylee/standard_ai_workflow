@@ -184,12 +184,14 @@ DEFAULT_CORE_SUPPORT_PATHS: list[str] = [
     "examples/pilot_adoption_open_git_client_example.md",
     "skills/README.md",
     "skills/prototype_layout.md",
+    # v1.1.7 (TASK-2026-08-11-main-027): session-start/backlog-update/doc-sync 의
+    # wrapper 스크립트는 더 이상 복사하지 않는다. TASK-021 이후 wrapper 는
+    # `from tools... import` 한 줄이라, pip 설치 없는 대상 저장소에 복사되면
+    # ModuleNotFoundError 로 죽는 빈 껍데기다 (이전의 자립형 스크립트 대비 회귀).
+    # 소비자 실행 경로는 `wk` 하나고 (정본 §11), SKILL.md 가 그렇게 안내한다.
     "skills/session-start/SKILL.md",
-    "skills/session-start/scripts/run_session_start.py",
     "skills/backlog-update/SKILL.md",
-    "skills/backlog-update/scripts/run_backlog_update.py",
     "skills/doc-sync/SKILL.md",
-    "skills/doc-sync/scripts/run_doc_sync.py",
     "skills/merge-doc-reconcile/SKILL.md",
     "skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py",
     "skills/validation-plan/SKILL.md",

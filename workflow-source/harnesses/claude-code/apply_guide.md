@@ -134,20 +134,20 @@ session-start skill 의 핵심 4 file (`session_handoff.md` / `work_backlog.md` 
 - session-start 자체는 *graceful* (exit code 0) — 사용자에게 scaffold 권장
 
 ```
-$ python3 skills/session-start/scripts/run_session_start.py \
-    --session-handoff-path ai-workflow/memory/active/sessions \
-    --work-backlog-index-path ai-workflow/memory/active/backlog \
-    --project-profile-path docs/PROJECT_PROFILE.md
+$ wk session-start
 {
   "status": "warning",
   "self_bootstrap_suggested": true,
   "self_bootstrap_init_commands": [
     "python3 scripts/bootstrap_workflow_kit.py --target-root /path --project-slug ... --entry-mode skill-only",
-    "python3 skills/session-start/scripts/run_session_start.py ..."
+    "wk session-start"
   ],
   "warnings": ["self-bootstrap mode: 핵심 4 file 모두 부재..."]
 }
 ```
+
+> 소비자 실행 경로는 `wk` 하나다 (정본 §11) — `skills/` 스크립트 경로는 배포물에
+> 없다 (v1.1.7, TASK-2026-08-11-main-021/027).
 
 ## 5. 기존 프로젝트 적용 순서
 

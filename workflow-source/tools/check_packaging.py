@@ -57,6 +57,12 @@ REQUIRED_IMPORTS: tuple[str, ...] = (
     "workflow_kit.common.state",
     "workflow_kit.common.contracts",
     "workflow_kit.common.schemas",
+    # v1.1.7 (TASK-2026-08-11-main-027): wk session-start/backlog-update/doc-sync/
+    # refresh-state 의 구현이 사는 패키지. TASK-021 의 전제("tools/ 는 배포된다")가
+    # 여기 없어서 wheel 에서 한 번도 검증되지 않았다 — pyproject 의 packages 에서
+    # tools 가 빠지면 소비자 전원의 wk 가 깨지는데 이 검사는 green 이었다.
+    "tools",
+    "tools.session_start",
 )
 
 

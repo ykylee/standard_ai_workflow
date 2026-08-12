@@ -45,20 +45,28 @@
 - handoff 와 backlog 충돌은 경고로만 출력
 - 프로젝트 프로파일의 문서 구조를 최우선 기준으로 사용
 
-## 7. 프로토타입 실행
+## 7. 실행
 
-- 실행 스크립트: [scripts/run_session_start.py](./scripts/run_session_start.py)
-- 예시 실행:
+**소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 pip 패키지에도 bootstrap
+번들에도 들어가지 않으므로, 여기 경로를 소비자에게 안내하면 안 된다 (TASK-021/027).
+구현은 배포되는 `workflow-source/tools/session_start.py` 에 있고, 본 디렉터리의
+[scripts/run_session_start.py](./scripts/run_session_start.py) 는 저장소 내 개발용
+thin wrapper 다.
 
 ```bash
-python3 skills/session-start/scripts/run_session_start.py \
+# workspace 안에서는 무인자 — PROJECT_PROFILE.md 를 자동 탐색한다 (v1.1.7+)
+wk session-start
+
+# 경로를 명시할 때
+wk session-start \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md
 ```
 
-- 현재 프로토타입은 JSON 요약을 stdout 으로 출력한다.
-- 최신 backlog 경로를 직접 주지 않으면 backlog index 링크에서 마지막 항목을 사용한다.
+- JSON 요약을 stdout 으로 출력한다.
+- 최신 backlog 는 index 문서가 있으면 링크에서, 없으면(branch-scoped 레이아웃)
+  daily backlog 디렉터리 관측으로 찾는다 (v1.1.7+).
 
 ## 8. 현재 상태
 
@@ -75,7 +83,7 @@ linked expansion) 결과를 *선택적* 으로 받아 output 의 `memory_index_q
 ### 사용법
 
 ```bash
-python3 skills/session-start/scripts/run_session_start.py \
+wk session-start \
   --session-handoff-path <handoff.md> \
   --work-backlog-index-path <work_backlog.md> \
   --project-profile-path <PROJECT_PROFILE.md> \

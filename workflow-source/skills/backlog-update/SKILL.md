@@ -63,11 +63,14 @@
 
 ## 7. 예시 실행 (v0.11.20 stable 정합)
 
-- 실행 스크립트: [scripts/run_backlog_update.py](./scripts/run_backlog_update.py)
+**소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 배포물에 없다. 구현은
+`workflow-source/tools/backlog_update.py`, 본 디렉터리의
+[scripts/run_backlog_update.py](./scripts/run_backlog_update.py) 는 저장소 내
+개발용 thin wrapper 다.
 
 ```bash
 # 기존 항목 갱신 (JSON 초안만 출력)
-python3 skills/backlog-update/scripts/run_backlog_update.py \
+wk backlog-update \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --mode update \
@@ -77,7 +80,7 @@ python3 skills/backlog-update/scripts/run_backlog_update.py \
   --status in_progress
 
 # --apply 로 backlog / index / handoff 까지 직접 반영
-python3 skills/backlog-update/scripts/run_backlog_update.py \
+wk backlog-update \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
@@ -108,7 +111,7 @@ linked expansion) 결과를 *선택적* 으로 받아 output 의 `memory_index_q
 ### 사용법
 
 ```bash
-python3 skills/backlog-update/scripts/run_backlog_update.py \
+wk backlog-update \
   --project-profile-path <PROJECT_PROFILE.md> \
   --task-name "<name>" --task-brief "<brief>" \
   --memory-index-dir <ws>/ai-workflow/memory/active/memory_index \

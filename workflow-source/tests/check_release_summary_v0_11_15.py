@@ -52,7 +52,7 @@ def test_release_summary_v0_11_15() -> None:
     print(f"  case 2 (cmd_release_status summary field + 1-line + 5-field): PASS")
 
     # case 3: `_attach_release_summary` helper 존재 + 모든 cmd_release return point wrap
-    rp_path = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+    rp_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
     rp_text = rp_path.read_text(encoding="utf-8")
     assert "def _attach_release_summary" in rp_text, (
         "release_pipeline._attach_release_summary helper 부재"
@@ -104,7 +104,7 @@ def test_release_summary_v0_11_15() -> None:
 
     # case 4b: `no_local_verify` 행을 **주입으로** 검증한다 — 환경이 아니라 매핑을 본다.
     # (CI verdict = ci_sanity) x (local mypy 없음/skipped) → no_local_verify.
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     from release_pipeline import _resolve_cross_verify_verdict
     for local in ({}, {"skipped": True}):
         v = _resolve_cross_verify_verdict({"verdict": "ci_sanity"}, local)
@@ -232,7 +232,7 @@ def test_release_summary_v0_11_15() -> None:
 
 def _attach_release_summary_via_helper(results: dict) -> str:
     """cmd_release 의 _attach_release_summary 직접 호출 (test 용)."""
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     from release_pipeline import _attach_release_summary
     return _attach_release_summary(results)["summary"]
 

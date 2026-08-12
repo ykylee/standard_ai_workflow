@@ -6,14 +6,14 @@
 
     plugins:
       - search
-      - tools.mkdocs_git_dates:GitDatesPlugin
+      - workflow_kit.tools.mkdocs_git_dates:GitDatesPlugin
 
 그리고 workflow 는 `PYTHONPATH=workflow-source` 를 주며 주석에 "plugin import 가능하게"
 라고 적어 두었다. 그러나 mkdocs 는 `plugins:` 항목을 **`mkdocs.plugins` entry point
 이름** 으로만 해석한다 (`mkdocs.plugins.get_plugins()` → `entry_points(group=...)`).
 import 경로가 아니다. 그래서 그 줄은 *이름* 으로 취급됐고 build 는 매번
 
-    ERROR - Config value 'plugins': The "tools.mkdocs_git_dates:GitDatesPlugin"
+    ERROR - Config value 'plugins': The "workflow_kit.tools.mkdocs_git_dates:GitDatesPlugin"
             plugin is not installed
 
 로 중단됐다. **최근 100회 실행 중 성공 0회** — 문서 사이트가 한 번도 배포되지 않았다.
@@ -158,9 +158,9 @@ def test_hook_modules_expose_events() -> bool:
 
 def test_detector_catches_injected_regression() -> bool:
     """4) 탐지기 자체가 동작하는가 — 원래 결함 모양을 주입해 잡히는지 확인."""
-    injected = "plugins:\n  - search\n  - tools.mkdocs_git_dates:GitDatesPlugin\n\nextra:\n"
+    injected = "plugins:\n  - search\n  - workflow_kit.tools.mkdocs_git_dates:GitDatesPlugin\n\nextra:\n"
     entries = _read_yaml_block(injected, "plugins")
-    if "tools.mkdocs_git_dates:GitDatesPlugin" not in entries:
+    if "workflow_kit.tools.mkdocs_git_dates:GitDatesPlugin" not in entries:
         print(f"  FAIL: 주입한 항목을 파서가 읽지 못했다: {entries}")
         return False
     bad = [p for p in entries if ":" in p]

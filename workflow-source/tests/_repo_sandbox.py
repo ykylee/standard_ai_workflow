@@ -21,7 +21,7 @@ CLAUDE.md 는 "여러 에이전트가 함께 일할 수 있다" 를 전제한다
     from _repo_sandbox import repo_sandbox
 
     with repo_sandbox(REPO_ROOT) as sandbox:
-        subprocess.run([sys.executable, str(sandbox / "workflow-source" / "tools" /
+        subprocess.run([sys.executable, str(sandbox / "workflow-source" / "workflow_kit" / "tools" /
                         "release_pipeline.py"), "version-bump", "--apply"], cwd=sandbox)
         # 사본의 pyproject 를 검증한다. 원본은 내내 그대로다.
 

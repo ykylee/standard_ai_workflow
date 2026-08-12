@@ -58,7 +58,7 @@ def _run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
 
 def _run_self_recover(args: list[str]) -> dict:
     """self-recover CLI invocation → dict parse."""
-    cmd = [sys.executable, "workflow-source/tools/release_pipeline.py",
+    cmd = [sys.executable, "workflow-source/workflow_kit/tools/release_pipeline.py",
            "self-recover"] + args + ["--json"]
     proc = _run(cmd)
     if proc.returncode != 0:
@@ -178,7 +178,7 @@ def test_dry_run_does_not_modify_files() -> None:
 
 def test_classify_separates_auto_and_manual() -> None:
     """_classify_drift_failures 가 _SELF_RECOVER_CASE_MAP 기반 분류 정확."""
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import importlib
     rp_module = importlib.import_module("release_pipeline")
     classify = rp_module._classify_drift_failures
@@ -207,7 +207,7 @@ def test_re_check_pass_after_apply_with_recovered() -> None:
 
 def test_format_self_recovery_log_returns_markdown() -> None:
     """_format_self_recovery_log 가 dict → markdown 문자열 변환."""
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import importlib
     rp = importlib.import_module("release_pipeline")
 
@@ -230,7 +230,7 @@ def test_format_self_recovery_log_returns_markdown() -> None:
 
 def test_emit_self_recovery_log_appends_to_release_note() -> None:
     """_emit_self_recovery_log 가 release note 끝에 섹션 자동 append."""
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import importlib
     rp = importlib.import_module("release_pipeline")
 

@@ -30,7 +30,7 @@ from pathlib import Path
 from unittest import mock
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py"
 
 # 2차 출처 (raw mirror) — v0.7.17+ in-repo. 외부 vault (~/wiki/) 연결 없음.
 # 1차 출처 = ai-workflow/memory/active/, 2차 출처 = ai-workflow/wiki/sources/ (L2 dense).
@@ -39,7 +39,7 @@ TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
 INREPO_WIKI = SOURCE_ROOT.parent / "ai-workflow" / "wiki"
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "refresh_wiki_memory.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py"
 WORKFLOW_KIT_SRC = SOURCE_ROOT / "workflow_kit"
 
 # workflow_kit.common.atomic_write import 위해 (v0.7.15+ refresh_wiki_memory 의 의존)

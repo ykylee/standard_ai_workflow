@@ -13,7 +13,7 @@ Test 구성 (5 test):
 5. test_notes_template_unknown: unknown value 시 명확한 error message
 
 Reference:
-- workflow-source/tools/release_pipeline.py (v0.7.24 본 release, --notes-template + _resolve_notes_file)
+- workflow-source/workflow_kit/tools/release_pipeline.py (v0.7.24 본 release, --notes-template + _resolve_notes_file)
 - v0.7.14 release note (changelog-gen subcommand, 본 release 의 'changelog' template 의 1차 출처)
 """
 
@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 
 
 def _import_tool():

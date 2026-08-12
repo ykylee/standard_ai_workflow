@@ -43,8 +43,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
-SURVEY = SOURCE_ROOT / "tools" / "survey_remote_workspaces.py"
-SEED = SOURCE_ROOT / "tools" / "seed_workspace_memory.py"
+SURVEY = SOURCE_ROOT / "workflow_kit" / "tools" / "survey_remote_workspaces.py"
+SEED = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
 
 FAILURES: list[str] = []
 

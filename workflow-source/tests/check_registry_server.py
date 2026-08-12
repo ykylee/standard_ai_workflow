@@ -280,7 +280,7 @@ def main() -> int:
     unit_env = {k: v for k, v in os.environ.items() if k != "WK_REGISTRY_TOKEN"}
     unit_env["PYTHONPATH"] = str(SOURCE_ROOT)
     proc = subprocess.run(
-        [sys.executable, str(SOURCE_ROOT / "tools" / "host_serve_registry.py"),
+        [sys.executable, str(SOURCE_ROOT / "workflow_kit" / "tools" / "host_serve_registry.py"),
          "--print-systemd-unit", "--bind", "192.168.1.10", "--port", "8765",
          "--token-env", "WK_REGISTRY_TOKEN"],
         capture_output=True, text=True, timeout=30, env=unit_env,
@@ -295,7 +295,7 @@ def main() -> int:
         and "WantedBy=default.target" in proc.stdout
     )
     proc_no_token = subprocess.run(
-        [sys.executable, str(SOURCE_ROOT / "tools" / "host_serve_registry.py"),
+        [sys.executable, str(SOURCE_ROOT / "workflow_kit" / "tools" / "host_serve_registry.py"),
          "--print-systemd-unit"],
         capture_output=True, text=True, timeout=30, env=unit_env,
     )

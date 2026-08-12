@@ -20,7 +20,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOL = REPO_ROOT / "workflow-source" / "tools" / "sync_release_hash.py"
+TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "sync_release_hash.py"
 PYTHON = sys.executable
 
 

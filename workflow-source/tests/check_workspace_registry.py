@@ -21,7 +21,7 @@ metadata(branch/harness/endpoint) 가 안정적이어야 다른 도구들이 의
 Refs:
   - workflow-source/core/multi_workspace_orchestration.md §7.1, §5A.3
   - workflow-source/workflow_kit/common/workspace_registry.py
-  - workflow-source/tools/workspace_registry.py
+  - workflow-source/workflow_kit/tools/workspace_registry.py
 """
 
 from __future__ import annotations
@@ -247,7 +247,7 @@ def test_cli_register_list_paths() -> None:
         with tempfile.TemporaryDirectory() as td:
             cli = [
                 sys.executable,
-                str(REPO_ROOT / "workflow-source" / "tools" / "workspace_registry.py"),
+                str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "register",
                 "--path", td,
                 "--branch", "feat-cli",
@@ -259,7 +259,7 @@ def test_cli_register_list_paths() -> None:
 
             cli = [
                 sys.executable,
-                str(REPO_ROOT / "workflow-source" / "tools" / "workspace_registry.py"),
+                str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "list",
             ]
             r = subprocess.run(cli, env=env, capture_output=True, text=True)
@@ -268,7 +268,7 @@ def test_cli_register_list_paths() -> None:
 
             cli = [
                 sys.executable,
-                str(REPO_ROOT / "workflow-source" / "tools" / "workspace_registry.py"),
+                str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "paths",
             ]
             r = subprocess.run(cli, env=env, capture_output=True, text=True)
@@ -277,7 +277,7 @@ def test_cli_register_list_paths() -> None:
 
             cli = [
                 sys.executable,
-                str(REPO_ROOT / "workflow-source" / "tools" / "workspace_registry.py"),
+                str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "workspace_registry.py"),
                 "unregister",
                 "--all",
                 "--apply",

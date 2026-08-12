@@ -30,7 +30,7 @@ from _repo_sandbox import repo_sandbox  # noqa: E402
 # `dist --apply` 는 실제 빌드라, 원본에서 돌리면 `standard_ai_workflow-<ver>/`
 # 빌드 디렉터리와 `dist/` 산출물이 저장소 안에 생긴다.
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 
 def _import_tool():
     """release_pipeline.py 를 importlib 로 로드."""
@@ -228,7 +228,7 @@ def main() -> int:
     origin = SOURCE_ROOT
     with repo_sandbox(origin.parent) as sandbox:
         SOURCE_ROOT = sandbox / "workflow-source"
-        TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+        TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
         rc = _run_cases()
 
     leaked = sorted(q.name for q in origin.glob("standard_ai_workflow-*") if q.is_dir())

@@ -160,7 +160,7 @@ def test_north_star_counts_only_manual_required_cycles() -> None:
 
 def test_ledger_path_shared_between_writer_and_reader() -> None:
     """writer(release_pipeline) 의 fallback 상수가 reader 와 갈라지면 원장이 둘로 쪼개진다."""
-    text = (SOURCE_ROOT / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
+    text = (SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
     literals = {
         line.split("=", 1)[1].strip().strip('"')
         for line in text.splitlines()

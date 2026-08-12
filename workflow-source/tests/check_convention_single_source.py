@@ -76,9 +76,9 @@ CONVENTIONS: tuple[Convention, ...] = (
                 "temp 벤치 **사본** 파일명이라 실제 메모리 경로가 아니다",
             "scripts/bootstrap_lib/paths.py":
                 "신규 프로젝트 템플릿 경로 emit — workflow_kit 에 의존하지 않는 부트스트랩 계층",
-            "tools/migrate_memory_to_branch_scoped.py":
+            "workflow_kit/tools/migrate_memory_to_branch_scoped.py":
                 "마이그레이션 도구 — legacy → branch-scoped 이동이 목적이라 양쪽 경로를 직접 다룬다",
-            "tools/archive_branch_memory.py":
+            "workflow_kit/tools/archive_branch_memory.py":
                 "아카이브 대상 판별용 존재 확인 (경로 해석이 아니라 디렉터리 판정)",
         },
     ),

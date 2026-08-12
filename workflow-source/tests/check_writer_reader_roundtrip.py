@@ -44,7 +44,7 @@ from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
-sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+sys.path.insert(0, str(SOURCE_ROOT / "workflow_kit" / "tools"))
 
 from workflow_kit.common.dashboard_data import (  # noqa: E402
     collect_drift_prevention,

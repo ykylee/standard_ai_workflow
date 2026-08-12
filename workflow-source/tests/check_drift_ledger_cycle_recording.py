@@ -39,7 +39,7 @@ from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
-sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+sys.path.insert(0, str(SOURCE_ROOT / "workflow_kit" / "tools"))
 
 import release_pipeline  # noqa: E402
 from release_pipeline import DRIFT_LEDGER_RELPATH, _self_recover_step  # noqa: E402

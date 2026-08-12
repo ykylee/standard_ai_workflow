@@ -20,7 +20,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from tools.session_start import main  # noqa: E402
+from workflow_kit.tools.session_start import main  # noqa: E402
 
 if __name__ == "__main__":
     raise SystemExit(main())

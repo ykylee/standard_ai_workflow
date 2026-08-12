@@ -48,7 +48,7 @@ ENTRIES_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active" / "memory_index" /
 
 def _run_bidir_link(args: list[str]) -> dict:
     """bidir-link CLI invocation → dict parse."""
-    cmd = [sys.executable, "workflow-source/tools/release_pipeline.py",
+    cmd = [sys.executable, "workflow-source/workflow_kit/tools/release_pipeline.py",
            "bidir-link"] + args + ["--json"]
     proc = subprocess.run(cmd, cwd=str(REPO_ROOT), capture_output=True, text=True,
                           check=False, timeout=60)
@@ -189,7 +189,7 @@ def test_audit_is_symmetric_after_sync() -> None:
 
 def test_format_bidir_link_audit_returns_markdown() -> None:
     """_format_bidir_link_audit 가 dict → markdown 문자열. 깨끗한 audit result 에 대해 본문 검증."""
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import importlib
     rp = importlib.import_module("release_pipeline")
 

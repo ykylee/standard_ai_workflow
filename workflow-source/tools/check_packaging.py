@@ -1,200 +1,27 @@
-#!/usr/bin/env python3
-"""Verify the built wheel imports cleanly in a fresh venv.
+"""deprecated shim — 구현은 :mod:`workflow_kit.tools.check_packaging` 로 이동 (v1.1.8).
 
-Catches packaging regressions like the v0.5.7.1 hotfix (sub-packages
-``workflow_kit/common/state``, ``contracts``, ``schemas`` were missing from
-``[tool.setuptools.packages]`` so ``pip install dist/*.whl`` failed with
-``ModuleNotFoundError`` even though ``pip install -e .`` worked).
-
-Usage::
-
-    python3 tools/check_packaging.py [--wheel PATH]
-
-Default behaviour:
-
-1. Resolve the wheel path (most recent under ``dist/``) unless overridden.
-2. Create a throwaway virtual environment via ``python3 -m venv``.
-3. Install the wheel with ``pip install`` (no editable mode, no local
-   source fallback).
-4. Run a 1-line import smoke covering every public sub-package plus the
-   two CLI entry points (``bootstrap_lib``, ``bootstrap_workflow_kit``).
-5. Tear down the venv on success.
-
-Exit code 0 on success, 1 on any import or install failure. The script
-prints a JSON manifest describing what it checked, so it can be wired
-into a release checklist or CI hook.
+top-level `tools` 는 공개 배포 시 이름 충돌을 일으키는 일반명이라
+`workflow_kit.tools` 로 격상했다 (TASK-2026-08-12-main-006, 배포 검토 §2).
+본 shim 은 1st deprecation cycle 동안 구경로 호출(import·path-load·직접 실행)을
+전부 지원하고 다음 cycle 에 제거된다. 새 코드는 정위치를 직접 쓸 것.
 """
 
-from __future__ import annotations
+import sys as _sys
+from pathlib import Path as _Path
 
-import argparse
-import json
-import shutil
-import subprocess
-import sys
-import tempfile
-from pathlib import Path
+_SOURCE_ROOT = _Path(__file__).resolve().parents[1]
+if str(_SOURCE_ROOT) not in _sys.path:
+    _sys.path.insert(0, str(_SOURCE_ROOT))
 
+import workflow_kit.tools.check_packaging as _impl
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DIST = REPO_ROOT / "dist"
-
-# Sub-packages that must be importable. The set is intentionally explicit:
-# adding a new sub-package will require updating this list, which is the
-# whole point — packaging drift is silent otherwise.
-#
-# Note: ``bootstrap_workflow_kit`` is intentionally NOT in this list. It's
-# a legacy CLI shim (single .py file in scripts/) that downstream callers
-# invoke directly via ``python scripts/bootstrap_workflow_kit.py`` rather
-# than importing. The new programmatic entry point is
-# ``python -m bootstrap_lib`` and the new programmatic API is the
-# ``bootstrap_lib`` package itself, both of which are covered below.
-REQUIRED_IMPORTS: tuple[str, ...] = (
-    "workflow_kit",
-    "bootstrap_lib",
-    "workflow_kit.contract_v1",
-    "workflow_kit.common",
-    "workflow_kit.common.state",
-    "workflow_kit.common.contracts",
-    "workflow_kit.common.schemas",
-    # v1.1.7 (TASK-2026-08-11-main-027): wk session-start/backlog-update/doc-sync/
-    # refresh-state 의 구현이 사는 패키지. TASK-021 의 전제("tools/ 는 배포된다")가
-    # 여기 없어서 wheel 에서 한 번도 검증되지 않았다 — pyproject 의 packages 에서
-    # tools 가 빠지면 소비자 전원의 wk 가 깨지는데 이 검사는 green 이었다.
-    "tools",
-    "tools.session_start",
-)
-
-
-def find_latest_wheel(dist_dir: Path) -> Path:
-    wheels = sorted(dist_dir.glob("*.whl"), key=lambda p: p.stat().st_mtime)
-    if not wheels:
-        raise SystemExit(f"ERROR: no wheel found under {dist_dir}")
-    return wheels[-1]
-
-
-def run(cmd: list[str], *, cwd: Path | None = None, env: dict | None = None) -> None:
-    print(f"  $ {' '.join(cmd)}", flush=True)
-    completed = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        env=env,
-        check=False,
-    )
-    if completed.returncode != 0:
-        raise SystemExit(
-            f"ERROR: command failed (rc={completed.returncode}): {' '.join(cmd)}"
-        )
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "--wheel",
-        type=Path,
-        default=None,
-        help="Wheel to verify. Defaults to the most recent file under dist/.",
-    )
-    parser.add_argument(
-        "--keep-venv",
-        action="store_true",
-        help="Keep the throwaway venv (printed at end) for debugging.",
-    )
-    args = parser.parse_args()
-
-    wheel = args.wheel or find_latest_wheel(DEFAULT_DIST)
-    if not wheel.exists():
-        raise SystemExit(f"ERROR: wheel not found: {wheel}")
-    print(f"Verifying wheel: {wheel}")
-
-    with tempfile.TemporaryDirectory(prefix="saw-packaging-") as tmp:
-        venv = Path(tmp) / "venv"
-        run([sys.executable, "-m", "venv", str(venv)])
-        pip = venv / "bin" / "pip"
-        python = venv / "bin" / "python"
-
-        # 1. Install the wheel. No -e, no local source — this is the
-        #    scenario that revealed the v0.5.7.1 regression.
-        run([str(pip), "install", "--upgrade", "pip"])
-        run([str(pip), "install", str(wheel)])
-
-        # 2. Import smoke. Use explicit try/except per import to record
-        #    exactly which module is missing — a flat ``__import__`` chain
-        #    would short-circuit on the first failure.
-        import_payload = "import json\n"
-        import_payload += "ok, missing = [], []\n"
-        for mod in REQUIRED_IMPORTS:
-            import_payload += (
-                "try:\n"
-                f"    __import__({mod!r})\n"
-                f"    ok.append({mod!r})\n"
-                "except Exception as exc:\n"
-                f"    missing.append({{'module': {mod!r}, 'error': str(exc)}})\n"
-            )
-        import_payload += "print(json.dumps({'ok': ok, 'missing': missing}))\n"
-
-        completed = subprocess.run(
-            [str(python), "-c", import_payload],
-            capture_output=True,
-            text=True,
-        )
-        if completed.returncode != 0:
-            print("--- import smoke failed ---")
-            print(completed.stdout)
-            print(completed.stderr, file=sys.stderr)
-            return 1
-        result = json.loads(completed.stdout)
-        if result["missing"]:
-            print("ERROR: missing imports:", json.dumps(result["missing"], indent=2))
-            return 1
-
-        # 3. CLI entry point smoke. ``python -m bootstrap_lib --help`` must
-        #    succeed and show the new --no-interactive flag.
-        completed = subprocess.run(
-            [str(python), "-m", "bootstrap_lib", "--help"],
-            capture_output=True,
-            text=True,
-        )
-        if completed.returncode != 0:
-            print("ERROR: bootstrap_lib --help failed")
-            print(completed.stderr, file=sys.stderr)
-            return 1
-        if "--no-interactive" not in completed.stdout:
-            print("ERROR: bootstrap_lib --help output missing --no-interactive")
-            print(completed.stdout)
-            return 1
-
-        # 4. Package metadata smoke — confirm the version we built matches
-        #    what we expect.
-        completed = subprocess.run(
-            [str(pip), "show", "standard-ai-workflow"],
-            capture_output=True,
-            text=True,
-        )
-        if completed.returncode != 0:
-            print("ERROR: pip show failed")
-            return 1
-        meta = completed.stdout
-        if "Name: standard-ai-workflow" not in meta:
-            print("ERROR: pip show output missing package name")
-            print(meta)
-            return 1
-
-        if args.keep_venv:
-            kept = Path.cwd() / "saw-packaging-venv"
-            shutil.copytree(venv, kept)
-            print(f"Kept venv at: {kept}")
-
-    manifest = {
-        "wheel": str(wheel),
-        "imported": result["ok"],
-        "missing": result["missing"],
-        "boot_lib_help_has_no_interactive": True,
-        "result": "PASS",
-    }
-    print(json.dumps(manifest, indent=2, ensure_ascii=False))
-    return 0
-
+# path-load(spec_from_file_location) 소비자가 private helper 까지 쓰므로
+# 공개/비공개 가리지 않고 전체 namespace 를 노출한다 (모듈 메타키는 제외).
+globals().update({
+    _k: _v for _k, _v in vars(_impl).items()
+    if _k not in {"__name__", "__file__", "__loader__", "__spec__",
+                   "__package__", "__path__", "__builtins__"}
+})
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(_impl.main())

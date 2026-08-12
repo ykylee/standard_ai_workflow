@@ -12,9 +12,9 @@ Test 구성 (5 test):
 5. test_wiki_emit_skip_combinations: --skip-1 / --skip-2 / --skip-3 의 조합 검증
 
 Reference:
-- workflow-source/tools/wiki_emit.py (v0.7.23 본 release)
-- workflow-source/tools/refresh_wiki_memory.py (3-step 의 1+3)
-- workflow-source/tools/emit_wiki_l2_body.py (3-step 의 2)
+- workflow-source/workflow_kit/tools/wiki_emit.py (v0.7.23 본 release)
+- workflow-source/workflow_kit/tools/refresh_wiki_memory.py (3-step 의 1+3)
+- workflow-source/workflow_kit/tools/emit_wiki_l2_body.py (3-step 의 2)
 - v0.7.23 release note (wiki 운영 cross-link 1-command wrapper)
 """
 
@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "wiki_emit.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "wiki_emit.py"
 
 
 def _run(args: list[str], *, timeout: int = 60) -> tuple[int, str, str]:

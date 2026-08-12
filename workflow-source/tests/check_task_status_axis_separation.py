@@ -56,7 +56,7 @@ from workflow_kit.common.state.builder import (  # noqa: E402
 from workflow_kit.common.workflow_state import refresh_workflow_state_cache  # noqa: E402
 
 BRANCH = "status-axis-smoke"
-MIGRATE_TOOL = SOURCE_ROOT / "tools" / "migrate_active_to_appendonly.py"
+MIGRATE_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "migrate_active_to_appendonly.py"
 FRONTMATTER_STATUS_RE = re.compile(r"^status:\s*(\S+)\s*$", re.M)
 
 

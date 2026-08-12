@@ -27,7 +27,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOL = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 PYTHON = sys.executable
 

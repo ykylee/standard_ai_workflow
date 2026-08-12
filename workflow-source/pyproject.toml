@@ -113,44 +113,44 @@ Issues = "https://github.com/ykylee/standard_ai_workflow/issues"
 #   `tests/check_wk_dispatcher.py` 가 red 를 낸다.
 wk = "workflow_kit.workflow_kit_cli:wk_main"
 
-workflow-apply-robust-patch = "tools.apply_robust_patch:main"
-workflow-archive-branch-memory = "tools.archive_branch_memory:main"
-workflow-archive-stale-memory = "tools.archive_stale_memory:main"
-workflow-audit-root-anchors = "tools.audit_root_anchors:main"
-workflow-backlog-update = "tools.backlog_update:main"
-workflow-check-branch-protection = "tools.check_branch_protection:main"
-workflow-check-packaging = "tools.check_packaging:main"
-workflow-check-quickstart-stale-links = "tools.check_quickstart_stale_links:main"
-workflow-claim-workspace = "tools.claim_workspace:main"
-workflow-consumer-metrics = "tools.consumer_metrics:main"
-workflow-create-environment-record-stub = "tools.create_environment_record_stub:main"
-workflow-detect-scope-drift = "tools.detect_scope_drift:main"
-workflow-doc-sync = "tools.doc_sync:main"
-workflow-emit-wiki-l2-body = "tools.emit_wiki_l2_body:main"
-workflow-fill-reverse-engineering-artifacts = "tools.fill_reverse_engineering_artifacts:main"
-workflow-fix-readme-for-release = "tools.fix_readme_for_release:main"
-workflow-host-pull-registry = "tools.host_pull_registry:main"
-workflow-host-serve-registry = "tools.host_serve_registry:main"
-workflow-install-pre-push-hook = "tools.install_pre_push_hook:main"
-workflow-migrate-active-to-appendonly = "tools.migrate_active_to_appendonly:main"
-workflow-migrate-legacy-l2 = "tools.migrate_legacy_l2:main"
-workflow-migrate-memory-to-branch-scoped = "tools.migrate_memory_to_branch_scoped:main"
+workflow-apply-robust-patch = "workflow_kit.tools.apply_robust_patch:main"
+workflow-archive-branch-memory = "workflow_kit.tools.archive_branch_memory:main"
+workflow-archive-stale-memory = "workflow_kit.tools.archive_stale_memory:main"
+workflow-audit-root-anchors = "workflow_kit.tools.audit_root_anchors:main"
+workflow-backlog-update = "workflow_kit.tools.backlog_update:main"
+workflow-check-branch-protection = "workflow_kit.tools.check_branch_protection:main"
+workflow-check-packaging = "workflow_kit.tools.check_packaging:main"
+workflow-check-quickstart-stale-links = "workflow_kit.tools.check_quickstart_stale_links:main"
+workflow-claim-workspace = "workflow_kit.tools.claim_workspace:main"
+workflow-consumer-metrics = "workflow_kit.tools.consumer_metrics:main"
+workflow-create-environment-record-stub = "workflow_kit.tools.create_environment_record_stub:main"
+workflow-detect-scope-drift = "workflow_kit.tools.detect_scope_drift:main"
+workflow-doc-sync = "workflow_kit.tools.doc_sync:main"
+workflow-emit-wiki-l2-body = "workflow_kit.tools.emit_wiki_l2_body:main"
+workflow-fill-reverse-engineering-artifacts = "workflow_kit.tools.fill_reverse_engineering_artifacts:main"
+workflow-fix-readme-for-release = "workflow_kit.tools.fix_readme_for_release:main"
+workflow-host-pull-registry = "workflow_kit.tools.host_pull_registry:main"
+workflow-host-serve-registry = "workflow_kit.tools.host_serve_registry:main"
+workflow-install-pre-push-hook = "workflow_kit.tools.install_pre_push_hook:main"
+workflow-migrate-active-to-appendonly = "workflow_kit.tools.migrate_active_to_appendonly:main"
+workflow-migrate-legacy-l2 = "workflow_kit.tools.migrate_legacy_l2:main"
+workflow-migrate-memory-to-branch-scoped = "workflow_kit.tools.migrate_memory_to_branch_scoped:main"
 # Note: ``tools/mkdocs_git_dates.py`` 는 mkdocs plugin (on_page_markdown hook) 이지 CLI 가 아님.
 #   ``mkdocs`` 가 import 시점에 plugin 으로 등록. console_script 진입점 ❌.
-workflow-refresh-state = "tools.refresh_state:main"
-workflow-refresh-wiki-memory = "tools.refresh_wiki_memory:main"
-workflow-release-pipeline = "tools.release_pipeline:main"
-workflow-release-v0-13-0 = "tools.release_v0_13_0:main"
-workflow-rotate-workflow-logs = "tools.rotate_workflow_logs:main"
-workflow-score-wiki-maintainability = "tools.score_wiki_maintainability:main"
-workflow-score-wiki-trend = "tools.score_wiki_trend:main"
-workflow-seed-workspace-memory = "tools.seed_workspace_memory:main"
-workflow-session-start = "tools.session_start:main"
-workflow-suggest-memory-entries = "tools.suggest_memory_entries:main"
-workflow-survey-remote-workspaces = "tools.survey_remote_workspaces:main"
-workflow-sync-release-hash = "tools.sync_release_hash:main"
-workflow-wiki-emit = "tools.wiki_emit:main"
-workflow-workspace-registry = "tools.workspace_registry:main"
+workflow-refresh-state = "workflow_kit.tools.refresh_state:main"
+workflow-refresh-wiki-memory = "workflow_kit.tools.refresh_wiki_memory:main"
+workflow-release-pipeline = "workflow_kit.tools.release_pipeline:main"
+workflow-release-v0-13-0 = "workflow_kit.tools.release_v0_13_0:main"
+workflow-rotate-workflow-logs = "workflow_kit.tools.rotate_workflow_logs:main"
+workflow-score-wiki-maintainability = "workflow_kit.tools.score_wiki_maintainability:main"
+workflow-score-wiki-trend = "workflow_kit.tools.score_wiki_trend:main"
+workflow-seed-workspace-memory = "workflow_kit.tools.seed_workspace_memory:main"
+workflow-session-start = "workflow_kit.tools.session_start:main"
+workflow-suggest-memory-entries = "workflow_kit.tools.suggest_memory_entries:main"
+workflow-survey-remote-workspaces = "workflow_kit.tools.survey_remote_workspaces:main"
+workflow-sync-release-hash = "workflow_kit.tools.sync_release_hash:main"
+workflow-wiki-emit = "workflow_kit.tools.wiki_emit:main"
+workflow-workspace-registry = "workflow_kit.tools.workspace_registry:main"
 
 [tool.setuptools]
 # ``workflow-source`` is not a single importable package — it's a bundle of:
@@ -184,7 +184,12 @@ packages = [
     "workflow_kit.contract_v1",
     "workflow_kit.server",
     "workflow_kit.harness",
-    "tools",  # v1.1.1+ — CLI 化 A안: 30+ console_script entry points
+    # v1.1.8 (TASK-2026-08-12-main-006): 구현의 정위치. top-level `tools` 는
+    # 공개 배포 시 이름 충돌을 일으키는 일반명이라 여기로 격상했다.
+    "workflow_kit.tools",
+    # v1.1.8 1st deprecation cycle: 구경로 shim — 다음 cycle 에 drop 한다.
+    # 이게 남아 있는 동안 PyPI 발행은 여전히 막혀 있다 (배포 검토 §2).
+    "tools",
 ]
 
 # Single-file modules that don't live inside a package directory.
@@ -260,6 +265,15 @@ exclude = [
     "(?:^|/)workflow-source/(?:skills|prompts|examples|schemas|core|build|releases|scripts)/",
     "^(?:skills|prompts|examples|schemas|core|build|releases|scripts)/",
 ]
+# v1.1.8 (TASK-2026-08-12-main-006): tools 는 top-level 시절부터 strict 밖이었다.
+# 물리 이동으로 게이트(workflow_kit/) 안에 들어오므로 1st cycle 은 overrides 로
+# 오류만 무시한다 — exclude 를 쓰면 "exclude 가 workflow_kit 내부를 먹는다" 는
+# v1.0.2 교훈 검사(check_mypy_config_actually_loaded)와 충돌한다. strict 격상은
+# 별건 (v0.8.0 §5.3 단계적 격상 규약).
+[[tool.mypy.overrides]]
+module = "workflow_kit.tools.*"
+ignore_errors = true
+
 # v0.8.0+ 단계적 strict 격상 — non-public-surface module 은 v0.8.x~0.9.0 에서 단계적 격상.
 # 현재 v0.8.0 은 workflow_kit/__init__.py 의 public API 만 strict clean.
 # 다른 module 은 `disallow_untyped_defs = false` (v0.8.x follow-up) 로 두고, base strict = true 가

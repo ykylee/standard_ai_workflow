@@ -46,7 +46,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
-CLAIM = SOURCE_ROOT / "tools" / "claim_workspace.py"
+CLAIM = SOURCE_ROOT / "workflow_kit" / "tools" / "claim_workspace.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
 PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
 

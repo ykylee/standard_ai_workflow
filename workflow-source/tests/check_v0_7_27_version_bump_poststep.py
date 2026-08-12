@@ -20,7 +20,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOL = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 PYTHON = sys.executable
 
@@ -98,8 +98,8 @@ def test_apply_auto_calls_sync_hash() -> bool:
         (repo_root / "workflow_kit" / "__init__.py").parent.mkdir(parents=True, exist_ok=True)
         (repo_root / "workflow_kit" / "__init__.py").write_text('__version__ = "v0.0.0-beta"\n', encoding="utf-8")
         # workflow-source dir with sync_release_hash.py mock
-        (repo_root / "workflow-source" / "tools").mkdir(parents=True, exist_ok=True)
-        sync_tool = repo_root / "workflow-source" / "tools" / "sync_release_hash.py"
+        (repo_root / "workflow-source" / "workflow_kit" / "tools").mkdir(parents=True, exist_ok=True)
+        sync_tool = repo_root / "workflow-source" / "workflow_kit" / "tools" / "sync_release_hash.py"
         sync_tool.write_text("# mock sync_release_hash.py\nimport sys\nsys.exit(0)\n", encoding="utf-8")
 
         # git init (REPO_ROOT detect)

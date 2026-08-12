@@ -17,7 +17,7 @@ workspace_registry.register() 를 부르고, --no-register 로 비활성되며, 
   5) env 기반 (WORKFLOW_HARNESS / WORKFLOW_ENDPOINT) → 등록 시 자동 사용.
 
 Refs:
-  - workflow-source/tools/seed_workspace_memory.py
+  - workflow-source/workflow_kit/tools/seed_workspace_memory.py
   - workflow-source/workflow_kit/common/workspace_registry.py
   - core/multi_workspace_orchestration.md §5A.3
 """
@@ -82,7 +82,7 @@ def _run_seed(env: dict, proj: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [
             sys.executable,
-            str(REPO_ROOT / "workflow-source" / "tools" / "seed_workspace_memory.py"),
+            str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "seed_workspace_memory.py"),
             "--memory-root", str(proj_memory_root),
             *args,
         ],

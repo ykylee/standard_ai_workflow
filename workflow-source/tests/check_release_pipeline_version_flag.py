@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 
 
 # --- Test 1: --version argparse 인식 + cli-flag source ---

@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_mypy_ci_cross_verify_v0_11_13() -> None:
     """v0.11.13 mypy CI cross-verify (Layer 1 ↔ Layer 2 정합) verify."""
     # case 1: _cross_verify_ci_mypy helper 존재 + gh run list invocation
-    rp_path = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+    rp_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
     rp_text = rp_path.read_text(encoding="utf-8")
     assert "def _cross_verify_ci_mypy" in rp_text, "release_pipeline._cross_verify_ci_mypy helper 부재"
     # gh run list invocation (CI 조회)
@@ -91,7 +91,7 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
     print("  case 5 (cmd_release_create dispatcher 2 flag forwarding + docstring): PASS")
 
     # case 6: release_pipeline_lib.cmd_release 2 kwarg forwarding + _make_args default
-    lib_path = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline_lib.py"
+    lib_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline_lib.py"
     lib_text = lib_path.read_text(encoding="utf-8")
     lib_release_section = re.search(
         r"def cmd_release\(.*?def ",
@@ -111,7 +111,7 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
     # case 7: helper 직접 실행 (실 gh CLI integration)
     # pytest-like fixture: CI 가 query 가능하면 sanity/ci_sanity verdict, query 불가하면 absent/skipped
     sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     from release_pipeline import _cross_verify_ci_mypy, _resolve_cross_verify_verdict
     ci_mypy = _cross_verify_ci_mypy()
     # verdict schema 정합

@@ -262,7 +262,7 @@ def _check_release_pipeline_dashboard_emit() -> None:
     """v0.13.1+: release_pipeline._emit_dashboard_post_release 정상 emit 검증."""
     import argparse as _ap
     import sys as _sys
-    tools_dir = SOURCE_ROOT / "tools"
+    tools_dir = SOURCE_ROOT / "workflow_kit" / "tools"
     if str(tools_dir) not in _sys.path:
         _sys.path.insert(0, str(tools_dir))
     from release_pipeline import _emit_dashboard_post_release  # type: ignore[import-not-found]

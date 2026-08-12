@@ -15,7 +15,7 @@ Test list (7 test):
 7. test_next_available_version_local_ahead: local 이 remote max 보다 클 때 그대로 (bumped=False)
 
 Reference:
-- workflow-source/tools/release_pipeline.py (v0.7.18 본 release, --auto-bump + _check_remote_tag)
+- workflow-source/workflow_kit/tools/release_pipeline.py (v0.7.18 본 release, --auto-bump + _check_remote_tag)
 - v0.7.16 release note (race lesson: 5-step re-version + cherry-pick + merge)
 - memory #22 §release coordination race
 """
@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 
 
 def _import_tool():

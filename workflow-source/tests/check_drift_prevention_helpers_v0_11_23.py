@@ -23,7 +23,7 @@ from typing import Iterator
 
 REPO = Path(__file__).resolve().parents[2]
 INIT_PY = REPO / "workflow-source" / "workflow_kit" / "__init__.py"
-RELEASE_PIPELINE = REPO / "workflow-source" / "tools" / "release_pipeline.py"
+RELEASE_PIPELINE = REPO / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 
 
 def _load_release_pipeline_module():

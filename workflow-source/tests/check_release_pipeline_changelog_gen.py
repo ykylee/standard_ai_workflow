@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 DEFAULT_OUTPUT = SOURCE_ROOT / "CHANGELOG.md"
 
 # workflow_kit.common.atomic_write import 위해 (v0.7.15+ release_pipeline.py 의 의존)

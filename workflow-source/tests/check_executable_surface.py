@@ -38,7 +38,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 # 실행 표면 = 사람이/에이전트가 직접 호출하는 코드.
 SURFACE_DIRS = (
     SOURCE_ROOT / "skills",
-    SOURCE_ROOT / "tools",
+    SOURCE_ROOT / "workflow_kit" / "tools",
     SOURCE_ROOT / "scripts",
 )
 # 생성물 / 캐시 제외.

@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TOOLS_DIR = REPO_ROOT / "workflow-source" / "tools"
+TOOLS_DIR = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"
 sys.path.insert(0, str(TOOLS_DIR))
 
 from audit_root_anchors import (  # noqa: E402

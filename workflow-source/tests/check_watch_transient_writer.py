@@ -36,7 +36,7 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TOOL_PATH = REPO_ROOT / "workflow-source" / "tools" / "watch_transient_writer.py"
+TOOL_PATH = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "watch_transient_writer.py"
 
 READY_TIMEOUT_S = 10  # watcher 기동 신호 대기 상한
 SETTLE_S = 0.4        # 변화 사이 간격 (interval 0.02 의 20배 — 폴링 누락 여지 없음)

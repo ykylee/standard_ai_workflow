@@ -17,7 +17,7 @@
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md §2 (Branch-scoped layout)
   - ai-workflow/memory/active/README.md §1
-  - workflow-source/tools/archive_branch_memory.py
+  - workflow-source/workflow_kit/tools/archive_branch_memory.py
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit.common import paths as P  # noqa: E402
 
-ARCHIVER = SOURCE_ROOT / "tools" / "archive_branch_memory.py"
+ARCHIVER = SOURCE_ROOT / "workflow_kit" / "tools" / "archive_branch_memory.py"
 
 
 def _load(path: Path, name: str):
@@ -110,7 +110,7 @@ def _backlog_mod():
     # `branch_slug` / `suggest_next_task_id` 같은 내부 심볼이 없다. 검사는 **구현체**를
     # 본다 — skills/ 는 pip 패키지에도 bootstrap 번들에도 안 들어가서 소비자에게는
     # 존재하지 않는 경로다 (TASK-020 진단).
-    return _load(SOURCE_ROOT / "tools" / "backlog_update.py", "_bu_mod")
+    return _load(SOURCE_ROOT / "workflow_kit" / "tools" / "backlog_update.py", "_bu_mod")
 
 
 def case_3_task_id_no_year_confusion() -> bool:

@@ -209,7 +209,7 @@ def case_7_no_unmanaged_mkdtemp() -> bool:
 
     scan_dirs = [
         REPO_ROOT / "workflow-source" / "tests",
-        REPO_ROOT / "workflow-source" / "tools",
+        REPO_ROOT / "workflow-source" / "workflow_kit" / "tools",
         REPO_ROOT / "workflow-source" / "scripts",
         REPO_ROOT / "workflow-source" / "workflow_kit",
     ]

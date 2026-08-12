@@ -3,7 +3,7 @@
 Verifies that `tools.release_pipeline_lib.cmd_*` correctly loads the
 underlying `tools/release_pipeline.py` script and returns expected shapes.
 
-This test imports `release_pipeline_lib` from `workflow-source/tools/`,
+This test imports `release_pipeline_lib` from `workflow-source/workflow_kit/tools/`,
 which is *sibling* of `workflow_kit/`. Path resolution matches the
 dispatcher's release-doctor handler.
 
@@ -27,7 +27,7 @@ from pathlib import Path
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.
 CHECK_TIMEOUT_S = 150
 
-# Add workflow-source/tools/ to sys.path so release_pipeline_lib import works.
+# Add workflow-source/workflow_kit/tools/ to sys.path so release_pipeline_lib import works.
 TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))

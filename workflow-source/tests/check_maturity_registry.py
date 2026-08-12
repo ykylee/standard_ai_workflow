@@ -109,7 +109,7 @@ def test_case_2_stable_meets_criteria() -> None:
         # `skills/.../run_*.py` 에는 wrapper 만 남았다. 판정 대상은 **구현체**다 —
         # 기준의 뜻은 "이 skill 이 파라미터를 받는 CLI 를 갖는가" 이지 "특정 파일에
         # argparse 리터럴이 있는가" 가 아니다. 두 자리 중 하나라도 충족하면 통과한다.
-        impl_candidates = [run_script, SOURCE_ROOT / "tools" / f"{name.replace('-', '_')}.py"]
+        impl_candidates = [run_script, SOURCE_ROOT / "workflow_kit" / "tools" / f"{name.replace('-', '_')}.py"]
         if not run_script.exists():
             problems.append(f"실행 스크립트 부재({run_script.name})")
         else:

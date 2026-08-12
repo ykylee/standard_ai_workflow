@@ -42,7 +42,7 @@ from pathlib import Path
 
 # === Test setup ===
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOL = REPO_ROOT / "workflow-source" / "tools" / "migrate_legacy_l2.py"
+TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "migrate_legacy_l2.py"
 PYTHON = sys.executable
 
 # v0.7.25 마이그레이션의 커밋된 산출물 (in-repo, durable).

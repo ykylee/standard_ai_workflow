@@ -24,7 +24,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+SCRIPT = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 REAL_MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
 
 # refresh-maturity 는 apply 모드로 `last_updated` 를 **write** 한다. 추적 중인
@@ -133,8 +133,8 @@ def case_4_step_6_7_skip_message() -> bool:
     """
     import argparse as _ap
     import sys as _sys
-    if str(REPO_ROOT / "workflow-source" / "tools") not in _sys.path:
-        _sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    if str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools") not in _sys.path:
+        _sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import release_pipeline
 
     # capture stdout

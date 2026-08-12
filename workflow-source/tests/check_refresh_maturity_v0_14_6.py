@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+SCRIPT = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 REAL_MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
 
 # refresh-maturity 는 apply 모드로 `last_updated` 를 **write** 한다. 실파일에 대고

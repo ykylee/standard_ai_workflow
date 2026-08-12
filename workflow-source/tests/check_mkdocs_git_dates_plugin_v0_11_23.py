@@ -26,7 +26,7 @@ from typing import Iterator
 REPO = Path(__file__).resolve().parents[2]
 MKDOCS_YML = REPO / "mkdocs.yml"
 CI_WORKFLOW = REPO / ".github" / "workflows" / "mkdocs.yml"
-PLUGIN_FILE = REPO / "workflow-source" / "tools" / "mkdocs_git_dates.py"
+PLUGIN_FILE = REPO / "workflow-source" / "workflow_kit" / "tools" / "mkdocs_git_dates.py"
 
 
 def _load_plugin_module():

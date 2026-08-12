@@ -7,8 +7,8 @@
 - dashboard 가 trend section 포함 (emit-dashboard 후)
 
 Reference:
-- workflow-source/tools/score_wiki_trend.py
-- workflow-source/tools/.score_history.jsonl
+- workflow-source/workflow_kit/tools/score_wiki_trend.py
+- workflow-source/workflow_kit/tools/.score_history.jsonl
 - workflow-source/concepts/wiki-maintainability-score.md
 """
 
@@ -21,8 +21,8 @@ from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
-TOOL_PATH = SOURCE_ROOT / "tools" / "score_wiki_trend.py"
-HISTORY_PATH = SOURCE_ROOT / "tools" / ".score_history.jsonl"
+TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_trend.py"
+HISTORY_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / ".score_history.jsonl"
 DASHBOARD_PATH = REPO_ROOT / "ai-workflow" / "wiki" / "concepts" / "wiki-maintainability-score.md"
 
 
@@ -159,7 +159,7 @@ def test_show_idempotent() -> None:
 def test_compare_scores_no_alert() -> None:
     """baseline < current → alert 0, exit 0."""
     import sys
-    sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+    sys.path.insert(0, str(SOURCE_ROOT / "workflow_kit" / "tools"))
     import score_wiki_trend as swt
 
     baseline = {"scores": {d: 4.0 for d in swt.DIMS}}
@@ -172,7 +172,7 @@ def test_compare_scores_no_alert() -> None:
 def test_compare_scores_alert() -> None:
     """dim 별 -0.5 → alert 1, exit 1."""
     import sys
-    sys.path.insert(0, str(SOURCE_ROOT / "tools"))
+    sys.path.insert(0, str(SOURCE_ROOT / "workflow_kit" / "tools"))
     import score_wiki_trend as swt
 
     baseline = {"scores": {d: 5.0 for d in swt.DIMS}}

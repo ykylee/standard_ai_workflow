@@ -164,7 +164,7 @@ def main() -> int:
         # 8) CLI — --json + error path
         handoff_file = ws / "session_handoff.md"
         handoff_file.write_text(HANDOFF, encoding="utf-8")
-        tool = SOURCE_ROOT / "tools" / "suggest_memory_entries.py"
+        tool = SOURCE_ROOT / "workflow_kit" / "tools" / "suggest_memory_entries.py"
         ok = subprocess.run(
             [sys.executable, str(tool), "--handoff-path", str(handoff_file),
              "--workspace-root", str(ws), "--date", "2026-01-05", "--json"],

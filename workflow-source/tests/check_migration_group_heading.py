@@ -44,7 +44,7 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
 sys.path.insert(0, str(SOURCE_ROOT))
 
-MIGRATE_TOOL = SOURCE_ROOT / "tools" / "migrate_active_to_appendonly.py"
+MIGRATE_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "migrate_active_to_appendonly.py"
 
 # 실제 legacy 파일의 모양을 그대로 축약한 fixture — 손으로 지어낸 형식이 아니라
 # `work_backlog.md.bak` 에서 관찰된 배치다 (entry / 구분 heading / entry).

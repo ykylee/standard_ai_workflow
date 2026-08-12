@@ -17,7 +17,7 @@ import types
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOLS_DIR = SOURCE_ROOT / "tools"
+TOOLS_DIR = SOURCE_ROOT / "workflow_kit" / "tools"
 
 # Make tools/ importable as a package
 tools_pkg = types.ModuleType("tools")

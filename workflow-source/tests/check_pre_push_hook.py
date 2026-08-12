@@ -34,7 +34,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from tools import install_pre_push_hook  # noqa: E402
+from workflow_kit.tools import install_pre_push_hook  # noqa: E402
 
 HOOK_SOURCE = REPO_ROOT / "workflow-source" / "tools" / "hooks" / "pre-push-no-force.sh"
 

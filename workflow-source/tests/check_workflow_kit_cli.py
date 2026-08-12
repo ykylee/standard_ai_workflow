@@ -217,7 +217,7 @@ def test_score_wiki_trend_record_current_in_process_v0_7_56(tmp_path=None) -> No
     mod = _import_cli()
     # backup + restore pattern (.score_history.jsonl 보존)
     from pathlib import Path as _P
-    history_path = SOURCE_ROOT / "tools" / ".score_history.jsonl"
+    history_path = SOURCE_ROOT / "workflow_kit" / "tools" / ".score_history.jsonl"
     backup = history_path.read_text(encoding="utf-8") if history_path.exists() else ""
     try:
         before_lines = len([ln for ln in backup.splitlines() if ln.strip()])

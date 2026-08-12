@@ -47,8 +47,8 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-PIPELINE_PY = SOURCE_ROOT / "tools" / "release_pipeline.py"
-LIB_PY = SOURCE_ROOT / "tools" / "release_pipeline_lib.py"
+PIPELINE_PY = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
+LIB_PY = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline_lib.py"
 
 
 def _cmd_arg_attrs() -> dict[str, set[str]]:
@@ -80,8 +80,8 @@ def main() -> int:
             print(f"FAIL: {label} — {detail}")
             failures.append(label)
 
-    from tools import release_pipeline as rp  # noqa: E402
-    from tools import release_pipeline_lib as lib  # noqa: E402
+    from workflow_kit.tools import release_pipeline as rp  # noqa: E402
+    from workflow_kit.tools import release_pipeline_lib as lib  # noqa: E402
 
     lib_src_for_scan = LIB_PY.read_text(encoding="utf-8")
 
@@ -231,7 +231,7 @@ def main() -> int:
     )
 
     # 9b) 도구가 그 줄을 **대신 적지 않는다** — "전량 PASS" 는 사람의 주장이다.
-    src = (SOURCE_ROOT / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
+    src = (SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py").read_text(encoding="utf-8")
     fn_src = src[src.index("def verify_release_note_smoke_count"):]
     fn_src = fn_src[: fn_src.index("\ndef ", 1)]
     writes = any(w in fn_src for w in ("write_text(", "atomic_write", ".replace("))

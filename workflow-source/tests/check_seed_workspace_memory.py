@@ -43,7 +43,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
-SEED_TOOL = SOURCE_ROOT / "tools" / "seed_workspace_memory.py"
+SEED_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
 PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
 

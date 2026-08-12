@@ -20,7 +20,7 @@ mavis alias env 로 emit. 기존 entries (env field 누락) 는 *빈 dict* 로 l
 
 Refs:
   - workflow-source/workflow_kit/common/workspace_registry.py
-  - workflow-source/tools/seed_workspace_memory.py
+  - workflow-source/workflow_kit/tools/seed_workspace_memory.py
 """
 
 from __future__ import annotations

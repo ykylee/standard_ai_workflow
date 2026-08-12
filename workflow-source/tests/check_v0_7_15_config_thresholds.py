@@ -17,7 +17,7 @@ Test 구성 (9 test):
 9. run_workflow_linter: load_config → config.excluded_paths → linter 전달
 
 Reference:
-- workflow-source/tools/score_wiki_trend.py (v0.7.15 본 release)
+- workflow-source/workflow_kit/tools/score_wiki_trend.py (v0.7.15 본 release)
 - workflow-source/workflow_kit/common/linter.py (v0.7.15 excluded_paths 인자)
 - workflow-source/skills/workflow-linter/scripts/run_workflow_linter.py
 - workflow-source/workflow_kit/common/metadata.py (v0.7.6+ load_config / DoctorConfig)
@@ -35,7 +35,7 @@ from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
-TOOLS_DIR = SOURCE_ROOT / "tools"
+TOOLS_DIR = SOURCE_ROOT / "workflow_kit" / "tools"
 KIT_COMMON = SOURCE_ROOT / "workflow_kit" / "common"
 
 

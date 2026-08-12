@@ -16,9 +16,9 @@ Test 구성 (9 test):
 9. 본 repo 의 ai-workflow/wiki/sources/ dir 존재 + .gitkeep 정합
 
 Reference:
-- workflow-source/tools/refresh_wiki_memory.py (v0.7.17 본 release)
-- workflow-source/tools/emit_wiki_l2_body.py
-- workflow-source/tools/score_wiki_maintainability.py
+- workflow-source/workflow_kit/tools/refresh_wiki_memory.py (v0.7.17 본 release)
+- workflow-source/workflow_kit/tools/emit_wiki_l2_body.py
+- workflow-source/workflow_kit/tools/score_wiki_maintainability.py
 - workflow-source/tests/check_refresh_wiki_memory.py
 - workflow-source/tests/check_wiki_drift.py
 - ai-workflow/wiki/sources/ (L2 dense emit target, 본 release 신규)
@@ -55,7 +55,7 @@ def _read(path: Path) -> str:
 
 def test_refresh_wiki_memory_no_vault_root():
     """refresh_wiki_memory.py 에 VAULT_ROOT = Path.home() / 'wiki' 가 *없어야*."""
-    src = _read(SOURCE_ROOT / "tools" / "refresh_wiki_memory.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py")
     assert "Path.home() / \"wiki\"" not in src, (
         "refresh_wiki_memory.py: VAULT_ROOT = Path.home() / 'wiki' 가 외부 vault 참조. "
         "in-repo path 로 redirect 필요 (v0.7.17)."
@@ -67,7 +67,7 @@ def test_refresh_wiki_memory_no_vault_root():
 
 def test_refresh_wiki_memory_raw_files_in_repo():
     """refresh_wiki_memory.py 의 RAW_FILES 4 file 이 in-repo path."""
-    src = _read(SOURCE_ROOT / "tools" / "refresh_wiki_memory.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py")
     # RAW_FILES dict 의 value 가 in-repo path 사용 확인
     # in-repo path = "memory/active/state.json" (relative to REPO_ROOT/ai-workflow)
     assert "memory/active/state.json" in src, "state_json path 가 in-repo 가 아님"
@@ -87,7 +87,7 @@ def test_refresh_wiki_memory_raw_files_in_repo():
 
 def test_refresh_wiki_memory_l2_stubs_in_repo():
     """L2_STUBS 의 4 file 이 ai-workflow/wiki/sources/ 안."""
-    src = _read(SOURCE_ROOT / "tools" / "refresh_wiki_memory.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py")
     l2_section = re.search(
         r"L2_STUBS\s*=\s*\{(.*?)\}",
         src,
@@ -107,7 +107,7 @@ def test_refresh_wiki_memory_l2_stubs_in_repo():
 
 def test_emit_wiki_l2_body_no_vault_root():
     """emit_wiki_l2_body.py 에 VAULT_ROOT / RAW_MIRROR / L2_SOURCES 가 in-repo path."""
-    src = _read(SOURCE_ROOT / "tools" / "emit_wiki_l2_body.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "emit_wiki_l2_body.py")
     # in-repo path = REPO_ROOT / "ai-workflow" / "wiki" / "sources"
     assert "REPO_ROOT" in src, "REPO_ROOT 변수 없음"
     # RAW_MIRROR / L2_SOURCES 가 in-repo path 사용 확인
@@ -125,7 +125,7 @@ def test_emit_wiki_l2_body_no_vault_root():
 
 def test_emit_wiki_l2_body_repo_root_auto_detect():
     """emit_wiki_l2_body.py 의 _detect_repo_root 가 git rev-parse 사용."""
-    src = _read(SOURCE_ROOT / "tools" / "emit_wiki_l2_body.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "emit_wiki_l2_body.py")
     assert "_detect_repo_root" in src, "_detect_repo_root 함수 없음"
     assert "git rev-parse" in src, "git rev-parse auto-detect 없음"
     assert "show-toplevel" in src, "git rev-parse --show-toplevel 없음"
@@ -136,7 +136,7 @@ def test_emit_wiki_l2_body_repo_root_auto_detect():
 
 def test_score_wiki_maintainability_l2_in_repo():
     """score_wiki_maintainability.py 의 L2_SOURCES 가 INREPO_WIKI/sources."""
-    src = _read(SOURCE_ROOT / "tools" / "score_wiki_maintainability.py")
+    src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_maintainability.py")
     assert "L2_SOURCES = INREPO_WIKI / \"sources\"" in src, (
         "L2_SOURCES 가 in-repo path 가 아님"
     )

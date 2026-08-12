@@ -76,7 +76,7 @@ def main() -> int:
     # sanity: 각 entry point 가 `tools.X:main` 형식
     bad_target = []
     for cmd, target in scripts.items():
-        if not target.startswith("tools.") or ":main" not in target:
+        if not target.startswith("workflow_kit.tools.") or ":main" not in target:
             bad_target.append(f"{cmd}={target}")
     if bad_target:
         failures.append(f"[1] bad targets (expected `tools.X:main`): {bad_target[:3]}...")
@@ -113,7 +113,7 @@ def main() -> int:
         print(f"  [2+3] import + main()       ✓  ({len(modules)} module importable, main() callable)")
 
     # 4) 각 entry point 가 subprocess 로 --help 시 정상 (rc=0 또는 argparse 가 도움말에서 rc=1)
-    #    legacy: python3 workflow-source/tools/X.py
+    #    legacy: python3 workflow-source/workflow_kit/tools/X.py
     #    new: python3 -m tools.X
     #    양쪽 다 검증.
     legacy_helps = []
@@ -122,7 +122,7 @@ def main() -> int:
         for cmd, target in scripts.items():
             tool_name = target.split(".", 1)[1].rsplit(":", 1)[0]
             # legacy path
-            legacy_script = SOURCE_ROOT / "tools" / f"{tool_name}.py"
+            legacy_script = SOURCE_ROOT / "workflow_kit" / "tools" / f"{tool_name}.py"
             if legacy_script.is_file():
                 r = subprocess.run(
                     ["python3", str(legacy_script), "--help"],

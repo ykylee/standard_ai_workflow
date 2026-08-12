@@ -30,7 +30,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-TOOL = REPO_ROOT / "workflow-source" / "tools" / "archive_stale_memory.py"
+TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "archive_stale_memory.py"
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 PYTHON = sys.executable
 

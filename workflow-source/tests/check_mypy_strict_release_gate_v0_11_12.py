@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_mypy_strict_release_gate_v0_11_12() -> None:
     """v0.11.12 mypy strict release-time gate verify."""
     # case 1: cmd_validate 의 mypy source 존재 (5번째 source)
-    rp_path = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+    rp_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
     rp_text = rp_path.read_text(encoding="utf-8")
     assert "mypy strict" in rp_text, "release_pipeline.py 의 mypy strict source 주석 부재"
     # 4 source 다음에 mypy check 가 위치 (1-based source numbering)
@@ -54,7 +54,7 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
 
     # case 3: cmd_validate 직접 실행 — mypy source 의 schema + ok=True verify
     sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     from types import SimpleNamespace
     from release_pipeline import cmd_validate
     args = SimpleNamespace(
@@ -128,7 +128,7 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
     print("  case 7 (cmd_release_create docstring 3 flag 명시): PASS")
 
     # case 8: release_pipeline_lib.cmd_release 도 3 kwarg forwarding
-    lib_path = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline_lib.py"
+    lib_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline_lib.py"
     lib_text = lib_path.read_text(encoding="utf-8")
     lib_release_section = re.search(
         r"def cmd_release\(.*?def ",

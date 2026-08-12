@@ -55,7 +55,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-PIPELINE_PY = SOURCE_ROOT / "tools" / "release_pipeline.py"
+PIPELINE_PY = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 
 # 전체 case 수. 7b 는 브랜치 컨텍스트에 state.json 이 없으면 skip 되므로, 기대치는
 # `TOTAL_CASES - (7b skip 이면 1)` 로 *계산* 한다 — 하한이 아니라 정확값이어야
@@ -137,7 +137,7 @@ def main() -> int:
             print(f"FAIL: {label} — {detail}")
             failures.append(label)
 
-    from tools import release_pipeline as rp  # noqa: E402
+    from workflow_kit.tools import release_pipeline as rp  # noqa: E402
 
     # 1) --apply default False — release 와 dist 둘 다 (destructive/부작용 있는
     # subcommand 의 무인자 실행은 dry-run 이어야 한다. release 는 v1.1.4, dist 는

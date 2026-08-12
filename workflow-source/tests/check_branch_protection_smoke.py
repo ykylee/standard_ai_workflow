@@ -107,7 +107,7 @@ def main() -> int:
     )
 
     # 8) CLI graceful skip — PATH 를 비워 gh 를 없앤다
-    cli = SOURCE_ROOT / "tools" / "check_branch_protection.py"
+    cli = SOURCE_ROOT / "workflow_kit" / "tools" / "check_branch_protection.py"
     env_no_gh = {"PATH": "/nonexistent", "PYTHONPATH": str(SOURCE_ROOT)}
     plain = subprocess.run(
         [sys.executable, str(cli), "--json"],

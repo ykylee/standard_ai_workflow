@@ -26,7 +26,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = REPO_ROOT / "workflow-source" / "tools" / "release_pipeline.py"
+SCRIPT = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
 REAL_MATURITY_PATH = REPO_ROOT / "workflow-source" / "core" / "maturity_matrix.json"
 
 # step 6.7 emulate 는 cmd_refresh_maturity 를 apply 모드로 호출해 `last_updated` 를
@@ -56,8 +56,8 @@ def _emulate_step_6_7(*, error_present: bool, legacy_memory: bool | None) -> dic
 
     # release_pipeline 의 step 6.7 로직 그대로 emulate
     import sys as _sys
-    if str(REPO_ROOT / "workflow-source" / "tools") not in _sys.path:
-        _sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "tools"))
+    if str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools") not in _sys.path:
+        _sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
     import release_pipeline
 
     release_error = "error" in results

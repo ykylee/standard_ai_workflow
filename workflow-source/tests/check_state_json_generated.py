@@ -35,7 +35,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 REQUIRES_QUIET_REPO = True
 
-TOOL_PATH = SOURCE_ROOT / "tools" / "refresh_state.py"
+TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_state.py"
 BRANCH = "main"
 
 
@@ -137,7 +137,7 @@ def case_6_declaration_matches_exposure() -> None:
     assert "`wk refresh-state`" in standard, "정본 §11 에 wk refresh-state 안내가 없다"
     assert "생성물" in standard, "정본 §11 에 state.json 생성물 선언이 없다"
     from workflow_kit.common.tool_dispatch import TOOL_MODULES
-    assert TOOL_MODULES.get("refresh-state") == "tools.refresh_state", (
+    assert TOOL_MODULES.get("refresh-state") == "workflow_kit.tools.refresh_state", (
         "정본이 안내하는 wk refresh-state 가 TOOL_MODULES 에 없다 — 안내만 있고 실행 경로가 없다 (TASK-020 재발)"
     )
 

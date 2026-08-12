@@ -1,26 +1,10 @@
-"""tools — CLI 化 A안 (v1.1.1+, TASK-2026-08-08-main-020)
+"""tools — deprecated shim package (v1.1.8, TASK-2026-08-12-main-006).
 
-`workflow-source/tools/` 의 30+ module 은 *script* 형태 (각자 `main()` 함수) 이지만,
-v1.1.1+ 부터 **importable package** 이다 (`pip install -e .` 후 `tools.<name>` 으로
-import 가능). 본 `__init__.py` 가 그 *loud* marker.
+구현은 전부 :mod:`workflow_kit.tools` 로 이동했다. top-level `tools` 는 공개
+배포(PyPI) 시 다른 패키지와 site-packages 충돌을 일으키는 일반명이기 때문이다
+(docs/planning/cli-distribution-review-2026-08.md §2).
 
-**CLI 진입점** (`[project.scripts]` 의 30+ console_script):
-- `workflow-registry` → `tools.workspace_registry:main`
-- `workflow-drift-detect` → `tools.detect_scope_drift:main`
-- `workflow-seed-workspace-memory` → `tools.seed_workspace_memory:main`
-- ... 외 27개.
-
-기존 호출 경로 (legacy) — 그대로 동작:
-- `python3 workflow-source/tools/detect_scope_drift.py --help`
-- `python3 -m tools.detect_scope_drift` (새 진입점)
-
-신규 호출 경로 (CLI 化 A안):
-- `workflow-drift-detect --help` (PATH 진입 후, 어디서든)
-
-**B안 (dispatcher `wk`)** 은 후속 release. A안은 0 리스크 (script 변경 0, 진입점만 추가).
-
-History:
-- v0.7.55: `release_pipeline_lib.py` in-process wrapper (1개 우회)
-- v0.7.56: 본 `__init__.py` 추가 — *loud* import 가능 표시
-- v1.1.1+: `[project.scripts]` 30+ console_script — `pip install -e .` 후 binary 자동 생성
+본 패키지의 각 모듈은 같은 이름의 `workflow_kit.tools.<name>` 을 재수출하는
+shim 이며, 1st deprecation cycle 동안 유지 후 다음 cycle 에 제거된다.
+hooks/ 와 completions/ 자산은 여기 남는다 (경로 계약 유지).
 """

@@ -36,7 +36,7 @@ race 해 위양성이 난다 (2026-08-11 실측 flake, TASK-2026-08-11-main-008)
 # 되돌렸다. 되돌리므로 `check_no_repo_write` 의 전후 비교는 통과하지만, 그 사이
 # 저장소를 읽는 누구든 잘못된 버전을 본다 — 죽으면 되돌아오지도 않는다.
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 PYPROJECT = SOURCE_ROOT / "pyproject.toml"
 WORKFLOW_KIT_INIT = SOURCE_ROOT / "workflow_kit" / "__init__.py"
 def _read_pyproject_version() -> str:
@@ -205,7 +205,7 @@ def main() -> int:
 
     with repo_sandbox(origin_source_root.parent) as sandbox:
         SOURCE_ROOT = sandbox / "workflow-source"
-        TOOL = SOURCE_ROOT / "tools" / "release_pipeline.py"
+        TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
         PYPROJECT = SOURCE_ROOT / "pyproject.toml"
         WORKFLOW_KIT_INIT = SOURCE_ROOT / "workflow_kit" / "__init__.py"
         rc = _run_cases()

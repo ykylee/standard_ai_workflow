@@ -8,7 +8,7 @@
 - emit-dashboard 가 wiki-maintainability-score.md 생성 (in-repo wiki)
 
 Reference:
-- workflow-source/tools/score_wiki_maintainability.py
+- workflow-source/workflow_kit/tools/score_wiki_maintainability.py
 - workflow-source/ai-workflow/wiki/concepts/wiki-maintainability-score.md
 """
 
@@ -25,7 +25,7 @@ CHECK_TIMEOUT_S = 150
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
-TOOL_PATH = SOURCE_ROOT / "tools" / "score_wiki_maintainability.py"
+TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_maintainability.py"
 DASHBOARD_PATH = REPO_ROOT / "ai-workflow" / "wiki" / "concepts" / "wiki-maintainability-score.md"
 
 

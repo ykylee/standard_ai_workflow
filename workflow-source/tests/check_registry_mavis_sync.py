@@ -19,7 +19,7 @@ alias skip, idempotency, dry-run default) 을 확인한다.
 
 Refs:
   - workflow-source/workflow_kit/common/workspace_registry.py
-  - workflow-source/tools/workspace_registry.py
+  - workflow-source/workflow_kit/tools/workspace_registry.py
   - core/multi_workspace_orchestration.md §6.5.2, §7.1
 """
 

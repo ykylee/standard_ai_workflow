@@ -135,7 +135,7 @@ def test_case_1_pyproject_loud_fallback_sync() -> None:
     fallback_v = _loud_fallback_version()
     assert py_v == fallback_v, (
         f"pyproject.toml version {py_v!r} != __init__.py loud fallback v{fallback_v}. "
-        f"fix: `python3 workflow-source/tools/release_pipeline.py version-bump --to {py_v}` "
+        f"fix: `python3 workflow-source/workflow_kit/tools/release_pipeline.py version-bump --to {py_v}` "
         f"또는 수동으로 __init__.py 의 loud fallback literal 을 v{py_v}-beta 로 갱신."
     )
 
@@ -225,7 +225,7 @@ def test_case_5_harness_supported_ssot_alignment() -> None:
     extra_in_mm = declared - specs_keys
     assert not missing_in_mm, (
         f"maturity_matrix harnesses.supported missing {sorted(missing_in_mm)}. "
-        f"fix: `python3 workflow-source/tools/release_pipeline.py sync-maturity-matrix --from-release-note "
+        f"fix: `python3 workflow-source/workflow_kit/tools/release_pipeline.py sync-maturity-matrix --from-release-note "
         f"workflow-source/releases/Beta-v<NEW_VERSION>.md --apply`"
     )
     assert not extra_in_mm, (

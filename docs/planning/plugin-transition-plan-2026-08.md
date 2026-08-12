@@ -3,7 +3,7 @@
 - 문서 목적: 표준 AI 워크플로우의 배포 전략을 **플러그인 배포 중심**으로 전환하는 실행 계획 — 전환 원칙, 단계별 로드맵 (P1~P5), WBS, 완료 기준을 확정한다 (TASK-2026-08-12-main-013, 사용자 지시).
 - 범위: TASK-011 (Claude Code 플러그인 검토) + TASK-012 (멀티 하네스 공유 검토) 의 권고를 실행 계획으로 통합. 구현은 본 계획의 WBS task 들 (TASK-014~018) 로 수행한다.
 - 대상 독자: maintainer, 배포 정책 소유자, 구현 담당 AI agent
-- 상태: 계획 확정 — WBS task 등록 완료, P1 착수 대기
+- 상태: 실행 중 — **P1 완료** (TASK-014, 2026-08-12), P2 착수 대기
 - 최종 수정일: 2026-08-12
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [multi-harness-plugin-review-2026-08.md](./multi-harness-plugin-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md), [workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md)
 
@@ -62,6 +62,20 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 - `mcp.json` — Agent Plugins 스키마, read-only bundle 11 도구 (write 는 opt-in 문서)
 - 검사: `check_standard_single_source` 계열 확장 (payload ↔ 정본 일치) +
   agentskills.io frontmatter 스키마 검사 + **되주입 FAIL 실증** (신설 검사 관행)
+
+**P1 실행 결과 (2026-08-12, TASK-014)** — `workflow_kit/plugin_payload.py` +
+`tests/check_agent_plugin_payload.py` (7 case). 계획과 달라진 점 하나:
+
+- `plugin.json` 은 **name/version/description 3필드만** 쓴다. Agent Plugins 1.0
+  (2026-08-06 출범) 의 선택 필드 스펙을 이 저장소가 아직 **원문으로 확인하지
+  못했다** — 확인 안 된 필드를 지어 넣으면 스펙 확정 시 조용히 틀린 값이 된다.
+  검사 case 4 가 필드 집합을 고정하므로, 필드를 늘리려면 그 검사가 먼저 FAIL
+  한다 (§5 리스크 완화 "스키마를 fixture 로 고정" 의 구현). **스펙 확인 후
+  필드 확장은 명시 task 로** — P2 자기 적용 때 실 클라이언트가 요구하는 필드가
+  드러나면 거기서 확정한다.
+- `mcp.json` 은 read-only bundle 서버 **하나만** 싣는다 (write 는 opt-in, ADR-003).
+  `env` 에 `PYTHONPATH` 를 넣지 않는다 — 플러그인은 소비 프로젝트의 체크아웃
+  구조를 모르고, `wk` 설치 전제가 깨지면 조용한 fallback 없이 드러나야 한다 (원칙 4).
 
 ### P2 — Claude Code 어댑터 + marketplace + 자기 적용 (TASK-015)
 

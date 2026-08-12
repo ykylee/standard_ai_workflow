@@ -24,7 +24,7 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 251개 check_*.py 스모크 (2026-08-12 기준)
+│   ├── tests/                      # 252개 check_*.py 스모크 (2026-08-12 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
 │   ├── harnesses/                  # 11개 지원 하네스 오버레이 + 공통 문서/템플릿
@@ -35,6 +35,11 @@
 │   ├── releases/                   # Beta v0.5.0 ~ v0.15.18 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
 │   └── pyproject.toml              # 패키지 매니페스트 (version 1.1.8)
+│
+├── plugin/                         # Agent Plugins 1.0 공유 payload — **생성물** (손 편집 금지)
+│   ├── plugin.json                 # manifest (name/version/description, version 은 __version__ 파생)
+│   ├── skills/                     # session-start / backlog-update / doc-sync SKILL.md 3종
+│   └── mcp.json                    # read-only bundle MCP 등록 (write 는 명시 opt-in)
 │
 ├── ai-workflow/                    # 런타임 state (bootstrap 으로 생성, .gitignore 일부)
 │   ├── memory/                     # 세션 상태/백로그/릴리스별 스냅샷
@@ -79,6 +84,7 @@
 - `common/state/`, `common/contracts/`, `common/schemas/`, `common/modes/`: v0.5.7.1 부터 wheel packaging 에 포함 (subpackage)
 - `contract_v1/` (v0.5.6+): Pydantic v2 기반 외부 contract v1 enforcement. `output_validator` (sub-agent 출력 §5 spec 검증), `delegator` (`choose_role` 단일 / `choose_roles` 배치 / `recommend_model_tier` 자동 / `DelegationDecision` / `DelegationRejected`).
 - `server/`: `read_only_jsonrpc.py` (default 안정), `read_only_mcp_sdk.py` (v1.0 SDK candidate, 실험적), `mcp_v1_server.py` (정식 SDK stdio).
+- `plugin_payload.py` (v1.1.9+): 저장소 루트 `plugin/` (Agent Plugins 1.0 공유 payload) 렌더러. `render_agent_plugin()` 이 manifest / SKILL.md 3종 / `mcp.json` 을 정본에서 생성하고, `python3 -m workflow_kit.plugin_payload --apply` 로 재생성한다. 손 편집은 `check_agent_plugin_payload.py` 가 잡는다.
 
 ### Bootstrap (`workflow-source/scripts/bootstrap_lib/`)
 v0.5.2+ 리팩터. 6-module 패키지:

@@ -81,7 +81,7 @@ v1.1.7-beta 발행 자체는 [Beta-v1.1.7.md](./Beta-v1.1.7.md) 참조 — 본 �
 
 ## 3. smoke 회귀
 
-누적 smoke test **251/251 PASS** (2026-08-12, `dev,release,mcp-sdk` extra 를 깐
+누적 smoke test **252/252 PASS** (2026-08-12, `dev,release,mcp-sdk` extra 를 깐
 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신 전량
 결과* 를 반영하는 살아있는 지표다.
 

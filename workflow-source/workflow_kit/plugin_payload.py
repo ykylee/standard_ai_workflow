@@ -75,13 +75,20 @@ __all__ = [
     "PLUGIN_NAME",
     "PLUGIN_DESCRIPTION",
     "PLUGIN_SKILLS",
+    "MARKETPLACE_RELPATH",
     "PluginSkillSpec",
     "default_payload_root",
+    "default_repo_root",
     "render_agent_plugin",
+    "render_claude_code_hooks",
+    "render_claude_code_manifest",
+    "render_marketplace_manifest",
     "render_plugin_manifest",
     "render_plugin_mcp_config",
     "render_plugin_skill",
+    "render_repo_plugin_files",
     "write_agent_plugin",
+    "write_repo_plugin_files",
 ]
 
 #: payload 디렉터리 이름 (저장소 루트 기준). 어댑터(P2~P3)는 이 경로를 참조만 한다.
@@ -102,6 +109,32 @@ PAYLOAD_MCP_BUNDLE = "read-only"
 #: payload 가 전제하는 MCP bridge. jsonrpc-bridge 는 `mcp` SDK 없이도 뜬다
 #: (`MCP_BRIDGE_APPLY_MODE` 가 유일하게 ``active_ok`` 로 선언한 transport).
 PAYLOAD_MCP_BRIDGE = "jsonrpc-bridge"
+
+#: Claude Code 어댑터 manifest 의 payload 내 경로. 플러그인 **루트가 곧 payload
+#: 루트**여야 한다 — 실측(`claude plugin validate`)에서 manifest 의 경로 필드가
+#: ``..`` 를 거부했다 ("path traversal"). 즉 어댑터를 하위 디렉터리에 두고 payload 를
+#: 올려다보는 배치는 성립하지 않는다. 대신 Claude Code 의 관례 경로(`skills/`)가
+#: payload 배치와 그대로 겹쳐서, 어댑터는 manifest + hooks 두 장으로 끝난다.
+CLAUDE_CODE_MANIFEST_RELPATH = ".claude-plugin/plugin.json"
+CLAUDE_CODE_HOOKS_RELPATH = "adapters/claude-code/hooks.json"
+
+#: Claude Code 가 MCP 서버를 **실제로 읽는** 경로. Agent Plugins 의 `mcp.json` 과
+#: 내용이 같고 파일명만 다르다 — 두 표준이 같은 것을 다르게 부른다.
+#:
+#: 여기가 실측이 계획을 고친 자리다. manifest 에 ``"mcpServers": "./mcp.json"`` 을
+#: 선언하면 `claude plugin validate --strict` 는 **통과하지만**
+#: `claude plugin details` 의 인벤토리는 ``MCP servers (0)`` 이었다 — 검증기는
+#: 경로 존재만 보고 로더는 그 필드를 그렇게 쓰지 않는다. 관례 경로 `.mcp.json`
+#: 으로 옮기자 ``MCP servers (1)`` 로 잡혔다. **validate 통과는 로드 증명이 아니다.**
+CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
+
+#: marketplace manifest 는 payload 밖 — **저장소 루트**가 marketplace 다
+#: (`/plugin marketplace add <owner>/<repo>`).
+MARKETPLACE_RELPATH = ".claude-plugin/marketplace.json"
+
+#: manifest 의 author 필드. 없으면 `claude plugin validate --strict` 가 경고를
+#: 에러로 올린다 (실측).
+PLUGIN_AUTHOR = {"name": "ykylee"}
 
 
 class PluginSkillSpec(NamedTuple):
@@ -278,6 +311,119 @@ def render_plugin_mcp_config() -> str:
     ) + "\n"
 
 
+def render_claude_code_manifest(version: str = KIT_VERSION) -> str:
+    """``plugin/.claude-plugin/plugin.json`` — Claude Code 어댑터 manifest.
+
+    payload 를 **참조만** 한다. `skills/` 와 `.mcp.json` 은 Claude Code 의 관례
+    경로라 선언조차 필요 없다 — manifest 에 남는 것은 이름·버전·저자와, 관례
+    밖에 둔 hooks 경로뿐이다.
+
+    필드 구성은 `claude plugin validate --strict` + `claude plugin details` 실측
+    으로 정했다: `author` 가 없으면 경고를 에러로 올리고, 경로 필드의 ``..`` 는
+    거부되며 (그래서 플러그인 루트 = payload 루트여야 한다), 미지 필드는
+    "Claude Code ignores it at load time" 경고가 된다. ``mcpServers`` 경로 선언은
+    :data:`CLAUDE_CODE_MCP_RELPATH` 주석의 이유로 쓰지 않는다.
+    """
+    return json.dumps(
+        {
+            "name": PLUGIN_NAME,
+            "version": version,
+            "description": PLUGIN_DESCRIPTION,
+            "author": PLUGIN_AUTHOR,
+            "hooks": f"./{CLAUDE_CODE_HOOKS_RELPATH}",
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
+def render_claude_code_hooks(rules: StandardRules) -> str:
+    """``plugin/adapters/claude-code/hooks.json`` — 세션 경계 자동화.
+
+    두 개만 건다:
+
+    - **SessionEnd** → §11.1 의 state.json 재생성 명령. 이 저장소가 오래 겪은
+      문제가 "종료 절차에 생성기를 부르는 단계가 없어서 손으로 썼다" 였다
+      (TASK-2026-08-11-main-018). 플러그인은 그 단계를 하네스가 대신 밟게 한다 —
+      goose 말고는 없던 자동화다.
+    - **SessionStart** → `wk` 부재 안내. 계획 원칙 4: 플러그인은 Python 의존을
+      대신 설치해 주지 못하므로, 없으면 **조용히 실패하지 않고 말해야** 한다.
+
+    명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
+    §11.1 개명 시 이 사본만 낡는다.
+    """
+    refresh_cmd = find_memory_command(rules, "state.json 재생성")
+    binary = refresh_cmd.split()[0]
+    guide = "docs/INSTALLATION_AND_USAGE.md §3"
+    absent_notice = (
+        f"[{PLUGIN_NAME}] `{binary}` 를 찾지 못했다 — 스킬은 절차를 안내하지만 "
+        f"메모리 갱신 명령은 돌지 않는다. 설치: {guide}"
+    )
+    return json.dumps(
+        {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": (
+                                    f"command -v {binary} >/dev/null 2>&1 || "
+                                    f"echo '{absent_notice}'"
+                                ),
+                            }
+                        ]
+                    }
+                ],
+                "SessionEnd": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": (
+                                    f"command -v {binary} >/dev/null 2>&1 && {refresh_cmd} || "
+                                    f"echo '{absent_notice}'"
+                                ),
+                            }
+                        ]
+                    }
+                ],
+            }
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
+def render_marketplace_manifest(version: str = KIT_VERSION) -> str:
+    """``<repo>/.claude-plugin/marketplace.json`` — 이 저장소가 곧 marketplace.
+
+    `/plugin marketplace add <owner>/<repo>` → `/plugin install <name>@<market>`
+    경로를 연다. payload 밖에 있는 이유는 소유 계층이 달라서다 — marketplace 는
+    "이 저장소가 무엇을 서빙하는가" 이고, payload 는 "플러그인이 무엇인가" 다.
+    """
+    return json.dumps(
+        {
+            "name": PLUGIN_NAME,
+            "owner": PLUGIN_AUTHOR,
+            "description": (
+                "표준 AI 워크플로우 — 세션 시작 / 백로그 갱신 / 문서 동기화 스킬과 "
+                "read-only MCP 도구를 배포하는 marketplace."
+            ),
+            "plugins": [
+                {
+                    "name": PLUGIN_NAME,
+                    "source": f"./{PAYLOAD_DIRNAME}",
+                    "version": version,
+                    "description": PLUGIN_DESCRIPTION,
+                }
+            ],
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
 def render_plugin_skill(spec: PluginSkillSpec, rules: StandardRules) -> str:
     """``plugin/skills/<slug>/SKILL.md`` — agentskills.io 스펙 SKILL.md.
 
@@ -311,13 +457,38 @@ def render_agent_plugin(
     한다. 같은 함수가 생성과 검증 양쪽의 정본이라 drift 가 생길 자리가 없다.
     """
     resolved = rules if rules is not None else load_standard_rules(source_root)
+    mcp_config = render_plugin_mcp_config()
     payload: dict[str, str] = {
         "plugin.json": render_plugin_manifest(version),
-        "mcp.json": render_plugin_mcp_config(),
+        "mcp.json": mcp_config,
+        # 같은 렌더러의 출력을 두 이름으로 둔다 — 정본이 하나라 갈라지지 않고,
+        # 검사 case 가 두 파일의 동일성을 강제한다.
+        CLAUDE_CODE_MCP_RELPATH: mcp_config,
+        CLAUDE_CODE_MANIFEST_RELPATH: render_claude_code_manifest(version),
+        CLAUDE_CODE_HOOKS_RELPATH: render_claude_code_hooks(resolved),
     }
     for spec in PLUGIN_SKILLS:
         payload[f"skills/{spec.slug}/SKILL.md"] = render_plugin_skill(spec, resolved)
     return payload
+
+
+def render_repo_plugin_files(
+    rules: StandardRules | None = None,
+    *,
+    version: str = KIT_VERSION,
+    source_root: Path | None = None,
+) -> dict[str, str]:
+    """payload + marketplace 를 **저장소 루트 기준 상대 경로**로 돌려준다.
+
+    payload 는 `plugin/` 안에 살고 marketplace 는 저장소 루트에 산다 — 소유
+    계층이 다르다. 재생성·drift 판정은 둘을 함께 봐야 버전이 갈라지지 않는다.
+    """
+    files = {
+        f"{PAYLOAD_DIRNAME}/{rel}": content
+        for rel, content in render_agent_plugin(rules, version=version, source_root=source_root).items()
+    }
+    files[MARKETPLACE_RELPATH] = render_marketplace_manifest(version)
+    return files
 
 
 # ---------------------------------------------------------------------------
@@ -325,9 +496,14 @@ def render_agent_plugin(
 # ---------------------------------------------------------------------------
 
 
+def default_repo_root() -> Path:
+    """저장소 체크아웃 루트 (`workflow-source/workflow_kit/` 의 두 단계 위)."""
+    return Path(__file__).resolve().parents[2]
+
+
 def default_payload_root() -> Path:
-    """저장소 체크아웃에서의 기본 출력 경로 (``<repo>/plugin``)."""
-    return Path(__file__).resolve().parents[2] / PAYLOAD_DIRNAME
+    """저장소 체크아웃에서의 기본 payload 경로 (``<repo>/plugin``)."""
+    return default_repo_root() / PAYLOAD_DIRNAME
 
 
 def write_agent_plugin(root: Path, payload: dict[str, str] | None = None) -> list[Path]:
@@ -360,28 +536,58 @@ def diff_payload(root: Path, payload: dict[str, str] | None = None) -> list[str]
     return problems
 
 
+#: drift 판정 시 "등록되지 않은 파일" 을 찾을 디렉터리 (저장소 루트 기준).
+_SCAN_DIRS = (PAYLOAD_DIRNAME, ".claude-plugin")
+
+
+def write_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None) -> list[Path]:
+    """payload + marketplace 를 저장소 루트 기준으로 쓴다."""
+    return write_agent_plugin(repo_root, files if files is not None else render_repo_plugin_files())
+
+
+def diff_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None) -> list[str]:
+    """저장소의 플러그인 산출물 전체(payload + marketplace)와 생성물을 대조한다."""
+    expected_files = files if files is not None else render_repo_plugin_files()
+    problems: list[str] = []
+    for relpath, content in sorted(expected_files.items()):
+        target = repo_root / relpath
+        if not target.is_file():
+            problems.append(f"없음: {relpath}")
+        elif target.read_text(encoding="utf-8") != content:
+            problems.append(f"드리프트: {relpath}")
+    expected_paths = {(repo_root / rel).resolve() for rel in expected_files}
+    for scan in _SCAN_DIRS:
+        base = repo_root / scan
+        if not base.is_dir():
+            continue
+        for found in base.rglob("*"):
+            if found.is_file() and found.resolve() not in expected_paths:
+                problems.append(f"미등록 파일: {found.relative_to(repo_root)}")
+    return problems
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Agent Plugins 1.0 공유 payload 를 정본에서 생성한다.",
+        description="플러그인 산출물(공유 payload + 어댑터 + marketplace)을 정본에서 생성한다.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--apply", action="store_true", help="payload 를 디스크에 다시 생성한다")
-    parser.add_argument("--out-dir", type=Path, default=None, help="출력 루트 (기본: <repo>/plugin)")
+    parser.add_argument("--apply", action="store_true", help="산출물을 디스크에 다시 생성한다")
+    parser.add_argument("--out-dir", type=Path, default=None, help="저장소 루트 (기본: 자동 탐색)")
     args = parser.parse_args(argv)
 
-    root = args.out_dir or default_payload_root()
-    payload = render_agent_plugin()
-    problems = diff_payload(root, payload)
+    root = args.out_dir or default_repo_root()
+    payload = render_repo_plugin_files()
+    problems = diff_repo_plugin_files(root, payload)
 
     if not problems:
-        print(f"OK: payload 가 정본과 일치한다 ({root})")
+        print(f"OK: 플러그인 산출물이 정본과 일치한다 ({root})")
         return 0
     if not args.apply:
         for line in problems:
             print(f"  {line}")
-        print(f"DRIFT: payload 가 정본과 다르다. `--apply` 로 재생성한다 ({root})", file=sys.stderr)
+        print(f"DRIFT: 산출물이 정본과 다르다. `--apply` 로 재생성한다 ({root})", file=sys.stderr)
         return 1
-    for path in write_agent_plugin(root, payload):
+    for path in write_repo_plugin_files(root, payload):
         print(f"WROTE: {path}")
     return 0
 

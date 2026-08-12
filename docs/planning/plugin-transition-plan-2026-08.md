@@ -87,6 +87,44 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
   (`/standard-ai-workflow:session-start`), hook 동작, MCP 승인 UX 기록
 - `wk` 부재 시 graceful 안내 실측 (원칙 4)
 
+**P2 실행 결과 (2026-08-12, TASK-015)** — `claude plugin` CLI 로 실측했다.
+계획이 실측에 두 번 고쳐졌다:
+
+1. **어댑터를 하위 디렉터리에 둘 수 없다.** `plugin/adapters/claude-code/` 를
+   플러그인 루트로 삼고 payload 를 `../../skills` 로 참조하는 배치는
+   `claude plugin validate` 가 거부한다 — *"Path contains '..' which could be a
+   path traversal attempt"*. 그래서 **플러그인 루트 = payload 루트**로 두고,
+   Claude Code 의 관례 경로(`skills/`)가 payload 배치와 그대로 겹치게 했다.
+   결과적으로 어댑터는 manifest + hooks **두 장**으로 줄었다 (계획이 예상한
+   "정말 얇은 어댑터" 가 더 얇아진 셈).
+2. **validate 통과는 로드 증명이 아니다.** manifest 에
+   `"mcpServers": "./mcp.json"` 을 선언하면 `validate --strict` 는 통과하는데,
+   `claude plugin details` 의 인벤토리는 **`MCP servers (0)`** 이었다. 관례 경로
+   `.mcp.json` 으로 옮기자 `MCP servers (1)` 로 잡혔다. payload 의 `mcp.json` 과
+   같은 렌더러 출력을 두 이름으로 둔다 (정본이 하나라 갈라지지 않고, 검사
+   case 8 이 두 파일의 동일성을 강제한다).
+
+실측 기록:
+
+| 항목 | 결과 |
+|---|---|
+| `claude plugin validate --strict plugin` | ✔ passed |
+| `claude plugin validate --strict .` (marketplace) | ✔ passed |
+| `claude --plugin-dir plugin plugin details` | Skills **3** / Hooks **2** (SessionStart·SessionEnd) / MCP servers **1** |
+| always-on 토큰 비용 | ~92 tok (스킬 3종 각 ~30, 호출 시 270~350) |
+| `wk` 부재 graceful | 두 hook 모두 안내 출력 + exit 0 — 조용한 실패 없음 |
+| **자기 적용** `claude plugin marketplace add ./` | ✔ `standard-ai-workflow` (user settings 선언) |
+| **자기 적용** `claude plugin install standard-ai-workflow@standard-ai-workflow` | ✔ scope user, **enabled**, v1.1.8-beta — 설치본 인벤토리도 3/2/1 동일 |
+
+`plugin.json` 의 `v1.1.8-beta` 형식도 Claude Code 가 수용한다 (semver 강제 없음).
+`marketplace add` 의 경로 인자는 `.` 을 거부한다 — `./` 또는 절대 경로여야 한다
+(*"Invalid marketplace source format. Try: owner/repo, https://..., or ./path"*).
+
+**아직 실측 안 된 것**: 스킬 네임스페이스 호출
+(`/standard-ai-workflow:session-start`) 과 MCP 서버 승인 UX 는 **다음 세션**에서야
+확인된다 — 설치는 현재 세션에 소급 적용되지 않는다. 규칙 상시 주입(SessionStart
+hook) 실효는 원래 P5 의 실측 항목이다.
+
 ### P3 — 멀티 하네스 어댑터 (TASK-016)
 
 - gemini-cli: `gemini-extension.json` + GEMINI.md 컨텍스트 (**상시 주입 실측 포함**

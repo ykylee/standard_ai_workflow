@@ -36,10 +36,14 @@
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
 │   └── pyproject.toml              # 패키지 매니페스트 (version 1.1.8)
 │
-├── plugin/                         # Agent Plugins 1.0 공유 payload — **생성물** (손 편집 금지)
-│   ├── plugin.json                 # manifest (name/version/description, version 은 __version__ 파생)
+├── .claude-plugin/marketplace.json # 이 저장소가 곧 marketplace — **생성물**
+├── plugin/                         # 공유 payload + 하네스 어댑터 — **생성물** (손 편집 금지)
+│   ├── plugin.json                 # Agent Plugins 1.0 manifest (name/version/description)
 │   ├── skills/                     # session-start / backlog-update / doc-sync SKILL.md 3종
-│   └── mcp.json                    # read-only bundle MCP 등록 (write 는 명시 opt-in)
+│   ├── mcp.json                    # read-only bundle MCP 등록 (write 는 명시 opt-in)
+│   ├── .mcp.json                   # 같은 내용 — Claude Code 가 실제로 읽는 관례 경로
+│   ├── .claude-plugin/plugin.json  # Claude Code 어댑터 manifest (얇은 참조)
+│   └── adapters/claude-code/       # hooks.json (SessionStart 안내 / SessionEnd → refresh-state)
 │
 ├── ai-workflow/                    # 런타임 state (bootstrap 으로 생성, .gitignore 일부)
 │   ├── memory/                     # 세션 상태/백로그/릴리스별 스냅샷

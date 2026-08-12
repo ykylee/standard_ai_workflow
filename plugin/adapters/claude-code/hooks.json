@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v wk >/dev/null 2>&1 || echo '[standard-ai-workflow] `wk` 를 찾지 못했다 — 스킬은 절차를 안내하지만 메모리 갱신 명령은 돌지 않는다. 설치: docs/INSTALLATION_AND_USAGE.md §3'"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v wk >/dev/null 2>&1 && wk refresh-state || echo '[standard-ai-workflow] `wk` 를 찾지 못했다 — 스킬은 절차를 안내하지만 메모리 갱신 명령은 돌지 않는다. 설치: docs/INSTALLATION_AND_USAGE.md §3'"
+          }
+        ]
+      }
+    ]
+  }
+}

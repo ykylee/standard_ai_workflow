@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (24차 세션 종료 — 플러그인 전환 P1 완료, P2 착수 대기)
+- 최종 수정일: 2026-08-12 (25차 세션 종료 — 플러그인 P2 완료, Claude Code 채널 개통)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **24차 세션 종료 — 플러그인 전환 P1 완료, 공유 payload 가 파생물이 됐다 (TASK-2026-08-12-main-014).** `workflow_kit/plugin_payload.py` 의 `render_agent_plugin()` 이 `plugin/` 5파일 (plugin.json + skills 3종 + mcp.json) 을 정본에서 생성한다 — 생성과 검증이 **같은 함수**라 drift 자리가 구조적으로 없다. §11 명령·계약 / 상태값 / MCP command / 도구 구성 전부 정본 파생, 규칙 리터럴 사본 0 (18문장 대조). 신설 `check_agent_plugin_payload` 7 case, smoke 251→**252**. 되주입 실증: version 오염 → 드리프트 FAIL → 재생성 7/7. **판단 1건**: Agent Plugins 1.0 선택 필드 스펙을 원문 확인 못 해 `plugin.json` 을 계약 3필드로 고정하고 **검사가 필드 집합 자체를 강제**한다 (확장은 명시 task — P2 자기 적용이 확인 경로). 전량 2축 **252/252 ×2 green**, mypy strict 192파일 0. **다음 작업 = TASK-015 (P2 Claude Code 어댑터 + marketplace + 자기 적용)**. 상세: [24차 세션 기록](./sessions/plugin_payload_renderer_2026-08-12.md).
-- 직전 기준선: **23차 세션 종료 — 플러그인 배포 전환 계획 확정 (TASK-2026-08-12-main-013, 사용자 지시 = 소유자 전환 go).** 계획: [plugin-transition-plan-2026-08.md](../../../../docs/planning/plugin-transition-plan-2026-08.md) — 원칙 5 (파생본/공유 payload=Agent Plugins 1.0 레이아웃/빅뱅 금지/graceful/버전 동기) + **P1~P5 로드맵 + WBS (TASK-014~018 planned 등록)**. 로드맵 §8 주 작업 축 등재. **다음 릴리스 목표 = P1+P2** (payload 렌더러 + Claude Code 어댑터·marketplace·자기 적용) + 기존 예약분 (2nd cycle shim drop + --bundle 기본값). **다음 작업 = TASK-014 (P1 render_agent_plugin)**. 상세: [23차 세션 기록](./sessions/plugin_transition_plan_2026-08-12.md).
+- 현재 기준선: **25차 세션 종료 — 플러그인 Claude Code 채널이 개통됐다 (TASK-2026-08-12-main-015, P2).** 어댑터 2장 (`.claude-plugin/plugin.json` + `adapters/claude-code/hooks.json`) + 관례 경로 `.mcp.json` + 저장소 루트 `marketplace.json` — 전부 렌더러 생성물. 검사 7→**9 case**. **`claude plugin` CLI 실측이 계획을 두 번 고쳤다**: ①경로 필드의 `..` 를 거부 → 플러그인 루트 = payload 루트 (어댑터가 manifest+hooks 두 장으로 더 얇아짐) ②manifest 의 `mcpServers` 경로 필드는 **validate 는 통과하는데 로드가 안 된다** (인벤토리 MCP 0) → 관례 `.mcp.json` 으로 옮겨 1 확인. **validate 통과는 로드 증명이 아니다.** 자기 적용 성공: `marketplace add ./` + `install` (scope user, enabled, Skills 3/Hooks 2/MCP 1), `wk` 부재 graceful 두 hook 실측. 전량 2축 **252/252 ×2 green**. **다음 세션 첫 확인 = 스킬 네임스페이스(`/standard-ai-workflow:session-start`) + MCP 승인 UX** (설치는 현재 세션에 소급 적용 안 됨) → 계획 §3-P2 실측표에 추가. 상세: [25차 세션 기록](./sessions/plugin_claude_code_adapter_2026-08-12.md).
+- 직전 기준선: **24차 세션 종료 — 플러그인 전환 P1 완료, 공유 payload 가 파생물이 됐다 (TASK-2026-08-12-main-014).** `workflow_kit/plugin_payload.py` 의 `render_agent_plugin()` 이 `plugin/` 5파일 (plugin.json + skills 3종 + mcp.json) 을 정본에서 생성한다 — 생성과 검증이 **같은 함수**라 drift 자리가 구조적으로 없다. §11 명령·계약 / 상태값 / MCP command / 도구 구성 전부 정본 파생, 규칙 리터럴 사본 0 (18문장 대조). 신설 `check_agent_plugin_payload` 7 case, smoke 251→**252**. 되주입 실증: version 오염 → 드리프트 FAIL → 재생성 7/7. **판단 1건**: Agent Plugins 1.0 선택 필드 스펙을 원문 확인 못 해 `plugin.json` 을 계약 3필드로 고정하고 **검사가 필드 집합 자체를 강제**한다 (확장은 명시 task — P2 자기 적용이 확인 경로). 전량 2축 **252/252 ×2 green**, mypy strict 192파일 0. **다음 작업 = TASK-015 (P2 Claude Code 어댑터 + marketplace + 자기 적용)**. 상세: [24차 세션 기록](./sessions/plugin_payload_renderer_2026-08-12.md).
+- 그 이전 기준선: **23차 세션 종료 — 플러그인 배포 전환 계획 확정 (TASK-2026-08-12-main-013, 사용자 지시 = 소유자 전환 go).** 계획: [plugin-transition-plan-2026-08.md](../../../../docs/planning/plugin-transition-plan-2026-08.md) — 원칙 5 (파생본/공유 payload=Agent Plugins 1.0 레이아웃/빅뱅 금지/graceful/버전 동기) + **P1~P5 로드맵 + WBS (TASK-014~018 planned 등록)**. 로드맵 §8 주 작업 축 등재. **다음 릴리스 목표 = P1+P2** (payload 렌더러 + Claude Code 어댑터·marketplace·자기 적용) + 기존 예약분 (2nd cycle shim drop + --bundle 기본값). **다음 작업 = TASK-014 (P1 render_agent_plugin)**. 상세: [23차 세션 기록](./sessions/plugin_transition_plan_2026-08-12.md).
 - 그 이전 기준선: **22차 세션 종료 — 멀티 하네스 공유 플러그인 검토 완료 (TASK-2026-08-12-main-012, 사용자 지시).** 판정: **가능 — 공유 payload + 하네스별 얇은 manifest.** 무변환 단일 아티팩트는 부분 성립 (Agent Skills `SKILL.md` ~40제품 / **Agent Plugins 1.0** — 2026-08-06 출범, 5클라이언트 — 단 Claude Code·Gemini·goose·OpenCode 미합류). 권고: payload 물리 배치를 Agent Plugins 1.0 레이아웃 (`plugin.json`+`skills/`+`mcp.json`) 으로 채택 + 어댑터 4장, TASK-011 Phase A 를 `render_agent_plugin()` 계열로 재정의 (소유자 go 대기). 검토 문서: docs/planning/multi-harness-plugin-review-2026-08.md. 상세: [22차 세션 기록](./sessions/multi_harness_plugin_review_2026-08-12.md).
 - 그 이전 기준선: **21차 세션 종료 — 플러그인 배포 검토 완료 (TASK-2026-08-12-main-011, 사용자 지시).** 결론: **채택 권고, 단 14번째 파생본으로** (렌더러 생성 + 검사 강제 — 손 플러그인 금지). 핵심 갭 = CLAUDE.md 형 상시 주입 불가 (SessionStart hook 실측 전까지 bootstrap 주입 유지) + Python 은 uv 전제. 이행 Phase A(렌더러)→B(marketplace)→C(실측 3건). 검토 문서: docs/planning/plugin-distribution-review-2026-08.md. 상세: [21차 세션 기록](./sessions/plugin_distribution_review_2026-08-12.md).
 - 그 이전 기준선: **20차 세션 종료 — v1.1.8-beta 발행 (`cmd_release` 5번째 실전, TASK-2026-08-12-main-010).** 16~19차 묶음 (bundle 분리/cross-platform/네임스페이스 2단계/안전망 2건). **2nd deprecation cycle 시계 시작** (다음 릴리스에서 shim + --bundle 기본값 drop). 절차 수렴: v1.1.7 검출 2건 → v1.1.8 0건. 신규 착수: **플러그인 형태 재구성·배포 검토** (TASK-011, 사용자 지시 — Claude Code 플러그인 스펙 조사 진행 중). 상세: [20차 세션 기록](./sessions/v1_1_8_release_2026-08-12.md).
@@ -37,7 +38,7 @@
   - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
 
 - 그 이전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: **플러그인 배포 전환 (P1 ✅ 완료 / P2~P5 planned, TASK-2026-08-12-main-015~018)** — 다음 작업 = TASK-015 (P2 Claude Code 어댑터 + marketplace + 자기 적용). 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.
+- 현재 주 작업 축: **플러그인 배포 전환 (P1·P2 ✅ 완료 / P3~P5 planned, TASK-2026-08-12-main-016~018)** — 다음 릴리스 목표 범위(P1+P2)가 채워졌다. 다음 작업 = TASK-016 (P3 멀티 하네스 어댑터) 또는 TASK-017 (P4 릴리스 파이프라인 통합 — `plugin/` 이 아직 bump 자동 동기 밖이라는 리스크를 닫는다). 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: ~~federation self-host add~~ ✅ (14차, plex 상시 가동) → cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후** — 2026-08-12 사용자 결정, 합류 두 명령) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -66,6 +67,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-015 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용
 - TASK-2026-08-12-main-014 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)
 - TASK-2026-08-12-main-013 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS
 - TASK-2026-08-12-main-012 멀티 하네스 공유 플러그인 형태 검토
@@ -75,7 +77,6 @@
 - TASK-2026-08-12-main-008 backlog-update --status 미지정 시 기존 상태 보존
 - TASK-2026-08-12-main-007 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로
 - TASK-2026-08-12-main-006 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로
-- TASK-2026-08-12-main-005 CLI cross-platform 지원 (Linux/macOS/Windows)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

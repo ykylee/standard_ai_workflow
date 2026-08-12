@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (7 case)
+## 판정 규칙 (9 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -27,6 +27,10 @@
 6. **렌더러에 규칙 리터럴 없음** — `plugin_payload.py` 가 §1·§3·§8·§11 문장을
    직접 들고 있으면 그건 사본이다.
 7. **탐지기가 동작한다** — temp 사본을 오염시키면 1번이 실제로 FAIL 해야 한다.
+8. **Claude Code 어댑터가 로드되는 형태** — `claude plugin details` 실측이 못박은
+   계약을 코드로 고정한다 (관례 경로 `.mcp.json`, manifest 의 `mcpServers` 경로
+   필드 금지, `..` 금지, hook 2종이 `wk` 부재를 검사).
+9. **marketplace 가 payload 를 가리키고 버전이 동기** — `/plugin install` 경로.
 
 **한계**: Agent Plugins 1.0 의 선택 필드 전체 스펙은 아직 원문 확인이 안 됐다
 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드(name/version/description)를
@@ -52,12 +56,21 @@ sys.path.insert(0, str(SOURCE_ROOT))
 from workflow_kit import __version__ as KIT_VERSION  # noqa: E402
 from workflow_kit.common.standard_rules import load_standard_rules  # noqa: E402
 from workflow_kit.plugin_payload import (  # noqa: E402
+    CLAUDE_CODE_HOOKS_RELPATH,
+    CLAUDE_CODE_MANIFEST_RELPATH,
+    CLAUDE_CODE_MCP_RELPATH,
+    MARKETPLACE_RELPATH,
+    PAYLOAD_DIRNAME,
+    PLUGIN_NAME,
     PLUGIN_SKILLS,
     PAYLOAD_MCP_BRIDGE,
     PAYLOAD_MCP_BUNDLE,
     default_payload_root,
+    default_repo_root,
     diff_payload,
+    diff_repo_plugin_files,
     render_agent_plugin,
+    render_repo_plugin_files,
     write_agent_plugin,
 )
 
@@ -94,7 +107,7 @@ def _skill_frontmatter(text: str) -> str | None:
 
 
 def test_payload_matches_generator() -> None:
-    """1) 디스크의 payload 가 재생성 결과와 같은가."""
+    """1) 디스크의 산출물(payload + 어댑터 + marketplace)이 재생성 결과와 같은가."""
     if not PAYLOAD_ROOT.is_dir():
         _record(
             "test_payload_matches_generator",
@@ -103,11 +116,11 @@ def test_payload_matches_generator() -> None:
             "`python3 -m workflow_kit.plugin_payload --apply` 로 생성한다",
         )
         return
-    problems = diff_payload(PAYLOAD_ROOT)
+    problems = diff_repo_plugin_files(default_repo_root())
     _record(
         "test_payload_matches_generator",
         not problems,
-        "; ".join(problems[:5]) if problems else f"payload {len(render_agent_plugin())}개 일치",
+        "; ".join(problems[:5]) if problems else f"산출물 {len(render_repo_plugin_files())}개 일치",
     )
 
 
@@ -291,6 +304,88 @@ def test_detector_catches_drift() -> None:
     _record("test_detector_catches_drift", True, "손 편집 / 삭제 / 미등록 파일 3종 전부 검출")
 
 
+def test_claude_code_adapter() -> None:
+    """8) Claude Code 어댑터가 **로드되는 형태**인가 (실측으로 고정한 계약).
+
+    `claude plugin details` 실측이 두 가지를 못박았다:
+    - manifest 에 ``mcpServers`` 경로 필드를 선언하면 validate 는 통과하지만
+      서버가 **로드되지 않는다** (인벤토리 0). 관례 경로 `.mcp.json` 만 잡힌다.
+    - 경로 필드의 ``..`` 는 거부된다 → 플러그인 루트 = payload 루트.
+    """
+    payload = render_agent_plugin()
+    problems: list[str] = []
+
+    manifest = json.loads(payload[CLAUDE_CODE_MANIFEST_RELPATH])
+    if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != KIT_VERSION:
+        problems.append(f"manifest name/version 불일치: {manifest.get('name')} {manifest.get('version')}")
+    if not manifest.get("author"):
+        problems.append("author 누락 — `claude plugin validate --strict` 가 경고를 에러로 올린다")
+    if "mcpServers" in manifest:
+        problems.append(
+            "manifest 에 mcpServers 경로 필드가 있다 — validate 는 통과하지만 "
+            "로더가 무시한다 (실측: 인벤토리 MCP servers 0). 관례 경로 .mcp.json 을 쓴다"
+        )
+    for key, value in manifest.items():
+        if isinstance(value, str) and ".." in value:
+            problems.append(f"{key} 에 '..' 경로 — Claude Code 가 traversal 로 거부한다")
+
+    if payload.get(CLAUDE_CODE_MCP_RELPATH) != payload.get("mcp.json"):
+        problems.append(f"{CLAUDE_CODE_MCP_RELPATH} 와 mcp.json 의 내용이 다르다 — 같은 렌더러 파생이어야 한다")
+
+    hooks = json.loads(payload[CLAUDE_CODE_HOOKS_RELPATH]).get("hooks", {})
+    if set(hooks) != {"SessionStart", "SessionEnd"}:
+        problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd")
+    rules = load_standard_rules(SOURCE_ROOT)
+    refresh_cmd = rules.memory_commands[-1][1]
+    commands = [
+        entry.get("command", "")
+        for matchers in hooks.values()
+        for matcher in matchers
+        for entry in matcher.get("hooks", [])
+    ]
+    if not any(refresh_cmd in cmd for cmd in commands):
+        problems.append(f"SessionEnd 가 §11.1 재생성 명령({refresh_cmd})을 부르지 않는다")
+    binary = refresh_cmd.split()[0]
+    if not all(f"command -v {binary}" in cmd for cmd in commands):
+        problems.append(
+            f"`{binary}` 부재 검사가 없는 hook 이 있다 — 조용한 실패 금지 (계획 원칙 4)"
+        )
+    _record(
+        "test_claude_code_adapter",
+        not problems,
+        "; ".join(problems[:4])
+        if problems
+        else f"manifest 계약 + hooks 2종 + .mcp.json == mcp.json",
+    )
+
+
+def test_marketplace_manifest() -> None:
+    """9) marketplace 가 payload 를 가리키고 버전이 동기인가."""
+    files = render_repo_plugin_files()
+    market = json.loads(files[MARKETPLACE_RELPATH])
+    problems: list[str] = []
+    if not market.get("description"):
+        problems.append("description 누락 — `validate --strict` 가 경고를 에러로 올린다")
+    if not market.get("owner"):
+        problems.append("owner 누락")
+    entries = market.get("plugins", [])
+    if len(entries) != 1:
+        problems.append(f"plugins 항목 {len(entries)}개 — 1개여야 한다")
+    else:
+        entry = entries[0]
+        if entry.get("source") != f"./{PAYLOAD_DIRNAME}":
+            problems.append(f"source {entry.get('source')!r} 가 payload 를 가리키지 않는다")
+        if entry.get("version") != KIT_VERSION:
+            problems.append(f"version {entry.get('version')!r} != __version__ {KIT_VERSION!r}")
+        if entry.get("name") != PLUGIN_NAME:
+            problems.append(f"name {entry.get('name')!r} != {PLUGIN_NAME!r}")
+    _record(
+        "test_marketplace_manifest",
+        not problems,
+        "; ".join(problems[:3]) if problems else f"marketplace → ./{PAYLOAD_DIRNAME}, version {KIT_VERSION}",
+    )
+
+
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
@@ -299,7 +394,9 @@ def main() -> int:
     test_mcp_matches_read_only_bundle()
     test_renderer_has_no_rule_literals()
     test_detector_catches_drift()
-    total = 7
+    test_claude_code_adapter()
+    test_marketplace_manifest()
+    total = 9
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

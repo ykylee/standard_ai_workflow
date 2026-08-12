@@ -13,7 +13,7 @@ stable 로 선언된 `backlog-update` 가 **governance 가 규정한 layout 을 
 **layout 자체를 규약으로 검사하지 않았다.** 그래서 skill 을 실제로 돌려 산출물을
 governance 규약과 대조하는 본 smoke 를 둔다 (§2.18 "선언이 사실인가" 의 연장).
 
-Test list (8 case):
+Test list (9 case):
 1. test_daily_index_is_link_only
 2. test_task_file_naming_and_frontmatter
 3. test_no_bak_file_written
@@ -21,7 +21,8 @@ Test list (8 case):
 5. test_index_links_resolve_with_layout_checker_regex
 6. test_update_preserves_unspecified_fields (TASK-2026-08-11-main-023 되주입)
 7. test_update_preserves_index_extras (TASK-2026-08-11-main-023 되주입)
-8. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
+8. test_update_preserves_status_when_unspecified (TASK-2026-08-12-main-008 되주입)
+9. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
 
 Cross-ref: workflow-source/MEMORY_GOVERNANCE.md §2 +
 workflow-source/tests/check_appendonly_memory_layout.py (저장소 실물 검사).
@@ -201,6 +202,34 @@ def test_update_preserves_index_extras() -> None:
         assert "  - status: in_progress" in index, "index status 미갱신"
 
 
+def test_update_preserves_status_when_unspecified() -> None:
+    """--status 미지정 update 는 기존 상태를 보존한다 (TASK-2026-08-12-main-008).
+
+    되주입 근거: 이전 규칙은 미지정 update 를 무조건 in_progress 로 떨어뜨려,
+    planned task 에 메모만 다는 호출이 상태를 승격시켰다. 미지정은 "바꾸지 말라" 다.
+    done 보존도 확인한다 — 기존 done 은 재강등하지 않는다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "생성",
+                             "--mode", "create", "--status", "planned")["task_id"]
+        task_file = _branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md"
+        # 메모만 다는 update (--status 미지정) → planned 유지
+        _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "메모",
+                   "--task-id", task_id, "--mode", "update")
+        text = task_file.read_text(encoding="utf-8")
+        assert "status: planned" in text and "- 상태: planned" in text, (
+            f"미지정 update 가 상태를 바꿨다:\n{text[:200]}")
+        # done (검증 포함) 전이 후, 미지정 update → done 유지 (재강등 금지)
+        _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "완료",
+                   "--task-id", task_id, "--mode", "update", "--status", "done",
+                   "--validation-result", "smoke PASS")
+        _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "사후 메모",
+                   "--task-id", task_id, "--mode", "update")
+        text = task_file.read_text(encoding="utf-8")
+        assert "status: done" in text, f"미지정 update 가 done 을 되돌렸다:\n{text[:200]}"
+
+
 def test_handoff_dedupes_by_task_id() -> None:
     """handoff 반영은 표기가 아니라 task ID 로 dedupe 한다 (중복 bullet 방지)."""
     with tempfile.TemporaryDirectory() as td:
@@ -238,6 +267,7 @@ def main() -> int:
         test_index_links_resolve_with_layout_checker_regex,
         test_update_preserves_unspecified_fields,
         test_update_preserves_index_extras,
+        test_update_preserves_status_when_unspecified,
         test_handoff_dedupes_by_task_id,
     ]
     failures: list[tuple[str, str]] = []

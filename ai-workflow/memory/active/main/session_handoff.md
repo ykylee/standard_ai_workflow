@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (18차 세션 종료 — bootstrap_lib 네임스페이스 격상, PyPI 이동 단계 완결)
+- 최종 수정일: 2026-08-12 (19차 세션 종료 — status 보존 + no_repo_write 실행-중 감시)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **18차 세션 종료 — 네임스페이스 격상 2단계 완결 (TASK-2026-08-12-main-007).** bootstrap_lib → workflow_kit.bootstrap_lib 물리 이동 + shim 패키지 (`python -m` 양경로 호환) + 소비면 24파일 재표적. wheel 실측 (impl 10 + shim 10, packaging PASS). **PyPI 잔여 = 2nd cycle 에 shim 2종 + --bundle 기본값 drop 뿐** (그 후 소유자 결정). 상세: [18차 세션 기록](./sessions/namespace_stage2_bootstrap_lib_2026-08-12.md).
-- 직전 기준선: **17차 세션 종료 — CLI cross-platform + 네임스페이스 격상 1단계 (TASK-2026-08-12-main-005·006).** ①os-matrix CI 신설 — **Windows 첫 실측 8/8 PASS** (probe: wk 핵심 명령 + MCP 브리지), 지원 tier 문서화. ②tools 43모듈 → workflow_kit.tools 물리 이동 + 구경로 shim + 소비면(테스트 70파일·entry points·mkdocs) 재표적. 사고 1건 복원: shim 경유 monkeypatch 미적용으로 검사가 실저장소 pyproject 오염 (HEAD 무손상, 즉시 복원 — source-bound 소비자는 impl 직표적). 상세: [17차 세션 기록](./sessions/cross_platform_and_namespace_2026-08-12.md).
+- 현재 기준선: **19차 세션 종료 — status 보존 규칙 + 실행-중 감시 (TASK-2026-08-12-main-008·009).** ①backlog-update `--status` 미지정 = 기존 상태 보존 (미지정은 "바꾸지 말라"). ②`check_no_repo_write` 가 실행-중 porcelain 폴링으로 touch-and-restore 를 검출 (§6 리스크 해소) — 감시 13개 실측 전부 무접촉, 원장 공집합 출발. 상세: [19차 세션 기록](./sessions/status_preserve_and_midrun_watch_2026-08-12.md).
+- 직전 기준선: **18차 세션 종료 — 네임스페이스 격상 2단계 완결 (TASK-2026-08-12-main-007).** bootstrap_lib → workflow_kit.bootstrap_lib 물리 이동 + shim 패키지 (`python -m` 양경로 호환) + 소비면 24파일 재표적. wheel 실측 (impl 10 + shim 10, packaging PASS). **PyPI 잔여 = 2nd cycle 에 shim 2종 + --bundle 기본값 drop 뿐** (그 후 소유자 결정). 상세: [18차 세션 기록](./sessions/namespace_stage2_bootstrap_lib_2026-08-12.md).
+- 그 이전 기준선: **17차 세션 종료 — CLI cross-platform + 네임스페이스 격상 1단계 (TASK-2026-08-12-main-005·006).** ①os-matrix CI 신설 — **Windows 첫 실측 8/8 PASS** (probe: wk 핵심 명령 + MCP 브리지), 지원 tier 문서화. ②tools 43모듈 → workflow_kit.tools 물리 이동 + 구경로 shim + 소비면(테스트 70파일·entry points·mkdocs) 재표적. 사고 1건 복원: shim 경유 monkeypatch 미적용으로 검사가 실저장소 pyproject 오염 (HEAD 무손상, 즉시 복원 — source-bound 소비자는 impl 직표적). 상세: [17차 세션 기록](./sessions/cross_platform_and_namespace_2026-08-12.md).
 - 그 이전 기준선: **16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토 (TASK-2026-08-12-main-003·004).** ①bundle 선택자 (read-only 11 / write 2 = `workflow_write_bundle` / all 13 기본+경고) + 렌더러 정직한 기본 (`--bundle read-only`, claude-code·MiniMax 는 write entry 동시 emit) + 검사 강제 + 자기 적용 (.mcp.json 2-server). 다음 cycle: 기본 all→read-only. ②배포 검토 (docs/planning/cli-distribution-review-2026-08.md): wheel top-level 에 일반명 `tools`/`bootstrap_lib` 실측 → PyPI 는 네임스페이스 격상 선행 필수. 권고 = uv/pipx + GH Release wheel 격리 설치 (INSTALLATION §3 반영). 상세: [16차 세션 기록](./sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md).
 - 그 이전 기준선: **15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).
 - 그 이전 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
@@ -60,6 +61,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-009 check_no_repo_write 실행-중 감시 강화
+- TASK-2026-08-12-main-008 backlog-update --status 미지정 시 기존 상태 보존
 - TASK-2026-08-12-main-007 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로
 - TASK-2026-08-12-main-006 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로
 - TASK-2026-08-12-main-005 CLI cross-platform 지원 (Linux/macOS/Windows)
@@ -68,8 +71,6 @@
 - TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
 - TASK-2026-08-12-main-001 federation self-host add — plex 상시 serving 편입
 - TASK-2026-08-11-main-019 전량 검사 배타 락
-- TASK-2026-08-11-main-028 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)
-- TASK-2026-08-11-main-027 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -134,7 +135,7 @@ PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
 - ~~registry loopback 만 실측~~ — **부분 해소** (TASK-009, 비-loopback bind + pull
   왕복은 이 호스트에서 실측). **잔여**: 진짜 cross-host / 방화벽 / reverse proxy /
   TLS 종단 — 두 번째 호스트 필요 (darwin homelab).
-- **`check_no_repo_write` 의 계약 한계 (미해소)** — 판정이 "실행 **후** 복원되었는가"
+- ~~`check_no_repo_write` 의 계약 한계~~ — ✅ **해소** (TASK-2026-08-12-main-009, 실행-중 폴링 + 원장). 이전 기술: 판정이 "실행 **후** 복원되었는가"
   라, 건드렸다 되돌리면 통과한다. `check_bidir_link_v0_13_3` 은 **이미 감시 목록에
   있었는데도** 그 이유로 안 잡혔다. 실행 *중* 감시(폴링)로 강화하면 남은 감시 대상
   다수가 같은 이유로 red 가 될 수 있어 범위가 크다. **되돌리는 것은 안 건드리는 것이

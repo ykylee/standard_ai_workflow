@@ -463,7 +463,17 @@ def main() -> int:
 
         task_id = args.task_id or suggest_next_task_id(
             existing_tasks, target_date=getattr(args, 'target_date', None))
-        status, status_warnings = determine_conservative_task_status(args.status, args.validation_result, operation_type)
+        # v1.1.8 (TASK-2026-08-12-main-008): update 에서 --status 미지정이면 기존
+        # 상태를 보존한다 — 미지정은 "바꾸지 말라" 다. 기존 상태는 task SSOT
+        # frontmatter (`status: X`) 에서 읽는다.
+        current_status: str | None = None
+        _ssot_probe = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
+        if requested_mode == "update" and _ssot_probe.exists():
+            _m = re.search(r"^status:\s*(\S+)", _ssot_probe.read_text(encoding="utf-8"), re.M)
+            if _m:
+                current_status = _m.group(1)
+        status, status_warnings = determine_conservative_task_status(
+            args.status, args.validation_result, operation_type, current_status=current_status)
         warnings.extend(status_warnings)
 
         progress_note = args.progress_note

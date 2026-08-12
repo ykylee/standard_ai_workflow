@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (20차 세션 — v1.1.8-beta 발행 + 플러그인 검토 착수)
+- 최종 수정일: 2026-08-12 (21차 세션 종료 — 플러그인 배포 검토 완료, 채택 권고)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **20차 세션 종료 — v1.1.8-beta 발행 (`cmd_release` 5번째 실전, TASK-2026-08-12-main-010).** 16~19차 묶음 (bundle 분리/cross-platform/네임스페이스 2단계/안전망 2건). **2nd deprecation cycle 시계 시작** (다음 릴리스에서 shim + --bundle 기본값 drop). 절차 수렴: v1.1.7 검출 2건 → v1.1.8 0건. 신규 착수: **플러그인 형태 재구성·배포 검토** (TASK-011, 사용자 지시 — Claude Code 플러그인 스펙 조사 진행 중). 상세: [20차 세션 기록](./sessions/v1_1_8_release_2026-08-12.md).
-- 직전 기준선: **19차 세션 종료 — status 보존 규칙 + 실행-중 감시 (TASK-2026-08-12-main-008·009).** ①backlog-update `--status` 미지정 = 기존 상태 보존 (미지정은 "바꾸지 말라"). ②`check_no_repo_write` 가 실행-중 porcelain 폴링으로 touch-and-restore 를 검출 (§6 리스크 해소) — 감시 13개 실측 전부 무접촉, 원장 공집합 출발. 상세: [19차 세션 기록](./sessions/status_preserve_and_midrun_watch_2026-08-12.md).
+- 현재 기준선: **21차 세션 종료 — 플러그인 배포 검토 완료 (TASK-2026-08-12-main-011, 사용자 지시).** 결론: **채택 권고, 단 14번째 파생본으로** (렌더러 생성 + 검사 강제 — 손 플러그인 금지). 핵심 갭 = CLAUDE.md 형 상시 주입 불가 (SessionStart hook 실측 전까지 bootstrap 주입 유지) + Python 은 uv 전제. 이행 Phase A(렌더러)→B(marketplace)→C(실측 3건). 검토 문서: docs/planning/plugin-distribution-review-2026-08.md. 상세: [21차 세션 기록](./sessions/plugin_distribution_review_2026-08-12.md).
+- 직전 기준선: **20차 세션 종료 — v1.1.8-beta 발행 (`cmd_release` 5번째 실전, TASK-2026-08-12-main-010).** 16~19차 묶음 (bundle 분리/cross-platform/네임스페이스 2단계/안전망 2건). **2nd deprecation cycle 시계 시작** (다음 릴리스에서 shim + --bundle 기본값 drop). 절차 수렴: v1.1.7 검출 2건 → v1.1.8 0건. 신규 착수: **플러그인 형태 재구성·배포 검토** (TASK-011, 사용자 지시 — Claude Code 플러그인 스펙 조사 진행 중). 상세: [20차 세션 기록](./sessions/v1_1_8_release_2026-08-12.md).
+- 그 이전 기준선: **19차 세션 종료 — status 보존 규칙 + 실행-중 감시 (TASK-2026-08-12-main-008·009).** ①backlog-update `--status` 미지정 = 기존 상태 보존 (미지정은 "바꾸지 말라"). ②`check_no_repo_write` 가 실행-중 porcelain 폴링으로 touch-and-restore 를 검출 (§6 리스크 해소) — 감시 13개 실측 전부 무접촉, 원장 공집합 출발. 상세: [19차 세션 기록](./sessions/status_preserve_and_midrun_watch_2026-08-12.md).
 - 그 이전 기준선: **18차 세션 종료 — 네임스페이스 격상 2단계 완결 (TASK-2026-08-12-main-007).** bootstrap_lib → workflow_kit.bootstrap_lib 물리 이동 + shim 패키지 (`python -m` 양경로 호환) + 소비면 24파일 재표적. wheel 실측 (impl 10 + shim 10, packaging PASS). **PyPI 잔여 = 2nd cycle 에 shim 2종 + --bundle 기본값 drop 뿐** (그 후 소유자 결정). 상세: [18차 세션 기록](./sessions/namespace_stage2_bootstrap_lib_2026-08-12.md).
 - 그 이전 기준선: **17차 세션 종료 — CLI cross-platform + 네임스페이스 격상 1단계 (TASK-2026-08-12-main-005·006).** ①os-matrix CI 신설 — **Windows 첫 실측 8/8 PASS** (probe: wk 핵심 명령 + MCP 브리지), 지원 tier 문서화. ②tools 43모듈 → workflow_kit.tools 물리 이동 + 구경로 shim + 소비면(테스트 70파일·entry points·mkdocs) 재표적. 사고 1건 복원: shim 경유 monkeypatch 미적용으로 검사가 실저장소 pyproject 오염 (HEAD 무손상, 즉시 복원 — source-bound 소비자는 impl 직표적). 상세: [17차 세션 기록](./sessions/cross_platform_and_namespace_2026-08-12.md).
 - 그 이전 기준선: **16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토 (TASK-2026-08-12-main-003·004).** ①bundle 선택자 (read-only 11 / write 2 = `workflow_write_bundle` / all 13 기본+경고) + 렌더러 정직한 기본 (`--bundle read-only`, claude-code·MiniMax 는 write entry 동시 emit) + 검사 강제 + 자기 적용 (.mcp.json 2-server). 다음 cycle: 기본 all→read-only. ②배포 검토 (docs/planning/cli-distribution-review-2026-08.md): wheel top-level 에 일반명 `tools`/`bootstrap_lib` 실측 → PyPI 는 네임스페이스 격상 선행 필수. 권고 = uv/pipx + GH Release wheel 격리 설치 (INSTALLATION §3 반영). 상세: [16차 세션 기록](./sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md).
@@ -54,7 +55,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-12-main-011 워크플로우 플러그인 형태 재구성·배포 검토
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -62,6 +63,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-011 워크플로우 플러그인 형태 재구성·배포 검토
 - TASK-2026-08-12-main-010 v1.1.8-beta 발행 (cmd_release 5번째 실전)
 - TASK-2026-08-12-main-009 check_no_repo_write 실행-중 감시 강화
 - TASK-2026-08-12-main-008 backlog-update --status 미지정 시 기존 상태 보존
@@ -71,7 +73,6 @@
 - TASK-2026-08-12-main-004 CLI 툴(wk) 배포 방법 검토
 - TASK-2026-08-12-main-003 MCP bundle 분리 — write 도구 2종을 별도 bundle 로
 - TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
-- TASK-2026-08-12-main-001 federation self-host add — plex 상시 serving 편입
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

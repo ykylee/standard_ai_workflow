@@ -27,14 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**20차 세션 종료 — v1.1.8-beta 발행 (`cmd_release` 5번째 실전, TASK-2026-08-12-main-010).** 16~19차 묶음 (bundle 분리/cross-platform/네임스페이스 2단계/안전망 2건). **2nd deprecation cycle 시계 시작** (다음 릴리스에서 shim + --bundle 기본값 drop). 절차 수렴: v1.1.7 검출 2건 → v1.1.8 0건. 신규 착수: **플러그인 형태 재구성·배포 검토** (TASK-011, 사용자 지시 — Claude Code 플러그인 스펙 조사 진행 중). 상세: [20차 세션 기록](./sessions/v1_1_8_release_2026-08-12.md).",
+    "current_baseline": "**21차 세션 종료 — 플러그인 배포 검토 완료 (TASK-2026-08-12-main-011, 사용자 지시).** 결론: **채택 권고, 단 14번째 파생본으로** (렌더러 생성 + 검사 강제 — 손 플러그인 금지). 핵심 갭 = CLAUDE.md 형 상시 주입 불가 (SessionStart hook 실측 전까지 bootstrap 주입 유지) + Python 은 uv 전제. 이행 Phase A(렌더러)→B(marketplace)→C(실측 3건). 검토 문서: docs/planning/plugin-distribution-review-2026-08.md. 상세: [21차 세션 기록](./sessions/plugin_distribution_review_2026-08-12.md).",
     "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 으로 확정, 시점은 추후** (사용자 결정 2026-08-12, 현재 MacBook 전원 꺼짐). 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령 (`add-known-host` + `pull`, 토큰 값 전달 필요) / darwin mavis e2e / memory_index 3-tuple 추이).",
-    "current_focus": "TASK-2026-08-12-main-011 워크플로우 플러그인 형태 재구성·배포 검토",
-    "in_progress_items": [
-      "TASK-2026-08-12-main-011 워크플로우 플러그인 형태 재구성·배포 검토"
-    ],
+    "current_focus": null,
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
       "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
       "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
       "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존",
@@ -43,8 +42,7 @@
       "TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)",
       "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토",
       "TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로",
-      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)",
-      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입"
+      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -52,9 +50,7 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
     "task_count": 11,
-    "in_progress_items": [
-      "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
@@ -66,7 +62,8 @@
       "TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로",
       "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존",
       "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
-      "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)"
+      "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
+      "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토"
     ]
   },
   "next_documents": [
@@ -76,6 +73,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/plugin_distribution_review_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/v1_1_8_release_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/status_preserve_and_midrun_watch_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/namespace_stage2_bootstrap_lib_2026-08-12.md",

@@ -34,6 +34,10 @@ from bootstrap_lib.writes import write_text
 
 
 MCP_SERVER_ALIAS = "standardAiWorkflowReadOnly"
+#: v1.1.8+ bundle 분리 (TASK-2026-08-12-main-003): write 도구 2종은 별도 서버로.
+#: read-only 서버는 하네스가 안심하고 자동 노출할 수 있고, write 서버는 명시
+#: opt-in 이다 (ADR-003). claude-code / minimax 렌더러가 두 entry 를 emit 한다.
+MCP_WRITE_SERVER_ALIAS = "standardAiWorkflowWrite"
 MCP_TOOL_NAME = "workflow_kit.read_only"
 MCP_TOOL_DESCRIPTION = (
     "Read-only MCP tools (latest_backlog, check_doc_metadata, ...) "
@@ -77,17 +81,24 @@ MCP_CONFIG_ROOT_KEY: dict[str, str] = {
 }
 
 
-def mcp_server_command(bridge: str) -> list[str]:
+def mcp_server_command(bridge: str, bundle: str | None = None) -> list[str]:
     """Return the ``command + args`` that the per-harness MCP config should spawn.
 
     ``command`` is always ``python3`` (the same Python that runs the
     bootstrap script) and ``args`` points at the entry point module so the
     harness can launch it without a shell. ``PYTHONPATH`` is set in
     ``env`` so the entry point can locate ``workflow_kit``.
+
+    ``bundle`` (v1.1.8+): jsonrpc bridge 의 ``--bundle`` 선택자. 새로 emit 되는
+    config 는 기존 alias 에 ``read-only`` 를 명시해 이름과 표면을 정직하게 맞춘다.
+    ``stdio-sdk`` 는 1st cycle 에서 bundle 미지원 (all 서빙) — ADR-003 참조.
     """
     if bridge == "stdio-sdk":
         return ["python3", "-m", "workflow_kit.server.read_only_mcp_sdk", "--stdio-sdk"]
-    return ["python3", "-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+    cmd = ["python3", "-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+    if bundle:
+        cmd += ["--bundle", bundle]
+    return cmd
 
 
 def _mcp_server_env() -> dict[str, str]:
@@ -144,7 +155,7 @@ def render_mcp_toml_block(
 
     ``commented=True`` 면 모든 줄을 ``# `` 로 접두해 "대안 설정" 주석 블록이 된다.
     """
-    cmd = mcp_server_command(bridge)
+    cmd = mcp_server_command(bridge, "read-only")
     lines = [
         f"[mcp_servers.{MCP_SERVER_ALIAS}]",
         f"command = {json.dumps(cmd[0])}",
@@ -203,8 +214,8 @@ def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
             MCP_CONFIG_ROOT_KEY["opencode"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "local",
-                    "command": mcp_server_command(bridge)[0],
-                    "args": mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge, "read-only")[0],
+                    "args": mcp_server_command(bridge, "read-only")[1:],
                     "env": _mcp_server_env(),
                     "timeout": 30000,
                 }
@@ -222,8 +233,8 @@ def render_gemini_cli_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
         {
             MCP_CONFIG_ROOT_KEY["gemini-cli"]: {
                 MCP_SERVER_ALIAS: {
-                    "command": mcp_server_command(bridge)[0],
-                    "args": mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge, "read-only")[0],
+                    "args": mcp_server_command(bridge, "read-only")[1:],
                     "env": _mcp_server_env(),
                     "trust": True,
                     "includeTools": [
@@ -254,8 +265,8 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
             MCP_CONFIG_ROOT_KEY["antigravity"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "stdio",
-                    "command": mcp_server_command(bridge)[0],
-                    "args": mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge, "read-only")[0],
+                    "args": mcp_server_command(bridge, "read-only")[1:],
                     "env": _mcp_server_env(),
                 }
             }
@@ -265,16 +276,16 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     ) + "\n"
 
 
-def _read_only_tool_names() -> list[str]:
+def _read_only_tool_names(bundle: str = "all") -> list[str]:
     """MCP config 에 싣는 도구 이름 목록 — registry 가 정본이다.
 
-    `workflow_kit.server.read_only_registry.READ_ONLY_TOOL_SPECS` 에서 파생한다.
-    렌더러가 이름을 직접 나열하면 registry 확장 시 그 사본만 낡는다
-    (실측: 13개 중 10개에서 멈춰 있었다 — TASK-2026-08-11-main-025).
+    `workflow_kit.server.read_only_registry` 에서 파생한다. 렌더러가 이름을 직접
+    나열하면 registry 확장 시 그 사본만 낡는다 (실측: 13개 중 10개에서 멈춰
+    있었다 — TASK-2026-08-11-main-025). v1.1.8+ 는 bundle 선택자를 받는다.
     """
-    from workflow_kit.server.read_only_registry import READ_ONLY_TOOL_SPECS
+    from workflow_kit.server.read_only_registry import tool_specs_for_bundle
 
-    return [spec.name for spec in READ_ONLY_TOOL_SPECS]
+    return [spec.name for spec in tool_specs_for_bundle(bundle)]
 
 
 def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
@@ -285,10 +296,29 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
     ``mcp_servers`` block into the global config.
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
+    # stdio-sdk 는 1st cycle 에서 bundle 미지원 (all 서빙) — 그때는 단일 entry.
+    if bridge == "stdio-sdk":
+        descriptor = {
+            MCP_SERVER_ALIAS: {
+                "command": mcp_server_command(bridge)[0],
+                "args": mcp_server_command(bridge)[1:],
+                "env": _mcp_server_env(),
+                "transport": bridge,
+                "transport_phase": MCP_BRIDGE_PHASE[bridge],
+                "apply_mode": MCP_BRIDGE_APPLY_MODE[bridge],
+                "description": (
+                    "Standard AI Workflow MCP tools (stdio-sdk, 1st cycle: bundle 미분리)."
+                ),
+                # v1.1.7 (TASK-2026-08-11-main-025): 도구 목록은 registry 가 정본이다.
+                "tools": _read_only_tool_names("all"),
+            }
+        }
+        return json.dumps({MCP_CONFIG_ROOT_KEY["minimax-code"]: descriptor}, ensure_ascii=False, indent=2) + "\n"
+    # v1.1.8+ bundle 분리: read-only 는 활성, write 는 명시 opt-in (manual review).
     descriptor = {
         MCP_SERVER_ALIAS: {
-            "command": mcp_server_command(bridge)[0],
-            "args": mcp_server_command(bridge)[1:],
+            "command": mcp_server_command(bridge, "read-only")[0],
+            "args": mcp_server_command(bridge, "read-only")[1:],
             "env": _mcp_server_env(),
             "transport": bridge,
             "transport_phase": MCP_BRIDGE_PHASE[bridge],
@@ -298,12 +328,23 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
                 "Draft JSON-RPC bridge by default; switch to stdio-sdk once "
                 "check_read_only_mcp_sdk_stdio.py is green."
             ),
-            # v1.1.7 (TASK-2026-08-11-main-025): 도구 목록은 registry 가 정본이다.
-            # 손 목록은 10개에서 멈춰 있었고 (rotate_workflow_logs /
-            # assess_milestone_progress / apply_robust_patch 누락) 아무 검사도
-            # 그 어긋남을 보지 않았다 — 요구 목록은 파생시킨다.
-            "tools": _read_only_tool_names(),
-        }
+            # 도구 목록은 registry 가 정본 (TASK-025), bundle 선택자 반영 (TASK-003).
+            "tools": _read_only_tool_names("read-only"),
+        },
+        MCP_WRITE_SERVER_ALIAS: {
+            "command": mcp_server_command(bridge, "write")[0],
+            "args": mcp_server_command(bridge, "write")[1:],
+            "env": _mcp_server_env(),
+            "transport": bridge,
+            "transport_phase": MCP_BRIDGE_PHASE[bridge],
+            # write 도구는 파일시스템을 변경한다 — 자동 활성 금지 (ADR-003).
+            "apply_mode": "manual_review_only",
+            "description": (
+                "Write-capable MCP tools (apply_robust_patch, rotate_workflow_logs). "
+                "Explicit opt-in only — these tools modify the filesystem."
+            ),
+            "tools": _read_only_tool_names("write"),
+        },
     }
     return json.dumps({MCP_CONFIG_ROOT_KEY["minimax-code"]: descriptor}, ensure_ascii=False, indent=2) + "\n"
 
@@ -327,10 +368,13 @@ def render_mavis_global_mcp_config(args: argparse.Namespace) -> dict:
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     target_root = Path(getattr(args, "target_root", ".")).resolve()
     pythonpath = (target_root / "workflow-source").resolve()
+    # v1.1.8+ bundle 분리: mavis 글로벌 merge 는 read-only bundle 만 자동 등록한다.
+    # write 도구는 명시 opt-in (ADR-003) — 필요 시 사용자가 --bundle write 서버를
+    # 같은 형식으로 손수 추가한다 (core/mcp_installation_by_harness.md §2).
     return {
         MCP_SERVER_ALIAS: {
-            "command": mcp_server_command(bridge)[0],
-            "args": mcp_server_command(bridge)[1:],
+            "command": mcp_server_command(bridge, "read-only")[0],
+            "args": mcp_server_command(bridge, "read-only")[1:],
             "env": {
                 "STANDARD_AI_WORKFLOW_ROOT": str(target_root),
                 "PYTHONPATH": str(pythonpath),
@@ -467,10 +511,19 @@ def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str
             MCP_CONFIG_ROOT_KEY["claude-code"]: {
                 MCP_SERVER_ALIAS: {
                     "type": "stdio",
-                    "command": mcp_server_command(bridge)[0],
-                    "args": mcp_server_command(bridge)[1:],
+                    "command": mcp_server_command(bridge, "read-only")[0],
+                    "args": mcp_server_command(bridge, "read-only")[1:],
                     "env": _mcp_server_env(),
-                }
+                },
+                # v1.1.8+ bundle 분리: write 도구 2종은 별도 서버 — Claude Code 는
+                # 도구 호출마다 승인을 받으므로 entry 자체는 실어도 안전하고,
+                # descriptor 의 readOnlyHint=false 가 정직하게 광고된다 (ADR-003).
+                MCP_WRITE_SERVER_ALIAS: {
+                    "type": "stdio",
+                    "command": mcp_server_command(bridge, "write")[0],
+                    "args": mcp_server_command(bridge, "write")[1:],
+                    "env": _mcp_server_env(),
+                },
             }
         },
         ensure_ascii=False,

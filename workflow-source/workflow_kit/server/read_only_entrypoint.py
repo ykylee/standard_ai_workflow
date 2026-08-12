@@ -17,7 +17,14 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.output_contracts import validate_output_payload
-from workflow_kit.server.read_only_registry import build_server_manifest, build_transport_tool_descriptors, get_tool_spec
+from workflow_kit.server.read_only_registry import (
+    BUNDLE_ALL,
+    BUNDLE_LABELS,
+    build_server_manifest,
+    build_transport_tool_descriptors,
+    get_tool_spec,
+    tool_specs_for_bundle,
+)
 from workflow_kit.server.read_only_tools import invoke_read_only_tool
 
 
@@ -33,6 +40,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--payload-json",
         help="JSON object that will be converted into repeated CLI flags for the selected tool script.",
+    )
+    parser.add_argument(
+        "--bundle",
+        choices=list(BUNDLE_LABELS),
+        default=BUNDLE_ALL,
+        help="대상 bundle (v1.1.8+ 분리): read-only / write / all (기본, 하위 호환)",
     )
     return parser.parse_args()
 
@@ -160,12 +173,22 @@ def invoke_tool(tool_name: str, payload_json: str | None) -> tuple[int, dict[str
 def main() -> int:
     args = parse_args()
     if args.list_tools:
-        print(json.dumps(build_server_manifest(), ensure_ascii=False, indent=2))
+        print(json.dumps(build_server_manifest(args.bundle), ensure_ascii=False, indent=2))
         return 0
     if args.list_transport_tools:
-        print(json.dumps(build_transport_tool_descriptors(), ensure_ascii=False, indent=2))
+        print(json.dumps(build_transport_tool_descriptors(args.bundle), ensure_ascii=False, indent=2))
         return 0
     if args.tool:
+        # bundle 밖의 도구는 이 표면에 없는 도구다 (v1.1.8+ 분리).
+        if args.tool not in {spec.name for spec in tool_specs_for_bundle(args.bundle)}:
+            result = build_entrypoint_error_result(
+                error=f"`{args.tool}` 은 `{args.bundle}` bundle 에 없는 도구다.",
+                error_code="unknown_read_only_tool",
+                warnings=[f"write 도구는 `--bundle write` (또는 all) 로만 호출할 수 있다."],
+                source_context={"action": "tool", "tool": args.tool, "bundle": args.bundle},
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 1
         returncode, payload = invoke_tool(args.tool, args.payload_json)
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return returncode

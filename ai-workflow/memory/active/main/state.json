@@ -27,12 +27,14 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).",
+    "current_baseline": "**16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토 (TASK-2026-08-12-main-003·004).** ①bundle 선택자 (read-only 11 / write 2 = `workflow_write_bundle` / all 13 기본+경고) + 렌더러 정직한 기본 (`--bundle read-only`, claude-code·MiniMax 는 write entry 동시 emit) + 검사 강제 + 자기 적용 (.mcp.json 2-server). 다음 cycle: 기본 all→read-only. ②배포 검토 (docs/planning/cli-distribution-review-2026-08.md): wheel top-level 에 일반명 `tools`/`bootstrap_lib` 실측 → PyPI 는 네임스페이스 격상 선행 필수. 권고 = uv/pipx + GH Release wheel 격리 설치 (INSTALLATION §3 반영). 상세: [16차 세션 기록](./sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md).",
     "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 으로 확정, 시점은 추후** (사용자 결정 2026-08-12, 현재 MacBook 전원 꺼짐). 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령 (`add-known-host` + `pull`, 토큰 값 전달 필요) / darwin mavis e2e / memory_index 3-tuple 추이).",
     "current_focus": null,
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토",
+      "TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로",
       "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)",
       "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
       "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)",
@@ -40,21 +42,21 @@
       "TASK-2026-08-11-main-026 — §11 단일출처 검사 강화 + goose hook 깨진 경로",
       "TASK-2026-08-11-main-025 — MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)",
       "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
-      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
-      "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
-      "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출"
+      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
-    "task_count": 2,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
-      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)"
+      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)",
+      "TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로",
+      "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토"
     ]
   },
   "next_documents": [
@@ -64,6 +66,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/v1_1_7_release_2026-08-12.md",
     "ai-workflow/memory/active/environments/plex.md",
     "ai-workflow/memory/active/main/sessions/federation_self_host_2026-08-12.md",

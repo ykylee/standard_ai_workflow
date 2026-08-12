@@ -46,6 +46,36 @@ class ReadOnlyToolSpec:
 READ_ONLY_SERVER_NAME = "workflow_read_only_bundle"
 READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET = "mcp_tools_list_draft"
 
+# --- bundle 분리 (v1.1.8+, TASK-2026-08-12-main-003 — ADR-003 v1.1.7 후속) -----
+# "read_only" 라는 이름의 bundle 안에 write 도구 2종이 사는 긴장의 근본 정리.
+# 서버/manifest/descriptor 는 bundle 선택자를 받는다:
+#   - "read-only": read_only=True 도구만 (하네스 자동 노출용, 이름이 정직해진다)
+#   - "write":     write-capable 도구만 (명시 opt-in, manual review 대상)
+#   - "all":       기존 표면 그대로 (1st cycle 하위 호환 기본값 — 기존 config 는
+#                  --bundle 없이 계속 동작하되, 서빙 시 경고를 낸다)
+BUNDLE_READ_ONLY = "read-only"
+BUNDLE_WRITE = "write"
+BUNDLE_ALL = "all"
+BUNDLE_LABELS: tuple[str, ...] = (BUNDLE_READ_ONLY, BUNDLE_WRITE, BUNDLE_ALL)
+WRITE_SERVER_NAME = "workflow_write_bundle"
+
+
+def server_name_for_bundle(bundle: str) -> str:
+    if bundle == BUNDLE_WRITE:
+        return WRITE_SERVER_NAME
+    # "all" 은 기존 서버 이름 유지 (config 호환) — ADR-003 의 "read-only 우선" 표면.
+    return READ_ONLY_SERVER_NAME
+
+
+def tool_specs_for_bundle(bundle: str = BUNDLE_ALL) -> tuple["ReadOnlyToolSpec", ...]:
+    if bundle not in BUNDLE_LABELS:
+        raise ValueError(f"unknown bundle {bundle!r} (선언: {', '.join(BUNDLE_LABELS)})")
+    if bundle == BUNDLE_READ_ONLY:
+        return tuple(spec for spec in READ_ONLY_TOOL_SPECS if spec.read_only)
+    if bundle == BUNDLE_WRITE:
+        return tuple(spec for spec in READ_ONLY_TOOL_SPECS if not spec.read_only)
+    return READ_ONLY_TOOL_SPECS
+
 READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ReadOnlyToolSpec(
         name="latest_backlog",
@@ -465,24 +495,28 @@ def build_transport_tool_descriptor(spec: ReadOnlyToolSpec) -> dict[str, object]
     }
 
 
-def build_transport_tool_descriptors() -> dict[str, object]:
-    descriptors = [build_transport_tool_descriptor(spec) for spec in READ_ONLY_TOOL_SPECS]
+def build_transport_tool_descriptors(bundle: str = BUNDLE_ALL) -> dict[str, object]:
+    specs = tool_specs_for_bundle(bundle)
+    descriptors = [build_transport_tool_descriptor(spec) for spec in specs]
     return {
         "status": "ok",
         "tool_version": TOOL_VERSION,
-        "server_name": READ_ONLY_SERVER_NAME,
+        "server_name": server_name_for_bundle(bundle),
+        "bundle": bundle,
         "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
         "tool_count": len(descriptors),
         "tools": descriptors,
     }
 
 
-def build_server_manifest() -> dict[str, object]:
+def build_server_manifest(bundle: str = BUNDLE_ALL) -> dict[str, object]:
+    specs = tool_specs_for_bundle(bundle)
     return {
         "status": "ok",
         "tool_version": TOOL_VERSION,
-        "server_name": READ_ONLY_SERVER_NAME,
-        "tool_count": len(READ_ONLY_TOOL_SPECS),
+        "server_name": server_name_for_bundle(bundle),
+        "bundle": bundle,
+        "tool_count": len(specs),
         "transport": {
             "descriptor_target": READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET,
             "descriptor_source": "workflow_kit.server.read_only_registry.build_transport_tool_descriptors",
@@ -519,6 +553,6 @@ def build_server_manifest() -> dict[str, object]:
                 "transport_descriptor": build_transport_tool_descriptor(spec),
                 "payload_example": spec.payload_example,
             }
-            for spec in READ_ONLY_TOOL_SPECS
+            for spec in specs
         ],
     }

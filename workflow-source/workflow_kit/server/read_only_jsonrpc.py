@@ -20,7 +20,13 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.server.read_only_entrypoint import invoke_tool
-from workflow_kit.server.read_only_registry import READ_ONLY_SERVER_NAME, build_transport_tool_descriptors
+from workflow_kit.server.read_only_registry import (
+    BUNDLE_ALL,
+    BUNDLE_LABELS,
+    build_transport_tool_descriptors,
+    server_name_for_bundle,
+    tool_specs_for_bundle,
+)
 
 
 JSONRPC_VERSION = "2.0"
@@ -53,12 +59,12 @@ def parse_request_json(raw_json: str) -> tuple[dict[str, Any] | None, dict[str, 
     return request, None
 
 
-def build_initialize_result() -> dict[str, Any]:
-    descriptors = build_transport_tool_descriptors()
+def build_initialize_result(bundle: str = BUNDLE_ALL) -> dict[str, Any]:
+    descriptors = build_transport_tool_descriptors(bundle)
     return {
         "protocolVersion": "2025-03-26",
         "serverInfo": {
-            "name": READ_ONLY_SERVER_NAME,
+            "name": server_name_for_bundle(bundle),
             "version": descriptors["tool_version"],
         },
         "capabilities": {
@@ -149,8 +155,8 @@ def validate_initialize_params(request_id: object, params: Any) -> dict[str, Any
     return None
 
 
-def build_tools_list_result() -> dict[str, Any]:
-    descriptors = build_transport_tool_descriptors()
+def build_tools_list_result(bundle: str = BUNDLE_ALL) -> dict[str, Any]:
+    descriptors = build_transport_tool_descriptors(bundle)
     return {
         "tools": descriptors["tools"],
         "_meta": {
@@ -198,6 +204,7 @@ def server_not_initialized_error(request_id: object, method: str) -> dict[str, A
 def handle_jsonrpc_request(
     request: dict[str, Any],
     session_state: JsonRpcSessionState | None = None,
+    bundle: str = BUNDLE_ALL,
 ) -> dict[str, Any] | None:
     request_id = request.get("id")
     if "id" in request and not is_valid_jsonrpc_id(request_id):
@@ -229,11 +236,11 @@ def handle_jsonrpc_request(
         if session_state is not None:
             session_state.initialized = True
             session_state.client_initialized = False
-        return jsonrpc_result(request_id, build_initialize_result())
+        return jsonrpc_result(request_id, build_initialize_result(bundle))
     if method == "tools/list":
         if session_state is not None and not session_state.initialized:
             return server_not_initialized_error(request_id, method)
-        return jsonrpc_result(request_id, build_tools_list_result())
+        return jsonrpc_result(request_id, build_tools_list_result(bundle))
     if method == "tools/call":
         if session_state is not None and not session_state.initialized:
             return server_not_initialized_error(request_id, method)
@@ -246,6 +253,13 @@ def handle_jsonrpc_request(
             return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "params.name must be a string"})
         if not isinstance(arguments, dict):
             return jsonrpc_error(request_id, -32602, "Invalid params", {"reason": "params.arguments must be an object"})
+        # v1.1.8+ bundle 분리: bundle 밖의 도구는 이 서버에 없는 도구다. read-only
+        # bundle 로 뜬 서버가 write 도구 호출을 통과시키면 분리가 장식이 된다.
+        if name not in {spec.name for spec in tool_specs_for_bundle(bundle)}:
+            return jsonrpc_error(
+                request_id, -32602, "Invalid params",
+                {"reason": f"tool {name!r} is not in the {bundle!r} bundle"},
+            )
         returncode, result = build_tools_call_result(name, arguments)
         if returncode != 0:
             return jsonrpc_error(request_id, -32000, "Tool call failed", result)
@@ -262,6 +276,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Read newline-delimited JSON-RPC request objects from stdin and print responses.",
     )
+    parser.add_argument(
+        "--bundle",
+        choices=list(BUNDLE_LABELS),
+        default=BUNDLE_ALL,
+        help="서빙할 bundle (v1.1.8+ 분리): read-only(11) / write(2, 명시 opt-in) / "
+             "all(기존 표면, 1st cycle 하위 호환 기본값 — 경고를 낸다)",
+    )
     return parser.parse_args()
 
 
@@ -272,13 +293,21 @@ def print_response(response: dict[str, Any] | None) -> None:
 
 def main() -> int:
     args = parse_args()
+    if args.bundle == BUNDLE_ALL:
+        # 1st cycle (v1.1.8): 하위 호환 기본값. 다음 cycle 에서 기본이 read-only 로
+        # 바뀐다 — write 도구가 필요한 config 는 --bundle write 서버를 따로 등록하라.
+        print(
+            "[deprecation] --bundle 미지정: read-only + write 도구를 한 서버로 서빙 중이다. "
+            "다음 cycle 부터 기본이 read-only 가 된다 (ADR-003 bundle 분리).",
+            file=sys.stderr,
+        )
     if args.request_json:
         request, error = parse_request_json(args.request_json)
         if error is not None:
             print_response(error)
             return 1
         assert request is not None
-        print_response(handle_jsonrpc_request(request))
+        print_response(handle_jsonrpc_request(request, bundle=args.bundle))
         return 0
     if args.stdio_lines:
         session_state = JsonRpcSessionState()
@@ -291,7 +320,7 @@ def main() -> int:
                 print_response(error)
                 continue
             assert request is not None
-            print_response(handle_jsonrpc_request(request, session_state))
+            print_response(handle_jsonrpc_request(request, session_state, bundle=args.bundle))
         return 0
 
     print_response(

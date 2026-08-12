@@ -54,6 +54,18 @@ cd standard_ai_workflow
 
 용도에 따라 세 가지 중 하나를 선택한다. **대부분의 개발자는 3.A (editable install) 만으로 충분**하다.
 
+> **CLI(`wk`)만 쓰는 소비자의 권장 경로 (v1.1.7+)**: uv 또는 pipx 로 GitHub Release
+> 의 wheel 을 격리 설치한다 — 전용 venv + PATH 등록이 자동이고, wheel 의 top-level
+> 패키지(`tools`/`bootstrap_lib`)가 다른 패키지와 충돌할 여지도 차단된다
+> (근거: [`planning/cli-distribution-review-2026-08.md`](./planning/cli-distribution-review-2026-08.md)).
+>
+> ```bash
+> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v1.1.7-beta/standard_ai_workflow-1.1.7-py3-none-any.whl
+> # 또는: pipx install <같은 URL>
+> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v1.1.7-beta#subdirectory=workflow-source"
+> wk --help
+> ```
+
 ### 3.A. 소스에서 editable 설치 (권장, 개발자용)
 
 `workflow-source/` 안에 두 개의 importable 패키지(`workflow_kit`, `bootstrap_lib`)와 한 개의 CLI shim(`bootstrap_workflow_kit`)이 들어 있다. editable mode로 설치하면 소스 수정사항이 즉시 반영된다.

@@ -13,7 +13,7 @@ updated: 2026-08-12
 
 ## Role
 
-default 는 read-only — 도구 대부분은 외부 상태를 **조회** 하거나 **초안** 만 생성한다. **예외 2종** (`apply_robust_patch` / `rotate_workflow_logs`) 은 파일시스템을 실제로 변경하며, v1.1.7 부터 descriptor 가 `readOnlyHint=false` 로 정직하게 광고한다 (ADR-003 v1.1.7 개정, TASK-2026-08-11-main-024).
+default 는 read-only — 도구 대부분은 외부 상태를 **조회** 하거나 **초안** 만 생성한다. **예외 2종** (`apply_robust_patch` / `rotate_workflow_logs`) 은 파일시스템을 실제로 변경하며, v1.1.7 부터 descriptor 가 `readOnlyHint=false` 로 정직하게 광고한다 (ADR-003 v1.1.7 개정, TASK-2026-08-11-main-024). **v1.1.8 부터는 별도 bundle 로 분리** — 서버 `--bundle read-only|write|all` 선택자, write 는 `workflow_write_bundle` 로 명시 opt-in (TASK-2026-08-12-main-003).
 
 | # | 속성 | 값 |
 |---|---|---|

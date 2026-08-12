@@ -265,39 +265,53 @@ def test_example_tools_lists_match_registry() -> bool:
     """
     if str(SOURCE_ROOT) not in sys.path:
         sys.path.insert(0, str(SOURCE_ROOT))
-    from workflow_kit.server.read_only_registry import READ_ONLY_TOOL_SPECS  # noqa: PLC0415
+    from workflow_kit.server.read_only_registry import tool_specs_for_bundle  # noqa: PLC0415
 
-    registry_names = [spec.name for spec in READ_ONLY_TOOL_SPECS]
+    names_by_bundle = {
+        bundle: [spec.name for spec in tool_specs_for_bundle(bundle)]
+        for bundle in ("read-only", "write", "all")
+    }
 
-    def _tools_arrays(node: object) -> list[list[str]]:
-        found: list[list[str]] = []
+    def _bundle_of(entry: dict) -> str:
+        """entry 의 args 에서 bundle 을 읽는다 (v1.1.8+ 분리). 미지정 = all."""
+        args = entry.get("args")
+        if isinstance(args, list) and "--bundle" in args:
+            idx = args.index("--bundle")
+            if idx + 1 < len(args):
+                return str(args[idx + 1])
+        return "all"
+
+    def _entries_with_tools(node: object) -> list[dict]:
+        found: list[dict] = []
         if isinstance(node, dict):
-            for key, value in node.items():
-                if key == "tools" and isinstance(value, list):
-                    found.append([str(v) for v in value])
-                else:
-                    found.extend(_tools_arrays(value))
+            if isinstance(node.get("tools"), list):
+                found.append(node)
+            for value in node.values():
+                found.extend(_entries_with_tools(value))
         elif isinstance(node, list):
             for item in node:
-                found.extend(_tools_arrays(item))
+                found.extend(_entries_with_tools(item))
         return found
 
     ok = True
     compared = 0
     for example in sorted(CONFIG_EXAMPLES.glob("*.json")):
-        for tools in _tools_arrays(json.loads(example.read_text(encoding="utf-8"))):
+        for entry in _entries_with_tools(json.loads(example.read_text(encoding="utf-8"))):
             compared += 1
-            if tools != registry_names:
-                missing = sorted(set(registry_names) - set(tools))
-                extra = sorted(set(tools) - set(registry_names))
-                print(f"  FAIL: {example.name} 의 tools 가 registry 와 다르다 — "
+            bundle = _bundle_of(entry)
+            expected = names_by_bundle[bundle]
+            tools = [str(v) for v in entry["tools"]]
+            if tools != expected:
+                missing = sorted(set(expected) - set(tools))
+                extra = sorted(set(tools) - set(expected))
+                print(f"  FAIL: {example.name} 의 tools 가 registry({bundle}) 와 다르다 — "
                       f"누락 {missing} / 잉여 {extra}")
                 ok = False
     if compared == 0:
         print("  FAIL: tools 배열을 가진 예시가 0건 — 대상 0건은 통과가 아니다")
         return False
     if ok:
-        print(f"  PASS: 예시 {compared}건의 tools 배열이 registry {len(registry_names)}종과 일치")
+        print(f"  PASS: 예시 {compared}건의 tools 배열이 각 bundle 의 registry 목록과 일치")
     return ok
 
 

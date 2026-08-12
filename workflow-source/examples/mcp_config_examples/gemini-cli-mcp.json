@@ -5,7 +5,9 @@
       "args": [
         "-m",
         "workflow_kit.server.read_only_jsonrpc",
-        "--stdio-lines"
+        "--stdio-lines",
+        "--bundle",
+        "read-only"
       ],
       "env": {
         "PYTHONPATH": "workflow-source",
@@ -21,4 +23,3 @@
     }
   }
 }
-

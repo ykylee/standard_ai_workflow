@@ -1,4 +1,5 @@
 {
+  "bundle": "all",
   "descriptor_target": "mcp_tools_list_draft",
   "server_name": "workflow_read_only_bundle",
   "status": "ok",

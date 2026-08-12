@@ -159,8 +159,11 @@ def test_absolute_env_paths() -> None:
         f"PYTHONPATH not absolute: {env['PYTHONPATH']}",
     )
     _assert(entry["command"] == "python3", f"command must be python3, got {entry['command']}")
+    # v1.1.8+ bundle 분리 (TASK-2026-08-12-main-003): mavis 글로벌 merge 는
+    # read-only bundle 만 자동 등록한다 — write 도구 자동 노출 금지 (ADR-003).
     _assert(
-        entry["args"] == ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"],
+        entry["args"] == ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines",
+                          "--bundle", "read-only"],
         f"args drift: {entry['args']}",
     )
 

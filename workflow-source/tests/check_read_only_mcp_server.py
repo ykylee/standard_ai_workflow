@@ -82,6 +82,25 @@ def main() -> int:
     if transport_descriptors["tool_count"] != manifest["tool_count"]:
         raise AssertionError("Expected transport descriptor tool_count to match manifest tool_count.")
 
+    # v1.1.8+ bundle 분리 (TASK-2026-08-12-main-003): read-only 서버는 write 도구를
+    # 싣지도, 부르지도 못해야 한다. 분리가 이름만 남으면 ADR-003 의 긴장이 재발한다.
+    _, ro_manifest = run_json(["--list-tools", "--bundle", "read-only"])
+    ro_names = {tool["name"] for tool in ro_manifest["tools"]}
+    if ro_manifest["server_name"] != "workflow_read_only_bundle" or ro_names & WRITE_CAPABLE_TOOL_NAMES:
+        raise AssertionError(f"read-only bundle 에 write 도구가 실렸다: {sorted(ro_names & WRITE_CAPABLE_TOOL_NAMES)}")
+    _, w_manifest = run_json(["--list-tools", "--bundle", "write"])
+    w_names = {tool["name"] for tool in w_manifest["tools"]}
+    if w_manifest["server_name"] != "workflow_write_bundle" or w_names != set(WRITE_CAPABLE_TOOL_NAMES):
+        raise AssertionError(f"write bundle 구성이 사실 목록과 다르다: {sorted(w_names)}")
+    if ro_names | w_names != {tool["name"] for tool in manifest["tools"]}:
+        raise AssertionError("read-only ∪ write ≠ all — bundle 분리가 도구를 흘리거나 중복시켰다.")
+    blocked_code, blocked_payload = run_json(
+        ["--tool", "apply_robust_patch", "--payload-json", "{}", "--bundle", "read-only"],
+        expect_success=False,
+    )
+    if blocked_code == 0 or blocked_payload.get("error_code") != "unknown_read_only_tool":
+        raise AssertionError("read-only bundle 이 write 도구 호출을 막지 못했다.")
+
     latest_backlog_spec = next((tool for tool in manifest["tools"] if tool["name"] == "latest_backlog"), None)
     if latest_backlog_spec is None:
         raise AssertionError("Expected latest_backlog tool in manifest.")

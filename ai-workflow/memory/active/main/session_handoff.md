@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (15차 세션 종료 — v1.1.7-beta 발행, cmd_release 4번째 실전)
+- 최종 수정일: 2026-08-12 (16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).
-- 직전 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
+- 현재 기준선: **16차 세션 종료 — MCP bundle 분리 + CLI 배포 검토 (TASK-2026-08-12-main-003·004).** ①bundle 선택자 (read-only 11 / write 2 = `workflow_write_bundle` / all 13 기본+경고) + 렌더러 정직한 기본 (`--bundle read-only`, claude-code·MiniMax 는 write entry 동시 emit) + 검사 강제 + 자기 적용 (.mcp.json 2-server). 다음 cycle: 기본 all→read-only. ②배포 검토 (docs/planning/cli-distribution-review-2026-08.md): wheel top-level 에 일반명 `tools`/`bootstrap_lib` 실측 → PyPI 는 네임스페이스 격상 선행 필수. 권고 = uv/pipx + GH Release wheel 격리 설치 (INSTALLATION §3 반영). 상세: [16차 세션 기록](./sessions/mcp_bundle_split_and_cli_distribution_2026-08-12.md).
+- 직전 기준선: **15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).
+- 그 이전 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
 - 그 이전 기준선: **13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).
 - 그 이전 기준선: **12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).
 - 그 이전 기준선: **11차 세션 종료 — 소비자 안내 표면이 전부 `wk` 를 가리킨다 (TASK-027).** SKILL.md 3종·apply_guide 의 미배포 `skills/` 경로 안내 제거, `check_packaging` 이 `tools` 배포를 wheel 에서 검증 (구판 1.1.6 wheel 에서 즉시 FAIL 실증), `--copy-core-docs` 는 죽는 wrapper 대신 SKILL.md 문서만 복사. 상세: [11차 세션 기록](./sessions/consumer_surface_cleanup_2026-08-12.md).
@@ -57,6 +58,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-004 CLI 툴(wk) 배포 방법 검토
+- TASK-2026-08-12-main-003 MCP bundle 분리 — write 도구 2종을 별도 bundle 로
 - TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
 - TASK-2026-08-12-main-001 federation self-host add — plex 상시 serving 편입
 - TASK-2026-08-11-main-019 전량 검사 배타 락
@@ -65,8 +68,6 @@
 - TASK-2026-08-11-main-025 MCP 도구 목록 단일출처화 (MiniMax 손 목록 + manifest 유령 경로)
 - TASK-2026-08-11-main-026 §11 단일출처 검사 강화 + goose hook 깨진 경로
 - TASK-2026-08-11-main-024 MCP readOnlyHint 허위 주석 정정 + ADR-003 개정
-- TASK-2026-08-11-main-023 wk backlog-update update 모드 파괴적 재생성 수정
-- TASK-2026-08-11-main-018 **state.json 을 생성물로 전환** — 정본 §11.1 `wk refresh-state` 행 + §11.2 생성물·생성기 입력 선언, 재생성/`--check` 창구 신설 (wk 72명령), `check_state_json_generated` 6 case (되주입 양방향 + **자기 적용** + 선언↔창구 정합, 정숙 구간). 확장분: `wk session-start` 무인자 자동 탐색 + branch-scoped daily 관측 (인덱스 전제가 task 상세 파일을 최신 backlog 로 오판하던 결함), args 경유 TypeError, self-bootstrap 의 skills/ 경로 → wk. smoke 249→250, 전량 2축 250/250 ×2. 진행 중 실측: `wk backlog-update --mode update` 가 task 파일을 전체 재생성하며 내용을 삭제 + handoff 중복 bullet — 후속 후보로 기록
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

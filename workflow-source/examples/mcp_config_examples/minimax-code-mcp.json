@@ -5,14 +5,17 @@
       "args": [
         "-m",
         "workflow_kit.server.read_only_jsonrpc",
-        "--stdio-lines"
+        "--stdio-lines",
+        "--bundle",
+        "read-only"
       ],
       "env": {
-        "PYTHONPATH": "workflow-source",
-        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
+        "STANDARD_AI_WORKFLOW_ROOT": ".",
+        "PYTHONPATH": "workflow-source"
       },
-      "transport_ready": false,
       "transport": "jsonrpc-bridge",
+      "transport_phase": "jsonrpc_draft",
+      "apply_mode": "active_ok",
       "description": "Read-only MCP tools for the Standard AI Workflow kit. Draft JSON-RPC bridge by default; switch to stdio-sdk once check_read_only_mcp_sdk_stdio.py is green.",
       "tools": [
         "latest_backlog",
@@ -24,9 +27,29 @@
         "create_environment_record_stub",
         "check_quickstart_stale_links",
         "summarize_git_history",
-        "rotate_workflow_logs",
         "assess_milestone_progress",
-        "smart_context_reader",
+        "smart_context_reader"
+      ]
+    },
+    "standardAiWorkflowWrite": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "workflow_kit.server.read_only_jsonrpc",
+        "--stdio-lines",
+        "--bundle",
+        "write"
+      ],
+      "env": {
+        "STANDARD_AI_WORKFLOW_ROOT": ".",
+        "PYTHONPATH": "workflow-source"
+      },
+      "transport": "jsonrpc-bridge",
+      "transport_phase": "jsonrpc_draft",
+      "apply_mode": "manual_review_only",
+      "description": "Write-capable MCP tools (apply_robust_patch, rotate_workflow_logs). Explicit opt-in only — these tools modify the filesystem.",
+      "tools": [
+        "rotate_workflow_logs",
         "apply_robust_patch"
       ]
     }

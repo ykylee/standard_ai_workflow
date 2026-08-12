@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**22차 세션 종료 — 멀티 하네스 공유 플러그인 검토 완료 (TASK-2026-08-12-main-012, 사용자 지시).** 판정: **가능 — 공유 payload + 하네스별 얇은 manifest.** 무변환 단일 아티팩트는 부분 성립 (Agent Skills `SKILL.md` ~40제품 / **Agent Plugins 1.0** — 2026-08-06 출범, 5클라이언트 — 단 Claude Code·Gemini·goose·OpenCode 미합류). 권고: payload 물리 배치를 Agent Plugins 1.0 레이아웃 (`plugin.json`+`skills/`+`mcp.json`) 으로 채택 + 어댑터 4장, TASK-011 Phase A 를 `render_agent_plugin()` 계열로 재정의 (소유자 go 대기). 검토 문서: docs/planning/multi-harness-plugin-review-2026-08.md. 상세: [22차 세션 기록](./sessions/multi_harness_plugin_review_2026-08-12.md).",
-    "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 으로 확정, 시점은 추후** (사용자 결정 2026-08-12, 현재 MacBook 전원 꺼짐). 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령 (`add-known-host` + `pull`, 토큰 값 전달 필요) / darwin mavis e2e / memory_index 3-tuple 추이).",
-    "current_focus": null,
+    "current_baseline": "**23차 세션 종료 — 플러그인 배포 전환 계획 확정 (TASK-2026-08-12-main-013, 사용자 지시 = 소유자 전환 go).** 계획: [plugin-transition-plan-2026-08.md](../../../../docs/planning/plugin-transition-plan-2026-08.md) — 원칙 5 (파생본/공유 payload=Agent Plugins 1.0 레이아웃/빅뱅 금지/graceful/버전 동기) + **P1~P5 로드맵 + WBS (TASK-014~018 planned 등록)**. 로드맵 §8 주 작업 축 등재. **다음 릴리스 목표 = P1+P2** (payload 렌더러 + Claude Code 어댑터·marketplace·자기 적용) + 기존 예약분 (2nd cycle shim drop + --bundle 기본값). **다음 작업 = TASK-014 (P1 render_agent_plugin)**. 상세: [23차 세션 기록](./sessions/plugin_transition_plan_2026-08-12.md).",
+    "current_axis": "**플러그인 배포 전환 (P1~P5, TASK-2026-08-12-main-014~018 planned)** — 다음 작업 = TASK-014 (P1 `render_agent_plugin` 공유 payload 렌더러). 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
+    "current_focus": "TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS",
       "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토",
       "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
       "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
@@ -41,15 +42,14 @@
       "TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로",
       "TASK-2026-08-12-main-006 — 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로",
       "TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)",
-      "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토",
-      "TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로"
+      "TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
-    "task_count": 12,
+    "task_count": 18,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -64,7 +64,8 @@
       "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
       "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
       "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
-      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토"
+      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토",
+      "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS"
     ]
   },
   "next_documents": [
@@ -74,6 +75,8 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "docs/planning/plugin-transition-plan-2026-08.md",
+    "ai-workflow/memory/active/main/sessions/plugin_transition_plan_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/multi_harness_plugin_review_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/plugin_distribution_review_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/v1_1_8_release_2026-08-12.md",

@@ -49,6 +49,14 @@ Phase 12의 현재 근거:
 6. repository-wide 검증의 historical fixture/archive exclusion 정책을 결정한다.
 7. 조건 충족 시 maturity matrix의 Phase 12를 close하고 v1.0.0 release plan을 승인한다.
 
+## 4. 플러그인 배포 전환 (2026-08-12 착수)
+
+배포 전략을 플러그인 중심으로 전환하는 주 작업 축. 검토 2건 → 실행 계획 1건:
+
+- [`plugin-distribution-review-2026-08.md`](./plugin-distribution-review-2026-08.md) — Claude Code 플러그인 검토 (채택 권고, "14번째 파생본" 원칙)
+- [`multi-harness-plugin-review-2026-08.md`](./multi-harness-plugin-review-2026-08.md) — 멀티 하네스 공유 검토 (공유 payload + 얇은 어댑터 권고)
+- [`plugin-transition-plan-2026-08.md`](./plugin-transition-plan-2026-08.md) — **전환 계획·로드맵 P1~P5·WBS** (TASK-2026-08-12-main-013~018)
+
 ## 다음에 읽을 문서
 
 - [`../PROJECT_PROFILE.md`](../PROJECT_PROFILE.md) — 운영 규칙과 명령

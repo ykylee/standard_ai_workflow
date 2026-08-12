@@ -368,6 +368,19 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 
 현재 시점에서 가장 권장하는 다음 작업은 아래 순서다 (2-year SemVer guarantee 운영). 상세: [`./phase_13_followup.md`](./phase_13_followup.md) §3.
 
+> **신규 주 작업 축 (2026-08-12 소유자 결정): 플러그인 배포 전환.** 배포 전략을
+> "clone → bootstrap" 에서 **플러그인 설치 + 자동 업데이트** 중심으로 전환한다.
+> 검토 2건 (Claude Code 플러그인 / 멀티 하네스 공유) 의 권고를 실행 계획으로 통합:
+> 공유 payload 는 **Agent Plugins 1.0 레이아웃** (`plugin.json`+`skills/`+`mcp.json`),
+> 하네스별 얇은 어댑터, 플러그인 전체는 렌더러 생성물 (손 편집 금지, 검사 강제).
+> 단계: **P1** payload 렌더러 → **P2** Claude Code 어댑터+marketplace+자기 적용 →
+> **P3** 멀티 하네스 어댑터 (gemini-cli/goose/opencode) → **P4** 릴리스 파이프라인
+> 통합 → **P5** 실측 게이트+채널 전환 판정. WBS = TASK-2026-08-12-main-013~018.
+> bootstrap 주입 아키텍처는 실측 성립 전까지 병행 유지 (빅뱅 전환 금지).
+> 다음 릴리스 목표 범위 = P1+P2 (+ 기존 예약분: 2nd cycle shim drop + `--bundle`
+> 기본값 전환). 상세 계획·WBS·완료 기준:
+> [`docs/planning/plugin-transition-plan-2026-08.md`](../../docs/planning/plugin-transition-plan-2026-08.md)
+
 1. **(P0-1 ✅ DONE — 2026-07-21) mypy strict venv 직접 verify (Break Point #3 close-out)** — `.venv` (mypy 2.1.0) 에서 CI 게이트와 동일한 `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors** 확인 완료. (workflow-source dir 기준 4건 `unused-ignore` 는 optional import 방어용 non-gate 아티팩트.) v1.0.0 Gate 3 ✅ PASS 로 갱신.
 2. **(P0-2 ✅ DONE — v0.15.21-beta, 2026-07-21) telemetry source 다양성 ≥ 4 (AC2 수렴)** — 3 skill (session-start / doc-sync / backlog-update) 의 memory_index retrieval 게이트를 opt-in → **workspace memory_index 존재 시 자동 활성** 으로 전환 완료 (flag override 유지, 부재 시 zero-risk skip). AC2 는 신규 자립형 smoke `check_telemetry_source_diversity.py` (temp workspace 4-source fixture → `by_source` ≥ 4 + hit_rate sanity, 5/5 PASS) 로 CI 강제 (events.jsonl 은 gitignore 런타임 데이터라 live-file 의존 대신 self-contained fixture). live events.jsonl 4 source (dispatcher + 3 skill) + hit_rate 1.0 수렴 (dashboard Panel 8).
 3. **(P1-1 ✅ DONE — v0.15.21-beta, 2026-07-21) CHANGELOG.md auto-gen lockdown** — `cmd_release` drift-prevention 블록에 `changelog-gen` pre-step 자동 wiring 완료 (`--skip-changelog-gen` escape hatch) + `RELEASE_RE_BARE` 신규 (bare `vX.Y.Z —` commit 형식 인식) + version 정렬을 semver key (`_changelog_version_sort_key`) 로 교체 (두 자리 minor 뒤섞임 bug 해소) → v0.7.10 ~ v0.15.20 누적 backfill 정상 재생성 (146 version section).

@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (8차 세션 종료 — TASK-024 종결. MCP readOnlyHint 정직화 + ADR-003 v1.1.7)
+- 최종 수정일: 2026-08-12 (9차 세션 종료 — TASK-026 종결. §11 단일출처 검사 강화 + goose hook 수정)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **8차 세션 종료 — MCP readOnlyHint 가 허위에서 registry 선언 파생으로 바뀌었다 (TASK-024).** `ReadOnlyToolSpec.read_only` + `WRITE_CAPABLE_TOOL_NAMES` 사실 목록, write 2종(`apply_robust_patch`/`rotate_workflow_logs`) hint=false, 검사가 삼자 일치 강제 (되주입 FAIL 실증). ADR-003 v1.1.7 개정 (13도구 현실) + wiki 갱신. 상세: [8차 세션 기록](./sessions/mcp_readonly_hint_truthful_2026-08-12.md).
-- 직전 기준선: **7차 세션 종료 — backlog-update 가 재생성에서 병합으로 바뀌었다 (TASK-023).** `merge_task_file` (명시 인자만 반영) + index block 보존 (status 줄만 교체) + handoff task ID dedupe + `--kind`/`--priority` 미지정 시 보존. `check_backlog_update_layout` 5→8 case, 신설 3 case 는 버그 코드에서 FAIL 실증. 종결을 고친 도구 자신으로 수행. 상세: [7차 세션 기록](./sessions/backlog_update_merge_semantics_2026-08-12.md).
+- 현재 기준선: **9차 세션 종료 — §11.1 명령의 손 사본 7곳이 정본 파생으로 바뀌었다 (TASK-026).** `find_memory_command` 로 렌더러가 정본 §11.1 에서 명령을 꺼내 쓰고, goose `on_session_end` 는 깨진 skills/ 경로 대신 `wk refresh-state`. 검출기가 §11.1 명령·§11.2 계약을 판정 대상에 추가, case 8 이 `PRIMARY ∪ EXEMPT == SUPPORTED_HARNESSES` 단언 (mavis 분류), self_application 이 §11 탐침 (낡은 루트 AGENTS.md 재생성). 되주입 3종 실증. 상세: [9차 세션 기록](./sessions/s11_single_source_hardening_2026-08-12.md).
+- 직전 기준선: **8차 세션 종료 — MCP readOnlyHint 가 허위에서 registry 선언 파생으로 바뀌었다 (TASK-024).** `ReadOnlyToolSpec.read_only` + `WRITE_CAPABLE_TOOL_NAMES` 사실 목록, write 2종(`apply_robust_patch`/`rotate_workflow_logs`) hint=false, 검사가 삼자 일치 강제 (되주입 FAIL 실증). ADR-003 v1.1.7 개정 (13도구 현실) + wiki 갱신. 상세: [8차 세션 기록](./sessions/mcp_readonly_hint_truthful_2026-08-12.md).
+- 그 이전 기준선: **7차 세션 종료 — backlog-update 가 재생성에서 병합으로 바뀌었다 (TASK-023).** `merge_task_file` (명시 인자만 반영) + index block 보존 (status 줄만 교체) + handoff task ID dedupe + `--kind`/`--priority` 미지정 시 보존. `check_backlog_update_layout` 5→8 case, 신설 3 case 는 버그 코드에서 FAIL 실증. 종결을 고친 도구 자신으로 수행. 상세: [7차 세션 기록](./sessions/backlog_update_merge_semantics_2026-08-12.md).
 - 그 이전 기준선: **6차 세션 종료 — state.json 이 생성물로 선언되고 절차·검사가 붙었다.** 정본 §11.1 에 `wk refresh-state` 행, §11.2 에 생성물 선언 + "handoff/backlog 는 생성기 입력" 선언. `wk session-start` 무인자 동작 (workspace 자동 탐색 + branch-scoped daily 관측 — 인덱스 전제 오판 결함 해소). `check_state_json_generated` 6 case (되주입 + 자기 적용 + 선언↔창구 정합). smoke 249→**250**, 전량 2축 250/250 ×2 green. 리뷰 3종(하네스/스킬·CLI/MCP) 결함 목록은 [6차 세션 기록](./sessions/state_generated_and_composition_review_2026-08-11.md) §3·§4 — readOnlyHint 허위 주석, goose hook 깨진 경로, §11.1 손 사본 7곳, `wk backlog-update` 파괴적 update 등.
 - 그 이전 기준선: **5차 세션 종료 — 하네스 파생본이 정본 하나로 통일됐다.** 2026-08-11 backlog 22건 중 20건 종결 (TASK-018 in_progress, 019 planned).
   - **층위가 계속 내려간 세션이었다**: 검사 4건 FAIL → 전부 macOS `/private` symlink 하나 → 재검증에서 state.json 이 생성기와 갈라짐 → 왜 갈라지나(아무도 생성기를 안 돌리고 에이전트가 손으로 쓴다) → **왜 손으로 쓰나: 소비자에게 실행 가능한 경로가 처음부터 없었다.** 마지막이 뿌리였다.
@@ -21,7 +22,7 @@
   - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
 
 - 그 이전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: (없음 — 2026-08-11 backlog 28건 중 23건 done, planned 5건: TASK-019 배타 락 + 리뷰 후속 TASK-025~028. 우선순위 high = 026 §11 단일출처 검사 강화).
+- 현재 주 작업 축: (없음 — 2026-08-11 backlog 28건 중 24건 done, planned 4건: TASK-019 배타 락 + 리뷰 후속 TASK-025 (MCP 목록 단일출처) / 027 (소비자 안내 표면) / 028 (잔여 렌더러 §11 주입). high 전부 종결).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: federation self-host add (multi_workspace_orchestration.md §0.7) → cross-host federation (두 번째 호스트 = ? — 사용자 결정) / memory_index 3-tuple 지표 추이 관찰. **v1.1.6-beta 발행 완료, ADR-006 후속 W-1~W-4 완결**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -50,6 +51,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-11-main-026 §11 단일출처 검사 강화 + goose hook 깨진 경로
 - TASK-2026-08-11-main-024 MCP readOnlyHint 허위 주석 정정 + ADR-003 개정
 - TASK-2026-08-11-main-023 wk backlog-update update 모드 파괴적 재생성 수정
 - TASK-2026-08-11-main-018 **state.json 을 생성물로 전환** — 정본 §11.1 `wk refresh-state` 행 + §11.2 생성물·생성기 입력 선언, 재생성/`--check` 창구 신설 (wk 72명령), `check_state_json_generated` 6 case (되주입 양방향 + **자기 적용** + 선언↔창구 정합, 정숙 구간). 확장분: `wk session-start` 무인자 자동 탐색 + branch-scoped daily 관측 (인덱스 전제가 task 상세 파일을 최신 backlog 로 오판하던 결함), args 경유 TypeError, self-bootstrap 의 skills/ 경로 → wk. smoke 249→250, 전량 2축 250/250 ×2. 진행 중 실측: `wk backlog-update --mode update` 가 task 파일을 전체 재생성하며 내용을 삭제 + handoff 중복 bullet — 후속 후보로 기록
@@ -59,7 +61,6 @@
 - TASK-2026-08-11-main-017 **darwin homelab 검증** — macOS 에서 전량 2축 1패스 → **245/249, 4 FAIL 발견** (4차의 "249/249" 는 Linux CI 환경). 4건이 **전부 같은 뿌리**: macOS 에서 `/var`·`/tmp` 가 `/private/...` 로 가는 symlink 라, **정규 경로를 방출하는 production 과 `mktemp` raw 경로를 string 비교한 검사**가 갈렸다. production 무수정, 검사 fixture 4곳을 `.resolve()` 로 통일 (`branch_resolver_agreement` 5/5 · `branch_scoped_memory` 10/10 · `git_conflict_resolver_v0_11_24` 8/8 · `workflow_state_refresh_hint` PASS). `git_conflict_resolver` 는 한 응답 안에 `conflicts[].file_path`(resolve) 와 `source_context.files`(raw) 가 **공존**해 case 4 만 실패했다. **기능 회귀가 아니라 검사의 플랫폼 이식성 결함이고, Linux CI 에서는 영영 안 드러난다** — SDK 매트릭스·브랜치 매트릭스와 같은 계열의 "로컬에 없던 축". 재검증 중 별개 FAIL 2건 (이 task 파일 frontmatter 부재 + handoff 미등재 `task_status_mismatch`) 은 1챕터가 남긴 메모리 문서 드리프트로, **task 를 열 때 3문서를 동시에 맞추지 않으면 그 자체가 red** 라는 것을 검사가 잡아냈다.
 - TASK-2026-08-11-main-015 **로컬 병렬 TIMEOUT flake 해소** — `CHECK_TIMEOUT_S` 파일 안 선언 신설 (runner 가 AST 로 읽어 `--timeout` 과 **max** — 상한을 늘릴 수만 있음, `REQUIRES_QUIET_REPO` 와 같은 패턴). 부하 실측 ≥40s 위험군 6검사 (wiki_score 57s / release_status·auto_bump·summary 53~55s / release_pipeline_lib 44s / mypy_config_actually_loaded 43s) 에 150s 선언. `check_parallel_smoke` case 10 (되주입 양방향 + decoy 불인정 + max 의미론) + `--tests-dir` 외부 경로 ValueError 수정. **전량 2축 ×2회 = 4패스 249/249, TIMEOUT 0.** CLAUDE.md 에 규약 문서화 (solo ~25s+ 는 선언).
 - TASK-2026-08-11-main-016 **학습회 자료 → 사내 기술보고서 논문 양식 문서** — 산출물 2건: 작성 계획 (`docs/reports/ai-agent-workflow-tech-report-plan.md`) + 보고서 (`docs/reports/ai-agent-workflow-tech-report.html`, 논문 8장 + 참고문헌, 단일 파일, A4 12p). 사례 3건 실명 승격, 수치는 dashboard·태그 트리 실측. **사후 검토 4회전** — ①내용 (실명 오류·전재 누락), ②수치 전수 (기간 "14개월" 날조 → 4개월, "smoke 24→249" → 199→249, CLI 65+ → 68 등 정정 8건 — 교훈: **산문 속 수치가 날조의 주 경로**), ③문체·어휘 (비일상 어휘 12종 교체/풀이, 3원리 일상어 표기, 폭 920px·부제 축약), ④**학습회 독립화** (사용자 결정 — 보고서에서 학습회·발표 서술 전부 제거, 참고문헌의 덱 항목 삭제. 계획 문서는 이력이므로 유지). placeholder (작성자/문서번호) 는 사용자 기입. 부수: 검증 중 CI flake 발견 → watch_transient_writer ready handshake 수정 (708eb94).
-- TASK-2026-08-11-main-014 **v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정** — 태그 시점 smoke 파일 수는 실측 (251/252, `git ls-tree`) 이나 당시 **전량 green 실행 기록이 없어** N/N PASS 사후 삽입은 검증 안 된 주장 날조 (v1.1.3 §2.8 원칙). 파서 2곳 (`check_smoke_trend_cross` / `cmd_release` step 3.4) 은 최신 노트만 읽어 동작 지장 0, 재발은 v1.1.3+ 절차가 방지. 두 노트 무수정, 후보 축에서 제거 (사용자 결정).
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

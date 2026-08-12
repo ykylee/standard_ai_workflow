@@ -90,6 +90,10 @@ EXEMPT_HARNESSES: dict[str, str] = {
     "custom": "사용자가 채우는 빈 템플릿 — 규칙을 미리 박으면 템플릿 목적에 어긋난다",
     "pi-dev": "codex 와 root AGENTS.md 를 공유한다 (덮어쓰지 않고 합쳐서 emit) — codex 항목으로 함께 판정된다",
     "codewhale": "보조 SKILL.md — §8 만 정본에서 주입한다",
+    # v1.1.7 (TASK-2026-08-11-main-026): 등록만 되고 어느 목록에도 없던 하네스.
+    # case 8 이 PRIMARY ∪ EXEMPT == SUPPORTED_HARNESSES 를 단언하므로, 새 하네스는
+    # 여기든 PRIMARY 든 반드시 분류해야 한다 — 미분류는 조용히 빠져나가는 경로다.
+    "mavis": "project-local 산출물 0 — 글로벌 mcp.json merge 만 emit 하므로 규칙 문서 자체가 없다",
 }
 
 FAILURES: list[str] = []
@@ -129,7 +133,16 @@ def test_snapshot_matches_standard() -> None:
 def _rule_literals() -> list[str]:
     rules = load_standard_rules(SOURCE_ROOT)
     # 짧은 문장은 다른 맥락에서도 자연스럽게 나올 수 있어 판정에서 뺀다 (위양성 방지).
-    return [s for s in (*rules.principles, rules.close_order) if len(s) >= 20]
+    sentence_literals = [
+        s for s in (*rules.principles, rules.close_order, *rules.parse_contract) if len(s) >= 20
+    ]
+    # v1.1.7 (TASK-2026-08-11-main-026): §11.1 명령 문자열도 판정 대상이다.
+    # `wk session-start --help` 같은 손 사본 7곳이 이 검사의 사각지대였다 —
+    # §11.1 개명 시 정본과 주입 렌더러만 움직이고 사본은 낡는다. 명령은 짧지만
+    # `wk ` 접두가 충분히 특이해 위양성이 없다 (렌더러는 `find_memory_command` 로
+    # 꺼내 쓰므로 리터럴이 남아 있으면 그 자체가 사본이다).
+    command_literals = [cmd for _purpose, cmd in rules.memory_commands]
+    return sentence_literals + command_literals
 
 
 def _detect_copies(text: str) -> list[str]:
@@ -231,9 +244,14 @@ def test_distributed_core_matches_canonical() -> None:
 def test_detector_catches_injected_copy() -> None:
     rules = load_standard_rules(SOURCE_ROOT)
     injected = f'    text = "{rules.close_order}"\n'
+    # v1.1.7: §11.1 명령 사본과 §11.2 계약 bullet 사본도 잡아야 한다 (되주입 3종).
+    injected_cmd = f'    command = "{rules.memory_commands[0][1]} --help"\n'
+    injected_contract = f'    rule = "{rules.parse_contract[0]}"\n'
     _record(
         "test_detector_catches_injected_copy",
-        bool(_detect_copies(injected)),
+        bool(_detect_copies(injected))
+        and bool(_detect_copies(injected_cmd))
+        and bool(_detect_copies(injected_contract)),
         "주입한 사본을 탐지기가 잡지 못했다 — 탐지기가 죽어 있다",
     )
 
@@ -343,6 +361,35 @@ def test_entrypoint_paths_match_generated_layout() -> None:
     )
 
 
+# --- Case 8 ----------------------------------------------------------------
+
+
+def test_harness_registry_fully_classified() -> None:
+    """PRIMARY ∪ EXEMPT == SUPPORTED_HARNESSES — 미분류 하네스는 없다 (v1.1.7).
+
+    이 검사의 순회는 두 dict 의 합집합이라, 레지스트리에만 등록된 하네스는 **아무
+    판정도 받지 않고 조용히 빠져나갔다** (실측: `mavis` 가 그 상태였다 —
+    TASK-2026-08-11-main-026). "새 하네스가 §11 을 안 실으면 검사가 잡는다" 는
+    보장은 이 단언이 있어야 성립한다. 겹치는 분류(양쪽 모두 등재)도 오류다.
+    """
+    scripts_dir = SOURCE_ROOT / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    from bootstrap_lib.harnesses import SUPPORTED_HARNESSES  # noqa: E402
+
+    classified = set(PRIMARY_ENTRYPOINTS) | set(EXEMPT_HARNESSES)
+    registered = set(SUPPORTED_HARNESSES)
+    overlap = set(PRIMARY_ENTRYPOINTS) & set(EXEMPT_HARNESSES)
+    problems: list[str] = []
+    if registered - classified:
+        problems.append(f"미분류 하네스 (PRIMARY 나 EXEMPT 에 넣어라): {sorted(registered - classified)}")
+    if classified - registered:
+        problems.append(f"레지스트리에 없는 유령 분류: {sorted(classified - registered)}")
+    if overlap:
+        problems.append(f"양쪽에 모두 등재: {sorted(overlap)}")
+    _record("test_harness_registry_fully_classified", not problems, "; ".join(problems))
+
+
 def main() -> int:
     test_snapshot_matches_standard()
     test_renderers_have_no_rule_literals()
@@ -351,7 +398,8 @@ def main() -> int:
     test_detector_catches_injected_copy()
     test_shared_entrypoint_merges_instead_of_overwriting()
     test_entrypoint_paths_match_generated_layout()
-    total = 7
+    test_harness_registry_fully_classified()
+    total = 8
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

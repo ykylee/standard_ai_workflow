@@ -160,6 +160,11 @@ def test_principle_check_mapping_exists() -> None:
 def test_repo_has_own_entrypoints() -> None:
     rules = load_standard_rules(SOURCE_ROOT)
     verify = next((p for p in rules.principles if "검증" in p), rules.principles[0])
+    # v1.1.7 (TASK-2026-08-11-main-026): §11 도 탐침한다. 이전에는 §1/§8 만 봐서,
+    # §11 이전 마커를 단 낡은 루트 진입점(실측: AGENTS.md)이 그대로 통과했다 —
+    # 낡은 진입점은 그 세션의 에이전트에게 낡은 규칙이다.
+    memory_cmd = rules.memory_commands[0][1]
+    contract_probe = rules.parse_contract[0]
     required = HARNESS_SPECS[SELF_HARNESS].entry_files
     problems: list[str] = []
     for name in (*required, *OPTIONAL_ENTRYPOINTS):
@@ -173,6 +178,10 @@ def test_repo_has_own_entrypoints() -> None:
             problems.append(f"{name}: §1 원칙 누락")
         if rules.close_order not in text:
             problems.append(f"{name}: §8 종료 순서 누락")
+        if memory_cmd not in text:
+            problems.append(f"{name}: §11 메모리 갱신 경로 누락")
+        if contract_probe not in text:
+            problems.append(f"{name}: §11.2 파싱 계약 누락")
     _record("test_repo_has_own_entrypoints", not problems, "; ".join(problems))
 
 

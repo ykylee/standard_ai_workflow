@@ -60,6 +60,7 @@ __all__ = [
     "STANDARD_RELPATH",
     "StandardParseError",
     "StandardRules",
+    "find_memory_command",
     "find_standard_path",
     "load_standard_rules",
     "parse_standard",
@@ -228,6 +229,23 @@ def load_standard_rules(source_root: Path | None = None) -> StandardRules:
         close_order=snapshot.CLOSE_ORDER,
         memory_commands=snapshot.MEMORY_COMMANDS,
         parse_contract=snapshot.PARSE_CONTRACT,
+    )
+
+
+def find_memory_command(rules: StandardRules, purpose_keyword: str) -> str:
+    """§11.1 표에서 목적 문구에 ``purpose_keyword`` 가 든 행의 명령을 돌려준다.
+
+    렌더러가 `wk session-start` 같은 명령 문자열을 **직접 박으면** §11.1 개명 시
+    그 사본만 낡는다 (TASK-2026-08-11-main-026 — 손 사본 7곳 실측). 명령은 항상
+    이 함수로 정본에서 꺼낸다. 키워드는 목적 문구의 조각이지 명령의 사본이 아니다.
+
+    못 찾으면 :class:`StandardParseError` — 조용한 기본값 없음.
+    """
+    for purpose, cmd in rules.memory_commands:
+        if purpose_keyword in purpose:
+            return cmd
+    raise StandardParseError(
+        f"§11.1 갱신 명령 표에서 목적 키워드 {purpose_keyword!r} 를 찾지 못했다"
     )
 
 

@@ -27,7 +27,11 @@ from bootstrap_lib.writes import rel, write_text
 
 #: pi-dev 전용 장의 제목 — 합쳐졌는지 판정하는 표식이자 idempotency key.
 PI_DEV_SUPPLEMENT_HEADING = "# Pi Coding Agent Profile (pi-dev 전용)"
-from workflow_kit.common.standard_rules import load_standard_rules, render_entrypoint_rules
+from workflow_kit.common.standard_rules import (
+    find_memory_command,
+    load_standard_rules,
+    render_entrypoint_rules,
+)
 
 
 def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
@@ -1090,7 +1094,7 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-wk session-start --help
+{find_memory_command(load_standard_rules(), "세션 시작")} --help
 ```
 
 ## 절차
@@ -1147,7 +1151,7 @@ description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlo
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-wk backlog-update --help
+{find_memory_command(load_standard_rules(), "task 등록")} --help
 ```
 
 ## 절차
@@ -1204,7 +1208,7 @@ index 갱신 포인트를 정리.
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-wk doc-sync --help
+{find_memory_command(load_standard_rules(), "동기화")} --help
 ```
 
 ## 절차
@@ -1448,7 +1452,17 @@ def write_aider_harness_files(
 # Goose adapter (v0.10.2+)
 # ---------------------------------------------------------------------------
 def render_goose_config(args: argparse.Namespace, context: dict[str, object]) -> str:
-    """Render ``.goose/config.yaml`` (Goose extension 등록 config)."""
+    """Render ``.goose/config.yaml`` (Goose extension 등록 config).
+
+    명령 문자열은 전부 정본 §11.1 에서 꺼낸다 (`find_memory_command`) — 여기 박힌
+    `wk …` 손 사본이 §11.1 개명 시 낡던 결함(TASK-026)과, `on_session_end` 가
+    존재하지 않는 `skills/` 경로 + 없는 플래그를 부르던 결함(TASK-022 잔여)의 처방.
+    """
+    rules = load_standard_rules()
+    session_start_cmd = find_memory_command(rules, "세션 시작")
+    backlog_update_cmd = find_memory_command(rules, "task 등록")
+    doc_sync_cmd = find_memory_command(rules, "동기화")
+    refresh_state_cmd = find_memory_command(rules, "재생성")
     return f"""# Goose config (v0.10.2+)
 #
 # Goose 는 extension 등록을 통해 workflow 진입. 본 config 는
@@ -1464,15 +1478,15 @@ project:
 entry_points:
   session_start:
     description: "state.json + handoff + work_backlog baseline 복원"
-    command: "wk session-start"
+    command: "{session_start_cmd}"
     trigger: on_session_start
   backlog_update:
     description: "task 등록/갱신 + scope creep warning"
-    command: "wk backlog-update"
+    command: "{backlog_update_cmd}"
     trigger: manual
   doc_sync:
     description: "영향 문서 동기화 (advisory)"
-    command: "wk doc-sync"
+    command: "{doc_sync_cmd}"
     trigger: manual
 
 # 본 project 의 *진입 문서* (Goose 가 startup 에 read)
@@ -1483,10 +1497,10 @@ read_files:
   - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
-# Goose 의 *pre/post hook* — session 종료 시 handoff 자동 갱신
+# Goose 의 *pre/post hook* — session 종료 시 state.json 재생성 (정본 §11)
 hooks:
   on_session_end:
-    - "python3 ai-workflow/skills/session-start/scripts/run_session_start.py --update-handoff"
+    - "{refresh_state_cmd}"
 
 # language: 한국어
 language: ko

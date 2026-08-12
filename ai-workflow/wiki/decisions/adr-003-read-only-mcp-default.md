@@ -40,7 +40,7 @@ write 가능한 MCP 서버는 세 문제를 동반한다.
 | # | 결정 | 근거 |
 |---|---|---|
 | 1 | MCP 서버 6+1 종 default = read-only | `latest_backlog`, `check_doc_links`, `check_doc_metadata`, `suggest_impacted_docs`, `check_quickstart_stale_links`, `create_backlog_entry` (v0.5.0~) + `read_only_mcp_sdk` (v0.5.7 candidate) |
-| 2 | tool descriptor 에 `readOnlyHint=true` (MCP 2025-06-18 spec) 또는 equivalent 명시 | 하네스 측이 read-only 도구임을 descriptor 단계에서 인지 |
+| 2 | tool descriptor 의 `readOnlyHint` 는 registry `read_only` 선언에서 파생 — read-only 도구는 true, **write-capable 2종 (`apply_robust_patch`/`rotate_workflow_logs`) 은 false** (v1.1.7 개정, 이전엔 전 도구 true 하드코딩 = 허위) | 하네스 측 auto-approve 판단이 descriptor 단계에서 정직해야 함 |
 | 3 | `create_backlog_entry` 는 의도적 예외 ("draft 생성기") | "backlog entry draft" 만 생성. 실제 `ai-workflow/memory/backlog/` 에 write 안 함. orchestrator 자동 commit 금지. 사용자 직접 검토 후 commit |
 | 4 | Transport 우선순위: `jsonrpc-bridge` (default, stable) > `stdio-sdk` (experimental) | `jsonrpc-bridge` 는 v0.5.0 부터 `tools/list` + `tools/call` round-trip 안정. `stdio-sdk` 는 정식 `mcp[cli]>=1.0` 호환이나 `Connection closed` 회귀 존재 |
 | 5 | Bootstrap 시 MCP 자동 emit: `--enable-mcp` 플래그로 하네스별 config snippet 생성 | `.codex/mcp.toml`, `mcp.opencode.json`, `.gemini/mcp.json`, `.antigravity.mcp.json`, `.MiniMax/mcp.json` |

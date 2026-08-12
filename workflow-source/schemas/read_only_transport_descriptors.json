@@ -771,7 +771,7 @@
         "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
-        "readOnlyHint": true
+        "readOnlyHint": false
       },
       "description": "Rotate old done items from handoff into baseline to prevent bloat.",
       "inputSchema": {
@@ -915,7 +915,7 @@
         "descriptor_target": "mcp_tools_list_draft"
       },
       "annotations": {
-        "readOnlyHint": true
+        "readOnlyHint": false
       },
       "description": "Apply a robust Search-Replace block patch to a file with fuzzy matching and syntax validation.",
       "inputSchema": {

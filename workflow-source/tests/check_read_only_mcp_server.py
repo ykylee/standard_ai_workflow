@@ -17,6 +17,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.output_contracts import output_json_schema_for_family, validate_output_payload
+from workflow_kit.server.read_only_registry import WRITE_CAPABLE_TOOL_NAMES, get_tool_spec
 
 
 def run_json(args: list[str], *, expect_success: bool = True) -> tuple[int, dict[str, object]]:
@@ -52,8 +53,23 @@ def main() -> int:
             raise AssertionError(f"Expected {tool_name} transport descriptor name to match tool name.")
         if descriptor["outputSchema"] != output_json_schema_for_family(tool_name):
             raise AssertionError(f"Expected {tool_name} transport descriptor output schema to come from runtime contracts.")
-        if descriptor["annotations"]["readOnlyHint"] is not True:
-            raise AssertionError(f"Expected {tool_name} transport descriptor to be read-only annotated.")
+        # v1.1.7 (TASK-2026-08-11-main-024): readOnlyHint 는 registry 의 read_only
+        # 선언과 일치해야 한다. 이전에는 전 도구에 True 를 요구해, 파일을 쓰는
+        # 도구까지 read-only 로 광고되는 허위를 검사 스스로가 강제했다.
+        spec = get_tool_spec(tool_name)
+        if spec is None:
+            raise AssertionError(f"Manifest tool {tool_name} is missing from the registry.")
+        if descriptor["annotations"]["readOnlyHint"] is not spec.read_only:
+            raise AssertionError(
+                f"Expected {tool_name} readOnlyHint to match registry declaration ({spec.read_only})."
+            )
+        # 사실 목록 대조: write 도구는 정확히 WRITE_CAPABLE_TOOL_NAMES 여야 한다.
+        # 새 write 도구가 read_only=True 로 광고되거나, read-only 도구가 write 로
+        # 표시되면 여기서 잡힌다.
+        if (tool_name in WRITE_CAPABLE_TOOL_NAMES) != (not spec.read_only):
+            raise AssertionError(
+                f"{tool_name}: read_only={spec.read_only} 가 WRITE_CAPABLE_TOOL_NAMES 사실 목록과 어긋난다."
+            )
 
     _, transport_descriptors = run_json(["--list-transport-tools"])
     if transport_descriptors["descriptor_target"] != "mcp_tools_list_draft":

@@ -1,14 +1,14 @@
 # ADR-003: Read-only MCP 우선 정책
 
 - 문서 목적: standard_ai_workflow 의 MCP 서버가 read-only 우선 정책을 채택한 rationale 와 운영 impact 를 정식 기록.
-- 범위: MCP 서버 6+1 종의 read-only 정책, transport 우선순위, bootstrap 시 MCP 자동 emit, create_backlog_entry 의 draft-only 예외.
+- 범위: MCP bundle 13 종 도구의 read-only 정책, write-capable 도구 2종의 명시 선언, transport 우선순위, bootstrap 시 MCP 자동 emit, create_backlog_entry 의 draft-only 예외.
 - 대상 독자: maintainer, Mavis/Mavis consumer, MCP 통합자.
-- 상태: Accepted (v0.5.7)
-- 최종 수정일: 2026-08-10
+- 상태: Accepted (v0.5.7, **v1.1.7 개정** — 도구 13종 현실 반영 + write 도구 hint 정정)
+- 최종 수정일: 2026-08-12
 - 관련 문서: [`../README.md`](./README.md), [`./ADR-001-source-state-knowledge-3-layer-separation.md`](./ADR-001-source-state-knowledge-3-layer-separation.md), [`./ADR-002-pydantic-v2-contract-v1-external-spec.md`](./ADR-002-pydantic-v2-contract-v1-external-spec.md), [`../../workflow-source/core/read_only_mcp_transport_promotion.md`](../../workflow-source/core/read_only_mcp_transport_promotion.md)
 
-- **Status**: Accepted (v0.5.7, 6+1 MCP 서버 + jsonrpc-bridge / stdio-sdk 양 transport)
-- **Date**: 2026-05-03 (v0.5.0 read-only MCP initial), updated 2026-05-15 (v0.5.7 read-only SDK candidate), 2026-06-01 (v0.5.7 stable)
+- **Status**: Accepted (v0.5.7 초판은 6+1 도구 기준; **v1.1.7 현재 bundle 은 13 도구**, jsonrpc-bridge / stdio-sdk 양 transport)
+- **Date**: 2026-05-03 (v0.5.0 read-only MCP initial), updated 2026-05-15 (v0.5.7 read-only SDK candidate), 2026-06-01 (v0.5.7 stable), **2026-08-12 (v1.1.7 — TASK-2026-08-11-main-024: 13 도구 현실 반영, `readOnlyHint` 허위 정정)**
 - **Supersedes**: —
 - **Superseded by**: —
 
@@ -27,10 +27,11 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
 
 ### 구체적 결정
 
-1. **MCP 서버 6+1 종 default 가 read-only**:
-   - `latest_backlog`, `check_doc_links`, `check_doc_metadata`, `suggest_impacted_docs`, `check_quickstart_stale_links`, `create_backlog_entry` (v0.5.0~)
-   - `read_only_mcp_sdk` (v0.5.7 SDK candidate)
-   - 모든 tool 의 descriptor 가 `readOnlyHint=true` (MCP 2025-06-18 spec) 또는 equivalent.
+1. **bundle 의 default 는 read-only** (v1.1.7 현재 13 도구):
+   - read-only 11: `latest_backlog`, `check_doc_links`, `check_doc_metadata`, `suggest_impacted_docs`, `check_quickstart_stale_links`, `create_backlog_entry`, `create_environment_record_stub`, `create_session_handoff_draft`, `summarize_git_history`, `assess_milestone_progress`, `smart_context_reader`
+   - **write-capable 2 (v1.1.7 명시 선언)**: `apply_robust_patch` (대상 파일을 실제로 write, dry-run 입력 없음), `rotate_workflow_logs` (handoff 를 rewrite)
+   - descriptor 의 `readOnlyHint` (MCP 2025-06-18 spec) 는 registry 의 `read_only` 선언에서 나온다. **v0.5.7~v1.1.6 은 전 도구에 true 를 하드코딩해 write 도구 2종까지 read-only 로 광고했다** — 하네스가 이 hint 로 auto-approve 할 수 있는 허위 주석이었고, 검사(`check_read_only_mcp_server`)조차 그 허위를 강제했다. v1.1.7 부터 write 도구는 `readOnlyHint=false` 이고, 검사가 registry 선언 ↔ `WRITE_CAPABLE_TOOL_NAMES` 사실 목록 ↔ descriptor 삼자 일치를 강제한다.
+   - 서버 이름 `workflow_read_only_bundle` 은 유지한다 (config 호환) — "read-only **우선** bundle" 로 읽는다. write 도구 추가는 이 ADR 의 사실 목록 갱신을 요구한다.
 
 2. **`create_backlog_entry` 의 의도적 예외**:
    - v0.5.0 부터 read-only 우선 정책의 **유일한 의도적 write tool**.
@@ -60,7 +61,8 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
 ### Negative / Trade-offs
 
 - **자유도 낮음**: 일부 use case (e.g. autonomous task scheduling) 는 read-only 부족. 완화: orchestrator 측 write 정책으로 동일 효과 달성 가능.
-- **`create_backlog_entry` 의 예외가 정책 복잡도**: 단일 write tool 이 있어 ADR 본문이 모순처럼 보일 수 있음. 완화: "draft 생성기" 로 위치 재명시. 실제 write 는 사용자.
+- **`create_backlog_entry` 의 예외가 정책 복잡도**: draft 생성기라 실제 write 없음 (위치 재명시). 실제 write 는 사용자.
+- **write-capable 2종이 bundle 이름과 긴장**: `apply_robust_patch` / `rotate_workflow_logs` 는 이름이 "read_only" 인 bundle 안의 write 도구다. 완화: descriptor 가 `readOnlyHint=false` 로 정직하게 광고하고, 하네스 측 승인 정책이 hint 를 근거로 작동한다. 근본 정리는 bundle 분리(후속 후보).
 - **stdio-sdk 회귀가 opt-in 만**: 회귀 발견 시 stdio-sdk 가 promotion 기준을 통과하지 못해 default 가 안 됨. v0.6+ 후속 작업으로 default 전환 가능.
 
 ### 후속 결정의 인용
@@ -71,10 +73,10 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
 
 ## References
 
-- `workflow-source/mcp_servers/` — 6+1 read-only MCP 서버
+- `workflow_kit/server/read_only_registry.py` `READ_ONLY_TOOL_SPECS` (13 도구) + `WRITE_CAPABLE_TOOL_NAMES`
 - `workflow_kit/server/read_only_registry.py` — read-only tool registry
 - `workflow_kit/server/read_only_entrypoint.py` — entrypoint
 - `workflow_kit/server/read_only_jsonrpc.py` — JSON-RPC draft bridge
 - `workflow_kit/server/read_only_mcp_sdk.py` — 공식 MCP SDK candidate
 - `workflow-source/core/read_only_mcp_transport_promotion.md` — transport 승격 기준
-- `workflow-source/tests/check_read_only_*.py` — 6 종의 read-only 회귀 test
+- `workflow-source/tests/check_read_only_*.py` — read-only 회귀 test (readOnlyHint ↔ registry ↔ 사실 목록 삼자 일치 포함)

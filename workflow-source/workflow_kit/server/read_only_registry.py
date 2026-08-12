@@ -36,6 +36,11 @@ class ReadOnlyToolSpec:
     input_fields: tuple[ReadOnlyToolFieldSpec, ...]
     requires_any_of: tuple[str, ...] = ()
     payload_example: dict[str, object] | None = None
+    #: v1.1.7 (TASK-2026-08-11-main-024): descriptor 의 `readOnlyHint` 는 이 선언에서
+    #: 나온다. 이전에는 builder 가 전 도구에 True 를 하드코딩해 **파일을 쓰는 도구**
+    #: (`apply_robust_patch` / `rotate_workflow_logs`) 까지 read-only 로 광고했다 —
+    #: 하네스가 이 hint 로 auto-approve 할 수 있는 허위 주석이다 (ADR-003 v1.1 개정).
+    read_only: bool = True
 
 
 READ_ONLY_SERVER_NAME = "workflow_read_only_bundle"
@@ -314,6 +319,8 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             "handoff_path": "ai-workflow/memory/active/sessions",
             "max_done_items": "5",
         },
+        # handoff 를 실제로 rewrite 한다 (read_only_bundle.py 의 written_paths).
+        read_only=False,
     ),
     ReadOnlyToolSpec(
         name="assess_milestone_progress",
@@ -389,8 +396,15 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
             "file_path": "src/main.py",
             "patch_content": "<<<<<<< SEARCH\ndef old():\n    pass\n=======\ndef new():\n    print('fixed')\n>>>>>>> REPLACE",
         },
+        # 대상 파일을 실제로 write 한다 (patching.py, dry_run 입력 없음).
+        read_only=False,
     ),
 )
+
+#: 파일시스템을 변경하는 도구의 **사실 목록** — 검사가 registry 선언과 대조한다.
+#: 새 write 도구를 추가하면 여기와 spec 의 `read_only=False` 를 같이 갱신해야 하고,
+#: 어느 한쪽만 고치면 `check_read_only_mcp_server` 가 잡는다.
+WRITE_CAPABLE_TOOL_NAMES: frozenset[str] = frozenset({"apply_robust_patch", "rotate_workflow_logs"})
 
 
 def get_tool_spec(tool_name: str) -> ReadOnlyToolSpec | None:
@@ -438,7 +452,7 @@ def build_transport_tool_descriptor(spec: ReadOnlyToolSpec) -> dict[str, object]
         "inputSchema": input_json_schema_for_spec(spec),
         "outputSchema": output_json_schema_for_family(spec.name),
         "annotations": {
-            "readOnlyHint": True,
+            "readOnlyHint": spec.read_only,
         },
         "_meta": {
             # registry 는 **transport 를 모른다** — 어느 bridge 가 자기를 서빙할지

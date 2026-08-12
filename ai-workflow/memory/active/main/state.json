@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**7차 세션 종료 — backlog-update 가 재생성에서 병합으로 바뀌었다 (TASK-023).** `merge_task_file` (명시 인자만 반영) + index block 보존 (status 줄만 교체) + handoff task ID dedupe + `--kind`/`--priority` 미지정 시 보존. `check_backlog_update_layout` 5→8 case, 신설 3 case 는 버그 코드에서 FAIL 실증. 종결을 고친 도구 자신으로 수행. 상세: [7차 세션 기록](./sessions/backlog_update_merge_semantics_2026-08-12.md).",
-    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 22건 done, planned 6건: TASK-019 배타 락 + 리뷰 후속 TASK-024~028. 우선순위 high = 024 readOnlyHint 허위 / 026 §11 단일출처 검사 강화).",
+    "current_baseline": "**8차 세션 종료 — MCP readOnlyHint 가 허위에서 registry 선언 파생으로 바뀌었다 (TASK-024).** `ReadOnlyToolSpec.read_only` + `WRITE_CAPABLE_TOOL_NAMES` 사실 목록, write 2종(`apply_robust_patch`/`rotate_workflow_logs`) hint=false, 검사가 삼자 일치 강제 (되주입 FAIL 실증). ADR-003 v1.1.7 개정 (13도구 현실) + wiki 갱신. 상세: [8차 세션 기록](./sessions/mcp_readonly_hint_truthful_2026-08-12.md).",
+    "current_axis": "(없음 — 2026-08-11 backlog 28건 중 23건 done, planned 5건: TASK-019 배타 락 + 리뷰 후속 TASK-025~028. 우선순위 high = 026 §11 단일출처 검사 강화).",
     "current_focus": "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
       "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
       "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
@@ -41,8 +42,7 @@
       "TASK-2026-08-11-main-017 — darwin homelab 검증",
       "TASK-2026-08-11-main-016 — 학습회 자료를 사내 기술보고서 논문 양식 문서로 발전",
       "TASK-2026-08-11-main-015 — 로컬 병렬 전량 검사 TIMEOUT flake 2건 해소",
-      "TASK-2026-08-11-main-014 — v1.1.0·v1.1.1 릴리스 노트 누적 표기 사후 삽입 여부 결정 + 적용",
-      "TASK-2026-08-11-main-013 — transient pyproject writer 추적 (감시 체계 보강)"
+      "TASK-2026-08-11-main-014 — v1.1.0·v1.1.1 릴리스 노트 누적 표기 사후 삽입 여부 결정 + 적용"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -68,7 +68,8 @@
       "TASK-2026-08-11-main-003 — ai-workflow 아카이브 정리 (archived/gemini + archive/2026-07-22)",
       "TASK-2026-08-11-main-002 — release amend Guard 2 가 staged 삭제 경로에서 fatal (git add pathspec 불일치)",
       "TASK-2026-08-11-main-001 — check_mypy_strict_v0_11_3~10 8개 제거 (정보량 0 인 부분집합 재측정)",
-      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정"
+      "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
+      "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정"
     ]
   },
   "next_documents": [
@@ -78,6 +79,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/mcp_readonly_hint_truthful_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/backlog_update_merge_semantics_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/state_generated_and_composition_review_2026-08-11.md",
     "ai-workflow/memory/active/main/sessions/darwin_verify_and_harness_unification_2026-08-11.md",

@@ -4,13 +4,14 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-12 (14차 세션 종료 — federation self-host add. plex 상시 serving 가동)
+- 최종 수정일: 2026-08-12 (15차 세션 종료 — v1.1.7-beta 발행, cmd_release 4번째 실전)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
-- 직전 기준선: **13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).
+- 현재 기준선: **15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).
+- 직전 기준선: **14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).
+- 그 이전 기준선: **13차 세션 종료 — 전량 검사 배타 락 가동, 2026-08-11 backlog 28건 전부 done (TASK-019).** runner 진입 flock (.git/run_all_checks.lock, 계쟁 시 보유자 정보 + 즉시 실패, env 마커 재진입 승계, --no-lock 은 크게 기록), stale 은 커널 자동 해제로 원천 해소. `check_run_all_checks_lock` 5 case (부모 runner 보유 시 적응 모드). 전량 2축 **251/251 ×2 — 락 실전 첫 가동**, smoke 250→251. 한계: 직접 편집 충돌은 worktree 분리가 정공법 (CLAUDE.md 규약 층). 상세: [13차 세션 기록](./sessions/runner_exclusive_lock_2026-08-12.md).
 - 그 이전 기준선: **12차 세션 종료 — TASK-020 발 렌더러 결함 계열이 완결됐다 (TASK-028).** 26개 결함이 0: 주입 9+4+6 (보조 6 은 `render_memory_update_section` §11 섹션), 잔여 8 은 이유 명시 원장 (case 9 양방향 판정 — 원장이 낡으면 red), 5 는 메모리 무관. pi-dev 는 전체 블록 승격 + 병합 시 블록 통째 제거 (중복 1회 실측). 부수: grok skill 의 낡은 flat 경로 generate_workflow_state 안내 → `wk refresh-state`. 상세: [12차 세션 기록](./sessions/secondary_renderer_s11_injection_2026-08-12.md).
 - 그 이전 기준선: **11차 세션 종료 — 소비자 안내 표면이 전부 `wk` 를 가리킨다 (TASK-027).** SKILL.md 3종·apply_guide 의 미배포 `skills/` 경로 안내 제거, `check_packaging` 이 `tools` 배포를 wheel 에서 검증 (구판 1.1.6 wheel 에서 즉시 FAIL 실증), `--copy-core-docs` 는 죽는 wrapper 대신 SKILL.md 문서만 복사. 상세: [11차 세션 기록](./sessions/consumer_surface_cleanup_2026-08-12.md).
 - 그 이전 기준선: **10차 세션 종료 — MCP 도구 목록 사본 3계열이 registry 하나로 수렴했다 (TASK-025).** MiniMax 렌더러 손 목록(10개, 3개 누락)→registry 파생, 유령 script_path 2건은 mcp_servers/ 실물 생성 + 실존 강제, 예시 tools 배열은 case 7 이 registry 와 대조. ADR-003 에 MCP(선별 부분집합)↔wk(전체 창구) 이원 표면 의도 명시. 상세: [10차 세션 기록](./sessions/mcp_tool_list_single_source_2026-08-12.md).
@@ -48,7 +49,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -56,6 +57,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
 - TASK-2026-08-12-main-001 federation self-host add — plex 상시 serving 편입
 - TASK-2026-08-11-main-019 전량 검사 배타 락
 - TASK-2026-08-11-main-028 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)
@@ -65,7 +67,6 @@
 - TASK-2026-08-11-main-024 MCP readOnlyHint 허위 주석 정정 + ADR-003 개정
 - TASK-2026-08-11-main-023 wk backlog-update update 모드 파괴적 재생성 수정
 - TASK-2026-08-11-main-018 **state.json 을 생성물로 전환** — 정본 §11.1 `wk refresh-state` 행 + §11.2 생성물·생성기 입력 선언, 재생성/`--check` 창구 신설 (wk 72명령), `check_state_json_generated` 6 case (되주입 양방향 + **자기 적용** + 선언↔창구 정합, 정숙 구간). 확장분: `wk session-start` 무인자 자동 탐색 + branch-scoped daily 관측 (인덱스 전제가 task 상세 파일을 최신 backlog 로 오판하던 결함), args 경유 TypeError, self-bootstrap 의 skills/ 경로 → wk. smoke 249→250, 전량 2축 250/250 ×2. 진행 중 실측: `wk backlog-update --mode update` 가 task 파일을 전체 재생성하며 내용을 삭제 + handoff 중복 bullet — 후속 후보로 기록
-- TASK-2026-08-11-main-022 **하네스 파생본 통일** — 정본에 **§11 메모리 갱신 경로 + 파싱 계약**을 신설하고 `render_entrypoint_rules()` 경로로 전 하네스에 주입, `check_standard_single_source` 가 진입점의 §11 누락을 잡는다. **결함 26→14** (주요 진입점 8개는 기존 주입점을 타고 자동, `.claude/commands/*` 3개는 직접 주입 — 이번 조사의 출발점이던 파일들). 부수: goose 가 emit 하던 **존재하지 않는 경로**를 `wk` 로 교체 + `pyproject` 의 "bootstrap 이 skills 를 복사한다" 거짓 전제 정정. **커밋 전 FAIL 10건이 단일 뿌리로 잡혔다** — 필드 추가 시 스냅샷 fallback 생성자를 놓쳤고, **정본이 없는 환경에서만 실행되는 경로**라 mypy strict 가 아니었으면 배포처에서만 터졌을 결함이다. 교훈: **정본·추출기·스냅샷은 한 커밋 안에서 같이 움직인다.**
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

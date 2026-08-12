@@ -120,3 +120,20 @@ v1.1.6 이후 이 릴리스 범위에 포함된 5차 세션 작업: macOS `/priv
 - MCP bundle 분리 (write 도구 2종과 "read_only" 이름의 긴장 근본 정리 — ADR-003 후속 후보).
 - backlog-update `--status` 미지정 시 in_progress 리셋 보수 규칙 재검토.
 - `check_no_repo_write` 실행-중 감시 강화 (§6 리스크, 범위 큼).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-12T04:11:20Z)_
+
+- total wiki pages: **93**
+- total memory entries: **9**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

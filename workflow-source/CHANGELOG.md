@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-10
+- 최종 수정일: 2026-08-12
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,18 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-10
+## [Unreleased] - 2026-08-12
 
 ### Added
 
+- feat(federation): self-host add — plex 상시 serving 편입 + --print-systemd-unit (TASK-2026-08-12-main-001) (e625c91)
+- feat(safety): 전량 검사 배타 락 — 동시 runner 의 정숙 구간 침범 차단 (TASK-2026-08-11-main-019) (e7f3ef1)
+- feat(harness): 보조 렌더러 §11 주입 완결 — TASK-020 발 결함 26→0 (TASK-2026-08-11-main-028) (d35fe61)
+- feat(state): state.json 을 생성물로 전환 — wk refresh-state + drift 검사 + session-start 결함 2건 (TASK-2026-08-11-main-018) (39dc234)
+- feat(standard): 정본 §11 메모리 갱신 경로 신설 + 전 하네스 주입 (TASK-2026-08-11-main-022, -020) (a3d00a6)
+- feat(cli): wk 에 session-start / backlog-update / doc-sync 노출 (TASK-2026-08-11-main-021) (1d06147)
+- feat(tools): transient writer 감시 도구 저장소 고정 (TASK-2026-08-11-main-013) (36cedf5)
+- feat(tests): 브랜치 컨텍스트 정본화 + 로컬 재현 관행화 (TASK-2026-08-10-main-017) (d8d188f)
 - feat(memory): ADR-006 W-4 지표 재정의 — utilization_3tuple north-star (TASK-2026-08-10-main-014) (91e1551)
 - feat(memory): ADR-006 W-3 entry 간 링크 — related_ids + expansion 첫 발동 (TASK-2026-08-10-main-013) (713faec)
 - feat(memory): ADR-006 W-2 질의 다양화 — 컨텍스트 유래 query + telemetry 질의 내용 기록 (TASK-2026-08-10-main-012) (1e50701)
@@ -38,52 +46,58 @@ All notable changes to this project will be documented in this file.
 - feat(registry): endpoint 기반 mavis alias command/url 합성 (838b12f)
 - feat(registry): RegistryEntry env 필드 + sync_mavis env 합성 (e0cdebe)
 - feat(registry): registry ↔ mavis 글로벌 양방향 동기 (TASK-2026-08-08-main-009) (a51f683)
-- feat(registry): seed_workspace_memory self-register (TASK-2026-08-08-main-008) (29c3e4b)
-- feat(bootstrap): mavis 데스크탑 harness 신규 등록 + 글로벌 mcp.json 자동 emit (322a792)
-- feat(registry): workspace registry 신규 (표준 §10.2 §7.1, §5A.3) (a3a9442)
-- feat(dashboard): `_branch_state_paths` 복수 root 취합 (표준 §10.2 §7.3) (f97a9b1)
-- feat(tools): 워크스페이스 선점 도구 — 표준 §10.2 플로우 완결 (c51d052)
-- feat(tools): 원격 워크스페이스 현황 조회 — 표준 §10.2 1~3단계 (e547942)
-- feat(tools): 워크스페이스 메모리 seed 도구 — 표준 §10.2 자동화 1단계 (9751cc5)
-- feat(standard)!: 다중 작업·팀웍 워크플로우를 표준에 정식 반영 (§10 + §1) (8a2a7a9)
-- ... (81 more)
+- ... (89 more)
 
 ### Changed
 
-- chore(backlog): TASK-2026-08-10-main-015 등록 — v1.1.6-beta 발행 착수 (87d80ae)
-- docs(memory): TASK-2026-08-10-main-003 등록 — v1.1.4-beta cmd_release 발행 (3236bca)
-- docs(phase13): P0-2 close — telemetry 4 source 수렴 + 문서 정정 (87d0ea2)
-- docs(memory): 2026-08-09 세션 close — 세션 기록 + state/handoff 최종 동기 (49a2b54)
-- docs(memory): 정합성 정리 — backlog status/링크 + task 상태 + state/handoff 동기 (4e31d8c)
-- docs(memory): session close — v1.1.1-beta + state/handoff final sync (c0224c6)
-- docs(memory): §2.68 cycle 완전 close — TASK-012 갈래2 trust 채택 (5fc1b6e)
-- docs(memory): §2.68 cycle close + baseline 통일 (838b12f) (4e85bab)
-- chore(mcp): §2.68 mavis 글로벌 mcp.json 표준 register attach (이전 축) (27010a5)
-- chore(red): 사전 존재 red 2건 정리 (회귀 정합 회복) (a845c31)
-- docs(memory): 세션 close-out — 다중 워크스페이스 오케스트레이션 + 사전 red 2건 정리 (2d2199f)
-- docs(memory): handoff L12 baseline hash 명시 (§2.67 c63b54e) (9ef3cd8)
-- chore(mcp): §2.67 — mavis attach 안 붙음 진단, 1차 출처 보강 (§6.5.2) (c63b54e)
-- docs(presentation): 발표자료 32번 장표 1행 5컬럼 레이아웃 개편 및 37번 장표 카드 테마 통일 (d9b87d4)
-- chore(memory): Update session handoff, state & backlog for TASK-2026-08-06-main-003 (6fe7692)
-- style(slide): Fix vertical content alignment and lock header baselines across 38 slides (8479cef)
-- chore(backlog): Add TASK-2026-08-06-main-002 to daily backlog (05cf955)
-- chore(memory): Update session handoff & state for TASK-2026-08-06-main-002 (3dc7231)
-- docs: Add master HTML deck & update AI Agent Onboarding presentation design v2.4 (3f3aaaa)
-- docs(presentation): 학습회 발표 설계 v2 — 인과 사슬 재설계 + 세션 종료 memory 갱신 (c0acc70)
-- docs(memory): 세션 종료 — §2.59~§2.66 세션 기록 + 다음 시작 포인트 정리 (1cafb87)
-- docs(memory): 기준선을 0f53458 로 갱신 (트리거된 CI 5종 green 실측) (76db79c)
-- refactor(mcp)!: transport_ready 를 wire 에서 제거했다 (§6.2 완료, §2.66) (0f53458)
-- docs(memory): 기준선을 0ceca6b 로 갱신 (§2.62 커밋의 트리거 3종 green 실측) (e6e4623)
-- refactor(mcp): 세 번째 사본을 접었다 — 이미 갈라져 있었다 (§2.62) (0ceca6b)
-- docs(memory): 기준선을 8e4dccb 로 갱신 (§2.61 커밋의 트리거 3종 green 실측) (2ffd4c9)
-- refactor(mcp): grok 의 하드코딩된 MCP 블록을 정본으로 접었다 + TOML 키 결함 (§2.61) (8e4dccb)
-- docs(memory): 기준선을 6ebbd8b 로 갱신 (§2.60 커밋의 트리거 3종 green 실측) (efca8b6)
-- docs(memory): 기준선을 33424fc 로 갱신 (커밋 2건 각각 트리거된 CI 3종 green 실측) (4bfbc20)
-- docs(memory): 기준선을 c58111d 로 갱신 (트리거된 CI 6종 전부 green 실측) (7d18f2f)
-- ... (220 more)
+- release(v1.1.7-beta): docs/RELEASE.md version stamp 갱신 — CI 가 잡은 누락 (e3e6df2)
+- release(v1.1.7-beta): 파생물 선재생성 + 노트 + dist — bump 후 stamp/fixtures/samples 일괄 (2d22877)
+- docs(backlog): TASK-2026-08-12-main-002 등록 — v1.1.7-beta 발행 (552e6f9)
+- docs(memory): cross-host 두 번째 호스트 = MacBook 확정 (시점 추후) 기록 (9a30976)
+- docs(backlog): 6차 세션 리뷰 결함 후속 task 6건 등록 (TASK-2026-08-11-main-023~028) (add0e63)
+- docs(memory): 5차 세션 종료 기록 — darwin 검증에서 하네스 파생본 통일까지 (4929aa5)
+- docs(memory): 5차 세션 시작 — darwin homelab 검증 1챕터 (macOS 1패스 245/249, 4 FAIL 발견) (45a6e1b)
+- docs(memory): session close — 4차 세션 기록 + 기준선 최종 정리 (backlog 16건 종결) (6678eaf)
+- docs(reports): 학습회 독립화 — 보고서에서 학습회·발표 서술 제거 (TASK-2026-08-11-main-016 검토 4회전) (452d1a7)
+- docs(reports): 본문 폭 780→920px + 부제 축약 (TASK-2026-08-11-main-016 후속) (34ad945)
+- docs(reports): 문체·어휘 정리 — 비일상 어휘 12종 교체/풀이 (TASK-2026-08-11-main-016 검토 3회전) (dd227cf)
+- docs(memory): session close — TASK-016 검토 2회전 반영 + 세션 종결 기록 (fe085b9)
+- docs(reports): 수치 전수 검토 반영 — 날조·과장 4건 정정 (TASK-2026-08-11-main-016 후속) (e5ba939)
+- docs(reports): 기간 날조 정정 — '14개월' → 실측 4개월 (최초 커밋 2026-04-18) (77e6c31)
+- docs(reports): 검토 반영 — 실명 오류 1건 + 표3 전재 누락 1행 + 표현 보정 (TASK-2026-08-11-main-016 후속) (66db9fb)
+- docs(reports): mkdocs strict red 해소 — docs 트리 밖 링크를 code span 으로 (TASK-2026-08-11-main-016 후속) (73d673a)
+- docs(reports): 학습회 자료 → 사내 기술보고서 논문 양식 문서 (TASK-2026-08-11-main-016) + TIMEOUT flake backlog 등록 (TASK-015) (8254064)
+- docs(memory): session close — 2026-08-11 backlog 14건 종결 baseline 확정 (afe1dc6)
+- docs(memory): branch protection 보류 결정 (소유자) — 후보 축에서 제거 (d423d02)
+- docs(memory): handoff §4 cap(10) 회복 — CI smoke handoff_bloat red 해소 (TASK-2026-08-11-main-014 후속) (6b550a9)
+- docs(memory): 후속 backlog 3건 등록 + origin/mooneye 삭제 close (TASK-2026-08-11-main-012) (a03de4d)
+- docs(memory): 2026-08-11 세션 기록에 후속 TASK-009~011 반영 (대형 파일 분할 완결) (f503cff)
+- refactor(cli): workflow_kit_cli.py 안전 부분 분할 — 2095→583줄 + 모듈 5개 (TASK-2026-08-11-main-011) (487d4d9)
+- refactor(dashboard): dashboard_data.py 안전 부분 분할 — 2488→1526줄 + 모듈 3개 (TASK-2026-08-11-main-010) (5758370)
+- chore(docs): presentations 파생 바이너리 트리 제거 — 5.3MB (TASK-2026-08-11-main-009) (90dab22)
+- refactor(release): release_pipeline.py 안전 부분 분할 — 3908→3174줄 + 모듈 4개 (TASK-2026-08-11-main-007) (4d311b5)
+- refactor(tests): check_cache_* 13개를 check_cache.py 1개로 통합 — smoke 260→248 (TASK-2026-08-11-main-004) (286f543)
+- chore(memory): ai-workflow 아카이브 185파일 정리 — gemini + 2026-07-22 freeze (TASK-2026-08-11-main-003) (3f04bb7)
+- refactor(tests): mypy strict 부분집합 검사 8개 제거 — smoke 268→260 (TASK-2026-08-11-main-001) (beaaa71)
+- docs(memory): 2026-08-10 3차 세션 기록 + handoff/state 동기 (TASK-016~019) (eb3b0a2)
+- ... (252 more)
 
 ### Fixed
 
+- fix(docs+packaging): 소비자 안내 표면을 wk 로 통일 + tools 배포를 wheel 에서 검증 (TASK-2026-08-11-main-027) (2d799f5)
+- fix(mcp): 도구 목록 사본 3계열을 registry 단일출처로 + 유령 script_path 실물화 (TASK-2026-08-11-main-025) (8f8e95d)
+- fix(standard): §11.1 명령 손 사본 7곳을 정본 파생으로 + 검출기·분류 단언 강화 (TASK-2026-08-11-main-026) (267dfaf)
+- fix(mcp): readOnlyHint 를 registry 선언 파생으로 — write 도구 2종 허위 주석 정정 + ADR-003 v1.1.7 (TASK-2026-08-11-main-024) (e6f1653)
+- fix(backlog-update): update 모드를 재생성에서 병합으로 + handoff task ID dedupe (TASK-2026-08-11-main-023) (30563a4)
+- fix(tests): macOS /private symlink 로 갈린 검사 4건 이식성 수정 + state.json 갈라짐 해소 (TASK-2026-08-11-main-017) (24bcc90)
+- fix(tests): CHECK_TIMEOUT_S 파일 안 선언 신설 — 로컬 병렬 TIMEOUT flake 해소 (TASK-2026-08-11-main-015) (b636e2f)
+- fix(tools): watcher 기동을 sleep 추측에서 ready handshake 로 — CI flake 해소 (708eb94)
+- fix(tests): 원본-무결성 관찰 검사 3건 정숙화 + 2026-08-11 세션 close (TASK-2026-08-11-main-008) (b4ef854)
+- fix(quality): PERF-WF-04 저장소 오염 제거 + sandbox 복사 소멸-파일 내성 (TASK-2026-08-11-main-006) (9502c43)
+- fix(release): amend Guard 2 의 staged-삭제 git add fatal 해소 (TASK-2026-08-11-main-002) (35d2b27)
+- fix(tests): version_flag test 3 의 dist 오염 우연 의존 해소 — smoke CI red 복구 (TASK-2026-08-11-main-005) (a9c408b)
+- fix(tests): 원본 저장소에 --apply 하던 검사 4건을 사본으로 (TASK-2026-08-10-main-019) (59f3365)
+- fix(tests): smoke slash job 15연속 red 해소 — 검사가 살아있는 브랜치 상태에 의존 (TASK-2026-08-10-main-016) (099dba0)
 - fix(tests): dashboard timeline 검사 2건 — 살아있는 저장소/registry 상태 대신 결정적 fixture (2661359)
 - fix(release): dist 기본값 dry-run 반전 — release 와 정합 (TASK-2026-08-10-main-005) (4c7895f)
 - fix(tests): doctor exit-on-fail 테스트 — 살아있는 저장소 상태 대신 결정적 fixture (c0ad1a6)
@@ -100,26 +114,13 @@ All notable changes to this project will be documented in this file.
 - fix(claude-code): slash command 설명 자리에 버전 마커가 앉아 있었다 (§2.59 후속) (33424fc)
 - fix(claude-code): 자기 harness 를 부분만 적용하고 있었다 + 마커가 frontmatter 를 깨고 있었다 (§2.59) (227219e)
 - fix(okf): 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크 (§2.58) (c58111d)
-- fix(cli): 오래 red 인 스케줄 workflow 2건 — 둘 다 원인이 딴 데 있었다 (§2.57) (7b076f8)
-- fix(tests): 슬래시 브랜치에서 깨지던 것들 — 셋이었고 원인이 서로 달랐다 (§2.55) (dda0825)
-- fix(tools): 생성물인지를 이름으로 가르고 있었다 — 정본은 .gitignore 다 (§2.54) (99eb05a)
-- fix(tools): 조사가 어디까지 보는지를 선언하고 있었다 — 포함 목록을 없앤다 (§2.53) (710ccea)
-- fix(dashboard): 모든 panel 의 기준이 자기 근거를 안 내고 있었다 (§2.51) (1b52b85)
-- fix(tests): 검사가 CI 에서 무력화되고 있었다 — branch env 우선 규칙 (§2.50) (15ee104)
-- fix(paths): 세 번째를 찾으러 갔더니 다른 축에 있었다 — branch 해석기 합의 (§2.50) (d6a23fe)
-- fix(doctor): 같은 결함이 CLI 에도 있었다 — 기준 경로와 설정 출처 (§2.49) (607b84c)
-- fix(maturity): 검사가 처음 돌자 나온 2건 — 하나는 진짜, 하나는 위양성 (§2.48) (2e13931)
-- fix(linter): 기준 경로가 한 칸 어긋나 있었다 — 설정과 maturity (§2.47) (14cd792)
-- fix(state): 파생물의 상한과 포인터 — 쓰는 쪽이 규약을 모르고 있었다 (§2.46) (72bfbe0)
-- fix(server): lowlevel 도 1.x/2.x 를 해석한다 — 상한 핀 해제 (§2.43) (1f1881c)
-- fix(ci): 인스펙터가 서버 인자를 삼키고 있었다 — 도구도 의존성이다 (§2.42) (7b1404b)
-- fix(deps): 상한 핀 복원 — 이관 범위를 파일 하나로 잡았다 (§2.41 정정) (7469fb1)
-- ... (69 more)
+- ... (83 more)
 
 ## [1.1.6] - 2026-08-10
 
 ### Changed
 
+- docs(release): v1.1.6-beta 발행 후처리 (TASK-2026-08-10-main-015) (c51d973)
 - chore(release): v1.1.6-beta 준비 — 노트 + 파생물 선재생성 + stamp (TASK-2026-08-10-main-015) (25e09d4)
 
 ## [1.1.5] - 2026-08-10
@@ -161,10 +162,11 @@ All notable changes to this project will be documented in this file.
 - docs(memory): v1.1.1-beta release 반영 — baseline + current_axis 갱신 (678806f)
 - chore(release): v1.1.1-beta — [project.scripts] 29 entry points (CLI 化 A안) (6b92a60)
 
-## [1.1.0] - 2026-08-08
+## [1.1.0] - 2026-08-11
 
 ### Changed
 
+- docs(memory): v1.1.0·v1.1.1 노트 누적 표기 미삽입 확정 — backlog 14건 종결 (TASK-2026-08-11-main-014) (5e6ca22)
 - docs(memory): v1.1.0-beta release 반영 — baseline + current_axis + handoff 갱신 (02f80f2)
 - chore(release): v1.1.0-beta — §0.8 4건 close + dual mode CLI + federation *읽기* (564ce36)
 

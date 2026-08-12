@@ -27,14 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**14차 세션 종료 — plex 가 federation 의 첫 상시 참여자가 됐다 (TASK-2026-08-12-main-001).** `host-serve-registry --print-systemd-unit` 신설 + plex systemd user unit `wk-registry` 가동 (0.0.0.0:8765 + Bearer 토큰, LAN 실측 4종) + registry 위생 (`main` 등록) + 환경 기록 [environments/plex.md](../environments/plex.md) (합류 절차: add-known-host + pull 두 명령). cross-host 실측은 **두 번째 호스트 결정(사용자) 대기**. 상세: [14차 세션 기록](./sessions/federation_self_host_2026-08-12.md).",
+    "current_baseline": "**15차 세션 종료 — v1.1.7-beta 발행 (`cmd_release` 4번째 실전, TASK-2026-08-12-main-002).** tag + GitHub Release (whl+sdist). 범위 = 6~14차 묶음 (state.json 생성물 / 배타 락 / 리뷰 후속 6건 / federation self-host), smoke 249→251. 실전 검출 2건: CI 가 RELEASE.md stamp 누락을 잡음 (bump 후엔 필터가 아니라 **전량**) + 릴리스 직후 재실행이 3건 잡음 (stamp 상수 2 + 배포 사본 23 날짜 — v1.1.4 동형). 상세: [15차 세션 기록](./sessions/v1_1_7_release_2026-08-12.md).",
     "current_axis": "(없음 — 2026-08-12 backlog 1건 done. 다음 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 으로 확정, 시점은 추후** (사용자 결정 2026-08-12, 현재 MacBook 전원 꺼짐). 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령 (`add-known-host` + `pull`, 토큰 값 전달 필요) / darwin mavis e2e / memory_index 3-tuple 추이).",
-    "current_focus": "TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)",
-    "in_progress_items": [
-      "TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)"
-    ],
+    "current_focus": null,
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)",
       "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
       "TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)",
       "TASK-2026-08-11-main-027 — 소비자 안내 표면 정리 (SKILL.md 미배포 경로 + packaging 검사 공백)",
@@ -43,8 +42,7 @@
       "TASK-2026-08-11-main-024 — MCP readOnlyHint 허위 주석 정정 + ADR-003 개정",
       "TASK-2026-08-11-main-023 — wk backlog-update update 모드 파괴적 재생성 수정",
       "TASK-2026-08-11-main-022 — 하네스 파생본 통일 (정본 블록 + 전 렌더러 주입)",
-      "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출",
-      "TASK-2026-08-11-main-020 — 하네스 진입점이 kit 스크립트를 안 가리킨다"
+      "TASK-2026-08-11-main-021 — `wk` 에 session-start / backlog-update / doc-sync 노출"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -52,12 +50,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-12.md",
     "task_count": 2,
-    "in_progress_items": [
-      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입"
+      "TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입",
+      "TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)"
     ]
   },
   "next_documents": [
@@ -67,6 +64,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/v1_1_7_release_2026-08-12.md",
     "ai-workflow/memory/active/environments/plex.md",
     "ai-workflow/memory/active/main/sessions/federation_self_host_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/runner_exclusive_lock_2026-08-12.md",

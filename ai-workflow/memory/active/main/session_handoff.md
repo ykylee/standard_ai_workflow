@@ -48,7 +48,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-08-12-main-002 v1.1.7-beta 발행 (cmd_release 4번째 실전)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

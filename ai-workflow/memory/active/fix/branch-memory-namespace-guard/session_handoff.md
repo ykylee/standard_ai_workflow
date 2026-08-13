@@ -24,6 +24,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-13-fix-branch-memory-namespace-guard-002 mavis attach e2e 기대치 vs read-only 번들 분리 — 13종 기대, 11종 실측
 - TASK-2026-08-13-fix-branch-memory-namespace-guard-001 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설
 ## 5. 다음 세션 시작 포인트
 

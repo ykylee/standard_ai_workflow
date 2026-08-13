@@ -29,10 +29,11 @@
   "session": {
     "current_baseline": "fix/branch-memory-namespace-guard 워크스페이스 seed (2026-08-13). 아직 작업 전이다.",
     "current_axis": "PR #23 세션 기록 §7 의 남은 구멍 — 작업 브랜치 메모리 네임스페이스 가드",
-    "current_focus": "TASK-2026-08-13-fix-branch-memory-namespace-guard-002 — mavis attach e2e 기대치 vs read-only 번들 분리 — 13종 기대, 11종 실측",
+    "current_focus": "TASK-2026-08-13-fix-branch-memory-namespace-guard-003 — 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-13-fix-branch-memory-namespace-guard-002 — mavis attach e2e 기대치 vs read-only 번들 분리 — 13종 기대, 11종 실측",
       "TASK-2026-08-13-fix-branch-memory-namespace-guard-001 — 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설"
     ],
     "unknown_status_items": [],
@@ -44,7 +45,8 @@
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-13-fix-branch-memory-namespace-guard-001 — 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설"
+      "TASK-2026-08-13-fix-branch-memory-namespace-guard-001 — 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설",
+      "TASK-2026-08-13-fix-branch-memory-namespace-guard-002 — mavis attach e2e 기대치 vs read-only 번들 분리 — 13종 기대, 11종 실측"
     ]
   },
   "next_documents": [

@@ -105,7 +105,41 @@ PR #23 §4 에는 정정 블록을 달았다 (원문은 남긴다 — 발행된 
 수치가 *최신 전량 결과*를 반영해야 한다는 규약(`verify_release_note_smoke_count`)이
 있는데, 그 수치는 **총 파일 수**만 강제하고 PASS 수는 강제하지 않는다.
 
-## 6. 남은 것
+## 6. 자기 리뷰에서 나온 결함 3건 (PR #24 리뷰 라운드)
+
+전부 **추측이 아니라 실측으로 재현**한 뒤 고쳤다. 셋 다 검사를 조용히 무력화한다.
+
+1. **porcelain rename 파싱** — git 은 rename 을 한 줄에 `R  old -> new` 로 준다.
+   `line[3:]` 을 경로로 쓰면 `"old -> new"` 라는 없는 경로가 되어 매칭이 통째로
+   샌다. **남의 네임스페이스로 파일을 옮기는 것이 정확히 그 형태**라, 가장 잡아야 할
+   조작을 못 잡고 있었다. → case 9.
+2. **비ASCII 경로** — git 이 `"d/\355\225\234\352\270\200.md"` 로 따옴표
+   이스케이프한다. 선두 `"` 때문에 접두사 매칭이 빗나간다. 이 저장소는 문서가
+   한국어라 실제로 밟을 수 있는 자리다. → case 10.
+   1·2 는 `git diff`/`git status` 를 **`-z`** 로 읽어 함께 닫았다 (이스케이프 없음 +
+   rename 두 경로가 별도 토큰).
+3. **브랜치 이름에 marker segment** — `feat/backlog` 에서 marker 탐색이 첫 번째
+   `backlog` 에 멈춰 네임스페이스를 `feat` 로 읽고 **자기 파일을 남의 것으로 지목**
+   했다 (오탐). 자기 것인지는 `namespace_of` 가 아니라 **접두사**로 재야 한다.
+   `active/feat/backlog/…` 의 애매함은 git 이 `feat` 와 `feat/backlog` 를 동시에
+   가질 수 없다는 사실이 없앤다. → case 11.
+
+**CI 유효 범위도 과장하지 않게 적었다**: `smoke.yml` 은 `fetch-depth: 0` 이라
+push 셀에서는 `origin/main` 이 있고 브랜치가 체크아웃돼 판정이 돈다. pull_request
+셀은 detached 라 SKIP 이다 — CI 에서 이 검사를 밟는 축은 **push 셀 하나**다.
+
+## 7. CI mypy flake 재발 (TASK-2026-08-13-main-004)
+
+PR #24 의 첫 커밋 native 셀이 `check_mypy_strict_ci_v0_11_11` 로 red 였다:
+`CI mypy invocation exit 2 (0 errors in workflow_kit/)`. 같은 내용의 두 번째 push
+는 통과했다 — 알려진 flake 의 재발이고, handoff 가 세던 **연속 green 카운터(5)가
+깨졌다**. exit 2 는 mypy 의 usage/internal error 계열이라 "0 errors 인데 실패" 가
+성립한다 (병렬 부하에서의 cache race 가설과 맞는 모양).
+
+이 관측은 `active/main/` 의 task 소속이라 **이 브랜치에서 고치지 않았다** — 그게
+이 PR 이 세우는 규칙 자체다. main 에서 별도로 반영한다.
+
+## 8. 남은 것
 
 - `check_mavis_attach_e2e` 기대치 판정 (의도 확인 필요).
 - 전량 실행 시간 — 벽시계의 36% 가 정숙 구간(직렬)이고 그 65% 가

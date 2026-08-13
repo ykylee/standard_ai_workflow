@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""작업 브랜치의 메모리가 *자기 네임스페이스*에 기록되는지 직접 지목한다 (8 cases).
+"""작업 브랜치의 메모리가 *자기 네임스페이스*에 기록되는지 직접 지목한다 (11 cases).
 
 ## 계보 — PR #23 세션 기록 §7 "남은 구멍"
 
@@ -46,7 +46,13 @@ red 가 나면 다음 사람은 다시 손 편집으로 도망가므로, 이 검
 그 도구는 남의 브랜치 경로(`active/<X>/`)를 지운다. 삭제까지 잡으면 정본 절차가
 red 가 된다. 그래서 **추가/수정(A/M)만** 본다.
 
-8 cases:
+## CI 에서 이 검사가 실제로 도는가
+
+`smoke.yml` 의 checkout 은 `fetch-depth: 0` 이라 push 셀에서는 `origin/main` 이
+있고 브랜치가 체크아웃돼 **판정이 돈다**. pull_request 셀은 detached 라 SKIP 이다.
+즉 CI 에서 이 검사를 밟는 축은 **push 셀 하나**다 — 과장하지 않는다.
+
+11 cases:
   1) 경로 → 네임스페이스 매핑 (슬래시 브랜치, 공유 파일, legacy flat)
   2) 다른 브랜치 네임스페이스에 추가/수정 → 검출 (A)
   3) 삭제·rename 원본은 검출하지 않는다 (archive piggyback 오탐 방지)
@@ -56,6 +62,9 @@ red 가 된다. 그래서 **추가/수정(A/M)만** 본다.
   6) `wk backlog-update` 를 쓴 정상 브랜치는 통과한다 (공허하지 않음의 반대 방향)
   7) detached HEAD 는 사유를 밝히고 SKIP 한다 (조용한 PASS 금지)
   8) **자기 적용** — 이 저장소의 현재 브랜치
+  9) 남의 네임스페이스로 **rename** 하는 것도 추가로 잡는다 (줄 단위 파싱 회귀 고정)
+ 10) 한글 경로(따옴표 이스케이프)도 잡는다 (같은 회귀 고정)
+ 11) 브랜치 이름에 marker segment 가 들어도 자기 파일을 오탐하지 않는다
 
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md — Branch-scoped layout (v1.0.0+)
@@ -114,6 +123,26 @@ def namespace_of(rel_path: str, *, active_rel: str) -> str | None:
     return None
 
 
+def is_own_namespace(rel_path: str, *, branch: str, active_rel: str) -> bool:
+    """`rel_path` 가 `branch` 자신의 네임스페이스에 속하는가.
+
+    **`namespace_of` 로 판정하면 안 된다.** 브랜치 이름 자체에 marker segment 가
+    들어 있으면 (`feat/backlog`) marker 탐색이 첫 번째 `backlog` 에서 멈춰
+    네임스페이스를 `feat` 로 읽고, 자기 파일을 남의 것으로 지목한다 (실측).
+    자기 것인지는 **접두사로** 재는 편이 정확하다.
+
+    `active/feat/backlog/…` 가 "브랜치 `feat` 의 backlog" 인지 "브랜치
+    `feat/backlog` 의 무언가" 인지는 원리적으로 애매해 보이지만, git 은 `feat` 와
+    `feat/backlog` 를 **동시에 가질 수 없다** (ref 가 파일과 디렉터리로 충돌한다).
+    지금 그 브랜치에 서 있다는 사실이 애매함을 없앤다.
+    """
+    prefix = f"{active_rel}/{branch}/"
+    if not rel_path.startswith(prefix):
+        return False
+    rest = rel_path[len(prefix):].split("/", 1)[0]
+    return rest in MARKER_SEGMENTS
+
+
 def foreign_namespace_writes(
     changes: list[tuple[str, str]], *, branch: str, active_rel: str,
 ) -> list[str]:
@@ -125,6 +154,8 @@ def foreign_namespace_writes(
     offenders = []
     for status, path in changes:
         if status not in ("A", "M"):
+            continue
+        if is_own_namespace(path, branch=branch, active_rel=active_rel):
             continue
         ns = namespace_of(path, active_rel=active_rel)
         if ns is not None and ns != branch:
@@ -157,33 +188,62 @@ def _merge_base(repo: Path, default_branch: str) -> str | None:
     return None
 
 
+def _tokens(raw: str) -> list[str]:
+    """NUL 구분 출력 → 토큰 목록 (마지막 빈 토큰 제거)."""
+    return [t for t in raw.split("\0") if t != ""]
+
+
 def collect_changes(repo: Path, base: str) -> list[tuple[str, str]]:
     """`base`..HEAD 커밋 + 워킹 트리(미커밋·untracked) 를 합친 (status, path).
 
     커밋 전에도 지적하려면 워킹 트리를 함께 봐야 한다 — 커밋된 뒤에 알려주는
     가드는 이미 늦다.
+
+    **`-z` 로 읽는다.** 줄 단위 파싱은 두 군데서 조용히 틀렸다 (실측):
+
+    - 비ASCII 경로를 git 이 `"d/\\355\\225\\234…"` 로 **따옴표 이스케이프**한다.
+      선두 `"` 때문에 접두사 매칭이 빗나가 한글 파일명이 통째로 안 잡혔다.
+      이 저장소는 문서가 한국어라 실제로 밟을 수 있는 자리다.
+    - rename 은 porcelain 에서 한 줄에 `R  old -> new` 로 나온다. `line[3:]` 을
+      경로로 쓰면 `"old -> new"` 라는 없는 경로가 되어 **detection 이 통째로 샌다** —
+      남의 네임스페이스로 파일을 옮기는 것이 정확히 그 형태다.
+
+    `-z` 는 이스케이프를 하지 않고 rename 의 두 경로를 별도 토큰으로 준다.
     """
     changes: list[tuple[str, str]] = []
 
-    diff = _git(repo, "diff", "--name-status", base, "HEAD")
-    for line in diff.stdout.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        code = parts[0]
-        if code.startswith("R"):
-            # rename: 원본은 삭제, 목적지는 추가로 본다.
-            changes.append(("D", parts[1]))
-            changes.append(("A", parts[2]))
-        else:
-            changes.append((code[0], parts[1]))
+    # name-status -z: 비-rename 은 (code, path), rename/copy 는 (code, old, new).
+    tokens = _tokens(_git(repo, "diff", "--name-status", "-z", base, "HEAD").stdout)
+    idx = 0
+    while idx < len(tokens):
+        code = tokens[idx]
+        idx += 1
+        if code[:1] in ("R", "C") and idx + 1 < len(tokens):
+            # rename/copy: 원본은 삭제, 목적지는 추가로 본다.
+            changes.append(("D", tokens[idx]))
+            changes.append(("A", tokens[idx + 1]))
+            idx += 2
+        elif idx < len(tokens):
+            changes.append((code[:1], tokens[idx]))
+            idx += 1
 
-    porcelain = _git(repo, "status", "--porcelain", "--untracked-files=all")
-    for line in porcelain.stdout.splitlines():
-        if len(line) < 4:
+    # status --porcelain -z: `XY <path>` 토큰, rename 이면 원본 경로가 **다음 토큰**.
+    tokens = _tokens(_git(
+        repo, "status", "--porcelain", "-z", "--untracked-files=all",
+    ).stdout)
+    idx = 0
+    while idx < len(tokens):
+        entry = tokens[idx]
+        idx += 1
+        if len(entry) < 4:
             continue
-        code, path = line[:2], line[3:].strip()
-        if code == "??":
+        code, path = entry[:2], entry[3:]
+        if "R" in code or "C" in code:
+            if idx < len(tokens):
+                changes.append(("D", tokens[idx]))  # 원본
+                idx += 1
+            changes.append(("A", path))
+        elif code == "??":
             changes.append(("A", path))
         elif "D" in code:
             changes.append(("D", path))
@@ -454,6 +514,79 @@ def case_7_detached_head_is_loud(root: Path) -> None:
     assert verdict.errors == [], f"skip 인데 오류를 냈다: {verdict.errors}"
 
 
+def case_9_rename_into_foreign(root: Path) -> None:
+    """남의 네임스페이스로 **옮기는** 것도 추가다 (줄 단위 파싱이 놓치던 자리)."""
+    repo = root / "rename-in"
+    repo.mkdir(parents=True)
+    _init_repo(repo)
+    _seed_branch_memory(repo, "main")
+    _write(repo / "draft.md", "# 옮겨질 파일\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "main memory")
+    _git(repo, "push", "--quiet", "origin", "main")
+
+    _git(repo, "checkout", "--quiet", "-b", "feat/mover")
+    _seed_branch_memory(repo, "feat/mover")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "branch memory")
+    # 커밋하지 않은 채 남의 네임스페이스로 이동 (워킹 트리 rename)
+    moved = f"{ACTIVE_REL}/main/backlog/moved.md"
+    mv = _git(repo, "mv", "draft.md", moved)
+    assert mv.returncode == 0, f"fixture 의 git mv 가 실패했다: {mv.stderr}"
+
+    verdict = audit_repo(repo)
+    assert verdict.skipped is None, f"판정을 건너뛰었다: {verdict.skipped}"
+    offending = [e for e in verdict.errors if "moved.md" in e]
+    assert offending, f"rename 목적지를 못 잡았다: {verdict.errors}"
+
+
+def case_10_non_ascii_path(root: Path) -> None:
+    """한글 경로는 git 이 따옴표 이스케이프한다 — 그래도 잡혀야 한다."""
+    repo = root / "non-ascii"
+    repo.mkdir(parents=True)
+    _init_repo(repo)
+    _seed_branch_memory(repo, "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "main memory")
+    _git(repo, "push", "--quiet", "origin", "main")
+
+    _git(repo, "checkout", "--quiet", "-b", "feat/hangul")
+    _seed_branch_memory(repo, "feat/hangul")
+    _write(repo / ACTIVE_REL / "main" / "sessions" / "세션기록.md", "# 한글 파일명\n")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "work")
+
+    verdict = audit_repo(repo)
+    assert verdict.skipped is None, f"판정을 건너뛰었다: {verdict.skipped}"
+    assert any("세션기록.md" in e for e in verdict.errors), (
+        f"한글 경로를 못 잡았다 (따옴표 이스케이프 파싱 회귀): {verdict.errors}"
+    )
+
+
+def case_11_branch_name_contains_marker(root: Path) -> None:
+    """브랜치 이름에 marker segment 가 들면 자기 파일을 남의 것으로 지목하던 자리."""
+    assert namespace_of(f"{ACTIVE_REL}/feat/backlog/backlog/2026-01-01.md",
+                        active_rel=ACTIVE_REL) == "feat", (
+        "전제가 바뀌었다 — namespace_of 는 여전히 첫 marker 에서 멈춘다"
+    )
+    offenders = foreign_namespace_writes(
+        [("A", f"{ACTIVE_REL}/feat/backlog/backlog/2026-01-01.md"),
+         ("A", f"{ACTIVE_REL}/feat/backlog/sessions/s.md")],
+        branch="feat/backlog", active_rel=ACTIVE_REL,
+    )
+    assert offenders == [], f"자기 네임스페이스를 오탐했다: {offenders}"
+
+    # 반대 방향 — 브랜치 `feat` 에 서 있으면 그 경로는 자기 것이다 (git 은 `feat` 와
+    # `feat/backlog` 를 동시에 못 가진다). 그래도 *진짜* 남의 것은 잡아야 한다.
+    offenders = foreign_namespace_writes(
+        [("A", f"{ACTIVE_REL}/main/backlog/tasks/T.md")],
+        branch="feat/backlog", active_rel=ACTIVE_REL,
+    )
+    assert offenders == [f"{ACTIVE_REL}/main/backlog/tasks/T.md"], (
+        f"진짜 외부 경로를 놓쳤다: {offenders}"
+    )
+
+
 def case_8_self_application() -> str:
     verdict = audit_repo(REPO_ROOT)
     assert verdict.errors == [], (
@@ -472,9 +605,12 @@ def main() -> int:
         case_5_missing_branch_dir(root)
         case_6_healthy_branch_passes(root)
         case_7_detached_head_is_loud(root)
+        case_9_rename_into_foreign(root)
+        case_10_non_ascii_path(root)
+    case_11_branch_name_contains_marker(root)
     self_note = case_8_self_application()
     print(f"case 8 (자기 적용): {self_note}")
-    print("branch memory namespace check passed (8 cases)")
+    print("branch memory namespace check passed (11 cases)")
     return 0
 
 
@@ -512,6 +648,20 @@ def test_case_7() -> None:
 
 def test_case_8() -> None:
     case_8_self_application()
+
+
+def test_case_9() -> None:
+    with tempfile.TemporaryDirectory(prefix="check-branch-memory-ns-") as tmp:
+        case_9_rename_into_foreign(Path(tmp).resolve())
+
+
+def test_case_10() -> None:
+    with tempfile.TemporaryDirectory(prefix="check-branch-memory-ns-") as tmp:
+        case_10_non_ascii_path(Path(tmp).resolve())
+
+
+def test_case_11() -> None:
+    case_11_branch_name_contains_marker(Path("/nonexistent"))
 
 
 if __name__ == "__main__":

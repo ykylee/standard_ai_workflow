@@ -74,6 +74,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-13-main-006 PyPI 발행 정책 검토
 - TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행
 - TASK-2026-08-13-main-003 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략
 - TASK-2026-08-13-main-002 bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신

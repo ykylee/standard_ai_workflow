@@ -9,10 +9,10 @@ Test 구성 (8 test):
 1. validate --json output: 4 source 결과 dict
 2. version-bump --patch dry-run: current 0.7.8 → next 0.7.9
 3. version-bump --to=0.8.0 dry-run: 명시 버전 적용
-4. version-bump apply: pyproject.toml 실제 갱신 + restore
+4. version-bump apply: 저장소 사본(sandbox)에서 실제 갱신 검증 — 원본 무접촉
 5. note-draft dry-run: output_path + commits count
-6. note-draft apply: 파일 생성 + 내용 검증
-7. parse_version: '0.7.8' / '0.7.8-beta' 정합
+6. parse_version: 'X.Y.Z' / 'X.Y.Z-suffix' 정합
+7. bump_version: major / minor / patch / to 분기
 8. main CLI: --dry-run / --apply / subcommand help
 
 Reference:
@@ -91,34 +91,48 @@ def test_version_bump_to_explicit() -> None:
     assert result["next_pyproject"] == "0.8.0"
 
 
-# --- Test 4: version-bump apply + restore ---
+# --- Test 4: version-bump apply (sandbox — 원본 무접촉) ---
 
 
-def test_version_bump_apply_and_restore() -> None:
-    """--apply 시 pyproject.toml 실제 갱신, 원복 후 정합."""
-    mod = _import_tool()
-    original = mod.read_version()
-    original_init = mod.read_workflow_kit_version()
-    try:
-        # 0.7.8 → 0.7.9 patch
-        # skip_sync_hash=True: 본 test 는 pyproject/__init__ 갱신만 검증한다. post-step 을
-        # 켜면 *실제 repo* 의 HEAD commit 이 `git commit --amend` 되어 작업물이 흡수된다
-        # (v1.0.0 amend guard 참조). 검증 의도와 무관한 파괴적 부작용이므로 끈다.
-        result = mod.cmd_version_bump(type("Args", (), {"patch": True, "minor": False, "major": False, "to": None, "dry_run": False, "apply": True, "no_init": False, "skip_sync_hash": True})())
+def test_version_bump_apply_in_sandbox() -> None:
+    """--apply 는 저장소 **사본**에서 검증한다 (TASK-2026-08-13-main-001).
+
+    이전 형태는 원본 pyproject 를 bump 했다가 finally 로 되돌렸다. **되돌리는 것은
+    안 건드리는 것이 아니다**: 왕복 86ms 동안 병렬 검사와 다른 에이전트는 틀린
+    버전을 읽고 (mypy 는 시작 시 pyproject 를 config 로 읽는다 — CI native 셀
+    exit 2 flake 의 유력 원인, TASK-2026-08-13-main-004), 프로세스가 죽으면
+    복원되지 않는다. watch_transient_writer 실측으로 이 test 가 전량 중 유일한
+    원본 pyproject writer 였음을 확인하고 sandbox 로 옮겼다.
+
+    skip-sync-hash: post-step 을 켜면 git amend 가 필요한데 sandbox 는 `.git` 없이
+    복사된다 (본 test 의 검증 대상은 pyproject/__init__ 갱신뿐이다).
+    """
+    from _repo_sandbox import repo_sandbox
+
+    origin_before = PYPROJECT.read_bytes()
+    version_re = re.compile(r'^version\s*=\s*"([^"]+)"', re.M)
+    with repo_sandbox(SOURCE_ROOT.parent) as sandbox:
+        src = sandbox / "workflow-source"
+        before = version_re.search((src / "pyproject.toml").read_text(encoding="utf-8")).group(1)
+        proc = subprocess.run(
+            [sys.executable, str(src / "workflow_kit" / "tools" / "release_pipeline.py"),
+             "version-bump", "--patch", "--apply", "--skip-sync-hash", "--json"],
+            capture_output=True, text=True, timeout=60, cwd=str(sandbox),
+        )
+        assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
+        result = json.loads(proc.stdout)
         assert result["mode"] == "applied"
-        assert result["previous_pyproject"] == original
-        assert result["current_pyproject"] != original
-        # file 갱신 검증
-        assert mod.read_version() == result["current_pyproject"]
-        # __init__.py 도 auto-sync 검증
+        assert result["previous_pyproject"] == before
+        assert result["current_pyproject"] != before
+        # 사본 파일 갱신 검증
+        after = version_re.search((src / "pyproject.toml").read_text(encoding="utf-8")).group(1)
+        assert after == result["current_pyproject"]
+        # __init__.py auto-sync 검증
         assert "current_workflow_kit" in result
-        assert mod.read_workflow_kit_version() == result["current_workflow_kit"]
-    finally:
-        # restore (pyproject + __init__.py)
-        mod.write_version(original)
-        mod.write_workflow_kit_version(original.lstrip("v").split("-")[0] if original.startswith("v") else original.split("-")[0])
-        assert mod.read_version() == original
-        assert mod.read_workflow_kit_version() == original_init
+        init_text = (src / "workflow_kit" / "__init__.py").read_text(encoding="utf-8")
+        assert result["current_workflow_kit"] in init_text
+    # 원본은 내내 그대로여야 한다 — 이 단언이 깨지면 sandbox 이관이 무력화된 것이다.
+    assert PYPROJECT.read_bytes() == origin_before, "원본 pyproject 가 변경됐다"
 
 
 def test_note_draft_dry_run() -> None:
@@ -191,7 +205,7 @@ def main() -> int:
         test_validate_json_output,
         test_version_bump_patch_dry_run,
         test_version_bump_to_explicit,
-        test_version_bump_apply_and_restore,
+        test_version_bump_apply_in_sandbox,
         test_note_draft_dry_run,
         test_parse_version_formats,
         test_bump_version_logic,

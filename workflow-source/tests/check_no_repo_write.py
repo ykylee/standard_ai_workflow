@@ -74,6 +74,14 @@ WATCHED_CHECKS = (
     "check_release_pipeline_version_auto_sync.py",   # pyproject / __init__ (--apply)
     "check_self_recovering_v0_13_2.py",              # README / pyproject / __init__ (drift 주입)
     "check_release_pipeline_phase3.py",              # dist 실빌드 산출물
+    # v1.1.9(TASK-2026-08-13-main-001): 원본 pyproject 를 bump 했다 되돌리던 마지막
+    # writer (watch_transient_writer 실측으로 전량 중 유일한 왕복이었다) 를 사본으로
+    # 이관. 되돌리는 구현으로 회귀하면 실행-중 폴링이 왕복을 잡는다.
+    "check_release_pipeline.py",                     # version-bump --apply (sandbox 이관)
+    # v1.1.9(TASK-2026-08-13-main-001): P4 에서 plugin/ manifest 3장이 sandbox 실행에
+    # 원본째 덮인 사고 계열 (case 13 이 뿌리를 막았고, 여기는 이중 방어).
+    # plugin/ 산출물은 전부 git 추적이므로 이 검사의 porcelain/digest 감시 범위다.
+    "check_agent_plugin_payload.py",                 # plugin/ + .claude-plugin/ byte 대조 + 되주입
 )
 
 CHECK_TIMEOUT_SEC = 300

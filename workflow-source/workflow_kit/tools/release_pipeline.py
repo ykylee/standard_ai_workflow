@@ -282,6 +282,19 @@ def cmd_validate(args) -> dict:
                 "first_error": first_error,
                 "config_file": mypy_config,
             }
+            if mypy_proc.returncode != 0 and not error_lines:
+                # **exit != 0 인데 셀 오류가 0건** — mypy 의 blocking error 다 (exit 2).
+                # 그 사유는 stderr 로 나오고 위 필터(`.py:` + `error:`)에 안 걸리므로,
+                # 담지 않으면 판정 결과가 `0 errors 인데 실패` 한 줄로 남아 **진단이
+                # 불가능**해진다. 실제로 그 모양의 flake 가 4번 터지는 동안(2026-08-11~13)
+                # 원인을 좁히지 못했다 (TASK-2026-08-13-main-004). CI 로그는 만료되고
+                # annotation 에는 검사 이름도 안 실린다 — 증거를 여기서 들고 있어야 한다.
+                results["mypy"]["stderr_tail"] = "\n".join(
+                    mypy_proc.stderr.strip().splitlines()[-20:]
+                )
+                results["mypy"]["stdout_tail"] = "\n".join(
+                    mypy_proc.stdout.strip().splitlines()[-20:]
+                )
             # v1.1.4: `-m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라
             # rc 1 + stderr 로 죽는다 — 아래 except 분기는 이 호출 형태에서는
             # 절대 타지 않았고, "mypy 가 오류를 찾음" 과 "mypy 실행 불가" 가

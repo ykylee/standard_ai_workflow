@@ -1,0 +1,10 @@
+{
+  "branch": "feat/plugin-harness-distribution",
+  "archived_at": "2026-08-13",
+  "merge_commit": "32c31de67a021b3fd9d8e2a43dd76be90e4b7c77",
+  "task_ids": [
+    "TASK-2026-08-13-feat-plugin-harness-distribution-001"
+  ],
+  "task_count": 1,
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

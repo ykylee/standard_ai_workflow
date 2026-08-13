@@ -156,9 +156,66 @@ C 는 권하지 않는다 — 선점 이득보다 "빈 패키지를 영구히 �
    - 첫 발행은 **낮은 위험 버전**으로 (예: 다음 patch) — 첫 업로드에서 메타 결함이
      드러나도 소각되는 번호가 최신 minor 가 아니게 한다.
 
+## 6.1 TestPyPI 리허설 결과 (2026-08-13, TASK-2026-08-13-main-008)
+
+소유자 지시로 리허설에 착수했다. **업로드 직전까지의 검증은 전부 통과**했고,
+업로드 자체는 자격 증명 부재로 **미실행**이다 (status: blocked).
+
+| 검증 | 방법 | 결과 |
+|---|---|---|
+| README 렌더링 (PyPI 거부 1순위) | `twine check --strict` (twine 6.2.0) | whl·sdist **PASSED** |
+| 메타데이터 완결성 | wheel METADATA 실측 | Name/Version/Summary/3 Project-URL/`Description-Content-Type: text/markdown`/의존 12줄 |
+| **이름으로** 인덱스 해석 | `pip install --find-links dist --extra-index-url pypi.org/simple "standard-ai-workflow==1.2.0"` | 정상 (파일 경로가 아니라 **이름** 해석 경로 — TestPyPI 소비자와 같은 축) |
+| extras 해석 | 같은 방식 `[mcp-sdk]` | 정상 (mcp 2.0.0 해석 + 브리지 import) |
+| 라이선스 동봉 | 설치본 metadata `files` | `…dist-info/licenses/LICENSE` |
+| 진입점 | 격리 venv `wk --help` | 정상 |
+| **PEP 639 서버 수용** | pypi.org JSON API 실측 | Warehouse 가 `license_expression`/`license_files` 를 **서빙한다** → Metadata 2.4 아티팩트 수용됨 |
+| 업로드 엔드포인트 | `https://test.pypi.org/legacy/` | HTTP 200 |
+
+**남은 두 가지 — 둘 다 소유자만 할 수 있다.**
+
+1. **TestPyPI API 토큰.** 이 환경에 자격 증명이 없다 (`~/.pypirc` 부재,
+   `TWINE_*`/`UV_PUBLISH_TOKEN` 전부 미설정). 토큰은
+   <https://test.pypi.org/manage/account/token/> 에서 발급한다.
+   ⚠️ **토큰을 에이전트 세션에 붙여넣지 말 것** — 세션 기록에 남는다.
+   본인 터미널에서 실행하거나 `~/.pypirc` (chmod 600) 에 둔다.
+
+   ```bash
+   cd /home/yklee/repos/standard_ai_workflow/workflow-source
+   TWINE_USERNAME=__token__ TWINE_PASSWORD='<TestPyPI 토큰>' \
+     ../.venv/bin/python -m twine upload \
+       --repository-url https://test.pypi.org/legacy/ \
+       dist/standard_ai_workflow-1.2.0-py3-none-any.whl \
+       dist/standard_ai_workflow-1.2.0.tar.gz
+   ```
+
+   업로드 후 소비자 경로 확인 (TestPyPI 에는 pydantic/anyio 가 없으므로
+   `--extra-index-url` 이 **필수**다 — 이번 리허설에서 같은 해석 동학을 실측했다):
+
+   ```bash
+   python3 -m venv /tmp/tpy && /tmp/tpy/bin/pip install \
+     --index-url https://test.pypi.org/simple/ \
+     --extra-index-url https://pypi.org/simple \
+     "standard-ai-workflow==1.2.0"
+   /tmp/tpy/bin/wk --help
+   ```
+
+2. **정책 행 처리.** [`../RELEASE.md`](../RELEASE.md) §1 은 지금 **TestPyPI ❌
+   사용 안 함**이라고 선언한다. 리허설을 실행하면 그 선언이 곧바로 사실과
+   어긋난다 — §4 에서 고친 것과 **같은 종류의 결함**을 다시 만드는 셈이다.
+   업로드 전에 §1 의 TestPyPI 행을 소유자가 정한다:
+   *(a)* "리허설 목적 1회 허용 (2026-08-13 승인)" 로 각주,
+   *(b)* "✅ 리허설 채널" 로 상태 변경,
+   *(c)* 리허설을 하지 않는다.
+
+**비가역성 주의**: TestPyPI 도 같은 (이름, 버전, 파일명) 재업로드가 불가하다.
+`1.2.0` 을 올리면 TestPyPI 에서 그 번호는 소각된다 (실사용 PyPI 이름 예약과는
+무관 — 별개 인덱스다). 결함이 발견되면 다음 번호로 다시 리허설한다.
+
 ## 7. 이번에 하지 않은 것
 
 - **PyPI/TestPyPI 실업로드** — 하지 않았다. 발행은 소유자 결정이고 비가역이다.
+  TestPyPI 리허설은 §6.1 대로 **업로드 직전까지** 진행했고 업로드만 남았다.
 - §2 결함 3건의 수리 — 본 검토는 판정까지다. 수리는 별건 task 로 등록한다.
 - Trusted Publishing 워크플로 작성 — 발행 결정 이후의 일.
 - `wk` 콘솔 스크립트 이름 충돌 조사 — PyPI 에 `wk` 라는 **별개 패키지**가 존재한다

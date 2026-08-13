@@ -163,7 +163,7 @@ python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크>
 > 직접 지목하는 검사가 아직 없고, 3개 검사의 간접 증상으로만 드러난다.
 
 `check_branch_memory_namespace` 신설로 닫혔다
-([TASK-2026-08-13-fix-branch-memory-namespace-guard-001](../../../active/fix/branch-memory-namespace-guard/backlog/tasks/TASK-2026-08-13-fix-branch-memory-namespace-guard-001.md)).
+([TASK-2026-08-13-fix-branch-memory-namespace-guard-001](../../../fix/branch-memory-namespace-guard/backlog/tasks/TASK-2026-08-13-fix-branch-memory-namespace-guard-001.md)).
 구멍이 하나가 아니라 둘이었다 — (A) 작업 브랜치가 **다른 브랜치 네임스페이스에
 추가/수정**(원인), (B) `active/<branch>/` **부재**(결과). §4 의 case 7 은 병합 *뒤*
 흔적만 잡으므로, 브랜치에서 일하는 동안에는 여전히 아무도 지적하지 않았다.

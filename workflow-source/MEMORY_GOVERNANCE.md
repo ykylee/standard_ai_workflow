@@ -226,6 +226,17 @@ ai-workflow/memory/
   손 편집으로 도망가게 된다). `session-start` / `refresh-state` 는 부재를 warning 으로만
   알린다. 삭제는 예외 — 아카이브 piggyback 이 남의 경로를 지우는 것은 정본 절차다.
   강제: `tests/check_branch_memory_namespace.py`.
+- **아카이브는 이동이 아니라 이관이다**: 브랜치 메모리를 `archived/` 로 옮길 때 두 가지가
+  함께 일어나야 한다. ①**미완료 task 는 먼저 처리한다** — `archived/` 는 어떤 집계도 읽지
+  않으므로(state 생성기·dashboard 모두 `active/` 만 훑는다) 미완료인 채로 넘어가면 **소실**
+  된다. `wk archive-branch-memory` 는 미완료가 있으면 **막는다**. main 네임스페이스로
+  이월했으면 원본 task 에 `carried_over_to: <새 ID>` 를 적는다 — 브랜치는 끝났는데 일이 안
+  끝난 경우에 `done` 으로 적는 것은 거짓이므로, 진행 상태와 이관 사실은 **다른 축**이다
+  (§2.39 와 같은 원칙). 의도적으로 넘기려면 `--allow-open-tasks` (그 사실이
+  `.archived.json` 의 `open_task_ids` 에 남는다). ②**참조를 함께 옮긴다** — 도구가
+  markdown 링크(상대 경로 포함)와 `state.json` 의 경로를 새 위치로 재작성한다. 실측
+  2026-08-13: 이 단계가 없어 아카이브 문서 22개 중 12개가 깨진 링크를, `state.json` 5개
+  경로가 사라진 `active/…` 를 들고 있었다. 강제: `tests/check_archive_history_integrity.py`.
 - **자동 아카이브**: `active/<branch>/` 가 있는데 git 에 그 브랜치가 없으면 종료로 보고
   `archived/<branch>/` 로 옮긴다(역방향 점검 — hook 은 브랜치 삭제를 못 잡는다). 고아
   디렉터리가 구조적으로 생길 수 없다. 도구는 commit/push 를 하지 않으므로 **protected main

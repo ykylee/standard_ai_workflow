@@ -174,7 +174,14 @@ def _seed_branch(memory_root: Path, branch: str) -> None:
     slug = _backlog_mod().branch_slug(branch)
     d = memory_root / "active" / branch / "backlog" / "tasks"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"TASK-2026-07-21-{slug}-001.md").write_text("# t\n", encoding="utf-8")
+    # **`status: done` 은 fixture 의 장식이 아니다.** 아카이브는 미완료 task 가 있으면
+    # 막는다 (소실 방지 — `archive_branch_memory.open_tasks`). status 를 안 적으면
+    # "판정 근거 없음" 이라 미완료로 세이므로, 종료된 브랜치를 흉내 내려면 끝난 것으로
+    # 적어야 한다. 이전 fixture 는 `# t` 한 줄이라 차단 규칙이 생기자 여기가 깨졌다.
+    (d / f"TASK-2026-07-21-{slug}-001.md").write_text(
+        "---\nid: TASK-2026-07-21-{slug}-001\nstatus: done\n---\n\n# t\n".format(slug=slug),
+        encoding="utf-8",
+    )
 
 
 def case_6_detect_dead_branch() -> bool:

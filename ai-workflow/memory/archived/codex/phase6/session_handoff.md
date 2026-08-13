@@ -5,7 +5,7 @@
 - Audience: AI agents, maintainers
 - Status: done
 - Updated: 2026-05-01
-- Related docs: [./state.json](./state.json), [../../gemini/phase10/work_backlog.md](../../gemini/phase10/work_backlog.md), [./backlog/2026-05-01.md](./backlog/2026-05-01.md)
+- Related docs: [./state.json](./state.json), `gemini/phase10/work_backlog.md` (삭제됨 — 2026-08-11 아카이브 정리, TASK-2026-08-11-main-003), [./backlog/2026-05-01.md](./backlog/2026-05-01.md)
 
 - Branch: `codex/phase6`
 - Updated: `2026-05-01`

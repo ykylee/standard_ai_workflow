@@ -5,12 +5,12 @@
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/feat/plugin-harness-distribution/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/feat/plugin-harness-distribution/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog",
-    "tasks_dir": "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/feat/plugin-harness-distribution/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog/2026-08-13.md",
+    "daily_backlog_dir": "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog",
+    "tasks_dir": "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/archived/feat/plugin-harness-distribution/sessions",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog/2026-08-13.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -39,7 +39,7 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog/2026-08-13.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog/2026-08-13.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
@@ -49,12 +49,12 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/session_handoff.md",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog/2026-08-13.md",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/state.json",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/backlog",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/sessions",
-    "ai-workflow/memory/active/feat/plugin-harness-distribution/sessions/plugin_harness_distribution_pr23_2026-08-13.md"
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/session_handoff.md",
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog/2026-08-13.md",
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/state.json",
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/backlog",
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/sessions",
+    "ai-workflow/memory/archived/feat/plugin-harness-distribution/sessions/plugin_harness_distribution_pr23_2026-08-13.md"
   ],
   "repository_assessment": {
     "path": null,

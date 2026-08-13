@@ -36,6 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
 
 # task ID 패턴은 project_docs 가 단일 출처 — 여기서 따로 들고 있으면 갈라진다.
+from workflow_kit.common.paths import branch_for_workspace  # noqa: E402
 from workflow_kit.common.project_docs import TASK_ID_PATTERN, TASK_STATUSES  # noqa: E402
 
 ACTIVE_DIR = REPO_ROOT / "ai-workflow" / "memory" / "active"
@@ -46,9 +47,16 @@ def _resolve_layout_root() -> Path:
 
     메모리는 `active/<branch>/` 로 분리되므로 layout 은 그 하위에 있다. 아직
     마이그레이션하지 않은 저장소(`active/backlog` 가 직접 존재)는 legacy 로 취급한다.
+
+    **현재 브랜치를 먼저 겨눈다.** 브랜치 디렉터리가 둘 이상이면 (작업 브랜치가
+    자기 것을 갖는 정상 상태) 아래 scan 은 알파벳 첫 번째를 잡는다 — 검증 대상이
+    브랜치 이름에 따라 조용히 바뀐다. 이름 순서가 답을 바꾸면 안 된다.
     """
     if (ACTIVE_DIR / "backlog").is_dir():
         return ACTIVE_DIR
+    current = ACTIVE_DIR / branch_for_workspace(REPO_ROOT)
+    if (current / "backlog").is_dir():
+        return current
     for cand in sorted(ACTIVE_DIR.rglob("*")):
         if cand.is_dir() and (cand / "backlog").is_dir():
             return cand

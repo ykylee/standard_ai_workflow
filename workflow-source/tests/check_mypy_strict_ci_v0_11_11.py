@@ -187,9 +187,26 @@ def test_mypy_strict_ci_v0_11_11() -> None:
         if ci_errors:
             for err in ci_errors[:5]:
                 print(f"    {err}")
+        # 실패 메시지에 **mypy 자신의 말**을 싣는다 (TASK-2026-08-13-main-004).
+        #
+        # 이 게이트는 flake 로 4번 터졌는데 (2026-08-11 ~ 08-13) 그때마다 남은 기록은
+        # `exit 2 (0 errors in workflow_kit/)` 한 줄뿐이었다. exit 2 는 mypy 의
+        # **blocking error** 이고 그 사유는 stderr 로 나오는데, 위 `ci_errors` 필터는
+        # stdout 에서 `.py:` + `error:` 형태만 세므로 blocking error 는 어디에도 안
+        # 남는다. 즉 **진단에 필요한 유일한 증거를 버리고** 재발 관찰만 반복했다.
+        # CI 로그는 만료되고 annotation 에는 검사 이름조차 안 실린다 (2026-08-13 실측:
+        # annotation 은 "Process completed with exit code 1" 뿐) — 그러니 실패 메시지가
+        # 증거를 들고 있지 않으면 그 사건은 영영 진단 불가가 된다.
+        #
+        # 유력 가설(미확정): 전량은 병렬이라 다른 check 가 스캔 대상 아래에 파일을
+        # 잠깐 만들었다 지우면, mypy 가 나열한 파일을 읽는 순간 사라져 blocking error
+        # 가 된다 ("can't read file"). 다음 재발의 stderr 가 이 가설을 판정한다.
         assert result_ci.returncode == 0, (
             f"CI mypy invocation exit {result_ci.returncode} "
-            f"({len(ci_errors)} errors in workflow_kit/)"
+            f"({len(ci_errors)} errors in workflow_kit/)\n"
+            f"--- stderr ---\n{result_ci.stderr.strip() or '(비어 있음)'}\n"
+            f"--- stdout (마지막 20줄) ---\n"
+            + "\n".join(result_ci.stdout.splitlines()[-20:])
         )
         print(f"  case 8 (CI mypy invocation exit 0, {len(ci_errors)} errors): PASS")
     except FileNotFoundError:

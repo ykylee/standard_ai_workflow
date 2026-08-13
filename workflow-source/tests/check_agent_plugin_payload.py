@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (13 case)
+## 판정 규칙 (15 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -39,6 +39,10 @@
     문장인데 아무 검사도 보고 있지 않았다 (session-end 추가 시 실측).
 13. **판정 대상이 작업 트리다** — 모듈이 로드된 위치를 보면 사본을 릴리스하며
     원본의 정합을 확인하게 된다 (P4 구현 중 실제로 냈던 사고의 뿌리).
+14. **Gemini 어댑터가 로드되는 형태다** — `gemini extensions list` 실측(0.42.0)이
+    못박은 계약 (manifest 5필드 고정, 컨텍스트 = 진입점 규칙 파생, MCP 파생).
+15. **goose/OpenCode snippet 이 방언 상수 파생이다** — 최상위 키·command 를 손으로
+    적으면 그 사본만 낡는다. goose 는 실기 검증 미완 표기를 강제한다.
 
 **한계**: Agent Plugins 1.0 의 선택 필드 전체 스펙은 아직 원문 확인이 안 됐다
 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드(name/version/description)를
@@ -67,7 +71,11 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
     CLAUDE_CODE_MCP_RELPATH,
+    GEMINI_CONTEXT_RELPATH,
+    GEMINI_MANIFEST_RELPATH,
+    GOOSE_SNIPPET_RELPATH,
     MARKETPLACE_RELPATH,
+    OPENCODE_SNIPPET_RELPATH,
     PAYLOAD_DIRNAME,
     PLUGIN_NAME,
     PLUGIN_SKILLS,
@@ -404,10 +412,12 @@ def test_marketplace_manifest() -> None:
     )
 
 
-#: 버전 문자열을 **복사해 담는** 산출물. bump 를 따라가야 하는 것이 정확히 이 3장이다.
+#: 버전 문자열을 **복사해 담는** 산출물. bump 를 따라가야 하는 것이 정확히 이 4장이다
+#: (P3 에서 gemini-extension.json 이 넷째로 합류했다).
 VERSION_BEARING_RELPATHS = (
     f"{PAYLOAD_DIRNAME}/plugin.json",
     f"{PAYLOAD_DIRNAME}/{CLAUDE_CODE_MANIFEST_RELPATH}",
+    f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}",
     MARKETPLACE_RELPATH,
 )
 
@@ -554,10 +564,12 @@ def test_descriptions_count_skills() -> None:
     files = render_repo_plugin_files()
     manifest = json.loads(files[f"{PAYLOAD_DIRNAME}/plugin.json"])
     market_entry = json.loads(files[MARKETPLACE_RELPATH])
+    gemini = json.loads(files[f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}"])
     targets = {
         "plugin.json description": manifest["description"],
         "marketplace description": market_entry["description"],
         "marketplace plugins[0].description": market_entry["plugins"][0]["description"],
+        "gemini-extension.json description": gemini["description"],
     }
     problems: list[str] = []
     for label, text in targets.items():
@@ -632,6 +644,135 @@ def test_status_targets_working_tree() -> None:
     )
 
 
+def test_gemini_adapter() -> None:
+    """14) Gemini 어댑터가 **로드되는 형태**인가 (gemini 0.42.0 실측으로 고정한 계약).
+
+    `gemini extensions link` 후 `extensions list` 인벤토리 실측이 못박은 것:
+    확장 루트 = payload 루트일 때 Context files(GEMINI.md) + MCP servers +
+    Agent skills 4종이 전부 잡힌다. 이 case 는 그 형태를 고정한다:
+
+    - manifest 필드 5개 고정 (validate 로 확인 안 된 필드를 지어 넣으면 FAIL)
+    - `contextFileName` 이 가리키는 파일이 payload 에 실재하고, 내용이
+      진입점 규칙 블록(`render_entrypoint_rules`) **그 자체**를 담는다 —
+      채널이 둘이어도 규칙 정본은 하나다.
+    - mcpServers 는 read-only bundle 하나, command 는 `mcp_server_command` 파생,
+      `PYTHONPATH` 금지 (체크아웃 전제 금지 — 계획 원칙 4).
+    """
+    from workflow_kit.bootstrap_lib.mcp import (
+        MCP_SERVER_ALIAS,
+        MCP_WRITE_SERVER_ALIAS,
+        mcp_server_command,
+    )
+    from workflow_kit.common.standard_rules import render_entrypoint_rules
+
+    rules = load_standard_rules(SOURCE_ROOT)
+    payload = render_agent_plugin(rules)
+    problems: list[str] = []
+
+    manifest = json.loads(payload[GEMINI_MANIFEST_RELPATH])
+    expected_fields = {"name", "version", "description", "contextFileName", "mcpServers"}
+    if set(manifest) != expected_fields:
+        problems.append(
+            f"필드 집합 {sorted(manifest)} != 실측 계약 {sorted(expected_fields)}"
+        )
+    if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != KIT_VERSION:
+        problems.append(f"name/version 불일치: {manifest.get('name')} {manifest.get('version')}")
+    if manifest.get("contextFileName") != GEMINI_CONTEXT_RELPATH:
+        problems.append(f"contextFileName {manifest.get('contextFileName')!r} != {GEMINI_CONTEXT_RELPATH!r}")
+
+    context = payload.get(GEMINI_CONTEXT_RELPATH, "")
+    if render_entrypoint_rules(rules) not in context:
+        problems.append(
+            f"{GEMINI_CONTEXT_RELPATH} 가 진입점 규칙 블록을 담지 않는다 — "
+            "상시 주입 채널이 정본과 갈라졌다"
+        )
+
+    servers = manifest.get("mcpServers", {})
+    if set(servers) != {MCP_SERVER_ALIAS}:
+        problems.append(f"mcpServers alias {sorted(servers)} != {{{MCP_SERVER_ALIAS}}}")
+    if MCP_WRITE_SERVER_ALIAS in servers:
+        problems.append(f"write bundle({MCP_WRITE_SERVER_ALIAS}) 이 실렸다 — opt-in 이다 (ADR-003)")
+    entry = servers.get(MCP_SERVER_ALIAS, {})
+    expected_cmd = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    if [entry.get("command"), *entry.get("args", [])] != expected_cmd:
+        problems.append(f"command/args 가 mcp_server_command 파생이 아니다: {entry.get('args')}")
+    if "PYTHONPATH" in entry.get("env", {}):
+        problems.append("env 에 PYTHONPATH — 플러그인은 체크아웃 구조를 모른다 (원칙 4)")
+
+    _record(
+        "test_gemini_adapter",
+        not problems,
+        "; ".join(problems[:4])
+        if problems
+        else "manifest 5필드 + 컨텍스트 = 진입점 규칙 파생 + MCP 파생",
+    )
+
+
+def test_goose_opencode_snippets() -> None:
+    """15) goose / OpenCode snippet 이 방언 상수·registry 파생인가.
+
+    두 하네스는 스킬을 `.agents/skills/` 에서 직접 읽으므로 어댑터가 나를 것은
+    MCP 등록뿐이다. snippet 이 각자 command 를 조립하면 entry-point 개명 시 일부
+    사본만 낡는다 — OpenCode 최상위 키는 `MCP_CONFIG_ROOT_KEY` 파생이어야 한다
+    (예시 스크립트가 `mcp_servers` 를 잘못 가르치던 실측 사고의 재발 방지).
+
+    goose snippet 은 실기 검증 미완이다 (goose CLI 부재 환경) — 그 사실이 snippet
+    주석에 남아 있는지도 본다. 검증 안 된 산출물이 검증된 얼굴을 하면 안 된다.
+    """
+    from workflow_kit.bootstrap_lib.mcp import (
+        MCP_CONFIG_ROOT_KEY,
+        MCP_SERVER_ALIAS,
+        mcp_server_command,
+    )
+
+    payload = render_agent_plugin()
+    expected_cmd = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    problems: list[str] = []
+
+    opencode = json.loads(payload[OPENCODE_SNIPPET_RELPATH])
+    root_key = MCP_CONFIG_ROOT_KEY["opencode"]
+    if set(opencode) != {root_key}:
+        problems.append(f"opencode 최상위 키 {sorted(opencode)} != {{{root_key!r}}} (방언 상수 파생)")
+    oc_entry = opencode.get(root_key, {}).get(MCP_SERVER_ALIAS, {})
+    if not oc_entry:
+        problems.append(f"opencode snippet 에 {MCP_SERVER_ALIAS} 항목이 없다")
+    else:
+        # opencode 1.17.12 실측 계약: command 는 배열 전체, enabled 필수,
+        # env 키는 `environment`. (문자열 command + args 분리형은 거부된다.)
+        if oc_entry.get("command") != expected_cmd:
+            problems.append(f"opencode command 가 배열 파생이 아니다: {oc_entry.get('command')}")
+        if oc_entry.get("enabled") is not True:
+            problems.append("opencode enabled 누락 — 1.17.12 가 Missing key 로 거부한다")
+        if "env" in oc_entry:
+            problems.append("opencode 는 env 가 아니라 environment 를 쓴다 (실측)")
+        if "PYTHONPATH" in oc_entry.get("environment", {}):
+            problems.append("opencode environment 에 PYTHONPATH — 체크아웃 전제 금지 (원칙 4)")
+
+    goose_text = payload[GOOSE_SNIPPET_RELPATH]
+    yaml = _yaml()
+    if yaml is None:
+        problems.append("PyYAML 부재 — goose snippet 을 파싱하지 못한다")
+    else:
+        goose = yaml.safe_load(goose_text)
+        entry = (goose or {}).get("extensions", {}).get(MCP_SERVER_ALIAS, {})
+        if not entry:
+            problems.append(f"goose snippet 에 extensions.{MCP_SERVER_ALIAS} 가 없다")
+        elif [entry.get("cmd"), *entry.get("args", [])] != expected_cmd:
+            problems.append(f"goose cmd/args 가 파생이 아니다: {entry.get('args')}")
+        if "PYTHONPATH" in (entry.get("envs") or {}):
+            problems.append("goose envs 에 PYTHONPATH — 체크아웃 전제 금지 (원칙 4)")
+    if "실기 검증 미완" not in goose_text:
+        problems.append("goose snippet 에 실기 검증 미완 표기가 없다 — 미검증을 침묵시키지 않는다")
+
+    _record(
+        "test_goose_opencode_snippets",
+        not problems,
+        "; ".join(problems[:4])
+        if problems
+        else "snippet 2장 전부 방언 상수·command 파생 + 미검증 표기",
+    )
+
+
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
@@ -646,7 +787,9 @@ def main() -> int:
     test_release_gate_catches_plugin_drift()
     test_descriptions_count_skills()
     test_status_targets_working_tree()
-    total = 13
+    test_gemini_adapter()
+    test_goose_opencode_snippets()
+    total = 15
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

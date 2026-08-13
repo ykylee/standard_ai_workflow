@@ -3,8 +3,8 @@
 - 문서 목적: 표준 AI 워크플로우의 배포 전략을 **플러그인 배포 중심**으로 전환하는 실행 계획 — 전환 원칙, 단계별 로드맵 (P1~P5), WBS, 완료 기준을 확정한다 (TASK-2026-08-12-main-013, 사용자 지시).
 - 범위: TASK-011 (Claude Code 플러그인 검토) + TASK-012 (멀티 하네스 공유 검토) 의 권고를 실행 계획으로 통합. 구현은 본 계획의 WBS task 들 (TASK-014~018) 로 수행한다.
 - 대상 독자: maintainer, 배포 정책 소유자, 구현 담당 AI agent
-- 상태: 실행 중 — **P1·P2·P4 완료** (TASK-014·015·017, 2026-08-12), P3·P5 planned
-- 최종 수정일: 2026-08-12
+- 상태: 실행 중 — **P1·P2·P3·P4 완료** (TASK-014·015·016·017, 2026-08-12~13), P5 planned
+- 최종 수정일: 2026-08-13
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [multi-harness-plugin-review-2026-08.md](./multi-harness-plugin-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md), [workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md)
 
 ## 1. 전환 목표와 원칙
@@ -152,6 +152,54 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
   경로 — bootstrap 스킬 emit 위치를 여기로 수렴할지 판정 (Claude Code 의
   `.agents/skills/` 판독 여부 실측 포함)
 
+**P3 실행 결과 (2026-08-13, TASK-016)** — 어댑터 3장 전부 렌더러 생성물로 편입,
+검사 13 → **15 case** (되주입 3종 실증: contextFileName 오염 / OpenCode 방언 키
+오염 / GEMINI.md 규칙 블록 제거). 실측이 계획을 두 번, bootstrap 을 한 번 고쳤다.
+
+1. **Gemini 도 확장 루트 = payload 루트다.** gemini 0.42.0 실측
+   (`extensions new` 보일러플레이트 → `validate` → `link` → `list` 인벤토리):
+   확장 루트의 `skills/` 관례 경로를 무변환으로 읽어 **payload 스킬 4종이 그대로
+   인벤토리에 잡혔다.** 어댑터를 하위 디렉터리에 두면 이 공유가 깨진다 — Claude
+   Code 와 정확히 같은 결론, 다른 이유 (path traversal 거부가 아니라 관례 경로
+   공유). manifest 는 `plugin/gemini-extension.json` 5필드
+   (name/version/description/contextFileName/mcpServers — validate 실측 확정,
+   mcpServers 는 manifest 안 인라인), 컨텍스트는 `plugin/GEMINI.md` 로
+   `render_entrypoint_rules` 파생 — bootstrap 진입점 주입과 **같은 파생 함수**라
+   채널이 둘이어도 정본은 하나다. 자기 적용: 이 저장소의 `plugin/` 을
+   `gemini extensions link` 로 등록, Context file + MCP + 스킬 4종 로드 확인.
+2. **GEMINI.md 상시 주입의 "모델 주입 계층" 은 실측 불가로 남았다.** 인벤토리의
+   Context files 등록(로드 계층)까지는 성립했지만, headless 모델 호출이
+   `IneligibleTierError` (free tier 의 gemini-cli 클라이언트 지원 종료 — Antigravity
+   이전 안내) 로 차단됐다. **로드 성립만 기록하고 주입 실효 판정은 P5 게이트 ②
+   그대로 연다** — 실행 못 한 검사는 통과가 아니다.
+3. **`.agents/skills/` 수렴 판정: 수렴하지 않는다.** Claude Code 2.1.229 실측 —
+   임시 프로젝트에 `.agents/skills/` 와 `.claude/skills/` 프로브 스킬을 나란히
+   심고 headless 로 물었더니 **`.claude/skills/` 쪽만 보였다.** 바이너리 문자열
+   교차 확인도 같은 방향 (`.claude/skills` 73건, `.agents/skills` 0건). 즉
+   bootstrap 스킬 emit 을 `.agents/skills/` 하나로 수렴하면 Claude Code 채널이
+   빠진다. Codex·OpenCode·goose 용 **추가** emit 위치로의 도입은 가치가 남지만
+   (3 하네스가 어댑터 없이 읽는다) 그건 bootstrap 쪽 별건이다.
+4. **OpenCode 실측이 bootstrap 방언을 반증했다.** snippet 을 bootstrap 의
+   `render_opencode_mcp_config` 형태(문자열 `command` + `args` 분리, `env`)로
+   만들었더니 opencode 1.17.12 가 **거부했다** — *"Expected array"* / *"Missing key
+   enabled"*. 실측 확정 형태는 `command` **배열 전체** + `enabled` 필수 + env 키
+   `environment` 이고, 그 형태로 `opencode mcp list` 가 서버 **connected** 까지
+   보고했다 (validate 가 아니라 로드 실측). bootstrap 방언 결함은 별건
+   [TASK-2026-08-13-main-002] — 그 emit 을 따라한 사용자는 서버를 못 본다.
+5. **goose 는 실기 검증 미완이다** (이 환경에 goose CLI 부재). snippet 은 공식
+   문서 스키마로 작성하고, **미완 표기를 snippet 주석과 검사(case 15)가 강제한다**
+   — 검증 안 된 산출물이 검증된 얼굴을 하면 안 된다.
+6. **`<plugin>/bin` 판정 (P2 잔여): 싣지 않는다.** 호스트가 PATH 에 넣어 주는
+   자리지만, shim 이 해소하는 폭은 "PATH 에 없지만 `workflow_kit` 은 import 되는"
+   좁은 틈뿐이고 Python 의존 자체는 여전히 해소하지 못한다 (원칙 4 의 전제 유지).
+   잘못 실리면 실제 설치본을 가리는 그림자 경로가 되고, Windows 등 타 플랫폼
+   shim 을 검증할 수단도 없다. `wk` 부재 graceful 안내(SessionStart hook)가 이미
+   그 틈을 사용자에게 드러낸다. 설치 마찰 실측이 쌓이면 명시 task 로 재론한다.
+7. Claude Code 채널 무영향 확인 — 새 파일 4장이 실린 뒤에도
+   `claude plugin validate --strict` 통과 + 인벤토리 Skills 4 / Hooks 2 /
+   MCP servers 1 동일. gemini-extension.json 이 버전 넷째 장으로 합류해
+   릴리스 게이트(case 10·11, `release-doctor`)가 4장을 본다.
+
 ### P4 — 릴리스 파이프라인 통합 (TASK-017)
 
 - `cmd_release` 파생물 선재생성 목록에 plugin payload + 어댑터 추가
@@ -226,7 +274,7 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 | TASK-2026-08-12-main-013 | P0 | 본 계획 + 로드맵 갱신 + WBS task 등록 | 계획 문서 커밋 + 전량 2축 green | — | S |
 | TASK-2026-08-12-main-014 | P1 | `render_agent_plugin()` + `plugin/` payload + 검사 확장 | payload 3축 (plugin.json/skills/mcp.json) 정본 파생 + 되주입 FAIL 실증 + 전량 2축 green | 013 | M |
 | TASK-2026-08-12-main-015 | P2 | Claude Code 어댑터 + marketplace.json + 자기 적용 실측 | `/plugin install` 이 이 저장소에서 성립 (스킬 3종 호출 + SessionEnd hook + MCP 등록 실측 기록) + `wk` 부재 graceful 실측 | 014 | M |
-| TASK-2026-08-12-main-016 | P3 | gemini-cli/goose/opencode 어댑터 + `.agents/skills/` 수렴 판정 | 어댑터 3장 렌더러 생성 + 검사 편입 + Gemini GEMINI.md 주입·Claude Code `.agents/skills/` 판독 실측 기록 | 014 | M |
+| TASK-2026-08-12-main-016 ✅ | P3 | gemini-cli/goose/opencode 어댑터 + `.agents/skills/` 수렴 판정 | ✅ 어댑터 3장 렌더러 편입 (검사 15 case) + Gemini 로드 실측 (모델 주입 계층은 P5 이월) + `.agents/skills/` **비수렴 판정** (Claude Code 미판독 실측) | 014 | M |
 | TASK-2026-08-12-main-017 ✅ | P4 | cmd_release 통합 (bump 정합 보고 + 릴리스 게이트 + 드리프트 검사) | ✅ bump 3경로가 정합 보고 + `release-doctor` 가 어긋남을 `ok=False` 로 차단 + 되주입 실증 3종 (dist 자산은 **미포함 판정**) | 014, 015 | S |
 | TASK-2026-08-12-main-018 | P5 | 실측 종합 + INSTALLATION 개편 + 채널 전환 판정 기록 | 실측 3건 기록 + 문서 갱신 + 소유자 판정 본 문서 §3-P5 에 기록 | 015, 016, 017 | M |
 

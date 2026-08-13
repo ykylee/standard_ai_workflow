@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**26차 세션 종료 — 플러그인 전환 P4 완료 + 스킬 4종 (TASK-2026-08-12-main-017·019·020).** 릴리스↔플러그인 연결이 **자동 재생성이 아니라 게이트**로 확정됐다 (소유자 판정). ①**stale 기본인자 제거**: `render_*` 의 version 기본값이 함수 정의 시점에 굳어 bump 후 재생성이 낡은 값을 쓰던 자리를 `current_kit_version()` 호출 시점 조회로 해소 — 검사는 매번 새 프로세스라 **디스크 대조로는 영영 못 잡는 자리**였다. ②bump 3경로가 정합 보고, `release-doctor` **6번째 source** 가 어긋남을 `ok=False`+`fix` 로 차단. ③**dist 자산 미포함 판정** — marketplace 설치 경로가 git 이라 wheel 자산을 안 읽는다. ④`session-end` 스킬 추가로 payload 스킬이 §11.1 명령 4개와 1:1 대응 (`plugin details` 실측 Skills **4**, always-on ~121 tok). **사고 1건**: 처음엔 bump 가 곧바로 재생성하게 짰는데, 릴리스 검사들이 원본에서 bump 를 apply 했다 되돌리고(실측 pyproject 1.1.8→1.1.9→1.1.8, **86ms 왕복**) 그 복원이 플러그인을 몰라 manifest 3장만 낡은 채 남았다. 게다가 목적지를 **모듈 위치**로 잡아 sandbox 실행이 원본을 v0.7.29 로 덮었다 (HEAD 무손상, 복원 완료). → 별건 [TASK-2026-08-13-main-001] 등록. 검사 9→**13 case** (되주입 3종 실증). 전량 2축 **252/252 ×2 green**. **P2 잔여 실측도 이 세션에서 전부 성립** (스킬 네임스페이스 / MCP 승인 / SessionStart hook) — 다만 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 **비어 있다** (P3 판정 대상). 상세: 계획 §3-P2·§3-P4.",
+    "current_baseline": "**27차 세션 종료 — 플러그인 전환 P3 완료 (TASK-2026-08-12-main-016) — P1~P4 전부 닫힘, 남은 것은 P5 뿐.** 어댑터 3장이 렌더러 생성물로 편입됐다 (payload 14→**18 산출물**, 검사 13→**15 case**, 되주입 3종 실증). ①**Gemini 도 확장 루트 = payload 루트** — gemini 0.42.0 실측(`extensions new`→`validate`→`link`→`list`): 확장 루트의 `skills/` 관례 경로를 무변환으로 읽어 **payload 스킬 4종이 그대로 인벤토리에 잡혔다.** `gemini-extension.json`(5필드, mcpServers 인라인) + `GEMINI.md`(상시 주입 컨텍스트, bootstrap 진입점과 **같은** `render_entrypoint_rules` 파생) 두 장 — 규칙 상시 주입 채널 첫 개통(로드 계층). **모델 주입 계층은 실측 불가**: headless 호출이 `IneligibleTierError`(무료 tier 의 gemini-cli 지원 종료, Antigravity 이전 안내)로 차단 — P5 게이트 ② 는 연 채 유지. ②**OpenCode 실측이 bootstrap 방언을 반증** — 기존 `render_opencode_mcp_config` 형태(문자열 command+args, env)를 opencode 1.17.12 가 거부(*\"Expected array\"* / *\"Missing key enabled\"*). 실측 확정 형태(command **배열** + `enabled` + `environment`)로 `opencode mcp list` **connected** 확인. bootstrap 결함은 별건 [TASK-2026-08-13-main-002]. ③**`.agents/skills/` 수렴 기각** — Claude Code 2.1.229 가 읽지 않는다 (프로브 스킬 실측: `.claude/skills/` 양성 대조군만 노출 + 바이너리 문자열 73:0). ④**`<plugin>/bin` 미탑재 판정** (P2 잔여) — shim 은 좁은 틈만 메우고 Python 의존은 그대로, 그림자 경로 위험 (원칙 4 유지, 마찰 실측 쌓이면 재론). ⑤goose 는 CLI 부재로 실기 검증 미완 — snippet 주석 + case 15 가 미완 표기 강제. gemini-extension.json 이 **버전 4번째 장**으로 릴리스 게이트(case 10·11, release-doctor) 합류. `check_docs` 는 payload 를 `PAYLOAD_DIRNAME` 파생으로 제외 (payload .md 는 소비자 주입 생성물). 전량 2축 **252/252 ×2 green**. **사고 1건**: 되주입 실증 복원에 `git checkout` 을 써 미커밋 P3 수정까지 소실 → 재적용 복구, 이후 사본 백업 복원으로 전환 (작업 중 파일의 되주입 복원에 git 을 쓰지 않는다). **다음 작업 = TASK-2026-08-12-main-018 (P5 실측 게이트 + 채널 전환 판정)**. 상세: [27차 세션 기록](./sessions/plugin_multi_harness_adapters_2026-08-13.md) + 계획 §3-P3.",
     "current_axis": "**플러그인 배포 전환 (P1·P2·P4 ✅ 완료 / P3·P5 planned, TASK-2026-08-12-main-016·018)** — 다음 릴리스 목표 범위(P1+P2)는 이미 채워졌고 P4 까지 앞당겨 닫았다. **다음 작업 = TASK-016 (P3 멀티 하네스 어댑터)** — 첫 확인 항목으로 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 비어 있는 건을 판정한다 (플러그인이 `wk` 를 직접 배포할 통로가 이미 열려 있다는 뜻이라, 원칙 4 의 \"설치를 대신 못 해 준다\" 전제를 건드린다). 그 다음 TASK-018 (P5 채널 전환 판정). 별건 대기: [TASK-2026-08-13-main-001] 원본 bump 검사 sandbox 이관, [TASK-2026-08-12-main-019] CLAUDE.md install 이 macOS homebrew 에서 PEP 668 로 실패. 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
     "current_focus": "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
       "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용",
@@ -41,19 +42,19 @@
       "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토",
       "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토",
       "TASK-2026-08-12-main-010 — v1.1.8-beta 발행 (cmd_release 5번째 실전)",
-      "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화",
-      "TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존"
+      "TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
-    "task_count": 2,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
+      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
+      "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)"
     ]
   },
   "next_documents": [
@@ -63,6 +64,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/plugin_multi_harness_adapters_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/plugin_claude_code_adapter_2026-08-12.md",
     "ai-workflow/memory/active/main/sessions/plugin_payload_renderer_2026-08-12.md",
     "docs/planning/plugin-transition-plan-2026-08.md",

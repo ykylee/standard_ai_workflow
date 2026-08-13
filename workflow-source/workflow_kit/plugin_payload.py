@@ -13,11 +13,18 @@
 ```
 plugin/
 ├── plugin.json                  # name / version / description (version 은 __version__ 파생)
-├── skills/
+├── skills/                      # 스킬 4종 — Claude Code 와 Gemini 확장이 같은 관례 경로로 읽는다
 │   ├── session-start/SKILL.md   # §11 명령·계약은 render_memory_update_section 파생
 │   ├── backlog-update/SKILL.md  # 상태값 4종은 rules.task_states 파생
-│   └── doc-sync/SKILL.md
-└── mcp.json                     # MCP mcpServers 스키마, read-only bundle
+│   ├── doc-sync/SKILL.md
+│   └── session-end/SKILL.md
+├── mcp.json                     # MCP mcpServers 스키마, read-only bundle (+ .mcp.json 동일 사본)
+├── gemini-extension.json        # Gemini CLI 어댑터 — 확장 루트 = payload 루트 (P3)
+├── GEMINI.md                    # Gemini 상시 주입 컨텍스트 — render_entrypoint_rules 파생
+└── adapters/
+    ├── claude-code/hooks.json   # 세션 경계 hook 2종 (P2)
+    ├── goose/config-snippet.yaml      # goose extensions 병합 snippet (P3)
+    └── opencode/opencode-snippet.json # OpenCode MCP 등록 snippet (P3)
 ```
 
 ## 무엇이 정본인가
@@ -66,6 +73,7 @@ from workflow_kit.common.standard_rules import (
     StandardRules,
     find_memory_command,
     load_standard_rules,
+    render_entrypoint_rules,
     render_memory_update_section,
 )
 
@@ -82,7 +90,11 @@ __all__ = [
     "render_agent_plugin",
     "render_claude_code_hooks",
     "render_claude_code_manifest",
+    "render_gemini_context",
+    "render_gemini_manifest",
+    "render_goose_config_snippet",
     "render_marketplace_manifest",
+    "render_opencode_snippet",
     "render_plugin_manifest",
     "render_plugin_mcp_config",
     "render_plugin_skill",
@@ -122,6 +134,24 @@ CLAUDE_CODE_HOOKS_RELPATH = "adapters/claude-code/hooks.json"
 #: 경로 존재만 보고 로더는 그 필드를 그렇게 쓰지 않는다. 관례 경로 `.mcp.json`
 #: 으로 옮기자 ``MCP servers (1)`` 로 잡혔다. **validate 통과는 로드 증명이 아니다.**
 CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
+
+#: Gemini CLI 어댑터 (P3, TASK-2026-08-12-main-016). Claude Code 와 같은 이유로
+#: **확장 루트 = payload 루트**다: `gemini extensions list` 실측(0.42.0)에서 확장
+#: 루트의 `skills/` 를 무변환으로 읽어 payload 스킬 4종이 그대로 인벤토리에 잡혔다.
+#: 어댑터를 하위 디렉터리에 두면 그 공유가 깨지고 스킬 사본이 필요해진다.
+#:
+#: `GEMINI.md` 는 확장이 **상시 주입하는 컨텍스트 파일**이다 — Claude Code 플러그인의
+#: 핵심 갭(§1·§3·§8 규칙 상시 주입 채널 부재)이 Gemini 에는 없다. 그래서 여기만
+#: 진입점 전체 블록(`render_entrypoint_rules`)을 싣는다.
+GEMINI_MANIFEST_RELPATH = "gemini-extension.json"
+GEMINI_CONTEXT_RELPATH = "GEMINI.md"
+
+#: goose / OpenCode 어댑터 — 두 하네스 모두 스킬은 `.agents/skills/` 를 직접 읽으므로
+#: (multi-harness-plugin-review §2) 어댑터가 나를 것은 MCP 등록 snippet 뿐이다.
+#: goose snippet 은 goose CLI 부재 환경에서 공식 문서 스키마로 작성했다 — 실측 미완
+#: 이라는 사실을 snippet 주석에도 남긴다 (조용한 미검증 금지).
+GOOSE_SNIPPET_RELPATH = "adapters/goose/config-snippet.yaml"
+OPENCODE_SNIPPET_RELPATH = "adapters/opencode/opencode-snippet.json"
 
 #: marketplace manifest 는 payload 밖 — **저장소 루트**가 marketplace 다
 #: (`/plugin marketplace add <owner>/<repo>`).
@@ -377,6 +407,136 @@ def render_plugin_mcp_config() -> str:
     ) + "\n"
 
 
+def _payload_mcp_entry() -> tuple[str, list[str]]:
+    """payload 가 등록하는 MCP 서버의 (alias, command+args).
+
+    모든 어댑터가 이 하나에서 파생한다 — 방언별 파일이 각자 command 를 조립하면
+    entry-point 모듈명이 바뀔 때 일부 사본만 낡는다 (Grok 렌더러 실측 동형).
+    """
+    from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, mcp_server_command
+
+    return MCP_SERVER_ALIAS, mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+
+
+#: 어댑터 MCP 등록이 공유하는 env. ``PYTHONPATH`` 를 넣지 않는 이유는
+#: :func:`render_plugin_mcp_config` docstring 과 같다 — 플러그인은 소비 프로젝트의
+#: 체크아웃 구조를 모르고, 설치 전제가 깨지면 드러나야 한다 (계획 원칙 4).
+_PAYLOAD_MCP_ENV = {"STANDARD_AI_WORKFLOW_ROOT": "."}
+
+
+def render_gemini_manifest(version: str | None = None) -> str:
+    """``plugin/gemini-extension.json`` — Gemini CLI 확장 manifest.
+
+    필드 5개는 전부 실측으로 확정했다 (gemini 0.42.0, `extensions validate` +
+    `extensions link` 후 `extensions list` 인벤토리):
+
+    - ``contextFileName`` — 상시 주입 컨텍스트 파일 선언. 인벤토리의
+      "Context files" 에 잡히는 것까지 확인했다 (모델 주입 계층은 P5 게이트).
+    - ``mcpServers`` — Gemini 는 manifest **안에** 인라인으로 둔다 (Claude Code 의
+      관례 파일 `.mcp.json` 과 다른 자리, 같은 파생).
+    - ``skills/`` 는 선언이 필요 없다 — 확장 루트의 관례 경로를 그대로 읽는다.
+      payload 스킬 4종이 무변환으로 잡히는 것을 실측했다.
+    """
+    alias, command = _payload_mcp_entry()
+    return json.dumps(
+        {
+            "name": PLUGIN_NAME,
+            "version": version if version is not None else current_kit_version(),
+            "description": PLUGIN_DESCRIPTION,
+            "contextFileName": GEMINI_CONTEXT_RELPATH,
+            "mcpServers": {
+                alias: {
+                    "command": command[0],
+                    "args": command[1:],
+                    "env": dict(_PAYLOAD_MCP_ENV),
+                }
+            },
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
+def render_gemini_context(rules: StandardRules) -> str:
+    """``plugin/GEMINI.md`` — Gemini 확장이 상시 주입하는 규칙 블록.
+
+    내용은 bootstrap 이 진입점(`CLAUDE.md`/`GEMINI.md` …)에 주입하는 것과 **같은
+    파생 함수**(:func:`render_entrypoint_rules`) 다 — 채널이 둘이어도 정본은 하나다.
+    """
+    return (
+        "# 표준 AI 워크플로우 — 상시 규칙 (Gemini 확장 컨텍스트)\n"
+        "\n"
+        f"{render_entrypoint_rules(rules)}\n"
+    )
+
+
+def render_goose_config_snippet() -> str:
+    """``plugin/adapters/goose/config-snippet.yaml`` — goose 는 extension = MCP 서버.
+
+    사용자가 goose 설정(`config.yaml`)의 ``extensions:`` 아래에 병합하는 snippet 이다.
+    스킬은 어댑터가 필요 없다 — goose 는 `.agents/skills/` 를 직접 읽는다.
+
+    **실측 미완**: 이 환경에 goose CLI 가 없어 공식 문서 스키마로 작성했다.
+    그 사실을 snippet 주석에도 남긴다 — 검증 안 된 산출물이 검증된 것과 같은
+    얼굴을 하면 안 된다.
+    """
+    alias, command = _payload_mcp_entry()
+    args_yaml = "\n".join(f"      - \"{arg}\"" for arg in command[1:])
+    env_yaml = "\n".join(f"      {key}: \"{value}\"" for key, value in _PAYLOAD_MCP_ENV.items())
+    return f"""# 생성물 — 손으로 고치지 않는다 (`python3 -m workflow_kit.plugin_payload --apply`).
+# goose 설정(config.yaml)의 `extensions:` 아래에 병합한다.
+# 스킬은 이 snippet 과 무관하게 goose 가 `.agents/skills/` 에서 직접 읽는다.
+# 주의: goose CLI 부재 환경에서 공식 문서 스키마로 작성 — 실기 검증 미완 (계획 §3-P3).
+extensions:
+  {alias}:
+    enabled: true
+    type: stdio
+    cmd: {command[0]}
+    args:
+{args_yaml}
+    envs:
+{env_yaml}
+    timeout: 300
+"""
+
+
+def render_opencode_snippet() -> str:
+    """``plugin/adapters/opencode/opencode-snippet.json`` — OpenCode MCP 등록.
+
+    최상위 키는 bootstrap 의 OpenCode 방언과 같은 상수(``MCP_CONFIG_ROOT_KEY``)에서
+    파생한다. entry 형태는 **opencode 1.17.12 실측**으로 확정했다 (`opencode mcp
+    list` 가 서버 ``connected`` 까지 보고):
+
+    - ``command`` 는 **배열 전체**다 — bootstrap 방언의 ``command`` 문자열 +
+      ``args`` 분리형은 *"Expected array"* 로 거부된다.
+    - ``enabled`` 는 필수다 — 없으면 *"Missing key"*.
+    - env 키 이름은 ``environment`` 다.
+
+    즉 bootstrap 의 `render_opencode_mcp_config` 가 emit 하는 형태는 현행 OpenCode
+    가 **거부한다** — 그 결함은 별건 task 로 등록했다 (P3 실측의 파생 발견).
+    스킬은 snippet 과 무관하게 OpenCode 가 `.agents/skills/` / `.claude/skills/`
+    에서 직접 읽는다.
+    """
+    from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY
+
+    alias, command = _payload_mcp_entry()
+    return json.dumps(
+        {
+            MCP_CONFIG_ROOT_KEY["opencode"]: {
+                alias: {
+                    "type": "local",
+                    "command": command,
+                    "environment": dict(_PAYLOAD_MCP_ENV),
+                    "enabled": True,
+                    "timeout": 30000,
+                }
+            }
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
 def render_claude_code_manifest(version: str | None = None) -> str:
     """``plugin/.claude-plugin/plugin.json`` — Claude Code 어댑터 manifest.
 
@@ -532,6 +692,10 @@ def render_agent_plugin(
         CLAUDE_CODE_MCP_RELPATH: mcp_config,
         CLAUDE_CODE_MANIFEST_RELPATH: render_claude_code_manifest(version),
         CLAUDE_CODE_HOOKS_RELPATH: render_claude_code_hooks(resolved),
+        GEMINI_MANIFEST_RELPATH: render_gemini_manifest(version),
+        GEMINI_CONTEXT_RELPATH: render_gemini_context(resolved),
+        GOOSE_SNIPPET_RELPATH: render_goose_config_snippet(),
+        OPENCODE_SNIPPET_RELPATH: render_opencode_snippet(),
     }
     for spec in PLUGIN_SKILLS:
         payload[f"skills/{spec.slug}/SKILL.md"] = render_plugin_skill(spec, resolved)

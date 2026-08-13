@@ -126,12 +126,30 @@ IGNORED_WORKFLOW_SOURCE_SUBTREES = {
 }
 
 
+def _plugin_payload_dirname() -> str:
+    """플러그인 payload 디렉터리 이름 — `plugin_payload.PAYLOAD_DIRNAME` 파생.
+
+    `plugin/` 은 렌더러 **생성물**이다 (state.json 지위 —
+    `check_agent_plugin_payload.py` 가 byte 단위 정합을 강제한다). 안의 GEMINI.md /
+    SKILL.md 는 소비 하네스에 주입되는 배포 파일이라, 이 저장소의 산문 문서
+    계약(문서 목적/범위/…)을 씌우면 매 세션 소비자 컨텍스트에 그 메타데이터가
+    같이 주입된다 — `dashboard/snapshot.md` 와 같은 이유로 제외한다.
+    이름을 여기 복제하지 않고 정본 상수에서 꺼낸다.
+    """
+    from workflow_kit.plugin_payload import PAYLOAD_DIRNAME
+
+    return PAYLOAD_DIRNAME
+
+
 def iter_markdown_files() -> list[Path]:
+    payload_dirname = _plugin_payload_dirname()
     markdown_files: list[Path] = []
     for path in REPO_ROOT.rglob("*.md"):
         if set(path.parts).intersection(IGNORED_PARTS):
             continue
         rel_parts = path.relative_to(REPO_ROOT).parts
+        if rel_parts[0] == payload_dirname:
+            continue
         if any(
             part == "node_modules"
             or part in IGNORED_PARTS

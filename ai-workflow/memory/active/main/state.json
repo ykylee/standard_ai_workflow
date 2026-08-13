@@ -33,6 +33,7 @@
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일",
       "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
       "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
@@ -41,8 +42,7 @@
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
       "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
-      "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용"
+      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -60,7 +60,8 @@
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
-      "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토"
+      "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
+      "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일"
     ]
   },
   "next_documents": [

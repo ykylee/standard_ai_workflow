@@ -3,7 +3,7 @@
 - 문서 목적: v1.2.0 이 기술 제약을 없앤 뒤 남은 **정책 층**을 판단 가능한 형태로 정리한다 (TASK-2026-08-13-main-006).
 - 범위: 이름 가용성, 공개 전 필수 수리, 비가역성, 정책 정본 위치, 대안 비교, 권고안
 - 대상 독자: 배포 정책 소유자, maintainer
-- 상태: 검토 완료 — 권고안 제시 (**발행 여부는 소유자 결정**, 본 검토는 발행을 수행하지 않는다)
+- 상태: 검토 완료 + **§2 수리 3건 완료** (v1.2.1, TASK-2026-08-13-main-007) — 남은 것은 TestPyPI 리허설과 **발행 여부 소유자 결정**
 - 최종 수정일: 2026-08-13
 - 관련 문서: [`./cli-distribution-review-2026-08.md`](./cli-distribution-review-2026-08.md) (§2 기술 제약 — v1.2.0 해소), [`../RELEASE.md`](../RELEASE.md), [`../../workflow-source/core/stable_guarantee.md`](../../workflow-source/core/stable_guarantee.md)
 
@@ -13,6 +13,14 @@
 부적합한 결함 3건이 남아 있고, 그중 둘은 PyPI 의 **비가역성** 때문에 나중에 고칠 수
 없는 자리(라이선스 전문 부재 / 버전 체계)다. 순서는 **수리 → TestPyPI 리허설 →
 정책 결정 → 발행**이다.
+
+> ✅ **수리 완료 (2026-08-13, TASK-2026-08-13-main-007)**: §2 의 3건이 전부 닫혔다
+> (소유자 결정 = 버전은 **stable 정리**, 이메일은 **GitHub noreply**). wheel 실측:
+> `licenses/LICENSE` 동봉 + `License-File: LICENSE` / `Development Status :: 5 -
+> Production/Stable` / `Author-email: ykylee@users.noreply.github.com` /
+> `__version__ == importlib.metadata.version(...) == "1.2.0"`.
+> §4 의 정책 정본도 `docs/RELEASE.md §1` 로 이관했다.
+> **남은 단계는 §6 의 3(TestPyPI 리허설) 과 4(발행 여부 소유자 결정) 뿐이다.**
 
 ## 1. 현황 — 전부 실측 (2026-08-13, v1.2.0-beta 기준)
 

@@ -2,7 +2,7 @@
 """v0.7.9+: standard-ai-workflow release pipeline 정식화 (7 subcommand).
 
 release 절차 (validate → dist → version-bump → note-draft → release → verify → rollback) 의
-*기계화 layer*. manual 절차 (memory #5 / docs/RELEASE.md) 의 *부족 부분* 자동화.
+*기계화 layer*. manual 절차 (docs/RELEASE.md — 채널 정책 정본은 §1) 의 *부족 부분* 자동화.
 
 Phase 1 (v0.7.9): validate / version-bump / note-draft — 사전 점검 + version + note.
 Phase 2 (v0.7.10): release / verify / rollback — gh CLI 통합 + read-only verify + destructive rollback.
@@ -13,7 +13,9 @@ Phase 6 (v0.13.1+): dashboard post-release emit — gh release create 성공 후
   workflow_kit.workflow_kit_cli --command=dashboard --format=markdown 자동 호출.
   --skip-dashboard-emit 으로 skip, --dashboard-output=PATH 로 경로 override.
 
-PyPI/TestPyPI 업로드 ❌ (memory #5 의 release 채널 정책 — GitHub Releases 만).
+PyPI/TestPyPI 업로드 ❌ — 정책 정본은 **docs/RELEASE.md §1 채널 정책** 이다
+(v1.2.1: 이전 주석은 저장소 밖 agent memory 를 근거로 인용해, 소비자도 새
+ 기여자도 확인할 수 없는 자리에 정책이 있었다).
 
 Usage:
     # dry-run: 모든 subcommand plan 만 출력
@@ -32,7 +34,7 @@ Reference:
 - workflow_kit/tools/check_packaging.py (packaging 정합성 검증)
 - workflow_kit/tools/refresh_wiki_memory.py (v0.7.5, git log → memory emit 패턴)
 - workflow_kit.cli.doctor (v0.7.8 state-aware baseline 검증)
-- memory #5 standard-ai-workflow.md (release 채널 정책: GitHub Releases 만)
+- docs/RELEASE.md §1 (release 채널 정책 **정본**: GitHub Releases 만)
 - docs/RELEASE.md (수동 release 절차)
 """
 
@@ -697,9 +699,12 @@ def read_workflow_kit_version() -> str:
 
     v0.8.0+: SSOT = pyproject.toml [project] version (spec §4.3).
     workflow_kit/__init__.py 의 __version__ 은 runtime 에서 pyproject.toml 을 parse 해서
-    compute (f"v{version}-beta") 하므로, 본 함수도 동일한 SSOT 에서 직접 compute.
+    compute 하므로, 본 함수도 동일한 SSOT 에서 직접 compute.
+
+    v1.2.1 (TASK-2026-08-13-main-007): stable 정리로 포맷이 PEP 440 그대로가 됐다
+    (`1.2.1`). git tag 만 관례대로 `v` 접두사를 붙인다.
     """
-    return f"v{read_version()}-beta"
+    return read_version()
 
 
 def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> str:
@@ -718,18 +723,23 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
     # suffix 가 "" 이면 그냥 "v{version}", 그 외는 "v{version}{suffix}" (suffix 가 이미 -beta 같은 suffix 포함).
     # v0.11.22 → 0.11.23 사이에서 suffix 이중 처리 (v0.11.23-beta-beta) bug fix.
     text = WORKFLOW_KIT_INIT.read_text()
-    replacement = f'v{new_version}{suffix or ""}'
+    replacement = f'{new_version}{suffix or ""}'
+    # v1.2.1: literal 이 `return "1.2.1"` 형태다. `v?` 로 구 포맷도 받아 마이그레이션.
     new_text, n = re.subn(
-        r'(return\s+")v\d+\.\d+(?:\.\d+)?(?:[-+][a-zA-Z0-9.]+)?(")',
+        r'(return\s+")v?\d+\.\d+(?:\.\d+)?(?:[-+][a-zA-Z0-9.]+)?(")',
         rf'\g<1>{replacement}\g<2>',
         text,
     )
     if n == 0:
-        # literal fallback 이 없는 경우 (e.g. v0.8.0 이전 패턴) — silent skip
-        pass
-    else:
-        WORKFLOW_KIT_INIT.write_text(new_text)
-    return f"v{new_version}{suffix or ''}"
+        # v1.2.1 (TASK-2026-08-13-main-007): 이전에는 여기서 **조용히 넘어갔다**.
+        # 포맷이 바뀌어 regex 가 빗나가면 loud fallback 이 낡은 채 남는데도
+        # 호출자는 "갱신했다" 는 값을 돌려받았다 — 실행 못 한 갱신은 성공이 아니다.
+        raise RuntimeError(
+            f"loud fallback literal 을 {WORKFLOW_KIT_INIT} 에서 찾지 못했다 "
+            f"(포맷이 바뀌었는가?). 갱신하지 못한 채 성공을 보고할 수 없다."
+        )
+    WORKFLOW_KIT_INIT.write_text(new_text)
+    return f"{new_version}{suffix or ''}"
 
 def plugin_payload_status(version_label: str, *, repo_root: Path | None = None) -> dict:
     """플러그인 산출물이 주어진 버전과 정합인지 **판정만** 한다. 쓰지 않는다.
@@ -920,7 +930,7 @@ def cmd_version_bump(args) -> dict:
             "current_pyproject": current,
             "current_workflow_kit": current_wk,
             "next_pyproject": new,
-            "next_workflow_kit": f"v{new}-beta" if not getattr(args, "no_init", False) else "(skipped)",
+            "next_workflow_kit": new if not getattr(args, "no_init", False) else "(skipped)",
         }
         return result
     if args.to is None and not (args.patch or args.minor or args.major):
@@ -957,7 +967,7 @@ def cmd_version_bump(args) -> dict:
         "current_pyproject": new,
     }
     if not getattr(args, "no_init", False):
-        written = write_workflow_kit_version(new, suffix="-beta")
+        written = write_workflow_kit_version(new, suffix="")
         result["previous_workflow_kit"] = current_wk
         result["current_workflow_kit"] = written
     else:
@@ -965,7 +975,7 @@ def cmd_version_bump(args) -> dict:
 
     # 플러그인 산출물 정합을 **보고만** 한다 (P4). 여기서 쓰지 않는 이유는
     # `plugin_payload_status` docstring 참조 — 강제는 릴리스 게이트가 한다.
-    result["plugin_payload_status"] = plugin_payload_status(f"v{new}-beta")
+    result["plugin_payload_status"] = plugin_payload_status(new)
 
     # TASK-V0726-003 (v0.7.27): post-step 자동 sync — state.json + backlog 의 hash = latest
     # commit. --skip-sync-hash flag 시 skip (manual override).
@@ -1649,15 +1659,15 @@ def _read_pyproject_version_str() -> str:
 def _fix_loud_fallback() -> dict:
     """workflow_kit/__init__.py 의 loud fallback literal 을 pyproject version 으로 정합.
 
-    return "v<X.Y.Z>-beta" 의 literal 을 regex 로 교체. pyproject 의 'X.Y.Z' 와
-    suffix ('-beta' or '') 를 모두 정합.
+    return "<X.Y.Z>" 의 literal 을 regex 로 교체 (v1.2.1 부터 PEP 440 그대로 —
+    이전 포맷 "v<X.Y.Z>-beta" 도 regex 가 함께 받아 마이그레이션한다).
     """
     if atomic_write_text is None:
         return {"ok": False, "error": "atomic_write_text unavailable"}
     py_v = _read_pyproject_version_str()
     src = WORKFLOW_KIT_INIT.read_text(encoding="utf-8")
-    new_literal = f'return "v{py_v}-beta"'
-    new_src, n = re.subn(r'return "v[\d.]+(?:-beta)?"', new_literal, src, count=1)
+    new_literal = f'return "{py_v}"'
+    new_src, n = re.subn(r'return "v?[\d.]+(?:-beta)?"', new_literal, src, count=1)
     if n == 0:
         return {"ok": False, "error": "loud fallback literal not found"}
     atomic_write_text(WORKFLOW_KIT_INIT, new_src)
@@ -1665,12 +1675,13 @@ def _fix_loud_fallback() -> dict:
 
 
 def _fix_readme_header_version() -> dict:
-    """README.md 의 '- 버전: vX.Y.Z-beta' 헤더 라인을 pyproject 와 정합."""
+    """README.md 의 '- 버전: vX.Y.Z' 헤더 라인을 pyproject 와 정합."""
     if atomic_write_text is None:
         return {"ok": False, "error": "atomic_write_text unavailable"}
     py_v = _read_pyproject_version_str()
     src = README_PATH.read_text(encoding="utf-8")
-    new_src, n = re.subn(r"- 버전: v[\d.]+-beta", f"- 버전: v{py_v}-beta", src, count=1)
+    # v1.2.1: 새 포맷은 접미사 없음. 구 포맷(-beta) 도 받아 마이그레이션한다.
+    new_src, n = re.subn(r"- 버전: v[\d.]+(?:-beta)?", f"- 버전: v{py_v}", src, count=1)
     if n == 0:
         return {"ok": False, "error": "README header version line not found"}
     atomic_write_text(README_PATH, new_src)
@@ -2269,7 +2280,7 @@ def cmd_release(args) -> dict:
         return _attach_release_summary({**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"})
 
     # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
-    tag = f"v{version}-beta"
+    tag = f"v{version}"
     # v0.7.24+: --notes-template flag 로 release notes format 자유도
     notes_template = getattr(args, "notes_template", "default") or "default"
     notes_resolution = _resolve_notes_file(version, notes_template, dry_run=args.dry_run)
@@ -2318,7 +2329,7 @@ def cmd_release(args) -> dict:
                         )
                     # re-flow with new version
                     version = new_version
-                    tag = f"v{version}-beta"
+                    tag = f"v{version}"
                     dist_files = find_dist_files(version)
                     if not dist_files:
                         return _attach_release_summary({**results, "error": f"no dist files for {version} after --full-auto bump"})
@@ -2397,7 +2408,7 @@ def cmd_release(args) -> dict:
     gh_cmd = [
         "gh", "release", "create", tag,
         "--repo", repo,
-        "--title", f"Beta v{version}",
+        "--title", f"v{version}",
         "--notes-file", str(notes_file),
         "--target", "main",
         "--verify-tag",
@@ -3124,7 +3135,7 @@ def main() -> int:
                             "version-bump + re-flow) 후 새로 결정된 tag 로 release 진행. "
                             "여전히 conflict 면 --allow-existing-tag 로 fallback. "
                             "최종적으로 *operator intervention 없이* tag push + gh release create "
-                            "완료. release 채널 정책 (memory #5: --dry-run 필수) 유지 — "
+                            "완료. release 채널 정책 (docs/RELEASE.md \u00a71: --dry-run 필수) 유지 — "
                             "본 flag 는 --dry-run 과 동시 사용 가능 (plan 검증용).")
     p_rel.add_argument("--dry-run", action="store_true", dest="dry_run",
                        help="destructive subcommand 정공법 (memory #5): tag push + gh release create 의 "

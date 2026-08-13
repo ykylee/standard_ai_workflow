@@ -74,6 +74,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-13-main-007 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일
 - TASK-2026-08-13-main-006 PyPI 발행 정책 검토
 - TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행
 - TASK-2026-08-13-main-003 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략
@@ -83,7 +84,6 @@
 - TASK-2026-08-12-main-016 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)
 - TASK-2026-08-12-main-017 플러그인 전환 P4 — 릴리스 파이프라인 통합
 - TASK-2026-08-12-main-020 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)
-- TASK-2026-08-12-main-015 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

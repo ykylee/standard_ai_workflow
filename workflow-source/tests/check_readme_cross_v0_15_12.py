@@ -5,7 +5,7 @@
 file system 와 cross-check. v1.0.0 진입 평가의 README 정합 anchor.
 
 4 cases:
-  1) **README 헤더 버전 정합**: `**버전: vX.Y.Z-beta**` 가 `pyproject.toml` 의
+  1) **README 헤더 버전 정합**: `**버전: vX.Y.Z**` 가 `pyproject.toml` 의
      `[project] version` 과 정합 (drift prevention case_4 의 *재 verify* leg).
   2) **README harness list 정합**: README 본문에 10 harness 가 모두 언급
      + maturity_matrix `harnesses.supported` list 와 정합 (10개).
@@ -28,7 +28,8 @@ MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 README_PATH = REPO_ROOT / "README.md"
 
 PYPROJECT_VERSION_RE = re.compile(r'version\s*=\s*"([\d.]+)"')
-README_HEADER_VERSION_RE = re.compile(r"- 버전:\s*v([\d.]+)-beta")
+# v1.2.1: stable 정리로 `-beta` 접미사 제거. 구 포맷도 받아 준다.
+README_HEADER_VERSION_RE = re.compile(r"- 버전:\s*v([\d.]+)(?:-beta)?")
 README_PACKAGE_VERSION_RE = re.compile(
     r"package:\s*standard-ai-workflow\s*([\d.]+)"
 )
@@ -70,9 +71,9 @@ def _read_readme() -> str:
 
 
 def case_1_readme_header_version() -> bool:
-    """1) README 헤더 버전 정합: '- 버전: vX.Y.Z-beta' == pyproject version."""
+    """1) README 헤더 버전 정합: '- 버전: vX.Y.Z' == pyproject version."""
     py_ver = _read_pyproject_version()
-    expected = f"v{py_ver}-beta"
+    expected = f"v{py_ver}"
     content = _read_readme()
     m = README_HEADER_VERSION_RE.search(content)
     if not m:

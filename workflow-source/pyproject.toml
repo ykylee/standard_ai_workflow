@@ -9,8 +9,14 @@ description = "Standard AI workflow kit — bootstrap, skills, MCP servers, temp
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+# 배포물에 라이선스 **전문**을 싣는다 (v1.2.1, TASK-2026-08-13-main-007).
+# 이전에는 SPDX 표현만 있고 전문이 없어, MIT 가 요구하는 "고지 포함" 을
+# 재배포자가 이행할 수단이 없었다. 정본은 저장소 루트 LICENSE 이고
+# 여기 사본은 build root 가 workflow-source/ 라서 필요하다 —
+# byte 동일은 check_drift_prevention_v0_11_23 case 7 이 강제한다.
+license-files = ["LICENSE"]
 authors = [
-    {name = "yklee", email = "ddn777@hotmail.com"},
+    {name = "yklee", email = "ykylee@users.noreply.github.com"},
 ]
 keywords = [
     "ai",
@@ -22,7 +28,7 @@ keywords = [
     "bootstrap",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

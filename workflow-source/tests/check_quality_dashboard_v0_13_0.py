@@ -8,7 +8,7 @@
     AC4: snapshot 의 last_updated ≤ release commit date (data freshness)
 
 각 panel 별 추가 검증:
-    - drift_prevention: guard_cases == expected_cases == 6
+    - drift_prevention: guard_cases == expected_cases == 7 (v1.2.1: LICENSE case 추가)
     - maturity_distribution: skills.stable >= 1, mcp_tools.total >= 1, harnesses.supported >= 1
     - memory_index_utilization: entries_total >= 1, cue_anchors_top is list
     - smoke_trend: cumulative_pass > 0 (실제 release note parse 결과)
@@ -101,7 +101,7 @@ def _check_drift_prevention(panel: dict[str, object]) -> None:
     """Panel 1: guard_cases / expected_cases 정합 (v0.13.1+ inline guard)."""
     expected = int(panel.get("expected_cases", 0))
     actual = int(panel.get("guard_cases", 0))
-    _assert(expected == 6, f"expected_cases should be 6, got {expected}")
+    _assert(expected == 7, f"expected_cases should be 7, got {expected}")
     _assert(actual == expected, f"guard_cases ({actual}) != expected_cases ({expected})")
     _assert(
         isinstance(panel.get("silent_failing_cycles_count"), int),
@@ -238,8 +238,8 @@ def _check_drift_guard_inline_direct() -> None:
         f"guard_status must be inline result, got {result.get('guard_status')!r}",
     )
     _assert(
-        result.get("guard_cases", 0) == 6,
-        f"guard_cases must be 6, got {result.get('guard_cases')}",
+        result.get("guard_cases", 0) == 7,
+        f"guard_cases must be 7, got {result.get('guard_cases')}",
     )
     _assert(
         isinstance(result.get("guard_cases_pass"), int)

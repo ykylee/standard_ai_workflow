@@ -9,7 +9,7 @@ silently 통과시키지 않도록 4개 cross-check smoke 를 강제한다.
   - maturity_matrix.json phase status 의 monotonicity + Phase 11 done / Phase 12 in_progress
   - maturity_matrix.json skill stage 의 stable/beta/alpha 가 expected promotion 결과와 정합
   - maturity_matrix.json harness.supported 가 bootstrap_lib HARNESS_SPECS 의 banner key 와 정합
-  - README.md 헤더의 '버전: vX.Y.Z-beta' 가 pyproject 와 정합
+  - README.md 헤더의 '버전: vX.Y.Z' 가 pyproject 와 정합
   - maturity_matrix.json 의 last_updated 가 HEAD commit date 와 ±N일 이내
 
 기대 동작:
@@ -90,7 +90,8 @@ def _read_pyproject_version() -> str:
 def _loud_fallback_version() -> str:
     """workflow_kit/__init__.py 의 loud fallback literal 을 parse."""
     src = INIT_PY.read_text(encoding="utf-8")
-    m = re.search(r'return "v([\d.]+)(?:-beta)?"', src)
+    # v1.2.1: 리터럴이 `return "1.2.1"` 형태. 구 포맷(v..., -beta)도 받아 준다.
+    m = re.search(r'return "v?([\d.]+)(?:-beta)?"', src)
     if not m:
         raise AssertionError("loud fallback literal not found in __init__.py")
     return m.group(1)
@@ -102,7 +103,8 @@ def _read_maturity() -> dict:
 
 def _read_readme_header_version() -> str | None:
     src = README.read_text(encoding="utf-8")
-    m = re.search(r"- 버전: v([\d.]+)-beta", src)
+    # v1.2.1: stable 정리로 `-beta` 접미사가 사라졌다. 구 포맷도 받아 준다.
+    m = re.search(r"- 버전: v([\d.]+)(?:-beta)?", src)
     return m.group(1) if m else None
 
 
@@ -134,9 +136,9 @@ def test_case_1_pyproject_loud_fallback_sync() -> None:
     py_v = _read_pyproject_version()
     fallback_v = _loud_fallback_version()
     assert py_v == fallback_v, (
-        f"pyproject.toml version {py_v!r} != __init__.py loud fallback v{fallback_v}. "
+        f"pyproject.toml version {py_v!r} != __init__.py loud fallback {fallback_v}. "
         f"fix: `python3 workflow-source/workflow_kit/tools/release_pipeline.py version-bump --to {py_v}` "
-        f"또는 수동으로 __init__.py 의 loud fallback literal 을 v{py_v}-beta 로 갱신."
+        f"또는 수동으로 __init__.py 의 loud fallback literal 을 {py_v} 로 갱신."
     )
 
 
@@ -198,13 +200,13 @@ def test_case_3_skill_stage_matches_promotion_set() -> None:
 # ---------------------------------------------------------------------------
 
 def test_case_4_readme_header_version_sync() -> None:
-    """README.md 헤더의 '버전: vX.Y.Z-beta' == pyproject.toml version."""
+    """README.md 헤더의 '버전: vX.Y.Z' == pyproject.toml version."""
     py_v = _read_pyproject_version()
     readme_v = _read_readme_header_version()
-    assert readme_v is not None, "README.md header missing version line ('버전: vX.Y.Z-beta')"
+    assert readme_v is not None, "README.md header missing version line ('버전: vX.Y.Z')"
     assert readme_v == py_v, (
         f"README.md v{readme_v} != pyproject {py_v}. "
-        f"fix: README.md 의 '버전: v{py_v}-beta' 로 갱신."
+        f"fix: README.md 의 '버전: v{py_v}' 로 갱신."
     )
 
 
@@ -265,6 +267,33 @@ def test_case_6_maturity_last_updated_freshness() -> None:
         )
 
 
+def test_case_7_license_copy_matches_canonical() -> None:
+    """`workflow-source/LICENSE` 사본이 루트 정본과 byte 동일 (v1.2.1).
+
+    라이선스 전문은 저장소 루트가 정본이다 (GitHub 이 읽는 자리). 그런데 패키지
+    build root 는 `workflow-source/` 라서 setuptools 의 `license-files` 가 루트를
+    볼 수 없다 — 배포물에 전문을 실으려면 build root 안에 사본이 필요하다.
+
+    사본은 반드시 갈라지므로 여기서 byte 동일을 강제한다. 둘 중 하나만 고치면
+    배포물의 라이선스가 저장소가 말하는 라이선스와 달라지는데, 그건 조용히
+    일어나고 배포된 뒤에는 되돌릴 수 없다.
+    """
+    canonical = REPO / "LICENSE"
+    copy = REPO / "workflow-source" / "LICENSE"
+    assert canonical.is_file(), (
+        "루트 LICENSE 부재 — pyproject 는 MIT 를 선언하는데 전문이 없으면 "
+        "MIT 가 요구하는 '고지 포함' 을 재배포자가 이행할 수 없다."
+    )
+    assert copy.is_file(), (
+        "workflow-source/LICENSE 부재 — 배포물(wheel/sdist)에 라이선스 전문이 "
+        "실리지 않는다. fix: `cp LICENSE workflow-source/LICENSE`"
+    )
+    assert copy.read_bytes() == canonical.read_bytes(), (
+        "workflow-source/LICENSE 가 루트 정본과 다르다 (배포물의 라이선스가 "
+        "저장소 선언과 갈라졌다). fix: `cp LICENSE workflow-source/LICENSE`"
+    )
+
+
 # ---------------------------------------------------------------------------
 # runner
 # ---------------------------------------------------------------------------
@@ -277,6 +306,7 @@ def _run_all() -> Iterable[tuple[str, bool, str]]:
         ("test_case_4_readme_header_version_sync", test_case_4_readme_header_version_sync),
         ("test_case_5_harness_supported_ssot_alignment", test_case_5_harness_supported_ssot_alignment),
         ("test_case_6_maturity_last_updated_freshness", test_case_6_maturity_last_updated_freshness),
+        ("test_case_7_license_copy_matches_canonical", test_case_7_license_copy_matches_canonical),
     ]
     for name, fn in cases:
         try:
@@ -289,13 +319,18 @@ def _run_all() -> Iterable[tuple[str, bool, str]]:
 def main() -> int:
     print("=== drift prevention guard (v0.11.23+) ===")
     failures = 0
+    total = 0
     for name, ok, msg in _run_all():
+        total += 1
         if ok:
             print(f"  PASS: {name}")
         else:
             print(f"  FAIL: {name}\n    {msg}")
             failures += 1
-    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {6 - failures}/6 ===")
+    # v1.2.1 (TASK-2026-08-13-main-007): 총계를 **실행 결과에서 파생**한다.
+    # 이전에는 `{6 - failures}/6` 하드코딩이라, case 를 추가해도 6/6 이라 보고했고
+    # (case 7 추가 직후 실측) case 를 **빼도** 6/6 이었다 — 요약이 사실이 아니었다.
+    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {total - failures}/{total} ===")
     return 0 if failures == 0 else 1
 
 

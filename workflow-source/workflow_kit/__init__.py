@@ -113,7 +113,14 @@ def _read_pyproject_version() -> str:
     Fallback chain (per spec v0.8.0 section 4.3):
         1. ``pyproject.toml`` (SSOT) - works in source tree.
         2. ``importlib.metadata`` - works for installed distribution.
-        3. Literal ``"v0.14.0-beta"`` - loud fallback when both fail.
+        3. Literal loud fallback when both fail.
+
+    v1.2.1 (TASK-2026-08-13-main-007): ``v{version}-beta`` 포맷을 버리고 **PEP 440
+    그대로**(``1.2.1``) 낸다. ``core/stable_guarantee.md`` 는 2026-07-20 에 v1.0.0
+    stable 진입을 선언했는데 배포 표면만 계속 beta 라벨을 달고 있었다 — 배포물
+    파일명은 이미 final(`1.2.0`) 이었으므로 라벨만 사실과 어긋난 상태였다.
+    이제 ``__version__ == importlib.metadata.version(...)`` 가 성립한다.
+    (git tag / GitHub Release 제목은 관례대로 ``v`` 접두사를 유지한다 — `v1.2.1`.)
     """
     # 1. pyproject.toml (SSOT)
     pyproject: Path = Path(__file__).parent.parent / "pyproject.toml"
@@ -127,7 +134,7 @@ def _read_pyproject_version() -> str:
                 data: dict[str, Any] = tomllib.load(f)
             version: Any = data.get("project", {}).get("version")
             if isinstance(version, str) and version:
-                return f"v{version}-beta"
+                return version
         except Exception:
             pass
 
@@ -135,12 +142,12 @@ def _read_pyproject_version() -> str:
     try:
         from importlib import metadata
 
-        return f"v{metadata.version('standard-ai-workflow')}-beta"
+        return str(metadata.version('standard-ai-workflow'))
     except Exception:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "v1.2.0-beta"
+    return "1.2.0"
 
 
 __version__: str = _read_pyproject_version()

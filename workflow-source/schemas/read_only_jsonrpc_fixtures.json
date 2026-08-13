@@ -27,7 +27,7 @@
           "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v1.2.0-beta"
+            "version": "1.2.0"
           }
         }
       }
@@ -73,7 +73,7 @@
           "protocolVersion": "2025-03-26",
           "serverInfo": {
             "name": "workflow_read_only_bundle",
-            "version": "v1.2.0-beta"
+            "version": "1.2.0"
           }
         }
       }
@@ -1172,7 +1172,7 @@
           },
           "content": [
             {
-              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"v1.2.0-beta\", \"warnings\": []}",
+              "text": "{\"candidates\": [\"workflow-source/core/global_workflow_standard.md\", \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\"], \"latest_backlog_path\": \"workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md\", \"status\": \"ok\", \"tool_version\": \"1.2.0\", \"warnings\": []}",
               "type": "text"
             }
           ],
@@ -1183,7 +1183,7 @@
             ],
             "latest_backlog_path": "workflow-source/examples/acme_delivery_platform/backlog/2026-04-18.md",
             "status": "ok",
-            "tool_version": "v1.2.0-beta",
+            "tool_version": "1.2.0",
             "warnings": []
           }
         }
@@ -1215,7 +1215,7 @@
               "tool": "check_doc_metadata"
             },
             "status": "error",
-            "tool_version": "v1.2.0-beta",
+            "tool_version": "1.2.0",
             "warnings": [
               "`doc_dir_path` field 는 필수다."
             ]
@@ -1355,7 +1355,7 @@
             "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v1.2.0-beta"
+              "version": "1.2.0"
             }
           }
         },
@@ -2345,7 +2345,7 @@
             "protocolVersion": "2025-03-26",
             "serverInfo": {
               "name": "workflow_read_only_bundle",
-              "version": "v1.2.0-beta"
+              "version": "1.2.0"
             }
           }
         },
@@ -2364,6 +2364,6 @@
     }
   ],
   "status": "ok",
-  "tool_version": "v1.2.0-beta",
+  "tool_version": "1.2.0",
   "transport_phase": "jsonrpc_draft"
 }

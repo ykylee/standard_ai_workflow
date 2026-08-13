@@ -6,8 +6,8 @@ backfill 시 staging 용도 (pyproject.toml 일시 patch 불필요).
 
 Test list:
 1. test_version_argparse_recognized: --version=<X.Y.Z> argparse error 없음 + version_source=cli-flag
-2. test_version_override_pyproject: --version=0.7.5 일 때 tag=v0.7.5-beta + notes_file=Beta-v0.7.5.md (staging area 가용 시)
-3. test_version_default_pyproject: --version 미지정 시 version_source=pyproject.toml (default) + tag=v{HEAD}-beta 동적
+2. test_version_override_pyproject: --version=0.7.5 일 때 tag=v0.7.5 + notes_file=Beta-v0.7.5.md (staging area 가용 시)
+3. test_version_default_pyproject: --version 미지정 시 version_source=pyproject.toml (default) + tag=v{HEAD} 동적
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ def test_version_argparse_recognized() -> None:
         f"expected cli-flag, got {out.get('version_source')}"
     # tag 도 override 적용 (dist 부재 error 시 tag 부재 가능)
     if "tag" in out:
-        assert out["tag"] == "v0.7.5-beta", f"expected v0.7.5-beta, got {out['tag']}"
+        assert out["tag"] == "v0.7.5", f"expected v0.7.5, got {out['tag']}"
     else:
         # dist 부재 → error 에서 version 0.7.5 가 반영
         assert "0.7.5" in out.get("error", ""), f"expected version 0.7.5 in error, got {out.get('error')}"
@@ -48,7 +48,7 @@ def test_version_argparse_recognized() -> None:
 
 
 def test_version_override_pyproject() -> None:
-    """--version=0.7.5 일 때 tag=v0.7.5-beta + notes_file=Beta-v0.7.5.md.
+    """--version=0.7.5 일 때 tag=v0.7.5 + notes_file=Beta-v0.7.5.md.
 
     staging area (/tmp/dist_v_0.7.5/) 가 없으면 dry-run 결과 (version_source=cli-flag) 만 검증.
     """
@@ -93,7 +93,7 @@ def test_version_override_pyproject() -> None:
         assert out["version_source"] == "cli-flag", \
             f"expected cli-flag, got {out.get('version_source')}"
         if has_staging:
-            assert out["tag"] == "v0.7.5-beta", f"expected v0.7.5-beta, got {out.get('tag')}"
+            assert out["tag"] == "v0.7.5", f"expected v0.7.5, got {out.get('tag')}"
             assert out["notes_file"].endswith("Beta-v0.7.5.md"), \
                 f"unexpected notes_file: {out.get('notes_file')}"
             assert any("0.7.5" in a for a in out["assets"]), \
@@ -149,7 +149,7 @@ def test_version_default_pyproject() -> None:
         f"expected pyproject.toml, got {out.get('version_source')}"
     if has_dist:
         # default version 은 pyproject 의 current (HEAD 정합, release 마다 갱신)
-        assert out["tag"] == f"v{current}-beta", f"expected v{current}-beta, got {out.get('tag')}"
+        assert out["tag"] == f"v{current}", f"expected v{current}, got {out.get('tag')}"
     else:
         # dist 부재 → error return (no dist files). version 만 검증.
         assert current in out.get("error", ""), \

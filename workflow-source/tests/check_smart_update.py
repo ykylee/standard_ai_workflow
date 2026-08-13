@@ -75,7 +75,9 @@ def test_bootstrap_first_run_creates_files() -> None:
         # 특정 버전을 고정하면 릴리스마다 red 가 된다 (v0.5.10.1 고정이 v1.0.0 에서 깨짐).
         # 검증 의도는 "marker 가 *현재 kit 버전* 으로 스탬프되는가" 이므로 동적으로 비교한다.
         from workflow_kit import __version__ as _kit_version
-        assert f"standard-ai-workflow-kit: {_kit_version}" in agents, (
+        # marker 는 `v` 접두사를 유지한다 (MARKER_REGEX 가 요구 — 기존 스탬프 파일과의
+        # 호환). v1.2.1 부터 __version__ 자체에는 접두사가 없으므로 여기서 붙인다.
+        assert f"standard-ai-workflow-kit: v{_kit_version.lstrip('v')}" in agents, (
             f"marker 가 현재 kit 버전({_kit_version})으로 스탬프되지 않았다")
 
 

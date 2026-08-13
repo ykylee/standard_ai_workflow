@@ -16,11 +16,16 @@
 
 ## 1. 채널 정책
 
+> **이 절이 릴리스 채널 정책의 정본이다** (v1.2.1, TASK-2026-08-13-main-007).
+> 이전에는 `release_pipeline.py` 주석이 정책 근거로 *agent memory* 를 인용했는데,
+> 그건 저장소 밖 파일이라 소비자도 새 기여자도 열어볼 수 없었다. 정책을 바꾸든
+> 유지하든 **바꿀 자리는 이 표 하나**이고, 코드 주석은 여기를 가리킨다.
+
 | 채널 | 상태 | 비고 |
 |---|---|---|
 | GitHub Releases (wheel + sdist) | ✅ **유일한 공식 채널** | `gh release create` 한 줄로 끝 |
 | TestPyPI | ❌ 사용 안 함 | (v0.5.7 부터) |
-| PyPI | ❌ 사용 안 함 | (v0.5.7 부터, 이전부터 보류) |
+| PyPI | ❌ 사용 안 함 | (v0.5.7 부터, 이전부터 보류) — 기술 제약은 v1.2.0 에서 해소됐고 **남은 것은 이 정책 결정뿐**이다: [PyPI 발행 정책 검토](./planning/pypi-publication-policy-review-2026-08.md) |
 | Docker / brew / system pkg | ❌ 해당 없음 | (Python wheel 만 다룸) |
 
 **v0.5.7 부터** 모든 release 는 GitHub Releases 페이지에 wheel + sdist 가 attach 된 형태.
@@ -46,7 +51,7 @@ name = "standard-ai-workflow"
 version = "<X>.<Y>.<Z>"   # ← 매 release 마다 수동 또는 release_pipeline 으로 갱신
 ```
 
-runtime `workflow_kit.__version__` 은 이 값을 읽어 `v<X>.<Y>.<Z>-beta` 형태로 노출한다. 빌드 파일은 PEP 440 정규화 결과인 `<X>.<Y>.<Z>`를 사용한다.
+runtime `workflow_kit.__version__` 은 이 값을 **그대로**(`<X>.<Y>.<Z>`) 노출한다 — v1.2.1 부터 PEP 440 정규화 결과와 같고, 빌드 파일명과도 같다 (TASK-2026-08-13-main-007: stable 정리로 `v` 접두사·`-beta` 접미사 제거). **git tag 와 GitHub Release 제목만** 관례대로 `v` 를 붙인다 — `v<X>.<Y>.<Z>`.
 
 ### 2.3 자동화 경로 (권장)
 
@@ -75,15 +80,15 @@ python3 -m venv .venv-build
 # wheel + sdist 산출
 .venv-build/bin/python -m build
 .venv-build/bin/twine check dist/*
-#   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>b0-...whl: PASSED
-#   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz: PASSED
+#   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>-...whl: PASSED
+#   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>.tar.gz: PASSED
 ```
 
 ### 2.5 로컬 smoke (fresh venv)
 
 ```bash
 python3 -m venv /tmp/sawsmoke
-/tmp/sawsmoke/bin/pip install dist/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl
+/tmp/sawsmoke/bin/pip install dist/standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl
 /tmp/sawsmoke/bin/python -c "
 from workflow_kit.contract_v1 import choose_role, choose_roles, validate_fanin_output, recommend_model_tier
 # ... spec-strict smoke (sub_task 5필드 + artifact_kind enum)
@@ -97,30 +102,30 @@ spec 의 strict validation 이 red 로 빨개지면 그대로 멈추고 fix → 
 ```bash
 # cwd 는 저장소 루트
 REPO="<github-owner>/<github-repo>"     # 예: ykylee/standard_ai_workflow
-TAG="v<X>.<Y>.<Z>-beta"
+TAG="v<X>.<Y>.<Z>"
 
 gh release create "$TAG" \
   --repo "$REPO" \
-  --title "Beta v<X>.<Y>.<Z> — <한 줄 요약>" \
+  --title "v<X>.<Y>.<Z> — <한 줄 요약>" \
   --notes-file workflow-source/releases/Beta-v<X>.<Y>.<Z>.md \
   --target main \
   --verify-tag \
-  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl \
-  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz
+  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl \
+  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>.tar.gz
 ```
 
 확인:
 
 ```bash
-gh release view "v<X>.<Y>.<Z>-beta" --repo "$REPO"
-#   asset: standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl
-#   asset: standard_ai_workflow-<X>.<Y>.<Z>b0.tar.gz
+gh release view "v<X>.<Y>.<Z>" --repo "$REPO"
+#   asset: standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl
+#   asset: standard_ai_workflow-<X>.<Y>.<Z>.tar.gz
 ```
 
 ### 2.7 downstream 안내 (선택)
 
 릴리스 직후 본인 사용 프로젝트 (downstream 예: `Devhub_example`, `my_harness`) 의 dep 박스를
-`standard-ai-workflow @ https://github.com/<owner>/<repo>/releases/download/v<X>.<Y>.<Z>-beta/standard_ai_workflow-<X>.<Y>.<Z>b0-py3-none-any.whl`
+`standard-ai-workflow @ https://github.com/<owner>/<repo>/releases/download/v<X>.<Y>.<Z>/standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl`
 형태로 pin 하거나, `requirements.txt` 에 `git+` 형태 사용.
 
 ## 3. 트러블슈팅
@@ -148,7 +153,7 @@ unzip -l dist/standard_ai_workflow-*.whl | grep -E "contract_v1|common/(state|co
 ### 3.3 Release page 가 draft 로 생성됐을 때
 
 ```bash
-gh release edit "v<X>.<Y>.<Z>-beta" --repo "$REPO" --draft=false
+gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 ```
 
 ## 4. 회귀 (Reference)

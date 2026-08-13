@@ -83,7 +83,7 @@ SMOKE_COUNT_PATTERN: Final[re.Pattern[str]] = re.compile(
 DEFAULT_RECENT_RELEASES: Final[int] = 10
 
 # drift_prevention panel 의 expected guard case 갯수 (v0.11.23 cycle 4-layer, v0.11.25 6/6 정합)
-EXPECTED_DRIFT_GUARD_CASES: Final[int] = 6
+EXPECTED_DRIFT_GUARD_CASES: Final[int] = 7  # v1.2.1: case 7 (LICENSE 사본 정합) 추가
 
 # smoke_trend panel 의 minimal panel value (v0.11.25 cycle 의 누적 smoke 정합)
 MIN_EXPECTED_SMOKE: Final[int] = 1
@@ -214,7 +214,7 @@ def collect_drift_prevention(
         guard_status: 'pass' | 'fail' | 'error' | 'unknown' (inline 실행 결과)
         guard_cases_pass: pass 한 case 갯수 (inline 실행 시)
         guard_cases_fail: fail 한 case 갯수 (inline 실행 시)
-        guard_cases: 총 guard case 갯수 (expected = 6)
+        guard_cases: 총 guard case 갯수 (expected = EXPECTED_DRIFT_GUARD_CASES)
         expected_cases: EXPECTED_DRIFT_GUARD_CASES 정합
         guard_failure_names: fail case 의 name list (drift 발생 시)
         guard_executed_at: inline 실행 timestamp (ISO 8601)

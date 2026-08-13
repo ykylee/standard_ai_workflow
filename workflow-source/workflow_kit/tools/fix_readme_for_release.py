@@ -64,7 +64,7 @@ def _apply_edits(content: str, *, old_version: str, new_version: str,
     if m is not None:
         # re.sub replacement 는 backreference \g<1> 사용. m.group(1) 그대로 사용 OK.
         old_value = m.group(0)
-        new_value = f"- 버전: v{new_version}-beta"
+        new_value = f"- 버전: v{new_version}"
         content = pattern_version.sub(new_value, content, count=1)
         edits.append(("version line", old_value, new_value))
         # additional 정합성: 같은 line 의 'v{old}-beta' 가 다른 위치에 또 있을 수 있음.
@@ -92,7 +92,7 @@ def _apply_edits(content: str, *, old_version: str, new_version: str,
 
     # 4. runtime __version__ reference.
     old_runtime = f"runtime __version__ = v{old_version}-beta"
-    new_runtime = f"runtime __version__ = v{new_version}-beta"
+    new_runtime = f"runtime __version__ = {new_version}"
     if old_runtime in content:
         content = content.replace(old_runtime, new_runtime, 1)
         edits.append(("runtime version", old_runtime, new_runtime))

@@ -55,15 +55,17 @@ def test_case_1_write_workflow_kit_version_no_double_suffix() -> None:
     # major 를 하드코딩하지 않는다 — v1.0.0 bump 때 `"v0."` 매치가 0 이 되어 red 였다.
     fallback_lines = [
         ln for ln in src.splitlines()
-        if ln.strip().startswith("return ") and re.search(r"v\d+\.\d+\.\d+", ln)
+        if ln.strip().startswith("return ") and re.search(r"\d+\.\d+\.\d+", ln)
     ]
     assert fallback_lines, "no loud fallback line found"
     line = fallback_lines[-1]
-    # `return "vX.Y.Z-beta"` — "-beta" 정확히 1 회만 등장. 이중 suffix 미허용.
+    # v1.2.1 (TASK-2026-08-13-main-007): stable 정리 후 리터럴은 PEP 440 그대로
+    # (`return "1.2.1"`) — suffix 가 **하나도 없어야** 한다. 이중 suffix 방지라는
+    # 본래 의도는 그대로다: suffix 를 붙이는 코드가 되살아나면 여기서 걸린다.
     n_beta = line.count("-beta")
-    assert n_beta == 1, (
-        f"loud fallback literal has wrong -beta count "
-        f"(line={line!r}, n_beta={n_beta}, expected 1)"
+    assert n_beta == 0, (
+        f"loud fallback literal 에 suffix 가 붙어 있다 "
+        f"(line={line!r}, n_beta={n_beta}, expected 0)"
     )
 
 

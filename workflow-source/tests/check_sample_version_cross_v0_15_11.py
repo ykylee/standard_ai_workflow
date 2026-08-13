@@ -6,18 +6,18 @@ v0.13.0+ 부터 sample file (`workflow-source/examples/output_samples/*.json`) �
 cross-check:
 
   1. `pyproject.toml` `[project] version` (e.g. "0.15.0")
-  2. `workflow_kit/__init__.py` loud fallback literal (e.g. "v0.15.0-beta")
-     + `_read_pyproject_version` 의 `f"v{version}-beta"` 동적 emit
+  2. `workflow_kit/__init__.py` loud fallback literal (e.g. "1.2.1")
+     + `_read_pyproject_version` 의 동적 emit (v1.2.1 부터 PEP 440 그대로)
   3. 모든 `examples/output_samples/*.json` 의 `tool_version` field
 
 4 cases:
   1) **sample tool_version 일관성**: 모든 .json sample file 의 `tool_version` 이
      동일한 string 인지 검증. 다양성 0개 (모두 동일) 정합.
   2) **sample tool_version == pyproject** : sample `tool_version` ==
-     `f"v{pyproject_version}-beta"` 정합. (drift prevention 의 case_1 + sample
+     `pyproject_version` 과 문자 그대로 정합. (drift prevention 의 case_1 + sample
      정합의 3rd leg).
   3) **__init__.py loud fallback == pyproject**: `workflow_kit.__init__.py` 의
-     loud fallback literal == `f"v{pyproject_version}-beta"` 정합 (drift
+     loud fallback literal == `pyproject_version` 정합 (drift
      prevention 의 case_1 정합 cross-check; 본 smoke 에서 *재 verify*).
   4) **sample file structure 정합**: 각 .json sample 이 valid JSON + top-level
      가 dict + `tool_version` field 존재 (basic schema).
@@ -36,7 +36,8 @@ PYPROJECT_PATH = SOURCE_ROOT / "pyproject.toml"
 INIT_PATH = SOURCE_ROOT / "workflow_kit" / "__init__.py"
 SAMPLES_DIR = SOURCE_ROOT / "examples" / "output_samples"
 
-VERSION_RE = re.compile(r'return\s+"v([\d.]+)-beta"')
+# v1.2.1: `return "1.2.1"` (PEP 440 그대로). 구 포맷도 받아 준다.
+VERSION_RE = re.compile(r'return\s+"v?([\d.]+)(?:-beta)?"')
 PYPROJECT_VERSION_RE = re.compile(r'version\s*=\s*"([\d.]+)"')
 
 
@@ -57,7 +58,7 @@ def _read_loud_fallback_version() -> str | None:
         return None
     content = INIT_PATH.read_text(encoding="utf-8")
     m = VERSION_RE.search(content)
-    return f"v{m.group(1)}-beta" if m else None
+    return m.group(1) if m else None
 
 
 def _load_samples() -> list[dict]:
@@ -115,7 +116,7 @@ def case_2_sample_tool_version_matches_pyproject() -> bool:
         print(f"  FAIL: valid sample 0개")
         return False
     py_ver = _read_pyproject_version()
-    expected = f"v{py_ver}-beta"
+    expected = py_ver
     mismatches: list[tuple[str, str]] = []
     for s in valid:
         path = s.get("_path", "?")
@@ -134,7 +135,7 @@ def case_2_sample_tool_version_matches_pyproject() -> bool:
 def case_3_init_loud_fallback_matches_pyproject() -> bool:
     """3) __init__.py loud fallback literal == f'v{pyproject_version}-beta' 정합."""
     py_ver = _read_pyproject_version()
-    expected = f"v{py_ver}-beta"
+    expected = py_ver
     loud = _read_loud_fallback_version()
     if loud is None:
         print(f"  FAIL: __init__.py loud fallback literal 부재 (regex {VERSION_RE.pattern!r} not matched)")

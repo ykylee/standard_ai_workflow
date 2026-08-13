@@ -113,10 +113,10 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     )
     print("  case 4 (dev extra mypy pin ==2.1.0): PASS")
 
-    # case 5: __version__ = v0.11.11-beta verify (loud fallback literal)
+    # case 5: __version__ loud fallback literal == pyproject version verify
     init_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "__init__.py"
     init_src = init_path.read_text(encoding="utf-8")
-    # `return "vX.Y.Z-beta"` 패턴 (loud fallback literal) — case-insensitive
+    # `return "X.Y.Z"` 패턴 (loud fallback literal, v1.2.1 부터 PEP 440 그대로)
     # comment "Loud fallback" + return statement 매칭
     loud_fallback_match = re.search(
         r'#\s*\d+\.\s*[Ll]oud\s+fallback[^"]*?\n\s*return\s+"([^"]+)"',
@@ -132,7 +132,9 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     pyproject_text = (REPO_ROOT / "workflow-source" / "pyproject.toml").read_text(encoding="utf-8")
     version_match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject_text, re.M)
     assert version_match, "pyproject.toml 의 version parse 실패"
-    expected_loud = f"v{version_match.group(1)}-beta"
+    # v1.2.1 (TASK-2026-08-13-main-007): stable 정리로 loud fallback 도
+    # PEP 440 그대로다 — pyproject version 과 **문자 그대로** 같아야 한다.
+    expected_loud = version_match.group(1)
     assert current_loud == expected_loud, (
         f"loud fallback != {expected_loud} (pyproject 기준). current: {current_loud!r}"
     )

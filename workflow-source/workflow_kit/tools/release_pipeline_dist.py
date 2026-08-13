@@ -129,7 +129,7 @@ def _simulate_testpypi_upload(
         "would_upload_to": "https://test.pypi.org/project/standard-ai-workflow/",
         "actual_upload": False,
         "note": (
-            "Per release channel policy (memory #5: GitHub Releases only), "
+            "Per release channel policy (docs/RELEASE.md \u00a71: GitHub Releases only), "
             "no actual TestPyPI upload performed. Use the command above manually "
             "if TestPyPI validation is needed."
         ),
@@ -156,7 +156,7 @@ def _simulate_production_upload(
         "would_upload_to": "https://pypi.org/project/standard-ai-workflow/",
         "actual_upload": False,
         "note": (
-            "Per release channel policy (memory #5: GitHub Releases only), "
+            "Per release channel policy (docs/RELEASE.md \u00a71: GitHub Releases only), "
             "no actual PyPI upload performed. Use the command above manually "
             "if PyPI production upload is needed."
         ),

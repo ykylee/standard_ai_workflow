@@ -50,16 +50,17 @@ def _read_pyproject_version() -> str:
 def _read_init_version() -> str:
     """workflow_kit.__version__ 읽기. v0.8.0+: pyproject.toml 의 SSOT 로부터 compute.
 
-    __init__.py 의 __version__ 은 runtime compute (f"v{version}-beta") 이므로
+    __init__.py 의 __version__ 은 runtime compute (v1.2.1 부터 PEP 440 그대로) 이므로
     file 에 literal 이 없음. 동일 SSOT (pyproject.toml) 에서 동일 formula 로 compute.
     """
-    return f"v{_read_pyproject_version()}-beta"
+    return _read_pyproject_version()
 
 
 def _read_init_fallback_literal() -> str:
-    """__init__.py 의 loud fallback literal (return "vX.Y.Z-beta") 읽기. v0.8.0+ SSOT."""
+    """__init__.py 의 loud fallback literal (return "X.Y.Z") 읽기. v0.8.0+ SSOT."""
     text = WORKFLOW_KIT_INIT.read_text()
-    m = re.search(r'return\s+"(v\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?-beta)"', text)
+    # v1.2.1: 리터럴이 `return "1.2.1"`. 구 포맷(v..., -beta)도 받아 준다.
+    m = re.search(r'return\s+"(v?\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)"', text)
     assert m, f"loud fallback literal not found in {WORKFLOW_KIT_INIT}"
     return m.group(1)
 
@@ -123,7 +124,7 @@ def test_version_bump_apply_sync_both() -> None:
     pre_py = _read_pyproject_version()
     pre_init = _read_init_version()
     target = _bump_patch(pre_py)
-    target_init = f"v{target}-beta"
+    target_init = target
 
     # apply
     proc = subprocess.run(
@@ -178,7 +179,7 @@ def test_version_bump_no_init_skips() -> None:
     # v0.8.0+ SSOT: __init__.py 의 __version__ 은 pyproject 로부터 runtime compute 이므로
     # --no-init 여부와 무관하게 새 pyproject 값으로 resolve 됨. 다만 literal fallback 은
     # --no-init 시 보존되어야 함 (write_workflow_kit_version 호출 skip).
-    assert post_init == f"v{target}-beta", f"__init__ version (runtime compute) changed: {post_init}"
+    assert post_init == target, f"__init__ version (runtime compute) changed: {post_init}"
     assert post_fallback == pre_fallback, f"__init__ fallback literal 잘못 갱신됨: {pre_fallback} → {post_fallback}"
 
     # restore

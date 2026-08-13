@@ -129,9 +129,10 @@ def _simulate_testpypi_upload(
         "would_upload_to": "https://test.pypi.org/project/standard-ai-workflow/",
         "actual_upload": False,
         "note": (
-            "Per release channel policy (docs/RELEASE.md \u00a71: GitHub Releases only), "
-            "no actual TestPyPI upload performed. Use the command above manually "
-            "if TestPyPI validation is needed."
+            "This tool never uploads — it only prints the command. "
+            "Whether an upload is permitted is defined by docs/RELEASE.md \u00a71 "
+            "(release channel policy, the single source of truth). "
+            "Run the command above manually if that policy allows it."
         ),
     }
 

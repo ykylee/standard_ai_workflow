@@ -13,9 +13,11 @@ Phase 6 (v0.13.1+): dashboard post-release emit — gh release create 성공 후
   workflow_kit.workflow_kit_cli --command=dashboard --format=markdown 자동 호출.
   --skip-dashboard-emit 으로 skip, --dashboard-output=PATH 로 경로 override.
 
-PyPI/TestPyPI 업로드 ❌ — 정책 정본은 **docs/RELEASE.md §1 채널 정책** 이다
-(v1.2.1: 이전 주석은 저장소 밖 agent memory 를 근거로 인용해, 소비자도 새
- 기여자도 확인할 수 없는 자리에 정책이 있었다).
+본 도구는 어떤 인덱스에도 **업로드하지 않는다** (명령만 출력한다).
+업로드 가부는 **docs/RELEASE.md §1 채널 정책** 이 정본이다 — 여기서 규칙을
+*재진술하지 않는다*. 사본은 갈라지고, 실제로 §1 의 TestPyPI 행은 2026-08-13 에
+1회 한정 허용으로 바뀌었다 (v1.2.1: 그 이전 주석은 저장소 밖 agent memory 를
+근거로 인용해, 소비자도 새 기여자도 확인할 수 없는 자리에 정책이 있었다).
 
 Usage:
     # dry-run: 모든 subcommand plan 만 출력

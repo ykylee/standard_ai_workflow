@@ -44,7 +44,7 @@
   `check_packaging` FORBIDDEN_IMPORTS (일반명 top-level 재유입 차단)
 - 별건 수리: bootstrap OpenCode MCP 방언 실측 정정 (배열 command + enabled +
   environment) / 원본 bump 릴리스 검사 sandbox 이관 (pyproject 왕복 0)
-- 전량 검사 **253/253 PASS ×2축** + mypy strict 193파일 0 + SDK 매트릭스 3/3
+- 전량 검사 **254/254 PASS ×2축** + mypy strict 193파일 0 + SDK 매트릭스 3/3
 
 ## 2. deliverable
 
@@ -94,13 +94,19 @@
 
 ## 3. smoke 회귀
 
-누적 smoke test **253/253 PASS** ×2축 (2026-08-13, `dev,release,mcp-sdk` extra 를
+누적 smoke test **254/254 PASS** ×2축 (2026-08-13, `dev,release,mcp-sdk` extra 를
 깐 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신
 전량 결과* 를 반영하는 살아있는 지표다.
 
+발행 뒤 드러난 red 2건을 이 축에서 함께 닫았다 — `check_release_pipeline_phase2`
+(plugin ZIP 게이트가 dist 판정보다 먼저 걸리는데 acceptable 목록 미갱신) /
+`check_mavis_attach_e2e` (`--bundle` 기본값 전환으로 read-only 가 11종이 됐는데
+검사가 13종 하드코딩 사본을 들고 있었다 → 정본 registry 파생으로 교체).
+
 릴리스 **시점**에는 신규 smoke 파일이 없었다 (252). 발행 뒤
-`check_plugin_distribution` 이 더해져 살아있는 지표가 253 이 됐다
-(TASK-2026-08-13-main-009). 릴리스 시점 case 확장:
+`check_plugin_distribution` 이 더해져 253, 이어서
+`check_branch_memory_namespace` 가 더해져 254 가 됐다
+(TASK-2026-08-13-main-009 / TASK-2026-08-13-fix-branch-memory-namespace-guard-001). 릴리스 시점 case 확장:
 
 - `check_agent_plugin_payload` 7→**15** (어댑터 3장 + 조건부 주입 + 되주입 실증 누적)
 - `check_mcp_tool_descriptors` case **8** 신설 (OpenCode entry 형태, 렌더러·독립 증인 양쪽)

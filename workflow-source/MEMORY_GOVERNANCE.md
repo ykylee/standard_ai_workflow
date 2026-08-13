@@ -211,6 +211,21 @@ ai-workflow/memory/
   경로 해석(`workflow_memory_dir` → `active/`)이 성립한다.
 - **task ID**: `TASK-<date>-<slug>-<NNN>`. 순번을 *브랜치 안에서만* 매기므로 동시 생성해도
   겹치지 않고, 아카이브로 합쳐진 뒤에도 전역 유일하다.
+- **자기 네임스페이스에만 쓴다**: 작업 브랜치는 `active/<자기 브랜치>/` 에만 task·handoff·
+  state.json 을 **추가/수정**한다. 남의 네임스페이스(`active/main/` 등)를 손으로 편집하면
+  ①자기 디렉터리가 안 생겨 workspace 검사들이 push 마다 red 가 되고 ②task 번호를 남의
+  네임스페이스에서 뽑아 **병합 시 ID 가 충돌**한다 — daily index 는 conflict 없이
+  auto-merge 되므로 조용히 오염된다 (실측: PR #23).
+- **생성 창구는 `wk seed-workspace-memory` 다** — `active/<branch>/` 는 브랜치를 만든다고
+  생기지 않는다. 이 도구가 `session_handoff.md` + `backlog/` + `sessions/` 를 **한 벌로**
+  만든다 (`state.json` 은 파생물이라 `wk refresh-state` 가 만든다). **브랜치를 판 직후,
+  첫 task 를 등록하기 전에** 돌린다. `wk backlog-update` 를 먼저 쓰면 `backlog/` 만 생겨
+  `sessions/` 와 `session_handoff.md` 가 빠진 **절반짜리 네임스페이스**가 되고,
+  `check_appendonly_memory_layout` / `check_memory_freeze_lint` / `check_self_application`
+  이 red 가 된다 (실측 2026-08-13 — 도구를 썼는데도 red 라서, 이 순서를 모르면
+  손 편집으로 도망가게 된다). `session-start` / `refresh-state` 는 부재를 warning 으로만
+  알린다. 삭제는 예외 — 아카이브 piggyback 이 남의 경로를 지우는 것은 정본 절차다.
+  강제: `tests/check_branch_memory_namespace.py`.
 - **자동 아카이브**: `active/<branch>/` 가 있는데 git 에 그 브랜치가 없으면 종료로 보고
   `archived/<branch>/` 로 옮긴다(역방향 점검 — hook 은 브랜치 삭제를 못 잡는다). 고아
   디렉터리가 구조적으로 생길 수 없다. 도구는 commit/push 를 하지 않으므로 **protected main

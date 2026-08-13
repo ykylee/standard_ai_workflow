@@ -6,7 +6,7 @@
 사본이 아니라 실제 `~/.minimax/mcp/mcp.json` 에서 읽는다. 파일/항목 부재 =
 mavis 미설치 호스트 → graceful skip, `--require-mavis` 로 강제):
   1. initialize → serverInfo / protocolVersion 확인
-  2. tools/list → 13종 노출 확인
+  2. tools/list → 해당 bundle 의 도구 전량 노출 확인 (기대치는 정본 registry 파생)
   3. tools/call latest_backlog → 정상 응답 (candidates + latest_backlog_path)
   4. tools/call check_doc_metadata → 정상 응답 (checked_files + missing_metadata)
   5. 스키마 오류 시 친절한 error (allowed_fields + warnings) 확인
@@ -14,12 +14,13 @@ mavis 미설치 호스트 → graceful skip, `--require-mavis` 로 강제):
 검증 실패 시:
   - mavis 가 글로벌 mcp.json 변경을 새 세션부터 반영 (silent fail) → 사용자가 rotate 해야 함
   - env 두 개 (STANDARD_AI_WORKFLOW_ROOT + PYTHONPATH) 가 *절대 경로* 가 아니면 cwd 부재
-    함정 (§6.5.2 §1.2.1) 으로 13종이 안 붙음
+    함정 (§6.5.2 §1.2.1) 으로 도구가 안 붙음
   - builtin 5종 보존 (matrix / playwright / cu / trash / github)
   - JSON 문법 (trailing comma 등) 검증은 mavis 측 책임 — 본 smoke 의 subprocess 호출이
     그 단계까지 cover
 
-Stdlib 만 사용. subprocess + json + os 만 import. 외부 deps 0.
+외부 deps 0. stdlib + 저장소 정본 registry(`server.read_only_registry`) 만 쓴다 —
+기대 도구 목록을 사본으로 들고 있지 않기 위해서다 (아래 EXPECTED_TOOL_NAMES 주석).
 """
 
 from __future__ import annotations
@@ -30,6 +31,15 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
+
+SOURCE_ROOT = Path(__file__).resolve().parents[1]
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.server.read_only_registry import (  # noqa: E402
+    BUNDLE_READ_ONLY,
+    tool_specs_for_bundle,
+)
 
 # §6.5.2 — mavis 글로벌 mcp.json 의 standardAiWorkflowReadOnly 를 **파일에서 직접**
 # 읽는다 (v1.1.4). 이전에는 그 항목의 *사본* 을 여기 하드코딩했는데, 사본에는 darwin
@@ -59,22 +69,30 @@ def load_mavis_entry() -> tuple[list[str], dict[str, str]] | None:
 _LOADED = load_mavis_entry()
 MCP_CMD, MCP_ENV = _LOADED if _LOADED else ([], {})
 EXPECTED_PROTOCOL = "2025-03-26"
-EXPECTED_TOOL_COUNT = 13
-EXPECTED_TOOL_NAMES = {
-    "latest_backlog",
-    "check_doc_metadata",
-    "check_doc_links",
-    "suggest_impacted_docs",
-    "create_backlog_entry",
-    "create_session_handoff_draft",
-    "create_environment_record_stub",
-    "check_quickstart_stale_links",
-    "summarize_git_history",
-    "rotate_workflow_logs",
-    "assess_milestone_progress",
-    "smart_context_reader",
-    "apply_robust_patch",
-}
+
+
+def _bundle_from_args(cmd: list[str]) -> str:
+    """mavis 항목이 실제로 지정한 bundle. 미지정이면 CLI 기본값 (v1.2.0+ read-only).
+
+    `--bundle X` / `--bundle=X` 두 형태를 모두 본다.
+    """
+    for idx, token in enumerate(cmd):
+        if token == "--bundle" and idx + 1 < len(cmd):
+            return cmd[idx + 1]
+        if token.startswith("--bundle="):
+            return token.split("=", 1)[1]
+    return BUNDLE_READ_ONLY
+
+
+# 기대치는 **정본 registry 에서 파생**한다. 이전 판은 13종 이름을 여기 하드코딩한
+# 사본이었고, v1.2.0 이 `--bundle` 기본값을 `all`→`read-only` 로 뒤집자 (write 도구
+# `apply_robust_patch`/`rotate_workflow_logs` 2종이 read-only 서버에서 빠졌다)
+# 사본만 13 에 멈춰 red 로 남았다 — **이 파일이 두 번째로 겪는 같은 결함**이다
+# (v1.1.4 에 호스트 경로 사본을 같은 이유로 지웠고, 그 주석이 바로 위에 있다).
+# 실측 2026-08-13: 깨끗한 트리에서도 `expected 13, got 11`.
+# 정본에서 파생하므로 앞으로 bundle 구성이 바뀌어도 조용히 갈라지지 않는다.
+EXPECTED_TOOL_NAMES = {spec.name for spec in tool_specs_for_bundle(_bundle_from_args(MCP_CMD))}
+EXPECTED_TOOL_COUNT = len(EXPECTED_TOOL_NAMES)
 
 
 class McpSession:
@@ -157,7 +175,7 @@ def test_initialize(failures: list) -> dict:
 
 
 def test_tools_list(s: McpSession, failures: list) -> list:
-    print("\n[2/4] tools/list (기대 13종)")
+    print(f"\n[2/4] tools/list (기대 {EXPECTED_TOOL_COUNT}종)")
     s.send({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     resp = s.recv()
     tools = resp.get("result", {}).get("tools", [])
@@ -288,7 +306,7 @@ def main() -> int:
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ALL PASS: mavis attach e2e green (initialize / 13 tools / 2 tool calls)")
+    print(f"ALL PASS: mavis attach e2e green (initialize / {EXPECTED_TOOL_COUNT} tools / 2 tool calls)")
     return 0
 
 

@@ -64,10 +64,19 @@ def test_release_dry_run_no_dist() -> None:
     assert proc.returncode == 1, f"expected 1 (graceful fail), got {proc.returncode}: {proc.stdout[-300:]}"
     out = json.loads(proc.stdout)
     assert "error" in out
-    # dist 부재 OR release note 부재 둘 다 acceptable graceful fail
+    # dist 부재 OR release note 부재 OR plugin archive 부재 — 전부 acceptable
+    # graceful fail 이다. 이 test 가 재는 것은 *어느* 단계에서 멈추느냐가 아니라
+    # **graceful 하게 멈추느냐** 다 (docstring).
+    #
+    # v1.2.0 이 native plugin ZIP 게이트를 앞단에 더하면서 그 경로가 dist 판정보다
+    # **먼저** 걸리는데 허용 목록이 안 넓혀져 main 이 red 로 남아 있었다 (실측
+    # 2026-08-13: 깨끗한 트리에서도 재현). 단계를 늘릴 때마다 여기가 깨지는 구조라,
+    # 목록이 아니라 "graceful 인가" 를 재고 싶다면 별도 설계가 필요하다 — 지금은
+    # 최소 수리로 목록만 넓힌다.
     assert (
         "no dist files found" in out["error"]
         or "release note not found" in out["error"]
+        or "plugin archives missing" in out["error"]
     ), f"unexpected error message: {out['error']}"
 
 

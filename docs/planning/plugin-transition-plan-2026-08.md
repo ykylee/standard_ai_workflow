@@ -3,7 +3,7 @@
 - 문서 목적: 표준 AI 워크플로우의 배포 전략을 **플러그인 배포 중심**으로 전환하는 실행 계획 — 전환 원칙, 단계별 로드맵 (P1~P5), WBS, 완료 기준을 확정한다 (TASK-2026-08-12-main-013, 사용자 지시).
 - 범위: TASK-011 (Claude Code 플러그인 검토) + TASK-012 (멀티 하네스 공유 검토) 의 권고를 실행 계획으로 통합. 구현은 본 계획의 WBS task 들 (TASK-014~018) 로 수행한다.
 - 대상 독자: maintainer, 배포 정책 소유자, 구현 담당 AI agent
-- 상태: 실행 중 — **P1·P2·P3·P4 완료** (TASK-014·015·016·017, 2026-08-12~13), P5 planned
+- 상태: **완료 — P1~P5 전부 종료, 전환 완료 판정 (§6-보론)** (TASK-014~018, 2026-08-12~13)
 - 최종 수정일: 2026-08-13
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [multi-harness-plugin-review-2026-08.md](./multi-harness-plugin-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md), [workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md)
 
@@ -267,6 +267,48 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 - **소유자 판정**: 실측 결과에 따라 (a) 플러그인 = 주 채널 + bootstrap 병행 유지,
   또는 (b) 플러그인 = Claude Code/Gemini 한정 채널. 판정 근거를 본 문서에 기록.
 
+**P5 실행 결과 (2026-08-13, TASK-018)** — 실측 3건과 판정:
+
+| 실측 | 결과 |
+|---|---|
+| ① SessionStart hook 규칙 주입 실효 | ✔ **성립** — 프로브 플러그인의 SessionStart hook 이 echo 한 마커를 headless 모델이 그대로 반환했다 (claude 2.1.229, 중립 디렉터리). hook stdout 은 모델 컨텍스트에 실제로 주입된다 — 원칙 3 이 열어 둔 "CLAUDE.md 형 상시 주입 갭" 을 플러그인 채널이 메울 수 있다 |
+| ② Gemini GEMINI.md 상시 주입 | **로드 계층 성립 / 모델 주입 계층 미검증** — P3 의 `IneligibleTierError` 차단 그대로. 판정에는 로드 실측만 반영하고, 모델 계층은 tier 해소 후 별도 확인 항목으로 남긴다 |
+| ③ marketplace 업데이트 UX | ✔ 수동 흐름 성립 — `claude plugin marketplace update <name>` (source 재검증) + `claude plugin update <name>@<marketplace>` (**풀 id 필수** — 이름만 주면 not found, 실측). 최신이면 "already at the latest version" 버전 비교, 적용은 재시작 후 |
+
+**부수 발견 — 설치 선언 소실 사고 (지속성 리스크).** P2 에서 성립시킨 자기 적용
+선언(user settings 의 `extraKnownMarketplaces` / `enabledPlugins`)이 이 세션
+시작 시점에 **통째로 사라져 있었다** (marketplace 목록에 official 만 남음).
+settings.json 이 외부 도구에 의해 재작성된 것으로 추정되나 원인 미확정. 재설치
+(marketplace add + install) 로 복구했고, 소비자 문서(§7.0)에 재설치 명령과 이
+리스크를 명시했다 — 설치 선언이 settings.json 에 사는 한 같은 계열 소실이 재발할
+수 있다.
+
+**소유자 판정 (2026-08-13): (a) 플러그인 = 주 채널 승격 + bootstrap 병행 유지.**
+근거: ①의 성립으로 원칙 3 이 걸어 둔 전제(hook 주입 실효)가 채워졌고, 자기
+적용·업데이트 흐름이 실측으로 성립한다. bootstrap 은 (1) 진입점 파일 규칙 상시
+주입 (2) 플러그인 미지원 하네스 (3) 오프라인 환경 담당으로 병행 유지 — 기존
+소비자 경로는 깨지지 않는다 (원칙 3). `INSTALLATION_AND_USAGE.md` §7.0 이
+플러그인을 권장 경로로 안내한다.
+
+hook 에 규칙 블록(`render_entrypoint_rules`)을 실제로 싣는 것은 별건
+[TASK-2026-08-13-main-003] 으로 넘긴다 — 진입점 파일에 규칙 블록이 이미 있는
+프로젝트(이 저장소 포함)에서 이중 주입이 되므로, **조건부 주입**(진입점 규칙
+블록 감지 시 생략) 설계가 선행돼야 한다.
+
+## 6-보론. 전환 완료 판정 (2026-08-13)
+
+§6 의 4개 조건이 전부 성립했다:
+
+1. ✔ payload + 어댑터 전부 렌더러 생성물 + 검사 15 case 강제 (P1~P3)
+2. ✔ 자기 적용 — 이 저장소가 자신을 플러그인으로 설치해 쓰고 있다 (P2, P5 재설치 포함)
+3. ✔ 릴리스 게이트가 버전 4장 정합을 강제한다 (P4, release-doctor 6번째 source)
+4. ✔ INSTALLATION §7.0 권장 경로 승격 + 채널 전환 판정 (a) 기록 (P5)
+
+**본 전환 계획은 완료로 판정한다.** 잔여는 계획 밖 후속 task 로 관리한다:
+Gemini 모델 주입 계층 실측 (tier 해소 후) / goose 실기 검증 (goose 가용 환경) /
+hook 조건부 규칙 주입 [TASK-2026-08-13-main-003] / bootstrap OpenCode 방언
+[TASK-2026-08-13-main-002] / 원본 bump 검사 sandbox 이관 [TASK-2026-08-13-main-001].
+
 ## 4. WBS
 
 | Task | Phase | 산출물 | 완료 기준 (검증 포함) | 의존 | 규모 |
@@ -276,7 +318,7 @@ P3 이 멀티 하네스 확장, P4 가 운영 통합, P5 가 전환 판정이다
 | TASK-2026-08-12-main-015 | P2 | Claude Code 어댑터 + marketplace.json + 자기 적용 실측 | `/plugin install` 이 이 저장소에서 성립 (스킬 3종 호출 + SessionEnd hook + MCP 등록 실측 기록) + `wk` 부재 graceful 실측 | 014 | M |
 | TASK-2026-08-12-main-016 ✅ | P3 | gemini-cli/goose/opencode 어댑터 + `.agents/skills/` 수렴 판정 | ✅ 어댑터 3장 렌더러 편입 (검사 15 case) + Gemini 로드 실측 (모델 주입 계층은 P5 이월) + `.agents/skills/` **비수렴 판정** (Claude Code 미판독 실측) | 014 | M |
 | TASK-2026-08-12-main-017 ✅ | P4 | cmd_release 통합 (bump 정합 보고 + 릴리스 게이트 + 드리프트 검사) | ✅ bump 3경로가 정합 보고 + `release-doctor` 가 어긋남을 `ok=False` 로 차단 + 되주입 실증 3종 (dist 자산은 **미포함 판정**) | 014, 015 | S |
-| TASK-2026-08-12-main-018 | P5 | 실측 종합 + INSTALLATION 개편 + 채널 전환 판정 기록 | 실측 3건 기록 + 문서 갱신 + 소유자 판정 본 문서 §3-P5 에 기록 | 015, 016, 017 | M |
+| TASK-2026-08-12-main-018 ✅ | P5 | 실측 종합 + INSTALLATION 개편 + 채널 전환 판정 기록 | ✅ 실측 3건 기록 (hook 주입 **성립** / Gemini 모델 계층 미검증 명시 / 업데이트 흐름) + INSTALLATION §7.0 승격 + 판정 **(a)** §3-P5 기록 + 전환 완료 판정 §6-보론 | 015, 016, 017 | M |
 
 규모: S = 1세션 내, M = 1~2세션. 015 와 016 은 014 완료 후 **병렬 가능**
 (단 같은 워킹 트리 전량 검사 락 — 동시 진행 시 worktree 분리).

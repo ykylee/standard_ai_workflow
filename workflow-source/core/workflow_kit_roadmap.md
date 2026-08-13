@@ -381,11 +381,15 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 > 기본값 전환). 상세 계획·WBS·완료 기준:
 > [`docs/planning/plugin-transition-plan-2026-08.md`](../../docs/planning/plugin-transition-plan-2026-08.md)
 >
-> **진행 (2026-08-12)**: **P1·P2·P4 완료** (TASK-014·015·017). 잔여 = P3 (멀티 하네스
-> 어댑터) · P5 (실측 게이트 + 채널 전환 판정). 플러그인 스킬은 정본 §11.1 명령 4개와
-> 1:1 대응하는 **4종** (TASK-020 에서 `session-end` 추가). P4 는 dist 자산 포함을
-> **하지 않는 것으로 판정**했다 — marketplace 설치 경로가 git 이라 wheel 자산을
-> 읽지 않고, 넣으면 사본만 하나 는다. 릴리스↔플러그인 연결은 **버전 동기**로 한다.
+> **완료 (2026-08-13)**: **P1~P5 전부 종료 — 전환 완료 판정** (TASK-014~018, 계획
+> §6-보론). 채널 판정 = **(a) 플러그인 주 채널 승격 + bootstrap 병행 유지** (근거:
+> SessionStart hook stdout 의 모델 컨텍스트 주입이 실측 성립 — 원칙 3 전제 충족).
+> INSTALLATION §7.0 이 플러그인을 권장 경로로 안내한다. 플러그인 스킬은 정본
+> §11.1 명령 4개와 1:1 대응하는 **4종**. dist 자산은 미포함 판정 (marketplace 는
+> git 경로라 wheel 을 읽지 않는다), 릴리스↔플러그인 연결은 **버전 동기** 게이트
+> (release-doctor, manifest 4장). 잔여 후속 (계획 밖 task): Gemini 모델 주입 실측
+> (계정 tier 차단 해소 후) / goose 실기 검증 / hook 조건부 규칙 주입
+> (TASK-2026-08-13-main-003) / bootstrap OpenCode 방언 (TASK-2026-08-13-main-002).
 
 1. **(P0-1 ✅ DONE — 2026-07-21) mypy strict venv 직접 verify (Break Point #3 close-out)** — `.venv` (mypy 2.1.0) 에서 CI 게이트와 동일한 `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors** 확인 완료. (workflow-source dir 기준 4건 `unused-ignore` 는 optional import 방어용 non-gate 아티팩트.) v1.0.0 Gate 3 ✅ PASS 로 갱신.
 2. **(P0-2 ✅ DONE — v0.15.21-beta, 2026-07-21) telemetry source 다양성 ≥ 4 (AC2 수렴)** — 3 skill (session-start / doc-sync / backlog-update) 의 memory_index retrieval 게이트를 opt-in → **workspace memory_index 존재 시 자동 활성** 으로 전환 완료 (flag override 유지, 부재 시 zero-risk skip). AC2 는 신규 자립형 smoke `check_telemetry_source_diversity.py` (temp workspace 4-source fixture → `by_source` ≥ 4 + hit_rate sanity, 5/5 PASS) 로 CI 강제 (events.jsonl 은 gitignore 런타임 데이터라 live-file 의존 대신 self-contained fixture). live events.jsonl 4 source (dispatcher + 3 skill) + hit_rate 1.0 수렴 (dashboard Panel 8).

@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.1.8-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-08-12
+- 최종 수정일: 2026-08-13 (§7.0 플러그인 설치를 권장 경로로 승격 — P5 판정)
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -269,7 +269,45 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.1. 부트스트랩 (다른 저장소에 워크플로우 도입)
+### 7.0. 플러그인 설치 (권장 경로 — Claude Code / Gemini CLI)
+
+소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
+근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
+§3-P5). 스킬 4종 (session-start / backlog-update / doc-sync / session-end) +
+read-only MCP 번들 + 세션 경계 hook 2종이 설치 1명령으로 들어온다.
+
+```bash
+# Claude Code — marketplace 등록 + 설치
+claude plugin marketplace add ykylee/standard_ai_workflow
+claude plugin install standard-ai-workflow@standard-ai-workflow
+
+# 업데이트 (plugin update 는 풀 id `<name>@<marketplace>` 가 필요하다 — 실측)
+claude plugin marketplace update standard-ai-workflow
+claude plugin update standard-ai-workflow@standard-ai-workflow   # 재시작 후 적용
+```
+
+```bash
+# Gemini CLI — 확장 루트가 저장소의 plugin/ 이므로 로컬 경로로 설치한다
+# (GitHub URL 설치는 manifest 가 저장소 루트에 있어야 해 성립하지 않는다)
+git clone https://github.com/ykylee/standard_ai_workflow.git
+gemini extensions install ./standard_ai_workflow/plugin --consent
+# 개발 추적이 필요하면 install 대신: gemini extensions link ./standard_ai_workflow/plugin
+```
+
+전제 두 가지:
+
+- **플러그인은 `wk` / Python 의존을 대신 설치해 주지 않는다** (전환 원칙 4).
+  스킬·hook 이 부르는 메모리 갱신 명령은 §3 의 uv/pipx wheel 설치가 선행돼야
+  돌고, 없으면 SessionStart hook 이 설치 안내를 출력한다 (조용한 실패 없음).
+- 설치 선언은 user settings (`~/.claude/settings.json` 의
+  `extraKnownMarketplaces` / `enabledPlugins`) 에 산다 — settings 를 재작성하는
+  외부 도구가 있으면 선언이 소실될 수 있다 (실측 1회). 그 경우 위 두 명령으로
+  재설치한다.
+
+bootstrap (아래 7.1) 은 **플러그인 미지원 하네스와 오프라인 환경**, 그리고
+진입점 파일(CLAUDE.md 등)에 대한 규칙 상시 주입 담당으로 병행 유지된다.
+
+### 7.1. 부트스트랩 (플러그인 미지원 하네스 · 오프라인 · 진입점 규칙 주입)
 
 ```bash
 # 옵션 A: 신 패키지 (path-style, 권장)

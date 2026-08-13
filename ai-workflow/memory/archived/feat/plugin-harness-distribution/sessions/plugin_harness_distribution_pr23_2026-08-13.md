@@ -1,7 +1,7 @@
 # 세션 기록 — Codex·Claude Code native plugin 배포 + main 정합 보완 (2026-08-13)
 
 - 문서 목적: `feat/plugin-harness-distribution` 브랜치(PR #23)의 작업과 판단 근거를 남긴다.
-- 범위: native plugin ZIP 분리, Codex 실기 검증, main 병합 정합 보완 7건
+- 범위: native plugin ZIP 분리, Codex 실기 검증, main 병합 정합 보완 10건 (§3 에 7건, §5·§6 에 3건)
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: stable
 - 최종 수정일: 2026-08-13
@@ -13,8 +13,11 @@
 하네스별 native plugin ZIP 을 분리 생성해 GitHub Release asset 으로 붙였다.
 `release` 는 ZIP 이 없으면 중단한다.
 
-그 위에 **main 병합 정합 보완 7건**을 얹었다. PR #23 의 CI 는 세 번의 push 모두
+그 위에 **main 병합 정합 보완 10건**을 얹었다. PR #23 의 CI 는 세 번의 push 모두
 red 였고(11건), 그 원인이 전부 여기서 닫힌다.
+
+내역은 두 곳에 나뉘어 있다: §3 에 7건, §5·§6 에 "판정이 호스트 환경에 달려 있던
+자리" 3건. 세션 중에 뒤늦게 3건이 늘어 §3 의 제목만 7 로 남았다.
 
 ## 2. Codex 실기 검증 — "validate 통과는 로드 증명이 아니다"
 
@@ -40,7 +43,7 @@ red 였고(11건), 그 원인이 전부 여기서 닫힌다.
   이 경로로 관측되지 않는다. 스킬 설명은 `SKILL.md` frontmatter 에서 온다.
   goose snippet 과 같은 취급 — 미검증을 미검증으로 적는다.
 
-## 3. 정합 보완 7건
+## 3. 정합 보완 7건 (전체 10건 중 — 나머지 3건은 §5·§6)
 
 1. **task ID 충돌** — `TASK-2026-08-13-main-008` 이 두 개였다 (main 의 TestPyPI
    리허설 / 이 브랜치의 Codex 배포). §4 참조.
@@ -71,6 +74,17 @@ red 였고(11건), 그 원인이 전부 여기서 닫힌다.
 `ai-workflow/memory/active/<branch>/` 는 **자동으로 생기지 않는다.** 만드는 자리는
 `wk backlog-update` 하나다 (`write_task_entry` 가 `tasks_dir.mkdir(parents=True)`).
 `session-start` / `refresh-state` 는 부재를 warning 으로만 알린다 (graceful skip).
+
+> **정정 (2026-08-13, TASK-…-fix-branch-memory-namespace-guard-001)**: 위 문장의
+> "만드는 자리는 `wk backlog-update` 하나" 는 틀렸다. `backlog-update` 는
+> `tasks_dir.mkdir()` 의 **부수효과로** `backlog/` 만 만든다 — `sessions/` 와
+> `session_handoff.md` 가 빠져 `check_appendonly_memory_layout` /
+> `check_memory_freeze_lint` / `check_self_application` 이 red 로 남는다.
+> 한 벌로 만드는 정본 창구는 **`wk seed-workspace-memory`** 다 (그 도구의
+> docstring 이 바로 이 실패 — `missing_required_document` — 를 계보로 적고 있다).
+> 이 정정을 실측한 경위: 위 진단을 그대로 따라 `backlog-update` 를 먼저 돌렸더니
+> 전량에서 정확히 그 3검사가 red 였다. **도구를 옳게 썼는데도 red** 이므로, 다음
+> 사람이 손 편집으로 도망갈 유인이 그대로 남아 있었다.
 
 경로 해석은 정상이었다. 이 브랜치에서 `wk backlog-update` 는
 `active/feat/plugin-harness-distribution/backlog/2026-08-13.md` 와
@@ -143,7 +157,19 @@ GITHUB_ACTIONS=true CI=true \
 python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크>
 ```
 
-## 7. 남은 구멍
+## 7. 남은 구멍 — ✅ 닫힘 (2026-08-13)
 
-손 편집을 막을 자리가 없다. 작업 브랜치에 `active/<branch>/` 가 없다는 사실을
-직접 지목하는 검사가 아직 없고, 3개 검사의 간접 증상으로만 드러난다.
+> 손 편집을 막을 자리가 없다. 작업 브랜치에 `active/<branch>/` 가 없다는 사실을
+> 직접 지목하는 검사가 아직 없고, 3개 검사의 간접 증상으로만 드러난다.
+
+`check_branch_memory_namespace` 신설로 닫혔다
+([TASK-2026-08-13-fix-branch-memory-namespace-guard-001](../../../active/fix/branch-memory-namespace-guard/backlog/tasks/TASK-2026-08-13-fix-branch-memory-namespace-guard-001.md)).
+구멍이 하나가 아니라 둘이었다 — (A) 작업 브랜치가 **다른 브랜치 네임스페이스에
+추가/수정**(원인), (B) `active/<branch>/` **부재**(결과). §4 의 case 7 은 병합 *뒤*
+흔적만 잡으므로, 브랜치에서 일하는 동안에는 여전히 아무도 지적하지 않았다.
+새 검사는 커밋 전 워킹 트리까지 보고 A·B 를 직접 지목한다.
+
+구멍을 메우다 **§4 의 진단 자체가 절반 틀렸다는 것**도 드러났다 (§4 의 정정 블록).
+안내가 가리키던 `wk backlog-update` 는 절반짜리 네임스페이스를 만들어 3검사가 red 로
+남는다 — 그래서 새 검사의 안내 문구는 `wk seed-workspace-memory` 를 가리킨다.
+따라 하면 실제로 green 이 되지 않는 안내는 손 편집으로 도망갈 유인을 남긴다.

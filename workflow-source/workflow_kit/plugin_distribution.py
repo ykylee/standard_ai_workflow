@@ -75,7 +75,7 @@ def _included(relpath: str, spec: PluginHarnessSpec) -> bool:
 
 
 def _write_marketplace(root: Path, spec: PluginHarnessSpec) -> None:
-    """Write the Codex marketplace required to install an extracted release asset."""
+    """Write the Codex marketplace at its discovered ``.agents/plugins`` path."""
     if spec.marketplace_name is None:
         return
     marketplace = {
@@ -90,7 +90,9 @@ def _write_marketplace(root: Path, spec: PluginHarnessSpec) -> None:
             }
         ],
     }
-    (root / "marketplace.json").write_text(json.dumps(marketplace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
+    marketplace_path.parent.mkdir(parents=True, exist_ok=True)
+    marketplace_path.write_text(json.dumps(marketplace, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def build_plugin_archives(

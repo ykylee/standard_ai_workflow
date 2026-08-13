@@ -89,6 +89,12 @@ python3 -m venv .venv-build
 .venv-build/bin/twine check dist/*
 #   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>-...whl: PASSED
 #   → Checking dist/standard_ai_workflow-<X>.<Y>.<Z>.tar.gz: PASSED
+
+# GitHub Release에 같이 첨부할 Codex·Claude Code native plugin ZIP
+.venv-build/bin/python -m workflow_kit.plugin_distribution \
+  --output-dir dist \
+  --version <X>.<Y>.<Z>
+#   → dist/plugins/{codex,claude-code}/<X>.<Y>.<Z>/*.zip
 ```
 
 ### 2.5 로컬 smoke (fresh venv)

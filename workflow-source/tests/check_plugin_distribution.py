@@ -40,13 +40,17 @@ def main() -> int:
                         raise AssertionError("Codex archive misses its native manifest.")
                     if any(name.endswith("/.claude-plugin/plugin.json") for name in names):
                         raise AssertionError("Codex archive must not ship the Claude manifest.")
-                    marketplace_name = next((name for name in names if name.endswith("/marketplace.json")), None)
-                    if marketplace_name is None:
-                        raise AssertionError("Codex archive misses the install marketplace.")
+                    archive_root = archive.stem
+                    marketplace_name = f"{archive_root}/.agents/plugins/marketplace.json"
+                    if marketplace_name not in names:
+                        raise AssertionError("Codex archive misses the discovered install marketplace.")
                     marketplace = json.loads(bundle.read(marketplace_name))
                     entry = marketplace["plugins"][0]
                     if entry["source"]["path"] != "./plugins/standard-ai-workflow":
                         raise AssertionError("Codex marketplace source path is not installable.")
+                    plugin_root = f"{archive_root}/plugins/standard-ai-workflow"
+                    if not any(name.startswith(plugin_root + "/") for name in names):
+                        raise AssertionError("Codex marketplace source path does not resolve inside the archive.")
                 if "claude-code-plugin" in archive.name:
                     if not any(name.endswith("/.claude-plugin/plugin.json") for name in names):
                         raise AssertionError("Claude archive misses its native manifest.")

@@ -25,7 +25,7 @@ seed 가 만드는 문서는 `session-start` 파서와 **문구 단위로** 맞�
      정상이고, 그 줄을 판정에 넣으면 결과가 **호스트 저장소의 브랜치 상태**에
      달린다 (main 통과 / detached HEAD·메모리 없는 브랜치 FAIL).
   3) 멱등 — 재실행이 기존 handoff/backlog 를 덮어쓰지 않고 task 번호만 증가
-  4) state.json 을 만들지 않는다 (파생 파일은 rebuild 담당)
+  4) state.json 까지 생성기로 만든다 — seed 한 번으로 시작 가능한 상태가 된다
   5) 생성된 task 파일이 append-only layout frontmatter 규약에 맞는다
 
 Refs:
@@ -142,9 +142,28 @@ def main() -> int:
         _record("test_rerun_increments_task_id", second["task_id"] != task_id,
                 f"task_id 가 재사용됐다: {second['task_id']}")
 
-        # --- case 4: state.json 은 만들지 않는다 ---------------------------
-        _record("test_no_state_json", not (branch_dir / "state.json").exists(),
-                "seed 가 파생 파일 state.json 을 만들었다")
+        # --- case 4: state.json 까지 만들어 **시작 가능한 상태**로 끝낸다 ------
+        #
+        # v1.2.1 에서 계약이 뒤집혔다. 이전 계약은 "파생 파일이므로 seed 는 만들지
+        # 않는다" 였는데, 그 결과 seed 직후의 브랜치가 항상 절반짜리였고
+        # `check_appendonly_memory_layout` / `check_memory_freeze_lint` /
+        # `check_branch_context_matrix` 가 red 였다 (2026-08-13 에 두 번 밟았다).
+        # **여전히 생성물이다** — seed 가 손으로 쓰는 게 아니라 생성기를 호출한다.
+        # 달라진 것은 "누가 그 호출을 책임지는가" 이고, 답은 seed 다.
+        state_path = branch_dir / "state.json"
+        _record("test_state_json_generated", state_path.is_file(),
+                "seed 가 state.json 을 만들지 않아 브랜치가 절반짜리로 남는다")
+        if state_path.is_file():
+            sot = json.loads(state_path.read_text(encoding="utf-8")).get("source_of_truth", {})
+            # **브랜치 축 key 만 본다.** `project_profile_path` 는 브랜치 무관 공유
+            # 문서라 여기 섞으면 정상을 FAIL 로 만든다 (처음에 그렇게 걸렸다).
+            branch_keys = ("session_handoff_path", "daily_backlog_dir", "tasks_dir", "sessions_dir")
+            wrong = {k: sot.get(k) for k in branch_keys if str(branch_dir) not in str(sot.get(k))}
+            _record(
+                "test_state_json_points_at_branch",
+                not wrong,
+                f"state.json 이 이 브랜치를 가리키지 않는다: {wrong}",
+            )
 
         # --- case 5: task frontmatter 규약 --------------------------------
         task_file = branch_dir / "backlog" / "tasks" / f"{task_id}.md"

@@ -1,6 +1,7 @@
 ---
 id: TASK-2026-08-13-fix-branch-memory-namespace-guard-003
 status: planned
+carried_over_to: TASK-2026-08-13-main-009
 created_at: 2026-08-13
 source_anchor: generic-task-2026-08-13-fix-branch-memory-namespace-guard-003
 source_path: backlog/2026-08-13.md

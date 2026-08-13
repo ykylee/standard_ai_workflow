@@ -17,8 +17,11 @@
 - `backlog/<today>.md` + `backlog/tasks/TASK-….md` — 기존 writer 재사용.
 - `sessions/` — 빈 디렉터리 (session 기록 자리).
 
-`state.json` 은 **만들지 않는다.** 파생 파일이므로 `scripts/generate_workflow_state.py`
-가 rebuild 한다 (`memory/active/README.md` §4).
+`state.json` 도 **함께 만든다** — 다만 손으로 쓰지 않고 `scripts/generate_workflow_state.py`
+를 호출해 만든다 (여전히 생성물이다, `memory/active/README.md` §4). 이전 판은 "파생물이니
+나중에 따로" 였는데, 그러면 seed 가 끝을 안 맺어 브랜치 메모리가 절반짜리로 남고
+`check_appendonly_memory_layout` / `check_memory_freeze_lint` / `check_branch_context_matrix`
+가 red 가 된다 (2026-08-13 에 두 번 밟았다). **한 번 돌리면 시작할 수 있는 상태**가 된다.
 
 **지시는 전달되지 않고 놓인다**: `session-start` 는 인자로 받은 경로의 문서만 읽는다.
 중앙이 에이전트에게 메시지를 보내는 채널은 없으므로, 여기서 쓴 handoff 가 곧 업무
@@ -41,6 +44,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -51,8 +55,10 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
+    discover_project_profile_path,
     get_current_branch,
     memory_dir_for_workspace,
+    state_path_in_active,
 )
 from workflow_kit.common.workflow_writes import (  # noqa: E402
     render_task_file,
@@ -195,6 +201,7 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
         "planned": planned,
         "skipped": skipped,
         "warnings": [],
+        "errors": [],
     }
 
     if not apply:
@@ -230,10 +237,49 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             encoding="utf-8",
         )
 
-    result["warnings"].append(
-        "state.json 은 seed 하지 않는다 — scripts/generate_workflow_state.py 로 생성한다."
-    )
+    # `state.json` 은 **생성물**이다 — 손으로 쓰지 않는다. 그렇다고 "나중에 따로"
+    # 두면 seed 가 끝을 안 맺는다: 브랜치 메모리가 절반짜리로 남고
+    # `check_appendonly_memory_layout` / `check_memory_freeze_lint` /
+    # `check_branch_context_matrix` 가 red 다 (실측 2026-08-13, 두 번). 그래서
+    # **생성기를 호출해** 마무리한다 — 여전히 생성물이고, 다만 seed 가 그 호출까지
+    # 책임진다. 실패는 조용히 넘기지 않는다 (warning 이 아니라 error 로 올린다).
+    state_path = state_path_in_active(branch_dir.parent, branch)
+    err = _generate_state(state_path=state_path, branch_dir=branch_dir)
+    if err:
+        result["errors"].append(f"state.json 생성 실패: {err}")
+    else:
+        result["planned"].append({"path": str(state_path), "kind": "state_json"})
     return result
+
+
+def _generate_state(*, state_path: Path, branch_dir: Path) -> str | None:
+    """`generate_workflow_state.py` 로 state.json 을 만든다. 오류 메시지 반환.
+
+    출력 경로는 **호출자가 정본 helper(`state_path_in_active`)로 조립해** 넘긴다.
+    여기서 파일명을 직접 이어 붙이면 layout 규칙의 사본이 되고,
+    `check_convention_single_source` 가 그걸 잡는다 (실제로 이 함수를 쓰다 걸렸다).
+    """
+    generator = SOURCE_ROOT / "scripts" / "generate_workflow_state.py"
+    if not generator.is_file():
+        return f"생성기 부재: {generator}"
+    profile = discover_project_profile_path(REPO_ROOT)
+    if profile is None:
+        return "PROJECT_PROFILE.md 를 찾지 못했다"
+    proc = subprocess.run(
+        [
+            sys.executable, str(generator),
+            "--project-profile-path", str(profile),
+            "--daily-backlog-dir", str(branch_dir / "backlog"),
+            "--tasks-dir", str(branch_dir / "backlog" / "tasks"),
+            "--sessions-dir", str(branch_dir / "sessions"),
+            "--session-handoff-path", str(branch_dir / "session_handoff.md"),
+            "--output-path", str(state_path),
+        ],
+        capture_output=True, text=True, timeout=120,
+    )
+    if proc.returncode != 0:
+        return (proc.stderr.strip() or proc.stdout.strip() or f"exit {proc.returncode}")[-500:]
+    return None
 
 
 def main() -> int:

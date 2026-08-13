@@ -330,6 +330,19 @@ def _is_trivial_test_def(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     return True
 
 
+def _is_assertion_raise(node: ast.Raise) -> bool:
+    """`raise AssertionError` / `raise AssertionError(...)` 인가.
+
+    `assert` 문의 `-O` 안전 변형이므로 같은 지위로 센다. 다른 예외
+    (`ValueError`, `SystemExit`, bare `raise`)는 제어 흐름이지 판정이 아니므로
+    세지 않는다 — 넓히면 검증 없는 파일도 신호를 얻어 floor 가 무력해진다.
+    """
+    exc = node.exc
+    if isinstance(exc, ast.Call):
+        exc = exc.func
+    return isinstance(exc, ast.Name) and exc.id == "AssertionError"
+
+
 def _count_verification_signals(source: str) -> int:
     """smoke 파일 하나의 *verification signal* 개수 (AST 기반, v1.1.5 재설계).
 
@@ -342,6 +355,12 @@ def _count_verification_signals(source: str) -> int:
     2. `assert` 문 — 단, 상수 조건(`assert True`)은 제외
     3. reporter 호출식: `check(...)` / `_record(...)` / `_ok(...)` / `_fail(...)`
     4. 실패 수집식: `failures.append(...)` 등 관행 collector 이름의 `.append`
+    5. `raise AssertionError(...)` — `assert` 문과 같은 판정을 `-O` 에 지워지지
+       않게 쓴 형태다 (TASK-2026-08-13-main-009). 2026-08-13 기준 저장소의 smoke
+       **89개**가 이 관용구를 쓰는데 측정은 하나도 인정하지 않았고, 그 파일들은
+       다른 형태를 곁들인 덕에 우연히 >0 이었다. 이 형태만 쓰는 파일이 처음
+       들어오자 min 이 0 으로 떨어져 TST-WF-01 이 red 가 됐다 — 신규 파일의
+       결함이 아니라 v1.1.5 재설계가 남긴 사각지대였다.
 
     parse 불가 파일은 0 — 실행될 수 없는 검사는 아무것도 검증하지 않는다.
     """
@@ -361,6 +380,9 @@ def _count_verification_signals(source: str) -> int:
                 count += 1
         elif isinstance(node, ast.Assert):
             if not isinstance(node.test, ast.Constant):
+                count += 1
+        elif isinstance(node, ast.Raise):
+            if _is_assertion_raise(node):
                 count += 1
         elif isinstance(node, ast.Call):
             func = node.func

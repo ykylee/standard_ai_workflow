@@ -69,7 +69,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Callable, NamedTuple, Sequence
+from typing import Any, Callable, NamedTuple, Sequence
 
 from workflow_kit.common.standard_rules import (
     StandardRules,
@@ -175,6 +175,12 @@ MARKETPLACE_RELPATH = ".claude-plugin/marketplace.json"
 #: manifest 의 author 필드. 없으면 `claude plugin validate --strict` 가 경고를
 #: 에러로 올린다 (실측).
 PLUGIN_AUTHOR = {"name": "ykylee"}
+
+#: 저자 프로필 URL — `PLUGIN_AUTHOR["name"]` 이 GitHub 핸들이라는 사실에 매인다.
+PLUGIN_AUTHOR_URL = f"https://github.com/{PLUGIN_AUTHOR['name']}"
+
+#: 저장소 URL — Codex manifest 의 `repository` 필드가 쓴다.
+PLUGIN_REPOSITORY_URL = f"{PLUGIN_AUTHOR_URL}/standard_ai_workflow"
 
 
 class PluginSkillSpec(NamedTuple):
@@ -372,6 +378,49 @@ def current_kit_version() -> str:
     return _read_pyproject_version()
 
 
+def _project_table() -> dict[str, Any]:
+    """``workflow-source/pyproject.toml`` 의 ``[project]`` 테이블.
+
+    packaging metadata 를 manifest 로 나를 때 **읽어서** 나른다. 손으로 옮겨 적으면
+    갈라지고, 갈라진 사실을 아무도 못 본다 — 2026-08-13 의 첫 Codex manifest 가
+    저자 이메일을 ``yklee@…`` (정본은 ``ykylee@…``, ``y`` 하나 누락) 로 적은 채
+    배포 payload 까지 갔다.
+    """
+    pyproject = default_repo_root() / "workflow-source" / "pyproject.toml"
+    if sys.version_info >= (3, 11):
+        import tomllib  # noqa: PLC0415
+    else:  # pragma: no cover
+        import tomli as tomllib  # noqa: PLC0415
+    with pyproject.open("rb") as f:
+        data: dict[str, Any] = tomllib.load(f)
+    project = data.get("project")
+    if not isinstance(project, dict):
+        raise ValueError(f"pyproject 에 [project] 테이블이 없다: {pyproject}")
+    return project
+
+
+def current_kit_author_email() -> str:
+    """``[project].authors[0].email`` — 저자 이메일 정본.
+
+    조용한 기본값을 두지 않는다. 못 읽으면 잘못된 주소를 배포물에 박는 것보다
+    생성이 실패하는 편이 낫다 (``write_workflow_kit_version`` 의 무음 skip →
+    loud raise 와 같은 판단).
+    """
+    authors = _project_table().get("authors")
+    email = authors[0].get("email") if isinstance(authors, list) and authors else None
+    if not isinstance(email, str) or "@" not in email:
+        raise ValueError("pyproject [project].authors[0].email 을 읽지 못했다")
+    return email
+
+
+def current_kit_license() -> str:
+    """``[project].license`` — SPDX 라이선스 식별자 정본."""
+    license_id = _project_table().get("license")
+    if not isinstance(license_id, str) or not license_id:
+        raise ValueError("pyproject [project].license 를 읽지 못했다")
+    return license_id
+
+
 def render_plugin_manifest(version: str | None = None) -> str:
     """``plugin/plugin.json`` — Agent Plugins 1.0 manifest.
 
@@ -396,6 +445,22 @@ def render_codex_manifest(version: str | None = None) -> str:
 
     Codex는 Agent Skills를 직접 읽지만 marketplace/install surface에서는
     ``.codex-plugin/plugin.json``이 필요하다. MCP는 read-only bundle만 연결한다.
+
+    **필드는 스펙 원문에서 확인한 것만 쓴다.** :func:`render_plugin_manifest` 의
+    금지("스펙 원문으로 확인하지 못한 선택 필드는 넣지 않는다")는 여기에도 걸린다.
+    원문은 Codex CLI 가 번들하는
+    ``$CODEX_HOME/skills/.system/plugin-creator/references/plugin-json-spec.md``
+    이고, 여기 쓰는 필드는 전부 그 field guide 에 있다 (codex-cli 0.143.0 확인).
+    같은 번들의 ``scripts/validate_plugin.py`` 가 외부 검증기다 —
+    ``interface.displayName`` 을 빼서 되주입하면 그 필드를 지목하며 실패한다.
+
+    **실기 로드 실측** (2026-08-13, codex-cli 0.143.0, 격리 ``CODEX_HOME``):
+    ZIP → ``codex plugin marketplace add`` → ``codex plugin add`` 후
+    ``codex debug prompt-input`` 의 ``<skills_instructions>`` 에 스킬 4종이
+    ``standard-ai-workflow:<slug>`` 로 잡히고, ``codex mcp list`` 에 read-only
+    번들이 ``enabled`` 로 잡힌다. 즉 ``skills`` / ``mcpServers`` 는 실제로 읽힌다.
+    ``interface`` 블록은 UI 표면이라 이 경로로는 관측되지 않았다 — 스펙 원문
+    근거로만 싣는다.
     """
     return json.dumps(
         {
@@ -404,11 +469,11 @@ def render_codex_manifest(version: str | None = None) -> str:
             "description": PLUGIN_DESCRIPTION,
             "author": {
                 **PLUGIN_AUTHOR,
-                "email": "yklee@users.noreply.github.com",
-                "url": "https://github.com/ykylee",
+                "email": current_kit_author_email(),
+                "url": PLUGIN_AUTHOR_URL,
             },
-            "repository": "https://github.com/ykylee/standard_ai_workflow",
-            "license": "MIT",
+            "repository": PLUGIN_REPOSITORY_URL,
+            "license": current_kit_license(),
             "keywords": ["workflow", "codex", "agent-skills"],
             "skills": "./skills/",
             "mcpServers": f"./{CLAUDE_CODE_MCP_RELPATH}",

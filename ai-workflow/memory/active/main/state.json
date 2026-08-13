@@ -35,6 +35,7 @@
       "TASK-2026-08-13-main-008 TestPyPI 리허설"
     ],
     "recent_done_items": [
+      "TASK-2026-08-13-main-009 — Codex·Claude Code native plugin release asset 분리 및 release pipeline 연결",
       "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일",
       "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
@@ -43,20 +44,20 @@
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
-      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
+      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
-    "task_count": 11,
+    "task_count": 12,
     "in_progress_items": [],
     "blocked_items": [
       "TASK-2026-08-13-main-008 — TestPyPI 리허설"
     ],
     "done_items": [
+      "TASK-2026-08-13-main-009 — Codex·Claude Code native plugin release asset 분리 및 release pipeline 연결",
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",

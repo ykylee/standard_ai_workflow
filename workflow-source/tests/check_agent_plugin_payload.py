@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (17 case)
+## 판정 규칙 (18 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -47,11 +47,22 @@
     기본 prompt, 암시적 호출 정책을 모두 선언한다.
 17. **Codex plugin manifest가 있다** — Codex marketplace가 읽는
     `.codex-plugin/plugin.json`이 skills 및 read-only MCP를 선언한다.
+18. **Codex manifest 의 배포 신원이 packaging metadata 파생이다** — 저자 이메일과
+    라이선스를 손으로 적으면 그 사본이 갈라진다 (실제로 `yklee@` 로 갈라졌다).
 
-**한계**: Agent Plugins 1.0 의 선택 필드 전체 스펙은 아직 원문 확인이 안 됐다
-(2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드(name/version/description)를
-**고정**한다 — 스펙 확인 후 필드를 늘릴 때 이 검사가 먼저 FAIL 하므로, 갱신이
-명시 task 를 거치게 된다 (계획 §5 리스크 완화 "스키마를 fixture 로 고정").
+**한계**: Agent Plugins 1.0 (Claude Code 쪽) 의 선택 필드 전체 스펙은 아직 원문
+확인이 안 됐다 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드
+(name/version/description)를 **고정**한다 — 스펙 확인 후 필드를 늘릴 때 이 검사가
+먼저 FAIL 하므로, 갱신이 명시 task 를 거치게 된다 (계획 §5 리스크 완화
+"스키마를 fixture 로 고정").
+
+Codex 쪽(`.codex-plugin/plugin.json`)은 사정이 다르다 — 원문을 확인했다.
+Codex CLI 가 번들하는 `plugin-creator` 스킬의
+`references/plugin-json-spec.md` 가 field guide 이고, 같은 번들의
+`scripts/validate_plugin.py` 가 외부 검증기다 (codex-cli 0.143.0). 실기 로드도
+실측했다 — `render_codex_manifest` docstring 참조. 이 검사는 CI 에 codex 가 없어도
+돌아야 하므로 codex 를 부르지 않는다: **구조와 파생만** 본다 (case 16·17·18).
+codex 를 쓴 실측은 재현 절차를 docstring 에 남기는 방식으로 고정한다.
 
 Cross-ref: `workflow_kit/plugin_payload.py`, `docs/planning/plugin-transition-plan-2026-08.md` §3-P1.
 """
@@ -84,6 +95,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     PAYLOAD_DIRNAME,
     PAYLOAD_MCP_BRIDGE,
     PAYLOAD_MCP_BUNDLE,
+    PLUGIN_AUTHOR,
     PLUGIN_NAME,
     PLUGIN_SKILLS,
     default_payload_root,
@@ -202,6 +214,12 @@ def test_skill_frontmatter_valid() -> None:
 def test_codex_skill_metadata() -> None:
     """Codex skill 목록/칩을 위한 agents/openai.yaml이 모든 skill에 있는가."""
     yaml = _yaml()
+    if yaml is None:
+        # 같은 파일의 case 2 와 같은 판정이다 — PyYAML 은 dev extra 에 선언돼 있고,
+        # 없으면 "검사를 못 돌린 것"이지 "통과"가 아니다. 처음 이 case 는 여기서
+        # `continue` 로 조용히 넘어가 PyYAML 부재 환경에서 fail-open 이었다.
+        _record("test_codex_skill_metadata", False, "PyYAML 부재 — dev extra 에 선언돼 있어야 한다")
+        return
     payload = render_agent_plugin()
     problems: list[str] = []
     for spec in PLUGIN_SKILLS:
@@ -209,8 +227,6 @@ def test_codex_skill_metadata() -> None:
         content = payload.get(relpath)
         if content is None:
             problems.append(f"{relpath} 누락")
-            continue
-        if yaml is None:
             continue
         metadata = yaml.safe_load(content)
         interface = metadata.get("interface", {}) if isinstance(metadata, dict) else {}
@@ -247,6 +263,38 @@ def test_codex_plugin_manifest() -> None:
         "test_codex_plugin_manifest",
         not problems,
         "; ".join(problems) if problems else "Codex manifest + skills + read-only MCP 선언",
+    )
+
+
+def test_codex_manifest_identity_derived() -> None:
+    """18) Codex manifest 의 배포 신원이 packaging metadata 파생인가.
+
+    첫 Codex manifest 는 저자 이메일을 손으로 적었고 `yklee@…` — 정본
+    (`pyproject [project].authors[0].email`) 의 `ykylee@…` 에서 `y` 하나가
+    빠진 채 배포 payload 까지 갔다. 사본이 갈라진 것을 아무도 보지 못했다.
+    이 case 는 **pyproject 를 직접 읽어** 대조한다 — 렌더러가 쓰는 helper 로
+    대조하면 helper 가 틀렸을 때 같이 틀린다 (자기 자신과의 비교).
+    """
+    if sys.version_info >= (3, 11):
+        import tomllib  # noqa: PLC0415
+    else:  # pragma: no cover
+        import tomli as tomllib  # noqa: PLC0415
+    with (SOURCE_ROOT / "pyproject.toml").open("rb") as f:
+        project = tomllib.load(f)["project"]
+    manifest = json.loads(render_agent_plugin()[CODEX_MANIFEST_RELPATH])
+    problems: list[str] = []
+    if manifest["author"].get("email") != project["authors"][0]["email"]:
+        problems.append(
+            f"author.email {manifest['author'].get('email')!r} != pyproject {project['authors'][0]['email']!r}"
+        )
+    if manifest.get("license") != project["license"]:
+        problems.append(f"license {manifest.get('license')!r} != pyproject {project['license']!r}")
+    if manifest["author"].get("url") != f"https://github.com/{PLUGIN_AUTHOR['name']}":
+        problems.append(f"author.url 이 PLUGIN_AUTHOR 파생이 아니다: {manifest['author'].get('url')!r}")
+    _record(
+        "test_codex_manifest_identity_derived",
+        not problems,
+        "; ".join(problems) if problems else "author.email / license / author.url 이 정본 파생",
     )
 
 
@@ -864,6 +912,7 @@ def main() -> int:
     test_skill_frontmatter_valid()
     test_codex_skill_metadata()
     test_codex_plugin_manifest()
+    test_codex_manifest_identity_derived()
     test_skills_carry_memory_section()
     test_manifest_version_matches_kit()
     test_mcp_matches_read_only_bundle()
@@ -877,7 +926,7 @@ def main() -> int:
     test_status_targets_working_tree()
     test_gemini_adapter()
     test_goose_opencode_snippets()
-    total = 17
+    total = 18
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

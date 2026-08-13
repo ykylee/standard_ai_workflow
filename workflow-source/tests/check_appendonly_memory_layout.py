@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test — v0.14.0+ append-only memory layout 무결성 검증 (6 cases).
+"""Smoke test — v0.14.0+ append-only memory layout 무결성 검증 (7 cases).
 
 본 smoke 는 다음 layout 의 SSOT 무결성을 검증:
   ai-workflow/memory/active/
@@ -10,13 +10,14 @@
         TASK-<date>-<NNN>.md       ← per-task SSOT
     sessions/                      ← per-session file
 
-6 cases:
+7 cases:
   1) layout existence: backlog/, backlog/tasks/, sessions/ 모두 존재 + 비어있지 않음
   2) legacy absent: active/work_backlog.md 부재 (.bak fallback 은 OK)
   3) state.json source_of_truth: daily_backlog_dir / tasks_dir / sessions_dir 모두 dir path
   4) daily index links: TASK-* link 가 모두 backlog/tasks/TASK-*.md 로 resolve
   5) task frontmatter: MEMORY_GOVERNANCE.md §2 정합 (6 keys 모두 존재)
   6) sessions cross-ref: sessions/*.md 1+ 파일 존재
+  7) task ID 유일성: 한 브랜치 backlog 안에서 같은 TASK ID 가 두 번 등록되지 않음
 
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md §2 (Standard Templates)
@@ -253,6 +254,69 @@ def _check_session_cross_ref() -> None:
         errors.append(f"[sessions] sessions/ 가 비어 있음 (cross-ref SSOT 부재)")
 
 
+def _check_task_id_unique() -> None:
+    """7) 한 브랜치의 backlog 안에서 task ID 가 유일한가.
+
+    ID 는 브랜치별로 매겨지는데(`branch-scoped-memory`), 같은 브랜치를 목적지로
+    두 세션이 **각자** 다음 번호를 발급하면 같은 ID 두 개가 태어난다. 2026-08-13 에
+    실제로 그랬다: `main` 과 `feat/plugin-harness-distribution` 이 같은 날 각각
+    `TASK-2026-08-13-main-008` 을 만들었다.
+
+    이 결함이 위험한 이유는 **조용해서**다. 병합할 때 daily index 는 서로 다른
+    줄이라 conflict 없이 auto-merge 되어 같은 ID bullet 두 개가 남고, task 파일만
+    add/add conflict 를 낸다. 한쪽으로 해소하면 남은 bullet 이 *다른 작업을 설명하는
+    파일*을 가리키고, 사라진 쪽 기록은 아무 데도 남지 않는다. 실측으로 확인했다 —
+    이 case 가 생기기 전 backlog 검사 4종도 `generate_workflow_state.py` 도
+    중복을 하나도 검출하지 못했고, 생성된 state.json 은 한쪽만 담은 채 `ok` 였다.
+
+    **정상적인 재등장과 구분해야 한다.** index 는 append-only 라, 하루를 넘긴 task 는
+    다음 날 index 에 *같은 제목으로* 다시 실려 상태만 갱신된다 (실제 예:
+    `TASK-2026-08-12-main-016` 이 08-12 `planned` → 08-13 `done`). 그건 충돌이 아니다.
+    충돌의 표지는 둘 중 하나다:
+
+    - 같은 ID 가 **한 daily index 안에** 두 번 (한 파일 안에서 두 번 발급된 자리)
+    - 같은 ID 가 **서로 다른 제목**으로 (같은 번호에 다른 작업이 붙은 자리)
+
+    제목이 같은 재등장만 남기면 위양성이 없다 — 위양성을 내는 검사는 무시당한다.
+    """
+    backlog_dir = LAYOUT_ROOT / "backlog"
+    if not backlog_dir.is_dir():
+        return  # 1) 에서 이미 error
+    bullet_re = re.compile(rf"^\s*-\s+\*\*({TASK_ID_PATTERN})\*\*\s*(.*)$")
+    #: task_id → {제목: [출처 …]}
+    seen: dict[str, dict[str, list[str]]] = {}
+    for daily_file in sorted(backlog_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md")):
+        try:
+            text = daily_file.read_text(encoding="utf-8")
+        except OSError as exc:
+            errors.append(f"[task-id-unique] {daily_file.name} read fail: {exc}")
+            continue
+        per_file: dict[str, int] = {}
+        for line in text.splitlines():
+            m = bullet_re.match(line)
+            if not m:
+                continue
+            task_id, title = m.group(1), m.group(2).strip()
+            per_file[task_id] = per_file.get(task_id, 0) + 1
+            seen.setdefault(task_id, {}).setdefault(title, []).append(daily_file.name)
+        for task_id, count in sorted(per_file.items()):
+            if count > 1:
+                errors.append(
+                    f"[task-id-unique] {task_id} 가 {daily_file.name} 안에 {count}번 등록됐다"
+                )
+    for task_id, by_title in sorted(seen.items()):
+        if len(by_title) > 1:
+            detail = " | ".join(
+                f"{title!r} ({', '.join(where)})" for title, where in sorted(by_title.items())
+            )
+            errors.append(
+                f"[task-id-unique] {task_id} 에 서로 다른 작업 {len(by_title)}개가 붙어 있다 — "
+                "두 세션이 같은 번호를 각자 발급한 자리다. 나중 것을 다음 번호로 "
+                "재발급할 것 (index bullet + 파일명 + frontmatter `id` + "
+                f"`source_anchor` 를 함께 옮긴다). 발생: {detail}"
+            )
+
+
 def main() -> int:
     _check_layout_existence()
     _check_legacy_absent()
@@ -260,6 +324,7 @@ def main() -> int:
     _check_daily_index_links_resolve()
     _check_task_frontmatter_schema()
     _check_session_cross_ref()
+    _check_task_id_unique()
 
     if errors:
         for e in errors:
@@ -271,7 +336,7 @@ def main() -> int:
     n_tasks = len(list((LAYOUT_ROOT / "backlog" / "tasks").glob("TASK-*.md")))
     n_sessions = len([f for f in (LAYOUT_ROOT / "sessions").glob("*.md") if f.name != ".gitkeep"])
 
-    print("=== PASS: 6/6 ===")
+    print("=== PASS: 7/7 ===")
     print(f"  1) layout existence: backlog/{n_backlog}d, backlog/tasks/{n_tasks}, sessions/{n_sessions}")
     print(f"  2) legacy absent: work_backlog.md 부재 (.bak fallback 보존)")
     print(f"  3) state.json source_of_truth: daily_backlog_dir / tasks_dir / sessions_dir 모두 dir path")
@@ -282,6 +347,7 @@ def main() -> int:
         + " 모두 존재 + status|provenance 중 1개 + status 는 표준 어휘 안"
     )
     print(f"  6) sessions cross-ref: per-session file {n_sessions}개")
+    print(f"  7) task ID 유일성: 중복 등록 0건 ({n_tasks}개 task)")
 
     # v0.14.1: 1st deprecation cycle 종결 warning
     if warnings:

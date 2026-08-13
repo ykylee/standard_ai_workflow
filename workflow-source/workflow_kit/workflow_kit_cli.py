@@ -235,13 +235,9 @@ def cmd_score_wiki_trend(argv: list[str]) -> int:
     """Wiki maintainability score trend (v0.7.1+).
 
     In-process wrapper (v0.7.56+, previously subprocess) for
-    `tools/score_wiki_trend.py`. v0.7.55 의 release-doctor in-process 와 동일
-    정공법: `workflow-source/` 를 sys.path 에 insert → `import tools.score_wiki_trend`
-    → `main(argv)` 호출.
-
-    v0.7.55 의 subprocess fallback 원인: tools/ 가 *package* 가 아니어서
-    `import tools.score_wiki_trend` 가 fail. v0.7.56 에서 `tools/__init__.py`
-    추가 + sys.path 조정으로 in-process 가능.
+    `workflow_kit/tools/score_wiki_trend.py`. v1.2.0 (2nd cycle): 구경로
+    `tools.score_wiki_trend` shim drop — 정위치 `workflow_kit.tools` 를 직접
+    import 한다 (sys.path 조작 불필요).
 
     Args (forwarded verbatim):
         --record-current   record current HEAD score
@@ -251,14 +247,8 @@ def cmd_score_wiki_trend(argv: list[str]) -> int:
         --alert --baseline=X  baseline 비교 (dim alert)
     """
     try:
-        from pathlib import Path as _P
         import importlib as _il
-        kit_dir = _P(__file__).resolve().parent
-        workflow_source_dir = kit_dir.parent
-        if str(workflow_source_dir) not in sys.path:
-            sys.path.insert(0, str(workflow_source_dir))
-        # tools/ is now a package (v0.7.56+ with __init__.py) → import as module
-        mod = _il.import_module("tools.score_wiki_trend")
+        mod = _il.import_module("workflow_kit.tools.score_wiki_trend")
         # main() uses argparse.parse_args() (reads sys.argv[1:]). Patch sys.argv
         # in-place to forward our argv. Restore on exit (incl. exceptions).
         old_argv = sys.argv
@@ -399,9 +389,8 @@ def cmd_consumer_metrics(argv: list[str]) -> int:
     """Consumer feedback metrics snapshot (v0.7.58+, subcommand 27).
 
     In-process wrapper (v0.7.59+, previously subprocess) for
-    `tools/consumer_metrics.py`. v0.7.55+ release-doctor /
-    v0.7.56+ score-wiki-trend 와 동일 정공법: `workflow-source/` 를
-    sys.path 에 insert → `import tools.consumer_metrics` → `main(argv)` 호출.
+    `workflow_kit/tools/consumer_metrics.py`. v1.2.0 (2nd cycle): 구경로
+    `tools.consumer_metrics` shim drop — 정위치 `workflow_kit.tools` 직접 import.
 
     Args (forwarded verbatim, consumer_metrics.main() argparse 가 처리):
         --repo=OWNER/REPO     target repo (default: ykylee/standard_ai_workflow)
@@ -411,14 +400,8 @@ def cmd_consumer_metrics(argv: list[str]) -> int:
     Exit code: 0 = success, 1 = gh CLI not authenticated, 2 = usage error.
     """
     try:
-        from pathlib import Path as _P
         import importlib as _il
-        kit_dir = _P(__file__).resolve().parent
-        workflow_source_dir = kit_dir.parent
-        if str(workflow_source_dir) not in sys.path:
-            sys.path.insert(0, str(workflow_source_dir))
-        # tools/ is a package (v0.7.56+ with __init__.py) → import as module
-        mod = _il.import_module("tools.consumer_metrics")
+        mod = _il.import_module("workflow_kit.tools.consumer_metrics")
         # main() uses argparse.parse_args() (reads sys.argv[1:]). Patch sys.argv
         # in-place to forward our argv. Restore on exit (incl. exceptions).
         old_argv = sys.argv

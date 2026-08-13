@@ -31,4 +31,4 @@
 - **브랜치 격리**: 1st deprecation cycle 동안 `<branch>/` 하위 legacy file 도 fallback 으로 read 지원. 단, write 는 권장 ❌.
 - **비참조 원칙**: 코드베이스 분석(Semantic Search 등) 시 `ai-workflow/` 경로는 검색 범위에서 제외(Exclude)해야 합니다.
 - **작성 표준**: 모든 운영 문서는 [MEMORY_GOVERNANCE.md](../workflow-source/MEMORY_GOVERNANCE.md)의 템플릿과 규칙을 따릅니다.
-- **마이그레이션 도구**: [`../workflow-source/tools/migrate_active_to_appendonly.py`](../workflow-source/tools/migrate_active_to_appendonly.py) (idempotent)
+- **마이그레이션 도구**: [`../workflow-source/workflow_kit/tools/migrate_active_to_appendonly.py`](../workflow-source/workflow_kit/tools/migrate_active_to_appendonly.py) (idempotent)

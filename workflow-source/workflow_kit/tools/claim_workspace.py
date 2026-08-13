@@ -23,9 +23,9 @@ push 가 거부됐다는 것은 **다른 에이전트가 이미 그 작업을 �
 남으므로 사용자가 상태를 확인할 수 있다 — 조용히 되돌려 흔적을 지우지 않는다.
 
 Usage:
-    python3 tools/claim_workspace.py --branch feat-login \\
+    wk claim-workspace --branch feat-login \\
         --axis "로그인 세션 만료 처리" --task-title "세션 만료 시 재인증" --dry-run
-    python3 tools/claim_workspace.py --branch feat-login \\
+    wk claim-workspace --branch feat-login \\
         --axis "..." --task-title "..." --apply
 
 Cross-ref: `core/global_workflow_standard.md` §10.2 · §10.4,
@@ -48,7 +48,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit.common.paths import memory_dir_for_workspace  # noqa: E402
 
-SEED_TOOL = SOURCE_ROOT / "tools" / "seed_workspace_memory.py"
+SEED_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
 
 
 def _git(args: list[str], *, repo_root: Path) -> subprocess.CompletedProcess:

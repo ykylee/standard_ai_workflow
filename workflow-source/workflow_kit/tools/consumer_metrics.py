@@ -10,14 +10,14 @@ Use case: weekly / monthly snapshot of consumer engagement. Pure read-only,
 no side effects (record-snapshot writes to local history file, not to remote).
 
 Usage (v0.7.58+):
-    python3 tools/consumer_metrics.py [--json] [--days=14] [--repo=OWNER/REPO]
+    wk consumer-metrics [--json] [--days=14] [--repo=OWNER/REPO]
 
 Usage (v0.7.62+ — trend snapshot + weekly digest):
-    python3 tools/consumer_metrics.py --record              # 현재 snapshot 을 history 에 기록
-    python3 tools/consumer_metrics.py --show-trend           # history 의 views_total 추세 chart
-    python3 tools/consumer_metrics.py --show-trend=clones_total  # clones 추세 chart
-    python3 tools/consumer_metrics.py --digest              # 7일 Slack-style text summary
-    python3 tools/consumer_metrics.py --digest --digest-markdown  # GH issue comment markdown
+    wk consumer-metrics --record              # 현재 snapshot 을 history 에 기록
+    wk consumer-metrics --show-trend           # history 의 views_total 추세 chart
+    wk consumer-metrics --show-trend=clones_total  # clones 추세 chart
+    wk consumer-metrics --digest              # 7일 Slack-style text summary
+    wk consumer-metrics --digest --digest-markdown  # GH issue comment markdown
 
 Trend history file: tools/.consumer_metrics_history.jsonl (per-line snapshot).
 Follows v0.7.1+ score_wiki_trend.py 의 jsonl pattern (1 commit 1 line).
@@ -37,7 +37,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
-HISTORY_PATH = SOURCE_ROOT / "tools" / ".consumer_metrics_history.jsonl"
+HISTORY_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / ".consumer_metrics_history.jsonl"
 
 # trend chart dim (mappable from snapshot)
 TREND_DIMS = ["views_total", "views_uniques", "clones_total", "feedback_total", "feedback_open"]

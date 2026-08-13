@@ -1,7 +1,7 @@
 ---
 type: entity
 status: active
-last_ingested_from: workflow-source/scripts/bootstrap_lib/wiki.py
+last_ingested_from: workflow-source/workflow_kit/bootstrap_lib/wiki.py
 related_pages: [concepts/project-architecture, decisions/adr-004-wiki-layer]
 ---
 
@@ -30,4 +30,4 @@ Returns `{wiki_schema: path, wiki_index: path, wiki_log: path, wiki_gitignore: p
 
 ## Location
 
-`workflow-source/scripts/bootstrap_lib/wiki.py` (208 lines)
+`workflow-source/workflow_kit/bootstrap_lib/wiki.py` (208 lines)

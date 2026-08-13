@@ -47,7 +47,7 @@
 ## 7. 스킬 실행
 
 **소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 배포물에 없다. 구현은
-`workflow-source/tools/doc_sync.py`, 본 디렉터리의
+`workflow-source/workflow_kit/tools/doc_sync.py`, 본 디렉터리의
 [scripts/run_doc_sync.py](./scripts/run_doc_sync.py) 는 저장소 내 개발용 thin
 wrapper 다.
 

@@ -12,14 +12,14 @@ underlying 함수는 `check_quickstart_stale_links_payload()` — MCP server 동
 
 ```bash
 # 단일 quickstart
-python3 workflow-source/tools/check_quickstart_stale_links.py --quickstart-path QUICKSTART.md
+wk check-quickstart-stale-links --quickstart-path QUICKSTART.md
 
 # multi
-python3 workflow-source/tools/check_quickstart_stale_links.py \
+wk check-quickstart-stale-links \
     --quickstart-path QUICKSTART.md --quickstart-path docs/index.md
 
 # 핵심 진입 문서 명시 (default: 자동 detect, REPO_ROOT 기준)
-python3 workflow-source/tools/check_quickstart_stale_links.py \
+wk check-quickstart-stale-links \
     --quickstart-path QUICKSTART.md \
     --project-profile-path docs/PROJECT_PROFILE.md \
     --session-handoff-path ai-workflow/memory/active/main/session_handoff.md \
@@ -27,7 +27,7 @@ python3 workflow-source/tools/check_quickstart_stale_links.py \
     --agents-path AGENTS.md
 
 # JSON
-python3 workflow-source/tools/check_quickstart_stale_links.py --quickstart-path QUICKSTART.md --json
+wk check-quickstart-stale-links --quickstart-path QUICKSTART.md --json
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.7 dual mode (TASK-017).

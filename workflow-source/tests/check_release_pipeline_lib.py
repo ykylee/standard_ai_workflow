@@ -28,7 +28,8 @@ from pathlib import Path
 CHECK_TIMEOUT_S = 150
 
 # Add workflow-source/workflow_kit/tools/ to sys.path so release_pipeline_lib import works.
-TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
+# v1.2.0 (2nd cycle): 구경로 shim workflow-source/tools/ drop — 정위치를 직접 본다.
+TOOLS_DIR = Path(__file__).resolve().parent.parent / "workflow_kit" / "tools"
 if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 

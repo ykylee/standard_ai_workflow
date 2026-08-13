@@ -20,23 +20,23 @@ TASK-016 이 `pull_remote_registry()` 로 *읽기* 를 닫았지만 상대편이
 
 ```bash
 # loopback 에 띄운다 (기본)
-python3 workflow-source/tools/host_serve_registry.py --port 8765
+wk host-serve-registry --port 8765
 
 # LAN 에 열고 토큰 요구
 export WK_REGISTRY_TOKEN=$(python3 -c 'import secrets;print(secrets.token_urlsafe(32))')
-python3 workflow-source/tools/host_serve_registry.py \
+wk host-serve-registry \
     --bind 0.0.0.0 --port 8765 --token-env WK_REGISTRY_TOKEN
 
 # 설정만 확인하고 뜨지 않는다
-python3 workflow-source/tools/host_serve_registry.py --check --json
+wk host-serve-registry --check --json
 ```
 
 상대 호스트에서는:
 
 ```bash
-python3 workflow-source/tools/workspace_registry.py add-known-host \
+wk workspace-registry add-known-host \
     --host-id <이 호스트> --endpoint http://<host>:8765/registry.json
-python3 workflow-source/tools/host_pull_registry.py pull --host <이 호스트>
+wk host-pull-registry pull --host <이 호스트>
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §7.4 (TASK-016 / TASK-022).

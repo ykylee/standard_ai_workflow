@@ -22,12 +22,9 @@ import types
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = SOURCE_ROOT / "scripts"
-BOOTSTRAP_LIB_DIR = SCRIPTS_DIR / "bootstrap_lib"
 
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-# workflow-source 도 sys.path 에 (renderers 가 workflow_kit import 함)
+# v1.2.0 (2nd cycle): scripts/bootstrap_lib shim drop — 정위치는
+# workflow_kit.bootstrap_lib (SOURCE_ROOT 만 sys.path 에 있으면 된다)
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 

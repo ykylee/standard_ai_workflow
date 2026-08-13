@@ -536,27 +536,28 @@ def test_consumer_metrics_in_process_v0_7_59() -> None:
 
     Verifies:
     1. dispatcher argv forwarding reaches consumer_metrics.main() (default repo applies)
-    2. tools.consumer_metrics is imported in-process (no subprocess fork)
+    2. workflow_kit.tools.consumer_metrics is imported in-process (no subprocess fork)
     3. days validation remains single-source (consumer_metrics.main() rc=2 on out-of-range)
     """
     import importlib
     import sys as _sys
     # Reset import state so we observe the dispatcher's import
     for mod_name in list(_sys.modules.keys()):
-        if mod_name == "tools.consumer_metrics" or mod_name.startswith("tools.consumer_metrics."):
+        if mod_name == "workflow_kit.tools.consumer_metrics" or mod_name.startswith("workflow_kit.tools.consumer_metrics."):
             del _sys.modules[mod_name]
     mod = _import_cli()
     # Invoke dispatcher with default argv. rc=0/1 acceptable (gh auth dependent);
     # rc=2 would indicate the dispatcher broke argv forwarding.
     code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
     assert code in (0, 1), f"expected 0 or 1 (gh auth), got {code}"
-    # After dispatcher run, tools.consumer_metrics must be in sys.modules
-    # (proof that in-process import path was taken, not subprocess)
-    assert "tools.consumer_metrics" in _sys.modules, (
-        "tools.consumer_metrics not in sys.modules — dispatcher may have used subprocess"
+    # After dispatcher run, workflow_kit.tools.consumer_metrics must be in
+    # sys.modules (proof that in-process import path was taken, not subprocess).
+    # v1.2.0 (2nd cycle): 구경로 tools.* shim drop — 정위치 모듈명으로 판정.
+    assert "workflow_kit.tools.consumer_metrics" in _sys.modules, (
+        "workflow_kit.tools.consumer_metrics not in sys.modules — dispatcher may have used subprocess"
     )
     # Days validation single-source: consumer_metrics.main() returns 2 for out-of-range
-    cm_mod = importlib.import_module("tools.consumer_metrics")
+    cm_mod = importlib.import_module("workflow_kit.tools.consumer_metrics")
     old_argv = _sys.argv
     try:
         _sys.argv = ["consumer_metrics", "--days=0", "--json"]

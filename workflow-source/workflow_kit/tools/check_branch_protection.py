@@ -21,14 +21,14 @@ TASK-019 가 1st (`claim_workspace.py` 가 `--force` 를 제공하지 않음) �
 
 ```bash
 # 현재 저장소의 main (advisory)
-python3 workflow-source/tools/check_branch_protection.py
+wk check-branch-protection
 
 # 다른 저장소 / 브랜치 + JSON
-python3 workflow-source/tools/check_branch_protection.py \
+wk check-branch-protection \
     --repo ykylee/standard_ai_workflow --branch main --json
 
 # CI 게이트
-python3 workflow-source/tools/check_branch_protection.py --exit-on-unprotected
+wk check-branch-protection --exit-on-unprotected
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §5D.4 (b) (TASK-019 / TASK-023).

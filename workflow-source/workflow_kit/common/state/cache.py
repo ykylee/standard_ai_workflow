@@ -241,7 +241,7 @@ def refresh_workflow_state_cache(
         # Phase 14 이전 상태 (legacy 만, bak 부재) — migration 미완료
         deprecation_warnings.append(
             f"[DEPRECATION NOTICE] ai-workflow/memory/active/work_backlog.md 발견됨 (legacy, .bak 아님). "
-            f"v0.14.0+ 신규 layout 으로 migration 필요: tools/migrate_active_to_appendonly.py --apply --legacy-backup"
+            f"v0.14.0+ 신규 layout 으로 migration 필요: wk migrate-active-to-appendonly --apply --legacy-backup"
         )
 
     return {

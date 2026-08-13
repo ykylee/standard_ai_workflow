@@ -18,8 +18,8 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.output_contracts import validate_output_payload
 from workflow_kit.server.read_only_registry import (
-    BUNDLE_ALL,
     BUNDLE_LABELS,
+    BUNDLE_READ_ONLY,
     build_server_manifest,
     build_transport_tool_descriptors,
     get_tool_spec,
@@ -44,8 +44,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle",
         choices=list(BUNDLE_LABELS),
-        default=BUNDLE_ALL,
-        help="대상 bundle (v1.1.8+ 분리): read-only / write / all (기본, 하위 호환)",
+        default=BUNDLE_READ_ONLY,
+        help="대상 bundle: read-only (v1.2.0+ 기본) / write / all (명시 opt-in)",
     )
     return parser.parse_args()
 

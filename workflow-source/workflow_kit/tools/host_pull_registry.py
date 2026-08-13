@@ -17,16 +17,16 @@ merge_entries. ``--apply`` 시 cache 를 갱신하고 merge 결과를 emit. 기�
 
 ```bash
 # 한 host (default: dry-run)
-python3 workflow-source/tools/host_pull_registry.py pull --host hostA
+wk host-pull-registry pull --host hostA
 
 # cache 갱신 + JSON 결과
-python3 workflow-source/tools/host_pull_registry.py pull --host hostA --apply --json
+wk host-pull-registry pull --host hostA --apply --json
 
 # 모든 known hosts
-python3 workflow-source/tools/host_pull_registry.py pull --all --apply
+wk host-pull-registry pull --all --apply
 
 # known hosts 목록
-python3 workflow-source/tools/host_pull_registry.py list
+wk host-pull-registry list
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §7.4 (TASK-016).

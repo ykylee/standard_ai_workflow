@@ -68,7 +68,7 @@ mavis 데스크탑 런타임이 MCP 서버를 띄울 때의 cwd 는 *프로젝�
 v0.5.8 부터 bootstrap 시 `--harness` 를 명시하지 않으면 TTY 환경에서 interactive picker 가 자동 실행된다.
 
 ```bash
-python3 -m bootstrap_lib --target-root <project_root> ...
+python3 -m workflow_kit.bootstrap_lib --target-root <project_root> ...
 # --harness 미지정 → TTY picker 로 대화형 선택
 ```
 
@@ -81,7 +81,7 @@ python3 -m bootstrap_lib --target-root <project_root> ...
 CI / 스크립트 환경 권장 호출 (silent 0 overlay 방지):
 
 ```bash
-python3 -m bootstrap_lib --target-root "$REPO" \
+python3 -m workflow_kit.bootstrap_lib --target-root "$REPO" \
   --project-slug "$SLUG" \
   --harness opencode \
   --no-interactive \

@@ -39,8 +39,8 @@ Usage:
     python3 wiki_emit.py --emit-l2 --max-chars=3000 --apply
 
 Reference:
-- tools/refresh_wiki_memory.py (3-step 의 1+3)
-- tools/emit_wiki_l2_body.py (3-step 의 2)
+- workflow_kit/tools/refresh_wiki_memory.py (3-step 의 1+3)
+- workflow_kit/tools/emit_wiki_l2_body.py (3-step 의 2)
 - v0.7.5 release note (refresh_wiki_memory 정식화)
 - v0.7.0 release note (LLM Wiki Layer + L1/L2 분화)
 - v0.7.17 release note (in-repo storage isolation)

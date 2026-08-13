@@ -203,7 +203,7 @@ def build_daily_index(date: str, entries: list[Entry]) -> str:
     lines.append("---")
     lines.append("")
     lines.append(f"_본 daily index 는 work_backlog.md (legacy) 의 `### [[path]]` section 들을")
-    lines.append(f"분할하여 자동 생성됨. Migration tool: `workflow-source/tools/migrate_active_to_appendonly.py`._")
+    lines.append(f"분할하여 자동 생성됨. Migration tool: `workflow-source/workflow_kit/tools/migrate_active_to_appendonly.py`._")
     return "\n".join(lines)
 
 

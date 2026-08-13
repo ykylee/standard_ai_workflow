@@ -18,7 +18,7 @@ Usage:
     python3 score_wiki_trend.py --json
 
 Reference:
-- tools/score_wiki_maintainability.py (단일 시점 score)
+- workflow_kit/tools/score_wiki_maintainability.py (단일 시점 score)
 - workflow_kit/tools/.score_history.jsonl (jsonl history)
 - workflow-source/concepts/wiki-maintainability-score.md (dashboard)
 """
@@ -88,7 +88,7 @@ def compute_score_at_commit(commit: str) -> dict:
     """특정 commit 의 score 산출 (git checkout 없이 working tree 기준)."""
     # score tool 실행 (현재 working tree 기준)
     proc = subprocess.run(
-        ["python3", str(SOURCE_ROOT / "tools" / "score_wiki_maintainability.py"), "--json"],
+        ["python3", str(SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_maintainability.py"), "--json"],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

@@ -15,7 +15,7 @@
 ### 다루는 것
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
-- `workflow_kit` / `bootstrap_lib` 임포트와 기본 사용 예
+- `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
 - 252개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
@@ -55,8 +55,9 @@ cd standard_ai_workflow
 용도에 따라 세 가지 중 하나를 선택한다. **대부분의 개발자는 3.A (editable install) 만으로 충분**하다.
 
 > **CLI(`wk`)만 쓰는 소비자의 권장 경로 (v1.1.7+)**: uv 또는 pipx 로 GitHub Release
-> 의 wheel 을 격리 설치한다 — 전용 venv + PATH 등록이 자동이고, wheel 의 top-level
-> 패키지(`tools`/`bootstrap_lib`)가 다른 패키지와 충돌할 여지도 차단된다
+> 의 wheel 을 격리 설치한다 — 전용 venv + PATH 등록이 자동이다. v1.2.0 부터
+> wheel top-level 은 `workflow_kit` 하나라 (구경로 shim `tools`/`bootstrap_lib`
+> 는 2nd deprecation cycle 로 drop) site-packages 충돌 여지 자체가 없다
 > (근거: [`planning/cli-distribution-review-2026-08.md`](./planning/cli-distribution-review-2026-08.md)).
 >
 > ```bash
@@ -68,7 +69,7 @@ cd standard_ai_workflow
 
 ### 3.A. 소스에서 editable 설치 (권장, 개발자용)
 
-`workflow-source/` 안에 두 개의 importable 패키지(`workflow_kit`, `bootstrap_lib`)와 한 개의 CLI shim(`bootstrap_workflow_kit`)이 들어 있다. editable mode로 설치하면 소스 수정사항이 즉시 반영된다.
+`workflow-source/` 안에 importable 패키지 `workflow_kit` (하위 `workflow_kit.bootstrap_lib`, `workflow_kit.tools` 포함)와 한 개의 레거시 CLI shim(`bootstrap_workflow_kit`)이 들어 있다. editable mode로 설치하면 소스 수정사항이 즉시 반영된다.
 
 ```bash
 cd workflow-source
@@ -80,14 +81,14 @@ python3 -m pip install -e ".[mcp-sdk,dev]"
 
 `.[mcp-sdk,dev]` 가 설치하는 것:
 
-- 본 패키지 (`workflow_kit`, `bootstrap_lib`) — editable link
+- 본 패키지 (`workflow_kit`) — editable link
 - `mcp[cli]>=1.0` (extras `mcp-sdk`) — MCP SDK stdio server 사용 시 필요
 - `pytest`, `ruff`, `mypy` (extras `dev`) — 테스트/린트/타입체크
 
 설치 검증:
 
 ```bash
-python3 -c "import workflow_kit, bootstrap_lib, mcp; print('ok')"
+python3 -c "import workflow_kit, workflow_kit.bootstrap_lib, mcp; print('ok')"
 # ok
 ```
 
@@ -131,7 +132,7 @@ python3 -c "
 import importlib.metadata as m
 import sys
 print('python:', sys.version.split()[0])
-for pkg in ['pydantic', 'anyio', 'mcp', 'workflow_kit', 'bootstrap_lib']:
+for pkg in ['pydantic', 'anyio', 'mcp', 'workflow_kit']:
     try:
         v = m.version(pkg)
         print(f'  {pkg}=={v}')
@@ -148,7 +149,6 @@ python: 3.13.7
   anyio==4.13.0
   mcp==1.27.0
   workflow_kit==0.6.0-beta
-  bootstrap_lib==0.6.0-beta
 ```
 
 ## 5. 스모크 테스트 실행
@@ -311,7 +311,7 @@ bootstrap (아래 7.1) 은 **플러그인 미지원 하네스와 오프라인 �
 
 ```bash
 # 옵션 A: 신 패키지 (path-style, 권장)
-python3 -m bootstrap_lib \
+python3 -m workflow_kit.bootstrap_lib \
   --target-root /tmp/sample-repo \
   --project-slug sample_api \
   --project-name "Sample API" \
@@ -329,7 +329,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 # 옵션 C: CI / 스크립트 환경 (--no-interactive 필수)
 # 비대화형 환경에서 --harness 미지정 시 SystemExit(1) + harness 목록 fail-fast
 # v0.5.8+ 의 interactive picker 는 TTY 미감지 시 자동 skip 됨. --no-interactive 는 명시적.
-python3 -m bootstrap_lib \
+python3 -m workflow_kit.bootstrap_lib \
   --target-root "$REPO" \
   --project-slug "$SLUG" \
   --harness opencode \

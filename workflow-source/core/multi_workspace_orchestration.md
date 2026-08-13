@@ -77,10 +77,10 @@
 
 ```bash
 # 1~3. 원격 현황 — 활성 브랜치 = 진행 중 작업. stale 은 보고만 한다
-python3 workflow-source/tools/survey_remote_workspaces.py
+wk survey-remote-workspaces
 
 # 4~5. 선점 — 브랜치 + seed + commit + push 1회 (push 가 곧 배타 획득)
-python3 workflow-source/tools/claim_workspace.py \
+wk claim-workspace \
   --branch feat-login --axis "로그인 세션 만료 처리" \
   --task-title "세션 만료 시 재인증" --apply
 
@@ -960,16 +960,16 @@ half     owner=T   idle= 12h   active
 
 ```bash
 # preview
-python3 workflow-source/tools/install_pre_push_hook.py install
+wk install-pre-push-hook install
 
 # 실제 install
-python3 workflow-source/tools/install_pre_push_hook.py install --apply
+wk install-pre-push-hook install --apply
 
 # 상태
-python3 workflow-source/tools/install_pre_push_hook.py status
+wk install-pre-push-hook status
 
 # 제거 (가장 최근 backup 에서 복원)
-python3 workflow-source/tools/install_pre_push_hook.py uninstall --apply
+wk install-pre-push-hook uninstall --apply
 ```
 
 - hook script = `tools/hooks/pre-push-no-force.sh` (POSIX `sh`).
@@ -1088,7 +1088,7 @@ push 가 `rejected` 되면 그것은 *뚫어야 할 장애* 가 아니라 **다�
    `status=ok` + warnings 0** 인지를 직접 확인한다 (파일 생성 여부가 아니라 *복원되는지*).
 
    ```bash
-   python3 workflow-source/tools/seed_workspace_memory.py \
+   wk seed-workspace-memory \
      --branch feat-login --axis "로그인 세션 만료 처리" \
      --task-title "세션 만료 시 재인증" --out-of-scope "결제 모듈" --apply
    python3 workflow-source/scripts/generate_workflow_state.py \
@@ -1396,10 +1396,10 @@ score = (|unplanned| + |undone|) / max(|planned|, 1)
 
 ```bash
 # PR merge 직전 — pre-merge advisory
-python3 workflow-source/tools/detect_scope_drift.py --pre-commit origin/main
+wk detect-scope-drift --pre-commit origin/main
 
 # CI smoke — drift 발견 시 fail
-python3 workflow-source/tools/detect_scope_drift.py --exit-on-drift
+wk detect-scope-drift --exit-on-drift
 ```
 
 ### v2 — title semantic drift (v1.1.2+, TASK-024)

@@ -52,9 +52,9 @@ runtime `workflow_kit.__version__` 은 이 값을 읽어 `v<X>.<Y>.<Z>-beta` 형
 
 ```bash
 # 저장소 루트
-python3 workflow-source/tools/release_pipeline.py validate --json
-python3 workflow-source/tools/release_pipeline.py dist --dry-run --json
-python3 workflow-source/tools/release_pipeline.py release \
+wk release-pipeline validate --json
+wk release-pipeline dist --dry-run --json
+wk release-pipeline release \
   --version <X>.<Y>.<Z> \
   --dry-run \
   --json
@@ -138,7 +138,7 @@ unzip -l dist/standard_ai_workflow-*.whl | grep -E "contract_v1|common/(state|co
 #   → "workflow_kit/common/schemas/__init__.py"                    ← v0.5.7.1+ 필수
 ```
 
-수정 후 재빌드. 회귀: `python3 workflow-source/tools/check_packaging.py`.
+수정 후 재빌드. 회귀: `wk check-packaging`.
 
 ### 3.2 `twine check` 가 README 파싱 실패
 

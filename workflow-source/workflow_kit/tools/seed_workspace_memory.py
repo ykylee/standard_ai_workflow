@@ -28,9 +28,9 @@
 워크스페이스를 실수로 초기화하면 남의 작업을 지우는 것과 같기 때문이다.
 
 Usage:
-    python3 tools/seed_workspace_memory.py --branch feat-login \\
+    wk seed-workspace-memory --branch feat-login \\
         --axis "로그인 세션 만료 처리" --task-title "세션 만료 시 재인증" --dry-run
-    python3 tools/seed_workspace_memory.py --branch feat-login \\
+    wk seed-workspace-memory --branch feat-login \\
         --axis "..." --task-title "..." --apply
 
 Cross-ref: `core/global_workflow_standard.md` §10.2,

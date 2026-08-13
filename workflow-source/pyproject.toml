@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "standard-ai-workflow"
-version = "1.1.8"
+version = "1.2.0"
 description = "Standard AI workflow kit — bootstrap, skills, MCP servers, templates, and examples."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -31,8 +31,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-# The full ``workflow-source`` distribution bundles the ``workflow_kit`` core
-# library, the ``bootstrap_lib`` package, and all skills/MCP servers/templates.
+# The full ``workflow-source`` distribution ships the ``workflow_kit`` core
+# library (v1.2.0+ 유일한 top-level — bootstrap_lib 은 workflow_kit.bootstrap_lib).
 # Most consumers should install this meta-package and use ``workflow_kit`` as
 # the importable library name.
 #
@@ -105,7 +105,8 @@ Issues = "https://github.com/ykylee/standard_ai_workflow/issues"
 # v1.1.1+ (TASK-2026-08-08-main-020) — CLI 化 A안: 30+ tool 을 console_script 로 노출.
 # `pip install -e .` 후 30개 binary 가 자동 생성 (PATH 진입). dispatcher (B안) 는 후속.
 # naming: `workflow-{kebab-case}` (e.g., `workflow-registry`, `workflow-drift-detect`).
-# 기존 `python3 workflow-source/tools/X.py` 호출 경로 그대로 유지 (legacy).
+# 구 `python3 workflow-source/tools/X.py` 직접 호출 경로는 v1.2.0 에서 drop
+# (2nd deprecation cycle) — `wk <name>` 또는 workflow-* entry point 를 쓴다.
 [project.scripts]
 # v1.1.2+ (CLI 化 B안): 단일 dispatcher. `wk <name>` 이 아래 29개 + workflow_kit_cli
 #   의 38 subcommand 를 같은 이름 공간에서 부른다. 정본은
@@ -154,10 +155,11 @@ workflow-workspace-registry = "workflow_kit.tools.workspace_registry:main"
 
 [tool.setuptools]
 # ``workflow-source`` is not a single importable package — it's a bundle of:
-#   - ``workflow_kit/`` (importable, lives at workflow-source/workflow_kit/)
-#   - ``scripts/bootstrap_lib/`` (importable, lives at workflow-source/scripts/bootstrap_lib/)
-#   - ``tools/`` (v1.1.1+ importable — CLI 化 A안, [project.scripts] entry points)
-#   - skills/, mcp_servers/, templates/, examples/, etc. (non-code assets)
+#   - ``workflow_kit/`` (importable, lives at workflow-source/workflow_kit/ —
+#     v1.2.0 부터 유일한 wheel top-level. 구경로 shim tools/·scripts/bootstrap_lib
+#     은 2nd deprecation cycle 로 drop, TASK-2026-08-13-main-005)
+#   - skills/, mcp_servers/, templates/, examples/, tools/hooks|completions
+#     등 non-code assets (repo 경로 계약으로만 소비)
 #
 # For a full install we only need the importable sub-packages on
 # ``sys.path``. The rest is consumed via the repo's directory layout.
@@ -174,11 +176,10 @@ workflow-workspace-registry = "workflow_kit.tools.workspace_registry:main"
 # 껍데기라 복사 목록에서 뺐다 (bootstrap_lib/__main__.py DEFAULT_CORE_SUPPORT_PATHS).
 packages = [
     # v1.1.8 2단계 (TASK-2026-08-12-main-007): 구현의 정위치.
+    # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level bootstrap_lib)
+    # 은 2nd deprecation cycle 로 drop — wheel top-level 은 workflow_kit 하나다.
     "workflow_kit.bootstrap_lib",
     "workflow_kit.bootstrap_lib.harnesses",
-    # 1st cycle 구경로 shim — 다음 cycle 에 tools shim 과 함께 drop.
-    "bootstrap_lib",
-    "bootstrap_lib.harnesses",
     "workflow_kit",
     "workflow_kit.common",
     "workflow_kit.common.modes",
@@ -190,10 +191,11 @@ packages = [
     "workflow_kit.harness",
     # v1.1.8 (TASK-2026-08-12-main-006): 구현의 정위치. top-level `tools` 는
     # 공개 배포 시 이름 충돌을 일으키는 일반명이라 여기로 격상했다.
+    # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools) 은
+    # 2nd deprecation cycle 로 drop — PyPI 를 막던 일반명 top-level 이 없어졌다.
+    # 저장소의 tools/hooks/ · tools/completions/ 자산은 경로 계약대로 남는다
+    # (wheel 미포함 — 소비자는 repo checkout 경로로만 쓴다).
     "workflow_kit.tools",
-    # v1.1.8 1st deprecation cycle: 구경로 shim — 다음 cycle 에 drop 한다.
-    # 이게 남아 있는 동안 PyPI 발행은 여전히 막혀 있다 (배포 검토 §2).
-    "tools",
 ]
 
 # Single-file modules that don't live inside a package directory.
@@ -203,9 +205,8 @@ packages = [
 py-modules = ["bootstrap_workflow_kit"]
 
 [tool.setuptools.package-dir]
-# Map package names to their on-disk locations. This lets us ship
-# ``workflow_kit``, ``bootstrap_lib``, and ``tools`` from the same distribution
-# even though they live in different subdirectories of the repo.
+# Map package names to their on-disk locations. v1.2.0+ 전 패키지가
+# ``workflow_kit`` 아래에 산다 (구경로 shim drop, TASK-2026-08-13-main-005).
 "workflow_kit" = "workflow_kit"
 "workflow_kit.common" = "workflow_kit/common"
 "workflow_kit.common.modes" = "workflow_kit/common/modes"
@@ -214,14 +215,9 @@ py-modules = ["bootstrap_workflow_kit"]
 "workflow_kit.common.schemas" = "workflow_kit/common/schemas"
 "workflow_kit.server" = "workflow_kit/server"
 "workflow_kit.harness" = "workflow_kit/harness"
-"bootstrap_lib" = "scripts/bootstrap_lib"
-"bootstrap_lib.harnesses" = "scripts/bootstrap_lib/harnesses"
-"tools" = "tools"  # v1.1.1+ — CLI 化 A안: 30+ console_script 의 source
 
 [tool.setuptools.package-data]
 workflow_kit = ["README.md", "py.typed"]
-bootstrap_lib = ["py.typed"]
-tools = ["hooks/pre-push-no-force.sh"]  # v1.1.1+ — pre-push hook script 도 패키지에 포함
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc", "*.pyo"]

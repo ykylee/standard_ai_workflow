@@ -10,13 +10,13 @@
 
 ```bash
 # stdout 으로 draft 출력 (default)
-python3 workflow-source/tools/create_environment_record_stub.py
+wk create-environment-record-stub
 
 # 자동 detect (hostname, os_type) override
-python3 workflow-source/tools/create_environment_record_stub.py --hostname myhost --os-type Linux
+wk create-environment-record-stub --hostname myhost --os-type Linux
 
 # 파일로 직접 emit
-python3 workflow-source/tools/create_environment_record_stub.py --output-path environments/myhost/record.md
+wk create-environment-record-stub --output-path environments/myhost/record.md
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.7 dual mode (TASK-017).

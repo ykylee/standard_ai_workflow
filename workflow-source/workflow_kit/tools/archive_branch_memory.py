@@ -14,9 +14,9 @@
 main 에 직접 쓰지 않으므로 protected branch 정책과 충돌하지 않는다.
 
 Usage:
-    python3 tools/archive_branch_memory.py --dry-run
-    python3 tools/archive_branch_memory.py --apply
-    python3 tools/archive_branch_memory.py --apply --branch feature/old   # 특정 브랜치 강제
+    wk archive-branch-memory --dry-run
+    wk archive-branch-memory --apply
+    wk archive-branch-memory --apply --branch feature/old   # 특정 브랜치 강제
 """
 from __future__ import annotations
 

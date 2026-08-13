@@ -54,9 +54,9 @@ git 저장소 루트에서는 `ls-files` + `ls-files --others --exclude-standard
 
 사용:
 
-    python3 workflow-source/tools/audit_root_anchors.py            # 사람용 요약
-    python3 workflow-source/tools/audit_root_anchors.py --json     # 기계용
-    python3 workflow-source/tools/audit_root_anchors.py --all      # 인벤토리 전량
+    wk audit-root-anchors            # 사람용 요약
+    wk audit-root-anchors --json     # 기계용
+    wk audit-root-anchors --all      # 인벤토리 전량
 
 Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / §2.53 / §2.54.
 """

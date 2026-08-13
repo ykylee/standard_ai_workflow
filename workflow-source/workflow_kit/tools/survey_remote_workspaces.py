@@ -28,9 +28,9 @@ git 은 "이 브랜치가 살아있는 작업인지" 를 모르고 **마지막 �
 유지하므로 *활동성* 지표로 부적합하다.
 
 Usage:
-    python3 tools/survey_remote_workspaces.py
-    python3 tools/survey_remote_workspaces.py --json
-    python3 tools/survey_remote_workspaces.py --no-fetch --stale-hours 48
+    wk survey-remote-workspaces
+    wk survey-remote-workspaces --json
+    wk survey-remote-workspaces --no-fetch --stale-hours 48
 
 Cross-ref: `core/global_workflow_standard.md` §10.2 · §10.4,
 `core/multi_workspace_orchestration.md` §5D.3 (조회) · §5D.4a (stale 임계).

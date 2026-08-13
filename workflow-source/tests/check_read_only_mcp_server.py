@@ -34,11 +34,19 @@ def run_json(args: list[str], *, expect_success: bool = True) -> tuple[int, dict
 
 
 def main() -> int:
+    # v1.2.0 (2nd cycle, TASK-2026-08-13-main-005): `--bundle` 미지정 기본값이
+    # read-only 다 — 기본 manifest 에 write 도구가 실리면 default flip 회귀다.
     _, manifest = run_json(["--list-tools"])
     if manifest["server_name"] != "workflow_read_only_bundle":
         raise AssertionError("Unexpected read-only server name.")
     if manifest["tool_count"] < 5:
         raise AssertionError("Expected at least five bundled read-only tools.")
+    default_names = {tool["name"] for tool in manifest["tools"]}
+    if default_names & WRITE_CAPABLE_TOOL_NAMES:
+        raise AssertionError(
+            "--bundle 미지정 기본값이 read-only 가 아니다 (v1.2.0 default flip 회귀): "
+            f"{sorted(default_names & WRITE_CAPABLE_TOOL_NAMES)}"
+        )
     if manifest["transport"]["descriptor_target"] != "mcp_tools_list_draft":
         raise AssertionError("Expected draft transport descriptor target in manifest.")
     for tool_spec in manifest["tools"]:
@@ -92,7 +100,9 @@ def main() -> int:
     w_names = {tool["name"] for tool in w_manifest["tools"]}
     if w_manifest["server_name"] != "workflow_write_bundle" or w_names != set(WRITE_CAPABLE_TOOL_NAMES):
         raise AssertionError(f"write bundle 구성이 사실 목록과 다르다: {sorted(w_names)}")
-    if ro_names | w_names != {tool["name"] for tool in manifest["tools"]}:
+    # all 은 v1.2.0 부터 명시 opt-in — 합집합 판정의 기준면도 명시 all 로 뜬다.
+    _, all_manifest = run_json(["--list-tools", "--bundle", "all"])
+    if ro_names | w_names != {tool["name"] for tool in all_manifest["tools"]}:
         raise AssertionError("read-only ∪ write ≠ all — bundle 분리가 도구를 흘리거나 중복시켰다.")
     blocked_code, blocked_payload = run_json(
         ["--tool", "apply_robust_patch", "--payload-json", "{}", "--bundle", "read-only"],

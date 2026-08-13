@@ -10,22 +10,22 @@ default** — 사람 판단 영역 (§5D.4 정합). `--exit-on-drift` 명시 시
 ```bash
 # default: post handoff (REPO_ROOT/ai-workflow/memory/active/main/session_handoff.md)
 # + git log origin/main..HEAD 비교
-python3 workflow-source/tools/detect_scope_drift.py
+wk detect-scope-drift
 
 # pre handoff 명시 (작업 시작 commit 의 handoff)
-python3 workflow-source/tools/detect_scope_drift.py \
+wk detect-scope-drift \
     --pre-handoff /path/to/pre-session_handoff.md
 
 # pre handoff 를 git show 로 (branch 시작점)
-python3 workflow-source/tools/detect_scope_drift.py \
+wk detect-scope-drift \
     --pre-commit origin/main
 
 # git range 명시
-python3 workflow-source/tools/detect_scope_drift.py \
+wk detect-scope-drift \
     --git-range "origin/main..HEAD"
 
 # CI 용 — drift 발견 시 non-zero exit
-python3 workflow-source/tools/detect_scope_drift.py --exit-on-drift
+wk detect-scope-drift --exit-on-drift
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.8 #3 / §5B.1 (TASK-018).

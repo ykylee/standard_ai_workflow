@@ -35,9 +35,9 @@ Usage:
     python3 refresh_wiki_memory.py --dry-run --json
 
 Reference:
-- tools/score_wiki_trend.py (commit 별 score tracking — cross-ref)
-- tools/emit_wiki_l2_body.py (L2 sources/ 본문 emit — 다음 step)
-- tools/refresh_raw_memory.py (raw mirror sync — 구버전, 본 tool 로 대체)
+- workflow_kit/tools/score_wiki_trend.py (commit 별 score tracking — cross-ref)
+- workflow_kit/tools/emit_wiki_l2_body.py (L2 sources/ 본문 emit — 다음 step)
+- workflow_kit/tools/refresh_raw_memory.py (raw mirror sync — 구버전, 본 tool 로 대체)
 - workflow-source/extensions/SCHEMA.md §3 (file format)
 - workflow_kit/common/contracts/baselines.py (v0.7.3+ 7 baseline dispatcher)
 - ai-workflow/wiki/sources/ (v0.7.17+ L2 dense emit target, in-repo)

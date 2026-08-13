@@ -20,8 +20,8 @@
   state.json.template, memory_index/
 
 Usage:
-    python3 tools/migrate_memory_to_branch_scoped.py --dry-run
-    python3 tools/migrate_memory_to_branch_scoped.py --apply [--branch main]
+    wk migrate-memory-to-branch-scoped --dry-run
+    wk migrate-memory-to-branch-scoped --apply [--branch main]
 """
 from __future__ import annotations
 

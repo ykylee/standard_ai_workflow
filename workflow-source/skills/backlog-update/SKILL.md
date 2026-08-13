@@ -64,7 +64,7 @@
 ## 7. 예시 실행 (v0.11.20 stable 정합)
 
 **소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 배포물에 없다. 구현은
-`workflow-source/tools/backlog_update.py`, 본 디렉터리의
+`workflow-source/workflow_kit/tools/backlog_update.py`, 본 디렉터리의
 [scripts/run_backlog_update.py](./scripts/run_backlog_update.py) 는 저장소 내
 개발용 thin wrapper 다.
 

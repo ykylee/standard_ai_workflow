@@ -50,9 +50,9 @@ READ_ONLY_TRANSPORT_DESCRIPTOR_TARGET = "mcp_tools_list_draft"
 # "read_only" 라는 이름의 bundle 안에 write 도구 2종이 사는 긴장의 근본 정리.
 # 서버/manifest/descriptor 는 bundle 선택자를 받는다:
 #   - "read-only": read_only=True 도구만 (하네스 자동 노출용, 이름이 정직해진다)
+#                  — v1.2.0 (2nd cycle) 부터 CLI `--bundle` 미지정 시 기본값.
 #   - "write":     write-capable 도구만 (명시 opt-in, manual review 대상)
-#   - "all":       기존 표면 그대로 (1st cycle 하위 호환 기본값 — 기존 config 는
-#                  --bundle 없이 계속 동작하되, 서빙 시 경고를 낸다)
+#   - "all":       구 표면 그대로 (v1.2.0 부터 명시 opt-in — 서빙 시 notice)
 BUNDLE_READ_ONLY = "read-only"
 BUNDLE_WRITE = "write"
 BUNDLE_ALL = "all"

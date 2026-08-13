@@ -38,12 +38,12 @@
 사용:
 
     # 전량 검사를 돌리는 동안 옆에서 감시 (기본 대상: cwd 의 workflow-source/pyproject.toml)
-    python3 workflow-source/tools/watch_transient_writer.py &
+    python3 -m workflow_kit.tools.watch_transient_writer &
     .venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=...
     kill %1   # SIGTERM 을 받으면 summary.json 을 쓰고 종료한다
 
     # 명시 인자
-    python3 workflow-source/tools/watch_transient_writer.py \
+    python3 -m workflow_kit.tools.watch_transient_writer \
         --file workflow-source/pyproject.toml --interval 0.05 --duration 600 --json
 
 Cross-ref: session_handoff §6 "transient pyproject writer 정체 미상",

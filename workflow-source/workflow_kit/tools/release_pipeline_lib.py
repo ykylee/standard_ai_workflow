@@ -34,7 +34,7 @@ _RELEASE_PIPELINE_PATH = _TOOLS_DIR / "release_pipeline.py"
 
 
 def _load_release_pipeline() -> ModuleType:
-    """Load tools/release_pipeline.py as a module (script → module).
+    """Load workflow_kit/tools/release_pipeline.py as a module (script → module).
 
     Uses importlib.util.spec_from_file_location to bypass sys.path / package
     boundary. The module is cached in sys.modules under a stable name so
@@ -92,7 +92,7 @@ def _make_args(**kwargs):
 def cmd_validate(skip_packaging: bool = False, skip_doctor: bool = False,
                  skip_state: bool = False, skip_git: bool = False,
                  skip_mypy: bool = False) -> dict:
-    """Run cmd_validate from tools/release_pipeline.py in-process.
+    """Run cmd_validate from workflow_kit/tools/release_pipeline.py in-process.
 
     Returns the dict shape produced by cmd_validate (5 keys: packaging / doctor /
     state / git / mypy, each with `ok` boolean + details).

@@ -12,13 +12,13 @@
 
 Usage:
     # dry-run (변경 사항 preview)
-    python3 tools/fix_readme_for_release.py
+    wk fix-readme-for-release
 
     # apply (실제 file 수정)
-    python3 tools/fix_readme_for_release.py --apply
+    wk fix-readme-for-release --apply
 
     # 다른 version 으로 갱신 (e.g. v0.14.0)
-    python3 tools/fix_readme_for_release.py --to=0.14.0 --apply
+    wk fix-readme-for-release --to=0.14.0 --apply
 """
 
 from __future__ import annotations

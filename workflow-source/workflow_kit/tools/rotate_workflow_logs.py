@@ -15,13 +15,13 @@
 
 ```bash
 # 현재 handoff
-python3 workflow-source/tools/rotate_workflow_logs.py
+wk rotate-workflow-logs
 
 # max_done_items 변경 (default 10)
-python3 workflow-source/tools/rotate_workflow_logs.py --max-done-items 5
+wk rotate-workflow-logs --max-done-items 5
 
 # 특정 handoff 파일 + JSON
-python3 workflow-source/tools/rotate_workflow_logs.py --handoff-path /path/to/handoff.md --json
+wk rotate-workflow-logs --handoff-path /path/to/handoff.md --json
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.7 dual mode (TASK-017).

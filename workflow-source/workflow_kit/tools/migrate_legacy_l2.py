@@ -9,16 +9,16 @@ mirror file 로 copy. in-repo 의 L2 SSOT 가 외부 wiki 와 *정합*.
 
 Usage:
     # 1. dry-run: 어떤 file 이 어떻게 처리될지 미리 보기
-    python3 tools/migrate_legacy_l2.py --dry-run
+    wk migrate-legacy-l2 --dry-run
 
     # 2. apply: 실제 migrate
-    python3 tools/migrate_legacy_l2.py --apply
+    wk migrate-legacy-l2 --apply
 
     # 3. JSON output
-    python3 tools/migrate_legacy_l2.py --dry-run --json
+    wk migrate-legacy-l2 --dry-run --json
 
     # 4. REPO_ROOT override
-    python3 tools/migrate_legacy_l2.py --repo-root=/path/to/repo --dry-run
+    wk migrate-legacy-l2 --repo-root=/path/to/repo --dry-run
 
 v0.7.17 의 in-repo redirect 의 *closure* — 외부 wiki L2 page 의 *역사
 보존* + in-repo 의 L2 SSOT 정합.

@@ -25,13 +25,13 @@ new text
 
 ```bash
 # patch 파일 명시 + dry-run
-python3 workflow-source/tools/apply_robust_patch.py --file-path foo.py --patch-file /tmp/patch.txt
+wk apply-robust-patch --file-path foo.py --patch-file /tmp/patch.txt
 
 # patch stdin
-python3 workflow-source/tools/apply_robust_patch.py --file-path foo.py --patch-stdin < patch.txt
+wk apply-robust-patch --file-path foo.py --patch-stdin < patch.txt
 
 # 실제 적용
-python3 workflow-source/tools/apply_robust_patch.py --file-path foo.py --patch-file /tmp/patch.txt --apply
+wk apply-robust-patch --file-path foo.py --patch-file /tmp/patch.txt --apply
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.7 dual mode (TASK-017).

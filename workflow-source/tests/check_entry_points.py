@@ -19,6 +19,7 @@ stdlib only. importlib + tomllib + subprocess + sys.
 from __future__ import annotations
 
 import importlib
+import os
 import subprocess
 import sys
 import tempfile
@@ -113,15 +114,21 @@ def main() -> int:
         print(f"  [2+3] import + main()       ✓  ({len(modules)} module importable, main() callable)")
 
     # 4) 각 entry point 가 subprocess 로 --help 시 정상 (rc=0 또는 argparse 가 도움말에서 rc=1)
-    #    legacy: python3 workflow-source/workflow_kit/tools/X.py
-    #    new: python3 -m tools.X
+    #    file path: python3 workflow-source/workflow_kit/tools/X.py
+    #    module path: python3 -m workflow_kit.tools.X (entry point target 그대로)
     #    양쪽 다 검증.
+    #    v1.2.0 정정: v1.1.8 개명 후 이 단계가 `-m tools.tools.X` 를 돌리고 있었고,
+    #    ModuleNotFoundError 의 rc=1 이 허용 범위(0,1)에 들어 **무력화**돼 있었다
+    #    (check-neutralized 계열). module 경로를 target 에서 직접 취하고,
+    #    "No module named" 는 rc 와 무관하게 실패로 판정한다.
     legacy_helps = []
     module_helps = []
+    module_import_errors = []
     with tempfile.TemporaryDirectory() as tmp:
         for cmd, target in scripts.items():
-            tool_name = target.split(".", 1)[1].rsplit(":", 1)[0]
-            # legacy path
+            module_name = target.rsplit(":", 1)[0]
+            tool_name = module_name.rsplit(".", 1)[-1]
+            # file path
             legacy_script = SOURCE_ROOT / "workflow_kit" / "tools" / f"{tool_name}.py"
             if legacy_script.is_file():
                 r = subprocess.run(
@@ -129,17 +136,25 @@ def main() -> int:
                     cwd=REPO_ROOT, capture_output=True, text=True, timeout=10,
                 )
                 legacy_helps.append((cmd, r.returncode))
-            # new module path (simulating `python3 -m tools.X`)
+            # module path (entry point 가 가리키는 모듈 그대로).
+            # sys.executable + 환경 보존 — dev 의존이 없는 system python 으로
+            # 돌리면 import 실패가 환경 탓인지 구분이 안 된다 (run-checks-use-venv).
+            module_env = dict(os.environ)
+            module_env["PYTHONPATH"] = str(SOURCE_ROOT)
             r2 = subprocess.run(
-                ["python3", "-m", f"tools.{tool_name}", "--help"],
+                [sys.executable, "-m", module_name, "--help"],
                 cwd=SOURCE_ROOT, capture_output=True, text=True, timeout=10,
-                env={"PYTHONPATH": str(SOURCE_ROOT)},
+                env=module_env,
             )
             module_helps.append((cmd, r2.returncode))
+            if "No module named" in r2.stderr:
+                module_import_errors.append((cmd, module_name))
 
     # rc=0 또는 rc=1 (argparse 가 help 에서 1 리턴) — 둘 다 OK. rc=2 는 *argparse error* 라 안 됨.
     bad_legacy = [(c, rc) for c, rc in legacy_helps if rc not in (0, 1)]
     bad_module = [(c, rc) for c, rc in module_helps if rc not in (0, 1)]
+    if module_import_errors:
+        failures.append(f"[4c] module not importable via -m: {module_import_errors[:3]}")
     if bad_legacy:
         failures.append(f"[4a] legacy --help failed (rc not 0/1): {bad_legacy[:3]}")
     if bad_module:

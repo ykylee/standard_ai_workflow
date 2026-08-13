@@ -48,7 +48,7 @@ def _emit_dashboard_post_release(args: argparse.Namespace, results: dict) -> dic
     if skip:
         return {"status": "skipped", "reason": "--skip-dashboard-emit"}
 
-    # Project root = git repo root = REPO_ROOT.parent (workflow-source/tools/ 의 부모의 부모).
+    # Project root = git repo root = REPO_ROOT.parent (workflow-source/workflow_kit/tools/ 의 부모의 부모).
     # ai-workflow/ 는 project root 아래에 있으므로 dashboard CLI 의 _repo_root() 와 정합.
     project_root = REPO_ROOT.parent
     output = getattr(args, "dashboard_output", None)

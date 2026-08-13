@@ -24,10 +24,8 @@ Public API:
 from __future__ import annotations
 
 import importlib
-import importlib.util  # `importlib` 만으로는 `.util` 이 안 붙는다 (submodule)
 import inspect
 import sys
-from pathlib import Path
 from typing import Callable, Final, cast
 
 
@@ -104,22 +102,6 @@ def tool_command_names() -> list[str]:
     return sorted(TOOL_MODULES)
 
 
-def _ensure_tools_importable() -> None:
-    """`workflow-source/` 를 `sys.path` 에 올려 `import tools.*` 가 되게 한다.
-
-    v0.7.56 의 발견: `tools/` 에 `__init__.py` 가 없어 `import tools.x` 가 실패했고,
-    그래서 예전 wrapper 는 subprocess 로 우회했다. 지금은 package 이므로 경로만
-    맞으면 in-process 로 붙는다. 설치본(`pip install -e .`)에서는 이미 import 가
-    되므로 이 함수는 아무 일도 하지 않는다.
-    """
-    if importlib.util.find_spec("tools") is not None:
-        return
-    # workflow_kit/common/tool_dispatch.py → workflow_kit/common → workflow_kit → workflow-source
-    workflow_source_dir = Path(__file__).resolve().parent.parent.parent
-    if str(workflow_source_dir) not in sys.path:
-        sys.path.insert(0, str(workflow_source_dir))
-
-
 def _accepts_argv(fn: Callable[..., int]) -> bool:
     """`main` 이 argv 를 받는지 본다.
 
@@ -152,7 +134,6 @@ def run_tool(name: str, argv: list[str]) -> int:
 
     old_argv = sys.argv
     try:
-        _ensure_tools_importable()
         mod = importlib.import_module(module_path)
         main_fn = cast("Callable[..., int]", mod.main)
         # argv 를 안 받는 main() 은 argparse 로 sys.argv 를 직접 읽는다. prog 이름은

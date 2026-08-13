@@ -8,7 +8,7 @@ Catches packaging regressions like the v0.5.7.1 hotfix (sub-packages
 
 Usage::
 
-    python3 tools/check_packaging.py [--wheel PATH]
+    wk check-packaging [--wheel PATH]
 
 Default behaviour:
 
@@ -46,12 +46,11 @@ DEFAULT_DIST = REPO_ROOT / "dist"
 # Note: ``bootstrap_workflow_kit`` is intentionally NOT in this list. It's
 # a legacy CLI shim (single .py file in scripts/) that downstream callers
 # invoke directly via ``python scripts/bootstrap_workflow_kit.py`` rather
-# than importing. The new programmatic entry point is
-# ``python -m bootstrap_lib`` and the new programmatic API is the
-# ``bootstrap_lib`` package itself, both of which are covered below.
+# than importing. The programmatic entry point is
+# ``python -m workflow_kit.bootstrap_lib`` and the programmatic API is the
+# ``workflow_kit.bootstrap_lib`` package itself, both of which are covered below.
 REQUIRED_IMPORTS: tuple[str, ...] = (
     "workflow_kit",
-    "bootstrap_lib",
     "workflow_kit.contract_v1",
     "workflow_kit.common",
     "workflow_kit.common.state",
@@ -66,9 +65,16 @@ REQUIRED_IMPORTS: tuple[str, ...] = (
     # v1.1.8 2단계: bootstrap_lib 정위치 (1단계 tools 와 동일 처방)
     "workflow_kit.bootstrap_lib",
     "workflow_kit.bootstrap_lib.harnesses",
-    # v1.1.8 1st cycle: 구경로 shim 도 wheel 에 실려야 한다 (기존 소비자 호환).
+    # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools /
+    # bootstrap_lib) 은 2nd deprecation cycle 로 wheel 에서 drop 됐다 —
+    # 아래 NEGATIVE 목록이 재유입을 막는다 (PyPI 차단 사유였던 일반명).
+)
+
+# v1.2.0: wheel 에 실리면 안 되는 top-level (일반명 충돌 — 배포 검토 §2).
+# 구경로 shim drop 이후 재유입은 packaging 회귀다.
+FORBIDDEN_IMPORTS: tuple[str, ...] = (
     "tools",
-    "tools.session_start",
+    "bootstrap_lib",
 )
 
 
@@ -128,7 +134,7 @@ def main() -> int:
         #    exactly which module is missing — a flat ``__import__`` chain
         #    would short-circuit on the first failure.
         import_payload = "import json\n"
-        import_payload += "ok, missing = [], []\n"
+        import_payload += "ok, missing, forbidden = [], [], []\n"
         for mod in REQUIRED_IMPORTS:
             import_payload += (
                 "try:\n"
@@ -137,7 +143,19 @@ def main() -> int:
                 "except Exception as exc:\n"
                 f"    missing.append({{'module': {mod!r}, 'error': str(exc)}})\n"
             )
-        import_payload += "print(json.dumps({'ok': ok, 'missing': missing}))\n"
+        # v1.2.0: 구경로 shim 재유입 검출 — venv 의 cwd 는 wheel 밖이므로
+        # import 가 *성공하면* wheel 이 일반명 top-level 을 다시 실은 것이다.
+        for mod in FORBIDDEN_IMPORTS:
+            import_payload += (
+                "try:\n"
+                f"    __import__({mod!r})\n"
+                f"    forbidden.append({mod!r})\n"
+                "except ImportError:\n"
+                "    pass\n"
+            )
+        import_payload += (
+            "print(json.dumps({'ok': ok, 'missing': missing, 'forbidden': forbidden}))\n"
+        )
 
         completed = subprocess.run(
             [str(python), "-c", import_payload],
@@ -154,19 +172,19 @@ def main() -> int:
             print("ERROR: missing imports:", json.dumps(result["missing"], indent=2))
             return 1
 
-        # 3. CLI entry point smoke. ``python -m bootstrap_lib --help`` must
-        #    succeed and show the new --no-interactive flag.
+        # 3. CLI entry point smoke. ``python -m workflow_kit.bootstrap_lib --help``
+        #    must succeed and show the new --no-interactive flag.
         completed = subprocess.run(
-            [str(python), "-m", "bootstrap_lib", "--help"],
+            [str(python), "-m", "workflow_kit.bootstrap_lib", "--help"],
             capture_output=True,
             text=True,
         )
         if completed.returncode != 0:
-            print("ERROR: bootstrap_lib --help failed")
+            print("ERROR: workflow_kit.bootstrap_lib --help failed")
             print(completed.stderr, file=sys.stderr)
             return 1
         if "--no-interactive" not in completed.stdout:
-            print("ERROR: bootstrap_lib --help output missing --no-interactive")
+            print("ERROR: workflow_kit.bootstrap_lib --help output missing --no-interactive")
             print(completed.stdout)
             return 1
 

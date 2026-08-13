@@ -17,7 +17,7 @@ corpus 와 대조해 **index 가 모르는 작업** 을 entry 후보로 제안�
 wk suggest-memory-entries
 
 # 특정 handoff + JSON
-python3 workflow-source/tools/suggest_memory_entries.py \
+wk suggest-memory-entries \
     --handoff-path /path/to/session_handoff.md --json
 ```
 """

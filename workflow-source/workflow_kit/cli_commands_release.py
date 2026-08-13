@@ -61,12 +61,11 @@ def cmd_release_doctor(argv: list[str]) -> int:
         "git": _has_flag(argv, "--skip-git"),
     }
     try:
-        # Find workflow-source/tools dir relative to this module.
-        # workflow_kit_cli.py lives at workflow-source/workflow_kit/
-        # → tools/release_pipeline_lib.py is at workflow-source/tools/
+        # Find workflow_kit/tools dir relative to this module (v1.2.0: 구경로
+        # workflow-source/tools shim drop — 정위치 workflow_kit/tools 를 본다).
         from pathlib import Path as _P
         kit_dir = _P(__file__).resolve().parent
-        tools_dir = kit_dir.parent / "tools"
+        tools_dir = kit_dir / "tools"
         if str(tools_dir) not in sys.path:
             sys.path.insert(0, str(tools_dir))
         # importlib 사용 — sys.path manipulation 후에도 mypy 가 stub 못 찾으므로
@@ -118,7 +117,7 @@ def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs: Any) ->
     try:
         from pathlib import Path as _P
         kit_dir = _P(__file__).resolve().parent
-        tools_dir = kit_dir.parent / "tools"
+        tools_dir = kit_dir / "tools"  # v1.2.0: 정위치 workflow_kit/tools
         if str(tools_dir) not in sys.path:
             sys.path.insert(0, str(tools_dir))
         # importlib 사용 — sys.path manipulation 후에도 mypy 가 stub 못 찾으므로

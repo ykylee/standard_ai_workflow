@@ -16,16 +16,16 @@
 
 ```bash
 # 설치 (preview)
-python3 workflow-source/tools/install_pre_push_hook.py install
+wk install-pre-push-hook install
 
 # 실제 설치
-python3 workflow-source/tools/install_pre_push_hook.py install --apply
+wk install-pre-push-hook install --apply
 
 # 상태 확인
-python3 workflow-source/tools/install_pre_push_hook.py status
+wk install-pre-push-hook status
 
 # 제거 (가장 최근 backup 에서 복원)
-python3 workflow-source/tools/install_pre_push_hook.py uninstall --apply
+wk install-pre-push-hook uninstall --apply
 ```
 
 Cross-ref: `core/multi_workspace_orchestration.md` §0.8 #4 / §5D.5 (TASK-019).

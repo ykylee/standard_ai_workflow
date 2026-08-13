@@ -115,7 +115,7 @@ class GitDatesPlugin:
         # page.file.abs_src_path 는 보통 docs/<file>.md. 부모는 docs/ 그 부모는 repo root.
         try:
             cur = Path(__file__).resolve()
-            for _ in range(6):  # workflow-source/tools/mkdocs_git_dates.py 에서 위로 6 단계 까지.
+            for _ in range(6):  # workflow-source/workflow_kit/tools/mkdocs_git_dates.py 에서 위로 6 단계 까지.
                 cur = cur.parent
                 if (cur / ".git").exists():
                     self._git_root_cache = cur

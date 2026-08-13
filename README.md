@@ -65,7 +65,7 @@
 | MCP 프로토타입 | 사용 가능 | 12종 (stable 8 + beta 4). jsonrpc-bridge (안정) + stdio-sdk (실험적) 양쪽 지원 |
 | MCP 카탈로그 | 설계 완료, stable 단계 진입 | 우선순위 1 MCP 정식 stable + read_only_mcp_sdk v1.0 SDK candidate + 베타 4종 |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
-| bootstrap scaffold | 사용 가능 | `python3 -m bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
+| bootstrap scaffold | 사용 가능 | `python3 -m workflow_kit.bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
 | harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `CodeWhale` (v0.10.4 신규), `Claude Code`, `Aider`, `Goose`, `pi-dev` |
 | harness interactive picker | 사용 가능 (v0.5.8+) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode orchestrator + doc/code/validation worker 분화 및 위임 패턴 |
@@ -105,7 +105,7 @@
 - MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.minimax/agents/` (orchestrator + doc/code/validation worker) 중심
 - CodeWhale: `.codewhale/skills/codewhale-workflow/SKILL.md` 중심 (Constitution 보강, 단일 skill 파일)
 - pi-dev: `AGENTS.md` + `SYSTEM.md` (에이전트 페르소나) 중심
-- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_lib/__main__.py` 의 `register_harness_builder` 한 줄로 끝난다)
+- 추후 하네스: 같은 오버레이 패턴과 레지스트리 기반 bootstrap 방식으로 확장 가능 (harness 추가는 `workflow-source/workflow_kit/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 한 줄 + `bootstrap_lib/__main__.py` 의 `register_harness_builder` 한 줄로 끝난다)
 
 ## 5. 로컬 환경 설정 메모
 
@@ -124,7 +124,7 @@
 1. **워크플로우 런타임 동기화**:
    원본 소스(`workflow-source/`)를 기반으로 로컬 `ai-workflow/` 런타임 도구를 동기화하고 하네스 파일(예: `ANTIGRAVITY.md`)을 생성합니다.
    ```bash
-   python3 -m bootstrap_lib \
+   python3 -m workflow_kit.bootstrap_lib \
      --target-root . \
      --project-slug standard-ai-workflow \
      --project-name "Standard AI Workflow" \

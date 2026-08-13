@@ -49,7 +49,7 @@
 
 **소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 pip 패키지에도 bootstrap
 번들에도 들어가지 않으므로, 여기 경로를 소비자에게 안내하면 안 된다 (TASK-021/027).
-구현은 배포되는 `workflow-source/tools/session_start.py` 에 있고, 본 디렉터리의
+구현은 배포되는 `workflow-source/workflow_kit/tools/session_start.py` 에 있고, 본 디렉터리의
 [scripts/run_session_start.py](./scripts/run_session_start.py) 는 저장소 내 개발용
 thin wrapper 다.
 

@@ -89,11 +89,11 @@ pip install -r requirements-dev.txt
 
 ## 5. MCP 도구 사용 (선택 사항)
 
-`python3 -m bootstrap_lib` (또는 레거시 `bootstrap_workflow_kit.py`) 가 각 하네스별 MCP config 스니펫을 자동으로 생성할 수 있다. 도입 시점에 한 번만 실행하면 된다.
+`python3 -m workflow_kit.bootstrap_lib` (또는 레거시 `bootstrap_workflow_kit.py`) 가 각 하네스별 MCP config 스니펫을 자동으로 생성할 수 있다. 도입 시점에 한 번만 실행하면 된다.
 
 ```bash
 # bootstrap 시 --enable-mcp 추가 (v0.5.2+ 권장 진입점)
-python3 -m bootstrap_lib \
+python3 -m workflow_kit.bootstrap_lib \
   --target-root <project_root> \
   --project-slug <slug> \
   --project-name "<name>" \

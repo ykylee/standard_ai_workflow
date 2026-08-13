@@ -90,13 +90,13 @@
 - `server/`: `read_only_jsonrpc.py` (default 안정), `read_only_mcp_sdk.py` (v1.0 SDK candidate, 실험적), `mcp_v1_server.py` (정식 SDK stdio).
 - `plugin_payload.py` (v1.1.9+): 저장소 루트 `plugin/` (Agent Plugins 1.0 공유 payload) 렌더러. `render_agent_plugin()` 이 manifest / SKILL.md 3종 / `mcp.json` 을 정본에서 생성하고, `python3 -m workflow_kit.plugin_payload --apply` 로 재생성한다. 손 편집은 `check_agent_plugin_payload.py` 가 잡는다.
 
-### Bootstrap (`workflow-source/scripts/bootstrap_lib/`)
+### Bootstrap (`workflow-source/workflow_kit/bootstrap_lib/`)
 v0.5.2+ 리팩터. 6-module 패키지:
 - `__main__.py` (CLI 진입점)
 - `cli.py`, `planner.py`, `renderers.py`, `validators.py`, `metadata.py`
 - `harnesses/__init__.py` (HARNESS_SPECS + register_harness_builder)
 
-권장 진입점: `python3 -m bootstrap_lib`. 레거시 호환 shim: `python3 workflow-source/scripts/bootstrap_workflow_kit.py`.
+권장 진입점: `python3 -m workflow_kit.bootstrap_lib`. 레거시 호환 shim: `python3 workflow-source/scripts/bootstrap_workflow_kit.py`.
 
 ### Skills (`workflow-source/skills/`) — 13 + workers/ (14 dirs)
 각 스킬은 특정 워크플로우 단계를 자동화하는 독립 패키지. 현재 maturity matrix 기준 stable (12종) + beta (memory-freeze / memory-index-query) + `workers/` dir. 자세한 단계는 [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json) SSOT.
@@ -115,22 +115,22 @@ v0.5.2+ 리팩터. 6-module 패키지:
 ### Harnesses (`workflow-source/harnesses/`) — 11 supported
 `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `claude-code`, `aider`, `goose`, `pi-dev`, `codewhale` (v0.10.4 신규), `custom` (v0.10.2 신규) + `_template`.
 - 각 하네스: `README.md` + `apply_guide.md` (대부분) + `AGENTS.md` (pi-dev만) + 선택적 `overlay_spec.md` (antigravity만) + CodeWhale 는 단일 `SKILL.md` overlay
-- 부트스트랩 등록: `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` + `register_harness_builder` 한 줄
+- 부트스트랩 등록: `workflow-source/workflow_kit/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` + `register_harness_builder` 한 줄
 
 ## 3. 주요 진입점 (Entry Points)
 
-- **부트스트랩 (v0.5.2+ 권장)**: `python3 -m bootstrap_lib ...`
+- **부트스트랩 (v0.5.2+ 권장)**: `python3 -m workflow_kit.bootstrap_lib ...`
 - **부트스트랩 (레거시 shim)**: `python3 workflow-source/scripts/bootstrap_workflow_kit.py ...`
 - **상태 생성**: `python3 workflow-source/scripts/generate_workflow_state.py ...`
 - **테스트 실행**:
   - 개별: `python3 workflow-source/tests/check_<name>.py`
   - 일괄 (CI 동일): `for t in workflow-source/tests/check_*.py; do python3 "$t" || exit 1; done`
-  - 패키징: `python3 workflow-source/tools/check_packaging.py`
-- **기준 전수 조사 (v1.0.8+)**: `python3 workflow-source/tools/audit_root_anchors.py`
+  - 패키징: `wk check-packaging`
+- **기준 전수 조사 (v1.0.8+)**: `wk audit-root-anchors`
   — 경로/branch 기준을 잡는 자리를 AST 로 전수 조사한다. 저장소 루트에서 실행할 것
   (미지정이면 cwd 기준이고, 대상이 없으면 통과가 아니라 실패한다).
   smoke 의 `check_root_anchor_audit.py` 가 같은 조사를 돌린다.
-- **transient writer 감시 (opt-in)**: `python3 workflow-source/tools/watch_transient_writer.py`
+- **transient writer 감시 (opt-in)**: `PYTHONPATH=workflow-source python3 -m workflow_kit.tools.watch_transient_writer`
   — 파일을 고쳤다 되돌리는 writer 를 현장에서 잡는다 (diff + ps 전량 + fuser,
   기본 대상 `workflow-source/pyproject.toml`). 로그는 temp 에만 남긴다 —
   저장소 안 로그는 거부한다. 재발 의심 시 전량 검사 옆에 세워 둘 것.

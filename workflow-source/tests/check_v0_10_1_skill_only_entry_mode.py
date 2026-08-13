@@ -20,12 +20,11 @@ import types
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = SOURCE_ROOT / "scripts"
-BOOTSTRAP_LIB_DIR = SCRIPTS_DIR / "bootstrap_lib"
 
-# Path setup
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+# Path setup — v1.2.0 (2nd cycle): scripts/bootstrap_lib shim drop, 정위치는
+# workflow_kit.bootstrap_lib (SOURCE_ROOT 가 sys.path 에 있으면 import 가능)
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
 
 
 def _make_ns(

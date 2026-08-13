@@ -44,6 +44,7 @@ class RuleResult:
 def check_health_check(project_root: Path) -> RuleResult:
     """RES-WF-01: --health / --doctor / doctor subcommand 존재."""
     candidates = [
+        project_root / "workflow-source" / "workflow_kit" / "tools" / "doctor.py",
         project_root / "workflow-source" / "tools" / "doctor.py",
         project_root / "tools" / "doctor.py",
         project_root / "workflow_kit" / "cli" / "doctor.py",
@@ -97,8 +98,10 @@ def check_structured_logging(project_root: Path) -> RuleResult:
 
 def check_metrics_dump(project_root: Path) -> RuleResult:
     """RES-WF-03: metrics exposure (counter / gauge dump 가능)."""
-    candidates = list((project_root / "workflow-source" / "tools").rglob("*.py")) + list(
-        (project_root / "workflow_kit").rglob("*.py")
+    candidates = (
+        list((project_root / "workflow-source" / "workflow_kit").rglob("*.py"))
+        + list((project_root / "workflow-source" / "tools").rglob("*.py"))
+        + list((project_root / "workflow_kit").rglob("*.py"))
     )
     has_metrics = False
     for path in candidates:

@@ -18,16 +18,16 @@
 
 Usage:
     # dry-run 만 (모든 step 의 plan 출력)
-    python3 tools/release_v0_13_0.py
+    wk release-v0-13-0
 
     # 사용자 확인 mode (각 apply 직전에 stdin 입력 요구)
-    python3 tools/release_v0_13_0.py --interactive
+    wk release-v0-13-0 --interactive
 
     # 자동 apply mode (모든 step 의 --apply 실행, no prompt)
-    python3 tools/release_v0_13_0.py --apply
+    wk release-v0-13-0 --apply
 
     # 일부 step 만 dry-run
-    python3 tools/release_v0_13_0.py --step=version-bump
+    wk release-v0-13-0 --step=version-bump
 """
 
 from __future__ import annotations
@@ -163,7 +163,7 @@ def check_git_clean_working_tree() -> bool:
         return False
     # Allow-list: 본 script 자신 + dev-run artifact (release hook 이 자동 emit 하기 전까지).
     allowed = {
-        "?? workflow-source/tools/release_v0_13_0.py",
+        "?? workflow-source/workflow_kit/tools/release_v0_13_0.py",
         "?? ai-workflow/dashboard/snapshot.md",
         "?? docs/dashboard/index.html",
     }

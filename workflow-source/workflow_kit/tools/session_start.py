@@ -178,7 +178,7 @@ def _detect_stale_branch_memories(
         memory_root = memory_root_dir(project_profile_path)
     except Exception:  # noqa: BLE001
         return None
-    tool = SOURCE_ROOT / "tools" / "archive_branch_memory.py"
+    tool = SOURCE_ROOT / "workflow_kit" / "tools" / "archive_branch_memory.py"
     if not tool.is_file() or not (memory_root / "active").is_dir():
         return None
     cmd = [sys.executable, str(tool), "--memory-root", str(memory_root), "--json"]
@@ -201,7 +201,7 @@ def _detect_stale_branch_memories(
         else:
             warnings.append(
                 f"종료된 브랜치 메모리 {len(stale)}건이 active/ 에 남아 있다: {', '.join(stale)}. "
-                f"`python3 workflow-source/tools/archive_branch_memory.py --apply` 로 아카이브하라."
+                f"`wk archive-branch-memory --apply` 로 아카이브하라."
             )
     return {"stale_branches": stale, "archived": bool(apply and stale)}
 

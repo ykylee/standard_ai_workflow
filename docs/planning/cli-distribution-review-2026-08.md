@@ -30,6 +30,12 @@ top-level 을 쓰는 다른 패키지와 **site-packages 충돌**을 일으킨�
 entry point + `TOOL_MODULES` + 검사 다수를 건드리는 **별도 마이그레이션 task** 다
 (deprecation cycle 필요).
 
+> ✅ **해소 (v1.2.0, TASK-2026-08-13-main-005)**: 격상은 v1.1.8 에서 완료
+> (TASK-2026-08-12-main-006·007), 구경로 shim 은 2nd deprecation cycle 로
+> v1.2.0 에서 drop 됐다. wheel top-level 은 이제 `workflow_kit` 하나이고
+> `check_packaging` 의 FORBIDDEN_IMPORTS 가 일반명 top-level 재유입을 막는다.
+> **PyPI 발행의 기술 제약은 없다 — 남은 것은 정책 (소유자 결정) 뿐이다.**
+
 ## 3. 대안 비교
 
 | # | 방식 | 명령 (소비자) | 장점 | 단점/제약 |

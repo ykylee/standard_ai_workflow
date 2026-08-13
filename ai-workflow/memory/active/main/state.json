@@ -29,8 +29,10 @@
   "session": {
     "current_baseline": "**31차 세션 종료 — 플러그인 SessionStart 조건부 규칙 주입 (TASK-2026-08-13-main-003).** P5 실측(hook stdout 주입 성립)을 실채널로 이었다: `adapters/claude-code/rules.md` (bootstrap 진입점·Gemini 와 **같은** `render_entrypoint_rules` 파생 — 채널 셋, 정본 하나) + SessionStart 두 번째 hook 이 `CLAUDE.md`/`.claude/CLAUDE.md` 의 **생성 마커를 grep** 해 있으면 생략(@AGENTS.md import 패턴 인정), 없을 때만 `cat \"${CLAUDE_PLUGIN_ROOT}/...\"`. 마커 탐침은 `GENERATED_MARKER` 파생. **실측 2경로 성립**: 진입점 없는 프로젝트 PRESENT(주입+CLAUDE_PLUGIN_ROOT 전개 확인) / 마커 있는 프로젝트 SKIPPED(이중 주입 없음). **부수 발견: CLAUDE.md 의 HTML 주석은 모델 컨텍스트에서 스트립된다** — 마커 존재 판정을 모델에게 물으면 안 된다 (파일 grep 은 무영향). case 8 확장 + 되주입 2종 실증, 15/15 + 전량 2축 **252/252 ×2 green**. **다음 후보: v1.1.9/v1.2.0 릴리스 — P1~P5+어댑터+조건부 주입이 전부 미발행으로 쌓여 있다 (소유자 발행 지시 대기) / 별건 TASK-2026-08-12-main-019 (macOS PEP 668, MacBook 전원 시)·TASK-2026-08-13-main-004 (mypy flake 재발 관찰).** 상세: [31차 세션 기록](./sessions/hook_conditional_rules_injection_2026-08-13.md).",
     "current_axis": "**플러그인 배포 전환 (P1·P2·P4 ✅ 완료 / P3·P5 planned, TASK-2026-08-12-main-016·018)** — 다음 릴리스 목표 범위(P1+P2)는 이미 채워졌고 P4 까지 앞당겨 닫았다. **다음 작업 = TASK-016 (P3 멀티 하네스 어댑터)** — 첫 확인 항목으로 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 비어 있는 건을 판정한다 (플러그인이 `wk` 를 직접 배포할 통로가 이미 열려 있다는 뜻이라, 원칙 4 의 \"설치를 대신 못 해 준다\" 전제를 건드린다). 그 다음 TASK-018 (P5 채널 전환 판정). 별건 대기: [TASK-2026-08-13-main-001] 원본 bump 검사 sandbox 이관, [TASK-2026-08-12-main-019] CLAUDE.md install 이 macOS homebrew 에서 PEP 668 로 실패. 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
+    "in_progress_items": [
+      "TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행"
+    ],
     "blocked_items": [],
     "recent_done_items": [
       "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
@@ -49,8 +51,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
-    "task_count": 7,
-    "in_progress_items": [],
+    "task_count": 8,
+    "in_progress_items": [
+      "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",

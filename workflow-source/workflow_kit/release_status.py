@@ -155,7 +155,7 @@ def _check_ci_mypy() -> dict[str, Any]:
     """
     # importlib 으로 release_pipeline 의 helper 호출 (v0.11.13+)
     try:
-        sys.path.insert(0, str(REPO_ROOT / "tools"))
+        sys.path.insert(0, str(REPO_ROOT / "workflow_kit" / "tools"))
         # v1.0.2: import-not-found ignore 제거 — tools/ 는 mypy 의 crawl 대상이 아니고
         # config 의 ignore_missing_imports=true 가 이미 덮으므로 unused 였다.
         from release_pipeline import _cross_verify_ci_mypy
@@ -188,7 +188,7 @@ def _run_auto_bump(new_version: str) -> dict[str, Any]:
     """
     try:
         # importlib 으로 release_pipeline 의 cmd_version_bump 호출
-        sys.path.insert(0, str(REPO_ROOT / "tools"))
+        sys.path.insert(0, str(REPO_ROOT / "workflow_kit" / "tools"))
         from release_pipeline import cmd_version_bump
         import argparse
         bump_args = argparse.Namespace(

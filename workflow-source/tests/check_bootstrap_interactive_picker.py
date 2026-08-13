@@ -31,20 +31,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPTS_DIR = SOURCE_ROOT / "scripts"
-# `bootstrap_lib` is `workflow-source/workflow_kit/bootstrap_lib/` — the in-process tests
-# below import `bootstrap_lib.__main__` / `bootstrap_lib.harnesses`, so `scripts/`
-# must be on sys.path. Subprocess tests work via `cwd=SCRIPTS_DIR` (`-m bootstrap_lib`).
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-BOOTSTRAP_CLI = [sys.executable, "-m", "bootstrap_lib"]
+# v1.2.0 (2nd cycle): 구경로 shim (scripts/bootstrap_lib) drop — 정위치
+# `workflow_kit.bootstrap_lib` 만 남는다. subprocess 는 `-m workflow_kit.bootstrap_lib`
+# + cwd=SOURCE_ROOT (workflow_kit 이 sys.path 에 잡히는 위치) 로 부른다.
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+BOOTSTRAP_CLI = [sys.executable, "-m", "workflow_kit.bootstrap_lib"]
 
 
 def _run_cli(*extra: str, stdin_text: str | None = None) -> subprocess.CompletedProcess:
-    """Run ``python -m bootstrap_lib`` in a subprocess with optional stdin."""
+    """Run ``python -m workflow_kit.bootstrap_lib`` in a subprocess with optional stdin."""
     return subprocess.run(
         [*BOOTSTRAP_CLI, *extra],
-        cwd=str(SCRIPTS_DIR),
+        cwd=str(SOURCE_ROOT),
         input=stdin_text,
         capture_output=True,
         text=True,

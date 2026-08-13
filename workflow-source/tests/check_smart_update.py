@@ -24,21 +24,19 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
-SCRIPTS_ROOT = SOURCE_ROOT / "scripts"
+SCRIPTS_ROOT = SOURCE_ROOT / "scripts"  # apply_workflow_upgrade.py 등 비-shim 스크립트
 
 
 def _run_bootstrap_lib(args: list[str], env: dict[str, str] | None = None) -> dict:
-    """Run ``python3 -m bootstrap_lib`` and return the parsed manifest."""
+    """Run ``python3 -m workflow_kit.bootstrap_lib`` and return the parsed manifest."""
     full_env = os.environ.copy()
     full_env["PYTHONPATH"] = (
-        f"{SOURCE_ROOT}{os.pathsep}{SCRIPTS_ROOT}"
-        + os.pathsep
-        + full_env.get("PYTHONPATH", "")
+        f"{SOURCE_ROOT}" + os.pathsep + full_env.get("PYTHONPATH", "")
     )
     if env:
         full_env.update(env)
     completed = subprocess.run(
-        [sys.executable, "-m", "bootstrap_lib", *args],
+        [sys.executable, "-m", "workflow_kit.bootstrap_lib", *args],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,

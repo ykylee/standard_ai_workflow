@@ -65,7 +65,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

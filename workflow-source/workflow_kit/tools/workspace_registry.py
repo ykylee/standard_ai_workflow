@@ -15,23 +15,23 @@
 
 Usage:
     # 등록
-    python3 workflow-source/tools/workspace_registry.py register \
+    wk workspace-registry register \
         --path /path/to/worktree --branch feat-login --harness codex --apply
 
     # 조회
-    python3 workflow-source/tools/workspace_registry.py list
-    python3 workflow-source/tools/workspace_registry.py paths
+    wk workspace-registry list
+    wk workspace-registry paths
 
     # 해제 (path / branch / all)
-    python3 workflow-source/tools/workspace_registry.py unregister --path /path/to/wt --apply
-    python3 workflow-source/tools/workspace_registry.py unregister --branch feat-login --apply
-    python3 workflow-source/tools/workspace_registry.py unregister --all --apply
+    wk workspace-registry unregister --path /path/to/wt --apply
+    wk workspace-registry unregister --branch feat-login --apply
+    wk workspace-registry unregister --all --apply
 
     # JSON 출력
-    python3 workflow-source/tools/workspace_registry.py list --json
+    wk workspace-registry list --json
 
     # host_id 확인
-    python3 workflow-source/tools/workspace_registry.py host-id
+    wk workspace-registry host-id
 
 기본은 ``--dry-run``. 실제 변경은 ``--apply``.
 

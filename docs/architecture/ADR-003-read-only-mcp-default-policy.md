@@ -45,7 +45,7 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
    - 정식 default 전환 기준: `core/read_only_mcp_transport_promotion.md` 가 명시.
 
 4. **Bootstrap 시 MCP 자동 emit**:
-   - `python3 -m bootstrap_lib --enable-mcp` 가 하네스별 MCP config snippet emit (`.codex/mcp.toml`, `mcp.opencode.json`, `.gemini/mcp.json`, `.antigravity/mcp.json`, `.MiniMax/mcp.json`).
+   - `python3 -m workflow_kit.bootstrap_lib --enable-mcp` 가 하네스별 MCP config snippet emit (`.codex/mcp.toml`, `mcp.opencode.json`, `.gemini/mcp.json`, `.antigravity/mcp.json`, `.MiniMax/mcp.json`).
    - emit 시 tool descriptor 의 `transport_ready=false` 면 manual review only (자동 적용 안 함).
    - **2026-08-05 supersede**: `transport_ready` 는 능력·단계·정책 셋을 한 boolean 에 섞고 있어 판정이 불가능했다. 같은 정책이 이제 `apply_mode`(`active_ok` / `manual_review_only`)로 표현되고 승격 기준은 `core/read_only_mcp_transport_promotion.md` §6.1 이 실행 가능한 검사로 고정한다.
 
@@ -58,7 +58,7 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
 |---|---|---|---|
 | `read-only` | `workflow_read_only_bundle` | 11 | 하네스 자동 노출용 — 이름이 정직하다 |
 | `write` | `workflow_write_bundle` | 2 (`apply_robust_patch`, `rotate_workflow_logs`) | **명시 opt-in**, manual review 대상 |
-| `all` | `workflow_read_only_bundle` | 13 | 1st cycle 하위 호환 기본값 — 서빙 시 deprecation 경고 |
+| `all` | `workflow_read_only_bundle` | 13 | 구 표면 — v1.2.0 부터 명시 opt-in (서빙 시 notice) |
 
 - jsonrpc bridge `--bundle` 플래그. bundle 밖 도구 호출은 tools/call 에서 거부.
 - bootstrap 이 emit 하는 config: 기존 alias 는 `--bundle read-only` 로 좁혀지고,
@@ -67,8 +67,11 @@ Agent 자율성 vs 안전성 사이의 균형이 핵심 질문이었다. v0.5.0 
   read-only 만 자동 등록 — write 는 사용자가 손수 추가.
 - `stdio-sdk` candidate 는 1st cycle 에서 bundle 미지원 (all 서빙) — 승격 기준과
   함께 후속.
-- **deprecation 계획**: 1st cycle (v1.1.8) 기본 `all` + stderr 경고 → 다음 cycle
-  기본 `read-only`. 기존 config (`--bundle` 미지정) 는 그동안 그대로 동작한다.
+- **deprecation 계획**: 1st cycle (v1.1.8) 기본 `all` + stderr 경고 → 2nd cycle
+  기본 `read-only`. — ✅ **완결 (v1.2.0, TASK-2026-08-13-main-005)**: CLI
+  `--bundle` 미지정 기본값이 `read-only` 가 됐다. `all` 은 명시 opt-in 으로
+  계속 동작한다 (deprecation 경고 대신 구성 안내 notice). bootstrap 이 emit
+  하는 config 는 v1.1.8 부터 이미 전부 명시 `--bundle` 이라 영향이 없다.
 - 검사: `check_read_only_mcp_server` 가 read-only ∪ write == all + 교집합 0 +
   read-only 서버의 write 도구 호출 거부를 강제. `check_mcp_tool_descriptors`
   case 7 은 예시 config 의 tools 배열을 entry 의 bundle 기준으로 대조.

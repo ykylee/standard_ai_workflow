@@ -23,6 +23,7 @@ from workflow_kit.server.read_only_entrypoint import invoke_tool
 from workflow_kit.server.read_only_registry import (
     BUNDLE_ALL,
     BUNDLE_LABELS,
+    BUNDLE_READ_ONLY,
     build_transport_tool_descriptors,
     server_name_for_bundle,
     tool_specs_for_bundle,
@@ -279,9 +280,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--bundle",
         choices=list(BUNDLE_LABELS),
-        default=BUNDLE_ALL,
-        help="서빙할 bundle (v1.1.8+ 분리): read-only(11) / write(2, 명시 opt-in) / "
-             "all(기존 표면, 1st cycle 하위 호환 기본값 — 경고를 낸다)",
+        default=BUNDLE_READ_ONLY,
+        help="서빙할 bundle: read-only(11, v1.2.0+ 기본) / write(2, 명시 opt-in) / "
+             "all(구 표면 — 명시 opt-in)",
     )
     return parser.parse_args()
 
@@ -294,11 +295,11 @@ def print_response(response: dict[str, Any] | None) -> None:
 def main() -> int:
     args = parse_args()
     if args.bundle == BUNDLE_ALL:
-        # 1st cycle (v1.1.8): 하위 호환 기본값. 다음 cycle 에서 기본이 read-only 로
-        # 바뀐다 — write 도구가 필요한 config 는 --bundle write 서버를 따로 등록하라.
+        # 2nd cycle (v1.2.0): 기본값이 read-only 로 바뀌었다 — all 은 명시 opt-in.
+        # write 도구가 필요한 config 는 --bundle write 서버를 따로 등록하는 것이 정공법.
         print(
-            "[deprecation] --bundle 미지정: read-only + write 도구를 한 서버로 서빙 중이다. "
-            "다음 cycle 부터 기본이 read-only 가 된다 (ADR-003 bundle 분리).",
+            "[notice] --bundle all: read-only + write 도구를 한 서버로 서빙 중이다 "
+            "(ADR-003 bundle 분리 — write 는 별도 서버 등록 권장).",
             file=sys.stderr,
         )
     if args.request_json:

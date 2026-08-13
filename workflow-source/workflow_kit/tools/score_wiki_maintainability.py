@@ -23,7 +23,7 @@ Usage:
     python3 score_wiki_maintainability.py --project=devhub
 
 Reference:
-- workflow-source/tools/emit_wiki_l2_body.py (L2 emit helper)
+- workflow-source/workflow_kit/tools/emit_wiki_l2_body.py (L2 emit helper)
 - workflow-source/tests/check_wiki_drift.py (drift smoke test)
 - workflow-source/tests/check_*.py (smoke test 묶음)
 """
@@ -415,7 +415,7 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 
     # trend section: history jsonl read
     trend_section = ""
-    history_path = SOURCE_ROOT / "tools" / ".score_history.jsonl"
+    history_path = SOURCE_ROOT / "workflow_kit" / "tools" / ".score_history.jsonl"
     if history_path.exists():
         records = []
         for line in history_path.read_text(encoding="utf-8", errors="ignore").splitlines():
@@ -431,13 +431,13 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
             for r in records:
                 subj = r.get("subject", "")[:50]
                 trend_section += f"| `{r.get('commit', '?')}` | {subj} | {r.get('overall', 0):.2f} | {r.get('grade', 'F')} |\n"
-            trend_section += "\n자동 추출: `python3 workflow-source/tools/score_wiki_trend.py --show`\n"
-            trend_section += "history: `workflow-source/tools/.score_history.jsonl` (v0.7.1+ 누적)\n"
+            trend_section += "\n자동 추출: `wk score-wiki-trend --show`\n"
+            trend_section += "history: `workflow-source/workflow_kit/tools/.score_history.jsonl` (v0.7.1+ 누적)\n"
 
     md = f"""# Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
 
 > Generated: {timestamp}
-> 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `python3 workflow-source/tools/score_wiki_maintainability.py --emit-dashboard`
+> 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `wk score-wiki-maintainability --emit-dashboard`
 
 ## Overall
 
@@ -501,9 +501,9 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
 
 ## References
 
-- tool: `workflow-source/tools/score_wiki_maintainability.py`
-- tool: `workflow-source/tools/score_wiki_trend.py` (v0.7.1+, trend over time)
-- helper: `workflow-source/tools/emit_wiki_l2_body.py` (L2 emit)
+- tool: `workflow-source/workflow_kit/tools/score_wiki_maintainability.py`
+- tool: `workflow-source/workflow_kit/tools/score_wiki_trend.py` (v0.7.1+, trend over time)
+- helper: `workflow-source/workflow_kit/tools/emit_wiki_l2_body.py` (L2 emit)
 - smoke: `workflow-source/tests/check_wiki_drift.py` (drift)
 - 6 dim 정의: 본 dashboard §Score 기준
 """

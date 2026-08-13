@@ -8,19 +8,19 @@ F-7 (v0.7.26) 의 fix 로 detached HEAD 시 memory dir name = 7-char short SHA.
 
 Usage:
     # 1. dry-run: 어떤 dir 이 archive 후보인지 list
-    python3 tools/archive_stale_memory.py --older-than=30 --dry-run
+    wk archive-stale-memory --older-than=30 --dry-run
 
     # 2. apply: 실제 archive (move to archive/<date>/<sha>/)
-    python3 tools/archive_stale_memory.py --older-than=30 --apply
+    wk archive-stale-memory --older-than=30 --apply
 
     # 3. list: 모든 short SHA dir (age 무관)
-    python3 tools/archive_stale_memory.py --list --dry-run
+    wk archive-stale-memory --list --dry-run
 
     # 4. cleanup: apply 와 동일, --apply alias
-    python3 tools/archive_stale_memory.py --older-than=30 --cleanup
+    wk archive-stale-memory --older-than=30 --cleanup
 
     # 5. REPO_ROOT override
-    python3 tools/archive_stale_memory.py --repo-root=/path/to/repo --older-than=30 --dry-run
+    wk archive-stale-memory --repo-root=/path/to/repo --older-than=30 --dry-run
 
 1차 출처:
 - v0.7.17 release note (in-repo redirect, memory dir 의 SSOT)
@@ -602,7 +602,7 @@ def cmd_install_cron(args: argparse.Namespace) -> dict:
             }
 
     prompt = (
-        f"Run: python3 workflow-source/tools/archive_stale_memory.py --older-than={older_than} --apply "
+        f"Run: wk archive-stale-memory --older-than={older_than} --apply "
         f"--repo-root={repo_root}\n"
         f"(auto-triggered by mavis cron '{cron_name}' every {cron_interval})"
     )

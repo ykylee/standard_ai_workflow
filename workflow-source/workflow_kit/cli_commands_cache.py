@@ -500,13 +500,8 @@ def cmd_cache_lfu_decay_persist(argv: list[str]) -> int:
     apply = _has_flag(argv, "--apply")
     use_json = _has_flag(argv, "--json")
     try:
-        from pathlib import Path as _P
         import importlib as _il
-        kit_dir = _P(__file__).resolve().parent
-        workflow_source_dir = kit_dir.parent
-        if str(workflow_source_dir) not in sys.path:
-            sys.path.insert(0, str(workflow_source_dir))
-        rp_lib = _il.import_module("tools.release_pipeline_lib")
+        rp_lib = _il.import_module("workflow_kit.tools.release_pipeline_lib")
         result = rp_lib.cmd_lfu_decay_persist(
             url=url, score=score, scores_path=scores_path, apply=apply,
         )

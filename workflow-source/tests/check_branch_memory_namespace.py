@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""작업 브랜치의 메모리가 *자기 네임스페이스*에 기록되는지 직접 지목한다 (11 cases).
+"""작업 브랜치의 메모리가 *자기 네임스페이스*에 기록되는지 직접 지목한다 (12 cases).
 
 ## 계보 — PR #23 세션 기록 §7 "남은 구멍"
 
@@ -52,7 +52,7 @@ red 가 된다. 그래서 **추가/수정(A/M)만** 본다.
 있고 브랜치가 체크아웃돼 **판정이 돈다**. pull_request 셀은 detached 라 SKIP 이다.
 즉 CI 에서 이 검사를 밟는 축은 **push 셀 하나**다 — 과장하지 않는다.
 
-11 cases:
+12 cases:
   1) 경로 → 네임스페이스 매핑 (슬래시 브랜치, 공유 파일, legacy flat)
   2) 다른 브랜치 네임스페이스에 추가/수정 → 검출 (A)
   3) 삭제·rename 원본은 검출하지 않는다 (archive piggyback 오탐 방지)
@@ -63,6 +63,7 @@ red 가 된다. 그래서 **추가/수정(A/M)만** 본다.
   7) detached HEAD 는 사유를 밝히고 SKIP 한다 (조용한 PASS 금지)
   8) **자기 적용** — 이 저장소의 현재 브랜치
   9) 남의 네임스페이스로 **rename** 하는 것도 추가로 잡는다 (줄 단위 파싱 회귀 고정)
+ 12) `backlog/` 만 있는 **절반짜리** 네임스페이스를 잡는다 (디렉터리 존재만 보면 샌다)
  10) 한글 경로(따옴표 이스케이프)도 잡는다 (같은 회귀 고정)
  11) 브랜치 이름에 marker segment 가 들어도 자기 파일을 오탐하지 않는다
 
@@ -91,6 +92,9 @@ REQUIRES_QUIET_REPO = True
 """case 8 이 저장소의 살아있는 git 상태와 `memory/active/` 를 관찰한다.
 
 다른 check 가 그 찰나에 memory 파일을 재생성 중이면 워킹 트리 diff 가 오염된다."""
+
+REQUIRED_SKELETON = ("backlog", "sessions", "session_handoff.md", "state.json")
+"""`wk seed-workspace-memory` 가 한 벌로 만드는 것 — 이게 다 있어야 시작할 수 있다."""
 
 MARKER_SEGMENTS = frozenset({
     "backlog", "sessions", "state.json", "session_handoff.md",
@@ -298,7 +302,22 @@ def audit_repo(repo: Path) -> Verdict:
     if (repo / active_rel / "backlog").is_dir():
         return Verdict(errors)  # legacy flat layout — 브랜치 축이 없다
     branch_dir = repo / active_rel / branch
-    if not branch_dir.is_dir():
+    missing = [name for name in REQUIRED_SKELETON if not (branch_dir / name).exists()]
+    if branch_dir.is_dir() and missing:
+        # **디렉터리 존재만 보면 절반짜리를 통과시킨다.** `wk backlog-update` 만 쓰면
+        # `backlog/` 하나만 생기는데 `is_dir()` 은 참이라 이 검사는 green 이고, 정작
+        # layout·freeze·self-application 3검사가 red 다 — 가드가 있는데 못 잡는
+        # 상태였다 (2026-08-13 실측). 요구는 "디렉터리" 가 아니라 **시작 가능한 상태**다.
+        errors.append(
+            f"작업 브랜치 '{branch}' 의 메모리가 절반짜리다 — 없는 것: "
+            + ", ".join(missing) + f" ({active_rel}/{branch}/)\n"
+            f"  → `wk seed-workspace-memory --branch {branch} --axis <작업 축> "
+            "--task-title <제목> --apply` 가 네 가지를 한 벌로 만든다 "
+            "(state.json 도 생성기를 호출해 만든다).\n"
+            "  → 이 상태로는 check_appendonly_memory_layout / check_memory_freeze_lint / "
+            "check_branch_context_matrix 가 red 다."
+        )
+    elif not branch_dir.is_dir():
         errors.append(
             f"작업 브랜치 '{branch}' 에 메모리 디렉터리가 없다: {active_rel}/{branch}/\n"
             "  → 이 디렉터리는 자동으로 생기지 않는다. `wk seed-workspace-memory "
@@ -352,12 +371,24 @@ def _write(path: Path, text: str) -> None:
 
 
 def _seed_branch_memory(root: Path, branch: str) -> None:
-    """`wk backlog-update` 가 만드는 최소 형태."""
-    _write(root / ACTIVE_REL / branch / "backlog" / "2026-01-01.md", "# index\n")
-    _write(
-        root / ACTIVE_REL / branch / "backlog" / "tasks" / "TASK-2026-01-01-x-001.md",
-        "# task\n",
-    )
+    """`wk seed-workspace-memory` 가 만드는 **한 벌** (REQUIRED_SKELETON 전부).
+
+    절반만 만드는 fixture 를 쓰면 (B) 판정이 늘 걸려 다른 케이스의 오류 수가 흐려진다 —
+    절반짜리 자체는 case 12 가 따로 잰다.
+    """
+    d = root / ACTIVE_REL / branch
+    _write(d / "backlog" / "2026-01-01.md", "# index\n")
+    _write(d / "backlog" / "tasks" / "TASK-2026-01-01-x-001.md", "# task\n")
+    _write(d / "sessions" / "s.md", "# 세션 기록\n")
+    _write(d / "session_handoff.md", "# handoff\n")
+    _write(d / "state.json", "{}\n")
+
+
+def _half_branch_memory(root: Path, branch: str) -> None:
+    """`wk backlog-update` 만 썼을 때의 모양 — `backlog/` 하나."""
+    d = root / ACTIVE_REL / branch
+    _write(d / "backlog" / "2026-01-01.md", "# index\n")
+    _write(d / "backlog" / "tasks" / "TASK-2026-01-01-x-001.md", "# task\n")
 
 
 # ---------------------------------------------------------------------------
@@ -587,6 +618,29 @@ def case_11_branch_name_contains_marker(root: Path) -> None:
     )
 
 
+def case_12_half_made_namespace(root: Path) -> None:
+    """`wk backlog-update` 만 쓴 상태 — 디렉터리는 있는데 시작할 수 없다."""
+    repo = root / "half"
+    repo.mkdir(parents=True)
+    _init_repo(repo)
+    _seed_branch_memory(repo, "main")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "main memory")
+    _git(repo, "push", "--quiet", "origin", "main")
+
+    _git(repo, "checkout", "--quiet", "-b", "feat/half")
+    _half_branch_memory(repo, "feat/half")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "--quiet", "-m", "backlog-update 만 씀")
+
+    verdict = audit_repo(repo)
+    assert verdict.skipped is None, f"판정을 건너뛰었다: {verdict.skipped}"
+    assert len(verdict.errors) == 1, f"오류 수가 다르다: {verdict.errors}"
+    for name in ("sessions", "session_handoff.md", "state.json"):
+        assert name in verdict.errors[0], f"{name} 를 빠진 것으로 지목하지 않는다"
+    assert "seed-workspace-memory" in verdict.errors[0], "처방을 안내하지 않는다"
+
+
 def case_8_self_application() -> str:
     verdict = audit_repo(REPO_ROOT)
     assert verdict.errors == [], (
@@ -608,9 +662,11 @@ def main() -> int:
         case_9_rename_into_foreign(root)
         case_10_non_ascii_path(root)
     case_11_branch_name_contains_marker(root)
+    with tempfile.TemporaryDirectory(prefix="check-branch-memory-ns-") as tmp:
+        case_12_half_made_namespace(Path(tmp).resolve())
     self_note = case_8_self_application()
     print(f"case 8 (자기 적용): {self_note}")
-    print("branch memory namespace check passed (11 cases)")
+    print("branch memory namespace check passed (12 cases)")
     return 0
 
 
@@ -662,6 +718,11 @@ def test_case_10() -> None:
 
 def test_case_11() -> None:
     case_11_branch_name_contains_marker(Path("/nonexistent"))
+
+
+def test_case_12() -> None:
+    with tempfile.TemporaryDirectory(prefix="check-branch-memory-ns-") as tmp:
+        case_12_half_made_namespace(Path(tmp).resolve())
 
 
 if __name__ == "__main__":

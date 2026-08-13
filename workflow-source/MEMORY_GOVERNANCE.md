@@ -218,8 +218,9 @@ ai-workflow/memory/
   auto-merge 되므로 조용히 오염된다 (실측: PR #23).
 - **생성 창구는 `wk seed-workspace-memory` 다** — `active/<branch>/` 는 브랜치를 만든다고
   생기지 않는다. 이 도구가 `session_handoff.md` + `backlog/` + `sessions/` 를 **한 벌로**
-  만든다 (`state.json` 은 파생물이라 `wk refresh-state` 가 만든다). **브랜치를 판 직후,
-  첫 task 를 등록하기 전에** 돌린다. `wk backlog-update` 를 먼저 쓰면 `backlog/` 만 생겨
+  만든다 — `state.json` 까지 포함이다 (손으로 쓰는 게 아니라 도구가 생성기를 호출한다).
+  **브랜치를 판 직후, 첫 task 를 등록하기 전에** 돌린다. 한 번 돌리면 곧바로 시작할 수
+  있는 상태가 된다. `wk backlog-update` 를 먼저 쓰면 `backlog/` 만 생겨
   `sessions/` 와 `session_handoff.md` 가 빠진 **절반짜리 네임스페이스**가 되고,
   `check_appendonly_memory_layout` / `check_memory_freeze_lint` / `check_self_application`
   이 red 가 된다 (실측 2026-08-13 — 도구를 썼는데도 red 라서, 이 순서를 모르면

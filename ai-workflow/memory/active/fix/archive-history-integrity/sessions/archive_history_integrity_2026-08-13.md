@@ -78,7 +78,39 @@ exit code 도 0이 아니다 (CI 가 봐야 한다). *보이게 하는 것으로
 `status: done` 으로 고쳤다 — 그 검사가 재는 것은 아카이브 *기전*이지 미완료 정책이 아니고,
 "종료된 브랜치" 를 흉내 내려면 끝난 것으로 적는 게 맞다.
 
-## 6. 남은 것
+## 6. seed 가 끝을 안 맺고 있었다 (같은 뿌리의 반대편)
+
+아카이브가 이력의 *끝*을 안 맺었다면, seed 는 *시작*을 안 맺고 있었다.
+
+`seed_workspace_memory` 는 `state.json` 을 **일부러 안 만들었다** — "파생물이므로
+generate_workflow_state.py 가 만든다". 판단 자체는 맞다. 그런데 그 결과가 **seed 직후의
+브랜치는 항상 절반짜리**였고, `wk refresh-state` 를 따로 돌리기 전까지
+`check_appendonly_memory_layout` / `check_memory_freeze_lint` /
+`check_branch_context_matrix` 가 red 였다. 이 세션에서만 **두 번** 밟았다.
+
+"파생물이니 손으로 쓰지 않는다" 와 "파생물이니 나중에" 는 다른 말이다. 앞은 규율이고
+뒤는 미완성이다. 이제 seed 가 **생성기를 호출해** 마무리한다 — 여전히 생성물이고,
+달라진 것은 그 호출을 누가 책임지느냐다. 한 번 돌리면 시작할 수 있는 상태가 된다.
+
+`check_seed_workspace_memory` 의 case 4 가 정확히 반대 계약(`test_no_state_json`)을
+고정하고 있었으므로 함께 뒤집었다.
+
+**가드도 같이 강화했다.** `check_branch_memory_namespace` 의 (B) 는 `is_dir()` 만 봐서
+**절반짜리를 통과시키고 있었다** — 가드가 있는데 못 잡는 상태였다. `backlog` /
+`sessions` / `session_handoff.md` / `state.json` 네 가지를 요구하고, 없는 것을 지목한다
+(case 12 신설).
+
+## 7. 이 브랜치에서 내 가드에 두 번 걸렸다
+
+둘 다 **정당한 검출**이라 우회하지 않고 따랐다.
+
+- `active/main/session_handoff.md` 를 이 브랜치에서 고치려다 case 8 이 잡았다. 되돌리고
+  main 에서 반영한다 — 그게 이 규칙의 존재 이유다.
+- `check_convention_single_source` 가 `_generate_state` 의 경로 조립을 정본 사본으로
+  지목했다. `state_path_in_active` 로 바꿨다. 그러고도 한 번 더 걸렸는데, 이번엔
+  **그 사실을 설명하는 주석 문구 자체**가 탐지 패턴(`/` + 리터럴)에 걸린 것이었다.
+
+## 8. 남은 것
 
 - 신설 검사는 `archived/` 만 본다. `active/` 의 깨진 링크는 여전히 `check_self_application`
   이 handoff 를 린트할 때만 걸린다 — 저장소 전역 링크 검사는 없다.

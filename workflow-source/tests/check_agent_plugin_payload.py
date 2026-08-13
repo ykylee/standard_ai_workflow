@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (15 case)
+## 판정 규칙 (17 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -43,6 +43,10 @@
     못박은 계약 (manifest 5필드 고정, 컨텍스트 = 진입점 규칙 파생, MCP 파생).
 15. **goose/OpenCode snippet 이 방언 상수 파생이다** — 최상위 키·command 를 손으로
     적으면 그 사본만 낡는다. goose 는 실기 검증 미완 표기를 강제한다.
+16. **Codex UI metadata가 각 skill에 있다** — `agents/openai.yaml`은 표시 이름,
+    기본 prompt, 암시적 호출 정책을 모두 선언한다.
+17. **Codex plugin manifest가 있다** — Codex marketplace가 읽는
+    `.codex-plugin/plugin.json`이 skills 및 read-only MCP를 선언한다.
 
 **한계**: Agent Plugins 1.0 의 선택 필드 전체 스펙은 아직 원문 확인이 안 됐다
 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드(name/version/description)를
@@ -71,16 +75,17 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
     CLAUDE_CODE_MCP_RELPATH,
+    CODEX_MANIFEST_RELPATH,
     GEMINI_CONTEXT_RELPATH,
     GEMINI_MANIFEST_RELPATH,
     GOOSE_SNIPPET_RELPATH,
     MARKETPLACE_RELPATH,
     OPENCODE_SNIPPET_RELPATH,
     PAYLOAD_DIRNAME,
-    PLUGIN_NAME,
-    PLUGIN_SKILLS,
     PAYLOAD_MCP_BRIDGE,
     PAYLOAD_MCP_BUNDLE,
+    PLUGIN_NAME,
+    PLUGIN_SKILLS,
     default_payload_root,
     default_repo_root,
     diff_payload,
@@ -191,6 +196,57 @@ def test_skill_frontmatter_valid() -> None:
         "test_skill_frontmatter_valid",
         not problems,
         "; ".join(problems[:5]) if problems else f"스킬 {len(seen)}종 frontmatter 유효",
+    )
+
+
+def test_codex_skill_metadata() -> None:
+    """Codex skill 목록/칩을 위한 agents/openai.yaml이 모든 skill에 있는가."""
+    yaml = _yaml()
+    payload = render_agent_plugin()
+    problems: list[str] = []
+    for spec in PLUGIN_SKILLS:
+        relpath = f"skills/{spec.slug}/agents/openai.yaml"
+        content = payload.get(relpath)
+        if content is None:
+            problems.append(f"{relpath} 누락")
+            continue
+        if yaml is None:
+            continue
+        metadata = yaml.safe_load(content)
+        interface = metadata.get("interface", {}) if isinstance(metadata, dict) else {}
+        if not all(interface.get(key) for key in ("display_name", "short_description", "default_prompt")):
+            problems.append(f"{relpath} interface 필드 누락")
+        elif f"${spec.slug}" not in str(interface["default_prompt"]):
+            problems.append(f"{relpath} default_prompt에 ${spec.slug} 호출이 없다")
+        if metadata.get("policy", {}).get("allow_implicit_invocation") is not True:
+            problems.append(f"{relpath} allow_implicit_invocation=true 누락")
+    _record(
+        "test_codex_skill_metadata",
+        not problems,
+        "; ".join(problems[:4]) if problems else f"Codex metadata {len(PLUGIN_SKILLS)}개 skill 일치",
+    )
+
+
+def test_codex_plugin_manifest() -> None:
+    """Codex marketplace/install surface의 manifest를 검증한다."""
+    payload = render_agent_plugin()
+    manifest = json.loads(payload[CODEX_MANIFEST_RELPATH])
+    problems: list[str] = []
+    if manifest.get("name") != PLUGIN_NAME:
+        problems.append("Codex manifest name 불일치")
+    if manifest.get("version") != KIT_VERSION:
+        problems.append("Codex manifest version 불일치")
+    if manifest.get("skills") != "./skills/":
+        problems.append("Codex manifest skills 경로 불일치")
+    if manifest.get("mcpServers") != f"./{CLAUDE_CODE_MCP_RELPATH}":
+        problems.append("Codex manifest read-only MCP 경로 불일치")
+    interface = manifest.get("interface", {})
+    if not all(interface.get(key) for key in ("displayName", "shortDescription", "longDescription", "developerName", "category")):
+        problems.append("Codex manifest interface 필수 필드 누락")
+    _record(
+        "test_codex_plugin_manifest",
+        not problems,
+        "; ".join(problems) if problems else "Codex manifest + skills + read-only MCP 선언",
     )
 
 
@@ -445,6 +501,7 @@ def test_marketplace_manifest() -> None:
 #: (P3 에서 gemini-extension.json 이 넷째로 합류했다).
 VERSION_BEARING_RELPATHS = (
     f"{PAYLOAD_DIRNAME}/plugin.json",
+    f"{PAYLOAD_DIRNAME}/{CODEX_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{CLAUDE_CODE_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}",
     MARKETPLACE_RELPATH,
@@ -805,6 +862,8 @@ def test_goose_opencode_snippets() -> None:
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
+    test_codex_skill_metadata()
+    test_codex_plugin_manifest()
     test_skills_carry_memory_section()
     test_manifest_version_matches_kit()
     test_mcp_matches_read_only_bundle()
@@ -818,7 +877,7 @@ def main() -> int:
     test_status_targets_working_tree()
     test_gemini_adapter()
     test_goose_opencode_snippets()
-    total = 15
+    total = 17
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

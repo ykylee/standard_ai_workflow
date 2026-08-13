@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**32차 세션 종료 — v1.2.0-beta 발행 + 2nd deprecation cycle 완결 (TASK-2026-08-13-main-005).** `cmd_release` **6번째 실전**, [GitHub Release](https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.2.0-beta) (whl+sdist, asset 2종 실측). 범위 = 21~31차 묶음 (플러그인 전환 P1~P5) + 2nd cycle (v1.1.8 이 시작한 시계를 닫음). **minor + breaking**: 구경로 `tools.*`/`bootstrap_lib` 제거 + `--bundle` 기본값 `all`→`read-only`. **핵심 실측: wheel top-level = `['workflow_kit']`** — PyPI 를 막던 일반명 충돌 사유가 사라졌고 `check_packaging.FORBIDDEN_IMPORTS` 가 재유입을 wheel 실측으로 막는다. **shim 을 지우자 드러난 것**: 숨어 있던 구경로 소비자 **10곳** (shim 은 호환을 준 게 아니라 의존을 숨기고 있었다) + **검사 무력화 1건** (`check_entry_points` [4] 가 `-m tools.tools.X` 의 ModuleNotFoundError rc=1 을 허용 범위로 통과시켜 36개 전부 green 이었다 → [4c] 신설). **릴리스 직후 재실행이 드리프트 3건 검출** (v1.1.7·v1.1.4 동형): stamp 상수 2 + **배포 사본 23건** — 후자는 `doc-headers-update` 가 정본만 고치고 `ai-workflow/core/` 사본을 몰랐던 자리라 **갱신기에 `_sync_distributed_core_mirror()` 를 심고 sandbox 되주입 test 로 고정**했다 (결함 코드 FAIL 실증). 전량 2축 **252/252 ×2 green** ×3회 + mypy strict 192 files 0 + SDK 매트릭스 3/3. **다음 후보: PyPI 발행 (기술 제약 0, 정책 소유자 결정 대기 — 신규 축) / TASK-2026-08-13-main-004 (mypy flake 재발 관찰) / TASK-2026-08-12-main-019 (macOS PEP 668, MacBook 전원 시).** 상세: [32차 세션 기록](./sessions/v1_2_0_release_2026-08-13.md).",
+    "current_baseline": "**33차 세션 종료 — Codex·Claude Code native plugin release asset 분리 (TASK-2026-08-13-main-008).** 브랜치 `feat/plugin-harness-distribution`에서 공유 `plugin/` payload에 Codex `.codex-plugin/plugin.json`을 추가하고, `workflow_kit.plugin_distribution.PLUGIN_HARNESS_SPECS` 레지스트리로 Codex/Claude Code ZIP을 별도 생성한다. `wk release-pipeline dist --apply`는 wheel/sdist와 함께 `standard-ai-workflow-{codex|claude-code}-plugin-<version>.zip`을 만들고, `release`는 두 ZIP이 없으면 fail-closed하며 있으면 GitHub Release asset에 첨부한다. Codex ZIP은 extract 후 `codex plugin marketplace add` → `codex plugin add standard-ai-workflow@standard-ai-workflow`이 가능한 marketplace 구조다. 검증: payload 17/17, plugin distribution smoke, Codex manifest validator, actual dist apply, release dist regression 8/8, ruff target 모두 PASS. 전역 mypy strict은 기존 의존 모듈 48 오류로 실패했으나 새 `plugin_distribution.py` 자체는 strict/follow-imports=skip PASS. **변경은 미커밋·미푸시**이며 다음 세션에서 review/commit 여부를 결정한다.",
     "current_axis": "**없음 — 플러그인 전환 축(P1~P5)과 2nd deprecation cycle 이 v1.2.0-beta 발행으로 함께 닫혔다.** 미발행 누적분 0. **신규 후보 축 = PyPI 발행** (wheel top-level = `workflow_kit` 하나 실측으로 기술 제약 0, `check_packaging.FORBIDDEN_IMPORTS` 가 재유입 차단 — 남은 것은 **정책 결정(소유자)** 뿐이다. 순서: TestPyPI 검증(`wk release-dist` 가 명령을 이미 출력) → 정책 결정 → 발행). 대기 축: [TASK-2026-08-13-main-004] CI native mypy flake 재발 관찰 (유력 원인 제거됨, 무재발 시 close) / [TASK-2026-08-12-main-019] macOS PEP 668 (MacBook 전원 시) / cross-host federation — 두 번째 호스트 = MacBook 확정, 시점 추후 (합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / darwin mavis e2e / memory_index 3-tuple 추이.",
     "current_focus": "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-13-main-008 — Codex·Claude Code native plugin release asset 분리 및 release pipeline 연결",
       "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일",
       "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
@@ -41,18 +42,18 @@
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
-      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
+      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
-    "task_count": 10,
+    "task_count": 11,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
+      "TASK-2026-08-13-main-008 — Codex·Claude Code native plugin release asset 분리 및 release pipeline 연결",
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",

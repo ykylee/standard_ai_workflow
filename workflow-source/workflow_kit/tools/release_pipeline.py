@@ -2275,9 +2275,25 @@ def cmd_release(args) -> dict:
         else:
             results["auto_bump"] = bump_info  # bumped=False, info only
 
+    from workflow_kit.plugin_distribution import planned_plugin_archives
+
+    def _release_plugin_files(release_version: str) -> list[Path]:
+        archives = planned_plugin_archives(REPO_ROOT / "dist", release_version)
+        missing = [path for path in archives if not path.is_file()]
+        if missing:
+            raise FileNotFoundError(
+                "plugin archives missing; run `wk release-pipeline dist --apply` first: "
+                + ", ".join(path.name for path in missing)
+            )
+        return archives
+
     dist_files = find_dist_files(version)
     if not dist_files:
         return _attach_release_summary({**results, "error": f"no dist files found for version {version} (run `python3 -m build` first)"})
+    try:
+        plugin_dist_files = _release_plugin_files(version)
+    except FileNotFoundError as exc:
+        return _attach_release_summary({**results, "error": str(exc)})
 
     # 3. tag 결정 + 원격 tag pre-check (v0.7.18+)
     tag = f"v{version}"
@@ -2333,6 +2349,10 @@ def cmd_release(args) -> dict:
                     dist_files = find_dist_files(version)
                     if not dist_files:
                         return _attach_release_summary({**results, "error": f"no dist files for {version} after --full-auto bump"})
+                    try:
+                        plugin_dist_files = _release_plugin_files(version)
+                    except FileNotFoundError as exc:
+                        return _attach_release_summary({**results, "error": str(exc)})
                     tag_check = _check_remote_tag(tag)
                     results["tag_pre_check"] = tag_check
                     results["full_auto_re_tag"] = tag
@@ -2388,7 +2408,8 @@ def cmd_release(args) -> dict:
         if tag_check["exists"]:
             results["tag_pre_check_warning"] = f"remote tag {tag} already exists (dry-run: pre-check only)"
 
-    rel_assets = [str(f.relative_to(REPO_ROOT)) for f in dist_files]
+    release_files = [*dist_files, *plugin_dist_files]
+    rel_assets = [str(f.relative_to(REPO_ROOT)) for f in release_files]
     results["tag"] = tag
     results["assets"] = rel_assets
     # v0.7.24+: notes_file 가 in-repo 면 relative path, 그 외 (예: changelog) 면 absolute
@@ -2412,7 +2433,7 @@ def cmd_release(args) -> dict:
         "--notes-file", str(notes_file),
         "--target", "main",
         "--verify-tag",
-    ] + [str(f) for f in dist_files]
+    ] + [str(f) for f in release_files]
     results["gh_command"] = " ".join(gh_cmd)
 
     if args.dry_run:
@@ -2744,7 +2765,7 @@ def cmd_rollback(args) -> dict:
 
 
 def cmd_dist(args) -> dict:
-    """Wheel + sdist 자동 빌드 (`python3 -m build`).
+    """Wheel, sdist, and native plugin archives build.
 
     pre-check: `build` module 가용성 → 부재 시 graceful fail.
     dry-run: command + PEP 440 normalize 만 print. exit 0.
@@ -2756,6 +2777,8 @@ def cmd_dist(args) -> dict:
     Both `--apply` and `--apply --production` *simulate* upload (no actual PyPI/TestPyPI
     deployment per release channel policy: GitHub Releases only).
     """
+    from workflow_kit.plugin_distribution import build_plugin_archives, planned_plugin_archives
+
     _dist_dir = REPO_ROOT / "dist"
     results: dict = {"mode": "dry-run" if args.dry_run else "apply", "out_dir": str(_dist_dir)}
 
@@ -2780,6 +2803,9 @@ def cmd_dist(args) -> dict:
     )
     results["command"] = " ".join(cmd)
     results["expected_pattern"] = f"standard_ai_workflow-{_expected_dist_pattern(current_version)}*"
+    results["planned_plugin_archives"] = [
+        str(path.relative_to(REPO_ROOT)) for path in planned_plugin_archives(_dist_dir, current_version)
+    ]
 
     # 4) skip-existing check (--skip-existing) — skip build but still run
     #    twine check + upload simulation on existing artifacts (v0.8.15).
@@ -2805,11 +2831,20 @@ def cmd_dist(args) -> dict:
                 results["production_simulation"] = _simulate_production_upload(
                     existing, current_version,
                 )
+            results["plugin_archives"] = (
+                results["planned_plugin_archives"]
+                if args.dry_run
+                else [
+                    str(path.relative_to(REPO_ROOT))
+                    for path in build_plugin_archives(_dist_dir, version=current_version)
+                ]
+            )
             results["ok"] = True
             return results
 
     # 5) dry-run: command plan 만 반환
     if args.dry_run:
+        results["plugin_archives"] = results["planned_plugin_archives"]
         results["ok"] = True
         return results
 
@@ -2846,6 +2881,11 @@ def cmd_dist(args) -> dict:
         results["error"] = "no built artifacts found in dist/"
         results["ok"] = False
         return results
+
+    results["plugin_archives"] = [
+        str(path.relative_to(REPO_ROOT))
+        for path in build_plugin_archives(_dist_dir, version=current_version)
+    ]
 
     # 8) twine check (metadata validation) — spec §7.1 step 2, §9 #7
     twine_check = _twine_check(_dist_dir, timeout=getattr(args, "timeout", 300))

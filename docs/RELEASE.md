@@ -23,12 +23,17 @@
 
 | 채널 | 상태 | 비고 |
 |---|---|---|
-| GitHub Releases (wheel + sdist) | ✅ **유일한 공식 채널** | `gh release create` 한 줄로 끝 |
+| GitHub Releases (wheel + sdist + native plugin ZIP) | ✅ **유일한 공식 채널** | Codex·Claude Code 플러그인 asset을 함께 attach |
 | TestPyPI | ❌ 사용 안 함 | (v0.5.7 부터) |
 | PyPI | ❌ 사용 안 함 | (v0.5.7 부터, 이전부터 보류) — 기술 제약은 v1.2.0 에서 해소됐고 **남은 것은 이 정책 결정뿐**이다: [PyPI 발행 정책 검토](./planning/pypi-publication-policy-review-2026-08.md) |
 | Docker / brew / system pkg | ❌ 해당 없음 | (Python wheel 만 다룸) |
 
-**v0.5.7 부터** 모든 release 는 GitHub Releases 페이지에 wheel + sdist 가 attach 된 형태.
+모든 release 는 GitHub Releases 페이지에 wheel + sdist 및 아래 native plugin ZIP이 attach 된 형태다.
+
+- `standard-ai-workflow-codex-plugin-<X>.<Y>.<Z>.zip`
+- `standard-ai-workflow-claude-code-plugin-<X>.<Y>.<Z>.zip`
+
+새 플러그인 지원 하네스는 `workflow_kit.plugin_distribution.PLUGIN_HARNESS_SPECS`에 등록하면 동일한 dist/release 경로에 자동 포함된다.
 release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 들어감.
 
 ## 2. 절차 (한 사람이 직접 실행)
@@ -66,6 +71,8 @@ wk release-pipeline release \
 ```
 
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
+
+`wk release-pipeline dist --apply`는 Python wheel/sdist와 함께 Codex·Claude Code native plugin ZIP을 생성한다. `release`는 두 ZIP이 없으면 중단하며, 존재하면 GitHub Release asset으로 같이 첨부한다.
 
 v1.1.4+ 기본값: `--apply` 를 명시하지 않으면 `release` 는 **dry-run** 이다 (이전에는 무인자 실행이 APPLY 로 진입했다). v1.1.5+ 에서 `dist` 도 같은 기본값으로 반전됐다 — 무인자 `dist` 는 빌드 plan 만 낸다. `--dry-run --apply` 동시 지정 시 dry-run 이 이긴다. pre_check 게이트는 `--skip-packaging` / `--skip-doctor` / `--skip-state` / `--skip-git` / `--skip-mypy` 로 개별 skip 할 수 있다 — `--skip-validate` 는 5 게이트 전부를 끄므로 개별 flag 를 우선한다.
 
@@ -111,7 +118,9 @@ gh release create "$TAG" \
   --target main \
   --verify-tag \
   workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl \
-  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>.tar.gz
+  workflow-source/dist/standard_ai_workflow-<X>.<Y>.<Z>.tar.gz \
+  workflow-source/dist/plugins/codex/<X>.<Y>.<Z>/standard-ai-workflow-codex-plugin-<X>.<Y>.<Z>.zip \
+  workflow-source/dist/plugins/claude-code/<X>.<Y>.<Z>/standard-ai-workflow-claude-code-plugin-<X>.<Y>.<Z>.zip
 ```
 
 확인:

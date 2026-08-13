@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Claude Code / Gemini CLI)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -277,6 +277,11 @@ print('all critical imports OK')
 read-only MCP 번들 + 세션 경계 hook 2종이 설치 1명령으로 들어온다.
 
 ```bash
+# Codex — GitHub Release의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치
+unzip standard-ai-workflow-codex-plugin-<VERSION>.zip
+codex plugin marketplace add ./standard-ai-workflow-codex-plugin-<VERSION>
+codex plugin add standard-ai-workflow@standard-ai-workflow
+
 # Claude Code — marketplace 등록 + 설치
 claude plugin marketplace add ykylee/standard_ai_workflow
 claude plugin install standard-ai-workflow@standard-ai-workflow

@@ -13,8 +13,9 @@
 ```
 plugin/
 ├── plugin.json                  # name / version / description (version 은 __version__ 파생)
+├── .codex-plugin/plugin.json    # Codex plugin manifest (Codex distribution)
 ├── skills/                      # 스킬 4종 — Claude Code 와 Gemini 확장이 같은 관례 경로로 읽는다
-│   ├── session-start/SKILL.md   # §11 명령·계약은 render_memory_update_section 파생
+│   ├── session-start/           # SKILL.md + Codex UI metadata (agents/openai.yaml)
 │   ├── backlog-update/SKILL.md  # 상태값 4종은 rules.task_states 파생
 │   ├── doc-sync/SKILL.md
 │   └── session-end/SKILL.md
@@ -91,12 +92,14 @@ __all__ = [
     "render_agent_plugin",
     "render_claude_code_hooks",
     "render_claude_code_manifest",
+    "render_codex_manifest",
     "render_claude_code_rules",
     "render_gemini_context",
     "render_gemini_manifest",
     "render_goose_config_snippet",
     "render_marketplace_manifest",
     "render_opencode_snippet",
+    "render_openai_agent_metadata",
     "render_plugin_manifest",
     "render_plugin_mcp_config",
     "render_plugin_skill",
@@ -142,6 +145,10 @@ CLAUDE_CODE_RULES_RELPATH = "adapters/claude-code/rules.md"
 #: 경로 존재만 보고 로더는 그 필드를 그렇게 쓰지 않는다. 관례 경로 `.mcp.json`
 #: 으로 옮기자 ``MCP servers (1)`` 로 잡혔다. **validate 통과는 로드 증명이 아니다.**
 CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
+
+#: Codex plugin manifest. Codex 배포물은 이 파일과 ``skills/``를 최소 단위로
+#: 묶으며, Claude Code manifest와 같은 payload를 공유하되 설치 surface는 분리한다.
+CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
 
 #: Gemini CLI 어댑터 (P3, TASK-2026-08-12-main-016). Claude Code 와 같은 이유로
 #: **확장 루트 = payload 루트**다: `gemini extensions list` 실측(0.42.0)에서 확장
@@ -378,6 +385,45 @@ def render_plugin_manifest(version: str | None = None) -> str:
             "name": PLUGIN_NAME,
             "version": version if version is not None else current_kit_version(),
             "description": PLUGIN_DESCRIPTION,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
+def render_codex_manifest(version: str | None = None) -> str:
+    """``plugin/.codex-plugin/plugin.json`` — Codex 전용 plugin manifest.
+
+    Codex는 Agent Skills를 직접 읽지만 marketplace/install surface에서는
+    ``.codex-plugin/plugin.json``이 필요하다. MCP는 read-only bundle만 연결한다.
+    """
+    return json.dumps(
+        {
+            "name": PLUGIN_NAME,
+            "version": version if version is not None else current_kit_version(),
+            "description": PLUGIN_DESCRIPTION,
+            "author": {
+                **PLUGIN_AUTHOR,
+                "email": "yklee@users.noreply.github.com",
+                "url": "https://github.com/ykylee",
+            },
+            "repository": "https://github.com/ykylee/standard_ai_workflow",
+            "license": "MIT",
+            "keywords": ["workflow", "codex", "agent-skills"],
+            "skills": "./skills/",
+            "mcpServers": f"./{CLAUDE_CODE_MCP_RELPATH}",
+            "interface": {
+                "displayName": "Standard AI Workflow",
+                "shortDescription": "Standard session and documentation workflow",
+                "longDescription": PLUGIN_DESCRIPTION,
+                "developerName": PLUGIN_AUTHOR["name"],
+                "category": "Productivity",
+                "capabilities": ["Workflow", "MCP"],
+                "defaultPrompt": [
+                    "Use $session-start to restore the current workflow baseline.",
+                    "Use $backlog-update to register today's workflow task.",
+                ],
+            },
         },
         ensure_ascii=False,
         indent=2,
@@ -715,6 +761,25 @@ def render_plugin_skill(spec: PluginSkillSpec, rules: StandardRules) -> str:
     )
 
 
+def render_openai_agent_metadata(spec: PluginSkillSpec) -> str:
+    """``skills/<slug>/agents/openai.yaml`` — Codex UI metadata.
+
+    Agent Skills는 ``SKILL.md``만으로도 Codex에 로드되지만, 이 메타데이터를 같이
+    제공하면 skill list와 invocation chip에 사람이 읽을 이름과 시작 prompt가
+    나타난다. 실행 의존성은 ``wk``뿐이며, MCP는 read-only opt-in이므로 여기서
+    자동 의존성으로 선언하지 않는다.
+    """
+    display_name = spec.slug.replace("-", " ").title()
+    return (
+        "interface:\n"
+        f"  display_name: {json.dumps(display_name, ensure_ascii=False)}\n"
+        f"  short_description: {json.dumps(spec.description, ensure_ascii=False)}\n"
+        f"  default_prompt: {json.dumps(f'Use ${spec.slug} to follow the standard AI workflow.', ensure_ascii=False)}\n"
+        "policy:\n"
+        "  allow_implicit_invocation: true\n"
+    )
+
+
 def render_agent_plugin(
     rules: StandardRules | None = None,
     *,
@@ -730,6 +795,7 @@ def render_agent_plugin(
     mcp_config = render_plugin_mcp_config()
     payload: dict[str, str] = {
         "plugin.json": render_plugin_manifest(version),
+        CODEX_MANIFEST_RELPATH: render_codex_manifest(version),
         "mcp.json": mcp_config,
         # 같은 렌더러의 출력을 두 이름으로 둔다 — 정본이 하나라 갈라지지 않고,
         # 검사 case 가 두 파일의 동일성을 강제한다.
@@ -744,6 +810,7 @@ def render_agent_plugin(
     }
     for spec in PLUGIN_SKILLS:
         payload[f"skills/{spec.slug}/SKILL.md"] = render_plugin_skill(spec, resolved)
+        payload[f"skills/{spec.slug}/agents/openai.yaml"] = render_openai_agent_metadata(spec)
     return payload
 
 

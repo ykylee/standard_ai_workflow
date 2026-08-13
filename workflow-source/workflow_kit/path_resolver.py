@@ -131,6 +131,21 @@ def _normalize_origin_url(raw_url: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Default branch detection
 # ---------------------------------------------------------------------------
+def _repo_has_origin_remote(repo_root: Path) -> bool:
+    """``repo_root`` 자신이 `origin` remote 를 가졌는가 (env 를 보지 않는다)."""
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def _detect_default_branch(repo_root: Path) -> str:
     """Detect default branch. 3 layer fallback.
 
@@ -166,7 +181,11 @@ def _detect_default_branch(repo_root: Path) -> str:
     #
     # remote 가 아예 없는 저장소(로컬 전용)에서는 현재 브랜치가 곧 기본 브랜치이므로
     # 그때만 쓴다.
-    if not _detect_origin_url(repo_root):
+    # 판단은 **이 저장소에 remote 가 있는가** 다. `_detect_origin_url` 로 물으면
+    # 안 된다 — 그쪽은 CI env(`GITHUB_REPOSITORY`)를 먼저 보므로 GitHub Actions 안에서는
+    # remote 없는 temp 저장소에도 URL 을 돌려준다. 그러면 이 gate 가 CI 에서만 반대로
+    # 열린다 (실측: 로컬 13/13, CI 에서 그 case 만 red).
+    if not _repo_has_origin_remote(repo_root):
         try:
             result = subprocess.run(
                 ["git", "branch", "--show-current"],

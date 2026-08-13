@@ -116,7 +116,34 @@ red** 였다 (`check_claim_workspace` / `check_seed_workspace_memory`). 이 저�
 상수로 뽑아 두 검사가 그 한 줄만 허용 목록에 두고 *나머지* warning 을 본다.
 되주입으로 공허하지 않음을 확인했다: 다른 warning 을 하나 심으면 두 검사 모두 FAIL.
 
-## 6. 남은 구멍
+## 6. 같은 비대칭이 두 번 더 나왔다 (4·5번째)
+
+**4번째 — canonical URL 이 체크아웃 브랜치를 따라다녔다.** `_detect_default_branch`
+는 `origin/HEAD` 가 없으면 *현재 브랜치*를 기본 브랜치로 썼다. `actions/checkout` 은
+단일 ref 만 가져와 `origin/HEAD` 를 만들지 않으므로, 같은 커밋인데도 feature 브랜치
+**push** 셀은 `…/blob/feat/plugin-harness-distribution/…` 을 내고 **pull_request** 셀은
+detached 라 `main` 으로 떨어져 통과했다. 커밋된 bundle 은 `…/blob/main/…` 이라 push
+셀만 red. `check_frontmatter_url_extraction` 의 fork/ref 완화(`_blob_suffix`)도 슬래시
+든 브랜치에서는 ref 를 한 segment 로만 떼어 못 살린다. → origin 이 있으면 현재
+브랜치로 내려가지 않고 문서화된 기본값 `main` 을 쓴다.
+
+**5번째 — 내가 그 수리에 붙인 회귀 테스트가 CI 에서만 red 였다.** gate 를
+`_detect_origin_url` 로 물었는데 그 함수는 **CI env(`GITHUB_REPOSITORY`)를 먼저 본다**
+— GitHub Actions 안에서는 remote 없는 temp 저장소에도 URL 을 돌려주므로 gate 가
+CI 에서만 반대로 열렸다. 판단을 `_repo_has_origin_remote`(env 를 보지 않고 그 저장소의
+`remote.origin.url` 만 본다)로 바꿨다.
+
+**교훈**: 이 세션에서만 같은 모양이 세 번(3·4·5번째) 나왔다. 셋 다 "판정이 호스트
+환경의 무언가에 달려 있는데 로컬에는 그 축이 없다" 였다. 그래서 전량을 CI 환경변수를
+씌운 축으로도 한 번 돌리는 것을 이 세션의 검증 절차에 넣었다:
+
+```bash
+GITHUB_SERVER_URL=https://github.com GITHUB_REPOSITORY=<owner/repo> \
+GITHUB_ACTIONS=true CI=true \
+python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크>
+```
+
+## 7. 남은 구멍
 
 손 편집을 막을 자리가 없다. 작업 브랜치에 `active/<branch>/` 가 없다는 사실을
 직접 지목하는 검사가 아직 없고, 3개 검사의 간접 증상으로만 드러난다.

@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-12
+- 최종 수정일: 2026-08-13
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,16 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-12
+## [Unreleased] - 2026-08-13
 
 ### Added
 
+- feat(dist)!: 2nd deprecation cycle 완결 — 구경로 shim drop + --bundle 기본 read-only (TASK-2026-08-13-main-005) (7fed415)
+- feat(plugin): SessionStart 조건부 규칙 주입 — rules.md + 마커 감지 hook (TASK-2026-08-13-main-003) (573f313)
+- feat(plugin): P3 멀티 하네스 어댑터 — gemini/goose/opencode + 수렴 판정 (TASK-2026-08-12-main-016) (7eb11c3)
+- feat(plugin): P4 릴리스 게이트 + session-end 스킬 (TASK-2026-08-12-main-017·020) (2cf9576)
+- feat(plugin): Claude Code 채널 개통 — 어댑터 + marketplace + 자기 적용 (TASK-2026-08-12-main-015) (35473da)
+- feat(plugin): 공유 payload 렌더러 — plugin/ 을 정본 파생물로 (TASK-2026-08-12-main-014) (005bc10)
 - feat(safety): backlog-update status 보존 + no_repo_write 실행-중 감시 (TASK-2026-08-12-main-008, -009) (5b89813)
 - feat(cli): cross-platform 지원 1단계 — OS 매트릭스 CI + Windows 가드 (TASK-2026-08-12-main-005) (9351e17)
 - feat(mcp): bundle 분리 — write 도구 별도 서버 + 배포 검토 (TASK-2026-08-12-main-003, -004) (bd121f5)
@@ -40,16 +46,17 @@ All notable changes to this project will be documented in this file.
 - feat(cli,registry,safety,drift): 다음 후보 축 4건 close — wk / HTTP server / branch protection / title drift v2 (ad3ab02)
 - feat(cli): [project.scripts] entry points (CLI 化 A안, v1.1.1+) (029ee39)
 - feat(safety): pre-push hook — --force server-side 이중화 (3-layer defense, §0.8 #4) (2b5969c)
-- feat(drift): scope drift detection (병합 시점, §0.8 #3) (c687dee)
-- feat(tools): operational MCP tool 4종 CLI wrapper (dual mode, TASK-017) (8b94db8)
-- feat(registry): federation HTTP pull + dashboard 통합 (§7.4 *읽기* 마무리, TASK-016) (1de3c81)
-- feat(registry): federation 정공법 — multi-host registry 합치기 (표준 §0.8 #1) (c32b336)
-- feat(registry): in-flight 워크스페이스 신뢰도 표시 (표준 §0.8 #2, §5A.3) (9326a9c)
-- feat(smoke): mavis attach e2e 회귀 자동화 (§2.68 자동 검증 닫음, TASK-013) (e4470e5)
-- ... (92 more)
+- ... (98 more)
 
 ### Changed
 
+- release(v1.2.0-beta): 파생물 선재생성 + 노트 + dist (7c80619)
+- chore(backlog): CI native 셀 mypy 게이트 flake 관찰 등록 (TASK-2026-08-13-main-004) (523018c)
+- docs(plugin): P5 실측 게이트 + 채널 전환 판정 — 전환 계획 완료 (TASK-2026-08-12-main-018) (2de04e8)
+- docs(planning): 플러그인 배포 전환 계획 확정 — P1~P5 로드맵 + WBS 등록 (TASK-2026-08-12-main-013) (1806d75)
+- docs(planning): 멀티 하네스 공유 플러그인 검토 — 공유 payload + 얇은 manifest 권고 (TASK-2026-08-12-main-012) (ab40a90)
+- docs(planning): 플러그인 형태 재구성·배포 검토 — 채택 권고, 14번째 파생본 원칙 (TASK-2026-08-12-main-011) (e93e3b2)
+- release(v1.1.8-beta): post-apply 정합 + 메모리 종결 — 발행 완료, 2nd cycle 시계 시작 (f7209f4)
 - release(v1.1.8-beta): 파생물 선재생성 + 노트 + dist (79e2f51)
 - docs(backlog): TASK-2026-08-12-main-010 등록 — v1.1.8-beta 발행 (6f053a0)
 - refactor(namespace): bootstrap_lib → workflow_kit.bootstrap_lib (2단계) — PyPI 이동 단계 완결 (TASK-2026-08-12-main-007) (bcd2c7d)
@@ -73,17 +80,12 @@ All notable changes to this project will be documented in this file.
 - docs(reports): mkdocs strict red 해소 — docs 트리 밖 링크를 code span 으로 (TASK-2026-08-11-main-016 후속) (73d673a)
 - docs(reports): 학습회 자료 → 사내 기술보고서 논문 양식 문서 (TASK-2026-08-11-main-016) + TIMEOUT flake backlog 등록 (TASK-015) (8254064)
 - docs(memory): session close — 2026-08-11 backlog 14건 종결 baseline 확정 (afe1dc6)
-- docs(memory): branch protection 보류 결정 (소유자) — 후보 축에서 제거 (d423d02)
-- docs(memory): handoff §4 cap(10) 회복 — CI smoke handoff_bloat red 해소 (TASK-2026-08-11-main-014 후속) (6b550a9)
-- docs(memory): 후속 backlog 3건 등록 + origin/mooneye 삭제 close (TASK-2026-08-11-main-012) (a03de4d)
-- docs(memory): 2026-08-11 세션 기록에 후속 TASK-009~011 반영 (대형 파일 분할 완결) (f503cff)
-- refactor(cli): workflow_kit_cli.py 안전 부분 분할 — 2095→583줄 + 모듈 5개 (TASK-2026-08-11-main-011) (487d4d9)
-- refactor(dashboard): dashboard_data.py 안전 부분 분할 — 2488→1526줄 + 모듈 3개 (TASK-2026-08-11-main-010) (5758370)
-- chore(docs): presentations 파생 바이너리 트리 제거 — 5.3MB (TASK-2026-08-11-main-009) (90dab22)
-- ... (257 more)
+- ... (264 more)
 
 ### Fixed
 
+- fix(mcp): OpenCode 방언을 실측 형태로 — entry 정본 단일화 (TASK-2026-08-13-main-002) (364db82)
+- fix(tests): 원본 bump 검사 sandbox 이관 — 마지막 pyproject 왕복 제거 (TASK-2026-08-13-main-001) (cca074c)
 - fix(docs+packaging): 소비자 안내 표면을 wk 로 통일 + tools 배포를 wheel 에서 검증 (TASK-2026-08-11-main-027) (2d799f5)
 - fix(mcp): 도구 목록 사본 3계열을 registry 단일출처로 + 유령 script_path 실물화 (TASK-2026-08-11-main-025) (8f8e95d)
 - fix(standard): §11.1 명령 손 사본 7곳을 정본 파생으로 + 검출기·분류 단언 강화 (TASK-2026-08-11-main-026) (267dfaf)
@@ -112,9 +114,7 @@ All notable changes to this project will be documented in this file.
 - fix(rotation,docs): rotate 도구 순서 규약 통일 + 사전 존재 red 정리 (6cfb168)
 - fix(test): 새 검사가 mcp 2.0.0 에서 죽었다 — isError 는 1.x 이름이다 (§2.63 후속) (c6f31ff)
 - fix(claude-code): slash command 설명 자리에 버전 마커가 앉아 있었다 (§2.59 후속) (33424fc)
-- fix(claude-code): 자기 harness 를 부분만 적용하고 있었다 + 마커가 frontmatter 를 깨고 있었다 (§2.59) (227219e)
-- fix(okf): 검사가 처음 돌자 나온 URL 2건 — 죽은 링크가 아니라 태어난 적 없는 링크 (§2.58) (c58111d)
-- ... (83 more)
+- ... (85 more)
 
 ## [1.1.6] - 2026-08-10
 

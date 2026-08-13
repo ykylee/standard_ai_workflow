@@ -126,3 +126,20 @@
 - stdio-sdk bundle 지원 (승격 기준과 함께).
 - TASK-2026-08-13-main-004 — CI native mypy flake 재발 관찰 (유력 원인 제거됨,
   무재발 시 close).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-13T05:27:53Z)_
+
+- total wiki pages: **93**
+- total memory entries: **9**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-12T08:07:57Z`
-- tool_version: `v1.1.8-beta`
+- generated_at: `2026-08-13T05:27:52Z`
+- tool_version: `v1.2.0-beta`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `6 / 6`
-- maturity_last_updated: `2026-08-12`
-- maturity_surface_changed_at: `2026-08-12`
+- maturity_last_updated: `2026-08-13`
+- maturity_surface_changed_at: `2026-08-13`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `11`
-- head_commit_date: `2026-08-12`
+- head_commit_date: `2026-08-13`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 5건)
+- silent_failing_cycles_count: `0` (측정 cycle 6건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `251`
-- cumulative_pass: `251`
+- cumulative_total: `252`
+- cumulative_pass: `252`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `251`
+- smoke_files_count: `252`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
-| Beta-v1.1.8 | 251 | 251 |
+| Beta-v1.2.0 | 252 | 252 |
+| Beta-v1.1.8 | 252 | 252 |
 | Beta-v1.1.7 | 251 | 251 |
 | Beta-v1.1.6 | 251 | 251 |
 | Beta-v1.1.5 | 266 | 266 |
-| Beta-v1.1.4 | 261 | 261 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-12-main-009 — check_no_repo_write 실행-중 감시 강화  `[fresh]`
-- [1] TASK-2026-08-12-main-008 — backlog-update --status 미지정 시 기존 상태 보존  `[fresh]`
-- [2] TASK-2026-08-12-main-007 — 네임스페이스 격상 2단계 — bootstrap_lib 를 workflow_kit.bootstrap_lib 로  `[fresh]`
-- [3] TASK-2026-08-12-main-006 — 네임스페이스 격상 — tools/bootstrap_lib 를 workflow_kit.* 로  `[fresh]`
-- [4] TASK-2026-08-12-main-005 — CLI cross-platform 지원 (Linux/macOS/Windows)  `[fresh]`
-- [5] TASK-2026-08-12-main-004 — CLI 툴(wk) 배포 방법 검토  `[fresh]`
-- [6] TASK-2026-08-12-main-003 — MCP bundle 분리 — write 도구 2종을 별도 bundle 로  `[fresh]`
-- [7] TASK-2026-08-12-main-002 — v1.1.7-beta 발행 (cmd_release 4번째 실전)  `[fresh]`
-- [8] TASK-2026-08-12-main-001 — federation self-host add — plex 상시 serving 편입  `[fresh]`
-- [9] TASK-2026-08-11-main-028 — 잔여 렌더러 14개 §11 주입 (1순위 진입점 6개 우선)  `[fresh]`
+- [0] TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략  `[fresh]`
+- [1] TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신  `[fresh]`
+- [2] TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관  `[fresh]`
+- [3] TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정  `[fresh]`
+- [4] TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)  `[fresh]`
+- [5] TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)  `[fresh]`
+- [6] TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합  `[fresh]`
+- [7] TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용  `[fresh]`
+- [8] TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)  `[fresh]`
+- [9] TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `9`
-- telemetry_events_total: `732`
-- telemetry_total_queries: `732`
-- telemetry_hit_count: `326`
-- telemetry_hit_rate: `0.4454`
+- telemetry_events_total: `892`
+- telemetry_total_queries: `892`
+- telemetry_hit_count: `447`
+- telemetry_hit_rate: `0.5011`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 86 |
+| `backlog-update` | 118 |
 | `dispatcher` | 1 |
 | `doc-sync` | 1 |
-| `session-start` | 644 |
+| `session-start` | 772 |
 

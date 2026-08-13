@@ -4,7 +4,7 @@
 - 범위: 설치, bundle 생성, 검증, ingest 까지의 최소 명령 시퀀스
 - 대상 독자: 외부 consumer (첫 사용자)
 - 상태: stable (v0.7.44+, ADR-025)
-- 최종 수정일: 2026-08-12
+- 최종 수정일: 2026-08-13
 - 관련 문서: [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md) (산문 문서), [index](./index.md)
 
 > **Status**: stable (v0.7.44+, ADR-025)

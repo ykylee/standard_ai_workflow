@@ -135,6 +135,53 @@ def test_version_bump_apply_in_sandbox() -> None:
     assert PYPROJECT.read_bytes() == origin_before, "원본 pyproject 가 변경됐다"
 
 
+def test_doc_headers_update_syncs_distributed_core() -> None:
+    """doc-headers-update 가 `ai-workflow/core/` 배포 사본까지 맞추는가 (v1.2.0).
+
+    v1.2.0 발행 직후 전량이 잡은 드리프트의 근본 자리다: 갱신기가 정본
+    (`workflow-source/core/*.md`) 의 '최종 수정일' 만 고치고 사본을 몰라
+    `check_standard_single_source` case 4 가 23개 드리프트로 red 를 냈다.
+    검출기는 이미 있었고, 없던 것은 **만드는 층의 규약 인지**였다.
+
+    사본에 낡은 날짜를 되주입한 sandbox 에서 갱신기를 돌려, 사본이 정본과
+    byte 동일(선두 kit 마커 제외)로 수렴하는지 본다. 갱신기가 사본을 다시
+    모르게 되면 이 test 가 먼저 실패한다.
+    """
+    from _repo_sandbox import repo_sandbox
+
+    marker_re = re.compile(r"^(<!--\s*standard-ai-workflow-kit:[^>]*-->\n\n?)")
+    with repo_sandbox(SOURCE_ROOT.parent) as sandbox:
+        src = sandbox / "workflow-source"
+        mirror = sandbox / "ai-workflow" / "core" / "global_workflow_standard.md"
+        canonical = src / "core" / "global_workflow_standard.md"
+        assert mirror.exists() and canonical.exists(), "배포 사본/정본 fixture 부재"
+
+        # 되주입: 사본의 '최종 수정일' 을 낡은 값으로 되돌린다.
+        drifted = re.sub(
+            r"(^-\s+최종\s*수정일\s*:\s*)(\S+)",
+            r"\g<1>1999-01-01",
+            mirror.read_text(encoding="utf-8"),
+            count=1,
+            flags=re.M,
+        )
+        mirror.write_text(drifted, encoding="utf-8")
+        assert "1999-01-01" in mirror.read_text(encoding="utf-8"), "되주입이 적용되지 않았다"
+
+        proc = subprocess.run(
+            [sys.executable, str(src / "workflow_kit" / "tools" / "release_pipeline.py"),
+             "doc-headers-update", "--scope=core", "--apply", "--json"],
+            capture_output=True, text=True, timeout=60, cwd=str(sandbox),
+        )
+        assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
+
+        after = mirror.read_text(encoding="utf-8")
+        assert "1999-01-01" not in after, "배포 사본이 갱신되지 않았다 (갱신기가 사본을 모른다)"
+        stripped = marker_re.sub("", after)
+        assert stripped == canonical.read_text(encoding="utf-8"), (
+            "배포 사본이 정본과 byte 동일이 아니다"
+        )
+
+
 def test_note_draft_dry_run() -> None:
     """note-draft dry-run: output_path + commits count."""
     proc = subprocess.run(
@@ -206,6 +253,7 @@ def main() -> int:
         test_version_bump_patch_dry_run,
         test_version_bump_to_explicit,
         test_version_bump_apply_in_sandbox,
+        test_doc_headers_update_syncs_distributed_core,
         test_note_draft_dry_run,
         test_parse_version_formats,
         test_bump_version_logic,

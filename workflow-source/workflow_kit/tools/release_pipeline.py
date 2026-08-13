@@ -1390,6 +1390,51 @@ def _today_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
+#: `ai-workflow/core/` 배포 사본의 선두에 붙는 kit 버전 마커. 사본은 이 마커를
+#: 뺀 나머지가 정본과 **byte 동일**해야 한다 (`check_standard_single_source`
+#: case 4 가 강제).
+DISTRIBUTED_CORE_MARKER_RE = re.compile(r"^(<!--\s*standard-ai-workflow-kit:[^>]*-->\n\n?)")
+
+
+def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
+    """`workflow-source/core/*.md` 정본을 `ai-workflow/core/*.md` 사본에 반영.
+
+    v1.2.0 (TASK-2026-08-13-main-005) 신설. `cmd_doc_headers_update` 가 정본의
+    '최종 수정일' 만 갱신하고 **사본을 몰랐다** — 그래서 v1.2.0 발행 직후 전량에서
+    `check_standard_single_source` 가 23개 사본 드리프트로 red 를 냈다. 검출기는
+    이미 있었고 없던 것은 *만드는 층의 규약 인지* 다 (파생물은 만드는 쪽이 규약을
+    알아야 한다).
+
+    사본에만 있는 파일(정본 없음)은 건드리지 않고, 선두 kit 버전 마커는 보존한다.
+
+    Returns: 갱신된 사본의 repo-relative 경로 목록.
+    """
+    distributed_dir = REPO_ROOT.parent / "ai-workflow" / "core"
+    if not distributed_dir.is_dir() or not CORE_DOCS_DIR.is_dir():
+        return []
+    synced: list[str] = []
+    for copy_path in sorted(distributed_dir.glob("*.md")):
+        canonical = CORE_DOCS_DIR / copy_path.name
+        if not canonical.exists():
+            continue
+        try:
+            current = copy_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        marker_match = DISTRIBUTED_CORE_MARKER_RE.match(current)
+        marker = marker_match.group(1) if marker_match else ""
+        new = marker + canonical.read_text(encoding="utf-8")
+        if new == current:
+            continue
+        if not dry_run:
+            if atomic_write_text is not None:
+                atomic_write_text(copy_path, new)
+            else:
+                copy_path.write_text(new, encoding="utf-8")
+        synced.append(str(copy_path.relative_to(REPO_ROOT.parent)))
+    return synced
+
+
 def cmd_doc_headers_update(args) -> dict:
     """docs/* + workflow-source/core/* + README.md 의 '- 최종 수정일: <date>' 헤더를 일괄 갱신.
 
@@ -1428,6 +1473,12 @@ def cmd_doc_headers_update(args) -> dict:
             path.write_text(new, encoding="utf-8")
         updated_paths.append(str(path.relative_to(REPO_ROOT.parent)))
 
+    # core 정본을 건드렸으면 배포 사본(ai-workflow/core/)도 같이 맞춘다 —
+    # 사본 byte 동일은 저장소 규약이고, 그 규약은 *만드는 층*이 알아야 한다.
+    mirror_synced = (
+        _sync_distributed_core_mirror(dry_run) if scope in ("all", "core") else []
+    )
+
     return {
         "mode": "dry-run" if dry_run else "applied",
         "scope": scope,
@@ -1435,6 +1486,8 @@ def cmd_doc_headers_update(args) -> dict:
         "scanned": scanned,
         "updated": len(updated_paths),
         "files": updated_paths,
+        "distributed_core_synced": len(mirror_synced),
+        "distributed_core_files": mirror_synced,
     }
 
 

@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**30차 세션 종료 — bootstrap OpenCode MCP 방언 갱신 (TASK-2026-08-13-main-002).** P3 실측이 반증한 entry 형태(문자열 command+args, env, enabled 없음 — opencode 1.17.12 가 거부)를 실측 확정 형태(배열 `command` + `enabled` + `environment`)로 고쳤다. **형태를 아는 자리를 하나로**: `opencode_mcp_server_entry()` 신설 — bootstrap emit 과 플러그인 payload snippet 이 같은 함수 파생 (payload 재생성 diff 0). 독립 증인 `opencode-mcp.json` 도 구형이었음을 확인·갱신 (최상위 키만 대조하던 case 6 의 사각지대). `check_mcp_tool_descriptors` **case 8 신설** — 렌더러·독립 증인 양쪽의 entry 형태 대조 (되주입 실증: 구형 회귀 시 FAIL 3건). roundtrip spawner 배열 command/environment 정규화. **검증**: 새 emit 그대로 `opencode mcp list` connected 실측 + 8/8 + 전량 2축 252/252 ×2 green. **다음 후보: v1.1.9/v1.2.0 릴리스 (소유자 발행 지시 대기) 또는 별건 TASK-2026-08-13-main-003 (hook 조건부 규칙 주입)·TASK-2026-08-12-main-019 (macOS PEP 668).** 상세: [30차 세션 기록](./sessions/opencode_dialect_update_2026-08-13.md).",
+    "current_baseline": "**31차 세션 종료 — 플러그인 SessionStart 조건부 규칙 주입 (TASK-2026-08-13-main-003).** P5 실측(hook stdout 주입 성립)을 실채널로 이었다: `adapters/claude-code/rules.md` (bootstrap 진입점·Gemini 와 **같은** `render_entrypoint_rules` 파생 — 채널 셋, 정본 하나) + SessionStart 두 번째 hook 이 `CLAUDE.md`/`.claude/CLAUDE.md` 의 **생성 마커를 grep** 해 있으면 생략(@AGENTS.md import 패턴 인정), 없을 때만 `cat \"${CLAUDE_PLUGIN_ROOT}/...\"`. 마커 탐침은 `GENERATED_MARKER` 파생. **실측 2경로 성립**: 진입점 없는 프로젝트 PRESENT(주입+CLAUDE_PLUGIN_ROOT 전개 확인) / 마커 있는 프로젝트 SKIPPED(이중 주입 없음). **부수 발견: CLAUDE.md 의 HTML 주석은 모델 컨텍스트에서 스트립된다** — 마커 존재 판정을 모델에게 물으면 안 된다 (파일 grep 은 무영향). case 8 확장 + 되주입 2종 실증, 15/15 + 전량 2축 **252/252 ×2 green**. **다음 후보: v1.1.9/v1.2.0 릴리스 — P1~P5+어댑터+조건부 주입이 전부 미발행으로 쌓여 있다 (소유자 발행 지시 대기) / 별건 TASK-2026-08-12-main-019 (macOS PEP 668, MacBook 전원 시)·TASK-2026-08-13-main-004 (mypy flake 재발 관찰).** 상세: [31차 세션 기록](./sessions/hook_conditional_rules_injection_2026-08-13.md).",
     "current_axis": "**플러그인 배포 전환 (P1·P2·P4 ✅ 완료 / P3·P5 planned, TASK-2026-08-12-main-016·018)** — 다음 릴리스 목표 범위(P1+P2)는 이미 채워졌고 P4 까지 앞당겨 닫았다. **다음 작업 = TASK-016 (P3 멀티 하네스 어댑터)** — 첫 확인 항목으로 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 비어 있는 건을 판정한다 (플러그인이 `wk` 를 직접 배포할 통로가 이미 열려 있다는 뜻이라, 원칙 4 의 \"설치를 대신 못 해 준다\" 전제를 건드린다). 그 다음 TASK-018 (P5 채널 전환 판정). 별건 대기: [TASK-2026-08-13-main-001] 원본 bump 검사 sandbox 이관, [TASK-2026-08-12-main-019] CLAUDE.md install 이 macOS homebrew 에서 PEP 668 로 실패. 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
+    "current_focus": "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
       "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
@@ -41,8 +42,7 @@
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용",
       "TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)",
-      "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS",
-      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토"
+      "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -57,7 +57,8 @@
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
       "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
-      "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정"
+      "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
+      "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략"
     ]
   },
   "next_documents": [
@@ -67,6 +68,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/hook_conditional_rules_injection_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/opencode_dialect_update_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/bump_check_sandbox_migration_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/plugin_p5_channel_verdict_2026-08-13.md",

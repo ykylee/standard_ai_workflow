@@ -363,25 +363,54 @@ def test_claude_code_adapter() -> None:
         problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd")
     rules = load_standard_rules(SOURCE_ROOT)
     refresh_cmd = rules.memory_commands[-1][1]
-    commands = [
-        entry.get("command", "")
-        for matchers in hooks.values()
-        for matcher in matchers
-        for entry in matcher.get("hooks", [])
-    ]
-    if not any(refresh_cmd in cmd for cmd in commands):
-        problems.append(f"SessionEnd 가 §11.1 재생성 명령({refresh_cmd})을 부르지 않는다")
     binary = refresh_cmd.split()[0]
-    if not all(f"command -v {binary}" in cmd for cmd in commands):
+
+    def _commands(event: str) -> list[str]:
+        return [
+            entry.get("command", "")
+            for matcher in hooks.get(event, [])
+            for entry in matcher.get("hooks", [])
+        ]
+
+    # `wk` 를 부르거나 그 부재를 알리는 hook 은 부재 검사를 가진다 (원칙 4).
+    end_cmds = [cmd for cmd in _commands("SessionEnd") if refresh_cmd in cmd]
+    if not end_cmds:
+        problems.append(f"SessionEnd 가 §11.1 재생성 명령({refresh_cmd})을 부르지 않는다")
+    notice_cmds = [cmd for cmd in _commands("SessionStart") if "찾지 못했다" in cmd]
+    if not notice_cmds:
+        problems.append("SessionStart 에 `wk` 부재 안내 hook 이 없다")
+    if not all(f"command -v {binary}" in cmd for cmd in end_cmds + notice_cmds):
         problems.append(
-            f"`{binary}` 부재 검사가 없는 hook 이 있다 — 조용한 실패 금지 (계획 원칙 4)"
+            f"`{binary}` 를 다루는 hook 에 부재 검사가 없다 — 조용한 실패 금지 (계획 원칙 4)"
         )
+
+    # 조건부 규칙 주입 (TASK-2026-08-13-main-003) — P5 실측(hook stdout 주입 성립)의
+    # 실채널. 진입점 마커가 있으면 생략해야 한다 (이중 주입 방지).
+    from workflow_kit.common.standard_rules import GENERATED_MARKER, render_entrypoint_rules
+    from workflow_kit.plugin_payload import CLAUDE_CODE_RULES_RELPATH
+
+    probe = GENERATED_MARKER.split("—")[0].removeprefix("<!--").strip()
+    inject_cmds = [cmd for cmd in _commands("SessionStart") if "CLAUDE_PLUGIN_ROOT" in cmd]
+    if len(inject_cmds) != 1:
+        problems.append(f"규칙 주입 hook 이 {len(inject_cmds)}개 — SessionStart 에 정확히 1개여야 한다")
+    else:
+        inject = inject_cmds[0]
+        if probe not in inject:
+            problems.append("주입 hook 이 생성 마커 탐침을 쓰지 않는다 — 항상 이중 주입이 된다")
+        if CLAUDE_CODE_RULES_RELPATH not in inject:
+            problems.append(f"주입 hook 이 {CLAUDE_CODE_RULES_RELPATH} 를 cat 하지 않는다")
+        if "CLAUDE.md" not in inject or ".claude/CLAUDE.md" not in inject:
+            problems.append("주입 hook 이 Claude Code 자동 read 진입점 2종을 확인하지 않는다")
+    rules_doc = payload.get(CLAUDE_CODE_RULES_RELPATH, "")
+    if render_entrypoint_rules(rules) not in rules_doc:
+        problems.append(f"{CLAUDE_CODE_RULES_RELPATH} 가 진입점 규칙 블록 파생이 아니다")
+
     _record(
         "test_claude_code_adapter",
         not problems,
         "; ".join(problems[:4])
         if problems
-        else f"manifest 계약 + hooks 2종 + .mcp.json == mcp.json",
+        else "manifest 계약 + hooks(세션 경계 + 조건부 규칙 주입) + .mcp.json == mcp.json",
     )
 
 

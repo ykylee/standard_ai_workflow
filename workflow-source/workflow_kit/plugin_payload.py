@@ -22,7 +22,8 @@ plugin/
 ├── gemini-extension.json        # Gemini CLI 어댑터 — 확장 루트 = payload 루트 (P3)
 ├── GEMINI.md                    # Gemini 상시 주입 컨텍스트 — render_entrypoint_rules 파생
 └── adapters/
-    ├── claude-code/hooks.json   # 세션 경계 hook 2종 (P2)
+    ├── claude-code/hooks.json   # 세션 경계 hook (P2) + 조건부 규칙 주입 (TASK-003)
+    ├── claude-code/rules.md     # SessionStart 조건부 주입 규칙 블록 — render_entrypoint_rules 파생
     ├── goose/config-snippet.yaml      # goose extensions 병합 snippet (P3)
     └── opencode/opencode-snippet.json # OpenCode MCP 등록 snippet (P3)
 ```
@@ -90,6 +91,7 @@ __all__ = [
     "render_agent_plugin",
     "render_claude_code_hooks",
     "render_claude_code_manifest",
+    "render_claude_code_rules",
     "render_gemini_context",
     "render_gemini_manifest",
     "render_goose_config_snippet",
@@ -124,6 +126,12 @@ PAYLOAD_MCP_BRIDGE = "jsonrpc-bridge"
 #: payload 배치와 그대로 겹쳐서, 어댑터는 manifest + hooks 두 장으로 끝난다.
 CLAUDE_CODE_MANIFEST_RELPATH = ".claude-plugin/plugin.json"
 CLAUDE_CODE_HOOKS_RELPATH = "adapters/claude-code/hooks.json"
+
+#: SessionStart hook 이 조건부로 주입하는 규칙 블록 파일 (TASK-2026-08-13-main-003).
+#: P5 실측이 근거다: hook stdout 은 모델 컨텍스트에 실제 주입된다. 다만 bootstrap
+#: 이 이미 진입점(CLAUDE.md)에 규칙을 넣은 프로젝트에서는 **이중 주입**이 되므로,
+#: hook 은 진입점의 생성 마커를 먼저 확인하고 없을 때만 이 파일을 cat 한다.
+CLAUDE_CODE_RULES_RELPATH = "adapters/claude-code/rules.md"
 
 #: Claude Code 가 MCP 서버를 **실제로 읽는** 경로. Agent Plugins 의 `mcp.json` 과
 #: 내용이 같고 파일명만 다르다 — 두 표준이 같은 것을 다르게 부른다.
@@ -557,17 +565,49 @@ def render_claude_code_manifest(version: str | None = None) -> str:
     ) + "\n"
 
 
+def _rules_marker_probe() -> str:
+    """진입점에 규칙 블록이 이미 있는지 판정할 grep 탐침 — 생성 마커에서 파생.
+
+    :data:`~workflow_kit.common.standard_rules.GENERATED_MARKER` 는 bootstrap 이
+    진입점에 규칙 블록을 주입할 때 함께 넣는 HTML 주석이다. hook 은 그 앞부분
+    (``generated-from: ...``)을 fixed-string 으로 찾는다 — 여기 문자열을 손으로
+    박으면 마커 개정 시 hook 만 낡아 **항상 이중 주입**이 된다.
+    """
+    from workflow_kit.common.standard_rules import GENERATED_MARKER
+
+    return GENERATED_MARKER.split("—")[0].removeprefix("<!--").strip()
+
+
+def render_claude_code_rules(rules: StandardRules) -> str:
+    """``plugin/adapters/claude-code/rules.md`` — SessionStart 조건부 주입 규칙 블록.
+
+    내용은 bootstrap 진입점·Gemini 컨텍스트와 **같은 파생 함수**
+    (:func:`render_entrypoint_rules`) 다 — 채널이 셋이어도 정본은 하나다.
+    """
+    return (
+        "# 표준 AI 워크플로우 — 상시 규칙 (플러그인 SessionStart 주입)\n"
+        "\n"
+        f"{render_entrypoint_rules(rules)}\n"
+    )
+
+
 def render_claude_code_hooks(rules: StandardRules) -> str:
     """``plugin/adapters/claude-code/hooks.json`` — 세션 경계 자동화.
 
-    두 개만 건다:
+    세 개를 건다:
 
     - **SessionEnd** → §11.1 의 state.json 재생성 명령. 이 저장소가 오래 겪은
       문제가 "종료 절차에 생성기를 부르는 단계가 없어서 손으로 썼다" 였다
       (TASK-2026-08-11-main-018). 플러그인은 그 단계를 하네스가 대신 밟게 한다 —
       goose 말고는 없던 자동화다.
-    - **SessionStart** → `wk` 부재 안내. 계획 원칙 4: 플러그인은 Python 의존을
+    - **SessionStart ①** → `wk` 부재 안내. 계획 원칙 4: 플러그인은 Python 의존을
       대신 설치해 주지 못하므로, 없으면 **조용히 실패하지 않고 말해야** 한다.
+    - **SessionStart ②** → 규칙 블록 **조건부 주입** (TASK-2026-08-13-main-003).
+      P5 실측: hook stdout 은 모델 컨텍스트에 주입된다. 진입점(`CLAUDE.md` /
+      `.claude/CLAUDE.md` — Claude Code 가 자동 read 하는 두 파일)에 생성 마커가
+      있으면 bootstrap 이 이미 규칙을 넣은 것이므로 생략한다 (이중 주입 방지).
+      `@AGENTS.md` import 패턴(이 kit 의 CLAUDE.md 통합 권장안)도 AGENTS.md 쪽
+      마커로 인정한다. 마커 탐침은 :func:`_rules_marker_probe` 파생.
 
     명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
     §11.1 개명 시 이 사본만 낡는다.
@@ -578,6 +618,12 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     absent_notice = (
         f"[{PLUGIN_NAME}] `{binary}` 를 찾지 못했다 — 스킬은 절차를 안내하지만 "
         f"메모리 갱신 명령은 돌지 않는다. 설치: {guide}"
+    )
+    probe = _rules_marker_probe()
+    rules_inject = (
+        f"{{ grep -qsF '{probe}' CLAUDE.md .claude/CLAUDE.md; }} || "
+        f"{{ grep -qsF '@AGENTS.md' CLAUDE.md && grep -qsF '{probe}' AGENTS.md; }} || "
+        f'cat "${{CLAUDE_PLUGIN_ROOT}}/{CLAUDE_CODE_RULES_RELPATH}"'
     )
     return json.dumps(
         {
@@ -591,7 +637,11 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
                                     f"command -v {binary} >/dev/null 2>&1 || "
                                     f"echo '{absent_notice}'"
                                 ),
-                            }
+                            },
+                            {
+                                "type": "command",
+                                "command": rules_inject,
+                            },
                         ]
                     }
                 ],
@@ -686,6 +736,7 @@ def render_agent_plugin(
         CLAUDE_CODE_MCP_RELPATH: mcp_config,
         CLAUDE_CODE_MANIFEST_RELPATH: render_claude_code_manifest(version),
         CLAUDE_CODE_HOOKS_RELPATH: render_claude_code_hooks(resolved),
+        CLAUDE_CODE_RULES_RELPATH: render_claude_code_rules(resolved),
         GEMINI_MANIFEST_RELPATH: render_gemini_manifest(version),
         GEMINI_CONTEXT_RELPATH: render_gemini_context(resolved),
         GOOSE_SNIPPET_RELPATH: render_goose_config_snippet(),

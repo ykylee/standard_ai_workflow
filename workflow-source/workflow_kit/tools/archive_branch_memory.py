@@ -133,16 +133,33 @@ def open_tasks(branch_dir: Path) -> list[tuple[str, str]]:
         return []
     out: list[tuple[str, str]] = []
     for path in sorted(tasks_dir.glob("TASK-*.md")):
-        status = ""
-        carried = False
-        for line in path.read_text(encoding="utf-8").splitlines()[:20]:
-            if line.startswith("status:"):
-                status = line.split(":", 1)[1].strip()
-            elif line.startswith(f"{CARRIED_OVER_KEY}:"):
-                carried = bool(line.split(":", 1)[1].strip())
-        if carried or status == "done":
+        front = _frontmatter(path.read_text(encoding="utf-8"))
+        if front.get(CARRIED_OVER_KEY) or front.get("status") == "done":
             continue
-        out.append((path.stem, status or "(미기재)"))
+        out.append((path.stem, front.get("status") or "(미기재)"))
+    return out
+
+
+def _frontmatter(text: str) -> dict[str, str]:
+    """앞머리 `---` 블록만 key/value 로 읽는다.
+
+    **본문을 섞어 읽으면 안 된다.** 앞선 구현은 파일 앞 20줄을 그냥 훑어서, 본문에
+    적힌 `status: …` 줄을 frontmatter 로 오인했다 (실측). 본문에 `status: done` 이
+    한 줄만 있으면 **미완료 task 가 완료로 판정되어 그대로 아카이브로 사라진다** —
+    이 함수가 막으려던 바로 그 사고다. 줄 수 상한도 없앴다 (긴 frontmatter 에서
+    status 를 놓치던 자리).
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    out: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if ":" not in line or line.startswith((" ", "\t", "#")):
+            continue
+        key, value = line.split(":", 1)
+        out[key.strip()] = value.strip()
     return out
 
 
@@ -219,11 +236,28 @@ def _rewrite_markdown_links(
 
     대상이 여전히 존재하면 건드리지 않는다 — 살아 있는 링크를 고치면 그게 손상이다.
     """
+    # **양쪽 root 를 여기서 resolve 한다.** 호출자가 안 한 경로를 넘기면 macOS 의
+    # `/var` ↔ `/private/var` 심링크 하나로 `relative_to` 가 전부 ValueError 가 되어
+    # **재작성이 통째로 침묵**한다 (오류도 안 난다). 실측으로 밟았다.
+    old_root, new_root = Path(old_root).resolve(), Path(new_root).resolve()
+    # `doc_dir` 도 같이 맞춘다. 한쪽만 resolve 하면 상대 경로가 `../../../private/var/…`
+    # 처럼 터무니없이 길어진다 (링크는 살지만 읽을 수 없는 문서가 된다).
+    doc_dir = Path(doc_dir).resolve()
+
     def repl(m: "re.Match[str]") -> str:
-        link = m.group(1)
+        raw = m.group(1).strip()
+        # `](path "제목")` / `](path '제목')` — CommonMark 가 허용하는 형태다.
+        # 분리하지 않으면 경로가 `path "제목"` 이 되어 매칭이 빗나가고, 깨진 링크가
+        # 조용히 남는다.
+        title_match = re.match(r"^(\S+)(\s+[\"'(].*)$", raw)
+        link, title = (title_match.group(1), title_match.group(2)) if title_match else (raw, "")
+        wrapped = link.startswith("<") and link.endswith(">")
+        if wrapped:
+            link = link[1:-1]
         if link.startswith(("http://", "https://", "#", "mailto:")):
             return m.group(0)
-        target = (doc_dir / link.split("#", 1)[0]).resolve()
+        path_part, sep, anchor = link.partition("#")
+        target = (doc_dir / path_part).resolve()
         if target.exists():
             return m.group(0)
         try:
@@ -232,7 +266,12 @@ def _rewrite_markdown_links(
             return m.group(0)
         if not moved.exists():
             return m.group(0)
-        return "](" + os.path.relpath(moved, doc_dir).replace(os.sep, "/") + ")"
+        # **앵커를 보존한다.** 떼고 쓰면 링크는 살아나지만 문서의 엉뚱한 곳으로 간다 —
+        # 고친 척하고 정보를 잃는 쪽이 더 나쁘다.
+        rewritten = os.path.relpath(moved, doc_dir).replace(os.sep, "/") + sep + anchor
+        if wrapped:
+            rewritten = f"<{rewritten}>"
+        return "](" + rewritten + title + ")"
 
     return re.sub(r"\]\(([^)]+)\)", repl, text)
 

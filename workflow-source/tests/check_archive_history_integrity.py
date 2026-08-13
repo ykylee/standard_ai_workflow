@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (10 cases).
+"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (13 cases).
 
 ## 계보 — 아카이브는 "이동" 만 하고 있었다
 
@@ -25,7 +25,7 @@ on-demand MCP 도구지 저장소를 훑는 smoke 가 아니라서, `archived/` 
 fixture 로 **도구의 계약**(차단 / 재작성 / 오탐 없음)을, 자기 적용으로 **이 저장소의
 archived/ 현재 상태**를 잰다. 후자가 없으면 계약만 지키고 실물은 썩는다.
 
-10 cases:
+13 cases:
   1) `open_tasks` 판정 — done 제외, **status 미기재는 미완료로 본다**
   2) 미완료 task 가 있으면 아카이브를 **막는다** (기본값)
   3) `--allow-open-tasks` 면 진행하되 `.archived.json` 에 `open_task_ids` 를 남긴다
@@ -36,6 +36,9 @@ archived/ 현재 상태**를 잰다. 후자가 없으면 계약만 지키고 실
   8) **자기 적용** — `archived/**/state.json` 이 `active/` 를 가리키지 않는다
   9) **자기 적용** — `archived/` 에 미완료 task 가 없다
  10) `carried_over_to` 가 있으면 미완료로 세지 않는다 (이관 축 — `done` 으로 적으면 거짓)
+ 11) **본문의 `status:`** 를 frontmatter 로 오인하지 않는다 (미완료가 완료로 사라진다)
+ 12) 링크의 앵커·제목·꺾쇠 형태를 놓치지 않고 앵커를 보존한다
+ 13) root 를 resolve 하지 않아도 재작성이 침묵하지 않는다
 
 Refs:
   - workflow_kit/tools/archive_branch_memory.py
@@ -255,6 +258,68 @@ def case_10_carried_over_is_resolved(root: Path) -> None:
     assert "status: planned" in moved.read_text("utf-8"), "이관을 done 으로 바꿔 적었다"
 
 
+def case_11_body_status_not_mistaken(root: Path) -> None:
+    """**본문의 `status:` 를 frontmatter 로 읽으면 미완료가 완료로 사라진다.**"""
+    d = root / "active" / "feat/bodystatus"
+    (d / "backlog" / "tasks").mkdir(parents=True)
+    # frontmatter 에는 status 가 없고 본문에만 있다
+    (d / "backlog" / "tasks" / "TASK-1.md").write_text(
+        "---\nid: TASK-1\n---\n\n## 설명\nstatus: done\n", encoding="utf-8",
+    )
+    found = dict(open_tasks(d))
+    assert found.get("TASK-1") == "(미기재)", (
+        f"본문 status 를 frontmatter 로 오인했다 — 미완료가 완료로 사라진다: {found}"
+    )
+
+    # frontmatter 가 20줄을 넘어도 status 를 찾아야 한다 (줄 수 상한 회귀 고정)
+    (d / "backlog" / "tasks" / "TASK-2.md").write_text(
+        "---\n" + "x: 1\n" * 25 + "status: done\n---\n", encoding="utf-8",
+    )
+    assert "TASK-2" not in dict(open_tasks(d)), "긴 frontmatter 의 status 를 놓쳤다"
+
+
+def case_12_link_variants(root: Path) -> None:
+    """앵커·제목·꺾쇠 형태를 놓치거나 앵커를 잃지 않는다."""
+    old_root = root / "mem" / "active" / "feat" / "x"
+    new_root = root / "mem" / "archived" / "feat" / "x"
+    new_root.mkdir(parents=True)
+    (new_root / "s.md").write_text("x", encoding="utf-8")
+    doc_dir = root / "mem" / "z"
+    doc_dir.mkdir(parents=True)
+
+    def rw(text: str) -> str:
+        return _rewrite_markdown_links(
+            text, doc_dir=doc_dir, old_root=old_root, new_root=new_root)
+
+    assert rw("[a](../active/feat/x/s.md)") == "[a](../archived/feat/x/s.md)"
+    # 앵커 보존 — 떼면 링크는 살지만 엉뚱한 곳으로 간다 (고친 척하고 정보를 잃는다)
+    assert rw("[a](../active/feat/x/s.md#sec)") == "[a](../archived/feat/x/s.md#sec)"
+    # CommonMark 의 제목/꺾쇠 형태도 재작성 대상이다
+    assert rw('[a](../active/feat/x/s.md "제목")') == '[a](../archived/feat/x/s.md "제목")'
+    assert rw("[a](<../active/feat/x/s.md>)") == "[a](<../archived/feat/x/s.md>)"
+    assert rw("[a](https://example.com)") == "[a](https://example.com)"
+
+
+def case_13_unresolved_roots_still_work(root: Path) -> None:
+    """**root 를 resolve 안 하면 재작성이 통째로 침묵하던 자리.**
+
+    macOS 의 `/var` ↔ `/private/var` 심링크 하나로 `relative_to` 가 전부 ValueError 가
+    되어 아무것도 안 고치고 오류도 안 났다. 조용한 no-op 은 최악이다.
+    """
+    raw = Path(str(root))  # 일부러 resolve 하지 않은 경로
+    old_root = raw / "mem2" / "active" / "feat" / "x"
+    new_root = raw / "mem2" / "archived" / "feat" / "x"
+    new_root.mkdir(parents=True)
+    (new_root / "s.md").write_text("x", encoding="utf-8")
+    doc_dir = raw / "mem2" / "z"
+    doc_dir.mkdir(parents=True)
+    out = _rewrite_markdown_links(
+        "[a](../active/feat/x/s.md)", doc_dir=doc_dir,
+        old_root=old_root, new_root=new_root,
+    )
+    assert out == "[a](../archived/feat/x/s.md)", f"resolve 안 된 root 에서 침묵했다: {out}"
+
+
 def _in_tmp(fn) -> None:
     with tempfile.TemporaryDirectory(prefix="check-archive-integrity-") as tmp:
         fn(Path(tmp).resolve())  # macOS /private symlink
@@ -271,12 +336,15 @@ def main() -> int:
         case_5_state_json_paths_rewritten,
         case_6_live_links_untouched,
         case_10_carried_over_is_resolved,
+        case_11_body_status_not_mistaken,
+        case_12_link_variants,
+        case_13_unresolved_roots_still_work,
     ):
         _in_tmp(case)
     case_7_self_archived_links_resolve()
     case_8_self_archived_state_paths()
     case_9_self_no_open_tasks_archived()
-    print("archive history integrity check passed (10 cases)")
+    print("archive history integrity check passed (13 cases)")
     return 0
 
 
@@ -318,6 +386,18 @@ def test_case_9() -> None:
 
 def test_case_10() -> None:
     _in_tmp(case_10_carried_over_is_resolved)
+
+
+def test_case_11() -> None:
+    _in_tmp(case_11_body_status_not_mistaken)
+
+
+def test_case_12() -> None:
+    _in_tmp(case_12_link_variants)
+
+
+def test_case_13() -> None:
+    _in_tmp(case_13_unresolved_roots_still_work)
 
 
 if __name__ == "__main__":

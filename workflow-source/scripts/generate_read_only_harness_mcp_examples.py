@@ -77,7 +77,7 @@ def codex_toml_example(tool_names: list[str]) -> str:
 
 def opencode_jsonc_example(tool_names: list[str]) -> str:
     tools = ", ".join(tool_names)
-    args_inline = ", ".join(json.dumps(part) for part in DRAFT_COMMAND[1:])
+    command_inline = ", ".join(json.dumps(part) for part in DRAFT_COMMAND)
     return "\n".join(
         [
             "{",
@@ -87,11 +87,13 @@ def opencode_jsonc_example(tool_names: list[str]) -> str:
             f"  // Tools described: {tools}",
             # 최상위 키는 하네스 방언이다. 손으로 적었을 때 `mcp_servers` 로 갈라져
             # 있었고, 그건 OpenCode 가 읽지 않는 키다 (2026-08-05).
+            # entry 형태는 opencode 1.17.12 실측 (TASK-2026-08-13-main-002):
+            # command 는 배열 전체, enabled 필수, env 키는 `environment`.
             f'  {json.dumps(MCP_CONFIG_ROOT_KEY["opencode"])}: {{',
             f'    // "{SERVER_ALIAS}": {{',
             '    //   "type": "local",',
-            f'    //   "command": {json.dumps(DRAFT_COMMAND[0])},',
-            f'    //   "args": [{args_inline}]',
+            f'    //   "command": [{command_inline}],',
+            '    //   "enabled": true',
             "    // }",
             "  }",
             "}",

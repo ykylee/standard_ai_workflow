@@ -507,29 +507,23 @@ def render_opencode_snippet() -> str:
     파생한다. entry 형태는 **opencode 1.17.12 실측**으로 확정했다 (`opencode mcp
     list` 가 서버 ``connected`` 까지 보고):
 
-    - ``command`` 는 **배열 전체**다 — bootstrap 방언의 ``command`` 문자열 +
-      ``args`` 분리형은 *"Expected array"* 로 거부된다.
+    - ``command`` 는 **배열 전체**다 — 문자열 ``command`` + ``args`` 분리형은
+      *"Expected array"* 로 거부된다.
     - ``enabled`` 는 필수다 — 없으면 *"Missing key"*.
     - env 키 이름은 ``environment`` 다.
 
-    즉 bootstrap 의 `render_opencode_mcp_config` 가 emit 하는 형태는 현행 OpenCode
-    가 **거부한다** — 그 결함은 별건 task 로 등록했다 (P3 실측의 파생 발견).
+    entry 형태는 :func:`workflow_kit.bootstrap_lib.mcp.opencode_mcp_server_entry`
+    (실측 정본, TASK-2026-08-13-main-002 에서 bootstrap 과 단일화) 파생이다.
     스킬은 snippet 과 무관하게 OpenCode 가 `.agents/skills/` / `.claude/skills/`
     에서 직접 읽는다.
     """
-    from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY
+    from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_ROOT_KEY, opencode_mcp_server_entry
 
     alias, command = _payload_mcp_entry()
     return json.dumps(
         {
             MCP_CONFIG_ROOT_KEY["opencode"]: {
-                alias: {
-                    "type": "local",
-                    "command": command,
-                    "environment": dict(_PAYLOAD_MCP_ENV),
-                    "enabled": True,
-                    "timeout": 30000,
-                }
+                alias: opencode_mcp_server_entry(command, _PAYLOAD_MCP_ENV)
             }
         },
         ensure_ascii=False,

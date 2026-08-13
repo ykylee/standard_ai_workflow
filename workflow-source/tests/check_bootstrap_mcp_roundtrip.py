@@ -185,9 +185,16 @@ def spawn_bridge(
             f"Emitted MCP config for {harness!r} has no recognisable server block. "
             f"Top-level keys: {sorted(config)}"
         )
-    cmd = [sys.executable, *server_block["args"]]
+    # OpenCode 방언 (1.17.12 실측): command 는 배열 전체, env 키는 `environment`.
+    # 다른 방언은 command 문자열 + args 분리 + `env` 를 유지한다.
+    if isinstance(server_block["command"], list):
+        launch_args = list(server_block["command"][1:])
+    else:
+        launch_args = list(server_block.get("args", []))
+    cmd = [sys.executable, *launch_args]
     env = os.environ.copy()
-    kit_env = {**server_block.get("env", {}), "PYTHONPATH": str(SOURCE_ROOT)}
+    block_env = server_block.get("environment", server_block.get("env", {}))
+    kit_env = {**block_env, "PYTHONPATH": str(SOURCE_ROOT)}
     env.update({k: str(v) for k, v in kit_env.items()})
     env["STANDARD_AI_WORKFLOW_ROOT"] = str(target_root.resolve())
     return subprocess.Popen(

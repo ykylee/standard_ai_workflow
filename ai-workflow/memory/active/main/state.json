@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**29차 세션 종료 — 원본 bump 검사 sandbox 이관 완료 (TASK-2026-08-13-main-001).** `watch_transient_writer` 로 writer 를 현장 특정 — 전량 중 원본 pyproject 왕복(1.1.8→1.1.9→1.1.8, 50ms)의 **유일한** 주범은 `check_release_pipeline.py::test_version_bump_apply_and_restore` 였다 (용의 계열 poststep 2종은 전부 mock 이라 무접촉). `repo_sandbox` 서브프로세스 방식(`version-bump --patch --apply --skip-sync-hash --json`)으로 재작성 + 원본 byte 무손상 assert. `check_no_repo_write` WATCHED_CHECKS 13→**15** (`check_release_pipeline.py` 회귀 방어 + `check_agent_plugin_payload.py` — P4 의 plugin/ 원본 덮임 사고 계열 이중 방어). **완료 기준 실측**: 이관 후 전량 2축 옆 watcher **관측 0건/12,403 poll** (이관 전 2건) + 감시 15개 전부 무접촉 + 252/252 ×2 green. **파생: TASK-2026-08-13-main-004 (CI native mypy exit 2 flake) 의 유력 원인이 이 왕복이었다** (mypy 는 시작 시 pyproject 를 config 로 읽는다) — 004 는 재발 관찰만 남김 (무재발 시 close). **다음 후보: v1.1.9/v1.2.0 릴리스 (소유자 발행 지시 대기) 또는 별건 TASK-2026-08-13-main-002 (bootstrap OpenCode 방언)·003 (hook 조건부 규칙 주입)·TASK-2026-08-12-main-019 (macOS PEP 668).** 상세: [29차 세션 기록](./sessions/bump_check_sandbox_migration_2026-08-13.md).",
+    "current_baseline": "**30차 세션 종료 — bootstrap OpenCode MCP 방언 갱신 (TASK-2026-08-13-main-002).** P3 실측이 반증한 entry 형태(문자열 command+args, env, enabled 없음 — opencode 1.17.12 가 거부)를 실측 확정 형태(배열 `command` + `enabled` + `environment`)로 고쳤다. **형태를 아는 자리를 하나로**: `opencode_mcp_server_entry()` 신설 — bootstrap emit 과 플러그인 payload snippet 이 같은 함수 파생 (payload 재생성 diff 0). 독립 증인 `opencode-mcp.json` 도 구형이었음을 확인·갱신 (최상위 키만 대조하던 case 6 의 사각지대). `check_mcp_tool_descriptors` **case 8 신설** — 렌더러·독립 증인 양쪽의 entry 형태 대조 (되주입 실증: 구형 회귀 시 FAIL 3건). roundtrip spawner 배열 command/environment 정규화. **검증**: 새 emit 그대로 `opencode mcp list` connected 실측 + 8/8 + 전량 2축 252/252 ×2 green. **다음 후보: v1.1.9/v1.2.0 릴리스 (소유자 발행 지시 대기) 또는 별건 TASK-2026-08-13-main-003 (hook 조건부 규칙 주입)·TASK-2026-08-12-main-019 (macOS PEP 668).** 상세: [30차 세션 기록](./sessions/opencode_dialect_update_2026-08-13.md).",
     "current_axis": "**플러그인 배포 전환 (P1·P2·P4 ✅ 완료 / P3·P5 planned, TASK-2026-08-12-main-016·018)** — 다음 릴리스 목표 범위(P1+P2)는 이미 채워졌고 P4 까지 앞당겨 닫았다. **다음 작업 = TASK-016 (P3 멀티 하네스 어댑터)** — 첫 확인 항목으로 호스트가 PATH 에 넣는 `<plugin>/bin` 이 payload 에 비어 있는 건을 판정한다 (플러그인이 `wk` 를 직접 배포할 통로가 이미 열려 있다는 뜻이라, 원칙 4 의 \"설치를 대신 못 해 준다\" 전제를 건드린다). 그 다음 TASK-018 (P5 채널 전환 판정). 별건 대기: [TASK-2026-08-13-main-001] 원본 bump 검사 sandbox 이관, [TASK-2026-08-12-main-019] CLAUDE.md install 이 macOS homebrew 에서 PEP 668 로 실패. 계획: docs/planning/plugin-transition-plan-2026-08.md. 병행 대기 축: cross-host federation — **두 번째 호스트 = MacBook (darwin homelab) 확정, 시점 추후** (사용자 결정 2026-08-12, 현재 전원 꺼짐; 합류는 MacBook 쪽 세션에서 environments/plex.md 절차 두 명령) / 2nd cycle 묶음 (shim drop + --bundle 기본값 — 다음 릴리스에서 P1+P2 와 함께) / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
+    "current_focus": "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
@@ -41,8 +42,7 @@
       "TASK-2026-08-12-main-015 — 플러그인 전환 P2 — Claude Code 어댑터 + marketplace + 자기 적용",
       "TASK-2026-08-12-main-014 — 플러그인 전환 P1 — 공유 payload 렌더러 (render_agent_plugin)",
       "TASK-2026-08-12-main-013 — 플러그인 배포 전환 계획 수립 + 로드맵 갱신 + WBS",
-      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토",
-      "TASK-2026-08-12-main-011 — 워크플로우 플러그인 형태 재구성·배포 검토"
+      "TASK-2026-08-12-main-012 — 멀티 하네스 공유 플러그인 형태 검토"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -56,6 +56,7 @@
       "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
+      "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정"
     ]
   },
@@ -66,6 +67,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/opencode_dialect_update_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/bump_check_sandbox_migration_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/plugin_p5_channel_verdict_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/plugin_multi_harness_adapters_2026-08-13.md",

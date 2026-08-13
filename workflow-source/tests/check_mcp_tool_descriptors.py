@@ -315,6 +315,56 @@ def test_example_tools_lists_match_registry() -> bool:
     return ok
 
 
+def test_opencode_entry_shape_matches_witness() -> bool:
+    """8) OpenCode entry **형태** 가 렌더러와 독립 예시에서 같은가 (v1.1.9).
+
+    TASK-2026-08-13-main-002: 최상위 키만 대조하던 case 6 의 사각지대에서 entry
+    형태가 갈라져 있었다 — 렌더러는 문자열 ``command`` + ``args`` + ``env`` 를
+    emit 했는데 opencode 1.17.12 는 그 형태를 **거부한다** (*"Expected array"* /
+    *"Missing key enabled"*). 실측 확정 형태(배열 ``command`` + ``enabled`` +
+    ``environment``)를 렌더러(:func:`opencode_mcp_server_entry` 파생)와 독립
+    증인(`opencode-mcp.json`) 양쪽에서 대조한다 — 어느 쪽이 낡아도 여기서 깨진다.
+    """
+    import argparse  # noqa: PLC0415
+
+    if str(SOURCE_ROOT) not in sys.path:
+        sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.bootstrap_lib.mcp import (  # noqa: PLC0415
+        MCP_CONFIG_ROOT_KEY,
+        MCP_SERVER_ALIAS,
+        render_opencode_mcp_config,
+    )
+
+    rendered = json.loads(
+        render_opencode_mcp_config(argparse.Namespace(mcp_bridge="jsonrpc-bridge"), None)
+    )[MCP_CONFIG_ROOT_KEY["opencode"]][MCP_SERVER_ALIAS]
+    witness_path = CONFIG_EXAMPLES / "opencode-mcp.json"
+    witness = json.loads(witness_path.read_text(encoding="utf-8"))[
+        MCP_CONFIG_ROOT_KEY["opencode"]
+    ][MCP_SERVER_ALIAS]
+
+    ok = True
+    for label, entry in (("렌더러", rendered), ("독립 예시", witness)):
+        if not isinstance(entry.get("command"), list):
+            print(f"  FAIL: {label} — command 가 배열이 아니다 (opencode 는 문자열을 거부한다)")
+            ok = False
+        if entry.get("enabled") is not True:
+            print(f"  FAIL: {label} — enabled 누락 (opencode 가 Missing key 로 거부한다)")
+            ok = False
+        if "env" in entry or "args" in entry:
+            print(f"  FAIL: {label} — env/args 는 구형 필드다 (environment + command 배열을 쓴다)")
+            ok = False
+        if "environment" not in entry:
+            print(f"  FAIL: {label} — environment 누락")
+            ok = False
+    if set(rendered) != set(witness):
+        print(f"  FAIL: 필드 집합 불일치 — 렌더러 {sorted(rendered)} vs 예시 {sorted(witness)}")
+        ok = False
+    if ok:
+        print("  PASS: 렌더러·독립 예시 모두 실측 형태 (command 배열 + enabled + environment)")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_descriptors_load", test_descriptors_load),
@@ -327,6 +377,8 @@ def main() -> int:
          test_root_key_table_matches_authored_examples),
         ("test_example_tools_lists_match_registry",
          test_example_tools_lists_match_registry),
+        ("test_opencode_entry_shape_matches_witness",
+         test_opencode_entry_shape_matches_witness),
     ]
     results = []
     for name, fn in cases:

@@ -2,18 +2,19 @@
   "mcp": {
     "standardAiWorkflowReadOnly": {
       "type": "local",
-      "command": "python3",
-      "args": [
+      "command": [
+        "python3",
         "-m",
         "workflow_kit.server.read_only_jsonrpc",
         "--stdio-lines",
         "--bundle",
         "read-only"
       ],
-      "env": {
+      "environment": {
         "PYTHONPATH": "workflow-source",
         "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
       },
+      "enabled": true,
       "timeout": 30000
     }
   }

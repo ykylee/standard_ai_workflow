@@ -201,24 +201,45 @@ def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
 {block}"""
 
 
+def opencode_mcp_server_entry(command: list[str], env: dict[str, str]) -> dict[str, object]:
+    """OpenCode ``opencode.json`` 의 서버 entry 한 벌 — **opencode 1.17.12 실측** 형태.
+
+    이전 emit (문자열 ``command`` + ``args`` 분리, ``env`` 키) 은 현행 OpenCode 가
+    **거부한다** (TASK-2026-08-13-main-002 실측: *"Expected array ...command"* /
+    *"Missing key ...enabled"*). 확정 형태:
+
+    - ``command`` 는 **배열 전체** (실행 파일 + 인자)
+    - ``enabled`` 필수
+    - env 키 이름은 ``environment``
+
+    이 형태로 `opencode mcp list` 가 서버 **connected** 까지 보고했다 (로드 실측).
+    entry 형태를 아는 자리는 여기 하나다 — bootstrap emit 과 플러그인 payload
+    snippet (:mod:`workflow_kit.plugin_payload`) 이 둘 다 이 함수에서 파생한다.
+    """
+    return {
+        "type": "local",
+        "command": list(command),
+        "environment": dict(env),
+        "enabled": True,
+        "timeout": 30000,
+    }
+
+
 def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """Return an OpenCode MCP config block to embed in ``opencode.json``.
 
     OpenCode expects ``"mcp": { "<name>": { ... } }`` at the top level. The
     bootstrap writes a standalone ``mcp.opencode.json`` that can be merged
-    or symlinked into the project ``opencode.json``.
+    or symlinked into the project ``opencode.json``. Entry 형태는
+    :func:`opencode_mcp_server_entry` (실측 정본) 파생이다.
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
         {
             MCP_CONFIG_ROOT_KEY["opencode"]: {
-                MCP_SERVER_ALIAS: {
-                    "type": "local",
-                    "command": mcp_server_command(bridge, "read-only")[0],
-                    "args": mcp_server_command(bridge, "read-only")[1:],
-                    "env": _mcp_server_env(),
-                    "timeout": 30000,
-                }
+                MCP_SERVER_ALIAS: opencode_mcp_server_entry(
+                    mcp_server_command(bridge, "read-only"), _mcp_server_env()
+                )
             }
         },
         ensure_ascii=False,
@@ -602,6 +623,7 @@ __all__ = [
     "render_codex_mcp_config",
     "render_gemini_cli_mcp_config",
     "render_minimax_code_mcp_config",
+    "opencode_mcp_server_entry",
     "render_opencode_mcp_config",
     "render_mavis_global_mcp_config",
     "atomic_merge_mavis_global",

@@ -68,6 +68,12 @@ scratch/
 .mavis/
 ai-workflow/wiki/.obsidian/
 
+# Project-local Codex / oh-my-codex installation
+.agents/
+.omx/
+.codex/config.toml
+.codex/prompts/
+
 # mkdocs build output
 /site/
 

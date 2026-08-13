@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 252개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 253개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -153,7 +153,7 @@ python: 3.13.7
 
 ## 5. 스모크 테스트 실행
 
-저장소에는 252개의 `workflow-source/tests/check_*.py` 가 있다. CI는 매 push 마다 이 전부를 돌린다.
+저장소에는 253개의 `workflow-source/tests/check_*.py` 가 있다. CI는 매 push 마다 이 전부를 돌린다.
 
 ### 5.1. 한꺼번에 전부 돌리기 (CI 와 동일)
 
@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Claude Code / Gemini CLI)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -277,6 +277,11 @@ print('all critical imports OK')
 read-only MCP 번들 + 세션 경계 hook 2종이 설치 1명령으로 들어온다.
 
 ```bash
+# Codex — GitHub Release의 Codex ZIP을 푼 뒤 marketplace로 등록하고 설치
+unzip standard-ai-workflow-codex-plugin-<VERSION>.zip
+codex plugin marketplace add ./standard-ai-workflow-codex-plugin-<VERSION>
+codex plugin add standard-ai-workflow@standard-ai-workflow
+
 # Claude Code — marketplace 등록 + 설치
 claude plugin marketplace add ykylee/standard_ai_workflow
 claude plugin install standard-ai-workflow@standard-ai-workflow

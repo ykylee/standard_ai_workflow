@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (15 case)
+## 판정 규칙 (18 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -43,11 +43,26 @@
     못박은 계약 (manifest 5필드 고정, 컨텍스트 = 진입점 규칙 파생, MCP 파생).
 15. **goose/OpenCode snippet 이 방언 상수 파생이다** — 최상위 키·command 를 손으로
     적으면 그 사본만 낡는다. goose 는 실기 검증 미완 표기를 강제한다.
+16. **Codex UI metadata가 각 skill에 있다** — `agents/openai.yaml`은 표시 이름,
+    기본 prompt, 암시적 호출 정책을 모두 선언한다.
+17. **Codex plugin manifest가 있다** — Codex marketplace가 읽는
+    `.codex-plugin/plugin.json`이 skills 및 read-only MCP를 선언한다.
+18. **Codex manifest 의 배포 신원이 packaging metadata 파생이다** — 저자 이메일과
+    라이선스를 손으로 적으면 그 사본이 갈라진다 (실제로 `yklee@` 로 갈라졌다).
 
-**한계**: Agent Plugins 1.0 의 선택 필드 전체 스펙은 아직 원문 확인이 안 됐다
-(2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드(name/version/description)를
-**고정**한다 — 스펙 확인 후 필드를 늘릴 때 이 검사가 먼저 FAIL 하므로, 갱신이
-명시 task 를 거치게 된다 (계획 §5 리스크 완화 "스키마를 fixture 로 고정").
+**한계**: Agent Plugins 1.0 (Claude Code 쪽) 의 선택 필드 전체 스펙은 아직 원문
+확인이 안 됐다 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드
+(name/version/description)를 **고정**한다 — 스펙 확인 후 필드를 늘릴 때 이 검사가
+먼저 FAIL 하므로, 갱신이 명시 task 를 거치게 된다 (계획 §5 리스크 완화
+"스키마를 fixture 로 고정").
+
+Codex 쪽(`.codex-plugin/plugin.json`)은 사정이 다르다 — 원문을 확인했다.
+Codex CLI 가 번들하는 `plugin-creator` 스킬의
+`references/plugin-json-spec.md` 가 field guide 이고, 같은 번들의
+`scripts/validate_plugin.py` 가 외부 검증기다 (codex-cli 0.143.0). 실기 로드도
+실측했다 — `render_codex_manifest` docstring 참조. 이 검사는 CI 에 codex 가 없어도
+돌아야 하므로 codex 를 부르지 않는다: **구조와 파생만** 본다 (case 16·17·18).
+codex 를 쓴 실측은 재현 절차를 docstring 에 남기는 방식으로 고정한다.
 
 Cross-ref: `workflow_kit/plugin_payload.py`, `docs/planning/plugin-transition-plan-2026-08.md` §3-P1.
 """
@@ -71,16 +86,18 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
     CLAUDE_CODE_MCP_RELPATH,
+    CODEX_MANIFEST_RELPATH,
     GEMINI_CONTEXT_RELPATH,
     GEMINI_MANIFEST_RELPATH,
     GOOSE_SNIPPET_RELPATH,
     MARKETPLACE_RELPATH,
     OPENCODE_SNIPPET_RELPATH,
     PAYLOAD_DIRNAME,
-    PLUGIN_NAME,
-    PLUGIN_SKILLS,
     PAYLOAD_MCP_BRIDGE,
     PAYLOAD_MCP_BUNDLE,
+    PLUGIN_AUTHOR,
+    PLUGIN_NAME,
+    PLUGIN_SKILLS,
     default_payload_root,
     default_repo_root,
     diff_payload,
@@ -191,6 +208,93 @@ def test_skill_frontmatter_valid() -> None:
         "test_skill_frontmatter_valid",
         not problems,
         "; ".join(problems[:5]) if problems else f"스킬 {len(seen)}종 frontmatter 유효",
+    )
+
+
+def test_codex_skill_metadata() -> None:
+    """Codex skill 목록/칩을 위한 agents/openai.yaml이 모든 skill에 있는가."""
+    yaml = _yaml()
+    if yaml is None:
+        # 같은 파일의 case 2 와 같은 판정이다 — PyYAML 은 dev extra 에 선언돼 있고,
+        # 없으면 "검사를 못 돌린 것"이지 "통과"가 아니다. 처음 이 case 는 여기서
+        # `continue` 로 조용히 넘어가 PyYAML 부재 환경에서 fail-open 이었다.
+        _record("test_codex_skill_metadata", False, "PyYAML 부재 — dev extra 에 선언돼 있어야 한다")
+        return
+    payload = render_agent_plugin()
+    problems: list[str] = []
+    for spec in PLUGIN_SKILLS:
+        relpath = f"skills/{spec.slug}/agents/openai.yaml"
+        content = payload.get(relpath)
+        if content is None:
+            problems.append(f"{relpath} 누락")
+            continue
+        metadata = yaml.safe_load(content)
+        interface = metadata.get("interface", {}) if isinstance(metadata, dict) else {}
+        if not all(interface.get(key) for key in ("display_name", "short_description", "default_prompt")):
+            problems.append(f"{relpath} interface 필드 누락")
+        elif f"${spec.slug}" not in str(interface["default_prompt"]):
+            problems.append(f"{relpath} default_prompt에 ${spec.slug} 호출이 없다")
+        if metadata.get("policy", {}).get("allow_implicit_invocation") is not True:
+            problems.append(f"{relpath} allow_implicit_invocation=true 누락")
+    _record(
+        "test_codex_skill_metadata",
+        not problems,
+        "; ".join(problems[:4]) if problems else f"Codex metadata {len(PLUGIN_SKILLS)}개 skill 일치",
+    )
+
+
+def test_codex_plugin_manifest() -> None:
+    """Codex marketplace/install surface의 manifest를 검증한다."""
+    payload = render_agent_plugin()
+    manifest = json.loads(payload[CODEX_MANIFEST_RELPATH])
+    problems: list[str] = []
+    if manifest.get("name") != PLUGIN_NAME:
+        problems.append("Codex manifest name 불일치")
+    if manifest.get("version") != KIT_VERSION:
+        problems.append("Codex manifest version 불일치")
+    if manifest.get("skills") != "./skills/":
+        problems.append("Codex manifest skills 경로 불일치")
+    if manifest.get("mcpServers") != f"./{CLAUDE_CODE_MCP_RELPATH}":
+        problems.append("Codex manifest read-only MCP 경로 불일치")
+    interface = manifest.get("interface", {})
+    if not all(interface.get(key) for key in ("displayName", "shortDescription", "longDescription", "developerName", "category")):
+        problems.append("Codex manifest interface 필수 필드 누락")
+    _record(
+        "test_codex_plugin_manifest",
+        not problems,
+        "; ".join(problems) if problems else "Codex manifest + skills + read-only MCP 선언",
+    )
+
+
+def test_codex_manifest_identity_derived() -> None:
+    """18) Codex manifest 의 배포 신원이 packaging metadata 파생인가.
+
+    첫 Codex manifest 는 저자 이메일을 손으로 적었고 `yklee@…` — 정본
+    (`pyproject [project].authors[0].email`) 의 `ykylee@…` 에서 `y` 하나가
+    빠진 채 배포 payload 까지 갔다. 사본이 갈라진 것을 아무도 보지 못했다.
+    이 case 는 **pyproject 를 직접 읽어** 대조한다 — 렌더러가 쓰는 helper 로
+    대조하면 helper 가 틀렸을 때 같이 틀린다 (자기 자신과의 비교).
+    """
+    if sys.version_info >= (3, 11):
+        import tomllib  # noqa: PLC0415
+    else:  # pragma: no cover
+        import tomli as tomllib  # noqa: PLC0415
+    with (SOURCE_ROOT / "pyproject.toml").open("rb") as f:
+        project = tomllib.load(f)["project"]
+    manifest = json.loads(render_agent_plugin()[CODEX_MANIFEST_RELPATH])
+    problems: list[str] = []
+    if manifest["author"].get("email") != project["authors"][0]["email"]:
+        problems.append(
+            f"author.email {manifest['author'].get('email')!r} != pyproject {project['authors'][0]['email']!r}"
+        )
+    if manifest.get("license") != project["license"]:
+        problems.append(f"license {manifest.get('license')!r} != pyproject {project['license']!r}")
+    if manifest["author"].get("url") != f"https://github.com/{PLUGIN_AUTHOR['name']}":
+        problems.append(f"author.url 이 PLUGIN_AUTHOR 파생이 아니다: {manifest['author'].get('url')!r}")
+    _record(
+        "test_codex_manifest_identity_derived",
+        not problems,
+        "; ".join(problems) if problems else "author.email / license / author.url 이 정본 파생",
     )
 
 
@@ -445,6 +549,7 @@ def test_marketplace_manifest() -> None:
 #: (P3 에서 gemini-extension.json 이 넷째로 합류했다).
 VERSION_BEARING_RELPATHS = (
     f"{PAYLOAD_DIRNAME}/plugin.json",
+    f"{PAYLOAD_DIRNAME}/{CODEX_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{CLAUDE_CODE_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}",
     MARKETPLACE_RELPATH,
@@ -805,6 +910,9 @@ def test_goose_opencode_snippets() -> None:
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
+    test_codex_skill_metadata()
+    test_codex_plugin_manifest()
+    test_codex_manifest_identity_derived()
     test_skills_carry_memory_section()
     test_manifest_version_matches_kit()
     test_mcp_matches_read_only_bundle()
@@ -818,7 +926,7 @@ def main() -> int:
     test_status_targets_working_tree()
     test_gemini_adapter()
     test_goose_opencode_snippets()
-    total = 15
+    total = 18
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

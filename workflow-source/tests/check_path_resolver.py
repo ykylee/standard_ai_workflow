@@ -163,6 +163,29 @@ def test_detect_branch_fallback_main_v0_7_60() -> None:
         assert result == "main"
 
 
+def test_detect_branch_with_origin_does_not_use_current_branch() -> None:
+    """origin 이 있는데 `origin/HEAD` 가 없으면 **현재 브랜치를 쓰지 않는다**.
+
+    현재 브랜치는 기본 브랜치가 아니다. 이 fallback 때문에 canonical URL 이 체크아웃한
+    브랜치를 따라다녔고, 같은 커밋인데도 CI 셀마다 판정이 갈렸다 (2026-08-13 실측):
+    `actions/checkout` 은 단일 ref 만 가져와 `origin/HEAD` 를 만들지 않으므로
+    feature 브랜치 push 셀은 `blob/<feature>/…` 를, 같은 SHA 의 PR 셀은 detached 라
+    `blob/main/…` 을 냈다. 커밋된 bundle 은 `blob/main/…` 이라 push 셀만 red.
+    """
+    mod = _import_path_resolver()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "checkout", "-q", "-b", "feature-x"], cwd=tmp_path, check=True)
+        subprocess.run(
+            ["git", "remote", "add", "origin", "https://github.com/owner/repo.git"],
+            cwd=tmp_path, check=True,
+        )
+        # origin 은 있고 origin/HEAD 는 없다 — CI 의 단일 ref 체크아웃과 같은 상태.
+        result = mod._detect_default_branch(tmp_path)
+        assert result == "main", f"현재 브랜치가 새어 나왔다: {result!r}"
+
+
 # ---------------------------------------------------------------------------
 # Test 9-10: resolve_in_repo_path_to_url
 # ---------------------------------------------------------------------------
@@ -232,6 +255,7 @@ def main() -> int:
         test_detect_origin_git_config_v0_7_60,
         test_detect_branch_local_fallback_v0_7_60,
         test_detect_branch_fallback_main_v0_7_60,
+        test_detect_branch_with_origin_does_not_use_current_branch,
         test_resolve_url_passthrough_v0_7_60,
         test_resolve_in_repo_path_v0_7_60,
         test_resolve_pinned_commit_v0_7_60,

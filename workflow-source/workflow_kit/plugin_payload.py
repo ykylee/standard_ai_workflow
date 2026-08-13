@@ -13,8 +13,9 @@
 ```
 plugin/
 ├── plugin.json                  # name / version / description (version 은 __version__ 파생)
+├── .codex-plugin/plugin.json    # Codex plugin manifest (Codex distribution)
 ├── skills/                      # 스킬 4종 — Claude Code 와 Gemini 확장이 같은 관례 경로로 읽는다
-│   ├── session-start/SKILL.md   # §11 명령·계약은 render_memory_update_section 파생
+│   ├── session-start/           # SKILL.md + Codex UI metadata (agents/openai.yaml)
 │   ├── backlog-update/SKILL.md  # 상태값 4종은 rules.task_states 파생
 │   ├── doc-sync/SKILL.md
 │   └── session-end/SKILL.md
@@ -68,7 +69,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Callable, NamedTuple, Sequence
+from typing import Any, Callable, NamedTuple, Sequence
 
 from workflow_kit.common.standard_rules import (
     StandardRules,
@@ -91,12 +92,14 @@ __all__ = [
     "render_agent_plugin",
     "render_claude_code_hooks",
     "render_claude_code_manifest",
+    "render_codex_manifest",
     "render_claude_code_rules",
     "render_gemini_context",
     "render_gemini_manifest",
     "render_goose_config_snippet",
     "render_marketplace_manifest",
     "render_opencode_snippet",
+    "render_openai_agent_metadata",
     "render_plugin_manifest",
     "render_plugin_mcp_config",
     "render_plugin_skill",
@@ -143,6 +146,10 @@ CLAUDE_CODE_RULES_RELPATH = "adapters/claude-code/rules.md"
 #: 으로 옮기자 ``MCP servers (1)`` 로 잡혔다. **validate 통과는 로드 증명이 아니다.**
 CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
 
+#: Codex plugin manifest. Codex 배포물은 이 파일과 ``skills/``를 최소 단위로
+#: 묶으며, Claude Code manifest와 같은 payload를 공유하되 설치 surface는 분리한다.
+CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
+
 #: Gemini CLI 어댑터 (P3, TASK-2026-08-12-main-016). Claude Code 와 같은 이유로
 #: **확장 루트 = payload 루트**다: `gemini extensions list` 실측(0.42.0)에서 확장
 #: 루트의 `skills/` 를 무변환으로 읽어 payload 스킬 4종이 그대로 인벤토리에 잡혔다.
@@ -168,6 +175,12 @@ MARKETPLACE_RELPATH = ".claude-plugin/marketplace.json"
 #: manifest 의 author 필드. 없으면 `claude plugin validate --strict` 가 경고를
 #: 에러로 올린다 (실측).
 PLUGIN_AUTHOR = {"name": "ykylee"}
+
+#: 저자 프로필 URL — `PLUGIN_AUTHOR["name"]` 이 GitHub 핸들이라는 사실에 매인다.
+PLUGIN_AUTHOR_URL = f"https://github.com/{PLUGIN_AUTHOR['name']}"
+
+#: 저장소 URL — Codex manifest 의 `repository` 필드가 쓴다.
+PLUGIN_REPOSITORY_URL = f"{PLUGIN_AUTHOR_URL}/standard_ai_workflow"
 
 
 class PluginSkillSpec(NamedTuple):
@@ -365,6 +378,49 @@ def current_kit_version() -> str:
     return _read_pyproject_version()
 
 
+def _project_table() -> dict[str, Any]:
+    """``workflow-source/pyproject.toml`` 의 ``[project]`` 테이블.
+
+    packaging metadata 를 manifest 로 나를 때 **읽어서** 나른다. 손으로 옮겨 적으면
+    갈라지고, 갈라진 사실을 아무도 못 본다 — 2026-08-13 의 첫 Codex manifest 가
+    저자 이메일을 ``yklee@…`` (정본은 ``ykylee@…``, ``y`` 하나 누락) 로 적은 채
+    배포 payload 까지 갔다.
+    """
+    pyproject = default_repo_root() / "workflow-source" / "pyproject.toml"
+    if sys.version_info >= (3, 11):
+        import tomllib  # noqa: PLC0415
+    else:  # pragma: no cover
+        import tomli as tomllib  # noqa: PLC0415
+    with pyproject.open("rb") as f:
+        data: dict[str, Any] = tomllib.load(f)
+    project = data.get("project")
+    if not isinstance(project, dict):
+        raise ValueError(f"pyproject 에 [project] 테이블이 없다: {pyproject}")
+    return project
+
+
+def current_kit_author_email() -> str:
+    """``[project].authors[0].email`` — 저자 이메일 정본.
+
+    조용한 기본값을 두지 않는다. 못 읽으면 잘못된 주소를 배포물에 박는 것보다
+    생성이 실패하는 편이 낫다 (``write_workflow_kit_version`` 의 무음 skip →
+    loud raise 와 같은 판단).
+    """
+    authors = _project_table().get("authors")
+    email = authors[0].get("email") if isinstance(authors, list) and authors else None
+    if not isinstance(email, str) or "@" not in email:
+        raise ValueError("pyproject [project].authors[0].email 을 읽지 못했다")
+    return email
+
+
+def current_kit_license() -> str:
+    """``[project].license`` — SPDX 라이선스 식별자 정본."""
+    license_id = _project_table().get("license")
+    if not isinstance(license_id, str) or not license_id:
+        raise ValueError("pyproject [project].license 를 읽지 못했다")
+    return license_id
+
+
 def render_plugin_manifest(version: str | None = None) -> str:
     """``plugin/plugin.json`` — Agent Plugins 1.0 manifest.
 
@@ -378,6 +434,61 @@ def render_plugin_manifest(version: str | None = None) -> str:
             "name": PLUGIN_NAME,
             "version": version if version is not None else current_kit_version(),
             "description": PLUGIN_DESCRIPTION,
+        },
+        ensure_ascii=False,
+        indent=2,
+    ) + "\n"
+
+
+def render_codex_manifest(version: str | None = None) -> str:
+    """``plugin/.codex-plugin/plugin.json`` — Codex 전용 plugin manifest.
+
+    Codex는 Agent Skills를 직접 읽지만 marketplace/install surface에서는
+    ``.codex-plugin/plugin.json``이 필요하다. MCP는 read-only bundle만 연결한다.
+
+    **필드는 스펙 원문에서 확인한 것만 쓴다.** :func:`render_plugin_manifest` 의
+    금지("스펙 원문으로 확인하지 못한 선택 필드는 넣지 않는다")는 여기에도 걸린다.
+    원문은 Codex CLI 가 번들하는
+    ``$CODEX_HOME/skills/.system/plugin-creator/references/plugin-json-spec.md``
+    이고, 여기 쓰는 필드는 전부 그 field guide 에 있다 (codex-cli 0.143.0 확인).
+    같은 번들의 ``scripts/validate_plugin.py`` 가 외부 검증기다 —
+    ``interface.displayName`` 을 빼서 되주입하면 그 필드를 지목하며 실패한다.
+
+    **실기 로드 실측** (2026-08-13, codex-cli 0.143.0, 격리 ``CODEX_HOME``):
+    ZIP → ``codex plugin marketplace add`` → ``codex plugin add`` 후
+    ``codex debug prompt-input`` 의 ``<skills_instructions>`` 에 스킬 4종이
+    ``standard-ai-workflow:<slug>`` 로 잡히고, ``codex mcp list`` 에 read-only
+    번들이 ``enabled`` 로 잡힌다. 즉 ``skills`` / ``mcpServers`` 는 실제로 읽힌다.
+    ``interface`` 블록은 UI 표면이라 이 경로로는 관측되지 않았다 — 스펙 원문
+    근거로만 싣는다.
+    """
+    return json.dumps(
+        {
+            "name": PLUGIN_NAME,
+            "version": version if version is not None else current_kit_version(),
+            "description": PLUGIN_DESCRIPTION,
+            "author": {
+                **PLUGIN_AUTHOR,
+                "email": current_kit_author_email(),
+                "url": PLUGIN_AUTHOR_URL,
+            },
+            "repository": PLUGIN_REPOSITORY_URL,
+            "license": current_kit_license(),
+            "keywords": ["workflow", "codex", "agent-skills"],
+            "skills": "./skills/",
+            "mcpServers": f"./{CLAUDE_CODE_MCP_RELPATH}",
+            "interface": {
+                "displayName": "Standard AI Workflow",
+                "shortDescription": "Standard session and documentation workflow",
+                "longDescription": PLUGIN_DESCRIPTION,
+                "developerName": PLUGIN_AUTHOR["name"],
+                "category": "Productivity",
+                "capabilities": ["Workflow", "MCP"],
+                "defaultPrompt": [
+                    "Use $session-start to restore the current workflow baseline.",
+                    "Use $backlog-update to register today's workflow task.",
+                ],
+            },
         },
         ensure_ascii=False,
         indent=2,
@@ -715,6 +826,25 @@ def render_plugin_skill(spec: PluginSkillSpec, rules: StandardRules) -> str:
     )
 
 
+def render_openai_agent_metadata(spec: PluginSkillSpec) -> str:
+    """``skills/<slug>/agents/openai.yaml`` — Codex UI metadata.
+
+    Agent Skills는 ``SKILL.md``만으로도 Codex에 로드되지만, 이 메타데이터를 같이
+    제공하면 skill list와 invocation chip에 사람이 읽을 이름과 시작 prompt가
+    나타난다. 실행 의존성은 ``wk``뿐이며, MCP는 read-only opt-in이므로 여기서
+    자동 의존성으로 선언하지 않는다.
+    """
+    display_name = spec.slug.replace("-", " ").title()
+    return (
+        "interface:\n"
+        f"  display_name: {json.dumps(display_name, ensure_ascii=False)}\n"
+        f"  short_description: {json.dumps(spec.description, ensure_ascii=False)}\n"
+        f"  default_prompt: {json.dumps(f'Use ${spec.slug} to follow the standard AI workflow.', ensure_ascii=False)}\n"
+        "policy:\n"
+        "  allow_implicit_invocation: true\n"
+    )
+
+
 def render_agent_plugin(
     rules: StandardRules | None = None,
     *,
@@ -730,6 +860,7 @@ def render_agent_plugin(
     mcp_config = render_plugin_mcp_config()
     payload: dict[str, str] = {
         "plugin.json": render_plugin_manifest(version),
+        CODEX_MANIFEST_RELPATH: render_codex_manifest(version),
         "mcp.json": mcp_config,
         # 같은 렌더러의 출력을 두 이름으로 둔다 — 정본이 하나라 갈라지지 않고,
         # 검사 case 가 두 파일의 동일성을 강제한다.
@@ -744,6 +875,7 @@ def render_agent_plugin(
     }
     for spec in PLUGIN_SKILLS:
         payload[f"skills/{spec.slug}/SKILL.md"] = render_plugin_skill(spec, resolved)
+        payload[f"skills/{spec.slug}/agents/openai.yaml"] = render_openai_agent_metadata(spec)
     return payload
 
 

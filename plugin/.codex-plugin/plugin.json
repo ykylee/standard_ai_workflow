@@ -1,0 +1,34 @@
+{
+  "name": "standard-ai-workflow",
+  "version": "1.2.0",
+  "description": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 수행하는 스킬 4종과 read-only MCP 도구 번들.",
+  "author": {
+    "name": "ykylee",
+    "email": "ykylee@users.noreply.github.com",
+    "url": "https://github.com/ykylee"
+  },
+  "repository": "https://github.com/ykylee/standard_ai_workflow",
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "codex",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Standard AI Workflow",
+    "shortDescription": "Standard session and documentation workflow",
+    "longDescription": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 수행하는 스킬 4종과 read-only MCP 도구 번들.",
+    "developerName": "ykylee",
+    "category": "Productivity",
+    "capabilities": [
+      "Workflow",
+      "MCP"
+    ],
+    "defaultPrompt": [
+      "Use $session-start to restore the current workflow baseline.",
+      "Use $backlog-update to register today's workflow task."
+    ]
+  }
+}

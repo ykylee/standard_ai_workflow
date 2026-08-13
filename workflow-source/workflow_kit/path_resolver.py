@@ -131,6 +131,21 @@ def _normalize_origin_url(raw_url: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Default branch detection
 # ---------------------------------------------------------------------------
+def _repo_has_origin_remote(repo_root: Path) -> bool:
+    """``repo_root`` 자신이 `origin` remote 를 가졌는가 (env 를 보지 않는다)."""
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def _detect_default_branch(repo_root: Path) -> str:
     """Detect default branch. 3 layer fallback.
 
@@ -154,19 +169,35 @@ def _detect_default_branch(repo_root: Path) -> str:
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass
 
-    # 2. `git branch --show-current` (local fallback)
-    try:
-        result = subprocess.run(
-            ["git", "branch", "--show-current"],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
+    # 2. `git branch --show-current` — **remote 가 없을 때만**.
+    #
+    # 현재 브랜치는 기본 브랜치가 아니다. origin 이 있는데도 이 fallback 을 쓰면
+    # canonical URL 이 *지금 체크아웃한 브랜치*를 가리킨다 — 같은 파일이 브랜치마다
+    # 다른 URL 을 갖게 되므로 canonical 이 아니다. 실측(2026-08-13): `actions/checkout`
+    # 은 단일 ref 만 가져와 `refs/remotes/origin/HEAD` 를 만들지 않는다. 그래서
+    # feature 브랜치 push 셀에서만 `…/blob/feat/plugin-harness-distribution/…` 이
+    # 나와 커밋된 bundle 의 `…/blob/main/…` 과 어긋났고, 같은 커밋의 PR 셀은
+    # detached HEAD 라 이 fallback 이 비어 통과했다 — **같은 SHA, 셀마다 다른 판정**.
+    #
+    # remote 가 아예 없는 저장소(로컬 전용)에서는 현재 브랜치가 곧 기본 브랜치이므로
+    # 그때만 쓴다.
+    # 판단은 **이 저장소에 remote 가 있는가** 다. `_detect_origin_url` 로 물으면
+    # 안 된다 — 그쪽은 CI env(`GITHUB_REPOSITORY`)를 먼저 보므로 GitHub Actions 안에서는
+    # remote 없는 temp 저장소에도 URL 을 돌려준다. 그러면 이 gate 가 CI 에서만 반대로
+    # 열린다 (실측: 로컬 13/13, CI 에서 그 case 만 red).
+    if not _repo_has_origin_remote(repo_root):
+        try:
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=str(repo_root),
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
 
     # 3. Fallback: "main" (warning emitted by caller)
     return "main"

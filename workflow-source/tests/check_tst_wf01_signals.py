@@ -5,7 +5,7 @@ TST-WF-01 은 두 번 잘못 운영됐다: 이름-count 측정이 정당한 case
 `assert True` dummy 575개를 심었다 (v0.15.18 — 가짜 신호로 compliant).
 v1.1.5 재설계(`_count_verification_signals`, AST)가 두 결함을 모두 갚는지 고정한다.
 
-검증 케이스 (9):
+검증 케이스 (11):
     1. `def test_*` 정의가 신호로 세어진다
     2. inline `check(label, cond)` 호출식이 세어진다 (v1.1.4 이전 측정의 사각 1)
     3. `failures.append(...)` 수집식이 세어진다 (사각 2)
@@ -15,6 +15,14 @@ v1.1.5 재설계(`_count_verification_signals`, AST)가 두 결함을 모두 갚
     7. parse 불가 파일은 신호 0 → non_compliant (실행될 수 없는 검사는 통과가 아니다)
     8. 실제 저장소: TST-WF-01 compliant + testing baseline 이 hard 로도 non_compliant 아님
     9. tests 디렉터리가 비어 있으면 non_compliant (0 files 를 잰 것은 통과가 아니다)
+    10. `raise AssertionError(...)` 가 세어진다 (사각 3 — TASK-2026-08-13-main-009)
+    11. 다른 예외 / bare `raise` 는 세지 않는다 (floor 를 무력화하지 않는다)
+
+사각 3 의 성격: v1.1.5 재설계 후에도 `raise AssertionError` 는 신호가 아니었다.
+저장소 smoke **89개**가 그 관용구를 쓰는데도 red 가 안 난 이유는 그 파일들이 다른
+형태를 곁들였기 때문이고, 그 형태만 쓰는 파일이 하나 들어오자 min 이 0 이 됐다 —
+"우연히 green" 이던 자리다. case 10/11 은 인정 범위를 넓히되 (10) 넓힌 범위가
+floor 를 못 쓰게 만들지 않는지 (11) 를 같이 고정한다.
 
 fixture 는 tmpdir 의 가짜 project_root (`<tmp>/workflow-source/tests/`) — 실제
 저장소를 쓰지도, 건드리지도 않는다.
@@ -97,6 +105,34 @@ def main() -> int:
         ) == 0,
     )
 
+    n_raise = _count_verification_signals(
+        "def main():\n"
+        "    if not ok():\n"
+        "        raise AssertionError('bad')\n"
+        "    if not ok2():\n"
+        "        raise AssertionError\n"
+    )
+    check(
+        "10) raise AssertionError 가 세어진다 (호출형·bare 둘 다)",
+        n_raise == 2,
+        f"count={n_raise}",
+    )
+    n_other = _count_verification_signals(
+        "def main():\n"
+        "    try:\n"
+        "        run()\n"
+        "    except OSError:\n"
+        "        raise\n"
+        "    if bad():\n"
+        "        raise ValueError('nope')\n"
+        "    raise SystemExit(main())\n"
+    )
+    check(
+        "11) 다른 예외·bare raise 는 세지 않는다",
+        n_other == 0,
+        f"count={n_other}",
+    )
+
     with tempfile.TemporaryDirectory() as tmp:
         # 6) 신호 0 파일 되주입 → non_compliant
         root = _fake_root(tmp, {
@@ -133,7 +169,7 @@ def main() -> int:
         f"tst01={tst01.status} baseline={summary.status} notes={tst01.notes!r}",
     )
 
-    total = 9
+    total = 11
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")
         return 1

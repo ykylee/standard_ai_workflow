@@ -20,7 +20,10 @@ seed 가 만드는 문서는 `session-start` 파서와 **문구 단위로** 맞�
 
 5 cases:
   1) dry-run 은 아무것도 쓰지 않는다
-  2) **apply 후 session-start 가 status=ok + warnings 없이 돈다** (핵심)
+  2) **apply 후 session-start 가 status=ok + (seed 산출물發) warnings 없이 돈다** (핵심)
+     — `state.json 부재` 한 줄은 제외한다. seed 는 파생 파일을 만들지 않으므로
+     정상이고, 그 줄을 판정에 넣으면 결과가 **호스트 저장소의 브랜치 상태**에
+     달린다 (main 통과 / detached HEAD·메모리 없는 브랜치 FAIL).
   3) 멱등 — 재실행이 기존 handoff/backlog 를 덮어쓰지 않고 task 번호만 증가
   4) state.json 을 만들지 않는다 (파생 파일은 rebuild 담당)
   5) 생성된 task 파일이 append-only layout frontmatter 규약에 맞는다
@@ -42,6 +45,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common.purpose_graph import STATE_ABSENT_WARNING  # noqa: E402
 
 SEED_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
@@ -107,9 +112,17 @@ def main() -> int:
             started.get("status") == "ok",
             f"status={started.get('status')} error_code={started.get('error_code')}",
         )
+        # seed 산출물에서 온 warning 만 본다. `state.json 부재` 는 **호스트 저장소**의
+        # 상태에서 오던 잡음이었다: 이 검사는 임시 workspace 를 판정한다면서
+        # `--project-profile-path` 로 실제 저장소를 가리켜, state.json 을 그쪽에서
+        # 찾고 있었다. main 에서는 그게 채워져 있어 통과했고, detached HEAD(=CI 의 PR
+        # checkout)나 메모리 디렉터리 없는 브랜치에서는 못 찾아 FAIL 했다 — 판정이
+        # seed 산출물이 아니라 호스트 상태에 달려 있었다. seed 는 state.json 을
+        # 일부러 만들지 않으므로(아래 test_no_state_json) 이 한 줄은 정상이다.
+        residual = [w for w in started.get("warnings", []) if w != STATE_ABSENT_WARNING]
         _record(
             "test_session_start_has_no_warnings",
-            not started.get("warnings"),
+            not residual,
             f"warnings={started.get('warnings')}",
         )
         task_id = result["task_id"]

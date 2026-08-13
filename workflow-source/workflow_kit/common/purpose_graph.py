@@ -447,6 +447,17 @@ def compute_health_score(
 # unified entry
 # ---------------------------------------------------------------------------
 
+STATE_ABSENT_WARNING = (
+    "state.json 부재 / recent_done_items 부재 — coverage/surprising/gaps 분석 limited"
+)
+"""`state.json` 을 못 찾았을 때의 warning 문구 (정본).
+
+새로 만든 workspace 에서는 **정상**이다 — `seed_workspace_memory` 는 state.json 을
+일부러 만들지 않는다 (`check_seed_workspace_memory::test_no_state_json`). 그래서
+seed 산출물을 판정하는 검사는 이 한 줄을 허용 목록에 두고 *나머지* warning 이
+비었는지를 본다. 문구를 손으로 옮겨 적으면 갈라지므로 여기서 import 한다.
+"""
+
 
 def run_graph_insights(
     purpose_path: Path | None = None,
@@ -494,7 +505,7 @@ def run_graph_insights(
     # step 2: recent done
     items = parse_recent_done_items(state_path)
     if not items:
-        overall_warnings.append("state.json 부재 / recent_done_items 부재 — coverage/surprising/gaps 분석 limited")
+        overall_warnings.append(STATE_ABSENT_WARNING)
 
     # step 3: coverage
     coverage = compute_goal_coverage(goals, items) if goals and items else None

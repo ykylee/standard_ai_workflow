@@ -90,6 +90,15 @@ daily index·handoff·state.json 을 직접 편집했다 (`51e04eb` 이 건드�
 `check_appendonly_memory_layout` case 7 이 잡지만, "작업 브랜치인데 그 브랜치
 디렉터리가 없다" 는 여전히 3개 검사의 *간접* 증상으로만 드러난다.
 
+## 🔁 로컬 green / CI red (3번째)
+
+브랜치 메모리를 만든 뒤에도 CI 만 2건 red 였다. `check_claim_workspace` /
+`check_seed_workspace_memory` 가 임시 workspace 를 판정한다면서
+`--project-profile-path` 로 실제 저장소를 가리켜 `state.json` 을 호스트에서 찾았고,
+판정이 호스트의 브랜치 상태에 달려 있었다 (main 통과 / detached HEAD = CI 의 PR
+checkout FAIL). 로컬 detached worktree 로 재현 → `STATE_ABSENT_WARNING` 정본 상수를
+뽑아 그 한 줄만 허용하고 나머지 warning 을 본다. 되주입으로 비공허성 확인.
+
 ## 후속 작업
 
 - 신규 하네스의 native manifest 와 `PluginHarnessSpec` 등록 후 distribution smoke 확장.

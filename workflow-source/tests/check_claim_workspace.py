@@ -46,6 +46,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.purpose_graph import STATE_ABSENT_WARNING  # noqa: E402
+
 CLAIM = SOURCE_ROOT / "workflow_kit" / "tools" / "claim_workspace.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
 PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
@@ -179,8 +181,15 @@ def main() -> int:
             capture_output=True, text=True, env=ENV,
         )
         payload = json.loads(started.stdout)
+        # `state.json 부재` 는 갓 claim 한 workspace 에서 정상이다 (seed 는 파생 파일을
+        # 만들지 않는다). 이 검사는 임시 workspace 를 판정한다면서
+        # `--project-profile-path` 로 실제 저장소를 가리켜 state.json 을 그쪽에서
+        # 찾고 있었고, 그래서 판정이 **호스트 저장소의 브랜치 상태**에 달려 있었다 —
+        # main 에서는 통과하고 detached HEAD(CI 의 PR checkout)나 메모리 디렉터리 없는
+        # 브랜치에서는 FAIL. 나머지 warning 만 본다.
+        residual = [w for w in payload.get("warnings", []) if w != STATE_ABSENT_WARNING]
         _record("test_winner_can_start_session",
-                payload.get("status") == "ok" and not payload.get("warnings"),
+                payload.get("status") == "ok" and not residual,
                 f"status={payload.get('status')} warnings={payload.get('warnings')}")
 
         # --- 9: force push 수단이 없다 -------------------------------------

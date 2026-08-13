@@ -96,7 +96,27 @@ auto-merge 되어 같은 ID bullet 두 개가 남고, task 파일만 add/add con
 index 에 같은 제목으로 다시 실려 상태만 갱신)과 구분해 ①한 daily index 안의 중복
 ②같은 ID 에 다른 제목 만 잡는다. 실제 충돌을 되주입하면 둘 다 검출한다.
 
-## 5. 남은 구멍
+## 5. 로컬 green / CI red 가 한 번 더 나왔다
+
+브랜치 메모리를 만들자 로컬 전량은 2축 green 이 됐는데 **CI 는 같은 SHA 에서 2건
+red** 였다 (`check_claim_workspace` / `check_seed_workspace_memory`). 이 저장소가
+두 번 치른 비대칭(SDK 매트릭스 / 브랜치 매트릭스)의 세 번째다.
+
+원인: 두 검사는 임시 workspace 를 판정한다면서 `--project-profile-path` 로 **실제
+저장소**를 가리켰다. handoff·backlog 는 임시 workspace 것을 넘기지만 `state.json` 은
+프로필 경로에서 파생되므로 호스트 저장소에서 찾는다. 그래서 판정이 seed 산출물이
+아니라 **호스트의 브랜치 상태**에 달려 있었다:
+
+- `main` 체크아웃 → 브랜치 state.json 이 채워져 있음 → warning 없음 → PASS
+- detached HEAD (CI 의 PR checkout) → 브랜치 slug 이 short SHA → 그 경로 없음 →
+  `state.json 부재` warning → FAIL
+
+로컬 detached worktree 로 **재현했다**. seed 는 state.json 을 일부러 만들지 않으므로
+(`test_no_state_json`) 그 warning 은 정상이다 — 문구를 `STATE_ABSENT_WARNING` 정본
+상수로 뽑아 두 검사가 그 한 줄만 허용 목록에 두고 *나머지* warning 을 본다.
+되주입으로 공허하지 않음을 확인했다: 다른 warning 을 하나 심으면 두 검사 모두 FAIL.
+
+## 6. 남은 구멍
 
 손 편집을 막을 자리가 없다. 작업 브랜치에 `active/<branch>/` 가 없다는 사실을
 직접 지목하는 검사가 아직 없고, 3개 검사의 간접 증상으로만 드러난다.

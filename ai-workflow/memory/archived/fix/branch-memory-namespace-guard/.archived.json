@@ -1,0 +1,12 @@
+{
+  "branch": "fix/branch-memory-namespace-guard",
+  "archived_at": "2026-08-13",
+  "merge_commit": "4ad4798560f57a0a85cd21847e92ce8818f586ee",
+  "task_ids": [
+    "TASK-2026-08-13-fix-branch-memory-namespace-guard-001",
+    "TASK-2026-08-13-fix-branch-memory-namespace-guard-002",
+    "TASK-2026-08-13-fix-branch-memory-namespace-guard-003"
+  ],
+  "task_count": 3,
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

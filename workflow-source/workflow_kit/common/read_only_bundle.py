@@ -18,7 +18,7 @@ from workflow_kit.common.markdown import (
     resolve_relative_target,
 )
 from workflow_kit.common.paths import resolve_existing_path
-from workflow_kit.common.project_docs import parse_backlog
+from workflow_kit.common.project_docs import parse_backlog, task_label
 
 
 DATE_NAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})\.md$")
@@ -226,24 +226,29 @@ def create_backlog_entry_payload(
     priority: str | None,
     tool_version: str,
 ) -> dict[str, Any]:
+    # 라벨은 **정본 표에서만** 가져온다 (`TASK_FIELD_LABELS`). 여기가 리터럴을 들고
+    # 있으면 정본을 바꿔도 이 자리만 옛 표기로 남는다 — MCP 번들이 만든 task 를
+    # 소비자의 리더가 못 읽게 되는 갈라짐의 씨앗이다.
     draft_entry = [
         f"## {task_id} {task_name}",
         "",
-        f"- 상태: {status or 'planned'}",
-        f"- 우선순위: {priority or 'high'}",
-        f"- 요청일: {request_date}",
-        "- 완료일:",
-        "- 담당:",
-        "- 호스트명:",
-        "- 호스트 IP:",
-        "- 영향 문서:",
-        "- 작업 내용:",
-        "- 진행 현황:",
-        "- 완료 기준:",
-        "- 작업 결과:",
-        "- 다음 세션 시작 포인트:",
-        "- 남은 리스크:",
-        "- 후속 작업:",
+        f"- {task_label('status')}: {status or 'planned'}",
+        f"- {task_label('priority')}: {priority or 'high'}",
+        f"- {task_label('request_date')}: {request_date}",
+        *(f"- {task_label(key)}:" for key in (
+            "completion_date",
+            "owner",
+            "host_name",
+            "host_ip",
+            "affected_documents",
+            "summary",
+            "progress",
+            "done_criteria",
+            "result",
+            "next_step",
+            "risks",
+            "follow_up",
+        )),
     ]
     return {
         "status": "ok",

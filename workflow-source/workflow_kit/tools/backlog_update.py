@@ -136,7 +136,7 @@ def build_draft_entry(
         "",
         _one(task_label("status"), status),
         _one(task_label("priority"), priority),
-        f"- 요청일: {request_date}",
+        f"- {task_label('request_date')}: {request_date}",
         _one(task_label("owner"), owner),
         _one(task_label("host_name"), host_name),
         _one(task_label("host_ip"), host_ip),

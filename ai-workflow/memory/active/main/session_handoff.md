@@ -40,7 +40,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

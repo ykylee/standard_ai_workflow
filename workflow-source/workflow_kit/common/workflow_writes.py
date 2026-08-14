@@ -7,7 +7,12 @@ from pathlib import Path
 import re
 
 from workflow_kit.common.markdown import rel_link_from_doc
-from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP, TASK_ID_PATTERN
+from workflow_kit.common.project_docs import (
+    RECENT_DONE_ITEMS_CAP,
+    TASK_ID_PATTERN,
+    is_empty_label_line,
+    task_label,
+)
 
 #: handoff 항목 맨 앞의 task ID. dedupe 는 **표기가 아니라 ID** 로 한다 —
 #: 같은 task 를 "TASK-X — 제목" 과 "TASK-X 제목" 으로 두 번 들고 있던 실측
@@ -267,27 +272,33 @@ def merge_task_file(
 
     for label, value in (scalar_updates or {}).items():
         lines, found = _set_inline_field(lines, label, value)
-        if not found and label == "검증 결과":
+        if not found and label == task_label("validation"):
             # done 판정의 근거라 조용히 버릴 수 없다. 원문에 줄이 없으면 (구버전
             # create 는 이 줄을 조건부로만 만들었다) `작업 결과` 바로 뒤에 넣는다.
+            #
+            # 앵커를 **리터럴로 찾으면 안 된다** — 옛/영어 표기로 적힌 문서에서는
+            # 그 비교가 항상 거짓이라 이 분기가 조용히 안 돈다. 찾기는 별칭까지
+            # 넓게, 넣는 줄은 정본 표기로 좁게.
+            anchor = _label_prefixes(task_label("result"))
             for idx, line in enumerate(lines):
-                if line.strip().startswith("- 작업 결과:"):
-                    lines = lines[: idx + 1] + [f"- 검증 결과: {value}"] + lines[idx + 1 :]
+                if _matches_label(line.strip(), anchor):
+                    lines = lines[: idx + 1] + [f"- {label}: {value}"] + lines[idx + 1 :]
                     found = True
                     break
         if not found:
             missing.append(label)
 
     if affected_documents:
+        docs_label = task_label("affected_documents")
         for idx, line in enumerate(lines):
-            if line.strip() == "- 영향 문서:":
+            if is_empty_label_line(line, "affected_documents"):
                 end = idx + 1
                 while end < len(lines) and lines[end].startswith("  - "):
                     end += 1
                 lines = lines[: idx + 1] + [f"  - `{doc}`" for doc in affected_documents] + lines[end:]
                 break
         else:
-            missing.append("영향 문서")
+            missing.append(docs_label)
     return lines, missing
 
 

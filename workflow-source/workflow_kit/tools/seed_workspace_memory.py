@@ -60,6 +60,7 @@ from workflow_kit.common.paths import (  # noqa: E402
     memory_dir_for_workspace,
     state_path_in_active,
 )
+from workflow_kit.common.project_docs import task_label  # noqa: E402
 from workflow_kit.common.workflow_writes import (  # noqa: E402
     render_task_file,
     upsert_backlog_entry,
@@ -143,25 +144,25 @@ def task_body(*, axis: str, out_of_scope: str | None) -> list[str]:
     body = [
         "## 📝 Description",
         "",
-        "- 상태: in_progress",
-        f"- 요청일: {date.today().isoformat()}",
-        "- 담당: AI Agent",
-        f"- 작업 내용: {axis}",
+        f"- {task_label('status')}: in_progress",
+        f"- {task_label('request_date')}: {date.today().isoformat()}",
+        f"- {task_label('owner')}: AI Agent",
+        f"- {task_label('summary')}: {axis}",
     ]
     if out_of_scope:
-        body.append(f"- 범위 밖: {out_of_scope}")
+        body.append(f"- {task_label('out_of_scope')}: {out_of_scope}")
     body += [
-        "- 완료 기준: (작성 필요 — 검증 방법을 구체적으로 적는다)",
+        f"- {task_label('done_criteria')}: (작성 필요 — 검증 방법을 구체적으로 적는다)",
         "",
         "## 🛠️ Implementation / Content",
         "",
-        "- 진행 현황: 시작 전.",
+        f"- {task_label('progress')}: 시작 전.",
         "",
         "## ✅ Outcome",
         "",
-        "- 작업 결과:",
-        "- 검증 결과:",
-        "- 후속 작업:",
+        f"- {task_label('result')}:",
+        f"- {task_label('validation')}:",
+        f"- {task_label('follow_up')}:",
         "",
     ]
     return body

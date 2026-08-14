@@ -1,0 +1,11 @@
+{
+  "branch": "perf/heavy-check-runtime",
+  "archived_at": "2026-08-14",
+  "merge_commit": "17c8ec132bab2a43943b544ee167ab2e527e8c75",
+  "task_ids": [
+    "TASK-2026-08-14-perf-heavy-check-runtime-001"
+  ],
+  "task_count": 1,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

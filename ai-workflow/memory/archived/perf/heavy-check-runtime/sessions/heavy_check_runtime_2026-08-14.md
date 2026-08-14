@@ -4,7 +4,9 @@
 - 범위: `check_wiki_score` / 릴리스 계열 3종 / seed 경로 결함 2건
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 관련 문서: [task](../backlog/tasks/TASK-2026-08-14-perf-heavy-check-runtime-001.md), [main-009](../../main/backlog/tasks/TASK-2026-08-13-main-009.md)
+- 관련 문서: [task](../backlog/tasks/TASK-2026-08-14-perf-heavy-check-runtime-001.md), `active/main/backlog/tasks/TASK-2026-08-13-main-009.md`
+- 주의: 다른 네임스페이스(`active/main/`)로는 **상대 링크를 걸지 않는다** — 아카이브되면
+  `archived/main/…` 으로 풀려 깨진다. 경로 표기로 둔다 (2026-08-14 실측, 같은 함정 2회째).
 
 ## 0. 원인은 하나였다 — 같은 계산을 여러 번
 

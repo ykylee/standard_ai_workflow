@@ -6,16 +6,16 @@
 - 최종 수정일: 2026-08-13
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
-## 1. 공통 원칙
+## 1. Core Principles
 
-- 새 세션은 항상 현재 상태 요약 문서부터 읽는다.
-- 작업은 시작 전에 목적, 범위, 예상 산출물, 영향 문서를 짧게 브리핑한다.
-- 작업은 상태 문서에 기록하고, 진행 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 다음 세션이 바로 이어받을 수 있게 현재 상태를 요약한다.
-- 여러 에이전트가 함께 일할 수 있으므로, 작업 시작 전에 원격을 동기화해 다른 에이전트의 진행 상황을 확인하고 겹치지 않는 작업을 선택한다.
-- 다른 에이전트의 작업을 지우거나 덮어쓰는 등 되돌릴 수 없는 작업은 단독으로 결정하지 않고 사용자에게 확인한다.
-- 공통 표준은 얇게 유지하고, 프로젝트별 차이는 프로젝트 프로파일에 둔다.
+- Start every session by reading the current state summary documents first.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
+- Never mark an unverified result as done.
+- Before ending a session, summarize the current state so the next session can pick it up directly.
+- Multiple agents may work together: sync with the remote before starting, check what other agents are doing, and pick work that does not overlap.
+- Never decide irreversible actions alone — deleting or overwriting another agent's work requires confirmation from the user.
+- Keep the shared standard thin; put project-specific differences in the project profile.
 
 ## 1.1 언어와 보고 원칙
 
@@ -57,14 +57,14 @@
 3. 진행 중 또는 차단 작업이 있는지 확인한다.
 4. 현재 프로젝트 프로파일을 읽고 저장소별 명령과 문서 구조를 확인한다.
 
-## 3. 작업 상태값
+## 3. Task Status Values
 
-| 상태 | 의미 |
+| Status | Meaning |
 | --- | --- |
-| `planned` | 시작 준비는 됐지만 본격 수행 전 |
-| `in_progress` | 현재 세션 또는 다음 세션에서 이어서 처리 중 |
-| `blocked` | 외부 의존성 또는 결정 대기 때문에 진행 불가 |
-| `done` | 완료 기준과 검증 근거를 갖춘 상태 |
+| `planned` | Ready to start, not yet underway |
+| `in_progress` | Being worked on in this session or continuing into the next |
+| `blocked` | Cannot proceed — external dependency or pending decision |
+| `done` | Meets its completion criteria and has verification evidence |
 
 ## 4. 작업 기록 최소 필드
 
@@ -127,26 +127,26 @@
     - 구현 완료(`stable`/`beta`)로 선언된 항목의 실제 코드/스크립트 존재 여부.
     - 로드맵 문서의 단계와 JSON의 마일스톤 단계 일치 여부.
 
-## 8. 세션 종료 원칙 및 절차
+## 8. Session Close Principles and Procedure
 
-세션 종료는 **memory 갱신 → commit → push** 순서로 진행한다. memory 갱신을 commit 이후 별도 turn 에 분리하지 않는다 (push 시 memory 갱신 내용이 동일 commit 에 포함되도록 협업 정합 보장).
+Close a session in the order **update memory → commit → push**. Do not split the memory update into a separate turn after the commit, so that pushed commits always carry the memory update with them (collaboration consistency).
 
-**8.1 종료 절차 (memory → commit → push)**
-1. **memory 갱신** (commit 직전): 오늘 작업 결과를 상태 문서에 반영한다.
-   - `state.json`, `session_handoff.md`, `work_backlog.md` 등 active memory 갱신
-   - 미검증 항목과 남은 리스크를 명시한다
-   - **문서 정합성 동기화**: `maturity_matrix.json`을 업데이트하고 관련 계획 문서(Roadmap/Catalog)를 최신화한다
-2. **최종 검증**: `workflow-linter`를 실행하여 문서 간 불일치가 없는지 확인한다.
-3. **다음 세션 시작 포인트** + **종료 요약** 을 handoff 에 짧게 적는다 (다음 세션이 바로 이어받는 데 필요한 핵심 사실만 간결하게).
-4. **commit + push**: memory 갱신이 *모두 포함된 상태* 로 단일 commit 작성 + push. (협업자가 push 시점에 memory 갱신까지 함께 본다)
+**8.1 Close procedure (memory → commit → push)**
+1. **Update memory** (immediately before the commit): reflect today's results in the state documents.
+   - Update active memory: `state.json`, `session_handoff.md`, `work_backlog.md`, etc.
+   - State unverified items and remaining risks explicitly
+   - **Sync document consistency**: update `maturity_matrix.json` and refresh related planning documents (Roadmap/Catalog)
+2. **Final verification**: run `workflow-linter` to confirm there is no inconsistency across documents.
+3. Write the **next-session starting point** and a **close summary** into the handoff — only the facts the next session needs to continue.
+4. **Commit + push**: a single commit that *already contains* the memory update, then push. (Collaborators see the memory update at push time.)
 
-**8.2 commit 이후 추가 memory 작업 (예외, 의도적 허용)**
-- `summarize_git_history` 로 commit hash 를 handoff 에 반영하는 작업은 commit 이후에 의미가 있다. 이는 *예외*로 허용하되 그 자체가 별도 commit 의 대상은 아니다 (다음 작업의 memory 갱신 cycle 에 흡수).
-- 별도 turn "memory 에 적어줘" 호출은 deprecated. memory 갱신은 결과 commit 직전 같은 turn 에 묶어서 처리한다.
+**8.2 Memory work after the commit (deliberate exception)**
+- Writing commit hashes into the handoff via `summarize_git_history` only makes sense after the commit. This is allowed as an *exception*, but is not itself a reason for a separate commit (absorb it into the next memory-update cycle).
+- A separate "write it to memory" turn is deprecated. Memory updates belong in the same turn as the commit they describe.
 
-**8.3 잘못된 순서 (안티패턴)**
-- ❌ commit → push → 별도 turn memory 갱신 → 또 commit → push (memory 갱신 누락 / 추가 commit 유발 → 협업 결함)
-- ❌ memory 갱신 누락 후 commit → push (협업자가 memory 변경을 push 시점에 못 봄)
+**8.3 Wrong order (anti-patterns)**
+- ❌ commit → push → separate memory-update turn → another commit → push (memory update gets dropped / extra commits → collaboration defect)
+- ❌ commit → push with the memory update missing (collaborators cannot see the memory change at push time)
 
 ## 8.4 자기 적용 (self-application)
 
@@ -219,29 +219,29 @@ push 가 거부되면 **다른 에이전트가 이미 그 작업을 가져갔다
 
 원칙: **되돌릴 수 없는 작업은 에이전트가 단독으로 결정하지 않는다.**
 
-## 11. 메모리 갱신 경로와 파싱 계약
+## 11. Memory Update Paths and Parsing Contract
 
-메모리 문서(`state.json` / `session_handoff.md` / backlog)는 **도구를 거쳐 갱신한다.**
-도구가 그 문서들의 형식 계약을 알고 있고, 손으로 쓰면 그 계약이 조용히 깨진다.
-실측(2026-08-11): handoff 의 빈 목록에 산문 "(없음 …)" 을 써 두었더니 `state.json` 이
-그것을 **작업 항목 하나로** 읽었고, 아무 검사도 그것을 오류로 보지 않았다.
+Update memory documents (`state.json` / `session_handoff.md` / backlog) **through the tools.**
+The tools know these documents' format contract; writing by hand breaks that contract silently.
+Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list was read by
+`state.json` as **one work item**, and no check flagged it as an error.
 
-**11.1 갱신 명령**
+**11.1 Update commands**
 
-| 목적 | 명령 |
+| Purpose | Command |
 |---|---|
-| 세션 시작 baseline 복원 | `wk session-start` |
-| task 등록 / 갱신 | `wk backlog-update` |
-| 영향 문서 동기화 (advisory) | `wk doc-sync` |
-| 세션 종료 시 state.json 재생성 | `wk refresh-state` |
+| Restore session-start baseline | `wk session-start` |
+| Register / update a task | `wk backlog-update` |
+| Sync affected documents (advisory) | `wk doc-sync` |
+| Regenerate state.json at session close | `wk refresh-state` |
 
-**11.2 파싱 계약** — 도구를 쓰지 않고 손으로 쓸 때도 지켜야 한다
+**11.2 Parsing contract** — holds even when writing by hand instead of using the tools
 
-- handoff 의 `in_progress` / `blocked` 목록이 비면 **빈 bullet `-`** 로 둔다. 산문을 쓰면 작업 항목으로 파싱된다.
-- handoff 의 최근 완료 목록 항목은 `TASK-` 로 시작하고, 10건을 넘지 않는다.
-- backlog task 의 `status` 는 `planned` / `in_progress` / `blocked` / `done` 중 하나다.
-- `state.json` 은 **생성물**이다 — 손으로 고치지 않는다. SSOT 는 `backlog/tasks/` 와 `session_handoff.md` 이고, 세션 종료 시 `wk refresh-state` 로 재생성한다.
-- `session_handoff.md` 와 backlog 는 **state.json 생성기의 입력**이다 — 형식을 벗어나 쓰면 state.json 이 조용히 오염된다.
+- When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
+- Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
+- A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
+- `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `wk refresh-state` at session close.
+- `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
 
 ## 다음에 읽을 문서
 

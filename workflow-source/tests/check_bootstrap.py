@@ -128,8 +128,10 @@ def check_new_project_mode() -> None:
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
         if "Sample API" not in readme_text:
             raise AssertionError("Generated README does not mention the project name.")
-        if "사용자에게 직접 보이는 작업 보고" not in readme_text:
-            raise AssertionError("Generated workflow README should include the Korean reporting rule.")
+        # 2026-08-14: 진입점 문안이 영어로 옮겨졌다. 재는 것은 그대로 —
+        # "생성된 README 가 보고 언어 규칙을 싣고 있는가".
+        if "Write user-facing work reports" not in readme_text:
+            raise AssertionError("Generated workflow README should include the reporting-language rule.")
 
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "ai-workflow/memory/" not in profile_text:
@@ -222,7 +224,7 @@ def check_existing_project_mode() -> None:
             raise AssertionError("Repository assessment is missing inferred script details.")
 
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
-        if "내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리" not in readme_text:
+        if "Handle internal reasoning and intermediate classification" not in readme_text:
             raise AssertionError("Existing project workflow README should include the context-saving rule.")
 
         docs_backlog_dir = target_root / "docs" / "operations" / "backlog"
@@ -288,18 +290,19 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("Generated workflow state should include next_documents.")
 
         agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
-        if "사용자에게 직접 보이는 작업 보고" not in agents_text:
-            raise AssertionError("AGENTS.md should include the Korean reporting rule.")
+        # 2026-08-14: 진입점 문안 영어화. 재는 질문은 그대로다.
+        if "Write user-facing work reports" not in agents_text:
+            raise AssertionError("AGENTS.md should include the reporting-language rule.")
         if "ai-workflow/memory/active/<branch>/state.json" not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
-        if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:
+        if "Do not include it in the default search scope" not in agents_text:
             raise AssertionError("AGENTS.md should exclude ai-workflow from normal project exploration.")
-        if "- 문서 목적:" not in agents_text:
+        if "- Purpose:" not in agents_text:
             raise AssertionError("AGENTS.md should include doc metadata for repository smoke checks.")
 
         skill_text = Path(str(harness_files["opencode_skill"])).read_text(encoding="utf-8")
         if "Write user-facing status updates, work reports, and document drafts in Korean by default." not in skill_text:
-            raise AssertionError("OpenCode skill should include the Korean reporting rule.")
+            raise AssertionError("OpenCode skill should include the reporting-language rule.")
         if "ai-workflow/memory/active/<branch>/state.json" not in skill_text:
             raise AssertionError("OpenCode skill should read the workflow state cache.")
         if "Treat `ai-workflow/` as workflow metadata only." not in skill_text:
@@ -397,7 +400,7 @@ def check_gemini_cli_mode() -> None:
             raise AssertionError("GEMINI.md should have the correct header.")
         if "Gemini CLI" not in gemini_text:
             raise AssertionError("GEMINI.md should mention Gemini CLI.")
-        if "사용자에게 직접 보이는 작업 보고" not in gemini_text:
+        if "Write user-facing work reports" not in gemini_text:
             raise AssertionError("GEMINI.md should include the Korean reporting rule.")
         if "invoke_agent" not in gemini_text:
             raise AssertionError("GEMINI.md should mention invoke_agent for sub-agents.")
@@ -432,9 +435,9 @@ def check_antigravity_mode() -> None:
             raise AssertionError("ANTIGRAVITY.md should have the correct header.")
         if "Antigravity" not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should mention Antigravity.")
-        if "사용자에게 직접 보이는 작업 보고" not in antigravity_text:
+        if "Write user-facing work reports" not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should include the Korean reporting rule.")
-        if "브라우저 서브 에이전트" not in antigravity_text:
+        if "browser sub-agent" not in antigravity_text:
             raise AssertionError("ANTIGRAVITY.md should mention sub-agents.")
 
 
@@ -478,12 +481,12 @@ def check_minimax_code_mode() -> None:
         minimax_text = Path(str(harness_files["minimax_code_agents"])).read_text(encoding="utf-8")
         if "# MiniMax.md" not in minimax_text:
             raise AssertionError("MiniMax.md should have the correct header.")
-        if "오케스트레이터 / 워커" not in minimax_text:
+        if "Orchestrator / worker" not in minimax_text:
             raise AssertionError("MiniMax.md should describe the orchestrator/worker split.")
         if "WorkerTask" not in minimax_text:
             raise AssertionError("MiniMax.md should reference the WorkerTask contract.")
-        if "사용자에게 직접 보이는 작업 보고" not in minimax_text:
-            raise AssertionError("MiniMax.md should include the Korean reporting rule.")
+        if "Write user-facing work reports" not in minimax_text:
+            raise AssertionError("MiniMax.md should include the reporting-language rule.")
 
         config_text = Path(str(harness_files["minimax_config_example"])).read_text(encoding="utf-8")
         if "workflow-orchestrator" not in config_text:

@@ -480,7 +480,7 @@ def test_claude_code_adapter() -> None:
     end_cmds = [cmd for cmd in _commands("SessionEnd") if refresh_cmd in cmd]
     if not end_cmds:
         problems.append(f"SessionEnd 가 §11.1 재생성 명령({refresh_cmd})을 부르지 않는다")
-    notice_cmds = [cmd for cmd in _commands("SessionStart") if "찾지 못했다" in cmd]
+    notice_cmds = [cmd for cmd in _commands("SessionStart") if "not found" in cmd]
     if not notice_cmds:
         problems.append("SessionStart 에 `wk` 부재 안내 hook 이 없다")
     if not all(f"command -v {binary}" in cmd for cmd in end_cmds + notice_cmds):
@@ -895,7 +895,7 @@ def test_goose_opencode_snippets() -> None:
             problems.append(f"goose cmd/args 가 파생이 아니다: {entry.get('args')}")
         if "PYTHONPATH" in (entry.get("envs") or {}):
             problems.append("goose envs 에 PYTHONPATH — 체크아웃 전제 금지 (원칙 4)")
-    if "실기 검증 미완" not in goose_text:
+    if "not yet verified on real hardware" not in goose_text:
         problems.append("goose snippet 에 실기 검증 미완 표기가 없다 — 미검증을 침묵시키지 않는다")
 
     _record(

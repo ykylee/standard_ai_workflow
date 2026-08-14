@@ -1,28 +1,30 @@
 # Doc-Sync Skill
 
-- 문서 목적: `doc-sync` skill 의 역할과 구현 진입점을 정리한다.
-- 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
-- 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: stable (v0.11.19 stable 승격)
-- 최종 수정일: 2026-04-26
-- 관련 문서: `../../core/doc_sync_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`, `../../core/workflow_mcp_candidate_catalog.md`
+- Purpose: describe the `doc-sync` skill and its implementation entry point.
+- Scope: purpose, linked specs, expected input/output, permission boundary, implementation notes
+- Audience: skill implementer, AI agent designer, operator
+- Status: stable (promoted in v0.11.19)
+- Last updated: 2026-08-14
+- Related: `../../core/doc_sync_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`, `../../core/workflow_mcp_candidate_catalog.md`
 
-## 1. 목적
+## 1. Purpose
 
-변경 파일 목록을 바탕으로 함께 확인하거나 갱신해야 할 기준 문서, 허브 문서, 상태 문서를 추천하고 `session_handoff.md` 에 자동 반영한다.
+From a list of changed files, recommend the baseline documents, hub documents, and state
+documents that should be checked or updated alongside them, and record that in
+`session_handoff.md`.
 
-## 2. 연결 스펙
+## 2. Linked specs
 
-- 상세 스펙: [../../core/doc_sync_skill_spec.md](../../core/doc_sync_skill_spec.md)
-- 카탈로그: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
+- Full spec: [../../core/doc_sync_skill_spec.md](../../core/doc_sync_skill_spec.md)
+- Catalog: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
 
-## 3. 예상 입력
+## 3. Expected input
 
 - `project_profile_path`
 - `changed_files`
-- 선택적으로 `baseline_documents`, `hub_documents`, `session_handoff_path`, `latest_backlog_path`, `change_summary`
+- Optionally `baseline_documents`, `hub_documents`, `session_handoff_path`, `latest_backlog_path`, `change_summary`
 
-## 4. 예상 출력
+## 4. Expected output
 
 - `impacted_documents`
 - `hub_update_candidates`
@@ -31,34 +33,35 @@
 - `recommended_review_order`
 - `follow_up_actions`
 
-## 5. 권한 경계
+## 5. Permission boundary
 
-- 읽기 추천 및 제한적 쓰기(apply) 단계
-- `--apply` 사용 시 `session_handoff.md` 의 특정 섹션만 수정 허용
-- 원본 프로젝트 문서의 자동 수정은 금지
+- Read and recommend; writes only in the `--apply` step
+- With `--apply`, may modify only specific sections of `session_handoff.md`
+- Never edits the project's own documents automatically
 
-## 6. 구현 메모
+## 6. Implementation notes
 
-- 변경 파일을 문서/비문서로 분류
-- runbook, handoff, backlog, 허브 문서를 서로 다른 후보 그룹으로 다룸
-- 허브 stale 가능성과 결과 기록 누락 가능성을 별도 경고로 분리
-- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 프로젝트 문서 탐색 후보에서는 기본적으로 제외한다.
+- Split changed files into documents and non-documents.
+- Treat runbooks, the handoff, the backlog, and hub documents as distinct candidate groups.
+- Keep "this hub may be stale" and "the result may not have been recorded" as separate warnings.
+- Treat `ai-workflow/` as the workflow meta layer and exclude it from project document
+  discovery by default.
 
-## 7. 스킬 실행
+## 7. Usage
 
-**소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 배포물에 없다. 구현은
-`workflow-source/workflow_kit/tools/doc_sync.py`, 본 디렉터리의
-[scripts/run_doc_sync.py](./scripts/run_doc_sync.py) 는 저장소 내 개발용 thin
-wrapper 다.
+**`wk` is the only consumer-facing path** (canonical §11) — `skills/` is not shipped. The
+implementation lives in `workflow-source/workflow_kit/tools/doc_sync.py`;
+[scripts/run_doc_sync.py](./scripts/run_doc_sync.py) in this directory is a thin
+in-repo development wrapper.
 
-- 실행 예시 (추천 확인):
+- Inspect the recommendations:
 ```bash
 wk doc-sync \
   --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
   --changed-file app/main.py
 ```
-- 실행 예시 (자동 반영):
+- Apply them:
 ```bash
 wk doc-sync \
   --project-profile-path docs/PROJECT_PROFILE.md \
@@ -67,20 +70,21 @@ wk doc-sync \
   --apply
 ```
 
-## 8. 현재 상태
+## 8. Current status
 
-- Beta 단계: 읽기 추천 및 제한적 쓰기 기능 지원
-- `--apply` 플래그 사용 시 `session_handoff.md` 의 `다음에 읽을 문서` 섹션 자동 갱신
-- 추천된 후속 조치(`follow_up_actions`)를 `session_handoff.md` 운영 메모에 추가
-- 프로젝트별 문서 구조는 project profile 을 기준으로 해석함
+- Beta stage: read-oriented recommendations with limited write support
+- `--apply` refreshes the `Read next` section of `session_handoff.md`
+- Recommended `follow_up_actions` are appended to the handoff's operational notes
+- Per-project document structure is interpreted through the project profile
 
 ## 9. v0.11.22+ Phase 3c — memory_index retrieval wiring (opt-in)
 
-doc-sync 가 ADR-005 memory_index 의 retrieval 3-tuple (cue exact → BM25 fallback →
-linked expansion) 결과를 *선택적* 으로 받아 output 의 `memory_index_query_output` field
-에 emit 한다. 디스크 변경 ❌ (read-only retrieval). session-start 와 동일 패턴.
+doc-sync can *optionally* consume the ADR-005 memory_index retrieval 3-tuple
+(cue exact → BM25 fallback → linked expansion) and emit it in the output field
+`memory_index_query_output`. No disk changes (read-only retrieval). Same pattern as
+session-start.
 
-### 사용법
+### Usage
 
 ```bash
 wk doc-sync \
@@ -90,28 +94,31 @@ wk doc-sync \
   --memory-query-tokens "adr,memora,retrieval"
 ```
 
-v0.15.21+ 부터 두 flag 는 **override** 다. flag 부재 시에도 workspace 표준
-`ai-workflow/memory/active/memory_index` dir 이 존재하면 retrieval 이 **자동 활성**
-(query token 은 **컨텍스트 유도** — state.json 의 current_axis + 최근 done 제목에서 뽑고, 유도 실패 시 `doc,sync,workflow` fallback + 출처를 telemetry `query_source` 에 기록; ADR-006 W-2, v1.1.5+) 되어 telemetry source `doc-sync` 가 emit 된다
-(Phase 13 AC2 source 다양성 ≥ 4 수렴). memory_index dir 이 없으면 zero-risk skip
-(기존 caller 정합). flag 를 명시하면 dir/token override.
+Since v0.15.21 both flags are **overrides**. Even without them, retrieval activates
+automatically when the standard workspace directory
+`ai-workflow/memory/active/memory_index` exists. Query tokens are then **derived from
+context** — the `current_axis` in `state.json` plus recent done titles; if derivation
+fails it falls back to `doc,sync,workflow` and records the origin in the telemetry field
+`query_source` (ADR-006 W-2, v1.1.5+). That emits telemetry source `doc-sync`
+(Phase 13 AC2 source diversity ≥ 4). If the memory_index directory is absent, it is a
+zero-risk skip (existing callers unaffected). Passing the flags overrides directory and tokens.
 
-### Output 추가 field
+### Additional output field
 
 `DocSyncOutput.memory_index_query_output` (optional, `dict[str, Any] | None`):
 
 - `selected_ids` / `cue_hits` / `bm25_hits` / `expansion_hits` / `expansion_depth_used`
 - `source_context`
 
-부재 시 `None` (backward compat).
+`None` when absent (backward compatible).
 
-### 후속
+### Follow-up
 
-- `backlog-update` skill 의 wiring (Phase 3d, 별도 release).
-- ADR-006 retrospective 자리 (Phase 3d 완료 후).
+- Wiring for the `backlog-update` skill (Phase 3d, separate release).
+- ADR-006 retrospective (after Phase 3d).
 
-## 다음에 읽을 문서
+## Read next
 
-- skills 허브: [../README.md](../README.md)
+- Skills hub: [../README.md](../README.md)
 - ADR-005 memory_index: [../../../docs/architecture/ADR-005-memora-inspired-memory-index.md](../../../docs/architecture/ADR-005-memora-inspired-memory-index.md)
-- 상세 스펙: [../../core/doc_sync_skill_spec.md](../../core/doc_sync_skill_spec.md)
+- Full spec: [../../core/doc_sync_skill_spec.md](../../core/doc_sync_skill_spec.md)

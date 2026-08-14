@@ -1,29 +1,30 @@
 # Session-Start Skill
 
-- 문서 목적: `session-start` skill 프로토타입의 역할과 구현 진입점을 정리한다.
-- 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
-- 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: stable (v0.11.19 stable 승격)
-- 최종 수정일: 2026-04-25
-- 관련 문서: `../../core/session_start_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
+- Purpose: describe the `session-start` skill and its implementation entry point.
+- Scope: purpose, linked specs, expected input/output, permission boundary, implementation notes
+- Audience: skill implementer, AI agent designer, operator
+- Status: stable (promoted in v0.11.19)
+- Last updated: 2026-08-14
+- Related: `../../core/session_start_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
-## 1. 목적
+## 1. Purpose
 
-새 세션 시작 시 handoff, backlog, 프로젝트 프로파일을 읽고 현재 기준선을 구조화된 요약으로 복원한다.
+At the start of a new session, read the handoff, the backlog, and the project profile, and
+restore the current baseline as a structured summary.
 
-## 2. 연결 스펙
+## 2. Linked specs
 
-- 상세 스펙: [../../core/session_start_skill_spec.md](../../core/session_start_skill_spec.md)
-- 카탈로그: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
+- Full spec: [../../core/session_start_skill_spec.md](../../core/session_start_skill_spec.md)
+- Catalog: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
 
-## 3. 예상 입력
+## 3. Expected input
 
 - `session_handoff_path`
 - `work_backlog_index_path`
 - `project_profile_path`
-- 선택적으로 `latest_backlog_path`, `changed_files`, `environment_hint`
+- Optionally `latest_backlog_path`, `changed_files`, `environment_hint`
 
-## 4. 예상 출력
+## 4. Expected output
 
 - `summary`
 - `in_progress_items`
@@ -33,54 +34,56 @@
 - `recommended_next_action`
 - `warnings`
 
-## 5. 권한 경계
+## 5. Permission boundary
 
-- 기본적으로 읽기 전용
-- 상태 문서 직접 수정 금지
-- `done` 재판정 금지
+- Read-only by default
+- Never modifies state documents directly
+- Never re-adjudicates a `done`
 
-## 6. 구현 메모
+## 6. Implementation notes
 
-- 최신 backlog 탐색 로직은 backlog index 우선
-- handoff 와 backlog 충돌은 경고로만 출력
-- 프로젝트 프로파일의 문서 구조를 최우선 기준으로 사용
+- When locating the latest backlog, prefer the backlog index.
+- Conflicts between the handoff and the backlog are reported as warnings only.
+- The project profile's document structure is the primary reference.
 
-## 7. 실행
+## 7. Usage
 
-**소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 pip 패키지에도 bootstrap
-번들에도 들어가지 않으므로, 여기 경로를 소비자에게 안내하면 안 된다 (TASK-021/027).
-구현은 배포되는 `workflow-source/workflow_kit/tools/session_start.py` 에 있고, 본 디렉터리의
-[scripts/run_session_start.py](./scripts/run_session_start.py) 는 저장소 내 개발용
-thin wrapper 다.
+**`wk` is the only consumer-facing path** (canonical §11) — `skills/` ships in neither the
+pip package nor the bootstrap bundle, so these paths must never be given to consumers
+(TASK-021/027). The implementation lives in the distributed
+`workflow-source/workflow_kit/tools/session_start.py`;
+[scripts/run_session_start.py](./scripts/run_session_start.py) in this directory is a thin
+in-repo development wrapper.
 
 ```bash
-# workspace 안에서는 무인자 — PROJECT_PROFILE.md 를 자동 탐색한다 (v1.1.7+)
+# inside a workspace, no arguments — PROJECT_PROFILE.md is discovered automatically (v1.1.7+)
 wk session-start
 
-# 경로를 명시할 때
+# with explicit paths
 wk session-start \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --work-backlog-index-path examples/acme_delivery_platform/work_backlog.md \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md
 ```
 
-- JSON 요약을 stdout 으로 출력한다.
-- 최신 backlog 는 index 문서가 있으면 링크에서, 없으면(branch-scoped 레이아웃)
-  daily backlog 디렉터리 관측으로 찾는다 (v1.1.7+).
+- Prints a JSON summary to stdout.
+- Finds the latest backlog from the index document when one exists, and otherwise (in the
+  branch-scoped layout) by observing the daily backlog directory (v1.1.7+).
 
-## 8. 현재 상태
+## 8. Current status
 
-- 읽기 전용 실행 프로토타입 있음
-- handoff, backlog index, project profile 을 읽어 구조화된 현재 상태 요약을 출력할 수 있음
-- 경고 기반의 보수적 요약만 제공하며 문서 수정은 수행하지 않음
+- A read-only execution prototype exists
+- Reads the handoff, backlog index, and project profile and prints a structured summary of
+  the current state
+- Provides a conservative, warning-based summary only; never edits documents
 
 ## 9. v0.11.22+ Phase 3b — memory_index retrieval wiring (opt-in)
 
-session-start 가 ADR-005 memory_index 의 retrieval 3-tuple (cue exact → BM25 fallback →
-linked expansion) 결과를 *선택적* 으로 받아 output 의 `memory_index_query_output` field
-에 emit 한다. 디스크 변경 ❌ (read-only retrieval).
+session-start can *optionally* consume the ADR-005 memory_index retrieval 3-tuple
+(cue exact → BM25 fallback → linked expansion) and emit it in the output field
+`memory_index_query_output`. No disk changes (read-only retrieval).
 
-### 사용법
+### Usage
 
 ```bash
 wk session-start \
@@ -91,29 +94,33 @@ wk session-start \
   --memory-query-tokens "adr,memora,retrieval"
 ```
 
-v0.15.21+ 부터 두 flag 는 **override** 다. flag 부재 시에도 workspace 표준
-`ai-workflow/memory/active/memory_index` dir 이 존재하면 retrieval 이 **자동 활성**
-(query token 은 **컨텍스트 유도** — state.json 의 current_axis + 최근 done 제목에서 뽑고, 유도 실패 시 `session,handoff,workflow` fallback + 출처를 telemetry `query_source` 에 기록; ADR-006 W-2, v1.1.5+) 되어 telemetry source `session-start`
-가 emit 된다 (Phase 13 AC2 source 다양성 ≥ 4 수렴). memory_index dir 이 없으면
-zero-risk skip (기존 caller 정합). flag 를 명시하면 dir/token override.
+Since v0.15.21 both flags are **overrides**. Even without them, retrieval activates
+automatically when the standard workspace directory
+`ai-workflow/memory/active/memory_index` exists. Query tokens are then **derived from
+context** — the `current_axis` in `state.json` plus recent done titles; if derivation fails
+it falls back to `session,handoff,workflow` and records the origin in the telemetry field
+`query_source` (ADR-006 W-2, v1.1.5+). That emits telemetry source `session-start`
+(Phase 13 AC2 source diversity ≥ 4). If the memory_index directory is absent, it is a
+zero-risk skip (existing callers unaffected). Passing the flags overrides directory and tokens.
 
-### Output 추가 field
+### Additional output field
 
 `SessionStartOutput.memory_index_query_output` (optional, `dict[str, Any] | None`):
 
-- `selected_ids` — retrieval 결과 entry id list
+- `selected_ids` — entry ids returned by retrieval
 - `cue_hits` / `bm25_hits` / `expansion_hits` / `expansion_depth_used`
-- `source_context` — 호출 정보 (workspace_root / memory_index_dir)
+- `source_context` — call info (workspace_root / memory_index_dir)
 
-본 field 는 기존 caller 깨지지 않게 *optional* — 부재 시 `None` (backward compat).
+The field is *optional* so existing callers do not break — `None` when absent
+(backward compatible).
 
-### 후속
+### Follow-up
 
-- doc-sync / backlog-update 같은 다른 skill 의 wiring (Phase 3c/3d, 별도 release).
-- ADR-006 retrospective 자리 (Phase 3c/d 완료 후).
+- Wiring for other skills such as doc-sync and backlog-update (Phase 3c/3d, separate releases).
+- ADR-006 retrospective (after Phase 3c/d).
 
-## 다음에 읽을 문서
+## Read next
 
-- skills 허브: [../README.md](../README.md)
-- 상세 스펙: [../../core/session_start_skill_spec.md](../../core/session_start_skill_spec.md)
+- Skills hub: [../README.md](../README.md)
+- Full spec: [../../core/session_start_skill_spec.md](../../core/session_start_skill_spec.md)
 - ADR-005 memory_index: [../../../docs/architecture/ADR-005-memora-inspired-memory-index.md](../../../docs/architecture/ADR-005-memora-inspired-memory-index.md)

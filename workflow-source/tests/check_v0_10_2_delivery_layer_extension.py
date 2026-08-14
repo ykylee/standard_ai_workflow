@@ -148,12 +148,13 @@ def test_claude_code_aggressive_emits_v0_10_2() -> None:
             assert key in gen, f"{key} 부재"
             assert Path(gen[key]).exists(), f"{key} file 부재"
 
-        # CLAUDE.md 내용에 '항상 먼저 읽을 문서' + 'AGENTS.md 와의 관계' + '진입 slash command' 포함
+        # CLAUDE.md 가 세 절을 싣는지. 2026-08-14 진입점 영어화로 제목이 바뀌었다 —
+        # 재는 질문("이 절들이 있는가")은 그대로다.
         content = (target / "CLAUDE.md").read_text(encoding="utf-8")
-        assert "항상 먼저 읽을 문서" in content
-        assert "AGENTS.md 와의 관계" in content
+        assert "Read these first" in content
+        assert "Relationship to AGENTS.md" in content
         assert "@AGENTS.md" in content  # import 안내
-        assert "진입 slash command" in content
+        assert "Entry slash commands" in content
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +204,7 @@ def test_aider_adapter_emits_v0_10_2() -> None:
 
         # CONVENTIONS.md 본문 verify
         content = (target / "CONVENTIONS.md").read_text(encoding="utf-8")
-        assert "표준 AI 워크플로우 진입" in content
+        assert "Standard AI workflow entry" in content
         assert "ai-workflow/memory/active/<branch>/state.json" in content
 
         # .aider.conf.yml.example 본문 verify

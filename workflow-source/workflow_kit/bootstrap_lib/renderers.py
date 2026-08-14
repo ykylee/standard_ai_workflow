@@ -49,34 +49,34 @@ def render_readme(
             f"- [core/{name}](./core/{name})" for name in default_core_docs
         )
     else:
-        core_docs = "- core 문서는 `--copy-core-docs` 옵션을 사용하면 함께 복사할 수 있다."
+        core_docs = "- Core documents can be copied along with `--copy-core-docs`."
     generated_assessment = ""
-    mode_summary = "신규 프로젝트용 기본 문서 세트를 생성했다."
+    mode_summary = "Generated the default document set for a new project."
     harness_lines = "\n".join(
-        f"- `{name}` 하네스용 오버레이 파일 생성" for name in _selected_harnesses(args)
-    ) or "- 선택한 하네스 없음"
+        f"- Generated overlay files for the `{name}` harness" for name in _selected_harnesses(args)
+    ) or "- No harness selected"
     if args.adoption_mode == "existing":
         generated_assessment = (
             "- [ai-workflow/memory/active/repository_assessment.md]"
             "(./ai-workflow/memory/active/repository_assessment.md)"
         )
-        mode_summary = "기존 프로젝트 분석 결과를 반영한 문서 초안과 평가 문서를 생성했다."
+        mode_summary = "Generated draft documents and an assessment reflecting the analysis of the existing project."
     return f"""# Standard AI Workflow Kit
 
-- 문서 목적: `{args.project_name}` 저장소에 표준 AI 워크플로우 기본 문서 세트를 도입할 수 있도록 bootstrap 결과를 안내한다.
-- 범위: 공통 코어 문서 위치, 프로젝트 상태 문서 세트, 도입 모드별 후속 작업
-- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: {args.today}
-- 관련 문서: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`
+- Purpose: describe the bootstrap result so the `{args.project_name}` repository can adopt the standard AI workflow document set.
+- Scope: where the shared core documents live, the project state document set, follow-up per adoption mode
+- Audience: developer, operator, AI agent, project onboarding owner
+- Status: draft
+- Last updated: {args.today}
+- Related: `docs/PROJECT_PROFILE.md`, `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`
 
-## 1. 도입 모드
+## 1. Adoption mode
 
-- 선택한 도입 모드: `{args.adoption_mode}`
-- 요약:
+- Selected adoption mode: `{args.adoption_mode}`
+- Summary:
 - {mode_summary}
 
-## 2. 생성된 파일
+## 2. Generated files
 
 - [docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - [ai-workflow/memory/active/<branch>/state.json](./memory/active/state.json)
@@ -85,43 +85,43 @@ def render_readme(
 - [ai-workflow/memory/active/<branch>/backlog/{args.today}.md](./memory/active/backlog/{args.today}.md)
 {generated_assessment}
 
-## 3. 코어 문서
+## 3. Core documents
 
 {core_docs}
 
-## 4. 하네스 오버레이
+## 4. Harness overlays
 
 {harness_lines}
 
-## 5. 도입 직후 해야 할 일
+## 5. What to do right after adoption
 
-1. `PROJECT_PROFILE.md` 에 프로젝트 목적, 명령, 검증 규칙을 실제 값으로 채운다.
-2. `state.json`, `session_handoff.md`, 오늘 날짜 backlog 를 현재 진행 작업 기준으로 갱신한다.
-3. 기존 프로젝트 모드였다면 `repository_assessment.md` 의 추정값을 실제 저장소 규칙과 대조해 수정한다.
-4. 선택한 하네스가 있으면 생성된 overlay 파일을 각 하네스 실행 경로에 맞게 검토한다.
-5. 이후 표준 skill/MCP 도입 범위는 `core/` 문서를 기준으로 결정한다.
+1. Fill `PROJECT_PROFILE.md` with the project's real purpose, commands, and verification rules.
+2. Update `state.json`, `session_handoff.md`, and today's backlog to match the work actually in progress.
+3. In existing-project mode, check the inferred values in `repository_assessment.md` against the real repository rules and correct them.
+4. If a harness was selected, review the generated overlay files against that harness's execution paths.
+5. Decide how far to adopt the standard skills/MCP from the `core/` documents.
 
-## 6. 언어와 컨텍스트 운영 원칙
+## 6. Language and context principles
 
-- 사용자에게 직접 보이는 작업 보고, 상태 요약, handoff/backlog 갱신 문안은 기본적으로 한국어로 작성한다.
-- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
-- 내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리하고, 사용자에게는 필요한 결론만 짧게 전달한다.
-- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+- Write user-facing work reports, status summaries, and handoff/backlog updates in Korean by default.
+- Keep code, commands, file paths, configuration keys, and external product names verbatim.
+- Handle internal reasoning and intermediate classification however is most efficient, and give the user only the conclusion.
+- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
 
-## 7. 프로젝트 실제 문서 경로 설정값
+## 7. Configured project document paths
 
-- 문서 위키 홈: `{context['doc_home']}`
-- 운영 문서 위치: `{context['operations_dir']}`
-- 백로그 위치: `{context['backlog_dir']}`
-- 세션 인계 문서 위치: `{context['session_doc_path']}`
-- 환경 기록 위치: `{context['environment_dir']}`
+- Documentation home: `{context['doc_home']}`
+- Operations docs: `{context['operations_dir']}`
+- Backlog location: `{context['backlog_dir']}`
+- Session handoff: `{context['session_doc_path']}`
+- Environment records: `{context['environment_dir']}`
 
-## 다음에 읽을 문서
+## Read next
 
-- 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
-- 빠른 상태 요약: [./memory/active/state.json](./memory/active/state.json)
-- 세션 인계 문서: [./memory/active/session_handoff.md](./memory/active/session_handoff.md)
-- 작업 백로그 인덱스: [./memory/active/work_backlog.md](./memory/active/work_backlog.md)
+- Project profile: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
+- Quick state summary: [./memory/active/state.json](./memory/active/state.json)
+- Session handoff: [./memory/active/session_handoff.md](./memory/active/session_handoff.md)
+- Work backlog index: [./memory/active/work_backlog.md](./memory/active/work_backlog.md)
 """
 
 
@@ -260,86 +260,86 @@ def render_project_status_assessment(args: argparse.Namespace) -> str:
 def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> str:
     if args.adoption_mode != "existing":
         return ""
-    top_entries = ", ".join(context["top_level_entries"]) or "없음"
-    docs_dirs = ", ".join(context["docs_dirs"]) or "없음"
-    test_dirs = ", ".join(context["test_dirs"]) or "없음"
-    source_dirs = ", ".join(context["source_dirs"]) or "없음"
-    stack_labels = ", ".join(context["stack_labels"]) or "없음"
-    scripts = ", ".join(sorted(context["package_scripts"])) or "없음"
+    top_entries = ", ".join(context["top_level_entries"]) or "none"
+    docs_dirs = ", ".join(context["docs_dirs"]) or "none"
+    test_dirs = ", ".join(context["test_dirs"]) or "none"
+    source_dirs = ", ".join(context["source_dirs"]) or "none"
+    stack_labels = ", ".join(context["stack_labels"]) or "none"
+    scripts = ", ".join(sorted(context["package_scripts"])) or "none"
     sample_paths = "\n".join(f"- `{item}`" for item in context.get("sample_paths", []))
     return f"""# Repository Assessment
 
-- 문서 목적: 기존 프로젝트에 표준 AI 워크플로우를 도입하기 전에 현재 코드베이스와 문서 구조를 빠르게 진단한다.
-- 범위: 저장소 구조, 추정 기술 스택, 문서 위치, 테스트 흔적, 초기 워크플로우 도입 포인트
-- 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
-- 상태: draft
-- 최종 수정일: {args.today}
-- 관련 문서: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
+- Purpose: quickly diagnose the current codebase and document structure before adopting the standard AI workflow.
+- Scope: repository structure, inferred stack, document locations, traces of tests, initial adoption points
+- Audience: developer, operator, AI agent, project onboarding owner
+- Status: draft
+- Last updated: {args.today}
+- Related: `./PROJECT_PROFILE.md`, `./session_handoff.md`, `../core/workflow_adoption_entrypoints.md`
 
-## 1. 요약
+## 1. Summary
 
-- 분석 대상 프로젝트:
+- Analyzed project:
 - `{args.project_name}`
-- 분석 모드:
+- Analysis mode:
 - `existing`
-- 추정 기본 스택:
+- Inferred primary stack:
 - `{context['primary_stack']}`
-- 감지된 스택 라벨:
+- Detected stack labels:
 - `{stack_labels}`
 
-## 2. 저장소 구조 관찰
+## 2. Repository structure observations
 
-- 상위 디렉터리 항목:
+- Top-level entries:
 - `{top_entries}`
-- 소스 디렉터리 후보:
+- Source directory candidates:
 - `{source_dirs}`
-- 문서 디렉터리 후보:
+- Document directory candidates:
 - `{docs_dirs}`
-- 테스트 디렉터리 후보:
+- Test directory candidates:
 - `{test_dirs}`
 
-## 3. 추정 명령
+## 3. Inferred commands
 
-- 설치:
+- Install:
 - `{context['install_command']}`
-- 로컬 실행:
+- Run locally:
 - `{context['run_command']}`
-- 빠른 테스트:
+- Quick test:
 - `{context['quick_test_command']}`
-- 격리 테스트:
+- Isolated test:
 - `{context['isolated_test_command']}`
-- 실행 확인:
+- Smoke check:
 - `{context['smoke_check_command']}`
 
-## 4. package script 및 경로 샘플
+## 4. Package scripts and sample paths
 
-- package script 목록:
+- Package scripts:
 - `{scripts}`
-- 분석 중 확인한 경로 샘플:
-{sample_paths or '- 없음'}
+- Sample paths seen during analysis:
+{sample_paths or '- none'}
 
-## 5. 워크플로우 도입 초안
+## 5. Draft adoption plan
 
-- 추천 문서 위키 홈:
+- Recommended documentation home:
 - `{context['doc_home']}`
-- 추천 운영 문서 위치:
+- Recommended operations docs:
 - `{context['operations_dir']}`
-- 추천 backlog 위치:
+- Recommended backlog location:
 - `{context['backlog_dir']}`
-- 추천 session handoff 위치:
+- Recommended session handoff:
 - `{context['session_doc_path']}`
 
-## 6. 자동 분석 기반 다음 작업
+## 6. Next steps from the automated analysis
 
-- 현재 추정 명령과 실제 운영 명령이 일치하는지 확인한다.
-- 기존 문서 체계가 있으면 운영 문서 위치를 그대로 따를지, 별도 워크플로우 디렉터리로 분리할지 결정한다.
-- 빠른 테스트와 실행 확인 기준이 약하면 우선 profile 문서에서 검증 규칙을 먼저 보강한다.
+- Check that the inferred commands match the real operational commands.
+- If a document system already exists, decide whether to follow its operations-doc location or split into a separate workflow directory.
+- If the quick-test and smoke-check criteria are weak, strengthen the verification rules in the profile document first.
 
-## 다음에 읽을 문서
+## Read next
 
-- 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
-- 세션 인계 문서: [./session_handoff.md](./session_handoff.md)
-- 도입 분기 가이드: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
+- Project profile: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
+- Session handoff: [./session_handoff.md](./session_handoff.md)
+- Adoption branch guide: [../core/workflow_adoption_entrypoints.md](../core/workflow_adoption_entrypoints.md)
 """
 
 

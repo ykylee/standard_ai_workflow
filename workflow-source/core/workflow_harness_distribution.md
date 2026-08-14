@@ -308,6 +308,7 @@ mavis 데스크탑 런타임 타겟은 **project-local 산출물이 0** 인 유�
 
 ## 다음에 읽을 문서
 
+- 배포 일관성·멱등성 컨셉: [./workflow_deployment_idempotency.md](./workflow_deployment_idempotency.md)
 - 도입 분기 가이드: [./workflow_adoption_entrypoints.md](./workflow_adoption_entrypoints.md)
 - 릴리즈 규격: [./workflow_release_spec.md](./workflow_release_spec.md)
 - 설정 계층 가이드: [./workflow_configuration_layers.md](./workflow_configuration_layers.md)

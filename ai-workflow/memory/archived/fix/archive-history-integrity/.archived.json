@@ -1,0 +1,11 @@
+{
+  "branch": "fix/archive-history-integrity",
+  "archived_at": "2026-08-13",
+  "merge_commit": "20fb1a807899da9ceb423069baafc2e38dbed170",
+  "task_ids": [
+    "TASK-2026-08-14-fix-archive-history-integrity-001"
+  ],
+  "task_count": 1,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

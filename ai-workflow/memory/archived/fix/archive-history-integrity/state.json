@@ -1,16 +1,16 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-14",
+  "generated_at": "2026-08-13",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/fix/archive-history-integrity/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/fix/archive-history-integrity/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/fix/archive-history-integrity/backlog",
-    "tasks_dir": "ai-workflow/memory/active/fix/archive-history-integrity/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/fix/archive-history-integrity/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/fix/archive-history-integrity/backlog/2026-08-14.md",
+    "daily_backlog_dir": "ai-workflow/memory/archived/fix/archive-history-integrity/backlog",
+    "tasks_dir": "ai-workflow/memory/archived/fix/archive-history-integrity/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/archived/fix/archive-history-integrity/sessions",
+    "latest_backlog_path": "ai-workflow/memory/archived/fix/archive-history-integrity/backlog/2026-08-14.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,33 +27,33 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "fix/archive-history-integrity 워크스페이스 seed (2026-08-14). 아직 작업 전이다.",
+    "current_baseline": "fix/archive-history-integrity 종료 (2026-08-14). PR [#25](https://github.com/ykylee/standard_ai_workflow/pull/25) 병합 완료 — origin/main f8c3321.",
     "current_axis": "브랜치 아카이브가 이력을 깨뜨리는 자리 — 미완료 task 소실 + 경로/링크 미재작성 + 회귀 방지 부재",
-    "current_focus": "TASK-2026-08-14-fix-archive-history-integrity-001 — 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설",
-    "in_progress_items": [
+    "current_focus": null,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
       "TASK-2026-08-14-fix-archive-history-integrity-001 — 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설"
     ],
-    "blocked_items": [],
-    "recent_done_items": [],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/fix/archive-history-integrity/backlog/2026-08-14.md",
+    "latest_backlog_path": "ai-workflow/memory/archived/fix/archive-history-integrity/backlog/2026-08-14.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-2026-08-14-fix-archive-history-integrity-001 — 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-08-14-fix-archive-history-integrity-001 — 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/fix/archive-history-integrity/session_handoff.md",
-    "ai-workflow/memory/active/fix/archive-history-integrity/backlog/2026-08-14.md",
-    "ai-workflow/memory/active/fix/archive-history-integrity/backlog",
-    "ai-workflow/memory/active/fix/archive-history-integrity/sessions",
-    "ai-workflow/memory/active/fix/archive-history-integrity/backlog/tasks/TASK-2026-08-14-fix-archive-history-integrity-001.md"
+    "ai-workflow/memory/archived/fix/archive-history-integrity/session_handoff.md",
+    "ai-workflow/memory/archived/fix/archive-history-integrity/backlog/2026-08-14.md",
+    "ai-workflow/memory/archived/fix/archive-history-integrity/backlog",
+    "ai-workflow/memory/archived/fix/archive-history-integrity/sessions",
+    "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md"
   ],
   "repository_assessment": {
     "path": null,

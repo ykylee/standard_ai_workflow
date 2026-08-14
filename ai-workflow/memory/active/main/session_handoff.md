@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **36차 세션 종료 — 브랜치 메모리 생애주기 PR [#25](https://github.com/ykylee/standard_ai_workflow/pull/25) 병합.** **시작과 끝이 둘 다 안 맺어져 있었고, 둘 다 전량 green 인 채로 쌓이고 있었다.** **①끝(아카이브)이 이동만 하고 이관을 안 했다**: 도구가 task 를 세면서 status 를 안 봐 미완료가 그대로 소실됐고(직전 세션 `guard-003` 실측, 사람 눈이 잡았다 — `archived/` 는 state 생성기·dashboard 어디도 안 읽는다), 옮긴 뒤 참조를 안 고쳐 **아카이브 문서 22개 중 12개가 깨진 링크**·`state.json` **5경로 전부**가 사라진 `active/…` 를 가리켰다 (`codex/phase6` 는 1.5개월간 죽은 참조). → 미완료 있으면 **차단**(exit≠0, `--allow-open-tasks` 로만 통과+`open_task_ids` 기록) / **`carried_over_to` 별도 축**(브랜치는 끝났는데 일이 안 끝난 것을 `done` 으로 적으면 거짓 — §2.39 원칙) / 링크를 **해석해서** 옮긴다(살아 있는 링크는 안 건드린다). **②시작(seed)이 끝을 안 맺었다**: `state.json` 을 "파생물이니 나중에" 로 미뤄 seed 직후가 **항상 절반짜리**였고 3검사가 red 였다 (이 세션에서만 두 번 밟았다). "손으로 쓰지 않는다" 와 "나중에" 는 다른 말이다 → seed 가 **생성기를 호출해** 마무리한다. **③가드가 있는데 못 잡고 있었다**: `check_branch_memory_namespace` (B) 가 `is_dir()` 만 봐 절반짜리를 통과시켰다 → 네 가지 요구(case 12). **`check_archive_history_integrity` 신설(13 cases)** — fixture 로 계약, 자기 적용 3건으로 실물. **기존 이력 복구 14건**: `state.json` 2건(도구 자신으로) / 처음부터 잘못 쓴 링크 1건(이동 탓이 아니었다) / 영구 삭제 대상 죽은 참조 11건 표기. **자기 리뷰 결함 5건**(가장 위험한 것부터): 본문의 `status:` 를 frontmatter 로 오인 — **소실을 막는 코드가 소실을 일으킬 수 있었다** / 긴 frontmatter 누락 / **root 미resolve 시 재작성이 통째로 침묵**(오류도 안 남) / 앵커 소실(고친 척하고 정보를 잃는다) / CommonMark 제목·꺾쇠 링크 미처리. **작업 중 내 가드에 두 번 걸렸고 둘 다 정당해 우회하지 않았다** (브랜치에서 main handoff 편집 시도 / 경로 조립 정본 사본). **검증**: 전량 2축 **255/255 ×2 green** + CI env 축 255/255 + mypy strict 193 files 0 + **CI 13체크 전부 green**. **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%) / TASK-004 는 다음 재발의 `stderr_tail` 이 가설을 판정.** 상세: [세션 기록](../fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md).
+- 현재 기준선: **36차 세션 종료 — 브랜치 메모리 생애주기 PR [#25](https://github.com/ykylee/standard_ai_workflow/pull/25) 병합.** **시작과 끝이 둘 다 안 맺어져 있었고, 둘 다 전량 green 인 채로 쌓이고 있었다.** **①끝(아카이브)이 이동만 하고 이관을 안 했다**: 도구가 task 를 세면서 status 를 안 봐 미완료가 그대로 소실됐고(직전 세션 `guard-003` 실측, 사람 눈이 잡았다 — `archived/` 는 state 생성기·dashboard 어디도 안 읽는다), 옮긴 뒤 참조를 안 고쳐 **아카이브 문서 22개 중 12개가 깨진 링크**·`state.json` **5경로 전부**가 사라진 `active/…` 를 가리켰다 (`codex/phase6` 는 1.5개월간 죽은 참조). → 미완료 있으면 **차단**(exit≠0, `--allow-open-tasks` 로만 통과+`open_task_ids` 기록) / **`carried_over_to` 별도 축**(브랜치는 끝났는데 일이 안 끝난 것을 `done` 으로 적으면 거짓 — §2.39 원칙) / 링크를 **해석해서** 옮긴다(살아 있는 링크는 안 건드린다). **②시작(seed)이 끝을 안 맺었다**: `state.json` 을 "파생물이니 나중에" 로 미뤄 seed 직후가 **항상 절반짜리**였고 3검사가 red 였다 (이 세션에서만 두 번 밟았다). "손으로 쓰지 않는다" 와 "나중에" 는 다른 말이다 → seed 가 **생성기를 호출해** 마무리한다. **③가드가 있는데 못 잡고 있었다**: `check_branch_memory_namespace` (B) 가 `is_dir()` 만 봐 절반짜리를 통과시켰다 → 네 가지 요구(case 12). **`check_archive_history_integrity` 신설(13 cases)** — fixture 로 계약, 자기 적용 3건으로 실물. **기존 이력 복구 14건**: `state.json` 2건(도구 자신으로) / 처음부터 잘못 쓴 링크 1건(이동 탓이 아니었다) / 영구 삭제 대상 죽은 참조 11건 표기. **자기 리뷰 결함 5건**(가장 위험한 것부터): 본문의 `status:` 를 frontmatter 로 오인 — **소실을 막는 코드가 소실을 일으킬 수 있었다** / 긴 frontmatter 누락 / **root 미resolve 시 재작성이 통째로 침묵**(오류도 안 남) / 앵커 소실(고친 척하고 정보를 잃는다) / CommonMark 제목·꺾쇠 링크 미처리. **작업 중 내 가드에 두 번 걸렸고 둘 다 정당해 우회하지 않았다** (브랜치에서 main handoff 편집 시도 / 경로 조립 정본 사본). **검증**: 전량 2축 **255/255 ×2 green** + CI env 축 255/255 + mypy strict 193 files 0 + **CI 13체크 전부 green**. **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%) / TASK-004 는 다음 재발의 `stderr_tail` 이 가설을 판정.** 상세: [세션 기록](../../archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md). **뒷정리(2026-08-14): 브랜치 삭제 → 아카이브까지 끝냈다** — 참조 재작성이 실물에서 동작(handoff 링크 2 + state.json 5경로), `active/` 에 남은 네임스페이스는 `main` 하나. 닫는 과정에서 **task 가 `in_progress` 인 채라 아카이브가 정당하게 막혔고**, handoff·세션 기록이 가리키던 `TASK-2026-08-13-fix-…-001` 은 **존재한 적 없는 ID** 였다 (실재는 `…-08-14-…`) — 둘 다 교정. 종료 순서에 "task 를 먼저 `done` 으로 마감" 을 추가했다.
 - 직전 기준선: **35차 세션 종료 — 브랜치 메모리 네임스페이스 가드 PR [#24](https://github.com/ykylee/standard_ai_workflow/pull/24) 병합.** PR #23 세션 기록 §7 의 "남은 구멍"을 닫았다. **구멍은 하나가 아니라 둘이었다**: (A) 작업 브랜치가 *다른 브랜치 네임스페이스*에 task·handoff 를 추가/수정 (원인, 지목하는 자리 없음) (B) `active/<branch>/` 부재 (결과, 3검사의 간접 red). case 7 은 A 의 **사후** 흔적만 잡는다 — 병합 뒤다. **`check_branch_memory_namespace` 신설 (11 cases)** — 커밋 전 워킹 트리까지 본다. 판정이 호스트 환경에 안 달리게: 경로 내용만으로 네임스페이스 매핑(슬래시 브랜치명 보존) / CI env 미참조 / detached HEAD 는 사유를 찍고 SKIP / **fixture 도 origin 을 갖게** (없으면 `_detect_default_branch` 가 현재 브랜치를 기본 브랜치로 돌려줘 검사가 통째로 skip 되며 실제로는 없는 형상으로 green 이 난다) / 삭제는 안 잡는다(archive piggyback 는 정본 절차). **부수 발견 — §4 의 진단이 절반 틀렸다**: "만드는 자리는 `wk backlog-update` 하나" 를 그대로 따랐더니 3검사가 red 였다 (`sessions/`·`session_handoff.md` 누락). 한 벌로 만드는 정본 창구는 **`wk seed-workspace-memory`** — 도구를 옳게 썼는데도 red 면 다음 사람은 다시 손 편집으로 도망가므로 governance 와 안내 문구를 함께 고쳤다. **자기 리뷰에서 결함 3건 추가 검출**(전부 실측 재현): porcelain rename `R old -> new` 파싱 누락(= 남의 네임스페이스로 **옮기는** 조작을 못 잡았다) / 비ASCII 경로 따옴표 이스케이프 → `-z` 로 함께 해소 / 브랜치명에 marker segment(`feat/backlog`) 오탐. **main 의 기존 red 2건도 닫았다**(깨끗한 트리 재현 확인): `check_release_pipeline_phase2`(plugin ZIP 게이트가 dist 판정보다 먼저 걸리는데 허용 목록 미갱신) / `check_mavis_attach_e2e`(13종 하드코딩 사본 vs `--bundle` 기본값 read-only 11종 → 정본 registry 파생. handoff §6 의 "darwin mavis e2e 재확인" 이 이 축이었고 답은 red 였다). **TASK-004 mypy flake 재발**(`8544fac`, main 직접 커밋): 27 연속 green 후 재발로 카운터 리셋, 발생률 1/28=3.6% 는 3/34=8.8% 와 구분 불가 → "유력 원인 제거됨" 가설 **반증**. **진짜 병목은 표본이 아니라 증거였다** — `exit 2` 는 blocking error 이고 사유는 stderr 인데 두 게이트 다 stdout 의 `.py:`+`error:` 만 세어 매 사건이 `exit 2 (0 errors)` 한 줄로 지나갔다 (CI 로그는 만료, annotation 에는 검사 이름도 없음 — 1차의 관찰 방법이 이 형태에서는 미성립). `cmd_validate` 에 `stderr_tail` 추가(정본 하나, 두 게이트 혜택) + 되주입 실증. **검증**: 전량 2축 **254/254 ×2 green** + CI env 축 254/254 + mypy strict 193 files 0 + SDK 매트릭스 3/3 + **CI 전부 green**(push·PR). **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / TASK-004 는 다음 재발의 `stderr_tail` 이 가설을 판정 / 검사 시간(정숙 구간 36%).** 상세: [세션 기록](../../archived/fix/branch-memory-namespace-guard/sessions/branch_memory_namespace_guard_2026-08-13.md).
 - 그 이전 기준선: **34차 세션 종료 — Codex·Claude Code native plugin 배포 PR #23 병합 + 브랜치 정리.** 다른 에이전트가 `feat/plugin-harness-distribution` 에서 올린 작업을 리뷰·보완해 병합했다 ([merge 5d85028](https://github.com/ykylee/standard_ai_workflow/commit/5d85028)). **Codex 실기 로드 실측**(codex-cli 0.143.0, 격리 `CODEX_HOME`): 스킬 4종이 model-visible prompt 에 `standard-ai-workflow:<slug>` 로 로드 + read-only MCP `enabled` + Codex 번들 공식 검증기 통과 (`interface.displayName` 되주입 시 지목 실패 — 공허하지 않음). manifest 필드는 Codex 가 번들한 스펙 원문(`plugin-creator/references/plugin-json-spec.md`)의 정식 필드. **정합 보완 10건**(되주입 실증 5건): ①task ID 충돌(`main-008` 두 개) 재발급 + `check_appendonly_memory_layout` **case 7** 신설 — 병합 시 daily index 는 conflict 없이 auto-merge 되어 조용히 오염된다 ②`RELEASE.md §1` TestPyPI 정책 유지 ③살아있는 수치 252→253 ④**TST-WF-01 사각지대**: `raise AssertionError` 를 신호로 못 봐 doctor 게이트가 릴리스를 막았다 — 저장소 smoke **89개**가 같은 관용구를 쓰는데 다른 형태를 곁들여 *우연히* >0 이었다 ⑤저자 이메일 손 사본(`yklee@`, 정본 `ykylee@`) → packaging metadata 파생 + case 18 ⑥PyYAML fail-open → fail-closed ⑦브랜치 메모리 디렉터리 신설 ⑧~⑩**판정이 호스트 환경에 달려 있던 자리 3건** (임시 workspace 가 호스트 state.json 을 읽음 / canonical URL 이 체크아웃 브랜치를 따라감 / gate 가 CI env 를 봄). **원인 규명**: `active/<branch>/` 는 `wk backlog-update` 만 만든다 — 그 도구를 안 쓰고 `active/main/` 을 손으로 편집해서 ①디렉터리 미생성 → 3검사 push 마다 red ②main 네임스페이스 번호 → ID 충돌. **검증 축 추가**: CI 환경변수를 씌운 전량 실행(같은 비대칭이 한 세션에 3번 나왔다). 전량 2축 **253/253 ×2 green** + **CI env 축 253/253** + mypy strict 193 files 0 + **CI 전부 green**(push·PR 두 이벤트). 브랜치 메모리는 `archived/feat/plugin-harness-distribution/` 로 아카이브. **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / TASK-004 mypy flake 관찰(33 run 기준).** 상세: [세션 기록](../../archived/feat/plugin-harness-distribution/sessions/plugin_harness_distribution_pr23_2026-08-13.md).
 - 그 이전 기준선: **33차 세션 종료 — PyPI 발행 준비 (TASK-2026-08-13-main-004·006·007·008).** v1.2.0 이 기술 제약을 없앤 뒤 **발행을 판단 가능한 상태까지** 밀었다 — 결론: 기술 준비는 끝났고 **남은 것은 발행 여부라는 정책 결정 하나**다. **①TASK-004 mypy flake: 재발 0건이나 close 불가** — 조사에서 기록(1회)보다 많은 **실제 3회**를 발견했고(annotation 으로 확인, 로그는 만료), 3건 다 transient 실측(`f7209f4`→`e93e3b2` 는 `.py` 무변경 red→green). 발생률 3/34=8.8% 에서 **5회 green 은 63% 확률의 일상 사건** — 95% 신뢰에 33 run 필요, 완료 기준으로 고정. **②TASK-006 PyPI 검토**(docs/planning/pypi-publication-policy-review-2026-08.md): 이름 미점유(404)·wheel top-level `workflow_kit` 하나·소비자 설치·sdist 유출 0 실측. 그러나 **비가역성 때문에 사후 수리 불가한 결함 3건** 지적. **③TASK-007 수리 3건 완료**(소유자 결정: 버전=stable 정리, 이메일=noreply): LICENSE 정본+사본+`license-files` (wheel 에 `licenses/LICENSE` 실측, drift case 7 이 되주입으로 고정) / `__version__` 이 PEP 440 그대로가 되어 `importlib.metadata` 와 일치, classifier 5-Production/Stable, `RELEASE.md` 의 **사실이 아니던 b0 예시 8곳** 정정 — 형식 단정 **10개 검사**가 한꺼번에 red 가 됐고 전량이 전부 잡았다 / 저자 이메일 교체. **④TASK-008 TestPyPI 리허설 = blocked**: 업로드 직전 **8종 전부 통과**(twine --strict / 이름 해석 설치 / extras / **PEP 639 서버 수용 실측** / 엔드포인트 200), 자격 증명 부재로 업로드만 미실행. 정책 차단은 소유자 결정으로 해소 — `RELEASE.md §1` TestPyPI = **⚠️ 1회 한정 허용 + 각주 1**(1.2.0 1회만, 실사용 PyPI 는 범위 밖, 1회 종료 시 만료). **부수 결함 5건**: 정책 정본이 저장소 밖 agent memory 에 있었음 → §1 이관 / `write_workflow_kit_version` 의 **무음 skip → loud raise** / drift 요약 하드코딩 `6/6` → 실행 결과 파생(case 를 더해도 빼도 6/6 이었다) / 코드가 정책을 **재진술**하던 2곳 → 순수 포인터(§1 이 바뀌자 재진술이 즉시 거짓이 됐다 — 사본은 갈라진다 실증) / `check_migration_group_heading` 이 내 `###` 유출을 검출. 전량 2축 **252/252 ×2 green**(세션 중 6회) + mypy strict 192 files 0 + SDK 매트릭스 3/3 + CI green. **다음: TestPyPI 업로드(소유자 토큰만 남음) → PyPI 발행 여부 소유자 결정 / TASK-004 관찰 계속(33 run 기준, 현재 5).** 상세: [33차 세션 기록](./sessions/pypi_readiness_2026-08-13.md).
@@ -78,7 +78,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-08-13-fix-archive-history-integrity-001 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설
+- TASK-2026-08-14-main-001 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성
+- TASK-2026-08-14-fix-archive-history-integrity-001 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설
 - TASK-2026-08-13-fix-branch-memory-namespace-guard-001 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설
 - TASK-2026-08-13-fix-branch-memory-namespace-guard-002 mavis attach e2e 기대치 vs read-only 번들 분리 — 정본 registry 파생으로 교체
 - TASK-2026-08-13-main-007 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일
@@ -87,7 +88,6 @@
 - TASK-2026-08-13-main-003 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략
 - TASK-2026-08-13-main-002 bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신
 - TASK-2026-08-13-main-001 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관
-- TASK-2026-08-12-main-018 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -95,7 +95,7 @@
 ### 무엇이 끝났나 (2026-08-14, 36차 세션)
 
 **브랜치 메모리 생애주기** (PR #25 병합). 상세는
-[세션 기록](../fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md).
+[세션 기록](../../archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md).
 
 **브랜치 종료 순서** — 아카이브가 이제 미완료 task 를 막는다:
 
@@ -110,11 +110,29 @@ wk archive-branch-memory --apply     # 참조(링크·state.json)도 함께 재�
 막히면 우회하지 말고 이월한다. `archived/` 는 state 생성기도 dashboard 도 읽지
 않으므로, 미완료인 채 넘어가면 그 작업은 어디에서도 안 보이게 된다.
 
-**미결 — 이 브랜치가 아직 안 정리됐다**: `fix/archive-history-integrity` 가 로컬·원격에
-살아 있어 `active/fix/archive-history-integrity/` 를 아카이브하지 않았다 (PR #25 는 병합
-완료). 위 순서대로 브랜치를 지운 뒤 `wk archive-branch-memory --apply` 를 돌리면 된다 —
-이 handoff 의 세션 기록 링크 2건은 **현재 위치(active)** 를 가리키고 있고, 아카이브할 때
-도구가 `archived/` 로 재작성한다 (이번에 만든 기능을 그대로 쓰는 자리다).
+**뒷정리 완료 (2026-08-14)** — 위 순서를 그대로 밟았고, 만든 기능이 실물에서 동작했다:
+`origin/fix/archive-history-integrity` 삭제(고유 커밋 0, tip `f798947` 은 main 이력에 남음)
+→ `wk archive-branch-memory --apply` 가 **이 handoff 의 세션 기록 링크 2건**과 아카이브된
+`state.json` 의 **5경로 전부**를 `archived/` 로 재작성했다. `.archived.json` 의
+`open_task_ids` 는 `[]` 다.
+
+**그 과정에서 드러난 것 — 종료 순서에 한 걸음이 빠져 있었다.** 브랜치 task 가
+`in_progress` 인 채였고(일은 끝났는데 파일이 안 따라왔다) 아카이브가 정당하게 막혔다.
+`완료 기준`·`작업 결과`·`검증 결과`가 전부 빈칸이라 **채운 뒤** `done` 으로 닫았다.
+또 이 handoff §4 와 세션 기록이 가리키던 `TASK-2026-08-13-fix-…-001` 은 **존재한 적 없는
+ID** 였다 (실재는 `…-08-14-…`) — 세션 기록의 `관련 문서` 링크는 죽어 있었고, §4 의 완료
+기록은 어느 task 파일과도 연결되지 않았다. 둘 다 실재 ID 로 교정.
+→ **브랜치를 닫을 때 task 를 먼저 `done` 으로 마감한다** (위 1번은 "이월" 만 말하고
+"내 일이 끝났으면 닫는다" 를 안 말하고 있었다).
+
+**그리고 아카이브 직후 `check_archive_history_integrity` 가 red 가 됐다 — 위양성이었다.**
+case 7 이 쓰던 링크 정규식이 **자체 사본**이었고 label 을 요구하지 않아
+(`](path "제목")` 형태), 링크 문법을 *설명하는* 산문을 링크로 오인했다. 하필 그 문서가
+방금 아카이브한 세션 기록이다 — **검사가 자기 세션의 기록을 못 견뎠다.** 문서를 고치지
+않고 판정을 정본(`workflow_kit.common.markdown`)에 맞추고 사본을 걷었다. 위양성을 내는
+검사는 무시당한다. case 14 를 **양방향**으로 새로 두었다 (예시 산문은 안 잡고, 진짜 깨진
+링크는 잡는다) — case 7 은 살아 있는 저장소를 관찰할 뿐이라 "안 잡는" 쪽으로 무력화돼도
+조용히 green 이다. 되주입으로 실측 확인. `check_archive_history_integrity` 는 13 → 14 cases.
 
 ### 무엇이 끝났나 (2026-08-13, 35차 세션)
 
@@ -135,10 +153,9 @@ wk backlog-update ... --mode update    # 이후 갱신
 `sessions/` 와 `session_handoff.md` 가 빠진다. 이제 `check_branch_memory_namespace` 가
 커밋 전에 지목한다.
 
-**미결로 남긴 것**: 병합된 `fix/branch-memory-namespace-guard` 브랜치가 로컬·원격에
-살아 있어 `active/fix/branch-memory-namespace-guard/` 를 아직 아카이브하지 않았다
-(아카이브 도구는 *브랜치 부재*를 종료 신호로 쓴다 — 역방향 점검). 브랜치를 지운 뒤
-`wk archive-branch-memory --apply` 를 돌리면 된다.
+~~**미결로 남긴 것**: `fix/branch-memory-namespace-guard` 미아카이브~~ — ✅ **완료**
+(`archived/fix/branch-memory-namespace-guard/`). 이제 `active/` 에 남은 브랜치
+네임스페이스는 `main` 하나다.
 
 ### 무엇이 끝났나 (2026-08-10, 3차 세션)
 

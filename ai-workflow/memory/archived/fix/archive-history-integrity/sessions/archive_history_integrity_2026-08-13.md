@@ -5,7 +5,7 @@
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: stable
 - 최종 수정일: 2026-08-13
-- 관련 문서: [task](../backlog/tasks/TASK-2026-08-13-fix-archive-history-integrity-001.md)
+- 관련 문서: [task](../backlog/tasks/TASK-2026-08-14-fix-archive-history-integrity-001.md)
 
 ## 1. 아카이브는 "이동" 만 하고 있었다
 

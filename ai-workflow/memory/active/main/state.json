@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-14",
+  "generated_at": "2026-08-13",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**36차 세션 종료 — 브랜치 메모리 생애주기 PR [#25](https://github.com/ykylee/standard_ai_workflow/pull/25) 병합.** **시작과 끝이 둘 다 안 맺어져 있었고, 둘 다 전량 green 인 채로 쌓이고 있었다.** **①끝(아카이브)이 이동만 하고 이관을 안 했다**: 도구가 task 를 세면서 status 를 안 봐 미완료가 그대로 소실됐고(직전 세션 `guard-003` 실측, 사람 눈이 잡았다 — `archived/` 는 state 생성기·dashboard 어디도 안 읽는다), 옮긴 뒤 참조를 안 고쳐 **아카이브 문서 22개 중 12개가 깨진 링크**·`state.json` **5경로 전부**가 사라진 `active/…` 를 가리켰다 (`codex/phase6` 는 1.5개월간 죽은 참조). → 미완료 있으면 **차단**(exit≠0, `--allow-open-tasks` 로만 통과+`open_task_ids` 기록) / **`carried_over_to` 별도 축**(브랜치는 끝났는데 일이 안 끝난 것을 `done` 으로 적으면 거짓 — §2.39 원칙) / 링크를 **해석해서** 옮긴다(살아 있는 링크는 안 건드린다). **②시작(seed)이 끝을 안 맺었다**: `state.json` 을 \"파생물이니 나중에\" 로 미뤄 seed 직후가 **항상 절반짜리**였고 3검사가 red 였다 (이 세션에서만 두 번 밟았다). \"손으로 쓰지 않는다\" 와 \"나중에\" 는 다른 말이다 → seed 가 **생성기를 호출해** 마무리한다. **③가드가 있는데 못 잡고 있었다**: `check_branch_memory_namespace` (B) 가 `is_dir()` 만 봐 절반짜리를 통과시켰다 → 네 가지 요구(case 12). **`check_archive_history_integrity` 신설(13 cases)** — fixture 로 계약, 자기 적용 3건으로 실물. **기존 이력 복구 14건**: `state.json` 2건(도구 자신으로) / 처음부터 잘못 쓴 링크 1건(이동 탓이 아니었다) / 영구 삭제 대상 죽은 참조 11건 표기. **자기 리뷰 결함 5건**(가장 위험한 것부터): 본문의 `status:` 를 frontmatter 로 오인 — **소실을 막는 코드가 소실을 일으킬 수 있었다** / 긴 frontmatter 누락 / **root 미resolve 시 재작성이 통째로 침묵**(오류도 안 남) / 앵커 소실(고친 척하고 정보를 잃는다) / CommonMark 제목·꺾쇠 링크 미처리. **작업 중 내 가드에 두 번 걸렸고 둘 다 정당해 우회하지 않았다** (브랜치에서 main handoff 편집 시도 / 경로 조립 정본 사본). **검증**: 전량 2축 **255/255 ×2 green** + CI env 축 255/255 + mypy strict 193 files 0 + **CI 13체크 전부 green**. **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%) / TASK-004 는 다음 재발의 `stderr_tail` 이 가설을 판정.** 상세: [세션 기록](../fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md).",
+    "current_baseline": "**36차 세션 종료 — 브랜치 메모리 생애주기 PR [#25](https://github.com/ykylee/standard_ai_workflow/pull/25) 병합.** **시작과 끝이 둘 다 안 맺어져 있었고, 둘 다 전량 green 인 채로 쌓이고 있었다.** **①끝(아카이브)이 이동만 하고 이관을 안 했다**: 도구가 task 를 세면서 status 를 안 봐 미완료가 그대로 소실됐고(직전 세션 `guard-003` 실측, 사람 눈이 잡았다 — `archived/` 는 state 생성기·dashboard 어디도 안 읽는다), 옮긴 뒤 참조를 안 고쳐 **아카이브 문서 22개 중 12개가 깨진 링크**·`state.json` **5경로 전부**가 사라진 `active/…` 를 가리켰다 (`codex/phase6` 는 1.5개월간 죽은 참조). → 미완료 있으면 **차단**(exit≠0, `--allow-open-tasks` 로만 통과+`open_task_ids` 기록) / **`carried_over_to` 별도 축**(브랜치는 끝났는데 일이 안 끝난 것을 `done` 으로 적으면 거짓 — §2.39 원칙) / 링크를 **해석해서** 옮긴다(살아 있는 링크는 안 건드린다). **②시작(seed)이 끝을 안 맺었다**: `state.json` 을 \"파생물이니 나중에\" 로 미뤄 seed 직후가 **항상 절반짜리**였고 3검사가 red 였다 (이 세션에서만 두 번 밟았다). \"손으로 쓰지 않는다\" 와 \"나중에\" 는 다른 말이다 → seed 가 **생성기를 호출해** 마무리한다. **③가드가 있는데 못 잡고 있었다**: `check_branch_memory_namespace` (B) 가 `is_dir()` 만 봐 절반짜리를 통과시켰다 → 네 가지 요구(case 12). **`check_archive_history_integrity` 신설(13 cases)** — fixture 로 계약, 자기 적용 3건으로 실물. **기존 이력 복구 14건**: `state.json` 2건(도구 자신으로) / 처음부터 잘못 쓴 링크 1건(이동 탓이 아니었다) / 영구 삭제 대상 죽은 참조 11건 표기. **자기 리뷰 결함 5건**(가장 위험한 것부터): 본문의 `status:` 를 frontmatter 로 오인 — **소실을 막는 코드가 소실을 일으킬 수 있었다** / 긴 frontmatter 누락 / **root 미resolve 시 재작성이 통째로 침묵**(오류도 안 남) / 앵커 소실(고친 척하고 정보를 잃는다) / CommonMark 제목·꺾쇠 링크 미처리. **작업 중 내 가드에 두 번 걸렸고 둘 다 정당해 우회하지 않았다** (브랜치에서 main handoff 편집 시도 / 경로 조립 정본 사본). **검증**: 전량 2축 **255/255 ×2 green** + CI env 축 255/255 + mypy strict 193 files 0 + **CI 13체크 전부 green**. **다음: TestPyPI 업로드(소유자 토큰) → PyPI 발행 여부 결정 / [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%) / TASK-004 는 다음 재발의 `stderr_tail` 이 가설을 판정.** 상세: [세션 기록](../../archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md). **뒷정리(2026-08-14): 브랜치 삭제 → 아카이브까지 끝냈다** — 참조 재작성이 실물에서 동작(handoff 링크 2 + state.json 5경로), `active/` 에 남은 네임스페이스는 `main` 하나. 닫는 과정에서 **task 가 `in_progress` 인 채라 아카이브가 정당하게 막혔고**, handoff·세션 기록이 가리키던 `TASK-2026-08-13-fix-…-001` 은 **존재한 적 없는 ID** 였다 (실재는 `…-08-14-…`) — 둘 다 교정. 종료 순서에 \"task 를 먼저 `done` 으로 마감\" 을 추가했다.",
     "current_axis": "**PyPI 발행 — 기술 준비 완료, 남은 것은 정책 결정 하나.** v1.2.0 이 일반명 top-level 충돌(차단 사유)을 없앴고, 33차가 공개 부적합 결함 3건(LICENSE 전문 부재 / 버전 체계 모순 / 저자 개인 이메일)까지 닫았다. **다음 단계는 둘뿐**: ①[TASK-2026-08-13-main-008] TestPyPI 리허설 — **소유자 TestPyPI API 토큰만 남았다** (업로드 직전 8종 검증 통과, 정책은 `RELEASE.md §1` 1회 한정 허용으로 열림; 토큰은 세션에 붙여넣지 않는다 — 명령은 검토 문서 §6.1) ②그 후 **PyPI 발행 여부 소유자 결정** (검토 §6-4 — 발행 시 Trusted Publishing(OIDC), 첫 발행은 낮은 위험 버전. 공개는 `stable_guarantee.md` 의 2년 backward compat 을 낯선 소비자에게 구속시킨다). 대기 축: [TASK-2026-08-13-main-004] mypy flake 관찰 — **33 run 연속 green 이 완료 기준**(현재 5, 8.8% 발생률 기준 95% 신뢰 표본) / [TASK-2026-08-12-main-019] macOS PEP 668 (MacBook 전원 시) / cross-host federation (두 번째 호스트 = MacBook 확정, 시점 추후) / darwin mavis e2e / memory_index 3-tuple 추이.",
     "current_focus": "TASK-2026-08-13-main-008 TestPyPI 리허설",
     "in_progress_items": [],
@@ -35,6 +35,7 @@
       "TASK-2026-08-13-main-008 TestPyPI 리허설"
     ],
     "recent_done_items": [
+      "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
       "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일",
       "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
@@ -43,39 +44,28 @@
       "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
       "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
       "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
-      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)",
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합"
+      "TASK-2026-08-12-main-020 — 플러그인 payload 에 session-end 스킬 추가 (스킬 3→4종)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-13.md",
-    "task_count": 12,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
+    "task_count": 1,
     "in_progress_items": [],
-    "blocked_items": [
-      "TASK-2026-08-13-main-008 — TestPyPI 리허설"
-    ],
+    "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-12-main-017 — 플러그인 전환 P4 — 릴리스 파이프라인 통합",
-      "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관",
-      "TASK-2026-08-12-main-016 — 플러그인 전환 P3 — 멀티 하네스 어댑터 (gemini-cli/goose/opencode)",
-      "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
-      "TASK-2026-08-12-main-018 — 플러그인 전환 P5 — 실측 게이트 + 채널 전환 판정",
-      "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
-      "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
-      "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
-      "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일"
+      "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-13.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-14.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
-    "ai-workflow/memory/active/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",
+    "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",
     "ai-workflow/memory/archived/fix/branch-memory-namespace-guard/sessions/branch_memory_namespace_guard_2026-08-13.md",
     "ai-workflow/memory/archived/feat/plugin-harness-distribution/sessions/plugin_harness_distribution_pr23_2026-08-13.md",
     "ai-workflow/memory/active/main/sessions/pypi_readiness_2026-08-13.md",

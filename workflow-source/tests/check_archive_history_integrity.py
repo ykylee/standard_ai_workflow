@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (13 cases).
+"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (14 cases).
 
 ## 계보 — 아카이브는 "이동" 만 하고 있었다
 
@@ -39,6 +39,7 @@ archived/ 현재 상태**를 잰다. 후자가 없으면 계약만 지키고 실
  11) **본문의 `status:`** 를 frontmatter 로 오인하지 않는다 (미완료가 완료로 사라진다)
  12) 링크의 앵커·제목·꺾쇠 형태를 놓치지 않고 앵커를 보존한다
  13) root 를 resolve 하지 않아도 재작성이 침묵하지 않는다
+ 14) 링크 문법을 *설명하는* 산문은 링크가 아니다 + 진짜 깨진 링크는 여전히 잡는다
 
 Refs:
   - workflow_kit/tools/archive_branch_memory.py
@@ -48,7 +49,6 @@ Refs:
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 import sys
 import tempfile
@@ -59,6 +59,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.markdown import (  # noqa: E402
+    LINK_RE,
+    normalize_link_target,
+)
 from workflow_kit.tools.archive_branch_memory import (  # noqa: E402
     _rewrite_markdown_links,
     open_tasks,
@@ -71,7 +75,11 @@ TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "archive_branch_memory.py"
 ARCHIVED_DIR = REPO_ROOT / "ai-workflow" / "memory" / "archived"
 MEMORY_REL = "ai-workflow/memory"
 
-LINK_RE = re.compile(r"\]\(([^)]+)\)")
+# 링크 규약은 `workflow_kit.common.markdown` 이 정본이다 — 여기서 다시 쓰지 않는다.
+# 자체 사본(`\]\(...\)`)은 label 을 요구하지 않는 **약한 형제**였고, 링크 문법을
+# *설명하는* 산문(`](path "제목")` 같은 예시)을 링크로 오인해 자기 적용 case 를
+# red 로 만들었다 (2026-08-14 실측 — 아카이브한 세션 기록이 바로 그 문서였다).
+# 위양성을 내는 검사는 무시당하므로, 문서를 고치지 않고 판정을 정본에 맞췄다.
 
 
 # ---------------------------------------------------------------------------
@@ -197,19 +205,54 @@ def case_6_live_links_untouched(root: Path) -> None:
     assert out == original, f"살아 있는 링크를 건드렸다:\n{out}"
 
 
-def case_7_self_archived_links_resolve() -> None:
+def _broken_links_under(base: Path, label_root: Path) -> list[str]:
+    """`base` 아래 markdown 의 깨진 상대 링크를 모은다 (판정은 한 자리에서만)."""
     broken: list[str] = []
-    for path in sorted(ARCHIVED_DIR.rglob("*.md")):
+    for path in sorted(base.rglob("*.md")):
         doc_dir = path.parent
         for m in LINK_RE.finditer(path.read_text(encoding="utf-8", errors="replace")):
             link = m.group(1)
             if link.startswith(("http://", "https://", "#", "mailto:")):
                 continue
-            if not (doc_dir / link.split("#", 1)[0]).exists():
-                broken.append(f"{path.relative_to(REPO_ROOT)} → {link}")
+            target = normalize_link_target(link)
+            if not target or "://" in target:
+                continue
+            if not (doc_dir / target).exists():
+                broken.append(f"{path.relative_to(label_root)} → {link}")
+    return broken
+
+
+def case_7_self_archived_links_resolve() -> None:
+    broken = _broken_links_under(ARCHIVED_DIR, REPO_ROOT)
     assert not broken, (
         "archived/ 에 깨진 링크가 있다 (아카이브가 이력을 끊었다):\n"
         + "\n".join(f"  {b}" for b in broken)
+    )
+
+
+def case_14_link_prose_is_not_a_link(root: Path) -> None:
+    """**양방향으로** 잰다 — 예시 산문은 안 잡고, 진짜 깨진 링크는 잡는다.
+
+    case 7 은 살아 있는 저장소를 관찰할 뿐이라 "안 잡는다" 쪽으로 무력화돼도
+    조용히 green 이 된다. 두 방향을 fixture 로 못 박아 그 침묵을 막는다.
+    """
+    prose = root / "archived" / "old" / "sessions" / "prose.md"
+    _write(
+        prose,
+        "# 링크 문법을 설명하는 문서\n\n"
+        '`](path "제목")` / `](<path>)` 는 CommonMark 정식 형태다.\n',
+    )
+    assert _broken_links_under(root, root) == [], (
+        "링크 문법을 *설명하는* 산문을 링크로 오인했다 (label 없는 `](...)` 는 링크가 아니다)"
+    )
+
+    prose.write_text(
+        prose.read_text("utf-8") + "\n[없는 문서](./gone.md) 를 가리킨다.\n",
+        encoding="utf-8",
+    )
+    found = _broken_links_under(root, root)
+    assert found and found[0].endswith("→ ./gone.md"), (
+        f"진짜 깨진 링크를 놓쳤다 — 판정이 무력화됐다: {found}"
     )
 
 
@@ -339,12 +382,13 @@ def main() -> int:
         case_11_body_status_not_mistaken,
         case_12_link_variants,
         case_13_unresolved_roots_still_work,
+        case_14_link_prose_is_not_a_link,
     ):
         _in_tmp(case)
     case_7_self_archived_links_resolve()
     case_8_self_archived_state_paths()
     case_9_self_no_open_tasks_archived()
-    print("archive history integrity check passed (13 cases)")
+    print("archive history integrity check passed (14 cases)")
     return 0
 
 
@@ -398,6 +442,10 @@ def test_case_12() -> None:
 
 def test_case_13() -> None:
     _in_tmp(case_13_unresolved_roots_still_work)
+
+
+def test_case_14() -> None:
+    _in_tmp(case_14_link_prose_is_not_a_link)
 
 
 if __name__ == "__main__":

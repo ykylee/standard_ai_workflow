@@ -143,22 +143,32 @@ def test_release_status_v0_11_14() -> None:
     print(f"  case 6 (mypy strict clean {file_count} source files): PASS")
 
     # case 7: dispatcher 호출 — text mode + JSON mode 둘 다
+    #
+    # **Layer 2(mypy) 는 case 5 가 실제로 얻은 판정을 재사용한다.** 이 case 가 재는 것은
+    # *dispatcher 가 두 모드로 rc=0 과 필수 field 를 내는가* 이지 mypy 판정이 아닌데,
+    # `cmd_release_status` 는 호출마다 `mypy --no-incremental` 을 새로 돌린다 (~5.1s).
+    # 여기서만 2회 더 돌아 이 검사 22.9s 중 mypy 3회가 15.4s 였다 (2026-08-14 cProfile).
+    # 가짜 값이 아니라 case 5 의 실측 그대로다. 실제 mypy 판정은 바로 위 case 6 이
+    # 자기 subprocess 로 따로 재고 있고, 실행 계약(`--no-incremental`)은 손대지 않는다.
+    from workflow_kit import release_status as _rs
     from workflow_kit.workflow_kit_cli import cmd_release_status as _dispatch
+    from unittest import mock
     # text mode
     import io
     import contextlib
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        rc_text = _dispatch([])
-    text_output = buf.getvalue()
-    assert "current_version:" in text_output, "text mode output 부재"
-    assert "ready_to_release:" in text_output, "text mode ready_to_release 부재"
-    assert rc_text == 0, f"text mode rc != 0: {rc_text}"
-    # JSON mode
-    buf2 = io.StringIO()
-    with contextlib.redirect_stdout(buf2):
-        rc_json = _dispatch(["--json"])
-    json_output = buf2.getvalue()
+    with mock.patch.object(_rs, "_check_local_mypy", lambda: dict(result["local_mypy"] or {})):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc_text = _dispatch([])
+        text_output = buf.getvalue()
+        assert "current_version:" in text_output, "text mode output 부재"
+        assert "ready_to_release:" in text_output, "text mode ready_to_release 부재"
+        assert rc_text == 0, f"text mode rc != 0: {rc_text}"
+        # JSON mode
+        buf2 = io.StringIO()
+        with contextlib.redirect_stdout(buf2):
+            rc_json = _dispatch(["--json"])
+        json_output = buf2.getvalue()
     parsed = json.loads(json_output)
     assert "current_version" in parsed, "JSON mode parsed 부재"
     assert "ready_to_release" in parsed, "JSON mode ready_to_release 부재"

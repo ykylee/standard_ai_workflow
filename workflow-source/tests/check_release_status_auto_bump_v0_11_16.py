@@ -145,31 +145,41 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     print(f"  case 5 (mypy strict clean {file_count} source files): PASS")
 
     # case 6: dispatcher 호출 — text mode + JSON mode 양쪽 auto_bump field 출력
+    #
+    # **Layer 2(mypy) 는 case 3 이 실제로 얻은 판정을 재사용한다.** 이 case 가 재는 것은
+    # *두 모드가 auto_bump field 를 내는가* 이지 mypy 판정이 아닌데, `cmd_release_status`
+    # 는 호출마다 `mypy --no-incremental` 을 새로 돌린다 (~5.1s). 가짜 값이 아니라 case 3
+    # 의 실측 그대로이고, 실제 mypy 판정은 case 5 가 자기 subprocess 로 따로 잰다.
+    # 실행 계약(`--no-incremental`)은 손대지 않는다.
+    from workflow_kit import release_status as _rs
     from workflow_kit.workflow_kit_cli import cmd_release_status as _dispatch
+    from unittest import mock
     import io
     import contextlib
 
-    # text mode (default, --auto-bump 없음)
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        rc_text = _dispatch([])
-    text_output = buf.getvalue()
-    assert "auto_bump_applied: False" in text_output, (
-        f"text mode 의 auto_bump_applied: False 출력 부재: {text_output[:500]}"
-    )
-    assert rc_text == 0, f"text mode rc != 0: {rc_text}"
+    with mock.patch.object(_rs, "_check_local_mypy", lambda: dict(result["local_mypy"] or {})):
 
-    # JSON mode
-    buf2 = io.StringIO()
-    with contextlib.redirect_stdout(buf2):
-        rc_json = _dispatch(["--json"])
-    json_output = buf2.getvalue()
-    parsed = json.loads(json_output)
-    assert "auto_bump_applied" in parsed, "JSON mode parsed 에 auto_bump_applied 부재"
-    assert "auto_bump_result" in parsed, "JSON mode parsed 에 auto_bump_result 부재"
-    assert parsed["auto_bump_applied"] is False, (
-        f"JSON mode 의 auto_bump_applied != False: {parsed['auto_bump_applied']!r}"
-    )
+        # text mode (default, --auto-bump 없음)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc_text = _dispatch([])
+        text_output = buf.getvalue()
+        assert "auto_bump_applied: False" in text_output, (
+            f"text mode 의 auto_bump_applied: False 출력 부재: {text_output[:500]}"
+        )
+        assert rc_text == 0, f"text mode rc != 0: {rc_text}"
+
+        # JSON mode
+        buf2 = io.StringIO()
+        with contextlib.redirect_stdout(buf2):
+            rc_json = _dispatch(["--json"])
+        json_output = buf2.getvalue()
+        parsed = json.loads(json_output)
+        assert "auto_bump_applied" in parsed, "JSON mode parsed 에 auto_bump_applied 부재"
+        assert "auto_bump_result" in parsed, "JSON mode parsed 에 auto_bump_result 부재"
+        assert parsed["auto_bump_applied"] is False, (
+            f"JSON mode 의 auto_bump_applied != False: {parsed['auto_bump_applied']!r}"
+        )
     assert parsed["auto_bump_result"] is None, (
         f"JSON mode 의 auto_bump_result != None: {parsed['auto_bump_result']!r}"
     )

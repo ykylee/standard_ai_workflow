@@ -110,11 +110,11 @@ def build_draft_entry(
     affected_documents: list[str],
     task_summary: str | None,
     progress_note: str | None,
-    done_criteria: str | None,
-    result_note: str | None,
+    done_criteria: list[str] | str | None,
+    result_note: list[str] | str | None,
     next_step: str | None,
-    risks: str | None,
-    follow_up: str | None,
+    risks: list[str] | str | None,
+    follow_up: list[str] | str | None,
     validation_result: str | None = None,
     kind: str = "generic",
     source_anchor: str | None = None,
@@ -148,25 +148,25 @@ def build_draft_entry(
         [
             "",
             f"- 작업 내용: {task_summary}" if task_summary else "- 작업 내용:",
-            f"- 완료 기준: {done_criteria}" if done_criteria else "- 완료 기준:",
+            *_label_lines("완료 기준", done_criteria),
             "",
             "## 🛠️ Implementation / Content",
             "",
             f"- 진행 현황: {progress_note}" if progress_note else "- 진행 현황:",
             f"- 다음 세션 시작 포인트: {next_step}" if next_step else "- 다음 세션 시작 포인트:",
-            f"- 남은 리스크: {risks}" if risks else "- 남은 리스크:",
+            *_label_lines("남은 리스크", risks),
             "",
             "## ✅ Outcome",
             "",
-            f"- 작업 결과: {result_note}" if result_note else "- 작업 결과:",
+            *_label_lines("작업 결과", result_note),
         ]
     )
     # v1.0.2: `--validation-result` 를 산출물에 싣는다. 이전에는 이 값이 *result_note 가
     # 비어 있을 때만* 그 자리를 대신했고, 둘 다 주면 **검증 결과가 조용히 버려졌다** —
     # `done` 판정의 근거가 되는 값인데 정작 task SSOT 어디에도 남지 않았다.
-    if validation_result and validation_result != result_note:
+    if validation_result and validation_result not in _as_list(result_note):
         detail.append(f"- 검증 결과: {validation_result}")
-    detail.append(f"- 후속 작업: {follow_up}" if follow_up else "- 후속 작업:")
+    detail.extend(_label_lines("후속 작업", follow_up))
     return render_task_file(
         task_id=task_id,
         title=task_name,
@@ -177,6 +177,26 @@ def build_draft_entry(
         source_path=source_path or f"backlog/{request_date}.md",
         body_lines=detail,
     )
+
+
+def _as_list(value: list[str] | str | None) -> list[str]:
+    """단일 값과 목록을 같은 모양으로. 빈 문자열은 값이 아니다."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value] if value else []
+    return [v for v in value if v]
+
+
+def _label_lines(label: str, value: list[str] | str | None) -> list[str]:
+    """`- <label>: <값>` 줄들. 값이 없으면 빈 placeholder 한 줄.
+
+    다중값을 **한 줄에 개행으로 밀어 넣지 않는다** — 그 우회책이 update 마다 줄을
+    중복시켰다 (2026-08-14 실측). 값 하나당 한 줄이고, 갱신은 묶음 단위로 교체된다
+    (:func:`workflow_kit.common.workflow_writes._set_list_field`).
+    """
+    items = _as_list(value)
+    return [f"- {label}: {item}" for item in items] or [f"- {label}:"]
 
 
 def detect_confirmation_fields(data: dict[str, Any]) -> list[str]:
@@ -221,11 +241,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host-ip")
     parser.add_argument("--affected-document", action="append", dest="affected_documents", default=[])
     parser.add_argument("--progress-note")
-    parser.add_argument("--done-criteria")
-    parser.add_argument("--result-note")
+    # v1.2.2 (task SSOT 2단계): 열거형 필드는 **반복 지정**을 받는다.
+    # 이전에는 마지막 하나만 남아, 값을 여러 개 주면 나머지가 **조용히 사라졌다**
+    # (2026-08-14 실측: 5건을 적었는데 1건만 들어갔다). 개행을 끼워 넣는 우회책은
+    # update 마다 줄을 중복시켰다 — 그 둘이 같은 뿌리다.
+    parser.add_argument("--done-criteria", action="append", dest="done_criteria", default=[],
+                        help="완료 기준 (반복 지정 가능)")
+    parser.add_argument("--result-note", action="append", dest="result_note", default=[],
+                        help="작업 결과 (반복 지정 가능)")
     parser.add_argument("--next-step")
-    parser.add_argument("--risks")
-    parser.add_argument("--follow-up")
+    parser.add_argument("--risks", action="append", dest="risks", default=[],
+                        help="남은 리스크 (반복 지정 가능)")
+    parser.add_argument("--follow-up", action="append", dest="follow_up", default=[],
+                        help="후속 작업 (반복 지정 가능)")
     parser.add_argument("--validation-result")
     parser.add_argument("--work-backlog-index-path")
     parser.add_argument("--session-handoff-path")
@@ -481,9 +509,9 @@ def main() -> int:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             progress_note = f"`{timestamp}` 기준 {args.task_brief}"
 
-        result_note = args.result_note
+        result_note = _as_list(args.result_note)
         if args.validation_result and not result_note:
-            result_note = args.validation_result
+            result_note = [args.validation_result]
 
         fields_data = {
             "owner": args.owner,
@@ -520,18 +548,19 @@ def main() -> int:
                 scalar_updates["호스트명"] = args.host_name
             if args.host_ip:
                 scalar_updates["호스트 IP"] = args.host_ip
+            list_updates: dict[str, list[str]] = {}
             if args.done_criteria:
-                scalar_updates["완료 기준"] = args.done_criteria
+                list_updates["완료 기준"] = _as_list(args.done_criteria)
             if result_note:
-                scalar_updates["작업 결과"] = result_note
+                list_updates["작업 결과"] = _as_list(result_note)
             if args.validation_result and args.validation_result != result_note:
                 scalar_updates["검증 결과"] = args.validation_result
             if args.next_step:
                 scalar_updates["다음 세션 시작 포인트"] = args.next_step
             if args.risks:
-                scalar_updates["남은 리스크"] = args.risks
+                list_updates["남은 리스크"] = _as_list(args.risks)
             if args.follow_up:
-                scalar_updates["후속 작업"] = args.follow_up
+                list_updates["후속 작업"] = _as_list(args.follow_up)
             # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
             if any(line.strip() == "- 작업 내용:" for line in existing_lines):
                 scalar_updates["작업 내용"] = args.task_brief
@@ -540,6 +569,7 @@ def main() -> int:
                 status=status,
                 kind=args.kind,
                 scalar_updates=scalar_updates,
+                list_updates=list_updates,
                 affected_documents=args.affected_documents or None,
             )
             if merge_missing:

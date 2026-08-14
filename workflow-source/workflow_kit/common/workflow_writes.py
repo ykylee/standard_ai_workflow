@@ -169,6 +169,33 @@ def _set_inline_field(lines: list[str], label: str, value: str) -> tuple[list[st
     return lines, False
 
 
+def _set_list_field(
+    lines: list[str], label: str, values: list[str],
+) -> tuple[list[str], bool]:
+    """`- <label>: …` **여러 줄**을 한 묶음으로 교체한다. 없으면 (원본, False).
+
+    :func:`_set_inline_field` 는 첫 줄만 바꾼다. 다중값 필드에 그걸 쓰면 2번째 이후
+    줄이 남아 **호출마다 쌓인다** — 2026-08-14 실측: `--done-criteria` 를 여러 번 준
+    호출이 마지막 하나만 반영해, 개행을 끼워 넣는 우회책을 썼더니 update 두 번에
+    같은 줄이 두 벌이 됐다.
+
+    묶음은 **연속한** `- <label>:` 줄들이다. 중간에 다른 라벨이 끼면 거기서 끝난다 —
+    문서의 다른 절에 같은 라벨이 또 있어도 그쪽까지 삼키지 않는다.
+    """
+    prefix = f"- {label}:"
+    for idx, line in enumerate(lines):
+        if line.strip() == prefix or line.strip().startswith(prefix + " "):
+            indent = line[: len(line) - len(line.lstrip())]
+            end = idx
+            while end < len(lines) and (
+                lines[end].strip() == prefix or lines[end].strip().startswith(prefix + " ")
+            ):
+                end += 1
+            replacement = [f"{indent}- {label}: {v}" for v in values] or [f"{indent}{prefix}"]
+            return lines[:idx] + replacement + lines[end:], True
+    return lines, False
+
+
 def _set_frontmatter_value(lines: list[str], key: str, value: str) -> list[str]:
     """frontmatter (`--- … ---`) 안의 `key: …` 를 교체한다."""
     if not lines or lines[0].strip() != "---":
@@ -190,6 +217,7 @@ def merge_task_file(
     status: str,
     kind: str | None = None,
     scalar_updates: dict[str, str] | None = None,
+    list_updates: dict[str, list[str]] | None = None,
     affected_documents: list[str] | None = None,
 ) -> tuple[list[str], list[str]]:
     """기존 task SSOT 파일에 **명시된 갱신만** 반영한다 (TASK-2026-08-11-main-023).
@@ -207,6 +235,14 @@ def merge_task_file(
     lines, _ = _set_inline_field(lines, "상태", status)
 
     missing: list[str] = []
+    # 다중값 먼저 — 묶음 단위 교체라 스칼라 경로와 섞이면 안 된다.
+    for label, values in (list_updates or {}).items():
+        if not values:
+            continue
+        lines, found = _set_list_field(lines, label, values)
+        if not found:
+            missing.append(label)
+
     for label, value in (scalar_updates or {}).items():
         lines, found = _set_inline_field(lines, label, value)
         if not found and label == "검증 결과":

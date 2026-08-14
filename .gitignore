@@ -91,3 +91,6 @@ workflow-source/.venv-build/
 
 # Claude Code worktree isolation (harness-internal)
 .claude/worktrees/
+
+# 내장 git worktree (에이전트 별도 checkout) — 이 트리의 인덱스에 넣지 않는다
+.worktrees/

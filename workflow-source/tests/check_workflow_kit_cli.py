@@ -6,6 +6,10 @@ Replaces 6 per-feature CLI test files.
 from __future__ import annotations
 
 import importlib.util
+
+# 단독 27s 실측 (2026-08-14) — 병렬 부하에서 2배로 늘어지면 기본 60s 상한을 넘는다
+# (같은 날 slash 축 전량에서 TIMEOUT flake 실측). 행 검출은 150s 로 충분.
+CHECK_TIMEOUT_S = 150
 import sys
 import types
 from pathlib import Path

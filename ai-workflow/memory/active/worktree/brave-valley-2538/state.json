@@ -5,12 +5,12 @@
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/main/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/active/worktree/brave-valley-2538/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
-    "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
+    "daily_backlog_dir": "ai-workflow/memory/active/worktree/brave-valley-2538/backlog",
+    "tasks_dir": "ai-workflow/memory/active/worktree/brave-valley-2538/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/active/worktree/brave-valley-2538/sessions",
+    "latest_backlog_path": "ai-workflow/memory/active/worktree/brave-valley-2538/backlog/2026-08-14.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,74 +27,34 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**44차 세션 종료 — task SSOT 3단계 완료, main-008 close (`feat/task-label-registry` 병합).** 라벨은 장식이 아니라 **파싱 계약**이라 순서가 정해져 있다: **리더가 먼저 두 표기를 받고, 그 다음 release 에서 쓰는 쪽을 바꾼다**. 반대로 하면 소비자의 옛 리더가 새 문서를 못 읽는다 — 그래서 이번 단계는 전환을 **하지 않았다**. 리터럴 12개 라벨 × **46곳**을 `TASK_FIELD_LABELS`(현재 표기) + `TASK_FIELD_ALIASES`(받아들일 표기)로 모았다. 원칙은 **찾기는 넓게, 쓰기는 좁게**. `check_task_label_registry` 8 cases — **case 6 이 '정본이 하나' 의 유일한 증거**(표를 바꾸면 산출물이 따라 바뀐다)이고, case 8 은 반대로 렌더 경로의 잔여 리터럴을 AST 로 훑어 세 번에 걸쳐 지목했다. 마지막 하나는 **읽는 비교**였다 — 영어 표기 문서에서 항상 거짓이라 '비어 있으니 채운다' 분기가 조용히 안 돌았다. **main-008 은 done**: 결함 6계열 중 **3개가 구조적으로 닫혔다**(status 혼동 · 반복 필드 소실 · update 줄 중복). 4단계(영어 전환)는 [TASK-2026-08-14-main-009] 로 이월 — release 경계여야 한다. **검증**: 전량 2축 **260/260 ×2 green**. 상세: [세션 기록](../../archived/feat/task-label-registry/sessions/task_label_registry_2026-08-14.md).",
-    "current_axis": "**문서 개편 3축이 전부 닫혔다 — 다음 축을 정하는 자리다.** ①영어화(진입점·스킬) ②handoff 롤오프(−59%) ③task SSOT 구조화(1~3단계) 완료. **대기 축** (release 경계 / 관찰 / 판단 보류로 나뉜다): **release 경계** — [TASK-2026-08-14-main-009] 라벨 영어 전환(리더가 두 표기를 아는 버전이 배포된 뒤). **남은 구조 결함** — [main-005] seed 의 `sessions/` gap / [main-006] 아카이브의 살아있는-대상 링크 재작성(**오늘 세 번 밟았다**) / 정숙 구간 `no_repo_write` 39s. **판단 보류** — [main-004] 2축→1축 조건부(15연속 CI red 를 만든 비대칭이라, 위험이 절감보다 크면 **안 하는 것도 결론**). **관찰** — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(현재 5) / macOS PEP 668 / cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
-    "in_progress_items": [
-      "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
-    ],
+    "current_baseline": "**Grok Build 플러그인 채널 개통.** 현재 `plugin/` 을 `grok plugin install ./plugin --trust` 하면 스킬 4종과 read-only MCP 가 붙는다. 훅은 Grok 관례 경로 `hooks/hooks.json` 이 있어야 로드된다 — 렌더러가 Claude 어댑터 훅과 동일 사본으로 emit 하고 SessionStart 탐침에 `GROK.md` 를 넣었다. `check_agent_plugin_payload` 18→19 (되주입 2종). live `~/.grok` 자기 적용 완료 (`plugin-27e2648f`, v1.2.0, enabled). 상세: [실측](./sessions/grok_plugin_load_probe_2026-08-14.md), [어댑터](./sessions/grok_plugin_hooks_adapter_2026-08-14.md).",
+    "current_axis": "Grok Build 플러그인 채널 — 이 브랜치 작업은 닫혔다. 다음은 PR 병합.",
+    "current_focus": null,
+    "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
-      "TASK-2026-08-14-main-011 — 무거운 check 2개의 CHECK_TIMEOUT_S 미선언 — slash 축 병렬에서 TIMEOUT flake",
-      "TASK-2026-08-14-main-010 — 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다",
-      "TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거",
-      "TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%",
-      "TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째",
-      "TASK-2026-08-14-main-005 — seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다",
-      "TASK-2026-08-14-main-004 — 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정",
-      "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
-      "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
-      "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성"
+      "TASK-2026-08-14-worktree-brave-valley-2538-001 — Grok Build 플러그인 훅 어댑터"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
-    "task_count": 11,
-    "in_progress_items": [
-      "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
-    ],
+    "latest_backlog_path": "ai-workflow/memory/active/worktree/brave-valley-2538/backlog/2026-08-14.md",
+    "task_count": 1,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
-      "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
-      "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
-      "TASK-2026-08-14-main-004 — 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정",
-      "TASK-2026-08-14-main-005 — seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다",
-      "TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째",
-      "TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%",
-      "TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거",
-      "TASK-2026-08-14-main-010 — 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다",
-      "TASK-2026-08-14-main-011 — 무거운 check 2개의 CHECK_TIMEOUT_S 미선언 — slash 축 병렬에서 TIMEOUT flake"
+      "TASK-2026-08-14-worktree-brave-valley-2538-001 — Grok Build 플러그인 훅 어댑터"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-14.md",
-    "ai-workflow/memory/active/main/state.json",
-    "ai-workflow/memory/active/main/backlog",
-    "ai-workflow/memory/active/main/sessions",
-    "ai-workflow/memory/archived/feat/task-label-registry/sessions/task_label_registry_2026-08-14.md",
-    "ai-workflow/memory/archived/feat/task-ssot-writer/sessions/task_ssot_writer_2026-08-14.md",
-    "ai-workflow/memory/archived/feat/task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md",
-    "ai-workflow/memory/archived/perf/handoff-baseline-rolloff/sessions/handoff_baseline_rolloff_2026-08-14.md",
-    "ai-workflow/memory/active/main/baselines.md",
-    "workflow-source/core/multi_workspace_orchestration.md",
-    "workflow-source/core/global_workflow_standard.md",
-    "workflow-source/MEMORY_GOVERNANCE.md",
-    "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
-    "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
-    "docs/RELEASE.md",
-    "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
-    "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",
-    "ai-workflow/memory/archived/fix/branch-memory-namespace-guard/sessions/branch_memory_namespace_guard_2026-08-13.md",
-    "ai-workflow/memory/active/main/sessions/cli_dispatcher_and_rotation_2026-08-09.md",
-    "ai-workflow/memory/active/main/sessions/multi_workspace_orchestration_2026-08-08.md",
-    "ai-workflow/memory/active/main/sessions/self_application_and_mcp_2026-08-05.md",
-    "ai-workflow/memory/active/main/sessions/mcp_load_verification_2026-08-07.md",
-    "ai-workflow/memory/active/main/sessions/selfref_cleanup_and_ci_measurement_2026-07-27.md"
+    "ai-workflow/memory/active/worktree/brave-valley-2538/session_handoff.md",
+    "ai-workflow/memory/active/worktree/brave-valley-2538/backlog/2026-08-14.md",
+    "ai-workflow/memory/active/worktree/brave-valley-2538/backlog",
+    "ai-workflow/memory/active/worktree/brave-valley-2538/sessions",
+    "ai-workflow/memory/active/worktree/brave-valley-2538/sessions/grok_plugin_load_probe_2026-08-14.md",
+    "ai-workflow/memory/active/worktree/brave-valley-2538/sessions/grok_plugin_hooks_adapter_2026-08-14.md"
   ],
   "repository_assessment": {
     "path": null,

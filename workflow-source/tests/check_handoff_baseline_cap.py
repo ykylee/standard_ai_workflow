@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""handoff §1 기준선 롤오프의 계약을 고정한다 (10 cases).
+"""handoff §1 기준선 롤오프의 계약을 고정한다 (11 cases).
 
 ## 계보
 
@@ -25,7 +25,8 @@
   8) `--cap 0` 은 거부한다 (현재 기준선까지 지우는 값)
   9) **생성기 입력이 깨지지 않는다** — 롤오프 후에도 `parse_handoff` 가 같은
      `current_baseline` 을 읽는다
- 10) 자기 적용 — 이 저장소 handoff 가 상한 이하다
+ 10) 자기 적용 — 현재 브랜치 handoff 가 상한 이하다
+ 11) **들여쓴 하위 줄까지 통째로** 옮긴다 (첫 줄만 옮기면 고아가 남는다)
 """
 
 from __future__ import annotations
@@ -189,6 +190,33 @@ def case_9_generator_input_unchanged(root: Path) -> None:
     assert before == after, f"생성기 입력이 바뀌었다: {before!r} → {after!r}"
 
 
+def case_11_multiline_blocks_move_whole(root: Path) -> None:
+    """기준선은 한 줄이 아니다 — **들여쓴 하위 줄까지** 함께 옮긴다.
+
+    2026-08-14 실측: 한 줄짜리 fixture 만 두었더니 첫 구현이 첫 줄만 옮겼고, 실제
+    handoff 에 적용하자 하위 불릿이 §1 에 **고아로 남았다**. fixture 가 실물의 모양을
+    안 닮으면 검사는 통과하고 산출물만 깨진다.
+    """
+    p = root / "session_handoff.md"
+    body = []
+    for i in range(BASELINE_ITEMS_CAP + 2):
+        label = "현재 기준선" if i == 0 else ("직전 기준선" if i == 1 else "그 이전 기준선")
+        body.append(f"- {label}: 세션 {i} 요약.")
+        body.append(f"  - 하위 불릿 {i}-a")
+        body.append(f"  - 하위 불릿 {i}-b")
+    p.write_text(_HANDOFF_HEAD + "\n".join(body) + "\n" + _HANDOFF_TAIL, encoding="utf-8")
+    run(p, cap=BASELINE_ITEMS_CAP, apply=True, today="2026-08-14")
+    left = p.read_text(encoding="utf-8")
+    archive = (root / BASELINES_FILENAME).read_text(encoding="utf-8")
+    for i in range(BASELINE_ITEMS_CAP, BASELINE_ITEMS_CAP + 2):
+        for suffix in ("a", "b"):
+            token = f"하위 불릿 {i}-{suffix}"
+            assert token not in left, f"옮긴 기준선의 하위 줄이 §1 에 고아로 남았다: {token}"
+            assert token in archive, f"하위 줄이 이관되지 않고 사라졌다: {token}"
+    for i in range(BASELINE_ITEMS_CAP):
+        assert f"하위 불릿 {i}-a" in left, f"남겨야 할 하위 줄이 사라졌다: {i}"
+
+
 def case_10_self_application() -> None:
     """자기 적용 — **현재 브랜치 네임스페이스의** handoff 가 상한 이하인가.
 
@@ -235,13 +263,13 @@ def main() -> int:
                case_3_moved_lines_are_not_lost, case_4_pointer_remains,
                case_5_labels_are_rewritten, case_6_second_run_does_not_stack_headers,
                case_7_plan_only_without_apply, case_8_cap_zero_rejected,
-               case_9_generator_input_unchanged):
+               case_9_generator_input_unchanged, case_11_multiline_blocks_move_whole):
         _run(fn)
     _run(case_10_self_application, needs_root=False)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n10/10 PASS")
+    print("\n11/11 PASS")
     return 0
 
 

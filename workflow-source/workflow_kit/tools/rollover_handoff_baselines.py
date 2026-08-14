@@ -72,17 +72,42 @@ def _body_of(line: str) -> str:
     return line.split(":", 1)[1].lstrip()
 
 
+def _blocks(lines: list[str]) -> list[tuple[int, int]]:
+    """기준선 **블록** 목록 — `(시작, 끝exclusive)`.
+
+    기준선은 한 줄이 아니다. 실제 handoff 는 `- 그 이전 기준선: …` 밑에 들여쓴 하위
+    불릿을 여러 줄 달고 있다 (2026-08-14 실측: 그 사실을 놓친 첫 구현이 첫 줄만 옮겨
+    **하위 줄을 §1 에 고아로 남겼다**). 블록은 다음 비들여쓰기 줄 직전까지다.
+    """
+    starts = [i for i, ln in enumerate(lines) if _is_baseline(ln)]
+    out: list[tuple[int, int]] = []
+    for s in starts:
+        e = s + 1
+        while e < len(lines) and (lines[e].startswith((" ", "\t")) or not lines[e].strip()):
+            # 빈 줄만 이어지다 비들여쓰기 줄이 오면 그 빈 줄은 블록에 넣지 않는다.
+            if not lines[e].strip():
+                nxt = e + 1
+                while nxt < len(lines) and not lines[nxt].strip():
+                    nxt += 1
+                if nxt >= len(lines) or not lines[nxt].startswith((" ", "\t")):
+                    break
+            e += 1
+        out.append((s, e))
+    return out
+
+
 def plan(handoff_text: str, *, cap: int = BASELINE_ITEMS_CAP) -> dict:
     """이관 계획. 파일을 읽거나 쓰지 않는다 (fixture 로 계약을 재기 위해)."""
     lines = handoff_text.split("\n")
-    idx = [i for i, ln in enumerate(lines) if _is_baseline(ln)]
-    kept, moved = idx[:cap], idx[cap:]
+    blocks = _blocks(lines)
+    kept, moved = blocks[:cap], blocks[cap:]
     return {
-        "total": len(idx),
+        "total": len(blocks),
         "cap": cap,
         "kept_count": len(kept),
         "moved_count": len(moved),
-        "moved_bodies": [_body_of(lines[i]) for i in moved],
+        "moved_bodies": ["\n".join([_body_of(lines[s])] + lines[s + 1:e]).rstrip()
+                         for s, e in moved],
         "needs_rollover": bool(moved),
     }
 
@@ -92,21 +117,22 @@ def apply_rollover(
 ) -> tuple[str, list[str]]:
     """(새 handoff 본문, 옮긴 본문 목록). 옮길 게 없으면 원문 그대로."""
     lines = handoff_text.split("\n")
-    idx = [i for i, ln in enumerate(lines) if _is_baseline(ln)]
-    if len(idx) <= cap:
+    blocks = _blocks(lines)
+    if len(blocks) <= cap:
         return handoff_text, []
 
-    kept_idx, moved_idx = idx[:cap], idx[cap:]
-    moved_bodies = [_body_of(lines[i]) for i in moved_idx]
+    kept, moved = blocks[:cap], blocks[cap:]
+    moved_bodies = ["\n".join([_body_of(lines[s])] + lines[s + 1:e]).rstrip()
+                    for s, e in moved]
 
-    # 남는 줄의 라벨을 위치에 맞게 다시 붙인다.
-    for position, i in enumerate(kept_idx):
-        lines[i] = f"- {_baseline_label(position)}: {_body_of(lines[i])}"
+    # 남는 블록의 라벨을 위치에 맞게 다시 붙인다 (첫 줄만).
+    for position, (s, _e) in enumerate(kept):
+        lines[s] = f"- {_baseline_label(position)}: {_body_of(lines[s])}"
 
-    # 옮긴 줄은 지우고, 마지막으로 남은 기준선 바로 뒤에 포인터 한 줄을 둔다.
-    for i in reversed(moved_idx):
-        del lines[i]
-    insert_at = kept_idx[-1] + 1
+    # 옮긴 블록은 **통째로** 지운다 — 첫 줄만 지우면 하위 줄이 고아로 남는다.
+    for s, e in reversed(moved):
+        del lines[s:e]
+    insert_at = kept[-1][1]
     lines.insert(insert_at, pointer)
     return "\n".join(lines), moved_bodies
 
@@ -114,7 +140,11 @@ def apply_rollover(
 def render_baselines_prepend(moved: list[str], *, today: str) -> str:
     """`baselines.md` 앞에 붙일 블록. 앞이 최신이다."""
     head = [f"## 롤오프 {today}", ""]
-    head += [f"- {body}" for body in moved]
+    for body in moved:
+        first, _, rest = body.partition("\n")
+        head.append(f"- {first}")
+        if rest:
+            head.append(rest)
     head.append("")
     return "\n".join(head)
 

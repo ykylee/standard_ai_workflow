@@ -231,16 +231,16 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
     _STANDARD_RULES = render_entrypoint_rules()
     return f"""# MiniMax.md
 
-- Purpose: MiniMax Code(Mavis / 미니맥스 코드) 하네스가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙을 제공한다.
-- Scope: session restore, the order to consult workflow state docs, user-facing report language, default run/verify commands, 오케스트레이터/워커 운영 원칙
-- Audience: MiniMax Code, 저장소 관리자, 멀티 에이전트 운영자
+- Purpose: Provide the workflow entry rules the MiniMax Code (Mavis) harness should read first in this repository.
+- Scope: session restore, the order to consult workflow state docs, user-facing report language, default run/verify commands, orchestrator/worker principles
+- Audience: MiniMax Code, repository maintainer, multi-agent operator
 - Status: draft
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`, `AGENTS.md`
 
 ## Purpose
 
-이 저장소에서는 **Standard AI Workflow**를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다. MiniMax Code는 메인 orchestrator로 동작하고, doc/code/validation worker에 bounded scope 작업을 위임해 컨텍스트를 절약한다.
+Work in this repository follows the **Standard AI Workflow**. Session start, backlog updates, document sync, and session close all take the documents under `ai-workflow/` as the primary reference. MiniMax Code acts as the main orchestrator and delegates bounded-scope work to doc/code/validation workers to conserve context.
 
 ## Read these first
 
@@ -250,21 +250,21 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - `ai-workflow/memory/active/<branch>/sessions`
 - `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
-- `AGENTS.md` (워크플로우 규칙 요약)
+- `AGENTS.md` (workflow rules summary)
 
 `ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
 
 {_STANDARD_RULES}
-- 가능한 한 메인 orchestrator는 조정과 통합에 집중하고, 도구 호출/탐색/수정은 `.MiniMax/agents/workflow-*.md` 워커에 위임한다.
+- Keep the main orchestrator on coordination and integration as much as possible, and delegate tool calls, exploration, and edits to the `.MiniMax/agents/workflow-*.md` workers.
 
 ## Orchestrator / worker principles (multi-agent topology)
 
-- **Orchestrator (Mavis / 미니맥스 코드 메인 에이전트)**: 사용자 직접 소통, 작업 분해, 워커 호출/통합, `state.json`/`session_handoff`/`work_backlog` 동기화 전담. 도구 호출을 직접 떠안지 않는다.
-- **doc-worker**: 문서 링크/메타데이터/카탈로그 정합성 작업. `ai-workflow/skills/doc-sync`, `merge-doc-reconcile`, `workflow-linter` 호출.
-- **code-worker**: 코드 수정/리팩토링 작업. `ai-workflow/skills/code-index-update`, `robust-patcher` 호출. 출력 파일 범위는 `output_files` 명시.
-- **validation-worker**: 테스트/스모크 실행 및 결과 기록. `ai-workflow/skills/validation-plan`, `ai-workflow/tests/check_*.py` 호출.
+- **Orchestrator (Mavis, the MiniMax Code main agent)**: talks to the user, decomposes work, invokes and integrates workers, and owns syncing `state.json` / `session_handoff` / `work_backlog`. It does not take on tool calls itself.
+- **doc-worker**: document link, metadata, and catalog consistency. Calls `ai-workflow/skills/doc-sync`, `merge-doc-reconcile`, `workflow-linter`.
+- **code-worker**: code edits and refactoring. Calls `ai-workflow/skills/code-index-update`, `robust-patcher`. States the output file scope in `output_files`.
+- **validation-worker**: runs tests and smoke checks and records the results. Calls `ai-workflow/skills/validation-plan`, `ai-workflow/tests/check_*.py`.
 
-워커에 작업을 위임할 때는 `WorkerTask` (worker_id, task_description, input_files, output_files, constraints, context_summary) 형식으로 의도와 책임 경계를 명확히 적는다. 결과는 `WorkerResponse` (status, summary, produced_artifacts, risks_identified, suggested_follow_up) 형식으로 받는다.
+When delegating to a worker, state the intent and the responsibility boundary in the `WorkerTask` shape (worker_id, task_description, input_files, output_files, constraints, context_summary). Take the result back in the `WorkerResponse` shape (status, summary, produced_artifacts, risks_identified, suggested_follow_up).
 
 ## Language and context principles
 
@@ -289,11 +289,11 @@ def render_minimax_agents(args: argparse.Namespace, paths: Paths, context: dict[
 - Backlog location: `{context['backlog_dir']}`
 - Session handoff: `{context['session_doc_path']}`
 
-## MiniMax Code 전용 메모
+## MiniMax Code notes
 
-- MiniMax Code는 `MiniMax.md` 와 `AGENTS.md` 모두를 진입점으로 활용한다. 시스템 정책과 충돌할 경우 MiniMax.md 가 우선하되, 두 문서가 같은 사실을 가리키는 방향으로 동기화한다.
-- `minimax_config_example.json` 는 사용자 환경 설정(`~/.MiniMax/config.json` 또는 프로젝트 로컬 `.MiniMax/config.json`)에 복사해 사용한다. 서버 토큰 등은 직접 채워 넣는다.
-- 워커 호출 시 위험한 외부 작업(예: 데이터베이스 마이그레이션, 프로덕션 배포, 시크릿 회전)은 사용자 명시적 승인을 먼저 받는다.
+- MiniMax Code uses both `MiniMax.md` and `AGENTS.md` as entry points. On conflict with system policy, `MiniMax.md` wins — but keep the two documents pointing at the same facts.
+- Copy `minimax_config_example.json` into your environment configuration (`~/.MiniMax/config.json`, or the project-local `.MiniMax/config.json`). Fill in server tokens and similar values yourself.
+- Before a worker performs a dangerous external action (database migration, production deploy, secret rotation), get explicit user approval first.
 - {harness_note}
 """
 
@@ -366,31 +366,31 @@ def render_minimax_orchestrator(args: argparse.Namespace, context: dict[str, obj
     _MEMORY_SECTION = render_memory_update_section()
     return f"""# workflow-orchestrator
 
-- Purpose: MiniMax Code 메인 orchestrator 페르소나의 책임/경계/산출물을 정의한다.
-- Scope: 작업 분해, 워커 위임, handoff/state 동기화, 사용자 보고
-- Audience: MiniMax Code, 멀티 에이전트 운영자
+- Purpose: Define the responsibilities, boundaries, and deliverables of the MiniMax Code main orchestrator persona.
+- Scope: work decomposition, worker delegation, handoff/state sync, user reporting
+- Audience: MiniMax Code, multi-agent operator
 - Status: stable
 - Last updated: {args.today}
 - Related: `../../../MiniMax.md`, `../../../AGENTS.md`, `workflow-worker.md`
 
 ## Responsibilities
 
-1. 사용자 요청을 받아 bounded-scope 작업 단위로 분해한다.
-2. 각 작업을 `WorkerTask` 형식으로 워커(doc/code/validation)에 위임한다.
-3. 워커의 `WorkerResponse` 를 모아서 `state.json` / `session_handoff.md` / 최신 `backlog` 를 갱신한다.
-4. 사용자에게 한국어로 짧은 진행 보고와 다음 행동을 안내한다.
+1. Take the user's request and break it into bounded-scope units of work.
+2. Delegate each unit to a worker (doc/code/validation) in the `WorkerTask` shape.
+3. Collect the workers' `WorkerResponse` values and update `state.json` / `session_handoff.md` / the latest `backlog`.
+4. Give the user a short progress report and the next action, in Korean.
 
 ## Never do
 
-- 직접 `read_file` / `edit_file` 로 프로젝트 코드를 수정하지 않는다. (code-worker에 위임)
-- 직접 `bash` 로 테스트/스모크를 실행하지 않는다. (validation-worker에 위임)
-- 워커가 보고한 사실 외에 추측성 결론을 추가하지 않는다.
+- Never edit project code directly with `read_file` / `edit_file` (delegate to code-worker).
+- Never run tests or smoke checks directly with `bash` (delegate to validation-worker).
+- Never add speculative conclusions beyond what the workers actually reported.
 
 ## Exit criteria
 
-- 모든 위임 작업이 `WorkerResponse.status == "ok"` 또는 명시적 blocked 사유와 함께 반환됨
-- `state.json` 의 `session.last_orchestrator_action` 이 이번 세션의 최종 행동으로 갱신됨
-- `session_handoff.md` 의 "다음 세션 시작 포인트" 가 한 문장으로 갱신됨
+- Every delegated unit returned either `WorkerResponse.status == "ok"` or an explicit blocked reason
+- `session.last_orchestrator_action` in `state.json` reflects this session's final action
+- The "next session starting point" in `session_handoff.md` is updated to a single sentence
 
 {_MEMORY_SECTION}
 """
@@ -400,27 +400,27 @@ def render_minimax_worker(args: argparse.Namespace, context: dict[str, object]) 
     """Render the generic worker overlay (sub-agent operating contract)."""
     return f"""# workflow-worker
 
-- Purpose: MiniMax Code sub-worker 의 공통 운영 계약을 정의한다.
-- Scope: 입력, 책임, 산출물, 통신 형식
-- Audience: MiniMax Code, 멀티 에이전트 운영자
+- Purpose: Define the shared operating contract for MiniMax Code sub-workers.
+- Scope: input, responsibilities, deliverables, communication format
+- Audience: MiniMax Code, multi-agent operator
 - Status: stable
 - Last updated: {args.today}
 - Related: `../../../workflow-source/core/workflow_agent_topology.md`, `../../../workflow-source/prompts/code_worker_prompt.md`, `../../../workflow-source/prompts/doc_worker_prompt.md`, `../../../workflow-source/prompts/validation_worker_prompt.md`
 
 ## Input
 
-- orchestrator 가 위임한 `WorkerTask` (worker_id, task_description, input_files, output_files, constraints, context_summary)
+- The `WorkerTask` delegated by the orchestrator (worker_id, task_description, input_files, output_files, constraints, context_summary)
 
 ## Responsibilities
 
-1. `output_files` 명시 범위 내에서만 변경한다.
-2. 변경 후 `produced_artifacts`, `risks_identified`, `suggested_follow_up` 을 함께 보고한다.
-3. 정적 검증 실패나 외부 시스템 호출이 필요하면 validation-worker에 협업 위임한다.
+1. Change only what is listed in `output_files`.
+2. After changing, report `produced_artifacts`, `risks_identified`, and `suggested_follow_up`.
+3. If static verification fails or an external system call is needed, hand off to validation-worker.
 
 ## Never do
 
-- 다른 워커의 `output_files` 를 수정하지 않는다.
-- 명시되지 않은 의존성 추가/제거를 하지 않는다.
+- Never modify another worker's `output_files`.
+- Never add or remove dependencies that were not specified.
 
 ## Deliverables
 
@@ -432,24 +432,24 @@ def render_minimax_doc_worker(args: argparse.Namespace, context: dict[str, objec
     """Render the doc-worker overlay."""
     return f"""# workflow-doc-worker
 
-- Purpose: MiniMax Code doc-worker 페르소나의 책임/산출물을 정의한다.
-- Scope: 문서 정합성, 메타데이터, 링크, 카탈로그 동기화
-- Audience: MiniMax Code, 멀티 에이전트 운영자
+- Purpose: Define the responsibilities and deliverables of the MiniMax Code doc-worker persona.
+- Scope: document consistency, metadata, links, catalog sync
+- Audience: MiniMax Code, multi-agent operator
 - Status: stable
 - Last updated: {args.today}
 - Related: `workflow-worker.md`, `../../../workflow-source/prompts/doc_worker_prompt.md`
 
 ## Responsibilities
 
-1. `doc-sync` 스킬로 변경된 코드/문서가 영향 받는 문서를 식별하고 recommended review order 를 만든다.
-2. `merge-doc-reconcile` 스킬로 충돌한 handoff/state/backlog 를 정리한다.
-3. `workflow-linter` 스킬로 메타데이터/링크/카탈로그 정합성을 검사하고 복구한다.
-4. 결과는 `output_files` 안의 문서들에 한정해 직접 수정한다.
+1. Use the `doc-sync` skill to identify which documents the changed code/docs affect, and produce a recommended review order.
+2. Use the `merge-doc-reconcile` skill to reconcile conflicting handoff/state/backlog.
+3. Use the `workflow-linter` skill to check and repair metadata/link/catalog consistency.
+4. Apply the results by editing only the documents listed in `output_files`.
 
 ## Never do
 
-- 코드를 수정하지 않는다 (code-worker 영역)
-- `backlog-update` 로 상태를 갱신할 때는 orchestrator 에게 명시적 위임을 요청한다
+- Never edit code (that is code-worker territory)
+- When updating status with `backlog-update`, ask the orchestrator for an explicit delegation
 """
 
 
@@ -457,24 +457,24 @@ def render_minimax_code_worker(args: argparse.Namespace, context: dict[str, obje
     """Render the code-worker overlay."""
     return f"""# workflow-code-worker
 
-- Purpose: MiniMax Code code-worker 페르소나의 책임/산출물을 정의한다.
-- Scope: 코드 구현, 정밀 리팩토링, 회귀 수정
-- Audience: MiniMax Code, 멀티 에이전트 운영자
+- Purpose: Define the responsibilities and deliverables of the MiniMax Code code-worker persona.
+- Scope: code implementation, precision refactoring, regression fixes
+- Audience: MiniMax Code, multi-agent operator
 - Status: stable
 - Last updated: {args.today}
 - Related: `workflow-worker.md`, `../../../workflow-source/prompts/code_worker_prompt.md`
 
 ## Responsibilities
 
-1. orchestrator 가 위임한 bounded scope 안에서만 코드를 수정한다.
-2. `code-index-update` 스킬로 코드 인덱스/카탈로그를 동기화한다.
-3. `robust_patcher` 스킬로 정밀 패치를 적용한다.
-4. 변경 후 `produced_artifacts` 에 실제 변경한 파일 목록을 남긴다.
+1. Change code only within the bounded scope the orchestrator delegated.
+2. Use the `code-index-update` skill to sync the code index and catalog.
+3. Use the `robust_patcher` skill to apply precise patches.
+4. After changing, list the files actually modified in `produced_artifacts`.
 
 ## Never do
 
 - 명시되지 않은 파일을 수정하지 않는다.
-- 의존성 추가/제거는 orchestrator 의 명시적 승인 없이 하지 않는다.
+- Never add or remove dependencies without explicit orchestrator approval.
 """
 
 
@@ -482,23 +482,23 @@ def render_minimax_validation_worker(args: argparse.Namespace, context: dict[str
     """Render the validation-worker overlay."""
     return f"""# workflow-validation-worker
 
-- Purpose: MiniMax Code validation-worker 페르소나의 책임/산출물을 정의한다.
-- Scope: 테스트/스모크 실행, 결과 기록
-- Audience: MiniMax Code, 멀티 에이전트 운영자
+- Purpose: Define the responsibilities and deliverables of the MiniMax Code validation-worker persona.
+- Scope: running tests and smoke checks, recording results
+- Audience: MiniMax Code, multi-agent operator
 - Status: stable
 - Last updated: {args.today}
 - Related: `workflow-worker.md`, `../../../workflow-source/prompts/validation_worker_prompt.md`
 
 ## Responsibilities
 
-1. `validation-plan` 스킬로 변경 사항에 적합한 검증 단계를 결정한다.
-2. `ai-workflow/tests/check_*.py` 와 같은 스모크/테스트 스크립트를 실행한다.
-3. 실행 결과를 `passed`, `failed`, `skipped` 로 명확히 분류하고, 실패 시 raw stderr 를 `risks_identified` 에 첨부한다.
+1. Use the `validation-plan` skill to decide the verification level the change needs.
+2. Run the smoke/test scripts, such as `ai-workflow/tests/check_*.py`.
+3. Classify results clearly as `passed`, `failed`, or `skipped`, and attach the raw stderr to `risks_identified` on failure.
 
 ## Never do
 
-- 코드/문서를 직접 수정하지 않는다.
-- 외부 시스템 호출은 orchestrator 의 명시적 승인을 받는다.
+- Never edit code or documents directly.
+- External system calls require explicit orchestrator approval.
 """
 
 
@@ -519,9 +519,9 @@ def render_codex_agents(args: argparse.Namespace, paths: Paths, context: dict[st
     _STANDARD_RULES = render_entrypoint_rules()
     return f"""# AGENTS.md
 
-- Purpose: Codex 가 이 저장소에서 먼저 읽어야 할 workflow 진입 규칙과 기본 작업 원칙을 제공한다.
+- Purpose: Provide the workflow entry rules and core working principles Codex should read first in this repository.
 - Scope: session restore, the order to consult workflow state docs, user-facing report language, default run/verify commands
-- Audience: Codex, 저장소 관리자, workflow 설계자
+- Audience: Codex, repository maintainer, workflow designer
 - Status: draft
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
@@ -569,13 +569,13 @@ primary reference.
 - Backlog location: `{context['backlog_dir']}`
 - Session handoff: `{context['session_doc_path']}`
 
-## Codex 전용 메모
+## Codex notes
 
-- Codex 는 프로젝트 루트의 `AGENTS.md` 를 읽으므로, 상세 정책은 본 문서에서 시작하고 세부 운영 기준은 `ai-workflow/` 문서를 참조한다.
-- OpenAI 관련 질문이 나오면 OpenAI 문서 MCP 를 우선 사용하는 구성을 권장한다.
-- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 worker 성격의 서브 에이전트로 분리하는 패턴을 권장한다.
-- worker 에게는 책임 파일과 종료 조건을 명확히 넘기고, 메인 에이전트에는 핵심 사실과 결과만 다시 모은다.
-- `main`/`small` 모델을 함께 운영한다면, 메인 에이전트는 난도 높은 판단과 통합에, worker 는 bounded scope 탐색/초안/검증에 우선 배치하는 편이 효율적이다.
+- Codex reads `AGENTS.md` at the project root, so start policy here and defer operational detail to the `ai-workflow/` documents.
+- For OpenAI-related questions, prefer a setup that consults the OpenAI documentation MCP first.
+- Where possible, keep the main agent on coordination and integration, and split bounded read/write/verify work into worker-style sub-agents.
+- Hand each worker its owned files and exit condition explicitly, and collect only the key facts and results back into the main agent.
+- When running `main` and `small` models together, it is more efficient to put the main agent on hard judgment and integration, and workers on bounded-scope exploration, drafting, and verification.
 - {harness_note}
 """
 
@@ -994,27 +994,27 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
     *정합* 을 한국어로 명시. 기존 AGENTS.md 가 있으면 `@AGENTS.md` import 안내.
     """
     _STANDARD_RULES = render_entrypoint_rules()
-    return f"""# CLAUDE.md (Claude Code 진입점)
+    return f"""# CLAUDE.md (Claude Code entry point)
 
-- Purpose: 표준 AI 워크플로우 의 *directional intent* + Claude Code 가 매 세션 알아야 할 진입 규칙
-- Scope: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
-- Audience: Claude Code, 저장소 관리자, workflow 설계자
+- Purpose: the *directional intent* of the standard AI workflow, plus the entry rules Claude Code needs every session
+- Scope: session restore, the order to consult workflow state docs, working principles, session close order
+- Audience: Claude Code, repository maintainer, workflow designer
 - Status: beta
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 ## What this file is for
 
-- **역할**: Claude Code 가 이 저장소에서 *세션 시작 시 자동 read* 하는 진입점 문서.
-- **위치**: `./CLAUDE.md` (또는 `./.claude/CLAUDE.md`) — 둘 다 자동 read.
-- **AGENTS.md 와의 관계**: Claude Code 는 `AGENTS.md` 를 *직접* read 안 함. 본 프로젝트에
-  `AGENTS.md` 가 이미 있으면 본 `CLAUDE.md` 의 `@AGENTS.md` import 또는 symlink 으로 통합 가능:
+- **Role**: the entry-point document Claude Code *reads automatically at session start* in this repository.
+- **Location**: `./CLAUDE.md` (or `./.claude/CLAUDE.md`) — both are read automatically.
+- **Relationship to AGENTS.md**: Claude Code does *not* read `AGENTS.md` directly. If this
+  project already has one, pull it in from `CLAUDE.md` with an `@AGENTS.md` import or a symlink:
 
   ```bash
-  # import 방식 (CLAUDE.md 안에 @AGENTS.md 한 줄 추가)
+  # import (add a single @AGENTS.md line inside CLAUDE.md)
   @AGENTS.md
 
-  # 또는 symlink 방식 (cross-platform 의 경우 import 권장)
+  # or symlink (prefer the import for cross-platform setups)
   ln -s AGENTS.md CLAUDE.md
   ```
 
@@ -1027,17 +1027,17 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 - `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
 - `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-- (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent 1-line + body excerpt
+- (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent one-liner + body excerpt
 
-`ai-workflow/` 는 세션 복원과 workflow 상태 관리용 메타 레이어다. 프로젝트 코드나
-프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고, workflow 문서 자체를
-갱신하거나 현재 세션 상태를 복원할 때만 예외적으로 참조한다.
+`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in
+the default search scope when exploring project code or project documents — reference it only
+when updating the workflow documents themselves or restoring the current session state.
 
 ## Entry slash commands (additive)
 
-- `/workflow-session-start` — `state.json` + `session_handoff.md` + `work_backlog.md` baseline 복원
-- `/workflow-backlog-update` — task 등록/갱신 + scope creep warning
-- `/workflow-doc-sync` — 영향 문서 동기화 (advisory)
+- `/workflow-session-start` — restore the `state.json` + `session_handoff.md` + `work_backlog.md` baseline
+- `/workflow-backlog-update` — register/update a task + scope-creep warning
+- `/workflow-doc-sync` — sync affected documents (advisory)
 
 {_STANDARD_RULES}
 
@@ -1052,13 +1052,13 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 
 ## self-bootstrap (when PURPOSE.md / state.json are absent)
 
-`state.json` 이나 `PURPOSE.md` 가 없으면 session-start skill 이 *graceful skip* 으로
-동작. 사용자가 직접 `/workflow-session-start` 호출 시 (또는 자동 read 시) baseline 복원을
-*최소 effort* 로 시도:
+When `state.json` or `PURPOSE.md` is absent, the session-start skill *skips gracefully*.
+When the user invokes `/workflow-session-start` (or on automatic read), it attempts a
+*minimum-effort* baseline restore:
 
-1. `ai-workflow/memory/active/<branch>/state.json` 부재 → 사용자에게 scaffold 제안
-2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
-3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
+1. `ai-workflow/memory/active/<branch>/state.json` missing → offer to scaffold it
+2. `PURPOSE.md` missing → 4-element placeholder + suggest a light `init` call
+3. `work_backlog.md` missing → empty index + guidance for registering the first task
 
 ## 프로젝트 실행 기본값
 
@@ -1068,14 +1068,14 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
 - **isolated test**: {context.get('isolated_test_command', 'TODO')}
 - **smoke check**: {context.get('smoke_check_command', 'TODO')}
 
-위 명령은 추정값이다. 실제 프로젝트 명령으로 보정 후 commit.
+These commands are inferred. Correct them to the project's real commands before committing.
 
 ## Read next
 
-- `ai-workflow/README.md` (kit 개요)
-- `docs/PROJECT_PROFILE.md` (프로젝트 메타)
-- `ai-workflow/memory/active/<branch>/sessions` (현재 세션 인계)
-- `harnesses/claude-code/apply_guide.md` (Claude Code 적용 절차)
+- `ai-workflow/README.md` (kit overview)
+- `docs/PROJECT_PROFILE.md` (project metadata)
+- `ai-workflow/memory/active/<branch>/sessions` (current session handoff)
+- `harnesses/claude-code/apply_guide.md` (Claude Code apply procedure)
 """
 
 
@@ -1091,26 +1091,26 @@ def render_claude_code_session_start_command(args: argparse.Namespace, context: 
     `<!-- standard-ai-workflow-kit: v… -->` 가 설명으로 떴다 (2026-08-05 실측).
     """
     return f"""---
-description: 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+description: Standard AI workflow session start — restore the current baseline from state.json + session_handoff.md + backlog and report the next candidate tasks.
 ---
 
 # /workflow-session-start
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *session-start* 진입점.
+> Claude Code slash command. The *session-start* entry point of the standard AI workflow.
 
 ## Role
 
-이 command 는 `ai-workflow/memory/active/` 의 *현재 baseline* 을 복원한다:
+This command restores the *current baseline* from `ai-workflow/memory/active/`:
 
-1. `state.json` 읽기 — `latest_backlog_path` + `in_progress_items` + `recent_done_items`
-2. `session_handoff.md` 읽기 — 이전 세션의 인계 사항
-3. `work_backlog.md` 읽기 — 현재 작업 목록 anchor
-4. `PROJECT_PROFILE.md` 읽기 — 프로젝트 메타
-5. (있으면) `PURPOSE.md` 읽기 — directional intent 1-line + body excerpt ≤200 token
+1. Read `state.json` — `latest_backlog_path` + `in_progress_items` + `recent_done_items`
+2. Read `session_handoff.md` — what the previous session handed over
+3. Read `work_backlog.md` — the anchor for the current task list
+4. Read `PROJECT_PROFILE.md` — project metadata
+5. Read `PURPOSE.md` if present — directional intent one-liner + body excerpt ≤200 tokens
 
 ## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 {find_memory_command(load_standard_rules(), "Restore session-start baseline")} --help
@@ -1118,30 +1118,30 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 
 ## Procedure
 
-1. `ai-workflow/memory/active/<branch>/state.json` 부터 읽고 현재 baseline 요약
-2. `session_handoff.md` + `work_backlog.md` 의 anchor 로 3~7개 후속 작업 후보 선정
-3. 한국어로 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고
-4. **중간 reasoning / 중복 요약 / 자기 설명 금지** — 사용자에게는 *결론* 만
+1. Read `ai-workflow/memory/active/<branch>/state.json` first and summarize the current baseline
+2. Pick 3–7 candidate follow-up tasks from the anchors in `session_handoff.md` + `work_backlog.md`
+3. Report, in Korean: a one-line summary, 3–5 next-task candidates, and the recommended next action
+4. **No intermediate reasoning, repeated summaries, or self-explanation** — give the user the *conclusion* only
 
-## language + context 원칙
+## Language and context rules
 
-- 사용자에게 보이는 보고는 한국어
-- 코드, 명령어, file path, 설정 key 는 원문 그대로
-- handoff / backlog 에는 *다음 세션에 꼭 필요한 사실* 만 남겨 context 누적 최소화
+- User-facing reports are in Korean
+- Code, commands, file paths, and configuration keys stay verbatim
+- Keep only the *facts the next session actually needs* in the handoff / backlog, to minimize context buildup
 
 ## next step
 
-요약 + 후보 보고 후 사용자 confirm 시:
-- `/workflow-backlog-update` 로 오늘 작업 등록
-- 또는 `/workflow-doc-sync` 로 영향 문서 동기화
+After reporting the summary and candidates, once the user confirms:
+- `/workflow-backlog-update` to register today's work
+- or `/workflow-doc-sync` to sync affected documents
 
-## 관련 문서
+## Related documents
 
 - `ai-workflow/memory/active/<branch>/state.json`
 - `ai-workflow/memory/active/<branch>/sessions`
 - `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+- (if present) `ai-workflow/memory/active/PURPOSE.md`
 """
 
 
@@ -1154,20 +1154,20 @@ def render_claude_code_backlog_update_command(args: argparse.Namespace, context:
     `description` 이 필수인 이유는 ``render_claude_code_session_start_command`` 참조.
     """
     return f"""---
-description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+description: Standard AI workflow backlog update — register/update a task in today's backlog and warn about scope creep when it overlaps PURPOSE.md's excluded areas.
 ---
 
 # /workflow-backlog-update
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *backlog-update* 진입점.
+> Claude Code slash command. The *backlog-update* entry point of the standard AI workflow.
 
 ## Role
 
-오늘 작업 항목을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
+Register or update today's work item in `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md`.
 
 ## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 {find_memory_command(load_standard_rules(), "Register / update a task")} --help
@@ -1175,30 +1175,30 @@ description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlo
 
 ## Procedure
 
-1. `ai-workflow/memory/active/<branch>/backlog` 의 인덱스 anchor 확인
-2. 오늘 날짜의 `backlog/YYYY-MM-DD.md` 파일:
-   - 없으면 신규 작성
-   - 있으면 기존 항목에 append
-3. **in-scope check** (PURPOSE.md §3 Research Scope *제외 영역* 매칭):
-   - `task_brief` + `affected_documents` vs 제외 영역 substring / 첫 2 token 매칭
-   - 매칭 시 `scope_creep_warnings` 1줄 emit (hard warning)
-4. 작업 상태: `planned` / `in_progress` / `blocked` / `done` 중 선택
-5. priority + owner + acceptance criteria 명시
+1. Check the index anchor in `ai-workflow/memory/active/<branch>/backlog`
+2. Today's `backlog/YYYY-MM-DD.md` file:
+   - create it if absent
+   - append to the existing entries if present
+3. **in-scope check** (match against PURPOSE.md §3 Research Scope *excluded areas*):
+   - `task_brief` + `affected_documents` vs excluded areas, by substring / first-2-token match
+   - on a match, emit one `scope_creep_warnings` line (hard warning)
+4. Task status: one of `planned` / `in_progress` / `blocked` / `done`
+5. State priority, owner, and acceptance criteria
 
-## PURPOSE.md 부재 시
+## When PURPOSE.md is absent
 
-scope_creep_warnings = `[]` (graceful skip). 본문 reference 불가, advisory 만.
+`scope_creep_warnings = []` (graceful skip). No body reference is possible — advisory only.
 
 ## Read next
 
 - `ai-workflow/memory/active/<branch>/backlog`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
-- 영향 받을 document 들
+- (if present) `ai-workflow/memory/active/PURPOSE.md`
+- The documents that will be affected
 
 ## Language rules
 
-- 작업 보고, 상태 요약, 갱신 문안 = 한국어
-- 코드, file path, 외부 시스템 명칭 = 원문
+- Work reports, status summaries, update text = Korean
+- Code, file paths, external product names = verbatim
 """
 
 
@@ -1210,21 +1210,21 @@ def render_claude_code_doc_sync_command(args: argparse.Namespace, context: dict[
     `description` 이 필수인 이유는 ``render_claude_code_session_start_command`` 참조.
     """
     return f"""---
-description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 wiki index 기준 갱신 포인트를 advisory 로 제안한다.
+description: Standard AI workflow document sync — derive affected-document candidates from the changed files and propose wiki-index update points as advisory.
 ---
 
 # /workflow-doc-sync
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *doc-sync* 진입점.
+> Claude Code slash command. The *doc-sync* entry point of the standard AI workflow.
 
 ## Role
 
-작업 후 영향 받은 문서 후보를 식별하고 `ai-workflow/memory/active/` 의 허브 /
-index 갱신 포인트를 정리.
+After the work, identify the affected-document candidates and lay out the hub / index
+update points under `ai-workflow/memory/active/`.
 
 ## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 {find_memory_command(load_standard_rules(), "Sync affected documents")} --help
@@ -1248,12 +1248,12 @@ index 갱신 포인트를 정리.
 ## Read next
 
 - `ai-workflow/wiki/index.md`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+- (if present) `ai-workflow/memory/active/PURPOSE.md`
 
 ## Language rules
 
-- 갱신 포인트 보고 = 한국어
-- file path, anchor, 설정 key = 원문
+- Update-point reports = Korean
+- File paths, anchors, configuration keys = verbatim
 """
 
 
@@ -1271,50 +1271,52 @@ def render_claude_code_skill(args: argparse.Namespace, context: dict[str, object
     _STANDARD_RULES = render_entrypoint_rules()
     return f"""---
 name: standard-ai-workflow
-description: 이 저장소의 표준 AI 워크플로우 진입점. 세션을 시작하거나 이어받을 때, 작업을 backlog 에 등록/갱신할 때, 변경 후 영향 문서를 동기화할 때, 세션을 종료하며 handoff 를 남길 때 사용한다.
+description: The standard AI workflow entry point for this repository. Use it when starting or resuming a session, registering/updating a task in the backlog, syncing affected documents after a change, or leaving a handoff at session close.
 ---
 
 # Standard AI Workflow
 
-- **역할**: 세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 한 자리에서 안내하는 진입 skill.
+- **Role**: the entry skill that covers session start, backlog update, document sync, and session close in one place.
 - **위치**: `.claude/skills/standard-ai-workflow/SKILL.md`
-- **호출**: 모델이 위 `description` 에 해당하는 상황에서 자동 선택. 사용자가 직접 부르려면
+- **Invocation**: the model selects it automatically when the situation matches the `description` above. To invoke it directly,
   `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync` slash command.
 - Last updated: {args.today}
 
-## 1. 세션 시작 — 항상 먼저 읽는다
+## 1. Session start — always read these first
 
-1. `ai-workflow/memory/active/<branch>/state.json` — 현재 기준선
-2. `ai-workflow/memory/active/<branch>/sessions` — 이전 세션 인계
-3. `ai-workflow/memory/active/<branch>/backlog` — 작업 백로그 인덱스
-4. `docs/PROJECT_PROFILE.md` — 프로젝트 메타
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent
+1. `ai-workflow/memory/active/<branch>/state.json` — the current baseline
+2. `ai-workflow/memory/active/<branch>/sessions` — the previous session's handoff
+3. `ai-workflow/memory/active/<branch>/backlog` — the work backlog index
+4. `docs/PROJECT_PROFILE.md` — project metadata
+5. (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent
 
-읽은 뒤 한국어로 **1줄 기준선 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동** 만 보고한다.
-중간 reasoning, 중복 요약, 자기 설명은 내지 않는다.
+After reading, report in Korean only: **a one-line baseline summary, 3–5 next-task
+candidates, and the recommended next action.** No intermediate reasoning, repeated
+summaries, or self-explanation.
 
-`state.json` 이나 `PURPOSE.md` 가 없으면 실패로 처리하지 말고 *graceful skip* 후
-scaffold 를 제안한다.
+If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
+and offer to scaffold it.
 
-## 2. 백로그 갱신
+## 2. Backlog update
 
-오늘 작업을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 와
-`./tasks/<TASK-ID>.md` 에 등록한다. 상태값은 `planned` / `in_progress` / `blocked` / `done`
-넷만 쓴다. `PURPOSE.md` §3 의 제외 영역과 겹치면 scope creep 경고를 1줄 남긴다.
+Register today's work in `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` and
+`./tasks/<TASK-ID>.md`. Use only the four status values `planned` / `in_progress` /
+`blocked` / `done`. If it overlaps an excluded area in `PURPOSE.md` §3, leave a one-line
+scope-creep warning.
 
-## 3. 문서 동기화 (advisory)
+## 3. Document sync (advisory)
 
-변경된 파일에서 영향 문서 후보를 뽑고, `ai-workflow/wiki/index.md` anchor 기준으로
-갱신 포인트를 *권고* 한다. 자동 반영하지 않는다.
+Derive affected-document candidates from the changed files and *recommend* update points
+against the `ai-workflow/wiki/index.md` anchors. Never apply them automatically.
 
 {_STANDARD_RULES}
 
 ## 언어와 컨텍스트 원칙
 
-- 사용자에게 보이는 보고 / 상태 요약 / 문서 문안은 한국어.
-- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 원문 그대로.
-- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남긴다.
-- `ai-workflow/` 는 workflow 메타 레이어다. 프로젝트 코드/문서 탐색 범위에 기본 포함하지 않는다.
+- User-facing reports, status summaries, and document text are in Korean.
+- Code, commands, file paths, configuration keys, and external product names stay verbatim.
+- Keep only the facts the next session needs in the handoff and backlog.
+- `ai-workflow/` is the workflow meta layer. Do not include it in the default project code/document search scope.
 """
 
 
@@ -1372,15 +1374,15 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
     _STANDARD_RULES = render_entrypoint_rules()
     return f"""# Aider Conventions (CONVENTIONS.md)
 
-- **역할**: Aider 가 이 저장소에서 *세션 시작 시 자동 read* 하는 컨벤션 문서.
-- **위치**: root 의 `CONVENTIONS.md` 와 `.aider/conventions.md` 양쪽 (동일 본문).
-- Aider 가 root `CONVENTIONS.md` 를 자동 read (`.aider.conf.yml` 의 `read:` list 등록 시).
-- Audience: Aider, 저장소 관리자
+- **Role**: the conventions document Aider *reads automatically at session start* in this repository.
+- **Location**: both the root `CONVENTIONS.md` and `.aider/conventions.md` (identical content).
+- Aider reads the root `CONVENTIONS.md` automatically (when it is listed in `read:` in `.aider.conf.yml`).
+- Audience: Aider, repository maintainer
 - Last updated: {args.today}
 
 ## Standard AI workflow entry
 
-본 프로젝트는 표준 AI 워크플로우를 따른다. 우선 read 순서:
+This project follows the standard AI workflow. Read in this order:
 
 1. `ai-workflow/memory/active/<branch>/state.json`
 2. `ai-workflow/memory/active/<branch>/sessions`
@@ -1390,20 +1392,20 @@ def render_aider_conventions(args: argparse.Namespace, context: dict[str, object
 
 {_STANDARD_RULES}
 
-## 보고 원칙
+## Reporting rules
 
-- 한국어 보고 (사용자), 원문 유지 (코드 / 명령어 / path / 설정 key)
-- handoff 와 backlog 에는 *다음 세션에 꼭 필요한 사실* 만
+- Report to the user in Korean; keep code, commands, paths, and configuration keys verbatim
+- Keep only the *facts the next session actually needs* in the handoff and backlog
 
 ## Aider-specific config
 
-- `.aider.conf.yml` 의 `read:` list 에 `CONVENTIONS.md` 등록되어 있는지 확인
-- commit 메시지: 한국어 + 영어 technical term 혼용
-- weak-model (3.5/4o-mini) fallback 시 본 파일 우선 read (가벼움)
+- Confirm `CONVENTIONS.md` is listed in `read:` in `.aider.conf.yml`
+- Commit messages: Korean with English technical terms
+- On a weak-model fallback (3.5 / 4o-mini), read this file first — it is the light one
 
 ## Read next
 
-- `harnesses/aider/apply_guide.md` (적용 절차)
+- `harnesses/aider/apply_guide.md` (apply procedure)
 - `ai-workflow/README.md`
 """
 
@@ -1412,10 +1414,10 @@ def render_aider_config_example(args: argparse.Namespace, context: dict[str, obj
     """Render ``.aider.conf.yml.example`` (Aider 가 자동 read 하는 파일 목록)."""
     return f"""# Aider config example (v0.10.2+)
 #
-# 본 project 에서 Aider 가 read 할 file list + model 설정.
-# 사용: `cp .aider.conf.yml.example .aider.conf.yml` 후 필요 시 편집.
+# The file list Aider reads in this project, plus model settings.
+# Usage: `cp .aider.conf.yml.example .aider.conf.yml`, then edit as needed.
 
-# 자동 read 할 conventions / workflow 문서
+# Conventions / workflow documents to auto-read
 read:
   - CONVENTIONS.md
   - ai-workflow/memory/active/<branch>/state.json
@@ -1432,9 +1434,9 @@ weak-model: claude-3-5-haiku-20241022
 
 # auto-commit
 auto-commits: false
-# git history 에 *commit message* 만 Aider 가 만들도록 (실제 commit 은 reviewer 가 결정)
+# Let Aider write only the *commit message*; a reviewer decides the actual commit
 
-# commit message language: 한국어
+# commit message language: Korean
 commit-language: ko
 
 # lint command (smoke test)
@@ -1484,31 +1486,31 @@ def render_goose_config(args: argparse.Namespace, context: dict[str, object]) ->
     refresh_state_cmd = find_memory_command(rules, "Regenerate state.json")
     return f"""# Goose config (v0.10.2+)
 #
-# Goose 는 extension 등록을 통해 workflow 진입. 본 config 는
-# standard_ai_workflow 의 *key entry points* 를 Goose 의 pre/post hook 으로 등록.
-# 사용: Goose 가 자동으로 load (또는 `goose config load`).
+# Goose enters the workflow through extension registration. This config registers the
+# *key entry points* of standard_ai_workflow as Goose pre/post hooks.
+# Usage: Goose loads it automatically (or `goose config load`).
 
 version: 1
 project:
   name: {context.get('project_name', 'TODO')}
   workflow: standard-ai-workflow
 
-# 표준 AI workflow 의 진입 points 등록
+# Register the standard AI workflow entry points
 entry_points:
   session_start:
-    description: "state.json + handoff + work_backlog baseline 복원"
+    description: "restore the state.json + handoff + work_backlog baseline"
     command: "{session_start_cmd}"
     trigger: on_session_start
   backlog_update:
-    description: "task 등록/갱신 + scope creep warning"
+    description: "register/update a task + scope-creep warning"
     command: "{backlog_update_cmd}"
     trigger: manual
   doc_sync:
-    description: "영향 문서 동기화 (advisory)"
+    description: "sync affected documents (advisory)"
     command: "{doc_sync_cmd}"
     trigger: manual
 
-# 본 project 의 *진입 문서* (Goose 가 startup 에 read)
+# This project's *entry documents* (Goose reads them at startup)
 read_files:
   - ai-workflow/memory/active/<branch>/state.json
   - ai-workflow/memory/active/<branch>/sessions
@@ -1516,12 +1518,12 @@ read_files:
   - docs/PROJECT_PROFILE.md
   - ai-workflow/memory/active/PURPOSE.md
 
-# Goose 의 *pre/post hook* — session 종료 시 state.json 재생성 (정본 §11)
+# Goose *pre/post hooks* — regenerate state.json at session close (canonical §11)
 hooks:
   on_session_end:
     - "{refresh_state_cmd}"
 
-# language: 한국어
+# language: Korean
 language: ko
 """
 
@@ -1542,7 +1544,7 @@ def write_goose_harness_files(
 
 
 # ---------------------------------------------------------------------------
-# Custom adapter (v0.10.2+) — caller 가 wire-up 할 수 있는 *neutral* adapter
+# Custom adapter (v0.10.2+) — a *neutral* adapter the caller wires up
 # ---------------------------------------------------------------------------
 def render_custom_skill_template(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``.workflow-kits/custom/SKILL.md`` (custom adapter 의 *neutral* 진입점).
@@ -1552,48 +1554,48 @@ def render_custom_skill_template(args: argparse.Namespace, context: dict[str, ob
     """
     return f"""# Custom Workflow Kit Skill Template (v0.10.2+)
 
-- **역할**: 표준 AI 워크플로우 의 *중립 진입점* — caller 가 자사 harness / IDE / CLI 에
-  맞게 wire-up. 이 파일은 *reference template* 일 뿐, 특정 도구에 자동 load 안 됨.
+- **Role**: the *neutral entry point* of the standard AI workflow — the caller wires it up to
+  their own harness / IDE / CLI. This file is a *reference template* only; no tool loads it automatically.
 - **위치**: `.workflow-kits/custom/SKILL.md`
-- Audience: custom harness 사용자 (caller)
+- Audience: custom harness users (callers)
 - Last updated: {args.today}
 
 ## Entry contract
 
-본 skill 의 *contract* 는 표준 AI 워크플로우 의 3개 skill output schema 정합:
+This skill's *contract* matches the output schemas of the three standard AI workflow skills:
 
-1. **session-start**: `state.json` + `session_handoff.md` + `work_backlog.md` + `PROJECT_PROFILE.md` + (있으면) `PURPOSE.md` baseline 복원. 한국어 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고.
-2. **backlog-update**: 오늘 task 등록/갱신 + scope creep warning (PURPOSE.md §3 제외 영역 매칭). 작업 상태 4-state (`planned` / `in_progress` / `blocked` / `done`).
-3. **doc-sync**: 영향 받은 문서 식별 + anchor 갱신 후보 (advisory).
+1. **session-start**: restore the baseline from `state.json` + `session_handoff.md` + `work_backlog.md` + `PROJECT_PROFILE.md` + `PURPOSE.md` (if present). Report, in Korean, a one-line summary, 3–5 next-task candidates, and the recommended next action.
+2. **backlog-update**: register/update today's task + scope-creep warning (matched against PURPOSE.md §3 excluded areas). Four task states (`planned` / `in_progress` / `blocked` / `done`).
+3. **doc-sync**: identify affected documents + candidate anchor updates (advisory).
 
-## caller wire-up 예시
+## Caller wire-up examples
 
-본 파일을 caller 자사 harness / IDE / CLI 에 import / include / reference.
+Import, include, or reference this file from your own harness / IDE / CLI.
 
 ```bash
-# 예: 사내 internal CLI 의 경우
+# e.g. an in-house internal CLI
 ln -s .workflow-kits/custom/SKILL.md ~/.internal-cli/standard-ai-workflow.md
 ```
 
 ```python
-# 예: 사내 Python 도구에서 본 파일을 *reference doc* 으로 load
+# e.g. loading this file as a *reference doc* from an in-house Python tool
 with open(".workflow-kits/custom/SKILL.md") as f:
     workflow_skill = f.read()
-# → caller tool 의 system prompt 에 append
+# → append to the caller tool's system prompt
 ```
 
 ## self-bootstrap (when PURPOSE.md / state.json are absent)
 
-본 skill 의 caller 가 session-start 호출 시:
-1. `state.json` 부재 → 빈 placeholder 생성 + 사용자에게 scaffold 제안
-2. `PURPOSE.md` 부재 → 4-element placeholder + `init` light 호출 권장
-3. `work_backlog.md` 부재 → 빈 인덱스 + 첫 task 등록 안내
+When this skill's caller invokes session-start:
+1. `state.json` missing → create an empty placeholder and offer to scaffold it
+2. `PURPOSE.md` missing → 4-element placeholder + suggest a light `init` call
+3. `work_backlog.md` missing → empty index + guidance for registering the first task
 
 {render_memory_update_section()}
 
 ## Read next
 
-- `harnesses/custom/apply_guide.md` (caller wire-up 절차)
+- `harnesses/custom/apply_guide.md` (caller wire-up procedure)
 - `ai-workflow/README.md`
 """
 
@@ -1635,7 +1637,7 @@ def pi_dev_agents_supplement(
         return base
     body = render_pi_dev_agents(args, context)
     # pi-dev 판에서 harness-specific 장(`## 1.` 이후)만 떼어 낸다.
-    marker = "## 1. 세션 시작 루틴"
+    marker = "## 1. Session start routine"
     idx = body.find(marker)
     specific = body[idx:] if idx >= 0 else body
     # base 에 이미 있는 **생성 블록**은 빼고 붙인다. 한 파일에 두 번 들어가면 그
@@ -1650,8 +1652,8 @@ def pi_dev_agents_supplement(
     return (
         base.rstrip()
         + f"\n\n---\n\n{PI_DEV_SUPPLEMENT_HEADING}\n\n"
-        + "> 이 저장소는 codex/opencode 와 pi-dev 를 함께 쓴다. 위 공통 규칙은 두 하네스에\n"
-        + "> 모두 적용되고, 아래는 Pi Coding Agent 전용 지침이다.\n\n"
+        + "> This repository uses codex/opencode and pi-dev together. The shared rules above\n"
+        + "> apply to both harnesses; what follows is specific to the Pi Coding Agent.\n\n"
         + specific.strip()
         + "\n"
     )
@@ -1664,32 +1666,32 @@ def render_pi_dev_agents(args: argparse.Namespace, context: dict[str, object]) -
     _STANDARD_RULES = render_entrypoint_rules()
     return f"""# AGENTS.md (Pi Coding Agent Profile)
 
-- **Mandate**: 본 저장소는 'Standard AI Workflow'를 따릅니다. 모든 행동은 아래 문서의 상태를 기준으로 결정하십시오.
+- **Mandate**: this repository follows the 'Standard AI Workflow'. Base every action on the state in the documents below.
 - **Priority Docs**:
-    1. `ai-workflow/memory/active/<branch>/state.json` (현재 세션의 진실의 원천)
-    2. `ai-workflow/memory/active/<branch>/sessions` (이전 세션 인계 사항)
-    3. `ai-workflow/memory/active/<branch>/backlog` (작업 목록)
+    1. `ai-workflow/memory/active/<branch>/state.json` (source of truth for the current session)
+    2. `ai-workflow/memory/active/<branch>/sessions` (what the previous session handed over)
+    3. `ai-workflow/memory/active/<branch>/backlog` (task list)
 
-## 1. 세션 시작 루틴 (Mandatory)
-세션이 시작되면 가장 먼저 `ai-workflow/memory/active/<branch>/state.json`을 읽고 `current_focus`와 `next_documents`를 파악하십시오. 이후 `session_handoff.md`를 읽어 중단된 지점부터 작업을 재개하십시오.
+## 1. Session start routine (mandatory)
+At session start, read `ai-workflow/memory/active/<branch>/state.json` first and take in `current_focus` and `next_documents`. Then read `session_handoff.md` and resume from where the previous session stopped.
 
-## 2. 작업 원칙 (Research -> Strategy -> Execution)
-- **Research**: `grep_search`와 `read_file`을 사용하여 현재 코드와 문서 상태를 객관적으로 확인하십시오.
-- **Strategy**: 변경 계획을 세우고, 작업 전후에 어떤 문서를 갱신할지 결정하십시오.
-- **Execution**: `edit`, `write`, `bash` 도구를 사용하여 변경을 수행하십시오.
+## 2. Working principles (Research → Strategy → Execution)
+- **Research**: use `grep_search` and `read_file` to establish the current state of the code and documents objectively.
+- **Strategy**: plan the change and decide which documents to update before and after the work.
+- **Execution**: carry out the change with the `edit`, `write`, and `bash` tools.
 
-## 3. 워크플로우 상태 관리
-- 작업 상태가 변경되면 반드시 `ai-workflow/memory/active/<branch>/backlog/`의 해당 날짜 문서를 업데이트하십시오.
-- 세션 종료 전에는 `ai-workflow/memory/active/<branch>/state.json`과 `session_handoff.md`를 갱신하여 다음 에이전트를 위한 맥락을 보존하십시오.
-- 상태 문서 갱신은 아래 "메모리 갱신 경로" 의 도구를 사용하십시오 — 손으로 쓰면 파싱 계약이 조용히 깨집니다.
+## 3. Workflow state management
+- Whenever a task's status changes, update the matching dated document under `ai-workflow/memory/active/<branch>/backlog/`.
+- Before closing the session, update `ai-workflow/memory/active/<branch>/state.json` and `session_handoff.md` so the next agent keeps the context.
+- Update state documents with the tools under "Memory Update Paths" below — writing by hand silently breaks the parsing contract.
 
-## 4. 도구 사용 가이드
-- 복잡한 워크플로우 제어(상태 자동 갱신 등)가 필요할 때 아래 "메모리 갱신 경로" 의 `wk` 도구들을 활용하십시오.
-- 모든 도구 호출 결과는 구조화된 JSON으로 처리하는 것을 선호합니다.
+## 4. Tool usage
+- For complex workflow control (automatic state updates and the like), use the `wk` tools under "Memory Update Paths" below.
+- Prefer handling every tool result as structured JSON.
 
-## 5. 언어 가이드
-- 사용자에게 보고하거나 문서를 작성할 때는 한국어를 사용하십시오.
-- 코드와 기술적 명칭은 원문을 유지하십시오.
+## 5. Language
+- Use Korean when reporting to the user or writing documents.
+- Keep code and technical names verbatim.
 
 {_STANDARD_RULES}
 """
@@ -2206,9 +2208,9 @@ CodeWhale 의 Constitution (Article I-VIII) 이 이미 아래 규칙을 내장�
 
 CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 
-1. `ai-workflow/memory/active/<branch>/state.json` — 현재 기준선
-2. `ai-workflow/memory/active/<branch>/sessions` — 이전 세션 인계
-3. `ai-workflow/memory/active/<branch>/backlog` — 작업 백로그 인덱스
+1. `ai-workflow/memory/active/<branch>/state.json` — the current baseline
+2. `ai-workflow/memory/active/<branch>/sessions` — the previous session's handoff
+3. `ai-workflow/memory/active/<branch>/backlog` — the work backlog index
 4. `docs/PROJECT_PROFILE.md` — 프로젝트 특화 규칙
 5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — 프로젝트 목적
 

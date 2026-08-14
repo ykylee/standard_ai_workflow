@@ -5,11 +5,11 @@
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
     "project_profile_path": "docs/PROJECT_PROFILE.md",
-    "session_handoff_path": "ai-workflow/memory/active/feat/task-ssot-writer/session_handoff.md",
+    "session_handoff_path": "ai-workflow/memory/archived/feat/task-ssot-writer/session_handoff.md",
     "work_backlog_index_path": null,
-    "daily_backlog_dir": "ai-workflow/memory/active/feat/task-ssot-writer/backlog",
-    "tasks_dir": "ai-workflow/memory/active/feat/task-ssot-writer/backlog/tasks",
-    "sessions_dir": "ai-workflow/memory/active/feat/task-ssot-writer/sessions",
+    "daily_backlog_dir": "ai-workflow/memory/archived/feat/task-ssot-writer/backlog",
+    "tasks_dir": "ai-workflow/memory/archived/feat/task-ssot-writer/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/archived/feat/task-ssot-writer/sessions",
     "latest_backlog_path": "/var/tmp/wk-checks-cleanup/check_task_multivalue_fields-lr2njoag/check-multivalue-t83vcc76/backlog/2026-08-14.md",
     "repository_assessment_path": null
   },
@@ -51,11 +51,11 @@
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
-    "ai-workflow/memory/active/feat/task-ssot-writer/session_handoff.md",
+    "ai-workflow/memory/archived/feat/task-ssot-writer/session_handoff.md",
     "/var/tmp/wk-checks-cleanup/check_task_multivalue_fields-lr2njoag/check-multivalue-t83vcc76/backlog/2026-08-14.md",
-    "ai-workflow/memory/active/feat/task-ssot-writer/backlog",
-    "ai-workflow/memory/active/feat/task-ssot-writer/sessions",
-    "ai-workflow/memory/active/feat/task-ssot-writer/sessions/task_ssot_writer_2026-08-14.md"
+    "ai-workflow/memory/archived/feat/task-ssot-writer/backlog",
+    "ai-workflow/memory/archived/feat/task-ssot-writer/sessions",
+    "ai-workflow/memory/archived/feat/task-ssot-writer/sessions/task_ssot_writer_2026-08-14.md"
   ],
   "repository_assessment": {
     "path": null,

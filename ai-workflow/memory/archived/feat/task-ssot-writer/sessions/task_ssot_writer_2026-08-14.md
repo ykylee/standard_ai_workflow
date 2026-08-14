@@ -4,7 +4,7 @@
 - 범위: `backlog_update` 의 다중값 인자, `workflow_writes._set_list_field`, 계약 검사
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 관련 문서: [task](../backlog/tasks/TASK-2026-08-14-feat-task-ssot-writer-001.md), [1단계 기록](../../../archived/feat/task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md)
+- 관련 문서: [task](../backlog/tasks/TASK-2026-08-14-feat-task-ssot-writer-001.md), [1단계 기록](../../task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md)
 
 ## 0. 소실과 중복은 같은 뿌리다
 

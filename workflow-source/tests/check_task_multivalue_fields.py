@@ -43,13 +43,28 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit.common.workflow_writes import _set_list_field  # noqa: E402
 
 FAILURES: list[str] = []
-PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
+
+#: **실제 저장소 프로파일을 쓰지 않는다.** `backlog-update --apply` 는 프로파일을
+#: 기준으로 workspace 를 잡고 그 workspace 의 `state.json` 을 재생성한다. 실물
+#: 프로파일을 넘기면 temp 안에서 돌린 fixture 가 **저장소의 state.json 을 덮어쓴다**
+#: (2026-08-14 실측: `latest_backlog_path` 가 temp 경로를 가리켰다). 저장소가 이미
+#: 아는 오염 계열이라, 프로파일 사본을 sandbox 안에 두고 그것만 가리킨다.
+_REAL_PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
+
+
+def _sandbox_profile(root: Path) -> Path:
+    dst = root / "docs" / "PROJECT_PROFILE.md"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(_REAL_PROFILE.read_text(encoding="utf-8"), encoding="utf-8")
+    return dst
 
 
 def _run_bu(backlog: Path, *extra: str) -> subprocess.CompletedProcess[str]:
     import os
+    # backlog 는 `<sandbox>/backlog/<date>.md` 이므로 sandbox root 는 parent.parent
+    profile = _sandbox_profile(backlog.parent.parent)
     argv = [sys.executable, "-m", "workflow_kit.tools.backlog_update",
-            "--project-profile-path", str(PROFILE),
+            "--project-profile-path", str(profile),
             "--daily-backlog-path", str(backlog),
             "--task-name", "테스트", "--task-brief", "브리프", "--apply", *extra]
     return subprocess.run(argv, cwd=str(SOURCE_ROOT), capture_output=True, text=True,

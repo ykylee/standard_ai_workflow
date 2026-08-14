@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-14
 
+- **39차 세션 종료 — `--changed` 선택 실행 (TASK-2026-08-14-main-003 done, `perf/changed-selection` 병합).** 이 기능의 실패 양식은 느려짐이 아니라 **조용히 안 도는 검사**라, 계약 전부를 그쪽을 막는 방향으로 기울였다: 미선언=항상 실행 / 자기 파일 변경시 무조건 실행 / `WATCHES` 원소가 하나라도 리터럴이 아니면 미선언 취급 / parse 실패도 실행 / **건너뛴 것은 이름과 사유를 전부 출력** / 변경 0건이면 "통과가 아니라 잴 것이 없음" / 매 출력에 "게이트가 아니다". `check_changed_selection` **9 cases 로 양방향 고정** (관련 변경을 잡는가 + 무관한 변경을 건너뛰는가 — 한 방향만 재면 '아무것도 안 잡는' 구현이 통과한다). 되주입 2종 실증. 무거운 8개 중 **7개만** 선언했고 `check_no_repo_write` 는 일부러 미선언(감시 표본 13종 → 관찰 범위가 사실상 저장소 전체). **실이득**: 메모리 문서 1건 편집 시 실행 250/건너뜀 6, 벽시계 **125.9s (전량 154.2s 대비 −18%)**. 부수: 검사 1개 추가로 선언된 개수 3곳이 255→256 어긋나 red — 규약이 작동한 것이고 실측 후 갱신. **검증**: 전량 2축 **256/256 ×2 green**. 상세: [세션 기록](../../archived/perf/changed-selection/sessions/changed_selection_2026-08-14.md).
+
+## 롤오프 2026-08-14
+
 - **38차 세션 종료 — 무거운 4개 검사의 중복 계산 제거 (TASK-2026-08-13-main-009 done, PR 없이 `perf/heavy-check-runtime` 병합).** **전량 native 벽시계 중앙값 195.5s(n=5) → 154.2s(n=3), −21%** — 분포가 좁아(전 193.1~196.6 / 후 150.9~154.5) 부하 편차로 설명되지 않는다. 원인은 넷 다 같았다: **안 바뀐 대상을 여러 번 다시 계산**. `wiki_score` 58.1→19.4s(점수 도구 6.4s 를 **동일 인자로 9회** → 공유 실행 + deep copy) / 릴리스 계열 3종(`cmd_release_status` 가 호출마다 `mypy --no-incremental` 5.1s → dispatcher 출력 모양만 보는 case 가 앞 case 의 **실측 판정을 재사용**, 가짜 값 아님) summary 32.0→21.1 · auto_bump 29.2→18.9 · status 22.9→12.8. **범위를 줄이지 않았다** — case 목록·판정을 전후 diff 로 대조해 동일. **가장 큰 절감(`--no-incremental` 제거, 5.1s→1s 미만)은 일부러 안 했다**: CI yml · `check_mypy_strict_ci_v0_11_11:74` · `check_yaml_surfaces` fallback · v1.0.0 Gate 3 이 **같은 명령**을 쓰도록 고정한 값이라 로컬만 바꾸면 게이트 동일성이 깨진다. 나머지 4개는 낭비가 아니라고 판정 (서로 다른 probe / config 로딩 실측 / 정숙 구간 필수). **덤: seed 가 슬래시 브랜치에서 `state.json` 을 `active/perf/perf/…` 에 만들고 있었다** — 36차 코드의 첫 슬래시 브랜치 사용에서 바로 나왔고 `check_branch_memory_namespace` case 12 가 지목했다. 수리 완료. **검증**: 전량 2축 255/255 ×2 green. 상세: [세션 기록](../../archived/perf/heavy-check-runtime/sessions/heavy_check_runtime_2026-08-14.md).
 
 ## 롤오프 2026-08-14

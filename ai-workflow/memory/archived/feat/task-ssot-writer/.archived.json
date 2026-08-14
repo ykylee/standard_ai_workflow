@@ -1,0 +1,11 @@
+{
+  "branch": "feat/task-ssot-writer",
+  "archived_at": "2026-08-14",
+  "merge_commit": "6f2cc57e606ebdd3e6ee486afbef1e16883e28da",
+  "task_ids": [
+    "TASK-2026-08-14-feat-task-ssot-writer-001"
+  ],
+  "task_count": 1,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

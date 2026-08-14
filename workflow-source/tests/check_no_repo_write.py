@@ -71,6 +71,10 @@ WATCHED_CHECKS = (
     # v1.1.7(TASK-019): 원본 저장소에 `--apply` 하던 것을 사본으로 옮긴 4건.
     # 각 파일이 자체적으로 "원본 무손상" 을 assert 하지만, 이 목록에도 넣어 이중으로
     # 막는다. 되돌리는 구현으로 회귀하면 여기서도 걸리게 하려는 것이다.
+    # v1.2.2: `backlog-update --apply` 를 sandbox 에서 부른다. 2026-08-14 에 이
+    # 검사가 실물 PROJECT_PROFILE 을 가리켜 **저장소의 state.json 을 덮어썼다** —
+    # 감시 목록에 없어서 여기서 안 잡히고 state.json drift 로 나타났다.
+    "check_task_multivalue_fields.py",
     "check_release_pipeline_version_auto_sync.py",   # pyproject / __init__ (--apply)
     "check_self_recovering_v0_13_2.py",              # README / pyproject / __init__ (drift 주입)
     "check_release_pipeline_phase3.py",              # dist 실빌드 산출물

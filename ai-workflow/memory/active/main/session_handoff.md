@@ -48,6 +48,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-14-main-011 무거운 check 2개의 CHECK_TIMEOUT_S 미선언 — slash 축 병렬에서 TIMEOUT flake
+- TASK-2026-08-14-main-004 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정
 - TASK-2026-08-12-main-019 CLAUDE.md install 기본값이 macOS homebrew 에서 PEP 668 로 실패
 - TASK-2026-08-14-main-005 seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다
 - TASK-2026-08-14-main-006 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째
@@ -56,8 +58,6 @@
 - TASK-2026-08-14-main-007 handoff 기준선 롤오프 — §1 이 handoff 의 66%
 - TASK-2026-08-14-main-003 변경 범위 기반 선택 실행 — run_all_checks --changed
 - TASK-2026-08-13-main-009 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%
-- TASK-2026-08-13-main-008 TestPyPI 리허설
-- TASK-2026-08-14-main-002 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

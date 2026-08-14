@@ -88,6 +88,12 @@ WATCHED_CHECKS = (
     "check_agent_plugin_payload.py",                 # plugin/ + .claude-plugin/ byte 대조 + 되주입
 )
 
+# runner 의 자기-timeout 마커 — 단독 39s 실측(정숙 구간)이라 기본 60s 와 여유가 없다.
+# 2026-08-14 다른 에이전트 동시 작업 부하에서 실제로 60s TIMEOUT 이 났다. 아래
+# CHECK_TIMEOUT_SEC(감시 대상 서브프로세스용)과는 별개다 — 이름이 비슷해 grep 으로는
+# 선언된 걸로 오인됐다.
+CHECK_TIMEOUT_S = 150
+
 CHECK_TIMEOUT_SEC = 300
 
 #: 실행 *중* 추적 파일을 건드렸다 되돌리는 것이 **알려진** check — 이유를 명시한다.

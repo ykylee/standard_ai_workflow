@@ -4,7 +4,7 @@
 - 범위: bootstrap 실행, 생성 파일 검토, Grok Build 설정 연결, 첫 세션 시작 방법, 트러블슈팅.
 - 대상 독자: Grok Build 사용자, 저장소 관리자, AI workflow 설계자.
 - 상태: beta
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-08-14
 - 관련 문서: [`./README.md`](./README.md), [`../../core/workflow_adoption_entrypoints.md`](../../core/workflow_adoption_entrypoints.md), [`../../core/workflow_configuration_layers.md`](../../core/workflow_configuration_layers.md), [`../../core/workflow_global_injection_policy.md`](../../core/workflow_global_injection_policy.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py)
 
 ## 1. 언제 이 가이드를 쓰는가
@@ -90,6 +90,24 @@
 - handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 컨텍스트 누적을 줄인다.
 - Grok Build 에서도 가능한 경우 메인 에이전트는 조정/통합에 집중하고, bounded scope 읽기/쓰기/검증은 내장 subagent (`explore` / `plan`) 또는 custom agent (`.grok/agents/`) 로 분리하는 운영 패턴을 권장한다.
 - 메인 에이전트는 `grok-build` (default), bounded scope 서브 에이전트는 `[subagents] models.explore = "grok-4.20-multi-agent"` 같은 더 가벼운 모델로 분리하는 편이 효율적이다.
+
+## 3.6 플러그인 설치 (권장)
+
+소비 프로젝트가 Grok Build 만 쓸 때는 bootstrap 보다 플러그인 설치가 짧다
+(실측 2026-08-14: 스킬 4종 + read-only MCP + `hooks/hooks.json`). `wk` /
+Python 의존은 플러그인이 대신 설치하지 않는다 — §3 설치가 선행돼야 한다.
+
+```bash
+grok plugin marketplace add ykylee/standard_ai_workflow
+grok plugin install standard-ai-workflow --trust
+# 또는 로컬: grok plugin install /path/to/standard_ai_workflow/plugin --trust
+```
+
+`--trust` 가 있어야 플러그인 MCP 와 훅이 활성화된다. SessionStart 훅은
+`GROK.md` 에 규칙 블록이 이미 있으면 주입을 생략한다 (이중 주입 방지).
+
+bootstrap (아래 §4·§5) 은 진입점 파일(`GROK.md`) 규칙 상시 주입, 오프라인,
+플러그인을 쓰지 않는 환경용으로 병행한다.
 
 ## 4. 신규 프로젝트 적용 순서
 

@@ -33,6 +33,10 @@ from __future__ import annotations
 
 import json
 import shutil
+
+# 단독 43s 실측 (2026-08-14) — 기본 60s 상한과 여유가 없어 병렬 부하 편차만으로
+# TIMEOUT flake 가 난다 (같은 날 slash 축 전량에서 실제로 났다). 행 검출은 150s 로 충분.
+CHECK_TIMEOUT_S = 150
 import subprocess
 import sys
 import tempfile

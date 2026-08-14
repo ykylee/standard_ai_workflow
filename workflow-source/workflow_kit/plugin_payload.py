@@ -20,6 +20,7 @@ plugin/
 │   ├── doc-sync/SKILL.md
 │   └── session-end/SKILL.md
 ├── mcp.json                     # MCP mcpServers 스키마, read-only bundle (+ .mcp.json 동일 사본)
+├── hooks/hooks.json             # Grok Build 관례 경로 — Claude 어댑터 훅과 동일 사본 (TASK-012)
 ├── gemini-extension.json        # Gemini CLI 어댑터 — 확장 루트 = payload 루트 (P3)
 ├── GEMINI.md                    # Gemini 상시 주입 컨텍스트 — render_entrypoint_rules 파생
 └── adapters/
@@ -84,6 +85,7 @@ __all__ = [
     "PLUGIN_NAME",
     "PLUGIN_DESCRIPTION",
     "PLUGIN_SKILLS",
+    "GROK_HOOKS_RELPATH",
     "MARKETPLACE_RELPATH",
     "PluginSkillSpec",
     "current_kit_version",
@@ -129,6 +131,13 @@ PAYLOAD_MCP_BRIDGE = "jsonrpc-bridge"
 #: payload 배치와 그대로 겹쳐서, 어댑터는 manifest + hooks 두 장으로 끝난다.
 CLAUDE_CODE_MANIFEST_RELPATH = ".claude-plugin/plugin.json"
 CLAUDE_CODE_HOOKS_RELPATH = "adapters/claude-code/hooks.json"
+
+#: Grok Build 가 훅을 **실제로 읽는** 경로. Claude 의 `hooks/hooks.json` 관례와
+#: 같고, 내용도 Claude 어댑터 훅과 같다 — 두 이름이 같은 렌더러 출력을 가리킨다
+#: (``mcp.json`` / ``.mcp.json`` 과 같은 규율). Grok 실측(TASK-011): 이 파일이
+#: 없으면 ``provides.hooks=false`` 이고, 두면 ``true`` 가 된다. 루트
+#: ``plugin.json`` 에 hooks 경로를 지어 넣지 않는다 (Agent Plugins 3필드 고정).
+GROK_HOOKS_RELPATH = "hooks/hooks.json"
 
 #: SessionStart hook 이 조건부로 주입하는 규칙 블록 파일 (TASK-2026-08-13-main-003).
 #: P5 실측이 근거다: hook stdout 은 모델 컨텍스트에 실제 주입된다. 다만 bootstrap
@@ -729,10 +738,12 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
       대신 설치해 주지 못하므로, 없으면 **조용히 실패하지 않고 말해야** 한다.
     - **SessionStart ②** → 규칙 블록 **조건부 주입** (TASK-2026-08-13-main-003).
       P5 실측: hook stdout 은 모델 컨텍스트에 주입된다. 진입점(`CLAUDE.md` /
-      `.claude/CLAUDE.md` — Claude Code 가 자동 read 하는 두 파일)에 생성 마커가
-      있으면 bootstrap 이 이미 규칙을 넣은 것이므로 생략한다 (이중 주입 방지).
-      `@AGENTS.md` import 패턴(이 kit 의 CLAUDE.md 통합 권장안)도 AGENTS.md 쪽
-      마커로 인정한다. 마커 탐침은 :func:`_rules_marker_probe` 파생.
+      `.claude/CLAUDE.md` — Claude Code 자동 read, `GROK.md` — Grok Build 자동
+      read)에 생성 마커가 있으면 bootstrap 이 이미 규칙을 넣은 것이므로 생략한다
+      (이중 주입 방지). `@AGENTS.md` import 패턴(CLAUDE.md / GROK.md)도
+      AGENTS.md 쪽 마커로 인정한다. 마커 탐침은 :func:`_rules_marker_probe` 파생.
+      같은 JSON 을 ``hooks/hooks.json`` 에도 둔다 — Grok 은 그 관례 경로만 읽는다
+      (TASK-011 실측).
 
     명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
     §11.1 개명 시 이 사본만 낡는다.
@@ -746,8 +757,8 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     )
     probe = _rules_marker_probe()
     rules_inject = (
-        f"{{ grep -qsF '{probe}' CLAUDE.md .claude/CLAUDE.md; }} || "
-        f"{{ grep -qsF '@AGENTS.md' CLAUDE.md && grep -qsF '{probe}' AGENTS.md; }} || "
+        f"{{ grep -qsF '{probe}' CLAUDE.md .claude/CLAUDE.md GROK.md; }} || "
+        f"{{ grep -qsF '@AGENTS.md' CLAUDE.md GROK.md && grep -qsF '{probe}' AGENTS.md; }} || "
         f'cat "${{CLAUDE_PLUGIN_ROOT}}/{CLAUDE_CODE_RULES_RELPATH}"'
     )
     return json.dumps(
@@ -882,6 +893,7 @@ def render_agent_plugin(
     """
     resolved = rules if rules is not None else load_standard_rules(source_root)
     mcp_config = render_plugin_mcp_config()
+    hooks_config = render_claude_code_hooks(resolved)
     payload: dict[str, str] = {
         "plugin.json": render_plugin_manifest(version),
         CODEX_MANIFEST_RELPATH: render_codex_manifest(version),
@@ -890,7 +902,8 @@ def render_agent_plugin(
         # 검사 case 가 두 파일의 동일성을 강제한다.
         CLAUDE_CODE_MCP_RELPATH: mcp_config,
         CLAUDE_CODE_MANIFEST_RELPATH: render_claude_code_manifest(version),
-        CLAUDE_CODE_HOOKS_RELPATH: render_claude_code_hooks(resolved),
+        CLAUDE_CODE_HOOKS_RELPATH: hooks_config,
+        GROK_HOOKS_RELPATH: hooks_config,
         CLAUDE_CODE_RULES_RELPATH: render_claude_code_rules(resolved),
         GEMINI_MANIFEST_RELPATH: render_gemini_manifest(version),
         GEMINI_CONTEXT_RELPATH: render_gemini_context(resolved),

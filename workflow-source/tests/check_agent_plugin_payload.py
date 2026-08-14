@@ -49,7 +49,10 @@
     `.codex-plugin/plugin.json`이 skills 및 read-only MCP를 선언한다.
 18. **Codex manifest 의 배포 신원이 packaging metadata 파생이다** — 저자 이메일과
     라이선스를 손으로 적으면 그 사본이 갈라진다 (실제로 `yklee@` 로 갈라졌다).
-19. **pi.dev (pi-coding-agent) 어댑터가 로드되는 형태다** — pi 는 marketplace.json
+19. **Grok Build 가 훅을 로드하는 형태다** — 관례 경로 ``hooks/hooks.json`` 이
+    Claude 어댑터 훅과 같고, SessionStart 탐침이 ``GROK.md`` 를 본다
+    (TASK-011 실측: 이 파일이 없으면 ``provides.hooks=false``).
+20. **pi.dev (pi-coding-agent) 어댑터가 로드되는 형태다** — pi 는 marketplace.json
     대신 npm/git 패키지 + ``pi`` manifest + ``pi-package`` keyword 로 갤러리에
     등록한다. ``pi.skills`` 경로가 실제 skill 집합과 일치하고, 각 SKILL.md
     description 은 [KO]+[EN] 이중 언어 (pi 시스템 프롬프트가 영어라 영문 매칭
@@ -91,6 +94,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
     CLAUDE_CODE_MCP_RELPATH,
+    GROK_HOOKS_RELPATH,
     CODEX_MANIFEST_RELPATH,
     GEMINI_CONTEXT_RELPATH,
     GEMINI_MANIFEST_RELPATH,
@@ -915,8 +919,76 @@ def test_goose_opencode_snippets() -> None:
     )
 
 
+def _grok_hooks_problems(payload: dict[str, str]) -> list[str]:
+    """Grok 훅 계약 — case 19 본판정과 되주입이 같은 함수를 쓴다."""
+    problems: list[str] = []
+    grok_hooks = payload.get(GROK_HOOKS_RELPATH)
+    claude_hooks = payload.get(CLAUDE_CODE_HOOKS_RELPATH)
+    if grok_hooks is None:
+        problems.append(f"{GROK_HOOKS_RELPATH} 누락 — Grok 은 이 관례 경로만 읽는다")
+        return problems
+    if grok_hooks != claude_hooks:
+        problems.append(
+            f"{GROK_HOOKS_RELPATH} 와 {CLAUDE_CODE_HOOKS_RELPATH} 가 다르다 — "
+            "같은 렌더러 파생이어야 한다 (mcp.json / .mcp.json 과 같은 규율)"
+        )
+    hooks = json.loads(grok_hooks).get("hooks", {})
+    inject_cmds = [
+        entry.get("command", "")
+        for matcher in hooks.get("SessionStart", [])
+        for entry in matcher.get("hooks", [])
+        if "CLAUDE_PLUGIN_ROOT" in entry.get("command", "")
+    ]
+    if len(inject_cmds) != 1:
+        problems.append(f"규칙 주입 hook 이 {len(inject_cmds)}개 — SessionStart 에 정확히 1개여야 한다")
+    elif "GROK.md" not in inject_cmds[0]:
+        problems.append("주입 hook 이 GROK.md 를 탐침하지 않는다 — Grok bootstrap 이중 주입/누락")
+    manifest = json.loads(payload["plugin.json"])
+    if "hooks" in manifest:
+        problems.append(
+            "루트 plugin.json 에 hooks 경로 필드가 있다 — "
+            "Grok 은 관례 경로 hooks/hooks.json 을 쓰고, Agent Plugins 3필드 계약을 지킨다"
+        )
+    return problems
+
+
+def test_grok_build_hooks() -> None:
+    """19) Grok Build 가 훅을 **로드하는 형태**인가 (TASK-011 실측으로 고정한 계약).
+
+    `grok plugin install ./plugin --trust` 후 inspect 실측이 못박은 것:
+    - 스킬 4 + MCP 1 은 현재 payload 그대로 로드된다.
+    - 훅은 ``hooks/hooks.json`` 이 있을 때만 ``provides.hooks=true``.
+      Claude 어댑터 경로(`adapters/claude-code/hooks.json`)는 Grok 이 안 읽는다.
+    - 루트 ``plugin.json`` 에 hooks 경로를 선언하지 않는다 (3필드 고정).
+    """
+    payload = render_agent_plugin()
+    problems = _grok_hooks_problems(payload)
+
+    # 되주입 ①: 탐침에서 GROK.md 를 빼면 이 판정이 FAIL 해야 한다.
+    stripped = {
+        **payload,
+        GROK_HOOKS_RELPATH: payload[GROK_HOOKS_RELPATH].replace("GROK.md", "X.md"),
+        CLAUDE_CODE_HOOKS_RELPATH: payload[CLAUDE_CODE_HOOKS_RELPATH].replace("GROK.md", "X.md"),
+    }
+    if not _grok_hooks_problems(stripped):
+        problems.append("탐침에서 GROK.md 를 빼도 판정이 통과한다")
+
+    # 되주입 ②: 두 훅 파일을 갈라놓으면 FAIL 해야 한다.
+    split = {**payload, GROK_HOOKS_RELPATH: payload[GROK_HOOKS_RELPATH] + "\n"}
+    if not _grok_hooks_problems(split):
+        problems.append("두 훅 파일을 갈라놓아도 판정이 통과한다")
+
+    _record(
+        "test_grok_build_hooks",
+        not problems,
+        "; ".join(problems[:4])
+        if problems
+        else "hooks/hooks.json == Claude 훅 + GROK.md 탐침 + 되주입 2종",
+    )
+
+
 def test_pi_dev_adapter() -> None:
-    """19) pi.dev (pi-coding-agent) 마켓플레이스 어댑터가 로드되는 형태인가 (v1.2.0+).
+    """20) pi.dev (pi-coding-agent) 마켓플레이스 어댑터가 로드되는 형태인가 (v1.2.0+).
 
     pi 는 marketplace.json 이 없다 — npm/git 패키지 + ``pi`` manifest + ``pi-package``
     keyword 로 pi.dev 갤러리에 등록한다 (https://pi.dev/packages). ``pi install <pkg>``
@@ -1055,8 +1127,9 @@ def main() -> int:
     test_status_targets_working_tree()
     test_gemini_adapter()
     test_goose_opencode_snippets()
+    test_grok_build_hooks()
     test_pi_dev_adapter()
-    total = 19
+    total = 20
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

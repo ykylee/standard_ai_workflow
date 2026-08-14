@@ -1,10 +1,10 @@
 # Workflow Harness Distribution
 
 - 문서 목적: 표준 AI 워크플로우를 개별 AI 하네스에 맞는 배포 단위로 변환할 때 필요한 공통 원칙과 산출물 구성을 정리한다.
-- 범위: 공통 코어와 하네스 오버레이의 관계, 타겟별 생성 파일, 배포 전략, 확장 포인트
+- 범위: 공통 코어와 하네스 오버레이의 관계, registry 13종 타겟별 생성 파일 (§3–§14), 배포 전략, 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-08-13
+- 최종 수정일: 2026-08-14
 - 관련 문서: `./global_workflow_standard.md`, `./workflow_adoption_entrypoints.md`, `./workflow_configuration_layers.md`, `./workflow_global_injection_policy.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_lib/harnesses/__init__.py`
 
 ## 1. 기본 원칙
@@ -151,7 +151,103 @@ Grok Build (xAI CLI TUI) 타겟은 Codex 와 동일한 `AGENTS.md` root 진입�
 - 본 하네스는 orchestrator / worker 분리 패턴을 강제하지 않는다. Grok Build 의 내장 subagent (`explore` / `plan`) 와 custom agent (`.grok/agents/`) 로 bounded scope 분리.
 - memory 는 opt-in (`--experimental-memory` 또는 `GROK_MEMORY=1`). opt-in 없이 `~/.grok/memory/` 를 신뢰하지 않는다.
 
-## 8. 유지보수 원칙
+## 9. Gemini CLI 타겟
+
+Gemini CLI 타겟은 프로젝트 루트의 `GEMINI.md` 를 핵심 진입점으로 본다.
+
+권장 산출물:
+
+- `GEMINI.md`
+
+구성 원칙:
+
+- `GEMINI.md` 는 `ai-workflow/memory/active/` 문서를 먼저 읽도록 안내한다.
+- MCP 설정은 `.gemini/settings.json` 병합용 예시 스니펫으로 제공한다 (`--enable-mcp`).
+- 플러그인 채널을 지원한다 — 확장 루트가 저장소의 `plugin/` 이므로 로컬 경로 설치
+  (`gemini extensions install ./standard_ai_workflow/plugin --consent`) 를 쓴다.
+
+## 10. Claude Code 타겟
+
+Claude Code 타겟은 프로젝트 루트의 `CLAUDE.md` 를 자동 read 진입점으로 본다.
+
+권장 산출물:
+
+- `CLAUDE.md`
+- `.claude/commands/workflow-session-start.md` / `workflow-backlog-update.md` / `workflow-doc-sync.md`
+- `.claude/skills/standard-ai-workflow/SKILL.md`
+
+구성 원칙:
+
+- `CLAUDE.md` 는 `AGENTS.md` 를 직접 read 하지 않으므로, 기존 `AGENTS.md` 가 있으면
+  `@AGENTS.md` import 또는 symlink 로 통합한다 (apply_guide §2.1).
+- slash command 3종은 공통 skill 문서로 연결하는 얇은 진입 파일로 유지한다.
+- 플러그인 채널(marketplace 설치)이 권장 경로이고, bootstrap 오버레이는 진입점 규칙
+  주입과 오프라인 환경 담당으로 병행한다. 이 저장소 자신이 자기 적용 사례다.
+
+## 11. Aider 타겟
+
+Aider 타겟은 프로젝트 루트의 `CONVENTIONS.md` 를 진입점으로 본다.
+
+권장 산출물:
+
+- `CONVENTIONS.md`
+- `.aider/conventions.md`
+- `.aider.conf.yml.example`
+
+구성 원칙:
+
+- `CONVENTIONS.md` 는 공통 workflow 문서로 연결하는 오버레이로 유지한다.
+- `.aider.conf.yml.example` 는 사용자 설정에 병합할 예시로 두고, 실제 설정 파일을
+  덮어쓰지 않는다.
+- Aider 는 MCP 를 지원하지 않으므로 MCP 스니펫을 emit 하지 않는다 — 상태 문서
+  갱신은 `wk` CLI 경로만 안내한다.
+
+## 12. Goose 타겟
+
+Goose 타겟은 루트 진입 문서 없이 `.goose/config.yaml` 하나로 구성한다.
+
+권장 산출물:
+
+- `.goose/config.yaml`
+
+구성 원칙:
+
+- Goose 는 루트 markdown 진입점을 자동 read 하지 않으므로 루트 파일을 만들지 않는다.
+- `config.yaml` 은 공통 workflow 문서 경로와 세션 시작 절차를 가리키는 최소 구성으로
+  유지한다 (구조는 apply_guide §6).
+- 플러그인 어댑터 스니펫(`plugin/adapters/goose/config-snippet.yaml`)과 내용이
+  갈라지지 않게 함께 갱신한다.
+
+## 13. Pi Coding Agent 타겟
+
+Pi Coding Agent(pi-dev) 타겟은 프로젝트 루트의 `AGENTS.md` 를 진입점으로 본다.
+
+권장 산출물:
+
+- `AGENTS.md` (Codex/OpenCode 와 공통 — 동시 선택 시 1회만 emit)
+
+구성 원칙:
+
+- 추가 설정 파일 없이 `AGENTS.md` 공통 진입점 하나로 시작한다.
+- MCP 는 `--enable-mcp` 의 로컬 설치 절차(apply_guide §6)로 opt-in 한다.
+
+## 14. mavis 타겟
+
+mavis 데스크탑 런타임 타겟은 **project-local 산출물이 0** 인 유일한 타겟이다.
+
+권장 산출물:
+
+- 없음 — 호스트 글로벌 `~/.minimax/mcp/mcp.json` 에 `standardAiWorkflowReadOnly`
+  블록을 atomic merge 하는 것이 전부다 (`--enable-mcp` 와 함께 호출).
+
+구성 원칙:
+
+- mavis 는 글로벌 한 곳만 읽고 workspace 단위 자동 로드와 `AGENTS.md`/`MiniMax.md`
+  자동 read 가 없다 — 그래서 루트 파일을 만들지 않는다.
+- merge 시 backup 생성과 builtin 서버 5종 보존, 절대 경로 env 규칙은 표준 §6.5.2 를
+  그대로 승계한다.
+
+## 15. 유지보수 원칙
 
 - 하네스별 파일 안에 긴 정책 본문을 중복해서 넣지 않는다.
 - 공통 문서 경로가 바뀌면 Codex/OpenCode 오버레이도 함께 갱신한다.
@@ -160,7 +256,7 @@ Grok Build (xAI CLI TUI) 타겟은 Codex 와 동일한 `AGENTS.md` root 진입�
 - MCP 관련 descriptor 와 예시는 패키지에 포함할 수 있지만, 이번 릴리즈 기본 소비 경로는 `workflow_adoption_entrypoints` 와 `workflow_skill_catalog` 이어야 한다.
 - 배포 패키지는 하네스별 개별 버전 디렉터리와 버전이 포함된 zip 이름으로 생성한다.
 
-## 9. 확장 포인트
+## 16. 확장 포인트
 
 다른 하네스를 추가할 때는 아래 순서를 권장한다.
 

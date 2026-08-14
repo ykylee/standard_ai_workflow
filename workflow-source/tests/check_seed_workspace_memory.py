@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Smoke test — `tools/seed_workspace_memory.py` (5 cases).
+r"""Smoke test — `tools/seed_workspace_memory.py` (6 cases).
 
 ## 왜 이 검사가 필요한가
 
@@ -18,7 +18,7 @@ seed 가 만드는 문서는 `session-start` 파서와 **문구 단위로** 맞�
 
 셋 다 "파일은 생겼는데 복원은 안 되는" 부류다. case 2 가 이 부류를 통째로 막는다.
 
-5 cases:
+6 cases:
   1) dry-run 은 아무것도 쓰지 않는다
   2) **apply 후 session-start 가 status=ok + (seed 산출물發) warnings 없이 돈다** (핵심)
      — `state.json 부재` 한 줄은 제외한다. seed 는 파생 파일을 만들지 않으므로
@@ -26,7 +26,8 @@ seed 가 만드는 문서는 `session-start` 파서와 **문구 단위로** 맞�
      달린다 (main 통과 / detached HEAD·메모리 없는 브랜치 FAIL).
   3) 멱등 — 재실행이 기존 handoff/backlog 를 덮어쓰지 않고 task 번호만 증가
   4) state.json 까지 생성기로 만든다 — seed 한 번으로 시작 가능한 상태가 된다
-  5) 생성된 task 파일이 append-only layout frontmatter 규약에 맞는다
+  5) 갓 seed 한 sessions/ 가 비어 있지 않고, 첫 세션 기록이 seed 사건을 담는다 (main-005)
+  6) 생성된 task 파일이 append-only layout frontmatter 규약에 맞는다
 
 Refs:
   - core/global_workflow_standard.md §10.2
@@ -165,7 +166,24 @@ def main() -> int:
                 f"state.json 이 이 브랜치를 가리키지 않는다: {wrong}",
             )
 
-        # --- case 5: task frontmatter 규약 --------------------------------
+        # --- case 5: 갓 seed 한 브랜치가 layout 판정을 통과한다 (main-005) ----
+        #
+        # 빈 `sessions/` 만 만들던 때는 `check_appendonly_memory_layout` 이 seed
+        # 직후에도 red 였다 — "한 벌이면 green" 이 거짓이었다. 판정 술어는 layout
+        # 검사의 case 1 과 같다: **`.gitkeep` 제외 파일 1개 이상**. 검사를 "갓 만든
+        # 것" 예외로 푸는 방향은 일부러 피했다 (오래된 절반짜리도 같이 통과한다) —
+        # 대신 seed 가 seed 사건 자체를 담은 첫 세션 기록을 쓴다.
+        session_files = [f for f in (branch_dir / "sessions").iterdir()
+                         if f.name != ".gitkeep"]
+        _record("test_sessions_not_empty_after_seed", bool(session_files),
+                "seed 직후 sessions/ 가 비어 있다 — layout 검사가 red 가 된다")
+        if session_files:
+            record_text = session_files[0].read_text(encoding="utf-8")
+            _record("test_session_record_is_truthful",
+                    task_id in record_text and BRANCH in record_text,
+                    f"세션 기록이 seed 사건(브랜치·task)을 담지 않는다: {session_files[0].name}")
+
+        # --- case 6: task frontmatter 규약 --------------------------------
         task_file = branch_dir / "backlog" / "tasks" / f"{task_id}.md"
         text = task_file.read_text(encoding="utf-8")
         required = ("id:", "status:", "created_at:", "source_anchor:", "source_path:", "kind:")
@@ -177,7 +195,7 @@ def main() -> int:
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: seed_workspace_memory smoke (7 assertions) ===")
+    print("=== PASS: seed_workspace_memory smoke (11 assertions) ===")
     return 0
 
 

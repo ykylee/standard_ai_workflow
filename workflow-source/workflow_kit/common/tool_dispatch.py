@@ -68,6 +68,7 @@ TOOL_MODULES: Final[dict[str, str]] = {
     # v1.1.7+ (TASK-2026-08-11-main-018): state.json 은 생성물 — 세션 종료 절차의
     # 재생성 창구 (--check 는 drift 판정만).
     "refresh-state": "workflow_kit.tools.refresh_state",
+    "rollover-baselines": "workflow_kit.tools.rollover_handoff_baselines",
     "refresh-wiki-memory": "workflow_kit.tools.refresh_wiki_memory",
     "release-pipeline": "workflow_kit.tools.release_pipeline",
     "release-v0-13-0": "workflow_kit.tools.release_v0_13_0",

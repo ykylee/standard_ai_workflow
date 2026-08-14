@@ -234,6 +234,7 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 | Register / update a task | `wk backlog-update` |
 | Sync affected documents (advisory) | `wk doc-sync` |
 | Regenerate state.json at session close | `wk refresh-state` |
+| Roll off handoff §1 baselines when over cap | `wk rollover-baselines` |
 
 **11.2 Parsing contract** — holds even when writing by hand instead of using the tools
 
@@ -241,6 +242,9 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
 - A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
 - `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `wk refresh-state` at session close.
+- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with
+  `wk rollover-baselines` — never delete them by hand. That prose exists nowhere else,
+  unlike the recently-done list whose SSOT is `backlog/tasks/`.
 - `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
 
 ## 다음에 읽을 문서

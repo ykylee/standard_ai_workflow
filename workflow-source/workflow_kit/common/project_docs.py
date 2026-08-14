@@ -45,6 +45,23 @@ MISSING_STATUS_MARKER = "<미기재>"
 # 상한을 아는 곳은 전부 여기를 import 한다 — 리터럴을 다시 적지 않는다.
 RECENT_DONE_ITEMS_CAP = 10
 
+#: handoff §1 이 들고 있을 **기준선 줄** 상한 (`현재/직전/그 이전 기준선`).
+#:
+#: 완료 목록 상한(:data:`RECENT_DONE_ITEMS_CAP`)과 **다루는 방식이 다르다.** 완료 항목은
+#: SSOT 가 `backlog/tasks/` 에 따로 있어 목록에서 잘라도 사실이 사라지지 않는다. 기준선
+#: 줄은 그 산문이 **다른 어디에도 없다** — 그래서 자르면 안 되고 `baselines.md` 로
+#: **이관**한다. 상한만 두고 버리면 세션 이력이 조용히 지워진다.
+#:
+#: 실측(2026-08-14): 기준선 37줄이 handoff 41,880자 중 27,502자(66%)였고 세션마다
+#: 평균 785자씩 단조 증가했다. 그 전부가 매 세션 시작에 읽힌다.
+BASELINE_ITEMS_CAP = 4
+
+#: 롤오프된 기준선이 쌓이는 파일 이름 (브랜치 네임스페이스 안, handoff 옆).
+BASELINES_FILENAME = "baselines.md"
+
+#: 기준선 줄의 라벨 — 앞이 최신이다.
+BASELINE_LABELS: tuple[str, ...] = ("현재 기준선", "직전 기준선", "그 이전 기준선")
+
 # Standard Regexes
 STATUS_RE = re.compile(rf"- 상태:\s*({_STATUS_ALT})\s*$")
 MODE_RE = re.compile(r"- 모드:\s*(Analysis|Requirements|Design|Planning|Implementation|Refactoring)\s*$")

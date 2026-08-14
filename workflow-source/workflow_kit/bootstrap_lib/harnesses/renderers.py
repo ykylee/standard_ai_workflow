@@ -26,7 +26,7 @@ from workflow_kit.bootstrap_lib.paths import (
 from workflow_kit.bootstrap_lib.writes import rel, write_text
 
 #: pi-dev 전용 장의 제목 — 합쳐졌는지 판정하는 표식이자 idempotency key.
-PI_DEV_SUPPLEMENT_HEADING = "# Pi Coding Agent Profile (pi-dev 전용)"
+PI_DEV_SUPPLEMENT_HEADING = "# Pi Coding Agent Profile (pi-dev only)"
 from workflow_kit.common.standard_rules import (
     find_memory_command,
     load_standard_rules,
@@ -208,7 +208,7 @@ Treat the tools under `ai-workflow/skills/` and `scripts/` as Antigravity **Spec
 
 - Antigravity reads `ANTIGRAVITY.md` at the project root, so start policy here and defer operational detail to the `ai-workflow/` documents.
 - Treat instructions written in `ANTIGRAVITY.md` as strong directives that take precedence over the system prompt.
-- 가능한 경우 메인 에이전트는 조정과 통합에 집중하고, bounded scope 의 읽기/쓰기/검증 작업은 브라우저 서브 에이전트 등 적절한 서브 에이전트로 분리하는 패턴을 권장한다.
+- Where possible, keep the main agent on coordination and integration, and split bounded read/write/verify work into an appropriate sub-agent such as the browser sub-agent.
 - Hand each sub-agent an explicit scope and exit condition, and collect only the key facts and results back into the main agent.
 - {harness_note}
 """
@@ -473,7 +473,7 @@ def render_minimax_code_worker(args: argparse.Namespace, context: dict[str, obje
 
 ## Never do
 
-- 명시되지 않은 파일을 수정하지 않는다.
+- Never modify files that were not specified.
 - Never add or remove dependencies without explicit orchestrator approval.
 """
 
@@ -747,8 +747,9 @@ User-facing workflow rules:
 
 {render_memory_update_section()}
 
-> 이 orchestrator 는 bash 가 deny 라 위 명령을 직접 실행하지 않는다 — 메모리 문서
-> 갱신이 필요하면 위 명령의 실행을 worker 에 위임하고, 손으로 문서를 다시 쓰지 않는다.
+> This orchestrator has bash denied, so it never runs the commands above itself — when a
+> memory document needs updating, delegate running them to a worker rather than rewriting
+> the document by hand.
 """
 
 
@@ -1060,7 +1061,7 @@ When the user invokes `/workflow-session-start` (or on automatic read), it attem
 2. `PURPOSE.md` missing → 4-element placeholder + suggest a light `init` call
 3. `work_backlog.md` missing → empty index + guidance for registering the first task
 
-## 프로젝트 실행 기본값
+## Project run defaults
 
 - **install**: {context.get('install_command', 'TODO')}
 - **run**: {context.get('run_command', 'TODO')}
@@ -1232,17 +1233,17 @@ This work goes **through the tools** — hand-editing the documents silently bre
 
 ## Procedure
 
-1. 현재 변경된 file list + 영향 받은 document 후보 식별
-2. `ai-workflow/wiki/index.md` anchor 기반 페이지 카탈로그 확인
-3. 영향 받은 페이지에 대해 *advisory* 갱신 포인트 emit:
-   - 새 concept / decision / pattern 페이지 후보
-   - 기존 페이지의 `last_touched` 갱신 후보
-4. PURPOSE.md 부재 시 *advisory only* (hard scope check ❌)
+1. Identify the current changed-file list and the affected-document candidates
+2. Check the page catalog against the `ai-workflow/wiki/index.md` anchors
+3. Emit *advisory* update points for the affected pages:
+   - Candidate new concept / decision / pattern pages
+   - Existing pages whose `last_touched` should be refreshed
+4. When PURPOSE.md is absent: *advisory only* (no hard scope check)
 
 ## Output format
 
-- 영향 받은 document list (path + 1줄 요약)
-- 권장 anchor / cross-reference
+- The affected-document list (path + one-line summary)
+- Recommended anchors / cross-references
 - confidence (high / medium / low)
 
 ## Read next
@@ -1277,7 +1278,7 @@ description: The standard AI workflow entry point for this repository. Use it wh
 # Standard AI Workflow
 
 - **Role**: the entry skill that covers session start, backlog update, document sync, and session close in one place.
-- **위치**: `.claude/skills/standard-ai-workflow/SKILL.md`
+- **Location**: `.claude/skills/standard-ai-workflow/SKILL.md`
 - **Invocation**: the model selects it automatically when the situation matches the `description` above. To invoke it directly,
   `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync` slash command.
 - Last updated: {args.today}
@@ -1311,7 +1312,7 @@ against the `ai-workflow/wiki/index.md` anchors. Never apply them automatically.
 
 {_STANDARD_RULES}
 
-## 언어와 컨텍스트 원칙
+## Language and context principles
 
 - User-facing reports, status summaries, and document text are in Korean.
 - Code, commands, file paths, configuration keys, and external product names stay verbatim.
@@ -1388,7 +1389,7 @@ This project follows the standard AI workflow. Read in this order:
 2. `ai-workflow/memory/active/<branch>/sessions`
 3. `ai-workflow/memory/active/<branch>/backlog`
 4. `docs/PROJECT_PROFILE.md`
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md`
+5. (if present) `ai-workflow/memory/active/PURPOSE.md`
 
 {_STANDARD_RULES}
 
@@ -1556,7 +1557,7 @@ def render_custom_skill_template(args: argparse.Namespace, context: dict[str, ob
 
 - **Role**: the *neutral entry point* of the standard AI workflow — the caller wires it up to
   their own harness / IDE / CLI. This file is a *reference template* only; no tool loads it automatically.
-- **위치**: `.workflow-kits/custom/SKILL.md`
+- **Location**: `.workflow-kits/custom/SKILL.md`
 - Audience: custom harness users (callers)
 - Last updated: {args.today}
 
@@ -1720,12 +1721,12 @@ def write_antigravity_harness_files(
 # ---------------------------------------------------------------------------
 # Grok Build (xAI CLI TUI) 진입점:
 #   - AGENTS.md: Codex 와 공통 root 진입점 (codex/opencode/pi-dev 와 동시 선택 시 자동 emit)
-#   - GROK.md: Grok Build 전용 root 진입점 (additive rule, 한국어 baseline + subagent 패턴)
-#   - .grok/skills/standard-ai-workflow/SKILL.md: TUI picker 표시 skill
+#   - GROK.md: Grok Build root entry point (additive rule, Korean baseline + subagent pattern)
+#   - .grok/skills/standard-ai-workflow/SKILL.md: skill shown in the TUI picker
 #   - .grok/config.toml.example: MCP stdio snippet + skill paths + memory opt-in
 #
-# AGENTS.md 는 codex/opencode/pi-dev dispatch block 의 render_codex_agents 결과로
-# 이미 emit 되므로 본 render 는 GROK.md 만 emit (idempotent, codex 와 동시 사용 OK).
+# AGENTS.md is already emitted by render_codex_agents in the codex/opencode/pi-dev dispatch
+# block, so this render emits only GROK.md (idempotent; safe alongside codex).
 
 
 def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
@@ -1749,24 +1750,24 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
             smoke_check = "node --version"
 
     _STANDARD_RULES = render_entrypoint_rules()
-    return f"""# GROK.md (Grok Build 진입점)
+    return f"""# GROK.md (Grok Build entry point)
 
-- Purpose: Grok Build (xAI CLI TUI) 가 이 저장소에서 매 세션 자동 read 하는 진입점 문서.
-- Scope: 세션 복원, workflow state docs 참조 순서, 사용자 보고 언어, subagent / memory / MCP 운영 원칙
-- Audience: Grok Build, 저장소 관리자, 멀티 에이전트 운영자
+- Purpose: the entry-point document Grok Build (the xAI CLI TUI) reads automatically every session in this repository.
+- Scope: session restore, the order to consult workflow state docs, user-facing report language, subagent / memory / MCP principles
+- Audience: Grok Build, repository maintainer, multi-agent operator
 - Status: beta
 - Last updated: {args.today}
-- Related: `AGENTS.md` (Codex 와 공통), `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
+- Related: `AGENTS.md` (shared with Codex), `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## Purpose
 
-이 저장소에서는 **Standard AI Workflow** 를 기준으로 작업한다. 세션 시작, backlog 갱신, 문서 동기화, 세션 종료는 `ai-workflow/` 아래 문서를 우선 기준으로 삼는다. Grok Build 는 메인 에이전트로 동작하고, 내장 subagent (`explore` / `plan`) 또는 custom agent (`.grok/agents/`) 로 bounded scope 작업을 위임해 컨텍스트를 절약한다.
+Work in this repository follows the **Standard AI Workflow**. Session start, backlog updates, document sync, and session close all take the documents under `ai-workflow/` as the primary reference. Grok Build acts as the main agent and delegates bounded-scope work to the built-in subagents (`explore` / `plan`) or custom agents (`.grok/agents/`) to conserve context.
 
 ## Read these first
 
 > `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
 
-- `AGENTS.md` (Codex 와 공통 진입점 — 한국어 baseline + worker 분리 원칙)
+- `AGENTS.md` (entry point shared with Codex — Korean baseline + worker separation)
 - `ai-workflow/memory/active/<branch>/state.json`
 - `ai-workflow/memory/active/<branch>/sessions`
 - `ai-workflow/memory/active/<branch>/backlog`
@@ -1775,41 +1776,41 @@ def render_grok_build_agents(args: argparse.Namespace, context: dict[str, object
 
 `ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
 
-## AGENTS.md 와의 관계
+## Relationship to AGENTS.md
 
-- `AGENTS.md` 는 Codex 와 공통 진입점. 메인 에이전트의 한국어 baseline, worker 분리 원칙, `ai-workflow/memory/active/` 문서 참조 순서를 정의.
-- 본 `GROK.md` 는 Grok Build 전용 *additive rule* — subagent 활용, MCP 등록, memory opt-in, skill 등록 절차만 추가. `AGENTS.md` 와 정합 유지.
-- 두 문서가 가리키는 사실이 다르다면 `GROK.md` 가 우선 (Grok Build 세션에서 additive rule). 한국어 baseline 은 *동일하게 유지*.
+- `AGENTS.md` is the entry point shared with Codex. It defines the main agent's Korean baseline, worker separation, and the order in which to consult `ai-workflow/memory/active/` documents.
+- This `GROK.md` is a Grok Build *additive rule* — it only adds subagent usage, MCP registration, memory opt-in, and skill registration. Keep it consistent with `AGENTS.md`.
+- Where the two documents disagree, `GROK.md` wins (additive rule inside a Grok Build session). The Korean baseline stays *identical*.
 
 ## Entry skill (TUI picker)
 
-- `/` 입력 후 `standard-ai-workflow` 검색 → 본 하네스가 emit 한 `.grok/skills/standard-ai-workflow/SKILL.md` 가 표시됨.
-- skill 본문: 세션 시작, 백로그 갱신, 문서 동기화 절차.
+- Type `/`, search for `standard-ai-workflow`, and the `.grok/skills/standard-ai-workflow/SKILL.md` emitted by this harness appears.
+- Skill body: session start, backlog update, and document sync procedures.
 
 {_STANDARD_RULES}
-- 가능한 한 메인 에이전트는 조정과 통합에 집중하고, bounded scope 작업은 subagent / custom agent 에 위임한다.
+- Keep the main agent on coordination and integration as much as possible, and delegate bounded-scope work to subagents / custom agents.
 
-## Subagent 운영 원칙 (Grok Build Multi-Agent Topology)
+## Subagent principles (Grok Build multi-agent topology)
 
-- **메인 에이전트**: 사용자 직접 소통, 작업 분해, subagent 호출/통합, `state.json`/`session_handoff`/`work_backlog` 동기화 전담. 도구 호출을 직접 떠안지 않는다.
-- **내장 subagent `explore`** (read-only): 코드베이스 탐색, 파일 검색, grep 등 bounded scope read 작업. `--model grok-4.20-multi-agent` 같은 가벼운 모델로 분리 권장.
-- **내장 subagent `plan`** (read-only): 작업 분해 / 영향 분석 / 구현 계획 작성. 메인 에이전트가 도구 호출 전에 plan 으로 점검.
-- **custom agent** (`.grok/agents/`): doc / code / validation worker 처럼 *역할별 페르소나* 가 필요하면 정의.
+- **Main agent**: talks to the user, decomposes work, invokes and integrates subagents, and owns syncing `state.json` / `session_handoff` / `work_backlog`. It does not take on tool calls itself.
+- **Built-in subagent `explore`** (read-only): codebase exploration, file search, grep — bounded-scope reads. Prefer splitting it onto a lighter model such as `--model grok-4.20-multi-agent`.
+- **Built-in subagent `plan`** (read-only): work decomposition, impact analysis, implementation planning. The main agent checks with `plan` before making tool calls.
+- **Custom agents** (`.grok/agents/`): define these when you need *role-specific personas* such as doc / code / validation workers.
 
-subagent 호출 시 의도와 책임 경계를 명확히 적는다 (`agent_id`, `task_description`, `input_files`, `output_files`, `constraints`, `context_summary`).
+When invoking a subagent, state the intent and responsibility boundary explicitly (`agent_id`, `task_description`, `input_files`, `output_files`, `constraints`, `context_summary`).
 
-## MCP 등록 (`.grok/config.toml`)
+## MCP registration (`.grok/config.toml`)
 
-- 본 하네스가 emit 한 `.grok/config.toml.example` 를 `.grok/config.toml` 로 `cp` 후 사용.
-- 절대 경로 보정 필수:
+- Copy the `.grok/config.toml.example` emitted by this harness to `.grok/config.toml` and use that.
+- Absolute paths must be corrected:
   - `PYTHONPATH = "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source"`
   - `STANDARD_AI_WORKFLOW_ROOT = "/ABSOLUTE/PATH/TO/<project_root>"`
-- `--enable-mcp` 시 `[mcp_servers.standardAiWorkflowReadOnly]` 블록이 자동 emit.
-- `--mcp-bridge jsonrpc-bridge|stdio-sdk` 로 transport 선택. 기본값은 `jsonrpc-bridge` (안정).
+- With `--enable-mcp`, the `[mcp_servers.standardAiWorkflowReadOnly]` block is emitted automatically.
+- Select the transport with `--mcp-bridge jsonrpc-bridge|stdio-sdk`. The default is `jsonrpc-bridge` (stable).
 
 ### Compatibility auto-import
 
-Grok Build 는 다음 호환 파일을 자동 로드 (config > claude > cursor > mcp 우선순위).
+Grok Build auto-loads these compatibility files (priority: config > claude > cursor > mcp).
 
 | Source | Format | Location |
 |---|---|---|
@@ -1818,13 +1819,13 @@ Grok Build 는 다음 호환 파일을 자동 로드 (config > claude > cursor >
 | `.cursor/mcp.json` | Cursor format | `~/.cursor/mcp.json`, `<project>/.cursor/mcp.json` |
 | `.mcp.json` | MCP standard | Project root |
 
-→ 기존 workflow MCP 등록이 Claude / Cursor / 표준 MCP 소스에 있으면 자동 import. **단, 동일 alias 의 `[mcp_servers]` 가 여러 소스에 있으면 config.toml 이 우선** 이므로 의도치 않은 override 가능.
+→ An existing workflow MCP registration in Claude / Cursor / standard MCP sources is imported automatically. **But when the same `[mcp_servers]` alias appears in several sources, config.toml wins**, so an unintended override is possible.
 
 ## Memory (opt-in)
 
-- `~/.grok/memory/` 는 `--experimental-memory` 또는 `GROK_MEMORY=1` 로 opt-in.
-- opt-in 없이 memory 디렉터리를 신뢰하지 않는다.
-- `[memory]` 설정: `enabled`, `[memory.session] save_on_end`, `[memory.search] max_results`, `[memory.initial_injection] min_score`.
+- `~/.grok/memory/` is opt-in via `--experimental-memory` or `GROK_MEMORY=1`.
+- Do not trust the memory directory without that opt-in.
+- `[memory]` settings: `enabled`, `[memory.session] save_on_end`, `[memory.search] max_results`, `[memory.initial_injection] min_score`.
 
 ## Language and context principles
 
@@ -1849,11 +1850,11 @@ Grok Build 는 다음 호환 파일을 자동 로드 (config > claude > cursor >
 - Backlog location: `{context['backlog_dir']}`
 - Session handoff: `{context['session_doc_path']}`
 
-## Grok Build 전용 메모
+## Grok Build notes
 
-- Grok Build 는 `AGENTS.md` 와 `GROK.md` 모두를 root 진입점으로 자동 read. 정책 충돌 시 `GROK.md` 가 우선하되, 두 문서가 같은 사실을 가리키는 방향으로 동기화.
-- `.grok/config.toml.example` 는 사용자 환경 설정(`~/.grok/config.toml` 또는 프로젝트 로컬 `.grok/config.toml`)에 복사해 사용. 절대 경로 보정 필수.
-- subagent / custom agent 호출 시 위험한 외부 작업(예: 데이터베이스 마이그레이션, 프로덕션 배포, 시크릿 회전)은 사용자 명시적 승인을 먼저 받는다.
+- Grok Build auto-reads both `AGENTS.md` and `GROK.md` as root entry points. On policy conflict `GROK.md` wins, but keep the two pointing at the same facts.
+- Copy `.grok/config.toml.example` into your environment configuration (`~/.grok/config.toml`, or the project-local `.grok/config.toml`). Absolute paths must be corrected.
+- Before a subagent or custom agent performs a dangerous external action (database migration, production deploy, secret rotation), get explicit user approval first.
 - {harness_note}
 """
 
@@ -1863,49 +1864,49 @@ def render_grok_build_skill(args: argparse.Namespace, context: dict[str, object]
     _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""---
 name: standard-ai-workflow
-description: Standard AI Workflow 진입 skill — 세션 시작, 백로그 갱신, 문서 동기화 절차를 한국어 baseline 으로 안내. Grok Build TUI picker 에서 `/standard-ai-workflow` 로 호출.
+description: Standard AI Workflow entry skill — walks through session start, backlog update, and document sync on the Korean baseline. Invoke it as `/standard-ai-workflow` from the Grok Build TUI picker.
 ---
 
 # Standard AI Workflow Skill (Grok Build)
 
-- **역할**: Grok Build TUI picker 에서 호출되는 workflow 진입 skill. 세션 시작 / 백로그 갱신 / 문서 동기화 절차를 한 번에 안내.
-- **위치**: `.grok/skills/standard-ai-workflow/SKILL.md`
-- **호출**: TUI 에서 `/` 입력 후 `standard-ai-workflow` 검색 → Enter
-- Audience: Grok Build, 저장소 관리자
+- **Role**: the workflow entry skill invoked from the Grok Build TUI picker. Covers session start, backlog update, and document sync in one place.
+- **Location**: `.grok/skills/standard-ai-workflow/SKILL.md`
+- **Invocation**: type `/` in the TUI, search for `standard-ai-workflow`, press Enter
+- Audience: Grok Build, repository maintainer
 - Last updated: {args.today}
 
-## 1. 언제 이 skill 을 쓰는가
+## 1. When to use this skill
 
-- 새 세션을 시작하면서 workflow baseline (`state.json` + `session_handoff.md` + `work_backlog.md`) 을 복원할 때
-- 오늘 날짜 backlog 에 새 task 를 등록하거나 기존 task 상태를 갱신할 때
-- 코드 / 문서 변경 후 영향 문서 동기화 (advisory) 가 필요할 때
+- When starting a new session and restoring the workflow baseline (`state.json` + `session_handoff.md` + `work_backlog.md`)
+- When registering a new task in today's backlog or updating an existing task's status
+- When affected documents need an (advisory) sync after code or document changes
 
-## 2. 사전 확인
+## 2. Preconditions
 
-- 프로젝트 루트에 `AGENTS.md` 와 `GROK.md` 가 모두 존재
-- `ai-workflow/memory/active/` 디렉터리에 `state.json`, `session_handoff.md`, `work_backlog.md` 가 존재
-- `docs/PROJECT_PROFILE.md` 가 실제 저장소 기준으로 채워져 있음
+- Both `AGENTS.md` and `GROK.md` exist at the project root
+- `state.json`, `session_handoff.md`, and `work_backlog.md` exist under `ai-workflow/memory/active/`
+- `docs/PROJECT_PROFILE.md` is filled in against the real repository
 
-## 3. 실행 절차
+## 3. Procedure
 
 ### 3.1 Session start (baseline restore)
 
 ```bash
-# workflow state docs 우선 read
+# read the workflow state docs first
 cat ai-workflow/memory/active/<branch>/state.json
 cat ai-workflow/memory/active/<branch>/session_handoff.md
 cat ai-workflow/memory/active/<branch>/work_backlog.md
 ls ai-workflow/memory/active/<branch>/backlog/
 cat docs/PROJECT_PROFILE.md
-cat ai-workflow/wiki/index.md   # R4 anchor 기반
+cat ai-workflow/wiki/index.md   # R4 anchor based
 ```
 
-세션 시작 시 *반드시* 위 5개 문서를 read 후 작업 개시. 사용자에게 한국어 baseline + 다음 작업 후보 + 권장 다음 행동 보고.
+At session start, *always* read those five documents before beginning work. Report to the user, on the Korean baseline: the next-task candidates and the recommended next action.
 
 ### 3.2 Backlog update
 
 ```bash
-# 오늘 날짜 backlog 파일에 task 추가/갱신
+# add or update a task in today's backlog file
 cat > ai-workflow/memory/active/<branch>/backlog/{args.today}.md <<EOF
 # Backlog Index — {args.today}
 
@@ -1924,7 +1925,7 @@ EOF
 
 ### 3.3 Document sync (advisory)
 
-코드 / 문서 변경 후 영향 문서 자동 식별:
+Identify affected documents automatically after code/document changes:
 
 ```bash
 python3 ai-workflow/mcp_servers/check-doc-links/check_doc_links.py
@@ -1932,14 +1933,14 @@ python3 ai-workflow/mcp_servers/check-doc-metadata/check_doc_metadata.py
 python3 ai-workflow/mcp_servers/suggest-impacted-docs/suggest_impacted_docs.py
 ```
 
-(단, 본 skill 은 *advisory* — 자동 수정 안 함. 결과를 사용자가 검토 후 수동 반영.)
+(This skill is *advisory* — it never edits automatically. The user reviews the result and applies it.)
 
-## 4. 세션 종료 절차
+## 4. Session close procedure
 
 {_STANDARD_CLOSE_ORDER}
 
 ```bash
-# 1. memory 갱신 — handoff/backlog 를 도구로 갱신한 뒤 state.json 재생성
+# 1. update memory — update handoff/backlog with the tools, then regenerate state.json
 {find_memory_command(load_standard_rules(), "Regenerate state.json")}
 
 # 2. commit
@@ -1952,12 +1953,12 @@ git push
 
 {render_memory_update_section()}
 
-## 5. 다음에 읽을 문서
+## 5. Read next
 
-- 진입점: `GROK.md` (root)
-- 공통 진입점: `AGENTS.md` (root)
-- 표준 문서: `ai-workflow/core/global_workflow_standard.md`
-- 적용 가이드: `workflow-source/harnesses/grok-build/apply_guide.md`
+- Entry point: `GROK.md` (root)
+- Shared entry point: `AGENTS.md` (root)
+- Standard: `ai-workflow/core/global_workflow_standard.md`
+- Apply guide: `workflow-source/harnesses/grok-build/apply_guide.md`
 """
 
 
@@ -1982,23 +1983,23 @@ def render_grok_build_config_example(args: argparse.Namespace, context: dict[str
     mcp_alt_block = render_mcp_toml_block("stdio-sdk", placeholder_env, commented=True)
     return f'''# Grok Build config (v0.15.16+, standard-ai-workflow overlay)
 #
-# 사용: 본 파일을 `.grok/config.toml` 로 cp 후 절대 경로 보정.
+# Usage: cp this file to `.grok/config.toml`, then correct the absolute paths.
 #
 #   cp .grok/config.toml.example .grok/config.toml
 #   $EDITOR .grok/config.toml
 #
-# Grok Build 는 cwd > repo > user 순으로 .grok/config.toml 을 자동 load.
-# Claude (`.claude.json`) / Cursor (`.cursor/mcp.json`) / `.mcp.json` 도
-# 자동 import (config.toml > claude > cursor > mcp 우선순위).
+# Grok Build auto-loads .grok/config.toml in the order cwd > repo > user.
+# Claude (`.claude.json`) / Cursor (`.cursor/mcp.json`) / `.mcp.json` are also
+# imported automatically (priority: config.toml > claude > cursor > mcp).
 
 # ---------------------------------------------------------------------------
-# 모델 (Grok Build default)
+# Model (Grok Build default)
 # ---------------------------------------------------------------------------
 [models]
 default = "grok-build"
 web_search = "grok-4.20-multi-agent"
 
-# subagent 는 더 가벼운 모델로 분리 (예: explore / plan)
+# split subagents onto a lighter model (e.g. explore / plan)
 # [subagents]
 # enabled = true
 #
@@ -2011,12 +2012,12 @@ web_search = "grok-4.20-multi-agent"
 # plan = "grok-4.20-multi-agent"
 
 # ---------------------------------------------------------------------------
-# 표준 AI 워크플로우 MCP (read-only)
+# Standard AI workflow MCP (read-only)
 # ---------------------------------------------------------------------------
 {mcp_block}
-# stdio-sdk variant (실험적): `mcp` SDK 가 설치된 python3 에서만 뜬다.
-# 시스템 python3 에 SDK 가 없으면 `Connection closed` 로 죽는다 —
-# core/mcp_installation_by_harness.md §1.1 의 실측표 참조.
+# stdio-sdk variant (experimental): only comes up on a python3 that has the `mcp` SDK.
+# Without the SDK on the system python3 it dies with `Connection closed` —
+# see the measured table in core/mcp_installation_by_harness.md §1.1.
 {mcp_alt_block}
 # ---------------------------------------------------------------------------
 # Skills (project-local + user)
@@ -2047,16 +2048,16 @@ paths = [".grok/skills"]
 # min_score = 0.0
 
 # ---------------------------------------------------------------------------
-# Permissions (default: ask; team 표준은 always_allow_all_sessions)
+# Permissions (default: ask; the team standard is always_allow_all_sessions)
 # ---------------------------------------------------------------------------
 # [permission]
 # default_action = "ask"
 
 # ---------------------------------------------------------------------------
-# 호환성 자동 import (선택)
+# Compatibility auto-import (optional)
 # ---------------------------------------------------------------------------
-# 기존 workflow MCP 가 Claude / Cursor / MCP 표준 소스에 있으면 자동 import.
-# 동일 alias 의 [mcp_servers] 가 여러 소스에 있으면 config.toml 이 우선.
+# An existing workflow MCP in Claude / Cursor / standard MCP sources is imported automatically.
+# When the same [mcp_servers] alias appears in several sources, config.toml wins.
 [compat.claude]
 mcps = true
 
@@ -2067,7 +2068,7 @@ mcps = true
 sessions = true
 
 # ---------------------------------------------------------------------------
-# Notifications (선택)
+# Notifications (optional)
 # ---------------------------------------------------------------------------
 # [ui.notifications]
 # method = "auto"
@@ -2183,73 +2184,73 @@ def render_codewhale_skill(args: argparse.Namespace, context: dict[str, object])
     _STANDARD_CLOSE_ORDER = load_standard_rules().close_order
     return f"""# CodeWhale Standard AI Workflow Skill
 
-- skill 이름: `codewhale-workflow`
-- 목적: CodeWhale 환경에서 표준 AI 워크플로우를 운영하기 위한 additive rule 을 제공한다.
-- Scope: 세션 시작 순서, 한국어 보고, 백로그/handoff 관리, 프로젝트 프로파일 기반 탐색
-- 대상: CodeWhale agent, 저장소 관리자
+- Skill name: `codewhale-workflow`
+- Purpose: provide the additive rules for running the standard AI workflow inside CodeWhale.
+- Scope: session start order, Korean reporting, backlog/handoff management, project-profile-driven exploration
+- Audience: CodeWhale agent, repository maintainer
 - Status: draft
 - Last updated: {args.today}
 - Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
 
 ## Important — relationship to the Constitution
 
-CodeWhale 의 Constitution (Article I-VIII) 이 이미 아래 규칙을 내장하고 있으므로,
-본 skill 은 이를 **반복하지 않는다**:
+CodeWhale's Constitution (Articles I–VIII) already embeds the rules below, so this skill
+**does not repeat them**:
 
-- 검증 없이 완료 선언 금지 → Constitution Article II (Verification)
-- 병렬 실행 / 독립 작업 fan-out → Constitution Article III (Momentum)
-- 컨텍스트 관리 / plan 패턴 → Constitution Regulations
-- 서브 에이전트 위임 전략 → Constitution Regulations (Orchestration)
-- 실행 규율 (도구 사용, scope discipline) → Constitution Statutes
+- Never declare done without verification → Constitution Article II (Verification)
+- Parallel execution / independent-work fan-out → Constitution Article III (Momentum)
+- Context management / plan pattern → Constitution Regulations
+- Sub-agent delegation strategy → Constitution Regulations (Orchestration)
+- Execution discipline (tool usage, scope discipline) → Constitution Statutes
 
-본 skill 은 Constitution 이 제공하지 않는 **워크플로우 고유 가치**만 주입한다.
+This skill injects only the **workflow-specific value** the Constitution does not provide.
 
-## 1. 세션 시작 순서
+## 1. Session start order
 
-CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
+At CodeWhale session start, read the workflow state docs in this order:
 
 1. `ai-workflow/memory/active/<branch>/state.json` — the current baseline
 2. `ai-workflow/memory/active/<branch>/sessions` — the previous session's handoff
 3. `ai-workflow/memory/active/<branch>/backlog` — the work backlog index
-4. `docs/PROJECT_PROFILE.md` — 프로젝트 특화 규칙
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — 프로젝트 목적
+4. `docs/PROJECT_PROFILE.md` — project-specific rules
+5. (if present) `ai-workflow/memory/active/PURPOSE.md` — the project's purpose
 
-## 2. 언어와 보고 원칙
+## 2. Language and reporting
 
-- 사용자에게 직접 보여지는 작업 보고, 상태 요약, 문서 초안, handoff, backlog 갱신 문안은 **한국어**로 작성한다.
-- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 원문 그대로 유지한다.
-- Constitution Statutes 의 언어 규칙(사용자 메시지 언어 따라가기)을 따르되, 사용자 노출 산출물 언어는 본 항목이 우선한다.
+- Write user-facing work reports, status summaries, document drafts, handoff, and backlog updates in **Korean**.
+- Keep code, commands, file paths, configuration keys, and external product names verbatim.
+- Follow the Constitution Statutes' language rule (match the user's message language), but this section wins for user-facing deliverables.
 
-## 3. 작업 상태값
+## 3. Task status values
 
-| 상태 | 의미 |
+| Status | Meaning |
 | --- | --- |
-| `planned` | 시작 준비는 됐지만 본격 수행 전 |
-| `in_progress` | 현재 세션 또는 다음 세션에서 이어서 처리 중 |
-| `blocked` | 외부 의존성 또는 결정 대기 때문에 진행 불가 |
-| `done` | 완료 기준과 검증 근거를 갖춘 상태 |
+| `planned` | Ready to start, not yet underway |
+| `in_progress` | Being worked on in this session or continuing into the next |
+| `blocked` | Cannot proceed — external dependency or pending decision |
+| `done` | Meets its completion criteria and has verification evidence |
 
-## 4. 메모리 계층
+## 4. Memory layers
 
-- `ai-workflow/memory/active/` — workflow state docs (세션 복원, backlog 상태, handoff 의 source-of-truth)
-- `PROJECT_PROFILE.md` 의 `docs/...` 경로 — 실제 프로젝트 문서 위치
-- `ai-workflow/` 는 세션 복원과 workflow 상태 관리용 **메타 레이어**. 일반 프로젝트 코드/문서 탐색 범위에서 제외.
+- `ai-workflow/memory/active/` — workflow state docs (source of truth for session restore, backlog status, handoff)
+- The `docs/...` paths in `PROJECT_PROFILE.md` — where the real project documents live
+- `ai-workflow/` is a **meta layer** for session restore and workflow state. Exclude it from ordinary project code/document exploration.
 
-## 5. 세션 종료 원칙
+## 5. Session close
 
 {_STANDARD_CLOSE_ORDER}
 
-1. **memory 갱신**: `state.json`, `session_handoff.md`, `work_backlog.md` 갱신
-2. **최종 검증**: `workflow-linter` 실행 (문서 정합성)
-3. **다음 세션 시작 포인트** + **종료 요약** 을 handoff 에 기재
-4. **commit + push**: memory 갱신 포함 단일 commit
+1. **Update memory**: update `state.json`, `session_handoff.md`, `work_backlog.md`
+2. **Final verification**: run `workflow-linter` (document consistency)
+3. Write the **next-session starting point** and a **close summary** into the handoff
+4. **commit + push**: a single commit that includes the memory update
 
-## 6. 백로그 관리
+## 6. Backlog management
 
-- 각 작업 항목 최소 필드: 작업명, 상태, 우선순위, 요청일, 완료일, 담당, 호스트명, 호스트 IP, 영향 문서, 작업 내용, 진행 현황, 완료 기준, 작업 결과, 다음 세션 시작 포인트, 남은 리스크, 후속 작업
-- 날짜별 backlog: `ai-workflow/memory/active/<branch>/backlog/YYYY-MM-DD.md`
+- Minimum fields per work item: name, status, priority, requested date, completed date, owner, host name, host IP, affected documents, description, progress, completion criteria, result, next-session starting point, remaining risks, follow-up
+- Dated backlog: `ai-workflow/memory/active/<branch>/backlog/YYYY-MM-DD.md`
 
-## 7. 기본 검증 명령
+## 7. Default verification commands
 
 ```bash
 # smoke check
@@ -2262,11 +2263,11 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 {context.get('quick_test_command', 'echo TODO: quick test command')}
 ```
 
-## 8. CodeWhale 특화 운영
+## 8. CodeWhale-specific operation
 
-- CodeWhale 의 `agent` 도구 (explore/plan/review/implementer/verifier) 는 workflow agent 토폴로지의 worker 분화와 정렬된다.
-- 메인 오케스트레이터(parent) 는 조정/통합/사용자 보고에 집중하고, 대량 탐색/구현/검증은 서브 에이전트로 위임한다.
-- Constitution Article VII (Domain Context) 에 따라, 본 workflow 는 CodeWhale 의 운영 컨텍스트로 동작한다.
+- CodeWhale's `agent` tool (explore/plan/review/implementer/verifier) lines up with the worker split in the workflow agent topology.
+- The main orchestrator (parent) stays on coordination, integration, and user reporting, and delegates bulk exploration, implementation, and verification to sub-agents.
+- Per Constitution Article VII (Domain Context), this workflow acts as CodeWhale's operating context.
 
 {render_memory_update_section()}
 
@@ -2274,7 +2275,7 @@ CodeWhale 세션 시작 시 아래 순서로 workflow state docs 를 읽는다:
 
 - `ai-workflow/README.md`
 - `harnesses/codewhale/apply_guide.md`
-- `workflow-source/core/workflow_harness_distribution.md` (CodeWhale 섹션)
+- `workflow-source/core/workflow_harness_distribution.md` (CodeWhale section)
 """
 
 

@@ -344,8 +344,13 @@ def test_entrypoint_paths_match_generated_layout() -> None:
         entry = target / "CLAUDE.md"
         text = entry.read_text(encoding="utf-8")
         # 문서에 적힌 memory 경로를 모아 실제 존재를 확인한다.
-        # `(있으면)` 으로 표기된 줄은 **선택** 경로다 — 부재가 정상이므로 제외한다.
-        lines = [ln for ln in text.splitlines() if "(있으면)" not in ln]
+        # 선택 경로 표기 줄은 제외한다 — 부재가 정상이기 때문이다.
+        # 2026-08-14: 진입점 문안이 영어로 옮겨지며 표기가 `(if present)` 로 바뀌었다.
+        # 두 표기를 **둘 다** 인정한다 — 아직 한국어인 진입점(소비자 저장소의 기존
+        # 산출물 포함)이 남아 있고, 한쪽만 보면 그 문서에서 위양성이 난다.
+        _OPTIONAL_MARKERS = ("(있으면)", "(if present)")
+        lines = [ln for ln in text.splitlines()
+                 if not any(m in ln for m in _OPTIONAL_MARKERS)]
         referenced = sorted(set(re.findall(
             r"ai-workflow/memory/active/[A-Za-z0-9_<>./-]+", "\n".join(lines))))
         missing: list[str] = []

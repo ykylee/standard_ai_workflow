@@ -14,6 +14,7 @@ Reference:
 
 from __future__ import annotations
 
+import copy
 import json
 import subprocess
 import sys
@@ -46,6 +47,30 @@ def _run_score_tool(args: list[str] = None) -> dict:
     return {}
 
 
+_SCORE_CACHE: dict | None = None
+
+
+def _score_once() -> dict:
+    """**같은 저장소의 같은 점수**를 여러 case 가 볼 때 쓰는 공유 실행.
+
+    점수 도구는 1회 6.4s 인데, 이 검사의 7개 case 가 전부 *동일한 인자*로 부르고
+    결과 dict 를 들여다보기만 했다 — 안 바뀐 저장소를 9번 다시 계산했고 그것이
+    이 검사의 68s 중 58s 였다 (2026-08-14 실측. 전량 병렬 구간의 임계경로가
+    이 검사 하나였다).
+
+    **범위를 줄이는 것이 아니다.** case 는 그대로 전부 돌고, 같은 산출물을 한 번만
+    만들어 나눠 본다. 원본을 넘기지 않고 **deep copy** 를 준다 — 앞 case 가 dict 를
+    건드리면 뒤 case 가 조용히 다른 것을 보게 된다.
+
+    `test_score_idempotent` 는 여기를 쓰지 않는다. 그 case 가 재는 것이 *두 번 실행이
+    같은 값을 내는가* 라서, 캐시를 쓰면 자기 자신과 비교하는 동어반복이 된다.
+    """
+    global _SCORE_CACHE
+    if _SCORE_CACHE is None:
+        _SCORE_CACHE = _run_score_tool()
+    return copy.deepcopy(_SCORE_CACHE)
+
+
 # --- Test 1: tool importable + executable ---
 
 
@@ -56,7 +81,7 @@ def test_tool_importable() -> None:
 
 def test_tool_runs() -> None:
     """score tool 의 --json 실행 + valid JSON 반환."""
-    score = _run_score_tool()
+    score = _score_once()
     assert isinstance(score, dict)
 
 
@@ -65,7 +90,7 @@ def test_tool_runs() -> None:
 
 def test_score_structure() -> None:
     """score dict 가 6 dim + overall + grade + timestamp 포함."""
-    score = _run_score_tool()
+    score = _score_once()
     assert "timestamp" in score
     assert "overall" in score
     assert "grade" in score
@@ -80,7 +105,7 @@ def test_score_structure() -> None:
 
 def test_score_range() -> None:
     """6 dim score 가 0.0 ~ 5.0 범위."""
-    score = _run_score_tool()
+    score = _score_once()
     for dim, s in score["scores"].items():
         # None = 측정 불가 (분모 0). 0.0 으로 세지 않는 것이 계약이므로 범위 검사 제외.
         if s is None:
@@ -93,13 +118,13 @@ def test_score_range() -> None:
 
 def test_grade_enum() -> None:
     """grade 가 A/B/C/D/F enum."""
-    score = _run_score_tool()
+    score = _score_once()
     assert score["grade"] in ("A", "B", "C", "D", "F")
 
 
 def test_grade_matches_score() -> None:
     """grade 가 overall score 와 일치."""
-    score = _run_score_tool()
+    score = _score_once()
     overall = score["overall"]
     if overall >= 4.5:
         expected = "A"
@@ -119,7 +144,7 @@ def test_grade_matches_score() -> None:
 
 def test_details_consistency() -> None:
     """details 의 total/active/ratio 가 score 와 일치."""
-    score = _run_score_tool()
+    score = _score_once()
     for dim in score["scores"]:
         detail = score["details"][dim]
         if score["scores"][dim] is None:
@@ -138,7 +163,7 @@ def test_details_consistency() -> None:
 
 def test_operational_smoke_passes() -> None:
     """operational dim 의 11 smoke test 가 모두 PASS."""
-    score = _run_score_tool()
+    score = _score_once()
     op = score["details"]["operational"]
     assert op["total"] >= 5, f"too few smoke tests: {op['total']}"
     # operational score 가 4.0 이상 = 대부분 통과

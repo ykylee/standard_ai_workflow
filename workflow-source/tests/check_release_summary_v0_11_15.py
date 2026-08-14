@@ -13,6 +13,7 @@ import json
 import re
 import sys
 from contextlib import redirect_stdout
+from unittest import mock
 from pathlib import Path
 
 # 병렬 전량(--jobs auto)에서 53s 실측 (2026-08-11) — 기본 60s 상한과 여유가
@@ -43,6 +44,8 @@ def test_release_summary_v0_11_15() -> None:
     args = argparse.Namespace()
     result = _impl(args)
     assert "summary" in result, "cmd_release_status 결과에 'summary' field 부재"
+    # 이 호출이 **이 검사에서 유일한 실제 Layer 2 실행**이다 (아래 case 5 가 재사용).
+    _real_local_mypy = result.get("local_mypy")
     # 5-field format verify (jq-friendly: `cmd_release_status --json | jq -r .summary`)
     summary = result["summary"]
     for token in ("ci_mypy=", "local_mypy=", "ready=", "next=", "unreleased="):
@@ -122,19 +125,31 @@ def test_release_summary_v0_11_15() -> None:
     print("  case 4b (_resolve_cross_verify_verdict 매트릭스 7행 주입 검증): PASS")
 
     # case 5: cmd_release_status dispatcher 호출 — text mode + JSON mode 둘 다 summary 포함
+    #
+    # **Layer 2(mypy) 는 case 2 가 실제로 돌린 결과를 재사용한다.** 이 case 가 재는 것은
+    # *dispatcher 출력에 summary 가 실리는가* 이지 mypy 판정이 아닌데, `cmd_release_status`
+    # 는 호출마다 `mypy --no-incremental` 을 새로 돌린다 (1회 ~5.1s). 여기서만 2회 더
+    # 돌아 이 검사의 32s 중 15.3s 가 mypy 3회였다 (2026-08-14 cProfile 실측).
+    #
+    # **가짜 값을 넣는 것이 아니다** — case 2 가 방금 실제로 얻은 그 판정을 그대로 준다.
+    # 실행 계약(`--no-incremental`)은 손대지 않는다: 그건 CI·release gate·v1.0.0 Gate 3 이
+    # 같은 invocation 을 쓰도록 `check_yaml_surfaces` / `check_mypy_strict_ci_v0_11_11` 이
+    # 고정하고 있는 값이라, 여기서 바꾸면 게이트 간 동일성이 깨진다.
+    from workflow_kit import release_status as _rs
     from workflow_kit.workflow_kit_cli import cmd_release_status as _dispatch
-    # text mode
-    buf2 = io.StringIO()
-    with redirect_stdout(buf2):
-        rc_text = _dispatch([])
-    text_output = buf2.getvalue()
-    assert "summary:" in text_output, "text mode summary 부재"
-    assert rc_text == 0, f"text mode rc != 0: {rc_text}"
-    # JSON mode
-    buf3 = io.StringIO()
-    with redirect_stdout(buf3):
-        rc_json = _dispatch(["--json"])
-    json_output = buf3.getvalue()
+    with mock.patch.object(_rs, "_check_local_mypy", lambda: dict(_real_local_mypy or {})):
+        # text mode
+        buf2 = io.StringIO()
+        with redirect_stdout(buf2):
+            rc_text = _dispatch([])
+        text_output = buf2.getvalue()
+        assert "summary:" in text_output, "text mode summary 부재"
+        assert rc_text == 0, f"text mode rc != 0: {rc_text}"
+        # JSON mode
+        buf3 = io.StringIO()
+        with redirect_stdout(buf3):
+            rc_json = _dispatch(["--json"])
+        json_output = buf3.getvalue()
     parsed_json = json.loads(json_output)
     assert "summary" in parsed_json, "JSON mode summary 부재"
     assert rc_json == 0, f"JSON mode rc != 0: {rc_json}"

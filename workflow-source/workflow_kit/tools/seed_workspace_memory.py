@@ -170,7 +170,8 @@ def task_body(*, axis: str, out_of_scope: str | None) -> list[str]:
 def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
          out_of_scope: str | None, today: str, apply: bool,
          force: bool) -> dict:
-    branch_dir = memory_root / "active" / branch
+    active_dir = memory_root / "active"
+    branch_dir = active_dir / branch
     tasks_dir = branch_dir / "backlog" / "tasks"
     handoff_path = branch_dir / HANDOFF_NAME
     backlog_path = branch_dir / "backlog" / f"{today}.md"
@@ -243,7 +244,12 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     # `check_branch_context_matrix` 가 red 다 (실측 2026-08-13, 두 번). 그래서
     # **생성기를 호출해** 마무리한다 — 여전히 생성물이고, 다만 seed 가 그 호출까지
     # 책임진다. 실패는 조용히 넘기지 않는다 (warning 이 아니라 error 로 올린다).
-    state_path = state_path_in_active(branch_dir.parent, branch)
+    # `active_dir` 를 넘긴다 — `branch_dir.parent` 가 아니다. 슬래시 브랜치에서
+    # `branch_dir.parent` 는 `active/<앞 조각>` 이라, 거기에 브랜치 **전체**를 다시
+    # 이어 붙이면 `active/perf/perf/heavy-check-runtime/` 이 된다 (2026-08-14 실측 —
+    # 이 코드의 첫 슬래시 브랜치 사용에서 바로 나왔다). 슬래시 없는 브랜치에서만
+    # 우연히 맞던 조립이다.
+    state_path = state_path_in_active(active_dir, branch)
     err = _generate_state(state_path=state_path, branch_dir=branch_dir)
     if err:
         result["errors"].append(f"state.json 생성 실패: {err}")

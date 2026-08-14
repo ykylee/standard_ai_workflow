@@ -106,10 +106,18 @@ Close a session in the order **update memory → commit → push**. Do not split
 
 ## 프로젝트 실행 기본값
 
-- **install**: `python3 -m pip install -r requirements.txt -r requirements-dev.txt && python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"`
-- **run**: `PYTHONPATH=workflow-source python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json`
-- **quick test**: `python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
-- **isolated test**: `python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>` (격리 venv 에서 전량)
+**개발 환경은 저장소 `.venv` 다.** 시스템 python3(homebrew)는 PEP 668
+(`externally-managed-environment`)로 pip install 을 거부하고, 설치가 됐더라도 dev
+의존성(mypy/jsonschema/mcp)이 없어 **전량 검사가 의존성 부재로 무더기 오탐**을 낸다
+(2026-08-14 실측: homebrew python3 로 전량 2축을 돌려 9건 red — 전부 미설치였고 코드
+결함은 0건). 아래 명령은 활성화 없이 그대로 복사해 실행 가능한 형태다.
+기존 `.venv` 가 uv 로 만들어져 pip 이 없으면(`No module named pip`)
+`.venv/bin/python3 -m ensurepip --upgrade` 한 번으로 채운다 (2026-08-14 이 호스트 실측).
+
+- **install**: `python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt -r requirements-dev.txt && .venv/bin/python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"`
+- **run**: `PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json`
+- **quick test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>`
+- **isolated test**: `.venv/bin/python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>` (격리 venv 에서 전량)
 
 > 전량 검사는 **기본이 병렬**이다 (v1.1.7, `--jobs auto`). 345s → 85s 로 줄었다.
 > 재현이 필요하거나 실패를 분리해 보고 싶을 때만 `--jobs 1` 로 순차 실행한다.
@@ -123,7 +131,7 @@ Close a session in the order **update memory → commit → push**. Do not split
 > 다른 runner 가 돌고 있으면 보유자 정보를 찍고 즉시 실패한다 — 동시 실행된 전량의
 > 결과는 PASS 도 FAIL 도 근거가 못 된다. 같은 워킹 트리에서 두 에이전트가 전량을
 > 돌려야 하면 락을 우회(`--no-lock`)하지 말고 **worktree 를 분리**한다.
-- **smoke check**: `python3 workflow-source/tests/check_self_application.py`
+- **smoke check**: `.venv/bin/python3 workflow-source/tests/check_self_application.py`
 
 ### 전량은 게이트지 확인 수단이 아니다 (2026-08-14 실측)
 
@@ -147,7 +155,7 @@ Close a session in the order **update memory → commit → push**. Do not split
 ### SDK 매트릭스는 push 전에 로컬에서 돌린다
 
 ```bash
-PYTHONPATH=workflow-source python3 -m workflow_kit.common.sdk_matrix --run-local
+PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.sdk_matrix --run-local
 ```
 
 `mcp` SDK 를 쓰는 코드를 건드렸으면 **반드시** 이걸 먼저 돌린다. 개발 venv 는
@@ -162,7 +170,7 @@ CI yml 도 거기서 읽는다. venv 는 `.venv-sdk-matrix/` 에 캐시되므로
 ### 브랜치 매트릭스도 push 전에 로컬에서 돌린다
 
 ```bash
-python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
+.venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
 ```
 
 CI 의 `smoke` 는 전량을 **두 브랜치 컨텍스트**로 돌린다 (`native` / `slash`).

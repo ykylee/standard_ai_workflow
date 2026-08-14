@@ -1,0 +1,11 @@
+{
+  "branch": "perf/changed-selection",
+  "archived_at": "2026-08-14",
+  "merge_commit": "58d6fd888f2423b61b9491c74d51687a6d2def16",
+  "task_ids": [
+    "TASK-2026-08-14-perf-changed-selection-001"
+  ],
+  "task_count": 1,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

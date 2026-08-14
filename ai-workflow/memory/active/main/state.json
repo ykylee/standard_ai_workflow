@@ -27,12 +27,13 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**38차 세션 종료 — 무거운 4개 검사의 중복 계산 제거 (TASK-2026-08-13-main-009 done, PR 없이 `perf/heavy-check-runtime` 병합).** **전량 native 벽시계 중앙값 195.5s(n=5) → 154.2s(n=3), −21%** — 분포가 좁아(전 193.1~196.6 / 후 150.9~154.5) 부하 편차로 설명되지 않는다. 원인은 넷 다 같았다: **안 바뀐 대상을 여러 번 다시 계산**. `wiki_score` 58.1→19.4s(점수 도구 6.4s 를 **동일 인자로 9회** → 공유 실행 + deep copy) / 릴리스 계열 3종(`cmd_release_status` 가 호출마다 `mypy --no-incremental` 5.1s → dispatcher 출력 모양만 보는 case 가 앞 case 의 **실측 판정을 재사용**, 가짜 값 아님) summary 32.0→21.1 · auto_bump 29.2→18.9 · status 22.9→12.8. **범위를 줄이지 않았다** — case 목록·판정을 전후 diff 로 대조해 동일. **가장 큰 절감(`--no-incremental` 제거, 5.1s→1s 미만)은 일부러 안 했다**: CI yml · `check_mypy_strict_ci_v0_11_11:74` · `check_yaml_surfaces` fallback · v1.0.0 Gate 3 이 **같은 명령**을 쓰도록 고정한 값이라 로컬만 바꾸면 게이트 동일성이 깨진다. 나머지 4개는 낭비가 아니라고 판정 (서로 다른 probe / config 로딩 실측 / 정숙 구간 필수). **덤: seed 가 슬래시 브랜치에서 `state.json` 을 `active/perf/perf/…` 에 만들고 있었다** — 36차 코드의 첫 슬래시 브랜치 사용에서 바로 나왔고 `check_branch_memory_namespace` case 12 가 지목했다. 수리 완료. **검증**: 전량 2축 255/255 ×2 green. 상세: [세션 기록](../../archived/perf/heavy-check-runtime/sessions/heavy_check_runtime_2026-08-14.md).",
-    "current_axis": "**전량 검사 시간 — 3단계 중 ①이 끝났다 (−21%).** 다음은 ②[TASK-2026-08-14-main-003] **`--changed` 선택 실행** — 검사가 자기 관찰 경로를 파일 안에 선언, **미선언은 항상 실행**, 건너뛴 것은 반드시 출력, 되주입으로 선택이 옳은지 실증. 그 다음 ③[TASK-2026-08-14-main-004] **2축→1축 조건부** — 절감은 가장 크지만(50%) **15연속 CI red 를 만든 바로 그 비대칭**이라 ② 이후에 착수하고, 위험이 절감보다 크면 **하지 않는 것도 결론**이다. **대기 축**: [TASK-2026-08-14-main-005] seed 직후 `sessions/` 빈 디렉터리로 layout 검사 red (36차의 '한 벌이면 green' 은 `state.json` 까지만 참이었다) / 정숙 구간 `no_repo_write` 39s — 사본 검증으로 옮기려면 '사본을 접으면 외부 증인이 필요하다' 를 먼저 판단 / [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(현재 5, 이번 수리와 **상충 없었다** — mypy 실행 위치·플래그를 안 바꿨다) / macOS PEP 668 / cross-host federation / darwin mavis e2e.",
-    "current_focus": "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
+    "current_baseline": "**39차 세션 종료 — `--changed` 선택 실행 (TASK-2026-08-14-main-003 done, `perf/changed-selection` 병합).** 이 기능의 실패 양식은 느려짐이 아니라 **조용히 안 도는 검사**라, 계약 전부를 그쪽을 막는 방향으로 기울였다: 미선언=항상 실행 / 자기 파일 변경시 무조건 실행 / `WATCHES` 원소가 하나라도 리터럴이 아니면 미선언 취급 / parse 실패도 실행 / **건너뛴 것은 이름과 사유를 전부 출력** / 변경 0건이면 \"통과가 아니라 잴 것이 없음\" / 매 출력에 \"게이트가 아니다\". `check_changed_selection` **9 cases 로 양방향 고정** (관련 변경을 잡는가 + 무관한 변경을 건너뛰는가 — 한 방향만 재면 '아무것도 안 잡는' 구현이 통과한다). 되주입 2종 실증. 무거운 8개 중 **7개만** 선언했고 `check_no_repo_write` 는 일부러 미선언(감시 표본 13종 → 관찰 범위가 사실상 저장소 전체). **실이득**: 메모리 문서 1건 편집 시 실행 250/건너뜀 6, 벽시계 **125.9s (전량 154.2s 대비 −18%)**. 부수: 검사 1개 추가로 선언된 개수 3곳이 255→256 어긋나 red — 규약이 작동한 것이고 실측 후 갱신. **검증**: 전량 2축 **256/256 ×2 green**. 상세: [세션 기록](../../archived/perf/changed-selection/sessions/changed_selection_2026-08-14.md).",
+    "current_axis": "**문서 개편 — AI 가 읽는 문서를 영어로, 사람이 볼 것만 한국어로 (소유자 지시 2026-08-14).** 실측 근거: 한글은 문자의 17~27%인데 **토큰의 45~62%** 이고(같은 뜻 한 문장 한국어 39tok vs 영어 15tok = **2.6배**), 세션 시작마다 읽히는 CLAUDE.md+state.json+handoff 가 약 36K 토큰이다. ①**진입점·SKILL.md 등 AI 가 주로 읽는 문서 영어화** (소유자 지시) — 대상 열거와 생성물/원본 구분이 선행한다 (규칙 블록은 `core/global_workflow_standard.md` 파생이고 `check_standard_single_source` 가 강제한다). ②[TASK-2026-08-14-main-007] handoff 기준선 롤오프 — §1 기준선이 handoff 의 66%(27.5K자)이고 세션마다 단조 증가. ③[TASK-2026-08-14-main-008] task SSOT 구조화 — 오늘 하루에 markdown-as-database 결함 6계열. **검사 시간 축은 ①②가 끝났다**: 무거운 4개 −21% + `--changed` −18%. 남은 ③[TASK-2026-08-14-main-004] 2축→1축은 **15연속 CI red 를 만든 비대칭**이라 위험이 절감보다 크면 안 하는 것도 결론이다. **대기 축**: [main-005] seed 의 `sessions/` gap / [main-006] 아카이브의 살아있는-대상 링크 재작성 / 정숙 구간 `no_repo_write` 39s / [main-004] mypy flake 33 run / macOS PEP 668 / cross-host federation.",
+    "current_focus": "TASK-2026-08-14-main-004 — 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정",
     "in_progress_items": [],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
       "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
       "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
       "TASK-2026-08-13-main-009 — 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%",
@@ -41,20 +42,20 @@
       "TASK-2026-08-13-main-006 — PyPI 발행 정책 검토",
       "TASK-2026-08-13-main-005 — 2nd deprecation cycle 완결 + v1.2.0-beta 발행",
       "TASK-2026-08-13-main-003 — 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략",
-      "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신",
-      "TASK-2026-08-13-main-001 — 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관"
+      "TASK-2026-08-13-main-002 — bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
-    "task_count": 6,
+    "task_count": 8,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
-      "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록"
+      "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
+      "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed"
     ]
   },
   "next_documents": [
@@ -64,6 +65,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/archived/perf/changed-selection/sessions/changed_selection_2026-08-14.md",
     "ai-workflow/memory/archived/perf/heavy-check-runtime/sessions/heavy_check_runtime_2026-08-14.md",
     "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
     "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",

@@ -49,9 +49,9 @@
   - 상세: [5차 세션 기록](./sessions/darwin_verify_and_harness_unification_2026-08-11.md).
 
 - 그 이전 기준선: **2026-08-11 backlog 16건 전부 종결** (4차 세션 — TASK-014~016). **기술보고서 논문 양식 문서** 완성 (`docs/reports/` 계획 md + 보고서 html, 사후 검토 4회전: 수치 날조 정정 → 어휘 정리 → 학습회 독립화) + **로컬 병렬 TIMEOUT flake 근본 해소** (`CHECK_TIMEOUT_S` 파일 안 선언 신설, 위험군 6검사 150s, 전량 2축 ×2회 TIMEOUT 0) + **watcher ready handshake** (CI flake 수정) + 소유자 결정 2건 (TASK-014 누적 표기 미삽입 / branch protection 보류). 상세: [4차 세션 기록](./sessions/tech_report_and_timeout_fix_2026-08-11.md). 그 이전 (저장소 리팩터링 사이클 TASK-001~013, 대형 파일 분할 −3,208줄 + 결함 4건 + 아카이브 + check 통합, smoke 268→249): [리팩터링 세션](./sessions/repo_refactoring_and_defect_fixes_2026-08-11.md). 그 이전 (CI 재현성 회복 + smoke 병렬화, 15연속 red 해소): [3차 세션](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md).
-- 현재 주 작업 축: **PyPI 발행 — 기술 준비 완료, 남은 것은 정책 결정 하나.** v1.2.0 이 일반명 top-level 충돌(차단 사유)을 없앴고, 33차가 공개 부적합 결함 3건(LICENSE 전문 부재 / 버전 체계 모순 / 저자 개인 이메일)까지 닫았다. **다음 단계는 둘뿐**: ①[TASK-2026-08-13-main-008] TestPyPI 리허설 — **소유자 TestPyPI API 토큰만 남았다** (업로드 직전 8종 검증 통과, 정책은 `RELEASE.md §1` 1회 한정 허용으로 열림; 토큰은 세션에 붙여넣지 않는다 — 명령은 검토 문서 §6.1) ②그 후 **PyPI 발행 여부 소유자 결정** (검토 §6-4 — 발행 시 Trusted Publishing(OIDC), 첫 발행은 낮은 위험 버전. 공개는 `stable_guarantee.md` 의 2년 backward compat 을 낯선 소비자에게 구속시킨다). 대기 축: [TASK-2026-08-13-main-004] mypy flake 관찰 — **33 run 연속 green 이 완료 기준**(현재 5, 8.8% 발생률 기준 95% 신뢰 표본) / [TASK-2026-08-12-main-019] macOS PEP 668 (MacBook 전원 시) / cross-host federation (두 번째 호스트 = MacBook 확정, 시점 추후) / darwin mavis e2e / memory_index 3-tuple 추이.
+- 현재 주 작업 축: **배포 채널은 닫혔다 — GitHub Releases 하나로 간다 (2026-08-14 소유자 최종 결정).** PyPI 발행은 **하지 않는다**: 토큰/OIDC 운영 비용을 상시로 지는 대신 얻는 것이 지금 없고, 공개는 `stable_guarantee.md` 의 2년 backward compat 을 낯선 소비자에게 지운다. 기술 준비가 끝나 있어도(v1.2.0 이후) **이 안건을 다시 올리지 않는다** — 정본과 재검토 트리거 3개는 `docs/RELEASE.md` §1 **각주 0** 에 있다. [TASK-2026-08-13-main-008] TestPyPI 리허설은 그 판단의 사전 검증이었으므로 **취소**(업로드 미실행; 실측 8종은 이력 보존 — GitHub Releases 소비자에게도 유효). **남은 대기 축**: [TASK-2026-08-13-main-004] mypy flake 관찰 — **33 run 연속 green 이 완료 기준**(현재 5, 8.8% 발생률 기준 95% 신뢰 표본) / [TASK-2026-08-12-main-019] macOS PEP 668 (MacBook 전원 시) / cross-host federation (두 번째 호스트 = MacBook 확정, 시점 추후) / darwin mavis e2e / memory_index 3-tuple 추이 / [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%).
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
-- 다음 후보 축: **PyPI 발행 (신규 — 기술 제약 0, 정책 소유자 결정 대기)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
+- 다음 후보 축: ~~PyPI 발행~~ → ⛔ **닫힘 (2026-08-14 소유자 최종 결정 = 발행 안 함, `RELEASE.md` §1 각주 0)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
   - **Federation pattern** (4 후보 검토: central ❌ / git ❌ / S3 ❌ / federation ✅)
   - **MCP/CLI dual mode** (operational tool 의 4종 wrapper)
@@ -74,10 +74,12 @@
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
-- TASK-2026-08-13-main-008 TestPyPI 리허설
+-
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-13-main-008 TestPyPI 리허설
+- TASK-2026-08-14-main-002 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록
 - TASK-2026-08-14-main-001 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성
 - TASK-2026-08-14-fix-archive-history-integrity-001 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설
 - TASK-2026-08-13-fix-branch-memory-namespace-guard-001 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설
@@ -86,11 +88,29 @@
 - TASK-2026-08-13-main-006 PyPI 발행 정책 검토
 - TASK-2026-08-13-main-005 2nd deprecation cycle 완결 + v1.2.0-beta 발행
 - TASK-2026-08-13-main-003 플러그인 SessionStart hook 조건부 규칙 주입 — 진입점 규칙 블록 감지 시 생략
-- TASK-2026-08-13-main-002 bootstrap OpenCode MCP 방언이 현행 opencode 에서 거부됨 — command 배열/enabled/environment 로 갱신
-- TASK-2026-08-13-main-001 원본 저장소에서 bump 를 apply 하는 릴리스 검사를 sandbox 로 이관
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
+
+### ⛔ 닫힌 안건 — PyPI 발행 안 함 (2026-08-14, 소유자 최종 결정)
+
+**배포는 이 저장소의 GitHub Releases 하나로 간다.** 토큰·OIDC 운영 비용을 상시로 지는
+대신 얻는 것이 지금 없고, 공개는 되돌릴 수 없는 2년 backward compat 약속을 낯선
+소비자에게 지운다.
+
+**이 안건을 다시 제안하지 않는다.** 기술 준비는 v1.2.0 에서 이미 끝나 있으므로("이제
+올릴 수 있다") 제안이 계속 생길 자리다 — 그래서 결정과 함께 **재검토 트리거 3개**를
+정본에 박아 두었다: [`docs/RELEASE.md` §1 **각주 0**](../../../../docs/RELEASE.md).
+그 트리거(외부 사용자의 실제 요청 / 저장소 밖 배포 사유 / 소유자 지시)가 성립하기
+전에는 열지 않는다.
+
+- [TASK-2026-08-13-main-008] TestPyPI 리허설 → **취소**. 업로드는 실행되지 않았고
+  앞으로도 하지 않는다. 업로드 직전까지의 실측 8종은 **이력으로 보존** — GitHub
+  Releases 소비자에게도 유효한 검증이다(README 렌더링·메타데이터·이름 해석·라이선스
+  동봉·진입점 등).
+- `RELEASE.md` §1 의 **각주 1**(TestPyPI 1회 한정 허용, 2026-08-13)은 **만료**.
+- 검토 문서 2건(`pypi-publication-policy-review` / `cli-distribution-review`)은
+  **종결 표기** 후 근거 자료로만 남는다.
 
 ### 무엇이 끝났나 (2026-08-14, 37차 세션)
 

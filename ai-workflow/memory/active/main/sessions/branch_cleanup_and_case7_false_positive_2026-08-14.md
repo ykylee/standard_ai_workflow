@@ -30,6 +30,14 @@
 > 남는다 (append 아님). 5건을 적었는데 1건만 들어갔고 diff 를 보고 알았다. 여러 줄이
 > 필요하면 값 안에 개행 + `- 완료 기준: ` 접두사를 직접 넣는다.
 
+> **도구 함정 2 — `done` 이 후속 편집에서 되돌아간다.** `--validation-result` 없이
+> `--mode update` 를 한 번 더 부르면 (필드 하나만 고치려는 흔한 동작) 같은 가드가
+> **파일에 이미 적힌 검증 결과를 안 보고** `done` → `in_progress` 로 낮춘다. 판정이
+> *파일 상태*가 아니라 *이번 호출의 입력*으로만 이뤄지기 때문이다. 실제로 이 세션에서
+> 밟았고 — 경고는 출력됐는데 내가 안 읽었다 — `check_self_application` 의
+> `task_status_mismatch` 가 잡았다. **후속 편집에도 `--validation-result` 를 같이
+> 넘기고, 반환된 `warnings` 를 읽는다.**
+
 ## 2. 유령 ID — 완료 기록이 어느 파일과도 연결돼 있지 않았다
 
 handoff §4 와 36차 세션 기록이 `TASK-2026-08-13-fix-archive-history-integrity-001` 을

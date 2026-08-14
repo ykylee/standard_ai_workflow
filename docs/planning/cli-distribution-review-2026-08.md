@@ -4,7 +4,7 @@
 - 범위: 배포 채널 (GitHub Releases / PyPI / VCS 직설치), 설치 도구 (pip / pipx / uv), 패키징 제약
 - 대상 독자: maintainer, 배포 정책 소유자
 - 상태: 검토 완료 — 권고안 제시 (채널 변경은 소유자 결정)
-- 최종 수정일: 2026-08-13
+- 최종 수정일: 2026-08-14
 - 관련 문서: [`../RELEASE.md`](../RELEASE.md), [`../INSTALLATION_AND_USAGE.md`](../INSTALLATION_AND_USAGE.md), `workflow-source/pyproject.toml`
 
 ## 1. 현황 (v1.1.7-beta 기준, 전부 실측)
@@ -52,17 +52,18 @@ entry point + `TOOL_MODULES` + 검사 다수를 건드리는 **별도 마이그�
    `INSTALLATION_AND_USAGE.md` 상단에 uv/pipx 한 줄 설치를 명시하고, 릴리스 노트에
    설치 명령을 싣는다. 격리가 기본이 되므로 §2 의 이름 충돌도 실사용에서 차단된다.
    C 는 부수 경로로 병기 (tag 만으로 설치 가능).
-2. **중기 (소유자 결정): PyPI 는 §2 네임스페이스 정리와 한 묶음으로만 재검토한다.**
-   순서 고정: `tools`/`bootstrap_lib` 의 `workflow_kit.*` 격상 (deprecation cycle)
-   → TestPyPI 검증 (`release-dist` 가 명령을 이미 출력) → 정책 결정 → 발행.
-   이름 스쿼팅 방지 관점에서는 이르게 예약할 가치가 있으나, 예약 자체가 §2 를
-   면제해 주지는 않는다.
+2. ~~**중기 (소유자 결정): PyPI 는 §2 네임스페이스 정리와 한 묶음으로만 재검토한다.**~~
+   → ⛔ **종결 (2026-08-14, 소유자 최종 결정): PyPI 발행 안 함.** 전제였던 §2
+   네임스페이스 정리는 v1.2.0 에서 끝났지만(wheel top-level = `workflow_kit` 하나),
+   **정책 쪽이 닫혔다.** 배포는 GitHub Releases + 위 1번(B: uv/pipx) 로 간다.
+   근거와 재검토 트리거는 [`../RELEASE.md`](../RELEASE.md) §1 **각주 0** 이 정본이다 —
+   그 트리거가 성립하기 전에는 이 안건을 다시 올리지 않는다.
 3. **검증 관행**: 설치 문서에 적는 명령은 적기 전에 실측한다 — 이번 검토에서 wheel
    설치·entry point 는 `check_packaging` 실측으로, uv/pipx 는 동일 메커니즘
    (wheel + venv + scripts) 임을 확인했다. PyPI 경로는 미실측 (열지 않았으므로).
 
 ## 5. 이번에 하지 않은 것
 
-- PyPI/TestPyPI 실발행 (정책 소유자 결정 대기)
+- PyPI/TestPyPI 실발행 — ⛔ 2026-08-14 **하지 않기로 확정** (`RELEASE.md` §1 각주 0)
 - `tools`/`bootstrap_lib` 네임스페이스 격상 (별도 task 후보 — §2)
 - Homebrew/설치 스크립트 (기각)

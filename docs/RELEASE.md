@@ -5,11 +5,12 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.2.0-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.1.8 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-08-13
+- 최종 수정일: 2026-08-14
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
 > **변경 이력**: PyPI/TestPyPI 업로드 정책 폐기 → **GitHub Releases 만** 사용 (v0.5.7 부터).
+> 2026-08-14 소유자 최종 결정으로 **PyPI 발행 안 함이 확정**됐다 (§1 각주 0 — 재검토 트리거 포함).
 > **이유**: 토큰 회전 부담, 외부 공개 단계 미도달, downstream 은 `pip install <wheel>` 로 로컬 검증.
 
 ---
@@ -24,8 +25,8 @@
 | 채널 | 상태 | 비고 |
 |---|---|---|
 | GitHub Releases (wheel + sdist + native plugin ZIP) | ✅ **유일한 공식 채널** | Codex·Claude Code 플러그인 asset 을 함께 attach |
-| TestPyPI | ⚠️ **1회 한정 허용** (리허설 목적) | 2026-08-13 소유자 승인 — 아래 **각주 1** 의 조건 안에서만 |
-| PyPI | ❌ 사용 안 함 | (v0.5.7 부터, 이전부터 보류) — 기술 제약은 v1.2.0 에서 해소됐고 **남은 것은 이 정책 결정뿐**이다: [PyPI 발행 정책 검토](./planning/pypi-publication-policy-review-2026-08.md) |
+| TestPyPI | ❌ 사용 안 함 | 2026-08-14 각주 1 **만료** — 리허설의 목적이던 PyPI 판단이 끝났다 |
+| PyPI | ❌ 사용 안 함 — **결정 완료, 재론하지 않는다** | 2026-08-14 소유자 최종 결정. 아래 **각주 0** 이 근거와 재검토 트리거를 고정한다 |
 | Docker / brew / system pkg | ❌ 해당 없음 | (Python wheel 만 다룸) |
 
 모든 release 는 GitHub Releases 페이지에 wheel + sdist 및 아래 native plugin ZIP이 attach 된 형태다.
@@ -36,7 +37,35 @@
 새 플러그인 지원 하네스는 `workflow_kit.plugin_distribution.PLUGIN_HARNESS_SPECS`에 등록하면 동일한 dist/release 경로에 자동 포함된다.
 release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 들어감.
 
-### 각주 1 — TestPyPI 1회 한정 허용 (2026-08-13 소유자 승인)
+### 각주 0 — PyPI 발행 안 함 (2026-08-14 소유자 최종 결정)
+
+**결정**: PyPI 에 발행하지 않는다. 배포는 이 저장소의 **GitHub Releases 하나**로 간다.
+
+**이 절이 있는 이유는 결정이 반복해서 다시 올라오는 것을 막기 위해서다.** 기술 준비가
+끝나 있으면(v1.2.0 이후가 그렇다) "이제 올릴 수 있다" 는 제안이 계속 생긴다. 아래
+트리거가 성립하지 않는 한, 에이전트도 사람도 **이 결정을 다시 안건으로 올리지 않는다.**
+
+**근거** (검토 문서의 판정을 그대로 씀 — [PyPI 발행 정책 검토](./planning/pypi-publication-policy-review-2026-08.md)):
+
+- **비용이 상시로 든다**: 발행에는 계정·API 토큰(또는 Trusted Publishing OIDC 구성)이
+  필요하고 토큰은 회전 대상이다. 소유자가 그 부담을 지지 않기로 했다.
+- **얻는 것이 지금 없다**: 소비자는 GitHub Releases 의 wheel 로 이미 `pip install` 이
+  된다. 대상 사용자가 저장소를 아는 사람들이라 이름 해석(`pip install <이름>`) 이점이
+  실질적이지 않다.
+- **되돌릴 수 없는 약속이 붙는다**: 공개는 `stable_guarantee.md` 의 2년 backward compat
+  을 **낯선 소비자**에게 지운다. PyPI 는 같은 (이름, 버전) 재업로드가 불가하다.
+
+**재검토 트리거 — 아래 중 하나가 실제로 생겼을 때만 다시 연다** (추측·선제 준비 금지):
+
+1. 저장소를 모르는 외부 사용자가 `pip install standard-ai-workflow` 경로를 **요청**한 경우
+2. 배포가 이 저장소 밖으로 나가야 하는 사유가 생긴 경우 (예: 조직 내부 표준 채택)
+3. 소유자가 명시적으로 재검토를 지시한 경우
+
+**같이 닫힌 것**: TestPyPI 리허설(TASK-2026-08-13-main-008)은 *PyPI 발행 여부를 판단*
+하려는 사전 검증이었다. 판단이 끝났으므로 목적이 사라졌고 **취소**한다. 아래 각주 1 은
+효력을 잃었다 — 이력으로만 남긴다.
+
+### 각주 1 — TestPyPI 1회 한정 허용 (2026-08-13 소유자 승인) — ⛔ **만료됨 (2026-08-14, 각주 0)**
 
 **공식 배포 채널은 여전히 GitHub Releases 하나다.** 이 허용은 채널 추가가 아니라
 *발행 전 검증 1회* 를 여는 것이다. 범위를 좁게 적어 둔다 — 넓게 읽히면 정책이
@@ -53,7 +82,7 @@ release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 
   1.2.0 은 TestPyPI 에서 소각되며, 재리허설이 필요하면 다음 번호를 쓴다.
   (실사용 PyPI 의 이름 예약과는 무관 — 별개 인덱스다.)
 - **만료**: 위 1회가 끝나면 이 각주의 효력도 끝난다. 그 다음 판단은 검토 문서
-  §6 의 4번(발행 여부 소유자 결정)이다.
+  §6 의 4번(발행 여부 소유자 결정)이다. → **그 판단은 2026-08-14 에 나왔다: 발행 안 함 (각주 0).**
 
 ## 2. 절차 (한 사람이 직접 실행)
 

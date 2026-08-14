@@ -76,11 +76,13 @@ Close a session in the order **update memory → commit → push**. Do not split
 - Register / update a task: `wk backlog-update`
 - Sync affected documents (advisory): `wk doc-sync`
 - Regenerate state.json at session close: `wk refresh-state`
+- Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
 
 - When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
 - A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
 - `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `wk refresh-state` at session close.
+- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with
 - `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
 
 ## 언어와 컨텍스트 원칙

@@ -81,7 +81,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as KIT_VERSION  # noqa: E402
-from workflow_kit.common.standard_rules import load_standard_rules  # noqa: E402
+from workflow_kit.common.standard_rules import find_memory_command, load_standard_rules  # noqa: E402
 from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_HOOKS_RELPATH,
     CLAUDE_CODE_MANIFEST_RELPATH,
@@ -466,7 +466,10 @@ def test_claude_code_adapter() -> None:
     if set(hooks) != {"SessionStart", "SessionEnd"}:
         problems.append(f"hook 이벤트 {sorted(hooks)} != SessionStart/SessionEnd")
     rules = load_standard_rules(SOURCE_ROOT)
-    refresh_cmd = rules.memory_commands[-1][1]
+    # 표의 **마지막 행**을 재생성 명령으로 가정하던 자리 (2026-08-14 실측: §11.1 에
+    # 행을 하나 추가하자 깨졌다). 위치가 아니라 **목적**으로 찾는다 — 렌더러가
+    # 쓰는 것과 같은 정본 helper 다.
+    refresh_cmd = find_memory_command(rules, "Regenerate state.json")
     binary = refresh_cmd.split()[0]
 
     def _commands(event: str) -> list[str]:

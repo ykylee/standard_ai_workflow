@@ -145,6 +145,7 @@ workflow-migrate-memory-to-branch-scoped = "workflow_kit.tools.migrate_memory_to
 # Note: ``tools/mkdocs_git_dates.py`` 는 mkdocs plugin (on_page_markdown hook) 이지 CLI 가 아님.
 #   ``mkdocs`` 가 import 시점에 plugin 으로 등록. console_script 진입점 ❌.
 workflow-refresh-state = "workflow_kit.tools.refresh_state:main"
+workflow-rollover-baselines = "workflow_kit.tools.rollover_handoff_baselines:main"
 workflow-refresh-wiki-memory = "workflow_kit.tools.refresh_wiki_memory:main"
 workflow-release-pipeline = "workflow_kit.tools.release_pipeline:main"
 workflow-release-v0-13-0 = "workflow_kit.tools.release_v0_13_0:main"

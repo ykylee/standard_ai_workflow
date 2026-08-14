@@ -5,7 +5,12 @@ from pathlib import Path
 from collections.abc import Callable
 from typing import cast, Dict, List, Any
 
-from workflow_kit.common.project_docs import RECENT_DONE_ITEMS_CAP, parse_backlog, parse_handoff
+from workflow_kit.common.project_docs import (
+    BASELINE_ITEMS_CAP,
+    RECENT_DONE_ITEMS_CAP,
+    parse_backlog,
+    parse_handoff,
+)
 from workflow_kit.common.maturity import (
     is_spec_entry,
     requires_test_path,
@@ -268,6 +273,33 @@ def check_workflow_consistency(
             "severity": "low",
             "fix_suggestion": f"backlog-update applies the cap ({RECENT_DONE_ITEMS_CAP}); drop the oldest entries if the list was written by hand."
         })
+
+    # 2b. 기준선 줄 상한 — 완료 목록과 **처방이 다르다**
+    # 완료 목록은 넘치면 버려도 된다 (SSOT 가 `backlog/tasks/` 에 있다). 기준선 산문은
+    # 다른 어디에도 없으므로 **이관**해야 한다. 그래서 fix_suggestion 이 "지워라" 가
+    # 아니라 도구를 가리킨다 — 손으로 지우면 그 세션의 이력이 사라진다.
+    if handoff_path is not None and Path(handoff_path).is_file():
+        try:
+            from workflow_kit.tools.rollover_handoff_baselines import plan as _baseline_plan
+            got = _baseline_plan(Path(handoff_path).read_text(encoding="utf-8"),
+                                 cap=BASELINE_ITEMS_CAP)
+        except Exception:  # noqa: BLE001 — 린터가 이것 때문에 죽으면 안 된다
+            got = None
+        if got and got["total"] > BASELINE_ITEMS_CAP:
+            issues.append({
+                "type": "bloat_warning",
+                "code": "handoff_baseline_bloat",
+                "description": (
+                    f"Handoff §1 has {got['total']} baseline lines "
+                    f"(cap {BASELINE_ITEMS_CAP})."
+                ),
+                "severity": "low",
+                "fix_suggestion": (
+                    "`wk rollover-baselines --handoff-path <handoff> --apply` moves the "
+                    "excess into baselines.md. Do not delete them by hand — that prose "
+                    "exists nowhere else."
+                ),
+            })
 
     # 3. Check for broken links in handoff/backlog (simple regex)
     for path in [handoff_path, latest_backlog_path]:

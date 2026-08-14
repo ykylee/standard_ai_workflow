@@ -26,6 +26,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
@@ -211,6 +212,19 @@ def rewrite_moved_references(
             path.write_text(new_text, encoding="utf-8")
             changed.append(_rel(path))
 
+    # 반대 방향 — 이동한 것은 대상이 아니라 **문서 자신**이다. 위 루프의
+    # `"active/" not in text` 가드에 안 걸리는 형태이기도 하다: 살아 있는 대상을
+    # 가리키는 상대 링크(`../../main/state.json`)에는 그 낱말이 없다.
+    for path in sorted(archived_branch.rglob("*.md")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        old_doc_dir = active_branch / path.parent.relative_to(archived_branch)
+        new_text = _rewrite_relocated_links(
+            text, old_doc_dir=old_doc_dir, new_doc_dir=path.parent,
+        )
+        if new_text != text:
+            path.write_text(new_text, encoding="utf-8")
+            changed.append(_rel(path))
+
     # JSON 안의 경로 문자열은 **저장소 상대**(`ai-workflow/memory/active/<b>/…`)로
     # 적히지만, memory root 가 저장소 밖인 배치에서는 절대 경로일 수도 있다.
     # 그래서 저장소 기준 접두사가 아니라 **`active/<branch>/` 라는 경로 조각**을
@@ -226,7 +240,42 @@ def rewrite_moved_references(
         path.write_text(new_text, encoding="utf-8")
         changed.append(_rel(path))
 
-    return changed
+    # 한 파일이 두 규칙(대상 이동·문서 이동)에 다 걸리면 두 번 잡힌다 — 목록은 한 번만.
+    return list(dict.fromkeys(changed))
+
+
+def _map_relative_links(
+    text: str, *, doc_dir: Path, map_target: "Callable[[str], Path | None]",
+) -> str:
+    """`](경로)` 의 상대 경로를 map_target 으로 사상한다. None 이면 그대로 둔다.
+
+    파싱은 여기 한 곳이다 — 제목(`path "제목"`)·`<>` 감싸기·scheme 제외·앵커 분리를
+    규칙마다 다시 구현하면 그중 하나가 조용히 빠진다.
+    """
+    def repl(m: "re.Match[str]") -> str:
+        raw = m.group(1).strip()
+        # `](path "제목")` / `](path '제목')` — CommonMark 가 허용하는 형태다.
+        # 분리하지 않으면 경로가 `path "제목"` 이 되어 매칭이 빗나가고, 깨진 링크가
+        # 조용히 남는다.
+        title_match = re.match(r"^(\S+)(\s+[\"'(].*)$", raw)
+        link, title = (title_match.group(1), title_match.group(2)) if title_match else (raw, "")
+        wrapped = link.startswith("<") and link.endswith(">")
+        if wrapped:
+            link = link[1:-1]
+        if link.startswith(("http://", "https://", "#", "mailto:")):
+            return m.group(0)
+        path_part, sep, anchor = link.partition("#")
+        mapped = map_target(path_part)
+        if mapped is None:
+            return m.group(0)
+        # **앵커를 보존한다.** 떼고 쓰면 링크는 살아나지만 문서의 엉뚱한 곳으로 간다 —
+        # 고친 척하고 정보를 잃는 쪽이 더 나쁘다.
+        rewritten = os.path.relpath(mapped, doc_dir).replace(os.sep, "/") + sep + anchor
+        if wrapped:
+            rewritten = f"<{rewritten}>"
+        return "](" + rewritten + title + ")"
+
+    return re.sub(r"\]\(([^)]+)\)", repl, text)
 
 
 def _rewrite_markdown_links(
@@ -244,36 +293,48 @@ def _rewrite_markdown_links(
     # 처럼 터무니없이 길어진다 (링크는 살지만 읽을 수 없는 문서가 된다).
     doc_dir = Path(doc_dir).resolve()
 
-    def repl(m: "re.Match[str]") -> str:
-        raw = m.group(1).strip()
-        # `](path "제목")` / `](path '제목')` — CommonMark 가 허용하는 형태다.
-        # 분리하지 않으면 경로가 `path "제목"` 이 되어 매칭이 빗나가고, 깨진 링크가
-        # 조용히 남는다.
-        title_match = re.match(r"^(\S+)(\s+[\"'(].*)$", raw)
-        link, title = (title_match.group(1), title_match.group(2)) if title_match else (raw, "")
-        wrapped = link.startswith("<") and link.endswith(">")
-        if wrapped:
-            link = link[1:-1]
-        if link.startswith(("http://", "https://", "#", "mailto:")):
-            return m.group(0)
-        path_part, sep, anchor = link.partition("#")
+    def map_target(path_part: str) -> Path | None:
         target = (doc_dir / path_part).resolve()
         if target.exists():
-            return m.group(0)
+            return None
         try:
             moved = new_root / target.relative_to(old_root)
         except ValueError:
-            return m.group(0)
-        if not moved.exists():
-            return m.group(0)
-        # **앵커를 보존한다.** 떼고 쓰면 링크는 살아나지만 문서의 엉뚱한 곳으로 간다 —
-        # 고친 척하고 정보를 잃는 쪽이 더 나쁘다.
-        rewritten = os.path.relpath(moved, doc_dir).replace(os.sep, "/") + sep + anchor
-        if wrapped:
-            rewritten = f"<{rewritten}>"
-        return "](" + rewritten + title + ")"
+            return None
+        return moved if moved.exists() else None
 
-    return re.sub(r"\]\(([^)]+)\)", repl, text)
+    return _map_relative_links(text, doc_dir=doc_dir, map_target=map_target)
+
+
+def _rewrite_relocated_links(
+    text: str, *, old_doc_dir: Path, new_doc_dir: Path,
+) -> str:
+    """문서 **자신이 이동해서** 풀린 상대 링크를 새 위치 기준으로 다시 쓴다.
+
+    :func:`_rewrite_markdown_links` 는 **대상이 이동한** 링크를 고친다. 이 함수는
+    반대 방향이다 — 대상(`active/main/state.json` 같은 살아 있는 파일)은 그대로인데
+    문서가 `active/<b>/` → `archived/<b>/` 로 옮겨져 상대 경로의 기준점이 바뀌었다.
+    브랜치 세션 기록이 active/main 을 가리키면 아카이브 후 archived/main 으로 풀려
+    깨진다 (TASK-2026-08-14-main-006 — 같은 함정을 사람이 두 번 밟고서야 도구가 됐다).
+
+    판정은 **이동 전 기준으로 풀리던 링크인가**다:
+
+    - 새 위치에서 풀리면 → 살아 있는 링크, 불변 (브랜치 내부 상호 링크가 여기 온다 —
+      문서와 대상이 함께 옮겨져 상대 구조가 보존된다)
+    - 새 위치에서 안 풀리고 **옛 위치에서 풀리면** → 재작성 (문서 이동이 깬 링크)
+    - 옛 위치에서도 안 풀리면 → 불변. 태어날 때부터 깨진 링크를 고친 척하지 않는다 —
+      그건 `check_archive_history_integrity` 가 잡아야 할 진짜 결함이다
+      (2026-08-13 에 실제로 그런 링크가 1건 있었다)
+    """
+    old_doc_dir, new_doc_dir = Path(old_doc_dir).resolve(), Path(new_doc_dir).resolve()
+
+    def map_target(path_part: str) -> Path | None:
+        if (new_doc_dir / path_part).resolve().exists():
+            return None
+        old_target = (old_doc_dir / path_part).resolve()
+        return old_target if old_target.exists() else None
+
+    return _map_relative_links(text, doc_dir=new_doc_dir, map_target=map_target)
 
 
 def write_metadata(

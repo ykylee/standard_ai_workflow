@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (14 cases).
+"""브랜치 아카이브가 **이력을 끊지 않는지** 검증한다 (17 cases).
 
 ## 계보 — 아카이브는 "이동" 만 하고 있었다
 
@@ -25,7 +25,7 @@ on-demand MCP 도구지 저장소를 훑는 smoke 가 아니라서, `archived/` 
 fixture 로 **도구의 계약**(차단 / 재작성 / 오탐 없음)을, 자기 적용으로 **이 저장소의
 archived/ 현재 상태**를 잰다. 후자가 없으면 계약만 지키고 실물은 썩는다.
 
-13 cases:
+17 cases:
   1) `open_tasks` 판정 — done 제외, **status 미기재는 미완료로 본다**
   2) 미완료 task 가 있으면 아카이브를 **막는다** (기본값)
   3) `--allow-open-tasks` 면 진행하되 `.archived.json` 에 `open_task_ids` 를 남긴다
@@ -40,6 +40,9 @@ archived/ 현재 상태**를 잰다. 후자가 없으면 계약만 지키고 실
  12) 링크의 앵커·제목·꺾쇠 형태를 놓치지 않고 앵커를 보존한다
  13) root 를 resolve 하지 않아도 재작성이 침묵하지 않는다
  14) 링크 문법을 *설명하는* 산문은 링크가 아니다 + 진짜 깨진 링크는 여전히 잡는다
+ 15) **문서 자신이 이동해서** 풀린 상대 링크를 살아 있는 대상 기준으로 다시 쓴다 (main-006)
+ 16) 이동 전에도 안 풀리던 링크는 고친 척하지 않는다 (integrity 가 잡을 진짜 결함)
+ 17) 문서-이동 규칙 단독 — 새 위치에서 풀리면 불변, 앵커 보존
 
 Refs:
   - workflow_kit/tools/archive_branch_memory.py
@@ -65,6 +68,7 @@ from workflow_kit.common.markdown import (  # noqa: E402
 )
 from workflow_kit.tools.archive_branch_memory import (  # noqa: E402
     _rewrite_markdown_links,
+    _rewrite_relocated_links,
     open_tasks,
 )
 
@@ -363,6 +367,75 @@ def case_13_unresolved_roots_still_work(root: Path) -> None:
     assert out == "[a](../archived/feat/x/s.md)", f"resolve 안 된 root 에서 침묵했다: {out}"
 
 
+def case_15_relocated_link_to_living_target(root: Path) -> None:
+    """되주입 (main-006) — 문서 **자신이 이동해서** 풀린 상대 링크를 다시 쓴다.
+
+    브랜치 세션 기록이 살아 있는 `active/main/` 을 상대 링크로 가리키면, 아카이브
+    후 기준점이 바뀌어 `archived/main/` 으로 풀린다. 대상은 안 움직였으므로
+    대상-이동 규칙(case 4)에는 안 걸린다 — 사람이 두 번 밟은 함정이 이 모양이었다.
+    """
+    _write(root / "active" / "main" / "state.json", "{}")
+    d = _branch_memory(root, "feat/reloc", statuses=["done"])
+    _write(d / "sessions" / "r.md",
+           "# 기록\n\n[메인 상태](../../../main/state.json#s1) 와 [내부](./s.md) 참조.\n")
+    rc, out = _run_tool(root, "--apply")
+    assert out["archived"] == 1, out
+    doc = root / "archived" / "feat" / "reloc" / "sessions" / "r.md"
+    text = doc.read_text("utf-8")
+    links = [m.group(1) for m in LINK_RE.finditer(text)]
+    main_link = next(l for l in links if "state.json" in l)
+    path_part, _, anchor = main_link.partition("#")
+    resolved = (doc.parent / path_part).resolve()
+    assert resolved == (root / "active" / "main" / "state.json").resolve(), (
+        f"살아 있는 대상을 다시 가리키지 않는다: {main_link!r} → {resolved}"
+    )
+    assert anchor == "s1", f"앵커가 사라졌다: {main_link!r}"
+    # 브랜치 내부 상호 링크 — 문서와 대상이 함께 옮겨져 여전히 풀린다. 불변이어야 한다.
+    assert "./s.md" in links, f"살아 있는 내부 링크를 건드렸다: {links}"
+
+
+def case_16_born_broken_link_untouched(root: Path) -> None:
+    """이동 전에도 안 풀리던 링크는 고친 척하지 않는다.
+
+    '대상이 살아 있으니 고친다' 를 넓게 잡으면 태어날 때부터 잘못 쓴 링크까지
+    조용히 덮는다 (2026-08-13 에 실제로 1건 있었다) — 그건 integrity 검사가 잡아야
+    할 진짜 결함이다.
+    """
+    d = _branch_memory(root, "feat/ghost", statuses=["done"])
+    _write(d / "sessions" / "g.md", "# 기록\n\n[유령](../../../main/ghost.md) 참조.\n")
+    rc, out = _run_tool(root, "--apply")
+    assert out["archived"] == 1, out
+    text = (root / "archived" / "feat" / "ghost" / "sessions" / "g.md").read_text("utf-8")
+    assert "](../../../main/ghost.md)" in text, (
+        f"태어날 때부터 깨진 링크를 건드렸다: {text}"
+    )
+
+
+def case_17_relocated_rule_unit(root: Path) -> None:
+    """문서-이동 규칙 단독 — 새 위치에서 풀리면 불변, 옛 위치에서만 풀리면 재작성."""
+    living = root / "shared" / "doc.md"
+    _write(living, "# 대상\n")
+    old_dir = root / "active" / "b" / "sessions"
+    new_dir = root / "archived" / "b" / "sessions"
+    new_dir.mkdir(parents=True)
+    out = _rewrite_relocated_links(
+        "[a](../../../shared/doc.md) [b](../../shared/doc.md)",
+        old_doc_dir=old_dir, new_doc_dir=new_dir,
+    )
+    # [a] 는 새 위치에서도 그대로 풀린다(불변). [b] 는 옛 위치 기준으로만 풀리던
+    # 형태라면 재작성된다 — 여기서는 옛 위치에서도 안 풀리므로 불변이다.
+    assert out == "[a](../../../shared/doc.md) [b](../../shared/doc.md)", out
+    # 옛 위치에서만 풀리는 링크: old_dir 기준 ../../doc2.md = active/b 아래가 아니라
+    # root/active/doc2.md 에 실존해야 한다.
+    _write(root / "active" / "doc2.md", "# 대상2\n")
+    out2 = _rewrite_relocated_links(
+        "[c](../../doc2.md#top)", old_doc_dir=old_dir, new_doc_dir=new_dir,
+    )
+    resolved = (new_dir / out2.split("](")[1].split("#")[0]).resolve()
+    assert resolved == (root / "active" / "doc2.md").resolve(), f"재작성이 빗나갔다: {out2}"
+    assert out2.endswith("#top)"), f"앵커가 사라졌다: {out2}"
+
+
 def _in_tmp(fn) -> None:
     with tempfile.TemporaryDirectory(prefix="check-archive-integrity-") as tmp:
         fn(Path(tmp).resolve())  # macOS /private symlink
@@ -383,12 +456,15 @@ def main() -> int:
         case_12_link_variants,
         case_13_unresolved_roots_still_work,
         case_14_link_prose_is_not_a_link,
+        case_15_relocated_link_to_living_target,
+        case_16_born_broken_link_untouched,
+        case_17_relocated_rule_unit,
     ):
         _in_tmp(case)
     case_7_self_archived_links_resolve()
     case_8_self_archived_state_paths()
     case_9_self_no_open_tasks_archived()
-    print("archive history integrity check passed (14 cases)")
+    print("archive history integrity check passed (17 cases)")
     return 0
 
 
@@ -446,6 +522,18 @@ def test_case_13() -> None:
 
 def test_case_14() -> None:
     _in_tmp(case_14_link_prose_is_not_a_link)
+
+
+def test_case_15() -> None:
+    _in_tmp(case_15_relocated_link_to_living_target)
+
+
+def test_case_16() -> None:
+    _in_tmp(case_16_born_broken_link_untouched)
+
+
+def test_case_17() -> None:
+    _in_tmp(case_17_relocated_rule_unit)
 
 
 if __name__ == "__main__":

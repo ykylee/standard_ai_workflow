@@ -48,6 +48,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-14-main-006 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째
 - TASK-2026-08-14-main-010 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다
 - TASK-2026-08-14-main-008 task SSOT 를 구조화 — markdown-as-database 결함 계열 제거
 - TASK-2026-08-14-main-007 handoff 기준선 롤오프 — §1 이 handoff 의 66%
@@ -57,7 +58,6 @@
 - TASK-2026-08-14-main-002 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록
 - TASK-2026-08-14-fix-archive-history-integrity-001 아카이브 이력 무결성 — 미완료 task 이월 + 경로 재작성 + 검사 신설
 - TASK-2026-08-13-fix-branch-memory-namespace-guard-001 브랜치 메모리 네임스페이스 가드 — 손 편집을 직접 지목하는 검사 신설
-- TASK-2026-08-13-fix-branch-memory-namespace-guard-002 mavis attach e2e 기대치 vs read-only 번들 분리 — 정본 registry 파생으로 교체
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

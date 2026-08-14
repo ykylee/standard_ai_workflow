@@ -39,12 +39,12 @@
       "TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거",
       "TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%",
       "TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째",
+      "TASK-2026-08-14-main-005 — seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다",
       "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
       "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
       "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
       "TASK-2026-08-13-main-009 — 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%",
-      "TASK-2026-08-13-main-008 — TestPyPI 리허설",
-      "TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일"
+      "TASK-2026-08-13-main-008 — TestPyPI 리허설"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -60,6 +60,7 @@
       "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
       "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
       "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
+      "TASK-2026-08-14-main-005 — seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다",
       "TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째",
       "TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%",
       "TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거",

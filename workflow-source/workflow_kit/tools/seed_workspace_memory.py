@@ -15,7 +15,11 @@
 
 - `session_handoff.md` — 작업 지시가 실린다. 표준 §10.2 의 "작업 예정 내역".
 - `backlog/<today>.md` + `backlog/tasks/TASK-….md` — 기존 writer 재사용.
-- `sessions/` — 빈 디렉터리 (session 기록 자리).
+- `sessions/workspace_seed_<today>.md` — 첫 세션 기록. seed 가 곧 이 네임스페이스의
+  첫 세션 사건이므로 stub 이 아니라 **진실한 기록**이다 (누가/왜/무엇을 만들었나).
+  빈 `sessions/` 만 만들던 때는 `check_appendonly_memory_layout` 이 seed 직후에도
+  red 였다 (TASK-2026-08-14-main-005). 검사를 "갓 만든 것" 예외로 푸는 방향은
+  일부러 피했다 — 그 예외는 오래된 절반짜리도 같이 통과시킨다.
 
 `state.json` 도 **함께 만든다** — 다만 손으로 쓰지 않고 `scripts/generate_workflow_state.py`
 를 호출해 만든다 (여전히 생성물이다, `memory/active/README.md` §4). 이전 판은 "파생물이니
@@ -168,6 +172,42 @@ def task_body(*, axis: str, out_of_scope: str | None) -> list[str]:
     return body
 
 
+def render_seed_session_record(*, branch: str, axis: str, task_id: str,
+                               task_title: str, today: str,
+                               out_of_scope: str | None) -> str:
+    """seed 사건 자체를 기록하는 **첫 세션 기록**.
+
+    링크는 브랜치 디렉터리 내부 상대 경로만 쓴다 — 문서와 대상이 함께 아카이브되므로
+    이동 후에도 풀린다 (main-006 의 문서-이동 함정을 처음부터 피하는 형태).
+    """
+    lines = [
+        f"# 세션 기록 — 브랜치 메모리 seed ({today})",
+        "",
+        "- 문서 목적: 이 브랜치 네임스페이스가 언제·왜 만들어졌는지 남긴다. seed 가 곧 첫 세션 사건이다.",
+        "- 범위: seed 산출물 (handoff / task / backlog index / state.json)",
+        "- 대상 독자: AI agent, 저장소 관리자",
+        "- 상태: active",
+        f"- 최종 수정일: {today}",
+        f"- 관련 문서: [task](../backlog/tasks/{task_id}.md), [handoff](../session_handoff.md)",
+        "",
+        "## 1. 무엇을 만들었나",
+        "",
+        f"- 브랜치: `{branch}`",
+        f"- 작업 축: {axis}",
+        f"- 시작 task: [{task_id}](../backlog/tasks/{task_id}.md) — {task_title}",
+    ]
+    if out_of_scope:
+        lines.append(f"- 범위 밖(건드리지 않는다): {out_of_scope}")
+    lines += [
+        "",
+        "## 2. 다음 세션 시작 포인트",
+        "",
+        f"- `wk session-start` 로 기준선을 복원하고 {task_id} 의 완료 기준을 채운다.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
          out_of_scope: str | None, today: str, apply: bool,
          force: bool) -> dict:
@@ -192,7 +232,9 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     write_handoff = note(handoff_path, "handoff")
     write_task = note(tasks_dir / f"{task_id}.md", "task")
     note(backlog_path, "backlog_index")
-    planned.append({"path": str(branch_dir / "sessions"), "kind": "sessions_dir"})
+    # 첫 세션 기록 — 빈 `sessions/` 는 layout 검사에서 절반짜리다 (main-005).
+    session_record_path = branch_dir / "sessions" / f"workspace_seed_{today}.md"
+    write_session = note(session_record_path, "session_record")
 
     result = {
         "status": "ok",
@@ -236,6 +278,15 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
             render_handoff(branch=branch, axis=axis, task_id=task_id,
                            task_title=task_title, today=today,
                            out_of_scope=out_of_scope),
+            encoding="utf-8",
+        )
+
+    if write_session:
+        # state 생성 **전에** 쓴다 — sessions/ 는 생성기의 입력이다.
+        session_record_path.write_text(
+            render_seed_session_record(branch=branch, axis=axis, task_id=task_id,
+                                       task_title=task_title, today=today,
+                                       out_of_scope=out_of_scope),
             encoding="utf-8",
         )
 

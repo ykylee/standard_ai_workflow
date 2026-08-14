@@ -1,30 +1,31 @@
 # Backlog-Update Skill
 
-- 문서 목적: `backlog-update` skill 의 역할과 구현 진입점을 정리한다.
-- 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
-- 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: stable (v0.11.20 stable 승격)
-- 최종 수정일: 2026-07-22
-- 관련 문서: `../../core/backlog_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
+- Purpose: describe the `backlog-update` skill and its implementation entry point.
+- Scope: purpose, linked specs, expected input/output, permission boundary, implementation notes
+- Audience: skill implementer, AI agent designer, operator
+- Status: stable (promoted in v0.11.20)
+- Last updated: 2026-08-14
+- Related: `../../core/backlog_update_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
-## 1. 목적
+## 1. Purpose
 
-날짜별 backlog 에 새 작업 항목을 생성하거나 기존 작업 항목의 상태 갱신 초안을 만든다.
+Create a new task entry in the dated backlog, or draft a status update for an existing one.
 
-## 2. 연결 스펙
+## 2. Linked specs
 
-- 상세 스펙: [../../core/backlog_update_skill_spec.md](../../core/backlog_update_skill_spec.md)
-- 카탈로그: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
+- Full spec: [../../core/backlog_update_skill_spec.md](../../core/backlog_update_skill_spec.md)
+- Catalog: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
 
-## 3. 예상 입력
+## 3. Expected input
 
 - `project_profile_path`
 - `task_brief`
-- 조건부로 `daily_backlog_path`, `target_date`, `task_id`
-- 선택적으로 `work_backlog_index_path`, `session_handoff_path`, `owner`, `affected_documents`, `validation_result`
-- `kind` (`release` | `session` | `generic`, default `generic`) — task SSOT frontmatter 의 `kind` 이자 daily index 의 `[kind]` marker
+- Conditionally `daily_backlog_path`, `target_date`, `task_id`
+- Optionally `work_backlog_index_path`, `session_handoff_path`, `owner`, `affected_documents`, `validation_result`
+- `kind` (`release` | `session` | `generic`, default `generic`) — both the `kind` in the task
+  SSOT frontmatter and the `[kind]` marker in the daily index
 
-## 4. 예상 출력
+## 4. Expected output
 
 - `operation_type`
 - `target_backlog_path`
@@ -34,52 +35,54 @@
 - `fields_requiring_confirmation`
 - `warnings`
 
-### 4.1 `--apply` 산출물 layout (v0.14.0+ append-only)
+### 4.1 `--apply` output layout (append-only since v0.14.0)
 
-- `backlog/tasks/TASK-<date>[-<branch-slug>]-<NNN>.md` — **본문의 SSOT**.
-  frontmatter 6 key (`id` / `status` / `created_at` / `source_anchor` /
-  `source_path` / `kind`) 필수.
-- `backlog/<date>.md` — **link 모음**. task 본문을 인라인하지 않는다. 같은 task 를
-  다시 apply 하면 해당 block 만 교체된다 (중복 ❌, 전체 재작성 ❌).
-- `.bak` 파일은 만들지 않는다 (v0.15.0 에서 폐기된 개념).
+- `backlog/tasks/TASK-<date>[-<branch-slug>]-<NNN>.md` — **the SSOT for the body**.
+  Six frontmatter keys are required (`id` / `status` / `created_at` / `source_anchor` /
+  `source_path` / `kind`).
+- `backlog/<date>.md` — **a set of links**. The task body is never inlined. Re-applying the
+  same task replaces only that block (no duplicates, no full rewrite).
+- No `.bak` files are created (that concept was dropped in v0.15.0).
 
-규약은 `MEMORY_GOVERNANCE.md` §2 가 정본이고,
-`tests/check_backlog_update_layout.py` 가 산출물을 그 규약과 대조한다.
+`MEMORY_GOVERNANCE.md` §2 is canonical for this layout, and
+`tests/check_backlog_update_layout.py` compares the output against it.
 
-## 5. 권한 경계
+## 5. Permission boundary
 
-- 초안 생성과 갱신 제안 중심
-- **`--apply` 없이는 저장소에 아무것도 쓰지 않는다** (state cache 재생성 포함)
-- 검증 없는 `done` 확정 금지
-- 존재하지 않는 task 를 사실처럼 갱신 금지
-- `--apply` 를 주면 날짜별 backlog, backlog index, handoff 상태 목록을 좁은 범위에서 직접 갱신할 수 있다.
+- Centered on producing drafts and update proposals
+- **Writes nothing to the repository without `--apply`** (including state-cache regeneration)
+- Never confirms `done` without verification
+- Never updates a task that does not exist as if it did
+- With `--apply`, may directly update the dated backlog, the backlog index, and the handoff
+  status lists — within a narrow scope
 
-## 6. 구현 메모
+## 6. Implementation notes
 
-- 신규 생성과 기존 갱신을 엄격히 분리
-- backlog 경로는 프로젝트 프로파일 기준으로 해석
-- handoff/index 후속 갱신은 메모로만 남기고 별도 단계로 분리
-- backlog 또는 handoff 상태를 갱신한 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
+- Keep creation and update strictly separate.
+- Resolve backlog paths through the project profile.
+- Leave follow-up handoff/index updates as notes and handle them as a separate step.
+- After updating backlog or handoff status, regenerating `state.json` automatically is the
+  expected default whenever the source-of-truth documents are in place.
 
-## 7. 예시 실행 (v0.11.20 stable 정합)
+## 7. Usage (v0.11.20 stable)
 
-**소비자 경로는 `wk` 하나다** (정본 §11) — `skills/` 는 배포물에 없다. 구현은
-`workflow-source/workflow_kit/tools/backlog_update.py`, 본 디렉터리의
-[scripts/run_backlog_update.py](./scripts/run_backlog_update.py) 는 저장소 내
-개발용 thin wrapper 다.
+**`wk` is the only consumer-facing path** (canonical §11) — `skills/` is not shipped. The
+implementation lives in `workflow-source/workflow_kit/tools/backlog_update.py`;
+[scripts/run_backlog_update.py](./scripts/run_backlog_update.py) in this directory is a
+thin in-repo development wrapper.
 
 ```bash
-# 기존 항목 갱신 (JSON 초안만 출력)
+# update an existing entry (prints the JSON draft only)
 wk backlog-update \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
   --mode update \
   --task-id TASK-021 \
-  --task-name "배송 상태 동기화 실패 대응 절차 문서 정리" \
-  --task-brief "runbook 및 handoff 반영 상태를 점검했다." \
+  --task-name "Document the delivery-status sync failure runbook" \
+  --task-brief "Checked how the runbook and handoff reflect it." \
   --status in_progress
 
-# --apply 로 backlog / index / handoff 까지 직접 반영
+# --apply writes through to backlog / index / handoff
 wk backlog-update \
   --project-profile-path examples/acme_delivery_platform/PROJECT_PROFILE.md \
   --daily-backlog-path examples/acme_delivery_platform/backlog/2026-04-18.md \
@@ -87,28 +90,31 @@ wk backlog-update \
   --session-handoff-path examples/acme_delivery_platform/session_handoff.md \
   --mode update \
   --task-id TASK-021 \
-  --task-name "배송 상태 동기화 실패 대응 절차 문서 정리" \
-  --task-brief "검증 대기 상태라 차단으로 되돌렸다." \
+  --task-name "Document the delivery-status sync failure runbook" \
+  --task-brief "Moved back to blocked while verification is pending." \
   --status blocked \
   --apply
 ```
 
-- 현재 프로토타입은 backlog 파일을 직접 수정하지 않고 JSON 초안만 출력한다.
-- `--apply` 를 주면 초안을 대상 backlog 파일에 반영하고, 가능한 경우 backlog index 와 handoff 상태 목록도 같이 동기화한다.
+- Without `--apply`, the prototype only prints the JSON draft and does not touch backlog files.
+- With `--apply`, the draft is written into the target backlog file and, where possible, the
+  backlog index and handoff status lists are synced as well.
 
-## 8. 현재 상태
+## 8. Current status
 
-- 읽기 전용 초안 생성 프로토타입 있음
-- 신규 항목 생성과 기존 항목 갱신을 구분해 draft entry 와 경고를 출력할 수 있음
-- `done` 상태는 검증 결과 없이 자동 확정하지 않음
+- A read-only draft-generation prototype exists
+- Distinguishes creating a new entry from updating an existing one, and emits the draft
+  entry plus warnings
+- Never confirms `done` automatically without a verification result
 
 ## 9. v0.11.22+ Phase 3d — memory_index retrieval wiring (opt-in)
 
-backlog-update 가 ADR-005 memory_index 의 retrieval 3-tuple (cue exact → BM25 fallback →
-linked expansion) 결과를 *선택적* 으로 받아 output 의 `memory_index_query_output` field
-에 emit 한다. 디스크 변경 ❌ (read-only retrieval). session-start / doc-sync 와 동일 패턴.
+backlog-update can *optionally* consume the ADR-005 memory_index retrieval 3-tuple
+(cue exact → BM25 fallback → linked expansion) and emit it in the output field
+`memory_index_query_output`. No disk changes (read-only retrieval). Same pattern as
+session-start and doc-sync.
 
-### 사용법
+### Usage
 
 ```bash
 wk backlog-update \
@@ -118,28 +124,31 @@ wk backlog-update \
   --memory-query-tokens "adr,memora,retrieval"
 ```
 
-v0.15.21+ 부터 두 flag 는 **override** 다. flag 부재 시에도 workspace 표준
-`ai-workflow/memory/active/memory_index` dir 이 존재하면 retrieval 이 **자동 활성**
-(query token 은 **컨텍스트 유도** — state.json 의 current_axis + 최근 done 제목에서 뽑고, 유도 실패 시 `backlog,task,workflow` fallback + 출처를 telemetry `query_source` 에 기록; ADR-006 W-2, v1.1.5+) 되어 telemetry source `backlog-update` 가
-emit 된다 (Phase 13 AC2 source 다양성 ≥ 4 수렴). memory_index dir 이 없으면 zero-risk
-skip (기존 caller 정합). flag 를 명시하면 dir/token override.
+Since v0.15.21 both flags are **overrides**. Even without them, retrieval activates
+automatically when the standard workspace directory
+`ai-workflow/memory/active/memory_index` exists. Query tokens are then **derived from
+context** — the `current_axis` in `state.json` plus recent done titles; if derivation fails
+it falls back to `backlog,task,workflow` and records the origin in the telemetry field
+`query_source` (ADR-006 W-2, v1.1.5+). That emits telemetry source `backlog-update`
+(Phase 13 AC2 source diversity ≥ 4). If the memory_index directory is absent, it is a
+zero-risk skip (existing callers unaffected). Passing the flags overrides directory and tokens.
 
-### Output 추가 field
+### Additional output field
 
 `BacklogUpdateOutput.memory_index_query_output` (optional, `dict[str, Any] | None`):
 
 - `selected_ids` / `cue_hits` / `bm25_hits` / `expansion_hits` / `expansion_depth_used`
 - `source_context`
 
-부재 시 `None` (backward compat).
+`None` when absent (backward compatible).
 
-### 후속
+### Follow-up
 
-- v0.11.22 release 자체 (Phase 1~3d 묶음).
-- ADR-006 retrospective 자리 (Phase 3d 완료 후 회고).
+- The v0.11.22 release itself (Phases 1–3d bundled).
+- ADR-006 retrospective (after Phase 3d).
 
-## 다음에 읽을 문서
+## Read next
 
-- skills 허브: [../README.md](../README.md)
-- 상세 스펙: [../../core/backlog_update_skill_spec.md](../../core/backlog_update_skill_spec.md)
+- Skills hub: [../README.md](../README.md)
+- Full spec: [../../core/backlog_update_skill_spec.md](../../core/backlog_update_skill_spec.md)
 - ADR-005 memory_index: [../../../docs/architecture/ADR-005-memora-inspired-memory-index.md](../../../docs/architecture/ADR-005-memora-inspired-memory-index.md)

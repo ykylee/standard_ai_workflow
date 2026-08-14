@@ -33,40 +33,43 @@ Automated analysis and resolution of git merge conflicts. This skill helps the a
 ```
 
 
-## 실행 예시
+## Usage
 
 ```bash
-# conflict marker 가 있는 파일을 ours 전략으로 해소
+# resolve a file with conflict markers using the "ours" strategy
 python3 scripts/run_conflict_resolver.py \
     --target-file path/to/conflicted.md \
     --strategy ours
 
-# 저장소 경로를 명시하고 JSON 으로 출력
+# explicit repo path, JSON output
 python3 scripts/run_conflict_resolver.py \
     --repo-path /path/to/repo \
     --target-file src/app.py \
     --strategy smart --json
 ```
 
-| flag | 필수 | 설명 |
+| flag | required | description |
 |---|---|---|
-| `--target-file` | ✅ | conflict marker 를 해소할 파일 |
-| `--repo-path` | | 저장소 경로 (default: cwd) |
-| `--strategy` | | `ours` / `theirs` / `smart` (default: 구현 기본값) |
-| `--json` | | JSON 출력 |
+| `--target-file` | ✅ | file whose conflict markers to resolve |
+| `--repo-path` | | repository path (default: cwd) |
+| `--strategy` | | `ours` / `theirs` / `smart` (default: implementation default) |
+| `--json` | | JSON output |
 
-`smart` 는 양쪽 변경이 겹치지 않는 list 형태일 때만 자동 병합하고, 실패하면 해당
-블록을 `unresolved_conflicts` 에 남긴다 (해소하지 않은 것을 조용히 덮지 않는다).
+`smart` auto-merges only when both sides changed non-overlapping list entries. When it
+cannot, it leaves that block in `unresolved_conflicts` — it never silently overwrites
+something it did not actually resolve.
 
 ## v0.6.5 Stage Completion
 
-본 skill 의 출력은 v0.6.5 부터 v0.6.4 의 [Stage Gate Pattern](../../../core/stage_gate_pattern.md) 의 `stage_completion` 필드를 포함한다.
+From v0.6.5 on, this skill's output carries the `stage_completion` field of the v0.6.4
+[Stage Gate Pattern](../../../core/stage_gate_pattern.md).
 
-| Field | 값 |
+| Field | Value |
 |---|---|
 | `stage_name` | `git-conflict-resolver` |
 | `next_stage` | `(workflow end)` |
-| `approval_actor` | `user` mandatory (state 문서 영향) |
+| `approval_actor` | `user`, mandatory (affects state documents) |
 | `approval_timestamp` | ISO 8601 |
 
-자세한 spec: [`core/stage_gate_pattern.md`](../../../core/stage_gate_pattern.md), [`core/output_schema_guide.md §3.4`](../../../core/output_schema_guide.md).
+Full spec: [`core/stage_gate_pattern.md`](../../../core/stage_gate_pattern.md),
+[`core/output_schema_guide.md §3.4`](../../../core/output_schema_guide.md).

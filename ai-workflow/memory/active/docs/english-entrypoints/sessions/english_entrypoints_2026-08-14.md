@@ -69,9 +69,23 @@ one that fails.
   4 skill payloads), distributed `ai-workflow/core/` mirror
 - `CLAUDE.md` / `AGENTS.md` rule blocks replaced with the rendered English block
 
-## 5. Not done — next stages
+## 5. Stage 2 — the 13 skill sources
 
-- `workflow-source/skills/*/SKILL.md` (13 files, ~16K tokens) — skill sources
+All 13 `workflow-source/skills/*/SKILL.md` are now English: **16,253 → 12,437 tokens (−23%)**.
+
+One constraint drove the wording. `check_maturity_registry` requires a section heading
+matching `##.*(실행|사용|Usage)` for any skill registered as `stable`. The first file used
+`## Run` and went red — the detector already accepts `Usage`, so every file now carries a
+`Usage` heading rather than widening the detector. Same rule as stage 1: **a detector keyed
+on prose moves with the prose**, and the cheaper move is to speak the vocabulary it
+already knows.
+
+Nothing else broke. The plugin payload (`plugin/skills/*`) is generated from
+`plugin_payload.py`, not from these sources, so the two sets are independent — stage 3
+covers that one.
+
+## 6. Not done — next stage
+
 - Korean strings inside the renderers (`renderers.py` 735 lines, `plugin_payload.py` 324,
   `standard_rules.py` 97) — these are what consumer projects receive
 - The rest of `global_workflow_standard.md` (§1.1–§10 remain Korean, so the canonical is

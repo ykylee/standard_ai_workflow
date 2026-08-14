@@ -1,29 +1,31 @@
 # Merge-Doc-Reconcile Skill
 
-- 문서 목적: `merge-doc-reconcile` skill 의 역할과 구현 진입점을 정리한다.
-- 범위: 목적, 연결 스펙, 예상 입력/출력, 권한 경계, 구현 메모
-- 대상 독자: skill 구현자, AI agent 설계자, 운영자
-- 상태: stable (v0.11.20 stable 승격)
-- 최종 수정일: 2026-07-01
-- 관련 문서: `../../core/merge_doc_reconcile_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
+- Purpose: describe the `merge-doc-reconcile` skill and its implementation entry point.
+- Scope: purpose, linked specs, expected input/output, permission boundary, implementation notes
+- Audience: skill implementer, AI agent designer, operator
+- Status: stable (promoted in v0.11.20)
+- Last updated: 2026-08-14
+- Related: `../../core/merge_doc_reconcile_skill_spec.md`, `../../core/workflow_skill_catalog.md`, `../../core/workflow_agent_topology.md`
 
-## 1. 목적
+## 1. Purpose
 
-병합 이후 handoff, backlog, 허브 문서 사이의 상태 불일치와 재확정 포인트를 구조화해 후속 정리를 돕고 `state.json` 을 최신화한다.
+After a merge, structure the state mismatches and re-confirmation points across the
+handoff, the backlog, and hub documents so the follow-up cleanup is tractable, and refresh
+`state.json`.
 
-## 2. 연결 스펙
+## 2. Linked specs
 
-- 상세 스펙: [../../core/merge_doc_reconcile_skill_spec.md](../../core/merge_doc_reconcile_skill_spec.md)
-- 카탈로그: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
+- Full spec: [../../core/merge_doc_reconcile_skill_spec.md](../../core/merge_doc_reconcile_skill_spec.md)
+- Catalog: [../../core/workflow_skill_catalog.md](../../core/workflow_skill_catalog.md)
 
-## 3. 예상 입력
+## 3. Expected input
 
 - `project_profile_path`
 - `merge_result_summary`
-- 조건부로 `session_handoff_path`, `work_backlog_index_path`, `latest_backlog_path`
-- 선택적으로 `hub_documents`, `changed_files`, `pre_merge_notes`, `validation_result`
+- Conditionally `session_handoff_path`, `work_backlog_index_path`, `latest_backlog_path`
+- Optionally `hub_documents`, `changed_files`, `pre_merge_notes`, `validation_result`
 
-## 4. 예상 출력
+## 4. Expected output
 
 - `reconcile_targets`
 - `state_conflicts`
@@ -32,60 +34,62 @@
 - `recommended_review_order`
 - `warnings`
 
-## 5. 권한 경계
+## 5. Permission boundary
 
-- 읽기 중심 재정리 및 제한적 쓰기(apply) 단계
-- `--apply` 사용 시 `session_handoff.md` 에 재정리 노트를 추가하고 `state.json` 을 재생성함
-- `done` 확정과 차단 해제 자동 처리 금지 (수동 확인 필요)
+- Read-oriented reconciliation; writes only in the `--apply` step
+- With `--apply`, appends reconciliation notes to `session_handoff.md` and regenerates `state.json`
+- Never marks anything `done` or clears a blocker automatically — that needs human confirmation
 
-## 6. 구현 메모
+## 6. Implementation notes
 
-- handoff 와 최신 backlog 를 먼저 대조
-- 허브/인덱스 문서는 링크와 구조 설명 최신성 중심으로 점검
-- 병합 후 검증 미완료 상태는 재확정 포인트로 유지
-- `ai-workflow/` 경로는 workflow 메타 레이어로 보고, 일반 프로젝트 변경 파일 집합에서는 기본적으로 제외한다.
-- handoff/backlog 재확정 뒤에는 source-of-truth 문서가 준비된 경우 `state.json` 을 자동 재생성하는 흐름을 기본 운영값으로 본다.
+- Compare the handoff against the latest backlog first.
+- For hub/index documents, focus on link validity and whether the structural description is current.
+- Anything left unverified after the merge stays as a re-confirmation point.
+- Treat `ai-workflow/` as the workflow meta layer and exclude it from the ordinary
+  changed-file set by default.
+- Once the handoff and backlog are reconciled, regenerating `state.json` automatically is
+  the expected default whenever the source-of-truth documents are in place.
 
-## 7. 스킬 실행
+## 7. Usage
 
-- 실행 스크립트: [scripts/run_merge_doc_reconcile.py](./scripts/run_merge_doc_reconcile.py)
-- 실행 예시 (재정리 필요 항목 확인):
+- Entry script: [scripts/run_merge_doc_reconcile.py](./scripts/run_merge_doc_reconcile.py)
+- Inspect what needs reconciliation:
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
   --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
-  --merge-result-summary "기능 브랜치 병합"
+  --merge-result-summary "feature branch merge"
 ```
-- 실행 예시 (자동 반영):
+- Apply the result:
 ```bash
 python3 skills/merge-doc-reconcile/scripts/run_merge_doc_reconcile.py \
   --project-profile-path docs/PROJECT_PROFILE.md \
   --session-handoff-path ai-workflow/memory/active/sessions \
-  --merge-result-summary "기능 브랜치 병합" \
+  --merge-result-summary "feature branch merge" \
   --apply
 ```
 
-## 7. Wiki 전용 conflict type 분류 (R7, v0.6.1+)
+## 7. Wiki-specific conflict types (R7, v0.6.1+)
 
-wiki 페이지 (`ai-workflow/wiki/`) merge 시 4가지 conflict type:
+Merging wiki pages (`ai-workflow/wiki/`) yields four conflict types:
 
-| Type | 설명 | Resolution |
+| Type | Description | Resolution |
 |---|---|---|
-| `line-conflict` | 동일 라인 동시 수정 | reconcile-text (word-level OT) |
-| `section-conflict` | 동일 섹션 동시 수정 | additive (R5, 양쪽 결합) |
-| `semantic-conflict` | 의미적 모순 | LLM review 필수 |
-| `index-conflict` | index.md anchor 충돌 | manual review 필수 |
+| `line-conflict` | same line edited on both sides | reconcile-text (word-level OT) |
+| `section-conflict` | same section edited on both sides | additive (R5, combine both) |
+| `semantic-conflict` | the two sides contradict each other | LLM review required |
+| `index-conflict` | `index.md` anchor collision | manual review required |
 
-Mode: read-only = default. `--apply` = LLM 승인 + `--confirm-llm-review` 필요.
+Mode: read-only by default. `--apply` requires LLM approval plus `--confirm-llm-review`.
 
-## 8. 현재 상태
+## 8. Current status
 
-- Beta 단계: 병합 후 정합성 분석 및 제한적 쓰기 기능 지원
-- `--apply` 플래그 사용 시 `session_handoff.md` 에 재정리 노트 추가
-- 최신 상태를 반영하여 `state.json` 캐시 자동 갱신
-- 병합 후 검증 미완료 상태는 경고 및 재확정 포인트로 유지함
+- Beta stage: post-merge consistency analysis with limited write support
+- `--apply` appends reconciliation notes to `session_handoff.md`
+- Refreshes the `state.json` cache to match the reconciled state
+- Anything unverified after the merge is kept as a warning and a re-confirmation point
 
-## 다음에 읽을 문서
+## Read next
 
-- skills 허브: [../README.md](../README.md)
-- 상세 스펙: [../../core/merge_doc_reconcile_skill_spec.md](../../core/merge_doc_reconcile_skill_spec.md)
+- Skills hub: [../README.md](../README.md)
+- Full spec: [../../core/merge_doc_reconcile_skill_spec.md](../../core/merge_doc_reconcile_skill_spec.md)

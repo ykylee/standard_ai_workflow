@@ -1,19 +1,19 @@
 # Memory Index Query Skill
 
-- 문서 목적: ADR-005 memory_index retrieval 3-tuple 의 skill 진입점과 출력을 정리한다.
-- 범위: 입력/출력, 권한 경계, session-start / doc-sync / backlog-update 통합 자리.
-- 대상 독자: skill caller (session-start / doc-sync / backlog-update), memory_index 사용자.
-- 상태: beta (v0.11.22+ Phase 3, subcommand 36)
-- 최종 수정일: 2026-07-02
-- 관련 문서: `../../../docs/architecture/ADR-005-memora-inspired-memory-index.md`, `../../../workflow-source/core/workflow_skill_catalog.md`
+- Purpose: describe the skill entry point and output for the ADR-005 memory_index retrieval 3-tuple.
+- Scope: input/output, permission boundary, where session-start / doc-sync / backlog-update integrate.
+- Audience: skill callers (session-start / doc-sync / backlog-update), memory_index users.
+- Status: beta (v0.11.22+ Phase 3, subcommand 36)
+- Last updated: 2026-08-14
+- Related: `../../../docs/architecture/ADR-005-memora-inspired-memory-index.md`, `../../../workflow-source/core/workflow_skill_catalog.md`
 
-## 1. 목적
+## 1. Purpose
 
-ADR-005 memory_index 의 retrieval 3-tuple (cue exact → BM25 fallback → linked expansion) 을
-session-start, doc-sync, backlog-update 의 표준 retrieval layer 로 노출한다. Phase 3 의 본
-skill 은 retrieval 만 (read-only, disk 변경 없음).
+Expose the ADR-005 memory_index retrieval 3-tuple (cue exact → BM25 fallback → linked
+expansion) as the standard retrieval layer for session-start, doc-sync, and backlog-update.
+In Phase 3 this skill does retrieval only — read-only, no disk changes.
 
-## 2. 진입점
+## 2. Entry point
 
 ```bash
 python3 scripts/run_memory_index_query.py \
@@ -22,7 +22,7 @@ python3 scripts/run_memory_index_query.py \
   [--top-k 10] [--max-depth 2] [--use-bm25-fallback] [--json]
 ```
 
-또는 dispatcher subcommand:
+Or via the dispatcher subcommand:
 
 ```bash
 python3 -m workflow_kit.workflow_kit_cli --command memory-index-query \
@@ -31,47 +31,47 @@ python3 -m workflow_kit.workflow_kit_cli --command memory-index-query \
   [--top-k 10] [--max-depth 2] [--use-bm25-fallback] [--json]
 ```
 
-## 3. 입력
+## 3. Input
 
-- `--workspace-root` (필수) — `ai-workflow/memory/active/memory_index/` 가 있는 workspace.
-- `--query-tokens` (필수) — comma-separated token list. 예: `"memora,memory retrieval"`.
+- `--workspace-root` (required) — a workspace containing `ai-workflow/memory/active/memory_index/`.
+- `--query-tokens` (required) — comma-separated token list, e.g. `"memora,memory retrieval"`.
 - `--top-k` (optional, default 10, range 1..100).
-- `--max-depth` (optional, default 2, range 0..3) — linked expansion depth cap.
+- `--max-depth` (optional, default 2, range 0..3) — linked-expansion depth cap.
 - `--use-bm25-fallback` (optional, default False — opt-in).
-- `--json` (optional, default False) — JSON stdout vs human-readable text.
+- `--json` (optional, default False) — JSON on stdout instead of human-readable text.
 
-## 4. 출력
+## 4. Output
 
-`MemoryIndexQueryOutput` (BaseOutput 자식, Pydantic):
+`MemoryIndexQueryOutput` (a `BaseOutput` subclass, Pydantic):
 
-| field | 의미 |
+| field | meaning |
 | --- | --- |
 | `status` | `ok` / `warning` / `error` |
-| `query_tokens` | echo |
-| `selected_ids` | retrieval 결과 entry id list |
-| `selected_count` | 위 길이 |
-| `cue_hits` | 1단계 (cue anchor exact) hit 수 |
-| `bm25_hits` | 2단계 (BM25 fallback) fill 수 (`use_bm25_fallback=True` 시만) |
-| `expansion_hits` | 3단계 (linked expansion) unique 추가 수 |
-| `expansion_depth_used` | 실제 적용된 expansion depth |
-| `source_context` | workspace_root, top_k, max_depth, use_bm25_fallback 등 호출 정보 |
+| `query_tokens` | echo of the input |
+| `selected_ids` | entry ids returned by retrieval |
+| `selected_count` | length of the above |
+| `cue_hits` | stage 1 hits (cue anchor exact) |
+| `bm25_hits` | stage 2 fills (BM25 fallback; only when `use_bm25_fallback=True`) |
+| `expansion_hits` | stage 3 unique additions (linked expansion) |
+| `expansion_depth_used` | expansion depth actually applied |
+| `source_context` | call info — workspace_root, top_k, max_depth, use_bm25_fallback, … |
 
-## 4.1 error_code (v1.1.3+, stable 승격)
+## 4.1 Error codes (stable since v1.1.3)
 
-실패는 **stdout 에 `ErrorOutput` JSON** 으로 나온다 (기계가 읽는 것이 stdout,
-사람이 읽는 것이 stderr). `skill_beta_criteria.md` §3.1 의 "error_code 분류 최소
-3종" 정합.
+Failures are emitted as an **`ErrorOutput` JSON on stdout** (stdout is what machines read;
+stderr is what humans read). This satisfies the "at least 3 error codes" requirement in
+`skill_beta_criteria.md` §3.1.
 
-| error_code | 언제 |
+| error_code | When |
 | --- | --- |
-| `invalid_query_tokens` | `--query-tokens` 가 비어 있다 (구분자만 준 경우 포함) |
-| `missing_required_document` | `--workspace-root` 경로가 없다 |
-| `memory_index_query_runtime_error` | retrieval 중 예외 (entries 손상 등) |
+| `invalid_query_tokens` | `--query-tokens` is empty (including separators only) |
+| `missing_required_document` | the `--workspace-root` path does not exist |
+| `memory_index_query_runtime_error` | an exception during retrieval (corrupt entries, …) |
 
-## 4.2 실행 예시
+## 4.2 Usage examples
 
 ```bash
-# 기본 (human-readable)
+# default (human-readable)
 python3 workflow-source/skills/memory-index-query/scripts/run_memory_index_query.py \
     --workspace-root . --query-tokens "telemetry,memory-index"
 
@@ -80,11 +80,11 @@ python3 workflow-source/skills/memory-index-query/scripts/run_memory_index_query
     --workspace-root . --query-tokens "memora,retrieval" \
     --top-k 5 --max-depth 1 --use-bm25-fallback --json
 
-# dispatcher 경유 (telemetry source = "dispatcher" 로 기록된다)
+# via the dispatcher (telemetry source is recorded as "dispatcher")
 wk memory-index-query --workspace-root=. --query-tokens="telemetry,phase-13"
 ```
 
-실패 예시 — `error_code` 로 종류를 구분한다:
+Failure example — the kind is distinguished by `error_code`:
 
 ```bash
 $ ... --workspace-root /nonexistent --query-tokens t
@@ -95,14 +95,16 @@ $ ... --workspace-root /nonexistent --query-tokens t
 }
 ```
 
-## 5. 권한
+## 5. Permissions
 
-read-only — caller 가 `use_bm25_fallback=True` 해도 memory_index 디스크는 변경 없음.
-결과는 stdout JSON or text. 후속 skill (session-start 등) 이 본 output 을 받아 workflow
-layer 에 그대로 활용 가능.
+Read-only — even with `use_bm25_fallback=True`, the memory_index on disk is never modified.
+Results go to stdout as JSON or text. Downstream skills (session-start and friends) can
+consume this output directly in the workflow layer.
 
-## 6. 후속
+## 6. Follow-up
 
-- Phase 3b: session-start / doc-sync / backlog-update 의 wiring (Phase 3 본 release 는 entry + dispatcher 만 노출).
-- Phase 3+: anchoring 인 `workflow_kit.common.state.memory_index.query_memory_index_for_dispatcher` 가 v0.11.23+ skill canvas 의 표준 retrieval layer 진입점.
-- ADR-006 retrospective: Phase 3b wiring 완료 + 실 사용 데이터 기반.
+- Phase 3b: wiring for session-start / doc-sync / backlog-update (this Phase 3 release
+  exposes only the entry point and dispatcher).
+- Phase 3+: `workflow_kit.common.state.memory_index.query_memory_index_for_dispatcher` is
+  the standard retrieval entry point for the v0.11.23+ skill canvas.
+- ADR-006 retrospective: after Phase 3b wiring, based on real usage data.

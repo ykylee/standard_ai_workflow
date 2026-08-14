@@ -935,7 +935,11 @@ def test_pi_dev_adapter() -> None:
     - ``pi.skills`` 경로가 payload 디렉터리의 실제 skill 디렉터리 집합과 일치
     - 각 SKILL.md description 이 [KO] + [EN] 두 표기를 모두 담는다 (영문 매칭 보장)
     - ``plugin/.pi-pkg/mcp-settings-snippet.json`` 가 존재하고 ``mcpServers`` 키를
-      가지며 read-only alias 만 등록한다 (write 는 opt-in)
+      가지며 read-only alias 만 등록한다 (write 는 opt-in). **pi v0.84.2 는 MCP
+      를 기본 지원하지 않는다** (No MCP 설계 — extension 으로 추가 가능). 이
+      스니펫은 (1) Claude Code 등 MCP 호환 클라이언트에서 그대로 쓰거나 (2) 향후
+      pi 버전에서 MCP 지원이 추가될 때 참고용이다. pi 사용자 입장에서의 1차 가치
+      는 4종 skill 이다.
     """
     from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, MCP_WRITE_SERVER_ALIAS
 

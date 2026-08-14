@@ -1,5 +1,5 @@
 {
-  "_comment": "pi (pi-coding-agent)용 MCP 서버 등록 스니펫. ~/.pi/agent/settings.json 의 mcpServers 섹션에 아래 객체를 추가한다. 또는 프로젝트 로컬 .pi/settings.json 에 추가하면 저장소 단위로 공유된다. command 의 cwd 를 plugin 디렉터리로 잡거나, STANDARD_AI_WORKFLOW_ROOT 환경 변수를 워크플로우 루트로 설정한다.",
+  "_comment": "MCP 서버 등록 스니펫. **pi v0.84.2 는 MCP 를 기본 지원하지 않는다** (\"No MCP\" 설계 — extension 으로 추가 가능). 이 스니펫은 (1) Claude Code 등 MCP 호환 클라이언트에서 그대로 사용하거나 (2) 향후 pi 버전에서 MCP 지원이 추가될 때를 위한 참고용이다. pi 사용자 입장에서의 1차 가치는 4종 skill 이다. command 의 cwd 는 plugin 디렉터리 — STANDARD_AI_WORKFLOW_ROOT 환경 변수로 워크플로우 루트를 명시한다 (절대 경로 권장).",
   "mcpServers": {
     "standardAiWorkflowReadOnly": {
       "type": "stdio",

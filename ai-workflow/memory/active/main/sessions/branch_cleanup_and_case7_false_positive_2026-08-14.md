@@ -1,8 +1,8 @@
 # 37차 세션 — 브랜치 정리, 그리고 검사가 자기 세션 기록을 못 견딘 자리 (2026-08-14)
 
-- 문서 목적: TASK-2026-08-14-main-001 기록. 36차가 handoff 에 남긴 미결을 닫는다.
+- 문서 목적: TASK-2026-08-14-main-001·002 기록. 36차가 handoff 에 남긴 미결을 닫고, 배포 채널을 확정한다.
 - 상태: done
-- 관련: [task](../backlog/tasks/TASK-2026-08-14-main-001.md), [36차 세션 기록](../../archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md)
+- 관련: [task-001](../backlog/tasks/TASK-2026-08-14-main-001.md), [task-002](../backlog/tasks/TASK-2026-08-14-main-002.md), [RELEASE.md §1](../../../../docs/RELEASE.md), [36차 세션 기록](../../archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md)
 
 ## 요약
 
@@ -104,8 +104,34 @@ case 7 은 **살아 있는 저장소를 관찰할 뿐**이다. "안 잡는" 쪽�
 - 되주입 1건 — 약한 정규식 → case 14 FAIL, 정본 → 14/14 PASS
 - CI: **10 체크 전부 success** (smoke 2축 native/slash · mypy-strict · os-matrix · mcp-sdk-matrix) — commit `8a56e96`
 
-## 6. 남은 것
+## 6. 별건 — 배포 채널이 닫혔다 (TASK-2026-08-14-main-002)
+
+소유자 결정: **PyPI 에 발행하지 않는다.** 키 관리가 번거롭고, 배포는 본인 GitHub 으로만
+간다. 그래서 GitHub Releases 가 유일 채널로 확정됐다.
+
+**기록의 목적이 결정 자체가 아니라 *재론 방지*다.** 기술 제약은 v1.2.0 에서 이미 0 이
+됐으므로(wheel top-level = `workflow_kit` 하나) "이제 올릴 수 있다" 는 관찰이 앞으로도
+계속 나온다 — 그 관찰은 결정을 다시 여는 근거가 아니다. 그래서 정본 한 자리
+(`docs/RELEASE.md` §1 **각주 0**)에 결정 + 근거 3 + **재검토 트리거 3** 을 같이 박았다.
+트리거(외부 사용자의 실제 요청 / 저장소 밖 배포 사유 / 소유자 지시)가 성립하기 전에는
+열지 않는다.
+
+- `TASK-2026-08-13-main-008`(TestPyPI 리허설) → **취소로 done.** 그 task 는 *발행 여부
+  판단*의 사전 검증이었고 판단이 끝나 목적이 사라졌다. 업로드는 실행되지 않았다.
+  업로드 직전까지의 실측 8종은 **이력으로 보존** — README 렌더링·메타데이터·이름 해석·
+  라이선스 동봉·진입점은 GitHub Releases 소비자에게도 유효한 검증이기 때문이다.
+- `RELEASE.md` §1 의 각주 1(TestPyPI 1회 한정 허용, 08-13)은 **만료**. 같은 행이
+  **하루 만에 두 번** 움직였다 — `release_pipeline.py` 주석이 정책 값을 재진술하지
+  않고 정본을 가리키기만 하는 이유의 실증이라, 주석에 그 사실을 적어 뒀다.
+- 검토 문서 2건(`pypi-publication-policy-review` / `cli-distribution-review`)은 종결
+  표기 후 근거 자료로만 남는다. `blocked` 대기열이 비었다.
+
+## 7. 남은 것
 
 - case 7 은 여전히 코드 블록 안의 *형태가 온전한* 링크는 링크로 본다. 현재 corpus 에는
   없다. 나오면 그때 코드 스팬을 걷는다 (지금 하면 쓰지 않을 코드다).
-- 다음 축은 그대로 — [TASK-2026-08-13-main-008] TestPyPI 리허설 (blocked, 소유자 토큰).
+- **다음 축이 비었다.** PyPI 가 닫히면서 주 작업 축이 사라졌고, 남은 것은 전부 관찰·대기
+  항목이다 — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(현재 5) /
+  [TASK-2026-08-13-main-009] 검사 시간(정숙 구간 36%) / macOS PEP 668 (MacBook 전원 시) /
+  cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.
+  다음 세션은 **무엇을 할지부터 정하는 자리**다.

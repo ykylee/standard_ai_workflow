@@ -123,6 +123,25 @@
 > 돌려야 하면 락을 우회(`--no-lock`)하지 말고 **worktree 를 분리**한다.
 - **smoke check**: `python3 workflow-source/tests/check_self_application.py`
 
+### 전량은 게이트지 확인 수단이 아니다 (2026-08-14 실측)
+
+**편집할 때마다 전량을 돌리지 않는다.** 축당 벽시계 ~195s 이고 2축이면 ~6.5분이라,
+반복 편집 중에 돌리면 그것만으로 세션이 간다 (2026-08-14 세션: 전량 2축 5회 =
+약 33분 중 게이트로서 의미 있던 것은 push 직전 1회뿐).
+
+| 단계 | 명령 | 언제 |
+|---|---|---|
+| 편집 중 | `run_all_checks.py --filter=<이름조각>` | 방금 건드린 것과 그 이웃만. 초 단위로 끝난다 |
+| 커밋 전 | 관련 검사 + `check_self_application.py` | 메모리/문서를 건드렸으면 이것부터 (`task_status_mismatch` 류를 여기서 잡는다) |
+| **push 직전 1회** | `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량 |
+
+**시간을 쓰는 것은 개수가 아니라 8개다** (1축 실측: CPU 819s / 255 checks, 벽시계
+196s, 160개는 1초 미만): `wiki_score` 68s(병렬 구간 임계경로) · `release_summary` 62s ·
+`release_status_auto_bump` 57s · `release_status` 48s · `release_pipeline_lib` 44s ·
+`mypy_config_actually_loaded` 41s · `no_repo_write` 39s(정숙 구간 61s 의 64%) ·
+`branch_context_matrix` 32s. `--filter` 로 좁힐 때 이 이름들을 피하면 대개 즉시 끝난다.
+
+
 ### SDK 매트릭스는 push 전에 로컬에서 돌린다
 
 ```bash

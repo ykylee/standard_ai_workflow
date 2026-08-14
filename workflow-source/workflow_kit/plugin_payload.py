@@ -198,77 +198,78 @@ class PluginSkillSpec(NamedTuple):
 
 def _session_start_body(rules: StandardRules) -> str:
     command = find_memory_command(rules, "Restore session-start baseline")
-    return f"""## 역할
+    return f"""## Role
 
-`ai-workflow/memory/active/<branch>/` 의 현재 baseline 을 복원하고, 다음 작업
-후보를 보고한다.
+Restore the current baseline from `ai-workflow/memory/active/<branch>/` and report the
+next candidate tasks.
 
-## 절차
+## Procedure
 
-1. `state.json` — 현재 기준선 (`latest_backlog_path`, 진행/차단/최근 완료 목록)
-2. `session_handoff.md` — 이전 세션의 인계 사항
-3. `backlog/<YYYY-MM-DD>.md` — 현재 작업 목록
-4. `docs/PROJECT_PROFILE.md` — 프로젝트 메타
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent
+1. `state.json` — the current baseline (`latest_backlog_path`, in-progress / blocked / recently-done lists)
+2. `session_handoff.md` — what the previous session handed over
+3. `backlog/<YYYY-MM-DD>.md` — the current task list
+4. `docs/PROJECT_PROFILE.md` — project metadata
+5. (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent
 
-읽은 뒤 한국어로 **1줄 기준선 요약 + 3~5개 다음 작업 후보 + 권장 다음 행동** 만
-보고한다. 중간 reasoning, 중복 요약, 자기 설명은 내지 않는다.
+After reading, report in Korean only: **a one-line baseline summary, 3–5 next-task
+candidates, and the recommended next action.** No intermediate reasoning, repeated
+summaries, or self-explanation.
 
-`state.json` 이나 `PURPOSE.md` 가 없으면 실패로 처리하지 말고 *graceful skip* 후
-scaffold 를 제안한다.
+If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
+and offer to scaffold it.
 
-## 실행
+## Usage
 
 ```bash
 {command} --help
 ```
 
-`{command.split()[0]}` 가 없으면 조용히 넘어가지 않는다 — 설치 안내를 보고하고
-멈춘다 (`INSTALLATION_AND_USAGE.md` §3)."""
+If `{command.split()[0]}` is missing, do not skip silently — report the installation
+guidance and stop (`INSTALLATION_AND_USAGE.md` §3)."""
 
 
 def _backlog_update_body(rules: StandardRules) -> str:
     command = find_memory_command(rules, "Register / update a task")
     states = " / ".join(f"`{state}`" for state in rules.task_states)
-    return f"""## 역할
+    return f"""## Role
 
-오늘 작업을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 와
-`./tasks/<TASK-ID>.md` 에 등록하거나 갱신한다.
+Register or update today's work in `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md`
+and `./tasks/<TASK-ID>.md`.
 
-## 절차
+## Procedure
 
-1. 오늘 날짜 backlog 파일이 없으면 신규 작성, 있으면 기존 항목에 병합한다.
-2. 상태값은 {states} 넷만 쓴다.
-3. **in-scope check** — `task_brief` 와 영향 문서를 `PURPOSE.md` §3 의 제외 영역과
-   대조해, 겹치면 scope creep 경고를 1줄 남긴다. `PURPOSE.md` 가 없으면 경고 없이
-   advisory 로만 진행한다.
-4. 우선순위 / 담당 / 완료 기준을 명시한다.
+1. Create today's backlog file if it does not exist; otherwise merge into the existing entries.
+2. Use only the four status values {states}.
+3. **in-scope check** — compare `task_brief` and the affected documents against the
+   excluded areas in `PURPOSE.md` §3; on overlap, leave a one-line scope-creep warning.
+   Without `PURPOSE.md`, proceed advisory-only with no warning.
+4. State the priority, owner, and completion criteria.
 
-## 실행
+## Usage
 
 ```bash
 {command} --help
 ```
 
-상태를 바꾸지 않을 때는 `--status` 를 주지 않는다 — 미지정은 "바꾸지 말라" 는
-뜻이고 기존 상태가 보존된다."""
+When not changing the status, omit `--status` — leaving it unset means "do not change it"
+and the existing status is preserved."""
 
 
 def _doc_sync_body(rules: StandardRules) -> str:
     command = find_memory_command(rules, "Sync affected documents")
-    return f"""## 역할
+    return f"""## Role
 
-변경된 파일에서 영향 문서 후보를 뽑고, 갱신 포인트를 **advisory 로** 제안한다.
-자동 반영하지 않는다.
+Derive affected-document candidates from the changed files and propose update points
+**as advisory**. Never apply them automatically.
 
-## 절차
+## Procedure
 
-1. 현재 변경된 파일 목록에서 영향 문서 후보를 식별한다.
-2. `ai-workflow/wiki/index.md` 의 anchor 카탈로그와 대조한다.
-3. 후보별로 경로 + 1줄 요약 + confidence (high / medium / low) 를 보고한다.
-4. 새 concept / decision / pattern 페이지가 필요한지 판단해 제안한다.
+1. Identify affected-document candidates from the current changed-file list.
+2. Compare against the anchor catalog in `ai-workflow/wiki/index.md`.
+3. Report each candidate with its path, a one-line summary, and a confidence (high / medium / low).
+4. Judge whether a new concept / decision / pattern page is needed and propose it.
 
-## 실행
+## Usage
 
 ```bash
 {command} --help
@@ -278,30 +279,30 @@ def _doc_sync_body(rules: StandardRules) -> str:
 def _session_end_body(rules: StandardRules) -> str:
     command = find_memory_command(rules, "Regenerate state.json")
     states = " / ".join(f"`{state}`" for state in rules.task_states)
-    return f"""## 역할
+    return f"""## Role
 
-세션을 종료하며, 다음 세션이 바로 이어받을 수 있게 상태를 남긴다.
+Close the session, leaving the state so the next session can pick it up directly.
 
-## 순서
+## Order
 
 {rules.close_order}
 
-## 절차
+## Procedure
 
-1. `session_handoff.md` 를 갱신한다 — 현재 기준선, 진행 중 / 차단 / 최근 완료 목록.
-2. 오늘 날짜 backlog 의 task 상태를 실제 결과에 맞춘다 ({states}).
-3. `state.json` 을 **재생성**한다 (손으로 고치지 않는다 — 아래 §11 계약).
-4. 1~3 의 갱신분이 **같은 commit 에** 담기게 한 뒤 push 한다.
+1. Update `session_handoff.md` — current baseline, in-progress / blocked / recently-done lists.
+2. Bring the task statuses in today's backlog in line with the actual results ({states}).
+3. **Regenerate** `state.json` (never hand-edit it — see the §11 contract below).
+4. Make sure the updates from 1–3 land in the **same commit**, then push.
 
-## 실행
+## Usage
 
 ```bash
 {command}
 ```
 
-`{command.split()[0]}` 가 없으면 조용히 넘어가지 않는다 — 설치 안내를 보고하고
-멈춘다 (`INSTALLATION_AND_USAGE.md` §3). 재생성 없이 손으로 쓴 `state.json` 은
-입력 문서와 갈라진다."""
+If `{command.split()[0]}` is missing, do not skip silently — report the installation
+guidance and stop (`INSTALLATION_AND_USAGE.md` §3). A hand-written `state.json` that was
+never regenerated diverges from its input documents."""
 
 
 #: payload 가 싣는 스킬 4종. slug 는 소문자·하이픈만 (Agent Skills 이름 규칙).
@@ -583,7 +584,7 @@ def render_gemini_context(rules: StandardRules) -> str:
     파생 함수**(:func:`render_entrypoint_rules`) 다 — 채널이 둘이어도 정본은 하나다.
     """
     return (
-        "# 표준 AI 워크플로우 — 상시 규칙 (Gemini 확장 컨텍스트)\n"
+        "# Standard AI workflow — always-on rules (Gemini extension context)\n"
         "\n"
         f"{render_entrypoint_rules(rules)}\n"
     )
@@ -602,10 +603,11 @@ def render_goose_config_snippet() -> str:
     alias, command = _payload_mcp_entry()
     args_yaml = "\n".join(f"      - \"{arg}\"" for arg in command[1:])
     env_yaml = "\n".join(f"      {key}: \"{value}\"" for key, value in _PAYLOAD_MCP_ENV.items())
-    return f"""# 생성물 — 손으로 고치지 않는다 (`python3 -m workflow_kit.plugin_payload --apply`).
-# goose 설정(config.yaml)의 `extensions:` 아래에 병합한다.
-# 스킬은 이 snippet 과 무관하게 goose 가 `.agents/skills/` 에서 직접 읽는다.
-# 주의: goose CLI 부재 환경에서 공식 문서 스키마로 작성 — 실기 검증 미완 (계획 §3-P3).
+    return f"""# Generated — do not hand-edit (`python3 -m workflow_kit.plugin_payload --apply`).
+# Merge this under `extensions:` in the goose config (config.yaml).
+# Skills are read by goose directly from `.agents/skills/`, independently of this snippet.
+# Note: written against the official documented schema without a goose CLI present —
+# not yet verified on real hardware (plan §3-P3).
 extensions:
   {alias}:
     enabled: true
@@ -696,7 +698,7 @@ def render_claude_code_rules(rules: StandardRules) -> str:
     (:func:`render_entrypoint_rules`) 다 — 채널이 셋이어도 정본은 하나다.
     """
     return (
-        "# 표준 AI 워크플로우 — 상시 규칙 (플러그인 SessionStart 주입)\n"
+        "# Standard AI workflow — always-on rules (injected by the plugin SessionStart hook)\n"
         "\n"
         f"{render_entrypoint_rules(rules)}\n"
     )
@@ -727,8 +729,8 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     binary = refresh_cmd.split()[0]
     guide = "docs/INSTALLATION_AND_USAGE.md §3"
     absent_notice = (
-        f"[{PLUGIN_NAME}] `{binary}` 를 찾지 못했다 — 스킬은 절차를 안내하지만 "
-        f"메모리 갱신 명령은 돌지 않는다. 설치: {guide}"
+        f"[{PLUGIN_NAME}] `{binary}` not found — the skills still describe the procedure, but the "
+        f"memory-update commands will not run. Install: {guide}"
     )
     probe = _rules_marker_probe()
     rules_inject = (
@@ -788,8 +790,8 @@ def render_marketplace_manifest(version: str | None = None) -> str:
             "name": PLUGIN_NAME,
             "owner": PLUGIN_AUTHOR,
             "description": (
-                f"표준 AI 워크플로우 — 세션 경계 / 백로그 / 문서 동기화 스킬 "
-                f"{len(PLUGIN_SKILLS)}종과 read-only MCP 도구를 배포하는 marketplace."
+                f"Standard AI workflow — a marketplace distributing {len(PLUGIN_SKILLS)} "
+                f"session-boundary / backlog / document-sync skills and read-only MCP tools."
             ),
             "plugins": [
                 {

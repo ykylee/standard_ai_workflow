@@ -3,7 +3,7 @@
   "owner": {
     "name": "ykylee"
   },
-  "description": "표준 AI 워크플로우 — 세션 경계 / 백로그 / 문서 동기화 스킬 4종과 read-only MCP 도구를 배포하는 marketplace.",
+  "description": "Standard AI workflow — a marketplace distributing 4 session-boundary / backlog / document-sync skills and read-only MCP tools.",
   "plugins": [
     {
       "name": "standard-ai-workflow",

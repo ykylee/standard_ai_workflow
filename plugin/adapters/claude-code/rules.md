@@ -1,4 +1,4 @@
-# 표준 AI 워크플로우 — 상시 규칙 (플러그인 SessionStart 주입)
+# Standard AI workflow — always-on rules (injected by the plugin SessionStart hook)
 
 ## Working Principles
 

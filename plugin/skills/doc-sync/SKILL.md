@@ -5,19 +5,19 @@ description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에�
 
 # doc-sync
 
-## 역할
+## Role
 
-변경된 파일에서 영향 문서 후보를 뽑고, 갱신 포인트를 **advisory 로** 제안한다.
-자동 반영하지 않는다.
+Derive affected-document candidates from the changed files and propose update points
+**as advisory**. Never apply them automatically.
 
-## 절차
+## Procedure
 
-1. 현재 변경된 파일 목록에서 영향 문서 후보를 식별한다.
-2. `ai-workflow/wiki/index.md` 의 anchor 카탈로그와 대조한다.
-3. 후보별로 경로 + 1줄 요약 + confidence (high / medium / low) 를 보고한다.
-4. 새 concept / decision / pattern 페이지가 필요한지 판단해 제안한다.
+1. Identify affected-document candidates from the current changed-file list.
+2. Compare against the anchor catalog in `ai-workflow/wiki/index.md`.
+3. Report each candidate with its path, a one-line summary, and a confidence (high / medium / low).
+4. Judge whether a new concept / decision / pattern page is needed and propose it.
 
-## 실행
+## Usage
 
 ```bash
 wk doc-sync --help

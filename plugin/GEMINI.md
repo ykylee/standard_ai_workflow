@@ -1,4 +1,4 @@
-# 표준 AI 워크플로우 — 상시 규칙 (Gemini 확장 컨텍스트)
+# Standard AI workflow — always-on rules (Gemini extension context)
 
 ## Working Principles
 

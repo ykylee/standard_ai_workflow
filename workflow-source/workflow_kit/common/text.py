@@ -22,7 +22,22 @@ def normalize_inline_code(value: str) -> str:
     return normalized
 
 
-def extract_section_value(lines: list[str], label: str) -> str | None:
+def extract_section_value(lines: list[str], label: str | tuple[str, ...]) -> str | None:
+    """`- <label>:` 줄의 값을 뽑는다. label 을 여러 개 주면 **먼저 맞는 것**을 쓴다.
+
+    2026-08-14: 진입점·산출물 문안이 영어로 옮겨지며 같은 필드가 두 라벨을 갖게 됐다.
+    한쪽만 보면 아직 한국어인 문서(소비자 저장소의 기존 산출물)에서 조용히 `None` 이
+    되고, 그 `None` 은 예외가 아니라 **빈 값**으로 흘러간다. 그래서 둘 다 받는다.
+    """
+    labels = (label,) if isinstance(label, str) else label
+    for one in labels:
+        found = _extract_one(lines, one)
+        if found is not None:
+            return found
+    return None
+
+
+def _extract_one(lines: list[str], label: str) -> str | None:
     prefix = f"- {label}:"
     for idx, line in enumerate(lines):
         stripped = line.strip()

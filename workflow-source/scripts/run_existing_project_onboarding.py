@@ -49,20 +49,20 @@ def repo_path(*parts: str) -> Path:
 def parse_repository_assessment(path: Path) -> dict[str, Any]:
     lines = iter_lines(path)
     return {
-        "project_name": extract_section_value(lines, "분석 대상 프로젝트"),
-        "analysis_mode": extract_section_value(lines, "분석 모드"),
-        "primary_stack": extract_section_value(lines, "추정 기본 스택"),
-        "stack_labels": extract_section_value(lines, "감지된 스택 라벨"),
-        "install_command": extract_section_value(lines, "설치"),
-        "run_command": extract_section_value(lines, "로컬 실행"),
-        "quick_test_command": extract_section_value(lines, "빠른 테스트"),
-        "isolated_test_command": extract_section_value(lines, "격리 테스트"),
-        "smoke_check_command": extract_section_value(lines, "실행 확인"),
-        "top_level_entries": extract_section_value(lines, "상위 디렉터리 항목"),
-        "source_dirs": extract_section_value(lines, "소스 디렉터리 후보"),
-        "docs_dirs": extract_section_value(lines, "문서 디렉터리 후보"),
-        "test_dirs": extract_section_value(lines, "테스트 디렉터리 후보"),
-        "sample_paths": extract_list_after_label(lines, "분석 중 확인한 경로 샘플"),
+        "project_name": extract_section_value(lines, ("Analyzed project", "분석 대상 프로젝트")),
+        "analysis_mode": extract_section_value(lines, ("Analysis mode", "분석 모드")),
+        "primary_stack": extract_section_value(lines, ("Inferred primary stack", "추정 기본 스택")),
+        "stack_labels": extract_section_value(lines, ("Detected stack labels", "감지된 스택 라벨")),
+        "install_command": extract_section_value(lines, ("Install", "설치")),
+        "run_command": extract_section_value(lines, ("Run locally", "로컬 실행")),
+        "quick_test_command": extract_section_value(lines, ("Quick test", "빠른 테스트")),
+        "isolated_test_command": extract_section_value(lines, ("Isolated test", "격리 테스트")),
+        "smoke_check_command": extract_section_value(lines, ("Smoke check", "실행 확인")),
+        "top_level_entries": extract_section_value(lines, ("Top-level entries", "상위 디렉터리 항목")),
+        "source_dirs": extract_section_value(lines, ("Source directory candidates", "소스 디렉터리 후보")),
+        "docs_dirs": extract_section_value(lines, ("Document directory candidates", "문서 디렉터리 후보")),
+        "test_dirs": extract_section_value(lines, ("Test directory candidates", "테스트 디렉터리 후보")),
+        "sample_paths": extract_list_after_label(lines, "Sample paths seen during analysis") or extract_list_after_label(lines, "분석 중 확인한 경로 샘플"),
     }
 
 

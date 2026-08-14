@@ -16,21 +16,22 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-14-docs-english-entrypoints-001 — AI 진입점·SKILL.md 영어화
+-
 
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
+-
 
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-14-docs-english-entrypoints-001 AI 진입점·SKILL.md 영어화
 
 ## 5. 다음 세션 시작 포인트
 
-- [`backlog/tasks/TASK-2026-08-14-docs-english-entrypoints-001.md`](./backlog/tasks/TASK-2026-08-14-docs-english-entrypoints-001.md) 의 완료 기준을 먼저 읽는다.
-- 작업 범위를 벗어나는 변경은 다른 워크스페이스와 충돌할 수 있으므로 backlog 에 별도 task 로 남긴다.
+- 이 브랜치의 작업은 끝났다. 상세는 [세션 기록](./sessions/english_entrypoints_2026-08-14.md).
 
 ## 6. 남은 리스크
 
-- 아직 검증된 산출물이 없다.
+- 남은 리스크 없음. 메모리 라벨 영어화는 파싱 계약이라 main-008 로 넘겼다 (세션 기록 §6).

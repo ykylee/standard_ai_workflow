@@ -29,23 +29,23 @@
   "session": {
     "current_baseline": "docs/english-entrypoints 워크스페이스 seed (2026-08-14). 아직 작업 전이다.",
     "current_axis": "AI 가 주로 읽는 진입점·스킬 문서를 영어로 (소유자 지시) — 정본부터 옮기고 생성물은 재생성",
-    "current_focus": "TASK-2026-08-14-docs-english-entrypoints-001 — AI 진입점·SKILL.md 영어화",
-    "in_progress_items": [
+    "current_focus": null,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
       "TASK-2026-08-14-docs-english-entrypoints-001 — AI 진입점·SKILL.md 영어화"
     ],
-    "blocked_items": [],
-    "recent_done_items": [],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/docs/english-entrypoints/backlog/2026-08-14.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-2026-08-14-docs-english-entrypoints-001 — AI 진입점·SKILL.md 영어화"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-08-14-docs-english-entrypoints-001 — AI 진입점·SKILL.md 영어화"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
@@ -53,7 +53,7 @@
     "ai-workflow/memory/active/docs/english-entrypoints/backlog/2026-08-14.md",
     "ai-workflow/memory/active/docs/english-entrypoints/backlog",
     "ai-workflow/memory/active/docs/english-entrypoints/sessions",
-    "ai-workflow/memory/active/docs/english-entrypoints/backlog/tasks/TASK-2026-08-14-docs-english-entrypoints-001.md"
+    "ai-workflow/memory/active/docs/english-entrypoints/sessions/english_entrypoints_2026-08-14.md"
   ],
   "repository_assessment": {
     "path": null,

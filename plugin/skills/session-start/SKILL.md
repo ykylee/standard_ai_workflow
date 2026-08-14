@@ -5,33 +5,34 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 
 # session-start
 
-## 역할
+## Role
 
-`ai-workflow/memory/active/<branch>/` 의 현재 baseline 을 복원하고, 다음 작업
-후보를 보고한다.
+Restore the current baseline from `ai-workflow/memory/active/<branch>/` and report the
+next candidate tasks.
 
-## 절차
+## Procedure
 
-1. `state.json` — 현재 기준선 (`latest_backlog_path`, 진행/차단/최근 완료 목록)
-2. `session_handoff.md` — 이전 세션의 인계 사항
-3. `backlog/<YYYY-MM-DD>.md` — 현재 작업 목록
-4. `docs/PROJECT_PROFILE.md` — 프로젝트 메타
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent
+1. `state.json` — the current baseline (`latest_backlog_path`, in-progress / blocked / recently-done lists)
+2. `session_handoff.md` — what the previous session handed over
+3. `backlog/<YYYY-MM-DD>.md` — the current task list
+4. `docs/PROJECT_PROFILE.md` — project metadata
+5. (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent
 
-읽은 뒤 한국어로 **1줄 기준선 요약 + 3~5개 다음 작업 후보 + 권장 다음 행동** 만
-보고한다. 중간 reasoning, 중복 요약, 자기 설명은 내지 않는다.
+After reading, report in Korean only: **a one-line baseline summary, 3–5 next-task
+candidates, and the recommended next action.** No intermediate reasoning, repeated
+summaries, or self-explanation.
 
-`state.json` 이나 `PURPOSE.md` 가 없으면 실패로 처리하지 말고 *graceful skip* 후
-scaffold 를 제안한다.
+If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
+and offer to scaffold it.
 
-## 실행
+## Usage
 
 ```bash
 wk session-start --help
 ```
 
-`wk` 가 없으면 조용히 넘어가지 않는다 — 설치 안내를 보고하고
-멈춘다 (`INSTALLATION_AND_USAGE.md` §3).
+If `wk` is missing, do not skip silently — report the installation
+guidance and stop (`INSTALLATION_AND_USAGE.md` §3).
 
 ## Memory Update Paths
 

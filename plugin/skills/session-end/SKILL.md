@@ -5,30 +5,30 @@ description: 표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를
 
 # session-end
 
-## 역할
+## Role
 
-세션을 종료하며, 다음 세션이 바로 이어받을 수 있게 상태를 남긴다.
+Close the session, leaving the state so the next session can pick it up directly.
 
-## 순서
+## Order
 
 Close a session in the order **update memory → commit → push**. Do not split the memory update into a separate turn after the commit, so that pushed commits always carry the memory update with them (collaboration consistency).
 
-## 절차
+## Procedure
 
-1. `session_handoff.md` 를 갱신한다 — 현재 기준선, 진행 중 / 차단 / 최근 완료 목록.
-2. 오늘 날짜 backlog 의 task 상태를 실제 결과에 맞춘다 (`planned` / `in_progress` / `blocked` / `done`).
-3. `state.json` 을 **재생성**한다 (손으로 고치지 않는다 — 아래 §11 계약).
-4. 1~3 의 갱신분이 **같은 commit 에** 담기게 한 뒤 push 한다.
+1. Update `session_handoff.md` — current baseline, in-progress / blocked / recently-done lists.
+2. Bring the task statuses in today's backlog in line with the actual results (`planned` / `in_progress` / `blocked` / `done`).
+3. **Regenerate** `state.json` (never hand-edit it — see the §11 contract below).
+4. Make sure the updates from 1–3 land in the **same commit**, then push.
 
-## 실행
+## Usage
 
 ```bash
 wk refresh-state
 ```
 
-`wk` 가 없으면 조용히 넘어가지 않는다 — 설치 안내를 보고하고
-멈춘다 (`INSTALLATION_AND_USAGE.md` §3). 재생성 없이 손으로 쓴 `state.json` 은
-입력 문서와 갈라진다.
+If `wk` is missing, do not skip silently — report the installation
+guidance and stop (`INSTALLATION_AND_USAGE.md` §3). A hand-written `state.json` that was
+never regenerated diverges from its input documents.
 
 ## Memory Update Paths
 

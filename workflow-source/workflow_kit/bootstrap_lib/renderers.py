@@ -103,10 +103,10 @@ def render_readme(
 
 ## 6. 언어와 컨텍스트 운영 원칙
 
-- 사용자에게 직접 보이는 작업 보고, 상태 요약, handoff/backlog 갱신 문안은 기본적으로 한국어로 작성한다.
+- Write user-facing work reports, status summaries, and handoff/backlog updates in Korean by default.
 - 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 필요할 때 원문 그대로 유지한다.
 - 내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리하고, 사용자에게는 필요한 결론만 짧게 전달한다.
-- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남겨 불필요한 컨텍스트 누적을 줄인다.
+- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
 
 ## 7. 프로젝트 실제 문서 경로 설정값
 
@@ -116,7 +116,7 @@ def render_readme(
 - 세션 인계 문서 위치: `{context['session_doc_path']}`
 - 환경 기록 위치: `{context['environment_dir']}`
 
-## 다음에 읽을 문서
+## Read next
 
 - 프로젝트 프로파일: [../docs/PROJECT_PROFILE.md](../docs/PROJECT_PROFILE.md)
 - 빠른 상태 요약: [./memory/active/state.json](./memory/active/state.json)
@@ -335,7 +335,7 @@ def render_assessment(args: argparse.Namespace, context: dict[str, object]) -> s
 - 기존 문서 체계가 있으면 운영 문서 위치를 그대로 따를지, 별도 워크플로우 디렉터리로 분리할지 결정한다.
 - 빠른 테스트와 실행 확인 기준이 약하면 우선 profile 문서에서 검증 규칙을 먼저 보강한다.
 
-## 다음에 읽을 문서
+## Read next
 
 - 프로젝트 프로파일: [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md)
 - 세션 인계 문서: [./session_handoff.md](./session_handoff.md)

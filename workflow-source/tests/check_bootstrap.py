@@ -128,8 +128,10 @@ def check_new_project_mode() -> None:
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
         if "Sample API" not in readme_text:
             raise AssertionError("Generated README does not mention the project name.")
-        if "사용자에게 직접 보이는 작업 보고" not in readme_text:
-            raise AssertionError("Generated workflow README should include the Korean reporting rule.")
+        # 2026-08-14: 진입점 문안이 영어로 옮겨졌다. 재는 것은 그대로 —
+        # "생성된 README 가 보고 언어 규칙을 싣고 있는가".
+        if "Write user-facing work reports" not in readme_text:
+            raise AssertionError("Generated workflow README should include the reporting-language rule.")
 
         profile_text = Path(str(generated["project_profile"])).read_text(encoding="utf-8")
         if "ai-workflow/memory/" not in profile_text:
@@ -288,8 +290,9 @@ def check_opencode_only_mode() -> None:
             raise AssertionError("Generated workflow state should include next_documents.")
 
         agents_text = Path(str(harness_files["codex_agents"])).read_text(encoding="utf-8")
-        if "사용자에게 직접 보이는 작업 보고" not in agents_text:
-            raise AssertionError("AGENTS.md should include the Korean reporting rule.")
+        # 2026-08-14: 진입점 문안 영어화. 재는 질문은 그대로다.
+        if "Write user-facing work reports" not in agents_text:
+            raise AssertionError("AGENTS.md should include the reporting-language rule.")
         if "ai-workflow/memory/active/<branch>/state.json" not in agents_text:
             raise AssertionError("AGENTS.md should direct agents to the workflow state cache.")
         if "프로젝트 코드나 프로젝트 문서를 탐색할 때는 이 경로를 기본 탐색 범위에 넣지 말고" not in agents_text:

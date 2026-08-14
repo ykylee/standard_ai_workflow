@@ -29,23 +29,23 @@
   "session": {
     "current_baseline": "perf/changed-selection 워크스페이스 seed (2026-08-14). 아직 작업 전이다.",
     "current_axis": "run_all_checks --changed — 검사가 자기 관찰 경로를 선언하고, 무관한 검사를 건너뛴다 (미선언은 항상 실행)",
-    "current_focus": "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행",
-    "in_progress_items": [
+    "current_focus": null,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
       "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행"
     ],
-    "blocked_items": [],
-    "recent_done_items": [],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/perf/changed-selection/backlog/2026-08-14.md",
     "task_count": 1,
-    "in_progress_items": [
-      "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
@@ -53,7 +53,7 @@
     "ai-workflow/memory/active/perf/changed-selection/backlog/2026-08-14.md",
     "ai-workflow/memory/active/perf/changed-selection/backlog",
     "ai-workflow/memory/active/perf/changed-selection/sessions",
-    "ai-workflow/memory/active/perf/changed-selection/backlog/tasks/TASK-2026-08-14-perf-changed-selection-001.md"
+    "ai-workflow/memory/active/perf/changed-selection/sessions/changed_selection_2026-08-14.md"
   ],
   "repository_assessment": {
     "path": null,

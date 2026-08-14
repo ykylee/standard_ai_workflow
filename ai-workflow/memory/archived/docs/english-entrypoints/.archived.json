@@ -1,0 +1,11 @@
+{
+  "branch": "docs/english-entrypoints",
+  "archived_at": "2026-08-14",
+  "merge_commit": "505e5d5d85211e870ffa5589a149d2fea3ed2fa2",
+  "task_ids": [
+    "TASK-2026-08-14-docs-english-entrypoints-001"
+  ],
+  "task_count": 1,
+  "open_task_ids": [],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

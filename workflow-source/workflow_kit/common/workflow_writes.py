@@ -157,11 +157,34 @@ def _daily_index_entry_lines(*, task_id: str, title: str, kind: str, status: str
     ]
 
 
+def _label_prefixes(label: str) -> tuple[str, ...]:
+    """이 라벨로 받아들일 접두사들 — 정본 + 별칭.
+
+    문서는 옛 표기로 쓰여 있을 수 있다 (소비자 저장소 포함). 읽는 쪽이 두 표기를
+    모두 받아야 **쓰는 쪽을 나중에 바꿀 수 있다** — 순서가 반대면 옛 리더가 새
+    문서를 못 읽는다. 정본 표는 `project_docs.TASK_FIELD_ALIASES`.
+    """
+    from workflow_kit.common.project_docs import TASK_FIELD_ALIASES, TASK_FIELD_LABELS
+    for key, canonical in TASK_FIELD_LABELS.items():
+        if canonical == label:
+            return tuple(f"- {a}:" for a in
+                         (canonical, *(a for a in TASK_FIELD_ALIASES.get(key, ()) if a != canonical)))
+    return (f"- {label}:",)
+
+
+def _matches_label(stripped: str, prefixes: tuple[str, ...]) -> bool:
+    return any(stripped == p or stripped.startswith(p + " ") for p in prefixes)
+
+
 def _set_inline_field(lines: list[str], label: str, value: str) -> tuple[list[str], bool]:
-    """`- <label>: …` 한 줄짜리 필드의 값을 교체한다. 없으면 (원본, False)."""
-    prefix = f"- {label}:"
+    """`- <label>: …` 한 줄짜리 필드의 값을 교체한다. 없으면 (원본, False).
+
+    옛 표기로 적힌 줄도 찾는다. 다만 **쓸 때는 정본 표기**로 쓴다 — 찾기는 넓게,
+    쓰기는 좁게.
+    """
+    prefixes = _label_prefixes(label)
     for idx, line in enumerate(lines):
-        if line.strip() == prefix or line.strip().startswith(prefix + " "):
+        if _matches_label(line.strip(), prefixes):
             indent = line[: len(line) - len(line.lstrip())]
             updated = list(lines)
             updated[idx] = f"{indent}- {label}: {value}"
@@ -182,16 +205,15 @@ def _set_list_field(
     묶음은 **연속한** `- <label>:` 줄들이다. 중간에 다른 라벨이 끼면 거기서 끝난다 —
     문서의 다른 절에 같은 라벨이 또 있어도 그쪽까지 삼키지 않는다.
     """
-    prefix = f"- {label}:"
+    prefixes = _label_prefixes(label)
     for idx, line in enumerate(lines):
-        if line.strip() == prefix or line.strip().startswith(prefix + " "):
+        if _matches_label(line.strip(), prefixes):
             indent = line[: len(line) - len(line.lstrip())]
             end = idx
-            while end < len(lines) and (
-                lines[end].strip() == prefix or lines[end].strip().startswith(prefix + " ")
-            ):
+            while end < len(lines) and _matches_label(lines[end].strip(), prefixes):
                 end += 1
-            replacement = [f"{indent}- {label}: {v}" for v in values] or [f"{indent}{prefix}"]
+            replacement = ([f"{indent}- {label}: {v}" for v in values]
+                           or [f"{indent}- {label}:"])
             return lines[:idx] + replacement + lines[end:], True
     return lines, False
 

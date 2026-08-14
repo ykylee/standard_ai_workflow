@@ -34,7 +34,9 @@ from workflow_kit.common.planning import determine_conservative_task_status
 from workflow_kit.common.project_docs import (
     TASK_ID_CAPTURE_RE,
     parse_backlog_task_entries,
+    is_empty_label_line,
     parse_project_profile_backlog,
+    task_label,
 )
 from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
@@ -132,13 +134,13 @@ def build_draft_entry(
     detail: list[str] = [
         "## 📝 Description",
         "",
-        f"- 상태: {status}",
-        f"- 우선순위: {priority}",
+        _one(task_label("status"), status),
+        _one(task_label("priority"), priority),
         f"- 요청일: {request_date}",
-        f"- 담당: {owner}" if owner else "- 담당:",
-        f"- 호스트명: {host_name}" if host_name else "- 호스트명:",
-        f"- 호스트 IP: {host_ip}" if host_ip else "- 호스트 IP:",
-        "- 영향 문서:",
+        _one(task_label("owner"), owner),
+        _one(task_label("host_name"), host_name),
+        _one(task_label("host_ip"), host_ip),
+        f"- {task_label('affected_documents')}:",
     ]
     if affected_documents:
         detail.extend([f"  - `{doc}`" for doc in affected_documents])
@@ -147,26 +149,26 @@ def build_draft_entry(
     detail.extend(
         [
             "",
-            f"- 작업 내용: {task_summary}" if task_summary else "- 작업 내용:",
-            *_label_lines("완료 기준", done_criteria),
+            _one(task_label("summary"), task_summary),
+            *_label_lines(task_label("done_criteria"), done_criteria),
             "",
             "## 🛠️ Implementation / Content",
             "",
-            f"- 진행 현황: {progress_note}" if progress_note else "- 진행 현황:",
-            f"- 다음 세션 시작 포인트: {next_step}" if next_step else "- 다음 세션 시작 포인트:",
-            *_label_lines("남은 리스크", risks),
+            _one(task_label("progress"), progress_note),
+            _one(task_label("next_step"), next_step),
+            *_label_lines(task_label("risks"), risks),
             "",
             "## ✅ Outcome",
             "",
-            *_label_lines("작업 결과", result_note),
+            *_label_lines(task_label("result"), result_note),
         ]
     )
     # v1.0.2: `--validation-result` 를 산출물에 싣는다. 이전에는 이 값이 *result_note 가
     # 비어 있을 때만* 그 자리를 대신했고, 둘 다 주면 **검증 결과가 조용히 버려졌다** —
     # `done` 판정의 근거가 되는 값인데 정작 task SSOT 어디에도 남지 않았다.
     if validation_result and validation_result not in _as_list(result_note):
-        detail.append(f"- 검증 결과: {validation_result}")
-    detail.extend(_label_lines("후속 작업", follow_up))
+        detail.append(f"- {task_label('validation')}: {validation_result}")
+    detail.extend(_label_lines(task_label("follow_up"), follow_up))
     return render_task_file(
         task_id=task_id,
         title=task_name,
@@ -177,6 +179,11 @@ def build_draft_entry(
         source_path=source_path or f"backlog/{request_date}.md",
         body_lines=detail,
     )
+
+
+def _one(label: str, value: str | None) -> str:
+    """`- <label>: <값>` 한 줄. 값이 없으면 빈 placeholder — 형식은 유지한다."""
+    return f"- {label}: {value}" if value else f"- {label}:"
 
 
 def _as_list(value: list[str] | str | None) -> list[str]:
@@ -539,31 +546,31 @@ def main() -> int:
 
         if update_merge:
             existing_lines = task_ssot_path.read_text(encoding="utf-8").splitlines()
-            scalar_updates: dict[str, str] = {"진행 현황": progress_note}
+            scalar_updates: dict[str, str] = {task_label("progress"): progress_note}
             if args.priority:
-                scalar_updates["우선순위"] = args.priority
+                scalar_updates[task_label("priority")] = args.priority
             if args.owner:
-                scalar_updates["담당"] = args.owner
+                scalar_updates[task_label("owner")] = args.owner
             if args.host_name:
-                scalar_updates["호스트명"] = args.host_name
+                scalar_updates[task_label("host_name")] = args.host_name
             if args.host_ip:
-                scalar_updates["호스트 IP"] = args.host_ip
+                scalar_updates[task_label("host_ip")] = args.host_ip
             list_updates: dict[str, list[str]] = {}
             if args.done_criteria:
-                list_updates["완료 기준"] = _as_list(args.done_criteria)
+                list_updates[task_label("done_criteria")] = _as_list(args.done_criteria)
             if result_note:
-                list_updates["작업 결과"] = _as_list(result_note)
+                list_updates[task_label("result")] = _as_list(result_note)
             if args.validation_result and args.validation_result != result_note:
-                scalar_updates["검증 결과"] = args.validation_result
+                scalar_updates[task_label("validation")] = args.validation_result
             if args.next_step:
-                scalar_updates["다음 세션 시작 포인트"] = args.next_step
+                scalar_updates[task_label("next_step")] = args.next_step
             if args.risks:
-                list_updates["남은 리스크"] = _as_list(args.risks)
+                list_updates[task_label("risks")] = _as_list(args.risks)
             if args.follow_up:
-                list_updates["후속 작업"] = _as_list(args.follow_up)
+                list_updates[task_label("follow_up")] = _as_list(args.follow_up)
             # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
-            if any(line.strip() == "- 작업 내용:" for line in existing_lines):
-                scalar_updates["작업 내용"] = args.task_brief
+            if any(is_empty_label_line(line, "summary") for line in existing_lines):
+                scalar_updates[task_label("summary")] = args.task_brief
             draft_entry, merge_missing = merge_task_file(
                 existing_lines,
                 status=status,

@@ -48,6 +48,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-14-main-013 RELEASE.md 현재 package version 동기화 — PR #26 을 main 직접 반영으로 대체
 - TASK-2026-08-14-main-012 하네스 배포 정책 문서 흠 2건 수리 — §8 번호 중복 + 누락 타겟 6종
 - TASK-2026-08-14-main-011 무거운 check 2개의 CHECK_TIMEOUT_S 미선언 — slash 축 병렬에서 TIMEOUT flake
 - TASK-2026-08-14-main-004 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정
@@ -57,7 +58,6 @@
 - TASK-2026-08-14-main-010 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다
 - TASK-2026-08-14-main-008 task SSOT 를 구조화 — markdown-as-database 결함 계열 제거
 - TASK-2026-08-14-main-007 handoff 기준선 롤오프 — §1 이 handoff 의 66%
-- TASK-2026-08-14-main-003 변경 범위 기반 선택 실행 — run_all_checks --changed
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

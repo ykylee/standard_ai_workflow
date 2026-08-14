@@ -30,6 +30,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+WATCHES = (
+    "workflow-source/workflow_kit/common/branch_matrix.py",
+    "workflow-source/tests/run_all_checks.py",
+    ".github/workflows/smoke.yml",
+    "ai-workflow/memory/*",
+)
+"""브랜치 컨텍스트 정본 + 러너 + CI + 브랜치별 메모리 경로."""
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:

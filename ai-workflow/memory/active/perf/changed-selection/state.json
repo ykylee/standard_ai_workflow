@@ -1,0 +1,361 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-08-14",
+  "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
+  "purpose_digest_rev": "2026-06-19",
+  "source_of_truth": {
+    "project_profile_path": "docs/PROJECT_PROFILE.md",
+    "session_handoff_path": "ai-workflow/memory/active/perf/changed-selection/session_handoff.md",
+    "work_backlog_index_path": null,
+    "daily_backlog_dir": "ai-workflow/memory/active/perf/changed-selection/backlog",
+    "tasks_dir": "ai-workflow/memory/active/perf/changed-selection/backlog/tasks",
+    "sessions_dir": "ai-workflow/memory/active/perf/changed-selection/sessions",
+    "latest_backlog_path": "ai-workflow/memory/active/perf/changed-selection/backlog/2026-08-14.md",
+    "repository_assessment_path": null
+  },
+  "project": {
+    "project_name": "Standard AI Workflow",
+    "document_home": "docs/index.md",
+    "operations_path": null,
+    "backlog_path": "ai-workflow/memory/active/backlog/ (인덱스) + ai-workflow/memory/release/<version>/backlog/<날짜>.md (사이클별)",
+    "handoff_path": null,
+    "environment_path": "ai-workflow/memory/active/environments/"
+  },
+  "commands": {
+    "quick_tests": null,
+    "isolated_tests": null,
+    "runtime_checks": null
+  },
+  "session": {
+    "current_baseline": "perf/changed-selection 워크스페이스 seed (2026-08-14). 아직 작업 전이다.",
+    "current_axis": "run_all_checks --changed — 검사가 자기 관찰 경로를 선언하고, 무관한 검사를 건너뛴다 (미선언은 항상 실행)",
+    "current_focus": null,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "recent_done_items": [
+      "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행"
+    ],
+    "unknown_status_items": [],
+    "environment_constraints": []
+  },
+  "backlog": {
+    "latest_backlog_path": "ai-workflow/memory/active/perf/changed-selection/backlog/2026-08-14.md",
+    "task_count": 1,
+    "in_progress_items": [],
+    "blocked_items": [],
+    "done_items": [
+      "TASK-2026-08-14-perf-changed-selection-001 — run_all_checks --changed 선택 실행"
+    ]
+  },
+  "next_documents": [
+    "docs/PROJECT_PROFILE.md",
+    "ai-workflow/memory/active/perf/changed-selection/session_handoff.md",
+    "ai-workflow/memory/active/perf/changed-selection/backlog/2026-08-14.md",
+    "ai-workflow/memory/active/perf/changed-selection/backlog",
+    "ai-workflow/memory/active/perf/changed-selection/sessions",
+    "ai-workflow/memory/active/perf/changed-selection/sessions/changed_selection_2026-08-14.md"
+  ],
+  "repository_assessment": {
+    "path": null,
+    "present": false
+  },
+  "schema_version_memory_entries": "1",
+  "memory_entries": [
+    {
+      "id": "MEM-2026-07-09-001",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/session_analysis_2026-07-09.md"
+      ],
+      "primary_abstraction": "Workflow audit session (2026-07-09) baseline snapshot with 10 candidates",
+      "cue_anchors": [
+        "audit",
+        "workflow",
+        "2026-07-09",
+        "candidates",
+        "snapshot",
+        "P0",
+        "P1",
+        "P2"
+      ],
+      "value_digest": "Phase 12 in_progress baseline + P0 3 / P1 3 / P2 4 candidates 영구 기록.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "phase-12"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "ai-workflow/wiki/topics/workflow-audit-2026-07-09.md",
+        "ai-workflow/memory/active/work_backlog.md"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-002",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/docs/architecture/ADR-005-memora-inspired-memory-index.md"
+      ],
+      "primary_abstraction": "ADR-005 Memora-inspired Memory Index schema and retrieval 3-tuple",
+      "cue_anchors": [
+        "ADR-005",
+        "memory-index",
+        "memora",
+        "retrieval",
+        "3-tuple",
+        "cue-anchors"
+      ],
+      "value_digest": "memory_index/ entries/ + retrieval 3-tuple (cue match + linked expansion + BM25 fallback) Pydantic schema.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "state-layer"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "ai-workflow/memory/active/memory_index/README.md",
+        "workflow-source/workflow_kit/common/schemas/memory_index.py"
+      ],
+      "related_ids": [
+        "MEM-2026-08-10-001"
+      ],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-08-10T00:00:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-003",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/core/maturity_matrix.json"
+      ],
+      "primary_abstraction": "FULL mypy strict 도달 milestone (v0.11.18, 109 file clean, 0 errors)",
+      "cue_anchors": [
+        "mypy",
+        "strict",
+        "type-check",
+        "v0.11.18",
+        "quality",
+        "milestone"
+      ],
+      "value_digest": "FULL mypy strict 도달 (109 file clean, 0 errors). v0.8.0 spec §5.3 정합 (1 release = 1-2 file 격상).",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "quality"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "workflow-source/releases/Beta-v0.11.18.md"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-004",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/releases/Beta-v0.11.25.md",
+        "workflow-source/core/maturity_matrix.json"
+      ],
+      "primary_abstraction": "StdIO SDK v0.11.25 정식 stable 승격 (Phase 12 close candidate)",
+      "cue_anchors": [
+        "stdio-sdk",
+        "v0.11.25",
+        "stable-promotion",
+        "mcp-transport"
+      ],
+      "value_digest": "stdio-sdk 정식 stable 승격 + ADR-007 placeholder + connection-closed 회귀 해결.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "mcp",
+        "phase-12"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "workflow-source/docs/architecture/v1_0_0_promotion_feasibility_mcp_stdio_sdk.md"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-005",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/tests/check_drift_prevention_v0_11_23.py",
+        "workflow-source/tests/check_drift_prevention_helpers_v0_11_23.py"
+      ],
+      "primary_abstraction": "Drift prevention automation (v0.11.23, 6 case cross-check smoke)",
+      "cue_anchors": [
+        "drift-prevention",
+        "v0.11.23",
+        "cross-check",
+        "smoke",
+        "silent-fail"
+      ],
+      "value_digest": "pyproject ↔ __init__.py ↔ maturity_matrix ↔ README 6 case cross-check + sync-maturity-matrix helper.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "quality",
+        "release-automation"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "workflow-source/releases/Beta-v0.11.23.md"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-006",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/core/maturity_matrix.json"
+      ],
+      "primary_abstraction": "CodeWhale 10번째 하네스 overlay (v0.10.4, single SKILL.md 패턴)",
+      "cue_anchors": [
+        "codewhale",
+        "harness",
+        "v0.10.4",
+        "overlay",
+        "10th",
+        "single-skill"
+      ],
+      "value_digest": "CodeWhale 10번째 하네스 (2026-07-03). HARNESS_SPECS + SUPPORTED_HARNESSES + builder 등록. 단일 SKILL.md overlay.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "harness-distribution"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "workflow-source/harnesses/codewhale/SKILL.md"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-07-09-007",
+      "schema_version": 1,
+      "source_paths": [
+        "workflow-source/core/orchestrator_subagent_contract_v1.md",
+        "workflow-source/core/orchestrator_contract_v1_wire_guide.md"
+      ],
+      "primary_abstraction": "Contract v1 P0 enforcement + Mavis engine hook 자동화 (Phase 12 follow-up)",
+      "cue_anchors": [
+        "contract-v1",
+        "enforcement",
+        "Mavis",
+        "engine-hook",
+        "P0",
+        "delegator"
+      ],
+      "value_digest": "validate_output + choose_role + choose_roles + validate_fanin_output 4 helper 자동 enforce. Mavis engine hook spec.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "contract-v1",
+        "multi-agent"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "workflow-source/workflow_kit/contract_v1/output_validator.py",
+        "workflow-source/workflow_kit/contract_v1/delegator.py"
+      ],
+      "related_ids": [],
+      "created_at": "2026-07-09T00:46:00Z",
+      "updated_at": "2026-07-09T00:46:00Z"
+    },
+    {
+      "id": "MEM-2026-08-10-001",
+      "schema_version": 1,
+      "source_paths": [
+        "docs/architecture/ADR-006-memory-index-retrospective.md"
+      ],
+      "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
+      "cue_anchors": [
+        "memory-index",
+        "retrospective",
+        "adr-006",
+        "write-path",
+        "hit-rate",
+        "telemetry",
+        "bm25",
+        "suggest-memory-entries"
+      ],
+      "value_digest": "30일 실사용 = 고정 질의 1종→고정 entry 1건. 병목은 검색이 아니라 운영 — 후속 W-1~W-4, W-1 은 suggest-memory-entries 로 구현.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "memory-index"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "ai-workflow/wiki/topics/memory-index-retrospective-2026.md"
+      ],
+      "related_ids": [
+        "MEM-2026-07-09-002"
+      ],
+      "created_at": "2026-08-10T00:00:00Z",
+      "updated_at": "2026-08-10T00:00:00Z"
+    },
+    {
+      "id": "MEM-2026-08-10-002",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-10-main-008.md",
+        "workflow-source/schemas/title_drift_calibration.json"
+      ],
+      "primary_abstraction": "threshold calibration mines production path freezes with check",
+      "cue_anchors": [
+        "calibration",
+        "threshold",
+        "title-drift",
+        "fixture",
+        "production-path",
+        "similarity"
+      ],
+      "value_digest": "임계 캘리브레이션 방법론: production 소비 경로로 채굴, 개선안은 A/B 실측 기각, fixture+검사로 상수 동결 (변경 시 재캘리브레이션 강제). title drift 0.6 실측 확정 사례.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "drift-detection",
+        "methodology"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-08-10-001"
+      ],
+      "created_at": "2026-08-10T00:00:00Z",
+      "updated_at": "2026-08-10T00:00:00Z"
+    }
+  ],
+  "memory_entries_count": 9
+}

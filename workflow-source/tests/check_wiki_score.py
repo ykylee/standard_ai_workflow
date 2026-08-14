@@ -24,6 +24,15 @@ from pathlib import Path
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.
 CHECK_TIMEOUT_S = 150
 
+WATCHES = (
+    "ai-workflow/wiki/*",
+    "workflow-source/workflow_kit/tools/score_wiki_maintainability.py",
+    # operational dim 이 `SMOKE_TESTS` 의 check 들을 서브프로세스로 돌린다 —
+    # tests/ 전체를 관찰 범위로 본다. 좁히면 그 dim 이 조용히 옛 결과를 재는 자리다.
+    "workflow-source/tests/*",
+)
+"""점수는 위키 + 점수 도구 + operational dim 이 돌리는 smoke 의 함수다."""
+
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
 TOOL_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_maintainability.py"

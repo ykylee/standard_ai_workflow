@@ -16,6 +16,12 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+WATCHES = (
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
+)
+"""릴리스 상태는 workflow_kit 전체(mypy 대상) + 버전 파일의 함수다."""
 from unittest.mock import patch
 
 # 병렬 전량(--jobs auto)에서 55s 실측 (2026-08-11) — 기본 60s 상한과 여유가

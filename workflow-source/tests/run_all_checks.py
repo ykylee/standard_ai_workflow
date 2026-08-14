@@ -44,6 +44,7 @@ from __future__ import annotations
 import argparse
 import ast
 import datetime
+import fnmatch
 import functools
 import hashlib
 import json
@@ -212,6 +213,24 @@ class RunnerLock:
         os.environ.pop(RUNNER_LOCK_ENV, None)
 
 
+WATCHES_MARKER = "WATCHES"
+"""check 가 **자기가 관찰하는 저장소 경로** 를 스스로 선언하는 이름 (glob 튜플).
+
+`--changed` 는 이 선언을 보고 *변경과 무관한* check 를 건너뛴다. 선언을 runner
+안의 표로 두지 않는 이유는 `REQUIRES_QUIET_REPO` 와 같다 — 목록은 파일에서
+멀어지면 드리프트하고, 그 드리프트는 **조용히 안 도는 검사**로 나타난다.
+
+계약 두 가지:
+
+1. **미선언 = 항상 실행.** 선택은 사각지대를 만들지 않는 방향으로만 작동한다.
+   선언을 깜빡한 check 는 느려질 뿐 놓치지 않는다.
+2. **자기 파일이 바뀌면 무조건 실행.** 선언 자체가 바뀐 경우를 포함한다.
+
+예:
+    WATCHES = ("workflow-source/workflow_kit/tools/release_pipeline*.py",
+               "workflow-source/workflow_kit/release_status.py")
+"""
+
 TIMEOUT_MARKER = "CHECK_TIMEOUT_S"
 """check 가 **자기 timeout 상한(초)** 을 스스로 선언하는 이름.
 
@@ -311,6 +330,106 @@ def discover_checks(tests_dir: Path, filter_pattern: str | None = None) -> list[
         c for c in all_checks
         if any(n in c.stem for n in needles)
     ]
+
+
+def changed_paths(repo_root: Path, base: str | None) -> tuple[list[str], str]:
+    """변경된 저장소 상대 경로 목록과 **그 목록을 어디서 얻었는지**를 함께 준다.
+
+    출처를 같이 돌려주는 이유: 선택 실행은 "무엇을 안 돌렸는가" 가 결과의 일부라,
+    기준을 출력하지 않으면 나중에 그 실행이 무엇을 근거로 좁혀졌는지 알 수 없다.
+
+    - `base` 없음: 워킹 트리 vs HEAD (미추적 파일 포함) — *지금 편집 중인 것*.
+    - `base` 지정: `<base>...HEAD` 의 diff + 워킹 트리 변경.
+
+    git 이 없거나 명령이 실패하면 `([], 사유)` 를 준다. 호출자는 그 경우
+    **아무것도 건너뛰지 않는다** (모름 ≠ 안전).
+    """
+    def _git(*argv: str) -> tuple[int, str]:
+        try:
+            proc = subprocess.run(["git", *argv], cwd=str(repo_root),
+                                  capture_output=True, text=True, timeout=30)
+        except (OSError, subprocess.SubprocessError) as e:
+            return 1, str(e)
+        return proc.returncode, proc.stdout
+
+    paths: set[str] = set()
+    rc, out = _git("status", "--porcelain", "--untracked-files=all")
+    if rc != 0:
+        return [], f"git status 실패 — 선택하지 않는다 ({out.strip()[:120]})"
+    for line in out.splitlines():
+        if not line.strip():
+            continue
+        entry = line[3:]
+        # rename 은 "old -> new" 로 온다. 둘 다 변경으로 센다.
+        for part in entry.split(" -> "):
+            part = part.strip().strip('"')
+            if part:
+                paths.add(part)
+    source = "워킹 트리 vs HEAD (미추적 포함)"
+    if base:
+        rc2, out2 = _git("diff", "--name-only", f"{base}...HEAD")
+        if rc2 != 0:
+            return [], f"git diff {base}...HEAD 실패 — 선택하지 않는다"
+        paths.update(ln.strip() for ln in out2.splitlines() if ln.strip())
+        source = f"{base}...HEAD + 워킹 트리"
+    return sorted(paths), source
+
+
+def select_by_change(
+    checks: list[Path], changed: list[str], repo_root: Path,
+) -> tuple[list[Path], list[tuple[Path, str]]]:
+    """(실행할 check, [(건너뛴 check, 사유)]) 로 가른다.
+
+    실행 조건은 셋 중 하나라도 참이면 된다:
+
+    1. `WATCHES` **미선언** — 항상 실행 (보수적 기본값)
+    2. 자기 파일이 바뀌었다 — 선언이 바뀐 경우를 포함한다
+    3. 선언한 glob 중 하나가 변경 경로와 맞는다
+
+    `fnmatch` 는 `*` 가 `/` 도 먹으므로 실제보다 **넓게** 맞는다. 그 방향의 오차는
+    검사를 더 돌리게 할 뿐이라 안전한 쪽이다.
+    """
+    changed_set = set(changed)
+    run: list[Path] = []
+    skipped: list[tuple[Path, str]] = []
+    for check in checks:
+        globs = watched_globs(check)
+        if not globs:
+            run.append(check)
+            continue
+        try:
+            own = check.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            own = ""
+        if own and own in changed_set:
+            run.append(check)
+            continue
+        if any(fnmatch.fnmatch(c, g) for c in changed for g in globs):
+            run.append(check)
+            continue
+        skipped.append((check, f"WATCHES {list(globs)} 와 변경 경로가 겹치지 않음"))
+    return run, skipped
+
+
+def report_change_selection(
+    changed: list[str], source: str, run: list[Path], skipped: list[tuple[Path, str]],
+) -> None:
+    """무엇을 **안 돌렸는지** 를 반드시 찍는다.
+
+    조용한 축소는 읽는 사람에게 "전부 돌았다" 로 보인다. 건너뛴 것은 개수만이 아니라
+    **이름과 사유**까지 전부 낸다 — 목록이 길어지는 쪽이 낫다.
+    """
+    print(f"=== --changed 선택 실행 (기준: {source}) ===")
+    print(f"  변경 경로 {len(changed)}건")
+    for c in changed[:40]:
+        print(f"    ~ {c}")
+    if len(changed) > 40:
+        print(f"    ... 외 {len(changed) - 40}건")
+    print(f"  실행 {len(run)} / 건너뜀 {len(skipped)}")
+    for check, why in skipped:
+        print(f"    skip  {check.stem}  — {why}")
+    print("  ⚠ 이 실행은 **게이트가 아니다** — push 직전에는 전량 2축을 돌린다.")
+    print()
 
 
 def parse_output(output: str) -> tuple[int, int, str]:
@@ -533,14 +652,16 @@ def print_human(summary: RunSummary) -> None:
 
 
 @functools.lru_cache(maxsize=None)
-def _scan_markers(check_path_str: str) -> tuple[bool, int]:
-    """(REQUIRES_QUIET_REPO, CHECK_TIMEOUT_S) 를 한 번의 AST parse 로 읽는다.
+def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...]]:
+    """(REQUIRES_QUIET_REPO, CHECK_TIMEOUT_S, WATCHES) 를 한 번의 AST parse 로 읽는다.
 
     import 하지 않는다 — 선언은 파일의 최상위 상수라야 한다. parse 못 하는
-    파일은 (False, 0): 어차피 실행도 못 하며, 병렬 구간에서 실패하게 둔다.
+    파일은 (False, 0, ()): 어차피 실행도 못 하며, 병렬 구간에서 실패하게 둔다.
+    `WATCHES` 가 빈 튜플이면 **미선언과 같게** 다뤄진다 (= 항상 실행).
     """
     quiet = False
     timeout_s = 0
+    watches: tuple[str, ...] = ()
     try:
         with warnings.catch_warnings():
             # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 runner 출력에 새지 않게
@@ -548,7 +669,7 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int]:
             warnings.simplefilter("ignore", SyntaxWarning)
             tree = ast.parse(Path(check_path_str).read_text(encoding="utf-8"))
     except (SyntaxError, OSError):
-        return False, 0
+        return False, 0, ()
     for node in tree.body:
         targets = (node.targets if isinstance(node, ast.Assign)
                    else [node.target] if isinstance(node, ast.AnnAssign) else [])
@@ -556,6 +677,14 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int]:
             if not isinstance(target, ast.Name):
                 continue
             value = node.value
+            if target.id == WATCHES_MARKER and isinstance(value, (ast.Tuple, ast.List)):
+                globs = [e.value for e in value.elts
+                         if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+                if len(globs) == len(value.elts):
+                    watches = tuple(globs)
+                # 원소 하나라도 리터럴 문자열이 아니면 **선언 없음으로 본다** —
+                # 반쯤 읽은 선언으로 검사를 건너뛰면 그게 곧 사각지대다.
+                continue
             if not isinstance(value, ast.Constant):
                 continue
             if target.id == QUIET_MARKER and value.value is True:
@@ -563,7 +692,7 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int]:
             elif (target.id == TIMEOUT_MARKER
                   and isinstance(value.value, int) and value.value > 0):
                 timeout_s = value.value
-    return quiet, timeout_s
+    return quiet, timeout_s, watches
 
 
 def requires_quiet_repo(check_path: Path) -> bool:
@@ -574,6 +703,11 @@ def requires_quiet_repo(check_path: Path) -> bool:
 def effective_timeout(check_path: Path, cli_timeout: int) -> int:
     """CLI `--timeout` 과 파일 안 `CHECK_TIMEOUT_S` 선언의 max — 선언은 늘릴 수만 있다."""
     return max(cli_timeout, _scan_markers(str(check_path))[1])
+
+
+def watched_globs(check_path: Path) -> tuple[str, ...]:
+    """check 가 선언한 관찰 경로 glob. 빈 튜플이면 미선언 = 항상 실행."""
+    return _scan_markers(str(check_path))[2]
 
 
 def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
@@ -700,6 +834,12 @@ def main() -> int:
                         f"선언: {', '.join(labels())}, all. "
                         "미지정이면 호출자 환경 그대로 (기존 동작). "
                         "push 전 CI 재현은 --branch-context=all")
+    p.add_argument("--changed", action="store_true", dest="changed",
+                   help=("변경과 무관한 check 를 건너뛴다 (WATCHES 선언 기준). "
+                         "미선언 check 는 항상 실행하고, 건너뛴 것은 전부 출력한다. "
+                         "**게이트가 아니다** — push 직전에는 전량 2축을 돌린다."))
+    p.add_argument("--changed-base", default=None, dest="changed_base", metavar="REF",
+                   help="--changed 의 비교 기준 (기본: 워킹 트리 vs HEAD). 예: origin/main")
     p.add_argument("--no-lock", action="store_true", dest="no_lock",
                    help="워킹 트리 배타 락을 잡지 않는다 (권장하지 않음 — 동시 실행된 "
                         "전량 결과는 PASS 도 FAIL 도 근거가 못 된다)")
@@ -738,6 +878,25 @@ def main() -> int:
         print(f"[error] check_*.py 0 file 매치: {tests_dir} (filter={args.filter})",
               file=sys.stderr)
         return 2
+
+    if args.changed:
+        repo_root = SOURCE_ROOT.parent
+        changed, source = changed_paths(repo_root, args.changed_base)
+        if not changed:
+            # 변경이 0건이면 **선택할 근거가 없다.** 여기서 전량으로 되돌아가면
+            # `--changed` 가 조용히 게이트인 척하고, 0개를 돌리고 "통과" 라고 하면
+            # 더 나쁘다. 그래서 아무것도 안 돌리되 그 사실을 크게 찍고 끝낸다.
+            print(f"=== --changed: 변경 0건 ({source}) ===")
+            print("  실행할 check 가 없다. 이 결과는 **통과가 아니라 '잴 것이 없음'** 이다.",
+                  file=sys.stderr)
+            return 0
+        checks, skipped = select_by_change(checks, changed, repo_root)
+        if not args.json:
+            report_change_selection(changed, source, checks, skipped)
+        if not checks:
+            print("[error] --changed 가 모든 check 를 걸렀다 — 선언이 과하게 좁다.",
+                  file=sys.stderr)
+            return 2
 
     guard = ResourceGuard(
         tmp_root=args.tmp_dir or tempfile.gettempdir(),

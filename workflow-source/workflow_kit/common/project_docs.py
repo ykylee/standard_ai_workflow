@@ -97,7 +97,11 @@ class WorkflowDocParser:
     """Base parser for workflow markdown documents."""
     def __init__(self, path: Path):
         self.path = path
-        self.lines = iter_lines(path)
+        # 부재 파일에서 즉시 터지지 않는다. `_task_lines_for_backlog` 의
+        # "index 가 없으면 tasks/ 를 글롭한다" fallback 은 생성자가 먼저 죽는 바람에
+        # **도달 불가능한 죽은 코드**였다 (2026-08-14 실측). 부재는 여기서 빈 줄로
+        # 두고, 그 사실이 필요한 곳에서 판단한다.
+        self.lines = iter_lines(path) if path.exists() else []
         self.warnings: list[str] = []
 
     def get_value(self, label: str, required: bool = False) -> str | None:
@@ -244,32 +248,109 @@ class BacklogParser(WorkflowDocParser):
         path = self.path
         warnings: list[str] = []
         if not path.exists():
-            task_files = sorted((path.parent / "tasks").glob(f"{path.stem}_*.md"))
+            # task 파일명은 `TASK-<date>[-<slug>]-<NNN>.md` 다. `<stem>_*` 로 찾던
+            # 옛 패턴은 **아무것도 매칭하지 않았다** — 그래서 이 fallback 은 있으나
+            # 마나였고, 그 사실이 드러난 적이 없다 (조용한 0).
+            task_files = sorted((path.parent / "tasks").glob(f"TASK-{path.stem}*.md"))
             if not task_files:
                 return [], [f"백로그 파일({path.name}) 및 태스크 파일을 찾을 수 없습니다."]
             lines: list[str] = []
             for task_file in task_files:
-                lines.extend(task_file.read_text(encoding="utf-8").splitlines())
+                lines.extend(_task_lines_with_frontmatter_status(task_file))
                 lines.append("")
             return lines, warnings
 
         lines = path.read_text(encoding="utf-8").splitlines()
+        has_inline_header = any(TASK_HEADER_RE.match(line.strip()) for line in lines)
         linked_task_paths = self._linked_task_paths(path)
-        if linked_task_paths and not any(TASK_HEADER_RE.match(line.strip()) for line in lines):
+        if linked_task_paths and not has_inline_header:
             lines = []
             for task_file in linked_task_paths:
-                lines.extend(task_file.read_text(encoding="utf-8").splitlines())
+                lines.extend(_task_lines_with_frontmatter_status(task_file))
                 lines.append("")
+            return lines, warnings
+
+        if not linked_task_paths and not has_inline_header:
+            # 세 번째 방언 — index 가 task 를 **인라인 불릿**으로만 담고 `path:` 도
+            # `# TASK-` 헤더도 없다 (legacy work_backlog 분할 산출물). 여기서 그냥
+            # 돌려주면 task 0개가 되고, 그 0 은 "그 날 한 일이 없다" 로 읽힌다.
+            # 파일은 `tasks/<index-stem>-*.md` 에 그대로 있으므로 그것을 집는다 —
+            # index 부재 시의 fallback 과 **같은 규칙**이다.
+            fallback = sorted((path.parent / "tasks").glob(f"TASK-{path.stem}*.md"))
+            if fallback:
+                lines = []
+                for task_file in fallback:
+                    lines.extend(_task_lines_with_frontmatter_status(task_file))
+                    lines.append("")
         return lines, warnings
+
+    #: daily index 가 task 파일을 가리키는 **두 방언**.
+    #:
+    #: 신형은 마크다운 링크(`path: [`./tasks/X.md`](./tasks/X.md)`), 구형(v0.14.0
+    #: 마이그레이션 산출물)은 백틱 경로(``path: `backlog/tasks/X.md` ``)다. 링크만
+    #: 보던 리더는 구형 index 에서 **task 를 0개로 읽었다** — 파일은 그대로 있는데
+    #: 어느 목록에도 안 나타난다 (2026-08-14 실측: `active/main` 의 20개 index 가
+    #: 그 상태였다). 조용한 0 은 "그 날 한 일이 없다" 로 읽힌다.
+    _BACKTICK_PATH_RE = re.compile(r"^\s*-?\s*path:\s*`([^`]+)`", re.M)
 
     def _linked_task_paths(self, path: Path) -> list[Path]:
         task_paths: list[Path] = []
-        for target in markdown_targets(path):
-            candidate = (path.parent / target).resolve()
-            if candidate.exists() and candidate.parent.name == "tasks":
+        seen: set[Path] = set()
+
+        def _add(raw: str) -> None:
+            candidate = (path.parent / raw).resolve()
+            if not candidate.exists():
+                # 구형은 저장소 상대(`backlog/tasks/X.md`)로 적히기도 한다.
+                candidate = (path.parent.parent / raw).resolve()
+            if candidate.exists() and candidate.parent.name == "tasks" and candidate not in seen:
+                seen.add(candidate)
                 task_paths.append(candidate)
+
+        for target in markdown_targets(path):
+            _add(target)
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return task_paths
+        for match in self._BACKTICK_PATH_RE.finditer(text):
+            _add(match.group(1).strip())
         return task_paths
 
+
+
+_FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
+_FM_STATUS_RE = re.compile(r"^status:\s*(\S+)\s*$", re.M)
+_BODY_STATUS_LINE_RE = re.compile(r"^- 상태:")
+
+
+def _task_lines_with_frontmatter_status(task_file: Path) -> list[str]:
+    """task 파일의 줄 목록. **frontmatter `status:` 를 본문보다 우선**한다.
+
+    같은 필드에 소스가 둘이었다 — 아카이브 도구와 축 분리 검사는 frontmatter 를
+    읽고, backlog 파서는 본문 `- 상태:` 를 읽었다. 2026-08-14 실측: 277개 중
+    **105개(38%)에 본문 줄이 아예 없었고**(legacy 마이그레이션 산출물), 그 task 들은
+    파서에게 *상태 없음* 이었다. 불일치는 0건이었지만 **부재가 문제였다.**
+
+    본문을 지우지 않고 frontmatter 값을 본문 형식으로 **앞에 덧대** 준다 —
+    `STATUS_RE` 가 먼저 만나는 값이 frontmatter 가 되고, 본문은 그대로 남아
+    소비자 저장소의 기존 리더도 계속 동작한다 (2년 compat).
+    """
+    text = task_file.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    fm = _FRONTMATTER_RE.match(text)
+    if not fm:
+        return lines
+    status = _FM_STATUS_RE.search(fm.group(1))
+    if not status:
+        return lines
+    # 파서는 뒤에 오는 값으로 덮어쓴다. 그래서 헤더 뒤에 끼워 넣는 것만으로는
+    # 부족하고, **본문의 상태 줄을 합성 목록에서 빼야** frontmatter 가 이긴다
+    # (디스크의 파일은 건드리지 않는다 — 소비자의 기존 리더는 본문을 계속 본다).
+    kept = [ln for ln in lines if not _BODY_STATUS_LINE_RE.match(ln.strip())]
+    for i, line in enumerate(kept):
+        if TASK_HEADER_RE.match(line.strip()):
+            return kept[: i + 1] + [f"- 상태: {status.group(1)}"] + kept[i + 1 :]
+    return lines
 
 # Legacy Function Wrappers for Compatibility
 def parse_project_profile_core(path: Path) -> dict[str, Any]:

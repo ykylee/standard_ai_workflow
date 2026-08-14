@@ -1,0 +1,44 @@
+{
+  "name": "@ykylee/standard-ai-workflow",
+  "version": "1.2.0",
+  "description": "Standard AI workflow — session-start / backlog-update / doc-sync / session-end skills + read-only MCP tools, packaged for the pi.dev gallery.",
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "workflow",
+    "memory",
+    "session-management"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "ykylee"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ykylee/standard_ai_workflow.git",
+    "directory": "plugin"
+  },
+  "homepage": "https://github.com/ykylee/standard_ai_workflow#readme",
+  "bugs": {
+    "url": "https://github.com/ykylee/standard_ai_workflow/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "pi": {
+    "skills": ["./skills"],
+    "image": "https://raw.githubusercontent.com/ykylee/standard_ai_workflow/main/docs/images/standard-ai-workflow-banner.png",
+    "prompts": [],
+    "themes": [],
+    "extensions": []
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "files": [
+    "skills/",
+    "mcp.json",
+    "package.json",
+    "README.md"
+  ]
+}

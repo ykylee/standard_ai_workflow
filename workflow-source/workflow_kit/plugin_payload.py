@@ -321,32 +321,44 @@ PLUGIN_SKILLS: tuple[PluginSkillSpec, ...] = (
     PluginSkillSpec(
         slug="session-start",
         description=(
-            "표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 "
-            "현재 기준선을 복원하고 다음 작업 후보를 보고한다."
+            "[KO] 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 "
+            "현재 기준선을 복원하고 다음 작업 후보를 보고한다.\n"
+            "[EN] Standard AI workflow session start — restore the current baseline from "
+            "state.json + session_handoff.md + backlog and report the next candidate tasks. "
+            "Use when beginning a new session or resuming work in a workflow_kit project."
         ),
         body=_session_start_body,
     ),
     PluginSkillSpec(
         slug="backlog-update",
         description=(
-            "표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 "
-            "PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다."
+            "[KO] 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 "
+            "PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.\n"
+            "[EN] Standard AI workflow backlog update — register or update a task in today's "
+            "daily backlog and warn on scope creep when the change overlaps a PURPOSE.md "
+            "excluded area. Use when picking up new work or updating progress on a tracked task."
         ),
         body=_backlog_update_body,
     ),
     PluginSkillSpec(
         slug="doc-sync",
         description=(
-            "표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 "
-            "wiki index 기준 갱신 포인트를 advisory 로 제안한다."
+            "[KO] 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 "
+            "wiki index 기준 갱신 포인트를 advisory 로 제안한다.\n"
+            "[EN] Standard AI workflow document sync — collect affected-document candidates "
+            "from changed files and propose advisory update points based on the wiki index. "
+            "Use after code or document edits to keep wiki / handoff / PROJECT_PROFILE consistent."
         ),
         body=_doc_sync_body,
     ),
     PluginSkillSpec(
         slug="session-end",
         description=(
-            "표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를 갱신하고 state.json 을 "
-            "재생성해 다음 세션이 그대로 이어받게 남긴다."
+            "[KO] 표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를 갱신하고 state.json 을 "
+            "재생성해 다음 세션이 그대로 이어받게 남긴다.\n"
+            "[EN] Standard AI workflow session end — update handoff and backlog, then "
+            "regenerate state.json so the next session can resume directly. Use when closing "
+            "a session in a workflow_kit project."
         ),
         body=_session_end_body,
     ),
@@ -824,11 +836,21 @@ def render_plugin_skill(spec: PluginSkillSpec, rules: StandardRules) -> str:
     frontmatter 는 ``name`` / ``description`` 만 쓴다. 본문 끝에는 §11 섹션을
     붙인다 — 메모리 갱신을 지시하면서 방법을 안 알려주면 에이전트가 손으로 쓰고
     파싱 계약이 조용히 깨진다 (TASK-2026-08-11-main-020 전수검사의 결론).
+
+    description 이 줄바꿈을 포함하면 YAML ``|`` 블록 스칼라로 감싼다 — 단일
+    스칼라로 쓰면 ``[KO]`` 처럼 flow 시퀀스로 오인될 수 있다 (v1.2.0+ 이중언어).
     """
+    desc = spec.description
+    if "\n" in desc:
+        # 블록 스칼라: 모든 줄을 두 칸 들여쓰기로
+        body = "\n".join("  " + line for line in desc.split("\n"))
+        desc_block = f"description: |\n{body}\n"
+    else:
+        desc_block = f"description: {desc}\n"
     return (
         "---\n"
         f"name: {spec.slug}\n"
-        f"description: {spec.description}\n"
+        f"{desc_block}"
         "---\n"
         "\n"
         f"# {spec.slug}\n"
@@ -961,6 +983,19 @@ def diff_payload(root: Path, payload: dict[str, str] | None = None) -> list[str]
 #: drift 판정 시 "등록되지 않은 파일" 을 찾을 디렉터리 (저장소 루트 기준).
 _SCAN_DIRS = (PAYLOAD_DIRNAME, ".claude-plugin")
 
+#: pi.dev 분배 자산은 ``render_agent_plugin`` 의 렌더 대상이 아니다 — npm 패키지
+#: 정보다 (``.pi-pkg/`` 의 MCP snippet, ``package.json`` 의 ``pi`` manifest). pi.dev
+#: 는 marketplace.json 처럼 파생물을 만드는 경로가 아니라, 손으로 유지되는 메타
+#: 와 ``pi install`` 이 읽는 패키지 구조다. 그래서 byte 대조에서 제외하고
+#: ``check_pi_dev_adapter`` 가 별도로 정합을 본다 (case 19, v1.2.0+).
+_PI_STATIC_BASENAMES = frozenset({"package.json"})
+_PI_STATIC_DIRS = frozenset({".pi-pkg"})
+
+
+def _is_pi_static(relpath: str) -> bool:
+    parts = relpath.split("/")
+    return any(p in _PI_STATIC_DIRS for p in parts) or parts[-1] in _PI_STATIC_BASENAMES
+
 
 def write_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None) -> list[Path]:
     """payload + marketplace 를 저장소 루트 기준으로 쓴다."""
@@ -983,8 +1018,13 @@ def diff_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None)
         if not base.is_dir():
             continue
         for found in base.rglob("*"):
-            if found.is_file() and found.resolve() not in expected_paths:
-                problems.append(f"미등록 파일: {found.relative_to(repo_root)}")
+            if not found.is_file():
+                continue
+            rel = str(found.relative_to(repo_root))
+            if _is_pi_static(rel):
+                continue
+            if found.resolve() not in expected_paths:
+                problems.append(f"미등록 파일: {rel}")
     return problems
 
 

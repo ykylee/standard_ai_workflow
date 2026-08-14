@@ -1,6 +1,8 @@
 ---
 name: doc-sync
-description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 wiki index 기준 갱신 포인트를 advisory 로 제안한다.
+description: |
+  [KO] 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 wiki index 기준 갱신 포인트를 advisory 로 제안한다.
+  [EN] Standard AI workflow document sync — collect affected-document candidates from changed files and propose advisory update points based on the wiki index. Use after code or document edits to keep wiki / handoff / PROJECT_PROFILE consistent.
 ---
 
 # doc-sync

@@ -51,6 +51,10 @@ INLINE_BACKTICK_RE = re.compile(r"`[^`\n]*`")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "#")
 IGNORED_PARTS = {
     ".git",
+    # 내장 git worktree (다른 에이전트의 별도 checkout). 2026-08-14 실측: 다른
+    # 에이전트가 .worktrees/ 를 만들자 그쪽의 미완성 문서가 이 트리의 게이트를
+    # red 로 만들었다 — 남의 작업 트리는 남의 게이트가 판정한다.
+    ".worktrees",
     ".claude",
     ".codex",
     ".opencode",

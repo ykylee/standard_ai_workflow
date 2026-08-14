@@ -42,6 +42,38 @@
 - 하네스 설정 파일
 - 하네스 전용 skill 또는 agent 정의 파일
 
+### 2.1 배포 채널 — 하네스가 워크플로우를 얻는 세 가지 길 (2026-08-14 기준)
+
+1. **플러그인 채널 (권장, 소유자 판정 2026-08-13)** — 스킬 4종 + read-only MCP +
+   세션 경계 hook 이 설치 1명령으로 들어온다. 설치 명령은
+   `docs/INSTALLATION_AND_USAGE.md` §7.0 이 정본이다.
+2. **bootstrap 오버레이** — 플러그인 미지원 하네스, 오프라인 환경, 그리고 진입점
+   파일(CLAUDE.md 등) 규칙 상시 주입 담당. registry (`HARNESS_SPECS`) 13종 전부.
+3. **패키지 (GitHub Releases 단일)** — wheel + sdist + native plugin ZIP.
+   PyPI 는 발행하지 않는다 (`docs/RELEASE.md` 각주 0, 재론하지 않는다).
+
+채널 × 하네스 매트릭스:
+
+| 하네스 | 플러그인 채널 | bootstrap 오버레이 | Release ZIP asset |
+|---|---|---|---|
+| claude-code | ✅ marketplace (저장소 직접) | ✅ | ✅ `claude-code-plugin` |
+| codex | ✅ Release ZIP → marketplace | ✅ | ✅ `codex-plugin` |
+| gemini-cli | ✅ 로컬 경로 extension (`plugin/`) | ✅ | — |
+| grok-build | ✅ marketplace (저장소 직접, `--trust`) | ✅ | — |
+| pi-dev | ✅ npm/git 패키지 (`pi install`) | ✅ | — |
+| opencode | adapter snippet (`plugin/adapters/opencode/`) | ✅ | — |
+| goose | adapter snippet (`plugin/adapters/goose/`) | ✅ | — |
+| antigravity · minimax-code · aider · codewhale | — | ✅ | — |
+| mavis | — | ✅ (산출물 0 — 글로벌 mcp.json merge) | — |
+| custom | — | ✅ (확장 템플릿) | — |
+
+- Release ZIP 이 codex·claude-code 둘뿐인 이유: 나머지 플러그인 하네스는 저장소/
+  `plugin/` 디렉터리에서 **직접** 설치한다 (gemini 로컬 경로 · grok marketplace ·
+  pi npm/git). ZIP 목록의 정본은 `workflow_kit.plugin_distribution.PLUGIN_HARNESS_SPECS`
+  이고, 새 하네스를 거기 등록하면 dist/release 경로에 자동 포함된다.
+- 플러그인은 `wk` / Python 의존을 대신 설치하지 않는다 — 상태 문서 갱신 명령은
+  패키지 채널(§3.A~C, `docs/INSTALLATION_AND_USAGE.md`)이 선행돼야 돈다.
+
 ## 3. Codex 타겟
 
 Codex 타겟은 프로젝트 루트의 `AGENTS.md` 를 핵심 진입점으로 본다.
@@ -150,6 +182,9 @@ Grok Build (xAI CLI TUI) 타겟은 Codex 와 동일한 `AGENTS.md` root 진입�
 - Grok Build 는 Claude Code (`.claude.json`) / Cursor (`.cursor/mcp.json`) / `.mcp.json` 호환성을 가지므로 기존 workflow MCP 등록을 자동 import 가능 (config > claude > cursor > mcp 우선순위). 단, 동일 alias 의 `[mcp_servers]` 가 여러 소스에 있으면 config.toml 이 우선.
 - 본 하네스는 orchestrator / worker 분리 패턴을 강제하지 않는다. Grok Build 의 내장 subagent (`explore` / `plan`) 와 custom agent (`.grok/agents/`) 로 bounded scope 분리.
 - memory 는 opt-in (`--experimental-memory` 또는 `GROK_MEMORY=1`). opt-in 없이 `~/.grok/memory/` 를 신뢰하지 않는다.
+- 플러그인 채널을 지원한다 (v1.2.0+) — 저장소가 곧 marketplace 다
+  (`grok plugin marketplace add ykylee/standard_ai_workflow` 후 `--trust` 설치,
+  훅은 관례 경로 `hooks/hooks.json`). 설치 명령 정본은 INSTALLATION §7.0.
 
 ## 9. Gemini CLI 타겟
 
@@ -230,6 +265,9 @@ Pi Coding Agent(pi-dev) 타겟은 프로젝트 루트의 `AGENTS.md` 를 진입�
 
 - 추가 설정 파일 없이 `AGENTS.md` 공통 진입점 하나로 시작한다.
 - MCP 는 `--enable-mcp` 의 로컬 설치 절차(apply_guide §6)로 opt-in 한다.
+- 플러그인 채널을 지원한다 (v1.2.0+) — pi.dev 는 marketplace.json 대신 npm/git
+  패키지 방식이다 (`pi install ./plugin` 또는 `pi install git:github.com/ykylee/standard_ai_workflow@<tag>`,
+  `plugin/package.json` 의 `pi` manifest + `pi-package` keyword). 설치 명령 정본은 INSTALLATION §7.0.
 
 ## 14. mavis 타겟
 

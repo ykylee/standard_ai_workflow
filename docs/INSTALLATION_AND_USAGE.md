@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI / Grok Build)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI / Grok Build / pi.dev)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -308,6 +308,14 @@ grok plugin install standard-ai-workflow --trust
 
 # 로컬 체크아웃
 grok plugin install ./plugin --trust
+```
+
+```bash
+# pi.dev (pi-coding-agent) — marketplace.json 대신 npm/git 패키지 방식
+# (plugin/package.json 의 `pi` manifest + `pi-package` keyword 가 갤러리 등록 단위)
+pi install ./plugin
+# 또는 태그 고정 설치:
+pi install git:github.com/ykylee/standard_ai_workflow@v1.2.0
 ```
 
 전제 두 가지:

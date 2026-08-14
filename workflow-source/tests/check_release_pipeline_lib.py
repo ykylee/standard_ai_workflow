@@ -23,6 +23,13 @@ import importlib.util
 import sys
 from pathlib import Path
 
+WATCHES = (
+    "workflow-source/workflow_kit/tools/release_pipeline*.py",
+    "workflow-source/workflow_kit/cli_commands_release.py",
+    "workflow-source/workflow_kit/release_status.py",
+)
+"""release_pipeline 분할 모듈과 그 호출자."""
+
 # 병렬 전량(--jobs auto)에서 44s 실측 (2026-08-11) — 기본 60s 상한과 여유가
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.
 CHECK_TIMEOUT_S = 150

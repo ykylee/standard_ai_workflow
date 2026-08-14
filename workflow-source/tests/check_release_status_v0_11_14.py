@@ -20,6 +20,12 @@ from pathlib import Path
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.
 CHECK_TIMEOUT_S = 150
 
+WATCHES = (
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
+)
+"""릴리스 상태는 workflow_kit 전체(mypy 대상) + 버전 파일의 함수다."""
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

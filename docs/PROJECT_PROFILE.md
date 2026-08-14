@@ -28,6 +28,7 @@
   - v0.15.20+: workspace registry 신규 (host-scoped, atomic write, §7.1 — §5A.3 in-flight 가시성)
   - v0.15.20+: bootstrap 자동 emit — `--harness mavis --enable-mcp` (§6.5.2 글로벌 mcp.json atomic merge)
   - v0.10.4: **CodeWhale 10번째 하네스** 추가 (2026-07-03)
+  - v1.2.0+: **pi.dev (pi-coding-agent) 11번째 분배 채널** — `plugin/package.json` (`pi-package` keyword + `pi` manifest) + 4 skill description 이중 언어 + `plugin/.pi-pkg/mcp-settings-snippet.json`. `tests/check_agent_plugin_payload.py` case 19 가 정합을 보증한다. `pi install ./plugin` 으로 로컬 사용.
 
 ## 2. 문서 구조 (Path)
 - 문서 위키 홈: docs/index.md

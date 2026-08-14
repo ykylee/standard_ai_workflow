@@ -1,6 +1,8 @@
 ---
 name: backlog-update
-description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+description: |
+  [KO] 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+  [EN] Standard AI workflow backlog update — register or update a task in today's daily backlog and warn on scope creep when the change overlaps a PURPOSE.md excluded area. Use when picking up new work or updating progress on a tracked task.
 ---
 
 # backlog-update

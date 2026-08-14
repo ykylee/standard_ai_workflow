@@ -1,6 +1,8 @@
 ---
 name: session-end
-description: 표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를 갱신하고 state.json 을 재생성해 다음 세션이 그대로 이어받게 남긴다.
+description: |
+  [KO] 표준 AI 워크플로우 세션 종료 — handoff 와 backlog 를 갱신하고 state.json 을 재생성해 다음 세션이 그대로 이어받게 남긴다.
+  [EN] Standard AI workflow session end — update handoff and backlog, then regenerate state.json so the next session can resume directly. Use when closing a session in a workflow_kit project.
 ---
 
 # session-end

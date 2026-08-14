@@ -12,7 +12,7 @@
 그래서 `plugin/` 은 `state.json` 과 같은 지위다 — **생성물**이고, 손으로 고치면
 이 검사가 FAIL 한다.
 
-## 판정 규칙 (18 case)
+## 판정 규칙 (19 case)
 
 1. **디스크 == 생성물** — `render_agent_plugin()` 재생성 결과와 완전 일치.
    미등록 파일이 payload 안에 있어도 FAIL (손으로 끼워 넣은 파일을 잡는다).
@@ -49,6 +49,11 @@
     `.codex-plugin/plugin.json`이 skills 및 read-only MCP를 선언한다.
 18. **Codex manifest 의 배포 신원이 packaging metadata 파생이다** — 저자 이메일과
     라이선스를 손으로 적으면 그 사본이 갈라진다 (실제로 `yklee@` 로 갈라졌다).
+19. **pi.dev (pi-coding-agent) 어댑터가 로드되는 형태다** — pi 는 marketplace.json
+    대신 npm/git 패키지 + ``pi`` manifest + ``pi-package`` keyword 로 갤러리에
+    등록한다. ``pi.skills`` 경로가 실제 skill 집합과 일치하고, 각 SKILL.md
+    description 은 [KO]+[EN] 이중 언어 (pi 시스템 프롬프트가 영어라 영문 매칭
+    보장 필요)이며, MCP snippet 이 동봉되고 read-only alias 만 등록된다.
 
 **한계**: Agent Plugins 1.0 (Claude Code 쪽) 의 선택 필드 전체 스펙은 아직 원문
 확인이 안 됐다 (2026-08-06 출범). 이 검사는 계획 §3-P1 이 명시한 3필드
@@ -910,6 +915,123 @@ def test_goose_opencode_snippets() -> None:
     )
 
 
+def test_pi_dev_adapter() -> None:
+    """19) pi.dev (pi-coding-agent) 마켓플레이스 어댑터가 로드되는 형태인가 (v1.2.0+).
+
+    pi 는 marketplace.json 이 없다 — npm/git 패키지 + ``pi`` manifest + ``pi-package``
+    keyword 로 pi.dev 갤러리에 등록한다 (https://pi.dev/packages). ``pi install <pkg>``
+    가 ``package.json`` 의 ``pi.skills`` 경로를 읽어 ``skills/`` 를 discover 한다.
+    각 skill 디렉터리는 ``SKILL.md`` (frontmatter ``name``+``description``) 형식이다
+    — Agent Skills 표준 그대로 받아들이므로 기존 SKILL.md 가 그대로 호환된다.
+
+    pi 의 시스템 프롬프트는 영어라 skill description 이 한국어 only 면 매칭이 약해진다.
+    그래서 [KO]+[EN] 이중 언어 표기로 정렬한다 (PLUGIN_SKILLS 와 동일).
+
+    MCP 등록은 settings.json 의 ``mcpServers`` 섹션이 표준 경로다 — 패키지 안의
+    snippet 으로 동봉한다.
+
+    판정 항목:
+    - ``plugin/package.json`` 존재 + ``pi-package`` keyword
+    - ``pi.skills`` 경로가 payload 디렉터리의 실제 skill 디렉터리 집합과 일치
+    - 각 SKILL.md description 이 [KO] + [EN] 두 표기를 모두 담는다 (영문 매칭 보장)
+    - ``plugin/.pi-pkg/mcp-settings-snippet.json`` 가 존재하고 ``mcpServers`` 키를
+      가지며 read-only alias 만 등록한다 (write 는 opt-in)
+    """
+    from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, MCP_WRITE_SERVER_ALIAS
+
+    problems: list[str] = []
+
+    # 1) plugin/package.json 존재 + pi-package keyword + pi.skills 경로
+    pkg_path = PAYLOAD_ROOT / "package.json"
+    if not pkg_path.exists():
+        problems.append(f"{pkg_path} 부재 — pi.dev 등록 불가")
+    else:
+        try:
+            pkg = json.loads(pkg_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            problems.append(f"package.json JSON 파싱 실패: {exc}")
+            pkg = {}
+        keywords = pkg.get("keywords") or []
+        if "pi-package" not in keywords:
+            problems.append(f"keywords 에 'pi-package' 부재 (갤러리 비공개) — 현재: {keywords}")
+        pi_manifest = pkg.get("pi") or {}
+        skills_paths = pi_manifest.get("skills") or []
+        if not skills_paths:
+            problems.append("pi.skills 경로가 비어있다 — pi 가 스킬을 못 발견한다")
+        else:
+            # skills 경로 해석 (payload 루트 기준 상대)
+            declared_skills: set[str] = set()
+            for sp in skills_paths:
+                skill_root = (PAYLOAD_ROOT / sp).resolve()
+                if not skill_root.exists():
+                    problems.append(f"pi.skills 경로가 실제 디스크에 없다: {sp}")
+                    continue
+                declared_skills |= {p.parent.name for p in skill_root.glob("*/SKILL.md")}
+            actual_skills = {spec.slug for spec in PLUGIN_SKILLS}
+            if declared_skills != actual_skills:
+                problems.append(
+                    f"pi.skills 가 실제 skill 과 불일치: declared={sorted(declared_skills)} "
+                    f"actual={sorted(actual_skills)}"
+                )
+
+    # 2) 각 SKILL.md description 이 [KO] + [EN] 두 표기를 모두 담는다
+    for spec in PLUGIN_SKILLS:
+        skill_md = PAYLOAD_ROOT / "skills" / spec.slug / "SKILL.md"
+        if not skill_md.exists():
+            problems.append(f"{skill_md} 부재")
+            continue
+        try:
+            text = skill_md.read_text(encoding="utf-8")
+        except OSError as exc:
+            problems.append(f"{skill_md} read 실패: {exc}")
+            continue
+        yaml = _yaml()
+        if yaml is None:
+            problems.append("PyYAML 부재 — frontmatter 검증 스킵")
+            break
+        try:
+            fm = yaml.safe_load(text.split("---", 2)[1])
+        except Exception as exc:  # noqa: BLE001
+            problems.append(f"{skill_md} frontmatter 파싱 실패: {exc}")
+            continue
+        desc = (fm or {}).get("description") or ""
+        if "[KO]" not in desc or "[EN]" not in desc:
+            problems.append(
+                f"{spec.slug} description 에 [KO]/[EN] 표기 누락 — pi 매칭 약화"
+            )
+        if len(desc) > 1024:
+            problems.append(
+                f"{spec.slug} description 길이 {len(desc)} > 1024 (pi Agent Skills spec)"
+            )
+
+    # 3) pi 용 MCP snippet 동봉 + read-only alias 만 등록
+    pi_mcp = PAYLOAD_ROOT / ".pi-pkg" / "mcp-settings-snippet.json"
+    if not pi_mcp.exists():
+        problems.append(f"{pi_mcp} 부재 — pi 사용자가 MCP 등록 스니펫을 못 받는다")
+    else:
+        try:
+            snippet = json.loads(pi_mcp.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            problems.append(f"pi MCP snippet JSON 파싱 실패: {exc}")
+            snippet = {}
+        servers = ((snippet or {}).get("mcpServers") or {})
+        if not servers:
+            problems.append("pi MCP snippet 에 mcpServers 가 없다")
+        if set(servers) != {MCP_SERVER_ALIAS}:
+            problems.append(
+                f"pi MCP servers {sorted(servers)} != read-only alias {{{MCP_SERVER_ALIAS}}} 만 — "
+                f"write({MCP_WRITE_SERVER_ALIAS}) 는 opt-in (ADR-003)"
+            )
+
+    _record(
+        "test_pi_dev_adapter",
+        not problems,
+        "; ".join(problems[:4])
+        if problems
+        else "package.json (pi-package+pi.skills) + SKILL.md [KO]/[EN] + pi MCP snippet",
+    )
+
+
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
@@ -929,7 +1051,8 @@ def main() -> int:
     test_status_targets_working_tree()
     test_gemini_adapter()
     test_goose_opencode_snippets()
-    total = 18
+    test_pi_dev_adapter()
+    total = 19
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

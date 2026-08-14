@@ -1,6 +1,8 @@
 ---
 name: session-start
-description: 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+description: |
+  [KO] 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+  [EN] Standard AI workflow session start — restore the current baseline from state.json + session_handoff.md + backlog and report the next candidate tasks. Use when beginning a new session or resuming work in a workflow_kit project.
 ---
 
 # session-start

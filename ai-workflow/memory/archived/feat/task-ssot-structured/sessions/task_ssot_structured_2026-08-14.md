@@ -37,7 +37,7 @@
 
 | 방언 | 모양 | 파서가 봤나 |
 |---|---|---|
-| 링크 (신형) | `` path: [`./tasks/X.md`](./tasks/X.md) `` | ✅ |
+| 링크 (신형) | `path:` 뒤에 마크다운 링크 (`./tasks/X.md` 를 label 과 target 양쪽에) | ✅ |
 | 백틱 (v0.14.0 마이그레이션) | `` path: `backlog/tasks/X.md` `` | ❌ |
 | 인라인 (legacy 분할) | `path:` 자체가 없음 | ❌ |
 

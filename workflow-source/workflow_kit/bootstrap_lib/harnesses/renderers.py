@@ -1107,7 +1107,7 @@ description: 표준 AI 워크플로우 세션 시작 — state.json + session_ha
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-{find_memory_command(load_standard_rules(), "세션 시작")} --help
+{find_memory_command(load_standard_rules(), "Restore session-start baseline")} --help
 ```
 
 ## 절차
@@ -1164,7 +1164,7 @@ description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlo
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-{find_memory_command(load_standard_rules(), "task 등록")} --help
+{find_memory_command(load_standard_rules(), "Register / update a task")} --help
 ```
 
 ## 절차
@@ -1221,7 +1221,7 @@ index 갱신 포인트를 정리.
 이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
 
 ```bash
-{find_memory_command(load_standard_rules(), "동기화")} --help
+{find_memory_command(load_standard_rules(), "Sync affected documents")} --help
 ```
 
 ## 절차
@@ -1472,10 +1472,10 @@ def render_goose_config(args: argparse.Namespace, context: dict[str, object]) ->
     존재하지 않는 `skills/` 경로 + 없는 플래그를 부르던 결함(TASK-022 잔여)의 처방.
     """
     rules = load_standard_rules()
-    session_start_cmd = find_memory_command(rules, "세션 시작")
-    backlog_update_cmd = find_memory_command(rules, "task 등록")
-    doc_sync_cmd = find_memory_command(rules, "동기화")
-    refresh_state_cmd = find_memory_command(rules, "재생성")
+    session_start_cmd = find_memory_command(rules, "Restore session-start baseline")
+    backlog_update_cmd = find_memory_command(rules, "Register / update a task")
+    doc_sync_cmd = find_memory_command(rules, "Sync affected documents")
+    refresh_state_cmd = find_memory_command(rules, "Regenerate state.json")
     return f"""# Goose config (v0.10.2+)
 #
 # Goose 는 extension 등록을 통해 workflow 진입. 본 config 는
@@ -1932,7 +1932,7 @@ python3 ai-workflow/mcp_servers/suggest-impacted-docs/suggest_impacted_docs.py
 
 ```bash
 # 1. memory 갱신 — handoff/backlog 를 도구로 갱신한 뒤 state.json 재생성
-{find_memory_command(load_standard_rules(), "재생성")}
+{find_memory_command(load_standard_rules(), "Regenerate state.json")}
 
 # 2. commit
 git add -A

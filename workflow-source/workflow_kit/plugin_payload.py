@@ -197,7 +197,7 @@ class PluginSkillSpec(NamedTuple):
 
 
 def _session_start_body(rules: StandardRules) -> str:
-    command = find_memory_command(rules, "세션 시작")
+    command = find_memory_command(rules, "Restore session-start baseline")
     return f"""## 역할
 
 `ai-workflow/memory/active/<branch>/` 의 현재 baseline 을 복원하고, 다음 작업
@@ -228,7 +228,7 @@ scaffold 를 제안한다.
 
 
 def _backlog_update_body(rules: StandardRules) -> str:
-    command = find_memory_command(rules, "task 등록")
+    command = find_memory_command(rules, "Register / update a task")
     states = " / ".join(f"`{state}`" for state in rules.task_states)
     return f"""## 역할
 
@@ -255,7 +255,7 @@ def _backlog_update_body(rules: StandardRules) -> str:
 
 
 def _doc_sync_body(rules: StandardRules) -> str:
-    command = find_memory_command(rules, "동기화")
+    command = find_memory_command(rules, "Sync affected documents")
     return f"""## 역할
 
 변경된 파일에서 영향 문서 후보를 뽑고, 갱신 포인트를 **advisory 로** 제안한다.
@@ -276,7 +276,7 @@ def _doc_sync_body(rules: StandardRules) -> str:
 
 
 def _session_end_body(rules: StandardRules) -> str:
-    command = find_memory_command(rules, "state.json 재생성")
+    command = find_memory_command(rules, "Regenerate state.json")
     states = " / ".join(f"`{state}`" for state in rules.task_states)
     return f"""## 역할
 
@@ -723,7 +723,7 @@ def render_claude_code_hooks(rules: StandardRules) -> str:
     명령은 정본 §11.1 파생이다 (`find_memory_command`). 여기에 문자열을 박으면
     §11.1 개명 시 이 사본만 낡는다.
     """
-    refresh_cmd = find_memory_command(rules, "state.json 재생성")
+    refresh_cmd = find_memory_command(rules, "Regenerate state.json")
     binary = refresh_cmd.split()[0]
     guide = "docs/INSTALLATION_AND_USAGE.md §3"
     absent_notice = (

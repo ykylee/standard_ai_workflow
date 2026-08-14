@@ -135,7 +135,9 @@ def case_5_self_application() -> None:
 def case_6_declaration_matches_exposure() -> None:
     standard = (SOURCE_ROOT / "core" / "global_workflow_standard.md").read_text(encoding="utf-8")
     assert "`wk refresh-state`" in standard, "정본 §11 에 wk refresh-state 안내가 없다"
-    assert "생성물" in standard, "정본 §11 에 state.json 생성물 선언이 없다"
+    # 정본이 영어로 옮겨졌다 (2026-08-14). 재는 것은 그대로 — "state.json 이
+    # 생성물이라고 정본에 적혀 있는가".
+    assert "generated artifact" in standard, "정본 §11 에 state.json 생성물 선언이 없다"
     from workflow_kit.common.tool_dispatch import TOOL_MODULES
     assert TOOL_MODULES.get("refresh-state") == "workflow_kit.tools.refresh_state", (
         "정본이 안내하는 wk refresh-state 가 TOOL_MODULES 에 없다 — 안내만 있고 실행 경로가 없다 (TASK-020 재발)"

@@ -74,16 +74,16 @@ STANDARD_RELPATH = Path("core") / "global_workflow_standard.md"
 #: 진입점 블록 맨 위에 찍히는 표식. 검사기가 이 문자열로 생성 블록을 찾는다.
 GENERATED_MARKER = (
     "<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 "
-    "— 이 블록은 직접 고치지 않는다. 표준 문서를 고치고 다시 생성한다. -->"
+    "— do not edit this block directly; edit the standard document and regenerate. -->"
 )
 
 #: 종료 시 갱신 대상 상태 문서 기본값 (하네스별로 경로 표기가 다를 수 있다).
-DEFAULT_STATE_DOCS: tuple[str, ...] = ("state.json", "session_handoff.md", "최신 backlog")
+DEFAULT_STATE_DOCS: tuple[str, ...] = ("state.json", "session_handoff.md", "the latest backlog")
 
-_SECTION_PRINCIPLES = "## 1. 공통 원칙"
-_SECTION_STATES = "## 3. 작업 상태값"
-_SECTION_CLOSE = "## 8. 세션 종료 원칙 및 절차"
-_SECTION_MEMORY = "## 11. 메모리 갱신 경로와 파싱 계약"
+_SECTION_PRINCIPLES = "## 1. Core Principles"
+_SECTION_STATES = "## 3. Task Status Values"
+_SECTION_CLOSE = "## 8. Session Close Principles and Procedure"
+_SECTION_MEMORY = "## 11. Memory Update Paths and Parsing Contract"
 
 
 class StandardParseError(RuntimeError):
@@ -267,17 +267,17 @@ def render_entrypoint_rules(
     """
     resolved = rules if rules is not None else load_standard_rules(source_root)
     bullets = "\n".join(f"- {p}" for p in resolved.principles)
-    targets = ", ".join(f"`{d}`" if not d.startswith("최신") else d for d in state_docs)
+    targets = ", ".join(f"`{d}`" if not d.startswith("the ") else d for d in state_docs)
     commands = "\n".join(f"- {purpose}: `{cmd}`" for purpose, cmd in resolved.memory_commands)
     contract = "\n".join(f"- {rule}" for rule in resolved.parse_contract)
     return (
-        "## 작업 원칙\n"
+        "## Working Principles\n"
         f"\n{GENERATED_MARKER}\n"
         f"\n{bullets}\n"
-        "\n## 세션 종료 순서\n"
+        "\n## Session Close Order\n"
         f"\n{resolved.close_order}\n"
-        f"\n- 종료 전 갱신 대상: {targets}"
-        "\n\n## 메모리 갱신 경로\n"
+        f"\n- Update before closing: {targets}"
+        "\n\n## Memory Update Paths\n"
         f"\n{commands}\n"
         f"\n{contract}"
     )
@@ -300,7 +300,7 @@ def render_memory_update_section(
     commands = "\n".join(f"- {purpose}: `{cmd}`" for purpose, cmd in resolved.memory_commands)
     contract = "\n".join(f"- {rule}" for rule in resolved.parse_contract)
     return (
-        "## 메모리 갱신 경로\n"
+        "## Memory Update Paths\n"
         f"\n{GENERATED_MARKER}\n"
         f"\n{commands}\n"
         f"\n{contract}"

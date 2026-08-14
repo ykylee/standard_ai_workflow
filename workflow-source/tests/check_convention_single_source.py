@@ -123,7 +123,7 @@ CONVENTIONS: tuple[Convention, ...] = (
     # 정본은 core/global_workflow_standard.md, 추출기는 standard_rules.py 다.
     Convention(
         name="세션 종료 순서 문장 (§8)",
-        literal=re.compile(r"memory 갱신 → commit → push"),
+        literal=re.compile(r"update memory → commit → push"),  # 정본 영어화 (2026-08-14)
         canonical="workflow_kit/common/standard_rules.py",
         symbols=("load_standard_rules", "render_entrypoint_rules", "parse_standard"),
         exemptions={

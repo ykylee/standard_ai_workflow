@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.2.0-beta 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-08-13 (§7.0 플러그인 설치를 권장 경로로 승격 — P5 판정)
+- 최종 수정일: 2026-08-14 (§7.0 Grok Build 플러그인 설치 경로 추가)
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI / Grok Build)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -297,6 +297,17 @@ claude plugin update standard-ai-workflow@standard-ai-workflow   # 재시작 후
 git clone https://github.com/ykylee/standard_ai_workflow.git
 gemini extensions install ./standard_ai_workflow/plugin --consent
 # 개발 추적이 필요하면 install 대신: gemini extensions link ./standard_ai_workflow/plugin
+```
+
+```bash
+# Grok Build — 저장소 루트가 marketplace (.claude-plugin/marketplace.json 동등물)
+# 훅은 hooks/hooks.json 관례 경로. 설치는 --trust 가 있어야 MCP/훅이 활성화된다
+# (실측 2026-08-14: 스킬 4 + read-only MCP + hooks).
+grok plugin marketplace add ykylee/standard_ai_workflow
+grok plugin install standard-ai-workflow --trust
+
+# 로컬 체크아웃
+grok plugin install ./plugin --trust
 ```
 
 전제 두 가지:

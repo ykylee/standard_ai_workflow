@@ -224,7 +224,7 @@ def check_existing_project_mode() -> None:
             raise AssertionError("Repository assessment is missing inferred script details.")
 
         readme_text = Path(str(generated["readme"])).read_text(encoding="utf-8")
-        if "내부 사고 과정과 중간 분류는 모델이 가장 효율적인 형태로 처리" not in readme_text:
+        if "Handle internal reasoning and intermediate classification" not in readme_text:
             raise AssertionError("Existing project workflow README should include the context-saving rule.")
 
         docs_backlog_dir = target_root / "docs" / "operations" / "backlog"

@@ -238,6 +238,37 @@ def _set_frontmatter_value(lines: list[str], key: str, value: str) -> list[str]:
     return updated
 
 
+def _heal_validation_split(lines: list[str]) -> list[str]:
+    """`작업 결과` 묶음 **안에** 끼인 `검증 결과` 줄을 묶음 끝으로 옮긴다.
+
+    구버전 검증-결과 주입이 묶음의 첫 줄 뒤에 꽂아서 열거 묶음을 갈랐다
+    (TASK-2026-08-14-main-010). 갈라진 묶음은 조용하다 — 파일은 읽히고 검사도
+    통과한다. 다음 갱신에서야 :func:`_set_list_field` 가 첫 조각만 묶음으로 보고
+    교체해, 뒤 조각이 옛 값 그대로 **고아로 남는다.**
+
+    치유는 갱신 진입 시마다 돈다 — 이미 갈라진 채 디스크에 있는 파일(주입이
+    고쳐지기 전에 쓰인 것들)도 다음 touch 에서 온전해진다.
+    """
+    result_p = _label_prefixes(task_label("result"))
+    validation_p = _label_prefixes(task_label("validation"))
+    healed = list(lines)
+    moved = True
+    while moved:
+        moved = False
+        for idx in range(1, len(healed) - 1):
+            if (_matches_label(healed[idx].strip(), validation_p)
+                    and _matches_label(healed[idx - 1].strip(), result_p)
+                    and _matches_label(healed[idx + 1].strip(), result_p)):
+                line = healed.pop(idx)
+                end = idx
+                while end < len(healed) and _matches_label(healed[end].strip(), result_p):
+                    end += 1
+                healed.insert(end, line)
+                moved = True
+                break
+    return healed
+
+
 def merge_task_file(
     existing_lines: list[str],
     *,
@@ -260,6 +291,8 @@ def merge_task_file(
     if kind:
         lines = _set_frontmatter_value(lines, "kind", kind)
     lines, _ = _set_inline_field(lines, "상태", status)
+    # 갈라진 묶음을 먼저 치유한다 — 이 아래의 묶음 교체가 온전한 묶음을 전제한다.
+    lines = _heal_validation_split(lines)
 
     missing: list[str] = []
     # 다중값 먼저 — 묶음 단위 교체라 스칼라 경로와 섞이면 안 된다.
@@ -274,7 +307,9 @@ def merge_task_file(
         lines, found = _set_inline_field(lines, label, value)
         if not found and label == task_label("validation"):
             # done 판정의 근거라 조용히 버릴 수 없다. 원문에 줄이 없으면 (구버전
-            # create 는 이 줄을 조건부로만 만들었다) `작업 결과` 바로 뒤에 넣는다.
+            # create 는 이 줄을 조건부로만 만들었다) `작업 결과` 묶음 **끝** 뒤에
+            # 넣는다 — 첫 줄 뒤에 꽂으면 열거 묶음이 갈라져, 다음 갱신에서 뒤
+            # 조각이 고아로 남는다 (main-010 실측).
             #
             # 앵커를 **리터럴로 찾으면 안 된다** — 옛/영어 표기로 적힌 문서에서는
             # 그 비교가 항상 거짓이라 이 분기가 조용히 안 돈다. 찾기는 별칭까지
@@ -282,7 +317,10 @@ def merge_task_file(
             anchor = _label_prefixes(task_label("result"))
             for idx, line in enumerate(lines):
                 if _matches_label(line.strip(), anchor):
-                    lines = lines[: idx + 1] + [f"- {label}: {value}"] + lines[idx + 1 :]
+                    end = idx + 1
+                    while end < len(lines) and _matches_label(lines[end].strip(), anchor):
+                        end += 1
+                    lines = lines[:end] + [f"- {label}: {value}"] + lines[end:]
                     found = True
                     break
         if not found:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""task SSOT 의 **다중값 필드** 계약을 고정한다 (9 cases).
+"""task SSOT 의 **다중값 필드** 계약을 고정한다 (12 cases).
 
 ## 계보 — 소실과 중복은 같은 뿌리다
 
@@ -14,7 +14,7 @@
 둘 다 "열거인데 스칼라로 다뤘다" 하나에서 나온다. 그래서 처방도 하나다 —
 `action="append"` + **묶음 단위 교체**(`_set_list_field`).
 
-9 cases:
+12 cases:
   1) create — 반복 지정한 값이 **전부** 남는다
   2) create — 값 하나면 한 줄
   3) create — 값이 없으면 빈 placeholder 한 줄 (형식 유지)
@@ -24,6 +24,9 @@
   7) update — 개수를 줄이면 남는 줄이 사라진다
   8) 묶음 교체가 **다른 절의 같은 라벨**까지 삼키지 않는다
   9) 자기 적용 — 저장소의 task 파일에 같은 라벨 줄이 **중복 누적**돼 있지 않다
+ 10) `검증 결과` 주입이 `작업 결과` 묶음 **끝** 뒤에 들어간다 (묶음을 안 가른다)
+ 11) 이미 갈라진 파일이 갱신 시 **치유**되고 고아 줄이 남지 않는다
+ 12) 자기 적용 — 저장소의 task 파일에 갈라진 묶음이 없다
 """
 
 from __future__ import annotations
@@ -40,7 +43,12 @@ REPO_ROOT = SOURCE_ROOT.parent
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.workflow_writes import _set_list_field  # noqa: E402
+from workflow_kit.common.workflow_writes import (  # noqa: E402
+    _label_prefixes,
+    _matches_label,
+    _set_list_field,
+    merge_task_file,
+)
 
 FAILURES: list[str] = []
 
@@ -191,6 +199,61 @@ def case_9_self_no_accumulated_duplicates() -> None:
     assert not bad, "같은 줄이 중복 누적된 task:\n  " + "\n  ".join(bad[:15])
 
 
+def case_10_validation_injects_after_group_end() -> None:
+    """`검증 결과` 주입이 `작업 결과` 묶음 **끝** 뒤에 들어간다.
+
+    첫 줄 뒤(idx+1)에 꽂던 때는 열거 묶음이 [a1][검증][a2][a3] 로 갈라졌다
+    (main-010). 갈라짐은 조용하다 — 다음 갱신에서야 고아 줄로 나타난다.
+    """
+    body = ["# T", "- 상태: in_progress", "## ✅ Outcome", "", "- 작업 결과:", "- 후속 작업:"]
+    body, _ = merge_task_file(body, status="in_progress",
+                              list_updates={"작업 결과": ["a1", "a2", "a3"]},
+                              scalar_updates={"검증 결과": "v1"}, affected_documents=None)
+    got = [ln for ln in body if ln.startswith(("- 작업 결과:", "- 검증 결과:"))]
+    assert got == ["- 작업 결과: a1", "- 작업 결과: a2", "- 작업 결과: a3",
+                   "- 검증 결과: v1"], f"주입이 묶음을 갈랐다: {got}"
+
+
+def case_11_split_file_heals_without_orphans() -> None:
+    """이미 갈라진 파일이 갱신 시 치유되고 고아 줄이 남지 않는다.
+
+    구버전 주입이 만든 디스크 상태 [a1][검증][a2][a3] 를 그대로 되주입한 뒤
+    묶음을 2줄로 갱신한다 — 수리 전에는 a2·a3 가 옛 값 그대로 고아로 남았다.
+    """
+    split = ["# T", "- 상태: in_progress", "## ✅ Outcome", "",
+             "- 작업 결과: a1", "- 검증 결과: v1", "- 작업 결과: a2", "- 작업 결과: a3",
+             "- 후속 작업:"]
+    healed, missing = merge_task_file(split, status="in_progress",
+                                      list_updates={"작업 결과": ["b1", "b2"]},
+                                      scalar_updates=None, affected_documents=None)
+    orphans = [ln for ln in healed if ln.startswith("- 작업 결과: a")]
+    assert not orphans, f"갈라진 뒤 조각이 고아로 남았다: {orphans}"
+    got = [ln for ln in healed if ln.startswith(("- 작업 결과:", "- 검증 결과:"))]
+    assert got == ["- 작업 결과: b1", "- 작업 결과: b2", "- 검증 결과: v1"], f"치유 결과가 다르다: {got}"
+    assert not missing, f"필드를 놓쳤다: {missing}"
+
+
+def case_12_self_no_split_groups() -> None:
+    """자기 적용 — 저장소의 task 파일에 갈라진 묶음이 없다.
+
+    갈라짐의 서명은 [작업 결과][검증 결과][작업 결과] 다. 실물에서 이 패턴이
+    발견되면 구버전 주입이 만든 파일이 치유되지 않고 남아 있다는 뜻이다.
+    """
+    rp = _label_prefixes("작업 결과")
+    vp = _label_prefixes("검증 결과")
+    bad: list[str] = []
+    for f in sorted(_glob.glob(str(REPO_ROOT / "ai-workflow/memory/**/backlog/tasks/*.md"),
+                               recursive=True)):
+        text = Path(f).read_text(encoding="utf-8").splitlines()
+        for i in range(1, len(text) - 1):
+            if (_matches_label(text[i].strip(), vp)
+                    and _matches_label(text[i - 1].strip(), rp)
+                    and _matches_label(text[i + 1].strip(), rp)):
+                bad.append(Path(f).name)
+                break
+    assert not bad, "갈라진 묶음이 남은 task (wk backlog-update 로 touch 하면 치유된다):\n  " + "\n  ".join(bad[:10])
+
+
 def _run(fn, needs_root: bool = True) -> None:
     try:
         if needs_root:
@@ -213,12 +276,14 @@ def main() -> int:
                case_4_update_replaces_group, case_5_update_is_idempotent,
                case_6_update_preserves_untouched, case_7_update_shrinks):
         _run(fn)
-    for fn in (case_8_group_does_not_swallow_other_section, case_9_self_no_accumulated_duplicates):
+    for fn in (case_8_group_does_not_swallow_other_section, case_9_self_no_accumulated_duplicates,
+               case_10_validation_injects_after_group_end, case_11_split_file_heals_without_orphans,
+               case_12_self_no_split_groups):
         _run(fn, needs_root=False)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n9/9 PASS")
+    print("\n12/12 PASS")
     return 0
 
 

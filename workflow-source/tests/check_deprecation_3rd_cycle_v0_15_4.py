@@ -40,6 +40,48 @@ DEPRECATION_WARN_CALL_RE = re.compile(
 )
 
 
+#: 스캔에서 제외할 **디렉터리 이름** (경로 어느 깊이에 있어도 제외).
+#:
+#: v1.2.1 (TASK-2026-08-16-main-003) 이전에는 이 제외가 **죽어 있었다**: 경로를
+#: ``py.relative_to(REPO_ROOT)`` 로 만들면서 제외 항목은 ``WORKFLOW_SOURCE`` 기준
+#: 이름(``build`` / ``.venv``)이라, ``workflow-source/.venv/...`` 가 ``.venv`` 로
+#: 시작할 수가 없었다. 평소에는 그 디렉터리가 없어 아무도 몰랐고, 로컬에
+#: ``workflow-source/.venv`` 를 만든 호스트에서만 site-packages 의 서드파티
+#: ``warnings.warn`` **16건이 저장소 결함으로** 보고됐다 (2026-08-16 실측).
+#: CI 는 그 디렉터리가 없어 green — 로컬만 red 인 비대칭이었다.
+#:
+#: 이름 비교를 **경로 조각 단위**로 하는 이유: 문자열 ``startswith`` 는
+#: ``buildtools/`` 를 ``build`` 로 오인하고, 중첩된 ``.venv`` 는 놓친다.
+EXCLUDED_DIR_NAMES = frozenset({"build", ".venv", "__pycache__", ".worktrees"})
+
+
+def _is_excluded(rel: Path, excluded: frozenset[str]) -> bool:
+    """``WORKFLOW_SOURCE`` 상대 경로가 제외 대상인가.
+
+    파일 시스템을 보지 않는 **순수 판정**이라 합성 경로로 그대로 검증된다
+    (case 4). 제외가 죽어도 조용히 green 이던 자리를 여기서 막는다.
+    """
+    return bool(excluded & set(rel.parts[:-1]))
+
+
+def _iter_source_files(*, extra_excluded_dirs: frozenset[str] = frozenset()) -> list[Path]:
+    """``workflow-source/`` 아래의 스캔 대상 ``*.py``.
+
+    제외 판정은 :data:`EXCLUDED_DIR_NAMES` 기준이며, 경로는 반드시
+    ``WORKFLOW_SOURCE`` 상대다 — 제외 어휘와 경로 기준이 갈리는 순간 제외가
+    조용히 죽는다 (위 주석의 실측).
+    """
+    excluded = EXCLUDED_DIR_NAMES | extra_excluded_dirs
+    files: list[Path] = []
+    for py in WORKFLOW_SOURCE.rglob("*.py"):
+        if _is_excluded(py.relative_to(WORKFLOW_SOURCE), excluded):
+            continue
+        if py.name == "check_deprecation_3rd_cycle_v0_15_4.py":
+            continue
+        files.append(py)
+    return files
+
+
 def _is_in_docstring_or_comment(file_path: Path, line_number: int) -> bool:
     # 주어진 (file, line) 이 docstring 또는 comment 안에 있는지 확인.
     # heuristic: 위쪽 line 들을 scan 하면서 triple-quote marker 의 짝/홀 판정.
@@ -68,7 +110,9 @@ def _is_in_docstring_or_comment(file_path: Path, line_number: int) -> bool:
     return False
 
 
-def _scan_python_files_for_deprecation_warns(exclude_paths: set[Path]) -> list[tuple[Path, int, str]]:
+def _scan_python_files_for_deprecation_warns(
+    extra_excluded_dirs: frozenset[str] = frozenset(),
+) -> list[tuple[Path, int, str]]:
     """workflow-source 의 모든 .py file 에서 DeprecationWarning emit call site 검색.
 
     docstring/comment 안의 mention 은 제외.
@@ -77,14 +121,7 @@ def _scan_python_files_for_deprecation_warns(exclude_paths: set[Path]) -> list[t
         list of (file_path, line_number, matched_line)
     """
     matches: list[tuple[Path, int, str]] = []
-    for py in WORKFLOW_SOURCE.rglob("*.py"):
-        # exclude paths
-        rel = py.relative_to(REPO_ROOT)
-        if any(str(rel).startswith(str(ex)) for ex in exclude_paths):
-            continue
-        # smoke self-reference 제외
-        if py.name == "check_deprecation_3rd_cycle_v0_15_4.py":
-            continue
+    for py in _iter_source_files(extra_excluded_dirs=extra_excluded_dirs):
         try:
             content = py.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -105,12 +142,7 @@ def _scan_python_files_for_deprecated_markers() -> list[tuple[Path, int, str]]:
     """
     matches: list[tuple[Path, int, str]] = []
     deprecated_attr_re = re.compile(r"__deprecated__\s*=\s*True")
-    for py in WORKFLOW_SOURCE.rglob("*.py"):
-        rel = py.relative_to(REPO_ROOT)
-        if any(str(rel).startswith(str(ex)) for ex in {Path("build"), Path(".venv")}):
-            continue
-        if py.name == "check_deprecation_3rd_cycle_v0_15_4.py":
-            continue
+    for py in _iter_source_files():
         try:
             content = py.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -131,12 +163,7 @@ def _scan_v0_7_4_deprecated_uses() -> list[tuple[Path, int, str]]:
     """
     matches: list[tuple[Path, int, str]] = []
     apply_re = re.compile(r"^\s*@v0_7_4_deprecated\s*\(")
-    for py in WORKFLOW_SOURCE.rglob("*.py"):
-        rel = py.relative_to(REPO_ROOT)
-        if any(str(rel).startswith(str(ex)) for ex in {Path("build"), Path(".venv")}):
-            continue
-        if py.name == "check_deprecation_3rd_cycle_v0_15_4.py":
-            continue
+    for py in _iter_source_files():
         try:
             content = py.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
@@ -151,14 +178,15 @@ def _scan_v0_7_4_deprecated_uses() -> list[tuple[Path, int, str]]:
 
 def case_1_deprecation_warning_emit_infrastructure_only() -> bool:
     """1) DeprecationWarning emit call site 가 infrastructure (decorators.py) 안에만 존재."""
-    exclude = {Path("build"), Path(".venv"), Path("tests")}
-    matches = _scan_python_files_for_deprecation_warns(exclude_paths=exclude)
-    # 각 match 의 file 이 ALLOWED 에 속하는지 확인
+    matches = _scan_python_files_for_deprecation_warns(extra_excluded_dirs=frozenset({"tests"}))
+    # 각 match 의 file 이 ALLOWED 에 속하는지 확인.
+    # `ALLOWED_DEPRECATION_INFRASTRUCTURE` 는 WORKFLOW_SOURCE 상대 경로이므로
+    # 비교 경로도 같은 기준으로 만든다 — 예전에는 REPO_ROOT 상대라 정확 비교가
+    # 성립하지 않았고 `endswith` 완화가 그 어긋남을 가리고 있었다.
     non_infrastructure: list[tuple[Path, int, str]] = []
     for fpath, ln, line in matches:
-        rel = fpath.relative_to(REPO_ROOT)
-        rel_str = str(rel)
-        if any(rel_str == allowed or rel_str.endswith(allowed) for allowed in ALLOWED_DEPRECATION_INFRASTRUCTURE):
+        rel_str = fpath.relative_to(WORKFLOW_SOURCE).as_posix()
+        if rel_str in ALLOWED_DEPRECATION_INFRASTRUCTURE:
             continue
         # decorators.py 자체는 infrastructure
         if "decorators.py" in rel_str:
@@ -232,11 +260,58 @@ def case_3_v0_7_4_deprecated_no_actual_use() -> bool:
     return True
 
 
+def case_4_exclusion_rule_is_live() -> bool:
+    """4) 제외 규칙이 **살아 있는가** (TASK-2026-08-16-main-003).
+
+    cases 1~3 은 제외가 통째로 죽어도 조용히 green 이었다 — 제외 대상 디렉터리가
+    평소엔 없기 때문이다. 실제로 그 상태로 오래 있었고, 로컬에
+    ``workflow-source/.venv`` 를 만든 호스트에서만 서드파티 16건이 저장소 결함으로
+    보고됐다. 규칙 자체를 합성 경로로 직접 판정한다.
+    """
+    excluded = EXCLUDED_DIR_NAMES
+    expectations: list[tuple[str, frozenset[str], bool]] = [
+        # (경로, 추가 제외, 제외되어야 하는가)
+        (".venv/lib/python3.13/site-packages/mypy_extensions.py", frozenset(), True),
+        ("build/lib/workflow_kit/x.py", frozenset(), True),
+        ("workflow_kit/nested/.venv/lib/x.py", frozenset(), True),   # 중첩도 잡는다
+        ("workflow_kit/common/decorators.py", frozenset(), False),   # 진짜 소스는 통과
+        ("buildtools/helper.py", frozenset(), False),                # startswith 오인 방지
+        ("tests/check_x.py", frozenset(), False),                    # 기본 제외 아님
+        ("tests/check_x.py", frozenset({"tests"}), True),            # case 1 만 추가 제외
+    ]
+    problems: list[str] = []
+    for rel_str, extra, should_exclude in expectations:
+        got = _is_excluded(Path(rel_str), excluded | extra)
+        if got != should_exclude:
+            problems.append(f"{rel_str} (extra={sorted(extra)}): 제외={got}, 기대={should_exclude}")
+
+    # 원 결함을 실행 가능한 단언으로 남긴다: REPO_ROOT 상대 경로에 WORKFLOW_SOURCE
+    # 기준 이름을 startswith 로 대면 **절대 안 맞는다**. 이 비대칭이 결함이었다.
+    if "workflow-source/.venv/lib/x.py".startswith(".venv"):
+        problems.append("전제가 바뀌었다 — 원 결함 재현 단언이 무의미해졌다")
+
+    # 살아 있는 관찰: 제외 대상 디렉터리가 실제로 있으면 스캔에 안 들어와야 한다.
+    scanned = {p.relative_to(WORKFLOW_SOURCE).parts[0] for p in _iter_source_files()}
+    leaked = sorted(EXCLUDED_DIR_NAMES & scanned)
+    if leaked:
+        problems.append(f"제외 대상이 스캔에 들어왔다: {leaked}")
+
+    if problems:
+        print(f"  FAIL: 제외 규칙 문제 {len(problems)}건:")
+        for item in problems[:5]:
+            print(f"    {item}")
+        return False
+    present = sorted(name for name in EXCLUDED_DIR_NAMES if (WORKFLOW_SOURCE / name).is_dir())
+    print(f"  [info] 제외 규칙 {len(expectations)}종 정합 (이 호스트에 실재하는 제외 대상: {present or '없음'})")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_deprecation_warning_emit_infrastructure_only", case_1_deprecation_warning_emit_infrastructure_only),
         ("case_2_deprecated_marker_infrastructure_only", case_2_deprecated_marker_infrastructure_only),
         ("case_3_v0_7_4_deprecated_no_actual_use", case_3_v0_7_4_deprecated_no_actual_use),
+        ("case_4_exclusion_rule_is_live", case_4_exclusion_rule_is_live),
     ]
     results: list[tuple[str, bool]] = []
     for name, fn in cases:
@@ -261,6 +336,10 @@ def test_case_2_deprecated_marker_infrastructure_only() -> None:
 
 def test_case_3_v0_7_4_deprecated_no_actual_use() -> None:
     assert case_3_v0_7_4_deprecated_no_actual_use(), "case_3_v0_7_4_deprecated_no_actual_use FAIL"
+
+
+def test_case_4_exclusion_rule_is_live() -> None:
+    assert case_4_exclusion_rule_is_live(), "case_4_exclusion_rule_is_live FAIL"
 
 
 if __name__ == "__main__":

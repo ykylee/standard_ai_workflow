@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-17
 
+- **46차 세션 종료 — main-016 `wk doctor` 착수, 구현 지점 조사 완료 (코드 미착수).** 조사 확정 사항은 전부 [task 파일](./backlog/tasks/TASK-2026-08-14-main-016.md)의 진행 현황·다음 세션 시작 포인트에 있다 — CLI 등록 패턴(`cli_registry.register` + `cli_commands_*` 모듈), 기존 조각 구분(`workflow_kit.cli.doctor` 는 7 baseline 평가로 **다른 물건**, INSTALLATION §4 가 env probe 원형), 정본 registry 3곳(`HARNESS_SPECS`/`PLUGIN_HARNESS_SPECS`/`PLUGIN_SKILLS`), 마커 helper(`upgrade_diff.parse_version_marker`/`compare_marker`/`read_kit_version`), 글로벌 선언 거주지 5곳. 설계: `deploy_doctor.py` probe(project_root·home 주입) → environment/project_scope/global_scope/drift 4절, report-only(§5.2), `--strict` 만 rc 1. **부수 발견**: backlog-update 결함 — 날짜가 바뀐 뒤 그날 index 에 항목 없는 task 의 update 가 `cannot_determine` 으로 apply 를 조용히 스킵하며 최상위 status 는 ok ([TASK-2026-08-16-main-001] 등록, 이번엔 형식 보존 손 append 로 이월). Explore 위임 조사가 1시간 무응답이라 중단하고 직접 조사로 전환 — 좁은 조사는 직접이 빠르다.
+
+## 롤오프 2026-08-17
+
 - **45차 세션 종료 — 결함 수리 일괄 + PR 3건 + 배포 멱등성 컨셉 (11 push, 전부 게이트 green).** ①실행형 task 전부 close: main-010(검증결과 주입이 묶음을 가름 → 묶음 끝 주입 + `_heal_validation_split` 치유) · main-006(아카이브 문서-이동 링크 `_rewrite_relocated_links` — 사람이 두 번 밟은 규칙이 도구가 됨) · main-005(seed 가 첫 세션 기록을 씀 — 검사 예외 기각) · main-019/08-12(CLAUDE.md 실행 기본값 `.venv/bin/python3` 전제 — 같은 날 homebrew python 오탐 9건을 직접 밟고 수리) · main-004(조건부 1축 **기각**, 재론 방지 각주) · main-011(CHECK_TIMEOUT_S 미선언 3건 + `.worktrees` 스캔 제외). main-009 는 게이트 밖 준비 완료(정본 표 누락 3라벨 보강 · 리터럴 27곳 이관 · 검사 11 cases), **전환 한 줄만 release 경계 뒤**. ②PR: #27 Grok 병합 · #26 은 1줄이 CI 3라운드를 소모해 main 직접 반영 후 close(브랜치 메모리 미seed 가 CI 전제를 깬다) · #28 pi.dev 는 case 19 충돌을 Grok 19/pi 20 으로 해소 후 병합 — **플러그인 채널 5개**가 됐다. ③배포 정리: `workflow_harness_distribution.md` §2.1 채널×하네스 매트릭스(main-014, 문서 흠 2건은 main-012 선행 수리) + **`workflow_deployment_idempotency.md` 신설**(main-015, 소유자 방향 승인) — 배포=함수, 변수 5축(하네스는 집합·설치 스코프 글로벌/프로젝트/양쪽), 3계약+1탐침, 소유권 3분류. gap 4개 등록: **main-016 `wk doctor` 가 1순위** · main-017 채널 재실행 계약 · main-018 드리프트 감지 · main-019 pre-flight. 교훈: 다른 세션 활동 중 `git add` 는 명시 경로로(쓸어담기 실사고 1건). 상세: [세션 기록](./sessions/deployment_channels_and_idempotency_2026-08-14.md).
 
 ## 롤오프 2026-08-17

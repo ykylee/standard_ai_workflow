@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-14",
+  "generated_at": "2026-08-16",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-16.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,10 +27,11 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**45차 세션 종료 — 결함 수리 일괄 + PR 3건 + 배포 멱등성 컨셉 (11 push, 전부 게이트 green).** ①실행형 task 전부 close: main-010(검증결과 주입이 묶음을 가름 → 묶음 끝 주입 + `_heal_validation_split` 치유) · main-006(아카이브 문서-이동 링크 `_rewrite_relocated_links` — 사람이 두 번 밟은 규칙이 도구가 됨) · main-005(seed 가 첫 세션 기록을 씀 — 검사 예외 기각) · main-019/08-12(CLAUDE.md 실행 기본값 `.venv/bin/python3` 전제 — 같은 날 homebrew python 오탐 9건을 직접 밟고 수리) · main-004(조건부 1축 **기각**, 재론 방지 각주) · main-011(CHECK_TIMEOUT_S 미선언 3건 + `.worktrees` 스캔 제외). main-009 는 게이트 밖 준비 완료(정본 표 누락 3라벨 보강 · 리터럴 27곳 이관 · 검사 11 cases), **전환 한 줄만 release 경계 뒤**. ②PR: #27 Grok 병합 · #26 은 1줄이 CI 3라운드를 소모해 main 직접 반영 후 close(브랜치 메모리 미seed 가 CI 전제를 깬다) · #28 pi.dev 는 case 19 충돌을 Grok 19/pi 20 으로 해소 후 병합 — **플러그인 채널 5개**가 됐다. ③배포 정리: `workflow_harness_distribution.md` §2.1 채널×하네스 매트릭스(main-014, 문서 흠 2건은 main-012 선행 수리) + **`workflow_deployment_idempotency.md` 신설**(main-015, 소유자 방향 승인) — 배포=함수, 변수 5축(하네스는 집합·설치 스코프 글로벌/프로젝트/양쪽), 3계약+1탐침, 소유권 3분류. gap 4개 등록: **main-016 `wk doctor` 가 1순위** · main-017 채널 재실행 계약 · main-018 드리프트 감지 · main-019 pre-flight. 교훈: 다른 세션 활동 중 `git add` 는 명시 경로로(쓸어담기 실사고 1건). 상세: [세션 기록](./sessions/deployment_channels_and_idempotency_2026-08-14.md).",
+    "current_baseline": "**46차 세션 종료 — main-016 `wk doctor` 착수, 구현 지점 조사 완료 (코드 미착수).** 조사 확정 사항은 전부 [task 파일](./backlog/tasks/TASK-2026-08-14-main-016.md)의 진행 현황·다음 세션 시작 포인트에 있다 — CLI 등록 패턴(`cli_registry.register` + `cli_commands_*` 모듈), 기존 조각 구분(`workflow_kit.cli.doctor` 는 7 baseline 평가로 **다른 물건**, INSTALLATION §4 가 env probe 원형), 정본 registry 3곳(`HARNESS_SPECS`/`PLUGIN_HARNESS_SPECS`/`PLUGIN_SKILLS`), 마커 helper(`upgrade_diff.parse_version_marker`/`compare_marker`/`read_kit_version`), 글로벌 선언 거주지 5곳. 설계: `deploy_doctor.py` probe(project_root·home 주입) → environment/project_scope/global_scope/drift 4절, report-only(§5.2), `--strict` 만 rc 1. **부수 발견**: backlog-update 결함 — 날짜가 바뀐 뒤 그날 index 에 항목 없는 task 의 update 가 `cannot_determine` 으로 apply 를 조용히 스킵하며 최상위 status 는 ok ([TASK-2026-08-16-main-001] 등록, 이번엔 형식 보존 손 append 로 이월). Explore 위임 조사가 1시간 무응답이라 중단하고 직접 조사로 전환 — 좁은 조사는 직접이 빠르다.",
     "current_axis": "**배포 일관성·멱등성 — 컨셉이 승인됐고 구현이 시작 대기다.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md) (배포=함수, 변수 5축, 3계약+1탐침, 소유권 3분류, 멀티 하네스 공존·설치 스코프 규칙). **구현 순서**: [main-016] `wk doctor` post-apply 탐침(**1순위** — 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령) → [main-017] 채널별 재실행 계약 표(플러그인 5채널 실측) → [main-018] 드리프트 감지(마커 스캔) → [main-019] 환경 pre-flight. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았고 case 10 이 안전을 선실증. 45차에 구조 결함(main-005/006/010/011)과 판단 보류(main-004 = 기각)가 전부 닫혀 실행형 잔여는 배포 축뿐이다. **관찰** — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(진행 중) / cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.",
-    "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
+    "current_focus": "TASK-2026-08-14-main-016 wk doctor — post-apply 탐침: 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령",
     "in_progress_items": [
+      "TASK-2026-08-14-main-016 wk doctor — post-apply 탐침: 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령",
       "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
@@ -50,40 +51,26 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-14.md",
-    "task_count": 19,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-16.md",
+    "task_count": 3,
     "in_progress_items": [
+      "TASK-2026-08-14-main-016 — wk doctor — post-apply 탐침: 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령",
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
-    "done_items": [
-      "TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성",
-      "TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록",
-      "TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed",
-      "TASK-2026-08-14-main-004 — 2축 전량을 조건부 1축으로 — 브랜치 컨텍스트 민감 경로 판정",
-      "TASK-2026-08-14-main-005 — seed 직후 sessions/ 가 비어 layout 검사가 red — '한 벌이면 green' 이 아직 참이 아니다",
-      "TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째",
-      "TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%",
-      "TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거",
-      "TASK-2026-08-14-main-010 — 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다",
-      "TASK-2026-08-14-main-011 — 무거운 check 2개의 CHECK_TIMEOUT_S 미선언 — slash 축 병렬에서 TIMEOUT flake",
-      "TASK-2026-08-14-main-012 — 하네스 배포 정책 문서 흠 2건 수리 — §8 번호 중복 + 누락 타겟 6종",
-      "TASK-2026-08-14-main-013 — RELEASE.md 현재 package version 동기화 — PR #26 을 main 직접 반영으로 대체",
-      "TASK-2026-08-14-main-014 — 배포 패키지·배포 방식 정리 — 채널×하네스 매트릭스를 정본 문서에",
-      "TASK-2026-08-14-main-015 — 배포 일관성·멱등성 컨셉 문서 — workflow_deployment_idempotency.md 신설"
-    ]
+    "done_items": []
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-14.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-16.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-016.md",
     "ai-workflow/memory/active/main/sessions/deployment_channels_and_idempotency_2026-08-14.md",
     "ai-workflow/memory/archived/feat/task-label-registry/sessions/task_label_registry_2026-08-14.md",
     "ai-workflow/memory/archived/feat/task-ssot-writer/sessions/task_ssot_writer_2026-08-14.md",
-    "ai-workflow/memory/archived/feat/task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md",
     "ai-workflow/memory/active/main/baselines.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",

@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-08-16
+
+- **42차 세션 종료 — task SSOT 구조화 1단계 (TASK-2026-08-14-main-008 진행 중, `feat/task-ssot-structured` 병합).** 완료 기준의 첫 항목이 '읽는 자리 전수 조사' 였는데 **조사가 살아 있는 결함 셋을 찾았다**. ①**같은 필드에 소스가 둘** — 아카이브/축분리 검사는 frontmatter `status:`, backlog 파서는 본문 `- 상태:`. 277개 중 불일치는 0인데 **본문 줄이 없는 것이 105개(38%)** 였고 그것들은 파서에게 *상태 없음* 이라 어느 목록에도 안 들어갔다 → frontmatter 우선 (디스크 본문은 안 건드린다 — 소비자 리더 호환). ②**index 방언 셋 중 둘이 안 보였다**(링크/백틱/인라인) — `active/main` 의 daily index **20개가 task 를 0개로** 읽고 있었다. 파일은 있는데 어느 집계에도 없다. ③**fallback 이 두 겹으로 죽어 있었다** — glob 패턴이 실제 파일명을 안 잡았고 그 전에 생성자가 부재 파일에서 먼저 죽어 도달조차 못 했다. **결과: 0개 index 20→0, 읽힌 task 262, 상태 없는 task 0. `state.json` 산출은 전후 동일**(최신 backlog 는 이미 신형이라 회귀 없이 과거 커버리지만 증가). `check_task_ssot_source` 10 cases + 되주입 2종 — **되주입이 case 하나를 무력화 상태로 드러냈다**(백틱 해석을 지워도 case 5 가 glob fallback 으로 통과). 격리하니 fixture 디렉터리가 실물과 달라 실패 → 실물 모양으로 수정, **오늘 같은 실수 두 번째**. **검증**: 전량 2축 **258/258 ×2 green**. 상세: [세션 기록](../../archived/feat/task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md).
+
 ## 롤오프 2026-08-14
 
 - **41차 세션 종료 — handoff 기준선 롤오프 (TASK-2026-08-14-main-007, `perf/handoff-baseline-rolloff` 병합).** handoff **26,582 → 10,789 tok (−59%)**, 세션 시작 read set 약 36K → **21,076 tok**. **자르지 않고 이관한다** — 완료 목록은 SSOT 가 `backlog/tasks/` 에 있어 넘치면 버려도 되지만 기준선 산문은 **어디에도 없다**. 그래서 `BASELINE_ITEMS_CAP=4` 와 함께 `baselines.md` 이관을 만들었고, 검사의 중심 case 도 '줄었는가' 가 아니라 **'옮겨졌는가'** 다. `wk rollover-baselines` + `check_handoff_baseline_cap` 11 cases + 린터 `handoff_baseline_bloat`(fix_suggestion 이 도구를 가리킨다 — '지워라' 라고 적으면 사람이 지운다) + 정본 §11.1 에 명령 한 줄. **세 가지가 드러났다**: ①**fixture 가 실물을 안 닮아 결함이 실물에서만 났다** — 한 줄짜리 기준선만 재던 구현이 첫 줄만 옮겨 하위 불릿을 §1 에 고아로 남겼다(블록 단위로 수정 + case 11) ②**되주입이 검사 자신의 결함을 드러냈다** — 이관을 생략하자 case 3 이 예외로 죽으며 case 4~10 이 아예 안 돌았다(`AssertionError` 만 잡고 있었다) ③**§11.1 에 행을 늘리자 위치 가정이 깨졌다** — `check_agent_plugin_payload` 가 표의 **마지막 행**을 재생성 명령으로 보고 있었다 → 목적 기반 조회로 교체. **검증**: 전량 2축 **257/257 ×2 green** + 되주입 2종. 상세: [세션 기록](../../archived/perf/handoff-baseline-rolloff/sessions/handoff_baseline_rolloff_2026-08-14.md).

@@ -472,6 +472,87 @@ def test_secondary_renderers_carry_or_declare() -> None:
     _record("test_secondary_renderers_carry_or_declare", not problems, "; ".join(problems[:4]))
 
 
+# --- Case 10 ---------------------------------------------------------------
+
+#: 여러 줄로 감긴 bullet 이 든 최소 표준 문서. §1 과 §11.2 **양쪽**에 둔다 —
+#: 둘은 같은 추출 경로를 쓰므로 한쪽만 두면 다른 쪽 회귀를 못 잡는다.
+_WRAPPED_STANDARD = """# probe
+
+## 1. Core Principles
+
+- A single-line principle stays as it is.
+- A wrapped principle starts here and continues
+  onto a second line PRINCIPLE_TAIL.
+
+## 3. Task Status Values
+
+| Status | Meaning |
+|---|---|
+| `planned` | not started |
+
+## 8. Session Close Principles and Procedure
+
+Close a session in the order update memory then commit then push.
+
+## 11. Memory Update Paths and Parsing Contract
+
+**11.1 Update commands**
+
+| Purpose | Command |
+|---|---|
+| Restore session-start baseline | `wk session-start` |
+
+**11.2 Parsing contract**
+
+- A single-line contract rule stays as it is.
+- A wrapped contract rule starts here and continues
+  onto a second line and then a
+  third line CONTRACT_TAIL.
+"""
+
+
+def test_wrapped_bullets_are_joined() -> None:
+    """여러 줄로 감긴 bullet 이 **첫 줄에서 잘리지 않는가** (TASK-2026-08-16-main-002).
+
+    정본은 사람이 읽는 마크다운이라 긴 규칙은 줄바꿈으로 감긴다. 추출기가 ``- ``
+    로 시작하는 줄만 취하던 시절, §11.2 의 3줄 bullet 이 ``**move** the excess
+    with`` 에서 끊긴 채 스냅샷 → 진입점 → 하네스 산출물 7곳으로 복제됐다. 하필
+    잘려나간 쪽이 실제 지시문(``never delete them by hand``)이라, 남은 문장은
+    아무 행동도 지시하지 않았다. **아무 검사도 red 가 아니었다.**
+
+    되주입 양방향으로 고정한다: ① 감긴 bullet 은 이어 붙어야 하고, ② 옛 알고리즘
+    (첫 줄만)으로 같은 fixture 를 돌리면 꼬리를 **잃어야** 한다. ②가 없으면 이
+    case 는 무엇도 판별하지 못한 채 조용히 green 이 된다.
+    """
+    rules = parse_standard(_WRAPPED_STANDARD)
+    problems: list[str] = []
+
+    joined = {"PRINCIPLE_TAIL": rules.principles, "CONTRACT_TAIL": rules.parse_contract}
+    for tail, bullets in joined.items():
+        carriers = [b for b in bullets if tail in b]
+        if len(carriers) != 1:
+            problems.append(f"{tail}: 이어 붙은 bullet 이 {len(carriers)}개 (1개를 기대한다)")
+            continue
+        if not carriers[0].startswith("A wrapped "):
+            problems.append(f"{tail}: 앞 bullet 에 붙지 않고 별도 항목이 됐다 — {carriers[0]!r}")
+    if len(rules.principles) != 2 or len(rules.parse_contract) != 2:
+        problems.append(
+            f"bullet 개수 {len(rules.principles)}/{len(rules.parse_contract)} — "
+            "연속 줄이 새 bullet 으로 세어졌는가 (각 2개를 기대한다)"
+        )
+
+    # ② fixture 가 실제로 옛 결함을 재현하는지 — 이게 없으면 case 가 죽어도 green 이다.
+    first_line_only = [
+        line[2:].strip()
+        for line in _WRAPPED_STANDARD.splitlines()
+        if line.startswith("- ") and line[2:].strip()
+    ]
+    if any("PRINCIPLE_TAIL" in b or "CONTRACT_TAIL" in b for b in first_line_only):
+        problems.append("fixture 가 옛 알고리즘에서도 꼬리를 남긴다 — 감긴 bullet 이 아니다")
+
+    _record("test_wrapped_bullets_are_joined", not problems, "; ".join(problems[:4]))
+
+
 def main() -> int:
     test_snapshot_matches_standard()
     test_renderers_have_no_rule_literals()
@@ -482,7 +563,8 @@ def main() -> int:
     test_entrypoint_paths_match_generated_layout()
     test_harness_registry_fully_classified()
     test_secondary_renderers_carry_or_declare()
-    total = 9
+    test_wrapped_bullets_are_joined()
+    total = 10
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

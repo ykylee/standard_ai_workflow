@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-16
 
+- **43차 세션 종료 — task SSOT 2단계: 쓰는 쪽 (`feat/task-ssot-writer` 병합).** **소실과 중복은 같은 뿌리였다** — 열거형 필드를 스칼라로 다뤘다. `--done-criteria` 를 5번 줘도 마지막 하나만 남았고(소실), 그걸 피하려 값 안에 개행을 넣으면 `_set_inline_field` 가 첫 줄만 교체해 2번째 이후가 남았다(중복). **우회책이 두 번째 결함을 만들었다** — 스칼라 API 를 목록처럼 쓰면 값 안에 구조를 넣게 되고, 그 구조는 읽는 쪽이 모른다. 처방도 하나: 네 필드(`완료 기준`/`작업 결과`/`남은 리스크`/`후속 작업`)를 `action="append"` 로 + **연속한 라벨 줄을 묶음으로 교체**(`_set_list_field`, 다른 절의 같은 라벨은 안 건드린다) + update 는 `list_updates` 로 분리, **멱등이 계약**. `check_task_multivalue_fields` 9 cases, **되주입 2종이 원래 증상을 그대로 재현**했다 (append 제거 → 마지막 하나만 / 묶음을 첫 줄만 → 중복 누적). **검증**: 전량 2축 **259/259 ×2 green**. 상세: [세션 기록](../../archived/feat/task-ssot-writer/sessions/task_ssot_writer_2026-08-14.md).
+
+## 롤오프 2026-08-16
+
 - **42차 세션 종료 — task SSOT 구조화 1단계 (TASK-2026-08-14-main-008 진행 중, `feat/task-ssot-structured` 병합).** 완료 기준의 첫 항목이 '읽는 자리 전수 조사' 였는데 **조사가 살아 있는 결함 셋을 찾았다**. ①**같은 필드에 소스가 둘** — 아카이브/축분리 검사는 frontmatter `status:`, backlog 파서는 본문 `- 상태:`. 277개 중 불일치는 0인데 **본문 줄이 없는 것이 105개(38%)** 였고 그것들은 파서에게 *상태 없음* 이라 어느 목록에도 안 들어갔다 → frontmatter 우선 (디스크 본문은 안 건드린다 — 소비자 리더 호환). ②**index 방언 셋 중 둘이 안 보였다**(링크/백틱/인라인) — `active/main` 의 daily index **20개가 task 를 0개로** 읽고 있었다. 파일은 있는데 어느 집계에도 없다. ③**fallback 이 두 겹으로 죽어 있었다** — glob 패턴이 실제 파일명을 안 잡았고 그 전에 생성자가 부재 파일에서 먼저 죽어 도달조차 못 했다. **결과: 0개 index 20→0, 읽힌 task 262, 상태 없는 task 0. `state.json` 산출은 전후 동일**(최신 backlog 는 이미 신형이라 회귀 없이 과거 커버리지만 증가). `check_task_ssot_source` 10 cases + 되주입 2종 — **되주입이 case 하나를 무력화 상태로 드러냈다**(백틱 해석을 지워도 case 5 가 glob fallback 으로 통과). 격리하니 fixture 디렉터리가 실물과 달라 실패 → 실물 모양으로 수정, **오늘 같은 실수 두 번째**. **검증**: 전량 2축 **258/258 ×2 green**. 상세: [세션 기록](../../archived/feat/task-ssot-structured/sessions/task_ssot_structured_2026-08-14.md).
 
 ## 롤오프 2026-08-14

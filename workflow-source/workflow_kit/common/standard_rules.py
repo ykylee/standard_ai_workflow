@@ -133,16 +133,42 @@ def _section_body(text: str, heading: str) -> str:
     return text[after:] if nxt < 0 else text[after:nxt]
 
 
+def _collect_bullets(body: str) -> tuple[str, ...]:
+    """``- `` bullet 을 모으되 **들여쓴 연속 줄을 앞 bullet 에 이어 붙인다.**
+
+    정본은 사람이 읽는 마크다운이라 긴 규칙은 여러 줄로 감긴다. 첫 줄만 취하면
+    문장이 중간에서 잘린 채 스냅샷 → 진입점 → 하네스 산출물로 복제된다
+    (TASK-2026-08-16-main-002 실측: §11.2 의 3줄 bullet 이 ``**move** the excess
+    with`` 에서 끊겨, 정작 지시문인 ``never delete them by hand`` 가 사라졌다).
+
+    연속 줄 판정은 **들여쓰기**다. 빈 줄, 들여쓰기 없는 줄, 그리고 중첩 list
+    marker 는 bullet 을 닫는다 — 중첩 bullet 은 이 추출기의 대상이 아니다
+    (기존 동작과 같이 수집하지 않는다).
+    """
+    bullets: list[str] = []
+    open_bullet = False
+    for line in body.splitlines():
+        if line.startswith("- "):
+            text = line[2:].strip()
+            open_bullet = bool(text)
+            if text:
+                bullets.append(text)
+            continue
+        stripped = line.strip()
+        if not stripped or not line[:1].isspace() or stripped.startswith(("- ", "* ", "+ ")):
+            open_bullet = False
+            continue
+        if open_bullet:
+            bullets[-1] = f"{bullets[-1]} {stripped}"
+    return tuple(bullets)
+
+
 def parse_standard(text: str) -> StandardRules:
     """표준 문서 원문에서 §1 · §3 · §8 을 추출한다.
 
     추출 결과가 비면 :class:`StandardParseError` 를 던진다 — 조용한 기본값 없음.
     """
-    principles = tuple(
-        line[2:].strip()
-        for line in _section_body(text, _SECTION_PRINCIPLES).splitlines()
-        if line.startswith("- ") and line[2:].strip()
-    )
+    principles = _collect_bullets(_section_body(text, _SECTION_PRINCIPLES))
     if not principles:
         raise StandardParseError(f"{_SECTION_PRINCIPLES}: bullet 을 찾지 못했다")
 
@@ -172,11 +198,7 @@ def parse_standard(text: str) -> StandardRules:
         raise StandardParseError(f"{_SECTION_MEMORY}: 갱신 명령 표를 찾지 못했다")
 
     # §11.2 는 `- ` bullet 만 모은다 (표의 행이나 소제목은 제외).
-    parse_contract = tuple(
-        line[2:].strip()
-        for line in memory_body.splitlines()
-        if line.startswith("- ") and line[2:].strip()
-    )
+    parse_contract = _collect_bullets(memory_body)
     if not parse_contract:
         raise StandardParseError(f"{_SECTION_MEMORY}: 파싱 계약 bullet 을 찾지 못했다")
 

@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+"""`wk doctor` 배포 탐침의 계약을 고정한다 (TASK-2026-08-14-main-016).
+
+탐침은 **보고만 하는 도구**다. 그래서 이 검사가 지켜야 할 것은 "정답을 내는가"
+보다 아래 셋이다:
+
+1. **아무것도 쓰지 않는다** (컨셉 §5.2) — 양쪽 기설치는 오류가 아니라 상태이고,
+   어느 쪽도 임의로 지우지 않는다. 트리 스냅샷 대조로 고정한다.
+2. **실 홈을 읽지 않는다** — `home` 주입이 실제로 먹지 않으면 이 검사는 개발자의
+   진짜 `~/.claude/settings.json` 을 읽게 되고, 그 순간 결과가 호스트마다 갈린다.
+3. **존재를 적용으로 세지 않는다** — 마커 없는 파일 하나가 5개 하네스를 적용됨으로
+   만든 실측(2026-08-16)을 되주입으로 고정한다.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import hashlib
+import io
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = REPO_ROOT / "workflow-source"
+sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
+    HARNESS_SPECS,
+    SUPPORTED_HARNESSES,
+)
+from workflow_kit.deploy_doctor import (  # noqa: E402
+    GLOBAL_DECLARATION_HOMES,
+    main as doctor_main,
+    probe,
+)
+
+FAILURES: list[str] = []
+
+
+def _record(case: str, ok: bool, detail: str = "") -> None:
+    if ok:
+        print(f"PASS: {case}")
+    else:
+        print(f"FAIL: {case}{(' — ' + detail) if detail else ''}")
+        FAILURES.append(case)
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _tree_digest(root: Path) -> str:
+    """트리의 경로 + 내용 해시. 쓰기가 있었는지 판정하는 유일한 근거."""
+    parts: list[str] = []
+    for path in sorted(root.rglob("*")):
+        rel = path.relative_to(root).as_posix()
+        if path.is_dir():
+            parts.append(f"d:{rel}")
+            continue
+        parts.append(f"f:{rel}:{hashlib.sha256(path.read_bytes()).hexdigest()}")
+    return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
+
+def _fixture(tmp: Path, *, marker_version: str | None = "1.0.0", declare_global: bool = True) -> tuple[Path, Path]:
+    """claude-code 산출물이 깔린 프로젝트 + 글로벌 선언이 있는 홈."""
+    project = tmp / "project"
+    home = tmp / "home"
+    spec = HARNESS_SPECS["claude-code"]
+    for rel in (*spec.entry_files, *spec.extra_files):
+        head = f"<!-- standard-ai-workflow-kit: v{marker_version} -->\n\n" if marker_version else ""
+        _write(project / rel, f"{head}# probe\n")
+    if declare_global:
+        _write(
+            home / ".claude" / "settings.json",
+            json.dumps({"enabledPlugins": {"standard-ai-workflow@standard-ai-workflow": True}}),
+        )
+    return project, home
+
+
+# --- Case 1 ----------------------------------------------------------------
+
+
+def test_report_shape() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        project, home = _fixture(Path(tmpdir))
+        report = probe(project_root=project, home=home)
+    missing = [
+        key
+        for key in ("environment", "project_scope", "global_scope", "drift", "findings")
+        if key not in report
+    ]
+    _record(
+        "test_report_shape",
+        not missing and report.get("report_only") is True,
+        f"누락 {missing} / report_only={report.get('report_only')}",
+    )
+
+
+# --- Case 2 ----------------------------------------------------------------
+
+
+def test_probe_writes_nothing() -> None:
+    """report-only 계약 (§5.2) — 탐침이 프로젝트도 홈도 건드리지 않는다."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp)
+        before_project, before_home = _tree_digest(project), _tree_digest(home)
+        probe(project_root=project, home=home)
+        after_project, after_home = _tree_digest(project), _tree_digest(home)
+        # 되주입: 지문이 쓰기를 실제로 구분하는가. 이게 없으면 지문이 죽어도 green 이다.
+        _write(project / "probe-canary.md", "written\n")
+        canary = _tree_digest(project)
+    problems: list[str] = []
+    if before_project != after_project or before_home != after_home:
+        problems.append("탐침이 트리를 변경했다 — report-only 계약 위반")
+    if canary == after_project:
+        problems.append("트리 지문이 쓰기를 구분하지 못한다 — 이 case 는 무엇도 판정하지 못한다")
+    _record("test_probe_writes_nothing", not problems, "; ".join(problems))
+
+
+# --- Case 3 ----------------------------------------------------------------
+
+
+def test_home_injection_is_honored() -> None:
+    """주입한 홈만 읽는가.
+
+    이게 깨지면 검사가 개발자의 진짜 홈을 읽고, 결과가 호스트마다 갈린다.
+    빈 홈을 주면 어떤 하네스도 선언돼 있지 않아야 한다 — 실 홈에는 있는데도.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, _ = _fixture(tmp, declare_global=False)
+        empty_home = tmp / "empty-home"
+        empty_home.mkdir()
+        report = probe(project_root=project, home=empty_home)
+    global_scope = report["global_scope"]
+    _record(
+        "test_home_injection_is_honored",
+        global_scope["declared_harnesses"] == []
+        and global_scope["home"] == str(empty_home.resolve()),
+        f"declared={global_scope['declared_harnesses']} home={global_scope['home']}",
+    )
+
+
+# --- Case 4 ----------------------------------------------------------------
+
+
+def test_presence_without_marker_is_not_applied() -> None:
+    """되주입: 마커를 지우면 '적용됨' 이 아니라 '후보' 여야 한다.
+
+    실측(2026-08-16) — 다른 도구가 쓴 `AGENTS.md` 하나가 codex/grok-build/
+    minimax-code/opencode/pi-dev **5개**를 적용됨으로 만들었다. 존재는 적용이
+    아니다 (§3: kit 소유의 표식은 버전 마커다).
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        marked_project, home = _fixture(tmp / "a", marker_version="1.0.0")
+        unmarked_project, _ = _fixture(tmp / "b", marker_version=None)
+        marked = probe(project_root=marked_project, home=home)["project_scope"]
+        unmarked = probe(project_root=unmarked_project, home=home)["project_scope"]
+    problems: list[str] = []
+    if "claude-code" not in marked["applied_harnesses"]:
+        problems.append("마커가 있는데 applied 로 안 셌다")
+    if "claude-code" in unmarked["applied_harnesses"]:
+        problems.append("마커가 없는데 applied 로 셌다 — 과보고 회귀")
+    if "claude-code" not in unmarked["candidate_harnesses"]:
+        problems.append("마커 없는 하네스를 candidate 로도 안 보고했다 — 조용히 사라졌다")
+    _record("test_presence_without_marker_is_not_applied", not problems, "; ".join(problems))
+
+
+# --- Case 5 ----------------------------------------------------------------
+
+
+def test_stale_marker_is_reported() -> None:
+    """낡은 마커를 드리프트로 보고하는가 (§7 gap 3)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp, marker_version="0.0.1")
+        _write(project / "ai-workflow" / "VERSION", "1.2.0\n")
+        stale = probe(project_root=project, home=home)["drift"]
+
+        fresh_project, _ = _fixture(tmp / "fresh", marker_version="1.2.0")
+        _write(fresh_project / "ai-workflow" / "VERSION", "1.2.0\n")
+        fresh = probe(project_root=fresh_project, home=home)["drift"]
+    problems: list[str] = []
+    if not stale["stale_markers"]:
+        problems.append("낡은 마커를 못 잡았다")
+    if fresh["stale_markers"]:
+        problems.append(f"최신 마커를 낡음으로 잡았다 (위양성): {fresh['stale_markers']}")
+    if stale["kit_version"] != "1.2.0":
+        problems.append(f"ai-workflow/VERSION 을 기준으로 안 썼다: {stale['kit_version']}")
+    _record("test_stale_marker_is_reported", not problems, "; ".join(problems))
+
+
+# --- Case 6 ----------------------------------------------------------------
+
+
+def test_both_scopes_detected_and_not_removed() -> None:
+    """양쪽 기설치를 **감지하고 보고**하되 지우지 않는다 (§5.2)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp, declare_global=True)
+        before = _tree_digest(home)
+        report = probe(project_root=project, home=home)
+        after = _tree_digest(home)
+    drift = report["drift"]
+    _record(
+        "test_both_scopes_detected_and_not_removed",
+        drift["installed_in_both_scopes"] == ["claude-code"] and before == after,
+        f"both={drift['installed_in_both_scopes']} home_changed={before != after}",
+    )
+
+
+# --- Case 7 ----------------------------------------------------------------
+
+
+def test_strict_flag_governs_return_code() -> None:
+    """기본은 rc 0 (보고는 실패가 아니다), `--strict` 일 때만 rc 1."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp, marker_version="0.0.1")
+        _write(project / "ai-workflow" / "VERSION", "1.2.0\n")
+        args = ["--project-root", str(project), "--home", str(home), "--json"]
+        # 보고 본문은 이 case 의 판정 대상이 아니다 — 검사 출력을 덮지 않도록 삼킨다.
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc_default = doctor_main(args)
+            rc_strict = doctor_main([*args, "--strict"])
+    _record(
+        "test_strict_flag_governs_return_code",
+        rc_default == 0 and rc_strict == 1,
+        f"default={rc_default} strict={rc_strict}",
+    )
+
+
+# --- Case 8 ----------------------------------------------------------------
+
+
+def test_registries_are_derived_not_copied() -> None:
+    """탐침의 목록이 정본에서 파생되는가 (§2 선언 계약).
+
+    글로벌 거주지 표에 registry 에 없는 하네스가 들어가면 유령 항목이 되고,
+    반대로 프로젝트 절이 `HARNESS_SPECS` 를 안 읽고 손 목록을 들면 하네스를
+    추가해도 탐침이 모른다.
+    """
+    problems: list[str] = []
+    ghosts = [e.harness for e in GLOBAL_DECLARATION_HOMES if e.harness not in SUPPORTED_HARNESSES]
+    if ghosts:
+        problems.append(f"registry 에 없는 하네스: {ghosts}")
+    dupes = [e.harness for e in GLOBAL_DECLARATION_HOMES]
+    if len(dupes) != len(set(dupes)):
+        problems.append("글로벌 거주지 표에 중복 하네스가 있다")
+
+    # 되주입: HARNESS_SPECS 에 없는 파일은 프로젝트 절이 보지 않아야 한다.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp)
+        _write(project / "NOT_A_HARNESS_FILE.md", "<!-- standard-ai-workflow-kit: v9.9.9 -->\n")
+        report = probe(project_root=project, home=home)
+    seen = {
+        record["path"]
+        for info in report["project_scope"]["harnesses"].values()
+        for record in info["files_present"]
+    }
+    if "NOT_A_HARNESS_FILE.md" in seen:
+        problems.append("registry 밖 파일을 산출물로 셌다")
+    _record("test_registries_are_derived_not_copied", not problems, "; ".join(problems))
+
+
+# --- Case 9 ----------------------------------------------------------------
+
+
+def test_dispatcher_registers_doctor() -> None:
+    """`wk doctor` 로 실제 도달하는가 — 모듈만 있고 등록이 빠지면 기능이 없는 것과 같다."""
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "workflow_kit.workflow_kit_cli",
+            "--command=doctor",
+            "--json",
+            "--project-root",
+            str(REPO_ROOT),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(SOURCE_ROOT),
+        env={"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin", "HOME": str(REPO_ROOT)},
+    )
+    ok = proc.returncode == 0
+    payload: dict[str, object] = {}
+    if ok:
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            ok = False
+    _record(
+        "test_dispatcher_registers_doctor",
+        ok and payload.get("report_only") is True,
+        f"rc={proc.returncode} stderr={proc.stderr.strip()[:160]}",
+    )
+
+
+def main() -> int:
+    test_report_shape()
+    test_probe_writes_nothing()
+    test_home_injection_is_honored()
+    test_presence_without_marker_is_not_applied()
+    test_stale_marker_is_reported()
+    test_both_scopes_detected_and_not_removed()
+    test_strict_flag_governs_return_code()
+    test_registries_are_derived_not_copied()
+    test_dispatcher_registers_doctor()
+    total = 9
+    print(f"\n{total - len(FAILURES)}/{total} passed")
+    if FAILURES:
+        raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

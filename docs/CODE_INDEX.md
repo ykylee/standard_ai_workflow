@@ -24,7 +24,7 @@
 │   ├── mcp_servers/                # 8+ MCP 서버 프로토타입 + lib/
 │   ├── scripts/                    # 부트스트랩, export, generate, demo, ... 엔트리
 │   ├── tools/                      # check_packaging.py 등 운영 도구 (v0.5.8+)
-│   ├── tests/                      # 260개 check_*.py 스모크 (2026-08-14 기준)
+│   ├── tests/                      # 261개 check_*.py 스모크 (2026-08-16 기준)
 │   ├── schemas/                    # JSON 스키마, 출력 샘플 계약, transport descriptor
 │   ├── examples/                   # E2E 데모, 도입 예시, MCP config 5종, 출력 샘플
 │   ├── harnesses/                  # 11개 지원 하네스 오버레이 + 공통 문서/템플릿
@@ -88,6 +88,7 @@
 - `common/state/`, `common/contracts/`, `common/schemas/`, `common/modes/`: v0.5.7.1 부터 wheel packaging 에 포함 (subpackage)
 - `contract_v1/` (v0.5.6+): Pydantic v2 기반 외부 contract v1 enforcement. `output_validator` (sub-agent 출력 §5 spec 검증), `delegator` (`choose_role` 단일 / `choose_roles` 배치 / `recommend_model_tier` 자동 / `DelegationDecision` / `DelegationRejected`).
 - `server/`: `read_only_jsonrpc.py` (default 안정), `read_only_mcp_sdk.py` (v1.0 SDK candidate, 실험적), `mcp_v1_server.py` (정식 SDK stdio).
+- `deploy_doctor.py` (v1.2.1+): `wk doctor` — 배포 **post-apply 탐침**. `probe(project_root, home)` 이 environment / project_scope / global_scope / drift 4절을 돌려준다. **report-only** (아무것도 쓰지 않는다), 기본 rc 0 · `--strict` 만 rc 1. 산출물 목록은 `HARNESS_SPECS` 에서 파생하고 글로벌 선언 거주지는 `GLOBAL_DECLARATION_HOMES` 가 정본. 계약은 `check_deploy_doctor.py` 9 cases. **`cli.doctor` / `release-doctor` 와는 다른 물건** (각각 7종 baseline 평가 / 릴리스 게이트).
 - `plugin_payload.py` (v1.1.9+): 저장소 루트 `plugin/` (Agent Plugins 1.0 공유 payload) 렌더러. `render_agent_plugin()` 이 manifest / SKILL.md 3종 / `mcp.json` 을 정본에서 생성하고, `python3 -m workflow_kit.plugin_payload --apply` 로 재생성한다. 손 편집은 `check_agent_plugin_payload.py` 가 잡는다.
 
 ### Bootstrap (`workflow-source/workflow_kit/bootstrap_lib/`)

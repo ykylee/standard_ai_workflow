@@ -44,7 +44,7 @@
   `check_packaging` FORBIDDEN_IMPORTS (일반명 top-level 재유입 차단)
 - 별건 수리: bootstrap OpenCode MCP 방언 실측 정정 (배열 command + enabled +
   environment) / 원본 bump 릴리스 검사 sandbox 이관 (pyproject 왕복 0)
-- 전량 검사 **260/260 PASS ×2축** + mypy strict 193파일 0 + SDK 매트릭스 3/3
+- 전량 검사 **261/261 PASS ×2축** + mypy strict 193파일 0 + SDK 매트릭스 3/3
 
 ## 2. deliverable
 
@@ -94,7 +94,7 @@
 
 ## 3. smoke 회귀
 
-누적 smoke test **260/260 PASS** ×2축 (2026-08-14, `dev,release,mcp-sdk` extra 를
+누적 smoke test **261/261 PASS** ×2축 (2026-08-16, `dev,release,mcp-sdk` extra 를
 깐 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신
 전량 결과* 를 반영하는 살아있는 지표다.
 

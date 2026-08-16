@@ -16,7 +16,7 @@
 - 저장소를 clone한 뒤 `workflow-source/` 를 editable mode로 설치하는 방법
 - 의존성 (`pydantic`, `anyio`, `mcp[cli]`) 설치
 - `workflow_kit` (하위: `workflow_kit.bootstrap_lib`) 임포트와 기본 사용 예
-- 260개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
+- 261개 스모크 테스트 (`workflow-source/tests/check_*.py`) 실행 방법 (v1.1.6+ 정합)
 - `bootstrap_workflow_kit.py` 와 `generate_workflow_state.py` 실행
 - MCP 서버 (jsonrpc-bridge / stdio-sdk) 실행
 - 자주 만나는 문제 해결
@@ -153,7 +153,7 @@ python: 3.13.7
 
 ## 5. 스모크 테스트 실행
 
-저장소에는 260개의 `workflow-source/tests/check_*.py` 가 있다. CI는 매 push 마다 이 전부를 돌린다.
+저장소에는 261개의 `workflow-source/tests/check_*.py` 가 있다. CI는 매 push 마다 이 전부를 돌린다.
 
 ### 5.1. 한꺼번에 전부 돌리기 (CI 와 동일)
 
@@ -330,6 +330,37 @@ pi install git:github.com/ykylee/standard_ai_workflow@v1.2.0
 
 bootstrap (아래 7.1) 은 **플러그인 미지원 하네스와 오프라인 환경**, 그리고
 진입점 파일(CLAUDE.md 등)에 대한 규칙 상시 주입 담당으로 병행 유지된다.
+
+### 7.0.1. 설치 뒤 확인 — `wk doctor` (post-apply 탐침)
+
+**설치 명령의 성공은 설치의 성공이 아니다.** 무엇이 · 어떤 버전으로 · 어느
+스코프에 깔렸는지 한 명령으로 본다:
+
+```bash
+wk doctor                 # 사람이 읽는 4절 보고
+wk doctor --json          # 기계가 읽는 형태
+wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
+```
+
+4절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import) ·
+**project_scope** (하네스별 산출물과 버전 마커) · **global_scope** (하네스별
+설치 선언의 거주지) · **drift** (낡은 마커, 스코프 간 어긋남).
+
+계약 셋을 기억한다:
+
+- **report-only** — 아무것도 쓰지 않는다. 양쪽 기설치는 **오류가 아니라 상태**이고,
+  어느 쪽도 임의로 지우지 않는다 (컨셉 §5.2). 제거는 사용자 결정이다.
+- **기본 rc 0** — 발견은 보고이지 실패가 아니다. CI 에 걸 때만 `--strict`.
+- **존재는 적용이 아니다** — kit 소유 표식(버전 마커, 컨셉 §3)이 있는 것만
+  "적용됨" 으로 센다. 마커 없이 파일만 있는 하네스는 *후보*로 따로 보고한다
+  (다른 도구가 쓴 `AGENTS.md` 하나가 5개 하네스를 적용됨으로 만든 실측이 있다).
+
+**한계**: 마커 비교는 드리프트의 일부만 잡는다. **버전이 같고 내용만 낡은**
+경우는 안 걸린다 — 2026-08-16 에 Codex 플러그인이 정확히 그 상태였다(`1.2.0`
+동일, 페이로드만 구버전). 그 확인은 채널별 재빌드로 한다.
+
+> `wk doctor` 와 `wk release-doctor` 는 **다른 물건**이다. 전자는 배포 산출물의
+> 설치 현황, 후자는 릴리스 baseline 평가다.
 
 ### 7.1. 부트스트랩 (플러그인 미지원 하네스 · 오프라인 · 진입점 규칙 주입)
 

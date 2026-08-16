@@ -103,6 +103,9 @@ from workflow_kit.cli_commands_cache import (
     cmd_dashboard_export,
     cmd_trend_chart,
 )
+from workflow_kit.cli_commands_doctor import (
+    cmd_doctor,
+)
 from workflow_kit.cli_commands_memory import (
     cmd_cascade_delete,
     cmd_graph_insights,
@@ -150,6 +153,8 @@ __all__ = [
     "cmd_cache_lfu_decay_persist",
     "cmd_cache_lru_decay",
     "cmd_cache_merge_csv",
+    # cli_commands_doctor 재-export
+    "cmd_doctor",
     # cli_commands_memory 재-export
     "cmd_refresh_purpose",
     "cmd_ingest_purpose",

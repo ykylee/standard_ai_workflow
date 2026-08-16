@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-17
 
+- **45차 세션 종료 — 결함 수리 일괄 + PR 3건 + 배포 멱등성 컨셉 (11 push, 전부 게이트 green).** ①실행형 task 전부 close: main-010(검증결과 주입이 묶음을 가름 → 묶음 끝 주입 + `_heal_validation_split` 치유) · main-006(아카이브 문서-이동 링크 `_rewrite_relocated_links` — 사람이 두 번 밟은 규칙이 도구가 됨) · main-005(seed 가 첫 세션 기록을 씀 — 검사 예외 기각) · main-019/08-12(CLAUDE.md 실행 기본값 `.venv/bin/python3` 전제 — 같은 날 homebrew python 오탐 9건을 직접 밟고 수리) · main-004(조건부 1축 **기각**, 재론 방지 각주) · main-011(CHECK_TIMEOUT_S 미선언 3건 + `.worktrees` 스캔 제외). main-009 는 게이트 밖 준비 완료(정본 표 누락 3라벨 보강 · 리터럴 27곳 이관 · 검사 11 cases), **전환 한 줄만 release 경계 뒤**. ②PR: #27 Grok 병합 · #26 은 1줄이 CI 3라운드를 소모해 main 직접 반영 후 close(브랜치 메모리 미seed 가 CI 전제를 깬다) · #28 pi.dev 는 case 19 충돌을 Grok 19/pi 20 으로 해소 후 병합 — **플러그인 채널 5개**가 됐다. ③배포 정리: `workflow_harness_distribution.md` §2.1 채널×하네스 매트릭스(main-014, 문서 흠 2건은 main-012 선행 수리) + **`workflow_deployment_idempotency.md` 신설**(main-015, 소유자 방향 승인) — 배포=함수, 변수 5축(하네스는 집합·설치 스코프 글로벌/프로젝트/양쪽), 3계약+1탐침, 소유권 3분류. gap 4개 등록: **main-016 `wk doctor` 가 1순위** · main-017 채널 재실행 계약 · main-018 드리프트 감지 · main-019 pre-flight. 교훈: 다른 세션 활동 중 `git add` 는 명시 경로로(쓸어담기 실사고 1건). 상세: [세션 기록](./sessions/deployment_channels_and_idempotency_2026-08-14.md).
+
+## 롤오프 2026-08-17
+
 - **44차 세션 종료 — task SSOT 3단계 완료, main-008 close (`feat/task-label-registry` 병합).** 라벨은 장식이 아니라 **파싱 계약**이라 순서가 정해져 있다: **리더가 먼저 두 표기를 받고, 그 다음 release 에서 쓰는 쪽을 바꾼다**. 반대로 하면 소비자의 옛 리더가 새 문서를 못 읽는다 — 그래서 이번 단계는 전환을 **하지 않았다**. 리터럴 12개 라벨 × **46곳**을 `TASK_FIELD_LABELS`(현재 표기) + `TASK_FIELD_ALIASES`(받아들일 표기)로 모았다. 원칙은 **찾기는 넓게, 쓰기는 좁게**. `check_task_label_registry` 8 cases — **case 6 이 '정본이 하나' 의 유일한 증거**(표를 바꾸면 산출물이 따라 바뀐다)이고, case 8 은 반대로 렌더 경로의 잔여 리터럴을 AST 로 훑어 세 번에 걸쳐 지목했다. 마지막 하나는 **읽는 비교**였다 — 영어 표기 문서에서 항상 거짓이라 '비어 있으니 채운다' 분기가 조용히 안 돌았다. **main-008 은 done**: 결함 6계열 중 **3개가 구조적으로 닫혔다**(status 혼동 · 반복 필드 소실 · update 줄 중복). 4단계(영어 전환)는 [TASK-2026-08-14-main-009] 로 이월 — release 경계여야 한다. **검증**: 전량 2축 **260/260 ×2 green**. 상세: [세션 기록](../../archived/feat/task-label-registry/sessions/task_label_registry_2026-08-14.md).
 
 ## 롤오프 2026-08-16

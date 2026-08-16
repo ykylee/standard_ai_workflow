@@ -493,8 +493,25 @@ def main() -> int:
                         matched_task = task
                         break
                 if matched_task is None and daily_backlog_path.exists():
-                    operation_type = "cannot_determine"
-                    warnings.append(f"`{args.task_id}` 항목을 대상 backlog 에서 찾지 못했다.")
+                    # v1.2.1 (TASK-2026-08-16-main-001): 오늘 index 에 없다고 곧바로
+                    # 포기하면 **날짜가 바뀔 때마다** 진행 중인 task 의 갱신이 사라진다.
+                    # daily index 는 "그날 손댄 task" 의 목록이고 SSOT 는 `tasks/<id>.md`
+                    # 다 — task 파일이 있으면 이건 미지의 ID 가 아니라 **이월**이다.
+                    # 2회 연속 세션에서 밟았고, 두 번째에는 linter 의
+                    # `task_status_mismatch` 를 거쳐 커밋 게이트를 세웠다.
+                    ssot_probe = daily_backlog_path.parent / "tasks" / f"{args.task_id}.md"
+                    if ssot_probe.is_file():
+                        operation_type = "carry_over_entry"
+                        warnings.append(
+                            f"`{args.task_id}` 가 대상 backlog 에 없어 task SSOT 를 근거로 "
+                            "이월 항목을 만든다 (날짜 롤오버)."
+                        )
+                    else:
+                        operation_type = "cannot_determine"
+                        warnings.append(
+                            f"`{args.task_id}` 항목을 대상 backlog 에서 찾지 못했고 "
+                            f"task SSOT (`{ssot_probe.name}`) 도 없다 — 갱신할 대상이 없다."
+                        )
 
         task_id = args.task_id or suggest_next_task_id(
             existing_tasks, target_date=getattr(args, 'target_date', None))
@@ -793,7 +810,10 @@ def main() -> int:
         from workflow_kit.common.schemas import BacklogUpdateOutput
         
         output_model = BacklogUpdateOutput(
-            status="ok",
+            # v1.2.1 (TASK-2026-08-16-main-001): `cannot_determine` 은 성공이 아니다.
+            # 예전에는 apply 를 통째로 스킵하고도 최상위 `status` 가 `ok` 라, 호출자가
+            # "갱신됐다" 고 읽었다 — 조용한 미반영. 아무것도 안 썼으면 그렇게 말한다.
+            status="warning" if operation_type == "cannot_determine" else "ok",
             tool_version=TOOL_VERSION,
             operation_type=operation_type,
             target_backlog_path=str(daily_backlog_path),

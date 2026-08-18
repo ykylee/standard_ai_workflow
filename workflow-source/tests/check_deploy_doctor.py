@@ -32,6 +32,7 @@ from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
     SUPPORTED_HARNESSES,
 )
 from workflow_kit.deploy_doctor import (  # noqa: E402
+    CHANNEL_PREREQUISITES,
     GLOBAL_DECLARATION_HOMES,
     PLUGIN_INSTALL_CACHES,
     main as doctor_main,
@@ -398,6 +399,73 @@ def test_content_drift_writes_nothing() -> None:
         _record("test_content_drift_writes_nothing", _tree_digest(home) == before)
 
 
+def test_preflight_separates_measured_from_declared() -> None:
+    """**핵심 case.** 측정한 것과 선언만 한 것을 섞지 않는가.
+
+    네트워크 도달성처럼 재지 않은 전제를 `installable` 에 넣으면 탐침이 *모름*
+    을 *괜찮음* 으로 보고하게 된다 — 이 저장소가 규칙으로 삼은 `모름 ≠ 안전`
+    이다. `installable` 은 **측정 가능한 전제(실행 파일)만** 반영해야 하고,
+    선언뿐인 전제는 별도 키로 남아야 한다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-preflight-") as tmp:
+        report = probe(project_root=Path(tmp), home=Path(tmp) / "home")
+        pf = report["preflight"]
+        declared_total = sum(len(e.declared) for e in CHANNEL_PREREQUISITES)
+        seen_declared = sum(len(c["declared_unmeasured"]) for c in pf["channels"])
+        ok = (
+            len(pf["channels"]) == len(CHANNEL_PREREQUISITES)
+            and seen_declared == declared_total
+            and all(
+                c["installable"] == (not c["missing_executables"])
+                for c in pf["channels"]
+            )
+            and "모름을 통과로 세지 않는다" in pf["measurement_note"]
+        )
+        _record(
+            "test_preflight_separates_measured_from_declared",
+            ok,
+            json.dumps(pf, ensure_ascii=False)[:300],
+        )
+
+
+def test_preflight_blocks_channel_with_missing_executable() -> None:
+    """없는 실행 파일이 있으면 그 채널은 `blocked` 로 보고된다.
+
+    PATH 를 비운 채로 재면 **모든 채널**이 막혀야 한다 — 하나라도 통과하면
+    측정이 실제로 이뤄지지 않고 있다는 뜻이다.
+    """
+    import os
+
+    with tempfile.TemporaryDirectory(prefix="doctor-preflight-") as tmp:
+        saved = os.environ.get("PATH", "")
+        os.environ["PATH"] = str(Path(tmp) / "empty-bin")
+        try:
+            report = probe(project_root=Path(tmp), home=Path(tmp) / "home")
+        finally:
+            os.environ["PATH"] = saved
+        pf = report["preflight"]
+        ok = (
+            pf["ready_channels"] == []
+            and sorted(pf["blocked_channels"]) == sorted(e.channel for e in CHANNEL_PREREQUISITES)
+            and len(pf["findings"]) == len(CHANNEL_PREREQUISITES)
+        )
+        _record(
+            "test_preflight_blocks_channel_with_missing_executable",
+            ok,
+            f"ready={pf['ready_channels']} blocked={pf['blocked_channels']}",
+        )
+
+
+def test_preflight_writes_nothing() -> None:
+    """report-only 계약은 preflight 절에도 그대로다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-preflight-") as tmp:
+        home = Path(tmp) / "home"
+        home.mkdir()
+        before = _tree_digest(home)
+        probe(project_root=Path(tmp), home=home)
+        _record("test_preflight_writes_nothing", _tree_digest(home) == before)
+
+
 def main() -> int:
     test_report_shape()
     test_probe_writes_nothing()
@@ -412,7 +480,10 @@ def main() -> int:
     test_content_drift_catches_same_version_stale_payload()
     test_content_drift_expects_only_channel_files()
     test_content_drift_writes_nothing()
-    total = 13
+    test_preflight_separates_measured_from_declared()
+    test_preflight_blocks_channel_with_missing_executable()
+    test_preflight_writes_nothing()
+    total = 16
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

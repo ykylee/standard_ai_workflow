@@ -49,6 +49,8 @@ from workflow_kit.upgrade_diff import compare_marker, parse_version_marker, read
 __all__ = [
     "GLOBAL_DECLARATION_HOMES",
     "GlobalDeclarationHome",
+    "CHANNEL_PREREQUISITES",
+    "ChannelPrerequisite",
     "PLUGIN_INSTALL_CACHES",
     "PluginInstallCache",
     "probe",
@@ -148,6 +150,70 @@ PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
 
 #: 어느 채널에서든 사본 안에 있어도 드리프트로 세지 않는 것들.
 _UNIVERSAL_IGNORED = (".git", "__pycache__", ".DS_Store")
+
+
+@dataclass(frozen=True)
+class ChannelPrerequisite:
+    """설치 **전에** 성립해야 하는 것 (컨셉 §7 gap 4).
+
+    두 종류를 **구분해서** 담는다. 측정할 수 있는 것(실행 파일 존재)과 측정할 수
+    없는 것(네트워크 도달성, 내려받은 ZIP)은 성질이 다르고, 섞으면 탐침이
+    "모름" 을 "괜찮음" 으로 보고하게 된다 — 이 저장소가 이미 규칙으로 삼은
+    *모름 ≠ 안전* 이다.
+    """
+
+    channel: str
+    executables: tuple[str, ...] = ()
+    """`shutil.which` 로 **측정 가능한** 전제."""
+
+    declared: tuple[str, ...] = ()
+    """측정하지 않고 **선언만** 하는 전제 (네트워크 등). 탐침은 이것을 통과로 세지 않는다."""
+
+    note: str = ""
+
+
+#: 모든 플러그인 채널이 공유하는 전제. 스킬이 지시하는 메모리 갱신 명령은 `wk` 로
+#: 돌고, read-only MCP 서버는 `python3 -m workflow_kit.server…` 로 뜬다 — 둘 중
+#: 하나가 없으면 설치는 성공해도 **기능이 없는 상태**가 된다.
+_PLUGIN_COMMON = ("wk", "python3")
+
+#: 채널별 설치 전제 **정본**. `docs/INSTALLATION_AND_USAGE.md` §7.0.0 표는 여기서
+#: 파생되고, `check_installation_usage` 가 복제를 검출한다 (컨셉 §2 선언 계약).
+CHANNEL_PREREQUISITES: tuple[ChannelPrerequisite, ...] = (
+    ChannelPrerequisite(
+        channel="claude-code",
+        executables=("claude", *_PLUGIN_COMMON),
+        declared=("GitHub marketplace 도달 (네트워크)",),
+    ),
+    ChannelPrerequisite(
+        channel="codex",
+        executables=("codex", "unzip", *_PLUGIN_COMMON),
+        declared=("GitHub Release 의 Codex ZIP 을 미리 내려받아 둘 것",),
+        note="marketplace 가 로컬 디렉터리라 네트워크는 ZIP 내려받을 때만 필요하다",
+    ),
+    ChannelPrerequisite(
+        channel="gemini-cli",
+        executables=("gemini", "git", *_PLUGIN_COMMON),
+        declared=("저장소 클론 (확장 루트가 `plugin/` 이라 로컬 경로 설치)",),
+    ),
+    ChannelPrerequisite(
+        channel="grok-build",
+        executables=("grok", *_PLUGIN_COMMON),
+        declared=("GitHub marketplace 도달 (네트워크)", "`--trust` 없이는 MCP·훅이 비활성"),
+    ),
+    ChannelPrerequisite(
+        channel="pi-dev",
+        executables=("pi", *_PLUGIN_COMMON),
+        declared=("로컬 경로 또는 git 태그 지정",),
+        note="경로 참조 설치라 사본이 없다",
+    ),
+    ChannelPrerequisite(
+        channel="bootstrap",
+        executables=("python3",),
+        declared=("PEP 668 인터프리터면 venv 필요 (§7.1)",),
+        note="플러그인 미지원 하네스·오프라인 경로. `wk` 는 이 채널이 설치한다",
+    ),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +457,58 @@ def _probe_drift(project: dict[str, Any], global_scope: dict[str, Any]) -> dict[
 
 
 # ---------------------------------------------------------------------------
+# preflight — 설치 **전에** 성립하는가 (컨셉 §7 gap 4)
+# ---------------------------------------------------------------------------
+
+
+def _probe_preflight() -> dict[str, Any]:
+    """채널별로 **설치 전에** 전제가 성립하는지 본다.
+
+    `environment` 절과 다른 물건이다. 그쪽은 *지금 이 인터프리터*가 검사를 돌릴
+    만한가를 보고, 여기는 *어느 채널로 설치할 수 있는가*를 본다. gap 4 의 잔여가
+    이 자리였다 — 전제가 문서에 흩어져 있고 설치 전에 재는 도구가 없었다.
+
+    **측정한 것과 선언만 한 것을 섞지 않는다.** 네트워크 도달성은 여기서 재지
+    않으므로 `installable` 은 "실행 파일 전제는 충족" 이라는 뜻이지 "설치가
+    성공한다" 는 뜻이 아니다. 출력이 그 차이를 스스로 말한다.
+    """
+    channels: list[dict[str, Any]] = []
+    for entry in CHANNEL_PREREQUISITES:
+        found = {name: shutil.which(name) for name in entry.executables}
+        missing = sorted(name for name, path in found.items() if path is None)
+        record: dict[str, Any] = {
+            "channel": entry.channel,
+            "executables": found,
+            "missing_executables": missing,
+            "declared_unmeasured": list(entry.declared),
+            "installable": not missing,
+        }
+        if entry.note:
+            record["note"] = entry.note
+        channels.append(record)
+
+    ready = [c["channel"] for c in channels if c["installable"]]
+    blocked = [c for c in channels if not c["installable"]]
+    findings: list[str] = []
+    for c in blocked:
+        findings.append(
+            f"{c['channel']} 채널은 지금 설치할 수 없다 — 없는 실행 파일: "
+            f"{', '.join(c['missing_executables'])} "
+            "(설치 안내는 docs/INSTALLATION_AND_USAGE.md §7.0.0)"
+        )
+    return {
+        "ready_channels": ready,
+        "blocked_channels": [c["channel"] for c in blocked],
+        "channels": channels,
+        "findings": findings,
+        "measurement_note": (
+            "실행 파일 존재만 측정한다. 네트워크 도달성·내려받은 아카이브는 "
+            "`declared_unmeasured` 로 남긴다 — 모름을 통과로 세지 않는다"
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # content_drift — 페이로드 해시 비교 (컨셉 §7 gap 3 잔여)
 # ---------------------------------------------------------------------------
 
@@ -580,16 +698,23 @@ def probe(project_root: Path | None = None, home: Path | None = None) -> dict[st
     resolved_home = (home or Path.home()).resolve()
 
     environment = _probe_environment()
+    preflight = _probe_preflight()
     project = _probe_project_scope(resolved_project)
     global_scope = _probe_global_scope(resolved_home)
     drift = _probe_drift(project, global_scope)
     content_drift = _probe_content_drift(resolved_home)
 
-    findings = [*environment["findings"], *drift["findings"], *content_drift["findings"]]
+    findings = [
+        *environment["findings"],
+        *preflight["findings"],
+        *drift["findings"],
+        *content_drift["findings"],
+    ]
     return {
         "status": "ok",
         "report_only": True,
         "environment": environment,
+        "preflight": preflight,
         "project_scope": project,
         "global_scope": global_scope,
         "drift": drift,
@@ -664,6 +789,19 @@ def _render_text(report: dict[str, Any]) -> str:
     if not drift["stale_markers"] and not drift["installed_in_both_scopes"]:
         lines.append("  - 마커 기준 어긋남 없음")
     lines.append(f"  ! {drift['limitation']}")
+
+    pf = report.get("preflight") or {}
+    lines.append("")
+    lines.append("[preflight] 채널별 설치 전제 (설치 **전에** 잰다)")
+    for channel in pf.get("channels", []):
+        state = "설치 가능" if channel["installable"] else "막힘"
+        lines.append(f"  - {channel['channel']}: {state}")
+        if channel["missing_executables"]:
+            lines.append(f"      없는 실행 파일: {', '.join(channel['missing_executables'])}")
+        for item in channel.get("declared_unmeasured", []):
+            lines.append(f"      (미측정 전제) {item}")
+    if pf:
+        lines.append(f"  ! {pf['measurement_note']}")
 
     content = report.get("content_drift") or {}
     lines.append("")

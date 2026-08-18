@@ -331,6 +331,37 @@ pi install git:github.com/ykylee/standard_ai_workflow@v1.2.0
 bootstrap (아래 7.1) 은 **플러그인 미지원 하네스와 오프라인 환경**, 그리고
 진입점 파일(CLAUDE.md 등)에 대한 규칙 상시 주입 담당으로 병행 유지된다.
 
+### 7.0.0. 설치 전 전제 — `wk doctor` 의 `preflight` 절
+
+**설치 명령을 치기 전에** 무엇이 있어야 하는지 한 번에 본다:
+
+```bash
+wk doctor                 # preflight 절이 채널별 설치 가능 여부를 보고
+wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`)
+```
+
+| 채널 | 측정하는 전제 (실행 파일) | 선언만 하는 전제 (미측정) |
+|---|---|---|
+| **claude-code** | `claude` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) |
+| **codex** | `codex` · `unzip` · `wk` · `python3` | GitHub Release 의 Codex ZIP 을 미리 내려받아 둘 것 |
+| **gemini-cli** | `gemini` · `git` · `wk` · `python3` | 저장소 클론 (확장 루트가 `plugin/` 이라 로컬 경로 설치) |
+| **grok-build** | `grok` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
+| **pi-dev** | `pi` · `wk` · `python3` | 로컬 경로 또는 git 태그 지정 |
+| **bootstrap** | `python3` | PEP 668 인터프리터면 venv 필요 (§7.1) |
+
+**두 열을 섞지 않는다.** 왼쪽은 `shutil.which` 로 실제로 재고, 오른쪽은 재지
+않고 적어만 둔다 — 네트워크 도달성을 탐침이 "모름" 인 채 통과로 세면 그게
+거짓 안심이 된다 (이 저장소의 규칙: *모름 ≠ 안전*). 그래서 `installable: true`
+는 "실행 파일 전제는 충족" 이라는 뜻이지 "설치가 성공한다" 는 뜻이 아니다.
+
+`wk` 와 `python3` 이 모든 플러그인 채널의 공통 전제인 이유: 스킬이 지시하는
+메모리 갱신 명령은 `wk` 로 돌고 read-only MCP 서버는 `python3 -m
+workflow_kit.server…` 로 뜬다. 둘 중 하나가 없으면 **설치는 성공해도 기능이
+없는 상태**가 된다.
+
+> 이 표는 손 목록이 아니다. `workflow_kit.deploy_doctor.CHANNEL_PREREQUISITES`
+> 가 정본이고 `check_installation_usage` 가 복제를 검출한다 (컨셉 §2 선언 계약).
+
 ### 7.0.1. 설치 뒤 확인 — `wk doctor` (post-apply 탐침)
 
 **설치 명령의 성공은 설치의 성공이 아니다.** 무엇이 · 어떤 버전으로 · 어느
@@ -342,9 +373,10 @@ wk doctor --json          # 기계가 읽는 형태
 wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 ```
 
-4절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import) ·
-**project_scope** (하네스별 산출물과 버전 마커) · **global_scope** (하네스별
-설치 선언의 거주지) · **drift** (낡은 마커, 스코프 간 어긋남).
+6절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import) ·
+**preflight** (채널별 설치 전제, §7.0.0) · **project_scope** (하네스별 산출물과
+버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은
+마커, 스코프 간 어긋남) · **content_drift** (설치 사본의 페이로드 해시 대조).
 
 계약 셋을 기억한다:
 
@@ -355,9 +387,12 @@ wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
   "적용됨" 으로 센다. 마커 없이 파일만 있는 하네스는 *후보*로 따로 보고한다
   (다른 도구가 쓴 `AGENTS.md` 하나가 5개 하네스를 적용됨으로 만든 실측이 있다).
 
-**한계**: 마커 비교는 드리프트의 일부만 잡는다. **버전이 같고 내용만 낡은**
-경우는 안 걸린다 — 2026-08-16 에 Codex 플러그인이 정확히 그 상태였다(`1.2.0`
-동일, 페이로드만 구버전). 그 확인은 채널별 재빌드로 한다.
+**내용 드리프트도 본다** (2026-08-18+). 마커 비교는 **버전이 같고 내용만 낡은**
+경우를 원리적으로 못 잡는다 — 2026-08-16 에 Codex 플러그인이 정확히 그
+상태였다(`1.2.0` 동일, 페이로드만 구버전). 그래서 `content_drift` 절이 설치
+사본을 **정본 페이로드 해시**와 대조한다. 정본은 생성기와 같은 함수이고,
+기대 파일 집합은 채널별로 파생된다(채널마다 담는 것이 다르다). 어긋남이
+보고되면 복구 절차는 §7.0.2 의 복구 열을 따른다.
 
 > `wk doctor` 와 `wk release-doctor` 는 **다른 물건**이다. 전자는 배포 산출물의
 > 설치 현황, 후자는 릴리스 baseline 평가다.

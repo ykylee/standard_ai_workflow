@@ -27,8 +27,8 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**48차 세션 (이어서) — main-006 close: OKF 상호운용을 자기 선언이 아니라 실측으로 (전량 2축 green).** 소유자가 조사를 지시한 [langchain-ai/openwiki](https://github.com/langchain-ai/openwiki) 가 **우리와 같은 OKF v0.1** 을 쓴다는 데서 출발했다 (저장소에 언급 0건 — 서로 모르는 채 같은 포맷에 도착). 우리 wiki 71장을 번들로 뽑아 SPEC 원문 + openwiki 가 커밋해 둔 `openwiki/` 번들과 대조. **① SPEC 이 v0.2 로 움직였다** — ADR-006 은 2026-06-16 에 v0.1 을 고정했다. 변경 3건(`timestamp`→`generated.at` · `# Citations`→`sources` · **`status` 가 정규 필드로 승격**). 앞의 둘은 legacy fallback 이 열려 있다. **② `status` 만 실질 위험** — 우리 값은 `active` 42·`accepted` 25·`draft` 2·`proposed` 1 인데 v0.2 어휘는 `draft|stable|deprecated` 다. SPEC 의 관용 보장은 *unknown key* 에만 걸리므로 정규 필드가 된 `status` 에는 안 걸린다 — v0.2 소비자가 `stable` 필터를 걸면 69장이 빠진다. **③ 다른 생산자와는 실제로 읽힌다** — 둘 다 `okf_version: \"0.1\"` 선언, `index.md` 예약, **둘 다 `log.md` 미발행**, `type/title/description/tags`, 상대 링크. **④ 그런데 `type` 으로 라우팅은 원리적으로 불가능** — SPEC 이 `type` 을 registry 없는 자유 문자열로 정의해서, 우리 닫힌 enum 과 openwiki 의 자유 산문(`Architecture overview`)이 **둘 다 적합**하다. 어느 쪽 결함도 아니다. **고친 것 2건**: Citations 헤딩 h2→**h1**(SPEC §8, v0.2 의 legacy fallback 도 h1 을 본다 — h2 면 양쪽에서 안 걸린다) · wiki score 대시보드가 **frontmatter 없이 생성**돼 export 가 71장 중 1장을 조용히 빠뜨리던 것(lint 는 위치·index 만 봐서 아무도 몰랐다; 생성물이라 템플릿에서 emit). `check_okf_export` 18→20 cases(h1 고정 + **자기 적용**), 되주입 2종 red. **v0.2 이행은 ADR 이 필요해 남겼다** — 최소안은 `status` 어휘 매핑.",
-    "current_axis": "**배포 일관성·멱등성 — 1순위 gap(탐침)이 닫혔고 나머지 3건이 남았다.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md) (배포=함수, 변수 5축, 3계약+1탐침, 소유권 3분류, 멀티 하네스 공존·설치 스코프 규칙). **구현 순서**: ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (둘 다 47차) → **[main-018] 드리프트 감지 — 이제 1순위이자 근거가 확실하다**(마커가 같고 내용만 낡은 상태를 실제로 관측했고 채널이 스스로 못 고쳤다 → 마커가 아니라 **페이로드 해시** 비교) → [main-019] 환경 pre-flight. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았고 case 10 이 안전을 선실증. 45차에 구조 결함(main-005/006/010/011)과 판단 보류(main-004 = 기각)가 전부 닫혀 실행형 잔여는 배포 축뿐이다. **이 호스트 설치 현황(47차 실측)**: Claude Code ✅ user scope v1.2.0 (GitHub marketplace) · Codex ✅ v1.2.0 (로컬 `workflow-source/dist/plugins/codex/1.2.0/install-root`, **gitignore 대상이라 `dist/` 를 지우면 marketplace 가 끊긴다** — 재빌드는 `python3 -m workflow_kit.plugin_distribution --harness codex --output-dir workflow-source/dist`). **게이트의 로컬 유래 red 는 0건이다** (2026-08-18) — `AGENTS.md` 는 추적 전환 + 규칙 합류, `workflow-source/.venv` 는 main-003 수리로 해소. **전량을 돌릴 때 비켜 둘 파일이 없다.** **관찰** — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(진행 중) / cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.",
+    "current_baseline": "**48차 세션 (이어서) — main-019 close: 환경 pre-flight. 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (전량 2축 263/263 green).** 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 \"실행 파일 전제 충족\" 이지 \"설치 성공\" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 \"채널은 있는데 전제만 낡은\" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.",
+    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · [main-004] wiki 3-step 하위 두 단계(2/3 이 죽어 있고 3단계는 rc=0 인 채 퇴행시킨다) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
     "in_progress_items": [
       "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
@@ -43,15 +43,15 @@
       "TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다",
       "TASK-2026-08-16-main-002 — 정본 §11.2 다중 줄 bullet 이 추출에서 잘린다 — 생성 블록이 문장 중간에서 끊긴 채 전 하네스로 복제",
       "TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵",
-      "TASK-2026-08-14-main-017 — 채널별 재실행 계약 표 — 5개 플러그인 채널의 재설치/업데이트 시 행동을 §7.0 에 고정",
-      "TASK-2026-08-14-main-016 — wk doctor — post-apply 탐침: 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령"
+      "TASK-2026-08-14-main-019 — 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사",
+      "TASK-2026-08-14-main-017 — 채널별 재실행 계약 표 — 5개 플러그인 채널의 재설치/업데이트 시 행동을 §7.0 에 고정"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-18.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
@@ -62,7 +62,8 @@
       "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다",
       "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측",
       "TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교",
-      "TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조"
+      "TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조",
+      "TASK-2026-08-14-main-019 — 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사"
     ]
   },
   "next_documents": [

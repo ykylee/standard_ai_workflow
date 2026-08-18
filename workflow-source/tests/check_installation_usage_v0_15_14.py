@@ -239,6 +239,46 @@ def case_5_rerun_contract_covers_plugin_channels() -> bool:
     return True
 
 
+def case_6_preflight_table_is_derived_not_copied() -> bool:
+    """6) §7.0.0 전제 표가 `CHANNEL_PREREQUISITES` 에서 **파생**되는가.
+
+    전제를 문서에 손으로 적으면 registry 와 갈라지고, 갈라진 사실은 아무도 못
+    본다 — 이 저장소가 이미 여러 번 밟은 자리다 (컨셉 §2 선언 계약). 채널
+    이름뿐 아니라 **측정 대상 실행 파일까지** 대조해야 "채널은 있는데 전제만
+    낡은" 상태를 잡는다.
+    """
+    content = _read_installation()
+    heading = "### 7.0.0."
+    if heading not in content:
+        print(f"  FAIL: {heading} 설치 전 전제 절이 없다")
+        return False
+    section = content.split(heading, 1)[1].split("\n### ", 1)[0]
+
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
+    from workflow_kit.deploy_doctor import CHANNEL_PREREQUISITES
+
+    problems: list[str] = []
+    for entry in CHANNEL_PREREQUISITES:
+        if f"**{entry.channel}**" not in section:
+            problems.append(f"채널 누락: {entry.channel}")
+            continue
+        row = next((ln for ln in section.split("\n") if f"**{entry.channel}**" in ln), "")
+        for exe in entry.executables:
+            if f"`{exe}`" not in row:
+                problems.append(f"{entry.channel} 행에 전제 누락: {exe}")
+    if problems:
+        for item in problems:
+            print(f"  FAIL: {item}")
+        return False
+    print(
+        f"  [info] 전제 표가 registry {len(CHANNEL_PREREQUISITES)}채널을 "
+        "실행 파일까지 그대로 덮는다"
+    )
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_smoke_count", case_1_smoke_count),
@@ -246,6 +286,7 @@ def main() -> int:
         ("case_3_harness_list", case_3_harness_list),
         ("case_4_related_docs", case_4_related_docs),
         ("case_5_rerun_contract_covers_plugin_channels", case_5_rerun_contract_covers_plugin_channels),
+        ("case_6_preflight_table_is_derived_not_copied", case_6_preflight_table_is_derived_not_copied),
     ]
     results: list[tuple[str, bool]] = []
     for name, fn in cases:

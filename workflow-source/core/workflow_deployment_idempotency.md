@@ -130,7 +130,7 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 | 1 | **post-apply 탐침 부재** | 지금은 "설치 명령 성공" 이 끝. 출력 검증이 없다 | ✅ **해소** (2026-08-16, TASK-2026-08-14-main-016) — `wk doctor`. 설치 안내는 `docs/INSTALLATION_AND_USAGE.md` §7.0.1 |
 | 2 | **채널 간 적용 계약 불일치** | smart update 는 bootstrap 채널 규율. 플러그인 5채널은 하네스 설치기가 제각각 | ✅ **해소** (2026-08-18, TASK-2026-08-14-main-017) — 4채널 실측 표가 `docs/INSTALLATION_AND_USAGE.md` §7.0.2. gemini-cli 는 CLI 부재로 미실측 (표에 명시) |
 | 3 | **드리프트 감지 부재** | 마커에 버전이 있는데 읽는 도구가 없다 | ✅ **해소** (2026-08-18, TASK-2026-08-18-main-005) — `drift` 절이 마커·스코프를, **`content_drift` 절이 페이로드 해시**를 본다 (아래) |
-| 4 | **환경 전제 미계약** | venv/오프라인 전제가 문서에 흩어져 있고 도구가 선검사 안 함 | **부분 해소** — 탐침의 `environment` 절이 venv·PEP 668·`wk` PATH·import 를 본다. 잔여: 채널별 설치 안내 첫 줄의 전제 명시 (TASK-2026-08-14-main-019) |
+| 4 | **환경 전제 미계약** | venv/오프라인 전제가 문서에 흩어져 있고 도구가 선검사 안 함 | ✅ **해소** (2026-08-18, TASK-2026-08-14-main-019) — `environment` 절이 이 인터프리터를, **`preflight` 절이 채널별 설치 전제**를 본다 (아래) |
 
 **gap 3 — 마커가 같아도 내용은 낡을 수 있다 (해소).** 2026-08-16 에 Codex
 플러그인이 정확히 그 상태였다: 버전 문자열은 `1.2.0` 으로 정본과 같은데 페이로드
@@ -152,6 +152,22 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 전제 하나가 함께 풀렸다: `render_agent_plugin()` 이 **설치본에서도** 돌아야
 소비자 호스트에서 대조가 성립한다. `_project_table()` 이 체크아웃 경로만 보고
 있어서 설치본에서는 통째로 죽었고, 설치 metadata fallback 을 추가했다.
+
+**gap 4 — 전제를 설치 *전에* 잰다 (해소).** `environment` 절은 *지금 이
+인터프리터가 검사를 돌릴 만한가* 를 본다. 그것과 별개로 필요한 것이 *어느
+채널로 설치할 수 있는가* 였고, 그 자리가 `preflight` 절이다
+(`CHANNEL_PREREQUISITES` 가 정본, `docs/INSTALLATION_AND_USAGE.md` §7.0.0 표는
+거기서 파생되며 `check_installation_usage` case 6 이 복제를 검출한다).
+
+**측정한 것과 선언만 한 것을 섞지 않는다.** 실행 파일 존재는 `shutil.which` 로
+실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다.
+그래서 `installable: true` 는 "실행 파일 전제는 충족" 이지 "설치가 성공한다" 가
+아니다 — 모름을 통과로 세면 그게 거짓 안심이 된다 (§0 의 *모름 ≠ 안전*).
+이 호스트 실측(2026-08-18): 6채널 중 `gemini-cli` 만 막힘(`gemini` 부재) —
+§7.0.2 표의 '미실측' 과 같은 사실을 도구가 스스로 말한다.
+
+**배포 축 gap 4개가 모두 닫혔다.** 탐침은 이제 6절이다: environment ·
+**preflight** · project_scope · global_scope · drift · **content_drift**.
 
 **탐침이 지키는 계약 3개** (구현과 검사가 함께 고정한다):
 

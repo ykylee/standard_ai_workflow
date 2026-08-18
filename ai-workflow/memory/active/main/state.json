@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**48차 세션 (이어서) — main-003 close: 패키지가 체크아웃 레이아웃에 기대던 결함 (전량 2축 263/263 green, 검사 262→263).** 소유자 지적에서 출발했다 — \"배포되는 경로는 다를 수 있다\". 맞았다. **개발 호스트의 `wk` 가 editable 설치**라 `parents[3]` 가 우연히 맞아, 비-editable wheel 에서만 `REPO_ROOT` 가 `<venv>/lib/python3.x` 로 잡히는 것이 **로컬에서 영원히 green** 이었다 (SDK 매트릭스·브랜치 매트릭스와 같은 계열의 사각지대). 실측 red 3건: `wk wiki-emit`(없는 `workflow-source/tools/*.py` 실행 — **배포본이 아니라 이 저장소에서** 죽어 있었다) · `wk rotate-workflow-logs`(기본 handoff 가 venv 내부, 브랜치도 `main` 하드코딩) · `wk install-pre-push-hook`(git root 를 모듈 위치에서 물어 소비자 저장소에서 `not a git repository` + hook 원본이 wheel 미포함). 정공법 3가지 — ①**자기 모듈은 `-m` 으로** (규칙을 `common/child_process.py` 한 곳에; seed 는 subprocess 를 없애고 `refresh_workflow_state_cache` 직접 호출) ②**런타임 자산은 패키지 안으로** (`workflow_kit/assets/` + package-data 선언) ③**workspace 는 cwd 에서** (`discover_project_profile_path` + `workflow_branch_dir`, git root 는 `Path.cwd()`). `check_deployed_layout` 신설 4 cases + `check_pre_push_hook` case 8 신설 — **1~7 은 `_git_root` 를 monkeypatch 해서 '어느 저장소를 고르는가' 를 한 번도 재지 않았다**. 되주입 3종 red(첫 주입은 import 조차 안 되는 무효 주입이었고 원 결함 형태로 다시 넣어 확정). **배포본 e2e**: 새 wheel → 빈 venv → 가짜 소비자 프로젝트에서 6개 명령 정상 + 자산 13개 적재 확인.",
+    "current_baseline": "**48차 세션 (이어서) — main-005 close: 드리프트 감지를 마커에서 페이로드 해시로 (배포 축 gap 3 해소, 전량 2축 263/263 green).** 47차에 관측만 해 둔 상태 — 버전은 같은데 내용만 낡은 설치본 — 을 이제 `wk doctor` 가 **본다**. `content_drift` 절 신설. **전제가 먼저 막혔다**: 정본 렌더러 `render_agent_plugin()` 이 설치본에서 통째로 죽어 있었다(`_project_table()` 이 체크아웃 경로만 봤다) — 소비자 호스트에서 대조가 성립하려면 그것부터 살아야 해서 설치 metadata fallback 을 넣었다(main-003 과 같은 결함 계열). 지키는 것 넷: ①**정본은 생성기와 같은 함수** — 기준을 따로 두면 기준이 드리프트한다 ②**기대치는 채널별 파생**(`include_prefixes`) — codex 는 매니페스트·MCP·skills 만 담아서 payload 20개를 기대하면 정상 설치가 *없음 10건* 으로 보고됐다(실측) ③**사본 거주지도 registry**, 사본 없는 채널(pi-dev)·미실측(gemini-cli)은 `not_applicable` 로 밝힌다 ④**report-only 유지**. `check_deploy_doctor` 9→13 cases, 되주입(내용 비교 제거)으로 핵심 case red 실증. 이 호스트 실측: claude-code 12개·codex 10개 **in-sync**. 컨셉 §7 gap 3 → ✅, INSTALLATION §7.0.2 꼬리를 '한계' 에서 '복구 열' 로. **배포 축 잔여는 [main-019] 환경 pre-flight 하나다.**",
     "current_axis": "**배포 일관성·멱등성 — 1순위 gap(탐침)이 닫혔고 나머지 3건이 남았다.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md) (배포=함수, 변수 5축, 3계약+1탐침, 소유권 3분류, 멀티 하네스 공존·설치 스코프 규칙). **구현 순서**: ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (둘 다 47차) → **[main-018] 드리프트 감지 — 이제 1순위이자 근거가 확실하다**(마커가 같고 내용만 낡은 상태를 실제로 관측했고 채널이 스스로 못 고쳤다 → 마커가 아니라 **페이로드 해시** 비교) → [main-019] 환경 pre-flight. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았고 case 10 이 안전을 선실증. 45차에 구조 결함(main-005/006/010/011)과 판단 보류(main-004 = 기각)가 전부 닫혀 실행형 잔여는 배포 축뿐이다. **이 호스트 설치 현황(47차 실측)**: Claude Code ✅ user scope v1.2.0 (GitHub marketplace) · Codex ✅ v1.2.0 (로컬 `workflow-source/dist/plugins/codex/1.2.0/install-root`, **gitignore 대상이라 `dist/` 를 지우면 marketplace 가 끊긴다** — 재빌드는 `python3 -m workflow_kit.plugin_distribution --harness codex --output-dir workflow-source/dist`). **게이트의 로컬 유래 red 는 0건이다** (2026-08-18) — `AGENTS.md` 는 추적 전환 + 규칙 합류, `workflow-source/.venv` 는 main-003 수리로 해소. **전량을 돌릴 때 비켜 둘 파일이 없다.** **관찰** — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(진행 중) / cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.",
     "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
     "in_progress_items": [
@@ -35,6 +35,7 @@
     ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교",
       "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측",
       "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다",
       "TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존",
@@ -43,15 +44,14 @@
       "TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵",
       "TASK-2026-08-14-main-017 — 채널별 재실행 계약 표 — 5개 플러그인 채널의 재설치/업데이트 시 행동을 §7.0 에 고정",
       "TASK-2026-08-14-main-016 — wk doctor — post-apply 탐침: 스코프별 설치 현황·버전·로드 가능성·환경 전제 한 명령",
-      "TASK-2026-08-14-main-015 — 배포 일관성·멱등성 컨셉 문서 — workflow_deployment_idempotency.md 신설",
-      "TASK-2026-08-14-main-014 — 배포 패키지·배포 방식 정리 — 채널×하네스 매트릭스를 정본 문서에"
+      "TASK-2026-08-14-main-015 — 배포 일관성·멱등성 컨셉 문서 — workflow_deployment_idempotency.md 신설"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-18.md",
-    "task_count": 6,
+    "task_count": 7,
     "in_progress_items": [
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
@@ -60,7 +60,8 @@
       "TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존",
       "TASK-2026-08-14-main-017 — 채널별 재실행 계약 표 — 5개 플러그인 채널의 재설치/업데이트 시 행동을 §7.0 에 고정",
       "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다",
-      "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측"
+      "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측",
+      "TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교"
     ]
   },
   "next_documents": [

@@ -37,6 +37,7 @@ import argparse
 import json
 import os
 import shutil
+import hashlib
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -48,6 +49,8 @@ from workflow_kit.upgrade_diff import compare_marker, parse_version_marker, read
 __all__ = [
     "GLOBAL_DECLARATION_HOMES",
     "GlobalDeclarationHome",
+    "PLUGIN_INSTALL_CACHES",
+    "PluginInstallCache",
     "probe",
     "main",
 ]
@@ -103,6 +106,48 @@ GLOBAL_DECLARATION_HOMES: tuple[GlobalDeclarationHome, ...] = (
         probe_keys=("standard-ai-workflow", "standardAiWorkflow"),
     ),
 )
+
+
+@dataclass(frozen=True)
+class PluginInstallCache:
+    """플러그인 채널이 **페이로드 사본을 두는 자리** (컨셉 §7 gap 3).
+
+    마커 비교로는 "버전이 같고 내용만 낡은" 상태를 원리적으로 못 잡는다. 잡으려면
+    사본이 어디 있는지 알아야 하고, 그 자리는 채널마다 다르다. 경로는 2026-08-18
+    이 호스트 실측이고 `docs/INSTALLATION_AND_USAGE.md` §7.0.2 와 같은 출처다.
+    """
+
+    harness: str
+    glob: str
+    """홈 기준 glob. 매치 결과가 payload 루트다."""
+
+    ignored: tuple[str, ...] = ()
+    """채널이 자기 용도로 넣는 파일 — 드리프트가 아니다."""
+
+
+#: 페이로드 사본의 거주지 **정본**. 사본을 두지 않는 채널은 여기 없다:
+#: pi-dev 는 `~/.pi/agent/settings.json` 의 `packages[]` **경로 참조**라 사본이
+#: 없어 내용 드리프트가 성립하지 않고, gemini-cli 는 이 호스트에 CLI 가 없어
+#: **미실측**이다 (§7.0.2 표와 같은 상태).
+PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
+    PluginInstallCache(
+        harness="claude-code",
+        glob=".claude/plugins/cache/*/standard-ai-workflow/*",
+        # `.in_use` 는 클라이언트가 쓰는 사용 표식이다.
+        ignored=(".in_use",),
+    ),
+    PluginInstallCache(
+        harness="codex",
+        glob=".codex/plugins/cache/*/standard-ai-workflow/*",
+    ),
+    PluginInstallCache(
+        harness="grok-build",
+        glob=".grok/installed-plugins/*standard-ai-workflow*",
+    ),
+)
+
+#: 어느 채널에서든 사본 안에 있어도 드리프트로 세지 않는 것들.
+_UNIVERSAL_IGNORED = (".git", "__pycache__", ".DS_Store")
 
 
 # ---------------------------------------------------------------------------
@@ -338,9 +383,184 @@ def _probe_drift(project: dict[str, Any], global_scope: dict[str, Any]) -> dict[
         "installed_in_both_scopes": both_scopes,
         "findings": findings,
         "limitation": (
-            "마커 비교는 드리프트의 일부만 잡는다 — 버전이 같고 내용만 낡은 경우는 "
-            "여기서 안 걸린다 (2026-08-16 실측). 내용 대조는 채널별 재빌드로 확인한다"
+            "마커 비교는 버전이 같고 내용만 낡은 경우를 원리적으로 못 본다 — "
+            "그 자리는 `content_drift` 절이 페이로드 해시로 본다 "
+            "(TASK-2026-08-18-main-005)"
         ),
+    }
+
+
+# ---------------------------------------------------------------------------
+# content_drift — 페이로드 해시 비교 (컨셉 §7 gap 3 잔여)
+# ---------------------------------------------------------------------------
+
+
+def _is_pi_static(relpath: str) -> bool:
+    """pi.dev 분배 자산인가 — 렌더 대상이 아니라 손으로 유지되는 패키지 메타다."""
+    try:
+        from workflow_kit.plugin_payload import _is_pi_static as impl  # noqa: PLC0415
+    except Exception:  # noqa: BLE001
+        return False
+    return impl(relpath)
+
+
+def _sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _canonical_payload() -> tuple[dict[str, str] | None, str | None]:
+    """정본 페이로드 ``{상대 경로: 내용}``. 못 만들면 ``(None, 사유)``.
+
+    생성기와 **같은 함수**(:func:`plugin_payload.render_agent_plugin`)를 쓴다 —
+    비교 기준을 따로 두면 그 기준 자체가 드리프트한다.
+    """
+    try:
+        from workflow_kit.plugin_payload import render_agent_plugin  # noqa: PLC0415
+
+        return render_agent_plugin(), None
+    except Exception as exc:  # noqa: BLE001
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def _installed_version(root: Path, manifest_rel: str | None) -> str | None:
+    """설치 사본이 스스로 말하는 버전. 매니페스트 → 캐시 디렉터리 이름 순."""
+    if manifest_rel:
+        manifest = root / manifest_rel
+        if manifest.is_file():
+            try:
+                declared = json.loads(manifest.read_text(encoding="utf-8")).get("version")
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                declared = None
+            if isinstance(declared, str) and declared:
+                return declared
+    return root.name or None
+
+
+def _channel_expected(harness: str, canonical: dict[str, str]) -> tuple[dict[str, str], str | None]:
+    """이 채널이 **실제로 설치하는** 파일만 남긴 정본 + 매니페스트 상대 경로.
+
+    채널마다 담는 것이 다르다 — codex 는 매니페스트·MCP·skills 만 담고, 정본
+    payload 20개를 그대로 기대하면 **없음 10건**이 거짓 드리프트가 된다 (2026-08-18
+    실측). 목록을 손으로 적지 않고 `PLUGIN_HARNESS_SPECS.include_prefixes` 에서
+    파생한다 (컨셉 §2 선언 계약: registry 가 정본, 탐침은 파생).
+    """
+    try:
+        from workflow_kit.plugin_distribution import (  # noqa: PLC0415
+            PLUGIN_HARNESS_SPECS,
+            _included,
+        )
+    except Exception:  # noqa: BLE001 - registry 를 못 읽으면 좁히지 않는다
+        return canonical, None
+    spec = PLUGIN_HARNESS_SPECS.get(harness)
+    if spec is None:
+        # 등록된 패키지 정의가 없는 채널(grok-build 등)은 payload 전체가 기대치다.
+        return canonical, None
+    return (
+        {rel: body for rel, body in canonical.items() if _included(rel, spec)},
+        spec.manifest_relpath,
+    )
+
+
+def _compare_cache(
+    root: Path,
+    canonical: dict[str, str],
+    ignored: tuple[str, ...],
+    *,
+    full_payload: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """설치 사본 하나를 정본과 **내용으로** 대조한다. 쓰지 않는다.
+
+    ``canonical`` 은 이 채널이 담기로 한 것, ``full_payload`` 는 payload 전체다.
+    둘을 나누는 이유: claude-code 의 GitHub marketplace 설치는 `plugin/` 을 **통째로**
+    복사하므로 채널 계약 밖의 파일이 정상적으로 함께 온다. 그것을 '미등록 파일' 로
+    부르면 매 실행 잡음이 10건씩 난다 (2026-08-18 실측).
+    """
+    skip = set(ignored) | set(_UNIVERSAL_IGNORED)
+    known = set(full_payload or canonical)
+
+    def _skipped(rel: str) -> bool:
+        return any(part in skip for part in rel.split("/"))
+
+    differs: list[dict[str, str]] = []
+    missing: list[str] = []
+    for rel, content in sorted(canonical.items()):
+        target = root / rel
+        if not target.is_file():
+            missing.append(rel)
+            continue
+        try:
+            actual = target.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            differs.append({"path": rel, "expected": _sha256(content), "actual": "unreadable"})
+            continue
+        if actual != content:
+            differs.append({"path": rel, "expected": _sha256(content), "actual": _sha256(actual)})
+
+    extra: list[str] = []
+    for found in sorted(root.rglob("*")):
+        if not found.is_file():
+            continue
+        rel = str(found.relative_to(root))
+        if rel in known or _skipped(rel) or _is_pi_static(rel):
+            continue
+        extra.append(rel)
+
+    return {
+        "path": str(root),
+        "files_compared": len(canonical),
+        "differs": differs,
+        "missing": missing,
+        "extra": extra,
+        "in_sync": not (differs or missing),
+    }
+
+
+def _probe_content_drift(home: Path) -> dict[str, Any]:
+    """설치 사본의 **내용**이 정본과 같은가.
+
+    마커 비교(:func:`_probe_drift`)가 원리적으로 못 보는 자리다 — 2026-08-16 에
+    Codex 설치본이 버전 문자열은 정본과 같은 `1.2.0` 인데 페이로드만 구버전이었고,
+    claude-code 는 그 상태에서 `plugin update` 를 **버전만 보고 거절**했다. 즉
+    낡음이 보고되지도, 고쳐지지도 않았다. 그래서 비교 대상을 버전이 아니라
+    **내용 해시**로 바꾼다.
+    """
+    canonical, error = _canonical_payload()
+    caches: list[dict[str, Any]] = []
+    for entry in PLUGIN_INSTALL_CACHES:
+        for root in sorted(home.glob(entry.glob)):
+            if not root.is_dir():
+                continue
+            record: dict[str, Any] = {"harness": entry.harness}
+            if canonical is None:
+                record.update({"path": str(root), "skipped": "정본 페이로드를 만들지 못했다"})
+            else:
+                expected, manifest_rel = _channel_expected(entry.harness, canonical)
+                record.update(
+                    _compare_cache(root, expected, entry.ignored, full_payload=canonical)
+                )
+                record["installed_version"] = _installed_version(root, manifest_rel)
+            caches.append(record)
+
+    out_of_sync = [c for c in caches if c.get("in_sync") is False]
+    findings: list[str] = []
+    for c in out_of_sync:
+        findings.append(
+            f"{c['harness']} 설치 사본의 내용이 정본과 다르다 — "
+            f"다름 {len(c['differs'])} / 없음 {len(c['missing'])} "
+            f"(설치 버전 {c.get('installed_version') or '알 수 없음'}, kit 과 같아도 내용은 다를 수 있다). "
+            "복구는 docs/INSTALLATION_AND_USAGE.md §7.0.2 의 채널별 절차를 따른다"
+        )
+    return {
+        "canonical_files": 0 if canonical is None else len(canonical),
+        "canonical_error": error,
+        "caches": caches,
+        "out_of_sync": [c["harness"] for c in out_of_sync],
+        "findings": findings,
+        # 사본을 두지 않는 채널은 내용 드리프트가 성립하지 않는다.
+        "not_applicable": {
+            "pi-dev": "경로 참조라 사본이 없다 — 원본이 곧 설치본이다",
+            "gemini-cli": "이 호스트에 CLI 가 없어 미실측 (§7.0.2 와 같은 상태)",
+        },
     }
 
 
@@ -363,8 +583,9 @@ def probe(project_root: Path | None = None, home: Path | None = None) -> dict[st
     project = _probe_project_scope(resolved_project)
     global_scope = _probe_global_scope(resolved_home)
     drift = _probe_drift(project, global_scope)
+    content_drift = _probe_content_drift(resolved_home)
 
-    findings = [*environment["findings"], *drift["findings"]]
+    findings = [*environment["findings"], *drift["findings"], *content_drift["findings"]]
     return {
         "status": "ok",
         "report_only": True,
@@ -372,6 +593,7 @@ def probe(project_root: Path | None = None, home: Path | None = None) -> dict[st
         "project_scope": project,
         "global_scope": global_scope,
         "drift": drift,
+        "content_drift": content_drift,
         "finding_count": len(findings),
         "findings": findings,
     }
@@ -442,6 +664,27 @@ def _render_text(report: dict[str, Any]) -> str:
     if not drift["stale_markers"] and not drift["installed_in_both_scopes"]:
         lines.append("  - 마커 기준 어긋남 없음")
     lines.append(f"  ! {drift['limitation']}")
+
+    content = report.get("content_drift") or {}
+    lines.append("")
+    lines.append(f"[content_drift] 정본 페이로드 {content.get('canonical_files', 0)}개와 해시 대조")
+    if content.get("canonical_error"):
+        lines.append(f"  ! 정본을 만들지 못했다: {content['canonical_error']}")
+    caches = content.get("caches") or []
+    if not caches:
+        lines.append("  = 설치 사본 없음 (플러그인 채널 미설치)")
+    for cache in caches:
+        state = "in-sync" if cache.get("in_sync") else "DRIFT"
+        lines.append(
+            f"  - {cache['harness']} v{cache.get('installed_version') or '?'} "
+            f"[{state}] 대조 {cache.get('files_compared', 0)}개"
+        )
+        for item in cache.get("differs", []):
+            lines.append(f"      다름 {item['path']}: {item['expected'][:12]} != {item['actual'][:12]}")
+        for rel in cache.get("missing", []):
+            lines.append(f"      없음 {rel}")
+    for harness, why in sorted((content.get("not_applicable") or {}).items()):
+        lines.append(f"  = {harness}: {why}")
 
     lines.append("")
     if report["findings"]:

@@ -4,7 +4,7 @@
 - 범위: 배포 함수 정의, 변수 5축, 3계약+1탐침 골격, 파일 소유권 3분류, 멀티 하네스 공존 규칙, 설치 스코프(글로벌/프로젝트) 규칙, 현재 구현 매핑과 gap
 - 대상 독자: 저장소 관리자, 하네스 통합 담당자, AI workflow 설계자
 - 상태: draft (2026-08-14 소유자 방향 승인 — 45차 세션)
-- 최종 수정일: 2026-08-14
+- 최종 수정일: 2026-08-18
 - 관련 문서: `./workflow_harness_distribution.md` (§2.1 채널×하네스 매트릭스), `./workflow_configuration_layers.md` (3계층·우선순위), `./workflow_global_injection_policy.md` (비침투 주입), `../workflow_kit/upgrade_diff.py` (적용 계약 구현), `../../docs/INSTALLATION_AND_USAGE.md` §7.0 (채널별 설치 명령), `../../docs/RELEASE.md` (패키지 채널 정책)
 
 ## 0. 배포는 함수다
@@ -129,15 +129,29 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 |---|---|---|---|
 | 1 | **post-apply 탐침 부재** | 지금은 "설치 명령 성공" 이 끝. 출력 검증이 없다 | ✅ **해소** (2026-08-16, TASK-2026-08-14-main-016) — `wk doctor`. 설치 안내는 `docs/INSTALLATION_AND_USAGE.md` §7.0.1 |
 | 2 | **채널 간 적용 계약 불일치** | smart update 는 bootstrap 채널 규율. 플러그인 5채널은 하네스 설치기가 제각각 | ✅ **해소** (2026-08-18, TASK-2026-08-14-main-017) — 4채널 실측 표가 `docs/INSTALLATION_AND_USAGE.md` §7.0.2. gemini-cli 는 CLI 부재로 미실측 (표에 명시) |
-| 3 | **드리프트 감지 부재** | 마커에 버전이 있는데 읽는 도구가 없다 | **부분 해소** — 탐침의 `drift` 절이 마커 스캔·스코프 간 어긋남을 본다. **잔여: 내용 드리프트** (아래) |
+| 3 | **드리프트 감지 부재** | 마커에 버전이 있는데 읽는 도구가 없다 | ✅ **해소** (2026-08-18, TASK-2026-08-18-main-005) — `drift` 절이 마커·스코프를, **`content_drift` 절이 페이로드 해시**를 본다 (아래) |
 | 4 | **환경 전제 미계약** | venv/오프라인 전제가 문서에 흩어져 있고 도구가 선검사 안 함 | **부분 해소** — 탐침의 `environment` 절이 venv·PEP 668·`wk` PATH·import 를 본다. 잔여: 채널별 설치 안내 첫 줄의 전제 명시 (TASK-2026-08-14-main-019) |
 
-**gap 3 의 잔여 — 마커가 같아도 내용은 낡을 수 있다.** 2026-08-16 에 Codex
+**gap 3 — 마커가 같아도 내용은 낡을 수 있다 (해소).** 2026-08-16 에 Codex
 플러그인이 정확히 그 상태였다: 버전 문자열은 `1.2.0` 으로 정본과 같은데 페이로드
 내용만 구버전(KO 단일 description, `rollover-baselines` 항목 누락)이었다.
-**버전 비교로는 원리적으로 안 걸린다.** 내용까지 보려면 마커가 아니라 페이로드
-해시를 비교해야 한다 — 탐침의 출력이 이 한계를 스스로 밝히고 있다
-(`drift.limitation`). 해시 비교는 TASK-2026-08-14-main-018 로 이월.
+**버전 비교로는 원리적으로 안 걸린다.** 그래서 비교 대상을 버전이 아니라
+**페이로드 해시**로 바꿨다 (2026-08-18, TASK-2026-08-18-main-005).
+
+`wk doctor` 의 `content_drift` 절이 지키는 것 넷:
+
+1. **정본은 생성기와 같은 함수다** — `plugin_payload.render_agent_plugin()`.
+   비교 기준을 따로 두면 그 기준 자체가 드리프트한다.
+2. **기대치는 채널별로 파생된다** — `PLUGIN_HARNESS_SPECS.include_prefixes`.
+   채널마다 담는 것이 다르다 (codex 는 매니페스트·MCP·skills 만). payload 전체를
+   기대하면 정상 설치가 *없음 10건* 으로 보고된다 (실측).
+3. **사본의 거주지도 registry 다** — `PLUGIN_INSTALL_CACHES`. 사본을 두지 않는
+   채널(pi-dev = 경로 참조)과 미실측 채널(gemini-cli)은 `not_applicable` 로 밝힌다.
+4. **report-only 를 유지한다** — 새 절도 아무것도 쓰지 않는다 (검사 case 로 고정).
+
+전제 하나가 함께 풀렸다: `render_agent_plugin()` 이 **설치본에서도** 돌아야
+소비자 호스트에서 대조가 성립한다. `_project_table()` 이 체크아웃 경로만 보고
+있어서 설치본에서는 통째로 죽었고, 설치 metadata fallback 을 추가했다.
 
 **탐침이 지키는 계약 3개** (구현과 검사가 함께 고정한다):
 

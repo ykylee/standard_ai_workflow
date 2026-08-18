@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-18
 
+- **47차 세션 (이어서) — AGENTS.md 공유 진입점 합류, 게이트에서 로컬 예외가 사라졌다 (전량 2축 262/262 green, park 없음).** 이 저장소의 Codex 진입점 자리를 oh-my-codex(OMX) 계약이 점유하고 `.gitignore` 로 추적에서 빠져 있어, (a) Codex 세션이 §1/§8/§11 을 못 받고 (b) `check_docs`·`check_self_application` 2건이 **로컬에서만** red 였다(CI 는 파일이 없어 green). 소유자 선택 3안 — 컨셉 §4.2 의 **공유 진입점 + additive rule**: OMX 계약이 master, 문서 끝에 `render_entrypoint_rules` 생성 블록 + 영문 metadata 6필드(첫 20줄), 실행 기본값·게이트 규칙은 `CLAUDE.md` 를 **가리키기만** 하고 복제하지 않았다. `.gitignore` 에서 `/AGENTS.md` 제거(`ANTIGRAVITY.md`·`GEMINI.md` 는 유지). **`omx setup` 재생성 위험**은 파일 안 blockquote 로 경고 + 복구 명령 명시 — 소실되면 `check_self_application` 이 즉시 red 라 조용히 사라지지 않는다. **부수 실증**: 새 날짜 index 로의 main-009 이월이 `carry_over_entry` 로 자동 처리됐다 — main-001 수리의 첫 실사용이고, 어제였으면 또 손 append 였다.
+
+## 롤오프 2026-08-18
+
 - **47차 세션 (이어서) — main-003 close: 죽어 있던 제외 목록 수리 (전량 2축 262/262 green).** `check_deprecation_3rd_cycle` 의 제외가 **경로 기준 불일치로 한 건도 성립하지 않았다** — `rel` 은 `REPO_ROOT` 상대인데 제외 항목(`build`/`.venv`/`tests`)은 `WORKFLOW_SOURCE` 기준이라 `workflow-source/.venv/...` 가 `.venv` 로 시작할 수가 없었다. 평소엔 그 디렉터리가 없어 아무도 몰랐고, 로컬에 있는 호스트에서만 site-packages 16건이 저장소 결함으로 보고됐다. 수리: 기준을 `WORKFLOW_SOURCE` 로 통일하고 `_iter_source_files` 하나로 모음 · 판정을 문자열 `startswith` → **경로 조각**(`buildtools/` 오인·중첩 `.venv` 누락 방지) · case 1 의 `endswith` 완화 제거(그 완화가 어긋남을 가리고 있었다). **case 4 신설(3→4)** — 합성 경로 7종 직접 판정 + 원 결함을 실행 가능한 단언으로 보존 + 제외 대상이 스캔에 새는지 관찰. cases 1~3 은 제외가 죽어도 조용히 green 이었다. **성과: 로컬 `workflow-source/.venv` 를 비켜 두지 않고 게이트가 돈다** — 세션 내내 하던 수작업 하나가 사라졌다.
 
 ## 롤오프 2026-08-18

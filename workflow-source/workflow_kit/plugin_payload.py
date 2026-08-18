@@ -380,6 +380,10 @@ PLUGIN_DESCRIPTION = (
 # ---------------------------------------------------------------------------
 
 
+#: 설치 배포판 이름 — metadata fallback 의 조회 키.
+DISTRIBUTION_NAME = "standard-ai-workflow"
+
+
 def current_kit_version() -> str:
     """**호출 시점**의 kit 버전.
 
@@ -408,17 +412,60 @@ def _project_table() -> dict[str, Any]:
     저자 이메일을 ``yklee@…`` (정본은 ``ykylee@…``, ``y`` 하나 누락) 로 적은 채
     배포 payload 까지 갔다.
     """
-    pyproject = default_repo_root() / "workflow-source" / "pyproject.toml"
-    if sys.version_info >= (3, 11):
-        import tomllib  # noqa: PLC0415
-    else:  # pragma: no cover
-        import tomli as tomllib  # noqa: PLC0415
-    with pyproject.open("rb") as f:
-        data: dict[str, Any] = tomllib.load(f)
-    project = data.get("project")
-    if not isinstance(project, dict):
-        raise ValueError(f"pyproject 에 [project] 테이블이 없다: {pyproject}")
-    return project
+    # 앵커는 **패키지 자신의 부모**다 (`_read_pyproject_version` 과 같은 규칙).
+    # 체크아웃이면 `workflow-source/pyproject.toml`, 설치본이면 없다 — 없으면
+    # 설치 metadata 로 떨어진다. 원래는 `default_repo_root()/"workflow-source"` 를
+    # 봤는데, 설치본에서는 `<venv>/lib/pythonX/workflow-source/…` 라는 없는 경로가
+    # 돼서 `render_agent_plugin()` 이 통째로 죽었다 (2026-08-18,
+    # TASK-2026-08-18-main-005). 그 함수는 드리프트 탐침의 **정본 렌더러**라
+    # 소비자 호스트에서 돌아야 한다.
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    if pyproject.is_file():
+        if sys.version_info >= (3, 11):
+            import tomllib  # noqa: PLC0415
+        else:  # pragma: no cover
+            import tomli as tomllib  # noqa: PLC0415
+        with pyproject.open("rb") as f:
+            data: dict[str, Any] = tomllib.load(f)
+        project = data.get("project")
+        if not isinstance(project, dict):
+            raise ValueError(f"pyproject 에 [project] 테이블이 없다: {pyproject}")
+        return project
+    return _project_table_from_metadata()
+
+
+def _project_table_from_metadata() -> dict[str, Any]:
+    """설치 metadata 를 ``[project]`` 테이블 모양으로 되돌린다.
+
+    조용한 기본값을 두지 않는다 — 못 읽으면 잘못된 값을 배포물에 박는 것보다
+    생성이 실패하는 편이 낫다 (:func:`current_kit_author_email` 과 같은 판단).
+    """
+    from importlib.metadata import PackageNotFoundError, metadata  # noqa: PLC0415
+
+    try:
+        meta = metadata(DISTRIBUTION_NAME)
+    except PackageNotFoundError as exc:  # pragma: no cover - 설치도 체크아웃도 아닌 경우
+        raise ValueError(
+            f"pyproject 도 설치 metadata 도 못 읽었다: {DISTRIBUTION_NAME}"
+        ) from exc
+    # `PackageMetadata` 는 `.get` 이 없다 (mypy strict). 매핑 접근으로 읽는다.
+    def _field(name: str) -> str | None:
+        try:
+            value = meta[name]
+        except KeyError:
+            return None
+        return value if isinstance(value, str) else None
+
+    email = _field("Author-email")
+    license_id = _field("License-Expression") or _field("License")
+    table: dict[str, Any] = {}
+    if isinstance(email, str) and email:
+        # `Name <addr>` 형태면 주소만 뽑는다.
+        addr = email.split("<")[-1].rstrip(">").strip() if "<" in email else email.strip()
+        table["authors"] = [{"email": addr}]
+    if isinstance(license_id, str) and license_id:
+        table["license"] = license_id
+    return table
 
 
 def current_kit_author_email() -> str:

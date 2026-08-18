@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`wk doctor` 배포 탐침의 계약을 고정한다 (TASK-2026-08-14-main-016).
+"""`wk doctor` 배포 탐침의 계약을 고정한다 (TASK-2026-08-14-main-016 · main-005).
 
 탐침은 **보고만 하는 도구**다. 그래서 이 검사가 지켜야 할 것은 "정답을 내는가"
 보다 아래 셋이다:
@@ -33,9 +33,12 @@ from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
 )
 from workflow_kit.deploy_doctor import (  # noqa: E402
     GLOBAL_DECLARATION_HOMES,
+    PLUGIN_INSTALL_CACHES,
     main as doctor_main,
     probe,
 )
+from workflow_kit.plugin_distribution import PLUGIN_HARNESS_SPECS, _included  # noqa: E402
+from workflow_kit.plugin_payload import render_agent_plugin  # noqa: E402
 
 FAILURES: list[str] = []
 
@@ -304,6 +307,97 @@ def test_dispatcher_registers_doctor() -> None:
     )
 
 
+def _seed_cache(home: Path, harness: str) -> Path:
+    """해당 채널의 설치 사본을 **정본 그대로** 만든다. 반환값은 사본 루트."""
+    entry = next(e for e in PLUGIN_INSTALL_CACHES if e.harness == harness)
+    # glob 의 `*` 를 실제 이름으로 채운다 — 레지스트리의 모양을 그대로 쓴다.
+    parts = [p.replace("*standard-ai-workflow*", "standard-ai-workflow").replace("*", "standard-ai-workflow")
+             for p in entry.glob.split("/")]
+    root = home.joinpath(*parts[:-1], "1.2.0") if parts[-1] == "standard-ai-workflow" else home.joinpath(*parts)
+    spec = PLUGIN_HARNESS_SPECS.get(harness)
+    for rel, body in render_agent_plugin().items():
+        if spec is not None and not _included(rel, spec):
+            continue
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    return root
+
+
+def test_content_drift_clean_install_is_in_sync() -> None:
+    """정본 그대로 깐 사본은 드리프트가 아니다 — 거짓 양성이 없어야 쓸 수 있다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-drift-") as tmp:
+        home = Path(tmp) / "home"
+        _seed_cache(home, "codex")
+        report = probe(project_root=Path(tmp), home=home)
+        caches = report["content_drift"]["caches"]
+        _record(
+            "test_content_drift_clean_install_is_in_sync",
+            len(caches) == 1 and caches[0]["in_sync"] is True and not report["content_drift"]["out_of_sync"],
+            json.dumps(caches, ensure_ascii=False)[:300],
+        )
+
+
+def test_content_drift_catches_same_version_stale_payload() -> None:
+    """**핵심 case.** 버전은 그대로, 내용만 낡은 상태를 잡는가.
+
+    2026-08-16 에 Codex 설치본이 정확히 이 상태였다 — 마커도 디렉터리 이름도
+    `1.2.0` 으로 정본과 같은데 페이로드만 구버전이었다. 마커 비교로는 원리적으로
+    안 걸리므로, 이 case 가 red 를 못 내면 gap 3 은 닫힌 것이 아니다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-drift-") as tmp:
+        home = Path(tmp) / "home"
+        root = _seed_cache(home, "codex")
+        victim = next(p for p in sorted(root.rglob("*.md")) if p.is_file())
+        victim.write_text(victim.read_text(encoding="utf-8") + "\n<!-- 낡은 페이로드 -->\n",
+                          encoding="utf-8")
+        report = probe(project_root=Path(tmp), home=home)
+        content = report["content_drift"]
+        cache = content["caches"][0]
+        paths = [d["path"] for d in cache["differs"]]
+        ok = (
+            cache["in_sync"] is False
+            and content["out_of_sync"] == ["codex"]
+            and str(victim.relative_to(root)) in paths
+            and cache["installed_version"] == "1.2.0"
+            and any("codex" in f for f in content["findings"])
+        )
+        _record(
+            "test_content_drift_catches_same_version_stale_payload",
+            ok,
+            json.dumps(cache, ensure_ascii=False)[:300],
+        )
+
+
+def test_content_drift_expects_only_channel_files() -> None:
+    """채널이 담지 않는 파일을 '없음' 으로 세지 않는다.
+
+    codex 는 매니페스트·MCP·skills 만 담는다. payload 20개를 그대로 기대하면
+    정상 설치가 **없음 10건**으로 보고된다 (2026-08-18 실측). 기대치는 손 목록이
+    아니라 `PLUGIN_HARNESS_SPECS.include_prefixes` 에서 파생돼야 한다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-drift-") as tmp:
+        home = Path(tmp) / "home"
+        _seed_cache(home, "codex")
+        cache = probe(project_root=Path(tmp), home=home)["content_drift"]["caches"][0]
+        full = len(render_agent_plugin())
+        _record(
+            "test_content_drift_expects_only_channel_files",
+            not cache["missing"] and 0 < cache["files_compared"] < full,
+            f"compared={cache['files_compared']} full={full} missing={cache['missing']}",
+        )
+
+
+def test_content_drift_writes_nothing() -> None:
+    """report-only 계약은 새 절에도 그대로다 (컨셉 §5.2)."""
+    with tempfile.TemporaryDirectory(prefix="doctor-drift-") as tmp:
+        home = Path(tmp) / "home"
+        _seed_cache(home, "claude-code")
+        before = _tree_digest(home)
+        probe(project_root=Path(tmp), home=home)
+        _record("test_content_drift_writes_nothing", _tree_digest(home) == before)
+
+
 def main() -> int:
     test_report_shape()
     test_probe_writes_nothing()
@@ -314,7 +408,11 @@ def main() -> int:
     test_strict_flag_governs_return_code()
     test_registries_are_derived_not_copied()
     test_dispatcher_registers_doctor()
-    total = 9
+    test_content_drift_clean_install_is_in_sync()
+    test_content_drift_catches_same_version_stale_payload()
+    test_content_drift_expects_only_channel_files()
+    test_content_drift_writes_nothing()
+    total = 13
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

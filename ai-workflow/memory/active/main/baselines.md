@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-18
 
+- **47차 세션 (이어서) — main-003 close: 죽어 있던 제외 목록 수리 (전량 2축 262/262 green).** `check_deprecation_3rd_cycle` 의 제외가 **경로 기준 불일치로 한 건도 성립하지 않았다** — `rel` 은 `REPO_ROOT` 상대인데 제외 항목(`build`/`.venv`/`tests`)은 `WORKFLOW_SOURCE` 기준이라 `workflow-source/.venv/...` 가 `.venv` 로 시작할 수가 없었다. 평소엔 그 디렉터리가 없어 아무도 몰랐고, 로컬에 있는 호스트에서만 site-packages 16건이 저장소 결함으로 보고됐다. 수리: 기준을 `WORKFLOW_SOURCE` 로 통일하고 `_iter_source_files` 하나로 모음 · 판정을 문자열 `startswith` → **경로 조각**(`buildtools/` 오인·중첩 `.venv` 누락 방지) · case 1 의 `endswith` 완화 제거(그 완화가 어긋남을 가리고 있었다). **case 4 신설(3→4)** — 합성 경로 7종 직접 판정 + 원 결함을 실행 가능한 단언으로 보존 + 제외 대상이 스캔에 새는지 관찰. cases 1~3 은 제외가 죽어도 조용히 green 이었다. **성과: 로컬 `workflow-source/.venv` 를 비켜 두지 않고 게이트가 돈다** — 세션 내내 하던 수작업 하나가 사라졌다.
+
+## 롤오프 2026-08-18
+
 - **47차 세션 (이어서) — main-001 close: backlog-update 날짜 롤오버 이월 결함 수리 (전량 2축 262/262 green).** 막고 있던 것은 **판정 한 줄**이었다 — 병합(`update_merge` 는 `matched_task` 가 아니라 `task_ssot_path.exists()` 를 본다)과 index append(`_upsert_index_block` 은 항목이 없으면 이미 덧붙인다)는 원래부터 맞게 동작했고, 그 앞의 `cannot_determine` 이 전부를 막았다. 이제 update 가 오늘 index 에 없는 task 를 만나면 **task SSOT 존재 여부로 갈린다**: 있으면 `carry_over_entry` (오늘 index 에 이월 + 갱신 반영, 본문·상태 보존), 없으면 `cannot_determine`. 그리고 **`cannot_determine` 의 최상위 `status` 를 `ok` → `warning`** 으로 — 조용한 미반영의 뿌리는 판정이 아니라 이 보고였다. `check_backlog_carry_over` 5 cases 신설(이월·본문 보존·상태 보존·SSOT 부재 시 non-ok·같은 날 재갱신은 여전히 `update_entry`), 되주입에서 4건 red 실증. **수리된 도구가 자기 자신의 close 를 `carry_over_entry` 로 처리했다.**
 
 ## 롤오프 2026-08-18

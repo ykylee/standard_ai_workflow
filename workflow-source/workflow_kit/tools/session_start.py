@@ -15,6 +15,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.child_process import child_env, module_command
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import dedupe_normalized_backticked
@@ -178,15 +179,17 @@ def _detect_stale_branch_memories(
         memory_root = memory_root_dir(project_profile_path)
     except Exception:  # noqa: BLE001
         return None
-    tool = SOURCE_ROOT / "workflow_kit" / "tools" / "archive_branch_memory.py"
-    if not tool.is_file() or not (memory_root / "active").is_dir():
+    if not (memory_root / "active").is_dir():
         return None
-    cmd = [sys.executable, str(tool), "--memory-root", str(memory_root), "--json"]
+    # 파일 경로가 아니라 **모듈로** 부른다 — 설치본에는 `workflow-source/` 가 없다.
+    cmd = module_command("workflow_kit.tools.archive_branch_memory",
+                         "--memory-root", str(memory_root), "--json")
     if apply:
         cmd.append("--apply")
     try:
         import subprocess
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60,
+                              env=child_env())
         payload = json.loads(proc.stdout) if proc.stdout.strip() else {}
     except Exception as exc:  # noqa: BLE001
         warnings.append(f"stale branch memory 점검 실패: {type(exc).__name__}")

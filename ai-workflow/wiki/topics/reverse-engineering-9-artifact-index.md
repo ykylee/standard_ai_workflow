@@ -1,7 +1,7 @@
 ---
 type: topic
 status: active
-last_ingested_from: workflow-source/reverse-engineering/{01..09}-*.md + workflow-source/core/reverse_engineering.md
+last_ingested_from: workflow-source/workflow_kit/assets/reverse-engineering/{01..09}-*.md + workflow-source/core/reverse_engineering.md
 related_pages: [concepts/reverse-engineering, concepts/unit-of-work, concepts/audit-log-standard, concepts/extension-system, topics/aidlc-benchmark-analysis-2026-06-12]
 created: 2026-06-13
 updated: 2026-06-13
@@ -9,7 +9,7 @@ updated: 2026-06-13
 
 # Reverse Engineering 9-Artifact Index (v0.7.1, brownfield project SSOT)
 
-- 문서 목적: standard_ai_workflow v0.7.1 의 9-Artifact (brownfield project 의 주제별 SSOT) 의 *index* page. 각 artifact 의 본문은 `workflow-source/reverse-engineering/0N-*.md` 에 위치.
+- 문서 목적: standard_ai_workflow v0.7.1 의 9-Artifact (brownfield project 의 주제별 SSOT) 의 *index* page. 각 artifact 의 본문은 `workflow-source/workflow_kit/assets/reverse-engineering/0N-*.md` 에 위치.
 - 범위: 9 artifact index + auto-fill helper (v0.7.1 follow-up) + R-1~R9 lint 정합
 - 최종 수정일: 2026-06-13
 
@@ -17,15 +17,15 @@ updated: 2026-06-13
 
 | # | Artifact | 본 위치 | 주제 |
 |---|---|---|---|
-| 1 | Business Overview | `workflow-source/reverse-engineering/01-business-overview.md` | business transaction = workflow stage transition / business dictionary = workflow vocabulary |
-| 2 | System Architecture | `workflow-source/reverse-engineering/02-architecture.md` | components = harness / skill / MCP / workflow_kit |
-| 3 | Code Structure | `workflow-source/reverse-engineering/03-code-structure.md` | key classes = workflow_kit modules (contracts, parser, helper) |
-| 4 | API Documentation | `workflow-source/reverse-engineering/04-api-documentation.md` | REST → MCP tool / Internal → workflow_kit Python |
-| 5 | Component Inventory | `workflow-source/reverse-engineering/05-component-inventory.md` | 5 type (Harness/MCP/workflow_kit/Template/Test) |
-| 6 | Technology Stack | `workflow-source/reverse-engineering/06-technology-stack.md` | Python + 5 harness + packaging |
-| 7 | Dependencies | `workflow-source/reverse-engineering/07-dependencies.md` | internal + external + lock/checksum (SEC-WF-05) |
-| 8 | Code Quality Assessment | `workflow-source/reverse-engineering/08-code-quality-assessment.md` | smoke test PASS + R-1~R9 lint + patterns/anti-patterns |
-| 9 | Reverse Engineering Metadata | `workflow-source/reverse-engineering/09-reverse-engineering-metadata.md` | ISO 8601 + state.json sync + rerun stale check |
+| 1 | Business Overview | `workflow-source/workflow_kit/assets/reverse-engineering/01-business-overview.md` | business transaction = workflow stage transition / business dictionary = workflow vocabulary |
+| 2 | System Architecture | `workflow-source/workflow_kit/assets/reverse-engineering/02-architecture.md` | components = harness / skill / MCP / workflow_kit |
+| 3 | Code Structure | `workflow-source/workflow_kit/assets/reverse-engineering/03-code-structure.md` | key classes = workflow_kit modules (contracts, parser, helper) |
+| 4 | API Documentation | `workflow-source/workflow_kit/assets/reverse-engineering/04-api-documentation.md` | REST → MCP tool / Internal → workflow_kit Python |
+| 5 | Component Inventory | `workflow-source/workflow_kit/assets/reverse-engineering/05-component-inventory.md` | 5 type (Harness/MCP/workflow_kit/Template/Test) |
+| 6 | Technology Stack | `workflow-source/workflow_kit/assets/reverse-engineering/06-technology-stack.md` | Python + 5 harness + packaging |
+| 7 | Dependencies | `workflow-source/workflow_kit/assets/reverse-engineering/07-dependencies.md` | internal + external + lock/checksum (SEC-WF-05) |
+| 8 | Code Quality Assessment | `workflow-source/workflow_kit/assets/reverse-engineering/08-code-quality-assessment.md` | smoke test PASS + R-1~R9 lint + patterns/anti-patterns |
+| 9 | Reverse Engineering Metadata | `workflow-source/workflow_kit/assets/reverse-engineering/09-reverse-engineering-metadata.md` | ISO 8601 + state.json sync + rerun stale check |
 
 ## §2 각 Artifact 의 Verification Subsection
 
@@ -34,7 +34,7 @@ updated: 2026-06-13
 ## §3 Auto-Fill Helper (v0.7.1 follow-up)
 
 `workflow-source/tools/fill_reverse_engineering_artifacts.py`:
-- workflow-source/reverse-engineering/ 의 template 사용
+- workflow-source/workflow_kit/assets/reverse-engineering/ 의 template 사용
 - `--info=<json>` 또는 `--project-root=<path>` 입력
 - heuristic 기반 TODO marker 채움 (사용자가 직접 완성)
 - 9 artifact 자동 emit → brownfield project 의 9-Artifact 즉시 사용 가능
@@ -71,7 +71,7 @@ updated: 2026-06-13
 
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (311 line, commit `b19c819`, 2026-06-08)
 - 우리 SSOT: `workflow-source/core/reverse_engineering.md` (148 line, commit `4bbd391`)
-- 우리 9 artifact: `workflow-source/reverse-engineering/{01..09}-*.md`
+- 우리 9 artifact: `workflow-source/workflow_kit/assets/reverse-engineering/{01..09}-*.md`
 - 우리 helper: `workflow-source/tools/fill_reverse_engineering_artifacts.py` (v0.7.1 follow-up, 200 line)
 - 우리 검증: `workflow-source/tests/check_reverse_engineering.py` (19 test PASS)
 - 우리 위키: [[concepts/reverse-engineering]] (v0.7.0 step 6)

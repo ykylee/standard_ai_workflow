@@ -46,9 +46,11 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.child_process import child_env, module_command  # noqa: E402
 from workflow_kit.common.paths import memory_dir_for_workspace  # noqa: E402
 
-SEED_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
+#: seed 도구는 **모듈로** 부른다 — 설치본에는 `workflow-source/` 디렉터리가 없다.
+SEED_MODULE = "workflow_kit.tools.seed_workspace_memory"
 
 
 def _git(args: list[str], *, repo_root: Path) -> subprocess.CompletedProcess:
@@ -121,22 +123,24 @@ def claim(*, repo_root: Path, remote: str, branch: str, axis: str,
     # (TASK-2026-08-08-main-008, §5A.3 정합). WORKFLOW_HARNESS / WORKFLOW_ENDPOINT
     # env 가 있으면 seed 가 그대로 채워 넣는다. claim 측에서도 명시적
     # --harness / --endpoint forwarding 허용.
-    seed_env = {
-        "PYTHONPATH": str(SOURCE_ROOT),
-        "PATH": "/usr/bin:/bin:/usr/local/bin",
+    # 환경은 **좁힌 채로** 시작하고(base), PYTHONPATH 만 helper 가 얹는다.
+    forwarded = {
         # 보안: 호출자 작업 디렉터리 컨텍스트 registry 가 그대로 쓰도록
         # WORKFLOW_REGISTRY_PATH / WORKFLOW_HOST_ID 는 *덮어쓰지 않는다*.
+        k: os.environ[k]
+        for k in ("WORKFLOW_REGISTRY_PATH", "WORKFLOW_HOST_ID",
+                  "WORKFLOW_HARNESS", "WORKFLOW_ENDPOINT")
+        if k in os.environ
     }
-    for env_key in ("WORKFLOW_REGISTRY_PATH", "WORKFLOW_HOST_ID",
-                    "WORKFLOW_HARNESS", "WORKFLOW_ENDPOINT"):
-        if env_key in os.environ:
-            seed_env[env_key] = os.environ[env_key]
-    seed_args = [
-        sys.executable, str(SEED_TOOL),
+    seed_env = child_env(
+        {"PATH": "/usr/bin:/bin:/usr/local/bin", **forwarded}, base={},
+    )
+    seed_args = module_command(
+        SEED_MODULE,
         "--memory-root", str(memory_dir_for_workspace(repo_root)),
         "--branch", branch, "--axis", axis, "--task-title", task_title,
         "--today", today, "--apply", "--json",
-    ]
+    )
     if out_of_scope:
         seed_args += ["--out-of-scope", out_of_scope]
     if harness:

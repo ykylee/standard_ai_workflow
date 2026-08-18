@@ -33,6 +33,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from workflow_kit.common.child_process import child_env, module_command
+
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = SOURCE_ROOT.parent
 HISTORY_PATH = Path(__file__).resolve().parent / ".score_history.jsonl"
@@ -87,12 +89,14 @@ def get_git_commits(limit: int = 10) -> list[tuple[str, str]]:
 def compute_score_at_commit(commit: str) -> dict:
     """특정 commit 의 score 산출 (git checkout 없이 working tree 기준)."""
     # score tool 실행 (현재 working tree 기준)
+    # 파일 경로가 아니라 **모듈로** 부른다 — 설치본에는 `workflow-source/` 가 없다.
     proc = subprocess.run(
-        ["python3", str(SOURCE_ROOT / "workflow_kit" / "tools" / "score_wiki_maintainability.py"), "--json"],
+        module_command("workflow_kit.tools.score_wiki_maintainability", "--json"),
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         timeout=120,
+        env=child_env(),
     )
     if proc.returncode != 0:
         return {"error": proc.stderr}

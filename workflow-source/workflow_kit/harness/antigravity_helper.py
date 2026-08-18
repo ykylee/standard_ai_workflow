@@ -57,8 +57,10 @@ def delegate_to_worker(role: str, task: str) -> dict[str, str]:
     Note: This is intended to be used as a guideline for the Orchestrator 
     when calling the 'browser_subagent' or similar tools in Antigravity.
     """
-    repo_root = Path(__file__).resolve().parents[3]
-    prompt_dir = repo_root / "workflow-source" / "templates" / "prompts"
+    # prompt 는 **패키지 안**에 있다 (`workflow_kit/assets/prompts/`).
+    # 원래 위치 `workflow-source/templates/prompts/` 는 wheel 미포함이라 소비자
+    # 설치본에서는 `FileNotFoundError` 였다 (2026-08-18, TASK-2026-08-18-main-003).
+    prompt_dir = Path(__file__).resolve().parents[1] / "assets" / "prompts"
     helper = AntigravityMultiAgentHelper(prompt_dir)
     
     return {

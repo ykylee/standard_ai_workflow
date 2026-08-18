@@ -20,11 +20,11 @@ Usage:
     # dry-run
     python3 fill_reverse_engineering_artifacts.py --project-root=~/repos/foo --dry-run
 
-    # 실제 emit (workflow-source/reverse-engineering/ 의 template 사용)
+    # 실제 emit (workflow_kit/assets/reverse-engineering/ 의 template 사용)
     python3 fill_reverse_engineering_artifacts.py --project-root=~/repos/foo --output-dir=./out --apply
 
 Reference:
-- workflow-source/reverse-engineering/{01..09}-*.md (template)
+- workflow_kit/assets/reverse-engineering/{01..09}-*.md (template)
 - workflow-source/core/reverse_engineering.md (13 step 가이드)
 - workflow-source/scripts/run_existing_project_onboarding.py (기존 onboarding 흐름)
 """
@@ -39,7 +39,10 @@ from datetime import datetime
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE_DIR = SOURCE_ROOT / "reverse-engineering"
+#: template 은 **패키지 안**에 있다 (`workflow_kit/assets/reverse-engineering/`).
+#: 원래 위치 `workflow_kit/assets/reverse-engineering/` 는 wheel 미포함이라 소비자
+#: 설치본에서는 template 을 한 장도 못 읽었다 (2026-08-18, TASK-2026-08-18-main-003).
+TEMPLATE_DIR = Path(__file__).resolve().parents[1] / "assets" / "reverse-engineering"
 
 # 9 artifact 정의 (file_name → template path)
 ARTIFACTS = [
@@ -119,7 +122,7 @@ AUTO_FILL_RULES = {
 
 
 def load_template(artifact_name: str) -> str:
-    """workflow-source/reverse-engineering/<name> 의 template 본문."""
+    """workflow_kit/assets/reverse-engineering/<name> 의 template 본문."""
     path = TEMPLATE_DIR / artifact_name
     if not path.exists():
         return ""

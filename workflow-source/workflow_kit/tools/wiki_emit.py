@@ -39,7 +39,7 @@ Usage:
     python3 wiki_emit.py --emit-l2 --max-chars=3000 --apply
 
 Reference:
-- workflow_kit/tools/refresh_wiki_memory.py (3-step 의 1+3)
+- workflow_kit/tools/refresh_wiki_memory.py (3-step 의 1+3, `-m` 으로 호출)
 - workflow_kit/tools/emit_wiki_l2_body.py (3-step 의 2)
 - v0.7.5 release note (refresh_wiki_memory 정식화)
 - v0.7.0 release note (LLM Wiki Layer + L1/L2 분화)
@@ -54,6 +54,8 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+from workflow_kit.common.child_process import child_env
 
 # v0.7.17+ in-repo storage: 모든 path 가 REPO_ROOT 기준.
 def _detect_repo_root() -> Path:
@@ -71,9 +73,18 @@ def _detect_repo_root() -> Path:
 
 
 REPO_ROOT = _detect_repo_root()
-TOOLS_DIR = REPO_ROOT / "workflow-source" / "tools"
-REFRESH_WIKI_MEMORY = TOOLS_DIR / "refresh_wiki_memory.py"
-EMIT_WIKI_L2_BODY = TOOLS_DIR / "emit_wiki_l2_body.py"
+
+#: 하위 3-step 을 **모듈로** 부른다 (`-m`), 파일 경로로 부르지 않는다.
+#:
+#: 2026-08-18 실측: 원래는 ``REPO_ROOT/"workflow-source"/"tools"/<name>.py`` 를
+#: 실행했다. 그 경로는 두 번 틀렸다 — (a) 구현이 v1.1.8 에 ``workflow_kit/tools/``
+#: 로 옮겨졌고 v1.2.0 에 구경로 shim 이 drop 돼 **이 저장소에도 없었고**
+#: (TASK-2026-08-13-main-005), (b) 소비자는 wheel 로 설치하므로 애초에
+#: ``workflow-source/`` 디렉터리 자체가 없다. 그래서 ``wk wiki-emit`` 은
+#: ``can't open file`` 로 죽어 있었다.
+REFRESH_WIKI_MEMORY_MODULE = "workflow_kit.tools.refresh_wiki_memory"
+EMIT_WIKI_L2_BODY_MODULE = "workflow_kit.tools.emit_wiki_l2_body"
+
 
 # 3-step 의 표준 subcommand / flag 매핑
 REFRESH_WIKI_SUBCOMMAND = ["--refresh-raw"]
@@ -106,6 +117,7 @@ def _run_step(name: str, cmd: list[str], *, dry: bool, timeout: int = 120) -> di
         capture_output=True,
         text=True,
         timeout=timeout,
+        env=child_env(),
     )
     result["returncode"] = proc.returncode
     if proc.stdout:
@@ -162,23 +174,26 @@ def main() -> int:
     py = sys.executable
 
     # 3-step command build
-    cmd_1 = [py, str(REFRESH_WIKI_MEMORY)] + REFRESH_WIKI_SUBCOMMAND + [
+    # 인자는 각 하위 도구가 **실제로 받는 것만** 넘긴다. 2026-08-18 실측:
+    # `refresh_wiki_memory` 는 `--project` 를 받지 않고 `emit_wiki_l2_body` 는
+    # `--json` 을 받지 않는데 둘 다 넘기고 있었다. dry-run 은 subprocess 를
+    # 아예 안 띄우므로 그 어긋남을 한 번도 드러내지 못했다.
+    cmd_1 = [py, "-m", REFRESH_WIKI_MEMORY_MODULE] + REFRESH_WIKI_SUBCOMMAND + [
         "--since", args.since,
-        "--project", args.project,
+        "--repo-root", str(REPO_ROOT),
     ]
     if not args.dry_run:
         cmd_1 += ["--apply"]
     cmd_1 += ["--json"]
 
-    cmd_2 = [py, str(EMIT_WIKI_L2_BODY), "--project", args.project,
+    cmd_2 = [py, "-m", EMIT_WIKI_L2_BODY_MODULE, "--project", args.project,
              "--max-chars", str(args.max_chars)]
     if not args.dry_run:
         cmd_2 += ["--apply"]
-    cmd_2 += ["--json"]
 
-    cmd_3 = [py, str(REFRESH_WIKI_MEMORY)] + REFRESH_STUBS_SUBCOMMAND + [
+    cmd_3 = [py, "-m", REFRESH_WIKI_MEMORY_MODULE] + REFRESH_STUBS_SUBCOMMAND + [
         "--since", args.since,
-        "--project", args.project,
+        "--repo-root", str(REPO_ROOT),
     ]
     if not args.dry_run:
         cmd_3 += ["--apply"]

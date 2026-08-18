@@ -48,7 +48,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -58,6 +57,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.workflow_state import refresh_workflow_state_cache  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     discover_project_profile_path,
     get_current_branch,
@@ -317,26 +317,25 @@ def _generate_state(*, state_path: Path, branch_dir: Path) -> str | None:
     여기서 파일명을 직접 이어 붙이면 layout 규칙의 사본이 되고,
     `check_convention_single_source` 가 그걸 잡는다 (실제로 이 함수를 쓰다 걸렸다).
     """
-    generator = SOURCE_ROOT / "scripts" / "generate_workflow_state.py"
-    if not generator.is_file():
-        return f"생성기 부재: {generator}"
+    # 생성기를 **함수로** 부른다. 원래는 `SOURCE_ROOT/scripts/generate_workflow_state.py`
+    # 를 subprocess 로 띄웠는데, `scripts/` 는 wheel 에 안 들어가서 소비자 설치본에서는
+    # 항상 "생성기 부재" 로 끝났다 (2026-08-18 실측). 그 스크립트 자체가
+    # `refresh_workflow_state_cache` 한 줄 wrapper 라 부를 이유도 없다.
     profile = discover_project_profile_path(REPO_ROOT)
     if profile is None:
         return "PROJECT_PROFILE.md 를 찾지 못했다"
-    proc = subprocess.run(
-        [
-            sys.executable, str(generator),
-            "--project-profile-path", str(profile),
-            "--daily-backlog-dir", str(branch_dir / "backlog"),
-            "--tasks-dir", str(branch_dir / "backlog" / "tasks"),
-            "--sessions-dir", str(branch_dir / "sessions"),
-            "--session-handoff-path", str(branch_dir / "session_handoff.md"),
-            "--output-path", str(state_path),
-        ],
-        capture_output=True, text=True, timeout=120,
-    )
-    if proc.returncode != 0:
-        return (proc.stderr.strip() or proc.stdout.strip() or f"exit {proc.returncode}")[-500:]
+    try:
+        refresh_workflow_state_cache(
+            project_profile_path=profile.resolve(),
+            daily_backlog_dir=(branch_dir / "backlog").resolve(),
+            tasks_dir=(branch_dir / "backlog" / "tasks").resolve(),
+            sessions_dir=(branch_dir / "sessions").resolve(),
+            session_handoff_path=(branch_dir / "session_handoff.md").resolve(),
+            output_path=state_path.resolve(),
+            generated_at=date.today().isoformat(),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return f"{type(exc).__name__}: {exc}"[-500:]
     return None
 
 

@@ -6,7 +6,7 @@ hook script 의 force 차단 동작 검증. stdlib only. *로컬 repo 격리* �
 git repo 에서 검증. **in-process** 함수 호출 (subprocess mock 한계 회피 — installer
 의 *logic* 자체가 검증 대상).
 
-검증 케이스 (7):
+검증 케이스 (8):
     1. dry-run install — hook 파일 *생성 안됨*, report 만 emit
     2. install --apply — hook 파일 *생성됨*, mode 0o755
     3. install idempotent — 두 번 install, backup 0개 유지, hook content 동일
@@ -14,6 +14,8 @@ git repo 에서 검증. **in-process** 함수 호출 (subprocess mock 한계 회
     5. status — installed / matches_src / backups 정확
     6. hook script 동작 — `--force` / `-f` / `--force-with-lease` / `+refspec` 거부, normal 통과
     7. uninstall — hook 제거 + backup 에서 복원
+    8. **mock 없이** cwd 의 git root 를 고르는가 + hook 원본이 실재하는가
+       (1~7 은 `_git_root` 를 monkeypatch 해서 그 둘을 한 번도 재지 않았다)
 
 Stdlib only. subprocess (for hook script test) + os + stat + tempfile.
 """
@@ -36,7 +38,10 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit.tools import install_pre_push_hook  # noqa: E402
 
-HOOK_SOURCE = REPO_ROOT / "workflow-source" / "tools" / "hooks" / "pre-push-no-force.sh"
+HOOK_SOURCE = (
+    REPO_ROOT / "workflow-source" / "workflow_kit" / "assets" / "hooks"
+    / "pre-push-no-force.sh"
+)
 
 
 def main() -> int:
@@ -152,13 +157,43 @@ def main() -> int:
         finally:
             install_pre_push_hook._git_root = original_git_root
 
+        # 8) **mock 없이** — 대상 저장소를 cwd 에서 고른다.
+        #
+        # cases 1~7 은 `_git_root` 를 통째로 monkeypatch 해서 "어느 저장소를
+        # 고르는가" 를 **한 번도 재지 않았다**. 그래서 `_git_root(REPO_ROOT)`
+        # (= 모듈 파일 위치) 라는 결함이 7 case 를 전부 통과했고, 설치본에서는
+        # git 저장소인 소비자 프로젝트에서도 `not a git repository` 가 났다
+        # (2026-08-18 실측). 여기서만 진짜 프로세스를 띄운다.
+        env = {**os.environ, "PYTHONPATH": str(SOURCE_ROOT)}
+        proc = subprocess.run(
+            [sys.executable, "-m", "workflow_kit.tools.install_pre_push_hook",
+             "status", "--json"],
+            cwd=str(repo_dir), capture_output=True, text=True, timeout=60, env=env,
+        )
+        if proc.returncode != 0:
+            failures.append(f"[8] cwd 기준 status 실패 (exit {proc.returncode}): {proc.stderr.strip()[:200]}")
+        else:
+            try:
+                got = json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                got = {}
+                failures.append(f"[8] status --json 출력이 JSON 이 아니다: {proc.stdout[:120]!r}")
+            git_root = Path(got.get("git_root", "")).resolve() if got else None
+            if got and git_root != repo_dir.resolve():
+                failures.append(
+                    f"[8] cwd 대신 다른 저장소를 골랐다: {git_root} != {repo_dir.resolve()}")
+            elif got and not Path(got.get("source_path", "")).is_file():
+                failures.append(f"[8] hook 원본이 없다: {got.get('source_path')}")
+            elif got:
+                print("  [8] cwd 기준 대상 선택     ✓  (mock 없이, hook 원본도 존재)")
+
     print()
     if failures:
         print(f"FAIL: {len(failures)} case(s) failed:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ALL PASS: pre-push hook installer — 7 case (dry-run / install / idempotent / existing / status / script / uninstall)")
+    print("ALL PASS: pre-push hook installer — 8 case (dry-run / install / idempotent / existing / status / script / uninstall / cwd 대상 선택)")
     return 0
 
 

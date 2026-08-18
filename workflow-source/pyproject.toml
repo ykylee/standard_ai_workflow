@@ -224,7 +224,11 @@ py-modules = ["bootstrap_workflow_kit"]
 "workflow_kit.harness" = "workflow_kit/harness"
 
 [tool.setuptools.package-data]
-workflow_kit = ["README.md", "py.typed"]
+# ``assets/hooks/*.sh`` (v1.2.1+, TASK-2026-08-18-main-003): `wk install-pre-push-hook`
+# 이 런타임에 읽는 hook 원본이다. 원래 위치는 wheel 미포함 자산인
+# ``workflow-source/tools/hooks/`` 여서, 소비자 설치본에서는 명령이
+# `hook source not found` 로 죽었다. 런타임이 읽는 자산은 패키지 안에 있어야 한다.
+workflow_kit = ["README.md", "py.typed", "assets/hooks/*.sh", "assets/reverse-engineering/*.md", "assets/prompts/*.md"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc", "*.pyo"]

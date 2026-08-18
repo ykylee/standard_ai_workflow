@@ -4,7 +4,8 @@
 표준 §5D.4 의 *3-layer defense* 중 2nd layer (client-side). `git push --force` 를
 `.git/hooks/pre-push` 에서 차단. **3개 sub-command**:
 
-- `install`   — `.git/hooks/pre-push` 를 `tools/hooks/pre-push-no-force.sh` 로 교체.
+- `install`   — `.git/hooks/pre-push` 를 `workflow_kit/assets/hooks/pre-push-no-force.sh`
+               로 교체. 대상 저장소는 **cwd** 의 git root 다.
                기존 hook 있으면 `pre-push.bak.<UTC-ISO>` 으로 backup. idempotent.
 - `uninstall` — `.git/hooks/pre-push` 제거 + 가장 최근 backup 에서 복원. 복원할
                backup 없으면 그냥 빈 hook (또는 사용자 default).
@@ -41,8 +42,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-HOOK_SOURCE = REPO_ROOT / "workflow-source" / "tools" / "hooks" / "pre-push-no-force.sh"
+#: hook 원본은 **패키지 안**에 있다 (``workflow_kit/assets/hooks/``).
+#:
+#: 2026-08-18 실측: 원래는 ``REPO_ROOT/"workflow-source"/"tools"/"hooks"/…`` 였는데
+#: 그 디렉터리는 wheel 에 안 들어간다(``pyproject.toml`` 이 명시). 소비자 설치본에서
+#: 이 명령은 `hook source not found` 로 죽었다 — 런타임이 읽는 자산은 패키지 안에
+#: 있어야 한다.
+HOOK_SOURCE = Path(__file__).resolve().parents[1] / "assets" / "hooks" / "pre-push-no-force.sh"
 
 
 def _git_root(cwd: Path) -> Path | None:
@@ -85,7 +91,7 @@ def _backup_list(git_root: Path) -> list[Path]:
 
 
 def cmd_install(args: argparse.Namespace) -> int:
-    git_root = _git_root(REPO_ROOT)
+    git_root = _git_root(Path.cwd())
     if git_root is None:
         print("ERROR: not a git repository (git rev-parse --show-toplevel failed)", file=sys.stderr)
         return 2
@@ -124,7 +130,7 @@ def cmd_install(args: argparse.Namespace) -> int:
 
 
 def cmd_uninstall(args: argparse.Namespace) -> int:
-    git_root = _git_root(REPO_ROOT)
+    git_root = _git_root(Path.cwd())
     if git_root is None:
         print("ERROR: not a git repository", file=sys.stderr)
         return 2
@@ -153,7 +159,7 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    git_root = _git_root(REPO_ROOT)
+    git_root = _git_root(Path.cwd())
     if git_root is None:
         print("ERROR: not a git repository", file=sys.stderr)
         return 2

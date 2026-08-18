@@ -54,17 +54,27 @@ def test_wiki_emit_dry_run_full_cycle() -> None:
     assert "3_reemit_stubs" in step_names
     # skipped 없음
     assert data["skipped_steps"] == []
-    # 1단계 의 command 가 refresh_wiki_memory + --refresh-raw + --apply (dry-run mode 라 apply 없음) + --json
+    # 하위 단계는 **모듈로** 부른다 (`-m <module>`), 파일 경로가 아니다.
+    #
+    # 2026-08-18 (TASK-2026-08-18-main-003): 원래 이 단언은 `"…​.py" in cmd[1]` 로
+    # **파일 경로 계약을 고정**하고 있었다. 그런데 그 경로(`workflow-source/tools/…`)는
+    # v1.2.0 shim drop 이후 존재하지 않았고, dry-run 은 subprocess 를 띄우지 않으므로
+    # 검사는 계속 green 이었다 — 즉 이 단언이 **죽은 경로를 지키고 있었다**. 이제
+    # 모듈 이름을 고정한다: 설치본이든 체크아웃이든 import 규칙 하나로 풀린다.
+    # 1단계 — refresh_wiki_memory + --refresh-raw
     step_1_cmd = data["steps"][0]["command"]
-    assert "refresh_wiki_memory.py" in step_1_cmd[1]
+    assert step_1_cmd[1] == "-m", f"파일 경로로 부른다: {step_1_cmd[:3]}"
+    assert step_1_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_1_cmd[2]
     assert "--refresh-raw" in step_1_cmd
-    # 2단계 의 command 가 emit_wiki_l2_body + --max-chars
+    # 2단계 — emit_wiki_l2_body + --max-chars
     step_2_cmd = data["steps"][1]["command"]
-    assert "emit_wiki_l2_body.py" in step_2_cmd[1]
+    assert step_2_cmd[1] == "-m", f"파일 경로로 부른다: {step_2_cmd[:3]}"
+    assert step_2_cmd[2] == "workflow_kit.tools.emit_wiki_l2_body", step_2_cmd[2]
     assert "--max-chars" in step_2_cmd
-    # 3단계 의 command 가 refresh_wiki_memory + --emit-l2
+    # 3단계 — refresh_wiki_memory + --emit-l2
     step_3_cmd = data["steps"][2]["command"]
-    assert "refresh_wiki_memory.py" in step_3_cmd[1]
+    assert step_3_cmd[1] == "-m", f"파일 경로로 부른다: {step_3_cmd[:3]}"
+    assert step_3_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_3_cmd[2]
     assert "--emit-l2" in step_3_cmd
 
 

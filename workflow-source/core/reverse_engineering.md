@@ -5,7 +5,7 @@
 - 상태: draft (v0.7.0 step 6)
 - 최종 수정일: 2026-08-13
 - 1차 출처: AIDLC `aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (311 line, commit b19c819, 2026-06-08)
-- 관련 문서: `./global_workflow_standard.md`, `../templates/repository_assessment_template.md`, `../reverse-engineering/{01..09}-*.md` (9 artifact template)
+- 관련 문서: `./global_workflow_standard.md`, `../templates/repository_assessment_template.md`, `../workflow_kit/assets/reverse-engineering/{01..09}-*.md` (9 artifact template)
 
 ## 1. 왜 필요한가 (Why)
 
@@ -37,7 +37,7 @@ else:
 
 ## 4. 9-Artifact 구조
 
-`workflow-source/reverse-engineering/` 디렉토리에 9 file 생성:
+`workflow_kit/assets/reverse-engineering/` 디렉토리에 9 file 생성:
 
 | # | File | AIDLC 대응 | 우리 적응 |
 |---|---|---|---|
@@ -86,7 +86,7 @@ else:
   "reverse_engineering": {
     "status": "completed",
     "last_generated": "<ISO 8601>",
-    "artifact_dir": "workflow-source/reverse-engineering/",
+    "artifact_dir": "workflow_kit/assets/reverse-engineering/",
     "artifact_count": 9,
     "standard_ref": "AIDLC inception/reverse-engineering.md @ b19c819"
   }
@@ -101,7 +101,7 @@ else:
 [Summary of key findings from 9 artifacts]
 
 > **📋 REVIEW REQUIRED**
-> Please examine the reverse engineering artifacts at: `workflow-source/reverse-engineering/`
+> Please examine the reverse engineering artifacts at: `workflow_kit/assets/reverse-engineering/`
 
 > **🚀 WHAT'S NEXT?**
 >
@@ -144,5 +144,5 @@ else:
 - 1차 출처: AIDLC `aidlc-rules/aws-aidlc-rule-details/inception/reverse-engineering.md` (b19c819, 2026-06-08)
 - 우리 L1 wiki: `~/wiki/wiki/projects/standard-ai-workflow/sources/topics-aidlc-benchmark-analysis-2026-06-12.md` (D = 9-Artifact)
 - 우리 기존: `workflow-source/scripts/run_existing_project_onboarding.py` (1차 분석)
-- 우리 SSOT: `workflow-source/reverse-engineering/{01..09}-*.md` (9 artifact)
+- 우리 SSOT: `workflow_kit/assets/reverse-engineering/{01..09}-*.md` (9 artifact)
 - 우리 검증: `workflow-source/tests/check_reverse_engineering.py` (smoke test)

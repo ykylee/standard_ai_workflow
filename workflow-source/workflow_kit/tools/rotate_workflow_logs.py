@@ -40,15 +40,30 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
-from workflow_kit.common.paths import memory_active_dir  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    discover_project_profile_path,
+    workflow_branch_dir,
+)
 from workflow_kit.common.read_only_bundle import (  # noqa: E402
     rotate_workflow_logs_payload,
 )
 
 
-DEFAULT_HANDOFF = (
-    memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
-)
+def _default_handoff() -> Path | None:
+    """cwd 의 workspace 에서 branch-scoped handoff 를 찾는다. 못 찾으면 None.
+
+    2026-08-18 실측: 원래 기본값은 ``memory_active_dir(REPO_ROOT)/"main"/…`` 였다.
+    ``REPO_ROOT`` 는 **이 모듈 파일 위치에서 역산**한 것이라, 소비자가 wheel 로
+    설치하면 ``<venv>/lib/python3.x/ai-workflow/…`` 를 열려다 ``FileNotFoundError``
+    가 났다 (editable 설치인 개발 호스트에서는 우연히 맞아 안 드러났다). 브랜치도
+    ``"main"`` 하드코딩이라 branch-scoped 규약과 어긋났다. 이제 다른 도구와 같은
+    규약을 쓴다 — cwd 상위에서 ``PROJECT_PROFILE.md`` 를 찾고, branch 는 그
+    workspace 의 git 에서 얻는다.
+    """
+    profile = discover_project_profile_path()
+    if profile is None:
+        return None
+    return workflow_branch_dir(profile) / "session_handoff.md"
 
 
 def _print_human(payload: dict) -> None:
@@ -70,15 +85,27 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--handoff-path",
         type=Path,
-        default=DEFAULT_HANDOFF,
-        help=f"session_handoff.md 경로 (default: {DEFAULT_HANDOFF})",
+        default=None,
+        help="session_handoff.md 경로 (기본: cwd 의 workspace 에서 branch-scoped 자동 탐색)",
     )
     p.add_argument("--max-done-items", type=int, default=10, help="max done items (default 10)")
     p.add_argument("--json", action="store_true", help="JSON 출력")
     args = p.parse_args(argv)
 
+    handoff_path = args.handoff_path or _default_handoff()
+    if handoff_path is None:
+        err = {
+            "status": "error",
+            "tool_version": TOOL_VERSION,
+            "error": "PROJECT_PROFILE.md 를 cwd 상위에서 찾지 못했다. --handoff-path 로 명시하라.",
+            "error_code": "missing_required_document",
+        }
+        print(json.dumps(err, ensure_ascii=False, indent=2) if args.json
+              else f"ERROR: {err['error']}", file=sys.stderr)
+        return 2
+
     payload = rotate_workflow_logs_payload(
-        handoff_path=str(args.handoff_path),
+        handoff_path=str(handoff_path),
         max_done_items=args.max_done_items,
         tool_version=TOOL_VERSION,
     )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """v0.7.0 step 6: Reverse Engineering 9-Artifact 검증.
 
-- workflow-source/reverse-engineering/ 9 artifact file 존재
+- workflow_kit/assets/reverse-engineering/ 9 artifact file 존재
 - 각 artifact 의 Verification subsection 존재
 - core/reverse_engineering.md step 가이드 존재
 - artifact ID 정합성 (01..09 순서)
@@ -11,7 +11,7 @@
 - Rerun stale check 의 3 분기 명시
 
 Reference: workflow-source/core/reverse_engineering.md
-           workflow-source/reverse-engineering/01..09-*.md
+           workflow_kit/assets/reverse-engineering/01..09-*.md
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
-REVERSE_ENG_DIR = SOURCE_ROOT / "reverse-engineering"
+REVERSE_ENG_DIR = SOURCE_ROOT / "workflow_kit" / "assets" / "reverse-engineering"
 GUIDE_PATH = SOURCE_ROOT / "core" / "reverse_engineering.md"
 
 # 9 artifact 이름 (순서대로)
@@ -234,9 +234,9 @@ def test_artifact_consistent_naming() -> None:
 
 
 def test_guide_links_to_artifact_dir() -> None:
-    """가이드가 workflow-source/reverse-engineering/ 경로 명시."""
+    """가이드가 workflow_kit/assets/reverse-engineering/ 경로 명시."""
     content = GUIDE_PATH.read_text(encoding="utf-8")
-    assert "workflow-source/reverse-engineering/" in content, \
+    assert "workflow_kit/assets/reverse-engineering/" in content, \
         "guide missing artifact dir path"
 
 

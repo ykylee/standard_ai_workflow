@@ -94,7 +94,7 @@
 
 ## 3. smoke 회귀
 
-누적 smoke test **263/263 PASS** ×2축 (2026-08-18, `dev,release,mcp-sdk` extra 를
+누적 smoke test **264/264 PASS** ×2축 (2026-08-19, `dev,release,mcp-sdk` extra 를
 깐 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신
 전량 결과* 를 반영하는 살아있는 지표다.
 

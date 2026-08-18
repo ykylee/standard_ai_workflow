@@ -1,46 +1,55 @@
 #!/usr/bin/env python3
-"""v0.7.5+: standard-ai-workflow 의 wiki raw mirror + memory state 갱신 정식화.
+"""in-repo wiki L2 stub 4종을 **현재 memory SSOT 에서 파생**한다.
 
-git log (REPO_ROOT) → release 별 feat commit 분류 → 1차 출처 (raw mirror) 의
-4 file 자동 보강 (state.json / work_backlog.md / wiki/log.md / memory/log.md).
-L2 sources/ dense emit 은 `emit_wiki_l2_body.py --apply` 로 분리 (R-3 단계 분리).
+L2 는 1차 출처가 아니라 *파생 뷰* 다. `ai-workflow/wiki/sources/` 의 4개
+stub 은 각각 정해진 L1 SSOT 를 하나씩 갖고, 본 tool 은 그 L1 을 읽어 압축
+본문을 emit 하고 `last_touched` 를 **실제 emit 일자**로 적는다.
 
-**v0.7.17+ in-repo storage**: 외부 vault (`~/wiki/`) 연결 제거. 본 project 의
-SSOT 는 *전부 in-repo* (`ai-workflow/wiki/` + `ai-workflow/memory/active/` +
-`ai-workflow/memory/log.md`). 모든 tool 의 path 가 in-repo 기준.
+| L2 stub | L1 SSOT |
+|---|---|
+| `active-state` | `memory/active/<branch>/state.json` |
+| `active-work-backlog` | `memory/active/<branch>/backlog/<최신>.md` |
+| `active-session-handoff` | `memory/active/<branch>/session_handoff.md` |
+| `wiki-log` | `ai-workflow/wiki/log.md` |
+
+**`--refresh-raw` 는 은퇴했다 (TASK-2026-08-18-main-004).** 그 단계는 L1 을
+*쓰는* 경로였고, 쓰려던 4개 대상이 전부 무너져 있었다:
+
+- `state.json` — 정본 §11.2 가 **생성 산출물**로 확정했고 `wk refresh-state`
+  가 유일한 생성기다. 이 tool 이 `recent_done_items` 를 직접 쓰면 **두 번째
+  writer** 가 되어 SSOT(backlog/tasks + session_handoff)와 갈라진다.
+- `work_backlog.md` — v0.14.0 append-only layout 에서 사라졌다
+  (`backlog/<날짜>.md` 로 대체). apply 는 `FileNotFoundError` 였다.
+- `memory/log.md` — entry 문자열을 만들고 **쓰지 않는** 죽은 코드였다.
+- `wiki/log.md` — 날짜(`2026-06-13`)와 릴리스(`v0.7.0~v0.7.4`)가 하드코딩이라
+  실행할수록 2026-06 스냅샷으로 되돌렸다.
+
+같은 이유로 이전 `--emit-l2` 도 위험했다: `rc=0` 인 채 본문을 2026-06-14
+스냅샷으로 재생성하고 `last_touched` 를 그 날짜로 **뒷걸음질**시켰다. 그 결과
+`score_wiki_maintainability` 의 `lifecycle`(30일 신선도)이 무너지는데도
+종료 코드는 성공이었다.
+
+Usage:
+    # 어떤 stub 이 무엇에서 파생되는지 미리 보기
+    python3 -m workflow_kit.tools.refresh_wiki_memory --emit-l2 --dry-run
+
+    # 실제 emit
+    python3 -m workflow_kit.tools.refresh_wiki_memory --emit-l2 --apply
+
+    # JSON 출력 (CI 통합)
+    python3 -m workflow_kit.tools.refresh_wiki_memory --emit-l2 --apply --json
 
 REPO_ROOT 결정 (v0.7.12+ auto-detect):
     1. `--repo-root=<path>` CLI flag (명시적)
     2. `STANDARD_AI_WF_REPO` env var (CI integration)
-    3. `git rev-parse --show-toplevel` subprocess (현재 dir 기준, repo 어디서 실행해도 동작)
+    3. `git rev-parse --show-toplevel` subprocess
     4. legacy fallback: `~/repos/standard_ai_workflow_minimax` (deprecation 경고)
 
-Usage:
-    # dry-run: 어떤 file 이 어떻게 갱신될지 미리 보기
-    python3 refresh_wiki_memory.py --dry-run
-
-    # raw mirror 만 갱신 (L2 는 별도 emit_wiki_l2_body.py)
-    python3 refresh_wiki_memory.py --apply
-
-    # 특정 release 만 갱신 (e.g. v0.7.4 후속 patch 시)
-    python3 refresh_wiki_memory.py --apply --since-tag=v0.7.4
-
-    # 특정 project 만 (multi-project repo 대비)
-    python3 refresh_wiki_memory.py --apply --project=standard-ai-workflow
-
-    # 다른 repo 경로 명시
-    python3 refresh_wiki_memory.py --repo-root=/path/to/other/repo --dry-run
-
-    # JSON 출력 (CI 통합)
-    python3 refresh_wiki_memory.py --dry-run --json
-
 Reference:
-- workflow_kit/tools/score_wiki_trend.py (commit 별 score tracking — cross-ref)
-- workflow_kit/tools/emit_wiki_l2_body.py (L2 sources/ 본문 emit — 다음 step)
-- workflow_kit/tools/refresh_raw_memory.py (raw mirror sync — 구버전, 본 tool 로 대체)
-- workflow-source/extensions/SCHEMA.md §3 (file format)
-- workflow_kit/common/contracts/baselines.py (v0.7.3+ 7 baseline dispatcher)
-- ai-workflow/wiki/sources/ (v0.7.17+ L2 dense emit target, in-repo)
+- workflow_kit/tools/emit_wiki_l2_body.py (L1 wiki page → L2 파생 뷰, 다른 축)
+- workflow_kit/tools/score_wiki_maintainability.py (lifecycle = last_touched 신선도)
+- workflow_kit/tools/wiki_emit.py (본 tool 을 포함한 파이프라인 wrapper)
+- ai-workflow/wiki/SCHEMA.md (status 어휘 = active|draft|deprecated)
 """
 
 from __future__ import annotations
@@ -56,11 +65,10 @@ from pathlib import Path
 
 # v0.7.15+ atomic_write (POSIX os.replace guarantee)
 try:
-    from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
+    from workflow_kit.common.atomic_write import atomic_write_text
 except ImportError:
     # standalone script (no workflow_kit on sys.path) — fall back to direct write.
     # atomic guarantee 없이 (file truncation possible mid-write).
-    atomic_write_json = None  # type: ignore[assignment]
     atomic_write_text = None  # type: ignore[assignment]
 
 # v1.0.0 branch-scoped memory: 작업 상태 파일은 `memory/active/` 바로 아래가 아니라
@@ -78,24 +86,19 @@ def get_repo_root(cli_value: str | os.PathLike[str] | None = None, *, _suppress_
     """REPO_ROOT 결정 (priority: CLI flag > env var > git rev-parse > legacy fallback).
 
     Args:
-        cli_value: --repo-root flag 값. None 이면 skip.
-        _suppress_warning: legacy fallback 사용 시 deprecation 경고 suppress (test 용).
-
-    Returns:
-        Path. existence 보장 (legacy fallback 도 string 그대로 반환).
+        cli_value: `--repo-root` 로 넘어온 경로. None 이면 다음 우선순위로.
+        _suppress_warning: legacy fallback 의 deprecation 경고 억제 (test 용).
     """
     global _DEPRECATION_WARNED
 
     # 1. CLI flag
-    if cli_value is not None:
-        p = Path(cli_value).expanduser().resolve()
-        return p
+    if cli_value:
+        return Path(cli_value).expanduser().resolve()
 
     # 2. env var
-    env_val = os.environ.get("STANDARD_AI_WF_REPO")
-    if env_val:
-        p = Path(env_val).expanduser().resolve()
-        return p
+    env_value = os.environ.get("STANDARD_AI_WF_REPO")
+    if env_value:
+        return Path(env_value).expanduser().resolve()
 
     # 3. git rev-parse --show-toplevel
     try:
@@ -124,12 +127,22 @@ REPO_ROOT = get_repo_root()  # eager init for backward compat (module-level read
 # v0.7.17+ in-repo storage: 외부 vault (~/wiki/) 연결 완전 제거. 모든 path 가
 # REPO_ROOT 안쪽. PROJECT_SLUG 는 *legacy* field (multi-project metadata) 로 유지.
 PROJECT_SLUG = "standard-ai-workflow"
-# 1차 출처 (L1 raw mirror) — in-repo wiki + memory/active
+# 1차 출처 (L1) — in-repo wiki + memory/active
 L1_BASE = REPO_ROOT / "ai-workflow"
-# 2차 출처 (L2 dense sources) — in-repo wiki/sources
+# 2차 출처 (L2 파생 뷰) — in-repo wiki/sources
 L2_BASE = L1_BASE / "wiki" / "sources"
 
 ACTIVE_BASE = L1_BASE / "memory" / "active"
+
+#: L2 본문 기본 상한 (자). `--max-chars` 로 조정.
+DEFAULT_MAX_CHARS = 2000
+
+#: `wiki/sources/` 의 frontmatter `status` 는 SCHEMA §1.1 의 어휘만 쓴다
+#: (`active|draft|deprecated`). L2 stub 은 **매 사이클 재생성되는 생성물**이라
+#: "사람이 검토함" 상태가 구조적으로 붙지 않으므로 `draft` 로 고정한다.
+#: (이전 emit 경로가 쓰던 `reviewed` 는 SCHEMA 어디에도 정의된 적이 없다 —
+#: `score_wiki_maintainability.score_lifecycle` 의 docstring 이 같은 지적을 한다.)
+GENERATED_STATUS = "draft"
 
 
 def _active_path(leaf: str) -> Path:
@@ -140,34 +153,7 @@ def _active_path(leaf: str) -> Path:
     return ACTIVE_BASE / leaf
 
 
-# 갱신 대상 4 file (L1 raw mirror, in-repo)
-RAW_FILES = {
-    "state_json": _active_path("state.json"),
-    "work_backlog": _active_path("work_backlog.md"),
-    "wiki_log": L1_BASE / "wiki/log.md",
-    "memory_log": L1_BASE / "memory/log.md",
-}
-
-
-def _read_target(key: str, dry: bool) -> str:
-    """갱신 대상 파일을 읽는다.
-
-    `work_backlog.md` 는 v0.14.0 append-only layout(`backlog/` 일자별 index)으로
-    대체되어 저장소에 따라 부재할 수 있다. dry-run 은 파일 내용에 의존하지 않으므로
-    부재를 빈 문자열로 관용하고, **실제 write 를 하는 apply 는 loud 하게 실패**한다
-    (빈 내용으로 덮어써서 파일을 파괴하지 않기 위함).
-    """
-    p = RAW_FILES[key]
-    if p.exists():
-        return p.read_text()
-    if dry:
-        return ""
-    raise FileNotFoundError(
-        f"refresh 대상 부재: {p} — v0.14.0 append-only layout 으로 대체되었을 수 있다. "
-        "apply 는 대상 파일이 실제로 있을 때만 수행한다."
-    )
-
-# L2 stub 4 file (dense 재emit 대상, in-repo)
+# L2 stub 4 file (파생 뷰 대상, in-repo)
 L2_STUBS = {
     "active-state": L2_BASE / "active-state.md",
     "active-work-backlog": L2_BASE / "active-work-backlog.md",
@@ -175,349 +161,314 @@ L2_STUBS = {
     "wiki-log": L2_BASE / "wiki-log.md",
 }
 
-# release 분류 regex
-RELEASE_RE = re.compile(r"\(v(\d+\.\d+(?:\.\d+)?)\)")
-RELEASE_LOOSE_RE = re.compile(r"\bv(\d+\.\d+(?:\.\d+)?)\b")
-
 
 # ---------------------------------------------------------------------------
-# git log 수집 / 분류
+# L1 SSOT 해석
 # ---------------------------------------------------------------------------
 
 
-def collect_commits(since: str = "2026-06-10", *, repo_root: Path | None = None) -> list[dict]:
-    """git log --since=<since> 의 commit 수집. (short, full, author, date, subject)
+def latest_backlog_path() -> Path | None:
+    """`backlog/` 의 가장 최근 일자 index (`YYYY-MM-DD.md`).
 
-    Args:
-        since: --since 기준일 (default 2026-06-10).
-        repo_root: git repo 경로. None 이면 module-level REPO_ROOT 사용.
+    v0.14.0 append-only layout. 파일명이 날짜라 사전순 = 시간순이다.
     """
-    if repo_root is None:
-        repo_root = REPO_ROOT
-    proc = subprocess.run(
-        ["git", "-C", str(repo_root), "log", f"--since={since}", "--pretty=format:%h|%H|%an|%ai|%s"],
-        capture_output=True, text=True, timeout=30,
+    backlog_dir = _active_path("backlog")
+    if not backlog_dir.is_dir():
+        return None
+    dated = sorted(
+        p for p in backlog_dir.glob("*.md")
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem)
     )
-    if proc.returncode != 0:
-        raise RuntimeError(f"git log 실패: {proc.stderr}")
-    rows = []
-    for line in proc.stdout.strip().split("\n"):
-        if not line:
-            continue
-        short, full, author, date, subject = line.split("|", 4)
-        rows.append({
-            "short": short, "full": full, "author": author,
-            "date": date[:10], "subject": subject,
-        })
-    return rows
+    return dated[-1] if dated else None
 
 
-def categorize(rows: list[dict]) -> dict[str, list[dict]]:
-    """commit subject 에서 release tag 추출. (vN.N.N) strict 우선, 없으면 vN.N.N loose."""
-    by_release: dict[str, list[dict]] = {}
-    for r in rows:
-        m = RELEASE_RE.search(r["subject"]) or RELEASE_LOOSE_RE.search(r["subject"])
-        rel = f"(v{m.group(1)})" if m else "unreleased"
-        by_release.setdefault(rel, []).append(r)
-    return by_release
+def l1_sources() -> dict[str, Path | None]:
+    """L2 stub 이름 → 그 stub 이 파생되는 L1 SSOT 경로.
+
+    값이 None 이면 **그 L1 이 이 저장소에 없다** — emit 은 그 stub 을 건너뛰고
+    `missing_l1` 로 보고한다. 없는 것을 있는 것처럼 채우지 않는다.
+    """
+    state_json = _active_path("state.json")
+    handoff = _active_path("session_handoff.md")
+    backlog = latest_backlog_path()
+    wiki_log = L1_BASE / "wiki" / "log.md"
+    return {
+        "active-state": state_json if state_json.exists() else None,
+        "active-work-backlog": backlog if backlog and backlog.exists() else None,
+        "active-session-handoff": handoff if handoff.exists() else None,
+        "wiki-log": wiki_log if wiki_log.exists() else None,
+    }
 
 
-def pick_feat_commit(commits: list[dict]) -> dict:
-    """release 의 main feat commit 선택. commits 는 git log 최신→과거 정렬.
-    *뒤쪽* feat 를 우선 (실제 코드/스펙 본 변경은 release 초반 위치).
-    없으면 첫 commit fallback."""
-    for c in reversed(commits):
-        if c["subject"].startswith("feat"):
-            return c
-    for c in commits:
-        if c["subject"].startswith("feat"):
-            return c
-    return commits[0]
+def _rel_to_repo(p: Path) -> str:
+    """REPO_ROOT 상대 경로 문자열. 밖이면 절대 경로 그대로."""
+    try:
+        return str(p.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(p)
+
+
+def _line_count(p: Path) -> int:
+    with p.open(encoding="utf-8", errors="ignore") as fh:
+        return sum(1 for _ in fh)
+
+
+def _truncate(body: str, max_chars: int) -> str:
+    """본문 상한. 줄 경계에서 자르고 잘렸음을 본문에 남긴다."""
+    if len(body) <= max_chars:
+        return body
+    return body[:max_chars].rsplit("\n", 1)[0] + "\n\n... (이후 본문은 L1 SSOT 참조)"
 
 
 # ---------------------------------------------------------------------------
-# raw mirror 갱신 — 4 file
+# stub 별 본문 파생
 # ---------------------------------------------------------------------------
 
 
-def update_state_json(by_release: dict, dry: bool = True) -> list[str]:
-    """raw/.../memory/active/state.json 의 recent_done_items 보강."""
-    p = RAW_FILES["state_json"]
-    raw = _read_target("state_json", dry)
-    data = json.loads(raw) if raw else {"session": {"recent_done_items": []}}
-    existing = data["session"]["recent_done_items"]
-    new_lines: list[str] = []
-    rel_order = ["(v0.7.10)", "(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)",
-                 "(v0.6.6)", "(v0.6.5)", "(v0.6.4)"]
-    for rel in rel_order:
-        if rel not in by_release:
-            continue
-        commits = by_release[rel]
-        feat = pick_feat_commit(commits)
-        msg = re.sub(r"^feat(\([^)]+\))?:\s*", "", feat["subject"])
-        new_lines.append(f"{rel[1:-1]} ({feat['short']}): {msg}")
-    if dry:
-        return new_lines
-    data["session"]["recent_done_items"] = new_lines + existing
-    data["memory"]["last_freeze"] = f"{datetime.now().strftime('%Y-%m-%d')}-v0.7.4-or-later"
-    data["wiki"]["last_ingest"] = datetime.now().strftime("%Y-%m-%d")
-    if atomic_write_json is not None:
-        atomic_write_json(p, data, indent=2, ensure_ascii=False)
-    else:
-        p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
-    return new_lines
+def _derive_active_state(p: Path) -> str:
+    """`state.json` 에서 현재 축 / 초점 / 진행·차단·완료 목록을 뽑는다."""
+    data = json.loads(p.read_text(encoding="utf-8"))
+    session = data.get("session", {}) or {}
+    backlog = data.get("backlog", {}) or {}
+    sot = data.get("source_of_truth", {}) or {}
+
+    def _bullets(items, empty: str = "- (없음)") -> str:
+        items = [str(i).strip() for i in (items or []) if str(i).strip()]
+        return "\n".join(f"- {i}" for i in items) if items else empty
+
+    rows = [
+        ("`purpose_digest`", data.get("purpose_digest", "")),
+        ("`session.current_focus`", session.get("current_focus", "")),
+        ("`backlog.task_count`", backlog.get("task_count", "")),
+        ("`source_of_truth.latest_backlog_path`", sot.get("latest_backlog_path", "")),
+    ]
+    def _cell(value) -> str:
+        # 표 셀 안의 `|` 는 markdown 표를 깨뜨리므로 escape 한다.
+        return str(value).replace("|", "\\|") or "-"
+
+    table = "\n".join(f"| {k} | {_cell(v)} |" for k, v in rows)
+
+    parts = [
+        "## SSOT 요약",
+        "",
+        "| 필드 | 값 |",
+        "|---|---|",
+        table,
+        "",
+        "## 진행 중",
+        "",
+        _bullets(session.get("in_progress_items")),
+        "",
+        "## 차단",
+        "",
+        _bullets(session.get("blocked_items")),
+        "",
+        "## 최근 완료",
+        "",
+        _bullets(session.get("recent_done_items")),
+    ]
+    return "\n".join(parts)
 
 
-def update_work_backlog(by_release: dict, dry: bool = True) -> list[str]:
-    """raw/.../memory/active/work_backlog.md 의 release anchor 5종 추가."""
-    p = RAW_FILES["work_backlog"]
-    text = _read_target("work_backlog", dry)
-    new_block: list[str] = []
-    for rel in ["(v0.7.10)", "(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
-        if rel not in by_release:
+def _derive_active_work_backlog(p: Path) -> str:
+    """일자별 backlog index 에서 task 목록(id + 제목 + status)을 뽑는다."""
+    text = p.read_text(encoding="utf-8")
+    entries: list[str] = []
+    current: str | None = None
+    for line in text.splitlines():
+        m = re.match(r"^-\s+\*\*(TASK-[\w.-]+)\*\*\s*(?:\[[^\]]*\])?\s*(.*)$", line)
+        if m:
+            current = f"- **{m.group(1)}** {m.group(2).strip()}".rstrip()
+            entries.append(current)
             continue
-        ver = rel[1:-1]
-        commits = by_release[rel]
-        feat = pick_feat_commit(commits)
-        n_test_m = re.search(r"(\d+)\s*test", feat["subject"])
-        n_test = f" ({n_test_m.group(1)} test PASS)" if n_test_m else ""
-        new_block.append(
-            f"### [[release/{ver}/backlog/2026-06-13.md]] {{#{ver.replace('.', '-')}}}\n"
-            f"- 2026-06-13: {ver} {len(commits)} commit{n_test} (head: {feat['short']})\n"
+        m = re.match(r"^\s+-\s+status:\s*(\S+)", line)
+        if m and entries:
+            entries[-1] += f" — `{m.group(1)}`"
+    body = "\n".join(entries) if entries else "- (등록된 task 없음)"
+    return "\n".join([f"## Task 목록 ({p.stem})", "", body])
+
+
+#: handoff §2/§3 의 lead-in 라벨 줄 (`- 현재 \`in_progress\` 작업:`) — 항목이 아니라
+#: 목록의 제목이다. 본문 없이 `:` 로 끝나는 bullet 을 항목으로 세면 "진행 중 1건"
+#: 이 실제로는 0건인데도 세어진다.
+_IS_LEAD_IN = re.compile(r"^-\s*\S.*:\s*$")
+
+
+def _derive_active_session_handoff(p: Path) -> str:
+    """handoff 의 §1 현재 기준선 + §2 진행 중 + §3 차단 을 뽑는다."""
+    text = p.read_text(encoding="utf-8")
+
+    baseline = ""
+    m = re.search(r"^-\s*현재 기준선:\s*(.+)$", text, re.MULTILINE)
+    if m:
+        baseline = m.group(1).strip()
+
+    def _section(num: int) -> str:
+        m2 = re.search(
+            rf"^##\s*{num}\..*?$\n(.*?)(?=^##\s|\Z)", text, re.MULTILINE | re.DOTALL
         )
-    if dry:
-        return new_block
-    marker = "## 다음에 읽을 문서"
-    if atomic_write_text is not None:
-        atomic_write_text(p, text)
-    else:
-        p.write_text(text)
-    text = re.sub(r"최종 수정일: \S+",
-                  f"최종 수정일: {datetime.now().strftime('%Y-%m-%d')}", text)
-    if atomic_write_text is not None:
-        atomic_write_text(p, text)
-    else:
-        p.write_text(text)
-    return new_block
+        if not m2:
+            return ""
+        lines = []
+        for ln in m2.group(1).splitlines():
+            stripped = ln.strip()
+            # 빈 줄 · 빈 bullet(`-`) · lead-in 라벨(`- 현재 ... 작업:`) 은 항목이 아니다.
+            if not stripped or stripped == "-" or _IS_LEAD_IN.match(stripped):
+                continue
+            lines.append(ln.rstrip())
+        return "\n".join(lines)
+
+    in_progress = _section(2) or "- (없음)"
+    blocked = _section(3) or "- (없음)"
+
+    parts = ["## 현재 기준선", ""]
+    parts.append(baseline if baseline else "- (기록 없음)")
+    parts.extend(["", "## 진행 중", "", in_progress, "", "## 차단", "", blocked])
+    return "\n".join(parts)
 
 
-def update_wiki_log(by_release: dict, dry: bool = True) -> list[str]:
-    """raw/.../wiki/log.md 에 release tracking 5 entry append."""
-    p = RAW_FILES["wiki_log"]
-    text = p.read_text()
-    new_entries: list[str] = []
-    for rel in ["(v0.7.0)", "(v0.7.1)", "(v0.7.2)", "(v0.7.3)", "(v0.7.4)"]:
-        if rel not in by_release:
-            continue
-        ver = rel[1:-1]
-        commits = by_release[rel]
-        feat = pick_feat_commit(commits)
-        n_test_m = re.search(r"(\d+)\s*test", feat["subject"])
-        n_test = f", {n_test_m.group(1)} test PASS" if n_test_m else ""
-        new_entries.append(
-            f"## [2026-06-13] release | {ver} ({feat['short']})\n"
-            f"- head: {feat['short']} ({feat['subject']})\n"
-            f"- commits: {len(commits)}{n_test}\n"
-            f"- range: {commits[-1]['short']}..{commits[0]['short']}\n\n"
-        )
-    if dry:
-        return new_entries
-    if atomic_write_text is not None:
-        atomic_write_text(p, text)
-    else:
-        p.write_text(text)
-    text = re.sub(r"updated: \S+", "updated: 2026-06-14", text)
-    text = text.rstrip() + "\n\n" + "".join(new_entries)
-    if atomic_write_text is not None:
-        atomic_write_text(p, text)
-    else:
-        p.write_text(text)
-    return new_entries
-
-
-def update_memory_log(dry: bool = True) -> str:
-    """raw/.../memory/log.md 에 sync backfill 1 entry append."""
-    p = RAW_FILES["memory_log"]
-    text = p.read_text()
-    entry = (
-        "## [2026-06-14] sync | wiki raw mirror backfill (v0.6.4~v0.7.10)\n"
-        "- 11 release (v0.6.4~v0.7.10) 의 state.json / work_backlog.md / wiki/log.md 갭 보강\n"
-        "- v0.6.3 freeze 후 누적된 35+ commit 의 SSOT 복원\n"
-        "- vault L2 stub 4 file dense 재emit (active-state / active-work-backlog / active-session-handoff / wiki-log)\n"
-        "- v0.7.5: refresh_wiki_memory tool 정식화로 1회용 helper → 정식 CLI 승격\n"
-        "- v0.7.6: run_all_checks 통합 runner + pyproject.toml [tool.workflow-doctor] metadata 외부 config\n"
-        "- v0.7.7: workflow_kit.cli.doctor 의 load_config + should_fail integration (metadata 1차 consumer)\n"
-        "- v0.7.8: state-aware evaluate_compliance + config actual apply (display only → actual apply 격상)\n"
-        "- v0.7.9: release_pipeline tool 정식화 Phase 1 (validate / version-bump / note-draft)\n"
-        "- v0.7.10: release_pipeline Phase 2 (release / verify / rollback — gh CLI 통합)\n"
+def _derive_wiki_log(p: Path, keep: int = 5) -> str:
+    """wiki/log.md 의 최신 entry N개를 뽑는다 (`## [YYYY-MM-DD] ...` 단위)."""
+    text = p.read_text(encoding="utf-8")
+    blocks = re.findall(
+        r"^##\s*\[\d{4}-\d{2}-\d{2}\].*?(?=^##\s*\[|\Z)", text, re.MULTILINE | re.DOTALL
     )
-    if dry:
-        return entry
-    if atomic_write_text is not None:
-        atomic_write_text(p, text)
-    else:
-        p.write_text(text)
-    text = text.rstrip() + "\n\n" + entry
-    return entry
+    if not blocks:
+        return "## 최근 ingest/query entry\n\n- (entry 없음)"
+    recent = [b.strip() for b in blocks[-keep:]][::-1]
+    return "\n\n".join([f"## 최근 entry {len(recent)}건 (최신 우선)", *recent])
 
 
-# ---------------------------------------------------------------------------
-# L2 stub dense 재emit — 4 file (vault 의 wiki/projects/.../sources/)
-# ---------------------------------------------------------------------------
+#: stub 이름 → 파생 함수. L1 경로 하나를 받아 markdown 본문(헤딩 이하)을 반환.
+DERIVERS = {
+    "active-state": _derive_active_state,
+    "active-work-backlog": _derive_active_work_backlog,
+    "active-session-handoff": _derive_active_session_handoff,
+    "wiki-log": _derive_wiki_log,
+}
+
+#: stub 이름 → 사람이 읽을 제목.
+STUB_TITLES = {
+    "active-state": "Active State",
+    "active-work-backlog": "Active Work Backlog",
+    "active-session-handoff": "Active Session Handoff",
+    "wiki-log": "Wiki Log",
+}
 
 
-def reemit_l2_stub(stub_name: str, dense_body: str, dry: bool = True) -> int:
-    """vault L2 stub 의 본문을 dense body 로 교체. frontmatter 의 last_touched 갱신."""
-    p = L2_STUBS[stub_name]
-    # L2 stub 은 `wiki/sources/` 에 emit 되는 *생성물* 이라 clean checkout 에는 없다
-    # (v0.7.17 에서 디렉터리만 .gitkeep 으로 추가됨). dry-run 은 "무엇이 emit 될지"만
-    # 답하면 되므로 부재를 관용하고, frontmatter 를 필요로 하는 apply 만 loud 실패.
-    if not p.exists():
-        if dry:
-            return len(dense_body)
-        # apply 는 부재 시 **bootstrap 생성**한다. 이전에는 loud 실패였는데, 그러면
-        # `wiki/sources/` 가 비어 있는 한 emit 이 영원히 불가능해 L2 계층이 복구되지
-        # 않는다(실제로 dashboard 의 discoverability / lifecycle 이 분모 0 이었다).
-        # 생성 시 status 는 `draft` — 자동 생성물이지 사람이 검토한 문서가 아니다.
-        p.parent.mkdir(parents=True, exist_ok=True)
-        today = datetime.now().strftime("%Y-%m-%d")
-        bootstrap_fm = (
+def build_stub_body(name: str, l1_path: Path, today: str, max_chars: int = DEFAULT_MAX_CHARS) -> str:
+    """L2 stub 1개의 전체 본문 (frontmatter 제외) 을 만든다."""
+    derived = DERIVERS[name](l1_path)
+    header = [
+        f"# {STUB_TITLES[name]} (Derived View, {today})",
+        "",
+        f"> L1 SSOT: `{_rel_to_repo(l1_path)}` ({_line_count(l1_path)} lines)",
+        "> 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.",
+        f"> 생성: `{today}` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`",
+        "",
+    ]
+    return "\n".join(header) + "\n" + _truncate(derived.strip(), max_chars) + "\n"
+
+
+def _frontmatter(name: str, today: str, existing: str | None) -> str:
+    """기존 frontmatter 를 보존하되 `last_touched` 를 today 로 갱신.
+
+    없으면 bootstrap. `status` 는 SCHEMA 어휘로 고정한다 (GENERATED_STATUS).
+    """
+    if existing is None:
+        return (
             "---\n"
             "type: meta\n"
-            "status: draft\n"
+            f"status: {GENERATED_STATUS}\n"
             "r9_skip: true\n"
-            f"title: {stub_name}\n"
+            f"title: {name}\n"
             f"created: {today}\n"
             f"last_touched: {today}\n"
             "---\n"
         )
-        p.write_text(bootstrap_fm + "\n" + dense_body, encoding="utf-8")
-        return len(dense_body)
-    text = p.read_text()
-    parts = text.split("---\n", 2)
-    if len(parts) < 3:
-        return -1
-    frontmatter = "---\n" + parts[1] + "---\n"
+    lines = []
+    seen_touched = False
+    for line in existing.splitlines():
+        if line.startswith("last_touched:"):
+            lines.append(f"last_touched: {today}")
+            seen_touched = True
+        elif line.startswith("status:"):
+            lines.append(f"status: {GENERATED_STATUS}")
+        else:
+            lines.append(line)
+    if not seen_touched:
+        lines.append(f"last_touched: {today}")
+    return "---\n" + "\n".join(lines) + "\n---\n"
+
+
+def _split_frontmatter(text: str) -> str | None:
+    """`---\\n...\\n---\\n` 의 안쪽만 반환. 형식이 아니면 None."""
+    if not text.startswith("---\n"):
+        return None
+    end = text.find("\n---\n", 4)
+    if end < 0:
+        return None
+    return text[4:end]
+
+
+def emit_stub(
+    name: str,
+    l1_path: Path,
+    today: str,
+    *,
+    dry: bool = True,
+    max_chars: int = DEFAULT_MAX_CHARS,
+) -> dict:
+    """L2 stub 1개 emit.
+
+    Returns:
+        {"stub", "l1", "bytes", "action"} — action 은
+        `dry-run` / `written` / `unchanged` / `created`.
+
+    `unchanged` 는 **결과 바이트가 완전히 같을 때만** 난다. 같은 날 두 번
+    돌려도 write 가 없다 — 진단 실행이 저장소를 바꾸지 않게 하는 최소 보장이다.
+    """
+    p = L2_STUBS[name]
+    body = build_stub_body(name, l1_path, today, max_chars=max_chars)
+    existing_text = p.read_text(encoding="utf-8") if p.exists() else None
+    existing_fm = _split_frontmatter(existing_text) if existing_text is not None else None
+    new_text = _frontmatter(name, today, existing_fm) + "\n" + body
+
+    result = {"stub": name, "l1": _rel_to_repo(l1_path), "bytes": len(body)}
     if dry:
-        return len(dense_body)
-    frontmatter = re.sub(r"last_touched: \S+", "last_touched: 2026-06-14", frontmatter)
-    new_text = frontmatter + "\n" + dense_body
+        result["action"] = "dry-run"
+        return result
+    if existing_text == new_text:
+        result["action"] = "unchanged"
+        return result
+    p.parent.mkdir(parents=True, exist_ok=True)
     if atomic_write_text is not None:
         atomic_write_text(p, new_text)
     else:
-        p.write_text(new_text)
-    return len(dense_body)
+        p.write_text(new_text, encoding="utf-8")
+    result["action"] = "created" if existing_text is None else "written"
+    return result
 
 
-def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) -> dict[str, int]:
-    """4 L2 stub dense 재emit. 반환: {stub_name: dense body bytes}"""
-    # 1) active-state
-    state_body = (
-        "# Active State (v0.6.4~v0.7.4 보강, 2026-06-14)\n\n"
-        "> **Status**: dense — raw mirror `state.json` 동기화 완료. v0.6.3 freeze 후 누적 5 release 의 recent_done 갱신.\n\n"
-        "## SSOT 요약\n\n"
-        "| 필드 | 값 | 갱신 |\n"
-        "|---|---|---|\n"
-        "| `session.in_progress_items` | [] | - |\n"
-        "| `wiki.last_ingest` | 2026-06-14 | 2026-06-12 → 14 |\n"
-        "| `memory.last_freeze` | 2026-06-14-v0.7.4 | 2026-06-12-v6.3 → 14-v0.7.4 |\n\n"
-        "## Recent Done (v0.6.4~v0.7.4)\n\n"
-    )
-    for line in state_lines:
-        state_body += f"- {line}\n"
-    state_body += (
-        "\n## 다음에 읽을 문서\n\n"
-        "- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json) (1차 출처)\n"
-        "- [in-repo/ai-workflow/memory/active/backlog](../../../memory/active/work_backlog.md)\n"
-        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)\n"
-    )
-
-    # 2) active-work-backlog
-    bl_lines: list[str] = []
-    for rel in ["(v0.7.10)", "(v0.7.9)", "(v0.7.8)", "(v0.7.7)", "(v0.7.6)", "(v0.7.5)", "(v0.7.4)", "(v0.7.3)", "(v0.7.2)", "(v0.7.1)", "(v0.7.0)"]:
-        if rel not in by_release:
+def emit_l2_stubs(
+    *, dry: bool = True, max_chars: int = DEFAULT_MAX_CHARS, today: str | None = None
+) -> dict:
+    """L2 stub 4종 전부 emit. L1 이 없는 stub 은 건너뛰고 밝힌다."""
+    today = today or datetime.now().strftime("%Y-%m-%d")
+    sources = l1_sources()
+    emitted: list[dict] = []
+    missing: list[str] = []
+    for name in L2_STUBS:
+        l1 = sources.get(name)
+        if l1 is None:
+            missing.append(name)
             continue
-        ver = rel[1:-1]
-        commits = by_release[rel]
-        feat = pick_feat_commit(commits)
-        n_test_m = re.search(r"(\d+)\s*test", feat["subject"])
-        n_test = f" ({n_test_m.group(1)} test PASS)" if n_test_m else ""
-        bl_lines.append(
-            f"### [[release/{ver}/backlog/2026-06-13.md]] {{#{ver.replace('.', '-')}}}\n"
-            f"- 2026-06-13: {ver} {len(commits)} commit{n_test} (head: {feat['short']})"
-        )
-    bl_body = (
-        "# Active Work Backlog (v0.6.4~v0.7.4 보강, 2026-06-14)\n\n"
-        "> **Status**: dense — raw mirror `work_backlog.md` 의 release anchor 5종 동기화.\n\n"
-        "## 최근 작업 백로그 (v0.7.x series)\n\n"
-        + "\n".join(bl_lines) + "\n\n"
-        "## 인덱스 규약 (raw 본문 동일)\n\n"
-        "- `### [[release/v0.X.Y/backlog/YYYY-MM-DD.md]] {#release-v0-X-Y}` anchor 형식\n"
-        "- session-start 의 index-based load 가 anchor ID 로 retrieval\n"
-        "- TASK-NNN 식별자 (1+ 작업 항목 / 일자)\n"
-        "- 동일 일자 다중 브랜치 작업 시 브랜치별 별도 파일\n\n"
-        "## 다음에 읽을 문서\n\n"
-        "- [in-repo/ai-workflow/memory/active/backlog](../../../memory/active/work_backlog.md) (1차 출처)\n"
-    )
-
-    # 3) active-session-handoff
-    sh_body = (
-        "# Active Session Handoff (v0.7.4 → v0.7.5+ 진입, 2026-06-14)\n\n"
-        "> **Status**: dense — 본 session 의 시작점 + 다음 step 명시.\n\n"
-        "## 현재 위치 (HEAD)\n\n"
-        "- repo: `~/repos/standard_ai_workflow_minimax` (main, `cfb09fb`)\n"
-        "- v0.7.4 released (CLI wrapper `workflow doctor` + `@graceful_shutdown` + optional dep)\n"
-        "- Overall score 4.67 A 유지 (v0.7.3 → v0.7.4 소폭 ↑)\n"
-        "- cumulative: 4 release / 35+ commit / 200+ test PASS (v0.7.0 follow-up 130 + v0.7.1 158 + v0.7.2 179 + v0.7.3 7 baseline dispatcher + v0.7.4 CLI)\n\n"
-        "## 이번 session 작업 (2026-06-14)\n\n"
-        "1. **Wiki 정합성 복원** (RAW MIRROR)\n"
-        "   - `state.json` `recent_done_items` 5 release 보강\n"
-        "   - `work_backlog.md` 5 release anchor 추가\n"
-        "   - `wiki/log.md` 5 release entry append\n"
-        "   - `memory/log.md` sync backfill 1 entry\n"
-        "2. **Vault L2 dense 재emit** (4 stub)\n"
-        "   - `active-state.md` / `active-work-backlog.md` / `active-session-handoff.md` / `wiki-log.md`\n\n"
-        "## 다음 step (v0.7.5 / v0.8 후보)\n\n"
-        "- **A. Release pipeline 정식화** — `workflow doctor` 의 release validator hook + PyPI 자동 publish + GH release note 자동 generate\n"
-        "- **B. Wiki 운영 자동화** — `tools/refresh_wiki_memory.py` (git log → memory 자동 emit) + smoke test\n"
-        "- **C. Extension 시스템 2차 확장** — v0.7.2 의 resiliency 4종 외 testing / observability / security sub-cat 추가 (3-5 commit)\n\n"
-        "## Cross-ref\n\n"
-        "- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json)\n"
-        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)\n"
-        "- [v0.7.4 release note] — repo `workflow-source/releases/Beta-v0.7.4.md`\n"
-    )
-
-    # 4) wiki-log
-    rl_lines: list[str] = []
-    for rel in ["(v0.7.0)", "(v0.7.1)", "(v0.7.2)", "(v0.7.3)", "(v0.7.4)"]:
-        if rel not in by_release:
-            continue
-        ver = rel[1:-1]
-        commits = by_release[rel]
-        feat = pick_feat_commit(commits)
-        n_test_m = re.search(r"(\d+)\s*test", feat["subject"])
-        n_test = f", {n_test_m.group(1)} test PASS" if n_test_m else ""
-        rl_lines.append(
-            f"## [2026-06-13] release | {ver} ({feat['short']})\n"
-            f"- head: {feat['short']} ({feat['subject']})\n"
-            f"- commits: {len(commits)}{n_test}\n"
-            f"- range: {commits[-1]['short']}..{commits[0]['short']}"
-        )
-    wl_body = (
-        "# Wiki Ingest/Query Log (v0.7.0~v0.7.4 release entry 추가, 2026-06-14)\n\n"
-        "> **Status**: dense — raw mirror `wiki/log.md` 의 release tracking 보강 (이전 phase 1-7 entry 유지).\n\n"
-        "## 부록: Release tracking (v0.7.0~v0.7.4)\n\n"
-        "본 section 은 L1 wiki 가 *runtime layer (R1, D1, D2) 만* 추적하던 갭을 보강. release 별 head commit / commit count / test count 기록.\n\n"
-        + "\n\n".join(rl_lines) + "\n\n"
-        "## 다음에 읽을 문서\n\n"
-        "- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md) (1차 출처, phase 1-7 entry 포함)\n"
-    )
-
+        emitted.append(emit_stub(name, l1, today, dry=dry, max_chars=max_chars))
     return {
-        "active-state": reemit_l2_stub("active-state", state_body, dry),
-        "active-work-backlog": reemit_l2_stub("active-work-backlog", bl_body, dry),
-        "active-session-handoff": reemit_l2_stub("active-session-handoff", sh_body, dry),
-        "wiki-log": reemit_l2_stub("wiki-log", wl_body, dry),
+        "mode": "dry-run" if dry else "applied",
+        "today": today,
+        "emitted": emitted,
+        "missing_l1": missing,
     }
 
 
@@ -525,44 +476,47 @@ def reemit_l2_stubs(by_release: dict, state_lines: list[str], dry: bool = True) 
 # CLI main
 # ---------------------------------------------------------------------------
 
+#: `--refresh-raw` 은퇴 사유. rc 는 0 이지만 **아무것도 쓰지 않는다** — 왜
+#: 안 쓰는지 stderr 로 말한다 (조용한 no-op 은 이 저장소가 금지한다).
+REFRESH_RAW_RETIRED_MESSAGE = (
+    "[RETIRED] --refresh-raw 는 아무것도 쓰지 않는다 (TASK-2026-08-18-main-004).\n"
+    "  · state.json  — 정본 §11.2 의 **생성 산출물**. 생성기는 `wk refresh-state` 하나다.\n"
+    "  · work_backlog.md — v0.14.0 append-only layout 에서 제거됨 (backlog/<날짜>.md 로 대체).\n"
+    "  · memory/log.md — 이전 구현이 entry 를 만들고 쓰지 않던 죽은 경로.\n"
+    "  · wiki/log.md — 이전 구현이 2026-06 스냅샷을 하드코딩해 실행할수록 되돌렸다.\n"
+    "  L1 갱신은 `wk refresh-state` 와 backlog/handoff 도구가 담당한다. "
+    "본 tool 은 L2 파생 뷰(--emit-l2)만 만든다."
+)
+
 
 def cmd_refresh_raw(args) -> dict:
-    """raw mirror 4 file 갱신 (subcommand --refresh-raw)."""
-    dry = args.dry_run
-    by_release = categorize(collect_commits(args.since, repo_root=args.repo_root))
-    if dry:
-        return {"mode": "dry-run", "commits": sum(len(v) for v in by_release.values())}
-    state_lines = update_state_json(by_release, dry=False)
-    update_work_backlog(by_release, dry=False)
-    update_wiki_log(by_release, dry=False)
-    update_memory_log(dry=False)
+    """은퇴한 raw mirror 갱신 단계. write 0, 사유를 stderr 로 보고."""
+    print(REFRESH_RAW_RETIRED_MESSAGE, file=sys.stderr)
     return {
-        "mode": "applied",
-        "state_lines": len(state_lines),
-        "release_buckets": len(by_release),
+        "mode": "retired",
+        "writes": 0,
+        "reason": "L1 raw mirror write 경로 은퇴 — state.json 은 wk refresh-state 가 유일한 생성기",
     }
 
+
 def cmd_emit_l2(args) -> dict:
-    """vault L2 stub 4 file dense 재emit (subcommand --emit-l2)."""
-    dry = args.dry_run
-    by_release = categorize(collect_commits(args.since, repo_root=args.repo_root))
-    state_lines = update_state_json(by_release, dry=True)  # dry 로 계산
-    if dry:
-        return {"mode": "dry-run"}
-    sizes = reemit_l2_stubs(by_release, state_lines, dry=False)
-    return {"mode": "applied", "l2_stub_sizes": sizes}
+    """L2 stub 4종을 현재 memory SSOT 에서 파생 (subcommand --emit-l2)."""
+    return emit_l2_stubs(dry=args.dry_run, max_chars=args.max_chars)
 
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="standard-ai-workflow wiki raw mirror + L2 emit 정식 tool (v0.7.5+)",
+        description="in-repo wiki L2 파생 뷰 emit tool (v1.2.2+)",
     )
     p.add_argument("--refresh-raw", action="store_true",
-                   help="raw mirror 4 file 갱신 (state.json / work_backlog.md / wiki/log.md / memory/log.md)")
+                   help="[은퇴] L1 raw mirror 갱신 — write 0, 사유만 보고한다")
     p.add_argument("--emit-l2", action="store_true",
-                   help="vault L2 stub 4 file dense 재emit (active-state / active-work-backlog / active-session-handoff / wiki-log)")
-    p.add_argument("--since", default="2026-06-10",
-                   help="git log --since 기준 (default: 2026-06-10, v0.6.4+)")
+                   help="L2 stub 4종을 현재 memory SSOT 에서 파생 "
+                        "(active-state / active-work-backlog / active-session-handoff / wiki-log)")
+    p.add_argument("--max-chars", type=int, default=DEFAULT_MAX_CHARS,
+                   help=f"L2 본문 상한 (default: {DEFAULT_MAX_CHARS})")
+    p.add_argument("--since", default=None,
+                   help="[은퇴] git log 기준일 — 파생이 git log 를 쓰지 않으므로 무시된다")
     p.add_argument("--repo-root", default=None,
                    help="git repo 경로 (default: auto-detect via $STANDARD_AI_WF_REPO or `git rev-parse --show-toplevel`)")
     p.add_argument("--dry-run", action="store_true",
@@ -579,12 +533,18 @@ def main() -> int:
     if args.dry_run:
         args.apply = False
 
+    if args.since is not None:
+        print(
+            "[IGNORED] --since 는 무시된다 — L2 파생은 git log 가 아니라 "
+            "memory SSOT 파일에서 나온다.",
+            file=sys.stderr,
+        )
+
     # REPO_ROOT 결정 (CLI flag > env var > git rev-parse > legacy fallback)
     resolved_repo_root = get_repo_root(args.repo_root)
     args.repo_root = resolved_repo_root
 
     result: dict = {
-        "since": args.since,
         "dry_run": args.dry_run,
         "repo_root": str(resolved_repo_root),
     }
@@ -597,15 +557,13 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(f"=== {'DRY-RUN' if args.dry_run else 'APPLY'} mode ===")
-        print(f"since: {args.since}")
         print(f"repo_root: {resolved_repo_root}")
-        for k, v in result.items():
-            if isinstance(v, dict):
-                print(f"  {k}: {v}")
-            elif k in ("since", "dry_run", "repo_root"):
-                continue  # 이미 위에서 출력
-            else:
-                print(f"  {k}: {v}")
+        emit = result.get("emit_l2")
+        if emit:
+            for row in emit["emitted"]:
+                print(f"  [{row['action']}] {row['stub']:<24} ← {row['l1']} ({row['bytes']}B)")
+            for name in emit["missing_l1"]:
+                print(f"  [skip] {name:<24} ← L1 SSOT 부재")
     return 0
 
 

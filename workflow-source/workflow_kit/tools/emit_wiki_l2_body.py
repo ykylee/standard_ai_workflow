@@ -68,6 +68,24 @@ L1_BASE = REPO_ROOT / "ai-workflow"
 RAW_MIRROR = L1_BASE / "wiki"  # L1 raw mirror (in-repo)
 L2_SOURCES = L1_BASE / "wiki" / "sources"  # L2 dense content emit target (in-repo)
 
+#: 본문에 박히는 **생성물 표식**. 이 줄이 없는 L2 page 는 사람이 쓴 것으로 보고
+#: 본 tool 이 덮어쓰지 않는다 (`manual` 로 보고). 재emit 은 본문 *전체* 를
+#: 갈아끼우므로, 표식 없는 page 를 건드리면 사람의 글을 파괴한다.
+L2_GENERATED_MARKER = "> Generated:"
+
+#: `refresh_wiki_memory --emit-l2` 가 소유하는 stub. 같은 page 를 두 tool 이
+#: 쓰면 마지막에 돈 쪽이 이기고 그 사실이 아무 데도 안 남는다 — 소유권을
+#: 한쪽에만 둔다.
+STUBS_OWNED_BY_REFRESH_WIKI_MEMORY = frozenset({
+    "active-state", "active-work-backlog", "active-session-handoff", "wiki-log",
+})
+
+#: L2 page 의 `status`. wiki SCHEMA §1.1 의 어휘는 `active|draft|deprecated` 뿐이라
+#: 이전 구현이 쓰던 `reviewed` 는 정의된 적이 없는 값이었다 (같은 지적이
+#: `score_wiki_maintainability.score_lifecycle` docstring 에 있다). L2 는 매 사이클
+#: 재생성되는 생성물이므로 `draft` 로 둔다.
+GENERATED_STATUS = "draft"
+
 # L1 → L2 stem 변환 (AIDLC 의 stem_from_path 와 동일)
 PATH_TO_STEM_RE = re.compile(r"[/._]+")
 
@@ -93,7 +111,11 @@ def find_l1_files(project: str) -> list[Path]:
     l1_dir = RAW_MIRROR
     if not l1_dir.exists():
         return []
-    return sorted(p for p in l1_dir.rglob("*.md"))
+    # `sources/` 는 L2 자신이다. 빼지 않으면 파생 뷰가 **자기 자신에서** 파생된다.
+    return sorted(
+        p for p in l1_dir.rglob("*.md")
+        if L2_SOURCES not in p.parents
+    )
 
 
 def find_l2_pages(project: str) -> dict[str, Path]:
@@ -104,10 +126,61 @@ def find_l2_pages(project: str) -> dict[str, Path]:
     return {p.stem: p for p in l2_dir.glob("*.md")}
 
 
+#: L1 wiki 의 *page* 가 아닌 운영 파일. L2 파생 뷰 대상에서 뺀다.
+L1_NON_PAGE_NAMES = frozenset({"log.md", "SCHEMA.md", "INGEST_GUIDE.md", "index.md"})
+
+
+def is_l1_page(l1_path: Path) -> bool:
+    """`concepts/` `decisions/` 같은 page 인가 (운영 파일이 아닌가)."""
+    return l1_path.name not in L1_NON_PAGE_NAMES
+
+
 def needs_body(l2_path: Path) -> bool:
     """L2 page 의 본문이 <needs content> placeholder 인지 확인."""
     content = l2_path.read_text(encoding="utf-8")
     return "<needs content>" in content
+
+
+def l2_last_touched(l2_path: Path) -> date | None:
+    """L2 page frontmatter 의 `last_touched`. 없거나 형식이 틀리면 None."""
+    content = l2_path.read_text(encoding="utf-8", errors="ignore")
+    m = re.search(r"^last_touched:\s*(\d{4}-\d{2}-\d{2})", content, re.MULTILINE)
+    if not m:
+        return None
+    try:
+        return date.fromisoformat(m.group(1))
+    except ValueError:
+        return None
+
+
+def is_generated(l2_path: Path) -> bool:
+    """본 tool 이 만든 page 인가 (생성물 표식 보유)."""
+    return L2_GENERATED_MARKER in l2_path.read_text(encoding="utf-8", errors="ignore")
+
+
+def needs_emit(l1_path: Path | None, l2_path: Path) -> tuple[bool, str]:
+    """이 L2 page 를 지금 emit 해야 하는가. `(대상 여부, 사유)`.
+
+    이전 게이트는 `<needs content>` placeholder **하나** 였다. 그래서 한 번
+    emit 되고 나면 그 page 는 **영원히 재emit 대상이 아니었다** — L1 이 아무리
+    바뀌어도 파생 뷰가 따라가지 않고 `last_touched` 가 얼어붙어, 그 자체가
+    `score_wiki_maintainability` 의 `lifecycle` 을 갉아먹었다. 게이트를
+    *신선도* 로 바꾼다: placeholder 이거나, L1 이 L2 보다 새로우면 대상.
+    """
+    if needs_body(l2_path):
+        return True, "placeholder"
+    if not is_generated(l2_path):
+        # 사람이 쓴 본문은 덮어쓰지 않는다.
+        return False, "manual"
+    touched = l2_last_touched(l2_path)
+    if touched is None:
+        return True, "last_touched 부재"
+    if l1_path is None:
+        return False, "L1 부재"
+    l1_mtime = date.fromtimestamp(l1_path.stat().st_mtime)
+    if l1_mtime > touched:
+        return True, "L1 이 더 새롭다 ({} > {})".format(l1_mtime, touched)
+    return False, "최신"
 
 
 def extract_l1_body(l1_path: Path, max_chars: int = 2000) -> str:
@@ -134,7 +207,12 @@ def extract_tldr_from_l1(l1_path: Path) -> str:
     """L1 의 ## §1 TL;DR (or ## TL;DR) 의 table 첫 1-2 row 추출."""
     content = l1_path.read_text(encoding="utf-8")
     # §1 TL;DR 또는 ## TL;DR 찾기
-    m = re.search(r"^## (?:§\d+\s+)?TL;DR\s*\n+(.*?)(?=^##|\Z)", content, re.MULTILINE | re.DOTALL)
+    # 헤딩 꼬리의 R4 anchor(`{#s1-tldr}`)를 허용한다. 이 저장소의 wiki 헤딩은
+    # 대부분 anchor 를 달고 있어서, 그걸 빼면 TL;DR 추출이 거의 항상 실패했다.
+    m = re.search(
+        r"^## (?:§\d+\s+)?TL;DR[^\n]*\n+(.*?)(?=^##|\Z)",
+        content, re.MULTILINE | re.DOTALL,
+    )
     if not m:
         return ""
     tldr_block = m.group(1).strip()
@@ -151,7 +229,10 @@ def build_emit_body(l1_path: Path, today: str, max_chars: int = 2000) -> str:
     """L2 derived view 본문 생성 (frontmatter 머리 + L1 SSOT ref + TL;DR + truncated body)."""
     title = l1_path.stem.replace("-", " ").title()
     l1_line_count = sum(1 for _ in l1_path.open(encoding="utf-8"))
-    rel_l1 = l1_path.relative_to(RAW_MIRROR / l1_path.parts[RAW_MIRROR.parts.index("raw") + 2])
+    # v0.7.17 in-repo 전환 전에는 L1 이 `~/wiki/raw/<project>/...` 였고, 이 줄은
+    # 그 레이아웃의 `raw` 조각을 세어 project 디렉터리를 잘라냈다. in-repo 에는
+    # `raw` 조각이 없어 `RAW_MIRROR` 기준 상대 경로면 충분하다.
+    rel_l1 = l1_path.relative_to(RAW_MIRROR)
     tldr = extract_tldr_from_l1(l1_path)
     body = extract_l1_body(l1_path, max_chars=max_chars)
 
@@ -160,6 +241,7 @@ def build_emit_body(l1_path: Path, today: str, max_chars: int = 2000) -> str:
         "",
         f"> L1 SSOT: `ai-workflow/wiki/{rel_l1}` ({l1_line_count} lines)",
         "> 본 L2 derived view 는 in-repo retrieval 용 압축 요약. dense content 는 L1 SSOT 참조.",
+        f"{L2_GENERATED_MARKER} {today} by `workflow_kit.tools.emit_wiki_l2_body`",
         "",
     ]
     if tldr:
@@ -292,32 +374,51 @@ def update_l2_full(l2_path: Path, l1_path: Path, today: str, max_chars: int = 20
 
     mode: "l1" (default, L1 raw mirror 기반) | "metadata-only" (raw mirror 없는 page)
     """
-    content = l2_path.read_text(encoding="utf-8")
-    if not content.startswith("---\n"):
-        return content
-    fm_end = content.find("\n---\n", 4)
-    if fm_end < 0:
-        return content
-    fm = content[4:fm_end]
-    body = content[fm_end + 5:]
+    if not l2_path.exists():
+        # 아직 없는 파생 뷰 — frontmatter 를 bootstrap 한다. 생성물이므로
+        # `status` 는 SCHEMA 어휘의 `draft`, `r9_skip` 은 R9 wiki-source 규칙 예외.
+        fm = (
+            "type: meta\n"
+            f"status: {GENERATED_STATUS}\n"
+            "r9_skip: true\n"
+            f"title: {l2_path.stem}\n"
+            f"created: {today}\n"
+            f"last_touched: {today}"
+        )
+        body = ""
+    else:
+        content = l2_path.read_text(encoding="utf-8")
+        if not content.startswith("---\n"):
+            return content
+        fm_end = content.find("\n---\n", 4)
+        if fm_end < 0:
+            return content
+        fm = content[4:fm_end]
+        body = content[fm_end + 5:]
 
     if mode == "metadata-only":
         new_body_section = build_metadata_only_body(l2_path, today)
     else:
         new_body_section = build_emit_body(l1_path, today, max_chars=max_chars)
 
-    new_body = body.replace("## Summary\n<needs content>", new_body_section, 1)
-    if new_body == body:
-        new_body = body.replace("<needs content>", new_body_section, 1)
+    # 본문은 **전부** 파생물이다. placeholder 자리에만 끼워 넣으면 두 번째
+    # 실행부터 본문이 낡은 채 굳는다 (게이트가 신선도로 바뀐 이상 재emit 이
+    # 정상 경로다). placeholder 가 남아 있는 첫 emit 도 같은 결과가 된다.
+    new_body = "\n" + new_body_section.strip() + "\n"
 
     new_fm_lines = []
+    seen_touched = False
     for line in fm.split("\n"):
         if line.startswith("last_touched:"):
             new_fm_lines.append(f"last_touched: {today}")
-        elif line.startswith("status: draft"):
-            new_fm_lines.append("status: reviewed")
+            seen_touched = True
+        elif line.startswith("status:"):
+            # SCHEMA §1.1 어휘 밖의 값(`reviewed`)을 쓰지 않는다.
+            new_fm_lines.append(f"status: {GENERATED_STATUS}")
         else:
             new_fm_lines.append(line)
+    if not seen_touched:
+        new_fm_lines.append(f"last_touched: {today}")
     new_fm = "\n".join(new_fm_lines)
 
     return f"---\n{new_fm}\n---\n{new_body}"
@@ -329,6 +430,12 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true", help="실제 L2 file 에 emit (default: dry-run)")
     parser.add_argument("--max-chars", type=int, default=2000, help="L1 본문 cap (default: 2000)")
     parser.add_argument("--limit", type=int, default=0, help="max N page emit (default: 무제한)")
+    parser.add_argument(
+        "--bootstrap-missing", action="store_true",
+        help="L2 파생 뷰가 없는 L1 page 에 대해 L2 를 **새로 만든다** (default: 만들지 않고 개수만 보고). "
+             "in-repo 저장소에서 L1 은 이미 검색 가능하므로 기본은 off 다 — 켜면 L1 의 절삭 사본이 "
+             "저장소에 그만큼 늘어난다.",
+    )
     parser.add_argument(
         "--mode",
         default="l1",
@@ -345,22 +452,62 @@ def main() -> int:
 
     # 모드 별 후보 수집
     candidates: list[tuple[Path | None, Path, str]] = []  # (l1, l2, mode)
+    skipped: list[tuple[str, str]] = []  # (stem, 사유)
+
+    def _owned_elsewhere(stem: str) -> bool:
+        return stem in STUBS_OWNED_BY_REFRESH_WIKI_MEMORY
+
     for l1 in l1_files:
-        stem = path_to_stem(str(l1.relative_to(RAW_MIRROR / args.project / "ai-workflow" / "wiki")))
+        # v0.7.17 in-repo 전환 전 레이아웃(`<raw>/<project>/ai-workflow/wiki/`)이
+        # 그대로 남아 있어, in-repo 경로에서는 `relative_to` 가 항상 ValueError 였다.
+        stem = path_to_stem(str(l1.relative_to(RAW_MIRROR)))
         l2 = l2_pages.get(stem)
-        if l2 and needs_body(l2):
-            if args.mode in ("l1", "all"):
-                candidates.append((l1, l2, "l1"))
+        if not l2 or args.mode not in ("l1", "all"):
+            continue
+        if _owned_elsewhere(stem):
+            skipped.append((stem, "refresh_wiki_memory --emit-l2 소유"))
+            continue
+        want, reason = needs_emit(l1, l2)
+        if want:
+            candidates.append((l1, l2, "l1"))
+        else:
+            skipped.append((stem, reason))
 
     # metadata-only: L1 raw mirror 가 없는 page (frontmatter 에 source 없음)
     if args.mode in ("metadata-only", "all"):
         for stem, l2 in l2_pages.items():
-            if not needs_body(l2):
-                continue
-            # 이미 l1 모드 후보에 포함된 page 는 skip
+            # 이미 l1 모드 후보/스킵에 포함된 page 는 skip
             if any(c[1] == l2 for c in candidates):
                 continue
-            candidates.append((None, l2, "metadata-only"))
+            if any(sk[0] == stem for sk in skipped):
+                continue
+            if _owned_elsewhere(stem):
+                skipped.append((stem, "refresh_wiki_memory --emit-l2 소유"))
+                continue
+            want, reason = needs_emit(None, l2)
+            if want:
+                candidates.append((None, l2, "metadata-only"))
+            else:
+                skipped.append((stem, reason))
+
+    # L2 파생 뷰가 아직 없는 L1 page. 이전 구현은 *이미 있는* L2 만 갱신할 수
+    # 있어서 이 갭이 어디에도 드러나지 않았다 (후보 0 = "할 일 없음" 으로 보였다).
+    missing_l2: list[Path] = []
+    for l1 in l1_files:
+        if not is_l1_page(l1):
+            continue
+        stem = path_to_stem(str(l1.relative_to(RAW_MIRROR)))
+        if stem in l2_pages or _owned_elsewhere(stem):
+            continue
+        missing_l2.append(l1)
+
+    if args.bootstrap_missing and args.mode in ("l1", "all"):
+        # 파일은 여기서 만들지 않는다. 미리 placeholder 를 쓰면 `--limit` 이
+        # emit 개수만 자르므로 **본문 없는 껍데기가 남는다** — 그 껍데기는
+        # `<needs content>` 라 discoverability 를 오히려 끌어내린다.
+        for l1 in missing_l2:
+            stem = path_to_stem(str(l1.relative_to(RAW_MIRROR)))
+            candidates.append((l1, L2_SOURCES / f"{stem}.md", "l1"))
 
     if args.limit > 0:
         candidates = candidates[:args.limit]
@@ -375,20 +522,39 @@ def main() -> int:
     print()
 
     emitted = 0
+    unchanged = 0
     for l1, l2, mode in candidates:
+        # `VAULT_ROOT` 는 v0.7.17 in-repo 전환 때 사라진 이름인데 이 두 줄에만
+        # 남아 있었다 — emit 이 여기까지 도달하기만 하면 NameError 였다.
+        rel = l2.relative_to(REPO_ROOT)
         if dry_run:
-            print(f"  [DRY ({mode})] {l2.relative_to(VAULT_ROOT)}")
-        else:
-            new_content = update_l2_full(l2, l1, today, max_chars=args.max_chars, mode=mode)
-            l2.write_text(new_content, encoding="utf-8")
-            print(f"  [APPLIED ({mode})] {l2.relative_to(VAULT_ROOT)}")
-            emitted += 1
+            print(f"  [DRY ({mode})] {rel}")
+            continue
+        new_content = update_l2_full(l2, l1, today, max_chars=args.max_chars, mode=mode)
+        l2.parent.mkdir(parents=True, exist_ok=True)
+        if l2.exists() and l2.read_text(encoding="utf-8") == new_content:
+            print(f"  [UNCHANGED ({mode})] {rel}")
+            unchanged += 1
+            continue
+        l2.write_text(new_content, encoding="utf-8")
+        print(f"  [APPLIED ({mode})] {rel}")
+        emitted += 1
+
+    if missing_l2 and not args.bootstrap_missing:
+        print()
+        print(f"L2 파생 뷰 없는 L1 page: {len(missing_l2)}개 (--bootstrap-missing 으로 생성)")
+
+    if skipped:
+        print()
+        print("Skipped:")
+        for stem, reason in sorted(skipped):
+            print(f"  [skip] {stem:<28} {reason}")
 
     print()
     if dry_run:
         print(f"Dry-run complete. {len(candidates)} page 가 emit 대상. --apply 로 실제 실행.")
     else:
-        print(f"Applied {emitted} page.")
+        print(f"Applied {emitted} page (unchanged {unchanged}).")
     return 0
 
 

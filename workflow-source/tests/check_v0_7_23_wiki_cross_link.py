@@ -5,7 +5,7 @@
 3-step cycle 을 1-command 로 묶음. 운영 시 *3번의 별도 invoke* 부담 zero.
 
 Test 구성 (5 test):
-1. test_wiki_emit_dry_run_full_cycle: 3-step 전체 (default) dry-run + 3 step planned
+1. test_wiki_emit_dry_run_full_cycle: 기본 dry-run 이 살아 있는 2단계만 계획 (1단계 은퇴)
 2. test_wiki_emit_refresh_wiki_only: --refresh-wiki 시 1단계만 (2/3 skipped)
 3. test_wiki_emit_emit_l2_only: --emit-l2 시 2단계만
 4. test_wiki_emit_reemit_stubs_only: --reemit-stubs 시 3단계만
@@ -41,19 +41,21 @@ def _run(args: list[str], *, timeout: int = 60) -> tuple[int, str, str]:
 
 
 def test_wiki_emit_dry_run_full_cycle() -> None:
-    """dry-run 시 3-step 전체 cycle 의 command list + skipped_steps=[]."""
+    """dry-run 기본은 **살아 있는 2단계**만 계획하고 은퇴한 1단계는 뺀다.
+
+    TASK-2026-08-18-main-004 이전에는 3-step 이 기본이었다. 1단계는
+    `state.json` 을 쓰는 **두 번째 writer** 였고 (정본 §11.2 의 생성 산출물,
+    생성기는 `wk refresh-state` 하나다) 나머지 대상도 전부 무너져 있어
+    은퇴했다. write 0 인 단계를 기본에 두면 로그만 늘고, 그 자리에 뭔가
+    갱신되고 있다는 인상을 준다.
+    """
     rc, out, err = _run(["--dry-run", "--json"], timeout=30)
     assert rc == 0, f"unexpected rc={rc}, stderr={err}"
     data = json.loads(out)
     assert data["mode"] == "dry-run"
-    # 3 step 모두 planned
-    assert len(data["steps"]) == 3
     step_names = [s["name"] for s in data["steps"]]
-    assert "1_refresh_raw" in step_names
-    assert "2_emit_l2_dense" in step_names
-    assert "3_reemit_stubs" in step_names
-    # skipped 없음
-    assert data["skipped_steps"] == []
+    assert step_names == ["2_emit_l2_dense", "3_reemit_stubs"], step_names
+    assert data["skipped_steps"] == ["1_refresh_raw"], data["skipped_steps"]
     # 하위 단계는 **모듈로** 부른다 (`-m <module>`), 파일 경로가 아니다.
     #
     # 2026-08-18 (TASK-2026-08-18-main-003): 원래 이 단언은 `"…​.py" in cmd[1]` 로
@@ -61,18 +63,20 @@ def test_wiki_emit_dry_run_full_cycle() -> None:
     # v1.2.0 shim drop 이후 존재하지 않았고, dry-run 은 subprocess 를 띄우지 않으므로
     # 검사는 계속 green 이었다 — 즉 이 단언이 **죽은 경로를 지키고 있었다**. 이제
     # 모듈 이름을 고정한다: 설치본이든 체크아웃이든 import 규칙 하나로 풀린다.
-    # 1단계 — refresh_wiki_memory + --refresh-raw
-    step_1_cmd = data["steps"][0]["command"]
+    # 은퇴한 1단계도 **명시 호출** 시에는 모듈로 불린다 (계약 자체는 유지)
+    rc1, out1, _ = _run(["--refresh-wiki", "--dry-run", "--json"], timeout=30)
+    assert rc1 == 0
+    step_1_cmd = json.loads(out1)["steps"][0]["command"]
     assert step_1_cmd[1] == "-m", f"파일 경로로 부른다: {step_1_cmd[:3]}"
     assert step_1_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_1_cmd[2]
     assert "--refresh-raw" in step_1_cmd
-    # 2단계 — emit_wiki_l2_body + --max-chars
-    step_2_cmd = data["steps"][1]["command"]
+    # 2단계 — emit_wiki_l2_body + --max-chars (기본 실행의 첫 단계)
+    step_2_cmd = data["steps"][0]["command"]
     assert step_2_cmd[1] == "-m", f"파일 경로로 부른다: {step_2_cmd[:3]}"
     assert step_2_cmd[2] == "workflow_kit.tools.emit_wiki_l2_body", step_2_cmd[2]
     assert "--max-chars" in step_2_cmd
     # 3단계 — refresh_wiki_memory + --emit-l2
-    step_3_cmd = data["steps"][2]["command"]
+    step_3_cmd = data["steps"][1]["command"]
     assert step_3_cmd[1] == "-m", f"파일 경로로 부른다: {step_3_cmd[:3]}"
     assert step_3_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_3_cmd[2]
     assert "--emit-l2" in step_3_cmd
@@ -121,25 +125,25 @@ def test_wiki_emit_reemit_stubs_only() -> None:
 
 
 def test_wiki_emit_skip_combinations() -> None:
-    """--skip-1/2/3 의 조합 검증."""
-    # --skip-1 → 2+3 만
+    """--skip-N 이 기본 2단계에서 그 단계를 뺀다 (1단계는 이미 기본에서 빠져 있다)."""
+    # --skip-1 → 기본과 같다 (1단계는 원래 안 돈다)
     rc, out, _ = _run(["--skip-1", "--dry-run", "--json"], timeout=30)
     assert rc == 0
     data = json.loads(out)
-    assert len(data["steps"]) == 2
+    assert [s["name"] for s in data["steps"]] == ["2_emit_l2_dense", "3_reemit_stubs"]
     assert data["skipped_steps"] == ["1_refresh_raw"]
-    # --skip-2 → 1+3 만
+    # --skip-2 → 3단계만
     rc, out, _ = _run(["--skip-2", "--dry-run", "--json"], timeout=30)
     assert rc == 0
     data = json.loads(out)
-    assert len(data["steps"]) == 2
-    assert data["skipped_steps"] == ["2_emit_l2_dense"]
-    # --skip-3 → 1+2 만
+    assert [s["name"] for s in data["steps"]] == ["3_reemit_stubs"]
+    assert data["skipped_steps"] == ["1_refresh_raw", "2_emit_l2_dense"]
+    # --skip-3 → 2단계만
     rc, out, _ = _run(["--skip-3", "--dry-run", "--json"], timeout=30)
     assert rc == 0
     data = json.loads(out)
-    assert len(data["steps"]) == 2
-    assert data["skipped_steps"] == ["3_reemit_stubs"]
+    assert [s["name"] for s in data["steps"]] == ["2_emit_l2_dense"]
+    assert data["skipped_steps"] == ["1_refresh_raw", "3_reemit_stubs"]
 
 
 # --- 메인 실행 ---

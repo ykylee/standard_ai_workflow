@@ -1,9 +1,25 @@
-# v0.7.17+ L2 dense content emit target (in-repo)
+# L2 파생 뷰 target (in-repo). 여기 있는 것은 전부 **생성물**이다.
 #
-# 본 dir 는 tools/emit_wiki_l2_body.py 가 L1 raw mirror (ai-workflow/wiki/concepts/ 등)
-# 의 본문을 추출하여 dense derived view 로 emit 하는 target.
+# 소유가 둘로 갈린다 (TASK-2026-08-18-main-004). 같은 page 를 두 도구가 쓰면
+# 마지막에 돈 쪽이 이기고 그 사실이 아무 데도 안 남으므로, 한쪽에만 둔다:
 #
-# 정공법: in-repo storage (v0.7.17+, 외부 vault ~/wiki/ 연결 없음).
-# - L1 raw mirror: ai-workflow/wiki/{concepts,decisions,entities,patterns,topics}/*.md
-# - L2 dense sources: ai-workflow/wiki/sources/{stem}.md (이 dir)
-# - Drift: L2 last_touched vs L1 mtime (7일 임계값)
+# - `refresh_wiki_memory --emit-l2` — memory SSOT 파생 stub 4종
+#     active-state / active-work-backlog / active-session-handoff / wiki-log
+#     L1: memory/active/<branch>/{state.json, backlog/<최신>.md, session_handoff.md}
+#         + ai-workflow/wiki/log.md
+# - `emit_wiki_l2_body` — L1 wiki page 파생 뷰
+#     L1: ai-workflow/wiki/{concepts,decisions,entities,patterns,topics}/*.md
+#     L2: ai-workflow/wiki/sources/<stem>.md
+#
+# 규칙:
+# - emit 게이트는 **신선도**다 (placeholder 이거나 L1 이 L2 보다 새로우면 대상).
+#   한 번 emit 되면 끝인 placeholder 게이트는 파생 뷰를 얼어붙게 했다.
+# - `last_touched` 는 **실제 emit 일자**다. 뒤로 가면 안 된다 —
+#   `score_wiki_maintainability` 의 lifecycle 이 30일 신선도를 그 값으로 잰다.
+# - 본문에 `> Generated:` 표식이 없는 page 는 사람이 쓴 것으로 보고 덮어쓰지 않는다.
+# - `emit_wiki_l2_body` 는 **없는 L2 를 기본적으로 만들지 않는다**
+#   (`--bootstrap-missing` 로 켠다). in-repo 에서 L1 은 이미 검색 가능하므로,
+#   켜면 L1 의 절삭 사본이 그만큼 저장소에 늘어난다.
+# - Drift: L2 last_touched vs L1 mtime (7일 임계값, check_wiki_drift)
+#
+# 한 번에 다 돌리는 진입점: `wk wiki-emit --apply`

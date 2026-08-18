@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 """v0.7.23+: wiki 운영 cross-link 1-command wrapper.
 
-L1 raw mirror (state.json / work_backlog.md / wiki/log.md / memory/log.md) +
-L2 dense (ai-workflow/wiki/sources/) + L2 stub last_touched 갱신 의 3-step cycle
-을 *1 command* 로 묶음. 운영 시 *3번의 별도 invoke* 부담 zero.
+L2 파생 뷰(`ai-workflow/wiki/sources/`) 를 *1 command* 로 갱신한다.
 
-**3-step 운영 cycle**:
-1. `refresh_wiki_memory.py --refresh-raw --apply` — L1 raw mirror 4 file 갱신
-   (git log → release 별 분류 → 1차 출처의 4 file 자동 보강)
-2. `emit_wiki_l2_body.py --apply` — L1 raw mirror 본문 발췌 + L2 dense
-   (`ai-workflow/wiki/sources/<stem>.md`) emit
-3. `refresh_wiki_memory.py --emit-l2 --apply` — L2 stub 의 frontmatter 의
-   `last_touched` 갱신 (1차 출처의 in-repo retrieval 일관성 보장)
+**2-step 운영 cycle** (v1.2.2+, TASK-2026-08-18-main-004):
+2. `emit_wiki_l2_body --apply` — L1 wiki page(concepts/decisions/…) → L2 파생 뷰
+3. `refresh_wiki_memory --emit-l2 --apply` — memory SSOT(state.json / 최신 backlog /
+   session_handoff / wiki log) → L2 stub 4종
+
+**1단계(`--refresh-raw`) 는 은퇴했다.** L1 을 *쓰는* 단계였는데 쓰려던 대상이
+전부 무너져 있었다 — `state.json` 은 정본 §11.2 의 생성 산출물이고 생성기는
+`wk refresh-state` 하나뿐이라 이 단계는 **두 번째 writer** 였고,
+`work_backlog.md` 는 v0.14.0 layout 에서 사라졌으며, `memory/log.md` 로 가는
+write 는 죽은 코드였고, `wiki/log.md` 갱신은 2026-06 스냅샷 하드코딩이었다.
+`--refresh-wiki` 로 명시 호출하면 **아무것도 쓰지 않고 사유만 보고**한다.
+
+단계 번호(2/3)는 은퇴 전과 같게 뒀다 — 로그·문서에서 같은 이름이 같은 일을
+가리키게 하기 위해서다.
 
 Usage:
-    # 3-step cycle (default)
+    # 2-step cycle (default)
     python3 wiki_emit.py --apply
 
-    # 1단계만 (raw mirror 만)
+    # 1단계 (은퇴 — write 0, 사유만 보고)
     python3 wiki_emit.py --refresh-wiki --apply
 
     # 2단계만 (L2 dense 만)
@@ -130,20 +135,22 @@ def _run_step(name: str, cmd: list[str], *, dry: bool, timeout: int = 120) -> di
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--refresh-wiki", action="store_true",
-                        help="1단계만 (L1 raw mirror 갱신)")
+                        help="[은퇴] 1단계 — write 0, 사유만 보고한다")
     parser.add_argument("--emit-l2", action="store_true",
                         help="2단계만 (L2 dense 본문 emit)")
     parser.add_argument("--reemit-stubs", action="store_true",
                         help="3단계만 (L2 stub last_touched 갱신)")
     parser.add_argument("--full", action="store_true",
-                        help="3-step cycle 전체 (default)")
+                        help="2-step cycle 전체 (default)")
     parser.add_argument("--skip-1", action="store_true", help="1단계 skip")
     parser.add_argument("--skip-2", action="store_true", help="2단계 skip")
     parser.add_argument("--skip-3", action="store_true", help="3단계 skip")
     parser.add_argument("--project", default="standard-ai-workflow",
                         help="multi-project 대비 (default: standard-ai-workflow)")
-    parser.add_argument("--since", default="2026-06-10",
-                        help="refresh_wiki_memory 의 git log --since 기준 (default: 2026-06-10)")
+    parser.add_argument("--since", default=None,
+                        help="[은퇴] L2 파생은 git log 가 아니라 memory SSOT 에서 나온다 — 무시된다")
+    parser.add_argument("--bootstrap-missing", action="store_true",
+                        help="L2 파생 뷰가 없는 L1 page 에 대해 L2 를 새로 만든다 (2단계로 전달)")
     parser.add_argument("--max-chars", type=int, default=2000,
                         help="L2 dense 본문 cap (default: 2000)")
     parser.add_argument("--dry-run", action="store_true", dest="dry_run",
@@ -152,10 +159,13 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="JSON 출력 (CI 통합)")
     args = parser.parse_args()
 
-    # 3-step 결정: --full (default) / --refresh-wiki / --emit-l2 / --reemit-stubs / --skip-N
+    # step 결정: default / --refresh-wiki / --emit-l2 / --reemit-stubs / --skip-N
     if not any([args.refresh_wiki, args.emit_l2, args.reemit_stubs]):
-        # 아무 sub-step 도 지정 안 함 → --full (3-step cycle)
-        run_1 = run_2 = run_3 = True
+        # 아무 sub-step 도 지정 안 함 → 2-step cycle. 1단계는 은퇴했으므로
+        # default 에 넣지 않는다 — write 0 인 단계를 매번 돌리면 로그만 늘고,
+        # 그 자리에 뭔가 갱신되고 있다는 인상을 준다.
+        run_1 = False
+        run_2 = run_3 = True
     else:
         # 1개 이상 지정 → 각각 sub-step 만
         run_1 = args.refresh_wiki
@@ -179,7 +189,6 @@ def main() -> int:
     # `--json` 을 받지 않는데 둘 다 넘기고 있었다. dry-run 은 subprocess 를
     # 아예 안 띄우므로 그 어긋남을 한 번도 드러내지 못했다.
     cmd_1 = [py, "-m", REFRESH_WIKI_MEMORY_MODULE] + REFRESH_WIKI_SUBCOMMAND + [
-        "--since", args.since,
         "--repo-root", str(REPO_ROOT),
     ]
     if not args.dry_run:
@@ -188,11 +197,13 @@ def main() -> int:
 
     cmd_2 = [py, "-m", EMIT_WIKI_L2_BODY_MODULE, "--project", args.project,
              "--max-chars", str(args.max_chars)]
+    if args.bootstrap_missing:
+        cmd_2 += ["--bootstrap-missing"]
     if not args.dry_run:
         cmd_2 += ["--apply"]
 
     cmd_3 = [py, "-m", REFRESH_WIKI_MEMORY_MODULE] + REFRESH_STUBS_SUBCOMMAND + [
-        "--since", args.since,
+        "--max-chars", str(args.max_chars),
         "--repo-root", str(REPO_ROOT),
     ]
     if not args.dry_run:

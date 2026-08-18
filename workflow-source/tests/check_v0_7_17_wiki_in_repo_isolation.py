@@ -6,7 +6,7 @@
 
 Test 구성 (9 test):
 1. tools/refresh_wiki_memory.py: VAULT_ROOT/RAW_BASE/L2_BASE 가 in-repo path
-2. tools/refresh_wiki_memory.py: RAW_FILES 의 state_json/work_backlog/wiki_log/memory_log 가 in-repo
+2. tools/refresh_wiki_memory.py: l1_sources() 가 해석하는 L1 SSOT 4종이 in-repo (+ 은퇴한 write 경로 부재)
 3. tools/refresh_wiki_memory.py: L2_STUBS 의 4 file 이 ai-workflow/wiki/sources/ 안
 4. tools/emit_wiki_l2_body.py: VAULT_ROOT/RAW_MIRROR/L2_SOURCES 가 in-repo path
 5. tools/emit_wiki_l2_body.py: REPO_ROOT 자동 검출 (git rev-parse)
@@ -66,23 +66,44 @@ def test_refresh_wiki_memory_no_vault_root():
 
 
 def test_refresh_wiki_memory_raw_files_in_repo():
-    """refresh_wiki_memory.py 의 RAW_FILES 4 file 이 in-repo path."""
+    """refresh_wiki_memory 가 읽는 L1 SSOT 가 전부 in-repo 경로다.
+
+    이전에는 소스에서 `"memory/active/state.json"` 같은 **문자열이 보이는지**
+    를 봤다. 그 단언은 (a) 경로 조립을 resolver 로 옮기면 문자열이 사라져 헛
+    red 가 되고 (b) 정작 해석된 경로가 저장소 밖이어도 통과한다. L1 이 *쓰는*
+    대상이 아니라 *읽는* 대상이 된 지금(TASK-2026-08-18-main-004,
+    `RAW_FILES` 은퇴) 재야 할 것은 해석 결과다.
+    """
+    import importlib
+
+    sys.path.insert(0, str(SOURCE_ROOT))
+    mod = importlib.import_module("workflow_kit.tools.refresh_wiki_memory")
+    importlib.reload(mod)
+
+    sources = mod.l1_sources()
+    assert set(sources) == set(mod.L2_STUBS), f"L1 SSOT 목록 불일치: {sorted(sources)}"
+    repo_root = Path(mod.REPO_ROOT).resolve()
+
+    # 후보 경로는 **부재해도** 해석된다. 부재 자체는 결함이 아니다 — 브랜치
+    # 컨텍스트(`slash`)에는 그 브랜치의 `state.json` 이 아예 없고, 그 경우를
+    # `l1_sources()` 는 None 으로, emit 은 `missing_l1` 로 밝힌다. 여기서 잴 것은
+    # "있는가" 가 아니라 **어디를 가리키는가** 다.
+    candidates = {
+        "active-state": mod._active_path("state.json"),
+        "active-session-handoff": mod._active_path("session_handoff.md"),
+        "active-work-backlog": mod.latest_backlog_path() or mod._active_path("backlog"),
+        "wiki-log": mod.L1_BASE / "wiki" / "log.md",
+    }
+    for name, path in candidates.items():
+        resolved = Path(path).resolve()
+        assert resolved.is_relative_to(repo_root), f"{name}: in-repo 밖 — {resolved}"
+        assert "raw/projects" not in str(resolved), f"{name}: 외부 raw mirror path 잔존"
+        assert (Path.home() / "wiki") not in resolved.parents, f"{name}: 외부 vault path 잔존"
+
+    # 은퇴한 write 경로가 되살아나지 않았는가 (두 번째 writer 방지)
     src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_wiki_memory.py")
-    # RAW_FILES dict 의 value 가 in-repo path 사용 확인
-    # in-repo path = "memory/active/state.json" (relative to REPO_ROOT/ai-workflow)
-    assert "memory/active/state.json" in src, "state_json path 가 in-repo 가 아님"
-    assert "memory/active/work_backlog.md" in src, "work_backlog path 가 in-repo 가 아님"
-    assert "wiki/log.md" in src, "wiki_log path 가 in-repo 가 아님"
-    assert "memory/log.md" in src, "memory_log path 가 in-repo 가 아님"
-    # 외부 vault 의 raw/projects/.../ 또는 ~/wiki/ 가 본 dict 에 없어야
-    # (단, docstring 의 reference 에는 mention 가능 → test 는 RAW_FILES 부분만)
-    raw_files_section = re.search(
-        r"RAW_FILES\s*=\s*\{(.*?)\}",
-        src,
-        re.DOTALL,
-    )
-    assert raw_files_section is not None, "RAW_FILES dict 없음"
-    assert "raw/projects" not in raw_files_section.group(1), "RAW_FILES 에 외부 raw mirror path 남아 있음"
+    for banned in ("RAW_FILES", "update_state_json", "update_work_backlog"):
+        assert banned not in src, f"은퇴한 write 경로 잔존: {banned}"
 
 
 def test_refresh_wiki_memory_l2_stubs_in_repo():

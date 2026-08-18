@@ -4,40 +4,41 @@ status: draft
 r9_skip: true
 title: active-state
 created: 2026-07-22
-last_touched: 2026-07-22
+last_touched: 2026-08-19
 ---
 
-# Active State (v0.6.4~v0.7.4 보강, 2026-06-14)
+# Active State (Derived View, 2026-08-19)
 
-> **Status**: dense — raw mirror `state.json` 동기화 완료. v0.6.3 freeze 후 누적 5 release 의 recent_done 갱신.
+> L1 SSOT: `ai-workflow/memory/active/main/state.json` (392 lines)
+> 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
+> 생성: `2026-08-19` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
 ## SSOT 요약
 
-| 필드 | 값 | 갱신 |
-|---|---|---|
-| `session.in_progress_items` | [] | - |
-| `wiki.last_ingest` | 2026-06-14 | 2026-06-12 → 14 |
-| `memory.last_freeze` | 2026-06-14-v0.7.4 | 2026-06-12-v6.3 → 14-v0.7.4 |
+| 필드 | 값 |
+|---|---|
+| `purpose_digest` | 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공 |
+| `session.current_focus` | TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계) |
+| `backlog.task_count` | 2 |
+| `source_of_truth.latest_backlog_path` | ai-workflow/memory/active/main/backlog/2026-08-19.md |
 
-## Recent Done (v0.6.4~v0.7.4)
+## 진행 중
 
-- v0.7.10 (fdf8159): release_pipeline Phase 2 (release / verify / rollback) + 8 smoke test
-- v0.7.9 (cb0a892): release_pipeline tool 정식화 (validate / version-bump / note-draft) + 8 smoke test
-- v0.7.8 (d3235ad): state-aware evaluate_compliance + config actual apply
-- v0.7.7 (022672f): workflow_kit.cli.doctor 에 load_config + should_fail integration
-- v0.7.6 (53d5dc8): run_all_checks 통합 runner + 10 smoke test
-- v0.7.5 (0741775): refresh_wiki_memory tool 정식화 + 10 smoke test (Wiki 운영 자동화)
-- v0.7.4 (22e7750): CLI wrapper (workflow doctor) + @graceful_shutdown + optional dep (hypothesis/objgraph)
-- v0.7.3 (d03348a): 4 runtime helper (auth/testing/profiling/resiliency) + 7 baseline dispatcher
-- v0.7.2 (3bffba3): Extension sub-cat + 4종 (resiliency) 본 구현 (179 test PASS)
-- v0.7.1 (f09034d): follow-up 4건 + wiki 개선 4건 묶음 (158 test PASS, GH release)
-- v0.7.0 (6e57cf3): stage_completion required 격상 + ensure fallback
-- v0.6.6 (6a9126c): 5 SKILL.md-only skill runtime 통합 (12/12 spec+runtime 일관성)
-- v0.6.5 (5b16517): StageCompletion field 11종 skill spec + catalog 보강 (13 file)
-- v0.6.4 (25756bb): Question File Format + Stage Gate 명시화 (4 doc)
+- TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)
 
-## 다음에 읽을 문서
+## 차단
 
-- [in-repo/ai-workflow/memory/active/state.json](../../../memory/active/state.json) (1차 출처)
-- [in-repo/ai-workflow/memory/active/backlog](../../../memory/active/work_backlog.md)
-- [in-repo/ai-workflow/wiki/log.md](../../../wiki/log.md)
+- (없음)
+
+## 최근 완료
+
+- TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조
+- TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교
+- TASK-2026-08-18-main-004 — wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트
+- TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측
+- TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다
+- TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존
+- TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다
+- TASK-2026-08-16-main-002 — 정본 §11.2 다중 줄 bullet 이 추출에서 잘린다 — 생성 블록이 문장 중간에서 끊긴 채 전 하네스로 복제
+- TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵
+- TASK-2026-08-14-main-019 — 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사

@@ -362,6 +362,36 @@ wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 > `wk doctor` 와 `wk release-doctor` 는 **다른 물건**이다. 전자는 배포 산출물의
 > 설치 현황, 후자는 릴리스 baseline 평가다.
 
+### 7.0.2. 채널별 재실행 계약 — 같은 명령을 다시 돌리면 무슨 일이 나는가
+
+**채널마다 다르고, 문서가 없으면 알 수 없다.** smart update(`decide_action`)는
+bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의 설치기가 정한다.
+아래는 **2026-08-18 이 호스트에서 실측**한 결과다 (추정 없음).
+
+| 채널 | 설치본의 정체 | 설치 명령 재실행 | update 명령 | **페이로드가 낡았을 때 복구** |
+|---|---|---|---|---|
+| **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) | **`uninstall` → `install`** (유일한 경로) |
+| **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | `plugin add` 재실행 |
+| **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/`) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
+| **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
+| **gemini-cli** | 미실측 | 미실측 | 미실측 | 이 호스트에 `gemini` CLI 가 없다 |
+
+읽는 법 세 가지:
+
+1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
+   업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
+   `plugin update` 는 끝까지 거절했다. 개발 중 재배포에서는 **버전을 올리거나
+   재설치**해야 한다.
+2. **`marketplace update` 는 설치본을 안 고친다.** claude-code 에서 이 명령은
+   marketplace **클론**만 최신으로 당긴다 (실측: 클론은 최신 커밋으로 갱신됐는데
+   설치 캐시는 그대로였다). 설치본까지 가려면 위 표의 복구 열을 따른다.
+3. **`grok plugin update` 의 출력을 믿지 말 것.** `already live` 라고 말하지만
+   설치본은 inode 가 다른 **사본**이고, 원본을 바꿔도 반영되지 않았다.
+
+> 이 표가 필요한 이유는 `wk doctor` (§7.0.1) 의 한계와 짝이다 — 탐침은 마커
+> 비교라 **버전이 같고 내용만 낡은** 드리프트를 못 잡는다. 못 잡는 대신, 그런
+> 상태가 의심되면 이 표의 복구 열을 그대로 밟으면 된다.
+
 ### 7.1. 부트스트랩 (플러그인 미지원 하네스 · 오프라인 · 진입점 규칙 주입)
 
 ```bash

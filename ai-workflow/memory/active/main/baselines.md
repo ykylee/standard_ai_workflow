@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-18
 
+- **47차 세션 (이어서) — main-016 `wk doctor` 완료, 배포 축 1순위 gap 해소 (전량 2축 261/261 green).** `workflow_kit/deploy_doctor.py` 신설 — `probe(project_root, home)` → environment/project_scope/global_scope/drift 4절. **둘 다 주입 인자**라 fixture 로 검증되고 실 홈을 읽지 않는다. `wk doctor` 등록(`cli_commands_doctor.py`), 산출물 목록은 `HARNESS_SPECS` 파생 · 글로벌 선언 거주지 6곳은 `GLOBAL_DECLARATION_HOMES` 가 정본. **설계 교정 2건이 실측에서 나왔다**: ①**존재는 적용이 아니다** — 마커 없는 `AGENTS.md` 하나가 codex/grok-build/minimax-code/opencode/pi-dev **5개를 적용됨으로** 만드는 과보고를 첫 실행에서 잡아, kit 소유 표식(마커, §3) 기준 `applied` / 존재 기준 `candidate` 로 분리 ②`ai-workflow/VERSION` 부재 시 **돌고 있는 패키지 버전으로 폴백** — 없으면 드리프트 절이 통째로 죽는다(이 저장소가 정확히 그 상태였다). `check_deploy_doctor` 9 cases, 되주입 3종(report-only 파기·마커 무시·`--strict` 무시)으로 red 실증. **탐침이 즉시 실제 드리프트를 지목했다** — 이 저장소 자신의 claude-code 산출물이 `v1.0.0-beta`(kit 1.2.0). 문서 3곳(INSTALLATION §7.0.1 신설 · 컨셉 §2·§7 · CODE_INDEX). 개수 표기 3곳(INSTALLATION·release note·smoke trend)은 첫 게이트가 red 로 잡아 261 로 갱신.
+
+## 롤오프 2026-08-18
+
 - **47차 세션 — 이 호스트에 플러그인 2채널 설치 + main-002 close (전량 2축 260/260 green).** ①**설치**: Claude Code 플러그인 신규 설치(GitHub marketplace `ykylee/standard_ai_workflow`, user scope, v1.2.0 — 스킬 4 + read-only MCP + hook 2). Codex 는 이미 설치돼 있었으나 **페이로드가 낡아 있었다** — 버전 문자열은 `1.2.0` 으로 같은데 내용만 구버전(KO 단일 description, `rollover-baselines` 누락)이었다. **버전 비교로는 안 걸리는 드리프트** — main-016 `wk doctor` 의 drift 절이 마커가 아니라 페이로드 해시를 봐야 하는 근거다. 재빌드 후 install-root 교체로 갱신. Codex 로컬 marketplace 는 `upgrade` 가 Git 전용이라 **파일 제자리 교체가 곧 업데이트**다 (실측). ②**main-002 close**: 정본 §11.2 의 3줄 bullet 이 첫 줄에서 잘려 전 하네스로 복제된 결함 — `standard_rules._collect_bullets` 로 연속 줄 join, §1·§11.2 가 같은 헬퍼를 쓴다. 소비처 7곳 재생성(plugin 6 = `plugin_payload --apply`, CLAUDE.md 1 = 수동). `check_standard_single_source` case 10 신설(9→10), 되주입 양방향. ③**게이트 판독 교훈**: 첫 전량이 9 red 였는데 **코드 결함은 0건** — `.venv` 의존성 부재 6(uv venv 에 pip 조차 없었다) · 로컬 untracked `AGENTS.md` 2(oh-my-codex, gitignore 대상) · 로컬 `workflow-source/.venv` 1. **CI 는 셋 다 없어 green** — 15일 CI-red 사건의 거울상이다. `git stash` 로 "이전부터 red" 라 본 판단은 **틀렸다**(stash 는 untracked 를 안 건드린다) — HEAD 클린 워크트리로 교정. ④부수 발견 [TASK-2026-08-16-main-003] `check_deprecation_3rd_cycle` 제외 목록 사망.
 
 ## 롤오프 2026-08-17

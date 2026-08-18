@@ -185,12 +185,67 @@ def case_4_related_docs() -> bool:
     return True
 
 
+DISTRIBUTION_PATH = SOURCE_ROOT / "core" / "workflow_harness_distribution.md"
+
+#: §7.0.2 재실행 계약 표의 heading (INSTALLATION).
+RERUN_SECTION_HEADING = "### 7.0.2."
+
+
+def _plugin_channels_from_matrix() -> set[str]:
+    """채널×하네스 매트릭스(§2.1)에서 **플러그인 채널**인 하네스를 뽑는다.
+
+    손 목록을 두지 않는다 — 매트릭스가 정본이고 이 검사는 파생이다. 새 하네스가
+    플러그인 채널을 얻으면 매트릭스에 ✅ 가 붙고, 그 순간 재실행 계약 표에도
+    행이 있어야 한다.
+    """
+    text = DISTRIBUTION_PATH.read_text(encoding="utf-8")
+    channels: set[str] = set()
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or not cells[1].startswith("✅"):
+            continue
+        name = cells[0].strip("` ")
+        # 하네스 이름은 소문자+하이픈 (표 header/구분선 행 배제)
+        if re.fullmatch(r"[a-z0-9-]+", name):
+            channels.add(name)
+    return channels
+
+
+def case_5_rerun_contract_covers_plugin_channels() -> bool:
+    """5) §7.0.2 재실행 계약 표가 **모든 플러그인 채널**을 덮는가.
+
+    채널마다 재실행 결과가 다르다는 것이 TASK-2026-08-14-main-017 의 실측이었다
+    (claude-code 는 같은 버전에서 update 를 거절, codex 는 재실행이 캐시를 다시
+    복사, grok-build 는 거부, pi-dev 는 경로 참조라 갱신 자체가 불필요). 표에서
+    한 채널이 빠지면 그 채널만 **계약이 없는 채로** 남는데, 빠졌다는 사실이
+    어디에도 안 보인다. 매트릭스에서 파생해 그 사각지대를 막는다.
+    """
+    content = _read_installation()
+    if RERUN_SECTION_HEADING not in content:
+        print(f"  FAIL: {RERUN_SECTION_HEADING} 재실행 계약 절이 없다")
+        return False
+    section = content.split(RERUN_SECTION_HEADING, 1)[1].split("\n### ", 1)[0]
+    channels = _plugin_channels_from_matrix()
+    if not channels:
+        print("  FAIL: §2.1 매트릭스에서 플러그인 채널을 하나도 못 읽었다 — 표 구조가 바뀌었는가")
+        return False
+    missing = sorted(name for name in channels if f"**{name}**" not in section and name not in section)
+    if missing:
+        print(f"  FAIL: 재실행 계약 표에 채널 누락: {missing}")
+        return False
+    print(f"  [info] 재실행 계약 표가 플러그인 채널 {len(channels)}종을 모두 덮는다: {sorted(channels)}")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_smoke_count", case_1_smoke_count),
         ("case_2_status_version", case_2_status_version),
         ("case_3_harness_list", case_3_harness_list),
         ("case_4_related_docs", case_4_related_docs),
+        ("case_5_rerun_contract_covers_plugin_channels", case_5_rerun_contract_covers_plugin_channels),
     ]
     results: list[tuple[str, bool]] = []
     for name, fn in cases:
@@ -215,6 +270,10 @@ def test_case_2_status_version() -> None:
 
 def test_case_3_harness_list() -> None:
     assert case_3_harness_list(), "case_3_harness_list FAIL"
+
+
+def test_case_5_rerun_contract_covers_plugin_channels() -> None:
+    assert case_5_rerun_contract_covers_plugin_channels(), "case_5_rerun_contract_covers_plugin_channels FAIL"
 
 
 def test_case_4_related_docs() -> None:

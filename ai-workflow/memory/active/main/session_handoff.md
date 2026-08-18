@@ -9,23 +9,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **47차 세션 (이어서) — main-017 close: 채널별 재실행 계약 4채널 실측 (전량 2축 262/262 green).** `INSTALLATION` **§7.0.2 신설** — 채널 × (설치본의 정체 / 설치 재실행 / update / 페이로드가 낡았을 때 복구). **계약이 채널마다 다르다**: claude-code = 캐시 사본이고 `plugin update` 가 **버전 문자열만 보고 거절**(복구는 `uninstall`→`install` 뿐) · codex = 캐시 사본이지만 `plugin add` 재실행이 marketplace 루트에서 **다시 복사**해 같은 버전에서도 갱신된다 · grok-build = 재설치 **거부**, `update` 는 `already live` 를 출력하면서 **실제로는 갱신 안 함**(원본에 표식을 넣어 확정) · pi-dev = `~/.pi/agent/settings.json` 의 `packages[]` **경로 참조**라 사본이 없고 갱신 자체가 불필요. gemini-cli 는 CLI 부재로 **미실측**(표에 명시). **claude 의 `marketplace update` 는 클론만 당기고 설치 캐시는 안 고친다** — 실측 중 설치본이 main-002 가 고친 잘린 줄을 그대로 들고 있었고 **버전은 양쪽 다 `1.2.0`** 이었다. 컨셉 §6: 원칙 B(재실행 안전)는 4채널 전부 성립, **원칙 C 는 플러그인 채널에서 깨진다**고 근거와 함께 명시. `check_installation_usage` case 5 신설(4→5) — 표가 §2.1 매트릭스의 플러그인 채널을 전부 덮는지 **파생으로** 검사(손 목록 없음), 되주입 red 실증. grok·pi 는 측정용 임시 설치 후 **원상복구 확인**.
+- 현재 기준선: **47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (6 push, 전량 2축 매번 green, 검사 260→262).** 상세는 [47차 세션 기록](./sessions/plugin_install_and_deployment_probe_2026-08-18.md). 축은 **설치가 조사를 낳았다** 였다 — 플러그인을 깔아 보니 Codex 설치본이 버전은 같은데 내용만 낡아 있었고(`1.2.0` 동일), 그 한 줄이 세션 전체를 끌었다. ①**main-017**(직전 항목, 채널별 재실행 계약 4채널 실측). `INSTALLATION` **§7.0.2 신설** — 채널 × (설치본의 정체 / 설치 재실행 / update / 페이로드가 낡았을 때 복구). **계약이 채널마다 다르다**: claude-code = 캐시 사본이고 `plugin update` 가 **버전 문자열만 보고 거절**(복구는 `uninstall`→`install` 뿐) · codex = 캐시 사본이지만 `plugin add` 재실행이 marketplace 루트에서 **다시 복사**해 같은 버전에서도 갱신된다 · grok-build = 재설치 **거부**, `update` 는 `already live` 를 출력하면서 **실제로는 갱신 안 함**(원본에 표식을 넣어 확정) · pi-dev = `~/.pi/agent/settings.json` 의 `packages[]` **경로 참조**라 사본이 없고 갱신 자체가 불필요. gemini-cli 는 CLI 부재로 **미실측**(표에 명시). **claude 의 `marketplace update` 는 클론만 당기고 설치 캐시는 안 고친다** — 실측 중 설치본이 main-002 가 고친 잘린 줄을 그대로 들고 있었고 **버전은 양쪽 다 `1.2.0`** 이었다. 컨셉 §6: 원칙 B(재실행 안전)는 4채널 전부 성립, **원칙 C 는 플러그인 채널에서 깨진다**고 근거와 함께 명시. `check_installation_usage` case 5 신설(4→5) — 표가 §2.1 매트릭스의 플러그인 채널을 전부 덮는지 **파생으로** 검사(손 목록 없음), 되주입 red 실증. grok·pi 는 측정용 임시 설치 후 **원상복구 확인**.
 - 직전 기준선: **47차 세션 (이어서) — AGENTS.md 공유 진입점 합류, 게이트에서 로컬 예외가 사라졌다 (전량 2축 262/262 green, park 없음).** 이 저장소의 Codex 진입점 자리를 oh-my-codex(OMX) 계약이 점유하고 `.gitignore` 로 추적에서 빠져 있어, (a) Codex 세션이 §1/§8/§11 을 못 받고 (b) `check_docs`·`check_self_application` 2건이 **로컬에서만** red 였다(CI 는 파일이 없어 green). 소유자 선택 3안 — 컨셉 §4.2 의 **공유 진입점 + additive rule**: OMX 계약이 master, 문서 끝에 `render_entrypoint_rules` 생성 블록 + 영문 metadata 6필드(첫 20줄), 실행 기본값·게이트 규칙은 `CLAUDE.md` 를 **가리키기만** 하고 복제하지 않았다. `.gitignore` 에서 `/AGENTS.md` 제거(`ANTIGRAVITY.md`·`GEMINI.md` 는 유지). **`omx setup` 재생성 위험**은 파일 안 blockquote 로 경고 + 복구 명령 명시 — 소실되면 `check_self_application` 이 즉시 red 라 조용히 사라지지 않는다. **부수 실증**: 새 날짜 index 로의 main-009 이월이 `carry_over_entry` 로 자동 처리됐다 — main-001 수리의 첫 실사용이고, 어제였으면 또 손 append 였다.
 - 그 이전 기준선: **47차 세션 (이어서) — main-003 close: 죽어 있던 제외 목록 수리 (전량 2축 262/262 green).** `check_deprecation_3rd_cycle` 의 제외가 **경로 기준 불일치로 한 건도 성립하지 않았다** — `rel` 은 `REPO_ROOT` 상대인데 제외 항목(`build`/`.venv`/`tests`)은 `WORKFLOW_SOURCE` 기준이라 `workflow-source/.venv/...` 가 `.venv` 로 시작할 수가 없었다. 평소엔 그 디렉터리가 없어 아무도 몰랐고, 로컬에 있는 호스트에서만 site-packages 16건이 저장소 결함으로 보고됐다. 수리: 기준을 `WORKFLOW_SOURCE` 로 통일하고 `_iter_source_files` 하나로 모음 · 판정을 문자열 `startswith` → **경로 조각**(`buildtools/` 오인·중첩 `.venv` 누락 방지) · case 1 의 `endswith` 완화 제거(그 완화가 어긋남을 가리고 있었다). **case 4 신설(3→4)** — 합성 경로 7종 직접 판정 + 원 결함을 실행 가능한 단언으로 보존 + 제외 대상이 스캔에 새는지 관찰. cases 1~3 은 제외가 죽어도 조용히 green 이었다. **성과: 로컬 `workflow-source/.venv` 를 비켜 두지 않고 게이트가 돈다** — 세션 내내 하던 수작업 하나가 사라졌다.
 - 그 이전 기준선: **47차 세션 (이어서) — main-001 close: backlog-update 날짜 롤오버 이월 결함 수리 (전량 2축 262/262 green).** 막고 있던 것은 **판정 한 줄**이었다 — 병합(`update_merge` 는 `matched_task` 가 아니라 `task_ssot_path.exists()` 를 본다)과 index append(`_upsert_index_block` 은 항목이 없으면 이미 덧붙인다)는 원래부터 맞게 동작했고, 그 앞의 `cannot_determine` 이 전부를 막았다. 이제 update 가 오늘 index 에 없는 task 를 만나면 **task SSOT 존재 여부로 갈린다**: 있으면 `carry_over_entry` (오늘 index 에 이월 + 갱신 반영, 본문·상태 보존), 없으면 `cannot_determine`. 그리고 **`cannot_determine` 의 최상위 `status` 를 `ok` → `warning`** 으로 — 조용한 미반영의 뿌리는 판정이 아니라 이 보고였다. `check_backlog_carry_over` 5 cases 신설(이월·본문 보존·상태 보존·SSOT 부재 시 non-ok·같은 날 재갱신은 여전히 `update_entry`), 되주입에서 4건 red 실증. **수리된 도구가 자기 자신의 close 를 `carry_over_entry` 로 처리했다.**
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 1건, 최신이 위).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 33건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 45건, 최신이 위).
 
 - 현재 주 작업 축: **배포 일관성·멱등성 — 1순위 gap(탐침)이 닫혔고 나머지 3건이 남았다.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md) (배포=함수, 변수 5축, 3계약+1탐침, 소유권 3분류, 멀티 하네스 공존·설치 스코프 규칙). **구현 순서**: ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (둘 다 47차) → **[main-018] 드리프트 감지 — 이제 1순위이자 근거가 확실하다**(마커가 같고 내용만 낡은 상태를 실제로 관측했고 채널이 스스로 못 고쳤다 → 마커가 아니라 **페이로드 해시** 비교) → [main-019] 환경 pre-flight. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았고 case 10 이 안전을 선실증. 45차에 구조 결함(main-005/006/010/011)과 판단 보류(main-004 = 기각)가 전부 닫혀 실행형 잔여는 배포 축뿐이다. **이 호스트 설치 현황(47차 실측)**: Claude Code ✅ user scope v1.2.0 (GitHub marketplace) · Codex ✅ v1.2.0 (로컬 `workflow-source/dist/plugins/codex/1.2.0/install-root`, **gitignore 대상이라 `dist/` 를 지우면 marketplace 가 끊긴다** — 재빌드는 `python3 -m workflow_kit.plugin_distribution --harness codex --output-dir workflow-source/dist`). **게이트의 로컬 유래 red 는 0건이다** (2026-08-18) — `AGENTS.md` 는 추적 전환 + 규칙 합류, `workflow-source/.venv` 는 main-003 수리로 해소. **전량을 돌릴 때 비켜 둘 파일이 없다.** **관찰** — [TASK-2026-08-13-main-004] mypy flake 33 run 연속 green(진행 중) / cross-host federation / darwin mavis e2e / memory_index 3-tuple 추이.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -69,6 +57,32 @@
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
+
+### ▶ 지금 할 일 — [main-018] 드리프트 감지 (47차에서 근거가 확정됨)
+
+**마커가 같고 내용만 낡은 상태를 이 세션에 실제로 관측했고, 채널이 스스로 고치지
+못한다는 것까지 확인됐다.** 그래서 비교 대상은 마커가 아니라 **페이로드 해시**여야
+한다. 자리는 이미 표시돼 있다 — `wk doctor` 출력의 `drift.limitation`.
+
+- 관측 1: Codex 설치본이 정본과 내용만 달랐다 (버전 양쪽 다 `1.2.0`).
+- 관측 2: claude-code 설치 캐시가 `main-002` 가 고친 잘린 줄을 그대로 들고 있었고
+  `plugin update` 가 **버전 문자열만 보고 거절**했다. `uninstall`→`install` 로만 고쳐졌다.
+- 채널별 복구 절차는 `docs/INSTALLATION_AND_USAGE.md` §7.0.2 에 있다 (47차 실측).
+
+이어서 [main-019] 환경 pre-flight. 상세는
+[47차 세션 기록](./sessions/plugin_install_and_deployment_probe_2026-08-18.md).
+
+### 47차가 남긴 규칙 (재발 방지)
+
+- **`git stash` 는 워킹 트리 복원 수단이 아니다** — untracked 를 안 건드린다.
+  이 세션에서 그것 때문에 "이전부터 red 였다" 고 **오판**했다. 로컬/CI 차이를
+  볼 때는 **HEAD 클린 워크트리**로 잰다.
+- **되주입은 fixture 가 실제로 판별하는지까지 확인한다** — `grok-buildX` 가
+  `grok-build` 를 부분 문자열로 포함해 되주입이 통과한 일이 있었다.
+- **검사를 하나 늘리면 개수 표기 3곳이 같이 움직인다** — INSTALLATION ·
+  release note · smoke trend. 게이트가 잡아 주지만 미리 맞추면 한 바퀴를 아낀다.
+- **게이트에 비켜 둘 로컬 파일은 이제 없다** (`AGENTS.md` 추적 전환 + main-003
+  수리). 다시 park 가 필요해지면 그건 새 결함이다.
 
 ### 다음에 할 일 — 전량 검사 시간 (소유자 승인 2026-08-14)
 

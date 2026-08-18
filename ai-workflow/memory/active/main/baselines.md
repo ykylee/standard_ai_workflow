@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-08-18
+
+- **47차 세션 — 이 호스트에 플러그인 2채널 설치 + main-002 close (전량 2축 260/260 green).** ①**설치**: Claude Code 플러그인 신규 설치(GitHub marketplace `ykylee/standard_ai_workflow`, user scope, v1.2.0 — 스킬 4 + read-only MCP + hook 2). Codex 는 이미 설치돼 있었으나 **페이로드가 낡아 있었다** — 버전 문자열은 `1.2.0` 으로 같은데 내용만 구버전(KO 단일 description, `rollover-baselines` 누락)이었다. **버전 비교로는 안 걸리는 드리프트** — main-016 `wk doctor` 의 drift 절이 마커가 아니라 페이로드 해시를 봐야 하는 근거다. 재빌드 후 install-root 교체로 갱신. Codex 로컬 marketplace 는 `upgrade` 가 Git 전용이라 **파일 제자리 교체가 곧 업데이트**다 (실측). ②**main-002 close**: 정본 §11.2 의 3줄 bullet 이 첫 줄에서 잘려 전 하네스로 복제된 결함 — `standard_rules._collect_bullets` 로 연속 줄 join, §1·§11.2 가 같은 헬퍼를 쓴다. 소비처 7곳 재생성(plugin 6 = `plugin_payload --apply`, CLAUDE.md 1 = 수동). `check_standard_single_source` case 10 신설(9→10), 되주입 양방향. ③**게이트 판독 교훈**: 첫 전량이 9 red 였는데 **코드 결함은 0건** — `.venv` 의존성 부재 6(uv venv 에 pip 조차 없었다) · 로컬 untracked `AGENTS.md` 2(oh-my-codex, gitignore 대상) · 로컬 `workflow-source/.venv` 1. **CI 는 셋 다 없어 green** — 15일 CI-red 사건의 거울상이다. `git stash` 로 "이전부터 red" 라 본 판단은 **틀렸다**(stash 는 untracked 를 안 건드린다) — HEAD 클린 워크트리로 교정. ④부수 발견 [TASK-2026-08-16-main-003] `check_deprecation_3rd_cycle` 제외 목록 사망.
+
 ## 롤오프 2026-08-17
 
 - **46차 세션 종료 — main-016 `wk doctor` 착수, 구현 지점 조사 완료 (코드 미착수).** 조사 확정 사항은 전부 [task 파일](./backlog/tasks/TASK-2026-08-14-main-016.md)의 진행 현황·다음 세션 시작 포인트에 있다 — CLI 등록 패턴(`cli_registry.register` + `cli_commands_*` 모듈), 기존 조각 구분(`workflow_kit.cli.doctor` 는 7 baseline 평가로 **다른 물건**, INSTALLATION §4 가 env probe 원형), 정본 registry 3곳(`HARNESS_SPECS`/`PLUGIN_HARNESS_SPECS`/`PLUGIN_SKILLS`), 마커 helper(`upgrade_diff.parse_version_marker`/`compare_marker`/`read_kit_version`), 글로벌 선언 거주지 5곳. 설계: `deploy_doctor.py` probe(project_root·home 주입) → environment/project_scope/global_scope/drift 4절, report-only(§5.2), `--strict` 만 rc 1. **부수 발견**: backlog-update 결함 — 날짜가 바뀐 뒤 그날 index 에 항목 없는 task 의 update 가 `cannot_determine` 으로 apply 를 조용히 스킵하며 최상위 status 는 ok ([TASK-2026-08-16-main-001] 등록, 이번엔 형식 보존 손 append 로 이월). Explore 위임 조사가 1시간 무응답이라 중단하고 직접 조사로 전환 — 좁은 조사는 직접이 빠르다.

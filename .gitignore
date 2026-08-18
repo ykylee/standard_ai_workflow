@@ -37,8 +37,11 @@ tmp-test/
 scratch/
 
 # Workflow layer (selective tracking)
+# /AGENTS.md 는 2026-08-18 에 추적으로 전환했다 (TASK-2026-08-18-main-001).
+# 이 저장소의 Codex 진입점이 여기 살고, 워크플로우 규칙 블록을 additive 로 싣는다.
+# 추적하지 않던 동안 check_docs·check_self_application 이 **로컬에서만** red 라
+# 전량 검사 때마다 파일을 손으로 비켜 둬야 했다 (CI 는 파일이 없어 green).
 /ANTIGRAVITY.md
-/AGENTS.md
 /GEMINI.md
 
 # Exclude duplicated engine/tool copies in the source repo

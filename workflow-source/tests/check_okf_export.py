@@ -766,6 +766,51 @@ def test_okf_resource_layer1_layer2_composite_v0_7_42() -> None:
         pr.resolve_in_repo_path_to_url = orig_url
         pr.resolve_in_repo_path_to_url_pinned = orig_pinned
 
+def test_citations_heading_is_h1_spec_8() -> None:
+    """Citations 절은 **h1 `# Citations`** 다 (SPEC §8).
+
+    2026-08-18 실측 (TASK-2026-08-18-main-006): 우리는 `##` (h2) 로 내고 있었고
+    18 cases 중 어느 것도 그 자리를 재지 않았다. SPEC v0.2 는 이 절을 `sources`
+    frontmatter 로 대체하면서 "consumers ... MAY still parse a legacy
+    `# Citations` body list for v0.1 documents" 라고 적었다 — h2 로 내면 v0.1
+    에서도 비표준이고 v0.2 소비자의 **legacy fallback 경로에서도 안 걸린다**.
+    """
+    with tempfile.TemporaryDirectory(prefix="okf-cit-") as tmp:
+        wiki = Path(tmp) / "wiki"
+        (wiki / "concepts").mkdir(parents=True)
+        (wiki / "concepts" / "p.md").write_text(
+            "---\ntype: concept\ntitle: P\nlast_ingested_from: docs/x.md\n---\n\n# P\n\n본문\n",
+            encoding="utf-8",
+        )
+        out = Path(tmp) / "bundle"
+        _import_okf_export().export_wiki_to_okf(wiki, out, resolve=False)
+        body = (out / "concepts" / "p.md").read_text(encoding="utf-8")
+        assert "\n# Citations\n" in body, f"h1 Citations 가 없다:\n{body[-300:]}"
+        assert "\n## Citations\n" not in body, "h2 로 냈다 — SPEC §8 은 h1 이다"
+
+
+def test_every_wiki_page_exports_self_application() -> None:
+    """**자기 적용.** 이 저장소의 wiki 가 한 장도 빠짐없이 export 되는가.
+
+    2026-08-18 실측: `concepts/wiki-maintainability-score.md` 가 frontmatter 없이
+    생성돼 `no frontmatter` 로 **조용히 빠지고 있었다** (71장 중 70장만 export).
+    wiki lint 는 V-1(위치)·V-4(index) 만 보므로 아무도 몰랐다 — export 가 곧
+    frontmatter 계약의 실사용 검증이다.
+    """
+    wiki = SOURCE_ROOT.parent / "ai-workflow" / "wiki"
+    if not wiki.is_dir():
+        print("  SKIP  wiki 부재")
+        return
+    with tempfile.TemporaryDirectory(prefix="okf-self-") as tmp:
+        report = _import_okf_export().export_wiki_to_okf(
+            wiki, Path(tmp) / "bundle", resolve=False)
+        assert not report.errors, (
+            f"export 되지 않은 wiki 페이지 {len(report.errors)}건:\n  "
+            + "\n  ".join(report.errors[:5])
+        )
+        assert report.pages_exported > 0
+
+
 def main() -> int:
     test_funcs = [
         test_frontmatter_parse_minimal,
@@ -786,6 +831,8 @@ def main() -> int:
         test_okf_resource_content_hash_v0_7_39,
         test_okf_resource_range_refs_v0_7_40,
         test_okf_resource_layer1_layer2_composite_v0_7_42,
+        test_citations_heading_is_h1_spec_8,
+        test_every_wiki_page_exports_self_application,
     ]
     failed: list[str] = []
     for fn in test_funcs:

@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-18
 
+- **47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (6 push, 전량 2축 매번 green, 검사 260→262).** 상세는 [47차 세션 기록](./sessions/plugin_install_and_deployment_probe_2026-08-18.md). 축은 **설치가 조사를 낳았다** 였다 — 플러그인을 깔아 보니 Codex 설치본이 버전은 같은데 내용만 낡아 있었고(`1.2.0` 동일), 그 한 줄이 세션 전체를 끌었다. ①**main-017**(직전 항목, 채널별 재실행 계약 4채널 실측). `INSTALLATION` **§7.0.2 신설** — 채널 × (설치본의 정체 / 설치 재실행 / update / 페이로드가 낡았을 때 복구). **계약이 채널마다 다르다**: claude-code = 캐시 사본이고 `plugin update` 가 **버전 문자열만 보고 거절**(복구는 `uninstall`→`install` 뿐) · codex = 캐시 사본이지만 `plugin add` 재실행이 marketplace 루트에서 **다시 복사**해 같은 버전에서도 갱신된다 · grok-build = 재설치 **거부**, `update` 는 `already live` 를 출력하면서 **실제로는 갱신 안 함**(원본에 표식을 넣어 확정) · pi-dev = `~/.pi/agent/settings.json` 의 `packages[]` **경로 참조**라 사본이 없고 갱신 자체가 불필요. gemini-cli 는 CLI 부재로 **미실측**(표에 명시). **claude 의 `marketplace update` 는 클론만 당기고 설치 캐시는 안 고친다** — 실측 중 설치본이 main-002 가 고친 잘린 줄을 그대로 들고 있었고 **버전은 양쪽 다 `1.2.0`** 이었다. 컨셉 §6: 원칙 B(재실행 안전)는 4채널 전부 성립, **원칙 C 는 플러그인 채널에서 깨진다**고 근거와 함께 명시. `check_installation_usage` case 5 신설(4→5) — 표가 §2.1 매트릭스의 플러그인 채널을 전부 덮는지 **파생으로** 검사(손 목록 없음), 되주입 red 실증. grok·pi 는 측정용 임시 설치 후 **원상복구 확인**.
+
+## 롤오프 2026-08-18
+
 - **47차 세션 (이어서) — AGENTS.md 공유 진입점 합류, 게이트에서 로컬 예외가 사라졌다 (전량 2축 262/262 green, park 없음).** 이 저장소의 Codex 진입점 자리를 oh-my-codex(OMX) 계약이 점유하고 `.gitignore` 로 추적에서 빠져 있어, (a) Codex 세션이 §1/§8/§11 을 못 받고 (b) `check_docs`·`check_self_application` 2건이 **로컬에서만** red 였다(CI 는 파일이 없어 green). 소유자 선택 3안 — 컨셉 §4.2 의 **공유 진입점 + additive rule**: OMX 계약이 master, 문서 끝에 `render_entrypoint_rules` 생성 블록 + 영문 metadata 6필드(첫 20줄), 실행 기본값·게이트 규칙은 `CLAUDE.md` 를 **가리키기만** 하고 복제하지 않았다. `.gitignore` 에서 `/AGENTS.md` 제거(`ANTIGRAVITY.md`·`GEMINI.md` 는 유지). **`omx setup` 재생성 위험**은 파일 안 blockquote 로 경고 + 복구 명령 명시 — 소실되면 `check_self_application` 이 즉시 red 라 조용히 사라지지 않는다. **부수 실증**: 새 날짜 index 로의 main-009 이월이 `carry_over_entry` 로 자동 처리됐다 — main-001 수리의 첫 실사용이고, 어제였으면 또 손 append 였다.
 
 ## 롤오프 2026-08-18

@@ -434,7 +434,20 @@ def emit_dashboard(score: dict, dashboard_path: Path) -> None:
             trend_section += "\n자동 추출: `wk score-wiki-trend --show`\n"
             trend_section += "history: `workflow-source/workflow_kit/tools/.score_history.jsonl` (v0.7.1+ 누적)\n"
 
-    md = f"""# Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
+    # frontmatter 를 함께 낸다 — 없으면 이 페이지만 wiki 계약 밖에 남는다.
+    # 2026-08-18 실측 (TASK-2026-08-18-main-006): OKF export 가 71개 중 이 한 장을
+    # `no frontmatter` 로 건너뛰고 있었고, wiki lint(V-1/V-4)는 위치와 index 만 보므로
+    # 아무도 몰랐다. 생성물이라 손으로 고치면 다음 실행에 되돌아간다 — 템플릿이 낸다.
+    md = f"""---
+type: meta
+status: draft
+r9_skip: true
+title: Wiki Maintainability Score Dashboard
+description: 6 dim 별 0.0~5.0 점수 + overall grade. `wk score-wiki-maintainability --emit-dashboard` 자동 산출.
+last_touched: {timestamp[:10]}
+---
+
+# Wiki Maintainability Score Dashboard (v0.7.1, 2026-06-13)
 
 > Generated: {timestamp}
 > 6 dim 별 0.0~5.0 점수 + overall grade. 자동 산출 — `wk score-wiki-maintainability --emit-dashboard`

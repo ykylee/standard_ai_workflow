@@ -17,7 +17,7 @@ Frontmatter mapping (우리 wiki → OKF v0.1, 양방향 OKF compatible 보장):
   - `status`       → extra `status`   (OKF 가 unknown key tolerate)
   - `related_pages` → extra `related_pages` (and emit as cross-links in body §5.1)
   - `r9_skip`      → extra `r9_skip` (OKF 가 unknown key tolerate)
-  - `last_ingested_from` 의 path 가 in-repo 일 때 → body 에 `## Citations` section 추가
+  - `last_ingested_from` 의 path 가 in-repo 일 때 → body 에 `# Citations` section 추가 (SPEC §8, h1)
 
 Cross-link rewriting (OKF §5.1 bundle-relative):
   - 위키 `[[path/to/page]]` → `[page](../path/to/page.md)` body cross-link
@@ -233,7 +233,7 @@ class OkfMapping:
     """Mapping decision log (per OKF spec §4.1)."""
 
     frontmatter_lines: tuple[str, ...]
-    body_suffix: tuple[str, ...]  # extra body section(s) appended (e.g. ## Citations, ## See Also)
+    body_suffix: tuple[str, ...]  # extra body section(s) appended (e.g. # Citations, ## See Also)
 
 
 def _date_to_iso8601(date_str: str | None) -> str | None:
@@ -473,11 +473,17 @@ def map_frontmatter_to_okf(
             lines.append(f"{key}: {value}")
     lines.append("---")
 
-    # body suffix: ## Citations for in-repo last_ingested_from (per SPEC.md §8)
+    # body suffix: `# Citations` for in-repo last_ingested_from (per SPEC.md §8).
+    #
+    # 2026-08-18 실측 (TASK-2026-08-18-main-006): 우리는 `##` (h2) 로 내고 있었다.
+    # SPEC 이 정한 것은 **h1 `# Citations`** 이고, v0.2 는 이 절을 `sources`
+    # frontmatter 로 대체하면서 "consumers ... MAY still parse a legacy
+    # `# Citations` body list for v0.1 documents" 라고 적었다 — 즉 h2 로 내면
+    # v0.1 에서도 비표준이고, v0.2 소비자의 **legacy fallback 경로에서도 안 걸린다**.
     body_suffix: list[str] = []
     if frontmatter.last_ingested_from and not resource:
         body_suffix.append("")
-        body_suffix.append("## Citations")
+        body_suffix.append("# Citations")
         body_suffix.append("")
         citation = frontmatter.last_ingested_from.strip()
         if citation.split() == [citation]:

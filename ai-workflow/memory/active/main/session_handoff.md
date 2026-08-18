@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **48차 세션 (이어서) — main-019 close: 환경 pre-flight. 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (전량 2축 263/263 green).** 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 "실행 파일 전제 충족" 이지 "설치 성공" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 "채널은 있는데 전제만 낡은" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.
+- 현재 기준선: **48차 세션 종료 — 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (task 5건 close, push 5회, 전량 2축 매번 green, 검사 262→263).** 상세는 [48차 세션 기록](./sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md). 직전 항목은 **main-019**(환경 pre-flight): 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 "실행 파일 전제 충족" 이지 "설치 성공" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 "채널은 있는데 전제만 낡은" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.
 - 직전 기준선: **48차 세션 (이어서) — main-006 close: OKF 상호운용을 자기 선언이 아니라 실측으로 (전량 2축 green).** 소유자가 조사를 지시한 [langchain-ai/openwiki](https://github.com/langchain-ai/openwiki) 가 **우리와 같은 OKF v0.1** 을 쓴다는 데서 출발했다 (저장소에 언급 0건 — 서로 모르는 채 같은 포맷에 도착). 우리 wiki 71장을 번들로 뽑아 SPEC 원문 + openwiki 가 커밋해 둔 `openwiki/` 번들과 대조. **① SPEC 이 v0.2 로 움직였다** — ADR-006 은 2026-06-16 에 v0.1 을 고정했다. 변경 3건(`timestamp`→`generated.at` · `# Citations`→`sources` · **`status` 가 정규 필드로 승격**). 앞의 둘은 legacy fallback 이 열려 있다. **② `status` 만 실질 위험** — 우리 값은 `active` 42·`accepted` 25·`draft` 2·`proposed` 1 인데 v0.2 어휘는 `draft|stable|deprecated` 다. SPEC 의 관용 보장은 *unknown key* 에만 걸리므로 정규 필드가 된 `status` 에는 안 걸린다 — v0.2 소비자가 `stable` 필터를 걸면 69장이 빠진다. **③ 다른 생산자와는 실제로 읽힌다** — 둘 다 `okf_version: "0.1"` 선언, `index.md` 예약, **둘 다 `log.md` 미발행**, `type/title/description/tags`, 상대 링크. **④ 그런데 `type` 으로 라우팅은 원리적으로 불가능** — SPEC 이 `type` 을 registry 없는 자유 문자열로 정의해서, 우리 닫힌 enum 과 openwiki 의 자유 산문(`Architecture overview`)이 **둘 다 적합**하다. 어느 쪽 결함도 아니다. **고친 것 2건**: Citations 헤딩 h2→**h1**(SPEC §8, v0.2 의 legacy fallback 도 h1 을 본다 — h2 면 양쪽에서 안 걸린다) · wiki score 대시보드가 **frontmatter 없이 생성**돼 export 가 71장 중 1장을 조용히 빠뜨리던 것(lint 는 위치·index 만 봐서 아무도 몰랐다; 생성물이라 템플릿에서 emit). `check_okf_export` 18→20 cases(h1 고정 + **자기 적용**), 되주입 2종 red. **v0.2 이행은 ADR 이 필요해 남겼다** — 최소안은 `status` 어휘 매핑.
 - 그 이전 기준선: **48차 세션 (이어서) — main-005 close: 드리프트 감지를 마커에서 페이로드 해시로 (배포 축 gap 3 해소, 전량 2축 263/263 green).** 47차에 관측만 해 둔 상태 — 버전은 같은데 내용만 낡은 설치본 — 을 이제 `wk doctor` 가 **본다**. `content_drift` 절 신설. **전제가 먼저 막혔다**: 정본 렌더러 `render_agent_plugin()` 이 설치본에서 통째로 죽어 있었다(`_project_table()` 이 체크아웃 경로만 봤다) — 소비자 호스트에서 대조가 성립하려면 그것부터 살아야 해서 설치 metadata fallback 을 넣었다(main-003 과 같은 결함 계열). 지키는 것 넷: ①**정본은 생성기와 같은 함수** — 기준을 따로 두면 기준이 드리프트한다 ②**기대치는 채널별 파생**(`include_prefixes`) — codex 는 매니페스트·MCP·skills 만 담아서 payload 20개를 기대하면 정상 설치가 *없음 10건* 으로 보고됐다(실측) ③**사본 거주지도 registry**, 사본 없는 채널(pi-dev)·미실측(gemini-cli)은 `not_applicable` 로 밝힌다 ④**report-only 유지**. `check_deploy_doctor` 9→13 cases, 되주입(내용 비교 제거)으로 핵심 case red 실증. 이 호스트 실측: claude-code 12개·codex 10개 **in-sync**. 컨셉 §7 gap 3 → ✅, INSTALLATION §7.0.2 꼬리를 '한계' 에서 '복구 열' 로. **배포 축 잔여는 [main-019] 환경 pre-flight 하나다.**
 - 그 이전 기준선: **48차 세션 (이어서) — main-003 close: 패키지가 체크아웃 레이아웃에 기대던 결함 (전량 2축 263/263 green, 검사 262→263).** 소유자 지적에서 출발했다 — "배포되는 경로는 다를 수 있다". 맞았다. **개발 호스트의 `wk` 가 editable 설치**라 `parents[3]` 가 우연히 맞아, 비-editable wheel 에서만 `REPO_ROOT` 가 `<venv>/lib/python3.x` 로 잡히는 것이 **로컬에서 영원히 green** 이었다 (SDK 매트릭스·브랜치 매트릭스와 같은 계열의 사각지대). 실측 red 3건: `wk wiki-emit`(없는 `workflow-source/tools/*.py` 실행 — **배포본이 아니라 이 저장소에서** 죽어 있었다) · `wk rotate-workflow-logs`(기본 handoff 가 venv 내부, 브랜치도 `main` 하드코딩) · `wk install-pre-push-hook`(git root 를 모듈 위치에서 물어 소비자 저장소에서 `not a git repository` + hook 원본이 wheel 미포함). 정공법 3가지 — ①**자기 모듈은 `-m` 으로** (규칙을 `common/child_process.py` 한 곳에; seed 는 subprocess 를 없애고 `refresh_workflow_state_cache` 직접 호출) ②**런타임 자산은 패키지 안으로** (`workflow_kit/assets/` + package-data 선언) ③**workspace 는 cwd 에서** (`discover_project_profile_path` + `workflow_branch_dir`, git root 는 `Path.cwd()`). `check_deployed_layout` 신설 4 cases + `check_pre_push_hook` case 8 신설 — **1~7 은 `_git_root` 를 monkeypatch 해서 '어느 저장소를 고르는가' 를 한 번도 재지 않았다**. 되주입 3종 red(첫 주입은 import 조차 안 되는 무효 주입이었고 원 결함 형태로 다시 넣어 확정). **배포본 e2e**: 새 wheel → 빈 venv → 가짜 소비자 프로젝트에서 6개 명령 정상 + 자산 13개 적재 확인.
@@ -58,31 +58,52 @@
 
 ## 5. 다음 세션 시작 포인트
 
-### ▶ 지금 할 일 — [main-018] 드리프트 감지 (47차에서 근거가 확정됨)
+### ▶ 지금 할 일 — 소유자 판단 대기 (배포 축이 끝났다)
 
-**마커가 같고 내용만 낡은 상태를 이 세션에 실제로 관측했고, 채널이 스스로 고치지
-못한다는 것까지 확인됐다.** 그래서 비교 대상은 마커가 아니라 **페이로드 해시**여야
-한다. 자리는 이미 표시돼 있다 — `wk doctor` 출력의 `drift.limitation`.
+**배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다** (48차). 이 축에 실행형 잔여가
+없으므로 **다음 축은 소유자가 고른다.** 상세는
+[48차 세션 기록](./sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md).
 
-- 관측 1: Codex 설치본이 정본과 내용만 달랐다 (버전 양쪽 다 `1.2.0`).
-- 관측 2: claude-code 설치 캐시가 `main-002` 가 고친 잘린 줄을 그대로 들고 있었고
-  `plugin update` 가 **버전 문자열만 보고 거절**했다. `uninstall`→`install` 로만 고쳐졌다.
-- 채널별 복구 절차는 `docs/INSTALLATION_AND_USAGE.md` §7.0.2 에 있다 (47차 실측).
+후보 셋 (준비 상태 순):
 
-이어서 [main-019] 환경 pre-flight. 상세는
-[47차 세션 기록](./sessions/plugin_install_and_deployment_probe_2026-08-18.md).
+1. **[main-004] wiki 3-step 하위 두 단계** — 근거가 가장 확실하다. 1단계는
+   `KeyError: 'memory'`(state.json 스키마 드리프트), 2단계는 `ValueError`(레이아웃
+   드리프트), **3단계는 `rc=0` 인 채 `last_touched` 를 뒷걸음치게 한다** — 셋 중
+   가장 위험하다. 얼마나 오래 죽어 있었는지 모르므로 `ai-workflow/wiki/` 산출물이
+   그동안 손으로 갱신됐는지 확인이 선행.
+2. **OKF v0.2 이행 ADR** — ADR-006 이 v0.1 을 명시 고정했으므로 새 ADR 없이 바꾸지
+   않는다. 지금 당장의 상호운용 손실은 **없다**(openwiki 도 v0.1). 위험은 v0.2
+   소비자가 등장할 때. 최소안은 `status` 어휘 매핑
+   (`active`/`accepted`→`stable`, `proposed`→`draft`), 우리 어휘는 확장 키로 보존.
+3. **[main-009] 라벨 영어 전환** — release 경계 대기. `TASK_FIELD_LABELS` 한 줄만
+   남았고 case 10 이 안전을 선실증했다.
 
-### 47차가 남긴 규칙 (재발 방지)
+관찰 축: cross-host federation(MacBook, 시점 추후) · mypy flake · memory_index 3-tuple.
+
+### 48차가 남긴 규칙 (재발 방지)
+
+- **검사는 "있는가" 가 아니라 "몇 개인가 / 어느 것인가" 를 재야 할 때가 있다.**
+  포인터는 개수, git root 는 어느 저장소, Citations 는 헤딩 레벨 — 셋 다 존재만
+  확인하는 단언이 결함을 통과시켰다 (한 세션에 세 번).
+- **mock 은 정작 깨진 자리를 가린다.** `_git_root` 를 monkeypatch 한 7 cases 가
+  그랬다. 한 case 라도 mock 없이 실제 해석을 재는 것을 둔다.
+- **판정을 좁히지 않으면 검사가 현상 유지를 박제한다.** 넓게 짜서 60건이 걸리면
+  예외 목록이 곧 검사가 된다.
+- **진단 실행이 저장소를 바꿀 수 있다.** `wk wiki-emit` 진단 한 번에 L2 stub 4개가
+  퇴행했고 `rc=0` 이었다. HEAD 클린 워크트리와 대조해 원복했다.
+- **editable 설치는 배포 결함을 영원히 숨긴다.** SDK 매트릭스·브랜치 매트릭스에
+  이어 **세 번째 사각지대**다. 배포 표면을 건드렸으면 비-editable wheel 로 한 번 잰다.
+
+### 47차가 남긴 규칙 (유효)
 
 - **`git stash` 는 워킹 트리 복원 수단이 아니다** — untracked 를 안 건드린다.
-  이 세션에서 그것 때문에 "이전부터 red 였다" 고 **오판**했다. 로컬/CI 차이를
-  볼 때는 **HEAD 클린 워크트리**로 잰다.
-- **되주입은 fixture 가 실제로 판별하는지까지 확인한다** — `grok-buildX` 가
-  `grok-build` 를 부분 문자열로 포함해 되주입이 통과한 일이 있었다.
-- **검사를 하나 늘리면 개수 표기 3곳이 같이 움직인다** — INSTALLATION ·
-  release note · smoke trend. 게이트가 잡아 주지만 미리 맞추면 한 바퀴를 아낀다.
-- **게이트에 비켜 둘 로컬 파일은 이제 없다** (`AGENTS.md` 추적 전환 + main-003
-  수리). 다시 park 가 필요해지면 그건 새 결함이다.
+  로컬/CI 차이를 볼 때는 **HEAD 클린 워크트리**로 잰다.
+- **되주입은 fixture 가 실제로 판별하는지까지 확인한다.** 48차에도 한 번 밟았다 —
+  `REPO_ROOT` 정의까지 지운 주입은 import 조차 안 돼 무효였고, 원 결함 형태로 다시
+  넣어 확정했다.
+- **검사를 하나 늘리면 개수 표기 3곳이 같이 움직인다** — INSTALLATION · release
+  note · smoke trend. 게이트가 잡아 주지만 미리 맞추면 한 바퀴를 아낀다.
+- **게이트에 비켜 둘 로컬 파일은 없다.** 다시 park 가 필요해지면 그건 새 결함이다.
 
 ### 다음에 할 일 — 전량 검사 시간 (소유자 승인 2026-08-14)
 

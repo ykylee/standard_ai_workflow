@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**48차 세션 (이어서) — main-019 close: 환경 pre-flight. 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (전량 2축 263/263 green).** 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 \"실행 파일 전제 충족\" 이지 \"설치 성공\" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 \"채널은 있는데 전제만 낡은\" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.",
+    "current_baseline": "**48차 세션 종료 — 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (task 5건 close, push 5회, 전량 2축 매번 green, 검사 262→263).** 상세는 [48차 세션 기록](./sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md). 직전 항목은 **main-019**(환경 pre-flight): 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 \"실행 파일 전제 충족\" 이지 \"설치 성공\" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 \"채널은 있는데 전제만 낡은\" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · [main-004] wiki 3-step 하위 두 단계(2/3 이 죽어 있고 3단계는 rc=0 인 채 퇴행시킨다) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
     "in_progress_items": [
@@ -73,6 +73,7 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
+    "ai-workflow/memory/active/main/sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md",
     "ai-workflow/memory/active/main/baselines.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",
@@ -80,7 +81,6 @@
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
-    "ai-workflow/memory/active/main/sessions/plugin_install_and_deployment_probe_2026-08-18.md",
     "docs/RELEASE.md",
     "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
     "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",

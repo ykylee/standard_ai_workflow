@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-18
 
+- **47차 세션 (이어서) — main-001 close: backlog-update 날짜 롤오버 이월 결함 수리 (전량 2축 262/262 green).** 막고 있던 것은 **판정 한 줄**이었다 — 병합(`update_merge` 는 `matched_task` 가 아니라 `task_ssot_path.exists()` 를 본다)과 index append(`_upsert_index_block` 은 항목이 없으면 이미 덧붙인다)는 원래부터 맞게 동작했고, 그 앞의 `cannot_determine` 이 전부를 막았다. 이제 update 가 오늘 index 에 없는 task 를 만나면 **task SSOT 존재 여부로 갈린다**: 있으면 `carry_over_entry` (오늘 index 에 이월 + 갱신 반영, 본문·상태 보존), 없으면 `cannot_determine`. 그리고 **`cannot_determine` 의 최상위 `status` 를 `ok` → `warning`** 으로 — 조용한 미반영의 뿌리는 판정이 아니라 이 보고였다. `check_backlog_carry_over` 5 cases 신설(이월·본문 보존·상태 보존·SSOT 부재 시 non-ok·같은 날 재갱신은 여전히 `update_entry`), 되주입에서 4건 red 실증. **수리된 도구가 자기 자신의 close 를 `carry_over_entry` 로 처리했다.**
+
+## 롤오프 2026-08-18
+
 - **47차 세션 (이어서) — main-016 `wk doctor` 완료, 배포 축 1순위 gap 해소 (전량 2축 261/261 green).** `workflow_kit/deploy_doctor.py` 신설 — `probe(project_root, home)` → environment/project_scope/global_scope/drift 4절. **둘 다 주입 인자**라 fixture 로 검증되고 실 홈을 읽지 않는다. `wk doctor` 등록(`cli_commands_doctor.py`), 산출물 목록은 `HARNESS_SPECS` 파생 · 글로벌 선언 거주지 6곳은 `GLOBAL_DECLARATION_HOMES` 가 정본. **설계 교정 2건이 실측에서 나왔다**: ①**존재는 적용이 아니다** — 마커 없는 `AGENTS.md` 하나가 codex/grok-build/minimax-code/opencode/pi-dev **5개를 적용됨으로** 만드는 과보고를 첫 실행에서 잡아, kit 소유 표식(마커, §3) 기준 `applied` / 존재 기준 `candidate` 로 분리 ②`ai-workflow/VERSION` 부재 시 **돌고 있는 패키지 버전으로 폴백** — 없으면 드리프트 절이 통째로 죽는다(이 저장소가 정확히 그 상태였다). `check_deploy_doctor` 9 cases, 되주입 3종(report-only 파기·마커 무시·`--strict` 무시)으로 red 실증. **탐침이 즉시 실제 드리프트를 지목했다** — 이 저장소 자신의 claude-code 산출물이 `v1.0.0-beta`(kit 1.2.0). 문서 3곳(INSTALLATION §7.0.1 신설 · 컨셉 §2·§7 · CODE_INDEX). 개수 표기 3곳(INSTALLATION·release note·smoke trend)은 첫 게이트가 red 로 잡아 261 로 갱신.
 
 ## 롤오프 2026-08-18

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""handoff §1 기준선 롤오프의 계약을 고정한다 (11 cases).
+"""handoff §1 기준선 롤오프의 계약을 고정한다 (14 cases).
 
 ## 계보
 
@@ -14,7 +14,15 @@
 검사의 중심은 "줄었는가" 가 아니라 **"옮겨졌는가"** 다 (case 3·4). 자르는 구현으로
 회귀하면 이력이 조용히 사라지고, 줄 수만 보는 검사는 그걸 통과시킨다.
 
-10 cases:
+## 포인터 줄이 왜 별도 계약인가 (2026-08-18)
+
+case 4 는 포인터가 **있는가**만 봤다. 그래서 실행마다 하나씩 덧붙이는 구현이 11 cases
+전부를 통과했고, 47차 세션에서 6회 실행하자 §1 의 포인터가 7줄 → 13줄이 됐다. 있는가는
+없어지는 회귀만 잡고, **쌓이는 회귀는 개수를 세야** 잡힌다 (case 12·13). 건수 역시
+"이번에 옮긴 수" 로 두면 두 번째 실행부터 조용히 틀리므로 `baselines.md` 를 정본으로
+대조한다 (case 14).
+
+14 cases:
   1) 상한 이하면 no-op (멱등)
   2) 상한 초과면 handoff 에 정확히 cap 줄만 남는다
   3) **옮긴 줄이 하나도 유실되지 않는다** (본문 대조)
@@ -27,6 +35,9 @@
      `current_baseline` 을 읽는다
  10) 자기 적용 — 현재 브랜치 handoff 가 상한 이하다
  11) **들여쓴 하위 줄까지 통째로** 옮긴다 (첫 줄만 옮기면 고아가 남는다)
+ 12) **연속 실행해도 포인터 줄은 1개다** (덧붙이지 않고 갱신한다)
+ 13) **이미 쌓인 포인터를 하나로 접는다** — 상한 이하라 옮길 게 없어도 (치유)
+ 14) 포인터의 이관 건수가 `baselines.md` 의 실제 항목 수와 같다 (누적)
 """
 
 from __future__ import annotations
@@ -48,7 +59,9 @@ from workflow_kit.common.project_docs import (  # noqa: E402
     parse_handoff,
 )
 from workflow_kit.tools.rollover_handoff_baselines import (  # noqa: E402
+    _POINTER_PREFIX,
     apply_rollover,
+    count_archived,
     plan,
     run,
 )
@@ -217,6 +230,83 @@ def case_11_multiline_blocks_move_whole(root: Path) -> None:
         assert f"하위 불릿 {i}-a" in left, f"남겨야 할 하위 줄이 사라졌다: {i}"
 
 
+def _pointers(text: str) -> list[str]:
+    return [ln for ln in text.split("\n") if ln.startswith(_POINTER_PREFIX)]
+
+
+def _push_new_baselines(path: Path, n: int) -> None:
+    """§1 앞에 새 기준선 n 줄을 밀어 넣는다 (다음 세션이 하는 일)."""
+    text = path.read_text(encoding="utf-8")
+    fresh = "".join(f"- 현재 기준선: 새 세션 {i} 의 기준선 산문.\n" for i in range(n))
+    path.write_text(
+        text.replace("## 1. 현재 작업 요약\n\n", "## 1. 현재 작업 요약\n\n" + fresh, 1),
+        encoding="utf-8",
+    )
+
+
+def case_12_pointer_does_not_stack(root: Path) -> None:
+    """**핵심 case.** 실행마다 포인터를 덧붙이는 구현으로 회귀하면 여기서 걸린다.
+
+    2026-08-18 실측: case 4 가 "포인터가 있는가" 만 봤기 때문에, 매번 새로 덧붙이는
+    구현이 11 cases 를 전부 통과했다. 47차 세션에서 6회 실행하자 §1 의 포인터가
+    7줄 → 13줄이 됐고 handoff 는 매 세션 시작에 그대로 읽혔다.
+    """
+    p = _write_handoff(root, BASELINE_ITEMS_CAP + 3)
+    for round_no in range(3):
+        run(p, cap=BASELINE_ITEMS_CAP, apply=True, today="2026-08-18")
+        got = _pointers(p.read_text(encoding="utf-8"))
+        assert len(got) == 1, f"{round_no + 1}회 실행 후 포인터가 {len(got)}줄: {got}"
+        _push_new_baselines(p, 2)
+
+
+def case_13_stacked_pointers_are_collapsed(root: Path) -> None:
+    """이미 쌓인 상태를 만나면 접는다 — **옮길 게 없어도**.
+
+    상한 이하일 때 no-op 로 빠지면 이미 쌓인 포인터가 영원히 안 고쳐진다. 결함을
+    만든 실행이 끝난 뒤에 도구가 고쳐지는 것이 정상 순서이므로, 치유는 이관과
+    독립이어야 한다.
+    """
+    p = _write_handoff(root, BASELINE_ITEMS_CAP)
+    stacked = "".join(
+        f"{_POINTER_PREFIX} [`{BASELINES_FILENAME}`](./{BASELINES_FILENAME}) 에 있다 "
+        f"(이관 {n}건, 최신이 위).\n" for n in (7, 9, 11)
+    )
+    text = p.read_text(encoding="utf-8")
+    p.write_text(text.replace("\n- 현재 주 작업 축:", "\n" + stacked + "- 현재 주 작업 축:", 1),
+                 encoding="utf-8")
+    assert len(_pointers(p.read_text(encoding="utf-8"))) == 3, "fixture 가 쌓인 상태가 아니다"
+
+    res = run(p, cap=BASELINE_ITEMS_CAP, apply=True, today="2026-08-18")
+    assert res["applied"], f"쌓인 포인터를 두고 no-op 로 빠졌다: {res['message']}"
+    after = p.read_text(encoding="utf-8")
+    assert len(_pointers(after)) == 1, f"접히지 않았다: {_pointers(after)}"
+    left = plan(after, cap=BASELINE_ITEMS_CAP)
+    assert left["total"] == BASELINE_ITEMS_CAP, f"기준선이 함께 사라졌다: {left['total']}줄"
+
+
+def case_14_pointer_count_matches_archive(root: Path) -> None:
+    """포인터의 건수는 **`baselines.md` 의 실제 항목 수**다 — 이번 이관분이 아니라 누적.
+
+    2026-08-18 실측: 이번 실행분만 쓰던 구현에서 handoff 는 '이관 3건' 을 말하는데
+    파일에는 45건이 있었다.
+    """
+    import re
+
+    p = _write_handoff(root, BASELINE_ITEMS_CAP + 3)
+    run(p, cap=BASELINE_ITEMS_CAP, apply=True, today="2026-08-18")
+    _push_new_baselines(p, 2)
+    run(p, cap=BASELINE_ITEMS_CAP, apply=True, today="2026-08-19")
+
+    pointer = _pointers(p.read_text(encoding="utf-8"))[0]
+    m = re.search(r"이관 (\d+)건", pointer)
+    assert m, f"포인터에서 건수를 못 읽는다: {pointer!r}"
+    archived = count_archived((root / BASELINES_FILENAME).read_text(encoding="utf-8"))
+    assert archived == 5, f"이관된 항목이 5건이어야 하는데 {archived}건"
+    assert int(m.group(1)) == archived, (
+        f"포인터는 {m.group(1)}건이라는데 {BASELINES_FILENAME} 에는 {archived}건 있다"
+    )
+
+
 def case_10_self_application() -> None:
     """자기 적용 — **현재 브랜치 네임스페이스의** handoff 가 상한 이하인가.
 
@@ -263,13 +353,15 @@ def main() -> int:
                case_3_moved_lines_are_not_lost, case_4_pointer_remains,
                case_5_labels_are_rewritten, case_6_second_run_does_not_stack_headers,
                case_7_plan_only_without_apply, case_8_cap_zero_rejected,
-               case_9_generator_input_unchanged, case_11_multiline_blocks_move_whole):
+               case_9_generator_input_unchanged, case_11_multiline_blocks_move_whole,
+               case_12_pointer_does_not_stack, case_13_stacked_pointers_are_collapsed,
+               case_14_pointer_count_matches_archive):
         _run(fn)
     _run(case_10_self_application, needs_root=False)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n11/11 PASS")
+    print("\n14/14 PASS")
     return 0
 
 

@@ -29,8 +29,9 @@
   "session": {
     "current_baseline": "**51차 세션 (이어서) — main-006 close: `release-status` 의 `next_version` 이 커밋을 읽지 않았다.** 릴리스 경계를 판단하려다 도구 결함을 먼저 만났다. `_suggest_next_version` 이 **현재 버전 문자열 하나만** 받아 `patch+1` 을 내놓았는데, 그 값이 같은 summary 줄에서 **`unreleased=101` 옆에 찍힌다** — 개수는 세면서 판정은 안 세니 파생값처럼 보이는 상수였다 (feat 17 · fix 24 · **breaking 1** 인 사이클에 `1.2.1` 을 권했다). 이제 미발행 커밋 유형에서 파생한다: breaking → major · feat → minor · 그 외 → patch · 근거 없으면 patch 이되 `basis.total=0` 으로 **모름을 밝힌다**. 교정 결과 `next=2.0.0` + basis(breaking 제목 포함). **숫자만 내밀지 않는 것이 설계의 핵심**이다 — 이 저장소는 v0.8.0 에 API 를 얼렸으므로 major 승격은 사람 결정이고, 도구는 판정과 **근거**를 같이 낸다(`requires_decision`). 부수: `check_release_status_auto_bump_v0_11_16` 의 기대값 `0.11.17` 이 patch 휴리스틱을 인코딩하고 있어 저장소 이력에 결합돼 있었다 — `_unreleased_commits` 를 mock 해 그 case 가 **재려던 것**만 남겼다. 되주입 3종 red 실증, 검사 264 유지.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+    "current_focus": "TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화",
     "in_progress_items": [
+      "TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화",
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
       "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
@@ -52,10 +53,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
-      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
+      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+      "TASK-2026-08-20-main-007 — v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화"
     ],
     "blocked_items": [],
     "done_items": [

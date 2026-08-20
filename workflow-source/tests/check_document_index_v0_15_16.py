@@ -25,8 +25,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DOCS_DIR = REPO_ROOT / "docs"
 DOCUMENT_INDEX_PATH = DOCS_DIR / "DOCUMENT_INDEX.md"
 
-# v0.15.15 release day (cross-check stamp)
-EXPECTED_LAST_UPDATED = "2026-08-13"
+# release day (cross-check stamp) — 릴리스마다 문서와 **함께** 올린다.
+# v1.3.0: 2026-08-13 → 2026-08-20.
+EXPECTED_LAST_UPDATED = "2026-08-20"
 EXPECTED_VERSION_STAMP = "v1.0.0"
 
 REQUIRED_SECTIONS = [

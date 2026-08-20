@@ -9,7 +9,7 @@ last_touched: 2026-08-20
 
 # Active State (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/state.json` (437 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/state.json` (439 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
 > 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
@@ -18,12 +18,13 @@ last_touched: 2026-08-20
 | 필드 | 값 |
 |---|---|
 | `purpose_digest` | 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공 |
-| `session.current_focus` | TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정 |
-| `backlog.task_count` | 8 |
+| `session.current_focus` | TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화 |
+| `backlog.task_count` | 9 |
 | `source_of_truth.latest_backlog_path` | ai-workflow/memory/active/main/backlog/2026-08-20.md |
 
 ## 진행 중
 
+- TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)
 

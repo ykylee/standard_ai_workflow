@@ -41,6 +41,10 @@ from workflow_kit.deploy_doctor import (  # noqa: E402
 from workflow_kit.plugin_distribution import PLUGIN_HARNESS_SPECS, _included  # noqa: E402
 from workflow_kit.plugin_payload import render_agent_plugin  # noqa: E402
 
+#: fixture 가 흉내 내는 "설치된 버전". 정본 버전과 같아야 이 파일들이 재려는
+#: 상황(버전 동일 · 내용만 낡음)이 성립한다.
+from workflow_kit import __version__ as INSTALLED_VERSION  # noqa: E402
+
 FAILURES: list[str] = []
 
 
@@ -314,7 +318,11 @@ def _seed_cache(home: Path, harness: str) -> Path:
     # glob 의 `*` 를 실제 이름으로 채운다 — 레지스트리의 모양을 그대로 쓴다.
     parts = [p.replace("*standard-ai-workflow*", "standard-ai-workflow").replace("*", "standard-ai-workflow")
              for p in entry.glob.split("/")]
-    root = home.joinpath(*parts[:-1], "1.2.0") if parts[-1] == "standard-ai-workflow" else home.joinpath(*parts)
+    # 버전 디렉터리 이름은 **현재 패키지 버전**에서 온다. 리터럴을 박으면 릴리스마다
+    # 이 fixture 가 red 가 되고, 그때 고치는 것은 계약이 아니라 그 시점 상수다.
+    # 이 case 의 전제는 "설치 버전 == 정본 버전, 내용만 낡음" 이므로 같은 출처를 쓴다.
+    root = (home.joinpath(*parts[:-1], INSTALLED_VERSION)
+            if parts[-1] == "standard-ai-workflow" else home.joinpath(*parts))
     spec = PLUGIN_HARNESS_SPECS.get(harness)
     for rel, body in render_agent_plugin().items():
         if spec is not None and not _included(rel, spec):
@@ -360,7 +368,7 @@ def test_content_drift_catches_same_version_stale_payload() -> None:
             cache["in_sync"] is False
             and content["out_of_sync"] == ["codex"]
             and str(victim.relative_to(root)) in paths
-            and cache["installed_version"] == "1.2.0"
+            and cache["installed_version"] == INSTALLED_VERSION
             and any("codex" in f for f in content["findings"])
         )
         _record(

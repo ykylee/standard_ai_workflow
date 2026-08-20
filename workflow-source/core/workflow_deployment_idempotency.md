@@ -4,7 +4,7 @@
 - 범위: 배포 함수 정의, 변수 5축, 3계약+1탐침 골격, 파일 소유권 3분류, 멀티 하네스 공존 규칙, 설치 스코프(글로벌/프로젝트) 규칙, 현재 구현 매핑과 gap
 - 대상 독자: 저장소 관리자, 하네스 통합 담당자, AI workflow 설계자
 - 상태: draft (2026-08-14 소유자 방향 승인 — 45차 세션)
-- 최종 수정일: 2026-08-18
+- 최종 수정일: 2026-08-20
 - 관련 문서: `./workflow_harness_distribution.md` (§2.1 채널×하네스 매트릭스), `./workflow_configuration_layers.md` (3계층·우선순위), `./workflow_global_injection_policy.md` (비침투 주입), `../workflow_kit/upgrade_diff.py` (적용 계약 구현), `../../docs/INSTALLATION_AND_USAGE.md` §7.0 (채널별 설치 명령), `../../docs/RELEASE.md` (패키지 채널 정책)
 
 ## 0. 배포는 함수다

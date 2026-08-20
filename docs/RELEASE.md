@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.2.0-beta 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.2.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-08-14
+- 최종 수정일: 2026-08-20
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -84,6 +84,39 @@ release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 
   (실사용 PyPI 의 이름 예약과는 무관 — 별개 인덱스다.)
 - **만료**: 위 1회가 끝나면 이 각주의 효력도 끝난다. 그 다음 판단은 검토 문서
   §6 의 4번(발행 여부 소유자 결정)이다. → **그 판단은 2026-08-14 에 나왔다: 발행 안 함 (각주 0).**
+
+## 1.5 버전 등급 판단 — `!` 는 무엇에 대한 breaking 인가
+
+> **이 절이 등급 판단의 정본이다** (v1.3.0, TASK-2026-08-20-main-007).
+> `wk release-status` 는 미발행 커밋에서 등급을 **파생**하고 breaking 이 있으면
+> `requires_decision` 을 세워 사람에게 넘긴다. 도구는 근거를 모으고 **판단은
+> 여기 적힌 기준으로** 한다 — 기준이 없으면 같은 모양의 커밋에서 매번 다시 헤맨다.
+
+conventional commit 의 `!` 는 "무언가 깨진다" 는 표시일 뿐, **무엇이** 깨지는지는
+말하지 않는다. 우리가 SemVer 로 보장하는 것은 **이 패키지의 공개 API** 다
+(v0.8.0 stable freeze, v2.0.0 까지 2년 보장 — §4 회귀표). 그래서 등급은 다음을
+본다:
+
+| 질문 | major | minor/patch |
+|---|---|---|
+| 공개 Python API 시그니처가 바뀌었나 | 예 | 아니오 |
+| 진입점(console script / `wk` 명령)이 **사라졌나** | 예 | 남아 있고 rc=0 이면 아니오 |
+| 우리 산출물을 읽던 소비자가 **못 읽게 되나** | 예 | legacy 형태가 남아 읽히면 아니오 |
+| 외부 spec 의 버전이 올랐나 | — | **그것만으로는 major 가 아니다** |
+
+**적용 사례 — v1.3.0 의 `feat(okf)!` (ADR-026, OKF v0.1 → v0.2).**
+`!` 를 달았지만 major 로 올리지 않았다. 근거 넷:
+
+1. 공개 Python API 시그니처 변경 **0**.
+2. 은퇴한 진입점 2종(`emit_wiki_l2_body`, `refresh_wiki_memory --refresh-raw`)은
+   **남아 있고 rc=0** 이다 — 옛 인자도 계속 받고, 왜 아무것도 안 했는지 말한다.
+   호출자가 죽지 않는다.
+3. 우리 번들이 legacy 형태(`timestamp`, 본문 `# Citations`)를 **유지**하므로
+   v0.1 소비자도 그대로 읽는다. 소비자가 잃는 것이 없다.
+4. OKF SPEC §13 자신이 v0.2 를 *"a minor version bump"* 로 규정한다.
+
+즉 그 `!` 가 가리킨 것은 **외부 spec 버전**이지 우리 API 가 아니었다. 반대로
+진입점을 **정말 지우거나** 산출물을 v0.1 소비자가 못 읽게 바꾸는 날에는 major 다.
 
 ## 2. 절차 (한 사람이 직접 실행)
 

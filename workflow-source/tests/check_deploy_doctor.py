@@ -206,6 +206,49 @@ def test_stale_marker_is_reported() -> None:
     _record("test_stale_marker_is_reported", not problems, "; ".join(problems))
 
 
+def test_forked_entry_is_not_advised_to_reapply() -> None:
+    """포크를 선언한 진입점은 **낡음이 아니라 갈라짐**이다 (§3 소유권 4분류).
+
+    되주입 실측(2026-08-20): 이 저장소의 `CLAUDE.md` 는 마커가 낡았고 탐침은
+    그것을 "재적용 대상" 으로 조언했다. 조언대로 재적용하면 측정으로 얻은
+    운영 규칙 90여 줄이 `TODO` placeholder 로 바뀐다 — **갱신이 상태를 나쁘게
+    만드는 조언은 틀린 조언이다.** 그렇다고 숨기지도 않는다: 갈라져 나온
+    버전을 같이 내야 그 버전과 diff 해 병합할 수 있다.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        project, home = _fixture(tmp, marker_version="0.0.1")
+        _write(project / "ai-workflow" / "VERSION", "1.2.0\n")
+        before = probe(project_root=project, home=home)["drift"]
+
+        entry = project / "CLAUDE.md"
+        entry.write_text(
+            "<!-- standard-ai-workflow-kit: v0.0.1 -->\n"
+            "<!-- standard-ai-workflow-kit-fork: project owns this -->\n\n# probe\n",
+            encoding="utf-8",
+        )
+        after = probe(project_root=project, home=home)["drift"]
+
+    problems: list[str] = []
+    if "CLAUDE.md" not in [record["path"] for record in before["stale_markers"]]:
+        problems.append("선언 전에는 낡음으로 잡혀야 한다 — 되주입이 성립하지 않는다")
+    if "CLAUDE.md" in [record["path"] for record in after["stale_markers"]]:
+        problems.append("포크를 선언했는데 여전히 '재적용 대상' 으로 조언한다")
+    forked_paths = [record["path"] for record in after.get("forked_files", [])]
+    if "CLAUDE.md" not in forked_paths:
+        problems.append(f"포크된 파일을 보고하지 않았다 — 조용히 사라졌다: {forked_paths}")
+    else:
+        record = next(r for r in after["forked_files"] if r["path"] == "CLAUDE.md")
+        if record.get("forked_from") != "0.0.1":
+            problems.append(
+                f"갈라져 나온 버전을 잃었다 ({record.get('forked_from')}) — "
+                "그 버전과의 diff 가 유일한 병합 경로다"
+            )
+    if not any("포크" in finding for finding in after["findings"]):
+        problems.append("findings 에 포크 상태를 안 냈다")
+    _record("test_forked_entry_is_not_advised_to_reapply", not problems, "; ".join(problems))
+
+
 # --- Case 6 ----------------------------------------------------------------
 
 
@@ -746,30 +789,37 @@ def test_install_root_fallback_is_declared() -> None:
 
 
 def main() -> int:
-    test_report_shape()
-    test_probe_writes_nothing()
-    test_home_injection_is_honored()
-    test_presence_without_marker_is_not_applied()
-    test_stale_marker_is_reported()
-    test_both_scopes_detected_and_not_removed()
-    test_strict_flag_governs_return_code()
-    test_registries_are_derived_not_copied()
-    test_dispatcher_registers_doctor()
-    test_content_drift_clean_install_is_in_sync()
-    test_content_drift_catches_same_version_stale_payload()
-    test_content_drift_expects_only_channel_files()
-    test_content_drift_writes_nothing()
-    test_content_drift_declares_surface_as_unmeasured()
-    test_preflight_separates_measured_from_declared()
-    test_preflight_blocks_channel_with_missing_executable()
-    test_preflight_writes_nothing()
-    test_runtime_load_flags_host_older_than_install()
-    test_runtime_load_clears_host_started_after_install()
-    test_runtime_load_parses_etime_not_lstart()
-    test_content_drift_reads_which_copy_is_installed()
-    test_runtime_load_does_not_duplicate_per_stale_copy()
-    test_install_root_fallback_is_declared()
-    total = 23
+    # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
+    # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
+    cases = [
+        test_report_shape,
+        test_probe_writes_nothing,
+        test_home_injection_is_honored,
+        test_presence_without_marker_is_not_applied,
+        test_stale_marker_is_reported,
+        test_forked_entry_is_not_advised_to_reapply,
+        test_both_scopes_detected_and_not_removed,
+        test_strict_flag_governs_return_code,
+        test_registries_are_derived_not_copied,
+        test_dispatcher_registers_doctor,
+        test_content_drift_clean_install_is_in_sync,
+        test_content_drift_catches_same_version_stale_payload,
+        test_content_drift_expects_only_channel_files,
+        test_content_drift_writes_nothing,
+        test_content_drift_declares_surface_as_unmeasured,
+        test_preflight_separates_measured_from_declared,
+        test_preflight_blocks_channel_with_missing_executable,
+        test_preflight_writes_nothing,
+        test_runtime_load_flags_host_older_than_install,
+        test_runtime_load_clears_host_started_after_install,
+        test_runtime_load_parses_etime_not_lstart,
+        test_content_drift_reads_which_copy_is_installed,
+        test_runtime_load_does_not_duplicate_per_stale_copy,
+        test_install_root_fallback_is_declared,
+    ]
+    for case in cases:
+        case()
+    total = len(cases)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

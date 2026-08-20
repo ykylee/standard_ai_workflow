@@ -1,72 +1,90 @@
 ---
 name: standard-ai-workflow
-description: 이 저장소의 표준 AI 워크플로우 진입점. 세션을 시작하거나 이어받을 때, 작업을 backlog 에 등록/갱신할 때, 변경 후 영향 문서를 동기화할 때, 세션을 종료하며 handoff 를 남길 때 사용한다.
+description: The standard AI workflow entry point for this repository. Use it when starting or resuming a session, registering/updating a task in the backlog, syncing affected documents after a change, or leaving a handoff at session close.
 ---
 
-<!-- standard-ai-workflow-kit: v1.0.0-beta -->
+<!-- standard-ai-workflow-kit: v1.3.0 -->
 
 # Standard AI Workflow
 
-- **역할**: 세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 한 자리에서 안내하는 진입 skill.
-- **위치**: `.claude/skills/standard-ai-workflow/SKILL.md`
-- **호출**: 모델이 위 `description` 에 해당하는 상황에서 자동 선택. 사용자가 직접 부르려면
+- **Role**: the entry skill that covers session start, backlog update, document sync, and session close in one place.
+- **Location**: `.claude/skills/standard-ai-workflow/SKILL.md`
+- **Invocation**: the model selects it automatically when the situation matches the `description` above. To invoke it directly,
   `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end` slash command.
-- 최종 수정일: 2026-08-05
+- Last updated: 2026-08-20
 
-## 1. 세션 시작 — 항상 먼저 읽는다
+## 1. Session start — always read these first
 
-1. `ai-workflow/memory/active/<branch>/state.json` — 현재 기준선
-2. `ai-workflow/memory/active/<branch>/sessions` — 이전 세션 인계
-3. `ai-workflow/memory/active/<branch>/backlog` — 작업 백로그 인덱스
-4. `docs/PROJECT_PROFILE.md` — 프로젝트 메타
-5. (있으면) `ai-workflow/memory/active/PURPOSE.md` — directional intent
+1. `ai-workflow/memory/active/<branch>/state.json` — the current baseline
+2. `ai-workflow/memory/active/<branch>/sessions` — the previous session's handoff
+3. `ai-workflow/memory/active/<branch>/backlog` — the work backlog index
+4. `docs/PROJECT_PROFILE.md` — project metadata
+5. (if present) `ai-workflow/memory/active/PURPOSE.md` — directional intent
 
-읽은 뒤 한국어로 **1줄 기준선 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동** 만 보고한다.
-중간 reasoning, 중복 요약, 자기 설명은 내지 않는다.
+After reading, report in Korean only: **a one-line baseline summary, 3–5 next-task
+candidates, and the recommended next action.** No intermediate reasoning, repeated
+summaries, or self-explanation.
 
-`state.json` 이나 `PURPOSE.md` 가 없으면 실패로 처리하지 말고 *graceful skip* 후
-scaffold 를 제안한다.
+If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
+and offer to scaffold it.
 
-## 2. 백로그 갱신
+## 2. Backlog update
 
-오늘 작업을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 와
-`./tasks/<TASK-ID>.md` 에 등록한다. 상태값은 `planned` / `in_progress` / `blocked` / `done`
-넷만 쓴다. `PURPOSE.md` §3 의 제외 영역과 겹치면 scope creep 경고를 1줄 남긴다.
+Register today's work in `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` and
+`./tasks/<TASK-ID>.md`. Use only the four status values `planned` / `in_progress` /
+`blocked` / `done`. If it overlaps an excluded area in `PURPOSE.md` §3, leave a one-line
+scope-creep warning.
 
-## 3. 문서 동기화 (advisory)
+## 3. Document sync (advisory)
 
-변경된 파일에서 영향 문서 후보를 뽑고, `ai-workflow/wiki/index.md` anchor 기준으로
-갱신 포인트를 *권고* 한다. 자동 반영하지 않는다.
+Derive affected-document candidates from the changed files and *recommend* update points
+against the `ai-workflow/wiki/index.md` anchors. Never apply them automatically.
 
-## 4. 세션 종료
+## 4. Session close
 
-다음 세션이 그대로 이어받도록 마감한다: `session_handoff.md` 갱신 · 오늘 backlog 의
-task 상태를 실제 결과와 맞춤 · `state.json` **재생성**(손으로 고치지 않는다) ·
-memory_index 승격 후보를 한 번 판단. 전부 그 작업을 설명하는 **같은 커밋**에 실린다 —
-순서는 아래 "세션 종료 순서" 참조. 직접 부르려면 `/workflow-session-end`.
+Close the session so the next one resumes directly: update `session_handoff.md`, bring
+today's backlog task statuses in line with the actual results, **regenerate** `state.json`
+(never hand-edit it), and judge memory_index promotion candidates once. All of it lands in
+the **same commit** as the work it describes — see the close order below.
 
-## 작업 원칙
+## Working Principles
 
-<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 — 이 블록은 직접 고치지 않는다. 표준 문서를 고치고 다시 생성한다. -->
+<!-- generated-from: core/global_workflow_standard.md §1 · §3 · §8 · §11 — do not edit this block directly; edit the standard document and regenerate. -->
 
-- 새 세션은 항상 현재 상태 요약 문서부터 읽는다.
-- 작업은 시작 전에 목적, 범위, 예상 산출물, 영향 문서를 짧게 브리핑한다.
-- 작업은 상태 문서에 기록하고, 진행 상태는 `planned`, `in_progress`, `blocked`, `done` 중 하나로 관리한다.
-- 검증하지 않은 결과는 완료로 확정하지 않는다.
-- 세션 종료 전에는 다음 세션이 바로 이어받을 수 있게 현재 상태를 요약한다.
-- 여러 에이전트가 함께 일할 수 있으므로, 작업 시작 전에 원격을 동기화해 다른 에이전트의 진행 상황을 확인하고 겹치지 않는 작업을 선택한다.
-- 다른 에이전트의 작업을 지우거나 덮어쓰는 등 되돌릴 수 없는 작업은 단독으로 결정하지 않고 사용자에게 확인한다.
-- 공통 표준은 얇게 유지하고, 프로젝트별 차이는 프로젝트 프로파일에 둔다.
+- Start every session by reading the current state summary documents first.
+- Before starting work, briefly state its purpose, scope, expected deliverables, and affected documents.
+- Record work in the state documents; track progress as exactly one of `planned`, `in_progress`, `blocked`, `done`.
+- Never mark an unverified result as done.
+- Before ending a session, summarize the current state so the next session can pick it up directly.
+- Multiple agents may work together: sync with the remote before starting, check what other agents are doing, and pick work that does not overlap.
+- Never decide irreversible actions alone — deleting or overwriting another agent's work requires confirmation from the user.
+- Keep the shared standard thin; put project-specific differences in the project profile.
 
-## 세션 종료 순서
+## Session Close Order
 
-세션 종료는 **memory 갱신 → commit → push** 순서로 진행한다. memory 갱신을 commit 이후 별도 turn 에 분리하지 않는다 (push 시 memory 갱신 내용이 동일 commit 에 포함되도록 협업 정합 보장).
+Close a session in the order **update memory → commit → push**. Do not split the memory update into a separate turn after the commit, so that pushed commits always carry the memory update with them (collaboration consistency).
 
-- 종료 전 갱신 대상: `state.json`, `session_handoff.md`, 최신 backlog
+- Update before closing: `state.json`, `session_handoff.md`, the latest backlog
 
-## 언어와 컨텍스트 원칙
+## Memory Update Paths
 
-- 사용자에게 보이는 보고 / 상태 요약 / 문서 문안은 한국어.
-- 코드, 명령어, 파일 경로, 설정 key, 외부 시스템 고유 명칭은 원문 그대로.
-- handoff 와 backlog 에는 다음 세션에 필요한 핵심 사실만 남긴다.
-- `ai-workflow/` 는 workflow 메타 레이어다. 프로젝트 코드/문서 탐색 범위에 기본 포함하지 않는다.
+- Restore session-start baseline: `wk session-start`
+- Register / update a task: `wk backlog-update`
+- Sync affected documents (advisory): `wk doc-sync`
+- Regenerate state.json at session close: `wk refresh-state`
+- Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
+- Propose memory_index promotion candidates at close (advisory, no write): `wk suggest-memory-entries`
+
+- When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
+- Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.
+- A backlog task's `status` is one of `planned` / `in_progress` / `blocked` / `done`.
+- `state.json` is a **generated artifact** — never hand-edit it. The SSOT is `backlog/tasks/` plus `session_handoff.md`; regenerate with `wk refresh-state` at session close.
+- Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with `wk rollover-baselines` — never delete them by hand. That prose exists nowhere else, unlike the recently-done list whose SSOT is `backlog/tasks/`.
+- `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
+
+## Language and context principles
+
+- User-facing reports, status summaries, and document text are in Korean.
+- Code, commands, file paths, configuration keys, and external product names stay verbatim.
+- Keep only the facts the next session needs in the handoff and backlog.
+- `ai-workflow/` is the workflow meta layer. Do not include it in the default project code/document search scope.

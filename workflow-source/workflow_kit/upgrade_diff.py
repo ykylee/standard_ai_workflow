@@ -18,6 +18,10 @@ This module implements the **smart update** policy (see
    be ``CREATED``, ``UPDATED``, ``IGNORED``, or ``PRESERVED``.
 4. Always treat ``PRESERVE_RELATIVE_PATHS`` (user data) as ``PRESERVED``,
    regardless of force flag.
+5. Treat a destination that declares a **project fork**
+   (``standard-ai-workflow-kit-fork:``) as ``FORKED`` — the project owns
+   that copy of a kit-owned file. Unlike ``PRESERVED``, ``force`` wins:
+   a fork means "don't overwrite it unknowingly", not "never overwrite it".
 
 The module also exposes a ``read_kit_version`` helper that reads the
 top-level ``ai-workflow/VERSION`` file when present, used to short-circuit
@@ -52,6 +56,17 @@ MARKER_REGEX = re.compile(
     r"^\s*(?P<prefix>[\S ]{0,12})"
     r"standard-ai-workflow-kit:"
     r"\s+v(?P<version>\d+\.\d+\.\d+(?:\.\d+)?(?:-[A-Za-z0-9.]+)?)"
+    r"\s*(?:-->\s*)?$"
+)
+
+#: 포크 선언 marker. 버전 marker 와 **별개 줄**로 둔다 — 버전 marker 를 건드리면
+#: "언제 갈라졌는가" 를 읽을 수 없게 되고, 그 시점이야말로 포크된 파일에서
+#: 가장 쓸모 있는 정보다 (그 버전과 diff 하면 놓친 kit 변경이 보인다).
+FORK_MARKER_ID = "standard-ai-workflow-kit-fork"
+FORK_REGEX = re.compile(
+    r"^\s*(?P<prefix>[\S ]{0,12})"
+    r"standard-ai-workflow-kit-fork:"
+    r"\s*(?P<note>.*?)"
     r"\s*(?:-->\s*)?$"
 )
 
@@ -118,6 +133,9 @@ class Action(str, Enum):
     UPDATED = "updated"
     IGNORED = "ignored"
     PRESERVED = "preserved"
+    #: 프로젝트가 **포크한 kit 소유 파일**. 소유권 4번째 분류 —
+    #: ``core/workflow_deployment_idempotency.md`` §3 (TASK-2026-08-20-main-012).
+    FORKED = "forked"
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +267,30 @@ def parse_version_marker(text: str) -> Optional[str]:
         match = MARKER_REGEX.match(line)
         if match:
             return match.group("version")
+    return None
+
+
+def parse_fork_declaration(text: str) -> Optional[str]:
+    """포크 선언을 읽는다. 선언이 있으면 그 사유 문자열, 없으면 ``None``.
+
+    **왜 선언이 필요한가** (TASK-2026-08-20-main-012). 소유권 §3 은 진입점
+    (`CLAUDE.md` 등)을 *kit 소유* 로 분류하고 새 버전이 오면 덮는다. 그런데
+    실제 프로젝트는 그 진입점에 자기 운영 규칙을 넣는다 — 이 저장소 자신이
+    실행 기본값·게이트 정책 등 **측정으로 얻은 90여 줄**을 CLAUDE.md 에
+    담고 있었고, 마커가 낡아 안 덮였을 뿐 재적용 한 번이면 사라질 상태였다.
+    같은 일이 모든 소비 프로젝트에서 난다.
+
+    추측으로 가릴 수는 없다 — "내용이 많으니 포크겠지" 는 휴리스틱이고,
+    휴리스틱은 조용히 틀린다. **파일이 스스로 말하게 한다.** 버전 marker 는
+    그대로 두어 *갈라져 나온 시점*을 남기고, 이 선언이 *갈라졌다는 사실*을
+    남긴다. 둘을 합치면 "v1.0.0-beta 에서 포크됨" 이 읽힌다.
+    """
+    fm_end = frontmatter_end(text)
+    body = text[fm_end:] if fm_end is not None else text
+    for line in body.splitlines()[:6]:
+        match = FORK_REGEX.match(line)
+        if match:
+            return match.group("note").strip() or FORK_MARKER_ID
     return None
 
 
@@ -420,6 +462,22 @@ def decide_action(
             reason="destination does not exist",
         )
 
+    # 소유권 4번째 분류: 프로젝트가 포크한 kit 소유 파일 (§3).
+    # `force` 는 이긴다 — 불가침(사용자 상태)과 다른 점이 정확히 여기다.
+    # 포크는 "덮지 마라" 가 아니라 "모르고 덮지 마라" 이므로, 명시적 요구는 통과시킨다.
+    fork_note = parse_fork_declaration(dst_text) if dst_text else None
+    if fork_note and not force:
+        return Decision(
+            action=Action.FORKED,
+            src_marker=parse_version_marker(src_text) if src_text else None,
+            dst_marker=parse_version_marker(dst_text) if dst_text else None,
+            reason=(
+                f"destination declares a project fork ({fork_note}); "
+                "re-applying would discard project-owned content. "
+                "Pass force=True to overwrite deliberately"
+            ),
+        )
+
     src_marker = parse_version_marker(src_text) if src_text else None
     dst_marker = parse_version_marker(dst_text) if dst_text else None
     src_hash = content_hash(src_text) if src_text is not None else None
@@ -519,11 +577,14 @@ __all__ = [
     "file_hash",
     "format_version_marker",
     "is_path_preserved",
+    "parse_fork_declaration",
     "parse_version_marker",
     "read_kit_version",
     "stamp_marker",
     "suffix_marker_supported",
     "COMMENT_PREFIX_BY_SUFFIX",
+    "FORK_MARKER_ID",
+    "FORK_REGEX",
     "MARKER_KIT_ID",
     "MARKER_REGEX",
     "NO_MARKER_SUFFIXES",

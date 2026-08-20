@@ -294,6 +294,53 @@ def test_repo_has_own_mcp_config() -> None:
 # --- Case 2d ---------------------------------------------------------------
 
 
+def _generated_run_default_labels() -> list[str]:
+    """생성기가 실제로 내는 실행 기본값 **라벨**을 파생한다.
+
+    이 자리는 절 제목을 리터럴(`## 프로젝트 실행 기본값`)로 들고 있었다. 그런데
+    생성기는 라벨 영어 전환 뒤 `## Project run defaults` 를 낸다 — 즉 이 검사는
+    **CLAUDE.md 를 재적용하는 순간 red** 가 되는 잠복 결함이었고, 재적용을 한
+    번도 안 해서 green 으로 남아 있었을 뿐이다. 53차 규칙 그대로다:
+    *검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다.*
+
+    제목은 표기 전환에 따라 갈리지만 **라벨은 두 표기에서 같다** (`install` /
+    `run` / …). 그래서 제목이 아니라 라벨을 계약으로 삼고, 그 라벨조차
+    생성기 원문에서 읽어 온다.
+    """
+    src_path = SOURCE_ROOT / "workflow_kit" / "bootstrap_lib" / "harnesses" / "renderers.py"
+    try:
+        lines = src_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    for index, line in enumerate(lines):
+        if not line.startswith("- **") or "**" not in line[4:]:
+            continue
+        labels: list[str] = []
+        for candidate in lines[index:]:
+            if candidate.startswith("- **") and "**" in candidate[4:]:
+                labels.append(candidate.split("**")[1])
+                continue
+            break
+        # 실행 기본값 블록은 5개 라벨이 연속으로 오고 그 첫째가 install 이다.
+        if len(labels) >= 5 and labels[0] == "install":
+            return labels
+    return []
+
+
+def _run_defaults_section(text: str, first_label: str) -> str | None:
+    """`- **<first_label>**:` 를 담은 `## ` 절의 본문. 없으면 None.
+
+    절을 **제목이 아니라 내용**으로 찾는다 — 제목의 언어가 바뀌어도 계약은
+    같은 자리에 있다.
+    """
+    needle = f"- **{first_label}**:"
+    sections = text.split("\n## ")
+    for section in sections:
+        if needle in section:
+            return section
+    return None
+
+
 def test_repo_declares_its_own_run_commands() -> None:
     """자기 진입점의 "프로젝트 실행 기본값" 이 placeholder 로 남아 있지 않은가.
 
@@ -311,18 +358,23 @@ def test_repo_declares_its_own_run_commands() -> None:
     if not entry.is_file():
         _record("test_repo_declares_its_own_run_commands", False, "CLAUDE.md 부재")
         return
-    text = entry.read_text(encoding="utf-8")
-    marker = "## 프로젝트 실행 기본값"
-    if marker not in text:
+    expected_labels = _generated_run_default_labels()
+    if not expected_labels:
         _record("test_repo_declares_its_own_run_commands", False,
-                f"{marker} 절이 없다 — 진입점 생성 규약이 바뀌었는가")
+                "생성기에서 실행 기본값 라벨을 파생하지 못했다 — 진입점 생성 규약이 바뀌었는가")
         return
-    section = text.split(marker, 1)[1].split("\n## ", 1)[0]
+    text = entry.read_text(encoding="utf-8")
+    section = _run_defaults_section(text, expected_labels[0])
+    if section is None:
+        _record("test_repo_declares_its_own_run_commands", False,
+                f"`- **{expected_labels[0]}**:` 를 담은 `## ` 절이 없다 — 진입점 생성 규약이 바뀌었는가")
+        return
     labels = [line.split("**")[1] for line in section.splitlines()
               if line.startswith("- **") and "**" in line[4:]]
-    if len(labels) < 5:
+    absent = [label for label in expected_labels if label not in labels]
+    if absent:
         _record("test_repo_declares_its_own_run_commands", False,
-                f"실행 기본값 항목이 {len(labels)}개 — 5개(install/run/quick·isolated test/smoke)를 기대한다")
+                f"실행 기본값에 없는 항목 {absent} — 생성기는 {expected_labels} 를 낸다")
         return
     todo = [line.split("**")[1] for line in section.splitlines()
             if line.startswith("- **") and "TODO" in line]

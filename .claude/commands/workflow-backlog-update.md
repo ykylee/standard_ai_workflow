@@ -1,48 +1,48 @@
 ---
-description: 표준 AI 워크플로우 백로그 갱신 — 오늘 날짜 backlog 에 task 를 등록/갱신하고 PURPOSE.md 제외 영역과 겹치면 scope creep 을 경고한다.
+description: Standard AI workflow backlog update — register/update a task in today's backlog and warn about scope creep when it overlaps PURPOSE.md's excluded areas.
 ---
 
-<!-- standard-ai-workflow-kit: v1.0.0-beta -->
+<!-- standard-ai-workflow-kit: v1.3.0 -->
 
 # /workflow-backlog-update
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *backlog-update* 진입점.
+> Claude Code slash command. The *backlog-update* entry point of the standard AI workflow.
 
-## 역할
+## Role
 
-오늘 작업 항목을 `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md` 에 등록/갱신.
+Register or update today's work item in `ai-workflow/memory/active/<branch>/backlog/<YYYY-MM-DD>.md`.
 
-## 실행
+## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 wk backlog-update --help
 ```
 
-## 절차
+## Procedure
 
-1. `ai-workflow/memory/active/<branch>/backlog` 의 인덱스 anchor 확인
-2. 오늘 날짜의 `backlog/YYYY-MM-DD.md` 파일:
-   - 없으면 신규 작성
-   - 있으면 기존 항목에 append
-3. **in-scope check** (PURPOSE.md §3 Research Scope *제외 영역* 매칭):
-   - `task_brief` + `affected_documents` vs 제외 영역 substring / 첫 2 token 매칭
-   - 매칭 시 `scope_creep_warnings` 1줄 emit (hard warning)
-4. 작업 상태: `planned` / `in_progress` / `blocked` / `done` 중 선택
-5. priority + owner + acceptance criteria 명시
+1. Check the index anchor in `ai-workflow/memory/active/<branch>/backlog`
+2. Today's `backlog/YYYY-MM-DD.md` file:
+   - create it if absent
+   - append to the existing entries if present
+3. **in-scope check** (match against PURPOSE.md §3 Research Scope *excluded areas*):
+   - `task_brief` + `affected_documents` vs excluded areas, by substring / first-2-token match
+   - on a match, emit one `scope_creep_warnings` line (hard warning)
+4. Task status: one of `planned` / `in_progress` / `blocked` / `done`
+5. State priority, owner, and acceptance criteria
 
-## PURPOSE.md 부재 시
+## When PURPOSE.md is absent
 
-scope_creep_warnings = `[]` (graceful skip). 본문 reference 불가, advisory 만.
+`scope_creep_warnings = []` (graceful skip). No body reference is possible — advisory only.
 
-## 다음에 읽을 문서
+## Read next
 
 - `ai-workflow/memory/active/<branch>/backlog`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
-- 영향 받을 document 들
+- (if present) `ai-workflow/memory/active/PURPOSE.md`
+- The documents that will be affected
 
-## language 원칙
+## Language rules
 
-- 작업 보고, 상태 요약, 갱신 문안 = 한국어
-- 코드, file path, 외부 시스템 명칭 = 원문
+- Work reports, status summaries, update text = Korean
+- Code, file paths, external product names = verbatim

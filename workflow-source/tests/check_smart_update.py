@@ -133,6 +133,56 @@ def test_bootstrap_preserves_user_data_with_force() -> None:
         )
 
 
+def test_forked_entry_point_survives_reapply() -> None:
+    """포크를 선언한 진입점은 재적용에서 **살아남는다** (TASK-2026-08-20-main-012).
+
+    단위 검사만으로는 부족하다 — 실제 손실은 `decide_action` 이 아니라 그것을
+    부르는 bootstrap 경로에서 난다. 이 저장소의 `CLAUDE.md` 가 실측으로 얻은
+    운영 규칙 90여 줄을 담고 있었고, `wk doctor` 는 그 파일을 "재적용 대상"
+    으로 조언하고 있었다. 조언을 따랐다면 전부 placeholder 가 됐다.
+    """
+    marker = "PROJECT-OWNED-SENTINEL"
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp)
+        base = [
+            "--target-root", str(target),
+            "--project-slug", "test",
+            "--project-name", "Test",
+            "--harness", "claude-code",
+            "--no-interactive",
+            "--adoption-mode", "new",
+        ]
+        _run_bootstrap_lib(base)
+
+        entry = target / "CLAUDE.md"
+        assert entry.is_file(), "claude-code 진입점이 생성되지 않았다"
+        original = entry.read_text(encoding="utf-8")
+        forked = (
+            "<!-- standard-ai-workflow-kit-fork: project owns this entry point -->\n"
+            + original
+            + f"\n## Project section\n\n{marker}\n"
+        )
+        entry.write_text(forked, encoding="utf-8")
+
+        manifest = _run_bootstrap_lib(base)
+        actions = manifest["file_actions"]
+        forked_rels = {record["rel"] for record in _bucket(actions, "forked")}
+        assert "CLAUDE.md" in forked_rels, (
+            f"포크된 진입점이 forked 버킷에 없다 — 요약에서 사라지면 조작자는 "
+            f"'아무 일도 없었다' 로 읽는다. buckets={ {k: len(v) for k, v in actions.items()} }"
+        )
+        assert marker in entry.read_text(encoding="utf-8"), (
+            "재적용이 프로젝트 소유 내용을 지웠다"
+        )
+
+        # --force 는 이긴다 — 포크는 "덮지 마라" 가 아니라 "모르고 덮지 마라" 다.
+        _run_bootstrap_lib([*base, "--force"])
+        assert marker not in entry.read_text(encoding="utf-8"), (
+            "--force 가 포크된 진입점을 덮지 못했다 — 불가침(사용자 상태)과 "
+            "구분되지 않으면 명시적 재적용 경로가 사라진다"
+        )
+
+
 def test_apply_upgrade_smart_update() -> None:
     """apply_workflow_upgrade should use the same smart-update policy."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -202,6 +252,33 @@ def test_upgrade_diff_unit() -> None:
     assert dec.action == Action.IGNORED, dec
 
     dec = decide_action(src_text="x", dst_text="y", is_preserved_path=True, force=True)
+    assert dec.action == Action.PRESERVED, dec
+
+    # 소유권 4번째 분류: 포크 선언은 재적용을 막고, force 는 그것을 이긴다.
+    forked_dst = (
+        "<!-- standard-ai-workflow-kit: v0.5.0-beta -->\n"
+        "<!-- standard-ai-workflow-kit-fork: project owns this -->\n"
+        "OLD"
+    )
+    dec = decide_action(
+        src_text="<!-- standard-ai-workflow-kit: v0.5.10.1-beta -->\nNEW",
+        dst_text=forked_dst,
+    )
+    assert dec.action == Action.FORKED, dec
+    # 갈라져 나온 시점을 잃지 않는다 — 그 버전과 diff 하는 것이 유일한 병합 경로다.
+    assert dec.dst_marker == "0.5.0-beta", dec
+
+    dec = decide_action(
+        src_text="<!-- standard-ai-workflow-kit: v0.5.10.1-beta -->\nNEW",
+        dst_text=forked_dst,
+        force=True,
+    )
+    assert dec.action == Action.UPDATED, dec
+
+    # 불가침은 force 로도 안 덮인다 — 포크와 갈리는 자리가 정확히 여기다.
+    dec = decide_action(
+        src_text="NEW", dst_text=forked_dst, is_preserved_path=True, force=True
+    )
     assert dec.action == Action.PRESERVED, dec
 
 
@@ -291,16 +368,22 @@ def _make_args(target_root: Path, copy_core_docs: bool = True, force: bool = Fal
 
 
 def main() -> int:
-    test_upgrade_diff_unit()
-    test_bootstrap_first_run_creates_files()
-    test_bootstrap_second_run_ignores_matching_files()
-    test_bootstrap_preserves_user_data_with_force()
-    test_apply_upgrade_smart_update()
-    test_bootstrap_wheel_install_graceful_when_no_source()
+    # 총계는 여기서 **세어서** 낸다 — `"6 checks"` 리터럴이었을 때는 case 를
+    # 늘려도 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
+    cases = [
+        ("unit", test_upgrade_diff_unit),
+        ("first-run CREATE", test_bootstrap_first_run_creates_files),
+        ("second-run IGNORE", test_bootstrap_second_run_ignores_matching_files),
+        ("PRESERVE+force", test_bootstrap_preserves_user_data_with_force),
+        ("FORKED survives re-apply", test_forked_entry_point_survives_reapply),
+        ("apply_upgrade round-trip", test_apply_upgrade_smart_update),
+        ("wheel-install graceful", test_bootstrap_wheel_install_graceful_when_no_source),
+    ]
+    for _name, case in cases:
+        case()
+    labels = ", ".join(name for name, _ in cases)
     print(
-        "Smart update regression check passed "
-        "(6 checks: unit, first-run CREATE, second-run IGNORE, "
-        "PRESERVE+force, apply_upgrade round-trip, wheel-install graceful)."
+        f"Smart update regression check passed ({len(cases)} checks: {labels})."
     )
     return 0
 

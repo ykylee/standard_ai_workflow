@@ -311,6 +311,16 @@ def _file_marker(path: Path) -> str | None:
         return None
 
 
+def _file_fork(path: Path) -> str | None:
+    """이 산출물이 **포크됐다고 스스로 선언**하는가 (§3 소유권 4분류)."""
+    from workflow_kit.upgrade_diff import parse_fork_declaration  # noqa: PLC0415
+
+    try:
+        return parse_fork_declaration(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def _resolve_kit_version(project_root: Path) -> tuple[str | None, str]:
     """비교 기준이 될 kit 버전과 **그 출처**를 함께 돌려준다.
 
@@ -354,7 +364,11 @@ def _probe_project_scope(project_root: Path) -> dict[str, Any]:
             path = project_root / rel
             if not path.is_file():
                 continue
-            present.append({"path": rel, "marker": _file_marker(path)})
+            record: dict[str, Any] = {"path": rel, "marker": _file_marker(path)}
+            fork_note = _file_fork(path)
+            if fork_note is not None:
+                record["fork"] = fork_note
+            present.append(record)
         if not present:
             continue
         marked = [record for record in present if record["marker"] is not None]
@@ -425,10 +439,27 @@ def _probe_drift(project: dict[str, Any], global_scope: dict[str, Any]) -> dict[
     kit_version = project.get("kit_version")
     stale: list[dict[str, Any]] = []
     unmarked: list[str] = []
+    forked: list[dict[str, Any]] = []
 
     for harness, info in sorted(project.get("harnesses", {}).items()):
         for record in info["files_present"]:
             marker = record["marker"]
+            if record.get("fork") is not None:
+                # 포크된 진입점은 **낡은 것이 아니라 갈라진 것**이다 (§3 소유권 4분류).
+                # 여기에 "재적용 대상" 을 붙이면 그 조언이 파괴적이 된다 — 실측
+                # (2026-08-20): 이 저장소의 CLAUDE.md 는 마커가 낡았고, 조언대로
+                # 재적용하면 측정으로 얻은 운영 규칙 90여 줄이 TODO placeholder 로
+                # 바뀐다. 마커는 그대로 실어 **어느 버전에서 갈라졌는지** 남긴다.
+                forked.append(
+                    {
+                        "harness": harness,
+                        "path": record["path"],
+                        "forked_from": marker,
+                        "kit_version": kit_version,
+                        "note": record["fork"],
+                    }
+                )
+                continue
             if marker is None:
                 unmarked.append(record["path"])
                 continue
@@ -451,6 +482,15 @@ def _probe_drift(project: dict[str, Any], global_scope: dict[str, Any]) -> dict[
     findings: list[str] = []
     if stale:
         findings.append(f"kit 버전보다 낡은 마커 {len(stale)}건 — 재적용 대상이다")
+    if forked:
+        # 발견이 아니라 **선언된 상태**다. 숨기지도 않는다 — 갈라진 시점을 같이 낸다.
+        joined = ", ".join(
+            f"{item['path']}(v{item['forked_from']} 에서)" for item in forked
+        )
+        findings.append(
+            f"프로젝트가 포크한 진입 파일 {len(forked)}건 — 재적용은 **파괴적**이다: {joined}. "
+            "kit 변경을 반영하려면 그 버전과 diff 해 손으로 병합한다"
+        )
     if both_scopes:
         findings.append(
             f"글로벌·프로젝트 양쪽 설치 {len(both_scopes)}건 ({', '.join(both_scopes)}) — "
@@ -459,6 +499,7 @@ def _probe_drift(project: dict[str, Any], global_scope: dict[str, Any]) -> dict[
     return {
         "kit_version": kit_version,
         "stale_markers": stale,
+        "forked_files": forked,
         "unmarked_files": unmarked,
         "installed_in_both_scopes": both_scopes,
         "findings": findings,
@@ -1128,9 +1169,18 @@ def _render_text(report: dict[str, Any]) -> str:
         lines.append(
             f"  - 낡음 {record['path']} (marker v{record['marker']} < kit v{record['kit_version']})"
         )
+    for record in drift.get("forked_files", []):
+        lines.append(
+            f"  - 포크됨 {record['path']} (v{record['forked_from']} 에서 갈라짐"
+            f" / kit v{record['kit_version']}) — 재적용은 파괴적이다"
+        )
     if drift["installed_in_both_scopes"]:
         lines.append(f"  - 양쪽 설치: {', '.join(drift['installed_in_both_scopes'])}")
-    if not drift["stale_markers"] and not drift["installed_in_both_scopes"]:
+    if (
+        not drift["stale_markers"]
+        and not drift.get("forked_files")
+        and not drift["installed_in_both_scopes"]
+    ):
         lines.append("  - 마커 기준 어긋남 없음")
     lines.append(f"  ! {drift['limitation']}")
 

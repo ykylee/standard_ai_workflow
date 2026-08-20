@@ -1,54 +1,54 @@
 ---
-description: 표준 AI 워크플로우 세션 시작 — state.json + session_handoff.md + backlog 로 현재 기준선을 복원하고 다음 작업 후보를 보고한다.
+description: Standard AI workflow session start — restore the current baseline from state.json + session_handoff.md + backlog and report the next candidate tasks.
 ---
 
-<!-- standard-ai-workflow-kit: v1.0.0-beta -->
+<!-- standard-ai-workflow-kit: v1.3.0 -->
 
 # /workflow-session-start
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *session-start* 진입점.
+> Claude Code slash command. The *session-start* entry point of the standard AI workflow.
 
-## 역할
+## Role
 
-이 command 는 `ai-workflow/memory/active/` 의 *현재 baseline* 을 복원한다:
+This command restores the *current baseline* from `ai-workflow/memory/active/`:
 
-1. `state.json` 읽기 — `latest_backlog_path` + `in_progress_items` + `recent_done_items`
-2. `session_handoff.md` 읽기 — 이전 세션의 인계 사항
-3. `work_backlog.md` 읽기 — 현재 작업 목록 anchor
-4. `PROJECT_PROFILE.md` 읽기 — 프로젝트 메타
-5. (있으면) `PURPOSE.md` 읽기 — directional intent 1-line + body excerpt ≤200 token
+1. Read `state.json` — `latest_backlog_path` + `in_progress_items` + `recent_done_items`
+2. Read `session_handoff.md` — what the previous session handed over
+3. Read `work_backlog.md` — the anchor for the current task list
+4. Read `PROJECT_PROFILE.md` — project metadata
+5. Read `PURPOSE.md` if present — directional intent one-liner + body excerpt ≤200 tokens
 
-## 실행
+## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 wk session-start --help
 ```
 
-## 절차
+## Procedure
 
-1. `ai-workflow/memory/active/<branch>/state.json` 부터 읽고 현재 baseline 요약
-2. `session_handoff.md` + `work_backlog.md` 의 anchor 로 3~7개 후속 작업 후보 선정
-3. 한국어로 1줄 요약 + 3-5개 다음 작업 후보 + 권장 다음 행동 보고
-4. **중간 reasoning / 중복 요약 / 자기 설명 금지** — 사용자에게는 *결론* 만
+1. Read `ai-workflow/memory/active/<branch>/state.json` first and summarize the current baseline
+2. Pick 3–7 candidate follow-up tasks from the anchors in `session_handoff.md` + `work_backlog.md`
+3. Report, in Korean: a one-line summary, 3–5 next-task candidates, and the recommended next action
+4. **No intermediate reasoning, repeated summaries, or self-explanation** — give the user the *conclusion* only
 
-## language + context 원칙
+## Language and context rules
 
-- 사용자에게 보이는 보고는 한국어
-- 코드, 명령어, file path, 설정 key 는 원문 그대로
-- handoff / backlog 에는 *다음 세션에 꼭 필요한 사실* 만 남겨 context 누적 최소화
+- User-facing reports are in Korean
+- Code, commands, file paths, and configuration keys stay verbatim
+- Keep only the *facts the next session actually needs* in the handoff / backlog, to minimize context buildup
 
 ## next step
 
-요약 + 후보 보고 후 사용자 confirm 시:
-- `/workflow-backlog-update` 로 오늘 작업 등록
-- 또는 `/workflow-doc-sync` 로 영향 문서 동기화
+After reporting the summary and candidates, once the user confirms:
+- `/workflow-backlog-update` to register today's work
+- or `/workflow-doc-sync` to sync affected documents
 
-## 관련 문서
+## Related documents
 
 - `ai-workflow/memory/active/<branch>/state.json`
 - `ai-workflow/memory/active/<branch>/sessions`
 - `ai-workflow/memory/active/<branch>/backlog`
 - `docs/PROJECT_PROFILE.md`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+- (if present) `ai-workflow/memory/active/PURPOSE.md`

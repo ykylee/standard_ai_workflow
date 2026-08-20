@@ -444,12 +444,12 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 | 채널 | 설치본의 정체 | 설치 명령 재실행 | update 명령 | **페이로드가 낡았을 때 복구** |
 |---|---|---|---|---|
 | **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | **버전이 같으면** `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) · **버전이 다르면** 실제로 올린다 (아래 4) | 같은 버전: **`uninstall` → `install`** · 다른 버전: `plugin update <plugin>@<marketplace>` |
-| **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | `plugin add` 재실행 |
+| **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`marketplace remove` → `marketplace add <새 경로>` → `plugin add`** (아래 5) |
 | **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/`) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **gemini-cli** | 미실측 | 미실측 | 미실측 | 이 호스트에 `gemini` CLI 가 없다 |
 
-읽는 법 네 가지:
+읽는 법 다섯 가지:
 
 1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
    업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
@@ -478,6 +478,21 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
      `wk doctor` 는 **선언을 읽어** 어느 사본이 설치본인지 가른다 (§7.0.1).
    - **`Restart to apply changes.`** — CLI 자신이 그렇게 말한다. §7.0.1 의
      `runtime_load` 가 재는 것이 정확히 그 조건이다.
+5. **codex 는 같은 자리에서 정반대로 움직인다** (2026-08-20 실측, 로컬 소스
+   1.2.0 → 1.3.0 — 이 채널의 나머지 셀도 *같은 버전*에서만 측정돼 있었다):
+   - **마켓플레이스가 버전 경로에 고정된다.** 로컬 소스 등록은
+     `dist/plugins/codex/<version>/install-root/...` 를 통째로 가리키므로,
+     새 버전은 **소스 자체를 갈아야** 보인다. claude-code 처럼 이름 하나로
+     당겨올 대상이 없다 — 마켓플레이스가 곧 그 버전이다.
+   - **덮어쓰기를 거부한다.** 같은 이름에 다른 경로를 주면
+     `Error: marketplace '<name>' is already added from a different source;
+     remove it before adding this source` 가 난다. `marketplace remove` 를
+     **먼저** 돌려야 한다.
+   - **옛 버전 디렉터리가 남지 않는다.** `plugin add` 뒤 캐시에는 `1.3.0`
+     하나만 남았다 — 위 4의 claude-code 와 **정반대**다. 그래서 `wk doctor`
+     의 `installPath` 선언 읽기(§7.0.1)가 claude-code 에서는 필수이고
+     codex 에서는 폴백(glob)으로 충분하다. 채널마다 잔재 정책이 다르다는
+     사실 자체가 탐침이 선언을 읽어야 하는 이유다.
 
 > 이 표는 `wk doctor` (§7.0.1) 의 **복구 열**이다. 탐침의 `content_drift` 절이
 > 페이로드 해시로 *어긋났다* 는 사실까지 말해 주지만(2026-08-18+), 고치는 방법은

@@ -1,4 +1,5 @@
 <!-- standard-ai-workflow-kit: v1.0.0-beta -->
+<!-- standard-ai-workflow-kit-fork: 이 저장소가 소유한다 — 아래 '프로젝트 실행 기본값' 이하가 실측으로 얻은 고유 운영 규칙이다. 재적용하면 placeholder 로 되돌아간다. kit 변경 반영은 v1.0.0-beta 생성물과 diff 해 손으로 병합한다 -->
 
 # CLAUDE.md (Claude Code 진입점)
 

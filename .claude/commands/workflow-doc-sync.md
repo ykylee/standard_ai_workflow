@@ -1,47 +1,47 @@
 ---
-description: 표준 AI 워크플로우 문서 동기화 — 변경된 파일에서 영향 문서 후보를 뽑고 wiki index 기준 갱신 포인트를 advisory 로 제안한다.
+description: Standard AI workflow document sync — derive affected-document candidates from the changed files and propose wiki-index update points as advisory.
 ---
 
-<!-- standard-ai-workflow-kit: v1.0.0-beta -->
+<!-- standard-ai-workflow-kit: v1.3.0 -->
 
 # /workflow-doc-sync
 
-> Claude Code slash command. 표준 AI 워크플로우 의 *doc-sync* 진입점.
+> Claude Code slash command. The *doc-sync* entry point of the standard AI workflow.
 
-## 역할
+## Role
 
-작업 후 영향 받은 문서 후보를 식별하고 `ai-workflow/memory/active/` 의 허브 /
-index 갱신 포인트를 정리.
+After the work, identify the affected-document candidates and lay out the hub / index
+update points under `ai-workflow/memory/active/`.
 
-## 실행
+## Usage
 
-이 작업은 **도구를 거친다** — 문서를 손으로 고치면 파싱 계약이 조용히 깨진다 (정본 §11).
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
 
 ```bash
 wk doc-sync --help
 ```
 
-## 절차
+## Procedure
 
-1. 현재 변경된 file list + 영향 받은 document 후보 식별
-2. `ai-workflow/wiki/index.md` anchor 기반 페이지 카탈로그 확인
-3. 영향 받은 페이지에 대해 *advisory* 갱신 포인트 emit:
-   - 새 concept / decision / pattern 페이지 후보
-   - 기존 페이지의 `last_touched` 갱신 후보
-4. PURPOSE.md 부재 시 *advisory only* (hard scope check ❌)
+1. Identify the current changed-file list and the affected-document candidates
+2. Check the page catalog against the `ai-workflow/wiki/index.md` anchors
+3. Emit *advisory* update points for the affected pages:
+   - Candidate new concept / decision / pattern pages
+   - Existing pages whose `last_touched` should be refreshed
+4. When PURPOSE.md is absent: *advisory only* (no hard scope check)
 
-## 출력 형식
+## Output format
 
-- 영향 받은 document list (path + 1줄 요약)
-- 권장 anchor / cross-reference
+- The affected-document list (path + one-line summary)
+- Recommended anchors / cross-references
 - confidence (high / medium / low)
 
-## 다음에 읽을 문서
+## Read next
 
 - `ai-workflow/wiki/index.md`
-- (있으면) `ai-workflow/memory/active/PURPOSE.md`
+- (if present) `ai-workflow/memory/active/PURPOSE.md`
 
-## language 원칙
+## Language rules
 
-- 갱신 포인트 보고 = 한국어
-- file path, anchor, 설정 key = 원문
+- Update-point reports = Korean
+- File paths, anchors, configuration keys = verbatim

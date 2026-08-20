@@ -2,6 +2,8 @@
 description: Standard AI workflow session end — update the handoff and backlog, regenerate state.json, and leave the state so the next session resumes directly.
 ---
 
+<!-- standard-ai-workflow-kit: v1.3.0 -->
+
 # /workflow-session-end
 
 > Claude Code slash command. The *session-end* entry point of the standard AI workflow.

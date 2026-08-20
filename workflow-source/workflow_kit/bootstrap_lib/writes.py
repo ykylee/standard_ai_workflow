@@ -372,6 +372,14 @@ def copy_core_docs(
     return actions
 
 
+#: ``Action`` 값 → 매니페스트 요약 버킷 이름. 이름이 다른 것은 ``create`` 하나뿐이라
+#: 나머지는 값 그대로 쓴다 — 표를 손으로 늘리지 않게 파생의 근거를 한 곳에 둔다.
+_ACTION_BUCKET: dict[str, str] = {
+    action.value: ("created" if action is Action.CREATE else action.value)
+    for action in Action
+}
+
+
 def build_manifest(
     args: Any,
     paths: Paths,
@@ -428,22 +436,20 @@ def build_manifest(
     multi_stack = len(stack_labels) > 1
 
     # Bucket the file actions for an at-a-glance summary.
+    #
+    # 버킷은 ``Action`` 열거형에서 **파생한다**. 손으로 유지하는 if/elif 사슬
+    # 이었을 때, 열거형에 4번째 소유권 분류(``FORKED``)가 늘어나자 그 파일이
+    # 어느 버킷에도 안 잡히고 **매니페스트에서 통째로 사라졌다** — 조작자는
+    # preserved 도 forked 도 못 보고 "아무 일도 없었다" 로 읽는다
+    # (TASK-2026-08-20-main-012). 분류가 없는 파일이 곧 "재실행이 무엇을 할지
+    # 모르는 파일" 이라는 §3 의 문장이 요약 표에서도 그대로 성립한다.
     file_actions_summary: dict[str, list[dict[str, str]]] = {
-        "created": [],
-        "updated": [],
-        "ignored": [],
-        "preserved": [],
+        _ACTION_BUCKET[action]: [] for action in Action
     }
     for fa in file_actions or []:
-        action = fa.get("action")
-        if action == "create":
-            file_actions_summary["created"].append(fa)
-        elif action == "updated":
-            file_actions_summary["updated"].append(fa)
-        elif action == "ignored":
-            file_actions_summary["ignored"].append(fa)
-        elif action == "preserved":
-            file_actions_summary["preserved"].append(fa)
+        bucket = _ACTION_BUCKET.get(fa.get("action"))
+        if bucket is not None:
+            file_actions_summary[bucket].append(fa)
 
     return {
         "target_root": str(paths.target_root),

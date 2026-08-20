@@ -1119,7 +1119,16 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
 
     한쪽만 늘어나는 것을 막으려면 **집합을 대조**해야 한다. 개수만 세면
     이름이 어긋난 채로 통과한다.
+
+    **세 번째 자리가 빠져 있었다** (TASK-2026-08-20-main-012). 처음 판은
+    생성기와 이 저장소의 `.claude/commands/` 만 봤고, `HARNESS_SPECS` 의
+    **선언**은 안 봤다. 그래서 main-008 이 생성기와 산출물을 4종으로 맞춘
+    뒤에도 레지스트리는 3종으로 남았고, 그 레지스트리에서 파생하는
+    `wk doctor` 는 `workflow-session-end.md` 를 **아예 못 봤다** — 마커가
+    없는데도 낡음으로도 미표식으로도 보고되지 않았다. 그물이 두 자리만
+    보면 세 번째 자리에서 갈린다.
     """
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
     from workflow_kit.plugin_payload import PLUGIN_SKILLS
 
     plugin_slugs = {spec.slug for spec in PLUGIN_SKILLS}
@@ -1141,6 +1150,19 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
     missing_local = sorted(plugin_slugs - local_slugs)
     extra_local = sorted(local_slugs - plugin_slugs)
 
+    # 3) 레지스트리가 그 집합을 **선언**하는가 — `wk doctor` 는 여기서 파생한다
+    declared = (
+        *HARNESS_SPECS["claude-code"].entry_files,
+        *HARNESS_SPECS["claude-code"].extra_files,
+    )
+    declared_slugs = {
+        rel[len(".claude/commands/workflow-"):-len(".md")]
+        for rel in declared
+        if rel.startswith(".claude/commands/workflow-") and rel.endswith(".md")
+    }
+    missing_declared = sorted(plugin_slugs - declared_slugs)
+    extra_declared = sorted(declared_slugs - plugin_slugs)
+
     problems: list[str] = []
     if missing_renderer:
         problems.append(f"생성기가 emit 안 하는 slug: {missing_renderer}")
@@ -1148,6 +1170,13 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
         problems.append(f"이 저장소 .claude/commands/ 에 없는 slug: {missing_local}")
     if extra_local:
         problems.append(f"플러그인에 없는 로컬 명령: {extra_local}")
+    if missing_declared:
+        problems.append(
+            f"HARNESS_SPECS[claude-code] 가 선언 안 하는 slug: {missing_declared} "
+            "— 선언에서 파생하는 wk doctor 가 그 파일을 못 본다"
+        )
+    if extra_declared:
+        problems.append(f"플러그인에 없는데 선언된 명령: {extra_declared}")
     _record("test_bootstrap_channel_matches_plugin_skill_set", not problems, "; ".join(problems))
 
 

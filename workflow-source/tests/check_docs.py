@@ -13,7 +13,10 @@ sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "scripts"))
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
 
-MARKER_RE = re.compile(r"^<!--\s*standard-ai-workflow-kit:")
+#: kit 이 배포물 머리에 찍는 **기계 주석** 전반 — 버전 마커와 포크 선언
+#: (`standard-ai-workflow-kit-fork:`)이 둘 다 여기 걸린다. 한 줄만 예외로
+#: 두면 주석이 하나 늘 때마다 제목 판정이 조용히 깨진다.
+MARKER_RE = re.compile(r"^<!--\s*standard-ai-workflow-kit(?:-[a-z]+)?:")
 
 # harness overlay 의 `extra_files` 는 **하네스가 프롬프트로 먹는 파일** 이다
 # (slash command 본문, agent 정의, skill). 산문 계약(문서 목적/범위/대상 독자/…)을
@@ -216,8 +219,9 @@ def check_metadata(path: Path) -> list[str]:
     # 위 frontmatter 예외와 같은 이유로, 마커 때문에 제목이 2번째 줄이 된 것을
     # "제목 없음" 으로 판정하지 않는다. 마커를 지우라고 하면 생성물을 손으로 고치게
     # 되고, 그건 smart-update 가 기대는 표식을 깨뜨린다.
-    body_lines = lines[1:] if lines and MARKER_RE.match(lines[0]) else lines
-    body_lines = body_lines[1:] if body_lines and not body_lines[0].strip() else body_lines
+    body_lines = list(lines)
+    while body_lines and (MARKER_RE.match(body_lines[0]) or not body_lines[0].strip()):
+        body_lines = body_lines[1:]
     if not body_lines or not body_lines[0].startswith("# "):
         missing.append("제목 헤더")
     return missing

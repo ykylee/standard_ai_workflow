@@ -1,0 +1,37 @@
+{
+  "id": "MEM-2026-08-20-002",
+  "schema_version": 1,
+  "source_paths": [
+    "docs/RELEASE.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-007.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-006.md"
+  ],
+  "primary_abstraction": "A breaking marker names a change, not its blast radius",
+  "cue_anchors": [
+    "semver",
+    "breaking-change",
+    "conventional-commits",
+    "release-grade",
+    "external-spec-version",
+    "api-surface",
+    "retirement"
+  ],
+  "value_digest": "`!` 는 '무언가 깨진다' 는 표시일 뿐 **무엇이** 깨지는지 말하지 않는다. 등급은 우리가 보장한 표면(공개 API) 기준으로 본다 — 공개 시그니처 / 진입점 소멸 / 소비자가 못 읽게 되나 / 외부 spec 버전. **외부 spec 버전이 오른 것만으로는 major 가 아니다** (v1.3.0 의 OKF v0.2 이행이 사례). 따름정리: 은퇴는 진입점을 남기고 write 0 + 사유 보고로 하면 breaking 이 아니게 만들 수 있다. 그리고 도구는 등급을 **근거와 함께** 제시하되 major 승격은 사람에게 넘긴다(requires_decision).",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "release",
+    "semver"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "workflow-source/releases/Beta-v1.3.0.md"
+  ],
+  "related_ids": [
+    "MEM-2026-08-20-001"
+  ],
+  "created_at": "2026-08-20T00:00:00Z",
+  "updated_at": "2026-08-20T00:00:00Z"
+}

@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-08-20
 
+- **50차 세션 (이어서) — main-002 close: linter 가 3자 대조의 세 번째 출처를 일자 index 에서 **task SSOT** 로 옮겼다.** 2세션 연속 손으로 이월하던 일이 사라진다. 갈래(자동 이월 vs 출처 교체)는 실측으로 닫혔다 — **자동 이월이 오답**이었다: `state.json` 의 `in_progress_items` 는 `state/builder._aggregate_from_appendonly_layout` 이 **`backlog/tasks/` 전체**를 집계해 만드는데 linter 는 **하루치 index 하나**를 봤고, 일자 index 의 정의는 그 문서 스스로 '해당 일자의 task' 다 — 즉 **어제 연 task 가 오늘 index 에 없는 것이 정상**이고 결함은 이월 누락이 아니라 **출처 선택**이었다. 자동 이월을 택했다면 append-only 이력을 매일 고쳐 쓰고 index 의 정의와도 싸웠을 것이다. **판정을 복제하지 않는다** — 새 규칙 대신 **생성기와 같은 함수**를 부른다(린터가 생성기와 다른 규칙으로 '불일치' 를 외치는 것이 최악이다). **출처는 레이아웃이 고르고 결과에 적는다** — v0.14.0+ 는 `backlog/tasks/`, 그 이전은 일자 backlog; 폴백을 조용히 하지 않도록 `summary.in_progress_source` `{kind, path}` 를 출력 계약에 추가(additive, JSON Schema 재생성). **검사는 약해지지 않고 하나 늘었다** — handoff 드리프트는 그대로 잡히고 **낡은 state.json**(`wk refresh-state` 누락)이 새로 잡힌다; 이전 조합으로는 **볼 수 없던** 상태다. `check_workflow_linter` 5→9 cases, 되주입 3종 red 실증, 검사 264 유지.
+
+## 롤오프 2026-08-20
+
 - **50차 세션 — main-001 close: wiki L2 계약을 memory 파생 4종으로 좁혔다 (`wk wiki-emit` 2-step → **1-step**, 전량 2축 green).** 49차가 남긴 유일한 미결을 소유자 결정으로 닫았다. **정의**: `L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰` — 4종뿐이고 늘어나지 않는다. L1 wiki page 는 정의상 제외다(이미 wiki 모양이고 이미 검색된다). 갭 85장을 채우지 **않은** 이유: 계약의 근거였던 외부 vault retrieval 이 **v0.7.17 in-repo 전환 때 사라졌고**, 사본은 검색을 늘리지 않으면서 드리프트 표면만 늘린다. 정본은 `refresh_wiki_memory.L2_STUBS`, 설명은 `.gitkeep`. **은퇴 형태는 49차와 같다** — 진입점은 남기되 write 0 + 사유 보고(rc=0), **기계는 파일에서 지운다**; 옛 인자는 계속 받는다(박혀 있던 호출이 argparse 오류로 죽는 것보다 **왜 아무것도 안 했는지 듣는 편**이 낫다). **부수로 지표 결함 2건**: (a) discoverability·lifecycle 의 **분모가 찾은 파일 수**여서 stub 3장을 지워도 **5.0 그대로** 였다 — *사라짐* 이 지표에 안 잡혔다; 분모를 **선언된 집합**으로 바꿔 부재를 결함으로 센다. (b) **placeholder 판정이 부분 문자열**이라 `<needs content>` 를 *언급한* handoff 파생 뷰가 검색 불가로 집계됐다(5.0→3.75 실측) — 줄 전체 일치로 앵커링. 지표는 목록을 복제하지 않고 생성기 상수를 import 하며, 검사가 '복제 0' 을 직접 확인한다. 되주입 3종 red 실증, 검사 264 유지(재작성).
 
 ## 롤오프 2026-08-20

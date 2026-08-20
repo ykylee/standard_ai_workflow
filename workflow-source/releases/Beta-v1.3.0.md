@@ -135,3 +135,20 @@ SPEC §13 이 breaking 2건에 **소비자 fallback 을 모두 명시**하므로
 - **mypy flake** — 다음 재발이 트레이스백을 남기면 상류 보고/우회 판단
 - **memory_index 3-tuple** — 종료 절차가 문서에 실렸으니 30일 뒤 재측정
 - **cross-host federation** — 두 번째 호스트(MacBook) 확보 시점
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-20T03:32:38Z)_
+
+- total wiki pages: **94**
+- total memory entries: **10**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

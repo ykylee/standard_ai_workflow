@@ -9,11 +9,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **51차 세션 (이어서) — main-007 close: **v1.3.0 발행** (https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.3.0, asset 4종).** 101 커밋 누적분. 소유자 결정은 **minor** 였고, 그 판단을 `docs/RELEASE.md` **§1.5** 로 정본화했다 — `!` 는 '무언가 깨진다' 는 표시일 뿐 **무엇이** 깨지는지 말하지 않으므로, 우리가 SemVer 로 보장하는 **공개 API** 기준 4문항으로 등급을 본다(공개 시그니처 / 진입점 소멸 / 소비자가 못 읽게 되나 / 외부 spec 버전). **외부 spec 버전이 오른 것만으로는 major 가 아니다** — v1.3.0 의 `feat(okf)!` 를 적용 사례로 근거 4가지와 함께 박았다(시그니처 변경 0 · 은퇴 진입점이 남아 rc=0 · 번들이 legacy 유지 · SPEC §13 자신이 minor 라 규정). **태그에서 `-beta` 가 빠진 첫 릴리스**다(§2.2 규약이 v1.2.1 부터 정리됐고 도구도 그렇게 만든다 — `v1.2.0-beta` 가 옛 표기의 마지막). 릴리스 노트는 자동 skeleton 을 버리고 축 4개 + 도구 결함 수리로 재작성했다. 버전 범프 파생물 **13종** 재생성. 부수: `check_deploy_doctor` fixture 가 설치 버전을 `"1.2.0"` 리터럴로 박고 있었다 — `__version__` 파생으로 바꿨다(리터럴이면 릴리스마다 red 가 되고, 그때 고치는 건 계약이 아니라 그 시점 상수다). 검사 264 유지.
-- 직전 기준선: **51차 세션 (이어서) — main-006 close: `release-status` 의 `next_version` 이 커밋을 읽지 않았다.** 릴리스 경계를 판단하려다 도구 결함을 먼저 만났다. `_suggest_next_version` 이 **현재 버전 문자열 하나만** 받아 `patch+1` 을 내놓았는데, 그 값이 같은 summary 줄에서 **`unreleased=101` 옆에 찍힌다** — 개수는 세면서 판정은 안 세니 파생값처럼 보이는 상수였다 (feat 17 · fix 24 · **breaking 1** 인 사이클에 `1.2.1` 을 권했다). 이제 미발행 커밋 유형에서 파생한다: breaking → major · feat → minor · 그 외 → patch · 근거 없으면 patch 이되 `basis.total=0` 으로 **모름을 밝힌다**. 교정 결과 `next=2.0.0` + basis(breaking 제목 포함). **숫자만 내밀지 않는 것이 설계의 핵심**이다 — 이 저장소는 v0.8.0 에 API 를 얼렸으므로 major 승격은 사람 결정이고, 도구는 판정과 **근거**를 같이 낸다(`requires_decision`). 부수: `check_release_status_auto_bump_v0_11_16` 의 기대값 `0.11.17` 이 patch 휴리스틱을 인코딩하고 있어 저장소 이력에 결합돼 있었다 — `_unreleased_commits` 를 mock 해 그 case 가 **재려던 것**만 남겼다. 되주입 3종 red 실증, 검사 264 유지.
+- 현재 기준선: **51차 세션 (이어서) — main-008·009: 사용자가 만든 session-end 스킬이 이 환경에서 안 쓰이던 문제.** **두 채널이 서로 다른 스킬 집합을 노출하고 있었다** — 플러그인은 처음부터 4종인데 bootstrap(`.claude/commands/`)은 3종만 emit(생성기 docstring 이 스스로 '3 slash command' 라 적고 있었다). 게다가 진입 스킬의 `description` 은 **이미 세션 종료를 약속**하고 있어서, 광고는 4단계인데 배선은 3개인 상태였다 — 모델이 있지도 않은 명령을 찾는다. 생성기에 `session-end` 명령을 넣고 진입 스킬 본문을 4종으로 맞췄고, **두 채널 집합을 대조하는 파리티 검사 2종**을 신설했다(개수만 세면 이름이 어긋난 채 통과한다). `/workflow-session-end` 는 파일을 쓰자마자 **이 세션에서 바로 잡혔다**. **남은 절반(main-009)**: 플러그인 스킬 4종이 인벤토리엔 있는데 세션엔 없다. 가설 4개 기각(파일 부재 · 비활성 · 매니페스트 파손 · **세션보다 늦은 설치** — 설치가 21시간 앞선다). 확정: `claude plugin details` 는 `Skills (4)` 로 다 세는데 호출하면 `Unknown skill` — **인벤토리는 세션 가용성의 증거가 아니다**. 그래서 `wk doctor` 의 `content_drift` 에 **노출 미측정 선언**을 넣고(`in_sync` 는 '쓸 수 있음' 이 아니다 — main-019 의 `installable` 과 같은 원칙) INSTALLATION §7.0.1 에 확인 방법을 적었다. 유력 가설은 로컬 `.claude/skills/standard-ai-workflow/` 와 **같은 이름의 플러그인** 사이 자기 충돌인데, 검증에 새 세션이 필요하다. 검사 264 유지.
+- 직전 기준선: **51차 세션 (이어서) — main-007 close: **v1.3.0 발행** (https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.3.0, asset 4종).** 101 커밋 누적분. 소유자 결정은 **minor** 였고, 그 판단을 `docs/RELEASE.md` **§1.5** 로 정본화했다 — `!` 는 '무언가 깨진다' 는 표시일 뿐 **무엇이** 깨지는지 말하지 않으므로, 우리가 SemVer 로 보장하는 **공개 API** 기준 4문항으로 등급을 본다(공개 시그니처 / 진입점 소멸 / 소비자가 못 읽게 되나 / 외부 spec 버전). **외부 spec 버전이 오른 것만으로는 major 가 아니다** — v1.3.0 의 `feat(okf)!` 를 적용 사례로 근거 4가지와 함께 박았다(시그니처 변경 0 · 은퇴 진입점이 남아 rc=0 · 번들이 legacy 유지 · SPEC §13 자신이 minor 라 규정). **태그에서 `-beta` 가 빠진 첫 릴리스**다(§2.2 규약이 v1.2.1 부터 정리됐고 도구도 그렇게 만든다 — `v1.2.0-beta` 가 옛 표기의 마지막). 릴리스 노트는 자동 skeleton 을 버리고 축 4개 + 도구 결함 수리로 재작성했다. 버전 범프 파생물 **13종** 재생성. 부수: `check_deploy_doctor` fixture 가 설치 버전을 `"1.2.0"` 리터럴로 박고 있었다 — `__version__` 파생으로 바꿨다(리터럴이면 릴리스마다 red 가 되고, 그때 고치는 건 계약이 아니라 그 시점 상수다). 검사 264 유지.
+- 그 이전 기준선: **51차 세션 (이어서) — main-006 close: `release-status` 의 `next_version` 이 커밋을 읽지 않았다.** 릴리스 경계를 판단하려다 도구 결함을 먼저 만났다. `_suggest_next_version` 이 **현재 버전 문자열 하나만** 받아 `patch+1` 을 내놓았는데, 그 값이 같은 summary 줄에서 **`unreleased=101` 옆에 찍힌다** — 개수는 세면서 판정은 안 세니 파생값처럼 보이는 상수였다 (feat 17 · fix 24 · **breaking 1** 인 사이클에 `1.2.1` 을 권했다). 이제 미발행 커밋 유형에서 파생한다: breaking → major · feat → minor · 그 외 → patch · 근거 없으면 patch 이되 `basis.total=0` 으로 **모름을 밝힌다**. 교정 결과 `next=2.0.0` + basis(breaking 제목 포함). **숫자만 내밀지 않는 것이 설계의 핵심**이다 — 이 저장소는 v0.8.0 에 API 를 얼렸으므로 major 승격은 사람 결정이고, 도구는 판정과 **근거**를 같이 낸다(`requires_decision`). 부수: `check_release_status_auto_bump_v0_11_16` 의 기대값 `0.11.17` 이 patch 휴리스틱을 인코딩하고 있어 저장소 이력에 결합돼 있었다 — `_unreleased_commits` 를 mock 해 그 case 가 **재려던 것**만 남겼다. 되주입 3종 red 실증, 검사 264 유지.
 - 그 이전 기준선: **51차 세션 — 관찰 축 3개 실측. 두 축에서 결함이 나왔고 셋째는 왜 못 재는지 밝혔다.** **① mypy flake (관찰 3차, main-004)**: 2차 기준선 이후 smoke **69 run 중 1건** 재발 — 그리고 **native 전용이라던 서명이 깨졌다**(이번은 slash). **원인 계열 확정: race 가 아니라 mypy INTERNAL ERROR(크래시)** — 아티팩트 `stderr_tail` 원문이 근거이고, 검사 `duration_sec` 0.65s 대 정상 3.4s/197파일이라 **분석 중이 아니라 시작 단계**에서 죽었다. 2차의 transient-파일 가설은 반증. **4번 터지는 동안 원인을 못 좁힌 이유는 절단 두 겹**이었다 — `smoke.yml` 의 `[:120]` 과 `_error_excerpt(400)` 이 사유를 잘라, 원인은 **아티팩트를 내려받아서야** 보였다; mypy 크래시는 보일러플레이트로 시작해서 앞에서 자르면 잡음만 남는다. 수리 3건(신호를 앞으로 정렬 · 요약 120→800 · excerpt 400→1200)이고 **검사는 상한을 복제하지 않고 smoke.yml 에서 읽는다**. 완료 기준을 개정: 'N run 연속 green' 은 원인을 모르던 시점의 기준이라 폐기 → **다음 재발이 트레이스백을 로그에 남길 것**. **② memory_index 3-tuple (main-004 신규)**: `query_diversity` 4/285 · `entries_new_30d` 2 · `distinct_entries_retrieved` **1/9** — 8/10 회고가 미리 적어 둔 판정 조건('항상 저점이면 W-1/W-2 가 안 도는 것')에 걸렸다. **원인은 검색이 아니라 배선**이었다: 회고가 추가한 종료 단계 `wk suggest-memory-entries` 가 `memory_index/README.md` 에만 있고 정본·CLAUDE.md·AGENTS.md 어디에도 없어(grep 0건) **한 번도 안 돌았다** — 실제로 승격 후보 5건이 대기 중이었다. 정본 §8.1·§11.1 에 넣고 진입점 재생성. **드리프트가 조용히 지나간 이유도 고쳤다**: `check_standard_single_source` case 3 이 §11 표에서 **대표 1개만** 봐서 6번째 명령 추가가 안 보였다 — 전 항목 대조 + **이 저장소 자신의 진입점**을 재는 case 신설. 새 절차를 이번 세션에 적용해 1건 승격(`MEM-2026-08-20-001`). **③ cross-host federation**: 두 번째 호스트(MacBook)가 없어 **이 호스트에서는 원리적으로 못 잰다** — 관찰이 아니라 대기다. **부수(main-005)**: 게이트 slash 축에서 `check_watch_transient_writer` 가 1회 red — `REQUIRES_QUIET_REPO` 가 아니라 **타이밍 가정**이었다(`SETTLE_S` 의 '폴링 간격의 20배' 근거는 폴러가 실제로 스케줄된다는 전제인데 16-way 병렬에서 깨진다). 고정 sleep 을 **관측 대기**로 바꿨다 — mypy flake 와 같은 계열이지만 이쪽은 우리 검사라 바로 고쳤다. 검사 264 유지.
-- 그 이전 기준선: **50차 세션 (이어서) — main-003 close: OKF v0.2 이행 (ADR-026 채택).** ADR-006 이 고정한 v0.1 을 새 ADR 로 옮겼다. SPEC 원문(1003줄) §13 을 직접 대조 — breaking 2건에 **둘 다 소비자 fallback 이 명시**(`timestamp`, 본문 `# Citations`)돼 있고 나머지는 전부 additive 라, **legacy 를 남긴 채 정규 필드를 더하면 한 번들이 v0.1·v0.2 소비자를 다 만족**한다 — 이 관측이 결정의 축이다. **`status` 만 실질 위험**: v0.2 에서 정규 필드로 승격돼 §11 의 관용 보장(unknown key 한정) 밖이 됐고, `stable` 필터에 71장 중 69장이 조용히 빠진다. `active`/`accepted`→`stable` · `proposed`/`draft`→`draft` · `superseded`/`deprecated`→`deprecated`, 원문은 `wiki_status` 로 보존. **생략도 답이 아니다** — §5.4 의 `Absent status ⇒ stable` 때문에 생략이 곧 stable 주장이다. **`sources` 를 낸다** — in-repo 출처가 처음으로 본문 산문이 아니라 기계가 읽는 필드에 들어갔다(§5.1 이 entry `resource` 로 경로·범위 서술을 허용). **`generated` 는 안 낸다** — §5.2 가 `by` 를 REQUIRED 로 두는데 우리는 페이지별 actor 기록이 없고, 도구 이름은 거짓이며 `human:` 은 생성물까지 사람 것으로 만들어 §5.3 trust tier 를 부풀린다. **이행이 결함 하나를 드러냈다**: ADR-011 정책이 `older → error` 라 v0.2 로 올리는 순간 **v0.1 번들 전부를 거부**한다 — 우리가 v0.1 인 동안 **도달 불가능한 분기**였고, 48차에 실측한 openwiki 가 바로 v0.1 이다. SPEC §12/§13 이 정반대를 말하므로 같은 major 의 낮은 minor 는 `pass` 로 바꿨다. **버전을 올리는 일은 생산 형식만의 문제가 아니었다.** 버전 리터럴은 `okf_export.OKF_SPEC_VERSION` 한 곳이고 튜플은 파생이다. check_okf_export 20→25 · check_okf_import 25→27, 되주입 6종 red 실증, 검사 파일 수 264 유지.
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 57건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 58건, 최신이 위).
 
 - 현재 주 작업 축: **배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -36,6 +36,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-08-20-main-009 플러그인 스킬 4종이 인벤토리엔 있고 세션엔 없다 — in_sync 를 쓸 수 있음으로 읽던 자리
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)
 ## 3. 차단 작업
@@ -45,6 +46,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-20-main-008 session-end 가 bootstrap 채널에 없다 — 두 채널의 스킬 집합이 갈라져 있었다
 - TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화
 - TASK-2026-08-20-main-006 release-status 의 next_version 이 커밋을 읽지 않는다 — 개수는 세고 판정은 안 센다
 - TASK-2026-08-20-main-005 watch_transient_writer 의 고정 sleep 이 병렬 부하에서 깨진다 — 시간이 아니라 관측을 기다린다
@@ -54,7 +56,6 @@
 - TASK-2026-08-20-main-001 wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의
 - TASK-2026-08-18-main-004 wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트
 - TASK-2026-08-14-main-019 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사
-- TASK-2026-08-18-main-006 OKF 상호운용 실측 — 다른 생산자의 번들과 대조
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -67,7 +68,11 @@
 
 후보 셋 (준비 상태 순):
 
-1. **[main-009] 라벨 영어 전환** — **release 경계가 풀렸다** (v1.3.0 발행). — release 경계 대기. `TASK_FIELD_LABELS` 한 줄만
+1. **[TASK-2026-08-20-main-009] 플러그인 스킬 미로드 원인 규명** — **새 세션에서만 검증 가능**하다.
+   (a) 1.3.0 재설치 후 `claude plugin details` + 실제 호출 (b) 로컬 `.claude/skills/standard-ai-workflow/`
+   를 잠시 치우고 플러그인 스킬이 뜨는지 — 이름 충돌 가설의 직접 검증. 실사용 손실은 없다
+   (로컬 채널이 이제 4종을 다 덮는다).
+2. **[TASK-2026-08-14-main-009] 라벨 영어 전환** — **release 경계가 풀렸다** (v1.3.0 발행). — release 경계 대기. `TASK_FIELD_LABELS` 한 줄만
    남았고 case 10 이 안전을 선실증했다.
 
 관찰 축: cross-host federation(MacBook, 시점 추후) · mypy flake · memory_index 3-tuple.
@@ -101,6 +106,11 @@
 - **증거는 만들어 두는 것으로 부족하고 소비 지점까지 도달해야 한다.** stderr 를
   잡아 뒀어도 상위 요약이 120자에서 자르면 없는 것과 같다. 그리고 **신호가 앞에
   와야** 한다 — 보일러플레이트로 시작하는 메시지는 잘리면 잡음만 남는다.
+- **인벤토리는 가용성의 증거가 아니다.** `claude plugin details` 가 `Skills (4)` 를
+  세는데 세션에서 호출하면 `Unknown skill` 이었다. 설치·활성화·파일 실재·인벤토리를
+  다 통과하고도 못 쓴다 — 마지막 한 칸은 **실제 호출**로만 재진다.
+- **같은 킷을 두 채널로 노출하면 집합이 갈라진다.** 개수가 아니라 **집합**을 대조해야
+  이름이 어긋난 채 통과하는 것을 막는다.
 - **폴백은 조용히 하지 않는다.** 무엇을 정본으로 봤는지 결과에 남기지 않으면 통과도
   실패도 근거가 못 된다 (`summary.in_progress_source`).
 

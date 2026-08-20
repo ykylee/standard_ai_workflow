@@ -1146,6 +1146,72 @@ After reporting the summary and candidates, once the user confirms:
 """
 
 
+def render_claude_code_session_end_command(args: argparse.Namespace, context: dict[str, object]) -> str:
+    """Render ``.claude/commands/workflow-session-end.md`` slash command.
+
+    **왜 뒤늦게 생겼나** (TASK-2026-08-20-main-008): 플러그인 채널은 처음부터
+    스킬 4종(session-start / backlog-update / doc-sync / **session-end**)을
+    내보냈는데, bootstrap 채널은 3종만 emit 했다. 두 채널이 같은 킷의 같은
+    절차를 서로 다른 집합으로 노출하고 있었고, `.claude/` 로 쓰는 프로젝트에서는
+    **세션 종료 절차만 진입점이 없었다**.
+
+    더 나쁜 것은 진입 스킬(`render_claude_code_skill`)의 `description` 이 이미
+    "세션을 종료하며 handoff 를 남길 때 사용한다" 고 **약속**하고 있었다는 점이다 —
+    광고와 배선이 어긋나면 모델은 있지도 않은 명령을 찾는다.
+
+    frontmatter 의 `description` 은 필수다 (session-start 주석 참조).
+    """
+    return f"""---
+description: Standard AI workflow session end — update the handoff and backlog, regenerate state.json, and leave the state so the next session resumes directly.
+---
+
+# /workflow-session-end
+
+> Claude Code slash command. The *session-end* entry point of the standard AI workflow.
+
+## Role
+
+Close the session, leaving the state so the next session can pick it up directly.
+
+## Order
+
+{load_standard_rules().close_order}
+
+## Procedure
+
+1. Update `session_handoff.md` — current baseline, in-progress / blocked / recently-done lists.
+2. Bring the task statuses in today's backlog in line with the actual results
+   (`planned` / `in_progress` / `blocked` / `done`).
+3. **Regenerate** `state.json` — never hand-edit it (see the parsing contract below).
+4. Judge memory_index promotion candidates once (advisory, writes nothing).
+5. Make sure the updates from 1–4 land in the **same commit**, then push.
+
+## Usage
+
+This work goes **through the tools** — hand-editing the documents silently breaks the parsing contract (canonical §11).
+
+```bash
+{find_memory_command(load_standard_rules(), "Regenerate state.json at session close")} --help
+```
+
+If the CLI is missing, do not skip silently — report the installation guidance and stop
+(`INSTALLATION_AND_USAGE.md` §3). A hand-written `state.json` that was never regenerated
+diverges from its input documents.
+
+## Language and context rules
+
+- User-facing reports are in Korean
+- Code, commands, file paths, and configuration keys stay verbatim
+- Keep only the *facts the next session actually needs* in the handoff / backlog
+
+## Related documents
+
+- `ai-workflow/memory/active/<branch>/session_handoff.md`
+- `ai-workflow/memory/active/<branch>/backlog`
+- `ai-workflow/memory/active/<branch>/state.json`
+"""
+
+
 def render_claude_code_backlog_update_command(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``.claude/commands/workflow-backlog-update.md`` slash command.
 
@@ -1261,7 +1327,7 @@ This work goes **through the tools** — hand-editing the documents silently bre
 def render_claude_code_skill(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``.claude/skills/standard-ai-workflow/SKILL.md`` (model-invoked skill).
 
-    slash command 3종과 **호출 주체가 다르다**: command 는 사용자가 `/` 로 부르고,
+    slash command 4종과 **호출 주체가 다르다**: command 는 사용자가 `/` 로 부르고,
     skill 은 모델이 `description` 을 보고 스스로 고른다. 사용자가 "세션 시작하자" 처럼
     *명령 이름을 모르는 채* 말할 때 진입할 자리가 그동안 없었다.
 
@@ -1280,7 +1346,7 @@ description: The standard AI workflow entry point for this repository. Use it wh
 - **Role**: the entry skill that covers session start, backlog update, document sync, and session close in one place.
 - **Location**: `.claude/skills/standard-ai-workflow/SKILL.md`
 - **Invocation**: the model selects it automatically when the situation matches the `description` above. To invoke it directly,
-  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync` slash command.
+  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end` slash command.
 - Last updated: {args.today}
 
 ## 1. Session start — always read these first
@@ -1310,6 +1376,13 @@ scope-creep warning.
 Derive affected-document candidates from the changed files and *recommend* update points
 against the `ai-workflow/wiki/index.md` anchors. Never apply them automatically.
 
+## 4. Session close
+
+Close the session so the next one resumes directly: update `session_handoff.md`, bring
+today's backlog task statuses in line with the actual results, **regenerate** `state.json`
+(never hand-edit it), and judge memory_index promotion candidates once. All of it lands in
+the **same commit** as the work it describes — see the close order below.
+
 {_STANDARD_RULES}
 
 ## Language and context principles
@@ -1333,13 +1406,14 @@ def write_claude_code_harness_files(
     본 함수는 `.claude/` 아래 4개 파일을 emit 한다. CLAUDE.md 자체는
     ``write_harness_files`` 의 진입점 dispatch 에서 emit (``render_claude_code_agents``).
 
-    3 slash command:
+    4 slash command (v1.3.1+: session-end 합류 — 플러그인 채널과 집합을 맞춘다):
     - ``workflow-session-start`` — baseline 복원
     - ``workflow-backlog-update`` — 작업 등록/갱신
     - ``workflow-doc-sync`` — 영향 문서 동기화
+    - ``workflow-session-end`` — 세션 종료 (handoff/backlog 갱신 + state 재생성)
 
     1 skill (v1.0.4+):
-    - ``standard-ai-workflow`` — 위 3종의 *모델 호출* 진입점. opencode / grok-build 는
+    - ``standard-ai-workflow`` — 위 4종의 *모델 호출* 진입점. opencode / grok-build 는
       진작 skill 을 내보내고 있었는데 claude-code 만 없었다.
     """
     generated: dict[str, str] = {}
@@ -1348,6 +1422,7 @@ def write_claude_code_harness_files(
     session_start_cmd = claude_root / "workflow-session-start.md"
     backlog_update_cmd = claude_root / "workflow-backlog-update.md"
     doc_sync_cmd = claude_root / "workflow-doc-sync.md"
+    session_end_cmd = claude_root / "workflow-session-end.md"
     skill_file = paths.target_root / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md"
 
     write_text(session_start_cmd, render_claude_code_session_start_command(args, context), force=args.force, rel_to=paths.target_root)
@@ -1356,6 +1431,8 @@ def write_claude_code_harness_files(
     generated["claude_code_backlog_update_command"] = str(backlog_update_cmd)
     write_text(doc_sync_cmd, render_claude_code_doc_sync_command(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_doc_sync_command"] = str(doc_sync_cmd)
+    write_text(session_end_cmd, render_claude_code_session_end_command(args, context), force=args.force, rel_to=paths.target_root)
+    generated["claude_code_session_end_command"] = str(session_end_cmd)
     write_text(skill_file, render_claude_code_skill(args, context), force=args.force, rel_to=paths.target_root)
     generated["claude_code_skill"] = str(skill_file)
 

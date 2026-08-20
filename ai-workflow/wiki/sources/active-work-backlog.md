@@ -9,7 +9,7 @@ last_touched: 2026-08-20
 
 # Active Work Backlog (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/backlog/2026-08-20.md` (38 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/backlog/2026-08-20.md` (44 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
 > 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
@@ -24,3 +24,5 @@ last_touched: 2026-08-20
 - **TASK-2026-08-20-main-005** watch_transient_writer 의 고정 sleep 이 병렬 부하에서 깨진다 — 시간이 아니라 관측을 기다린다 — `done`
 - **TASK-2026-08-20-main-006** release-status 의 next_version 이 커밋을 읽지 않는다 — 개수는 세고 판정은 안 센다 — `done`
 - **TASK-2026-08-20-main-007** v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화 — `done`
+- **TASK-2026-08-20-main-008** session-end 가 bootstrap 채널에 없다 — 두 채널의 스킬 집합이 갈라져 있었다 — `done`
+- **TASK-2026-08-20-main-009** 플러그인 스킬 4종이 인벤토리엔 있고 세션엔 없다 — in_sync 를 쓸 수 있음으로 읽던 자리 — `in_progress`

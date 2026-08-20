@@ -679,6 +679,19 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
             "pi-dev": "경로 참조라 사본이 없다 — 원본이 곧 설치본이다",
             "gemini-cli": "이 호스트에 CLI 가 없어 미실측 (§7.0.2 와 같은 상태)",
         },
+        # 이 절이 재는 것은 **파일이 같은가** 이지 **하네스가 그것을 실제로 노출하는가**
+        # 가 아니다. 둘은 갈릴 수 있고 실제로 갈렸다 (2026-08-20 실측):
+        # 설치본의 `skills/` 4종이 정본과 in-sync 였고 `claude plugin details` 도
+        # `Skills (4)` 로 셌는데, **세션에는 그중 하나도 로드되지 않았다**
+        # (`Unknown skill: standard-ai-workflow:doc-sync`).
+        #
+        # 노출 여부는 세션이 켜져 봐야 알 수 있고 탐침 밖이다. 재지 못하는 것을
+        # 통과로 세지 않는다 — `installable` 이 "설치 성공" 이 아니듯,
+        # `in_sync` 도 "쓸 수 있음" 이 아니다 (main-019 와 같은 원칙).
+        "declared_unmeasured": [
+            "하네스가 이 사본을 실제로 세션에 노출하는지 — 파일 일치는 노출의 증거가 아니다 "
+            "(2026-08-20 실측: in-sync + 인벤토리 4종인데 세션 로드 0종)",
+        ],
     }
 
 

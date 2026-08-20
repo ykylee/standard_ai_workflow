@@ -474,6 +474,31 @@ def test_preflight_writes_nothing() -> None:
         _record("test_preflight_writes_nothing", _tree_digest(home) == before)
 
 
+def test_content_drift_declares_surface_as_unmeasured() -> None:
+    """`in_sync` 를 **쓸 수 있음**으로 읽지 않게 한계를 명시한다 (2026-08-20).
+
+    실측: 설치본의 `skills/` 가 정본과 in-sync 였고 `claude plugin details` 도
+    `Skills (4)` 로 셌는데, 세션에는 그중 하나도 로드되지 않았다
+    (`Unknown skill: standard-ai-workflow:doc-sync`). 이 절이 재는 것은
+    **파일이 같은가** 이지 **하네스가 그것을 노출하는가** 가 아니다.
+
+    노출은 세션이 켜져 봐야 알 수 있어 탐침 밖이다. 그러면 재지 못한다고
+    **말해야** 한다 — `installable` 이 "설치 성공" 이 아니듯이
+    (main-019 와 같은 원칙). 이 선언이 사라지면 다음 사람이 in_sync 를
+    "쓸 수 있음" 으로 읽는다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-unmeasured-") as tmp:
+        report = probe(project_root=Path(tmp), home=Path(tmp) / "home")
+    content = report.get("content_drift") or {}
+    declared = content.get("declared_unmeasured")
+    problems = []
+    if not isinstance(declared, list) or not declared:
+        problems.append(f"declared_unmeasured 가 비었다: {declared!r}")
+    elif not any("노출" in item for item in declared):
+        problems.append(f"노출 미측정 선언이 없다: {declared!r}")
+    _record("test_content_drift_declares_surface_as_unmeasured", not problems, "; ".join(problems))
+
+
 def main() -> int:
     test_report_shape()
     test_probe_writes_nothing()
@@ -488,10 +513,11 @@ def main() -> int:
     test_content_drift_catches_same_version_stale_payload()
     test_content_drift_expects_only_channel_files()
     test_content_drift_writes_nothing()
+    test_content_drift_declares_surface_as_unmeasured()
     test_preflight_separates_measured_from_declared()
     test_preflight_blocks_channel_with_missing_executable()
     test_preflight_writes_nothing()
-    total = 16
+    total = 17
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

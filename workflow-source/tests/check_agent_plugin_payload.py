@@ -1108,6 +1108,72 @@ def test_pi_dev_adapter() -> None:
     )
 
 
+def test_bootstrap_channel_matches_plugin_skill_set() -> None:
+    """두 배포 채널이 **같은 스킬 집합**을 노출한다 (TASK-2026-08-20-main-008).
+
+    플러그인 채널은 처음부터 4종(session-start / backlog-update / doc-sync /
+    session-end)을 실었는데, bootstrap 채널(`.claude/commands/`)은 3종만
+    emit 했다. `.claude/` 로 쓰는 프로젝트에서는 **세션 종료 절차만 진입점이
+    없었고**, 정작 진입 스킬의 `description` 은 "세션 종료" 를 이미 약속하고
+    있었다 — 광고와 배선이 어긋나면 모델은 있지도 않은 명령을 찾는다.
+
+    한쪽만 늘어나는 것을 막으려면 **집합을 대조**해야 한다. 개수만 세면
+    이름이 어긋난 채로 통과한다.
+    """
+    from workflow_kit.plugin_payload import PLUGIN_SKILLS
+
+    plugin_slugs = {spec.slug for spec in PLUGIN_SKILLS}
+
+    # 1) 생성기가 각 slug 에 대응하는 slash command 를 emit 하는가
+    renderers_src = (
+        SOURCE_ROOT / "workflow_kit" / "bootstrap_lib" / "harnesses" / "renderers.py"
+    ).read_text(encoding="utf-8")
+    missing_renderer = [
+        slug for slug in sorted(plugin_slugs)
+        if f'"workflow-{slug}.md"' not in renderers_src
+    ]
+
+    # 2) 이 저장소 자신의 `.claude/commands/` 가 그 집합을 담고 있는가 (자기 적용)
+    commands_dir = REPO_ROOT / ".claude" / "commands"
+    local_slugs = {
+        f.stem[len("workflow-"):] for f in commands_dir.glob("workflow-*.md")
+    } if commands_dir.is_dir() else set()
+    missing_local = sorted(plugin_slugs - local_slugs)
+    extra_local = sorted(local_slugs - plugin_slugs)
+
+    problems: list[str] = []
+    if missing_renderer:
+        problems.append(f"생성기가 emit 안 하는 slug: {missing_renderer}")
+    if missing_local:
+        problems.append(f"이 저장소 .claude/commands/ 에 없는 slug: {missing_local}")
+    if extra_local:
+        problems.append(f"플러그인에 없는 로컬 명령: {extra_local}")
+    _record("test_bootstrap_channel_matches_plugin_skill_set", not problems, "; ".join(problems))
+
+
+def test_entry_skill_advertises_every_command() -> None:
+    """진입 스킬이 **모든** slash command 를 가리킨다.
+
+    `description` 은 4단계를 약속하는데 본문은 3개만 안내하던 상태를 막는다.
+    """
+    from workflow_kit.plugin_payload import PLUGIN_SKILLS
+
+    skill_path = REPO_ROOT / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md"
+    if not skill_path.is_file():
+        _record("test_entry_skill_advertises_every_command", False, f"진입 스킬 부재: {skill_path}")
+        return
+    text = skill_path.read_text(encoding="utf-8")
+    absent = [
+        spec.slug for spec in PLUGIN_SKILLS
+        if f"/workflow-{spec.slug}" not in text
+    ]
+    _record(
+        "test_entry_skill_advertises_every_command",
+        not absent,
+        f"진입 스킬이 안 가리키는 명령: {sorted(absent)}",
+    )
+
+
 def main() -> int:
     test_payload_matches_generator()
     test_skill_frontmatter_valid()
@@ -1129,7 +1195,9 @@ def main() -> int:
     test_goose_opencode_snippets()
     test_grok_build_hooks()
     test_pi_dev_adapter()
-    total = 20
+    test_bootstrap_channel_matches_plugin_skill_set()
+    test_entry_skill_advertises_every_command()
+    total = 22
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

@@ -10,7 +10,7 @@ description: 이 저장소의 표준 AI 워크플로우 진입점. 세션을 시
 - **역할**: 세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 한 자리에서 안내하는 진입 skill.
 - **위치**: `.claude/skills/standard-ai-workflow/SKILL.md`
 - **호출**: 모델이 위 `description` 에 해당하는 상황에서 자동 선택. 사용자가 직접 부르려면
-  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync` slash command.
+  `/workflow-session-start`, `/workflow-backlog-update`, `/workflow-doc-sync`, `/workflow-session-end` slash command.
 - 최종 수정일: 2026-08-05
 
 ## 1. 세션 시작 — 항상 먼저 읽는다
@@ -37,6 +37,13 @@ scaffold 를 제안한다.
 
 변경된 파일에서 영향 문서 후보를 뽑고, `ai-workflow/wiki/index.md` anchor 기준으로
 갱신 포인트를 *권고* 한다. 자동 반영하지 않는다.
+
+## 4. 세션 종료
+
+다음 세션이 그대로 이어받도록 마감한다: `session_handoff.md` 갱신 · 오늘 backlog 의
+task 상태를 실제 결과와 맞춤 · `state.json` **재생성**(손으로 고치지 않는다) ·
+memory_index 승격 후보를 한 번 판단. 전부 그 작업을 설명하는 **같은 커밋**에 실린다 —
+순서는 아래 "세션 종료 순서" 참조. 직접 부르려면 `/workflow-session-end`.
 
 ## 작업 원칙
 

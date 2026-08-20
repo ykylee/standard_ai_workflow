@@ -4,14 +4,14 @@ status: draft
 r9_skip: true
 title: wiki-log
 created: 2026-07-22
-last_touched: 2026-08-19
+last_touched: 2026-08-20
 ---
 
-# Wiki Log (Derived View, 2026-08-19)
+# Wiki Log (Derived View, 2026-08-20)
 
 > L1 SSOT: `ai-workflow/wiki/log.md` (2059 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
-> 생성: `2026-08-19` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
+> 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
 ## 최근 entry 5건 (최신 우선)
 

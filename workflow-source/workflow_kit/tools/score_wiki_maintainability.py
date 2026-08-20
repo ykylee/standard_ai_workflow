@@ -43,6 +43,24 @@ REPO_ROOT = SOURCE_ROOT.parent
 INREPO_WIKI = REPO_ROOT / "ai-workflow" / "wiki"
 # v0.7.17+ in-repo storage: L2 sources 도 in-repo.
 L2_SOURCES = INREPO_WIKI / "sources"
+
+#: **선언된** L2 집합. 2026-08-20(TASK-2026-08-20-main-001)에 L2 계약이
+#: 'memory SSOT 파생 4종' 으로 좁혀졌고, 그 정본은 생성기가 들고 있다.
+#: 여기에 목록을 복제하지 않는다 — 복제하면 한쪽만 바뀌어 조용히 갈라진다.
+#:
+#: 이 상수가 **분모**다. 이전에는 `L2_SOURCES.glob("*.md")` 로 찾은 파일 수가
+#: 분모였는데, 그러면 stub 3장을 지워도 total=1 / searchable=1 이라 점수가
+#: **5.0 그대로** 나온다 — '사라짐' 이 지표에 전혀 안 잡혔다. 지표는 있는가가
+#: 아니라 **몇 개인가 / 어느 것인가** 를 재야 한다.
+def _declared_l2_stubs() -> list[str]:
+    try:
+        from workflow_kit.tools.refresh_wiki_memory import L2_STUBS
+
+        return sorted(L2_STUBS)
+    except Exception:
+        # standalone 실행 등으로 import 가 안 되면 **모름을 통과로 세지 않는다**:
+        # 빈 목록을 돌려 분모 0(측정 불가)으로 떨어뜨린다.
+        return []
 WIKI_FRONTMATTER_RE = re.compile(r"---\n(.+?)\n---\n", re.DOTALL)
 UPDATED_RE = re.compile(r"^updated:\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
 LAST_INGESTED_FROM_RE = re.compile(r"^last_ingested_from:\s*(.+)$", re.MULTILINE)
@@ -208,14 +226,36 @@ def score_freshness() -> tuple[float, dict]:
     return round((1 - ratio) * 5.0, 2), {"total": total, "drift": drift, "drift_ratio": round(ratio, 3)}
 
 
+#: L2 본문이 "아직 안 쓴 상태" 임을 나타내는 placeholder.
+L2_PLACEHOLDER = "<needs content>"
+
+
+def _is_placeholder_body(body: str) -> bool:
+    """본문이 placeholder 인가 — **줄 전체가** placeholder 인 줄이 있는가.
+
+    부분 문자열 판정은 placeholder 를 인용한 산문을 오탐한다.
+    """
+    return any(line.strip() == L2_PLACEHOLDER for line in body.splitlines())
+
+
 def score_discoverability() -> tuple[float | None, dict]:
-    """vault L2 page with 본문 ≥ 200자 비율. Max 5.0."""
+    """**선언된** L2 4종 중 본문 ≥ 200자인 비율. Max 5.0.
+
+    분모는 디렉터리에서 찾은 파일이 아니라 `_declared_l2_stubs()` 다 —
+    부재한 stub 은 '없는 것' 이 아니라 **검색 불가 1건**으로 센다.
+    """
     if not L2_SOURCES.exists():
         return 0.0, {"error": "vault L2 not found"}
+    declared = _declared_l2_stubs()
     total = 0
     searchable = 0
-    for md in L2_SOURCES.glob("*.md"):
+    missing: list[str] = []
+    for stem in declared:
         total += 1
+        md = L2_SOURCES / f"{stem}.md"
+        if not md.is_file():
+            missing.append(stem)
+            continue
         content = md.read_text(encoding="utf-8", errors="ignore")
         if not content.startswith("---\n"):
             continue
@@ -223,8 +263,12 @@ def score_discoverability() -> tuple[float | None, dict]:
         if end < 0:
             continue
         body = content[end + 5:].strip()
-        # <needs content> placeholder = not searchable
-        if "<needs content>" in body:
+        # placeholder = not searchable. 단, **줄 전체가** placeholder 일 때만이다 —
+        # 부분 문자열로 보면 placeholder 를 *언급하는* 문서가 placeholder 를
+        # *가진* 것으로 세어진다. 실제로 handoff 파생 뷰가 그렇게 걸렸다
+        # (2026-08-20): 본문이 "게이트가 `<needs content>` 하나라" 라고 설명하는데
+        # 검색 불가로 집계됐다.
+        if _is_placeholder_body(body):
             continue
         if len(body) >= 200:
             searchable += 1
@@ -235,7 +279,10 @@ def score_discoverability() -> tuple[float | None, dict]:
         return None, {"total": 0, "searchable": 0, "ratio": 0.0,
                       "error": "no L2 source pages — not measurable"}
     ratio = searchable / total
-    return round(ratio * 5.0, 2), {"total": total, "searchable": searchable, "ratio": round(ratio, 3)}
+    return round(ratio * 5.0, 2), {
+        "total": total, "searchable": searchable, "ratio": round(ratio, 3),
+        "declared": declared, "missing": missing,
+    }
 
 
 def score_cross_ref() -> tuple[float, dict]:
@@ -283,15 +330,25 @@ def score_lifecycle() -> tuple[float | None, dict]:
     생성물에 맞는 lifecycle 은 "얼마나 최근에 갱신됐는가" 다. `last_touched` 가
     오늘로부터 L2_FRESH_DAYS 이내면 살아 있는 것으로 센다. stub emit 이 멈추면
     자연히 점수가 떨어지므로 **L2 계층 방치**를 정확히 탐지한다.
+
+    분모는 **선언된** 4종(`_declared_l2_stubs`)이다. 디렉터리에서 찾은 파일을
+    분모로 잡으면 stub 을 지울수록 점수가 올라간다 (2026-08-20 발견).
     """
     if not L2_SOURCES.exists():
         return 0.0, {"error": "vault L2 not found"}
     today = datetime.now().date()
+    declared = _declared_l2_stubs()
     total = 0
     reviewed = 0  # = fresh (하위 호환 위해 key 이름 유지)
     stale: list[str] = []
-    for md in L2_SOURCES.glob("*.md"):
+    for stem in declared:
         total += 1
+        md = L2_SOURCES / f"{stem}.md"
+        if not md.is_file():
+            # 부재는 '측정 대상 아님' 이 아니라 **가장 낡은 상태**다. 찾은 파일만
+            # 세면 stub 을 지울수록 점수가 좋아진다.
+            stale.append(f"{md.name}: 파일 부재")
+            continue
         content = md.read_text(encoding="utf-8", errors="ignore")
         m = re.search(r"^last_touched:\s*(\d{4}-\d{2}-\d{2})", content, re.MULTILINE)
         if not m:
@@ -312,7 +369,7 @@ def score_lifecycle() -> tuple[float | None, dict]:
     ratio = reviewed / total
     return round(ratio * 5.0, 2), {
         "total": total, "reviewed": reviewed, "ratio": round(ratio, 3),
-        "fresh_days": L2_FRESH_DAYS, "stale": stale,
+        "fresh_days": L2_FRESH_DAYS, "stale": stale, "declared": declared,
     }
 
 
@@ -506,7 +563,7 @@ last_touched: {timestamp[:10]}
 
 - **Coverage < 4.5**: v0.7.0+ step 의 concept page 추가
 - **Freshness < 4.5**: drift >= 7일 page 의 last_ingested_from 갱신
-- **Discoverability < 4.5**: vault L2 sources/ 의 `<needs content>` 해소 (emit_wiki_l2_body.py --apply)
+- **Discoverability < 4.5**: 선언된 L2 4종의 부재/빈 본문 해소 (`wk wiki-emit --apply`)
 - **Cross-ref < 4.5**: related_pages ≥ 2 page 추가
 - **Lifecycle < 4.5**: vault L2 status: draft → reviewed 자동 갱신
 - **Operational < 4.5**: smoke test 신규 추가 또는 회귀 fix
@@ -516,7 +573,7 @@ last_touched: {timestamp[:10]}
 
 - tool: `workflow-source/workflow_kit/tools/score_wiki_maintainability.py`
 - tool: `workflow-source/workflow_kit/tools/score_wiki_trend.py` (v0.7.1+, trend over time)
-- helper: `workflow-source/workflow_kit/tools/emit_wiki_l2_body.py` (L2 emit)
+- helper: `workflow-source/workflow_kit/tools/refresh_wiki_memory.py` (L2 emit 정본)
 - smoke: `workflow-source/tests/check_wiki_drift.py` (drift)
 - 6 dim 정의: 본 dashboard §Score 기준
 """

@@ -5,7 +5,7 @@
 3-step cycle 을 1-command 로 묶음. 운영 시 *3번의 별도 invoke* 부담 zero.
 
 Test 구성 (5 test):
-1. test_wiki_emit_dry_run_full_cycle: 기본 dry-run 이 살아 있는 2단계만 계획 (1단계 은퇴)
+1. test_wiki_emit_dry_run_full_cycle: 기본 dry-run 이 살아 있는 1단계만 계획 (1/2단계 은퇴)
 2. test_wiki_emit_refresh_wiki_only: --refresh-wiki 시 1단계만 (2/3 skipped)
 3. test_wiki_emit_emit_l2_only: --emit-l2 시 2단계만
 4. test_wiki_emit_reemit_stubs_only: --reemit-stubs 시 3단계만
@@ -41,21 +41,21 @@ def _run(args: list[str], *, timeout: int = 60) -> tuple[int, str, str]:
 
 
 def test_wiki_emit_dry_run_full_cycle() -> None:
-    """dry-run 기본은 **살아 있는 2단계**만 계획하고 은퇴한 1단계는 뺀다.
+    """dry-run 기본은 **살아 있는 1단계**만 계획하고 은퇴한 둘을 뺀다.
 
-    TASK-2026-08-18-main-004 이전에는 3-step 이 기본이었다. 1단계는
-    `state.json` 을 쓰는 **두 번째 writer** 였고 (정본 §11.2 의 생성 산출물,
-    생성기는 `wk refresh-state` 하나다) 나머지 대상도 전부 무너져 있어
-    은퇴했다. write 0 인 단계를 기본에 두면 로그만 늘고, 그 자리에 뭔가
-    갱신되고 있다는 인상을 준다.
+    원래 3-step 이었고 둘이 각각 다른 이유로 은퇴했다. 1단계
+    (TASK-2026-08-18-main-004)는 `state.json` 을 쓰는 **두 번째 writer** 였고,
+    2단계(TASK-2026-08-20-main-001)는 L1 wiki page 파생 뷰의 근거였던 외부
+    vault retrieval 이 v0.7.17 in-repo 전환 때 사라져서다. write 0 인 단계를
+    기본에 두면 로그만 늘고, 그 자리에 뭔가 갱신되고 있다는 인상을 준다.
     """
     rc, out, err = _run(["--dry-run", "--json"], timeout=30)
     assert rc == 0, f"unexpected rc={rc}, stderr={err}"
     data = json.loads(out)
     assert data["mode"] == "dry-run"
     step_names = [s["name"] for s in data["steps"]]
-    assert step_names == ["2_emit_l2_dense", "3_reemit_stubs"], step_names
-    assert data["skipped_steps"] == ["1_refresh_raw"], data["skipped_steps"]
+    assert step_names == ["3_reemit_stubs"], step_names
+    assert data["skipped_steps"] == ["1_refresh_raw", "2_emit_l2_dense"], data["skipped_steps"]
     # 하위 단계는 **모듈로** 부른다 (`-m <module>`), 파일 경로가 아니다.
     #
     # 2026-08-18 (TASK-2026-08-18-main-003): 원래 이 단언은 `"…​.py" in cmd[1]` 로
@@ -70,13 +70,14 @@ def test_wiki_emit_dry_run_full_cycle() -> None:
     assert step_1_cmd[1] == "-m", f"파일 경로로 부른다: {step_1_cmd[:3]}"
     assert step_1_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_1_cmd[2]
     assert "--refresh-raw" in step_1_cmd
-    # 2단계 — emit_wiki_l2_body + --max-chars (기본 실행의 첫 단계)
-    step_2_cmd = data["steps"][0]["command"]
+    # 은퇴한 2단계도 **명시 호출** 시에는 모듈로 불린다 (계약 자체는 유지)
+    rc2, out2, _ = _run(["--emit-l2", "--dry-run", "--json"], timeout=30)
+    assert rc2 == 0
+    step_2_cmd = json.loads(out2)["steps"][0]["command"]
     assert step_2_cmd[1] == "-m", f"파일 경로로 부른다: {step_2_cmd[:3]}"
     assert step_2_cmd[2] == "workflow_kit.tools.emit_wiki_l2_body", step_2_cmd[2]
-    assert "--max-chars" in step_2_cmd
-    # 3단계 — refresh_wiki_memory + --emit-l2
-    step_3_cmd = data["steps"][1]["command"]
+    # 3단계 — refresh_wiki_memory + --emit-l2 (기본 실행의 유일한 단계)
+    step_3_cmd = data["steps"][0]["command"]
     assert step_3_cmd[1] == "-m", f"파일 경로로 부른다: {step_3_cmd[:3]}"
     assert step_3_cmd[2] == "workflow_kit.tools.refresh_wiki_memory", step_3_cmd[2]
     assert "--emit-l2" in step_3_cmd
@@ -125,25 +126,20 @@ def test_wiki_emit_reemit_stubs_only() -> None:
 
 
 def test_wiki_emit_skip_combinations() -> None:
-    """--skip-N 이 기본 2단계에서 그 단계를 뺀다 (1단계는 이미 기본에서 빠져 있다)."""
-    # --skip-1 → 기본과 같다 (1단계는 원래 안 돈다)
-    rc, out, _ = _run(["--skip-1", "--dry-run", "--json"], timeout=30)
-    assert rc == 0
-    data = json.loads(out)
-    assert [s["name"] for s in data["steps"]] == ["2_emit_l2_dense", "3_reemit_stubs"]
-    assert data["skipped_steps"] == ["1_refresh_raw"]
-    # --skip-2 → 3단계만
-    rc, out, _ = _run(["--skip-2", "--dry-run", "--json"], timeout=30)
-    assert rc == 0
-    data = json.loads(out)
-    assert [s["name"] for s in data["steps"]] == ["3_reemit_stubs"]
-    assert data["skipped_steps"] == ["1_refresh_raw", "2_emit_l2_dense"]
-    # --skip-3 → 2단계만
+    """--skip-N 이 기본 1단계에서 그 단계를 뺀다 (1/2단계는 이미 빠져 있다)."""
+    # --skip-1 / --skip-2 → 기본과 같다 (둘 다 원래 안 돈다)
+    for flag in ("--skip-1", "--skip-2"):
+        rc, out, _ = _run([flag, "--dry-run", "--json"], timeout=30)
+        assert rc == 0
+        data = json.loads(out)
+        assert [s["name"] for s in data["steps"]] == ["3_reemit_stubs"], flag
+        assert data["skipped_steps"] == ["1_refresh_raw", "2_emit_l2_dense"], flag
+    # --skip-3 → 남는 단계가 없다
     rc, out, _ = _run(["--skip-3", "--dry-run", "--json"], timeout=30)
     assert rc == 0
     data = json.loads(out)
-    assert [s["name"] for s in data["steps"]] == ["2_emit_l2_dense"]
-    assert data["skipped_steps"] == ["1_refresh_raw", "3_reemit_stubs"]
+    assert data["steps"] == []
+    assert data["skipped_steps"] == ["1_refresh_raw", "2_emit_l2_dense", "3_reemit_stubs"]
 
 
 # --- 메인 실행 ---

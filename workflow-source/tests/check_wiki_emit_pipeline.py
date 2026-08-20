@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
-"""`wk wiki-emit` 파이프라인의 계약을 고정한다 (TASK-2026-08-18-main-004).
+"""L2 계약을 고정한다 — 정의 · 목록 · 소유 · 분모 (TASK-2026-08-20-main-001).
 
-`emit_wiki_l2_body` 는 **한 번도 끝까지 실행된 적이 없었다.** v0.7.17 의
-in-repo 전환 때 vault 시대 이름 셋이 남았고, 셋 다 실행 경로 위에 있었다:
+L2 는 2026-08-20 에 **정의가 좁아졌다**:
 
-- `RAW_MIRROR / <project> / "ai-workflow" / "wiki"` — 없는 경로라 `ValueError`
-- `RAW_MIRROR.parts.index("raw")` — in-repo 에는 `raw` 조각이 없다
-- `VAULT_ROOT` — **정의된 적 없는 이름**. 앞의 둘을 고쳐도 그 다음이 `NameError` 였다.
+    L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰. 4종뿐이다.
 
-그리고 고쳐도 할 일이 없었다: 게이트가 `<needs content>` placeholder 하나라
-**한 번 emit 된 page 는 영원히 재emit 대상이 아니었다** — L1 이 바뀌어도 파생
-뷰가 따라가지 않고 `last_touched` 가 얼어붙는다.
+L1 wiki page 파생 경로(`emit_wiki_l2_body`)는 은퇴했다 — 근거였던 외부 vault
+retrieval 이 v0.7.17 in-repo 전환 때 사라졌고, in-repo 에서 L1 은 이미 검색
+가능해서 사본은 드리프트 표면만 늘렸다.
 
-그래서 여기서 재는 것은 "import 되는가" 가 아니라 **끝까지 실행되는가**, 그리고
-**게이트가 신선도인가** 다.
+계약은 **말로 적으면 지켜지지 않는다.** 이 검사가 고정하는 것 넷:
+
+1. **은퇴한 경로가 아무것도 쓰지 않는다** — 조용한 no-op 이 아니라 사유를 말한다.
+2. **은퇴한 기계가 파일에 없다** — 분기로만 막으면 다음 사람이 다시 부른다.
+3. **목록이 한 곳에만 있다** — 지표가 복제하지 않고 생성기 상수를 본다.
+4. **분모가 선언된 집합이다** — stub 을 지울수록 점수가 오르면 지표가 아니다.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
+TOOLS = SOURCE_ROOT / "workflow_kit" / "tools"
 EMIT_MODULE = "workflow_kit.tools.emit_wiki_l2_body"
 WRAPPER_MODULE = "workflow_kit.tools.wiki_emit"
-TODAY = datetime.now().strftime("%Y-%m-%d")
 
 FAILURES: list[str] = []
 
@@ -72,239 +73,68 @@ def _run(module: str, args: list[str], repo: Path, timeout: int = 90) -> subproc
 
 
 def _fixture(tmp: Path) -> Path:
-    """L1 wiki page 2장 + 운영 파일 + memory SSOT 를 갖춘 최소 저장소.
-
-    `emit_wiki_l2_body` 의 REPO_ROOT 해석은 `git rev-parse` 뿐이라 fixture 를
-    git 저장소로 만든다 — 그러지 않으면 cwd 상위의 실제 저장소를 잡을 수 있다.
-    """
+    """L1 wiki page + 운영 파일 + memory SSOT 를 갖춘 최소 저장소."""
     subprocess.run(["git", "init", "-q"], cwd=str(tmp), capture_output=True, timeout=30)
     wiki = tmp / "ai-workflow" / "wiki"
-    _write(wiki / "concepts" / "alpha.md", (
-        "---\ntype: concept\nstatus: active\n---\n\n"
-        "# Alpha 개념\n\n"
-        "## §1 TL;DR  {#s1-tldr}\n\n"
-        "| 항목 | 값 |\n|---|---|\n| 하나 | 값1 |\n| 둘 | 값2 |\n\n"
-        "## §2 본문\n\n" + ("알파 본문 줄.\n" * 40)
-    ))
-    _write(wiki / "concepts" / "beta.md", (
-        "---\ntype: concept\nstatus: active\n---\n\n"
-        "# Beta 개념\n\n## §2 본문\n\n" + ("베타 본문 줄.\n" * 40)
-    ))
-    # 운영 파일 — page 가 아니므로 L2 대상에서 빠져야 한다.
-    _write(wiki / "log.md", "# Wiki Log\n\n## [2026-08-18] ingest | 항목\n- 본문\n")
-    _write(wiki / "index.md", "# Index\n")
-    _write(wiki / "SCHEMA.md", "# Schema\n")
-    _write(wiki / "INGEST_GUIDE.md", "# Guide\n")
-    # refresh_wiki_memory 소유 stub — emit_wiki_l2_body 가 건드리면 안 된다.
-    for name in ("active-state", "active-work-backlog", "active-session-handoff", "wiki-log"):
-        _write(wiki / "sources" / f"{name}.md", (
-            "---\ntype: meta\nstatus: draft\nr9_skip: true\n"
-            f"title: {name}\ncreated: 2026-06-14\nlast_touched: 2026-06-14\n---\n\n"
-            "> Generated: 2026-06-14 by `workflow_kit.tools.refresh_wiki_memory --emit-l2`\n\n본문\n"
-        ))
+    _write(wiki / "concepts" / "alpha.md", "---\ntype: concept\n---\n\n# Alpha\n\n" + ("본문 줄.\n" * 40))
+    _write(wiki / "concepts" / "beta.md", "---\ntype: concept\n---\n\n# Beta\n\n" + ("본문 줄.\n" * 40))
+    _write(wiki / "log.md", "# Wiki Log\n\n## [2026-08-20] ingest | 항목\n- 본문\n")
     active = tmp / "ai-workflow" / "memory" / "active"
-    _write(active / "state.json", '{"session": {"in_progress_items": [], "blocked_items": [], "recent_done_items": []}}')
+    _write(active / "state.json", json.dumps({
+        "session": {"in_progress_items": [], "blocked_items": [], "recent_done_items": ["TASK-A 항목"]},
+        "backlog": {"task_count": 1},
+    }, ensure_ascii=False))
     _write(active / "session_handoff.md", "# Session Handoff\n\n## 1. 현재 작업 요약\n\n- 현재 기준선: 픽스처.\n")
-    _write(active / "backlog" / "2026-08-18.md", "# Backlog\n\n- **TASK-X** 항목\n  - status: done\n")
+    _write(active / "backlog" / "2026-08-20.md", "# Backlog\n\n- **TASK-A** 항목\n  - status: done\n")
     return tmp
 
 
-def _l2(repo: Path, stem: str) -> Path:
-    return repo / "ai-workflow" / "wiki" / "sources" / f"{stem}.md"
+# --- 1. 은퇴한 경로 -------------------------------------------------------
 
 
-# --- 1. 끝까지 실행된다 (화석 3종) ---------------------------------------
-
-
-def test_emit_runs_to_completion_on_in_repo_layout() -> None:
-    """in-repo 레이아웃에서 emit 이 끝까지 간다 (ValueError / NameError 없음)."""
+def test_retired_emit_writes_nothing_and_says_why() -> None:
+    """`emit_wiki_l2_body` 는 write 0 이고 사유를 stderr 로 말한다 (rc=0)."""
     with tempfile.TemporaryDirectory() as td:
         repo = _fixture(Path(td))
+        before = _tree_digest(repo)
         proc = _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--apply"], repo)
-        made = sorted(p.stem for p in (repo / "ai-workflow" / "wiki" / "sources").glob("concepts-*.md"))
-    problems = []
-    if proc.returncode != 0:
-        problems.append(f"exit {proc.returncode}: {proc.stderr[-300:]}")
-    for fossil in ("ValueError", "NameError", "VAULT_ROOT"):
-        if fossil in proc.stderr:
-            problems.append(f"화석 잔존: {fossil}")
-    if made != ["concepts-alpha", "concepts-beta"]:
-        problems.append(f"emit 결과={made}")
-    _record("test_emit_runs_to_completion_on_in_repo_layout", not problems, "; ".join(problems))
-
-
-def test_emitted_body_references_l1_and_extracts_tldr() -> None:
-    """파생 뷰가 L1 경로를 참조하고 anchor 달린 TL;DR 을 추출한다."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--apply"], repo)
-        text = _l2(repo, "concepts-alpha").read_text(encoding="utf-8")
-    problems = []
-    if "ai-workflow/wiki/concepts/alpha.md" not in text:
-        problems.append("L1 경로 참조 없음")
-    if "## TL;DR" not in text:
-        # 이 저장소 헤딩은 `## §1 TL;DR  {#s1-tldr}` 처럼 anchor 를 단다.
-        problems.append("TL;DR 미추출 (헤딩 꼬리 anchor 미허용)")
-    if "> Generated:" not in text:
-        problems.append("생성물 표식 없음")
-    if f"last_touched: {TODAY}" not in text:
-        problems.append("last_touched 가 오늘이 아니다")
-    _record("test_emitted_body_references_l1_and_extracts_tldr", not problems, "; ".join(problems))
-
-
-# --- 2. 게이트가 신선도다 (한 번 쓰면 끝나던 자리) -----------------------
-
-
-def test_gate_is_freshness_not_one_shot_placeholder() -> None:
-    """L1 이 L2 보다 새로우면 **재emit 대상**이다.
-
-    이전 게이트는 placeholder 하나라, 한 번 emit 된 page 는 L1 이 아무리 바뀌어도
-    다시 대상이 되지 않았다.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--apply"], repo)
-        # L2 를 과거로 되돌린 뒤 (= L1 이 더 새로움) 다시 돌린다.
-        l2 = _l2(repo, "concepts-alpha")
-        l2.write_text(
-            l2.read_text(encoding="utf-8").replace(f"last_touched: {TODAY}", "last_touched: 2026-01-01"),
-            encoding="utf-8",
-        )
-        proc = _run(EMIT_MODULE, ["--project", "x", "--apply"], repo)
-        after = l2.read_text(encoding="utf-8")
-    problems = []
-    if proc.returncode != 0:
-        problems.append(f"exit {proc.returncode}")
-    if "[APPLIED (l1)]" not in proc.stdout or "concepts-alpha" not in proc.stdout:
-        problems.append("낡은 L2 가 재emit 되지 않았다")
-    if f"last_touched: {TODAY}" not in after:
-        problems.append("last_touched 미갱신")
-    _record("test_gate_is_freshness_not_one_shot_placeholder", not problems, "; ".join(problems))
-
-
-def test_up_to_date_page_is_skipped() -> None:
-    """최신 파생 뷰는 다시 쓰지 않는다 (재실행 멱등)."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--apply"], repo)
-        before = _tree_digest(repo)
-        proc = _run(EMIT_MODULE, ["--project", "x", "--apply"], repo)
         after = _tree_digest(repo)
     problems = []
+    if proc.returncode != 0:
+        problems.append(f"exit {proc.returncode}: {proc.stderr[-200:]}")
     if before != after:
-        problems.append("2회차가 파일을 바꿨다")
-    if "최신" not in proc.stdout:
-        problems.append("skip 사유를 말하지 않는다")
-    _record("test_up_to_date_page_is_skipped", not problems, "; ".join(problems))
+        problems.append("은퇴 경로가 파일을 바꿨다")
+    if "RETIRED" not in proc.stderr:
+        problems.append("사유를 말하지 않는다")
+    _record("test_retired_emit_writes_nothing_and_says_why", not problems, "; ".join(problems))
 
 
-def test_manual_page_is_never_overwritten() -> None:
-    """생성물 표식이 없는 page 는 사람이 쓴 것으로 보고 덮어쓰지 않는다.
-
-    재emit 은 본문 *전체* 를 갈아끼우므로, 표식 확인이 없으면 사람의 글이 사라진다.
-    """
+def test_retired_emit_still_accepts_old_flags() -> None:
+    """옛 인자를 계속 받는다 — argparse 오류로 죽는 대신 **사유를 듣게** 한다."""
     with tempfile.TemporaryDirectory() as td:
         repo = _fixture(Path(td))
-        handwritten = (
-            "---\ntype: meta\nstatus: draft\nr9_skip: true\n"
-            "title: concepts-alpha\ncreated: 2026-01-01\nlast_touched: 2026-01-01\n---\n\n"
-            "# 사람이 쓴 본문\n\n이 문장은 지워지면 안 된다.\n"
-        )
-        _write(_l2(repo, "concepts-alpha"), handwritten)
-        proc = _run(EMIT_MODULE, ["--project", "x", "--apply"], repo)
-        after = _l2(repo, "concepts-alpha").read_text(encoding="utf-8")
-    problems = []
-    if after != handwritten:
-        problems.append("사람이 쓴 본문이 덮어써졌다")
-    if "manual" not in proc.stdout:
-        problems.append("manual 사유를 말하지 않는다")
-    _record("test_manual_page_is_never_overwritten", not problems, "; ".join(problems))
+        proc = _run(EMIT_MODULE, ["--project", "x", "--mode", "all", "--max-chars", "2000",
+                                  "--limit", "3", "--apply"], repo)
+    _record("test_retired_emit_still_accepts_old_flags", proc.returncode == 0,
+            f"exit {proc.returncode}: {proc.stderr[-200:]}")
 
 
-# --- 3. 소유권 / 범위 -----------------------------------------------------
+def test_retired_machinery_is_gone_from_the_file() -> None:
+    """은퇴한 기계가 **파일에 없다**. 분기로만 막으면 다음 사람이 다시 부른다."""
+    src = (TOOLS / "emit_wiki_l2_body.py").read_text(encoding="utf-8")
+    banned = [
+        "def update_l2_full", "def build_emit_body", "def find_l1_files",
+        "def needs_emit", "def path_to_stem", "RAW_MIRROR", "L2_SOURCES",
+    ]
+    present = [b for b in banned if b in src]
+    _record("test_retired_machinery_is_gone_from_the_file", not present, f"잔존: {present}")
 
 
-def test_refresh_wiki_memory_stubs_are_not_touched() -> None:
-    """L2 stub 4종은 `refresh_wiki_memory --emit-l2` 소유 — 두 tool 이 같이 쓰지 않는다."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        stubs = ("active-state", "active-work-backlog", "active-session-handoff", "wiki-log")
-        before = {n: _l2(repo, n).read_text(encoding="utf-8") for n in stubs}
-        proc = _run(EMIT_MODULE, ["--project", "x", "--mode", "all", "--bootstrap-missing", "--apply"], repo)
-        after = {n: _l2(repo, n).read_text(encoding="utf-8") for n in stubs}
-    overwritten = [n for n in stubs if before[n] != after[n]]
-    problems = [f"덮어씀: {overwritten}"] if overwritten else []
-    unreported = [n for n in stubs if f"[skip] {n}" not in " ".join(proc.stdout.split())]
-    if unreported:
-        problems.append(f"소유 표기 없음: {unreported}")
-    _record("test_refresh_wiki_memory_stubs_are_not_touched", not problems, "; ".join(problems))
+# --- 2. 파이프라인은 1-step ------------------------------------------------
 
 
-def test_operational_files_are_not_l2_candidates() -> None:
-    """`log.md` / `index.md` / `SCHEMA.md` / `INGEST_GUIDE.md` 는 page 가 아니다."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--apply"], repo)
-        made = {p.stem for p in (repo / "ai-workflow" / "wiki" / "sources").glob("*.md")}
-    leaked = made & {"log", "index", "schema", "ingest-guide"}
-    _record("test_operational_files_are_not_l2_candidates", not leaked, f"누출: {sorted(leaked)}")
-
-
-def test_sources_dir_is_excluded_from_l1_scan() -> None:
-    """`sources/` 는 L2 자신 — 파생 뷰가 자기 자신에서 파생되지 않는다."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        proc = _run(EMIT_MODULE, ["--project", "x"], repo)
-        made = {p.stem for p in (repo / "ai-workflow" / "wiki" / "sources").glob("*.md")}
-    leaked = {m for m in made if m.startswith("sources-")}
-    problems = [f"자기 파생: {sorted(leaked)}"] if leaked else []
-    if "L1 files: 6" not in proc.stdout:
-        problems.append(f"L1 개수 오산: {[l for l in proc.stdout.splitlines() if l.startswith('L1 files')]}")
-    _record("test_sources_dir_is_excluded_from_l1_scan", not problems, "; ".join(problems))
-
-
-# --- 4. bootstrap 은 기본이 off, 켜도 껍데기를 남기지 않는다 --------------
-
-
-def test_bootstrap_is_off_by_default() -> None:
-    """기본 실행은 L2 를 새로 만들지 않고 갭 개수만 보고한다."""
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        before = _tree_digest(repo)
-        proc = _run(EMIT_MODULE, ["--project", "x", "--apply"], repo)
-        after = _tree_digest(repo)
-    problems = []
-    if before != after:
-        problems.append("기본 실행이 파일을 만들었다")
-    if "L2 파생 뷰 없는 L1 page: 2개" not in proc.stdout:
-        problems.append("갭을 보고하지 않는다")
-    _record("test_bootstrap_is_off_by_default", not problems, "; ".join(problems))
-
-
-def test_bootstrap_with_limit_leaves_no_empty_shells() -> None:
-    """`--limit` 이 걸려도 **본문 없는 껍데기를 남기지 않는다**.
-
-    파일을 미리 만들고 나중에 자르면 `<needs content>` 만 든 page 가 남고,
-    그 page 는 discoverability 를 오히려 끌어내린다.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        repo = _fixture(Path(td))
-        _run(EMIT_MODULE, ["--project", "x", "--bootstrap-missing", "--limit", "1", "--apply"], repo)
-        made = sorted((repo / "ai-workflow" / "wiki" / "sources").glob("concepts-*.md"))
-        shells = [p.name for p in made if "<needs content>" in p.read_text(encoding="utf-8")]
-    problems = []
-    if len(made) != 1:
-        problems.append(f"생성 {len(made)}개 (limit=1)")
-    if shells:
-        problems.append(f"빈 껍데기: {shells}")
-    _record("test_bootstrap_with_limit_leaves_no_empty_shells", not problems, "; ".join(problems))
-
-
-# --- 5. wrapper ------------------------------------------------------------
-
-
-def test_wrapper_runs_two_steps_and_skips_retired_one() -> None:
-    """`wk wiki-emit` 기본은 2-step 이고 은퇴한 1단계를 돌리지 않는다."""
+def test_wrapper_runs_exactly_one_live_step() -> None:
+    """`wk wiki-emit` 기본은 **1단계**고 은퇴한 둘을 돌리지 않는다."""
     with tempfile.TemporaryDirectory() as td:
         repo = _fixture(Path(td))
         proc = _run(WRAPPER_MODULE, ["--apply", "--json"], repo)
@@ -312,34 +142,157 @@ def test_wrapper_runs_two_steps_and_skips_retired_one() -> None:
     if proc.returncode != 0:
         problems.append(f"exit {proc.returncode}: {proc.stderr[-300:]}")
     else:
-        import json as _json
-        out = _json.loads(proc.stdout)
+        out = json.loads(proc.stdout)
         names = [s["name"] for s in out["steps"]]
-        if names != ["2_emit_l2_dense", "3_reemit_stubs"]:
+        if names != ["3_reemit_stubs"]:
             problems.append(f"steps={names}")
-        if out["skipped_steps"] != ["1_refresh_raw"]:
+        if out["skipped_steps"] != ["1_refresh_raw", "2_emit_l2_dense"]:
             problems.append(f"skipped={out['skipped_steps']}")
         for s in out["steps"]:
             if s["returncode"] != 0:
                 problems.append(f"{s['name']} exit {s['returncode']}: {s['stderr_tail']}")
-    _record("test_wrapper_runs_two_steps_and_skips_retired_one", not problems, "; ".join(problems))
+    _record("test_wrapper_runs_exactly_one_live_step", not problems, "; ".join(problems))
+
+
+def test_pipeline_emits_exactly_the_declared_stubs() -> None:
+    """파이프라인이 만드는 L2 는 **선언된 4종뿐**이다 — L1 wiki page 사본 0."""
+    from workflow_kit.tools.refresh_wiki_memory import L2_STUBS
+
+    with tempfile.TemporaryDirectory() as td:
+        repo = _fixture(Path(td))
+        proc = _run(WRAPPER_MODULE, ["--apply"], repo)
+        made = sorted(p.stem for p in (repo / "ai-workflow" / "wiki" / "sources").glob("*.md"))
+    problems = []
+    if proc.returncode != 0:
+        problems.append(f"exit {proc.returncode}")
+    if made != sorted(L2_STUBS):
+        problems.append(f"emit 결과={made} (선언={sorted(L2_STUBS)})")
+    _record("test_pipeline_emits_exactly_the_declared_stubs", not problems, "; ".join(problems))
+
+
+# --- 3. 목록은 한 곳에만 ---------------------------------------------------
+
+
+def test_metric_reads_the_generator_constant_not_a_copy() -> None:
+    """지표가 stub 목록을 **복제하지 않는다** — 복제하면 한쪽만 바뀌어 갈라진다."""
+    from workflow_kit.tools.refresh_wiki_memory import L2_STUBS
+    from workflow_kit.tools.score_wiki_maintainability import _declared_l2_stubs
+
+    problems = []
+    if _declared_l2_stubs() != sorted(L2_STUBS):
+        problems.append(f"불일치: {_declared_l2_stubs()} vs {sorted(L2_STUBS)}")
+    src = (TOOLS / "score_wiki_maintainability.py").read_text(encoding="utf-8")
+    for stem in L2_STUBS:
+        if f'"{stem}"' in src:
+            problems.append(f"목록 복제: {stem}")
+    _record("test_metric_reads_the_generator_constant_not_a_copy", not problems, "; ".join(problems))
+
+
+def test_contract_doc_names_the_generator_constant() -> None:
+    """계약 문서가 정본이 어디인지 가리킨다 (두 번째 목록이 되지 않게)."""
+    doc = (REPO_ROOT / "ai-workflow" / "wiki" / "sources" / ".gitkeep").read_text(encoding="utf-8")
+    problems = []
+    if "refresh_wiki_memory.L2_STUBS" not in doc:
+        problems.append("정본 상수 이름 없음")
+    if "emit_wiki_l2_body" not in doc:
+        problems.append("은퇴 사실 미기재")
+    _record("test_contract_doc_names_the_generator_constant", not problems, "; ".join(problems))
+
+
+# --- 4. 분모는 선언된 집합 -------------------------------------------------
+
+
+def test_missing_stub_lowers_the_score() -> None:
+    """**stub 을 지우면 점수가 내려간다.**
+
+    되주입 대상: 이전에는 분모가 *찾은 파일 수* 라 3장을 지워도
+    total=1 / searchable=1 → **5.0 그대로** 였다. 사라짐이 지표에 안 잡혔다.
+    """
+    import importlib
+
+    import workflow_kit.tools.score_wiki_maintainability as swm
+
+    with tempfile.TemporaryDirectory() as td:
+        sources = Path(td) / "sources"
+        sources.mkdir(parents=True)
+        stubs = ["active-state", "active-work-backlog", "active-session-handoff", "wiki-log"]
+        for name in stubs:
+            _write(sources / f"{name}.md", "---\ntype: meta\nlast_touched: 2099-01-01\n---\n\n"
+                   + ("본문 줄.\n" * 40))
+        orig_src, orig_decl = swm.L2_SOURCES, swm._declared_l2_stubs
+        try:
+            swm.L2_SOURCES = sources
+            swm._declared_l2_stubs = lambda: sorted(stubs)
+            full_disc, _ = swm.score_discoverability()
+            full_life, _ = swm.score_lifecycle()
+            for name in stubs[1:]:
+                (sources / f"{name}.md").unlink()
+            part_disc, disc_detail = swm.score_discoverability()
+            part_life, life_detail = swm.score_lifecycle()
+        finally:
+            swm.L2_SOURCES, swm._declared_l2_stubs = orig_src, orig_decl
+            importlib.reload(swm)
+
+    problems = []
+    if full_disc != 5.0 or full_life != 5.0:
+        problems.append(f"온전할 때 {full_disc}/{full_life} (5.0 기대)")
+    if part_disc >= full_disc:
+        problems.append(f"discoverability 가 안 내려갔다: {part_disc} (분모={disc_detail.get('total')})")
+    if part_life >= full_life:
+        problems.append(f"lifecycle 이 안 내려갔다: {part_life} (분모={life_detail.get('total')})")
+    if disc_detail.get("total") != 4 or life_detail.get("total") != 4:
+        problems.append(f"분모가 선언 집합이 아니다: {disc_detail.get('total')}/{life_detail.get('total')}")
+    _record("test_missing_stub_lowers_the_score", not problems, "; ".join(problems))
+
+
+def test_placeholder_detection_is_line_anchored() -> None:
+    """placeholder 를 **인용한** 문서를 placeholder 로 세지 않는다.
+
+    부분 문자열 판정이 실제로 오탐을 냈다 (2026-08-20): handoff 파생 뷰가
+    "게이트가 `<needs content>` 하나라" 고 설명하는데 검색 불가로 집계됐다.
+    """
+    from workflow_kit.tools.score_wiki_maintainability import _is_placeholder_body
+
+    problems = []
+    if not _is_placeholder_body("## Summary\n<needs content>\n"):
+        problems.append("진짜 placeholder 를 못 잡는다")
+    if _is_placeholder_body("게이트가 `<needs content>` 하나라 재emit 이 안 됐다."):
+        problems.append("인용을 placeholder 로 오탐한다")
+    _record("test_placeholder_detection_is_line_anchored", not problems, "; ".join(problems))
+
+
+def test_this_repo_scores_the_declared_four() -> None:
+    """이 저장소 실측: 분모가 4, 부재 0."""
+    import importlib
+
+    import workflow_kit.tools.score_wiki_maintainability as swm
+
+    importlib.reload(swm)
+    _, disc = swm.score_discoverability()
+    _, life = swm.score_lifecycle()
+    problems = []
+    if disc.get("total") != 4:
+        problems.append(f"discoverability 분모={disc.get('total')}")
+    if disc.get("missing"):
+        problems.append(f"부재 stub={disc['missing']}")
+    if life.get("total") != 4:
+        problems.append(f"lifecycle 분모={life.get('total')}")
+    _record("test_this_repo_scores_the_declared_four", not problems, "; ".join(problems))
 
 
 def main() -> int:
-    test_emit_runs_to_completion_on_in_repo_layout()
-    test_emitted_body_references_l1_and_extracts_tldr()
-    test_gate_is_freshness_not_one_shot_placeholder()
-    test_up_to_date_page_is_skipped()
-    test_manual_page_is_never_overwritten()
-    test_refresh_wiki_memory_stubs_are_not_touched()
-    test_operational_files_are_not_l2_candidates()
-    test_sources_dir_is_excluded_from_l1_scan()
-    test_bootstrap_is_off_by_default()
-    test_bootstrap_with_limit_leaves_no_empty_shells()
-    test_wrapper_runs_two_steps_and_skips_retired_one()
-    total = 11
+    test_retired_emit_writes_nothing_and_says_why()
+    test_retired_emit_still_accepts_old_flags()
+    test_retired_machinery_is_gone_from_the_file()
+    test_wrapper_runs_exactly_one_live_step()
+    test_pipeline_emits_exactly_the_declared_stubs()
+    test_metric_reads_the_generator_constant_not_a_copy()
+    test_contract_doc_names_the_generator_constant()
+    test_missing_stub_lowers_the_score()
+    test_placeholder_detection_is_line_anchored()
+    test_this_repo_scores_the_declared_four()
+    total = 10
     if FAILURES:
-        # 실패 요약 형식도 runner 의 파서(`run_all_checks.parse_output`)가 읽는 것으로.
         print(f"\n{len(FAILURES)}/{total} tests failed: {FAILURES}")
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")
     print(f"\nAll {total} tests passed.")

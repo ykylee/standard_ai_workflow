@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-19",
+  "generated_at": "2026-08-20",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-19.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,14 +27,15 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**49차 세션 — main-004 close: wiki L2 파이프라인 회생 (`wk wiki-emit` 3-step → 2-step, 검사 263→264, 전량 2축 green).** 상세는 [49차 세션 기록](./sessions/wiki_l2_pipeline_revival_2026-08-19.md). 핵심은 크래시 두 개가 아니라 **세 단계가 각각 다른 이유로 이미 유효하지 않았다**는 것이었다 — 그래서 '고쳐서 rc=0 을 만든다' 가 오답이었다. **1단계는 소유권 충돌**: write 대상 4개가 전부 무너져 있었고(`state.json` 은 정본 §11.2 의 생성 산출물이라 이 단계가 **두 번째 writer** 였다 · `work_backlog.md` 는 v0.14.0 에서 사라짐 · `memory/log.md` write 는 죽은 코드 · `wiki/log.md` 는 2026-06 하드코딩), 은퇴시키되 **조용한 no-op 이 아니라 사유를 말하고**(rc=0) 함수 자체를 지웠다 — 분기로만 막으면 다음 사람이 다시 부른다. **2단계는 vault 화석 3종이 전부 실행 경로 위**에 있었고(이중 경로 · `parts.index(\"raw\")` · **정의된 적 없는 `VAULT_ROOT`**) v0.7.17 이후 **한 번도 끝까지 실행된 적이 없었다**; 고쳐도 할 일이 없던 진짜 이유는 게이트가 `<needs content>` **일회성**이라 한 번 emit 된 page 가 영원히 대상이 아니었던 것 — **신선도 게이트**로 바꾸고, 본문 전체를 갈아끼우게 되므로 `> Generated:` 표식 없는 page 는 **manual 로 보고 건드리지 않는다**. **3단계는 2026-06-14 스냅샷 축자 재생성**이었고 `last_touched` 를 그 날짜로 되돌렸다 — 현재 SSOT 파생으로 재작성, `last_touched` 는 실제 emit 일자, 바이트가 같으면 write 0(`unchanged`), L1 없는 stub 은 `missing_l1` 로 밝힌다. **날짜 박힌 붕괴를 막았다**: L2 4개가 `2026-07-22` 라 **2026-08-21 에 lifecycle 5.0→0.0 / overall 4.71 A→3.88** 이 예약돼 있었고, 갱신할 유일한 도구가 67일 전으로 되돌리고 있었다(7/22 는 사람이 커밋 `dcbf2af7` 로 올린 값). **검사가 apply 를 잰다** — 이전 8 cases 는 전부 dry-run 이라 두 크래시를 구조적으로 못 봤다; `check_refresh_wiki_memory` 11 재작성 + `check_wiki_emit_pipeline` 11 신설, 되주입 6종 red 실증.",
-    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · wiki L1→L2 갭 85개(계약 존폐가 미결 — 근거였던 외부 vault 는 v0.7.17 에 사라졌다) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
+    "current_baseline": "**50차 세션 — main-001 close: wiki L2 계약을 memory 파생 4종으로 좁혔다 (`wk wiki-emit` 2-step → **1-step**, 전량 2축 green).** 49차가 남긴 유일한 미결을 소유자 결정으로 닫았다. **정의**: `L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰` — 4종뿐이고 늘어나지 않는다. L1 wiki page 는 정의상 제외다(이미 wiki 모양이고 이미 검색된다). 갭 85장을 채우지 **않은** 이유: 계약의 근거였던 외부 vault retrieval 이 **v0.7.17 in-repo 전환 때 사라졌고**, 사본은 검색을 늘리지 않으면서 드리프트 표면만 늘린다. 정본은 `refresh_wiki_memory.L2_STUBS`, 설명은 `.gitkeep`. **은퇴 형태는 49차와 같다** — 진입점은 남기되 write 0 + 사유 보고(rc=0), **기계는 파일에서 지운다**; 옛 인자는 계속 받는다(박혀 있던 호출이 argparse 오류로 죽는 것보다 **왜 아무것도 안 했는지 듣는 편**이 낫다). **부수로 지표 결함 2건**: (a) discoverability·lifecycle 의 **분모가 찾은 파일 수**여서 stub 3장을 지워도 **5.0 그대로** 였다 — *사라짐* 이 지표에 안 잡혔다; 분모를 **선언된 집합**으로 바꿔 부재를 결함으로 센다. (b) **placeholder 판정이 부분 문자열**이라 `<needs content>` 를 *언급한* handoff 파생 뷰가 검색 불가로 집계됐다(5.0→3.75 실측) — 줄 전체 일치로 앵커링. 지표는 목록을 복제하지 않고 생성기 상수를 import 하며, 검사가 '복제 0' 을 직접 확인한다. 되주입 3종 red 실증, 검사 264 유지(재작성).",
+    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
     "in_progress_items": [
       "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
       "TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조",
       "TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교",
       "TASK-2026-08-18-main-004 — wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트",
@@ -43,27 +44,26 @@
       "TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존",
       "TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다",
       "TASK-2026-08-16-main-002 — 정본 §11.2 다중 줄 bullet 이 추출에서 잘린다 — 생성 블록이 문장 중간에서 끊긴 채 전 하네스로 복제",
-      "TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵",
-      "TASK-2026-08-14-main-019 — 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사"
+      "TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-19.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
     "task_count": 2,
     "in_progress_items": [
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-18-main-004 — wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트"
+      "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-19.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-20.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
@@ -76,6 +76,7 @@
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-001.md",
     "docs/RELEASE.md",
     "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
     "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",

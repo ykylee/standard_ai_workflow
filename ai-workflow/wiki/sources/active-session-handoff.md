@@ -4,18 +4,18 @@ status: draft
 r9_skip: true
 title: active-session-handoff
 created: 2026-07-22
-last_touched: 2026-08-19
+last_touched: 2026-08-20
 ---
 
-# Active Session Handoff (Derived View, 2026-08-19)
+# Active Session Handoff (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/session_handoff.md` (350 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/session_handoff.md` (364 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
-> 생성: `2026-08-19` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
+> 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
 ## 현재 기준선
 
-**49차 세션 — main-004 close: wiki L2 파이프라인 회생 (`wk wiki-emit` 3-step → 2-step, 검사 263→264, 전량 2축 green).** 상세는 [49차 세션 기록](./sessions/wiki_l2_pipeline_revival_2026-08-19.md). 핵심은 크래시 두 개가 아니라 **세 단계가 각각 다른 이유로 이미 유효하지 않았다**는 것이었다 — 그래서 '고쳐서 rc=0 을 만든다' 가 오답이었다. **1단계는 소유권 충돌**: write 대상 4개가 전부 무너져 있었고(`state.json` 은 정본 §11.2 의 생성 산출물이라 이 단계가 **두 번째 writer** 였다 · `work_backlog.md` 는 v0.14.0 에서 사라짐 · `memory/log.md` write 는 죽은 코드 · `wiki/log.md` 는 2026-06 하드코딩), 은퇴시키되 **조용한 no-op 이 아니라 사유를 말하고**(rc=0) 함수 자체를 지웠다 — 분기로만 막으면 다음 사람이 다시 부른다. **2단계는 vault 화석 3종이 전부 실행 경로 위**에 있었고(이중 경로 · `parts.index("raw")` · **정의된 적 없는 `VAULT_ROOT`**) v0.7.17 이후 **한 번도 끝까지 실행된 적이 없었다**; 고쳐도 할 일이 없던 진짜 이유는 게이트가 `<needs content>` **일회성**이라 한 번 emit 된 page 가 영원히 대상이 아니었던 것 — **신선도 게이트**로 바꾸고, 본문 전체를 갈아끼우게 되므로 `> Generated:` 표식 없는 page 는 **manual 로 보고 건드리지 않는다**. **3단계는 2026-06-14 스냅샷 축자 재생성**이었고 `last_touched` 를 그 날짜로 되돌렸다 — 현재 SSOT 파생으로 재작성, `last_touched` 는 실제 emit 일자, 바이트가 같으면 write 0(`unchanged`), L1 없는 stub 은 `missing_l1` 로 밝힌다. **날짜 박힌 붕괴를 막았다**: L2 4개가 `2026-07-22` 라 **2026-08-21 에 lifecycle 5.0→0.0 / overall 4.71 A→3.88** 이 예약돼 있었고, 갱신할 유일한 도구가 67일 전으로 되돌리고 있었다(7/22 는 사람이 커밋 `dcbf2af7` 로 올린 값). **검사가 apply 를 잰다** — 이전 8 cases 는 전부 dry-run 이라 두 크래시를 구조적으로 못 봤다; `check_refresh_wiki_memory` 11 재작성 + `check_wiki_emit_pipeline` 11 신설, 되주입 6종 red 실증.
+**50차 세션 — main-001 close: wiki L2 계약을 memory 파생 4종으로 좁혔다 (`wk wiki-emit` 2-step → **1-step**, 전량 2축 green).** 49차가 남긴 유일한 미결을 소유자 결정으로 닫았다. **정의**: `L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰` — 4종뿐이고 늘어나지 않는다. L1 wiki page 는 정의상 제외다(이미 wiki 모양이고 이미 검색된다). 갭 85장을 채우지 **않은** 이유: 계약의 근거였던 외부 vault retrieval 이 **v0.7.17 in-repo 전환 때 사라졌고**, 사본은 검색을 늘리지 않으면서 드리프트 표면만 늘린다. 정본은 `refresh_wiki_memory.L2_STUBS`, 설명은 `.gitkeep`. **은퇴 형태는 49차와 같다** — 진입점은 남기되 write 0 + 사유 보고(rc=0), **기계는 파일에서 지운다**; 옛 인자는 계속 받는다(박혀 있던 호출이 argparse 오류로 죽는 것보다 **왜 아무것도 안 했는지 듣는 편**이 낫다). **부수로 지표 결함 2건**: (a) discoverability·lifecycle 의 **분모가 찾은 파일 수**여서 stub 3장을 지워도 **5.0 그대로** 였다 — *사라짐* 이 지표에 안 잡혔다; 분모를 **선언된 집합**으로 바꿔 부재를 결함으로 센다. (b) **placeholder 판정이 부분 문자열**이라 `<needs content>` 를 *언급한* handoff 파생 뷰가 검색 불가로 집계됐다(5.0→3.75 실측) — 줄 전체 일치로 앵커링. 지표는 목록을 복제하지 않고 생성기 상수를 import 하며, 검사가 '복제 0' 을 직접 확인한다. 되주입 3종 red 실증, 검사 264 유지(재작성).
 
 ## 진행 중
 

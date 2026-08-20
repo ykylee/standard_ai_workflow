@@ -9,6 +9,10 @@
 > 이 파일은 **읽기 대상이 아니라 조회 대상**이다. 세션 시작에 읽지 않는다 —
 > handoff §1 이 최근 4개만 들고 있고, 그 이전이 필요할 때만 여기를 본다.
 
+## 롤오프 2026-08-20
+
+- **48차 세션 (이어서) — main-005 close: 드리프트 감지를 마커에서 페이로드 해시로 (배포 축 gap 3 해소, 전량 2축 263/263 green).** 47차에 관측만 해 둔 상태 — 버전은 같은데 내용만 낡은 설치본 — 을 이제 `wk doctor` 가 **본다**. `content_drift` 절 신설. **전제가 먼저 막혔다**: 정본 렌더러 `render_agent_plugin()` 이 설치본에서 통째로 죽어 있었다(`_project_table()` 이 체크아웃 경로만 봤다) — 소비자 호스트에서 대조가 성립하려면 그것부터 살아야 해서 설치 metadata fallback 을 넣었다(main-003 과 같은 결함 계열). 지키는 것 넷: ①**정본은 생성기와 같은 함수** — 기준을 따로 두면 기준이 드리프트한다 ②**기대치는 채널별 파생**(`include_prefixes`) — codex 는 매니페스트·MCP·skills 만 담아서 payload 20개를 기대하면 정상 설치가 *없음 10건* 으로 보고됐다(실측) ③**사본 거주지도 registry**, 사본 없는 채널(pi-dev)·미실측(gemini-cli)은 `not_applicable` 로 밝힌다 ④**report-only 유지**. `check_deploy_doctor` 9→13 cases, 되주입(내용 비교 제거)으로 핵심 case red 실증. 이 호스트 실측: claude-code 12개·codex 10개 **in-sync**. 컨셉 §7 gap 3 → ✅, INSTALLATION §7.0.2 꼬리를 '한계' 에서 '복구 열' 로. **배포 축 잔여는 [main-019] 환경 pre-flight 하나다.**
+
 ## 롤오프 2026-08-19
 
 - **48차 세션 (이어서) — main-003 close: 패키지가 체크아웃 레이아웃에 기대던 결함 (전량 2축 263/263 green, 검사 262→263).** 소유자 지적에서 출발했다 — "배포되는 경로는 다를 수 있다". 맞았다. **개발 호스트의 `wk` 가 editable 설치**라 `parents[3]` 가 우연히 맞아, 비-editable wheel 에서만 `REPO_ROOT` 가 `<venv>/lib/python3.x` 로 잡히는 것이 **로컬에서 영원히 green** 이었다 (SDK 매트릭스·브랜치 매트릭스와 같은 계열의 사각지대). 실측 red 3건: `wk wiki-emit`(없는 `workflow-source/tools/*.py` 실행 — **배포본이 아니라 이 저장소에서** 죽어 있었다) · `wk rotate-workflow-logs`(기본 handoff 가 venv 내부, 브랜치도 `main` 하드코딩) · `wk install-pre-push-hook`(git root 를 모듈 위치에서 물어 소비자 저장소에서 `not a git repository` + hook 원본이 wheel 미포함). 정공법 3가지 — ①**자기 모듈은 `-m` 으로** (규칙을 `common/child_process.py` 한 곳에; seed 는 subprocess 를 없애고 `refresh_workflow_state_cache` 직접 호출) ②**런타임 자산은 패키지 안으로** (`workflow_kit/assets/` + package-data 선언) ③**workspace 는 cwd 에서** (`discover_project_profile_path` + `workflow_branch_dir`, git root 는 `Path.cwd()`). `check_deployed_layout` 신설 4 cases + `check_pre_push_hook` case 8 신설 — **1~7 은 `_git_root` 를 monkeypatch 해서 '어느 저장소를 고르는가' 를 한 번도 재지 않았다**. 되주입 3종 red(첫 주입은 import 조차 안 되는 무효 주입이었고 원 결함 형태로 다시 넣어 확정). **배포본 e2e**: 새 wheel → 빈 venv → 가짜 소비자 프로젝트에서 6개 명령 정상 + 자산 13개 적재 확인.

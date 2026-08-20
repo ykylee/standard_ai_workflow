@@ -3,29 +3,36 @@
 
 L2 파생 뷰(`ai-workflow/wiki/sources/`) 를 *1 command* 로 갱신한다.
 
-**2-step 운영 cycle** (v1.2.2+, TASK-2026-08-18-main-004):
-2. `emit_wiki_l2_body --apply` — L1 wiki page(concepts/decisions/…) → L2 파생 뷰
+**1-step 운영 cycle** (v1.2.2+, TASK-2026-08-20-main-001):
 3. `refresh_wiki_memory --emit-l2 --apply` — memory SSOT(state.json / 최신 backlog /
    session_handoff / wiki log) → L2 stub 4종
 
-**1단계(`--refresh-raw`) 는 은퇴했다.** L1 을 *쓰는* 단계였는데 쓰려던 대상이
-전부 무너져 있었다 — `state.json` 은 정본 §11.2 의 생성 산출물이고 생성기는
-`wk refresh-state` 하나뿐이라 이 단계는 **두 번째 writer** 였고,
-`work_backlog.md` 는 v0.14.0 layout 에서 사라졌으며, `memory/log.md` 로 가는
-write 는 죽은 코드였고, `wiki/log.md` 갱신은 2026-06 스냅샷 하드코딩이었다.
-`--refresh-wiki` 로 명시 호출하면 **아무것도 쓰지 않고 사유만 보고**한다.
+원래 3단계였고 지금은 하나다. 앞의 둘은 **각각 다른 이유로 은퇴**했다:
 
-단계 번호(2/3)는 은퇴 전과 같게 뒀다 — 로그·문서에서 같은 이름이 같은 일을
-가리키게 하기 위해서다.
+- **1단계 `--refresh-raw`** (TASK-2026-08-18-main-004) — L1 을 *쓰는* 단계였는데
+  쓰려던 대상이 전부 무너져 있었다. `state.json` 은 정본 §11.2 의 생성 산출물이고
+  생성기는 `wk refresh-state` 하나뿐이라 이 단계는 **두 번째 writer** 였고,
+  `work_backlog.md` 는 v0.14.0 layout 에서 사라졌으며, `memory/log.md` 로 가는
+  write 는 죽은 코드였고, `wiki/log.md` 갱신은 2026-06 스냅샷 하드코딩이었다.
+- **2단계 `emit_wiki_l2_body`** (TASK-2026-08-20-main-001) — L1 wiki page 파생
+  뷰의 근거였던 **외부 vault retrieval 이 v0.7.17 in-repo 전환 때 사라졌다.**
+  in-repo 에서 L1 은 이미 검색 가능하므로 사본은 검색을 늘리지 않고 드리프트
+  표면만 늘린다. L2 의 정의를 **wiki 모양이 아닌 SSOT 의 압축 뷰** 로 좁혔다.
+
+둘 다 `--refresh-wiki` / `--emit-l2` 로 명시 호출하면 **아무것도 쓰지 않고
+사유만 보고**한다 (rc=0). 단계 번호(1/2/3)는 은퇴 전과 같게 뒀다 — 로그·문서에서
+같은 이름이 같은 일을 가리키게 하기 위해서다.
+
+계약 원문: `ai-workflow/wiki/sources/.gitkeep`
 
 Usage:
-    # 2-step cycle (default)
+    # 1-step cycle (default)
     python3 wiki_emit.py --apply
 
     # 1단계 (은퇴 — write 0, 사유만 보고)
     python3 wiki_emit.py --refresh-wiki --apply
 
-    # 2단계만 (L2 dense 만)
+    # 2단계 (은퇴 — write 0, 사유만 보고)
     python3 wiki_emit.py --emit-l2 --apply
 
     # 3단계만 (stub last_touched 만)
@@ -137,11 +144,11 @@ def main() -> int:
     parser.add_argument("--refresh-wiki", action="store_true",
                         help="[은퇴] 1단계 — write 0, 사유만 보고한다")
     parser.add_argument("--emit-l2", action="store_true",
-                        help="2단계만 (L2 dense 본문 emit)")
+                        help="[은퇴] 2단계 — write 0, 사유만 보고한다")
     parser.add_argument("--reemit-stubs", action="store_true",
                         help="3단계만 (L2 stub last_touched 갱신)")
     parser.add_argument("--full", action="store_true",
-                        help="2-step cycle 전체 (default)")
+                        help="1-step cycle 전체 (default)")
     parser.add_argument("--skip-1", action="store_true", help="1단계 skip")
     parser.add_argument("--skip-2", action="store_true", help="2단계 skip")
     parser.add_argument("--skip-3", action="store_true", help="3단계 skip")
@@ -150,7 +157,7 @@ def main() -> int:
     parser.add_argument("--since", default=None,
                         help="[은퇴] L2 파생은 git log 가 아니라 memory SSOT 에서 나온다 — 무시된다")
     parser.add_argument("--bootstrap-missing", action="store_true",
-                        help="L2 파생 뷰가 없는 L1 page 에 대해 L2 를 새로 만든다 (2단계로 전달)")
+                        help="[은퇴] L1 wiki page 파생 뷰 생성 — 2단계와 함께 은퇴했다")
     parser.add_argument("--max-chars", type=int, default=2000,
                         help="L2 dense 본문 cap (default: 2000)")
     parser.add_argument("--dry-run", action="store_true", dest="dry_run",
@@ -161,11 +168,11 @@ def main() -> int:
 
     # step 결정: default / --refresh-wiki / --emit-l2 / --reemit-stubs / --skip-N
     if not any([args.refresh_wiki, args.emit_l2, args.reemit_stubs]):
-        # 아무 sub-step 도 지정 안 함 → 2-step cycle. 1단계는 은퇴했으므로
-        # default 에 넣지 않는다 — write 0 인 단계를 매번 돌리면 로그만 늘고,
-        # 그 자리에 뭔가 갱신되고 있다는 인상을 준다.
-        run_1 = False
-        run_2 = run_3 = True
+        # 아무 sub-step 도 지정 안 함 → 1-step cycle. 은퇴한 두 단계는 default 에
+        # 넣지 않는다 — write 0 인 단계를 매번 돌리면 로그만 늘고, 그 자리에 뭔가
+        # 갱신되고 있다는 인상을 준다.
+        run_1 = run_2 = False
+        run_3 = True
     else:
         # 1개 이상 지정 → 각각 sub-step 만
         run_1 = args.refresh_wiki

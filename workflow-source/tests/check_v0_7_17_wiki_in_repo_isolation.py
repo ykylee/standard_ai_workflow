@@ -8,8 +8,8 @@ Test 구성 (9 test):
 1. tools/refresh_wiki_memory.py: VAULT_ROOT/RAW_BASE/L2_BASE 가 in-repo path
 2. tools/refresh_wiki_memory.py: l1_sources() 가 해석하는 L1 SSOT 4종이 in-repo (+ 은퇴한 write 경로 부재)
 3. tools/refresh_wiki_memory.py: L2_STUBS 의 4 file 이 ai-workflow/wiki/sources/ 안
-4. tools/emit_wiki_l2_body.py: VAULT_ROOT/RAW_MIRROR/L2_SOURCES 가 in-repo path
-5. tools/emit_wiki_l2_body.py: REPO_ROOT 자동 검출 (git rev-parse)
+4. tools/emit_wiki_l2_body.py: 은퇴 후 경로 상수·git 호출 부재 (외부 vault 흔적 0)
+5. tools/emit_wiki_l2_body.py: 은퇴 모듈이 저장소 경로를 해석하지 않음
 6. tools/score_wiki_maintainability.py: L2_SOURCES 가 INREPO_WIKI/sources
 7. tests/check_refresh_wiki_memory.py: VAULT_ROOT reference 없음
 8. tests/check_wiki_drift.py: _raw_mtime 이 in-repo path 만 사용
@@ -127,29 +127,30 @@ def test_refresh_wiki_memory_l2_stubs_in_repo():
 
 
 def test_emit_wiki_l2_body_no_vault_root():
-    """emit_wiki_l2_body.py 에 VAULT_ROOT / RAW_MIRROR / L2_SOURCES 가 in-repo path."""
+    """emit_wiki_l2_body.py 에 외부 vault 흔적이 없다.
+
+    이 모듈은 2026-08-20(TASK-2026-08-20-main-001)에 **은퇴**했다 — L1 wiki page
+    파생 뷰의 근거였던 외부 vault retrieval 자체가 v0.7.17 in-repo 전환 때
+    사라졌기 때문이다. 그래서 여기서 재는 것은 "in-repo path 를 쓰는가" 가 아니라
+    **경로를 아예 안 만지는가** 다. (경로 계약은 `check_wiki_emit_pipeline` 이
+    생성기 쪽에서 잡는다.)
+    """
     src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "emit_wiki_l2_body.py")
-    # in-repo path = REPO_ROOT / "ai-workflow" / "wiki" / "sources"
-    assert "REPO_ROOT" in src, "REPO_ROOT 변수 없음"
-    # RAW_MIRROR / L2_SOURCES 가 in-repo path 사용 확인
-    assert "RAW_MIRROR = L1_BASE / \"wiki\"" in src or "RAW_MIRROR = L1_BASE / 'wiki'" in src, (
-        "RAW_MIRROR 가 in-repo path 가 아님"
-    )
-    assert "L2_SOURCES = L1_BASE / \"wiki\" / \"sources\"" in src, (
-        "L2_SOURCES 가 in-repo path 가 아님"
-    )
-    # 외부 vault 흔적 없어야
-    assert "Path.home() / \"wiki\"" not in src, (
-        "emit_wiki_l2_body.py: VAULT_ROOT = Path.home() / 'wiki' 가 외부 vault 참조"
-    )
+    assert "Path.home() / \"wiki\"" not in src, "외부 vault 참조 잔존"
+    for gone in ("RAW_MIRROR", "L2_SOURCES", "VAULT_ROOT"):
+        assert gone not in src, f"은퇴 후에도 경로 상수 잔존: {gone}"
 
 
 def test_emit_wiki_l2_body_repo_root_auto_detect():
-    """emit_wiki_l2_body.py 의 _detect_repo_root 가 git rev-parse 사용."""
+    """은퇴한 모듈이 저장소 경로를 스스로 해석하지 않는다.
+
+    이전 계약은 "`_detect_repo_root` 가 git rev-parse 를 쓴다" 였다. write 0 인
+    지금은 **경로를 알 필요가 없다** — 남겨 두면 다음 사람이 그 위에 기능을
+    다시 얹는다.
+    """
     src = _read(SOURCE_ROOT / "workflow_kit" / "tools" / "emit_wiki_l2_body.py")
-    assert "_detect_repo_root" in src, "_detect_repo_root 함수 없음"
-    assert "git rev-parse" in src, "git rev-parse auto-detect 없음"
-    assert "show-toplevel" in src, "git rev-parse --show-toplevel 없음"
+    assert "_detect_repo_root" not in src, "은퇴 모듈에 repo root 해석이 남아 있음"
+    assert "git rev-parse" not in src, "은퇴 모듈에 git 호출이 남아 있음"
 
 
 # --- Test 3: score_wiki_maintainability 의 in-repo path ---

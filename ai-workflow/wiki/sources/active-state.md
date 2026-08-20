@@ -4,14 +4,14 @@ status: draft
 r9_skip: true
 title: active-state
 created: 2026-07-22
-last_touched: 2026-08-19
+last_touched: 2026-08-20
 ---
 
-# Active State (Derived View, 2026-08-19)
+# Active State (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/state.json` (392 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/state.json` (393 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
-> 생성: `2026-08-19` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
+> 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
 ## SSOT 요약
 
@@ -20,7 +20,7 @@ last_touched: 2026-08-19
 | `purpose_digest` | 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공 |
 | `session.current_focus` | TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계) |
 | `backlog.task_count` | 2 |
-| `source_of_truth.latest_backlog_path` | ai-workflow/memory/active/main/backlog/2026-08-19.md |
+| `source_of_truth.latest_backlog_path` | ai-workflow/memory/active/main/backlog/2026-08-20.md |
 
 ## 진행 중
 
@@ -32,6 +32,7 @@ last_touched: 2026-08-19
 
 ## 최근 완료
 
+- TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의
 - TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조
 - TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교
 - TASK-2026-08-18-main-004 — wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트
@@ -41,4 +42,3 @@ last_touched: 2026-08-19
 - TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다
 - TASK-2026-08-16-main-002 — 정본 §11.2 다중 줄 bullet 이 추출에서 잘린다 — 생성 블록이 문장 중간에서 끊긴 채 전 하네스로 복제
 - TASK-2026-08-16-main-001 — backlog-update update 모드의 새 daily index 이월 결함 — 두 번째 task 부터 cannot_determine 조용한 스킵
-- TASK-2026-08-14-main-019 — 환경 전제 pre-flight — venv/PEP 668/오프라인 전제를 도구가 선검사

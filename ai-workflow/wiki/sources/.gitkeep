@@ -1,25 +1,38 @@
-# L2 파생 뷰 target (in-repo). 여기 있는 것은 전부 **생성물**이다.
+# L2 파생 뷰 — **정의와 목록이 여기 고정된다** (TASK-2026-08-20-main-001).
 #
-# 소유가 둘로 갈린다 (TASK-2026-08-18-main-004). 같은 page 를 두 도구가 쓰면
-# 마지막에 돈 쪽이 이기고 그 사실이 아무 데도 안 남으므로, 한쪽에만 둔다:
+# ## 정의
 #
-# - `refresh_wiki_memory --emit-l2` — memory SSOT 파생 stub 4종
-#     active-state / active-work-backlog / active-session-handoff / wiki-log
-#     L1: memory/active/<branch>/{state.json, backlog/<최신>.md, session_handoff.md}
-#         + ai-workflow/wiki/log.md
-# - `emit_wiki_l2_body` — L1 wiki page 파생 뷰
-#     L1: ai-workflow/wiki/{concepts,decisions,entities,patterns,topics}/*.md
-#     L2: ai-workflow/wiki/sources/<stem>.md
+#   L2 = wiki 모양이 **아닌** SSOT 를 wiki 검색용으로 압축한 뷰.
 #
-# 규칙:
-# - emit 게이트는 **신선도**다 (placeholder 이거나 L1 이 L2 보다 새로우면 대상).
-#   한 번 emit 되면 끝인 placeholder 게이트는 파생 뷰를 얼어붙게 했다.
+# 그래서 목록이 딱 4종이고, 늘어나지 않는다:
+#
+#   | L2 stub                  | L1 SSOT                                        |
+#   |--------------------------|------------------------------------------------|
+#   | active-state             | memory/active/<branch>/state.json               |
+#   | active-work-backlog      | memory/active/<branch>/backlog/<최신>.md        |
+#   | active-session-handoff   | memory/active/<branch>/session_handoff.md       |
+#   | wiki-log                 | ai-workflow/wiki/log.md                         |
+#
+# 정본은 `refresh_wiki_memory.L2_STUBS` 다. 이 파일은 그 계약의 설명이지
+# 두 번째 목록이 아니다 — 지표(`score_wiki_maintainability`)도 목록을 복제하지
+# 않고 그 상수를 import 한다.
+#
+# ## L1 wiki page 는 왜 여기 없나
+#
+# 원래 계약은 `concepts/` `decisions/` … 의 page 마다 파생 뷰를 두는 것이었고,
+# 근거는 **외부 vault(`~/wiki/`) retrieval** 이었다 — vault 는 저장소 본문을
+# 못 읽으니 압축 사본이 있어야 검색이 됐다. 그 근거는 **v0.7.17 in-repo 전환 때
+# 사라졌다.** L1 이 저장소 안에 있으면 이미 검색되고, 사본은 검색을 늘리지
+# 않으면서 드리프트 표면만 늘린다. 그래서 그 경로(`emit_wiki_l2_body`,
+# `--bootstrap-missing`)는 은퇴했다 — 진입점은 남지만 write 0 + 사유 보고다.
+#
+# ## 규칙
+#
+# - 생성기는 `refresh_wiki_memory --emit-l2` **하나**다. 진입점은 `wk wiki-emit --apply`.
 # - `last_touched` 는 **실제 emit 일자**다. 뒤로 가면 안 된다 —
-#   `score_wiki_maintainability` 의 lifecycle 이 30일 신선도를 그 값으로 잰다.
-# - 본문에 `> Generated:` 표식이 없는 page 는 사람이 쓴 것으로 보고 덮어쓰지 않는다.
-# - `emit_wiki_l2_body` 는 **없는 L2 를 기본적으로 만들지 않는다**
-#   (`--bootstrap-missing` 로 켠다). in-repo 에서 L1 은 이미 검색 가능하므로,
-#   켜면 L1 의 절삭 사본이 그만큼 저장소에 늘어난다.
+#   lifecycle 이 30일 신선도를 그 값으로 잰다.
+# - 결과 바이트가 같으면 쓰지 않는다 (`unchanged`). 진단 실행이 저장소를 안 바꾼다.
+# - L1 이 없는 stub 은 채우지 않고 `missing_l1` 로 밝힌다.
+# - 지표의 **분모는 위 4종**이다. 디렉터리에서 찾은 파일을 세면 stub 을 지울수록
+#   점수가 올라간다 (2026-08-20 발견). 부재는 '측정 대상 아님' 이 아니라 결함이다.
 # - Drift: L2 last_touched vs L1 mtime (7일 임계값, check_wiki_drift)
-#
-# 한 번에 다 돌리는 진입점: `wk wiki-emit --apply`

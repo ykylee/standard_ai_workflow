@@ -1,0 +1,41 @@
+{
+  "id": "MEM-2026-08-20-003",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-009.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-010.md",
+    "workflow-source/workflow_kit/deploy_doctor.py"
+  ],
+  "primary_abstraction": "A probe must measure the right unit and read what the system already declares",
+  "cue_anchors": [
+    "measurement-unit",
+    "process-vs-session",
+    "plugin-load",
+    "restart-required",
+    "install-path",
+    "declared-state",
+    "stale-copy",
+    "probe-design",
+    "branch-tip-vs-tag"
+  ],
+  "value_digest": "탐침이 틀리는 두 가지 방식. ① **잰 단위** — 로드 단위가 프로세스인데 대화(session) 시각으로 재서 옳은 가설을 기각했다(`/clear` 는 프로세스를 재시작하지 않는다). 값싼 방증: 실행 중 프로세스의 버전과 `<cli> --version` 이 어긋나면 그 프로세스는 디스크보다 낡았다. 그리고 로케일로 번역되는 필드(`ps lstart`)를 파싱하지 않는다 — 형식이 고정된 `etime` 을 읽고 지금에서 뺀다. ② **선언을 안 읽음** — 어느 사본이 설치본인지 하네스가 `installPath` 로 이미 말하고 있는데 glob 매치를 전부 동등하게 세서, **갱신에 성공한 직후 발견이 늘었다**(잔재가 드리프트로 보고 + 발견 복제 + 옛 버전 표기). 따름정리: 마켓플레이스는 태그가 아니라 **브랜치 팁**을 당기므로 같은 버전 문자열이 시점마다 다른 내용을 가리킨다. 그리고 되주입해도 red 가 안 나는 방어 분기는 도달 불가능한 죽은 코드다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "deployment",
+    "probe-design"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "docs/INSTALLATION_AND_USAGE.md",
+    "workflow-source/core/workflow_deployment_idempotency.md",
+    "ai-workflow/memory/active/main/sessions/runtime_load_and_label_transition_2026-08-20.md"
+  ],
+  "related_ids": [
+    "MEM-2026-08-20-001"
+  ],
+  "created_at": "2026-08-20T00:00:00Z",
+  "updated_at": "2026-08-20T00:00:00Z"
+}

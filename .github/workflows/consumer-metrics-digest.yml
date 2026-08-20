@@ -3,7 +3,7 @@ name: consumer-metrics-digest
 # v0.7.62 follow-up A — weekly consumer metrics digest 자동 post (GH issue comment).
 #
 # Workflow:
-# 1. tools/consumer_metrics.py --digest-markdown --days=7 → markdown 본문 생성
+# 1. workflow_kit/tools/consumer_metrics.py --digest-markdown --days=7 → markdown 본문 생성
 # 2. (기존 consumer-metrics-feed issue 가 있으면) 그 issue 에 comment post
 # 3. (없으면) "Consumer metrics — weekly feed" issue 신규 생성
 #
@@ -72,12 +72,12 @@ jobs:
           out_file="$RUNNER_TEMP/digest.md"
           : > "$out_file"
           # 1) Record today's snapshot to history (best-effort; offline-safe)
-          python3 workflow-source/tools/consumer_metrics.py \
+          python3 workflow-source/workflow_kit/tools/consumer_metrics.py \
             --repo "$REPO_NAME" --days "$days" --record \
             || echo "WARN: --record failed (offline?) — continuing"
 
           # 2) Generate digest markdown
-          if ! python3 workflow-source/tools/consumer_metrics.py \
+          if ! python3 workflow-source/workflow_kit/tools/consumer_metrics.py \
               --repo "$REPO_NAME" --days "$days" --digest-markdown \
               > "$out_file" 2>"$RUNNER_TEMP/digest.stderr"; then
             echo "::error::digest generation failed:"

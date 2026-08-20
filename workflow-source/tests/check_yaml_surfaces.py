@@ -305,6 +305,63 @@ def test_run_blocks_do_not_pin_canonical_versions() -> bool:
     return ok
 
 
+def test_run_blocks_reference_existing_scripts() -> bool:
+    """6) `run:` 블록이 **실재하는 스크립트**를 부르는가.
+
+    실측 (TASK-2026-08-20-main-017): `consumer-metrics-digest.yml` 이
+    `workflow-source/tools/consumer_metrics.py` 를 불렀는데, 그 파일은
+    `workflow-source/workflow_kit/tools/` 로 옮겨진 뒤였다 (`7fed4158`,
+    2nd deprecation cycle 의 구경로 shim drop). **파일은 따라 옮겨졌는데
+    워크플로의 참조가 안 따라왔다.**
+
+    주간 cron 으로만 도는 워크플로라 3일간 아무도 못 봤다 — 이것이
+    main-016 이 남긴 규칙("돌지 않은 워크플로는 통과한 워크플로가 아니다")의
+    두 번째 사례다. **자주 안 도는 워크플로일수록 정적으로 잡아야 한다.**
+
+    저장소 상대 경로로 적힌 `.py` 만 본다. `${{ }}` 치환이나 변수가 섞인
+    경로는 정적으로 판정할 수 없으므로 건너뛴다 — **모르는 것을 실패로
+    만들지 않되, 아는 것은 반드시 본다.**
+    """
+    yaml = _yaml()
+    if yaml is None:
+        return False
+    # 저장소 최상위 디렉터리로 시작하는 상대 경로만 판정 대상이다.
+    roots = tuple(
+        d.name for d in REPO_ROOT.iterdir() if d.is_dir() and not d.name.startswith(".")
+    )
+    if not roots:
+        print("  FAIL: 저장소 최상위 디렉터리를 못 읽었다")
+        return False
+    pattern = re.compile(rf"(?:{'|'.join(re.escape(r) for r in roots)})/[A-Za-z0-9_./-]+\.py")
+    ok = True
+    seen = 0
+    for p_ in _workflows():
+        rel = p_.relative_to(REPO_ROOT)
+        d = yaml.safe_load(p_.read_text(encoding="utf-8"))
+        for jname, job in (d.get("jobs") or {}).items():
+            if not isinstance(job, dict):
+                continue
+            for i, step in enumerate(job.get("steps") or []):
+                run = step.get("run") if isinstance(step, dict) else None
+                if not isinstance(run, str):
+                    continue
+                for line in run.splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith("#") or "${{" in stripped:
+                        continue
+                    for match in pattern.findall(stripped):
+                        seen += 1
+                        if not (REPO_ROOT / match).is_file():
+                            print(
+                                f"  FAIL: {rel}:{jname} step[{i}] — 없는 스크립트를 "
+                                f"부른다: {match}"
+                            )
+                            ok = False
+    if ok:
+        print(f"  PASS: `run:` 블록의 스크립트 참조 {seen}건이 전부 실재한다")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_all_yaml_parses", test_all_yaml_parses),
@@ -313,6 +370,8 @@ def main() -> int:
         ("test_run_blocks_do_not_lose_exit_code", test_run_blocks_do_not_lose_exit_code),
         ("test_run_blocks_do_not_pin_canonical_versions",
          test_run_blocks_do_not_pin_canonical_versions),
+        ("test_run_blocks_reference_existing_scripts",
+         test_run_blocks_reference_existing_scripts),
     ]
     results = []
     for name, fn in cases:

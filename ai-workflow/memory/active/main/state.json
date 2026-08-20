@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**54차 세션 (이어서) — main-016 close: `okf-validate` 가 6회 연속 red 였다.** 후보를 점검하다 발견했다. 원인은 export 가 아니라 **검사**다 — 워크플로가 `grep -q 'okf_version: \"0.1\"'` 로 단언하는데 main-003 이 exporter 를 0.2 로 올렸다. **export 는 내내 옳았다.** 저장소가 이미 이름 붙인 결함(*검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다*)이고, 더 아픈 것은 **main-003 이 Python 검사의 `0.1` 리터럴은 정본 참조로 바꿨다는 점**이다 — 그물이 **파일 형식 경계**(.py ↔ .yml)에서 갈렸다. 이번 세션에 같은 모양이 네 번째다. 게다가 이 워크플로는 **경로 필터**가 걸려 있어 그 뒤 푸시에서 트리거되지 않았고, red 가 쌓이는 동안 다른 job 들의 green 만 보였다 — **돌지 않은 워크플로는 통과한 워크플로가 아니다.** 수리: 스텝이 `OKF_SPEC_VERSION` 을 런타임에 읽어 대조한다. 겸사겸사 오진 하나를 갈랐다 — 옛 메시지가 '없음' 과 '어긋남' 을 둘 다 `missing okf_version field` 로 불러서, 값이 **달랐을 뿐**인데 필드가 없다고 보고했다. 그물은 `check_yaml_surfaces` case 5 신설(4→5) — `run:` 블록이 *정본이 있는 키*를 리터럴로 박는지 본다(아무 숫자나 잡으면 `python-version` 같은 정당한 핀까지 걸리므로 정본 상수 이름을 아는 키로 한정). 되주입 red 실증. **부수 확인**: handoff §5 후보 2번(OKF v0.2 ADR 후속)은 **이미 끝난 일**이었다 — `OKF_SPEC_VERSION=0.2` · ADR-026 accepted · main-003 후속란 비어 있음. 51차에 쓰이고 main-003 이 닫을 때 안 지워진 잔재다. 지난 턴 `main-018` 과 같은 모양 — **§5 후보는 SSOT 링크 없는 산문이라 아무것도 그 유효성을 검사하지 않는다.**",
+    "current_baseline": "**54차 세션 (이어서) — main-017 close: 새 규칙을 처음 적용하자마자 두 번째 red 가 나왔다.** main-016 이 남긴 *돌지 않은 워크플로는 통과한 워크플로가 아니다* 를 실제로 적용해 **main 의 워크플로 9개 상태를 전수 확인**했더니, `consumer-metrics-digest` 가 **8/17 이후 3일째 red** 였다. 원인: 워크플로가 `workflow-source/tools/consumer_metrics.py` 를 부르는데 그 파일은 `7fed4158`(2nd deprecation cycle — 구경로 shim drop)에서 `workflow_kit/tools/` 로 옮겨졌다. **파일은 따라 옮겨졌는데 워크플로의 참조가 안 따라왔다.** 주간 cron 으로만 도는 워크플로라 아무도 못 봤다 — **자주 안 도는 워크플로일수록 정적으로 잡아야 한다.** 수리는 경로 2곳 + 주석 1곳. 그물은 `check_yaml_surfaces` case 6 신설(5→6) — `run:` 블록이 부르는 저장소 상대 `.py` 가 실재하는지 본다(현재 **7건 대조**). 변수·`${{ }}` 치환이 섞인 경로는 정적 판정이 불가해 건너뛴다 — 모르는 것을 실패로 만들지 않되 아는 것은 반드시 본다. 워크플로 전수 조사 결과 부재 참조는 이 한 건뿐이었다. CI 스텝 로컬 재현으로 digest 442 bytes 생성 확인, 되주입 red 실증.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다",
       "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계",
       "TASK-2026-08-20-main-015 — 포크 후속 — CLAUDE.md 가 놓친 kit 변경을 골라 병합한다",
       "TASK-2026-08-20-main-014 — planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다",
@@ -44,15 +45,14 @@
       "TASK-2026-08-20-main-011 — codex 채널 페이로드 드리프트 해소 — 1.2.0 사본이 정본과 5건 다르다",
       "TASK-2026-08-20-main-010 — §7.0.2 의 미측정 셀 — 버전이 실제로 다를 때 claude-code 재실행 계약",
       "TASK-2026-08-20-main-009 — 플러그인 스킬 4종이 인벤토리엔 있고 세션엔 없다 — in_sync 를 쓸 수 있음으로 읽던 자리",
-      "TASK-2026-08-20-main-008 — session-end 가 bootstrap 채널에 없다 — 두 채널의 스킬 집합이 갈라져 있었다",
-      "TASK-2026-08-20-main-007 — v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화"
+      "TASK-2026-08-20-main-008 — session-end 가 bootstrap 채널에 없다 — 두 채널의 스킬 집합이 갈라져 있었다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
-    "task_count": 18,
+    "task_count": 19,
     "in_progress_items": [
       "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
@@ -74,7 +74,8 @@
       "TASK-2026-08-20-main-013 — CLAUDE.md 생성기가 session-end 를 광고 안 한다 — 같은 어긋남의 네 번째 자리",
       "TASK-2026-08-20-main-014 — planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다",
       "TASK-2026-08-20-main-015 — 포크 후속 — CLAUDE.md 가 놓친 kit 변경을 골라 병합한다",
-      "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계"
+      "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계",
+      "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다"
     ]
   },
   "next_documents": [
@@ -84,7 +85,6 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
-    "ai-workflow/memory/active/main/sessions/runtime_load_and_label_transition_2026-08-20.md",
     "ai-workflow/memory/active/main/baselines.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",

@@ -1,6 +1,7 @@
 name: okf-validate
 
-# OKF v0.1 sample bundle validation (ADR-006/008/010/012/013)
+# OKF sample bundle validation (ADR-006/008/010/012/013/026)
+# 버전은 여기 적지 않는다 — `okf_export.OKF_SPEC_VERSION` 이 정본이다.
 # V-R10 URL validity lint with --online (HEAD) + --cache (24h disk cache)
 # GITHUB_TOKEN 자동 사용 (rate limit 5000 req/h, unauth 60 req/h)
 
@@ -184,11 +185,23 @@ jobs:
             --include workflow-kit \
             --include r4-anchor-index \
             --include wiki-source-rule-r9
-          if ! grep -q 'okf_version: "0.1"' "$out/index.md"; then
-            echo "::error::bundle root index.md missing okf_version field"
+          # 기대 버전은 **정본에서 파생한다**. 리터럴('0.1')이었을 때,
+          # exporter 를 0.2 로 올린 순간 이 스텝이 red 가 됐다 — export 는
+          # 내내 옳았고 틀린 것은 검사였다 (TASK-2026-08-20-main-016).
+          # 검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다.
+          expected="$(python3 -c 'from workflow_kit.okf_export import OKF_SPEC_VERSION; print(OKF_SPEC_VERSION)')"
+          actual="$(sed -n 's/^okf_version: "\(.*\)"$/\1/p' "$out/index.md" | head -1)"
+          if [ -z "$actual" ]; then
+            echo "::error::bundle root index.md has no okf_version field"
             exit 1
           fi
-          echo "OKF export smoke PASS"
+          # 없음과 어긋남을 갈라서 말한다. 예전 메시지는 둘 다 "missing" 이라
+          # 불러서, 실제로는 값이 **달랐을 뿐**인데 필드가 없다고 보고했다.
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::bundle root index.md okf_version=$actual but OKF_SPEC_VERSION=$expected"
+            exit 1
+          fi
+          echo "OKF export smoke PASS (okf_version=$actual)"
       - name: OKF export unit tests (10/10)
         shell: bash
         env:

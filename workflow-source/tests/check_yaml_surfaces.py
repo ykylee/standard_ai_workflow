@@ -251,12 +251,68 @@ def test_run_blocks_do_not_lose_exit_code() -> bool:
     return ok
 
 
+def test_run_blocks_do_not_pin_canonical_versions() -> bool:
+    """5) `run:` 블록이 **정본이 있는 버전**을 리터럴로 박지 않는가.
+
+    실측 (TASK-2026-08-20-main-016): `okf-validate.yml` 이
+
+        if ! grep -q 'okf_version: "0.1"' "$out/index.md"; then
+
+    로 단언하고 있었다. `okf_export.OKF_SPEC_VERSION` 이 0.2 로 오르자 이 스텝이
+    red 가 됐다 — **export 는 내내 옳았고 틀린 것은 검사였다.** 저장소가 이미
+    이름 붙인 결함이다: *검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다.*
+
+    같은 이행(main-003)이 **Python 검사의 리터럴은 정본 참조로 바꿨는데** YAML 은
+    손대지 않았다. 그물이 파일 형식 경계에서 갈린 것이다. 게다가 이 워크플로는
+    경로 필터가 걸려 있어 그 뒤 푸시에서 트리거되지 않았고, red 가 6회 쌓이도록
+    아무도 못 봤다.
+
+    판정은 **정본 상수 이름을 알고 있는 키**에 한정한다 — 아무 숫자나 잡으면
+    python-version 같은 정당한 핀까지 걸린다.
+    """
+    yaml = _yaml()
+    if yaml is None:
+        return False
+    #: `<번들/산출물 키>` → 그 값의 정본. 정본이 있는 것만 여기 적는다.
+    pinned: dict[str, tuple[str, str]] = {
+        "okf_version": ("workflow_kit.okf_export", "OKF_SPEC_VERSION"),
+    }
+    ok = True
+    for p_ in _workflows():
+        rel = p_.relative_to(REPO_ROOT)
+        d = yaml.safe_load(p_.read_text(encoding="utf-8"))
+        for jname, job in (d.get("jobs") or {}).items():
+            if not isinstance(job, dict):
+                continue
+            for i, step in enumerate(job.get("steps") or []):
+                run = step.get("run") if isinstance(step, dict) else None
+                if not isinstance(run, str):
+                    continue
+                for line in run.splitlines():
+                    stripped = line.strip()
+                    if stripped.startswith("#"):
+                        continue
+                    for key, (module, const) in pinned.items():
+                        if re.search(rf"{re.escape(key)}\s*:\s*.?\d+\.\d+", stripped):
+                            print(
+                                f"  FAIL: {rel}:{jname} step[{i}] — `{key}` 를 리터럴로 "
+                                f"박았다. `{module}.{const}` 가 정본이니 거기서 파생할 것: "
+                                f"{stripped[:70]}"
+                            )
+                            ok = False
+    if ok:
+        print("  PASS: `run:` 블록이 정본 있는 버전을 리터럴로 박지 않는다")
+    return ok
+
+
 def main() -> int:
     cases = [
         ("test_all_yaml_parses", test_all_yaml_parses),
         ("test_workflow_schema", test_workflow_schema),
         ("test_no_handrolled_yaml_parser", test_no_handrolled_yaml_parser),
         ("test_run_blocks_do_not_lose_exit_code", test_run_blocks_do_not_lose_exit_code),
+        ("test_run_blocks_do_not_pin_canonical_versions",
+         test_run_blocks_do_not_pin_canonical_versions),
     ]
     results = []
     for name, fn in cases:

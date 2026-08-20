@@ -207,12 +207,67 @@ def test_release_status_v0_11_14() -> None:
         print(f"  case 8 (다음 release 진행 중: current={current_ver} != last_tag={result['last_release_tag']!r}, ready_to_release={result['ready_to_release']} by 다른 분기): PASS")
 
 
+def test_next_version_is_derived_from_commits_v1_2_2() -> None:
+    """`next_version` 이 **미발행 커밋 유형에서 파생**된다 (TASK-2026-08-20-main-006).
+
+    이전 구현은 `current + 0.0.1` 고정이었고 커밋을 아예 읽지 않았다. 그런데 그
+    값은 같은 summary 줄에서 `unreleased=<N>` 옆에 찍힌다 — **개수는 세면서 판정은
+    안 세니** 파생값처럼 보이는 상수였다. 실측(2026-08-20): feat 18 · fix 24 ·
+    breaking 1 인 사이클에 `1.2.1`(patch)을 권했다.
+    """
+    import importlib
+
+    mod = importlib.import_module("workflow_kit.release_status")
+    importlib.reload(mod)
+
+    def commits(*subjects: str) -> list[dict[str, str]]:
+        return [{"sha": f"{i:07d}", "subject": s} for i, s in enumerate(subjects)]
+
+    problems: list[str] = []
+
+    # breaking → major, 그리고 **숫자만 내밀지 않는다**
+    br = mod._suggest_next_version("1.2.0", commits=commits("feat(okf)!: v0.2 이행", "fix: x"))
+    if br["next"] != "2.0.0" or br.get("level") != "major":
+        problems.append(f"breaking → {br['next']} / {br.get('level')}")
+    if not br.get("requires_decision"):
+        problems.append("major 를 사람 결정 없이 확정했다")
+    if not br["basis"]["breaking"]:
+        problems.append("근거(breaking 제목)가 비었다")
+
+    # feat → minor
+    ft = mod._suggest_next_version("1.2.0", commits=commits("feat: a", "docs: b"))
+    if ft["next"] != "1.3.0" or ft.get("level") != "minor":
+        problems.append(f"feat → {ft['next']} / {ft.get('level')}")
+    if ft.get("requires_decision"):
+        problems.append("minor 에 결정 요구가 붙었다")
+
+    # 그 외 → patch
+    px = mod._suggest_next_version("1.2.0", commits=commits("fix: a", "chore: b"))
+    if px["next"] != "1.2.1" or px.get("level") != "patch":
+        problems.append(f"fix/chore → {px['next']} / {px.get('level')}")
+
+    # 근거 없음 → patch 이되 **근거 없음을 밝힌다**
+    none = mod._suggest_next_version("1.2.0")
+    if none["next"] != "1.2.1":
+        problems.append(f"근거 없음 → {none['next']}")
+    if none["basis"]["total"] != 0:
+        problems.append(f"근거 없음인데 total={none['basis']['total']}")
+
+    # scope 가 붙은 breaking 표기도 잡는다
+    scoped = mod._suggest_next_version("1.2.0", commits=commits("refactor(core)!: drop shim"))
+    if scoped.get("level") != "major":
+        problems.append(f"scoped breaking 미탐지: {scoped.get('level')}")
+
+    assert not problems, "; ".join(problems)
+
+
 def main() -> int:
     """1 acceptance test. 1 fail = exit 1."""
     print("=== v0.11.14 release-status dispatcher subcommand acceptance test ===")
     print("=== v0.11.13 의 '다음' §1 follow-up (신규 workflow_kit/<module>.py mypy strict clean) ===")
     tests = [
         ("test_release_status_v0_11_14", test_release_status_v0_11_14),
+        ("test_next_version_is_derived_from_commits_v1_2_2", test_next_version_is_derived_from_commits_v1_2_2),
     ]
     passed = 0
     failed = 0

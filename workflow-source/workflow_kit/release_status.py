@@ -21,6 +21,7 @@ Mypy strict clean (v0.11.10+ FULL STRICT 도달, 35 file 누적) 정합.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -94,22 +95,90 @@ def _unreleased_commits(*, since_tag: str | None) -> dict[str, Any]:
     return {"count": len(commits), "commits": commits}
 
 
-def _suggest_next_version(current: str) -> dict[str, Any]:
-    """Suggest next patch version (simple heuristic: current + 0.0.1).
+#: conventional commit 의 breaking 표기. `type(scope)!: subject` 와
+#: 본문의 `BREAKING CHANGE:` 둘 다 spec 상 유효하지만, 여기서는 제목만 본다
+#: (`_unreleased_commits` 가 제목만 들고 오기 때문 — 없는 것을 있는 척하지 않는다).
+_BREAKING_SUBJECT_RE = re.compile(r"^[a-z]+(?:\([^)]*\))?!:")
+_FEAT_SUBJECT_RE = re.compile(r"^feat(?:\([^)]*\))?:")
+_FIX_SUBJECT_RE = re.compile(r"^fix(?:\([^)]*\))?:")
+
+
+def classify_unreleased(commits: list[dict[str, str]]) -> dict[str, Any]:
+    """미발행 커밋을 conventional commit 유형으로 분류한다.
 
     Returns:
-        {"next": "0.11.14", "current": "0.11.13", "bumped": True}
+        {"breaking": [subject, ...], "feat": int, "fix": int, "other": int, "total": int}
+    """
+    breaking: list[str] = []
+    feat = fix = other = 0
+    for c in commits:
+        subject = str(c.get("subject", "")).strip()
+        if _BREAKING_SUBJECT_RE.match(subject):
+            breaking.append(subject)
+            continue
+        if _FEAT_SUBJECT_RE.match(subject):
+            feat += 1
+        elif _FIX_SUBJECT_RE.match(subject):
+            fix += 1
+        else:
+            other += 1
+    return {"breaking": breaking, "feat": feat, "fix": fix, "other": other,
+            "total": len(commits)}
+
+
+def _suggest_next_version(
+    current: str, *, commits: list[dict[str, str]] | None = None
+) -> dict[str, Any]:
+    """다음 버전 후보를 **미발행 커밋에서 파생**한다.
+
+    이전 구현은 `current + 0.0.1` 고정이었고 커밋을 아예 안 읽었다. 그런데 그
+    값은 같은 summary 줄에서 `unreleased=<N>` 옆에 찍힌다 — **개수는 세면서
+    판정은 안 세니**, 파생값처럼 보이는 상수였다. 실측(2026-08-20): feat 18 ·
+    fix 24 · breaking 1 인 사이클에 `1.2.1`(patch)을 권했다.
+
+    규칙:
+      - breaking 있음 → major. 다만 이 저장소는 v0.8.0 에 API 를 얼렸으므로
+        major 는 **사람이 결정할 사안**이다. 숫자만 내밀지 않고
+        `requires_decision` 과 근거(breaking 제목)를 함께 싣는다.
+      - feat 있음 → minor
+      - 그 외 → patch
+      - 커밋 근거가 없으면 patch 로 떨어지되 **근거 없음을 밝힌다**
+        (`basis.total == 0`). 모름을 판정으로 위장하지 않는다.
     """
     try:
         parts = current.split(".")
         if len(parts) != 3:
             return {"next": current, "current": current, "bumped": False,
                     "error": "non-semver current version"}
-        major, minor, patch = parts
-        next_version = f"{major}.{minor}.{int(patch) + 1}"
-        return {"next": next_version, "current": current, "bumped": True}
+        major, minor, patch = (int(p) for p in parts)
     except (ValueError, AttributeError) as e:
         return {"next": current, "current": current, "bumped": False, "error": str(e)}
+
+    basis = classify_unreleased(commits or [])
+    if basis["breaking"]:
+        level = "major"
+        next_version = f"{major + 1}.0.0"
+    elif basis["feat"]:
+        level = "minor"
+        next_version = f"{major}.{minor + 1}.0"
+    else:
+        level = "patch"
+        next_version = f"{major}.{minor}.{patch + 1}"
+
+    result: dict[str, Any] = {
+        "next": next_version,
+        "current": current,
+        "bumped": True,
+        "level": level,
+        "basis": basis,
+    }
+    if level == "major":
+        result["requires_decision"] = True
+        result["decision_reason"] = (
+            "breaking 커밋이 있어 major 를 제안하지만, 이 저장소는 v0.8.0 에 stable API 를 "
+            "얼렸다 (SemVer 2년 보장). major 승격은 사람이 결정한다 — 근거는 basis.breaking."
+        )
+    return result
 
 
 def _check_local_mypy() -> dict[str, Any]:
@@ -266,7 +335,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
     unreleased = _unreleased_commits(since_tag=last_tag)
     local_mypy = _check_local_mypy()
     ci_mypy = _check_ci_mypy()
-    next_ver = _suggest_next_version(current)
+    next_ver = _suggest_next_version(current, commits=unreleased.get("commits", []))
 
     # v0.11.16+ --auto-bump: current == last_tag 분기에서 자동 bump
     auto_bump_applied = False
@@ -278,7 +347,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
         if auto_bump_applied:
             # bump 성공 시 current_version 재읽기 + next_version 재계산
             current = _read_pyproject_version()
-            next_ver = _suggest_next_version(current)
+            next_ver = _suggest_next_version(current, commits=unreleased.get("commits", []))
 
     # ready_to_release verdict: Layer 1 + Layer 2 모두 sanity
     # + unreleased_commits > 0 (release 의미)

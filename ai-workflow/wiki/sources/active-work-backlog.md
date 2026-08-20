@@ -9,7 +9,7 @@ last_touched: 2026-08-20
 
 # Active Work Backlog (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/backlog/2026-08-20.md` (32 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/backlog/2026-08-20.md` (35 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
 > 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 
@@ -22,3 +22,4 @@ last_touched: 2026-08-20
 - **TASK-2026-08-13-main-004** CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정 — `in_progress`
 - **TASK-2026-08-20-main-004** memory_index 3-tuple 관찰 — 저점 고착의 원인은 검색이 아니라 종료 절차 배선 — `done`
 - **TASK-2026-08-20-main-005** watch_transient_writer 의 고정 sleep 이 병렬 부하에서 깨진다 — 시간이 아니라 관측을 기다린다 — `done`
+- **TASK-2026-08-20-main-006** release-status 의 next_version 이 커밋을 읽지 않는다 — 개수는 세고 판정은 안 센다 — `done`

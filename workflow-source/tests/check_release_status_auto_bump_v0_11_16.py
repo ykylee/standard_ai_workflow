@@ -212,8 +212,14 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     # `_last_release_tag` 도 mock 한다 — auto-bump 분기 가드가 `last_tag == current`
     # 를 요구하므로, 실제 저장소 태그에 의존하면 태그가 앞서가는 순간 분기 자체에
     # 진입하지 못해 test 가 저장소 상태에 결합된다.
+    # v1.2.2: `_unreleased_commits` 도 mock 한다. `next_version` 이 **미발행 커밋
+    # 유형에서 파생**되도록 바뀌었으므로(patch+1 고정 폐기), mock 하지 않으면 이
+    # case 가 저장소 이력에 결합돼 breaking 커밋 하나에 기대값이 흔들린다.
+    # 여기서 재는 것은 auto-bump 후 **current_version re-read 가 반영되는가** 다.
     with patch("workflow_kit.release_status._run_auto_bump") as mock_bump, \
          patch("workflow_kit.release_status._last_release_tag", return_value="v0.11.15-beta"), \
+         patch("workflow_kit.release_status._unreleased_commits",
+               return_value={"count": 1, "commits": [{"sha": "abc1234", "subject": "chore: bump"}]}), \
          patch("workflow_kit.release_status._read_pyproject_version") as mock_read:
         # 첫 read = "0.11.15" (auto-bump 전), 두 번째 read = "0.11.16" (auto-bump 후 re-read)
         mock_read.side_effect = ["0.11.15", "0.11.16"]
@@ -243,7 +249,8 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     assert result_bump["current_version"] == "0.11.16", (
         f"--auto-bump 후 current_version re-read != '0.11.16': {result_bump['current_version']!r}"
     )
-    # next_version 도 재계산: "0.11.15" → "0.11.16" (re-read 후) → "0.11.17" (다음 patch)
+    # next_version 도 재계산: "0.11.15" → "0.11.16" (re-read 후) → "0.11.17"
+    # (mock 커밋이 chore 뿐이라 판정은 patch)
     assert result_bump["next_version"]["next"] == "0.11.17", (
         f"--auto-bump 후 next_version.next != '0.11.17': {result_bump['next_version']['next']!r}"
     )

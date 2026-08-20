@@ -9,7 +9,7 @@ last_touched: 2026-08-20
 
 # Active State (Derived View, 2026-08-20)
 
-> L1 SSOT: `ai-workflow/memory/active/main/state.json` (478 lines)
+> L1 SSOT: `ai-workflow/memory/active/main/state.json` (479 lines)
 > 본 L2 파생 뷰는 in-repo retrieval 용 압축 요약이다. 정본은 L1 SSOT 를 본다.
 > 생성: `2026-08-20` by `workflow_kit.tools.refresh_wiki_memory --emit-l2`
 

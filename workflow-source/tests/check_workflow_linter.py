@@ -224,6 +224,145 @@ def test_unreadable_handoff_is_issue() -> None:
         print("✅ Unreadable handoff reported as issue.")
 
 
+
+# --- v1.2.2 (TASK-2026-08-20-main-002): in_progress 대조의 출처 ---------------
+#
+# 이전에는 세 번째 출처가 **최신 일자 backlog index** 였다. 그런데 그 index 의
+# 정의는 *해당 일자의 task* 이고, `state.json` 의 `in_progress_items` 는
+# `backlog/tasks/` **전체** 집계다. 그래서 어제 연 task 를 오늘 손대지 않으면
+# 오늘 index 에 없는 것이 정상인데 `task_status_mismatch` 가 났다 — 날짜가
+# 바뀔 때마다 구조적으로 어긋났고 2세션 연속 사람이 손으로 이월해 풀었다.
+
+
+def _appendonly_paths(project_root: Path) -> dict[str, Path]:
+    """v0.14.0+ append-only layout fixture 경로 (`backlog/tasks/` 포함)."""
+    branch_root = project_root / "ai-workflow" / "memory" / BRANCH_NAME
+    backlog_dir = branch_root / "backlog"
+    tasks_dir = backlog_dir / "tasks"
+    tasks_dir.mkdir(parents=True, exist_ok=True)
+    return {
+        "state_json": project_root / "ai-workflow" / "memory" / "state.json",
+        "handoff": branch_root / "session_handoff.md",
+        "backlog_old": backlog_dir / "2026-08-19.md",
+        "backlog_new": backlog_dir / "2026-08-20.md",
+        "tasks": tasks_dir,
+    }
+
+
+def _write_task(tasks_dir: Path, task_id: str, title: str, status: str) -> None:
+    (tasks_dir / f"{task_id}.md").write_text(
+        f"---\nid: {task_id}\nstatus: {status}\nkind: generic\n---\n\n"
+        f"# {task_id} — {title}\n",
+        encoding="utf-8",
+    )
+
+
+def _write_handoff(path: Path, in_progress: list[str]) -> None:
+    body = "\n".join(f"  - {item}" for item in in_progress) or "  -"
+    path.write_text(
+        "## 1. 현재 작업 요약\n"
+        "- 현재 기준선: Test\n"
+        "- 현재 주 작업 축: Test\n\n"
+        "## 2. 진행 중 작업\n"
+        "- 현재 `in_progress` 작업:\n" + body + "\n",
+        encoding="utf-8",
+    )
+
+
+def _rollover_fixture(root: Path, *, state_in_progress: list[str]) -> dict[str, Path]:
+    """어제 연 task 하나가 **오늘 index 에는 없는** 상태를 만든다."""
+    paths = _appendonly_paths(root)
+    _write_task(paths["tasks"], "TASK-2026-08-19-main-001", "어제 연 작업", "in_progress")
+    _write_task(paths["tasks"], "TASK-2026-08-20-main-001", "오늘 닫은 작업", "done")
+    # 어제 index: 어제 연 task. 오늘 index: 오늘 손댄 task 만.
+    paths["backlog_old"].write_text(
+        "# Backlog Index — 2026-08-19\n\n## Tasks\n\n"
+        "- **TASK-2026-08-19-main-001** [generic] 어제 연 작업\n"
+        "  - status: in_progress\n", encoding="utf-8")
+    paths["backlog_new"].write_text(
+        "# Backlog Index — 2026-08-20\n\n## Tasks\n\n"
+        "- **TASK-2026-08-20-main-001** [generic] 오늘 닫은 작업\n"
+        "  - status: done\n", encoding="utf-8")
+    _write_handoff(paths["handoff"], ["TASK-2026-08-19-main-001 어제 연 작업"])
+    paths["state_json"].write_text(json.dumps({
+        "source_of_truth": {"latest_backlog_path": str(paths["backlog_new"])},
+        "session": {"in_progress_items": state_in_progress},
+        "project": {"project_name": "Test"},
+    }), encoding="utf-8")
+    return paths
+
+
+def test_date_rollover_does_not_flag_untouched_open_task():
+    """날짜가 바뀌어도 **손대지 않은** in_progress task 는 mismatch 가 아니다."""
+    print("Testing date-rollover carry-over case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        _rollover_fixture(root, state_in_progress=["TASK-2026-08-19-main-001 어제 연 작업"])
+        result = run_linter(root)
+        sync = [i for i in result.get("issues", []) if i["code"] == "task_status_mismatch"]
+        assert not sync, f"롤오버가 mismatch 로 잡혔다: {sync}"
+        src = result["summary"]["in_progress_source"]
+        assert src["kind"] == "task SSOT", src
+        print("✅ Rollover no longer flagged; source =", src["kind"])
+
+
+def test_handoff_drift_from_task_ssot_is_still_caught():
+    """검사가 약해지지 않았다 — handoff 가 SSOT 와 어긋나면 그대로 잡힌다."""
+    print("Testing handoff-vs-SSOT drift case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        paths = _rollover_fixture(root, state_in_progress=["TASK-2026-08-19-main-001 어제 연 작업"])
+        # handoff 만 비운다 — SSOT/state 는 여전히 in_progress.
+        _write_handoff(paths["handoff"], [])
+        result = run_linter(root)
+        sync = [i for i in result.get("issues", []) if i["code"] == "task_status_mismatch"]
+        assert sync, f"handoff 드리프트를 못 잡았다: {result.get('issues')}"
+        assert "handoff" in sync[0]["description"], sync[0]["description"]
+        print("✅ Handoff drift still caught.")
+
+
+def test_stale_state_json_is_caught():
+    """**이전 조합으로는 볼 수 없던 것** — state.json 이 낡으면 잡힌다.
+
+    `wk refresh-state` 를 안 돌리면 state.json 이 task SSOT 보다 뒤처진다.
+    예전에는 state ↔ 일자 index 를 비교해서 이 상태가 그냥 통과했다.
+    """
+    print("Testing stale state.json case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        # SSOT/handoff 는 in_progress 인데 state.json 만 비어 있다 (재생성 누락).
+        _rollover_fixture(root, state_in_progress=[])
+        result = run_linter(root)
+        sync = [i for i in result.get("issues", []) if i["code"] == "task_status_mismatch"]
+        assert sync, f"낡은 state.json 을 못 잡았다: {result.get('issues')}"
+        assert "state.json" in sync[0]["description"], sync[0]["description"]
+        print("✅ Stale state.json caught.")
+
+
+def test_legacy_layout_falls_back_to_daily_backlog():
+    """`backlog/tasks/` 가 없는 레이아웃에서는 일자 backlog 가 그 레이아웃의 SSOT 다.
+
+    폴백을 **조용히** 하지 않는다 — 무엇을 봤는지 결과에 남는다.
+    """
+    print("Testing legacy-layout fallback case...")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        paths = _memory_paths(root)  # tasks/ 없음
+        paths["state_json"].write_text(json.dumps({
+            "source_of_truth": {"latest_backlog_path": str(paths["backlog"])},
+            "session": {"in_progress_items": ["TASK-001 Test task"]},
+            "project": {"project_name": "Test"},
+        }))
+        _write_handoff(paths["handoff"], ["TASK-001 Test task"])
+        paths["backlog"].write_text("## TASK-001 Test task\n- 상태: in_progress")
+        result = run_linter(root)
+        sync = [i for i in result.get("issues", []) if i["code"] == "task_status_mismatch"]
+        assert not sync, f"레거시 레이아웃에서 mismatch: {sync}"
+        src = result["summary"]["in_progress_source"]
+        assert src["kind"] == "backlog", src
+        print("✅ Legacy fallback used and reported:", src["kind"])
+
+
 if __name__ == "__main__":
     try:
         test_linter_pass()
@@ -231,6 +370,10 @@ if __name__ == "__main__":
         test_linter_fail_broken_link()
         test_missing_handoff_is_issue_not_warning()
         test_unreadable_handoff_is_issue()
+        test_date_rollover_does_not_flag_untouched_open_task()
+        test_handoff_drift_from_task_ssot_is_still_caught()
+        test_stale_state_json_is_caught()
+        test_legacy_layout_falls_back_to_daily_backlog()
         print("\n🎉 All workflow-linter smoke tests passed!")
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")

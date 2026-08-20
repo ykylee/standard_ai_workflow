@@ -4283,6 +4283,13 @@
               "title": "Broken Links",
               "type": "integer"
             },
+            "in_progress_source": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "title": "In Progress Source",
+              "type": "object"
+            },
             "missing_documents": {
               "default": 0,
               "title": "Missing Documents",

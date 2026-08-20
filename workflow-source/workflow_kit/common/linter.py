@@ -177,21 +177,67 @@ def _load_or_issue(
         }
 
 
+def _resolve_tasks_dir(latest_backlog_path: Path, tasks_dir: Path | None) -> Path | None:
+    """task SSOT 디렉터리 해석. 명시값 > `<backlog>/tasks/` 관례 > None."""
+    if tasks_dir is not None:
+        return tasks_dir if tasks_dir.is_dir() else None
+    candidate = latest_backlog_path.parent / "tasks"
+    return candidate if candidate.is_dir() else None
+
+
+def _in_progress_from_task_ssot(tasks_dir: Path) -> tuple[set[str], list[str]]:
+    """task SSOT 전체에서 `in_progress` 인 task id 집합.
+
+    판정을 여기서 다시 쓰지 않고 **state.json 생성기와 같은 함수**를 부른다.
+    기준을 따로 두면 기준이 드리프트한다 — 린터가 생성기와 다른 규칙으로
+    "불일치" 를 외치는 것이 가장 나쁜 결과다.
+
+    Returns:
+        (task id 집합, 경고 목록)
+    """
+    try:
+        from workflow_kit.common.state.builder import _aggregate_from_appendonly_layout
+    except Exception as exc:  # pragma: no cover - import 실패는 환경 문제
+        return set(), [f"task SSOT 집계 불가 ({exc}) — in_progress 대조를 건너뛴다."]
+    agg = _aggregate_from_appendonly_layout(
+        daily_backlog_dir=None, tasks_dir=tasks_dir, sessions_dir=None,
+    )
+    items = agg.get("in_progress_items", [])
+    return {item.split()[0] for item in items if item.startswith("TASK-")}, []
+
+
 def check_workflow_consistency(
     state_json_path: Path,
     handoff_path: Path,
     latest_backlog_path: Path,
     *,
     excluded_paths: List[str] | None = None,
+    tasks_dir: Path | None = None,
 ) -> Dict[str, Any]:
-    """workflow 3 source (state / handoff / backlog) 정합 검증.
+    """workflow 3 source (state / handoff / **task SSOT**) 정합 검증.
+
+    **세 번째 출처가 일자 backlog index 가 아니라 task SSOT 인 이유**
+    (TASK-2026-08-20-main-002): 일자 index 는 그 정의가 *해당 일자의 task* 이고
+    (문서 머리말과 `backlog_update` 주석이 둘 다 그렇게 적는다), `state.json` 의
+    `in_progress_items` 는 `tasks_dir` **전체** 집계다. 그래서 어제 연 task 를
+    오늘 손대지 않으면 오늘 index 에 없는 것이 **정상인데** 이 검사가
+    `task_status_mismatch` 를 냈다 — 날짜가 바뀔 때마다 구조적으로 어긋났고,
+    2세션 연속으로 사람이 손으로 이월해 풀었다.
+
+    일자 index 를 매일 다시 쓰는 쪽(자동 이월)은 오답이다: append-only 이력
+    문서를 고쳐 쓰게 되고, index 의 정의와도 싸운다. 고칠 곳은 **출처 선택**이다.
+
+    바뀐 뒤에도 잡히는 것은 그대로다 — handoff 가 task SSOT 와 어긋나면 잡히고,
+    `state.json` 이 낡았으면(`wk refresh-state` 누락) 그것도 잡힌다. 오히려
+    후자는 이전 조합으로는 **볼 수 없던** 것이다.
 
     Args:
         state_json_path: state.json 경로
         handoff_path: session_handoff.md 경로
-        latest_backlog_path: latest backlog 경로
+        latest_backlog_path: latest backlog 경로 (링크 검사 + tasks_dir 관례 해석에 쓰인다)
         excluded_paths: broken link check skip glob list. v0.7.15+: [tool.workflow-doctor]
             의 ``excluded_paths`` field 적용. None 이면 empty list.
+        tasks_dir: task SSOT 디렉터리. None 이면 `<latest_backlog 부모>/tasks/` 관례.
     """
     issues = []
     warnings = []
@@ -235,29 +281,53 @@ def check_workflow_consistency(
         issues.append(backlog_issue)
 
     # 1. Check in_progress consistency
-    # backlog/handoff/state 의 dict type 이 dict[str, object] 로 추정 → .get 결과 object.
+    # handoff/state 의 dict type 이 dict[str, object] 로 추정 → .get 결과 object.
     # 명시적 list[str] cast 후 item.startswith / split 가능.
-    backlog_in_progress_raw = backlog.get("in_progress_items", [])
     handoff_in_progress_raw = handoff.get("in_progress_items", [])
     state_in_progress_raw = state.get("session", {}).get("in_progress_items", [])
-    backlog_in_progress = {item.split()[0] for item in cast(list[str], backlog_in_progress_raw) if item.startswith("TASK-")}
     handoff_in_progress = {item.split()[0] for item in cast(list[str], handoff_in_progress_raw) if item.startswith("TASK-") and "N/A" not in item}
     state_in_progress = {item.split()[0] for item in cast(list[str], state_in_progress_raw) if item.startswith("TASK-") and "N/A" not in item}
 
-    all_tasks = backlog_in_progress | handoff_in_progress | state_in_progress
-    for task in all_tasks:
-        missing = []
-        if task not in backlog_in_progress: missing.append("backlog")
-        if task not in handoff_in_progress: missing.append("handoff")
-        if task not in state_in_progress: missing.append("state.json")
+    # 세 번째 출처는 **그 레이아웃의 task SSOT** 다.
+    #
+    # v0.14.0+ append-only 에서는 `backlog/tasks/<id>.md` 가 SSOT 이고 일자 index 는
+    # "그날 손댄 task" 의 목록일 뿐이다. 그 이전 레이아웃에서는 일자 backlog 자체가
+    # SSOT 다. 어느 쪽을 봤는지는 **결과에 적는다** — 조용히 다른 것을 보면 통과도
+    # 실패도 근거가 못 된다.
+    resolved_tasks_dir = _resolve_tasks_dir(latest_backlog_path, tasks_dir)
+    if resolved_tasks_dir is not None:
+        ssot_label = "task SSOT"
+        ssot_source = str(resolved_tasks_dir)
+        ssot_in_progress, ssot_warnings = _in_progress_from_task_ssot(resolved_tasks_dir)
+        warnings.extend(ssot_warnings)
+    else:
+        ssot_label = "backlog"
+        ssot_source = str(latest_backlog_path)
+        backlog_in_progress_raw = backlog.get("in_progress_items", [])
+        ssot_in_progress = {
+            item.split()[0]
+            for item in cast(list[str], backlog_in_progress_raw)
+            if item.startswith("TASK-")
+        }
 
+    sources = (
+        (ssot_label, ssot_in_progress),
+        ("handoff", handoff_in_progress),
+        ("state.json", state_in_progress),
+    )
+    all_tasks = ssot_in_progress | handoff_in_progress | state_in_progress
+    for task in sorted(all_tasks):
+        missing = [name for name, ids in sources if task not in ids]
         if missing:
             issues.append({
                 "type": "sync_error",
                 "code": "task_status_mismatch",
                 "description": f"Task {task} is inconsistent. Missing in: {', '.join(missing)}",
                 "severity": "medium",
-                "fix_suggestion": f"Ensure {task} is listed in all three core documents."
+                "fix_suggestion": (
+                    f"{task} 의 상태를 세 곳에서 맞춘다 — {ssot_label}({ssot_source}) 가 정본이고, "
+                    "handoff 는 `wk backlog-update`, state.json 은 `wk refresh-state` 로 따라온다."
+                ),
             })
 
     # 2. Check for bloat in handoff
@@ -355,5 +425,8 @@ def check_workflow_consistency(
             "bloat_warnings": len([i for i in issues if i["type"] == "bloat_warning"]),
             "missing_documents": len([i for i in issues if i["type"] == "missing_document"]),
             "excluded_paths": excluded_paths,
+            # in_progress 3자 대조가 **무엇을 정본으로 봤는지**. 레이아웃에 따라
+            # 갈리므로 결과에 남긴다 — 조용히 다른 것을 보면 통과도 실패도 근거가 못 된다.
+            "in_progress_source": {"kind": ssot_label, "path": ssot_source},
         }
     }

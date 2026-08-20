@@ -420,6 +420,11 @@ wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 "재시작 전까지 노출되지 않는다" 를 발견으로 낸다. 시작 시각은 `ps` 의 `etime`
 에서만 읽는다 (`lstart` 는 로케일로 번역돼 파싱이 호스트마다 갈린다).
 
+`content_drift` 는 **어느 사본이 설치본인지**부터 가른다 — 갱신하면 옛 버전
+디렉터리가 남으므로(§7.0.2 의 4), `installed_plugins.json` 의 `installPath` 선언을
+읽어 로드되는 사본만 발견으로 세고 나머지는 `superseded` 로 남긴다. 선언이 없는
+채널은 glob 매치를 전부 설치로 보되 **그것이 폴백임을 결과에 적는다**.
+
 남는 미측정은 **그 뒤 한 칸**이다: 재시작이 최신인 호스트라도 하네스가 실제로
 노출하는지는 이 탐침 밖이라 `content_drift` 가 `declared_unmeasured` 로
 **밝힌다** — 재지 못하는 것을 통과로 세지 않는 원칙은 §7.0.0 의 `installable` 과
@@ -433,17 +438,18 @@ wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 
 **채널마다 다르고, 문서가 없으면 알 수 없다.** smart update(`decide_action`)는
 bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의 설치기가 정한다.
-아래는 **2026-08-18 이 호스트에서 실측**한 결과다 (추정 없음).
+아래는 **이 호스트에서 실측**한 결과다 (추정 없음) — 표는 2026-08-18,
+*버전이 다를 때*의 셀은 2026-08-20 (v1.3.0 발행으로 처음 그 상태가 생겼다).
 
 | 채널 | 설치본의 정체 | 설치 명령 재실행 | update 명령 | **페이로드가 낡았을 때 복구** |
 |---|---|---|---|---|
-| **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) | **`uninstall` → `install`** (유일한 경로) |
+| **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | **버전이 같으면** `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) · **버전이 다르면** 실제로 올린다 (아래 4) | 같은 버전: **`uninstall` → `install`** · 다른 버전: `plugin update <plugin>@<marketplace>` |
 | **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | `plugin add` 재실행 |
 | **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/`) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **gemini-cli** | 미실측 | 미실측 | 미실측 | 이 호스트에 `gemini` CLI 가 없다 |
 
-읽는 법 세 가지:
+읽는 법 네 가지:
 
 1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
    업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
@@ -454,6 +460,24 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
    설치 캐시는 그대로였다). 설치본까지 가려면 위 표의 복구 열을 따른다.
 3. **`grok plugin update` 의 출력을 믿지 말 것.** `already live` 라고 말하지만
    설치본은 inode 가 다른 **사본**이고, 원본을 바꿔도 반영되지 않았다.
+4. **버전이 실제로 다를 때는 이야기가 다르다** (2026-08-20 실측, v1.2.0 → v1.3.0 —
+   이 표의 나머지가 전부 *같은 버전*에서 측정된 것이라 이 셀만 비어 있었다):
+   - **맨 이름은 실패한다.** `claude plugin update standard-ai-workflow` 는
+     **rc 1** 로 `Plugin "standard-ai-workflow" not found` 를 낸다. `install` 은
+     맨 이름을 받는데 `update` 는 안 받는다 — **`<plugin>@<marketplace>` 로 적는다.**
+   - **`marketplace update` 를 먼저 돌릴 필요가 없다.** `plugin update` 가 클론을
+     스스로 당긴다 (실측: 클론 HEAD 가 옛 커밋에서 최신으로 이동했다). 위 2번은
+     "`marketplace update` 만으로는 설치본이 안 고쳐진다" 는 뜻이지 그 명령이
+     선행 조건이라는 뜻이 아니다.
+   - **당겨오는 것은 태그가 아니라 브랜치 팁이다.** 실측에서 설치된 `1.3.0` 의
+     `gitCommitSha` 는 `v1.3.0` 태그가 아니라 **그 시점 main 의 팁**이었다. 즉
+     같은 `1.3.0` 문자열이 시점마다 다른 내용을 가리킬 수 있다 — 위 1번의 함정이
+     *소비자 쪽에서* 다시 성립한다.
+   - **옛 버전 디렉터리는 남는다.** `cache/.../1.2.0` 과 `1.3.0` 이 나란히 있고
+     `installed_plugins.json` 의 `installPath` 만 새것을 가리킨다. 그래서
+     `wk doctor` 는 **선언을 읽어** 어느 사본이 설치본인지 가른다 (§7.0.1).
+   - **`Restart to apply changes.`** — CLI 자신이 그렇게 말한다. §7.0.1 의
+     `runtime_load` 가 재는 것이 정확히 그 조건이다.
 
 > 이 표는 `wk doctor` (§7.0.1) 의 **복구 열**이다. 탐침의 `content_drift` 절이
 > 페이로드 해시로 *어긋났다* 는 사실까지 말해 주지만(2026-08-18+), 고치는 방법은

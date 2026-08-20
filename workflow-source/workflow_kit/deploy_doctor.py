@@ -647,6 +647,76 @@ def _compare_cache(
     }
 
 
+def _declared_install_roots(home: Path) -> tuple[set[str], str | None]:
+    """하네스가 **스스로 말하는** 설치 경로. 없으면 ``(빈 집합, 사유)``.
+
+    claude-code 의 `installed_plugins.json` 은 `installPath` 로 *어느 사본이
+    설치본인지* 선언한다. 이것을 읽지 않으면 glob 매치가 전부 동등한 설치로
+    보인다 — 그리고 그 순간 갱신이 보고를 **나쁘게** 만든다 (아래).
+    """
+    path = home / ".claude" / "plugins" / "installed_plugins.json"
+    if not path.is_file():
+        return set(), "installed_plugins.json 이 없다"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return set(), f"installed_plugins.json 을 읽지 못했다: {type(exc).__name__}"
+    roots: set[str] = set()
+    for key, entries in (payload.get("plugins") or {}).items():
+        if "standard-ai-workflow" not in key:
+            continue
+        for item in entries if isinstance(entries, list) else []:
+            raw = item.get("installPath") if isinstance(item, dict) else None
+            if isinstance(raw, str) and raw:
+                # 선언된 경로와 glob 이 찾은 경로는 **같은 곳을 다르게 적을 수 있다**
+                # (macOS 의 `/var` → `/private/var` 심볼릭 링크가 그렇다). 문자열
+                # 하나만 담으면 정상 설치가 '선언에 없는 사본' 으로 뒤집힌다.
+                roots.add(str(Path(raw)))
+                try:
+                    roots.add(str(Path(raw).resolve()))
+                except OSError:
+                    pass
+    if not roots:
+        return set(), "installed_plugins.json 에 이 플러그인의 installPath 가 없다"
+    return roots, None
+
+
+def _resolve_install_roots(
+    entry: PluginInstallCache, home: Path
+) -> list[tuple[Path, bool, str]]:
+    """``(사본, 지금 로드되는 것인가, 그 판정의 출처)``.
+
+    **버전을 올리면 옛 디렉터리가 남는다** (2026-08-20 실측: `plugin update` 뒤
+    `cache/.../1.2.0` 과 `1.3.0` 이 나란히 있었다). 그 잔재를 설치본과 동등하게
+    세면 두 가지가 함께 깨진다 — 아무도 안 읽는 사본이 드리프트로 보고되고
+    (게다가 `installed_version` 이 **옛 버전**을 말한다), 사본 개수만큼 같은
+    발견이 복제된다. 즉 **갱신에 성공한 직후 보고가 나빠진다.**
+
+    선언이 없는 채널은 glob 매치를 전부 설치로 본다 — 그러나 그 폴백을 조용히
+    하지 않는다 (§0 *폴백은 조용히 하지 않는다*). 재지 못한 것을 잰 것처럼
+    보이게 하지 않는 것이 이 절의 계약이다.
+    """
+    declared, why = _declared_install_roots(home) if entry.harness == "claude-code" else (set(), None)
+    fallback = (
+        f"선언 없음 — glob 매치를 전부 설치로 본다 ({why})"
+        if entry.harness == "claude-code"
+        else "이 채널은 설치 경로를 선언하지 않는다 — glob 매치를 전부 설치로 본다"
+    )
+    found: list[tuple[Path, bool, str]] = []
+    for root in sorted(home.glob(entry.glob)):
+        if not root.is_dir():
+            continue
+        if declared:
+            # 정규화는 **선언 쪽에서** 끝난다 (`_declared_install_roots` 가 raw 와
+            # resolve 를 둘 다 담는다). 여기서 다시 resolve 하는 분기는 `probe` 가
+            # `home` 을 이미 resolve 하는 한 도달할 수 없고, 도달 불가능한 분기는
+            # 검사되지 않은 분기다 — 되주입해도 red 가 안 났다 (2026-08-20 실측).
+            found.append((root, str(root) in declared, "installed_plugins.json 의 installPath"))
+        else:
+            found.append((root, True, fallback))
+    return found
+
+
 def _probe_content_drift(home: Path) -> dict[str, Any]:
     """설치 사본의 **내용**이 정본과 같은가.
 
@@ -659,9 +729,7 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
     canonical, error = _canonical_payload()
     caches: list[dict[str, Any]] = []
     for entry in PLUGIN_INSTALL_CACHES:
-        for root in sorted(home.glob(entry.glob)):
-            if not root.is_dir():
-                continue
+        for root, active, active_source in _resolve_install_roots(entry, home):
             record: dict[str, Any] = {"harness": entry.harness}
             if canonical is None:
                 record.update({"path": str(root), "skipped": "정본 페이로드를 만들지 못했다"})
@@ -671,9 +739,24 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
                     _compare_cache(root, expected, entry.ignored, full_payload=canonical)
                 )
                 record["installed_version"] = _installed_version(root, manifest_rel)
+            record["active"] = active
+            record["active_source"] = active_source
             caches.append(record)
 
-    out_of_sync = [c for c in caches if c.get("in_sync") is False]
+    # 지금 로드되는 사본만 발견을 낸다. 옛 버전 디렉터리는 **지우지도 숨기지도**
+    # 않는다 — `superseded` 로 남겨 사람이 정리할 수 있게 하되, 아무도 안 읽는
+    # 사본 때문에 매 실행 거짓 발견이 나지는 않게 한다.
+    out_of_sync = [c for c in caches if c.get("in_sync") is False and c.get("active")]
+    superseded = [
+        {
+            "harness": c["harness"],
+            "path": c.get("path"),
+            "installed_version": c.get("installed_version"),
+            "in_sync": c.get("in_sync"),
+        }
+        for c in caches
+        if not c.get("active")
+    ]
     findings: list[str] = []
     for c in out_of_sync:
         findings.append(
@@ -687,6 +770,8 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
         "canonical_error": error,
         "caches": caches,
         "out_of_sync": [c["harness"] for c in out_of_sync],
+        # 선언에 없는 사본 — 갱신 뒤 남은 옛 버전 디렉터리가 여기 온다.
+        "superseded": superseded,
         "findings": findings,
         # 사본을 두지 않는 채널은 내용 드리프트가 성립하지 않는다.
         "not_applicable": {
@@ -858,10 +943,15 @@ def _probe_runtime_load(
 
     channels: list[dict[str, Any]] = []
     findings: list[str] = []
+    skipped_superseded = 0
     for entry in PLUGIN_INSTALL_CACHES:
         commands = HARNESS_CLI_COMMANDS.get(entry.harness, ())
-        for root in sorted(home.glob(entry.glob)):
-            if not root.is_dir():
+        for root, active, _active_source in _resolve_install_roots(entry, home):
+            if not active:
+                # 옛 버전 디렉터리마다 같은 발견을 복제하지 않는다. 설치 시각은
+                # 플러그인 단위로 선언되므로 잔재까지 돌면 **글자까지 같은**
+                # 발견이 사본 개수만큼 나온다 (2026-08-20 실측).
+                skipped_superseded += 1
                 continue
             epoch, source = _install_epoch(entry.harness, root, home)
             stale: list[dict[str, Any]] = []
@@ -902,6 +992,7 @@ def _probe_runtime_load(
         "now": _iso(now_epoch),
         "process_error": list_error,
         "hosts_seen": sum(len(c["stale_hosts"]) + len(c["current_hosts"]) for c in channels),
+        "superseded_skipped": skipped_superseded,
         "channels": channels,
         "stale": [c["harness"] for c in channels if c["stale_hosts"]],
         "findings": findings,
@@ -1065,15 +1156,24 @@ def _render_text(report: dict[str, Any]) -> str:
     if not caches:
         lines.append("  = 설치 사본 없음 (플러그인 채널 미설치)")
     for cache in caches:
+        if not cache.get("active"):
+            continue
         state = "in-sync" if cache.get("in_sync") else "DRIFT"
         lines.append(
             f"  - {cache['harness']} v{cache.get('installed_version') or '?'} "
-            f"[{state}] 대조 {cache.get('files_compared', 0)}개"
+            f"[{state}] 대조 {cache.get('files_compared', 0)}개 "
+            f"(어느 사본인가: {cache.get('active_source')})"
         )
         for item in cache.get("differs", []):
             lines.append(f"      다름 {item['path']}: {item['expected'][:12]} != {item['actual'][:12]}")
         for rel in cache.get("missing", []):
             lines.append(f"      없음 {rel}")
+    for old_copy in content.get("superseded") or []:
+        lines.append(
+            f"  ~ {old_copy['harness']} v{old_copy.get('installed_version') or '?'} — "
+            "선언된 설치본이 아니다 (갱신 뒤 남은 옛 디렉터리). 발견으로 세지 않는다. "
+            f"{old_copy.get('path')}"
+        )
     for harness, why in sorted((content.get("not_applicable") or {}).items()):
         lines.append(f"  = {harness}: {why}")
     for item in content.get("declared_unmeasured", []):

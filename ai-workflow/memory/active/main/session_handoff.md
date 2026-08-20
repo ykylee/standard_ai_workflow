@@ -45,6 +45,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-20-main-010 §7.0.2 의 미측정 셀 — 버전이 실제로 다를 때 claude-code 재실행 계약
 - TASK-2026-08-20-main-009 플러그인 스킬 4종이 인벤토리엔 있고 세션엔 없다 — in_sync 를 쓸 수 있음으로 읽던 자리
 - TASK-2026-08-20-main-008 session-end 가 bootstrap 채널에 없다 — 두 채널의 스킬 집합이 갈라져 있었다
 - TASK-2026-08-20-main-007 v1.3.0 릴리스 — 101 커밋 누적분 발행 + breaking 표기 판단 기준 문서화
@@ -54,7 +55,6 @@
 - TASK-2026-08-20-main-003 OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드
 - TASK-2026-08-20-main-002 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다
 - TASK-2026-08-20-main-001 wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의
-- TASK-2026-08-18-main-004 wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

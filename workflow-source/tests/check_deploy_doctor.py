@@ -613,6 +613,138 @@ def test_runtime_load_parses_etime_not_lstart() -> None:
     _record("test_runtime_load_parses_etime_not_lstart", not problems, "; ".join(problems))
 
 
+
+# --- Case 21~23 ------------------------------------------------------------
+
+
+def _seed_cache_at(home: Path, harness: str, version: str) -> Path:
+    """`_seed_cache` 와 같되 **버전 디렉터리를 지정**한다.
+
+    갱신 뒤 상태를 세우려면 한 채널에 사본이 둘 있어야 한다 — 그 상황이
+    이 절의 결함이 드러난 자리다.
+    """
+    entry = next(e for e in PLUGIN_INSTALL_CACHES if e.harness == harness)
+    parts = [
+        p.replace("*standard-ai-workflow*", "standard-ai-workflow").replace("*", "standard-ai-workflow")
+        for p in entry.glob.split("/")
+    ]
+    root = home.joinpath(*parts[:-1], version)
+    spec = PLUGIN_HARNESS_SPECS.get(harness)
+    for rel, body in render_agent_plugin().items():
+        if spec is not None and not _included(rel, spec):
+            continue
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    return root
+
+
+def _seed_updated_claude_home(tmp: Path) -> tuple[Path, Path, Path]:
+    """`plugin update` 직후의 실제 배치 — 옛 사본이 남고 선언은 새것을 가리킨다.
+
+    2026-08-20 실측: `1.2.0` 과 `1.3.0` 이 나란히 있었고 `installed_plugins.json`
+    의 `installPath` 만 `1.3.0` 을 가리켰다. 옛 사본은 아무도 읽지 않는다.
+    """
+    home = tmp / "home"
+    old_root = _seed_cache_at(home, "claude-code", "0.0.1-old")
+    new_root = _seed_cache_at(home, "claude-code", INSTALLED_VERSION)
+    # 옛 사본만 낡게 만든다 — 새 사본은 정본 그대로다.
+    victim = next(f for f in sorted(old_root.rglob("*.md")) if f.is_file())
+    victim.write_text(victim.read_text(encoding="utf-8") + "\n<!-- 옛 사본 -->\n", encoding="utf-8")
+    _write(
+        home / ".claude" / "plugins" / "installed_plugins.json",
+        json.dumps(
+            {
+                "version": 2,
+                "plugins": {
+                    "standard-ai-workflow@standard-ai-workflow": [
+                        {
+                            "scope": "user",
+                            "installPath": str(new_root),
+                            "version": INSTALLED_VERSION,
+                            "installedAt": _INSTALL_ISO,
+                            "lastUpdated": _INSTALL_ISO,
+                        }
+                    ]
+                },
+            }
+        ),
+    )
+    return home, old_root, new_root
+
+
+def test_content_drift_reads_which_copy_is_installed() -> None:
+    """**갱신이 보고를 나쁘게 만들면 안 된다** (2026-08-20 실측, main-010).
+
+    `plugin update` 로 1.2.0 → 1.3.0 을 올린 직후, 탐침은 발견이 늘었다.
+    옛 디렉터리가 남는데 `installPath` 선언을 읽지 않아 **아무도 안 읽는 사본**을
+    드리프트로 보고했고, 게다가 `installed_version` 이 **옛 버전**을 말했다.
+    사본을 *하나* 찾은 것과 *로드되는 그것* 을 찾은 것은 다르다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-active-") as tmpdir:
+        home, old_root, new_root = _seed_updated_claude_home(Path(tmpdir))
+        content = probe(project_root=Path(tmpdir) / "project", home=home)["content_drift"]
+    active = [c for c in content["caches"] if c.get("active")]
+    problems = []
+    if content["out_of_sync"]:
+        problems.append(f"옛 사본을 발견으로 셌다: {content['out_of_sync']!r}")
+    if [c["harness"] for c in content.get("superseded") or []] != ["claude-code"]:
+        problems.append(f"옛 사본을 superseded 로 안 남겼다: {content.get('superseded')!r}")
+    if len(active) != 1 or active[0].get("installed_version") != INSTALLED_VERSION:
+        problems.append(f"설치본을 못 골랐다: {[c.get('installed_version') for c in active]!r}")
+    if active and "installPath" not in str(active[0].get("active_source")):
+        problems.append(f"무엇을 근거로 골랐는지 안 남겼다: {active[0].get('active_source')!r}")
+    if str(old_root) not in json.dumps(content.get("superseded"), ensure_ascii=False):
+        problems.append("옛 사본 경로를 숨겼다 — 사람이 정리할 수 없다")
+    if str(new_root) == str(old_root):
+        problems.append("fixture 가 사본 둘을 안 만들었다")
+    _record("test_content_drift_reads_which_copy_is_installed", not problems, "; ".join(problems))
+
+
+def test_runtime_load_does_not_duplicate_per_stale_copy() -> None:
+    """설치 시각은 **플러그인 단위**다 — 사본마다 돌면 같은 발견이 복제된다.
+
+    실측: 갱신 직후 claude-code 발견이 **글자까지 같은 두 줄**로 나왔다. 사유는
+    채널당 하나이므로 잔재까지 세면 보고가 잡음이 된다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-dup-") as tmpdir:
+        home, _old, _new = _seed_updated_claude_home(Path(tmpdir))
+        report = probe(
+            project_root=Path(tmpdir) / "project",
+            home=home,
+            now=_INSTALL_EPOCH + 600,
+            processes=[{"pid": 77951, "command": "claude", "elapsed_sec": 600 + 1260}],
+        )
+    runtime = report["runtime_load"]
+    claude_findings = [f for f in runtime["findings"] if "claude-code" in f]
+    problems = []
+    if len(claude_findings) != 1:
+        problems.append(f"발견이 사본 수만큼 복제됐다: {len(claude_findings)}건")
+    if runtime.get("superseded_skipped") != 1:
+        problems.append(f"건너뛴 잔재를 안 셌다: {runtime.get('superseded_skipped')!r}")
+    if len(runtime["channels"]) != 1:
+        problems.append(f"채널 행이 사본 수만큼 늘었다: {len(runtime['channels'])}")
+    _record("test_runtime_load_does_not_duplicate_per_stale_copy", not problems, "; ".join(problems))
+
+
+def test_install_root_fallback_is_declared() -> None:
+    """선언이 없는 채널은 **폴백이라고 말한다** — 조용히 하면 근거가 못 된다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-fallback-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        _seed_cache(home, "codex")
+        content = probe(project_root=Path(tmpdir) / "project", home=home)["content_drift"]
+    caches = content["caches"]
+    problems = []
+    if len(caches) != 1 or not caches[0].get("active"):
+        problems.append(f"선언 없는 채널의 사본을 설치본으로 안 봤다: {caches!r}")
+    source = str(caches[0].get("active_source")) if caches else ""
+    if "선언" not in source or "전부" not in source:
+        problems.append(f"폴백임을 안 밝혔다: {source!r}")
+    if "installPath" in source:
+        problems.append("선언을 읽은 것처럼 말한다 — codex 는 선언하지 않는다")
+    _record("test_install_root_fallback_is_declared", not problems, "; ".join(problems))
+
+
 def main() -> int:
     test_report_shape()
     test_probe_writes_nothing()
@@ -634,7 +766,10 @@ def main() -> int:
     test_runtime_load_flags_host_older_than_install()
     test_runtime_load_clears_host_started_after_install()
     test_runtime_load_parses_etime_not_lstart()
-    total = 20
+    test_content_drift_reads_which_copy_is_installed()
+    test_runtime_load_does_not_duplicate_per_stale_copy()
+    test_install_root_fallback_is_declared()
+    total = 23
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

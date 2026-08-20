@@ -1180,6 +1180,46 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
     _record("test_bootstrap_channel_matches_plugin_skill_set", not problems, "; ".join(problems))
 
 
+def test_generated_entry_document_advertises_every_command() -> None:
+    """**생성기가 내는 진입 문서**가 모든 slash command 를 안내한다 (main-013).
+
+    `test_entry_skill_advertises_every_command` 는 이 저장소의 `SKILL.md` 를
+    본다. 그런데 실제로 어긋난 자리는 거기가 아니라 **`CLAUDE.md` 렌더러**
+    였다 — main-008 이 4번째 명령을 배선하고 SKILL.md 도 4종을 안내하게 된
+    뒤에도, *세션 시작에 자동 read 되는* 진입 문서만 3종에 머물렀다. 노출이
+    가장 큰 자리가 마지막까지 남은 것이다.
+
+    산출물이 아니라 **생성기 출력**을 본다. 저장소 사본만 보면 이 저장소가
+    포크한 `CLAUDE.md`(main-012)를 재는 셈이 되어, 소비 프로젝트가 받는
+    문서의 결함을 못 본다.
+    """
+    import argparse
+
+    from workflow_kit.bootstrap_lib.harnesses.renderers import render_claude_code_agents
+    from workflow_kit.plugin_payload import PLUGIN_SKILLS
+
+    args = argparse.Namespace(today="2026-01-01", project_name="T", project_slug="t")
+    try:
+        rendered = render_claude_code_agents(args, {})
+    except Exception as exc:  # noqa: BLE001
+        _record(
+            "test_generated_entry_document_advertises_every_command",
+            False,
+            f"진입 문서를 렌더하지 못했다: {type(exc).__name__}: {exc}",
+        )
+        return
+    absent = [
+        spec.slug for spec in PLUGIN_SKILLS
+        if f"/workflow-{spec.slug}" not in rendered
+    ]
+    _record(
+        "test_generated_entry_document_advertises_every_command",
+        not absent,
+        f"생성된 진입 문서가 안 가리키는 명령: {sorted(absent)} — "
+        "자동 read 되는 문서라 모델은 여기 없는 명령을 찾지 못한다",
+    )
+
+
 def test_entry_skill_advertises_every_command() -> None:
     """진입 스킬이 **모든** slash command 를 가리킨다.
 
@@ -1204,29 +1244,36 @@ def test_entry_skill_advertises_every_command() -> None:
 
 
 def main() -> int:
-    test_payload_matches_generator()
-    test_skill_frontmatter_valid()
-    test_codex_skill_metadata()
-    test_codex_plugin_manifest()
-    test_codex_manifest_identity_derived()
-    test_skills_carry_memory_section()
-    test_manifest_version_matches_kit()
-    test_mcp_matches_read_only_bundle()
-    test_renderer_has_no_rule_literals()
-    test_detector_catches_drift()
-    test_claude_code_adapter()
-    test_marketplace_manifest()
-    test_version_resolved_at_call_time()
-    test_release_gate_catches_plugin_drift()
-    test_descriptions_count_skills()
-    test_status_targets_working_tree()
-    test_gemini_adapter()
-    test_goose_opencode_snippets()
-    test_grok_build_hooks()
-    test_pi_dev_adapter()
-    test_bootstrap_channel_matches_plugin_skill_set()
-    test_entry_skill_advertises_every_command()
-    total = 22
+    # 총계는 **세어서** 낸다 — `total = 22` 리터럴이었을 때는 case 를 늘려도
+    # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
+    cases = [
+        test_payload_matches_generator,
+        test_skill_frontmatter_valid,
+        test_codex_skill_metadata,
+        test_codex_plugin_manifest,
+        test_codex_manifest_identity_derived,
+        test_skills_carry_memory_section,
+        test_manifest_version_matches_kit,
+        test_mcp_matches_read_only_bundle,
+        test_renderer_has_no_rule_literals,
+        test_detector_catches_drift,
+        test_claude_code_adapter,
+        test_marketplace_manifest,
+        test_version_resolved_at_call_time,
+        test_release_gate_catches_plugin_drift,
+        test_descriptions_count_skills,
+        test_status_targets_working_tree,
+        test_gemini_adapter,
+        test_goose_opencode_snippets,
+        test_grok_build_hooks,
+        test_pi_dev_adapter,
+        test_bootstrap_channel_matches_plugin_skill_set,
+        test_generated_entry_document_advertises_every_command,
+        test_entry_skill_advertises_every_command,
+    ]
+    for case in cases:
+        case()
+    total = len(cases)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

@@ -133,6 +133,7 @@ def _aggregate_from_appendonly_layout(
     Returns:
         {
             "in_progress_items": list[str],   # tasks_dir frontmatter status: in_progress
+            "planned_items": list[str],       # tasks_dir frontmatter status: planned
             "blocked_items": list[str],       # tasks_dir frontmatter status: blocked
             "done_items": list[str],          # tasks_dir frontmatter status: done
             "recent_done_items": list[str],   # done prose summary, **최신순 전량** (상한 ❌)
@@ -146,6 +147,7 @@ def _aggregate_from_appendonly_layout(
     "최근 항목이 밀려나는" 증상의 원인이었다.
     """
     in_progress: list[str] = []
+    planned: list[str] = []
     blocked: list[str] = []
     done: list[str] = []
     # (recency_key, task_id, prose) — 정렬 후에야 prose 만 뽑는다.
@@ -188,6 +190,14 @@ def _aggregate_from_appendonly_layout(
                 continue
             if status == "in_progress":
                 in_progress.append(task_id)
+            elif status == "planned":
+                # `planned` 는 **어휘 안**인데 예전에는 어느 목록에도 안 담겨
+                # 조용히 사라졌다 (TASK-2026-08-20-main-014). 어휘 밖 값을 지키던
+                # 원칙(`unknown_status_items`)이 정작 어휘 안의 한 값에는 적용되지
+                # 않은 것이다. 실측 비용: TASK-2026-08-14-main-018 이 **6일간**
+                # planned 로 떠 있었고, 그 사이 그 일은 다른 task 들이 이미 끝냈다.
+                # 아무도 못 본 이유는 잊어서가 아니라 **baseline 에 안 나와서**다.
+                planned.append(task_id)
             elif status == "blocked":
                 blocked.append(task_id)
             elif status == "done":
@@ -235,6 +245,9 @@ def _aggregate_from_appendonly_layout(
                 if status == "in_progress":
                     in_progress.append(task_id)
                     continue
+                if status == "planned":
+                    planned.append(task_id)
+                    continue
                 if status == "blocked":
                     blocked.append(task_id)
                     continue
@@ -261,6 +274,7 @@ def _aggregate_from_appendonly_layout(
 
     return {
         "in_progress_items": in_progress,
+        "planned_items": planned,
         "blocked_items": blocked,
         "done_items": done,
         "recent_done_items": [prose for _, _, prose in done_records],
@@ -460,6 +474,10 @@ def build_workflow_state_payload(
             "current_focus": current_focus,
             "in_progress_items": in_progress_items,
             "blocked_items": blocked_items,
+            # 착수 대기 task. 위 세 목록 어디에도 안 들어가 **baseline 에서 사라지던**
+            # 자리다 — `unknown_status_items` 바로 아래 주석의 논리가 어휘 안의
+            # `planned` 에도 그대로 성립한다 (TASK-2026-08-20-main-014).
+            "planned_items": _dedupe_strings_base(appendonly["planned_items"]),
             "recent_done_items": recent_done_items,
             # 판정하지 못한 task 를 **payload 까지** 들고 온다. aggregate 안에만 있으면
             # `_aggregate_from_appendonly_layout` 을 직접 부르는 테스트에만 보이고,

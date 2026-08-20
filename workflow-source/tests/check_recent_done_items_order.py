@@ -184,13 +184,48 @@ def test_daily_index_does_not_resurrect_non_done_task() -> None:
 
 @_with_branch
 def test_planned_task_is_not_reported_done() -> None:
-    """`planned` 도 마찬가지다 — daily index 에 실렸다는 이유로 완료가 되지 않는다."""
+    """`planned` 도 마찬가지다 — daily index 에 실렸다는 이유로 완료가 되지 않는다.
+
+    **그리고 어딘가에는 반드시 있어야 한다** (TASK-2026-08-20-main-014). 이
+    case 는 원래 planned 가 *아닌 것* 둘(`done` 아님 · 어휘 밖 아님)만 확인하고
+    **어디에 있는지는 묻지 않았다.** 그래서 `planned` 가 네 목록 어디에도 안
+    담기는 상태가 이 그물을 그대로 통과했다 — 실측 비용: `TASK-2026-08-14-main-018`
+    이 6일간 baseline 에서 사라져 있었고, 그 사이 그 일은 다른 task 들이 이미
+    끝냈다. **없음을 확인하는 검사는 사라짐을 못 잡는다.**
+    """
     with tempfile.TemporaryDirectory() as td:
         ws = _workspace(td)
         planned_id = _write_task(ws, date="2026-06-01", seq=1, title="아직 안 함", status="planned")
         agg = _aggregate(ws)
         assert planned_id not in agg["done_items"], agg["done_items"]
         assert agg["unknown_status_items"] == [], agg["unknown_status_items"]
+        assert planned_id in agg["planned_items"], (
+            f"planned task 가 어느 목록에도 없다 — 조용히 사라졌다: {agg}"
+        )
+
+
+@_with_branch
+def test_every_status_lands_in_some_bucket() -> None:
+    """**어휘의 모든 값**이 어딘가에 담긴다 (TASK-2026-08-20-main-014).
+
+    값을 하나씩 검사하면 다음에 어휘가 늘 때 또 빠진다. `TASK_STATUSES` 를
+    돌면서 **전수**로 확인한다 — 어휘가 정본이고 이 검사는 파생이다.
+    """
+    from workflow_kit.common.project_docs import TASK_STATUSES
+
+    buckets = ("in_progress_items", "planned_items", "blocked_items", "done_items")
+    for index, status in enumerate(TASK_STATUSES):
+        with tempfile.TemporaryDirectory() as td:
+            ws = _workspace(td)
+            task_id = _write_task(
+                ws, date="2026-06-01", seq=index + 1, title=f"status {status}", status=status
+            )
+            agg = _aggregate(ws)
+            landed = [name for name in buckets if task_id in agg.get(name, [])]
+            assert landed, (
+                f"status: {status} 인 task 가 {buckets} 어디에도 없다 — "
+                f"어휘 안의 값이 조용히 사라진다: {agg}"
+            )
 
 
 # --- 3. daily-only 항목은 자기 날짜 자리에 -------------------------------
@@ -247,6 +282,7 @@ def main() -> int:
         test_recent_done_items_are_newest_first,
         test_daily_index_does_not_resurrect_non_done_task,
         test_planned_task_is_not_reported_done,
+        test_every_status_lands_in_some_bucket,
         test_daily_only_entry_keeps_its_chronological_slot,
         test_handoff_does_not_crowd_out_task_ssot,
     ]

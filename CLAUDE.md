@@ -1,5 +1,5 @@
 <!-- standard-ai-workflow-kit: v1.0.0-beta -->
-<!-- standard-ai-workflow-kit-fork: 이 저장소가 소유한다 — 아래 '프로젝트 실행 기본값' 이하가 실측으로 얻은 고유 운영 규칙이다. 재적용하면 placeholder 로 되돌아간다. kit 변경 반영은 v1.0.0-beta 생성물과 diff 해 손으로 병합한다 -->
+<!-- standard-ai-workflow-kit-fork: 이 저장소가 소유한다 — 아래 '프로젝트 실행 기본값' 이하가 실측으로 얻은 고유 운영 규칙이다. 재적용하면 placeholder 로 되돌아간다. kit 변경 반영은 생성물과 diff 해 손으로 병합한다 (마지막 병합: v1.3.0 / 2026-08-20, 채택 3 · 기각 4 — TASK-2026-08-20-main-015) -->
 
 # CLAUDE.md (Claude Code 진입점)
 
@@ -7,7 +7,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-07-27
+- 최종 수정일: 2026-08-20
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -35,6 +35,9 @@
 
 ## 항상 먼저 읽을 문서
 
+> `<branch>` 는 현재 git 브랜치 이름이다 (git 저장소가 아니면 `main`). 브랜치별로
+> 나누면 동시에 도는 작업이 서로를 덮어쓰지 않는다.
+
 - `ai-workflow/memory/active/<branch>/state.json`
 - `ai-workflow/memory/active/<branch>/sessions`
 - `ai-workflow/memory/active/<branch>/backlog`
@@ -51,6 +54,7 @@
 - `/workflow-session-start` — `state.json` + `session_handoff.md` + `work_backlog.md` baseline 복원
 - `/workflow-backlog-update` — task 등록/갱신 + scope creep warning
 - `/workflow-doc-sync` — 영향 문서 동기화 (advisory)
+- `/workflow-session-end` — handoff + backlog 갱신 후 `state.json` 재생성 (세션 종료)
 
 ## Working Principles
 

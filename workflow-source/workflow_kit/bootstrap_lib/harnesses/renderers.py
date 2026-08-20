@@ -987,6 +987,41 @@ def write_gemini_cli_harness_files(
     return {}
 
 
+#: 진입 문서의 slash command 한 줄 설명. **목록 자체가 아니라 설명만** 여기 있다 —
+#: 무엇이 있는지는 `PLUGIN_SKILLS` 가 정본이고, 여기 없는 slug 도 목록에는 반드시
+#: 나온다 (아래 fallback). 고치려던 결함이 정확히 *누락* 이므로, 설명을 빠뜨려
+#: 명령이 통째로 사라지는 일은 구조적으로 못 하게 한다.
+_ENTRY_COMMAND_BLURBS: dict[str, str] = {
+    "session-start": (
+        "restore the `state.json` + `session_handoff.md` + `work_backlog.md` baseline"
+    ),
+    "backlog-update": "register/update a task + scope-creep warning",
+    "doc-sync": "sync affected documents (advisory)",
+    "session-end": "update handoff + backlog and regenerate `state.json` at session close",
+}
+
+
+def render_entry_command_list() -> str:
+    """진입 문서가 안내할 slash command 목록. `PLUGIN_SKILLS` 에서 **파생한다**.
+
+    손으로 쓴 산문이었을 때 (TASK-2026-08-20-main-013): main-008 이 4번째 명령
+    (`session-end`)을 배선하고 진입 SKILL.md 도 4종을 안내하게 됐는데, **자동
+    read 되는 `CLAUDE.md` 만 3종에 머물렀다.** 같은 어긋남("광고는 4단계인데
+    배선은 3개")이 네 번째 자리에서 살아남은 것이다 — 사용자 노출이 가장 큰
+    자리에서.
+
+    산문은 그물에 안 걸린다. 그래서 목록을 산문에서 빼내 파생으로 만든다.
+    """
+    from workflow_kit.plugin_payload import PLUGIN_SKILLS  # noqa: PLC0415
+
+    lines = []
+    for spec in PLUGIN_SKILLS:
+        blurb = _ENTRY_COMMAND_BLURBS.get(spec.slug)
+        suffix = f" — {blurb}" if blurb else ""
+        lines.append(f"- `/workflow-{spec.slug}`{suffix}")
+    return "\n".join(lines)
+
+
 def render_claude_code_agents(args: argparse.Namespace, context: dict[str, object]) -> str:
     """Render ``CLAUDE.md`` (Claude Code 진입점) — v0.10.2 진입점 정정.
 
@@ -995,6 +1030,7 @@ def render_claude_code_agents(args: argparse.Namespace, context: dict[str, objec
     *정합* 을 한국어로 명시. 기존 AGENTS.md 가 있으면 `@AGENTS.md` import 안내.
     """
     _STANDARD_RULES = render_entrypoint_rules()
+    _ENTRY_COMMANDS = render_entry_command_list()
     return f"""# CLAUDE.md (Claude Code entry point)
 
 - Purpose: the *directional intent* of the standard AI workflow, plus the entry rules Claude Code needs every session
@@ -1036,9 +1072,7 @@ when updating the workflow documents themselves or restoring the current session
 
 ## Entry slash commands (additive)
 
-- `/workflow-session-start` — restore the `state.json` + `session_handoff.md` + `work_backlog.md` baseline
-- `/workflow-backlog-update` — register/update a task + scope-creep warning
-- `/workflow-doc-sync` — sync affected documents (advisory)
+{_ENTRY_COMMANDS}
 
 {_STANDARD_RULES}
 

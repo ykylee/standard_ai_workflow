@@ -21,6 +21,7 @@ import json
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -35,6 +36,7 @@ from workflow_kit.deploy_doctor import (  # noqa: E402
     CHANNEL_PREREQUISITES,
     GLOBAL_DECLARATION_HOMES,
     PLUGIN_INSTALL_CACHES,
+    _parse_etime,
     main as doctor_main,
     probe,
 )
@@ -499,6 +501,118 @@ def test_content_drift_declares_surface_as_unmeasured() -> None:
     _record("test_content_drift_declares_surface_as_unmeasured", not problems, "; ".join(problems))
 
 
+# --- Case 18~20 ------------------------------------------------------------
+
+
+def _runtime_fixture(tmp: Path) -> Path:
+    """claude-code 플러그인이 깔린 홈 — 설치 시각 선언까지 포함."""
+    home = tmp / "home"
+    root = home / ".claude" / "plugins" / "cache" / "mp" / "standard-ai-workflow" / "1.2.0"
+    root.mkdir(parents=True, exist_ok=True)
+    _write(
+        home / ".claude" / "plugins" / "installed_plugins.json",
+        json.dumps(
+            {
+                "version": 2,
+                "plugins": {
+                    "standard-ai-workflow@mp": [
+                        {"scope": "user", "version": "1.2.0", "installedAt": _INSTALL_ISO}
+                    ]
+                },
+            }
+        ),
+    )
+    return home
+
+
+#: fixture 가 선언하는 설치 시각. **문자열 하나에서 파생**한다 — epoch 를 손으로
+#: 적으면 그 상수가 fixture 와 조용히 갈린다 (첫 작성 때 실제로 1년 어긋났다).
+_INSTALL_ISO = "2026-08-18T00:57:53.300Z"
+_INSTALL_EPOCH = datetime.fromisoformat(_INSTALL_ISO.replace("Z", "+00:00")).timestamp()
+
+
+def test_runtime_load_flags_host_older_than_install() -> None:
+    """**세션이 아니라 프로세스를 잰다** (2026-08-20 실측, main-009).
+
+    되주입하는 상황: 플러그인이 in-sync 이고 인벤토리도 4종을 세는데 세션에서
+    부르면 `Unknown skill` 이던 자리. 원인은 충돌이 아니라 **시간**이었다 —
+    호스트 프로세스가 설치보다 35시간 먼저 시작했고, 플러그인은 프로세스 시작
+    때 로드된다. 대화를 새로 여는 것으로는 그 프로세스가 바뀌지 않는다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-runtime-") as tmpdir:
+        home = _runtime_fixture(Path(tmpdir))
+        now = _INSTALL_EPOCH + 3600
+        report = probe(
+            project_root=Path(tmpdir) / "project",
+            home=home,
+            now=now,
+            # 설치보다 35시간 먼저 시작한 호스트 — 실측 그대로의 배치다.
+            processes=[{"pid": 6397, "command": "claude", "elapsed_sec": 3600 + 35 * 3600}],
+        )
+    runtime = report.get("runtime_load") or {}
+    channels = runtime.get("channels") or []
+    problems = []
+    if runtime.get("stale") != ["claude-code"]:
+        problems.append(f"낡은 채널이 안 잡혔다: {runtime.get('stale')!r}")
+    if not any("pid 6397" in item for item in runtime.get("findings", [])):
+        problems.append(f"finding 에 pid 가 없다: {runtime.get('findings')!r}")
+    if not any("재시작" in item for item in runtime.get("findings", [])):
+        problems.append("finding 이 재시작을 말하지 않는다 — 사용자가 할 일이 빠진다")
+    if channels and channels[0].get("install_time_source") != "installed_plugins.json":
+        problems.append(f"설치 시각 출처를 안 남겼다: {channels[0].get('install_time_source')!r}")
+    if not any("pid 6397" in item for item in report.get("findings", [])):
+        problems.append("절의 finding 이 보고서 상위로 안 올라갔다")
+    _record("test_runtime_load_flags_host_older_than_install", not problems, "; ".join(problems))
+
+
+def test_runtime_load_clears_host_started_after_install() -> None:
+    """재시작한 호스트는 낡지 않았다 — 경고가 남으면 그 뒤로 아무도 안 읽는다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-runtime-ok-") as tmpdir:
+        home = _runtime_fixture(Path(tmpdir))
+        now = _INSTALL_EPOCH + 7200
+        report = probe(
+            project_root=Path(tmpdir) / "project",
+            home=home,
+            now=now,
+            # 설치 뒤 1시간에 시작한 호스트.
+            processes=[{"pid": 4242, "command": "claude", "elapsed_sec": 3600}],
+        )
+    runtime = report.get("runtime_load") or {}
+    channels = runtime.get("channels") or []
+    problems = []
+    if runtime.get("stale"):
+        problems.append(f"재시작한 호스트를 낡음으로 셌다: {runtime.get('stale')!r}")
+    if runtime.get("findings"):
+        problems.append(f"발견이 남았다: {runtime['findings']!r}")
+    if not channels or len(channels[0].get("current_hosts") or []) != 1:
+        problems.append(f"최신 호스트를 못 셌다: {channels!r}")
+    if not runtime.get("measurement_note"):
+        problems.append("0개와 '해당 없음' 을 가르는 읽는 법이 없다")
+    _record("test_runtime_load_clears_host_started_after_install", not problems, "; ".join(problems))
+
+
+def test_runtime_load_parses_etime_not_lstart() -> None:
+    """시작 시각은 `etime` 에서만 온다 — `lstart` 는 **로케일로 번역**된다.
+
+    이 호스트의 `ps -o lstart` 는 `2026년 8월 16일 일요일 22시 53분 10초` 를 낸다.
+    그걸 파싱하는 순간 탐침은 로케일에 묶인다. 그래서 형식이 고정된 `etime` 만
+    읽고 지금에서 뺀다 — 그 파싱 계약을 여기서 고정한다.
+    """
+    cases = {"03-14:27:54": 3 * 86400 + 14 * 3600 + 27 * 60 + 54, "14:27:54": 52074, "27:54": 1674}
+    problems = [
+        f"{raw!r} → {_parse_etime(raw)!r} (기대 {want})"
+        for raw, want in cases.items()
+        if _parse_etime(raw) != want
+    ]
+    for bad in ("", "not-a-time", "1:2:3:4"):
+        if _parse_etime(bad) is not None:
+            problems.append(f"{bad!r} 를 파싱했다고 주장한다: {_parse_etime(bad)!r}")
+    src = (SOURCE_ROOT / "workflow_kit" / "deploy_doctor.py").read_text(encoding="utf-8")
+    if "lstart" in src.split("def _running_processes")[1].split("def ")[0]:
+        problems.append("_running_processes 가 lstart 를 읽는다 — 로케일에 묶인다")
+    _record("test_runtime_load_parses_etime_not_lstart", not problems, "; ".join(problems))
+
+
 def main() -> int:
     test_report_shape()
     test_probe_writes_nothing()
@@ -517,7 +631,10 @@ def main() -> int:
     test_preflight_separates_measured_from_declared()
     test_preflight_blocks_channel_with_missing_executable()
     test_preflight_writes_nothing()
-    total = 17
+    test_runtime_load_flags_host_older_than_install()
+    test_runtime_load_clears_host_started_after_install()
+    test_runtime_load_parses_etime_not_lstart()
+    total = 20
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

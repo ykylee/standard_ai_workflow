@@ -38,8 +38,11 @@ import json
 import os
 import shutil
 import hashlib
+import subprocess
 import sys
+import time
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -53,6 +56,7 @@ __all__ = [
     "ChannelPrerequisite",
     "PLUGIN_INSTALL_CACHES",
     "PluginInstallCache",
+    "HARNESS_CLI_COMMANDS",
     "probe",
     "main",
 ]
@@ -147,6 +151,16 @@ PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
         glob=".grok/installed-plugins/*standard-ai-workflow*",
     ),
 )
+
+#: 채널을 **실행하는 프로세스**의 `ps comm` 이름. `runtime_load` 절이 "지금 돌고
+#: 있는 호스트가 이 설치를 봤는가" 를 판정할 때 쓴다. 사본을 두는 채널
+#: (:data:`PLUGIN_INSTALL_CACHES`) 과 1:1 로 대응한다 — 사본이 없으면 설치 시각이
+#: 없고, 설치 시각이 없으면 이 판정이 성립하지 않는다.
+HARNESS_CLI_COMMANDS: dict[str, tuple[str, ...]] = {
+    "claude-code": ("claude",),
+    "codex": ("codex",),
+    "grok-build": ("grok",),
+}
 
 #: 어느 채널에서든 사본 안에 있어도 드리프트로 세지 않는 것들.
 _UNIVERSAL_IGNORED = (".git", "__pycache__", ".DS_Store")
@@ -685,13 +699,227 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
         # `Skills (4)` 로 셌는데, **세션에는 그중 하나도 로드되지 않았다**
         # (`Unknown skill: standard-ai-workflow:doc-sync`).
         #
-        # 노출 여부는 세션이 켜져 봐야 알 수 있고 탐침 밖이다. 재지 못하는 것을
-        # 통과로 세지 않는다 — `installable` 이 "설치 성공" 이 아니듯,
-        # `in_sync` 도 "쓸 수 있음" 이 아니다 (main-019 와 같은 원칙).
+        # 재지 못하는 것을 통과로 세지 않는다 — `installable` 이 "설치 성공" 이
+        # 아니듯, `in_sync` 도 "쓸 수 있음" 이 아니다 (main-019 와 같은 원칙).
+        #
+        # 이 미측정은 **한 칸 좁아졌다** (2026-08-20, main-009). 위 실측의 원인이
+        # 규명됐기 때문이다: 충돌도 파손도 아니라 **호스트 프로세스가 설치보다
+        # 먼저 시작했다**. 그 조건은 이제 잴 수 있고 `runtime_load` 절이 잰다.
+        # 남는 미측정은 그 뒤의 한 칸 — 재시작이 최신이어도 하네스가 실제로
+        # 노출하는지는 **실제 호출**로만 재진다.
         "declared_unmeasured": [
             "하네스가 이 사본을 실제로 세션에 노출하는지 — 파일 일치는 노출의 증거가 아니다 "
-            "(2026-08-20 실측: in-sync + 인벤토리 4종인데 세션 로드 0종)",
+            "(2026-08-20 실측: in-sync + 인벤토리 4종인데 세션 로드 0종). "
+            "원인 중 **설치보다 먼저 시작한 호스트**는 `runtime_load` 절이 재고, "
+            "그 뒤 한 칸(실제 노출)만 여기 남는다",
         ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# runtime_load — 지금 돌고 있는 호스트가 이 설치를 봤는가 (main-009)
+# ---------------------------------------------------------------------------
+
+
+def _parse_etime(raw: str) -> float | None:
+    """``ps -o etime`` 의 ``[[dd-]hh:]mm:ss`` 를 초로.
+
+    ``lstart`` 를 쓰지 않는 이유: 그쪽은 **로케일로 번역된** 요일·월 이름을 낸다
+    (이 호스트 실측: ``2026년 8월 16일 일요일 22시 53분 10초``). 어느 로케일에서도
+    같은 모양인 필드는 ``etime`` 뿐이라, 시작 시각을 직접 읽지 않고 지금에서 뺀다.
+    """
+    text = raw.strip()
+    if not text:
+        return None
+    days = 0
+    if "-" in text:
+        head, _, text = text.partition("-")
+        try:
+            days = int(head)
+        except ValueError:
+            return None
+    parts = text.split(":")
+    if not 2 <= len(parts) <= 3:
+        return None
+    try:
+        nums = [int(part) for part in parts]
+    except ValueError:
+        return None
+    hours, minutes, seconds = ([0, *nums] if len(nums) == 2 else nums)
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+
+
+def _running_processes() -> tuple[list[dict[str, Any]], str | None]:
+    """``(프로세스 목록, 실패 사유)``. 실패하면 목록은 비고 사유가 남는다."""
+    ps_path = shutil.which("ps")
+    if ps_path is None:
+        return [], "ps 실행 파일이 없다 — 이 플랫폼에서는 실행 중 호스트를 못 센다"
+    try:
+        completed = subprocess.run(  # noqa: S603
+            [ps_path, "-Ao", "pid=,etime=,comm="],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return [], f"ps 호출 실패: {type(exc).__name__}: {exc}"
+    if completed.returncode != 0:
+        return [], f"ps 가 rc {completed.returncode} 로 끝났다"
+
+    found: list[dict[str, Any]] = []
+    for line in completed.stdout.splitlines():
+        fields = line.split(None, 2)
+        if len(fields) < 3:
+            continue
+        pid_raw, etime_raw, command = fields
+        elapsed = _parse_etime(etime_raw)
+        if elapsed is None:
+            continue
+        try:
+            pid = int(pid_raw)
+        except ValueError:
+            continue
+        found.append({"pid": pid, "command": command.strip(), "elapsed_sec": elapsed})
+    return found, None
+
+
+def _iso(epoch: float | None) -> str | None:
+    if epoch is None:
+        return None
+    return datetime.fromtimestamp(epoch).astimezone().isoformat(timespec="seconds")
+
+
+def _declared_install_epoch(home: Path) -> tuple[float | None, str | None]:
+    """claude-code 가 **스스로 말하는** 설치/갱신 시각. 없으면 ``(None, 사유)``."""
+    path = home / ".claude" / "plugins" / "installed_plugins.json"
+    if not path.is_file():
+        return None, "installed_plugins.json 이 없다"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return None, f"installed_plugins.json 을 읽지 못했다: {type(exc).__name__}"
+    stamps: list[float] = []
+    for key, entries in (payload.get("plugins") or {}).items():
+        if "standard-ai-workflow" not in key:
+            continue
+        for entry in entries if isinstance(entries, list) else []:
+            for field in ("lastUpdated", "installedAt"):
+                raw = entry.get(field) if isinstance(entry, dict) else None
+                if not isinstance(raw, str) or not raw:
+                    continue
+                try:
+                    stamps.append(datetime.fromisoformat(raw.replace("Z", "+00:00")).timestamp())
+                except ValueError:
+                    continue
+    if not stamps:
+        return None, "installed_plugins.json 에 이 플러그인의 시각 기록이 없다"
+    return max(stamps), None
+
+
+def _install_epoch(harness: str, root: Path, home: Path) -> tuple[float | None, str]:
+    """설치 시각과 **그 값을 어디서 읽었는지**.
+
+    폴백을 조용히 하지 않는다 — 무엇을 정본으로 봤는지 결과에 남기지 않으면
+    통과도 실패도 근거가 못 된다.
+    """
+    if harness == "claude-code":
+        declared, _why = _declared_install_epoch(home)
+        if declared is not None:
+            return declared, "installed_plugins.json"
+    try:
+        return root.stat().st_mtime, "설치 사본 mtime (선언 기록이 없는 채널의 폴백)"
+    except OSError as exc:
+        return None, f"읽지 못했다: {type(exc).__name__}"
+
+
+def _probe_runtime_load(
+    home: Path,
+    *,
+    now: float | None = None,
+    processes: Sequence[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """**설치가 실행 중인 호스트에 실제로 로드됐는가** (2026-08-20, main-009).
+
+    `content_drift` 가 "파일이 같은가" 를 재고 노출 여부를 미측정으로 선언했던
+    자리 중 **한 칸을 측정으로 옮긴다**. 실측된 사례는 이렇다: 플러그인이 in-sync
+    이고 `claude plugin details` 도 `Skills (4)` 로 셌는데 세션에서 부르면
+    `Unknown skill` 이었다. 원인은 충돌도 파손도 아니라 **시간**이었다 — 호스트
+    프로세스가 설치보다 35시간 먼저 시작했고, 플러그인은 프로세스 시작 때 로드된다.
+
+    이것이 조용한 이유는 **단위 착시**다. 대화를 새로 열면(`/clear`) "새 세션" 이
+    되지만 프로세스는 그대로다. 그래서 이 절은 세션이 아니라 **프로세스**를 잰다.
+    """
+    now_epoch = time.time() if now is None else now
+    if processes is None:
+        listed, list_error = _running_processes()
+    else:
+        listed, list_error = list(processes), None
+
+    channels: list[dict[str, Any]] = []
+    findings: list[str] = []
+    for entry in PLUGIN_INSTALL_CACHES:
+        commands = HARNESS_CLI_COMMANDS.get(entry.harness, ())
+        for root in sorted(home.glob(entry.glob)):
+            if not root.is_dir():
+                continue
+            epoch, source = _install_epoch(entry.harness, root, home)
+            stale: list[dict[str, Any]] = []
+            fresh: list[dict[str, Any]] = []
+            for proc in listed:
+                if Path(str(proc.get("command", ""))).name not in commands:
+                    continue
+                started = now_epoch - float(proc.get("elapsed_sec") or 0)
+                record = {
+                    "pid": proc.get("pid"),
+                    "command": proc.get("command"),
+                    "started_at": _iso(started),
+                }
+                (stale if epoch is not None and started < epoch else fresh).append(record)
+            channels.append(
+                {
+                    "harness": entry.harness,
+                    "path": str(root),
+                    "installed_at": _iso(epoch),
+                    "install_time_source": source,
+                    "stale_hosts": stale,
+                    "current_hosts": fresh,
+                }
+            )
+            if stale:
+                # 프로세스마다 같은 문장을 내지 않는다 — 사유는 채널당 하나이고
+                # 다른 것은 pid 뿐이다.
+                who = ", ".join(f"pid {proc['pid']}({proc['started_at']})" for proc in stale)
+                findings.append(
+                    f"{entry.harness} 호스트 {len(stale)}개가 설치({_iso(epoch)})보다 먼저 "
+                    f"시작했다 — {who}. 플러그인은 **프로세스 시작 때** 로드되므로 CLI 를 "
+                    "재시작하기 전까지 그 프로세스에는 스킬이 노출되지 않는다. 대화를 새로 "
+                    "여는 것(`/clear`)으로는 부족하다 "
+                    "(2026-08-20 실측, docs/INSTALLATION_AND_USAGE.md §7.0.1)"
+                )
+
+    return {
+        "now": _iso(now_epoch),
+        "process_error": list_error,
+        "hosts_seen": sum(len(c["stale_hosts"]) + len(c["current_hosts"]) for c in channels),
+        "channels": channels,
+        "stale": [c["harness"] for c in channels if c["stale_hosts"]],
+        "findings": findings,
+        "measurement_note": (
+            "실행 중 호스트가 0개인 것은 통과가 아니라 **해당 없음**이다 — "
+            "낡을 프로세스가 없다는 뜻일 뿐이다"
+        ),
+        "not_applicable": {
+            "pi-dev": "경로 참조라 사본이 없다 — 설치 시각을 잴 자리가 없다",
+            "gemini-cli": "이 호스트에 CLI 가 없어 미실측 (§7.0.2 와 같은 상태)",
+        },
+        "declared_unmeasured": [
+            "프로세스 식별은 `ps` 의 `comm` 이름에 의존한다 — 런처가 다른 이름으로 "
+            "뜨면(예: `node`) 이 절은 그 호스트를 세지 못한다",
+            "재시작이 최신인 호스트라도 하네스가 스킬을 **노출하는지**까지는 "
+            "이 절이 재지 않는다 — 마지막 한 칸은 실제 호출로만 재진다",
+        ]
+        + ([f"프로세스 목록을 얻지 못했다: {list_error}"] if list_error else []),
     }
 
 
@@ -700,12 +928,21 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def probe(project_root: Path | None = None, home: Path | None = None) -> dict[str, Any]:
-    """4절 보고서를 만든다 — 아무것도 쓰지 않는다.
+def probe(
+    project_root: Path | None = None,
+    home: Path | None = None,
+    *,
+    now: float | None = None,
+    processes: Sequence[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """보고서를 만든다 — 아무것도 쓰지 않는다.
 
     Args:
         project_root: 검사할 프로젝트 루트 (기본: CWD).
         home: 사용자 홈 (기본: ``Path.home()``). fixture 주입용.
+        now: 지금 시각 (epoch). `runtime_load` 판정의 기준점이고 fixture 주입용.
+        processes: 실행 중 프로세스 목록. 주지 않으면 `ps` 로 잰다 — 실 호스트의
+            프로세스를 읽는 탐침은 주입 없이는 검사할 수 없다 (`home` 과 같은 이유).
     """
     resolved_project = (project_root or Path.cwd()).resolve()
     resolved_home = (home or Path.home()).resolve()
@@ -716,12 +953,14 @@ def probe(project_root: Path | None = None, home: Path | None = None) -> dict[st
     global_scope = _probe_global_scope(resolved_home)
     drift = _probe_drift(project, global_scope)
     content_drift = _probe_content_drift(resolved_home)
+    runtime_load = _probe_runtime_load(resolved_home, now=now, processes=processes)
 
     findings = [
         *environment["findings"],
         *preflight["findings"],
         *drift["findings"],
         *content_drift["findings"],
+        *runtime_load["findings"],
     ]
     return {
         "status": "ok",
@@ -732,6 +971,7 @@ def probe(project_root: Path | None = None, home: Path | None = None) -> dict[st
         "global_scope": global_scope,
         "drift": drift,
         "content_drift": content_drift,
+        "runtime_load": runtime_load,
         "finding_count": len(findings),
         "findings": findings,
     }
@@ -836,6 +1076,29 @@ def _render_text(report: dict[str, Any]) -> str:
             lines.append(f"      없음 {rel}")
     for harness, why in sorted((content.get("not_applicable") or {}).items()):
         lines.append(f"  = {harness}: {why}")
+    for item in content.get("declared_unmeasured", []):
+        lines.append(f"  (미측정) {item}")
+
+    runtime = report.get("runtime_load") or {}
+    lines.append("")
+    lines.append("[runtime_load] 실행 중 호스트가 이 설치를 봤는가 (세션이 아니라 **프로세스**)")
+    if runtime.get("process_error"):
+        lines.append(f"  ! {runtime['process_error']}")
+    channels = runtime.get("channels") or []
+    if not channels:
+        lines.append("  = 설치 사본 없음 (플러그인 채널 미설치)")
+    for channel in channels:
+        lines.append(
+            f"  - {channel['harness']}: 설치 {channel.get('installed_at') or '?'} "
+            f"(출처 {channel.get('install_time_source')}) · 최신 호스트 "
+            f"{len(channel['current_hosts'])}개 / 낡은 호스트 {len(channel['stale_hosts'])}개"
+        )
+        for proc in channel["stale_hosts"]:
+            lines.append(f"      낡음 pid {proc['pid']} ({proc['command']}) 시작 {proc['started_at']}")
+    if runtime:
+        lines.append(f"  ! {runtime['measurement_note']}")
+        for item in runtime.get("declared_unmeasured", []):
+            lines.append(f"  (미측정) {item}")
 
     lines.append("")
     if report["findings"]:

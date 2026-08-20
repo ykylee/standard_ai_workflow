@@ -41,7 +41,15 @@ from pathlib import Path
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.project_docs import TASK_ID_PATTERN  # noqa: E402
+from workflow_kit.common.project_docs import TASK_ID_PATTERN, task_label  # noqa: E402
+
+#: 본문 라벨은 **정본 표에서 파생한다.** 리터럴이면 전환마다 이 검사가 red 가 되고,
+#: 그때 고치는 것은 계약이 아니라 그 시점 상수다 (2026-08-20 전환 실측).
+_PRIO = task_label("priority")
+_OWNER = task_label("owner")
+_SUMMARY = task_label("summary")
+_DONE = task_label("done_criteria")
+_STATUS = task_label("status")
 
 BRANCH = "layout-smoke"
 TASK_FRONTMATTER_KEYS = {"id", "status", "created_at", "source_anchor", "source_path", "kind"}
@@ -95,7 +103,7 @@ def test_daily_index_is_link_only() -> None:
         assert "## Tasks" in index
         # legacy 인라인의 흔적들
         assert "작업 백로그" not in index, "legacy 머리말이 남아 있다"
-        assert "- 우선순위:" not in index, "task 본문이 index 에 인라인됐다"
+        assert f"- {_PRIO}:" not in index, "task 본문이 index 에 인라인됐다"
         assert "work_backlog.md" not in index, "legacy index 링크가 남아 있다"
 
 
@@ -175,11 +183,11 @@ def test_update_preserves_unspecified_fields() -> None:
                              "--task-id", task_id, "--mode", "update", "--status", "in_progress")
         text = (_branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md").read_text(encoding="utf-8")
         assert "kind: session" in text, "kind 가 기본값으로 덮였다"
-        assert "- 우선순위: medium" in text, "우선순위가 기본값으로 덮였다"
-        assert "- 담당: Agent A" in text, "담당이 삭제됐다"
-        assert "- 작업 내용: 원래 작업 내용" in text, "작업 내용이 brief 로 덮였다"
-        assert "- 완료 기준: 기준 X" in text, "완료 기준이 삭제됐다"
-        assert "status: in_progress" in text and "- 상태: in_progress" in text, "상태 미갱신"
+        assert f"- {_PRIO}: medium" in text, "우선순위가 기본값으로 덮였다"
+        assert f"- {_OWNER}: Agent A" in text, "담당이 삭제됐다"
+        assert f"- {_SUMMARY}: 원래 작업 내용" in text, "작업 내용이 brief 로 덮였다"
+        assert f"- {_DONE}: 기준 X" in text, "완료 기준이 삭제됐다"
+        assert "status: in_progress" in text and f"- {_STATUS}: in_progress" in text, "상태 미갱신"
         assert "진행 한 줄" in text, "진행 현황 미갱신"
         assert f"# {task_id} — 원래 제목" in text, "제목이 입력값으로 덮였다"
         assert any("제목이 기존과 다르다" in w for w in payload["warnings"]), "제목 차이 경고 부재"
@@ -218,7 +226,7 @@ def test_update_preserves_status_when_unspecified() -> None:
         _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "메모",
                    "--task-id", task_id, "--mode", "update")
         text = task_file.read_text(encoding="utf-8")
-        assert "status: planned" in text and "- 상태: planned" in text, (
+        assert "status: planned" in text and f"- {_STATUS}: planned" in text, (
             f"미지정 update 가 상태를 바꿨다:\n{text[:200]}")
         # done (검증 포함) 전이 후, 미지정 update → done 유지 (재강등 금지)
         _run_apply(ws, "--task-name", "상태 보존", "--task-brief", "완료",

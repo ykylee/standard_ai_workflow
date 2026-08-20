@@ -43,6 +43,7 @@ REPO_ROOT = SOURCE_ROOT.parent
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common import project_docs as PD  # noqa: E402
 from workflow_kit.common.workflow_writes import (  # noqa: E402
     _label_prefixes,
     _matches_label,
@@ -51,6 +52,16 @@ from workflow_kit.common.workflow_writes import (  # noqa: E402
 )
 
 FAILURES: list[str] = []
+
+#: 라벨은 **정본 표에서 파생한다.** 리터럴로 박으면 전환마다 이 검사가 red 가 되고,
+#: 그때 고치는 것은 계약이 아니라 그 시점 상수다 (2026-08-20 전환에서 7 case 가
+#: 그렇게 red 였고, 동작은 내내 옳았다).
+DC = PD.task_label("done_criteria")
+RES = PD.task_label("result")
+VAL = PD.task_label("validation")
+PROG = PD.task_label("progress")
+FU = PD.task_label("follow_up")
+ST = PD.task_label("status")
 
 #: **실제 저장소 프로파일을 쓰지 않는다.** `backlog-update --apply` 는 프로파일을
 #: 기준으로 workspace 를 잡고 그 workspace 의 `state.json` 을 재생성한다. 실물
@@ -101,8 +112,8 @@ def case_1_create_keeps_all(root: Path) -> None:
     b = _fresh(root)
     _run_bu(b, "--mode", "create",
             "--done-criteria", "A", "--done-criteria", "B", "--done-criteria", "C")
-    got = _lines(_task_path(b), "완료 기준")
-    assert got == ["- 완료 기준: A", "- 완료 기준: B", "- 완료 기준: C"], (
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}: A", f"- {DC}: B", f"- {DC}: C"], (
         f"반복 지정한 값이 소실됐다: {got}"
     )
 
@@ -110,14 +121,14 @@ def case_1_create_keeps_all(root: Path) -> None:
 def case_2_create_single(root: Path) -> None:
     b = _fresh(root)
     _run_bu(b, "--mode", "create", "--done-criteria", "하나")
-    assert _lines(_task_path(b), "완료 기준") == ["- 완료 기준: 하나"]
+    assert _lines(_task_path(b), DC) == [f"- {DC}: 하나"]
 
 
 def case_3_create_empty_placeholder(root: Path) -> None:
     b = _fresh(root)
     _run_bu(b, "--mode", "create")
-    got = _lines(_task_path(b), "완료 기준")
-    assert got == ["- 완료 기준:"], f"빈 placeholder 형식이 깨졌다: {got}"
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}:"], f"빈 placeholder 형식이 깨졌다: {got}"
 
 
 def case_4_update_replaces_group(root: Path) -> None:
@@ -127,8 +138,8 @@ def case_4_update_replaces_group(root: Path) -> None:
     tid = _task_path(b).stem
     _run_bu(b, "--mode", "update", "--task-id", tid,
             "--done-criteria", "X", "--done-criteria", "Y")
-    got = _lines(_task_path(b), "완료 기준")
-    assert got == ["- 완료 기준: X", "- 완료 기준: Y"], f"묶음 교체가 아니다: {got}"
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}: X", f"- {DC}: Y"], f"묶음 교체가 아니다: {got}"
 
 
 def case_5_update_is_idempotent(root: Path) -> None:
@@ -139,9 +150,9 @@ def case_5_update_is_idempotent(root: Path) -> None:
     once = _task_path(b).read_text(encoding="utf-8")
     _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "X", "--done-criteria", "Y")
     twice = _task_path(b).read_text(encoding="utf-8")
-    # `진행 현황` 은 타임스탬프를 담아 매번 달라진다 — 그 줄만 빼고 비교한다.
+    # 진행 현황은 타임스탬프를 담아 매번 달라진다 — 그 줄만 빼고 비교한다.
     def _strip(text: str) -> list[str]:
-        return [ln for ln in text.splitlines() if not ln.startswith("- 진행 현황:")]
+        return [ln for ln in text.splitlines() if not ln.startswith(f"- {PROG}:")]
     assert _strip(once) == _strip(twice), "같은 값으로 두 번 돌렸는데 파일이 달라졌다"
 
 
@@ -151,8 +162,8 @@ def case_6_update_preserves_untouched(root: Path) -> None:
             "--result-note", "R2")
     tid = _task_path(b).stem
     _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "X")
-    got = _lines(_task_path(b), "작업 결과")
-    assert got == ["- 작업 결과: R1", "- 작업 결과: R2"], f"지정 안 한 필드가 바뀌었다: {got}"
+    got = _lines(_task_path(b), RES)
+    assert got == [f"- {RES}: R1", f"- {RES}: R2"], f"지정 안 한 필드가 바뀌었다: {got}"
 
 
 def case_7_update_shrinks(root: Path) -> None:
@@ -161,8 +172,8 @@ def case_7_update_shrinks(root: Path) -> None:
             "--done-criteria", "C")
     tid = _task_path(b).stem
     _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "하나만")
-    got = _lines(_task_path(b), "완료 기준")
-    assert got == ["- 완료 기준: 하나만"], f"줄이 남았다: {got}"
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}: 하나만"], f"줄이 남았다: {got}"
 
 
 def case_8_group_does_not_swallow_other_section() -> None:
@@ -186,7 +197,13 @@ def case_8_group_does_not_swallow_other_section() -> None:
 
 def case_9_self_no_accumulated_duplicates() -> None:
     """저장소의 task 파일에 **똑같은 줄이 연달아** 쌓여 있지 않다 (옛 중복의 흔적)."""
-    labels = ("완료 기준", "작업 결과", "남은 리스크", "후속 작업")
+    # **두 표기를 모두 센다.** 정본이 영어로 바뀐 뒤 한국어만 세면 새로 쓰이는
+    # 파일이 분모에서 빠진다 — 대상을 지울수록 점수가 오르는 것과 같은 구멍이다.
+    labels = tuple(
+        a
+        for key in ("done_criteria", "result", "risks", "follow_up")
+        for a in PD.task_label_aliases(key)
+    )
     bad: list[str] = []
     for f in sorted(_glob.glob(str(REPO_ROOT / "ai-workflow/memory/**/backlog/tasks/*.md"),
                                recursive=True)):
@@ -205,13 +222,15 @@ def case_10_validation_injects_after_group_end() -> None:
     첫 줄 뒤(idx+1)에 꽂던 때는 열거 묶음이 [a1][검증][a2][a3] 로 갈라졌다
     (main-010). 갈라짐은 조용하다 — 다음 갱신에서야 고아 줄로 나타난다.
     """
+    # 본문은 **옛 표기**로 둔다 — 전환 후 현실의 문서가 그 모양이다. 키는 호출자가
+    # 늘 그러듯 정본에서 가져온다. 즉 이 case 는 혼합 코퍼스를 그대로 잰다.
     body = ["# T", "- 상태: in_progress", "## ✅ Outcome", "", "- 작업 결과:", "- 후속 작업:"]
     body, _ = merge_task_file(body, status="in_progress",
-                              list_updates={"작업 결과": ["a1", "a2", "a3"]},
-                              scalar_updates={"검증 결과": "v1"}, affected_documents=None)
-    got = [ln for ln in body if ln.startswith(("- 작업 결과:", "- 검증 결과:"))]
-    assert got == ["- 작업 결과: a1", "- 작업 결과: a2", "- 작업 결과: a3",
-                   "- 검증 결과: v1"], f"주입이 묶음을 갈랐다: {got}"
+                              list_updates={RES: ["a1", "a2", "a3"]},
+                              scalar_updates={VAL: "v1"}, affected_documents=None)
+    got = [ln for ln in body if ln.startswith((f"- {RES}:", f"- {VAL}:"))]
+    assert got == [f"- {RES}: a1", f"- {RES}: a2", f"- {RES}: a3",
+                   f"- {VAL}: v1"], f"주입이 묶음을 갈랐다: {got}"
 
 
 def case_11_split_file_heals_without_orphans() -> None:
@@ -224,12 +243,18 @@ def case_11_split_file_heals_without_orphans() -> None:
              "- 작업 결과: a1", "- 검증 결과: v1", "- 작업 결과: a2", "- 작업 결과: a3",
              "- 후속 작업:"]
     healed, missing = merge_task_file(split, status="in_progress",
-                                      list_updates={"작업 결과": ["b1", "b2"]},
+                                      list_updates={RES: ["b1", "b2"]},
                                       scalar_updates=None, affected_documents=None)
-    orphans = [ln for ln in healed if ln.startswith("- 작업 결과: a")]
+    orphans = [ln for ln in healed if _matches_label(ln.strip(), _label_prefixes(RES))
+               and ln.strip().endswith(("a1", "a2", "a3"))]
     assert not orphans, f"갈라진 뒤 조각이 고아로 남았다: {orphans}"
-    got = [ln for ln in healed if ln.startswith(("- 작업 결과:", "- 검증 결과:"))]
-    assert got == ["- 작업 결과: b1", "- 작업 결과: b2", "- 검증 결과: v1"], f"치유 결과가 다르다: {got}"
+    got = [ln for ln in healed
+           if _matches_label(ln.strip(), _label_prefixes(RES))
+           or _matches_label(ln.strip(), _label_prefixes(VAL))]
+    # 갱신한 묶음은 정본 표기로 다시 쓰이고, **건드리지 않은 줄은 원래 표기를
+    # 보존한다** (여기서는 옛 표기 `- 검증 결과: v1`). 안 시킨 줄까지 다시 쓰면
+    # 갱신 하나가 문서 전체를 흔들어 diff 가 못 읽게 된다.
+    assert got == [f"- {RES}: b1", f"- {RES}: b2", "- 검증 결과: v1"], f"치유 결과가 다르다: {got}"
     assert not missing, f"필드를 놓쳤다: {missing}"
 
 
@@ -239,8 +264,8 @@ def case_12_self_no_split_groups() -> None:
     갈라짐의 서명은 [작업 결과][검증 결과][작업 결과] 다. 실물에서 이 패턴이
     발견되면 구버전 주입이 만든 파일이 치유되지 않고 남아 있다는 뜻이다.
     """
-    rp = _label_prefixes("작업 결과")
-    vp = _label_prefixes("검증 결과")
+    rp = _label_prefixes(RES)
+    vp = _label_prefixes(VAL)
     bad: list[str] = []
     for f in sorted(_glob.glob(str(REPO_ROOT / "ai-workflow/memory/**/backlog/tasks/*.md"),
                                recursive=True)):

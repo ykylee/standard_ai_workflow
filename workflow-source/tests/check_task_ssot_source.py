@@ -58,6 +58,7 @@ REPO_ROOT = SOURCE_ROOT.parent
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common import project_docs as PD  # noqa: E402
 from workflow_kit.common.project_docs import parse_backlog  # noqa: E402
 
 FAILURES: list[str] = []
@@ -80,7 +81,7 @@ def _backlog_dir(root: Path) -> Path:
 
 
 def _task_file(root: Path, name: str, *, fm_status: str | None, body_status: str | None,
-               title: str = "제목") -> Path:
+               title: str = "제목", body_label: str = "상태") -> Path:
     tasks = _backlog_dir(root) / "tasks"
     tasks.mkdir(parents=True, exist_ok=True)
     head = ""
@@ -88,7 +89,7 @@ def _task_file(root: Path, name: str, *, fm_status: str | None, body_status: str
         head = f"---\nid: {name}\nstatus: {fm_status}\nkind: generic\n---\n\n"
     body = f"# {name} — {title}\n\n## 📝 Description\n\n"
     if body_status is not None:
-        body += f"- 상태: {body_status}\n"
+        body += f"- {body_label}: {body_status}\n"
     body += "- 작업 내용: 무엇.\n"
     p = tasks / f"{name}.md"
     p.write_text(head + body, encoding="utf-8")
@@ -169,6 +170,23 @@ def _repo_indexes() -> list[Path]:
         _glob.glob(str(REPO_ROOT / "ai-workflow/memory/**/backlog/2*.md"), recursive=True))]
 
 
+def case_11_frontmatter_wins_in_both_spellings(root: Path) -> None:
+    """frontmatter 우선순위가 **두 표기 모두**에서 성립한다.
+
+    본문 상태 줄을 `- 상태:` 리터럴로만 지우던 때, 영어 표기 파일에서는 그 줄이
+    남아 합성 줄보다 **뒤에** 왔다 — 파서는 뒤에 오는 값을 쓰므로 본문이
+    frontmatter 를 이겼다 (2026-08-20 실증: frontmatter `done` 인데 `in_progress`
+    로 읽혔다). 전환이 만든 혼합 코퍼스에서 새로 쓰이는 파일 전부가 그 상태다.
+    """
+    for i, label in enumerate(PD.task_label_aliases("status")):
+        name = f"TASK-2026-01-01-1{i:02d}"
+        _task_file(root, name, fm_status="done", body_status="in_progress", body_label=label)
+        idx = _index(root, "2026-01-01",
+                     f"- **{name}** t\n  - path: [`./tasks/{name}.md`](./tasks/{name}.md)")
+        got = _statuses(idx).get(name)
+        assert got == "done", f"'{label}' 표기에서 본문이 frontmatter 를 이겼다: {got!r}"
+
+
 def case_8_self_no_zero_task_index() -> None:
     zero = []
     for idx in _repo_indexes():
@@ -231,17 +249,23 @@ def _run(fn, needs_root: bool = True) -> None:
 
 def main() -> int:
     print("=== task SSOT 읽는 쪽 계약 ===")
-    for fn in (case_1_frontmatter_wins, case_2_frontmatter_supplies_missing_body,
-               case_3_body_only_still_works, case_4_link_dialect, case_5_backtick_dialect,
-               case_6_inline_dialect_falls_back, case_7_glob_matches_real_naming):
+    sandboxed = (case_1_frontmatter_wins, case_2_frontmatter_supplies_missing_body,
+                 case_3_body_only_still_works, case_4_link_dialect, case_5_backtick_dialect,
+                 case_6_inline_dialect_falls_back, case_7_glob_matches_real_naming,
+                 case_11_frontmatter_wins_in_both_spellings)
+    self_applied = (case_8_self_no_zero_task_index, case_9_self_every_task_has_status,
+                    case_10_self_sources_agree)
+    for fn in sandboxed:
         _run(fn)
-    for fn in (case_8_self_no_zero_task_index, case_9_self_every_task_has_status,
-               case_10_self_sources_agree):
+    for fn in self_applied:
         _run(fn, needs_root=False)
+    total = len(sandboxed) + len(self_applied)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n10/10 PASS")
+    # 총계는 **세어서** 낸다. 리터럴이면 case 를 추가해도 숫자가 안 따라오고,
+    # 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
+    print(f"\n{total}/{total} PASS")
     return 0
 
 

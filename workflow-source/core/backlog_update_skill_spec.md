@@ -144,28 +144,28 @@ task_id:
 - TASK-031
 
 draft_entry:
-- 상태: in_progress
-- 우선순위: high
-- 요청일: 2026-04-18
-- 완료일:
-- 담당: platform-agent
-- 호스트명: devbox-02
-- 호스트 IP: 10.10.4.21
-- 영향 문서:
+- Status: in_progress
+- Priority: high
+- Request date: 2026-04-18
+- Completion date:
+- Owner: platform-agent
+- Host: devbox-02
+- Host IP: 10.10.4.21
+- Affected documents:
   - docs/operations/session_handoff.md
-- 작업 내용:
+- Description:
   - backlog-update skill 계약 초안을 작성한다.
-- 진행 현황:
+- Progress:
   - 2026-04-18 14:10 기준 입력 계약과 상태 갱신 규칙을 정리했다.
-- 완료 기준:
+- Completion criteria:
   - 스펙 문서 작성과 문서 무결성 검사 통과
-- 작업 결과:
+- Result:
   - 현재 스펙 초안 작성 완료, 검토 반영 대기
-- 다음 세션 시작 포인트:
+- Next session starting point:
   - 카탈로그와 agent 토폴로지 연결 여부를 재확인한다.
-- 남은 리스크:
+- Remaining risks:
   - 실제 구현 전까지는 상태 갱신 로직이 문서 규칙에만 머문다.
-- 후속 작업:
+- Follow-up:
   - MCP 후보와 연동 가능한 입력 계약을 분리한다.
 
 status_recommendation:
@@ -173,13 +173,18 @@ status_recommendation:
 - 이유: 문서 초안은 생성되었지만 구현 및 운영 검증이 끝나지 않았다.
 
 fields_requiring_confirmation:
-- 담당
-- 영향 문서
-- 완료 기준
+- Owner
+- Affected documents
+- Completion criteria
 
 warnings:
 - 검증 결과가 없으므로 `done` 으로 올릴 수 없다.
 ```
+
+> **본문 라벨 표기** — 위 예시의 라벨은 `project_docs.TASK_FIELD_LABELS` 가 정본이고
+> **2026-08-20 (v1.3.0 이후) 영어로 전환**됐다. *쓸 때* 는 이 표기를 쓰고, *읽을 때* 는
+> `TASK_FIELD_ALIASES` 가 한국어 표기도 계속 받는다 — 기존 task 파일이 그 표기다.
+> 갱신은 **건드린 줄만** 정본 표기로 다시 쓰고 나머지는 원래 표기를 보존한다.
 
 ## 6. 동작 절차
 

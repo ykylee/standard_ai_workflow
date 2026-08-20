@@ -207,22 +207,28 @@ def _label_lines(label: str, value: list[str] | str | None) -> list[str]:
 
 
 def detect_confirmation_fields(data: dict[str, Any]) -> list[str]:
+    """비어 있는 필드의 **라벨**을 돌려준다 — 이름은 정본 표에서만 가져온다.
+
+    리터럴로 들고 있던 자리다. 라벨을 전환하면 문서는 새 표기로 적히는데 이
+    보고만 옛 표기를 말해, 사용자가 문서에서 찾을 수 없는 이름을 듣는다.
+    """
+    # 입력 key → 정본 표의 의미 key. 이름이 다른 것만 옮긴다.
     mapping = {
-        "owner": "담당",
-        "host_name": "호스트명",
-        "host_ip": "호스트 IP",
-        "affected_documents": "영향 문서",
-        "done_criteria": "완료 기준",
-        "result_note": "작업 결과",
-        "next_step": "다음 세션 시작 포인트",
-        "risks": "남은 리스크",
-        "follow_up": "후속 작업",
+        "owner": "owner",
+        "host_name": "host_name",
+        "host_ip": "host_ip",
+        "affected_documents": "affected_documents",
+        "done_criteria": "done_criteria",
+        "result_note": "result",
+        "next_step": "next_step",
+        "risks": "risks",
+        "follow_up": "follow_up",
     }
     missing: list[str] = []
-    for key, label in mapping.items():
+    for key, label_key in mapping.items():
         value = data.get(key)
         if value is None or value == "" or value == []:
-            missing.append(label)
+            missing.append(task_label(label_key))
     return missing
 
 

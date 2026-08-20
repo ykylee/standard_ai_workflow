@@ -31,8 +31,7 @@
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
-      "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
-      "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
+      "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
     "recent_done_items": [
@@ -54,12 +53,12 @@
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
     "task_count": 12,
     "in_progress_items": [
-      "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
       "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
+      "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
       "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다",
       "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드",
       "TASK-2026-08-20-main-004 — memory_index 3-tuple 관찰 — 저점 고착의 원인은 검색이 아니라 종료 절차 배선",

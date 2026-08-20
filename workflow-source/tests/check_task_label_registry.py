@@ -39,6 +39,7 @@ from __future__ import annotations
 import ast
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 TESTS_DIR = Path(__file__).resolve().parent
@@ -68,35 +69,46 @@ def case_2_canonical_is_first() -> None:
 
 
 def case_3_reader_finds_legacy_spelling() -> None:
+    """한국어 표기로 적힌 줄을 찾는다. **기대값은 정본 표에서 파생한다.**
+
+    리터럴로 박으면 전환마다 이 case 가 red 가 되고, 그때 고치는 것은 계약이
+    아니라 그 시점 상수다 (2026-08-20 전환에서 실제로 그렇게 red 가 났다).
+    """
     lines = ["# TASK-X — t", "- 상태: planned", "- 완료 기준: 옛 표기"]
     out, found = _set_inline_field(lines, PD.task_label("done_criteria"), "새 값")
     assert found, "옛 표기로 적힌 줄을 못 찾았다"
-    assert "- 완료 기준: 새 값" in out
+    assert f"- {PD.task_label('done_criteria')}: 새 값" in out, f"쓸 때 정본 표기를 안 썼다: {out}"
 
 
 def case_4_reader_finds_english_spelling() -> None:
     lines = ["# TASK-X — t", "- Completion criteria: english form"]
     out, found = _set_inline_field(lines, PD.task_label("done_criteria"), "새 값")
     assert found, "영어 표기로 적힌 줄을 못 찾았다 — 전환 후 옛 리더가 못 읽는다"
-    assert "- 완료 기준: 새 값" in out, f"쓸 때 정본 표기를 안 썼다: {out}"
+    assert f"- {PD.task_label('done_criteria')}: 새 값" in out, f"쓸 때 정본 표기를 안 썼다: {out}"
 
 
 def case_5_writes_canonical_only() -> None:
-    lines = ["- Completion criteria: a", "- Completion criteria: b"]
+    """찾기는 넓게(별칭 전부), 쓰기는 좁게(정본 하나). 두 표기를 섞어 넣고 잰다."""
+    lines = ["- 완료 기준: a", "- Completion criteria: b"]
     out, found = _set_list_field(lines, PD.task_label("done_criteria"), ["x", "y"])
+    label = PD.task_label("done_criteria")
     assert found
-    assert out == ["- 완료 기준: x", "- 완료 기준: y"], f"찾기는 넓게 쓰기는 좁게가 아니다: {out}"
+    assert out == [f"- {label}: x", f"- {label}: y"], f"찾기는 넓게 쓰기는 좁게가 아니다: {out}"
 
 
 def case_6_changing_canonical_changes_output() -> None:
     """**정본이 하나라는 유일한 증거.** 표를 바꾸면 산출물이 따라 바뀐다."""
     original = PD.TASK_FIELD_LABELS["done_criteria"]
+    # **표에 없는 표기**로 바꾼다. 별칭 중 하나로 바꾸면 전환 뒤에는 그것이 곧
+    # 현재 정본이라 mutation 이 no-op 이 되고, case 가 아무것도 증명하지 않는다.
+    probe_label = "Zz completion criteria"
+    assert probe_label not in PD.TASK_FIELD_ALIASES["done_criteria"]
     try:
-        PD.TASK_FIELD_LABELS["done_criteria"] = "Completion criteria"
+        PD.TASK_FIELD_LABELS["done_criteria"] = probe_label
         lines = ["- 완료 기준: 옛 표기"]
         out, found = _set_list_field(lines, PD.task_label("done_criteria"), ["v"])
         assert found, "정본을 바꾸자 옛 표기 줄을 못 찾는다 — 별칭이 안 걸렸다"
-        assert out == ["- Completion criteria: v"], f"산출물이 정본을 안 따랐다: {out}"
+        assert out == [f"- {probe_label}: v"], f"산출물이 정본을 안 따랐다: {out}"
     finally:
         PD.TASK_FIELD_LABELS["done_criteria"] = original
 
@@ -126,10 +138,21 @@ TASK_BODY_BUILDERS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
-def _body_builder_nodes() -> list[tuple[str, ast.AST]]:
-    """등록된 본문 조립 함수들을 (표시이름, AST) 로 돌려준다."""
+#: 라벨 **이름을 밖으로 내는** 함수 — 본문에 쓰지는 않지만 사용자에게 라벨을 말한다.
+#:
+#: case 8 · 9 는 `- 라벨:` 모양만 본다. 콜론 없이 **라벨 이름만** 들고 있는 자리는
+#: 그 그물에 안 걸린다 — `detect_confirmation_fields` 가 정확히 그렇게 3단계의
+#: "46곳을 모았다" 와 4단계의 case 8 을 **둘 다** 통과하고도 리터럴로 남았다.
+#: 전환 후 그 자리는 문서에 없는 이름을 사용자에게 말한다.
+TASK_LABEL_NAMING_FUNCS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("workflow_kit", "tools", "backlog_update.py"), "detect_confirmation_fields"),
+)
+
+
+def _body_builder_nodes(registry=TASK_BODY_BUILDERS) -> list[tuple[str, ast.AST]]:
+    """등록된 함수들을 (표시이름, AST) 로 돌려준다."""
     out: list[tuple[str, ast.AST]] = []
-    for parts, func_name in TASK_BODY_BUILDERS:
+    for parts, func_name in registry:
         target = SOURCE_ROOT.joinpath(*parts)
         assert target.exists(), f"본문 조립 경로 목록이 실제 파일과 어긋난다: {target}"
         tree = ast.parse(target.read_text(encoding="utf-8"))
@@ -194,11 +217,13 @@ def case_9_unregistered_label_cannot_enter_body() -> None:
 
 
 def case_10_legacy_document_survives_the_flip() -> None:
-    """**되주입 실증** — 정본을 영어로 바꿔도 옛 표기로 적힌 기존 문서가 그대로 읽힌다.
+    """정본이 영어인 상태에서 옛 표기로 적힌 기존 문서가 그대로 읽힌다.
 
-    4단계(영어 전환)의 완료 기준을 전환 *전에* 미리 실증한다. 표 전체를 영어로
-    뒤집은 상태에서, 실제 task 파일 모양의 한국어 본문을 읽고 갱신해 본다.
-    한 필드라도 못 찾으면 그 필드는 전환 후 **조용히 사라진다**.
+    전환(2026-08-20) *전에* 는 되주입 실증이었다 — 표 전체를 영어로 뒤집은
+    상태를 만들어 4단계의 완료 기준을 미리 쟀다. 전환 후에는 **회귀 가드**다:
+    기존 task 파일 160여 개가 한국어 표기이고, 한 필드라도 못 찾으면 그 필드는
+    갱신에서 **조용히 사라진다**. 아래 강제 update 는 이제 대개 no-op 이지만,
+    정본이 다시 바뀌어도 이 case 가 재려는 것을 계속 재게 남겨 둔다.
     """
     legacy_body = [
         "# TASK-2026-08-14-main-009 — t",
@@ -252,6 +277,44 @@ def case_11_validation_injection_survives_both_spellings() -> None:
         assert not missing, f"{label} 문서에서 필드를 놓쳤다: {missing}"
 
 
+def case_12_no_bare_label_literal_in_naming_path() -> None:
+    """라벨 **이름만** 들고 있는 리터럴도 남기지 않는다.
+
+    `- 라벨:` 모양이 아니라 `"담당"` 처럼 이름 하나로 있는 자리다. case 8 의
+    그물(콜론)에 안 걸려서 전환 직전까지 살아남았다 — 그 자리는 문서가 새 표기로
+    적힌 뒤에도 **옛 표기 이름을 사용자에게 말한다**.
+    """
+    spellings = {a for aliases in PD.TASK_FIELD_ALIASES.values() for a in aliases}
+    bad: list[str] = []
+    for where, func in _body_builder_nodes(TASK_BODY_BUILDERS + TASK_LABEL_NAMING_FUNCS):
+        for node in _string_constants(func):
+            if node.value in spellings:
+                bad.append(f"{where} L{node.lineno}: {node.value!r}")
+    assert not bad, ("라벨 이름이 리터럴로 남았다 (정본 조회로 바꿀 것):\n  "
+                     + "\n  ".join(bad[:10]))
+
+
+def case_13_malformed_status_warns_in_both_spellings() -> None:
+    """잘못된 상태 형식 경고가 **두 표기 모두**에서 발화한다.
+
+    `- 상태:` 리터럴로만 보던 자리다. 영어 표기 문서에서는 비교가 항상 거짓이라
+    상태값이 깨져도 경고가 안 났다 — 전환이 만든 혼합 코퍼스에서 그 절반이
+    조용해진다. case 11 과 같은 계열의 결함이고, 같은 방식으로 문다.
+    """
+    for label, spelling in (("옛 표기", "상태"), ("영어 표기", "Status")):
+        with tempfile.TemporaryDirectory(prefix="label-status-") as tmp:
+            path = Path(tmp) / "2026-08-20.md"
+            path.write_text(
+                "# Backlog\n\n"
+                "## TASK-2026-08-20-main-001 제목\n\n"
+                f"- {spelling}: bogus-status\n",
+                encoding="utf-8",
+            )
+            warnings = PD.BacklogParser(path).parse()["warnings"]
+        assert any("잘못된 상태 형식" in str(w) for w in warnings), (
+            f"{label} 문서의 깨진 상태값에 경고가 안 났다: {warnings!r}")
+
+
 def _run(fn) -> None:
     try:
         fn()
@@ -272,7 +335,9 @@ def main() -> int:
              case_7_status_regex_accepts_both, case_8_no_literals_left_in_render_path,
              case_9_unregistered_label_cannot_enter_body,
              case_10_legacy_document_survives_the_flip,
-             case_11_validation_injection_survives_both_spellings)
+             case_11_validation_injection_survives_both_spellings,
+             case_12_no_bare_label_literal_in_naming_path,
+             case_13_malformed_status_warns_in_both_spellings)
     for fn in cases:
         _run(fn)
     if FAILURES:

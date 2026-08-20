@@ -67,31 +67,37 @@ BASELINE_LABELS: tuple[str, ...] = ("현재 기준선", "직전 기준선", "그
 #: 리터럴이 `backlog_update` / `workflow_writes` / `read_only_bundle` 에 흩어져 있었다
 #: (2026-08-14 조사: 12개 라벨이 46곳). 라벨은 곧 파싱 계약이라, 흩어진 채로는
 #: 바꿀 수가 없다 — 한 곳만 고치면 나머지가 조용히 갈라진다.
+#:
+#: **2026-08-20 (v1.3.0 발행 후) 영어로 전환했다** — task SSOT 4단계. 이 표는
+#: *쓸 때* 쓰는 표기이고, *읽을 때* 는 :data:`TASK_FIELD_ALIASES` 가 한국어 표기도
+#: 계속 받는다. 순서가 중요했다: 리더가 두 표기를 아는 버전(v1.2.x)이 소비자에게
+#: 먼저 가야 했고, 쓰는 쪽을 먼저 바꾸면 옛 리더가 새 문서를 못 읽는다.
+#: 기존 task 파일 160여 개는 **그대로 둔다** — 별칭이 창구다.
 TASK_FIELD_LABELS: dict[str, str] = {
-    "status": "상태",
-    "priority": "우선순위",
-    "request_date": "요청일",
-    "completion_date": "완료일",
-    "owner": "담당",
-    "host_name": "호스트명",
-    "host_ip": "호스트 IP",
-    "affected_documents": "영향 문서",
-    "summary": "작업 내용",
-    "out_of_scope": "범위 밖",
-    "done_criteria": "완료 기준",
-    "progress": "진행 현황",
-    "next_step": "다음 세션 시작 포인트",
-    "risks": "남은 리스크",
-    "result": "작업 결과",
-    "validation": "검증 결과",
-    "follow_up": "후속 작업",
+    "status": "Status",
+    "priority": "Priority",
+    "request_date": "Request date",
+    "completion_date": "Completion date",
+    "owner": "Owner",
+    "host_name": "Host",
+    "host_ip": "Host IP",
+    "affected_documents": "Affected documents",
+    "summary": "Description",
+    "out_of_scope": "Out of scope",
+    "done_criteria": "Completion criteria",
+    "progress": "Progress",
+    "next_step": "Next session starting point",
+    "risks": "Remaining risks",
+    "result": "Result",
+    "validation": "Verification",
+    "follow_up": "Follow-up",
 }
 
 #: 읽을 때 **받아들이는** 표기들. 정본이 바뀌어도 옛 문서를 계속 읽기 위한 창구다.
 #:
-#: 영어 표기를 미리 넣어 둔다 — 전환은 아직 하지 않지만(소비자 저장소의 리더가
-#: 먼저 이 표를 갖고 있어야 한다), **리더가 먼저 두 표기를 받는 것**이 deprecation
-#: 창구의 첫 단계다. 쓰는 쪽을 먼저 바꾸면 옛 리더가 새 문서를 못 읽는다.
+#: 전환(2026-08-20)이 끝난 지금 이 표의 역할은 **한국어 표기를 계속 읽는 것**이다.
+#: 기존 task 파일 160여 개가 그 표기로 적혀 있고, 여기서 한국어를 빼는 순간 그
+#: 문서들의 필드가 조용히 사라진다 (case 10 이 그것을 문다). 지우지 않는다.
 TASK_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
     "status": ("상태", "Status"),
     "priority": ("우선순위", "Priority"),
@@ -278,7 +284,10 @@ class BacklogParser(WorkflowDocParser):
             status_match = STATUS_RE.match(stripped)
             if status_match:
                 current_task["status"] = status_match.group(1)
-            elif stripped.startswith("- 상태:") and not STATUS_RE.match(stripped):
+            elif any(stripped.startswith(f"- {alias}:") for alias in task_label_aliases("status")):
+                # 리터럴 `- 상태:` 로만 보던 자리다. 영어 표기 문서에서는 이 비교가
+                # 항상 거짓이라 **상태값이 깨져도 경고가 안 났다** — 전환이 만든
+                # 혼합 코퍼스에서 정확히 그 절반이 조용해진다.
                 self.warnings.append(f"잘못된 상태 형식 (L{idx+1}): `{stripped}`")
 
             mode_match = MODE_RE.match(stripped)
@@ -397,7 +406,13 @@ class BacklogParser(WorkflowDocParser):
 
 _FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.S)
 _FM_STATUS_RE = re.compile(r"^status:\s*(\S+)\s*$", re.M)
-_BODY_STATUS_LINE_RE = re.compile(r"^- 상태:")
+#: 본문 상태 줄 — **두 표기를 모두** 받는다. 한국어만 보던 때는 영어 표기 파일에서
+#: 이 줄이 안 지워졌고, 합성한 frontmatter 줄이 header 바로 뒤에 들어가는 반면
+#: 본문 줄은 그 뒤에 남아 **본문이 frontmatter 를 이겼다** (2026-08-20 실증:
+#: frontmatter `done` 인데 파서가 `in_progress` 로 읽었다). 우선순위가 뒤집힌다.
+_BODY_STATUS_LINE_RE = re.compile(
+    r"^- (?:" + "|".join(re.escape(a) for a in TASK_FIELD_ALIASES["status"]) + r"):"
+)
 
 
 def _task_lines_with_frontmatter_status(task_file: Path) -> list[str]:
@@ -426,7 +441,7 @@ def _task_lines_with_frontmatter_status(task_file: Path) -> list[str]:
     kept = [ln for ln in lines if not _BODY_STATUS_LINE_RE.match(ln.strip())]
     for i, line in enumerate(kept):
         if TASK_HEADER_RE.match(line.strip()):
-            return kept[: i + 1] + [f"- 상태: {status.group(1)}"] + kept[i + 1 :]
+            return kept[: i + 1] + [f"- {task_label('status')}: {status.group(1)}"] + kept[i + 1 :]
     return lines
 
 # Legacy Function Wrappers for Compatibility

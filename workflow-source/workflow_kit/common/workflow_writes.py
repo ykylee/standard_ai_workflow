@@ -290,7 +290,9 @@ def merge_task_file(
     lines = _set_frontmatter_value(existing_lines, "status", status)
     if kind:
         lines = _set_frontmatter_value(lines, "kind", kind)
-    lines, _ = _set_inline_field(lines, "상태", status)
+    # 리터럴이면 전환 뒤 이 한 줄만 옛 표기로 남는다 — 같은 도구가 `render_task_file`
+    # 로는 새 표기를, `merge_task_file` 로는 옛 표기를 쓰는 **섞인 문서**가 된다.
+    lines, _ = _set_inline_field(lines, task_label("status"), status)
     # 갈라진 묶음을 먼저 치유한다 — 이 아래의 묶음 교체가 온전한 묶음을 전제한다.
     lines = _heal_validation_split(lines)
 

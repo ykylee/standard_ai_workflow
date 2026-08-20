@@ -7,6 +7,11 @@
 - 최종 수정일: 2026-08-13
 - 관련 문서: [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md) (산문 문서), [index](./index.md)
 
+> **버전** — 본 문서의 예시는 OKF **v0.2** 기준이다 (ADR-026, 2026-08-20).
+> `okf_version: "0.1"` 번들도 그대로 받는다 — SPEC §13 의 legacy fallback
+> (`timestamp`, 본문 `# Citations`)을 우리 importer 가 실제로 구현한다.
+
+
 > **Status**: stable (v0.7.44+, ADR-025)
 > **Companion to**: [OKF_CONSUMER_GUIDE.md](./OKF_CONSUMER_GUIDE.md) (prose documentation)
 > 본 문서는 external consumer 가 *first-time setup* 을 *5 min* 안에 완료할 수 있는 *machine-readable* 의 *copy-paste-able* 정공법.
@@ -82,7 +87,7 @@ cat docs/samples/okf-bundle-2026-06-16/okf-bundle.yaml
 
 **Expected output** (sample):
 ```yaml
-okf_version: '0.1'
+okf_version: '0.2'
 generated_at: '2026-06-16T...'
 generator: 'workflow_kit.okf_export v0.7.38-beta'
 vcs_commit: 'abc1234...'
@@ -113,7 +118,7 @@ ImportReport:
   pages_with_errors: 0
   pages_with_warnings: 0
   promoted: False
-  okf_version: '0.1'
+  okf_version: '0.2'
   version_check: VersionCheckResult(major_match=True, minor_match=True, patch_higher=False, action='pass', message='...')
   r2_batch_warning: None  # 5 pages is in the 5-15 range
 ```
@@ -159,10 +164,10 @@ The 5 stub warnings are expected in fast mode (ADR-020 PoC). Use `--perform-head
 
 | Step | Action | Expected output |
 |---|---|---|
-| 1 | `cat okf-bundle.yaml` | ```yaml\nokf_version: '0.1'\ngenerated_at: '2026-06-16T...'\ngenerator: 'workflow_kit.okf_export v0.7.38-beta'\nvcs_commit: 'abc1234...'\nintegrity_hash: 'sha256:...'\npage_count: 5``` |
+| 1 | `cat okf-bundle.yaml` | ```yaml\nokf_version: '0.2'\ngenerated_at: '2026-06-16T...'\ngenerator: 'workflow_kit.okf_export v0.7.38-beta'\nvcs_commit: 'abc1234...'\nintegrity_hash: 'sha256:...'\npage_count: 5``` |
 | 2 | `cat index.md` | ```markdown\n# My Bundle\n\n- [Hello concept](concepts/hello.md)\n- [My Decision](decisions/my-decision.md)\n``` |
 | 3 | `ls concepts/` | `hello.md` (concept page) |
-| 4 | `python -m workflow_kit.okf_import .` | ```\nImportReport:\n  mode: strict\n  pages_total: 5\n  pages_staged: 5\n  pages_with_errors: 0\n  pages_with_warnings: 0\n  promoted: False\n  okf_version: '0.1'\n  version_check: VersionCheckResult(...)\n  r2_batch_warning: None  # 5 pages is in 5-15 range\n``` |
+| 4 | `python -m workflow_kit.okf_import .` | ```\nImportReport:\n  mode: strict\n  pages_total: 5\n  pages_staged: 5\n  pages_with_errors: 0\n  pages_with_warnings: 0\n  promoted: False\n  okf_version: '0.2'\n  version_check: VersionCheckResult(...)\n  r2_batch_warning: None  # 5 pages is in 5-15 range\n``` |
 | 5 | `python -m workflow_kit.url_validity <url> --semantic` | ```\n[WARN] V-R13-no-content-hash ...\n[WARN] V-R13-stub-content-type ...\n... (5 stub warnings in fast mode)\n``` |
 
 | Step | Verification command | Expected output |

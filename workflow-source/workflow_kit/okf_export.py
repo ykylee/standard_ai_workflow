@@ -51,10 +51,60 @@ from typing import Callable, Iterable
 # ---------------------------------------------------------------------------
 # OKF v0.1 spec constants (SPEC.md §3.1 reserved filenames, §4.1 frontmatter)
 # ---------------------------------------------------------------------------
+#: 우리가 준수를 선언하는 OKF spec 버전. **여기가 정본이다** — export 기본값,
+#: 소비자 호환 판정(`okf_import.OUR_OKF_VERSION`), CLI·문서 문구가 전부 이 값에서
+#: 나온다. 상수를 export 쪽에 두는 이유는 의존 방향이다: `okf_import` 가
+#: `okf_export` 를 참조하므로 반대로 두면 순환이 된다.
+#:
+#: 2026-08-20 (ADR-026): v0.1 → **v0.2**. legacy 형태(`timestamp`, 본문
+#: `# Citations`)는 SPEC §13.1 이 소비자 fallback 을 명시하므로 **남긴 채**
+#: 정규 필드를 더한다 — 한 번들이 v0.1·v0.2 소비자를 다 만족한다.
+OKF_SPEC_VERSION: str = "0.2"
+
 OKF_RESERVED_FILES: frozenset[str] = frozenset({"index.md", "log.md"})
 
 # Our wiki 5 valid `type` values (SCHEMA.md §1) — all map cleanly to OKF free-string
 OKF_WIKI_VALID_TYPES: frozenset[str] = frozenset({"entity", "concept", "decision", "pattern", "query"})
+
+#: OKF v0.2 §5.4 의 `status` 어휘. v0.1 에서는 `status` 가 정규 필드가 아니어서
+#: 우리 값을 그대로 실어도 됐지만, v0.2 에서 **정규 필드로 승격**되면서 사정이
+#: 달라졌다. §11 의 관용 보장("consumers MUST NOT reject ... unknown additional
+#: frontmatter keys")은 *unknown key* 에만 걸리므로 정규 필드가 된 `status` 에는
+#: 안 걸린다 — v0.2 소비자가 `stable` 필터를 걸면 우리 71장 중 69장이 조용히 빠진다.
+OKF_STATUS_VOCABULARY: frozenset[str] = frozenset({"draft", "stable", "deprecated"})
+
+#: 우리 wiki 어휘 → OKF v0.2 어휘. 우리 원래 값은 `wiki_status` 확장 키로 보존한다
+#: (§11 이 unknown key 를 보장하므로 그쪽은 안전하다).
+#:
+#: `accepted`/`active` → `stable`: 둘 다 "지금 유효한 문서" 다.
+#: `proposed`/`draft` → `draft`: §5.4 의 draft 는 "not yet reviewed; possibly
+#: incomplete" 라 proposed ADR 의 뜻과 같다.
+#: `superseded`/`deprecated` → `deprecated`: §5.4 의 "kept for links and history".
+OKF_STATUS_MAP: dict[str, str] = {
+    "active": "stable",
+    "accepted": "stable",
+    "stable": "stable",
+    "draft": "draft",
+    "proposed": "draft",
+    "deprecated": "deprecated",
+    "superseded": "deprecated",
+}
+
+#: 어휘 밖의 값을 만났을 때 실을 값.
+#:
+#: **`status` 를 빼는 것은 답이 아니다** — §5.4 가 `Absent status ⇒ stable` 이라고
+#: 정하므로, 생략은 "안 정함" 이 아니라 **stable 이라는 주장**이다. 모르는 상태를
+#: stable 로 세면 그게 거짓 안심이다 (저장소 규칙 *모름 ≠ 안전*). 그래서 가장
+#: 보수적인 `draft`("not yet reviewed") 로 내리고, 원래 값은 `wiki_status` 에 남겨
+#: 소비자가 원문을 볼 수 있게 한다.
+OKF_STATUS_FALLBACK: str = "draft"
+
+
+def map_status_to_okf(wiki_status: str | None) -> str | None:
+    """wiki `status` → OKF v0.2 §5.4 어휘. 값이 없으면 None (필드 미기재)."""
+    if not wiki_status:
+        return None
+    return OKF_STATUS_MAP.get(wiki_status.strip().lower(), OKF_STATUS_FALLBACK)
 
 
 # ---------------------------------------------------------------------------
@@ -373,6 +423,14 @@ def _derive_tags(frontmatter: Frontmatter) -> tuple[str, ...]:
     return tuple(deduped)
 
 
+def _scalar(value: object) -> str:
+    """YAML scalar 직렬화 — 특수문자가 있으면 인용한다."""
+    text = str(value)
+    if any(c in text for c in [":", "#", "&", "*", "{", "}", "[", "]", "|", ">", "<", "%", "@", "`"]):
+        return f'"{text}"'
+    return text
+
+
 def map_frontmatter_to_okf(
     frontmatter: Frontmatter,
     body: str = "",
@@ -432,15 +490,40 @@ def map_frontmatter_to_okf(
     tags = _derive_tags(frontmatter)
     if tags:
         okf["tags"] = list(tags)
+    # `timestamp` 는 v0.2 에서 `generated.at` 으로 대체됐지만 **남긴다** — §13.1 이
+    # "Consumers MAY fall back to a legacy `timestamp` when `generated` is absent"
+    # 라고 적었고, 우리는 `generated` 를 내지 않기로 했기 때문이다 (아래 참조).
     timestamp = _date_to_iso8601(frontmatter.updated) or _date_to_iso8601(frontmatter.created)
     if timestamp:
         okf["timestamp"] = timestamp
+
+    # `generated` 는 **의도적으로 내지 않는다** (ADR-026).
+    #
+    # §5.2 는 `generated.by` 를 REQUIRED 로 두고 §7 은 그것을 actor 로 규정한다.
+    # 우리 wiki 는 페이지별 저자/생성 주체를 기록하지 않는다 — 도구 이름을 적으면
+    # "이 도구가 내용을 썼다" 는 거짓이 되고, `human:` 을 적으면 생성물 페이지까지
+    # 사람이 쓴 것으로 만든다. 근거 없이 채우느니 비워 두고 §13.1 의 `timestamp`
+    # fallback 에 맡긴다 (저장소 규칙 *없는 것을 있는 것처럼 채우지 않는다*).
+
+    # `sources` (v0.2 §5.1) — 우리 `last_ingested_from` 이 정확히 이 필드가 말하는
+    # "이 개념이 파생된 재료" 다. v0.1 에서는 URL 일 때만 `resource` 로 나가고
+    # in-repo 경로는 본문 산문(`# Citations`)으로만 남았는데, §5.1 은 entry 의
+    # `resource` 값으로 **번들 상대 경로도** 허용한다 — 그래서 in-repo 출처가
+    # 처음으로 기계가 읽는 필드에 들어간다.
+    if frontmatter.last_ingested_from:
+        source_ref = resource or frontmatter.last_ingested_from.strip()
+        okf["sources"] = [{"resource": source_ref}]
 
     # Extensions (SPEC.md §4.1: producers MAY include additional keys; consumers SHOULD NOT reject)
     if frontmatter.created:
         okf["created"] = frontmatter.created
     if frontmatter.status:
-        okf["status"] = frontmatter.status
+        mapped = map_status_to_okf(frontmatter.status)
+        if mapped:
+            okf["status"] = mapped
+        # 우리 어휘는 잃지 않는다 — 매핑은 소비자를 위한 것이고 원문은 확장 키로 남는다.
+        if mapped != frontmatter.status:
+            okf["wiki_status"] = frontmatter.status
     if frontmatter.related_pages:
         okf["related_pages"] = list(frontmatter.related_pages)
     if frontmatter.adr_id:
@@ -455,7 +538,16 @@ def map_frontmatter_to_okf(
     lines: list[str] = ["---"]
     for key, value in okf.items():
         if isinstance(value, list):
-            if all(isinstance(v, str) and "," not in v and "[" not in v and "]" not in v for v in value):
+            if value and all(isinstance(v, dict) for v in value):
+                # `sources` 같은 mapping list — block 형식으로 낸다.
+                lines.append(f"{key}:")
+                for entry in value:
+                    items = list(entry.items())
+                    first_k, first_v = items[0]
+                    lines.append(f"  - {first_k}: {_scalar(first_v)}")
+                    for k, v in items[1:]:
+                        lines.append(f"    {k}: {_scalar(v)}")
+            elif all(isinstance(v, str) and "," not in v and "[" not in v and "]" not in v for v in value):
                 inline = ", ".join(value)
                 lines.append(f"{key}: [{inline}]")
             else:
@@ -540,7 +632,7 @@ def rewrite_wiki_links_to_okf(body: str) -> str:
 def generate_index_md(
     pages: list[tuple[Path, str, Frontmatter]],
     *,
-    okf_version: str = "0.1",
+    okf_version: str = OKF_SPEC_VERSION,
     generated_at: str | None = None,
     generator: str = "workflow_kit.okf_export v0.7.34+",
 ) -> str:

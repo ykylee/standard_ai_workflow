@@ -207,11 +207,12 @@ def test_version_parse_canonical() -> None:
 
 
 def test_version_check_exact_match() -> None:
-    """exact match (0.1 = 0.1) → pass."""
+    """exact match → pass. 버전 리터럴을 박지 않고 **정본 상수**에서 만든다."""
     mod = _import_okf_import()
-    result = mod._check_version_compatibility("0.1")
+    ours = mod.OKF_SPEC_VERSION
+    result = mod._check_version_compatibility(ours)
     assert result.status == "pass", f"got {result.status}: {result.message}"
-    assert result.bundle_version == "0.1"
+    assert result.bundle_version == ours
 
 
 # --- Test 10: Version check major mismatch → error ---
@@ -229,11 +230,45 @@ def test_version_check_major_mismatch_rejects_strict() -> None:
 
 
 def test_version_check_minor_higher_warns() -> None:
-    """minor higher (0.2 > 0.1, same major) → warn (backward-compatible per spec §11)."""
+    """minor higher (same major) → warn (backward-compatible per spec §11)."""
     mod = _import_okf_import()
-    result = mod._check_version_compatibility("0.2")
+    major, minor = mod.OUR_OKF_VERSION
+    higher = f"{major}.{minor + 1}"
+    result = mod._check_version_compatibility(higher)
     assert result.status == "warn", f"got {result.status}: {result.message}"
-    assert "0.2" in result.message
+    assert higher in result.message
+
+
+# --- ADR-026: 더 낮은 minor 를 **거부하지 않는다** -------------------------
+
+
+def test_version_check_older_minor_is_consumed_not_refused() -> None:
+    """v0.1 번들을 v0.2 소비자가 **받아들인다** (SPEC §12·§13).
+
+    예전 정책은 older 를 전부 `error` 로 거부했다. 우리가 v0.1 이던 동안에는
+    도달 불가능한 분기라 아무도 밟지 않았지만, v0.2 로 올리는 순간 **v0.1 번들
+    전부를 거부**한다 — 48차에 실측으로 상호운용을 확인한 openwiki 가 정확히
+    `okf_version: "0.1"` 이다. SPEC §12 는 "SHOULD attempt best-effort consumption
+    rather than refusing", §13 은 "A v0.1 bundle is consumable by a v0.2 consumer"
+    라고 적는다.
+    """
+    mod = _import_okf_import()
+    major, minor = mod.OUR_OKF_VERSION
+    assert minor >= 1, "이 case 는 우리 minor 가 1 이상일 때만 의미가 있다"
+    older = f"{major}.{minor - 1}"
+    result = mod._check_version_compatibility(older)
+    assert result.status == "pass", (
+        f"더 낮은 minor 를 거부했다 ({result.status}): {result.message}"
+    )
+
+
+def test_version_check_our_version_is_derived_not_duplicated() -> None:
+    """`OUR_OKF_VERSION` 이 `OKF_SPEC_VERSION` 에서 **파생**된다 (복제 0)."""
+    mod = _import_okf_import()
+    major, minor = mod.OUR_OKF_VERSION
+    assert f"{major}.{minor}" == mod.OKF_SPEC_VERSION, (
+        f"튜플 {mod.OUR_OKF_VERSION} 과 문자열 {mod.OKF_SPEC_VERSION} 이 갈렸다"
+    )
 
 
 # --- Test 12: Version check missing → warn (assume v0.1) ---
@@ -509,6 +544,8 @@ def main() -> int:
         test_version_check_exact_match,
         test_version_check_major_mismatch_rejects_strict,
         test_version_check_minor_higher_warns,
+        test_version_check_older_minor_is_consumed_not_refused,
+        test_version_check_our_version_is_derived_not_duplicated,
         test_version_check_missing_warns,
         test_r2_batch_size_in_range,
         test_r2_batch_size_out_of_range,

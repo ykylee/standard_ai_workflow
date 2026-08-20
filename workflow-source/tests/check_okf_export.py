@@ -442,8 +442,11 @@ def test_okf_bundle_root_index_md_emit() -> None:
         index_path = out_bundle / "index.md"
         assert index_path.exists(), "bundle-root index.md not auto-emitted"
         text = index_path.read_text(encoding="utf-8")
-        # §11: okf_version field
-        assert 'okf_version: "0.1"' in text, f"index.md missing okf_version field:\n{text}"
+        # §11: okf_version field — 리터럴을 박지 않는다. 버전이 오를 때마다 여기가
+        # red 가 되면 검사가 계약이 아니라 그 시점 상수를 지키게 된다.
+        assert f'okf_version: "{mod.OKF_SPEC_VERSION}"' in text, (
+            f"index.md missing okf_version field:\n{text}"
+        )
         # generated_at + generator field
         assert "generated_at:" in text, "index.md missing generated_at"
         assert "generator:" in text, "index.md missing generator"
@@ -454,6 +457,127 @@ def test_okf_bundle_root_index_md_emit() -> None:
         assert "beta.md" in text, "index.md missing beta.md entry"
         # bundle-root index.md 는 §4.1 hard rule 적용 안 됨 (no `type` field, has `okf_version`)
         assert "type:" not in text.split("---")[1], "index.md should NOT have `type` field (reserved)"
+
+
+# --- ADR-026: OKF v0.2 이행 (status 어휘 · sources · legacy 병행) ---
+
+
+def test_status_is_mapped_to_okf_vocabulary() -> None:
+    """우리 `status` 가 v0.2 §5.4 어휘로 매핑되고 원문은 확장 키로 남는다.
+
+    v0.1 에서 `status` 는 정규 필드가 아니어서 우리 값을 그대로 실어도 됐다.
+    v0.2 에서 **정규 필드로 승격**되면서 사정이 달라졌다 — §11 의 관용 보장은
+    *unknown key* 에만 걸리므로, `stable` 필터를 건 소비자는 `active`/`accepted`
+    를 조용히 버린다.
+    """
+    mod = _import_okf_export()
+    vocab = mod.OKF_STATUS_VOCABULARY
+    cases = {"active": "stable", "accepted": "stable", "proposed": "draft",
+             "draft": "draft", "deprecated": "deprecated", "superseded": "deprecated"}
+    problems = []
+    for ours, expected in cases.items():
+        got = mod.map_status_to_okf(ours)
+        if got != expected:
+            problems.append(f"{ours} -> {got} (기대 {expected})")
+        if got not in vocab:
+            problems.append(f"{ours} -> {got} 이 v0.2 어휘 밖")
+    # 어휘 밖 값은 stable 로 올리지 않는다 (부재 == stable 주장이므로 생략도 불가).
+    unknown = mod.map_status_to_okf("완전히-모르는-값")
+    if unknown != "draft":
+        problems.append(f"unknown -> {unknown} (기대 draft)")
+    assert not problems, "; ".join(problems)
+
+
+def test_export_emits_mapped_status_and_preserves_ours() -> None:
+    """export 산출물에 매핑된 `status` 와 원문 `wiki_status` 가 둘 다 있다."""
+    mod = _import_okf_export()
+    fm = mod.Frontmatter.parse("---\ntype: concept\nstatus: active\n---\n\n# T\n\nbody\n")
+    mapping = mod.map_frontmatter_to_okf(fm, body="# T\n\nbody\n")
+    text = "\n".join(mapping.frontmatter_lines)
+    assert "status: stable" in text, text
+    assert "wiki_status: active" in text, text
+
+
+def test_export_emits_sources_for_in_repo_and_url() -> None:
+    """`last_ingested_from` 이 `sources`(v0.2 §5.1)로 나간다 — in-repo 도 포함.
+
+    v0.1 에서 in-repo 경로는 `resource` 로 못 나가고 본문 `# Citations` 산문으로만
+    남았다. §5.1 은 entry 의 `resource` 로 번들 상대 경로/범위 서술도 허용하므로,
+    in-repo 출처가 처음으로 기계가 읽는 필드에 들어간다.
+    """
+    mod = _import_okf_export()
+    problems = []
+    in_repo = mod.map_frontmatter_to_okf(
+        mod.Frontmatter.parse(
+            "---\ntype: concept\nlast_ingested_from: workflow-source/core/x.md\n---\n\n# T\n\nbody\n"
+        ),
+        body="# T\n\nbody\n", resolve=False,
+    )
+    in_repo_text = "\n".join(in_repo.frontmatter_lines)
+    if "sources:" not in in_repo_text or "workflow-source/core/x.md" not in in_repo_text:
+        problems.append(f"in-repo sources 누락:\n{in_repo_text}")
+    # legacy 형태도 남아야 한다 (v0.1 소비자용, §13.1)
+    if "# Citations" not in "\n".join(in_repo.body_suffix):
+        problems.append("legacy # Citations 가 사라졌다")
+
+    url = mod.map_frontmatter_to_okf(
+        mod.Frontmatter.parse(
+            "---\ntype: concept\nlast_ingested_from: https://example.com/a.md\n---\n\n# T\n\nbody\n"
+        ),
+        body="# T\n\nbody\n", resolve=False,
+    )
+    url_text = "\n".join(url.frontmatter_lines)
+    if "sources:" not in url_text or "https://example.com/a.md" not in url_text:
+        problems.append(f"URL sources 누락:\n{url_text}")
+    assert not problems, "; ".join(problems)
+
+
+def test_legacy_timestamp_is_kept_and_generated_is_not_fabricated() -> None:
+    """`timestamp` 는 남기고 `generated` 는 **짓지 않는다**.
+
+    §5.2 는 `generated.by` 를 REQUIRED 로 두는데 우리는 페이지별 actor 기록이
+    없다. 도구 이름을 적으면 "이 도구가 내용을 썼다" 는 거짓이 되고, `human:` 을
+    적으면 생성물 페이지까지 사람이 쓴 것이 된다. §13.1 의 `timestamp` fallback
+    이 그 자리를 덮으므로 비워 두는 편이 정확하다.
+    """
+    mod = _import_okf_export()
+    mapping = mod.map_frontmatter_to_okf(
+        mod.Frontmatter.parse("---\ntype: concept\nupdated: 2026-08-20\n---\n\n# T\n\nbody\n"),
+        body="# T\n\nbody\n",
+    )
+    text = "\n".join(mapping.frontmatter_lines)
+    assert "timestamp:" in text, text
+    assert "generated:" not in text, f"근거 없는 generated 를 냈다:\n{text}"
+
+
+def test_consumer_docs_declare_the_canonical_version() -> None:
+    """소비자 문서의 `okf_version` 예시가 **정본 상수**와 같다.
+
+    이 두 문서는 아무 검사도 대조하지 않아서, 도구가 v0.2 를 내는 동안 문서만
+    v0.1 을 말하고 있어도 아무도 몰랐을 자리다 (ADR-026 에서 실제로 그렇게 될
+    뻔했다). 정본은 `OKF_SPEC_VERSION` 하나이고 문서는 파생이다.
+    """
+    mod = _import_okf_export()
+    ours = mod.OKF_SPEC_VERSION
+    docs = [
+        SOURCE_ROOT.parent / "docs" / "OKF_CONSUMER_GUIDE.md",
+        SOURCE_ROOT.parent / "docs" / "OKF_CONSUMER_QUICKSTART.md",
+    ]
+    problems = []
+    for doc in docs:
+        if not doc.exists():
+            problems.append(f"{doc.name}: 문서 부재")
+            continue
+        text = doc.read_text(encoding="utf-8")
+        declared = set(re.findall(r"""okf_version:\s*["']([0-9.]+)["']""", text))
+        if not declared:
+            problems.append(f"{doc.name}: okf_version 예시 없음")
+            continue
+        # 문서는 "우리가 내는 버전" 을 보여 주되, 하위 버전 수용을 **설명** 할 수 있다.
+        # 그래서 정본이 예시에 **포함**돼야 한다는 것까지만 요구한다.
+        if ours not in declared:
+            problems.append(f"{doc.name}: 예시가 {sorted(declared)} — 정본 {ours} 없음")
+    assert not problems, "; ".join(problems)
 
 
 # --- Test 11: vcs_commit field → commit-pinned URL (ADR-018) ---
@@ -823,6 +947,11 @@ def main() -> int:
         test_okf_spec_4_1_full_conformance,
         test_okf_bundle_directory_layout,
         test_okf_bundle_root_index_md_emit,
+        test_consumer_docs_declare_the_canonical_version,
+        test_status_is_mapped_to_okf_vocabulary,
+        test_export_emits_mapped_status_and_preserves_ours,
+        test_export_emits_sources_for_in_repo_and_url,
+        test_legacy_timestamp_is_kept_and_generated_is_not_fabricated,
         test_vcs_commit_emits_pinned_url,
         test_per_page_frontmatter_vcs_commit,
         test_tag_based_pinning_v0_7_37,

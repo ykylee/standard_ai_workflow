@@ -56,12 +56,15 @@ from workflow_kit.okf_export import (
     _FRONTMATTER_RE,
     _parse_simple_yaml,
     OKF_RESERVED_FILES,
+    OKF_SPEC_VERSION as _OKF_SPEC_VERSION,
 )
 
 # ---------------------------------------------------------------------------
-# OKF v0.1 spec constants (SPEC.md §4.1, §6, §9, §11)
+# OKF spec constants (SPEC.md §4.1, §6, §9, §11)
 # ---------------------------------------------------------------------------
-OKF_SPEC_VERSION: str = "0.1"
+#: 버전 정본은 `okf_export.OKF_SPEC_VERSION` 이다 (여기서 재선언하지 않는다).
+#: 이 이름은 하위 호환 alias 로만 남긴다.
+OKF_SPEC_VERSION: str = _OKF_SPEC_VERSION
 OKF_HARD_RULE_FIELDS: tuple[str, ...] = ("type",)  # §4.1 required
 OKF_RESERVED_FILENAMES: frozenset[str] = OKF_RESERVED_FILES
 
@@ -136,7 +139,15 @@ def detect_mode(
 # ---------------------------------------------------------------------------
 # Version detection (ADR-011)
 # ---------------------------------------------------------------------------
-OUR_OKF_VERSION: tuple[int, int] = (0, 1)  # major, minor
+def _parse_spec_version(value: str) -> tuple[int, int]:
+    """`"0.2"` → `(0, 2)`. 리터럴을 두 번 적지 않기 위한 파생."""
+    major, _, minor = value.partition(".")
+    return int(major), int(minor)
+
+
+#: `OKF_SPEC_VERSION` 에서 **파생**한다. 예전에는 문자열과 튜플을 따로 적어 둬서
+#: 한쪽만 올리면 조용히 갈라질 자리였다.
+OUR_OKF_VERSION: tuple[int, int] = _parse_spec_version(OKF_SPEC_VERSION)
 
 
 @dataclass(frozen=True)
@@ -188,9 +199,15 @@ def _check_version_compatibility(
     - exact match (major+minor equal) → pass
     - minor higher (same major, larger minor) → warn (backward-compatible)
     - major higher → error (breaking change)
-    - older (lower major OR same major lower minor) → error
+    - older minor, same major → **pass** (§13 legacy fallback 으로 소비한다)
+    - older major → warn (best-effort)
     - missing → warn (assume our version)
     - malformed → warn (best-effort)
+
+    ADR-026 (2026-08-20): 예전 정책은 older 를 전부 error 로 거부했다. 우리가
+    v0.1 이던 동안에는 도달 불가능한 분기라 드러나지 않았지만, v0.2 로 올리면
+    **v0.1 번들 전부를 거부**한다 — SPEC §12/§13 이 명시적으로 반대하는 동작이고,
+    실측으로 상호운용을 확인한 생산자(openwiki)가 바로 v0.1 이다.
     """
     our_str = f"{our_version[0]}.{our_version[1]}"
     parsed = _parse_okf_version(bundle_version)
@@ -231,12 +248,34 @@ def _check_version_compatibility(
             status="error",
             message=f"okf_version {bundle_version} has major > our v{our_str} (breaking change, our consumer cannot safely process)",
         )
-    # older (lower major or same major lower minor)
+    # older, same major (예: 우리가 0.2 인데 번들이 0.1)
+    #
+    # **거부하지 않는다** (ADR-026, 2026-08-20). 이 분기는 우리가 v0.1 이던 동안
+    # 도달 불가능해서 아무도 밟지 않았는데, v0.2 로 올리는 순간 **v0.1 번들 전부를
+    # 거부**하게 된다 — 48차에 실측으로 상호운용을 확인한 langchain-ai/openwiki 가
+    # 정확히 `okf_version: "0.1"` 이다. SPEC 은 반대를 말한다: §12 "Consumers that
+    # do not understand the declared version SHOULD attempt best-effort consumption
+    # rather than refusing the bundle", §13 "A v0.1 bundle is consumable by a v0.2
+    # consumer under the fallbacks noted here".
+    #
+    # 우리는 그 fallback 을 실제로 구현하고 있다 — `timestamp`(§13.1) 와 본문
+    # `# Citations`(§13.1) 를 여전히 읽고 쓴다. 그러니 pass 다.
+    if b_major == o_major:
+        return VersionCheckResult(
+            bundle_version=bundle_version,
+            our_version=our_str,
+            status="pass",
+            message=(
+                f"okf_version {bundle_version} < our v{our_str} (older minor; "
+                "consumed with spec §13 legacy fallbacks)"
+            ),
+        )
+    # older major — 그런 버전은 아직 존재하지 않는다. 만나면 모른다고 말한다.
     return VersionCheckResult(
         bundle_version=bundle_version,
         our_version=our_str,
-        status="error",
-        message=f"okf_version {bundle_version} < our v{our_str} (bundle is older than our consumer; refusing)",
+        status="warn",
+        message=f"okf_version {bundle_version} has major < our v{our_str}; best-effort consumption",
     )
     return "strict"
 

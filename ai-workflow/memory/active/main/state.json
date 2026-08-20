@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**50차 세션 (이어서) — main-002 close: linter 가 3자 대조의 세 번째 출처를 일자 index 에서 **task SSOT** 로 옮겼다.** 2세션 연속 손으로 이월하던 일이 사라진다. 갈래(자동 이월 vs 출처 교체)는 실측으로 닫혔다 — **자동 이월이 오답**이었다: `state.json` 의 `in_progress_items` 는 `state/builder._aggregate_from_appendonly_layout` 이 **`backlog/tasks/` 전체**를 집계해 만드는데 linter 는 **하루치 index 하나**를 봤고, 일자 index 의 정의는 그 문서 스스로 '해당 일자의 task' 다 — 즉 **어제 연 task 가 오늘 index 에 없는 것이 정상**이고 결함은 이월 누락이 아니라 **출처 선택**이었다. 자동 이월을 택했다면 append-only 이력을 매일 고쳐 쓰고 index 의 정의와도 싸웠을 것이다. **판정을 복제하지 않는다** — 새 규칙 대신 **생성기와 같은 함수**를 부른다(린터가 생성기와 다른 규칙으로 '불일치' 를 외치는 것이 최악이다). **출처는 레이아웃이 고르고 결과에 적는다** — v0.14.0+ 는 `backlog/tasks/`, 그 이전은 일자 backlog; 폴백을 조용히 하지 않도록 `summary.in_progress_source` `{kind, path}` 를 출력 계약에 추가(additive, JSON Schema 재생성). **검사는 약해지지 않고 하나 늘었다** — handoff 드리프트는 그대로 잡히고 **낡은 state.json**(`wk refresh-state` 누락)이 새로 잡힌다; 이전 조합으로는 **볼 수 없던** 상태다. `check_workflow_linter` 5→9 cases, 되주입 3종 red 실증, 검사 264 유지.",
+    "current_baseline": "**50차 세션 (이어서) — main-003 close: OKF v0.2 이행 (ADR-026 채택).** ADR-006 이 고정한 v0.1 을 새 ADR 로 옮겼다. SPEC 원문(1003줄) §13 을 직접 대조 — breaking 2건에 **둘 다 소비자 fallback 이 명시**(`timestamp`, 본문 `# Citations`)돼 있고 나머지는 전부 additive 라, **legacy 를 남긴 채 정규 필드를 더하면 한 번들이 v0.1·v0.2 소비자를 다 만족**한다 — 이 관측이 결정의 축이다. **`status` 만 실질 위험**: v0.2 에서 정규 필드로 승격돼 §11 의 관용 보장(unknown key 한정) 밖이 됐고, `stable` 필터에 71장 중 69장이 조용히 빠진다. `active`/`accepted`→`stable` · `proposed`/`draft`→`draft` · `superseded`/`deprecated`→`deprecated`, 원문은 `wiki_status` 로 보존. **생략도 답이 아니다** — §5.4 의 `Absent status ⇒ stable` 때문에 생략이 곧 stable 주장이다. **`sources` 를 낸다** — in-repo 출처가 처음으로 본문 산문이 아니라 기계가 읽는 필드에 들어갔다(§5.1 이 entry `resource` 로 경로·범위 서술을 허용). **`generated` 는 안 낸다** — §5.2 가 `by` 를 REQUIRED 로 두는데 우리는 페이지별 actor 기록이 없고, 도구 이름은 거짓이며 `human:` 은 생성물까지 사람 것으로 만들어 §5.3 trust tier 를 부풀린다. **이행이 결함 하나를 드러냈다**: ADR-011 정책이 `older → error` 라 v0.2 로 올리는 순간 **v0.1 번들 전부를 거부**한다 — 우리가 v0.1 인 동안 **도달 불가능한 분기**였고, 48차에 실측한 openwiki 가 바로 v0.1 이다. SPEC §12/§13 이 정반대를 말하므로 같은 major 의 낮은 minor 는 `pass` 로 바꿨다. **버전을 올리는 일은 생산 형식만의 문제가 아니었다.** 버전 리터럴은 `okf_export.OKF_SPEC_VERSION` 한 곳이고 튜플은 파생이다. check_okf_export 20→25 · check_okf_import 25→27, 되주입 6종 red 실증, 검사 파일 수 264 유지.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
     "in_progress_items": [
@@ -35,6 +35,7 @@
     ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드",
       "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다",
       "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
       "TASK-2026-08-18-main-006 — OKF 상호운용 실측 — 다른 생산자의 번들과 대조",
@@ -43,22 +44,22 @@
       "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측",
       "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다",
       "TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존",
-      "TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다",
-      "TASK-2026-08-16-main-002 — 정본 §11.2 다중 줄 bullet 이 추출에서 잘린다 — 생성 블록이 문장 중간에서 끊긴 채 전 하네스로 복제"
+      "TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [
       "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
-      "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다"
+      "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다",
+      "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드"
     ]
   },
   "next_documents": [
@@ -69,7 +70,6 @@
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
     "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md",
-    "ai-workflow/memory/active/main/sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md",
     "ai-workflow/memory/active/main/baselines.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",

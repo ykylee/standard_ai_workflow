@@ -1,14 +1,19 @@
 # OKF Consumer Guide — write, validate, ingest an Open Knowledge Format bundle
 
-- 문서 목적: `standard_ai_workflow` 외부에서 OKF v0.1 bundle 을 작성·검증·ingest 하는 consumer 가이드.
+- 문서 목적: `standard_ai_workflow` 외부에서 OKF v0.2 bundle 을 작성·검증·ingest 하는 consumer 가이드.
 - 범위: 4 module(`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법
 - 대상 독자: 외부 consumer, OKF bundle 작성자
 - 상태: stable (v0.7.38)
 - 최종 수정일: 2026-08-13
 - 관련 문서: [OKF Consumer Quick-Start](./OKF_CONSUMER_QUICKSTART.md), [index](./index.md)
 
+> **버전** — 본 문서의 예시는 OKF **v0.2** 기준이다 (ADR-026, 2026-08-20).
+> `okf_version: "0.1"` 번들도 그대로 받는다 — SPEC §13 의 legacy fallback
+> (`timestamp`, 본문 `# Citations`)을 우리 importer 가 실제로 구현한다.
+
+
 > **Status**: stable (v0.7.38)
-> 본 문서는 `standard_ai_workflow` 외부에서 OKF v0.1 bundle 을 작성, 검증, ingest 하는 consumer 가이드. 우리 저장소 의 4 module (`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법 + 1차 출처 (1) ADR-006/007/008/018 (2) OKF spec v0.1 draft (3) wiki V-1/V-4/V-T1/V-R10/V-R11/V-R12/V-R13 rule.
+> 본 문서는 `standard_ai_workflow` 외부에서 OKF v0.2 bundle 을 작성, 검증, ingest 하는 consumer 가이드. 우리 저장소 의 4 module (`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법 + 1차 출처 (1) ADR-006/007/008/018 (2) OKF spec v0.2 (3) wiki V-1/V-4/V-T1/V-R10/V-R11/V-R12/V-R13 rule.
 
 ## §0 Quick start (TL;DR)
 
@@ -66,7 +71,7 @@ Each page (`<category>/*.md`) 는 YAML frontmatter 로 시작:
 
 ```yaml
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 type: concept | decision | entity | pattern | query
 title: "Human-readable title"
 description: "One-line summary"
@@ -97,7 +102,7 @@ vcs_ref: "v0.7.38"                                               # v0.7.38+ per-
 mkdir -p my-bundle/concepts
 cat > my-bundle/index.md <<EOF
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 generated_at: "$(date -Iseconds)"
 ---
 
@@ -108,7 +113,7 @@ EOF
 
 cat > my-bundle/concepts/hello.md <<'EOF'
 ---
-okf_version: "0.1"
+okf_version: "0.2"
 type: concept
 title: "Hello concept"
 description: "First page"
@@ -142,7 +147,7 @@ for p in sorted(bundle.rglob("*.md")):
 integrity = f"sha256:{sha.hexdigest()}"
 # write okf-bundle.yaml
 (bundle / "okf-bundle.yaml").write_text(
-    f"okf_version: '0.1'\nintegrity_hash: '{integrity}'\n"
+    f"okf_version: '0.2'\nintegrity_hash: '{integrity}'\n"
 )
 ```
 

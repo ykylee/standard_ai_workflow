@@ -9,11 +9,11 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **50차 세션 (이어서) — main-002 close: linter 가 3자 대조의 세 번째 출처를 일자 index 에서 **task SSOT** 로 옮겼다.** 2세션 연속 손으로 이월하던 일이 사라진다. 갈래(자동 이월 vs 출처 교체)는 실측으로 닫혔다 — **자동 이월이 오답**이었다: `state.json` 의 `in_progress_items` 는 `state/builder._aggregate_from_appendonly_layout` 이 **`backlog/tasks/` 전체**를 집계해 만드는데 linter 는 **하루치 index 하나**를 봤고, 일자 index 의 정의는 그 문서 스스로 '해당 일자의 task' 다 — 즉 **어제 연 task 가 오늘 index 에 없는 것이 정상**이고 결함은 이월 누락이 아니라 **출처 선택**이었다. 자동 이월을 택했다면 append-only 이력을 매일 고쳐 쓰고 index 의 정의와도 싸웠을 것이다. **판정을 복제하지 않는다** — 새 규칙 대신 **생성기와 같은 함수**를 부른다(린터가 생성기와 다른 규칙으로 '불일치' 를 외치는 것이 최악이다). **출처는 레이아웃이 고르고 결과에 적는다** — v0.14.0+ 는 `backlog/tasks/`, 그 이전은 일자 backlog; 폴백을 조용히 하지 않도록 `summary.in_progress_source` `{kind, path}` 를 출력 계약에 추가(additive, JSON Schema 재생성). **검사는 약해지지 않고 하나 늘었다** — handoff 드리프트는 그대로 잡히고 **낡은 state.json**(`wk refresh-state` 누락)이 새로 잡힌다; 이전 조합으로는 **볼 수 없던** 상태다. `check_workflow_linter` 5→9 cases, 되주입 3종 red 실증, 검사 264 유지.
-- 직전 기준선: **50차 세션 — main-001 close: wiki L2 계약을 memory 파생 4종으로 좁혔다 (`wk wiki-emit` 2-step → **1-step**, 전량 2축 green).** 49차가 남긴 유일한 미결을 소유자 결정으로 닫았다. **정의**: `L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰` — 4종뿐이고 늘어나지 않는다. L1 wiki page 는 정의상 제외다(이미 wiki 모양이고 이미 검색된다). 갭 85장을 채우지 **않은** 이유: 계약의 근거였던 외부 vault retrieval 이 **v0.7.17 in-repo 전환 때 사라졌고**, 사본은 검색을 늘리지 않으면서 드리프트 표면만 늘린다. 정본은 `refresh_wiki_memory.L2_STUBS`, 설명은 `.gitkeep`. **은퇴 형태는 49차와 같다** — 진입점은 남기되 write 0 + 사유 보고(rc=0), **기계는 파일에서 지운다**; 옛 인자는 계속 받는다(박혀 있던 호출이 argparse 오류로 죽는 것보다 **왜 아무것도 안 했는지 듣는 편**이 낫다). **부수로 지표 결함 2건**: (a) discoverability·lifecycle 의 **분모가 찾은 파일 수**여서 stub 3장을 지워도 **5.0 그대로** 였다 — *사라짐* 이 지표에 안 잡혔다; 분모를 **선언된 집합**으로 바꿔 부재를 결함으로 센다. (b) **placeholder 판정이 부분 문자열**이라 `<needs content>` 를 *언급한* handoff 파생 뷰가 검색 불가로 집계됐다(5.0→3.75 실측) — 줄 전체 일치로 앵커링. 지표는 목록을 복제하지 않고 생성기 상수를 import 하며, 검사가 '복제 0' 을 직접 확인한다. 되주입 3종 red 실증, 검사 264 유지(재작성).
+- 현재 기준선: **50차 세션 (이어서) — main-003 close: OKF v0.2 이행 (ADR-026 채택).** ADR-006 이 고정한 v0.1 을 새 ADR 로 옮겼다. SPEC 원문(1003줄) §13 을 직접 대조 — breaking 2건에 **둘 다 소비자 fallback 이 명시**(`timestamp`, 본문 `# Citations`)돼 있고 나머지는 전부 additive 라, **legacy 를 남긴 채 정규 필드를 더하면 한 번들이 v0.1·v0.2 소비자를 다 만족**한다 — 이 관측이 결정의 축이다. **`status` 만 실질 위험**: v0.2 에서 정규 필드로 승격돼 §11 의 관용 보장(unknown key 한정) 밖이 됐고, `stable` 필터에 71장 중 69장이 조용히 빠진다. `active`/`accepted`→`stable` · `proposed`/`draft`→`draft` · `superseded`/`deprecated`→`deprecated`, 원문은 `wiki_status` 로 보존. **생략도 답이 아니다** — §5.4 의 `Absent status ⇒ stable` 때문에 생략이 곧 stable 주장이다. **`sources` 를 낸다** — in-repo 출처가 처음으로 본문 산문이 아니라 기계가 읽는 필드에 들어갔다(§5.1 이 entry `resource` 로 경로·범위 서술을 허용). **`generated` 는 안 낸다** — §5.2 가 `by` 를 REQUIRED 로 두는데 우리는 페이지별 actor 기록이 없고, 도구 이름은 거짓이며 `human:` 은 생성물까지 사람 것으로 만들어 §5.3 trust tier 를 부풀린다. **이행이 결함 하나를 드러냈다**: ADR-011 정책이 `older → error` 라 v0.2 로 올리는 순간 **v0.1 번들 전부를 거부**한다 — 우리가 v0.1 인 동안 **도달 불가능한 분기**였고, 48차에 실측한 openwiki 가 바로 v0.1 이다. SPEC §12/§13 이 정반대를 말하므로 같은 major 의 낮은 minor 는 `pass` 로 바꿨다. **버전을 올리는 일은 생산 형식만의 문제가 아니었다.** 버전 리터럴은 `okf_export.OKF_SPEC_VERSION` 한 곳이고 튜플은 파생이다. check_okf_export 20→25 · check_okf_import 25→27, 되주입 6종 red 실증, 검사 파일 수 264 유지.
+- 직전 기준선: **50차 세션 (이어서) — main-002 close: linter 가 3자 대조의 세 번째 출처를 일자 index 에서 **task SSOT** 로 옮겼다.** 2세션 연속 손으로 이월하던 일이 사라진다. 갈래(자동 이월 vs 출처 교체)는 실측으로 닫혔다 — **자동 이월이 오답**이었다: `state.json` 의 `in_progress_items` 는 `state/builder._aggregate_from_appendonly_layout` 이 **`backlog/tasks/` 전체**를 집계해 만드는데 linter 는 **하루치 index 하나**를 봤고, 일자 index 의 정의는 그 문서 스스로 '해당 일자의 task' 다 — 즉 **어제 연 task 가 오늘 index 에 없는 것이 정상**이고 결함은 이월 누락이 아니라 **출처 선택**이었다. 자동 이월을 택했다면 append-only 이력을 매일 고쳐 쓰고 index 의 정의와도 싸웠을 것이다. **판정을 복제하지 않는다** — 새 규칙 대신 **생성기와 같은 함수**를 부른다(린터가 생성기와 다른 규칙으로 '불일치' 를 외치는 것이 최악이다). **출처는 레이아웃이 고르고 결과에 적는다** — v0.14.0+ 는 `backlog/tasks/`, 그 이전은 일자 backlog; 폴백을 조용히 하지 않도록 `summary.in_progress_source` `{kind, path}` 를 출력 계약에 추가(additive, JSON Schema 재생성). **검사는 약해지지 않고 하나 늘었다** — handoff 드리프트는 그대로 잡히고 **낡은 state.json**(`wk refresh-state` 누락)이 새로 잡힌다; 이전 조합으로는 **볼 수 없던** 상태다. `check_workflow_linter` 5→9 cases, 되주입 3종 red 실증, 검사 264 유지.
+- 그 이전 기준선: **50차 세션 — main-001 close: wiki L2 계약을 memory 파생 4종으로 좁혔다 (`wk wiki-emit` 2-step → **1-step**, 전량 2축 green).** 49차가 남긴 유일한 미결을 소유자 결정으로 닫았다. **정의**: `L2 = wiki 모양이 *아닌* SSOT 를 wiki 검색용으로 압축한 뷰` — 4종뿐이고 늘어나지 않는다. L1 wiki page 는 정의상 제외다(이미 wiki 모양이고 이미 검색된다). 갭 85장을 채우지 **않은** 이유: 계약의 근거였던 외부 vault retrieval 이 **v0.7.17 in-repo 전환 때 사라졌고**, 사본은 검색을 늘리지 않으면서 드리프트 표면만 늘린다. 정본은 `refresh_wiki_memory.L2_STUBS`, 설명은 `.gitkeep`. **은퇴 형태는 49차와 같다** — 진입점은 남기되 write 0 + 사유 보고(rc=0), **기계는 파일에서 지운다**; 옛 인자는 계속 받는다(박혀 있던 호출이 argparse 오류로 죽는 것보다 **왜 아무것도 안 했는지 듣는 편**이 낫다). **부수로 지표 결함 2건**: (a) discoverability·lifecycle 의 **분모가 찾은 파일 수**여서 stub 3장을 지워도 **5.0 그대로** 였다 — *사라짐* 이 지표에 안 잡혔다; 분모를 **선언된 집합**으로 바꿔 부재를 결함으로 센다. (b) **placeholder 판정이 부분 문자열**이라 `<needs content>` 를 *언급한* handoff 파생 뷰가 검색 불가로 집계됐다(5.0→3.75 실측) — 줄 전체 일치로 앵커링. 지표는 목록을 복제하지 않고 생성기 상수를 import 하며, 검사가 '복제 0' 을 직접 확인한다. 되주입 3종 red 실증, 검사 264 유지(재작성).
 - 그 이전 기준선: **49차 세션 — main-004 close: wiki L2 파이프라인 회생 (`wk wiki-emit` 3-step → 2-step, 검사 263→264, 전량 2축 green).** 상세는 [49차 세션 기록](./sessions/wiki_l2_pipeline_revival_2026-08-19.md). 핵심은 크래시 두 개가 아니라 **세 단계가 각각 다른 이유로 이미 유효하지 않았다**는 것이었다 — 그래서 '고쳐서 rc=0 을 만든다' 가 오답이었다. **1단계는 소유권 충돌**: write 대상 4개가 전부 무너져 있었고(`state.json` 은 정본 §11.2 의 생성 산출물이라 이 단계가 **두 번째 writer** 였다 · `work_backlog.md` 는 v0.14.0 에서 사라짐 · `memory/log.md` write 는 죽은 코드 · `wiki/log.md` 는 2026-06 하드코딩), 은퇴시키되 **조용한 no-op 이 아니라 사유를 말하고**(rc=0) 함수 자체를 지웠다 — 분기로만 막으면 다음 사람이 다시 부른다. **2단계는 vault 화석 3종이 전부 실행 경로 위**에 있었고(이중 경로 · `parts.index("raw")` · **정의된 적 없는 `VAULT_ROOT`**) v0.7.17 이후 **한 번도 끝까지 실행된 적이 없었다**; 고쳐도 할 일이 없던 진짜 이유는 게이트가 `<needs content>` **일회성**이라 한 번 emit 된 page 가 영원히 대상이 아니었던 것 — **신선도 게이트**로 바꾸고, 본문 전체를 갈아끼우게 되므로 `> Generated:` 표식 없는 page 는 **manual 로 보고 건드리지 않는다**. **3단계는 2026-06-14 스냅샷 축자 재생성**이었고 `last_touched` 를 그 날짜로 되돌렸다 — 현재 SSOT 파생으로 재작성, `last_touched` 는 실제 emit 일자, 바이트가 같으면 write 0(`unchanged`), L1 없는 stub 은 `missing_l1` 로 밝힌다. **날짜 박힌 붕괴를 막았다**: L2 4개가 `2026-07-22` 라 **2026-08-21 에 lifecycle 5.0→0.0 / overall 4.71 A→3.88** 이 예약돼 있었고, 갱신할 유일한 도구가 67일 전으로 되돌리고 있었다(7/22 는 사람이 커밋 `dcbf2af7` 로 올린 값). **검사가 apply 를 잰다** — 이전 8 cases 는 전부 dry-run 이라 두 크래시를 구조적으로 못 봤다; `check_refresh_wiki_memory` 11 재작성 + `check_wiki_emit_pipeline` 11 신설, 되주입 6종 red 실증.
-- 그 이전 기준선: **48차 세션 종료 — 배포 일관성·멱등성 축의 gap 4개가 전부 닫혔다 (task 5건 close, push 5회, 전량 2축 매번 green, 검사 262→263).** 상세는 [48차 세션 기록](./sessions/deployment_axis_closed_and_okf_interop_2026-08-18.md). 직전 항목은 **main-019**(환경 pre-flight): 설계의 핵심은 `environment` 절과 **다른 물건**이라는 것이었다 — 그쪽은 *지금 이 인터프리터가 검사를 돌릴 만한가*, `preflight` 는 *어느 채널로 설치할 수 있는가*. 탐침이 4절 → **6절**이 됐다(environment · preflight · project_scope · global_scope · drift · content_drift). **축은 측정과 선언의 분리**다: 실행 파일은 `shutil.which` 로 실제로 재고, 네트워크 도달성·내려받은 아카이브는 `declared_unmeasured` 로 남긴다. `installable: true` 는 "실행 파일 전제 충족" 이지 "설치 성공" 이 아니다 — **모름을 통과로 세면 그게 거짓 안심**이다(저장소 규칙 *모름 ≠ 안전*). 모든 플러그인 채널의 공통 전제로 `wk`·`python3` 을 명시했다: 둘 중 하나가 없으면 **설치는 성공해도 기능이 없는 상태**가 된다. `CHANNEL_PREREQUISITES` 가 정본이고 `INSTALLATION` §7.0.0 표는 파생 — `check_installation_usage` case 6 이 채널 이름뿐 아니라 **측정 대상 실행 파일까지** 대조해 "채널은 있는데 전제만 낡은" 상태를 잡는다. 이 호스트 실측: 6채널 중 **gemini-cli 만 막힘**(`gemini` 부재) — §7.0.2 의 '미실측' 과 같은 사실을 도구가 스스로 말한다. `check_deploy_doctor` 13→16 cases, 되주입 2종 red. 부수: §7.0.1 의 '한계' 문단이 main-005 이후 사실이 아니어서 고쳤다.
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 53건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 54건, 최신이 위).
 
 - 현재 주 작업 축: **배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-20-main-003 OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드
 - TASK-2026-08-20-main-002 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다
 - TASK-2026-08-20-main-001 wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의
 - TASK-2026-08-18-main-004 wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트
@@ -53,7 +54,6 @@
 - TASK-2026-08-18-main-003 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측
 - TASK-2026-08-18-main-002 rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다
 - TASK-2026-08-14-main-017 채널별 재실행 계약 표 — 5개 플러그인 채널의 재설치/업데이트 시 행동을 §7.0 에 고정
-- TASK-2026-08-18-main-001 AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -66,11 +66,7 @@
 
 후보 셋 (준비 상태 순):
 
-1. **OKF v0.2 이행 ADR** — ADR-006 이 v0.1 을 명시 고정했으므로 새 ADR 없이
-   바꾸지 않는다. 지금 당장의 상호운용 손실은 **없다**(openwiki 도 v0.1).
-   위험은 v0.2 소비자가 등장할 때. 최소안은 `status` 어휘 매핑
-   (`active`/`accepted`→`stable`, `proposed`→`draft`), 우리 어휘는 확장 키로 보존.
-2. **[main-009] 라벨 영어 전환** — release 경계 대기. `TASK_FIELD_LABELS` 한 줄만
+1. **[main-009] 라벨 영어 전환** — release 경계 대기. `TASK_FIELD_LABELS` 한 줄만
    남았고 case 10 이 안전을 선실증했다.
 
 관찰 축: cross-host federation(MacBook, 시점 추후) · mypy flake · memory_index 3-tuple.
@@ -93,6 +89,10 @@
   다른 범위를 재고 있으면 불일치는 결함이 아니라 **검사의 오답**이다.
 - **판정을 복제하지 말고 생성기와 같은 함수를 부른다.** 린터가 생성기와 다른 규칙으로
   불일치를 말하면 고칠 대상이 어느 쪽인지조차 알 수 없다.
+- **버전을 올리는 일은 생산 형식만의 문제가 아니다.** 소비 정책을 같이 보지
+  않았다면 OKF v0.2 이행이 유일하게 실측된 상호운용을 조용히 끊었을 것이다.
+- **도달 불가능한 분기는 검사되지 않은 분기다.** `older → error` 는 우리가 최신
+  버전인 동안 아무도 밟지 못했고, 전제가 바뀌는 순간 결함이 됐다.
 - **폴백은 조용히 하지 않는다.** 무엇을 정본으로 봤는지 결과에 남기지 않으면 통과도
   실패도 근거가 못 된다 (`summary.in_progress_source`).
 

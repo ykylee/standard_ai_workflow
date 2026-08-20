@@ -56,6 +56,7 @@
 ### [[decisions/adr-023-phishing-api-integration]] {#adr-023-phishing-api-integration}
 ### [[decisions/adr-024-per-strategy-cache-file]] {#adr-024-per-strategy-cache-file}
 ### [[decisions/adr-025-okf-consumer-quickstart-tutorial]] {#adr-025-okf-consumer-quickstart-tutorial}
+### [[decisions/adr-026-okf-v02-migration]] {#adr-026-okf-v02-migration}
 ### [[patterns/r4-anchor-index]] {#r4-anchor-index}
 ### [[patterns/frozen-archive-immutability]] {#frozen-archive-immutability}
 ### [[patterns/wiki-stub-emit]] {#wiki-stub-emit}

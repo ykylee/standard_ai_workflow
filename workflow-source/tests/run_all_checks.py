@@ -587,7 +587,7 @@ def run_one(
     )
 
 
-def _error_excerpt(output: str, *, limit: int = 400) -> str:
+def _error_excerpt(output: str, *, limit: int = 1200) -> str:
     """실패 **사유**가 적힌 줄을 골라 낸다 (v1.0.2).
 
     이전에는 `"".join(output.split("\\n")[-3:])` 로 *마지막 3줄* 을 잘랐다. 그런데
@@ -600,6 +600,10 @@ def _error_excerpt(output: str, *, limit: int = 400) -> str:
 
     고정 위치 대신 **실패 표지가 있는 줄**을 고르고, 없으면 마지막 비어 있지 않은
     줄들로 떨어진다.
+
+    상한은 400 → **1200** (2026-08-20). 400 자는 mypy INTERNAL ERROR 의 보일러플레이트
+    (안내 문구 + 문서 URL)를 채우고 정작 traceback 직전에서 끊겼다 — 4번째 사건까지
+    원인이 안 좁혀진 이유의 절반이 이 절단이었다 (TASK-2026-08-13-main-004 관찰 3차).
     """
     lines = [ln.rstrip() for ln in output.splitlines() if ln.strip()]
     if not lines:

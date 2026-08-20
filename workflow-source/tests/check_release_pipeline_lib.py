@@ -20,8 +20,11 @@ Test list (v0.7.55 → v0.7.56):
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WATCHES = (
     "workflow-source/workflow_kit/tools/release_pipeline*.py",
@@ -217,6 +220,56 @@ def test_cmd_verify_bad_tag_v0_7_56() -> None:
         pass
 
 
+def test_mypy_crash_reason_survives_truncation_v1_2_2() -> None:
+    """mypy 크래시 사유가 **상위 절단을 통과**한다 (TASK-2026-08-13-main-004 관찰 3차).
+
+    2026-08-18 run 32094513107 에서 mypy 가 `INTERNAL ERROR` 로 죽었는데, CI 요약이
+    120자에서 자른 탓에 남은 것은 "Please try using mypy master on GitHub" 뿐이었다.
+    사유는 아티팩트를 내려받아서야 보였다 — 즉 stderr 를 잡아 두는 것만으로는
+    부족하고, **보일러플레이트가 아니라 신호가 앞에 와야** 한다.
+
+    여기서 재는 것은 "stderr 를 담는가" 가 아니라 **앞 120자 안에 사유가 있는가** 다.
+    """
+    import importlib
+    import workflow_kit.tools.release_pipeline as rp
+
+    importlib.reload(rp)
+    crash = (
+        "error: INTERNAL ERROR -- Please try using mypy master on GitHub:\n"
+        "https://mypy.readthedocs.io/en/stable/common_issues.html#using-a-development-mypy-build\n"
+        "Please report a bug at https://github.com/python/mypy/issues\n"
+        "version: 2.1.0\n"
+        "Traceback (most recent call last):\n"
+        '  File "mypy/build.py", line 123, in _build\n'
+        "mypy.errors.CompileError: can not read file workflow_kit/ghost.py"
+    )
+    signal = rp._mypy_stderr_signal(crash)
+    problems = []
+    if "can not read file workflow_kit/ghost.py" not in signal:
+        problems.append(f"사유가 사라졌다: {signal!r}")
+
+    # **CI 요약이 실제로 자르는 폭**을 smoke.yml 에서 읽어 그 안에 사유가 들어오는지
+    # 본다. 숫자를 여기 복제하면 워크플로가 폭을 줄여도 이 검사는 계속 green 이다 —
+    # 그러면 지키는 게 없다.
+    smoke_yml = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
+    cap_match = re.search(r"error_excerpt'\]\[:(\d+)\]", smoke_yml.read_text(encoding="utf-8"))
+    if not cap_match:
+        problems.append("smoke.yml 에서 요약 상한을 못 읽었다")
+    else:
+        cap = int(cap_match.group(1))
+        if "can not read file" not in signal[:cap]:
+            problems.append(f"사유가 CI 요약 상한({cap}자) 밖: {signal[:cap]!r}")
+    if "Please try using mypy master" in signal:
+        problems.append("보일러플레이트가 남았다")
+    # 보일러플레이트뿐이면 원문을 버리지 않는다 (증거 0 이 되면 안 된다).
+    only_boiler = rp._mypy_stderr_signal(
+        "error: INTERNAL ERROR -- Please try using mypy master on GitHub:"
+    )
+    if not only_boiler.strip():
+        problems.append("보일러플레이트만 있을 때 증거를 통째로 버렸다")
+    assert not problems, "; ".join(problems)
+
+
 def main() -> int:
     test_funcs = [
         test_cmd_validate_returns_4_keys_v0_7_55,
@@ -228,6 +281,7 @@ def main() -> int:
         test_cmd_dist_with_production_simulation_v0_8_15,
         test_cmd_changelog_gen_dry_run_v0_7_56,
         test_cmd_verify_bad_tag_v0_7_56,
+        test_mypy_crash_reason_survives_truncation_v1_2_2,
     ]
     failed: list[str] = []
     for fn in test_funcs:

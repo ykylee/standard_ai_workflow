@@ -114,6 +114,38 @@ from release_pipeline_frontmatter import *  # noqa: E402,F401,F403
 # ---------------------------------------------------------------------------
 
 
+#: mypy 의 INTERNAL ERROR 는 **정형 보일러플레이트로 시작**한다 — 안내 문구와
+#: 문서 URL 이 먼저 나오고, 정작 쓸모 있는 것(버전, 크래시 지점, traceback)은
+#: 그 뒤다. 사유를 앞으로 끌어올리지 않으면 상위 요약이 자를 때 **보일러플레이트만
+#: 남는다**. 2026-08-18 사건(run 32094513107)이 정확히 그랬다: stderr 는 잡혔는데
+#: CI 요약이 120자에서 잘라 "Please try using mypy master on GitHub" 까지만 남았고,
+#: 원인은 아티팩트를 내려받아서야 보였다 (TASK-2026-08-13-main-004 관찰 3차).
+_MYPY_BOILERPLATE_MARKERS: tuple[str, ...] = (
+    "Please try using mypy master on GitHub",
+    "https://mypy.readthedocs.io/en/stable/common_issues.html",
+    "report a bug at https://github.com/python/mypy/issues",
+    "version: ",
+)
+
+
+def _mypy_stderr_signal(stderr: str, *, keep: int = 20) -> str:
+    """mypy stderr 에서 **신호를 앞으로** 오게 정리한다.
+
+    보일러플레이트를 걷어 낸 줄을 먼저 싣고, 그러고도 남는 자리에 원문 꼬리를
+    붙인다. 잘려도 사유가 남는 것이 목적이다.
+    """
+    lines = [ln for ln in stderr.strip().splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    signal = [
+        ln for ln in lines
+        if not any(m.lower() in ln.lower() for m in _MYPY_BOILERPLATE_MARKERS)
+    ]
+    # 보일러플레이트를 다 걷어 내면 아무것도 안 남는 경우가 있다 — 그러면 원문을 쓴다.
+    ordered = (signal or lines)[-keep:]
+    return "\n".join(ordered)
+
+
 def cmd_validate(args) -> dict:
     """4 source 의 release-readiness 검증.
 
@@ -291,9 +323,7 @@ def cmd_validate(args) -> dict:
                 # 불가능**해진다. 실제로 그 모양의 flake 가 4번 터지는 동안(2026-08-11~13)
                 # 원인을 좁히지 못했다 (TASK-2026-08-13-main-004). CI 로그는 만료되고
                 # annotation 에는 검사 이름도 안 실린다 — 증거를 여기서 들고 있어야 한다.
-                results["mypy"]["stderr_tail"] = "\n".join(
-                    mypy_proc.stderr.strip().splitlines()[-20:]
-                )
+                results["mypy"]["stderr_tail"] = _mypy_stderr_signal(mypy_proc.stderr)
                 results["mypy"]["stdout_tail"] = "\n".join(
                     mypy_proc.stdout.strip().splitlines()[-20:]
                 )

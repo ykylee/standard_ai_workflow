@@ -165,9 +165,13 @@ def test_generated_entrypoints_carry_rules() -> None:
     rules = load_standard_rules(SOURCE_ROOT)
     verify = next((p for p in rules.principles if "검증" in p), rules.principles[0])
     close = rules.close_order
-    # §11 은 표(명령)와 bullet(계약) 두 축이라 각각 한 개씩 대표를 뽑아 본다.
-    memory_cmd = rules.memory_commands[0][1]
-    contract_probe = rules.parse_contract[0]
+    # §11 은 표(명령)와 bullet(계약) 두 축이다. 예전에는 **각 축에서 하나씩만**
+    # 대표를 뽑아 봤는데, 그러면 "표가 있는가" 만 재고 **표에 무엇이 있는가** 는
+    # 못 잰다. 2026-08-20 에 정본에 6번째 명령(`wk suggest-memory-entries`)이
+    # 늘었을 때 이 case 가 그대로 green 이었다 — 진입점에는 5개뿐이었는데도.
+    # 있는가가 아니라 **몇 개인가 / 어느 것인가** 를 재야 한다.
+    memory_cmds = [cmd for _purpose, cmd in rules.memory_commands]
+    contract_rules = list(rules.parse_contract)
 
     harnesses = sorted(set(PRIMARY_ENTRYPOINTS) | set(EXEMPT_HARNESSES))
     args: list[str] = []
@@ -209,12 +213,39 @@ def test_generated_entrypoints_carry_rules() -> None:
             # 진입점이 "메모리 문서를 갱신하라" 고 지시하면서 **방법을 안 알려주면**
             # 에이전트는 손으로 쓰고, 그 순간 §11.2 파싱 계약이 조용히 깨진다
             # (실측: 렌더러 32개 중 26개가 그 상태였다 — TASK-020 전수검사).
-            if memory_cmd not in text:
-                missing.append(f"{harness}: §11 메모리 갱신 경로 누락")
-            if contract_probe not in text:
-                missing.append(f"{harness}: §11.2 파싱 계약 누락")
+            absent_cmds = [c for c in memory_cmds if c not in text]
+            if absent_cmds:
+                missing.append(f"{harness}: §11 명령 누락 {absent_cmds}")
+            absent_rules = [r for r in contract_rules if r not in text]
+            if absent_rules:
+                missing.append(f"{harness}: §11.2 계약 {len(absent_rules)}건 누락")
 
     _record("test_generated_entrypoints_carry_rules", not missing, "; ".join(missing[:4]))
+
+
+def test_this_repo_entrypoints_carry_rules() -> None:
+    """**이 저장소 자신의** 진입점이 정본 표를 전부 싣는다 (자기 적용).
+
+    위 case 는 임시 bootstrap 산출물만 본다. 이 저장소의 `CLAUDE.md` / `AGENTS.md`
+    는 손으로 유지되는 부분과 생성 블록이 섞여 있어 **정본이 늘어도 따라오지
+    않는다** — 실제로 2026-08-20 에 그 상태였고, 그동안 세션 종료 절차 한 단계가
+    에이전트가 읽는 문서 어디에도 없었다.
+    """
+    rules = load_standard_rules(SOURCE_ROOT)
+    memory_cmds = [cmd for _purpose, cmd in rules.memory_commands]
+    problems: list[str] = []
+    for name in ("CLAUDE.md", "AGENTS.md"):
+        path = REPO_ROOT / name
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "## Memory Update Paths" not in text:
+            problems.append(f"{name}: 규칙 블록 없음")
+            continue
+        absent = [c for c in memory_cmds if c not in text]
+        if absent:
+            problems.append(f"{name}: 명령 누락 {absent}")
+    _record("test_this_repo_entrypoints_carry_rules", not problems, "; ".join(problems))
 
 
 # --- Case 4 ----------------------------------------------------------------
@@ -557,6 +588,7 @@ def main() -> int:
     test_snapshot_matches_standard()
     test_renderers_have_no_rule_literals()
     test_generated_entrypoints_carry_rules()
+    test_this_repo_entrypoints_carry_rules()
     test_distributed_core_matches_canonical()
     test_detector_catches_injected_copy()
     test_shared_entrypoint_merges_instead_of_overwriting()
@@ -564,7 +596,7 @@ def main() -> int:
     test_harness_registry_fully_classified()
     test_secondary_renderers_carry_or_declare()
     test_wrapped_bullets_are_joined()
-    total = 10
+    total = 11
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

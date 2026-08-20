@@ -27,14 +27,17 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**50차 세션 (이어서) — main-003 close: OKF v0.2 이행 (ADR-026 채택).** ADR-006 이 고정한 v0.1 을 새 ADR 로 옮겼다. SPEC 원문(1003줄) §13 을 직접 대조 — breaking 2건에 **둘 다 소비자 fallback 이 명시**(`timestamp`, 본문 `# Citations`)돼 있고 나머지는 전부 additive 라, **legacy 를 남긴 채 정규 필드를 더하면 한 번들이 v0.1·v0.2 소비자를 다 만족**한다 — 이 관측이 결정의 축이다. **`status` 만 실질 위험**: v0.2 에서 정규 필드로 승격돼 §11 의 관용 보장(unknown key 한정) 밖이 됐고, `stable` 필터에 71장 중 69장이 조용히 빠진다. `active`/`accepted`→`stable` · `proposed`/`draft`→`draft` · `superseded`/`deprecated`→`deprecated`, 원문은 `wiki_status` 로 보존. **생략도 답이 아니다** — §5.4 의 `Absent status ⇒ stable` 때문에 생략이 곧 stable 주장이다. **`sources` 를 낸다** — in-repo 출처가 처음으로 본문 산문이 아니라 기계가 읽는 필드에 들어갔다(§5.1 이 entry `resource` 로 경로·범위 서술을 허용). **`generated` 는 안 낸다** — §5.2 가 `by` 를 REQUIRED 로 두는데 우리는 페이지별 actor 기록이 없고, 도구 이름은 거짓이며 `human:` 은 생성물까지 사람 것으로 만들어 §5.3 trust tier 를 부풀린다. **이행이 결함 하나를 드러냈다**: ADR-011 정책이 `older → error` 라 v0.2 로 올리는 순간 **v0.1 번들 전부를 거부**한다 — 우리가 v0.1 인 동안 **도달 불가능한 분기**였고, 48차에 실측한 openwiki 가 바로 v0.1 이다. SPEC §12/§13 이 정반대를 말하므로 같은 major 의 낮은 minor 는 `pass` 로 바꿨다. **버전을 올리는 일은 생산 형식만의 문제가 아니었다.** 버전 리터럴은 `okf_export.OKF_SPEC_VERSION` 한 곳이고 튜플은 파생이다. check_okf_export 20→25 · check_okf_import 25→27, 되주입 6종 red 실증, 검사 파일 수 264 유지.",
+    "current_baseline": "**51차 세션 — 관찰 축 3개 실측. 두 축에서 결함이 나왔고 셋째는 왜 못 재는지 밝혔다.** **① mypy flake (관찰 3차, main-004)**: 2차 기준선 이후 smoke **69 run 중 1건** 재발 — 그리고 **native 전용이라던 서명이 깨졌다**(이번은 slash). **원인 계열 확정: race 가 아니라 mypy INTERNAL ERROR(크래시)** — 아티팩트 `stderr_tail` 원문이 근거이고, 검사 `duration_sec` 0.65s 대 정상 3.4s/197파일이라 **분석 중이 아니라 시작 단계**에서 죽었다. 2차의 transient-파일 가설은 반증. **4번 터지는 동안 원인을 못 좁힌 이유는 절단 두 겹**이었다 — `smoke.yml` 의 `[:120]` 과 `_error_excerpt(400)` 이 사유를 잘라, 원인은 **아티팩트를 내려받아서야** 보였다; mypy 크래시는 보일러플레이트로 시작해서 앞에서 자르면 잡음만 남는다. 수리 3건(신호를 앞으로 정렬 · 요약 120→800 · excerpt 400→1200)이고 **검사는 상한을 복제하지 않고 smoke.yml 에서 읽는다**. 완료 기준을 개정: 'N run 연속 green' 은 원인을 모르던 시점의 기준이라 폐기 → **다음 재발이 트레이스백을 로그에 남길 것**. **② memory_index 3-tuple (main-004 신규)**: `query_diversity` 4/285 · `entries_new_30d` 2 · `distinct_entries_retrieved` **1/9** — 8/10 회고가 미리 적어 둔 판정 조건('항상 저점이면 W-1/W-2 가 안 도는 것')에 걸렸다. **원인은 검색이 아니라 배선**이었다: 회고가 추가한 종료 단계 `wk suggest-memory-entries` 가 `memory_index/README.md` 에만 있고 정본·CLAUDE.md·AGENTS.md 어디에도 없어(grep 0건) **한 번도 안 돌았다** — 실제로 승격 후보 5건이 대기 중이었다. 정본 §8.1·§11.1 에 넣고 진입점 재생성. **드리프트가 조용히 지나간 이유도 고쳤다**: `check_standard_single_source` case 3 이 §11 표에서 **대표 1개만** 봐서 6번째 명령 추가가 안 보였다 — 전 항목 대조 + **이 저장소 자신의 진입점**을 재는 case 신설. 새 절차를 이번 세션에 적용해 1건 승격(`MEM-2026-08-20-001`). **③ cross-host federation**: 두 번째 호스트(MacBook)가 없어 **이 호스트에서는 원리적으로 못 잰다** — 관찰이 아니라 대기다. **부수(main-005)**: 게이트 slash 축에서 `check_watch_transient_writer` 가 1회 red — `REQUIRES_QUIET_REPO` 가 아니라 **타이밍 가정**이었다(`SETTLE_S` 의 '폴링 간격의 20배' 근거는 폴러가 실제로 스케줄된다는 전제인데 16-way 병렬에서 깨진다). 고정 sleep 을 **관측 대기**로 바꿨다 — mypy flake 와 같은 계열이지만 이쪽은 우리 검사라 바로 고쳤다. 검사 264 유지.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 6절이다. **release 경계 대기** — [TASK-2026-08-14-main-009] 라벨 영어 전환은 `TASK_FIELD_LABELS` 한 줄만 남았다. ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
+    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
+      "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
       "TASK-2026-08-14-main-009 task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
     ],
     "blocked_items": [],
     "recent_done_items": [
+      "TASK-2026-08-20-main-005 — watch_transient_writer 의 고정 sleep 이 병렬 부하에서 깨진다 — 시간이 아니라 관측을 기다린다",
+      "TASK-2026-08-20-main-004 — memory_index 3-tuple 관찰 — 저점 고착의 원인은 검색이 아니라 종료 절차 배선",
       "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드",
       "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다",
       "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
@@ -42,24 +45,25 @@
       "TASK-2026-08-18-main-005 — 드리프트 감지 — 마커가 아니라 페이로드 해시로 비교",
       "TASK-2026-08-18-main-004 — wiki 3-step 파이프라인의 하위 두 단계가 죽어 있다 — 스키마·레이아웃 드리프트",
       "TASK-2026-08-18-main-003 — 배포본에서 죽는 workflow-source 경로 참조 — wk 명령 6종 실측",
-      "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다",
-      "TASK-2026-08-18-main-001 — AGENTS.md 를 공유 진입점으로 합친다 — oh-my-codex 계약과 워크플로우 규칙 공존",
-      "TASK-2026-08-16-main-003 — check_deprecation_3rd_cycle 의 제외 목록이 죽어 있다 — rel 기준과 제외 항목 기준이 어긋난다"
+      "TASK-2026-08-18-main-002 — rollover-baselines 가 실행마다 포인터 줄을 하나씩 쌓는다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-20.md",
-    "task_count": 4,
+    "task_count": 7,
     "in_progress_items": [
-      "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)"
+      "TASK-2026-08-14-main-009 — task SSOT 4단계 — 본문 라벨 영어 전환 (release 경계)",
+      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-20-main-001 — wiki L2 계약을 memory 파생 4종으로 좁힌다 — L1→L2 경로 은퇴 + 지표 분모 재정의",
       "TASK-2026-08-20-main-002 — 날짜 롤오버 때 열린 task 가 mismatch 로 잡힌다 — linter 가 SSOT 대신 하루치 index 를 본다",
-      "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드"
+      "TASK-2026-08-20-main-003 — OKF v0.2 이행 — ADR-026 + status 어휘 매핑 + sources 필드",
+      "TASK-2026-08-20-main-004 — memory_index 3-tuple 관찰 — 저점 고착의 원인은 검색이 아니라 종료 절차 배선",
+      "TASK-2026-08-20-main-005 — watch_transient_writer 의 고정 sleep 이 병렬 부하에서 깨진다 — 시간이 아니라 관측을 기다린다"
     ]
   },
   "next_documents": [
@@ -69,7 +73,6 @@
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
-    "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md",
     "ai-workflow/memory/active/main/baselines.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",
@@ -77,6 +80,7 @@
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
+    "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md",
     "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-001.md",
     "docs/RELEASE.md",
     "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
@@ -388,7 +392,45 @@
       ],
       "created_at": "2026-08-10T00:00:00Z",
       "updated_at": "2026-08-10T00:00:00Z"
+    },
+    {
+      "id": "MEM-2026-08-20-001",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-18-main-004.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-001.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-003.md"
+      ],
+      "primary_abstraction": "Assertions that check existence hide count and identity defects",
+      "cue_anchors": [
+        "assertion",
+        "existence",
+        "count",
+        "denominator",
+        "unreachable-branch",
+        "check-design",
+        "false-green",
+        "dry-run-only"
+      ],
+      "value_digest": "'있는가' 단언은 사라짐·쌓임·바뀜을 통과시킨다. 실측 5종: 포인터 개수 · 지표 분모(찾은 파일 vs 선언 집합 — 대상을 지울수록 점수가 오름) · 진입점 명령 표(대표 1개만 봐서 6번째 추가가 안 보임) · dry-run 전용 검사(apply 크래시 2건 구조적 미탐지) · 도달 불가능한 분기(older→error 가 최신 버전인 동안 무해했다가 전제 변경 순간 결함). 처방: 개수/어느 것을 재고, 분모는 선언 집합으로, 폴백·출처는 결과에 남긴다.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "check-design",
+        "metrics"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [
+        "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md"
+      ],
+      "related_ids": [
+        "MEM-2026-08-10-001"
+      ],
+      "created_at": "2026-08-20T00:00:00Z",
+      "updated_at": "2026-08-20T00:00:00Z"
     }
   ],
-  "memory_entries_count": 9
+  "memory_entries_count": 10
 }

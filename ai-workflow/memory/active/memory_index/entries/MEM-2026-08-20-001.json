@@ -1,0 +1,38 @@
+{
+  "id": "MEM-2026-08-20-001",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-18-main-004.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-001.md",
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-003.md"
+  ],
+  "primary_abstraction": "Assertions that check existence hide count and identity defects",
+  "cue_anchors": [
+    "assertion",
+    "existence",
+    "count",
+    "denominator",
+    "unreachable-branch",
+    "check-design",
+    "false-green",
+    "dry-run-only"
+  ],
+  "value_digest": "'있는가' 단언은 사라짐·쌓임·바뀜을 통과시킨다. 실측 5종: 포인터 개수 · 지표 분모(찾은 파일 vs 선언 집합 — 대상을 지울수록 점수가 오름) · 진입점 명령 표(대표 1개만 봐서 6번째 추가가 안 보임) · dry-run 전용 검사(apply 크래시 2건 구조적 미탐지) · 도달 불가능한 분기(older→error 가 최신 버전인 동안 무해했다가 전제 변경 순간 결함). 처방: 개수/어느 것을 재고, 분모는 선언 집합으로, 폴백·출처는 결과에 남긴다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "check-design",
+    "metrics"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [
+    "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md"
+  ],
+  "related_ids": [
+    "MEM-2026-08-10-001"
+  ],
+  "created_at": "2026-08-20T00:00:00Z",
+  "updated_at": "2026-08-20T00:00:00Z"
+}

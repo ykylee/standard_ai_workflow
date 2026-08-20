@@ -37,6 +37,7 @@ MEMORY_COMMANDS: tuple[tuple[str, str], ...] = (
     ('Sync affected documents (advisory)', 'wk doc-sync'),
     ('Regenerate state.json at session close', 'wk refresh-state'),
     ('Roll off handoff §1 baselines when over cap', 'wk rollover-baselines'),
+    ('Propose memory_index promotion candidates at close (advisory, no write)', 'wk suggest-memory-entries'),
 )
 
 PARSE_CONTRACT: tuple[str, ...] = (

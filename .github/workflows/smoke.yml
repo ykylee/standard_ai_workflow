@@ -167,7 +167,11 @@ jobs:
               print("## Smoke Failures\n")
               for r in failures:
                   label = "TIMEOUT" if r["last_line"] == "TIMEOUT" else f"exit {r['exit_code']}"
-                  print(f"- `{r['path']}` ({label}) — {r['error_excerpt'][:120]}")
+                  # 120자 상한은 **사유를 잘라 냈다**. 2026-08-18 run 32094513107 에서
+                  # mypy 크래시 사유가 정확히 여기서 끊겨, 아티팩트를 내려받아야만
+                  # 원인이 보였다 (TASK-2026-08-13-main-004 관찰 3차). step summary 는
+                  # 길이 여유가 있고, 못 보는 요약은 없는 것과 같다.
+                  print(f"- `{r['path']}` ({label}) — {r['error_excerpt'][:800]}")
                   # annotation 은 stderr 로 (STEP_SUMMARY 오염 방지)
                   print(f"::error file={r['path']}::smoke check failed ({label})", file=sys.stderr)
               print("\n### Local Re-run\n")

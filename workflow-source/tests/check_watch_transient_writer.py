@@ -39,7 +39,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOL_PATH = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "watch_transient_writer.py"
 
 READY_TIMEOUT_S = 10  # watcher 기동 신호 대기 상한
-SETTLE_S = 0.4        # 변화 사이 간격 (interval 0.02 의 20배 — 폴링 누락 여지 없음)
+#: 변화 사이 최소 간격. **고정 sleep 만으로는 부족하다** — 이 값이 폴링 간격(0.02)의
+#: 20배라는 근거는 *폴러가 실제로 20번 스케줄된다* 는 전제에 기대는데, 전량 병렬
+#: (16-way)에서는 그 전제가 깨진다. 2026-08-20 게이트의 slash 축에서 정확히 그렇게
+#: 한 번 red 가 났고(standalone·재실행은 green), 원인은 감시자가 굶어 transient
+#: 쓰기를 **되돌리기 전에 못 본** 것이었다. 그래서 아래 `_wait_for_events` 로
+#: **관측을 기다린 뒤** 다음 단계로 간다 — sleep 은 하한일 뿐이다.
+SETTLE_S = 0.4
+#: 이벤트가 나타나기를 기다리는 상한. 부하가 커도 이 안에는 잡힌다.
+EVENT_WAIT_S = 20.0
 
 
 def _spawn_watcher(target: Path, log_dir: Path) -> subprocess.Popen[str]:
@@ -62,6 +70,28 @@ def _spawn_watcher(target: Path, log_dir: Path) -> subprocess.Popen[str]:
     return proc
 
 
+def _wait_for_events(log_dir: Path, minimum: int, *, timeout: float = EVENT_WAIT_S) -> int:
+    """`events.jsonl` 에 `changed` 이벤트가 `minimum` 건 쌓일 때까지 기다린다.
+
+    감시자는 이벤트를 **즉시** 기록하므로(SIGKILL 대비) 종료를 기다리지 않고 셀 수
+    있다. 고정 sleep 대신 이걸 쓰는 이유는 위 `SETTLE_S` 주석 참조 — 부하에서
+    폴러가 굶으면 고정 시간은 근거가 못 된다.
+    """
+    deadline = time.time() + timeout
+    path = log_dir / "events.jsonl"
+    seen = 0
+    while time.time() < deadline:
+        if path.is_file():
+            seen = sum(
+                1 for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip() and json.loads(line).get("kind") == "changed"
+            )
+            if seen >= minimum:
+                return seen
+        time.sleep(0.05)
+    return seen
+
+
 def _stop_and_summary(proc: subprocess.Popen[str], log_dir: Path) -> dict[str, object]:
     proc.send_signal(signal.SIGTERM)
     proc.wait(timeout=15)
@@ -82,8 +112,11 @@ def test_transient_reinjection_is_captured(tmp: Path) -> None:
     proc = _spawn_watcher(target, log_dir)
     try:
         target.write_text(original.replace("1.0.0", "99.99.99"), encoding="utf-8")
-        time.sleep(SETTLE_S)
+        # **되돌리기 전에** 첫 변경이 관측됐는지 확인한다. 이걸 기다리지 않고
+        # 되돌리면 감시자가 굶은 사이 원본으로 돌아가 transient 가 통째로 사라진다.
+        assert _wait_for_events(log_dir, 1) >= 1, "주입이 관측되지 않았다 (감시자 기아)"
         target.write_text(original, encoding="utf-8")  # 되돌린다 — transient 의 핵심
+        _wait_for_events(log_dir, 2)
         time.sleep(SETTLE_S)
     finally:
         summary = _stop_and_summary(proc, log_dir)

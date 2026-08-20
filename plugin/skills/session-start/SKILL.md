@@ -45,6 +45,7 @@ guidance and stop (`INSTALLATION_AND_USAGE.md` §3).
 - Sync affected documents (advisory): `wk doc-sync`
 - Regenerate state.json at session close: `wk refresh-state`
 - Roll off handoff §1 baselines when over cap: `wk rollover-baselines`
+- Propose memory_index promotion candidates at close (advisory, no write): `wk suggest-memory-entries`
 
 - When the handoff's `in_progress` / `blocked` lists are empty, leave an **empty bullet `-`**. Prose there is parsed as a work item.
 - Entries in the handoff's recently-completed list start with `TASK-` and never exceed 10.

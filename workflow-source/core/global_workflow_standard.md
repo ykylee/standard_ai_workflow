@@ -138,7 +138,8 @@ Close a session in the order **update memory → commit → push**. Do not split
    - **Sync document consistency**: update `maturity_matrix.json` and refresh related planning documents (Roadmap/Catalog)
 2. **Final verification**: run `workflow-linter` to confirm there is no inconsistency across documents.
 3. Write the **next-session starting point** and a **close summary** into the handoff — only the facts the next session needs to continue.
-4. **Commit + push**: a single commit that *already contains* the memory update, then push. (Collaborators see the memory update at push time.)
+4. **Judge memory_index promotion**: run `wk suggest-memory-entries` once and decide whether any completed task deserves an entry. It is *advisory* and writes nothing — the decision is yours, and skipping every candidate is a valid outcome. What is not valid is never asking: the index only earns its keep if entries keep arriving.
+5. **Commit + push**: a single commit that *already contains* the memory update, then push. (Collaborators see the memory update at push time.)
 
 **8.2 Memory work after the commit (deliberate exception)**
 - Writing commit hashes into the handoff via `summarize_git_history` only makes sense after the commit. This is allowed as an *exception*, but is not itself a reason for a separate commit (absorb it into the next memory-update cycle).
@@ -235,6 +236,7 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 | Sync affected documents (advisory) | `wk doc-sync` |
 | Regenerate state.json at session close | `wk refresh-state` |
 | Roll off handoff §1 baselines when over cap | `wk rollover-baselines` |
+| Propose memory_index promotion candidates at close (advisory, no write) | `wk suggest-memory-entries` |
 
 **11.2 Parsing contract** — holds even when writing by hand instead of using the tools
 

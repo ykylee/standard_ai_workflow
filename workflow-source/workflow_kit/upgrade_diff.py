@@ -136,6 +136,10 @@ class Action(str, Enum):
     #: 프로젝트가 **포크한 kit 소유 파일**. 소유권 4번째 분류 —
     #: ``core/workflow_deployment_idempotency.md`` §3 (TASK-2026-08-20-main-012).
     FORKED = "forked"
+    #: 낡았지만 **create-only 모드라 쓰지 않았다** (TASK-2026-08-24-main-006).
+    #: `UPDATED` 로 보고하면 "덮었다" 는 거짓이 되고, `IGNORED` 로 보고하면
+    #: "최신이다" 는 거짓이 된다 — 둘 다 아니므로 자기 이름을 갖는다.
+    UPDATE_AVAILABLE = "update_available"
 
 
 # ---------------------------------------------------------------------------

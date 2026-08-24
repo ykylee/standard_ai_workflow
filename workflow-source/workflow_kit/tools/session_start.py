@@ -208,6 +208,26 @@ def _detect_stale_branch_memories(
             )
     return {"stale_branches": stale, "archived": bool(apply and stale)}
 
+def _repair_missing_entrypoints(source_context: dict) -> dict:
+    """부재 산출물을 현재 kit 버전으로 채운다. 실패해도 세션 진입을 막지 않는다.
+
+    **낡은 것은 건드리지 않는다** — `ensure_entrypoints` 가 create-only 로 돈다.
+    프로젝트 정체를 모르면(`PROJECT_PROFILE.md` 부재) 아무것도 만들지 않고
+    `needs_bootstrap` 을 그대로 돌려준다: 이름을 지어내면 그 거짓이 이후 모든
+    산출물에 실린다.
+    """
+    try:
+        from workflow_kit.tools.ensure_entrypoints import run as ensure_run  # noqa: PLC0415
+
+        root = Path.cwd()
+        profile = source_context.get("project_profile_path")
+        if profile:
+            root = Path(profile).resolve().parent.parent
+        return ensure_run(project_root=root, apply=True)
+    except Exception as exc:  # noqa: BLE001 — 복구 실패가 진입을 막지 않는다
+        return {"status": "repair_failed", "error": f"{type(exc).__name__}: {exc}"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the session-start prototype.")
     # v1.1.7: 정본 §11 은 `wk session-start` 를 그대로 안내한다 — 무인자 호출이
@@ -267,13 +287,35 @@ def main() -> int:
         args.project_profile_path = str(project_profile_path)
         args.session_handoff_path = str(session_handoff_path)
     except FileNotFoundError as exc:
+        # **중단하기 전에 스스로 채워 본다** (TASK-2026-08-24-main-006).
+        # CLAUDE.md 의 self-bootstrap 절은 "없으면 scaffold 를 제안한다" 고 이미
+        # 약속하고 있었는데, 실제 동작은 `missing_required_document` 로 멈추고
+        # 그마저 legacy shim 경로를 안내했다 — 소비자에게는 "워크플로우가 안 돈다"
+        # 로만 보였다.
+        #
+        # 부재만 채운다. 낡은 산출물을 여기서 덮으면, 포크를 **선언하지 않은**
+        # 손수정이 세션을 여는 것만으로 사라진다 (소유자 결정 2026-08-24).
+        repair = _repair_missing_entrypoints(source_context)
+        if repair.get("created"):
+            try:
+                return main()  # 채웠으니 한 번만 다시 시도한다
+            except RecursionError:  # pragma: no cover — 방어
+                pass
         result = build_error_result(
             tool_version=TOOL_VERSION,
             error="필수 입력 문서를 읽을 수 없다.",
             error_code="missing_required_document",
             warnings=["session-start 기준선을 복원할 수 없어 후속 판단을 중단한다."],
-            source_context=source_context | {"missing_path_detail": str(exc)},
-            recovery_hint="`scripts/bootstrap_workflow_kit.py`를 실행하여 초기 문서를 생성하거나, 인자로 넘어온 경로가 올바른지 확인해야 한다.",
+            source_context=source_context | {
+                "missing_path_detail": str(exc),
+                "auto_repair": repair,
+            },
+            recovery_hint=(
+                "`wk ensure-entrypoints --apply` 로 부재 산출물을 현재 kit 버전으로 "
+                "채운다. 프로젝트가 처음이면 `python3 -m workflow_kit.bootstrap_lib "
+                "--target-root . --project-slug <slug> --project-name <name> "
+                "--harness <harness>` 로 최초 생성한다."
+            ),
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1
@@ -284,6 +326,30 @@ def main() -> int:
         project_profile_path, warnings,
         apply=getattr(args, "archive_stale_branches", False),
     )
+    # **매 시작마다** 진입점을 점검한다 (TASK-2026-08-24-main-006).
+    #
+    # 실패 경로에만 달았을 때는 절반만 동작했다 — 하네스 진입점
+    # (`.claude/commands/*` 등)이 없어도 session-start 는 *상태 문서* 만 읽으므로
+    # `status: ok` 로 끝났고, 복구 경로에 들어가지도 않았다. 실측으로 그 구멍을
+    # 확인하고 성공 경로로 옮겼다.
+    #
+    # 부재만 채우고 낡음은 경고로 남긴다. 여기서 덮으면 포크를 **선언하지 않은**
+    # 손수정이 세션을 여는 것만으로 사라진다.
+    entrypoints = _repair_missing_entrypoints(source_context)
+    if entrypoints.get("created"):
+        warnings.append(
+            "부재 진입점 "
+            f"{len(entrypoints['created'])}건을 kit v{entrypoints.get('kit_version')} 로 "
+            f"생성했다: {entrypoints['created']}"
+        )
+    for item in entrypoints.get("stale") or []:
+        warnings.append(
+            f"진입점이 낡았다: {item['path']} (v{item.get('marker')} < kit "
+            f"v{item.get('kit_version')}) — 자동으로 덮지 않는다. 갱신은 bootstrap 을 "
+            "직접 실행한다 (포크 선언이 있는 파일은 그때도 지켜진다)"
+        )
+    if entrypoints.get("status") == "needs_bootstrap":
+        warnings.append(f"진입점 점검 생략: {entrypoints.get('reason')}")
     try:
         handoff = parse_handoff(session_handoff_path)
         warnings.extend(handoff.get("warnings", []))

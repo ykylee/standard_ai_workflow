@@ -27,6 +27,13 @@ summaries, or self-explanation.
 If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
 and offer to scaffold it.
 
+`wk session-start` now checks the harness entry points on **every** start: files declared
+by the harness registry but missing on disk are created at the current kit version, and
+files that exist but carry an older marker are **reported, never overwritten** — an
+undeclared local edit must not disappear just because a session opened. The report lands
+in `warnings`; relay it. Run `wk ensure-entrypoints` to inspect the same picture on demand,
+or `--apply` to fill only what is missing.
+
 ## Usage
 
 ```bash

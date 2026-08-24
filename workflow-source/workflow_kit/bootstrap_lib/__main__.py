@@ -132,6 +132,7 @@ from workflow_kit.bootstrap_lib.writes import (  # noqa: E402
     build_manifest,
     copy_core_docs,
     drain_file_actions,
+    set_create_only,
     rel,
     write_text,
 )
@@ -326,6 +327,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--isolated-test-command", default=None)
     parser.add_argument("--smoke-check-command", default=None)
     parser.add_argument("--today", default=today)
+    parser.add_argument(
+        "--create-missing-only", action="store_true",
+        help="부재 파일만 생성하고 낡은 파일은 덮지 않는다 (update_available 로 보고). "
+             "세션 시작의 자기 복구가 쓰는 경로 — TASK-2026-08-24-main-006",
+    )
     parser.add_argument("--initial-task-id", default="TASK-001")
     parser.add_argument("--initial-task-name", default="표준 AI 워크플로우 초기 도입")
     parser.add_argument(
@@ -409,6 +415,9 @@ def parse_args() -> argparse.Namespace:
         help="Print the generation plan without writing files.",
     )
     args = parser.parse_args()
+    # create-only 모드는 **쓰기 판정 한 곳**(writes._resolve_write)에서 강제된다 —
+    # 경로가 다섯이라 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다.
+    set_create_only(bool(getattr(args, "create_missing_only", False)))
 
     # Interactive harness picker: fire only when (a) the user didn't pass
     # --harness, (b) --no-interactive wasn't requested, and (c) stdin is a

@@ -142,6 +142,7 @@ workflow-install-pre-push-hook = "workflow_kit.tools.install_pre_push_hook:main"
 workflow-migrate-active-to-appendonly = "workflow_kit.tools.migrate_active_to_appendonly:main"
 workflow-migrate-legacy-l2 = "workflow_kit.tools.migrate_legacy_l2:main"
 workflow-migrate-memory-to-branch-scoped = "workflow_kit.tools.migrate_memory_to_branch_scoped:main"
+workflow-ensure-entrypoints = "workflow_kit.tools.ensure_entrypoints:main"
 workflow-migrate-task-labels = "workflow_kit.tools.migrate_task_labels:main"
 # Note: ``tools/mkdocs_git_dates.py`` 는 mkdocs plugin (on_page_markdown hook) 이지 CLI 가 아님.
 #   ``mkdocs`` 가 import 시점에 plugin 으로 등록. console_script 진입점 ❌.

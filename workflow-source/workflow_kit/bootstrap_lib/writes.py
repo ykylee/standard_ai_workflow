@@ -100,6 +100,47 @@ def _is_preserved(rel_path: Path) -> bool:
     return is_path_preserved(rel_path, _PRESERVE_RELATIVE_PATHS)
 
 
+#: create-only 모드 — 부재는 만들고 **낡음은 쓰지 않는다**.
+#: 모듈 상태인 이유는 `_file_action_log` 와 같다: 쓰기 경로가 다섯 곳이고
+#: 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다.
+_create_only = False
+
+
+def set_create_only(enabled: bool) -> None:
+    """create-only 모드를 켜고 끈다 (TASK-2026-08-24-main-006).
+
+    세션 시작이 부재 파일을 스스로 채울 때 쓴다. **부재 생성은 되돌리기 쉽고
+    self-bootstrap 이 이미 약속한 동작**이지만, 낡은 파일을 덮는 것은 다르다 —
+    포크를 *선언하지 않은* 소비자의 손수정이 조용히 날아간다. 그래서 갱신은
+    보고만 하고 사람이 고르게 한다.
+    """
+    global _create_only
+    _create_only = enabled
+
+
+def create_only_enabled() -> bool:
+    return _create_only
+
+
+def _resolve_write(decision: Decision) -> tuple[Decision, bool]:
+    """`(보고할 결정, 쓸 것인가)`. **쓰기 판정은 여기 한 곳**이다.
+
+    예전에는 `decision.action in (Action.CREATE, Action.UPDATED)` 가 다섯 군데에
+    복제돼 있었다 — 그런 복제는 새 분류가 늘 때 한 곳만 빠진다.
+    """
+    if decision.action is Action.UPDATED and _create_only:
+        return (
+            Decision(
+                action=Action.UPDATE_AVAILABLE,
+                src_marker=decision.src_marker,
+                dst_marker=decision.dst_marker,
+                reason=f"create-only 모드라 쓰지 않았다 (원래 판정: {decision.reason})",
+            ),
+            False,
+        )
+    return decision, decision.action in (Action.CREATE, Action.UPDATED)
+
+
 def _read_text_or_none(path: Path) -> str | None:
     """Read a file as UTF-8 text; return None on binary or read failure."""
     try:
@@ -145,7 +186,8 @@ def _copy_binary(
             is_preserved_path=is_preserved,
             force=force,
         )
-    if decision.action in (Action.CREATE, Action.UPDATED):
+    decision, _write = _resolve_write(decision)
+    if _write:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
     action = _make_file_action(destination, decision, rel_to)
@@ -230,7 +272,8 @@ def write_text(
             force=force,
         )
 
-    if decision.action in (Action.CREATE, Action.UPDATED):
+    decision, _write = _resolve_write(decision)
+    if _write:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(stamped, encoding="utf-8")
 
@@ -283,7 +326,8 @@ def copy_core_docs(
             force=force,
         )
 
-        if decision.action in (Action.CREATE, Action.UPDATED):
+        decision, _write = _resolve_write(decision)
+        if _write:
             shutil.copyfile(source, destination)
             destination.write_text(stamped, encoding="utf-8")
 
@@ -327,7 +371,8 @@ def copy_core_docs(
                     force=force,
                 )
 
-                if nested_decision.action in (Action.CREATE, Action.UPDATED):
+                nested_decision, _nested_write = _resolve_write(nested_decision)
+                if _nested_write:
                     nested_destination.parent.mkdir(parents=True, exist_ok=True)
                     nested_destination.write_text(nested_stamped, encoding="utf-8")
 
@@ -362,7 +407,8 @@ def copy_core_docs(
             force=force,
         )
 
-        if decision.action in (Action.CREATE, Action.UPDATED):
+        decision, _write = _resolve_write(decision)
+        if _write:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(stamped, encoding="utf-8")
 

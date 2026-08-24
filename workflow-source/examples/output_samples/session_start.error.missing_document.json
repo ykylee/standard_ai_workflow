@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "1.3.0",
+  "tool_version": "1.4.0",
   "error": "필수 입력 문서를 읽을 수 없다.",
   "error_code": "missing_required_document",
   "warnings": [

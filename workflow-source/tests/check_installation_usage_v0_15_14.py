@@ -36,7 +36,12 @@ RELEASE_PATH = REPO_ROOT / "docs" / "RELEASE.md"
 
 PYPROJECT_VERSION_RE = re.compile(r'version\s*=\s*"([\d.]+)"')
 SMOKE_COUNT_RE = re.compile(r"(\d+)\s*개\s*스모크\s*테스트")
-STATUS_VERSION_RE = re.compile(r"v[\d.]+-beta\s*기준")
+#: `vX.Y.Z 기준` / `vX.Y.Z-beta 기준` 둘 다 받는다. `-beta` 접미사는 `docs/RELEASE.md`
+#: §2.2 가 **v1.2.1 부터 뗐는데**(`v1.2.0-beta` 가 옛 표기의 마지막) 이 정규식이
+#: 그것을 필수로 물고 있었다 — 그래서 릴리스마다 문서에 **실제로는 없는 태그명**
+#: (`v1.3.0-beta`)을 적어 넣어야 통과했다. 검사가 문서를 거짓말하게 만든 자리다
+#: (TASK-2026-08-24-main-005).
+STATUS_VERSION_RE = re.compile(r"v[\d.]+(?:-beta)?\s*기준")
 
 EXPECTED_HARNESSES = {
     "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
@@ -97,7 +102,9 @@ def case_1_smoke_count() -> bool:
 def case_2_status_version() -> bool:
     """2) status version 정합: INSTALLATION status 의 'vX.Y.Z-beta 기준' version == pyproject."""
     py_ver = _read_pyproject_version()
-    expected = f"v{py_ver}-beta"
+    # 접미사 없는 정본 표기를 기대하되, 옛 문서(`-beta`)도 정합으로 받는다.
+    expected = f"v{py_ver}"
+    accepted = {expected, f"{expected}-beta"}
     content = _read_installation()
     # 'vX.Y.Z-beta 기준' 패턴 (뒤 공백 + '기준' suffix) → 그대로 매치 후 prefix 'vX.Y.Z-beta' 만 추출
     matches = STATUS_VERSION_RE.findall(content)
@@ -107,15 +114,15 @@ def case_2_status_version() -> bool:
     # 매치 결과는 'vX.Y.Z-beta 기준' 자체 → expected 와 비교 시 ' 기준' suffix 제거
     unique_full = set(matches)  # e.g. {'v0.15.0-beta 기준', 'v0.5.10 기준'}
     unique_base = {v.replace(" 기준", "") for v in unique_full}  # e.g. {'v0.15.0-beta', 'v0.5.10'}
-    if expected not in unique_base:
-        print(f"  FAIL: INSTALLATION status version {unique_base} != pyproject {expected!r}")
+    if not (unique_base & accepted):
+        print(f"  FAIL: INSTALLATION status version {unique_base} != pyproject {sorted(accepted)}")
         return False
     # stale version (e.g. v0.5.10, v0.11.22) 가 있으면 info (baseline 표기 정공법)
-    stale = [v for v in unique_base if v != expected]
+    stale = [v for v in unique_base if v not in accepted]
     if stale:
         # status line (header) 의 version 만 정합하면 OK
         first_in_status_line = content[:content.find("## 1.")]  # status line 은 헤더 + 범위까지
-        if expected in first_in_status_line:
+        if any(candidate in first_in_status_line for candidate in accepted):
             print(f"  [info] INSTALLATION status line (header) {expected!r} 정합 (본문 내 baseline 표기 {stale} 별도)")
             return True
         print(f"  FAIL: INSTALLATION status line (header) 의 version {expected!r} 부재, 본문 내 stale: {stale}")

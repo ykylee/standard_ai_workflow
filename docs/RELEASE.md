@@ -305,6 +305,9 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 | v0.13.0~v0.13.3-beta | Quality Dashboard, telemetry, self-recovery, wiki↔memory bidirectional link | ✅ | Operational Intelligence 1차 close-out |
 | v0.14.0~v0.15.0-beta | append-only memory layout + 2-cycle deprecation 안정화 | ✅ (2026-07-17) | v0.15.0은 `.bak` drop breaking release |
 | v0.15.1~v0.15.15-beta | dashboard·harness·sample·README·설치·quickstart cross-check와 stale 정정 | ✅ (2026-07-18) | 누적 20종 smoke PASS; v1.0.0 진입 평가 준비. tag `v0.15.15-beta` push + gh release create 완료 |
+| v1.0.0~v1.2.1 | v1.0.0 정식 진입 + 플러그인 채널 전환 + stable 표기 정리 | ✅ | tag 에서 `-beta` 접미사 제거 (§2.2). `v1.2.0-beta` 가 옛 표기의 마지막 |
+| v1.3.0 | 배포 일관성·멱등성 gap 4개 + wiki L2 축 + OKF v0.2 이행 | ✅ (2026-08-20) | `feat(okf)!` 를 **minor** 로 판단한 첫 사례 — 근거는 §1.5 |
+| v1.4.0 | 소유권 4번째 분류 '포크됨' + 혼합 표기 축 완결(생성기·코퍼스) + CI red 2건 해소 | ✅ (2026-08-24) | `!` 3건에 §1.5 4문항 적용 → **minor**. 공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

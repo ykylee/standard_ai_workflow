@@ -1,6 +1,6 @@
 """Acceptance test for v0.11.12 mypy strict release-time gate.
 
-1 acceptance test:
+1 acceptance test (case 1 / 1b / 1c / …):
 - test_mypy_strict_release_gate_v0_11_12 — cmd_validate 의 5번째 source `mypy` 추가
   + --skip-mypy flag 정합 + mypy source 의 ok/error_count/first_error schema verify
   + cmd_release_create dispatcher 가 --skip-mypy / --full-auto / --allow-existing-tag forwarding
@@ -38,6 +38,45 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
         rp_text,
     ), "cwd = REPO_ROOT.parent (project root) 정합 부재"
     print("  case 1 (cmd_validate 5번째 source mypy strict + REPO_ROOT.parent cwd + absolute target): PASS")
+    # case 1b: `--show-traceback` (TASK-2026-08-13-main-004 관찰 4차, 2026-08-24)
+    #
+    # 게이트는 4차까지 `exit 2 / error_count 0` 만 내고 원인을 못 말했다. 3차가
+    # stderr 를 로그 앞으로 끌어오면서 남은 문장이 하필 mypy 가 **"please use
+    # --show-traceback"** 이라고 *요청하는* 문구였다 — 그 요청을 로그로 옮겨 놓고
+    # 정작 플래그를 준 적이 없어서, 완료 기준("다음 재발이 트레이스백을 남긴다")이
+    # 원리적으로 충족될 수 없었다.
+    #
+    # mypy 는 **내부 오류일 때만** 트레이스백을 찍으므로 정상 경로 비용은 0 이다.
+    assert "--show-traceback" in rp_text, (
+        "게이트 invocation 에 --show-traceback 부재 — 내부 오류가 나도 트레이스백이 "
+        "로그에 남지 않는다 (관찰 4차의 재발이 그렇게 증거 없이 지나갔다)"
+    )
+    assert re.search(
+        r'"-m",\s*"mypy",[^\]]*"--show-traceback"',
+        rp_text,
+    ), "--show-traceback 이 mypy invocation 인자 목록 안에 없다"
+    print("  case 1b (--show-traceback 이 invocation 에 있다): PASS")
+
+    # case 1c: 신호 추출이 트레이스백을 **살려서** 앞으로 보내는가.
+    # 플래그만 주고 추출이 그것을 잘라 버리면 아무것도 얻지 못한다.
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+    from workflow_kit.tools.release_pipeline import _mypy_stderr_signal  # noqa: PLC0415
+
+    internal_error = "\n".join([
+        "workflow_kit/x.py:1: error: INTERNAL ERROR -- Please try using mypy master on GitHub:",
+        "https://mypy.readthedocs.io/en/stable/common_issues.html",
+        "Please report a bug at https://github.com/python/mypy/issues",
+        "version: 2.1.0",
+        "Traceback (most recent call last):",
+        '  File "mypy/checker.py", line 1, in accept',
+        "AssertionError: unexpected node type",
+    ])
+    signal = _mypy_stderr_signal(internal_error)
+    assert "Traceback (most recent call last)" in signal, (
+        f"추출이 트레이스백을 잘랐다: {signal!r}"
+    )
+    assert "AssertionError" in signal, f"추출이 실제 예외를 잘랐다: {signal!r}"
+    print("  case 1c (신호 추출이 트레이스백과 예외를 살린다): PASS")
 
     # case 2: --skip-mypy argparse flag
     assert re.search(

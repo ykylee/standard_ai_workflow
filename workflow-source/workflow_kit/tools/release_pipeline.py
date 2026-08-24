@@ -295,8 +295,15 @@ def cmd_validate(args) -> dict:
         try:
             mypy_target = str(REPO_ROOT / "workflow_kit/")
             mypy_config = str(REPO_ROOT / "pyproject.toml")
+            # `--show-traceback`: mypy 는 **내부 오류일 때만** 트레이스백을 찍으므로
+            # 정상 경로 비용이 0 이다. 없을 때 무슨 일이 났는지 4차까지 몰랐다 —
+            # 게이트가 `exit 2 / error_count 0` 을 내고 stderr 에는 mypy 가
+            # *"please use --show-traceback"* 이라고 **요청하는 문구만** 남았다.
+            # 그 요청을 로그로 옮겨 놓고 정작 플래그를 준 적이 없어서, 완료 기준
+            # ("다음 재발이 트레이스백을 남긴다")이 원리적으로 충족될 수 없었다
+            # (TASK-2026-08-13-main-004 관찰 4차, 2026-08-24).
             mypy_proc = subprocess.run(
-                [sys.executable, "-m", "mypy", "--no-incremental",
+                [sys.executable, "-m", "mypy", "--no-incremental", "--show-traceback",
                  "--config-file", mypy_config, mypy_target],
                 cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120,
             )

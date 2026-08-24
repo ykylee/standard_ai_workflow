@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-20
+- 최종 수정일: 2026-08-24
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,14 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-20
+## [Unreleased] - 2026-08-24
 
 ### Added
 
+- feat(handoff): §5 를 부류별로 가른다 — 산문이 SSOT 를 복제하던 자리 (main-001) (51cfa9ad)
+- feat(deploy)!: 소유권 4번째 분류 '포크됨' + codex 채널 정리 (main-011, -012) (00d30914)
+- feat(task-ssot)!: 본문 라벨을 영어로 전환한다 — 4단계 (main-009) (47c84ad4)
+- feat(doctor): runtime_load — 노출 미측정 한 칸을 측정으로 옮긴다 (main-009 close) (deb74b82)
 - feat(okf)!: v0.2 이행 — legacy 를 남긴 채 정규 필드를 더한다 (ADR-026, main-003) (8ead8bf7)
 - feat(doctor): 환경 pre-flight — 배포 축 gap 4개가 전부 닫혔다 (main-019) (c92d3c7b)
 - feat(doctor): 드리프트를 마커가 아니라 페이로드 해시로 본다 (main-005) (2f68fb2e)
@@ -42,14 +46,15 @@ All notable changes to this project will be documented in this file.
 - feat(plugin): 공유 payload 렌더러 — plugin/ 을 정본 파생물로 (TASK-2026-08-12-main-014) (005bc10d)
 - feat(safety): backlog-update status 보존 + no_repo_write 실행-중 감시 (TASK-2026-08-12-main-008, -009) (5b89813e)
 - feat(cli): cross-platform 지원 1단계 — OS 매트릭스 CI + Windows 가드 (TASK-2026-08-12-main-005) (9351e17b)
-- feat(mcp): bundle 분리 — write 도구 별도 서버 + 배포 검토 (TASK-2026-08-12-main-003, -004) (bd121f58)
-- feat(federation): self-host add — plex 상시 serving 편입 + --print-systemd-unit (TASK-2026-08-12-main-001) (e625c91e)
-- feat(safety): 전량 검사 배타 락 — 동시 runner 의 정숙 구간 침범 차단 (TASK-2026-08-11-main-019) (e7f3ef15)
-- feat(harness): 보조 렌더러 §11 주입 완결 — TASK-020 발 결함 26→0 (TASK-2026-08-11-main-028) (d35fe614)
-- ... (116 more)
+- ... (120 more)
 
 ### Changed
 
+- refactor(memory)!: 레거시 task 라벨 마이그레이션 — 도구로, 파싱 동일성을 잠금장치로 (main-004) (64a5370f)
+- docs(decision): 혼합 표기 결정 재료 — 실측이 질문을 다시 세웠다 (main-002, -003) (dd682224)
+- chore(memory): 53차 세션 종료 — 탐침 7절 + installPath 선언 + 라벨 영어 전환 (201f5a8e)
+- chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 실측 + 채널 파리티 (75e9275a)
+- chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 3개 실측 (main-004~007) (17847a0d)
 - refactor(wiki): L2 계약을 memory 파생 4종으로 좁힌다 (main-001) (51b14113)
 - chore(memory): 48차 세션 종료 — 배포 축 gap 4개 전부 닫힘 + OKF 상호운용 실측 (9a837e73)
 - chore(memory): 47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (d25ed659)
@@ -75,15 +80,17 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 42차 세션 종료 — task SSOT 1단계 close-out (4eadb497)
 - Merge branch 'feat/task-ssot-structured' (c26ac00a)
 - chore(memory): 41차 세션 종료 — handoff 롤오프 적용 (26,582 → 10,789 tok, −59%) (15caeba7)
-- Merge branch 'perf/handoff-baseline-rolloff' (b04428d6)
-- chore(memory): 40차 세션 종료 — 영어화 3단계 close-out + 남은 축을 구조 작업으로 정리 (e6a3f402)
-- Merge branch 'docs/english-entrypoints' (505e5d5d)
-- docs(i18n): stage 3 완료 — plugin_payload 소비자 문안 + 검출기 9곳 동반 이동 (f8d2bce8)
-- docs(i18n): stage 3 — bootstrap_lib/renderers.py 산문 영어화 + 경계 확정 (4eb2cd79)
-- ... (326 more)
+- ... (331 more)
 
 ### Fixed
 
+- fix(bootstrap): daily backlog 를 정본 작성기로 조립한다 — 사본을 없앴다 (main-003) (6a2c94ad)
+- fix(tests): watch_transient flake — 이벤트 1건은 완결본을 뜻하지 않는다 (main-001) (900c9455)
+- fix(ci): consumer-metrics-digest 가 실재하는 경로를 부른다 (main-017) (8b2c6ebb)
+- fix(ci): okf-validate 가 okf_version 을 정본에서 파생한다 (main-016) (72ecff6c)
+- fix(entrypoint): 산문 목록 파생 + 사라지던 planned + 포크 병합 (main-013, -014, -015) (cd0ff943)
+- fix(doctor): 어느 사본이 설치본인지 선언을 읽는다 — 갱신이 보고를 나쁘게 만들던 자리 (main-010) (151627ee)
+- fix(harness): session-end 를 bootstrap 채널에도 — 두 채널의 스킬 집합이 갈라져 있었다 (main-008, -009) (43168b34)
 - fix(release): next_version 을 커밋에서 파생한다 — 개수는 세고 판정은 안 세던 자리 (main-006) (40e86dc2)
 - fix(observability): 관찰 축 3개 실측 — mypy 원인 계열 확정 + 승격 루프 배선 (main-004, -005) (a36c5edf)
 - fix(linter): in_progress 대조의 세 번째 출처를 task SSOT 로 (main-002) (e64b4812)
@@ -107,14 +114,14 @@ All notable changes to this project will be documented in this file.
 - fix(tests): 임시 workspace 판정이 호스트 저장소 state.json 에 달려 있던 자리 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (6dee7aae)
 - fix(memory): 작업 기록을 브랜치 메모리로 이관 — active/main 무접촉 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (d265e981)
 - fix(dist): main 정합 보완 6건 — 판정 사각지대 · 파생 신원 · fail-closed (TASK-2026-08-13-main-009) (77a18e71)
-- fix(dist): package Codex marketplace at discovery path (6e537c6a)
-- fix(dist): 공개 배포 전 필수 수리 3건 — LICENSE / 버전 체계 stable 정리 / 저자 이메일 (TASK-2026-08-13-main-007) (747ecfc6)
-- fix(mcp): OpenCode 방언을 실측 형태로 — entry 정본 단일화 (TASK-2026-08-13-main-002) (364db82e)
-- fix(tests): 원본 bump 검사 sandbox 이관 — 마지막 pyproject 왕복 제거 (TASK-2026-08-13-main-001) (cca074cd)
-- fix(docs+packaging): 소비자 안내 표면을 wk 로 통일 + tools 배포를 wheel 에서 검증 (TASK-2026-08-11-main-027) (2d799f5a)
-- fix(mcp): 도구 목록 사본 3계열을 registry 단일출처로 + 유령 script_path 실물화 (TASK-2026-08-11-main-025) (8f8e95da)
-- fix(standard): §11.1 명령 손 사본 7곳을 정본 파생으로 + 검출기·분류 단언 강화 (TASK-2026-08-11-main-026) (267dfafb)
-- ... (110 more)
+- ... (117 more)
+
+## [1.4.0] - 2026-08-24
+
+### Changed
+
+- release(v1.4.0): 16 커밋 누적분 발행 준비 — 등급은 §1.5 4문항으로 minor (main-005) (7fa37940)
+- chore(backlog): v1.4.0 릴리스 task 등록 — 등급 판단 근거 기록 (main-005) (e346243f)
 
 ## [1.3.0] - 2026-08-20
 

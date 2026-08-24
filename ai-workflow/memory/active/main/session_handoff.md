@@ -9,7 +9,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **57차 세션 — v1.4.0 발행 준비 (main-005, 검사 267 유지).** 실행형 잔여가 비어 확인하다 **v1.3.0 이후 16 커밋 미발행**을 발견했다. `release-status` 는 `!` 표기 3건만 세어 `next=2.0.0` 을 냈고 `requires_decision` 으로 사람에게 넘겼다 — **§1.5 가 정확히 그 자리를 위해 쓰인 절**이다. 4문항을 주장이 아니라 **확인**으로 적용했다: 사라진 정의는 2개뿐인데 하나는 `_daily_index_entry_lines`(**비공개** 개명)이고 하나는 `render_daily_backlog`(**같은 이름·같은 시그니처**, 본문만 재작성) · console script 와 `wk` 명령 **제거 0**(오히려 `migrate-task-labels` 추가) · `TASK_FIELD_ALIASES` **17/17 필드가 한국어를 계속 받는다** · `Action` 은 `+FORKED` 하나만 늘어난 additive. 전부 '아니오' → **소유자 결정 minor**. 버전 1.3.0 → **1.4.0**, 파생물 5계열 재생성(transport descriptors · jsonrpc fixtures · harness mcp examples · output schema · 플러그인 페이로드) + CODE_INDEX stamp. 릴리스 노트는 자동 skeleton 을 버리고 **축으로 재작성**했다 — 이 사이클의 주제는 *신호가 읽는 쪽 가정만큼을 뜻하지 않는다*(`in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`). 부수: `RELEASE.md` 의 릴리스 이력 표가 **v0.15.15 에서 멈춰 있어** v1.x 3행을 이어 붙였다(검사가 버전 stamp 부재로 잡았다 — 문자열만 뿌리지 않고 표를 실제로 이었다).
+- 현재 기준선: **57차 세션 — v1.4.0 발행 완료 (main-005 close, 검사 267 유지).** 실행형 잔여가 비어 확인하다 **v1.3.0 이후 16 커밋 미발행**을 발견했다. `release-status` 는 `!` 표기 3건만 세어 `next=2.0.0` 을 냈고 `requires_decision` 으로 사람에게 넘겼다 — **§1.5 가 정확히 그 자리를 위해 쓰인 절**이다. 4문항을 주장이 아니라 **확인**으로 적용했다: 사라진 정의는 2개뿐인데 하나는 `_daily_index_entry_lines`(**비공개** 개명)이고 하나는 `render_daily_backlog`(**같은 이름·같은 시그니처**, 본문만 재작성) · console script 와 `wk` 명령 **제거 0**(오히려 `migrate-task-labels` 추가) · `TASK_FIELD_ALIASES` **17/17 필드가 한국어를 계속 받는다** · `Action` 은 `+FORKED` 하나만 늘어난 additive. 전부 '아니오' → **소유자 결정 minor**. 버전 1.3.0 → **1.4.0**, 파생물 5계열 재생성(transport descriptors · jsonrpc fixtures · harness mcp examples · output schema · 플러그인 페이로드) + CODE_INDEX stamp. 릴리스 노트는 자동 skeleton 을 버리고 **축으로 재작성**했다 — 이 사이클의 주제는 *신호가 읽는 쪽 가정만큼을 뜻하지 않는다*(`in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`). 부수: `RELEASE.md` 의 릴리스 이력 표가 **v0.15.15 에서 멈춰 있어** v1.x 3행을 이어 붙였다(검사가 버전 stamp 부재로 잡았다 — 문자열만 뿌리지 않고 표를 실제로 이었다). 그리고 **검사가 문서를 거짓말하게 만들던 자리**를 하나 고쳤다 — `check_installation_usage` 의 정규식이 `-beta` 접미사를 **필수로** 물었는데 §2.2 는 v1.2.1 부터 그것을 뗐다. 그래서 지난 릴리스는 문서에 **실재하지 않는 태그명**(`v1.3.0-beta`)을 적어야 통과했다. 두 표기를 다 받게 하고 문서엔 참인 `v1.4.0` 을 적었다(되주입으로 버전 불일치는 여전히 잡힌다). **발행**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.4.0 — asset 4종(wheel/sdist + claude-code/codex 플러그인 ZIP), 태그가 `7fa37940` 을 가리킨다. 파이프라인이 태그 push · Release 생성 · bidir-link audit 절 자동 추가 · **문서 헤더 날짜 103건** 갱신을 수행했다. **게이트가 그 뒷정리를 잡았다** — 날짜 자동 갱신이 `check_code_index` / `check_document_index` 의 **의도적 하드코딩 상수**와 어긋났고(그 하드코딩은 '문서가 조용히 늙는 것' 을 막는 장치라 함께 올리는 것이 계약이다), §5 후보가 방금 닫힌 task 를 가리켰다.
 - 직전 기준선: **56차 세션 (이어서) — main-004 close: 레거시 코퍼스 마이그레이션 완료 (검사 266→267).** 소유자 결정으로 진행했다. **손이 아니라 도구로** 했다(정본 §11) — 소비자 저장소도 같은 레거시 코퍼스를 가지므로 일회성 스크립트면 그들에게 아무것도 안 남는다. `wk migrate-task-labels` 신설: 매핑은 `TASK_FIELD_ALIASES` **파생**, 치환은 **줄머리 앵커**(앵커 없이 하면 라벨을 *언급하는* 산문까지 바뀐다 — 이 저장소 task 는 자기 라벨을 산문으로 자주 인용한다), 긴 라벨 우선(`호스트명`/`호스트 IP` 접두사 충돌). **핵심은 파싱 동일성 잠금장치다** — 쓰기 전후로 집계를 돌려 대조하고 다르면 **전부 되돌린 뒤** blocked 로 보고한다. 라벨은 사람이 읽는 면이고 상태의 근거는 frontmatter 이므로 이 마이그레이션은 **정의상 집계를 바꾸면 안 된다**. 바뀐다면 마이그레이션이 아니라 사고다. 적용: active/ 전 브랜치 **193파일 · 2418줄**(main 190/2378 + worktree 2개). 코퍼스 재측정 **한국어만 188→0 · 혼재 2→0**, 영어만 202(라벨 없음 99는 v0.14.0 이전으로 별개). `archived/` 12개는 범위 밖 — 어떤 집계도 안 읽는 동결 기록이라 순수 churn 이다. 적용 전후 `state.json` 의 in_progress/planned/recent_done 동일. `check_migrate_task_labels` 신설(6 cases). **게이트가 하나 잡았다** — dispatcher 에만 등록하고 `[project.scripts]` entry point 를 빠뜨렸다(`check_wk_dispatcher` 가 두 집합의 일치를 강제한다). **혼합 표기 축이 닫혔다** — 생성기(main-003)와 코퍼스(main-004) 양쪽.
 - 그 이전 기준선: **56차 세션 (이어서) — main-002·003 close: 혼합 표기의 원인은 레거시가 아니라 **생성기**였다 (검사 265→266).** 결정 재료를 실측하다 질문이 다시 섰다. **재료**: task 298개 = 한국어만 188 / 본문 라벨 없음 99 / 영어만 9 / **한 파일 안 혼재 2**. frontmatter status 없는 파일 **0** — 본문 라벨은 사람이 읽는 면이지 상태의 근거가 아니다. 마이그레이션은 **싸고 안전하다**: 190파일 · 2378줄 · 매핑 17개, 앵커 치환 시 잔여 0 · 코드펜스 오탐 0 이고 격리 사본에서 **파서 출력이 before == after 로 완전히 동일**했다. 그런데 **급한 쪽은 레거시가 아니었다** — 오늘 bootstrap 한 새 프로젝트가 첫날부터 두 표기를 같이 받고 있었다(bootstrap 은 한국어 템플릿, 도구는 `task_label` 영어). 그 템플릿은 표기만 낡은 게 아니라 **v0.14.0 이전 레이아웃**이라 임베드 task 와 append-only 인덱스가 한 파일에 겹쳐 쌓였다. **수리는 템플릿을 고치는 게 아니라 사본을 없애는 것**이었다 — `render_daily_backlog` 이 템플릿 읽기를 그만두고 도구와 **같은 정본 작성기**로 조립한다(`render_daily_backlog_header` + `daily_index_entry_lines`, 후자는 공개화). 함께 드러난 둘: **씨앗 task 파일이 아예 없어** 인덱스가 빈 곳을 가리켰고(`render_initial_task_file` 신설), 기본 ID `TASK-001` 이 **`TASK_ID_PATTERN` 과 안 맞아 kit 자신의 파서가 못 읽었다**(날짜·slug 파생, 사용자 지정은 존중). 배포 템플릿은 소비자 참고 자료라 남기되 정본 출력으로 갈고 검사가 일치를 강제한다. 실측 확인: 새 프로젝트가 이 저장소와 같은 구조·표기를 받고, 씨앗 task 가 `planned_items` 로 파싱되며(**main-014 가 이틀 전 뚫은 자리**), 이어서 `wk backlog-update` 로 쓴 task 와 표기가 완전히 일치한다. `check_daily_backlog_template` 신설(4 cases), 되주입 3종 red 실증. **레거시 190파일 마이그레이션은 여전히 열린 결정**이고, 이제 급하지 않다 — 새로 생기는 혼재가 멈췄다.
 - 그 이전 기준선: **56차 세션 — watch_transient_writer flake 의 원인을 규명하고 닫았다 (main-001 close, 검사 265 유지 / case 5→6).** 55차가 관찰 축에 올린 flake 에 손에 든 신호가 있어 바로 팠다. **도구는 내내 옳았다** — 테스트가 `Path.write_text`(truncate 후 write)로 쓰는데 그것은 **비원자적**이라, 감시자가 그 사이의 빈/부분 파일을 첫 변경으로 잡을 수 있었다. `changed[0]` 이 내 완결 주입이라는 **가정**이 틀린 것이다. 실측으로 확증: 1.8MB 로 창을 넓히니 changed 22건 중 **12건이 완결 아닌 크기**(`0` = truncate 순간, `1800046` = 쓰기 중간)를 관측했다. 이번 주 내내 나온 모양이 또 나왔다 — **신호가 읽는 쪽 가정만큼을 뜻하지 않는다**(`in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`). 수리 ①: transient case 를 `_atomic_write`(임시 파일 + `os.replace`)로 — 되주입(비원자 + 넓은 창)에서 **3회 중 2회 red** 로 부담을 실증했다. 수리 ②: '디스크에 실재했던 중간 상태는 보고된다' 를 **우연이 아니라 계약**으로 못박는 case 신설 — 없으면 다음 사람이 그 관측을 잡음으로 오해해 **도구 쪽을 뭉갠다**(되주입: 빈 파일 무시 → red). **그런데 그 case 의 첫 판이 5회 중 4회 red 인 flake 였다** — 폴러가 truncate 창을 **운으로** 잡길 기대한 설계였고, 고치려던 병을 검사가 다시 앓았다. 중간 상태를 폴링 간격보다 확실히 긴 시간 실재하게(2단계 쓰기 + `fsync` + 관측 대기) 바꿔 결정적으로 만들었다 — **6회 연속 6/6**.
@@ -36,7 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 ## 3. 차단 작업
 
@@ -45,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor
 - TASK-2026-08-24-main-004 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로
 - TASK-2026-08-24-main-003 bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다
 - TASK-2026-08-24-main-002 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다
@@ -54,7 +54,6 @@
 - TASK-2026-08-20-main-016 okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계
 - TASK-2026-08-20-main-015 포크 후속 — CLAUDE.md 가 놓친 kit 변경을 골라 병합한다
 - TASK-2026-08-20-main-014 planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다
-- TASK-2026-08-20-main-013 CLAUDE.md 생성기가 session-end 를 광고 안 한다 — 같은 어긋남의 네 번째 자리
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -73,9 +72,6 @@
 
 #### 작업 후보 — 정본은 `state.json` 의 `planned_items` · `in_progress_items`
 
-- `TASK-2026-08-24-main-005` — v1.4.0 발행. 등급은 §1.5 4문항으로 **minor** 확정,
-  버전 범프·파생물 재생성·릴리스 노트까지 끝났다. 남은 것은 `dist --apply` 와
-  `release --apply` (태그 push + GitHub Release) — **외부로 나가는 단계라 승인 필요**.
 - `TASK-2026-08-13-main-004` — CI native 셀 mypy 게이트 flake 관찰. 완료 기준은
   '다음 재발이 트레이스백을 로그에 남길 것'. 최근 40 run 중 mypy 재발 없음
   (실패 3건은 전부 okf-validate 였고 main-016 이 해소). **재발 대기.**

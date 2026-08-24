@@ -130,3 +130,20 @@ task 와 append-only 인덱스가 한 파일에 겹쳐 쌓였다.
   필요해지면 `wk migrate-task-labels --active-dir` 로 돌린다.
 - **cross-host federation** — 두 번째 호스트(MacBook) 확보 시점.
 - **memory_index 3-tuple** — 지표 추이 관찰.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-24T03:49:57Z)_
+
+- total wiki pages: **94**
+- total memory entries: **13**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

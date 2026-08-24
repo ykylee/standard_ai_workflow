@@ -4,7 +4,7 @@
 - 범위: 보고서의 구조, 덱→보고서 매핑, 실명 승격 목록, HTML 산출물 규격, 검증 계획. 실제 보고서 본문은 별도 산출물(`ai-agent-workflow-tech-report.html`)
 - 대상 독자: 보고서 작성자, 리뷰어
 - 상태: draft (v1.0)
-- 최종 수정일: 2026-08-20
+- 최종 수정일: 2026-08-24
 - 관련 문서: [../presentations/ai-agent-onboarding-deck-design.md](../presentations/ai-agent-onboarding-deck-design.md) (원본 발표 설계 v2.3), `../../ai-workflow/core/workflow_design_principles.md` (설계 원리 정본 — docs 트리 밖이라 code span 표기)
 
 ---

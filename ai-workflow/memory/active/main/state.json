@@ -27,16 +27,16 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**57차 세션 — v1.4.0 발행 준비 (main-005, 검사 267 유지).** 실행형 잔여가 비어 확인하다 **v1.3.0 이후 16 커밋 미발행**을 발견했다. `release-status` 는 `!` 표기 3건만 세어 `next=2.0.0` 을 냈고 `requires_decision` 으로 사람에게 넘겼다 — **§1.5 가 정확히 그 자리를 위해 쓰인 절**이다. 4문항을 주장이 아니라 **확인**으로 적용했다: 사라진 정의는 2개뿐인데 하나는 `_daily_index_entry_lines`(**비공개** 개명)이고 하나는 `render_daily_backlog`(**같은 이름·같은 시그니처**, 본문만 재작성) · console script 와 `wk` 명령 **제거 0**(오히려 `migrate-task-labels` 추가) · `TASK_FIELD_ALIASES` **17/17 필드가 한국어를 계속 받는다** · `Action` 은 `+FORKED` 하나만 늘어난 additive. 전부 '아니오' → **소유자 결정 minor**. 버전 1.3.0 → **1.4.0**, 파생물 5계열 재생성(transport descriptors · jsonrpc fixtures · harness mcp examples · output schema · 플러그인 페이로드) + CODE_INDEX stamp. 릴리스 노트는 자동 skeleton 을 버리고 **축으로 재작성**했다 — 이 사이클의 주제는 *신호가 읽는 쪽 가정만큼을 뜻하지 않는다*(`in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`). 부수: `RELEASE.md` 의 릴리스 이력 표가 **v0.15.15 에서 멈춰 있어** v1.x 3행을 이어 붙였다(검사가 버전 stamp 부재로 잡았다 — 문자열만 뿌리지 않고 표를 실제로 이었다).",
+    "current_baseline": "**57차 세션 — v1.4.0 발행 완료 (main-005 close, 검사 267 유지).** 실행형 잔여가 비어 확인하다 **v1.3.0 이후 16 커밋 미발행**을 발견했다. `release-status` 는 `!` 표기 3건만 세어 `next=2.0.0` 을 냈고 `requires_decision` 으로 사람에게 넘겼다 — **§1.5 가 정확히 그 자리를 위해 쓰인 절**이다. 4문항을 주장이 아니라 **확인**으로 적용했다: 사라진 정의는 2개뿐인데 하나는 `_daily_index_entry_lines`(**비공개** 개명)이고 하나는 `render_daily_backlog`(**같은 이름·같은 시그니처**, 본문만 재작성) · console script 와 `wk` 명령 **제거 0**(오히려 `migrate-task-labels` 추가) · `TASK_FIELD_ALIASES` **17/17 필드가 한국어를 계속 받는다** · `Action` 은 `+FORKED` 하나만 늘어난 additive. 전부 '아니오' → **소유자 결정 minor**. 버전 1.3.0 → **1.4.0**, 파생물 5계열 재생성(transport descriptors · jsonrpc fixtures · harness mcp examples · output schema · 플러그인 페이로드) + CODE_INDEX stamp. 릴리스 노트는 자동 skeleton 을 버리고 **축으로 재작성**했다 — 이 사이클의 주제는 *신호가 읽는 쪽 가정만큼을 뜻하지 않는다*(`in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`). 부수: `RELEASE.md` 의 릴리스 이력 표가 **v0.15.15 에서 멈춰 있어** v1.x 3행을 이어 붙였다(검사가 버전 stamp 부재로 잡았다 — 문자열만 뿌리지 않고 표를 실제로 이었다). 그리고 **검사가 문서를 거짓말하게 만들던 자리**를 하나 고쳤다 — `check_installation_usage` 의 정규식이 `-beta` 접미사를 **필수로** 물었는데 §2.2 는 v1.2.1 부터 그것을 뗐다. 그래서 지난 릴리스는 문서에 **실재하지 않는 태그명**(`v1.3.0-beta`)을 적어야 통과했다. 두 표기를 다 받게 하고 문서엔 참인 `v1.4.0` 을 적었다(되주입으로 버전 불일치는 여전히 잡힌다). **발행**: https://github.com/ykylee/standard_ai_workflow/releases/tag/v1.4.0 — asset 4종(wheel/sdist + claude-code/codex 플러그인 ZIP), 태그가 `7fa37940` 을 가리킨다. 파이프라인이 태그 push · Release 생성 · bidir-link audit 절 자동 추가 · **문서 헤더 날짜 103건** 갱신을 수행했다. **게이트가 그 뒷정리를 잡았다** — 날짜 자동 갱신이 `check_code_index` / `check_document_index` 의 **의도적 하드코딩 상수**와 어긋났고(그 하드코딩은 '문서가 조용히 늙는 것' 을 막는 장치라 함께 올리는 것이 계약이다), §5 후보가 방금 닫힌 task 를 가리켰다.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
+    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
-      "TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
       "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
       "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
@@ -45,8 +45,7 @@
       "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다",
       "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계",
       "TASK-2026-08-20-main-015 — 포크 후속 — CLAUDE.md 가 놓친 kit 변경을 골라 병합한다",
-      "TASK-2026-08-20-main-014 — planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다",
-      "TASK-2026-08-20-main-013 — CLAUDE.md 생성기가 session-end 를 광고 안 한다 — 같은 어긋남의 네 번째 자리"
+      "TASK-2026-08-20-main-014 — planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -54,15 +53,14 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
     "task_count": 5,
-    "in_progress_items": [
-      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
       "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
-      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로"
+      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
+      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor"
     ]
   },
   "next_documents": [

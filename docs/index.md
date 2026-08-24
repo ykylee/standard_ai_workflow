@@ -4,7 +4,7 @@
 - 범위: 사이트 구성 안내, 주요 문서 링크. 운영/internal 문서는 범위 밖(`ai-workflow/wiki/`).
 - 대상 독자: 외부 consumer, OKF bundle 작성자, workflow_kit 사용자
 - 상태: stable
-- 최종 수정일: 2026-08-20
+- 최종 수정일: 2026-08-24
 - 관련 문서: [OKF Consumer Guide](./OKF_CONSUMER_GUIDE.md), [OKF Consumer Quick-Start](./OKF_CONSUMER_QUICKSTART.md), [Feedback & Support](./FEEDBACK.md)
 
 > OKF (Open Knowledge Format) v0.1 consumer guide + workflow_kit reference.

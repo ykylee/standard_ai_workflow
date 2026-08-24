@@ -2,7 +2,7 @@
 description: Standard AI workflow document sync — derive affected-document candidates from the changed files and propose wiki-index update points as advisory.
 ---
 
-<!-- standard-ai-workflow-kit: v1.3.0 -->
+<!-- standard-ai-workflow-kit: v1.4.0 -->
 
 # /workflow-doc-sync
 

@@ -78,6 +78,32 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
     assert "AssertionError" in signal, f"추출이 실제 예외를 잘랐다: {signal!r}"
     print("  case 1c (신호 추출이 트레이스백과 예외를 살린다): PASS")
 
+    # case 1d: 절단이 **결론**을 자르지 않는가 (관찰 4차 후속, 2026-08-24).
+    #
+    # `--show-traceback` 을 준 뒤 트레이스백이 드디어 로그에 왔는데, step summary 의
+    # `error_excerpt[:800]` 이 그 **꼬리를 잘랐다** — 남은 것은 `File "mypy/` 까지였고
+    # 어느 예외였는지는 사라졌다. 상한을 또 올리면 다음 트레이스백에서 같은 자리로
+    # 돌아온다. 절단은 언제나 머리를 남기므로 **결론을 머리로 옮긴다.**
+    from workflow_kit.tools.release_pipeline import (  # noqa: PLC0415
+        _traceback_conclusion_first,
+    )
+
+    sample = "\n".join([
+        "Traceback (most recent call last):",
+        '  File "<frozen runpy>", line 198, in _run_module_as_main',
+        '  File "mypy/build.py", line 1916, in create_metastore',
+        "OSError: [Errno 39] Directory not empty",
+    ])
+    tail = _traceback_conclusion_first(sample)
+    assert tail.splitlines()[0].startswith("[exception] OSError"), (
+        f"결론이 맨 앞에 없다 — 절단되면 사라진다: {tail.splitlines()[0]!r}"
+    )
+    assert "OSError" in tail[:80], "짧은 절단에도 예외가 살아야 한다"
+    # 트레이스백이 아닌 출력은 그대로 꼬리만 남긴다 (있지도 않은 결론을 만들지 않는다)
+    plain = _traceback_conclusion_first("Success: no issues found in 199 source files")
+    assert not plain.startswith("[exception]"), f"트레이스백이 아닌데 결론을 붙였다: {plain!r}"
+    print("  case 1d (절단이 트레이스백 결론을 자르지 않는다): PASS")
+
     # case 2: --skip-mypy argparse flag
     assert re.search(
         r"p_val\.add_argument\([\"']--skip-mypy",

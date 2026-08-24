@@ -146,6 +146,33 @@ def _mypy_stderr_signal(stderr: str, *, keep: int = 20) -> str:
     return "\n".join(ordered)
 
 
+def _traceback_conclusion_first(text: str, *, keep: int = 20) -> str:
+    """트레이스백의 **결론을 맨 앞으로** 올린 꼬리.
+
+    `--show-traceback` 을 준 뒤(관찰 4차) 트레이스백이 드디어 로그에 왔는데,
+    step summary 의 `error_excerpt[:800]` 이 그 **꼬리를 잘랐다** — 남은 것은
+    `File "mypy/` 까지였고 정작 어느 예외였는지는 사라졌다.
+
+    절단은 언제나 머리를 남긴다. 그런데 트레이스백의 신호는 **꼬리**에 있다
+    (마지막 프레임과 예외 줄). 상한을 또 올리는 것은 다음 트레이스백이 더 길어지면
+    같은 자리로 돌아온다 — 그래서 **결론을 머리로 옮긴다.** 절단 상한과 무관하게
+    "무엇이 터졌나" 가 먼저 보인다.
+    """
+    lines = [ln for ln in text.strip().splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    if not any(ln.startswith("Traceback (most recent call last)") for ln in lines):
+        return "\n".join(lines[-keep:])
+    # 예외 줄 = 들여쓰기 없는 마지막 줄 (프레임은 두 칸 이상 들여쓴다)
+    exception = next(
+        (ln for ln in reversed(lines) if ln and not ln.startswith(" ")
+         and not ln.startswith("Traceback")),
+        lines[-1],
+    )
+    body = lines[-keep:]
+    return "\n".join([f"[exception] {exception}", *body])
+
+
 def cmd_validate(args) -> dict:
     """4 source 의 release-readiness 검증.
 
@@ -331,8 +358,9 @@ def cmd_validate(args) -> dict:
                 # 원인을 좁히지 못했다 (TASK-2026-08-13-main-004). CI 로그는 만료되고
                 # annotation 에는 검사 이름도 안 실린다 — 증거를 여기서 들고 있어야 한다.
                 results["mypy"]["stderr_tail"] = _mypy_stderr_signal(mypy_proc.stderr)
-                results["mypy"]["stdout_tail"] = "\n".join(
-                    mypy_proc.stdout.strip().splitlines()[-20:]
+                # `--show-traceback` 은 트레이스백을 **stdout** 으로 낸다 (관찰 4차 실측).
+                results["mypy"]["stdout_tail"] = _traceback_conclusion_first(
+                    mypy_proc.stdout
                 )
             # v1.1.4: `-m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라
             # rc 1 + stderr 로 죽는다 — 아래 except 분기는 이 호출 형태에서는

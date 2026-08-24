@@ -28,6 +28,7 @@ case:
 from __future__ import annotations
 
 import json
+import os
 import signal
 import subprocess
 import sys
@@ -68,6 +69,29 @@ def _spawn_watcher(target: Path, log_dir: Path) -> subprocess.Popen[str]:
         assert time.monotonic() < wait_deadline, f"watcher 기동 신호 {READY_TIMEOUT_S}s 대기 초과"
         time.sleep(0.02)
     return proc
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    """같은 디렉터리에 쓴 뒤 `os.replace` 로 갈아끼운다 — **한 번의 상태 전이**.
+
+    `Path.write_text` 는 truncate 후 write 라 원자적이지 않다. 그 사이에는
+    **빈 파일**과 **절반만 쓰인 파일**이 실재하고, 이 도구는 그것을 정직하게
+    관측한다 — 감시자로서는 옳은 동작이다.
+
+    문제는 테스트의 가정이었다 (TASK-2026-08-24-main-001). "이벤트가 1건
+    쌓였다" 를 "내 주입 완결본이 관측됐다" 로 읽었는데, 둘은 다르다. 한가할
+    때는 폴러가 truncate 창을 놓쳐 우연히 맞았고, 병렬 부하에서 타이밍이
+    바뀌자 `changed[0]` 이 빈 파일이 되어 red 가 났다 (2026-08-22 전량).
+
+    실측 (창을 넓혀 원리 확인): 1.8MB 파일을 30회 왕복시키면 changed 22건 중
+    **12건이 완결 아닌 크기**(`0`, `1800046`)를 관측한다.
+
+    그래서 테스트는 원자적으로 쓴다 — 재려는 것은 *transient 를 잡는가* 이지
+    *부분 쓰기를 잡는가* 가 아니다. 후자는 아래 전용 case 가 따로 선언한다.
+    """
+    tmp_path = path.with_name(path.name + ".tmp-atomic")
+    tmp_path.write_text(text, encoding="utf-8")
+    os.replace(tmp_path, path)
 
 
 def _wait_for_events(log_dir: Path, minimum: int, *, timeout: float = EVENT_WAIT_S) -> int:
@@ -111,11 +135,14 @@ def test_transient_reinjection_is_captured(tmp: Path) -> None:
 
     proc = _spawn_watcher(target, log_dir)
     try:
-        target.write_text(original.replace("1.0.0", "99.99.99"), encoding="utf-8")
+        # **원자적으로** 쓴다. 비원자적 쓰기는 truncate 창에 빈 파일을 노출하고,
+        # 감시자는 그것을 첫 변경으로 잡는다 — 그러면 아래 `changed[0]` 단언이
+        # 부하에 따라 갈린다 (`_atomic_write` 주석의 2026-08-22 flake).
+        _atomic_write(target, original.replace("1.0.0", "99.99.99"))
         # **되돌리기 전에** 첫 변경이 관측됐는지 확인한다. 이걸 기다리지 않고
         # 되돌리면 감시자가 굶은 사이 원본으로 돌아가 transient 가 통째로 사라진다.
         assert _wait_for_events(log_dir, 1) >= 1, "주입이 관측되지 않았다 (감시자 기아)"
-        target.write_text(original, encoding="utf-8")  # 되돌린다 — transient 의 핵심
+        _atomic_write(target, original)  # 되돌린다 — transient 의 핵심
         _wait_for_events(log_dir, 2)
         time.sleep(SETTLE_S)
     finally:
@@ -222,12 +249,62 @@ def test_quiet_run_leaves_no_auto_log(tmp: Path) -> None:
     assert "관측 0건" in proc.stderr, proc.stderr
 
 
+def test_intermediate_state_is_reported_not_smoothed(tmp: Path) -> None:
+    """디스크에 **실재했던 중간 상태**는 보고된다 — 뭉개지 않는다.
+
+    이것은 결함이 아니라 **선언된 동작**이다 (TASK-2026-08-24-main-001).
+    비원자적 쓰기(`Path.write_text` = truncate 후 write)는 그 사이 빈 파일을
+    디스크에 **실재하게** 한다. 포렌식 감시자가 그것을 못 본다면 오히려 놓치는
+    것이다 — 남의 도구가 파일을 잠깐 망가뜨렸다 되돌리는 것이 바로 이 도구가
+    찾으라고 만들어진 현상이다.
+
+    이 case 가 없으면 다음 사람이 그 관측을 잡음으로 오해해 **도구 쪽을
+    뭉갠다**(빈 파일 무시·완결 대기 따위). 그러면 도구의 존재 이유가 사라진다.
+
+    **중간 상태를 운에 맡기지 않는다.** 첫 판은 큰 파일을 비원자적으로 써서
+    폴러가 truncate 창을 잡길 기대했는데, 그 자신이 5회 중 4회 red 인 flake 가
+    됐다 — 고치려던 병을 검사가 다시 앓은 것이다. 그래서 중간 상태를 **폴링
+    간격보다 확실히 긴 시간 동안 실재**하게 만든다. 재려는 것은 *폴러가 좁은
+    창을 잡는가* 가 아니라 *실재한 상태를 보고하는가* 다.
+    """
+    target = tmp / "pyproject.toml"
+    original = "[project]\nname = \"probe\"\nversion = \"1.0.0\"\n"
+    target.write_text(original, encoding="utf-8")
+    log_dir = tmp / "log6"
+    log_dir.mkdir()
+
+    proc = _spawn_watcher(target, log_dir)
+    try:
+        # 2단계 쓰기: 비우고 → (폴링 간격보다 길게) 머문 뒤 → 채운다.
+        # 비원자적 쓰기가 만드는 상태를 **결정적으로** 재현한 것이다.
+        with target.open("w", encoding="utf-8") as handle:
+            handle.truncate(0)
+            handle.flush()
+            os.fsync(handle.fileno())
+            assert _wait_for_events(log_dir, 1) >= 1, "빈 상태가 관측되지 않았다 (감시자 기아)"
+            handle.write(original.replace("1.0.0", "99.99.99"))
+        _wait_for_events(log_dir, 2)
+        time.sleep(SETTLE_S)
+    finally:
+        summary = _stop_and_summary(proc, log_dir)
+
+    changed = [e for e in summary["events"] if e["kind"] == "changed"]
+    assert changed, f"변경이 하나도 안 잡혔다: {summary}"
+    empty = [e for e in changed if e.get("size") == 0]
+    assert empty, (
+        "디스크에 실재했던 빈 상태가 보고되지 않았다 — 감시자가 중간 상태를 "
+        f"뭉개면 transient 포렌식이 성립하지 않는다. 관측 크기: "
+        f"{[e.get('size') for e in changed]}"
+    )
+
+
 CASES = [
     test_transient_reinjection_is_captured,
     test_no_change_yields_zero_events,
     test_missing_and_reappear_are_distinct,
     test_refuses_log_inside_watched_repo,
     test_quiet_run_leaves_no_auto_log,
+    test_intermediate_state_is_reported_not_smoothed,
 ]
 
 

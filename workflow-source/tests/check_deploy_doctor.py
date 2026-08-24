@@ -37,6 +37,7 @@ from workflow_kit.deploy_doctor import (  # noqa: E402
     GLOBAL_DECLARATION_HOMES,
     PLUGIN_INSTALL_CACHES,
     _parse_etime,
+    _pip_absence_verdict,
     main as doctor_main,
     probe,
 )
@@ -108,6 +109,39 @@ def test_report_shape() -> None:
         not missing and report.get("report_only") is True,
         f"누락 {missing} / report_only={report.get('report_only')}",
     )
+
+
+# --- Case 1b ---------------------------------------------------------------
+
+
+def test_pip_absence_reads_uv_tool_receipt() -> None:
+    """pip 부재 판정은 선언(`uv-receipt.toml`)을 읽는다 — 잰 단위를 결과에 남긴다.
+
+    되주입 계보 (2026-08-24, main-009): `wk` 를 `uv tool install` 로 깐 호스트에서
+    'venv 에 pip 이 없다' 가 **상시 오탐**이었다 — 탐침이 자기 인터프리터(도구
+    venv)를 재면서 개발 `.venv` 를 향한 처방(ensurepip)을 냈고, 그 venv 에는
+    pip 이 이미 있었다. uv tool venv 의 pip 부재는 설계다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmpdir:
+        prefix = Path(tmpdir) / "toolvenv"
+        prefix.mkdir()
+        # 선언 없는 venv → 결함 finding + 잰 인터프리터 명시
+        verdict, finding = _pip_absence_verdict(prefix, "/x/bin/python")
+        if verdict != "defect":
+            problems.append(f"선언 없는 venv 인데 verdict={verdict!r}")
+        if not finding:
+            problems.append("finding 이 없다")
+        elif "/x/bin/python" not in finding:
+            problems.append("finding 이 잰 인터프리터를 명시하지 않는다 — 처방이 엉뚱한 venv 로 간다")
+        # 선언 있는 venv → by-design, finding 없음 (안 낸 이유는 라벨로 남는다)
+        (prefix / "uv-receipt.toml").write_text("[tool]\n", encoding="utf-8")
+        verdict2, finding2 = _pip_absence_verdict(prefix, "/x/bin/python")
+        if verdict2 != "by_design_uv_tool":
+            problems.append(f"uv-receipt.toml 을 선언으로 읽지 않는다 — verdict={verdict2!r}")
+        if finding2 is not None:
+            problems.append("설계상 부재를 결함으로 보고한다 (오탐 재현)")
+    _record("test_pip_absence_reads_uv_tool_receipt", not problems, "; ".join(problems))
 
 
 # --- Case 2 ----------------------------------------------------------------
@@ -793,6 +827,7 @@ def main() -> int:
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
     cases = [
         test_report_shape,
+        test_pip_absence_reads_uv_tool_receipt,
         test_probe_writes_nothing,
         test_home_injection_is_honored,
         test_presence_without_marker_is_not_applied,

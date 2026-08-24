@@ -235,6 +235,29 @@ CHANNEL_PREREQUISITES: tuple[ChannelPrerequisite, ...] = (
 # ---------------------------------------------------------------------------
 
 
+def _pip_absence_verdict(prefix: Path, executable: str) -> tuple[str, str | None]:
+    """venv 에 pip 이 없을 때의 판정 — (판정 라벨, finding 문구 또는 None).
+
+    잰 단위가 틀리면 처방이 헛돈다 (2026-08-24 실측, main-009): 이 탐침은 pip 을
+    **자기 인터프리터**에서 import 하는데, `wk` 가 `uv tool install` 로 깔려
+    있으면 그 인터프리터는 개발 `.venv` 가 아니라 wk 의 도구 venv 다. uv tool
+    venv 는 설계상 pip 없이 돌고 루트의 `uv-receipt.toml` 로 자신을 선언한다 —
+    그 부재는 결함이 아니므로 finding 을 내지 않는다 (추측이 아니라 선언을
+    읽는다). 판정 라벨은 payload 에 남아, 안 낸 이유가 조용히 사라지지 않는다.
+
+    finding 을 낼 때는 잰 인터프리터를 명시한다 — 독자가 ensurepip 을 엉뚱한
+    venv 에 적용하지 않도록 (실측: 처방이 pip 이 이미 있는 저장소 `.venv` 를
+    향해 헛돌았다).
+    """
+    if (prefix / "uv-receipt.toml").exists():
+        return ("by_design_uv_tool", None)
+    return (
+        "defect",
+        f"venv 에 pip 이 없다 (잰 인터프리터: {executable}) — "
+        "`python3 -m ensurepip --upgrade` 한 번으로 채운다",
+    )
+
+
 def _probe_environment() -> dict[str, Any]:
     """인터프리터·venv·PATH 전제를 본다.
 
@@ -257,16 +280,18 @@ def _probe_environment() -> dict[str, Any]:
         )
 
     modules: dict[str, str | None] = {}
+    pip_absence: str | None = None
     for name in ("pip", "workflow_kit"):
         try:
             module = __import__(name)
         except Exception:
             modules[name] = None
             if name == "pip" and in_venv:
-                findings.append(
-                    "venv 에 pip 이 없다 (uv 로 만든 venv) — "
-                    "`python3 -m ensurepip --upgrade` 한 번으로 채운다"
+                pip_absence, pip_finding = _pip_absence_verdict(
+                    Path(sys.prefix), sys.executable
                 )
+                if pip_finding:
+                    findings.append(pip_finding)
             continue
         modules[name] = getattr(module, "__file__", None)
 
@@ -283,6 +308,9 @@ def _probe_environment() -> dict[str, Any]:
         "in_virtualenv": in_venv,
         "externally_managed_markers": externally_managed,
         "modules": modules,
+        # pip 부재 시의 판정 (None = pip 존재). by_design_uv_tool 은 finding 을
+        # 내지 않은 이유의 기록이다 — 조용한 통과는 근거가 못 된다.
+        "pip_absence": pip_absence,
         "wk_on_path": wk_path,
         "findings": findings,
     }

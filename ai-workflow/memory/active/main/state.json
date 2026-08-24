@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-24-main-009 — doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다",
       "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다",
       "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
       "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
@@ -44,15 +45,14 @@
       "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
-      "TASK-2026-08-22-main-001 — handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리",
-      "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다"
+      "TASK-2026-08-22-main-001 — handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
-    "task_count": 9,
+    "task_count": 10,
     "in_progress_items": [
       "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
@@ -65,7 +65,8 @@
       "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
       "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
       "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
-      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다"
+      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다",
+      "TASK-2026-08-24-main-009 — doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다"
     ]
   },
   "next_documents": [

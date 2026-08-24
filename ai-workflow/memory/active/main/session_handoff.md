@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-24-main-009 doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다
 - TASK-2026-08-24-main-008 OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다
 - TASK-2026-08-24-main-007 mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다
 - TASK-2026-08-24-main-006 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고
@@ -53,7 +54,6 @@
 - TASK-2026-08-24-main-002 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다
 - TASK-2026-08-24-main-001 watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다
 - TASK-2026-08-22-main-001 handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리
-- TASK-2026-08-20-main-017 consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

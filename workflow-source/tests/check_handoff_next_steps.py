@@ -26,8 +26,10 @@ ADR 후속" 은 `main-003` 이 닫은 일이었다(`OKF_SPEC_VERSION` 은 이미
 
 1. `TASK-<YYYY-MM-DD>-<slug>-<NNN>` 형식의 ID 를 **하나 이상** 인용해야 한다.
 2. 그 task 파일이 `backlog/tasks/` 에 실재해야 한다.
-3. 그 task 의 frontmatter `status` 가 `planned` 또는 `in_progress` 여야 한다.
-   `done` / `blocked` 은 "지금 할 일" 이 아니다.
+3. 인용된 task 중 **최소 하나**의 frontmatter `status` 가 `planned` 또는
+   `in_progress` 여야 한다. `done` / `blocked` 만 가리키는 후보는 "지금 할 일" 이
+   아니다. *모두* 열려 있기를 요구하지 않는 이유는, 근거로 완료 task 를 인용하는
+   정당한 문장("재료는 `TASK-…-002` 에 있다")까지 막게 되기 때문이다.
 
 **ID 는 markdown 링크가 아니라 평문으로 인용한다.** `parse_handoff` 의
 `next_documents` 가 파일 **전체**의 markdown 링크를 긁어가므로, 링크로 적으면
@@ -164,6 +166,15 @@ def test_candidates_cite_open_tasks() -> None:
                 "아니면 '결정 대기' / '관찰 축' 소절로 옮길 것"
             )
             continue
+        # **열린 것을 하나라도** 가리키면 된다. 처음 판은 인용된 모든 ID 가 열려
+        # 있기를 요구했는데, 그러면 *근거로* 완료 task 를 인용하는 정당한 문장까지
+        # red 가 된다 — 실제로 첫 실사용에서 "재료는 `…-002` 에 있다" 가 걸렸다
+        # (2026-08-24). 그물이 유용한 문장을 못 쓰게 만들면 사람은 그물을 피해
+        # 쓰고, 그러면 그물이 지키려던 것도 같이 사라진다.
+        #
+        # 느슨해져도 잡으려던 것은 그대로 잡는다: 완료 task **만** 인용한 후보와
+        # ID 가 아예 없는 후보 — 2026-08-20 의 잔재 2건이 정확히 그 둘이다.
+        statuses: dict[str, str] = {}
         for task_id in ids:
             path = tasks_dir / f"{task_id}.md"
             if not path.is_file():
@@ -173,12 +184,12 @@ def test_candidates_cite_open_tasks() -> None:
             if match is None:
                 problems.append(f"{task_id}: frontmatter 에 status 가 없다")
                 continue
-            status = match.group(1)
-            if status not in OPEN_STATUSES:
-                problems.append(
-                    f"{task_id}: status={status} — 열린 것이 아니다. "
-                    f"§5 의 작업 후보는 {list(OPEN_STATUSES)} 만 인용한다"
-                )
+            statuses[task_id] = match.group(1)
+        if statuses and not any(v in OPEN_STATUSES for v in statuses.values()):
+            problems.append(
+                f"후보가 열린 task 를 하나도 안 가리킨다: {statuses} — "
+                f"§5 의 작업 후보는 {list(OPEN_STATUSES)} 를 최소 하나 인용한다"
+            )
     _record("test_candidates_cite_open_tasks", not problems, "; ".join(problems))
 
 

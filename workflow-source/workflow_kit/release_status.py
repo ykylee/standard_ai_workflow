@@ -23,6 +23,8 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import os
+import tempfile
 import sys
 from pathlib import Path
 from typing import Any
@@ -34,6 +36,24 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = REPO_ROOT.parent  # ykylee/standard_ai_workflow/
 
+
+
+def _isolated_mypy_cache_dir() -> str:
+    """이 프로세스 전용 mypy 캐시 경로 (TASK-2026-08-24-main-007).
+
+    `--no-incremental` 은 캐시 **읽기**만 끄고 디렉터리는 그대로 만든다. 그래서
+    병렬 구간의 mypy 호출들이 같은 cwd 의 `.mypy_cache` 를 두고 경합했고, 관찰
+    4차의 트레이스백이 `mypy/build.py:create_metastore` 를 지목했다.
+
+    **빈 문자열(`--cache-dir=`)로는 못 끈다** — 캐시를 *끄는* 것이 아니라 cwd 로
+    *옮긴다* (실측: `3.13/cache.*.db` 가 작업 디렉터리에 쏟아진다). 처음에
+    `.mypy_cache` 부재만 확인하고 "아무것도 안 만든다" 로 읽어 저장소에 캐시
+    db 를 커밋했다 — 기대한 산출물의 부재를 산출물 전체의 부재로 읽은 것이다.
+
+    그래서 **전용 경로**를 준다. 프로세스별로 갈라지므로 병렬에서 부딪히지 않고,
+    `TMPDIR` 아래라 러너가 정리한다 (전량 runner 는 `--tmp-dir` 로 실디스크를 준다).
+    """
+    return str(Path(tempfile.gettempdir()) / f"mypy-cache-{os.getpid()}")
 
 def _read_pyproject_version() -> str:
     """Read [project] version from workflow-source/pyproject.toml."""
@@ -193,7 +213,7 @@ def _check_local_mypy() -> dict[str, Any]:
         # 암묵적 탐색이 `Config File: Default` 로 떨어졌고, 이 Layer 2 게이트도
         # strict 를 적용한 적이 없다 (CI / release gate 와 같은 결함의 사본).
         proc = subprocess.run(
-            [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir=",
+            [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(),
              "--config-file", str(REPO_ROOT / "pyproject.toml"),
              "workflow-source/workflow_kit/"],
             cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120,

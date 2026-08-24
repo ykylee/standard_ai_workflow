@@ -48,6 +48,7 @@ import ast
 import os
 import re
 import subprocess
+import tempfile
 import sys
 from pathlib import Path
 
@@ -81,6 +82,24 @@ SCAN_EXCLUDE = {"workflow-source/tests/check_mypy_config_actually_loaded.py"}
 TEXT_SITES = [(".github/workflows/mypy-strict.yml", "CI (mypy-strict workflow)")]
 
 
+
+def _isolated_mypy_cache_dir() -> str:
+    """이 프로세스 전용 mypy 캐시 경로 (TASK-2026-08-24-main-007).
+
+    `--no-incremental` 은 캐시 **읽기**만 끄고 디렉터리는 그대로 만든다. 그래서
+    병렬 구간의 mypy 호출들이 같은 cwd 의 `.mypy_cache` 를 두고 경합했고, 관찰
+    4차의 트레이스백이 `mypy/build.py:create_metastore` 를 지목했다.
+
+    **빈 문자열(`--cache-dir=`)로는 못 끈다** — 캐시를 *끄는* 것이 아니라 cwd 로
+    *옮긴다* (실측: `3.13/cache.*.db` 가 작업 디렉터리에 쏟아진다). 처음에
+    `.mypy_cache` 부재만 확인하고 "아무것도 안 만든다" 로 읽어 저장소에 캐시
+    db 를 커밋했다 — 기대한 산출물의 부재를 산출물 전체의 부재로 읽은 것이다.
+
+    그래서 **전용 경로**를 준다. 프로세스별로 갈라지므로 병렬에서 부딪히지 않고,
+    `TMPDIR` 아래라 러너가 정리한다 (전량 runner 는 `--tmp-dir` 로 실디스크를 준다).
+    """
+    return str(Path(tempfile.gettempdir()) / f"mypy-cache-{os.getpid()}")
+
 def _mypy_call_sites() -> list[tuple[str, int, bool]]:
     """(파일, 줄번호, --config-file 명시 여부) — `--version` 탐침은 제외."""
     sites: list[tuple[str, int, bool]] = []
@@ -108,6 +127,56 @@ def _mypy_call_sites() -> list[tuple[str, int, bool]]:
     return sites
 
 
+def _mypy_cache_isolation(lits: list[str]) -> str | None:
+    """이 호출의 캐시 격리 상태. 문제가 있으면 사유, 없으면 None.
+
+    `--no-incremental` 은 캐시 **읽기**만 끄고 `.mypy_cache` 디렉터리는 그대로
+    만든다 (실측 2026-08-24). 그래서 병렬 구간의 호출들이 같은 cwd 의 같은
+    디렉터리를 두고 경합했고, `TASK-2026-08-13-main-004` 관찰 4차의 트레이스백이
+    `mypy/build.py:create_metastore` 를 지목했다.
+
+    **빈 문자열(`--cache-dir=`)은 격리가 아니다** — 캐시를 *끄는* 것이 아니라
+    cwd 로 *옮긴다* (실측: `3.13/cache.*.db` 가 작업 디렉터리에 쏟아진다).
+    처음에 `.mypy_cache` 부재만 확인하고 "아무것도 안 만든다" 로 읽어 저장소에
+    캐시 db 48개를 커밋했다 — **기대한 산출물의 부재를 산출물 전체의 부재로**
+    읽은 것이다.
+    """
+    if any(lit.startswith("--cache-dir=") for lit in lits):
+        return "--cache-dir=<빈 값>은 캐시를 끄지 않고 cwd 로 옮긴다 — 전용 경로를 줄 것"
+    if "--cache-dir" not in lits:
+        return "--cache-dir 부재 — 병렬 구간에서 .mypy_cache 를 두고 경합한다"
+    return None
+
+
+def _mypy_cache_offenders() -> list[str]:
+    """캐시를 격리하지 않은 호출 자리 (전수). 열거는 `_mypy_call_sites` 와 같은 규칙."""
+    offenders: list[str] = []
+    for d in SCAN_DIRS:
+        for p_ in sorted((REPO_ROOT / d).rglob("*.py")):
+            rel = p_.relative_to(REPO_ROOT).as_posix()
+            if rel in SCAN_EXCLUDE:
+                continue
+            try:
+                tree = ast.parse(p_.read_text(encoding="utf-8"))
+            except (SyntaxError, UnicodeDecodeError):
+                continue
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr == "run"
+                        and node.args
+                        and isinstance(node.args[0], ast.List)):
+                    continue
+                lits = [e.value for e in node.args[0].elts
+                        if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+                if "mypy" not in lits or "--version" in lits:
+                    continue
+                reason = _mypy_cache_isolation(lits)
+                if reason:
+                    offenders.append(f"{rel}:{node.lineno} — {reason}")
+    return offenders
+
+
 def _mypy_available() -> bool:
     try:
         subprocess.run(
@@ -122,7 +191,7 @@ def _mypy_available() -> bool:
 def _run_mypy(extra_args: list[str]) -> subprocess.CompletedProcess[str]:
     """REPO_ROOT 를 cwd 로 mypy 실행 (CI 와 동일 조건)."""
     return subprocess.run(
-        [sys.executable, "-m", "mypy", "-v", "--no-incremental", "--cache-dir=", *extra_args, TARGET_REL],
+        [sys.executable, "-m", "mypy", "-v", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(), *extra_args, TARGET_REL],
         cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=300,
     )
 
@@ -132,6 +201,22 @@ def _config_line(proc: subprocess.CompletedProcess[str]) -> str:
         if line.startswith("LOG:  Config File:"):
             return line.split(":", 2)[2].strip()
     return ""
+
+
+def test_sites_isolate_cache() -> bool:
+    """1b) mypy 를 부르는 **모든** 지점이 캐시를 격리하는가 (전수 조사).
+
+    한 자리만 고치면 나머지가 계속 경합한다. 열거는 `--config-file` 판정과
+    **같은 규칙**을 쓴다 — 열거를 두 곳에 두면 갈라진다.
+    """
+    offenders = _mypy_cache_offenders()
+    if offenders:
+        print(f"  FAIL: 캐시 미격리 호출 {len(offenders)}건")
+        for line in offenders[:10]:
+            print(f"    {line}")
+        return False
+    print("  ok: mypy 호출 전수가 캐시를 격리한다")
+    return True
 
 
 def test_sites_declare_config_file() -> bool:
@@ -290,6 +375,7 @@ def test_negative_control_default_config() -> bool:
 def main() -> int:
     text_cases = [
         ("test_sites_declare_config_file", test_sites_declare_config_file),
+        ("test_sites_isolate_cache", test_sites_isolate_cache),
         ("test_config_declares_strict", test_config_declares_strict),
         ("test_exclude_does_not_hit_workflow_kit", test_exclude_does_not_hit_workflow_kit),
     ]

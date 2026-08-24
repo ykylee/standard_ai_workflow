@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**56차 세션 (이어서) — main-002·003 close: 혼합 표기의 원인은 레거시가 아니라 **생성기**였다 (검사 265→266).** 결정 재료를 실측하다 질문이 다시 섰다. **재료**: task 298개 = 한국어만 188 / 본문 라벨 없음 99 / 영어만 9 / **한 파일 안 혼재 2**. frontmatter status 없는 파일 **0** — 본문 라벨은 사람이 읽는 면이지 상태의 근거가 아니다. 마이그레이션은 **싸고 안전하다**: 190파일 · 2378줄 · 매핑 17개, 앵커 치환 시 잔여 0 · 코드펜스 오탐 0 이고 격리 사본에서 **파서 출력이 before == after 로 완전히 동일**했다. 그런데 **급한 쪽은 레거시가 아니었다** — 오늘 bootstrap 한 새 프로젝트가 첫날부터 두 표기를 같이 받고 있었다(bootstrap 은 한국어 템플릿, 도구는 `task_label` 영어). 그 템플릿은 표기만 낡은 게 아니라 **v0.14.0 이전 레이아웃**이라 임베드 task 와 append-only 인덱스가 한 파일에 겹쳐 쌓였다. **수리는 템플릿을 고치는 게 아니라 사본을 없애는 것**이었다 — `render_daily_backlog` 이 템플릿 읽기를 그만두고 도구와 **같은 정본 작성기**로 조립한다(`render_daily_backlog_header` + `daily_index_entry_lines`, 후자는 공개화). 함께 드러난 둘: **씨앗 task 파일이 아예 없어** 인덱스가 빈 곳을 가리켰고(`render_initial_task_file` 신설), 기본 ID `TASK-001` 이 **`TASK_ID_PATTERN` 과 안 맞아 kit 자신의 파서가 못 읽었다**(날짜·slug 파생, 사용자 지정은 존중). 배포 템플릿은 소비자 참고 자료라 남기되 정본 출력으로 갈고 검사가 일치를 강제한다. 실측 확인: 새 프로젝트가 이 저장소와 같은 구조·표기를 받고, 씨앗 task 가 `planned_items` 로 파싱되며(**main-014 가 이틀 전 뚫은 자리**), 이어서 `wk backlog-update` 로 쓴 task 와 표기가 완전히 일치한다. `check_daily_backlog_template` 신설(4 cases), 되주입 3종 red 실증. **레거시 190파일 마이그레이션은 여전히 열린 결정**이고, 이제 급하지 않다 — 새로 생기는 혼재가 멈췄다.",
+    "current_baseline": "**56차 세션 (이어서) — main-004 close: 레거시 코퍼스 마이그레이션 완료 (검사 266→267).** 소유자 결정으로 진행했다. **손이 아니라 도구로** 했다(정본 §11) — 소비자 저장소도 같은 레거시 코퍼스를 가지므로 일회성 스크립트면 그들에게 아무것도 안 남는다. `wk migrate-task-labels` 신설: 매핑은 `TASK_FIELD_ALIASES` **파생**, 치환은 **줄머리 앵커**(앵커 없이 하면 라벨을 *언급하는* 산문까지 바뀐다 — 이 저장소 task 는 자기 라벨을 산문으로 자주 인용한다), 긴 라벨 우선(`호스트명`/`호스트 IP` 접두사 충돌). **핵심은 파싱 동일성 잠금장치다** — 쓰기 전후로 집계를 돌려 대조하고 다르면 **전부 되돌린 뒤** blocked 로 보고한다. 라벨은 사람이 읽는 면이고 상태의 근거는 frontmatter 이므로 이 마이그레이션은 **정의상 집계를 바꾸면 안 된다**. 바뀐다면 마이그레이션이 아니라 사고다. 적용: active/ 전 브랜치 **193파일 · 2418줄**(main 190/2378 + worktree 2개). 코퍼스 재측정 **한국어만 188→0 · 혼재 2→0**, 영어만 202(라벨 없음 99는 v0.14.0 이전으로 별개). `archived/` 12개는 범위 밖 — 어떤 집계도 안 읽는 동결 기록이라 순수 churn 이다. 적용 전후 `state.json` 의 in_progress/planned/recent_done 동일. `check_migrate_task_labels` 신설(6 cases). **게이트가 하나 잡았다** — dispatcher 에만 등록하고 `[project.scripts]` entry point 를 빠뜨렸다(`check_wk_dispatcher` 가 두 집합의 일치를 강제한다). **혼합 표기 축이 닫혔다** — 생성기(main-003)와 코퍼스(main-004) 양쪽.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
       "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
@@ -44,21 +45,21 @@
       "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계",
       "TASK-2026-08-20-main-015 — 포크 후속 — CLAUDE.md 가 놓친 kit 변경을 골라 병합한다",
       "TASK-2026-08-20-main-014 — planned task 가 state.json 에 안 보인다 — main-018 이 6일째 잊혀 있었다",
-      "TASK-2026-08-20-main-013 — CLAUDE.md 생성기가 session-end 를 광고 안 한다 — 같은 어긋남의 네 번째 자리",
-      "TASK-2026-08-20-main-012 — 낡은 마커 재적용 — 순수 생성물과 커스터마이즈된 진입 파일은 같은 조언을 받을 수 없다"
+      "TASK-2026-08-20-main-013 — CLAUDE.md 생성기가 session-end 를 광고 안 한다 — 같은 어긋남의 네 번째 자리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
-    "task_count": 3,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
-      "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다"
+      "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
+      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로"
     ]
   },
   "next_documents": [

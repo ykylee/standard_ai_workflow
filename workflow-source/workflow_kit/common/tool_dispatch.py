@@ -65,6 +65,7 @@ TOOL_MODULES: Final[dict[str, str]] = {
     "migrate-active-to-appendonly": "workflow_kit.tools.migrate_active_to_appendonly",
     "migrate-legacy-l2": "workflow_kit.tools.migrate_legacy_l2",
     "migrate-memory-to-branch-scoped": "workflow_kit.tools.migrate_memory_to_branch_scoped",
+    "migrate-task-labels": "workflow_kit.tools.migrate_task_labels",
     # v1.1.7+ (TASK-2026-08-11-main-018): state.json 은 생성물 — 세션 종료 절차의
     # 재생성 창구 (--check 는 drift 판정만).
     "refresh-state": "workflow_kit.tools.refresh_state",

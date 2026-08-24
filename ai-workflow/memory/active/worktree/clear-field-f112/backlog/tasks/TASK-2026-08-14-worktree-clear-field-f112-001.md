@@ -11,18 +11,18 @@ kind: generic
 
 ## 📝 Description
 
-- 상태: in_progress
-- 요청일: 2026-08-14
-- 담당: AI Agent
-- 작업 내용: pi.dev plugin 호환성 보강
-- 완료 기준: (작성 필요 — 검증 방법을 구체적으로 적는다)
+- Status: in_progress
+- Request date: 2026-08-14
+- Owner: AI Agent
+- Description: pi.dev plugin 호환성 보강
+- Completion criteria: (작성 필요 — 검증 방법을 구체적으로 적는다)
 
 ## 🛠️ Implementation / Content
 
-- 진행 현황: 시작 전.
+- Progress: 시작 전.
 
 ## ✅ Outcome
 
-- 작업 결과:
-- 검증 결과:
-- 후속 작업:
+- Result:
+- Verification:
+- Follow-up:

@@ -104,6 +104,46 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
     assert not plain.startswith("[exception]"), f"트레이스백이 아닌데 결론을 붙였다: {plain!r}"
     print("  case 1d (절단이 트레이스백 결론을 자르지 않는다): PASS")
 
+    # case 1e: **mypy 를 부르는 모든 자리**가 캐시를 격리하는가
+    # (TASK-2026-08-24-main-007).
+    #
+    # `--no-incremental` 은 캐시 **읽기**만 끄고 `.mypy_cache` 디렉터리는 그대로
+    # 만든다 (실측 2026-08-24). 그래서 병렬 구간의 mypy 호출들이 같은 cwd 의 같은
+    # 디렉터리를 두고 경합했고, 관찰 4차의 트레이스백이
+    # `mypy/build.py:create_metastore` 를 지목했다.
+    #
+    # 한 자리만 고치면 나머지가 계속 경합한다 — 그래서 **전수**로 본다.
+    # 이 저장소가 이번 주에 여섯 번 배운 모양이다: 그물이 N개 자리만 보면
+    # N+1번째에서 갈린다.
+    source_root = REPO_ROOT / "workflow-source"
+    offenders: list[str] = []
+    for candidate in sorted(source_root.rglob("*.py")):
+        # 저장소가 **소유한** 코드만 본다. `.venv` 아래에는 mypy 자신의 테스트가
+        # 있어서(`mypy/test/testcmdline.py`) 넓게 잡으면 남의 코드를 문다 —
+        # 처음 판이 그것으로 red 였다. `build/` 는 빌드 산출 사본이다.
+        parts = set(candidate.parts)
+        if parts & {"__pycache__", "build"} or any(
+            part.startswith(".venv") or part.startswith("dist") for part in candidate.parts
+        ):
+            continue
+        text = candidate.read_text(encoding="utf-8", errors="replace")
+        if '"-m", "mypy"' not in text:
+            continue
+        # `--version` 만 묻는 호출은 빌드를 돌지 않으므로 캐시를 만들지 않는다.
+        for match in re.finditer(r'\[[^\]]*"-m",\s*"mypy"[^\]]*\]', text, re.S):
+            invocation = match.group(0)
+            if '"--version"' in invocation:
+                continue
+            if '"--cache-dir=' not in invocation:
+                offenders.append(
+                    f"{candidate.relative_to(REPO_ROOT)}: {invocation[:90]!r}"
+                )
+    assert not offenders, (
+        "캐시를 격리하지 않은 mypy 호출 — 병렬 구간에서 .mypy_cache 를 두고 "
+        f"경합한다: {offenders}"
+    )
+    print(f"  case 1e (mypy 호출 전수가 캐시를 격리한다): PASS")
+
     # case 2: --skip-mypy argparse flag
     assert re.search(
         r"p_val\.add_argument\([\"']--skip-mypy",

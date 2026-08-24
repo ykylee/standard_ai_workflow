@@ -193,7 +193,7 @@ def _check_local_mypy() -> dict[str, Any]:
         # 암묵적 탐색이 `Config File: Default` 로 떨어졌고, 이 Layer 2 게이트도
         # strict 를 적용한 적이 없다 (CI / release gate 와 같은 결함의 사본).
         proc = subprocess.run(
-            [sys.executable, "-m", "mypy", "--no-incremental",
+            [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir=",
              "--config-file", str(REPO_ROOT / "pyproject.toml"),
              "workflow-source/workflow_kit/"],
             cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120,

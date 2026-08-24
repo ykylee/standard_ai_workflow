@@ -322,6 +322,14 @@ def cmd_validate(args) -> dict:
         try:
             mypy_target = str(REPO_ROOT / "workflow_kit/")
             mypy_config = str(REPO_ROOT / "pyproject.toml")
+            # `--cache-dir=`(빈 값): 캐시 디렉터리를 **아예 만들지 않는다**.
+            # `--no-incremental` 은 캐시 **읽기**만 끄고 `.mypy_cache` 는 그대로
+            # 만든다 (실측 2026-08-24) — 그래서 병렬 구간의 mypy 호출 6곳이 같은
+            # cwd 의 같은 디렉터리를 두고 경합했고, 관찰 4차의 트레이스백이
+            # `mypy/build.py:create_metastore` 를 지목했다. 읽지 않는 캐시를 만들
+            # 이유가 없으므로 만들지 않는 편이 엄격히 낫다 (판정 동일 실측:
+            # 양쪽 모두 `199 source files`).
+            #
             # `--show-traceback`: mypy 는 **내부 오류일 때만** 트레이스백을 찍으므로
             # 정상 경로 비용이 0 이다. 없을 때 무슨 일이 났는지 4차까지 몰랐다 —
             # 게이트가 `exit 2 / error_count 0` 을 내고 stderr 에는 mypy 가
@@ -330,7 +338,7 @@ def cmd_validate(args) -> dict:
             # ("다음 재발이 트레이스백을 남긴다")이 원리적으로 충족될 수 없었다
             # (TASK-2026-08-13-main-004 관찰 4차, 2026-08-24).
             mypy_proc = subprocess.run(
-                [sys.executable, "-m", "mypy", "--no-incremental", "--show-traceback",
+                [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir=", "--show-traceback",
                  "--config-file", mypy_config, mypy_target],
                 cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=120,
             )

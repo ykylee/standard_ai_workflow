@@ -128,7 +128,7 @@ def test_release_status_auto_bump_v0_11_16() -> None:
 
     # case 5: mypy strict clean verify (CI scope, 107 source files 유지)
     mypy_proc = subprocess.run(
-        [sys.executable, "-m", "mypy", "--no-incremental",
+        [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir=",
              # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
              # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
              "--config-file", "workflow-source/pyproject.toml",

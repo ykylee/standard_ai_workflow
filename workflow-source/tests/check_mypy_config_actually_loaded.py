@@ -122,7 +122,7 @@ def _mypy_available() -> bool:
 def _run_mypy(extra_args: list[str]) -> subprocess.CompletedProcess[str]:
     """REPO_ROOT 를 cwd 로 mypy 실행 (CI 와 동일 조건)."""
     return subprocess.run(
-        [sys.executable, "-m", "mypy", "-v", "--no-incremental", *extra_args, TARGET_REL],
+        [sys.executable, "-m", "mypy", "-v", "--no-incremental", "--cache-dir=", *extra_args, TARGET_REL],
         cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=300,
     )
 

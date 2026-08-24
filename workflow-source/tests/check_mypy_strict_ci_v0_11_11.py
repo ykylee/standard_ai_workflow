@@ -172,7 +172,7 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     # 그 "무엇" 은 check_mypy_config_actually_loaded.py 가 담당한다.
     try:
         result_ci = subprocess.run(
-            [sys.executable, "-m", "mypy", "--no-incremental",
+            [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir=",
              "--config-file", "workflow-source/pyproject.toml",
              "workflow-source/workflow_kit/"],
             cwd=str(REPO_ROOT),

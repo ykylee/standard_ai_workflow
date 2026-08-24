@@ -29,8 +29,9 @@
   "session": {
     "current_baseline": "**56차 세션 (이어서) — main-004 close: 레거시 코퍼스 마이그레이션 완료 (검사 266→267).** 소유자 결정으로 진행했다. **손이 아니라 도구로** 했다(정본 §11) — 소비자 저장소도 같은 레거시 코퍼스를 가지므로 일회성 스크립트면 그들에게 아무것도 안 남는다. `wk migrate-task-labels` 신설: 매핑은 `TASK_FIELD_ALIASES` **파생**, 치환은 **줄머리 앵커**(앵커 없이 하면 라벨을 *언급하는* 산문까지 바뀐다 — 이 저장소 task 는 자기 라벨을 산문으로 자주 인용한다), 긴 라벨 우선(`호스트명`/`호스트 IP` 접두사 충돌). **핵심은 파싱 동일성 잠금장치다** — 쓰기 전후로 집계를 돌려 대조하고 다르면 **전부 되돌린 뒤** blocked 로 보고한다. 라벨은 사람이 읽는 면이고 상태의 근거는 frontmatter 이므로 이 마이그레이션은 **정의상 집계를 바꾸면 안 된다**. 바뀐다면 마이그레이션이 아니라 사고다. 적용: active/ 전 브랜치 **193파일 · 2418줄**(main 190/2378 + worktree 2개). 코퍼스 재측정 **한국어만 188→0 · 혼재 2→0**, 영어만 202(라벨 없음 99는 v0.14.0 이전으로 별개). `archived/` 12개는 범위 밖 — 어떤 집계도 안 읽는 동결 기록이라 순수 churn 이다. 적용 전후 `state.json` 의 in_progress/planned/recent_done 동일. `check_migrate_task_labels` 신설(6 cases). **게이트가 하나 잡았다** — dispatcher 에만 등록하고 `[project.scripts]` entry point 를 빠뜨렸다(`check_wk_dispatcher` 가 두 집합의 일치를 강제한다). **혼합 표기 축이 닫혔다** — 생성기(main-003)와 코퍼스(main-004) 양쪽.",
     "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+    "current_focus": "TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
     "in_progress_items": [
+      "TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
@@ -52,8 +53,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
-    "task_count": 4,
-    "in_progress_items": [],
+    "task_count": 5,
+    "in_progress_items": [
+      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",

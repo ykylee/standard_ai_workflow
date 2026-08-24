@@ -13,6 +13,7 @@ Templates live in ``workflow-source/templates/`` and are loaded with
 from __future__ import annotations
 
 import argparse
+import re
 import os
 from pathlib import Path
 
@@ -221,33 +222,107 @@ def render_backlog_index(args: argparse.Namespace) -> str:
     return content
 
 
+#: 옛 기본값. 이 값이 그대로 오면 "사용자가 고른 것" 이 아니라 "안 골랐다" 로 읽는다.
+_LEGACY_INITIAL_TASK_ID = "TASK-001"
+
+
+def initial_task_id(args: argparse.Namespace) -> str:
+    """씨앗 task 의 ID. 사용자가 준 값이 있으면 그것, 없으면 **파생**한다.
+
+    기본값이 `TASK-001` 이었는데 그것은 `project_docs.TASK_ID_PATTERN`
+    (`TASK-YYYY-MM-DD-<slug>-NNN`)과 **맞지 않는다** — 즉 bootstrap 이 심는
+    씨앗 task 를 kit 자신의 파서가 못 읽었다 (TASK-2026-08-24-main-003).
+    날짜와 slug 에서 파생해 처음부터 유효한 ID 를 심는다.
+    """
+    explicit = getattr(args, "initial_task_id", None)
+    if explicit and explicit != _LEGACY_INITIAL_TASK_ID:
+        return explicit
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", str(args.project_slug)).strip("-") or "main"
+    return f"TASK-{args.today}-{slug}-001"
+
+
 def render_daily_backlog(args: argparse.Namespace, context: dict[str, object]) -> str:
-    content = load_template("daily_backlog_template.md")
+    """daily backlog **index** (v0.14.0+ append-only layout).
 
-    task_goal = "TODO: 작업 목표"
-    done_criteria = "TODO: 완료 기준"
-    progress = f"`{args.today} 09:00` bootstrap 초기 생성"
+    예전에는 `daily_backlog_template.md`(v0.14.0 **이전** 레이아웃)를 읽어
+    치환했다. 그 결과 새 프로젝트는 첫날부터 어긋난 파일을 받았다
+    (TASK-2026-08-24-main-003):
 
-    if args.adoption_mode == "existing":
-        task_goal = "기존 프로젝트 분석 및 워크플로우 도입"
-        done_criteria = "profile/handoff/backlog 초안 생성 및 검토 완료"
-        progress = f"`{args.today} 09:00` 기존 저장소 분석 및 문서 생성 완료"
+    - **표기가 갈렸다** — bootstrap 은 한국어 라벨을, 도구(`task_label`)는 영어를
+      썼다. 같은 프로젝트 안에서 두 표기가 동시에 생겼다.
+    - **레이아웃이 겹쳤다** — 파일 머리에 임베드 task(`## 1. TASK-XXX` + 계획/
+      실행/검증 절)가 있고, `wk backlog-update` 는 그 아래에 append-only 인덱스
+      항목을 덧붙인다. 한 파일에 두 형식이 쌓이고 유령 task 가 남았다.
 
-    replacements = {
-        "TASK-XXX": args.initial_task_id,
-        "<작업명>": args.initial_task_name,
-        "planned | in_progress | done | blocked": args.initial_task_status,
-        "high | medium | low": args.initial_priority,
-        "<name>": args.owner,
-        "<file_paths>": f"{context['session_doc_path']}, {context['backlog_dir']}",
-        "TODO: 작업 목표": task_goal,
-        "TODO: 완료 기준": done_criteria,
-        "YYYY-MM-DD": args.today,
-    }
-    for key, val in replacements.items():
-        content = content.replace(key, val)
-    content = content.replace("- 진행 현황:", f"- 진행 현황: {progress}")
-    return content
+    그래서 템플릿을 읽지 않고 **도구와 같은 정본 작성기로 조립한다**
+    (`workflow_writes.render_daily_backlog_header` / `daily_index_entry_lines`).
+    사본을 두면 갈라진다 — 이 결함이 바로 그 사본의 결과였다.
+    """
+    from workflow_kit.common.workflow_writes import (  # noqa: PLC0415
+        daily_index_entry_lines,
+        render_daily_backlog_header,
+    )
+
+    # 머리말은 파일 이름(stem = 날짜)만 쓴다. context 를 뒤지지 않고 args 에서
+    # 곧장 만든다 — 있지도 않은 키를 or 로 받으면 "폴백이 있다" 는 거짓말이 된다.
+    lines = render_daily_backlog_header(backlog_path=Path(f"{args.today}.md"))
+    lines += daily_index_entry_lines(
+        task_id=initial_task_id(args),
+        title=args.initial_task_name,
+        kind="generic",
+        status=args.initial_task_status,
+    )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_initial_task_file(args: argparse.Namespace) -> str:
+    """씨앗 task 의 **per-task SSOT 파일** (v0.14.0+ layout).
+
+    예전에는 이 파일이 아예 없었다 — 임베드 task 가 daily 파일 안에만 있었고,
+    그것은 `TASK_ID_PATTERN` 과도 안 맞아 파서가 세지 않았다. 인덱스는 task 를
+    가리키는데 가리켜진 파일이 없는 상태였다.
+
+    본문은 도구가 쓰는 것과 **같은 라벨 레지스트리**(`task_label`)에서 나온다.
+    """
+    from workflow_kit.common.project_docs import task_label  # noqa: PLC0415
+    from workflow_kit.common.workflow_writes import render_task_file  # noqa: PLC0415
+
+    task_id = initial_task_id(args)
+    body = [
+        "## 📝 Description",
+        "",
+        f"- {task_label('status')}: {args.initial_task_status}",
+        f"- {task_label('priority')}: {args.initial_priority}",
+        f"- {task_label('request_date')}: {args.today}",
+        f"- {task_label('owner')}: {args.owner}",
+        f"- {task_label('summary')}: {args.initial_task_name}",
+        f"- {task_label('done_criteria')}: TODO — 검증 방법을 구체적으로 적는다",
+        "",
+        "## 🛠️ Implementation / Content",
+        "",
+        f"- {task_label('progress')}: `{args.today}` bootstrap 초기 생성",
+        f"- {task_label('next_step')}:",
+        f"- {task_label('risks')}:",
+        "",
+        "## ✅ Outcome",
+        "",
+        f"- {task_label('result')}:",
+        f"- {task_label('validation')}:",
+        f"- {task_label('follow_up')}:",
+        "",
+    ]
+    lines = render_task_file(
+        task_id=task_id,
+        title=args.initial_task_name,
+        status=args.initial_task_status,
+        created_at=args.today,
+        kind="generic",
+        source_anchor=f"generic-{task_id.lower()}",
+        source_path=f"backlog/{args.today}.md",
+        body_lines=body,
+    )
+    return "\n".join(lines)
 
 
 def render_project_status_assessment(args: argparse.Namespace) -> str:
@@ -349,6 +424,7 @@ __all__ = [
     "render_assessment",
     "render_backlog_index",
     "render_daily_backlog",
+    "render_initial_task_file",
     "render_project_profile",
     "render_project_status_assessment",
     "render_readme",

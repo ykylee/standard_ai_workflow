@@ -148,7 +148,7 @@ def render_task_file(
     ]
 
 
-def _daily_index_entry_lines(*, task_id: str, title: str, kind: str, status: str) -> list[str]:
+def daily_index_entry_lines(*, task_id: str, title: str, kind: str, status: str) -> list[str]:
     """daily index 의 task 1건 link block.
 
     `path:` 를 markdown link 로 적는 이유: `BacklogParser._linked_task_paths` 가
@@ -371,7 +371,7 @@ def upsert_backlog_entry(
     action = "updated" if task_file.exists() else "created"
     _write_lines(task_file, entry_lines)
 
-    entry = _daily_index_entry_lines(
+    entry = daily_index_entry_lines(
         task_id=task_id, title=title or task_id, kind=kind, status=status,
     )
 

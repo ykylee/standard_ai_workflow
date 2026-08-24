@@ -147,9 +147,21 @@ def check_new_project_mode() -> None:
         if "Purpose: Compact restore context" not in handoff_text:
             raise AssertionError("Generated handoff should include the context-saving rule.")
 
+        # 기대 문구는 **정본 작성기에서 파생한다**. 리터럴("- 문서 목적: 당일의
+        # 구체적인 작업 계획")이었을 때, bootstrap 이 v0.14.0 레이아웃으로 옮겨간
+        # 순간 이 단언이 red 가 됐다 — 산출물은 옳았고 틀린 것은 기대값이었다
+        # (TASK-2026-08-24-main-003). 검사가 리터럴로 든 기대값은 계약이 아니라
+        # 그 시점 상수다.
+        from workflow_kit.common.workflow_writes import render_daily_backlog_header
+        purpose = next(
+            line for line in render_daily_backlog_header(backlog_path=Path("YYYY-MM-DD.md"))
+            if line.startswith("- 문서 목적:")
+        )
         daily_backlog_text = Path(str(generated["daily_backlog"])).read_text(encoding="utf-8")
-        if "- 문서 목적: 당일의 구체적인 작업 계획" not in daily_backlog_text:
-            raise AssertionError("Generated daily backlog should include the correct purpose statement.")
+        if purpose not in daily_backlog_text:
+            raise AssertionError(
+                f"Generated daily backlog should carry the canonical purpose line: {purpose!r}"
+            )
 
 
 def check_existing_project_mode() -> None:

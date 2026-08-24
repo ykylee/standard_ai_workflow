@@ -122,6 +122,7 @@ from workflow_kit.bootstrap_lib.renderers import (  # noqa: E402
     render_assessment,
     render_backlog_index,
     render_daily_backlog,
+    render_initial_task_file,
     render_project_profile,
     render_project_status_assessment,
     render_readme,
@@ -1086,6 +1087,15 @@ def main() -> int:
         _record_write(paths.handoff_path, render_session_handoff(args, context), force=args.force)
         _record_write(paths.backlog_index_path, render_backlog_index(args), force=args.force)
         _record_write(paths.daily_backlog_path, render_daily_backlog(args, context), force=args.force)
+        # v0.14.0+ layout 은 daily 파일을 **index** 로 두고 본문을 `tasks/` 가 갖는다.
+        # 예전에는 index 만 쓰고 가리켜진 task 파일을 안 만들어, 링크가 빈 곳을
+        # 가리켰다 (TASK-2026-08-24-main-003).
+        from workflow_kit.bootstrap_lib.renderers import initial_task_id
+        _record_write(
+            paths.backlog_dir / "tasks" / f"{initial_task_id(args)}.md",
+            render_initial_task_file(args),
+            force=args.force,
+        )
         # v1.0.2 — 진입점 문서가 `<branch>/sessions` 를 "항상 먼저 읽을 문서" 로
         # 안내하는데 정작 그 디렉터리를 만들지 않고 있었다. 문서가 가리키는 곳에
         # 파일이 없으면 에이전트는 첫 단계에서 길을 잃는다

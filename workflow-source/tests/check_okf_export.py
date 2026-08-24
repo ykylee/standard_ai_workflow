@@ -736,11 +736,48 @@ def test_okf_bundle_manifest_emits_v0_7_38() -> None:
         manifest_path = out_bundle / "okf-bundle.yaml"
         assert manifest_path.exists(), "okf-bundle.yaml not emitted"
         text = manifest_path.read_text(encoding="utf-8")
-        assert "okf_version: '0.1'" in text, f"missing okf_version: {text}"
+        # 리터럴을 박지 않는다 — ADR-026 이행 때 이 자리의 '0.1' 기대값이
+        # 매니페스트의 하드코딩 잔재를 green 으로 가렸다 (main-008).
+        assert f"okf_version: '{mod.OKF_SPEC_VERSION}'" in text, f"missing okf_version: {text}"
         assert "vcs_commit: 'abc1234def'" in text, f"missing vcs_commit: {text}"
         assert "vcs_ref: 'v0.7.38'" in text, f"missing vcs_ref: {text}"
         assert "integrity_hash: 'sha256:" in text, f"missing integrity_hash: {text}"
         assert "page_count: 2" in text, f"missing page_count: {text}"
+
+
+def test_manifest_and_index_declare_same_version() -> None:
+    """같은 번들의 버전 선언 두 자리(index.md · okf-bundle.yaml)가 정본 상수와 일치한다.
+
+    ADR-026 이행이 index.md 는 정본 참조로 바꿨는데 매니페스트는 '0.1' 리터럴로
+    남아 두 선언이 갈렸다 (TASK-2026-08-24-main-008). 소비 지점이 실재한다 —
+    `okf_import` 버전 감지 2순위와 `wk okf-version-check --bundle` 이 매니페스트를
+    읽는다. '있는가' 가 아니라 **어느 값인가**를 두 자리 모두에서 재고 서로 대조한다.
+    """
+    mod = _import_okf_export()
+    version_re = re.compile(r"okf_version\s*:\s*[\"']?(\d+\.\d+(?:\.\d+)?)[\"']?")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        wiki_root = Path(tmpdir) / "wiki"
+        out_bundle = Path(tmpdir) / "bundle"
+        wiki_root.mkdir()
+        (wiki_root / "concepts").mkdir()
+        (wiki_root / "concepts" / "a.md").write_text(
+            "---\ntype: concept\n---\n\n# A\n\nbody\n", encoding="utf-8"
+        )
+        report = mod.export_wiki_to_okf(wiki_root, out_bundle)
+        assert report.pages_exported == 1
+        declared: dict[str, str] = {}
+        for name in ("index.md", "okf-bundle.yaml"):
+            text = (out_bundle / name).read_text(encoding="utf-8")
+            m = version_re.search(text)
+            assert m, f"{name}: okf_version declaration not found:\n{text}"
+            declared[name] = m.group(1)
+        assert declared["index.md"] == mod.OKF_SPEC_VERSION, (
+            f"index.md declares {declared['index.md']!r} != canonical {mod.OKF_SPEC_VERSION!r}"
+        )
+        assert declared["okf-bundle.yaml"] == mod.OKF_SPEC_VERSION, (
+            f"okf-bundle.yaml declares {declared['okf-bundle.yaml']!r} != canonical "
+            f"{mod.OKF_SPEC_VERSION!r} — 같은 번들의 두 선언이 갈렸다"
+        )
 
 
 def test_okf_bundle_manifest_skip_emit() -> None:
@@ -956,6 +993,7 @@ def main() -> int:
         test_per_page_frontmatter_vcs_commit,
         test_tag_based_pinning_v0_7_37,
         test_okf_bundle_manifest_emits_v0_7_38,
+        test_manifest_and_index_declare_same_version,
         test_okf_bundle_manifest_skip_emit,
         test_okf_resource_content_hash_v0_7_39,
         test_okf_resource_range_refs_v0_7_40,

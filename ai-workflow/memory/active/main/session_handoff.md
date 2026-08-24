@@ -15,7 +15,7 @@
 - 그 이전 기준선: **56차 세션 (이어서) — main-004 close: 레거시 코퍼스 마이그레이션 완료 (검사 266→267).** 소유자 결정으로 진행했다. **손이 아니라 도구로** 했다(정본 §11) — 소비자 저장소도 같은 레거시 코퍼스를 가지므로 일회성 스크립트면 그들에게 아무것도 안 남는다. `wk migrate-task-labels` 신설: 매핑은 `TASK_FIELD_ALIASES` **파생**, 치환은 **줄머리 앵커**(앵커 없이 하면 라벨을 *언급하는* 산문까지 바뀐다 — 이 저장소 task 는 자기 라벨을 산문으로 자주 인용한다), 긴 라벨 우선(`호스트명`/`호스트 IP` 접두사 충돌). **핵심은 파싱 동일성 잠금장치다** — 쓰기 전후로 집계를 돌려 대조하고 다르면 **전부 되돌린 뒤** blocked 로 보고한다. 라벨은 사람이 읽는 면이고 상태의 근거는 frontmatter 이므로 이 마이그레이션은 **정의상 집계를 바꾸면 안 된다**. 바뀐다면 마이그레이션이 아니라 사고다. 적용: active/ 전 브랜치 **193파일 · 2418줄**(main 190/2378 + worktree 2개). 코퍼스 재측정 **한국어만 188→0 · 혼재 2→0**, 영어만 202(라벨 없음 99는 v0.14.0 이전으로 별개). `archived/` 12개는 범위 밖 — 어떤 집계도 안 읽는 동결 기록이라 순수 churn 이다. 적용 전후 `state.json` 의 in_progress/planned/recent_done 동일. `check_migrate_task_labels` 신설(6 cases). **게이트가 하나 잡았다** — dispatcher 에만 등록하고 `[project.scripts]` entry point 를 빠뜨렸다(`check_wk_dispatcher` 가 두 집합의 일치를 강제한다). **혼합 표기 축이 닫혔다** — 생성기(main-003)와 코퍼스(main-004) 양쪽.
 - 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 70건, 최신이 위).
 
-- 현재 주 작업 축: **배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
+- 현재 주 작업 축: **배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: ~~PyPI 발행~~ → ⛔ **닫힘 (2026-08-14 소유자 최종 결정 = 발행 안 함, `RELEASE.md` §1 각주 0)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-24-main-008 OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다
 - TASK-2026-08-24-main-007 mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다
 - TASK-2026-08-24-main-006 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고
 - TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor
@@ -53,7 +54,6 @@
 - TASK-2026-08-24-main-001 watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다
 - TASK-2026-08-22-main-001 handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리
 - TASK-2026-08-20-main-017 consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다
-- TASK-2026-08-20-main-016 okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -344,10 +344,11 @@
 
 - ✅ **즉시 적용**: `CLAUDE.md` 에 3단 규칙 명문화 — 편집 중 `--filter` / 커밋 전
   관련 검사 + `check_self_application` / **push 직전 1회만 2축 전량**.
-- ① [TASK-2026-08-13-main-009] 무거운 8개 (임계경로 둘부터)
-- ② [TASK-2026-08-14-main-003] `--changed` 선택 실행 (미선언은 항상 실행 + 스킵 출력)
-- ③ [TASK-2026-08-14-main-004] 2축→1축 조건부 — **앞의 둘을 끝낸 뒤에.**
-  절감은 가장 크지만 15연속 CI red 를 만든 그 비대칭이다. 안 하는 것도 결론이다.
+- ~~① [TASK-2026-08-13-main-009] 무거운 8개~~ ✅ done
+- ~~② [TASK-2026-08-14-main-003] `--changed` 선택 실행~~ ✅ done
+- ~~③ [TASK-2026-08-14-main-004] 2축→1축 조건부~~ ⛔ **검토 후 기각** (재론 방지,
+  CLAUDE.md 게이트 절에 명문) — 절감은 가장 크지만 15연속 CI red 를 만든 그
+  비대칭이다. 안 하는 것도 결론이고, 이로써 **이 절의 실행형 잔여는 0** 이다.
 
 ### ⛔ 닫힌 안건 — PyPI 발행 안 함 (2026-08-14, 소유자 최종 결정)
 

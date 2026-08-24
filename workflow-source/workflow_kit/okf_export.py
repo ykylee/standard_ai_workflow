@@ -1,23 +1,25 @@
 """workflow_kit.okf_export — wiki → OKF bundle export helper (PoC, v0.7.33+).
 
-OKF (Open Knowledge Format) v0.1 spec 의 reference: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+OKF (Open Knowledge Format) spec 의 reference: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+준수를 선언하는 버전은 `OKF_SPEC_VERSION` 이 정본이다 (v0.2, ADR-026 —
+legacy 형태를 남긴 채 정규 필드를 더해 v0.1·v0.2 소비자를 함께 만족한다).
 
 Wiki page (markdown + YAML frontmatter) 를 OKF "concept" 문서로 변환하여
 지정 directory 에 bundle 로 export. 우리 wiki 의 5 type (entity/concept/decision/pattern/query) 을
 OKF 의 free-string `type` 으로 그대로 보존 (OKF spec §4.1: type 은 non-empty string, no registry).
 
-Frontmatter mapping (우리 wiki → OKF v0.1, 양방향 OKF compatible 보장):
+Frontmatter mapping (우리 wiki → OKF v0.2 + v0.1 legacy 병행, ADR-026):
   - `type`         → `type`           (우리 enum ⊂ OKF string, 그대로)
   - `title`        → `title`          (OKF recommended, optional)
   - `description`  → `description`    (OKF recommended, optional)
-  - `last_ingested_from` (URL/path) → `resource` (if URL) OR `tags` (`ingested_from:<path>`) (if in-repo path)
+  - `last_ingested_from` (URL/path) → `resource` (if URL) + `sources` (§5.1, v0.2)
   - `tags`         → `tags`           (union with derived from `status`, `related_pages`)
-  - `updated`      → `timestamp`      (YYYY-MM-DD → YYYY-MM-DDTHH:MM:SSZ)
+  - `updated`      → `timestamp`      (legacy, §13.1 fallback 용으로 유지; `generated` 는 의도적으로 안 낸다)
   - `created`      → extra `created`  (OKF 가 unknown key tolerate, spec §4.1 Extensions)
-  - `status`       → extra `status`   (OKF 가 unknown key tolerate)
+  - `status`       → `status` (§5.4 어휘로 매핑) + 원문은 extra `wiki_status` 로 보존
   - `related_pages` → extra `related_pages` (and emit as cross-links in body §5.1)
   - `r9_skip`      → extra `r9_skip` (OKF 가 unknown key tolerate)
-  - `last_ingested_from` 의 path 가 in-repo 일 때 → body 에 `# Citations` section 추가 (SPEC §8, h1)
+  - `last_ingested_from` 의 path 가 in-repo 일 때 → body 에 `# Citations` section 추가 (SPEC §8 h1, v0.2 legacy fallback)
 
 Cross-link rewriting (OKF §5.1 bundle-relative):
   - 위키 `[[path/to/page]]` → `[page](../path/to/page.md)` body cross-link
@@ -49,7 +51,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 # ---------------------------------------------------------------------------
-# OKF v0.1 spec constants (SPEC.md §3.1 reserved filenames, §4.1 frontmatter)
+# OKF spec constants (SPEC.md §3.1 reserved filenames, §4.1 frontmatter)
 # ---------------------------------------------------------------------------
 #: 우리가 준수를 선언하는 OKF spec 버전. **여기가 정본이다** — export 기본값,
 #: 소비자 호환 판정(`okf_import.OUR_OKF_VERSION`), CLI·문서 문구가 전부 이 값에서
@@ -724,13 +726,19 @@ def _write_bundle_manifest(
     """Emit `okf-bundle.yaml` (per-bundle manifest) at the bundle root.
 
     Schema (v0.7.38+, ADR-019 convention):
-      okf_version: "0.1"
+      okf_version: "<OKF_SPEC_VERSION>"
       generated_at: <ISO 8601>
       generator: "workflow_kit.okf_export vX.Y.Z"
       vcs_commit: <sha>  (optional)
       vcs_ref: <ref>     (optional)
       integrity_hash: "sha256:<hex>"
       page_count: N
+
+    `okf_version` 은 `OKF_SPEC_VERSION` 에서 파생한다 — 같은 번들의 index.md 와
+    이 매니페스트는 **같은 사실을 말하는 두 자리**이고, `okf_import` 감지 2순위와
+    `wk okf-version-check --bundle` 이 이쪽을 읽는다. ADR-026 이행 때 index.md 만
+    정본 참조로 바뀌고 여기는 '0.1' 리터럴로 남아 두 선언이 갈렸었다
+    (TASK-2026-08-24-main-008).
     """
     import hashlib
     try:
@@ -740,7 +748,7 @@ def _write_bundle_manifest(
     integrity = _compute_bundle_integrity_hash(pages)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     manifest_lines = [
-        f"okf_version: '0.1'",
+        f"okf_version: '{OKF_SPEC_VERSION}'",
         f"generated_at: '{generated_at}'",
         f"generator: 'workflow_kit.okf_export {_wk_version}'",
     ]
@@ -918,7 +926,7 @@ def export_wiki_to_okf(
 def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="workflow_kit.okf_export",
-        description="wiki → OKF v0.1 bundle export (PoC, v0.7.33+).",
+        description=f"wiki → OKF v{OKF_SPEC_VERSION} bundle export (PoC, v0.7.33+).",
     )
     p.add_argument(
         "--wiki",

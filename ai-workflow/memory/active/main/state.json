@@ -28,7 +28,7 @@
   },
   "session": {
     "current_baseline": "**57차 세션 종료 — task 7건 close + v1.4.0 발행 + mypy flake 원인 규명 (검사 264→268, push 9회, 전량 2축 매번 green).** **① v1.4.0 발행** (main-005): 16 커밋 누적분. `!` 3건에 `RELEASE.md` §1.5 4문항을 **확인으로** 적용해 minor 확정(공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 · `Action` 은 additive). 도구는 `!` 만 세어 `2.0.0` 을 냈고 `requires_decision` 으로 넘겼는데, §1.5 가 정확히 그 자리를 위해 쓰인 절이다. asset 4종. **② 혼합 표기 축 완결** (main-002·003·004): 질문이 '레거시 190파일을 옮길까' 였는데 실측이 **생성기**를 가리켰다 — 새 프로젝트가 첫날부터 두 표기를 받고 있었다. 수리는 템플릿을 고치는 게 아니라 **사본을 없애는 것**이었다. 코퍼스도 도구로 통일(`wk migrate-task-labels`, 193파일·2418줄, 한국어만 188→0). **파싱 동일성을 잠금장치**로 걸어 '안 바뀔 것이다' 를 가정이 아니라 검증으로 만들었다. **③ 세션 시작 자기 복구** (main-006): 부재 진입점을 현재 kit 버전으로 채우고 낡음은 보고만 한다. **`FORKED`(나흘 전) 없이는 안전하지 않은 기능**이었다. **④ mypy flake — 4일 넘게 기다린 신호가 잡혔다** (main-004 관찰 4차, main-007): `--show-traceback` 을 **아무도 준 적이 없어서** 완료 기준이 원리적으로 충족될 수 없었다 — mypy 가 트레이스백을 달라고 *요청하는 문구*를 3차가 로그로 옮겨 놓고 플래그는 안 줬다. 플래그를 넣자 그 다음 재발에서 트레이스백이 왔고 `mypy/build.py:create_metastore` 를 지목했다. 실측이 전제를 확증: **`--no-incremental` 은 캐시 읽기만 끄고 디렉터리는 만든다** — 병렬 호출 6곳이 같은 `.mypy_cache` 를 두고 경합했다. 전용 경로로 격리해 저장소 오염 0. **⑤ 이 세션이 스스로 틀린 것 4건**(전부 게이트·검사가 잡았다): `--cache-dir=` 빈 값을 '캐시 끔' 으로 읽어 db 48개를 커밋(기대한 산출물의 부재를 산출물 전체의 부재로 읽었다) · 복구를 실패 경로에만 달아 절반만 동작 · 임시 디렉터리 `with` 밖에서 `.exists()` 확인 · 새 검사가 `slash` 축에서 red. **자기 그물이 자기를 문 세션**이다.",
-    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: OKF v0.2 이행 ADR(main-006 후속, `status` 어휘가 실질 위험) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
+    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다",
       "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
       "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
       "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
@@ -44,15 +45,14 @@
       "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
       "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
       "TASK-2026-08-22-main-001 — handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리",
-      "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다",
-      "TASK-2026-08-20-main-016 — okf-validate 가 okf_version 0.1 을 리터럴로 박고 있다 — 그물의 파일 형식 경계"
+      "TASK-2026-08-20-main-017 — consumer-metrics-digest 가 없는 경로를 부른다 — 옮긴 파일을 워크플로가 못 따라왔다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
-    "task_count": 8,
+    "task_count": 9,
     "in_progress_items": [
       "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
@@ -64,7 +64,8 @@
       "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
       "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
       "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
-      "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다"
+      "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
+      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다"
     ]
   },
   "next_documents": [

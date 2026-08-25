@@ -29,13 +29,16 @@
   "session": {
     "current_baseline": "**61차 세션 종료 (2026-08-25, Windows 호스트 Oh My Pi) — main-020 in_progress (CI 대기) + Windows 플랫폼 결함 3건 등록 (main-017·018·019 planned).** **① cross-host 플랫폼 형식 결함을 잡고 닫았다** (main-020): `safe_relpath` 이 `os.path.relpath` 결과를 그대로 내니 Windows 호스트의 state.json 경로 값이 백슬래시 표기가 되고 POSIX 소비자(cross-host federation) 에서 단일 파일명으로 해석된다 — 형식 게이트 부재로 조용히 통과. 수리: 두 분기 `as_posix()` + `check_state_json_generated` case_7(단위 2분기 + 산출물 형식 대조) + 되주입 red 실증. **② 이 세션이 결함을 실증했다** (사건 기록): 인터프리터 시작 *후* 에 `os.environ['PYTHONPATH']` 를 세팅한 절차는 무효 — 그 절차로 등록한 task 4건이 **다른 체크아웃의 workflow_kit**(semcowork, v1.1.8-beta) 산출물로 나갔다 (legacy 한국어 라벨 + 백슬래시 state.json + `planned_items` 키 누락). 원복(`git checkout` + 미추적 5건 제거) 후 이 저장소 툴로 재등록. **'탐침은 잰 단위가 맞아야 한다'의 네 번째 사례** — ④번째 단위는 **해결되는 패키지의 출처** (main-019 가 그 도감을 쓴다). **③ mypy flake 관찰 7차**: 격리(`19e40ac9`) 후 smoke run 8건 중 green 5 · red 3 — red 3건 전부 **deterministic** 이고 mypy 가 아니다 (b6afe828 = schema 샘플 드리프트, 9e7b2645·ff0ac3cc = v1.5.0 bump 후 버전 스탬프 잔재 — 원격이 규명 중, `9feabcd8` 파생물 정합 2차). mypy 게이트 실패는 0 (mypy-strict workflow 도 ff0ac3cc 에서 green). 60차 관찰 6차의 '실패 run 0' 은 red run 완료 직전 산출물이었다 — **관찰은 run *완료* 기준이어야 한다.** **④ CI 현황**: v1.5.0 발행 시점 mcp-sdk-matrix 3셀 red + smoke 3연속 red, 원격 세션이 수리 진행 중 (62차 이후 상태는 `gh run list` 로 확인).",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+    "current_focus": "TASK-2026-08-25-main-021 v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)",
     "in_progress_items": [
+      "TASK-2026-08-25-main-021 v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)",
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "blocked_items": [],
-    "planned_items": [],
+    "planned_items": [
+      "TASK-2026-08-25-main-022"
+    ],
     "recent_done_items": [
       "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다",
       "TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다",
@@ -53,10 +56,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
-    "task_count": 21,
+    "task_count": 23,
     "in_progress_items": [
       "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
+      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+      "TASK-2026-08-25-main-021 — v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)"
     ],
     "blocked_items": [],
     "done_items": [

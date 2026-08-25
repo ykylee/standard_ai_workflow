@@ -309,6 +309,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 | v1.3.0 | 배포 일관성·멱등성 gap 4개 + wiki L2 축 + OKF v0.2 이행 | ✅ (2026-08-20) | `feat(okf)!` 를 **minor** 로 판단한 첫 사례 — 근거는 §1.5 |
 | v1.4.0 | 소유권 4번째 분류 '포크됨' + 혼합 표기 축 완결(생성기·코퍼스) + CI red 2건 해소 | ✅ (2026-08-24) | `!` 3건에 §1.5 4문항 적용 → **minor**. 공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 |
 | v1.5.0 | ADR-027 로드맵·마일스톤·WBS 층 + SDLC 온보딩 기본 + overlay 위임 선언 | ✅ (2026-08-25) | `feat(roadmap)!` 에 §1.5 4문항 적용 → **minor**. 동결 표면 밖 · 옛 인자 rc=0 수용 · 출력 key 유지 · roadmap 부재 additive |
+| v1.6.0 | Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기(`python_launcher`) + emit PYTHONPATH target 레이아웃 판정 + doctor `kit_resolution` + `safe_relpath` POSIX | ✅ (2026-08-25) | 커밋 타입은 전부 fix 지만 §1.5 판정 **minor** — 새 공개 모듈 + doctor 신기능 + payload 키 추가. 시그니처 파괴 0 · 진입점 제거 0 · 산출물 소비 불가 0. 체크인 payload 는 posix 고정 (Windows 플러그인 채널은 `python3` 별칭 필요) |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

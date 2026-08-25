@@ -272,6 +272,20 @@
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — cross-host 플랫폼 형식 결함(state.json). ADR-027 로드맵 층 WBS 대상 아님",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-020.md"
+    },
+    {
+      "task_id": "TASK-2026-08-25-main-021",
+      "task_status": "in_progress",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 작업 — 열린 마일스톤 없음 (다음 로드맵은 소유자 선언 대기), 릴리스 운영 축",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-021.md"
+    },
+    {
+      "task_id": "TASK-2026-08-25-main-022",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 작업 — doctor/release 탐침 결함족. 열린 마일스톤 없음",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-022.md"
     }
   ],
   "issues": []

@@ -50,6 +50,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(memory): main-004 close 기준 확정 — 격리 후 완료 run 33건에서 mypy 게이트 실패 0 (62차 소유자 결정) (de0f8307)
+- chore(memory): 60차 세션 종료 — ADR-027 로드맵 층 완결 + v1.5.0 발행 (61차 병합 + main 생성물 치유) (6ecdeaa2)
+- chore(memory): 61차 세션 종료 — Windows 플랫폼 결함 축 착수 (Oh My Pi) (3866c188)
+- docs(work_logs): 2026-08-25 세션 기록 — 원격 동기화 + 플러그인 설치 검증(발견 3건) (b00b4a18)
+- chore(memory): 60차 — M-006 close, v1.5.0 발행·재적용 완료, 로드맵 ADR-027 축 완결 (M-001~M-006 전부 done) (ff0ac3cc)
 - chore(memory): 60차 진행분 — ADR-027 로드맵 층 M-001~M-005 close + mypy flake 관찰 6차 + memory_index 승격 2건 (379913b9)
 - chore(schemas): output sample contracts 재생성 — SessionStartOutput.roadmap_context 반영 (b6afe828)
 - docs(adr): ADR-027 — 로드맵·마일스톤·WBS 층과 SDLC 온보딩 기본 (M-001) (881c2cec)
@@ -75,15 +80,13 @@ All notable changes to this project will be documented in this file.
 - docs(harness): 배포 정책 문서 흠 2건 수리 — §번호 중복 + 누락 타겟 6종 (main-012) (2f0fde65)
 - chore(memory): worktree/brave-field-3f50 브랜치 메모리 seed (표준 §10.2) (a8932689)
 - docs(plugin): 정직화 — pi v0.84.2 가 MCP 미지원임을 명시 (main-012) (ce595693)
-- Merge branch 'main' into worktree/brave-field-3f50 (66626c05)
-- Merge pull request #27 from ykylee/worktree/brave-valley-2538 (ee1506c2)
-- docs(memory): 조건부 1축 생략 기각 — 판단 기록 + 재론 방지 (main-004) (d1e0ef99)
-- docs(claude-md): 실행 기본값을 .venv 전제로 — PEP 668 + 의존성 오탐 함정 봉인 (main-019) (115602a7)
-- docs(release): sync current package version (d68993e4)
-- ... (338 more)
+- ... (343 more)
 
 ### Fixed
 
+- fix(mcp): Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기 + PYTHONPATH target 레이아웃 교정 + doctor kit_resolution 탐침 (62차) (24b75e2a)
+- fix(docs): work log 의 docs 밖 markdown 링크 2건 제거 — mkdocs strict build red 수리 (95fadfc2)
+- fix(state): safe_relpath POSIX 정규화 — Windows 호스트 state.json 백슬래시 제거 (TASK-2026-08-25, cross-host 형식 결함) (bcb05cfb)
 - fix(doctor): pip 부재 판정이 선언을 읽는다 — uv tool venv 의 부재는 설계다 (main-009) (4461e08e)
 - fix(okf): 매니페스트 버전을 정본 파생으로 — 한 번들이 두 버전을 말하고 있었다 (main-008) (b09bbf16)
 - fix(mypy)!: 캐시를 전용 경로로 격리 — 빈 문자열은 격리가 아니었다 (main-007) (19e40ac9)
@@ -111,15 +114,14 @@ All notable changes to this project will be documented in this file.
 - fix(memory): seed 가 첫 세션 기록을 쓴다 — 갓 seed 한 브랜치가 layout green (main-005) (f9b374ee)
 - fix(memory): 아카이브가 살아 있는 대상 상대 링크를 안 고치던 결함 수리 (main-006) (098386c0)
 - fix(memory): 검증 결과 주입이 작업 결과 묶음을 가르던 결함 수리 (main-010) (0b2ef9b3)
-- fix(checks): 영어화된 표면을 조회하던 assert 6건 동반 이동 (stage 3 진행분) (35a144e8)
-- fix(memory): 리뷰에서 나온 결함 5건 — 소실 오판 1 · 침묵 1 · 정보손실 1 · 미처리 2 (f7989471)
-- fix(release): mypy 게이트가 blocking error 사유를 버리던 자리 + TASK-004 관찰 2차 (8544facd)
-- ... (123 more)
+- ... (126 more)
 
 ## [1.5.0] - 2026-08-25
 
 ### Changed
 
+- release(v1.5.0): 파생물 정합 2차 — bump 후 낡은 버전 스탬프 전수 갱신 (CI red 수리) (9feabcd8)
+- release(v1.5.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 파생물 정합 (main-014) (9e7b2645)
 - release(v1.5.0): 발행 준비 — ADR-027 로드맵 층 사이클, 등급은 §1.5 4문항으로 minor (8520dc13)
 
 ## [1.4.0] - 2026-08-24

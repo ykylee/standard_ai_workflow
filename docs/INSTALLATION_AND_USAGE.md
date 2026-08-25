@@ -347,7 +347,7 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 | **gemini-cli** | `gemini` · `git` · `wk` · `python3` | 저장소 클론 (확장 루트가 `plugin/` 이라 로컬 경로 설치) |
 | **grok-build** | `grok` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
 | **pi-dev** | `pi` · `wk` · `python3` | 로컬 경로 또는 git 태그 지정 |
-| **bootstrap** | `python3` | PEP 668 인터프리터면 venv 필요 (§7.1) |
+| **bootstrap** | `python3` (win32 는 `python` 으로 잰다) | PEP 668 인터프리터면 venv 필요 (§7.1) |
 
 **두 열을 섞지 않는다.** 왼쪽은 `shutil.which` 로 실제로 재고, 오른쪽은 재지
 않고 적어만 둔다 — 네트워크 도달성을 탐침이 "모름" 인 채 통과로 세면 그게
@@ -358,6 +358,13 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 메모리 갱신 명령은 `wk` 로 돌고 read-only MCP 서버는 `python3 -m
 workflow_kit.server…` 로 뜬다. 둘 중 하나가 없으면 **설치는 성공해도 기능이
 없는 상태**가 된다.
+
+플랫폼 주의 (main-017): **bootstrap 채널만** 인터프리터 이름을 플랫폼으로
+해석한다 (win32 는 `python` — bootstrap 이 emit 하는 MCP command 도 같은
+정본을 따라 win32 에서 `python` 을 쓴다). 플러그인 채널들의 `python3` 는
+win32 에서도 문자 그대로다 — 플러그인 payload 의 `mcp.json` 이 `python3` 를
+체크인하기 때문이다 (체크인 산출물은 호스트 독립, 해시 고정). Windows 에서
+플러그인 채널을 쓰려면 `python3` 별칭이 PATH 에 있어야 한다.
 
 > 이 표는 손 목록이 아니다. `workflow_kit.deploy_doctor.CHANNEL_PREREQUISITES`
 > 가 정본이고 `check_installation_usage` 가 복제를 검출한다 (컨셉 §2 선언 계약).

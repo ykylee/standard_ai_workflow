@@ -37,7 +37,7 @@
 
 - 현재 `in_progress` 작업:
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
-- TASK-2026-08-25-main-020 state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다
+- TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -45,6 +45,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-25-main-019 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다
+- TASK-2026-08-25-main-018 emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다
+- TASK-2026-08-25-main-020 state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다
 - TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작
 - TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0
 - TASK-2026-08-25-main-014 roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)
@@ -52,9 +55,6 @@
 - TASK-2026-08-25-main-012 roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다
 - TASK-2026-08-25-main-011 roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다
 - TASK-2026-08-25-main-009 roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증
-- TASK-2026-08-25-main-008 roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다
-- TASK-2026-08-25-main-007 roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자
-- TASK-2026-08-25-main-010 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -65,14 +65,17 @@
 상시 운용 전환. 진척 정본은 [`roadmap_state.json`](../roadmap/roadmap_state.json) —
 다음 로드맵은 소유자가 선언한다 (session-start 가 그렇게 안내한다).
 
-**61차(Windows 호스트) 가 시작한 것은 Windows 플랫폼 결함 축** — 전부
-'POSIX 호스트 기준으론 써졌고, Windows 에서 조용히 썩는다' 의 한 모양이다.
-main-020(state.json 백슬래시 — in_progress, push/CI 대기) · main-017(MCP emit
-command 가 항상 `python3`) · main-018(emit PYTHONPATH) · main-019(전역 도구의
-외부 체크아웃 해석). 61차 `wk doctor` 실측이 main-017 의 영향력을 정량화했다:
-**6개 설치 채널 전부 block**(`python3` 부재만으로 5개 + `claude` CLI 부재 1개).
-v1.5.0 발행 시점 CI red(mcp-sdk-matrix 3셀 · smoke 3연속) 는 bump 후 버전
-스탬프 잔재 — 원격 세션이 수리 중(`9feabcd8` 파생물 정합 2차). 다음 세션은
+**61차(Windows 호스트) 가 시작한 Windows 플랫폼 결함 축은 62차가 대부분 닫았다** —
+전부 'POSIX 호스트 기준으론 써졌고, Windows 에서 조용히 썩는다' 의 한 모양이었다.
+~~main-020(state.json 백슬래시)~~ ✅ (62차 close — CI green 확인) ·
+~~main-018(emit PYTHONPATH)~~ ✅ (62차 — target 레이아웃 기준으로 교정) ·
+~~main-019(전역 도구의 외부 체크아웃 해석)~~ ✅ (62차 — doctor `kit_resolution`
+탐침 신설). main-017(MCP emit `python3`)은 **코드 수리 완료 + Windows 실측만
+잔여** — 소유자 결정(62차) = ① 플랫폼별 커맨드명, 정본 `python_launcher` 신설,
+체크인 산출물(플러그인 payload·예시)은 `platform="posix"` 고정으로 해시 안정
+유지, preflight 는 bootstrap 채널만 launcher 해석(플러그인 채널은 payload 가
+`python3` 리터럴을 spawn 하므로 리터럴 유지). v1.5.0 발행 시점 CI red 는 원격
+세션이 수리 완료 — 62차 확인: 최신 main push 의 워크플로 전부 green. 다음 세션도
 `gh run list --branch main` 으로 **main 의 워크플로 전체 상태** 를 본다.
 
 > **이 절의 계약** (TASK-2026-08-22-main-001). 아래는 판정 기준이 **다른 부류**로
@@ -92,24 +95,22 @@ v1.5.0 발행 시점 CI red(mcp-sdk-matrix 3셀 · smoke 3연속) 는 bump 후 �
   **이제 기다리는 것은 '재발 여부' 다** — 멈추면 close, 재발하면 트레이스백의
   예외 이름으로 다시 좁힌다. 4차까지 온 이유는 `--show-traceback` 을 아무도 준
   적이 없어서였다(그 플래그와 결론-우선 절단을 57차가 넣었다).
-  **관찰 7차** (61차, 2026-08-25): 격리(`19e40ac9`) 이후 smoke run 8건 —
-  green 5 · red 3. **red 3건 전부 deterministic 이고 mypy 가 아니다**
-  (b6afe828 = schema 샘플 드리프트, 9e7b2645·ff0ac3cc = v1.5.0 bump 후
-  버전 스탬프 잔재 — 원격이 규명·수리 중). mypy 게이트 실패 0
-  (mypy-strict workflow 도 ff0ac3cc 에서 green). 관찰 6차의 '실패 run 0' 은
-  red run 완료 **직전** 산출물이었음 — 관찰은 run *완료* 기준이어야 한다.
-  close 기준은 그대로(33 run 연속 green 복원).
+  **관찰 8차** (62차, 2026-08-25, run 완료 기준): 격리(`19e40ac9`) 이후 완료
+  run **13건 — green 8 · red 5, mypy 게이트 실패 누적 0.** red 5건 전부
+  deterministic 이고 mypy 아님 (b6afe828 = schema 샘플 드리프트 ·
+  9e7b2645·ff0ac3cc = v1.5.0 스탬프 잔재, 원격 수리 후 9feabcd8 green ·
+  3866c188·95fadfc2 = 61차 종료 커밋의 생성물 정합 2종, 6ecdeaa2 치유로 해소 —
+  실패 로그 실측). **기준 긴장 1건**: close 기준 '33 run 연속 green' 은
+  비-mypy red 가 카운터를 계속 끊는다 (현재 마지막 red 이후 1 run) — mypy
+  재발 관찰이 목적이라면 'mypy 게이트 실패 0 이 33 run' 로 좁힐지 소유자에게
+  물을 가치가 있다.
 
-- `TASK-2026-08-25-main-017` — MCP emit command 가 항상 python3. 이
-  Windows 머신에서 설치 preflight 6채널 block 의 단일 원인(정본은 `wk
-  doctor` preflight 절). 수리 방향은 소유자 결정 대기 절 참고.
-- `TASK-2026-08-25-main-018` — emit PYTHONPATH 가 source-checkout
-  모드에서만 실재. main-017 과 같은 축(emit 해석기)이라 함께 결정한다.
-- `TASK-2026-08-25-main-019` — 전역 도구가 다른 체크아웃의 workflow_kit 을
-  해결한다. '탐침은 잰 단위가 맞아야 한다'의 4번째 사례(61차 실증: 외부
-  사본 v1.1.8-beta 로 task 4건 등록 → 원복·재등록). 방향: doctor 탐침
-  (실행 인터프리터의 해석 출처 ≠ PATH 도구 출처이면 두 경로를 명시해 보고)
-  또는 함정 문서화.
+- `TASK-2026-08-25-main-017` — MCP emit command 가 항상 python3.
+  **62차에서 코드 수리 완료** (소유자 결정 = ① 플랫폼별 커맨드명): 정본
+  `workflow_kit/common/python_launcher.py` + emit 분기 + doctor preflight
+  bootstrap 채널 launcher 해석 + 검사 2종·되주입 red 실증. **잔여는 완료 기준
+  2 하나** — Windows 호스트에서 bootstrap emit → 하네스 spawn 왕복 실측.
+  다음 Windows 세션(Oh My Pi)에서 재고 close 한다.
 
 #### 소유자 결정 대기 — task 가 아니다
 
@@ -122,13 +123,14 @@ v1.5.0 발행 시점 CI red(mcp-sdk-matrix 3셀 · smoke 3연속) 는 bump 후 �
   `-002`(세션 시작 자기 복구)로 승격. 재실측 덮인 것 2/10→**4/10**, 후보 8→6,
   저점 고착 해제. 잔여 후보 6건(coverage 0.17~0.33)의 추가 승격 여부는
   **관찰 축**의 지표 추이가 다시 고착을 가리킬 때 재론한다.
-- **MCP emit 해석기 방향 결정** (61차, main-017·018): ① 플랫폼별 커맨드
-  이름(win32 는 `python`, 그 외 `python3`) — emit 설정의 '공유 파일에
-  절대 경로 금지' 계약(`_mcp_server_env` docstring)을 그대로 지키는
-  보수적 수리 ② `sys.executable` — bootstrap 이 돌았던 해석기를 보장하지만
-  머신 고유 절대 경로를 `.mcp.json` 류의 공유 파일에 굽는 것이라 해당
-  설계 원칙과 정면 충돌. 수리 대상은 emit(`mcp_server_command`)만 아니라
-  preflight 요구 실행 파일 표의 `python3` 도 포함(같은 결함족).
+- ~~**MCP emit 해석기 방향 결정** (61차, main-017·018)~~ — ✅ **해소**
+  (62차, 2026-08-25, 소유자 결정 = **① 플랫폼별 커맨드명**): win32 는
+  `python`, 그 외 `python3` — emit 의 '공유 파일에 절대 경로 금지' 계약을
+  지키는 보수적 수리. ②(`sys.executable`)는 머신 고유 절대 경로를 공유
+  파일에 굽어 기각. 구현·검증은 main-017/018 task 파일 참고. 한계도 결정에
+  포함: 체크인되는 플러그인 payload 는 `python3` 리터럴을 유지하므로
+  (해시 고정), Windows 에서 플러그인 채널은 여전히 `python3` 별칭이 필요
+  (INSTALLATION_AND_USAGE §7.0.0 플랫폼 주의).
 
 #### 환경 상태 — 정본은 `wk doctor`
 

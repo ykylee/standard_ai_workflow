@@ -599,7 +599,9 @@ def render_plugin_mcp_config() -> str:
     """
     from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, mcp_server_command
 
-    command = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    # platform="posix" 고정: payload 는 체크인되는 산출물이고 해시로 드리프트를
+    # 잰다 — 렌더 호스트에 따라 command 가 갈리면 그 비교가 무너진다 (main-017).
+    command = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE, platform="posix")
     return json.dumps(
         {
             "mcpServers": {
@@ -624,7 +626,10 @@ def _payload_mcp_entry() -> tuple[str, list[str]]:
     """
     from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, mcp_server_command
 
-    return MCP_SERVER_ALIAS, mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
+    # platform="posix" 고정 — 이유는 render_plugin_mcp_config 의 주석과 같다.
+    return MCP_SERVER_ALIAS, mcp_server_command(
+        PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE, platform="posix"
+    )
 
 
 #: 어댑터 MCP 등록이 공유하는 env. ``PYTHONPATH`` 를 넣지 않는 이유는

@@ -247,28 +247,28 @@
     },
     {
       "task_id": "TASK-2026-08-25-main-017",
-      "task_status": "planned",
+      "task_status": "in_progress",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — Windows consumer 플랫폼 결함(MCP emit 해석기). ADR-027 로드맵 층 WBS 대상 아님",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-017.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-018",
-      "task_status": "planned",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — emit 환경 결함(PYTHONPATH). ADR-027 로드맵 층 WBS 대상 아님",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-018.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-019",
-      "task_status": "planned",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — 전역 도구 해석 결함(doctor 탐침 표면). ADR-027 로드맵 층 WBS 대상 아님",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-019.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-020",
-      "task_status": "in_progress",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — cross-host 플랫폼 형식 결함(state.json). ADR-027 로드맵 층 WBS 대상 아님",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-020.md"

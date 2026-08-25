@@ -42,7 +42,8 @@ SERVER_ALIAS = MCP_SERVER_ALIAS
 #: (`core/read_only_mcp_transport_promotion.md` §4).
 DRAFT_BRIDGE = "jsonrpc-bridge"
 #: `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines` 를 조립하는 정본.
-DRAFT_COMMAND = mcp_server_command(DRAFT_BRIDGE)
+#: platform="posix" 고정: 예시는 체크인되는 문서라 렌더 호스트와 무관해야 한다.
+DRAFT_COMMAND = mcp_server_command(DRAFT_BRIDGE, platform="posix")
 #: `bridge_entrypoint` 필드가 이름하는 모듈 — args 의 `-m` 다음 값이 곧 그것이다.
 DRAFT_ENTRYPOINT = DRAFT_COMMAND[DRAFT_COMMAND.index("-m") + 1]
 #: 이 예시가 보여 주는 bridge 의 **구현 단계** 축 (정본: bootstrap_lib.mcp).

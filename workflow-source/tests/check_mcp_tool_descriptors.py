@@ -335,8 +335,16 @@ def test_opencode_entry_shape_matches_witness() -> bool:
         render_opencode_mcp_config,
     )
 
+    # paths 는 이제 렌더러의 실계약이다 (main-018: env 를 target 레이아웃에서
+    # 잰다). 이 저장소 루트는 workflow-source 를 vendoring 하므로 증인 예시와
+    # 같은 형태(PYTHONPATH 포함)로 렌더된다.
+    from types import SimpleNamespace  # noqa: PLC0415
+
     rendered = json.loads(
-        render_opencode_mcp_config(argparse.Namespace(mcp_bridge="jsonrpc-bridge"), None)
+        render_opencode_mcp_config(
+            argparse.Namespace(mcp_bridge="jsonrpc-bridge"),
+            SimpleNamespace(target_root=REPO_ROOT),
+        )
     )[MCP_CONFIG_ROOT_KEY["opencode"]][MCP_SERVER_ALIAS]
     witness_path = CONFIG_EXAMPLES / "opencode-mcp.json"
     witness = json.loads(witness_path.read_text(encoding="utf-8"))[

@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
+from workflow_kit.common.python_launcher import python_launcher
 from workflow_kit.upgrade_diff import compare_marker, parse_version_marker, read_kit_version
 
 __all__ = [
@@ -185,10 +186,24 @@ class ChannelPrerequisite:
 
     note: str = ""
 
+    launcher_adaptive: bool = False
+    """True 면 ``executables`` 의 ``"python3"`` 를 프로브 시점에
+    :func:`workflow_kit.common.python_launcher.python_launcher` 로 해석한다
+    (win32: ``python``). **bootstrap 채널만** 켠다 — emit 이 같은 정본으로
+    플랫폼을 따르기 때문이다 (main-017). 플러그인 채널은 켜지 않는다: payload 가
+    ``python3`` 리터럴을 체크인하므로 (해시 고정, POSIX 관례) 그쪽 전제는 문자
+    그대로 ``python3`` 이고, win32 로 완화하면 payload 가 spawn 못 하는 상태를
+    preflight 가 green 으로 보고하는 거짓 안심이 된다."""
+
 
 #: 모든 플러그인 채널이 공유하는 전제. 스킬이 지시하는 메모리 갱신 명령은 `wk` 로
 #: 돌고, read-only MCP 서버는 `python3 -m workflow_kit.server…` 로 뜬다 — 둘 중
 #: 하나가 없으면 설치는 성공해도 **기능이 없는 상태**가 된다.
+#:
+#: `python3` 는 win32 에서도 **리터럴 그대로** 잰다 (launcher_adaptive ❌):
+#: 플러그인 payload 의 mcp.json 이 `python3` 를 체크인하므로 (platform="posix"
+#: 고정 — 해시 안정), 이 채널들이 실제로 spawn 하는 이름이 그것이다. 전제를
+#: 플랫폼으로 완화하면 payload 가 못 뜨는 호스트를 green 으로 보고하게 된다.
 _PLUGIN_COMMON = ("wk", "python3")
 
 #: 채널별 설치 전제 **정본**. `docs/INSTALLATION_AND_USAGE.md` §7.0.0 표는 여기서
@@ -226,6 +241,7 @@ CHANNEL_PREREQUISITES: tuple[ChannelPrerequisite, ...] = (
         executables=("python3",),
         declared=("PEP 668 인터프리터면 venv 필요 (§7.1)",),
         note="플러그인 미지원 하네스·오프라인 경로. `wk` 는 이 채널이 설치한다",
+        launcher_adaptive=True,
     ),
 )
 
@@ -258,7 +274,57 @@ def _pip_absence_verdict(prefix: Path, executable: str) -> tuple[str, str | None
     )
 
 
-def _probe_environment() -> dict[str, Any]:
+def _is_under(path: Path, root: Path) -> bool:
+    """``path`` 가 ``root`` 아래인가 — resolve 실패는 False 로 둔다."""
+    try:
+        path.resolve().relative_to(root.resolve())
+    except (ValueError, OSError):
+        return False
+    return True
+
+
+def _kit_resolution_verdict(
+    origin: Path | None,
+    project_root: Path,
+    executable: str,
+) -> tuple[str, str | None]:
+    """실행 인터프리터가 ``workflow_kit`` 을 어디서 해석했는가 — (판정 라벨, finding).
+
+    '탐침은 잰 단위가 맞아야 한다'의 **4번째 단위 = 해석되는 패키지의 출처**
+    (TASK-2026-08-25-main-019). 2026-08-25 실측: PATH 의 전역 도구가 .pth 로
+    *다른 체크아웃*의 workflow_kit(v1.1.8-beta)을 해석했고, 성공 코드를 내며
+    그 사본의 산출물(legacy 라벨 task 4건 + 백슬래시 state.json)을 이 저장소에
+    썼다 — 원복·재등록으로 수습했다. 도구가 조용히 남의 코드를 돌리는 상태는
+    운영자에게 **두 경로를 명시해** 도달해야 한다.
+
+    판정:
+    - ``project_checkout``: project root 아래 (source checkout / editable 자기
+      저장소) — by design.
+    - ``interpreter_site_packages``: 실행 인터프리터의 prefix 아래 (wheel /
+      uv tool 설치) — by design.
+    - ``not_importable``: workflow_kit 자체가 안 잡힘 — ``modules`` 절이 이미
+      부재를 말하므로 여기서 finding 을 중복하지 않는다.
+    - ``foreign_path``: 둘 다 아님 — **project root 밖의 다른 체크아웃**이
+      실행되고 있다. finding 에 잰 인터프리터·해석 출처·project root 를 전부
+      명시한다 (처방이 엉뚱한 곳으로 가지 않게, main-009 와 같은 원칙).
+    """
+    if origin is None:
+        return ("not_importable", None)
+    if _is_under(origin, project_root):
+        return ("project_checkout", None)
+    for prefix in {sys.prefix, getattr(sys, "base_prefix", sys.prefix)}:
+        if _is_under(origin, Path(prefix)):
+            return ("interpreter_site_packages", None)
+    return (
+        "foreign_path",
+        "실행 인터프리터가 workflow_kit 을 project root 밖의 다른 경로에서 해석한다 — "
+        f"잰 인터프리터: {executable} · 해석 출처: {origin} · project root: "
+        f"{project_root}. 이 상태로 도구를 돌리면 이 저장소가 아니라 그 사본의 "
+        "코드가 실행된다 (2026-08-25 실측: 다른 체크아웃 v1.1.8-beta 산출물 오염)",
+    )
+
+
+def _probe_environment(project_root: Path) -> dict[str, Any]:
     """인터프리터·venv·PATH 전제를 본다.
 
     **의존성 부재를 코드 결함으로 읽는 사고**가 이 저장소에서 두 번 났다. 그
@@ -302,6 +368,13 @@ def _probe_environment() -> dict[str, Any]:
             "(docs/INSTALLATION_AND_USAGE.md §3)"
         )
 
+    kit_origin = modules.get("workflow_kit")
+    kit_resolution, kit_finding = _kit_resolution_verdict(
+        Path(kit_origin) if kit_origin else None, project_root, sys.executable
+    )
+    if kit_finding:
+        findings.append(kit_finding)
+
     return {
         "python_version": sys.version.split()[0],
         "executable": sys.executable,
@@ -311,6 +384,9 @@ def _probe_environment() -> dict[str, Any]:
         # pip 부재 시의 판정 (None = pip 존재). by_design_uv_tool 은 finding 을
         # 내지 않은 이유의 기록이다 — 조용한 통과는 근거가 못 된다.
         "pip_absence": pip_absence,
+        # workflow_kit 해석 출처의 판정 (main-019). foreign_path 만 finding 이
+        # 되지만 by-design 라벨도 payload 에 남긴다 — 조용한 통과 금지.
+        "kit_resolution": kit_resolution,
         "wk_on_path": wk_path,
         "findings": findings,
     }
@@ -557,7 +633,17 @@ def _probe_preflight() -> dict[str, Any]:
     """
     channels: list[dict[str, Any]] = []
     for entry in CHANNEL_PREREQUISITES:
-        found = {name: shutil.which(name) for name in entry.executables}
+        # launcher_adaptive 채널의 "python3" 는 잰 이름을 플랫폼으로 해석한다
+        # (win32: "python") — emit 과 같은 정본을 따른다 (main-017). 결과 키는
+        # **잰 이름**이다: 무엇을 which 했는지가 곧 판정의 증거다.
+        found: dict[str, str | None] = {}
+        for name in entry.executables:
+            measured = (
+                python_launcher()
+                if entry.launcher_adaptive and name == "python3"
+                else name
+            )
+            found[measured] = shutil.which(measured)
         missing = sorted(name for name, path in found.items() if path is None)
         record: dict[str, Any] = {
             "channel": entry.channel,
@@ -1107,7 +1193,7 @@ def probe(
     resolved_project = (project_root or Path.cwd()).resolve()
     resolved_home = (home or Path.home()).resolve()
 
-    environment = _probe_environment()
+    environment = _probe_environment(resolved_project)
     preflight = _probe_preflight()
     project = _probe_project_scope(resolved_project)
     global_scope = _probe_global_scope(resolved_home)

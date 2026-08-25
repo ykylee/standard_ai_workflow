@@ -543,6 +543,112 @@ def test_preflight_blocks_channel_with_missing_executable() -> None:
         )
 
 
+def test_kit_resolution_flags_foreign_checkout() -> None:
+    """실행 인터프리터가 project root 밖에서 workflow_kit 을 해석하면 두 경로를 명시해 보고한다 (main-019).
+
+    '탐침은 잰 단위가 맞아야 한다'의 4번째 단위 = 해석되는 패키지의 출처.
+    61차 실측: 전역 도구가 다른 체크아웃(v1.1.8-beta)의 workflow_kit 을 조용히
+    돌려 legacy 산출물이 이 저장소로 나갔다. by-design 두 자리(자기 checkout ·
+    인터프리터 site-packages)는 finding 없이 라벨만 남고, 그 밖은 잰 인터프리터·
+    해석 출처·project root 를 **전부** 명시한 finding 이 최상위 findings 까지
+    도달해야 한다 — 증거는 소비 지점까지 가야 한다 (50차 규칙).
+    """
+    import sys as _sys
+
+    from workflow_kit.deploy_doctor import _kit_resolution_verdict
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-kitres-") as tmp:
+        root = Path(tmp) / "project"
+        (root / "workflow-source" / "workflow_kit").mkdir(parents=True)
+        own = root / "workflow-source" / "workflow_kit" / "__init__.py"
+        own.write_text("", encoding="utf-8")
+
+        label, finding = _kit_resolution_verdict(None, root, _sys.executable)
+        if (label, finding) != ("not_importable", None):
+            problems.append(f"None origin: {label}")
+
+        label, finding = _kit_resolution_verdict(own, root, _sys.executable)
+        if (label, finding) != ("project_checkout", None):
+            problems.append(f"own checkout: {label}, {finding}")
+
+        site = Path(_sys.prefix) / "lib" / "site-packages" / "workflow_kit" / "__init__.py"
+        label, finding = _kit_resolution_verdict(site, root, _sys.executable)
+        if (label, finding) != ("interpreter_site_packages", None):
+            problems.append(f"site-packages: {label}, {finding}")
+
+        foreign = Path(tmp) / "other-checkout" / "workflow_kit" / "__init__.py"
+        label, finding = _kit_resolution_verdict(foreign, root, _sys.executable)
+        if label != "foreign_path" or finding is None:
+            problems.append(f"foreign origin not flagged: {label}")
+        else:
+            for needle in (_sys.executable, str(foreign), str(root)):
+                if needle not in finding:
+                    problems.append(f"finding 에 경로 누락: {needle}")
+
+        # 실 probe 에서 판정 라벨이 payload 에 남고, foreign 이면 최상위 findings
+        # 까지 도달하는가 — 조용한 통과 금지.
+        report = probe(project_root=root, home=Path(tmp) / "home")
+        env = report["environment"]
+        if "kit_resolution" not in env:
+            problems.append("environment 에 kit_resolution 키가 없다")
+        elif env["kit_resolution"] == "foreign_path":
+            if not any("해석 출처" in f for f in report["findings"]):
+                problems.append("foreign finding 이 최상위 findings 에 안 닿았다")
+    _record("test_kit_resolution_flags_foreign_checkout", not problems, "; ".join(problems))
+
+
+def test_preflight_bootstrap_channel_resolves_platform_launcher() -> None:
+    """bootstrap 채널의 인터프리터 전제는 emit 과 같은 정본으로 플랫폼을 따른다 (main-017).
+
+    win32 에서 emit 되는 command 는 `python` 이므로 preflight 도 `python` 을 재야
+    한다 — `python3` 리터럴을 재면 emit 이 뜨는 호스트를 blocked 로 보고한다
+    (61차 실측: Windows 에서 6채널 전부 block 의 주원인). 반대로 플러그인 채널은
+    payload 가 `python3` 를 체크인하므로 (platform="posix" 고정) **리터럴 그대로**
+    재야 한다 — 완화하면 payload 가 못 뜨는 호스트가 green 이 된다. 세 자리
+    (payload 리터럴 · 채널 전제 · launcher 정본)를 대조한다.
+    """
+    from workflow_kit import deploy_doctor as _dd
+    from workflow_kit.common.python_launcher import (
+        POSIX_PYTHON,
+        WIN32_PYTHON,
+        python_launcher,
+    )
+    from workflow_kit.plugin_payload import _payload_mcp_entry
+
+    problems: list[str] = []
+    if python_launcher("win32") != WIN32_PYTHON or python_launcher("linux") != POSIX_PYTHON:
+        problems.append("python_launcher 매핑이 관례와 다르다")
+
+    # payload 리터럴 ↔ 플러그인 채널 전제 3자 대조 — 갈라지면 전제가 거짓말한다.
+    _, payload_cmd = _payload_mcp_entry()
+    plugin_entries = [e for e in CHANNEL_PREREQUISITES if e.channel != "bootstrap"]
+    if not all(payload_cmd[0] in e.executables for e in plugin_entries):
+        problems.append(f"플러그인 채널 전제에 payload command {payload_cmd[0]!r} 가 없다")
+    if any(e.launcher_adaptive for e in plugin_entries):
+        problems.append("플러그인 채널이 launcher_adaptive 다 — payload 는 리터럴을 spawn 한다")
+
+    # sys.platform 전역 패치는 이 호스트의 shutil.which 까지 win32 분기로 민다
+    # (_winapi 부재로 크래시) — probe 가 부르는 이음새(python_launcher)만 바꾼다.
+    saved_launcher = _dd.python_launcher
+    _dd.python_launcher = lambda platform=None: python_launcher("win32")
+    try:
+        pf = _dd._probe_preflight()
+    finally:
+        _dd.python_launcher = saved_launcher
+    boot = next(c for c in pf["channels"] if c["channel"] == "bootstrap")
+    plugin = next(c for c in pf["channels"] if c["channel"] == "claude-code")
+    if WIN32_PYTHON not in boot["executables"] or POSIX_PYTHON in boot["executables"]:
+        problems.append(f"win32 에서 bootstrap 채널이 잰 이름: {sorted(boot['executables'])}")
+    if POSIX_PYTHON not in plugin["executables"]:
+        problems.append(f"win32 에서도 플러그인 채널은 python3 을 재야 한다: {sorted(plugin['executables'])}")
+    _record(
+        "test_preflight_bootstrap_channel_resolves_platform_launcher",
+        not problems,
+        "; ".join(problems),
+    )
+
+
 def test_preflight_writes_nothing() -> None:
     """report-only 계약은 preflight 절에도 그대로다."""
     with tempfile.TemporaryDirectory(prefix="doctor-preflight-") as tmp:
@@ -844,6 +950,8 @@ def main() -> int:
         test_content_drift_declares_surface_as_unmeasured,
         test_preflight_separates_measured_from_declared,
         test_preflight_blocks_channel_with_missing_executable,
+        test_kit_resolution_flags_foreign_checkout,
+        test_preflight_bootstrap_channel_resolves_platform_launcher,
         test_preflight_writes_nothing,
         test_runtime_load_flags_host_older_than_install,
         test_runtime_load_clears_host_started_after_install,

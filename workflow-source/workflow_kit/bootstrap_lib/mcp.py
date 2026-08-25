@@ -31,6 +31,7 @@ from typing import Callable
 
 from workflow_kit.bootstrap_lib.paths import Paths
 from workflow_kit.bootstrap_lib.writes import write_text
+from workflow_kit.common.python_launcher import python_launcher
 
 
 MCP_SERVER_ALIAS = "standardAiWorkflowReadOnly"
@@ -59,8 +60,9 @@ MCP_BRIDGE_PHASE: dict[str, str] = {
 #: 통과하지 못한다.
 #:
 #: `stdio-sdk` 가 `manual_review_only` 인 이유는 성숙도가 아니라 **의존성** 이다:
-#: emit 되는 command 는 `python3`(하네스가 보는 인터프리터)인데 거기에 `mcp` SDK 가
-#: 없으면 `Connection closed` 로 죽는다. `mcp` extra 가 보장된 환경에서만 쓸 것.
+#: emit 되는 command 는 플랫폼 관례의 Python(`python3`, win32 는 `python` —
+#: 하네스가 보는 인터프리터)인데 거기에 `mcp` SDK 가 없으면 `Connection closed`
+#: 로 죽는다. `mcp` extra 가 보장된 환경에서만 쓸 것.
 MCP_BRIDGE_APPLY_MODE: dict[str, str] = {
     "jsonrpc-bridge": "active_ok",
     "stdio-sdk": "manual_review_only",
@@ -81,27 +83,37 @@ MCP_CONFIG_ROOT_KEY: dict[str, str] = {
 }
 
 
-def mcp_server_command(bridge: str, bundle: str | None = None) -> list[str]:
+def mcp_server_command(
+    bridge: str, bundle: str | None = None, *, platform: str | None = None
+) -> list[str]:
     """Return the ``command + args`` that the per-harness MCP config should spawn.
 
-    ``command`` is always ``python3`` (the same Python that runs the
-    bootstrap script) and ``args`` points at the entry point module so the
-    harness can launch it without a shell. ``PYTHONPATH`` is set in
-    ``env`` so the entry point can locate ``workflow_kit``.
+    ``command`` 는 플랫폼 관례의 Python 실행 파일 이름이다 (win32: ``python``,
+    그 외 ``python3`` — 정본은 :func:`workflow_kit.common.python_launcher.
+    python_launcher`). ``python3`` 고정이던 동안 PATH 에 python3 이 없는 Windows
+    에서 emit 설정으로 서버를 spawn 할 수 없었다 (TASK-2026-08-25-main-017).
+    ``args`` points at the entry point module so the harness can launch it
+    without a shell.
 
     ``bundle`` (v1.1.8+): jsonrpc bridge 의 ``--bundle`` 선택자. 새로 emit 되는
     config 는 기존 alias 에 ``read-only`` 를 명시해 이름과 표면을 정직하게 맞춘다.
     ``stdio-sdk`` 는 1st cycle 에서 bundle 미지원 (all 서빙) — ADR-003 참조.
+
+    ``platform``: ``None`` 은 현재 호스트 — bootstrap emit 이 쓰는 기본값이다
+    (project-local config 는 그 머신에서 소비된다). **체크인되는 산출물**(플러그인
+    payload · 하네스 예시)은 렌더 호스트와 무관하게 같아야 하므로 — payload 는
+    해시로 드리프트를 잰다 — ``platform="posix"`` 를 명시해 고정한다.
     """
+    launcher = python_launcher(platform)
     if bridge == "stdio-sdk":
-        return ["python3", "-m", "workflow_kit.server.read_only_mcp_sdk", "--stdio-sdk"]
-    cmd = ["python3", "-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
+        return [launcher, "-m", "workflow_kit.server.read_only_mcp_sdk", "--stdio-sdk"]
+    cmd = [launcher, "-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"]
     if bundle:
         cmd += ["--bundle", bundle]
     return cmd
 
 
-def _mcp_server_env() -> dict[str, str]:
+def _mcp_server_env(paths: Paths) -> dict[str, str]:
     """Return the per-harness MCP server ``env`` block.
 
     ``STANDARD_AI_WORKFLOW_ROOT`` lets the server locate the kit root.
@@ -117,17 +129,21 @@ def _mcp_server_env() -> dict[str, str]:
     글로벌 설정(``~/.claude.json`` 등)에 손으로 심을 때는 절대 경로를 쓴다 —
     거기서는 cwd 전제가 성립하지 않는다 (``core/mcp_installation_by_harness.md`` §2).
 
-    ``PYTHONPATH`` is only set when the bootstrap itself is running
-    from a source repo checkout (SOURCE_ROOT is available). In a wheel
-    install the server should resolve ``workflow_kit`` from the wheel's
-    site-packages, so the bootstrap does NOT preprend
-    ``workflow-source`` — that path would otherwise shadow the installed
-    wheel and break protocolVersion / smart-update fixes.
-    """
-    from workflow_kit.bootstrap_lib import __main__ as _bm  # local import to avoid cycle
+    ``PYTHONPATH`` is only set when the **target project** actually vendors
+    the kit source — ``<target_root>/workflow-source`` exists on disk. In
+    every other layout the server should resolve ``workflow_kit`` from the
+    spawning interpreter's site-packages; a relative ``workflow-source``
+    would point at a directory that does not exist there.
 
+    이전 조건(``SOURCE_ROOT is not None``)은 **잰 단위가 틀렸다**: bootstrap
+    *자신*이 checkout 에서 돌았는가를 쟀는데, emit 된 env 가 소비되는 자리는
+    target 프로젝트다. checkout 에서 *다른* 신규 프로젝트를 bootstrap 하면
+    실재하지 않는 디렉터리가 emit 됐다 (TASK-2026-08-25-main-018, 2026-08-25
+    실측 재현). '탐침은 잰 단위가 맞아야 한다'의 emit 판 — 조건은 emit 을
+    소비하는 쪽의 레이아웃에서 잰다.
+    """
     env = {"STANDARD_AI_WORKFLOW_ROOT": "."}
-    if _bm.SOURCE_ROOT is not None:
+    if (paths.target_root / "workflow-source").is_dir():
         env["PYTHONPATH"] = "workflow-source"
     return env
 
@@ -190,7 +206,7 @@ def render_codex_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     block = render_mcp_toml_block(
         bridge,
-        _mcp_server_env(),
+        _mcp_server_env(paths),
         settings={"startup_timeout_sec": 15, "tool_timeout_sec": 30},
         descriptions_comment="Tool description shown in the Codex tool picker",
     )
@@ -238,7 +254,7 @@ def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
         {
             MCP_CONFIG_ROOT_KEY["opencode"]: {
                 MCP_SERVER_ALIAS: opencode_mcp_server_entry(
-                    mcp_server_command(bridge, "read-only"), _mcp_server_env()
+                    mcp_server_command(bridge, "read-only"), _mcp_server_env(paths)
                 )
             }
         },
@@ -256,7 +272,7 @@ def render_gemini_cli_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
                 MCP_SERVER_ALIAS: {
                     "command": mcp_server_command(bridge, "read-only")[0],
                     "args": mcp_server_command(bridge, "read-only")[1:],
-                    "env": _mcp_server_env(),
+                    "env": _mcp_server_env(paths),
                     "trust": True,
                     "includeTools": [
                         "latest_backlog",
@@ -288,7 +304,7 @@ def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str
                     "type": "stdio",
                     "command": mcp_server_command(bridge, "read-only")[0],
                     "args": mcp_server_command(bridge, "read-only")[1:],
-                    "env": _mcp_server_env(),
+                    "env": _mcp_server_env(paths),
                 }
             }
         },
@@ -323,7 +339,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
             MCP_SERVER_ALIAS: {
                 "command": mcp_server_command(bridge)[0],
                 "args": mcp_server_command(bridge)[1:],
-                "env": _mcp_server_env(),
+                "env": _mcp_server_env(paths),
                 "transport": bridge,
                 "transport_phase": MCP_BRIDGE_PHASE[bridge],
                 "apply_mode": MCP_BRIDGE_APPLY_MODE[bridge],
@@ -340,7 +356,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
         MCP_SERVER_ALIAS: {
             "command": mcp_server_command(bridge, "read-only")[0],
             "args": mcp_server_command(bridge, "read-only")[1:],
-            "env": _mcp_server_env(),
+            "env": _mcp_server_env(paths),
             "transport": bridge,
             "transport_phase": MCP_BRIDGE_PHASE[bridge],
             "apply_mode": MCP_BRIDGE_APPLY_MODE[bridge],
@@ -355,7 +371,7 @@ def render_minimax_code_mcp_config(args: argparse.Namespace, paths: Paths) -> st
         MCP_WRITE_SERVER_ALIAS: {
             "command": mcp_server_command(bridge, "write")[0],
             "args": mcp_server_command(bridge, "write")[1:],
-            "env": _mcp_server_env(),
+            "env": _mcp_server_env(paths),
             "transport": bridge,
             "transport_phase": MCP_BRIDGE_PHASE[bridge],
             # write 도구는 파일시스템을 변경한다 — 자동 활성 금지 (ADR-003).
@@ -534,7 +550,7 @@ def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str
                     "type": "stdio",
                     "command": mcp_server_command(bridge, "read-only")[0],
                     "args": mcp_server_command(bridge, "read-only")[1:],
-                    "env": _mcp_server_env(),
+                    "env": _mcp_server_env(paths),
                 },
                 # v1.1.8+ bundle 분리: write 도구 2종은 별도 서버 — Claude Code 는
                 # 도구 호출마다 승인을 받으므로 entry 자체는 실어도 안전하고,
@@ -543,7 +559,7 @@ def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str
                     "type": "stdio",
                     "command": mcp_server_command(bridge, "write")[0],
                     "args": mcp_server_command(bridge, "write")[1:],
-                    "env": _mcp_server_env(),
+                    "env": _mcp_server_env(paths),
                 },
             }
         },

@@ -194,6 +194,18 @@ def spawn_bridge(
     cmd = [sys.executable, *launch_args]
     env = os.environ.copy()
     block_env = server_block.get("environment", server_block.get("env", {}))
+    # main-018 형식 게이트: emit 된 PYTHONPATH 는 target 프로젝트에 **실재하는**
+    # 디렉터리여야 한다. 이전에는 bootstrap 이 checkout 에서 돌았다는 이유만으로
+    # 존재하지 않는 "workflow-source" 가 신규 프로젝트에 emit 됐다 — smoke 는
+    # PYTHONPATH 를 스스로 덮어써서 그 결함을 못 봤다.
+    if "PYTHONPATH" in block_env:
+        emitted_pp = target_root / str(block_env["PYTHONPATH"])
+        if not emitted_pp.is_dir():
+            raise AssertionError(
+                f"emitted PYTHONPATH points at a directory that does not exist "
+                f"in the target project: {block_env['PYTHONPATH']!r} "
+                f"(resolved: {emitted_pp})"
+            )
     kit_env = {**block_env, "PYTHONPATH": str(SOURCE_ROOT)}
     env.update({k: str(v) for k, v in kit_env.items()})
     env["STANDARD_AI_WORKFLOW_ROOT"] = str(target_root.resolve())
@@ -341,9 +353,53 @@ def smoke_one_harness(harness: str) -> None:
                 print(f"  [{harness}] bridge stderr (first 5 lines):\n    " + "\n    ".join(snippet))
 
 
+def unit_checks() -> None:
+    """emit 조립의 단위 계약 — 플랫폼 분기(main-017)와 env 조건(main-018).
+
+    smoke 는 이 호스트의 산출물만 밟는다. win32 분기와 '체크인 산출물은 posix
+    고정' 계약은 여기서 명시적으로 잰다 — 기대값은 리터럴이 아니라 정본
+    (:mod:`workflow_kit.common.python_launcher`)에서 파생한다.
+    """
+    from workflow_kit.bootstrap_lib.mcp import _mcp_server_env, mcp_server_command
+    from workflow_kit.common.python_launcher import (
+        POSIX_PYTHON,
+        WIN32_PYTHON,
+        python_launcher,
+    )
+    from workflow_kit.plugin_payload import _payload_mcp_entry
+
+    # 1) 플랫폼 분기 — win32 는 python, 그 외 posix 관례, 기본값은 현재 호스트.
+    assert mcp_server_command("jsonrpc-bridge", "read-only", platform="win32")[0] == WIN32_PYTHON
+    assert mcp_server_command("jsonrpc-bridge", "read-only", platform="posix")[0] == POSIX_PYTHON
+    assert mcp_server_command("stdio-sdk", platform="win32")[0] == WIN32_PYTHON
+    assert mcp_server_command("jsonrpc-bridge")[0] == python_launcher()
+
+    # 2) 체크인되는 플러그인 payload 는 렌더 호스트와 무관하게 posix 고정이다 —
+    #    payload 해시 비교가 무너지지 않아야 한다.
+    _, payload_cmd = _payload_mcp_entry()
+    assert payload_cmd[0] == POSIX_PYTHON, payload_cmd
+
+    # 3) env 는 emit 을 소비하는 target 의 레이아웃에서 잰다 (main-018).
+    import tempfile as _tempfile
+    from types import SimpleNamespace
+
+    with _tempfile.TemporaryDirectory() as td:
+        fresh = Path(td) / "fresh"
+        fresh.mkdir()
+        env_fresh = _mcp_server_env(SimpleNamespace(target_root=fresh))
+        assert "PYTHONPATH" not in env_fresh, env_fresh
+
+        vendored = Path(td) / "vendored"
+        (vendored / "workflow-source").mkdir(parents=True)
+        env_vendored = _mcp_server_env(SimpleNamespace(target_root=vendored))
+        assert env_vendored.get("PYTHONPATH") == "workflow-source", env_vendored
+    print("  - unit checks (launcher platform branch, payload pin, env-by-layout) ... ok")
+
+
 def main() -> int:
     args = parse_args()
     harnesses = args.harness or list(HARNESS_CONFIG_KEY)
+    unit_checks()
     print(f"Running MCP round-trip smoke for: {harnesses}")
     for harness in harnesses:
         print(f"  - {harness} ...", end=" ", flush=True)

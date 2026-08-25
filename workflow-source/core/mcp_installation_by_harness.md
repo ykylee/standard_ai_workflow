@@ -24,8 +24,14 @@
 `initialize` → `tools/list` → `tools/call` 왕복을 재 보면 양쪽 다 정상이다
 (`jsonrpc-bridge` 의 옛 `transport_ready: false` 는 descriptor 의 오래된 자기 선언이었고, 2026-08-05 에 제거됐다 — promotion spec §1.3/§6.2).
 
-갈리는 지점은 **무엇으로 실행되는가** 다. emit 되는 `command` 는 `python3`, 즉 하네스가
-보는 **시스템 python3** 인데 `stdio-sdk` 는 거기에 `mcp` SDK 가 설치돼 있어야 뜬다.
+갈리는 지점은 **무엇으로 실행되는가** 다. emit 되는 `command` 는 플랫폼 관례의
+Python 실행 파일(win32 는 `python`, 그 외 `python3` — 정본은
+`workflow_kit/common/python_launcher.py`, TASK-2026-08-25-main-017), 즉 하네스가
+보는 **시스템 Python** 인데 `stdio-sdk` 는 거기에 `mcp` SDK 가 설치돼 있어야 뜬다.
+이 문서와 아래 예시 스니펫의 `python3` 표기는 POSIX 관례 예시다 — 체크인되는
+플러그인 payload 도 같은 이유(호스트 독립·해시 고정)로 `python3` 를 유지하므로,
+Windows 에서 플러그인 채널을 쓰려면 `python3` 별칭이 필요하다
+(`docs/INSTALLATION_AND_USAGE.md` §7.0.0 플랫폼 주의).
 같은 저장소에서 시스템 `python3` 로 재 보니:
 
 | transport | 시스템 python3 | `mcp` SDK 있는 venv |

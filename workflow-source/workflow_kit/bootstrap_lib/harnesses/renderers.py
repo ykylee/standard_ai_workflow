@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from workflow_kit.bootstrap_lib.harnesses import register_harness_builder
-from workflow_kit.bootstrap_lib.mcp import render_mcp_toml_block
+from workflow_kit.bootstrap_lib.mcp import mcp_server_command, render_mcp_toml_block
 from workflow_kit.bootstrap_lib.paths import (
     Paths,
     antigravity_agents_path,
@@ -303,7 +303,13 @@ def render_minimax_config_example() -> str:
 
     The values are intentionally placeholders; users fill in their own MCP
     server tokens, project name, and harness-specific options.
+
+    command/args 는 :func:`workflow_kit.bootstrap_lib.mcp.mcp_server_command`
+    파생이다 — 손으로 적힌 사본은 entry-point 나 launcher 관례가 바뀔 때 이
+    자리만 낡는다 (Grok 렌더러 실측 동형). 이 파일은 bootstrap 시점에 그 머신의
+    프로젝트로 emit 되므로 platform 은 현재 호스트를 따른다 (main-017).
     """
+    _cmd = mcp_server_command("jsonrpc-bridge")
     return """{
   "$schema": "https://MiniMax.dev/schema/config.json",
   "project_name": "Standard AI Workflow Project",
@@ -332,8 +338,8 @@ def render_minimax_config_example() -> str:
   },
   "mcp_servers": {
     "standard-ai-workflow-readonly": {
-      "command": "python3",
-      "args": ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"],
+      "command": __COMMAND__,
+      "args": __ARGS__,
       "env": {
         "PYTHONPATH": "./workflow-source"
       },
@@ -354,7 +360,7 @@ def render_minimax_config_example() -> str:
     "require_handoff_before_done": true
   }
 }
-"""
+""".replace("__COMMAND__", json.dumps(_cmd[0])).replace("__ARGS__", json.dumps(_cmd[1:]))
 
 
 def render_minimax_orchestrator(args: argparse.Namespace, context: dict[str, object]) -> str:

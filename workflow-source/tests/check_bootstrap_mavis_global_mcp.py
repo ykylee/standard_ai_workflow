@@ -158,7 +158,14 @@ def test_absolute_env_paths() -> None:
         Path(env["PYTHONPATH"]).is_absolute(),
         f"PYTHONPATH not absolute: {env['PYTHONPATH']}",
     )
-    _assert(entry["command"] == "python3", f"command must be python3, got {entry['command']}")
+    # 기대값은 리터럴이 아니라 정본에서 파생한다 (53차 규칙): mavis 글로벌
+    # merge 는 그 머신에서 소비되므로 command 는 현재 호스트의 launcher 다.
+    from workflow_kit.common.python_launcher import python_launcher
+
+    _assert(
+        entry["command"] == python_launcher(),
+        f"command must be {python_launcher()!r}, got {entry['command']}",
+    )
     # v1.1.8+ bundle 분리 (TASK-2026-08-12-main-003): mavis 글로벌 merge 는
     # read-only bundle 만 자동 등록한다 — write 도구 자동 노출 금지 (ADR-003).
     _assert(

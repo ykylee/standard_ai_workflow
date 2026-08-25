@@ -32,25 +32,21 @@
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
-      "TASK-2026-08-25-main-020 state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다"
+      "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "blocked_items": [],
-    "planned_items": [
-      "TASK-2026-08-25-main-017",
-      "TASK-2026-08-25-main-018",
-      "TASK-2026-08-25-main-019"
-    ],
+    "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다",
+      "TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다",
+      "TASK-2026-08-25-main-018 — emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다",
       "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
       "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
       "TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
       "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다",
       "TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다",
       "TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다",
-      "TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거",
-      "TASK-2026-08-25-main-009 — roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증",
-      "TASK-2026-08-25-main-008 — roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다",
-      "TASK-2026-08-25-main-007 — roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자"
+      "TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -59,7 +55,7 @@
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
     "task_count": 21,
     "in_progress_items": [
-      "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다",
+      "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
       "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
@@ -79,7 +75,10 @@
       "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다",
       "TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
       "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
-      "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작"
+      "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
+      "TASK-2026-08-25-main-018 — emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다",
+      "TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다",
+      "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다"
     ]
   },
   "next_documents": [

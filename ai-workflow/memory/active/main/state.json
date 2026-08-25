@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-24",
+  "generated_at": "2026-08-25",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -28,61 +28,72 @@
   },
   "session": {
     "current_baseline": "**59차 세션 종료 — main-009 close: doctor pip 오탐 수리 (검사 268 유지, push 1회, 전량 2축 green).** `wk doctor` 정기 실행이 **탐침 자신의 결함**을 찾았다 — 'venv 에 pip 이 없다' finding 이 상시 오탐: 탐침이 pip 을 **자기 인터프리터**(wk 의 uv tool venv, `~/.local/share/uv/tools/standard-ai-workflow`)에서 import 하는데, uv tool venv 는 설계상 pip 없이 돌고 루트의 `uv-receipt.toml` 로 자신을 선언한다. 처방(ensurepip)은 pip 26.0.1 이 **이미 있는** 저장소 `.venv` 를 향해 헛돌았다(실측: Requirement already satisfied). **'탐침은 잰 단위가 맞아야 한다'(53차)의 세 번째 사례** — ①프로세스 vs 세션, ②glob vs `installPath` 선언에 이어 ③**자기 인터프리터 vs 개발 venv**. 수리: 판정을 순수 함수 `_pip_absence_verdict` 로 추출 — 선언이 있으면 `by_design_uv_tool` 로 finding 억제하되 payload `pip_absence` 키에 판정을 남기고(조용한 통과 금지), 선언 없는 부재는 여전히 결함이되 **잰 인터프리터를 finding 에 명시**(처방이 엉뚱한 venv 로 가지 않게). 되주입 red 실증(원복은 58차 교훈대로 `git restore --worktree` — 스테이징 보존) + **오탐을 냈던 바로 그 인터프리터**로 실환경 확증(`pip_absence=by_design_uv_tool`·finding 0). `check_deploy_doctor` 24→25 cases. **부수 확인 3건**: content drift(claude-code·codex 1.4.0)는 v1.4.0 태그 **이후** 커밋 `b119d68b` 가 session-start 스킬을 고쳐 생긴 정상적 사이클 중간 상태(다음 릴리스에서 해소, 조치 불요) · codex 낡은 호스트는 3→**2개**(pid 6191·97626, 재시작은 사용자 몫) · mypy flake 는 격리 후 **4 run 연속 green** (5번째 `4461e08e` 진행 중).",
-    "current_axis": "**배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
-    "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
+    "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
+    "current_focus": "TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
     "in_progress_items": [
+      "TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
+      "TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
+      "TASK-2026-08-25-main-014 roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
       "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
     ],
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
-      "TASK-2026-08-24-main-009 — doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다",
-      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다",
-      "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
-      "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
-      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
-      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
-      "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
-      "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
-      "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
-      "TASK-2026-08-22-main-001 — handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리"
+      "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다",
+      "TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다",
+      "TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다",
+      "TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거",
+      "TASK-2026-08-25-main-009 — roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증",
+      "TASK-2026-08-25-main-008 — roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다",
+      "TASK-2026-08-25-main-007 — roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자",
+      "TASK-2026-08-25-main-006 — roadmap M-003/WBS-3.3 — milestones.py 데모 휴리스틱 은퇴, MCP 도구를 roadmap 정본으로 교체",
+      "TASK-2026-08-25-main-005 — roadmap M-003/WBS-3.2 — session-start 가 현재 마일스톤과 다음 WBS 후보를 보고한다",
+      "TASK-2026-08-25-main-004 — roadmap M-003/WBS-3.1 — wk refresh-state 가 roadmap_state 를 함께 재생성한다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-24.md",
-    "task_count": 10,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
+    "task_count": 16,
     "in_progress_items": [
-      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
+      "TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
+      "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
+      "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작"
     ],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-24-main-001 — watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다",
-      "TASK-2026-08-24-main-002 — 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다",
-      "TASK-2026-08-24-main-003 — bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다",
-      "TASK-2026-08-24-main-004 — 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로",
-      "TASK-2026-08-24-main-005 — v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor",
-      "TASK-2026-08-24-main-006 — 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고",
-      "TASK-2026-08-24-main-007 — mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다",
-      "TASK-2026-08-24-main-008 — OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다",
-      "TASK-2026-08-24-main-009 — doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다"
+      "TASK-2026-08-25-main-001 — memory_index 저점 해소 — 상위 후보 2건 승격 (main-001·main-006)",
+      "TASK-2026-08-25-main-002 — 로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — ADR-027 + 정본 스펙",
+      "TASK-2026-08-25-main-003 — roadmap M-002 — 스키마·파서·roadmap_state 생성기·검사 3종·자기 적용 씨앗",
+      "TASK-2026-08-25-main-004 — roadmap M-003/WBS-3.1 — wk refresh-state 가 roadmap_state 를 함께 재생성한다",
+      "TASK-2026-08-25-main-005 — roadmap M-003/WBS-3.2 — session-start 가 현재 마일스톤과 다음 WBS 후보를 보고한다",
+      "TASK-2026-08-25-main-006 — roadmap M-003/WBS-3.3 — milestones.py 데모 휴리스틱 은퇴, MCP 도구를 roadmap 정본으로 교체",
+      "TASK-2026-08-25-main-007 — roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자",
+      "TASK-2026-08-25-main-008 — roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다",
+      "TASK-2026-08-25-main-009 — roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증",
+      "TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거",
+      "TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다",
+      "TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다",
+      "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-24.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-25.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",
     "ai-workflow/memory/active/main/baselines.md",
+    "workflow-source/core/roadmap_milestone_wbs_spec.md",
     "workflow-source/core/workflow_deployment_idempotency.md",
     "workflow-source/core/multi_workspace_orchestration.md",
     "workflow-source/core/global_workflow_standard.md",
     "workflow-source/MEMORY_GOVERNANCE.md",
     "ai-workflow/memory/active/main/sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md",
     "ai-workflow/memory/active/main/sessions/adr006_retrospective_and_calibration_2026-08-10.md",
+    "ai-workflow/memory/active/roadmap/roadmap_state.json",
     "docs/RELEASE.md",
     "ai-workflow/memory/active/main/sessions/branch_cleanup_and_case7_false_positive_2026-08-14.md",
     "ai-workflow/memory/archived/fix/archive-history-integrity/sessions/archive_history_integrity_2026-08-13.md",
@@ -548,7 +559,78 @@
       ],
       "created_at": "2026-08-20T00:00:00Z",
       "updated_at": "2026-08-20T00:00:00Z"
+    },
+    {
+      "id": "MEM-2026-08-25-001",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-24-main-001.md",
+        "workflow-source/tests/check_watch_transient_writer.py"
+      ],
+      "primary_abstraction": "One observed event does not mean a completed write",
+      "cue_anchors": [
+        "watch-transient-writer",
+        "flake",
+        "non-atomic-write",
+        "truncate-window",
+        "os-replace",
+        "event-semantics",
+        "partial-file",
+        "deterministic-test"
+      ],
+      "value_digest": "테스트가 `Path.write_text`(truncate 후 write)로 쓰는데 그것은 비원자적이라, 파일 감시자는 그 사이의 빈/부분 파일을 **정직하게** 첫 변경으로 잡는다 — 'changed[0] = 내 완결 주입' 가정이 틀렸다(실측: 1.8MB 창에서 changed 22건 중 12건이 완결 아닌 크기). 도구는 내내 옳았다 — 결함은 신호를 읽는 쪽 가정이다. 수리 2겹: ①테스트 쓰기를 원자화(임시 파일 + `os.replace`) ②'중간 상태는 보고된다'를 우연이 아니라 **계약 case** 로 못박아 다음 사람이 그 관측을 잡음으로 오해해 도구를 뭉개지 못하게 했다. 그리고 **flake 를 고치는 검사가 스스로 flaky 하면 안 된다** — 첫 판 case 가 5회 중 4회 red(폴러가 truncate 창을 운으로 잡길 기대)여서, 재려는 조건을 보장된 시간 동안 실재하게(2단계 쓰기 + fsync + 관측 대기) 바꿔 결정적으로 만들었다(6회 연속 6/6). 같은 주에 세 번째로 같은 모양: `in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "tests",
+        "flake"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-08-20-001",
+        "MEM-2026-08-20-003"
+      ],
+      "created_at": "2026-08-24T15:15:54.893566Z",
+      "updated_at": "2026-08-24T15:15:54.893566Z"
+    },
+    {
+      "id": "MEM-2026-08-25-002",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-24-main-006.md",
+        "workflow-source/workflow_kit/tools/ensure_entrypoints.py"
+      ],
+      "primary_abstraction": "Absence is created, staleness is only reported",
+      "cue_anchors": [
+        "ensure-entrypoints",
+        "session-start",
+        "self-bootstrap",
+        "create-only",
+        "forked-declaration",
+        "update-available",
+        "write-gate",
+        "needs-bootstrap"
+      ],
+      "value_digest": "세션 시작이 부재 진입점을 현재 kit 버전으로 스스로 채운다(`wk ensure-entrypoints` + session-start 성공 경로 배선). 필요한 조각은 이미 다 있었고 없던 것은 배선 — HARNESS_SPECS(선언)·bootstrap_lib(렌더)·decide_action(판정). 경계(소유자 결정): **부재는 생성**(되돌리기 쉽고 self-bootstrap 이 약속한 동작), **낡음은 보고만** (`FORKED` 를 선언하지 않은 손수정이 세션을 여는 것만으로 사라지면 안 된다) — 그 경계는 `writes._resolve_write` **한 곳**에서 강제한다(쓰기 판정이 다섯 곳에 복제돼 있어 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다). '덮었다' 도 '최신이다' 도 아닌 상태는 자기 이름을 가진다(`UPDATE_AVAILABLE` — 열거형 파생 버킷이라 새 분류가 자동으로 실렸다). 정체를 모르면(PROJECT_PROFILE.md 부재) 지어내지 않고 `needs_bootstrap` 을 낸다 — 지어낸 이름은 이후 모든 산출물에 실린다. 실측이 설계를 두 번 고쳤다: 복구를 실패 경로에만 달아 반쪽 동작(성공 경로로 이동) · 내부 bootstrap 호출의 PYTHONPATH 오염(수동 시험은 export 가 가렸고 검사가 잡았다).",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "session-start",
+        "deployment"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-08-20-003"
+      ],
+      "created_at": "2026-08-24T15:15:54.893566Z",
+      "updated_at": "2026-08-24T15:15:54.893566Z"
     }
   ],
-  "memory_entries_count": 13
+  "memory_entries_count": 15
 }

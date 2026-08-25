@@ -1,0 +1,36 @@
+{
+  "id": "MEM-2026-08-25-001",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-24-main-001.md",
+    "workflow-source/tests/check_watch_transient_writer.py"
+  ],
+  "primary_abstraction": "One observed event does not mean a completed write",
+  "cue_anchors": [
+    "watch-transient-writer",
+    "flake",
+    "non-atomic-write",
+    "truncate-window",
+    "os-replace",
+    "event-semantics",
+    "partial-file",
+    "deterministic-test"
+  ],
+  "value_digest": "테스트가 `Path.write_text`(truncate 후 write)로 쓰는데 그것은 비원자적이라, 파일 감시자는 그 사이의 빈/부분 파일을 **정직하게** 첫 변경으로 잡는다 — 'changed[0] = 내 완결 주입' 가정이 틀렸다(실측: 1.8MB 창에서 changed 22건 중 12건이 완결 아닌 크기). 도구는 내내 옳았다 — 결함은 신호를 읽는 쪽 가정이다. 수리 2겹: ①테스트 쓰기를 원자화(임시 파일 + `os.replace`) ②'중간 상태는 보고된다'를 우연이 아니라 **계약 case** 로 못박아 다음 사람이 그 관측을 잡음으로 오해해 도구를 뭉개지 못하게 했다. 그리고 **flake 를 고치는 검사가 스스로 flaky 하면 안 된다** — 첫 판 case 가 5회 중 4회 red(폴러가 truncate 창을 운으로 잡길 기대)여서, 재려는 조건을 보장된 시간 동안 실재하게(2단계 쓰기 + fsync + 관측 대기) 바꿔 결정적으로 만들었다(6회 연속 6/6). 같은 주에 세 번째로 같은 모양: `in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "tests",
+    "flake"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-08-20-001",
+    "MEM-2026-08-20-003"
+  ],
+  "created_at": "2026-08-24T15:15:54.893566Z",
+  "updated_at": "2026-08-24T15:15:54.893566Z"
+}

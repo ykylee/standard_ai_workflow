@@ -15,7 +15,7 @@
 - 그 이전 기준선: **57차 세션 (이어서) — main-006 close: 세션 시작이 부재 진입점을 스스로 채운다 (검사 267→268).** 사용자 요청. **필요한 조각은 이미 다 있었고 없던 것은 배선**이었다 — `HARNESS_SPECS` 가 무엇이 필요한지 선언하고, `bootstrap_lib` 렌더러가 현재 kit 버전으로 찍으며, `decide_action` 이 판정한다. 그리고 이 기능은 **지금이라야 안전하다** — 나흘 전 만든 `FORKED` 가 없으면 자동 갱신이 커스터마이즈된 진입점을 지운다. **경계**(소유자 결정): 부재는 생성(되돌리기 쉽고 self-bootstrap 이 이미 약속한 동작), 낡음은 **보고만**(포크를 *선언하지 않은* 손수정이 세션을 여는 것만으로 사라지면 안 된다). 그 경계는 `writes._resolve_write` **한 곳**에서 강제한다 — 쓰기 판정이 다섯 곳에 복제돼 있어 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다. `Action` 에 `UPDATE_AVAILABLE` 추가(`updated` 면 '덮었다' 가 거짓, `ignored` 면 '최신이다' 가 거짓이라 자기 이름이 필요했다) — **main-013 이 매니페스트 버킷을 열거형 파생으로 바꿔 둔 덕에 새 분류가 저절로 실렸다.** `PROJECT_PROFILE.md` 가 없으면 아무것도 만들지 않고 `needs_bootstrap` 을 낸다: 이름을 지어내면 그 거짓이 이후 모든 산출물에 실린다. **실측이 설계를 두 번 고쳤다.** ① 복구를 실패 경로에만 달았는데, 하네스 진입점이 없어도 session-start 는 *상태 문서만* 읽어 `status: ok` 로 끝나 **복구가 아예 안 돌았다** — 성공 경로로 옮겼다. ② 내부 bootstrap 을 부를 때 `PYTHONPATH` 를 저장소 루트로 줘 import 가 실패했다(수동 시험은 PYTHONPATH 가 export 돼 있어 가려졌고 **검사가 잡았다**). 그리고 **내 검사도 한 번 스스로 틀렸다** — 임시 디렉터리 `with` 블록 **밖**에서 `.exists()` 를 확인해 항상 False 였고, 도구는 내내 옳았다.
 - 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 72건, 최신이 위).
 
-- 현재 주 작업 축: **배포 일관성·멱등성 — ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차).** 실행형 잔여가 이 축에는 없다.**다음 축은 소유자 판단 대기.** 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
+- 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
 - 다음 후보 축: ~~PyPI 발행~~ → ⛔ **닫힘 (2026-08-14 소유자 최종 결정 = 발행 안 함, `RELEASE.md` §1 각주 0)** / cross-host federation (두 번째 호스트 = **MacBook 확정, 시점 추후**) / memory_index 3-tuple 지표 추이 관찰. ~~federation self-host add~~ ✅ (14차) · ~~v1.1.9/v1.2.0 미발행 누적~~ ✅ **해소 (32차 — v1.2.0-beta 발행, 누적분 0)**. (v1.1.0·v1.1.1 노트 누적 표기는 TASK-014 에서 **미삽입 확정**, branch protection 은 소유자가 **보류 결정** (2026-08-11) — 둘 다 후보 축에서 제거.)
 - 발견한 cross-project 패턴 (agent memory 추가):
@@ -36,6 +36,9 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작
+- TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0
+- TASK-2026-08-25-main-014 roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 ## 3. 차단 작업
 
@@ -44,24 +47,50 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-08-24-main-009 doctor 환경 탐침이 자기 인터프리터를 잰다 — uv tool venv 의 pip 부재는 결함이 아니다
-- TASK-2026-08-24-main-008 OKF v0.2 잔재 — okf-bundle.yaml 매니페스트가 0.1 을 선언한다
-- TASK-2026-08-24-main-007 mypy 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다
-- TASK-2026-08-24-main-006 세션 시작이 부재 파일을 스스로 채운다 — 부재는 생성, 낡음은 보고
-- TASK-2026-08-24-main-005 v1.4.0 릴리스 — 16 커밋 누적분 발행, 등급은 §1.5 4문항으로 minor
-- TASK-2026-08-24-main-004 레거시 task 본문 라벨 마이그레이션 — 손이 아니라 도구로, 파싱 동일성을 잠금장치로
-- TASK-2026-08-24-main-003 bootstrap 이 v0.14.0 이전 daily 템플릿을 낸다 — 새 프로젝트가 첫날부터 혼재한다
-- TASK-2026-08-24-main-002 혼합 표기 결정 재료 — 실측으로 질문을 다시 세웠다
-- TASK-2026-08-24-main-001 watch_transient_writer flake — 이벤트 1건이 '내 주입 완결본' 을 뜻하지 않는다
-- TASK-2026-08-22-main-001 handoff §5 를 부류별로 가른다 — 산문이 SSOT 를 복제해 갈라지던 자리
+- TASK-2026-08-25-main-013 roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다
+- TASK-2026-08-25-main-012 roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다
+- TASK-2026-08-25-main-011 roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다
+- TASK-2026-08-25-main-009 roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증
+- TASK-2026-08-25-main-008 roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다
+- TASK-2026-08-25-main-007 roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자
+- TASK-2026-08-25-main-010 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거
+- TASK-2026-08-25-main-006 roadmap M-003/WBS-3.3 — milestones.py 데모 휴리스틱 은퇴, MCP 도구를 roadmap 정본으로 교체
+- TASK-2026-08-25-main-005 roadmap M-003/WBS-3.2 — session-start 가 현재 마일스톤과 다음 WBS 후보를 보고한다
+- TASK-2026-08-25-main-004 roadmap M-003/WBS-3.1 — wk refresh-state 가 roadmap_state 를 함께 재생성한다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-### ▶ 지금 할 일 — 소유자 판단 대기
+### ▶ 지금 할 일 — 새 주 축: 로드맵·WBS·SDLC (60차 확정)
 
-배포 축은 48차에, wiki L2 축은 49~50차에 닫혔고, **54차가 배포 위생 · 소유권 4번째
-분류 · CI red 2건을 닫았다.** 실행형 잔여가 없다 — **다음 축은 소유자가 고른다.**
+배포 축(48차)·wiki L2 축(49~50차)이 닫힌 뒤 비어 있던 다음 축을 **60차에
+소유자가 확정했다**: 로드맵 수립·마일스톤·WBS 기반 진척 관리 + SDLC 온보딩
+기본 흐름. 결정 3건(디렉터리 SSOT + 스키마 JSON 생성물 혼합 · 게이트 강제 ·
+ADR/스펙 먼저)은 ADR-027 에, 계약은 스펙에, 단계 계획(M-002~M-006)은 스펙
+§10 에 있다. **M-001~M-003 이 60차에 close** — 진척의 정본은
+[`roadmap_state.json`](../roadmap/roadmap_state.json) 이다 (검사 268→272).
+M-003 으로 배선이 실동한다: `wk refresh-state` 가 roadmap_state 를 함께
+재생성하고 `--check` 가 roadmap drift 를 판정하며, session-start 가
+`roadmap_context`(현재 마일스톤·다음 WBS 후보·문서 단계 산출물 권고)를
+보고하고, MCP `assess_milestone_progress` 는 roadmap 층을 읽는다(데모
+휴리스틱 milestones.py 는 함수까지 은퇴 — 입력이 workspace_root 로 바뀐
+**breaking 후보**, 등급은 M-006 릴리스에서 §1.5 로 판정).
+**M-004 도 60차에 close** (검사 272→273): `evaluate_wbs_gate` 단일 판정으로
+CLI·MCP 가 같은 게이트를 거친다 — roadmap 있는 프로젝트의 create 는 `--wbs`
+필수(거부 7코드·허용 3코드), 예외는 `--wbs exempt` + 사유 선언이 frontmatter
+에 남고, 순서 병행은 로드맵 `parallel_allowed` 선언이 결정한다. 이 저장소
+게이트는 **무장 상태**다(main-010 이 첫 실전 exempt). `create_backlog_entry`
+MCP 도 입력 3종이 additive 로 늘었다. **M-005 도 60차에 close** (검사
+273→274): bootstrap 이 SDLC 로드맵 씨앗을 심는다 — 신규는 concept 만
+in_progress(컨셉부터가 기본 흐름), 기존은 전부 planned + **draft** 표기.
+설계 확정 2건: ①파생 불일치 보고는 **done 경계에서만**(씨앗 직후
+in_progress+링크0 위양성 제거, 스펙 §7.2) ②**draft 로드맵은 게이트를
+발동시키지 않는다**(추정이 강제가 되면 draft 가 아니다 — 소유자가 index
+상태를 active 로 확정하면 그 자리에서 발동, 스펙 §6). 채널 문안(플러그인
+SKILL 2종 + bootstrap command)이 roadmap_context·게이트를 안내한다. 다음은
+**M-006(릴리스 + 상시 운용 전환)** — assess_milestone_progress 입력 교체가
+breaking 후보라 `RELEASE.md` §1.5 4문항으로 등급을 판정한다. 구현을 닫힌
+task 에 잇대지 않는다 — 로드맵의 마일스톤 경계가 task 경계다.
 
 > **이 절의 계약** (TASK-2026-08-22-main-001). 아래는 판정 기준이 **다른 부류**로
 > 나뉜다. 예전에는 한 목록에 섞여 있었고, 그중 둘은 이미 기계가 읽는 자리를 가진
@@ -80,43 +109,48 @@
   **이제 기다리는 것은 '재발 여부' 다** — 멈추면 close, 재발하면 트레이스백의
   예외 이름으로 다시 좁힌다. 4차까지 온 이유는 `--show-traceback` 을 아무도 준
   적이 없어서였다(그 플래그와 결론-우선 절단을 57차가 넣었다).
-  **관찰 5차** (58차, 2026-08-24): 격리 이후 완료된 smoke 2 run 재발 0 —
-  표본 부족으로 유보(8.8% 기준 2연속 green 확률 83%). 59차 종료 시점 누적
-  **4 run 연속 green** (5번째 `4461e08e` 진행 중, 무개선 가정에도 4연속 확률
-  ~69% 라 아직 미확정). 다음 세션은 `gh run list --branch main --workflow
-  smoke.yml` 로 `19e40ac9` 이후 run 을 다시 센다.
+  **관찰 6차** (60차, 2026-08-25): 격리 이후 완료 smoke run **6건 전부 green**,
+  실패 run 자체가 0 (5번째 `4461e08e` success 확정 포함). 무개선 가정 6연속
+  확률 ~58% 라 통계로는 아직 미확정 — close 기준은 1차의 **33 run 연속 green**
+  을 복원했다(원인이 잡힌 지금은 green 누적이 격리 수리의 유효성을 잰다).
+  통상 push 빈도면 2~4 세션 안에 닿고 관찰 비용은 0. 재발 1건 = 가설 기각
+  신호(이제 step summary 에 예외 이름이 온다). 다음 세션도 `gh run list
+  --branch main --workflow smoke.yml` 로 `19e40ac9` 이후 run 을 다시 센다.
 
 #### 소유자 결정 대기 — task 가 아니다
 
 결정이 나야 작업이 생긴다. 여기 있는 동안은 `planned` task 로 채번하지 않는다 —
 채번하면 영원히 `planned` 로 남아 위 목록을 오염시킨다.
 
-- **memory_index 승격 후보 처리** (59차 성립): `wk suggest-memory-entries` 가
-  3회 연속(57·58·59차) 같은 저점(덮인 것 2/10, 후보 8)을 가리킨다. coverage 0.0
-  인 상위 후보는 main-001(watch_transient flake)·main-006(세션 시작 자기 복구).
-  선택지는 ①상위 후보를 entry 로 승격 ②threshold 0.5 재캘리브레이션 ③현행 유지
-  (advisory 는 조언일 뿐이라는 판단). 결정이 나면 그때 task 로 채번한다.
+- ~~**memory_index 승격 후보 처리** (59차 성립)~~ — ✅ **해소** (60차,
+  2026-08-25, 소유자 결정 = ①상위 후보 승격, TASK-2026-08-25-main-001):
+  coverage 0.0 후보 2건을 `MEM-2026-08-25-001`(watch_transient flake) ·
+  `-002`(세션 시작 자기 복구)로 승격. 재실측 덮인 것 2/10→**4/10**, 후보 8→6,
+  저점 고착 해제. 잔여 후보 6건(coverage 0.17~0.33)의 추가 승격 여부는
+  **관찰 축**의 지표 추이가 다시 고착을 가리킬 때 재론한다.
 
 #### 환경 상태 — 정본은 `wk doctor`
 
 여기에 목록을 적지 않는다. 적으면 탐침이 이미 재는 것을 산문이 복제하게 되고,
 고쳐도 산문이 안 따라온다. **`wk doctor` 를 돌려서 본다.**
 
-- 현재 알려진 것 (59차 `wk doctor` 실측): codex 호스트 **2개**(pid 6191 · 97626)가
-  설치보다 먼저 시작해 `runtime_load` 가 낡음으로 잡는다 — **재시작은 사용자
-  몫**이고, 해소 여부도 탐침이 판정한다. content drift(claude-code·codex 1.4.0)는
-  태그 이후 커밋이 만든 정상적 사이클 중간 상태라 **다음 릴리스에서 해소** —
-  조치 불요.
+- 현재 알려진 것 (60차 `wk doctor` 실측): ~~codex 낡은 호스트 2개~~ ✅ **해소**
+  (2026-08-25, 사용자 컴퓨터 재시작 — `runtime_load` 실측 codex 낡은 0 ·
+  claude-code 최신 3/낡은 0). content drift(claude-code·codex 1.4.0 의
+  session-start SKILL.md)는 태그 이후 커밋 `b119d68b` 가 만든 정상적 사이클
+  중간 상태라 **다음 릴리스에서 해소** — 조치 불요.
 
 #### 관찰 축 — 신호를 기다린다
 
 작업이 아니라 조건이 성립하기를 기다리는 것들이다.
 
 - cross-host federation (두 번째 호스트 = MacBook 확정, **시점 추후**)
-- memory_index 3-tuple 지표 추이 — 2026-08-24 59차 종료 시 `wk suggest-memory-entries`:
-  §4 작업 10건 중 기존 entry 로 덮인 것 **2건**, 승격 후보 8건(threshold 0.5) —
-  57·58·59차 **3회 연속 동일 수치, 저점 고착 확정**. 58차가 정한 트리거("3회
-  이어지면 소유자에게 묻는다")가 성립했다 — **소유자 결정 대기 절로 옮겼다.**
+- memory_index 3-tuple 지표 추이 — 60차(2026-08-25) 승격 2건 반영 후
+  `wk suggest-memory-entries`: 덮인 것 **4/10**, 후보 6건(threshold 0.5,
+  coverage 0.17~0.33). 57~59차의 저점 고착(2/10)은 소유자 결정(승격)으로
+  해소됐다. 트리거는 동일하게 유지 — **같은 수치가 3회 이어지면 소유자에게
+  다시 묻는다** (다음 선택지에는 잔여 후보 추가 승격과 threshold 재캘리브레이션이
+  올라간다).
 
 ### 56차가 남긴 규칙 (재발 방지)
 

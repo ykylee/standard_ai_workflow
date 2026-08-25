@@ -4,16 +4,16 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-24 (59차 세션 **종료** — doctor pip 오탐 수리 / 58차 — OKF 매니페스트 버전 잔재 수리 + mypy flake 관찰 5차 / 57차 — v1.4.0 발행 + mypy flake 규명 / 56차 — watch_transient flake 규명)
+- 최종 수정일: 2026-08-25 (61차 세션 **종료** — cross-host 플랫폼 형식 수리(safe_relpath POSIX) + Windows 플랫폼 결함 task 3건 등록 / 60차 — ADR-027 로드맵 축 완결 + v1.5.0 발행 / 59차 — doctor pip 오탐 수리 / 58차 — OKF 매니페스트 버전 잔재 수리 + mypy flake 관찰 5차 / 57차 — v1.4.0 발행 + mypy flake 규명)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **59차 세션 종료 — main-009 close: doctor pip 오탐 수리 (검사 268 유지, push 1회, 전량 2축 green).** `wk doctor` 정기 실행이 **탐침 자신의 결함**을 찾았다 — 'venv 에 pip 이 없다' finding 이 상시 오탐: 탐침이 pip 을 **자기 인터프리터**(wk 의 uv tool venv, `~/.local/share/uv/tools/standard-ai-workflow`)에서 import 하는데, uv tool venv 는 설계상 pip 없이 돌고 루트의 `uv-receipt.toml` 로 자신을 선언한다. 처방(ensurepip)은 pip 26.0.1 이 **이미 있는** 저장소 `.venv` 를 향해 헛돌았다(실측: Requirement already satisfied). **'탐침은 잰 단위가 맞아야 한다'(53차)의 세 번째 사례** — ①프로세스 vs 세션, ②glob vs `installPath` 선언에 이어 ③**자기 인터프리터 vs 개발 venv**. 수리: 판정을 순수 함수 `_pip_absence_verdict` 로 추출 — 선언이 있으면 `by_design_uv_tool` 로 finding 억제하되 payload `pip_absence` 키에 판정을 남기고(조용한 통과 금지), 선언 없는 부재는 여전히 결함이되 **잰 인터프리터를 finding 에 명시**(처방이 엉뚱한 venv 로 가지 않게). 되주입 red 실증(원복은 58차 교훈대로 `git restore --worktree` — 스테이징 보존) + **오탐을 냈던 바로 그 인터프리터**로 실환경 확증(`pip_absence=by_design_uv_tool`·finding 0). `check_deploy_doctor` 24→25 cases. **부수 확인 3건**: content drift(claude-code·codex 1.4.0)는 v1.4.0 태그 **이후** 커밋 `b119d68b` 가 session-start 스킬을 고쳐 생긴 정상적 사이클 중간 상태(다음 릴리스에서 해소, 조치 불요) · codex 낡은 호스트는 3→**2개**(pid 6191·97626, 재시작은 사용자 몫) · mypy flake 는 격리 후 **4 run 연속 green** (5번째 `4461e08e` 진행 중).
-- 직전 기준선: **58차 세션 종료 — main-008 close: OKF 매니페스트 버전 잔재 + mypy flake 관찰 5차 (검사 268 유지, push 2회, 전량 2축 green).** **① 낡은 산문이 낡은 후보를 팔았다** — session-start 가 제시한 '다음 축: OKF v0.2 이행 ADR' 은 2026-08-20 에 ADR-026 으로 이미 끝난 일이었다(§1 '열린 후보' 줄과 §5 전량 검사 시간 절의 ①·② done 미표기가 SSOT 를 안 따라온 것 — 산문 2곳 교정). **② 그런데 그 재검토가 실제 잔재를 잡았다** (main-008): `okf-bundle.yaml` 매니페스트가 `okf_version: '0.1'` 하드코딩 — 같은 번들의 index.md(0.2)와 **두 선언이 갈렸고**, `okf_import` 감지 2순위와 `wk okf-version-check --bundle` 이 그쪽을 읽으며, ADR-026 이 도입한 '낮은 minor→pass' 소비 정책이 어긋남을 조용히 가렸다. **검사도 공범** — 기대값 `'0.1'` 리터럴이 이행 때 잔재를 green 으로 덮었다(검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다, 53차 규칙의 재현). 수리: 정본 상수 파생(리터럴 0) + 두 선언 자리의 **값을 추출해 3자 대조**하는 case 신설(26 cases) + 되주입 2건 red 실증 + 모듈 docstring·CLI 의 v0.1 잔재 문구 갱신. **③ mypy flake 관찰 5차** (main-004): 격리(`19e40ac9`) 이후 smoke 2 run 재발 0 — 8.8% 발생률 기준 2연속 green 은 83% 확률의 일상이라 close 유보, 이 세션 push 2회가 표본을 더한다. **④ 이 세션이 스스로 틀린 것 2건**: 되주입 원복을 `git checkout` 으로 해 미커밋 수정까지 날렸다(되주입은 수정을 커밋/스테이징한 뒤에) · 게이트를 `| tail -30` 뒤에 세워 **exit 0 이 러너가 아니라 tail 의 것**이었고 요약(failed: N)도 잘렸다 — 재실행으로 정식 판정(2축 268/268·failed 0)을 받고서야 push 했다. **절단은 결론만 자르는 게 아니라 판정 증거도 자른다** (main-004 관찰 4차의 절단 교훈이 셸 파이프라인에서 재현된 꼴).
-- 그 이전 기준선: **57차 세션 종료 — task 7건 close + v1.4.0 발행 + mypy flake 원인 규명 (검사 264→268, push 9회, 전량 2축 매번 green).** **① v1.4.0 발행** (main-005): 16 커밋 누적분. `!` 3건에 `RELEASE.md` §1.5 4문항을 **확인으로** 적용해 minor 확정(공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 · `Action` 은 additive). 도구는 `!` 만 세어 `2.0.0` 을 냈고 `requires_decision` 으로 넘겼는데, §1.5 가 정확히 그 자리를 위해 쓰인 절이다. asset 4종. **② 혼합 표기 축 완결** (main-002·003·004): 질문이 '레거시 190파일을 옮길까' 였는데 실측이 **생성기**를 가리켰다 — 새 프로젝트가 첫날부터 두 표기를 받고 있었다. 수리는 템플릿을 고치는 게 아니라 **사본을 없애는 것**이었다. 코퍼스도 도구로 통일(`wk migrate-task-labels`, 193파일·2418줄, 한국어만 188→0). **파싱 동일성을 잠금장치**로 걸어 '안 바뀔 것이다' 를 가정이 아니라 검증으로 만들었다. **③ 세션 시작 자기 복구** (main-006): 부재 진입점을 현재 kit 버전으로 채우고 낡음은 보고만 한다. **`FORKED`(나흘 전) 없이는 안전하지 않은 기능**이었다. **④ mypy flake — 4일 넘게 기다린 신호가 잡혔다** (main-004 관찰 4차, main-007): `--show-traceback` 을 **아무도 준 적이 없어서** 완료 기준이 원리적으로 충족될 수 없었다 — mypy 가 트레이스백을 달라고 *요청하는 문구*를 3차가 로그로 옮겨 놓고 플래그는 안 줬다. 플래그를 넣자 그 다음 재발에서 트레이스백이 왔고 `mypy/build.py:create_metastore` 를 지목했다. 실측이 전제를 확증: **`--no-incremental` 은 캐시 읽기만 끄고 디렉터리는 만든다** — 병렬 호출 6곳이 같은 `.mypy_cache` 를 두고 경합했다. 전용 경로로 격리해 저장소 오염 0. **⑤ 이 세션이 스스로 틀린 것 4건**(전부 게이트·검사가 잡았다): `--cache-dir=` 빈 값을 '캐시 끔' 으로 읽어 db 48개를 커밋(기대한 산출물의 부재를 산출물 전체의 부재로 읽었다) · 복구를 실패 경로에만 달아 절반만 동작 · 임시 디렉터리 `with` 밖에서 `.exists()` 확인 · 새 검사가 `slash` 축에서 red. **자기 그물이 자기를 문 세션**이다.
-- 그 이전 기준선: **57차 세션 (이어서) — main-006 close: 세션 시작이 부재 진입점을 스스로 채운다 (검사 267→268).** 사용자 요청. **필요한 조각은 이미 다 있었고 없던 것은 배선**이었다 — `HARNESS_SPECS` 가 무엇이 필요한지 선언하고, `bootstrap_lib` 렌더러가 현재 kit 버전으로 찍으며, `decide_action` 이 판정한다. 그리고 이 기능은 **지금이라야 안전하다** — 나흘 전 만든 `FORKED` 가 없으면 자동 갱신이 커스터마이즈된 진입점을 지운다. **경계**(소유자 결정): 부재는 생성(되돌리기 쉽고 self-bootstrap 이 이미 약속한 동작), 낡음은 **보고만**(포크를 *선언하지 않은* 손수정이 세션을 여는 것만으로 사라지면 안 된다). 그 경계는 `writes._resolve_write` **한 곳**에서 강제한다 — 쓰기 판정이 다섯 곳에 복제돼 있어 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다. `Action` 에 `UPDATE_AVAILABLE` 추가(`updated` 면 '덮었다' 가 거짓, `ignored` 면 '최신이다' 가 거짓이라 자기 이름이 필요했다) — **main-013 이 매니페스트 버킷을 열거형 파생으로 바꿔 둔 덕에 새 분류가 저절로 실렸다.** `PROJECT_PROFILE.md` 가 없으면 아무것도 만들지 않고 `needs_bootstrap` 을 낸다: 이름을 지어내면 그 거짓이 이후 모든 산출물에 실린다. **실측이 설계를 두 번 고쳤다.** ① 복구를 실패 경로에만 달았는데, 하네스 진입점이 없어도 session-start 는 *상태 문서만* 읽어 `status: ok` 로 끝나 **복구가 아예 안 돌았다** — 성공 경로로 옮겼다. ② 내부 bootstrap 을 부를 때 `PYTHONPATH` 를 저장소 루트로 줘 import 가 실패했다(수동 시험은 PYTHONPATH 가 export 돼 있어 가려졌고 **검사가 잡았다**). 그리고 **내 검사도 한 번 스스로 틀렸다** — 임시 디렉터리 `with` 블록 **밖**에서 `.exists()` 를 확인해 항상 False 였고, 도구는 내내 옳았다.
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 72건, 최신이 위).
+- 현재 기준선: **61차 세션 종료 (2026-08-25, Windows 호스트 Oh My Pi) — main-020 in_progress (CI 대기) + Windows 플랫폼 결함 3건 등록 (main-017·018·019 planned).** **① cross-host 플랫폼 형식 결함을 잡고 닫았다** (main-020): `safe_relpath` 이 `os.path.relpath` 결과를 그대로 내니 Windows 호스트의 state.json 경로 값이 백슬래시 표기가 되고 POSIX 소비자(cross-host federation) 에서 단일 파일명으로 해석된다 — 형식 게이트 부재로 조용히 통과. 수리: 두 분기 `as_posix()` + `check_state_json_generated` case_7(단위 2분기 + 산출물 형식 대조) + 되주입 red 실증. **② 이 세션이 결함을 실증했다** (사건 기록): 인터프리터 시작 *후* 에 `os.environ['PYTHONPATH']` 를 세팅한 절차는 무효 — 그 절차로 등록한 task 4건이 **다른 체크아웃의 workflow_kit**(semcowork, v1.1.8-beta) 산출물로 나갔다 (legacy 한국어 라벨 + 백슬래시 state.json + `planned_items` 키 누락). 원복(`git checkout` + 미추적 5건 제거) 후 이 저장소 툴로 재등록. **'탐침은 잰 단위가 맞아야 한다'의 네 번째 사례** — ④번째 단위는 **해결되는 패키지의 출처** (main-019 가 그 도감을 쓴다). **③ mypy flake 관찰 7차**: 격리(`19e40ac9`) 후 smoke run 8건 중 green 5 · red 3 — red 3건 전부 **deterministic** 이고 mypy 가 아니다 (b6afe828 = schema 샘플 드리프트, 9e7b2645·ff0ac3cc = v1.5.0 bump 후 버전 스탬프 잔재 — 원격이 규명 중, `9feabcd8` 파생물 정합 2차). mypy 게이트 실패는 0 (mypy-strict workflow 도 ff0ac3cc 에서 green). 60차 관찰 6차의 '실패 run 0' 은 red run 완료 직전 산출물이었다 — **관찰은 run *완료* 기준이어야 한다.** **④ CI 현황**: v1.5.0 발행 시점 mcp-sdk-matrix 3셀 red + smoke 3연속 red, 원격 세션이 수리 진행 중 (62차 이후 상태는 `gh run list` 로 확인).
+- 직전 기준선: **60차 세션 종료 (2026-08-25, 원격 호스트) — ADR-027 로드맵 축 완결: M-001~M-006 전부 done, v1.5.0 발행 (minor, §1.5 4문항), 상시 운용 전환.** 로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본을 스키마·파서·상태 생성기(roadmap_state.json)·게이트(`evaluate_wbs_gate` 단일 판정, CLI·MCP 공유)·bootstrap 씨앗로 구현. 게이트는 무장 상태 — roadmap 있는 프로젝트의 task create 는 `--wbs` 필수, 우회는 `exempt` + 사유 선언. 검사 268→274. (60차 close 는 §1 baseline 줄을 남기지 않았다 — 본 줄은 61차가 commit/task SSOT 에서 재구성함.)
+- 그 이전 기준선: **59차 세션 종료 — main-009 close: doctor pip 오탐 수리 (검사 268 유지, push 1회, 전량 2축 green).** `wk doctor` 정기 실행이 **탐침 자신의 결함**을 찾았다 — 'venv 에 pip 이 없다' finding 이 상시 오탐: 탐침이 pip 을 **자기 인터프리터**(wk 의 uv tool venv, `~/.local/share/uv/tools/standard-ai-workflow`)에서 import 하는데, uv tool venv 는 설계상 pip 없이 돌고 루트의 `uv-receipt.toml` 로 자신을 선언한다. 처방(ensurepip)은 pip 26.0.1 이 **이미 있는** 저장소 `.venv` 를 향해 헛돌았다(실측: Requirement already satisfied). **'탐침은 잰 단위가 맞아야 한다'(53차)의 세 번째 사례** — ①프로세스 vs 세션, ②glob vs `installPath` 선언에 이어 ③**자기 인터프리터 vs 개발 venv**. 수리: 판정을 순수 함수 `_pip_absence_verdict` 로 추출 — 선언이 있으면 `by_design_uv_tool` 로 finding 억제하되 payload `pip_absence` 키에 판정을 남기고(조용한 통과 금지), 선언 없는 부재는 여전히 결함이되 **잰 인터프리터를 finding 에 명시**(처방이 엉뚱한 venv 로 가지 않게). 되주입 red 실증(원복은 58차 교훈대로 `git restore --worktree` — 스테이징 보존) + **오탐을 냈던 바로 그 인터프리터**로 실환경 확증(`pip_absence=by_design_uv_tool`·finding 0). `check_deploy_doctor` 24→25 cases.
+- 그 이전 기준선: **58차 세션 종료 — main-008 close: OKF 매니페스트 버전 잔재 + mypy flake 관찰 5차 (검사 268 유지, push 2회, 전량 2축 green).** **① 낡은 산문이 낡은 후보를 팔았다** — session-start 가 제시한 '다음 축: OKF v0.2 이행 ADR' 은 2026-08-20 에 ADR-026 으로 이미 끝난 일이었다(§1 '열린 후보' 줄과 §5 전량 검사 시간 절의 ①·② done 미표기가 SSOT 를 안 따라온 것 — 산문 2곳 교정). **② 그런데 그 재검토가 실제 잔재를 잡았다** (main-008): `okf-bundle.yaml` 매니페스트가 `okf_version: '0.1'` 하드코딩 — 같은 번들의 index.md(0.2)와 **두 선언이 갈렸고**, `okf_import` 감지 2순위와 `wk okf-version-check --bundle` 이 그쪽을 읽으며, ADR-026 이 도입한 '낮은 minor→pass' 소비 정책이 어긋남을 조용히 가렸다. **검사도 공범** — 기대값 `'0.1'` 리터럴이 이행 때 잔재를 green 으로 덮었다(검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다, 53차 규칙의 재현). 수리: 정본 상수 파생(리터럴 0) + 두 선언 자리의 **값을 추출해 3자 대조**하는 case 신설(26 cases) + 되주입 2건 red 실증 + 모듈 docstring·CLI 의 v0.1 잔재 문구 갱신. **③ mypy flake 관찰 5차** (main-004): 격리(`19e40ac9`) 이후 smoke 2 run 재발 0 — 8.8% 발생률 기준 2연속 green 은 83% 확률의 일상이라 close 유보, 이 세션 push 2회가 표본을 더한다. **④ 이 세션이 스스로 틀린 것 2건**: 되주입 원복을 `git checkout` 으로 해 미커밋 수정까지 날렸다(되주입은 수정을 커밋/스테이징한 뒤에) · 게이트를 `| tail -30` 뒤에 세워 **exit 0 이 러너가 아니라 tail 의 것**이었고 요약(failed: N)도 잘렸다 — 재실행으로 정식 판정(2축 268/268·failed 0)을 받고서야 push 했다. **절단은 결론만 자르는 게 아니라 판정 증거도 자른다** (main-004 관찰 4차의 절단 교훈이 셸 파이프라인에서 재현된 꼴).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 74건, 최신이 위).
 
 - 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -37,6 +37,7 @@
 
 - 현재 `in_progress` 작업:
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
+- TASK-2026-08-25-main-020 state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -58,34 +59,21 @@
 
 ## 5. 다음 세션 시작 포인트
 
-### ▶ 지금 할 일 — 새 주 축: 로드맵·WBS·SDLC (60차 확정)
+### ▶ 지금 할 일 — Windows 플랫폼 결함 축 (61차 착수)
 
-배포 축(48차)·wiki L2 축(49~50차)이 닫힌 뒤 비어 있던 다음 축을 **60차에
-소유자가 확정했다**: 로드맵 수립·마일스톤·WBS 기반 진척 관리 + SDLC 온보딩
-기본 흐름. 결정 3건(디렉터리 SSOT + 스키마 JSON 생성물 혼합 · 게이트 강제 ·
-ADR/스펙 먼저)은 ADR-027 에, 계약은 스펙에, 단계 계획(M-002~M-006)은 스펙
-§10 에 있다. **M-001~M-003 이 60차에 close** — 진척의 정본은
-[`roadmap_state.json`](../roadmap/roadmap_state.json) 이다 (검사 268→272).
-M-003 으로 배선이 실동한다: `wk refresh-state` 가 roadmap_state 를 함께
-재생성하고 `--check` 가 roadmap drift 를 판정하며, session-start 가
-`roadmap_context`(현재 마일스톤·다음 WBS 후보·문서 단계 산출물 권고)를
-보고하고, MCP `assess_milestone_progress` 는 roadmap 층을 읽는다(데모
-휴리스틱 milestones.py 는 함수까지 은퇴 — 입력이 workspace_root 로 바뀐
-**breaking 후보**, 등급은 M-006 릴리스에서 §1.5 로 판정).
-**M-004 도 60차에 close** (검사 272→273): `evaluate_wbs_gate` 단일 판정으로
-CLI·MCP 가 같은 게이트를 거친다 — roadmap 있는 프로젝트의 create 는 `--wbs`
-필수(거부 7코드·허용 3코드), 예외는 `--wbs exempt` + 사유 선언이 frontmatter
-에 남고, 순서 병행은 로드맵 `parallel_allowed` 선언이 결정한다. 이 저장소
-게이트는 **무장 상태**다(main-010 이 첫 실전 exempt). `create_backlog_entry`
-MCP 도 입력 3종이 additive 로 늘었다. **M-005 close** (검사 273→274):
-bootstrap SDLC 씨앗 — 신규는 concept 부터, 기존은 draft(게이트 발동 전).
-**M-006 close — v1.5.0 발행 완료 (2026-08-25)**: §1.5 4문항으로 minor 확정
-(도구 제안 2.0.0 기각 — 동결 표면 밖·옛 인자 rc=0 수용·출력 key 유지·
-additive), tag v1.5.0 + GitHub Release(asset 4종) + 파생물 정합, 양 채널
-(claude-code·codex) 1.5.0 재적용 — **wk doctor content drift 0**. codex
-marketplace 소스는 `~/.codex/local-marketplaces/` 내구 경로. **로드맵
-M-001~M-006 전부 done — ADR-027 축 완결, 상시 운용 전환.** 다음 로드맵은
-소유자가 선언한다 (session-start 가 그렇게 안내한다).
+**ADR-027 로드맵 축 완결** (60차, 원격 호스트): M-001~M-006 전부 done, v1.5.0 발행,
+상시 운용 전환. 진척 정본은 [`roadmap_state.json`](../roadmap/roadmap_state.json) —
+다음 로드맵은 소유자가 선언한다 (session-start 가 그렇게 안내한다).
+
+**61차(Windows 호스트) 가 시작한 것은 Windows 플랫폼 결함 축** — 전부
+'POSIX 호스트 기준으론 써졌고, Windows 에서 조용히 썩는다' 의 한 모양이다.
+main-020(state.json 백슬래시 — in_progress, push/CI 대기) · main-017(MCP emit
+command 가 항상 `python3`) · main-018(emit PYTHONPATH) · main-019(전역 도구의
+외부 체크아웃 해석). 61차 `wk doctor` 실측이 main-017 의 영향력을 정량화했다:
+**6개 설치 채널 전부 block**(`python3` 부재만으로 5개 + `claude` CLI 부재 1개).
+v1.5.0 발행 시점 CI red(mcp-sdk-matrix 3셀 · smoke 3연속) 는 bump 후 버전
+스탬프 잔재 — 원격 세션이 수리 중(`9feabcd8` 파생물 정합 2차). 다음 세션은
+`gh run list --branch main` 으로 **main 의 워크플로 전체 상태** 를 본다.
 
 > **이 절의 계약** (TASK-2026-08-22-main-001). 아래는 판정 기준이 **다른 부류**로
 > 나뉜다. 예전에는 한 목록에 섞여 있었고, 그중 둘은 이미 기계가 읽는 자리를 가진
@@ -104,13 +92,24 @@ M-001~M-006 전부 done — ADR-027 축 완결, 상시 운용 전환.** 다음 �
   **이제 기다리는 것은 '재발 여부' 다** — 멈추면 close, 재발하면 트레이스백의
   예외 이름으로 다시 좁힌다. 4차까지 온 이유는 `--show-traceback` 을 아무도 준
   적이 없어서였다(그 플래그와 결론-우선 절단을 57차가 넣었다).
-  **관찰 6차** (60차, 2026-08-25): 격리 이후 완료 smoke run **6건 전부 green**,
-  실패 run 자체가 0 (5번째 `4461e08e` success 확정 포함). 무개선 가정 6연속
-  확률 ~58% 라 통계로는 아직 미확정 — close 기준은 1차의 **33 run 연속 green**
-  을 복원했다(원인이 잡힌 지금은 green 누적이 격리 수리의 유효성을 잰다).
-  통상 push 빈도면 2~4 세션 안에 닿고 관찰 비용은 0. 재발 1건 = 가설 기각
-  신호(이제 step summary 에 예외 이름이 온다). 다음 세션도 `gh run list
-  --branch main --workflow smoke.yml` 로 `19e40ac9` 이후 run 을 다시 센다.
+  **관찰 7차** (61차, 2026-08-25): 격리(`19e40ac9`) 이후 smoke run 8건 —
+  green 5 · red 3. **red 3건 전부 deterministic 이고 mypy 가 아니다**
+  (b6afe828 = schema 샘플 드리프트, 9e7b2645·ff0ac3cc = v1.5.0 bump 후
+  버전 스탬프 잔재 — 원격이 규명·수리 중). mypy 게이트 실패 0
+  (mypy-strict workflow 도 ff0ac3cc 에서 green). 관찰 6차의 '실패 run 0' 은
+  red run 완료 **직전** 산출물이었음 — 관찰은 run *완료* 기준이어야 한다.
+  close 기준은 그대로(33 run 연속 green 복원).
+
+- `TASK-2026-08-25-main-017` — MCP emit command 가 항상 python3. 이
+  Windows 머신에서 설치 preflight 6채널 block 의 단일 원인(정본은 `wk
+  doctor` preflight 절). 수리 방향은 소유자 결정 대기 절 참고.
+- `TASK-2026-08-25-main-018` — emit PYTHONPATH 가 source-checkout
+  모드에서만 실재. main-017 과 같은 축(emit 해석기)이라 함께 결정한다.
+- `TASK-2026-08-25-main-019` — 전역 도구가 다른 체크아웃의 workflow_kit 을
+  해결한다. '탐침은 잰 단위가 맞아야 한다'의 4번째 사례(61차 실증: 외부
+  사본 v1.1.8-beta 로 task 4건 등록 → 원복·재등록). 방향: doctor 탐침
+  (실행 인터프리터의 해석 출처 ≠ PATH 도구 출처이면 두 경로를 명시해 보고)
+  또는 함정 문서화.
 
 #### 소유자 결정 대기 — task 가 아니다
 
@@ -123,17 +122,27 @@ M-001~M-006 전부 done — ADR-027 축 완결, 상시 운용 전환.** 다음 �
   `-002`(세션 시작 자기 복구)로 승격. 재실측 덮인 것 2/10→**4/10**, 후보 8→6,
   저점 고착 해제. 잔여 후보 6건(coverage 0.17~0.33)의 추가 승격 여부는
   **관찰 축**의 지표 추이가 다시 고착을 가리킬 때 재론한다.
+- **MCP emit 해석기 방향 결정** (61차, main-017·018): ① 플랫폼별 커맨드
+  이름(win32 는 `python`, 그 외 `python3`) — emit 설정의 '공유 파일에
+  절대 경로 금지' 계약(`_mcp_server_env` docstring)을 그대로 지키는
+  보수적 수리 ② `sys.executable` — bootstrap 이 돌았던 해석기를 보장하지만
+  머신 고유 절대 경로를 `.mcp.json` 류의 공유 파일에 굽는 것이라 해당
+  설계 원칙과 정면 충돌. 수리 대상은 emit(`mcp_server_command`)만 아니라
+  preflight 요구 실행 파일 표의 `python3` 도 포함(같은 결함족).
 
 #### 환경 상태 — 정본은 `wk doctor`
 
 여기에 목록을 적지 않는다. 적으면 탐침이 이미 재는 것을 산문이 복제하게 되고,
 고쳐도 산문이 안 따라온다. **`wk doctor` 를 돌려서 본다.**
 
-- 현재 알려진 것 (60차 `wk doctor` 실측): ~~codex 낡은 호스트 2개~~ ✅ **해소**
-  (2026-08-25, 사용자 컴퓨터 재시작 — `runtime_load` 실측 codex 낡은 0 ·
-  claude-code 최신 3/낡은 0). content drift(claude-code·codex 1.4.0 의
-  session-start SKILL.md)는 태그 이후 커밋 `b119d68b` 가 만든 정상적 사이클
-  중간 상태라 **다음 릴리스에서 해소** — 조치 불요.
+- 현재 알려진 것 (61차 `wk doctor` 실측, 이 머신 = Windows 11): 설치 채널
+  6개 전부 block — `python3` 부재(5개) + `claude` CLI 부재(claude-code).
+  codex/gemini/pi CLI 는 실재. **이 머신에는 플러그인 설치 캐시가 없다**
+  (content_drift caches 0, 전역 설정 4종은 존재하나 kit 선언 0) — 60차의
+  '양 채널 1.5.0 재적용 · drift 0' 은 원격 호스트 상태였다. `runtime_load` 는
+  `ps` 부재로 미실측(호스트 0 = 해당 없음). CLAUDE.md 는 포크본(v1.0.0-beta
+  fork, 마지막 수동 병합 v1.3.0/2026-08-20) — 재적용은 파괴적이므로 kit 갱신은
+  diff 후 수동 병합.
 
 #### 관찰 축 — 신호를 기다린다
 

@@ -56,6 +56,7 @@ from workflow_kit.common.project_docs import parse_project_profile_core  # noqa:
 from workflow_kit.upgrade_diff import (  # noqa: E402
     compare_marker,
     parse_fork_declaration,
+    parse_overlay_declaration,
     parse_version_marker,
 )
 
@@ -109,20 +110,42 @@ def _applied_harnesses(project_root: Path) -> list[str]:
 
 
 def classify(project_root: Path, harnesses: list[str]) -> dict[str, list[dict[str, str]]]:
-    """선언된 파일을 missing / current / stale / forked 로 가른다."""
+    """선언된 파일을 missing / current / stale / forked / plugin_delegated 로 가른다.
+
+    overlay 위임 (ADR-027 후속, 60차): entry 파일이
+    `standard-ai-workflow-kit-overlay: plugin-only` 를 선언하면 그 하네스의
+    extra_files(overlay) 부재는 결함이 아니라 **위임**이다 — 프로젝트가 같은
+    스킬을 플러그인 채널로 소비한다는 선언이고, 자동 복구는 그 파일을
+    되살리지 않는다. 존재하는 overlay 파일은 여전히 정상 분류한다(잔재가
+    조용히 사라지면 안 된다 — 걷어내는 것은 사람의 일이다).
+    """
     kit_version = _kit_version()
     out: dict[str, list[dict[str, str]]] = {
         "missing": [], "current": [], "stale": [], "forked": [], "unmarked": [],
+        "plugin_delegated": [],
     }
     for harness in harnesses:
         spec = HARNESS_SPECS.get(harness)
         if spec is None:
             continue
+        overlay_delegated = False
+        for entry_rel in spec.entry_files:
+            entry_path = project_root / entry_rel
+            if entry_path.is_file():
+                try:
+                    if parse_overlay_declaration(entry_path.read_text(encoding="utf-8")) == "plugin-only":
+                        overlay_delegated = True
+                        break
+                except (OSError, UnicodeDecodeError):
+                    continue
         for rel in (*spec.entry_files, *spec.extra_files):
             path = project_root / rel
             record = {"harness": harness, "path": rel}
             if not path.is_file():
-                out["missing"].append(record)
+                if overlay_delegated and rel in spec.extra_files:
+                    out["plugin_delegated"].append(record)
+                else:
+                    out["missing"].append(record)
                 continue
             try:
                 text = path.read_text(encoding="utf-8")
@@ -219,6 +242,9 @@ def run(*, project_root: Path, apply: bool) -> dict[str, object]:
         "stale": classified["stale"],
         "forked": classified["forked"],
         "unmarked": classified["unmarked"],
+        # overlay 위임 부재 — missing 이 아니다. 보고에서 빠지면 "아무 일도
+        # 없었다" 로 읽힌다 (손으로 유지하는 버킷은 새 분류를 조용히 삼킨다).
+        "plugin_delegated": classified["plugin_delegated"],
         "current_count": len(classified["current"]),
         "missing_state_documents": _missing_state_documents(project_root, branch),
         "created": created,

@@ -70,6 +70,21 @@ FORK_REGEX = re.compile(
     r"\s*(?:-->\s*)?$"
 )
 
+#: overlay 위임 선언 marker (ADR-027 후속, 60차 소유자 결정에서 도입). 프로젝트가
+#: 하네스 overlay 파일(.claude/commands/ 등)을 **다른 채널(플러그인)로 소비**할 때
+#: 진입 파일에 선언한다. 선언이 있으면 overlay 파일의 부재는 결함(missing)이
+#: 아니라 위임(plugin_delegated)이다 — 자동 복구가 그 파일을 되살리지 않는다.
+#: 추측("플러그인이 있으니 로컬은 필요 없겠지")은 호스트마다 다르게 틀린다 —
+#: CI 에는 플러그인이 없다. 파일이 스스로 말하게 한다.
+OVERLAY_MARKER_ID = "standard-ai-workflow-kit-overlay"
+OVERLAY_REGEX = re.compile(
+    r"^\s*(?P<prefix>[\S ]{0,12})"
+    r"standard-ai-workflow-kit-overlay:"
+    r"\s*(?P<mode>[a-z][a-z-]*)"
+    r"(?P<note>.*?)"
+    r"\s*(?:-->\s*)?$"
+)
+
 # File-suffix → comment prefix used when stamping markers.
 # For suffixes not listed, no marker is stamped (hash-only comparison).
 COMMENT_PREFIX_BY_SUFFIX: dict[str, str] = {
@@ -271,6 +286,23 @@ def parse_version_marker(text: str) -> Optional[str]:
         match = MARKER_REGEX.match(line)
         if match:
             return match.group("version")
+    return None
+
+
+def parse_overlay_declaration(text: str) -> Optional[str]:
+    """overlay 위임 선언을 읽는다. 선언이 있으면 mode 문자열(예: 'plugin-only'),
+    없으면 ``None``.
+
+    선언 위치는 다른 marker 와 같은 규약 — frontmatter 뒤 첫 7줄 안이다.
+    mode 어휘는 지금 'plugin-only' 하나이고, 읽는 쪽(classify)이 모르는 mode 는
+    선언 없음으로 뭉개지 않고 그대로 돌려준다 — 판정은 호출자가 한다.
+    """
+    fm_end = frontmatter_end(text)
+    body = text[fm_end:] if fm_end is not None else text
+    for line in body.splitlines()[:7]:
+        match = OVERLAY_REGEX.match(line)
+        if match:
+            return match.group("mode")
     return None
 
 
@@ -582,6 +614,7 @@ __all__ = [
     "format_version_marker",
     "is_path_preserved",
     "parse_fork_declaration",
+    "parse_overlay_declaration",
     "parse_version_marker",
     "read_kit_version",
     "stamp_marker",
@@ -592,4 +625,6 @@ __all__ = [
     "MARKER_KIT_ID",
     "MARKER_REGEX",
     "NO_MARKER_SUFFIXES",
+    "OVERLAY_MARKER_ID",
+    "OVERLAY_REGEX",
 ]

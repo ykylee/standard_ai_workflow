@@ -1142,13 +1142,21 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
         if f'"workflow-{slug}.md"' not in renderers_src
     ]
 
-    # 2) 이 저장소 자신의 `.claude/commands/` 가 그 집합을 담고 있는가 (자기 적용)
+    # 2) 이 저장소 자신은 **플러그인 단일 채널**이다 (60차 소유자 결정,
+    #    TASK-2026-08-25-main-010). 이전 판은 로컬 사본이 플러그인 집합을
+    #    담는지를 자기 적용으로 쟀지만, 두 채널이 같은 스킬을 이중 노출해
+    #    프로젝트 overlay 를 걷었다 — CLAUDE.md 가 `overlay: plugin-only` 를
+    #    선언하고, `.claude/` 아래 workflow overlay 사본이 **없어야** 한다.
+    #    (session-start 자기 복구가 되살리면 여기서 잡힌다.)
+    from workflow_kit.upgrade_diff import parse_overlay_declaration
+    overlay_mode = parse_overlay_declaration(
+        (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    )
     commands_dir = REPO_ROOT / ".claude" / "commands"
     local_slugs = {
         f.stem[len("workflow-"):] for f in commands_dir.glob("workflow-*.md")
     } if commands_dir.is_dir() else set()
-    missing_local = sorted(plugin_slugs - local_slugs)
-    extra_local = sorted(local_slugs - plugin_slugs)
+    local_skill = (REPO_ROOT / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md").exists()
 
     # 3) 레지스트리가 그 집합을 **선언**하는가 — `wk doctor` 는 여기서 파생한다
     declared = (
@@ -1166,10 +1174,16 @@ def test_bootstrap_channel_matches_plugin_skill_set() -> None:
     problems: list[str] = []
     if missing_renderer:
         problems.append(f"생성기가 emit 안 하는 slug: {missing_renderer}")
-    if missing_local:
-        problems.append(f"이 저장소 .claude/commands/ 에 없는 slug: {missing_local}")
-    if extra_local:
-        problems.append(f"플러그인에 없는 로컬 명령: {extra_local}")
+    if overlay_mode != "plugin-only":
+        problems.append(
+            f"CLAUDE.md 의 overlay 선언이 'plugin-only' 가 아니다: {overlay_mode!r} "
+            "— 이 저장소는 플러그인 단일 채널이다 (60차 결정)"
+        )
+    if local_slugs or local_skill:
+        problems.append(
+            f"플러그인 단일화 후에도 프로젝트 overlay 사본이 남아 있다: "
+            f"commands={sorted(local_slugs)} skill={local_skill} — 되살리지 말고 걷어낸다"
+        )
     if missing_declared:
         problems.append(
             f"HARNESS_SPECS[claude-code] 가 선언 안 하는 slug: {missing_declared} "
@@ -1224,14 +1238,20 @@ def test_entry_skill_advertises_every_command() -> None:
     """진입 스킬이 **모든** slash command 를 가리킨다.
 
     `description` 은 4단계를 약속하는데 본문은 3개만 안내하던 상태를 막는다.
+    이전 판은 이 저장소의 `.claude/skills/` 사본을 쟀지만, 그 사본은 플러그인
+    단일화(60차, main-010)로 걷혔다 — **생성기 출력을 잰다** (저장소 사본을
+    재면 소비 프로젝트가 받는 문서의 결함을 못 본다, 54차 규칙).
     """
+    import argparse as _argparse
+
+    from workflow_kit.bootstrap_lib.harnesses.renderers import render_claude_code_skill
     from workflow_kit.plugin_payload import PLUGIN_SKILLS
 
-    skill_path = REPO_ROOT / ".claude" / "skills" / "standard-ai-workflow" / "SKILL.md"
-    if not skill_path.is_file():
-        _record("test_entry_skill_advertises_every_command", False, f"진입 스킬 부재: {skill_path}")
-        return
-    text = skill_path.read_text(encoding="utf-8")
+    text = render_claude_code_skill(
+        _argparse.Namespace(project_name="fixture", project_slug="fixture",
+                            today="2026-01-01", force=False),
+        {"project_name": "fixture", "project_slug": "fixture"},
+    )
     absent = [
         spec.slug for spec in PLUGIN_SKILLS
         if f"/workflow-{spec.slug}" not in text

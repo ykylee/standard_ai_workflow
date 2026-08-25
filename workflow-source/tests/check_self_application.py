@@ -226,6 +226,20 @@ def test_repo_has_own_harness_overlay() -> None:
                 f"{SELF_HARNESS} spec 이 파일을 하나도 선언하지 않는다 — 대상 0건은 통과가 아니다")
         return
 
+    # overlay 위임 (60차, main-010): entry 파일이 `overlay: plugin-only` 를
+    # 선언하면 extra_files 는 플러그인 채널로 소비된다 — 부재가 계약이다.
+    # 요구 목록에서 빼되 **조용히 넘기지 않는다** (아래 info 로 말한다).
+    from workflow_kit.upgrade_diff import parse_overlay_declaration
+    delegated: list[str] = []
+    entry_path = REPO_ROOT / spec.entry_files[0]
+    if entry_path.is_file() and parse_overlay_declaration(
+        entry_path.read_text(encoding="utf-8")
+    ) == "plugin-only":
+        delegated = list(spec.extra_files)
+        declared = tuple(spec.entry_files)
+    if delegated:
+        print(f"  [info] overlay plugin-only 위임으로 요구하지 않음: {delegated}")
+
     missing: list[str] = []
     ignored: list[str] = []
     undecided: list[str] = []

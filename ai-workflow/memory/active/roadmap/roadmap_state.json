@@ -275,7 +275,7 @@
     },
     {
       "task_id": "TASK-2026-08-25-main-021",
-      "task_status": "in_progress",
+      "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — 열린 마일스톤 없음 (다음 로드맵은 소유자 선언 대기), 릴리스 운영 축",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-021.md"

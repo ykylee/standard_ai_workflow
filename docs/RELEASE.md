@@ -308,6 +308,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 | v1.0.0~v1.2.1 | v1.0.0 정식 진입 + 플러그인 채널 전환 + stable 표기 정리 | ✅ | tag 에서 `-beta` 접미사 제거 (§2.2). `v1.2.0-beta` 가 옛 표기의 마지막 |
 | v1.3.0 | 배포 일관성·멱등성 gap 4개 + wiki L2 축 + OKF v0.2 이행 | ✅ (2026-08-20) | `feat(okf)!` 를 **minor** 로 판단한 첫 사례 — 근거는 §1.5 |
 | v1.4.0 | 소유권 4번째 분류 '포크됨' + 혼합 표기 축 완결(생성기·코퍼스) + CI red 2건 해소 | ✅ (2026-08-24) | `!` 3건에 §1.5 4문항 적용 → **minor**. 공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 |
+| v1.5.0 | ADR-027 로드맵·마일스톤·WBS 층 + SDLC 온보딩 기본 + overlay 위임 선언 | ✅ (2026-08-25) | `feat(roadmap)!` 에 §1.5 4문항 적용 → **minor**. 동결 표면 밖 · 옛 인자 rc=0 수용 · 출력 key 유지 · roadmap 부재 additive |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

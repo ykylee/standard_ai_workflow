@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-24
+- 최종 수정일: 2026-08-25
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,13 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-24
+## [Unreleased] - 2026-08-25
 
 ### Added
 
+- feat(harness): overlay 위임 선언(plugin-only) 신설 — 이 저장소 claude-code 채널 플러그인 단일화 (main-010) (caffb013)
+- feat(roadmap)!: ADR-027 로드맵 층 — 스키마·파서·상태 생성기·배선·게이트·bootstrap 씨앗 (M-002~M-005) (9dc91713)
+- feat(session-start): 부재 진입점을 스스로 채운다 — 낡음은 보고만 (main-006) (b119d68b)
 - feat(handoff): §5 를 부류별로 가른다 — 산문이 SSOT 를 복제하던 자리 (main-001) (51cfa9ad)
 - feat(deploy)!: 소유권 4번째 분류 '포크됨' + codex 채널 정리 (main-011, -012) (00d30914)
 - feat(task-ssot)!: 본문 라벨을 영어로 전환한다 — 4단계 (main-009) (47c84ad4)
@@ -43,13 +46,17 @@ All notable changes to this project will be documented in this file.
 - feat(plugin): P3 멀티 하네스 어댑터 — gemini/goose/opencode + 수렴 판정 (TASK-2026-08-12-main-016) (7eb11c30)
 - feat(plugin): P4 릴리스 게이트 + session-end 스킬 (TASK-2026-08-12-main-017·020) (2cf95764)
 - feat(plugin): Claude Code 채널 개통 — 어댑터 + marketplace + 자기 적용 (TASK-2026-08-12-main-015) (35473da9)
-- feat(plugin): 공유 payload 렌더러 — plugin/ 을 정본 파생물로 (TASK-2026-08-12-main-014) (005bc10d)
-- feat(safety): backlog-update status 보존 + no_repo_write 실행-중 감시 (TASK-2026-08-12-main-008, -009) (5b89813e)
-- feat(cli): cross-platform 지원 1단계 — OS 매트릭스 CI + Windows 가드 (TASK-2026-08-12-main-005) (9351e17b)
-- ... (120 more)
+- ... (123 more)
 
 ### Changed
 
+- chore(memory): 60차 진행분 — ADR-027 로드맵 층 M-001~M-005 close + mypy flake 관찰 6차 + memory_index 승격 2건 (379913b9)
+- chore(schemas): output sample contracts 재생성 — SessionStartOutput.roadmap_context 반영 (b6afe828)
+- docs(adr): ADR-027 — 로드맵·마일스톤·WBS 층과 SDLC 온보딩 기본 (M-001) (881c2cec)
+- chore(memory): 59차 세션 종료 — doctor pip 오탐 수리 + memory_index 저점 고착 3회째 (4e4e8963)
+- chore(memory): 58차 세션 종료 — OKF 매니페스트 잔재 수리 + mypy flake 관찰 5차 (ef5418fe)
+- chore(memory): 57차 세션 종료 — v1.4.0 발행 + 혼합 표기 축 완결 + mypy flake 원인 규명 (b35fe6cf)
+- chore(harness): 자기 적용 산출물을 v1.4.0 으로 재적용 — 낡은 마커 5 → 0 (69e35a8b)
 - refactor(memory)!: 레거시 task 라벨 마이그레이션 — 도구로, 파싱 동일성을 잠금장치로 (main-004) (64a5370f)
 - docs(decision): 혼합 표기 결정 재료 — 실측이 질문을 다시 세웠다 (main-002, -003) (dd682224)
 - chore(memory): 53차 세션 종료 — 탐침 7절 + installPath 선언 + 라벨 영어 전환 (201f5a8e)
@@ -73,17 +80,16 @@ All notable changes to this project will be documented in this file.
 - docs(memory): 조건부 1축 생략 기각 — 판단 기록 + 재론 방지 (main-004) (d1e0ef99)
 - docs(claude-md): 실행 기본값을 .venv 전제로 — PEP 668 + 의존성 오탐 함정 봉인 (main-019) (115602a7)
 - docs(release): sync current package version (d68993e4)
-- chore(memory): 44차 세션 종료 — task SSOT 3단계 완료, main-008 close (f0142542)
-- Merge branch 'feat/task-label-registry' (207a6d1c)
-- chore(memory): 43차 세션 종료 — task SSOT 2단계 close-out + 내 검사가 만든 오염 수리 (f3ae323a)
-- Merge branch 'feat/task-ssot-writer' (6f2cc57e)
-- chore(memory): 42차 세션 종료 — task SSOT 1단계 close-out (4eadb497)
-- Merge branch 'feat/task-ssot-structured' (c26ac00a)
-- chore(memory): 41차 세션 종료 — handoff 롤오프 적용 (26,582 → 10,789 tok, −59%) (15caeba7)
-- ... (331 more)
+- ... (338 more)
 
 ### Fixed
 
+- fix(doctor): pip 부재 판정이 선언을 읽는다 — uv tool venv 의 부재는 설계다 (main-009) (4461e08e)
+- fix(okf): 매니페스트 버전을 정본 파생으로 — 한 번들이 두 버전을 말하고 있었다 (main-008) (b09bbf16)
+- fix(mypy)!: 캐시를 전용 경로로 격리 — 빈 문자열은 격리가 아니었다 (main-007) (19e40ac9)
+- fix(mypy): 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다 (main-007) (8454e4eb)
+- fix(gate): 절단이 트레이스백 결론을 자르지 않게 — 범인이 지목됐다 (main-004 관찰 4차 후속) (ffe4bc77)
+- fix(gate): mypy 게이트에 --show-traceback — 4차까지 증거가 없던 이유 (main-004 관찰 4차) (579e2f17)
 - fix(bootstrap): daily backlog 를 정본 작성기로 조립한다 — 사본을 없앴다 (main-003) (6a2c94ad)
 - fix(tests): watch_transient flake — 이벤트 1건은 완결본을 뜻하지 않는다 (main-001) (900c9455)
 - fix(ci): consumer-metrics-digest 가 실재하는 경로를 부른다 (main-017) (8b2c6ebb)
@@ -108,18 +114,13 @@ All notable changes to this project will be documented in this file.
 - fix(checks): 영어화된 표면을 조회하던 assert 6건 동반 이동 (stage 3 진행분) (35a144e8)
 - fix(memory): 리뷰에서 나온 결함 5건 — 소실 오판 1 · 침묵 1 · 정보손실 1 · 미처리 2 (f7989471)
 - fix(release): mypy 게이트가 blocking error 사유를 버리던 자리 + TASK-004 관찰 2차 (8544facd)
-- fix(smoke): 리뷰에서 나온 검출 누락 2건 + 오탐 1건 (case 9~11) (e10ba4cf)
-- fix(resolver): remote 판단이 CI env 를 보던 gate 정정 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (67d11dd3)
-- fix(resolver): canonical URL 이 체크아웃한 브랜치를 따라다니던 자리 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (ecb651da)
-- fix(tests): 임시 workspace 판정이 호스트 저장소 state.json 에 달려 있던 자리 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (6dee7aae)
-- fix(memory): 작업 기록을 브랜치 메모리로 이관 — active/main 무접촉 (TASK-2026-08-13-feat-plugin-harness-distribution-001) (d265e981)
-- fix(dist): main 정합 보완 6건 — 판정 사각지대 · 파생 신원 · fail-closed (TASK-2026-08-13-main-009) (77a18e71)
-- ... (117 more)
+- ... (123 more)
 
 ## [1.4.0] - 2026-08-24
 
 ### Changed
 
+- release(v1.4.0): 발행 완료 — 태그 push + GitHub Release + 파생물 정합 (main-005 close) (7343bddd)
 - release(v1.4.0): 16 커밋 누적분 발행 준비 — 등급은 §1.5 4문항으로 minor (main-005) (7fa37940)
 - chore(backlog): v1.4.0 릴리스 task 등록 — 등급 판단 근거 기록 (main-005) (e346243f)
 

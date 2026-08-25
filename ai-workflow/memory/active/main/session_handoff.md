@@ -100,10 +100,11 @@
   deterministic 이고 mypy 아님 (b6afe828 = schema 샘플 드리프트 ·
   9e7b2645·ff0ac3cc = v1.5.0 스탬프 잔재, 원격 수리 후 9feabcd8 green ·
   3866c188·95fadfc2 = 61차 종료 커밋의 생성물 정합 2종, 6ecdeaa2 치유로 해소 —
-  실패 로그 실측). **기준 긴장 1건**: close 기준 '33 run 연속 green' 은
-  비-mypy red 가 카운터를 계속 끊는다 (현재 마지막 red 이후 1 run) — mypy
-  재발 관찰이 목적이라면 'mypy 게이트 실패 0 이 33 run' 로 좁힐지 소유자에게
-  물을 가치가 있다.
+  실패 로그 실측). **close 기준 확정** (62차 소유자 결정): '33 run *연속*
+  green' → **'격리 후 완료 run 33건에서 mypy 게이트 실패 0'** 으로 좁힘 —
+  비-mypy deterministic red 는 카운터를 끊지 않는다 (재는 것은 격리 수리의
+  유효성이지 CI 전체의 green 이 아니다). 현재 표본 **14/33** (`24b75e2a`
+  green 포함, mypy 실패 0) — 통상 push 빈도면 2~3 세션 안에 닿는다.
 
 - `TASK-2026-08-25-main-017` — MCP emit command 가 항상 python3.
   **62차에서 코드 수리 완료** (소유자 결정 = ① 플랫폼별 커맨드명): 정본

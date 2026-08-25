@@ -116,6 +116,12 @@ All notable changes to this project will be documented in this file.
 - fix(memory): 검증 결과 주입이 작업 결과 묶음을 가르던 결함 수리 (main-010) (0b2ef9b3)
 - ... (126 more)
 
+## [1.6.0] - 2026-08-25
+
+### Changed
+
+- release(v1.6.0): 발행 준비 — Windows 플랫폼 결함 축, 등급은 §1.5 판정으로 minor (62953fb8)
+
 ## [1.5.0] - 2026-08-25
 
 ### Changed

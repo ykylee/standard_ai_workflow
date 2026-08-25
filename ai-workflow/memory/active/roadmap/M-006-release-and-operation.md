@@ -2,10 +2,11 @@
 id: M-006
 title: 릴리스 + 상시 운용 전환
 sdlc_phase: release
-status: in_progress
+status: done
 order: 6
 parallel_allowed: []
-deliverables: []
+deliverables:
+  - workflow-source/releases/Beta-v1.5.0.md
 ---
 
 # M-006 — 릴리스 + 상시 운용 전환

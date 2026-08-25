@@ -193,50 +193,50 @@
       "id": "M-006",
       "title": "릴리스 + 상시 운용 전환",
       "sdlc_phase": "release",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 3,
-      "done_leaves": 0,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-6.1",
           "title": "릴리스 발행 (등급은 RELEASE.md §1.5)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-25-main-014"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-6.2",
           "title": "소비 채널 재적용 + doctor drift 0",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-25-main-015"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         },
         {
           "id": "WBS-6.3",
           "title": "상시 운용 전환 (exempt 비율 관찰 시작 — 스펙 §11)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-25-main-016"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]
     }
   ],
-  "current_milestone_id": "M-006",
+  "current_milestone_id": null,
   "exempt_tasks": [
     {
       "task_id": "TASK-2026-08-25-main-010",

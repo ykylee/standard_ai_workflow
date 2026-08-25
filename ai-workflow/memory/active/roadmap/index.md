@@ -23,5 +23,5 @@
   - path: [`./M-004-backlog-gates.md`](./M-004-backlog-gates.md)
 - **M-005** [implementation] bootstrap 씨앗 + 온보딩 SDLC 기본 — status: done
   - path: [`./M-005-bootstrap-onboarding-seed.md`](./M-005-bootstrap-onboarding-seed.md)
-- **M-006** [release] 릴리스 + 상시 운용 전환 — status: in_progress
+- **M-006** [release] 릴리스 + 상시 운용 전환 — status: done
   - path: [`./M-006-release-and-operation.md`](./M-006-release-and-operation.md)

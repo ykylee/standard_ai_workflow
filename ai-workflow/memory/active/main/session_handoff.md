@@ -36,9 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작
-- TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0
-- TASK-2026-08-25-main-014 roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 ## 3. 차단 작업
 
@@ -47,6 +44,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작
+- TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0
+- TASK-2026-08-25-main-014 roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)
 - TASK-2026-08-25-main-013 roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다
 - TASK-2026-08-25-main-012 roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다
 - TASK-2026-08-25-main-011 roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다
@@ -54,9 +54,6 @@
 - TASK-2026-08-25-main-008 roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다
 - TASK-2026-08-25-main-007 roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자
 - TASK-2026-08-25-main-010 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거
-- TASK-2026-08-25-main-006 roadmap M-003/WBS-3.3 — milestones.py 데모 휴리스틱 은퇴, MCP 도구를 roadmap 정본으로 교체
-- TASK-2026-08-25-main-005 roadmap M-003/WBS-3.2 — session-start 가 현재 마일스톤과 다음 WBS 후보를 보고한다
-- TASK-2026-08-25-main-004 roadmap M-003/WBS-3.1 — wk refresh-state 가 roadmap_state 를 함께 재생성한다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -80,17 +77,15 @@ CLI·MCP 가 같은 게이트를 거친다 — roadmap 있는 프로젝트의 cr
 필수(거부 7코드·허용 3코드), 예외는 `--wbs exempt` + 사유 선언이 frontmatter
 에 남고, 순서 병행은 로드맵 `parallel_allowed` 선언이 결정한다. 이 저장소
 게이트는 **무장 상태**다(main-010 이 첫 실전 exempt). `create_backlog_entry`
-MCP 도 입력 3종이 additive 로 늘었다. **M-005 도 60차에 close** (검사
-273→274): bootstrap 이 SDLC 로드맵 씨앗을 심는다 — 신규는 concept 만
-in_progress(컨셉부터가 기본 흐름), 기존은 전부 planned + **draft** 표기.
-설계 확정 2건: ①파생 불일치 보고는 **done 경계에서만**(씨앗 직후
-in_progress+링크0 위양성 제거, 스펙 §7.2) ②**draft 로드맵은 게이트를
-발동시키지 않는다**(추정이 강제가 되면 draft 가 아니다 — 소유자가 index
-상태를 active 로 확정하면 그 자리에서 발동, 스펙 §6). 채널 문안(플러그인
-SKILL 2종 + bootstrap command)이 roadmap_context·게이트를 안내한다. 다음은
-**M-006(릴리스 + 상시 운용 전환)** — assess_milestone_progress 입력 교체가
-breaking 후보라 `RELEASE.md` §1.5 4문항으로 등급을 판정한다. 구현을 닫힌
-task 에 잇대지 않는다 — 로드맵의 마일스톤 경계가 task 경계다.
+MCP 도 입력 3종이 additive 로 늘었다. **M-005 close** (검사 273→274):
+bootstrap SDLC 씨앗 — 신규는 concept 부터, 기존은 draft(게이트 발동 전).
+**M-006 close — v1.5.0 발행 완료 (2026-08-25)**: §1.5 4문항으로 minor 확정
+(도구 제안 2.0.0 기각 — 동결 표면 밖·옛 인자 rc=0 수용·출력 key 유지·
+additive), tag v1.5.0 + GitHub Release(asset 4종) + 파생물 정합, 양 채널
+(claude-code·codex) 1.5.0 재적용 — **wk doctor content drift 0**. codex
+marketplace 소스는 `~/.codex/local-marketplaces/` 내구 경로. **로드맵
+M-001~M-006 전부 done — ADR-027 축 완결, 상시 운용 전환.** 다음 로드맵은
+소유자가 선언한다 (session-start 가 그렇게 안내한다).
 
 > **이 절의 계약** (TASK-2026-08-22-main-001). 아래는 판정 기준이 **다른 부류**로
 > 나뉜다. 예전에는 한 목록에 섞여 있었고, 그중 둘은 이미 기계가 읽는 자리를 가진
@@ -145,6 +140,10 @@ task 에 잇대지 않는다 — 로드맵의 마일스톤 경계가 task 경계
 작업이 아니라 조건이 성립하기를 기다리는 것들이다.
 
 - cross-host federation (두 번째 호스트 = MacBook 확정, **시점 추후**)
+- **로드맵 exempt 비율** (60차 시작, 스펙 §11) — 정본은
+  `roadmap_state.json` 의 `exempt_tasks`. 첫 실측(2026-08-25): **1/15 (7%)**
+  — exempt 1건은 main-010(사용자 직접 요청). 비율이 지속 상승하면 '운영 축'
+  상설 마일스톤 여부를 소유자에게 묻는다.
 - memory_index 3-tuple 지표 추이 — 60차(2026-08-25) 승격 2건 반영 후
   `wk suggest-memory-entries`: 덮인 것 **4/10**, 후보 6건(threshold 0.5,
   coverage 0.17~0.33). 57~59차의 저점 고착(2/10)은 소유자 결정(승격)으로

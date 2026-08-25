@@ -42,6 +42,9 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
             status=payload.get("status"),
             priority=payload.get("priority"),
             tool_version=tool_version,
+            workspace_root=str(payload.get("workspace_root", ".")),
+            wbs=payload.get("wbs"),
+            wbs_exempt_reason=payload.get("wbs_exempt_reason"),
         )
     if tool_name == "create_session_handoff_draft":
         return create_session_handoff_draft_payload(
@@ -86,9 +89,11 @@ def invoke_read_only_tool(*, tool_name: str, payload: dict[str, Any], tool_versi
         )
     if tool_name == "assess_milestone_progress":
         return assess_milestone_progress_payload(
-            matrix_path=str(payload["matrix_path"]),
-            backlog_path=str(payload["backlog_path"]),
+            workspace_root=str(payload.get("workspace_root", ".")),
             tool_version=tool_version,
+            # deprecated 입력도 통과시킨다 — payload 가 받아서 왜 무시되는지 말한다.
+            matrix_path=payload.get("matrix_path"),
+            backlog_path=payload.get("backlog_path"),
         )
     if tool_name == "smart_context_reader":
         return smart_context_reader_payload(

@@ -3718,6 +3718,93 @@
           "title": "Recommended Next Action",
           "type": "string"
         },
+        "roadmap_context": {
+          "anyOf": [
+            {
+              "description": "session-start 가 보고하는 로드맵 요약 (M-003 배선, additive).\n\nroadmap 부재 시 present=False 뿐인 객체가 실린다 — 조용한 생략 대신\n'관측했고 없었다' 를 말한다.",
+              "properties": {
+                "current_milestone_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Current Milestone Id"
+                },
+                "current_sdlc_phase": {
+                  "default": "",
+                  "description": "SdlcPhase value; 현재 마일스톤 부재 시 빈 문자열",
+                  "title": "Current Sdlc Phase",
+                  "type": "string"
+                },
+                "declared_status": {
+                  "default": "",
+                  "title": "Declared Status",
+                  "type": "string"
+                },
+                "deliverables_missing": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Deliverables Missing",
+                  "type": "array"
+                },
+                "done_leaves": {
+                  "default": 0,
+                  "title": "Done Leaves",
+                  "type": "integer"
+                },
+                "issues_count": {
+                  "default": 0,
+                  "title": "Issues Count",
+                  "type": "integer"
+                },
+                "next_wbs_candidates": {
+                  "description": "현재 마일스톤에서 아직 done 이 아닌 leaf — 'WBS-id title (derived_status)'",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Next Wbs Candidates",
+                  "type": "array"
+                },
+                "present": {
+                  "default": false,
+                  "title": "Present",
+                  "type": "boolean"
+                },
+                "progress": {
+                  "default": 0.0,
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "title": "Progress",
+                  "type": "number"
+                },
+                "recommendation": {
+                  "default": "",
+                  "description": "SDLC 단계 산출물 권고 등 advisory 한 줄",
+                  "title": "Recommendation",
+                  "type": "string"
+                },
+                "total_leaves": {
+                  "default": 0,
+                  "title": "Total Leaves",
+                  "type": "integer"
+                }
+              },
+              "title": "SessionStartRoadmapContext",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "현재 마일스톤·SDLC 단계·다음 WBS 후보. ADR-027 스펙 §9."
+        },
         "self_bootstrap_init_commands": {
           "items": {
             "type": "string"

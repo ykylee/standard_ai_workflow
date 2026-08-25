@@ -203,6 +203,29 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
                 value_type="string",
                 description="Priority of the task (default: high).",
             ),
+            # ADR-027 M-004: roadmap 이 있는 workspace 의 task 생성 게이트.
+            # CLI(backlog-update)와 같은 단일 판정 함수를 거친다.
+            ReadOnlyToolFieldSpec(
+                name="workspace_root",
+                cli_flag="--workspace-root",
+                value_type="path",
+                description="Workspace root for the ADR-027 roadmap gate. Defaults to the server cwd.",
+                required=False,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="wbs",
+                cli_flag="--wbs",
+                value_type="string",
+                description="WBS leaf ref 'M-NNN/WBS-N.N', or 'exempt' with a reason. Required when the workspace has a roadmap.",
+                required=False,
+            ),
+            ReadOnlyToolFieldSpec(
+                name="wbs_exempt_reason",
+                cli_flag="--wbs-exempt-reason",
+                value_type="string",
+                description="Mandatory reason when wbs='exempt' — the bypass is a declaration, not silence.",
+                required=False,
+            ),
         ),
         payload_example={
             "task_id": "TASK-009",
@@ -354,27 +377,22 @@ READ_ONLY_TOOL_SPECS: tuple[ReadOnlyToolSpec, ...] = (
     ),
     ReadOnlyToolSpec(
         name="assess_milestone_progress",
-        description="Analyze milestone progress based on maturity matrix and backlog.",
+        # ADR-027 M-003: 진척의 SSOT 가 roadmap 층으로 바뀌었다 — 입력도 함께
+        # 바뀐다 (matrix_path/backlog_path → workspace_root). 데모 휴리스틱
+        # (common.milestones)은 함수까지 은퇴.
+        description="Assess milestone progress from the ADR-027 roadmap layer (roadmap/ SSOT + task wbs links).",
         script_path=SOURCE_ROOT / "mcp_servers" / "milestone-progress" / "scripts" / "run_assess_milestone_progress.py",
         input_fields=(
             ReadOnlyToolFieldSpec(
-                name="matrix_path",
-                cli_flag="--matrix-path",
+                name="workspace_root",
+                cli_flag="--workspace-root",
                 value_type="path",
-                description="Path to the maturity matrix JSON.",
-                required=True,
-            ),
-            ReadOnlyToolFieldSpec(
-                name="backlog_path",
-                cli_flag="--backlog-path",
-                value_type="path",
-                description="Path to the current backlog document.",
-                required=True,
+                description="Workspace root containing ai-workflow/memory/active/roadmap/. Defaults to the server cwd.",
+                required=False,
             ),
         ),
         payload_example={
-            "matrix_path": "workflow-source/core/maturity_matrix.json",
-            "backlog_path": "ai-workflow/memory/codex/phase6/backlog/2026-04-27.md",
+            "workspace_root": ".",
         },
     ),
     ReadOnlyToolSpec(

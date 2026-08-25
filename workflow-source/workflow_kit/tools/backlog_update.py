@@ -121,6 +121,8 @@ def build_draft_entry(
     kind: str = "generic",
     source_anchor: str | None = None,
     source_path: str | None = None,
+    wbs: str | None = None,
+    wbs_exempt_reason: str | None = None,
 ) -> list[str]:
     """per-task SSOT 파일 본문 (v0.14.0+ append-only layout).
 
@@ -178,6 +180,8 @@ def build_draft_entry(
         source_anchor=source_anchor or f"{kind}-{task_id.lower()}",
         source_path=source_path or f"backlog/{request_date}.md",
         body_lines=detail,
+        wbs=wbs,
+        wbs_exempt_reason=wbs_exempt_reason,
     )
 
 
@@ -268,6 +272,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--follow-up", action="append", dest="follow_up", default=[],
                         help="후속 작업 (반복 지정 가능)")
     parser.add_argument("--validation-result")
+    # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task 생성 게이트.
+    parser.add_argument("--wbs", default=None,
+                        help="WBS leaf 참조 'M-NNN/WBS-N.N', 또는 로드맵 밖 작업 선언 'exempt'. "
+                             "roadmap 이 있는 프로젝트의 create 는 필수 (ADR-027 §6).")
+    parser.add_argument("--wbs-exempt-reason", default=None,
+                        help="--wbs exempt 의 필수 사유 — frontmatter 에 남아 생성물이 센다.")
     parser.add_argument("--work-backlog-index-path")
     parser.add_argument("--session-handoff-path")
     parser.add_argument("--apply", action="store_true")
@@ -559,6 +569,35 @@ def main() -> int:
         resolved_kind = args.kind or "generic"
         resolved_priority = args.priority or "high"
 
+        # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task **생성** 게이트.
+        # 판정은 정본 한 곳(evaluate_wbs_gate)이고 MCP 경로도 같은 함수를 부른다.
+        # draft(무-apply)도 막는다 — 거부될 초안을 보여 주는 것은 초안이 아니라 함정이다.
+        if requested_mode == "create":
+            from workflow_kit.common.paths import project_workspace_root as _pwr
+            from workflow_kit.common.state.roadmap import evaluate_wbs_gate
+
+            gate = evaluate_wbs_gate(
+                _pwr(project_profile_path),
+                wbs=args.wbs,
+                exempt_reason=args.wbs_exempt_reason,
+            )
+            if not gate.allowed:
+                result = build_error_result(
+                    tool_version=TOOL_VERSION,
+                    error=f"task 생성이 로드맵 게이트에 막혔다: {gate.detail}",
+                    error_code="wbs_gate_denied",
+                    warnings=[f"게이트 판정 코드: {gate.code}"],
+                    source_context=source_context | {
+                        "gate_code": gate.code,
+                        "gate_milestone_id": gate.milestone_id,
+                        "wbs": args.wbs,
+                    },
+                )
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 1
+            if gate.code == "exempt_declared":
+                warnings.append(f"로드맵 게이트 예외로 생성한다 — 사유: {args.wbs_exempt_reason}")
+
         # v1.1.7 (TASK-2026-08-11-main-023): update 모드는 재생성이 아니라 **병합**이다.
         # 기존 task SSOT 파일이 있으면 그것을 원본으로 삼고 명시된 값만 반영한다 —
         # 이전에는 인자만으로 문서를 다시 만들어 미지정 필드(작업 내용·완료 기준·담당·
@@ -636,6 +675,8 @@ def main() -> int:
                 follow_up=args.follow_up,
                 validation_result=args.validation_result,
                 kind=resolved_kind,
+                wbs=args.wbs,
+                wbs_exempt_reason=args.wbs_exempt_reason,
             )
 
         if operation_type == "create_daily_backlog":

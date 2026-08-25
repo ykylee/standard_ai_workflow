@@ -20,6 +20,13 @@ def build_args(parser):
     parser.add_argument("--request-date", required=True)
     parser.add_argument("--status", default="planned")
     parser.add_argument("--priority", default="high")
+    # ADR-027 M-004: roadmap gate — CLI 와 같은 단일 판정 함수를 거친다.
+    parser.add_argument("--workspace-root", required=False, default=".",
+                        help="Workspace root for the ADR-027 roadmap gate. Defaults to cwd.")
+    parser.add_argument("--wbs", required=False, default=None,
+                        help="WBS leaf ref 'M-NNN/WBS-N.N', or 'exempt' with a reason.")
+    parser.add_argument("--wbs-exempt-reason", required=False, default=None,
+                        help="Mandatory reason when wbs='exempt'.")
 
 def main():
     mcp_main(

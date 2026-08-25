@@ -1116,6 +1116,22 @@ def main() -> int:
         if args.adoption_mode == "existing":
             _record_write(paths.assessment_path, render_assessment(args, context), force=args.force)
 
+        # ADR-027 M-005: SDLC 로드맵 씨앗. 신규는 concept 가 in_progress (컨셉
+        # 정리부터가 기본 흐름), 기존은 전부 planned + draft (추정을 확정으로
+        # 적지 않는다 — 현재 단계는 소유자가 선언한다). `memory/active` 전체가
+        # 보존 경로라 재실행이 기존 로드맵을 덮지 않는다.
+        from workflow_kit.bootstrap_lib.roadmap_seed import render_roadmap_seed
+        roadmap_dir = paths.kit_root / "memory" / "active" / "roadmap"
+        for rel, content in render_roadmap_seed(
+            args, draft=(args.adoption_mode == "existing")
+        ).items():
+            _record_write(roadmap_dir / rel, content, force=args.force)
+        # 씨앗 직후의 기계 정본. kit_dir 가 기본값(ai-workflow)이 아니면 런타임
+        # 경로 규약 밖이라 생성기가 찾지 못한다 — None 이면 그대로 둔다 (파서·
+        # 게이트도 같은 이유로 해당 없음이 된다).
+        from workflow_kit.common.state.roadmap import generate_roadmap_state
+        generate_roadmap_state(paths.target_root)
+
         # 3. Write harness overlay files (includes MCP config snippets if --enable-mcp)
         harness_files, harness_actions = write_harness_files(args, paths, context)
         file_actions.extend(harness_actions)

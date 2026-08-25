@@ -435,6 +435,20 @@ def main() -> int:
         from workflow_kit.common.purpose_graph import run_graph_insights
         from workflow_kit.common.schemas import SessionGraphInsightsOutput
 
+        # ADR-027 M-003: roadmap 층 보고. 부재 시 present=False (graceful skip).
+        # 계산 실패는 조용히 넘기지 않고 warning 으로 남긴다 — 폴백은 조용히 하지 않는다.
+        from workflow_kit.common.state.roadmap import build_session_roadmap_context
+        try:
+            roadmap_context = build_session_roadmap_context(workspace_root)
+            if roadmap_context.issues_count:
+                warnings.append(
+                    f"roadmap 정합 이슈 {roadmap_context.issues_count}건 — "
+                    "`wk refresh-state --check` 로 확인하라 (ADR-027)."
+                )
+        except Exception as roadmap_exc:  # noqa: BLE001 — 로드맵 결함이 세션 진입을 막으면 안 된다
+            roadmap_context = None
+            warnings.append(f"roadmap 컨텍스트 계산 실패 ({type(roadmap_exc).__name__}) — roadmap/ 형식을 점검하라.")
+
         graph_result = run_graph_insights(workspace_root=workspace_root)
         graph_insights = SessionGraphInsightsOutput(
             coverage_pct=(graph_result.coverage.coverage_pct if graph_result.coverage else 0.0),
@@ -509,6 +523,7 @@ def main() -> int:
             memory_index_query_output=_build_memory_index_query_output(
                 args, workspace_root, warnings
             ),
+            roadmap_context=roadmap_context,
         )
         result = output_model.model_dump()
     except FileNotFoundError as exc:

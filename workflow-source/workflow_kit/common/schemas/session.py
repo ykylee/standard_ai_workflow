@@ -6,6 +6,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 from workflow_kit.common.schemas.base import BaseOutput, Status
+from workflow_kit.common.schemas.roadmap import SessionStartRoadmapContext
 
 
 class SessionStartSourceDocs(BaseModel):
@@ -95,6 +96,11 @@ class SessionStartOutput(BaseOutput):
     memory_index_query_output: dict[str, Any] | None = Field(
         default=None,
         description="Phase 3: `query_memory_index_for_dispatcher` 결과 dict. 부재 시 None (zero-risk).",
+    )
+    # ADR-027 M-003: roadmap 층 보고 (additive). roadmap 부재 시 present=False.
+    roadmap_context: "SessionStartRoadmapContext | None" = Field(
+        default=None,
+        description="현재 마일스톤·SDLC 단계·다음 WBS 후보. ADR-027 스펙 §9.",
     )
 
     @property

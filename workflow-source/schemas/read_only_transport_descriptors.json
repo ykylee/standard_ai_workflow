@@ -388,6 +388,18 @@
           "task_name": {
             "description": "Short descriptive name of the task.",
             "type": "string"
+          },
+          "wbs": {
+            "description": "WBS leaf ref 'M-NNN/WBS-N.N', or 'exempt' with a reason. Required when the workspace has a roadmap.",
+            "type": "string"
+          },
+          "wbs_exempt_reason": {
+            "description": "Mandatory reason when wbs='exempt' — the bypass is a declaration, not silence.",
+            "type": "string"
+          },
+          "workspace_root": {
+            "description": "Workspace root for the ADR-027 roadmap gate. Defaults to the server cwd.",
+            "type": "string"
           }
         },
         "required": [
@@ -807,23 +819,16 @@
       "annotations": {
         "readOnlyHint": true
       },
-      "description": "Analyze milestone progress based on maturity matrix and backlog.",
+      "description": "Assess milestone progress from the ADR-027 roadmap layer (roadmap/ SSOT + task wbs links).",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
-          "backlog_path": {
-            "description": "Path to the current backlog document.",
-            "type": "string"
-          },
-          "matrix_path": {
-            "description": "Path to the maturity matrix JSON.",
+          "workspace_root": {
+            "description": "Workspace root containing ai-workflow/memory/active/roadmap/. Defaults to the server cwd.",
             "type": "string"
           }
         },
-        "required": [
-          "backlog_path",
-          "matrix_path"
-        ],
+        "required": [],
         "type": "object"
       },
       "name": "assess_milestone_progress",

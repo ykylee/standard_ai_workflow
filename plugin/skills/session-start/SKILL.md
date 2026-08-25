@@ -27,6 +27,13 @@ summaries, or self-explanation.
 If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
 and offer to scaffold it.
 
+When `ai-workflow/memory/active/roadmap/` exists, the tool output carries
+`roadmap_context` (ADR-027): the current milestone, its SDLC phase, progress, and the
+next WBS candidates. Fold it into the baseline report — and when the current phase is
+concept / requirements / design with its declared deliverable still missing, recommend
+filling that deliverable first (the default onboarding order is concept → requirements →
+design → implementation). No roadmap → `present=false`; skip silently.
+
 `wk session-start` now checks the harness entry points on **every** start: files declared
 by the harness registry but missing on disk are created at the current kit version, and
 files that exist but carry an older marker are **reported, never overwritten** — an

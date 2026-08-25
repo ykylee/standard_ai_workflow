@@ -110,7 +110,7 @@ task 와 append-only 인덱스가 한 파일에 겹쳐 쌓였다.
 
 ## 3. smoke 회귀
 
-누적 smoke test **268/268 PASS** ×2축 (2026-08-24, `dev,release,mcp-sdk` extra 를
+누적 smoke test **274/274 PASS** ×2축 (2026-08-25, `dev,release,mcp-sdk` extra 를
 깐 격리 venv, `--tmp-dir` 실디스크). 이 줄은 릴리스 시점 스냅샷이 아니라 *최신
 전량 결과* 를 반영하는 살아있는 지표다.
 

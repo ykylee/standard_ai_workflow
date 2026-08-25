@@ -20,22 +20,29 @@ from workflow_kit.common.output_contracts import validate_output_payload
 
 
 def main() -> int:
-    completed = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPT_PATH),
-            "--task-id",
-            "TASK-099",
-            "--task-name",
-            "출력 샘플 정리",
-            "--request-date",
-            "2026-04-20",
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    # ADR-027 M-004 이후 이 도구는 workspace 의 roadmap 게이트를 거친다. 이 검사가
+    # 재는 것은 **초안 생성**이므로 roadmap 없는 임시 cwd 에서 돌린다 (게이트
+    # 자체는 check_roadmap_gates 가 잰다) — repo cwd 로 돌리면 이 저장소의
+    # 게이트가 정당하게 거부한다.
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as neutral_cwd:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_PATH),
+                "--task-id",
+                "TASK-099",
+                "--task-name",
+                "출력 샘플 정리",
+                "--request-date",
+                "2026-04-20",
+            ],
+            cwd=neutral_cwd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
     payload = json.loads(completed.stdout)
     output_errors = validate_output_payload(payload, family="create_backlog_entry")
     if output_errors:

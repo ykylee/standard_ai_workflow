@@ -10,7 +10,7 @@ from workflow_kit.common.change_types import classify_impacted_doc_file
 from workflow_kit.common.docs import missing_metadata_fields
 from workflow_kit.common.git import summarize_git_history
 from workflow_kit.common.rotation import rotate_handoff_tasks
-from workflow_kit.common.milestones import assess_milestone_progress
+from workflow_kit.common.state.roadmap import build_roadmap_state
 from workflow_kit.common.markdown import (
     find_broken_links,
     markdown_targets,
@@ -225,7 +225,30 @@ def create_backlog_entry_payload(
     status: str | None,
     priority: str | None,
     tool_version: str,
+    workspace_root: str = ".",
+    wbs: str | None = None,
+    wbs_exempt_reason: str | None = None,
 ) -> dict[str, Any]:
+    # ADR-027 M-004 (스펙 §6): CLI(backlog-update)와 **같은 단일 게이트 함수**를
+    # 거친다 — 판정이 두 곳이면 한 곳만 고쳐져 조용히 갈린다. roadmap 부재
+    # 프로젝트는 not_applicable 로 기존 동작 그대로다.
+    from workflow_kit.common.state.roadmap import evaluate_wbs_gate
+
+    gate = evaluate_wbs_gate(
+        resolve_existing_path(workspace_root),
+        wbs=wbs,
+        exempt_reason=wbs_exempt_reason,
+    )
+    if not gate.allowed:
+        return {
+            "status": "error",
+            "tool_version": tool_version,
+            "error_code": "wbs_gate_denied",
+            "gate_code": gate.code,
+            "gate_detail": gate.detail,
+            "draft_entry": [],
+            "warnings": [f"task 생성이 로드맵 게이트에 막혔다: {gate.detail}"],
+        }
     # 라벨은 **정본 표에서만** 가져온다 (`TASK_FIELD_LABELS`). 여기가 리터럴을 들고
     # 있으면 정본을 바꿔도 이 자리만 옛 표기로 남는다 — MCP 번들이 만든 task 를
     # 소비자의 리더가 못 읽게 되는 갈라짐의 씨앗이다.
@@ -254,7 +277,12 @@ def create_backlog_entry_payload(
         "status": "ok",
         "tool_version": tool_version,
         "draft_entry": draft_entry,
-        "warnings": [],
+        "gate_code": gate.code,
+        "wbs": wbs,
+        "warnings": (
+            [f"로드맵 게이트 예외로 초안을 낸다 — 사유: {wbs_exempt_reason}"]
+            if gate.code == "exempt_declared" else []
+        ),
     }
 
 
@@ -423,24 +451,73 @@ def rotate_workflow_logs_payload(
 
 def assess_milestone_progress_payload(
     *,
-    matrix_path: str,
-    backlog_path: str,
+    workspace_root: str = ".",
     tool_version: str,
+    matrix_path: str | None = None,
+    backlog_path: str | None = None,
 ) -> dict[str, Any]:
-    matrix_p = resolve_existing_path(matrix_path)
-    backlog_p = resolve_existing_path(backlog_path)
-    result = assess_milestone_progress(matrix_p, backlog_p)
+    """ADR-027 M-003: 정본은 roadmap 층이다 (roadmap/ SSOT + task `wbs:` 링크).
 
+    이전 구현(`common.milestones` 의 데모 휴리스틱 — phase→thread 매핑 하드코딩,
+    이 저장소의 maturity_matrix 전용)은 함수까지 은퇴했다 (49차 규칙).
+
+    옛 입력(matrix_path / backlog_path)은 **받되 쓰지 않는다** — 은퇴한 인자로
+    부른 호출자를 argparse 오류로 죽이면 이유를 못 듣는다 (50차 규칙, v1.3.0
+    §1.5 선례). 받았다는 사실과 왜 무시되는지를 warnings 로 말한다.
+    """
+    deprecated_warnings: list[str] = []
+    if matrix_path or backlog_path:
+        deprecated_warnings.append(
+            "matrix_path/backlog_path 는 deprecated 다 — 진척의 정본이 roadmap 층"
+            "(ai-workflow/memory/active/roadmap/)으로 바뀌어 이 인자는 무시된다 (ADR-027). "
+            "workspace_root 하나만 주면 된다."
+        )
+    root = resolve_existing_path(workspace_root)
+    state = build_roadmap_state(root)
+    if state is None:
+        return {
+            "status": "ok",
+            "tool_version": tool_version,
+            "roadmap_present": False,
+            "milestone_id": None,
+            "milestone_name": None,
+            "progress_percentage": 0.0,
+            "done_count": 0,
+            "total_count": 0,
+            "suggestion": "roadmap/ 이 없다 — 해당 없음. 도입은 ADR-027 / roadmap_milestone_wbs_spec.md 참조.",
+            "warnings": deprecated_warnings,
+        }
+    current = next(
+        (m for m in state.milestones if m.id == state.current_milestone_id), None
+    )
+    milestones_brief = [
+        {
+            "id": m.id,
+            "sdlc_phase": m.sdlc_phase.value,
+            "declared_status": m.declared_status.value,
+            "derived_status": m.derived_status.value,
+            "progress": round(m.progress, 4),
+        }
+        for m in state.milestones
+    ]
     return {
-        "status": "ok" if result["status"] == "ok" else "error",
+        "status": "ok",
         "tool_version": tool_version,
-        "milestone_id": result.get("milestone_id"),
-        "milestone_name": result.get("milestone_name"),
-        "progress_percentage": result.get("progress"),
-        "done_count": result.get("done_count", 0),
-        "total_count": result.get("total_count", 0),
-        "suggestion": result.get("suggestion"),
-        "warnings": [],
+        "roadmap_present": True,
+        "milestone_id": current.id if current else None,
+        "milestone_name": current.title if current else None,
+        "sdlc_phase": current.sdlc_phase.value if current else None,
+        "progress_percentage": round(current.progress * 100.0, 2) if current else 0.0,
+        "done_count": current.done_leaves if current else 0,
+        "total_count": current.total_leaves if current else 0,
+        "milestones": milestones_brief,
+        "issues_count": len(state.issues),
+        "suggestion": (
+            f"{current.id} 진행 중 — 남은 leaf {current.total_leaves - current.done_leaves}개"
+            if current
+            else "진행 중 마일스톤이 없다 — 로드맵에서 다음 마일스톤을 in_progress 로 선언한다."
+        ),
+        "warnings": deprecated_warnings,
     }
 
 

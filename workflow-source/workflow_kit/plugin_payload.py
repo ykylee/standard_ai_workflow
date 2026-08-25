@@ -227,6 +227,13 @@ summaries, or self-explanation.
 If `state.json` or `PURPOSE.md` is absent, do not treat it as a failure — *skip gracefully*
 and offer to scaffold it.
 
+When `ai-workflow/memory/active/roadmap/` exists, the tool output carries
+`roadmap_context` (ADR-027): the current milestone, its SDLC phase, progress, and the
+next WBS candidates. Fold it into the baseline report — and when the current phase is
+concept / requirements / design with its declared deliverable still missing, recommend
+filling that deliverable first (the default onboarding order is concept → requirements →
+design → implementation). No roadmap → `present=false`; skip silently.
+
 `{command}` now checks the harness entry points on **every** start: files declared
 by the harness registry but missing on disk are created at the current kit version, and
 files that exist but carry an older marker are **reported, never overwritten** — an
@@ -260,6 +267,13 @@ and `./tasks/<TASK-ID>.md`.
    excluded areas in `PURPOSE.md` §3; on overlap, leave a one-line scope-creep warning.
    Without `PURPOSE.md`, proceed advisory-only with no warning.
 4. State the priority, owner, and completion criteria.
+5. **roadmap gate** (ADR-027 §6) — when the project has
+   `ai-workflow/memory/active/roadmap/`, creating a task **requires**
+   `--wbs M-NNN/WBS-N.N` (a leaf of the roadmap; the SDLC-order and done-milestone
+   gates apply). Off-roadmap work is declared, never slipped through:
+   `--wbs exempt --wbs-exempt-reason "<why>"` — the declaration lands in the task
+   frontmatter and is counted in `roadmap_state.json`. Projects without a roadmap
+   are unaffected.
 
 ## Usage
 

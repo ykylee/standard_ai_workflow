@@ -126,12 +126,21 @@ def render_task_file(
     source_anchor: str,
     source_path: str,
     body_lines: list[str],
+    wbs: str | None = None,
+    wbs_exempt_reason: str | None = None,
 ) -> list[str]:
     """per-task SSOT 파일 본문 (MEMORY_GOVERNANCE.md §2 Task Detail 템플릿 정합).
 
     frontmatter 6 key (id / status / created_at / source_anchor / source_path / kind)
     는 `check_appendonly_memory_layout.py` case 5 가 강제한다.
+    `wbs` / `wbs_exempt_reason` 은 ADR-027 의 optional key 다 (스펙 §5) —
+    exempt 선언은 사유와 함께 남아 생성물이 센다.
     """
+    wbs_lines: list[str] = []
+    if wbs:
+        wbs_lines.append(f"wbs: {wbs}")
+        if wbs_exempt_reason:
+            wbs_lines.append(f"wbs_exempt_reason: {wbs_exempt_reason}")
     return [
         "---",
         f"id: {task_id}",
@@ -140,6 +149,7 @@ def render_task_file(
         f"source_anchor: {source_anchor}",
         f"source_path: {source_path}",
         f"kind: {kind}",
+        *wbs_lines,
         "---",
         "",
         f"# {task_id} — {title}",

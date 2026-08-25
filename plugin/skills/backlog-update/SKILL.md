@@ -20,6 +20,13 @@ and `./tasks/<TASK-ID>.md`.
    excluded areas in `PURPOSE.md` §3; on overlap, leave a one-line scope-creep warning.
    Without `PURPOSE.md`, proceed advisory-only with no warning.
 4. State the priority, owner, and completion criteria.
+5. **roadmap gate** (ADR-027 §6) — when the project has
+   `ai-workflow/memory/active/roadmap/`, creating a task **requires**
+   `--wbs M-NNN/WBS-N.N` (a leaf of the roadmap; the SDLC-order and done-milestone
+   gates apply). Off-roadmap work is declared, never slipped through:
+   `--wbs exempt --wbs-exempt-reason "<why>"` — the declaration lands in the task
+   frontmatter and is counted in `roadmap_state.json`. Projects without a roadmap
+   are unaffected.
 
 ## Usage
 

@@ -31,7 +31,16 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
-from workflow_kit.common.paths import discover_project_profile_path, workflow_state_path
+from workflow_kit.common.paths import (
+    discover_project_profile_path,
+    project_workspace_root,
+    workflow_state_path,
+)
+from workflow_kit.common.state.roadmap import (
+    generate_roadmap_state,
+    state_matches_regeneration,
+    state_path as roadmap_state_path,
+)
 from workflow_kit.common.workflow_state import refresh_workflow_state_cache
 
 
@@ -77,12 +86,18 @@ def main() -> int:
     memory_index_dir = Path(args.memory_index_dir).resolve() if args.memory_index_dir else None
     state_path = workflow_state_path(project_profile_path)
 
+    workspace_root = project_workspace_root(project_profile_path)
+
     if not args.check:
         refresh_result = refresh_workflow_state_cache(
             project_profile_path=project_profile_path,
             generated_at=args.generated_at or date.today().isoformat(),
             memory_index_dir=memory_index_dir,
         )
+        # ADR-027 M-003: roadmap 이 있으면 roadmap_state.json 도 같은 호출에서
+        # 재생성한다 — 별도 명령을 만들지 않는다 (스펙 §7.1). 부재는 실패가
+        # 아니라 해당 없음이다.
+        roadmap_state = generate_roadmap_state(workspace_root)
         print(json.dumps({
             "status": "ok" if refresh_result["status"] == "refreshed" else "warning",
             "tool_version": TOOL_VERSION,
@@ -91,6 +106,9 @@ def main() -> int:
             "state_path": refresh_result["state_path"],
             "refresh_command": refresh_result["refresh_command"],
             "missing_paths": refresh_result.get("missing_paths", []),
+            "roadmap_state_status": "refreshed" if roadmap_state is not None else "not_applicable",
+            "roadmap_state_path": str(roadmap_state_path(workspace_root)) if roadmap_state is not None else "",
+            "roadmap_issues": len(roadmap_state.issues) if roadmap_state is not None else 0,
             "warnings": refresh_result.get("deprecation_warnings", []),
         }, ensure_ascii=False, indent=2))
         return 0
@@ -140,18 +158,24 @@ def main() -> int:
         regenerated = json.loads(tmp_output.read_text(encoding="utf-8"))
 
     drifted = _drift_keys(current, regenerated)
+    # ADR-027 M-003: roadmap_state.json 도 같은 --check 에서 drift 판정한다.
+    # 부재 프로젝트는 (True, "해당 없음") 이라 기존 동작이 변하지 않는다.
+    roadmap_ok, roadmap_reason = state_matches_regeneration(workspace_root)
+    any_drift = bool(drifted) or not roadmap_ok
     print(json.dumps({
-        "status": "ok" if not drifted else "error",
+        "status": "ok" if not any_drift else "error",
         "tool_version": TOOL_VERSION,
         "mode": "check",
         "state_path": str(state_path),
         "drift": bool(drifted),
         "drifted_keys": drifted,
+        "roadmap_drift": not roadmap_ok,
+        "roadmap_drift_reason": "" if roadmap_ok else roadmap_reason,
         "generated_at_used": generated_at,
         "refresh_command": refresh_result["refresh_command"],
-        "recovery_hint": "" if not drifted else "state.json 은 생성물이다 — 손으로 고치지 말고 `wk refresh-state` 로 재생성하라 (정본 §11).",
+        "recovery_hint": "" if not any_drift else "state.json / roadmap_state.json 은 생성물이다 — 손으로 고치지 말고 `wk refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7).",
     }, ensure_ascii=False, indent=2))
-    return 0 if not drifted else 1
+    return 0 if not any_drift else 1
 
 
 if __name__ == "__main__":

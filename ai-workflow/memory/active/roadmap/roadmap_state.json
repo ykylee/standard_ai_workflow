@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
+  "generated_at": "2026-08-25",
+  "milestones": [
+    {
+      "id": "M-001",
+      "title": "ADR-027 결정 + 정본 스펙",
+      "sdlc_phase": "design",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-1.1",
+          "title": "ADR-027 결정 기록 + 정본 스펙 작성",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-002"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-002",
+      "title": "스키마·파서·상태 생성기·검사·씨앗",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-2.1",
+          "title": "Pydantic 스키마 + 파서 + 파생 롤업 + 생성기 + 검사 3종 + 자기 적용 씨앗",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-003"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-003",
+      "title": "refresh-state 통합 + session-start 배선",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-3.1",
+          "title": "refresh-state 통합 (roadmap_state 동시 재생성)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-3.2",
+          "title": "session-start 보고 + SDLC 단계 산출물 권고",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-005"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-3.3",
+          "title": "milestones.py 은퇴 + MCP 도구 정본 교체",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-006"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-004",
+      "title": "backlog-update 게이트 + 예외 선언",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-4.1",
+          "title": "게이트 판정 단일 함수 + CLI 인자 (--wbs / exempt)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-007"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-4.2",
+          "title": "MCP 경로 동일 함수 배선",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-008"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-4.3",
+          "title": "게이트 검사 + 되주입 red 실증",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-009"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-005",
+      "title": "bootstrap 씨앗 + 온보딩 SDLC 기본",
+      "sdlc_phase": "implementation",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 3,
+      "done_leaves": 3,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-5.1",
+          "title": "신규 프로젝트 씨앗 렌더러 + 파서 통과 case",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-011"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-5.2",
+          "title": "기존 프로젝트 온보딩 초안 생성",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-012"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        },
+        {
+          "id": "WBS-5.3",
+          "title": "하네스 채널 스킬 문안 (정본 파생 체계)",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-013"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-006",
+      "title": "릴리스 + 상시 운용 전환",
+      "sdlc_phase": "release",
+      "declared_status": "in_progress",
+      "derived_status": "in_progress",
+      "progress": 0.0,
+      "total_leaves": 3,
+      "done_leaves": 0,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-6.1",
+          "title": "릴리스 발행 (등급은 RELEASE.md §1.5)",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-014"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-6.2",
+          "title": "소비 채널 재적용 + doctor drift 0",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-015"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-6.3",
+          "title": "상시 운용 전환 (exempt 비율 관찰 시작 — 스펙 §11)",
+          "derived_status": "in_progress",
+          "linked_task_ids": [
+            "TASK-2026-08-25-main-016"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "current_milestone_id": "M-006",
+  "exempt_tasks": [
+    {
+      "task_id": "TASK-2026-08-25-main-010",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵(ADR-027 구현) 밖 환경 정리 — 사용자 직접 요청, 마일스톤 무관",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-010.md"
+    }
+  ],
+  "issues": []
+}

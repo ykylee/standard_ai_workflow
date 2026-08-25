@@ -1600,6 +1600,10 @@
         "allow_null": false,
         "kind": "string"
       },
+      "roadmap_context": {
+        "allow_null": true,
+        "kind": "SessionStartRoadmapContext"
+      },
       "self_bootstrap_init_commands": {
         "allow_null": false,
         "item_kind": "string",

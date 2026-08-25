@@ -286,6 +286,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — doctor/release 탐침 결함족. 열린 마일스톤 없음",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-022.md"
+    },
+    {
+      "task_id": "TASK-2026-08-25-main-023",
+      "task_status": "planned",
+      "wbs_ref": "exempt",
+      "exempt_reason": "로드맵 밖 작업 — 도구 경로 해석 결함. 열린 마일스톤 없음",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-023.md"
     }
   ],
   "issues": []

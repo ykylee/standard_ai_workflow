@@ -4,7 +4,7 @@
 - 범위: 설계 원리 3층, 규칙을 쓰는 법, 운영 규율, 자기 적용(self-application)
 - 대상 독자: workflow 설계자, 이 워크플로우를 도입하는 팀, AI 에이전트
 - 상태: stable
-- 최종 수정일: 2026-08-24
+- 최종 수정일: 2026-08-25
 - 관련 문서: [global_workflow_standard.md](./global_workflow_standard.md), [workflow_configuration_layers.md](./workflow_configuration_layers.md)
 
 ## 0. 이 문서의 위치

@@ -108,3 +108,32 @@ overlay 파일 부재는 missing 이 아니라 **plugin_delegated** 다 — 자�
 - **maturity_matrix.json 의 milestones 키** — 이 저장소 자신의 phase 추적
   레거시. roadmap 층으로의 이행은 별도 사이클 (ADR-027 §Consequences).
 - **cross-host federation** — 두 번째 호스트(MacBook) 확보 시점.
+
+## Self-recovery log
+
+_자동 emit (Phase 13 AC3, 2026-08-25T02:02:43Z)_
+
+### 자동 fix (1건)
+
+- `test_case_4_readme_header_version_sync` → `_fix_readme_header_version`
+  - new value: `1.5.0`
+  - file: `README.md`
+
+_re-check status: **pass** (pass=7/fail=0/total=6)_
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-25T02:02:43Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -116,6 +116,12 @@ All notable changes to this project will be documented in this file.
 - fix(release): mypy 게이트가 blocking error 사유를 버리던 자리 + TASK-004 관찰 2차 (8544facd)
 - ... (123 more)
 
+## [1.5.0] - 2026-08-25
+
+### Changed
+
+- release(v1.5.0): 발행 준비 — ADR-027 로드맵 층 사이클, 등급은 §1.5 4문항으로 minor (8520dc13)
+
 ## [1.4.0] - 2026-08-24
 
 ### Changed

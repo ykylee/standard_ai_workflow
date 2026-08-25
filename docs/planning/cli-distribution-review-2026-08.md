@@ -4,7 +4,7 @@
 - 범위: 배포 채널 (GitHub Releases / PyPI / VCS 직설치), 설치 도구 (pip / pipx / uv), 패키징 제약
 - 대상 독자: maintainer, 배포 정책 소유자
 - 상태: 검토 완료 — 권고안 제시 (채널 변경은 소유자 결정)
-- 최종 수정일: 2026-08-24
+- 최종 수정일: 2026-08-25
 - 관련 문서: [`../RELEASE.md`](../RELEASE.md), [`../INSTALLATION_AND_USAGE.md`](../INSTALLATION_AND_USAGE.md), `workflow-source/pyproject.toml`
 
 ## 1. 현황 (v1.1.7-beta 기준, 전부 실측)

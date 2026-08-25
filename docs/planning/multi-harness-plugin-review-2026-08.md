@@ -4,7 +4,7 @@
 - 범위: 하네스별 확장 포맷 (2026-08 공식 문서 실사) + 개방 표준 (Agent Skills / Agent Plugins 1.0 / MCP 패키징) + 권고
 - 대상 독자: maintainer, 배포 정책 소유자
 - 상태: 검토 완료 — 권고안 제시 (구현은 후속 task)
-- 최종 수정일: 2026-08-24
+- 최종 수정일: 2026-08-25
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md)
 
 ## 1. 판정 요약

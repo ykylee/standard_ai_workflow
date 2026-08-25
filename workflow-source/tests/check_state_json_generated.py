@@ -144,6 +144,41 @@ def case_6_declaration_matches_exposure() -> None:
     )
 
 
+def case_7_posix_path_format(profile: Path) -> None:
+    """v1.4.1 (TASK-2026-08-25-main-004): state.json 경로 값은 항상 POSIX 표기.
+
+    ``safe_relpath`` 가 ``os.path.relpath`` / ``str(Path)`` 를 그대로 돌려주니
+    Windows 호스트에서 ``source_of_truth`` / ``next_documents`` 값이
+    ``docs\\PROJECT_PROFILE.md`` 로 적혔다 — POSIX 소비자(계획된 cross-host
+    federation, MacBook) 는 그것을 백슬래시 포함 *단일 파일명* 으로 해석한다.
+    """
+    from workflow_kit.common.paths import safe_relpath
+
+    # 단위 탐침 — 두 플랫폼 모두에서 결정적.
+    rel = safe_relpath(REPO_ROOT / "docs" / "PROJECT_PROFILE.md", REPO_ROOT)
+    assert rel == "docs/PROJECT_PROFILE.md", f"safe_relpath 상대 분기 POSIX 위반: {rel!r}"
+    assert "\\" not in rel, f"safe_relpath 가 백슬래시를 냈다: {rel!r}"
+
+    outside = Path(tempfile.gettempdir()) / "saw-case7-outside"
+    abs_outside = safe_relpath(outside, REPO_ROOT)
+    assert "\\" not in abs_outside, f"safe_relpath 절대 분기 POSIX 위반: {abs_outside!r}"
+    assert abs_outside == Path(abs_outside).as_posix(), f"POSIX canonical 아님: {abs_outside!r}"
+
+    # 생성 산출물 탐침 — 재생성하고 모든 경로 값이 POSIX 인지 대조.
+    rc, payload = _run_tool(["--project-profile-path", str(profile)])
+    assert rc == 0 and payload.get("state_cache_status") == "refreshed", f"refresh 실패: {payload}"
+    data = json.loads(Path(payload["state_path"]).read_text(encoding="utf-8"))
+
+    values: list[str] = [
+        v for v in (data.get("source_of_truth") or {}).values() if isinstance(v, str)
+    ]
+    values.append(data.get("backlog", {}).get("latest_backlog_path") or "")
+    values.append((data.get("repository_assessment") or {}).get("path") or "")
+    values.extend(v for v in (data.get("next_documents") or []) if isinstance(v, str))
+    bad = [v for v in values if v and "\\" in v]
+    assert not bad, f"state.json 경로 값에 플랫폼 분리자(백슬래시)가 있다: {bad}"
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="check-state-json-generated-") as tmp:
         root = Path(tmp).resolve()  # macOS /private symlink (TASK-017)
@@ -152,9 +187,10 @@ def main() -> int:
         case_2_reinjection(profile, state_path)
         case_3_recovery(profile)
         case_4_missing_state(profile, state_path)
+        case_7_posix_path_format(profile)
     case_5_self_application()
     case_6_declaration_matches_exposure()
-    print("state.json generated-artifact check passed (6 cases)")
+    print("state.json generated-artifact check passed (7 cases)")
     return 0
 
 
@@ -192,6 +228,12 @@ def test_case_5() -> None:
 
 def test_case_6() -> None:
     case_6_declaration_matches_exposure()
+
+
+def test_case_7() -> None:
+    with tempfile.TemporaryDirectory(prefix="check-state-json-generated-") as tmp:
+        profile = _build_fixture(Path(tmp).resolve())
+        case_7_posix_path_format(profile)
 
 
 if __name__ == "__main__":

@@ -47,15 +47,23 @@ def resolve_existing_path(raw: str) -> Path:
 
 
 def safe_relpath(path: Path, start: Path) -> str:
-    """Return a relative version of a path if it is under start, otherwise absolute string."""
+    """Return a relative version of a path if it is under start, otherwise absolute string.
+
+    Always POSIX-style (``/``): the value lands in ``state.json``, a cross-host
+    artifact. ``os.path.relpath`` (and ``str(Path)``) emit the *platform*
+    separator, so on Windows a consumer on POSIX would read
+    ``docs\\PROJECT_PROFILE.md`` as one filename. ``Path(...).as_posix()`` is
+    platform-safe in both directions: on Windows ``Path`` still parses
+    ``/``-separated values, so same-machine consumers see no behavior change.
+    """
     try:
         resolved_path = path.resolve()
         resolved_start = start.resolve()
         if resolved_path.is_relative_to(resolved_start):
-            return os.path.relpath(resolved_path, resolved_start)
-        return str(resolved_path)
+            return Path(os.path.relpath(resolved_path, resolved_start)).as_posix()
+        return resolved_path.as_posix()
     except (ValueError, OSError):
-        return str(path)
+        return path.as_posix()
 
 
 def path_exists_relative(base: Path, raw: str | None) -> Path | None:

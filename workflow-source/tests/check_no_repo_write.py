@@ -109,6 +109,11 @@ REQUIRES_QUIET_REPO = True
 같은 순간 다른 check 가 무엇이든 건드리면 그것을 감시 대상의 소행으로 오탐한다 —
 관찰 대상이 저장소 자신이라 격리로는 풀리지 않는다. runner 가 이 선언을 보고
 정숙 구간(병렬 구간이 끝난 뒤 직렬)에 배치한다."""
+
+WATCHES_ALL_REASON = (
+    "감시 표본 13종의 실행이 곧 관찰이라 입력 표면이 사실상 저장소 전체 — "
+    "main-003 의 '일부러 미선언' 을 spec §2 어휘로 승격 (ADR-028 결정 5)"
+)
 def _porcelain(repo_root: Path = REPO_ROOT) -> str:
     return subprocess.run(
         ["git", "status", "--porcelain"],

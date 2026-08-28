@@ -70,6 +70,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit.common.branch_matrix import (  # noqa: E402
     BranchContext, apply_context, context_for, contexts, labels,
 )
+from workflow_kit.common import meta_watch  # noqa: E402
 
 # --- v1.0.0 resource guard 기본 임계 -----------------------------------------
 # 배경: smoke 전량 실행 중 두 종류의 사고가 실제로 발생했다.
@@ -229,6 +230,18 @@ WATCHES_MARKER = "WATCHES"
 예:
     WATCHES = ("workflow-source/workflow_kit/tools/release_pipeline*.py",
                "workflow-source/workflow_kit/release_status.py")
+"""
+
+ALL_REASON_MARKER = "WATCHES_ALL_REASON"
+"""check 가 **의도적 전역**임을 스스로 선언하는 이름 (근거 문자열 필수).
+
+`WATCHES` 부재는 "일부러 전역" 과 "아직 분류 안 됨" 을 구분하지 못한다 —
+둘 다 항상 실행되지만, 보급의 완료를 말하려면 구분이 필요하다 (spec §2).
+이 선언이 있는 check 는 항상 실행하고 메타 검증에서 제외한다.
+`WATCHES` 와 동시 선언은 모순 — 검사 저작 오류로 red (ADR-028 결정 5).
+
+예:
+    WATCHES_ALL_REASON = "감시 표본 13종 — 관찰 범위가 사실상 저장소 전체"
 """
 
 TIMEOUT_MARKER = "CHECK_TIMEOUT_S"
@@ -517,6 +530,7 @@ def run_one(
     *,
     guard: "ResourceGuard | None" = None,
     branch_context: "BranchContext | None" = None,
+    meta_dir: Path | None = None,
 ) -> CheckResult:
     """단일 check_*.py 를 *격리* 실행 + CheckResult 반환.
 
@@ -541,6 +555,14 @@ def run_one(
     env = os.environ.copy()
     env["TMPDIR"] = str(tmp_dir)
     env.setdefault("PYTHONPATH", str(SOURCE_ROOT))
+    if meta_dir is not None:
+        # meta-watch 채취 주입 (ADR-028): sitecustomize 디렉터리를 sys.path 앞에
+        # 둬 검사 프로세스와 그 python 자식에 audit hook 이 걸린다. 접근 기록은
+        # check 별 파일 — 컨텍스트가 여럿이면 합집합으로 쌓인다 (어느 축에서든
+        # 선언 밖 접근이 있으면 좁은 선언이다).
+        env["PYTHONPATH"] = os.pathsep.join([str(meta_dir), env["PYTHONPATH"]])
+        env[meta_watch.OUT_ENV] = str(meta_dir / f"{check_path.stem}.access")
+        env[meta_watch.REPO_ENV] = str(SOURCE_ROOT.parent)
     # 브랜치 컨텍스트 (v1.1.7). 요청한 컨텍스트가 호출자 환경에 밀리면 "그 축을
     # 쟀다" 는 보고가 거짓이 되므로, native 는 상속된 오버라이드를 지우기까지 한다
     # (`apply_context` 주석 참조).
@@ -656,16 +678,19 @@ def print_human(summary: RunSummary) -> None:
 
 
 @functools.lru_cache(maxsize=None)
-def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...]]:
-    """(REQUIRES_QUIET_REPO, CHECK_TIMEOUT_S, WATCHES) 를 한 번의 AST parse 로 읽는다.
+def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...], str]:
+    """(REQUIRES_QUIET_REPO, CHECK_TIMEOUT_S, WATCHES, WATCHES_ALL_REASON) 를
+    한 번의 AST parse 로 읽는다.
 
     import 하지 않는다 — 선언은 파일의 최상위 상수라야 한다. parse 못 하는
-    파일은 (False, 0, ()): 어차피 실행도 못 하며, 병렬 구간에서 실패하게 둔다.
+    파일은 (False, 0, (), ""): 어차피 실행도 못 하며, 병렬 구간에서 실패하게 둔다.
     `WATCHES` 가 빈 튜플이면 **미선언과 같게** 다뤄진다 (= 항상 실행).
+    `WATCHES_ALL_REASON` 은 비어 있지 않은 문자열 리터럴만 선언으로 본다.
     """
     quiet = False
     timeout_s = 0
     watches: tuple[str, ...] = ()
+    all_reason = ""
     try:
         with warnings.catch_warnings():
             # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 runner 출력에 새지 않게
@@ -673,7 +698,7 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...]]:
             warnings.simplefilter("ignore", SyntaxWarning)
             tree = ast.parse(Path(check_path_str).read_text(encoding="utf-8"))
     except (SyntaxError, OSError):
-        return False, 0, ()
+        return False, 0, (), ""
     for node in tree.body:
         targets = (node.targets if isinstance(node, ast.Assign)
                    else [node.target] if isinstance(node, ast.AnnAssign) else [])
@@ -696,7 +721,10 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...]]:
             elif (target.id == TIMEOUT_MARKER
                   and isinstance(value.value, int) and value.value > 0):
                 timeout_s = value.value
-    return quiet, timeout_s, watches
+            elif (target.id == ALL_REASON_MARKER
+                  and isinstance(value.value, str) and value.value.strip()):
+                all_reason = value.value.strip()
+    return quiet, timeout_s, watches, all_reason
 
 
 def requires_quiet_repo(check_path: Path) -> bool:
@@ -712,6 +740,75 @@ def effective_timeout(check_path: Path, cli_timeout: int) -> int:
 def watched_globs(check_path: Path) -> tuple[str, ...]:
     """check 가 선언한 관찰 경로 glob. 빈 튜플이면 미선언 = 항상 실행."""
     return _scan_markers(str(check_path))[2]
+
+
+def watches_all_reason(check_path: Path) -> str:
+    """check 의 `WATCHES_ALL_REASON` 선언 (의도적 전역의 근거). 미선언이면 빈 문자열."""
+    return _scan_markers(str(check_path))[3]
+
+
+def meta_watch_verdict(
+    ran: list[Path], meta_dir: Path, repo_root: Path,
+) -> tuple[list[str], list[str], dict[str, int]]:
+    """실행된 check 들의 `WATCHES` 선언을 채취 실측으로 판정한다 (ADR-028).
+
+    반환: (violations, warns, counts).
+
+    - violations → red: **좁은 선언** (선언 밖 실접근 — `--changed` 에서 조용히
+      skip 될 수 있는 바로 그 실패 모드) 과 **동시 선언 모순**.
+    - warns: 넓은 선언 (접근 0 인 glob) — 안전한 방향의 오차라 red 가 아니다.
+    - counts: 분류 현황 (국소/전역/미분류) — 보급의 관찰 지표 (spec §2 R1.2).
+      실행된 check 기준이다.
+    """
+    violations: list[str] = []
+    warns: list[str] = []
+    counts = {"watches": 0, "all": 0, "unclassified": 0}
+    for check in ran:
+        globs = watched_globs(check)
+        reason = watches_all_reason(check)
+        if globs and reason:
+            counts["watches"] += 1
+            violations.append(
+                f"{check.stem}: WATCHES 와 WATCHES_ALL_REASON 동시 선언 — 모순이다 "
+                "(국소면 glob 만, 전역이면 근거만 남길 것)")
+            continue
+        if reason:
+            counts["all"] += 1
+            continue
+        if not globs:
+            counts["unclassified"] += 1
+            continue
+        counts["watches"] += 1
+        accessed = meta_watch.load_accesses(meta_dir / f"{check.stem}.access")
+        try:
+            own_rel = check.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            own_rel = ""
+        uncovered, unused = meta_watch.judge(accessed, globs, own_rel, repo_root)
+        if uncovered:
+            # 진단에는 차집합 경로가 실린다 — "불일치" 라고만 말하지 않는다 (R3.5).
+            head = ", ".join(uncovered[:6])
+            more = f" 외 {len(uncovered) - 6}건" if len(uncovered) > 6 else ""
+            violations.append(
+                f"{check.stem}: 좁은 선언 — 선언 밖 접근 {len(uncovered)}건: {head}{more}")
+        if unused and accessed:
+            warns.append(
+                f"{check.stem}: 접근 0 인 glob {list(unused)} — 넓은 선언 (성능 잡음일 뿐)")
+    return violations, warns, counts
+
+
+def print_meta_watch(
+    violations: list[str], warns: list[str], counts: dict[str, int],
+) -> None:
+    print("\n  --- meta-watch (WATCHES 선언 실측 판정, ADR-028) ---")
+    print(f"  선언 현황: 국소 {counts['watches']} / 전역 {counts['all']} / "
+          f"미분류 {counts['unclassified']}")
+    for w in warns:
+        print(f"  warn  {w}")
+    for v in violations:
+        print(f"  ✗ {v}")
+    if not violations:
+        print("  좁은 선언 0")
 
 
 def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
@@ -740,6 +837,7 @@ def run_pass(
     guard: "ResourceGuard",
     branch_context: "BranchContext | None",
     jobs: int = 1,
+    meta_dir: Path | None = None,
 ) -> RunSummary:
     """check 전량을 **한 컨텍스트로** 한 바퀴 돌린다.
 
@@ -761,7 +859,7 @@ def run_pass(
             if aborted:
                 break
             result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
-                             guard=guard, branch_context=branch_context)
+                             guard=guard, branch_context=branch_context, meta_dir=meta_dir)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break
@@ -770,7 +868,7 @@ def run_pass(
         with ThreadPoolExecutor(max_workers=jobs) as pool:
             futures = {
                 pool.submit(run_one, path, timeout=effective_timeout(path, args.timeout),
-                            guard=guard, branch_context=branch_context): path
+                            guard=guard, branch_context=branch_context, meta_dir=meta_dir): path
                 for path in checks
             }
             for fut in as_completed(futures):
@@ -795,7 +893,7 @@ def run_pass(
             if aborted:
                 break
             result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
-                             guard=guard, branch_context=branch_context)
+                             guard=guard, branch_context=branch_context, meta_dir=meta_dir)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break
@@ -844,6 +942,9 @@ def main() -> int:
                          "**게이트가 아니다** — push 직전에는 전량 2축을 돌린다."))
     p.add_argument("--changed-base", default=None, dest="changed_base", metavar="REF",
                    help="--changed 의 비교 기준 (기본: 워킹 트리 vs HEAD). 예: origin/main")
+    p.add_argument("--no-meta-watch", action="store_true", dest="no_meta_watch",
+                   help=("WATCHES 선언 메타 검증(채취+판정)을 끈다 (ADR-028). "
+                         "디버깅용 — 게이트에서는 켠 채로 돈다 (오버헤드 실측 <1%%)."))
     p.add_argument("--no-lock", action="store_true", dest="no_lock",
                    help="워킹 트리 배타 락을 잡지 않는다 (권장하지 않음 — 동시 실행된 "
                         "전량 결과는 PASS 도 FAIL 도 근거가 못 된다)")
@@ -912,6 +1013,14 @@ def main() -> int:
     if warning and not args.json:
         print(f"[warn] {warning}\n", file=sys.stderr)
 
+    # meta-watch 채취 준비 (ADR-028). 게이트 실행이 채취를 겸한다 — 별도 재실행
+    # 없음. 강등 기준(게이트 벽시계 +5% 2회 연속 → 표본 순환)은 spec §4.
+    meta_dir: Path | None = None
+    if not args.no_meta_watch:
+        Path(guard.tmp_root).mkdir(parents=True, exist_ok=True)
+        meta_dir = Path(tempfile.mkdtemp(prefix="meta-watch-", dir=guard.tmp_root))
+        meta_watch.write_sitecustomize(meta_dir)
+
     # 브랜치 컨텍스트 해석 (v1.1.7). 미지정 = 호출자 환경 그대로 (기존 동작).
     selected: list[BranchContext | None]
     if args.branch_context is None:
@@ -932,7 +1041,7 @@ def main() -> int:
         if len(selected) > 1 and not args.json:
             branch = ctx.workflow_branch if ctx and ctx.workflow_branch else "덮지 않음"
             print(f"\n=== 브랜치 컨텍스트: {label} ({branch}) ===\n")
-        summary = run_pass(checks, args, guard, ctx, jobs=jobs)
+        summary = run_pass(checks, args, guard, ctx, jobs=jobs, meta_dir=meta_dir)
         passes.append((label, summary))
         if summary.aborted_reason and not args.json:
             print(f"\n[abort] resource guard: {summary.aborted_reason}", file=sys.stderr)
@@ -940,24 +1049,44 @@ def main() -> int:
         if summary.aborted_reason:
             break
 
+    # meta-watch 판정 — 실행된 check 만 잰다 (--changed 로 안 돈 check 의 선언에
+    # 접근 0 warn 을 내면 그건 판정이 아니라 잡음이다).
+    meta_violations: list[str] = []
+    meta_warns: list[str] = []
+    meta_counts = {"watches": 0, "all": 0, "unclassified": 0}
+    if meta_dir is not None:
+        ran_names = {r.name for _, s in passes for r in s.results}
+        ran = [c for c in checks if c.stem in ran_names]
+        meta_violations, meta_warns, meta_counts = meta_watch_verdict(
+            ran, meta_dir, SOURCE_ROOT.parent)
+        shutil.rmtree(meta_dir, ignore_errors=True)
+
     if args.json:
+        meta_json = {"violations": meta_violations, "warns": meta_warns,
+                     "counts": meta_counts, "enabled": meta_dir is not None}
         if len(selected) > 1:
             # 다중 컨텍스트는 새 형태. 단일은 아래에서 기존 형태를 유지한다 —
             # CI 의 요약 스크립트가 `data["total"]` / `data["results"]` 를 직접 읽는다.
             print(json.dumps(
-                {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes]},
+                {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes],
+                 "meta_watch": meta_json},
                 ensure_ascii=False, indent=2,
             ))
         else:
-            print(json.dumps(asdict(passes[0][1]), ensure_ascii=False, indent=2))
+            print(json.dumps({**asdict(passes[0][1]), "meta_watch": meta_json},
+                             ensure_ascii=False, indent=2))
     else:
         for label, summary in passes:
             if len(passes) > 1:
                 print(f"\n----- {label} -----")
             print_human(summary)
+        if meta_dir is not None:
+            print_meta_watch(meta_violations, meta_warns, meta_counts)
 
     if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
+    if meta_violations:
+        return 1    # 좁은 선언은 red 다 — 조용히 안 도는 검사를 만들기 전에 잡는다
     return 0 if all(s.failed == 0 for _, s in passes) else 1
 
 

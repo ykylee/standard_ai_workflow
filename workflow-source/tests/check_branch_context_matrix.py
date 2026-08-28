@@ -31,12 +31,16 @@ import sys
 from pathlib import Path
 
 WATCHES = (
-    "workflow-source/workflow_kit/common/branch_matrix.py",
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
     "workflow-source/tests/run_all_checks.py",
     ".github/workflows/smoke.yml",
     "ai-workflow/memory/*",
 )
-"""브랜치 컨텍스트 정본 + 러너 + CI + 브랜치별 메모리 경로."""
+"""브랜치 컨텍스트 정본 + 러너 + CI + 브랜치별 메모리 경로.
+
+kit 전체가 import 표면이다 (meta-watch 실측 2026-08-28: branch_matrix 하나만
+선언했더니 선언 밖 접근 42건 — import 는 transitively 닫힌다, ADR-028 결정 4)."""
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"

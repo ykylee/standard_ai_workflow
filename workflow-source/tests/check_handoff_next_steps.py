@@ -71,6 +71,11 @@ STATUS_RE = re.compile(r"^status:\s*(\S+)\s*$", re.M)
 WATCHES = (
     "ai-workflow/memory/active/*/session_handoff.md",
     "ai-workflow/memory/active/*/backlog/tasks/*.md",
+    # import 표면도 입력 표면이다 (ADR-028 결정 4) — kit 의 handoff 파서가
+    # 바뀌면 이 검사도 돌아야 한다. 이 두 줄의 부재가 meta-watch 첫 실측이
+    # 잡은 좁은 선언 사례였다 (2026-08-28, 선언 밖 접근 45건).
+    "workflow-source/workflow_kit/*",
+    "workflow-source/pyproject.toml",
 )
 
 FAILURES: list[str] = []

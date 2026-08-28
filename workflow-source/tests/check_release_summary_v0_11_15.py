@@ -16,13 +16,11 @@ from contextlib import redirect_stdout
 from unittest import mock
 from pathlib import Path
 
-WATCHES = (
-    # `cmd_release_status` 는 mypy 로 workflow_kit/ 전체를 훑는다 — 그 아래 어떤
-    # 변경도 판정을 바꿀 수 있다. 좁히면 사각지대가 된다.
-    "workflow-source/workflow_kit/*",
-    "workflow-source/pyproject.toml",
+WATCHES_ALL_REASON = (
+    "release summary 는 kit 코드만 아니라 memory·문서·루트 매니페스트의 파생 "
+    "정합까지 읽는다 — meta-watch 실측 (2026-08-28) 선언 밖 접근 1185건: 입력 "
+    "표면이 사실상 저장소 전체다. 좁힌 선언은 사각지대였다 (ADR-028)"
 )
-"""릴리스 상태는 workflow_kit 전체(mypy 대상) + 버전 파일의 함수다."""
 
 # 병렬 전량(--jobs auto)에서 53s 실측 (2026-08-11) — 기본 60s 상한과 여유가
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.

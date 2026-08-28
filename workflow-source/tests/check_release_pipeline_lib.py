@@ -26,12 +26,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-WATCHES = (
-    "workflow-source/workflow_kit/tools/release_pipeline*.py",
-    "workflow-source/workflow_kit/cli_commands_release.py",
-    "workflow-source/workflow_kit/release_status.py",
+WATCHES_ALL_REASON = (
+    "release pre_check 가 memory·문서·매니페스트·CI yml 까지 파생 정합을 훑는다 — "
+    "meta-watch 실측 (2026-08-28) 선언 밖 접근 1159건: 입력 표면이 사실상 저장소 "
+    "전체다. 좁은 WATCHES 로 memory 변경 시 skip 되던 것이 불건전했다 (ADR-028)"
 )
-"""release_pipeline 분할 모듈과 그 호출자."""
 
 # 병렬 전량(--jobs auto)에서 44s 실측 (2026-08-11) — 기본 60s 상한과 여유가
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.

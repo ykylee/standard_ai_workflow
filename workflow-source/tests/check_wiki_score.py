@@ -26,10 +26,16 @@ CHECK_TIMEOUT_S = 150
 
 WATCHES = (
     "ai-workflow/wiki/*",
-    "workflow-source/workflow_kit/tools/score_wiki_maintainability.py",
+    "workflow-source/workflow_kit/*",
     # operational dim 이 `SMOKE_TESTS` 의 check 들을 서브프로세스로 돌린다 —
     # tests/ 전체를 관찰 범위로 본다. 좁히면 그 dim 이 조용히 옛 결과를 재는 자리다.
     "workflow-source/tests/*",
+    # 점수의 source 계층이 core/extensions 문서 corpus 를 읽는다 — meta-watch
+    # 실측 (2026-08-28) 이 선언 밖 접근 229건으로 보였다 (ADR-028).
+    "workflow-source/core/*",
+    "workflow-source/extensions/*",
+    "workflow-source/templates/*",
+    "workflow-source/pyproject.toml",
 )
 """점수는 위키 + 점수 도구 + operational dim 이 돌리는 smoke 의 함수다."""
 

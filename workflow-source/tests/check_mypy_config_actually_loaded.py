@@ -53,11 +53,15 @@ import sys
 from pathlib import Path
 
 WATCHES = (
+    "pyproject.toml",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    # mypy 가 tests/ 도 대상에 넣는다 — meta-watch 실측 (2026-08-28) 이 tests/*
+    # 접근 273건을 보였다. 좁히면 tests 변경 시 이 검사가 조용히 skip 된다.
+    "workflow-source/tests/*",
     ".github/workflows/mypy-strict.yml",
 )
-"""config 가 실제로 로드되는지를 재므로 config 파일과 그 대상이 관찰 범위다."""
+"""config 가 실제로 로드되는지를 재므로 config 파일과 그 대상 전체가 관찰 범위다."""
 
 # 병렬 전량(--jobs auto)에서 43s 실측 (2026-08-11) — 기본 60s 상한과 여유가
 # 없어 부하 편차만으로 TIMEOUT flake 가 난다. 행(hang) 검출은 150s 로도 충분하다.

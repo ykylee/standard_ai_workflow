@@ -322,20 +322,54 @@
       "id": "M-009",
       "title": "계층별 회귀 실행 계약 — requirements (WATCHES 보급 + 선언 메타 검증)",
       "sdlc_phase": "requirements",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-9.1",
           "title": "requirements 확정 — 보급 판정 기준 · 메타 검증 요구사항 ·",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-28-main-005"
           ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-010",
+      "title": "계층별 회귀 실행 계약 — design (ADR-028 + core 스펙 절)",
+      "sdlc_phase": "design",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md",
+        "workflow-source/core/test_impact_tiering_spec.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-10.1",
+          "title": "ADR-028 작성 — 채취 방식 실측 비교 + 전역 선언 리터럴 +",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-10.2",
+          "title": "core 스펙 절 초안 — 분류 계약·계층 계약의 kit 표준화 —",
+          "derived_status": "planned",
+          "linked_task_ids": [],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

@@ -2,7 +2,7 @@
 id: M-009
 title: 계층별 회귀 실행 계약 — requirements (WATCHES 보급 + 선언 메타 검증)
 sdlc_phase: requirements
-status: in_progress
+status: done
 order: 9
 parallel_allowed:
   - M-007
@@ -25,6 +25,10 @@ concept 검토([`M-008`](./M-008-test-impact-tiering.md) →
   main-004 기각 재확인). CI 도 계속 2축 전량.
 - **선행 실측**: 보급 확대의 이득(시간 + 선택 실수)을 requirements 문서가
   근거 실측으로 든다 — 실측 없이 요구사항을 확정하지 않는다.
+
+**종결 (2026-08-28)**: 소유자 sign-off — R1~R6 승인, 미결 3곳(R1.3·R3.3·R4.2)
+권고안대로 확정 (산출물의 sign-off 기록 절). design 단계는
+[`M-010`](./M-010-test-impact-design.md) 으로 이어진다.
 
 ## WBS
 

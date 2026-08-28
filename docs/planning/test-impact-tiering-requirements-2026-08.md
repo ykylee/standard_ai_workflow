@@ -3,7 +3,7 @@
 - 문서 목적: concept 검토의 소유자 결정 C안(2026-08-28)을 받아, 편집 루프 한정 `WATCHES` 보급과 선언 메타 검증의 요구사항을 design 단계가 그대로 받을 수 있는 형태로 확정한다 (TASK-2026-08-28-main-005, M-009/WBS-9.1).
 - 범위: 불변 조건, 검사 분류 계약, 보급 판정 기준, 메타 검증 요구사항, 커밋 전 단계 계약, 이득 근거 실측, kit 이행 범위, design 진입 조건
 - 대상 독자: 소유자 (requirements sign-off), maintainer, workflow 설계자
-- 상태: draft (requirements 단계 산출물 — 소유자 sign-off 대기)
+- 상태: **sign-off (2026-08-28)** — 소유자 승인, 미결 3곳은 권고안대로 확정 (§sign-off 기록 참조). design 단계는 [`M-010`](../../ai-workflow/memory/active/roadmap/M-010-test-impact-design.md) 으로 진행
 - 최종 수정일: 2026-08-28
 - 관련 문서: [`M-009`](../../ai-workflow/memory/active/roadmap/M-009-test-impact-requirements.md), [concept 검토](./test-impact-tiering-review-2026-08.md), [TASK-2026-08-14-main-003 `--changed` 구현](../../ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-003.md)
 
@@ -98,6 +98,20 @@
   구성이 달라 이득 산수가 다르지만(전역 관찰 검사가 적으면 상한이 올라간다),
   계약 자체는 동일하게 성립한다.
 - 문서 위치와 범위(runner 코드의 kit 노출 여부 포함)는 design 결정 사항.
+
+## sign-off 기록 (2026-08-28, 소유자)
+
+R1~R6 승인. 미결로 표기했던 3곳은 **권고안대로** 확정:
+
+- **R1.3** 전역 선언 표기 = 파일 내 `WATCHES_ALL_REASON = "<근거>"` 방식
+  (기존 `REQUIRES_QUIET_REPO` / `CHECK_TIMEOUT_S` 와 같은 파일 내 선언 idiom).
+  정확한 이름 리터럴은 design ADR 이 최종 확정하되, "근거 문자열이 필수인
+  파일 내 선언" 이라는 형태는 여기서 고정.
+- **R3.3** 비용 상한 방식 = **상시 전수 우선, 실측이 상한을 넘으면 표본
+  순환으로 강등** (순환 주기 안에 전 선언 검사가 한 번씩 재지는 조건 유지).
+  전수/순환의 판정 기준 수치는 design 이 실측으로 정한다.
+- **R4.2** 커밋 전 단계 전환 조건 = **메타 검증의 게이트 편입 + 되주입 실증
+  이후에만** CLAUDE.md 갱신. 그 전에는 `--changed` 는 보조 수단으로만 쓴다.
 
 ## design 진입 조건
 

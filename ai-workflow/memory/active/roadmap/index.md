@@ -27,3 +27,5 @@
   - path: [`./M-006-release-and-operation.md`](./M-006-release-and-operation.md)
 - **M-007** [stabilization] 운영 축 (상설) — status: in_progress
   - path: [`./M-007-operations-standing.md`](./M-007-operations-standing.md)
+- **M-008** [concept] 검사 입력 표면 선언 + 계층별 회귀 실행 계약 — status: planned
+  - path: [`./M-008-test-impact-tiering.md`](./M-008-test-impact-tiering.md)

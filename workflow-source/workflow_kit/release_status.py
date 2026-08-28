@@ -201,12 +201,50 @@ def _suggest_next_version(
     return result
 
 
+def _local_mypy_verdict(
+    returncode: int, stdout: str, stderr: str, *, interpreter: str
+) -> dict[str, Any]:
+    """subprocess 결과 → local_mypy 판정 (순수 함수).
+
+    mypy **부재**는 strict 판정 FAIL 이 아니다: `python -m mypy` 는 모듈이 없으면
+    FileNotFoundError 가 아니라 exit 1 + stderr "No module named mypy" 로 죽는다.
+    uv tool venv 처럼 dev 의존성이 설계상 없는 인터프리터에서는 이것이 상시
+    성립하고, error_count 0 인 FAIL 로 뭉개면 오탐이 된다
+    (TASK-2026-08-25-main-022 — '잰 단위' 결함족: 탐침 인터프리터 ≠ 검증 대상
+    venv). 부재는 자기 이름(`mypy_unavailable`)과 잰 인터프리터를 가지고
+    보고한다. ok=True 로도 뭉개지 않는다 — 모름 ≠ 안전.
+    """
+    if returncode != 0 and "No module named" in stderr and "mypy" in stderr:
+        return {
+            "ok": False,
+            "skipped": True,
+            "verdict": "mypy_unavailable",
+            "interpreter": interpreter,
+            "error": f"mypy module not installed in probe interpreter: {interpreter}",
+        }
+    error_lines = [
+        line for line in stdout.splitlines()
+        if ".py:" in line and "error:" in line
+    ]
+    return {
+        "ok": returncode == 0,
+        "verdict": "measured",
+        "exit_code": returncode,
+        "error_count": len(error_lines),
+        "first_error": error_lines[0] if error_lines else None,
+        "interpreter": interpreter,
+    }
+
+
 def _check_local_mypy() -> dict[str, Any]:
     """Layer 2: mypy strict on workflow_kit/. 0 errors → ok=True.
 
     Returns:
-        {"ok": bool, "exit_code": int, "error_count": int, "first_error": str | None,
-         "skipped": bool (True if mypy not available)}
+        측정됨: {"ok": bool, "verdict": "measured", "exit_code": int,
+                "error_count": int, "first_error": str | None, "interpreter": str}
+        부재/미측정: {"ok": False, "skipped": True,
+                "verdict": "mypy_unavailable" | "timeout",
+                "interpreter": str, "error": str}
     """
     try:
         # v1.0.2: config 명시. cwd 인 PROJECT_ROOT 에는 [tool.mypy] 가 없어
@@ -219,19 +257,18 @@ def _check_local_mypy() -> dict[str, Any]:
             cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=120,
         )
     except FileNotFoundError:
-        return {"ok": False, "skipped": True, "error": "mypy module not installed"}
+        return {
+            "ok": False, "skipped": True, "verdict": "mypy_unavailable",
+            "interpreter": sys.executable, "error": "mypy module not installed",
+        }
     except subprocess.TimeoutExpired:
-        return {"ok": False, "skipped": True, "error": "mypy timeout"}
-    error_lines = [
-        line for line in proc.stdout.splitlines()
-        if ".py:" in line and "error:" in line
-    ]
-    return {
-        "ok": proc.returncode == 0,
-        "exit_code": proc.returncode,
-        "error_count": len(error_lines),
-        "first_error": error_lines[0] if error_lines else None,
-    }
+        return {
+            "ok": False, "skipped": True, "verdict": "timeout",
+            "interpreter": sys.executable, "error": "mypy timeout",
+        }
+    return _local_mypy_verdict(
+        proc.returncode, proc.stdout, proc.stderr, interpreter=sys.executable
+    )
 
 
 def _check_ci_mypy() -> dict[str, Any]:
@@ -343,7 +380,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             "last_release_tag": str | None,
             "unreleased_commits": {"count": int, "commits": [...]},
             "ci_mypy": {verdict, head_sha_match, ci_run, message},
-            "local_mypy": {ok, exit_code, error_count, first_error},
+            "local_mypy": {ok, verdict, exit_code, error_count, first_error, interpreter},
             "next_version": {next, current, bumped},
             "ready_to_release": bool,
             "auto_bump_applied": bool (v0.11.16+),
@@ -391,7 +428,15 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
         ready_reason = "no unreleased commits"
     elif not local_mypy_ok:
         ready = False
-        ready_reason = f"local mypy strict not clean: error_count={local_mypy.get('error_count')}"
+        if local_mypy.get("skipped"):
+            # 부재/미측정은 판정 FAIL 과 다른 문장으로 말한다 — "error_count=None"
+            # 은 처방(어느 인터프리터로 다시 재라)을 가리키지 못한다 (main-022).
+            ready_reason = (
+                f"local mypy unmeasured ({local_mypy.get('verdict', 'skipped')}): "
+                f"{local_mypy.get('error')}"
+            )
+        else:
+            ready_reason = f"local mypy strict not clean: error_count={local_mypy.get('error_count')}"
     elif ci_verdict not in ("ci_sanity", "sanity", "no_local_verify", "absent", "skipped"):
         # ci_stale / ci_fail / drift_warning
         ready = False
@@ -428,16 +473,22 @@ def _summarize_release_status(result: dict[str, Any]) -> str:
     v0.11.16+: 6-field 로 확장 — `auto_bump=<applied|skipped|failed>` 추가.
 
     Returns:
-        Compact 1-line string. format = `ci_mypy=<verdict>, local_mypy=<ok|FAIL>,
-        ready=<true|false>, next=<X.Y.Z>, unreleased=<count>, auto_bump=<state>`.
-        Stable key order for grep / pipe.
+        Compact 1-line string. format = `ci_mypy=<verdict>,
+        local_mypy=<ok|FAIL|unavailable>, ready=<true|false>, next=<X.Y.Z>,
+        unreleased=<count>, auto_bump=<state>`. Stable key order for grep / pipe.
+        `unavailable` = 탐침 인터프리터에 mypy 부재 (판정 FAIL 이 아니다 — main-022).
 
     Example:
         `ci_mypy=sanity, local_mypy=ok, ready=false, next=0.11.16, unreleased=3, auto_bump=skipped`
     """
     ci_verdict = result.get("ci_mypy", {}).get("verdict", "unknown")
-    local_ok = result.get("local_mypy", {}).get("ok", False)
-    local_mypy_str = "ok" if local_ok else "FAIL"
+    local_mypy_data = result.get("local_mypy", {})
+    if local_mypy_data.get("ok", False):
+        local_mypy_str = "ok"
+    elif local_mypy_data.get("verdict") == "mypy_unavailable":
+        local_mypy_str = "unavailable"
+    else:
+        local_mypy_str = "FAIL"
     ready = result.get("ready_to_release", False)
     next_v = result.get("next_version", {}).get("next", "?")
     unreleased = result.get("unreleased_commits", {}).get("count", 0)

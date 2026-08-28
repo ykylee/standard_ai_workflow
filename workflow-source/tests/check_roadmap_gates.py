@@ -9,6 +9,8 @@
    (링크 · 사유 있는 exempt · `parallel_allowed` 선언)이 실제로 통과한다.
 3. **roadmap 부재 프로젝트는 아무것도 달라지지 않는다** (additive).
 4. **이 저장소에서 게이트가 실제로 무장돼 있다** (자기 적용, 읽기 전용 관찰).
+5. **update `--wbs` 재링크도 같은 게이트를 탄다** — 갱신·사유 제거·보존·upsert
+   (TASK-2026-08-28-main-002).
 """
 from __future__ import annotations
 
@@ -255,6 +257,66 @@ def test_mcp_uses_same_verdict() -> None:
     _record("test_mcp_uses_same_verdict", not problems, "; ".join(problems))
 
 
+def test_cli_update_relinks_wbs() -> None:
+    """update `--wbs` 재링크 (TASK-2026-08-28-main-002).
+
+    이전 update 병합은 `--wbs` 를 조용히 버렸다 — M-007 선언 때 열린 exempt
+    task 4건의 재링크를 frontmatter 손편집으로 우회해야 했다. 주장:
+    ① 재링크가 frontmatter 를 갱신하고 낡은 exempt 사유를 걷는다,
+    ② 재링크도 **같은 게이트**를 탄다 (dangling 거부, 쓰기 전),
+    ③ `--wbs` 미지정 update 는 기존 링크를 보존한다,
+    ④ wbs 줄이 아예 없던(로드맵 이전) task 에도 삽입된다.
+    """
+    problems: list[str] = []
+    task_id = "TASK-2026-01-01-main-004"
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        profile = _fixture(root)
+        task_file = (root / "ai-workflow" / "memory" / "active" / BRANCH
+                     / "backlog" / "tasks" / f"{task_id}.md")
+
+        rc, _ = _run_cli(profile, ["--apply", "--task-id", task_id,
+                                   "--wbs", "exempt", "--wbs-exempt-reason", "긴급 수리"])
+        if rc != 0 or not task_file.is_file():
+            problems.append(f"seed exempt create 실패: rc={rc}")
+
+        # ① exempt → leaf 재링크: 링크 갱신 + 낡은 사유 제거
+        rc, _ = _run_cli(profile, ["--apply", "--task-id", task_id,
+                                   "--mode", "update", "--wbs", "M-001/WBS-1.2"])
+        text = task_file.read_text(encoding="utf-8")
+        if rc != 0 or "wbs: M-001/WBS-1.2" not in text:
+            problems.append(f"재링크 미반영: rc={rc}")
+        if "wbs_exempt_reason" in text:
+            problems.append("낡은 exempt 사유가 남았다 — 링크와 사유가 다른 말을 한다")
+
+        # ② dangling 재링크는 게이트가 거부하고 파일은 그대로다
+        rc, payload = _run_cli(profile, ["--apply", "--task-id", task_id,
+                                         "--mode", "update", "--wbs", "M-001/WBS-9.9"])
+        if rc != 1 or payload.get("source_context", {}).get("gate_code") != "wbs_dangling":
+            problems.append(f"dangling 재링크 미거부: rc={rc} "
+                            f"{payload.get('source_context', {}).get('gate_code')}")
+        if "wbs: M-001/WBS-1.2" not in task_file.read_text(encoding="utf-8"):
+            problems.append("거부됐는데 파일이 바뀌었다")
+
+        # ③ --wbs 미지정 update 는 링크를 보존한다
+        rc, _ = _run_cli(profile, ["--apply", "--task-id", task_id,
+                                   "--mode", "update", "--progress-note", "진행 갱신"])
+        if rc != 0 or "wbs: M-001/WBS-1.2" not in task_file.read_text(encoding="utf-8"):
+            problems.append(f"미지정 update 가 링크를 지웠다: rc={rc}")
+
+        # ④ wbs 줄이 없던 task (로드맵 이전 생성) 에도 upsert 된다
+        stripped = "\n".join(
+            line for line in task_file.read_text(encoding="utf-8").splitlines()
+            if not line.startswith("wbs")
+        ) + "\n"
+        task_file.write_text(stripped, encoding="utf-8")
+        rc, _ = _run_cli(profile, ["--apply", "--task-id", task_id,
+                                   "--mode", "update", "--wbs", "M-001/WBS-1.1.1"])
+        if rc != 0 or "wbs: M-001/WBS-1.1.1" not in task_file.read_text(encoding="utf-8"):
+            problems.append(f"wbs 줄 없던 task 에 삽입 실패: rc={rc}")
+    _record("test_cli_update_relinks_wbs", not problems, "; ".join(problems))
+
+
 def test_repo_gate_is_armed() -> None:
     """이 저장소에서 게이트가 무장돼 있다 — draft(무-apply)도 거부된다 (읽기 전용)."""
     rc, payload = _run_cli(REPO_ROOT / "docs" / "PROJECT_PROFILE.md", [])
@@ -266,6 +328,7 @@ def main() -> int:
     cases = [
         test_gate_verdict_matrix,
         test_cli_denies_and_records_declarations,
+        test_cli_update_relinks_wbs,
         test_cli_without_roadmap_is_additive,
         test_mcp_uses_same_verdict,
         test_repo_gate_is_armed,

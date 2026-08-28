@@ -4,7 +4,7 @@
 - 범위: 로드맵·마일스톤·WBS 기능 자체의 구현 로드맵 (스펙 §10 의 자기 적용)
 - 대상 독자: AI agent (session-start / backlog-update), 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-25
+- 최종 수정일: 2026-08-28
 - 관련 문서: [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md), [`roadmap_state.json`](./roadmap_state.json)
 
 > 이 목록의 **순서가 곧 SDLC 순서 선언**이다 (스펙 §3.1). status 는 선언이고,
@@ -25,3 +25,5 @@
   - path: [`./M-005-bootstrap-onboarding-seed.md`](./M-005-bootstrap-onboarding-seed.md)
 - **M-006** [release] 릴리스 + 상시 운용 전환 — status: done
   - path: [`./M-006-release-and-operation.md`](./M-006-release-and-operation.md)
+- **M-007** [stabilization] 운영 축 (상설) — status: in_progress
+  - path: [`./M-007-operations-standing.md`](./M-007-operations-standing.md)

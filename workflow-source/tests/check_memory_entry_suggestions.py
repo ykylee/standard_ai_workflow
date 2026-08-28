@@ -4,7 +4,7 @@
 부재였다. W-1 은 handoff §4 의 완료 작업을 기존 entry corpus 와 대조해
 "index 가 모르는 것" 을 **advisory 로만** 제안한다 — 자동 적재는 하지 않는다.
 
-검증 케이스 (8):
+검증 케이스 (9):
     1. 기존 entry 가 덮는 제목 → 후보 아님 (covered)
     2. index 가 모르는 제목 → 후보 + cue 제안 (stopword/숫자 제외)
     3. §4 섹션 부재 → compared 0, 오류 없음
@@ -14,6 +14,8 @@
     7. 되주입 — novel 제목 token 을 가진 entry 를 넣으면 그 후보가 사라진다
        (비교가 실제로 entry corpus 를 읽는다는 증명)
     8. CLI — --json 파싱 + handoff 부재 시 status=error / exit 1
+    9. 무인자 기본 경로 — cwd 의 작업 저장소 + 브랜치 인식 handoff 해석,
+       path_source 명시 (main-023 — 모듈 위치 파생 기본값 결함의 재발 방지)
 
 Stdlib only (+ subprocess 로 CLI 실측).
 """
@@ -186,7 +188,51 @@ def main() -> int:
             f"missing_status={missing_payload.get('status')}",
         )
 
-    total = 8
+        # 9) 무인자 기본 경로 — cwd 의 작업 저장소를 해석한다 (main-023).
+        #    이전 기본값은 모듈 위치 파생이라 uv tool 설치에서 <venv>/lib/... 을
+        #    가리켰다 ('자기 설치 위치를 대상으로 오인' 결함족). cwd 에
+        #    PROJECT_PROFILE.md 가 있으면 handoff 를 그 workspace 의 **브랜치
+        #    인식 경로**에서 찾아야 하고, 폴백이면 그 근거를 payload 에 남긴다.
+        with tempfile.TemporaryDirectory() as td9:
+            ws9 = Path(td9) / "consumer-ws"
+            (ws9 / "docs").mkdir(parents=True)
+            (ws9 / "docs" / "PROJECT_PROFILE.md").write_text(
+                "# PROJECT_PROFILE\n", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", "-b", "feature/probe"],
+                           cwd=str(ws9), capture_output=True, text=True)
+            # 커밋 0 인 저장소는 `git rev-parse --abbrev-ref HEAD` 가 실패해
+            # 브랜치 해석이 모듈 저장소로 폴백된다 — 재려는 조건(브랜치 인식)을
+            # 실재하게 만들려면 커밋이 하나 필요하다.
+            subprocess.run(
+                ["git", "-c", "user.email=t@t", "-c", "user.name=t",
+                 "commit", "-q", "--allow-empty", "-m", "seed"],
+                cwd=str(ws9), capture_output=True, text=True,
+            )
+            branch_handoff = ws9 / "ai-workflow" / "memory" / "active" / "feature" / "probe" / "session_handoff.md"
+            branch_handoff.parent.mkdir(parents=True)
+            branch_handoff.write_text(HANDOFF, encoding="utf-8")
+            # CI 의 GITHUB_REF_NAME 등 브랜치 env 오버라이드는 fixture 밖의
+            # 컨텍스트다 — 물려받으면 재려는 git 해석 대신 env 가 이긴다.
+            import os as _os
+            env9 = {k: v for k, v in _os.environ.items()
+                    if k not in ("CODEX_WORKFLOW_BRANCH", "GITHUB_HEAD_REF", "GITHUB_REF_NAME")}
+            noarg = subprocess.run(
+                [sys.executable, str(tool), "--date", "2026-01-05", "--json"],
+                cwd=str(ws9), capture_output=True, text=True, env=env9,
+            )
+            noarg_payload = json.loads(noarg.stdout) if noarg.stdout else {}
+            resolved = str(noarg_payload.get("handoff_path", ""))
+            check(
+                "9) 무인자 — cwd workspace + 브랜치 인식 handoff + path_source 명시",
+                noarg.returncode == 0 and noarg_payload.get("status") == "ok"
+                and resolved == str(branch_handoff.resolve())
+                and noarg_payload.get("path_source") == "cwd_project_profile",
+                f"rc={noarg.returncode} handoff={resolved!r} "
+                f"source={noarg_payload.get('path_source')!r} "
+                f"err={noarg_payload.get('error')!r}",
+            )
+
+    total = 9
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-25",
+  "generated_at": "2026-08-28",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-28.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**62차 세션 종료 (2026-08-25, macOS 호스트) — Windows 플랫폼 결함 축 수리 + v1.6.0 발행 + 이 호스트 채널 정렬 (task 4건 close: main-018·019·020·021, push 6회, 전량 2축 274/274 ×5, CI 전 워크플로 green).** **① 61차가 등록한 결함 축을 닫았다**: ~~main-020~~(safe_relpath POSIX — CI green 으로 close) · ~~main-018~~(emit PYTHONPATH: SOURCE_ROOT 조건이 **잰 단위 오류** — bootstrap 자신의 출처가 아니라 *target 프로젝트의 레이아웃*(`workflow-source/` 실재)에서 판정하도록 교정, roundtrip unit + emit PYTHONPATH 실재 형식 게이트 신설) · ~~main-019~~(doctor `kit_resolution` 판정 신설 — foreign_path 는 잰 인터프리터·해석 출처·project root 세 경로 명시 finding, '잰 단위' 4번째 단위의 도구화) · main-017 은 **코드 수리 완료 + Windows 실측만 잔여** (62차 소유자 결정 = ① 플랫폼별 커맨드명: 정본 `common/python_launcher.py` 신설(win32→`python`), **체크인 산출물(플러그인 payload·예시)은 `platform=\"posix\"` 고정** — 해시 안정, preflight 는 bootstrap 채널만 `launcher_adaptive`; ② `sys.executable` 은 공유 파일 절대 경로 금지 계약과 충돌로 기각). 되주입 red 실증 4건, `check_deploy_doctor` 25→27 cases. **② v1.6.0 발행** (main-021 close): 소유자 등급 결정 = **minor** (§1.5 — 커밋은 전부 fix 지만 새 공개 모듈 + doctor 신기능 + payload 키 추가; 도구 제안 1.5.1 기각). bump 파생물 전수 갱신(샘플 27·스키마 3·매니페스트 5·문서 스탬프)은 **전량 게이트가 2회에 걸쳐 남은 표면을 짚어** 완결(배포 사본·roadmap_state·`paths=None` 검사 fixture → RELEASE.md 회귀표 행·노트 누적 수치). tag + GH Release asset 4종, fresh venv 스모크(신규 표면 포함), 발행 전후 CI 전 워크플로 green. **이 호스트 채널 3종 재적용 drift 0**: claude-code plugin 1.5.0→1.6.0 · codex marketplace 교체(1.6.0 ZIP 전개→remove→add→plugin add) · `wk` uv tool 을 **발행 wheel URL 로** 재설치(자산 소비 경로 검증 겸) — 떠 있는 Claude 세션들은 재시작해야 1.6.0 로드. **③ main-004 close 기준 소유자 확정**: '33 run *연속* green' → **'격리 후 완료 run 33건에서 mypy 게이트 실패 0'** (비-mypy red 는 카운터 유지). 관찰 8차: red 5건 전부 비-mypy 판명(생성물 정합 2건은 실패 로그 실측), 표본 ~16/33 · mypy 실패 0. **④ 새 결함 등록** main-022 (planned): release-status `local_mypy` 가 **자기 uv tool venv** 를 재 mypy 부재를 FAIL(exit 1·error 0)로 오탐 — '잰 단위' 결함족 **5번째** (릴리스는 저장소 `.venv` 실행으로 우회, 실측 대조 완료). 61차 기준선 상세는 아래 직전 기준선.",
+    "current_baseline": "**63차 세션 종료 (2026-08-28, macOS 호스트) — M-007 운영 축 상설 마일스톤 선언 + '자기 위치 오인' 결함족 3건 소탕 (task 4건 close: main-022·023 + 28일 main-001·002, 전량 2축 게이트 green, push 1회).** **① M-007 선언** (소유자 결정 = A안): exempt 비율 관찰 트리거 성립 — 60차 첫 실측 1/15(7%) 이 로드맵 close 후 **등록 task 전건 exempt** 로 상승, [stabilization] 상설 마일스톤 신설 (done 을 목표로 하지 않음, deliverables 없음). leaf 4개는 개별 결함이 아니라 **반복 범주**: 7.1 플랫폼·크로스호스트 / 7.2 탐침·도구 / 7.3 관찰·지표 / 7.4 릴리스·채널. 열린 exempt 전건 재링크(017→7.1 · 022·023→7.2 · 004→7.3) 로 **열린 exempt 0**, done exempt 7건은 이력 유지. 이후 새 기능 축(M-008+)은 **자기 파일에 `parallel_allowed: [M-007]` 선언**하고 연다 (게이트 판정 대칭 — evaluate_wbs_gate 실측). **② main-022 close** (release-status `local_mypy`): 판정을 순수 함수 `_local_mypy_verdict` 로 추출 — `python -m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라 exit 1 + \"No module named mypy\" 라 기존 가드가 도달 불가였고 error_count 0 FAIL 로 뭉개졌다. 부재는 `verdict=mypy_unavailable` + **잰 인터프리터 명시** (ok=False 유지 — 모름 ≠ 안전), summary 는 `local_mypy=unavailable`. release_pipeline 은 v1.1.4 에 이미 라벨링 — **남아 있던 결함 사본**이었다. 오탐 냈던 uv tool 인터프리터로 실환경 확증. **③ main-023 close** (suggest-memory-entries): 기본 경로를 모듈 위치 파생(`parents[3]` — uv tool 에선 `<venv>/lib/...`)에서 **cwd 의 `discover_project_profile_path()` + 브랜치 인식 `workflow_branch_dir`** 로 교정 (`\"main\"` 하드코딩도 함께 수리), 폴백은 `path_source` 로 선언. fixture 교훈 2건: 커밋 0 저장소는 rev-parse 실패로 브랜치 폴백 · CI 브랜치 env 는 fixture 에서 끊는다. **④ main-002 등록·당일 close** (M-007 재링크를 손편집으로 우회하다 발견): update 병합이 `--wbs` 를 조용히 버렸다 — `_set_frontmatter_wbs` upsert(exempt 해제 시 낡은 사유 제거) + **update 재링크도 같은 게이트**를 탄다 (dangling/done 역행 거부, 미지정은 보존). 자기 적용으로 close (이 close 자체가 새 경로). 셋 다 되주입 red 실증, 검사 case 3파일 +3 (release_status 2→3 tests · memory_entry_suggestions 8→9 · roadmap_gates 5→6), 검사 총수 274 불변. 잔여: main-017 Windows 실측 · main-004 관찰. 62차 상세는 아래 직전 기준선.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
@@ -35,60 +35,38 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "blocked_items": [],
-    "planned_items": [
-      "TASK-2026-08-25-main-022",
-      "TASK-2026-08-25-main-023"
-    ],
+    "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재",
+      "TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수",
+      "TASK-2026-08-25-main-023 — suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패",
+      "TASK-2026-08-25-main-022 — release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL",
       "TASK-2026-08-25-main-021 — v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)",
       "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다",
       "TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다",
       "TASK-2026-08-25-main-018 — emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다",
       "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
-      "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
-      "TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
-      "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다",
-      "TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다",
-      "TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다"
+      "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-25.md",
-    "task_count": 24,
-    "in_progress_items": [
-      "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-      "TASK-2026-08-13-main-004 — CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정"
-    ],
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-28.md",
+    "task_count": 4,
+    "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-08-25-main-001 — memory_index 저점 해소 — 상위 후보 2건 승격 (main-001·main-006)",
-      "TASK-2026-08-25-main-002 — 로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — ADR-027 + 정본 스펙",
-      "TASK-2026-08-25-main-003 — roadmap M-002 — 스키마·파서·roadmap_state 생성기·검사 3종·자기 적용 씨앗",
-      "TASK-2026-08-25-main-004 — roadmap M-003/WBS-3.1 — wk refresh-state 가 roadmap_state 를 함께 재생성한다",
-      "TASK-2026-08-25-main-005 — roadmap M-003/WBS-3.2 — session-start 가 현재 마일스톤과 다음 WBS 후보를 보고한다",
-      "TASK-2026-08-25-main-006 — roadmap M-003/WBS-3.3 — milestones.py 데모 휴리스틱 은퇴, MCP 도구를 roadmap 정본으로 교체",
-      "TASK-2026-08-25-main-007 — roadmap M-004/WBS-4.1 — 게이트 판정 단일 함수 + backlog-update CLI 인자",
-      "TASK-2026-08-25-main-008 — roadmap M-004/WBS-4.2 — MCP create_backlog_entry 가 같은 게이트 함수를 부른다",
-      "TASK-2026-08-25-main-009 — roadmap M-004/WBS-4.3 — 게이트 검사 + 되주입 red 실증",
-      "TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거",
-      "TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다",
-      "TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다",
-      "TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다",
-      "TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)",
-      "TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0",
-      "TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작",
-      "TASK-2026-08-25-main-018 — emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다",
-      "TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다",
-      "TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다",
-      "TASK-2026-08-25-main-021 — v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)"
+      "TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수",
+      "TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재",
+      "TASK-2026-08-25-main-022 — release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL",
+      "TASK-2026-08-25-main-023 — suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-08-25.md",
+    "ai-workflow/memory/active/main/backlog/2026-08-28.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

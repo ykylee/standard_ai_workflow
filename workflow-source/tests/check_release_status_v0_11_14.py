@@ -1,6 +1,9 @@
 """Acceptance test for v0.11.14 release-status dispatcher subcommand.
 
-1 acceptance test:
+3 acceptance tests:
+- test_local_mypy_absence_is_labeled — mypy 부재(uv tool venv)가 판정 FAIL 로
+  뭉개지지 않고 `mypy_unavailable` + 잰 인터프리터로 보고된다 (main-022)
+- test_next_version_is_derived_from_commits_v1_2_2 — next_version 커밋 파생
 - test_release_status_v0_11_14 — `release_status.py` 신규 module + dispatcher
   `release-status` subcommand + __init__.py 의 release_status import/export +
   cumulative strict clean 35 → 36 (v0.11.14) + schema verify (current_version /
@@ -281,13 +284,89 @@ def test_next_version_is_derived_from_commits_v1_2_2() -> None:
     assert not problems, "; ".join(problems)
 
 
+def test_local_mypy_absence_is_labeled() -> None:
+    """mypy **부재**가 판정 FAIL 로 뭉개지지 않는다 (TASK-2026-08-25-main-022).
+
+    `python -m mypy` 는 모듈이 없으면 FileNotFoundError 가 아니라 exit 1 +
+    stderr "No module named mypy" 로 죽는다 — 기존 코드는 그것을 error_count 0
+    인 FAIL 로 뭉갰고, uv tool venv(dev 의존성 없음)에서 상시 오탐이었다
+    ('잰 단위' 결함족 5번째: 탐침 인터프리터 ≠ 검증 대상 venv). 부재는 자기
+    이름(`mypy_unavailable`)과 잰 인터프리터를 가지고 보고돼야 한다.
+    """
+    import argparse
+    import importlib
+    from unittest import mock
+
+    mod = importlib.import_module("workflow_kit.release_status")
+    importlib.reload(mod)
+    problems: list[str] = []
+
+    # case 1: 부재 — exit 1 + "No module named mypy" → mypy_unavailable 라벨
+    absence = mod._local_mypy_verdict(
+        1, "", "/opt/uv/tools/standard-ai-workflow/bin/python3: No module named mypy",
+        interpreter="/opt/uv/tools/standard-ai-workflow/bin/python3",
+    )
+    if absence.get("verdict") != "mypy_unavailable":
+        problems.append(f"부재 verdict={absence.get('verdict')!r} (expected mypy_unavailable)")
+    if absence.get("ok") is not False or absence.get("skipped") is not True:
+        problems.append(f"부재 ok/skipped={absence.get('ok')}/{absence.get('skipped')} — 모름 ≠ 안전, ok=True 로 뭉개면 안 된다")
+    if "/opt/uv/tools" not in str(absence.get("interpreter", "")) \
+            or "/opt/uv/tools" not in str(absence.get("error", "")):
+        problems.append("부재 보고에 잰 인터프리터가 없다 — 처방이 엉뚱한 venv 로 간다")
+
+    # case 2: 측정된 FAIL — error 줄이 있는 exit 1 은 여전히 판정 FAIL 이다
+    measured_fail = mod._local_mypy_verdict(
+        1, "workflow_kit/x.py:1: error: bad type [misc]", "", interpreter="/repo/.venv/bin/python3",
+    )
+    if measured_fail.get("verdict") != "measured" or measured_fail.get("ok") is not False:
+        problems.append(f"측정 FAIL 이 오분류: {measured_fail.get('verdict')}/{measured_fail.get('ok')}")
+    if measured_fail.get("error_count") != 1 or measured_fail.get("skipped"):
+        problems.append(f"측정 FAIL error_count={measured_fail.get('error_count')}, skipped={measured_fail.get('skipped')}")
+
+    # case 3: 측정된 ok — exit 0
+    measured_ok = mod._local_mypy_verdict(0, "Success: no issues found", "", interpreter="/repo/.venv/bin/python3")
+    if measured_ok.get("ok") is not True or measured_ok.get("verdict") != "measured":
+        problems.append(f"측정 ok 오분류: {measured_ok.get('ok')}/{measured_ok.get('verdict')}")
+
+    # case 4: 집계 경로 — ready_reason 이 부재를 부재라고 말하고 summary 는
+    # unavailable 라벨을 쓴다 (error_count=None FAIL 문장 금지)
+    with mock.patch.object(mod, "_check_local_mypy", lambda: dict(absence)), \
+            mock.patch.object(mod, "_check_ci_mypy", lambda: {"verdict": "skipped", "head_sha_match": None, "ci_run": None, "message": "test"}), \
+            mock.patch.object(mod, "_read_pyproject_version", lambda: "1.6.0"), \
+            mock.patch.object(mod, "_last_release_tag", lambda: "v1.5.0-beta"), \
+            mock.patch.object(mod, "_unreleased_commits", lambda since_tag=None: {"count": 3, "commits": []}):
+        agg = mod.cmd_release_status(argparse.Namespace(auto_bump=False))
+    if agg["ready_to_release"] is not False:
+        problems.append("mypy 부재인데 ready=True — 재지 못한 게이트가 green 을 냈다")
+    if "mypy_unavailable" not in agg["ready_reason"] or "/opt/uv/tools" not in agg["ready_reason"]:
+        problems.append(f"ready_reason 이 부재+인터프리터를 말하지 않는다: {agg['ready_reason']!r}")
+    if "error_count" in agg["ready_reason"]:
+        problems.append(f"ready_reason 이 여전히 판정 FAIL 문장이다: {agg['ready_reason']!r}")
+    if "local_mypy=unavailable" not in agg["summary"]:
+        problems.append(f"summary 가 unavailable 라벨을 안 쓴다: {agg['summary']!r}")
+
+    # case 5: 측정된 FAIL 의 summary 는 그대로 FAIL — 라벨 분리가 판정을 삼키면 안 된다
+    with mock.patch.object(mod, "_check_local_mypy", lambda: dict(measured_fail)), \
+            mock.patch.object(mod, "_check_ci_mypy", lambda: {"verdict": "skipped", "head_sha_match": None, "ci_run": None, "message": "test"}), \
+            mock.patch.object(mod, "_read_pyproject_version", lambda: "1.6.0"), \
+            mock.patch.object(mod, "_last_release_tag", lambda: "v1.5.0-beta"), \
+            mock.patch.object(mod, "_unreleased_commits", lambda since_tag=None: {"count": 3, "commits": []}):
+        agg_fail = mod.cmd_release_status(argparse.Namespace(auto_bump=False))
+    if "local_mypy=FAIL" not in agg_fail["summary"] or "error_count=1" not in agg_fail["ready_reason"]:
+        problems.append(f"측정 FAIL 경로 퇴행: summary={agg_fail['summary']!r}, reason={agg_fail['ready_reason']!r}")
+
+    assert not problems, "; ".join(problems)
+    print("  case 1~5 (부재 라벨 + 인터프리터 명시 + 집계/summary 정합 + 측정 FAIL 보존): PASS")
+
+
 def main() -> int:
-    """1 acceptance test. 1 fail = exit 1."""
+    """3 acceptance tests. 1 fail = exit 1."""
     print("=== v0.11.14 release-status dispatcher subcommand acceptance test ===")
     print("=== v0.11.13 의 '다음' §1 follow-up (신규 workflow_kit/<module>.py mypy strict clean) ===")
     tests = [
         ("test_release_status_v0_11_14", test_release_status_v0_11_14),
         ("test_next_version_is_derived_from_commits_v1_2_2", test_next_version_is_derived_from_commits_v1_2_2),
+        ("test_local_mypy_absence_is_labeled", test_local_mypy_absence_is_labeled),
     ]
     passed = 0
     failed = 0

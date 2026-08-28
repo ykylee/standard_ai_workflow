@@ -248,6 +248,54 @@ def _set_frontmatter_value(lines: list[str], key: str, value: str) -> list[str]:
     return updated
 
 
+def _set_frontmatter_wbs(
+    lines: list[str], wbs: str, exempt_reason: str | None
+) -> list[str]:
+    """frontmatter 의 `wbs:` 를 **upsert** 하고 `wbs_exempt_reason:` 을 정합시킨다.
+
+    `_set_frontmatter_value` 는 있는 key 만 교체한다 — 로드맵 도입 전에 만들어진
+    task 는 `wbs:` 줄 자체가 없어 삽입이 필요하다 (TASK-2026-08-28-main-002).
+    그리고 exempt → leaf 재링크에서 옛 `wbs_exempt_reason:` 이 남으면 링크와
+    사유가 서로 다른 말을 하므로, exempt 가 아니게 되는 순간 지운다.
+    """
+    from workflow_kit.common.schemas.roadmap import WBS_EXEMPT_VALUE
+
+    if not lines or lines[0].strip() != "---":
+        return lines
+    updated = list(lines)
+    close_idx = None
+    wbs_idx = None
+    reason_idx = None
+    for idx in range(1, len(updated)):
+        stripped = updated[idx].strip()
+        if stripped == "---":
+            close_idx = idx
+            break
+        if stripped.startswith("wbs:"):
+            wbs_idx = idx
+        elif stripped.startswith("wbs_exempt_reason:"):
+            reason_idx = idx
+    if close_idx is None:
+        return lines
+
+    if wbs_idx is not None:
+        updated[wbs_idx] = f"wbs: {wbs}"
+    else:
+        # 닫는 `---` 앞에 삽입 — 기존 key 줄들은 전부 그 앞이라 index 불변.
+        updated.insert(close_idx, f"wbs: {wbs}")
+        wbs_idx = close_idx
+
+    if wbs == WBS_EXEMPT_VALUE:
+        if exempt_reason:
+            if reason_idx is not None:
+                updated[reason_idx] = f"wbs_exempt_reason: {exempt_reason}"
+            else:
+                updated.insert(wbs_idx + 1, f"wbs_exempt_reason: {exempt_reason}")
+    elif reason_idx is not None:
+        del updated[reason_idx]
+    return updated
+
+
 def _heal_validation_split(lines: list[str]) -> list[str]:
     """`작업 결과` 묶음 **안에** 끼인 `검증 결과` 줄을 묶음 끝으로 옮긴다.
 
@@ -287,6 +335,8 @@ def merge_task_file(
     scalar_updates: dict[str, str] | None = None,
     list_updates: dict[str, list[str]] | None = None,
     affected_documents: list[str] | None = None,
+    wbs: str | None = None,
+    wbs_exempt_reason: str | None = None,
 ) -> tuple[list[str], list[str]]:
     """기존 task SSOT 파일에 **명시된 갱신만** 반영한다 (TASK-2026-08-11-main-023).
 
@@ -300,6 +350,9 @@ def merge_task_file(
     lines = _set_frontmatter_value(existing_lines, "status", status)
     if kind:
         lines = _set_frontmatter_value(lines, "kind", kind)
+    if wbs:
+        # 미지정(None)은 "바꾸지 말라" — 값이 있을 때만 upsert 한다 (main-002).
+        lines = _set_frontmatter_wbs(lines, wbs, wbs_exempt_reason)
     # 리터럴이면 전환 뒤 이 한 줄만 옛 표기로 남는다 — 같은 도구가 `render_task_file`
     # 로는 새 표기를, `merge_task_file` 로는 옛 표기를 쓰는 **섞인 문서**가 된다.
     lines, _ = _set_inline_field(lines, task_label("status"), status)

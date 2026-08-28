@@ -37,14 +37,44 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
-from workflow_kit.common.paths import memory_active_dir  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    discover_project_profile_path,
+    memory_active_dir,
+    project_workspace_root,
+    workflow_branch_dir,
+)
 from workflow_kit.common.state.memory_index import (  # noqa: E402
     SUGGESTION_COVERAGE_THRESHOLD,
     load_memory_index,
     suggest_memory_entry_candidates,
 )
 
-DEFAULT_HANDOFF = memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
+
+def _resolve_defaults() -> tuple[Path, Path, str]:
+    """무인자 실행의 기준 경로를 **cwd 의 작업 저장소**에서 해석한다.
+
+    이전 기본값은 모듈 위치 파생(`REPO_ROOT`)뿐이라 uv tool 설치에서는
+    `<venv>/lib/python3.13/ai-workflow/...` 을 가리켰다 — '자기 설치 위치를
+    대상으로 오인' 결함족 (TASK-2026-08-25-main-023, main-022 의 local_mypy 와
+    같은 축). 다른 무인자 명령(session-start / refresh-state)과 같은
+    `discover_project_profile_path()` 로 cwd 에서 workspace 를 찾고, handoff 는
+    브랜치 인식 경로(`workflow_branch_dir`)로 조립한다 — 이전의 `"main"`
+    하드코딩도 브랜치 컨텍스트에서 틀린 값이었다.
+
+    cwd 에서 못 찾으면 모듈 위치로 폴백하되, 무엇을 근거로 골랐는지
+    세 번째 값(`path_source`)으로 돌려준다 — 폴백은 조용히 하지 않는다.
+
+    Returns:
+        (workspace_root, default_handoff, path_source) —
+        path_source ∈ {"cwd_project_profile", "module_location_fallback"}
+    """
+    profile = discover_project_profile_path()
+    if profile is not None:
+        workspace = project_workspace_root(profile)
+        handoff = workflow_branch_dir(profile) / "session_handoff.md"
+        return workspace, handoff, "cwd_project_profile"
+    fallback_handoff = memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
+    return REPO_ROOT, fallback_handoff, "module_location_fallback"
 
 
 def build_payload(
@@ -54,12 +84,17 @@ def build_payload(
     date_str: str,
     threshold: float,
     max_candidates: int,
+    path_source: str = "explicit",
 ) -> dict[str, Any]:
     if not handoff_path.is_file():
         return {
             "status": "error",
             "tool_version": TOOL_VERSION,
-            "error": f"handoff 부재: {handoff_path}",
+            "error": (
+                f"handoff 부재: {handoff_path} (경로 근거: {path_source}) — "
+                "작업 저장소 안에서 실행하거나 --handoff-path 로 명시한다."
+            ),
+            "path_source": path_source,
             "written_paths": [],
         }
     entries = load_memory_index(workspace_root)
@@ -78,6 +113,7 @@ def build_payload(
             "memory_index/entries/ 에 저장할지는 사람/에이전트가 결정한다."
         ),
         "handoff_path": str(handoff_path),
+        "path_source": path_source,
         "written_paths": [],
         **result,
     }
@@ -105,10 +141,12 @@ def main() -> int:
         prog="suggest_memory_entries",
         description="memory_index entry 승격 후보 제안 (advisory, 무-write)",
     )
-    parser.add_argument("--handoff-path", default=str(DEFAULT_HANDOFF),
-                        help=f"session_handoff.md 경로 (default: {DEFAULT_HANDOFF})")
-    parser.add_argument("--workspace-root", default=str(REPO_ROOT),
-                        help="memory_index 를 읽을 workspace root (default: repo root)")
+    default_workspace, default_handoff, default_source = _resolve_defaults()
+    parser.add_argument("--handoff-path", default=str(default_handoff),
+                        help=f"session_handoff.md 경로 (default: {default_handoff})")
+    parser.add_argument("--workspace-root", default=str(default_workspace),
+                        help="memory_index 를 읽을 workspace root "
+                             f"(default: {default_workspace} — {default_source})")
     parser.add_argument("--date", default=None,
                         help="skeleton id 의 날짜 YYYY-MM-DD (default: 오늘 UTC)")
     parser.add_argument("--threshold", type=float, default=SUGGESTION_COVERAGE_THRESHOLD,
@@ -119,12 +157,14 @@ def main() -> int:
     args = parser.parse_args()
 
     date_str = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    path_source = default_source if args.handoff_path == str(default_handoff) else "explicit"
     payload = build_payload(
         workspace_root=Path(args.workspace_root),
         handoff_path=Path(args.handoff_path),
         date_str=date_str,
         threshold=args.threshold,
         max_candidates=args.max_candidates,
+        path_source=path_source,
     )
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))

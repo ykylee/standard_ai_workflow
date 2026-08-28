@@ -275,7 +275,8 @@ def parse_args() -> argparse.Namespace:
     # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task 생성 게이트.
     parser.add_argument("--wbs", default=None,
                         help="WBS leaf 참조 'M-NNN/WBS-N.N', 또는 로드맵 밖 작업 선언 'exempt'. "
-                             "roadmap 이 있는 프로젝트의 create 는 필수 (ADR-027 §6).")
+                             "roadmap 이 있는 프로젝트의 create 는 필수 (ADR-027 §6). "
+                             "update 는 선택 — 지정 시 재링크(같은 게이트를 탄다), 미지정은 보존.")
     parser.add_argument("--wbs-exempt-reason", default=None,
                         help="--wbs exempt 의 필수 사유 — frontmatter 에 남아 생성물이 센다.")
     parser.add_argument("--work-backlog-index-path")
@@ -572,7 +573,11 @@ def main() -> int:
         # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task **생성** 게이트.
         # 판정은 정본 한 곳(evaluate_wbs_gate)이고 MCP 경로도 같은 함수를 부른다.
         # draft(무-apply)도 막는다 — 거부될 초안을 보여 주는 것은 초안이 아니라 함정이다.
-        if requested_mode == "create":
+        # v1.6.1 (TASK-2026-08-28-main-002): **update 재링크도 같은 게이트를 탄다** —
+        # 이전에는 update 가 --wbs 를 조용히 버려 재링크 수단이 없었고, 게이트 없이
+        # 병합만 붙이면 dangling leaf / done 마일스톤 재링크가 무검증으로 뚫린다.
+        # update 에서 --wbs 미지정은 "바꾸지 말라" 이므로 게이트 대상이 아니다.
+        if requested_mode == "create" or (requested_mode == "update" and args.wbs):
             from workflow_kit.common.paths import project_workspace_root as _pwr
             from workflow_kit.common.state.roadmap import evaluate_wbs_gate
 
@@ -582,9 +587,10 @@ def main() -> int:
                 exempt_reason=args.wbs_exempt_reason,
             )
             if not gate.allowed:
+                gate_action = "생성이" if requested_mode == "create" else "wbs 재링크가"
                 result = build_error_result(
                     tool_version=TOOL_VERSION,
-                    error=f"task 생성이 로드맵 게이트에 막혔다: {gate.detail}",
+                    error=f"task {gate_action} 로드맵 게이트에 막혔다: {gate.detail}",
                     error_code="wbs_gate_denied",
                     warnings=[f"게이트 판정 코드: {gate.code}"],
                     source_context=source_context | {
@@ -640,6 +646,8 @@ def main() -> int:
                 scalar_updates=scalar_updates,
                 list_updates=list_updates,
                 affected_documents=args.affected_documents or None,
+                wbs=args.wbs,
+                wbs_exempt_reason=args.wbs_exempt_reason,
             )
             if merge_missing:
                 warnings.append(

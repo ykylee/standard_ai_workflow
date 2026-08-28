@@ -35,7 +35,9 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "blocked_items": [],
-    "planned_items": [],
+    "planned_items": [
+      "TASK-2026-08-28-main-003"
+    ],
     "recent_done_items": [
       "TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재",
       "TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수",
@@ -53,7 +55,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-28.md",
-    "task_count": 4,
+    "task_count": 5,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [

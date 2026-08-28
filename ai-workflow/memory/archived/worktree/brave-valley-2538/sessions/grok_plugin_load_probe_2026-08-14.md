@@ -5,7 +5,7 @@
 - 대상 독자: 다음 세션, 배포 정책 소유자
 - 상태: 실측 완료
 - 최종 수정일: 2026-08-14
-- 관련 문서: [TASK-2026-08-14-main-011](../backlog/tasks/TASK-2026-08-14-main-011.md), [plugin-transition-plan-2026-08.md](../../../../../docs/planning/plugin-transition-plan-2026-08.md)
+- 관련 문서: [TASK-2026-08-14-main-011](../../../../active/main/backlog/tasks/TASK-2026-08-14-main-011.md), [plugin-transition-plan-2026-08.md](../../../../../../docs/planning/plugin-transition-plan-2026-08.md)
 
 ## 1. 방법
 

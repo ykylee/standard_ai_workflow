@@ -5,7 +5,7 @@
 - 대상 독자: 다음 세션
 - 상태: 완료
 - 최종 수정일: 2026-08-14
-- 관련 문서: [TASK-2026-08-14-main-012](../backlog/tasks/TASK-2026-08-14-main-012.md), [TASK-011 실측](./grok_plugin_load_probe_2026-08-14.md)
+- 관련 문서: [TASK-2026-08-14-main-012](../../../../active/main/backlog/tasks/TASK-2026-08-14-main-012.md), [TASK-011 실측](./grok_plugin_load_probe_2026-08-14.md)
 
 ## 한 일
 

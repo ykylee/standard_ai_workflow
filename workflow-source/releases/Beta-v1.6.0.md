@@ -34,7 +34,7 @@
 ## 1. 릴리스 요약
 
 - 범위: `v1.5.0..HEAD` (10 commit — fix 3 · chore 4 · docs 1 · release 2)
-- 누적 smoke **274/274 PASS** (전량 2축), mypy strict 0 errors, 되주입 red 실증 4건
+- 누적 smoke **275/275 PASS** (전량 2축; 발행 시점 274, 이후 `check_meta_watch` +1 — 2026-08-28 M-011), mypy strict 0 errors, 되주입 red 실증 4건
 - 검사 강화: `check_deploy_doctor` 25→27 cases ·
   `check_bootstrap_mcp_roundtrip` unit 절 + emit PYTHONPATH 실재 형식 게이트 ·
   `check_state_json_generated` case_7 (경로 POSIX 형식 대조)

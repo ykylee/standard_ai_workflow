@@ -36,7 +36,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-28-main-004 M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)
+- TASK-2026-08-28-main-005 M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
@@ -46,6 +46,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-28-main-004 M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)
 - TASK-2026-08-28-main-002 backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재
 - TASK-2026-08-25-main-023 suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패
 - TASK-2026-08-28-main-001 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수
@@ -55,7 +56,6 @@
 - TASK-2026-08-25-main-018 emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다
 - TASK-2026-08-25-main-020 state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다
 - TASK-2026-08-25-main-016 roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작
-- TASK-2026-08-25-main-015 roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

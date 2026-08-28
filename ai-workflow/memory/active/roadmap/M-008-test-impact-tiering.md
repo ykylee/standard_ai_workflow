@@ -2,7 +2,7 @@
 id: M-008
 title: 검사 입력 표면 선언 + 계층별 회귀 실행 계약
 sdlc_phase: concept
-status: planned
+status: done
 order: 8
 parallel_allowed:
   - M-007
@@ -30,6 +30,11 @@ deliverables:
 
 SDLC 온보딩 기본 순서(concept → requirements → design → implementation)를
 따른다. concept 산출물이 채워지기 전에는 다음 단계 leaf 를 열지 않는다.
+
+**종결 (2026-08-28)**: concept 산출물 작성 완료, 소유자 결정 = **C안**
+(편집 루프 한정 `WATCHES` 보급 + 선언 메타 검증 설계, 게이트 축소 제외).
+requirements 단계는 [`M-009`](./M-009-test-impact-requirements.md) 로 이어진다
+(M-001~M-006 의 단계별 마일스톤 전례).
 
 ## WBS
 

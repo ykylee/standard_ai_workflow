@@ -298,7 +298,31 @@
       "id": "M-008",
       "title": "검사 입력 표면 선언 + 계층별 회귀 실행 계약",
       "sdlc_phase": "concept",
-      "declared_status": "planned",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-8.1",
+          "title": "concept 검토 — 선언 기반 영향 매핑의 건전성 조건, 기각 이력",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-28-main-004"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-009",
+      "title": "계층별 회귀 실행 계약 — requirements (WATCHES 보급 + 선언 메타 검증)",
+      "sdlc_phase": "requirements",
+      "declared_status": "in_progress",
       "derived_status": "in_progress",
       "progress": 0.0,
       "total_leaves": 1,
@@ -306,11 +330,11 @@
       "deliverables_missing": [],
       "wbs": [
         {
-          "id": "WBS-8.1",
-          "title": "concept 검토 — 선언 기반 영향 매핑의 건전성 조건, 기각 이력",
+          "id": "WBS-9.1",
+          "title": "requirements 확정 — 보급 판정 기준 · 메타 검증 요구사항 ·",
           "derived_status": "in_progress",
           "linked_task_ids": [
-            "TASK-2026-08-28-main-004"
+            "TASK-2026-08-28-main-005"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

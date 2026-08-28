@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-25T06:18:34Z`
-- tool_version: `1.6.0`
+- generated_at: `2026-08-28T09:30:10Z`
+- tool_version: `1.7.0`
 - workspace_root: `/Users/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-08-25`
+- maturity_last_updated: `2026-08-28`
 - maturity_surface_changed_at: `2026-08-25`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `11`
-- head_commit_date: `2026-08-25`
+- head_commit_date: `2026-08-28`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 10건)
+- silent_failing_cycles_count: `0` (측정 cycle 11건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,39 +75,39 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `274`
-- cumulative_pass: `274`
+- cumulative_total: `275`
+- cumulative_pass: `275`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `274`
+- smoke_files_count: `275`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
-| Beta-v1.6.0 | 274 | 274 |
+| Beta-v1.7.0 | 275 | 275 |
+| Beta-v1.6.0 | 275 | 275 |
 | Beta-v1.5.0 | 274 | 274 |
 | Beta-v1.4.0 | 274 | 274 |
 | Beta-v1.3.0 | 267 | 267 |
-| Beta-v1.2.0 | 264 | 264 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `11`
+- items_total: `10`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-25-main-020 — state generator 가 Windows 호스트에서 백슬래시 경로를 쓴다 — safe_relpath 에 POSIX 정규화가 없다  `[fresh]`
-- [1] TASK-2026-08-25-main-019 — 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다  `[fresh]`
-- [2] TASK-2026-08-25-main-018 — emit PYTHONPATH 가 source-checkout 모드에서만 실재 — 순수 신규 프로젝트에서 실재하지 않는 디렉터리를 가리킨다  `[fresh]`
-- [3] TASK-2026-08-25-main-016 — roadmap M-006/WBS-6.3 — 로드맵 상시 운용 전환 + exempt 비율 관찰 시작  `[fresh]`
-- [4] TASK-2026-08-25-main-015 — roadmap M-006/WBS-6.2 — 소비 채널 재적용 + doctor drift 0  `[fresh]`
-- [5] TASK-2026-08-25-main-014 — roadmap M-006/WBS-6.1 — 릴리스 발행 (등급은 RELEASE.md §1.5)  `[fresh]`
-- [6] TASK-2026-08-25-main-013 — roadmap M-005/WBS-5.3 — 채널 스킬 문안이 로드맵 게이트·컨텍스트를 안내한다  `[fresh]`
-- [7] TASK-2026-08-25-main-012 — roadmap M-005/WBS-5.2 — 기존 프로젝트 온보딩은 draft 로드맵 초안을 받는다  `[fresh]`
-- [8] TASK-2026-08-25-main-011 — roadmap M-005/WBS-5.1 — 신규 프로젝트 bootstrap 이 SDLC 로드맵 씨앗을 심는다  `[fresh]`
-- [9] TASK-2026-08-25-main-010 — 이 저장소 claude-code 채널 플러그인 단일화 — 프로젝트 레벨 개별 스킬 5종 제거  `[fresh]`
+- [0] TASK-2026-08-28-main-009 — mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)  `[fresh]`
+- [1] TASK-2026-08-28-main-008 — M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건  `[fresh]`
+- [2] TASK-2026-08-28-main-007 — M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)  `[fresh]`
+- [3] TASK-2026-08-28-main-006 — M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준  `[fresh]`
+- [4] TASK-2026-08-28-main-005 — M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)  `[fresh]`
+- [5] TASK-2026-08-28-main-004 — M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)  `[fresh]`
+- [6] TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재  `[fresh]`
+- [7] TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수  `[fresh]`
+- [8] TASK-2026-08-25-main-023 — suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패  `[fresh]`
+- [9] TASK-2026-08-25-main-022 — release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `15`
-- telemetry_events_total: `835`
-- telemetry_total_queries: `835`
-- telemetry_hit_count: `95`
-- telemetry_hit_rate: `0.1138`
+- telemetry_events_total: `1045`
+- telemetry_total_queries: `1045`
+- telemetry_hit_count: `110`
+- telemetry_hit_rate: `0.1053`
 
 ### Entries by merge_state
 
@@ -152,7 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 134 |
+| `backlog-update` | 161 |
 | `doc-sync` | 1 |
-| `session-start` | 700 |
+| `session-start` | 883 |
 

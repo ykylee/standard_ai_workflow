@@ -120,6 +120,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- release(v1.7.0): 발행 준비 — meta-watch 축, 등급은 §1.5 판정으로 minor (d3fa719b)
 - release(v1.7.0): bump 1.6.0→1.7.0 + main-009 close (mcp 2.1.1 수리 CI green) (cac3af1e)
 
 ## [1.6.0] - 2026-08-28

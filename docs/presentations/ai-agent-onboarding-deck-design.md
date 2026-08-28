@@ -4,7 +4,7 @@
 - 범위: 발표 설계까지. 실제 HTML 덱 제작은 별도 산출물(`ai-agent-onboarding.html`)
 - 대상 독자: 발표자, 발표자료 제작자
 - 상태: draft (v2.3 — 30/60/90분 삼중 트랙 + 확장 실습 설계)
-- 최종 수정일: 2026-08-25
+- 최종 수정일: 2026-08-28
 - 관련 문서: `standard-ai-workflow-intro.html`(기존 소개 덱, 보존), `../../ai-workflow/core/workflow_design_principles.md`
 
 ---

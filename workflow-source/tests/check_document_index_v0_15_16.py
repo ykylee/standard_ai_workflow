@@ -28,7 +28,7 @@ DOCUMENT_INDEX_PATH = DOCS_DIR / "DOCUMENT_INDEX.md"
 # release day (cross-check stamp) — 릴리스마다 문서와 **함께** 올린다.
 # v1.3.0: 2026-08-13 → 2026-08-20.
 # v1.4.0: 2026-08-20 → 2026-08-24.
-EXPECTED_LAST_UPDATED = "2026-08-25"
+EXPECTED_LAST_UPDATED = "2026-08-28"  # v1.7.0 발행 post-step 스탬프 (2026-08-28)
 EXPECTED_VERSION_STAMP = "v1.0.0"
 
 REQUIRED_SECTIONS = [

@@ -2,7 +2,7 @@
 id: M-010
 title: 계층별 회귀 실행 계약 — design (ADR-028 + core 스펙 절)
 sdlc_phase: design
-status: planned
+status: done
 order: 10
 parallel_allowed:
   - M-007
@@ -31,6 +31,12 @@ sign-off 기록 절, 2026-08-28) 를 받는 design 단계. sign-off 가 형태�
 
 구현(M-011 예정)은 design 산출물이 채워지기 전에 열지 않는다 (SDLC 온보딩
 기본 순서).
+
+**종결 (2026-08-28)**: ADR-028 accepted (채취=audit hook · 판정=러너 내장
+전수 · `WATCHES_ALL_REASON` · 강등 기준 +5%) + core 스펙 작성. 실측 3건
+(오버헤드 <1% · 자식 python 전파 · 좁은 선언 실례 1건 발견 —
+`check_handoff_next_steps`). 구현 단계의 임시 로드맵 정본은 스펙 §6
+(M-011 implementation / M-012 release) — M-011 선언은 구현 착수 시점에.
 
 ## WBS
 

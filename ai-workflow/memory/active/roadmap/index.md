@@ -31,5 +31,5 @@
   - path: [`./M-008-test-impact-tiering.md`](./M-008-test-impact-tiering.md)
 - **M-009** [requirements] 계층별 회귀 실행 계약 — requirements (WATCHES 보급 + 선언 메타 검증) — status: done
   - path: [`./M-009-test-impact-requirements.md`](./M-009-test-impact-requirements.md)
-- **M-010** [design] 계층별 회귀 실행 계약 — design (ADR-028 + core 스펙 절) — status: planned
+- **M-010** [design] 계층별 회귀 실행 계약 — design (ADR-028 + core 스펙 절) — status: done
   - path: [`./M-010-test-impact-design.md`](./M-010-test-impact-design.md)

@@ -36,8 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-28-main-011 M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용
-- TASK-2026-08-28-main-010 M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
@@ -47,6 +45,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-28-main-010 M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)
+- TASK-2026-08-28-main-011 M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용
 - TASK-2026-08-28-main-009 mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)
 - TASK-2026-08-28-main-008 M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건
 - TASK-2026-08-28-main-007 M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)
@@ -55,8 +55,6 @@
 - TASK-2026-08-28-main-004 M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)
 - TASK-2026-08-28-main-002 backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재
 - TASK-2026-08-25-main-023 suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패
-- TASK-2026-08-28-main-001 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수
-- TASK-2026-08-25-main-022 release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

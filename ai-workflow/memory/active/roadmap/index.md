@@ -35,5 +35,5 @@
   - path: [`./M-010-test-impact-design.md`](./M-010-test-impact-design.md)
 - **M-011** [implementation] 계층별 회귀 실행 계약 — implementation (meta-watch 러너 통합) — status: done
   - path: [`./M-011-test-impact-implementation.md`](./M-011-test-impact-implementation.md)
-- **M-012** [release] 계층별 회귀 실행 계약 — release (v1.7.0 발행 + CLAUDE.md 전환) — status: in_progress
+- **M-012** [release] 계층별 회귀 실행 계약 — release (v1.7.0 발행 + CLAUDE.md 전환) — status: done
   - path: [`./M-012-test-impact-release.md`](./M-012-test-impact-release.md)

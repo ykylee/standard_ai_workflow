@@ -1,6 +1,6 @@
 {
   "name": "standard-ai-workflow",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "세션 시작 / 백로그 갱신 / 문서 동기화 / 세션 종료를 표준 AI 워크플로우 절차로 수행하는 스킬 4종과 read-only MCP 도구 번들.",
   "author": {
     "name": "ykylee"

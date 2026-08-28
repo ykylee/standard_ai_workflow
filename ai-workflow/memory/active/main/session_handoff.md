@@ -36,6 +36,8 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-08-28-main-011 M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용
+- TASK-2026-08-28-main-010 M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업

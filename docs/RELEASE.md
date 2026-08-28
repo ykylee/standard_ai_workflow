@@ -310,6 +310,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 | v1.4.0 | 소유권 4번째 분류 '포크됨' + 혼합 표기 축 완결(생성기·코퍼스) + CI red 2건 해소 | ✅ (2026-08-24) | `!` 3건에 §1.5 4문항 적용 → **minor**. 공개 시그니처 변경 0 · 진입점 제거 0 · 별칭 17/17 유지 |
 | v1.5.0 | ADR-027 로드맵·마일스톤·WBS 층 + SDLC 온보딩 기본 + overlay 위임 선언 | ✅ (2026-08-25) | `feat(roadmap)!` 에 §1.5 4문항 적용 → **minor**. 동결 표면 밖 · 옛 인자 rc=0 수용 · 출력 key 유지 · roadmap 부재 additive |
 | v1.6.0 | Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기(`python_launcher`) + emit PYTHONPATH target 레이아웃 판정 + doctor `kit_resolution` + `safe_relpath` POSIX | ✅ (2026-08-25) | 커밋 타입은 전부 fix 지만 §1.5 판정 **minor** — 새 공개 모듈 + doctor 신기능 + payload 키 추가. 시그니처 파괴 0 · 진입점 제거 0 · 산출물 소비 불가 0. 체크인 payload 는 posix 고정 (Windows 플러그인 채널은 `python3` 별칭 필요) |
+| v1.7.0 | 계층별 회귀 실행 계약 축 (ADR-028) — meta-watch 러너 내장(채취+판정) + `WATCHES_ALL_REASON` 어휘 + 좁은 선언 7건 소탕 + mcp 2.1.1 대응(importlib 동적 해석, latest_2x 핀 2.1.1) | ✅ (2026-08-28) | §1.5 판정 **minor** — 러너 신기능 + 새 공개 모듈(`meta_watch`) + 어휘 신설. 시그니처 파괴 0 · 진입점 제거 0 · runner JSON 은 `meta_watch` 키 추가만. 게이트는 축소하지 않는다 (main-004 기각 불변) |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

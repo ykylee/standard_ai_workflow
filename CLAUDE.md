@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-08-20
+- 최종 수정일: 2026-08-28
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -149,7 +149,7 @@ Close a session in the order **update memory → commit → push**. Do not split
 | 단계 | 명령 | 언제 |
 |---|---|---|
 | 편집 중 | `run_all_checks.py --filter=<이름조각>` | 방금 건드린 것과 그 이웃만. 초 단위로 끝난다 |
-| 커밋 전 | 관련 검사 + `check_self_application.py` | 메모리/문서를 건드렸으면 이것부터 (`task_status_mismatch` 류를 여기서 잡는다) |
+| 커밋 전 | `run_all_checks.py --changed` + `check_self_application.py` | 관련 검사를 사람이 고르지 않는다 — 검사의 `WATCHES` 선언이 고른다 (v1.7.0, meta-watch 가 선언의 좁음을 게이트에서 잡는다). `--filter` 는 여전히 편집 루프용 |
 | **push 직전 1회** | `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량 |
 
 > 게이트의 **조건부 1축 생략은 검토 후 기각**했다 (TASK-2026-08-14-main-004, 재론 방지).

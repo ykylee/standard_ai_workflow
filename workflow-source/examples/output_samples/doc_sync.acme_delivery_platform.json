@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "1.6.0",
+  "tool_version": "1.7.0",
   "impacted_documents": [
     "docs/operations/runbooks/delivery-sync.md",
     "/Users/yklee/repos/standard_ai_workflow/examples/acme_delivery_platform/session_handoff.md",

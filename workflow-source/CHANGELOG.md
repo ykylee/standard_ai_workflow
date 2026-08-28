@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-25
+- 최종 수정일: 2026-08-28
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,15 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-25
+## [Unreleased] - 2026-08-28
 
 ### Added
 
+- feat(runner): M-011 — meta-watch 구현 (ADR-028) + 좁은 선언 7건 소탕 (11eb02d2)
+- feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
+- feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
+- feat(roadmap): C안 채택 — M-008 close + M-009 [requirements] 진행 (requirements 초안) (12bb8d70)
+- feat(roadmap): M-008 선언 — 검사 입력 표면 선언 + 계층별 회귀 실행 계약 (concept) (7aac9ee3)
 - feat(harness): overlay 위임 선언(plugin-only) 신설 — 이 저장소 claude-code 채널 플러그인 단일화 (main-010) (caffb013)
 - feat(roadmap)!: ADR-027 로드맵 층 — 스키마·파서·상태 생성기·배선·게이트·bootstrap 씨앗 (M-002~M-005) (9dc91713)
 - feat(session-start): 부재 진입점을 스스로 채운다 — 낡음은 보고만 (main-006) (b119d68b)
@@ -41,15 +46,16 @@ All notable changes to this project will be documented in this file.
 - feat(memory): 아카이브를 이동에서 이관으로 — 미완료 소실 + 참조 끊김 차단 (9b600efb)
 - feat(smoke): 브랜치 메모리 네임스페이스 가드 신설 + 정본 창구 정정 (d818625e)
 - feat(dist): ship native Codex and Claude plugin archives (51e04eb3)
-- feat(dist)!: 2nd deprecation cycle 완결 — 구경로 shim drop + --bundle 기본 read-only (TASK-2026-08-13-main-005) (7fed4158)
-- feat(plugin): SessionStart 조건부 규칙 주입 — rules.md + 마커 감지 hook (TASK-2026-08-13-main-003) (573f3138)
-- feat(plugin): P3 멀티 하네스 어댑터 — gemini/goose/opencode + 수렴 판정 (TASK-2026-08-12-main-016) (7eb11c30)
-- feat(plugin): P4 릴리스 게이트 + session-end 스킬 (TASK-2026-08-12-main-017·020) (2cf95764)
-- feat(plugin): Claude Code 채널 개통 — 어댑터 + marketplace + 자기 적용 (TASK-2026-08-12-main-015) (35473da9)
-- ... (123 more)
+- ... (128 more)
 
 ### Changed
 
+- chore(roadmap): M-012 [release] 선언 + main-009 등록 (mcp 2.1.1 사건) (3669668b)
+- chore(roadmap): M-011 close — meta-watch 구현 축 완결 (main-008 done) (9c41b488)
+- docs(planning): M-008 concept 검토 — 계층별 회귀 실행 계약 (소유자 선택지 3안) (bf7f8788)
+- chore(memory): brave-valley-2538 브랜치 메모리 아카이브 + main-003 등록 ('자기 위치 오인' 결함족 사본 발견) (9faa9924)
+- chore(memory): 62차 세션 종료 — Windows 플랫폼 결함 축 수리 + v1.6.0 발행 + 이 호스트 채널 정렬 (2329bbf2)
+- chore(memory): main-021 close — v1.6.0 발행 사이클 종결 (CI 전 워크플로 green + 이 호스트 채널 재적용 drift 0) (377ef605)
 - chore(memory): main-004 close 기준 확정 — 격리 후 완료 run 33건에서 mypy 게이트 실패 0 (62차 소유자 결정) (de0f8307)
 - chore(memory): 60차 세션 종료 — ADR-027 로드맵 층 완결 + v1.5.0 발행 (61차 병합 + main 생성물 치유) (6ecdeaa2)
 - chore(memory): 61차 세션 종료 — Windows 플랫폼 결함 축 착수 (Oh My Pi) (3866c188)
@@ -74,16 +80,13 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 46차 세션 종료 — main-016 wk doctor 착수·구현 지점 조사 완료 (구현 미착수) (b6b91b85)
 - chore(memory): 45차 세션 종료 — 배포 멱등성 컨셉 문서 + gap 4 task 등록 (main-015) (c59a9ade)
 - docs(distribution): 배포 채널×하네스 매트릭스 정리 (main-014) (0e29bdbc)
-- Merge pull request #28 from ykylee/worktree/clear-field-f112 (59ad6d43)
-- Merge main into worktree/clear-field-f112 — case 19 충돌 해소 (Grok 19 · pi 20 공존) (7571f40d)
-- docs(release): 현재 package version 표기 동기화 1.1.8 → 1.2.0 (PR #26 대체) (120a83ea)
-- docs(harness): 배포 정책 문서 흠 2건 수리 — §번호 중복 + 누락 타겟 6종 (main-012) (2f0fde65)
-- chore(memory): worktree/brave-field-3f50 브랜치 메모리 seed (표준 §10.2) (a8932689)
-- docs(plugin): 정직화 — pi v0.84.2 가 MCP 미지원임을 명시 (main-012) (ce595693)
-- ... (343 more)
+- ... (349 more)
 
 ### Fixed
 
+- fix(mcp): mcp 2.1.1 의 FastMCP 심볼 제거 대응 — importlib 동적 해석 (main-009) (62a12485)
+- fix(memory): 아카이브된 brave-valley-2538 세션 기록의 깨진 링크 3건 교정 (874395f2)
+- fix(ops): 63차 세션 — M-007 운영 축 상설 선언 + '자기 위치 오인' 결함족 3건 소탕 (b3eee5ad)
 - fix(mcp): Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기 + PYTHONPATH target 레이아웃 교정 + doctor kit_resolution 탐침 (62차) (24b75e2a)
 - fix(docs): work log 의 docs 밖 markdown 링크 2건 제거 — mkdocs strict build red 수리 (95fadfc2)
 - fix(state): safe_relpath POSIX 정규화 — Windows 호스트 state.json 백슬래시 제거 (TASK-2026-08-25, cross-host 형식 결함) (bcb05cfb)
@@ -111,15 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(backlog): 날짜 롤오버 시 진행 중 task 의 갱신이 사라지던 결함 (main-001) (d02d9663)
 - fix(standard): 정본의 다중 줄 bullet 이 추출에서 잘리던 결함 수리 (main-002) (f3e9d0cc)
 - fix(checks): timeout 선언 누락 3건 + 내장 worktree 스캔 제외 (main-011) (28f12ed1)
-- fix(memory): seed 가 첫 세션 기록을 쓴다 — 갓 seed 한 브랜치가 layout green (main-005) (f9b374ee)
-- fix(memory): 아카이브가 살아 있는 대상 상대 링크를 안 고치던 결함 수리 (main-006) (098386c0)
-- fix(memory): 검증 결과 주입이 작업 결과 묶음을 가르던 결함 수리 (main-010) (0b2ef9b3)
-- ... (126 more)
+- ... (129 more)
 
-## [1.6.0] - 2026-08-25
+## [1.7.0] - 2026-08-28
 
 ### Changed
 
+- release(v1.7.0): bump 1.6.0→1.7.0 + main-009 close (mcp 2.1.1 수리 CI green) (cac3af1e)
+
+## [1.6.0] - 2026-08-28
+
+### Changed
+
+- chore(release-note): v1.6.0 누적 smoke 수치 274→275 (check_meta_watch 신설 반영) (2c998a3e)
+- release(v1.6.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 파생물 정합 (main-021) (ba7af58f)
 - release(v1.6.0): 발행 준비 — Windows 플랫폼 결함 축, 등급은 §1.5 판정으로 minor (62953fb8)
 
 ## [1.5.0] - 2026-08-25

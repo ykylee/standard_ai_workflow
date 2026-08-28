@@ -34,7 +34,7 @@
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
 │   ├── releases/                   # Beta v0.5.0 ~ v0.15.18 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 1.6.0)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 1.7.0)
 │
 ├── .claude-plugin/marketplace.json # 이 저장소가 곧 marketplace — **생성물**
 ├── plugin/                         # 공유 payload + 하네스 어댑터 — **생성물** (손 편집 금지)

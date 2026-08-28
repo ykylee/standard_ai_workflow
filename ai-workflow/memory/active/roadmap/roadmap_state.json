@@ -265,7 +265,8 @@
             "TASK-2026-08-25-main-022",
             "TASK-2026-08-25-main-023",
             "TASK-2026-08-28-main-002",
-            "TASK-2026-08-28-main-003"
+            "TASK-2026-08-28-main-003",
+            "TASK-2026-08-28-main-009"
           ],
           "total_leaves": 1,
           "done_leaves": 0,
@@ -397,6 +398,39 @@
           ],
           "total_leaves": 1,
           "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-012",
+      "title": "계층별 회귀 실행 계약 — release (v1.7.0 발행 + CLAUDE.md 전환)",
+      "sdlc_phase": "release",
+      "declared_status": "in_progress",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 2,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "workflow-source/releases/Beta-v1.7.0.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-12.1",
+          "title": "v1.7.0 발행 — bump·파생물·release note·게이트·tag·GH Release·",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-12.2",
+          "title": "CLAUDE.md 커밋 전 단계 `--changed` 전환 (R4.2) + 이 호스트",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
           "children": []
         }
       ]

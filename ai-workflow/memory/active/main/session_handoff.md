@@ -36,7 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-28-main-008 M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
@@ -46,6 +45,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-28-main-008 M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건
 - TASK-2026-08-28-main-007 M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)
 - TASK-2026-08-28-main-006 M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준
 - TASK-2026-08-28-main-005 M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)
@@ -55,7 +55,6 @@
 - TASK-2026-08-28-main-001 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수
 - TASK-2026-08-25-main-022 release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL
 - TASK-2026-08-25-main-021 v1.6.0 발행 — Windows 플랫폼 결함 축 (등급은 RELEASE.md §1.5, 소유자 결정 minor)
-- TASK-2026-08-25-main-019 전역 도구가 다른 체크아웃의 workflow_kit 을 해결한다 — 이 저장소 대신 semcowork 사본이 실행된다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

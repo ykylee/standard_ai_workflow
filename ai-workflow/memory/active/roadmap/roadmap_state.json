@@ -381,22 +381,22 @@
       "id": "M-011",
       "title": "계층별 회귀 실행 계약 — implementation (meta-watch 러너 통합)",
       "sdlc_phase": "implementation",
-      "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-11.1",
           "title": "meta-watch 구현·선언 교정·되주입 실증",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-28-main-008"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

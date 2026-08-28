@@ -2,7 +2,7 @@
 id: M-011
 title: 계층별 회귀 실행 계약 — implementation (meta-watch 러너 통합)
 sdlc_phase: implementation
-status: in_progress
+status: done
 order: 11
 parallel_allowed:
   - M-007
@@ -23,6 +23,10 @@ design ([`M-010`](./M-010-test-impact-design.md) → ADR-028 + spec §6) 을 받
 
 후속 M-012 [release] 는 발행 + R4.2 조건 충족 후 CLAUDE.md 커밋 전 단계
 전환 — 구현이 게이트 green 으로 닫힌 뒤 연다.
+
+**종결 (2026-08-28)**: 구현·선언 교정 7건·되주입 실증 완료 — 전량 2축 게이트
+green (meta 판정 포함, 좁은 선언 0, 벽시계 118~123s 로 강등 신호 없음).
+잔여는 M-012 [release]: 발행 + R4.2 조건 충족 후 CLAUDE.md 커밋 전 단계 전환.
 
 ## WBS
 

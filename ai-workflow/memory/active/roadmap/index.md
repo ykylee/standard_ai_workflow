@@ -33,5 +33,5 @@
   - path: [`./M-009-test-impact-requirements.md`](./M-009-test-impact-requirements.md)
 - **M-010** [design] 계층별 회귀 실행 계약 — design (ADR-028 + core 스펙 절) — status: done
   - path: [`./M-010-test-impact-design.md`](./M-010-test-impact-design.md)
-- **M-011** [implementation] 계층별 회귀 실행 계약 — implementation (meta-watch 러너 통합) — status: in_progress
+- **M-011** [implementation] 계층별 회귀 실행 계약 — implementation (meta-watch 러너 통합) — status: done
   - path: [`./M-011-test-impact-implementation.md`](./M-011-test-impact-implementation.md)

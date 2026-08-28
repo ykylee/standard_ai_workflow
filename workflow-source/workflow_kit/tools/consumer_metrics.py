@@ -37,7 +37,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2]
-HISTORY_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / ".consumer_metrics_history.jsonl"
+from workflow_kit.common.paths import resolve_workspace_root  # noqa: E402
+
+HISTORY_FILENAME = ".consumer_metrics_history.jsonl"
+#: 모듈 저장소 기준 값 — 무인자 CLI 기본값이 아니라 in-process 호출자용 폴백이다
+#: (CLI 는 cwd 에서 해석한다, TASK-2026-08-28-main-013).
+HISTORY_PATH = SOURCE_ROOT / "workflow_kit" / "tools" / HISTORY_FILENAME
 
 # trend chart dim (mappable from snapshot)
 TREND_DIMS = ["views_total", "views_uniques", "clones_total", "feedback_total", "feedback_open"]
@@ -286,8 +291,8 @@ def main() -> int:
     parser.add_argument("--record", action="store_true", help="현재 snapshot 을 history jsonl 에 기록 (v0.7.62+)")
     parser.add_argument("--show-trend", nargs="?", const="views_total", default=None,
                         help=f"history 의 trend chart 출력 (v0.7.62+). default dim: views_total. valid: {TREND_DIMS}")
-    parser.add_argument("--history-path", default=str(HISTORY_PATH),
-                        help=f"history jsonl path (default: {HISTORY_PATH}, v0.7.62+)")
+    parser.add_argument("--history-path", default=None,
+                        help="history jsonl path (default: cwd 저장소 기준, v0.7.62+)")
     parser.add_argument("--digest", action="store_true", help="weekly digest text 출력 (v0.7.62+)")
     parser.add_argument("--digest-markdown", action="store_true",
                         help="GH issue comment markdown 형식 digest (v0.7.62+)")
@@ -295,7 +300,14 @@ def main() -> int:
     if args.days < 1 or args.days > 90:
         print("ERROR: --days must be 1-90", file=sys.stderr)
         return 2
-    history_path = Path(args.history_path)
+    # history 는 **대상 저장소** 안에 쌓인다 — 모듈 위치가 아니라
+    # (TASK-2026-08-28-main-013: 설치본에서는 site-packages 에 썼다).
+    if args.history_path is not None:
+        history_path = Path(args.history_path)
+    else:
+        workspace_root, _ = resolve_workspace_root()
+        history_path = (workspace_root / "workflow-source" / "workflow_kit"
+                        / "tools" / HISTORY_FILENAME)
     # v0.7.62+ — trend show 는 gh API 호출 없이 history 에서만 계산 (offline 가능)
     if args.show_trend is not None:
         records = load_history(history_path)

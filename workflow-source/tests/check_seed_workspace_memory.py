@@ -98,6 +98,13 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         memory_root = Path(tmp) / "ai-workflow" / "memory"
         (memory_root / "active").mkdir(parents=True)
+        # 대상 workspace 의 profile. 이전에는 이 fixture 에 profile 이 없었고,
+        # seed 가 **모듈 저장소의** profile 을 빌려 state.json 을 만들어서 green
+        # 이었다 — 소비자 workspace 에 kit 의 프로젝트 메타를 찍는 결함족의 한
+        # 모양이다 (TASK-2026-08-28-main-013). 이제 대상 트리에서 찾는다.
+        (Path(tmp) / "docs").mkdir(parents=True, exist_ok=True)
+        (Path(tmp) / "docs" / "PROJECT_PROFILE.md").write_text(
+            PROFILE.read_text(encoding="utf-8"), encoding="utf-8")
         branch_dir = memory_root / "active" / BRANCH
 
         # --- case 1: dry-run 은 쓰지 않는다 -------------------------------
@@ -159,7 +166,13 @@ def main() -> int:
             # **브랜치 축 key 만 본다.** `project_profile_path` 는 브랜치 무관 공유
             # 문서라 여기 섞으면 정상을 FAIL 로 만든다 (처음에 그렇게 걸렸다).
             branch_keys = ("session_handoff_path", "daily_backlog_dir", "tasks_dir", "sessions_dir")
-            wrong = {k: sot.get(k) for k in branch_keys if str(branch_dir) not in str(sot.get(k))}
+            # **절대/상대 둘 다 정상이다.** state.json 의 경로는 workspace 안이면
+            # 저장소 상대로 적힌다 (`safe_relpath`) — profile 이 대상 workspace 에
+            # 있게 된 뒤로 이쪽이 정상 형태다 (TASK-2026-08-28-main-013). 그래서
+            # 절대 경로 접두가 아니라 **브랜치 구간**이 들어 있는지를 본다.
+            branch_segment = f"active/{BRANCH}"
+            wrong = {k: sot.get(k) for k in branch_keys
+                     if branch_segment not in str(sot.get(k)).replace("\\", "/")}
             _record(
                 "test_state_json_points_at_branch",
                 not wrong,

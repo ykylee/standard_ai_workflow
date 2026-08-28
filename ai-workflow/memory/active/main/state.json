@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**64차 세션 종료 (2026-08-28, macOS 호스트) — TDAD 계층별 회귀 실행 계약 축 M-008~M-012 를 concept→release 하루 완주 + v1.7.0 발행 (task 8건 close: main-004~011, push 8회, 매 push 게이트 green — 단 1회 사고).** **① SDLC 완주**: 소유자 제기(\"회귀는 수정 영향 부분만 점진적으로\")가 M-008 concept (게이트 축소는 구조적 불성립 — C안 결정) → M-009 requirements (R0~R6 sign-off, 1차 이득은 시간이 아니라 **선택 정확성** — memory-only 변경에서 --changed 절감 ~8% 실측) → M-010 design (ADR-028: 채취=audit hook 오버헤드 <1% 실측 · 판정=러너 내장 전수 · WATCHES_ALL_REASON · 강등 기준 게이트 +5% 2연속) → M-011 implementation (meta_watch.py 정본 + 러너 통합 + check_meta_watch 8 cases, 검사 274→275) → M-012 release (v1.7.0 tag+GH asset 4종+fresh venv 스모크 + CLAUDE.md 커밋 전 단계 --changed 전환(R4.2) + 채널 3종 재적용 drift 0). **첫 discovery 가 기존 WATCHES 선언 8개 중 7개를 좁은 선언으로 판정** — 표면 추가 4 · 전역 전환 2(release 계열은 실측 1159·1185 경로 — memory 변경 시 skip 되던 실제 사각지대) · egg-info 인프라 제외 1. **② mcp 2.1.1 외부 드리프트 수리** (main-009): CI 부동 설치 2.1.1 이 fastmcp 모듈은 되살리고 FastMCP 심볼만 없애 mypy-strict 3연속 red (로컬 1.27 green) — importlib 동적 해석 교정 + sdk_matrix latest_2x 핀 2.1.1 (재현 자리), 로컬 매트릭스 3버전 green. **③ '자기 위치 오인' 결함족 사본 2건 신규 등록** (planned, M-007/WBS-7.2): main-003 archive-branch-memory 기본 memory-root · main-012 wk release-bump pyproject 해석 — 둘 다 uv tool 실행 실측, --memory-root/저장소 venv 로 우회. brave-valley-2538 브랜치 메모리 아카이브 (clear-field-f112 는 open task 로 도구가 정당 차단). **④ 사고 1건**: 발행 완료 커밋(a69d83bf)을 게이트 red 인 채 push — 게이트 확인과 push 를 한 명령에 묶은 절차 실수. red 실체는 post-step 스탬프를 검사 리터럴 2곳이 안 따라온 것, 4d7a78da 즉시 수리, HEAD CI 전부 green. 63차 상세는 아래 직전 기준선.",
+    "current_baseline": "**65차 세션 종료 (2026-08-28, macOS 호스트) — '자기 위치 오인' 결함족을 사본 추격에서 **구조적 마감**으로 전환 (task 3건 close: main-003·012·013, 전량 2축 게이트 green).** **① 결함족의 정본 신설**: `paths.resolve_workspace_root()` — cwd profile → git toplevel → cwd 순으로 대상 저장소를 해석하고 **근거(`path_source`)를 함께 돌려준다**. 이 결함족은 main-022·023·003·012 로 **네 번, 네 세션에 걸쳐** 사본 단위로 닫혀 왔다. **② 교정 7건** — 수동 grep 4건 + **정적 검사가 추가로 찾은 3건**: seed-workspace-memory(메모리에 쓴다 · state 생성기가 모듈 저장소 profile 을 빌려 소비자 state.json 에 kit 메타를 찍었다 · registry 절대경로) · migrate-memory-to-branch-scoped(`git mv` 의 cwd 포함) · claim-workspace · survey-remote-workspaces · consumer-metrics(**설치본에서 site-packages 에 history 를 쌓았다**) · detect-scope-drift(모듈 위치 + `\"main\"` 브랜치 하드코딩 + git show/log 기준 저장소) · migrate-active-to-appendonly. **대상만 옮기면 절반이다** — git 질의 저장소와 브랜치 해석까지 같이 옮겨야 한다(생존 판정의 근거가 git 이다). **③ 구조적 장치**: `check_self_location_resolution` 신설 8 cases — case 1~7 이 사본을 잡고, **case 8 이 `TOOL_MODULES` 전 진입점의 `add_argument` 기본값이 `__file__` 파생이면 red** 로 새 사본을 막는다. 검사 275→276. **④ main-012 는 소유자 결정으로 '명시적 거부'**: release 파이프라인은 kit 자기 릴리스 기계(5모듈 80여 곳이 `REPO_ROOT=__file__.parents[2]` 파생)라 설치본이 cwd 체크아웃 코드를 로드하면 62차 main-019 의 `foreign_path` 와 같은 모양이 된다 — 로드 **전에** 판정해 두 경로와 대체 명령을 찍고 exit 2. **⑤ 부수 발견**: `check_seed_workspace_memory` 의 green 이 모듈 저장소 profile 차용에 기대고 있었다 — fixture 를 현실적 workspace 로 교정하니 state.json 경로가 저장소 상대로 바뀌어 절대경로 전제 단언도 함께 고쳤다. **⑥ meta-watch 가 신규 검사의 좁은 선언을 게이트에서 잡았다** (선언 밖 접근 1건 `pyproject.toml`) — v1.7.0 에 넣은 메타 검증의 첫 실전 적발. 64차 상세는 아래 직전 기준선.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.",
     "current_focus": "TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정",
     "in_progress_items": [
@@ -35,11 +35,10 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "blocked_items": [],
-    "planned_items": [
-      "TASK-2026-08-28-main-003",
-      "TASK-2026-08-28-main-012"
-    ],
+    "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-28-main-013 — '자기 위치 오인' 결함족 전수 마감 — wk 진입점 기본값 4건 교정 + 새 사본을 막는 정적 검사",
+      "TASK-2026-08-28-main-012 — wk release-bump 가 자기 설치 디렉터리의 pyproject 를 찾는다 — uv tool 실행 시 FileNotFoundError",
       "TASK-2026-08-28-main-011 — M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용",
       "TASK-2026-08-28-main-010 — M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)",
       "TASK-2026-08-28-main-009 — mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)",
@@ -47,16 +46,14 @@
       "TASK-2026-08-28-main-007 — M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)",
       "TASK-2026-08-28-main-006 — M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준",
       "TASK-2026-08-28-main-005 — M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)",
-      "TASK-2026-08-28-main-004 — M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)",
-      "TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재",
-      "TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수"
+      "TASK-2026-08-28-main-004 — M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-28.md",
-    "task_count": 14,
+    "task_count": 15,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -64,6 +61,7 @@
       "TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재",
       "TASK-2026-08-25-main-022 — release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL",
       "TASK-2026-08-25-main-023 — suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패",
+      "TASK-2026-08-28-main-003 — archive-branch-memory 기본 memory-root 가 자기 설치 디렉터리 기준 — uv tool 실행 시 active dir 부재로 즉시 실패",
       "TASK-2026-08-28-main-004 — M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)",
       "TASK-2026-08-28-main-005 — M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)",
       "TASK-2026-08-28-main-006 — M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준",
@@ -71,7 +69,9 @@
       "TASK-2026-08-28-main-008 — M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건",
       "TASK-2026-08-28-main-009 — mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)",
       "TASK-2026-08-28-main-010 — M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)",
-      "TASK-2026-08-28-main-011 — M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용"
+      "TASK-2026-08-28-main-011 — M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용",
+      "TASK-2026-08-28-main-012 — wk release-bump 가 자기 설치 디렉터리의 pyproject 를 찾는다 — uv tool 실행 시 FileNotFoundError",
+      "TASK-2026-08-28-main-013 — '자기 위치 오인' 결함족 전수 마감 — wk 진입점 기본값 4건 교정 + 새 사본을 막는 정적 검사"
     ]
   },
   "next_documents": [

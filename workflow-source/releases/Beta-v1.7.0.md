@@ -26,7 +26,7 @@ meta-watch 는 게이트를 좁히는 수단이 아니라, 편집 루프의 선�
 ## 1. 릴리스 요약
 
 - 범위: `v1.6.0..HEAD` (17+ commit — feat 5 · fix 3 · chore 7 · docs 1 · release 2)
-- 누적 smoke **275/275 PASS** (전량 2축, meta 판정 포함 — 좁은 선언 0), mypy
+- 누적 smoke **276/276 PASS** (전량 2축, meta 판정 포함 — 좁은 선언 0), mypy
   strict 0 errors, SDK 매트릭스 3버전(1.27/1.29/**2.1.1**) green
 - 검사 신설: `check_meta_watch` 8 cases (총 274→275)
 - SDLC 이력: ADR-028 accepted · core 스펙 신설

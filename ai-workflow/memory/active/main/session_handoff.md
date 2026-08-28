@@ -4,16 +4,16 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-28 (64차 세션 **종료** — TDAD 계층별 회귀 실행 계약 축 M-008~M-012 하루 완주 + v1.7.0 발행 + mcp 2.1.1 수리 / 63차 — M-007 상설 선언 + '자기 위치 오인' 3건 소탕 / 62차 — Windows 결함 축 + v1.6.0 발행 / 61차 — safe_relpath POSIX + Windows 결함 3건 등록)
+- 최종 수정일: 2026-08-28 (65차 세션 **종료** — '자기 위치 오인' 결함족 전수 마감(사본 7건 + 정적 검사) / 64차 — TDAD 축 M-008~M-012 완주 + v1.7.0 발행 / 63차 — M-007 상설 선언 + 결함족 3건 소탕 / 62차 — Windows 결함 축 + v1.6.0 발행)
 - 관련 문서: [state.json](./state.json), [backlog](./backlog/), [sessions](./sessions/)
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **64차 세션 종료 (2026-08-28, macOS 호스트) — TDAD 계층별 회귀 실행 계약 축 M-008~M-012 를 concept→release 하루 완주 + v1.7.0 발행 (task 8건 close: main-004~011, push 8회, 매 push 게이트 green — 단 1회 사고).** **① SDLC 완주**: 소유자 제기("회귀는 수정 영향 부분만 점진적으로")가 M-008 concept (게이트 축소는 구조적 불성립 — C안 결정) → M-009 requirements (R0~R6 sign-off, 1차 이득은 시간이 아니라 **선택 정확성** — memory-only 변경에서 --changed 절감 ~8% 실측) → M-010 design (ADR-028: 채취=audit hook 오버헤드 <1% 실측 · 판정=러너 내장 전수 · WATCHES_ALL_REASON · 강등 기준 게이트 +5% 2연속) → M-011 implementation (meta_watch.py 정본 + 러너 통합 + check_meta_watch 8 cases, 검사 274→275) → M-012 release (v1.7.0 tag+GH asset 4종+fresh venv 스모크 + CLAUDE.md 커밋 전 단계 --changed 전환(R4.2) + 채널 3종 재적용 drift 0). **첫 discovery 가 기존 WATCHES 선언 8개 중 7개를 좁은 선언으로 판정** — 표면 추가 4 · 전역 전환 2(release 계열은 실측 1159·1185 경로 — memory 변경 시 skip 되던 실제 사각지대) · egg-info 인프라 제외 1. **② mcp 2.1.1 외부 드리프트 수리** (main-009): CI 부동 설치 2.1.1 이 fastmcp 모듈은 되살리고 FastMCP 심볼만 없애 mypy-strict 3연속 red (로컬 1.27 green) — importlib 동적 해석 교정 + sdk_matrix latest_2x 핀 2.1.1 (재현 자리), 로컬 매트릭스 3버전 green. **③ '자기 위치 오인' 결함족 사본 2건 신규 등록** (planned, M-007/WBS-7.2): main-003 archive-branch-memory 기본 memory-root · main-012 wk release-bump pyproject 해석 — 둘 다 uv tool 실행 실측, --memory-root/저장소 venv 로 우회. brave-valley-2538 브랜치 메모리 아카이브 (clear-field-f112 는 open task 로 도구가 정당 차단). **④ 사고 1건**: 발행 완료 커밋(a69d83bf)을 게이트 red 인 채 push — 게이트 확인과 push 를 한 명령에 묶은 절차 실수. red 실체는 post-step 스탬프를 검사 리터럴 2곳이 안 따라온 것, 4d7a78da 즉시 수리, HEAD CI 전부 green. 63차 상세는 아래 직전 기준선.
-- 직전 기준선: **63차 세션 종료 (2026-08-28, macOS 호스트) — M-007 운영 축 상설 마일스톤 선언 + '자기 위치 오인' 결함족 3건 소탕 (task 4건 close: main-022·023 + 28일 main-001·002, 전량 2축 게이트 green, push 1회).** **① M-007 선언** (소유자 결정 = A안): exempt 비율 관찰 트리거 성립 — 60차 첫 실측 1/15(7%) 이 로드맵 close 후 **등록 task 전건 exempt** 로 상승, [stabilization] 상설 마일스톤 신설 (done 을 목표로 하지 않음, deliverables 없음). leaf 4개는 개별 결함이 아니라 **반복 범주**: 7.1 플랫폼·크로스호스트 / 7.2 탐침·도구 / 7.3 관찰·지표 / 7.4 릴리스·채널. 열린 exempt 전건 재링크(017→7.1 · 022·023→7.2 · 004→7.3) 로 **열린 exempt 0**, done exempt 7건은 이력 유지. 이후 새 기능 축(M-008+)은 **자기 파일에 `parallel_allowed: [M-007]` 선언**하고 연다 (게이트 판정 대칭 — evaluate_wbs_gate 실측). **② main-022 close** (release-status `local_mypy`): 판정을 순수 함수 `_local_mypy_verdict` 로 추출 — `python -m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라 exit 1 + "No module named mypy" 라 기존 가드가 도달 불가였고 error_count 0 FAIL 로 뭉개졌다. 부재는 `verdict=mypy_unavailable` + **잰 인터프리터 명시** (ok=False 유지 — 모름 ≠ 안전), summary 는 `local_mypy=unavailable`. release_pipeline 은 v1.1.4 에 이미 라벨링 — **남아 있던 결함 사본**이었다. 오탐 냈던 uv tool 인터프리터로 실환경 확증. **③ main-023 close** (suggest-memory-entries): 기본 경로를 모듈 위치 파생(`parents[3]` — uv tool 에선 `<venv>/lib/...`)에서 **cwd 의 `discover_project_profile_path()` + 브랜치 인식 `workflow_branch_dir`** 로 교정 (`"main"` 하드코딩도 함께 수리), 폴백은 `path_source` 로 선언. fixture 교훈 2건: 커밋 0 저장소는 rev-parse 실패로 브랜치 폴백 · CI 브랜치 env 는 fixture 에서 끊는다. **④ main-002 등록·당일 close** (M-007 재링크를 손편집으로 우회하다 발견): update 병합이 `--wbs` 를 조용히 버렸다 — `_set_frontmatter_wbs` upsert(exempt 해제 시 낡은 사유 제거) + **update 재링크도 같은 게이트**를 탄다 (dangling/done 역행 거부, 미지정은 보존). 자기 적용으로 close (이 close 자체가 새 경로). 셋 다 되주입 red 실증, 검사 case 3파일 +3 (release_status 2→3 tests · memory_entry_suggestions 8→9 · roadmap_gates 5→6), 검사 총수 274 불변. 잔여: main-017 Windows 실측 · main-004 관찰. 62차 상세는 아래 직전 기준선.
+- 현재 기준선: **65차 세션 종료 (2026-08-28, macOS 호스트) — '자기 위치 오인' 결함족을 사본 추격에서 **구조적 마감**으로 전환 (task 3건 close: main-003·012·013, 전량 2축 게이트 green).** **① 결함족의 정본 신설**: `paths.resolve_workspace_root()` — cwd profile → git toplevel → cwd 순으로 대상 저장소를 해석하고 **근거(`path_source`)를 함께 돌려준다**. 이 결함족은 main-022·023·003·012 로 **네 번, 네 세션에 걸쳐** 사본 단위로 닫혀 왔다. **② 교정 7건** — 수동 grep 4건 + **정적 검사가 추가로 찾은 3건**: seed-workspace-memory(메모리에 쓴다 · state 생성기가 모듈 저장소 profile 을 빌려 소비자 state.json 에 kit 메타를 찍었다 · registry 절대경로) · migrate-memory-to-branch-scoped(`git mv` 의 cwd 포함) · claim-workspace · survey-remote-workspaces · consumer-metrics(**설치본에서 site-packages 에 history 를 쌓았다**) · detect-scope-drift(모듈 위치 + `"main"` 브랜치 하드코딩 + git show/log 기준 저장소) · migrate-active-to-appendonly. **대상만 옮기면 절반이다** — git 질의 저장소와 브랜치 해석까지 같이 옮겨야 한다(생존 판정의 근거가 git 이다). **③ 구조적 장치**: `check_self_location_resolution` 신설 8 cases — case 1~7 이 사본을 잡고, **case 8 이 `TOOL_MODULES` 전 진입점의 `add_argument` 기본값이 `__file__` 파생이면 red** 로 새 사본을 막는다. 검사 275→276. **④ main-012 는 소유자 결정으로 '명시적 거부'**: release 파이프라인은 kit 자기 릴리스 기계(5모듈 80여 곳이 `REPO_ROOT=__file__.parents[2]` 파생)라 설치본이 cwd 체크아웃 코드를 로드하면 62차 main-019 의 `foreign_path` 와 같은 모양이 된다 — 로드 **전에** 판정해 두 경로와 대체 명령을 찍고 exit 2. **⑤ 부수 발견**: `check_seed_workspace_memory` 의 green 이 모듈 저장소 profile 차용에 기대고 있었다 — fixture 를 현실적 workspace 로 교정하니 state.json 경로가 저장소 상대로 바뀌어 절대경로 전제 단언도 함께 고쳤다. **⑥ meta-watch 가 신규 검사의 좁은 선언을 게이트에서 잡았다** (선언 밖 접근 1건 `pyproject.toml`) — v1.7.0 에 넣은 메타 검증의 첫 실전 적발. 64차 상세는 아래 직전 기준선.
+- 직전 기준선: **64차 세션 종료 (2026-08-28, macOS 호스트) — TDAD 계층별 회귀 실행 계약 축 M-008~M-012 를 concept→release 하루 완주 + v1.7.0 발행 (task 8건 close: main-004~011, push 8회, 매 push 게이트 green — 단 1회 사고).** **① SDLC 완주**: 소유자 제기("회귀는 수정 영향 부분만 점진적으로")가 M-008 concept (게이트 축소는 구조적 불성립 — C안 결정) → M-009 requirements (R0~R6 sign-off, 1차 이득은 시간이 아니라 **선택 정확성** — memory-only 변경에서 --changed 절감 ~8% 실측) → M-010 design (ADR-028: 채취=audit hook 오버헤드 <1% 실측 · 판정=러너 내장 전수 · WATCHES_ALL_REASON · 강등 기준 게이트 +5% 2연속) → M-011 implementation (meta_watch.py 정본 + 러너 통합 + check_meta_watch 8 cases, 검사 274→275) → M-012 release (v1.7.0 tag+GH asset 4종+fresh venv 스모크 + CLAUDE.md 커밋 전 단계 --changed 전환(R4.2) + 채널 3종 재적용 drift 0). **첫 discovery 가 기존 WATCHES 선언 8개 중 7개를 좁은 선언으로 판정** — 표면 추가 4 · 전역 전환 2(release 계열은 실측 1159·1185 경로 — memory 변경 시 skip 되던 실제 사각지대) · egg-info 인프라 제외 1. **② mcp 2.1.1 외부 드리프트 수리** (main-009): CI 부동 설치 2.1.1 이 fastmcp 모듈은 되살리고 FastMCP 심볼만 없애 mypy-strict 3연속 red (로컬 1.27 green) — importlib 동적 해석 교정 + sdk_matrix latest_2x 핀 2.1.1 (재현 자리), 로컬 매트릭스 3버전 green. **③ '자기 위치 오인' 결함족 사본 2건 신규 등록** (planned, M-007/WBS-7.2): main-003 archive-branch-memory 기본 memory-root · main-012 wk release-bump pyproject 해석 — 둘 다 uv tool 실행 실측, --memory-root/저장소 venv 로 우회. brave-valley-2538 브랜치 메모리 아카이브 (clear-field-f112 는 open task 로 도구가 정당 차단). **④ 사고 1건**: 발행 완료 커밋(a69d83bf)을 게이트 red 인 채 push — 게이트 확인과 push 를 한 명령에 묶은 절차 실수. red 실체는 post-step 스탬프를 검사 리터럴 2곳이 안 따라온 것, 4d7a78da 즉시 수리, HEAD CI 전부 green. 63차 상세는 아래 직전 기준선.
+- 그 이전 기준선: **63차 세션 종료 (2026-08-28, macOS 호스트) — M-007 운영 축 상설 마일스톤 선언 + '자기 위치 오인' 결함족 3건 소탕 (task 4건 close: main-022·023 + 28일 main-001·002, 전량 2축 게이트 green, push 1회).** **① M-007 선언** (소유자 결정 = A안): exempt 비율 관찰 트리거 성립 — 60차 첫 실측 1/15(7%) 이 로드맵 close 후 **등록 task 전건 exempt** 로 상승, [stabilization] 상설 마일스톤 신설 (done 을 목표로 하지 않음, deliverables 없음). leaf 4개는 개별 결함이 아니라 **반복 범주**: 7.1 플랫폼·크로스호스트 / 7.2 탐침·도구 / 7.3 관찰·지표 / 7.4 릴리스·채널. 열린 exempt 전건 재링크(017→7.1 · 022·023→7.2 · 004→7.3) 로 **열린 exempt 0**, done exempt 7건은 이력 유지. 이후 새 기능 축(M-008+)은 **자기 파일에 `parallel_allowed: [M-007]` 선언**하고 연다 (게이트 판정 대칭 — evaluate_wbs_gate 실측). **② main-022 close** (release-status `local_mypy`): 판정을 순수 함수 `_local_mypy_verdict` 로 추출 — `python -m mypy` 는 모듈 부재 시 FileNotFoundError 가 아니라 exit 1 + "No module named mypy" 라 기존 가드가 도달 불가였고 error_count 0 FAIL 로 뭉개졌다. 부재는 `verdict=mypy_unavailable` + **잰 인터프리터 명시** (ok=False 유지 — 모름 ≠ 안전), summary 는 `local_mypy=unavailable`. release_pipeline 은 v1.1.4 에 이미 라벨링 — **남아 있던 결함 사본**이었다. 오탐 냈던 uv tool 인터프리터로 실환경 확증. **③ main-023 close** (suggest-memory-entries): 기본 경로를 모듈 위치 파생(`parents[3]` — uv tool 에선 `<venv>/lib/...`)에서 **cwd 의 `discover_project_profile_path()` + 브랜치 인식 `workflow_branch_dir`** 로 교정 (`"main"` 하드코딩도 함께 수리), 폴백은 `path_source` 로 선언. fixture 교훈 2건: 커밋 0 저장소는 rev-parse 실패로 브랜치 폴백 · CI 브랜치 env 는 fixture 에서 끊는다. **④ main-002 등록·당일 close** (M-007 재링크를 손편집으로 우회하다 발견): update 병합이 `--wbs` 를 조용히 버렸다 — `_set_frontmatter_wbs` upsert(exempt 해제 시 낡은 사유 제거) + **update 재링크도 같은 게이트**를 탄다 (dangling/done 역행 거부, 미지정은 보존). 자기 적용으로 close (이 close 자체가 새 경로). 셋 다 되주입 red 실증, 검사 case 3파일 +3 (release_status 2→3 tests · memory_entry_suggestions 8→9 · roadmap_gates 5→6), 검사 총수 274 불변. 잔여: main-017 Windows 실측 · main-004 관찰. 62차 상세는 아래 직전 기준선.
 - 그 이전 기준선: **62차 세션 종료 (2026-08-25, macOS 호스트) — Windows 플랫폼 결함 축 수리 + v1.6.0 발행 + 이 호스트 채널 정렬 (task 4건 close: main-018·019·020·021, push 6회, 전량 2축 274/274 ×5, CI 전 워크플로 green).** **① 61차가 등록한 결함 축을 닫았다**: ~~main-020~~(safe_relpath POSIX — CI green 으로 close) · ~~main-018~~(emit PYTHONPATH: SOURCE_ROOT 조건이 **잰 단위 오류** — bootstrap 자신의 출처가 아니라 *target 프로젝트의 레이아웃*(`workflow-source/` 실재)에서 판정하도록 교정, roundtrip unit + emit PYTHONPATH 실재 형식 게이트 신설) · ~~main-019~~(doctor `kit_resolution` 판정 신설 — foreign_path 는 잰 인터프리터·해석 출처·project root 세 경로 명시 finding, '잰 단위' 4번째 단위의 도구화) · main-017 은 **코드 수리 완료 + Windows 실측만 잔여** (62차 소유자 결정 = ① 플랫폼별 커맨드명: 정본 `common/python_launcher.py` 신설(win32→`python`), **체크인 산출물(플러그인 payload·예시)은 `platform="posix"` 고정** — 해시 안정, preflight 는 bootstrap 채널만 `launcher_adaptive`; ② `sys.executable` 은 공유 파일 절대 경로 금지 계약과 충돌로 기각). 되주입 red 실증 4건, `check_deploy_doctor` 25→27 cases. **② v1.6.0 발행** (main-021 close): 소유자 등급 결정 = **minor** (§1.5 — 커밋은 전부 fix 지만 새 공개 모듈 + doctor 신기능 + payload 키 추가; 도구 제안 1.5.1 기각). bump 파생물 전수 갱신(샘플 27·스키마 3·매니페스트 5·문서 스탬프)은 **전량 게이트가 2회에 걸쳐 남은 표면을 짚어** 완결(배포 사본·roadmap_state·`paths=None` 검사 fixture → RELEASE.md 회귀표 행·노트 누적 수치). tag + GH Release asset 4종, fresh venv 스모크(신규 표면 포함), 발행 전후 CI 전 워크플로 green. **이 호스트 채널 3종 재적용 drift 0**: claude-code plugin 1.5.0→1.6.0 · codex marketplace 교체(1.6.0 ZIP 전개→remove→add→plugin add) · `wk` uv tool 을 **발행 wheel URL 로** 재설치(자산 소비 경로 검증 겸) — 떠 있는 Claude 세션들은 재시작해야 1.6.0 로드. **③ main-004 close 기준 소유자 확정**: '33 run *연속* green' → **'격리 후 완료 run 33건에서 mypy 게이트 실패 0'** (비-mypy red 는 카운터 유지). 관찰 8차: red 5건 전부 비-mypy 판명(생성물 정합 2건은 실패 로그 실측), 표본 ~16/33 · mypy 실패 0. **④ 새 결함 등록** main-022 (planned): release-status `local_mypy` 가 **자기 uv tool venv** 를 재 mypy 부재를 FAIL(exit 1·error 0)로 오탐 — '잰 단위' 결함족 **5번째** (릴리스는 저장소 `.venv` 실행으로 우회, 실측 대조 완료). 61차 기준선 상세는 아래 직전 기준선.
-- 그 이전 기준선: **61차 세션 종료 (2026-08-25, Windows 호스트 Oh My Pi) — main-020 in_progress (CI 대기) + Windows 플랫폼 결함 3건 등록 (main-017·018·019 planned).** **① cross-host 플랫폼 형식 결함을 잡고 닫았다** (main-020): `safe_relpath` 이 `os.path.relpath` 결과를 그대로 내니 Windows 호스트의 state.json 경로 값이 백슬래시 표기가 되고 POSIX 소비자(cross-host federation) 에서 단일 파일명으로 해석된다 — 형식 게이트 부재로 조용히 통과. 수리: 두 분기 `as_posix()` + `check_state_json_generated` case_7(단위 2분기 + 산출물 형식 대조) + 되주입 red 실증. **② 이 세션이 결함을 실증했다** (사건 기록): 인터프리터 시작 *후* 에 `os.environ['PYTHONPATH']` 를 세팅한 절차는 무효 — 그 절차로 등록한 task 4건이 **다른 체크아웃의 workflow_kit**(semcowork, v1.1.8-beta) 산출물로 나갔다 (legacy 한국어 라벨 + 백슬래시 state.json + `planned_items` 키 누락). 원복(`git checkout` + 미추적 5건 제거) 후 이 저장소 툴로 재등록. **'탐침은 잰 단위가 맞아야 한다'의 네 번째 사례** — ④번째 단위는 **해결되는 패키지의 출처** (main-019 가 그 도감을 쓴다). **③ mypy flake 관찰 7차**: 격리(`19e40ac9`) 후 smoke run 8건 중 green 5 · red 3 — red 3건 전부 **deterministic** 이고 mypy 가 아니다 (b6afe828 = schema 샘플 드리프트, 9e7b2645·ff0ac3cc = v1.5.0 bump 후 버전 스탬프 잔재 — 원격이 규명 중, `9feabcd8` 파생물 정합 2차). mypy 게이트 실패는 0 (mypy-strict workflow 도 ff0ac3cc 에서 green). 60차 관찰 6차의 '실패 run 0' 은 red run 완료 직전 산출물이었다 — **관찰은 run *완료* 기준이어야 한다.** **④ CI 현황**: v1.5.0 발행 시점 mcp-sdk-matrix 3셀 red + smoke 3연속 red, 원격 세션이 수리 진행 중 (62차 이후 상태는 `gh run list` 로 확인).
-- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 77건, 최신이 위).
+- 그 이전 기준선은 [`baselines.md`](./baselines.md) 에 있다 (이관 78건, 최신이 위).
 
 - 현재 주 작업 축: **로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · [TASK-2026-08-13-main-004] mypy flake 관찰.
 - ~~소유자 결정 대기: state.json 생성물 여부~~ — ✅ **해소** (TASK-018, 2026-08-11): **생성물로 확정.** 정본 §11.2 에 선언, `wk refresh-state` 로 재생성, `check_state_json_generated` case 5 가 이 저장소의 정합을 상시 검사. 상세 요약·산문은 state.json 이 아니라 handoff §4 와 task 파일(SSOT)에 남긴다.
@@ -45,6 +45,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-28-main-013 '자기 위치 오인' 결함족 전수 마감 — wk 진입점 기본값 4건 교정 + 새 사본을 막는 정적 검사
+- TASK-2026-08-28-main-012 wk release-bump 가 자기 설치 디렉터리의 pyproject 를 찾는다 — uv tool 실행 시 FileNotFoundError
+- TASK-2026-08-28-main-003 archive-branch-memory 기본 memory-root 가 자기 설치 디렉터리 기준 — uv tool 실행 시 active dir 부재로 즉시 실패
 - TASK-2026-08-28-main-010 M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)
 - TASK-2026-08-28-main-011 M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용
 - TASK-2026-08-28-main-009 mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)
@@ -52,14 +55,11 @@
 - TASK-2026-08-28-main-007 M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)
 - TASK-2026-08-28-main-006 M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준
 - TASK-2026-08-28-main-005 M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)
-- TASK-2026-08-28-main-004 M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)
-- TASK-2026-08-28-main-002 backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재
-- TASK-2026-08-25-main-023 suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
-### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64차 검증)
+### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64·65차 검증)
 
 **로드맵 현황**: M-001~M-006 done + **M-007 운영 축 상설 [stabilization]
 in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC 완주:
@@ -123,20 +123,17 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
   완료 기준 2 하나** — Windows 호스트에서 bootstrap emit → 하네스 spawn 왕복
   실측 (이제 v1.6.0 설치본으로 잴 수 있다). 다음 Windows 세션(Oh My Pi)에서
   재고 close 한다.
-- `TASK-2026-08-28-main-003` — archive-branch-memory 기본 memory-root 가 자기
-  설치 디렉터리 기준 (planned, M-007/WBS-7.2). uv tool 실행 시 exit 2 즉시
-  실패 — 64차 브랜치 메모리 아카이브 중 실측, `--memory-root` 명시로 우회.
-  main-023 이 잡은 '자기 위치 오인' 결함족의 남은 사본. 교정 패턴은 main-023
-  의 `discover_project_profile_path` + `workflow_branch_dir`.
-
-- `TASK-2026-08-28-main-012` — wk release-bump 가 자기 설치 디렉터리의
-  pyproject 를 찾는다 (planned, M-007/WBS-7.2). 같은 결함족 — v1.7.0 발행 중
-  실측 (FileNotFoundError), 저장소 venv 의 release_pipeline 직접 실행으로
-  우회. **결함족 사본이 세션마다 하나씩 나온다** — 다음 수리 때 kit 전체에서
-  모듈 위치 파생 경로(`parents[N]`·`__file__` 기준)를 전수 조사할 것.
+> **'자기 위치 오인' 결함족은 65차에 닫혔다** (main-003·012·013). 위 줄이 예고했던
+> "다음 수리 때 전수 조사" 를 그대로 했고, **수동 grep 4건에 정적 검사가 3건을 더
+> 얹었다**. 정본은 `paths.resolve_workspace_root()`, 게이트는
+> `check_self_location_resolution` case 8 (`TOOL_MODULES` 전 진입점의
+> `add_argument` 기본값이 `__file__` 파생이면 red). **다음 사본은 세션이 아니라
+> 게이트가 잡는다** — 이 항목이 후보 목록에 다시 오를 일은 없어야 한다.
 
 ~~`TASK-2026-08-25-main-022` local_mypy 오탐~~ ✅ (63차 close) ·
 ~~`main-023` 경로 해석~~ ✅ (63차) · ~~`main-002` update 재링크~~ ✅ (63차) ·
+~~`main-003` archive memory-root~~ ✅ ~~`main-012` release-bump pyproject~~ ✅
+~~`main-013` 결함족 전수 마감~~ ✅ (전부 65차) ·
 ~~`main-004`(08-28) concept~~ ✅ ~~`main-005` requirements~~ ✅
 ~~`main-006`·`main-007` design~~ ✅ ~~`main-008` 구현~~ ✅ ~~`main-009` mcp
 2.1.1~~ ✅ ~~`main-010`·`main-011` release~~ ✅ (전부 64차 — 위 기준선).
@@ -193,6 +190,28 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
   해소됐다. 트리거는 동일하게 유지 — **같은 수치가 3회 이어지면 소유자에게
   다시 묻는다** (다음 선택지에는 잔여 후보 추가 승격과 threshold 재캘리브레이션이
   올라간다).
+
+### 65차가 남긴 규칙 (재발 방지)
+
+- **결함족은 사본이 아니라 판정으로 닫는다.** '자기 위치 오인' 은 네 세션에 걸쳐
+  사본 하나씩 닫혀 왔고, 그때마다 "다음에 전수 조사" 라고 적혔다. 65차에 실제로
+  전수를 하니 **수동 grep 4건 · 정적 검사 7건** 이었다 — 사람이 고른 패턴이 놓친
+  3건(`consumer-metrics` 는 설치본에서 site-packages 에 history 를 쌓고 있었다)을
+  AST 가 찾았다. 같은 모양이 3회 이상 반복되면 수리와 **함께 판정을 만든다.**
+- **경로를 옮길 때 대상만 옮기면 절반이다.** archive 는 "git 에 그 브랜치가 있나"
+  로 아카이브를 결정하고, migrate 는 `git mv` 를 돌리고, detect-scope-drift 는
+  `git show`/`git log` 를 쓴다. 대상 트리만 cwd 로 옮기고 **git 질의 저장소와
+  브랜치 해석**을 모듈 위치에 두면, 남의 브랜치 목록으로 이 workspace 를 판정한다.
+  판정의 근거가 되는 축을 전부 세고 같이 옮긴다.
+- **검사의 green 이 결함에 기대고 있을 수 있다.** `check_seed_workspace_memory` 는
+  fixture 에 profile 이 없어서, seed 가 **모듈 저장소의 profile 을 빌려** state.json
+  을 만들어 green 이었다 — 소비자 workspace 에 kit 의 프로젝트 메타를 찍는 결함
+  그 자체였다. 도구를 고쳤더니 검사가 red 가 되면, **먼저 fixture 가 무엇을 전제로
+  green 이었는지** 본다 (여기서는 fixture 가 비현실적이었던 쪽이 맞았다).
+- **설치본에서 돌 수 없는 명령은 조용히 실패하지 말고 거부한다.** release 파이프라인은
+  kit 자기 릴리스 기계다. 설치본에는 대상 트리가 없으므로 `FileNotFoundError` 대신
+  **설치본 위치 · cwd 체크아웃 · 대체 명령**을 찍고 exit 2 한다. cwd 체크아웃의
+  코드를 대신 로드하는 길은 62차 `foreign_path` 판정과 정면으로 부딪히므로 안 쓴다.
 
 ### 64차가 남긴 규칙 (재발 방지)
 

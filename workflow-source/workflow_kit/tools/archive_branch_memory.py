@@ -36,8 +36,11 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
-    get_current_branch,
+    branch_for_workspace,
+    discover_project_profile_path,
     memory_dir_for_workspace,
+    memory_root_dir,
+    resolve_workspace_root,
 )
 
 # active/ 직속에서 브랜치가 아닌 공유 항목 (아카이브 대상에서 제외)
@@ -366,10 +369,47 @@ def write_metadata(
     )
 
 
+def _resolve_defaults() -> tuple[Path, Path, str]:
+    """무인자 실행의 기준 경로를 **cwd 의 작업 저장소**에서 해석한다.
+
+    이전 기본값은 모듈 위치 파생(`REPO_ROOT`)뿐이라 uv tool 설치에서는
+    `<venv>/lib/python3.13/ai-workflow/memory/active` 를 가리키고 exit 2 로
+    즉시 죽었다 — '자기 설치 위치를 대상으로 오인' 결함족
+    (TASK-2026-08-28-main-003; main-023 의 suggest-memory-entries · main-022 의
+    local_mypy 와 같은 축). 다른 무인자 명령(session-start / refresh-state /
+    suggest-memory-entries)과 같은 `discover_project_profile_path()` 로 cwd 에서
+    workspace 를 찾는다.
+
+    **memory root 만 옮기면 절반이다.** 이 도구는 git 에게 "이 브랜치가 아직
+    사는가" 를 묻고 그 답으로 이동을 결정하므로, 묻는 저장소도 같이 옮겨야
+    한다. 모듈 위치의 저장소에 물으면 남의 브랜치 목록으로 이 workspace 의
+    메모리를 아카이브한다 (`branch_for_workspace` docstring 의 '접두는 인자에서,
+    branch 는 딴 데서' 와 같은 어긋남).
+
+    cwd 에서 못 찾으면 모듈 위치로 폴백하되, 무엇을 근거로 골랐는지
+    세 번째 값(`path_source`)으로 돌려준다 — 폴백은 조용히 하지 않는다.
+
+    Returns:
+        (workspace_root, memory_root, path_source) —
+        path_source ∈ {"cwd_project_profile", "module_location_fallback"}
+    """
+    profile = discover_project_profile_path()
+    if profile is not None:
+        return memory_root_dir(profile).parent, memory_root_dir(profile), "cwd_project_profile"
+    workspace, source = resolve_workspace_root()
+    return workspace, memory_dir_for_workspace(workspace), source
+
+
+def is_git_repo(path: Path) -> bool:
+    """``path`` 가 git 워킹 트리 안인가."""
+    return _git(["rev-parse", "--git-dir"], repo_root=path).returncode == 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--memory-root", default=str(memory_dir_for_workspace(REPO_ROOT)))
+    p.add_argument("--memory-root", default=None,
+                   help="memory root (default: cwd 의 작업 저장소에서 해석)")
     p.add_argument("--branch", action="append", dest="branches", default=[],
                    help="강제로 아카이브할 브랜치 (git 존재 여부 무시)")
     p.add_argument("--keep", action="append", default=["main"],
@@ -383,14 +423,30 @@ def main() -> int:
     if args.dry_run:
         args.apply = False
 
-    memory_root = Path(args.memory_root).resolve()
+    workspace_root, default_memory_root, path_source = _resolve_defaults()
+    if args.memory_root is not None:
+        memory_root = Path(args.memory_root).resolve()
+        path_source = "explicit"
+    else:
+        memory_root = default_memory_root.resolve()
     active_dir = memory_root / "active"
     archived_dir = memory_root / "archived"
     if not active_dir.is_dir():
-        print(f"[error] active dir 부재: {active_dir}", file=sys.stderr)
+        print(f"[error] active dir 부재: {active_dir} (경로 근거: {path_source}) — "
+              "작업 저장소 안에서 실행하거나 --memory-root 로 명시한다.",
+              file=sys.stderr)
+        return 2
+    # 판정의 근거가 git 이다 — "active/<slug>/ 가 있는데 git 에 그 브랜치가
+    # 없으면 종료된 브랜치". git 이 없는 트리에서는 그 물음의 답이 전부 "없음"
+    # 이라 **살아 있는 브랜치 메모리까지 종료로 읽힌다.** 근거가 성립하지 않는
+    # 자리에서는 판정하지 않는다.
+    if not is_git_repo(workspace_root):
+        print(f"[error] git 저장소가 아니다: {workspace_root} (경로 근거: {path_source}) — "
+              "브랜치 생존 판정의 근거가 없다. 작업 저장소 안에서 실행한다.",
+              file=sys.stderr)
         return 2
 
-    current = get_current_branch()
+    current = branch_for_workspace(workspace_root)
     keep = set(args.keep) | {current}
     forced = set(args.branches)
 
@@ -400,7 +456,7 @@ def main() -> int:
             reason = "keep (현재 브랜치이거나 보존 대상)"
             candidates.append({"branch": name, "action": "skip", "reason": reason})
             continue
-        if name not in forced and branch_exists(name, repo_root=REPO_ROOT):
+        if name not in forced and branch_exists(name, repo_root=workspace_root):
             candidates.append({"branch": name, "action": "skip", "reason": "git 에 브랜치가 살아 있음"})
             continue
         open_list = open_tasks(path)
@@ -429,6 +485,9 @@ def main() -> int:
     result = {
         "mode": "apply" if args.apply else "dry-run",
         "current_branch": current,
+        "workspace_root": str(workspace_root),
+        "memory_root": str(memory_root),
+        "path_source": path_source,
         "candidates": candidates,
         "archived": 0,
         "blocked": sum(1 for c in candidates if c["action"] == "blocked"),
@@ -444,17 +503,17 @@ def main() -> int:
             if dst.exists():
                 result["errors"].append(f"{c['branch']}: 대상이 이미 존재 ({dst})")
                 continue
-            err = _move(src, dst, repo_root=REPO_ROOT)
+            err = _move(src, dst, repo_root=workspace_root)
             if err:
                 result["errors"].append(err)
                 continue
             open_list = [(o["id"], o["status"]) for o in c.get("open_tasks", [])]
-            write_metadata(dst, c["branch"], repo_root=REPO_ROOT,
+            write_metadata(dst, c["branch"], repo_root=workspace_root,
                            open_task_list=open_list)
             # 이동 **직후** 참조를 옮긴다. 이 한 걸음이 빠져 있어서 아카이브가
             # 이력을 끊어 왔다 (모듈 docstring 의 실측).
             result["rewritten_references"].extend(rewrite_moved_references(
-                branch=c["branch"], memory_root=memory_root, repo_root=REPO_ROOT,
+                branch=c["branch"], memory_root=memory_root, repo_root=workspace_root,
             ))
             result["archived"] += 1
 
@@ -462,6 +521,7 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print(f"=== branch memory 아카이브 ({result['mode']}) — 현재 브랜치: {current} ===")
+        print(f"  memory root: {memory_root} (경로 근거: {path_source})")
         for c in candidates:
             mark = "ARCHIVE" if c["action"] == "archive" else "skip   "
             print(f"  {mark}  {c['branch']:<28} {c['reason']}")

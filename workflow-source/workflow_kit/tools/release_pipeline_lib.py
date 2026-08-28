@@ -24,6 +24,7 @@ Cross-ref: memory rule 12 (cleanup 정공법 — inline vs dispatcher), release_
 from __future__ import annotations
 
 import importlib.util
+import shlex
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -31,6 +32,67 @@ from types import ModuleType
 
 _TOOLS_DIR = Path(__file__).resolve().parent
 _RELEASE_PIPELINE_PATH = _TOOLS_DIR / "release_pipeline.py"
+#: `release_pipeline` 의 `REPO_ROOT` 와 같은 값 — 체크아웃이면 `workflow-source/`,
+#: wheel / uv tool 설치본이면 `site-packages/`.
+_INSTALLED_ROOT = _TOOLS_DIR.parents[1]
+
+
+class SourceCheckoutRequired(RuntimeError):
+    """release 파이프라인이 자기 소스 체크아웃 밖에서 호출됐다.
+
+    메시지는 그대로 사용자에게 보여줄 문안이다 (dispatcher 가 예외 이름 접두 없이 찍는다).
+    """
+
+
+def _discover_kit_checkout(start: Path | None = None) -> Path | None:
+    """cwd(또는 ``start``)에서 위로 거슬러 **kit 소스 체크아웃**을 찾는다.
+
+    체크아웃의 표식은 `pyproject.toml` + `workflow_kit/` 이 한 디렉터리에 있는 것
+    (= `workflow-source/`). 저장소 루트에서 실행하는 것이 보통이므로 `workflow-source/`
+    하위 배치도 같이 본다. 찾은 값은 **안내 문안에만** 쓴다 — 거기 있는 코드를
+    로드하지는 않는다 (아래 :func:`_require_source_checkout` 참조).
+    """
+    base = (start or Path.cwd()).resolve()
+    for candidate in (base, *base.parents):
+        for root in (candidate, candidate / "workflow-source"):
+            if (root / "pyproject.toml").is_file() and (root / "workflow_kit").is_dir():
+                return root
+    return None
+
+
+def _require_source_checkout() -> None:
+    """설치본에서의 호출을 **명시적으로** 거부한다 (TASK-2026-08-28-main-012).
+
+    `release_pipeline` 계열은 kit *자기* 릴리스 기계다 — 5개 모듈 80여 곳이
+    `REPO_ROOT = __file__.parents[2]` 에서 pyproject / releases / dist / git cwd 를
+    조립한다. wheel · uv tool 설치본에서는 그 자리가 `site-packages/` 라 대상 트리가
+    아예 없고, 예전에는 그 사실이 `FileNotFoundError: <venv>/…/site-packages/pyproject.toml`
+    이라는 **엉뚱한 곳을 가리키는 traceback** 으로만 드러났다 (2026-08-28 실측).
+
+    cwd 에서 체크아웃을 찾아 안내에 싣되, **그 체크아웃의 코드를 로드하지는 않는다.**
+    설치본이 cwd 의 다른 사본을 실행하는 상태는 이 저장소가 이미 결함으로 판정한
+    모양이다 (`deploy_doctor._kit_resolution_verdict` 의 `foreign_path`,
+    TASK-2026-08-25-main-019 — 남의 체크아웃 코드가 조용히 돌아 산출물을 오염시켰다).
+    그래서 여기서는 **두 경로를 명시해 사람에게 돌려준다.**
+    """
+    if (_INSTALLED_ROOT / "pyproject.toml").is_file():
+        return
+    checkout = _discover_kit_checkout()
+    lines = [
+        "release 파이프라인은 kit 소스 체크아웃에서만 동작한다 (설치본에는 대상 트리가 없다).",
+        f"  설치본 위치: {_INSTALLED_ROOT} (pyproject.toml 없음)",
+    ]
+    if checkout is None:
+        lines.append("  cwd 에서 찾은 체크아웃: 없음 — kit 체크아웃 안에서 다시 실행한다.")
+    else:
+        argv = sys.argv[1:] or ["<command>"]
+        lines.append(f"  cwd 에서 찾은 체크아웃: {checkout}")
+        lines.append(
+            f"  실행: cd {shlex.quote(str(checkout.parent))} && "
+            f"PYTHONPATH={checkout.name} .venv/bin/python3 -m "
+            f"workflow_kit.workflow_kit_cli {shlex.join(argv)}"
+        )
+    raise SourceCheckoutRequired("\n".join(lines))
 
 
 def _load_release_pipeline() -> ModuleType:
@@ -39,7 +101,11 @@ def _load_release_pipeline() -> ModuleType:
     Uses importlib.util.spec_from_file_location to bypass sys.path / package
     boundary. The module is cached in sys.modules under a stable name so
     subsequent imports return the same instance (avoids REPO_ROOT drift).
+
+    설치본에서의 호출은 로드 전에 :func:`_require_source_checkout` 이 거부한다 —
+    module-level 상수가 *load time* 에 계산되므로, 판정도 그 앞이어야 한다.
     """
+    _require_source_checkout()
     if "tools_release_pipeline" in sys.modules:
         return sys.modules["tools_release_pipeline"]
     spec = importlib.util.spec_from_file_location(

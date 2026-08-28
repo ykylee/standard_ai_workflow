@@ -37,8 +37,9 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
-    get_current_branch,
+    branch_for_workspace,
     memory_active_dir,
+    resolve_workspace_root,
 )
 
 # 브랜치별로 옮길 항목 (작업 상태)
@@ -104,17 +105,28 @@ def rewrite_state_paths(state_path: Path, branch: str) -> bool:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--active-dir", default=memory_active_dir(str(REPO_ROOT)))
+    p.add_argument("--active-dir", default=None,
+                   help="active dir (default: cwd 에서 해석)")
     p.add_argument("--branch", default=None, help="대상 브랜치 slug (default: 현재 브랜치)")
     p.add_argument("--apply", action="store_true", help="실제 이동 (default: dry-run)")
     p.add_argument("--dry-run", action="store_true", dest="dry_run")
     p.add_argument("--json", action="store_true")
     args = p.parse_args()
 
-    active_dir = Path(args.active_dir).resolve()
-    branch = args.branch or get_current_branch()
+    # 무인자 기본값은 **cwd 의 작업 저장소**에서 해석한다 (TASK-2026-08-28-main-013).
+    # `git mv` 의 cwd 도 같이 옮겨야 한다 — 대상은 여기, git 은 모듈 저장소면
+    # 경로가 서로 다른 트리를 가리킨다.
+    workspace_root, path_source = resolve_workspace_root()
+    if args.active_dir is not None:
+        active_dir = Path(args.active_dir).resolve()
+        path_source = "explicit"
+    else:
+        active_dir = memory_active_dir(workspace_root).resolve()
+    branch = args.branch or branch_for_workspace(workspace_root)
     if not active_dir.is_dir():
-        print(f"[error] active dir 부재: {active_dir}", file=sys.stderr)
+        print(f"[error] active dir 부재: {active_dir} (경로 근거: {path_source}) — "
+              "작업 저장소 안에서 실행하거나 --active-dir 로 명시한다.",
+              file=sys.stderr)
         return 2
 
     moves = plan_moves(active_dir, branch)
@@ -122,6 +134,8 @@ def main() -> int:
         "mode": "apply" if args.apply and not args.dry_run else "dry-run",
         "branch": branch,
         "active_dir": str(active_dir),
+        "workspace_root": str(workspace_root),
+        "path_source": path_source,
         "moves": [{"from": str(s), "to": str(d)} for s, d in moves],
         "kept": sorted(n for n in KEEP if (active_dir / n).exists()),
         "moved": 0, "errors": [],
@@ -129,7 +143,7 @@ def main() -> int:
 
     if result["mode"] == "apply":
         for src, dst in moves:
-            ok, err = _git_mv(src, dst, repo_root=REPO_ROOT)
+            ok, err = _git_mv(src, dst, repo_root=workspace_root)
             if not ok:  # git 추적 밖이면 일반 이동으로 폴백
                 try:
                     dst.parent.mkdir(parents=True, exist_ok=True)

@@ -37,6 +37,17 @@ __all__ = [
 ]
 
 
+def _is_source_checkout_required(exc: BaseException) -> bool:
+    """설치본 거부 예외인가 (`release_pipeline_lib.SourceCheckoutRequired`).
+
+    `isinstance` 를 못 쓴다 — 본 모듈은 release_pipeline_lib 을 `importlib` 로
+    **파일 경로에서** 로드하므로, 같은 소스라도 `import` 로 얻은 클래스와 다른
+    객체가 된다 (module instance 가 둘). 이름으로 대조하는 것이 이 로딩 방식에서
+    유일하게 성립하는 판정이다.
+    """
+    return type(exc).__name__ == "SourceCheckoutRequired"
+
+
 @register("release-doctor")
 def cmd_release_doctor(argv: list[str]) -> int:
     """Release pre-flight: 4-source release-readiness check (in-process, v0.7.55+).
@@ -93,6 +104,9 @@ def cmd_release_doctor(argv: list[str]) -> int:
         )
         return 1 if any_fail else 0
     except Exception as e:
+        if _is_source_checkout_required(e):
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
 
@@ -148,6 +162,13 @@ def _wrap_release_pipeline(argv: list[str], wrapper_name: str, **kwargs: Any) ->
             return 2
         return 0
     except Exception as e:
+        # 설치본에서의 호출은 결함이 아니라 **전제 불성립**이다 (main-012). 메시지가
+        # 두 경로와 대체 명령을 이미 담고 있으므로 예외 이름 접두 없이 그대로 찍는다 —
+        # `ERROR: FileNotFoundError: <venv>/…/pyproject.toml` 는 처방을 엉뚱한
+        # 곳으로 보냈다.
+        if _is_source_checkout_required(e):
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
         print(f"ERROR: {type(e).__name__}: {e}", file=sys.stderr)
         return 2
 

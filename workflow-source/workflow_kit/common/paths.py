@@ -38,6 +38,51 @@ def discover_project_profile_path(start: Path | None = None) -> Path | None:
     return None
 
 
+def git_toplevel(start: Path | None = None) -> Path | None:
+    """``start``(기본 cwd)가 속한 git 워킹 트리의 루트. git 밖이면 ``None``."""
+    base = (start or Path.cwd()).resolve()
+    proc = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=str(base), capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        return None
+    out = proc.stdout.strip()
+    return Path(out).resolve() if out else None
+
+
+def resolve_workspace_root(start: Path | None = None) -> tuple[Path, str]:
+    """무인자 CLI 의 **대상 저장소**를 cwd 에서 해석한다 — ``(root, 근거)``.
+
+    이 저장소에서 같은 결함이 여섯 번 났다: 도구가 대상을 cwd 가 아니라
+    ``Path(__file__)`` 파생 경로에서 잡았다 (TASK-2026-08-25-main-022 · main-023,
+    TASK-2026-08-28-main-003 · main-012 · main-013). 소스 체크아웃에서는 두 값이
+    우연히 같아 안 보이고, `uv tool` / wheel 설치본에서만 드러난다 —
+    ``<venv>/lib/python3.13/ai-workflow/…`` 를 대상으로 삼는다.
+
+    사본을 하나씩 쫓는 대신 **해석을 한 자리로 모은다.** 진입점은 여기를 부르고,
+    `check_self_location_resolution` 의 정적 case 가 모듈 위치 파생 기본값을 red 로
+    잡는다.
+
+    순서:
+    1. ``cwd_project_profile`` — cwd 에서 위로 `PROJECT_PROFILE.md` (workspace 의 정의)
+    2. ``cwd_git_toplevel`` — profile 이 없으면 git 워킹 트리 루트
+    3. ``cwd`` — 둘 다 없으면 cwd 자신 (조용한 모듈 위치 폴백은 하지 않는다)
+
+    Returns:
+        (workspace_root, path_source) — 근거를 **호출자가 결과에 실어** 사람이
+        무엇을 대상으로 골랐는지 볼 수 있게 한다 (폴백은 조용히 하지 않는다).
+    """
+    base = (start or Path.cwd()).resolve()
+    profile = discover_project_profile_path(base)
+    if profile is not None:
+        return project_workspace_root(profile), "cwd_project_profile"
+    top = git_toplevel(base)
+    if top is not None:
+        return top, "cwd_git_toplevel"
+    return base, "cwd"
+
+
 def resolve_existing_path(raw: str) -> Path:
     """Resolve a path and fail early when the target does not exist."""
     path = Path(raw).expanduser().resolve()

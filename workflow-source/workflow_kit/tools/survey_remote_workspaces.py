@@ -49,7 +49,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import branch_slug_for  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    branch_slug_for,
+    resolve_workspace_root,
+)
 
 DEFAULT_STALE_HOURS = 24
 # 워크스페이스 브랜치가 아닌 것 (통합 브랜치 / 심볼릭 ref)
@@ -208,7 +211,8 @@ def _render(result: dict) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--repo-root", default=str(REPO_ROOT))
+    p.add_argument("--repo-root", default=None,
+                   help="대상 저장소 (default: cwd 에서 해석)")
     p.add_argument("--remote", default="origin")
     p.add_argument("--stale-hours", type=int, default=DEFAULT_STALE_HOURS,
                    help=f"이 시간을 넘게 활동이 없으면 사용자 확인 대상 (default: {DEFAULT_STALE_HOURS})")
@@ -217,10 +221,20 @@ def main() -> int:
     p.add_argument("--json", action="store_true")
     args = p.parse_args()
 
+    # 무인자 기본값은 **cwd 의 작업 저장소**에서 해석한다 — 모듈 위치가 아니라
+    # (TASK-2026-08-28-main-013, `resolve_workspace_root` docstring 의 결함족).
+    repo_root, path_source = (
+        (Path(args.repo_root).resolve(), "explicit") if args.repo_root
+        else resolve_workspace_root()
+    )
+
     result = survey(
-        repo_root=Path(args.repo_root).resolve(), remote=args.remote,
+        repo_root=repo_root, remote=args.remote,
         stale_hours=args.stale_hours, do_fetch=not args.no_fetch,
     )
+    # 무엇을 대상으로 골랐는지 결과에 남긴다 — 폴백은 조용히 하지 않는다.
+    result["repo_root"] = str(repo_root)
+    result["path_source"] = path_source
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:

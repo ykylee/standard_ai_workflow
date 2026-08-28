@@ -21,10 +21,12 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from workflow_kit.common.paths import memory_active_dir
+from workflow_kit.common.paths import memory_active_dir, resolve_workspace_root
 from workflow_kit.common.project_docs import TASK_PROVENANCE_MIGRATED_LEGACY
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+#: 무인자 기본값은 cwd 에서 해석한다 (TASK-2026-08-28-main-013) — 이 상수는
+#: 남은 호출자(테스트/문서)를 위한 모듈 저장소 기준 값이다.
 ACTIVE_DIR = memory_active_dir(REPO_ROOT)
 LEGACY_FILE = ACTIVE_DIR / "work_backlog.md"
 BACKLOG_DIR = ACTIVE_DIR / "backlog"
@@ -337,12 +339,17 @@ def main() -> int:
     parser.add_argument(
         "--active-dir",
         type=Path,
-        default=ACTIVE_DIR,
-        help="active/ 루트 경로 (default: <repo>/ai-workflow/memory/active)",
+        default=None,
+        help="active/ 루트 경로 (default: cwd 저장소의 ai-workflow/memory/active)",
     )
     args = parser.parse_args()
 
-    active_dir: Path = args.active_dir
+    # 무인자 기본값은 cwd 의 작업 저장소에서 (TASK-2026-08-28-main-013).
+    if args.active_dir is not None:
+        active_dir: Path = Path(args.active_dir)
+    else:
+        workspace_root, _ = resolve_workspace_root()
+        active_dir = memory_active_dir(workspace_root)
     legacy_file = active_dir / "work_backlog.md"
     backlog_dir = active_dir / "backlog"
     tasks_dir = backlog_dir / "tasks"

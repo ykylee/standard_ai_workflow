@@ -59,9 +59,10 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit.common.workflow_state import refresh_workflow_state_cache  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
+    branch_for_workspace,
     discover_project_profile_path,
-    get_current_branch,
     memory_dir_for_workspace,
+    resolve_workspace_root,
     state_path_in_active,
 )
 from workflow_kit.common.project_docs import task_label  # noqa: E402
@@ -302,7 +303,8 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     # 이 코드의 첫 슬래시 브랜치 사용에서 바로 나왔다). 슬래시 없는 브랜치에서만
     # 우연히 맞던 조립이다.
     state_path = state_path_in_active(active_dir, branch)
-    err = _generate_state(state_path=state_path, branch_dir=branch_dir)
+    err = _generate_state(state_path=state_path, branch_dir=branch_dir,
+                          workspace_root=memory_root.parent.parent)
     if err:
         result["errors"].append(f"state.json 생성 실패: {err}")
     else:
@@ -310,7 +312,8 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     return result
 
 
-def _generate_state(*, state_path: Path, branch_dir: Path) -> str | None:
+def _generate_state(*, state_path: Path, branch_dir: Path,
+                    workspace_root: Path) -> str | None:
     """`generate_workflow_state.py` 로 state.json 을 만든다. 오류 메시지 반환.
 
     출력 경로는 **호출자가 정본 helper(`state_path_in_active`)로 조립해** 넘긴다.
@@ -321,9 +324,12 @@ def _generate_state(*, state_path: Path, branch_dir: Path) -> str | None:
     # 를 subprocess 로 띄웠는데, `scripts/` 는 wheel 에 안 들어가서 소비자 설치본에서는
     # 항상 "생성기 부재" 로 끝났다 (2026-08-18 실측). 그 스크립트 자체가
     # `refresh_workflow_state_cache` 한 줄 wrapper 라 부를 이유도 없다.
-    profile = discover_project_profile_path(REPO_ROOT)
+    # 대상 workspace 의 profile 이다 — 모듈 저장소의 것이 아니라
+    # (TASK-2026-08-28-main-013).
+    profile = discover_project_profile_path(workspace_root)
     if profile is None:
-        return "PROJECT_PROFILE.md 를 찾지 못했다"
+        return (f"PROJECT_PROFILE.md 를 찾지 못했다 (탐색 기준: {workspace_root}) — "
+                "대상 workspace 에 profile 이 있어야 state.json 을 만들 수 있다")
     try:
         refresh_workflow_state_cache(
             project_profile_path=profile.resolve(),
@@ -342,7 +348,8 @@ def _generate_state(*, state_path: Path, branch_dir: Path) -> str | None:
 def main() -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--memory-root", default=str(memory_dir_for_workspace(REPO_ROOT)))
+    p.add_argument("--memory-root", default=None,
+                   help="memory root (default: cwd 에서 해석)")
     p.add_argument("--branch", default=None,
                    help="대상 브랜치 (default: 현재 브랜치)")
     p.add_argument("--axis", required=True, help="주 작업 축 — 한 줄. 이게 곧 업무 지시다.")
@@ -383,14 +390,25 @@ def main() -> int:
     if args.dry_run:
         args.apply = False
 
-    branch = args.branch or get_current_branch()
-    memory_root = Path(args.memory_root).resolve()
+    # 무인자 기본값은 **cwd 의 작업 저장소**에서 해석한다 (TASK-2026-08-28-main-013).
+    # 이 도구는 메모리 트리에 **쓴다** — 대상을 모듈 위치에서 잡으면 설치본에서는
+    # `<venv>/lib/python3.13/ai-workflow/…` 에 워크스페이스를 굽는다.
+    workspace_root, path_source = resolve_workspace_root()
+    if args.memory_root is not None:
+        memory_root = Path(args.memory_root).resolve()
+        path_source = "explicit"
+    else:
+        memory_root = memory_dir_for_workspace(workspace_root).resolve()
+    branch = args.branch or branch_for_workspace(workspace_root)
 
     result = seed(
         memory_root=memory_root, branch=branch, axis=args.axis,
         task_title=args.task_title, out_of_scope=args.out_of_scope,
         today=args.today, apply=args.apply, force=args.force,
     )
+    # 무엇을 대상으로 골랐는지 남긴다 — 폴백은 조용히 하지 않는다.
+    result["memory_root"] = str(memory_root)
+    result["path_source"] = path_source
 
     # self-register: --apply 성공 시에만 (TASK-2026-08-08-main-008).
     # register 는 *부가 정보* (in-flight 가시성) 이지 플로우의 본 동작이 아니므로
@@ -412,11 +430,11 @@ def main() -> int:
             # 그대로 emit 한다. mavis 가 cwd 가 데스크탑 런타임 자리인 점을
             # 감안, REPO_ROOT 와 PYTHONPATH 를 *절대* 경로로 박는다.
             auto_env = {
-                "STANDARD_AI_WORKFLOW_ROOT": str(REPO_ROOT),
-                "PYTHONPATH": str(REPO_ROOT / "workflow-source"),
+                "STANDARD_AI_WORKFLOW_ROOT": str(workspace_root),
+                "PYTHONPATH": str(workspace_root / "workflow-source"),
             }
             _wr.register(
-                REPO_ROOT,
+                workspace_root,
                 branch=branch,
                 harness=detected_harness,
                 endpoint=detected_endpoint,

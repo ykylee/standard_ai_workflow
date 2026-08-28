@@ -47,7 +47,10 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.child_process import child_env, module_command  # noqa: E402
-from workflow_kit.common.paths import memory_dir_for_workspace  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    memory_dir_for_workspace,
+    resolve_workspace_root,
+)
 
 #: seed 도구는 **모듈로** 부른다 — 설치본에는 `workflow-source/` 디렉터리가 없다.
 SEED_MODULE = "workflow_kit.tools.seed_workspace_memory"
@@ -223,7 +226,8 @@ def _render(r: dict) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--repo-root", default=str(REPO_ROOT))
+    p.add_argument("--repo-root", default=None,
+                   help="대상 저장소 (default: cwd 에서 해석)")
     p.add_argument("--remote", default="origin")
     p.add_argument("--branch", required=True)
     p.add_argument("--axis", required=True, help="주 작업 축 — 이게 곧 업무 지시다")
@@ -256,14 +260,24 @@ def main() -> int:
     if args.dry_run:
         args.apply = False
 
+    # 무인자 기본값은 **cwd 의 작업 저장소**에서 해석한다 — 모듈 위치가 아니라
+    # (TASK-2026-08-28-main-013, `resolve_workspace_root` docstring 의 결함족).
+    repo_root, path_source = (
+        (Path(args.repo_root).resolve(), "explicit") if args.repo_root
+        else resolve_workspace_root()
+    )
+
     result = claim(
-        repo_root=Path(args.repo_root).resolve(), remote=args.remote,
+        repo_root=repo_root, remote=args.remote,
         harness=args.harness, endpoint=args.endpoint,
         no_register=args.no_register,
         branch=args.branch, axis=args.axis, task_title=args.task_title,
         out_of_scope=args.out_of_scope, base=args.base, today=args.today,
         apply=args.apply,
     )
+    # 무엇을 대상으로 골랐는지 결과에 남긴다 — 폴백은 조용히 하지 않는다.
+    result["repo_root"] = str(repo_root)
+    result["path_source"] = path_source
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:

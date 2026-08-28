@@ -8,7 +8,7 @@ default** — 사람 판단 영역 (§5D.4 정합). `--exit-on-drift` 명시 시
 ## 사용법
 
 ```bash
-# default: post handoff (REPO_ROOT/ai-workflow/memory/active/main/session_handoff.md)
+# default: post handoff (cwd 저장소의 현재 브랜치 — `default_post_handoff`)
 # + git log origin/main..HEAD 비교
 wk detect-scope-drift
 
@@ -44,7 +44,11 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.paths import memory_active_dir  # noqa: E402
+from workflow_kit.common.paths import (  # noqa: E402
+    branch_for_workspace,
+    memory_active_dir,
+    resolve_workspace_root,
+)
 from workflow_kit.common.drift_detection import (  # noqa: E402
     TITLE_SIMILARITY_THRESHOLD,
     detect_scope_drift,
@@ -54,9 +58,17 @@ from workflow_kit.common.drift_detection import (  # noqa: E402
 )
 
 
-DEFAULT_POST_HANDOFF = (
-    memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
-)
+def default_post_handoff() -> tuple[Path, str]:
+    """대상 handoff 를 **cwd 의 작업 저장소 + 그 저장소의 현재 브랜치**에서 잡는다.
+
+    이전 기본값 `memory_active_dir(REPO_ROOT) / "main" / …` 은 두 군데가 틀렸다:
+    저장소를 모듈 위치에서 잡았고(설치본에서는 `<venv>/lib/…`), 브랜치를 `"main"`
+    으로 박았다(브랜치 컨텍스트에서 남의 handoff 를 읽는다). 결함족 정본은
+    `paths.resolve_workspace_root` — TASK-2026-08-28-main-013.
+    """
+    workspace, source = resolve_workspace_root()
+    branch = branch_for_workspace(workspace)
+    return memory_active_dir(workspace) / branch / "session_handoff.md", source
 DEFAULT_PRE_COMMIT = "origin/main"
 DEFAULT_GIT_RANGE = "origin/main..HEAD"
 
@@ -122,8 +134,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--pre-handoff", type=Path, help="pre handoff 파일 경로 (생략 시 --pre-commit 의 git show 사용)")
     p.add_argument("--pre-commit", default=DEFAULT_PRE_COMMIT,
                    help=f"pre handoff 의 git commit (default: {DEFAULT_PRE_COMMIT})")
-    p.add_argument("--post-handoff", type=Path, default=DEFAULT_POST_HANDOFF,
-                   help=f"post handoff 파일 경로 (default: {DEFAULT_POST_HANDOFF})")
+    p.add_argument("--post-handoff", type=Path, default=None,
+                   help="post handoff 파일 경로 (default: cwd 저장소의 현재 브랜치)")
     p.add_argument("--git-range", default=DEFAULT_GIT_RANGE,
                    help=f"git log 범위 (default: '{DEFAULT_GIT_RANGE}')")
     p.add_argument("--json", action="store_true", help="JSON 출력")
@@ -137,26 +149,36 @@ def main(argv: list[str] | None = None) -> int:
                    help="title drift 후보가 있으면 non-zero exit")
     args = p.parse_args(argv)
 
+    # 대상 저장소와 handoff 를 cwd 에서 해석한다 (TASK-2026-08-28-main-013).
+    # git 질의(`git show` / `git log`)도 같은 저장소여야 한다 — 대상은 여기,
+    # git 은 모듈 저장소면 서로 다른 트리를 비교하게 된다.
+    workspace_root, path_source = resolve_workspace_root()
+    if args.post_handoff is not None:
+        post_handoff = Path(args.post_handoff)
+        path_source = "explicit"
+    else:
+        post_handoff, _ = default_post_handoff()
+
     # pre handoff 결정: --pre-handoff 가 있으면 그 파일, 없으면 git show.
     if args.pre_handoff and args.pre_handoff.is_file():
         pre_text = args.pre_handoff.read_text(encoding="utf-8")
     else:
         pre_path = str(args.pre_handoff) if args.pre_handoff else str(DEFAULT_POST_HANDOFF)
-        # path 를 REPO_ROOT 기준으로 정규화 (hand off 는 항상 REPO_ROOT 안)
+        # path 를 대상 저장소 기준으로 정규화 (handoff 는 그 저장소 안)
         rel_path = pre_path
         try:
-            # 절대 경로면 REPO_ROOT 기준 상대로
+            # 절대 경로면 대상 저장소 기준 상대로
             if Path(pre_path).is_absolute():
-                rel_path = str(Path(pre_path).resolve().relative_to(REPO_ROOT))
+                rel_path = str(Path(pre_path).resolve().relative_to(workspace_root))
         except ValueError:
             rel_path = pre_path
-        pre_text = _git_show(args.pre_commit, rel_path, REPO_ROOT) or ""
+        pre_text = _git_show(args.pre_commit, rel_path, workspace_root) or ""
 
     post_text = ""
-    if args.post_handoff.is_file():
-        post_text = args.post_handoff.read_text(encoding="utf-8")
+    if post_handoff.is_file():
+        post_text = post_handoff.read_text(encoding="utf-8")
 
-    git_log_text = _git_log(args.git_range, REPO_ROOT)
+    git_log_text = _git_log(args.git_range, workspace_root)
 
     payload = detect_scope_drift(
         pre_text=pre_text,

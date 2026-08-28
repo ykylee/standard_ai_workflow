@@ -21,27 +21,31 @@ mcp 2.0.0 이 `mcp.server.fastmcp` 모듈 자체를 없애고 `mcp.server.mcpser
 
 from __future__ import annotations
 
+import importlib
 import sys
 from typing import Any, Callable, cast
 
 # import 순서는 신순(新順) — 새 SDK 를 쓰는 환경이 구 경로를 먼저 더듬지 않게 한다.
+#
+# importlib 동적 해석인 이유 (2026-08-28): 정적 try/except import 는 mypy 가
+# **설치된 SDK 의 타입 표면**으로 두 분기를 모두 검사한다. mcp 2.1.1 이
+# `mcp.server.fastmcp` 모듈은 되살리고 `FastMCP` 심볼만 없애서, 1.x 분기가
+# attr-defined 로 red 가 됐다 (CI mypy-strict 는 최신 mcp 를 부동으로 깐다).
+# ignore 주석은 strict 의 warn_unused_ignores 때문에 1.x 로컬에서 역으로 red —
+# 동적 해석이 두 버전 모두에서 서는 유일한 형태다.
 _MCP_SERVER_FACTORY: Any = None
 MCP_SERVER_SOURCE: str | None = None
 
-try:  # mcp >= 2.0
-    from mcp.server.mcpserver import MCPServer as _MCPServerV2
-
-    _MCP_SERVER_FACTORY = _MCPServerV2
-    MCP_SERVER_SOURCE = "mcp.server.mcpserver.MCPServer"
-except ImportError:
-    try:  # mcp 1.x
-        from mcp.server.fastmcp import FastMCP as _FastMCPV1
-
-        _MCP_SERVER_FACTORY = _FastMCPV1
-        MCP_SERVER_SOURCE = "mcp.server.fastmcp.FastMCP"
-    except ImportError:
-        _MCP_SERVER_FACTORY = None
-        MCP_SERVER_SOURCE = None
+for _mod_name, _attr_name, _source in (
+    ("mcp.server.mcpserver", "MCPServer", "mcp.server.mcpserver.MCPServer"),  # mcp >= 2.0
+    ("mcp.server.fastmcp", "FastMCP", "mcp.server.fastmcp.FastMCP"),          # mcp 1.x
+):
+    try:
+        _MCP_SERVER_FACTORY = getattr(importlib.import_module(_mod_name), _attr_name)
+        MCP_SERVER_SOURCE = _source
+        break
+    except (ImportError, AttributeError):
+        continue
 
 HAS_MCP_SERVER = _MCP_SERVER_FACTORY is not None
 # 하위 호환 별칭. 이름이 `fastmcp` 를 가리키지만 판정은 "SDK 서버 구현이 있는가" 다.

@@ -109,11 +109,13 @@ PINNED_VERSIONS: tuple[PinnedVersion, ...] = (
         ),
     ),
     PinnedVersion(
-        version="2.0.0",
+        version="2.1.1",
         role=ROLE_LATEST_2X,
         reason=(
-            "`mcp.server.fastmcp` 를 없애고 lowlevel decorator 를 "
-            "`add_request_handler` 로 바꾼 major (§2.41, §2.43)."
+            "2.0.0 은 `mcp.server.fastmcp` 를 없앴고 (lowlevel decorator 는 "
+            "`add_request_handler` 로 — §2.41, §2.43), 2.1.1 은 그 모듈을 되살리되 "
+            "`FastMCP` 심볼만 없다 — CI mypy-strict(부동 최신)만 red 가 되고 "
+            "로컬(1.27)은 green 이던 2026-08-28 사건의 재현 자리다."
         ),
     ),
 )

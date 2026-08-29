@@ -128,7 +128,6 @@ __all__: list[str] = [
 |---|---|---|---|---|
 | codex | stable | v0.5.0 | v0.6.3 | `AGENTS.md` (root) + `.codex/config.toml.example` |
 | opencode | stable | v0.5.0 | v0.6.3 | `AGENTS.md` (root) + `opencode.json` + `.opencode/agents/*` 5종 |
-| gemini-cli | stable | v0.6.0 | v0.7.4 | `GEMINI.md` (root) |
 | antigravity | stable | v0.7.0 | v0.7.5 | `ANTIGRAVITY.md` (root) |
 | minimax-code | stable | v0.6.5 | v0.7.0 | `AGENTS.md` (root) + `MiniMax.md` (root) + `.MiniMax/agents/*` 5종 |
 | claude-code | stable | v0.8.0 | v0.10.2 | `CLAUDE.md` (root) + `.claude/commands/workflow-*.md` 3종 |
@@ -174,7 +173,7 @@ v1.0.0 stable 진입 시점 (2026-07-20) 에 다음 5개 영역은 **stable guar
 
 ### 5.4 외부 하네스 진입점 변경
 
-- Codex / OpenCode / Claude Code / Aider / Goose / Grok Build / pi-dev / CodeWhale / Antigravity / Gemini CLI 의 *외부 도구 진입 mechanism* 변경 가능.
+- Codex / OpenCode / Claude Code / Aider / Goose / Grok Build / pi-dev / CodeWhale / Antigravity 의 *외부 도구 진입 mechanism* 변경 가능.
 - 본 프로젝트는 진입점 자동 read (AGENTS.md / CLAUDE.md / GROK.md / CONVENTIONS.md / .grok/config.toml / .codewhale/skills/ 등) 에 overlay 추가.
 - 외부 도구가 root 진입점 자동 read 를 중단하면 본 overlay 갱신 필요.
 - **Mitigation**: harness overlay 의 root 진입점은 mature 한 정공법 (multi-vendor 합의). overlay 갱신 시 backward compat 유지.

@@ -2,7 +2,7 @@
 type: topic
 status: active
 last_ingested_from: workflow-source/core/workflow_harness_distribution.md + dist/harnesses/*/v0.6.3-beta/
-related_pages: [concepts/harness-distribution, concepts/agent-topology, entities/standard-ai-workflow, entities/harness-overlay-codex, entities/harness-overlay-opencode, entities/harness-overlay-gemini-cli, entities/harness-overlay-antigravity, entities/harness-overlay-minimax-code, entities/harness-overlay-pi-dev]
+related_pages: [concepts/harness-distribution, concepts/agent-topology, entities/standard-ai-workflow, entities/harness-overlay-codex, entities/harness-overlay-opencode, entities/harness-overlay-antigravity, entities/harness-overlay-minimax-code, entities/harness-overlay-pi-dev]
 created: 2026-06-12
 updated: 2026-06-12
 ---
@@ -17,7 +17,6 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 |---|---|---|---|
 | codex | `standard-ai-workflow-codex` | `dist/harnesses/codex/v0.6.3-beta/` | zip 자산 |
 | opencode | `standard-ai-workflow-opencode` | `dist/harnesses/opencode/v0.6.3-beta/` | zip 자산 |
-| gemini-cli | `standard-ai-workflow-gemini-cli` | `dist/harnesses/gemini-cli/v0.6.3-beta/` | zip 자산 |
 | antigravity | `standard-ai-workflow-antigravity` | `dist/harnesses/antigravity/v0.6.3-beta/` | zip 자산 |
 | minimax-code | `standard-ai-workflow-minimax-code` | (not produced — bootstrap 직접 동기화) | [[entities/harness-overlay-minimax-code]] |
 | pi-dev | `standard-ai-workflow-pi-dev` | `dist/harnesses/pi-dev/v0.6.3-beta/` | zip 자산 |
@@ -30,7 +29,6 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 |---|---|---|---|---|---|
 | **codex** | `AGENTS.md` | task-only orchestrator + in-doc bounded worker ([[entities/harness-overlay-codex]]) | `.codex/mcp.toml` (read-only draft, `manual_review_only`) | v0.6.3-beta | shipped (zip) |
 | **opencode** | `AGENTS.md` + `opencode.json` | orchestrator + 4 worker (worker / doc / code / validation) ([[entities/harness-overlay-opencode]]) | `mcp.opencode.json` (read-only draft, `manual_review_only`) | v0.6.3-beta | shipped (zip) |
-| **gemini-cli** | `GEMINI.md` | main+worker split via `invoke_agent` ([[entities/harness-overlay-gemini-cli]]) | `.gemini/mcp.json` (선택) | v0.6.3-beta | shipped (zip) |
 | **antigravity** | `ANTIGRAVITY.md` | browser sub-agent 위임 ([[entities/harness-overlay-antigravity]]) | `antigravity.mcp.json` (선택) | v0.6.3-beta | shipped (zip) |
 | **minimax-code** | `AGENTS.md` + `MiniMax.md` | orchestrator + 4 worker (Codex/OpenCode 와 동일 4종) ([[entities/harness-overlay-minimax-code]]) | `.MiniMax/mcp.json` (read-only draft bridge) | v0.6.3-beta | **not produced** (bootstrap 직접) |
 | **pi-dev** | `AGENTS.md` + `SYSTEM.md` | persona 기반, 별도 worker 디렉터리 없음 ([[entities/harness-overlay-pi-dev]]) | (없음) | v0.6.3-beta | shipped (zip) |
@@ -43,7 +41,7 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 |---|---|---|---|
 | 4-worker fan-out | opencode, minimax-code | orchestrator → doc/code/validation | `.opencode/agents/`, `.MiniMax/agents/` |
 | in-doc bounded | codex | 본문 내 main/worker 섹션 분리 | 없음 |
-| runtime primitive | gemini-cli, antigravity | `invoke_agent` / browser sub-agent | runtime 호출 |
+| runtime primitive | antigravity | browser sub-agent | runtime 호출 |
 | persona only | pi-dev | SYSTEM.md 페르소나 | 없음 |
 
 ## Bundle Anatomy
@@ -108,7 +106,7 @@ The Standard AI Workflow distribution model ships **6 harness overlays** as **pe
 
 | # | 단계 | 동작 | 산출물 |
 |---|---|---|---|
-| 1 | args parse | `--harness` (다중 가능, choices: `codex` / `opencode` / `gemini-cli` / `pi-dev` / `antigravity`), `--include-source-docs`, `--include-global-snippets` | `argparse.Namespace` |
+| 1 | args parse | `--harness` (다중 가능, choices: `codex` / `opencode` / `pi-dev` / `antigravity` / …), `--include-source-docs`, `--include-global-snippets` | `argparse.Namespace` |
 | 2 | workflow-source → runtime 변환 | `DocTransformer` 로 `workflow-source/core/` 원본을 runtime `ai-workflow/core/` 형식으로 가공 | 변환된 core 문서 3종 |
 | 3 | overlay 합성 | `bootstrap_workflow_kit.py` 의 harness builder 호출 → `AGENTS.md`, `opencode.json`, `.opencode/agents/*` 등 overlay 생성 | 하네스별 overlay 파일 |
 | 4 | bundle 복사 | `bundle/` 아래 runtime + overlay 모음. `bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 단일 source-of-truth 사용 | `dist/harnesses/<harness>/<version>/bundle/` |
@@ -137,7 +135,6 @@ export 직후 5개 sanity check (수동 또는 CI hook).
 - [[entities/standard-ai-workflow]] — 본 프로젝트의 parent entity
 - [[entities/harness-overlay-codex]] — Codex 오버레이 (`AGENTS.md` + `.codex/config.toml.example`)
 - [[entities/harness-overlay-opencode]] — OpenCode 오버레이 (`AGENTS.md` + `opencode.json` + `.opencode/agents/*`)
-- [[entities/harness-overlay-gemini-cli]] — Gemini CLI 오버레이 (`GEMINI.md`)
 - [[entities/harness-overlay-antigravity]] — Antigravity 오버레이 (`ANTIGRAVITY.md`)
 - [[entities/harness-overlay-minimax-code]] — MiniMax Code 오버레이 (`MiniMax.md` + `.MiniMax/agents/*`, dist 미생성)
 - [[entities/harness-overlay-pi-dev]] — pi-dev 오버레이 (`AGENTS.md` + `SYSTEM.md`, persona 기반)

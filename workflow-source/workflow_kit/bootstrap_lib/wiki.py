@@ -200,7 +200,6 @@ def write_wiki_files(
 WIKI_CONFIG_RENDERERS: dict[str, Callable[[argparse.Namespace, Paths], str]] = {
     "codex": render_wiki_schema,
     "opencode": render_wiki_schema,
-    "gemini-cli": render_wiki_schema,
     "antigravity": render_wiki_schema,
     "minimax-code": render_wiki_schema,
     "pi-dev": render_wiki_schema,

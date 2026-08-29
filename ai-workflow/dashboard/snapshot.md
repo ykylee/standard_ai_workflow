@@ -1,6 +1,6 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-28T09:30:10Z`
+- generated_at: `2026-08-29T14:45:40Z`
 - tool_version: `1.7.0`
 - workspace_root: `/Users/yklee/repos/standard_ai_workflow`
 
@@ -9,11 +9,11 @@
 - guard_status: `pass`
 - guard_cases: `7 / 7`
 - maturity_last_updated: `2026-08-28`
-- maturity_surface_changed_at: `2026-08-25`
+- maturity_surface_changed_at: `2026-08-28`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
-- harness_supported_count: `11`
-- head_commit_date: `2026-08-28`
-- last_updated_delta_days: `0`
+- harness_supported_count: `10`
+- head_commit_date: `2026-08-29`
+- last_updated_delta_days: `1`
 - silent_failing_cycles_count: `0` (측정 cycle 11건)
 
 ## Panel 2 — Maturity Distribution
@@ -47,8 +47,8 @@
 
 ### harnesses
 
-- supported: `11`
-- names: `aider`, `antigravity`, `claude-code`, `codewhale`, `codex`, `gemini-cli`, `goose`, `grok-build`, `minimax-code`, `opencode`, `pi-dev`
+- supported: `10`
+- names: `aider`, `antigravity`, `claude-code`, `codewhale`, `codex`, `goose`, `grok-build`, `minimax-code`, `opencode`, `pi-dev`
 
 ## Panel 3 — Memory Index Utilization
 
@@ -75,16 +75,16 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `275`
-- cumulative_pass: `275`
+- cumulative_total: `276`
+- cumulative_pass: `276`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `275`
+- smoke_files_count: `276`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
-| Beta-v1.7.0 | 275 | 275 |
+| Beta-v1.7.0 | 276 | 276 |
 | Beta-v1.6.0 | 275 | 275 |
 | Beta-v1.5.0 | 274 | 274 |
 | Beta-v1.4.0 | 274 | 274 |
@@ -92,22 +92,22 @@
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `10`
+- items_total: `52`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-28-main-009 — mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)  `[fresh]`
-- [1] TASK-2026-08-28-main-008 — M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건  `[fresh]`
-- [2] TASK-2026-08-28-main-007 — M-010/WBS-10.2 — core 스펙 절 작성: 분류·계층 계약의 kit 표준화 (test_impact_tiering_spec)  `[fresh]`
-- [3] TASK-2026-08-28-main-006 — M-010/WBS-10.1 — ADR-028 작성: 메타 검증 채취 방식 실측 비교 + 전역 선언 리터럴 + 전수/순환 기준  `[fresh]`
-- [4] TASK-2026-08-28-main-005 — M-009/WBS-9.1 — 계층별 회귀 실행 계약 requirements 확정 (보급 판정 기준·메타 검증 요구사항·이득 실측)  `[fresh]`
-- [5] TASK-2026-08-28-main-004 — M-008/WBS-8.1 — 계층별 회귀 실행 계약 concept 검토 (검사 입력 표면 선언 기반 선택 실행)  `[fresh]`
-- [6] TASK-2026-08-28-main-002 — backlog-update update 모드가 --wbs 를 무시한다 — 기존 task 의 WBS 재링크 수단 부재  `[fresh]`
-- [7] TASK-2026-08-28-main-001 — 운영 축 상설 마일스톤 M-007 선언 — exempt 상시화 흡수  `[fresh]`
-- [8] TASK-2026-08-25-main-023 — suggest-memory-entries 기본 경로가 자기 설치 디렉터리 기준 — uv tool 실행 시 handoff 부재로 즉시 실패  `[fresh]`
-- [9] TASK-2026-08-25-main-022 — release-status local_mypy 탐침이 자기 인터프리터를 잰다 — uv tool venv 에 mypy 가 없어 상시 오탐 FAIL  `[fresh]`
+- [0] TASK-2026-08-14-main-010 — 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다  `[fresh]`
+- [1] TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거  `[fresh]`
+- [2] TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%  `[fresh]`
+- [3] TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째  `[fresh]`
+- [4] TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed  `[fresh]`
+- [5] TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록  `[fresh]`
+- [6] TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성  `[fresh]`
+- [7] TASK-2026-08-13-main-009 — 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%  `[fresh]`
+- [8] TASK-2026-08-13-main-008 — TestPyPI 리허설  `[fresh]`
+- [9] TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `15`
-- telemetry_events_total: `1045`
-- telemetry_total_queries: `1045`
-- telemetry_hit_count: `110`
-- telemetry_hit_rate: `0.1053`
+- telemetry_events_total: `722`
+- telemetry_total_queries: `722`
+- telemetry_hit_count: `328`
+- telemetry_hit_rate: `0.4543`
 
 ### Entries by merge_state
 
@@ -152,7 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 161 |
-| `doc-sync` | 1 |
-| `session-start` | 883 |
+| `backlog-update` | 63 |
+| `dispatcher` | 1 |
+| `doc-sync` | 3 |
+| `session-start` | 655 |
 

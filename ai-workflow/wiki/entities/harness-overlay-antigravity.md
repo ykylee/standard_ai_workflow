@@ -4,7 +4,7 @@ status: active
 last_ingested_from: workflow-source/harnesses/antigravity/
 related_pages: [entities/standard-ai-workflow, concepts/harness-distribution, concepts/agent-topology, entities/mcp-read-only-bundle]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-08-29
 ---
 
 # Antigravity Harness Overlay
@@ -34,11 +34,11 @@ Antigravity 하네스에서 표준 AI 워크플로우를 운영할 때 생성되
 | 파일 | 경로 | 역할 | 필수 |
 |---|---|---|---|
 | `ANTIGRAVITY.md` | `<project_root>/ANTIGRAVITY.md` | 하네스 진입점. `ai-workflow/memory/active/{session_handoff,work_backlog,PROJECT_PROFILE}.md` 로 연결 | yes (항상 emit) |
-| `antigravity.mcp.json` | `<project_root>/antigravity.mcp.json` | read-only MCP config snippet. `mcpServers` 키, `standardAiWorkflowReadOnly` 항목 | `--enable-mcp` 사용 시만 |
+| `.antigravity/mcp.json` | `<project_root>/.antigravity/mcp.json` | read-only MCP config snippet. `mcpServers` 키, `standardAiWorkflowReadOnly` 항목 | `--enable-mcp` 사용 시만 |
 | (no config.toml) | — | Codex/OpenCode 와 달리 TOML/JSONC 설정 파일 없음. 정책은 entry md 본문으로 위임 | n/a |
 | (no agent dir) | — | `.antigravity/agents/` 같은 worker 정의 디렉터리 없음 | n/a |
 
-`overlay_spec.md` 의 "추가 overlay 파일 없음" 정책 — `ANTIGRAVITY.md` 외에는 bootstrap 시 emit 하지 않는다. 글로벌 설정(`~/.antigravity/config.json`) 의 `mcpServers` 블록은 사용자 측 수동 merge (apply_guide §4.2).
+`overlay_spec.md` 의 "추가 overlay 파일 없음" 정책 — `ANTIGRAVITY.md` 외에는 bootstrap 시 emit 하지 않는다. 글로벌 설정(`~/.gemini/config/mcp_config.json`, 2026-08-29 실측) 의 `mcpServers` 블록은 사용자 측 수동 merge (apply_guide §4.2). 2026-08-29 부터는 **플러그인 채널**이 우선 경로다: `agy plugin install <경로>/plugin` 이 payload 루트의 `skills/` 4종 + `mcp_config.json` 을 `~/.gemini/config/plugins/<name>/` 무버전 사본으로 설치한다 (INSTALLATION §7.0·§7.0.2).
 
 ## Agent Topology
 
@@ -60,18 +60,18 @@ Antigravity 하네스에서 표준 AI 워크플로우를 운영할 때 생성되
 
 | 속성 | 값 |
 |---|---|
-| File | `antigravity.mcp.json` |
+| File | `.antigravity/mcp.json` |
 | Format | JSON (Gemini CLI 와 스키마 호환: `command`, `args`, `env`, `trust`, `includeTools`) |
 | Emit 조건 | `--enable-mcp` 플래그 또는 `--harness antigravity` + mcp 활성 시 |
 | Server key | `standardAiWorkflowReadOnly` |
 | Entry point | `python3 -m workflow_kit.server.read_only_jsonrpc --stdio-lines` |
 | Env | `PYTHONPATH=/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source`, `STANDARD_AI_WORKFLOW_ROOT=/ABSOLUTE/PATH/TO/<project_root>` |
-| 글로벌 merge 위치 | `~/.antigravity/config.json` 의 `mcpServers` 블록 |
+| 글로벌 merge 위치 | `~/.gemini/config/mcp_config.json` 의 `mcpServers` 블록 (2026-08-29 실측 — `~/.gemini/antigravity/mcp_config.json` 은 symlink) |
 | Transport 우선순위 | 1. `jsonrpc-bridge` (default, stable) / 2. `stdio-sdk` (experimental, 회귀) |
 | Descriptor 위치 | `bundle/source-docs/schemas/read_only_transport_descriptors.json` (Antigravity entry) |
 | descriptor `transport_ready` | v0.6.3-beta 기준 `false` (draft, manual review only) |
 
-권장: 처음 도입은 `jsonrpc-bridge` transport. 글로벌 `~/.antigravity/mcp.json` merge 시 `jq -s '.[0].mcpServers * .[1].mcpServers'` 패턴 (apply_guide §4.1) 또는 단순 `cp`. 자세한 절차: `workflow-source/core/mcp_installation_by_harness.md`, 예시 원본: `workflow-source/examples/mcp_config_examples/antigravity-mcp.json`.
+권장: 처음 도입은 `jsonrpc-bridge` transport. 글로벌 `~/.gemini/config/mcp_config.json` merge 시 `jq -s '.[0].mcpServers * .[1].mcpServers'` 패턴 (apply_guide §4.1) 또는 단순 `cp`. 자세한 절차: `workflow-source/core/mcp_installation_by_harness.md`, 예시 원본: `workflow-source/examples/mcp_config_examples/antigravity-mcp.json`.
 
 ## Related
 

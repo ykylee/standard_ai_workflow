@@ -76,7 +76,6 @@ MCP_BRIDGE_APPLY_MODE: dict[str, str] = {
 #: 방언을 아는 자리를 하나로 둔다 (2026-08-05).
 MCP_CONFIG_ROOT_KEY: dict[str, str] = {
     "opencode": "mcp",
-    "gemini-cli": "mcpServers",
     "antigravity": "mcpServers",
     "claude-code": "mcpServers",
     "minimax-code": "mcp_servers",
@@ -263,38 +262,12 @@ def render_opencode_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     ) + "\n"
 
 
-def render_gemini_cli_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
-    """Return a Gemini CLI ``.gemini/settings.json`` snippet."""
-    bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
-    return json.dumps(
-        {
-            MCP_CONFIG_ROOT_KEY["gemini-cli"]: {
-                MCP_SERVER_ALIAS: {
-                    "command": mcp_server_command(bridge, "read-only")[0],
-                    "args": mcp_server_command(bridge, "read-only")[1:],
-                    "env": _mcp_server_env(paths),
-                    "trust": True,
-                    "includeTools": [
-                        "latest_backlog",
-                        "check_doc_metadata",
-                        "check_doc_links",
-                        "suggest_impacted_docs",
-                    ],
-                }
-            }
-        },
-        ensure_ascii=False,
-        indent=2,
-    ) + "\n"
-
-
 def render_antigravity_mcp_config(args: argparse.Namespace, paths: Paths) -> str:
     """Return an Antigravity MCP snippet.
 
-    Antigravity shares the JSON ``mcpServers`` shape with Gemini CLI. The
-    bootstrap writes the file as ``.antigravity/mcp.json`` (project-local),
-    following the same dot-dir convention as ``.codex/``, ``.gemini/``,
-    and ``.MiniMax/``.
+    Antigravity uses the JSON ``mcpServers`` shape. The bootstrap writes the
+    file as ``.antigravity/mcp.json`` (project-local), following the same
+    dot-dir convention as ``.codex/`` and ``.MiniMax/``.
     """
     bridge = getattr(args, "mcp_bridge", "jsonrpc-bridge")
     return json.dumps(
@@ -530,7 +503,7 @@ def render_claude_code_mcp_config(args: argparse.Namespace, paths: Paths) -> str
     """Return a Claude Code ``.mcp.json`` (project-scoped MCP server registration).
 
     Claude Code reads ``<root>/.mcp.json`` with the JSON ``mcpServers`` shape,
-    the same dialect as Gemini CLI / Antigravity. ``core/mcp_installation_by_harness.md``
+    the same dialect as Antigravity. ``core/mcp_installation_by_harness.md``
     §4 has listed this row from the start, but **no renderer produced it** — the
     table declared a delivery that did not exist (2026-08-05).
 
@@ -586,10 +559,6 @@ def write_mcp_config_files(
         write_text(opencode_path, render_opencode_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
         generated["opencode_mcp_config"] = str(opencode_path)
 
-    if "gemini-cli" in harnesses:
-        gemini_path = paths.target_root / ".gemini" / "mcp.json"
-        write_text(gemini_path, render_gemini_cli_mcp_config(args, paths), force=args.force, rel_to=paths.target_root)
-        generated["gemini_cli_mcp_config"] = str(gemini_path)
 
     if "antigravity" in harnesses:
         antigravity_path = paths.target_root / ".antigravity" / "mcp.json"
@@ -619,7 +588,6 @@ def write_mcp_config_files(
 MCP_CONFIG_RENDERERS: dict[str, Callable[[argparse.Namespace, Paths], str]] = {
     "codex": render_codex_mcp_config,
     "opencode": render_opencode_mcp_config,
-    "gemini-cli": render_gemini_cli_mcp_config,
     "antigravity": render_antigravity_mcp_config,
     "minimax-code": render_minimax_code_mcp_config,
     "claude-code": render_claude_code_mcp_config,
@@ -637,7 +605,6 @@ __all__ = [
     "render_antigravity_mcp_config",
     "render_claude_code_mcp_config",
     "render_codex_mcp_config",
-    "render_gemini_cli_mcp_config",
     "render_minimax_code_mcp_config",
     "opencode_mcp_server_entry",
     "render_opencode_mcp_config",

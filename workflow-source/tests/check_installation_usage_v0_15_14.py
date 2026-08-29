@@ -53,7 +53,7 @@ SMOKE_COUNT_RE = re.compile(r"(\d+)\s*개\s*스모크\s*테스트")
 STATUS_VERSION_RE = re.compile(r"v[\d.]+(?:-beta)?\s*기준")
 
 EXPECTED_HARNESSES = {
-    "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
+    "codex", "opencode", "antigravity", "minimax-code",
     "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 

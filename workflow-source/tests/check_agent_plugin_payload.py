@@ -39,8 +39,8 @@
     문장인데 아무 검사도 보고 있지 않았다 (session-end 추가 시 실측).
 13. **판정 대상이 작업 트리다** — 모듈이 로드된 위치를 보면 사본을 릴리스하며
     원본의 정합을 확인하게 된다 (P4 구현 중 실제로 냈던 사고의 뿌리).
-14. **Gemini 어댑터가 로드되는 형태다** — `gemini extensions list` 실측(0.42.0)이
-    못박은 계약 (manifest 5필드 고정, 컨텍스트 = 진입점 규칙 파생, MCP 파생).
+14. **Antigravity 어댑터가 로드되는 형태다** — `agy plugin validate` 실측(2026-08-29)이
+    못박은 계약 (루트 `mcp_config.json` = `mcp.json` 동일 사본, mcpServers 인식).
 15. **goose/OpenCode snippet 이 방언 상수 파생이다** — 최상위 키·command 를 손으로
     적으면 그 사본만 낡는다. goose 는 실기 검증 미완 표기를 강제한다.
 16. **Codex UI metadata가 각 skill에 있다** — `agents/openai.yaml`은 표시 이름,
@@ -96,8 +96,7 @@ from workflow_kit.plugin_payload import (  # noqa: E402
     CLAUDE_CODE_MCP_RELPATH,
     GROK_HOOKS_RELPATH,
     CODEX_MANIFEST_RELPATH,
-    GEMINI_CONTEXT_RELPATH,
-    GEMINI_MANIFEST_RELPATH,
+    ANTIGRAVITY_MCP_RELPATH,
     GOOSE_SNIPPET_RELPATH,
     MARKETPLACE_RELPATH,
     OPENCODE_SNIPPET_RELPATH,
@@ -557,13 +556,12 @@ def test_marketplace_manifest() -> None:
     )
 
 
-#: 버전 문자열을 **복사해 담는** 산출물. bump 를 따라가야 하는 것이 정확히 이 4장이다
-#: (P3 에서 gemini-extension.json 이 넷째로 합류했다).
+#: 버전 문자열을 **복사해 담는** 산출물. bump 를 따라가야 하는 것이 정확히 이 3장
+#: + marketplace 다 (gemini-extension.json 은 2026-08-29 gemini-cli 지원 종료로 은퇴).
 VERSION_BEARING_RELPATHS = (
     f"{PAYLOAD_DIRNAME}/plugin.json",
     f"{PAYLOAD_DIRNAME}/{CODEX_MANIFEST_RELPATH}",
     f"{PAYLOAD_DIRNAME}/{CLAUDE_CODE_MANIFEST_RELPATH}",
-    f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}",
     MARKETPLACE_RELPATH,
 )
 
@@ -710,12 +708,10 @@ def test_descriptions_count_skills() -> None:
     files = render_repo_plugin_files()
     manifest = json.loads(files[f"{PAYLOAD_DIRNAME}/plugin.json"])
     market_entry = json.loads(files[MARKETPLACE_RELPATH])
-    gemini = json.loads(files[f"{PAYLOAD_DIRNAME}/{GEMINI_MANIFEST_RELPATH}"])
     targets = {
         "plugin.json description": manifest["description"],
         "marketplace description": market_entry["description"],
         "marketplace plugins[0].description": market_entry["plugins"][0]["description"],
-        "gemini-extension.json description": gemini["description"],
     }
     problems: list[str] = []
     for label, text in targets.items():
@@ -790,50 +786,39 @@ def test_status_targets_working_tree() -> None:
     )
 
 
-def test_gemini_adapter() -> None:
-    """14) Gemini 어댑터가 **로드되는 형태**인가 (gemini 0.42.0 실측으로 고정한 계약).
+def test_antigravity_adapter() -> None:
+    """14) Antigravity 어댑터가 **로드되는 형태**인가 (agy CLI 2026-08-29 실측으로 고정한 계약).
 
-    `gemini extensions link` 후 `extensions list` 인벤토리 실측이 못박은 것:
-    확장 루트 = payload 루트일 때 Context files(GEMINI.md) + MCP servers +
-    Agent skills 4종이 전부 잡힌다. 이 case 는 그 형태를 고정한다:
+    `agy plugin validate` / `agy plugin install` 실측이 못박은 것: Antigravity 는
+    payload 루트의 관례 파일을 읽는다 — `skills/` 4종과 루트 `mcp_config.json`
+    (mcpServers 키). 이 case 는 그 형태를 고정한다:
 
-    - manifest 필드 5개 고정 (validate 로 확인 안 된 필드를 지어 넣으면 FAIL)
-    - `contextFileName` 이 가리키는 파일이 payload 에 실재하고, 내용이
-      진입점 규칙 블록(`render_entrypoint_rules`) **그 자체**를 담는다 —
-      채널이 둘이어도 규칙 정본은 하나다.
+    - `mcp_config.json` 이 payload 에 실재하고 **`mcp.json` 과 byte 동일**하다 —
+      같은 렌더러 출력의 동일 사본이라 정본이 하나다 (`.mcp.json` 과 같은 설계).
     - mcpServers 는 read-only bundle 하나, command 는 `mcp_server_command` 파생,
       `PYTHONPATH` 금지 (체크아웃 전제 금지 — 계획 원칙 4).
+    - 루트 `hooks.json` 은 싣지 않는다 — 이벤트 어휘 호환이 미실측이다 (모름 ≠ 안전).
     """
     from workflow_kit.bootstrap_lib.mcp import (
         MCP_SERVER_ALIAS,
         MCP_WRITE_SERVER_ALIAS,
         mcp_server_command,
     )
-    from workflow_kit.common.standard_rules import render_entrypoint_rules
 
     rules = load_standard_rules(SOURCE_ROOT)
     payload = render_agent_plugin(rules)
     problems: list[str] = []
 
-    manifest = json.loads(payload[GEMINI_MANIFEST_RELPATH])
-    expected_fields = {"name", "version", "description", "contextFileName", "mcpServers"}
-    if set(manifest) != expected_fields:
-        problems.append(
-            f"필드 집합 {sorted(manifest)} != 실측 계약 {sorted(expected_fields)}"
-        )
-    if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != KIT_VERSION:
-        problems.append(f"name/version 불일치: {manifest.get('name')} {manifest.get('version')}")
-    if manifest.get("contextFileName") != GEMINI_CONTEXT_RELPATH:
-        problems.append(f"contextFileName {manifest.get('contextFileName')!r} != {GEMINI_CONTEXT_RELPATH!r}")
+    config_text = payload.get(ANTIGRAVITY_MCP_RELPATH)
+    if config_text is None:
+        problems.append(f"{ANTIGRAVITY_MCP_RELPATH} 가 payload 에 없다")
+    elif config_text != payload.get("mcp.json"):
+        problems.append(f"{ANTIGRAVITY_MCP_RELPATH} 가 mcp.json 과 다르다 — 동일 사본 계약 위반")
 
-    context = payload.get(GEMINI_CONTEXT_RELPATH, "")
-    if render_entrypoint_rules(rules) not in context:
-        problems.append(
-            f"{GEMINI_CONTEXT_RELPATH} 가 진입점 규칙 블록을 담지 않는다 — "
-            "상시 주입 채널이 정본과 갈라졌다"
-        )
+    if "hooks.json" in payload:
+        problems.append("루트 hooks.json 이 실렸다 — 이벤트 어휘 호환 미실측 (모름 ≠ 안전)")
 
-    servers = manifest.get("mcpServers", {})
+    servers = json.loads(config_text or "{}").get("mcpServers", {})
     if set(servers) != {MCP_SERVER_ALIAS}:
         problems.append(f"mcpServers alias {sorted(servers)} != {{{MCP_SERVER_ALIAS}}}")
     if MCP_WRITE_SERVER_ALIAS in servers:
@@ -846,11 +831,11 @@ def test_gemini_adapter() -> None:
         problems.append("env 에 PYTHONPATH — 플러그인은 체크아웃 구조를 모른다 (원칙 4)")
 
     _record(
-        "test_gemini_adapter",
+        "test_antigravity_adapter",
         not problems,
         "; ".join(problems[:4])
         if problems
-        else "manifest 5필드 + 컨텍스트 = 진입점 규칙 파생 + MCP 파생",
+        else "mcp_config.json = mcp.json 동일 사본 + MCP 파생 + hooks 미탑재",
     )
 
 
@@ -1283,7 +1268,7 @@ def main() -> int:
         test_release_gate_catches_plugin_drift,
         test_descriptions_count_skills,
         test_status_targets_working_tree,
-        test_gemini_adapter,
+        test_antigravity_adapter,
         test_goose_opencode_snippets,
         test_grok_build_hooks,
         test_pi_dev_adapter,

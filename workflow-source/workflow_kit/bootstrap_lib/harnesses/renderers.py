@@ -13,7 +13,6 @@ from workflow_kit.bootstrap_lib.paths import (
     antigravity_agents_path,
     codex_agents_path,
     codex_config_example_path,
-    gemini_cli_agents_path,
     minimax_agents_path,
     opencode_agent_path,
     opencode_code_worker_agent_path,
@@ -33,83 +32,6 @@ from workflow_kit.common.standard_rules import (
     render_entrypoint_rules,
     render_memory_update_section,
 )
-
-
-def render_gemini_cli_agents(args: argparse.Namespace, paths: Paths, context: dict[str, object]) -> str:
-    harness_note = (
-        "This draft reflects an analysis of the existing codebase. The inferred commands and document paths may need to be corrected against the real repository."
-        if args.adoption_mode == "existing"
-        else "This is a new-project draft. Verify that the project's own run commands and document structure are correct."
-    )
-    # Ensure smoke check has a sensible default if still TODO
-    smoke_check = context['smoke_check_command']
-    if "TODO"in smoke_check:
-        if context['primary_stack'] == 'python':
-            smoke_check = "python3 --version"
-        elif context['primary_stack'] == 'node':
-            smoke_check = "node --version"
-
-    _STANDARD_RULES = render_entrypoint_rules()
-    return f"""# GEMINI.md
-
-- Purpose: Provide the workflow entry rules and core working principles Gemini CLI should read first in this repository.
-- Scope: session restore, the order to consult workflow state docs, user-facing report language, default run/verify commands
-- Audience: Gemini CLI, repository maintainer, workflow designer
-- Status: draft
-- Last updated: {args.today}
-- Related: `ai-workflow/memory/active/<branch>/state.json`, `ai-workflow/memory/active/<branch>/sessions`, `ai-workflow/memory/active/<branch>/backlog`, `docs/PROJECT_PROFILE.md`
-
-## Purpose
-
-Work in this repository follows the standard AI workflow. Session start, backlog updates,
-document sync, and session close all take the documents under `ai-workflow/` as the
-primary reference.
-
-## Read these first
-
-> `<branch>` is the current git branch name (`main` when this is not a git repository). Splitting per branch keeps concurrent work from overwriting itself.
-
-- `ai-workflow/memory/active/<branch>/state.json`
-- `ai-workflow/memory/active/<branch>/sessions`
-- `ai-workflow/memory/active/<branch>/backlog`
-- `docs/PROJECT_PROFILE.md`
-- `ai-workflow/wiki/index.md` — R4 anchor based; load this first when an AI agent queries
-
-`ai-workflow/` is a meta layer for session restore and workflow state. Do not include it in the default search scope when exploring project code or project documents — reference it only when updating the workflow documents themselves or restoring the current session state.
-
-{_STANDARD_RULES}
-
-## Language and context principles
-
-- Write user-facing work reports, status summaries, and document updates in Korean by default.
-- Keep code, commands, file paths, configuration keys, and external product names verbatim.
-- Handle internal reasoning and scratch classification however is most efficient, but give the user only the conclusion and the next action.
-- Avoid long intermediate reasoning, repeated summaries, and unnecessary self-explanation.
-- Keep only the facts the next session needs in the handoff and backlog, so context does not pile up.
-
-## Project run defaults
-
-- Install: `{context['install_command']}`
-- Run locally: `{context['run_command']}`
-- Quick test: `{context['quick_test_command']}`
-- Isolated test: `{context['isolated_test_command']}`
-- Smoke check: `{smoke_check}`
-
-## Documentation conventions
-
-- Documentation home: `{context['doc_home']}`
-- Operations docs: `{context['operations_dir']}`
-- Backlog location: `{context['backlog_dir']}`
-- Session handoff: `{context['session_doc_path']}`
-
-## Gemini CLI notes
-
-- Gemini CLI reads `GEMINI.md` at the project root, so start policy here and defer operational detail to the `ai-workflow/` documents.
-- Treat instructions written in `GEMINI.md` as strong directives that take precedence over the system prompt.
-- Where possible, keep the main agent on coordination and integration, and split bounded read/write/verify work into sub-agents (`invoke_agent`).
-- Hand each sub-agent an explicit scope and exit condition, and collect only the key facts and results back into the main agent.
-- {harness_note}
-"""
 
 
 def antigravity_agents_path(paths: Paths) -> Path:
@@ -980,17 +902,6 @@ def write_opencode_harness_files(
         "opencode_code_worker_agent": str(opencode_code_worker_agent),
         "opencode_validation_worker_agent": str(opencode_validation_worker_agent),
     }
-
-
-def write_gemini_cli_harness_files(
-    args: argparse.Namespace,
-    paths: Paths,
-    context: dict[str, object],
-) -> dict[str, str]:
-    # GEMINI.md is written in write_harness_files if selected,
-    # but we can also do it here if we want to be explicit or if we change write_harness_files.
-    # Currently write_harness_files writes it.
-    return {}
 
 
 #: 진입 문서의 slash command 한 줄 설명. **목록 자체가 아니라 설명만** 여기 있다 —
@@ -2238,7 +2149,6 @@ def write_grok_build_harness_files(
 #: :mod:`bootstrap_lib.harnesses`; we just populate it from here.
 register_harness_builder("codex", write_codex_harness_files)
 register_harness_builder("opencode", write_opencode_harness_files)
-register_harness_builder("gemini-cli", write_gemini_cli_harness_files)
 register_harness_builder("pi-dev", write_pi_dev_harness_files)
 register_harness_builder("antigravity", write_antigravity_harness_files)
 register_harness_builder("claude-code", write_claude_code_harness_files)

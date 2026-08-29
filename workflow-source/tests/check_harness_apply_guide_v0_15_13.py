@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Smoke test — Harness apply_guide.md content cross-validation (v0.15.13+).
 
-10 harness (codex, opencode, gemini-cli, antigravity, minimax-code, claude-code,
-aider, goose, pi-dev, codewhale) 의 `apply_guide.md` content 정합 검증.
+10 harness (codex, opencode, antigravity, minimax-code, claude-code,
+aider, goose, grok-build, pi-dev, codewhale) 의 `apply_guide.md` content 정합 검증.
 
 4 cases:
   1) **frontmatter 정합**: 10 harness 모두 `문서 목적` / `범위` / `대상 독자` /
@@ -28,7 +28,7 @@ MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 
 # 10 harness 정공법 (v0.15.9 smoke 와 동일)
 EXPECTED_HARNESSES = {
-    "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
+    "codex", "opencode", "antigravity", "minimax-code",
     "claude-code", "aider", "goose", "pi-dev", "codewhale",
 }
 

@@ -18,7 +18,7 @@ v0.5.11 introduces the P0 enforcement hook (contract §6.5):
 
 Both modules are pure Python (no external deps beyond the standard library) so
 they can be imported from any orchestrator runtime (Mavis, mavis, OpenCode,
-Gemini CLI, etc.) and from sub-agent runtimes that already depend on the
+Antigravity, etc.) and from sub-agent runtimes that already depend on the
 standard_ai_workflow kit.
 
 Reference: workflow-source/core/orchestrator_subagent_contract_v1.md

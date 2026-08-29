@@ -9,7 +9,7 @@
 
 ## 1. 언제 이 가이드를 쓰는가
 
-- 표준 6개 하네스 (Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code / pi-dev / Claude Code / Aider / Goose) 외 *caller 자사 custom 도구* 가 있을 때
+- 표준 하네스 (Codex / OpenCode / Antigravity / MiniMax Code / pi-dev / Claude Code / Aider / Goose / Grok Build / CodeWhale) 외 *caller 자사 custom 도구* 가 있을 때
 - AGENTS.md 자동 read 도 안 하고, slash command / extension / `--read` flag 메커니즘도 안 가질 때
 - 표준 workflow 의 *중립 contract* (3 skill output schema) 만 caller 자사 도구에 wire-up 하고 싶을 때
 

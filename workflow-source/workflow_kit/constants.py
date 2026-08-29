@@ -17,7 +17,6 @@ GITIGNORE_PATTERNS: list[str] = [
     "# Workflow layer (selective tracking)",
     "/ANTIGRAVITY.md",
     "/AGENTS.md",
-    "/GEMINI.md",
     "",
     "# Exclude duplicated engine/tool copies",
     "/ai-workflow/scripts/",

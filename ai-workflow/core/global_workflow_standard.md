@@ -115,7 +115,7 @@
 ### 7.1 단일 진실 공급원 (SSOT)
 - 모든 스킬, MCP, 마일스톤의 공식 상태는 `core/maturity_matrix.json`에서 관리한다.
 - 로드맵(`workflow_kit_roadmap.md`), 스킬 카탈로그(`workflow_skill_catalog.md`), MCP 카탈로그(`workflow_mcp_candidate_catalog.md`) 등은 이 JSON 데이터를 바탕으로 기술되어야 한다.
-- 하네스 진입점(`CLAUDE.md`, `AGENTS.md`, `GEMINI.md` 등)에 실리는 규칙 문장은 **본 문서의 §1 · §3 · §8 에서 생성**한다. 진입점 파일에도, 렌더러 코드에도 규칙을 직접 적지 않는다. 추출기는 `workflow_kit/common/standard_rules.py`, 강제 검사는 `tests/check_standard_single_source.py` 다.
+- 하네스 진입점(`CLAUDE.md`, `AGENTS.md`, `ANTIGRAVITY.md` 등)에 실리는 규칙 문장은 **본 문서의 §1 · §3 · §8 에서 생성**한다. 진입점 파일에도, 렌더러 코드에도 규칙을 직접 적지 않는다. 추출기는 `workflow_kit/common/standard_rules.py`, 강제 검사는 `tests/check_standard_single_source.py` 다.
 
 ### 7.2 동기화 루틴
 - **스킬 승급 시**: 코드 구현 완료 후 `maturity_matrix.json`의 `stage`를 변경하고, 즉시 관련 카탈로그 문서를 갱신한다.

@@ -2,7 +2,7 @@
 
 ## 왜 필요한가
 
-하네스 진입점 파일(`CLAUDE.md` / `AGENTS.md` / `GEMINI.md` …)은 에이전트가 세션을
+하네스 진입점 파일(`CLAUDE.md` / `AGENTS.md` / `ANTIGRAVITY.md` …)은 에이전트가 세션을
 열 때 가장 먼저 읽는 문서다. 여기 적힌 규칙이 곧 그 세션의 규칙이다. 그런데 그
 문장들이 `bootstrap_lib/harnesses/renderers.py` 의 하네스별 f-string 에 **손으로
 복제**돼 있었고, 정본인 `core/global_workflow_standard.md` 를 아무도 읽지 않았다.

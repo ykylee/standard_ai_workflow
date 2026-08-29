@@ -3,8 +3,8 @@
 - 문서 목적: `Antigravity` 하네스 오버레이를 구현하기 전에 필요한 파일 목록과 연결 전략을 정리한다.
 - 범위: 진입 파일, 설정 파일, 공통 workflow 참조 경로, 권한 정책 초안
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
-- 상태: draft
-- 최종 수정일: 2026-04-19
+- 상태: active
+- 최종 수정일: 2026-08-29
 - 관련 문서: `./README.md`, `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`
 
 ## 1. 하네스 식별자
@@ -19,9 +19,10 @@
 - 루트 진입 파일:
 - `ANTIGRAVITY.md`
 - 설정 파일:
-- `TODO: 하네스 전용 설정 파일 경로`
+- `.antigravity/mcp.json` (`--enable-mcp` 시 emit, `mcpServers` 키)
+- 글로벌 MCP: `~/.gemini/config/mcp_config.json` (2026-08-29 실측 — `~/.gemini/antigravity/mcp_config.json` 은 symlink)
 - 추가 overlay 파일:
-- TODO
+- 없음 — thin overlay 정책. 플러그인 채널(`agy plugin install <경로>/plugin`)이 skills 4종 + `mcp_config.json` 을 따로 나른다 (INSTALLATION §7.0)
 
 ## 3. 공통 workflow 연결 규칙
 

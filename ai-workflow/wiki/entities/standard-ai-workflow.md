@@ -31,7 +31,6 @@ The repo `standard_ai_workflow` (Standard AI Workflow). **Hub entity** for the L
 | Mavis (MiniMax Code) | `MiniMax.md` + `AGENTS.md` + `.minimax/agents/` | orchestrator + doc/code/validation worker |
 | Codex CLI | `AGENTS.md` + `.codex/config.toml.example` | task-only orchestrator + bounded worker |
 | OpenCode CLI | `AGENTS.md` + `opencode.json` + `.opencode/...` | orchestrator + generic/specialized worker |
-| Gemini CLI | `GEMINI.md` | entry-point overlay |
 | Antigravity | `ANTIGRAVITY.md` | entry-point overlay |
 | pi-dev | `AGENTS.md` + `SYSTEM.md` | agent persona overlay |
 
@@ -116,7 +115,6 @@ python3 -m bootstrap_lib \
 - **Mavis (MiniMax Code)** — 권장, orchestrator/worker 자동 emit, `.minimax/agents/` 구조 생성
 - **Codex** — `AGENTS.md` + `.codex/config.toml.example` (또는 `.codex/mcp.toml`)
 - **OpenCode** — `AGENTS.md` + `opencode.json` + `.opencode/...` (project-local skill/agent)
-- **Gemini CLI** — `GEMINI.md`
 - **Antigravity** — `ANTIGRAVITY.md`
 - **pi-dev** — `AGENTS.md` + `SYSTEM.md` (persona)
 

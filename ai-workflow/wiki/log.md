@@ -63,7 +63,7 @@ updated: 2026-06-30
 - entities/mcp-read-only-bundle (91 lines, 9 cross-ref) — 6+1 MCP servers
 - entities/harness-overlay-codex (105 lines, 6 cross-ref) — Codex
 - entities/harness-overlay-opencode (80 lines, 8 cross-ref) — OpenCode 5-agent
-- entities/harness-overlay-gemini-cli (72 lines, 10 cross-ref) — Gemini CLI
+- entities/harness-overlay-gemini-cli — Gemini CLI (2026-08-29 지원 종료로 entity 은퇴)
 - entities/harness-overlay-antigravity (92 lines, 10 cross-ref) — Antigravity
 - entities/harness-overlay-minimax-code (87 lines, 13 cross-ref) — MiniMax Code
 - entities/harness-overlay-pi-dev (71 lines, 5 cross-ref) — pi-dev

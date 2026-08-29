@@ -130,10 +130,6 @@ def codex_agents_path(paths: Paths) -> Path:
     return paths.target_root / "AGENTS.md"
 
 
-def gemini_cli_agents_path(paths: Paths) -> Path:
-    return paths.target_root / "GEMINI.md"
-
-
 def codex_config_example_path(paths: Paths) -> Path:
     return paths.target_root / ".codex" / "config.toml.example"
 
@@ -182,7 +178,6 @@ __all__ = [
     "antigravity_agents_path",
     "codex_agents_path",
     "codex_config_example_path",
-    "gemini_cli_agents_path",
     "make_paths",
     "minimax_agents_path",
     "opencode_agent_path",

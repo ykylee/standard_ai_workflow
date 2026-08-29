@@ -26,7 +26,7 @@
 
 ## 3. 설정 적용
 
-Antigravity 의 글로벌 설정 위치는 하네스 문서를 확인하되, 일반적으로 `~/.antigravity/config.json` 에 `mcpServers` 키로 MCP 를 등록한다. JSON 스키마는 Gemini CLI 와 호환 (`command`, `args`, `env`, `trust`, `includeTools`).
+Antigravity 의 글로벌 MCP 설정은 `~/.gemini/config/mcp_config.json` 의 `mcpServers` 키다 (2026-08-29 이 호스트 실측 — 종전 안내의 `~/.antigravity/config.json` 은 실재하지 않는 추정이었다. `~/.gemini/antigravity/mcp_config.json` 은 이 파일로의 symlink). 더 간단한 경로는 플러그인 채널이다: `agy plugin install <경로>/plugin` 이 payload 루트의 `mcp_config.json` 을 그대로 읽는다 (INSTALLATION §7.0).
 
 ## 4. 로컬 MCP 설치 (`--enable-mcp`)
 

@@ -74,7 +74,7 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
   - FULL mypy strict 도달: 109 file clean, 0 errors (v0.11.18 commit `4253eed`).
   - 11 skill stable + 1 alpha (`git-conflict-resolver`, opt-out).
   - 11 MCP stable + 1 removed (`workflow_log_rotator` v0.14.1).
-  - 11 harness overlay (codex / opencode / gemini-cli / antigravity / minimax-code / claude-code / aider / goose / grok-build / pi-dev / codewhale).
+  - 10 harness overlay (codex / opencode / antigravity / minimax-code / claude-code / aider / goose / grok-build / pi-dev / codewhale — gemini-cli 는 2026-08-29 지원 종료).
   - 24 smoke PASS (회귀 0).
   - Quality Dashboard 8 panel 정합 (Panel 1 silent_failing 0, Panel 5 recent_releases 10, Panel 7 v0.15.0 complete).
   - v0.15.0 ⚠️ BREAKING `.bak` drop + 2-cycle deprecation 종결 (migration guide 3가지 정공법 적용).
@@ -174,7 +174,7 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 
 - 공통 코어 문서, 템플릿, 하네스 가이드, 전역 snippet 가이드가 정리돼 있다.
 - bootstrap 스크립트가 신규 프로젝트와 기존 프로젝트 도입 모드를 모두 지원하며, interactive `--harness` picker (v0.5.8) 를 통해 TTY 자동 선택 가능.
-- 6개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `pi-dev`.
+- 10개 하네스 대상: `Codex`, `OpenCode`, `Antigravity`, `MiniMax Code`, `pi-dev`, `Claude Code`, `Aider`, `Goose`, `Grok Build`, `CodeWhale` (gemini-cli 는 2026-08-29 지원 종료).
 - skill 11종과 MCP 12종의 실행형 프로토타입이 있다.
 - skill 통합 demo runner 와 end-to-end 문서가 있다.
 - 출력 스키마 가이드와 skill/MCP/runner 대표 출력 샘플 허브가 있다.
@@ -387,8 +387,7 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 > INSTALLATION §7.0 이 플러그인을 권장 경로로 안내한다. 플러그인 스킬은 정본
 > §11.1 명령 4개와 1:1 대응하는 **4종**. dist 자산은 미포함 판정 (marketplace 는
 > git 경로라 wheel 을 읽지 않는다), 릴리스↔플러그인 연결은 **버전 동기** 게이트
-> (release-doctor, manifest 4장). 잔여 후속 (계획 밖 task): Gemini 모델 주입 실측
-> (계정 tier 차단 해소 후) / goose 실기 검증 / hook 조건부 규칙 주입
+> (release-doctor, manifest 4장). 잔여 후속 (계획 밖 task): goose 실기 검증 / hook 조건부 규칙 주입
 > (TASK-2026-08-13-main-003) / bootstrap OpenCode 방언 (TASK-2026-08-13-main-002).
 
 1. **(P0-1 ✅ DONE — 2026-07-21) mypy strict venv 직접 verify (Break Point #3 close-out)** — `.venv` (mypy 2.1.0) 에서 CI 게이트와 동일한 `mypy --no-incremental --strict workflow-source/workflow_kit/` = **117 source files, 0 errors** 확인 완료. (workflow-source dir 기준 4건 `unused-ignore` 는 optional import 방어용 non-gate 아티팩트.) v1.0.0 Gate 3 ✅ PASS 로 갱신.

@@ -14,15 +14,14 @@
 plugin/
 ├── plugin.json                  # name / version / description (version 은 __version__ 파생)
 ├── .codex-plugin/plugin.json    # Codex plugin manifest (Codex distribution)
-├── skills/                      # 스킬 4종 — Claude Code 와 Gemini 확장이 같은 관례 경로로 읽는다
+├── skills/                      # 스킬 4종 — Claude Code / Antigravity 가 같은 관례 경로로 읽는다
 │   ├── session-start/           # SKILL.md + Codex UI metadata (agents/openai.yaml)
 │   ├── backlog-update/SKILL.md  # 상태값 4종은 rules.task_states 파생
 │   ├── doc-sync/SKILL.md
 │   └── session-end/SKILL.md
 ├── mcp.json                     # MCP mcpServers 스키마, read-only bundle (+ .mcp.json 동일 사본)
+├── mcp_config.json              # Antigravity 관례 루트 파일 — mcp.json 과 동일 사본 (2026-08-29 실측)
 ├── hooks/hooks.json             # Grok Build 관례 경로 — Claude 어댑터 훅과 동일 사본 (TASK-012)
-├── gemini-extension.json        # Gemini CLI 어댑터 — 확장 루트 = payload 루트 (P3)
-├── GEMINI.md                    # Gemini 상시 주입 컨텍스트 — render_entrypoint_rules 파생
 └── adapters/
     ├── claude-code/hooks.json   # 세션 경계 hook (P2) + 조건부 규칙 주입 (TASK-003)
     ├── claude-code/rules.md     # SessionStart 조건부 주입 규칙 블록 — render_entrypoint_rules 파생
@@ -96,8 +95,6 @@ __all__ = [
     "render_claude_code_manifest",
     "render_codex_manifest",
     "render_claude_code_rules",
-    "render_gemini_context",
-    "render_gemini_manifest",
     "render_goose_config_snippet",
     "render_marketplace_manifest",
     "render_opencode_snippet",
@@ -159,16 +156,13 @@ CLAUDE_CODE_MCP_RELPATH = ".mcp.json"
 #: 묶으며, Claude Code manifest와 같은 payload를 공유하되 설치 surface는 분리한다.
 CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
 
-#: Gemini CLI 어댑터 (P3, TASK-2026-08-12-main-016). Claude Code 와 같은 이유로
-#: **확장 루트 = payload 루트**다: `gemini extensions list` 실측(0.42.0)에서 확장
-#: 루트의 `skills/` 를 무변환으로 읽어 payload 스킬 4종이 그대로 인벤토리에 잡혔다.
-#: 어댑터를 하위 디렉터리에 두면 그 공유가 깨지고 스킬 사본이 필요해진다.
-#:
-#: `GEMINI.md` 는 확장이 **상시 주입하는 컨텍스트 파일**이다 — Claude Code 플러그인의
-#: 핵심 갭(§1·§3·§8 규칙 상시 주입 채널 부재)이 Gemini 에는 없다. 그래서 여기만
-#: 진입점 전체 블록(`render_entrypoint_rules`)을 싣는다.
-GEMINI_MANIFEST_RELPATH = "gemini-extension.json"
-GEMINI_CONTEXT_RELPATH = "GEMINI.md"
+#: Antigravity 어댑터 (2026-08-29 이 호스트 실측, agy CLI). Antigravity 는
+#: **payload 루트의 관례 파일**을 읽는다: `agy plugin validate` 가 `skills/` 4종과
+#: 루트 `mcp_config.json` (mcpServers 키) 을 인식했다. 내용은 `mcp.json` 과 같은
+#: 렌더러 출력의 동일 사본이다 — 정본이 하나라 갈라지지 않는다.
+#: 루트 `hooks.json` 도 파일 단위로는 인식되지만 이벤트 어휘(SessionStart 계열)의
+#: 호환은 **미실측**이라 싣지 않는다 (모름 ≠ 안전).
+ANTIGRAVITY_MCP_RELPATH = "mcp_config.json"
 
 #: goose / OpenCode 어댑터 — 두 하네스 모두 스킬은 `.agents/skills/` 를 직접 읽으므로
 #: (multi-harness-plugin-review §2) 어댑터가 나를 것은 MCP 등록 snippet 뿐이다.
@@ -638,52 +632,6 @@ def _payload_mcp_entry() -> tuple[str, list[str]]:
 _PAYLOAD_MCP_ENV = {"STANDARD_AI_WORKFLOW_ROOT": "."}
 
 
-def render_gemini_manifest(version: str | None = None) -> str:
-    """``plugin/gemini-extension.json`` — Gemini CLI 확장 manifest.
-
-    필드 5개는 전부 실측으로 확정했다 (gemini 0.42.0, `extensions validate` +
-    `extensions link` 후 `extensions list` 인벤토리):
-
-    - ``contextFileName`` — 상시 주입 컨텍스트 파일 선언. 인벤토리의
-      "Context files" 에 잡히는 것까지 확인했다 (모델 주입 계층은 P5 게이트).
-    - ``mcpServers`` — Gemini 는 manifest **안에** 인라인으로 둔다 (Claude Code 의
-      관례 파일 `.mcp.json` 과 다른 자리, 같은 파생).
-    - ``skills/`` 는 선언이 필요 없다 — 확장 루트의 관례 경로를 그대로 읽는다.
-      payload 스킬 4종이 무변환으로 잡히는 것을 실측했다.
-    """
-    alias, command = _payload_mcp_entry()
-    return json.dumps(
-        {
-            "name": PLUGIN_NAME,
-            "version": version if version is not None else current_kit_version(),
-            "description": PLUGIN_DESCRIPTION,
-            "contextFileName": GEMINI_CONTEXT_RELPATH,
-            "mcpServers": {
-                alias: {
-                    "command": command[0],
-                    "args": command[1:],
-                    "env": dict(_PAYLOAD_MCP_ENV),
-                }
-            },
-        },
-        ensure_ascii=False,
-        indent=2,
-    ) + "\n"
-
-
-def render_gemini_context(rules: StandardRules) -> str:
-    """``plugin/GEMINI.md`` — Gemini 확장이 상시 주입하는 규칙 블록.
-
-    내용은 bootstrap 이 진입점(`CLAUDE.md`/`GEMINI.md` …)에 주입하는 것과 **같은
-    파생 함수**(:func:`render_entrypoint_rules`) 다 — 채널이 둘이어도 정본은 하나다.
-    """
-    return (
-        "# Standard AI workflow — always-on rules (Gemini extension context)\n"
-        "\n"
-        f"{render_entrypoint_rules(rules)}\n"
-    )
-
-
 def render_goose_config_snippet() -> str:
     """``plugin/adapters/goose/config-snippet.yaml`` — goose 는 extension = MCP 서버.
 
@@ -788,8 +736,8 @@ def _rules_marker_probe() -> str:
 def render_claude_code_rules(rules: StandardRules) -> str:
     """``plugin/adapters/claude-code/rules.md`` — SessionStart 조건부 주입 규칙 블록.
 
-    내용은 bootstrap 진입점·Gemini 컨텍스트와 **같은 파생 함수**
-    (:func:`render_entrypoint_rules`) 다 — 채널이 셋이어도 정본은 하나다.
+    내용은 bootstrap 진입점에 주입하는 것과 **같은 파생 함수**
+    (:func:`render_entrypoint_rules`) 다 — 채널이 여럿이어도 정본은 하나다.
     """
     return (
         "# Standard AI workflow — always-on rules (injected by the plugin SessionStart hook)\n"
@@ -978,8 +926,8 @@ def render_agent_plugin(
         CLAUDE_CODE_HOOKS_RELPATH: hooks_config,
         GROK_HOOKS_RELPATH: hooks_config,
         CLAUDE_CODE_RULES_RELPATH: render_claude_code_rules(resolved),
-        GEMINI_MANIFEST_RELPATH: render_gemini_manifest(version),
-        GEMINI_CONTEXT_RELPATH: render_gemini_context(resolved),
+        # Antigravity 관례 루트 파일 — mcp.json 과 동일 사본 (동일성은 검사 case 가 강제).
+        ANTIGRAVITY_MCP_RELPATH: mcp_config,
         GOOSE_SNIPPET_RELPATH: render_goose_config_snippet(),
         OPENCODE_SNIPPET_RELPATH: render_opencode_snippet(),
     }

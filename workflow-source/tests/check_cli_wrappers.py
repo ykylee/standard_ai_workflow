@@ -45,7 +45,7 @@ from workflow_kit.common.read_only_bundle import (  # noqa: E402
 def _run_cli(tool: str, *args: str) -> dict:
     """CLI 를 subprocess 로 돌려 --json output dict 반환. exit code 무시 — payload
     비교가 본질 (CLI 의 *output* 이 MCP 의 *output* 과 같은지)."""
-    cmd = ["python3", f"workflow-source/workflow_kit/tools/{tool}.py", *args, "--json"]
+    cmd = [sys.executable, f"workflow-source/workflow_kit/tools/{tool}.py", *args, "--json"]
     result = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True, timeout=30)
     if not result.stdout.strip():
         raise RuntimeError(f"{tool} empty stdout: rc={result.returncode}, stderr={result.stderr!r}")

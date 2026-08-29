@@ -35,7 +35,6 @@ class HarnessSpec:
 SUPPORTED_HARNESSES: tuple[str, ...] = (
     "codex",
     "opencode",
-    "gemini-cli",
     "pi-dev",
     "antigravity",
     "minimax-code",
@@ -78,15 +77,6 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
         long_description=(
             "OpenCode CLI 환경용 오버레이. 메인 orchestrator와 doc/code/validation worker "
             "분리 패턴을 함께 적용해 다중 에이전트 토폴로지를 그대로 재현한다."
-        ),
-    ),
-    "gemini-cli": HarnessSpec(
-        name="gemini-cli",
-        description="Gemini CLI용 overlay. GEMINI.md 진입점 작성.",
-        entry_files=("GEMINI.md",),
-        long_description=(
-            "Gemini CLI 환경에 적합한 단일 진입점 오버레이. 워크플로우 세션 시작/종료와 "
-            "백로그 갱신 절차를 한국어 안내와 함께 노출한다."
         ),
     ),
     "pi-dev": HarnessSpec(

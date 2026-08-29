@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Smoke test — Harness verification (v0.15.9+).
 
-10 harness (codex, opencode, gemini-cli, antigravity, minimax-code, claude-code,
-aider, goose, pi-dev, codewhale) 의 directory + apply_guide.md/AGENTS.md +
+10 harness (codex, opencode, antigravity, minimax-code, claude-code,
+aider, goose, grok-build, pi-dev, codewhale) 의 directory + apply_guide.md/AGENTS.md +
 Panel 1+2 + maturity_matrix 3-way cross-check.
 
 4 cases:
@@ -41,10 +41,10 @@ MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 # (정밀도: 둘 중 하나 이상).
 HARNESS_MIN_ENTRY_FILES = ["apply_guide.md", "AGENTS.md"]
 
-# 실제 검증 대상 11개 (maturity_matrix.harnesses.supported 와 정합 검증용)
-# 3-way cross-check 의 expected set. v0.15.16+ grok-build 추가 (11개).
+# 실제 검증 대상 10개 (maturity_matrix.harnesses.supported 와 정합 검증용)
+# 3-way cross-check 의 expected set. v0.15.16+ grok-build 추가, 2026-08-29 gemini-cli 지원 종료 (10개).
 EXPECTED_HARNESSES = {
-    "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
+    "codex", "opencode", "antigravity", "minimax-code",
     "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 

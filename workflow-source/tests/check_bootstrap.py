@@ -383,41 +383,6 @@ def check_opencode_only_mode() -> None:
         assert_exists(str(snippet_candidates["opencode"]["snippet"]))
 
 
-def check_gemini_cli_mode() -> None:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        target_root = Path(tmpdir) / "gemini-cli-repo"
-        target_root.mkdir(parents=True, exist_ok=True)
-        payload = run_bootstrap(
-            [
-                "--target-root",
-                str(target_root),
-                "--project-slug",
-                "gemini_cli_project",
-                "--project-name",
-                "Gemini CLI Project",
-                "--harness",
-                "gemini-cli",
-                "--copy-core-docs",
-            ]
-        )
-        if payload["harnesses"] != ["gemini-cli"]:
-            raise AssertionError("Expected only the gemini-cli harness.")
-        harness_files = payload["generated_harness_files"]
-        if "gemini_cli_agents" not in harness_files:
-            raise AssertionError("Missing gemini_cli_agents in generated harness files.")
-        assert_exists(str(harness_files["gemini_cli_agents"]))
-
-        gemini_text = Path(str(harness_files["gemini_cli_agents"])).read_text(encoding="utf-8")
-        if "# GEMINI.md" not in gemini_text:
-            raise AssertionError("GEMINI.md should have the correct header.")
-        if "Gemini CLI" not in gemini_text:
-            raise AssertionError("GEMINI.md should mention Gemini CLI.")
-        if "Write user-facing work reports" not in gemini_text:
-            raise AssertionError("GEMINI.md should include the Korean reporting rule.")
-        if "invoke_agent" not in gemini_text:
-            raise AssertionError("GEMINI.md should mention invoke_agent for sub-agents.")
-
-
 def check_antigravity_mode() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         target_root = Path(tmpdir) / "antigravity-repo"
@@ -525,8 +490,6 @@ def check_enable_mcp_emission() -> None:
                 "--harness",
                 "opencode",
                 "--harness",
-                "gemini-cli",
-                "--harness",
                 "antigravity",
                 "--harness",
                 "minimax-code",
@@ -538,7 +501,6 @@ def check_enable_mcp_emission() -> None:
         expected_keys = {
             "codex_mcp_config": ".codex/mcp.toml",
             "opencode_mcp_config": "mcp.opencode.json",
-            "gemini_cli_mcp_config": ".gemini/mcp.json",
             "antigravity_mcp_config": ".antigravity/mcp.json",
             "minimax_code_mcp_config": ".MiniMax/mcp.json",
         }
@@ -745,14 +707,13 @@ def main() -> int:
     check_new_project_mode()
     check_existing_project_mode()
     check_opencode_only_mode()
-    check_gemini_cli_mode()
     check_antigravity_mode()
     check_minimax_code_mode()
     check_enable_mcp_emission()
     check_multi_stack_detection()
     check_stdio_sdk_mcp_emission()
     check_enable_wiki_emission()
-    print("Bootstrap scaffold smoke check passed for all modes including gemini-cli, antigravity, minimax-code, --enable-mcp emission, and --enable-wiki emission.")
+    print("Bootstrap scaffold smoke check passed for all modes including antigravity, minimax-code, --enable-mcp emission, and --enable-wiki emission.")
     return 0
 
 

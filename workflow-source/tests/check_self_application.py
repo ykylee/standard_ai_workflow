@@ -78,7 +78,7 @@ SELF_HARNESS = "claude-code"
 #: 있으면 내용까지 검증하되, 없다고 실패시키지는 않는 *다른 harness* 의 진입점.
 #: `.gitignore` 의 "Workflow layer (selective tracking)" 이 이것들을 의도적으로
 #: 제외하므로 요구하면 깨끗한 clone 과 CI 에서 반드시 실패한다.
-OPTIONAL_ENTRYPOINTS = ("AGENTS.md", "GEMINI.md", "ANTIGRAVITY.md")
+OPTIONAL_ENTRYPOINTS = ("AGENTS.md", "ANTIGRAVITY.md")
 LINTER = SOURCE_ROOT / "skills" / "workflow-linter" / "scripts" / "run_workflow_linter.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
 PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"

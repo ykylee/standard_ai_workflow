@@ -1,6 +1,6 @@
 # MCP Installation by Harness
 
-- 문서 목적: 각 하네스 (Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code / Grok Build / Claude Code / Aider / Goose) 에 표준 AI 워크플로우의 로컬 MCP 서버를 심고 동작시키는 방법을 안내한다.
+- 문서 목적: 각 하네스 (Codex / OpenCode / Antigravity / MiniMax Code / Grok Build / Claude Code / Aider / Goose) 에 표준 AI 워크플로우의 로컬 MCP 서버를 심고 동작시키는 방법을 안내한다.
 - 범위: 하네스별 MCP config 위치 / 스키마 / 자동 심기 (`--enable-mcp`) / 수동 적용 / 트러블슈팅
 - 대상 독자: 워크플로우 도입자, AI agent 운영자, 멀티 에이전트 setup 담당자
 - 상태: beta
@@ -78,11 +78,11 @@ python3 -m workflow_kit.bootstrap_lib --target-root <project_root> ...
 # --harness 미지정 → TTY picker 로 대화형 선택
 ```
 
-선택 가능한 하네스: `codex`, `opencode`, `gemini-cli`, `antigravity`, `minimax-code`, `pi-dev`, `claude-code`, `aider`, `goose`, `grok-build`, `codewhale`, `custom`
+선택 가능한 하네스: `codex`, `opencode`, `antigravity`, `minimax-code`, `pi-dev`, `claude-code`, `aider`, `goose`, `grok-build`, `codewhale`, `custom`
 
 비대화형(non-TTY) 환경에서는 `--harness` 를 명시적으로 지정하지 않으면 오류가 발생한다. CI/CD 파이프라인에서는 반드시 `--harness` 플래그를 명시해야 한다.
 
-비대화형 정책 (v0.5.11 §6 보강): `--no-interactive` 플래그 또는 non-TTY stdin 에서 `--harness` 미지정 시 `bootstrap_lib` 은 silent 0 overlay 생성을 하지 않고 명확한 `SystemExit(1)` + 12개 harness 목록 (`codex, opencode, gemini-cli, antigravity, minimax-code, pi-dev, claude-code, aider, goose, grok-build, codewhale, custom`) 제시 후 fail-fast 한다. 이 동작은 v0.5.8 부터 변경 없이 유지되지만, 비대화형 환경(CI, 파이프라인, 자동 에이전트)에서 명시적 contract 으로 문서화.
+비대화형 정책 (v0.5.11 §6 보강): `--no-interactive` 플래그 또는 non-TTY stdin 에서 `--harness` 미지정 시 `bootstrap_lib` 은 silent 0 overlay 생성을 하지 않고 명확한 `SystemExit(1)` + 11개 harness 목록 (`codex, opencode, antigravity, minimax-code, pi-dev, claude-code, aider, goose, grok-build, codewhale, custom`) 제시 후 fail-fast 한다. 이 동작은 v0.5.8 부터 변경 없이 유지되지만, 비대화형 환경(CI, 파이프라인, 자동 에이전트)에서 명시적 contract 으로 문서화.
 
 CI / 스크립트 환경 권장 호출 (silent 0 overlay 방지):
 
@@ -102,8 +102,7 @@ picker 가 선택한 하네스에 따라 `--enable-mcp` 와 결합 시 해당 �
 | --- | --- | --- | --- |
 | **Codex** | `~/.codex/config.toml` (`[mcp_servers.<alias>]` 섹션) | `<root>/.codex/mcp.toml` | TOML |
 | **OpenCode** | `opencode.json` 의 `"mcp": { ... }` 키 | `<root>/mcp.opencode.json` | JSON (top-level `mcp` 키) |
-| **Gemini CLI** | `~/.gemini/settings.json` 의 `"mcpServers": { ... }` | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
-| **Antigravity** | `~/.MiniMax/antigravity.json` (가정, 하네스별 확인 필요) | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
+| **Antigravity** | `~/.gemini/config/mcp_config.json` (2026-08-29 실측 — `~/.gemini/antigravity/mcp_config.json` 은 이 파일로의 symlink) | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
 | **MiniMax Code (legacy 빌드)** | `~/.MiniMax/mcp.json` 또는 `~/.MiniMax/config.json` 의 `mcp_servers` | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
 | **MiniMax Code (mavis 데스크탑 런타임, 2026-08-07 확인)** | `~/.minimax/mcp/mcp.json` 의 `mcpServers` (**유일** — workspace 단위 자동 로드 없음) | (해당 없음 — 글로벌만; project-local emit ❌) | JSON (`mcpServers` 키) |
 | **Grok Build** | `~/.grok/config.toml` (`[mcp_servers.<alias>]` 섹션) | `<root>/.grok/config.toml` | TOML |
@@ -118,7 +117,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --target-root <project_root> \
   --project-slug <slug> \
   --project-name "<name>" \
-  --harness codex --harness opencode --harness gemini-cli \
+  --harness codex --harness opencode --harness antigravity \
   --harness antigravity --harness minimax-code --harness grok-build \
   --harness claude-code --harness aider --harness goose \
   --adoption-mode existing \
@@ -168,33 +167,19 @@ workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadat
 }
 ```
 
-### 6.3 Gemini CLI (`~/.gemini/settings.json`)
+### 6.4 Antigravity (`~/.gemini/config/mcp_config.json`)
 
-```json
-{
-  "mcpServers": {
-    "standardAiWorkflowReadOnly": {
-      "command": "python3",
-      "args": ["-m", "workflow_kit.server.read_only_jsonrpc", "--stdio-lines"],
-      "env": {
-        "PYTHONPATH": "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source",
-        "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
-      },
-      "trust": true,
-      "includeTools": [
-        "latest_backlog",
-        "check_doc_metadata",
-        "check_doc_links",
-        "suggest_impacted_docs"
-      ]
-    }
-  }
-}
-```
+> §6.3 (Gemini CLI) 은 2026-08-29 지원 종료로 **결번**이다 — 하위 절 번호를
+> 흔들지 않으려고 재부여하지 않는다 (§6.5.2 를 참조하는 문서·코드가 있다).
 
-### 6.4 Antigravity
+글로벌 등록은 `~/.gemini/config/mcp_config.json` 에 `mcpServers` 키로 한다
+(2026-08-29 이 호스트 실측 — 종전 문서의 `~/.antigravity/config.json` /
+`~/.MiniMax/antigravity.json` 은 실재하지 않는 **추정**이었다.
+`~/.gemini/antigravity/mcp_config.json` 은 이 파일로의 symlink 다).
+bootstrap 이 emit 한 `.antigravity/mcp.json` 의 `mcpServers` 블록을 그대로 복사한다.
 
-Antigravity 의 정확한 글로벌 설정 경로는 하네스 문서를 참조. 일반적으로 `~/.antigravity/config.json` 에 `mcpServers` 키로 등록 (Gemini CLI 와 동일 스키마). bootstrap 이 emit 한 `.antigravity/mcp.json` 의 `mcpServers` 블록을 그대로 복사.
+플러그인 채널이 더 간단하다: `agy plugin install <경로>/plugin` 이 payload 루트의
+`mcp_config.json` (`mcp.json` 과 동일 사본) 을 그대로 읽는다 — INSTALLATION §7.0.
 
 ### 6.5 MiniMax Code
 
@@ -338,7 +323,7 @@ Grok Build 와 Codex 가 *동시에* 같은 저장소를 다룰 때, 동일 alia
 ### 7.4 한국어 `description` 이 깨져 보임
 
 - `ensure_ascii=False` 로 dump 했으므로 UTF-8 그대로 전송. 하네스가 latin-1 로 읽으면 깨진다.
-- **해결**: 하네스 로그 인코딩을 UTF-8 로 강제. Codex/OpenCode 는 기본 UTF-8. Gemini CLI 는 `--encoding utf-8` 플래그 필요할 수 있음.
+- **해결**: 하네스 로그 인코딩을 UTF-8 로 강제. Codex/OpenCode 는 기본 UTF-8.
 
 ### 7.5 `transport_ready=false` 표시 (역사 — 필드는 §6.2 로 제거됨)
 
@@ -357,7 +342,6 @@ Grok Build 와 Codex 가 *동시에* 같은 저장소를 다룰 때, 동일 alia
 
 - [harnesses/codex/apply_guide.md](../harnesses/codex/apply_guide.md)
 - [harnesses/opencode/apply_guide.md](../harnesses/opencode/apply_guide.md)
-- [harnesses/gemini-cli/apply_guide.md](../harnesses/gemini-cli/apply_guide.md)
 - [harnesses/antigravity/apply_guide.md](../harnesses/antigravity/apply_guide.md)
 - [harnesses/minimax-code/apply_guide.md](../harnesses/minimax-code/apply_guide.md)
 - [harnesses/grok-build/apply_guide.md](../harnesses/grok-build/apply_guide.md)

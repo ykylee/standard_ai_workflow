@@ -265,11 +265,14 @@ def test_supported_harnesses_count_v0_10_2() -> None:
 
     v1.0.0: 이후 릴리스에서 harness 가 *추가* 되므로 (grok-build, codewhale, ...) 정확한
     개수/집합 고정이 아니라 **v0.10.2 당시 10종이 여전히 지원되는지** 를 회귀 검사한다.
+
+    2026-08-29: gemini-cli 는 소유자 판정으로 지원을 **의도적으로 종료**했다 —
+    "사라졌는지" 회귀의 예외로 expected 에서 뺀다 (지원 종료 ≠ 회귀).
     """
     from workflow_kit.bootstrap_lib.harnesses import SUPPORTED_HARNESSES
 
     expected = {
-        "codex", "opencode", "gemini-cli", "pi-dev", "antigravity", "minimax-code",
+        "codex", "opencode", "pi-dev", "antigravity", "minimax-code",
         "claude-code", "aider", "goose", "custom",
     }
     missing = expected - set(SUPPORTED_HARNESSES)

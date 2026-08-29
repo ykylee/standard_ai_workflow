@@ -11,7 +11,7 @@
         "read-only"
       ],
       "env": {
-        "PYTHONPATH": "workflow-source",
+        "PYTHONPATH": "/ABSOLUTE/PATH/TO/standard_ai_workflow/workflow-source",
         "STANDARD_AI_WORKFLOW_ROOT": "/ABSOLUTE/PATH/TO/<project_root>"
       }
     }

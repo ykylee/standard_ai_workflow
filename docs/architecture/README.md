@@ -30,7 +30,7 @@
 
 ### 2.2. Bootstrap-driven 도입
 - 사용자는 `python3 -m workflow_kit.bootstrap_lib --target-root <project>` 한 번으로 표준 워크플로우 패키지를 받는다.
-- bootstrap 은 `--harness` 로 하네스 선택 (10종: `codex` / `opencode` / `gemini-cli` / `antigravity` / `minimax-code` / `claude-code` / `aider` / `goose` / `pi-dev` / `codewhale` v0.10.4 신규), `--enable-mcp` 로 MCP 심기, `--adoption-mode {new,existing}` 로 빈/기존 프로젝트 모드 분기.
+- bootstrap 은 `--harness` 로 하네스 선택 (10종: `codex` / `opencode` / `antigravity` / `minimax-code` / `claude-code` / `aider` / `goose` / `grok-build` / `pi-dev` / `codewhale` v0.10.4 신규), `--enable-mcp` 로 MCP 심기, `--adoption-mode {new,existing}` 로 빈/기존 프로젝트 모드 분기.
 - **상세**: [`../../workflow-source/core/workflow_harness_distribution.md`](../../workflow-source/core/workflow_harness_distribution.md)
 
 ### 2.3. Pydantic v2 기반 강타입 계약

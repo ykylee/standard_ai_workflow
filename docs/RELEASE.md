@@ -35,7 +35,7 @@
 - `standard-ai-workflow-claude-code-plugin-<X>.<Y>.<Z>.zip`
 
 새 플러그인 지원 하네스는 `workflow_kit.plugin_distribution.PLUGIN_HARNESS_SPECS`에 등록하면 동일한 dist/release 경로에 자동 포함된다.
-ZIP 이 이 둘뿐인 이유: 나머지 플러그인 하네스(Gemini CLI · Grok Build · pi.dev)는 저장소/`plugin/` 에서 직접 설치한다 — 채널 전체 그림은 `workflow-source/core/workflow_harness_distribution.md` §2.1.
+ZIP 이 이 둘뿐인 이유: 나머지 플러그인 하네스(Antigravity · Grok Build · pi.dev)는 저장소/`plugin/` 에서 직접 설치한다 — 채널 전체 그림은 `workflow-source/core/workflow_harness_distribution.md` §2.1.
 release 본문은 `workflow-source/releases/Beta-v<X>.<Y>.<Z>.md` 가 그대로 들어감.
 
 ### 각주 0 — PyPI 발행 안 함 (2026-08-14 소유자 최종 결정)

@@ -80,7 +80,6 @@ from workflow_kit.bootstrap_lib.harnesses.renderers import (  # noqa: E402
     render_antigravity_agents,
     render_codex_agents,
     render_codex_config_example,
-    render_gemini_cli_agents,
     render_minimax_code_worker,
     render_minimax_config_example,
     render_minimax_doc_worker,
@@ -97,7 +96,6 @@ from workflow_kit.bootstrap_lib.harnesses.renderers import (  # noqa: E402
     render_opencode_worker_agent,
     write_antigravity_harness_files,
     write_codex_harness_files,
-    write_gemini_cli_harness_files,
     write_minimax_code_harness_files,
     write_opencode_harness_files,
     write_pi_dev_harness_files,
@@ -113,7 +111,6 @@ from workflow_kit.bootstrap_lib.paths import (  # noqa: E402
     Paths,
     antigravity_agents_path,
     codex_agents_path,
-    gemini_cli_agents_path,
     make_paths,
     minimax_agents_path,
 )
@@ -258,10 +255,6 @@ HARNESS_DEFINITIONS: dict[str, HarnessDefinition] = {
         name="opencode",
         description="Generate opencode.json and project-local OpenCode overlays.",
     ),
-    "gemini-cli": HarnessDefinition(
-        name="gemini-cli",
-        description="Generate GEMINI.md for the Gemini CLI.",
-    ),
     "antigravity": HarnessDefinition(
         name="antigravity",
         description="Generate ANTIGRAVITY.md for the Antigravity agent.",
@@ -298,10 +291,10 @@ def parse_args() -> argparse.Namespace:
         choices=["aggressive", "safe", "skill-only"],
         default="aggressive",
         help=(
-            "Bootstrap 진입점 모드. 'aggressive' (default) = AGENTS.md / GEMINI.md 등 "
+            "Bootstrap 진입점 모드. 'aggressive' (default) = AGENTS.md 등 "
             "root 진입점 + harness overlay 모두 emit. 'safe' = aggressive 와 동일 "
             "(기존 project overwrite 시 의도적 opt-in). 'skill-only' = root 진입점 "
-            "(AGENTS.md / GEMINI.md / ANTIGRAVITY.md / MiniMax.md) skip, harness "
+            "(AGENTS.md / ANTIGRAVITY.md / MiniMax.md) skip, harness "
             "고유 skill / slash command / config 파일만 emit. AGENTS.md 안 읽는 "
             "하네스 (Claude Code / Aider / Goose / pi-dev / custom) 의 정공법."
         ),
@@ -877,7 +870,7 @@ def write_harness_files(
 
     The harness overlay files are written in two passes:
 
-    1. **Agents entry files** (``AGENTS.md`` / ``GEMINI.md`` / ``ANTIGRAVITY.md`` /
+    1. **Agents entry files** (``AGENTS.md`` / ``ANTIGRAVITY.md`` /
        ``MiniMax.md``) are written directly here because the renderer and the
        path are 1:1 with the harness name. The same ``codex_agents_path`` is
        reused for both ``codex``, ``opencode``, and ``pi-dev`` (the latter two
@@ -935,13 +928,6 @@ def write_harness_files(
             else:
                 _w(pi_agents, render_pi_dev_agents(args, context))
             generated["pi_dev_agents"] = str(pi_agents)
-
-    if "gemini-cli" in harnesses:
-        # entry-mode=skill-only: GEMINI.md 진입점 skip
-        if getattr(args, "entry_mode", "aggressive") != "skill-only":
-            gemini_agents = gemini_cli_agents_path(paths)
-            _w(gemini_agents, render_gemini_cli_agents(args, paths, context))
-            generated["gemini_cli_agents"] = str(gemini_agents)
 
     if "antigravity" in harnesses:
         # entry-mode=skill-only: ANTIGRAVITY.md 진입점 skip

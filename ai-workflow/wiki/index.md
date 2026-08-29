@@ -73,7 +73,6 @@
 ### [[entities/mcp-read-only-bundle]] {#mcp-read-only-bundle}
 ### [[entities/harness-overlay-codex]] {#harness-overlay-codex}
 ### [[entities/harness-overlay-opencode]] {#harness-overlay-opencode}
-### [[entities/harness-overlay-gemini-cli]] {#harness-overlay-gemini-cli}
 ### [[entities/harness-overlay-antigravity]] {#harness-overlay-antigravity}
 ### [[entities/harness-overlay-minimax-code]] {#harness-overlay-minimax-code}
 ### [[entities/harness-overlay-pi-dev]] {#harness-overlay-pi-dev}

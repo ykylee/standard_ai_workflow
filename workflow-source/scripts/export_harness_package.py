@@ -24,7 +24,6 @@ from workflow_kit.common.paths import memory_active_dir
 SUPPORTED_HARNESSES = (
     "codex",
     "opencode",
-    "gemini-cli",
     "pi-dev",
     "antigravity",
     "claude-code",
@@ -255,8 +254,6 @@ def harness_specific_sources(harness: str) -> list[Path]:
         return sources
     if harness == "opencode":
         return sources
-    if harness == "gemini-cli":
-        return sources
     if harness == "pi-dev":
         return sources
     if harness == "antigravity":
@@ -267,8 +264,13 @@ def harness_specific_sources(harness: str) -> list[Path]:
 
 
 def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
+    # 자식은 부모와 **같은 인터프리터**로 spawn 한다 ('자기 위치 오인' 결함족,
+    # TASK-2026-08-28-main-013 과 같은 계열). 리터럴 "python3" 은 PATH 의 다른
+    # 인터프리터를 잡는다 — 이 호스트 실측(2026-08-29): homebrew python3 이 옛
+    # worktree 의 stale editable 설치로 *우연히* 돌다가, meta-watch 의 PYTHONPATH
+    # 주입이 현 저장소를 앞세우는 순간 의존성 부재(pydantic)로 red 가 됐다.
     args = [
-        "python3",
+        sys.executable,
         str(SOURCE_ROOT / "scripts" / "bootstrap_workflow_kit.py"),
         "--target-root",
         str(temp_repo),
@@ -279,9 +281,6 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
         "--harness",
         harness,
     ]
-    completed = shutil.which("python3")
-    if completed is None:
-        raise RuntimeError("python3 is required to export harness packages.")
     import subprocess
     import os
 
@@ -324,12 +323,6 @@ def bootstrap_export_sources(harness: str, temp_repo: Path) -> list[Path]:
                 temp_repo / "AGENTS.md",
                 temp_repo / "opencode.json",
                 temp_repo / ".opencode",
-            ]
-        )
-    elif harness == "gemini-cli":
-        sources.extend(
-            [
-                temp_repo / "GEMINI.md",
             ]
         )
     elif harness == "pi-dev":
@@ -386,8 +379,6 @@ def recommended_entrypoints_for(harness: str) -> list[str]:
             "bundle/.opencode/skills/standard-ai-workflow/SKILL.md",
             "bundle/.opencode/agents/workflow-orchestrator.md",
         ] + common
-    if harness == "gemini-cli":
-        return ["bundle/GEMINI.md"] + common
     if harness == "pi-dev":
         return ["bundle/AGENTS.md"] + common
     if harness == "antigravity":
@@ -418,14 +409,6 @@ def package_apply_steps_for(harness: str) -> list[str]:
             "`opencode.json` 의 instruction 경로와 `.opencode/agents/` 권한 범위가 현재 저장소 운영 방식과 맞는지 검토한다.",
             "메인 오케스트레이터는 `.opencode/agents/workflow-orchestrator.md` 를 기준으로 두고, 직접 도구 호출 없이 worker agent 위임만 수행하는 패턴을 유지한다.",
             "worker agent 는 bounded scope 안에서 실제 읽기/수정/검증을 맡고, low-risk 실행에서는 `ask` 를 최소화하는 방향으로 운영한다.",
-            "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
-        ]
-    if harness == "gemini-cli":
-        return [
-            "압축을 풀고 가능하면 `ai-workflow/scripts/apply_workflow_upgrade.py` 를 사용하여 `bundle/` 내용을 반영한다. 이 스크립트는 버전 비교와 .gitignore 셋업을 자동으로 수행한다.",
-            "수동 적용 시 `bundle/GEMINI.md` 와 `bundle/ai-workflow/` 디렉터리를 대상 저장소 루트에 복사한다.",
-            "`GEMINI.md` 가 `ai-workflow/memory/active/state.json`, `session_handoff.md`, `work_backlog.md`, `PROJECT_PROFILE.md` 를 먼저 읽도록 유지한다.",
-            "Gemini CLI 에서는 `GEMINI.md` 가 시스템 지침보다 우선하므로, 프로젝트 특화 규칙이 이 문서에 잘 반영됐는지 확인한다.",
             "첫 세션에서는 `state.json`, `session_handoff.md`, `work_backlog.md`, 오늘 날짜 backlog 를 실제 저장소 상태로 갱신한다.",
         ]
     if harness == "pi-dev":
@@ -485,9 +468,6 @@ def render_package_contents(
             "- `bundle/.opencode/agents/workflow-doc-worker.md`",
             "- `bundle/.opencode/agents/workflow-code-worker.md`",
             "- `bundle/.opencode/agents/workflow-validation-worker.md`",
-        ],
-        "gemini-cli": [
-            "- `bundle/GEMINI.md`",
         ],
         "pi-dev": [
             "- `bundle/AGENTS.md`",
@@ -594,10 +574,6 @@ def render_apply_guide(
             "- `bundle/.opencode -> <repo>/.opencode`",
             "- `bundle/ai-workflow -> <repo>/ai-workflow`",
         ],
-        "gemini-cli": [
-            "- `bundle/GEMINI.md -> <repo>/GEMINI.md`",
-            "- `bundle/ai-workflow -> <repo>/ai-workflow`",
-        ],
         "pi-dev": [
             "- `bundle/AGENTS.md -> <repo>/AGENTS.md`",
             "- `bundle/ai-workflow -> <repo>/ai-workflow`",
@@ -625,13 +601,6 @@ def render_apply_guide(
             "- `opencode.json`",
             "- `.opencode/skills/standard-ai-workflow/SKILL.md`",
             "- `.opencode/agents/workflow-orchestrator.md`",
-            "- `ai-workflow/memory/active/state.json`",
-            "- `ai-workflow/memory/active/sessions`",
-            "- `ai-workflow/memory/active/backlog`",
-            "- `docs/PROJECT_PROFILE.md`",
-        ],
-        "gemini-cli": [
-            "- `GEMINI.md`",
             "- `ai-workflow/memory/active/state.json`",
             "- `ai-workflow/memory/active/sessions`",
             "- `ai-workflow/memory/active/backlog`",

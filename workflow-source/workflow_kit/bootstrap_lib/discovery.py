@@ -30,13 +30,11 @@ COMMON_NODE_DEPS: list[str] = ["@modelcontextprotocol/sdk"]
 
 # Harness-specific optional dependencies
 HARNESS_PYTHON_DEPS: dict[str, list[str]] = {
-    "gemini-cli": [],
     "codex": [],
     "opencode": [],
     "antigravity": [],
 }
 HARNESS_NODE_DEPS: dict[str, list[str]] = {
-    "gemini-cli": [],
     "codex": [],
 }
 

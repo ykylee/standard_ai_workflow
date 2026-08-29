@@ -25,7 +25,6 @@
 ## 3. 포함된 배포 패키지 (Assets)
 - `standard-ai-workflow-antigravity-vX.Y.Z.zip`
 - `standard-ai-workflow-codex-vX.Y.Z.zip`
-- `standard-ai-workflow-gemini-cli-vX.Y.Z.zip`
 - `standard-ai-workflow-opencode-vX.Y.Z.zip`
 - `standard-ai-workflow-pi-dev-vX.Y.Z.zip`
 

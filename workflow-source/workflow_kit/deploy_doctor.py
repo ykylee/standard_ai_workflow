@@ -93,9 +93,11 @@ GLOBAL_DECLARATION_HOMES: tuple[GlobalDeclarationHome, ...] = (
         probe_keys=("standard-ai-workflow",),
     ),
     GlobalDeclarationHome(
-        harness="gemini-cli",
-        relpath=".gemini/settings.json",
-        probe_keys=("standard-ai-workflow", "standardAiWorkflow"),
+        # Antigravity 의 글로벌 MCP 정본 (2026-08-29 이 호스트 실측):
+        # `~/.gemini/antigravity/mcp_config.json` 은 이 파일로의 symlink 다.
+        harness="antigravity",
+        relpath=".gemini/config/mcp_config.json",
+        probe_keys=("standardAiWorkflow", "standard-ai-workflow"),
     ),
     GlobalDeclarationHome(
         harness="grok-build",
@@ -134,8 +136,7 @@ class PluginInstallCache:
 
 #: 페이로드 사본의 거주지 **정본**. 사본을 두지 않는 채널은 여기 없다:
 #: pi-dev 는 `~/.pi/agent/settings.json` 의 `packages[]` **경로 참조**라 사본이
-#: 없어 내용 드리프트가 성립하지 않고, gemini-cli 는 이 호스트에 CLI 가 없어
-#: **미실측**이다 (§7.0.2 표와 같은 상태).
+#: 없어 내용 드리프트가 성립하지 않는다.
 PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
     PluginInstallCache(
         harness="claude-code",
@@ -151,6 +152,12 @@ PLUGIN_INSTALL_CACHES: tuple[PluginInstallCache, ...] = (
         harness="grok-build",
         glob=".grok/installed-plugins/*standard-ai-workflow*",
     ),
+    PluginInstallCache(
+        # `agy plugin install` 의 사본 — 버전 디렉터리가 없다 (2026-08-29 실측:
+        # 재실행은 디렉터리를 갈아엎지 않는 병합 복사, uninstall 은 통째 제거).
+        harness="antigravity",
+        glob=".gemini/config/plugins/standard-ai-workflow",
+    ),
 )
 
 #: 채널을 **실행하는 프로세스**의 `ps comm` 이름. `runtime_load` 절이 "지금 돌고
@@ -161,6 +168,8 @@ HARNESS_CLI_COMMANDS: dict[str, tuple[str, ...]] = {
     "claude-code": ("claude",),
     "codex": ("codex",),
     "grok-build": ("grok",),
+    # IDE 프로세스명은 미실측 — CLI(`agy`) 만 선언한다 (모름 ≠ 안전).
+    "antigravity": ("agy",),
 }
 
 #: 어느 채널에서든 사본 안에 있어도 드리프트로 세지 않는 것들.
@@ -221,9 +230,10 @@ CHANNEL_PREREQUISITES: tuple[ChannelPrerequisite, ...] = (
         note="marketplace 가 로컬 디렉터리라 네트워크는 ZIP 내려받을 때만 필요하다",
     ),
     ChannelPrerequisite(
-        channel="gemini-cli",
-        executables=("gemini", "git", *_PLUGIN_COMMON),
-        declared=("저장소 클론 (확장 루트가 `plugin/` 이라 로컬 경로 설치)",),
+        channel="antigravity",
+        executables=("agy", *_PLUGIN_COMMON),
+        declared=("로컬 체크아웃 (`agy plugin install <경로>/plugin`) 또는 `plugin@marketplace` 소스",),
+        note="설치본은 무버전 사본 (`~/.gemini/config/plugins/<name>/`) — 재설치가 곧 갱신이다",
     ),
     ChannelPrerequisite(
         channel="grok-build",
@@ -710,9 +720,14 @@ def _canonical_payload() -> tuple[dict[str, str] | None, str | None]:
 
 
 def _installed_version(root: Path, manifest_rel: str | None) -> str | None:
-    """설치 사본이 스스로 말하는 버전. 매니페스트 → 캐시 디렉터리 이름 순."""
-    if manifest_rel:
-        manifest = root / manifest_rel
+    """설치 사본이 스스로 말하는 버전. 매니페스트 → 루트 plugin.json → 캐시 디렉터리 이름 순.
+
+    무버전 사본 채널(antigravity 의 `~/.gemini/config/plugins/<name>/`)은 디렉터리
+    이름이 버전이 아니다 — payload 공용 매니페스트(`plugin.json`)의 version 을 읽는다.
+    """
+    candidates = [manifest_rel, "plugin.json"] if manifest_rel else ["plugin.json"]
+    for rel in candidates:
+        manifest = root / rel
         if manifest.is_file():
             try:
                 declared = json.loads(manifest.read_text(encoding="utf-8")).get("version")
@@ -931,7 +946,6 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
         # 사본을 두지 않는 채널은 내용 드리프트가 성립하지 않는다.
         "not_applicable": {
             "pi-dev": "경로 참조라 사본이 없다 — 원본이 곧 설치본이다",
-            "gemini-cli": "이 호스트에 CLI 가 없어 미실측 (§7.0.2 와 같은 상태)",
         },
         # 이 절이 재는 것은 **파일이 같은가** 이지 **하네스가 그것을 실제로 노출하는가**
         # 가 아니다. 둘은 갈릴 수 있고 실제로 갈렸다 (2026-08-20 실측):
@@ -1157,7 +1171,6 @@ def _probe_runtime_load(
         ),
         "not_applicable": {
             "pi-dev": "경로 참조라 사본이 없다 — 설치 시각을 잴 자리가 없다",
-            "gemini-cli": "이 호스트에 CLI 가 없어 미실측 (§7.0.2 와 같은 상태)",
         },
         "declared_unmeasured": [
             "프로세스 식별은 `ps` 의 `comm` 이름에 의존한다 — 런처가 다른 이름으로 "

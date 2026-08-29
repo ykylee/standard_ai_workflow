@@ -96,7 +96,7 @@ Phase 12 의 SemVer stable guarantee 2-year 진입 (v0.8.0 → v2.0.0) 을 위�
 - **즉시 배포 가능한 키트**: 91 release cycle 누적, 9 stable skill + 8 stable MCP + 10 harness + FULL mypy strict. 다운스트림이 `pip install -e ".[mcp-sdk,dev]"` 한 줄로 editable link 가능.
 - **에이전트 친화적 retrieval layer**: ADR-005 Memory Index 가 본문/검색 분리로 context load 비용을 줄이고 cross-doc reconcile 을 강화.
 - **타입 안전성**: 109 file mypy strict clean + Layer 1/Layer 2 mypy defense + release pipeline 자동화.
-- **하네스 호환성**: 10개 하네스 (Codex, OpenCode, Gemini CLI, Antigravity, MiniMax Code, CodeWhale, Claude Code, Aider, Goose, pi-dev). 신규 하네스 추가는 `HARNESS_SPECS` + `register_harness_builder` 한 줄.
+- **하네스 호환성**: 10개 하네스 (Codex, OpenCode, Antigravity, MiniMax Code, CodeWhale, Claude Code, Aider, Goose, Grok Build, pi-dev). 신규 하네스 추가는 `HARNESS_SPECS` + `register_harness_builder` 한 줄.
 - **검증된 안정성**: 누적 smoke test 200+ (`workflow-source/tests/check_*.py`) + CI mypy-strict + consumer feedback GH Pages.
 
 ## 6. 우선순위 권고 (Phase 12 잔여 + ADR-006 후속)

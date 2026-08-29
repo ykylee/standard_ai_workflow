@@ -5,7 +5,7 @@
 - 대상 독자: AI 에이전트와 협업하려는 개발자
 - 상태: beta
 - 최종 수정일: 2026-06-12
-- 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `GEMINI.md`, `MiniMax.md`, [`docs/INSTALLATION_AND_USAGE.md`](docs/INSTALLATION_AND_USAGE.md) (개발자용)
+- 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `ANTIGRAVITY.md`, `MiniMax.md`, [`docs/INSTALLATION_AND_USAGE.md`](docs/INSTALLATION_AND_USAGE.md) (개발자용)
 
 이 문서는 **Standard AI Workflow**를 여러분의 프로젝트에 5분 만에 도입하여 AI 에이전트와 체계적으로 Peer Programming을 시작하는 방법을 안내합니다.
 
@@ -22,7 +22,6 @@
   - **MiniMax Code** (권장, Mavis 오케스트레이터/워커 오버레이 포함)
   - Codex CLI
   - OpenCode CLI
-  - Gemini CLI
   - Antigravity
   - Claude Code (CLAUDE.md root 진입점)
   - CodeWhale (Constitution 보강 SKILL.md)
@@ -46,11 +45,11 @@ cp /path/to/bundle/MiniMax.md .
 
 # 다른 하네스
 cp -r /path/to/bundle/ai-workflow .
-cp /path/to/bundle/<HARNESS_ENTRIES> .   # 예: GEMINI.md, ANTIGRAVITY.md
+cp /path/to/bundle/<HARNESS_ENTRIES> .   # 예: ANTIGRAVITY.md, MiniMax.md
 ```
 
 - `ai-workflow/`: 워크플로우의 상태와 메타데이터가 저장되는 공간입니다.
-- `AGENTS.md`, `GEMINI.md`, `MiniMax.md` 등: 선택한 하네스의 진입점입니다.
+- `AGENTS.md`, `ANTIGRAVITY.md`, `MiniMax.md` 등: 선택한 하네스의 진입점입니다.
 
 ### 2단계: 의존성 설치 및 환경 설정
 
@@ -67,7 +66,7 @@ pip install -r requirements-dev.txt
 선택한 하네스 세션을 시작하고 AI 에이전트에게 워크플로우 도입을 알립니다.
 
 ```bash
-# MiniMax Code / Codex / OpenCode / Gemini CLI / Antigravity 세션 시작 시
+# MiniMax Code / Codex / OpenCode / Antigravity 세션 시작 시
 "프로젝트 루트의 <HARNESS_ENTRY>를 읽고 워크플로우 세션을 시작해줘."
 ```
 
@@ -111,12 +110,11 @@ v0.5.8 부터 TTY 환경에서 `--harness` 미지정 시 interactive picker 가 
 | --- | --- | --- |
 | Codex | `<root>/.codex/mcp.toml` | TOML |
 | OpenCode | `<root>/mcp.opencode.json` | JSON (`mcp` 키) |
-| Gemini CLI | `<root>/.gemini/mcp.json` | JSON (`mcpServers` 키) |
-| Antigravity | `<root>/antigravity.mcp.json` | JSON (`mcpServers` 키) |
+| Antigravity | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
 | MiniMax Code | `<root>/.minimax/mcp.json` | JSON (`mcp_servers` 키) |
 | pi-dev | `<root>/.pi-dev/mcp.json` | JSON (`mcpServers` 키) |
 
-전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/settings.json` / `~/.minimax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](workflow-source/core/mcp_installation_by_harness.md)
+전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/config/mcp_config.json` (Antigravity) / `~/.minimax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](workflow-source/core/mcp_installation_by_harness.md)
 
 전송 방식 (transport) 선택:
 
@@ -136,7 +134,6 @@ python3 ai-workflow/workflow_kit/server/read_only_mcp_sdk.py --stdio-sdk
 - MiniMax Code: [`workflow-source/harnesses/minimax-code/README.md`](./workflow-source/harnesses/minimax-code/README.md)
 - Codex: [`workflow-source/harnesses/codex/README.md`](./workflow-source/harnesses/codex/README.md)
 - OpenCode: [`workflow-source/harnesses/opencode/README.md`](./workflow-source/harnesses/opencode/README.md)
-- Gemini CLI: [`workflow-source/harnesses/gemini-cli/README.md`](./workflow-source/harnesses/gemini-cli/README.md)
 - Antigravity: [`workflow-source/harnesses/antigravity/README.md`](./workflow-source/harnesses/antigravity/README.md)
 - Claude Code: [`workflow-source/harnesses/claude-code/README.md`](./workflow-source/harnesses/claude-code/README.md)
 - CodeWhale (v0.10.4 신규): [`workflow-source/harnesses/codewhale/README.md`](./workflow-source/harnesses/codewhale/README.md)

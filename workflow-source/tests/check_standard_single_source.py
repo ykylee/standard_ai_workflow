@@ -74,7 +74,6 @@ DISTRIBUTED_CORE = REPO_ROOT / "ai-workflow" / "core"
 #: 규칙을 담아야 하는 하네스별 *주요* 진입점 (bootstrap 산출물 기준 상대 경로).
 PRIMARY_ENTRYPOINTS: dict[str, str] = {
     "claude-code": "CLAUDE.md",
-    "gemini-cli": "GEMINI.md",
     "antigravity": "ANTIGRAVITY.md",
     "minimax-code": "MiniMax.md",
     "grok-build": "GROK.md",

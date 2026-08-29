@@ -10,7 +10,7 @@ mention, related docs, stale baseline) 은 cross-panel 정합 보장.
 
 4 cases:
   1) **harness list 정합**: QUICKSTART 본문 내 10 harness 모두 등장
-     (MiniMax Code, Codex, OpenCode, Gemini CLI, Antigravity, Claude Code,
+     (MiniMax Code, Codex, OpenCode, Antigravity, Claude Code,
      CodeWhale, Aider, Goose, pi-dev).
   2) **version baseline mention**: 'v0.5.10+' / 'v0.6.5-beta' / 'v0.5.7+' 같은
      baseline mention 이 *의도된 표기* (release note baseline vs stale)
@@ -44,7 +44,7 @@ HARNESSES_DIR = SOURCE_ROOT / "harnesses"
 MCP_INSTALLATION_PATH = SOURCE_ROOT / "core" / "mcp_installation_by_harness.md"
 
 EXPECTED_HARNESSES = {
-    "codex", "opencode", "gemini-cli", "antigravity", "minimax-code",
+    "codex", "opencode", "antigravity", "minimax-code",
     "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
 }
 

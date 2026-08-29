@@ -269,7 +269,7 @@ print('all critical imports OK')
 
 ## 7. 부트스트랩 / 상태 생성 / MCP 실행
 
-### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Gemini CLI / Grok Build / pi.dev)
+### 7.0. 플러그인 설치 (권장 경로 — Codex / Claude Code / Antigravity / Grok Build / pi.dev)
 
 소비 프로젝트가 워크플로우를 얻는 **권장 경로**다 (소유자 판정 2026-08-13,
 근거: [`planning/plugin-transition-plan-2026-08.md`](./planning/plugin-transition-plan-2026-08.md)
@@ -292,11 +292,12 @@ claude plugin update standard-ai-workflow@standard-ai-workflow   # 재시작 후
 ```
 
 ```bash
-# Gemini CLI — 확장 루트가 저장소의 plugin/ 이므로 로컬 경로로 설치한다
-# (GitHub URL 설치는 manifest 가 저장소 루트에 있어야 해 성립하지 않는다)
+# Antigravity (agy CLI) — payload 루트를 로컬 경로로 설치한다 (2026-08-29 실측)
+# 인식되는 것: skills/ 4종 + 루트 mcp_config.json (mcpServers 키).
+# 루트 hooks.json 은 파일 인식까지만 실측 — 이벤트 어휘 호환 미실측이라 payload 에 안 싣는다.
 git clone https://github.com/ykylee/standard_ai_workflow.git
-gemini extensions install ./standard_ai_workflow/plugin --consent
-# 개발 추적이 필요하면 install 대신: gemini extensions link ./standard_ai_workflow/plugin
+agy plugin validate ./standard_ai_workflow/plugin   # 설치 전 검증 (skills 4 · mcpServers 1)
+agy plugin install ./standard_ai_workflow/plugin
 ```
 
 ```bash
@@ -344,7 +345,7 @@ wk doctor --json          # 기계가 읽는 형태 (`.preflight.ready_channels`
 |---|---|---|
 | **claude-code** | `claude` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) |
 | **codex** | `codex` · `unzip` · `wk` · `python3` | GitHub Release 의 Codex ZIP 을 미리 내려받아 둘 것 |
-| **gemini-cli** | `gemini` · `git` · `wk` · `python3` | 저장소 클론 (확장 루트가 `plugin/` 이라 로컬 경로 설치) |
+| **antigravity** | `agy` · `wk` · `python3` | 로컬 체크아웃 (`agy plugin install <경로>/plugin`) 또는 `plugin@marketplace` 소스 |
 | **grok-build** | `grok` · `wk` · `python3` | GitHub marketplace 도달 (네트워크) · `--trust` 없이는 MCP·훅이 비활성 |
 | **pi-dev** | `pi` · `wk` · `python3` | 로컬 경로 또는 git 태그 지정 |
 | **bootstrap** | `python3` (win32 는 `python` 으로 잰다) | PEP 668 인터프리터면 venv 필요 (§7.1) |
@@ -454,7 +455,7 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 | **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`marketplace remove` → `marketplace add <새 경로>` → `plugin add`** (아래 5) |
 | **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/`) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
-| **gemini-cli** | 미실측 | 미실측 | 미실측 | 이 호스트에 `gemini` CLI 가 없다 |
+| **antigravity** | 사본 (`~/.gemini/config/plugins/<name>/`, **무버전** — 2026-08-29 실측) | `plugin install` 재실행이 성공하며 디렉터리를 갈아엎지 않는 병합 복사 (marker 파일 생존 실측) | 전용 update 명령 없음 | **재설치가 곧 갱신** — `plugin install` 재실행. 완전 초기화는 `uninstall` → `install` (uninstall 은 디렉터리 통째 제거 실측) |
 
 읽는 법 다섯 가지:
 
@@ -538,7 +539,7 @@ python3 -m workflow_kit.bootstrap_lib \
 
 핵심 옵션:
 
-- `--harness <name>` — `codex` / `opencode` / `gemini-cli` / `antigravity` / `minimax-code` / `claude-code` / `codewhale` (v0.10.4 신규) / `aider` / `goose` / `grok-build` (v0.15.16 신규, xAI CLI TUI) / `pi-dev` (11개, 반복 가능)
+- `--harness <name>` — `codex` / `opencode` / `antigravity` / `minimax-code` / `claude-code` / `codewhale` (v0.10.4 신규) / `aider` / `goose` / `grok-build` (v0.15.16 신규, xAI CLI TUI) / `pi-dev` (10개, 반복 가능 — `gemini-cli` 는 2026-08-29 소유자 판정으로 지원 종료)
 - `--adoption-mode {new,existing}` — `existing` 은 `repository_assessment.md` 도 생성
 - `--copy-core-docs` — `core/*.md` 를 타겟 저장소에 복사
 - `--no-interactive` — 비대화형 환경(CI/파이프라인/자동 에이전트) 에서 interactive picker 자동 실행을 비활성화. `--harness` 미지정 시 fail-fast.

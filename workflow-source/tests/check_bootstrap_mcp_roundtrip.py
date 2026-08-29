@@ -9,7 +9,7 @@ the bootstrap generates a syntactically valid config but the underlying
 bridge entry point is broken (wrong PYTHONPATH, missing module, etc.).
 
 By default this test runs the smoke for **every supported harness** so a
-single run covers Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code.
+single run covers Codex / OpenCode / Antigravity / MiniMax Code.
 A specific subset can be requested via the ``--harness`` flag (repeatable).
 
 Usage::
@@ -52,7 +52,6 @@ from workflow_kit.bootstrap_lib.mcp import MCP_CONFIG_RENDERERS  # noqa: E402
 HARNESS_CONFIG_KEY = {
     "codex": "codex_mcp_config",
     "opencode": "opencode_mcp_config",
-    "gemini-cli": "gemini_cli_mcp_config",
     "antigravity": "antigravity_mcp_config",
     "minimax-code": "minimax_code_mcp_config",
     "claude-code": "claude_code_mcp_config",

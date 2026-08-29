@@ -16,7 +16,6 @@ r9_skip: true
 |---|---|---|---|---|
 | **Codex** | Codex CLI | `AGENTS.md` | `.codex/config.toml.example` | in-doc main/worker (분리 약함) |
 | **OpenCode** | OpenCode | `AGENTS.md` | `opencode.json` + `.opencode/agents/*` | orchestrator + 4 worker (worker/doc/code/validation) |
-| **Gemini CLI** | Gemini CLI | `GEMINI.md` | (없음) | `invoke_agent` 로 main+worker 분리 |
 | **Antigravity** | Antigravity | `ANTIGRAVITY.md` | (없음) | browser sub-agent 위임 |
 | **MiniMax Code** | MiniMax Code | `AGENTS.md` + `MiniMax.md` | `MiniMax_config.example.json` + `.MiniMax/agents/*` | orchestrator + 4 worker (Codex/OpenCode 와 동일 4종) |
 | **pi-dev** | Pi Coding Agent | `AGENTS.md` + `SYSTEM.md` | (없음) | 페르소나 기반, 별도 worker 디렉터리 없음 |
@@ -29,7 +28,6 @@ v0.6.3-beta 시점. 공통 정책 원문은 `workflow-source/core/` 와 `ai-work
 |---|---|---|---|---|
 | **codex** | `AGENTS.md` | root `AGENTS.md` + `.codex/config.toml.example` (snippet). 메인/워커 분리는 `AGENTS.md` 본문에 명시 | `.codex/mcp.toml` (read-only draft, `manual_review_only`) | v0.6.3-beta |
 | **opencode** | `AGENTS.md` + `opencode.json` | `opencode.json` `instructions` → 공통 문서. `.opencode/agents/` 에 orchestrator + 4 worker (worker / doc / code / validation) | `mcp.opencode.json` (read-only draft, `manual_review_only`) | v0.6.3-beta |
-| **gemini-cli** | `GEMINI.md` | 단일 진입점. `invoke_agent` 로 main+worker 분리. 시스템 프롬프트보다 우선 | `.gemini/mcp.json` (선택) | v0.6.3-beta |
 | **antigravity** | `ANTIGRAVITY.md` | 단일 진입점. bootstrap 시 `ANTIGRAVITY.md` 외 파일 생성 안 함 | `antigravity.mcp.json` (선택) | v0.6.3-beta |
 | **minimax-code** | `AGENTS.md` + `MiniMax.md` | Codex/OpenCode 와 동일한 4-worker 패턴을 `.MiniMax/agents/` 로 배포. `MiniMax_config.example.json` → `.minimax/config.json` 으로 복사해 사용 | `.MiniMax/mcp.json` (read-only draft bridge, 시크릿은 환경 변수 분리) | v0.6.3-beta |
 | **pi-dev** | `AGENTS.md` + `SYSTEM.md` | 페르소나 + 운영 원칙 보강. `ai-workflow/memory/active/state.json` 을 strict source of truth 로 사용 | (없음) | v0.6.3-beta |
@@ -69,7 +67,7 @@ v0.6.3-beta 시점. 공통 정책 원문은 `workflow-source/core/` 와 `ai-work
 
 | 단계 | 동작 | 산출물 |
 |---|---|---|
-| 1. args parse | `--harness` (다중 가능, choices: `codex` / `opencode` / `gemini-cli` / `pi-dev` / `antigravity`), `--include-source-docs`, `--include-global-snippets` | `argparse.Namespace` |
+| 1. args parse | `--harness` (다중 가능, choices: `codex` / `opencode` / `pi-dev` / `antigravity` / …), `--include-source-docs`, `--include-global-snippets` | `argparse.Namespace` |
 | 2. workflow-source → runtime 변환 | `DocTransformer` 로 `workflow-source/core/` 의 원본을 runtime `ai-workflow/core/` 형식으로 가공 | 변환된 core 문서 3종 |
 | 3. overlay 합성 | `bootstrap_workflow_kit.py` 의 harness builder 를 호출해 `AGENTS.md`, `opencode.json`, `.opencode/agents/*` 등 오버레이 생성 | 하네스별 overlay 파일 |
 | 4. bundle 복사 | `bundle/` 아래에 runtime + overlay 를 모음. `workflow-source/scripts/bootstrap_lib/harnesses/__init__.py` 의 `HARNESS_SPECS` 단일 source of truth 사용 | `dist/harnesses/<harness>/<version>/bundle/` |
@@ -92,7 +90,7 @@ packaging smoke 은 v0.5.8+ `tools/check_packaging.py` 가 자동 검증. `MiniM
 
 - 본문 출처: [workflow-source/core/workflow_harness_distribution.md](../../../workflow-source/core/workflow_harness_distribution.md)
 - 하네스 허브: [workflow-source/harnesses/README.md](../../../workflow-source/harnesses/README.md)
-- per-harness overlay spec: `workflow-source/harnesses/{codex,opencode,gemini-cli,antigravity,minimax-code,pi-dev}/README.md`
+- per-harness overlay spec: `workflow-source/harnesses/{codex,opencode,antigravity,minimax-code,pi-dev}/README.md`
 - export 스크립트: [workflow-source/scripts/export_harness_package.py](../../../workflow-source/scripts/export_harness_package.py)
 - 스크립트 허브: [workflow-source/scripts/README.md](../../../workflow-source/scripts/README.md) (`export_harness_package.py` 섹션)
 - bootstrap 스크립트: [workflow-source/scripts/bootstrap_workflow_kit.py](../../../workflow-source/scripts/bootstrap_workflow_kit.py)

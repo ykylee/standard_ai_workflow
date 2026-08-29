@@ -11,6 +11,7 @@ WATCHES = (
 #!/usr/bin/env python3
 import subprocess
 import json
+import sys
 from pathlib import Path
 
 def test_handoff_git_integration():
@@ -20,7 +21,7 @@ def test_handoff_git_integration():
     latest_backlog = repo_root / "workflow-source" / "examples" / "acme_delivery_platform" / "backlog" / "2026-04-18.md"
 
     cmd = [
-        "python3", str(repo_root / "workflow-source" / "mcp_servers" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py"),
+        sys.executable, str(repo_root / "workflow-source" / "mcp_servers" / "create-session-handoff-draft" / "scripts" / "run_create_session_handoff_draft.py"),
         "--latest-backlog-path", str(latest_backlog),
         "--git-range", "HEAD~3..HEAD"
     ]

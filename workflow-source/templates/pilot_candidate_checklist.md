@@ -18,7 +18,7 @@
 
 ## 3. 적용 전 확인
 - 도입 모드: (new | existing)
-- 하네스: (gemini-cli | opencode)
+- 하네스: (opencode | antigravity)
 - 기본 명령 확보: (설치, 실행, 테스트, 격리, smoke)
 - 문서 기준선: (README, docs 홈, runbook, 기존 backlog)
 

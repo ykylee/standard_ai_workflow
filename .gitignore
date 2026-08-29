@@ -42,7 +42,6 @@ scratch/
 # 추적하지 않던 동안 check_docs·check_self_application 이 **로컬에서만** red 라
 # 전량 검사 때마다 파일을 손으로 비켜 둬야 했다 (CI 는 파일이 없어 green).
 /ANTIGRAVITY.md
-/GEMINI.md
 
 # Exclude duplicated engine/tool copies in the source repo
 /ai-workflow/scripts/

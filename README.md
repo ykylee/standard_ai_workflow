@@ -66,7 +66,7 @@
 | MCP 카탈로그 | 설계 완료, stable 단계 진입 | 우선순위 1 MCP 정식 stable + read_only_mcp_sdk v1.0 SDK candidate + 베타 4종 |
 | 통합 데모 runner | 사용 가능 | `workflow-source/scripts/run_demo_workflow.py`, `workflow-source/scripts/run_existing_project_onboarding.py` 참고 |
 | bootstrap scaffold | 사용 가능 | `python3 -m workflow_kit.bootstrap_lib` (v0.5.2+ 권장) + 레거시 `bootstrap_workflow_kit.py` shim |
-| harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Gemini CLI`, `Antigravity`, `MiniMax Code`, `CodeWhale` (v0.10.4 신규), `Claude Code`, `Aider`, `Goose`, `pi-dev` |
+| harness overlays | 사용 가능 | 10개 하네스 대상: `Codex`, `OpenCode`, `Antigravity`, `MiniMax Code`, `CodeWhale` (v0.10.4 신규), `Claude Code`, `Aider`, `Goose`, `Grok Build`, `pi-dev` |
 | harness interactive picker | 사용 가능 (v0.5.8+) | `--harness` 미지정 시 TTY 자동 picker, 비대화형 모드 검증 |
 | orchestrator/worker overlays | 사용 가능 | OpenCode orchestrator + doc/code/validation worker 분화 및 위임 패턴 |
 | contract v1 (orchestrator ↔ sub-agent) | 사용 가능 (v0.5.4+) | `workflow-source/core/orchestrator_subagent_contract_v1.md` 외부 spec + `workflow_kit/contract_v1/` enforcement helpers (output_validator, delegator.choose_roles). wire 가이드: `orchestrator_contract_v1_wire_guide.md` |
@@ -100,7 +100,6 @@
 
 - Codex: `AGENTS.md` 와 Codex 설정 예시 중심
 - OpenCode: `AGENTS.md`, `opencode.json`, project-local skill/agent 중심
-- Gemini CLI: `GEMINI.md` 중심
 - Antigravity: `ANTIGRAVITY.md` 중심
 - MiniMax Code: `AGENTS.md` + `MiniMax.md` + `MiniMax_config.example.json` + `.minimax/agents/` (orchestrator + doc/code/validation worker) 중심
 - CodeWhale: `.codewhale/skills/codewhale-workflow/SKILL.md` 중심 (Constitution 보강, 단일 skill 파일)
@@ -191,7 +190,7 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --copy-core-docs
 ```
 
-로컬 MCP 까지 함께 심으려면 `--enable-mcp` 옵션을 추가한다. 각 하네스별 MCP config 스니펫이 `<root>/.codex/mcp.toml`, `<root>/mcp.opencode.json`, `<root>/.gemini/mcp.json`, `<root>/antigravity.mcp.json`, `<root>/.MiniMax/mcp.json` 중 선택한 하네스 경로로 emit 된다.
+로컬 MCP 까지 함께 심으려면 `--enable-mcp` 옵션을 추가한다. 각 하네스별 MCP config 스니펫이 `<root>/.codex/mcp.toml`, `<root>/mcp.opencode.json`, `<root>/.antigravity/mcp.json`, `<root>/.MiniMax/mcp.json` 중 선택한 하네스 경로로 emit 된다.
 
 ```bash
 python3 workflow-source/scripts/bootstrap_workflow_kit.py \
@@ -227,7 +226,6 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
 - `project/repository_assessment.md` (`existing` 모드일 때)
 - `AGENTS.md`, `.codex/config.toml.example` (`codex` 선택 시)
 - `AGENTS.md`, `opencode.json`, `.opencode/...` (`opencode` 선택 시)
-- `GEMINI.md` (`gemini-cli` 선택 시)
 - `ANTIGRAVITY.md` (`antigravity` 선택 시)
 - 선택 시 `core/*.md`
 

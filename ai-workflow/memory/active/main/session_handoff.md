@@ -36,7 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-08-29-main-002 meta-watch 미분류 감축 2차 — 중간 표면 구간 보급 + 광역 검사 전역 선언 판정
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
 
@@ -45,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-08-29-main-002 meta-watch 미분류 감축 2차 — 중간 표면 구간 보급 + 광역 검사 전역 선언 판정
 - TASK-2026-08-29-main-003 check_registry_server case 10 이 호스트 네트워크에 따라 red — LAN IP 는 얻히나 왕복 불가한 인터페이스(VPN)
 - TASK-2026-08-29-main-001 meta-watch 미분류 감축 1차 — 채취 덤프 수단 + 위험 역순 WATCHES 보급
 - TASK-2026-08-13-main-004 CI native 셀 mypy 게이트 flake — cmd_validate mypy 전역 스캔의 병렬 race 판정
@@ -54,7 +54,6 @@
 - TASK-2026-08-28-main-010 M-012/WBS-12.1 — v1.7.0 발행 (meta-watch 축, §1.5 minor)
 - TASK-2026-08-28-main-011 M-012/WBS-12.2 — CLAUDE.md 커밋 전 단계 --changed 전환 (R4.2) + 이 호스트 채널 재적용
 - TASK-2026-08-28-main-009 mcp 2.1.1 이 fastmcp 모듈을 되살리되 FastMCP 심볼만 제거 — CI mypy-strict 3연속 red (로컬 1.27 은 green)
-- TASK-2026-08-28-main-008 M-011/WBS-11.1 — meta-watch 구현: 러너 채취 주입·판정 + WATCHES_ALL_REASON 어휘 + 선언 교정 7건
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

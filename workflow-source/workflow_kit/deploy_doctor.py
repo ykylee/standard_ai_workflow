@@ -44,7 +44,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS
 from workflow_kit.common.python_launcher import python_launcher
@@ -817,7 +817,7 @@ def _compare_cache(
     }
 
 
-def _declared_install_roots(home: Path) -> tuple[set[str], str | None]:
+def _declared_install_roots(home: Path) -> tuple[list[str], set[str], str | None]:
     """하네스가 **스스로 말하는** 설치 경로. 없으면 ``(빈 집합, 사유)``.
 
     claude-code 의 `installed_plugins.json` 은 `installPath` 로 *어느 사본이
@@ -826,12 +826,13 @@ def _declared_install_roots(home: Path) -> tuple[set[str], str | None]:
     """
     path = home / ".claude" / "plugins" / "installed_plugins.json"
     if not path.is_file():
-        return set(), "installed_plugins.json 이 없다"
+        return [], set(), "installed_plugins.json 이 없다"
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return set(), f"installed_plugins.json 을 읽지 못했다: {type(exc).__name__}"
+        return [], set(), f"installed_plugins.json 을 읽지 못했다: {type(exc).__name__}"
     roots: set[str] = set()
+    raw_roots: list[str] = []
     for key, entries in (payload.get("plugins") or {}).items():
         if "standard-ai-workflow" not in key:
             continue
@@ -841,14 +842,68 @@ def _declared_install_roots(home: Path) -> tuple[set[str], str | None]:
                 # 선언된 경로와 glob 이 찾은 경로는 **같은 곳을 다르게 적을 수 있다**
                 # (macOS 의 `/var` → `/private/var` 심볼릭 링크가 그렇다). 문자열
                 # 하나만 담으면 정상 설치가 '선언에 없는 사본' 으로 뒤집힌다.
+                raw_roots.append(str(Path(raw)))
                 roots.add(str(Path(raw)))
                 try:
                     roots.add(str(Path(raw).resolve()))
                 except OSError:
                     pass
     if not roots:
-        return set(), "installed_plugins.json 에 이 플러그인의 installPath 가 없다"
-    return roots, None
+        return [], set(), "installed_plugins.json 에 이 플러그인의 installPath 가 없다"
+    return raw_roots, roots, None
+
+
+def _declared_install_roots_grok(home: Path) -> tuple[list[str], set[str], str | None]:
+    """grok-build 의 `installed-plugins/registry.json` 이 말하는 설치 경로.
+
+    grok 은 설치 디렉터리를 **플러그인 이름이 아니라** `plugin-<hash>` 로 짓고
+    (2026-08-29 이 호스트 실측: `plugin-da9172c3`), 이름 → 경로 매핑을 이
+    파일에 적는다. 즉 이름으로 glob 하는 방식은 **원리적으로** 이 채널을 못
+    찾는다 — 디렉터리 이름 규칙은 하네스의 것이지 우리 것이 아니다.
+    """
+    path = home / ".grok" / "installed-plugins" / "registry.json"
+    if not path.is_file():
+        return [], set(), "registry.json 이 없다"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return [], set(), f"registry.json 을 읽지 못했다: {type(exc).__name__}"
+    roots: set[str] = set()
+    raw_roots: list[str] = []
+    for repo in (payload.get("repos") or {}).values():
+        if not isinstance(repo, dict):
+            continue
+        names = repo.get("plugins") or {}
+        if not any("standard-ai-workflow" in str(k) for k in names):
+            continue
+        raw = repo.get("path")
+        if isinstance(raw, str) and raw:
+            raw_roots.append(str(Path(raw)))
+            roots.add(str(Path(raw)))
+            try:
+                roots.add(str(Path(raw).resolve()))
+            except OSError:
+                pass
+    if not roots:
+        return [], set(), "registry.json 에 이 플러그인을 담은 repo 가 없다"
+    return raw_roots, roots, None
+
+
+#: 설치 경로를 **스스로 선언하는** 채널의 리더. 여기 없는 채널은 glob 매치를
+#: 전부 설치로 본다 (그 폴백은 조용히 하지 않는다 — §0).
+INSTALL_PATH_DECLARATIONS: dict[
+    str, Callable[[Path], tuple[list[str], set[str], str | None]]
+] = {
+    "claude-code": _declared_install_roots,
+    "grok-build": _declared_install_roots_grok,
+}
+
+#: 위 선언을 **어디서 읽었는지** — 보고에 그대로 실린다. 출처를 안 밝히면
+#: 읽는 사람이 판정의 근거를 되짚을 수 없다.
+_DECLARATION_SOURCE: dict[str, str] = {
+    "claude-code": "installed_plugins.json 의 installPath",
+    "grok-build": "installed-plugins/registry.json 의 repos[].path",
+}
 
 
 def _resolve_install_roots(
@@ -866,28 +921,46 @@ def _resolve_install_roots(
     하지 않는다 (§0 *폴백은 조용히 하지 않는다*). 재지 못한 것을 잰 것처럼
     보이게 하지 않는 것이 이 절의 계약이다.
     """
-    declared, why = _declared_install_roots(home) if entry.harness == "claude-code" else (set(), None)
+    reader = INSTALL_PATH_DECLARATIONS.get(entry.harness)
+    raw_declared, declared, why = reader(home) if reader is not None else ([], set(), None)
     fallback = (
         f"선언 없음 — glob 매치를 전부 설치로 본다 ({why})"
-        if entry.harness == "claude-code"
+        if reader is not None
         else "이 채널은 설치 경로를 선언하지 않는다 — glob 매치를 전부 설치로 본다"
     )
-    found: list[tuple[Path, bool, str]] = []
-    for root in sorted(home.glob(entry.glob)):
-        if not root.is_dir():
+    # 선언된 경로는 glob 이 못 찾아도 사본이다. grok 은 설치 디렉터리를
+    # `plugin-<hash>` 로 지어 **이름 glob 이 원리적으로 못 맞춘다** — 선언을
+    # 합치지 않으면 실재하는 사본이 0개로 보이고, 그 침묵이 통과처럼 읽힌다
+    # (2026-08-29 실측: grok 설치본이 content_drift 에서 통째로 빠져 있었다).
+    #
+    # 합칠 때는 **실경로로 중복을 접는다**. 선언 집합은 raw 와 resolve 를 둘 다
+    # 담고(macOS 의 `/var` → `/private/var`), 접지 않으면 같은 사본이 두 번 세어져
+    # 발견과 채널 행이 복제된다 — 그 복제는 이 파일이 한 번 고친 적 있는 실패다.
+    candidates: dict[str, Path] = {}
+    for cand in list(home.glob(entry.glob)) + [Path(d) for d in raw_declared]:
+        if not cand.is_dir():
             continue
+        try:
+            key = str(cand.resolve())
+        except OSError:
+            key = str(cand)
+        candidates.setdefault(key, cand)
+    found: list[tuple[Path, bool, str]] = []
+    for _key, root in sorted(candidates.items()):
         if declared:
             # 정규화는 **선언 쪽에서** 끝난다 (`_declared_install_roots` 가 raw 와
             # resolve 를 둘 다 담는다). 여기서 다시 resolve 하는 분기는 `probe` 가
             # `home` 을 이미 resolve 하는 한 도달할 수 없고, 도달 불가능한 분기는
             # 검사되지 않은 분기다 — 되주입해도 red 가 안 났다 (2026-08-20 실측).
-            found.append((root, str(root) in declared, "installed_plugins.json 의 installPath"))
+            found.append((root, str(root) in declared, _DECLARATION_SOURCE[entry.harness]))
         else:
             found.append((root, True, fallback))
     return found
 
 
-def _probe_content_drift(home: Path) -> dict[str, Any]:
+def _probe_content_drift(
+    home: Path, declared_harnesses: frozenset[str] = frozenset()
+) -> dict[str, Any]:
     """설치 사본의 **내용**이 정본과 같은가.
 
     마커 비교(:func:`_probe_drift`)가 원리적으로 못 보는 자리다 — 2026-08-16 에
@@ -898,8 +971,24 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
     """
     canonical, error = _canonical_payload()
     caches: list[dict[str, Any]] = []
+    # 사본이 0개인 채널은 **출력에서 사라진다** — 그러면 '설치 안 됨' 과 '못 찾음'
+    # 이 똑같이 침묵으로 보이고, 침묵은 통과처럼 읽힌다. 2026-08-29 에 정확히 그
+    # 일이 있었다: grok 은 사본이 실재하는데 이름 glob 이 못 맞춰 0개였고, 아무
+    # 줄도 안 나와서 세션 내내 아무도 못 봤다. 0개도 한 줄을 남긴다 (main-003).
+    no_copy: list[dict[str, Any]] = []
     for entry in PLUGIN_INSTALL_CACHES:
-        for root, active, active_source in _resolve_install_roots(entry, home):
+        roots = _resolve_install_roots(entry, home)
+        if not roots:
+            reader = INSTALL_PATH_DECLARATIONS.get(entry.harness)
+            why = (reader(home)[2] if reader is not None else None) or (
+                f"설치 사본이 없다 (glob `{entry.glob}` 매치 0)")
+            no_copy.append({
+                "harness": entry.harness,
+                "why": why,
+                "declared_globally": entry.harness in declared_harnesses,
+            })
+            continue
+        for root, active, active_source in roots:
             record: dict[str, Any] = {"harness": entry.harness}
             if canonical is None:
                 record.update({"path": str(root), "skipped": "정본 페이로드를 만들지 못했다"})
@@ -928,6 +1017,18 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
         if not c.get("active")
     ]
     findings: list[str] = []
+    for gap in no_copy:
+        if not gap["declared_globally"]:
+            continue
+        # 선언은 있는데 실체가 없다 — 하네스는 그것을 못 쓴다. 이 상태가 이전에는
+        # 어디에서도 발견으로 세지 않았다 (global_scope 는 '선언 있음' 이라 말하고,
+        # content_drift 는 침묵했다).
+        findings.append(
+            f"{gap['harness']} 는 글로벌 선언이 있는데 설치 사본이 0개다 — "
+            f"{gap['why']}. 선언만 남고 실체가 없는 상태이므로 하네스는 이 스킬을 "
+            "로드할 수 없다. 재설치는 docs/INSTALLATION_AND_USAGE.md §7.0.2 의 "
+            "채널별 절차를 따른다"
+        )
     for c in out_of_sync:
         findings.append(
             f"{c['harness']} 설치 사본의 내용이 정본과 다르다 — "
@@ -942,6 +1043,8 @@ def _probe_content_drift(home: Path) -> dict[str, Any]:
         "out_of_sync": [c["harness"] for c in out_of_sync],
         # 선언에 없는 사본 — 갱신 뒤 남은 옛 버전 디렉터리가 여기 온다.
         "superseded": superseded,
+        # 사본 0 인 채널 — 침묵으로 지우지 않는다 (main-003).
+        "no_copy": no_copy,
         "findings": findings,
         # 사본을 두지 않는 채널은 내용 드리프트가 성립하지 않는다.
         "not_applicable": {
@@ -1211,7 +1314,8 @@ def probe(
     project = _probe_project_scope(resolved_project)
     global_scope = _probe_global_scope(resolved_home)
     drift = _probe_drift(project, global_scope)
-    content_drift = _probe_content_drift(resolved_home)
+    content_drift = _probe_content_drift(
+        resolved_home, frozenset(global_scope.get("declared_harnesses") or ()))
     runtime_load = _probe_runtime_load(resolved_home, now=now, processes=processes)
 
     findings = [
@@ -1351,6 +1455,9 @@ def _render_text(report: dict[str, Any]) -> str:
             "선언된 설치본이 아니다 (갱신 뒤 남은 옛 디렉터리). 발견으로 세지 않는다. "
             f"{old_copy.get('path')}"
         )
+    for gap in content.get("no_copy") or []:
+        mark = " ← 글로벌 선언은 있다" if gap.get("declared_globally") else ""
+        lines.append(f"  = {gap['harness']}: 사본 0 — {gap['why']}{mark}")
     for harness, why in sorted((content.get("not_applicable") or {}).items()):
         lines.append(f"  = {harness}: {why}")
     for item in content.get("declared_unmeasured", []):

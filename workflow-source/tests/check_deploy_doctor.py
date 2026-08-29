@@ -936,6 +936,92 @@ def test_install_root_fallback_is_declared() -> None:
     _record("test_install_root_fallback_is_declared", not problems, "; ".join(problems))
 
 
+def _seed_grok_home(home: Path, *, installed: bool) -> Path | None:
+    """grok 의 실제 설치 모양을 재현한다 (2026-08-29 이 호스트 실측).
+
+    핵심은 **디렉터리 이름이 플러그인 이름이 아니라는 것** — `plugin-<hash>` 다.
+    이름으로 glob 하면 원리적으로 못 찾는다. 매핑은 `registry.json` 이 쥔다.
+    """
+    (home / ".grok").mkdir(parents=True, exist_ok=True)
+    (home / ".grok" / "config.toml").write_text(
+        '[plugins]\nenabled = ["standard-ai-workflow"]\n', encoding="utf-8")
+    reg_dir = home / ".grok" / "installed-plugins"
+    reg_dir.mkdir(parents=True, exist_ok=True)
+    if not installed:
+        reg_dir.joinpath("registry.json").write_text(
+            json.dumps({"version": 1, "repos": {}}), encoding="utf-8")
+        return None
+    root = reg_dir / "plugin-da9172c3"
+    for rel, body in render_agent_plugin().items():
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    reg_dir.joinpath("registry.json").write_text(json.dumps({
+        "version": 1,
+        "repos": {"plugin-da9172c3": {
+            "path": str(root),
+            "plugins": {"standard-ai-workflow": {"version": INSTALLED_VERSION}},
+        }},
+    }), encoding="utf-8")
+    return root
+
+
+def test_content_drift_finds_grok_copy_by_declaration_not_name() -> None:
+    """grok 설치본은 **이름으로 찾을 수 없다** (2026-08-29 실측, main-002).
+
+    grok 은 설치 디렉터리를 `plugin-<hash>` 로 짓는다. 이름 glob 에 기대던
+    이전 판은 실재하는 사본을 0개로 봤고, 그래서 `content_drift` 에서 grok 이
+    **통째로 사라져** 있었다 — 낡음도 미측정도 아닌 침묵이었다. 디렉터리 이름
+    규칙은 하네스의 것이지 우리 것이 아니므로, 정본은 `registry.json` 이다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-grok-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        root = _seed_grok_home(home, installed=True)
+        content = probe(project_root=Path(tmpdir) / "project", home=home)["content_drift"]
+    grok = [c for c in content["caches"] if c["harness"] == "grok-build"]
+    problems = []
+    if not grok:
+        problems.append("선언된 사본을 못 찾았다 — 이름 glob 에 기대고 있다")
+    else:
+        if not grok[0].get("in_sync"):
+            problems.append(f"정본 그대로 깐 사본을 드리프트로 봤다: {grok[0].get('missing')!r}")
+        if "registry.json" not in str(grok[0].get("active_source")):
+            problems.append(f"무엇을 근거로 골랐는지 안 남겼다: {grok[0].get('active_source')!r}")
+        if str(root) != str(grok[0].get("path")):
+            problems.append(f"선언된 경로가 아니다: {grok[0].get('path')!r}")
+    _record("test_content_drift_finds_grok_copy_by_declaration_not_name",
+            not problems, "; ".join(problems))
+
+
+def test_content_drift_reports_channel_with_zero_copies() -> None:
+    """사본 0 도 **한 줄을 남긴다** (main-003).
+
+    선언은 있는데 실체가 없는 상태를 이전에는 아무도 못 봤다: `global_scope` 는
+    '선언 있음' 이라 말하고 `content_drift` 는 침묵했다. 침묵은 통과로 읽힌다.
+    이 case 는 2026-08-29 아침의 실제 상태다 — grok 이 config 에 enable 만 남고
+    `registry.json` 의 repos 가 비어 있었다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-nocopy-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        _seed_grok_home(home, installed=False)
+        report = probe(project_root=Path(tmpdir) / "project", home=home)
+    content = report["content_drift"]
+    gaps = {g["harness"]: g for g in content.get("no_copy") or []}
+    problems = []
+    grok = gaps.get("grok-build")
+    if grok is None:
+        problems.append(f"사본 0 인 채널이 출력에서 사라졌다: {sorted(gaps)!r}")
+    else:
+        if not grok.get("declared_globally"):
+            problems.append("글로벌 선언이 있는데 그 사실을 안 실었다")
+        if "registry.json" not in str(grok.get("why")):
+            problems.append(f"사유가 없다 — 미설치인지 못 읽은 것인지 구별 안 된다: {grok.get('why')!r}")
+    if not any("설치 사본이 0개" in f and "grok-build" in f for f in report["findings"]):
+        problems.append("선언만 남고 실체가 없는 상태를 발견으로 안 셌다")
+    _record("test_content_drift_reports_channel_with_zero_copies",
+            not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -967,6 +1053,8 @@ def main() -> int:
         test_content_drift_reads_which_copy_is_installed,
         test_runtime_load_does_not_duplicate_per_stale_copy,
         test_install_root_fallback_is_declared,
+        test_content_drift_finds_grok_copy_by_declaration_not_name,
+        test_content_drift_reports_channel_with_zero_copies,
     ]
     for case in cases:
         case()

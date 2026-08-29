@@ -453,7 +453,7 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 |---|---|---|---|---|
 | **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | **버전이 같으면** `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) · **버전이 다르면** 실제로 올린다 (아래 4) | 같은 버전: **`uninstall` → `install`** · 다른 버전: `plugin update <plugin>@<marketplace>` |
 | **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`marketplace remove` → `marketplace add <새 경로>` → `plugin add`** (아래 5) |
-| **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/`) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
+| **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/` — `<id>` 는 **플러그인 이름이 아니라** `plugin-<hash>` 다. 이름 → 경로 매핑은 같은 디렉터리의 `registry.json` 이 쥔다) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **antigravity** | 사본 (`~/.gemini/config/plugins/<name>/`, **무버전** — 2026-08-29 실측) | `plugin install` 재실행이 성공하며 디렉터리를 갈아엎지 않는 병합 복사 (marker 파일 생존 실측) | 전용 update 명령 없음 | **재설치가 곧 갱신** — `plugin install` 재실행. 완전 초기화는 `uninstall` → `install` (uninstall 은 디렉터리 통째 제거 실측) |
 

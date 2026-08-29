@@ -27,6 +27,13 @@ Test list (offline only — online HEAD / GitHub API 는 network 의존이라 sk
 
 from __future__ import annotations
 
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    ".github/workflows/*",
+    "workflow-source/workflow_kit/*",
+)
+
 import importlib.util
 import json
 import sys

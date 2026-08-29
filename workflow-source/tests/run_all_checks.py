@@ -811,6 +811,21 @@ def print_meta_watch(
         print("  좁은 선언 0")
 
 
+def dump_meta_watch(meta_dir: Path, dest: Path) -> int:
+    """채취된 `<check>.access` 를 `dest` 로 복사한다. 반환은 복사한 파일 수.
+
+    러너는 채취 디렉터리를 판정 직후 지운다. 선언 보급은 그 채취를 **읽어야**
+    하므로 (선언은 실측의 상위집합이어야 한다) 옵트인으로 남길 자리를 준다.
+    판정에는 관여하지 않는다 — 게이트 동작은 이 플래그 유무에 불변이다.
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for src in sorted(meta_dir.glob("*.access")):
+        shutil.copy2(src, dest / src.name)
+        copied += 1
+    return copied
+
+
 def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
     """(병렬 가능, 정숙 구간 필요) 로 가른다. 순서는 각각 원래 순서를 지킨다."""
     parallel = [p for p in checks if not requires_quiet_repo(p)]
@@ -945,6 +960,12 @@ def main() -> int:
     p.add_argument("--no-meta-watch", action="store_true", dest="no_meta_watch",
                    help=("WATCHES 선언 메타 검증(채취+판정)을 끈다 (ADR-028). "
                          "디버깅용 — 게이트에서는 켠 채로 돈다 (오버헤드 실측 <1%%)."))
+    p.add_argument("--meta-watch-dump", default=None, dest="meta_watch_dump",
+                   metavar="DIR",
+                   help=("meta-watch 채취 결과(`<check>.access`)를 DIR 로 내보낸다. "
+                         "판정에는 영향이 없고 정리 직전에 복사만 한다 — 미분류 검사에 "
+                         "`WATCHES` 를 달 때 선언을 **추측이 아니라 실측**에서 뽑기 "
+                         "위한 수단이다 (R2.3 위험 역순 보급)."))
     p.add_argument("--no-lock", action="store_true", dest="no_lock",
                    help="워킹 트리 배타 락을 잡지 않는다 (권장하지 않음 — 동시 실행된 "
                         "전량 결과는 PASS 도 FAIL 도 근거가 못 된다)")
@@ -1059,6 +1080,10 @@ def main() -> int:
         ran = [c for c in checks if c.stem in ran_names]
         meta_violations, meta_warns, meta_counts = meta_watch_verdict(
             ran, meta_dir, SOURCE_ROOT.parent)
+        if args.meta_watch_dump:
+            dumped = dump_meta_watch(meta_dir, Path(args.meta_watch_dump))
+            if not args.json:
+                print(f"[meta-watch] 채취 {dumped}건 → {args.meta_watch_dump}")
         shutil.rmtree(meta_dir, ignore_errors=True)
 
     if args.json:

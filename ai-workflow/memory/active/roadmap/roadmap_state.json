@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-08-28",
+  "generated_at": "2026-08-29",
   "milestones": [
     {
       "id": "M-001",
@@ -241,9 +241,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.5,
+      "progress": 0.25,
       "total_leaves": 4,
-      "done_leaves": 2,
+      "done_leaves": 1,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -251,7 +251,8 @@
           "title": "결함 수리 — 플랫폼·크로스호스트 (Windows 경로·해석기, federation 형식)",
           "derived_status": "in_progress",
           "linked_task_ids": [
-            "TASK-2026-08-25-main-017"
+            "TASK-2026-08-25-main-017",
+            "TASK-2026-08-29-main-003"
           ],
           "total_leaves": 1,
           "done_leaves": 0,
@@ -277,14 +278,15 @@
         {
           "id": "WBS-7.3",
           "title": "관찰·지표 운영 (mypy flake, exempt 비율, memory_index 3-tuple, 로드맵 정비)",
-          "derived_status": "done",
+          "derived_status": "in_progress",
           "linked_task_ids": [
             "TASK-2026-08-13-main-004",
             "TASK-2026-08-28-main-001",
-            "TASK-2026-08-29-main-001"
+            "TASK-2026-08-29-main-001",
+            "TASK-2026-08-29-main-002"
           ],
           "total_leaves": 1,
-          "done_leaves": 1,
+          "done_leaves": 0,
           "children": []
         },
         {

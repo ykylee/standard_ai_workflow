@@ -1,3 +1,12 @@
+
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "workflow-source/examples/acme_delivery_platform/*",
+    "workflow-source/pyproject.toml",
+    "workflow-source/scripts/*",
+    "workflow-source/workflow_kit/*",
+)
 #!/usr/bin/env python3
 import json
 import subprocess

@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Smoke tests for the smart_context_reader MCP tool."""
 
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+)
+
 import json
 import os
 import sys

@@ -16,6 +16,12 @@ Test list:
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "dist 서브커맨드가 빌드 전 저장소 정합을 훑는다 — meta-watch 실측 (2026-08-29) 접근 2076건 · "
+    "최상위 30개 항목 전부: diff 로 좁혀지지 않는다"
+)
+
 import importlib.util
 import json
 import subprocess

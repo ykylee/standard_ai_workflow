@@ -25,6 +25,12 @@ TMPDIR 아래에 잡히고 종료 시 회수된다.
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "원본 저장소가 적용 runtime 레이어 없이도 서는지를 재는 검사라 관찰 대상이 저장소 자신이다 — meta-watch "
+    "실측 (2026-08-29) 접근 2076건 · 최상위 30개 항목 전부"
+)
+
 import shutil
 import subprocess
 import sys

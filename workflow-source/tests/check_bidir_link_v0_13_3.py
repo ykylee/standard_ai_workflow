@@ -16,6 +16,12 @@ Cross-ref: ai-workflow/wiki/topics/phase-13-definition-north-star.md §AC4+
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "wiki ↔ memory bidir-link 의 sync/audit 이 양쪽 트리를 통째로 순회한다 — meta-watch "
+    "실측 (2026-08-29) 접근 2076건 · 최상위 30개 항목 전부"
+)
+
 import json
 import re
 import shutil

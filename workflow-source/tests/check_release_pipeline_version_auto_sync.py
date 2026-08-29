@@ -14,6 +14,12 @@ Test list:
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "version-bump 의 파생물 auto-sync 가 pyproject·__init__ 을 넘어 저장소 파생 정합까지 "
+    "훑는다 — meta-watch 실측 (2026-08-29) 접근 2076건 · 최상위 30개 항목 전부"
+)
+
 import json
 import re
 import subprocess

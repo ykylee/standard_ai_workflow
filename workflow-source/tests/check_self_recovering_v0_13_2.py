@@ -19,6 +19,12 @@ Cross-ref: ai-workflow/wiki/topics/phase-13-definition-north-star.md §AC3
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "self-recover 가 drift 를 detect→fix→re-check 하느라 저장소 전역을 다시 훑는다 — "
+    "meta-watch 실측 (2026-08-29) 접근 2076건 · 최상위 30개 항목 전부"
+)
+
 import json
 import re
 import shutil

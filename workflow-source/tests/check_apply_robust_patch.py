@@ -15,6 +15,15 @@ skill_beta_criteria §3.1 의 6 condition 중 smoke_test_5_cases 정공법 적�
 
 from __future__ import annotations
 
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "workflow-source/mcp_servers/apply_robust_patch/scripts/*",
+    "workflow-source/mcp_servers/lib/*",
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+)
+
 import json
 import os
 import subprocess

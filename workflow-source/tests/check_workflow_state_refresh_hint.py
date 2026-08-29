@@ -7,6 +7,13 @@ v1.0.0: **temp fixture 로 격리**한다. 이전 구현은 실제 저장소의
 그 디렉터리가 정리되거나 아카이브되는 순간 조용히 red 가 됐다(실제 발생).
 저장소 상태와 무관하게 동작을 검증하도록 fixture 를 직접 만든다.
 """
+
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+)
 import os
 import sys
 import tempfile

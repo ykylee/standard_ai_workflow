@@ -25,6 +25,14 @@ Reference:
 
 from __future__ import annotations
 
+#: 의도적 전역 (spec `core/test_impact_tiering_spec.md` §2).
+WATCHES_ALL_REASON = (
+    "release pipeline 의 validate/version-bump/dist 가 "
+    "packaging·doctor·state·git 네 source 의 release-readiness 를 훑는다 — "
+    "meta-watch 실측 (2026-08-29) 접근 2076건 · 최상위 30개 항목 전부: 입력 표면이 사실상 저장소 "
+    "전체다"
+)
+
 import json
 import re
 import subprocess

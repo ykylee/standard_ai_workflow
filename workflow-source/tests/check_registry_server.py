@@ -230,34 +230,52 @@ def main() -> int:
             # 10) 비-loopback bind 왕복 — 2026-08-09 까지는 loopback 만 실측이었다.
             #     LAN IP 부재(오프라인 컨테이너 등)는 skip — 모름 ≠ 실패.
             #     cross-host / 방화벽 / TLS 는 여기서 못 본다 (darwin homelab 몫).
+            #
+            #     skip 사유는 **둘**이다 (TASK-2026-08-29-main-003). IP 를 못 얻는
+            #     것만 덮으면, IP 는 얻히되 그 주소로 **왕복이 안 되는** 인터페이스
+            #     (VPN·터널·방화벽)에서 red 가 난다 — 노트북이 어느 네트워크에
+            #     붙어 있느냐로 게이트 색이 바뀐다. 실측 2026-08-29: LAN IPv4 로
+            #     VPN 주소(10.5.0.2)를 잡아 bind 는 성공하고 접속만 timeout.
+            #     두 경우 다 '이 호스트에서는 잴 수 없다' 이지 '틀렸다' 가 아니다.
             lan_ip = _lan_ip()
+            lan_skip: str | None = None
             if lan_ip is None:
-                msg = (
-                    "SKIP: 10) 비-loopback bind — 이 호스트의 LAN IPv4 를 못 얻었다. "
-                    "강제하려면 --require-lan."
-                )
+                lan_skip = "이 호스트의 LAN IPv4 를 못 얻었다"
+            else:
+                with _Server(reg_file, token_env="WK_TEST_TOKEN", bind=lan_ip) as srv:
+                    try:
+                        code, body, _ = _get(srv.url(), token="s3cret-value")
+                    except urllib.error.URLError as exc:
+                        # bind 는 됐는데 그 주소로 못 돌아온다 — 잴 수 없는 호스트다.
+                        lan_skip = (
+                            f"LAN IPv4({lan_ip}) 는 얻었지만 그 주소로 왕복이 안 된다 "
+                            f"({exc.reason}) — VPN·터널·방화벽 인터페이스"
+                        )
+                    else:
+                        direct_ok = code == 200 and json.loads(body) == SAMPLE_REGISTRY
+
+                        R.add_known_host("hostLan", srv.url(), token_env="WK_TEST_TOKEN")
+                        lan_result = R.pull_remote_registry(
+                            "hostLan", timeout=5, use_cache=False)
+                        lan_entries = lan_result.get("registry", {}).get("entries", [])
+                        check(
+                            f"10) 비-loopback bind 왕복 ({lan_ip}) — GET + pull + 토큰",
+                            direct_ok
+                            and lan_result.get("ok") is True
+                            and len(lan_entries) == 1,
+                            f"direct code={code} pull_ok={lan_result.get('ok')} "
+                            f"err={lan_result.get('error')}",
+                        )
+
+            # skip 보고는 한 자리다 — 사유가 둘이라고 보고도 둘이면 갈라진다.
+            if lan_skip is not None:
+                msg = f"SKIP: 10) 비-loopback bind — {lan_skip}. 강제하려면 --require-lan."
                 if "--require-lan" in sys.argv:
                     print(f"FAIL(require-lan): {msg}")
                     failures.append("10) 비-loopback bind (require-lan)")
                     ran += 1
                 else:
                     print(msg)
-            else:
-                with _Server(reg_file, token_env="WK_TEST_TOKEN", bind=lan_ip) as srv:
-                    code, body, _ = _get(srv.url(), token="s3cret-value")
-                    direct_ok = code == 200 and json.loads(body) == SAMPLE_REGISTRY
-
-                    R.add_known_host("hostLan", srv.url(), token_env="WK_TEST_TOKEN")
-                    lan_result = R.pull_remote_registry("hostLan", timeout=5, use_cache=False)
-                    lan_entries = lan_result.get("registry", {}).get("entries", [])
-                    check(
-                        f"10) 비-loopback bind 왕복 ({lan_ip}) — GET + pull + 토큰",
-                        direct_ok
-                        and lan_result.get("ok") is True
-                        and len(lan_entries) == 1,
-                        f"direct code={code} pull_ok={lan_result.get('ok')} "
-                        f"err={lan_result.get('error')}",
-                    )
         finally:
             for k, v in old_env.items():
                 if v is None:

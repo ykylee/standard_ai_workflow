@@ -15,6 +15,14 @@ v0.14.6 의 out-of-scope 2 해소 정합성 검증. step 6.7 가 release_error
 
 from __future__ import annotations
 
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "workflow-source/core/*",
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+)
+
 import argparse
 import io
 import atexit

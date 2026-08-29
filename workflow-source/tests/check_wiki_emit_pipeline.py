@@ -19,6 +19,14 @@ retrieval 이 v0.7.17 in-repo 전환 때 사라졌고, in-repo 에서 L1 은 이
 
 from __future__ import annotations
 
+#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
+#: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
+WATCHES = (
+    "ai-workflow/wiki/sources/*",
+    "workflow-source/pyproject.toml",
+    "workflow-source/workflow_kit/*",
+)
+
 import hashlib
 import json
 import os

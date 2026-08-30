@@ -997,6 +997,14 @@ def test_pi_dev_adapter() -> None:
       스니펫은 (1) Claude Code 등 MCP 호환 클라이언트에서 그대로 쓰거나 (2) 향후
       pi 버전에서 MCP 지원이 추가될 때 참고용이다. pi 사용자 입장에서의 1차 가치
       는 4종 skill 이다.
+
+    **노출 실측 (2026-08-30, macOS · pi 0.84.1)**: 이 계약이 파일 수준에서
+    맞는 것과 pi 가 실제로 노출하는 것은 다르다 — 이 저장소는 2026-08-20 에
+    "in-sync 인데 세션 로드 0종" 으로 그 차이에 데였다. 그래서 잰다:
+    `pi install <payload 경로>` 후 RPC `get_commands` (모델 호출 없음) 로
+    **skill 4종이 전부** `skill:session-start` / `-end` / `backlog-update` /
+    `doc-sync` 로 잡혔고, 출처는 설치본의 `skills/<name>/SKILL.md`, scope 는
+    `user`, 그 호스트의 다른 skill 38종과 이름 충돌 0건이었다.
     """
     from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, MCP_WRITE_SERVER_ALIAS
 
@@ -1012,6 +1020,19 @@ def test_pi_dev_adapter() -> None:
         except json.JSONDecodeError as exc:
             problems.append(f"package.json JSON 파싱 실패: {exc}")
             pkg = {}
+        # version 은 kit 을 따라야 한다. 이 파일은 byte 대조 대상이 아니라
+        # (`_PI_STATIC_BASENAMES`) 손으로 유지되는 npm 메타인데, 그 예외가
+        # **버전까지 덮어** 2026-08-30 에 kit 1.7.0 / 매니페스트 1.2.0 으로
+        # 5개 minor 동안 갈라져 있었다. 구조는 손 유지가 맞지만 버전은 아니다.
+        from workflow_kit.plugin_payload import current_kit_version  # noqa: PLC0415
+
+        kit_version = current_kit_version()
+        if str(pkg.get("version")) != str(kit_version):
+            problems.append(
+                f"package.json version {pkg.get('version')!r} != kit {kit_version!r} — "
+                "npm/git 배포 시 갤러리가 낡은 버전을 광고한다 "
+                "(bump 는 release_pipeline.write_pi_package_version 이 맞춘다)"
+            )
         keywords = pkg.get("keywords") or []
         if "pi-package" not in keywords:
             problems.append(f"keywords 에 'pi-package' 부재 (갤러리 비공개) — 현재: {keywords}")

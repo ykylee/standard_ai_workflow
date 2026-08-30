@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**68차 세션 종료 (2026-08-30, macOS 호스트) — grok 배포 갱신에서 시작해 doctor 의 침묵 결함 2건을 캐냈다 (task 2건 close: 2026-08-30-main-002·003, 전량 2축 게이트 green).** **① 발단은 배포 갱신이었다**: grok 의 marketplace 캐시가 v1.4.0(59차 커밋)에 멈춰 있었고 `installed-plugins/registry.json` 의 `repos` 가 **비어** 있었다 — 즉 `config.toml` 에 `enabled` 만 남고 **실제 설치는 없는** 상태였다. 그런데 `wk doctor` 는 이것을 정상으로 봤다. **② 왜 아무도 못 봤나 (main-002)**: `PLUGIN_INSTALL_CACHES` 의 grok glob 이 `.grok/installed-plugins/*standard-ai-workflow*` 였는데, grok 은 설치 디렉터리를 **플러그인 이름이 아니라** `plugin-<hash>` 로 짓고 매핑을 `registry.json` 에 적는다 (claude-code 의 `installed_plugins.json` 과 같은 모양). 이름 glob 은 **원리적으로** 이 채널을 못 찾는다 — 디렉터리 이름 규칙은 하네스의 것이지 우리 것이 아니다. claude-code 전용 특수분기였던 선언 읽기를 `INSTALL_PATH_DECLARATIONS` 표로 일반화하고 grok 리더를 넣었다. **③ 침묵이 통과로 읽혔다 (main-003)**: 사본 0 인 채널은 출력에 **아무 줄도** 안 남겼다. `gemini-cli`·`pi-dev` 처럼 `=` 로 사유를 남기는 자리가 있는데도 사본 0 은 그 자리에 못 왔고, 그래서 '설치 안 됨' 과 '못 찾음' 이 똑같이 보였다. 이제 `= <채널>: 사본 0 — <사유>` 로 남기고, **글로벌 선언이 있는데 사본이 0 이면 발견**으로 센다 (global_scope 는 '선언 있음' 이라 말하고 content_drift 는 침묵해서 그 조합이 어디에서도 안 잡히고 있었다). **④ 켜자마자 진짜를 잡았다**: 수리 직후 grok 설치본이 `35a7a859` 가 추가한 `mcp_config.json` 을 빠뜨린 것을 DRIFT 로 적발했고, 재설치로 해소했다 (`plugin update` 는 `already live` 라 말하고 갱신하지 않는다 — §7.0.2 대로 `uninstall`→`install`). 부수 효과로 `runtime_load` 도 grok 을 재게 됐다 (설치 시각이 사본에서 나오므로) — 설치보다 먼저 시작한 grok 프로세스를 잡았다. **⑤ 내가 낸 결함은 기존 그물이 잡았다**: 선언 집합이 raw 와 resolve 를 둘 다 담는데(macOS `/var`→`/private/var`) 그걸 후보로 그대로 합쳐 같은 사본을 두 번 셌다. 이 파일이 이미 한 번 고쳤던 실패라 검사 2종이 즉시 red 였고, 실경로로 접어 해소했다. 검증은 `check_deploy_doctor` 29/29(신규 2 cases)와 **되주입 2종 red 실증**. 67차 상세는 아래 직전 기준선.",
+    "current_baseline": "**68차 세션 종료 (2026-08-30, macOS 호스트) — 배포 갱신 요청이 탐침·매니페스트의 '아무도 안 보는 자리' 3건을 드러냈다 (task 3건 close: 2026-08-30-main-002·003·004, push 2회, 전량 2축 게이트 green).** **① 발단은 배포 갱신이었다**: grok 의 marketplace 캐시가 v1.4.0(59차 커밋)에 멈춰 있었고 `installed-plugins/registry.json` 의 `repos` 가 **비어** 있었다 — 즉 `config.toml` 에 `enabled` 만 남고 **실제 설치는 없는** 상태였다. 그런데 `wk doctor` 는 이것을 정상으로 봤다. **② 왜 아무도 못 봤나 (main-002)**: `PLUGIN_INSTALL_CACHES` 의 grok glob 이 `.grok/installed-plugins/*standard-ai-workflow*` 였는데, grok 은 설치 디렉터리를 **플러그인 이름이 아니라** `plugin-<hash>` 로 짓고 매핑을 `registry.json` 에 적는다 (claude-code 의 `installed_plugins.json` 과 같은 모양). 이름 glob 은 **원리적으로** 이 채널을 못 찾는다 — 디렉터리 이름 규칙은 하네스의 것이지 우리 것이 아니다. claude-code 전용 특수분기였던 선언 읽기를 `INSTALL_PATH_DECLARATIONS` 표로 일반화하고 grok 리더를 넣었다. **③ 침묵이 통과로 읽혔다 (main-003)**: 사본 0 인 채널은 출력에 **아무 줄도** 안 남겼다. `gemini-cli`·`pi-dev` 처럼 `=` 로 사유를 남기는 자리가 있는데도 사본 0 은 그 자리에 못 왔고, 그래서 '설치 안 됨' 과 '못 찾음' 이 똑같이 보였다. 이제 `= <채널>: 사본 0 — <사유>` 로 남기고, **글로벌 선언이 있는데 사본이 0 이면 발견**으로 센다 (global_scope 는 '선언 있음' 이라 말하고 content_drift 는 침묵해서 그 조합이 어디에서도 안 잡히고 있었다). **④ 켜자마자 진짜를 잡았다**: 수리 직후 grok 설치본이 `35a7a859` 가 추가한 `mcp_config.json` 을 빠뜨린 것을 DRIFT 로 적발했고, 재설치로 해소했다 (`plugin update` 는 `already live` 라 말하고 갱신하지 않는다 — §7.0.2 대로 `uninstall`→`install`). 부수 효과로 `runtime_load` 도 grok 을 재게 됐다 (설치 시각이 사본에서 나오므로) — 설치보다 먼저 시작한 grok 프로세스를 잡았다. **⑤ 내가 낸 결함은 기존 그물이 잡았다**: 선언 집합이 raw 와 resolve 를 둘 다 담는데(macOS `/var`→`/private/var`) 그걸 후보로 그대로 합쳐 같은 사본을 두 번 셌다. 이 파일이 이미 한 번 고쳤던 실패라 검사 2종이 즉시 red 였고, 실경로로 접어 해소했다. 검증은 `check_deploy_doctor` 29/29(신규 2 cases)와 **되주입 2종 red 실증**. **⑥ pi(Oh My Pi) 플러그인 배포 가능 여부를 실측했다**: pi 0.84.1 에 `plugin/` 을 패키지로 설치하고 RPC `get_commands` 로 **모델 호출 없이** 노출을 쟀다 — skill **4/4** 발견(`skill:session-start`·`-end`·`backlog-update`·`doc-sync`, scope `user`, 출처는 설치본의 `skills/<name>/SKILL.md`), 그 호스트의 다른 skill 38종과 **이름 충돌 0**. 탐침 후 `pi remove` 로 원상복구(백업과 동일). **MCP 는 pi 로 못 간다** — pi 의 명시적 'No MCP' 설계라 `.pi-pkg/mcp-settings-snippet.json` 은 참고용으로만 동봉돼 있다. 즉 pi 사용자에게 가는 가치는 skill 4종이고 read-only MCP 11종은 안 간다. **⑦ 그 실측이 매니페스트 결함을 드러냈다 (main-004)**: `plugin/package.json` 의 `version` 이 **1.2.0 에 고착** — kit 은 1.7.0 이라 5개 minor 를 갈라진 채 있었다. 원인은 `_PI_STATIC_BASENAMES` 예외였는데, **그 예외 자체는 옳다** (pi.dev 자산은 렌더 대상이 아니라 손으로 유지한다고 문서화된 결정). 결정을 뒤집지 않고 결함만 좁혔다 — **구조는 손 유지가 맞지만 version 은 kit 을 따라야 한다.** `release_pipeline.write_pi_package_version` 신설(파일·필드 부재 시 **loud 실패** — 갱신 못 한 것을 성공으로 보고하지 않는다)을 `write_workflow_kit_version` 에 연결하고, `check_agent_plugin_payload` case 19 에 kit 버전 일치 단언을 넣었다. 검사는 즉시 실제 드리프트를 잡았고, 값은 손으로 쓰지 않고 그 동기화 함수로 1.7.0 에 맞췄다. **결함족 전수**: 예외 파일은 `package.json` 과 `.pi-pkg/mcp-settings-snippet.json` 둘뿐이고 후자엔 버전 문자열이 없다 — 남은 사본 0. 되주입 2종 red 실증(버전 되돌림 → 검사 red / 대상 파일 부재 → 동기화 loud 실패). **⑧ 이 세션의 반복 패턴**: 세 건 모두 '**침묵이 통과처럼 읽히는 자리**' 였다 — content_drift 가 grok 을 안 찍고(②), 사본 0 채널을 안 찍고(③), 버전 예외가 version 까지 덮었다(⑦). 셋 다 red 가 아니라 **아무 줄도 없었다.** 67차 상세는 아래 직전 기준선.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
     "in_progress_items": [
@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-08-30-main-004 — pi 패키지 매니페스트가 버전 정합 밖에 있다 — plugin/package.json 이 1.2.0 에 고착",
       "TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다",
       "TASK-2026-08-30-main-002 — doctor 의 grok-build 설치본 탐지가 디렉터리 이름 가정에 기대 실패 — 정본은 registry.json",
       "TASK-2026-08-30-main-001 — 자식 spawn 이 리터럴 python3 — meta-watch PYTHONPATH 주입에서만 드러나는 환경 의존 red 3건",
@@ -44,15 +45,14 @@
       "TASK-2026-08-29-main-004 — 환경 플러그인 채널 정렬 — claude-code/codex/grok/pi 를 1.7.0/정본 소스로 갱신",
       "TASK-2026-08-29-main-003 — check_registry_server case 10 이 호스트 네트워크에 따라 red — LAN IP 는 얻히나 왕복 불가한 인터페이스(VPN)",
       "TASK-2026-08-29-main-002 — meta-watch 미분류 감축 2차 — 중간 표면 구간 보급 + 광역 검사 전역 선언 판정",
-      "TASK-2026-08-29-main-001 — meta-watch 미분류 감축 1차 — 채취 덤프 수단 + 위험 역순 WATCHES 보급",
-      "TASK-2026-08-28-main-013 — '자기 위치 오인' 결함족 전수 마감 — wk 진입점 기본값 4건 교정 + 새 사본을 막는 정적 검사"
+      "TASK-2026-08-29-main-001 — meta-watch 미분류 감축 1차 — 채취 덤프 수단 + 위험 역순 WATCHES 보급"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-08-30.md",
-    "task_count": 6,
+    "task_count": 7,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -61,7 +61,8 @@
       "TASK-2026-08-29-main-006 — antigravity 하네스 조사 + 지원 추가",
       "TASK-2026-08-29-main-004 — 환경 플러그인 채널 정렬 — claude-code/codex/grok/pi 를 1.7.0/정본 소스로 갱신",
       "TASK-2026-08-30-main-002 — doctor 의 grok-build 설치본 탐지가 디렉터리 이름 가정에 기대 실패 — 정본은 registry.json",
-      "TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다"
+      "TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다",
+      "TASK-2026-08-30-main-004 — pi 패키지 매니페스트가 버전 정합 밖에 있다 — plugin/package.json 이 1.2.0 에 고착"
     ]
   },
   "next_documents": [

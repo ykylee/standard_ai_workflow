@@ -83,6 +83,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PYPROJECT = REPO_ROOT / "pyproject.toml"
 RELEASES_DIR = REPO_ROOT / "releases"
 WORKFLOW_KIT_INIT = REPO_ROOT / "workflow_kit" / "__init__.py"
+#: pi.dev 패키지 매니페스트. **저장소 루트**에 산다 (payload 는 `plugin/`).
+#: 렌더 대상이 아니라 손으로 유지되는 npm 메타지만(plugin_payload `_PI_STATIC_*`),
+#: `version` 만은 kit 을 따라야 한다 — 안 따라가면 갤러리가 낡은 버전을 광고한다
+#: (2026-08-30 실측: kit 1.7.0 인데 1.2.0 으로 5개 minor 동안 고착).
+PI_PACKAGE_JSON = REPO_ROOT.parent / "plugin" / "package.json"
 
 # (v1.2.0) EXPECTED_SUBPACKAGES 사본은 삭제 — 소비자가 없었고 pyproject
 # `packages` 와 이미 갈라져 있었다. packaging 정합은 check_packaging 이 wheel
@@ -848,7 +853,31 @@ def write_workflow_kit_version(new_version: str, *, suffix: str = "-beta") -> st
             f"(포맷이 바뀌었는가?). 갱신하지 못한 채 성공을 보고할 수 없다."
         )
     WORKFLOW_KIT_INIT.write_text(new_text)
+    write_pi_package_version(new_version)
     return f"{new_version}{suffix or ''}"
+
+
+def write_pi_package_version(new_version: str) -> None:
+    """pi.dev 패키지 매니페스트의 ``version`` 을 kit 버전으로 맞춘다.
+
+    이 파일은 byte 대조 대상이 아니다 (npm 메타라 손으로 유지한다). 그래서
+    **버전만** 여기서 따라가게 한다. 파일이 없으면 조용히 넘어가지 않는다 —
+    갱신하지 못한 것을 성공으로 보고하면 다음 발행이 낡은 버전을 광고한다.
+    """
+    if not PI_PACKAGE_JSON.is_file():
+        raise RuntimeError(
+            f"pi 패키지 매니페스트를 찾지 못했다: {PI_PACKAGE_JSON}. "
+            "갱신하지 못한 채 성공을 보고할 수 없다."
+        )
+    text = PI_PACKAGE_JSON.read_text(encoding="utf-8")
+    new_text, n = re.subn(
+        r'("version"\s*:\s*")[^"]+(")', rf'\g<1>{new_version}\g<2>', text, count=1)
+    if n == 0:
+        raise RuntimeError(
+            f'{PI_PACKAGE_JSON} 에서 "version" 필드를 찾지 못했다 (포맷이 바뀌었는가?). '
+            "갱신하지 못한 채 성공을 보고할 수 없다."
+        )
+    PI_PACKAGE_JSON.write_text(new_text, encoding="utf-8")
 
 def plugin_payload_status(version_label: str, *, repo_root: Path | None = None) -> dict:
     """플러그인 산출물이 주어진 버전과 정합인지 **판정만** 한다. 쓰지 않는다.

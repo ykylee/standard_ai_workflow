@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-08-29",
+  "generated_at": "2026-08-30",
   "milestones": [
     {
       "id": "M-001",
@@ -241,9 +241,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.5,
+      "progress": 0.75,
       "total_leaves": 4,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -294,10 +294,12 @@
         {
           "id": "WBS-7.4",
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
-          "derived_status": "planned",
-          "linked_task_ids": [],
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-08-30-main-004"
+          ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

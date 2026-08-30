@@ -52,6 +52,24 @@ SMOKE_COUNT_RE = re.compile(r"(\d+)\s*개\s*스모크\s*테스트")
 #: (TASK-2026-08-24-main-005).
 STATUS_VERSION_RE = re.compile(r"v[\d.]+(?:-beta)?\s*기준")
 
+#: 복사해 실행되는 설치 명령의 버전 고정 (case 7, TASK-2026-08-31-main-001).
+#: `-beta` 접미사는 v1.2.1 부터 태그에서 뗐지만 옛 고정이 그 표기로 남아 있을 수
+#: 있어 흡수한다 — 흡수해서 **읽되**, 값이 현재 버전이 아니면 red 다.
+INSTALL_PIN_PATTERNS = [
+    (
+        "GitHub Release 휠 URL",
+        re.compile(r"releases/download/v([\d.]+?)(?:-beta)?/standard_ai_workflow-"),
+    ),
+    (
+        "휠 파일명",
+        re.compile(r"standard_ai_workflow-([\d.]+)-py3-none-any\.whl"),
+    ),
+    (
+        "git 태그 고정",
+        re.compile(r"standard_ai_workflow@v([\d.]+?)(?:-beta)?(?=[#\s\"']|$)"),
+    ),
+]
+
 EXPECTED_HARNESSES = {
     "codex", "opencode", "antigravity", "minimax-code",
     "claude-code", "aider", "goose", "grok-build", "pi-dev", "codewhale",
@@ -295,6 +313,36 @@ def case_6_preflight_table_is_derived_not_copied() -> bool:
     return True
 
 
+def case_7_install_pins_are_current() -> bool:
+    """7) 복사해 실행하는 설치 명령의 버전 고정이 현재 kit 버전을 가리킨다.
+
+    이 문서의 설치 줄은 **산문이 아니라 명령**이다 — 독자가 그대로 붙여넣는다.
+    고정이 고착하면 조용히 낡은 빌드를 깔게 한다 (실측 2026-08-31: 권장 경로가
+    `v1.1.8-beta` 휠을, pi 태그 설치가 `@v1.2.0` 을 가리키는 동안 kit 은 1.7.0
+    이었다 — 각각 6·5개 minor 차이). 회귀 표나 릴리스 이력처럼 **옛 버전을 적는
+    것이 옳은 자리와 달리**, 아래 세 형태는 현재를 가리켜야 한다.
+
+    새 형태의 고정이 생기면 여기에 정규식을 추가한다. 이 검사가 낯선 고정을
+    red 로 잡는 편이, 낡은 명령을 조용히 배포하는 것보다 낫다.
+    """
+    py_ver = _read_pyproject_version()
+    content = _read_installation()
+    findings: list[str] = []
+    for label, rx in INSTALL_PIN_PATTERNS:
+        for m in rx.finditer(content):
+            pinned = m.group(1)
+            if pinned != py_ver:
+                findings.append(f"{label}: {pinned!r} (줄 {content[:m.start()].count(chr(10)) + 1})")
+    if findings:
+        print(f"  FAIL: 설치 명령의 버전 고정이 pyproject {py_ver} 와 다르다:")
+        for f in findings:
+            print(f"         - {f}")
+        return False
+    total = sum(len(rx.findall(content)) for _, rx in INSTALL_PIN_PATTERNS)
+    print(f"  [info] 설치 명령 버전 고정 {total}건 모두 {py_ver} 정합")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_smoke_count", case_1_smoke_count),
@@ -303,6 +351,7 @@ def main() -> int:
         ("case_4_related_docs", case_4_related_docs),
         ("case_5_rerun_contract_covers_plugin_channels", case_5_rerun_contract_covers_plugin_channels),
         ("case_6_preflight_table_is_derived_not_copied", case_6_preflight_table_is_derived_not_copied),
+        ("case_7_install_pins_are_current", case_7_install_pins_are_current),
     ]
     results: list[tuple[str, bool]] = []
     for name, fn in cases:

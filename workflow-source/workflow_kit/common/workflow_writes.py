@@ -233,6 +233,68 @@ def _set_list_field(
     return lines, False
 
 
+def read_task_list_field(lines: list[str], label: str) -> list[str]:
+    """`- <label>: …` 묶음의 **현재 값들**을 읽는다. 없거나 비면 `[]`.
+
+    :func:`_set_list_field` 의 짝이다. 그쪽이 묶음을 통째로 교체하므로, 교체 전에
+    무엇이 있었는지 **부를 수 있어야** 호출자가 병합을 선택할 수 있다. 이 함수가
+    없던 동안 update 는 선택지가 없어 늘 교체였고, 이전 세션이 적어둔 완료 기준·
+    영향 문서가 조용히 사라졌다 (TASK-2026-08-31-main-003).
+
+    묶음의 경계는 :func:`_set_list_field` 와 **같은 규칙**이다 — 연속한 `- <label>:`
+    줄. 두 함수가 경계를 다르게 보면 읽은 것과 덮는 것이 어긋난다.
+    """
+    prefixes = _label_prefixes(label)
+    values: list[str] = []
+    for idx, line in enumerate(lines):
+        if not _matches_label(line.strip(), prefixes):
+            continue
+        end = idx
+        while end < len(lines) and _matches_label(lines[end].strip(), prefixes):
+            stripped = lines[end].strip()
+            for p in prefixes:
+                if stripped.startswith(p):
+                    value = stripped[len(p):].strip()
+                    if value:
+                        values.append(value)
+                    break
+            end += 1
+        break
+    return values
+
+
+def read_task_affected_documents(lines: list[str]) -> list[str]:
+    """`- Affected documents:` 아래 `  - \\`path\\`` 줄들의 경로를 읽는다.
+
+    이 필드만 표기가 다르다 (라벨 줄 + 들여쓴 항목). 그래서 전용 리더가 필요하다 —
+    :func:`read_task_list_field` 의 규칙으로는 한 건도 못 읽는다.
+    """
+    from workflow_kit.common.project_docs import is_empty_label_line
+    docs: list[str] = []
+    for idx, line in enumerate(lines):
+        if not is_empty_label_line(line, "affected_documents"):
+            continue
+        end = idx + 1
+        while end < len(lines) and lines[end].startswith("  - "):
+            docs.append(lines[end].strip()[2:].strip().strip("`"))
+            end += 1
+        break
+    return docs
+
+
+def merge_preserving_order(existing: list[str], incoming: list[str]) -> list[str]:
+    """기존 값 뒤에 **새 값 중 없던 것만** 붙인다. 순서 보존, 중복 없음.
+
+    같은 값을 다시 넘기는 것은 흔하다 (호출자가 기존 값을 다시 실어 보내는 경우).
+    그때 줄이 두 벌이 되면 안 된다.
+    """
+    merged = list(existing)
+    for value in incoming:
+        if value not in merged:
+            merged.append(value)
+    return merged
+
+
 def _set_frontmatter_value(lines: list[str], key: str, value: str) -> list[str]:
     """frontmatter (`--- … ---`) 안의 `key: …` 를 교체한다."""
     if not lines or lines[0].strip() != "---":

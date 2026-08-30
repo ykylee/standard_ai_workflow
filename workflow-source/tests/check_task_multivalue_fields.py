@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""task SSOT 의 **다중값 필드** 계약을 고정한다 (12 cases).
+"""task SSOT 의 **다중값 필드** 계약을 고정한다 (17 cases).
 
 ## 계보 — 소실과 중복은 같은 뿌리다
 
@@ -14,19 +14,34 @@
 둘 다 "열거인데 스칼라로 다뤘다" 하나에서 나온다. 그래서 처방도 하나다 —
 `action="append"` + **묶음 단위 교체**(`_set_list_field`).
 
-12 cases:
+## 3막 — 교체가 기본이면 그것도 소실이다 (v1.7.1)
+
+위 처방은 *한 호출 안에서의* 소실을 닫았지만, **호출 사이의** 소실을 열어 뒀다.
+update 가 넘긴 필드를 늘 통째로 갈아치웠기 때문에, 이전 세션이 적어둔 완료
+기준·영향 문서가 경고 한 줄 없이 사라졌다 (2026-08-31 실측: 영향 문서 1건 +
+완료 기준 2건 소실). 뿌리는 **성격이 다른 두 부류에 한 정책**을 쓴 것이다 —
+`완료 기준`·`영향 문서` 는 누적 사실이고 `Progress`·`Status` 는 현재값이다.
+이제 누적 필드의 기본은 병합이고, 교체는 `--replace-field` 로 명시하며 버린
+값을 경고에 싣는다. 스칼라 필드는 여러 번 받으면 **거부**한다.
+
+17 cases:
   1) create — 반복 지정한 값이 **전부** 남는다
   2) create — 값 하나면 한 줄
   3) create — 값이 없으면 빈 placeholder 한 줄 (형식 유지)
-  4) update — 묶음이 통째로 교체된다 (3 → 2, 중복 ❌)
+  4) update — `--replace-field` 를 주면 묶음이 통째로 교체된다 (3 → 2, 중복 ❌)
   5) update — **멱등**. 같은 값으로 두 번 돌리면 파일이 동일하다
   6) update — 지정하지 않은 다중값 필드는 보존된다
-  7) update — 개수를 줄이면 남는 줄이 사라진다
+  7) update — `--replace-field` 로 개수를 줄이면 남는 줄이 사라진다
   8) 묶음 교체가 **다른 절의 같은 라벨**까지 삼키지 않는다
   9) 자기 적용 — 저장소의 task 파일에 같은 라벨 줄이 **중복 누적**돼 있지 않다
  10) `검증 결과` 주입이 `작업 결과` 묶음 **끝** 뒤에 들어간다 (묶음을 안 가른다)
  11) 이미 갈라진 파일이 갱신 시 **치유**되고 고아 줄이 남지 않는다
  12) 자기 적용 — 저장소의 task 파일에 갈라진 묶음이 없다
+ 13) update — **기본은 병합**. 이전 세션이 적은 값이 살아남는다
+ 14) update — 영향 문서도 병합된다 (표기가 달라 별도 경로)
+ 15) update — 기존 값을 다시 넘겨도 중복이 안 생긴다
+ 16) `--replace-field` 가 **버린 값을 경고에 싣는다** (침묵하는 손실 ❌)
+ 17) 스칼라 필드(`--progress-note`)를 여러 번 주면 **거부**한다
 """
 
 from __future__ import annotations
@@ -132,11 +147,17 @@ def case_3_create_empty_placeholder(root: Path) -> None:
 
 
 def case_4_update_replaces_group(root: Path) -> None:
+    """`--replace-field` 를 주면 묶음이 통째로 교체된다.
+
+    v1.7.1 이전에는 이것이 update 의 **기본**이었다 — 그래서 이전 세션이 적어둔
+    완료 기준이 경고 없이 사라졌다 (TASK-2026-08-31-main-003). 교체 자체는 정당한
+    갱신이라 없애지 않았고, **명시**를 요구하는 자리로 옮겼다.
+    """
     b = _fresh(root)
     _run_bu(b, "--mode", "create", "--done-criteria", "A", "--done-criteria", "B",
             "--done-criteria", "C")
     tid = _task_path(b).stem
-    _run_bu(b, "--mode", "update", "--task-id", tid,
+    _run_bu(b, "--mode", "update", "--task-id", tid, "--replace-field", "done_criteria",
             "--done-criteria", "X", "--done-criteria", "Y")
     got = _lines(_task_path(b), DC)
     assert got == [f"- {DC}: X", f"- {DC}: Y"], f"묶음 교체가 아니다: {got}"
@@ -167,11 +188,13 @@ def case_6_update_preserves_untouched(root: Path) -> None:
 
 
 def case_7_update_shrinks(root: Path) -> None:
+    """개수를 줄이는 갱신은 `--replace-field` 로 한다 — 그때만 줄이 사라진다."""
     b = _fresh(root)
     _run_bu(b, "--mode", "create", "--done-criteria", "A", "--done-criteria", "B",
             "--done-criteria", "C")
     tid = _task_path(b).stem
-    _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "하나만")
+    _run_bu(b, "--mode", "update", "--task-id", tid, "--replace-field", "done_criteria",
+            "--done-criteria", "하나만")
     got = _lines(_task_path(b), DC)
     assert got == [f"- {DC}: 하나만"], f"줄이 남았다: {got}"
 
@@ -279,6 +302,66 @@ def case_12_self_no_split_groups() -> None:
     assert not bad, "갈라진 묶음이 남은 task (wk backlog-update 로 touch 하면 치유된다):\n  " + "\n  ".join(bad[:10])
 
 
+def case_13_update_merges_by_default(root: Path) -> None:
+    """update 의 **기본은 병합** — 이전 세션이 적은 값이 살아남는다.
+
+    이것이 TASK-2026-08-31-main-003 의 본체다. 실측(2026-08-31): update 한 번에
+    완료 기준 1건을 넘겼더니 기존 2건이 경고 없이 사라졌다.
+    """
+    b = _fresh(root)
+    _run_bu(b, "--mode", "create", "--done-criteria", "A", "--done-criteria", "B")
+    tid = _task_path(b).stem
+    _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "C")
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}: A", f"- {DC}: B", f"- {DC}: C"], (
+        f"기존 값이 보존되지 않았다 (교체가 기본이 됐다): {got}"
+    )
+
+
+def case_14_update_merges_affected_documents(root: Path) -> None:
+    """영향 문서도 누적이다 — 표기가 달라 별도 경로를 타므로 따로 문다."""
+    b = _fresh(root)
+    _run_bu(b, "--mode", "create", "--affected-document", "docs/a.md")
+    tid = _task_path(b).stem
+    _run_bu(b, "--mode", "update", "--task-id", tid, "--affected-document", "docs/b.md")
+    text = _task_path(b).read_text(encoding="utf-8")
+    assert "`docs/a.md`" in text and "`docs/b.md`" in text, (
+        f"영향 문서가 병합되지 않았다:\n{text}"
+    )
+
+
+def case_15_merge_does_not_duplicate(root: Path) -> None:
+    """기존 값을 다시 넘겨도 줄이 두 벌이 되지 않는다 (호출자가 전건을 재전송하는 경우)."""
+    b = _fresh(root)
+    _run_bu(b, "--mode", "create", "--done-criteria", "A")
+    tid = _task_path(b).stem
+    _run_bu(b, "--mode", "update", "--task-id", tid, "--done-criteria", "A",
+            "--done-criteria", "B")
+    got = _lines(_task_path(b), DC)
+    assert got == [f"- {DC}: A", f"- {DC}: B"], f"중복이 생겼다: {got}"
+
+
+def case_16_replace_warns_about_dropped(root: Path) -> None:
+    """교체로 값을 버릴 때는 **무엇을 버렸는지** 말한다. 침묵하는 손실이 뿌리였다."""
+    b = _fresh(root)
+    _run_bu(b, "--mode", "create", "--done-criteria", "A", "--done-criteria", "B")
+    tid = _task_path(b).stem
+    proc = _run_bu(b, "--mode", "update", "--task-id", tid,
+                   "--replace-field", "done_criteria", "--done-criteria", "X")
+    out = proc.stdout
+    assert "A" in out and "B" in out and "교체로 버렸다" in out, (
+        f"버려진 값이 경고에 안 나온다:\n{out[:800]}"
+    )
+
+
+def case_17_scalar_repeat_is_rejected(root: Path) -> None:
+    """`--progress-note` 를 여러 번 주면 **거부**한다 — 조용히 마지막만 쓰지 않는다."""
+    b = _fresh(root)
+    proc = _run_bu(b, "--mode", "create", "--progress-note", "A", "--progress-note", "B")
+    assert proc.returncode != 0, f"여러 번 지정을 통과시켰다 (rc={proc.returncode})"
+    assert "--progress-note" in proc.stderr, f"거부 사유가 불명확하다: {proc.stderr[:300]}"
+
+
 def _run(fn, needs_root: bool = True) -> None:
     try:
         if needs_root:
@@ -299,7 +382,10 @@ def main() -> int:
     print("=== task 다중값 필드 계약 ===")
     for fn in (case_1_create_keeps_all, case_2_create_single, case_3_create_empty_placeholder,
                case_4_update_replaces_group, case_5_update_is_idempotent,
-               case_6_update_preserves_untouched, case_7_update_shrinks):
+               case_6_update_preserves_untouched, case_7_update_shrinks,
+               case_13_update_merges_by_default, case_14_update_merges_affected_documents,
+               case_15_merge_does_not_duplicate, case_16_replace_warns_about_dropped,
+               case_17_scalar_repeat_is_rejected):
         _run(fn)
     for fn in (case_8_group_does_not_swallow_other_section, case_9_self_no_accumulated_duplicates,
                case_10_validation_injects_after_group_end, case_11_split_file_heals_without_orphans,
@@ -308,7 +394,7 @@ def main() -> int:
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n12/12 PASS")
+    print("\n17/17 PASS")
     return 0
 
 

@@ -42,10 +42,27 @@ from workflow_kit.common.purpose_context import build_purpose_context, check_sco
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import (
     ensure_backlog_index_entry,
+    merge_preserving_order,
     merge_task_file,
+    read_task_affected_documents,
+    read_task_list_field,
     render_task_file,
     sync_handoff_status,
     upsert_backlog_entry,
+)
+
+#: `--replace-field` 로 지정할 수 있는 **누적 성격** 필드들 (의미 key → 라벨 key).
+#:
+#: 이 필드들은 task 에 대한 *누적 사실*이다 — 완료 기준이 셋이면 셋 다 참이고,
+#: 영향 문서가 넷이면 넷 다 영향받는다. 그래서 update 의 기본은 **병합**이다.
+#: `Progress` · `Status` 처럼 *현재값*인 필드는 여기 없다 — 그쪽은 교체가 맞다.
+#: 한 정책을 두 부류에 함께 쓴 것이 TASK-2026-08-31-main-003 의 뿌리였다.
+CUMULATIVE_FIELDS: tuple[str, ...] = (
+    "affected_documents",
+    "done_criteria",
+    "result",
+    "risks",
+    "follow_up",
 )
 
 
@@ -257,7 +274,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--host-name")
     parser.add_argument("--host-ip")
     parser.add_argument("--affected-document", action="append", dest="affected_documents", default=[])
-    parser.add_argument("--progress-note")
+    # v1.7.1: 스칼라 필드도 **반복 지정을 받아 놓고 거부**한다. 이전에는 argparse
+    # 기본 동작으로 마지막 하나만 남아 나머지가 조용히 사라졌다 — 열거 필드는
+    # v1.2.2 가 이 부류를 고쳤는데 이 둘이 빠져 있었다. 여기서 합치지 않는 이유:
+    # `Progress` 는 **한 줄** 필드라 구분자를 도구가 지어내면 그것도 추측이다.
+    # 못 쓴 것을 성공으로 보고하지 않되, 구조는 호출자가 정한다.
+    parser.add_argument("--progress-note", action="append", dest="progress_note", default=[])
     # v1.2.2 (task SSOT 2단계): 열거형 필드는 **반복 지정**을 받는다.
     # 이전에는 마지막 하나만 남아, 값을 여러 개 주면 나머지가 **조용히 사라졌다**
     # (2026-08-14 실측: 5건을 적었는데 1건만 들어갔다). 개행을 끼워 넣는 우회책은
@@ -266,12 +288,17 @@ def parse_args() -> argparse.Namespace:
                         help="완료 기준 (반복 지정 가능)")
     parser.add_argument("--result-note", action="append", dest="result_note", default=[],
                         help="작업 결과 (반복 지정 가능)")
-    parser.add_argument("--next-step")
+    parser.add_argument("--next-step", action="append", dest="next_step", default=[])
     parser.add_argument("--risks", action="append", dest="risks", default=[],
                         help="남은 리스크 (반복 지정 가능)")
     parser.add_argument("--follow-up", action="append", dest="follow_up", default=[],
                         help="후속 작업 (반복 지정 가능)")
     parser.add_argument("--validation-result")
+    parser.add_argument("--replace-field", action="append", dest="replace_fields", default=[],
+                        choices=CUMULATIVE_FIELDS,
+                        help="update 에서 이 누적 필드를 병합하지 않고 **교체**한다 (반복 지정 가능). "
+                             "기본은 병합 — 이전 세션이 적은 값을 지우려면 여기에 명시한다. "
+                             f"지정 가능: {', '.join(CUMULATIVE_FIELDS)}")
     # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task 생성 게이트.
     parser.add_argument("--wbs", default=None,
                         help="WBS leaf 참조 'M-NNN/WBS-N.N', 또는 로드맵 밖 작업 선언 'exempt'. "
@@ -545,7 +572,17 @@ def main() -> int:
             args.status, args.validation_result, operation_type, current_status=current_status)
         warnings.extend(status_warnings)
 
-        progress_note = args.progress_note
+        # 스칼라 필드는 여러 번 받으면 **거부**한다 — 조용히 마지막만 쓰지 않는다.
+        for flag, values in (("--progress-note", args.progress_note),
+                             ("--next-step", args.next_step)):
+            if len(values) > 1:
+                raise SystemExit(
+                    f"{flag} 를 {len(values)}번 지정했다. 이 필드는 한 줄이라 여러 값을 "
+                    f"합칠 구분자를 도구가 정할 수 없다 — 하나로 합쳐서 넘긴다. "
+                    f"받은 값: {values!r}"
+                )
+        progress_note = args.progress_note[0] if args.progress_note else None
+        next_step = args.next_step[0] if args.next_step else None
         if not progress_note:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             progress_note = f"`{timestamp}` 기준 {args.task_brief}"
@@ -561,7 +598,7 @@ def main() -> int:
             "affected_documents": args.affected_documents,
             "done_criteria": args.done_criteria,
             "result_note": result_note,
-            "next_step": args.next_step,
+            "next_step": next_step,
             "risks": args.risks,
             "follow_up": args.follow_up,
         }
@@ -630,8 +667,8 @@ def main() -> int:
                 list_updates[task_label("result")] = _as_list(result_note)
             if args.validation_result and args.validation_result != result_note:
                 scalar_updates[task_label("validation")] = args.validation_result
-            if args.next_step:
-                scalar_updates[task_label("next_step")] = args.next_step
+            if next_step:
+                scalar_updates[task_label("next_step")] = next_step
             if args.risks:
                 list_updates[task_label("risks")] = _as_list(args.risks)
             if args.follow_up:
@@ -639,13 +676,52 @@ def main() -> int:
             # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
             if any(is_empty_label_line(line, "summary") for line in existing_lines):
                 scalar_updates[task_label("summary")] = args.task_brief
+
+            # --- 누적 필드 병합 (TASK-2026-08-31-main-003) ---------------------
+            # `merge_task_file` 은 묶음을 **통째로 교체**하는 저수준 setter 다. 그
+            # 아래에서 "무엇을 쓸 것인가" 를 정하는 것은 정책이고, 정책은 여기 산다.
+            # 이전에는 정책이 없어 늘 교체였고, 이전 세션이 적은 완료 기준·영향
+            # 문서가 **경고 한 줄 없이** 사라졌다 (실측 2026-08-31: 영향 문서 1건 +
+            # 완료 기준 2건 소실). 기본은 병합, 교체는 `--replace-field` 로 명시한다.
+            replace_fields = set(args.replace_fields or [])
+            for field_key in CUMULATIVE_FIELDS:
+                if field_key == "affected_documents":
+                    continue
+                label = task_label(field_key)
+                if label not in list_updates:
+                    continue
+                previous = read_task_list_field(existing_lines, label)
+                if field_key in replace_fields:
+                    dropped = [v for v in previous if v not in list_updates[label]]
+                    if dropped:
+                        warnings.append(
+                            f"--replace-field {field_key}: 기존 값 {len(dropped)}건을 "
+                            f"교체로 버렸다 — {dropped}"
+                        )
+                    continue
+                list_updates[label] = merge_preserving_order(previous, list_updates[label])
+
+            merged_docs = args.affected_documents or None
+            if args.affected_documents:
+                previous_docs = read_task_affected_documents(existing_lines)
+                if "affected_documents" in replace_fields:
+                    dropped_docs = [d for d in previous_docs
+                                    if d not in args.affected_documents]
+                    if dropped_docs:
+                        warnings.append(
+                            f"--replace-field affected_documents: 기존 값 "
+                            f"{len(dropped_docs)}건을 교체로 버렸다 — {dropped_docs}"
+                        )
+                else:
+                    merged_docs = merge_preserving_order(previous_docs, args.affected_documents)
+
             draft_entry, merge_missing = merge_task_file(
                 existing_lines,
                 status=status,
                 kind=args.kind,
                 scalar_updates=scalar_updates,
                 list_updates=list_updates,
-                affected_documents=args.affected_documents or None,
+                affected_documents=merged_docs,
                 wbs=args.wbs,
                 wbs_exempt_reason=args.wbs_exempt_reason,
             )
@@ -678,7 +754,7 @@ def main() -> int:
                 progress_note=progress_note,
                 done_criteria=args.done_criteria,
                 result_note=result_note,
-                next_step=args.next_step,
+                next_step=next_step,
                 risks=args.risks,
                 follow_up=args.follow_up,
                 validation_result=args.validation_result,

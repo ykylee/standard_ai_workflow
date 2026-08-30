@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import hashlib
 import subprocess
@@ -889,6 +890,80 @@ def _declared_install_roots_grok(home: Path) -> tuple[list[str], set[str], str |
     return raw_roots, roots, None
 
 
+#: 사본이 **거기 있는 것만으로는 부족한** 자리 — 하네스가 그 사본을 찾아가는
+#: 경유지가 따로 있고, 그 경유지가 사라지면 사본이 멀쩡해도 못 쓴다.
+#:
+#: codex 가 그렇다: 설치 캐시(`~/.codex/plugins/cache/…`)와 **marketplace 소스**가
+#: 따로 있고, `config.toml` 의 `[marketplaces.<이름>].source` 가 후자를 가리킨다.
+#: 2026-08-31 이 호스트 실측 — 그 source 가 사흘 전 끝난 Claude Code 세션의
+#: 스크래치패드(`/private/tmp/claude-501/…/scratchpad/…`)를 가리키고 있었다.
+#: 캐시는 정본과 in-sync 였고 `content_drift` 는 통과라고 말했다. macOS 가
+#: `/private/tmp` 를 비우는 순간 플러그인이 사라지는데, **탐침 어디에도 그 단서가
+#: 없었다** (TASK-2026-08-31-main-004).
+#:
+#: 휘발 판정은 **경로 규칙**으로 한다 — 지금 존재하는지만 보면 비워지기 전에는
+#: 늘 통과다. 있으나 곧 없어질 자리를 '있음' 으로 세지 않는다.
+VOLATILE_PATH_PREFIXES: tuple[str, ...] = (
+    "/tmp/", "/private/tmp/", "/var/folders/", "/private/var/folders/",
+)
+
+
+def _codex_marketplace_sources(home: Path) -> list[dict[str, object]]:
+    """codex 가 이 플러그인을 얻는 **marketplace 소스**와 그 상태.
+
+    `[plugins."<이름>@<마켓>"]` 에서 마켓 이름을 얻고, `[marketplaces.<마켓>].source`
+    가 실제로 어디를 가리키는지 본다. 이름을 추측하지 않는다 — 선언을 읽는다.
+    """
+    path = home / ".codex" / "config.toml"
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return []
+    markets = {
+        m.group(1)
+        for m in re.finditer(
+            r'^\[plugins\."[^"@]*standard-ai-workflow[^"@]*@([^"]+)"\]', text, re.MULTILINE
+        )
+    }
+    out: list[dict[str, object]] = []
+    for market in sorted(markets):
+        block = re.search(
+            rf'^\[marketplaces\.(?:"{re.escape(market)}"|{re.escape(market)})\]'
+            r'(.*?)(?=^\[|\Z)',
+            text, re.MULTILINE | re.DOTALL,
+        )
+        source: str | None = None
+        if block:
+            src = re.search(r'^\s*source\s*=\s*"([^"]+)"', block.group(1), re.MULTILINE)
+            source = src.group(1) if src else None
+        resolved = Path(source) if source else None
+        # **홈 안쪽은 휘발이 아니다.** 홈이 어디에 있든 그것은 이 하네스의 거처이고,
+        # 거처와 같은 수명을 갖는다 — 홈이 `/var/folders` 아래인 환경(샌드박스·
+        # 주입된 홈)에서 접두사만 보면 정상 설치가 전부 휘발로 잡힌다.
+        # 우리가 재려는 것은 "설정이 **자기 거처 밖의** 임시 자리를 가리키는가" 다.
+        inside_home = False
+        if resolved is not None:
+            try:
+                resolved.resolve().relative_to(home.resolve())
+                inside_home = True
+            except (ValueError, OSError):
+                inside_home = False
+        out.append({
+            "marketplace": market,
+            "source": source,
+            "declared": source is not None,
+            "exists": bool(resolved and resolved.is_dir()),
+            "volatile": bool(
+                source
+                and not inside_home
+                and any(source.startswith(p) for p in VOLATILE_PATH_PREFIXES)
+            ),
+        })
+    return out
+
+
 #: 설치 경로를 **스스로 선언하는** 채널의 리더. 여기 없는 채널은 glob 매치를
 #: 전부 설치로 본다 (그 폴백은 조용히 하지 않는다 — §0).
 INSTALL_PATH_DECLARATIONS: dict[
@@ -1029,6 +1104,30 @@ def _probe_content_drift(
             "로드할 수 없다. 재설치는 docs/INSTALLATION_AND_USAGE.md §7.0.2 의 "
             "채널별 절차를 따른다"
         )
+    # 사본이 아니라 **경유지**를 본다. 사본이 in-sync 여도 marketplace 소스가
+    # 사라지면 하네스는 그 사본에 닿지 못한다 (main-004).
+    marketplace_sources = _codex_marketplace_sources(home)
+    for src in marketplace_sources:
+        if not src["declared"]:
+            findings.append(
+                f"codex 가 marketplace `{src['marketplace']}` 를 통해 이 플러그인을 "
+                "쓴다고 선언했는데 그 marketplace 의 source 가 config.toml 에 없다 — "
+                "해석 불가"
+            )
+        elif not src["exists"]:
+            findings.append(
+                f"codex marketplace `{src['marketplace']}` 의 source 가 존재하지 "
+                f"않는다: {src['source']} — 설치 캐시가 멀쩡해도 하네스가 이 "
+                "플러그인에 닿지 못한다. docs/INSTALLATION_AND_USAGE.md §7.0 의 "
+                "codex 절차로 다시 등록한다"
+            )
+        elif src["volatile"]:
+            findings.append(
+                f"codex marketplace `{src['marketplace']}` 의 source 가 **휘발 경로**에 "
+                f"있다: {src['source']} — 지금은 존재하지만 OS 가 비우면 플러그인이 "
+                "사라진다. 항구 경로(예: `~/.codex/local-marketplaces/`)에 풀고 "
+                "`codex plugin marketplace add` 를 그쪽으로 다시 건다"
+            )
     for c in out_of_sync:
         findings.append(
             f"{c['harness']} 설치 사본의 내용이 정본과 다르다 — "
@@ -1045,6 +1144,8 @@ def _probe_content_drift(
         "superseded": superseded,
         # 사본 0 인 채널 — 침묵으로 지우지 않는다 (main-003).
         "no_copy": no_copy,
+        # 사본에 닿는 **경유지** 상태 (main-004). 사본과 별개로 깨질 수 있다.
+        "marketplace_sources": marketplace_sources,
         "findings": findings,
         # 사본을 두지 않는 채널은 내용 드리프트가 성립하지 않는다.
         "not_applicable": {
@@ -1460,6 +1561,17 @@ def _render_text(report: dict[str, Any]) -> str:
         lines.append(f"  = {gap['harness']}: 사본 0 — {gap['why']}{mark}")
     for harness, why in sorted((content.get("not_applicable") or {}).items()):
         lines.append(f"  = {harness}: {why}")
+    # 사본에 닿는 경유지 — 사본 행과 나란히 찍어야 둘이 갈린 것을 사람이 본다.
+    for src in content.get("marketplace_sources") or []:
+        if not src.get("declared"):
+            state = "source 선언 없음 — 해석 불가"
+        elif not src.get("exists"):
+            state = f"source 부재: {src['source']}"
+        elif src.get("volatile"):
+            state = f"source 가 휘발 경로: {src['source']}"
+        else:
+            state = f"source 정상: {src['source']}"
+        lines.append(f"  · codex marketplace `{src['marketplace']}` — {state}")
     for item in content.get("declared_unmeasured", []):
         lines.append(f"  (미측정) {item}")
 

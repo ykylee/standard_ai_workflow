@@ -61,9 +61,9 @@ cd standard_ai_workflow
 > (근거: [`planning/cli-distribution-review-2026-08.md`](./planning/cli-distribution-review-2026-08.md)).
 >
 > ```bash
-> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v1.1.8-beta/standard_ai_workflow-1.1.8-py3-none-any.whl
+> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v1.7.0/standard_ai_workflow-1.7.0-py3-none-any.whl
 > # 또는: pipx install <같은 URL>
-> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v1.1.8-beta#subdirectory=workflow-source"
+> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v1.7.0#subdirectory=workflow-source"
 > wk --help
 > ```
 
@@ -316,7 +316,7 @@ grok plugin install ./plugin --trust
 # (plugin/package.json 의 `pi` manifest + `pi-package` keyword 가 갤러리 등록 단위)
 pi install ./plugin
 # 또는 태그 고정 설치:
-pi install git:github.com/ykylee/standard_ai_workflow@v1.2.0
+pi install git:github.com/ykylee/standard_ai_workflow@v1.7.0
 ```
 
 전제 두 가지:

@@ -241,9 +241,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.75,
+      "progress": 0.5,
       "total_leaves": 4,
-      "done_leaves": 3,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -261,7 +261,7 @@
         {
           "id": "WBS-7.2",
           "title": "결함 수리 — 탐침·도구 ('잰 단위' 결함족, doctor/release 탐침, kit 자체 결함)",
-          "derived_status": "done",
+          "derived_status": "in_progress",
           "linked_task_ids": [
             "TASK-2026-08-25-main-022",
             "TASK-2026-08-25-main-023",
@@ -271,10 +271,13 @@
             "TASK-2026-08-28-main-012",
             "TASK-2026-08-28-main-013",
             "TASK-2026-08-30-main-002",
-            "TASK-2026-08-30-main-003"
+            "TASK-2026-08-30-main-003",
+            "TASK-2026-08-31-main-002",
+            "TASK-2026-08-31-main-003",
+            "TASK-2026-08-31-main-004"
           ],
           "total_leaves": 1,
-          "done_leaves": 1,
+          "done_leaves": 0,
           "children": []
         },
         {
@@ -296,7 +299,8 @@
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
           "derived_status": "done",
           "linked_task_ids": [
-            "TASK-2026-08-30-main-004"
+            "TASK-2026-08-30-main-004",
+            "TASK-2026-08-31-main-001"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

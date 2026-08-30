@@ -26,6 +26,7 @@ import contextlib
 import hashlib
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -1022,6 +1023,99 @@ def test_content_drift_reports_channel_with_zero_copies() -> None:
             not problems, "; ".join(problems))
 
 
+def _seed_codex_marketplace(home: Path, source: str) -> None:
+    """codex `config.toml` 에 플러그인 선언 + marketplace source 를 심는다."""
+    cfg = home / ".codex"
+    cfg.mkdir(parents=True, exist_ok=True)
+    (cfg / "config.toml").write_text(
+        'model = "gpt-5.6-terra"\n\n'
+        '[plugins."standard-ai-workflow@standard-ai-workflow"]\n'
+        "enabled = true\n\n"
+        "[marketplaces.standard-ai-workflow]\n"
+        'source_type = "local"\n'
+        f'source = "{source}"\n',
+        encoding="utf-8",
+    )
+
+
+def _codex_source_row(home: Path, project: Path) -> dict:
+    content = probe(project_root=project, home=home)["content_drift"]
+    rows = content.get("marketplace_sources") or []
+    return rows[0] if rows else {}
+
+
+def test_codex_marketplace_source_on_volatile_path_is_a_finding() -> None:
+    """휘발 경로의 marketplace source 는 **지금 존재해도** 발견이다 (main-004).
+
+    2026-08-31 이 호스트 실측: source 가 사흘 전 끝난 Claude Code 세션의
+    스크래치패드(`/private/tmp/claude-501/…`)를 가리키고 있었다. 설치 캐시는
+    정본과 in-sync 였고 `content_drift` 는 통과라고 말했다 — OS 가 `/private/tmp`
+    를 비우면 플러그인이 사라지는데 **탐침 어디에도 단서가 없었다.**
+
+    존재 여부만 보면 비워지기 전에는 늘 통과다. 그래서 **경로 규칙**으로 판정한다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-codex-vol-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        volatile = Path("/private/tmp") / f"doctor-probe-{os.getpid()}"
+        volatile.mkdir(parents=True, exist_ok=True)
+        try:
+            _seed_codex_marketplace(home, str(volatile))
+            row = _codex_source_row(home, Path(tmpdir) / "project")
+            report = probe(project_root=Path(tmpdir) / "project", home=home)
+        finally:
+            volatile.rmdir()
+    problems = []
+    if not row:
+        problems.append("marketplace source 를 아예 안 읽었다")
+    else:
+        if not row.get("exists"):
+            problems.append("실재하는 경로를 부재로 봤다 — 휘발 판정과 존재 판정이 섞였다")
+        if not row.get("volatile"):
+            problems.append(f"휘발 경로를 항구로 봤다: {row.get('source')!r}")
+    findings = report["content_drift"]["findings"]
+    if not any("휘발" in f for f in findings):
+        problems.append(f"휘발을 발견으로 세지 않았다: {findings!r}")
+    _record("test_codex_marketplace_source_on_volatile_path_is_a_finding",
+            not problems, "; ".join(problems))
+
+
+def test_codex_marketplace_source_missing_is_a_finding() -> None:
+    """source 가 사라졌으면 설치 캐시가 멀쩡해도 발견이다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-codex-gone-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        _seed_codex_marketplace(home, str(Path(tmpdir) / "없는-경로"))
+        report = probe(project_root=Path(tmpdir) / "project", home=home)
+    row = (report["content_drift"].get("marketplace_sources") or [{}])[0]
+    findings = report["content_drift"]["findings"]
+    problems = []
+    if row.get("exists"):
+        problems.append("없는 경로를 있다고 봤다")
+    if not any("source 가 존재하지" in f for f in findings):
+        problems.append(f"부재를 발견으로 세지 않았다: {findings!r}")
+    _record("test_codex_marketplace_source_missing_is_a_finding",
+            not problems, "; ".join(problems))
+
+
+def test_codex_marketplace_source_durable_is_silent() -> None:
+    """항구 경로면 발견이 없다 — 정상을 시끄럽게 하지 않는다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-codex-ok-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        durable = home / ".codex" / "local-marketplaces" / "standard-ai-workflow-codex-plugin-1.7.0"
+        durable.mkdir(parents=True, exist_ok=True)
+        _seed_codex_marketplace(home, str(durable))
+        report = probe(project_root=Path(tmpdir) / "project", home=home)
+    row = (report["content_drift"].get("marketplace_sources") or [{}])[0]
+    findings = report["content_drift"]["findings"]
+    problems = []
+    if not row.get("exists") or row.get("volatile"):
+        problems.append(f"항구 경로를 문제로 봤다: {row!r}")
+    noisy = [f for f in findings if "marketplace" in f]
+    if noisy:
+        problems.append(f"정상인데 발견을 냈다: {noisy!r}")
+    _record("test_codex_marketplace_source_durable_is_silent",
+            not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1055,6 +1149,9 @@ def main() -> int:
         test_install_root_fallback_is_declared,
         test_content_drift_finds_grok_copy_by_declaration_not_name,
         test_content_drift_reports_channel_with_zero_copies,
+        test_codex_marketplace_source_on_volatile_path_is_a_finding,
+        test_codex_marketplace_source_missing_is_a_finding,
+        test_codex_marketplace_source_durable_is_silent,
     ]
     for case in cases:
         case()

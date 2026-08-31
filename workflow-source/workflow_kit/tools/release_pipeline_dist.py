@@ -10,6 +10,7 @@ release_pipeline 을 import 하지 않는다 (순환 금지).
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -21,11 +22,40 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 __all__ = [
     "_check_build_module",
     "_build_command",
+    "_purge_build_residue",
     "_expected_dist_pattern",
     "_twine_check",
     "_simulate_testpypi_upload",
     "_simulate_production_upload",
 ]
+
+#: 빌드 잔재 — 지우고 시작하지 않으면 산출물이 체크아웃의 빌드 **이력**에 좌우된다.
+BUILD_RESIDUE = ("build", "standard_ai_workflow.egg-info")
+
+
+def _purge_build_residue(root: Path = REPO_ROOT) -> list[str]:
+    """`build/` 와 `*.egg-info/` 를 지운다. 지운 상대 경로 목록을 돌려준다.
+
+    v1.8.1 (TASK-2026-09-01-main-001). pyproject 기반 설정은
+    ``include_package_data`` 가 **기본 True** 다. 그래서 이전 빌드가 남긴
+    ``standard_ai_workflow.egg-info/SOURCES.txt`` 에 어떤 파일이 적혀 있으면,
+    지금 pyproject 의 ``packages`` 가 그 디렉터리를 선언하지 않아도 wheel 에 실린다.
+
+    2026-09-01 실측: ``workflow_kit.cli`` 를 ``packages`` 에서 뺀 채 빌드했는데
+    잔재가 있는 트리에서는 ``workflow_kit/cli/doctor.py`` 가 **실렸고**, 잔재를 지운
+    뒤 같은 pyproject 로 빌드하니 빠졌다. 즉 잔재가 있으면 `check_packaging` 은
+    "실린 wheel" 을 재고 green 을 주는데, 깨끗한 CI 빌드가 만드는 실제 배포물은
+    다르다 — 소비자만 ``ModuleNotFoundError`` 를 본다.
+
+    둘 다 빌드 산출물이고 (git 미추적) 바로 다음 줄에서 재생성되므로 안전하다.
+    """
+    removed: list[str] = []
+    for name in BUILD_RESIDUE:
+        path = root / name
+        if path.is_dir():
+            shutil.rmtree(path)
+            removed.append(name)
+    return removed
 
 
 def _check_build_module() -> dict:

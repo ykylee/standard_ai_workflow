@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""패키지가 **저장소 체크아웃 레이아웃**에 기대지 않는지 고정한다 (4 cases).
+"""패키지가 **저장소 체크아웃 레이아웃**에 기대지 않는지 고정한다 (5 cases).
 
 ## 계보 (TASK-2026-08-18-main-003)
 
@@ -20,16 +20,30 @@ subprocess 로 실행**하고 있었다. 2026-08-18 실측 red 3건:
 `wk` 도 전부 체크아웃에서 도니까, 이 어긋남은 **로컬에서 영원히 green** 이다 (SDK 매트릭스
 · 브랜치 매트릭스와 같은 계열의 사각지대). 그래서 실행이 아니라 **레이아웃 계약**으로 잰다.
 
-4 cases:
+## 5번째 case 의 계보 (TASK-2026-09-01-main-001)
+
+`[tool.setuptools] packages` 는 **손 목록**이고, 거기서 빠진 하위 패키지는 wheel 에
+디렉터리째 실리지 않는다. 그런데 저장소 체크아웃에는 그 디렉터리가 실재하니 위와 똑같은
+사각지대가 성립한다 — 로컬 영원히 green, 소비자만 `ModuleNotFoundError`. 실제로 **세 번**
+났다: `common.state|contracts|schemas` (v0.5.7.1 hotfix) · `tools` (v1.1.7) ·
+`cli` (v1.8.0 까지 실려 나갔다). 세 번 다 사람이 목록 갱신을 잊은 것이라, 사람에게 다시
+부탁하는 대신 **디스크와 대조**한다.
+
+`tools/check_packaging.py` 도 같은 축을 재지만 그쪽은 **빌드된 wheel** 이 있어야 하는
+릴리스 시점 검사다. 게이트에서 매번 도는 정적 대조는 여기 있어야 한다.
+
+5 cases:
   1) `workflow_kit/` 이 `"workflow-source"` 를 경로로 조립하지 않는다 (선언된 예외만)
   2) 런타임 자산은 `workflow_kit/assets/` 아래 있고 실재한다
   3) 그 자산이 pyproject `package-data` 에 선언돼 있다 (선언 없으면 wheel 에 안 실린다)
   4) 자기 모듈을 **파일 경로로** 재실행하지 않는다 — `-m` 으로 부른다 (선언된 예외만)
+  5) 디스크의 모든 하위 패키지가 pyproject `packages` 에 선언돼 있다 (양방향)
 """
 
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -232,6 +246,48 @@ def case_4_no_module_reexec_by_file_path(sources) -> None:
     )
 
 
+def _declared_packages(text: str) -> set[str]:
+    """pyproject `[tool.setuptools]` 의 `packages = [...]` 를 읽는다.
+
+    `tomllib` 을 안 쓰는 이유: `requires-python = ">=3.10"` 이고 tomllib 은 3.11+ 다.
+    이 검사가 3.10 에서만 조용히 빠지면 검사의 존재 이유가 사라진다.
+    """
+    after = text.split("[tool.setuptools]", 1)
+    assert len(after) == 2, "pyproject 에 [tool.setuptools] 가 없다"
+    block = after[1].split("packages = [", 1)
+    assert len(block) == 2, "[tool.setuptools] 에 packages 선언이 없다"
+    return set(re.findall(r'"([^"]+)"', block[1].split("]", 1)[0]))
+
+
+def _ondisk_packages() -> set[str]:
+    """`.py` 를 담은 디스크의 디렉터리 → 점 표기 패키지 이름."""
+    out: set[str] = set()
+    for f in PKG.rglob("*.py"):
+        parts = f.parent.relative_to(PKG.parent).parts
+        if "__pycache__" in parts:
+            continue
+        out.add(".".join(parts))
+    return out
+
+
+def case_5_every_ondisk_package_is_declared(sources) -> None:
+    declared = _declared_packages(PYPROJECT.read_text(encoding="utf-8"))
+    ondisk = _ondisk_packages()
+    undeclared = sorted(ondisk - declared)
+    assert not undeclared, (
+        "디스크에 있는데 pyproject `[tool.setuptools] packages` 에 없는 하위 패키지: "
+        f"{undeclared}. 선언이 없으면 wheel 에 **디렉터리째** 안 실린다 — 체크아웃에는 "
+        "그 디렉터리가 있으니 로컬은 green 이고 소비자만 ModuleNotFoundError 다 "
+        "(v0.5.7.1 · v1.1.7 · v1.8.0 에서 세 번)."
+    )
+    phantom = sorted(declared - ondisk)
+    assert not phantom, (
+        f"pyproject `packages` 가 디스크에 없는 패키지를 선언한다: {phantom}. "
+        "이름이 바뀌었거나 지워진 뒤 목록만 남은 것이다 — setuptools 가 조용히 넘기므로 "
+        "여기서 잡지 않으면 목록이 사실과 갈라진 채 굳는다."
+    )
+
+
 def _run(fn, sources) -> None:
     try:
         fn(sources)
@@ -250,12 +306,13 @@ def main() -> int:
     for fn in (case_1_no_checkout_layout_paths,
                case_2_runtime_assets_live_in_package,
                case_3_assets_declared_in_package_data,
-               case_4_no_module_reexec_by_file_path):
+               case_4_no_module_reexec_by_file_path,
+               case_5_every_ondisk_package_is_declared):
         _run(fn, sources)
     if FAILURES:
         print(f"\n{len(FAILURES)} fail: {FAILURES}")
         return 1
-    print("\n4/4 PASS")
+    print("\n5/5 PASS")
     return 0
 
 

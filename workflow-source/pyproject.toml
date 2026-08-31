@@ -198,6 +198,14 @@ packages = [
     "workflow_kit.contract_v1",
     "workflow_kit.server",
     "workflow_kit.harness",
+    # v1.8.1 (TASK-2026-09-01-main-001): `python -m workflow_kit.cli.doctor`
+    # (7 baseline compliance) 가 사는 패키지. 이 목록에 없어서 wheel 에 **디렉터리째**
+    # 빠져 있었다 — 저장소 체크아웃에서는 디렉터리가 실재하니 로컬은 영원히 green,
+    # 소비자만 ModuleNotFoundError. `tools`(v1.1.7) · `common.state|contracts|schemas`
+    # (v0.5.7.1) 에 이은 **세 번째** 누락이라, 이제 목록 자신을 디스크 실측과
+    # 대조한다 — `tests/check_deployed_layout.py` case 5 (게이트) +
+    # `tools/check_packaging.py` 의 디스크 파생 REQUIRED_IMPORTS (wheel 실측).
+    "workflow_kit.cli",
     # v1.1.8 (TASK-2026-08-12-main-006): 구현의 정위치. top-level `tools` 는
     # 공개 배포 시 이름 충돌을 일으키는 일반명이라 여기로 격상했다.
     # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools) 은

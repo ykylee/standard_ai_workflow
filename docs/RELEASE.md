@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.8.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.8.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-08-31
+- 최종 수정일: 2026-09-01
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -162,6 +162,9 @@ v1.1.4+ 기본값: `--apply` 를 명시하지 않으면 `release` 는 **dry-run*
 
 ```bash
 cd workflow-source
+# 빌드 잔재부터 지운다 — `wk release-dist --apply` 는 이걸 자동으로 한다 (v1.8.1).
+# 남아 있으면 낡은 SOURCES.txt 때문에 지금 pyproject 가 선언하지 않은 파일까지 실린다.
+rm -rf build standard_ai_workflow.egg-info
 # 빌드 venv (없으면 생성)
 python3 -m venv .venv-build
 .venv-build/bin/pip install --upgrade pip build twine
@@ -241,6 +244,21 @@ unzip -l dist/standard_ai_workflow-*.whl | grep -E "contract_v1|common/(state|co
 ```
 
 수정 후 재빌드. 회귀: `wk check-packaging`.
+
+> **v1.8.1 (TASK-2026-09-01-main-001)**: 이 결함족은 **세 번** 났다 —
+> `common.{state,contracts,schemas}` (v0.5.7.1) · `tools` (v1.1.7) · `cli` (v1.8.0,
+> 실제로 실려 나갔다). 이제 사람이 위 명령을 기억하지 않아도 게이트가 먼저 잡는다:
+>
+> - `tests/check_deployed_layout.py` **case 5** — 디스크의 하위 패키지와
+>   `[tool.setuptools] packages` 를 매 게이트마다 양방향 대조 (wheel 불필요).
+> - `wk check-packaging` — `REQUIRED_IMPORTS` 가 손 목록이 아니라 **디스크 파생**이고,
+>   자식 프로세스는 `PYTHONPATH` 를 떨군 격리 환경에서 돈다. 이전에는
+>   `PYTHONPATH=workflow-source` 로 부르면 격리 venv 가 소스 트리를 보고, pip 이
+>   `.egg-info` 때문에 wheel 설치를 아예 건너뛴 채 **PASS** 를 줬다.
+> - `wk release-dist --apply` 는 빌드 전에 `build/` 와 `standard_ai_workflow.egg-info/`
+>   를 지운다. 잔재가 있으면 `include_package_data`(pyproject 설정에서 기본 **True**)가
+>   낡은 `SOURCES.txt` 를 읽어, 선언되지 않은 파일까지 wheel 에 싣는다 — 로컬 산출물과
+>   CI 산출물이 갈리는 자리다.
 
 ### 3.2 `twine check` 가 README 파싱 실패
 

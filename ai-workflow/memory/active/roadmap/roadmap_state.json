@@ -241,9 +241,9 @@
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
       "derived_status": "in_progress",
-      "progress": 0.75,
+      "progress": 0.5,
       "total_leaves": 4,
-      "done_leaves": 3,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -262,7 +262,7 @@
         {
           "id": "WBS-7.2",
           "title": "결함 수리 — 탐침·도구 ('잰 단위' 결함족, doctor/release 탐침, kit 자체 결함)",
-          "derived_status": "done",
+          "derived_status": "in_progress",
           "linked_task_ids": [
             "TASK-2026-08-25-main-022",
             "TASK-2026-08-25-main-023",
@@ -275,10 +275,11 @@
             "TASK-2026-08-30-main-003",
             "TASK-2026-08-31-main-002",
             "TASK-2026-08-31-main-003",
-            "TASK-2026-08-31-main-004"
+            "TASK-2026-08-31-main-004",
+            "TASK-2026-09-01-main-002"
           ],
           "total_leaves": 1,
-          "done_leaves": 1,
+          "done_leaves": 0,
           "children": []
         },
         {

@@ -16,9 +16,16 @@ Default behaviour:
 2. Create a throwaway virtual environment via ``python3 -m venv``.
 3. Install the wheel with ``pip install`` (no editable mode, no local
    source fallback).
-4. Run a 1-line import smoke covering every public sub-package plus the
-   two CLI entry points (``bootstrap_lib``, ``bootstrap_workflow_kit``).
+4. Run a 1-line import smoke covering every sub-package found **on disk**
+   (``derive_required_imports``) plus the declared leaf modules and the
+   ``bootstrap_lib`` CLI entry point.
 5. Tear down the venv on success.
+
+Every child process runs under :func:`isolated_env` and a cwd outside the
+repo. Without that the caller's ``PYTHONPATH=workflow-source`` reaches the
+throwaway venv, pip declines to install ("already installed" — it reads the
+source tree's ``.egg-info``), and the smoke measures the checkout instead of
+the wheel. Measured 2026-09-01: PASS on a wheel that was missing a package.
 
 Exit code 0 on success, 1 on any import or install failure. The script
 prints a JSON manifest describing what it checked, so it can be wired
@@ -29,46 +36,77 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DIST = REPO_ROOT / "dist"
 
-# Sub-packages that must be importable. The set is intentionally explicit:
-# adding a new sub-package will require updating this list, which is the
-# whole point — packaging drift is silent otherwise.
+# Sub-packages that must be importable — **derived from the source tree on disk**,
+# not hand-maintained.
 #
-# Note: ``bootstrap_workflow_kit`` is intentionally NOT in this list. It's
-# a legacy CLI shim (single .py file in scripts/) that downstream callers
-# invoke directly via ``python scripts/bootstrap_workflow_kit.py`` rather
-# than importing. The programmatic entry point is
-# ``python -m workflow_kit.bootstrap_lib`` and the programmatic API is the
-# ``workflow_kit.bootstrap_lib`` package itself, both of which are covered below.
-REQUIRED_IMPORTS: tuple[str, ...] = (
-    "workflow_kit",
-    "workflow_kit.contract_v1",
-    "workflow_kit.common",
-    "workflow_kit.common.state",
-    "workflow_kit.common.contracts",
-    "workflow_kit.common.schemas",
-    # v1.1.7 (TASK-2026-08-11-main-027): wk session-start/backlog-update/doc-sync/
-    # refresh-state 의 구현이 사는 패키지. TASK-021 의 전제("tools/ 는 배포된다")가
-    # 여기 없어서 wheel 에서 한 번도 검증되지 않았다 — pyproject 의 packages 에서
-    # tools 가 빠지면 소비자 전원의 wk 가 깨지는데 이 검사는 green 이었다.
-    "workflow_kit.tools",
+# v1.8.1 (TASK-2026-09-01-main-001): this used to be an explicit tuple whose own
+# comment argued the hand list *was* the point ("adding a new sub-package will
+# require updating this list ... packaging drift is silent otherwise"). It failed
+# that way three times, always in the same shape — a directory that exists in the
+# checkout but was never declared, so the repo stayed green and only consumers got
+# ``ModuleNotFoundError``:
+#
+#   - v0.5.7.1 hotfix — ``common.state`` / ``contracts`` / ``schemas``
+#   - v1.1.7  (TASK-2026-08-11-main-027) — ``tools``
+#   - v1.8.0  (TASK-2026-09-01-main-001) — ``cli`` (shipped broken)
+#
+# A list that has to be remembered will be forgotten again, so the requirement now
+# reads the disk. The reference is the **source tree** (this file only runs from a
+# repo checkout — see ``tests/check_deployed_layout.py`` LAYOUT notes), never the
+# installed wheel: deriving from the wheel would make the check assert that the
+# wheel contains what the wheel contains.
+#
+# The static counterpart is ``tests/check_deployed_layout.py`` case 5, which
+# compares the same disk truth against pyproject's ``packages`` on every gate run.
+# This one costs a wheel build, so it stays a release-time check.
+#
+# Note: ``bootstrap_workflow_kit`` is intentionally NOT covered. It's a legacy CLI
+# shim (single .py file in scripts/) that downstream callers invoke directly via
+# ``python scripts/bootstrap_workflow_kit.py`` rather than importing. The
+# programmatic entry point is ``python -m workflow_kit.bootstrap_lib`` and the
+# programmatic API is the ``workflow_kit.bootstrap_lib`` package itself, both of
+# which the derivation covers.
+PACKAGE_ROOT = REPO_ROOT / "workflow_kit"
+
+# Leaf modules worth importing on top of the package list — a package can import
+# cleanly while the module a consumer actually calls is absent (v1.1.7 caught
+# exactly that: ``tools`` present, ``tools.session_start`` missing).
+REQUIRED_LEAF_MODULES: tuple[str, ...] = (
     "workflow_kit.tools.session_start",
-    # v1.1.8 2단계: bootstrap_lib 정위치 (1단계 tools 와 동일 처방)
-    "workflow_kit.bootstrap_lib",
-    "workflow_kit.bootstrap_lib.harnesses",
-    # v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools /
-    # bootstrap_lib) 은 2nd deprecation cycle 로 wheel 에서 drop 됐다 —
-    # 아래 NEGATIVE 목록이 재유입을 막는다 (PyPI 차단 사유였던 일반명).
+    "workflow_kit.cli.doctor",
 )
+
+
+def derive_required_imports(package_root: Path = PACKAGE_ROOT) -> tuple[str, ...]:
+    """Every directory under ``workflow_kit/`` that holds ``.py`` files, dotted."""
+    if not package_root.is_dir():
+        raise SystemExit(
+            f"ERROR: source package not found: {package_root}. "
+            "check-packaging must run from a repo checkout."
+        )
+    packages = {
+        ".".join(f.parent.relative_to(package_root.parent).parts)
+        for f in package_root.rglob("*.py")
+        if "__pycache__" not in f.parts
+    }
+    return tuple(sorted(packages)) + REQUIRED_LEAF_MODULES
+
+
+REQUIRED_IMPORTS: tuple[str, ...] = derive_required_imports()
+
+# v1.2.0 (TASK-2026-08-13-main-005): 구경로 shim (top-level tools /
+# bootstrap_lib) 은 2nd deprecation cycle 로 wheel 에서 drop 됐다 —
+# 아래 NEGATIVE 목록이 재유입을 막는다 (PyPI 차단 사유였던 일반명).
 
 # v1.2.0: wheel 에 실리면 안 되는 top-level (일반명 충돌 — 배포 검토 §2).
 # 구경로 shim drop 이후 재유입은 packaging 회귀다.
@@ -85,12 +123,38 @@ def find_latest_wheel(dist_dir: Path) -> Path:
     return wheels[-1]
 
 
+def isolated_env() -> dict[str, str]:
+    """Child environment with the *source tree* removed from the import path.
+
+    v1.8.1 (TASK-2026-09-01-main-001): the throwaway venv inherited this process's
+    environment, so the repo's own invocation form —
+    ``PYTHONPATH=workflow-source python3 -m workflow_kit.tools.check_packaging`` —
+    put ``workflow-source/`` on the child's ``sys.path`` too. Two things then went
+    wrong at once and **both were silent**:
+
+      - ``workflow-source/standard_ai_workflow.egg-info`` made pip report the
+        distribution "already installed with the same version", so the wheel under
+        test was **never installed**;
+      - every import in the smoke resolved against the source tree, which always
+        has every sub-package — the exact green-on-a-broken-wheel this check exists
+        to prevent.
+
+    Measured 2026-09-01: a wheel known to be missing ``workflow_kit/cli`` reported
+    ``result: PASS`` under a leaked ``PYTHONPATH``.
+    """
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    # A user-site directory would let an installed copy answer the imports too.
+    env["PYTHONNOUSERSITE"] = "1"
+    return env
+
+
 def run(cmd: list[str], *, cwd: Path | None = None, env: dict | None = None) -> None:
     print(f"  $ {' '.join(cmd)}", flush=True)
     completed = subprocess.run(
         cmd,
         cwd=str(cwd) if cwd else None,
-        env=env,
+        env=env if env is not None else isolated_env(),
         check=False,
     )
     if completed.returncode != 0:
@@ -161,6 +225,10 @@ def main() -> int:
             [str(python), "-c", import_payload],
             capture_output=True,
             text=True,
+            # cwd/env 둘 다 격리한다 — 소스 트리가 sys.path 에 남으면 이 smoke 는
+            # wheel 이 아니라 체크아웃을 재고, 깨진 wheel 에도 PASS 를 준다.
+            cwd=tmp,
+            env=isolated_env(),
         )
         if completed.returncode != 0:
             print("--- import smoke failed ---")
@@ -178,6 +246,8 @@ def main() -> int:
             [str(python), "-m", "workflow_kit.bootstrap_lib", "--help"],
             capture_output=True,
             text=True,
+            cwd=tmp,
+            env=isolated_env(),
         )
         if completed.returncode != 0:
             print("ERROR: workflow_kit.bootstrap_lib --help failed")
@@ -194,6 +264,8 @@ def main() -> int:
             [str(pip), "show", "standard-ai-workflow"],
             capture_output=True,
             text=True,
+            cwd=tmp,
+            env=isolated_env(),
         )
         if completed.returncode != 0:
             print("ERROR: pip show failed")

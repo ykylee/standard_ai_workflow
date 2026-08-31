@@ -2988,6 +2988,11 @@ def cmd_dist(args) -> dict:
 
     # 6) apply: subprocess `python3 -m build` 실행
     _dist_dir.mkdir(parents=True, exist_ok=True)
+    # 빌드 잔재부터 지운다 (v1.8.1, TASK-2026-09-01-main-001) — 남아 있으면
+    # `include_package_data` 기본 True 가 낡은 `SOURCES.txt` 를 읽어, 지금 pyproject 가
+    # 선언하지 않은 파일까지 wheel 에 싣는다. 그러면 로컬 산출물과 CI 산출물이 갈리고
+    # check_packaging 은 "잘 실린 쪽" 을 재게 된다. 상세는 `_purge_build_residue`.
+    results["purged_build_residue"] = _purge_build_residue()
     try:
         proc = subprocess.run(
             cmd,

@@ -44,7 +44,7 @@ green 이었다(§2.7). 마지막으로 **탐침 자신**이 저장소와 갈라
 - 범위: `v1.7.0..HEAD` (13 commit). 이 중 4건(`a69d83bf` · `4d7a78da` ·
   `818e199d` · `1f67f8e0`)은 **v1.7.0 발행 마무리**가 태그 뒤에 착지한 것이라
   실질 내용은 9 commit 이다.
-- 누적 smoke **276/276 PASS** (전량 2축 · case 합계 552, FAIL 0, 좁은 선언 0),
+- 누적 smoke **277/277 PASS** (전량 2축 · case 합계 554, FAIL 0, 좁은 선언 0),
   mypy strict 0 errors
 - 검사 신설 1종(`check_self_location_resolution`) + 기존 검사에 case 다수 추가
   (총 276 파일)

@@ -13,8 +13,9 @@
      `workflow-source/skills/` 디렉터리 수 (12 + `__pycache__` 등 제외) 가 일치.
   4) **version stamp 정합**: 본문의 "version 0.15.15" 와
      `workflow-source/pyproject.toml` 의 version 이 일치.
-  5) **frontmatter stamp**: `- 최종 수정일: 2026-07-18` 이 v0.15.15
-     release day 와 정합.
+  5) **frontmatter stamp**: `- 최종 수정일:` 이 이 문서의 **마지막 내용
+     변경일**(git) 보다 뒤처지지 않는다. 기대값은 리터럴이 아니라 git 파생이다
+     (v1.8.1, TASK-2026-09-01-main-002 — `_doc_stamp.py` 참고).
 """
 
 from __future__ import annotations
@@ -24,12 +25,18 @@ from __future__ import annotations
 WATCHES = (
     "docs/CODE_INDEX.md",
     "workflow-source/pyproject.toml",
+    # v1.8.1: 기대 스탬프를 git 에서 파생하는 헬퍼 (TASK-2026-09-01-main-002).
+    "workflow-source/tests/_doc_stamp.py",
 )
 
 import json
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _doc_stamp import check_frontmatter_stamp  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -39,13 +46,14 @@ TESTS_DIR = SOURCE_ROOT / "tests"
 HARNESSES_DIR = SOURCE_ROOT / "harnesses"
 SKILLS_DIR = SOURCE_ROOT / "skills"
 
-#: CODE_INDEX 를 고칠 때 **함께** 올려야 하는 값이다 (하드코딩이 의도 — 문서가
-#: 조용히 늙는 것을 막는 게 이 case 의 목적이다). v1.1.2: 2026-07-21 → 2026-08-09
-#: (smoke count 234→257, package version 1.0.0→1.1.1 갱신과 같은 커밋).
-#: v1.3.0: 2026-08-13 → 2026-08-20 (smoke count 263→264, package 1.2.0→1.3.0).
-#: v1.4.0: 2026-08-20 → 2026-08-24 (smoke count 264→267, package 1.3.0→1.4.0).
-#: v1.7.0: 2026-08-25 → 2026-08-28 (smoke count 274→275, package 1.6.0→1.7.0).
-EXPECTED_LAST_UPDATED = "2026-08-31"  # v1.8.0 발행 post-step 스탬프
+#: v1.8.1 (TASK-2026-09-01-main-002): 기대 스탬프 리터럴을 걷었다.
+#: "CODE_INDEX 를 고칠 때 스탬프도 함께 올린다" 는 규약은 그대로고, 지키는 방식만
+#: 사람의 기억에서 **git** 으로 옮겼다 — `_doc_stamp.check_frontmatter_stamp` 가
+#: `스탬프 >= 이 문서의 마지막 내용 변경일` 을 잰다. 리터럴 시절엔 릴리스
+#: post-step 이 스탬프를 올릴 때마다 같은 커밋에서 손으로 맞춰야 했고, v1.7.0
+#: (`4d7a78da`) 과 v1.8.0 (71차) 에서 같은 자리를 두 번 고쳤다.
+#: 이력: 2026-07-21 → 08-09 (v1.1.2) → 08-20 (v1.3.0) → 08-24 (v1.4.0) →
+#: 08-28 (v1.7.0) → 08-31 (v1.8.0) → 이후 git 판정.
 
 
 def _load_code_index() -> str:
@@ -110,7 +118,7 @@ def case_1_smoke_count() -> bool:
 
 def case_2_harness_count() -> bool:
     """2) 실제 harness 디렉터리 수가 CODE_INDEX 의 'NNN개 지원 하네스' 와 정합.
-    
+
     `_template` (신규 하네스 추가용 템플릿) + `custom` (caller 가 wire-up 하는 neutral adapter,
     check_harness_v0_15_9 의 EXCLUDED 정공법과 정합) 제외.
     """
@@ -165,18 +173,18 @@ def case_4_version_stamp() -> bool:
 
 
 def case_5_frontmatter_stamp() -> bool:
-    """5) frontmatter `- 최종 수정일: 2026-07-18` 이 v0.15.15 release day 와 정합."""
+    """5) frontmatter `- 최종 수정일:` 이 이 문서의 마지막 내용 변경보다 뒤처지지 않는다."""
     content = _load_code_index()
     m = re.search(r"^-\s+최종\s*수정일\s*:\s*(\S+)", content, re.MULTILINE)
     if not m:
         print("  FAIL: frontmatter '최종 수정일' line 부재")
         return False
     actual = m.group(1).strip()
-    if actual != EXPECTED_LAST_UPDATED:
-        print(f"  FAIL: frontmatter stamp 불일치 — actual={actual} expected={EXPECTED_LAST_UPDATED}")
-        return False
-    print(f"  [info] frontmatter stamp 정합: {actual}")
-    return True
+    ok, detail = check_frontmatter_stamp(
+        CODE_INDEX_PATH, repo_root=REPO_ROOT, actual=actual
+    )
+    print(f"  {'[info]' if ok else 'FAIL:'} {detail}")
+    return ok
 
 
 def main() -> int:

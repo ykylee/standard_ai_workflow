@@ -21,20 +21,26 @@ from __future__ import annotations
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
     "docs/DOCUMENT_INDEX.md",
+    # v1.8.1: 기대 스탬프를 git 에서 파생하는 헬퍼 (TASK-2026-09-01-main-002).
+    "workflow-source/tests/_doc_stamp.py",
 )
 
 import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _doc_stamp import check_frontmatter_stamp  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DOCS_DIR = REPO_ROOT / "docs"
 DOCUMENT_INDEX_PATH = DOCS_DIR / "DOCUMENT_INDEX.md"
 
-# release day (cross-check stamp) — 릴리스마다 문서와 **함께** 올린다.
-# v1.3.0: 2026-08-13 → 2026-08-20.
-# v1.4.0: 2026-08-20 → 2026-08-24.
-EXPECTED_LAST_UPDATED = "2026-08-31"  # v1.8.0 발행 post-step 스탬프 (2026-08-31)
+# v1.8.1 (TASK-2026-09-01-main-002): 기대 스탬프 리터럴을 걷었다. 규약("릴리스마다
+# 문서와 함께 올린다")은 그대로고, 지키는 방식만 사람의 기억에서 **git** 으로 옮겼다 —
+# `_doc_stamp.check_frontmatter_stamp` 가 `스탬프 >= 이 문서의 마지막 내용 변경일` 을
+# 잰다. 리터럴 이력: 2026-08-13 → 08-20 (v1.3.0) → 08-24 (v1.4.0) → 08-31 (v1.8.0).
 EXPECTED_VERSION_STAMP = "v1.0.0"
 
 REQUIRED_SECTIONS = [
@@ -97,18 +103,18 @@ def case_2_github_links() -> bool:
 
 
 def case_3_frontmatter_stamp() -> bool:
-    """3) frontmatter `- 최종 수정일: 2026-07-18` stamp 가 v0.15.15 release day 와 정합."""
+    """3) frontmatter `- 최종 수정일:` 이 이 문서의 마지막 내용 변경보다 뒤처지지 않는다."""
     content = _load_document_index()
     m = re.search(r"^-\s+최종\s*수정일\s*:\s*(\S+)", content, re.MULTILINE)
     if not m:
         print("  FAIL: frontmatter '최종 수정일' line 부재")
         return False
     actual = m.group(1).strip()
-    if actual != EXPECTED_LAST_UPDATED:
-        print(f"  FAIL: frontmatter stamp 불일치 — actual={actual} expected={EXPECTED_LAST_UPDATED}")
-        return False
-    print(f"  [info] frontmatter stamp 정합: {actual}")
-    return True
+    ok, detail = check_frontmatter_stamp(
+        DOCUMENT_INDEX_PATH, repo_root=REPO_ROOT, actual=actual
+    )
+    print(f"  {'[info]' if ok else 'FAIL:'} {detail}")
+    return ok
 
 
 def case_4_required_sections() -> bool:

@@ -335,6 +335,187 @@ def _kit_resolution_verdict(
     )
 
 
+REPO_SOURCE_RELPATH: tuple[str, ...] = ("workflow-source", "workflow_kit")
+
+
+def _package_py_digest(root: Path) -> tuple[str, dict[str, str]]:
+    """패키지 트리의 ``.py`` 내용 해시 — (트리 해시, {상대 경로: 파일 해시}).
+
+    ``.py`` **만** 센다. 나머지는 채널마다 담기는 것이 달라 내용 차이가 아니라
+    포장 차이가 발견으로 새어 나온다 — wheel 은 ``package-data`` 로 고른 자산만
+    담고, ``tools/.score_history.jsonl`` 같은 런타임 산출물은 소스 트리에만 있다.
+    이 절이 답하려는 질문은 '어느 코드가 도는가' 이므로 실행되는 코드가 단위다.
+    """
+    files: dict[str, str] = {}
+    for path in sorted(root.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        try:
+            body = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        files[path.relative_to(root).as_posix()] = _sha256(body)
+    tree = _sha256("\n".join(f"{rel}:{digest}" for rel, digest in sorted(files.items())))
+    return tree, files
+
+
+def _pyproject_version(pyproject: Path) -> str | None:
+    """``[project] version`` 한 줄. 못 읽으면 ``None``."""
+    try:
+        text = pyproject.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    match = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def _repo_source_version(package_root: Path) -> str | None:
+    """저장소 소스가 스스로 말하는 버전 — ``workflow-source/pyproject.toml``.
+
+    돌고 있는 패키지의 :func:`current_kit_version` 을 쓰면 안 된다. 그 함수는
+    **자기 사본**의 버전을 돌려주므로, 비교의 양변이 같은 값으로 붕괴해 이 절이
+    영구히 통과한다 (v1.7.1 에 닫은 '존재가 정합으로 읽히는 자리' 와 같은 모양).
+    """
+    return _pyproject_version(package_root.parent / "pyproject.toml")
+
+
+def _running_kit_version(package_root: Path) -> tuple[str | None, str]:
+    """**돌고 있는 사본**이 스스로 말하는 버전 + 그 출처 라벨.
+
+    :func:`plugin_payload.current_kit_version` 을 그대로 쓰면 잰 단위가 어긋난다.
+    그 함수의 2단계 폴백(`importlib.metadata`)은 *사본* 이 아니라 **인터프리터에
+    설치된 배포본**을 읽으므로, 사본 옆에 버전 선언이 없으면 무관한 dist 의 값이
+    사본의 버전으로 둔갑한다 — 2026-08-31 실측: `/tmp` 사본(내용은 1.7.0 파생)이
+    이 호스트의 낡은 editable 메타데이터를 물어 **1.2.0** 으로 보고됐다.
+
+    그래서 순서를 사본에 고정한다: (1) 사본 옆 ``pyproject.toml``, (2) **그 자리에
+    설치된** 배포본의 메타데이터, (3) 모름. 모름은 같음으로 세지 않는다.
+    """
+    from_file = _pyproject_version(package_root.parent / "pyproject.toml")
+    if from_file:
+        return from_file, "pyproject.toml (사본 옆)"
+    try:
+        from importlib.metadata import distributions  # noqa: PLC0415
+
+        parent = package_root.parent.resolve()
+        for dist in distributions():
+            try:
+                located = Path(str(dist.locate_file(""))).resolve()
+            except (OSError, ValueError):
+                continue
+            if located != parent:
+                continue
+            name = dist.metadata["Name"] if "Name" in dist.metadata else ""
+            if (name or "").replace("-", "_") != "standard_ai_workflow":
+                continue
+            if dist.version:
+                return dist.version, "installed metadata (같은 자리의 배포본)"
+    except Exception:  # noqa: BLE001
+        pass
+    return None, "모름 — 사본 옆에 버전 선언이 없다"
+
+
+def _probe_kit_provenance(project_root: Path, origin: Path | None) -> dict[str, Any]:
+    """돌고 있는 kit 사본이 **저장소 소스와 같은 내용인가** — 탐침의 자기 측정.
+
+    doctor 는 배포된 페이로드에 대해서는 '버전은 같은데 내용만 낡음' 을 해시로
+    잡으면서(`content_drift`), **자기 자신**에게는 그 규율을 쓰지 않았다. 그래서
+    2026-08-31 실측에서 전역 ``wk`` (릴리스 v1.7.0 휠) 가 저장소 소스(같은 1.7.0
+    자칭, 35a7a859 이후 미발행)와 갈라진 채로 돌면서, **지원 종료된 gemini-cli 를
+    '막힘' 으로 · 신설 antigravity 를 부재로** 보고했다. 두 오답 모두 출력에
+    단서가 없었고 ``kit version : 1.7.0 (running package)`` 한 줄뿐이었다.
+
+    버전 문자열이 같다는 것은 사본이 최신이라는 증거가 아니다. cross-host
+    federation 이 깨지는 지점도 정확히 여기다 — 호스트마다 '같은 1.7.0' 이 다른
+    내용일 수 있다 (TASK-2026-08-31-main-002).
+
+    판정:
+    - ``no_repo_source``: 이 프로젝트에 kit 소스가 없다 — 비교 대상이 없으므로
+      **측정 안 됨**이다. 소비자 프로젝트의 정상 상태라 finding 은 아니지만,
+      침묵이 아니라 라벨로 남긴다.
+    - ``running_is_repo_source``: 도는 사본이 곧 저장소 소스다 (by design).
+    - ``in_sync``: 다른 사본인데 ``.py`` 내용이 전부 일치한다.
+    - ``version_mismatch``: 버전 문자열부터 다르다.
+    - ``content_drift_same_version``: **버전은 같은데 내용이 다르다** — 이 task 가
+      닫으려는 침묵.
+    """
+    repo_package = project_root.joinpath(*REPO_SOURCE_RELPATH)
+    running = origin.parent if origin is not None and origin.is_file() else origin
+    findings: list[str] = []
+    record: dict[str, Any] = {
+        "running_origin": str(running) if running else None,
+        "repo_source": str(repo_package) if repo_package.is_dir() else None,
+        "running_version": None,
+        "running_version_source": None,
+        "repo_version": None,
+        "differing_files": [],
+        "differing_count": 0,
+        "findings": findings,
+    }
+
+    if running is None or not running.is_dir():
+        record["verdict"] = "not_importable"
+        return record
+    if not repo_package.is_dir():
+        record["verdict"] = "no_repo_source"
+        return record
+
+    running_version, version_source = _running_kit_version(running)
+    record["running_version"] = running_version
+    record["running_version_source"] = version_source
+    record["repo_version"] = _repo_source_version(repo_package)
+
+    if running.resolve() == repo_package.resolve():
+        record["verdict"] = "running_is_repo_source"
+        return record
+
+    running_tree, running_files = _package_py_digest(running)
+    repo_tree, repo_files = _package_py_digest(repo_package)
+    differing = sorted(
+        rel
+        for rel in set(running_files) | set(repo_files)
+        if running_files.get(rel) != repo_files.get(rel)
+    )
+    record["differing_count"] = len(differing)
+    record["differing_files"] = differing[:10]
+
+    if running_tree == repo_tree:
+        # 내용이 같으면 버전 문자열 차이는 라벨 문제지 실행되는 코드의 문제가 아니다.
+        record["verdict"] = "in_sync"
+        return record
+
+    where = f"실행 {running} · 저장소 {repo_package}"
+    sample = ", ".join(differing[:3])
+    detail = f".py {len(differing)}개가 어긋난다" + (f" (예: {sample})" if sample else "")
+
+    if running_version and record["repo_version"] and running_version != record["repo_version"]:
+        record["verdict"] = "version_mismatch"
+        findings.append(
+            "실행 중인 kit 이 저장소 소스와 버전이 다르다 — "
+            f"실행 {running_version} · 저장소 {record['repo_version']}, {detail}. "
+            f"{where}. 이 보고서는 저장소 코드가 아니라 그 사본의 판단이다"
+        )
+        return record
+
+    if not running_version or not record["repo_version"]:
+        # 모름을 같음으로 세지 않는다 — 내용이 갈라진 것은 이미 사실이다.
+        record["verdict"] = "content_drift_unknown_version"
+        findings.append(
+            "실행 중인 kit 이 저장소 소스와 내용이 다른데 **버전을 확인할 수 없다** — "
+            f"실행 {running_version or '(모름)'} ({version_source}) · "
+            f"저장소 {record['repo_version'] or '(모름)'}, {detail}. {where}"
+        )
+        return record
+
+    record["verdict"] = "content_drift_same_version"
+    findings.append(
+        "실행 중인 kit 이 저장소 소스와 **버전은 같고 내용이 다르다** — 양쪽 다 "
+        f"{running_version} 인데 {detail}. {where}. 버전 문자열은 사본이 최신이라는 "
+        "증거가 아니다 (2026-08-31 실측: 전역 wk 가 지원 종료된 채널을 '막힘' 으로, "
+        "신설 채널을 부재로 보고했고 출력에 단서가 없었다)"
+    )
+    return record
+
 def _probe_environment(project_root: Path) -> dict[str, Any]:
     """인터프리터·venv·PATH 전제를 본다.
 
@@ -386,6 +567,11 @@ def _probe_environment(project_root: Path) -> dict[str, Any]:
     if kit_finding:
         findings.append(kit_finding)
 
+    provenance = _probe_kit_provenance(
+        project_root, Path(kit_origin) if kit_origin else None
+    )
+    findings.extend(provenance["findings"])
+
     return {
         "python_version": sys.version.split()[0],
         "executable": sys.executable,
@@ -398,6 +584,9 @@ def _probe_environment(project_root: Path) -> dict[str, Any]:
         # workflow_kit 해석 출처의 판정 (main-019). foreign_path 만 finding 이
         # 되지만 by-design 라벨도 payload 에 남긴다 — 조용한 통과 금지.
         "kit_resolution": kit_resolution,
+        # 돌고 있는 사본이 저장소 소스와 같은 내용인가 (main-002). 버전 문자열이
+        # 같아도 내용은 갈라질 수 있다 — 판정은 늘 남긴다 (조용한 통과 금지).
+        "kit_provenance": provenance,
         "wk_on_path": wk_path,
         "findings": findings,
     }
@@ -1446,6 +1635,44 @@ def probe(
 # ---------------------------------------------------------------------------
 
 
+_PROVENANCE_LABELS: dict[str, str] = {
+    "not_importable": "workflow_kit 을 못 읽어 대조하지 못했다",
+    "no_repo_source": "이 프로젝트에는 kit 소스가 없다 — 대조 대상 없음 (측정 안 됨)",
+    "running_is_repo_source": "저장소 소스 자신이 돌고 있다",
+    "in_sync": "저장소 소스와 .py 내용 일치",
+    "version_mismatch": "저장소 소스와 **버전이 다르다**",
+    "content_drift_same_version": "**버전은 같은데 내용이 다르다**",
+    "content_drift_unknown_version": "내용이 다른데 **버전을 확인할 수 없다**",
+}
+
+
+def _render_provenance(record: dict[str, Any]) -> list[str]:
+    """돌고 있는 kit 사본의 출처 한 줄 — 판정은 늘 찍는다 (침묵 금지)."""
+    verdict = record.get("verdict")
+    if not verdict:
+        return []
+    running = record.get("running_version") or "(모름)"
+    repo = record.get("repo_version") or "(모름)"
+    versions = running if running == repo else f"{running} vs 저장소 {repo}"
+    line = f"  kit 사본    : {versions} — {_PROVENANCE_LABELS.get(verdict, verdict)}"
+    if record.get("differing_count"):
+        line += f" (.py {record['differing_count']}개 어긋남)"
+    out = [line]
+    if verdict.startswith("content_drift") and record.get("differing_files"):
+        out.append(f"    어긋난 파일: {', '.join(record['differing_files'][:5])}")
+    if verdict in (
+        "in_sync",
+        "version_mismatch",
+        "content_drift_same_version",
+        "content_drift_unknown_version",
+    ):
+        out.append(
+            "    (미측정) `.py` 만 대조한다 — 자산 파일은 채널마다 담기는 것이 달라 "
+            "포장 차이가 내용 차이로 새어 나온다"
+        )
+    return out
+
+
 def _render_text(report: dict[str, Any]) -> str:
     lines: list[str] = ["=== wk doctor — 배포 탐침 (report-only) ==="]
 
@@ -1456,6 +1683,7 @@ def _render_text(report: dict[str, Any]) -> str:
     lines.append(f"  virtualenv  : {'yes' if env['in_virtualenv'] else 'no'}")
     lines.append(f"  wk on PATH  : {env['wk_on_path'] or '(없음)'}")
     lines.append(f"  workflow_kit: {env['modules'].get('workflow_kit') or '(import 실패)'}")
+    lines.extend(_render_provenance(env.get("kit_provenance") or {}))
 
     project = report["project_scope"]
     lines.append("")

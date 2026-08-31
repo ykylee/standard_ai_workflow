@@ -43,6 +43,7 @@ from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
 )
 from workflow_kit.deploy_doctor import (  # noqa: E402
     CHANNEL_PREREQUISITES,
+    _render_text,
     GLOBAL_DECLARATION_HOMES,
     PLUGIN_INSTALL_CACHES,
     _parse_etime,
@@ -1116,6 +1117,154 @@ def test_codex_marketplace_source_durable_is_silent() -> None:
             not problems, "; ".join(problems))
 
 
+def _seed_kit_tree(package_root: Path, version: str | None, extra: str = "") -> None:
+    """`workflow_kit` 트리 한 벌 — 사본 옆 `pyproject.toml` 은 version 이 None 이면 안 쓴다."""
+    package_root.mkdir(parents=True, exist_ok=True)
+    (package_root / "__init__.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (package_root / "deploy_doctor.py").write_text(
+        f"def probe():\n    return 'body'\n{extra}", encoding="utf-8"
+    )
+    (package_root / "assets").mkdir(exist_ok=True)
+    # 자산은 대조 단위가 아니다 — 채널마다 담기는 것이 달라 포장 차이가 샌다.
+    (package_root / "assets" / "note.md").write_text("asset\n", encoding="utf-8")
+    if version is not None:
+        (package_root.parent / "pyproject.toml").write_text(
+            f'[project]\nname = "standard_ai_workflow"\nversion = "{version}"\n',
+            encoding="utf-8",
+        )
+
+
+def test_kit_provenance_flags_same_version_content_drift() -> None:
+    """돌고 있는 사본이 저장소 소스와 **버전은 같고 내용이 다르면** 발견이다 (main-002).
+
+    doctor 는 배포 페이로드에 대해선 '버전 동일 · 내용만 낡음' 을 이미 해시로
+    잡으면서 자기 자신에겐 그 규율을 안 썼다. 2026-08-31 실측: 전역 wk(릴리스
+    v1.7.0 휠)가 저장소 소스(같은 1.7.0 자칭)와 갈라진 채 돌며 지원 종료된
+    gemini-cli 를 '막힘' 으로 · 신설 antigravity 를 부재로 보고했고, 출력엔
+    `kit version : 1.7.0` 한 줄뿐이었다. 버전 문자열은 최신의 증거가 아니다.
+    """
+    from workflow_kit.deploy_doctor import _probe_kit_provenance
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-prov-drift-") as tmp:
+        project = Path(tmp) / "project"
+        _seed_kit_tree(project / "workflow-source" / "workflow_kit", "1.7.0")
+        copy = Path(tmp) / "wheel"
+        _seed_kit_tree(copy / "workflow_kit", "1.7.0", extra="# drifted\n")
+
+        record = _probe_kit_provenance(project, copy / "workflow_kit" / "__init__.py")
+        if record["verdict"] != "content_drift_same_version":
+            problems.append(f"판정: {record['verdict']}")
+        if record["differing_count"] != 1 or record["differing_files"] != ["deploy_doctor.py"]:
+            problems.append(f"어긋난 파일: {record['differing_files']}")
+        if not record["findings"]:
+            problems.append("내용이 갈라졌는데 finding 이 없다")
+        else:
+            finding = record["findings"][0]
+            for needle in ("1.7.0", str(copy / "workflow_kit"), "deploy_doctor.py"):
+                if needle not in finding:
+                    problems.append(f"finding 에 근거 누락: {needle}")
+    _record("test_kit_provenance_flags_same_version_content_drift", not problems, "; ".join(problems))
+
+
+def test_kit_provenance_matching_copy_is_silent() -> None:
+    """내용이 같은 사본은 발견이 아니다 — 늘 red 인 판정은 게이트가 못 된다.
+
+    자산 파일만 다른 경우도 통과해야 한다. wheel 은 `package-data` 로 고른 것만
+    담고 소스 트리에는 런타임 산출물이 남아, 자산을 대조 단위에 넣으면 포장
+    차이가 영구 오탐이 된다.
+    """
+    from workflow_kit.deploy_doctor import _probe_kit_provenance
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-prov-sync-") as tmp:
+        project = Path(tmp) / "project"
+        _seed_kit_tree(project / "workflow-source" / "workflow_kit", "1.7.0")
+        copy = Path(tmp) / "wheel"
+        _seed_kit_tree(copy / "workflow_kit", "1.7.0")
+        # 소스 트리에만 있는 런타임 산출물 — 포장 차이지 내용 차이가 아니다.
+        (project / "workflow-source" / "workflow_kit" / "assets" / "only-source.md").write_text(
+            "x\n", encoding="utf-8"
+        )
+
+        record = _probe_kit_provenance(project, copy / "workflow_kit" / "__init__.py")
+        if record["verdict"] != "in_sync":
+            problems.append(f"판정: {record['verdict']} (자산 차이가 발견으로 샜다)")
+        if record["findings"]:
+            problems.append(f"일치인데 finding: {record['findings']}")
+    _record("test_kit_provenance_matching_copy_is_silent", not problems, "; ".join(problems))
+
+
+def test_kit_provenance_reads_version_from_the_copy() -> None:
+    """사본의 버전은 **사본에서** 읽는다 — 인터프리터의 메타데이터가 아니다.
+
+    `current_kit_version()` 의 폴백은 사본이 아니라 설치된 배포본을 읽으므로,
+    사본 옆에 버전 선언이 없으면 무관한 dist 의 값이 사본 버전으로 둔갑한다.
+    2026-08-31 실측: `/tmp` 사본(1.7.0 파생)이 이 호스트의 낡은 editable
+    메타데이터를 물어 **1.2.0** 으로 보고됐고, 그 값이 맞았다면 판정이
+    `version_mismatch` 로 갈려 '버전 같고 내용만 다름' 을 영영 못 잡는다.
+    모름은 같음으로 세지 않는다.
+    """
+    from workflow_kit.deploy_doctor import _probe_kit_provenance
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-prov-unit-") as tmp:
+        project = Path(tmp) / "project"
+        _seed_kit_tree(project / "workflow-source" / "workflow_kit", "9.9.9")
+        copy = Path(tmp) / "loose"
+        _seed_kit_tree(copy / "workflow_kit", None, extra="# drifted\n")
+
+        record = _probe_kit_provenance(project, copy / "workflow_kit" / "__init__.py")
+        if record["running_version"] is not None:
+            problems.append(
+                f"선언 없는 사본에 버전이 붙었다: {record['running_version']} "
+                f"({record['running_version_source']}) — 인터프리터를 읽었다"
+            )
+        if record["running_version"] == INSTALLED_VERSION:
+            problems.append("사본 버전이 인터프리터 설치본의 값과 같다 — 잰 단위가 어긋났다")
+        if record["verdict"] != "content_drift_unknown_version":
+            problems.append(f"판정: {record['verdict']}")
+        if not any("확인할 수 없다" in f for f in record["findings"]):
+            problems.append(f"모름이 발견으로 안 나왔다: {record['findings']}")
+        if record["repo_version"] != "9.9.9":
+            problems.append(f"저장소 버전: {record['repo_version']}")
+    _record("test_kit_provenance_reads_version_from_the_copy", not problems, "; ".join(problems))
+
+
+def test_kit_provenance_always_labels_verdict() -> None:
+    """판정은 어떤 상황에서도 **남는다** — 조용한 통과 금지 (컨셉 §5).
+
+    kit 소스가 없는 소비자 프로젝트는 대조 대상이 없다. 그건 정상이지만 침묵이
+    아니라 '측정 안 됨' 라벨이어야 한다. 실 `probe()` 의 environment 절에도
+    키가 실려 소비 지점까지 도달하는지 같이 본다.
+    """
+    from workflow_kit.deploy_doctor import _probe_kit_provenance, _render_provenance
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-prov-label-") as tmp:
+        consumer = Path(tmp) / "consumer"
+        consumer.mkdir()
+        copy = Path(tmp) / "wheel"
+        _seed_kit_tree(copy / "workflow_kit", "1.7.0")
+
+        record = _probe_kit_provenance(consumer, copy / "workflow_kit" / "__init__.py")
+        if record["verdict"] != "no_repo_source":
+            problems.append(f"kit 소스 없는 프로젝트 판정: {record['verdict']}")
+        if record["findings"]:
+            problems.append("소비자 프로젝트의 정상 상태가 발견이 됐다")
+        if not _render_provenance(record):
+            problems.append("판정이 출력에 안 나온다 — 침묵")
+
+        report = probe(project_root=consumer, home=Path(tmp) / "home")
+        env = report["environment"]
+        if "kit_provenance" not in env:
+            problems.append("environment 에 kit_provenance 키가 없다")
+        elif not env["kit_provenance"].get("verdict"):
+            problems.append("실 probe 의 판정이 비었다")
+        if not any(line.startswith("  kit 사본") for line in _render_text(report).splitlines()):
+            problems.append("텍스트 보고서에 kit 사본 줄이 없다")
+    _record("test_kit_provenance_always_labels_verdict", not problems, "; ".join(problems))
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1152,6 +1301,10 @@ def main() -> int:
         test_codex_marketplace_source_on_volatile_path_is_a_finding,
         test_codex_marketplace_source_missing_is_a_finding,
         test_codex_marketplace_source_durable_is_silent,
+        test_kit_provenance_flags_same_version_content_drift,
+        test_kit_provenance_matching_copy_is_silent,
+        test_kit_provenance_reads_version_from_the_copy,
+        test_kit_provenance_always_labels_verdict,
     ]
     for case in cases:
         case()

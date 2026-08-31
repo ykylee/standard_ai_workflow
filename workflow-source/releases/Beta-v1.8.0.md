@@ -220,3 +220,20 @@ upstream(Google Gemini CLI) 종료로 하네스 자체가 사라졌고, 소유�
 - 이전 release note: `Beta-v1.7.0.md`
 - 등급 판단 정본: `docs/RELEASE.md` §1.5
 - 배포 탐침 정본: `workflow-source/core/workflow_deployment_idempotency.md`
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-08-31T15:00:02Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -4,7 +4,7 @@
 - 범위: 이름 가용성, 공개 전 필수 수리, 비가역성, 정책 정본 위치, 대안 비교, 권고안
 - 대상 독자: 배포 정책 소유자, maintainer
 - 상태: **종결 (2026-08-14)** — 소유자 최종 결정 = **PyPI 발행 안 함**. 정책 정본은 [`../RELEASE.md`](../RELEASE.md) §1 각주 0 이고, 본 문서는 그 결정의 **근거 자료**로만 남는다
-- 최종 수정일: 2026-08-28
+- 최종 수정일: 2026-08-31
 - 관련 문서: [`./cli-distribution-review-2026-08.md`](./cli-distribution-review-2026-08.md) (§2 기술 제약 — v1.2.0 해소), [`../RELEASE.md`](../RELEASE.md), [`../../workflow-source/core/stable_guarantee.md`](../../workflow-source/core/stable_guarantee.md)
 
 ## 0. 한 줄 결론

@@ -4,7 +4,7 @@
 - 범위: 4 module(`okf_export`, `okf_import`, `path_resolver`, `url_validity`) 의 CLI / Python API 사용법
 - 대상 독자: 외부 consumer, OKF bundle 작성자
 - 상태: stable (v0.7.38)
-- 최종 수정일: 2026-08-28
+- 최종 수정일: 2026-08-31
 - 관련 문서: [OKF Consumer Quick-Start](./OKF_CONSUMER_QUICKSTART.md), [index](./index.md)
 
 > **버전** — 본 문서의 예시는 OKF **v0.2** 기준이다 (ADR-026, 2026-08-20).

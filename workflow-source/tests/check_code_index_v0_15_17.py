@@ -45,7 +45,7 @@ SKILLS_DIR = SOURCE_ROOT / "skills"
 #: v1.3.0: 2026-08-13 → 2026-08-20 (smoke count 263→264, package 1.2.0→1.3.0).
 #: v1.4.0: 2026-08-20 → 2026-08-24 (smoke count 264→267, package 1.3.0→1.4.0).
 #: v1.7.0: 2026-08-25 → 2026-08-28 (smoke count 274→275, package 1.6.0→1.7.0).
-EXPECTED_LAST_UPDATED = "2026-08-28"
+EXPECTED_LAST_UPDATED = "2026-08-31"  # v1.8.0 발행 post-step 스탬프
 
 
 def _load_code_index() -> str:

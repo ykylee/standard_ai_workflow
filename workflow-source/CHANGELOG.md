@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(memory): 71차 — v1.8.0 발행 준비 완료 + 등급 전수 재평가 (main-005 in_progress) (6c495e61)
 - chore(memory): 66차 세션 종료 — 관찰 축 2건 정리 + meta-watch 선언 보급 완주 (task 4건 close) (f879150a)
 - chore(memory): 64차 세션 종료 — TDAD 축 M-008~M-012 완주 + v1.7.0 발행 (1f67f8e0)
 - chore(roadmap): M-012 close — v1.7.0 발행 사이클 종결 (main-010·011 done) (818e199d)
@@ -79,11 +80,11 @@ All notable changes to this project will be documented in this file.
 - refactor(wiki): L2 계약을 memory 파생 4종으로 좁힌다 (main-001) (51b14113)
 - chore(memory): 48차 세션 종료 — 배포 축 gap 4개 전부 닫힘 + OKF 상호운용 실측 (9a837e73)
 - chore(memory): 47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (d25ed659)
-- docs(deploy): 채널별 재실행 계약 4채널 실측 (main-017, 컨셉 gap 2) (c952dd64)
-- ... (352 more)
+- ... (353 more)
 
 ### Fixed
 
+- fix(guarantee): 은퇴한 stable 행을 지우지 않는다 + v1.8.0 migration 절 (main-005) (2d8f4cad)
 - fix(doctor): 탐침이 자기 자신의 낡음을 잰다 — 버전 같고 내용 다름 (main-002) (c88c0890)
 - fix(doctor·backlog·docs): '존재가 정합으로 읽히는 자리' 3부류 + 69차 세션 종료 (main-001·003·004) (6d9ad763)
 - fix(release): pi 매니페스트 version 을 kit 에 묶는다 + 68차 세션 종료 (main-004) (0c86b51f)
@@ -113,8 +114,13 @@ All notable changes to this project will be documented in this file.
 - fix(linter): in_progress 대조의 세 번째 출처를 task SSOT 로 (main-002) (e64b4812)
 - fix(wiki): L2 파이프라인 회생 — 화석 은퇴와 파생 뷰 재정의 (main-004) (3bd45c10)
 - fix(okf): 상호운용을 자기 선언이 아니라 실측으로 (main-006) (426da99c)
-- fix(deploy): 패키지가 체크아웃 레이아웃에 기대던 결함 (main-003) (2bd5417b)
-- ... (134 more)
+- ... (135 more)
+
+## [1.8.0] - 2026-08-31
+
+### Changed
+
+- release(v1.8.0): 발행 준비 — 지원 하네스 개편 + 탐침 침묵 제거 사이클 (main-005) (7489fe35)
 
 ## [1.7.0] - 2026-08-28
 

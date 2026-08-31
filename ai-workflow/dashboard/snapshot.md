@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-29T14:45:40Z`
-- tool_version: `1.7.0`
+- generated_at: `2026-08-31T15:00:02Z`
+- tool_version: `1.8.0`
 - workspace_root: `/Users/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-08-28`
-- maturity_surface_changed_at: `2026-08-28`
+- maturity_last_updated: `2026-08-31`
+- maturity_surface_changed_at: `2026-08-31`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-08-29`
-- last_updated_delta_days: `1`
-- silent_failing_cycles_count: `0` (측정 cycle 11건)
+- head_commit_date: `2026-08-31`
+- last_updated_delta_days: `0`
+- silent_failing_cycles_count: `0` (측정 cycle 12건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,30 +84,30 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.8.0 | 276 | 276 |
 | Beta-v1.7.0 | 276 | 276 |
 | Beta-v1.6.0 | 275 | 275 |
 | Beta-v1.5.0 | 274 | 274 |
 | Beta-v1.4.0 | 274 | 274 |
-| Beta-v1.3.0 | 267 | 267 |
 
 ## Panel 5 — Recent Release Cycle
 
-- items_total: `52`
+- items_total: `10`
 - top_n: `10`
 - confidence: `fresh=10`
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-14-main-010 — 검증 결과 주입이 작업 결과 묶음을 갈라 다음 갱신에서 고아 줄을 만든다  `[fresh]`
-- [1] TASK-2026-08-14-main-008 — task SSOT 를 구조화 — markdown-as-database 결함 계열 제거  `[fresh]`
-- [2] TASK-2026-08-14-main-007 — handoff 기준선 롤오프 — §1 이 handoff 의 66%  `[fresh]`
-- [3] TASK-2026-08-14-main-006 — 아카이브가 '살아 있는 대상' 상대 링크를 안 고친다 — 같은 함정 2회째  `[fresh]`
-- [4] TASK-2026-08-14-main-003 — 변경 범위 기반 선택 실행 — run_all_checks --changed  `[fresh]`
-- [5] TASK-2026-08-14-main-002 — 배포 채널 확정 — PyPI 발행 안 함 (소유자 최종 결정) + 재론 방지 기록  `[fresh]`
-- [6] TASK-2026-08-14-main-001 — 브랜치 정리 — fix/archive-history-integrity 종료 + 아카이브, 그리고 자기 적용 검사의 위양성  `[fresh]`
-- [7] TASK-2026-08-13-main-009 — 전량 검사 시간 — 정숙 구간 직렬화가 벽시계의 36%  `[fresh]`
-- [8] TASK-2026-08-13-main-008 — TestPyPI 리허설  `[fresh]`
-- [9] TASK-2026-08-13-main-007 — 공개 배포 전 필수 수리 3건 — LICENSE 부재 / 버전 체계 모순 / 저자 이메일  `[fresh]`
+- [0] TASK-2026-08-31-main-004 — codex marketplace source 가 휘발 경로를 가리켜도 탐침이 침묵한다 — 사본과 경유지는 따로 깨진다  `[fresh]`
+- [1] TASK-2026-08-31-main-003 — backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다  `[fresh]`
+- [2] TASK-2026-08-31-main-002 — wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다  `[fresh]`
+- [3] TASK-2026-08-31-main-001 — 문서의 '현재 버전' 주장이 kit 을 안 따라온다 — 검사가 존재만 보고 통과시킨다  `[fresh]`
+- [4] TASK-2026-08-30-main-004 — pi 패키지 매니페스트가 버전 정합 밖에 있다 — plugin/package.json 이 1.2.0 에 고착  `[fresh]`
+- [5] TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다  `[fresh]`
+- [6] TASK-2026-08-30-main-002 — doctor 의 grok-build 설치본 탐지가 디렉터리 이름 가정에 기대 실패 — 정본은 registry.json  `[fresh]`
+- [7] TASK-2026-08-30-main-001 — 자식 spawn 이 리터럴 python3 — meta-watch PYTHONPATH 주입에서만 드러나는 환경 의존 red 3건  `[fresh]`
+- [8] TASK-2026-08-29-main-006 — antigravity 하네스 조사 + 지원 추가  `[fresh]`
+- [9] TASK-2026-08-29-main-005 — gemini-cli 하네스 지원 완전 제거  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `15`
-- telemetry_events_total: `722`
-- telemetry_total_queries: `722`
-- telemetry_hit_count: `328`
-- telemetry_hit_rate: `0.4543`
+- telemetry_events_total: `1306`
+- telemetry_total_queries: `1306`
+- telemetry_hit_count: `126`
+- telemetry_hit_rate: `0.0965`
 
 ### Entries by merge_state
 
@@ -152,8 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 63 |
-| `dispatcher` | 1 |
-| `doc-sync` | 3 |
-| `session-start` | 655 |
+| `backlog-update` | 201 |
+| `doc-sync` | 1 |
+| `session-start` | 1104 |
 

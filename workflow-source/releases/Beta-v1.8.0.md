@@ -189,8 +189,24 @@ doctor 는 배포 페이로드에 대해 '버전은 같고 내용만 낡음' 을
 
 ## 3. 업그레이드 안내
 
-- **gemini-cli 사용자**: 이 버전부터 재생성이 안 된다 (§0.1 · §2.1). 이미 있는
-  파일은 그대로 동작한다.
+### 3.1 gemini-cli 사용자 — migration (guarantee §4 의 3가지 정공법)
+
+upstream(Google Gemini CLI) 종료로 하네스 자체가 사라졌고, 소유자 지시로 지원을
+종료했다. **지금 당장 깨지는 것은 없다** — 이미 생성된 `GEMINI.md` 와
+`gemini-extension.json` 은 디스크에 그대로 남고 계속 읽힌다. 우리가 **재생성**을
+안 할 뿐이다.
+
+| 상황 | 정공법 |
+|---|---|
+| 파일을 그대로 쓰겠다 | **자연 fallback** — 아무것도 안 해도 된다. 기존 파일은 kit 이 건드리지 않는다 |
+| 다른 하네스로 옮기겠다 | **명시 path** — `--harness antigravity` 로 다시 emit 한다. Antigravity 는 같은 `~/.gemini/` 아래 살아 이행 비용이 가장 낮다 |
+| 스크립트가 `--harness gemini-cli` 를 넘긴다 | **opt-in 없음 — 인자를 지운다.** rc=0 → **rc=2** 로 바뀌므로 CI 가 실패한다. 이것이 이 릴리스의 유일한 소비자 파괴면이다 (§0.1) |
+
+`stable_guarantee.md` §4 의 gemini-cli 행은 **지우지 않고 은퇴로 표시**했다 —
+그 표는 현재 지원 목록이 아니라 약속의 이력이다.
+
+### 3.2 그 밖의 채널
+
 - **antigravity 사용자**: `agy plugin install <repo>/plugin` 로 설치한다.
   무버전 사본이라 **재설치가 곧 갱신**이다.
 - **plugin ZIP asset**: codex · claude-code 두 종은 종전대로 Release 에

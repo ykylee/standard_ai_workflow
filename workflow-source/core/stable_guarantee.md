@@ -11,7 +11,7 @@
 
 본 문서는 v1.0.0 stable 진입 시점 (2026-07-20 기준) 의 **stable grade 약속** 을 명시한다.
 
-- **Guarantee scope**: 25 public API entries (`workflow_kit.__all__`) + 12 skill stable + 11 MCP stable + 11 harness overlay + 24 smoke cross-check discipline.
+- **Guarantee scope**: 25 public API entries (`workflow_kit.__all__`) + 12 skill stable + 11 MCP stable + 11 harness overlay (**v1.8.0 부터 stable 10 + 은퇴 1** — §4) + 24 smoke cross-check discipline.
 - **Guarantee 기간**: 2년 (2026-07-20 ~ 2028-07-20). 후속 v1.x release 의 breaking change 도 1 release deprecation warning + 다음 release removal 정공법 적용.
 - **Guarantee 의 한계**: explicit 한 5개 제외 영역 (TST-WF-01 historical infra / state.json transient / MCP SDK 외부 의존성 / 하네스 외부 진입점 변경 / 베타·알파·프로토타입 stage). 본 한계는 §5 에 명시.
 - **Migration 가이드**: 모든 breaking change 시 release note 본문에 3가지 정공법 (opt-in flag / 명시 path / 자연 fallback) 적용.
@@ -122,7 +122,7 @@ __all__: list[str] = [
 - `mcp>=1.27.0` 외부 의존성. minor patch 의 `_meta` / `structuredContent` kwarg 변경 시 `check_read_only_mcp_sdk_stdio.py` PASS 보장 (v0.11.25 종결).
 - HTTP/SSE/Streamable transport 는 native client 가 자동 처리 (oauth, etc).
 
-## 4. Harness Stable API (11 harness overlay)
+## 4. Harness Stable API (stable 10 + 은퇴 1)
 
 | Harness | Stage | First Release | Stable Since | 진입점 |
 |---|---|---|---|---|
@@ -136,6 +136,20 @@ __all__: list[str] = [
 | grok-build | stable | v0.15.16 | v0.15.16 | `AGENTS.md` (root) + `GROK.md` (root) + `.grok/skills/*` + `.grok/config.toml.example` |
 | pi-dev | stable | v0.6.5 | v0.7.0 | `AGENTS.md` (root, codex 와 동일) |
 | codewhale | stable | v0.10.0 | v0.10.4 | `.codewhale/skills/codewhale-workflow/SKILL.md` (Constitution additive) |
+| ~~gemini-cli~~ | **은퇴 (v1.8.0)** | v0.6.0 | v0.7.4 | ~~`GEMINI.md` (root)~~ |
+
+> **은퇴 행을 지우지 않는 이유** (v1.8.0). 이 표는 *현재 지원 목록*이 아니라
+> **약속의 이력**이다. `stable` 로 약속했던 행을 지우면 그 약속이 존재했다는
+> 사실과 어떻게 끝났는지가 함께 사라져, 나중에 아무도 경위를 알 수 없다.
+> 회귀 표·릴리스 노트에 대해 이미 내린 판정과 같은 원리다 — 역사 서술은 옛
+> 버전이 옳다.
+>
+> **gemini-cli 은퇴 경위**: upstream(Google Gemini CLI) 종료로 하네스 자체가
+> 사라졌고, 2026-08-29 소유자 지시로 지원을 종료했다. §5.4(외부 하네스 진입점
+> 변경)가 이 축을 guarantee 에서 **명시적으로 제외**하고 있어 등급은 minor 로
+> 판정했다 — 근거와 **반대 근거**는 `releases/Beta-v1.8.0.md` §0.1 에 있다.
+> 이미 생성된 `GEMINI.md` 는 소비자 디스크에 그대로 남고 계속 읽힌다. 우리가
+> **재생성**을 안 할 뿐이다.
 
 ### 4.1 Harness overlay contract
 

@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-28
+- 최종 수정일: 2026-08-31
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,13 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-28
+## [Unreleased] - 2026-08-31
 
 ### Added
 
+- feat(harness): gemini-cli 지원 종료 + antigravity 플러그인 채널 신설 — 전 계약 실측 (main-004·005·006 + 30일 main-001) (35a7a859)
+- feat(meta-watch): 선언 보급 완주 — 국소 198 / 전역 10 / 미분류 68 (main-002·003) (18d8e369)
+- feat(meta-watch): 선언 보급 1차 — 채취 실측에서 WATCHES 71건 + mypy flake close (main-004·main-001) (c3c8634f)
 - feat(runner): M-011 — meta-watch 구현 (ADR-028) + 좁은 선언 7건 소탕 (11eb02d2)
 - feat(design): M-010 완결 — ADR-028 + test_impact_tiering_spec (실측 3건 기반) (07b61f88)
 - feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
@@ -43,13 +46,13 @@ All notable changes to this project will be documented in this file.
 - feat(checks): 무거운 7개에 WATCHES 선언 + check_changed_selection 계약 9 cases (0fa23bab)
 - feat(checks): run_all_checks --changed 기전 (WATCHES 선언 기반, 미선언은 항상 실행) (49da7655)
 - feat(memory): seed 가 state.json 까지 만들어 끝을 맺는다 + 절반짜리 가드 강화 (96bfb700)
-- feat(memory): 아카이브를 이동에서 이관으로 — 미완료 소실 + 참조 끊김 차단 (9b600efb)
-- feat(smoke): 브랜치 메모리 네임스페이스 가드 신설 + 정본 창구 정정 (d818625e)
-- feat(dist): ship native Codex and Claude plugin archives (51e04eb3)
-- ... (128 more)
+- ... (131 more)
 
 ### Changed
 
+- chore(memory): 66차 세션 종료 — 관찰 축 2건 정리 + meta-watch 선언 보급 완주 (task 4건 close) (f879150a)
+- chore(memory): 64차 세션 종료 — TDAD 축 M-008~M-012 완주 + v1.7.0 발행 (1f67f8e0)
+- chore(roadmap): M-012 close — v1.7.0 발행 사이클 종결 (main-010·011 done) (818e199d)
 - chore(roadmap): M-012 [release] 선언 + main-009 등록 (mcp 2.1.1 사건) (3669668b)
 - chore(roadmap): M-011 close — meta-watch 구현 축 완결 (main-008 done) (9c41b488)
 - docs(planning): M-008 concept 검토 — 계층별 회귀 실행 계약 (소유자 선택지 3안) (bf7f8788)
@@ -77,13 +80,15 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 48차 세션 종료 — 배포 축 gap 4개 전부 닫힘 + OKF 상호운용 실측 (9a837e73)
 - chore(memory): 47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (d25ed659)
 - docs(deploy): 채널별 재실행 계약 4채널 실측 (main-017, 컨셉 gap 2) (c952dd64)
-- chore(memory): 46차 세션 종료 — main-016 wk doctor 착수·구현 지점 조사 완료 (구현 미착수) (b6b91b85)
-- chore(memory): 45차 세션 종료 — 배포 멱등성 컨셉 문서 + gap 4 task 등록 (main-015) (c59a9ade)
-- docs(distribution): 배포 채널×하네스 매트릭스 정리 (main-014) (0e29bdbc)
-- ... (349 more)
+- ... (352 more)
 
 ### Fixed
 
+- fix(doctor): 탐침이 자기 자신의 낡음을 잰다 — 버전 같고 내용 다름 (main-002) (c88c0890)
+- fix(doctor·backlog·docs): '존재가 정합으로 읽히는 자리' 3부류 + 69차 세션 종료 (main-001·003·004) (6d9ad763)
+- fix(release): pi 매니페스트 version 을 kit 에 묶는다 + 68차 세션 종료 (main-004) (0c86b51f)
+- fix(doctor): grok 설치본을 이름이 아니라 선언으로 찾는다 + 사본 0 채널의 침묵 제거 (main-002·003) (6efc45ec)
+- fix(paths): '자기 위치 오인' 결함족 전수 마감 — 진입점 7건 + 정적 게이트 (main-003·012·013) (cffce266)
 - fix(mcp): mcp 2.1.1 의 FastMCP 심볼 제거 대응 — importlib 동적 해석 (main-009) (62a12485)
 - fix(memory): 아카이브된 brave-valley-2538 세션 기록의 깨진 링크 3건 교정 (874395f2)
 - fix(ops): 63차 세션 — M-007 운영 축 상설 선언 + '자기 위치 오인' 결함족 3건 소탕 (b3eee5ad)
@@ -109,19 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(wiki): L2 파이프라인 회생 — 화석 은퇴와 파생 뷰 재정의 (main-004) (3bd45c10)
 - fix(okf): 상호운용을 자기 선언이 아니라 실측으로 (main-006) (426da99c)
 - fix(deploy): 패키지가 체크아웃 레이아웃에 기대던 결함 (main-003) (2bd5417b)
-- fix(rollover): 롤오프 포인터가 실행마다 쌓이던 결함 (main-002) (666424b2)
-- fix(smoke): check_deprecation_3rd_cycle 의 죽어 있던 제외 목록 (main-003) (30369739)
-- fix(backlog): 날짜 롤오버 시 진행 중 task 의 갱신이 사라지던 결함 (main-001) (d02d9663)
-- fix(standard): 정본의 다중 줄 bullet 이 추출에서 잘리던 결함 수리 (main-002) (f3e9d0cc)
-- fix(checks): timeout 선언 누락 3건 + 내장 worktree 스캔 제외 (main-011) (28f12ed1)
-- ... (129 more)
+- ... (134 more)
 
 ## [1.7.0] - 2026-08-28
 
 ### Changed
 
+- release(v1.7.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 파생물 정합 (main-010) (a69d83bf)
 - release(v1.7.0): 발행 준비 — meta-watch 축, 등급은 §1.5 판정으로 minor (d3fa719b)
 - release(v1.7.0): bump 1.6.0→1.7.0 + main-009 close (mcp 2.1.1 수리 CI green) (cac3af1e)
+
+### Fixed
+
+- fix(checks): v1.7.0 post-step 스탬프 반영 — EXPECTED_LAST_UPDATED 08-25→08-28 (4d7a78da)
 
 ## [1.6.0] - 2026-08-28
 

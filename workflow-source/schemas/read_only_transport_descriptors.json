@@ -4,7 +4,7 @@
   "server_name": "workflow_read_only_bundle",
   "status": "ok",
   "tool_count": 13,
-  "tool_version": "1.7.0",
+  "tool_version": "1.8.0",
   "tools": [
     {
       "_meta": {

@@ -43,6 +43,7 @@ from workflow_kit.bootstrap_lib.harnesses import (  # noqa: E402
 )
 from workflow_kit.deploy_doctor import (  # noqa: E402
     CHANNEL_PREREQUISITES,
+    VOLATILE_PATH_PREFIXES,
     _render_text,
     GLOBAL_DECLARATION_HOMES,
     PLUGIN_INSTALL_CACHES,
@@ -1045,6 +1046,31 @@ def _codex_source_row(home: Path, project: Path) -> dict:
     return rows[0] if rows else {}
 
 
+def _usable_volatile_root() -> str:
+    """`VOLATILE_PATH_PREFIXES` 중 **이 호스트에 실재하는** 접두사 하나.
+
+    v1.8.1 (TASK-2026-09-01-main-004): 이 자리는 `/private/tmp` 리터럴이었다.
+    macOS 에만 있는 경로라 Linux CI 에서 `mkdir(parents=True)` 가 루트에 `/private`
+    를 만들려다 `PermissionError` 로 죽었고, **smoke 가 10 커밋 연속 red** 였다
+    (2026-08-30 `6d9ad763` ~ 2026-09-01, v1.8.0 발행 커밋 포함).
+
+    저장소가 이미 겪은 것의 **거울상**이다 — 예전에는 Linux 에서 쓴 검사가 macOS 의
+    `/private` symlink 에서 깨졌고(TASK-2026-08-10-main-017), 이번에는 macOS 에서
+    쓴 검사가 Linux 에서 깨졌다. 어느 쪽이든 **로컬 green / 반대편 red** 다.
+
+    그래서 경로를 리터럴로 적지 않고 **판정 규칙의 목록에서 고른다**. 목록이 바뀌면
+    이 검사가 따라간다. 쓸 수 있는 접두사가 하나도 없으면 조용히 넘기지 않고 죽는다 —
+    못 잰 것을 통과로 세지 않는다.
+    """
+    for prefix in VOLATILE_PATH_PREFIXES:
+        root = Path(prefix)
+        if root.is_dir() and os.access(root, os.W_OK):
+            return prefix
+    raise AssertionError(
+        f"이 호스트에서 쓸 수 있는 휘발 접두사가 없다: {VOLATILE_PATH_PREFIXES!r}"
+    )
+
+
 def test_codex_marketplace_source_on_volatile_path_is_a_finding() -> None:
     """휘발 경로의 marketplace source 는 **지금 존재해도** 발견이다 (main-004).
 
@@ -1057,7 +1083,7 @@ def test_codex_marketplace_source_on_volatile_path_is_a_finding() -> None:
     """
     with tempfile.TemporaryDirectory(prefix="doctor-codex-vol-") as tmpdir:
         home = Path(tmpdir) / "home"
-        volatile = Path("/private/tmp") / f"doctor-probe-{os.getpid()}"
+        volatile = Path(_usable_volatile_root()) / f"doctor-probe-{os.getpid()}"
         volatile.mkdir(parents=True, exist_ok=True)
         try:
             _seed_codex_marketplace(home, str(volatile))

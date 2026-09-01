@@ -21,7 +21,7 @@ v1.8.1 은 **사람의 기억에 의존하던 두 자리**를 걷는다. 둘 다
 
 - 범위: `v1.8.0..HEAD` (4 commit). 이 중 1건(`236a6aa9`)은 **v1.8.0 발행 마무리**가
   태그 뒤에 착지한 것이라 실질 내용은 3 commit 이다.
-- 누적 smoke **278/278 PASS** (전량 2축 · case 합계 556, FAIL 0, 좁은 선언 0),
+- 누적 smoke **279/279 PASS** (전량 2축 · case 합계 558, FAIL 0, 좁은 선언 0),
   mypy strict 0 errors
 - 검사 신설 1종(`check_doc_stamp_rule`) + `check_deployed_layout` case 5 추가
   (총 277 파일)

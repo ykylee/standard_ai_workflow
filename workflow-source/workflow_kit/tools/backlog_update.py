@@ -30,13 +30,17 @@ from workflow_kit.common.paths import (
     workflow_branch_dir,
     workflow_memory_dir,
 )
-from workflow_kit.common.planning import determine_conservative_task_status
+from workflow_kit.common.planning import (
+    DEMOTION_REVERTS_DONE,
+    determine_conservative_task_status,
+)
 from workflow_kit.common.project_docs import (
     TASK_ID_CAPTURE_RE,
     parse_backlog_task_entries,
     is_empty_label_line,
     parse_project_profile_backlog,
     task_label,
+    task_label_aliases,
 )
 from workflow_kit.common.purpose_context import build_purpose_context, check_scope_creep
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
@@ -433,6 +437,31 @@ def _build_memory_index_query_output(
         return None
 
 
+def read_task_ssot_state(path: Path) -> tuple[str | None, str | None]:
+    """task SSOT 파일에서 ``(status, 기록된 검증 결과)`` 를 읽는다.
+
+    v1.8.2 (TASK-2026-09-01-main-003). 이 둘은 `determine_conservative_task_status`
+    의 서로 다른 인자로 들어간다 — 상태는 "미지정이면 보존" 판정에, 기록된 검증은
+    "이미 검증된 done 을 강등하지 않는다" 판정에 쓴다. 후자를 안 읽던 동안
+    `--status done` 재호출이 완료 기록을 취소했다.
+
+    검증 라벨은 **별칭까지** 받는다. 라벨을 리터럴 하나로 비교하다 영어 표기 문서에서
+    조용히 빗나간 전례가 있다 (`project_docs.is_empty_label_line` 주석).
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None, None
+    status: str | None = None
+    m = re.search(r"^status:\s*(\S+)", text, re.M)
+    if m:
+        status = m.group(1)
+    alt = "|".join(re.escape(a) for a in task_label_aliases("validation"))
+    v = re.search(rf"^-\s*(?:{alt})\s*:\s*(\S.*)$", text, re.M)
+    recorded = v.group(1).strip() if v else None
+    return status, (recorded or None)
+
+
 def main() -> int:
     args = parse_args()
     source_context = {
@@ -563,14 +592,23 @@ def main() -> int:
         # 상태를 보존한다 — 미지정은 "바꾸지 말라" 다. 기존 상태는 task SSOT
         # frontmatter (`status: X`) 에서 읽는다.
         current_status: str | None = None
+        # v1.8.2 (TASK-2026-09-01-main-003): **이미 기록된** 검증 결과도 함께 읽는다.
+        # 이것이 없으면 `--status done` 재호출이 파일의 검증을 못 보고 강등하면서
+        # 이미 기록된 완료를 취소한다 (실측: handoff §4 → §2 되돌림).
+        # 라벨은 별칭까지 받는다 — 영어 표기 문서에서 리터럴 비교가 조용히 빗나간
+        # 전례가 있다 (`project_docs.is_empty_label_line` 주석).
+        recorded_validation: str | None = None
         _ssot_probe = daily_backlog_path.parent / "tasks" / f"{task_id}.md"
         if requested_mode == "update" and _ssot_probe.exists():
-            _m = re.search(r"^status:\s*(\S+)", _ssot_probe.read_text(encoding="utf-8"), re.M)
-            if _m:
-                current_status = _m.group(1)
+            current_status, recorded_validation = read_task_ssot_state(_ssot_probe)
         status, status_warnings = determine_conservative_task_status(
-            args.status, args.validation_result, operation_type, current_status=current_status)
+            args.status, args.validation_result, operation_type,
+            current_status=current_status, recorded_validation=recorded_validation)
         warnings.extend(status_warnings)
+        # 강등이 **이미 기록된 완료를 취소**했으면 그것은 성공이 아니다 —
+        # `cannot_determine` 을 warning 으로 올린 v1.2.1 과 같은 처방.
+        demotion_reverted_done = any(
+            DEMOTION_REVERTS_DONE in w for w in status_warnings)
 
         # 스칼라 필드는 여러 번 받으면 **거부**한다 — 조용히 마지막만 쓰지 않는다.
         for flag, values in (("--progress-note", args.progress_note),
@@ -944,7 +982,15 @@ def main() -> int:
             # v1.2.1 (TASK-2026-08-16-main-001): `cannot_determine` 은 성공이 아니다.
             # 예전에는 apply 를 통째로 스킵하고도 최상위 `status` 가 `ok` 라, 호출자가
             # "갱신됐다" 고 읽었다 — 조용한 미반영. 아무것도 안 썼으면 그렇게 말한다.
-            status="warning" if operation_type == "cannot_determine" else "ok",
+            #
+            # v1.8.2 (TASK-2026-09-01-main-003): **이미 기록된 완료를 취소한 강등**도
+            # 같은 부류다. 그것은 요청대로 된 것이 아니라 요청을 되돌린 것이고,
+            # 실제로 그 상태 그대로 커밋·push 된 적이 있다 (`12b9f311`).
+            status=(
+                "warning"
+                if operation_type == "cannot_determine" or demotion_reverted_done
+                else "ok"
+            ),
             tool_version=TOOL_VERSION,
             operation_type=operation_type,
             target_backlog_path=str(daily_backlog_path),

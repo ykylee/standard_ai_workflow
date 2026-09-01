@@ -330,6 +330,7 @@ gh release edit "v<X>.<Y>.<Z>" --repo "$REPO" --draft=false
 | v1.6.0 | Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기(`python_launcher`) + emit PYTHONPATH target 레이아웃 판정 + doctor `kit_resolution` + `safe_relpath` POSIX | ✅ (2026-08-25) | 커밋 타입은 전부 fix 지만 §1.5 판정 **minor** — 새 공개 모듈 + doctor 신기능 + payload 키 추가. 시그니처 파괴 0 · 진입점 제거 0 · 산출물 소비 불가 0. 체크인 payload 는 posix 고정 (Windows 플러그인 채널은 `python3` 별칭 필요) |
 | v1.8.0 | 지원 하네스 개편(gemini-cli 종료 · antigravity 신설) + 탐침의 침묵 4곳 제거(사본 0 채널 · grok 설치본 선언 읽기 · codex 경유지 휘발 · **자기 사본 대조**) + backlog-update 데이터 손실 수정 + 문서 버전 고착 수리 | ✅ (2026-08-31) | §1.5 판정 **minor** — 시그니처 파괴 0 · 명령 제거 0 · 기존 산출물 소비 가능. 다만 `--harness gemini-cli` 가 rc=0→rc=2 로 바뀐다(반대 근거를 노트 §0.1 에 명시) |
 | v1.7.0 | 계층별 회귀 실행 계약 축 (ADR-028) — meta-watch 러너 내장(채취+판정) + `WATCHES_ALL_REASON` 어휘 + 좁은 선언 7건 소탕 + mcp 2.1.1 대응(importlib 동적 해석, latest_2x 핀 2.1.1) | ✅ (2026-08-28) | §1.5 판정 **minor** — 러너 신기능 + 새 공개 모듈(`meta_watch`) + 어휘 신설. 시그니처 파괴 0 · 진입점 제거 0 · runner JSON 은 `meta_watch` 키 추가만. 게이트는 축소하지 않는다 (main-004 기각 불변) |
+| v1.8.1 | `workflow_kit.cli` 가 wheel 에 실린다(v1.8.0 소비자 실고장) + 패키징 선언 누락 결함족을 디스크 대조로 마감(`check_deployed_layout` case 5 · `check_packaging` 디스크 파생) + 문서 스탬프 기대값을 리터럴에서 git 파생으로 | ✅ (2026-09-01) | §1.5 판정 **patch** — 공개 API 시그니처 변경 0 · 진입점 제거 0 · 산출물 형식 변경 0. 수리 2건뿐이지만 하나는 소비자에게 실제 고장이었다 |
 
 > 회귀 표의 시점은 *적용 release* 기준. *GHRelease 본문 작성일*은 `gh release view` 로 확인 권장. v0.7.x follow-up batch 와 v0.8.x mypy 격상 구간은 follow-up batch 단위로 통합 표기.
 

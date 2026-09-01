@@ -1,6 +1,6 @@
 {
   "status": "ok",
-  "tool_version": "1.8.0",
+  "tool_version": "1.8.1",
   "detected_change_types": [
     "docs",
     "ops"

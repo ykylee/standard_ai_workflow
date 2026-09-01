@@ -152,6 +152,16 @@ wk release-pipeline release \
   --json
 ```
 
+> **필수 CI 게이트 (v1.8.1+, TASK-2026-09-01-main-005)**: `release --apply` 는
+> `REQUIRED_CI_WORKFLOWS`(`smoke` · `mypy-strict` · `os-matrix` · `mcp-sdk-matrix`)를
+> **HEAD sha 로** 조회해 하나라도 green 이 아니면 **태그 생성 전에 멈춘다.** run 이
+> 아직 없거나(missing) 도는 중(pending)이거나 `gh` 를 못 부른 경우도 차단이다 —
+> 모름은 통과가 아니다. 그러므로 **push 하고 CI 가 끝나기를 기다린 뒤** 발행한다.
+>
+> 이 게이트가 생긴 이유: 이전에는 `mypy-strict` 하나만 advisory 로 봤고, 그래서
+> `smoke` 가 10 커밋 연속 red 인 채 **v1.8.0 이 발행됐다** (발행 커밋 `6c495e61` 는
+> smoke=failure). 넘겨야 하면 `--skip-ci-verify` 를 **명시**한다 — 결과에 남는다.
+
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 
 `wk release-pipeline dist --apply`는 Python wheel/sdist와 함께 Codex·Claude Code native plugin ZIP을 생성한다. `release`는 두 ZIP이 없으면 중단하며, 존재하면 GitHub Release asset으로 같이 첨부한다.

@@ -305,7 +305,8 @@
           "linked_task_ids": [
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
-            "TASK-2026-08-31-main-005"
+            "TASK-2026-08-31-main-005",
+            "TASK-2026-09-01-main-005"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

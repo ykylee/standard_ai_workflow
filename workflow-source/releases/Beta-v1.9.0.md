@@ -158,3 +158,20 @@ uv tool install --force <wheel 경로>
 - task SSOT: `TASK-2026-09-01-main-005` · `TASK-2026-09-01-main-003`
 - 발행 task: `TASK-2026-09-02-main-001`
 - 절차 정본: `docs/RELEASE.md` §2.3 (필수 CI 게이트)
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-01T15:25:19Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

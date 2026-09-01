@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-01
+- 최종 수정일: 2026-09-02
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(release): 발행 게이트가 필수 CI 워크플로 전수를 보고 기본 차단한다 (main-005) (c49e2c74)
 - feat(harness): gemini-cli 지원 종료 + antigravity 플러그인 채널 신설 — 전 계약 실측 (main-004·005·006 + 30일 main-001) (35a7a859)
 - feat(meta-watch): 선언 보급 완주 — 국소 198 / 전역 10 / 미분류 68 (main-002·003) (18d8e369)
 - feat(meta-watch): 선언 보급 1차 — 채취 실측에서 WATCHES 71건 + mypy flake close (main-004·main-001) (c3c8634f)
@@ -45,11 +46,11 @@ All notable changes to this project will be documented in this file.
 - feat(memory): handoff 기준선 롤오프 — 자르지 않고 이관한다 (ab07bafe)
 - feat(checks): 무거운 7개에 WATCHES 선언 + check_changed_selection 계약 9 cases (0fa23bab)
 - feat(checks): run_all_checks --changed 기전 (WATCHES 선언 기반, 미선언은 항상 실행) (49da7655)
-- feat(memory): seed 가 state.json 까지 만들어 끝을 맺는다 + 절반짜리 가드 강화 (96bfb700)
-- ... (131 more)
+- ... (132 more)
 
 ### Changed
 
+- chore(memory): 72차 세션 종료 — 손 목록·리터럴·주장을 파생으로 전환 5건 + v1.8.1 발행 (0453dabf)
 - chore(memory): 전역 wk 1.8.0 재설치 + 새 탐침이 패키징 결함 적발 (main-001 등록) (bfd25c15)
 - chore(memory): 71차 — v1.8.0 발행 준비 완료 + 등급 전수 재평가 (main-005 in_progress) (6c495e61)
 - chore(memory): 66차 세션 종료 — 관찰 축 2건 정리 + meta-watch 선언 보급 완주 (task 4건 close) (f879150a)
@@ -79,11 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 실측 + 채널 파리티 (75e9275a)
 - chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 3개 실측 (main-004~007) (17847a0d)
 - refactor(wiki): L2 계약을 memory 파생 4종으로 좁힌다 (main-001) (51b14113)
-- chore(memory): 48차 세션 종료 — 배포 축 gap 4개 전부 닫힘 + OKF 상호운용 실측 (9a837e73)
-- ... (354 more)
+- ... (355 more)
 
 ### Fixed
 
+- fix(backlog-update): done 강등이 이미 기록된 완료를 취소하지 않는다 (main-003) (e6f033db)
 - fix(tests): 휘발 경로 리터럴이 Linux CI 를 10 커밋 red 로 만들었다 (main-004) (e7671d24)
 - fix(checks): 문서 스탬프 기대값을 리터럴에서 git 파생으로 (main-002) (09a9df21)
 - fix(packaging): workflow_kit.cli 를 wheel 에 싣고, 손 목록을 디스크 대조로 대체 (main-001) (12b9f311)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(doctor): 어느 사본이 설치본인지 선언을 읽는다 — 갱신이 보고를 나쁘게 만들던 자리 (main-010) (151627ee)
 - fix(harness): session-end 를 bootstrap 채널에도 — 두 채널의 스킬 집합이 갈라져 있었다 (main-008, -009) (43168b34)
 - fix(release): next_version 을 커밋에서 파생한다 — 개수는 세고 판정은 안 세던 자리 (main-006) (40e86dc2)
-- fix(observability): 관찰 축 3개 실측 — mypy 원인 계열 확정 + 승격 루프 배선 (main-004, -005) (a36c5edf)
-- ... (138 more)
+- ... (139 more)
+
+## [1.9.0] - 2026-09-02
+
+### Changed
+
+- release(v1.9.0): 발행 준비 — 필수 CI 게이트 + done 강등 보존 (ff7ed4bc)
 
 ## [1.8.1] - 2026-09-01
 
 ### Changed
 
+- release(v1.8.1): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (54ff793e)
 - docs(release): v1.8.1 회귀 표 행 + 세션 기준선 갱신 (3afb48f8)
 - release(v1.8.1): 발행 준비 — 패키징 결함 수리 + 스탬프 판정 git 파생 (abb10744)
 

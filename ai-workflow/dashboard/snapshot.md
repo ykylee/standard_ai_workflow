@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-08-31T15:00:02Z`
-- tool_version: `1.8.0`
+- generated_at: `2026-09-01T00:32:24Z`
+- tool_version: `1.8.1`
 - workspace_root: `/Users/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-08-31`
+- maturity_last_updated: `2026-09-01`
 - maturity_surface_changed_at: `2026-08-31`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-08-31`
+- head_commit_date: `2026-09-01`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 12건)
+- silent_failing_cycles_count: `0` (측정 cycle 13건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `276`
-- cumulative_pass: `276`
+- cumulative_total: `277`
+- cumulative_pass: `277`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `276`
+- smoke_files_count: `277`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.8.1 | 277 | 277 |
 | Beta-v1.8.0 | 276 | 276 |
 | Beta-v1.7.0 | 276 | 276 |
 | Beta-v1.6.0 | 275 | 275 |
 | Beta-v1.5.0 | 274 | 274 |
-| Beta-v1.4.0 | 274 | 274 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-08-31-main-004 — codex marketplace source 가 휘발 경로를 가리켜도 탐침이 침묵한다 — 사본과 경유지는 따로 깨진다  `[fresh]`
-- [1] TASK-2026-08-31-main-003 — backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다  `[fresh]`
-- [2] TASK-2026-08-31-main-002 — wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다  `[fresh]`
-- [3] TASK-2026-08-31-main-001 — 문서의 '현재 버전' 주장이 kit 을 안 따라온다 — 검사가 존재만 보고 통과시킨다  `[fresh]`
-- [4] TASK-2026-08-30-main-004 — pi 패키지 매니페스트가 버전 정합 밖에 있다 — plugin/package.json 이 1.2.0 에 고착  `[fresh]`
-- [5] TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다  `[fresh]`
-- [6] TASK-2026-08-30-main-002 — doctor 의 grok-build 설치본 탐지가 디렉터리 이름 가정에 기대 실패 — 정본은 registry.json  `[fresh]`
-- [7] TASK-2026-08-30-main-001 — 자식 spawn 이 리터럴 python3 — meta-watch PYTHONPATH 주입에서만 드러나는 환경 의존 red 3건  `[fresh]`
-- [8] TASK-2026-08-29-main-006 — antigravity 하네스 조사 + 지원 추가  `[fresh]`
-- [9] TASK-2026-08-29-main-005 — gemini-cli 하네스 지원 완전 제거  `[fresh]`
+- [0] TASK-2026-09-01-main-002 — 인덱스 검사의 EXPECTED_LAST_UPDATED 가 하드코딩 — 발행마다 손이 간다  `[fresh]`
+- [1] TASK-2026-09-01-main-001 — workflow_kit.cli 가 휠에 실리지 않는다 — 손 목록이 빠뜨린 세 번째 하위 패키지  `[fresh]`
+- [2] TASK-2026-08-31-main-005 — v1.8.0 발행 — 지원 하네스 개편 + 탐침 침묵 제거 사이클  `[fresh]`
+- [3] TASK-2026-08-31-main-004 — codex marketplace source 가 휘발 경로를 가리켜도 탐침이 침묵한다 — 사본과 경유지는 따로 깨진다  `[fresh]`
+- [4] TASK-2026-08-31-main-003 — backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다  `[fresh]`
+- [5] TASK-2026-08-31-main-002 — wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다  `[fresh]`
+- [6] TASK-2026-08-31-main-001 — 문서의 '현재 버전' 주장이 kit 을 안 따라온다 — 검사가 존재만 보고 통과시킨다  `[fresh]`
+- [7] TASK-2026-08-30-main-004 — pi 패키지 매니페스트가 버전 정합 밖에 있다 — plugin/package.json 이 1.2.0 에 고착  `[fresh]`
+- [8] TASK-2026-08-30-main-003 — content_drift 가 사본 0 인 채널을 침묵으로 지운다 — '없다' 와 '못 봤다' 가 구별되지 않는다  `[fresh]`
+- [9] TASK-2026-08-30-main-002 — doctor 의 grok-build 설치본 탐지가 디렉터리 이름 가정에 기대 실패 — 정본은 registry.json  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `15`
-- telemetry_events_total: `1306`
-- telemetry_total_queries: `1306`
-- telemetry_hit_count: `126`
-- telemetry_hit_rate: `0.0965`
+- telemetry_events_total: `1439`
+- telemetry_total_queries: `1439`
+- telemetry_hit_count: `139`
+- telemetry_hit_rate: `0.0966`
 
 ### Entries by merge_state
 
@@ -152,7 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 201 |
-| `doc-sync` | 1 |
-| `session-start` | 1104 |
+| `backlog-update` | 214 |
+| `doc-sync` | 2 |
+| `session-start` | 1223 |
 

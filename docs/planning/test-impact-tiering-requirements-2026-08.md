@@ -4,7 +4,7 @@
 - 범위: 불변 조건, 검사 분류 계약, 보급 판정 기준, 메타 검증 요구사항, 커밋 전 단계 계약, 이득 근거 실측, kit 이행 범위, design 진입 조건
 - 대상 독자: 소유자 (requirements sign-off), maintainer, workflow 설계자
 - 상태: **sign-off (2026-08-28)** — 소유자 승인, 미결 3곳은 권고안대로 확정 (§sign-off 기록 참조). design 단계는 [`M-010`](../../ai-workflow/memory/active/roadmap/M-010-test-impact-design.md) 으로 진행
-- 최종 수정일: 2026-08-31
+- 최종 수정일: 2026-09-01
 - 관련 문서: [`M-009`](../../ai-workflow/memory/active/roadmap/M-009-test-impact-requirements.md), [concept 검토](./test-impact-tiering-review-2026-08.md), [TASK-2026-08-14-main-003 `--changed` 구현](../../ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-003.md)
 
 ## R0. 불변 조건 (요구사항이 아니라 전제)

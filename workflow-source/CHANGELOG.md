@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-08-31
+- 최종 수정일: 2026-09-01
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-08-31
+## [Unreleased] - 2026-09-01
 
 ### Added
 
@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(memory): 전역 wk 1.8.0 재설치 + 새 탐침이 패키징 결함 적발 (main-001 등록) (bfd25c15)
 - chore(memory): 71차 — v1.8.0 발행 준비 완료 + 등급 전수 재평가 (main-005 in_progress) (6c495e61)
 - chore(memory): 66차 세션 종료 — 관찰 축 2건 정리 + meta-watch 선언 보급 완주 (task 4건 close) (f879150a)
 - chore(memory): 64차 세션 종료 — TDAD 축 M-008~M-012 완주 + v1.7.0 발행 (1f67f8e0)
@@ -79,11 +80,13 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 3개 실측 (main-004~007) (17847a0d)
 - refactor(wiki): L2 계약을 memory 파생 4종으로 좁힌다 (main-001) (51b14113)
 - chore(memory): 48차 세션 종료 — 배포 축 gap 4개 전부 닫힘 + OKF 상호운용 실측 (9a837e73)
-- chore(memory): 47차 세션 종료 — 플러그인 설치 + 배포 축 gap 1·2 해소 + 결함 3건 (d25ed659)
-- ... (353 more)
+- ... (354 more)
 
 ### Fixed
 
+- fix(tests): 휘발 경로 리터럴이 Linux CI 를 10 커밋 red 로 만들었다 (main-004) (e7671d24)
+- fix(checks): 문서 스탬프 기대값을 리터럴에서 git 파생으로 (main-002) (09a9df21)
+- fix(packaging): workflow_kit.cli 를 wheel 에 싣고, 손 목록을 디스크 대조로 대체 (main-001) (12b9f311)
 - fix(guarantee): 은퇴한 stable 행을 지우지 않는다 + v1.8.0 migration 절 (main-005) (2d8f4cad)
 - fix(doctor): 탐침이 자기 자신의 낡음을 잰다 — 버전 같고 내용 다름 (main-002) (c88c0890)
 - fix(doctor·backlog·docs): '존재가 정합으로 읽히는 자리' 3부류 + 69차 세션 종료 (main-001·003·004) (6d9ad763)
@@ -111,15 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(harness): session-end 를 bootstrap 채널에도 — 두 채널의 스킬 집합이 갈라져 있었다 (main-008, -009) (43168b34)
 - fix(release): next_version 을 커밋에서 파생한다 — 개수는 세고 판정은 안 세던 자리 (main-006) (40e86dc2)
 - fix(observability): 관찰 축 3개 실측 — mypy 원인 계열 확정 + 승격 루프 배선 (main-004, -005) (a36c5edf)
-- fix(linter): in_progress 대조의 세 번째 출처를 task SSOT 로 (main-002) (e64b4812)
-- fix(wiki): L2 파이프라인 회생 — 화석 은퇴와 파생 뷰 재정의 (main-004) (3bd45c10)
-- fix(okf): 상호운용을 자기 선언이 아니라 실측으로 (main-006) (426da99c)
-- ... (135 more)
+- ... (138 more)
 
-## [1.8.0] - 2026-08-31
+## [1.8.1] - 2026-09-01
 
 ### Changed
 
+- docs(release): v1.8.1 회귀 표 행 + 세션 기준선 갱신 (3afb48f8)
+- release(v1.8.1): 발행 준비 — 패키징 결함 수리 + 스탬프 판정 git 파생 (abb10744)
+
+## [1.8.0] - 2026-09-01
+
+### Changed
+
+- release(v1.8.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (main-005) (236a6aa9)
 - release(v1.8.0): 발행 준비 — 지원 하네스 개편 + 탐침 침묵 제거 사이클 (main-005) (7489fe35)
 
 ## [1.7.0] - 2026-08-28

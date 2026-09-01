@@ -136,3 +136,20 @@ uv tool install --force <wheel 경로>
 - task SSOT: `TASK-2026-09-01-main-001` · `TASK-2026-09-01-main-002`
 - 후속 (미착수): `TASK-2026-09-01-main-003` — `--validation-result` 없는 `done` 의
   조용한 강등이 handoff 의 완료 기록을 되돌린다
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-01T00:32:24Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

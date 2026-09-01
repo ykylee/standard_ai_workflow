@@ -444,7 +444,7 @@ def cmd_validate(args) -> dict:
 
 
 #: 발행을 막을 수 있는 **필수 CI 워크플로**. 이 목록에 있는 것이 HEAD sha 에서
-#: green 이 아니면 `release --apply` 가 멈춘다 (v1.8.1, TASK-2026-09-01-main-005).
+#: green 이 아니면 `release --apply` 가 멈춘다 (v1.9.0, TASK-2026-09-01-main-005).
 #:
 #: ## 왜 목록이 필요한가
 #:
@@ -2316,7 +2316,7 @@ def cmd_release(args) -> dict:
     # *모든 skip flag / optional attr* 의 default fill.
     for attr in ("skip_packaging", "skip_doctor", "skip_state", "skip_git", "skip_mypy",
                  "skip_validate", "skip_cross_verify", "strict_cross_verify",
-                 "skip_ci_verify",  # v1.8.1 필수 CI 게이트 escape hatch
+                 "skip_ci_verify",  # v1.9.0 필수 CI 게이트 escape hatch
                  "skip_doc_headers_update", "skip_maturity_matrix_sync",
                  "skip_changelog_gen",  # v0.15.21+ CHANGELOG auto-gen lockdown
                  "skip_dashboard_emit", "dashboard_output",
@@ -2376,7 +2376,7 @@ def cmd_release(args) -> dict:
                     ),
                 })
 
-    # 1.5 필수 CI 게이트 (v1.8.1, TASK-2026-09-01-main-005) — **기본이 차단**이다.
+    # 1.5 필수 CI 게이트 (v1.9.0, TASK-2026-09-01-main-005) — **기본이 차단**이다.
     # 위 cross-verify 는 mypy 축 하나의 advisory 이고, 그 좁음 때문에 smoke 가 10 커밋
     # 연속 red 인 채 v1.8.0 이 발행됐다. 여기서는 `REQUIRED_CI_WORKFLOWS` 전부를
     # **HEAD sha 로** 조회해 하나라도 green 이 아니면 apply 를 멈춘다.

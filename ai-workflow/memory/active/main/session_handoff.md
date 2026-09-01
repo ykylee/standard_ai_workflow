@@ -36,6 +36,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
+- TASK-2026-09-02-main-001 v1.9.0 발행 — 필수 CI 게이트 + done 강등 보존
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
 

@@ -3,7 +3,7 @@
 - 문서 목적: Standard AI Workflow를 **소스에서 설치해 개발/검증 환경**으로 쓰는 방법을 안내한다.
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
-- 상태: stable (v1.8.1 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
+- 상태: stable (v1.9.0 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
 - 최종 수정일: 2026-09-01 (§7.0 Grok Build 플러그인 설치 경로 추가)
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
@@ -61,9 +61,9 @@ cd standard_ai_workflow
 > (근거: [`planning/cli-distribution-review-2026-08.md`](./planning/cli-distribution-review-2026-08.md)).
 >
 > ```bash
-> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v1.8.1/standard_ai_workflow-1.8.1-py3-none-any.whl
+> uv tool install https://github.com/ykylee/standard_ai_workflow/releases/download/v1.9.0/standard_ai_workflow-1.9.0-py3-none-any.whl
 > # 또는: pipx install <같은 URL>
-> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v1.8.1#subdirectory=workflow-source"
+> # 또는 tag 에서 직접: uv tool install "git+https://github.com/ykylee/standard_ai_workflow@v1.9.0#subdirectory=workflow-source"
 > wk --help
 > ```
 
@@ -316,7 +316,7 @@ grok plugin install ./plugin --trust
 # (plugin/package.json 의 `pi` manifest + `pi-package` keyword 가 갤러리 등록 단위)
 pi install ./plugin
 # 또는 태그 고정 설치:
-pi install git:github.com/ykylee/standard_ai_workflow@v1.8.1
+pi install git:github.com/ykylee/standard_ai_workflow@v1.9.0
 ```
 
 전제 두 가지:

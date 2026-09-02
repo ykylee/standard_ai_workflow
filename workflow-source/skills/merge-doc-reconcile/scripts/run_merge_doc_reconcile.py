@@ -32,6 +32,7 @@ from workflow_kit.common.project_docs import (
     parse_project_profile_merge,
 )
 from workflow_kit.common.reconcile import explain_state_conflicts
+from workflow_kit.common.state.builder import collect_task_corpus_status
 from workflow_kit.common.session_outputs import build_reconcile_notes
 from workflow_kit.common.workflow_state import build_state_cache_refresh_hint, refresh_workflow_state_cache
 from workflow_kit.common.workflow_writes import append_unique_bullets_under_heading
@@ -156,11 +157,24 @@ def main() -> int:
             if operations_doc.exists():
                 reconcile_targets.append(str(operations_doc))
 
+        # 분모는 task corpus 전수다 — session-start 와 같은 이유
+        # (TASK-2026-09-02-main-002). `latest_backlog_path` 는 하루치 파일이라,
+        # 그것과 비교하면 어제 등록된 in_progress task 가 늘 충돌로 보고된다.
+        corpus = collect_task_corpus_status(
+            latest_backlog_path.parent if latest_backlog_path else None
+        )
+        if corpus is not None:
+            compare_in_progress = corpus["in_progress_items"]
+            compare_blocked = corpus["blocked_items"]
+        else:
+            compare_in_progress = backlog.get("in_progress_items", [])
+            compare_blocked = backlog.get("blocked_items", [])
+
         state_conflicts.extend(
-            explain_state_conflicts(handoff.get("in_progress_items", []), backlog.get("in_progress_items", []), "in_progress")
+            explain_state_conflicts(handoff.get("in_progress_items", []), compare_in_progress, "in_progress")
         )
         state_conflicts.extend(
-            explain_state_conflicts(handoff.get("blocked_items", []), backlog.get("blocked_items", []), "blocked")
+            explain_state_conflicts(handoff.get("blocked_items", []), compare_blocked, "blocked")
         )
 
         if backlog.get("done_items") and not args.validation_result:

@@ -283,6 +283,34 @@ def _aggregate_from_appendonly_layout(
     }
 
 
+def collect_task_corpus_status(backlog_dir: Path | None) -> dict[str, list[str]] | None:
+    """backlog SSOT(task corpus) 의 status 집계. corpus 가 없으면 ``None``.
+
+    `state.json` 생성기가 쓰는 것과 **같은** 집계다. 상태 정합을 재는 쪽이 다른
+    분모를 쓰면 정본과 갈라진다 — 실제로 그렇게 갈라져 있었다
+    (TASK-2026-09-02-main-002): session-start 는 handoff 의 열린 작업 전체를
+    *오늘자 daily backlog 하나* 와 비교했고, append-only 레이아웃에서 in_progress
+    task 는 **등록된 날짜의 파일**에 있으므로 날이 바뀌는 순간부터 영구 오탐이었다.
+
+    ``None`` 은 "corpus 가 없다" 이지 "비어 있다" 가 아니다. 둘을 같게 보면
+    append-only 로 아직 이관되지 않은 legacy 프로젝트에서 handoff 전체가
+    '분모에 없는 항목' 으로 뒤집혀 나온다 — 호출자가 legacy 경로로 갈라설 수
+    있도록 구분해서 돌려준다.
+    """
+    if backlog_dir is None:
+        return None
+    tasks_dir = backlog_dir / "tasks"
+    has_tasks = tasks_dir.is_dir()
+    has_daily = backlog_dir.is_dir() and any(backlog_dir.glob(_DAILY_BACKLOG_GLOB))
+    if not has_tasks and not has_daily:
+        return None
+    return _aggregate_from_appendonly_layout(
+        daily_backlog_dir=backlog_dir if has_daily else None,
+        tasks_dir=tasks_dir if has_tasks else None,
+        sessions_dir=None,
+    )
+
+
 def build_workflow_state_payload(
     *,
     project_profile_path: Path,

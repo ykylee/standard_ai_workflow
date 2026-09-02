@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-09-02",
+  "generated_at": "2026-09-03",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-02.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-03.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -36,6 +36,7 @@
     "blocked_items": [],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-09-02-main-002 — session-start 의 상태 불일치 경고가 handoff 를 하루치 backlog 와 비교해 영구 오탐이다",
       "TASK-2026-09-02-main-001 — v1.9.0 발행 — 필수 CI 게이트 + done 강등 보존",
       "TASK-2026-09-01-main-005 — 발행 게이트가 CI 워크플로 9개 중 1개만 보고 그마저 advisory — v1.8.0 이 smoke red 위에서 나갔다",
       "TASK-2026-09-01-main-004 — check_deploy_doctor 가 macOS 전용 경로를 박아 CI smoke 가 10 커밋 연속 red — v1.8.0 이 그 위에서 발행됐다",
@@ -44,25 +45,24 @@
       "TASK-2026-09-01-main-001 — workflow_kit.cli 가 휠에 실리지 않는다 — 손 목록이 빠뜨린 세 번째 하위 패키지",
       "TASK-2026-08-31-main-005 — v1.8.0 발행 — 지원 하네스 개편 + 탐침 침묵 제거 사이클",
       "TASK-2026-08-31-main-004 — codex marketplace source 가 휘발 경로를 가리켜도 탐침이 침묵한다 — 사본과 경유지는 따로 깨진다",
-      "TASK-2026-08-31-main-003 — backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다",
-      "TASK-2026-08-31-main-002 — wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다"
+      "TASK-2026-08-31-main-003 — backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-02.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-03.md",
     "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-09-02-main-001 — v1.9.0 발행 — 필수 CI 게이트 + done 강등 보존"
+      "TASK-2026-09-02-main-002 — session-start 의 상태 불일치 경고가 handoff 를 하루치 backlog 와 비교해 영구 오탐이다"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-09-02.md",
+    "ai-workflow/memory/active/main/backlog/2026-09-03.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

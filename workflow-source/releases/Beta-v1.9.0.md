@@ -28,7 +28,7 @@ CI 를 사실상 안 본다.
 
 - 범위: `v1.8.1..HEAD` (4 commit). 이 중 1건(`54ff793e`)은 **v1.8.1 발행 마무리**가
   태그 뒤에 착지한 것이라 실질 내용은 3 commit 이다.
-- 누적 smoke **279/279 PASS** (전량 2축 · case 합계 558, FAIL 0, 좁은 선언 0),
+- 누적 smoke **280/280 PASS** (전량 2축 · case 합계 560, FAIL 0, 좁은 선언 0),
   mypy strict 0 errors
 - 검사 신설 2종 (`check_release_ci_gate` 8 cases · `check_done_demotion_rule` 8 cases)
 - 지원 하네스 12 (변동 없음), MCP 표면 13 (변동 없음)

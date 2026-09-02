@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
@@ -27,7 +27,7 @@ from workflow_kit.common.paths import (
     workflow_branch_dir,
     workflow_state_path,
 )
-from workflow_kit.common.state.builder import find_latest_daily_backlog
+from workflow_kit.common.state.builder import collect_task_corpus_status, find_latest_daily_backlog
 from workflow_kit.common.project_docs import (
     find_latest_backlog_path,
     parse_backlog,
@@ -384,10 +384,37 @@ def main() -> int:
             backlog = parse_backlog(latest_backlog_path)
             warnings.extend(backlog.get("warnings", []))
 
-        warnings.extend(
-            compare_state_lists(handoff.get("in_progress_items", []), backlog.get("in_progress_items", []), "in_progress")
+        # 비교 분모는 **하루치 backlog 가 아니라 task corpus 전수** 다
+        # (TASK-2026-09-02-main-002). `parse_backlog` 는 *오늘자 daily 파일 하나* 를
+        # 읽는데, append-only 레이아웃에서 in_progress task 는 등록된 날짜의 파일에
+        # 있다 — 그래서 어제 시작해 오늘 이어받는 작업이 하나만 있어도 매 세션
+        # 시작마다 거짓 경고가 났다 (실측 2026-09-02: corpus in_progress 는 handoff
+        # 와 정확히 일치하는데 오늘자 backlog 는 비어 있어 불일치로 보고).
+        #
+        # corpus 가 없는 legacy 프로젝트에서만 종전대로 daily backlog 를 쓴다.
+        #
+        # 분모의 뿌리는 **방금 고른 backlog 문서 자신** 이다 (`.parent`). profile 에서
+        # 다시 유도하면 안 된다 — `--session-handoff-path` / `--work-backlog-index-path`
+        # 로 다른 워크스페이스를 가리키면서 profile 만 호스트 저장소를 쓰는 호출이
+        # 실재하고(seed / claim 스모크), 그때 profile 파생 경로는 **호스트 저장소의**
+        # task corpus 를 집어 남의 저장소 task 와 대조하게 된다.
+        corpus_dir = (
+            latest_backlog_path.parent
+            if latest_backlog_path is not None
+            else workflow_backlog_dir(project_profile_path)
         )
-        warnings.extend(compare_state_lists(handoff.get("blocked_items", []), backlog.get("blocked_items", []), "blocked"))
+        corpus = collect_task_corpus_status(corpus_dir)
+        if corpus is not None:
+            compare_in_progress = corpus["in_progress_items"]
+            compare_blocked = corpus["blocked_items"]
+        else:
+            compare_in_progress = cast(list[str], backlog.get("in_progress_items", []))
+            compare_blocked = cast(list[str], backlog.get("blocked_items", []))
+
+        warnings.extend(
+            compare_state_lists(handoff.get("in_progress_items", []), compare_in_progress, "in_progress")
+        )
+        warnings.extend(compare_state_lists(handoff.get("blocked_items", []), compare_blocked, "blocked"))
 
         next_documents = dedupe_normalized_backticked(
             [

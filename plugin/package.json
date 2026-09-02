@@ -1,6 +1,6 @@
 {
   "name": "@ykylee/standard-ai-workflow",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Standard AI workflow — session-start / backlog-update / doc-sync / session-end skills + read-only MCP tools, packaged for the pi.dev gallery.",
   "keywords": [
     "pi-package",

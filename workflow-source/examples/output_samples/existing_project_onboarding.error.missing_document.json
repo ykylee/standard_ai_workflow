@@ -1,6 +1,6 @@
 {
   "status": "error",
-  "tool_version": "1.9.0",
+  "tool_version": "1.9.1",
   "error": "path does not exist: /private/tmp/missing-profile.md",
   "error_code": "missing_required_document",
   "warnings": [],

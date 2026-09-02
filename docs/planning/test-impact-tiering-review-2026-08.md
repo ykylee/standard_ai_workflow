@@ -4,7 +4,7 @@
 - 범위: 현재 실행 계층의 실태, 선언 기반 선택(`WATCHES`)의 현재 보급률, 게이트 축소의 건전성 조건, 기각 이력 대비 차별점, 이득 상한 실측 계획, 소유자 선택지
 - 대상 독자: 소유자 (M-008 다음 단계 결정), maintainer, workflow 설계자
 - 상태: **종결 (2026-08-28)** — 소유자 결정 = **C안** (편집 루프 한정 `WATCHES` 보급 + 선언 메타 검증 설계, requirements 단계 진행). 게이트 축소 제외는 결정에 포함. 후속은 M-009 [requirements] 와 [`test-impact-tiering-requirements-2026-08.md`](./test-impact-tiering-requirements-2026-08.md)
-- 최종 수정일: 2026-09-01
+- 최종 수정일: 2026-09-02
 - 관련 문서: [`M-008`](../../ai-workflow/memory/active/roadmap/M-008-test-impact-tiering.md), [TASK-2026-08-14-main-004 기각 record](../../ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-004.md), [TASK-2026-08-14-main-003 `--changed` 구현](../../ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-003.md)
 
 ## 0. 한 줄 결론 (draft)

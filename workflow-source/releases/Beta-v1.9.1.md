@@ -119,3 +119,20 @@ wk doctor | head -12
 - task SSOT: `TASK-2026-09-02-main-002`
 - 비교 정본: `workflow_kit/common/reconcile.py`
 - 분모 정본: `workflow_kit/common/state/builder.py` (`collect_task_corpus_status`)
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-02T22:52:30Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -4,7 +4,7 @@
 - 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-01
+- 최종 수정일: 2026-09-02
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =

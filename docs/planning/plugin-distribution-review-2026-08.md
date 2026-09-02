@@ -4,7 +4,7 @@
 - 범위: Claude Code 플러그인 시스템 (v2.1.223+ 공식 문서 기준) ↔ 현행 배포 모델 매핑, 제약, 권고
 - 대상 독자: maintainer, 배포 정책 소유자
 - 상태: 검토 완료 — 권고안 제시 (구현은 후속 task)
-- 최종 수정일: 2026-09-01
+- 최종 수정일: 2026-09-02
 - 관련 문서: [`cli-distribution-review-2026-08.md`](./cli-distribution-review-2026-08.md), `workflow-source/core/workflow_harness_distribution.md`, ADR-003
 
 ## 1. 현행 배포 모델 (v1.1.8 기준)

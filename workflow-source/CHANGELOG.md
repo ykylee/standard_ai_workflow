@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-02
+- 최종 수정일: 2026-09-03
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-01
+## [Unreleased] - 2026-09-03
 
 ### Added
 
@@ -84,6 +84,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(session-start): 상태 불일치 경고의 분모를 task corpus 전수로 바꾼다 (main-002) (b3f3eff9)
 - fix(backlog-update): done 강등이 이미 기록된 완료를 취소하지 않는다 (main-003) (e6f033db)
 - fix(tests): 휘발 경로 리터럴이 Linux CI 를 10 커밋 red 로 만들었다 (main-004) (e7671d24)
 - fix(checks): 문서 스탬프 기대값을 리터럴에서 git 파생으로 (main-002) (09a9df21)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(entrypoint): 산문 목록 파생 + 사라지던 planned + 포크 병합 (main-013, -014, -015) (cd0ff943)
 - fix(doctor): 어느 사본이 설치본인지 선언을 읽는다 — 갱신이 보고를 나쁘게 만들던 자리 (main-010) (151627ee)
 - fix(harness): session-end 를 bootstrap 채널에도 — 두 채널의 스킬 집합이 갈라져 있었다 (main-008, -009) (43168b34)
-- fix(release): next_version 을 커밋에서 파생한다 — 개수는 세고 판정은 안 세던 자리 (main-006) (40e86dc2)
-- ... (139 more)
+- ... (140 more)
+
+## [1.9.1] - 2026-09-03
+
+### Changed
+
+- release(v1.9.1): 발행 준비 — 불일치 경고 오탐 제거 (ea40d1d3)
 
 ## [1.9.0] - 2026-09-02
 
 ### Changed
 
+- release(v1.9.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (573fa786)
 - release(v1.9.0): 발행 준비 — 필수 CI 게이트 + done 강등 보존 (ff7ed4bc)
 
 ## [1.8.1] - 2026-09-01

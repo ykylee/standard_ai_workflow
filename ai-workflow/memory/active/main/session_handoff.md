@@ -36,7 +36,6 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-09-03-main-001 v1.9.1 발행 — session-start 불일치 경고 오탐 제거
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 3. 차단 작업
 
@@ -45,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-03-main-001 v1.9.1 발행 — session-start 불일치 경고 오탐 제거
 - TASK-2026-09-02-main-002 session-start 의 상태 불일치 경고가 handoff 를 하루치 backlog 와 비교해 영구 오탐이다
 - TASK-2026-09-02-main-001 v1.9.0 발행 — 필수 CI 게이트 + done 강등 보존
 - TASK-2026-09-01-main-003 done 강등이 handoff 를 되돌리는데 최상위 status 는 ok — 강등이 이미 기록된 완료를 취소한다
@@ -54,7 +54,6 @@
 - TASK-2026-09-01-main-002 인덱스 검사의 EXPECTED_LAST_UPDATED 가 하드코딩 — 발행마다 손이 간다
 - TASK-2026-08-31-main-005 v1.8.0 발행 — 지원 하네스 개편 + 탐침 침묵 제거 사이클
 - TASK-2026-08-31-main-002 wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다
-- TASK-2026-08-31-main-003 backlog-update update 가 열거 필드를 교체해 이전 세션 기록을 지운다 — 손실에 경고가 없다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

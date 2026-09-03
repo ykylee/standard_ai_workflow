@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-03-main-002 v1.9.1 소비 채널 배포 — 이 호스트 플러그인 4종 동기화
 - TASK-2026-09-03-main-001 v1.9.1 발행 — session-start 불일치 경고 오탐 제거
 - TASK-2026-09-02-main-002 session-start 의 상태 불일치 경고가 handoff 를 하루치 backlog 와 비교해 영구 오탐이다
 - TASK-2026-09-02-main-001 v1.9.0 발행 — 필수 CI 게이트 + done 강등 보존
@@ -53,7 +54,6 @@
 - TASK-2026-09-01-main-001 workflow_kit.cli 가 휠에 실리지 않는다 — 손 목록이 빠뜨린 세 번째 하위 패키지
 - TASK-2026-09-01-main-002 인덱스 검사의 EXPECTED_LAST_UPDATED 가 하드코딩 — 발행마다 손이 간다
 - TASK-2026-08-31-main-005 v1.8.0 발행 — 지원 하네스 개편 + 탐침 침묵 제거 사이클
-- TASK-2026-08-31-main-002 wk doctor 가 자기 자신의 낡음을 말하지 않는다 — 탐침이 저장소와 갈라진 사본으로 돈다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

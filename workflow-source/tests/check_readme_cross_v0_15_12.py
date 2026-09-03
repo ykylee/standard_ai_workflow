@@ -9,8 +9,10 @@ file system 와 cross-check. v1.0.0 진입 평가의 README 정합 anchor.
      `[project] version` 과 정합 (drift prevention case_4 의 *재 verify* leg).
   2) **README harness list 정합**: README 본문에 10 harness 가 모두 언급
      + maturity_matrix `harnesses.supported` list 와 정합 (10개).
-  3) **README package version 정합**: README 본문 내 `package: standard-ai-workflow X.Y.Z`
-     가 pyproject version 정합.
+  3) **README 헤더 줄 버전 리터럴 정합**: 헤더 `- 버전:` 줄의 네 자리
+     (`- 버전: vX.Y.Z` / `package: standard-ai-workflow X.Y.Z` /
+     ``runtime `__version__` = X.Y.Z`` / `latest tag **vX.Y.Z**`) 가 모두
+     pyproject version 과 정합 (v1.9.2 — 이전에는 `package:` 하나만 봤다).
   4) **README stale text 검사**: "미푸시" / "push 권장" 등 명백한 stale
      placeholder text 부재 검증 (drift prevention smoke 미커버 영역).
 """
@@ -23,6 +25,10 @@ WATCHES = (
     "README.md",
     "workflow-source/core/*",
     "workflow-source/pyproject.toml",
+    # v1.9.2: 헤더 줄 리터럴 패턴의 정본이 kit 안에 있다 (TASK-2026-09-03-main-004).
+    # `workflow_kit.common` 하나를 import 해도 패키지 `__init__` 이 딸려 오므로
+    # 선언도 그 폭이어야 한다 — 게이트 채취 실측에서 41건이 선언 밖으로 잡혔다.
+    "workflow-source/workflow_kit/*",
 )
 
 import re
@@ -31,6 +37,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
+
+if str(SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SOURCE_ROOT))
+
+from workflow_kit.common import readme_version  # noqa: E402
+
 PYPROJECT_PATH = SOURCE_ROOT / "pyproject.toml"
 MATURITY_PATH = SOURCE_ROOT / "core" / "maturity_matrix.json"
 README_PATH = REPO_ROOT / "README.md"
@@ -38,10 +50,6 @@ README_PATH = REPO_ROOT / "README.md"
 PYPROJECT_VERSION_RE = re.compile(r'version\s*=\s*"([\d.]+)"')
 # v1.2.1: stable 정리로 `-beta` 접미사 제거. 구 포맷도 받아 준다.
 README_HEADER_VERSION_RE = re.compile(r"- 버전:\s*v([\d.]+)(?:-beta)?")
-README_PACKAGE_VERSION_RE = re.compile(
-    r"package:\s*standard-ai-workflow\s*([\d.]+)"
-)
-
 # 10 harness 정합 (case_2) — README 본문에 등장해야 함
 EXPECTED_HARNESSES = {
     "codex", "opencode", "antigravity", "minimax-code",
@@ -115,20 +123,26 @@ def case_2_readme_harness_list() -> bool:
     return True
 
 
-def case_3_readme_package_version() -> bool:
-    """3) README package version 정합: package: standard-ai-workflow X.Y.Z == pyproject version."""
+def case_3_readme_header_line_versions() -> bool:
+    """3) 헤더 `- 버전:` 줄의 버전 리터럴 4개 == pyproject version.
+
+    v1.9.2 이전에는 `package: standard-ai-workflow X.Y.Z` 하나만 봤다.
+    같은 줄의 ``runtime `__version__` `` 과 `latest tag **v…**` 는 **어떤
+    검사도 보지 않았고**, 자동 수리도 닿지 않아 네 사이클 연속 손으로 고쳤다
+    (TASK-2026-09-03-main-004). 판정 패턴은 수리와 같은 정본
+    (`workflow_kit.common.readme_version`) 에서 온다.
+    """
     py_ver = _read_pyproject_version()
     content = _read_readme()
-    matches = README_PACKAGE_VERSION_RE.findall(content)
-    if not matches:
-        print(f"  FAIL: README.md 의 'package: standard-ai-workflow X.Y.Z' 패턴 부재")
+    if readme_version.header_line(content) is None:
+        print("  FAIL: README.md 헤더 '- 버전: vX.Y.Z' 줄 부재")
         return False
-    # 여러 번 등장 가능 (예: changelog table) — 모두 정합해야 함
-    mismatches = [v for v in matches if v != py_ver]
-    if mismatches:
-        print(f"  FAIL: README package version 정합 위반: pyproject={py_ver}, README 매치={matches}, mismatches={mismatches}")
+    bad = readme_version.mismatches(content, py_ver)
+    if bad:
+        print(f"  FAIL: 헤더 줄 버전 리터럴 정합 위반 (pyproject={py_ver}): "
+              + ", ".join(f"{label}={found!r}" for label, found in bad))
         return False
-    print(f"  [info] README package version {len(matches)}개 등장 모두 {py_ver} 정합")
+    print(f"  [info] 헤더 줄 버전 리터럴 {len(readme_version.LITERALS)}개 모두 {py_ver} 정합")
     return True
 
 
@@ -158,7 +172,7 @@ def main() -> int:
     cases = [
         ("case_1_readme_header_version", case_1_readme_header_version),
         ("case_2_readme_harness_list", case_2_readme_harness_list),
-        ("case_3_readme_package_version", case_3_readme_package_version),
+        ("case_3_readme_header_line_versions", case_3_readme_header_line_versions),
         ("case_4_readme_stale_text", case_4_readme_stale_text),
     ]
     results: list[tuple[str, bool]] = []
@@ -182,8 +196,8 @@ def test_case_2_readme_harness_list() -> None:
     assert case_2_readme_harness_list(), "case_2_readme_harness_list FAIL"
 
 
-def test_case_3_readme_package_version() -> None:
-    assert case_3_readme_package_version(), "case_3_readme_package_version FAIL"
+def test_case_3_readme_header_line_versions() -> None:
+    assert case_3_readme_header_line_versions(), "case_3_readme_header_line_versions FAIL"
 
 
 def test_case_4_readme_stale_text() -> None:

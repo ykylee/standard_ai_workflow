@@ -62,12 +62,18 @@ try:
     from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
     from workflow_kit.common.dashboard_data import DRIFT_LEDGER_RELPATH  # v1.0.1+ north-star 원장
     from workflow_kit.common.paths import state_path_for_workspace
+    from workflow_kit.common.readme_version import (  # v1.9.2+ 헤더 줄 리터럴 정본
+        header_line as readme_header_line,
+        sync as sync_readme_versions,
+    )
     from workflow_kit.common.state.cache import refresh_maturity_last_updated  # v0.14.6+ Task 3 follow-up
 except ImportError:
     # standalone script (no workflow_kit on sys.path) — fall back to direct write.
     atomic_write_json = None  # type: ignore[assignment]
     atomic_write_text = None  # type: ignore[assignment]
     refresh_maturity_last_updated = None  # type: ignore[assignment]
+    readme_header_line = None  # type: ignore[assignment]
+    sync_readme_versions = None  # type: ignore[assignment]
     # 원장 경로는 dashboard 와 **같은 문자열이어야** 한다 (writer ↔ reader 정합).
     DRIFT_LEDGER_RELPATH = "ai-workflow/memory/release/drift_ledger.jsonl"
     state_path_for_workspace = None  # type: ignore[assignment]
@@ -1942,21 +1948,38 @@ def _fix_loud_fallback() -> dict:
 
 
 def _fix_readme_header_version() -> dict:
-    """README.md 의 '- 버전: vX.Y.Z' 헤더 라인을 pyproject 와 정합."""
+    """README.md 헤더 '- 버전:' 줄의 버전 리터럴 **4개 전부**를 pyproject 와 정합.
+
+    v1.9.2 이전에는 줄 맨 앞의 `- 버전: vX.Y.Z` 하나만 고쳤다. 같은 줄 끝의
+    `package: standard-ai-workflow X.Y.Z` / ``runtime `__version__` = X.Y.Z`` /
+    `latest tag **vX.Y.Z**` 는 자동 수리의 사각이라 **71·72·73·74차 네 사이클
+    연속 손으로** 고쳤다 (TASK-2026-09-03-main-004). 패턴 정본은
+    `workflow_kit.common.readme_version` 이고 판정(check_drift_prevention /
+    check_readme_cross)도 같은 것을 읽는다.
+    """
     if atomic_write_text is None:
         return {"ok": False, "error": "atomic_write_text unavailable"}
+    if sync_readme_versions is None or readme_header_line is None:
+        return {"ok": False, "error": "readme_version helper unavailable"}
     py_v = _read_pyproject_version_str()
     src = README_PATH.read_text(encoding="utf-8")
-    # v1.2.1: 새 포맷은 접미사 없음. 구 포맷(-beta) 도 받아 마이그레이션한다.
-    new_src, n = re.subn(r"- 버전: v[\d.]+(?:-beta)?", f"- 버전: v{py_v}", src, count=1)
-    if n == 0:
+    if readme_header_line(src) is None:
         return {"ok": False, "error": "README header version line not found"}
-    atomic_write_text(README_PATH, new_src)
+    new_src, changed = sync_readme_versions(src, py_v)
+    # 이미 정합이면 changed 가 비고 파일도 그대로다 — 그것도 성공이다.
+    if changed:
+        atomic_write_text(README_PATH, new_src)
     try:
         rel = str(README_PATH.relative_to(REPO_ROOT))
     except ValueError:
         rel = str(README_PATH.relative_to(REPO_ROOT.parent))
-    return {"ok": True, "old": "readme_header", "new": py_v, "file": rel}
+    return {
+        "ok": True,
+        "old": "readme_header",
+        "new": py_v,
+        "file": rel,
+        "literals": [label for label, _ in changed],
+    }
 
 
 def _fix_maturity_matrix_drift() -> dict:

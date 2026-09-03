@@ -45,6 +45,12 @@ from pathlib import Path
 from typing import Iterable
 
 REPO = Path(__file__).resolve().parents[2]
+
+# 헤더 줄 리터럴 패턴의 정본을 kit 에서 읽는다 (v1.9.2) — 수리와 판정이 같은 것을 본다.
+if str(REPO / "workflow-source") not in sys.path:
+    sys.path.insert(0, str(REPO / "workflow-source"))
+from workflow_kit.common import readme_version  # noqa: E402
+
 PYPROJECT = REPO / "workflow-source" / "pyproject.toml"
 INIT_PY = REPO / "workflow-source" / "workflow_kit" / "__init__.py"
 MATURITY = REPO / "workflow-source" / "core" / "maturity_matrix.json"
@@ -112,11 +118,14 @@ def _read_maturity() -> dict:
     return json.loads(MATURITY.read_text(encoding="utf-8"))
 
 
-def _read_readme_header_version() -> str | None:
-    src = README.read_text(encoding="utf-8")
-    # v1.2.1: stable 정리로 `-beta` 접미사가 사라졌다. 구 포맷도 받아 준다.
-    m = re.search(r"- 버전: v([\d.]+)(?:-beta)?", src)
-    return m.group(1) if m else None
+def _readme_version_mismatches(expected: str) -> list[tuple[str, str | None]]:
+    """헤더 `- 버전:` 줄의 버전 리터럴 4개 중 `expected` 와 다른 것.
+
+    패턴 정본은 `workflow_kit.common.readme_version` — 자동 수리
+    (`_fix_readme_header_version`)와 **같은 것을 읽는다**. 여기서 패턴을
+    복제하면 수리와 판정이 갈라진다 (v1.9.2, TASK-2026-09-03-main-004).
+    """
+    return readme_version.mismatches(README.read_text(encoding="utf-8"), expected)
 
 
 def _head_commit_date() -> str:
@@ -211,13 +220,21 @@ def test_case_3_skill_stage_matches_promotion_set() -> None:
 # ---------------------------------------------------------------------------
 
 def test_case_4_readme_header_version_sync() -> None:
-    """README.md 헤더의 '버전: vX.Y.Z' == pyproject.toml version."""
+    """README.md 헤더 줄의 버전 리터럴 **4개 전부** == pyproject.toml version.
+
+    v1.9.2 이전에는 맨 앞 하나(`- 버전: vX.Y.Z`)만 봤다. 같은 줄 끝의 셋은
+    자동 수리도 판정도 없어 네 사이클 연속 손으로 고쳤고, 그중 `runtime` 과
+    `latest tag` 는 **어떤 검사도 보지 않았다** (TASK-2026-09-03-main-004).
+    이 case 가 red 면 self-recover 가 네 개를 한꺼번에 고친다.
+    """
     py_v = _read_pyproject_version()
-    readme_v = _read_readme_header_version()
-    assert readme_v is not None, "README.md header missing version line ('버전: vX.Y.Z')"
-    assert readme_v == py_v, (
-        f"README.md v{readme_v} != pyproject {py_v}. "
-        f"fix: README.md 의 '버전: v{py_v}' 로 갱신."
+    line = readme_version.header_line(README.read_text(encoding="utf-8"))
+    assert line is not None, "README.md header missing version line ('- 버전: vX.Y.Z')"
+    bad = _readme_version_mismatches(py_v)
+    assert not bad, (
+        f"README.md 헤더 줄의 버전 리터럴이 pyproject {py_v} 와 다르다: "
+        + ", ".join(f"{label}={found!r}" for label, found in bad)
+        + ". fix: wk release self-recover, 또는 헤더 줄의 네 자리를 함께 갱신."
     )
 
 

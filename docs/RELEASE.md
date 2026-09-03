@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.9.1 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.9.1 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-09-02
+- 최종 수정일: 2026-09-04
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -161,6 +161,18 @@ wk release-pipeline release \
 > 이 게이트가 생긴 이유: 이전에는 `mypy-strict` 하나만 advisory 로 봤고, 그래서
 > `smoke` 가 10 커밋 연속 red 인 채 **v1.8.0 이 발행됐다** (발행 커밋 `6c495e61` 는
 > smoke=failure). 넘겨야 하면 `--skip-ci-verify` 를 **명시**한다 — 결과에 남는다.
+
+> **릴리스 노트의 `누적 smoke N/N PASS` 는 그 시점의 주장이다 (v1.9.2,
+> TASK-2026-09-03-main-003)**: `check_smoke_trend_cross` case 2 는 **발행된**
+> 노트의 수치를 *그 태그 시점의* `check_*.py` 갯수와 대조한다. 그러므로 사이클
+> 중에 검사가 늘어도 **과거 노트를 고치지 않는다** — 예전 규칙(`>= 현재 파일 수`)
+> 아래에서는 red 를 끄려고 발행된 노트를 올렸다가 다음 발행 준비에서 되돌리는
+> 왕복이 71~74차 **네 사이클 연속** 반복됐다. 현재 갯수와 맞춰야 하는 것은 아직
+> 태그가 없는 **이번 노트 하나**뿐이고, 그 판정은 발행 게이트의
+> `verify_release_note_smoke_count` 와 같은 규칙이다.
+>
+> 그 줄은 여전히 **사람의 주장**이다 — 도구가 대신 채우지 않는다. 전량을 돌린
+> 뒤 적고, CI 게이트가 그 주장을 워크플로 결과와 대조한다.
 
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 

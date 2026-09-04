@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-03
+- 최종 수정일: 2026-09-04
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -50,6 +50,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(memory): 74차 세션 종료 — 잦던 불일치 보고를 도구 결함으로 확정·수리·발행·적용 (2e57ad45)
 - chore(memory): 72차 세션 종료 — 손 목록·리터럴·주장을 파생으로 전환 5건 + v1.8.1 발행 (0453dabf)
 - chore(memory): 전역 wk 1.8.0 재설치 + 새 탐침이 패키징 결함 적발 (main-001 등록) (bfd25c15)
 - chore(memory): 71차 — v1.8.0 발행 준비 완료 + 등급 전수 재평가 (main-005 in_progress) (6c495e61)
@@ -79,11 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 53차 세션 종료 — 탐침 7절 + installPath 선언 + 라벨 영어 전환 (201f5a8e)
 - chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 실측 + 채널 파리티 (75e9275a)
 - chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 3개 실측 (main-004~007) (17847a0d)
-- refactor(wiki): L2 계약을 memory 파생 4종으로 좁힌다 (main-001) (51b14113)
-- ... (355 more)
+- ... (356 more)
 
 ### Fixed
 
+- fix(release): 발행마다 손이 가던 두 자리를 파생과 판정으로 닫는다 (main-003·004) (bb55ccd5)
 - fix(session-start): 상태 불일치 경고의 분모를 task corpus 전수로 바꾼다 (main-002) (b3f3eff9)
 - fix(backlog-update): done 강등이 이미 기록된 완료를 취소하지 않는다 (main-003) (e6f033db)
 - fix(tests): 휘발 경로 리터럴이 Linux CI 를 10 커밋 red 로 만들었다 (main-004) (e7671d24)
@@ -113,13 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(ci): okf-validate 가 okf_version 을 정본에서 파생한다 (main-016) (72ecff6c)
 - fix(entrypoint): 산문 목록 파생 + 사라지던 planned + 포크 병합 (main-013, -014, -015) (cd0ff943)
 - fix(doctor): 어느 사본이 설치본인지 선언을 읽는다 — 갱신이 보고를 나쁘게 만들던 자리 (main-010) (151627ee)
-- fix(harness): session-end 를 bootstrap 채널에도 — 두 채널의 스킬 집합이 갈라져 있었다 (main-008, -009) (43168b34)
-- ... (140 more)
+- ... (141 more)
+
+## [1.9.2] - 2026-09-04
+
+### Changed
+
+- release(v1.9.2): 발행 준비 — 발행 절차의 손질 두 자리 제거 (c5634267)
 
 ## [1.9.1] - 2026-09-03
 
 ### Changed
 
+- chore(memory): v1.9.1 소비 채널 배포 기록 (96f5f386)
+- release(v1.9.1): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (10f41465)
 - release(v1.9.1): 발행 준비 — 불일치 경고 오탐 제거 (ea40d1d3)
 
 ## [1.9.0] - 2026-09-02

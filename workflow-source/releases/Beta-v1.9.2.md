@@ -144,3 +144,20 @@ wk doctor | head -12
 - 리터럴 정본: `workflow_kit/common/readme_version.py`
 - 누적 수치 판정: `workflow-source/tests/check_smoke_trend_cross_v0_15_5.py` (case 2 · 6)
 - 절차 문서: `docs/RELEASE.md` §2.3
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-04T05:46:22Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

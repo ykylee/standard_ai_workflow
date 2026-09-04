@@ -4,7 +4,7 @@
 - 범위: 문서 계층과 배치, roadmap SSOT 형식, SDLC 단계 어휘, task 연결 계약, 게이트 계약, 생성물(roadmap_state.json), skill/CLI 배선, 검사 계약, 단계별 구현 계획
 - 대상 독자: workflow 설계자, 구현자, AI agent (session-start / backlog-update), 프로젝트 온보딩 담당자
 - 상태: draft (ADR-027 accepted, 구현 전 — §10 의 M-002 부터가 구현이다)
-- 최종 수정일: 2026-09-02
+- 최종 수정일: 2026-09-04
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-027-roadmap-wbs-sdlc.md`, `./llm_wiki_concept_purpose_spec.md`, `./workflow_adoption_entrypoints.md`, `./existing_project_onboarding_contract.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-027 에 있다** (2026-08-25 소유자 결정 3건: 문서 형태 =

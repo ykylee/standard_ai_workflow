@@ -4,7 +4,7 @@
 - 범위: 소스 코드 구조, 기술 스택, 핵심 모듈 설명
 - 대상 독자: 개발자, AI 에이전트
 - 상태: stable
-- 최종 수정일: 2026-09-02
+- 최종 수정일: 2026-09-04
 - 관련 문서: [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 이 문서는 `Standard AI Workflow` 저장소의 코드 구조와 핵심 컴포넌트를 안내합니다 (**v1.0.0-beta** 기준). Phase 위치: **Phase 1–11 done, Phase 12 in_progress** (운영 지능화 + deprecation 안정화, v1.0.0 진입 평가 준비). 정식 status SSOT: [`workflow-source/core/maturity_matrix.json`](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/maturity_matrix.json).
@@ -34,7 +34,7 @@
 │   ├── global-snippets/            # 하네스 전역 비침투적 snippet 예시
 │   ├── releases/                   # Beta v0.5.0 ~ v0.15.18 누적 릴리스 노트
 │   ├── MEMORY_GOVERNANCE.md        # AI 메모리 문서 표준
-│   └── pyproject.toml              # 패키지 매니페스트 (version 1.9.1)
+│   └── pyproject.toml              # 패키지 매니페스트 (version 1.9.2)
 │
 ├── .claude-plugin/marketplace.json # 이 저장소가 곧 marketplace — **생성물**
 ├── plugin/                         # 공유 payload + 하네스 어댑터 — **생성물** (손 편집 금지)

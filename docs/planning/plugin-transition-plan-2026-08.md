@@ -4,7 +4,7 @@
 - 범위: TASK-011 (Claude Code 플러그인 검토) + TASK-012 (멀티 하네스 공유 검토) 의 권고를 실행 계획으로 통합. 구현은 본 계획의 WBS task 들 (TASK-014~018) 로 수행한다.
 - 대상 독자: maintainer, 배포 정책 소유자, 구현 담당 AI agent
 - 상태: **완료 — P1~P5 전부 종료, 전환 완료 판정 (§6-보론)** (TASK-014~018, 2026-08-12~13)
-- 최종 수정일: 2026-09-02
+- 최종 수정일: 2026-09-04
 - 관련 문서: [plugin-distribution-review-2026-08.md](./plugin-distribution-review-2026-08.md), [multi-harness-plugin-review-2026-08.md](./multi-harness-plugin-review-2026-08.md), [cli-distribution-review-2026-08.md](./cli-distribution-review-2026-08.md), [workflow_kit_roadmap.md](../../workflow-source/core/workflow_kit_roadmap.md)
 
 ## 1. 전환 목표와 원칙

@@ -36,6 +36,6 @@
     "smart_context_reader",
     "apply_robust_patch"
   ],
-  "tool_version": "1.9.1",
+  "tool_version": "1.9.2",
   "transport_phase": "jsonrpc_draft"
 }

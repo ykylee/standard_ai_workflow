@@ -161,3 +161,20 @@ deliverable 은 결함 수리 제목이라 어휘가 겹칠 이유가 없다 —
 - task: `TASK-2026-09-07-main-009` · `main-010` · `TASK-2026-08-25-main-017`(진행 중)
 - 정본 문서: `docs/RELEASE.md` §1.5 (등급 판단) ·
   `workflow_kit/common/purpose_graph.py` (지표 해석)
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-07T06:05:39Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

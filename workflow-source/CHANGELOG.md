@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- test(mcp): emit 산출물 전수를 win32 로 강제해 훑는 판정 — 수리를 지킬 자리가 비어 있었다 (3ae7bd04)
+- docs(sessions): 77차 세션 기록 — 오탐인 줄 알았던 지표가 결함이었다 (7c298998)
 - chore(memory): 76차 세션 종료 — 예제 산출물 드리프트에서 생성기 결함 2건을 파내 닫고 사본 1건·문서 오기 1건 정리 (fb9a6184)
 - docs(installation): §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽히던 것을 고친다 (14422cc2)
 - chore(memory): 75차 세션 종료 — 손질 두 자리를 파생·판정으로 닫고 v1.9.2 발행·재적용 (0083eaaa)
@@ -78,12 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 58차 세션 종료 — OKF 매니페스트 잔재 수리 + mypy flake 관찰 5차 (ef5418fe)
 - chore(memory): 57차 세션 종료 — v1.4.0 발행 + 혼합 표기 축 완결 + mypy flake 원인 규명 (b35fe6cf)
 - chore(harness): 자기 적용 산출물을 v1.4.0 으로 재적용 — 낡은 마커 5 → 0 (69e35a8b)
-- refactor(memory)!: 레거시 task 라벨 마이그레이션 — 도구로, 파싱 동일성을 잠금장치로 (main-004) (64a5370f)
-- docs(decision): 혼합 표기 결정 재료 — 실측이 질문을 다시 세웠다 (main-002, -003) (dd682224)
-- ... (359 more)
+- ... (361 more)
 
 ### Fixed
 
+- fix(graph-insights): 완료한 일이 늘수록 내려가던 점수 — 오탐인 줄 알았던 자리가 지표 결함이었다 (878f0ae7)
 - fix(paths): 설치본에서 증발하는 모듈 앵커 — 소비자 배포처 모순의 뿌리를 닫는다 (30d2804b)
 - fix(backlog): task ID 채번이 원격을 함께 본다 — 코드가 적고 있던 거짓 보증을 지운다 (67fd0776)
 - fix(state): 예제 산출물 드리프트에서 생성기 결함 2건을 파내 정본과 판정으로 닫는다 (f21838f4)
@@ -113,13 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(gate): mypy 게이트에 --show-traceback — 4차까지 증거가 없던 이유 (main-004 관찰 4차) (579e2f17)
 - fix(bootstrap): daily backlog 를 정본 작성기로 조립한다 — 사본을 없앴다 (main-003) (6a2c94ad)
 - fix(tests): watch_transient flake — 이벤트 1건은 완결본을 뜻하지 않는다 (main-001) (900c9455)
-- fix(ci): consumer-metrics-digest 가 실재하는 경로를 부른다 (main-017) (8b2c6ebb)
-- ... (144 more)
+- ... (145 more)
+
+## [1.9.4] - 2026-09-07
+
+### Changed
+
+- release(v1.9.4): 발행 준비 — 매 세션 보고되던 지표가 사실 고장 나 있었다 (51ab7cb2)
 
 ## [1.9.3] - 2026-09-07
 
 ### Changed
 
+- chore(memory): v1.9.3 발행 + 이 호스트 소비자 채널 재적용 기록 (main-008) (9733d55e)
+- release(v1.9.3): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (74995741)
 - release(v1.9.3): 발행 준비 — 소비자 배포처 모순의 뿌리를 닫는다 (6b3c070e)
 
 ## [1.9.2] - 2026-09-04

@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-07T03:52:11Z`
-- tool_version: `1.9.3`
+- generated_at: `2026-09-07T06:05:39Z`
+- tool_version: `1.9.4`
 - workspace_root: `/Users/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -9,12 +9,12 @@
 - guard_status: `pass`
 - guard_cases: `7 / 7`
 - maturity_last_updated: `2026-09-07`
-- maturity_surface_changed_at: `2026-09-04`
+- maturity_surface_changed_at: `2026-09-07`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
 - head_commit_date: `2026-09-07`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 17건)
+- silent_failing_cycles_count: `0` (측정 cycle 18건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `282`
-- cumulative_pass: `282`
+- cumulative_total: `284`
+- cumulative_pass: `284`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `282`
+- smoke_files_count: `284`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.9.4 | 284 | 284 |
 | Beta-v1.9.3 | 282 | 282 |
 | Beta-v1.9.2 | 280 | 280 |
 | Beta-v1.9.1 | 280 | 280 |
 | Beta-v1.9.0 | 279 | 279 |
-| Beta-v1.8.1 | 277 | 277 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-07-main-007 — 설치본에서 모듈 앵커가 증발해 브랜치 해석이 갈라진다 — 소비자 배포처의 모순 뿌리  `[fresh]`
-- [1] TASK-2026-09-07-main-006 — task ID 채번이 로컬만 봐 같은 브랜치의 다른 호스트와 겹친다 — 코드가 거짓 보증을 적고 있다  `[fresh]`
-- [2] TASK-2026-09-07-main-005 — INSTALLATION §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽힌다  `[fresh]`
-- [3] TASK-2026-09-07-main-004 — 발행 게이트가 태그된 노트를 현재 갯수와 재 왕복 편집을 되살린다 — 75차 수리의 사본 잔존  `[fresh]`
-- [4] TASK-2026-09-07-main-003 — 체크인된 예제 state.json 을 생성기 출력과 대조하는 검사가 없다  `[fresh]`
-- [5] TASK-2026-09-07-main-002 — 거짓말하는 cast 가 문자열을 목록으로 속여 environment_constraints 를 한 글자씩 쪼갠다  `[fresh]`
-- [6] TASK-2026-09-07-main-001 — handoff 경로에 legacy fallback 이 없다 — 평평한 workspace 의 기준선이 조용히 사라진다  `[fresh]`
-- [7] TASK-2026-09-04-main-002 — v1.9.2 소비 채널 재적용 — 이 호스트 전 채널 동기화  `[fresh]`
-- [8] TASK-2026-09-04-main-001 — v1.9.2 발행 — 발행 절차의 손질 두 자리 제거  `[fresh]`
-- [9] TASK-2026-09-03-main-004 — README 버전 줄 꼬리 3개 리터럴이 자동 수리의 사각 — 발행마다 손이 간다  `[fresh]`
+- [0] TASK-2026-09-07-main-010 — graph_insights health 가 완료한 일이 늘수록 내려간다 — 100% 발화하는 scope creep 경고와 항등식을 재는 fixture  `[fresh]`
+- [1] TASK-2026-09-07-main-008 — v1.9.3 발행 + 이 호스트 소비자 채널 재적용  `[fresh]`
+- [2] TASK-2026-09-07-main-007 — 설치본에서 모듈 앵커가 증발해 브랜치 해석이 갈라진다 — 소비자 배포처의 모순 뿌리  `[fresh]`
+- [3] TASK-2026-09-07-main-006 — task ID 채번이 로컬만 봐 같은 브랜치의 다른 호스트와 겹친다 — 코드가 거짓 보증을 적고 있다  `[fresh]`
+- [4] TASK-2026-09-07-main-005 — INSTALLATION §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽힌다  `[fresh]`
+- [5] TASK-2026-09-07-main-004 — 발행 게이트가 태그된 노트를 현재 갯수와 재 왕복 편집을 되살린다 — 75차 수리의 사본 잔존  `[fresh]`
+- [6] TASK-2026-09-07-main-003 — 체크인된 예제 state.json 을 생성기 출력과 대조하는 검사가 없다  `[fresh]`
+- [7] TASK-2026-09-07-main-002 — 거짓말하는 cast 가 문자열을 목록으로 속여 environment_constraints 를 한 글자씩 쪼갠다  `[fresh]`
+- [8] TASK-2026-09-07-main-001 — handoff 경로에 legacy fallback 이 없다 — 평평한 workspace 의 기준선이 조용히 사라진다  `[fresh]`
+- [9] TASK-2026-09-04-main-002 — v1.9.2 소비 채널 재적용 — 이 호스트 전 채널 동기화  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `15`
-- telemetry_events_total: `1845`
-- telemetry_total_queries: `1845`
-- telemetry_hit_count: `163`
-- telemetry_hit_rate: `0.0883`
+- telemetry_events_total: `1911`
+- telemetry_total_queries: `1911`
+- telemetry_hit_count: `167`
+- telemetry_hit_rate: `0.0874`
 
 ### Entries by merge_state
 
@@ -152,7 +152,7 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 248 |
+| `backlog-update` | 253 |
 | `doc-sync` | 3 |
-| `session-start` | 1594 |
+| `session-start` | 1655 |
 

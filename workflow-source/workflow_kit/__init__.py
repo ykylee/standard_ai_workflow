@@ -147,7 +147,7 @@ def _read_pyproject_version() -> str:
         pass
 
     # 3. Loud fallback (spec section 4.3)
-    return "1.9.2"
+    return "1.9.3"
 
 
 __version__: str = _read_pyproject_version()

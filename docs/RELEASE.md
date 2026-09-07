@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.9.2 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.9.2 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-09-04
+- 최종 수정일: 2026-09-07
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -170,6 +170,13 @@ wk release-pipeline release \
 > 왕복이 71~74차 **네 사이클 연속** 반복됐다. 현재 갯수와 맞춰야 하는 것은 아직
 > 태그가 없는 **이번 노트 하나**뿐이고, 그 판정은 발행 게이트의
 > `verify_release_note_smoke_count` 와 같은 규칙이다.
+>
+> **규칙의 정본은 `release_pipeline.expected_smoke_count_for_note` 하나다
+> (v1.9.3, TASK-2026-09-07-main-004)**: v1.9.2 는 case 2 만 고쳤고 발행
+> 게이트에는 옛 규칙(항상 현재 갯수)이 **사본으로 남아 있었다**. 그래서 검사
+> 파일이 하나 늘자 case 2 는 PASS 인데 게이트만 red 가 났고, green 으로 만드는
+> 유일한 길이 다시 **발행된 노트를 고치는 것**이었다 — 없앤 줄 알았던 왕복이
+> 다른 문으로 돌아온 셈이다. 이제 게이트와 두 검사가 같은 함수를 읽는다.
 >
 > 그 줄은 여전히 **사람의 주장**이다 — 도구가 대신 채우지 않는다. 전량을 돌린
 > 뒤 적고, CI 게이트가 그 주장을 워크플로 결과와 대조한다.

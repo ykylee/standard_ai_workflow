@@ -38,10 +38,12 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
+    HANDOFF_FILENAME,
     discover_project_profile_path,
     memory_active_dir,
+    path_in_active,
     project_workspace_root,
-    workflow_branch_dir,
+    workflow_handoff_path,
 )
 from workflow_kit.common.state.memory_index import (  # noqa: E402
     SUGGESTION_COVERAGE_THRESHOLD,
@@ -58,8 +60,9 @@ def _resolve_defaults() -> tuple[Path, Path, str]:
     대상으로 오인' 결함족 (TASK-2026-08-25-main-023, main-022 의 local_mypy 와
     같은 축). 다른 무인자 명령(session-start / refresh-state)과 같은
     `discover_project_profile_path()` 로 cwd 에서 workspace 를 찾고, handoff 는
-    브랜치 인식 경로(`workflow_branch_dir`)로 조립한다 — 이전의 `"main"`
-    하드코딩도 브랜치 컨텍스트에서 틀린 값이었다.
+    정본 helper(`workflow_handoff_path`)로 얻는다 — 이전의 `"main"`
+    하드코딩도 브랜치 컨텍스트에서 틀린 값이었고, 그 뒤의 인라인 조립에는
+    미마이그레이션 저장소용 legacy fallback 이 없었다 (main-001).
 
     cwd 에서 못 찾으면 모듈 위치로 폴백하되, 무엇을 근거로 골랐는지
     세 번째 값(`path_source`)으로 돌려준다 — 폴백은 조용히 하지 않는다.
@@ -71,9 +74,9 @@ def _resolve_defaults() -> tuple[Path, Path, str]:
     profile = discover_project_profile_path()
     if profile is not None:
         workspace = project_workspace_root(profile)
-        handoff = workflow_branch_dir(profile) / "session_handoff.md"
+        handoff = workflow_handoff_path(profile)
         return workspace, handoff, "cwd_project_profile"
-    fallback_handoff = memory_active_dir(REPO_ROOT) / "main" / "session_handoff.md"
+    fallback_handoff = path_in_active(memory_active_dir(REPO_ROOT), HANDOFF_FILENAME, "main")
     return REPO_ROOT, fallback_handoff, "module_location_fallback"
 
 

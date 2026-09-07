@@ -2250,23 +2250,95 @@ def _count_smoke_files() -> int:
     return sum(1 for _ in tests_dir.glob("check_*.py"))
 
 
+def release_tag_for_version(version: str, *, timeout: int = 15) -> str | None:
+    """그 버전으로 **실재하는** 태그 이름. 아직 발행 전이면 ``None``.
+
+    구 포맷(`v0.9.0-beta`)도 함께 찾는다 — v1.2.1 부터 접미사가 없다.
+    """
+    bare = version[len("Beta-"):] if version.startswith("Beta-") else version
+    bare = bare[1:] if bare.startswith("v") else bare
+    for candidate in (f"v{bare}", f"v{bare}-beta"):
+        try:
+            proc = subprocess.run(
+                ["git", "rev-parse", "--verify", "--quiet", f"refs/tags/{candidate}"],
+                capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return None
+        if proc.returncode == 0:
+            return candidate
+    return None
+
+
+def smoke_files_at_tag(tag: str, *, timeout: int = 15) -> int | None:
+    """그 태그 시점의 `workflow-source/tests/check_*.py` 갯수. 못 재면 ``None``."""
+    try:
+        proc = subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", tag, "--", "workflow-source/tests"],
+            capture_output=True, text=True, timeout=timeout, cwd=str(_git_toplevel()),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    return sum(
+        1 for line in proc.stdout.splitlines()
+        if line.endswith(".py") and Path(line).name.startswith("check_")
+    )
+
+
+def expected_smoke_count_for_note(version: str) -> tuple[int | None, str]:
+    """그 노트가 **자기 시점** 기준으로 주장해야 할 갯수와 그 근거.
+
+    ## 왜 '현재 갯수' 가 아닌가 (TASK-2026-09-07-main-004)
+
+    릴리스 노트의 누적 수치는 *그 릴리스가 나가던 순간의 주장* 이다. 발행된
+    뒤에도 현재와 맞추라고 요구하면 역사 기록이 가변이 되고, 사이클 중에 검사가
+    하나 늘 때마다 **이미 발행된 노트**를 고쳤다가 다음 발행 준비에서 되돌리게
+    된다 — `Beta-v1.9.0.md` 의 `279 → 280 → 279` 왕복이 git 이력에 남아 있고
+    71~74차 네 사이클 연속 같은 자리를 오갔다. 더 나쁜 것은 그 편집을 **전량을
+    돌리지 않은 사람**이 쓰게 된다는 점이다 — 검사가 거짓 주장을 유도한다.
+
+    75차(TASK-2026-09-03-main-003)가 `check_smoke_trend_cross` case 2 를 이
+    규칙으로 고쳤는데, **같은 규칙의 사본이 이 모듈에 남아 있었다**. 이쪽은
+    태그를 보지 않아서, 검사 파일이 하나 늘자 case 2 는 PASS 인데 발행 게이트만
+    red 가 났고 green 으로 만드는 유일한 길이 발행된 노트를 고치는 것이었다.
+    규칙은 이제 여기 하나이고 검사들이 이것을 읽는다.
+
+    Returns:
+        (기댓값, 근거 문구). git 을 못 읽으면 `(None, 이유)` — 모름은 통과가
+        아니다 (`_doc_stamp.py` 와 같은 규약).
+    """
+    tag = release_tag_for_version(version)
+    if tag is None:
+        # 발행 준비 커밋과 태그 push 사이의 창 — 이번 노트는 현재와 맞아야 한다.
+        return _count_smoke_files(), f"v{version} 은 아직 발행 전(태그 없음) — 현재 파일 수"
+    at_tag = smoke_files_at_tag(tag)
+    if at_tag is None:
+        return None, f"태그 {tag} 의 트리를 읽지 못했다 (얕은 clone 인가)"
+    return at_tag, f"태그 {tag} 시점의 파일 수"
+
+
 def verify_release_note_smoke_count(version: str) -> dict:
-    """release note 의 `누적 smoke **N/N PASS**` 가 현재 smoke 파일 수와 맞는가.
+    """release note 의 `누적 smoke **N/N PASS**` 가 **그 노트의 시점** 과 맞는가.
 
     **자동으로 채우지 않는다.** 그 줄은 *전량 PASS 했다* 는 주장이고, 실제로 전량을
     돌린 사람만 할 수 있는 말이다. 도구가 대신 적으면 거짓 주장을 만든다 — 여기서는
     **빠졌거나 어긋난 것을 알려 주기만** 한다.
 
-    왜 필요한가: 이 수치는 릴리스 시점 스냅샷이 아니라 *살아있는 지표* 이고
-    (`check_smoke_trend_cross` case 2 가 강제한다), 노트에 적는 일은 사람 몫이라
-    **v1.1.0 / v1.1.1 에서 통째로 빠졌다.** 그 사이 dashboard 는 옛 노트(v1.0.0 의
-    234)를 읽었고 검사는 계속 red 였다. 릴리스 절차에 그걸 잡는 자리가 없었다.
+    왜 필요한가: 노트에 이 줄을 적는 일은 사람 몫이라 **v1.1.0 / v1.1.1 에서
+    통째로 빠졌다.** 그 사이 dashboard 는 옛 노트(v1.0.0 의 234)를 읽었고 검사는
+    계속 red 였다. 릴리스 절차에 그걸 잡는 자리가 없었다.
+
+    기댓값은 `expected_smoke_count_for_note` 가 정한다 — 발행된 노트는 그 태그
+    시점과, 아직 태그가 없는 이번 노트는 현재 갯수와 대조한다. 이 함수가 오래
+    **항상 현재 갯수**와 재던 것이 발행된 노트를 고치게 만든 자리다 (main-004).
 
     Returns:
         {"ok": bool, "note_path": str, "expected": int, "found": tuple|None, "error": str|None}
     """
     note = RELEASES_DIR / f"Beta-v{version}.md"
-    expected = _count_smoke_files()
+    expected, basis = expected_smoke_count_for_note(version)
     result: dict = {
         "ok": False, "note_path": str(note), "expected": expected,
         "found": None, "error": None,
@@ -2287,10 +2359,19 @@ def verify_release_note_smoke_count(version: str) -> dict:
     found_pass = int(m.group(1))
     found_total = int(m.group(2)) if m.group(2) else found_pass
     result["found"] = (found_pass, found_total)
+    if expected is None:
+        # 모름을 통과로 세지 않는다.
+        result["error"] = basis
+        return result
     if found_total != expected:
+        remedy = (
+            "전량 결과를 확인하고 갱신할 것."
+            if "발행 전" in basis
+            else "발행된 노트의 수치는 그 시점의 사실이다 — 현재 값에 맞추지 말고 되돌릴 것."
+        )
         result["error"] = (
-            f"release note 의 누적 수치 {found_pass}/{found_total} 가 현재 smoke 파일 수 "
-            f"{expected} 와 다르다. 전량 결과를 확인하고 갱신할 것."
+            f"release note 의 누적 수치 {found_pass}/{found_total} 가 {expected} 와 "
+            f"다르다 ({basis}). {remedy}"
         )
         return result
     result["ok"] = True

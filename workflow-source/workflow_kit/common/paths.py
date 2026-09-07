@@ -164,6 +164,10 @@ def _branch_scoped_dir(project_profile_path: Path, leaf: str) -> Path:
     다만 아직 마이그레이션하지 않은 저장소(`active/<leaf>` 가 직접 존재)를 깨뜨리지
     않도록, branch-scoped 가 없고 legacy 가 있으면 legacy 를 반환한다.
     **신규 생성은 항상 branch-scoped** 이므로 마이그레이션은 점진적으로 수렴한다.
+
+    `leaf` 는 디렉터리 이름이 보통이지만 파일 이름이어도 같은 규칙이 성립한다
+    (`workflow_handoff_path` 가 `session_handoff.md` 로 이 경로를 탄다) — 판정은
+    `exists()` 하나이고 그 규칙은 둘에 공통이다.
     """
     branch_scoped = workflow_branch_dir(project_profile_path) / leaf
     if branch_scoped.exists():
@@ -200,6 +204,41 @@ def workflow_sessions_dir(project_profile_path: Path) -> Path:
     overwrite race) 의 후속.
     """
     return _branch_scoped_dir(project_profile_path, "sessions")
+
+
+#: legacy 단일 handoff 파일의 이름. 경로 조립은 `workflow_handoff_path()` 하나만
+#: 한다 — 아래 함수의 docstring 이 그 이유다.
+HANDOFF_FILENAME = "session_handoff.md"
+
+
+def workflow_handoff_path(project_profile_path: Path) -> Path:
+    """Return `session_handoff.md` — branch-scoped, 미마이그레이션은 legacy fallback.
+
+    **왜 helper 인가 (TASK-2026-09-07-main-001).** 디렉터리(backlog / tasks /
+    sessions)는 전부 `_branch_scoped_dir` 를 지나 "branch-scoped 가 없으면
+    legacy 로 fallback" 한다. 그런데 handoff 만은 helper 가 없어서 소비자마다
+    `workflow_branch_dir(...) / "session_handoff.md"` 를 **인라인으로 조립**했고,
+    그 조립에는 fallback 이 없었다. 관례도 둘로 갈려서 `ingest.py` 는 브랜치를
+    아예 빼고 `memory/active/session_handoff.md` 를 봤다 — 같은 저장소에 대해
+    두 소비자가 **다른 파일**을 가리킨 셈이다.
+
+    실측 (`examples/acme_delivery_platform`, 평평한 layout):
+
+        state.json 의 current_baseline / current_axis / recent_done_items 가
+        전부 null / [] 로 떨어졌다. handoff 파일은 **있었다** — 생성기가
+        `<root>/main/session_handoff.md` 만 보고 `<root>/session_handoff.md` 를
+        안 봤을 뿐이다.
+
+    부재가 경고를 내지 않는 것이 핵심이다. 없으면 그 자리는 그냥 비고, state.json
+    은 정상으로 보인다 — 미마이그레이션 소비자 저장소는 자기 기준선이 사라진 것을
+    알 수 없다. fallback 규칙은 `_branch_scoped_dir` 와 **같은 것 하나**를 쓴다
+    (여기서 규칙을 복제하면 그 둘이 갈라지는 것이 다음 결함이다).
+
+    **쓰는 쪽은 이 helper 를 쓰지 않는다.** 신규 생성은 항상 branch-scoped 라는
+    규약(`_branch_scoped_dir` docstring)이 그대로 성립한다 — `seed_workspace_memory`
+    / `bootstrap_lib` 는 만들 자리를 정하는 것이지 있는 파일을 찾는 것이 아니다.
+    """
+    return _branch_scoped_dir(project_profile_path, HANDOFF_FILENAME)
 
 
 def project_workspace_root(project_profile_path: Path) -> Path:

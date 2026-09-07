@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-07-21",
+  "generated_at": "2026-09-07",
   "purpose_digest": null,
   "purpose_digest_rev": null,
   "source_of_truth": {
@@ -35,39 +35,14 @@
       "TASK-019 staging 운영 계정 접근 권한 재승인 대기",
       "TASK-021 배송 상태 동기화 실패 대응 절차 문서 정리"
     ],
+    "planned_items": [],
     "recent_done_items": [
       "TASK-018 백로그 템플릿 정비",
       "TASK-020 운영 허브 링크 정리"
     ],
+    "unknown_status_items": [],
     "environment_constraints": [
-      "V",
-      "P",
-      "N",
-      "미",
-      "연",
-      "결",
-      "상",
-      "태",
-      "에",
-      "서",
-      "는",
-      "s",
-      "t",
-      "a",
-      "g",
-      "i",
-      "n",
-      "A",
-      "I",
-      "및",
-      "운",
-      "영",
-      "콘",
-      "솔",
-      "접",
-      "근",
-      "불",
-      "가"
+      "VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가"
     ]
   },
   "backlog": {

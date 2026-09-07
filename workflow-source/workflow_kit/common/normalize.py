@@ -46,6 +46,51 @@ def dedupe_strings(items: list[str]) -> list[str]:
     return result
 
 
+def is_meaningful_text(value: object) -> bool:
+    """빈 문자열과 `TODO:` 플레이스홀더를 걸러낸다.
+
+    `state/builder.py` 에 있던 것을 옮겼다 — `normalize_constraint_values` 가
+    같은 술어를 쓰는데, 거기서 복제하면 두 자리가 갈라진다 (본 파일 상단
+    `WORK_ITEM_ID_RE` 주석의 "규약을 두 곳에 두면 같이 틀린다" 와 같은 축).
+    """
+    return isinstance(value, str) and bool(value.strip()) and not value.strip().startswith("TODO:")
+
+
+def normalize_constraint_values(*values: object) -> list[str]:
+    """`주요 제약` / `환경 제약` 값을 state 계약의 **목록**으로 정규화한다.
+
+    **왜 정본이 필요한가 (TASK-2026-09-07-main-002).** 문서 파서의 이 필드는
+    `WorkflowDocParser.get_value()` 반환이라 `str | None` 인데, state.json 의
+    `session.environment_constraints` 는 목록이다. 그 변환을 소비자마다 따로
+    했고 **둘이 서로 달랐다**:
+
+    - `tools/session_start.py` — `[handoff.get(...), profile.get(...)]` 로
+      감싸서 넘겼다. 맞다.
+    - `state/builder.py` — `cast(list[str], handoff.get("constraints") or [])`.
+      `cast` 는 **아무것도 변환하지 않는다**; 타입 검사기의 입을 막을 뿐이다.
+      그 뒤 문자열을 iterate 하니 결과가 **한 글자씩** 쪼개졌다:
+
+          'VPN 미연결 상태에서는 staging API 및 운영 콘솔 접근 불가'
+            → ['V','P','N','미','연','결', ... ]   (dedupe 후 28개)
+
+    같은 입력에 대해 session-start 와 state.json 이 다른 답을 냈고, `cast` 가
+    mypy strict 를 통과시켜 타입 축은 이것을 볼 수 없었다. 이 저장소에서 그동안
+    안 보인 이유는 별개다 — main 의 handoff 에는 `주요 제약` 줄이 없어 값이 늘
+    비어 있었다. 그 줄을 가진 유일한 코퍼스가 `examples/` 였고, 체크인된 예제
+    산출물을 생성기와 대조하는 검사가 없었다 (main-003).
+
+    문자열은 **한 항목**이고, 목록은 펼친다. 둘 다 받는 이유는 프로파일 쪽
+    파서가 장차 목록을 낼 수 있어서다 — 그때 이 함수만 이미 맞다.
+    """
+    items: list[str] = []
+    for value in values:
+        if isinstance(value, str):
+            items.append(value)
+        elif isinstance(value, (list, tuple)):
+            items.extend(item for item in value if isinstance(item, str))
+    return dedupe_normalized_backticked([item for item in items if is_meaningful_text(item)])
+
+
 def dedupe_normalized_backticked(items: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []

@@ -28,6 +28,7 @@ from workflow_kit.common.paths import (
     get_current_branch,
     resolve_existing_path,
     workflow_branch_dir,
+    workflow_handoff_path,
     workflow_memory_dir,
 )
 from workflow_kit.common.planning import (
@@ -529,7 +530,7 @@ def main() -> int:
         session_handoff_path = (
             Path(args.session_handoff_path).expanduser().resolve()
             if args.session_handoff_path
-            else (workflow_branch_dir(project_profile_path) / "session_handoff.md").resolve()
+            else workflow_handoff_path(project_profile_path).resolve()
         )
 
         daily_backlog_path: Path

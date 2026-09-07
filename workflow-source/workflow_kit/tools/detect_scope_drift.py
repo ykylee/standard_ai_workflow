@@ -45,8 +45,10 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
+    HANDOFF_FILENAME,
     branch_for_workspace,
     memory_active_dir,
+    path_in_active,
     resolve_workspace_root,
 )
 from workflow_kit.common.drift_detection import (  # noqa: E402
@@ -68,7 +70,10 @@ def default_post_handoff() -> tuple[Path, str]:
     """
     workspace, source = resolve_workspace_root()
     branch = branch_for_workspace(workspace)
-    return memory_active_dir(workspace) / branch / "session_handoff.md", source
+    # 조립을 직접 하지 않는다 — `path_in_active` 가 branch-scoped→legacy fallback
+    # 정본이다. 인라인은 그 fallback 을 잃어 평평한 layout 의 handoff 를 놓쳤다
+    # (TASK-2026-09-07-main-001).
+    return path_in_active(memory_active_dir(workspace), HANDOFF_FILENAME, branch), source
 DEFAULT_PRE_COMMIT = "origin/main"
 DEFAULT_GIT_RANGE = "origin/main..HEAD"
 

@@ -18,13 +18,16 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.child_process import child_env, module_command
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
-from workflow_kit.common.normalize import dedupe_normalized_backticked
+from workflow_kit.common.normalize import (
+    dedupe_normalized_backticked,
+    normalize_constraint_values,
+)
 from workflow_kit.common.paths import (
     discover_project_profile_path,
     memory_active_dir,
     resolve_existing_path,
     workflow_backlog_dir,
-    workflow_branch_dir,
+    workflow_handoff_path,
     workflow_state_path,
 )
 from workflow_kit.common.state.builder import collect_task_corpus_status, find_latest_daily_backlog
@@ -275,7 +278,7 @@ def main() -> int:
         project_profile_path = resolve_existing_path(profile_raw)
         session_handoff_path = resolve_existing_path(
             args.session_handoff_path
-            or str(workflow_branch_dir(project_profile_path) / "session_handoff.md")
+            or str(workflow_handoff_path(project_profile_path))
         )
         work_backlog_index_path = (
             resolve_existing_path(args.work_backlog_index_path)
@@ -532,8 +535,10 @@ def main() -> int:
             recommended_next_action=make_session_recommended_action(warnings, backlog, profile),
             warnings=warnings,
             validation_notes=[],
-            environment_constraints=dedupe_normalized_backticked(
-                [item for item in [handoff.get("constraints"), profile.get("constraints")] if item]
+            # state.json 쪽과 **같은 정본**을 쓴다. 이 자리는 원래 맞았고
+            # builder 쪽이 틀렸는데, 변환이 두 곳에 있었던 것이 결함이다 (main-002).
+            environment_constraints=normalize_constraint_values(
+                handoff.get("constraints"), profile.get("constraints")
             ),
             source_documents={
                 "session_handoff_path": str(session_handoff_path),

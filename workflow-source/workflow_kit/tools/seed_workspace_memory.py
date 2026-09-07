@@ -59,6 +59,7 @@ if str(SOURCE_ROOT) not in sys.path:
 
 from workflow_kit.common.workflow_state import refresh_workflow_state_cache  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
+    HANDOFF_FILENAME,
     branch_for_workspace,
     discover_project_profile_path,
     memory_dir_for_workspace,
@@ -71,7 +72,9 @@ from workflow_kit.common.workflow_writes import (  # noqa: E402
     upsert_backlog_entry,
 )
 
-HANDOFF_NAME = "session_handoff.md"
+# 파일명 정본은 `common/paths.HANDOFF_FILENAME` 이다 — 여기서 리터럴을 다시 적으면
+# 그것이 사본이 된다. 별칭만 남긴다 (기존 이름으로 참조하는 자리 호환).
+HANDOFF_NAME = HANDOFF_FILENAME
 
 
 def next_task_id(tasks_dir: Path, *, branch: str, today: str) -> str:
@@ -336,7 +339,7 @@ def _generate_state(*, state_path: Path, branch_dir: Path,
             daily_backlog_dir=(branch_dir / "backlog").resolve(),
             tasks_dir=(branch_dir / "backlog" / "tasks").resolve(),
             sessions_dir=(branch_dir / "sessions").resolve(),
-            session_handoff_path=(branch_dir / "session_handoff.md").resolve(),
+            session_handoff_path=(branch_dir / HANDOFF_FILENAME).resolve(),
             output_path=state_path.resolve(),
             generated_at=date.today().isoformat(),
         )

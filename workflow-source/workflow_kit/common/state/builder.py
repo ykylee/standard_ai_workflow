@@ -11,6 +11,8 @@ from workflow_kit.common.normalize import (
     dedupe_normalized_backticked,
     dedupe_strings as _dedupe_strings_base,
     dedupe_work_items,
+    is_meaningful_text,
+    normalize_constraint_values,
 )
 from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
 from workflow_kit.common.project_docs import (
@@ -66,10 +68,6 @@ def _parse_purpose_summary(
     if goal_match:
         purpose_digest = goal_match.group(1).strip()
     return purpose_digest, purpose_digest_rev
-
-
-def is_meaningful_text(value: object) -> bool:
-    return isinstance(value, str) and bool(value.strip()) and not value.strip().startswith("TODO:")
 
 
 # 완료 시각을 담는 frontmatter 필드 후보 (앞선 것 우선).
@@ -403,7 +401,6 @@ def build_workflow_state_payload(
     handoff_blocked: list[str] = cast(list[str], handoff.get("blocked_items", []))
     handoff_recent_done: list[str] = cast(list[str], handoff.get("recent_done_items", []))
     handoff_next_docs_raw: list[Path] = cast(list[Path], handoff.get("next_documents", []))
-    handoff_constraints: list[str] = cast(list[str], handoff.get("constraints") or [])
 
     backlog_in_progress: list[str] = cast(list[str], backlog.get("in_progress_items", []))
     backlog_blocked: list[str] = cast(list[str], backlog.get("blocked_items", []))
@@ -512,9 +509,9 @@ def build_workflow_state_payload(
             # state.json 을 읽는 사람과 skill 에게는 여전히 안 보인다 — 조용히 사라지는
             # 것과 같다. 빈 목록이어도 key 는 유지한다 (schema 일관성).
             "unknown_status_items": _dedupe_strings_base(appendonly["unknown_status_items"]),
-            "environment_constraints": dedupe_normalized_backticked(
-                [item for item in handoff_constraints if is_meaningful_text(item)]
-            ),
+            # `cast(list[str], ...)` 로 문자열을 목록이라 **선언만** 하고 iterate 해
+            # 한 글자씩 쪼개던 자리다. 정본이 변환한다 (main-002).
+            "environment_constraints": normalize_constraint_values(handoff.get("constraints")),
         },
         "backlog": {
             "latest_backlog_path": safe_relpath(resolved_latest_backlog_path, actual_root) if resolved_latest_backlog_path else None,

@@ -42,7 +42,7 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit import __version__ as TOOL_VERSION  # noqa: E402
 from workflow_kit.common.paths import (  # noqa: E402
     discover_project_profile_path,
-    workflow_branch_dir,
+    workflow_handoff_path,
 )
 from workflow_kit.common.read_only_bundle import (  # noqa: E402
     rotate_workflow_logs_payload,
@@ -63,7 +63,7 @@ def _default_handoff() -> Path | None:
     profile = discover_project_profile_path()
     if profile is None:
         return None
-    return workflow_branch_dir(profile) / "session_handoff.md"
+    return workflow_handoff_path(profile)
 
 
 def _print_human(payload: dict) -> None:

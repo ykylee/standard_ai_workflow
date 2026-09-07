@@ -40,6 +40,10 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.tools.release_pipeline import (  # noqa: E402
+    expected_smoke_count_for_note,
+)
+
 
 def _collect_panel_4() -> dict:
     """workflow_kit_cli dashboard --format=json subprocess 호출 → Panel 4 dict 반환."""
@@ -71,29 +75,6 @@ def _git(args: list[str]) -> tuple[int, str]:
 
 def _is_git_repo() -> bool:
     return _git(["rev-parse", "--git-dir"])[0] == 0
-
-
-def _release_tag_for(note_stem: str) -> str | None:
-    """`'Beta-v1.9.1'` → 실재하는 태그 이름. 아직 발행 전이면 ``None``.
-
-    구 포맷(`v0.9.0-beta`)도 함께 찾는다 — v1.2.1 부터 접미사가 없다.
-    """
-    version = note_stem[len("Beta-"):] if note_stem.startswith("Beta-") else note_stem
-    for candidate in (version, f"{version}-beta"):
-        if _git(["rev-parse", "--verify", "--quiet", f"refs/tags/{candidate}"])[0] == 0:
-            return candidate
-    return None
-
-
-def _smoke_files_at_tag(tag: str) -> int | None:
-    """그 태그 시점의 `workflow-source/tests/check_*.py` 갯수. 못 재면 ``None``."""
-    rc, out = _git(["ls-tree", "-r", "--name-only", tag, "--", "workflow-source/tests"])
-    if rc != 0:
-        return None
-    return sum(
-        1 for line in out.splitlines()
-        if line.endswith(".py") and Path(line).name.startswith("check_")
-    )
 
 
 def _newest_release_note_stem() -> str | None:
@@ -175,21 +156,17 @@ def case_2_note_matches_its_own_moment() -> bool:
     stem = str(recent[0].get("version", ""))
     claimed = int(p4.get("cumulative_total", 0))
 
-    tag = _release_tag_for(stem)
-    if tag is None:
-        expected = _actual_smoke_files_count()
-        basis = f"{stem} 은 아직 발행 전(태그 없음) — 현재 파일 수"
-    else:
-        at_tag = _smoke_files_at_tag(tag)
-        if at_tag is None:
-            print(f"  FAIL: 태그 {tag} 의 트리를 읽지 못했다 (얕은 clone 인가)")
-            return False
-        expected = at_tag
-        basis = f"태그 {tag} 시점의 파일 수"
+    # 규칙의 정본은 kit 이다 (`release_pipeline.expected_smoke_count_for_note`).
+    # 여기에 사본을 두면 발행 게이트와 갈라지고, 실제로 그렇게 갈라져 있었다 —
+    # 이 case 는 PASS 인데 게이트만 red 였다 (TASK-2026-09-07-main-004).
+    expected, basis = expected_smoke_count_for_note(stem)
+    if expected is None:
+        print(f"  FAIL: {basis}")
+        return False
 
     if claimed != expected:
         print(f"  FAIL: {stem} 의 누적 수치 {claimed} != {expected} ({basis})")
-        if tag is None:
+        if "발행 전" in basis:
             print(f"        전량 PASS 를 확인한 뒤 노트를 {expected}/{expected} 로 적을 것.")
         else:
             print(f"        발행된 노트의 수치는 그 시점의 사실이다 — 현재 값에 맞추지 "

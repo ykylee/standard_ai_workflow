@@ -10,7 +10,7 @@ from typing import Any
 from workflow_kit.common.paths import (
     project_workspace_root,
     workflow_backlog_dir,
-    workflow_branch_dir,
+    workflow_handoff_path,
     workflow_state_path,
     workflow_memory_dir,
     workflow_sessions_dir,
@@ -40,7 +40,6 @@ def build_state_cache_refresh_hint(
     # v0.6.0.1 의 `/ "active"` 후속 fix 가 누락되어 state.json 이 `<branch>/active/state.json`
     # 으로 잘못 쓰여졌었음 (테스트 fixture 의 path 기대와 production 양쪽 어긋남).
     memory_dir = workflow_memory_dir(project_profile_path)
-    branch_dir = workflow_branch_dir(project_profile_path)
     generator_path = workspace_root / "workflow-source" / "scripts" / "generate_workflow_state.py"
     # v1.0.0 branch-scoped: state.json 은 builder 가 rebuild 하는 *생성물* 이고 브랜치마다
     # 작업 상태가 다르므로 `active/<branch>/state.json`. 미마이그레이션 저장소는
@@ -54,7 +53,7 @@ def build_state_cache_refresh_hint(
     # legacy path (deprecation cycle fallback) — v0.14.5+ 2nd cycle:
     # `--legacy-memory` flag 가 명시되어야만 hint 에 포함. 1st cycle caller 는
     # backward compat 으로 default True (auto opt-in).
-    legacy_handoff_path = branch_dir / "session_handoff.md"
+    legacy_handoff_path = workflow_handoff_path(project_profile_path)
     legacy_index_path = memory_dir / "work_backlog.md"
     legacy_memory = legacy_memory if legacy_memory is not None else True  # default True (1st cycle backward compat)
     command_parts = [
@@ -108,7 +107,6 @@ def refresh_workflow_state_cache(
     # `/ "active"` suffix 제거. PROJECT_PROFILE.md 가 이미 `<memory>/active/` 에 있으므로
     # `workflow_memory_dir(...)` 가 active/ 까지 포함한 path 를 반환.
     memory_dir = workflow_memory_dir(resolved_project_profile_path)
-    branch_dir = workflow_branch_dir(resolved_project_profile_path)
     actual_root = workspace_root or project_workspace_root(resolved_project_profile_path)
     # v0.14.5+ 2nd cycle: legacy path 자동 resolve 는 legacy_memory flag 가
     # True (default for 1st cycle backward compat) 일 때만 동작. False 면 명시적
@@ -117,10 +115,12 @@ def refresh_workflow_state_cache(
     if legacy_memory_effective:
         # 1st cycle silent fallback (backward compat) — branch_dir/session_handoff.md
         # 또는 memory_dir/work_backlog.md 가 존재하면 자동 include.
+        # 정본 helper 를 지난다 — 인라인 조립에는 legacy fallback 이 없어서
+        # 평평한 layout 의 handoff 를 **있는데도** 못 찾았다
+        # (TASK-2026-09-07-main-001, `workflow_handoff_path` docstring 에 실측).
+        candidate_handoff = session_handoff_path or workflow_handoff_path(resolved_project_profile_path)
         resolved_session_handoff_path = (
-            (session_handoff_path or (branch_dir / "session_handoff.md")).resolve()
-            if (session_handoff_path or (branch_dir / "session_handoff.md")).exists()
-            else None
+            candidate_handoff.resolve() if candidate_handoff.exists() else None
         )
         resolved_work_backlog_index_path = (
             (work_backlog_index_path or (memory_dir / "work_backlog.md")).resolve()

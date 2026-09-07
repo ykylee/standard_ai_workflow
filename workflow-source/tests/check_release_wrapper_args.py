@@ -219,10 +219,15 @@ def main() -> int:
     #    읽어 check_smoke_trend_cross 가 계속 red 였다. 릴리스 절차에 그걸 잡는
     #    자리가 없었다 — 이 case 가 그 자리가 생겼는지 본다.
     verify = rp.verify_release_note_smoke_count
-    actual_files = rp._count_smoke_files()
 
+    # 기댓값은 **그 노트의 시점** 이다 — 발행된 노트는 자기 태그 시점, 아직 태그가
+    # 없는 이번 노트는 현재 갯수. 여기서 `_count_smoke_files()` 를 기댓값으로 쓰던
+    # 것이 검사 파일이 늘 때마다 **발행된 노트를 고치라고 요구**하던 자리다
+    # (TASK-2026-09-07-main-004 — 75차가 check_smoke_trend_cross case 2 에서
+    # 닫은 규칙의 사본이 여기 남아 있었다).
     cur = verify(rp.read_version())
-    ok_current = cur["ok"] and cur["found"] == (actual_files, actual_files)
+    expected_now, _basis = rp.expected_smoke_count_for_note(rp.read_version())
+    ok_current = cur["ok"] and cur["found"] == (expected_now, expected_now)
 
     # 표기가 없는 note 는 잡아야 한다 (v1.1.0 이 실제 그 상태다)
     missing = verify("1.1.0")

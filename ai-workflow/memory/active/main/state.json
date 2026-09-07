@@ -38,6 +38,7 @@
       "TASK-2026-09-07-main-009"
     ],
     "recent_done_items": [
+      "TASK-2026-09-07-main-012 — INSTALLATION 7.0.2 가 존재하지 않는 맨 marketplace 명령을 적고 있었다",
       "TASK-2026-09-07-main-011 — v1.9.4 발행 + 이 호스트 소비자 채널 재적용",
       "TASK-2026-09-07-main-010 — graph_insights health 가 완료한 일이 늘수록 내려간다 — 100% 발화하는 scope creep 경고와 항등식을 재는 fixture",
       "TASK-2026-09-07-main-008 — v1.9.3 발행 + 이 호스트 소비자 채널 재적용",
@@ -46,15 +47,14 @@
       "TASK-2026-09-07-main-005 — INSTALLATION §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽힌다",
       "TASK-2026-09-07-main-004 — 발행 게이트가 태그된 노트를 현재 갯수와 재 왕복 편집을 되살린다 — 75차 수리의 사본 잔존",
       "TASK-2026-09-07-main-003 — 체크인된 예제 state.json 을 생성기 출력과 대조하는 검사가 없다",
-      "TASK-2026-09-07-main-002 — 거짓말하는 cast 가 문자열을 목록으로 속여 environment_constraints 를 한 글자씩 쪼갠다",
-      "TASK-2026-09-07-main-001 — handoff 경로에 legacy fallback 이 없다 — 평평한 workspace 의 기준선이 조용히 사라진다"
+      "TASK-2026-09-07-main-002 — 거짓말하는 cast 가 문자열을 목록으로 속여 environment_constraints 를 한 글자씩 쪼갠다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-07.md",
-    "task_count": 12,
+    "task_count": 13,
     "in_progress_items": [
       "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -69,7 +69,8 @@
       "TASK-2026-09-07-main-007 — 설치본에서 모듈 앵커가 증발해 브랜치 해석이 갈라진다 — 소비자 배포처의 모순 뿌리",
       "TASK-2026-09-07-main-008 — v1.9.3 발행 + 이 호스트 소비자 채널 재적용",
       "TASK-2026-09-07-main-010 — graph_insights health 가 완료한 일이 늘수록 내려간다 — 100% 발화하는 scope creep 경고와 항등식을 재는 fixture",
-      "TASK-2026-09-07-main-011 — v1.9.4 발행 + 이 호스트 소비자 채널 재적용"
+      "TASK-2026-09-07-main-011 — v1.9.4 발행 + 이 호스트 소비자 채널 재적용",
+      "TASK-2026-09-07-main-012 — INSTALLATION 7.0.2 가 존재하지 않는 맨 marketplace 명령을 적고 있었다"
     ]
   },
   "next_documents": [

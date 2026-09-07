@@ -462,18 +462,18 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 | 채널 | 설치본의 정체 | 설치 명령 재실행 | update 명령 | **페이로드가 낡았을 때 복구** |
 |---|---|---|---|---|
 | **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | **버전이 같으면** `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) · **버전이 다르면** 실제로 올린다 (아래 4) | 같은 버전: **`uninstall` → `install`** · 다른 버전: `plugin update <plugin>@<marketplace>` |
-| **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`marketplace remove` → `marketplace add <새 경로>` → `plugin add`** (아래 5) |
+| **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `codex plugin marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`codex plugin marketplace remove <name>` → `codex plugin marketplace add <새 경로>` → `codex plugin add <plugin>@<marketplace>`** (아래 5·7) |
 | **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/` — `<id>` 는 **플러그인 이름이 아니라** `plugin-<hash>` 다. 이름 → 경로 매핑은 같은 디렉터리의 `registry.json` 이 쥔다) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `plugin uninstall <플러그인 이름>` → `plugin install`. **`plugin-<hash>` id 를 주면 안 된다** — 왼쪽 열의 `<id>` 와 다른 값이다 (아래 6) |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **antigravity** | 사본 (`~/.gemini/config/plugins/<name>/`, **무버전** — 2026-08-29 실측) | `plugin install` 재실행이 성공하며 디렉터리를 갈아엎지 않는 병합 복사 (marker 파일 생존 실측) | 전용 update 명령 없음 | **재설치가 곧 갱신** — `plugin install` 재실행. 완전 초기화는 `uninstall` → `install` (uninstall 은 디렉터리 통째 제거 실측) |
 
-읽는 법 여섯 가지:
+읽는 법 일곱 가지:
 
 1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
    업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
    `plugin update` 는 끝까지 거절했다. 개발 중 재배포에서는 **버전을 올리거나
    재설치**해야 한다.
-2. **`marketplace update` 는 설치본을 안 고친다.** claude-code 에서 이 명령은
+2. **`claude plugin marketplace update` 는 설치본을 안 고친다.** claude-code 에서 이 명령은
    marketplace **클론**만 최신으로 당긴다 (실측: 클론은 최신 커밋으로 갱신됐는데
    설치 캐시는 그대로였다). 설치본까지 가려면 위 표의 복구 열을 따른다.
 3. **`grok plugin update` 의 출력을 믿지 말 것.** `already live` 라고 말하지만
@@ -483,10 +483,10 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
    - **맨 이름은 실패한다.** `claude plugin update standard-ai-workflow` 는
      **rc 1** 로 `Plugin "standard-ai-workflow" not found` 를 낸다. `install` 은
      맨 이름을 받는데 `update` 는 안 받는다 — **`<plugin>@<marketplace>` 로 적는다.**
-   - **`marketplace update` 를 먼저 돌릴 필요가 없다.** `plugin update` 가 클론을
-     스스로 당긴다 (실측: 클론 HEAD 가 옛 커밋에서 최신으로 이동했다). 위 2번은
-     "`marketplace update` 만으로는 설치본이 안 고쳐진다" 는 뜻이지 그 명령이
-     선행 조건이라는 뜻이 아니다.
+   - **`claude plugin marketplace update` 를 먼저 돌릴 필요가 없다.** `plugin update`
+     가 클론을 스스로 당긴다 (실측: 클론 HEAD 가 옛 커밋에서 최신으로 이동했다).
+     위 2번은 "그 명령만으로는 설치본이 안 고쳐진다" 는 뜻이지 그것이 선행 조건이라는
+     뜻이 아니다.
    - **당겨오는 것은 태그가 아니라 브랜치 팁이다.** 실측에서 설치된 `1.3.0` 의
      `gitCommitSha` 는 `v1.3.0` 태그가 아니라 **그 시점 main 의 팁**이었다. 즉
      같은 `1.3.0` 문자열이 시점마다 다른 내용을 가리킬 수 있다 — 위 1번의 함정이
@@ -504,8 +504,8 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
      당겨올 대상이 없다 — 마켓플레이스가 곧 그 버전이다.
    - **덮어쓰기를 거부한다.** 같은 이름에 다른 경로를 주면
      `Error: marketplace '<name>' is already added from a different source;
-     remove it before adding this source` 가 난다. `marketplace remove` 를
-     **먼저** 돌려야 한다.
+     remove it before adding this source` 가 난다.
+     `codex plugin marketplace remove <name>` 를 **먼저** 돌려야 한다.
    - **옛 버전 디렉터리가 남지 않는다.** `plugin add` 뒤 캐시에는 `1.3.0`
      하나만 남았다 — 위 4의 claude-code 와 **정반대**다. 그래서 `wk doctor`
      의 `installPath` 선언 읽기(§7.0.1)가 claude-code 에서는 필수이고
@@ -529,6 +529,29 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
    `plugin list` 의 출력 형식 자체다 — `plugin-da9172c3: standard-ai-workflow`
    처럼 **id 를 먼저** 찍어서, "`plugin list` 에 보이는 이름" 이라는 안내가
    오히려 id 를 가리키는 것처럼 읽힌다. 명령에 주는 값은 **콜론 뒤**다.
+
+7. **`marketplace` 는 세 CLI 모두 `plugin` 아래에 있고, 동사가 채널마다 다르다**
+   (2026-09-07 실측, v1.9.4 채널 재적용 중). 이 표와 각주가 오래 **맨
+   `marketplace …`** 로 적고 있었는데 그런 최상위 명령은 **어디에도 없다**.
+
+   | CLI | 정규 경로 | 갱신 동사 |
+   |---|---|---|
+   | claude | `claude plugin marketplace …` | `update` |
+   | codex | `codex plugin marketplace …` | **`upgrade`** |
+   | grok | `grok plugin marketplace …` | `update` |
+
+   **codex 와 grok 은 맨 형태에서 rc 2 로 즉시 죽는다.** 문제는 그 다음이다 —
+   `marketplace remove/add` 가 조용히 실패한 상태에서 `codex plugin add` 를
+   부르면 **옛 marketplace 가 그대로라 옛 버전을 다시 깐다.** 실측(v1.9.4 재적용):
+   출력이 `Installed plugin root: …/standard-ai-workflow/1.9.3` 이었다 — 명령은
+   성공했고 버전만 틀렸다. 순서는 `plugin remove` → `plugin marketplace remove`
+   → `plugin marketplace add <새 경로>` → `plugin add` 다.
+
+   **claude 는 더 나쁘다 — 맨 형태가 오류를 안 낸다.** `claude marketplace list`
+   는 rc **0** 인데, 명령으로 실행된 것이 아니라 `"marketplace list"` 가
+   **프롬프트로 먹혀** 모델이 산문으로 답한 것이다. 즉 이 채널에서는
+   **rc=0 이 명령이 동작했다는 근거가 못 된다** — 출력이 CLI 의 것인지 모델의
+   것인지 눈으로 갈라야 한다.
 
 > 이 표는 `wk doctor` (§7.0.1) 의 **복구 열**이다. 탐침의 `content_drift` 절이
 > 페이로드 해시로 *어긋났다* 는 사실까지 말해 주지만(2026-08-18+), 고치는 방법은

@@ -50,6 +50,7 @@ import json
 import os
 import sys
 from datetime import date
+from collections.abc import Iterable
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -66,6 +67,7 @@ from workflow_kit.common.paths import (  # noqa: E402
     resolve_workspace_root,
     state_path_in_active,
 )
+from workflow_kit.common.git import remote_known_task_ids  # noqa: E402
 from workflow_kit.common.project_docs import task_label  # noqa: E402
 from workflow_kit.common.workflow_writes import (  # noqa: E402
     render_task_file,
@@ -77,11 +79,30 @@ from workflow_kit.common.workflow_writes import (  # noqa: E402
 HANDOFF_NAME = HANDOFF_FILENAME
 
 
-def next_task_id(tasks_dir: Path, *, branch: str, today: str) -> str:
+def next_task_id(
+    tasks_dir: Path,
+    *,
+    branch: str,
+    today: str,
+    reserved_ids: Iterable[str] = (),
+) -> str:
     """`TASK-<today>-<branch>-<NNN>` 중 비어 있는 다음 번호.
 
-    번호는 **브랜치 안에서만** 매긴다 — 브랜치별로 격리돼 있으므로 다른 호스트가 동시에
-    만들어도 겹치지 않는다 (`MEMORY_GOVERNANCE.md` §2).
+    번호는 **브랜치 안에서만** 매긴다 (`MEMORY_GOVERNANCE.md` §2) — 브랜치가
+    다르면 겹치지 않는다.
+
+    **이 격리는 호스트 축을 막지 못한다 (TASK-2026-09-07-main-006).** 여기에는
+    오래 *동시 작업 호스트끼리도 번호가 겹치지 않는다* 는 취지의 보증이 적혀
+    있었는데, 그것은 브랜치가 *다를 때* 성립하는 문장이었다. 두 호스트가 **같은
+    브랜치**(대개 main)에 있으면 이 함수는 각자의 로컬 `tasks/` 만 보므로 같은
+    번호를 낸다. (원문을 그대로 옮기지 않는다 — `check_task_id_remote_uniqueness`
+    case 5 가 그 문장의 재등장을 막고, 역사 인용도 그 그물에 걸린다.)
+    2026-09-04 실측: 두 호스트가 각각 `main-002` 를 매겼고 **push 가 거절돼서야**
+    알았다. 보증을 적어 두면 아무도 다시 재지 않으므로, 그 문장을 지웠다.
+
+    `reserved_ids` 로 **원격이 이미 아는 ID** 를 넘기면 그것도 피한다
+    (`common.git.remote_known_task_ids`). 비워 두면 유일성은 **로컬 안에서만**
+    성립한다 — 호출자가 그 사실을 사용자에게 말해야 한다.
     """
     slug = branch.replace("/", "-")
     prefix = f"TASK-{today}-{slug}-"
@@ -89,6 +110,12 @@ def next_task_id(tasks_dir: Path, *, branch: str, today: str) -> str:
     if tasks_dir.is_dir():
         for p in tasks_dir.glob(f"{prefix}*.md"):
             tail = p.stem[len(prefix):]
+            if tail.isdigit():
+                used.add(int(tail))
+    for raw in reserved_ids:
+        text = str(raw)
+        if text.startswith(prefix):
+            tail = text[len(prefix):]
             if tail.isdigit():
                 used.add(int(tail))
     n = 1
@@ -221,7 +248,11 @@ def seed(*, memory_root: Path, branch: str, axis: str, task_title: str,
     handoff_path = branch_dir / HANDOFF_NAME
     backlog_path = branch_dir / "backlog" / f"{today}.md"
 
-    task_id = next_task_id(tasks_dir, branch=branch, today=today)
+    # 원격이 아는 ID 도 피한다 (main-006). 네트워크는 타지 않는다 — 원격 추적
+    # ref 만 읽는다. 못 읽었으면 그 사실이 결과의 `remote_id_check` 로 나간다:
+    # 빈 목록을 '원격에 없다' 로 읽으면 조용한 거짓 안심이 된다.
+    remote_ids = remote_known_task_ids(tasks_dir, branch=branch)
+    task_id = next_task_id(tasks_dir, branch=branch, today=today, reserved_ids=remote_ids.ids)
     planned: list[dict] = []
     skipped: list[dict] = []
 

@@ -126,6 +126,15 @@ link** 로 적는 이유는 `BacklogParser` 가 링크를 따라가 task 본문�
 전역 유일하다. slug 없는 `TASK-2026-07-20-001` 은 branch-scoped 이전의 legacy 이며
 같은 패턴으로 계속 인식된다.
 
+> **브랜치 slug 는 호스트 축을 막지 못한다** (2026-09-04 실측,
+> `TASK-2026-09-07-main-006`). 위 문장은 브랜치가 *다를 때* 성립한다. 두 호스트가
+> **같은 브랜치**(대개 main)에 있으면 각자 로컬만 보고 같은 번호를 매긴다 — 실제로
+> 두 호스트가 같은 날 `main-002` 를 매겼고 **push 가 거절돼서야** 알았다. 그래서
+> 채번기는 `common.git.remote_known_task_ids` 로 **원격 추적 ref** 를 함께 읽는다
+> (네트워크는 타지 않는다). 그 ref 는 마지막 fetch 시점에 멈춰 있으므로,
+> **fetch 하지 않은 채로는 유일성이 로컬 안에서만 성립한다** — 도구는 그 사실을
+> 경고로 말하고, 빈 결과를 '원격에 없다' 로 세지 않는다.
+
 ### 📂 Per-Task SSOT — v0.14.0+ layout
 ```markdown
 ---
@@ -209,8 +218,10 @@ ai-workflow/memory/
 - **공유(브랜치 무관)**: `PROJECT_PROFILE.md` / `PURPOSE.md` / `*_assessment.md` /
   `state.json.template` / `memory_index/`. `PROJECT_PROFILE.md` 가 `active/` 직속에 있어야
   경로 해석(`workflow_memory_dir` → `active/`)이 성립한다.
-- **task ID**: `TASK-<date>-<slug>-<NNN>`. 순번을 *브랜치 안에서만* 매기므로 동시 생성해도
-  겹치지 않고, 아카이브로 합쳐진 뒤에도 전역 유일하다.
+- **task ID**: `TASK-<date>-<slug>-<NNN>`. 순번을 *브랜치 안에서만* 매기므로 **다른
+  브랜치와는** 동시 생성해도 겹치지 않고, 아카이브로 합쳐진 뒤에도 전역 유일하다.
+  **같은 브랜치의 다른 호스트와는 이것만으로 안 된다** — 채번기가 원격 추적 ref 를
+  함께 읽는다 (위 §task ID 형식 인용문).
 - **자기 네임스페이스에만 쓴다**: 작업 브랜치는 `active/<자기 브랜치>/` 에만 task·handoff·
   state.json 을 **추가/수정**한다. 남의 네임스페이스(`active/main/` 등)를 손으로 편집하면
   ①자기 디렉터리가 안 생겨 workspace 검사들이 push 마다 red 가 되고 ②task 번호를 남의

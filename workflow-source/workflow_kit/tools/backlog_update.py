@@ -10,6 +10,7 @@ import re
 import sys
 from datetime import date, datetime
 from pathlib import Path
+from collections.abc import Iterable
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -21,15 +22,17 @@ from workflow_kit import __version__ as TOOL_VERSION
 from workflow_kit.common.errors import build_error_result
 from workflow_kit.common.contracts.stage_gate_runtime import build_stage_completion, merge_into_result
 from workflow_kit.common.normalize import normalize_backticked
+from workflow_kit.common.git import remote_known_task_ids
 from workflow_kit.common.paths import (
     memory_active_dir,
-
+    project_workspace_root,
     workflow_state_path,
     get_current_branch,
     resolve_existing_path,
     workflow_branch_dir,
     workflow_handoff_path,
     workflow_memory_dir,
+    workflow_tasks_dir,
 )
 from workflow_kit.common.planning import (
     DEMOTION_REVERTS_DONE,
@@ -92,6 +95,7 @@ def suggest_next_task_id(
     *,
     target_date: str | None = None,
     branch: str | None = None,
+    reserved_ids: Iterable[str] = (),
 ) -> str:
     """`TASK-<date>-<slug>-<NNN>` 형식의 다음 task ID.
 
@@ -99,15 +103,24 @@ def suggest_next_task_id(
     작업해도 ID 가 겹치지 않는다. 아카이브로 합쳐진 뒤에도 전역 유일하므로 과거 이력
     조회가 안전하다.
 
+    **브랜치 slug 는 호스트 축을 막지 못한다 (TASK-2026-09-07-main-006).** 두
+    호스트가 **같은 브랜치**(대개 main)에 있으면 위 격리가 아무것도 하지 않는다.
+    2026-09-04 에 실제로 두 호스트가 각각 `main-002` 를 매겼고 push 거절로만
+    알았다. 그래서 호출자가 **원격이 이미 아는 ID** 를 `reserved_ids` 로 넘긴다
+    (`common.git.remote_known_task_ids`, 네트워크 없이 원격 추적 ref 를 읽는다).
+    비워 두면 이전과 같은 로컬 전용 동작이라 기존 caller 는 깨지지 않는다 —
+    다만 그때는 유일성이 **로컬 안에서만** 보장된다.
+
     **버그 수정**: 이전 구현은 `TASK-(\\d+)` 로 매칭해 `TASK-2026-07-20-001` 에서 연도
     `2026` 을 순번으로 오인, 다음 ID 가 `TASK-2027` 이 됐다. 이제 날짜/slug/순번을
     분리해 파싱하고, **같은 날짜 + 같은 브랜치** 인 것만 순번 비교 대상으로 삼는다.
     """
     date = target_date or dt.date.today().isoformat()
     slug = branch_slug(branch)
+    candidates = [str(task.get("task_id") or "") for task in tasks]
+    candidates.extend(str(raw) for raw in reserved_ids)
     max_num = 0
-    for task in tasks:
-        raw = str(task.get("task_id") or "")
+    for raw in candidates:
         match = TASK_ID_RE.match(raw)
         if not match:
             continue
@@ -587,8 +600,26 @@ def main() -> int:
                             f"task SSOT (`{ssot_probe.name}`) 도 없다 — 갱신할 대상이 없다."
                         )
 
+        # 원격이 이미 아는 ID 를 함께 피한다 (main-006). 네트워크는 타지 않는다 —
+        # 원격 추적 ref 만 읽으므로 오프라인에서도 멈추지 않는다. 못 읽었으면
+        # `consulted=False` 로 돌아오고, 아래에서 **그 사실을 경고로 말한다**:
+        # 빈 목록을 '원격에 없다' 로 읽으면 조용한 거짓 안심이 된다.
+        remote_ids = remote_known_task_ids(workflow_tasks_dir(project_profile_path))
         task_id = args.task_id or suggest_next_task_id(
-            existing_tasks, target_date=getattr(args, 'target_date', None))
+            existing_tasks,
+            target_date=getattr(args, 'target_date', None),
+            reserved_ids=remote_ids.ids,
+        )
+        if args.task_id is None:
+            if not remote_ids.consulted:
+                warnings.append(
+                    f"task ID 유일성을 **로컬 안에서만** 확인했다 — {remote_ids.reason}. "
+                    "같은 브랜치의 다른 호스트와 겹칠 수 있다 (2026-09-04 실측)."
+                )
+            elif task_id in remote_ids.ids:
+                warnings.append(
+                    f"`{task_id}` 가 원격({remote_ids.ref})에 이미 있다 — 채번이 어긋났다."
+                )
         # v1.1.8 (TASK-2026-08-12-main-008): update 에서 --status 미지정이면 기존
         # 상태를 보존한다 — 미지정은 "바꾸지 말라" 다. 기존 상태는 task SSOT
         # frontmatter (`status: X`) 에서 읽는다.
@@ -807,7 +838,6 @@ def main() -> int:
 
         # v0.9.5 chapter 9 R-A follow-up part 2: skill context load integration
         # backlog-update 가 PURPOSE.md §3 Research Scope 와 비교하여 scope creep 경고
-        from workflow_kit.common.paths import project_workspace_root
         from workflow_kit.common.schemas import BacklogUpdateOutput, BacklogUpdatePurposeContext
 
         workspace_root = project_workspace_root(project_profile_path)

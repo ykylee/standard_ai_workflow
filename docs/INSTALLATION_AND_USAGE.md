@@ -463,11 +463,11 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
 |---|---|---|---|---|
 | **claude-code** | 캐시 사본 (`~/.claude/plugins/cache/<mp>/<plugin>/<version>/`) | `already installed` — no-op | **버전이 같으면** `plugin update` 가 **버전 문자열만 보고 거절** (`already at the latest version`) · **버전이 다르면** 실제로 올린다 (아래 4) | 같은 버전: **`uninstall` → `install`** · 다른 버전: `plugin update <plugin>@<marketplace>` |
 | **codex** | 캐시 사본 (`~/.codex/plugins/cache/<mp>/<plugin>/<version>/`) | `plugin add` 가 **marketplace 루트에서 캐시를 다시 복사** — 같은 버전에서도 갱신된다 | `marketplace upgrade` 는 **Git 소스 전용** (로컬 소스에는 해당 없음) | 같은 버전: `plugin add` 재실행 · 다른 버전: **`marketplace remove` → `marketplace add <새 경로>` → `plugin add`** (아래 5) |
-| **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/` — `<id>` 는 **플러그인 이름이 아니라** `plugin-<hash>` 다. 이름 → 경로 매핑은 같은 디렉터리의 `registry.json` 이 쥔다) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `uninstall` → `install` |
+| **grok-build** | 사본 (`~/.grok/installed-plugins/<id>/` — `<id>` 는 **플러그인 이름이 아니라** `plugin-<hash>` 다. 이름 → 경로 매핑은 같은 디렉터리의 `registry.json` 이 쥔다) | **거부** — `Error: repo '<id>' already installed` (중복 항목은 안 생긴다) | `plugin update` 가 `local symlink, already live` 를 출력하지만 **실제로는 갱신하지 않는다** (원본에 표식을 넣고 실측) | `plugin uninstall <플러그인 이름>` → `plugin install`. **`plugin-<hash>` id 를 주면 안 된다** — 왼쪽 열의 `<id>` 와 다른 값이다 (아래 6) |
 | **pi-dev** | **경로 참조** — `~/.pi/agent/settings.json` 의 `packages[]`. 사본 없음 | 성공, 항목 중복 없음 (멱등) | `pi update <source>` 성공 | **불필요** — 원본이 곧 설치본이다 |
 | **antigravity** | 사본 (`~/.gemini/config/plugins/<name>/`, **무버전** — 2026-08-29 실측) | `plugin install` 재실행이 성공하며 디렉터리를 갈아엎지 않는 병합 복사 (marker 파일 생존 실측) | 전용 update 명령 없음 | **재설치가 곧 갱신** — `plugin install` 재실행. 완전 초기화는 `uninstall` → `install` (uninstall 은 디렉터리 통째 제거 실측) |
 
-읽는 법 다섯 가지:
+읽는 법 여섯 가지:
 
 1. **"버전이 같으면 내용도 같다" 는 성립하지 않는다.** claude-code 는 이 전제로
    업데이트를 거절한다 — 실측 중 설치본이 정본보다 낡아 있었고(같은 `1.2.0`),
@@ -511,6 +511,24 @@ bootstrap 채널의 규율일 뿐이고, 플러그인 채널은 각 하네스의
      의 `installPath` 선언 읽기(§7.0.1)가 claude-code 에서는 필수이고
      codex 에서는 폴백(glob)으로 충분하다. 채널마다 잔재 정책이 다르다는
      사실 자체가 탐침이 선언을 읽어야 하는 이유다.
+
+6. **grok 은 경로에 쓰는 id 와 명령에 주는 이름이 다르다** (2026-09-07 실측).
+   위 표 왼쪽 열이 설치 경로의 `<id>` 를 `plugin-<hash>` 라고 못박아 두어서,
+   복구 열의 `uninstall` 에도 그 id 를 주는 것으로 읽힌다. **아니다** —
+   `grok plugin uninstall --help` 가 `<NAME>  Plugin name (as shown by
+   \`grok plugin list\`)` 라고 적고 있고, id 를 주면 거절당한다:
+
+   ```
+   $ grok plugin details plugin-da9172c3        # ← 설치 경로에 쓰이는 id
+   Error: Plugin "plugin-da9172c3" not found.   # rc 1
+   $ grok plugin details standard-ai-workflow   # ← 매니페스트의 플러그인 이름
+   plugin-da9172c3                              # rc 0 — 출력 머리가 그 id 다
+   ```
+
+   `details` 로 쟀지만 `uninstall` 도 같은 해석기다(둘 다 "by name"). 함정은
+   `plugin list` 의 출력 형식 자체다 — `plugin-da9172c3: standard-ai-workflow`
+   처럼 **id 를 먼저** 찍어서, "`plugin list` 에 보이는 이름" 이라는 안내가
+   오히려 id 를 가리키는 것처럼 읽힌다. 명령에 주는 값은 **콜론 뒤**다.
 
 > 이 표는 `wk doctor` (§7.0.1) 의 **복구 열**이다. 탐침의 `content_drift` 절이
 > 페이로드 해시로 *어긋났다* 는 사실까지 말해 주지만(2026-08-18+), 고치는 방법은

@@ -9,13 +9,25 @@ R-A follow-up 의 *cycle 4* (v0.11.1):
   - Gaps 식별 (uncovered goal priority 1-3)
 - Health score (0-100, 4 tier: excellent ≥80 / good ≥60 / fair ≥40 / poor <40)
 
+**이 지표가 실제로 재는 것은 어휘 겹침이지 프로젝트의 건강도가 아니다.**
+Goals 는 지향 문장이고 deliverable 은 작업 제목이라, 결함 수리 위주의 저장소에서는
+둘이 낱말을 공유할 이유가 없다. 이 저장소 실측(TASK-2026-09-07-main-010): goal 4개
+전부 겹침 공집합이고, 한국어 조사를 제거해도 부분문자열까지 완화해도 회수되는 것은
+`ai` 와 `처럼` 둘뿐이다. **토크나이저를 개선해도 열리지 않는 자리다** — 임계값만 옮긴다.
+따라서 낮은 점수는 "프로젝트가 나쁘다" 가 아니라 **"어휘가 겹치지 않는다"** 로 읽는다.
+이 산출물은 advisory 이고 어떤 skill·harness 지시문도 이것을 소비하지 않는다
+(참조 0건, state.json 에도 저장되지 않는다) — 자동 판정의 근거로 쓰지 않는다.
+
 이 모듈은 llm_wiki README §"Purpose.md — The Wiki's Soul" 의
 *LLM can suggest updates based on usage patterns* 패턴을
 standard_ai_workflow 의 PURPOSE ↔ deliverable 정합 자동 verify 로 정형화.
 
 v0.9.4 builder._parse_purpose_summary + v0.11.0 cycle 3 purpose_ingest 와 정합:
 - 동일 frontmatter / §1 Goals / §3 Research Scope 구조 가정
-- recent_done_items 의 v0.9.4+ 형식 (version + commit hash + summary) parse
+- recent_done_items 는 **두 형식**을 받는다: 현재 표준의 `TASK-…-NNN — 설명` 과
+  v0.9.4 시절 legacy 인 `vX.Y.Z (hash): 설명`. 한때 이 모듈은 legacy 만 알아서
+  살아 있는 항목이 전부 `version="unknown"` 으로 떨어졌고, 그 사실을 아무도
+  보지 못한 이유는 이 경로를 재는 유일한 fixture 가 legacy 형식을 쓰고 있어서였다.
 """
 from __future__ import annotations
 
@@ -26,6 +38,7 @@ from pathlib import Path
 from typing import Any
 
 from workflow_kit.common.paths import memory_active_dir, state_path_for_workspace
+from workflow_kit.common.project_docs import TASK_ID_PATTERN
 
 # PURPOSE.md candidate locations (mirrors purpose_context / purpose_ingest).
 def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
@@ -51,8 +64,16 @@ def _candidate_state_paths(workspace_root: Path) -> list[Path]:
 
 # PURPOSE.md §1 Goals pattern.
 _GOAL_PATTERN = re.compile(r"^[-*]\s+\*\*(G\d+)\*\*\s*:\s*(.+)$", re.MULTILINE)
-# recent_done_items entry pattern: "vX.Y.Z (commit): description"
+# recent_done_items entry pattern (legacy): "vX.Y.Z (commit): description"
 _RECENT_DONE_PATTERN = re.compile(r"^v(\d+\.\d+(?:\.\d+)?)\s+\(([0-9a-f]{7,8})\)\s*:\s*(.+)$")
+
+# recent_done_items entry pattern (current): "TASK-YYYY-MM-DD-<slug>-NNN — description".
+# 표준이 recently-done 항목을 `TASK-` 로 시작하도록 바꾼 뒤 살아 있는 생성기가 내는
+# 형식이 이것이다 (`CLAUDE.md` §Memory Update Paths). 문법은 손으로 옮겨 적지 않고
+# `project_docs.TASK_ID_PATTERN` 정본에서 파생한다 — 복제하면 갈라진다.
+_TASK_DONE_PATTERN = re.compile(
+    rf"^({TASK_ID_PATTERN})\s*(?:[—–-]{{1,2}})\s*(.+)$"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -100,6 +121,9 @@ class SurprisingResult:
     surprising: list[str]  # deliverable summary list
     is_scope_creep: list[bool]  # parallel to surprising
     scope_creep_warnings: list[str]
+    # 분모 — 훑은 deliverable **전체** 수. 호출자가 len(surprising) 로 비율을 내면
+    # 분모가 분자와 같아져 늘 1.0 이 된다. 정본이 함께 돌려주는 이유다.
+    total_items: int = 0
 
 
 @dataclass
@@ -197,7 +221,10 @@ def extract_goal_keywords(purpose_path: Path | None) -> list[GoalKeyword]:
 
 
 def parse_recent_done_items(state_path: Path | None) -> list[RecentDoneItem]:
-    """state.json 의 recent_done_items 30+ entries 파싱.
+    """state.json 의 `session.recent_done_items` 파싱.
+
+    두 형식을 받는다. 현재 표준은 `TASK-…-NNN — 설명` 이고, `vX.Y.Z (hash): 설명`
+    은 v0.9.4 시절의 legacy 다. 둘 다 아니면 줄 전체를 본문으로 본다.
 
     부재 / json 파싱 실패 / corrupted 모두 graceful skip → empty list.
     """
@@ -221,7 +248,9 @@ def parse_recent_done_items(state_path: Path | None) -> list[RecentDoneItem]:
     for entry in items:
         if not isinstance(entry, str):
             continue
-        m = _RECENT_DONE_PATTERN.match(entry.strip())
+        stripped = entry.strip()
+        m = _RECENT_DONE_PATTERN.match(stripped)
+        task_m = None if m else _TASK_DONE_PATTERN.match(stripped)
         if m:
             version, commit_hash, summary = m.group(1), m.group(2), m.group(3)
             full = f"v{version} ({commit_hash}): {summary}"
@@ -231,6 +260,17 @@ def parse_recent_done_items(state_path: Path | None) -> list[RecentDoneItem]:
                 commit_hash=commit_hash,
                 summary=full,
                 keywords=keywords,
+            ))
+        elif task_m:
+            # ID 는 **본문에서 뺀다**. 그러지 않으면 모든 항목이 공유하는
+            # `task` / `2026` / `09` / `main` / `008` 이 키워드 집합에 들어가
+            # 어휘 겹침을 재는 자리에 순수한 잡음을 섞는다.
+            task_id, summary = task_m.group(1), task_m.group(2)
+            result.append(RecentDoneItem(
+                version=task_id,
+                commit_hash="",
+                summary=stripped,
+                keywords=_tokenize(summary),
             ))
         else:
             # 형식 불일치 — keyword 추출만 시도
@@ -321,8 +361,24 @@ def compute_goal_coverage(
 
 
 # ---------------------------------------------------------------------------
-# step 4: Surprising 발견 (scope creep 감지)
+# step 4: Surprising 발견 (미분류 deliverable)
 # ---------------------------------------------------------------------------
+
+UNCLASSIFIED_WARNING_PREFIX = "미분류 산출물:"
+"""이 모듈이 내는 경고의 접두사 (정본).
+
+`purpose_context.check_scope_creep` 과 **접두사를 공유하면 안 된다**. 두 술어가
+정반대이기 때문이다 (TASK-2026-09-07-main-010 실측):
+
+- `purpose_context`: §3 제외 영역에 **걸리면** scope creep — 하려던 그 의미다.
+- 이 모듈: goal 에도 제외 영역에도 **안 걸리면** — 즉 *분류할 수 없다*.
+
+둘 다 `"scope creep 의심:"` 으로 시작하던 동안, 두 경고는 `scope_creep_warnings`
+라는 **같은 이름의 두 필드**(top-level / `graph_insights.`)로 나가면서 읽는 쪽이
+어느 규칙이 울렸는지 구분할 수 없었다. 필드 이름은 공개 schema 라 여기서 바꾸지
+않는다 (G3 SemVer 보증 — 개명은 deprecation 사이클을 탄다). 대신 **문구**로 가른다.
+`check_graph_insights_health_monotonic.py` 가 두 접두사의 분리를 고정한다.
+"""
 
 
 def find_surprising_deliverables(
@@ -358,7 +414,8 @@ def find_surprising_deliverables(
         if not matches_excluded:
             is_scope_creep.append(True)
             scope_creep_warnings.append(
-                f"scope creep 의심: '{item.summary[:80]}...' — Goals 매칭 0 + scope_excluded 매칭 ❌"
+                UNCLASSIFIED_WARNING_PREFIX
+                + f" '{item.summary[:80]}...' — Goals 어휘 겹침 0 + §3 제외 영역 겹침 0"
             )
         else:
             is_scope_creep.append(False)
@@ -367,6 +424,7 @@ def find_surprising_deliverables(
         surprising=surprising,
         is_scope_creep=is_scope_creep,
         scope_creep_warnings=scope_creep_warnings,
+        total_items=len(recent_items),
     )
 
 
@@ -412,16 +470,48 @@ def compute_health_score(
     surprising: SurprisingResult | None,
     gaps: GapResult | None,
 ) -> HealthScore:
-    """종합 점수: 100 - uncovered*15 - scope_creep*10 + min(surprising*5, 25)."""
+    """Goal 어휘 ↔ deliverable 제목 어휘의 **겹침 비율** 점수 (0-100).
+
+    이것은 프로젝트의 건강도가 아니라 *두 텍스트가 같은 낱말을 쓰는가* 다.
+    낮은 값은 대개 '프로젝트가 나쁘다' 가 아니라 **'지향 문장과 작업 제목이
+    어휘를 공유하지 않는다'** 를 뜻한다 — 결함 수리 위주의 저장소에서는
+    정상적으로 낮게 나온다. 해석은 `docs/` 가 아니라 이 docstring 이 정본이다.
+
+    두 성분의 합이고 **둘 다 비율**이다 (항목 *개수* 가 아니다):
+
+    - coverage 성분 (0-70): `70 * covered/total_goals`
+    - classification 성분 (0-30): `30 * (1 - 미분류/전체 deliverable)`
+
+    개수 기반 벌점을 쓰지 않는 이유가 핵심이다 (TASK-2026-09-07-main-010 실측):
+    옛 식 `100 - uncovered*15 - scope_creep*10 + min(surprising*5, 25)` 은
+    벌점이 항목 수에 비례해 무한히 커지는데 보너스는 25 에서 막혀 있어,
+    **완료 항목이 늘수록 점수가 내려갔다** — goal 매칭 0 을 고정하고 재면
+    0건 40 → 3건 25 → 10건 -35(0 으로 clamp). 표준이 recently-done 을 10건으로
+    상한하므로 활발한 저장소는 영구히 바닥에 눌렸고, 그 0 은 '나쁘다' 가 아니라
+    **clamp 자국**이었다. 비율로 바꾸면 매칭된 일을 더 하는 것이 점수를 절대
+    내리지 못한다 — `check_graph_insights_health_monotonic.py` 가 그것을 잰다.
+    """
     if coverage is None:
         return HealthScore(score=0, tier="poor", breakdown={"missing_coverage": 100})
 
-    base = 100
-    uncovered = coverage.uncovered_count
-    scope_creep = sum(1 for s in surprising.is_scope_creep if s) if surprising else 0
-    surprising_bonus = min(len(surprising.surprising) * 5, 25) if surprising else 0
+    total_goals = coverage.total_goals
+    if total_goals > 0:
+        coverage_component = 70.0 * coverage.covered_count / total_goals
+    else:
+        coverage_component = 0.0
 
-    score = base - (uncovered * 15) - (scope_creep * 10) + surprising_bonus
+    # 미분류 = goal 매칭 0 이면서 scope_excluded 에도 안 걸린 deliverable.
+    # 분모는 **전체 deliverable 수** 다 — 개수가 아니라 비율이어야 단조성이 선다.
+    unclassified = sum(1 for s in surprising.is_scope_creep if s) if surprising else 0
+    total_items = surprising.total_items if surprising else 0
+    if total_items > 0:
+        classification_component = 30.0 * (1.0 - unclassified / total_items)
+    else:
+        # 잴 deliverable 이 없다 = 잘못 분류된 것도 없다. 통과가 아니라 **해당 없음**이라
+        # 만점을 주지 않고 성분을 0 으로 둔다 (없음을 좋음으로 세지 않는다).
+        classification_component = 0.0
+
+    score = int(round(coverage_component + classification_component))
     score = max(0, min(100, score))
 
     if score >= 80:
@@ -434,10 +524,10 @@ def compute_health_score(
         tier = "poor"
 
     breakdown = {
-        "base": base,
-        "uncovered_penalty": uncovered * 15,
-        "scope_creep_penalty": scope_creep * 10,
-        "surprising_bonus": surprising_bonus,
+        "coverage_component": int(round(coverage_component)),
+        "classification_component": int(round(classification_component)),
+        "unclassified_items": unclassified,
+        "total_items": total_items,
     }
 
     return HealthScore(score=score, tier=tier, breakdown=breakdown)
@@ -553,6 +643,7 @@ def run_graph_insights(
 
 
 __all__ = [
+    "UNCLASSIFIED_WARNING_PREFIX",
     "GoalKeyword",
     "RecentDoneItem",
     "GoalCoverageResult",

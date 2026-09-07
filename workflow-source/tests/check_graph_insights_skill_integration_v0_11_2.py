@@ -63,8 +63,8 @@ def test_session_start_graph_insights_v0_11_2() -> None:
         (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
         (ai_dir / "state.json").write_text(json.dumps({
             "session": {"recent_done_items": [
-                "v0.1.0 (aaaaaaa): 표준 워크플로우 release",
-                "v0.2.0 (bbbbbbb): skill 분리",
+                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
+                "TASK-2026-01-01-main-002 — skill 등록 절차를 공통과 프로젝트별로 분리",
             ]}
         }, ensure_ascii=False), encoding="utf-8")
 
@@ -95,7 +95,7 @@ def test_session_start_graph_insights_v0_11_2() -> None:
         ai_dir = ws / "ai-workflow" / "memory" / "active"
         ai_dir.mkdir(parents=True, exist_ok=True)
         (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.1.0 (aaa): work"]}
+            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — work"]}
         }, ensure_ascii=False), encoding="utf-8")
 
         from workflow_kit.common.purpose_graph import run_graph_insights
@@ -197,7 +197,7 @@ def test_backlog_update_graph_insights_v0_11_2() -> None:
         (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
         (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
         (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.1.0 (aaa): 표준 워크플로우 release"]}
+            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
         }, ensure_ascii=False), encoding="utf-8")
 
         from workflow_kit.common.purpose_graph import run_graph_insights
@@ -308,7 +308,7 @@ def test_doc_sync_graph_insights_v0_11_2() -> None:
         (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
         (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
         (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.1.0 (aaa): 표준 워크플로우 release"]}
+            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
         }, ensure_ascii=False), encoding="utf-8")
 
         from workflow_kit.common.purpose_graph import run_graph_insights
@@ -481,8 +481,8 @@ def test_graph_insights_skills_no_state_mutation_v0_11_2() -> None:
         (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
         (ai_dir / "state.json").write_text(json.dumps({
             "session": {"recent_done_items": [
-                "v0.1.0 (aaaaaaa): 표준 워크플로우 release",
-                "v0.2.0 (bbbbbbb): skill 분리",
+                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
+                "TASK-2026-01-01-main-002 — skill 등록 절차를 공통과 프로젝트별로 분리",
             ]}
         }, ensure_ascii=False), encoding="utf-8")
 

@@ -59,7 +59,11 @@ class GraphInsightsOutput(BaseModel):
     - coverage_pct: 0.0-100.0 (Goals ↔ deliverables 매칭률)
     - health_score: 0-100 종합 점수
     - health_tier: excellent / good / fair / poor
-    - scope_creep_warnings: scope_excluded 매칭 ❌ + Goals 매핑 0 deliverable
+    - scope_creep_warnings: **미분류** deliverable — Goals 겹침 0 *이면서* §3 제외
+      영역 겹침도 0. 이름과 달리 `purpose_context.check_scope_creep` 의 scope creep
+      (= 제외 영역에 **걸린** 것) 과 술어가 반대다. 두 경고를 구분하려면 필드 이름이
+      아니라 **문구**를 본다 — 이쪽은 `purpose_graph.UNCLASSIFIED_WARNING_PREFIX`
+      로 시작한다. 필드 개명은 공개 schema 라 deprecation 사이클이 필요하다 (G3/G4).
     """
 
     coverage_pct: float = 0.0

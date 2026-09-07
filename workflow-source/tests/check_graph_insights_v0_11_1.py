@@ -166,8 +166,8 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         state = ws / "state.json"
         state.write_text(json.dumps({
             "session": {"recent_done_items": [
-                "v0.1.0 (aaaaaaa): 표준 워크플로우 release",
-                "v0.2.0 (bbbbbbb): skill 분리 정공법",
+                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
+                "TASK-2026-01-01-main-002 — skill 등록 절차를 공통과 프로젝트별로 분리",
             ]}
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
@@ -192,7 +192,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         state = ws / "state.json"
         state.write_text(json.dumps({
             "session": {"recent_done_items": [
-                "v0.1.0 (aaaaaaa): 표준 워크플로우 release",
+                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
             ]}
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
@@ -217,7 +217,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         state = ws / "state.json"
         state.write_text(json.dumps({
             "session": {"recent_done_items": [
-                "v0.1.0 (aaaaaaa): unrelated work",
+                "TASK-2026-01-01-main-003 — unrelated work",
             ]}
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
@@ -304,7 +304,16 @@ def test_find_gaps_v0_11_1() -> None:
 
 
 def test_compute_health_score_v0_11_1() -> None:
-    """4 tier verify."""
+    """4 tier verify — **비율** 산식 (TASK-2026-09-07-main-010 수리 후).
+
+    옛 산식은 개수 기반 벌점이라 완료 항목이 늘수록 점수가 내려갔다. 지금은
+    두 성분 모두 비율이다: coverage 70 * covered/total_goals +
+    classification 30 * (1 - 미분류/전체).
+
+    `total_items` 를 **일관되게** 준다. 옛 fixture 는 coverage 100% 를 주장하면서
+    total_items 를 0 으로 두었는데, 그것은 deliverable 이 없는데 그것으로 goal 이
+    덮였다는 뜻이라 실제 파이프라인에서는 성립할 수 없는 상태다.
+    """
     from workflow_kit.common.purpose_graph import (
         GoalCoverageResult,
         SurprisingResult,
@@ -312,35 +321,44 @@ def test_compute_health_score_v0_11_1() -> None:
         compute_health_score,
     )
 
-    # case 1: excellent (coverage 100%, no scope_creep)
+    # case 1: excellent (coverage 100%, 미분류 0)
     cov = GoalCoverageResult(total_goals=3, covered_count=3, partial_count=0, uncovered_count=0, coverage_pct=100.0, covered=["G1", "G2", "G3"])
-    surp = SurprisingResult(surprising=[], is_scope_creep=[], scope_creep_warnings=[])
+    surp = SurprisingResult(surprising=[], is_scope_creep=[], scope_creep_warnings=[], total_items=3)
     health = compute_health_score(cov, surp, None)
-    assert health.score == 100
+    assert health.score == 100, health.score  # 70 + 30
     assert health.tier == "excellent"
-    print(f"  case 1 (100/100 excellent): PASS")
+    print("  case 1 (coverage 100% + 미분류 0 = 100 excellent): PASS")
 
-    # case 2: good (coverage 50%)
+    # case 2: coverage 50%, 미분류 0
     cov = GoalCoverageResult(total_goals=2, covered_count=1, partial_count=0, uncovered_count=1, coverage_pct=50.0, covered=["G1"], uncovered=["G2"])
     health = compute_health_score(cov, surp, None)
-    assert health.score == 85  # 100 - 1*15 + 0
-    assert health.tier == "excellent"
-    print(f"  case 2 (50% coverage 85 excellent): PASS")
+    assert health.score == 65, health.score  # 35 + 30
+    assert health.tier == "good"
+    print("  case 2 (coverage 50% + 미분류 0 = 65 good): PASS")
 
-    # case 3: poor (many uncovered + scope creep)
+    # case 3: poor (coverage 20%, 전부 미분류)
     cov = GoalCoverageResult(total_goals=5, covered_count=1, partial_count=0, uncovered_count=4, coverage_pct=20.0, covered=["G1"], uncovered=["G2", "G3", "G4", "G5"])
-    surp = SurprisingResult(surprising=["a", "b", "c", "d"], is_scope_creep=[True, True, True, True], scope_creep_warnings=[])
+    surp = SurprisingResult(surprising=["a", "b", "c", "d"], is_scope_creep=[True] * 4, scope_creep_warnings=[], total_items=4)
     health = compute_health_score(cov, surp, None)
-    # 100 - 4*15 - 4*10 + min(4*5, 25) = 100 - 60 - 40 + 20 = 20
-    assert health.score == 20
+    assert health.score == 14, health.score  # 70*1/5 + 30*0 = 14
     assert health.tier == "poor"
-    print(f"  case 3 (4 uncovered + 4 scope_creep = 20 poor): PASS")
+    print("  case 3 (coverage 20% + 미분류 100% = 14 poor): PASS")
 
     # case 4: None coverage
     health = compute_health_score(None, None, None)
     assert health.score == 0
     assert health.tier == "poor"
-    print(f"  case 4 (None coverage): PASS")
+    print("  case 4 (None coverage): PASS")
+
+    # case 5: **항목 수는 점수를 움직이지 못한다** — 옛 산식이 죽은 자리다.
+    #         비율이 같으면 1건이든 30건이든 같은 점수여야 한다.
+    scores = []
+    for n in (1, 2, 3, 5, 10, 30):
+        cov_n = GoalCoverageResult(total_goals=4, covered_count=2, partial_count=0, uncovered_count=2, coverage_pct=50.0, covered=["G1", "G2"], uncovered=["G3", "G4"])
+        surp_n = SurprisingResult(surprising=["x"] * n, is_scope_creep=[True] * n, scope_creep_warnings=[], total_items=n * 2)
+        scores.append(compute_health_score(cov_n, surp_n, None).score)
+    assert len(set(scores)) == 1, f"항목 수가 점수를 움직였다: {scores}"
+    print(f"  case 5 (항목 수 1~30 에서 점수 불변 {scores[0]}): PASS")
 
 
 # ---------------------------------------------------------------------------
@@ -363,7 +381,7 @@ def test_run_graph_insights_unified_v0_11_1() -> None:
         )
         state = ws / "state.json"
         state.write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.1.0 (aaaaaaa): 표준 워크플로우 release"]}
+            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
         }, ensure_ascii=False), encoding="utf-8")
         result = run_graph_insights(
             purpose_path=purpose,
@@ -382,7 +400,7 @@ def test_run_graph_insights_unified_v0_11_1() -> None:
         ws = Path(tmpdir)
         state = ws / "state.json"
         state.write_text(json.dumps({
-            "session": {"recent_done_items": ["v0.1.0 (aaa): work"]}
+            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — work"]}
         }, ensure_ascii=False), encoding="utf-8")
         result = run_graph_insights(
             purpose_path=ws / "nonexistent.md",

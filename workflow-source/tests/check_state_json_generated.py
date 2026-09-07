@@ -126,10 +126,22 @@ def case_5_self_application() -> None:
     if not profile.is_file() or not state_path.is_file():
         raise AssertionError("자기 적용 대상 문서가 없다 (profile 또는 state.json 부재)")
     rc, payload = _run_tool(["--project-profile-path", str(profile), "--check"])
-    assert rc == 0, (
-        "이 저장소의 state.json 이 생성기 출력과 갈라졌다. state.json 은 생성물이다 — "
-        f"`wk refresh-state` 로 재생성하라 (정본 §11). drifted_keys={payload.get('drifted_keys')}"
-    )
+    # `refresh-state --check` 는 state.json **또는** roadmap_state.json 중 하나만
+    # 갈라져도 rc=1 이다. 어느 쪽인지 payload 를 보고 말한다 — 예전에는 문구가 늘
+    # state.json 을 지목해서, roadmap 만 갈라진 경우 읽는 쪽이 멀쩡한 state.json 을
+    # 재생성하러 갔다 (drifted_keys=[] 인데 '갈라졌다' 고만 적혀 있었다).
+    if rc != 0:
+        culprits = []
+        if payload.get("drift"):
+            culprits.append(f"state.json (drifted_keys={payload.get('drifted_keys')})")
+        if payload.get("roadmap_drift"):
+            culprits.append(f"roadmap_state.json ({payload.get('roadmap_drift_reason')})")
+        if not culprits:
+            culprits.append(f"어느 산출물인지 payload 가 말하지 않는다: {payload}")
+        raise AssertionError(
+            "이 저장소의 생성물이 생성기 출력과 갈라졌다 — " + " / ".join(culprits)
+            + ". 손으로 고치지 말고 `wk refresh-state` 로 재생성하라 (정본 §11, ADR-027 §7)."
+        )
 
 
 def case_6_declaration_matches_exposure() -> None:

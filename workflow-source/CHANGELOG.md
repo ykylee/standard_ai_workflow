@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-04
+- 최종 수정일: 2026-09-07
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-03
+## [Unreleased] - 2026-09-07
 
 ### Added
 
@@ -50,6 +50,9 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(memory): 76차 세션 종료 — 예제 산출물 드리프트에서 생성기 결함 2건을 파내 닫고 사본 1건·문서 오기 1건 정리 (fb9a6184)
+- docs(installation): §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽히던 것을 고친다 (14422cc2)
+- chore(memory): 75차 세션 종료 — 손질 두 자리를 파생·판정으로 닫고 v1.9.2 발행·재적용 (0083eaaa)
 - chore(memory): 74차 세션 종료 — 잦던 불일치 보고를 도구 결함으로 확정·수리·발행·적용 (2e57ad45)
 - chore(memory): 72차 세션 종료 — 손 목록·리터럴·주장을 파생으로 전환 5건 + v1.8.1 발행 (0453dabf)
 - chore(memory): 전역 wk 1.8.0 재설치 + 새 탐침이 패키징 결함 적발 (main-001 등록) (bfd25c15)
@@ -77,13 +80,13 @@ All notable changes to this project will be documented in this file.
 - chore(harness): 자기 적용 산출물을 v1.4.0 으로 재적용 — 낡은 마커 5 → 0 (69e35a8b)
 - refactor(memory)!: 레거시 task 라벨 마이그레이션 — 도구로, 파싱 동일성을 잠금장치로 (main-004) (64a5370f)
 - docs(decision): 혼합 표기 결정 재료 — 실측이 질문을 다시 세웠다 (main-002, -003) (dd682224)
-- chore(memory): 53차 세션 종료 — 탐침 7절 + installPath 선언 + 라벨 영어 전환 (201f5a8e)
-- chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 실측 + 채널 파리티 (75e9275a)
-- chore(memory): 51차 세션 종료 — v1.3.0 발행 + 관찰 축 3개 실측 (main-004~007) (17847a0d)
-- ... (356 more)
+- ... (359 more)
 
 ### Fixed
 
+- fix(paths): 설치본에서 증발하는 모듈 앵커 — 소비자 배포처 모순의 뿌리를 닫는다 (30d2804b)
+- fix(backlog): task ID 채번이 원격을 함께 본다 — 코드가 적고 있던 거짓 보증을 지운다 (67fd0776)
+- fix(state): 예제 산출물 드리프트에서 생성기 결함 2건을 파내 정본과 판정으로 닫는다 (f21838f4)
 - fix(release): 발행마다 손이 가던 두 자리를 파생과 판정으로 닫는다 (main-003·004) (bb55ccd5)
 - fix(session-start): 상태 불일치 경고의 분모를 task corpus 전수로 바꾼다 (main-002) (b3f3eff9)
 - fix(backlog-update): done 강등이 이미 기록된 완료를 취소하지 않는다 (main-003) (e6f033db)
@@ -111,15 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(bootstrap): daily backlog 를 정본 작성기로 조립한다 — 사본을 없앴다 (main-003) (6a2c94ad)
 - fix(tests): watch_transient flake — 이벤트 1건은 완결본을 뜻하지 않는다 (main-001) (900c9455)
 - fix(ci): consumer-metrics-digest 가 실재하는 경로를 부른다 (main-017) (8b2c6ebb)
-- fix(ci): okf-validate 가 okf_version 을 정본에서 파생한다 (main-016) (72ecff6c)
-- fix(entrypoint): 산문 목록 파생 + 사라지던 planned + 포크 병합 (main-013, -014, -015) (cd0ff943)
-- fix(doctor): 어느 사본이 설치본인지 선언을 읽는다 — 갱신이 보고를 나쁘게 만들던 자리 (main-010) (151627ee)
-- ... (141 more)
+- ... (144 more)
+
+## [1.9.3] - 2026-09-07
+
+### Changed
+
+- release(v1.9.3): 발행 준비 — 소비자 배포처 모순의 뿌리를 닫는다 (6b3c070e)
 
 ## [1.9.2] - 2026-09-04
 
 ### Changed
 
+- chore(memory): v1.9.2 소비 채널 재적용 기록 (main-002) (f7796bdf)
+- release(v1.9.2): 발행 완료 — 태그 push + GitHub Release(asset 4종) + post-step 정합 (cde2d0ef)
 - release(v1.9.2): 발행 준비 — 발행 절차의 손질 두 자리 제거 (c5634267)
 
 ## [1.9.1] - 2026-09-03

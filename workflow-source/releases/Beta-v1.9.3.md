@@ -160,3 +160,20 @@ v1.9.2 가 없앤 바로 그 왕복이다. 규칙을 kit 정본
 - 이전 release note: `Beta-v1.9.2.md`
 - task: `TASK-2026-09-07-main-001` ~ `main-007`
 - 정본 문서: `MEMORY_GOVERNANCE.md` (§task ID 형식) · `docs/RELEASE.md` §2.3
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-07T03:52:11Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

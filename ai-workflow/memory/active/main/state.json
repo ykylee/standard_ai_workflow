@@ -54,8 +54,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-07.md",
-    "task_count": 10,
-    "in_progress_items": [],
+    "task_count": 11,
+    "in_progress_items": [
+      "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-07-main-001 — handoff 경로에 legacy fallback 이 없다 — 평평한 workspace 의 기준선이 조용히 사라진다",

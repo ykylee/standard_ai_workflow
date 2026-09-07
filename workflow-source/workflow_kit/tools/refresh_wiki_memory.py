@@ -74,9 +74,10 @@ except ImportError:
 # v1.0.0 branch-scoped memory: 작업 상태 파일은 `memory/active/` 바로 아래가 아니라
 # `memory/active/<branch>/` 에 있다. 규칙을 여기에 복사하지 않고 정식 resolver 를 쓴다.
 try:
-    from workflow_kit.common.paths import path_in_active
+    from workflow_kit.common.paths import branch_for_workspace, path_in_active
 except ImportError:
     path_in_active = None  # type: ignore[assignment]
+    branch_for_workspace = None  # type: ignore[assignment]
 
 _LEGACY_REPO_ROOT = Path.home() / "repos" / "standard_ai_workflow_minimax"
 _DEPRECATION_WARNED = False
@@ -146,9 +147,17 @@ GENERATED_STATUS = "draft"
 
 
 def _active_path(leaf: str) -> Path:
-    """`memory/active/` 하위 작업 상태 파일의 branch-scoped 경로."""
+    """`memory/active/` 하위 작업 상태 파일의 branch-scoped 경로.
+
+    branch 를 **명시**해서 넘긴다 (TASK-2026-09-07-main-007). 인자를 비우면
+    `path_in_active` 가 `get_current_branch()`(= 모듈 앵커)로 떨어지는데, 설치본
+    에서는 그 앵커가 git 저장소가 아니라 조용히 `"main"` 이 된다 — `REPO_ROOT` 는
+    `--repo-root`/env/cwd 로 **대상 저장소**를 제대로 잡아 놓고 branch 만 딴 데서
+    오는 셈이라, 같은 도구 안에서 경로의 앞뒤가 어긋난다.
+    """
     if path_in_active is not None:
-        return path_in_active(ACTIVE_BASE, leaf)
+        branch = branch_for_workspace(REPO_ROOT) if branch_for_workspace is not None else None
+        return path_in_active(ACTIVE_BASE, leaf, branch)
     # standalone script fallback — branch 해석 불가 시 legacy 경로.
     return ACTIVE_BASE / leaf
 

@@ -25,6 +25,30 @@ profile 을 받는 `workflow_branch_dir` / `workflow_archived_branch_dir` 는
    `workflow_branch_dir` / `workflow_archived_branch_dir`)가 **같은 slug** 를 쓴다.
 2. 그 slug 는 **workspace 자신의** branch 다 (모듈 저장소의 것이 아니다).
 3. workspace 가 git 저장소가 아니면 기존 동작(모듈 저장소 기준)으로 되돌아간다.
+4. **task ID 채번의 slug** 도 같은 답을 쓴다 — ID 가 자기 네임스페이스와 어긋나면
+   안 된다.
+5. 위 전부가 **설치본 배치**(모듈 앵커가 git 저장소가 **아닌** 곳)에서도 성립한다.
+
+## 왜 4·5 가 뒤늦게 붙었나 (TASK-2026-09-07-main-007)
+
+이 검사는 오래 경로 해석기 **3개**만 봤고, 정작 사용자 눈에 보이는 모순은 대상
+밖인 채번에서 났다. 그리고 **다섯 번째 계약이 없는 것이 더 컸다**:
+`get_current_branch()` 는 `Path(__file__).parents[3]` 에 앵커를 박는데, 소스
+배치에서는 그것이 저장소 루트라 *틀린 해석기가 우연히 맞는 답*을 낸다. 설치본
+(uv tool / 플러그인 캐시)에서는 `…/lib/python3.13` 이라 git 저장소가 아니고,
+조회가 실패해 답이 **조용히 `"main"`** 으로 떨어진다 — 오류가 아니라 그럴듯한
+오답이다.
+
+실측(설치본 배치 + `feature/xyz` 소비자, 수리 전):
+
+    wk backlog-update →  ID: TASK-…-main-001
+                         파일: active/feature/xyz/backlog/tasks/TASK-…-main-001.md
+
+ID 의 slug 와 그것이 사는 네임스페이스가 어긋났고, 두 브랜치가 모두 `main-001` 을
+매겨 병합 시 충돌했다 — slug 가 존재하는 이유가 소비자에서 통째로 무효였다.
+**이 저장소에서는 이 모든 게 보이지 않는다.** 그래서 case 5 는 패키지를 git
+저장소가 아닌 곳으로 **실제 복사**해서 잰다 (symlink 은 `resolve()` 가 되짚어
+소스로 돌아가므로 흉내가 되지 않는다).
 
 Cross-ref: releases/Beta-v1.0.0.md §2.50.
 """
@@ -39,7 +63,9 @@ WATCHES = (
 )
 
 import contextlib
+import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -51,12 +77,15 @@ sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.paths import (  # noqa: E402
     BRANCH_ENV_KEYS,
+    BRANCH_SOURCE_DEFAULT,
     branch_for_workspace,
     get_current_branch,
+    resolve_branch_for_workspace,
     state_path_for_workspace,
     workflow_archived_branch_dir,
     workflow_branch_dir,
 )
+from workflow_kit.tools.backlog_update import branch_slug  # noqa: E402
 
 PROBE_BRANCH = "feature/branch-resolver-probe"
 
@@ -194,9 +223,79 @@ def test_branch_env_override_wins() -> None:
                     os.environ[key] = value
 
 
+def test_minting_slug_matches_the_namespace() -> None:
+    """채번 slug 가 파일이 사는 네임스페이스와 같은 브랜치를 쓴다 (계약 4)."""
+    with _without_branch_env(), tempfile.TemporaryDirectory() as td:
+        ws = _workspace(td)
+        profile = ws / "docs" / "PROJECT_PROFILE.md"
+        namespace = _slug_after_memory(workflow_branch_dir(profile), "active")
+        minting = branch_slug(resolve_branch_for_workspace(ws).slug)
+        # 네임스페이스는 `feature/probe`, slug 는 `feature-probe` 로 정규화된다.
+        assert minting == namespace.replace("/", "-"), (
+            f"채번 slug {minting!r} != 네임스페이스 {namespace!r} — "
+            "ID 가 자기 디렉터리와 어긋난다"
+        )
+
+
+def test_installed_shape_does_not_fall_back_to_module_anchor() -> None:
+    """모듈 앵커가 git 저장소가 아닌 배치에서도 workspace 기준이 유지된다 (계약 5).
+
+    패키지를 **복사**해 `parents[3]` 이 저장소가 아니게 만든 뒤, 소비자 저장소에서
+    자식 프로세스로 재는다. 같은 프로세스 안에서는 이미 import 된 모듈의 `__file__`
+    을 바꿀 수 없다.
+    """
+    with _without_branch_env(), tempfile.TemporaryDirectory() as td:
+        site = Path(td) / "lib" / "python3.13" / "site-packages"
+        site.mkdir(parents=True)
+        shutil.copytree(
+            SOURCE_ROOT / "workflow_kit", site / "workflow_kit",
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
+        assert not (site.parent / ".git").exists(), "흉내낸 설치 경로가 저장소면 의미가 없다"
+        ws = _workspace(td)
+        probe = (
+            "import json,sys;"
+            "from pathlib import Path;"
+            "from workflow_kit.common.paths import ("
+            " get_current_branch, resolve_branch_for_workspace);"
+            "import workflow_kit.common.paths as P;"
+            "ws=Path(sys.argv[1]);"
+            "r=resolve_branch_for_workspace(ws);"
+            "print(json.dumps({'anchor_is_repo':"
+            " (Path(P.__file__).resolve().parents[3]/'.git').exists(),"
+            " 'module':get_current_branch(),'ws':r.slug,'src':r.source}))"
+        )
+        env = {k: v for k, v in os.environ.items() if k not in BRANCH_ENV_KEYS}
+        env["PYTHONPATH"] = str(site)
+        out = subprocess.run(
+            [sys.executable, "-c", probe, str(ws)],
+            capture_output=True, text=True, timeout=120, env=env, cwd=str(ws),
+        )
+        assert out.returncode == 0, f"탐침 실패: {out.stderr[-400:]}"
+        got = json.loads(out.stdout.strip().splitlines()[-1])
+
+    assert got["anchor_is_repo"] is False, (
+        "흉내낸 설치 배치의 모듈 앵커가 여전히 git 저장소다 — 이 case 가 아무것도 재지 못한다"
+    )
+    assert got["ws"] == PROBE_BRANCH, (
+        f"설치본 배치에서 workspace 브랜치가 {got['ws']!r} 로 떨어졌다 "
+        f"(기대 {PROBE_BRANCH!r}) — 모듈 앵커로 되돌아갔다"
+    )
+    assert got["src"] != BRANCH_SOURCE_DEFAULT, (
+        f"출처가 {got['src']!r} 다 — workspace 를 보지 않고 기본값으로 답했다"
+    )
+    # 모듈 앵커 접근자는 그대로 'main' 이어야 한다. 그것이 이 결함의 모양이고,
+    # 여기서 그 값이 바뀌면 이 case 가 무엇을 재는지 알 수 없어진다.
+    assert got["module"] == "main", (
+        f"모듈 앵커 접근자가 {got['module']!r} — 흉내가 성립하지 않았다"
+    )
+
+
 def main() -> int:
     test_funcs = [
         test_resolvers_agree_on_a_foreign_workspace,
+        test_minting_slug_matches_the_namespace,
+        test_installed_shape_does_not_fall_back_to_module_anchor,
         test_state_and_docs_land_in_the_same_branch_dir,
         test_non_git_workspace_falls_back_to_module_repo,
         test_explicit_branch_argument_still_wins,

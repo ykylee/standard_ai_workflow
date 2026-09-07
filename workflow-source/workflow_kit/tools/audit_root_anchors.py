@@ -110,7 +110,13 @@ WORKSPACE_BEARING_PARAM_NAMES: frozenset[str] = WORKSPACE_PARAM_NAMES | {
 }
 
 #: 모듈 위치에서 branch 를 얻는 함수 — workspace 를 받는 자리에서 쓰면 R3.
-MODULE_BRANCH_FUNCS: frozenset[str] = frozenset({"get_current_branch"})
+#: 모듈 앵커에서 branch 를 얻는 함수들. **어휘가 좁아지면 규칙이 조용히 사라진다**
+#: — v1.9.3 에 `_resolve_module_branch` 가 새 fallback 정본이 됐을 때 이 집합이
+#: `get_current_branch` 하나여서 R3 가 그 자리를 못 봤다 (TASK-2026-09-07-main-007).
+MODULE_BRANCH_FUNCS: frozenset[str] = frozenset({
+    "get_current_branch",
+    "_resolve_module_branch",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -143,10 +149,12 @@ ROOT_ANCHOR_LEDGER: tuple[LedgerEntry, ...] = (
     LedgerEntry(
         rule="branch_from_module_repo",
         path="workflow-source/workflow_kit/common/paths.py",
-        symbol="branch_for_workspace",
+        symbol="resolve_branch_for_workspace",
         reason=(
             "workspace 가 git 저장소가 아닐 때(temp fixture 등) 모듈 저장소 기준으로 "
-            "되돌아가는 **선언된 fallback**이다 — 이 함수가 R3 규칙 자체의 정본이다."
+            "되돌아가는 **선언된 fallback**이다 — 이 함수가 R3 규칙 자체의 정본이다. "
+            "v1.9.3 에 `branch_for_workspace` 에서 이리로 옮겼고, 되돌아갔다는 사실은 "
+            "이제 반환값의 `source` 로 드러난다 (조용히 떨어지지 않는다)."
         ),
     ),
 )

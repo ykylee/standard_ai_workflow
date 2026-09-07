@@ -3,6 +3,7 @@
 from __future__ import annotations
 import os
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 
@@ -280,12 +281,7 @@ def get_current_branch() -> str:
     of the bare ``HEAD`` literal, which would otherwise fall through to
     ``main`` and lose the context. F-7 (v0.7.26) fix.
     """
-    for env_key in BRANCH_ENV_KEYS:
-        branch = _usable_branch_name(os.environ.get(env_key))
-        if branch:
-            return branch
-
-    return _git_branch_slug(Path(__file__).resolve().parents[3]) or "main"
+    return _resolve_module_branch().slug
 
 
 def branch_slug_for(repo_root: Path) -> str:
@@ -349,11 +345,83 @@ def branch_for_workspace(workspace_root: Path) -> str:
     workspace 의 git 을 본다. workspace 가 git 저장소가 아니면(temp workspace 등)
     기존 동작으로 되돌아간다.
     """
+    return resolve_branch_for_workspace(workspace_root).slug
+
+
+#: `resolve_branch_for_workspace` 가 답의 **출처** 로 쓰는 어휘.
+#: `MODULE_REPO` 와 `DEFAULT` 는 둘 다 "이 workspace 를 보고 답한 것이 아니다" 라는
+#: 뜻이라, 소비자 도구는 그 둘을 경고 대상으로 삼는다.
+BRANCH_SOURCE_ENV = "env"
+BRANCH_SOURCE_WORKSPACE_GIT = "workspace_git"
+BRANCH_SOURCE_MODULE_REPO = "module_repo"
+BRANCH_SOURCE_DEFAULT = "default"
+
+
+@dataclass(frozen=True)
+class BranchResolution:
+    """브랜치 slug 와 **그것을 어디서 얻었는지**.
+
+    `source` 가 `workspace_git`/`env` 가 아니면 그 slug 는 이 workspace 를 보고
+    나온 답이 아니다 — 호출자는 그것을 사용자에게 말해야 한다.
+    """
+    slug: str
+    source: str
+    detail: str = ""
+
+    @property
+    def from_this_workspace(self) -> bool:
+        return self.source in (BRANCH_SOURCE_WORKSPACE_GIT, BRANCH_SOURCE_ENV)
+
+
+def _resolve_module_branch() -> BranchResolution:
+    """모듈 앵커(`parents[3]`) 기준 branch 와 그 출처.
+
+    **설치본에서는 이 앵커가 증발한다 (TASK-2026-09-07-main-007).** 소스 배치에서
+    `parents[3]` 은 저장소 루트지만, uv tool / 플러그인 캐시 설치본에서는
+    `…/lib/python3.13` 이라 git 저장소가 아니다. 그래서 조회가 실패하고 답이
+    조용히 `"main"` 으로 떨어진다 — **오류가 아니라 그럴듯한 오답**이라 아무도
+    눈치채지 못한다. 실측(설치본 + `feature/xyz` 소비자):
+
+        get_current_branch()      → "main"          ← 여기
+        branch_for_workspace(ws)  → "feature/xyz"
+
+    그 두 계열이 갈라진 결과가 소비자 저장소의 모순이었다. 이 저장소에서는
+    `parents[3]` 이 곧 자기 저장소라 **우연히 맞는 답**이 나오고, 그래서 전량
+    검사가 전부 그 조건에서만 돌았다.
+
+    출처를 함께 돌려주는 이유가 그것이다 — "못 봐서 기본값" 과 "봐서 main" 을
+    구분할 수 없으면 같은 침묵이 반복된다.
+    """
     for env_key in BRANCH_ENV_KEYS:
         branch = _usable_branch_name(os.environ.get(env_key))
         if branch:
-            return branch
-    return _git_branch_slug(Path(workspace_root)) or get_current_branch()
+            return BranchResolution(branch, BRANCH_SOURCE_ENV, env_key)
+    anchor = Path(__file__).resolve().parents[3]
+    slug = _git_branch_slug(anchor)
+    if slug:
+        return BranchResolution(slug, BRANCH_SOURCE_MODULE_REPO, str(anchor))
+    return BranchResolution(
+        "main",
+        BRANCH_SOURCE_DEFAULT,
+        f"모듈 앵커가 git 저장소가 아니다: {anchor} (설치본 배치)",
+    )
+
+
+def resolve_branch_for_workspace(workspace_root: Path) -> BranchResolution:
+    """``workspace_root`` 의 branch slug 와 **그 답의 출처**.
+
+    `branch_for_workspace` 가 돌려주던 값에 출처를 붙인 것이다. workspace 가 git
+    저장소면 `workspace_git`, 아니면 모듈 앵커로 되돌아가되 그 사실이
+    `source` 에 남는다 (`_resolve_module_branch` 참조).
+    """
+    for env_key in BRANCH_ENV_KEYS:
+        branch = _usable_branch_name(os.environ.get(env_key))
+        if branch:
+            return BranchResolution(branch, BRANCH_SOURCE_ENV, env_key)
+    slug = _git_branch_slug(Path(workspace_root))
+    if slug:
+        return BranchResolution(slug, BRANCH_SOURCE_WORKSPACE_GIT, str(workspace_root))
+    return _resolve_module_branch()
 
 
 def workflow_branch_dir(project_profile_path: Path) -> Path:

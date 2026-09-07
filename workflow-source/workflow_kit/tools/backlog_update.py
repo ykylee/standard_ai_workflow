@@ -26,6 +26,7 @@ from workflow_kit.common.git import remote_known_task_ids
 from workflow_kit.common.paths import (
     memory_active_dir,
     project_workspace_root,
+    resolve_branch_for_workspace,
     workflow_state_path,
     get_current_branch,
     resolve_existing_path,
@@ -605,11 +606,27 @@ def main() -> int:
         # `consulted=False` 로 돌아오고, 아래에서 **그 사실을 경고로 말한다**:
         # 빈 목록을 '원격에 없다' 로 읽으면 조용한 거짓 안심이 된다.
         remote_ids = remote_known_task_ids(workflow_tasks_dir(project_profile_path))
+        # 채번 slug 는 **이 workspace 의** git 에서 얻는다 (TASK-2026-09-07-main-007).
+        # 예전에는 인자를 안 넘겨 `get_current_branch()`(= 모듈 앵커)로 떨어졌는데,
+        # 설치본에서는 그 앵커가 git 저장소가 아니라 **조용히 "main"** 이 됐다.
+        # 그 결과 ID 는 `…-main-001` 인데 파일은 `active/<진짜 브랜치>/` 에 쓰였고,
+        # 브랜치마다 같은 번호를 매겨 병합 시 충돌했다 — slug 가 존재하는 이유가
+        # 소비자 배포처에서 통째로 무효였다 (설치본 + feature/xyz 실측).
+        minting = resolve_branch_for_workspace(project_workspace_root(project_profile_path))
         task_id = args.task_id or suggest_next_task_id(
             existing_tasks,
             target_date=getattr(args, 'target_date', None),
+            branch=minting.slug,
             reserved_ids=remote_ids.ids,
         )
+        if args.task_id is None and not minting.from_this_workspace:
+            # 모름을 조용히 통과시키지 않는다 — 이 slug 는 workspace 를 보고 나온
+            # 답이 아니므로 ID 가 네임스페이스와 어긋날 수 있다.
+            warnings.append(
+                f"채번 브랜치 `{minting.slug}` 를 이 workspace 의 git 이 아니라 "
+                f"{minting.source} 에서 얻었다 ({minting.detail}) — "
+                "task ID 의 slug 가 실제 네임스페이스와 어긋날 수 있다."
+            )
         if args.task_id is None:
             if not remote_ids.consulted:
                 warnings.append(

@@ -1,5 +1,5 @@
 <!-- standard-ai-workflow-kit: v1.0.0-beta -->
-<!-- standard-ai-workflow-kit-fork: 이 저장소가 소유한다 — 아래 '프로젝트 실행 기본값' 이하가 실측으로 얻은 고유 운영 규칙이다. 재적용하면 placeholder 로 되돌아간다. kit 변경 반영은 생성물과 diff 해 손으로 병합한다 (마지막 병합: v1.3.0 / 2026-08-20, 채택 3 · 기각 4 — TASK-2026-08-20-main-015) -->
+<!-- standard-ai-workflow-kit-fork: 이 저장소가 소유한다 — 아래 '프로젝트 실행 기본값' 이하가 실측으로 얻은 고유 운영 규칙이다. 재적용하면 placeholder 로 되돌아간다. kit 변경 반영은 생성물과 diff 해 손으로 병합한다 (마지막 병합: v1.9.4 / 2026-09-18, 채택 0 · 기각 3 재확인 — TASK-2026-09-18-main-003) -->
 <!-- standard-ai-workflow-kit-overlay: plugin-only — 워크플로우 스킬은 플러그인 채널(marketplace standard-ai-workflow)로만 소비한다. .claude/commands·skills 의 프로젝트 overlay 사본은 두지 않는다 (소유자 결정 2026-08-25, TASK-2026-08-25-main-010 — 두 채널이 같은 스킬을 이중 노출해 정리) -->
 
 # CLAUDE.md (Claude Code 진입점)
@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-08-28
+- 최종 수정일: 2026-09-18
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로

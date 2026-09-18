@@ -1153,6 +1153,141 @@ def _codex_marketplace_sources(home: Path) -> list[dict[str, object]]:
     return out
 
 
+def _claude_marketplace_sources(home: Path) -> list[dict[str, object]]:
+    """claude-code 의 **marketplace 소스**와, 그래서 *무엇이 서빙되는가*.
+
+    codex 의 같은 자리(:func:`_codex_marketplace_sources`)와 부류가 같다 — 사본이
+    거기 있다는 것만으로는 부족하고, 하네스가 그 사본을 찾아가는 경유지를 선언에서
+    읽는다. 다만 이 채널에서는 한 칸 더 간다: **소스 유형이 무엇이 읽히는지를
+    바꾼다.**
+
+    `directory` 소스(로컬 경로를 `claude plugin marketplace add <경로>` 로 등록한
+    개발 호스트)에서는 하네스가 캐시 사본이 아니라 **소스 디렉터리 자신**을 읽는다.
+    2026-09-18 되주입으로 확정했다 (TASK-2026-09-18-main-005): 캐시 사본에 넣은
+    마커가 중립 cwd 에서 띄운 새 프로세스의 스킬 지시문에 **나타나지 않았다**.
+    두 사본이 byte 동일이라 파일 비교로는 원리적으로 못 가르는 자리였다.
+
+    그래서 이것을 읽지 않으면 `content_drift` 는 **아무도 안 읽는 사본**을 재고
+    그 in-sync 를 노출의 증거처럼 내놓는다. 유형을 모르면 모른다고 적는다 —
+    원격 소스(`github`)가 무엇을 서빙하는지는 이 호스트에서 잴 수 없다.
+    """
+    markets: set[str] = set()
+    installed = home / ".claude" / "plugins" / "installed_plugins.json"
+    if installed.is_file():
+        try:
+            payload = json.loads(installed.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            payload = {}
+        for key in (payload.get("plugins") or {}):
+            if "standard-ai-workflow" not in key or "@" not in key:
+                continue
+            markets.add(key.rsplit("@", 1)[1])
+    if not markets:
+        return []
+
+    known = home / ".claude" / "plugins" / "known_marketplaces.json"
+    registry: dict[str, Any] = {}
+    if known.is_file():
+        try:
+            raw = json.loads(known.read_text(encoding="utf-8"))
+            registry = raw if isinstance(raw, dict) else {}
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            registry = {}
+
+    out: list[dict[str, object]] = []
+    for market in sorted(markets):
+        entry = registry.get(market)
+        entry = entry if isinstance(entry, dict) else {}
+        src = entry.get("source")
+        src = src if isinstance(src, dict) else {}
+        source_type = src.get("source") if isinstance(src.get("source"), str) else None
+        # 유형마다 위치를 적는 key 가 다르다 — 이름을 추측하지 않고 둘 다 본다.
+        location = src.get("path") or src.get("repo") or src.get("url")
+        install_location = entry.get("installLocation")
+        row: dict[str, Any] = {
+            "harness": "claude-code",
+            "marketplace": market,
+            "source_type": source_type,
+            "source": location if isinstance(location, str) else None,
+            "install_location": install_location if isinstance(install_location, str) else None,
+            "declared": bool(entry),
+        }
+        if source_type == "directory":
+            root = Path(str(install_location or location or ""))
+            row["exists"] = bool(str(root) and root.is_dir())
+            # 홈 안쪽은 휘발이 아니다 — codex 쪽과 같은 규칙을 쓴다.
+            inside_home = False
+            try:
+                root.resolve().relative_to(home.resolve())
+                inside_home = True
+            except (ValueError, OSError):
+                inside_home = False
+            row["volatile"] = bool(
+                str(root)
+                and not inside_home
+                and any(str(root).startswith(pre) for pre in VOLATILE_PATH_PREFIXES)
+            )
+            # **캐시가 아니라 소스가 읽힌다.** 플러그인이 소스 안 어디에 있는지는
+            # 마켓플레이스 선언이 쥔다 — 경로를 짐작하지 않고 그 파일을 읽는다.
+            row["serves_cache"] = False
+            served, why = _claude_served_root(root)
+            row["served_root"] = str(served) if served is not None else None
+            row["served_root_exists"] = bool(served is not None and served.is_dir())
+            row["served_root_why"] = why
+        else:
+            # `github` 등 원격 소스: 캐시 사본이 곧 읽히는 것으로 본다. 그러나
+            # **그것을 이 호스트에서 확인한 적은 없다** — 아는 척하지 않는다.
+            row["exists"] = None
+            row["volatile"] = False
+            row["serves_cache"] = True
+            row["served_root"] = None
+            row["served_root_exists"] = False
+            row["served_root_why"] = (
+                f"소스 유형 `{source_type or '알 수 없음'}` — 캐시 사본이 읽히는 것으로 "
+                "본다 (이 호스트에서 되주입으로 확인한 적은 없다)"
+            )
+        out.append(row)
+    return out
+
+
+def _serves_cache(harness: str, claude_sources: list[dict[str, object]]) -> bool:
+    """이 채널의 **캐시 사본**이 실제로 읽히는가.
+
+    축이 있는 채널은 claude-code 하나다 (2026-09-18 실측 기준). 나머지는 경유지가
+    사본을 가리키므로 캐시가 곧 읽히는 것이고, 모르는 것을 모른다고 적는 자리는
+    행(row)의 `served_root_why` 다 — 여기서 False 를 남발하면 정상이 시끄러워진다.
+    """
+    if harness != "claude-code" or not claude_sources:
+        return True
+    return any(src.get("serves_cache") is not False for src in claude_sources)
+
+
+def _claude_served_root(marketplace_root: Path) -> tuple[Path | None, str]:
+    """directory 소스에서 **실제로 읽히는** 플러그인 루트. 못 정하면 ``(None, 사유)``.
+
+    `<소스>/.claude-plugin/marketplace.json` 의 `plugins[].source` 가 정본이다
+    (이 저장소에서는 `./plugin`). 관례로 `plugin/` 을 가정하지 않는다 — 가정은
+    다른 저장소에서 조용히 틀린다.
+    """
+    manifest = marketplace_root / ".claude-plugin" / "marketplace.json"
+    if not manifest.is_file():
+        return None, f"마켓플레이스 선언이 없다: {manifest}"
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return None, f"마켓플레이스 선언을 읽지 못했다: {type(exc).__name__}"
+    for item in payload.get("plugins") or []:
+        if not isinstance(item, dict):
+            continue
+        if "standard-ai-workflow" not in str(item.get("name") or ""):
+            continue
+        rel = item.get("source")
+        if not isinstance(rel, str) or not rel:
+            return None, "마켓플레이스 선언에 이 플러그인의 source 가 없다"
+        return (marketplace_root / rel).resolve(), "마켓플레이스 선언의 plugins[].source"
+    return None, "마켓플레이스 선언에 이 플러그인 항목이 없다"
+
+
 #: 설치 경로를 **스스로 선언하는** 채널의 리더. 여기 없는 채널은 glob 매치를
 #: 전부 설치로 본다 (그 폴백은 조용히 하지 않는다 — §0).
 INSTALL_PATH_DECLARATIONS: dict[
@@ -1240,6 +1375,8 @@ def _probe_content_drift(
     # 일이 있었다: grok 은 사본이 실재하는데 이름 glob 이 못 맞춰 0개였고, 아무
     # 줄도 안 나와서 세션 내내 아무도 못 봤다. 0개도 한 줄을 남긴다 (main-003).
     no_copy: list[dict[str, Any]] = []
+    # 사본을 세기 **전에** 경유지를 읽는다 — 어느 사본이 읽히는지가 여기서 갈린다.
+    claude_sources = _claude_marketplace_sources(home)
     for entry in PLUGIN_INSTALL_CACHES:
         roots = _resolve_install_roots(entry, home)
         if not roots:
@@ -1264,12 +1401,55 @@ def _probe_content_drift(
                 record["installed_version"] = _installed_version(root, manifest_rel)
             record["active"] = active
             record["active_source"] = active_source
+            # **선언된 설치본이 읽히는 사본이라는 보장은 없다** (main-006).
+            # claude-code 의 directory 소스에서는 소스 디렉터리가 읽히고 이 캐시는
+            # 아무도 안 읽는다. 그 사실을 레코드에 적지 않으면 in-sync 가 노출의
+            # 증거처럼 읽힌다. 다른 채널은 축이 없으므로 그대로 True 다.
+            record["served"] = _serves_cache(entry.harness, claude_sources)
             caches.append(record)
+
+    # directory 소스에서 **실제로 읽히는** 루트를 캐시와 나란히 대조한다. 이것을
+    # 안 재면 그 호스트에서는 아무것도 재지 않은 것이 된다 — 캐시는 안 읽히고
+    # 소스는 안 재니까.
+    if canonical is not None:
+        for src in claude_sources:
+            if src.get("serves_cache") is not False:
+                continue
+            served_raw = src.get("served_root")
+            if not served_raw or not src.get("served_root_exists"):
+                continue
+            served_root = Path(str(served_raw))
+            if any(
+                c.get("path") == str(served_root) and c.get("harness") == "claude-code"
+                for c in caches
+            ):
+                continue
+            expected, manifest_rel = _channel_expected("claude-code", canonical)
+            served_record: dict[str, Any] = {"harness": "claude-code"}
+            served_record.update(
+                _compare_cache(served_root, expected, (".in_use",), full_payload=canonical)
+            )
+            served_record["installed_version"] = _installed_version(served_root, manifest_rel)
+            served_record["active"] = True
+            served_record["active_source"] = (
+                f"known_marketplaces.json 의 `{src.get('marketplace')}` — "
+                f"{src.get('source_type')} 소스라 이 경로가 읽힌다 "
+                f"({src.get('served_root_why')})"
+            )
+            served_record["served"] = True
+            caches.append(served_record)
 
     # 지금 로드되는 사본만 발견을 낸다. 옛 버전 디렉터리는 **지우지도 숨기지도**
     # 않는다 — `superseded` 로 남겨 사람이 정리할 수 있게 하되, 아무도 안 읽는
     # 사본 때문에 매 실행 거짓 발견이 나지는 않게 한다.
-    out_of_sync = [c for c in caches if c.get("in_sync") is False and c.get("active")]
+    # 읽히지 않는 사본의 드리프트는 발견이 아니다 — `superseded` 와 같은 규율이다
+    # (아무도 안 읽는 사본으로 매 실행 거짓 발견을 만들지 않는다). 대신 그 사본이
+    # 읽히지 않는다는 **사실 자체**를 아래에서 발견으로 낸다.
+    out_of_sync = [
+        c for c in caches
+        if c.get("in_sync") is False and c.get("active") and c.get("served", True)
+    ]
+    unserved = [c for c in caches if c.get("active") and not c.get("served", True)]
     superseded = [
         {
             "harness": c["harness"],
@@ -1295,8 +1475,49 @@ def _probe_content_drift(
         )
     # 사본이 아니라 **경유지**를 본다. 사본이 in-sync 여도 marketplace 소스가
     # 사라지면 하네스는 그 사본에 닿지 못한다 (main-004).
-    marketplace_sources = _codex_marketplace_sources(home)
-    for src in marketplace_sources:
+    codex_sources = _codex_marketplace_sources(home)
+    marketplace_sources = codex_sources + claude_sources
+    for src in claude_sources:
+        if not src.get("declared"):
+            findings.append(
+                f"claude-code 가 marketplace `{src['marketplace']}` 로 이 플러그인을 "
+                "설치했다고 선언했는데 known_marketplaces.json 에 그 marketplace 가 "
+                "없다 — 어느 사본이 읽히는지 해석할 수 없다"
+            )
+            continue
+        if src.get("serves_cache") is False:
+            if not src.get("served_root_exists"):
+                findings.append(
+                    f"claude-code marketplace `{src['marketplace']}` 는 "
+                    f"{src.get('source_type')} 소스라 소스 디렉터리가 읽히는데 그 "
+                    f"경로를 정할 수 없다 — {src.get('served_root_why')}. "
+                    "캐시 사본이 in-sync 여도 하네스가 무엇을 읽는지 모르는 상태다"
+                )
+            else:
+                # 오류가 아니라 **상태**다 (양쪽 기설치 보고와 같은 부류). 그러나
+                # 이 상태를 모르면 캐시 in-sync 를 노출의 증거로 읽게 된다.
+                findings.append(
+                    f"claude-code marketplace `{src['marketplace']}` 가 "
+                    f"`{src.get('source_type')}` 소스다 — 오류가 아니라 상태이지만, "
+                    f"하네스가 읽는 것은 캐시 사본이 아니라 {src['served_root']} 다 "
+                    "(2026-09-18 되주입 실증). 그래서 이 절은 캐시 대신 그 경로를 "
+                    "대조하고, 캐시의 드리프트는 발견으로 세지 않는다. 소스를 고치면 "
+                    "재설치 없이 다음 **프로세스 시작**에 반영된다 "
+                    "(docs/INSTALLATION_AND_USAGE.md §7.0.2 읽는 법 8)"
+                )
+        if src.get("volatile"):
+            findings.append(
+                f"claude-code marketplace `{src['marketplace']}` 의 소스가 **휘발 "
+                f"경로**에 있다: {src.get('source')} — 지금은 존재하지만 OS 가 "
+                "비우면 플러그인이 사라진다"
+            )
+        elif src.get("exists") is False:
+            findings.append(
+                f"claude-code marketplace `{src['marketplace']}` 의 소스가 존재하지 "
+                f"않는다: {src.get('source')} — 설치 캐시가 멀쩡해도 하네스가 이 "
+                "플러그인에 닿지 못한다"
+            )
+    for src in codex_sources:
         if not src["declared"]:
             findings.append(
                 f"codex 가 marketplace `{src['marketplace']}` 를 통해 이 플러그인을 "
@@ -1333,6 +1554,17 @@ def _probe_content_drift(
         "superseded": superseded,
         # 사본 0 인 채널 — 침묵으로 지우지 않는다 (main-003).
         "no_copy": no_copy,
+        # 선언된 설치본이지만 **읽히지 않는** 사본 (main-006). 발견을 내지 않는
+        # 대신 여기 남긴다 — 조용히 지우면 '잰 적 없음' 과 구분이 안 된다.
+        "unserved": [
+            {
+                "harness": c["harness"],
+                "path": c.get("path"),
+                "installed_version": c.get("installed_version"),
+                "in_sync": c.get("in_sync"),
+            }
+            for c in unserved
+        ],
         # 사본에 닿는 **경유지** 상태 (main-004). 사본과 별개로 깨질 수 있다.
         "marketplace_sources": marketplace_sources,
         "findings": findings,
@@ -1358,7 +1590,13 @@ def _probe_content_drift(
             "하네스가 이 사본을 실제로 세션에 노출하는지 — 파일 일치는 노출의 증거가 아니다 "
             "(2026-08-20 실측: in-sync + 인벤토리 4종인데 세션 로드 0종). "
             "원인 중 **설치보다 먼저 시작한 호스트**는 `runtime_load` 절이 재고, "
-            "그 뒤 한 칸(실제 노출)만 여기 남는다",
+            "*어느 사본이 읽히는가* 는 `marketplace_sources` 의 소스 유형이 잰다 "
+            "(2026-09-18, main-006). 남는 것은 그 뒤 한 칸 — 재시작이 최신이고 "
+            "읽히는 사본이 in-sync 여도 **실제 호출**이 성공하는지는 이 탐침 밖이다",
+            "`github` 등 원격 소스가 캐시 사본을 읽는다는 것은 **가정이다** — "
+            "directory 소스는 2026-09-18 에 되주입으로 확정했지만(캐시에 넣은 마커가 "
+            "새 프로세스에 안 보였다) 원격 소스는 이 호스트에서 재현할 수 없었다. "
+            "그 셀을 확인으로 적지 않는다",
         ],
     }
 
@@ -1791,15 +2029,30 @@ def _render_text(report: dict[str, Any]) -> str:
         lines.append(f"  = {harness}: {why}")
     # 사본에 닿는 경유지 — 사본 행과 나란히 찍어야 둘이 갈린 것을 사람이 본다.
     for src in content.get("marketplace_sources") or []:
+        # 채널을 행에서 읽는다 — 리터럴 `codex` 를 박아 두면 claude 행이 codex 로
+        # 찍힌다 (이 자리가 실제로 한동안 codex 전용이었다).
+        harness = str(src.get("harness") or "codex")
         if not src.get("declared"):
             state = "source 선언 없음 — 해석 불가"
-        elif not src.get("exists"):
-            state = f"source 부재: {src['source']}"
         elif src.get("volatile"):
             state = f"source 가 휘발 경로: {src['source']}"
+        elif src.get("exists") is False:
+            state = f"source 부재: {src['source']}"
+        elif src.get("serves_cache") is False:
+            state = (
+                f"`{src.get('source_type')}` 소스 — **캐시가 아니라** "
+                f"{src.get('served_root') or '알 수 없는 경로'} 가 읽힌다"
+            )
+        elif src.get("exists") is None:
+            state = f"`{src.get('source_type') or '알 수 없음'}` 소스 — 캐시가 읽히는 것으로 본다 (미확인)"
         else:
             state = f"source 정상: {src['source']}"
-        lines.append(f"  · codex marketplace `{src['marketplace']}` — {state}")
+        lines.append(f"  · {harness} marketplace `{src['marketplace']}` — {state}")
+    for c in content.get("unserved") or []:
+        lines.append(
+            f"  = {c['harness']} 선언된 설치본이지만 **읽히지 않는다**: {c.get('path')} "
+            f"(내용 일치 {c.get('in_sync')}) — 드리프트를 발견으로 세지 않는다"
+        )
     for item in content.get("declared_unmeasured", []):
         lines.append(f"  (미측정) {item}")
 

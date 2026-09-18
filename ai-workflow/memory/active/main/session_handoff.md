@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-18-main-006 doctor 의 content_drift 가 서빙되지 않는 사본을 재고 있다 — 마켓플레이스 소스 유형을 읽어야 한다
 - TASK-2026-09-18-main-005 runtime_load 재측정 + '노출 한 칸' 첫 실측 — 그리고 캐시 사본은 읽히지 않는다
 - TASK-2026-09-18-main-004 backlog-update --apply 가 roadmap_state.json 을 안 따라간다 — 파생물 갱신을 쓰는 층에 흡수
 - TASK-2026-09-18-main-003 CLAUDE.md 포크 병합 — v1.3.0 이후 kit 델타 전수, 채택 0
@@ -53,7 +54,6 @@
 - TASK-2026-09-07-main-011 v1.9.4 발행 + 이 호스트 소비자 채널 재적용
 - TASK-2026-09-07-main-010 graph_insights health 가 완료한 일이 늘수록 내려간다 — 100% 발화하는 scope creep 경고와 항등식을 재는 fixture
 - TASK-2026-09-07-main-008 v1.9.3 발행 + 이 호스트 소비자 채널 재적용
-- TASK-2026-09-07-main-007 설치본에서 모듈 앵커가 증발해 브랜치 해석이 갈라진다 — 소비자 배포처의 모순 뿌리
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

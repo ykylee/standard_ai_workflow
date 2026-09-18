@@ -1042,7 +1042,12 @@ def _seed_codex_marketplace(home: Path, source: str) -> None:
 
 def _codex_source_row(home: Path, project: Path) -> dict:
     content = probe(project_root=project, home=home)["content_drift"]
-    rows = content.get("marketplace_sources") or []
+    # `marketplace_sources` 는 이제 채널 혼합이다 (main-006) — 위치로 고르면
+    # claude 행이 codex 행으로 읽힌다. 채널로 좁힌다.
+    rows = [
+        r for r in (content.get("marketplace_sources") or [])
+        if str(r.get("harness") or "codex") == "codex"
+    ]
     return rows[0] if rows else {}
 
 
@@ -1291,6 +1296,190 @@ def test_kit_provenance_always_labels_verdict() -> None:
             problems.append("텍스트 보고서에 kit 사본 줄이 없다")
     _record("test_kit_provenance_always_labels_verdict", not problems, "; ".join(problems))
 
+def _seed_claude_marketplace(
+    tmp: Path, *, source_type: str, pollute_cache: bool = False, pollute_served: bool = False
+) -> tuple[Path, Path, Path | None]:
+    """claude-code 설치 + **마켓플레이스 소스 유형**. ``(home, cache_root, served_root)``.
+
+    `directory` 소스에서는 하네스가 캐시가 아니라 소스 디렉터리를 읽는다 —
+    2026-09-18 되주입 실증(TASK-2026-09-18-main-005). fixture 가 두 사본을 **따로**
+    오염시킬 수 있어야 "어느 쪽을 재고 있나" 가 판정으로 갈린다. 한쪽만 만들면
+    검사는 자기가 재는 것이 무엇인지 모른 채 통과한다.
+    """
+    home = tmp / "home"
+    cache_root = _seed_cache_at(home, "claude-code", INSTALLED_VERSION)
+    served_root: Path | None = None
+    if source_type == "directory":
+        market_root = tmp / "marketplace-source"
+        _write(
+            market_root / ".claude-plugin" / "marketplace.json",
+            json.dumps({
+                "name": "standard-ai-workflow",
+                "plugins": [{
+                    "name": "standard-ai-workflow",
+                    "source": "./plugin",
+                    "version": INSTALLED_VERSION,
+                }],
+            }),
+        )
+        served_root = market_root / "plugin"
+        spec = PLUGIN_HARNESS_SPECS.get("claude-code")
+        for rel, body in render_agent_plugin().items():
+            if spec is not None and not _included(rel, spec):
+                continue
+            _write(served_root / rel, body)
+        source_block = {"source": "directory", "path": str(market_root)}
+        install_location = str(market_root)
+    else:
+        source_block = {"source": "github", "repo": "ykylee/standard_ai_workflow"}
+        install_location = str(home / ".claude" / "plugins" / "marketplaces" / "standard-ai-workflow")
+
+    if pollute_cache:
+        victim = next(f for f in sorted(cache_root.rglob("*.md")) if f.is_file())
+        victim.write_text(victim.read_text(encoding="utf-8") + "\n<!-- 캐시 오염 -->\n", encoding="utf-8")
+    if pollute_served and served_root is not None:
+        victim = next(f for f in sorted(served_root.rglob("*.md")) if f.is_file())
+        victim.write_text(victim.read_text(encoding="utf-8") + "\n<!-- 소스 오염 -->\n", encoding="utf-8")
+
+    _write(
+        home / ".claude" / "plugins" / "installed_plugins.json",
+        json.dumps({
+            "version": 2,
+            "plugins": {
+                "standard-ai-workflow@standard-ai-workflow": [{
+                    "scope": "user",
+                    "installPath": str(cache_root),
+                    "version": INSTALLED_VERSION,
+                    "installedAt": _INSTALL_ISO,
+                    "lastUpdated": _INSTALL_ISO,
+                }]
+            },
+        }),
+    )
+    _write(
+        home / ".claude" / "plugins" / "known_marketplaces.json",
+        json.dumps({
+            "standard-ai-workflow": {
+                "source": source_block,
+                "installLocation": install_location,
+                "lastUpdated": _INSTALL_ISO,
+            }
+        }),
+    )
+    return home, cache_root, served_root
+
+
+def _claude_source_row(content: dict) -> dict:
+    rows = [
+        r for r in (content.get("marketplace_sources") or [])
+        if r.get("harness") == "claude-code"
+    ]
+    return rows[0] if rows else {}
+
+
+def test_claude_directory_source_serves_source_not_cache() -> None:
+    """`directory` 소스면 읽히는 것은 캐시가 아니라 **소스 디렉터리**다 (main-006).
+
+    2026-09-18 되주입 실증: 캐시 사본에 넣은 마커가 중립 cwd 에서 띄운 새 프로세스의
+    스킬 지시문에 나타나지 않았다. 두 사본이 byte 동일이라 **파일 비교로는 원리적으로
+    못 가르는** 자리였고, 그 동안 `content_drift` 는 아무도 안 읽는 사본을 재면서
+    그 in-sync 를 노출의 증거처럼 내놓았다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-claude-dir-") as tmpdir:
+        tmp = Path(tmpdir)
+        home, cache_root, served_root = _seed_claude_marketplace(tmp, source_type="directory")
+        content = probe(project_root=tmp / "project", home=home)["content_drift"]
+    row = _claude_source_row(content)
+    if row.get("source_type") != "directory":
+        problems.append(f"소스 유형을 안 읽었다: {row!r}")
+    if row.get("serves_cache") is not False:
+        problems.append("directory 소스인데 캐시가 읽힌다고 봤다")
+    if row.get("served_root") != str(served_root):
+        problems.append(f"서빙 경로를 마켓플레이스 선언에서 안 읽었다: {row.get('served_root')!r}")
+    cache_rec = [
+        c for c in content["caches"]
+        if c.get("harness") == "claude-code" and c.get("path") == str(cache_root)
+    ]
+    if not cache_rec or cache_rec[0].get("served") is not False:
+        problems.append(f"캐시 사본을 served=False 로 안 적었다: {cache_rec!r}")
+    served_rec = [
+        c for c in content["caches"]
+        if c.get("harness") == "claude-code" and c.get("path") == str(served_root)
+    ]
+    if not served_rec:
+        problems.append("서빙 경로를 아예 대조하지 않았다 — 그 호스트에서는 아무것도 잰 것이 없다")
+    elif "known_marketplaces.json" not in str(served_rec[0].get("active_source")):
+        problems.append(f"무엇을 근거로 골랐는지 안 남겼다: {served_rec[0].get('active_source')!r}")
+    if not any(str(cache_root) in str(u.get("path")) for u in content.get("unserved") or []):
+        problems.append("읽히지 않는 사본을 침묵으로 지웠다")
+    if not any("캐시 사본이 아니라" in f for f in content["findings"]):
+        problems.append(f"상태를 발견으로 말하지 않았다: {content['findings']!r}")
+    _record("test_claude_directory_source_serves_source_not_cache", not problems, "; ".join(problems))
+
+
+def test_claude_directory_source_measures_the_served_copy() -> None:
+    """**되주입**: 오염을 어느 쪽에 넣느냐로 판정이 갈려야 한다 (main-006).
+
+    서빙 경로를 더럽히면 red, 캐시만 더럽히면 조용하다. 둘 다 통과하거나 둘 다
+    red 면 이 절은 자기가 무엇을 재는지 모르는 것이다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-claude-served-bad-") as tmpdir:
+        tmp = Path(tmpdir)
+        home, _cache, served_root = _seed_claude_marketplace(
+            tmp, source_type="directory", pollute_served=True)
+        content = probe(project_root=tmp / "project", home=home)["content_drift"]
+    if "claude-code" not in content["out_of_sync"]:
+        problems.append("읽히는 사본이 오염됐는데 발견이 없다")
+    if not any(c.get("path") == str(served_root) and c.get("in_sync") is False
+               for c in content["caches"]):
+        problems.append("오염을 서빙 경로에서 안 짚었다")
+
+    with tempfile.TemporaryDirectory(prefix="doctor-claude-cache-bad-") as tmpdir:
+        tmp = Path(tmpdir)
+        home, cache_root, _served = _seed_claude_marketplace(
+            tmp, source_type="directory", pollute_cache=True)
+        content = probe(project_root=tmp / "project", home=home)["content_drift"]
+    if content["out_of_sync"]:
+        problems.append(f"아무도 안 읽는 사본으로 발견을 만들었다: {content['out_of_sync']!r}")
+    if not any(u.get("in_sync") is False and str(cache_root) in str(u.get("path"))
+               for u in content.get("unserved") or []):
+        problems.append("읽히지 않는 사본의 낡음을 기록조차 안 했다 — 침묵은 통과로 읽힌다")
+    _record("test_claude_directory_source_measures_the_served_copy", not problems, "; ".join(problems))
+
+
+def test_claude_remote_source_keeps_cache_as_served() -> None:
+    """원격 소스(`github`)에서는 캐시가 읽히는 것으로 본다 — **그리고 그것이 가정임을 적는다**.
+
+    directory 소스는 되주입으로 확정했지만 원격 소스는 이 호스트에서 재현할 수
+    없었다. 재지 못한 것을 확인으로 적지 않는 것이 §7.0.0 `installable` 과 같은 규율이다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-claude-gh-") as tmpdir:
+        tmp = Path(tmpdir)
+        home, cache_root, served_root = _seed_claude_marketplace(
+            tmp, source_type="github", pollute_cache=True)
+        content = probe(project_root=tmp / "project", home=home)["content_drift"]
+    row = _claude_source_row(content)
+    if row.get("source_type") != "github":
+        problems.append(f"원격 소스 유형을 안 읽었다: {row!r}")
+    if row.get("serves_cache") is not True:
+        problems.append("원격 소스인데 캐시가 안 읽힌다고 봤다")
+    if served_root is not None:
+        problems.append("원격 소스 fixture 가 서빙 경로를 만들었다")
+    if "claude-code" not in content["out_of_sync"]:
+        problems.append("캐시가 읽히는 채널인데 오염을 발견으로 안 셌다")
+    if any("캐시 사본이 아니라" in f for f in content["findings"]):
+        problems.append("원격 소스에 directory 전용 발견을 냈다")
+    if not any("확인한 적은 없다" in str(row.get("served_root_why"))
+               for _ in [0]):
+        problems.append(f"가정을 확인처럼 적었다: {row.get('served_root_why')!r}")
+    if not any("원격 소스" in u for u in content.get("declared_unmeasured") or []):
+        problems.append("미측정 목록에 원격 소스 칸이 없다")
+    _record("test_claude_remote_source_keeps_cache_as_served", not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1331,6 +1520,9 @@ def main() -> int:
         test_kit_provenance_matching_copy_is_silent,
         test_kit_provenance_reads_version_from_the_copy,
         test_kit_provenance_always_labels_verdict,
+        test_claude_directory_source_serves_source_not_cache,
+        test_claude_directory_source_measures_the_served_copy,
+        test_claude_remote_source_keeps_cache_as_served,
     ]
     for case in cases:
         case()

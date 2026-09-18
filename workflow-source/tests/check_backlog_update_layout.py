@@ -13,7 +13,7 @@ stable 로 선언된 `backlog-update` 가 **governance 가 규정한 layout 을 
 **layout 자체를 규약으로 검사하지 않았다.** 그래서 skill 을 실제로 돌려 산출물을
 governance 규약과 대조하는 본 smoke 를 둔다 (§2.18 "선언이 사실인가" 의 연장).
 
-Test list (9 case):
+Test list (10 case):
 1. test_daily_index_is_link_only
 2. test_task_file_naming_and_frontmatter
 3. test_no_bak_file_written
@@ -23,6 +23,7 @@ Test list (9 case):
 7. test_update_preserves_index_extras (TASK-2026-08-11-main-023 되주입)
 8. test_update_preserves_status_when_unspecified (TASK-2026-08-12-main-008 되주입)
 9. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
+10. test_update_task_brief_is_optional (TASK-2026-09-18-main-001 되주입)
 
 Cross-ref: workflow-source/MEMORY_GOVERNANCE.md §2 +
 workflow-source/tests/check_appendonly_memory_layout.py (저장소 실물 검사).
@@ -57,6 +58,7 @@ _OWNER = task_label("owner")
 _SUMMARY = task_label("summary")
 _DONE = task_label("done_criteria")
 _STATUS = task_label("status")
+_PROGRESS = task_label("progress")
 
 BRANCH = "layout-smoke"
 TASK_FRONTMATTER_KEYS = {"id", "status", "created_at", "source_anchor", "source_path", "kind"}
@@ -90,6 +92,21 @@ def _run_apply(ws: Path, *extra: str) -> dict:
     )
     assert proc.returncode == 0, proc.stderr[-2000:]
     return json.loads(proc.stdout)
+
+
+def _run_raw(ws: Path, *extra: str) -> tuple[int, dict]:
+    """`_run_apply` 의 rc 비검사 변형 — **거부 경로**를 재려면 필요하다."""
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(SOURCE_ROOT)
+    env["CODEX_WORKFLOW_BRANCH"] = BRANCH
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT),
+         "--project-profile-path", str(ws / "docs" / "PROJECT_PROFILE.md"),
+         "--target-date", "2026-07-22",
+         "--apply", *extra],
+        capture_output=True, text=True, check=False, env=env, cwd=str(ws),
+    )
+    return proc.returncode, json.loads(proc.stdout)
 
 
 def _seed(ws: Path, *, name: str = "레이아웃 검증", kind: str = "release") -> dict:
@@ -245,6 +262,45 @@ def test_update_preserves_status_when_unspecified() -> None:
         assert "status: done" in text, f"미지정 update 가 done 을 되돌렸다:\n{text[:200]}"
 
 
+def test_update_task_brief_is_optional() -> None:
+    """update 는 --task-brief 없이도 돌고, 그때 `진행 현황` 은 보존된다 (TASK-2026-09-18-main-001).
+
+    되주입 근거: `--task-brief` 는 create 에서 `작업 내용`, update 에서 `진행 현황`
+    으로 **뜻이 갈리는데 양쪽 다 필수**였다. 그래서 상태만 바꾸려는 호출이 의미
+    없는 문장을 억지로 넘겨야 했고, 그 문장이 이전 세션의 진행 기록을 현재
+    타임스탬프와 함께 덮었다 — 갱신처럼 보여 소실이 드러나지도 않았다 (78차 실측).
+    생략이 가능해지면 함정 자체가 없어진다. brief 를 준 호출의 동작은 불변이다
+    (그 계약은 test_update_preserves_unspecified_fields 가 계속 고정한다).
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _run_apply(ws, "--task-name", "brief 선택", "--task-brief", "원래 작업 내용",
+                             "--mode", "create", "--status", "planned")["task_id"]
+        task_file = _branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md"
+        _run_apply(ws, "--task-name", "brief 선택", "--task-id", task_id, "--mode", "update",
+                   "--progress-note", "77차가 남긴 진행 기록")
+
+        # brief 없이 상태만 바꾼다 — 진행 기록도 작업 내용도 그대로여야 한다.
+        _run_apply(ws, "--task-name", "brief 선택", "--task-id", task_id,
+                   "--mode", "update", "--status", "blocked")
+        text = task_file.read_text(encoding="utf-8")
+        assert f"- {_PROGRESS}: 77차가 남긴 진행 기록" in text, (
+            f"brief 생략 update 가 진행 기록을 덮었다:\n{text[:400]}")
+        assert f"- {_SUMMARY}: 원래 작업 내용" in text, "작업 내용이 사라졌다"
+        assert "status: blocked" in text, "상태가 반영되지 않았다"
+
+        # create 에는 여전히 필수다 — `작업 내용` 을 채울 다른 출처가 없다.
+        rc, payload = _run_raw(ws, "--task-name", "brief 없는 생성", "--mode", "create")
+        assert rc == 1, f"brief 없는 create 가 통과했다: {payload}"
+        assert payload.get("error_code") == "invalid_task_brief", payload
+
+        # 빈 문자열은 부재와 다르다 — 넘겼는데 내용이 없는 것은 여전히 거부한다.
+        rc, payload = _run_raw(ws, "--task-name", "brief 선택", "--task-id", task_id,
+                               "--mode", "update", "--task-brief", "   ")
+        assert rc == 1, f"공백 brief 가 통과했다: {payload}"
+        assert payload.get("error_code") == "invalid_task_brief", payload
+
+
 def test_handoff_dedupes_by_task_id() -> None:
     """handoff 반영은 표기가 아니라 task ID 로 dedupe 한다 (중복 bullet 방지)."""
     with tempfile.TemporaryDirectory() as td:
@@ -284,6 +340,7 @@ def main() -> int:
         test_update_preserves_index_extras,
         test_update_preserves_status_when_unspecified,
         test_handoff_dedupes_by_task_id,
+        test_update_task_brief_is_optional,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

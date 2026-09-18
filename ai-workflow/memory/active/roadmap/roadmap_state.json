@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_by": "workflow_kit.common.state.roadmap.generate_roadmap_state",
-  "generated_at": "2026-09-07",
+  "generated_at": "2026-09-17",
   "milestones": [
     {
       "id": "M-001",
@@ -240,7 +240,7 @@
       "title": "운영 축 (상설)",
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
+      "derived_status": "blocked",
       "progress": 0.75,
       "total_leaves": 4,
       "done_leaves": 3,
@@ -249,7 +249,7 @@
         {
           "id": "WBS-7.1",
           "title": "결함 수리 — 플랫폼·크로스호스트 (Windows 경로·해석기, federation 형식)",
-          "derived_status": "in_progress",
+          "derived_status": "blocked",
           "linked_task_ids": [
             "TASK-2026-08-25-main-017",
             "TASK-2026-08-29-main-003",
@@ -289,7 +289,8 @@
             "TASK-2026-09-07-main-003",
             "TASK-2026-09-07-main-004",
             "TASK-2026-09-07-main-005",
-            "TASK-2026-09-07-main-006"
+            "TASK-2026-09-07-main-006",
+            "TASK-2026-09-18-main-001"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

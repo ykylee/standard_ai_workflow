@@ -276,7 +276,16 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the backlog-update prototype.")
     parser.add_argument("--project-profile-path", required=True)
     parser.add_argument("--task-name", required=True)
-    parser.add_argument("--task-brief", required=True)
+    parser.add_argument(
+        "--task-brief",
+        help=(
+            "create 는 `작업 내용` 이 되고, **update 는 `진행 현황` 한 줄이 된다** "
+            "(`작업 내용` 은 원문 보존). 의미가 모드마다 다르므로 update 에서는 "
+            "선택이다 — 생략하면 기존 `진행 현황` 을 그대로 둔다. 진행을 적으려면 "
+            "`--progress-note` 로 명시하는 쪽이 뜻이 분명하다. "
+            "create 에서는 필수 (TASK-2026-09-18-main-001)."
+        ),
+    )
     parser.add_argument("--daily-backlog-path")
     parser.add_argument("--target-date")
     parser.add_argument("--task-id")
@@ -495,7 +504,10 @@ def main() -> int:
     # task_brief 가 비어있거나 whitespace-only 면 backlog entry 의 `작업 내용` /
     # `진행 현황` line 이 `-` placeholder 만 남아 downstream consumer 가
     # 무엇을 했는지 알 수 없음. 명시적 차단.
-    if not args.task_brief or not args.task_brief.strip():
+    # TASK-2026-09-18-main-001: **부재**와 **빈 문자열**을 가른다. 빈 문자열은
+    # 여전히 즉시 거부한다 (넘겼는데 내용이 없는 것은 실수다). 부재는 update 에서
+    # 정당한 생략이므로, 필수 여부는 모드가 정해진 뒤에 판정한다 (아래 create guard).
+    if args.task_brief is not None and not args.task_brief.strip():
         result = build_error_result(
             tool_version=TOOL_VERSION,
             error="backlog-update 의 task_brief 가 비어 있다.",
@@ -563,6 +575,19 @@ def main() -> int:
             # 없으면 생성" 이다 — 존재 여부를 실제로 보고 정한다.
             known_ids = {t["task_id"] for t in existing_tasks}
             requested_mode = "update" if (args.task_id and args.task_id in known_ids) else "create"
+
+        # TASK-2026-09-18-main-001: create 에는 `작업 내용` 을 채울 다른 출처가 없다.
+        # auto 가 create 로 떨어진 경우까지 포함해 여기서 판정한다.
+        if requested_mode == "create" and args.task_brief is None:
+            result = build_error_result(
+                tool_version=TOOL_VERSION,
+                error="backlog-update 의 task_brief 가 비어 있다.",
+                error_code="invalid_task_brief",
+                warnings=["create 에는 --task-brief 가 필수다 — update 에서만 생략할 수 있다."],
+                source_context=source_context,
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 1
 
         operation_type = "create_entry"
         if not daily_backlog_path.exists():
@@ -670,7 +695,7 @@ def main() -> int:
                 )
         progress_note = args.progress_note[0] if args.progress_note else None
         next_step = args.next_step[0] if args.next_step else None
-        if not progress_note:
+        if not progress_note and args.task_brief is not None:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
             progress_note = f"`{timestamp}` 기준 {args.task_brief}"
 
@@ -738,7 +763,11 @@ def main() -> int:
 
         if update_merge:
             existing_lines = task_ssot_path.read_text(encoding="utf-8").splitlines()
-            scalar_updates: dict[str, str] = {task_label("progress"): progress_note}
+            # TASK-2026-09-18-main-001: brief 도 progress-note 도 없으면 **기존
+            # `진행 현황` 을 그대로 둔다.** 둘 중 하나라도 있으면 종전대로 갱신한다.
+            scalar_updates: dict[str, str] = {}
+            if progress_note:
+                scalar_updates[task_label("progress")] = progress_note
             if args.priority:
                 scalar_updates[task_label("priority")] = args.priority
             if args.owner:
@@ -761,7 +790,9 @@ def main() -> int:
             if args.follow_up:
                 list_updates[task_label("follow_up")] = _as_list(args.follow_up)
             # 작업 내용은 원문 보존이 원칙 — 비어 있을 때만 brief 로 채운다.
-            if any(is_empty_label_line(line, "summary") for line in existing_lines):
+            if args.task_brief is not None and any(
+                is_empty_label_line(line, "summary") for line in existing_lines
+            ):
                 scalar_updates[task_label("summary")] = args.task_brief
 
             # --- 누적 필드 병합 (TASK-2026-08-31-main-003) ---------------------
@@ -904,7 +935,7 @@ def main() -> int:
         warnings.extend(graph_result.overall_warnings)
 
         scope_creep_warnings = check_scope_creep(
-            task_brief=args.task_brief,
+            task_brief=args.task_brief or "",
             affected_documents=args.affected_documents,
             scope={
                 "included": purpose_context_data.get("scope_included", []),

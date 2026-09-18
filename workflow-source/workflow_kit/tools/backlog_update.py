@@ -1046,6 +1046,30 @@ def main() -> int:
             if state_cache_refresh.get("status") == "refreshed" and refreshed_state_path:
                 apply_result["written_paths"].append(str(refreshed_state_path))
                 apply_result["updated_paths"].append(str(refreshed_state_path))
+            # TASK-2026-09-18-main-004: `roadmap_state.json` 도 state.json 과
+            # **같은 부류의 생성물**이고, 그 SSOT 는 roadmap/ + **task frontmatter**
+            # (`wbs` 링크와 status)다 — 즉 이 도구가 방금 쓴 파일이다. 그런데 이 자리가
+            # state.json 만 갱신해서, `--wbs` 로 task 를 만들거나 상태를 바꾸면
+            # roadmap_state.json 이 조용히 뒤처졌다. 아무도 그것을 모르다가 push 게이트의
+            # check_roadmap_state_generated 가 red 를 낸다 — 2026-09-17 · 2026-09-18
+            # 이틀에 두 번, 매번 `wk refresh-state` 로 손으로 풀었다. 파생물은 만드는
+            # 층이 규약을 알아야 한다: `wk refresh-state` 가 이미 한 호출에서 둘 다
+            # 재생성하므로, 여기서도 같이 재생성한다. roadmap 부재는 실패가 아니라
+            # 해당 없음이다 (None 반환, additive).
+            from workflow_kit.common.state.roadmap import (
+                generate_roadmap_state,
+                state_path as roadmap_state_path,
+            )
+
+            roadmap_state_existed = roadmap_state_path(workspace_root).is_file()
+            roadmap_state_refreshed = generate_roadmap_state(workspace_root)
+            if roadmap_state_refreshed is not None:
+                refreshed_roadmap_path = str(roadmap_state_path(workspace_root))
+                apply_result["written_paths"].append(refreshed_roadmap_path)
+                if roadmap_state_existed:
+                    apply_result["updated_paths"].append(refreshed_roadmap_path)
+                else:
+                    apply_result["created_paths"].append(refreshed_roadmap_path)
         else:
             state_cache_refresh = {
                 "status": "skipped",

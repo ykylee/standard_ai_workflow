@@ -33,10 +33,15 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.read_only_bundle import assess_milestone_progress_payload  # noqa: E402
-from workflow_kit.common.state.roadmap import build_session_roadmap_context  # noqa: E402
+from workflow_kit.common.state.roadmap import (  # noqa: E402
+    build_session_roadmap_context,
+    state_matches_regeneration,
+    state_path as roadmap_state_path,
+)
 
 REFRESH_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "refresh_state.py"
 SESSION_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "session_start.py"
+BACKLOG_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "backlog_update.py"
 BRANCH = "main"
 
 FAILURES: list[str] = []
@@ -156,6 +161,60 @@ def test_refresh_without_roadmap_is_additive() -> None:
     _record("test_refresh_without_roadmap_is_additive", not problems, "; ".join(problems))
 
 
+def test_backlog_update_apply_regenerates_roadmap_state() -> None:
+    """`backlog-update --apply` 는 task frontmatter 를 쓰는 층이므로 roadmap_state 도 같이 재생성한다.
+
+    task frontmatter(`wbs` · status)가 roadmap_state.json 의 SSOT 다. 이 도구가 그것을
+    쓰고도 파생물을 안 따라가게 두면, 뒤처짐이 push 게이트의
+    `check_roadmap_state_generated` 에서야 드러난다 (2026-09-17 · 2026-09-18 이틀에
+    두 번 실측). 판정은 **산출물**을 잰다 — 재생성 호출이 사라지면 여기가 red 다.
+
+    - 재생성이 실제로 일어나고, 그 write 가 `written_paths` 에 보인다.
+    - `--apply` 없는 draft 는 여전히 아무것도 쓰지 않는다 (dry-run 오염 금지, v1.0.1).
+    - roadmap 부재 프로젝트에서는 파일을 만들지 않는다 (additive).
+    """
+    problems: list[str] = []
+    create_args = ["--task-name", "배선 fixture task", "--task-brief", "배선 시험", "--mode", "create"]
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        profile = _build_fixture(root, with_roadmap=True)
+        _run_tool(REFRESH_TOOL, ["--project-profile-path", str(profile)])
+        state_file = roadmap_state_path(root)
+        if not state_file.is_file():
+            problems.append("사전 조건: roadmap_state.json 미생성")
+        rc, payload = _run_tool(BACKLOG_TOOL, [
+            "--project-profile-path", str(profile), *create_args,
+            "--wbs", "M-001/WBS-1.2", "--apply",
+        ])
+        if rc != 0:
+            problems.append(f"backlog-update 실패: rc={rc} {payload.get('error')}")
+        ok, reason = state_matches_regeneration(root)
+        if not ok:
+            problems.append(f"task 를 쓰고도 roadmap_state 가 뒤처졌다: {reason}")
+        if str(state_file) not in payload.get("written_paths", []):
+            problems.append("roadmap_state.json write 가 written_paths 에 안 보인다")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        profile = _build_fixture(root, with_roadmap=True)
+        rc, _ = _run_tool(BACKLOG_TOOL, [
+            "--project-profile-path", str(profile), *create_args,
+            "--wbs", "M-001/WBS-1.2",
+        ])
+        if roadmap_state_path(root).exists():
+            problems.append("--apply 없는 draft 가 roadmap_state.json 을 썼다")
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        profile = _build_fixture(root, with_roadmap=False)
+        rc, _ = _run_tool(BACKLOG_TOOL, [
+            "--project-profile-path", str(profile), *create_args, "--apply",
+        ])
+        if rc != 0:
+            problems.append(f"roadmap 부재에서 backlog-update 실패: rc={rc}")
+        if roadmap_state_path(root).exists():
+            problems.append("roadmap 부재 프로젝트에 roadmap_state.json 을 만들었다")
+    _record("test_backlog_update_apply_regenerates_roadmap_state", not problems, "; ".join(problems))
+
+
 def test_session_context_builder_recommends_doc_phase_deliverables() -> None:
     """concept 단계 + 산출물 부재 → '산출물부터' 권고. roadmap 부재 → present=False."""
     problems: list[str] = []
@@ -204,6 +263,7 @@ def main() -> int:
     cases = [
         test_refresh_regenerates_and_checks_roadmap_state,
         test_refresh_without_roadmap_is_additive,
+        test_backlog_update_apply_regenerates_roadmap_state,
         test_session_context_builder_recommends_doc_phase_deliverables,
         test_repo_session_start_reports_roadmap,
         test_demo_heuristic_is_retired_and_mcp_reads_roadmap,

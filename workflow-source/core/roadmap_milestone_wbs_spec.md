@@ -4,7 +4,7 @@
 - 범위: 문서 계층과 배치, roadmap SSOT 형식, SDLC 단계 어휘, task 연결 계약, 게이트 계약, 생성물(roadmap_state.json), skill/CLI 배선, 검사 계약, 단계별 구현 계획
 - 대상 독자: workflow 설계자, 구현자, AI agent (session-start / backlog-update), 프로젝트 온보딩 담당자
 - 상태: draft (ADR-027 accepted, 구현 전 — §10 의 M-002 부터가 구현이다)
-- 최종 수정일: 2026-09-04
+- 최종 수정일: 2026-09-18
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-027-roadmap-wbs-sdlc.md`, `./llm_wiki_concept_purpose_spec.md`, `./workflow_adoption_entrypoints.md`, `./existing_project_onboarding_contract.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-027 에 있다** (2026-08-25 소유자 결정 3건: 문서 형태 =
@@ -171,6 +171,15 @@ wbs_exempt_reason: 로드맵 밖 긴급 수리 — CI red
   이행한다 (데모 휴리스틱 `milestones.py` 은퇴 — §9).
 - 재생성: `wk refresh-state` 가 state.json 과 **함께** 재생성한다. 별도
   명령을 만들지 않는다 (진입점이 둘로 갈리면 `--help` 도 갈린다).
+- **SSOT 를 쓰는 층이 파생물을 같이 갱신한다**: 이 생성물의 SSOT 는 roadmap/
+  뿐 아니라 **task frontmatter**(`wbs` 링크와 status)이고, 그것을 쓰는 도구는
+  `wk backlog-update --apply` 다. 그래서 그 경로도 같은 호출에서 재생성한다 —
+  state.json 에 대해 이미 하던 것과 같은 규약이다. 이것은 새 명령이 아니라
+  **쓰기의 일부**다. 이 규약이 없던 동안 `--wbs` task 생성·상태 변경이
+  roadmap_state.json 을 조용히 뒤처지게 했고, push 게이트의
+  `check_roadmap_state_generated` 가 red 를 낼 때까지 아무도 몰랐다
+  (2026-09-17 · 2026-09-18 이틀에 두 번 실측, 매번 수동 `wk refresh-state`).
+  roadmap 부재 프로젝트에서는 파일을 만들지 않는다 (additive).
 - 내용: 마일스톤별 { 선언 status, 파생 progress, WBS 트리(leaf←task 파생
   상태 + 연결 task id 역방향 목록), 선언-파생 불일치 목록, exempt task 목록 }.
 
@@ -208,7 +217,7 @@ wbs_exempt_reason: 로드맵 밖 긴급 수리 — CI red
 | 지점 | 변경 |
 |---|---|
 | `session-start` | 현재 in_progress 마일스톤·sdlc_phase·다음 WBS 후보를 보고. concept/requirements/design 단계면 그 단계 deliverable 의 placeholder 잔존 여부를 재고 "다음 행동" 으로 권고. roadmap 부재 시 silent skip (기존 graceful 원칙) |
-| `backlog-update` | §6 게이트 + `--wbs` 인자. scope creep 경고(PURPOSE 기반)는 그대로 유지 — 게이트와 별개 축 |
+| `backlog-update` | §6 게이트 + `--wbs` 인자. `--apply` 는 state.json 과 함께 roadmap_state.json 도 재생성한다 (§7.1 — task frontmatter 가 그 SSOT 다). scope creep 경고(PURPOSE 기반)는 그대로 유지 — 게이트와 별개 축 |
 | `session-end` / `wk refresh-state` | roadmap_state.json 재생성 (§7) |
 | bootstrap `--adoption-mode new` | roadmap/ 씨앗 (SDLC 4 마일스톤, M-001 concept = in_progress) |
 | 기존 프로젝트 온보딩 | `repository_assessment` 기반으로 현재 단계 추정 초안 생성 — 추정을 확정으로 적지 않고 draft 표기 (모르는 정체를 지어내지 않는다) |

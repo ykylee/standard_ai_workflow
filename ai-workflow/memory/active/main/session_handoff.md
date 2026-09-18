@@ -44,6 +44,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-18-main-004 backlog-update --apply 가 roadmap_state.json 을 안 따라간다 — 파생물 갱신을 쓰는 층에 흡수
 - TASK-2026-09-18-main-003 CLAUDE.md 포크 병합 — v1.3.0 이후 kit 델타 전수, 채택 0
 - TASK-2026-09-18-main-002 이 호스트(plex) 채널 v1.9.4 재적용 — claude-code 가 v1.1.8-beta 로 5주 낡아 있었다
 - TASK-2026-09-18-main-001 backlog-update 가 --progress-note 미지정 시 이전 Progress 를 task_brief 로 덮는다 — 새 타임스탬프가 붙어 갱신처럼 보인다
@@ -53,7 +54,6 @@
 - TASK-2026-09-07-main-008 v1.9.3 발행 + 이 호스트 소비자 채널 재적용
 - TASK-2026-09-07-main-007 설치본에서 모듈 앵커가 증발해 브랜치 해석이 갈라진다 — 소비자 배포처의 모순 뿌리
 - TASK-2026-09-07-main-006 task ID 채번이 로컬만 봐 같은 브랜치의 다른 호스트와 겹친다 — 코드가 거짓 보증을 적고 있다
-- TASK-2026-09-07-main-005 INSTALLATION §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽힌다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

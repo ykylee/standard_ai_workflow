@@ -76,7 +76,14 @@ from workflow_kit.common.check_warnings import (  # noqa: E402
     gated_only,
     sweep_compile,
 )
-from workflow_kit.common.python_floor import iter_sources  # noqa: E402
+from workflow_kit.common.python_floor import (  # noqa: E402
+    iter_sources,
+    resolve_scope,
+)
+
+#: 컴파일 대상 루트. 하한 호환 판정과 **같은 결정** 을 쓴다 — 두 축이 각자 루트를
+#: 정하면 한쪽만 좁아져도 아무도 모른다 (main-009).
+COMPILE_ROOT, _PYPROJECT = resolve_scope(REPO_ROOT)
 
 _failures: list[str] = []
 _passes: list[str] = []
@@ -94,7 +101,7 @@ def _fail(name: str, why: str) -> None:
 
 # --- case 1 · 3 · 6: 실 저장소 스윕 ------------------------------------------
 
-sources = iter_sources(REPO_ROOT)
+sources = iter_sources(COMPILE_ROOT)
 result = sweep_compile(sources)
 
 if result.compiled > 0 and result.compiled == len(sources):

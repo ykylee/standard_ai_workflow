@@ -89,6 +89,42 @@ def iter_sources(source_root: Path) -> list[Path]:
     )
 
 
+def resolve_scope(repo_root: Path) -> tuple[Path, Path]:
+    """(컴파일 대상 루트, `requires-python` 선언 파일) 을 한 곳에서 정한다.
+
+    TASK-2026-09-21-main-009. 두 결정이 각각 따로 내려지면 갈라지므로 같이 둔다.
+
+    **루트는 저장소 루트다.** 처음에는 `workflow-source/` 로 잡았는데, 그러면 그
+    밖의 git 추적 소스를 조용히 안 잰다 — 2026-09-21 실측으로 `main.py` ·
+    `ai-workflow/mcp_servers/*/scripts/run_*.py` 6종 · `scripts/audit_mkdocs_links.py`
+    **8개**가 범위 밖이었고, 그중 MCP 서버 스크립트는 **실제로 배포·서빙된다.**
+    `check_python_floor_syntax` 의 범위 case 가 git 추적 전수와 대조해 다시 좁아지면
+    red 로 잡는다.
+
+    **선언 파일은 실제 패키지의 것이다 — 루트 `pyproject.toml` 이 아니다.** 이
+    저장소의 루트 pyproject 는 배포되지 않는 **placeholder scaffold** 이고
+    `requires-python = ">=3.13"` 을 선언한다(의도된 불일치, 그 파일 머리말이 정본).
+    루트를 넓히면서 선언까지 루트로 옮기면 하한이 3.10 → 3.13 으로 올라가 **이 축이
+    아무것도 재지 않게 된다** — 개발 해석기가 이미 3.13 이라 전부 통과한다. 조용히
+    무력화되는 자리라 case 로 동결했다.
+
+    소비 프로젝트에는 `workflow-source/` 가 없다. 그때는 저장소 루트의 pyproject 가
+    곧 그 프로젝트의 선언이다.
+    """
+    packaged = packaged_declaration(repo_root)
+    return repo_root, (packaged if packaged.is_file() else repo_root / "pyproject.toml")
+
+
+def packaged_declaration(repo_root: Path) -> Path:
+    """**배포되는 패키지** 의 `requires-python` 선언 위치 (없을 수도 있다).
+
+    `resolve_scope` 와 검사가 같은 답을 보게 한 곳에 둔다. 검사가 이 경로를 따로
+    조립하면 사본이 되고, 사본은 갈라진다 — 그러면 '선언 출처가 뒤바뀌었다' 를
+    재는 case 가 뒤바뀐 출처를 정상으로 보게 된다.
+    """
+    return repo_root / "workflow-source" / "pyproject.toml"
+
+
 def declared_floor(pyproject: Path) -> tuple[int, int] | None:
     """`requires-python = ">=X.Y"` 의 하한. 선언이 정본이다."""
     if not pyproject.is_file():
@@ -205,11 +241,8 @@ def main(argv: list[str] | None = None) -> int:
     from workflow_kit.common.paths import resolve_workspace_root
 
     repo_root, _why = resolve_workspace_root()
-    source_root = repo_root / "workflow-source"
-    if not source_root.is_dir():
-        # 소비 프로젝트에는 이 하위 디렉터리가 없다 — 그때는 저장소 루트를 훑는다.
-        source_root = repo_root
-    result = probe(source_root, source_root / "pyproject.toml")
+    source_root, pyproject = resolve_scope(repo_root)
+    result = probe(source_root, pyproject)
     if not result.measured:
         print(f"[unmeasured] {result.unmeasured_reason}")
         return 2

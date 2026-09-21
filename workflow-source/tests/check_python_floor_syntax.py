@@ -19,8 +19,8 @@ from __future__ import annotations
 #: **전부** 하한 해석기에 물리므로 입력 표면이 소스 트리 전체다 — 좁게 선언하면
 #: meta-watch 실측에서 선언 밖 접근이 난다 (examples/ · mcp_servers/scripts/ 등 38건).
 WATCHES_ALL_REASON = (
-    "선언 하한 해석기로 workflow-source 아래 *.py 전수를 컴파일한다 — meta-watch "
-    "실측(2026-09-21) 553개 파일 접근. 입력 표면이 소스 트리 전체다"
+    "선언 하한 해석기로 **저장소 루트** 아래 git 추적 *.py 전수를 컴파일한다 — "
+    "meta-watch 실측(2026-09-21) 566개 파일 접근. 입력 표면이 소스 트리 전체다"
 )
 
 #: 이 검사가 강제하는 정본 요구 (spec `core/test_impact_tiering_spec.md` §7).
@@ -38,7 +38,17 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.python_floor import declared_floor, probe  # noqa: E402
+from workflow_kit.common.python_floor import (  # noqa: E402
+    declared_floor,
+    iter_sources,
+    packaged_declaration,
+    probe,
+    resolve_scope,
+)
+
+#: 컴파일 대상 루트와 하한 선언 파일. **저장소 루트** 다 — `workflow-source/` 로
+#: 좁히면 그 밖의 git 추적 소스 8개를 조용히 안 잰다 (main-009).
+COMPILE_ROOT, PYPROJECT = resolve_scope(REPO_ROOT)
 
 #: 실측으로 고른 표본 — PEP 701 중첩 f-string 은 3.12 도입인데 `feature_version` 이
 #: 거부하지 못한다. 이 축이 실물 해석기를 부르는 유일한 이유다.
@@ -58,7 +68,7 @@ def _record(case: str, ok: bool, detail: str = "") -> None:
 
 def case_1_floor_comes_from_the_declaration() -> None:
     """하한은 `requires-python` 에서 나온다 — 리터럴도 CI 매트릭스도 아니다."""
-    floor = declared_floor(SOURCE_ROOT / "pyproject.toml")
+    floor = declared_floor(PYPROJECT)
     _record(
         "case 1 (하한이 requires-python 선언에서 나온다)",
         floor is not None,
@@ -73,9 +83,10 @@ def _partial_sweep(floor: tuple[int, int]) -> list[tuple[str, str]]:
     type alias / type parameter 는 잡으므로 0 보다는 낫다.
     """
     failures: list[tuple[str, str]] = []
-    for path in sorted(SOURCE_ROOT.rglob("*.py")):
-        if "__pycache__" in path.parts:
-            continue
+    # 열거는 `iter_sources` 하나다 — 여기 사본을 두면 실물 해석기 경로(case 2 의
+    # 전수 측정)와 부분 측정이 **다른 집합** 을 재게 된다. 실제로 이 사본은
+    # `.venv*` 제외가 빠져 있었다 (main-009).
+    for path in iter_sources(COMPILE_ROOT):
         try:
             ast.parse(path.read_text(encoding="utf-8"), feature_version=floor)
         except SyntaxError as exc:
@@ -95,7 +106,7 @@ def case_2_real_interpreter_compiled_everything() -> None:
     않으려면 무엇을 못 쟀는지가 출력에 남아야 한다 — 조용한 fallback 은 '봤는데
     맞았다' 와 '아예 못 봤다' 를 같은 모양으로 만든다.
     """
-    result = probe(SOURCE_ROOT, SOURCE_ROOT / "pyproject.toml")
+    result = probe(COMPILE_ROOT, PYPROJECT)
     if result.measured:
         ok = not result.failures and result.compiled > 100
         detail = (
@@ -107,7 +118,7 @@ def case_2_real_interpreter_compiled_everything() -> None:
         _record("case 2 (하한 해석기가 전수를 컴파일했다)", ok, detail)
         return
 
-    floor = declared_floor(SOURCE_ROOT / "pyproject.toml")
+    floor = declared_floor(PYPROJECT)
     if floor is None:
         _record("case 2 (하한 해석기가 전수를 컴파일했다)", False, result.unmeasured_reason or "미측정")
         return
@@ -142,7 +153,7 @@ def case_3_feature_version_cannot_replace_it() -> None:
     호스트가 판정을 가르는 자리는 조건을 **명시**하고, 해당 없으면 통과로도 실패로도
     세지 않는다.
     """
-    floor = declared_floor(SOURCE_ROOT / "pyproject.toml")
+    floor = declared_floor(PYPROJECT)
     if floor is None:
         _record("case 3 (feature_version 은 대체 불가)", False, "하한을 못 읽어 전제가 깨졌다")
         return
@@ -188,11 +199,97 @@ def case_3_feature_version_cannot_replace_it() -> None:
     )
 
 
+def case_4_scope_is_derived_not_a_hand_list() -> None:
+    """범위가 git 추적 `*.py` **전수** 인가 — 좁아지면 red.
+
+    이 case 가 없으면 범위는 조용히 줄어든다. 실제로 그랬다 (main-009): 대상이
+    `workflow-source/` 라 `main.py` · MCP 서버 스크립트 6종 ·
+    `scripts/audit_mkdocs_links.py` **8개**가 밖에 있었고, 그중 MCP 서버 스크립트는
+    실제로 배포·서빙된다. 결함이 0 이었던 것은 운이지 측정이 아니다.
+
+    **좁아지는 쪽만 red 다.** 추적 밖 파일까지 컴파일하는 것은 범위가 *넓은* 것이라
+    이 실패 모드가 아니다 (아직 `git add` 안 한 새 파일이 정확히 그것이다).
+    """
+    import subprocess
+    proc = subprocess.run(["git", "ls-files", "*.py"],
+                          cwd=REPO_ROOT, capture_output=True, text=True)
+    if proc.returncode != 0:
+        _record("case 4 (범위가 git 추적 전수와 일치)", False,
+                f"git ls-files 실패: {proc.stderr.strip()[:160]}")
+        return
+    tracked = {line for line in proc.stdout.split() if line}
+    swept = {str(path.relative_to(REPO_ROOT)) for path in iter_sources(COMPILE_ROOT)}
+    missing = sorted(tracked - swept)
+    extra = len(swept - tracked)
+    _record(
+        "case 4 (범위가 git 추적 전수와 일치)",
+        not missing,
+        f"git 추적 *.py {len(tracked)}개 전부 대상" + (f" (+추적 밖 {extra}건)" if extra else "")
+        if not missing
+        else f"추적되는데 범위 밖 {len(missing)}건 {missing[:3]} — 범위가 조용히 좁아졌다",
+    )
+
+
+def case_5_floor_comes_from_the_packaged_declaration() -> None:
+    """하한 선언은 **배포되는 패키지** 의 것이다 — 루트 scaffold 가 아니다.
+
+    main-009 가 컴파일 루트를 저장소 루트로 넓히면서 생긴 함정이다. 이 저장소의
+    루트 `pyproject.toml` 은 배포되지 않는 placeholder scaffold 이고
+    `requires-python = ">=3.13"` 을 선언한다 (의도된 불일치, 그 파일 머리말이 정본).
+    루트를 넓히면서 **선언까지 루트로 옮기면** 하한이 3.10 → 3.13 으로 올라가고,
+    개발 해석기가 이미 3.13 이라 **전부 통과하며 이 축이 아무것도 재지 않게 된다.**
+
+    조용히 무력화되는 자리라 여기서 동결한다: 선택된 선언이 실제 패키지의 것이고,
+    그것이 루트 scaffold 보다 **낮거나 같은** 하한을 말하는지 본다.
+    """
+    root_pyproject = REPO_ROOT / "pyproject.toml"
+    packaged_path = packaged_declaration(REPO_ROOT)
+
+    # **가장 먼저 이것을 본다.** 배포 패키지의 선언이 디스크에 있는데 다른 것을
+    # 골랐다면 그것이 이 case 가 막는 결함이다. 되주입이 이 순서를 강제했다 —
+    # 처음엔 '선택된 선언 == 루트 pyproject 면 소비 프로젝트' 로 봐서, 정작 선언이
+    # 루트로 뒤바뀐 주입이 **[해당 없음]으로 통과**했다 (case 3 이 대신 터졌다).
+    if packaged_path.is_file() and PYPROJECT.resolve() != packaged_path.resolve():
+        _record("case 5 (하한 선언은 배포 패키지의 것)", False,
+                f"배포 패키지 선언({packaged_path.relative_to(REPO_ROOT)})이 있는데 "
+                f"{PYPROJECT} 를 골랐다 — 하한이 뒤바뀌면 이 축은 조용히 아무것도 재지 않는다")
+        return
+    if not packaged_path.is_file():
+        _record("case 5 (하한 선언은 배포 패키지의 것)", True,
+                "[해당 없음] 배포 패키지 pyproject 가 없다 (소비 프로젝트 형태)")
+        return
+    if not root_pyproject.is_file():
+        _record("case 5 (하한 선언은 배포 패키지의 것)", True,
+                "[해당 없음] 루트 pyproject 가 없다 — 선언이 갈릴 자리가 아니다")
+        return
+
+    packaged, scaffold = declared_floor(PYPROJECT), declared_floor(root_pyproject)
+    if packaged is None:
+        _record("하한 선언은 배포 패키지의 것", False,
+                f"패키지 선언({PYPROJECT}) 에서 requires-python 을 못 읽었다")
+        return
+    if scaffold is not None and packaged > scaffold:
+        _record("case 5 (하한 선언은 배포 패키지의 것)", False,
+                f"선택된 하한 {packaged} 이 루트 scaffold {scaffold} 보다 높다 — "
+                "선언 출처가 뒤바뀌었는지 확인하라. 하한이 올라가면 이 축은 조용히 "
+                "아무것도 재지 않는다")
+        return
+    _record(
+        "case 5 (하한 선언은 배포 패키지의 것)", True,
+        f"선언 출처 {PYPROJECT.relative_to(REPO_ROOT)} → 하한 {packaged[0]}.{packaged[1]} "
+        f"(루트 scaffold 는 {scaffold[0]}.{scaffold[1]} — 읽지 않는다)"
+        if scaffold else
+        f"선언 출처 {PYPROJECT.relative_to(REPO_ROOT)} → 하한 {packaged[0]}.{packaged[1]}",
+    )
+
+
 def main() -> int:
     print("=== 선언 하한 Python 문법 호환 (TASK-2026-09-21-main-005) ===")
     for fn in (case_1_floor_comes_from_the_declaration,
                case_2_real_interpreter_compiled_everything,
-               case_3_feature_version_cannot_replace_it):
+               case_3_feature_version_cannot_replace_it,
+               case_4_scope_is_derived_not_a_hand_list,
+               case_5_floor_comes_from_the_packaged_declaration):
         fn()
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed")

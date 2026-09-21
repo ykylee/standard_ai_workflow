@@ -157,6 +157,20 @@ PEP 701(중첩 f-string, 3.12 도입)을 **통과시킨다** — 이 축을 만�
 (2026-09-21 실측). 하한 해석기를 못 구하면 통과가 아니라 **미측정**이고, 판정은
 "실패가 안 보였다" 가 아니라 "해석기가 N개를 실제로 컴파일했다" 는 긍정 증거로 한다.
 
+**범위는 저장소 루트의 git 추적 `*.py` 전수다** (2026-09-21, main-009). 처음에는
+`workflow-source/` 아래로 잡았는데 그 밖에 추적 소스 **8개**가 있었다 — `main.py` ·
+`ai-workflow/mcp_servers/*/scripts/run_*.py` 6종 · `scripts/audit_mkdocs_links.py`.
+그중 MCP 서버 스크립트는 **실제로 배포·서빙된다.** 넓힌 뒤 실물 3.10 으로 전수를
+컴파일해 실패 0 — 즉 결함이 없었던 것이지 재고 있던 것이 아니다. 열거 정본은
+`python_floor.iter_sources` 하나이고, 컴파일 경고 스윕도 같은 함수·같은 루트를 쓴다.
+
+**선언 출처는 배포되는 패키지의 `pyproject.toml` 이다 — 저장소 루트의 것이 아니다.**
+이 저장소의 루트 pyproject 는 배포되지 않는 placeholder scaffold 이고
+`requires-python = ">=3.13"` 을 선언한다(의도된 불일치). 범위를 루트로 넓히면서
+선언까지 루트로 옮기면 하한이 3.10 → 3.13 으로 올라가 **이 축이 아무것도 재지 않게
+된다** — 개발 해석기가 이미 3.13 이라 전부 통과한다. 조용히 무력화되는 자리라
+`packaged_declaration` 을 단일 출처로 두고 검사가 그것을 동결한다.
+
 ### Requirement: check-interpreter-axis-is-declared-not-incidental
 
 검사를 도는 Python 해석기는 **선언**에서 나오고, CI 가 선언된 전부를 밟는다.

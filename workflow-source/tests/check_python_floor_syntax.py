@@ -131,6 +131,16 @@ def case_3_feature_version_cannot_replace_it() -> None:
 
     이 case 가 없으면 다음 사람이 "해석기를 부르는 건 느리니 feature_version 으로
     바꾸자" 고 하고, 그러면 이 축을 만들게 한 결함을 다시 못 잡는다.
+
+    **판정이 실행 인터프리터에 달려 있다** (2026-09-21 CI 실측으로 배웠다). PEP 701
+    표본은 **3.12+ 에서만** `feature_version` 을 빠져나간다 — 3.11 이하에서는
+    토크나이저가 그 문자열을 아예 못 읽어 `feature_version` 과 무관하게 거부된다.
+    즉 `feature_version` 이 불충분한 것은 **실행 인터프리터가 하한보다 새로울 때**이고,
+    그것이 바로 이 축이 존재하는 상황이다.
+
+    처음엔 이 사실을 무조건으로 단언해서 로컬(3.13) green · CI(3.11) red 가 났다.
+    호스트가 판정을 가르는 자리는 조건을 **명시**하고, 해당 없으면 통과로도 실패로도
+    세지 않는다.
     """
     floor = declared_floor(SOURCE_ROOT / "pyproject.toml")
     if floor is None:
@@ -144,22 +154,38 @@ def case_3_feature_version_cannot_replace_it() -> None:
         except SyntaxError:
             return False
 
-    pep701_slips = accepted(_PEP701_SAMPLE)
-    type_alias_caught = not accepted(_TYPE_ALIAS_SAMPLE)
-    ok = pep701_slips and type_alias_caught
-    if ok:
-        detail = (
-            f"feature_version={floor[0]}.{floor[1]} 은 PEP 701 중첩 f-string 을 "
-            "통과시키고(대체 불가) type alias 는 거부한다(수단 자체는 정상)"
+    # 대조군은 실행 버전과 무관하게 항상 성립해야 한다 — 수단 자체의 건전성.
+    if accepted(_TYPE_ALIAS_SAMPLE):
+        _record("case 3 (feature_version 은 대체 불가)", False,
+                "feature_version 이 type alias 도 못 잡는다 — 이 수단 자체가 고장났다")
+        return
+
+    running = sys.version_info[:2]
+    if running < (3, 12):
+        # 실행 인터프리터가 PEP 701 을 아예 못 읽는다. 이 호스트에서는 표본으로
+        # '대체 불가' 를 실증할 수 없다 — 해당 없음이지 통과가 아니다.
+        _record(
+            "case 3 (feature_version 은 대체 불가)",
+            True,
+            f"[해당 없음] 실행 {running[0]}.{running[1]} 은 PEP 701 을 토크나이저가 못 읽어 "
+            f"표본으로 실증 불가 — 이 축이 겨냥하는 상황(실행 > 하한 {floor[0]}.{floor[1]})이 "
+            "아니다. 대조군(type alias)은 정상 거부",
         )
-    elif not type_alias_caught:
-        detail = "feature_version 이 type alias 도 못 잡는다 — 이 수단 자체가 고장났다"
-    else:
-        detail = (
-            "feature_version 이 PEP 701 을 거부하기 시작했다 — 이 검사의 전제가 바뀌었다. "
-            "실물 해석기가 여전히 필요한지 다시 재고 이 case 를 갱신할 것"
+        return
+
+    if not accepted(_PEP701_SAMPLE):
+        _record(
+            "case 3 (feature_version 은 대체 불가)", False,
+            f"실행 {running[0]}.{running[1]} 인데 feature_version 이 PEP 701 을 거부하기 "
+            "시작했다 — 이 검사의 전제가 바뀌었다. 실물 해석기가 여전히 필요한지 다시 잴 것",
         )
-    _record("case 3 (feature_version 은 대체 불가)", ok, detail)
+        return
+
+    _record(
+        "case 3 (feature_version 은 대체 불가)", True,
+        f"실행 {running[0]}.{running[1]} > 하한 {floor[0]}.{floor[1]} 에서 "
+        "feature_version 이 PEP 701 을 통과시킨다(대체 불가) · type alias 는 거부(수단 정상)",
+    )
 
 
 def main() -> int:

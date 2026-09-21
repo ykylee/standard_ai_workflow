@@ -69,6 +69,26 @@ class FloorProbe:
         return self.unmeasured_reason is None
 
 
+def iter_sources(source_root: Path) -> list[Path]:
+    """`source_root` 아래의 **컴파일 대상 Python 소스 전수**. 정렬은 결정적이다.
+
+    이 열거가 함수인 이유: 같은 뜻('저장소가 컴파일하는 소스 전부')을 쓰는 자리가
+    둘이고(하한 호환 판정 · 컴파일 경고 스윕), 사본을 두면 **반드시 갈라진다**.
+    한쪽만 넓어지면 좁은 쪽은 조용히 그 밖을 못 잰다 — 이 저장소가 포함 목록으로
+    세 번 겪은 모양이다 (`TASK-2026-09-21-main-004` 등).
+
+    제외는 두 가지뿐이고 둘 다 *소스가 아닌 것* 이다: `__pycache__`(컴파일 산물)와
+    `.venv*`(서드파티). venv 디렉터리는 이름이 하나가 아니다 —
+    `.venv-interpreter-matrix/` · `.venv-sdk-matrix/` 가 실제로 저장소 루트 아래에
+    생긴다.
+    """
+    return sorted(
+        p for p in source_root.rglob("*.py")
+        if "__pycache__" not in p.parts
+        and not any(part.startswith(".venv") for part in p.parts)
+    )
+
+
 def declared_floor(pyproject: Path) -> tuple[int, int] | None:
     """`requires-python = ">=X.Y"` 의 하한. 선언이 정본이다."""
     if not pyproject.is_file():
@@ -138,10 +158,7 @@ def probe(source_root: Path, pyproject: Path) -> FloorProbe:
         return FloorProbe(None, str(pyproject), None, None, 0, [],
                           "requires-python 선언을 읽지 못했다")
 
-    paths = sorted(
-        str(p) for p in source_root.rglob("*.py")
-        if "__pycache__" not in p.parts and ".venv" not in p.parts
-    )
+    paths = [str(p) for p in iter_sources(source_root)]
     if not paths:
         return FloorProbe(floor, str(pyproject), None, None, 0, [],
                           f"{source_root} 아래에서 *.py 를 찾지 못했다")

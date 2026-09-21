@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-09-18
+- 최종 수정일: 2026-09-21
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -216,6 +216,17 @@ exit 0 이어도 게이트를 red 로 만들고, 서드파티는 보고만 한�
 deprecation 경로를 의도적으로 부를 때는 `check_warnings.call_deprecated` 를 쓴다
 (삼키되 경고가 났는지 단언한다). 정본은
 `workflow_kit/common/check_warnings.py`, 판정은 `check_warning_gate.py`.
+
+**다만 실행 출력에서 줍는 것만으로는 부족하다** (2026-09-21, main-008). `SyntaxWarning`
+류는 *컴파일 시점* 신호라 `.pyc` 가 유효하면 아예 나지 않는다 — 소스를 그대로 둔 채
+1차 `exit 1` / 2차 `exit 0` 이 실측됐다. **고친 것 없이 재실행만으로 green** 이 되는
+게이트였다. 또 runner 부모가 낸 경고는 수집 지점이 서브프로세스뿐이라 아무도 안 봤다
+(kit 모듈 44/196 이 그 경로로 컴파일된다).
+
+그래서 축이 둘이다. `check_source_compile_warnings` 가 저장소 Python 소스 **전수**
+(566개, `python_floor.iter_sources` 파생 — git 추적 집합과 대조해 좁아지면 red)를
+메모리에서 `compile()` 해 캐시와 무관하게 판정하고, runner 는 부모 프로세스 경고를
+`PARENT_WARNINGS` 로 같은 출처 규율에 태운다.
 
 ### 해석기 매트릭스 — CI 가 4셀을 돌고, 로컬은 필요할 때 재현한다
 

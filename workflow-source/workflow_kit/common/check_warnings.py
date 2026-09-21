@@ -29,8 +29,10 @@ CPython 의 기본 `showwarning` 은 이렇게 쓴다::
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
-from dataclasses import dataclass
+import warnings as _warnings_mod
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TypeVar
 
 _T = TypeVar("_T")
@@ -164,3 +166,82 @@ def call_deprecated(
         "deprecation 계약이 깨졌거나, 이 호출은 애초에 옛 경로가 아니다"
     )
     return result
+
+
+# --- 컴파일 시점 경고: 실행 수집으로는 구조적으로 안 보인다 (TASK-2026-09-21-main-008) ---
+#
+# 위의 `extract` 는 **검사 실행의 출력** 에서 경고를 줍는다. 그 수집 지점에는 두
+# 구멍이 있고 2026-09-21 실측이 둘 다 실증했다.
+#
+# **① 판정이 `__pycache__` 에 달려 있다.** Python 경고 중 `SyntaxWarning` 류는
+# *컴파일 시점* 신호다. 모듈의 `.pyc` 가 유효하면 소스는 아예 다시 컴파일되지 않고
+# 경고도 나지 않는다. 실측(`dashboard_data.py` 에 invalid escape 주입, 소스 동일):
+#
+#     1차 실행(cold cache): exit 1  ← 게이트가 잡는다
+#     2차 실행(warm cache): exit 0  ← 고친 것이 없는데 green
+#
+# 즉 **재실행만으로 green 이 되는 게이트** 였다. CI 는 체크아웃이 fresh 라 안 물지만
+# 로컬 push 게이트는 바로 문다.
+#
+# **② runner 부모가 낸 경고는 아무도 안 본다.** `warning_verdict` 는 per-check
+# 서브프로세스 출력만 훑는데, runner 부모는 `workflow_kit` 모듈 44/196 을
+# transitively import 한다. 그 안의 경고는 배너보다 먼저 stderr 에 찍히면서도
+# 게이트는 EXIT=0 이다 (`branch_matrix.py` 주입으로 실측).
+#
+# `sweep_compile` 은 ①을 원리적으로 없앤다 — `compile()` 은 `__pycache__` 를 **보지
+# 않으므로** 캐시 상태와 무관하게 매번 같은 답을 낸다. 덤으로 '누가 무엇을 import
+# 했는가' 와도 무관해져 ②의 사각지대까지 덮는다 (부모가 낸 *런타임* 경고는 runner
+# 쪽에서 따로 잡는다).
+
+
+@dataclass(frozen=True)
+class SweepResult:
+    """컴파일 스윕 1회. 측정과 판정을 나눠 되주입이 가능하게 한다."""
+
+    compiled: int
+    """실제로 컴파일에 성공한 소스 수. **긍정 증거** 다 — '실패가 안 보였다' 가
+    아니라 'N개를 실제로 컴파일했다' 를 요구한다 (`python_floor` 와 같은 규율)."""
+
+    warnings: list[CheckWarning] = field(default_factory=list)
+
+    errors: list[tuple[str, str]] = field(default_factory=list)
+    """게이트 해석기에서 컴파일 자체가 실패한 소스. **삼키지 않는다** — 못 잰 것을
+    통과로 세면 거짓 안심이 된다."""
+
+
+def sweep_compile(sources: Iterable[Path]) -> SweepResult:
+    """소스를 **메모리에서** 컴파일해 컴파일 시점 경고를 모은다.
+
+    저장소에 아무것도 쓰지 않는다 — `py_compile` 은 `__pycache__` 를 소스 옆에
+    남긴다 (`python_floor` 가 같은 이유로 `compile()` 만 쓴다).
+    """
+    found: list[CheckWarning] = []
+    errors: list[tuple[str, str]] = []
+    compiled = 0
+    for path in sources:
+        try:
+            src = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            errors.append((str(path), f"read error: {exc}"))
+            continue
+        with _warnings_mod.catch_warnings(record=True) as captured:
+            _warnings_mod.simplefilter("always")
+            try:
+                compile(src, str(path), "exec")
+            except SyntaxError as exc:
+                errors.append((str(path), f"{exc.msg} (line {exc.lineno})"))
+                continue
+        compiled += 1
+        for entry in captured:
+            found.append(CheckWarning(
+                category=entry.category.__name__,
+                location=str(entry.filename),
+                line=int(entry.lineno or 0),
+                message=normalize(str(entry.message)),
+            ))
+    return SweepResult(compiled=compiled, warnings=found, errors=errors)
+
+
+def gated_only(warnings: Iterable[CheckWarning], repo_root: str) -> list[CheckWarning]:
+    """게이트 대상 출처(저장소 · 귀속 불가)만 남긴다. 서드파티는 보고만 한다."""
+    return [w for w in warnings if classify(w, repo_root) in GATED_ORIGINS]

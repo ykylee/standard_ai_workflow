@@ -67,16 +67,31 @@ TESTS_DIR = SOURCE_ROOT / "tests"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.check_warnings import (
-    GATED_ORIGINS,
-    ORIGIN_THIRD_PARTY,
-    classify as classify_warning,
-    extract as extract_warnings,
-)
-from workflow_kit.common.branch_matrix import (  # noqa: E402
-    BranchContext, apply_context, context_for, contexts, labels,
-)
-from workflow_kit.common import meta_watch  # noqa: E402
+# runner **부모 프로세스** 가 자기 import 로 내는 경고를 버리지 않는다
+# (TASK-2026-09-21-main-008). `warning_verdict` 는 per-check 서브프로세스 출력만
+# 훑으므로, 부모가 낸 경고는 배너보다도 먼저 stderr 에 찍히면서 게이트를 통과했다 —
+# 이 아래 import 가 `workflow_kit` 모듈 44/196 을 transitively 컴파일한다.
+# 실측(2026-09-21): `branch_matrix.py` 에 invalid escape 를 주입하면 경고가 화면에
+# 보이는데도 EXIT=0 이었다.
+with warnings.catch_warnings(record=True) as _parent_captured:
+    warnings.simplefilter("always")
+    from workflow_kit.common.check_warnings import (  # noqa: E402
+        GATED_ORIGINS,
+        ORIGIN_THIRD_PARTY,
+        classify as classify_warning,
+        extract as extract_warnings,
+    )
+    from workflow_kit.common.branch_matrix import (  # noqa: E402
+        BranchContext, apply_context, context_for, contexts, labels,
+    )
+    from workflow_kit.common import meta_watch  # noqa: E402
+
+#: 부모 import 가 낸 경고를 CPython 기본 포맷으로 굳혀 둔다 — `extract` 가 읽는
+#: 형식과 같아야 서브프로세스 경고와 **같은 출처 규율** 로 판정된다.
+PARENT_WARNINGS: list[str] = [
+    warnings.formatwarning(_w.message, _w.category, _w.filename, _w.lineno, _w.line)
+    for _w in _parent_captured
+]
 
 # --- v1.0.0 resource guard 기본 임계 -----------------------------------------
 # 배경: smoke 전량 실행 중 두 종류의 사고가 실제로 발생했다.
@@ -709,6 +724,11 @@ def _scan_markers(check_path_str: str) -> tuple[bool, int, tuple[str, ...], str]
         with warnings.catch_warnings():
             # 대상 파일의 SyntaxWarning(잘못된 escape 등)이 runner 출력에 새지 않게
             # — baselines 의 신호 계수와 같은 처리다.
+            #
+            # **이 억제가 신호를 삼키지 않는 이유** (TASK-2026-09-21-main-008):
+            # 같은 신호를 `check_source_compile_warnings` 가 저장소 소스 **전수** 를
+            # 대상으로, `__pycache__` 와 무관하게 결정적으로 잰다. 여기서 안 찍는
+            # 것은 *중복 억제* 이지 미측정이 아니다 — 억제를 지워도 그 검사가 red 다.
             warnings.simplefilter("ignore", SyntaxWarning)
             tree = ast.parse(Path(check_path_str).read_text(encoding="utf-8"))
     except (SyntaxError, OSError):
@@ -934,6 +954,7 @@ def run_pass(
 
 def warning_verdict(
     passes: "list[tuple[str, RunSummary]]", repo_root: Path,
+    parent_warnings: "list[str] | None" = None,
 ) -> tuple[list[str], list[str]]:
     """실행이 낸 Python 경고를 **출처별로** 가른다 (TASK-2026-09-21-main-007).
 
@@ -951,21 +972,28 @@ def warning_verdict(
     reported: list[str] = []
     seen_gated: set[str] = set()
     seen_reported: set[str] = set()
+
+    def absorb(source_name: str, rendered_text: str) -> None:
+        parsed = extract_warnings(rendered_text)
+        if not parsed:
+            return
+        origin = classify_warning(parsed[0], str(repo_root))
+        line = f"{source_name}: {parsed[0].render()}"
+        if origin in GATED_ORIGINS:
+            if line not in seen_gated:
+                seen_gated.add(line)
+                gated.append(line)
+        elif line not in seen_reported:
+            seen_reported.add(line)
+            reported.append(line)
+
+    # 부모가 먼저다 — 시간 순서상 가장 먼저 난 경고이고, 이 자리가 오래 비어 있었다.
+    for rendered in parent_warnings or []:
+        absorb("(runner 부모 프로세스)", rendered)
     for _label, summary in passes:
         for result in summary.results:
             for rendered in result.warnings:
-                parsed = extract_warnings(rendered)
-                if not parsed:
-                    continue
-                origin = classify_warning(parsed[0], str(repo_root))
-                line = f"{result.name}: {rendered}"
-                if origin in GATED_ORIGINS:
-                    if line not in seen_gated:
-                        seen_gated.add(line)
-                        gated.append(line)
-                elif line not in seen_reported:
-                    seen_reported.add(line)
-                    reported.append(line)
+                absorb(result.name, rendered)
     return gated, reported
 
 
@@ -1152,7 +1180,8 @@ def main() -> int:
                 print(f"[meta-watch] 채취 {dumped}건 → {args.meta_watch_dump}")
         shutil.rmtree(meta_dir, ignore_errors=True)
 
-    warn_gated, warn_reported = warning_verdict(passes, SOURCE_ROOT.parent)
+    warn_gated, warn_reported = warning_verdict(passes, SOURCE_ROOT.parent,
+                                                PARENT_WARNINGS)
 
     if args.json:
         meta_json = {"violations": meta_violations, "warns": meta_warns,

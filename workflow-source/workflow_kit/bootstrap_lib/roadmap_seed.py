@@ -153,11 +153,20 @@ def render_roadmap_seed(args: argparse.Namespace, *, draft: bool) -> dict[str, s
             f"order: {m.number}",
             "parallel_allowed: []",
             *deliverable_lines,
+            # 씨앗은 goal 을 **지어낼 수 없다** — M-001 의 일이 PURPOSE.md §1 을
+            # 채우는 것이라, 이 시점에 goal id 는 아직 존재하지 않는다. 비워 두면
+            # graph_insights 가 coverage 를 `unmeasured` 로 보고하고 무엇을 채우면
+            # 되는지 사유를 내놓는다 (모름을 통과로 세지 않는다).
+            "goals: []",
             "---",
             "",
             f"# {m.id} — {m.title}",
             "",
             m.body,
+            "",
+            "> `goals:` 는 PURPOSE.md §1 Goals 를 채운 뒤 이 마일스톤이 섬기는 id 를",
+            "> 적는다 (예: `goals: [G1, G2]`). leaf 마다 갈리면 `wbs_goals:` 에",
+            "> `WBS-1.1 -> G1` 형식으로 적는다 — 선언이 goal coverage 의 정본이다.",
             "",
             "## WBS",
             "",

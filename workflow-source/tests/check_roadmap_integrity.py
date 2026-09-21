@@ -23,6 +23,9 @@ import sys
 import tempfile
 from pathlib import Path
 
+#: 이 검사가 강제하는 정본 요구 (spec `core/test_impact_tiering_spec.md` §7).
+ENFORCES = ("goal-links-must-resolve",)
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
@@ -229,6 +232,76 @@ def test_exempt_is_counted_and_needs_reason() -> None:
     _record("test_exempt_is_counted_and_needs_reason", not problems, "; ".join(problems))
 
 
+GOAL_LINK_M1_TEXT = """---
+id: M-001
+title: 컨셉
+sdlc_phase: concept
+status: in_progress
+order: 1
+parallel_allowed: []
+deliverables: []
+goals: [G1, G9]
+wbs_goals:
+  - WBS-1.1 -> G1
+  - WBS-1.9 -> G1
+---
+
+# M-001
+
+## WBS
+
+- **WBS-1.1** 첫 leaf
+- **WBS-1.2** 리뷰
+"""
+
+PURPOSE_TEXT = """## 1. Goals
+
+- **G1**: 첫 목표
+- **G2**: 둘째 목표
+"""
+
+
+def test_goal_declarations_must_reach_real_goals() -> None:
+    """되주입 2종: 없는 goal 참조 → goal_dangling_link, 없는 leaf 키 → wbs_goals_dangling_node.
+
+    선언 기반 coverage 의 사슬은 `task.wbs → milestone.goals → PURPOSE §1` 이다.
+    끝 칸이 허공을 가리키면 coverage 가 **조용히 낮아진다** — 낮은 값의 원인이
+    '일을 안 했다' 로 오독되므로 끊긴 링크는 issue 로 지목돼야 한다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _fixture(Path(tmp))
+        active = root / "ai-workflow" / "memory" / "active"
+        (active / "PURPOSE.md").write_text(PURPOSE_TEXT, encoding="utf-8")
+        (active / "roadmap" / "M-001-concept.md").write_text(GOAL_LINK_M1_TEXT, encoding="utf-8")
+        state = build_roadmap_state(root)
+        codes = [i.code for i in state.issues] if state else []
+        if "goal_dangling_link" not in codes:
+            problems.append(f"없는 goal(G9) 미검출: {codes}")
+        if "wbs_goals_dangling_node" not in codes:
+            problems.append(f"없는 leaf 키(WBS-1.9) 미검출: {codes}")
+    _record("test_goal_declarations_must_reach_real_goals", not problems, "; ".join(problems))
+
+
+def test_goal_source_missing_is_named_as_such() -> None:
+    """PURPOSE.md 가 없으면 '전부 dangling' 이 아니라 **읽을 정본이 없다** 고 말한다.
+
+    원인을 goal 선언 쪽으로 돌리면 고칠 자리를 오도한다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _fixture(Path(tmp))
+        (root / "ai-workflow" / "memory" / "active" / "roadmap" / "M-001-concept.md").write_text(
+            GOAL_LINK_M1_TEXT, encoding="utf-8")
+        state = build_roadmap_state(root)
+        codes = [i.code for i in state.issues] if state else []
+        if "goal_source_missing" not in codes:
+            problems.append(f"PURPOSE 부재 미검출: {codes}")
+        if "goal_dangling_link" in codes:
+            problems.append("PURPOSE 부재인데 goal 선언 쪽을 지목했다 — 원인 오도")
+    _record("test_goal_source_missing_is_named_as_such", not problems, "; ".join(problems))
+
+
 def main() -> int:
     cases = [
         test_repo_roadmap_is_clean,
@@ -237,6 +310,8 @@ def main() -> int:
         test_done_needs_wbs_and_deliverables_both,
         test_done_milestone_open_task_detected,
         test_exempt_is_counted_and_needs_reason,
+        test_goal_declarations_must_reach_real_goals,
+        test_goal_source_missing_is_named_as_such,
     ]
     for case in cases:
         case()

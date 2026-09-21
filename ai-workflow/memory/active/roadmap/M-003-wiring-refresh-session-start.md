@@ -6,6 +6,7 @@ status: done
 order: 3
 parallel_allowed: []
 deliverables:
+goals: [G2]
   - workflow-source/tests/check_roadmap_wiring.py
 ---
 

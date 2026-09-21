@@ -33,12 +33,16 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from workflow_kit.common.paths import memory_active_dir, state_path_for_workspace
 from workflow_kit.common.project_docs import TASK_ID_PATTERN
+
+if TYPE_CHECKING:  # 순환 import 회피 — 런타임 해석은 run_graph_insights 안에서 늦게 한다.
+    from workflow_kit.common.schemas.roadmap import TaskGoalResolution
 
 # PURPOSE.md candidate locations (mirrors purpose_context / purpose_ingest).
 def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
@@ -47,6 +51,14 @@ def _candidate_purpose_paths(workspace_root: Path) -> list[Path]:
         memory_active_dir(workspace_root.parent) / "PURPOSE.md",
         workspace_root / "PURPOSE.md",
     ]
+
+
+def find_purpose_path(workspace_root: Path) -> Path | None:
+    """후보 위치 중 실재하는 PURPOSE.md. 없으면 None."""
+    for candidate in _candidate_purpose_paths(workspace_root):
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _candidate_state_paths(workspace_root: Path) -> list[Path]:
@@ -100,9 +112,23 @@ class RecentDoneItem:
     keywords: list[str]  # [two-step, cot, ingest, ...] (lowercase)
 
 
+#: coverage 를 무엇으로 쟀는가 (provenance). 0.0 이 '안 닿았다' 인지 '못 쟀다'
+#: 인지를 값만 보고는 가를 수 없어서 함께 내보낸다.
+COVERAGE_MODE_DECLARED = "declared"
+COVERAGE_MODE_UNDECLARED = "undeclared"
+COVERAGE_MODE_NONE = "none"
+
+#: 선언이 없어 coverage 축을 못 잰 상태. `poor` 와 섞으면 실패가 나쁨으로 읽힌다.
+TIER_UNMEASURED = "unmeasured"
+
+
 @dataclass
 class GoalCoverageResult:
-    """각 Goal 의 deliverable 매핑 coverage."""
+    """각 Goal 의 deliverable 매핑 coverage.
+
+    `mode` 가 `declared` 일 때만 수치가 뜻을 가진다. `undeclared` 는 **못 쟀다** 는
+    뜻이고, 그때의 0.0 을 '안 닿았다' 로 읽으면 안 된다.
+    """
 
     total_goals: int
     covered_count: int
@@ -112,6 +138,9 @@ class GoalCoverageResult:
     covered: list[str] = field(default_factory=list)  # ["G1", ...]
     partial: list[str] = field(default_factory=list)
     uncovered: list[str] = field(default_factory=list)
+    mode: str = COVERAGE_MODE_NONE
+    #: 왜 못 쟀는가 / 무엇을 채우면 닿는가 — 조용한 0 을 만들지 않는다.
+    provenance: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -121,6 +150,7 @@ class SurprisingResult:
     surprising: list[str]  # deliverable summary list
     is_scope_creep: list[bool]  # parallel to surprising
     scope_creep_warnings: list[str]
+    mode: str = COVERAGE_MODE_NONE
     # 분모 — 훑은 deliverable **전체** 수. 호출자가 len(surprising) 로 비율을 내면
     # 분모가 분자와 같아져 늘 1.0 이 된다. 정본이 함께 돌려주는 이유다.
     total_items: int = 0
@@ -215,6 +245,15 @@ def extract_goal_keywords(purpose_path: Path | None) -> list[GoalKeyword]:
     return result
 
 
+def extract_goal_ids(purpose_path: Path | None) -> list[str]:
+    """PURPOSE.md §1 Goals 의 id 만 (G1, G2, ...) — 선언 사슬의 끝 칸.
+
+    `state/roadmap.py` 의 goal 링크 검증이 이것을 부른다. §1 파싱 규약(`_GOAL_PATTERN`)
+    의 정본이 여기 하나뿐이도록 **사본을 만들지 않고 이 함수를 내보낸다**.
+    """
+    return [g.gid for g in extract_goal_keywords(purpose_path)]
+
+
 # ---------------------------------------------------------------------------
 # step 2: state.json recent_done_items 파싱
 # ---------------------------------------------------------------------------
@@ -298,7 +337,19 @@ def compute_goal_coverage(
     - covered (≥1 keyword 매칭)
     - partial (1+ keyword 매칭이지만 overlap < 50%)
     - uncovered (0 keyword 매칭)
+
+    .. deprecated::
+        이 판정은 실측에서 상수 0 이었다 — 사유는 `compute_health_score` docstring
+        의 '왜 어휘를 버렸는가'. 남겨 두는 것은 G4 약속(1 release 경고 → 1 release
+        제거) 때문이고, `run_graph_insights` 는 더 이상 부르지 않는다.
     """
+    warnings.warn(
+        "compute_goal_coverage 는 어휘 겹침으로 coverage 를 재던 옛 경로다 — "
+        "선언 기반 compute_goal_coverage_declared 를 쓴다. "
+        "(deprecated since v1.10.0, removal in v1.11.0; TASK-2026-09-21-main-001)",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not goal_keywords:
         return GoalCoverageResult(
             total_goals=0,
@@ -361,6 +412,140 @@ def compute_goal_coverage(
 
 
 # ---------------------------------------------------------------------------
+# step 3b: 선언 기반 coverage (정본 경로 — TASK-2026-09-21-main-001)
+# ---------------------------------------------------------------------------
+
+#: 선언 사슬이 끊긴 자리의 어휘. 한 덩어리로 뭉치면 무엇을 고쳐야 하는지 사라진다.
+UNRESOLVED_UNLINKED = "wbs_미선언"
+UNRESOLVED_MILESTONE_NO_GOALS = "마일스톤_goals_미선언"
+UNRESOLVED_DANGLING = "wbs_링크_끊김"
+
+
+def _classify_declared(
+    recent_items: list[RecentDoneItem],
+    resolution: "TaskGoalResolution",
+) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """recent item → (닿은 goal 목록) / (못 닿은 사유).
+
+    둘 중 하나에만 들어간다. `exempt` 는 **사유가 아니라 분류**다 — 사람이
+    '로드맵 밖' 이라고 선언한 것이라서 미분류가 아니다.
+    """
+    reached: dict[str, list[str]] = {}
+    unresolved: dict[str, str] = {}
+    exempt = set(resolution.exempt_tasks)
+    unlinked = set(resolution.unlinked_tasks)
+    dangling = set(resolution.dangling_tasks)
+    for item in recent_items:
+        task_id = item.version
+        goals = resolution.goals_by_task.get(task_id)
+        if goals:
+            reached[task_id] = goals
+        elif task_id in exempt:
+            reached[task_id] = []
+        elif task_id in unlinked:
+            unresolved[task_id] = UNRESOLVED_UNLINKED
+        elif task_id in dangling:
+            unresolved[task_id] = UNRESOLVED_DANGLING
+        else:
+            # task 파일을 못 찾았거나(브랜치 아카이브 등) 마일스톤이 goals 를
+            # 선언하지 않았다. 후자가 압도적이므로 그쪽 어휘를 쓰되, 어느 쪽이든
+            # '선언을 채우면 닿는다' 는 같은 처방이다.
+            unresolved[task_id] = UNRESOLVED_MILESTONE_NO_GOALS
+    return reached, unresolved
+
+
+def compute_goal_coverage_declared(
+    goal_ids: list[str],
+    recent_items: list[RecentDoneItem],
+    resolution: "TaskGoalResolution",
+) -> GoalCoverageResult:
+    """`task.wbs → milestone.goals → PURPOSE §1` 선언 사슬로 goal coverage 를 낸다.
+
+    어휘 겹침을 재지 않는다. 옛 식이 무엇을 재고 있었는지는
+    `compute_health_score` docstring 이 기록한다.
+
+    `partial` 은 **없다**. 선언은 닿거나 안 닿거나 둘 중 하나이고, 중간 등급을
+    만들면 그 등급을 정하는 임계가 다시 추측이 된다.
+    """
+    total = len(goal_ids)
+    if total == 0:
+        return GoalCoverageResult(
+            total_goals=0, covered_count=0, partial_count=0, uncovered_count=0,
+            coverage_pct=0.0, mode=COVERAGE_MODE_UNDECLARED,
+            provenance=["PURPOSE.md §1 Goals 를 읽을 수 없다 — coverage 미측정"],
+        )
+
+    reached, unresolved = _classify_declared(recent_items, resolution)
+    touched: set[str] = set()
+    for goals in reached.values():
+        touched.update(goals)
+
+    covered = [g for g in goal_ids if g in touched]
+    uncovered = [g for g in goal_ids if g not in touched]
+
+    provenance: list[str] = []
+    if resolution.milestones_without_goals:
+        provenance.append(
+            "goals 미선언 마일스톤: " + ", ".join(resolution.milestones_without_goals)
+        )
+    if unresolved:
+        by_reason: dict[str, int] = {}
+        for reason in unresolved.values():
+            by_reason[reason] = by_reason.get(reason, 0) + 1
+        provenance.append(
+            "선언 사슬이 끊긴 최근 완료 항목 "
+            + f"{len(unresolved)}/{len(recent_items)}건 — "
+            + ", ".join(f"{k} {v}건" for k, v in sorted(by_reason.items()))
+        )
+
+    return GoalCoverageResult(
+        total_goals=total,
+        covered_count=len(covered),
+        partial_count=0,
+        uncovered_count=len(uncovered),
+        coverage_pct=round(100.0 * len(covered) / total, 2),
+        covered=covered,
+        partial=[],
+        uncovered=uncovered,
+        mode=COVERAGE_MODE_DECLARED,
+        provenance=provenance,
+    )
+
+
+def find_surprising_declared(
+    recent_items: list[RecentDoneItem],
+    resolution: "TaskGoalResolution",
+) -> SurprisingResult:
+    """미분류 = **선언 사슬이 끊긴** 완료 항목 (어휘 겹침이 아니다).
+
+    옛 판정은 '제목이 §3 제외 목록과 낱말을 공유하는가' 였고, 실측에서 통과한
+    두 건의 근거가 전부 동음이의였다 (`runtime` / `흡수`, TASK-2026-09-21-main-001).
+    이제는 사람이 `wbs:` 를 적었는지를 본다 — 적었으면 분류된 것이고,
+    `exempt` 도 분류다.
+    """
+    reached, unresolved = _classify_declared(recent_items, resolution)
+    surprising: list[str] = []
+    is_scope_creep: list[bool] = []
+    warnings: list[str] = []
+    for item in recent_items:
+        reason = unresolved.get(item.version)
+        if reason is None:
+            continue
+        surprising.append(item.summary)
+        is_scope_creep.append(True)
+        warnings.append(
+            f"{UNCLASSIFIED_WARNING_PREFIX} '{item.summary[:80]}...' — {reason}"
+        )
+    return SurprisingResult(
+        surprising=surprising,
+        is_scope_creep=is_scope_creep,
+        scope_creep_warnings=warnings,
+        mode=COVERAGE_MODE_DECLARED,
+        total_items=len(recent_items),
+    )
+
+
+# ---------------------------------------------------------------------------
 # step 4: Surprising 발견 (미분류 deliverable)
 # ---------------------------------------------------------------------------
 
@@ -391,7 +576,18 @@ def find_surprising_deliverables(
     - Goals 매핑 0: deliverable 의 keywords 가 goal_keywords 어느 것의 set 과도 매칭 안 함
     - scope_excluded 매칭 ❌: deliverable keywords 가 scope_excluded 항목과도 매칭 안 함
     - → surprising 으로 분류 (scope creep 가능성, advisory)
+
+    .. deprecated::
+        실측에서 이 판정을 통과한 근거가 전부 동음이의였다 (`runtime` / `흡수`).
+        `find_surprising_declared` 로 대체됐다.
     """
+    warnings.warn(
+        "find_surprising_deliverables 는 어휘 겹침으로 미분류를 재던 옛 경로다 — "
+        "선언 기반 find_surprising_declared 를 쓴다. "
+        "(deprecated since v1.10.0, removal in v1.11.0; TASK-2026-09-21-main-001)",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     goal_kw_sets = [set(g.keywords) for g in goal_keywords]
     excluded_kw_set: set[str] = set()
     for scope_item in scope_excluded:
@@ -470,19 +666,35 @@ def compute_health_score(
     surprising: SurprisingResult | None,
     gaps: GapResult | None,
 ) -> HealthScore:
-    """Goal 어휘 ↔ deliverable 제목 어휘의 **겹침 비율** 점수 (0-100).
+    """PURPOSE Goals 에 **선언으로 닿은 비율** 점수 (0-100).
 
-    이것은 프로젝트의 건강도가 아니라 *두 텍스트가 같은 낱말을 쓰는가* 다.
-    낮은 값은 대개 '프로젝트가 나쁘다' 가 아니라 **'지향 문장과 작업 제목이
-    어휘를 공유하지 않는다'** 를 뜻한다 — 결함 수리 위주의 저장소에서는
-    정상적으로 낮게 나온다. 해석은 `docs/` 가 아니라 이 docstring 이 정본이다.
+    해석은 `docs/` 가 아니라 이 docstring 이 정본이다.
+
+    두 성분 모두 `task.wbs → milestone.goals → PURPOSE §1` 선언 사슬에서 나온다
+    (스펙 §7.4). 어휘 겹침은 **더 이상 쓰지 않는다** — 그 이유는 아래 '왜 어휘를
+    버렸는가' 에 적었다.
 
     두 성분의 합이고 **둘 다 비율**이다 (항목 *개수* 가 아니다):
 
     - coverage 성분 (0-70): `70 * covered/total_goals`
     - classification 성분 (0-30): `30 * (1 - 미분류/전체 deliverable)`
 
-    개수 기반 벌점을 쓰지 않는 이유가 핵심이다 (TASK-2026-09-07-main-010 실측):
+    **왜 어휘를 버렸는가** (TASK-2026-09-21-main-001 실측). 옛 식은 Goal 산문과
+    완료 task 제목의 표면 어휘 겹침을 쟀다. 이 저장소 실측에서 4개 goal 전부
+    겹침이 **정확히 0** 이었고(0/13 · 0/14 · 0/12 · 0/15), 조사 제거와 CJK
+    bigram 두 대안 토크나이저로 다시 재도 최대 0.07 이었으며 그 유일한 겹침은
+    기능어 `처럼` 이었다. 원인은 토크나이저도 임계도 아니라 **입력 쌍**이다 —
+    Goals 는 전략 산문이고 완료 항목은 결함수리 제목이라 낱말을 공유할 이유가
+    구조적으로 없다. 분류 성분도 같은 결함을 공유했다: 미분류를 면한 2건의
+    근거가 전부 동음이의(`runtime` / `흡수`)였다. 즉 옛 점수는 coverage 축이
+    상수 0 이고 분류 축이 잡음이었다. 어휘를 고치는 대신 **이미 존재하던 선언
+    사슬**로 갈아탄 이유다.
+
+    측정이 불가능할 때 만점도 0점도 주지 않는다. goal 선언이 하나도 없으면
+    tier 는 `unmeasured` 이고, 그 상태는 '나쁘다' 가 아니라 **'아직 안 쟀다'**
+    이다 (`coverage.provenance` 가 무엇을 채우면 닿는지 적는다).
+
+    개수 기반 벌점을 쓰지 않는 이유도 그대로 유효하다 (TASK-2026-09-07-main-010 실측):
     옛 식 `100 - uncovered*15 - scope_creep*10 + min(surprising*5, 25)` 은
     벌점이 항목 수에 비례해 무한히 커지는데 보너스는 25 에서 막혀 있어,
     **완료 항목이 늘수록 점수가 내려갔다** — goal 매칭 0 을 고정하고 재면
@@ -493,6 +705,14 @@ def compute_health_score(
     """
     if coverage is None:
         return HealthScore(score=0, tier="poor", breakdown={"missing_coverage": 100})
+
+    if coverage.mode == COVERAGE_MODE_UNDECLARED:
+        # 못 쟀다. 0 을 주고 `poor` 라고 부르면 '측정 실패' 가 '나쁨' 으로 읽힌다.
+        return HealthScore(
+            score=0,
+            tier=TIER_UNMEASURED,
+            breakdown={"coverage_mode_undeclared": 1},
+        )
 
     total_goals = coverage.total_goals
     if total_goals > 0:
@@ -525,6 +745,8 @@ def compute_health_score(
 
     breakdown = {
         "coverage_component": int(round(coverage_component)),
+        "covered_goals": coverage.covered_count,
+        "total_goals": total_goals,
         "classification_component": int(round(classification_component)),
         "unclassified_items": unclassified,
         "total_items": total_items,
@@ -597,36 +819,48 @@ def run_graph_insights(
     if not items:
         overall_warnings.append(STATE_ABSENT_WARNING)
 
-    # step 3: coverage
-    coverage = compute_goal_coverage(goals, items) if goals and items else None
+    # step 3: coverage — **선언 사슬**로 잰다 (스펙 §7.4). 어휘 겹침은 쓰지 않는다.
+    #
+    # `state.roadmap` 을 여기서 늦게 import 하는 이유: 그쪽이 goal id 파싱 정본으로
+    # 이 모듈을 되부른다. 최상단에서 부르면 순환이 된다.
+    from workflow_kit.common.state.roadmap import resolve_task_goals
 
-    # step 4: surprising (scope_excluded 는 goals 에서 추출 — cycle 3 의 structured 의 scope_excluded)
-    scope_excluded: list[str] = []
-    if purpose_path and purpose_path.exists():
-        # cycle 3 의 structured 와 동일하게 §3 Research Scope 에서 제외 영역 추출
-        try:
-            text = purpose_path.read_text(encoding="utf-8")
-            # 간단히 ## 3. section 의 ### 제외 sub-section 의 - 항목 추출
-            scope_match = re.search(r"##\s*3\..*?(?=##\s*\d+\.|$)", text, re.DOTALL)
-            if scope_match:
-                scope_text = scope_match.group(0)
-                excl_match = re.search(r"###\s*제외\s*(.+?)(?=###|##|\Z)", scope_text, re.DOTALL)
-                if excl_match:
-                    for line in excl_match.group(1).splitlines():
-                        line = line.strip()
-                        if line.startswith("- "):
-                            scope_excluded.append(line[2:].strip())
-        except OSError:
-            pass
+    resolution = resolve_task_goals(workspace_root)
+    goal_ids = [g.gid for g in goals]
 
+    coverage: GoalCoverageResult | None = None
+    if goals and items:
+        coverage = compute_goal_coverage_declared(goal_ids, items, resolution)
+        if coverage.mode == COVERAGE_MODE_DECLARED and not resolution.declared_goal_ids:
+            # 선언이 **하나도** 없다. 이건 '안 닿았다' 가 아니라 '못 쟀다' 다.
+            # 0 을 주고 poor 라고 부르면 측정 실패가 나쁨으로 읽힌다.
+            coverage.mode = COVERAGE_MODE_UNDECLARED
+            coverage.provenance.append(
+                "roadmap 부재 또는 goals 선언 0 — 선언 사슬이 없어 coverage 를 못 잰다"
+                if not resolution.roadmap_present
+                else "마일스톤 goals 선언 0 — 선언을 채우면 coverage 를 잴 수 있다"
+            )
+        overall_warnings.extend(coverage.provenance)
+
+    # step 4: 미분류 — 선언 사슬이 끊긴 완료 항목
     surprising: SurprisingResult | None = None
     if include_surprising and goals and items:
-        surprising = find_surprising_deliverables(goals, items, scope_excluded)
+        surprising = find_surprising_declared(items, resolution)
 
-    # step 5: gaps
+    # step 5: gaps — coverage 의 uncovered 와 같은 정본에서 나온다
     gaps: GapResult | None = None
-    if include_gaps and goals:
-        gaps = find_gaps(goals, items)
+    if include_gaps and goals and coverage is not None:
+        gaps = GapResult(
+            gaps=list(coverage.uncovered),
+            priorities=list(range(1, len(coverage.uncovered) + 1)),
+            descriptions=[
+                next((g.text for g in goals if g.gid == gid), gid)
+                for gid in coverage.uncovered
+            ],
+        )
+    elif include_gaps and goals:
+        gaps = GapResult(gaps=[g.gid for g in goals], priorities=list(range(1, len(goals) + 1)),
+                         descriptions=[g.text for g in goals])
 
     # step 6: health score
     health = compute_health_score(coverage, surprising, gaps)
@@ -654,7 +888,15 @@ __all__ = [
     "extract_goal_keywords",
     "parse_recent_done_items",
     "compute_goal_coverage",
+    "compute_goal_coverage_declared",
+    "extract_goal_ids",
+    "find_purpose_path",
     "find_surprising_deliverables",
+    "find_surprising_declared",
+    "COVERAGE_MODE_DECLARED",
+    "COVERAGE_MODE_UNDECLARED",
+    "COVERAGE_MODE_NONE",
+    "TIER_UNMEASURED",
     "find_gaps",
     "compute_health_score",
     "run_graph_insights",

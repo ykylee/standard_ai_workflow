@@ -1,10 +1,10 @@
 # 검사 입력 표면 선언 + 계층별 회귀 실행 스펙
 
 - 문서 목적: 검사가 자기 입력 표면을 선언(`WATCHES` / `WATCHES_ALL_REASON`)하고, 러너가 그 선언으로 선택 실행과 메타 검증을 수행하는 계약을 정본으로 정의한다.
-- 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계
+- 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계, 요구 강제 선언(`ENFORCES`)
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-04
+- 최종 수정일: 2026-09-21
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =
@@ -97,3 +97,67 @@ run_all_checks.py --meta-watch-dump <DIR>   # 판정 불변 — 정리 직전 �
   실증 사례) + 되주입 실증.
 - **M-012** [release]: 발행 + CLAUDE.md 커밋 전 단계 전환 (R4.2 조건 충족
   후) + 보급 확대는 위험 역순(requirements R2.3)으로 운영 축(M-007)에 흡수.
+
+## 7. 요구 강제 선언 (`ENFORCES`)
+
+`WATCHES` 가 검사의 *입력 표면* 을 선언한다면, `ENFORCES` 는 그 검사가 지키는
+**정본 요구**를 선언한다. 축이 다르다 — 앞은 "무엇이 바뀌면 나를 돌려라", 뒤는
+"내가 무엇을 지킨다".
+
+### 7.1 왜 이 축이 필요한가 (2026-09-21 실측)
+
+검사들은 이미 정본의 절을 인용하고 있었다. 실측하면 `§` 인용 **671건 / 127개
+파일**(`WATCHES` 상용구 204건 제외)인데, 그중 기계가 *어느 문서* 인지 특정할 수
+있는 형태(`` `경로` §N ``)는 **10건** 뿐이었다. 나머지 661건은 링크가 아니라
+**산문**이다 — 절 번호가 바뀌어도, 절이 통째로 사라져도 조용하다.
+
+그래서 산문 인용을 파싱해 고치는 방향은 기각했다. **파싱이 안 되는 것이 문제의
+본체**라 파서를 똑똑하게 만드는 것은 추측을 늘릴 뿐이다. 대신 선언 축을 새로 세우고
+선언만 대조한다 — goal coverage 를 어휘 겹침에서 선언 사슬로 옮긴 것과 같은 수법이다
+(`roadmap_milestone_wbs_spec.md` §7.4).
+
+1차 출처는 OpenSpec(MIT)의 requirement/scenario 개념이다. **도구는 채택하지 않았다**
+(소유자 결정 2026-09-21): 에이전트 지시면에 두 번째 writer 가 생겨 `wk doctor` 의
+드리프트 탐지에 사각이 생기고, `changes/<name>/` 폴더가 ADR·task·WBS 의 네 번째
+사본이 되며, CI 강제가 없는 쪽으로 보증이 역행한다. PURPOSE §3 의 *concept 만 흡수*
+규칙 그대로다.
+
+### Requirement: check-enforces-declaration-must-resolve
+
+검사가 `ENFORCES` 로 선언한 요구 id 는 core 스펙에 **실재해야** 한다. 실재하지
+않는 선언은 게이트에서 red 다 — 거짓인 선언은 없는 선언보다 나쁘다.
+
+### Requirement: requirement-id-is-a-name-not-a-section
+
+요구 id 는 kebab-case **이름**이고 절 번호가 아니다. 절은 재배치되지만 요구는
+이름을 유지한다. id 는 스펙 전체에서 유일하다 — 둘이면 정본이 둘이 된다.
+
+### Requirement: enforces-adoption-is-observed-not-gated
+
+`ENFORCES` 미선언은 red 가 아니다. 127개 파일의 전수 이행을 게이트로 강제하면
+선언의 *품질* 이 아니라 *개수* 만 는다. 미선언 수는 meta-watch 의 `미분류` 와 같은
+**관찰 지표**로 보고한다. 다만 선언이 **0 이 되면** red 다 — 0 이면 대조 case 들이
+빈 집합을 검사하며 통과한다(검사는 깨지지 않고 무력화된다).
+
+### 7.2 형식
+
+정본 스펙 측:
+
+```markdown
+### Requirement: goal-coverage-derives-from-declaration
+
+coverage 는 `task.wbs → milestone.goals → PURPOSE §1` 선언 사슬에서 파생한다.
+```
+
+검사 측:
+
+```python
+#: 이 검사가 강제하는 정본 요구 (core 스펙의 `### Requirement: <id>`).
+ENFORCES = ("goal-coverage-derives-from-declaration",)
+```
+
+- 기존 절 구조와 산문은 **건드리지 않는다**. 요구 헤딩을 추가할 뿐이다.
+- 선언은 AST 로 읽는다 — 검사를 import 하면 그 검사의 부작용이 대조하는 쪽에서
+  돌아간다 (저장소를 건드리던 검사가 실제로 있었다).
+
+판정은 `tests/check_requirement_declarations.py` 가 한다.

@@ -6,6 +6,7 @@ status: done
 order: 1
 parallel_allowed: []
 deliverables:
+goals: [G1]
   - ai-workflow/wiki/decisions/adr-027-roadmap-wbs-sdlc.md
   - workflow-source/core/roadmap_milestone_wbs_spec.md
 ---

@@ -1,6 +1,6 @@
-"""graph_insights 지표의 세 결함을 고정하는 판정 (TASK-2026-09-07-main-010).
+"""graph_insights 지표의 네 결함을 고정하는 판정 (TASK-2026-09-07-main-010 · -09-21-main-001).
 
-수리한 결함이 되살아나는 것을 막는다. 셋 다 *실측으로* 확인된 것이다:
+수리한 결함이 되살아나는 것을 막는다. 넷 다 *실측으로* 확인된 것이다:
 
 1. **점수가 일한 것을 벌했다.** 옛 산식
    `100 - uncovered*15 - scope_creep*10 + min(surprising*5, 25)` 은 벌점이 항목
@@ -16,7 +16,16 @@
    deliverable 문자열에 그대로 복사해 두어 coverage 100% 가 나왔다. 실제 작업
    제목은 goal 의 재진술이 아니므로 그 case 는 아무것도 재지 않았다.
 
-이 셋은 사람이 grep 으로 지키지 못한다 — 사본이 남으면 조용히 되살아난다.
+4. **판정이 애초에 어휘를 재고 있었다.** Goal 산문과 완료 task 제목의 표면 어휘
+   겹침이 실물에서 **정확히 0** 이었고(4개 goal 전부), 조사 제거·CJK bigram 두
+   대안 토크나이저로 다시 재도 최대 0.07 — 그 유일한 겹침은 기능어 `처럼` 이었다.
+   분류 축도 같은 결함을 공유해, 미분류를 면한 2건의 근거가 전부 동음이의
+   (`runtime` / `흡수`)였다. 즉 coverage 축은 상수 0 이고 분류 축은 잡음이었다.
+   `task.wbs → milestone.goals → PURPOSE §1` **선언 사슬**로 갈아탔다.
+   3번의 가드가 이것을 못 막은 이유도 여기 있다 — 문자열 완전일치만 보던 가드는
+   `G1: 표준 워크플로우` 를 통째로 품은 deliverable 을 통과시켰다.
+
+이 넷은 사람이 grep 으로 지키지 못한다 — 사본이 남으면 조용히 되살아난다.
 """
 from __future__ import annotations
 
@@ -27,6 +36,14 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/tests/check_graph_insights_v0_11_1.py",
     "workflow-source/tests/check_graph_insights_skill_integration_v0_11_2.py",
+    "workflow-source/tests/_goal_coverage_fixture.py",
+)
+
+#: 이 검사가 강제하는 정본 요구 (spec `core/test_impact_tiering_spec.md` §7).
+ENFORCES = (
+    "goal-coverage-derives-from-declaration",
+    "leaf-goal-declaration-wins-over-milestone",
+    "undeclared-coverage-is-unmeasured-not-poor",
 )
 
 import re
@@ -37,6 +54,18 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
+_TESTS_DIR = str(Path(__file__).resolve().parent)
+if _TESTS_DIR not in sys.path:
+    sys.path.insert(0, _TESTS_DIR)
+
+#: 어휘 판정을 **시험 대상으로** 부르는 함수들 (deprecated). 이들을 부르는
+#: 시험은 fixture 어휘가 겹쳐야 의미가 있으므로 항등 가드에서 면제한다.
+#: 면제 근거가 코드 호출이므로 함수가 사라지면 면제도 같이 사라진다.
+_LEXICAL_FUNCTIONS = frozenset({"compute_goal_coverage", "find_surprising_deliverables", "find_gaps"})
+
+#: fixture 의 deliverable 이 goal 어휘를 이 비율 이상 포함하면 항등함수다.
+#: 실물 실측값은 0.00 이고 옛 항등 fixture 는 1.00 이었다 — 그 사이를 넉넉히 가른다.
+_IDENTITY_OVERLAP_MAX = 0.5
 
 
 def test_score_never_falls_as_work_is_done() -> None:
@@ -150,27 +179,162 @@ _GOAL_LITERAL = re.compile(r"\*\*(G\d+)\*\*:\s*([^\\\"\n]+?)(?:\\n|\")")
 _DONE_LITERAL = re.compile(r"\"TASK-\d{4}-\d{2}-\d{2}-[A-Za-z0-9._-]+?-\d{3}\s*[—–-]\s*([^\"]+)\"")
 
 
+def _functions_with_calls(text: str) -> list[tuple[str, set[str]]]:
+    """모듈의 각 함수를 (원문, 그 안에서 호출한 이름 집합) 으로.
+
+    호출 이름은 `f(...)` 와 `mod.f(...)` 둘 다 잡는다.
+    """
+    import ast
+
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    out: list[tuple[str, set[str]]] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        src = "\n".join(lines[node.lineno - 1:node.end_lineno])
+        names: set[str] = set()
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Call):
+                func = sub.func
+                if isinstance(func, ast.Name):
+                    names.add(func.id)
+                elif isinstance(func, ast.Attribute):
+                    names.add(func.attr)
+        out.append((src, names))
+    return out
+
+
 def test_fixtures_do_not_measure_the_identity_function() -> None:
-    """case 3: fixture 가 goal 문자열을 deliverable 로 복사하지 않는다."""
+    """case 3: fixture 가 goal 어휘를 deliverable 로 복사하지 않는다.
+
+    **완전일치만 막던 옛 가드는 무력했다** (TASK-2026-09-21-main-001).
+    `G1: 표준 워크플로우` ↔ `표준 워크플로우 패키지의 배포 경로를 정리했다` 는
+    `d != g` 를 통과하면서 goal 어휘를 100% 포함해 coverage 100 을 만들었다.
+    막으려던 성질은 문자열 동일성이 아니라 **어휘 겹침**이므로 그것을 잰다.
+    """
+    from _goal_coverage_fixture import assert_fixture_resembles_reality
+    from workflow_kit.common.purpose_graph import _tokenize
+
     targets = [
         SOURCE_ROOT / "tests" / "check_graph_insights_v0_11_1.py",
         SOURCE_ROOT / "tests" / "check_graph_insights_skill_integration_v0_11_2.py",
     ]
     checked = 0
+    scanned_functions = 0
     for path in targets:
         assert path.exists(), path
         text = path.read_text(encoding="utf-8")
-        goals = {m.group(2).strip() for m in _GOAL_LITERAL.finditer(text)}
-        dones = {m.group(1).strip() for m in _DONE_LITERAL.finditer(text)}
-        assert goals, f"{path.name}: goal 리터럴을 못 찾았다 — 이 판정의 전제가 깨졌다"
-        assert dones, f"{path.name}: TASK- deliverable 리터럴을 못 찾았다"
-        for d in dones:
-            for g in goals:
-                assert d != g, (
-                    f"{path.name}: deliverable 이 goal 문자열의 복사다 — 항등함수를 잰다: {d!r}"
-                )
-        checked += len(dones)
-    print(f"  fixture deliverable {checked}개 전부 goal 의 복사가 아니다: PASS")
+        assert _GOAL_LITERAL.search(text), f"{path.name}: goal 리터럴을 못 찾았다 — 전제가 깨졌다"
+        assert _DONE_LITERAL.search(text), f"{path.name}: TASK- deliverable 리터럴을 못 찾았다"
+
+        # **어느 fixture 를 면제하는가는 손 목록이 아니라 코드에서 파생한다.**
+        # deprecated 어휘 함수를 직접 부르는 시험은 겹침이 설계상 필요하다
+        # (그 함수가 어휘를 재는 것이 시험 대상이다). 선언 경로로 흐르는 fixture 만 본다.
+        for func_src, calls in _functions_with_calls(text):
+            if calls & _LEXICAL_FUNCTIONS:
+                continue
+            scanned_functions += 1
+            goals = {m.group(2).strip() for m in _GOAL_LITERAL.finditer(func_src)}
+            dones = {m.group(1).strip() for m in _DONE_LITERAL.finditer(func_src)}
+            for d in dones:
+                done_tokens = set(_tokenize(d))
+                for g in goals:
+                    goal_tokens = set(_tokenize(g))
+                    if not goal_tokens:
+                        continue
+                    ratio = len(goal_tokens & done_tokens) / len(goal_tokens)
+                    assert ratio < _IDENTITY_OVERLAP_MAX, (
+                        f"{path.name}: deliverable 이 goal 어휘를 {ratio:.0%} 포함한다 "
+                        f"(상한 {_IDENTITY_OVERLAP_MAX:.0%}) — 항등함수를 잰다.\n"
+                        f"  goal: {g!r}\n  done: {d!r}"
+                    )
+            checked += len(dones)
+    assert scanned_functions, "면제가 전부를 먹었다 — 이 판정이 아무것도 안 본다"
+
+    # 선언 경로 fixture 자신도 같은 성질을 지켜야 한다. 여기가 정본이고 위는 잔재 검사다.
+    goal_count, done_count = assert_fixture_resembles_reality()
+    print(
+        f"  fixture deliverable {checked}개 어휘 겹침 < {_IDENTITY_OVERLAP_MAX:.0%}"
+        f" + 선언 fixture(goal {goal_count} / done {done_count}) 겹침 0: PASS"
+    )
+
+
+def test_coverage_comes_from_declarations_not_vocabulary() -> None:
+    """case 5: coverage 는 선언 사슬에서 나온다 — 어휘가 0% 겹쳐도 닿는다.
+
+    옛 판정이 무엇을 재고 있었는지는 `compute_health_score` docstring 이 적는다.
+    여기서는 **두 방향**을 고정한다:
+
+    - 어휘 겹침 0 인데 선언이 있으면 → 닿는다 (어휘를 안 읽는다는 증거)
+    - 선언만 지우면 → `undeclared` / `unmeasured` (못 잰 것을 나쁨으로 세지 않는다)
+    """
+    import tempfile
+
+    import _goal_coverage_fixture as fixture
+    from workflow_kit.common.purpose_graph import (
+        COVERAGE_MODE_DECLARED,
+        COVERAGE_MODE_UNDECLARED,
+        TIER_UNMEASURED,
+        run_graph_insights,
+    )
+
+    fixture.assert_fixture_resembles_reality()
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = fixture.build_workspace(Path(tmp))
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None
+        assert result.coverage.mode == COVERAGE_MODE_DECLARED, result.coverage.mode
+        assert result.coverage.coverage_pct == 100.0, result.coverage
+        assert result.surprising is not None and not result.surprising.surprising, (
+            "선언이 다 붙은 fixture 에서 미분류가 나오면 분류 축이 선언을 안 읽는 것이다"
+        )
+        print("  어휘 겹침 0 + 선언 → coverage 100 · 미분류 0: PASS")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = fixture.build_workspace(Path(tmp), omit_goals=True)
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None
+        assert result.coverage.mode == COVERAGE_MODE_UNDECLARED, result.coverage.mode
+        assert result.health is not None and result.health.tier == TIER_UNMEASURED, result.health
+        assert result.coverage.provenance, "못 쟀으면 사유를 내놓아야 한다 (조용한 0 금지)"
+        print("  선언 제거 → undeclared · unmeasured · 사유 보고: PASS")
+
+
+def test_leaf_declaration_wins_over_milestone() -> None:
+    """case 6: leaf 선언이 마일스톤 선언을 이긴다.
+
+    상설 마일스톤은 leaf 마다 섬기는 goal 이 갈린다 — 실측에서 최근 완료 10건이
+    **전부** 한 마일스톤(M-007)이었으므로, 마일스톤 단위로만 선언하면 coverage 가
+    다시 상수가 된다. 옛 결함이 '항상 0' 이었던 자리를 '항상 같은 값' 으로
+    바꾸는 것은 수리가 아니다.
+    """
+    import tempfile
+
+    import _goal_coverage_fixture as fixture
+    from workflow_kit.common.state.roadmap import resolve_task_goals
+
+    with tempfile.TemporaryDirectory() as tmp:
+        ws = fixture.build_workspace(Path(tmp))
+        resolution = resolve_task_goals(ws)
+        # M-100 은 `goals: []` 이고 leaf 로만 선언한다 — 그래도 닿아야 한다.
+        reached = resolution.goals_by_task
+        expected = {
+            "TASK-2026-01-01-main-002": ["G1"],   # M-100/WBS-100.1 (leaf 선언)
+            "TASK-2026-01-01-main-001": ["G2"],   # M-100/WBS-100.2 (같은 마일스톤, 다른 goal)
+            "TASK-2026-01-01-main-003": ["G2"],
+            "TASK-2026-01-02-main-004": ["G3"],   # M-101 은 leaf 선언이 없어 마일스톤 상속
+        }
+        for task_id, goals in expected.items():
+            # `.get` 으로 읽는다 — leaf 우선이 빠지면 키 자체가 사라지고,
+            # 그때 KeyError 로 죽으면 판정이 아니라 사고가 된다.
+            assert reached.get(task_id) == goals, (
+                f"{task_id}: 기대 {goals}, 실제 {reached.get(task_id)!r} — "
+                f"leaf 선언 우선이 깨졌다. 전체: {reached}"
+            )
+        assert not resolution.milestones_without_goals, resolution.milestones_without_goals
+    print("  leaf 선언 우선 + 미선언 leaf 는 마일스톤 상속: PASS")
 
 
 def test_current_task_format_is_parsed_without_id_noise() -> None:
@@ -208,6 +372,8 @@ def main() -> int:
         test_two_opposite_rules_do_not_share_a_prefix,
         test_fixtures_do_not_measure_the_identity_function,
         test_current_task_format_is_parsed_without_id_noise,
+        test_coverage_comes_from_declarations_not_vocabulary,
+        test_leaf_declaration_wins_over_milestone,
     ]
     passed = 0
     for t in tests:

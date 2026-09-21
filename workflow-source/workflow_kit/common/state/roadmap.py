@@ -39,6 +39,7 @@ from workflow_kit.common.schemas.roadmap import (
     RoadmapState,
     SdlcPhase,
     SessionStartRoadmapContext,
+    TaskGoalResolution,
     TaskWbsLink,
     WbsGateVerdict,
     WbsNode,
@@ -152,6 +153,31 @@ def _as_list(pairs: dict[str, object], key: str) -> list[str]:
     return [str(v) for v in value] if isinstance(value, list) else []
 
 
+#: `wbs_goals:` 한 줄의 형식 — `WBS-7.1 -> G1, G2`.
+#: frontmatter 파서가 중첩 map 을 모르므로 평평한 목록 한 줄에 좌우를 담는다.
+_WBS_GOALS_LINE_RE: Final[re.Pattern[str]] = re.compile(
+    r"^(?P<node>\S+)\s*->\s*(?P<goals>.+)$"
+)
+
+
+def _parse_wbs_goals(lines: list[str]) -> dict[str, list[str]]:
+    """`['WBS-7.1 -> G1', 'WBS-7.2 -> G2, G3']` → {'WBS-7.1': ['G1'], ...}.
+
+    형식을 못 읽은 줄은 **조용히 버리지 않는다** — 키를 원문 그대로 남겨
+    스키마 validator 가 형식 위반으로 거부하고, 그 거부가 issue 가 된다.
+    """
+    result: dict[str, list[str]] = {}
+    for line in lines:
+        match = _WBS_GOALS_LINE_RE.match(line.strip())
+        if not match:
+            result[line.strip()] = []
+            continue
+        node = match.group("node").strip()
+        goals = [g.strip() for g in match.group("goals").split(",") if g.strip()]
+        result[node] = goals
+    return result
+
+
 # --- Milestone file parsing ---------------------------------------------------
 
 
@@ -180,6 +206,8 @@ def parse_milestone_text(text: str, source_path: str) -> tuple[Milestone | None,
             order=int(order_text) if order_text.isdigit() else -1,
             parallel_allowed=_as_list(pairs, "parallel_allowed"),
             deliverables=_as_list(pairs, "deliverables"),
+            goals=_as_list(pairs, "goals"),
+            wbs_goals=_parse_wbs_goals(_as_list(pairs, "wbs_goals")),
             wbs=wbs_nodes,
             source_path=source_path,
         )
@@ -336,7 +364,63 @@ def load_roadmap(workspace_root: Path) -> tuple[Roadmap | None, list[RoadmapIssu
         if milestone.id not in indexed_ids:
             issues.append(RoadmapIssue(code="index_entry_missing_for_file", detail=f"{milestone.id} 가 index 목록에 없다", where=milestone.source_path))
 
+    issues.extend(_goal_link_issues(workspace_root, milestones))
+
     return Roadmap(index_entries=entries, milestones=milestones), issues
+
+
+def _goal_link_issues(workspace_root: Path, milestones: list[Milestone]) -> list[RoadmapIssue]:
+    """마일스톤 `goals:` 가 PURPOSE.md §1 에 **실재하는** goal 을 가리키는지 본다.
+
+    형식은 스키마가 보고 실재는 여기서 본다 — 스키마가 파일을 읽으면 모델이
+    저장소 상태에 의존하게 된다.
+
+    `purpose_graph` 를 함수 안에서 import 하는 이유: 그쪽이 §1 Goals 파싱의
+    정본(`_GOAL_PATTERN`)을 가지고 있고 이 모듈의 task↔goal 해석을 되부른다.
+    모듈 최상단에서 서로를 부르면 순환이 된다. 규약을 복제하지 않으려고
+    **정본을 부르되 늦게 부른다**.
+    """
+    from workflow_kit.common.purpose_graph import extract_goal_ids, find_purpose_path
+
+    declared = {gid for m in milestones for gid in m.goals}
+    declared |= {gid for m in milestones for gids in m.wbs_goals.values() for gid in gids}
+    if not declared:
+        return []
+    purpose_path = find_purpose_path(workspace_root)
+    known = set(extract_goal_ids(purpose_path))
+    if not known:
+        # PURPOSE.md 가 없거나 §1 이 비었다. '전부 dangling' 이라고 말하면
+        # 원인을 goal 선언 쪽으로 오도한다 — 읽을 정본이 없다고 말한다.
+        return [RoadmapIssue(
+            code="goal_source_missing",
+            detail=f"goals 선언 {len(declared)}건이 있으나 PURPOSE.md §1 Goals 를 읽을 수 없다",
+            where=str(purpose_path.relative_to(workspace_root)) if purpose_path else "PURPOSE.md",
+        )]
+    issues: list[RoadmapIssue] = []
+    for milestone in milestones:
+        node_ids = set(_walk_ids(milestone.wbs))
+        for gid in milestone.goals:
+            if gid not in known:
+                issues.append(RoadmapIssue(
+                    code="goal_dangling_link",
+                    detail=f"{milestone.id} 의 goals 가 PURPOSE.md §1 에 없는 {gid} 를 가리킨다",
+                    where=milestone.source_path,
+                ))
+        for node_id, gids in milestone.wbs_goals.items():
+            if node_id not in node_ids:
+                issues.append(RoadmapIssue(
+                    code="wbs_goals_dangling_node",
+                    detail=f"{milestone.id} 의 wbs_goals 가 실재하지 않는 {node_id} 를 가리킨다",
+                    where=milestone.source_path,
+                ))
+            for gid in gids:
+                if gid not in known:
+                    issues.append(RoadmapIssue(
+                        code="goal_dangling_link",
+                        detail=f"{milestone.id}/{node_id} 의 goals 가 PURPOSE.md §1 에 없는 {gid} 를 가리킨다",
+                        where=milestone.source_path,
+                    ))
+    return issues
 
 
 # --- Task link collection -----------------------------------------------------
@@ -366,6 +450,72 @@ def collect_task_wbs_links(workspace_root: Path) -> list[TaskWbsLink]:
             source_path=str(task_path.relative_to(workspace_root)),
         ))
     return links
+
+
+def resolve_task_goals(workspace_root: Path) -> TaskGoalResolution:
+    """`task.wbs` → 마일스톤 → `milestone.goals` 선언 사슬을 끝까지 따라간다 (스펙 §7.4).
+
+    `collect_task_wbs_links` 와 달리 **`wbs:` 가 없는 task 도 센다** — 그것이
+    '선언을 안 한 task' 라는 사실 자체가 분류 축의 입력이기 때문이다.
+    """
+    active = memory_active_dir(workspace_root)
+    roadmap, _ = load_roadmap(workspace_root)
+
+    from workflow_kit.common.purpose_graph import extract_goal_ids, find_purpose_path
+
+    known_goal_ids = extract_goal_ids(find_purpose_path(workspace_root))
+    goals_by_milestone: dict[str, list[str]] = (
+        {m.id: list(m.goals) for m in roadmap.milestones} if roadmap else {}
+    )
+    # leaf 선언이 마일스톤 선언을 이긴다. 상설 마일스톤은 leaf 마다 섬기는 goal 이
+    # 갈리고, 묶으면 coverage 가 상수가 된다 (실측: 최근 완료 10건이 전부 M-007).
+    goals_by_node: dict[str, list[str]] = {}
+    if roadmap:
+        for m in roadmap.milestones:
+            for node_id, gids in m.wbs_goals.items():
+                goals_by_node[f"{m.id}/{node_id}"] = list(gids)
+
+    declared_goal_ids = sorted(
+        {g for gids in goals_by_milestone.values() for g in gids}
+        | {g for gids in goals_by_node.values() for g in gids}
+    )
+    result = TaskGoalResolution(
+        known_goal_ids=known_goal_ids,
+        declared_goal_ids=declared_goal_ids,
+        roadmap_present=roadmap is not None,
+    )
+    if not active.is_dir():
+        return result
+
+    milestones_without_goals: set[str] = set()
+    for task_path in sorted(active.glob("*/backlog/tasks/TASK-*.md")):
+        pairs, _ = _parse_frontmatter_block(task_path.read_text(encoding="utf-8"))
+        task_id = _as_str(pairs, "id") or task_path.stem
+        wbs_ref = _as_str(pairs, "wbs")
+        if not wbs_ref:
+            result.unlinked_tasks.append(task_id)
+            continue
+        if wbs_ref == WBS_EXEMPT_VALUE:
+            result.exempt_tasks.append(task_id)
+            continue
+        milestone_id = wbs_ref.split("/", 1)[0].strip()
+        if milestone_id not in goals_by_milestone:
+            result.dangling_tasks.append(task_id)
+            continue
+        declared = goals_by_node.get(wbs_ref.strip()) or goals_by_milestone[milestone_id]
+        if not declared:
+            milestones_without_goals.add(milestone_id)
+            continue
+        # 실재하지 않는 goal 은 여기서 떨어뜨린다. `load_roadmap` 이 이미
+        # `goal_dangling_link` 로 지목하므로 조용히 사라지지 않는다.
+        reachable = [g for g in declared if g in known_goal_ids]
+        if reachable:
+            result.goals_by_task[task_id] = reachable
+        else:
+            result.dangling_tasks.append(task_id)
+
+    result.milestones_without_goals = sorted(milestones_without_goals)
+    return result
 
 
 # --- Derivation (스펙 §7.2) ---------------------------------------------------

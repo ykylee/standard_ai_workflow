@@ -6,6 +6,12 @@ status: in_progress
 order: 7
 parallel_allowed: []
 deliverables: []
+goals: []
+wbs_goals:
+  - WBS-7.1 -> G1
+  - WBS-7.2 -> G2
+  - WBS-7.3 -> G2
+  - WBS-7.4 -> G3
 ---
 
 # M-007 — 운영 축 (상설)

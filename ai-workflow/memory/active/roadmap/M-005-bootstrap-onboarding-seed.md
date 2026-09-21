@@ -6,6 +6,7 @@ status: done
 order: 5
 parallel_allowed: []
 deliverables:
+goals: [G1]
   - workflow-source/workflow_kit/bootstrap_lib/roadmap_seed.py
   - workflow-source/tests/check_roadmap_bootstrap_seed.py
 ---

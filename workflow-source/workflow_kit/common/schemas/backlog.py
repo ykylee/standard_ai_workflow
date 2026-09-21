@@ -57,14 +57,17 @@ class GraphInsightsOutput(BaseModel):
 
     backlog-update skill 의 context load 시 purpose_graph.run_graph_insights 호출 결과.
     - SessionStartPurposeCoTTrace 와 동일 schema (shared pattern)
-    - coverage_pct + health_score + tier 정량화 (**어휘 겹침** 비율이지 건강도가 아니다 —
-      해석은 `purpose_graph.compute_health_score` docstring 이 정본)
+    - coverage_pct + health_score + tier 정량화 — **선언 사슬**로 닿은 비율이다
+      (스펙 §7.4). 해석은 `purpose_graph.compute_health_score` docstring 이 정본.
+    - coverage_mode: `declared` 일 때만 수치가 뜻을 가진다. `undeclared` / tier
+      `unmeasured` 는 '나쁨' 이 아니라 '못 쟀음' 이다.
     - scope_creep_warnings: 여기 실리는 것은 **미분류** deliverable 이다. 같은 이름의
       top-level `scope_creep_warnings` 는 `purpose_context` 의 *제외 영역 매칭* 이라
       술어가 반대다 — 문구로 가른다.
     """
 
     coverage_pct: float = 0.0
+    coverage_mode: str = "none"
     covered_count: int = 0
     uncovered_count: int = 0
     covered_goals: list[str] = Field(default_factory=list)

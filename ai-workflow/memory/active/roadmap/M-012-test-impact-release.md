@@ -7,6 +7,7 @@ order: 12
 parallel_allowed:
   - M-007
 deliverables:
+goals: [G2, G3]
   - workflow-source/releases/Beta-v1.7.0.md
 ---
 

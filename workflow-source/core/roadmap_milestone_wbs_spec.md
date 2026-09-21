@@ -1,10 +1,10 @@
 # Roadmap · Milestone · WBS 진척 관리 스펙
 
 - 문서 목적: 워크플로우에 로드맵 수립 → 마일스톤 → WBS 기반 작업 진척 관리 흐름과, 온보딩 단계의 SDLC 기본 순서(컨셉 → 요구사항 → 설계 → 구현)를 정본 계약으로 정의한다.
-- 범위: 문서 계층과 배치, roadmap SSOT 형식, SDLC 단계 어휘, task 연결 계약, 게이트 계약, 생성물(roadmap_state.json), skill/CLI 배선, 검사 계약, 단계별 구현 계획
+- 범위: 문서 계층과 배치, roadmap SSOT 형식, SDLC 단계 어휘, task 연결 계약, 게이트 계약, 생성물(roadmap_state.json), goal coverage 선언 사슬, skill/CLI 배선, 검사 계약, 단계별 구현 계획
 - 대상 독자: workflow 설계자, 구현자, AI agent (session-start / backlog-update), 프로젝트 온보딩 담당자
 - 상태: draft (ADR-027 accepted, 구현 전 — §10 의 M-002 부터가 구현이다)
-- 최종 수정일: 2026-09-18
+- 최종 수정일: 2026-09-21
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-027-roadmap-wbs-sdlc.md`, `./llm_wiki_concept_purpose_spec.md`, `./workflow_adoption_entrypoints.md`, `./existing_project_onboarding_contract.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-027 에 있다** (2026-08-25 소유자 결정 3건: 문서 형태 =
@@ -79,6 +79,10 @@ order: 2                        # index.md 순서와 일치 (검사 대조)
 parallel_allowed: []            # 함께 열려도 되는 마일스톤 id 목록 (§6 게이트 우회는 여기 선언)
 deliverables:                   # 수용 기준 — 산출물 경로 (완료 판정의 근거)
   - docs/REQUIREMENTS.md
+goals: [G1, G2]                 # 이 마일스톤이 섬기는 PURPOSE.md §1 Goals id (§7.4)
+wbs_goals:                      # leaf 마다 갈리면 leaf 단위로 (마일스톤 선언을 이긴다)
+  - WBS-2.1 -> G1
+  - WBS-2.2 -> G2
 ---
 
 # M-002 — 요구사항 정리
@@ -196,6 +200,61 @@ wbs_exempt_reason: 로드맵 밖 긴급 수리 — CI red
   드리프트다. `in_progress` 선언 + 링크 0(파생 `planned`)은 "열었는데 아직
   task 가 없다" 는 정상 시작 상태이고, 씨앗(§9) 직후의 모든 프로젝트가 그
   모양이다 — 위양성을 내는 검사는 무시당한다.
+
+### 7.4 Goal coverage — 선언 사슬 (TASK-2026-09-21-main-001)
+
+`graph_insights` 의 goal coverage 는 **선언에서 파생한다**:
+
+```
+task.wbs → M-NNN[/WBS-n.m] → milestone.wbs_goals 또는 milestone.goals → PURPOSE.md §1
+```
+
+각 칸은 이미 사람이 쓴 선언이고, 판정은 그것을 따라가기만 한다.
+
+- **leaf 선언이 마일스톤 선언을 이긴다.** 선언이 없는 leaf 는 마일스톤의
+  `goals` 를 물려받는다. 상설 마일스톤(§11)은 leaf 마다 섬기는 goal 이 갈리므로
+  마일스톤 하나로 묶으면 안 된다 — 실측에서 최근 완료 10건이 **전부** 한
+  마일스톤이었고, 묶으면 coverage 가 다시 상수가 된다.
+- **`goals` 를 비워 두는 것은 합법이고, 그때는 못 잰 것이다.** coverage 는
+  `mode: undeclared` · tier `unmeasured` 로 나가고 무엇을 채우면 닿는지
+  `provenance` 에 적힌다. 0 을 주고 `poor` 라고 부르지 않는다 — 측정 실패를
+  나쁨으로 세면 고칠 자리가 사라진다.
+- **미분류의 정의도 선언이다**: `wbs:` 를 안 적은 완료 항목이 미분류다.
+  `wbs: exempt` 는 분류다 — 사람이 '로드맵 밖' 이라고 선언한 것이다.
+- 끊긴 링크는 조용히 낮은 값이 되지 않고 issue 로 지목된다:
+  `goal_dangling_link`(§1 에 없는 goal) · `wbs_goals_dangling_node`(실재하지
+  않는 leaf 키) · `goal_source_missing`(PURPOSE.md 를 못 읽음).
+
+#### Requirement: goal-coverage-derives-from-declaration
+
+coverage 는 `task.wbs → milestone.wbs_goals/goals → PURPOSE.md §1` 선언 사슬에서
+파생한다. 어휘 겹침을 재지 않는다.
+
+#### Requirement: leaf-goal-declaration-wins-over-milestone
+
+leaf 의 `wbs_goals` 선언이 마일스톤의 `goals` 를 이긴다. 선언이 없는 leaf 만
+마일스톤 선언을 물려받는다.
+
+#### Requirement: undeclared-coverage-is-unmeasured-not-poor
+
+goal 선언이 하나도 없으면 coverage 는 `mode: undeclared` · tier `unmeasured` 이고,
+그 0 은 '안 닿았다' 가 아니라 '못 쟀다' 다. `provenance` 가 무엇을 채우면 닿는지
+적는다.
+
+#### Requirement: goal-links-must-resolve
+
+`goals` / `wbs_goals` 선언이 실재하지 않는 goal 이나 leaf 를 가리키면 issue 로
+지목된다 (`goal_dangling_link` · `wbs_goals_dangling_node` · `goal_source_missing`).
+조용히 낮은 값이 되지 않는다.
+
+**왜 어휘 겹침을 버렸는가.** 옛 판정은 Goal 산문과 완료 task 제목의 표면 어휘
+겹침을 쟀다. 이 저장소 실측에서 4개 goal 전부 겹침이 **정확히 0** 이었고
+(0/13 · 0/14 · 0/12 · 0/15), 조사 제거·CJK bigram 두 대안 토크나이저로 다시
+재도 최대 0.07 이며 그 유일한 겹침은 기능어 `처럼` 이었다. 원인은 토크나이저도
+임계도 아니라 **입력 쌍**이다 — Goals 는 전략 산문이고 완료 항목은 결함수리
+제목이라 낱말을 공유할 이유가 구조적으로 없다. 분류 축도 같은 결함을 공유해,
+미분류를 면한 2건의 근거가 전부 동음이의(`runtime` / `흡수`)였다. 판정 자체는
+`check_graph_insights_health_monotonic` case 3·5·6 이 고정한다.
 
 ## 8. 검사 계약 (M-002 에서 구현)
 

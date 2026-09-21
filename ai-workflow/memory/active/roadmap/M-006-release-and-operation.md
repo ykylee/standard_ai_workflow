@@ -6,6 +6,7 @@ status: done
 order: 6
 parallel_allowed: []
 deliverables:
+goals: [G3]
   - workflow-source/releases/Beta-v1.5.0.md
 ---
 

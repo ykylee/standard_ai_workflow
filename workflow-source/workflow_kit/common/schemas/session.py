@@ -56,17 +56,23 @@ class GraphInsightsOutput(BaseModel):
 
     session-start / backlog-update skill 의 context load 시
     purpose_graph.run_graph_insights 호출 결과 (cycle 4 의 2차 통합).
-    - coverage_pct: 0.0-100.0 (Goals ↔ deliverables 매칭률)
+    - coverage_pct: 0.0-100.0 — **선언 사슬**(`task.wbs → milestone.goals →
+      PURPOSE §1`)로 닿은 goal 비율이다. 어휘 겹침이 아니다 (스펙 §7.4).
+    - coverage_mode: `declared` 일 때만 위 수치가 뜻을 가진다. `undeclared` 는
+      **못 쟀다** 는 뜻이고 그때의 0.0 을 '안 닿았다' 로 읽으면 안 된다 —
+      무엇을 채우면 닿는지는 `warnings` 에 실린다.
     - health_score: 0-100 종합 점수
-    - health_tier: excellent / good / fair / poor
-    - scope_creep_warnings: **미분류** deliverable — Goals 겹침 0 *이면서* §3 제외
-      영역 겹침도 0. 이름과 달리 `purpose_context.check_scope_creep` 의 scope creep
+    - health_tier: excellent / good / fair / poor / **unmeasured**
+      (`unmeasured` 는 나쁨이 아니라 측정 실패다)
+    - scope_creep_warnings: **미분류** deliverable — `wbs:` 를 선언하지 않아 선언
+      사슬이 끊긴 완료 항목이다 (`wbs: exempt` 는 분류다). 이름과 달리 `purpose_context.check_scope_creep` 의 scope creep
       (= 제외 영역에 **걸린** 것) 과 술어가 반대다. 두 경고를 구분하려면 필드 이름이
       아니라 **문구**를 본다 — 이쪽은 `purpose_graph.UNCLASSIFIED_WARNING_PREFIX`
       로 시작한다. 필드 개명은 공개 schema 라 deprecation 사이클이 필요하다 (G3/G4).
     """
 
     coverage_pct: float = 0.0
+    coverage_mode: str = "none"
     covered_count: int = 0
     uncovered_count: int = 0
     covered_goals: list[str] = Field(default_factory=list)

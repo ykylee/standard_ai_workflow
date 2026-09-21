@@ -6,6 +6,7 @@ status: done
 order: 2
 parallel_allowed: []
 deliverables:
+goals: [G1]
   - workflow-source/workflow_kit/common/schemas/roadmap.py
   - workflow-source/workflow_kit/common/state/roadmap.py
   - workflow-source/tests/check_roadmap_format.py

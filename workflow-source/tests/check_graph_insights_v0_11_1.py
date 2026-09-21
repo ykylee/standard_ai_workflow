@@ -17,6 +17,7 @@ from __future__ import annotations
 WATCHES = (
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    "workflow-source/tests/_goal_coverage_fixture.py",
 )
 
 import json
@@ -36,7 +37,15 @@ def _ensure_sys_path() -> None:
         sys.path.insert(0, str(SOURCE_ROOT))
 
 
+def _ensure_tests_path() -> None:
+    """fixture helper (`_goal_coverage_fixture`) 를 import 하려면 tests/ 가 필요하다."""
+    tests_dir = str(Path(__file__).resolve().parent)
+    if tests_dir not in sys.path:
+        sys.path.insert(0, tests_dir)
+
+
 _ensure_sys_path()
+_ensure_tests_path()
 
 
 # ---------------------------------------------------------------------------
@@ -370,30 +379,32 @@ def test_run_graph_insights_unified_v0_11_1() -> None:
     """unified entry graceful skip (4 case)."""
     from workflow_kit.common.purpose_graph import run_graph_insights
 
-    # case 1: 정상
+    # case 1: 정상 — **선언 사슬**로 닿는다. fixture 는 실물을 닮아 어휘 겹침이 0 이고,
+    # 그런데도 coverage 가 100 이라는 사실이 판정이 어휘를 안 읽는다는 증거다.
+    import _goal_coverage_fixture as fixture
+
+    fixture.assert_fixture_resembles_reality()
     with tempfile.TemporaryDirectory() as tmpdir:
-        ws = Path(tmpdir)
-        purpose = ws / "PURPOSE.md"
-        purpose.write_text(
-            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n\n"
-            "## 3. Research Scope\n\n### 제외\n- 도메인 로직\n",
-            encoding="utf-8",
-        )
-        state = ws / "state.json"
-        state.write_text(json.dumps({
-            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
-        }, ensure_ascii=False), encoding="utf-8")
-        result = run_graph_insights(
-            purpose_path=purpose,
-            workspace_root=ws,
-            state_path=state,
-            auto_find=False,
-        )
-        assert len(result.goal_keywords) == 1
-        assert len(result.recent_items) == 1
+        ws = fixture.build_workspace(Path(tmpdir))
+        result = run_graph_insights(workspace_root=ws)
+        assert len(result.goal_keywords) == 3
+        assert len(result.recent_items) == 4
         assert result.coverage is not None
-        assert result.coverage.coverage_pct == 100.0
-        print("  case 1 (정상): PASS")
+        assert result.coverage.mode == "declared", result.coverage.mode
+        assert result.coverage.coverage_pct == 100.0, result.coverage
+        assert result.coverage.covered == ["G1", "G2", "G3"], result.coverage.covered
+        print("  case 1 (정상 — 어휘 겹침 0 인데 선언으로 100): PASS")
+
+    # case 1b: 같은 workspace 에서 goals 선언만 지우면 **못 잰 것**이 된다.
+    # 0/poor 가 아니라 undeclared/unmeasured 여야 한다 — 측정 실패는 나쁨이 아니다.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ws = fixture.build_workspace(Path(tmpdir), omit_goals=True)
+        result = run_graph_insights(workspace_root=ws)
+        assert result.coverage is not None
+        assert result.coverage.mode == "undeclared", result.coverage.mode
+        assert result.health is not None and result.health.tier == "unmeasured", result.health
+        assert result.coverage.provenance, "못 쟀으면 왜 못 쟀는지 내놓아야 한다"
+        print("  case 1b (선언 제거 → unmeasured + 사유 보고): PASS")
 
     # case 2: PURPOSE.md 부재
     with tempfile.TemporaryDirectory() as tmpdir:

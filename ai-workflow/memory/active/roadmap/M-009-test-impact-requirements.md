@@ -7,6 +7,7 @@ order: 9
 parallel_allowed:
   - M-007
 deliverables:
+goals: [G2]
   - docs/planning/test-impact-tiering-requirements-2026-08.md
 ---
 

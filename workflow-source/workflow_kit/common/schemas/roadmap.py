@@ -48,6 +48,8 @@ class RoadmapItemStatus(str, Enum):
 
 
 MILESTONE_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^M-(\d{3})$")
+#: 마일스톤 `goals:` 선언이 가리키는 PURPOSE.md §1 Goals 의 식별자 (G1, G2, ...).
+GOAL_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^G\d+$")
 WBS_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^WBS-(\d+)(?:\.(\d+))+$")
 
 #: task frontmatter `wbs:` 의 게이트 예외 선언 값 (스펙 §5).
@@ -90,6 +92,23 @@ class Milestone(BaseModel):
         default_factory=list,
         description="workspace 상대 경로 — done 판정은 WBS 완료 + 이 경로 실재 둘 다 필요 (§7.2)",
     )
+    goals: list[str] = Field(
+        default_factory=list,
+        description=(
+            "이 마일스톤이 섬기는 PURPOSE.md §1 Goals 의 id (G1, G2, ...). "
+            "graph_insights 의 goal coverage 가 **이 선언에서 파생**한다 — "
+            "어휘 겹침 추측이 아니다 (§7.4)"
+        ),
+    )
+    wbs_goals: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description=(
+            "WBS leaf 단위 goals 선언 (`WBS-7.1 -> G1` 형식의 목록에서 파싱). "
+            "상설 마일스톤은 leaf 마다 섬기는 goal 이 갈리므로 마일스톤 하나로 "
+            "묶으면 coverage 가 다시 상수가 된다 — 실측 근거는 §7.4. "
+            "선언이 없는 leaf 는 마일스톤의 `goals` 를 물려받는다"
+        ),
+    )
     wbs: list[WbsNode] = Field(default_factory=list)
     source_path: str = Field(default="", description="파싱 원본 (workspace 상대)")
 
@@ -98,6 +117,28 @@ class Milestone(BaseModel):
     def _validate_id(cls, v: str) -> str:
         if not MILESTONE_ID_PATTERN.match(v):
             raise ValueError(f"milestone id 형식 위반 (M-NNN): {v!r}")
+        return v
+
+    @field_validator("wbs_goals")
+    @classmethod
+    def _validate_wbs_goals(cls, v: dict[str, list[str]]) -> dict[str, list[str]]:
+        for node_id, gids in v.items():
+            if not WBS_ID_PATTERN.match(node_id):
+                raise ValueError(f"wbs_goals 의 키가 WBS id 형식이 아니다: {node_id!r}")
+            for gid in gids:
+                if not GOAL_ID_PATTERN.match(gid):
+                    raise ValueError(f"wbs_goals[{node_id}] 의 goal id 형식 위반: {gid!r}")
+        return v
+
+    @field_validator("goals")
+    @classmethod
+    def _validate_goals(cls, v: list[str]) -> list[str]:
+        """형식만 본다. *실재* 하는 goal 인지는 PURPOSE.md 를 읽어야 알 수 있으므로
+        `load_roadmap` 이 `goal_dangling_link` issue 로 따로 잰다 — 여기서 파일을
+        읽으면 스키마가 저장소 상태에 의존하게 된다."""
+        for gid in v:
+            if not GOAL_ID_PATTERN.match(gid):
+                raise ValueError(f"goal id 형식 위반 (G<숫자>): {gid!r}")
         return v
 
     @property
@@ -140,6 +181,42 @@ class TaskWbsLink(BaseModel):
     wbs_ref: str = Field(..., description="'M-002/WBS-2.1' 또는 'exempt'")
     exempt_reason: str = Field(default="", description="wbs=exempt 일 때의 선언 사유")
     source_path: str = Field(default="")
+
+
+class TaskGoalResolution(BaseModel):
+    """task ↔ PURPOSE goal 의 **선언 경로** 해석 결과 (스펙 §7.4).
+
+    사슬은 `task.wbs` → `M-NNN` → `milestone.goals` → `PURPOSE §1` 이고, 각 칸은
+    이미 사람이 쓴 선언이다. 어휘 겹침으로 추측하던 자리를 이것이 대체한다.
+
+    해석 **실패의 종류를 따로 센다**. 한 덩어리로 뭉치면 "선언을 안 했다" 와
+    "선언했는데 안 닿는다" 가 같은 모양이 되고, 그러면 0 을 보고도 무엇을
+    고쳐야 하는지 알 수 없다.
+    """
+
+    goals_by_task: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="선언 사슬이 끝까지 닿은 task 만 — task_id → goal id 목록",
+    )
+    exempt_tasks: list[str] = Field(default_factory=list, description="wbs: exempt 를 선언한 task")
+    unlinked_tasks: list[str] = Field(default_factory=list, description="wbs 선언 자체가 없는 task")
+    milestones_without_goals: list[str] = Field(
+        default_factory=list,
+        description="task 가 걸렸으나 goals 를 선언하지 않은 마일스톤 id — 선언을 채우면 닿는다",
+    )
+    dangling_tasks: list[str] = Field(
+        default_factory=list,
+        description="wbs 가 실재하지 않는 마일스톤을 가리키는 task",
+    )
+    known_goal_ids: list[str] = Field(default_factory=list, description="PURPOSE.md §1 의 goal id 전체")
+    declared_goal_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "마일스톤·leaf 가 실제로 선언한 goal id 전체. **비어 있으면 못 잰 것**이고, "
+            "그때의 coverage 0 은 '안 닿았다' 가 아니다"
+        ),
+    )
+    roadmap_present: bool = Field(default=False, description="roadmap/index.md 실재 여부")
 
 
 class WbsNodeState(BaseModel):

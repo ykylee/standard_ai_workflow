@@ -266,6 +266,7 @@ def main() -> int:
         graph_result = run_graph_insights(workspace_root=project_root)
         result["graph_insights"] = {
             "coverage_pct": graph_result.coverage.coverage_pct if graph_result.coverage else 0.0,
+            "coverage_mode": graph_result.coverage.mode if graph_result.coverage else "none",
             "covered_count": graph_result.coverage.covered_count if graph_result.coverage else 0,
             "uncovered_count": graph_result.coverage.uncovered_count if graph_result.coverage else 0,
             "covered_goals": graph_result.coverage.covered if graph_result.coverage else [],

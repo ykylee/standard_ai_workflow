@@ -7,6 +7,7 @@ order: 11
 parallel_allowed:
   - M-007
 deliverables:
+goals: [G2]
   - workflow-source/workflow_kit/common/meta_watch.py
   - workflow-source/tests/check_meta_watch.py
 ---

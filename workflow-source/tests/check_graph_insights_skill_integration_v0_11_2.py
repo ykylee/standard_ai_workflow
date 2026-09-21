@@ -15,6 +15,7 @@ WATCHES = (
     "ai-workflow/memory/active/*",
     "workflow-source/pyproject.toml",
     "workflow-source/workflow_kit/*",
+    "workflow-source/tests/_goal_coverage_fixture.py",
 )
 
 import json
@@ -34,7 +35,17 @@ def _ensure_sys_path() -> None:
         sys.path.insert(0, str(SOURCE_ROOT))
 
 
+def _ensure_tests_path() -> None:
+    """fixture helper (`_goal_coverage_fixture`) 를 import 하려면 tests/ 가 필요하다."""
+    tests_dir = str(Path(__file__).resolve().parent)
+    if tests_dir not in sys.path:
+        sys.path.insert(0, tests_dir)
+
+
 _ensure_sys_path()
+_ensure_tests_path()
+
+import _goal_coverage_fixture as fixture  # noqa: E402  (sys.path 확장 후에만 import 가능)
 
 
 # ---------------------------------------------------------------------------
@@ -48,25 +59,7 @@ def test_session_start_graph_insights_v0_11_2() -> None:
 
     # case 1: 정상 (PURPOSE.md + state.json 모두 존재)
     with tempfile.TemporaryDirectory() as tmpdir:
-        ws = Path(tmpdir)
-        ai_dir = ws / "ai-workflow" / "memory" / "active"
-        ai_dir.mkdir(parents=True, exist_ok=True)
-        (ai_dir / "PURPOSE.md").write_text(
-            "---\npurpose_version: 1\nlast_purpose_review: 2026-06-26\n---\n\n"
-            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n- **G2**: skill 분리\n\n"
-            "## 2. Key Questions\n\n- **Q1**: 어떻게?\n\n"
-            "## 3. Research Scope\n\n### 포함\n- 영역\n\n## 4. Evolving Thesis\n\nh: X\n",
-            encoding="utf-8",
-        )
-        # concepts dir (cross-ref 부재 warning 방지)
-        (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
-        (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
-        (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": [
-                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
-                "TASK-2026-01-01-main-002 — skill 등록 절차를 공통과 프로젝트별로 분리",
-            ]}
-        }, ensure_ascii=False), encoding="utf-8")
+        ws = fixture.build_workspace(Path(tmpdir))
 
         from workflow_kit.common.purpose_graph import run_graph_insights
         result = run_graph_insights(workspace_root=ws)
@@ -84,10 +77,10 @@ def test_session_start_graph_insights_v0_11_2() -> None:
             warnings=result.overall_warnings,
         )
         assert gi.coverage_pct == 100.0
-        assert gi.covered_count == 2
+        assert gi.covered_count == 3
         assert gi.health_score == 100
         assert gi.health_tier == "excellent"
-        print("  case 1 (정상 100/100 excellent): PASS")
+        print("  case 1 (어휘 겹침 0 + 선언 사슬 → 100/100 excellent): PASS")
 
     # case 2: PURPOSE.md 부재
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -187,18 +180,7 @@ def test_backlog_update_graph_insights_v0_11_2() -> None:
 
     # case 1: 정상
     with tempfile.TemporaryDirectory() as tmpdir:
-        ws = Path(tmpdir)
-        ai_dir = ws / "ai-workflow" / "memory" / "active"
-        ai_dir.mkdir(parents=True, exist_ok=True)
-        (ai_dir / "PURPOSE.md").write_text(
-            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n",
-            encoding="utf-8",
-        )
-        (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
-        (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
-        (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
-        }, ensure_ascii=False), encoding="utf-8")
+        ws = fixture.build_workspace(Path(tmpdir))
 
         from workflow_kit.common.purpose_graph import run_graph_insights
         result = run_graph_insights(workspace_root=ws)
@@ -299,17 +281,7 @@ def test_doc_sync_graph_insights_v0_11_2() -> None:
     """DocSyncOutput["graph_insights"] dict 자동 populate (4 case)."""
     # doc-sync 은 dict 기반 → 직접 run_graph_insights 호출 후 dict 구성
     with tempfile.TemporaryDirectory() as tmpdir:
-        ws = Path(tmpdir)
-        ai_dir = ws / "ai-workflow" / "memory" / "active"
-        ai_dir.mkdir(parents=True, exist_ok=True)
-        (ai_dir / "PURPOSE.md").write_text(
-            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n", encoding="utf-8",
-        )
-        (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
-        (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
-        (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": ["TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다"]}
-        }, ensure_ascii=False), encoding="utf-8")
+        ws = fixture.build_workspace(Path(tmpdir))
 
         from workflow_kit.common.purpose_graph import run_graph_insights
         graph_result = run_graph_insights(workspace_root=ws)
@@ -466,25 +438,8 @@ def test_graph_insights_skills_no_state_mutation_v0_11_2() -> None:
        파일을 대상으로 재야 한다.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
-        ws = Path(tmpdir)
-        ai_dir = ws / "ai-workflow" / "memory" / "active"
-        ai_dir.mkdir(parents=True, exist_ok=True)
-        purpose_path = ai_dir / "PURPOSE.md"
-        purpose_path.write_text(
-            "---\npurpose_version: 1\nlast_purpose_review: 2026-06-26\n---\n\n"
-            "## 1. Goals\n\n- **G1**: 표준 워크플로우\n- **G2**: skill 분리\n\n"
-            "## 2. Key Questions\n\n- **Q1**: 어떻게?\n\n"
-            "## 3. Research Scope\n\n### 포함\n- 영역\n\n## 4. Evolving Thesis\n\nh: X\n",
-            encoding="utf-8",
-        )
-        (ws / "ai-workflow" / "wiki" / "concepts").mkdir(parents=True, exist_ok=True)
-        (ws / "ai-workflow" / "wiki" / "concepts" / "dummy.md").write_text("# d", encoding="utf-8")
-        (ai_dir / "state.json").write_text(json.dumps({
-            "session": {"recent_done_items": [
-                "TASK-2026-01-01-main-001 — 표준 워크플로우 패키지의 배포 경로를 정리했다",
-                "TASK-2026-01-01-main-002 — skill 등록 절차를 공통과 프로젝트별로 분리",
-            ]}
-        }, ensure_ascii=False), encoding="utf-8")
+        ws = fixture.build_workspace(Path(tmpdir))
+        purpose_path = ws / "ai-workflow" / "memory" / "active" / "PURPOSE.md"
 
         from workflow_kit.common.paths import state_path_for_workspace
         state_path = state_path_for_workspace(ws)

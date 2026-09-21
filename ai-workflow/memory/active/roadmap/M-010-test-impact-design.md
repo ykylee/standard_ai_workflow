@@ -7,6 +7,7 @@ order: 10
 parallel_allowed:
   - M-007
 deliverables:
+goals: [G2]
   - ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md
   - workflow-source/core/test_impact_tiering_spec.md
 ---

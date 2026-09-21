@@ -15,6 +15,7 @@ Reference:
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -185,14 +186,65 @@ def test_compare_scores_alert() -> None:
     assert len(alert_dims) == 1
 
 
-def test_alert_cli_no_alert() -> None:
-    """CLI --alert 실행 + exit 0 (real baseline 7a4dbae vs current)."""
+def test_alert_cli_exit_code_matches_alert_count() -> None:
+    """CLI --alert 의 계약: **종료 코드가 자기가 출력한 alert 수와 일치**한다.
+
+    옛 판정은 `rc == 0` 을 기대했다 — 즉 *살아있는 저장소가 마침 무결한가* 를
+    push 게이트에 걸어 둔 것이다 (TASK-2026-09-21-main-002). `lifecycle` 은
+    L2 stub 의 `last_touched` 가 30일을 넘기면 떨어지는 **시계 의존** 지표라,
+    코드가 하나도 안 바뀌어도 31일째에 red 가 됐다. 실제로 그렇게 됐고
+    (2026-09-21: stub 4종 전부 32일 경과 → 0.00), 80차 push 게이트 green 이후
+    저장소 상태만으로 발현했다. 살아있는 저장소 상태는 기대값이 아니다.
+
+    CLI 가 실제로 보증해야 하는 것은 **자기 출력과 자기 종료 코드가 어긋나지
+    않는 것**이고, 그것은 저장소 상태와 무관하게 결정적이다. alert 판정 로직
+    자체는 `test_compare_scores_no_alert` / `test_compare_scores_alert` 가
+    고정 입력으로 양방향을 이미 잰다.
+    """
     rc, out, err = _run(["--alert", "--baseline=7a4dbae"], timeout=120)
-    assert rc in (0, 1), f"unexpected exit code: {rc}"
+    assert rc in (0, 1), f"unexpected exit code: {rc} / {err[-200:]}"
     assert "Dim alerts" in out
     assert "alert(s)" in out
-    # baseline 7a4dbae (D 3.70) vs current (A 4.67) → 0 alert
-    assert rc == 0, f"expected 0 alert, got exit {rc}: {out[-200:]}"
+
+    m = re.search(r"Total:\s*(\d+)\s*alert\(s\)", out)
+    assert m, f"alert 수를 출력에서 못 읽었다 — 계약이 깨졌다:\n{out[-400:]}"
+    alert_count = int(m.group(1))
+    expected_rc = 1 if alert_count else 0
+    assert rc == expected_rc, (
+        f"종료 코드가 자기 출력과 어긋난다: alert {alert_count}건인데 exit {rc} "
+        f"(기대 {expected_rc}). 소비자는 종료 코드로 판단하므로 이 어긋남은 조용히 퍼진다."
+    )
+
+
+def test_l2_stubs_are_structurally_present() -> None:
+    """L2 stub 의 **구조적** 방치만 게이트한다 — 경과일은 보고하되 막지 않는다.
+
+    `lifecycle` 의 실패 사유는 두 부류인데 성질이 다르다:
+
+    - **구조적**: 파일 부재 / `last_touched` 부재 / 형식 오류. 사람이나 emit 이
+      뭔가를 깨뜨린 것이고, 시간이 지난다고 생기지 않는다 → 게이트한다.
+    - **시계 의존**: `N일 경과`. 아무도 아무것도 안 해도 달력만으로 발생한다
+      → 게이트하면 무관한 push 를 막는다. 보고만 한다
+      (해소는 `refresh_wiki_memory.py --emit-l2 --apply`).
+
+    옛 판정은 둘을 구분하지 않아 후자로 게이트를 닫았다. 구분을 없애고
+    통째로 걷어내면 전자까지 놓치므로 — 검사는 깨지지 않고 무력화된다 —
+    앞쪽만 남긴다.
+    """
+    sys.path.insert(0, str(SOURCE_ROOT / "workflow_kit" / "tools"))
+    from score_wiki_maintainability import score_lifecycle
+
+    score, detail = score_lifecycle()
+    stale = detail.get("stale", [])
+    structural = [s for s in stale if not re.search(r"\d+일 경과$", s)]
+    assert not structural, (
+        f"L2 stub 이 구조적으로 깨졌다 (경과일 아님): {structural}\n"
+        f"  emit 으로 복구: refresh_wiki_memory.py --emit-l2 --apply"
+    )
+    aged = [s for s in stale if s not in structural]
+    if aged:
+        print(f"  [report] L2 stub 경과 {len(aged)}건 (게이트 아님): {aged}")
+    print(f"  L2 stub 구조 무결 (lifecycle={score}, 선언 {detail.get('total')}종): PASS")
 
 
 def test_alert_cli_missing_baseline() -> None:
@@ -220,7 +272,8 @@ def main() -> int:
         test_show_idempotent,
         test_compare_scores_no_alert,
         test_compare_scores_alert,
-        test_alert_cli_no_alert,
+        test_alert_cli_exit_code_matches_alert_count,
+        test_l2_stubs_are_structurally_present,
         test_alert_cli_missing_baseline,
     ]
 

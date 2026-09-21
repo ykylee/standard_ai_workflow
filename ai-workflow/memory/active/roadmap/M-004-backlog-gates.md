@@ -6,6 +6,7 @@ status: done
 order: 4
 parallel_allowed: []
 deliverables:
+goals: [G2]
   - workflow-source/tests/check_roadmap_gates.py
 ---
 

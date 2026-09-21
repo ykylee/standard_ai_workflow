@@ -55,6 +55,7 @@ _ensure_tests_path()
 
 def test_extract_goal_keywords_v0_11_1() -> None:
     """PURPOSE.md §1 Goals 의 G1+ identifier + 본문 keyword 추출."""
+    from workflow_kit.common.check_warnings import call_deprecated
     from workflow_kit.common.purpose_graph import extract_goal_keywords
 
     # case 1: 정상 (4 goals)
@@ -156,6 +157,7 @@ def test_parse_recent_done_items_v0_11_1() -> None:
 
 def test_compute_goal_coverage_v0_11_1() -> None:
     """Goals ↔ deliverables 매칭 (3 case)."""
+    from workflow_kit.common.check_warnings import call_deprecated
     from workflow_kit.common.purpose_graph import (
         extract_goal_keywords,
         parse_recent_done_items,
@@ -181,7 +183,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
         items = parse_recent_done_items(state)
-        cov = compute_goal_coverage(goals, items)
+        cov = call_deprecated(compute_goal_coverage, goals, items)
         assert cov.total_goals == 2
         assert cov.covered_count == 2
         assert cov.uncovered_count == 0
@@ -206,7 +208,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
         items = parse_recent_done_items(state)
-        cov = compute_goal_coverage(goals, items)
+        cov = call_deprecated(compute_goal_coverage, goals, items)
         assert cov.total_goals == 2
         assert cov.covered_count == 1
         assert cov.uncovered_count == 1
@@ -231,7 +233,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
         }, ensure_ascii=False), encoding="utf-8")
         goals = extract_goal_keywords(purpose)
         items = parse_recent_done_items(state)
-        cov = compute_goal_coverage(goals, items)
+        cov = call_deprecated(compute_goal_coverage, goals, items)
         assert cov.covered_count == 0
         assert cov.uncovered_count == 1
         assert cov.coverage_pct == 0.0
@@ -245,6 +247,7 @@ def test_compute_goal_coverage_v0_11_1() -> None:
 
 def test_find_surprising_deliverables_v0_11_1() -> None:
     """scope creep 감지 (2 case)."""
+    from workflow_kit.common.check_warnings import call_deprecated
     from workflow_kit.common.purpose_graph import (
         GoalKeyword,
         RecentDoneItem,
@@ -258,7 +261,7 @@ def test_find_surprising_deliverables_v0_11_1() -> None:
         RecentDoneItem(version="v0.2", commit_hash="bbb", summary="표준 워크플로우 release", keywords=["표준", "워크플로우"]),
     ]
     scope_excluded = ["specific domain logic"]
-    result = find_surprising_deliverables(goals, items, scope_excluded)
+    result = call_deprecated(find_surprising_deliverables, goals, items, scope_excluded)
     assert len(result.surprising) == 1
     assert "unrelated" in result.surprising[0]
     assert result.is_scope_creep[0] is True
@@ -270,7 +273,7 @@ def test_find_surprising_deliverables_v0_11_1() -> None:
     items = [
         RecentDoneItem(version="v0.1", commit_hash="aaa", summary="specific domain logic", keywords=["specific", "domain", "logic"]),
     ]
-    result = find_surprising_deliverables(goals, items, scope_excluded)
+    result = call_deprecated(find_surprising_deliverables, goals, items, scope_excluded)
     assert len(result.surprising) == 1
     assert result.is_scope_creep[0] is False  # scope_excluded 매칭 → 의도된 out-of-scope
     assert result.scope_creep_warnings == []

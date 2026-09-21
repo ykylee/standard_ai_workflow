@@ -67,6 +67,12 @@ TESTS_DIR = SOURCE_ROOT / "tests"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common.check_warnings import (
+    GATED_ORIGINS,
+    ORIGIN_THIRD_PARTY,
+    classify as classify_warning,
+    extract as extract_warnings,
+)
 from workflow_kit.common.branch_matrix import (  # noqa: E402
     BranchContext, apply_context, context_for, contexts, labels,
 )
@@ -270,6 +276,13 @@ class CheckResult:
     error_excerpt: str = ""
     tmp_peak_mb: int = 0        # 이 check 가 전용 TMPDIR 에 남긴 최대 용량
     killed_children: int = 0    # 종료 후 강제 정리된 잔여 자식 프로세스 유무 (0/1)
+    warnings: list[str] = field(default_factory=list)
+    """이 실행이 낸 Python 경고 (정규화된 형태, TASK-2026-09-21-main-007).
+
+    `run_one` 은 stdout+stderr 를 이미 전량 받아 두고 요약 뒤 버리고 있었다.
+    경고는 exit 0 이라 종료 코드 축에는 안 잡히는데, **해석기별로 갈린다** —
+    3.12+ 에서만 나는 `SyntaxWarning` 을 CI(3.11)는 통째로 못 봤다.
+    """
 
 
 @dataclass
@@ -606,6 +619,7 @@ def run_one(
         passed=passed, failed=failed, last_line=last_line,
         error_excerpt=_error_excerpt(output) if proc.returncode != 0 else "",
         tmp_peak_mb=tmp_peak, killed_children=int(killed),
+        warnings=[w.render() for w in extract_warnings(output)],
     )
 
 
@@ -918,6 +932,58 @@ def run_pass(
     return summary
 
 
+def warning_verdict(
+    passes: "list[tuple[str, RunSummary]]", repo_root: Path,
+) -> tuple[list[str], list[str]]:
+    """실행이 낸 Python 경고를 **출처별로** 가른다 (TASK-2026-09-21-main-007).
+
+    `(게이트 대상, 보고만)`. 게이트 대상은 저장소 코드가 낸 것과 **귀속 불가**한
+    것(`<unknown>` — 문자열 compile) 이고, 서드파티는 보고만 한다.
+
+    왜 위치로 가르는가: 전수 census(2026-09-21, 288검사 × 2해석기)에서 두 해석기가
+    갈린 경고 2건이 **전부 서드파티**였고 그 원인도 해석기가 아니라 두 venv 의
+    의존성 해석 차이였다. 그것을 red 로 만들면 우리가 못 고치는 만성 red 가 된다.
+
+    왜 셀 간 *비교* 를 하지 않는가: 각 실행에서 독립적으로 판정하면 3.12+ 에서만
+    나는 경고는 그 셀만 red 가 된다 — 비교 인프라 없이 같은 신호를 얻는다.
+    """
+    gated: list[str] = []
+    reported: list[str] = []
+    seen_gated: set[str] = set()
+    seen_reported: set[str] = set()
+    for _label, summary in passes:
+        for result in summary.results:
+            for rendered in result.warnings:
+                parsed = extract_warnings(rendered)
+                if not parsed:
+                    continue
+                origin = classify_warning(parsed[0], str(repo_root))
+                line = f"{result.name}: {rendered}"
+                if origin in GATED_ORIGINS:
+                    if line not in seen_gated:
+                        seen_gated.add(line)
+                        gated.append(line)
+                elif line not in seen_reported:
+                    seen_reported.add(line)
+                    reported.append(line)
+    return gated, reported
+
+
+def print_warning_report(gated: list[str], reported: list[str]) -> None:
+    if not gated and not reported:
+        return
+    print("\n  --- Python 경고 (TASK-2026-09-21-main-007) ---")
+    for line in gated:
+        print(f"  \u2717 {line}")
+    if gated:
+        print("    저장소 코드가 낸 경고다 — exit 0 이라도 게이트는 red 다. "
+              "의도한 deprecation 호출이면 `check_warnings.call_deprecated` 를 쓴다")
+    if reported:
+        print(f"  서드파티 {len(reported)}건 (보고만 — 우리가 못 고친다):")
+        for line in reported[:5]:
+            print(f"    · {line}")
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="workflow-source 의 check_*.py 통합 runner (v0.7.6+)",
@@ -1086,6 +1152,8 @@ def main() -> int:
                 print(f"[meta-watch] 채취 {dumped}건 → {args.meta_watch_dump}")
         shutil.rmtree(meta_dir, ignore_errors=True)
 
+    warn_gated, warn_reported = warning_verdict(passes, SOURCE_ROOT.parent)
+
     if args.json:
         meta_json = {"violations": meta_violations, "warns": meta_warns,
                      "counts": meta_counts, "enabled": meta_dir is not None}
@@ -1094,11 +1162,14 @@ def main() -> int:
             # CI 의 요약 스크립트가 `data["total"]` / `data["results"]` 를 직접 읽는다.
             print(json.dumps(
                 {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes],
-                 "meta_watch": meta_json},
+                 "meta_watch": meta_json,
+                 "warnings": {"gated": warn_gated, "third_party": warn_reported}},
                 ensure_ascii=False, indent=2,
             ))
         else:
-            print(json.dumps({**asdict(passes[0][1]), "meta_watch": meta_json},
+            print(json.dumps({**asdict(passes[0][1]), "meta_watch": meta_json,
+                              "warnings": {"gated": warn_gated,
+                                           "third_party": warn_reported}},
                              ensure_ascii=False, indent=2))
     else:
         for label, summary in passes:
@@ -1107,11 +1178,14 @@ def main() -> int:
             print_human(summary)
         if meta_dir is not None:
             print_meta_watch(meta_violations, meta_warns, meta_counts)
+        print_warning_report(warn_gated, warn_reported)
 
     if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
     if meta_violations:
         return 1    # 좁은 선언은 red 다 — 조용히 안 도는 검사를 만들기 전에 잡는다
+    if warn_gated:
+        return 1    # 저장소 코드의 경고는 red 다 — exit 0 이라 종료 코드 축에는 안 잡힌다
     return 0 if all(s.failed == 0 for _, s in passes) else 1
 
 

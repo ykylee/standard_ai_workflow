@@ -58,9 +58,15 @@ _TESTS_DIR = str(Path(__file__).resolve().parent)
 if _TESTS_DIR not in sys.path:
     sys.path.insert(0, _TESTS_DIR)
 
+from workflow_kit.common.check_warnings import call_deprecated  # noqa: E402
+
 #: 어휘 판정을 **시험 대상으로** 부르는 함수들 (deprecated). 이들을 부르는
 #: 시험은 fixture 어휘가 겹쳐야 의미가 있으므로 항등 가드에서 면제한다.
 #: 면제 근거가 코드 호출이므로 함수가 사라지면 면제도 같이 사라진다.
+#: 함수를 **인자로** 받아 대신 부르는 래퍼. 호출 그래프 파생이 이것을 모르면
+#: 감싼 호출이 목록에서 사라진다 (TASK-2026-09-21-main-007).
+_CALL_INDIRECTIONS = frozenset({"call_deprecated"})
+
 _LEXICAL_FUNCTIONS = frozenset({"compute_goal_coverage", "find_surprising_deliverables", "find_gaps"})
 
 #: fixture 의 deliverable 이 goal 어휘를 이 비율 이상 포함하면 항등함수다.
@@ -156,7 +162,8 @@ def test_two_opposite_rules_do_not_share_a_prefix() -> None:
     assert ctx_warnings, "제외 영역 매칭이 경고를 못 냈다 — 이 case 의 전제가 깨졌다"
 
     # purpose_graph 쪽: goal 에도 제외 영역에도 **안 걸려서** 우는 경고
-    graph_result = find_surprising_deliverables(
+    graph_result = call_deprecated(
+        find_surprising_deliverables,
         goal_keywords=[GoalKeyword(gid="G1", text="G1: 표준 워크플로우", keywords=["표준", "워크플로우"])],
         recent_items=[RecentDoneItem(version="TASK-2026-01-01-main-001", commit_hash="",
                                      summary="전혀 다른 낱말", keywords=["전혀", "다른", "낱말"])],
@@ -183,6 +190,11 @@ def _functions_with_calls(text: str) -> list[tuple[str, set[str]]]:
     """모듈의 각 함수를 (원문, 그 안에서 호출한 이름 집합) 으로.
 
     호출 이름은 `f(...)` 와 `mod.f(...)` 둘 다 잡는다.
+
+    **간접 호출도 호출이다** (TASK-2026-09-21-main-007). `call_deprecated(fn, ...)`
+    처럼 함수를 *인자로* 넘기는 래퍼를 모르면 `fn` 이 호출 목록에서 사라지고, 이
+    파생에 기대던 면제가 **조용히 풀린다** — 실제로 그렇게 됐고 이 판정이 잡았다.
+    래퍼를 새로 만들면 여기도 같이 가르쳐야 한다.
     """
     import ast
 
@@ -199,6 +211,13 @@ def _functions_with_calls(text: str) -> list[tuple[str, set[str]]]:
                 func = sub.func
                 if isinstance(func, ast.Name):
                     names.add(func.id)
+                    if func.id in _CALL_INDIRECTIONS and sub.args:
+                        # 첫 인자가 실제로 불리는 함수다.
+                        target = sub.args[0]
+                        if isinstance(target, ast.Name):
+                            names.add(target.id)
+                        elif isinstance(target, ast.Attribute):
+                            names.add(target.attr)
                 elif isinstance(func, ast.Attribute):
                     names.add(func.attr)
         out.append((src, names))

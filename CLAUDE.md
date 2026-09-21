@@ -202,6 +202,21 @@ main 에서 재면 그 차이가 전부 0이다.
 (`check_branch_context_matrix.py` 가 복제를 검출한다). 한 축만 볼 때는
 `--branch-context=slash` 로 줄인다.
 
+### 저장소 코드가 낸 Python 경고는 게이트 red 다
+
+`run_all_checks.py` 가 각 검사의 stdout+stderr 에서 Python 경고를 뽑아 **출처별로**
+가른다. 저장소 코드가 낸 것(과 `<unknown>` — 문자열 compile 산물)은 검사 자신이
+exit 0 이어도 게이트를 red 로 만들고, 서드파티는 보고만 한다.
+
+이 축은 해석기 매트릭스가 종료 코드만 보던 구멍을 메운다 — 3.12+ 에서만 나는
+`SyntaxWarning` 을 CI(3.11)가 통째로 못 보고 있었다. 전수 census(288검사 ×
+2해석기)에서 갈린 2건은 **전부 서드파티**였고 원인도 해석기가 아니라 venv 의
+의존성 해석 차이라, '셀 간 출력 차이' 대신 **출처**로 가른다.
+
+deprecation 경로를 의도적으로 부를 때는 `check_warnings.call_deprecated` 를 쓴다
+(삼키되 경고가 났는지 단언한다). 정본은
+`workflow_kit/common/check_warnings.py`, 판정은 `check_warning_gate.py`.
+
 ### 해석기 매트릭스 — CI 가 4셀을 돌고, 로컬은 필요할 때 재현한다
 
 ```bash

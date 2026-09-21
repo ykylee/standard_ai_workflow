@@ -240,10 +240,10 @@
       "title": "운영 축 (상설)",
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
-      "derived_status": "blocked",
-      "progress": 0.75,
+      "derived_status": "in_progress",
+      "progress": 0.5,
       "total_leaves": 4,
-      "done_leaves": 3,
+      "done_leaves": 2,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -303,7 +303,7 @@
         {
           "id": "WBS-7.3",
           "title": "관찰·지표 운영 (mypy flake, exempt 비율, memory_index 3-tuple, 로드맵 정비)",
-          "derived_status": "done",
+          "derived_status": "in_progress",
           "linked_task_ids": [
             "TASK-2026-08-13-main-004",
             "TASK-2026-08-28-main-001",
@@ -312,10 +312,11 @@
             "TASK-2026-09-18-main-005",
             "TASK-2026-09-21-main-001",
             "TASK-2026-09-21-main-002",
-            "TASK-2026-09-21-main-003"
+            "TASK-2026-09-21-main-003",
+            "TASK-2026-09-21-main-004"
           ],
           "total_leaves": 1,
-          "done_leaves": 1,
+          "done_leaves": 0,
           "children": []
         },
         {

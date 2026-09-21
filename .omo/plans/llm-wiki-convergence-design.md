@@ -4,7 +4,7 @@
 - 범위: Karpathy LLM Wiki 핵심 개념 압축, 우리 `memory/` 의 현재 한계 gap 분석, 진화 방향 2개 (병렬 추가 / 대체), 권장안 (방향 A: 병렬 추가), 구체 설계 (`wiki/` 디렉토리 구조 + 신규 스킬 3종 + Schema 강화), 마이그레이션 3-phase 로드맵.
 - 대상 독자: Sisyphus (orchestrator), maintainer, 다음 마일스톤 (v0.5.11+ / v0.6+) 설계자.
 - 상태: draft (Rev 0 — 분석 단계, 결정 전)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-09-21
 - 관련 문서: `.omo/plans/v0.5.11-plus-roadmap.md` (직전 milestone), `workflow-source/MEMORY_GOVERNANCE.md` (메모리 쓰기 규칙), `docs/architecture/ADR-001-source-state-knowledge-3-layer-separation.md` (3-Layer ADR)
 - **v0.6.0 wiki layer**: [`.omo/plans/v0.5.11-plus-llm-wiki-distributed-rules.md`](./v0.5.11-plus-llm-wiki-distributed-rules.md) (accepted, P1 implemented)
 - 후속: §6 "분산 위키 규칙(commitor별 1차 기록 + merge 시 취합)" 별도 검토 — `v0.5.11-plus-llm-wiki-distributed-rules.md` 로 분리 예정
@@ -114,7 +114,7 @@ LLM Wiki 는 이 "전방위 기억상실 동료"에게 persistent scratchpad 를
 
 1. **3-Layer 분리 (ADR-001)** — Source / Runtime / Project Docs. Karpathy 의 raw/wiki/schema 분리보다 정교.
 2. **Contract v1** — 멀티 에이전트가 위키를 동시에 갱신할 때 충돌 방지 규약 가능.
-3. **52개 smoke test + state cache builder** — 신규 컴포넌트 (wiki lint, backlink index) 검증 인프라 준비됨.
+3. **smoke test 묶음 + state cache builder** — 신규 컴포넌트 (wiki lint, backlink index) 검증 인프라 준비됨.
 4. **6개 하네스 배포** — 위키 layer 도 동일 overlay 패턴 적용 가능.
 5. **`MEMORY_GOVERNANCE.md` 존재** — 위키 운영 규칙을 여기에 더 얹으면 됨.
 6. **브랜치별 메모리 분리** (`memory/codex/phase6/`, `memory/gemini/phase10/` 등) — 이미 분산 기록의 물리적 토대가 있음.

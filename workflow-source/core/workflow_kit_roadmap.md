@@ -4,7 +4,7 @@
 - 범위: 현재 단계 평가, 단계별 목표, 우선순위 로드맵, 완료 기준, 권장 작업 순서
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 구현자, 프로젝트 온보딩 담당자
 - 상태: **v1.0.0 기준 (Phase 12 close-out `done`; Phase 13 follow-up `in_progress` — 2026-07-21 start)**
-- 최종 수정일: 2026-09-04
+- 최종 수정일: 2026-09-21
 - 관련 문서: `./project_status_assessment.md`, `./workflow_skill_catalog.md`, `./workflow_mcp_candidate_catalog.md`, `./output_schema_guide.md`, `./prototype_promotion_scope.md`, `./read_only_mcp_transport_promotion.md`, `./phase_13_followup.md`, `./stable_guarantee.md`, `./v1_0_0_entry_evaluation.md`, `../skills/README.md`, `../mcp_servers/README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../examples/output_samples/README.md`, `./maturity_matrix.json`
 
 ## 1. 현재 단계 (Phase 12 done, Phase 13 in_progress)
@@ -186,7 +186,7 @@ v0.11.x 누적 mypy strict 격상 (1 release = 1-2 file) 정책이 그대로 유
 - `workflow_kit/server` 에 read-only registry, direct-call entrypoint, JSON-RPC draft bridge, MCP v1 SDK candidate 가 있다.
 - read-only descriptor, 하네스 MCP 예시, JSON-RPC fixture 가 `schemas/` 산출물로 export 되고 harness package 에 포함된다.
 - runtime output contract 가 generated JSON Schema, manifest outputSchema, sample validation 에 함께 쓰인다.
-- 52개 smoke test 묶음이 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀까지 커버한다.
+- smoke test 묶음이 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀까지 커버한다.
 - skill 11종 모두가 독립 `tests/check_*.py` smoke 경로를 갖추는 방향으로 정리되고 있다.
 
 ### 아직 비어 있는 축

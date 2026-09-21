@@ -4,7 +4,7 @@
 - 범위: 공통 표준 문서, 프로젝트 프로파일 템플릿, 세션 상태 문서 템플릿, skill/MCP/agent 설계 참고 문서
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: stable
-- 최종 수정일: 2026-09-07
+- 최종 수정일: 2026-09-21
 - 버전: v1.9.4 (chapter 1~14 done; **v1.0.0 stable 진입 (6/6 entry gate PASS) + Phase 13 follow-up 진행 중** — v0.13.0 Quality Dashboard + v0.13.1 telemetry + v0.13.2 self-recover + v0.13.3 bidir-link + v0.14.0 append-only memory + v0.14.1~v0.14.2 MCP 1st/2nd batch stable + v0.14.3 Phase 15 dashboard Panel 6/7/8 + **v0.15.0 2nd deprecation cycle 종결 ⚠️ BREAKING**: `work_backlog.md.bak` (5.7 MB / 330 lines) drop, pre-v0.15.0 caller 중 silent fallback 사용은 자동 fallback 불가, migration 가이드 3가지 (`legacy_memory=True` opt-in / 명시 path / `.bak` 미존재 정공법) + v0.15.1~v0.15.15 cross-check discipline anchor + **v0.15.16 Grok Build (xAI CLI TUI) 11번째 하네스** + v0.15.17 release memory cycle close-out + v0.15.18 TST-WF-01 historical smoke 보강 + v0.15.19 cross-panel final 정합 + **v0.15.20 v1.0.0 pre-release final** (stable API 25/25 frozen + SemVer 2-year guarantee) + **v0.15.21 Phase 13 follow-up 1차** (telemetry source 다양성 ≥ 4 AC2 수렴 — 3 skill retrieval 자동 활성 + 자립형 diversity smoke + CHANGELOG auto-gen lockdown — release changelog pre-step + RELEASE_RE bare 형식 확장 + semver 정렬) + **v1.0.0 stable release** (v1.0.0 entry gate 6/6 PASS — dashboard 8 panel 정합 + smoke 24종 + mypy strict 117 file 0 errors + backward compat + stable API 25/25 frozen + deprecation roadmap 종결; SemVer 2-year backward compat guarantee 발효); package: standard-ai-workflow 1.9.4, runtime `__version__` = 1.9.4, latest tag **v1.9.4**)
 - 관련 문서: `./workflow-source/core/global_workflow_standard.md`, `./workflow-source/core/workflow_agent_topology.md`
 - 상태 진단 문서: `./workflow-source/core/project_status_assessment.md`
@@ -261,8 +261,8 @@ python3 workflow-source/scripts/export_harness_package.py \
 - OpenCode 는 orchestrator + generic/specialized worker overlay 생성까지 지원하고, Codex 는 동일한 task-only orchestrator + bounded worker 운영 패턴을 문서/템플릿으로 배포한다.
 - `workflow_kit.common` (state, contracts, schemas, runner, errors, output_contracts, reconcile, scaffold, doc_sync 등 30+ submodule) 은 v0.5.2+ 본격 추출 진행 중. `workflow_kit/contract_v1/` (v0.5.6+, v0.5.7 multi-component 확장) 은 Pydantic v2 기반 외부 contract enforcement helpers.
 - 하네스 export bundle 은 read-only MCP descriptor, 하네스별 MCP 설정 예시 (5종), JSON-RPC fixture 를 함께 포함한다.
-- `workflow-source/tests/check_*.py` 162개는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀, release_pipeline (30+ wrapper) 까지 smoke 기준선을 제공한다 (cumulative, v0.8.15+ 162/162 PASS).
-- CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 162개 smoke 전부 실행.
+- `workflow-source/tests/check_*.py` 는 문서, bootstrap, harness export, output sample, generated schema, validation/code-index, onboarding runner, read-only MCP bundle, contract v1 multi-component, wire guide 회귀, release_pipeline (30+ wrapper) 까지 smoke 기준선을 제공한다 (cumulative, 전량 PASS 가 push 게이트 조건). 현재 파일 수는 [`docs/CODE_INDEX.md`](docs/CODE_INDEX.md) 가 정본이다.
+- CI 는 `python 3.11` + `PYTHONPATH=workflow-source` + `pip install -r requirements*.txt` 경로로 매 push 마다 smoke 전부 실행.
 
 ## 10. v0.8.0 → v0.9.0 누적 변경 요약 (2026-06-18)
 

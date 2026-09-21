@@ -45,6 +45,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-21-main-004 smoke 수가 8곳에 손으로 복제돼 있고 게이트는 2곳만 덮는다 — 나머지는 162/52 로 갈라졌다
 - TASK-2026-09-21-main-003 검사가 강제하는 요구를 선언한다 — 산문 §인용 671건 중 661건은 기계가 어느 문서인지도 모른다 (OpenSpec concept 흡수)
 - TASK-2026-09-21-main-002 check_wiki_trend 가 살아있는 저장소 점수에 rc==0 을 걸어 두었다 — lifecycle 0.42→0.00 으로 만성 red
 - TASK-2026-09-21-main-001 graph_insights 판정식 재검토 — coverage 성분이 구조적으로 0 이고 classification 성분은 동음이의 잡음이다
@@ -54,7 +55,6 @@
 - TASK-2026-09-18-main-003 CLAUDE.md 포크 병합 — v1.3.0 이후 kit 델타 전수, 채택 0
 - TASK-2026-09-18-main-002 이 호스트(plex) 채널 v1.9.4 재적용 — claude-code 가 v1.1.8-beta 로 5주 낡아 있었다
 - TASK-2026-09-18-main-001 backlog-update 가 --progress-note 미지정 시 이전 Progress 를 task_brief 로 덮는다 — 새 타임스탬프가 붙어 갱신처럼 보인다
-- TASK-2026-09-07-main-012 INSTALLATION 7.0.2 가 존재하지 않는 맨 marketplace 명령을 적고 있었다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

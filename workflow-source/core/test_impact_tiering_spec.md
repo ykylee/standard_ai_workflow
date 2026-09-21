@@ -149,6 +149,14 @@ run_all_checks.py --meta-watch-dump <DIR>   # 판정 불변 — 정리 직전 �
 release note · 날짜 박힌 분석), 그리고 기록 계층(`ai-workflow/memory/`) 내부.
 그 시점의 사실을 현재 값으로 고치는 것은 수리가 아니라 날조다.
 
+### Requirement: python-floor-is-measured-with-the-real-interpreter
+
+선언 하한(`requires-python`) Python 호환은 **실물 해석기**로 잰다.
+`ast.parse(feature_version=)` 은 파서가 버전 게이트를 명시적으로 건 구문만 거부하므로
+PEP 701(중첩 f-string, 3.12 도입)을 **통과시킨다** — 이 축을 만들게 한 바로 그 결함이다
+(2026-09-21 실측). 하한 해석기를 못 구하면 통과가 아니라 **미측정**이고, 판정은
+"실패가 안 보였다" 가 아니라 "해석기가 N개를 실제로 컴파일했다" 는 긍정 증거로 한다.
+
 ### 7.2 형식
 
 정본 스펙 측:

@@ -202,6 +202,29 @@ main 에서 재면 그 차이가 전부 0이다.
 (`check_branch_context_matrix.py` 가 복제를 검출한다). 한 축만 볼 때는
 `--branch-context=slash` 로 줄인다.
 
+### 해석기 매트릭스 — CI 가 4셀을 돌고, 로컬은 필요할 때 재현한다
+
+```bash
+PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local
+```
+
+CI 의 `smoke` 는 이제 전량을 **브랜치 2 × 해석기 2 = 4셀**로 돌린다 (셀은 병렬이라
+벽시계 불변). 해석기 목록의 정본은 `workflow_kit/common/interpreter_matrix.py` 의
+`GATE_INTERPRETERS` 이고 `smoke.yml` 의 prepare job 이 거기서 읽는다 —
+`check_interpreter_matrix.py` 가 yml 의 버전 리터럴을 복제로 잡는다.
+
+**로컬 게이트는 늘리지 않았다.** `--branch-context=all` 은 당신이 가진 해석기
+하나로만 도는데, 나머지 축은 이제 CI 4셀이 덮는다. 위 `--run-local` 은 CI red 를
+**로컬에서 재현**할 때 쓴다 (venv 는 `.venv-interpreter-matrix/<버전>` 에 캐시되므로
+두 번째부터 빠르다). 한 버전만 볼 때는 `--only 3.11 --filter=<이름조각>`.
+
+착수 시점 실측(2026-09-21)이 이 축을 정당화한다. 전량을 두 해석기로 대조하면
+287/287 × 2 green 인데 **출력이 갈린 검사가 8건**이었고, 그중 다섯이 한 신호였다 —
+3.12+ 에서만 나는 `SyntaxWarning: invalid escape sequence` 를 **3.13 만 보고
+3.11(CI)은 완전히 침묵**했다. 반대 방향도 이미 겪었다 (81차: 로컬 3.13 green /
+CI 3.11 red). 더 고약했던 것은 **3.13 커버리지가 선언이 아니라 우연**이었다는 점이다 —
+`.venv` 를 3.11 로 다시 만들면 조용히 사라지고 아무 검사도 실패하지 않는다.
+
 > `--tmp-dir` 를 실디스크 경로로 주는 이유: `TMPDIR` 가 tmpfs(RAM) 이면 temp 누수가
 > 곧 OOM 이 된다.
 

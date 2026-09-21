@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 v0.7.26: sync_release_hash smoke test (5/5 PASS)
 
 Test cases:
@@ -90,7 +90,7 @@ def test_state_json_hash_updated() -> bool:
 
 # === Test 2: backlog commit updated ===
 def test_backlog_commit_updated() -> bool:
-    """backlog 의 `**commit**: \`TBD\`` → `**commit**: \`abc1234\``."""
+    r"""backlog 의 `**commit**: \`TBD\`` → `**commit**: \`abc1234\``."""
     with tempfile.TemporaryDirectory() as tmp:
         repo_root = Path(tmp) / "fake_repo"
         (repo_root / "ai-workflow" / "memory" / "active").mkdir(parents=True, exist_ok=True)

@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-07
+- 최종 수정일: 2026-09-22
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,16 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-07
+## [Unreleased] - 2026-09-22
 
 ### Added
 
+- feat(tests): 하한 호환 축의 범위를 저장소 루트 전수로 (main-009) (59e77dbd)
+- feat(tests): 컴파일 시점 경고를 캐시와 무관하게 재는 축 (main-008) (73e781fc)
+- feat(tests): 저장소 코드가 낸 Python 경고를 게이트 신호로 (main-007) (5205ba80)
+- feat(tests): 검사를 도는 해석기를 선언 축으로 (main-006) + 82차 세션 종료 (e5f9b554)
+- feat(tests): 선언 하한 Python 을 실물 해석기로 잰다 (main-005) (9915e4ad)
+- feat(metrics): 어휘 겹침을 선언 사슬로 — goal coverage · 시계 의존 게이트 · ENFORCES 축 (c08dfebd)
 - feat(release): 발행 게이트가 필수 CI 워크플로 전수를 보고 기본 차단한다 (main-005) (c49e2c74)
 - feat(harness): gemini-cli 지원 종료 + antigravity 플러그인 채널 신설 — 전 계약 실측 (main-004·005·006 + 30일 main-001) (35a7a859)
 - feat(meta-watch): 선언 보급 완주 — 국소 198 / 전역 10 / 미분류 68 (main-002·003) (18d8e369)
@@ -40,16 +46,26 @@ All notable changes to this project will be documented in this file.
 - feat(plugin): pi.dev (pi-coding-agent) 11번째 분배 채널 정식 등록 (main-012) (6f2b5435)
 - feat(plugin): Grok Build 훅 관례 경로와 설치 채널을 연다 (ae9e1a73)
 - feat(memory): task SSOT 4단계 준비 — 정본 표 누락 라벨 보강 + 검사 범위 확대 (43fe58ce)
-- feat(memory): task SSOT 3단계 — 라벨을 바꿀 수 있는 상태로 (전환은 다음 release) (a576e92b)
-- feat(memory): task SSOT 2단계 — 소실과 중복은 같은 뿌리였다 (0f63ddc0)
-- feat(memory): task SSOT 1단계 — 읽는 쪽을 하나로 (index 20개가 조용히 0이었다) (21e96bf0)
-- feat(memory): handoff 기준선 롤오프 — 자르지 않고 이관한다 (ab07bafe)
-- feat(checks): 무거운 7개에 WATCHES 선언 + check_changed_selection 계약 9 cases (0fa23bab)
-- feat(checks): run_all_checks --changed 기전 (WATCHES 선언 기반, 미선언은 항상 실행) (49da7655)
-- ... (132 more)
+- ... (138 more)
 
 ### Changed
 
+- chore(backlog): consumer-metrics-digest 만성 red task 등록 (main-001) (9056b21e)
+- chore(memory): push 후 CI 실측 기록 + 83차 세션 최종 (main-009) (6ec86091)
+- chore(memory): push 후 CI 실측 기록 — smoke 4셀이 선언대로 떴다 (main-008) (5990b96c)
+- chore(memory): 82차 세션 종료 — main-006 · main-007 close + CI 실측 기록 (37d4d82e)
+- chore(backlog): 해석기별로 갈리는 경고를 게이트 신호로 올릴지 task 등록 (main-007) (4a6079f0)
+- chore(memory): push 후 CI 실측 기록 — smoke 4셀이 선언대로 떴다 (main-006) (a91549ba)
+- chore(backlog): 검사를 CI 인터프리터로도 돌리는 축 task 등록 (main-006) (bb14bb93)
+- chore(memory): 81차 세션 종료 — "범위가 조용히 좁으면 그 밖이 갈라진다" 4건 close (07ad98f9)
+- chore(backlog): Python 문법 호환 축 task 등록 (main-005) (d4550ec3)
+- chore(backlog): smoke 수 손 사본 task 등록 — 게이트가 8곳 중 2곳만 덮는다 (main-004) (fa4b1cb4)
+- chore(memory): 80차 세션 종료 — 형제 파생물과 "재고 있던 사본" close-out (f8ab8ac8)
+- docs(doctor): 노출 한 칸 첫 실측 — 그리고 캐시 사본은 읽히지 않는다 (main-005, -006) (d9102692)
+- chore(memory): 79차 세션 종료 — 이 호스트 채널 5주 낡음 + 포크 병합 close-out (5354ea76)
+- chore(env): 이 호스트 채널 v1.9.4 재적용 + CLAUDE.md 포크 병합 (main-002, -003) (6dd4c681)
+- docs(sessions): 77차 세션 후반 기록 — 발행과 "성공했는데 틀린" 명령 (7a328527)
+- docs(install): §7.0.2 가 존재하지 않는 맨 marketplace 명령을 적고 있었다 (0bcd757e)
 - test(mcp): emit 산출물 전수를 win32 로 강제해 훑는 판정 — 수리를 지킬 자리가 비어 있었다 (3ae7bd04)
 - docs(sessions): 77차 세션 기록 — 오탐인 줄 알았던 지표가 결함이었다 (7c298998)
 - chore(memory): 76차 세션 종료 — 예제 산출물 드리프트에서 생성기 결함 2건을 파내 닫고 사본 1건·문서 오기 1건 정리 (fb9a6184)
@@ -64,26 +80,15 @@ All notable changes to this project will be documented in this file.
 - chore(roadmap): M-012 close — v1.7.0 발행 사이클 종결 (main-010·011 done) (818e199d)
 - chore(roadmap): M-012 [release] 선언 + main-009 등록 (mcp 2.1.1 사건) (3669668b)
 - chore(roadmap): M-011 close — meta-watch 구현 축 완결 (main-008 done) (9c41b488)
-- docs(planning): M-008 concept 검토 — 계층별 회귀 실행 계약 (소유자 선택지 3안) (bf7f8788)
-- chore(memory): brave-valley-2538 브랜치 메모리 아카이브 + main-003 등록 ('자기 위치 오인' 결함족 사본 발견) (9faa9924)
-- chore(memory): 62차 세션 종료 — Windows 플랫폼 결함 축 수리 + v1.6.0 발행 + 이 호스트 채널 정렬 (2329bbf2)
-- chore(memory): main-021 close — v1.6.0 발행 사이클 종결 (CI 전 워크플로 green + 이 호스트 채널 재적용 drift 0) (377ef605)
-- chore(memory): main-004 close 기준 확정 — 격리 후 완료 run 33건에서 mypy 게이트 실패 0 (62차 소유자 결정) (de0f8307)
-- chore(memory): 60차 세션 종료 — ADR-027 로드맵 층 완결 + v1.5.0 발행 (61차 병합 + main 생성물 치유) (6ecdeaa2)
-- chore(memory): 61차 세션 종료 — Windows 플랫폼 결함 축 착수 (Oh My Pi) (3866c188)
-- docs(work_logs): 2026-08-25 세션 기록 — 원격 동기화 + 플러그인 설치 검증(발견 3건) (b00b4a18)
-- chore(memory): 60차 — M-006 close, v1.5.0 발행·재적용 완료, 로드맵 ADR-027 축 완결 (M-001~M-006 전부 done) (ff0ac3cc)
-- chore(memory): 60차 진행분 — ADR-027 로드맵 층 M-001~M-005 close + mypy flake 관찰 6차 + memory_index 승격 2건 (379913b9)
-- chore(schemas): output sample contracts 재생성 — SessionStartOutput.roadmap_context 반영 (b6afe828)
-- docs(adr): ADR-027 — 로드맵·마일스톤·WBS 층과 SDLC 온보딩 기본 (M-001) (881c2cec)
-- chore(memory): 59차 세션 종료 — doctor pip 오탐 수리 + memory_index 저점 고착 3회째 (4e4e8963)
-- chore(memory): 58차 세션 종료 — OKF 매니페스트 잔재 수리 + mypy flake 관찰 5차 (ef5418fe)
-- chore(memory): 57차 세션 종료 — v1.4.0 발행 + 혼합 표기 축 완결 + mypy flake 원인 규명 (b35fe6cf)
-- chore(harness): 자기 적용 산출물을 v1.4.0 으로 재적용 — 낡은 마커 5 → 0 (69e35a8b)
-- ... (361 more)
+- ... (377 more)
 
 ### Fixed
 
+- fix(tests): case 3 의 전제가 호스트 의존이었다 + 81차 세션 종료 (e2d6b0d3)
+- fix(docs): smoke 수 판정 범위를 포함 목록에서 전수 파생으로 (main-004) (d882b42a)
+- fix(doctor): content_drift 가 읽히지 않는 사본을 재고 있었다 — 소스 유형을 읽는다 (main-006) (3d5c7830)
+- fix(backlog-update): --apply 가 형제 생성물 roadmap_state.json 을 두고 갔다 (main-004) (cc172d6c)
+- fix(backlog-update): update 에서 --task-brief 를 선택 인자로 — 뜻이 갈리는 필수 인자가 진행 기록을 덮었다 (371afdbf)
 - fix(graph-insights): 완료한 일이 늘수록 내려가던 점수 — 오탐인 줄 알았던 자리가 지표 결함이었다 (878f0ae7)
 - fix(paths): 설치본에서 증발하는 모듈 앵커 — 소비자 배포처 모순의 뿌리를 닫는다 (30d2804b)
 - fix(backlog): task ID 채번이 원격을 함께 본다 — 코드가 적고 있던 거짓 보증을 지운다 (67fd0776)
@@ -109,17 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(doctor): pip 부재 판정이 선언을 읽는다 — uv tool venv 의 부재는 설계다 (main-009) (4461e08e)
 - fix(okf): 매니페스트 버전을 정본 파생으로 — 한 번들이 두 버전을 말하고 있었다 (main-008) (b09bbf16)
 - fix(mypy)!: 캐시를 전용 경로로 격리 — 빈 문자열은 격리가 아니었다 (main-007) (19e40ac9)
-- fix(mypy): 캐시 격리 — no-incremental 은 읽기만 끄고 디렉터리는 만든다 (main-007) (8454e4eb)
-- fix(gate): 절단이 트레이스백 결론을 자르지 않게 — 범인이 지목됐다 (main-004 관찰 4차 후속) (ffe4bc77)
-- fix(gate): mypy 게이트에 --show-traceback — 4차까지 증거가 없던 이유 (main-004 관찰 4차) (579e2f17)
-- fix(bootstrap): daily backlog 를 정본 작성기로 조립한다 — 사본을 없앴다 (main-003) (6a2c94ad)
-- fix(tests): watch_transient flake — 이벤트 1건은 완결본을 뜻하지 않는다 (main-001) (900c9455)
-- ... (145 more)
+- ... (150 more)
+
+## [1.10.0] - 2026-09-22
+
+### Changed
+
+- release(v1.10.0): 발행 준비 — 게이트가 무엇을 재고 있었는지 다섯 번 뒤집은 사이클 (1a8e5c8b)
 
 ## [1.9.4] - 2026-09-07
 
 ### Changed
 
+- release(v1.9.4): 발행 완료 — 태그 push + GitHub Release(asset 4종) + 이 호스트 채널 재적용 (0facde38)
 - release(v1.9.4): 발행 준비 — 매 세션 보고되던 지표가 사실 고장 나 있었다 (51ab7cb2)
 
 ## [1.9.3] - 2026-09-07
@@ -275,6 +282,7 @@ All notable changes to this project will be documented in this file.
 - docs(v1.0.0): dashboard snapshot + CHANGELOG 재생성 + 검증 수치 실측 정합 (17c3cb63)
 - docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b97)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9d)
+- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (01838d0b)
 - docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (6e24b81d)
 
 ## [0.15.21] - 2026-07-21

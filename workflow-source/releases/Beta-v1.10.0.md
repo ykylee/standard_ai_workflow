@@ -151,3 +151,20 @@ backlog-update` 의 필수 인자)이 소비자의 매 세션 출력과 호출�
   `workflow-source/core/test_impact_tiering_spec.md` §7 (`ENFORCES` · 요구 선언) ·
   `workflow_kit/common/interpreter_matrix.py` (해석기 registry) ·
   `workflow_kit/common/check_warnings.py` (경고 게이트)
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-22T02:30:34Z)_
+
+- total wiki pages: **95**
+- total memory entries: **15**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

@@ -48,6 +48,7 @@ UTC 로 재는 이유: 스탬프를 쓰는 `cmd_doc_headers_update` 의 `_today_
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -97,29 +98,117 @@ def last_content_change_date(
     rc, dirty = _git(["status", "--porcelain", "--", rel], repo_root=repo_root)
     if rc != 0:
         return None, f"git status 실패 (rc={rc}) — git 저장소 안에서 돌려야 한다", 0
-    if dirty:
+    if dirty and not _worktree_change_is_stamp_only(rel, repo_root=repo_root):
         return (
             _today_utc(),
             f"워킹 트리에 미커밋 변경이 있다 ({dirty.split(chr(10))[0]})",
             0,
         )
+    # 미커밋 변경이 **스탬프 줄뿐** 이면 내용은 그대로다 — 아래 이력 판정으로 간다.
+    # 이 분기가 없으면 스탬프를 고치는 행위 자체가 '오늘 내용을 고쳤다' 로 읽혀,
+    # 교정이 곧 위반이 되는 자가당착이 된다 (2026-09-22 소급 교정에서 실측:
+    # `check_document_index` 가 정확히 그 이유로 red 였다).
 
     # `%cd` + `--date=format:` 은 커밋의 로컬 타임존을 쓴다. `-local` 접미사를 붙이면
     # 실행 환경의 TZ 를 쓰고, TZ=UTC 를 주면 UTC 로 고정된다.
     rc, out = _git(
-        ["log", "-1", "--date=format-local:%Y-%m-%d", "--format=%cd %h", "--", rel],
+        ["log", f"-{_HISTORY_SCAN_LIMIT}", "--date=format-local:%Y-%m-%d",
+         "--format=%cd %h %H", "--", rel],
         repo_root=repo_root,
     )
     if rc != 0:
         return None, f"git log 실패 (rc={rc})", 0
     if not out:
         return None, f"git 이 `{rel}` 의 커밋 이력을 모른다 (미추적 파일인가)", 0
-    commit_date, _, sha = out.partition(" ")
+
+    skipped = 0
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            continue
+        commit_date, short_sha, full_sha = parts[0], parts[1], parts[2]
+        if _commit_is_stamp_only(full_sha, rel, repo_root=repo_root):
+            skipped += 1
+            continue
+        note = f"마지막 내용 변경 {short_sha} ({commit_date}, UTC)"
+        if skipped:
+            note += f" — 스탬프만 바꾼 커밋 {skipped}개 건너뜀"
+        return commit_date, note, GRACE_DAYS
+
+    # 훑은 범위가 전부 스탬프 전용이었다. 더 파고들지 않고 **가장 오래된 것**을
+    # 쓴다 — 여기서 '마지막 커밋' 으로 되돌리면 이 함수가 다시 이름과 어긋난다.
+    last = out.splitlines()[-1].split()
     return (
-        commit_date,
-        f"마지막 커밋 {sha or '?'} ({commit_date}, UTC)",
+        last[0],
+        f"최근 {_HISTORY_SCAN_LIMIT}개 커밋이 전부 스탬프 전용이라 "
+        f"그 범위의 가장 오래된 것({last[1]})을 기준으로 삼았다",
         GRACE_DAYS,
     )
+
+
+#: 스탬프 전용 커밋을 건너뛰며 되짚을 최대 깊이.
+#:
+#: 실측 (2026-09-22, 스탬프가 있는 git 추적 md **467개 전수**): 건너뛸 것이 없는
+#: 문서가 370개이고, 나머지의 깊이는 최대 **15** · 평균 2.2 다 (분포는 4·11·13·15
+#: 에 몰려 있는데 그것이 blanket bump 를 실은 발행들의 횟수다). 상한 20 을 소진한
+#: 문서는 **0건**. 넘어가면 판정을 조용히 바꾸지 않고 **그 사실을 근거 문장에 적는다.**
+_HISTORY_SCAN_LIMIT = 20
+
+
+def _worktree_change_is_stamp_only(rel: str, *, repo_root: Path) -> bool:
+    """미커밋 변경이 그 파일에서 **`- 최종 수정일:` 줄만** 바꿨는가.
+
+    커밋 쪽(`_commit_is_stamp_only`)과 같은 판정을 워킹 트리에 적용한다. 판정
+    불가는 **False** — 모르는 변경을 '스탬프 전용' 으로 접으면 유예 0 규율이
+    풀린다.
+    """
+    rc, out = _git(["diff", "--unified=0", "--", rel], repo_root=repo_root)
+    if rc != 0:
+        return False
+    changed = [
+        line
+        for line in out.splitlines()
+        if (line.startswith("+") or line.startswith("-"))
+        and not line.startswith("+++")
+        and not line.startswith("---")
+    ]
+    if not changed:
+        return False  # 추적 안 된 새 파일 등 — diff 로는 아무것도 못 본다
+    return all(_STAMP_LINE_RE.search(line[1:]) for line in changed)
+
+
+def _commit_is_stamp_only(sha: str, rel: str, *, repo_root: Path) -> bool:
+    """이 커밋이 그 파일에서 **`- 최종 수정일:` 줄만** 바꿨는가.
+
+    TASK-2026-09-22-main-004. 이 구분이 없으면 이 함수는 이름과 docstring 이
+    말하는 '마지막 **내용** 변경' 이 아니라 '마지막 커밋' 을 재게 된다. 실제로
+    그랬다 — 릴리스의 `doc-headers-update` 가 스탬프만 바꾼 커밋을 만들고,
+    그것이 기준선을 앞으로 밀어 **스탬프가 내용보다 최대 126일 앞선 문서 97개**
+    가 판정을 통과하고 있었다 (2026-09-22 실측, `v1.9.2` 의 144파일 bump 등).
+
+    판정 불가(diff 를 못 읽는다)는 **False** 로 떨어뜨린다 — 모르는 커밋을
+    '스탬프 전용' 으로 접으면 기준선이 근거 없이 과거로 내려간다.
+    """
+    rc, out = _git(
+        ["show", "--format=", "--unified=0", sha, "--", rel], repo_root=repo_root
+    )
+    if rc != 0:
+        return False
+    changed = [
+        line
+        for line in out.splitlines()
+        if (line.startswith("+") or line.startswith("-"))
+        and not line.startswith("+++")
+        and not line.startswith("---")
+    ]
+    if not changed:
+        return False  # 이름만 바뀐 커밋 등 — 내용 변경도 스탬프 변경도 아니다
+    return all(_STAMP_LINE_RE.search(line[1:]) for line in changed)
+
+
+#: 변경된 줄이 스탬프 줄인지. `release_pipeline.DOC_HEADER_DATE_RE` 와 같은 모양을
+#: 보지만 이쪽은 **diff 한 줄**을 받으므로 앵커가 다르다.
+_STAMP_LINE_RE = re.compile(r"^\s*-\s*최종\s*수정일:\s*\d{4}-\d{2}-\d{2}\s*$")
 
 
 def _minus_days(iso: str, days: int) -> str:

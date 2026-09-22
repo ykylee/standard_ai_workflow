@@ -47,6 +47,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-22-main-004 스탬프 판정이 자기 이름과 어긋난다 — '마지막 내용 변경' 이 실은 '마지막 커밋' 이고, 그래서 소급 교정이 성립하지 않는다
 - TASK-2026-09-22-main-002 doc-headers-update --apply 가 내용이 안 바뀐 문서 100개의 스탬프를 올린다 — 거짓 '오늘 수정됨'
 - TASK-2026-09-22-main-003 runtime_load 의 mtime 폴백이 병합 복사 채널에서 낡은 설치 시각을 낸다 — 낡은 호스트를 최신으로 오판한다
 - TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다
@@ -56,7 +57,6 @@
 - TASK-2026-09-21-main-006 검사를 CI 인터프리터로도 돌리는 축이 없다 — 로컬 3.13 / CI smoke 3.11 이라 검사 자신의 판정이 갈린다
 - TASK-2026-09-21-main-005 최소 Python 문법 호환을 재는 축이 없다 — 로컬 3.13 / 선언 하한 3.10 이라 CI 에서만 터지는 문법을 쓸 수 있다
 - TASK-2026-09-21-main-004 smoke 수가 8곳에 손으로 복제돼 있고 게이트는 2곳만 덮는다 — 나머지는 162/52 로 갈라졌다
-- TASK-2026-09-21-main-003 검사가 강제하는 요구를 선언한다 — 산문 §인용 671건 중 661건은 기계가 어느 문서인지도 모른다 (OpenSpec concept 흡수)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

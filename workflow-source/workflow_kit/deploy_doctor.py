@@ -1702,6 +1702,46 @@ def _declared_install_epoch(home: Path) -> tuple[float | None, str | None]:
     return max(stamps), None
 
 
+def _tree_newest_mtime(root: Path) -> tuple[float | None, int]:
+    """설치 사본 **트리 전체**에서 가장 최근 mtime 과 훑은 항목 수.
+
+    TASK-2026-09-22-main-003. 이전에는 `root.stat().st_mtime` 하나였는데, 그러면
+    **병합 복사로 갱신되는 채널에서 낡은 값을 낸다.**
+
+    2026-09-22 실측 (v1.10.0 채널 재적용): antigravity 의 `agy plugin install` 은
+    디렉터리를 갈아엎지 않는 병합 복사라(§7.0.2 표에 그렇게 적혀 있다) 최상위
+    디렉터리 mtime 이 안 움직인다. 재설치 직후 내부 파일은 `09-22 03:01` 인데
+    디렉터리는 `09-18 00:16` 그대로였고, 이 절은 그 값을 설치 시각으로 보고했다.
+    결과: **09-18~09-22 사이에 시작한 호스트를 '최신' 으로 센다** — 그 프로세스는
+    09-22 내용을 본 적이 없는데도 그렇다. codex·grok-build 는 디렉터리를 새로
+    만들어 갱신됐으므로, 판정이 **채널의 설치 방식에 따라 조용히 갈렸다.**
+
+    트리 최댓값도 여전히 폴백이다 — 선언 기록(`installed_plugins.json`)이 있는
+    채널과 근거가 다르므로 호출자가 출처를 결과에 남긴다.
+    """
+    newest: float | None = None
+    scanned = 0
+    try:
+        stack = [root]
+        while stack:
+            current = stack.pop()
+            try:
+                stat = current.stat()
+            except OSError:
+                continue
+            scanned += 1
+            if newest is None or stat.st_mtime > newest:
+                newest = stat.st_mtime
+            if current.is_dir():
+                try:
+                    stack.extend(current.iterdir())
+                except OSError:
+                    continue
+    except OSError:
+        return None, scanned
+    return newest, scanned
+
+
 def _install_epoch(harness: str, root: Path, home: Path) -> tuple[float | None, str]:
     """설치 시각과 **그 값을 어디서 읽었는지**.
 
@@ -1712,10 +1752,13 @@ def _install_epoch(harness: str, root: Path, home: Path) -> tuple[float | None, 
         declared, _why = _declared_install_epoch(home)
         if declared is not None:
             return declared, "installed_plugins.json"
-    try:
-        return root.stat().st_mtime, "설치 사본 mtime (선언 기록이 없는 채널의 폴백)"
-    except OSError as exc:
-        return None, f"읽지 못했다: {type(exc).__name__}"
+    newest, scanned = _tree_newest_mtime(root)
+    if newest is None:
+        return None, "설치 사본을 읽지 못했다"
+    return newest, (
+        f"설치 사본 **트리**의 최신 mtime ({scanned}개 훑음 — "
+        "선언 기록이 없는 채널의 폴백)"
+    )
 
 
 def _probe_runtime_load(

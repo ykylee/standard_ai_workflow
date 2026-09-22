@@ -725,6 +725,76 @@ _INSTALL_ISO = "2026-08-18T00:57:53.300Z"
 _INSTALL_EPOCH = datetime.fromisoformat(_INSTALL_ISO.replace("Z", "+00:00")).timestamp()
 
 
+def test_runtime_load_merge_copy_uses_tree_mtime() -> None:
+    """**병합 복사 채널에서 낡은 호스트를 최신으로 세지 않는다** (main-003).
+
+    2026-09-22 실측 (v1.10.0 채널 재적용): antigravity 의 `agy plugin install` 은
+    디렉터리를 갈아엎지 않는 병합 복사라 **최상위 디렉터리 mtime 이 안 움직인다.**
+    재설치 직후 내부 파일은 `09-22 03:01` 인데 디렉터리는 `09-18 00:16` 그대로였다.
+    폴백이 디렉터리 mtime 하나였을 때 이 절은 그 값을 설치 시각으로 보고했고,
+    **그 사이에 시작한 호스트를 '최신' 으로 셌다** — 그 프로세스는 새 내용을 본
+    적이 없는데도 그렇다.
+
+    되주입하는 상황이 정확히 그 배치다: 디렉터리는 낡고 내부 파일만 새로우며,
+    호스트는 그 둘 사이에 시작했다. 트리 최댓값을 보면 **낡음**이고, 디렉터리
+    하나만 보면 **최신**이다 — 두 답이 갈리므로 판정이 살아 있는지 잰다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-merge-copy-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        root = home / ".gemini" / "config" / "plugins" / "standard-ai-workflow"
+        (root / "skills").mkdir(parents=True, exist_ok=True)
+        fresh = root / "skills" / "SKILL.md"
+        _write(fresh, "# merged in place\n")
+
+        stale = _INSTALL_EPOCH - 4 * 86400      # 디렉터리가 가리키는 (낡은) 시각
+        install = _INSTALL_EPOCH                # 내부 파일이 가리키는 실제 갱신 시각
+        os.utime(fresh, (install, install))
+        # 디렉터리 mtime 은 **나중에** 되돌린다 — 파일을 쓰면 부모가 딸려 올라간다.
+        for directory in (root / "skills", root):
+            os.utime(directory, (stale, stale))
+
+        now = install + 3600
+        report = probe(
+            project_root=Path(tmpdir) / "project",
+            home=home,
+            now=now,
+            # 디렉터리 시각 뒤 · 실제 갱신 앞에 시작한 호스트. 디렉터리만 보면
+            # '최신', 트리를 보면 '낡음' — 되주입이 갈리는 지점이다.
+            processes=[{"pid": 7777, "command": "agy",
+                        "elapsed_sec": now - (stale + 3600)}],
+        )
+
+    runtime = report.get("runtime_load") or {}
+    channels = [c for c in (runtime.get("channels") or [])
+                if c.get("harness") == "antigravity"]
+    problems = []
+    if not channels:
+        problems.append("antigravity 채널을 못 찾았다 — fixture 배치가 틀렸다")
+    else:
+        source = channels[0].get("install_time_source") or ""
+        if "트리" not in source:
+            problems.append(f"트리에서 읽었다고 말하지 않는다: {source!r}")
+        # 키 이름은 `installed_at`(ISO 문자열)이다. 처음엔 `install_time_epoch`
+        # 로 적었는데 그런 키가 없어 **이 단언이 발화할 수 없었다** — 되주입에서
+        # 이 줄이 한 번도 안 터지는 것을 보고 잡았다. 없는 키는 `.get()` 이
+        # None 을 주고 가드가 통째로 건너뛴다.
+        reported = channels[0].get("installed_at")
+        if not reported:
+            problems.append("설치 시각을 아예 안 적었다 — 폴백을 말없이 건너뛰었다")
+        else:
+            epoch = datetime.fromisoformat(str(reported)).timestamp()
+            if abs(epoch - install) > 2:
+                problems.append(
+                    f"설치 시각이 내부 파일이 아니라 디렉터리를 따른다: "
+                    f"{reported} (기대 {datetime.fromtimestamp(install).astimezone().isoformat()})"
+                )
+    if "antigravity" not in (runtime.get("stale") or []):
+        problems.append(
+            f"디렉터리 mtime 을 믿어 낡은 호스트를 최신으로 셌다: stale={runtime.get('stale')!r}"
+        )
+    _record("test_runtime_load_merge_copy_uses_tree_mtime", not problems, "; ".join(problems))
+
+
 def test_runtime_load_flags_host_older_than_install() -> None:
     """**세션이 아니라 프로세스를 잰다** (2026-08-20 실측, main-009).
 
@@ -1506,6 +1576,7 @@ def main() -> int:
         test_preflight_bootstrap_channel_resolves_platform_launcher,
         test_preflight_writes_nothing,
         test_runtime_load_flags_host_older_than_install,
+        test_runtime_load_merge_copy_uses_tree_mtime,
         test_runtime_load_clears_host_started_after_install,
         test_runtime_load_parses_etime_not_lstart,
         test_content_drift_reads_which_copy_is_installed,

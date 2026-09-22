@@ -36,7 +36,8 @@
     ],
     "planned_items": [
       "TASK-2026-09-07-main-009",
-      "TASK-2026-09-22-main-001"
+      "TASK-2026-09-22-main-001",
+      "TASK-2026-09-22-main-002"
     ],
     "recent_done_items": [
       "TASK-2026-09-21-main-009 — 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다",
@@ -55,7 +56,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-22.md",
-    "task_count": 1,
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": []

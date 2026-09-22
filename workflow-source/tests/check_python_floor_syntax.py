@@ -57,6 +57,7 @@ _PEP701_SAMPLE = 'x = f"{"a" if b else "c"}"'
 #: `feature_version` 자체가 고장난 것이므로 그것도 구분해서 잡는다.
 _TYPE_ALIAS_SAMPLE = "type X = int"
 
+_MODE: list[str] = []
 _failures: list[str] = []
 _passes: list[str] = []
 
@@ -107,6 +108,14 @@ def case_2_real_interpreter_compiled_everything() -> None:
     맞았다' 와 '아예 못 봤다' 를 같은 모양으로 만든다.
     """
     result = probe(COMPILE_ROOT, PYPROJECT)
+    # 어느 경로를 탔는지 **요약 줄에 싣는다** (TASK-2026-09-22-main-007).
+    # 판정은 양쪽 다 PASS 라, 이것이 없으면 CI 가 전수로 올라갔는지 green 만
+    # 보고는 알 수 없다 — 러너는 `--json` 으로 돌아 검사 stdout 이 job 로그에
+    # 남지 않고 `last_line` 만 아티팩트에 실린다.
+    _MODE.append(
+        f"전수({result.interpreter_version}, {result.compiled}개)"
+        if result.measured else "부분(feature_version — PEP 701 못 봄)"
+    )
     if result.measured:
         ok = not result.failures and result.compiled > 100
         detail = (
@@ -346,7 +355,8 @@ def main() -> int:
                case_6_ci_installs_the_floor_interpreter):
         fn()
     total = len(_passes) + len(_failures)
-    print(f"\n{len(_passes)}/{total} passed")
+    mode = f" · 하한 측정 {_MODE[0]}" if _MODE else ""
+    print(f"\n{len(_passes)}/{total} passed{mode}")
     if _failures:
         for f in _failures:
             print(f"  ✗ {f}")

@@ -47,8 +47,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
-- TASK-2026-09-22-main-008 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)
 - TASK-2026-09-22-main-007 CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복
+- TASK-2026-09-22-main-008 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)
 - TASK-2026-09-22-main-006 뒤처진 스탬프 소급 교정 — doc-headers-update 범위를 손 목록에서 파생으로
 - TASK-2026-09-22-main-005 CI smoke red — check_release_pipeline_version_flag 의 dist TOCTOU 경합, main-004 가 창을 9초로 벌렸다
 - TASK-2026-09-22-main-004 스탬프 판정이 자기 이름과 어긋난다 — '마지막 내용 변경' 이 실은 '마지막 커밋' 이고, 그래서 소급 교정이 성립하지 않는다

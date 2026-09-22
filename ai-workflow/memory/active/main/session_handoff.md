@@ -39,7 +39,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-22-main-005 CI smoke red — check_release_pipeline_version_flag 의 dist TOCTOU 경합, main-004 가 창을 9초로 벌렸다
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

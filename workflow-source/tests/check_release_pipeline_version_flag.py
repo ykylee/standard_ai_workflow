@@ -137,23 +137,36 @@ def test_version_default_pyproject() -> None:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     current = mod.read_version()
-    dist_dir = SOURCE_ROOT / "dist"
-    has_dist = dist_dir.is_dir() and any(dist_dir.glob(f"*{current}*"))
 
     proc = subprocess.run(
         [sys.executable, str(TOOL), "release", "--skip-validate", "--dry-run", "--json"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=120,
     )
     out = json.loads(proc.stdout)
     assert out["version_source"] == "pyproject.toml", \
         f"expected pyproject.toml, got {out.get('version_source')}"
-    if has_dist:
-        # default version 은 pyproject 의 current (HEAD 정합, release 마다 갱신)
+
+    # **기대 분기를 공유 상태로 고르지 않는다** (TASK-2026-09-22-main-005).
+    #
+    # 예전에는 subprocess 실행 **전에** `dist/` 존재를 재서 분기를 골랐다. 그런데
+    # 병렬로 도는 다른 검사(`check_release_pipeline_phase3` · `_lib` ·
+    # `wrapper_args`)가 그 사이에 `dist/` 를 만들면 고른 분기가 틀어진다 — 전형적인
+    # TOCTOU 다. 2026-09-22 실측: `release --dry-run` 이 9.6s 로 늘자 그 창이
+    # 벌어져 CI smoke 가 2연속 red 였고, **셀은 매번 달랐다**(경합의 지문).
+    # `a9c408b8`(2026-08-11)이 같은 자리에서 '우연 의존' 만 걷고 TOCTOU 는 남겼다.
+    #
+    # 이제 페이로드 **자신** 으로 판정한다. 두 상태 모두 정당하고, 어느 쪽이든
+    # 말해야 하는 것은 같다 — **현재 버전**. 그래서 분기를 고를 필요가 없다.
+    if out.get("error"):
+        assert current in out["error"], \
+            f"dist 부재 경로인데 error 가 현재 버전을 안 말한다: {out['error']!r}"
+    elif out.get("tag") is not None:
         assert out["tag"] == f"v{current}", f"expected v{current}, got {out.get('tag')}"
     else:
-        # dist 부재 → error return (no dist files). version 만 검증.
-        assert current in out.get("error", ""), \
-            f"expected {current} in error, got {out.get('error')}"
+        raise AssertionError(
+            "dry-run 이 error 도 tag 도 내지 않았다 — 어느 경로를 탔는지 알 수 없다. "
+            f"keys={sorted(out)}"
+        )
 
 
 # --- 메인 실행 ---

@@ -27,12 +27,10 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**84차 세션 (2026-09-22, plex 호스트/linux) — v1.10.0 발행 + 이 호스트 채널 재적용. 발행 절차 자체에서 결함 2건을 새로 실측했다 (task 3건 open: main-001 · -002 · -003).** **① v1.10.0 발행 (minor).** 등급은 도구 파생(breaking 0 / feat 6 / fix 5 / other 17, total 28)과 §1.5 수동 판정이 일치했고, 소비자 산출물 호환은 **실측**했다 — `graph_insights` 출력 키를 v1.9.4 와 diff 해 **제거 0 / 추가 3**(`coverage_mode_undeclared` · `covered_goals` · `total_goals`). 태그 `v1.10.0` → `1a8e5c8b`, asset 4종 전부 uploaded (whl 941733 · tar.gz 812712 · claude-code ZIP 16768 · codex ZIP 15363). **② wheel 격리 실측이 확인 지점이다** — 발행된 wheel 을 내려받아 `PYTHONPATH` 없는 새 venv 에 깔고 **모듈 경로가 `site-packages` 임을 assert** 했다(저장소 소스를 읽고 통과하는 착각 차단). `__version__` 1.10.0 · 신규 심볼 7종 · `GATE_INTERPRETERS` 탑재 · `sweep_compile` 에 invalid escape 를 물려 **동작까지** 확인(존재 확인에 그치지 않았다). 발행 후 전량 290/290 ×2 green — v1.0.0 때의 auto-bump 오염 없음. **③ 발행 절차가 거짓 문서 스탬프를 만든다 (`main-002`).** `doc-headers-update --apply` 가 변경 파일을 39 → 139 로 불렸는데, 늘어난 **100개는 내용이 한 줄도 안 바뀐 문서의 `최종 수정일` 만** 오늘로 올린 것이다. 되돌리고 커밋했더니 **`release --apply` 의 post-step 이 똑같은 100건을 다시 넣었다** — 커밋 전 되돌림으로는 못 막는다. 두 번 다 되돌린 뒤 `doc_stamp_rule` 6/6 · `drift_prevention` 7/7 · `release_md` 7/7 · `code_index` 5/5 · `changelog_gen` 7/7 · `smoke_count_claims` 3/3 green 이라 **어떤 검사도 요구하지 않는 bump** 다. `INSTALLATION_AND_USAGE` 569·580 줄은 '2026-09-07 실측' 이라는 과거 사실이라 일부러 두었다. **④ 채널 재적용 — 4종 전부 `v1.10.0 [in-sync]`.** codex 는 마켓플레이스가 **버전 경로에 고정**이라 ZIP 을 새 경로에 풀고 `marketplace remove → add → plugin add`(캐시에 1.10.0 하나만 남는다) · grok-build 는 `uninstall <이름> → install ./plugin --trust`(id `plugin-ea25f5a7` 가 아니라 **이름**을 준다) · antigravity 는 재설치가 곧 갱신 · claude-code 는 `directory` 소스라 저장소 워킹 트리를 읽어 **이미 in-sync**(재설치 불필요). doctor 발견 **7건 → 4건**, 남은 4건은 전부 결함이 아니라 상태다(pi 부재 · CLAUDE.md 포크 · 양쪽 설치 · directory 소스). **⑤ 그 재적용이 탐침 결함을 드러냈다 (`main-003`).** antigravity 는 병합 복사라 최상위 디렉터리 mtime 이 안 움직인다 — 내부 파일은 09-22 03:01 인데 디렉터리는 **09-18 00:16 그대로**였고 `runtime_load` 가 그 값을 설치 시각으로 보고했다. 그 사이에 뜬 호스트 프로세스를 **'최신' 으로 센다.** codex·grok-build 는 디렉터리를 새로 만들어 갱신됐다 — 즉 판정이 **채널의 설치 방식에 따라 조용히 틀린다.** **⑥ 내 측정 도구도 한 번 틀렸다**: diff 변경 줄을 셀 때 `^[+-][+-]` 로 파일 헤더를 걸렀는데 markdown 목록 줄(`- 최종 수정일`)이 diff 에서 `-- 최종 수정일` 이 되어 같이 걸러졌다 — 308줄을 **92줄로 오산**했고 `--stat` 과 안 맞는 것을 보고 잡았다. 헤더는 `--- a/` · `+++ b/` 로만 거른다. **⑦ 발행 전 게이트** 290/290 × 4셀, 발행 전후 CI 전부 success.",
+    "current_baseline": "**84차 세션 (2026-09-22, plex 호스트/linux) — v1.10.0 발행 + 이 호스트 채널 재적용. 발행 절차 자체에서 결함 2건을 새로 실측했다 (task 3건 open: main-001 · -002 · -003).** **① v1.10.0 발행 (minor).** 등급은 도구 파생(breaking 0 / feat 6 / fix 5 / other 17, total 28)과 §1.5 수동 판정이 일치했고, 소비자 산출물 호환은 **실측**했다 — `graph_insights` 출력 키를 v1.9.4 와 diff 해 **제거 0 / 추가 3**(`coverage_mode_undeclared` · `covered_goals` · `total_goals`). 태그 `v1.10.0` → `1a8e5c8b`, asset 4종 전부 uploaded (whl 941733 · tar.gz 812712 · claude-code ZIP 16768 · codex ZIP 15363). **② wheel 격리 실측이 확인 지점이다** — 발행된 wheel 을 내려받아 `PYTHONPATH` 없는 새 venv 에 깔고 **모듈 경로가 `site-packages` 임을 assert** 했다(저장소 소스를 읽고 통과하는 착각 차단). `__version__` 1.10.0 · 신규 심볼 7종 · `GATE_INTERPRETERS` 탑재 · `sweep_compile` 에 invalid escape 를 물려 **동작까지** 확인(존재 확인에 그치지 않았다). 발행 후 전량 290/290 ×2 green — v1.0.0 때의 auto-bump 오염 없음. **③ 발행 절차가 거짓 문서 스탬프를 만든다 (`main-002`).** `doc-headers-update --apply` 가 변경 파일을 39 → 139 로 불렸는데, 늘어난 **100개는 내용이 한 줄도 안 바뀐 문서의 `최종 수정일` 만** 오늘로 올린 것이다. 되돌리고 커밋했더니 **`release --apply` 의 post-step 이 똑같은 100건을 다시 넣었다** — 커밋 전 되돌림으로는 못 막는다. 두 번 다 되돌린 뒤 `doc_stamp_rule` 6/6 · `drift_prevention` 7/7 · `release_md` 7/7 · `code_index` 5/5 · `changelog_gen` 7/7 · `smoke_count_claims` 3/3 green 이라 **어떤 검사도 요구하지 않는 bump** 다. `INSTALLATION_AND_USAGE` 569·580 줄은 '2026-09-07 실측' 이라는 과거 사실이라 일부러 두었다. **④ 채널 재적용 — 4종 전부 `v1.10.0 [in-sync]`.** codex 는 마켓플레이스가 **버전 경로에 고정**이라 ZIP 을 새 경로에 풀고 `marketplace remove → add → plugin add`(캐시에 1.10.0 하나만 남는다) · grok-build 는 `uninstall <이름> → install ./plugin --trust`(id `plugin-ea25f5a7` 가 아니라 **이름**을 준다) · antigravity 는 재설치가 곧 갱신 · claude-code 는 `directory` 소스라 저장소 워킹 트리를 읽어 **이미 in-sync**(재설치 불필요). doctor 발견 **7건 → 4건**, 남은 4건은 전부 결함이 아니라 상태다(pi 부재 · CLAUDE.md 포크 · 양쪽 설치 · directory 소스). **⑤ 그 재적용이 탐침 결함을 드러냈다 (`main-003`).** antigravity 는 병합 복사라 최상위 디렉터리 mtime 이 안 움직인다 — 내부 파일은 09-22 03:01 인데 디렉터리는 **09-18 00:16 그대로**였고 `runtime_load` 가 그 값을 설치 시각으로 보고했다. 그 사이에 뜬 호스트 프로세스를 **'최신' 으로 센다.** codex·grok-build 는 디렉터리를 새로 만들어 갱신됐다 — 즉 판정이 **채널의 설치 방식에 따라 조용히 틀린다.** **⑥ 내 측정 도구도 한 번 틀렸다**: diff 변경 줄을 셀 때 `^[+-][+-]` 로 파일 헤더를 걸렀는데 markdown 목록 줄(`- 최종 수정일`)이 diff 에서 `-- 최종 수정일` 이 되어 같이 걸러졌다 — 308줄을 **92줄로 오산**했고 `--stat` 과 안 맞는 것을 보고 잡았다. 헤더는 `--- a/` · `+++ b/` 로만 거른다. **⑦ 발행 전 게이트** 290/290 × 4셀, 발행 전후 CI 전부 success. **⑧ `main-001` 을 같은 세션에 닫았다 — 로그부터 확보하니 원인이 권한이 아니었다.** `gh run view --log`/`--log-failed` 는 이 저장소에서 **빈 출력**이고 `gh api .../actions/jobs/<job_id>/logs` 는 정상이다(456줄). 실패 출력은 `unknown flag: --header` — `gh issue comment` 에 없는 플래그(그건 `gh api` 것)이고 **파일이 만들어진 이래(`841329ff`) 그대로**라 comment 경로는 한 번도 동작한 적이 없다. **등록 때의 '8회 중 7회' 는 틀린 요약이었다**: event 로 가르면 **schedule 14건 / success 0건**(2026-06-22~09-21)으로 주간 cron 은 3개월간 한 번도 성공한 적이 없고, success 2건은 둘 다 dispatch 이며 경로가 다르다 — 08-03 은 `#22` 가 없어 create 경로(그 실행이 `#22` 를 만들었다), 08-20 은 `dry_run=true` 라 게시 단계를 **통째로 skip** 했다(목적을 수행하지 않고 green). 즉 **옛 라벨 결함의 수리가 create 경로를 살려 `#22` 를 만들었고, 그것이 이후 전부를 깨진 comment 경로로 라우팅했다** — 한 결함의 수리가 다음 결함을 노출했는데 겉으로는 같은 red 였다. 수리는 마커를 버리지 않고 **본문 끝 HTML 주석**으로 옮겼다(소유자 선택). **실증은 종료 코드로 하지 않았다**: run 35685625923 에서 게시 단계가 *skipped 가 아니라* success 이고 `#22` 코멘트가 **0 → 1**(github-actions[bot], 477자, 마커 1건) — schedule 14연속 red 이후 **3개월 만의 첫 실제 게시**다.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다",
-    "in_progress_items": [
-      "TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다"
-    ],
+    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
+    "in_progress_items": [],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -42,6 +40,7 @@
       "TASK-2026-09-22-main-003"
     ],
     "recent_done_items": [
+      "TASK-2026-09-22-main-001 — consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다",
       "TASK-2026-09-21-main-009 — 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다",
       "TASK-2026-09-21-main-008 — 경고 게이트가 두 구멍으로 눈이 먼다 — 부모 프로세스 경고 미수집(kit 44/196) + 판정이 __pycache__ 에 달려 1차 red → 2차 green",
       "TASK-2026-09-21-main-007 — 해석기별로 갈리는 경고가 게이트 신호가 아니다 — SyntaxWarning 류는 exit 0 이라 4셀 전부 green 이었다",
@@ -50,8 +49,7 @@
       "TASK-2026-09-21-main-004 — smoke 수가 8곳에 손으로 복제돼 있고 게이트는 2곳만 덮는다 — 나머지는 162/52 로 갈라졌다",
       "TASK-2026-09-21-main-003 — 검사가 강제하는 요구를 선언한다 — 산문 §인용 671건 중 661건은 기계가 어느 문서인지도 모른다 (OpenSpec concept 흡수)",
       "TASK-2026-09-21-main-002 — check_wiki_trend 가 살아있는 저장소 점수에 rc==0 을 걸어 두었다 — lifecycle 0.42→0.00 으로 만성 red",
-      "TASK-2026-09-21-main-001 — graph_insights 판정식 재검토 — coverage 성분이 구조적으로 0 이고 classification 성분은 동음이의 잡음이다",
-      "TASK-2026-09-18-main-006 — doctor 의 content_drift 가 서빙되지 않는 사본을 재고 있다 — 마켓플레이스 소스 유형을 읽어야 한다"
+      "TASK-2026-09-21-main-001 — graph_insights 판정식 재검토 — coverage 성분이 구조적으로 0 이고 classification 성분은 동음이의 잡음이다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
@@ -59,11 +57,11 @@
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-22.md",
     "task_count": 3,
-    "in_progress_items": [
-      "TASK-2026-09-22-main-001 — consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다"
-    ],
+    "in_progress_items": [],
     "blocked_items": [],
-    "done_items": []
+    "done_items": [
+      "TASK-2026-09-22-main-001 — consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다"
+    ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",

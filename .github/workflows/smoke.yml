@@ -229,6 +229,16 @@ jobs:
           data = json.loads(pathlib.Path("smoke-result.json").read_text(encoding="utf-8"))
           failures = [r for r in data["results"] if r["exit_code"] != 0]
           aborted = data.get("aborted_reason", "")
+          # **요약은 종료 코드가 보는 축을 전부 실어야 한다** (main-008).
+          # 검사 실패만 싣던 동안, 저장소 write 감시가 red 를 내도 요약은
+          # "Smoke Passed" 를 찍고 exit 1 만 남았다 — 무엇이 깨졌는지 볼 수 없으면
+          # 아무도 고치지 않는다는 이 스크립트 자신의 교훈을 새 축이 반복했다.
+          repo_write = (data.get("repo_write") or {}).get("fatal") or []
+          if repo_write:
+              print("## 저장소 write 감시 실패\n")
+              for line in repo_write:
+                  print(f"- {line}")
+              print("\n범인을 좁히려면 위 `그때 돌던 검사` 들만 `--filter` 로 직렬 재실행한다.\n")
           if aborted:
               print("## Smoke ABORTED (resource guard)\n")
               print(f"- {aborted}")
@@ -250,7 +260,7 @@ jobs:
                   print(f"python3 {r['path']}")
               print("```\n")
               print("See tests/README.md for failure triage order.")
-          elif not aborted:
+          elif not aborted and not repo_write:
               print("## Smoke Passed\n")
               print(f"- All {data['total']} `check_*.py` scripts passed "
                     f"({data['total_passed_tests']} test cases).")

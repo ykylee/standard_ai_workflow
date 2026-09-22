@@ -24,6 +24,11 @@ env/
 
 # Build / distribution outputs
 dist/
+# `python -m build` 가 sdist 를 만들 때 소스 트리 안에 잠깐 만드는 디렉터리.
+# CI(fresh checkout)에서만 실제 빌드가 돌아 나타나므로 로컬에서는 안 보였고,
+# 러너의 저장소 write 감시가 전수로 켜지자 CI 에서 red 로 드러났다
+# (TASK-2026-09-22-main-008). 빌드 산출물이므로 추적 대상이 아니다.
+workflow-source/standard_ai_workflow-*/
 build/
 
 # Harness export outputs (scripts/export_harness_package.py)

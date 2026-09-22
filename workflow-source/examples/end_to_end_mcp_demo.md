@@ -4,7 +4,7 @@
 - 범위: `latest_backlog`, `check_doc_metadata`, `check_doc_links`, `create_backlog_entry`, `suggest_impacted_docs` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-05-04
 - 관련 문서: `./README.md`, `./acme_delivery_platform/work_backlog.md`, `./research_eval_hub/work_backlog.md`, `../mcp_servers/README.md`, `../mcp_servers/prototype_layout.md`
 
 ## 1. 목적

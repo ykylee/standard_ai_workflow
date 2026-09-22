@@ -4,7 +4,7 @@
 - 범위: 후보 선정, 사전 확인, 실행 순서, 산출물, 완료 판단 기준
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-07-18
 - 관련 문서: `../templates/pilot_candidate_checklist.md`, `../templates/pilot_adoption_record_template.md`, `./pilot_adoption_existing_repo_example.md`
 
 ## 1. 파일럿 목표

@@ -4,7 +4,7 @@
 - 범위: 디렉터리 규칙, 파일 최소 구성, 실제 구현으로 확장하는 방법
 - 대상 독자: skill 구현자, AI agent 설계자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-05-01
 - 관련 문서: `./README.md`, `../core/workflow_skill_catalog.md`, `../core/session_start_skill_spec.md`, `../core/backlog_update_skill_spec.md`, `../core/doc_sync_skill_spec.md`, `../core/merge_doc_reconcile_skill_spec.md`
 
 ## 1. 목적

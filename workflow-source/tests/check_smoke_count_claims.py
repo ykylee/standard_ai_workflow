@@ -132,7 +132,10 @@ def classify() -> tuple[list[tuple[Path, int]], list[tuple[Path, int]]]:
         claims = [int(m.group("n")) for m in CLAIM_RE.finditer(text)]
         if not claims:
             continue
-        is_live = LIVE_MARKER_RE.search(text) is not None and not is_record_layer(path)
+        # 동결 판정 정본은 `common.doc_layers` 다 (TASK-2026-09-22-main-006).
+        # 사본을 두면 숫자 주장과 스탬프가 서로 다른 '동결' 을 쓰게 된다.
+        from workflow_kit.common.doc_layers import is_frozen_claim_layer
+        is_live = not is_frozen_claim_layer(path, text, repo_root=REPO_ROOT)
         bucket = live if is_live else frozen
         bucket.extend((path, n) for n in claims)
     return live, frozen

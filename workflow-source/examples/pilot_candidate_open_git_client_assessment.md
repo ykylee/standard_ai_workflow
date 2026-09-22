@@ -4,7 +4,7 @@
 - 범위: 후보 적합성, 강점, 리스크, 바로 다음 실행 액션
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../templates/pilot_candidate_checklist.md`, `./pilot_candidate_existing_service_repo_example.md`, `./pilot_execution_plan_existing_repo.md`
 
 ## 1. 기본 정보

@@ -4,7 +4,7 @@
 - 범위: wheel 의 protocolVersion 노출 확인 등 사용자 환경에서 실행할 진단 단계
 - 대상 독자: MCP 를 설정하는 사용자, maintainer
 - 상태: draft (진단 노트)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`../workflow-source/core/mcp_installation_by_harness.md`](../workflow-source/core/mcp_installation_by_harness.md)
 
 OpenCode 가 `standardAiWorkflowReadOnly` MCP server 를 호출할 때 4 of 5 가 fail 하면, 다음을 순서대로 실행해 주세요.

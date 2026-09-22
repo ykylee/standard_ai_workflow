@@ -4,7 +4,7 @@
 - 범위: 사전 점검, 파일 복사, 첫 세션 시작, 트러블슈팅
 - 대상 독자: 표준 AI 워크플로우를 Pi Coding Agent로 처음 도입하는 개발자
 - 상태: prototype
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-12
 - 관련 문서: `./README.md`, `./AGENTS.md`, `../../core/workflow_adoption_entrypoints.md`
 
 ## 1. 사전 점검

@@ -4,7 +4,7 @@
 - 범위: opt-in question 1종 + 응답 옵션(Y/N/P) + 적용 범위 안내
 - 대상 독자: workflow 사용자, AI agent
 - 상태: stable (v0.7.0 도입, v0.7.0 step 7 SCHEMA 형식으로 정합)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`./security-baseline.md`](./security-baseline.md), [`./SCHEMA.md`](./SCHEMA.md) (extension system SSOT)
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.opt-in.md` (20 line, commit `b19c819`) — 우리 적응: P) Partial 옵션 추가 (SCHEMA §3.2 형식)
 

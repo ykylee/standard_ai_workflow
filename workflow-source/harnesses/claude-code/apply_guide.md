@@ -4,7 +4,7 @@
 - 범위: bootstrap 실행, Claude Code 설정 연결, project-local 진입점 검토, 첫 세션 시작 방법
 - 대상 독자: Claude Code 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: beta (v0.10.2 정정)
-- 최종 수정일: 2026-06-24
+- 최종 수정일: 2026-08-12
 - 관련 문서: [`../../core/workflow_adoption_entrypoints.md`](../../core/workflow_adoption_entrypoints.md), [`../../core/workflow_configuration_layers.md`](../../core/workflow_configuration_layers.md), [`../../core/workflow_global_injection_policy.md`](../../core/workflow_global_injection_policy.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py)
 
 ## ⚠️ v0.10.2 정정 사항

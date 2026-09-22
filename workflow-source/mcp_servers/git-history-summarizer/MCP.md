@@ -4,7 +4,7 @@
 - 범위: 최근 커밋 로그 파싱, 작업 카테고리 분류, MD 형식의 요약 생성
 - 대상 독자: AI 에이전트, 개발자
 - 상태: prototype
-- 최종 수정일: 2026-04-27
+- 최종 수정일: 2026-07-16
 - 관련 문서: `../../ai-workflow/memory/active/sessions`, `../../core/workflow_mcp_candidate_catalog.md`
 
 ## 1. 개요

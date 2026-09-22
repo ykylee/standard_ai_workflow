@@ -4,7 +4,7 @@
 - 범위: 문제 정의, 핵심 가치, 구성 요소, 작업 사이클, 도입 효과
 - 대상 독자: 개발팀 전원, 프로젝트 관리자
 - 상태: stable
-- 최종 수정일: 2026-04-28
+- 최종 수정일: 2026-08-29
 - 관련 문서: `../../README.md`, `../../core/global_workflow_standard.md`, `../../core/workflow_adoption_entrypoints.md`
 
 ---

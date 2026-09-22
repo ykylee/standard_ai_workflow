@@ -4,7 +4,7 @@
 - 범위: 진입 파일, `.minimax/agents/` 워커 오버레이, `MiniMax_config.example.json` 적용, bootstrap 재실행
 - 대상 독자: MiniMax Code 운영자, 멀티 에이전트 워크플로우 설계자
 - 상태: beta
-- 최종 수정일: 2026-06-05
+- 최종 수정일: 2026-07-22
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../core/workflow_agent_topology.md`
 
 ## 1. 진입 파일

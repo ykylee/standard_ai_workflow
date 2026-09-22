@@ -79,8 +79,31 @@ def _git(args: list[str], *, repo_root: Path) -> tuple[int, str]:
     return completed.returncode, completed.stdout.strip()
 
 
+def dirty_paths(repo_root: Path) -> frozenset[str] | None:
+    """워킹 트리에서 변경된 경로 전부 (repo-relative posix). 실패하면 ``None``.
+
+    TASK-2026-09-22-main-006. 문서마다 `git status -- <file>` 를 부르면 호출이
+    문서 수만큼 늘어난다 — 범위를 242개로 넓히자 그것이 `release --dry-run` 을
+    10s 예산 밖으로 밀어 남의 검사를 깨뜨렸다 (실측 8.0s 중 대부분).
+    **캐시가 아니라 호출자가 넘기는 명시 인자** 로 만든 이유: 한 프로세스가 트리를
+    바꿔 가며 여러 번 재는 경우(검사 fixture)에 캐시는 조용히 낡는다.
+    """
+    rc, out = _git(["status", "--porcelain"], repo_root=repo_root)
+    if rc != 0:
+        return None
+    changed: set[str] = set()
+    for line in out.splitlines():
+        entry = line[3:] if len(line) > 3 else ""
+        if " -> " in entry:            # rename: 새 경로를 본다
+            entry = entry.split(" -> ", 1)[1]
+        entry = entry.strip().strip('"')
+        if entry:
+            changed.add(entry)
+    return frozenset(changed)
+
+
 def last_content_change_date(
-    path: Path, *, repo_root: Path
+    path: Path, *, repo_root: Path, dirty: frozenset[str] | None = None
 ) -> tuple[str | None, str, int]:
     """``(YYYY-MM-DD | None, 근거 문장, 허용 유예일)`` — 마지막 내용 변경일 (UTC).
 
@@ -95,13 +118,19 @@ def last_content_change_date(
     """
     rel = path.relative_to(repo_root).as_posix()
 
-    rc, dirty = _git(["status", "--porcelain", "--", rel], repo_root=repo_root)
-    if rc != 0:
-        return None, f"git status 실패 (rc={rc}) — git 저장소 안에서 돌려야 한다", 0
-    if dirty and not _worktree_change_is_stamp_only(rel, repo_root=repo_root):
+    if dirty is None:
+        rc, listed = _git(["status", "--porcelain", "--", rel], repo_root=repo_root)
+        if rc != 0:
+            return None, f"git status 실패 (rc={rc}) — git 저장소 안에서 돌려야 한다", 0
+        is_dirty = bool(listed)
+        note = listed.split(chr(10))[0] if listed else ""
+    else:
+        is_dirty = rel in dirty
+        note = rel
+    if is_dirty and not _worktree_change_is_stamp_only(rel, repo_root=repo_root):
         return (
             _today_utc(),
-            f"워킹 트리에 미커밋 변경이 있다 ({dirty.split(chr(10))[0]})",
+            f"워킹 트리에 미커밋 변경이 있다 ({note})",
             0,
         )
     # 미커밋 변경이 **스탬프 줄뿐** 이면 내용은 그대로다 — 아래 이력 판정으로 간다.
@@ -233,10 +262,17 @@ def _minus_days(iso: str, days: int) -> str:
 
 
 def check_frontmatter_stamp(
-    path: Path, *, repo_root: Path, actual: str
+    path: Path, *, repo_root: Path, actual: str,
+    dirty: frozenset[str] | None = None,
 ) -> tuple[bool, str]:
-    """스탬프가 마지막 내용 변경일 (유예 포함) 이상인가. ``(ok, 설명)``."""
-    changed_at, reason, grace = last_content_change_date(path, repo_root=repo_root)
+    """스탬프가 마지막 내용 변경일 (유예 포함) 이상인가. ``(ok, 설명)``.
+
+    `dirty` 는 `dirty_paths()` 결과 — 여러 문서를 훑을 때 `git status` 를 한 번만
+    부르려고 호출자가 넘긴다. 생략하면 문서마다 따로 묻는다(느리지만 항상 최신).
+    """
+    changed_at, reason, grace = last_content_change_date(
+        path, repo_root=repo_root, dirty=dirty
+    )
     if changed_at is None:
         return False, f"기대 스탬프를 판정할 수 없다 — {reason}"
     try:

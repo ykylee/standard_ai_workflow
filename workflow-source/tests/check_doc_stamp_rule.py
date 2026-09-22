@@ -29,11 +29,20 @@
 
 from __future__ import annotations
 
-#: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
-WATCHES = (
-    # 스탬프 판정 정본 (TASK-2026-09-22-main-002 에서 kit 으로 승격).
-    "workflow-source/workflow_kit/common/doc_stamp.py",
-    "workflow-source/tests/_doc_stamp.py",
+#: case 10 이 저장소 전수(210건)의 git 이력을 훑는다 — 실측 ~7s.
+CHECK_TIMEOUT_S = 150
+
+#: 전역 선언 (spec `core/test_impact_tiering_spec.md` §2).
+#:
+#: case 1~9 는 임시 저장소로 판정을 고정하므로 표면이 좁다. 그런데 **case 10 이
+#: 저장소 전수를 훑는다** — meta-watch 실측(2026-09-22) 접근 1412건. 전수성이 곧
+#: 그 case 의 계약이라(릴리스 파이프라인이 워킹 트리 변경분만 보게 된 대신 전수
+#: 감시를 게이트가 한 번 맡는다) 좁힐 수 있는 표면이 아니다.
+WATCHES_ALL_REASON = (
+    "case 10 이 살아있는 문서 전수의 스탬프를 git 이력과 대조한다 — meta-watch "
+    "실측(2026-09-22) 접근 1412건. 판정 정본은 "
+    "`workflow_kit/common/doc_stamp.py` · 범위 정본은 "
+    "`release_pipeline._iter_doc_markdown_files` 다"
 )
 
 import os
@@ -44,6 +53,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+#: 저장소 루트 — case 10 이 실 저장소 전수를 훑는다.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 from _doc_stamp import check_frontmatter_stamp  # noqa: E402
 
@@ -231,6 +243,56 @@ def case_6_untracked_is_loud_failure() -> None:
         _expect("case_6_untracked_is_loud_failure", ok, False, detail)
 
 
+def case_10_repo_wide_stamps_are_current() -> None:
+    """**저장소 전수**: 살아있는 문서의 스탬프가 뒤처지지 않았다 (main-006).
+
+    이 case 가 없으면 전수 감시가 어디에도 없다. 릴리스 파이프라인의
+    `doc-headers-update` auto-step 은 **워킹 트리 변경분만** 본다 — 전수를 훑게
+    하면 `release --dry-run` 이 10s 예산 밖으로 나가고, 그 예산을 쓰는 검사가
+    여럿이라 남의 검사를 깨뜨린다 (2026-09-22 실측). 그래서 비용을 **게이트에
+    한 번** 으로 옮겼고, 그 한 번이 여기다.
+
+    범위와 동결 판정은 도구와 **같은 정본**을 읽는다 — 사본을 두면 도구가 고치는
+    집합과 게이트가 보는 집합이 갈린다.
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "release_pipeline",
+        REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py",
+    )
+    assert spec and spec.loader, "release_pipeline 을 못 읽었다"
+    rp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rp)
+
+    docs = rp._iter_doc_markdown_files("all")
+    assert len(docs) > 100, f"범위가 의심스럽다 ({len(docs)}건) — 전수가 아니면 이 case 는 무의미하다"
+
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+    from workflow_kit.common.doc_stamp import dirty_paths
+
+    dirty = dirty_paths(REPO_ROOT)
+    stale: list[str] = []
+    for doc in docs:
+        text = doc.read_text(encoding="utf-8")
+        match = rp.DOC_HEADER_DATE_RE.search(text)
+        if match is None:
+            continue
+        ok, why = check_frontmatter_stamp(
+            doc, repo_root=REPO_ROOT, actual=match.group(2), dirty=dirty
+        )
+        if not ok:
+            stale.append(f"{doc.relative_to(REPO_ROOT)}: {why}")
+    _expect(
+        "case_10_repo_wide_stamps_are_current",
+        not stale,
+        True,
+        f"살아있는 문서 {len(docs)}건 전부 정합"
+        if not stale
+        else f"{len(stale)}건 뒤처짐 — {'; '.join(stale[:3])}",
+    )
+
+
 def main() -> int:
     print("=== 문서 스탬프 판정 규칙 (_doc_stamp) ===")
     cases = (
@@ -243,6 +305,7 @@ def main() -> int:
         case_7_stamp_only_commit_is_not_a_content_change,
         case_8_stamp_only_worktree_change_keeps_history_baseline,
         case_9_dirty_content_still_demands_today,
+        case_10_repo_wide_stamps_are_current,
     )
     for fn in cases:
         try:

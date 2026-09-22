@@ -4,7 +4,7 @@
 - 범위: bootstrap 이 emit 한 설정 파일 확인 절차
 - 대상 독자: MCP 를 설정하는 사용자, maintainer
 - 상태: draft (진단 노트)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`./diagnose-mcp-fail.md`](./diagnose-mcp-fail.md), [`../workflow-source/core/mcp_installation_by_harness.md`](../workflow-source/core/mcp_installation_by_harness.md)
 
 ## Step 1: `mcp.opencode.json` (또는 사용자의 `opencode.json`) 의 최상위 key 확인

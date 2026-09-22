@@ -4,7 +4,7 @@
 - 범위: 6 rule (SEC-WF-01 ~ SEC-WF-06), opt-in pattern, audit log 통합, workflow_kit helper
 - 대상 독자: workflow 설계자, AI agent, 운영자, compliance 검토자
 - 상태: stable (v0.7.0 도입)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-25
 - 관련 문서: [`../core/stage_gate_pattern.md`](../core/stage_gate_pattern.md) (gate 정책), [`../core/audit_log_standard.md`](../core/audit_log_standard.md) (audit log 표준), [`../workflow_kit/common/contracts/stage_gate.py`](../workflow_kit/common/contracts/stage_gate.py) `require_explicit_approval`, [`../workflow_kit/common/contracts/question_format.py`](../workflow_kit/common/contracts/question_format.py) `validate_answers`
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md` (307 line, 2026-06-08 commit `b19c819`)
 

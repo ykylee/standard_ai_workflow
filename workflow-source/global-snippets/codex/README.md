@@ -4,7 +4,7 @@
 - 범위: additive MCP 예시, 주의점, 프로젝트 로컬 레이어와의 관계
 - 대상 독자: Codex 사용자, 저장소 관리자, 운영 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../../core/workflow_global_injection_policy.md`, `../../harnesses/codex/apply_guide.md`, `./config.toml.snippet`
 
 ## 권장 원칙

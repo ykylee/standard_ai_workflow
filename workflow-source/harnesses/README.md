@@ -4,7 +4,7 @@
 - 범위: Codex, OpenCode, MiniMax Code, Antigravity, Grok Build, Claude Code, Aider, Goose, Pi Coding Agent, CodeWhale 타겟별 파일 구성과 bootstrap 연결 방식, 공통 `AGENTS.md` 진입점, 추후 하네스 확장 포인트
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 하네스 통합 담당자
 - 상태: draft
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-08-29
 - 관련 문서: `../core/workflow_harness_distribution.md`, `../scripts/bootstrap_workflow_kit.py`, `../scripts/bootstrap_lib/harnesses/__init__.py`
 
 ## 현재 지원 타겟

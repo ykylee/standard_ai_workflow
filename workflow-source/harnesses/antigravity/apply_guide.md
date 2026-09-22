@@ -4,7 +4,7 @@
 - 범위: 사전 점검, overlay 파일 적용, 설정 적용, 로컬 MCP 설치, 트러블슈팅
 - 대상 독자: 표준 AI 워크플로우를 Antigravity 로 처음 도입하는 개발자
 - 상태: beta
-- 최종 수정일: 2026-06-05
+- 최종 수정일: 2026-08-29
 - 관련 문서: [`./README.md`](./README.md), [`./overlay_spec.md`](./overlay_spec.md), [`../../core/workflow_adoption_entrypoints.md`](../../core/workflow_adoption_entrypoints.md), [`../../core/mcp_installation_by_harness.md`](../../core/mcp_installation_by_harness.md)
 
 ## 1. 사전 점검

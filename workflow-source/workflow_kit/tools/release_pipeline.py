@@ -1640,6 +1640,83 @@ DOC_HEADER_DATE_RE = re.compile(
 )
 
 
+def _dirty_live_markdown() -> list[Path]:
+    """워킹 트리에서 변경된 `*.md` 중 동결이 아닌 것."""
+    repo_root = REPO_ROOT.parent
+    from workflow_kit.common.doc_layers import is_frozen_document
+    from workflow_kit.common.doc_stamp import dirty_paths
+
+    changed = dirty_paths(repo_root)
+    if changed is None:
+        return []
+    live: list[Path] = []
+    for rel in sorted(r for r in changed if r.endswith(".md")):
+        path = repo_root / rel
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if is_frozen_document(path, text, repo_root=repo_root):
+            continue
+        live.append(path)
+    return live
+
+
+def _tracked_live_markdown() -> list[Path]:
+    """git 이 추적하는 `*.md` 중 **동결이 아닌 것**. 정렬은 결정적이다."""
+    repo_root = REPO_ROOT.parent
+    try:
+        listed = subprocess.run(
+            ["git", "-C", str(repo_root), "ls-files", "*.md"],
+            capture_output=True, text=True, check=True,
+        ).stdout.splitlines()
+    except (OSError, subprocess.CalledProcessError):
+        # git 을 못 부르면 **넓히기 전 범위** 로 떨어진다 — 조용히 0 건이 되면
+        # 이 단계가 아무것도 안 하면서 성공으로 보고한다.
+        fallback: list[Path] = []
+        if README_PATH.exists():
+            fallback.append(README_PATH)
+        if CORE_DOCS_DIR.exists():
+            fallback.extend(sorted(CORE_DOCS_DIR.glob("*.md")))
+        if DOCS_DIR.exists():
+            fallback.extend(sorted(DOCS_DIR.rglob("*.md")))
+        return fallback
+
+    from workflow_kit.common.doc_layers import is_frozen_document
+
+    live: list[Path] = []
+    for rel in sorted(line for line in listed if line.strip()):
+        path = repo_root / rel
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if is_frozen_document(path, text, repo_root=repo_root):
+            continue
+        if _is_distributed_core_mirror(path):
+            continue
+        live.append(path)
+    return live
+
+
+
+def _is_distributed_core_mirror(path: Path) -> bool:
+    """`ai-workflow/core/` 의 **배포 사본**인가 (정본이 따로 있는 경우).
+
+    이 사본은 정본과 byte-identical 이어야 하고(`check_standard_single_source`),
+    그 동기는 `_sync_distributed_core_mirror` 가 맡는다. 여기서 스탬프를 따로
+    올리면 정본과 갈렸다가 동기에서 되돌려져 **매 실행마다 `updated` 에 잡히면서
+    영원히 수렴하지 않는다** (2026-09-22 실측: 12건이 계속 남았다). 파생물은
+    만드는 층 하나만 건드린다.
+    """
+    mirror_dir = REPO_ROOT.parent / "ai-workflow" / "core"
+    try:
+        path.resolve().relative_to(mirror_dir.resolve())
+    except ValueError:
+        return False
+    return (CORE_DOCS_DIR / path.name).exists()
+
+
 def _iter_doc_markdown_files(scope: str) -> list[Path]:
     """drift-prevention 대상 .md 파일들을 scope 별로 반환.
 
@@ -1650,12 +1727,35 @@ def _iter_doc_markdown_files(scope: str) -> list[Path]:
       - 'readme'      → README.md 만
     """
     out: list[Path] = []
-    if scope in ("all", "readme") and README_PATH.exists():
-        out.append(README_PATH)
-    if scope in ("all", "core") and CORE_DOCS_DIR.exists():
-        out.extend(sorted(CORE_DOCS_DIR.glob("*.md")))
-    if scope in ("all", "docs") and DOCS_DIR.exists():
-        out.extend(sorted(DOCS_DIR.rglob("*.md")))
+    if scope == "dirty":
+        # **릴리스 파이프라인의 auto-step 이 쓰는 범위** (TASK-2026-09-22-main-006).
+        #
+        # 그 단계가 하는 일은 "지금 이 릴리스에서 고친 문서의 스탬프를 오늘로" 다 —
+        # 필요한 입력은 워킹 트리의 변경분이다. 전수(242개)를 훑게 하면 문서마다
+        # git 이력을 물어 `release --dry-run` 이 **10s 예산 밖**으로 나가고, 그
+        # 예산을 쓰는 검사가 여럿이라 남의 검사를 깨뜨린다 (실측 8.0s, main-005 와
+        # 같은 모양). 전수 staleness 는 파이프라인이 아니라 **게이트**가 한 번 본다
+        # (`check_doc_stamp_rule` case 10).
+        return _dirty_live_markdown()
+    if scope == "all":
+        # **범위는 git 추적 전수 − 동결 문서다** (TASK-2026-09-22-main-006).
+        #
+        # 예전에는 `README + docs/** + core/*` 라는 **손 목록**이었다. 그래서 그
+        # 밖의 문서 199건은 스탬프를 아무도 관리하지 않았고, 실제 내용 변경보다
+        # 최대 **142일** 뒤처진 채 남아 있었다 (2026-09-22 전수 실측). 목록 밖은
+        # 조용히 갈라진다 — 이 저장소가 여러 번 고친 모양이다.
+        #
+        # 동결 판정은 `common.doc_layers` 정본을 쓴다 (기록 계층 · 헤더 부재 ·
+        # 발행된 노트 · 테스트 트리). 그것을 안 빼면 이 도구가 역사와 검사
+        # 입력을 고치게 된다.
+        out.extend(_tracked_live_markdown())
+    else:
+        if scope == "readme" and README_PATH.exists():
+            out.append(README_PATH)
+        if scope == "core" and CORE_DOCS_DIR.exists():
+            out.extend(sorted(CORE_DOCS_DIR.glob("*.md")))
+        if scope == "docs" and DOCS_DIR.exists():
+            out.extend(sorted(DOCS_DIR.rglob("*.md")))
     # de-dup
     seen: set[Path] = set()
     uniq: list[Path] = []
@@ -1718,7 +1818,9 @@ def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
     return synced
 
 
-def _stamp_needs_bump(path: Path, text: str, *, repo_root: Path) -> bool:
+def _stamp_needs_bump(
+    path: Path, text: str, *, repo_root: Path, dirty: object = None,
+) -> bool:
     """이 문서의 `- 최종 수정일:` 이 **뒤처져 있는가**.
 
     판정은 검사가 쓰는 것과 **같은 정본** 이다 (`common.doc_stamp`):
@@ -1738,7 +1840,7 @@ def _stamp_needs_bump(path: Path, text: str, *, repo_root: Path) -> bool:
         return True
     try:
         ok, _why = check_frontmatter_stamp(
-            path, repo_root=repo_root, actual=match.group(2)
+            path, repo_root=repo_root, actual=match.group(2), dirty=dirty,
         )
     except (OSError, ValueError):
         return True
@@ -1752,7 +1854,8 @@ def cmd_doc_headers_update(args) -> dict:
     수동으로 "최종 수정일" 을 갱신하던 부담을 자동화. dry-run 으로 plan 검증 가능.
 
     Args (Namespace):
-      scope    : 'all' (default) | 'docs' | 'core' | 'readme'
+      scope    : 'all' (default, git 추적 전수 − 동결) | 'dirty' (워킹 트리
+                 변경분만 — 릴리스 auto-step) | 'docs' | 'core' | 'readme'
       date     : YYYY-MM-DD override (default: UTC today)
       dry_run  : True 면 plan 만 출력, write 안 함.
 
@@ -1767,6 +1870,10 @@ def cmd_doc_headers_update(args) -> dict:
     skipped_current: list[str] = []
     scanned = 0
     repo_root = REPO_ROOT.parent
+    # `git status` 를 문서마다 부르지 않는다 — 한 번 받아 넘긴다 (main-006).
+    from workflow_kit.common.doc_stamp import dirty_paths
+
+    dirty = dirty_paths(repo_root)
     for path in files:
         scanned += 1
         try:
@@ -1784,7 +1891,7 @@ def cmd_doc_headers_update(args) -> dict:
         #
         # 판정은 검사와 **같은 정본**(`common.doc_stamp`)을 쓴다. 읽는 쪽만 알고
         # 쓰는 쪽이 모르던 규약이라 이 결함이 났으므로, 사본을 새로 만들지 않는다.
-        if not _stamp_needs_bump(path, txt, repo_root=repo_root):
+        if not _stamp_needs_bump(path, txt, repo_root=repo_root, dirty=dirty):
             skipped_current.append(str(path.relative_to(repo_root)))
             continue
         new = DOC_HEADER_DATE_RE.sub(rf"\g<1>{target_date}\g<3>", txt)
@@ -2617,7 +2724,8 @@ def cmd_release(args) -> dict:
     # 본 step 는 destructive 하지 않음 (write only on tracked files, atomic_write 보장).
     # escape hatch: --skip-doc-headers-update / --skip-maturity-matrix-sync.
     if not getattr(args, "skip_doc_headers_update", False):
-        dhu = cmd_doc_headers_update(_attr_ns())
+        # 파이프라인 단계는 **지금 고친 문서만** 본다 (main-006 — 위 주석 참고).
+        dhu = cmd_doc_headers_update(_attr_ns(scope="dirty"))
         results["doc_headers_update"] = dhu
         # P0 smoke fail 가능성: scan 결과 >= 1 인데 updated = 0 인 경우도 정상 (이미 정합).
         # 단, scan 결과 0 이면 silent skip (drift prevention 영역 밖).

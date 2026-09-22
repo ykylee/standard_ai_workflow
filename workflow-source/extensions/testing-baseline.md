@@ -4,7 +4,7 @@
 - 범위: 6 rule (TST-WF-01 ~ TST-WF-06), opt-in pattern, smoke test 통합
 - 대상 독자: workflow 설계자, AI agent, 운영자, QA 검토자
 - 상태: stable (v0.7.0 도입)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-08-10
 - 관련 문서: [`./SCHEMA.md`](./SCHEMA.md) (extension system SSOT), [`./testing-baseline.opt-in.md`](./testing-baseline.opt-in.md), [`./security-baseline.md`](./security-baseline.md), [`./performance-baseline.md`](./performance-baseline.md), [`../core/audit_log_standard.md`](../core/audit_log_standard.md) (test log 표준)
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/testing/property-based/property-based-testing.md` (284 line, 2026-06-08 commit `b19c819`)
 

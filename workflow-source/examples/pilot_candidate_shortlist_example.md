@@ -4,7 +4,7 @@
 - 범위: 후보 비교, 1순위 선정 이유, 보류 이유, 바로 다음 액션
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../templates/pilot_candidate_checklist.md`, `./pilot_execution_plan_existing_repo.md`, `./pilot_adoption_existing_repo_example.md`
 
 ## 1. 후보 목록

@@ -4,7 +4,7 @@
 - 범위: AGENTS.md, SYSTEM.md, Pi 전용 스킬 정의
 - 대상 독자: Pi 에이전트 사용자, 저장소 관리자
 - 상태: prototype
-- 최종 수정일: 2026-04-27
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../../core/global_workflow_standard.md`, `../../README.md`
 
 ## 개요

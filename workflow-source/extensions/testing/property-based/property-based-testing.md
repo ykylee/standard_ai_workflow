@@ -4,7 +4,7 @@
 - 범위: 6 PBT-WF rule (TST-WF-01~06 과 별도) + workflow_kit.common.testing helper + 8 smoke test
 - 대상 독자: workflow 설계자, AI agent, test 작성자
 - 상태: stable (v0.7.2 도입)
-- 최종 수정일: 2026-06-13
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`../testing-baseline.md`](../../testing-baseline.md) (parent), [`../SCHEMA.md`](../../SCHEMA.md) (extension system SSOT)
 - 1차 출처: AIDLC `awslabs/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/extensions/testing/property-based/property-based-testing.md` (284 line, commit `b19c819`, 2026-06-08)
 

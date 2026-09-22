@@ -4,7 +4,7 @@
 - 범위: 6 PERF-MEM rule (PERF-WF-01~06 과 별도) + workflow_kit.common.profiling + 8 smoke test
 - 대상 독자: workflow 설계자, AI agent, 운영자
 - 상태: stable (v0.7.2 도입)
-- 최종 수정일: 2026-06-13
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`../performance-baseline.md`](../../performance-baseline.md) (parent), [`../SCHEMA.md`](../../SCHEMA.md) (extension system SSOT)
 - 1차 출처: 없음 (우리 domain 적응). AIDLC 의 `extensions/resiliency/baseline/` Observability pillar 참조.
 

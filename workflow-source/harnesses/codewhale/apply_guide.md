@@ -4,7 +4,7 @@
 - 범위: bootstrap 실행, 생성 파일 검토, 첫 세션 시작 방법
 - 대상 독자: CodeWhale 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-07-03
+- 최종 수정일: 2026-07-18
 - 관련 문서: `./README.md`, `../../core/workflow_adoption_entrypoints.md`, `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`
 
 ## 1. 언제 이 가이드를 쓰는가

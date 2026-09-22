@@ -4,7 +4,7 @@
 - 범위: bootstrap 스크립트, 신규/기존 프로젝트 도입 모드, Codex/OpenCode 하네스 오버레이, end-to-end 데모 runner, 출력 형태
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-08-10
+- 최종 수정일: 2026-08-29
 - 관련 문서: `../README.md`, `../examples/end_to_end_skill_demo.md`, `../examples/end_to_end_mcp_demo.md`, `../core/existing_project_onboarding_contract.md`
 
 ## 현재 포함된 스크립트

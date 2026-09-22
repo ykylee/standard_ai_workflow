@@ -4,7 +4,7 @@
 - 범위: bootstrap 실행, 생성 파일 검토, Codex 설정 연결, 첫 세션 시작 방법
 - 대상 독자: Codex 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-08-05
 - 관련 문서: `./README.md`, `../../core/workflow_adoption_entrypoints.md`, `../../core/workflow_configuration_layers.md`, `../../core/workflow_global_injection_policy.md`, `../../scripts/bootstrap_workflow_kit.py`
 
 ## 1. 언제 이 가이드를 쓰는가

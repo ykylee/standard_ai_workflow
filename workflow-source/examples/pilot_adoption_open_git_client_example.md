@@ -4,7 +4,7 @@
 - 범위: 적용 전 상태, 실제 생성물, runner 재실행 결과, 최소 실행 검증, 남은 마찰 지점
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-07-18
 - 관련 문서: `../templates/pilot_adoption_record_template.md`, `./pilot_candidate_open_git_client_assessment.md`, `./pilot_execution_plan_existing_repo.md`
 
 ## 1. 적용 대상

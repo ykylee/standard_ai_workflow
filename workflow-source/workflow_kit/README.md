@@ -4,7 +4,7 @@
 - 범위: 현재 포함된 공통 모듈, 초기 사용처, 향후 확장 방향
 - 대상 독자: AI workflow 설계자, 구현자, MCP server 정리 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-23
+- 최종 수정일: 2026-05-04
 - 관련 문서: `../core/prototype_promotion_scope.md`, `../core/read_only_mcp_transport_promotion.md`, `../core/workflow_kit_roadmap.md`, `../mcp_servers/README.md`
 
 ## 1. 목적

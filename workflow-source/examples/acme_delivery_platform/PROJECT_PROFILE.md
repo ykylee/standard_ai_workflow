@@ -4,7 +4,7 @@
 - 범위: 저장소 목적, 문서 구조, 기본 명령, 환경 기록 위치, 프로젝트 특화 검증 포인트, 예외 규칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../../core/global_workflow_standard.md`, `./session_handoff.md`, `./work_backlog.md`
 
 ## 1. 프로젝트 개요

@@ -4,7 +4,7 @@
 - 범위: bootstrap, Goose extension 등록, 진입점 설정.
 - 대상 독자: Goose 사용자.
 - 상태: beta
-- 최종 수정일: 2026-06-24
+- 최종 수정일: 2026-07-18
 - 관련 문서: [`../../core/workflow_adoption_entrypoints.md`](../../core/workflow_adoption_entrypoints.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py)
 
 ## 1. 언제 이 가이드를 쓰는가

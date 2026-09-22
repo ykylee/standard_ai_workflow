@@ -4,7 +4,7 @@
 - 범위: 파일럿 적용 전후 비교, 운영 피드백, 후속 수정 포인트 예시
 - 대상 독자: 저장소 관리자, AI workflow 설계자, 프로젝트 온보딩 담당자
 - 상태: sample
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-07-18
 - 관련 문서: `../templates/pilot_adoption_record_template.md`, `../templates/pilot_candidate_checklist.md`, `../core/workflow_adoption_entrypoints.md`
 
 ## 1. 적용 대상

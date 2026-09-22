@@ -4,7 +4,7 @@
 - 범위: opt-in question 1종 + 응답 옵션(Y/N/P) + 적용 범위 안내
 - 대상 독자: workflow 사용자, AI agent
 - 상태: stable (v0.7.0 도입)
-- 최종 수정일: 2026-06-12
+- 최종 수정일: 2026-07-22
 - 관련 문서: [`./performance-baseline.md`](./performance-baseline.md), [`./SCHEMA.md`](./SCHEMA.md) (extension system SSOT)
 
 ## 1. Question (workflow-start 시 1회 표시)

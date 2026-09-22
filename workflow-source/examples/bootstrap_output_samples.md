@@ -4,7 +4,7 @@
 - 범위: `ai-workflow/README.md`, `session_handoff.md`, 날짜별 backlog, `AGENTS.md`, OpenCode skill/agent 생성 문구 예시
 - 대상 독자: 프로젝트 온보딩 담당자, AI workflow 설계자, 하네스 통합 담당자, 개발자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../scripts/README.md`, `../harnesses/codex/README.md`, `../harnesses/opencode/README.md`, `../core/global_workflow_standard.md`
 
 ## 1. 왜 이 문서를 보는가

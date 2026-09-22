@@ -4,7 +4,7 @@
 - 범위: 루트 진입 파일, 설정 파일, 공통 workflow 문서 연결 방식
 - 대상 독자: Antigravity 사용자, 저장소 관리자, AI workflow 설계자
 - 상태: draft
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-08-05
 - 관련 문서: `../../core/workflow_harness_distribution.md`, `../../scripts/bootstrap_workflow_kit.py`, `../_template/README.md`
 
 ## 생성 대상

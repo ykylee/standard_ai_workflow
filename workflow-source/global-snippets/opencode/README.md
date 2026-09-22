@@ -4,7 +4,7 @@
 - 범위: additive MCP 예시, instructions 제외 원칙, 사용자 기본값 보호 원칙
 - 대상 독자: OpenCode 사용자, 저장소 관리자, 운영 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-19
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../../core/workflow_global_injection_policy.md`, `../../harnesses/opencode/apply_guide.md`, `./opencode.global.jsonc`
 
 ## 권장 원칙

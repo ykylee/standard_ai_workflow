@@ -4,7 +4,7 @@
 - 범위: workflow_kit/upgrade_diff.py 신규, bootstrap_lib/writes.py refactor, apply_workflow_upgrade.py refactor, 신규 test `check_smart_update.py`, 회귀 0.
 - 대상 독자: Sisyphus (orchestrator), maintainer, 다른 환경에서 wheel 설치하는 사용자.
 - 상태: draft (Momus 1 round 검수 완료, Rev 1 보정)
-- 최종 수정일: 2026-06-09
+- 최종 수정일: 2026-06-12
 - 관련 문서: `workflow-source/core/upgrade_policy.md` (spec), `.omo/plans/v0.5.11-plus-roadmap.md` (장기 plan), `workflow-source/core/workflow_release_spec.md` (릴리스 절차)
 
 - 작성일: 2026-06-09

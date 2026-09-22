@@ -4,7 +4,7 @@
 - 범위: 세션 시작 루틴, 작업 원칙, 상태 관리, 도구 및 언어 가이드
 - 대상 독자: Pi Coding Agent, AI Agent 설계자
 - 상태: stable
-- 최종 수정일: 2026-04-29
+- 최종 수정일: 2026-07-16
 - 관련 문서: `ai-workflow/memory/active/state.json`, `ai-workflow/memory/active/sessions`, `ai-workflow/memory/active/backlog`
 - Wiki 진입점: `ai-workflow/wiki/index.md` (R4 anchor 기반). AI agent query 시 먼저 로드.
 

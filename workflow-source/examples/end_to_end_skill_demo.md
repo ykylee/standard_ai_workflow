@@ -4,7 +4,7 @@
 - 범위: `session-start`, `backlog-update`, `doc-sync`, `validation-plan`, `code-index-update`, `merge-doc-reconcile` 실행 순서와 기대 결과
 - 대상 독자: 개발자, 운영자, AI agent 설계자, 프로젝트 온보딩 담당자
 - 상태: draft
-- 최종 수정일: 2026-04-21
+- 최종 수정일: 2026-05-01
 - 관련 문서: `./README.md`, `./acme_delivery_platform/PROJECT_PROFILE.md`, `./research_eval_hub/PROJECT_PROFILE.md`, `../skills/session-start/SKILL.md`, `../skills/backlog-update/SKILL.md`, `../skills/doc-sync/SKILL.md`, `../skills/merge-doc-reconcile/SKILL.md`
 
 ## 1. 목적

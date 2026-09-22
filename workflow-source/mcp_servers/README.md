@@ -4,7 +4,7 @@
 - 범위: MCP 프로토타입 디렉터리 구조, 구현 진입점, 초기 도입 후보
 - 대상 독자: AI agent 설계자, 개발자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-05-02
 - 관련 문서: `../core/workflow_mcp_candidate_catalog.md`, `./prototype_layout.md`
 
 ## 현재 상태

@@ -4,7 +4,7 @@
 - 범위: 현재 추가된 skill/MCP 출력 샘플 파일과 사용 용도
 - 대상 독자: AI workflow 설계자, skill 구현자, 테스트 작성자, 운영자
 - 상태: draft
-- 최종 수정일: 2026-04-22
+- 최종 수정일: 2026-05-01
 - 관련 문서: `../../core/output_schema_guide.md`, `../end_to_end_skill_demo.md`
 
 ## 현재 포함된 샘플

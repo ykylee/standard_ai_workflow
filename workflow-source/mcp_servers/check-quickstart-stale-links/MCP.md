@@ -4,7 +4,7 @@
 - 범위: 목적, 연결 카탈로그, 예상 입력/출력, 읽기/쓰기 성격, 구현 메모
 - 대상 독자: MCP 구현자, AI agent 설계자, 운영자
 - 상태: prototype
-- 최종 수정일: 2026-04-20
+- 최종 수정일: 2026-05-02
 - 관련 문서: `../../core/workflow_mcp_candidate_catalog.md`, `../../core/workflow_adoption_entrypoints.md`, `../../scripts/run_existing_project_onboarding.py`
 
 ## 1. 목적

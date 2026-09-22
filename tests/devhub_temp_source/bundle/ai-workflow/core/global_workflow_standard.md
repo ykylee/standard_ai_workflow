@@ -3,7 +3,7 @@
 - 범위: 공통 운영 원칙, 언어/보고 원칙, 컨텍스트 절약 원칙, 상태값, 세션 시작 순서, 작업 기록 최소 필드, 검증 수준, 결과 기록 원칙, 세션 종료 원칙
 - 대상 독자: 개발자, 운영자, AI agent, 프로젝트 관리자
 - 상태: draft
-- 최종 수정일: 2026-04-18
+- 최종 수정일: 2026-05-02
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`
 ## 1. 공통 원칙
 - 새 세션은 항상 현재 상태 요약 문서부터 읽는다.

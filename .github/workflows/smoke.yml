@@ -35,9 +35,13 @@ jobs:
           # yml 에 `3.10` 을 적으면 `requires-python` 의 사본이 하나 생긴다 —
           # 해석기·브랜치 매트릭스가 registry→yml 로 세운 규율과 같은 자리다.
           FLOOR="$(python3 -m workflow_kit.common.python_floor --declared-floor)"
-          echo "contexts=${CONTEXTS}" >> "$GITHUB_OUTPUT"
-          echo "interpreters=${INTERPRETERS}" >> "$GITHUB_OUTPUT"
-          echo "python_floor=${FLOOR}" >> "$GITHUB_OUTPUT"
+          # 셋을 한 블록으로 묶는다 — 연속 append 는 shellcheck SC2129 다
+          # (actionlint 가 CI 에서 잡았다; 로컬에는 actionlint 가 없어 못 봤다).
+          {
+            echo "contexts=${CONTEXTS}"
+            echo "interpreters=${INTERPRETERS}"
+            echo "python_floor=${FLOOR}"
+          } >> "$GITHUB_OUTPUT"
           echo "선언 하한(requires-python): ${FLOOR}"
           echo "선언된 브랜치 컨텍스트: ${CONTEXTS}"
           echo "선언된 해석기: ${INTERPRETERS}"

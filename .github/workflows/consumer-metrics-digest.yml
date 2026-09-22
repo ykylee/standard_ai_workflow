@@ -142,10 +142,27 @@ jobs:
           today=$(date -u +%Y-%m-%d)
           if [ -n "$existing_issue" ]; then
             echo "Posting digest as comment to issue #$existing_issue"
+            # 마커는 **본문 안에** 넣는다 (TASK-2026-09-22-main-001).
+            #
+            # 이전에는 `--header "consumer-digest:GH-DIGEST:yes"` 였는데 그 플래그는
+            # `gh api` 의 것이고 `gh issue comment` 에는 없다. 그래서 이 경로는
+            # **파일이 만들어진 이래(841329ff) 한 번도 동작한 적이 없다** —
+            # `unknown flag: --header` 로 죽었고, schedule 실행 14건이 전부 red 였다
+            # (2026-06-22 ~ 2026-09-21, success 0). 겉으로는 그 앞의 라벨 결함과
+            # 같은 red 로 보였다: 라벨 수리가 create 경로를 살리자 그 실행이 #22 를
+            # 만들었고, 그 뒤 모든 실행이 이 깨진 comment 경로로 라우팅됐다.
+            # **한 결함의 수리가 다음 결함을 노출한 것**이다.
+            #
+            # 마커의 의도(digest 코멘트를 기계가 식별)는 HTML 주석으로 살린다 —
+            # 렌더링에는 안 보이고 본문 검색으로는 잡힌다.
+            comment_body="$RUNNER_TEMP/digest-comment.md"
+            {
+              cat "$digest_file"
+              printf '\n<!-- consumer-digest:GH-DIGEST:yes -->\n'
+            } > "$comment_body"
             gh issue comment "$existing_issue" \
               --repo "$GH_REPO" \
-              --body-file "$digest_file" \
-              --header "consumer-digest:GH-DIGEST:yes"
+              --body-file "$comment_body"
             echo "::notice title=Digest posted::issue #$existing_issue (comment)"
           else
             echo "No open 'consumer-metrics-feed' issue — creating new"

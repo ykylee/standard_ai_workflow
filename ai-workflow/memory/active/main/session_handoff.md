@@ -39,7 +39,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

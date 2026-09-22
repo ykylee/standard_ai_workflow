@@ -181,6 +181,20 @@ wk release-pipeline release \
 > 그 줄은 여전히 **사람의 주장**이다 — 도구가 대신 채우지 않는다. 전량을 돌린
 > 뒤 적고, CI 게이트가 그 주장을 워크플로 결과와 대조한다.
 
+> **문서 스탬프는 *내용이 바뀐 문서만* 올라간다 (v1.10.0+, TASK-2026-09-22-main-002)**:
+> `doc-headers-update` 는 이전에 `- 최종 수정일:` 헤더가 있는 문서를 **전부** 오늘로
+> 올렸다. 2026-09-22 v1.10.0 발행 준비 실측에서 변경 파일이 39 → 139 가 됐고, 늘어난
+> **100개는 내용이 한 줄도 안 바뀐 문서**였다. 되돌린 상태에서 `check_doc_stamp_rule`
+> 6/6 을 비롯한 관련 검사가 전부 green 이었으므로 **어떤 검사도 요구하지 않는 bump**
+> 였고, 문서 메타데이터만 신뢰할 수 없게 만들었다. 더 고약한 것은 되돌려도
+> `release --apply` 의 post-step 이 똑같이 다시 넣었다는 점이다 — 커밋 전 되돌림으로는
+> 못 막았다.
+>
+> 이제 판정은 **검사와 같은 정본**(`workflow_kit/common/doc_stamp.py`)을 쓴다:
+> `스탬프 >= 그 문서의 마지막 내용 변경일 − 유예`. 뒤처진 문서만 올라가고, 건너뛴
+> 수는 결과의 `skipped_current` 에 남는다 — 조용히 안 하면 '안 돌았다' 와 구분이 안 된다.
+> **읽는 쪽만 알고 쓰는 쪽이 모르던 규약**이 이 결함의 원인이었다.
+
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 
 `wk release-pipeline dist --apply`는 Python wheel/sdist와 함께 Codex·Claude Code native plugin ZIP을 생성한다. `release`는 두 ZIP이 없으면 중단하며, 존재하면 GitHub Release asset으로 같이 첨부한다.

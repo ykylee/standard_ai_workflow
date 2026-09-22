@@ -127,6 +127,82 @@ def test_case_2_doc_headers_update_idempotent() -> None:
 # case 3 — sync-maturity-matrix frontmatter parser 정확성
 # ---------------------------------------------------------------------------
 
+def test_case_8_doc_headers_update_only_bumps_stale_stamps() -> None:
+    """**내용이 안 바뀐 문서의 스탬프를 올리지 않는다** (TASK-2026-09-22-main-002).
+
+    이전에는 헤더가 있는 문서를 전부 오늘로 올렸다. v1.10.0 발행 준비 실측:
+    변경 파일이 39 → 139 로 늘었고 **늘어난 100개는 내용이 한 줄도 안 바뀐
+    문서의 `최종 수정일` 만** 오늘로 바꾼 것이었다. 되돌린 상태에서 관련 검사가
+    전부 green 이었으므로 어떤 검사도 요구하지 않는 bump 였다 — 문서 메타데이터를
+    신뢰할 수 없게 만들 뿐이다.
+
+    판정은 git 이므로 **실물 저장소**로 잰다. 두 문서를 같은 커밋에 넣고 하나만
+    고친다 — 고친 쪽은 올라가야 하고, 안 고친 쪽은 그대로여야 한다. 두 답이
+    갈리므로 게이트가 살아 있는지 알 수 있다 (전부 올리거나 전부 건너뛰면 한
+    문서로는 구분이 안 된다).
+    """
+    rp_mod = _load_release_pipeline_module()
+    needs_bump = rp_mod._stamp_needs_bump
+
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "repo"
+        repo.mkdir()
+        env = {**os.environ, "GIT_CONFIG_GLOBAL": str(Path(td) / "gitconfig"),
+               "GIT_CONFIG_SYSTEM": os.devnull}
+
+        def git(*args: str) -> None:
+            subprocess.run(["git", *args], cwd=repo, env=env, check=True,
+                           capture_output=True, text=True)
+
+        git("init", "-q")
+        git("config", "user.email", "t@example.invalid")
+        git("config", "user.name", "t")
+
+        stale_stamp = "- 최종 수정일: 2020-01-01\n"
+        untouched = repo / "untouched.md"
+        edited = repo / "edited.md"
+        for doc in (untouched, edited):
+            doc.write_text(f"# t\n\n{stale_stamp}\nbody.\n", encoding="utf-8")
+        git("add", "-A")
+        git("commit", "-q", "-m", "seed")
+
+        # 커밋 직후: 둘 다 '마지막 내용 변경 = 커밋일' 이고 스탬프는 2020 이라
+        # **둘 다 뒤처졌다** — 이 상태에서는 둘 다 올라가야 한다.
+        both = [needs_bump(d, d.read_text(encoding="utf-8"), repo_root=repo)
+                for d in (untouched, edited)]
+        assert both == [True, True], f"뒤처진 스탬프를 안 올린다: {both!r}"
+
+        # 이제 스탬프를 맞춰 커밋한다 — 그러면 둘 다 최신이다.
+        today = rp_mod._today_iso()
+        for doc in (untouched, edited):
+            doc.write_text(
+                doc.read_text(encoding="utf-8").replace("2020-01-01", today),
+                encoding="utf-8",
+            )
+        git("add", "-A")
+        git("commit", "-q", "-m", "stamp")
+
+        current = [needs_bump(d, d.read_text(encoding="utf-8"), repo_root=repo)
+                   for d in (untouched, edited)]
+        assert current == [False, False], (
+            f"최신 스탬프를 또 올린다 — 이것이 100건의 거짓 '오늘 수정됨' 이었다: {current!r}"
+        )
+
+        # 한 쪽만 내용을 고친다. 고친 쪽은 미커밋이라 '오늘 · 유예 0' 이 되는데
+        # 스탬프가 이미 오늘이므로 여전히 올릴 필요가 없다 — 그래서 **스탬프를
+        # 되돌려** 실제로 뒤처진 상태를 만든다.
+        edited.write_text(
+            edited.read_text(encoding="utf-8").replace(today, "2020-01-01")
+            + "\nmore body.\n",
+            encoding="utf-8",
+        )
+        split = [needs_bump(d, d.read_text(encoding="utf-8"), repo_root=repo)
+                 for d in (untouched, edited)]
+        assert split == [False, True], (
+            f"고친 문서와 안 고친 문서를 가르지 못한다: {split!r}"
+        )
+
+
 def test_case_3_sync_maturity_matrix_frontmatter_parse() -> None:
     """YAML frontmatter parser 가 inline obj/list 를 정확히 parse."""
     rp_mod = _load_release_pipeline_module()
@@ -356,6 +432,8 @@ def _run_all() -> Iterator[tuple[str, bool, str]]:
          test_case_6_release_dry_run_does_not_touch_repo),
         ("test_case_7_auto_bump_dry_run_does_not_write_version",
          test_case_7_auto_bump_dry_run_does_not_write_version),
+        ("test_case_8_doc_headers_update_only_bumps_stale_stamps",
+         test_case_8_doc_headers_update_only_bumps_stale_stamps),
     ]
     for name, fn in cases:
         try:
@@ -370,13 +448,18 @@ def _run_all() -> Iterator[tuple[str, bool, str]]:
 def main() -> int:
     print("=== drift-prevention helpers (v0.11.23+) ===")
     failures = 0
+    total = 0
     for name, ok, msg in _run_all():
+        total += 1
         if ok:
             print(f"  PASS: {name}")
         else:
             print(f"  FAIL: {name}\n    {msg}")
             failures += 1
-    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {7 - failures}/7 ===")
+    # 합계는 **실제로 돈 case 수에서 파생**한다 (TASK-2026-09-22-main-002).
+    # 리터럴 `7` 이었을 때 case 를 8개로 늘려도 요약은 `7/7` 을 찍었다 — 새 case 가
+    # 돌았는지 요약만 보고는 알 수 없었다. 이 저장소가 여러 번 고친 결함족이다.
+    print(f"=== {'PASS' if failures == 0 else 'FAIL'}: {total - failures}/{total} ===")
     return 0 if failures == 0 else 1
 
 

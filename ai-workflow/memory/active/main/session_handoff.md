@@ -47,6 +47,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-22-main-002 doc-headers-update --apply 가 내용이 안 바뀐 문서 100개의 스탬프를 올린다 — 거짓 '오늘 수정됨'
 - TASK-2026-09-22-main-003 runtime_load 의 mtime 폴백이 병합 복사 채널에서 낡은 설치 시각을 낸다 — 낡은 호스트를 최신으로 오판한다
 - TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다
 - TASK-2026-09-21-main-009 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다
@@ -56,7 +57,6 @@
 - TASK-2026-09-21-main-005 최소 Python 문법 호환을 재는 축이 없다 — 로컬 3.13 / 선언 하한 3.10 이라 CI 에서만 터지는 문법을 쓸 수 있다
 - TASK-2026-09-21-main-004 smoke 수가 8곳에 손으로 복제돼 있고 게이트는 2곳만 덮는다 — 나머지는 162/52 로 갈라졌다
 - TASK-2026-09-21-main-003 검사가 강제하는 요구를 선언한다 — 산문 §인용 671건 중 661건은 기계가 어느 문서인지도 모른다 (OpenSpec concept 흡수)
-- TASK-2026-09-21-main-002 check_wiki_trend 가 살아있는 저장소 점수에 rc==0 을 걸어 두었다 — lifecycle 0.42→0.00 으로 만성 red
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

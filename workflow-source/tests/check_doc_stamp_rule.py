@@ -31,6 +31,8 @@ from __future__ import annotations
 
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 WATCHES = (
+    # 스탬프 판정 정본 (TASK-2026-09-22-main-002 에서 kit 으로 승격).
+    "workflow-source/workflow_kit/common/doc_stamp.py",
     "workflow-source/tests/_doc_stamp.py",
 )
 

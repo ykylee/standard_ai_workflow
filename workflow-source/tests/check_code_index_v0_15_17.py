@@ -23,6 +23,8 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
+    # 스탬프 판정 정본 (TASK-2026-09-22-main-002 에서 kit 으로 승격).
+    "workflow-source/workflow_kit/common/doc_stamp.py",
     "docs/CODE_INDEX.md",
     "workflow-source/pyproject.toml",
     # v1.8.1: 기대 스탬프를 git 에서 파생하는 헬퍼 (TASK-2026-09-01-main-002).

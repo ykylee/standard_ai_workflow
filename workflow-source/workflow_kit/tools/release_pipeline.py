@@ -1718,6 +1718,33 @@ def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
     return synced
 
 
+def _stamp_needs_bump(path: Path, text: str, *, repo_root: Path) -> bool:
+    """이 문서의 `- 최종 수정일:` 이 **뒤처져 있는가**.
+
+    판정은 검사가 쓰는 것과 **같은 정본** 이다 (`common.doc_stamp`):
+
+        스탬프 >= 그 문서의 마지막 내용 변경일 − 유예
+
+    판정할 수 없으면(git 밖, 미추적 파일 등) **올린다** — 여기서 모름을 '건드리지
+    않음' 으로 접으면 정말 뒤처진 스탬프가 조용히 남는다. 쓰는 쪽의 모름은
+    안전한 쪽(갱신)으로 떨어뜨린다.
+    """
+    match = DOC_HEADER_DATE_RE.search(text)
+    if match is None:
+        return False  # 스탬프 줄이 없으면 바꿀 것도 없다
+    try:
+        from workflow_kit.common.doc_stamp import check_frontmatter_stamp
+    except ImportError:  # pragma: no cover - 배치가 깨진 경우
+        return True
+    try:
+        ok, _why = check_frontmatter_stamp(
+            path, repo_root=repo_root, actual=match.group(2)
+        )
+    except (OSError, ValueError):
+        return True
+    return not ok
+
+
 def cmd_doc_headers_update(args) -> dict:
     """docs/* + workflow-source/core/* + README.md 의 '- 최종 수정일: <date>' 헤더를 일괄 갱신.
 
@@ -1737,12 +1764,28 @@ def cmd_doc_headers_update(args) -> dict:
 
     files = _iter_doc_markdown_files(scope)
     updated_paths: list[str] = []
+    skipped_current: list[str] = []
     scanned = 0
+    repo_root = REPO_ROOT.parent
     for path in files:
         scanned += 1
         try:
             txt = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
+            continue
+        # **뒤처진 스탬프만 올린다** (TASK-2026-09-22-main-002).
+        #
+        # 이전에는 헤더가 있는 문서를 전부 오늘로 올렸다. 그래서 2026-09-22
+        # v1.10.0 발행 준비에서 **내용이 한 줄도 안 바뀐 문서 100개**가 '오늘
+        # 수정됨' 을 주장하게 됐고(변경 파일 39 → 139), 되돌려도 `release --apply`
+        # 의 post-step 이 똑같이 다시 넣었다. 되돌린 상태에서 `doc_stamp_rule`
+        # 6/6 을 비롯한 관련 검사가 전부 green 이었으므로 **어떤 검사도 요구하지
+        # 않는 bump** 였다 — 문서 메타데이터만 신뢰할 수 없게 만든 셈이다.
+        #
+        # 판정은 검사와 **같은 정본**(`common.doc_stamp`)을 쓴다. 읽는 쪽만 알고
+        # 쓰는 쪽이 모르던 규약이라 이 결함이 났으므로, 사본을 새로 만들지 않는다.
+        if not _stamp_needs_bump(path, txt, repo_root=repo_root):
+            skipped_current.append(str(path.relative_to(repo_root)))
             continue
         new = DOC_HEADER_DATE_RE.sub(rf"\g<1>{target_date}\g<3>", txt)
         if new == txt:
@@ -1771,6 +1814,8 @@ def cmd_doc_headers_update(args) -> dict:
         "files": updated_paths,
         "distributed_core_synced": len(mirror_synced),
         "distributed_core_files": mirror_synced,
+        # 건너뛴 수를 **말한다** — 조용히 안 하면 '안 돌았다' 와 구분이 안 된다.
+        "skipped_current": len(skipped_current),
     }
 
 

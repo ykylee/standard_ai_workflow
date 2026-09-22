@@ -155,13 +155,26 @@ def case_4_smoke_yml_consumes_registry() -> None:
                 f"없는 배선: {missing}")
         return
     bound = re.findall(r"python-version:\s*(.+)$", body, re.MULTILINE)
-    stray = [value.strip() for value in bound
-             if value.strip() != "${{ matrix.python }}"]
+    stray = [value.strip() for value in bound if value.strip() not in _DERIVED_BINDINGS]
     _record("case 4 (smoke.yml 이 registry 를 주입받는다)",
             bool(bound) and not stray,
-            f"setup-python {len(bound)}곳 전부 매트릭스에서 받는다" if bound and not stray
-            else (f"매트릭스에서 안 받는 python-version: {stray}" if stray
+            f"setup-python {len(bound)}곳 전부 선언에서 받는다" if bound and not stray
+            else (f"선언에서 안 받는 python-version: {stray}" if stray
                   else "python-version 바인딩이 하나도 없다 — 배선이 통째로 사라졌다"))
+
+
+#: `setup-python` 이 받아도 되는 값 — **전부 선언에서 파생된 것**이다.
+#: 리터럴을 막는 것이 요지이지, 매트릭스 하나만 허용하는 것이 아니다.
+#:
+#: - `matrix.python`  → `interpreter_matrix.GATE_INTERPRETERS` (게이트 해석기)
+#: - `python_floor`   → `pyproject.toml` 의 `requires-python` (선언 하한,
+#:   TASK-2026-09-22-main-007). 이 셀에 하한 해석기가 없으면
+#:   `check_python_floor_syntax` case 2 가 부분 측정으로 떨어져 PEP 701 부류를
+#:   못 본다.
+_DERIVED_BINDINGS = frozenset({
+    "${{ matrix.python }}",
+    "${{ needs.prepare.outputs.python_floor }}",
+})
 
 
 def case_5_smoke_yml_does_not_hardcode_versions() -> None:

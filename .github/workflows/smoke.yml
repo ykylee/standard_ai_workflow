@@ -13,6 +13,7 @@ jobs:
     outputs:
       contexts: ${{ steps.registry.outputs.contexts }}
       interpreters: ${{ steps.registry.outputs.interpreters }}
+      python_floor: ${{ steps.registry.outputs.python_floor }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,8 +31,14 @@ jobs:
           # 설치가 필요 없다 — registry 는 stdlib 만 쓴다 (mcp-sdk-matrix 와 같은 패턴).
           CONTEXTS="$(python3 -m workflow_kit.common.branch_matrix --github-matrix)"
           INTERPRETERS="$(python3 -m workflow_kit.common.interpreter_matrix --github-matrix)"
+          # v1.10.1(TASK-2026-09-22-main-007): 하한도 **선언에서** 파생한다.
+          # yml 에 `3.10` 을 적으면 `requires-python` 의 사본이 하나 생긴다 —
+          # 해석기·브랜치 매트릭스가 registry→yml 로 세운 규율과 같은 자리다.
+          FLOOR="$(python3 -m workflow_kit.common.python_floor --declared-floor)"
           echo "contexts=${CONTEXTS}" >> "$GITHUB_OUTPUT"
           echo "interpreters=${INTERPRETERS}" >> "$GITHUB_OUTPUT"
+          echo "python_floor=${FLOOR}" >> "$GITHUB_OUTPUT"
+          echo "선언 하한(requires-python): ${FLOOR}"
           echo "선언된 브랜치 컨텍스트: ${CONTEXTS}"
           echo "선언된 해석기: ${INTERPRETERS}"
           {
@@ -94,6 +101,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # **하한 해석기를 먼저 깐다** (TASK-2026-09-22-main-007).
+      #
+      # 이것이 없으면 `check_python_floor_syntax` case 2 가 `feature_version`
+      # 부분 측정으로 떨어지고, 그 수단은 **PEP 701(중첩 f-string)을 못 본다** —
+      # 이 축을 만들게 한 바로 그 결함이다. 검사는 그 사실을 `[unmeasured]` 로
+      # 정직하게 말하고 있었고, 여기서 그 칸을 측정으로 옮긴다.
+      #
+      # **순서가 계약이다.** `setup-python` 은 PATH 앞에 붙으므로 **나중에 깐 것이
+      # `python3` 을 차지한다.** 하한을 먼저 깔아야 이 셀이 선언한 해석기로 돌고
+      # (`--assert-running` 이 그것을 단언한다), `python3.10` 은 이름으로 여전히
+      # 찾을 수 있다 — `python_floor.find_interpreter` 가 그 이름을 본다.
+      - name: Set up floor Python (선언 파생)
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ needs.prepare.outputs.python_floor }}
 
       - name: Set up Python
         uses: actions/setup-python@v5

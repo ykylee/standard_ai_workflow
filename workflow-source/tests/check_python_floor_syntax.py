@@ -283,13 +283,67 @@ def case_5_floor_comes_from_the_packaged_declaration() -> None:
     )
 
 
+def case_6_ci_installs_the_floor_interpreter() -> None:
+    """**CI 셀이 하한 해석기를 깐다** — 배선의 *부재* 를 잡는다 (main-007).
+
+    되주입이 이 case 를 만들게 했다: `smoke.yml` 에서 하한 `setup-python` 단계를
+    **통째로 지워도** 기존 검사는 9/9 PASS 였다. 리터럴 복제는 막고 있었지만
+    배선이 사라지는 것은 아무도 안 봤다 — 그러면 CI 는 조용히 부분 측정으로
+    떨어지고(PEP 701 부류를 못 본다) 게이트는 계속 green 이다.
+
+    판정은 셋이다: ① prepare job 이 하한을 **선언에서** 파생해 출력하고
+    ② 셀이 그 출력을 `setup-python` 에 바인딩하며 ③ 그 바인딩이 매트릭스 해석기
+    바인딩보다 **먼저** 온다. ③이 계약인 이유: `setup-python` 은 PATH 앞에
+    붙으므로 나중에 깐 것이 `python3` 을 차지한다. 순서가 뒤집히면 셀이 하한으로
+    돌아 `--assert-running` 이 red 가 된다.
+    """
+    workflow = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
+    if not workflow.is_file():
+        _record("case 6 (CI 가 하한 해석기를 깐다)", False, f"{workflow} 가 없다")
+        return
+    body = "\n".join(
+        line for line in workflow.read_text(encoding="utf-8").splitlines()
+        if not line.lstrip().startswith("#")
+    )
+    floor_binding = "${{ needs.prepare.outputs.python_floor }}"
+    problems: list[str] = []
+    if "python_floor:" not in body:
+        problems.append("prepare job 이 python_floor 를 출력하지 않는다")
+    if "--declared-floor" not in body:
+        problems.append("하한을 선언에서 파생하는 호출(--declared-floor)이 없다")
+    if floor_binding not in body:
+        problems.append(f"셀이 하한을 setup-python 에 바인딩하지 않는다 ({floor_binding})")
+    else:
+        floor_at = body.index(floor_binding)
+        matrix_binding = "${{ matrix.python }}"
+        matrix_at = body.find(matrix_binding, body.index("jobs:"))
+        # 매트릭스 바인딩은 `setup-python` 것만 본다 — job name 등에도 쓰이므로
+        # 하한 바인딩 **뒤에** 오는 첫 등장으로 판정하면 순서를 오독한다.
+        setup_matrix = body.find("python-version: " + matrix_binding)
+        if setup_matrix == -1:
+            problems.append("매트릭스 해석기 바인딩을 못 찾았다")
+        elif floor_at > setup_matrix:
+            problems.append(
+                "하한 setup 이 매트릭스 setup **뒤에** 온다 — 나중에 깐 것이 "
+                "python3 을 차지하므로 셀이 하한으로 돌게 된다"
+            )
+        _ = matrix_at
+    _record(
+        "case 6 (CI 가 하한 해석기를 깐다)",
+        not problems,
+        "prepare 가 선언에서 파생 → 셀이 매트릭스보다 먼저 바인딩"
+        if not problems else "; ".join(problems),
+    )
+
+
 def main() -> int:
     print("=== 선언 하한 Python 문법 호환 (TASK-2026-09-21-main-005) ===")
     for fn in (case_1_floor_comes_from_the_declaration,
                case_2_real_interpreter_compiled_everything,
                case_3_feature_version_cannot_replace_it,
                case_4_scope_is_derived_not_a_hand_list,
-               case_5_floor_comes_from_the_packaged_declaration):
+               case_5_floor_comes_from_the_packaged_declaration,
+               case_6_ci_installs_the_floor_interpreter):
         fn()
     total = len(_passes) + len(_failures)
     print(f"\n{len(_passes)}/{total} passed")

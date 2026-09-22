@@ -231,6 +231,18 @@ def probe(source_root: Path, pyproject: Path) -> FloorProbe:
     )
 
 
+def declared_floor_string(repo_root: Path) -> str | None:
+    """`requires-python` 하한을 `"X.Y"` 로. CI prepare job 이 읽는 값이다.
+
+    TASK-2026-09-22-main-007. `smoke.yml` 에 `3.10` 을 적으면 **선언의 사본**이
+    하나 생긴다 — `branch_matrix`/`interpreter_matrix` 가 registry→yml 로 세운
+    규율과 같은 자리다. 그래서 yml 은 이 함수의 출력을 주입받는다.
+    """
+    _root, pyproject = resolve_scope(repo_root)
+    floor = declared_floor(pyproject)
+    return None if floor is None else f"{floor[0]}.{floor[1]}"
+
+
 def main(argv: list[str] | None = None) -> int:
     """로컬 재현 진입점 — `sdk_matrix --run-local` 과 같은 자리.
 
@@ -241,6 +253,18 @@ def main(argv: list[str] | None = None) -> int:
     from workflow_kit.common.paths import resolve_workspace_root
 
     repo_root, _why = resolve_workspace_root()
+
+    # `--declared-floor`: CI prepare job 이 하한을 **선언에서** 받아 가는 창구.
+    if argv is not None and "--declared-floor" in argv or (
+        argv is None and "--declared-floor" in sys.argv[1:]
+    ):
+        floor_text = declared_floor_string(repo_root)
+        if floor_text is None:
+            print("[error] requires-python 선언을 읽지 못했다", file=sys.stderr)
+            return 2
+        print(floor_text)
+        return 0
+
     source_root, pyproject = resolve_scope(repo_root)
     result = probe(source_root, pyproject)
     if not result.measured:

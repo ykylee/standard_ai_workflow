@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-09-21",
+  "generated_at": "2026-09-22",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-21.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-22.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -35,7 +35,8 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-07-main-009"
+      "TASK-2026-09-07-main-009",
+      "TASK-2026-09-22-main-001"
     ],
     "recent_done_items": [
       "TASK-2026-09-21-main-009 — 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다",
@@ -53,26 +54,16 @@
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-21.md",
-    "task_count": 9,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-22.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
-    "done_items": [
-      "TASK-2026-09-21-main-001 — graph_insights 판정식 재검토 — coverage 성분이 구조적으로 0 이고 classification 성분은 동음이의 잡음이다",
-      "TASK-2026-09-21-main-002 — check_wiki_trend 가 살아있는 저장소 점수에 rc==0 을 걸어 두었다 — lifecycle 0.42→0.00 으로 만성 red",
-      "TASK-2026-09-21-main-003 — 검사가 강제하는 요구를 선언한다 — 산문 §인용 671건 중 661건은 기계가 어느 문서인지도 모른다 (OpenSpec concept 흡수)",
-      "TASK-2026-09-21-main-004 — smoke 수가 8곳에 손으로 복제돼 있고 게이트는 2곳만 덮는다 — 나머지는 162/52 로 갈라졌다",
-      "TASK-2026-09-21-main-005 — 최소 Python 문법 호환을 재는 축이 없다 — 로컬 3.13 / 선언 하한 3.10 이라 CI 에서만 터지는 문법을 쓸 수 있다",
-      "TASK-2026-09-21-main-006 — 검사를 CI 인터프리터로도 돌리는 축이 없다 — 로컬 3.13 / CI smoke 3.11 이라 검사 자신의 판정이 갈린다",
-      "TASK-2026-09-21-main-007 — 해석기별로 갈리는 경고가 게이트 신호가 아니다 — SyntaxWarning 류는 exit 0 이라 4셀 전부 green 이었다",
-      "TASK-2026-09-21-main-008 — 경고 게이트가 두 구멍으로 눈이 먼다 — 부모 프로세스 경고 미수집(kit 44/196) + 판정이 __pycache__ 에 달려 1차 red → 2차 green",
-      "TASK-2026-09-21-main-009 — 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다"
-    ]
+    "done_items": []
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-09-21.md",
+    "ai-workflow/memory/active/main/backlog/2026-09-22.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

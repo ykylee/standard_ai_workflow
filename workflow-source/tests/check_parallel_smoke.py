@@ -119,9 +119,20 @@ def test_quiet_partition_is_not_empty() -> None:
     assert quiet, (
         "정숙 구간이 비었다 — 저장소 전역을 관찰하는 check 가 병렬 구간으로 흘렀다"
     )
-    names = {p.stem for p in quiet}
-    assert "check_no_repo_write" in names, (
-        f"check_no_repo_write 가 정숙 구간에 없다 (현재: {sorted(names)})"
+    # **이름을 못 박지 않는다** (TASK-2026-09-22-main-008). 예전에는
+    # `check_no_repo_write` 가 정숙 구간에 있는지를 카나리로 썼는데, 그 검사가
+    # 정당한 이유로 병렬 구간으로 옮겨가자(감시가 러너로 흡수돼 임시 저장소만
+    # 쓰게 됐다) 이 단언이 red 가 됐다 — 배치를 기대값으로 삼은 fixture 였다.
+    #
+    # 계약은 "누가 거기 있는가" 가 아니라 **"선언과 배치가 일치하는가"** 다.
+    declared = {
+        path.stem for path in checks
+        if f"{R.QUIET_MARKER} = True" in path.read_text(encoding="utf-8", errors="ignore")
+    }
+    placed = {p.stem for p in quiet}
+    assert placed == declared, (
+        f"선언과 배치가 갈렸다 — 선언만: {sorted(declared - placed)} / "
+        f"배치만: {sorted(placed - declared)}"
     )
 
 

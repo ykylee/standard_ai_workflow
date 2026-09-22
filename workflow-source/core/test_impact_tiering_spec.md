@@ -4,7 +4,7 @@
 - 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계, 요구 강제 선언(`ENFORCES`)
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-21
+- 최종 수정일: 2026-09-22
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =
@@ -213,6 +213,28 @@ CI 셀은 병렬이라 wall-clock 이 늘지 않는다.
 의도한 deprecation 호출은 `check_warnings.call_deprecated` 로 감싼다. 삼키되
 경고가 **실제로 났는지 단언**하므로 '의도한 것' 과 '모르고 낸 것' 이 같은 모양이
 되지 않는다. 면제 registry 는 두지 않는다 — 저장소 안 경고 베이스라인이 0 이다.
+
+### Requirement: suite-must-not-write-the-repo
+
+전량 실행은 **추적 중인 저장소 파일을 건드리지 않는다.** 실행이 남긴 변경은
+릴리스 커밋에 흡수될 수 있고, 되돌려 놓는 경우(touch-and-restore)는 `git status`
+가 오히려 깨끗해 보여 더 위험하다 — 실제로 미커밋 작업이 사라진 사고가 있었다.
+
+판정은 **러너가 직접** 한다 (`workflow_kit/common/repo_write_watch.py`). 실행 전후
+스냅샷에 더해 실행 중 `git status --porcelain` 을 폴링하고, 변경이 관측되면 그
+시각에 **in-flight 였던 검사**를 후보로 단다. 끝까지 남은 변경(`lingering`)은
+red 이고, 중간에만 보인 것(`transient`)은 보고한다. **못 재면 미측정이고 그것도
+red 다** — 모름을 통과로 세면 이 축이 사라진다.
+
+왜 러너인가 (2026-09-22 실측): 예전에는 검사 하나가 대표 표본 **16개**를 다시
+돌려 봤고 그것이 전량 벽시계의 **35%**(76.7s)였다. 러너는 어차피 모든 검사를
+서브프로세스로 돌리므로 거기서 보면 범위가 **전수**가 되면서 비용이 폴링
+하나로 준다 (`git status --porcelain` 12.7ms × 0.5s 간격 = 5.6s).
+
+**귀속은 약해진다 — 그것을 기록한다.** 병렬 구간에서는 "이 검사가 썼다" 를
+단정할 수 없어 "그 시각에 돌던 것들"(실측 동시성 중앙 9)로 내놓는다. 범인을
+좁혀야 하면 그 후보만 `--filter` 로 직렬 재실행한다 — 비용을 **위반이 났을 때로**
+옮긴 것이지 없앤 것이 아니다.
 
 ### Requirement: compile-warning-verdict-is-cache-independent
 

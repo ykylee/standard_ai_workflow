@@ -85,6 +85,9 @@ with warnings.catch_warnings(record=True) as _parent_captured:
         BranchContext, apply_context, context_for, contexts, labels,
     )
     from workflow_kit.common import meta_watch  # noqa: E402
+    from workflow_kit.common.repo_write_watch import (  # noqa: E402
+        RepoWriteWatch,
+    )
 
 #: 부모 import 가 낸 경고를 CPython 기본 포맷으로 굳혀 둔다 — `extract` 가 읽는
 #: 형식과 같아야 서브프로세스 경고와 **같은 출처 규율** 로 판정된다.
@@ -311,6 +314,13 @@ class RunSummary:
     total_failed_tests: int = 0
     results: list[CheckResult] = field(default_factory=list)
     aborted_reason: str = ""    # resource guard 발동 시 사유 (빈 문자열이면 정상 완주)
+    repo_write: dict = field(default_factory=dict)
+    """저장소 write 감시 결과 (TASK-2026-09-22-main-008).
+
+    `measured=False` 면 **통과가 아니라 미측정** 이다 — 사유가 `reason` 에 있다.
+    `lingering` 은 실행 뒤에도 남은 변경(확실한 위반), `transient` 는 중간에만
+    보였다 사라진 것이다. 각 항목은 관측 시각에 돌던 검사를 `in_flight` 로 단다.
+    """
 
 
 @dataclass
@@ -552,7 +562,45 @@ def _kill_process_group(proc: subprocess.Popen) -> bool:
     return killed
 
 
+def _noted(watch, name: str):
+    """`run_one` 을 감시자에게 알리는 컨텍스트. 감시자가 없으면 아무것도 안 한다."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def _cm():
+        if watch is not None:
+            watch.note_start(name)
+        try:
+            yield
+        finally:
+            if watch is not None:
+                watch.note_end(name)
+
+    return _cm()
+
+
 def run_one(
+    check_path: Path,
+    timeout: int = 60,
+    *,
+    guard: "ResourceGuard | None" = None,
+    branch_context: "BranchContext | None" = None,
+    meta_dir: Path | None = None,
+    watch: "RepoWriteWatch | None" = None,
+) -> CheckResult:
+    """감시자에게 in-flight 를 알리고 실제 실행은 `_run_one` 에 맡긴다.
+
+    귀속의 근거가 이 구간이다 — 저장소 변경이 관측된 시각에 **어느 검사가 돌고
+    있었는지** 를 러너만 알 수 있다 (TASK-2026-09-22-main-008).
+    """
+    with _noted(watch, check_path.stem):
+        return _run_one(
+            check_path, timeout,
+            guard=guard, branch_context=branch_context, meta_dir=meta_dir,
+        )
+
+
+def _run_one(
     check_path: Path,
     timeout: int = 60,
     *,
@@ -897,6 +945,13 @@ def run_pass(
     results: list[CheckResult] = []
     aborted = ""
 
+    # **저장소 write 를 러너가 직접 본다** (TASK-2026-09-22-main-008).
+    # 예전에는 `check_no_repo_write` 가 표본 16개를 다시 돌려 봤고 그것이 전량
+    # 벽시계의 35%(76.7s)였다. 러너는 어차피 모든 검사를 서브프로세스로 돌리므로
+    # 여기서 보면 **전수**를 덮으면서 비용이 폴링 하나(실측 5.6s)로 준다.
+    watch = RepoWriteWatch(repo_root=SOURCE_ROOT.parent)
+    watch.start()
+
     # 정숙 구간이 필요한 check 는 병렬 구간에서 빼둔다 (jobs == 1 이면 가를 이유가 없다).
     quiet: list[Path] = []
     if jobs > 1:
@@ -908,7 +963,8 @@ def run_pass(
             if aborted:
                 break
             result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
-                             guard=guard, branch_context=branch_context, meta_dir=meta_dir)
+                             guard=guard, branch_context=branch_context, meta_dir=meta_dir,
+                             watch=watch)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break
@@ -917,7 +973,8 @@ def run_pass(
         with ThreadPoolExecutor(max_workers=jobs) as pool:
             futures = {
                 pool.submit(run_one, path, timeout=effective_timeout(path, args.timeout),
-                            guard=guard, branch_context=branch_context, meta_dir=meta_dir): path
+                            guard=guard, branch_context=branch_context, meta_dir=meta_dir,
+                            watch=watch): path
                 for path in checks
             }
             for fut in as_completed(futures):
@@ -942,14 +999,66 @@ def run_pass(
             if aborted:
                 break
             result = run_one(check_path, timeout=effective_timeout(check_path, args.timeout),
-                             guard=guard, branch_context=branch_context, meta_dir=meta_dir)
+                             guard=guard, branch_context=branch_context, meta_dir=meta_dir,
+                             watch=watch)
             results.append(result)
             if args.fail_fast and result.exit_code != 0:
                 break
 
     summary = aggregate(results, time.time() - start)
     summary.aborted_reason = aborted
+    summary.repo_write = watch.stop()
     return summary
+
+
+def repo_write_verdict(passes: "list[tuple[str, RunSummary]]") -> tuple[list[str], list[str]]:
+    """저장소 write 감시를 게이트 신호로 (TASK-2026-09-22-main-008).
+
+    `(치명, 보고만)`. **끝까지 남은 변경(`lingering`)은 red** 다 — 전량 실행은
+    저장소를 건드리면 안 되고, 그 오염이 릴리스 커밋에 흡수된 사고가 실제로
+    있었다. `transient` 는 보고만 한다: 폴링은 타이밍 의존이라 놓칠 수 있고
+    (음성이 증명이 아니다), 알려진 touch-and-restore 도 있다.
+
+    **미측정을 통과로 세지 않는다** — git 을 못 읽었으면 그 사실을 red 로 올린다.
+    """
+    fatal: list[str] = []
+    reported: list[str] = []
+    for label, summary in passes:
+        info = summary.repo_write or {}
+        if not info:
+            continue
+        if not info.get("measured"):
+            fatal.append(f"[{label}] 저장소 write 를 재지 못했다 — {info.get('reason', '사유 없음')}")
+            continue
+        for line in info.get("lingering", []):
+            fatal.append(f"[{label}] 실행 뒤에도 남은 저장소 변경: {line}")
+        for item in info.get("transient", []):
+            # **미지의 transient 는 red 다.** 되돌려 놓으면 `git status` 가 오히려
+            # 깨끗해 보여 더 위험하다 — 미커밋 작업이 사라진 사고가 그 모양이었다.
+            # 구조적으로 불가피한 것은 `KNOWN_TRANSIENT_PATHS` 원장에 이유와 함께.
+            flight = ", ".join(item.get("in_flight", [])) or "(알 수 없음)"
+            fatal.append(
+                f"[{label}] 실행 중 저장소를 건드렸다 되돌렸다: {item['line']} — "
+                f"그때 돌던 검사: {flight}"
+            )
+        for item in info.get("known_transient", []):
+            reported.append(f"[{label}] 알려진 접촉: {item['line']} — {item['reason']}")
+    return fatal, reported
+
+
+def print_repo_write_report(fatal: list[str], reported: list[str]) -> None:
+    if not fatal and not reported:
+        return
+    print("\n  --- 저장소 write 감시 (TASK-2026-09-22-main-008) ---")
+    for line in fatal:
+        print(f"  \u2717 {line}")
+    if fatal:
+        print("    전량 실행은 저장소를 건드리지 않는다. 범인을 좁히려면 위 "
+              "`그때 돌던 검사` 들만 `--filter` 로 직렬 재실행한다")
+    for line in reported[:5]:
+        print(f"  ~ {line}")
+    if len(reported) > 5:
+        print(f"    (그 밖 {len(reported) - 5}건)")
 
 
 def warning_verdict(
@@ -1182,6 +1291,7 @@ def main() -> int:
 
     warn_gated, warn_reported = warning_verdict(passes, SOURCE_ROOT.parent,
                                                 PARENT_WARNINGS)
+    write_fatal, write_reported = repo_write_verdict(passes)
 
     if args.json:
         meta_json = {"violations": meta_violations, "warns": meta_warns,
@@ -1192,13 +1302,16 @@ def main() -> int:
             print(json.dumps(
                 {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes],
                  "meta_watch": meta_json,
-                 "warnings": {"gated": warn_gated, "third_party": warn_reported}},
+                 "warnings": {"gated": warn_gated, "third_party": warn_reported},
+                 "repo_write": {"fatal": write_fatal, "reported": write_reported}},
                 ensure_ascii=False, indent=2,
             ))
         else:
             print(json.dumps({**asdict(passes[0][1]), "meta_watch": meta_json,
                               "warnings": {"gated": warn_gated,
-                                           "third_party": warn_reported}},
+                                           "third_party": warn_reported},
+                              "repo_write": {"fatal": write_fatal,
+                                             "reported": write_reported}},
                              ensure_ascii=False, indent=2))
     else:
         for label, summary in passes:
@@ -1208,6 +1321,7 @@ def main() -> int:
         if meta_dir is not None:
             print_meta_watch(meta_violations, meta_warns, meta_counts)
         print_warning_report(warn_gated, warn_reported)
+        print_repo_write_report(write_fatal, write_reported)
 
     if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
@@ -1215,6 +1329,8 @@ def main() -> int:
         return 1    # 좁은 선언은 red 다 — 조용히 안 도는 검사를 만들기 전에 잡는다
     if warn_gated:
         return 1    # 저장소 코드의 경고는 red 다 — exit 0 이라 종료 코드 축에는 안 잡힌다
+    if write_fatal:
+        return 1    # 전량 실행이 저장소를 건드렸다 (또는 그것을 재지 못했다)
     return 0 if all(s.failed == 0 for _, s in passes) else 1
 
 

@@ -47,6 +47,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-22-main-008 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)
 - TASK-2026-09-22-main-007 CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복
 - TASK-2026-09-22-main-006 뒤처진 스탬프 소급 교정 — doc-headers-update 범위를 손 목록에서 파생으로
 - TASK-2026-09-22-main-005 CI smoke red — check_release_pipeline_version_flag 의 dist TOCTOU 경합, main-004 가 창을 9초로 벌렸다
@@ -56,7 +57,6 @@
 - TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다
 - TASK-2026-09-21-main-009 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다
 - TASK-2026-09-21-main-008 경고 게이트가 두 구멍으로 눈이 먼다 — 부모 프로세스 경고 미수집(kit 44/196) + 판정이 __pycache__ 에 달려 1차 red → 2차 green
-- TASK-2026-09-21-main-007 해석기별로 갈리는 경고가 게이트 신호가 아니다 — SyntaxWarning 류는 exit 0 이라 4셀 전부 green 이었다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

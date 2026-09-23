@@ -214,6 +214,26 @@ CI 셀은 병렬이라 wall-clock 이 늘지 않는다.
 경고가 **실제로 났는지 단언**하므로 '의도한 것' 과 '모르고 낸 것' 이 같은 모양이
 되지 않는다. 면제 registry 는 두지 않는다 — 저장소 안 경고 베이스라인이 0 이다.
 
+### Requirement: cli-must-reject-unknown-flags
+
+CLI 는 **모르는 인자를 거절한다.** 조용히 버리면 사용자가 요청한 것과 다른 일을
+하면서 성공을 보고한다 — 2026-09-23 v1.11.0 발행 준비에서
+`wk release-bump --version 1.11.0 --apply` 가 그랬다. 실제 플래그는 `--to` 였고,
+도구는 `--version` 을 버린 뒤 patch 자동 증가를 하고 post-step 이
+`git commit --amend` 로 직전 커밋을 덮었다.
+
+허용집합은 **소스에서 파생**한다 (`cli_registry.known_flags_for`): 자기 docstring
+의 `--flag` 표기 ∪ 자기 본문의 `_parse_flag`/`_has_flag` 리터럴 ∪ 같은 모듈 `_`
+헬퍼의 리터럴. 손 목록은 반드시 갈라진다. 호출한 헬퍼만으로 좁히지 않는다 —
+함수를 인자로 받는 래퍼 하나에 호출그래프 파생이 풀린다.
+
+argparse 기반 커맨드는 **자기 파서가 이미 거절**하므로 가드를 켜지 않는다.
+켜면 argparse 의 풍부한 `--help` 를 빈약한 docstring 으로 덮는다. 다만 그
+'이미 거절한다' 는 **가정이 아니라 측정**이어야 한다 — 검사가 전수로 확인한다.
+
+거절 메시지는 **받는 목록을 함께 낸다.** 무엇이 틀렸는지만 알려주고 무엇이 맞는지
+안 알려주면 사용자는 다시 추측한다.
+
 ### Requirement: retrieval-must-return-what-it-matched
 
 memory_index 검색은 **자기가 집은 것을 돌려준다.** cue 가 맞은 entry(seed)는

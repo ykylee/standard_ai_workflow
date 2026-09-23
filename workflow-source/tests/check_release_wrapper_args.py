@@ -59,6 +59,20 @@ PIPELINE_PY = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline.py"
 LIB_PY = SOURCE_ROOT / "workflow_kit" / "tools" / "release_pipeline_lib.py"
 
 
+def _pathspec_resolves(paths: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+    """`cwd` 기준으로 pathspec 들이 해석되는가 — **index 락을 잡지 않고** 판정한다.
+
+    `git add --dry-run` 은 dry-run 이어도 index 락을 잡아 병렬 구간에서 터진다.
+    `ls-files` 는 같은 pathspec 해석기를 쓰면서 읽기만 한다 (case 6c 가 둘의
+    판정 일치를 tmp repo 로 고정한다).
+    """
+    return subprocess.run(
+        ["git", "ls-files", "--error-unmatch", "--cached", "--others",
+         "--exclude-standard", "--", *paths],
+        capture_output=True, text=True, timeout=30, cwd=str(cwd),
+    )
+
+
 def _cmd_arg_attrs() -> dict[str, set[str]]:
     """release_pipeline 의 각 `cmd_*` 가 읽는 `args.X` 이름."""
     tree = ast.parse(PIPELINE_PY.read_text(encoding="utf-8"))
@@ -81,7 +95,12 @@ def _cmd_arg_attrs() -> dict[str, set[str]]:
 def main() -> int:
     failures: list[str] = []
 
+    ran: list[str] = []
+
     def check(label: str, cond: bool, detail: str = "") -> None:
+        # 총 개수는 **실제로 발화된 check 수**다 (2026-09-23: 상수 11 인 채로 case 를
+        # 늘려 12 PASS 에 '11/11' 을 찍었다). 생략 분기도 check() 로 통과시켜 센다.
+        ran.append(label)
         if cond:
             print(f"PASS: {label}")
         else:
@@ -171,30 +190,61 @@ def main() -> int:
     #    full list 가 아니라 needs_add_only 선별을 쓴다 — production (amend Guard 2)
     #    이 실제로 add 하는 집합이 이것이고, staged 삭제가 섞인 full list 는
     #    pathspec fatal 이 정상이다 (그 함정은 case 10 이 tmp repo 로 고정한다).
+    #    **`git add --dry-run` 은 쓰지 않는다** — dry-run 이어도 index 락을 잡아,
+    #    병렬 구간에서 다른 검사와 부딪히면 `fatal: Unable to create .git/index.lock`
+    #    으로 red 가 된다 (2026-09-23 CI slash/py3.11 셀 실측, TASK-...-main-002).
+    #    `ls-files --error-unmatch` 는 같은 pathspec 해석기를 쓰면서 index 를 읽기만
+    #    한다 — 락을 쥔 채 실측하면 add 는 rc=128, ls-files 는 rc=0 이었다.
+    #    대체가 원래 결함을 여전히 볼 수 있는지는 case 6c 가 따로 증인을 세운다.
     add_targets = rp._git_dirty_paths(needs_add_only=True)
     if add_targets:
-        proc = subprocess.run(
-            ["git", "add", "--dry-run", "--", *add_targets],
-            capture_output=True, text=True, timeout=30, cwd=str(toplevel),
-        )
+        proc = _pathspec_resolves(add_targets, cwd=toplevel)
         check(
-            "6) add 대상 선별을 toplevel cwd 에서 git add 할 수 있다",
+            "6) add 대상 선별이 toplevel cwd 에서 pathspec 으로 해석된다",
             proc.returncode == 0,
             f"rc={proc.returncode} stderr={proc.stderr[:160]}",
         )
         # 반대로 REPO_ROOT(=workflow-source) 에서 하면 실패해야 정상 — 그게 v1.1.2 의 버그다.
-        proc_bad = subprocess.run(
-            ["git", "add", "--dry-run", "--", *add_targets],
-            capture_output=True, text=True, timeout=30, cwd=str(rp.REPO_ROOT),
-        )
+        proc_bad = _pathspec_resolves(add_targets, cwd=rp.REPO_ROOT)
         check(
-            "6b) 같은 경로를 workflow-source/ 에서 add 하면 실패한다 (버그 재현)",
+            "6b) 같은 경로를 workflow-source/ 에서 해석하면 실패한다 (버그 재현)",
             proc_bad.returncode != 0,
             "이게 성공하면 두 기준이 우연히 같아진 것 — case 6 의 의미가 사라진다",
         )
     else:
-        print("PASS: 6) (add 대상 없음 — 생략)")
-        print("PASS: 6b) (add 대상 없음 — 생략)")
+        check("6) (add 대상 없음 — 생략)", True)
+        check("6b) (add 대상 없음 — 생략)", True)
+
+    # 6c) **대체 수단의 외부 증인.** 락 경합이 없는 tmp repo 에서, 추적/미추적이
+    #     섞인 대상에 대해 `ls-files --error-unmatch` 와 `git add --dry-run` 이
+    #     **두 cwd 방향 모두에서 같은 판정**을 내는지 잰다. 이게 갈리면 case 6 은
+    #     production 이 실제로 하는 일(`git add`)을 더 이상 대리하지 못한다.
+    with tempfile.TemporaryDirectory() as td6:
+        root6 = Path(td6) / "repo"
+        (root6 / "sub").mkdir(parents=True)
+        def _g6(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(["git", *args], cwd=str(cwd),
+                                  capture_output=True, text=True, timeout=30)
+        _g6("init", "-q", ".", cwd=root6)
+        _g6("config", "user.email", "t@example.com", cwd=root6)
+        _g6("config", "user.name", "t", cwd=root6)
+        (root6 / "tracked.md").write_text("a\n", encoding="utf-8")
+        _g6("add", "tracked.md", cwd=root6)
+        _g6("commit", "-qm", "init", cwd=root6)
+        (root6 / "tracked.md").write_text("a\nb\n", encoding="utf-8")   # 수정된 추적 파일
+        (root6 / "untracked.md").write_text("c\n", encoding="utf-8")     # 미추적 파일
+        probe = ["tracked.md", "untracked.md"]
+        agree = []
+        for cwd6 in (root6, root6 / "sub"):
+            ls_rc = _g6("ls-files", "--error-unmatch", "--cached", "--others",
+                        "--exclude-standard", "--", *probe, cwd=cwd6).returncode
+            add_rc = _g6("add", "--dry-run", "--", *probe, cwd=cwd6).returncode
+            agree.append(((ls_rc == 0) == (add_rc == 0), cwd6.name, ls_rc, add_rc))
+        check(
+            "6c) 대체 수단이 git add 와 같은 판정을 낸다 (두 cwd 방향)",
+            all(a[0] for a in agree),
+            f"불일치={[a for a in agree if not a[0]]} 전체={agree}",
+        )
 
     # 7) read-only wrapper 실호출 — AttributeError 류를 잡는다
     errors: list[str] = []
@@ -299,7 +349,7 @@ def main() -> int:
             f"full={full} sel={sel} trap_rc={proc_trap.returncode} fix_rc={proc_fix.returncode}",
         )
 
-    total = 11
+    total = len(ran)
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

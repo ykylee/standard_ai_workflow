@@ -4,7 +4,7 @@
 부재였다. W-1 은 handoff §4 의 완료 작업을 기존 entry corpus 와 대조해
 "index 가 모르는 것" 을 **advisory 로만** 제안한다 — 자동 적재는 하지 않는다.
 
-검증 케이스 (9):
+검증 케이스 (11):
     1. 기존 entry 가 덮는 제목 → 후보 아님 (covered)
     2. index 가 모르는 제목 → 후보 + cue 제안 (stopword/숫자 제외)
     3. §4 섹션 부재 → compared 0, 오류 없음
@@ -16,6 +16,9 @@
     8. CLI — --json 파싱 + handoff 부재 시 status=error / exit 1
     9. 무인자 기본 경로 — cwd 의 작업 저장소 + 브랜치 인식 handoff 해석,
        path_source 명시 (main-023 — 모듈 위치 파생 기본값 결함의 재발 방지)
+   10. 판정은 인용이지 어휘가 아니다 — 어휘 겹침 0 + 인용 → 덮임,
+       어휘만 겹치고 인용 없음 → 후보 그대로 (main-003)
+   11. 인용 없는 entry 는 '안 덮음' 이 아니라 미측정으로 보고된다
 
 Stdlib only (+ subprocess 로 CLI 실측).
 """
@@ -57,12 +60,17 @@ HANDOFF = """# Session Handoff
 """
 
 
-def _write_entry(entries_dir: Path, entry_id: str, abstraction: str, anchors: list[str]) -> None:
+def _write_entry(entries_dir: Path, entry_id: str, abstraction: str, anchors: list[str],
+                 cites: list[str] | None = None) -> None:
+    """`cites` 는 이 entry 가 출처로 인용하는 task id 들 — **coverage 선언**이다
+    (TASK-2026-09-23-main-003). 어휘 겹침이 아니라 이 인용이 판정의 정본이다."""
     entries_dir.mkdir(parents=True, exist_ok=True)
     (entries_dir / f"{entry_id}.json").write_text(json.dumps({
         "id": entry_id,
         "schema_version": 1,
-        "source_paths": [],
+        "source_paths": [
+            f"ai-workflow/memory/active/main/backlog/tasks/{t}.md" for t in (cites or [])
+        ],
         "primary_abstraction": abstraction,
         "cue_anchors": anchors,
         "value_digest": "",
@@ -78,7 +86,12 @@ def _write_entry(entries_dir: Path, entry_id: str, abstraction: str, anchors: li
 def main() -> int:
     failures: list[str] = []
 
+    ran: list[str] = []
+
     def check(label: str, cond: bool, detail: str = "") -> None:
+        # 총 개수는 **실제로 발화된 check 수**다. 상수로 두면 case 를 늘려도
+        # 요약이 옛 숫자를 찍는다 (2026-09-23 실측: case 11개에 '9/9 PASS').
+        ran.append(label)
         if cond:
             print(f"PASS: {label}")
         else:
@@ -92,15 +105,16 @@ def main() -> int:
             entries_dir, "MEM-2026-01-05-002",
             "registry federation 정공법 merge_entries",
             ["registry", "federation", "merge_entries"],
+            cites=["TASK-2026-01-05-main-001"],
         )
         entries = load_memory_index(ws)
 
         result = suggest_memory_entry_candidates(entries, HANDOFF, date_str="2026-01-05")
         by_id = {str(c["task_id"]): c for c in result["candidates"]}  # type: ignore[union-attr]
 
-        # 1) 덮인 제목은 후보가 아니다
+        # 1) **인용된** task 는 후보가 아니다 (선언 판정 — main-003)
         check(
-            "1) 기존 entry 가 덮는 제목 → covered",
+            "1) entry 가 인용한 task → covered",
             "TASK-2026-01-05-main-001" not in by_id and result["covered"] == 1,
             f"covered={result['covered']} candidates={sorted(by_id)}",
         )
@@ -155,11 +169,14 @@ def main() -> int:
             f"capped={len(capped['candidates'])} total={capped['candidates_total']} covs={coverages}",  # type: ignore[arg-type]
         )
 
-        # 7) 되주입 — novel 을 아는 entry 를 넣으면 후보에서 사라진다
+        # 7) 되주입 — 그 task 를 **인용하는** entry 를 넣으면 후보에서 사라진다.
+        #    예전에는 '제목과 어휘가 겹치는 entry' 를 넣어 확인했는데, 그 판정이
+        #    기능어 잡음으로 아무것도 못 잡는다는 것이 2026-09-23 실측이다.
         _write_entry(
             entries_dir, "MEM-2026-01-05-005",
             "학습회 발표자료 슬라이드 레이아웃",
             ["학습회", "발표자료", "슬라이드", "레이아웃", "개편", "38장"],
+            cites=["TASK-2026-01-05-main-002"],
         )
         entries2 = load_memory_index(ws)
         result2 = suggest_memory_entry_candidates(entries2, HANDOFF, date_str="2026-01-05")
@@ -168,6 +185,42 @@ def main() -> int:
             "7) 되주입 — corpus 에 넣으면 후보가 사라진다",
             "TASK-2026-01-05-main-002" not in ids2 and result2["covered"] == 2,
             f"ids={sorted(ids2)} covered={result2['covered']}",
+        )
+
+        # 10) **어휘가 하나도 안 겹쳐도 인용하면 덮는다 / 겹쳐도 인용 없으면 후보다.**
+        #     이 case 가 없으면 판정이 어휘 겹침으로 되돌아가도 아무도 모른다 —
+        #     실제로 2026-09-23 이전 판정은 매 세션 '0건 덮임' 상수를 냈고 그
+        #     겹침의 내용은 '자기'·'판정이' 같은 기능어였다.
+        _write_entry(
+            entries_dir, "MEM-2026-01-05-006",
+            "zzz unrelated abstraction qqq",     # 제목과 공유 토큰 0
+            ["zzz", "qqq"],
+            cites=["TASK-2026-01-05-main-003"],
+        )
+        entries3 = load_memory_index(ws)
+        result3 = suggest_memory_entry_candidates(entries3, HANDOFF, date_str="2026-01-05")
+        ids3 = {str(c["task_id"]) for c in result3["candidates"]}  # type: ignore[union-attr]
+        # 인용 없이 어휘만 겹치는 entry — 덮지 못해야 한다
+        _write_entry(
+            entries_dir, "MEM-2026-01-05-007",
+            "학습회 발표자료 슬라이드 레이아웃 개편",
+            ["학습회", "발표자료", "슬라이드"],
+        )
+        entries4 = load_memory_index(ws)
+        result4 = suggest_memory_entry_candidates(entries4, HANDOFF, date_str="2026-01-05")
+        ids4 = {str(c["task_id"]) for c in result4["candidates"]}  # type: ignore[union-attr]
+        check(
+            "10) 판정은 인용이지 어휘가 아니다",
+            "TASK-2026-01-05-main-003" not in ids3 and ids4 == ids3,
+            f"어휘0+인용 → 덮임? {'TASK-2026-01-05-main-003' not in ids3} · "
+            f"어휘만 추가해도 불변? {ids4 == ids3} (ids3={sorted(ids3)} ids4={sorted(ids4)})",
+        )
+
+        # 11) 인용 없는 entry 는 '안 덮음' 이 아니라 **미측정**으로 센다.
+        check(
+            "11) 인용 없는 entry 는 미측정으로 보고된다",
+            result4["entries_without_task_citation"] == 1,
+            f"미측정={result4.get('entries_without_task_citation')} (007 하나여야 한다)",
         )
 
         # 8) CLI — --json + error path
@@ -239,7 +292,7 @@ def main() -> int:
                 f"err={noarg_payload.get('error')!r}",
             )
 
-    total = 9
+    total = len(ran)
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

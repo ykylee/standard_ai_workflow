@@ -35,9 +35,11 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-07-main-009"
+      "TASK-2026-09-07-main-009",
+      "TASK-2026-09-23-main-002"
     ],
     "recent_done_items": [
+      "TASK-2026-09-23-main-003 — memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로",
       "TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다",
       "TASK-2026-09-22-main-008 — 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)",
       "TASK-2026-09-22-main-007 — CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복",
@@ -46,20 +48,20 @@
       "TASK-2026-09-22-main-004 — 스탬프 판정이 자기 이름과 어긋난다 — '마지막 내용 변경' 이 실은 '마지막 커밋' 이고, 그래서 소급 교정이 성립하지 않는다",
       "TASK-2026-09-22-main-003 — runtime_load 의 mtime 폴백이 병합 복사 채널에서 낡은 설치 시각을 낸다 — 낡은 호스트를 최신으로 오판한다",
       "TASK-2026-09-22-main-002 — doc-headers-update --apply 가 내용이 안 바뀐 문서 100개의 스탬프를 올린다 — 거짓 '오늘 수정됨'",
-      "TASK-2026-09-22-main-001 — consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다",
-      "TASK-2026-09-21-main-009 — 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다"
+      "TASK-2026-09-22-main-001 — consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-23.md",
-    "task_count": 2,
+    "task_count": 4,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-22-main-007 — CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복",
-      "TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다"
+      "TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다",
+      "TASK-2026-09-23-main-003 — memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로"
     ]
   },
   "next_documents": [
@@ -619,6 +621,9 @@
       "id": "MEM-2026-09-23-001",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-21-main-008.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-005.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "A green summary is not a green verdict",
@@ -653,6 +658,7 @@
       "id": "MEM-2026-09-23-002",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-007.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "Passing and doing-what-was-intended are different questions",
@@ -685,6 +691,8 @@
       "id": "MEM-2026-09-23-003",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-002.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-004.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "A rule the writer cannot read is not enforced",
@@ -718,6 +726,7 @@
       "id": "MEM-2026-09-23-004",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-005.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "Local green and CI green can walk different branches",
@@ -749,6 +758,7 @@
       "id": "MEM-2026-09-23-005",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "Optimize the distribution, not the count",
@@ -782,6 +792,8 @@
       "id": "MEM-2026-09-23-006",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-003.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "Porting a mechanism silently drops its contract",
@@ -814,6 +826,7 @@
       "id": "MEM-2026-09-23-007",
       "schema_version": 1,
       "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-001.md",
         "ai-workflow/memory/active/main/session_handoff.md"
       ],
       "primary_abstraction": "A lexical-overlap metric measures nothing and reports a constant",

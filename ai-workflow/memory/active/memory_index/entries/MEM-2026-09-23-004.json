@@ -2,6 +2,7 @@
   "id": "MEM-2026-09-23-004",
   "schema_version": 1,
   "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-005.md",
     "ai-workflow/memory/active/main/session_handoff.md"
   ],
   "primary_abstraction": "Local green and CI green can walk different branches",

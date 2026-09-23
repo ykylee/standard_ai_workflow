@@ -47,6 +47,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-23-main-003 memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로
 - TASK-2026-09-23-main-001 memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다
 - TASK-2026-09-22-main-007 CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복
 - TASK-2026-09-22-main-008 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)
@@ -56,7 +57,6 @@
 - TASK-2026-09-22-main-002 doc-headers-update --apply 가 내용이 안 바뀐 문서 100개의 스탬프를 올린다 — 거짓 '오늘 수정됨'
 - TASK-2026-09-22-main-003 runtime_load 의 mtime 폴백이 병합 복사 채널에서 낡은 설치 시각을 낸다 — 낡은 호스트를 최신으로 오판한다
 - TASK-2026-09-22-main-001 consumer-metrics-digest 가 8월부터 만성 red — 주간 cron 이 issue post 단계에서 죽는다
-- TASK-2026-09-21-main-009 하한 호환 축의 범위가 workflow-source/ 로 좁다 — git 추적 소스 8개가 그 밖에 있다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

@@ -21,6 +21,7 @@ from typing import Final, TypedDict
 from workflow_kit.common.atomic_write import atomic_write_json, atomic_write_text
 from workflow_kit.common.schemas.base import Status
 from workflow_kit.common.paths import memory_active_dir
+from workflow_kit.common.project_docs import TASK_ID_PATTERN
 from workflow_kit.common.schemas.memory_index import (
     MemoryEntry,
     MemoryIndexOutput,
@@ -873,6 +874,26 @@ def _next_entry_id(entries: list[MemoryEntry], date_str: str) -> str:
     return f"{prefix}{(max(used) + 1) if used else 1:03d}"
 
 
+#: task id 문법의 정본은 `project_docs.TASK_ID_PATTERN` 하나다 — 여기서 다시 쓰면
+#: 채번 쪽이 문법을 넓혀도 이 판정만 조용히 옛 문법에 남는다
+#: (check_convention_single_source 가 사본을 잡는다).
+_TASK_ID_RE: Final = re.compile(TASK_ID_PATTERN)
+
+
+def _cited_task_ids(entry: "MemoryEntry") -> list[str]:
+    """entry 가 source_paths 로 인용한 task id 들.
+
+    이 인용이 곧 "이 task 의 교훈을 담았다" 는 **선언**이고, 승격 후보 판정의
+    정본이다 (TASK-2026-09-23-main-003).
+    """
+    found: list[str] = []
+    for path in getattr(entry, "source_paths", None) or []:
+        for match in _TASK_ID_RE.findall(str(path)):
+            if match not in found:
+                found.append(match)
+    return found
+
+
 def suggest_memory_entry_candidates(
     entries: list[MemoryEntry],
     handoff_text: str,
@@ -888,10 +909,26 @@ def suggest_memory_entry_candidates(
     entry 의 primary_abstraction/value_digest 는 *무엇이 기억할 가치가 있는가*
     라는 판단이고, 도구가 대신 쓰면 거짓이 된다.
 
-    판정: handoff §4 (최근 완료 작업) 의 제목 token 이 기존 entry corpus
-    (`primary_abstraction + cue_anchors + value_digest`) 로 얼마나 덮이는지
-    (coverage = |제목 ∩ entry| / |제목|). 최대 coverage 가 threshold 미만이면
-    후보. 후보에는 스키마 모양의 skeleton 을 함께 준다 — 채우는 건 사람이다.
+    판정은 **선언**이다 (TASK-2026-09-23-main-003). entry 의 `source_paths` 가
+    자기가 어느 task 에서 나왔는지 인용하므로, 그 인용이 곧 "이 task 의 교훈을
+    담았다" 는 선언이다. 어떤 entry 도 인용하지 않는 task 만 후보다.
+
+    **왜 어휘 겹침을 버렸는가** (2026-09-23 실측): 예전 판정은
+    coverage = |제목 토큰 ∩ entry 토큰| / |제목 토큰| 이었고 매 세션
+    "10건 중 덮인 것 0건" 이라는 **상수**를 냈다. 평균 0.22 · 최대 0.40 으로
+    구조적 0 은 아니지만 임계 0.5 를 영영 못 넘었고, 더 결정적으로 그 겹침의
+    내용이 '자기' · '판정이' · 'red' · '두' · '가' 같은 **기능어**였다.
+    입력 쌍도 어긋나 있었다 — entry 는 영어 추상화와 영어 kebab cue, 비교 대상은
+    한국어 task 제목이라 cue_anchors 기여가 0.062 였다. 81차가 graph_insights
+    에서 고친 것과 같은 결함족이고, 거기서도 답은 선언이었다.
+
+    **인용이 없는 entry 는 '안 덮음' 이 아니라 미측정이다.** 초기 entry 8건은
+    task 인용 규약이 생기기 전에 만들어졌다. 그것을 "아무것도 안 덮는다" 로 세면
+    거짓이 되므로 entries_without_task_citation 으로 세어 내보낸다.
+
+    후보에는 스키마 모양의 skeleton 을 함께 준다 — 채우는 건 사람이다. skeleton 의
+    source_paths 는 그 task 파일을 **미리 채워** 둔다. 승격하면서 인용을
+    빠뜨리면 다음 세션이 같은 task 를 다시 제안하기 때문이다 (85차가 실제로 그랬다).
 
     Returns:
         ``{"candidates": [...], "compared": int, "covered": int,
@@ -904,6 +941,19 @@ def suggest_memory_entry_candidates(
     section = extract_section(handoff_text, "최근 완료 작업")
     titles = extract_task_titles(section)
 
+    # 선언: entry 가 source_paths 로 인용한 task id 집합.
+    cited: dict[str, list[str]] = {}
+    without_citation: list[str] = []
+    for entry in entries:
+        ids = _cited_task_ids(entry)
+        if not ids:
+            without_citation.append(entry.id)
+        for tid in ids:
+            cited.setdefault(tid, []).append(entry.id)
+
+    # 어휘 겹침은 **판정에서 빠졌지만** 근접 entry 힌트로는 남긴다 — 후보에
+    # related_ids 를 프리필해 신규 entry 가 링크를 갖고 태어나게 하는 용도다.
+    # 판정에 쓰지 않으므로 기능어 잡음이 통과를 만들지 못한다.
     entry_tokens: list[tuple[MemoryEntry, set[str]]] = [
         (e, set(_bm25_tokenize(_bm25_text_for_entry(e)))) for e in entries
     ]
@@ -915,6 +965,9 @@ def suggest_memory_entry_candidates(
         tokens = set(_bm25_tokenize(title))
         if not tokens:
             continue
+        if task_id in cited:
+            covered += 1
+            continue
         best_coverage = 0.0
         nearest: str | None = None
         overlapping: list[tuple[float, str]] = []
@@ -925,9 +978,6 @@ def suggest_memory_entry_candidates(
             if coverage > best_coverage:
                 best_coverage = coverage
                 nearest = entry.id
-        if best_coverage >= threshold:
-            covered += 1
-            continue
         # W-3: 부분적으로 겹치는 기존 entry 를 related_ids 후보로 프리필한다 —
         # 신규 entry 가 링크를 갖고 태어나야 expansion 이 산다. 최종 채택은
         # skeleton 을 채우는 사람이 결정한다 (advisory).
@@ -947,7 +997,10 @@ def suggest_memory_entry_candidates(
             "skeleton": {
                 "id": next_id,
                 "schema_version": 1,
-                "source_paths": ["<원문 경로 — task 파일 / 세션 기록>"],
+                # 출처 인용을 **미리 채운다** — 이것이 곧 coverage 선언이다.
+                "source_paths": [
+                    f"ai-workflow/memory/active/main/backlog/tasks/{task_id}.md"
+                ],
                 "primary_abstraction": f"<6-8 단어 canonical 요약: {title[:60]}>",
                 "cue_anchors": anchors[:_SUGGESTED_ANCHORS_CAP],
                 "value_digest": "<본문 1줄 요약 — 사람이 채울 것>",
@@ -968,6 +1021,8 @@ def suggest_memory_entry_candidates(
         "covered": covered,
         "threshold": threshold,
         "entries_loaded": len(entries),
+        # 인용 규약이 생기기 전의 entry — '안 덮음' 이 아니라 **미측정**이다.
+        "entries_without_task_citation": len(without_citation),
     }
 
 

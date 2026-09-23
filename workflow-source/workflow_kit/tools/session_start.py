@@ -118,7 +118,13 @@ def _build_memory_index_query_output(
         )
         return None
     try:
-        result = query_memory_index_for_dispatcher(target, query_tokens)
+        # **BM25 를 켠다** (TASK-2026-09-23-main-005). 이 caller 의 질의는 W-2 이후
+        # state.json 에서 유도한 **한국어 산문 token** 인데 `cue_anchors` 는 영문
+        # kebab 관례다 — 1단계(cue exact)는 구조적으로 못 맞춘다. 실측: 세 caller 가
+        # 전부 selected_count=0 을 받고 있었고 아무도 몰랐다. BM25 를 켜면 같은
+        # 질의가 4건을 집는다. 끄면 이 배선은 장식이다.
+        result = query_memory_index_for_dispatcher(
+            target, query_tokens, use_bm25_fallback=True)
         # Phase 13 AC2: telemetry emit (success path).
         append_telemetry_event(
             workspace_root,
@@ -136,7 +142,7 @@ def _build_memory_index_query_output(
                 expansion_hits=result.expansion_hits,
                 top_k=10,
                 max_depth=2,
-                use_bm25_fallback=False,
+                use_bm25_fallback=True,
             ),
         )
         return result.model_dump(mode="json")

@@ -214,6 +214,28 @@ CI 셀은 병렬이라 wall-clock 이 늘지 않는다.
 경고가 **실제로 났는지 단언**하므로 '의도한 것' 과 '모르고 낸 것' 이 같은 모양이
 되지 않는다. 면제 registry 는 두지 않는다 — 저장소 안 경고 베이스라인이 0 이다.
 
+### Requirement: retrieval-must-return-what-it-matched
+
+memory_index 검색은 **자기가 집은 것을 돌려준다.** cue 가 맞은 entry(seed)는
+확장분보다 **먼저** 오고, `cue_hits` 가 1 인데 그 1건이 결과에 없는 상태는 red 다.
+
+예전 선택은 `sorted(seed_and_linked)[:top_k]` 였다. ID 가 `MEM-<날짜>-<번호>` 라
+사전순 = 날짜순이고 이 저장소의 링크 관례는 최신 → 기존(단방향)이라 **확장분이
+항상 seed 보다 오래됐다** — entry 의 *정확한 cue* 로 질의해도 그 entry 가 상위 k
+에 한 번도 안 들었다 (2026-09-23 실측 3/3). 확장분끼리는 **hop 거리순**이다.
+
+cue 를 여러 entry 가 공유할 수 있으므로(실측 2건) 계약은 "내가 1등" 이 아니라
+**"seed 는 전부 확장분보다 앞"** 이다.
+
+**빈 결과는 사유를 내놓는다.** `selected_count: 0` 만으로는 색인이 빈 것인지,
+질의가 안 맞은 것인지, 단계가 꺼진 것인지 구분되지 않는다 — 셋의 처방이 다른데
+화면이 같아서 세 소비자(session-start / doc-sync / backlog-update)가 내내 0 을
+받으면서 아무도 몰랐다.
+
+**질의 유도는 한 출처가 상한을 독점하지 못한다.** `current_axis` 한 줄이 130
+token 이고 상한이 8이라 `done_items` 의 기여가 정확히 0 이었다 — ADR-006 W-2 가
+고치려던 '고정 질의' 가 이름만 바꿔 돌아온 것이다. 변하는 쪽이 몫을 갖는다.
+
 ### Requirement: check-summary-must-count-what-ran
 
 검사가 마지막에 찍는 `N/M PASS` 의 **M 은 실제로 발화한 case 수**여야 한다.

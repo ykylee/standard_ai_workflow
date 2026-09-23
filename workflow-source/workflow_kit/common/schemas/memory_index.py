@@ -131,6 +131,13 @@ class MemoryIndexQueryOutput(BaseOutput):
     bm25_hits: int = 0
     expansion_hits: int = 0
     expansion_depth_used: int = 0
+    # TASK-2026-09-23-main-005 (additive): **빈 결과는 사유를 내놓는다.**
+    # 예전에는 `selected_count: 0` 만 찍혀서, 질의가 안 맞은 것인지 색인이
+    # 비어 있는 것인지 단계가 꺼져 있는 것인지 구분할 수 없었다 — 세 소비자가
+    # 내내 0 을 받으면서 아무도 몰랐다. 구 라인은 빈 문자열로 하위호환.
+    empty_reason: str = Field(
+        default="", max_length=400,
+        description="selected 가 비었을 때의 사유 (빈 문자열이면 결과가 있었거나 구 라인)")
     source_context: dict[str, Any] = Field(default_factory=dict)
 
 

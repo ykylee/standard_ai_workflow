@@ -291,7 +291,7 @@ def _linked_expansion(
     seed_ids: set[str],
     entries_by_id: dict[str, MemoryEntry],
     max_depth: int,
-) -> tuple[set[str], int]:
+) -> tuple[set[str], int, dict[str, int]]:
     """3단계: `related_ids` + `mentioned_in` + `source_paths` 따라 1-hop expansion, `max_depth` cap.
 
     `related_ids` (W-3, 명시 링크) 는 id 그대로 lookup. `mentioned_in` /
@@ -300,9 +300,13 @@ def _linked_expansion(
     self-reference 는 cycle guard 가 visited set 으로 차단.
     """
     if max_depth <= 0 or not seed_ids:
-        return set(seed_ids), 0
+        return set(seed_ids), 0, {i: 0 for i in seed_ids}
     visited: set[str] = set(seed_ids)
     frontier: set[str] = set(seed_ids)
+    # hop 거리를 같이 들고 나온다 — 선택 순서를 **역할과 거리**로 정하기 위해서다
+    # (TASK-2026-09-23-main-005). 예전에는 seed 와 확장분을 합쳐 ID 사전순으로
+    # 잘라서, 날짜순 = ID순인 이 저장소에서 **매칭된 seed 자신이 밀려났다.**
+    depth_by_id: dict[str, int] = {i: 0 for i in seed_ids}
     used_depth = 0
     for _ in range(max_depth):
         if not frontier:
@@ -322,9 +326,11 @@ def _linked_expansion(
                     stem = stem[: -len(".json")]
                 if stem in entries_by_id and stem not in visited:
                     next_frontier.add(stem)
+        for nid in next_frontier:
+            depth_by_id.setdefault(nid, used_depth)
         visited.update(next_frontier)
         frontier = next_frontier
-    return visited, used_depth
+    return visited, used_depth, depth_by_id
 
 
 # --- Phase 2b: BM25 2단계 fallback (stdlib only, no external dep) ---
@@ -472,11 +478,21 @@ def query_memory_index(
             bm25_hits=bm25_added,
         )
 
-    expanded_ids, used_depth = _linked_expansion(seeds, entries_by_id, query.max_depth)
+    expanded_ids, used_depth, depth_by_id = _linked_expansion(
+        seeds, entries_by_id, query.max_depth)
     expansion_only = expanded_ids - seeds
     seed_and_linked = seeds | expansion_only
 
-    selected_ids = sorted(seed_and_linked)[: query.top_k]
+    # **seed 가 먼저다.** 질의가 실제로 집은 것이 seed 이고 확장분은 그 이웃일 뿐인데,
+    # 예전에는 둘을 합쳐 `sorted(...)` 로 잘랐다. ID 는 `MEM-<날짜>-<번호>` 라
+    # 사전순 = 날짜순이고, 이 저장소의 링크 관례는 최신 → 기존(단방향)이라
+    # **확장분이 항상 seed 보다 오래됐다** — 그래서 entry 의 *정확한 cue* 로
+    # 질의해도 그 entry 가 상위 k 에 한 번도 안 들었다 (2026-09-23 실측 3/3).
+    # `cue_hits=1` 을 보고하면서 그 1건을 안 돌려주는 상태였다.
+    selected_ids = (
+        sorted(seeds)
+        + sorted(expansion_only, key=lambda i: (depth_by_id.get(i, 99), i))
+    )[: query.top_k]
     selected: list[MemoryEntry] = [entries_by_id[i] for i in selected_ids if i in entries_by_id]
     selected, bm25_added = _bm25_fill(selected, seed_and_linked)
     return MemoryIndexQueryResult(
@@ -504,6 +520,38 @@ def memory_index_status(workspace_root: Path) -> MemoryIndexOutput:
     )
 
 
+def _explain_empty_selection(
+    workspace_root: Path,
+    query_tokens: list[str],
+    *,
+    use_bm25_fallback: bool,
+) -> str:
+    """빈 결과의 **사유**를 만든다 (TASK-2026-09-23-main-005).
+
+    `selected_count: 0` 만으로는 세 가지가 구분되지 않는다 — 색인이 비었는가,
+    질의가 안 맞았는가, 단계가 꺼져 있는가. 셋의 처방이 다른데 화면이 같아서
+    세 소비자가 내내 0 을 받으면서 아무도 몰랐다. **조용한 0 은 금지다.**
+    """
+    # 빈 query_tokens 분기는 두지 않는다 — `MemoryIndexQuery` 가 min_length=1 로
+    # 먼저 막아 **발화할 수 없는 코드**가 된다 (2026-09-23 실측 ValidationError).
+    entries = load_memory_index(workspace_root)
+    if not entries:
+        return "색인에 entry 가 없다 (memory_index/entries/ 가 비었거나 못 읽는다)"
+    anchors = build_cue_anchor_index(entries)
+    ascii_tokens = [t for t in query_tokens if t.isascii()]
+    hint = ""
+    if not ascii_tokens:
+        # cue_anchors 는 관례상 영문 kebab 이다. 한국어 token 만으로는 1단계가
+        # 구조적으로 못 맞춘다 — 이 경우 BM25 가 꺼져 있으면 결과는 **항상** 0 이다.
+        hint = (" · 질의가 전부 비-ASCII 인데 cue_anchors 는 영문 kebab 관례라 "
+                "1단계(cue exact)는 구조적으로 못 맞춘다")
+    if not use_bm25_fallback:
+        return (f"cue exact match 0/{len(anchors)} anchor, BM25 fallback 은 **꺼져 있다** "
+                f"(use_bm25_fallback=False){hint}")
+    return (f"cue exact match 0/{len(anchors)} anchor, BM25 도 점수 0 "
+            f"(질의 token 이 어떤 entry 본문에도 없다){hint}")
+
+
 def query_memory_index_for_dispatcher(
     workspace_root: Path,
     query_tokens: list[str],
@@ -524,9 +572,17 @@ def query_memory_index_for_dispatcher(
         use_bm25_fallback=use_bm25_fallback,
     )
     result = query_memory_index(workspace_root, query)
+    empty_reason = ""
+    warnings: list[str] = []
+    if not result.selected_entries:
+        empty_reason = _explain_empty_selection(
+            workspace_root, list(query_tokens), use_bm25_fallback=use_bm25_fallback)
+        warnings.append(f"memory_index retrieval 이 아무것도 고르지 못했다 — {empty_reason}")
     return MemoryIndexQueryOutput(
         tool_version=_WORKFLOW_KIT_VERSION,
         status=Status.OK,
+        warnings=warnings,
+        empty_reason=empty_reason,
         query_tokens=list(query_tokens),
         selected_ids=[e.id for e in result.selected_entries],
         selected_count=len(result.selected_entries),
@@ -1063,18 +1119,34 @@ def derive_context_query_tokens(
         return list(base_tokens), QUERY_SOURCE_DEFAULT
     session = data.get("session") or {}
     backlog = data.get("backlog") or {}
-    parts: list[str] = []
+    def _toks(parts: list[str]) -> list[str]:
+        return _dedupe_keep_order([
+            t for t in _bm25_tokenize(" ".join(parts))
+            if len(t) >= 2 and not t.isdigit() and t not in _ANCHOR_STOPWORDS
+        ])
+
     axis = session.get("current_axis")
-    if isinstance(axis, str):
-        parts.append(axis)
+    axis_tokens = _toks([axis]) if isinstance(axis, str) else []
     done_items = backlog.get("done_items")
-    if isinstance(done_items, list):
-        parts.extend(str(item) for item in done_items[:3])
-    tokens = [
-        t for t in _bm25_tokenize(" ".join(parts))
-        if len(t) >= 2 and not t.isdigit() and t not in _ANCHOR_STOPWORDS
-    ]
-    tokens = _dedupe_keep_order(tokens)[:max_tokens]
+    done_tokens = (
+        _toks([str(item) for item in done_items[:3]])
+        if isinstance(done_items, list) else []
+    )
+
+    # **두 출처에 각각 몫을 준다.** 예전에는 `axis + done` 을 이어 붙여 앞에서부터
+    # 잘랐는데, 이 저장소의 `current_axis` 는 한 줄이 **130 토큰**이라 상한 8을
+    # 혼자 다 먹었다 — `done_items` 의 기여가 **정확히 0** 이었고, 세 소비자
+    # (session-start / doc-sync / backlog-update)가 전부 같은 상수 질의를 냈다.
+    # 그건 ADR-006 W-2 가 고치려던 '고정 질의' 가 이름만 바뀌어 돌아온 것이다
+    # (TASK-2026-09-23-main-005 실측). 변하는 쪽(최근 완료)이 반은 차지해야
+    # 질의가 실제로 '지금 하는 일' 을 따라간다.
+    axis_quota = max_tokens // 2
+    picked = _dedupe_keep_order(
+        axis_tokens[:axis_quota] + done_tokens[: max_tokens - axis_quota]
+    )
+    if len(picked) < max_tokens:      # 한쪽이 짧으면 다른 쪽이 채운다
+        picked = _dedupe_keep_order(picked + axis_tokens + done_tokens)
+    tokens = picked[:max_tokens]
     if not tokens:
         return list(base_tokens), QUERY_SOURCE_DEFAULT
     return tokens, QUERY_SOURCE_CONTEXT

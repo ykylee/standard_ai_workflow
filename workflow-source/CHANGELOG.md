@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-22
+- 최종 수정일: 2026-09-23
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,14 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-22
+## [Unreleased] - 2026-09-23
 
 ### Added
 
+- feat(memory): memory_index 승격 4건 + 검색이 매칭된 entry 를 안 돌려주는 결함 노출 (f631c3c0)
+- feat(tests): 요약의 case 개수를 발화 수와 대조하는 축 (main-004) (88b92542)
+- feat(memory): memory_index 7건 승격 — 후보 판정식이 잡음이라 판단으로 골랐다 (main-001) (b7fd4b3a)
+- feat(ci): 하한 해석기를 CI 셀에 깔아 부분 측정을 전수로 (main-007) (a9fd2c9c)
 - feat(tests): 하한 호환 축의 범위를 저장소 루트 전수로 (main-009) (59e77dbd)
 - feat(tests): 컴파일 시점 경고를 캐시와 무관하게 재는 축 (main-008) (73e781fc)
 - feat(tests): 저장소 코드가 낸 Python 경고를 게이트 신호로 (main-007) (5205ba80)
@@ -42,14 +46,25 @@ All notable changes to this project will be documented in this file.
 - feat(doctor): 환경 pre-flight — 배포 축 gap 4개가 전부 닫혔다 (main-019) (c92d3c7b)
 - feat(doctor): 드리프트를 마커가 아니라 페이로드 해시로 본다 (main-005) (2f68fb2e)
 - feat(entrypoint): AGENTS.md 를 공유 진입점으로 합친다 (main-001, 08-18) (c55631f4)
-- feat(deploy): wk doctor — 배포 post-apply 탐침 (main-016, 컨셉 gap 1) (3b50ae95)
-- feat(plugin): pi.dev (pi-coding-agent) 11번째 분배 채널 정식 등록 (main-012) (6f2b5435)
-- feat(plugin): Grok Build 훅 관례 경로와 설치 채널을 연다 (ae9e1a73)
-- feat(memory): task SSOT 4단계 준비 — 정본 표 누락 라벨 보강 + 검사 범위 확대 (43fe58ce)
-- ... (138 more)
+- ... (142 more)
 
 ### Changed
 
+- chore(memory): main-006·main-007 승격 — 86차 세션 최종 (entry 27 → 29) (709eb23c)
+- chore(memory): 86차 세션 종료 마무리 — main-005 승격 + 기준선 정정 (3a92df61)
+- chore(memory): 86차 세션 종료 — 판정이 아무것도 재지 않던 결함족 3건 (c3a4b39c)
+- chore(memory): 85차 세션 종료 — memory_index 7건 승격 (749726ad)
+- chore(memory): main-007 완료 기준 4 실측 — CI 가 전수 측정을 돈다 (2eb0f44c)
+- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 결함 6건 + 전량 시간 -38% (780f7b9b)
+- perf(tests): 저장소 write 감시를 러너에 흡수 — 벽시계 221s → 138s (main-008) (709c792d)
+- chore(memory): main-006 task 기록 — 앞 커밋이 가리키던 task 가 없었다 (8923dcfc)
+- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 결함 5건 전부 close (005e2051)
+- chore(memory): main-005 close 기록 — 로컬 green 과 CI green 이 다른 경로였다 (b87770a6)
+- chore(memory): main-004 close 기록 — 84차에 연 4건 전부 닫힘 (9b7ab66e)
+- chore(memory): main-002 close 기록 — 84차에 연 3건 전부 닫힘 (3b1a88f6)
+- chore(memory): main-003 close 기록 — 84차 누적 3건 close (be4c4968)
+- chore(memory): main-001 close — 3개월 만의 첫 실제 게시를 실증으로 닫는다 (7c5601ca)
+- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 채널 재적용 + 절차가 드러낸 결함 3건 (ff55d8cc)
 - chore(backlog): consumer-metrics-digest 만성 red task 등록 (main-001) (9056b21e)
 - chore(memory): push 후 CI 실측 기록 + 83차 세션 최종 (main-009) (6ec86091)
 - chore(memory): push 후 CI 실측 기록 — smoke 4셀이 선언대로 떴다 (main-008) (5990b96c)
@@ -65,25 +80,24 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 79차 세션 종료 — 이 호스트 채널 5주 낡음 + 포크 병합 close-out (5354ea76)
 - chore(env): 이 호스트 채널 v1.9.4 재적용 + CLAUDE.md 포크 병합 (main-002, -003) (6dd4c681)
 - docs(sessions): 77차 세션 후반 기록 — 발행과 "성공했는데 틀린" 명령 (7a328527)
-- docs(install): §7.0.2 가 존재하지 않는 맨 marketplace 명령을 적고 있었다 (0bcd757e)
-- test(mcp): emit 산출물 전수를 win32 로 강제해 훑는 판정 — 수리를 지킬 자리가 비어 있었다 (3ae7bd04)
-- docs(sessions): 77차 세션 기록 — 오탐인 줄 알았던 지표가 결함이었다 (7c298998)
-- chore(memory): 76차 세션 종료 — 예제 산출물 드리프트에서 생성기 결함 2건을 파내 닫고 사본 1건·문서 오기 1건 정리 (fb9a6184)
-- docs(installation): §7.0.2 grok 복구 열이 registry id 를 주는 것처럼 읽히던 것을 고친다 (14422cc2)
-- chore(memory): 75차 세션 종료 — 손질 두 자리를 파생·판정으로 닫고 v1.9.2 발행·재적용 (0083eaaa)
-- chore(memory): 74차 세션 종료 — 잦던 불일치 보고를 도구 결함으로 확정·수리·발행·적용 (2e57ad45)
-- chore(memory): 72차 세션 종료 — 손 목록·리터럴·주장을 파생으로 전환 5건 + v1.8.1 발행 (0453dabf)
-- chore(memory): 전역 wk 1.8.0 재설치 + 새 탐침이 패키징 결함 적발 (main-001 등록) (bfd25c15)
-- chore(memory): 71차 — v1.8.0 발행 준비 완료 + 등급 전수 재평가 (main-005 in_progress) (6c495e61)
-- chore(memory): 66차 세션 종료 — 관찰 축 2건 정리 + meta-watch 선언 보급 완주 (task 4건 close) (f879150a)
-- chore(memory): 64차 세션 종료 — TDAD 축 M-008~M-012 완주 + v1.7.0 발행 (1f67f8e0)
-- chore(roadmap): M-012 close — v1.7.0 발행 사이클 종결 (main-010·011 done) (818e199d)
-- chore(roadmap): M-012 [release] 선언 + main-009 등록 (mcp 2.1.1 사건) (3669668b)
-- chore(roadmap): M-011 close — meta-watch 구현 축 완결 (main-008 done) (9c41b488)
-- ... (377 more)
+- ... (392 more)
 
 ### Fixed
 
+- fix(tests): 롤업 표식이 하나뿐이라 흐름을 못 갈랐다 (main-007) (6b7a941e)
+- fix(tests): case 수 대조 축의 범위를 실측으로 넓힌다 (main-006) + 86차 종료 (c3997a01)
+- fix(memory): 검색이 자기가 집은 것을 돌려주게 (main-005) (70a97a5d)
+- fix(tests): case 6 이 index 락을 잡아 병렬에서 터지던 것을 읽기 전용으로 (main-002) (f3ac2d13)
+- fix(memory): 승격 후보 판정을 어휘 겹침에서 선언으로 (main-003) (a5961bd2)
+- fix(tests): 하한 측정 모드를 요약 줄에 — green 이 승격의 증거가 아니었다 (main-007) (79b5ffd9)
+- fix(ci): sdist 빌드 산출물 ignore + 요약에 저장소 write 축 반영 (main-008) (d3ece239)
+- fix(ci): smoke.yml 의 연속 append 를 한 블록으로 — actionlint SC2129 (main-007) (16f9dab4)
+- fix(release): 스탬프 범위를 손 목록에서 파생으로 + 뒤처진 116건 소급 교정 (main-006) (df4a3d53)
+- fix(tests): version_flag 의 dist TOCTOU 제거 + 스탬프 판정 git 호출 1+N → 1 (main-005) (bee66a67)
+- fix(doc-stamp): '마지막 내용 변경' 이 실제로 내용 변경을 재게 한다 + 스탬프 97건 소급 교정 (main-004) (2cf73e87)
+- fix(release): 문서 스탬프를 뒤처진 것만 올린다 (main-002) (7b619a93)
+- fix(doctor): 설치 시각 폴백을 트리 최신 mtime 으로 (main-003) (625d0ee2)
+- fix(ci): digest 마커를 본문으로 — gh issue comment 에 없는 플래그였다 (main-001) (105f0043)
 - fix(tests): case 3 의 전제가 호스트 의존이었다 + 81차 세션 종료 (e2d6b0d3)
 - fix(docs): smoke 수 판정 범위를 포함 목록에서 전수 파생으로 (main-004) (d882b42a)
 - fix(doctor): content_drift 가 읽히지 않는 사본을 재고 있었다 — 소스 유형을 읽는다 (main-006) (3d5c7830)
@@ -100,26 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(checks): 문서 스탬프 기대값을 리터럴에서 git 파생으로 (main-002) (09a9df21)
 - fix(packaging): workflow_kit.cli 를 wheel 에 싣고, 손 목록을 디스크 대조로 대체 (main-001) (12b9f311)
 - fix(guarantee): 은퇴한 stable 행을 지우지 않는다 + v1.8.0 migration 절 (main-005) (2d8f4cad)
-- fix(doctor): 탐침이 자기 자신의 낡음을 잰다 — 버전 같고 내용 다름 (main-002) (c88c0890)
-- fix(doctor·backlog·docs): '존재가 정합으로 읽히는 자리' 3부류 + 69차 세션 종료 (main-001·003·004) (6d9ad763)
-- fix(release): pi 매니페스트 version 을 kit 에 묶는다 + 68차 세션 종료 (main-004) (0c86b51f)
-- fix(doctor): grok 설치본을 이름이 아니라 선언으로 찾는다 + 사본 0 채널의 침묵 제거 (main-002·003) (6efc45ec)
-- fix(paths): '자기 위치 오인' 결함족 전수 마감 — 진입점 7건 + 정적 게이트 (main-003·012·013) (cffce266)
-- fix(mcp): mcp 2.1.1 의 FastMCP 심볼 제거 대응 — importlib 동적 해석 (main-009) (62a12485)
-- fix(memory): 아카이브된 brave-valley-2538 세션 기록의 깨진 링크 3건 교정 (874395f2)
-- fix(ops): 63차 세션 — M-007 운영 축 상설 선언 + '자기 위치 오인' 결함족 3건 소탕 (b3eee5ad)
-- fix(mcp): Windows 플랫폼 결함 축 — emit 해석기 플랫폼 분기 + PYTHONPATH target 레이아웃 교정 + doctor kit_resolution 탐침 (62차) (24b75e2a)
-- fix(docs): work log 의 docs 밖 markdown 링크 2건 제거 — mkdocs strict build red 수리 (95fadfc2)
-- fix(state): safe_relpath POSIX 정규화 — Windows 호스트 state.json 백슬래시 제거 (TASK-2026-08-25, cross-host 형식 결함) (bcb05cfb)
-- fix(doctor): pip 부재 판정이 선언을 읽는다 — uv tool venv 의 부재는 설계다 (main-009) (4461e08e)
-- fix(okf): 매니페스트 버전을 정본 파생으로 — 한 번들이 두 버전을 말하고 있었다 (main-008) (b09bbf16)
-- fix(mypy)!: 캐시를 전용 경로로 격리 — 빈 문자열은 격리가 아니었다 (main-007) (19e40ac9)
-- ... (150 more)
+- ... (164 more)
+
+## [1.11.0] - 2026-09-23
+
+### Changed
+
+- release(v1.11.0): 발행 준비 — 판정이 아무것도 재지 않는데 숫자는 멀쩡했던 사이클 (eb8152ac)
 
 ## [1.10.0] - 2026-09-22
 
 ### Changed
 
+- release(v1.10.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (138304ac)
 - release(v1.10.0): 발행 준비 — 게이트가 무엇을 재고 있었는지 다섯 번 뒤집은 사이클 (1a8e5c8b)
 
 ## [1.9.4] - 2026-09-07

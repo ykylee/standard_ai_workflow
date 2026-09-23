@@ -120,3 +120,20 @@ index 락**을 잡았고, 병렬 구간에서 간헐적으로 `fatal: Unable to 
 - memory_index entry 29건 중 **8건은 task 인용이 없다** (2026-08-10 이전 생성분).
   소급이 불가해 `entries_without_task_citation` 으로 미측정에 남는다.
 - entry 간 링크는 **단방향**(최신 → 기존)이고 이 릴리스는 그것을 바꾸지 않았다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-23T06:50:26Z)_
+
+- total wiki pages: **95**
+- total memory entries: **29**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

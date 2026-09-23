@@ -22,7 +22,7 @@
 (`check_agent_plugin_payload` — 콜론 없이 `PASS` 만 찍는 case 하나), 그것까지
 받아 0으로 만들었다. case 3·4 가 이 두 넓힘을 각각 고정한다.
 
-검증 케이스 (11):
+검증 케이스 (14):
     1. 선언과 발화가 같으면 일치 (위양성 없음)
     2. 상수 total 을 흉내 내면 `diverged` — 늘어난 쪽과 줄어든 쪽 모두
     3. 들여쓴 case 줄을 센다 (범위 넓힘 ①)
@@ -34,6 +34,9 @@
     9. 장식·어순이 달라도 선언은 선언이다 (4 모양, main-006)
    10. 판정어가 줄 중간에 있는 case 줄(`case N (…): PASS`)을 센다
    11. 흐름이 둘이면 명시적 롤업(`[PASS] name`)이 이긴다
+   12. `Result: N/M PASS` 접두와 `(all N checks)` 형태 (main-007)
+   13. `✓/✗ name PASS` 롤업도 롤업이다 — 하위 case 를 이긴다
+   14. `SKIP` 롤업 줄도 발화한 case 로 센다
 
 Stdlib only.
 """
@@ -145,6 +148,31 @@ def main() -> int:
         "  [PASS] test_a\n  [PASS] test_b\n  [PASS] test_c\n\n=== 3/3 PASS ===")
     check("11) 롤업이 있으면 하위 단언 대신 롤업을 센다",
           two.measured and two.seen == 3 and not two.diverged, f"{two}")
+
+    # 12) `Result: N/M PASS` 접두와 `(all N checks)` 형태 (main-007).
+    for label, text in (
+        ("Result: N/M PASS", "  PASS: a\n  PASS: b\nResult: 2/2 PASS"),
+        ("=== Result: N/M PASS ===", "  \u2713 t1 PASS\n  \u2713 t2 PASS\n=== Result: 2/2 PASS ==="),
+        ("(all N checks)", "  PASS: a\n  PASS: b\nlint passed (all 2 checks)."),
+    ):
+        cc = count_cases(text)
+        check(f"12) 선언 형태 — {label}", cc.measured and cc.declared == 2 and not cc.diverged,
+              f"{cc}")
+
+    # 13) **✓/✗ 롤업도 롤업이다.** 흐름이 둘인 검사 9건이 `[PASS]` 가 아니라
+    #     `✓ name PASS` 로 찍고 있었다 — 이걸 안 받으면 하위 case(22줄)를 세게 되고
+    #     `Result:` 접두 확장이 그대로 위양성 12건이 된다.
+    tick = count_cases(
+        "  case 1 (하위): PASS\n  case 2 (하위): PASS\n  case 3 (하위): PASS\n"
+        "  \u2713 test_a PASS\n  \u2713 test_b PASS\n=== Result: 2/2 PASS ===")
+    check("13) ✓/✗ 롤업이 하위 case 를 이긴다",
+          tick.measured and tick.seen == 2 and not tick.diverged, f"{tick}")
+
+    # 14) **SKIP 도 발화한 case 다.** 선언에 세어지면서 롤업에서 빠지면 '모름' 이
+    #     조용히 통과가 된다 — 실물에서 그랬다 (선언 5 / 증거 줄 4).
+    skip = count_cases("  \u2713 t1 PASS\n  \u2713 t2 SKIP\nResult: 2/2 PASS (1 skipped)")
+    check("14) SKIP 롤업 줄도 센다", skip.measured and skip.seen == 2 and not skip.diverged,
+          f"{skip}")
 
     # 8) 이 저장소에 **상수 total 이 남아 있지 않다.** 누산기(`total = 0` 뒤에
     #    `total += ...`)는 선언이 아니므로 제외한다 — 이름이 아니라 쓰임으로 가른다.

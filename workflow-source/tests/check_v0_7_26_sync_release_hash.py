@@ -27,6 +27,10 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+#: SKIP 경로가 몇 번 밟혔는지 — 통과와 **구분해서** 요약에 싣는다.
+#: 모름을 통과로 세면 이 검사가 무엇을 보장하는지 알 수 없다.
+_SKIPS = [0]
 TOOL = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "sync_release_hash.py"
 PYTHON = sys.executable
 
@@ -196,6 +200,7 @@ def test_real_repo_hash_sync() -> bool:
     """*real* REPO_ROOT + *real* v0.7.25 state.json entry → sync with current HEAD (00e7ca8)."""
     state_path = REPO_ROOT / "ai-workflow" / "memory" / "active" / "state.json"
     if not state_path.exists():
+        _SKIPS[0] += 1
         print(f"  SKIP: real state.json not found")
         return True  # not a failure, just skip
     original_content = state_path.read_text(encoding="utf-8")
@@ -211,10 +216,12 @@ def test_real_repo_hash_sync() -> bool:
     # 현재 v0.7.25 entry 가 어떤 hash 인지 확인
     m = re.search(r"v0\.7\.25 \(([a-f0-9]{7})\):", original_content)
     if not m:
+        _SKIPS[0] += 1
         print(f"  SKIP: no v0.7.25 entry in state.json")
         return True
     current_hash = m.group(1)
     if current_hash == head_sha:
+        _SKIPS[0] += 1
         print(f"  SKIP: v0.7.25 entry already at HEAD ({head_sha})")
         return True
 
@@ -249,14 +256,27 @@ def main() -> int:
         test_real_repo_hash_sync,
     ]
     passed = 0
+    skipped = 0
     for test in tests:
         print(f"\n{test.__name__}:")
-        if test():
+        # **case 마다 롤업 한 줄.** 예전에는 통과해도 줄이 안 나오는 경로가 있었다 —
+        # `test_real_repo_hash_sync` 는 실 저장소에 해당 entry 가 없으면 `SKIP` 만
+        # 찍고 True 를 돌려줘, **미측정이 통과로 세어지면서 요약에도 안 보였다**
+        # (2026-09-23 실측: 선언 5 / 증거 줄 4, TASK-2026-09-23-main-007).
+        before = _SKIPS[0]
+        ok = test()
+        was_skipped = _SKIPS[0] > before
+        if ok:
             passed += 1
+        if was_skipped:
+            skipped += 1
+        mark = "\u2713" if ok else "\u2717"
+        state = "SKIP" if was_skipped else ("PASS" if ok else "FAIL")
+        print(f"  {mark} {test.__name__} {state}")
 
     print()
     print("=" * 60)
-    print(f"Result: {passed}/{len(tests)} PASS")
+    print(f"Result: {passed}/{len(tests)} PASS ({skipped} skipped)")
     print("=" * 60)
     return 0 if passed == len(tests) else 1
 

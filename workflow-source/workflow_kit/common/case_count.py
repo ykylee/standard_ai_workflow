@@ -31,9 +31,9 @@ from typing import Final
 #: 장식(`=== `)이 앞에 붙거나 `PASS:` 가 비율보다 먼저 오는 모양이었다. 검사들이
 #: 제각각인 게 아니라 **내 정규식이 좁았던 것**이다. 받는 모양:
 #:     `9/9 PASS` · `10/11 PASS — FAILED: [...]` · `4/4 tests passed.` · `6/6 passed`
-#:     `=== 6/6 PASS ===` · `=== PASS: 5/5 ===`
+#:     `=== 6/6 PASS ===` · `=== PASS: 5/5 ===` · `Result: 5/5 PASS`
 _SUMMARY_RE: Final = re.compile(
-    r"^[^\S\n]*(?:=+[^\S\n]*)?(?:(?:PASS|FAIL)[^\S\n]*:[^\S\n]*)?"
+    r"^[^\S\n]*(?:=+[^\S\n]*)?(?:(?:PASS|FAIL|Result)[^\S\n]*:[^\S\n]*)?"
     r"(\d+)[^\S\n]*/[^\S\n]*(\d+)\b"
     r"(?=[^\S\n]*(?:PASS|passed|tests|=|$))",
     re.MULTILINE,
@@ -46,7 +46,8 @@ _PASS_FAIL_SUM_RE: Final = re.compile(
 )
 
 #: `=== PASS: claim_workspace smoke (9 assertions) ===` — 개수가 산문 안에 있다.
-_ASSERTIONS_RE: Final = re.compile(r"\((\d+)[^\S\n]+assertions?\)", re.IGNORECASE)
+_ASSERTIONS_RE: Final = re.compile(
+    r"\((?:all[^\S\n]+)?(\d+)[^\S\n]+(?:assertions?|checks?)\)", re.IGNORECASE)
 
 #: `All 16 tests passed.` 도 **개수 선언**이다. 형태가 다를 뿐 계약은 같다.
 _ALL_N_RE: Final = re.compile(
@@ -69,7 +70,16 @@ _CASE_RE: Final = re.compile(r"^[^\S\n]*(PASS|FAIL)\b[^\S\n]*:?", re.MULTILINE)
 #: 한 검사의 출력에 흐름이 둘일 수 있다 — 하위 단언(`PASS: …`)과 case 롤업.
 #: `check_mypy_config_actually_loaded` 가 그랬다: 선언 7, 롤업 7줄, 하위 단언 6줄.
 #: 둘을 더하면 13 이고 하위 단언만 세면 6 이라, **롤업이 있으면 그것만** 센다.
-_BRACKET_CASE_RE: Final = re.compile(r"^[^\S\n]*\[(?:PASS|FAIL)\]", re.MULTILINE)
+#: 롤업 표식은 두 가지다 — `[PASS] name` 과 `✓ name PASS` / `✗ name FAIL`.
+#: **`SKIP` 도 발화한 case 다** — 선언에 세어지면서 롤업에서 빠지면 그 자체로
+#: 불일치가 되고, 무엇보다 '모름' 이 조용히 통과가 된다.
+#: 후자를 안 받으면 흐름이 둘인 검사 9건에서 **하위 case** 를 세게 되고
+#: (실측: 선언 8 vs 하위 22), 접두 확장이 그대로 위양성이 된다 (main-007).
+_BRACKET_CASE_RE: Final = re.compile(
+    r"^[^\S\n]*(?:\[(?:PASS|FAIL|SKIP)\]"
+    r"|[\u2713\u2717][^\n]*?\b(?:PASS|FAIL|ERROR|SKIP)\b)",
+    re.MULTILINE,
+)
 
 #: `  case 3 (범위가 비어 있지 않다): PASS — …` 형태. 판정어가 **줄 중간**에 있어
 #: 위 정규식이 못 본다. 전수 실측(2026-09-23, main-006)에서 개수를 선언하고도

@@ -68,7 +68,14 @@ BRANCH_ENV_KEYS = (
 failures: list[str] = []
 
 
+RAN: list[str] = []
+"""발화된 check 이름 — 요약의 총 개수는 여기서 파생한다."""
+
+
 def check(name: str, ok: bool, detail: str = "") -> None:
+    # 상수로 두면 case 를 늘려도 줄여도 요약이 옛 숫자를 찍는다
+    # (TASK-2026-09-23-main-004).
+    RAN.append(name)
     print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f" — {detail}" if not ok else ""))
     if not ok:
         failures.append(name)
@@ -299,7 +306,7 @@ def main() -> int:
         f"(paths.resolve_workspace_root)",
     )
 
-    total = 8
+    total = len(RAN)
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

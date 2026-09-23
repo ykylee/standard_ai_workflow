@@ -44,9 +44,14 @@ EMIT_MODULE = "workflow_kit.tools.emit_wiki_l2_body"
 WRAPPER_MODULE = "workflow_kit.tools.wiki_emit"
 
 FAILURES: list[str] = []
+RAN: list[str] = []
+"""기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
+    # 총 개수는 **실제로 기록된 case 수**다 — 상수로 두면 case 를 늘려도 줄여도
+    # 요약이 옛 숫자를 찍는다 (TASK-2026-09-23-main-004).
+    RAN.append(case)
     if ok:
         print(f"PASS: {case}")
     else:
@@ -299,7 +304,7 @@ def main() -> int:
     test_missing_stub_lowers_the_score()
     test_placeholder_detection_is_line_anchored()
     test_this_repo_scores_the_declared_four()
-    total = 10
+    total = len(RAN)
     if FAILURES:
         print(f"\n{len(FAILURES)}/{total} tests failed: {FAILURES}")
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

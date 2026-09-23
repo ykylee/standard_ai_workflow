@@ -37,6 +37,8 @@ if str(SOURCE_ROOT) not in sys.path:
 from workflow_kit.common.paths import get_current_branch  # noqa: E402
 
 FAILURES: list[str] = []
+RAN: list[str] = []
+"""기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
 
 TASK_ID = "TASK-2026-08-16-carry-001"
 
@@ -114,6 +116,9 @@ TODAY_INDEX = """# Backlog Index — 2026-08-17
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
+    # 총 개수는 **실제로 기록된 case 수**다 — 상수로 두면 case 를 늘려도 줄여도
+    # 요약이 옛 숫자를 찍는다 (TASK-2026-09-23-main-004).
+    RAN.append(case)
     if ok:
         print(f"PASS: {case}")
     else:
@@ -293,7 +298,7 @@ def main() -> int:
     test_carry_over_preserves_status_when_unspecified()
     test_missing_ssot_is_not_ok()
     test_same_day_update_still_update_entry()
-    total = 5
+    total = len(RAN)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

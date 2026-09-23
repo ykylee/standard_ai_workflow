@@ -35,7 +35,12 @@ def test_cli_per_strategy_flag_v0_7_45() -> None:
     mod = _import_url_validity()
     saved_argv = sys.argv
     saved_stderr = sys.stderr
+    saved_stdout = sys.stdout
     sys.stderr = io.StringIO()
+    # stdout 도 삼킨다 — production CLI 가 `  PASS  <url>` 을 찍는데, 그게 이
+    # 검사의 case 줄 흐름에 섞이면 요약(2)과 출력(4)이 갈린 것처럼 보인다
+    # (2026-09-23 case 수 대조 축의 위양성 1건). production 표기는 그대로 둔다.
+    sys.stdout = io.StringIO()
     try:
         sys.argv = ["x", "https://example.com/", "--per-strategy", "--mode", "loose"]
         rc = mod.main()
@@ -43,6 +48,7 @@ def test_cli_per_strategy_flag_v0_7_45() -> None:
     finally:
         sys.argv = saved_argv
         sys.stderr = saved_stderr
+        sys.stdout = saved_stdout
 
 
 def test_cli_cache_stats_strategy_flag_v0_7_45() -> None:
@@ -50,13 +56,19 @@ def test_cli_cache_stats_strategy_flag_v0_7_45() -> None:
     mod = _import_url_validity()
     saved_argv = sys.argv
     saved_stderr = sys.stderr
+    saved_stdout = sys.stdout
     sys.stderr = io.StringIO()
+    # stdout 도 삼킨다 — production CLI 가 `  PASS  <url>` 을 찍는데, 그게 이
+    # 검사의 case 줄 흐름에 섞이면 요약(2)과 출력(4)이 갈린 것처럼 보인다
+    # (2026-09-23 case 수 대조 축의 위양성 1건). production 표기는 그대로 둔다.
+    sys.stdout = io.StringIO()
     try:
         sys.argv = ["x", "https://example.com/", "--cache-stats-strategy", "mixed", "--mode", "loose"]
         rc = mod.main()
     finally:
         sys.argv = saved_argv
         sys.stderr = saved_stderr
+        sys.stdout = saved_stdout
 
 
 def main() -> int:

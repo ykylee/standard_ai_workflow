@@ -4,7 +4,7 @@
 - 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계, 요구 강제 선언(`ENFORCES`)
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-22
+- 최종 수정일: 2026-09-23
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =
@@ -213,6 +213,28 @@ CI 셀은 병렬이라 wall-clock 이 늘지 않는다.
 의도한 deprecation 호출은 `check_warnings.call_deprecated` 로 감싼다. 삼키되
 경고가 **실제로 났는지 단언**하므로 '의도한 것' 과 '모르고 낸 것' 이 같은 모양이
 되지 않는다. 면제 registry 는 두지 않는다 — 저장소 안 경고 베이스라인이 0 이다.
+
+### Requirement: check-summary-must-count-what-ran
+
+검사가 마지막에 찍는 `N/M PASS` 의 **M 은 실제로 발화한 case 수**여야 한다.
+손으로 박은 상수이면 case 를 늘려도 줄여도 요약이 옛 숫자를 유지한다 — 즉
+**무력화가 숫자에서도 안 보인다**. 2026-09-23 에 두 번 실물로 만났다
+(`check_memory_entry_suggestions` 는 case 11개에 `9/9 PASS`,
+`check_release_wrapper_args` 는 12개에 `11/11 PASS`). 둘 다 전체 green 이라
+아무도 보지 못했고, 전수 조사에서 상수 total 20건 중 4건이 이미 갈려 있었다.
+
+판정은 **러너가 매 실행 전수로** 한다 (`workflow_kit/common/case_count.py`).
+러너는 이미 각 검사의 stdout+stderr 를 전량 받아 두므로 재실행 비용이 0이다 —
+경고 축·저장소 write 축과 같은 자리다. 선언(`N/M PASS` 또는
+`All N tests passed.`)과 발화한 case 줄(`PASS:` / `FAIL:`) 수가 갈리면 red 다.
+
+**못 센 것은 통과가 아니다.** 선언이 없거나 case 줄이 없으면 `measured=False`
+로 사유와 함께 미측정에 올린다. 그 검사가 옳다는 뜻이 아니라 이 축이 그것을
+볼 수 없다는 뜻이고, 미측정 개수를 보고해야 사각지대가 조용히 커지지 않는다.
+
+범위는 **실측으로** 넓혔다. 처음에는 줄 맨 앞의 case 줄만 받아 290개 중 28개만
+읽혔고, 못 읽은 표본은 전부 자기 case 를 들여쓰는 검사였다. 넓힌 뒤 남은
+위양성 1건(콜론 없이 `PASS` 만 찍는 case)까지 받아 0으로 만들었다.
 
 ### Requirement: suite-must-not-write-the-repo
 

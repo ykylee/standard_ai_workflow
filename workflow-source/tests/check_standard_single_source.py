@@ -96,9 +96,14 @@ EXEMPT_HARNESSES: dict[str, str] = {
 }
 
 FAILURES: list[str] = []
+RAN: list[str] = []
+"""기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
+    # 총 개수는 **실제로 기록된 case 수**다 — 상수로 두면 case 를 늘려도 줄여도
+    # 요약이 옛 숫자를 찍는다 (TASK-2026-09-23-main-004).
+    RAN.append(case)
     if ok:
         print(f"PASS: {case}")
     else:
@@ -595,7 +600,7 @@ def main() -> int:
     test_harness_registry_fully_classified()
     test_secondary_renderers_carry_or_declare()
     test_wrapped_bullets_are_joined()
-    total = 11
+    total = len(RAN)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:
         raise AssertionError(f"{len(FAILURES)} case(s) failed: {FAILURES}")

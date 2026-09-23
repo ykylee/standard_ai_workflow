@@ -57,6 +57,7 @@ import sys
 import tempfile
 import time
 import warnings
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
@@ -88,6 +89,7 @@ with warnings.catch_warnings(record=True) as _parent_captured:
     from workflow_kit.common.repo_write_watch import (  # noqa: E402
         RepoWriteWatch,
     )
+    from workflow_kit.common.case_count import CaseCount, count_cases  # noqa: E402
 
 #: 부모 import 가 낸 경고를 CPython 기본 포맷으로 굳혀 둔다 — `extract` 가 읽는
 #: 형식과 같아야 서브프로세스 경고와 **같은 출처 규율** 로 판정된다.
@@ -294,6 +296,13 @@ class CheckResult:
     error_excerpt: str = ""
     tmp_peak_mb: int = 0        # 이 check 가 전용 TMPDIR 에 남긴 최대 용량
     killed_children: int = 0    # 종료 후 강제 정리된 잔여 자식 프로세스 유무 (0/1)
+    case_count: "CaseCount | None" = None
+    """요약이 선언한 총 개수 vs 실제 발화한 case 수 (TASK-2026-09-23-main-004).
+
+    `measured=False` 면 **통과가 아니라 미측정** 이다 — 이 검사의 출력 형태를
+    이 축이 읽을 수 없다는 뜻이지, 그 검사가 옳다는 뜻이 아니다.
+    """
+
     warnings: list[str] = field(default_factory=list)
     """이 실행이 낸 Python 경고 (정규화된 형태, TASK-2026-09-21-main-007).
 
@@ -683,6 +692,7 @@ def _run_one(
         error_excerpt=_error_excerpt(output) if proc.returncode != 0 else "",
         tmp_peak_mb=tmp_peak, killed_children=int(killed),
         warnings=[w.render() for w in extract_warnings(output)],
+        case_count=count_cases(output),
     )
 
 
@@ -1061,6 +1071,51 @@ def print_repo_write_report(fatal: list[str], reported: list[str]) -> None:
         print(f"    (그 밖 {len(reported) - 5}건)")
 
 
+def case_count_verdict(
+    passes: "list[tuple[str, RunSummary]]",
+) -> tuple[list[str], list[str]]:
+    """요약이 실제 발화 수를 말하는지 (TASK-2026-09-23-main-004).
+
+    `(치명, 미측정)`. **갈리면 red** 다 — 상수 total 은 case 를 지워도 숫자가
+    안 줄어서, 무력화를 숫자에서도 감춘다.
+
+    미측정은 따로 센다. 통과가 아니라 **이 축이 못 본 것**이고, 그 개수가
+    보이지 않으면 축의 사각지대가 조용히 커진다.
+    """
+    fatal: list[str] = []
+    unmeasured: list[str] = []
+    for label, summary in passes:
+        for r in summary.results:
+            cc = r.case_count
+            if cc is None or r.exit_code == -1:   # TIMEOUT 은 출력 자체가 없다
+                continue
+            if not cc.measured:
+                unmeasured.append(f"[{label}] {r.name}: {cc.reason}")
+                continue
+            if cc.diverged:
+                fatal.append(
+                    f"[{label}] {r.name}: 요약은 {cc.declared}개라는데 실제로 발화한 "
+                    f"case 는 {cc.seen}개다"
+                )
+    return fatal, unmeasured
+
+
+def print_case_count_report(fatal: list[str], unmeasured: list[str]) -> None:
+    if not fatal and not unmeasured:
+        return
+    print("\n  --- case 수 선언 대조 (TASK-2026-09-23-main-004) ---")
+    for line in fatal:
+        print(f"  \u2717 {line}")
+    if fatal:
+        print("    요약의 총 개수를 상수로 두지 말고 **발화한 check 수**에서 파생시킨다")
+    if unmeasured:
+        # 사유별로 센다 — 사각지대가 **왜** 생겼는지가 개수보다 중요하다.
+        tally = Counter(u.split(": ", 1)[-1].split(" [")[0] for u in unmeasured)
+        print(f"  ~ 미측정 {len(unmeasured)}건 (출력 형태를 이 축이 못 읽는다 — 통과가 아니다)")
+        for reason, n in tally.most_common():
+            print(f"      {n:4d}  {reason}")
+
+
 def warning_verdict(
     passes: "list[tuple[str, RunSummary]]", repo_root: Path,
     parent_warnings: "list[str] | None" = None,
@@ -1292,6 +1347,7 @@ def main() -> int:
     warn_gated, warn_reported = warning_verdict(passes, SOURCE_ROOT.parent,
                                                 PARENT_WARNINGS)
     write_fatal, write_reported = repo_write_verdict(passes)
+    case_fatal, case_unmeasured = case_count_verdict(passes)
 
     if args.json:
         meta_json = {"violations": meta_violations, "warns": meta_warns,
@@ -1303,7 +1359,8 @@ def main() -> int:
                 {"contexts": [{"label": label, "summary": asdict(s)} for label, s in passes],
                  "meta_watch": meta_json,
                  "warnings": {"gated": warn_gated, "third_party": warn_reported},
-                 "repo_write": {"fatal": write_fatal, "reported": write_reported}},
+                 "repo_write": {"fatal": write_fatal, "reported": write_reported},
+                 "case_count": {"fatal": case_fatal, "unmeasured": case_unmeasured}},
                 ensure_ascii=False, indent=2,
             ))
         else:
@@ -1311,7 +1368,9 @@ def main() -> int:
                               "warnings": {"gated": warn_gated,
                                            "third_party": warn_reported},
                               "repo_write": {"fatal": write_fatal,
-                                             "reported": write_reported}},
+                                             "reported": write_reported},
+                              "case_count": {"fatal": case_fatal,
+                                             "unmeasured": case_unmeasured}},
                              ensure_ascii=False, indent=2))
     else:
         for label, summary in passes:
@@ -1322,6 +1381,7 @@ def main() -> int:
             print_meta_watch(meta_violations, meta_warns, meta_counts)
         print_warning_report(warn_gated, warn_reported)
         print_repo_write_report(write_fatal, write_reported)
+        print_case_count_report(case_fatal, case_unmeasured)
 
     if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
@@ -1331,6 +1391,8 @@ def main() -> int:
         return 1    # 저장소 코드의 경고는 red 다 — exit 0 이라 종료 코드 축에는 안 잡힌다
     if write_fatal:
         return 1    # 전량 실행이 저장소를 건드렸다 (또는 그것을 재지 못했다)
+    if case_fatal:
+        return 1    # 요약이 발화 수와 갈렸다 — 상수 total 은 무력화를 숫자에서 감춘다
     return 0 if all(s.failed == 0 for _, s in passes) else 1
 
 

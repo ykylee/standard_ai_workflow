@@ -64,7 +64,12 @@ def _write_state(path: Path, axis: object, done_items: object) -> None:
 def main() -> int:
     failures: list[str] = []
 
+    ran: list[str] = []
+
     def check(label: str, cond: bool, detail: str = "") -> None:
+        # 총 개수는 **실제로 발화된 check 수**다 — 상수로 두면 case 를 늘려도
+        # 줄여도 요약이 옛 숫자를 찍는다 (TASK-2026-09-23-main-004).
+        ran.append(label)
         if cond:
             print(f"PASS: {label}")
         else:
@@ -163,7 +168,7 @@ def main() -> int:
             f"tokens={tokens8}",
         )
 
-    total = 8
+    total = len(ran)
     print()
     if failures:
         print(f"{total - len(failures)}/{total} PASS — FAILED: {failures}")

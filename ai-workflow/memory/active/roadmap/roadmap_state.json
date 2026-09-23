@@ -240,10 +240,10 @@
       "title": "운영 축 (상설)",
       "sdlc_phase": "stabilization",
       "declared_status": "in_progress",
-      "derived_status": "in_progress",
-      "progress": 0.5,
+      "derived_status": "blocked",
+      "progress": 0.75,
       "total_leaves": 4,
-      "done_leaves": 2,
+      "done_leaves": 3,
       "deliverables_missing": [],
       "wbs": [
         {
@@ -338,7 +338,7 @@
         {
           "id": "WBS-7.4",
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
-          "derived_status": "in_progress",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",
@@ -356,7 +356,7 @@
             "TASK-2026-09-23-main-004"
           ],
           "total_leaves": 1,
-          "done_leaves": 0,
+          "done_leaves": 1,
           "children": []
         }
       ]

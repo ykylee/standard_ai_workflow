@@ -41,9 +41,14 @@ sys.path.insert(0, str(SOURCE_ROOT))
 TOOL_MODULE = "workflow_kit.tools.refresh_wiki_memory"
 
 FAILURES: list[str] = []
+RAN: list[str] = []
+"""기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
 
 
 def _record(case: str, ok: bool, detail: str = "") -> None:
+    # 총 개수는 **실제로 기록된 case 수**다 — 상수로 두면 case 를 늘려도 줄여도
+    # 요약이 옛 숫자를 찍는다 (TASK-2026-09-23-main-004).
+    RAN.append(case)
     if ok:
         print(f"PASS: {case}")
     else:
@@ -378,7 +383,7 @@ def main() -> int:
     test_latest_backlog_is_picked()
     test_retired_refresh_raw_writes_nothing()
     test_no_second_writer_to_state_json()
-    total = 11
+    total = len(RAN)
     if FAILURES:
         # 실패 요약 형식도 runner 의 파서(`run_all_checks.parse_output`)가 읽는 것으로.
         print(f"\n{len(FAILURES)}/{total} tests failed: {FAILURES}")

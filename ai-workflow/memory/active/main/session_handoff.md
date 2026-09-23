@@ -47,6 +47,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-23-main-004 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)
 - TASK-2026-09-23-main-002 check_release_wrapper_args case 6 이 git 인덱스 락을 잡아 병렬에서 flake
 - TASK-2026-09-23-main-003 memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로
 - TASK-2026-09-23-main-001 memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다
@@ -56,7 +57,6 @@
 - TASK-2026-09-22-main-005 CI smoke red — check_release_pipeline_version_flag 의 dist TOCTOU 경합, main-004 가 창을 9초로 벌렸다
 - TASK-2026-09-22-main-004 스탬프 판정이 자기 이름과 어긋난다 — '마지막 내용 변경' 이 실은 '마지막 커밋' 이고, 그래서 소급 교정이 성립하지 않는다
 - TASK-2026-09-22-main-002 doc-headers-update --apply 가 내용이 안 바뀐 문서 100개의 스탬프를 올린다 — 거짓 '오늘 수정됨'
-- TASK-2026-09-22-main-003 runtime_load 의 mtime 폴백이 병합 복사 채널에서 낡은 설치 시각을 낸다 — 낡은 호스트를 최신으로 오판한다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

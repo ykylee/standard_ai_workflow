@@ -1224,6 +1224,13 @@ def main() -> int:
                          "판정에는 영향이 없고 정리 직전에 복사만 한다 — 미분류 검사에 "
                          "`WATCHES` 를 달 때 선언을 **추측이 아니라 실측**에서 뽑기 "
                          "위한 수단이다 (R2.3 위험 역순 보급)."))
+    p.add_argument("--case-count-dump", default=None, dest="case_count_dump",
+                   metavar="PATH",
+                   help=("case 수 대조 축(TASK-2026-09-23-main-004)의 검사별 실측을 "
+                         "PATH 로 내보낸다 (JSON). 판정에는 영향이 없다 — 이 축이 **못 "
+                         "읽는 검사**가 어떤 것들인지 추측이 아니라 실측에서 뽑기 위한 "
+                         "수단이다. 미측정을 사유별 개수로만 보고하면 그 안의 구성이 "
+                         "안 보인다 (main-006)."))
     p.add_argument("--no-lock", action="store_true", dest="no_lock",
                    help="워킹 트리 배타 락을 잡지 않는다 (권장하지 않음 — 동시 실행된 "
                         "전량 결과는 PASS 도 FAIL 도 근거가 못 된다)")
@@ -1348,6 +1355,20 @@ def main() -> int:
                                                 PARENT_WARNINGS)
     write_fatal, write_reported = repo_write_verdict(passes)
     case_fatal, case_unmeasured = case_count_verdict(passes)
+    if args.case_count_dump:
+        rows = []
+        for label, summary in passes:
+            for r in summary.results:
+                cc = r.case_count
+                if cc is None:
+                    continue
+                rows.append({"context": label, "check": r.name,
+                             "declared": cc.declared, "seen": cc.seen,
+                             "measured": cc.measured, "reason": cc.reason})
+        Path(args.case_count_dump).write_text(
+            json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        if not args.json:
+            print(f"[case-count] {len(rows)}건 → {args.case_count_dump}")
 
     if args.json:
         meta_json = {"violations": meta_violations, "warns": meta_warns,

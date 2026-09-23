@@ -24,12 +24,29 @@ import re
 from dataclasses import dataclass
 from typing import Final
 
-#: 마지막 요약 줄. `9/9 PASS` · `10/11 PASS — FAILED: [...]` · `4/4 tests passed.`
-#: · `6/6 passed` 를 받는다. 여러 개면 **마지막**이 최종 요약이다.
+#: 마지막 요약 줄. 여러 개면 **마지막**이 최종 요약이다.
+#:
+#: 처음에는 `9/9 PASS` 계열만 받았다. 전수 실측(2026-09-23, main-006)에서
+#: '개수 선언이 없다' 로 분류된 153건 중 **36건이 사실은 선언하고 있었고**, 단지
+#: 장식(`=== `)이 앞에 붙거나 `PASS:` 가 비율보다 먼저 오는 모양이었다. 검사들이
+#: 제각각인 게 아니라 **내 정규식이 좁았던 것**이다. 받는 모양:
+#:     `9/9 PASS` · `10/11 PASS — FAILED: [...]` · `4/4 tests passed.` · `6/6 passed`
+#:     `=== 6/6 PASS ===` · `=== PASS: 5/5 ===`
 _SUMMARY_RE: Final = re.compile(
-    r"^[^\S\n]*(\d+)[^\S\n]*/[^\S\n]*(\d+)[^\S\n]+(?:PASS|passed|tests passed)\b",
+    r"^[^\S\n]*(?:=+[^\S\n]*)?(?:(?:PASS|FAIL)[^\S\n]*:[^\S\n]*)?"
+    r"(\d+)[^\S\n]*/[^\S\n]*(\d+)\b"
+    r"(?=[^\S\n]*(?:PASS|passed|tests|=|$))",
     re.MULTILINE,
 )
+
+#: `7 pass, 0 fail` 계열 — 비율이 아니라 **두 수의 합**이 총 개수다.
+_PASS_FAIL_SUM_RE: Final = re.compile(
+    r"^[^\S\n]*(?:=+[^\S\n]*)?(\d+)[^\S\n]+pass(?:ed)?[^\S\n]*,[^\S\n]*(\d+)[^\S\n]+fail",
+    re.MULTILINE | re.IGNORECASE,
+)
+
+#: `=== PASS: claim_workspace smoke (9 assertions) ===` — 개수가 산문 안에 있다.
+_ASSERTIONS_RE: Final = re.compile(r"\((\d+)[^\S\n]+assertions?\)", re.IGNORECASE)
 
 #: `All 16 tests passed.` 도 **개수 선언**이다. 형태가 다를 뿐 계약은 같다.
 _ALL_N_RE: Final = re.compile(
@@ -48,6 +65,21 @@ _ALL_N_RE: Final = re.compile(
 #: 이미 파생으로 고쳐 둔 검사에 위양성을 낸다 (check_agent_plugin_payload 23/22).
 _CASE_RE: Final = re.compile(r"^[^\S\n]*(PASS|FAIL)\b[^\S\n]*:?", re.MULTILINE)
 
+#: `  [PASS] test_foo` 형태의 **명시적 롤업**. 이게 있으면 이것이 case 목록이다.
+#: 한 검사의 출력에 흐름이 둘일 수 있다 — 하위 단언(`PASS: …`)과 case 롤업.
+#: `check_mypy_config_actually_loaded` 가 그랬다: 선언 7, 롤업 7줄, 하위 단언 6줄.
+#: 둘을 더하면 13 이고 하위 단언만 세면 6 이라, **롤업이 있으면 그것만** 센다.
+_BRACKET_CASE_RE: Final = re.compile(r"^[^\S\n]*\[(?:PASS|FAIL)\]", re.MULTILINE)
+
+#: `  case 3 (범위가 비어 있지 않다): PASS — …` 형태. 판정어가 **줄 중간**에 있어
+#: 위 정규식이 못 본다. 전수 실측(2026-09-23, main-006)에서 개수를 선언하고도
+#: 못 읽히던 7건 중 6건이 이 모양이었다 — 표식이 다를 뿐 같은 계약이다.
+#: `case <번호>` 접두를 요구해 산문 속 'PASS' 를 배제한다.
+_LABELLED_CASE_RE: Final = re.compile(
+    r"^[^\S\n]*case[^\S\n]+\d+\b[^\n]*?:[^\S\n]*(PASS|FAIL)\b",
+    re.MULTILINE | re.IGNORECASE,
+)
+
 
 @dataclass(frozen=True)
 class CaseCount:
@@ -65,8 +97,18 @@ class CaseCount:
 
 def count_cases(output: str) -> CaseCount:
     """검사 출력에서 선언된 총 개수와 실제 발화한 case 수를 뽑는다."""
-    summaries = _SUMMARY_RE.findall(output)
-    seen = len(_CASE_RE.findall(output))
+    summaries: list[tuple[str, str]] = _SUMMARY_RE.findall(output)
+    if not summaries:
+        pf = _PASS_FAIL_SUM_RE.findall(output)
+        if pf:
+            summaries = [("0", str(int(pf[-1][0]) + int(pf[-1][1])))]
+        else:
+            asserts = _ASSERTIONS_RE.findall(output)
+            if asserts:
+                summaries = [("0", asserts[-1])]
+    bracket = len(_BRACKET_CASE_RE.findall(output))
+    seen = bracket or (len(_CASE_RE.findall(output))
+                       + len(_LABELLED_CASE_RE.findall(output)))
     if summaries:
         declared: int | None = int(summaries[-1][1])
     else:

@@ -22,7 +22,7 @@
 (`check_agent_plugin_payload` — 콜론 없이 `PASS` 만 찍는 case 하나), 그것까지
 받아 0으로 만들었다. case 3·4 가 이 두 넓힘을 각각 고정한다.
 
-검증 케이스 (8):
+검증 케이스 (11):
     1. 선언과 발화가 같으면 일치 (위양성 없음)
     2. 상수 total 을 흉내 내면 `diverged` — 늘어난 쪽과 줄어든 쪽 모두
     3. 들여쓴 case 줄을 센다 (범위 넓힘 ①)
@@ -31,6 +31,9 @@
     6. 선언이 없거나 case 줄이 없으면 **미측정** — 통과로 세지 않는다
     7. 요약이 여러 번 나오면 **마지막**이 최종 요약이다
     8. 이 저장소에 상수 total 이 남아 있지 않다 (`total = <정수>` 전수)
+    9. 장식·어순이 달라도 선언은 선언이다 (4 모양, main-006)
+   10. 판정어가 줄 중간에 있는 case 줄(`case N (…): PASS`)을 센다
+   11. 흐름이 둘이면 명시적 롤업(`[PASS] name`)이 이긴다
 
 Stdlib only.
 """
@@ -113,6 +116,35 @@ def main() -> int:
     multi = count_cases("PASS: 1) a\n1/1 PASS\nPASS: 2) b\n\n2/2 PASS")
     check("7) 마지막 요약 줄을 최종으로 읽는다",
           multi.measured and multi.declared == 2 and not multi.diverged, f"{multi}")
+
+    # 9) **장식·어순이 달라도 선언은 선언이다** (main-006). 전수 실측에서 '개수
+    #    선언이 없다' 로 분류된 153건 중 **36건이 사실은 선언하고 있었다** — 검사가
+    #    제각각인 게 아니라 이 축의 정규식이 좁았던 것이다. 네 모양을 고정한다.
+    for label, text in (
+        ("=== N/M PASS ===", "  PASS: a\n  PASS: b\n=== 2/2 PASS ==="),
+        ("=== PASS: N/M ===", "  PASS: a\n  PASS: b\n=== PASS: 2/2 ==="),
+        ("N pass, M fail", "  PASS: a\n  PASS: b\n2 pass, 0 fail"),
+        ("(N assertions)", "  PASS: a\n  PASS: b\n=== PASS: x smoke (2 assertions) ==="),
+    ):
+        cc = count_cases(text)
+        check(f"9) 선언 형태 — {label}", cc.measured and cc.declared == 2 and not cc.diverged,
+              f"{cc}")
+
+    # 10) **판정어가 줄 중간에 있는 case 줄** — `case 3 (…): PASS — …`.
+    #     미측정 7건 중 6건이 이 모양이었다.
+    mid = count_cases("  case 1 (a): PASS — 어쩌고\n  case 2 (b): PASS\n\n2/2 passed")
+    mid_bad = count_cases("  case 1 (a): PASS\n\n2/2 passed")
+    check("10) 줄 중간 판정어(`case N (…): PASS`)를 센다",
+          mid.measured and mid.seen == 2 and mid_bad.diverged, f"ok={mid} bad={mid_bad}")
+
+    # 11) **흐름이 둘이면 명시적 롤업이 이긴다.** 하위 단언(`PASS: …`)과 case
+    #     롤업(`[PASS] name`)이 같이 찍히면 더해서 13 이 되거나 6 만 세게 된다 —
+    #     실물(`check_mypy_config_actually_loaded`)이 정확히 그랬다.
+    two = count_cases(
+        "  PASS: 하위 단언 1\n  PASS: 하위 단언 2\n"
+        "  [PASS] test_a\n  [PASS] test_b\n  [PASS] test_c\n\n=== 3/3 PASS ===")
+    check("11) 롤업이 있으면 하위 단언 대신 롤업을 센다",
+          two.measured and two.seen == 3 and not two.diverged, f"{two}")
 
     # 8) 이 저장소에 **상수 total 이 남아 있지 않다.** 누산기(`total = 0` 뒤에
     #    `total += ...`)는 선언이 아니므로 제외한다 — 이름이 아니라 쓰임으로 가른다.

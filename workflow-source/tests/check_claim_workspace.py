@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-r"""Smoke test — `tools/claim_workspace.py` (9 assertions).
+r"""Smoke test — `tools/claim_workspace.py` (10 assertions).
 
 ## 왜 이 검사가 필요한가
 
@@ -15,16 +15,18 @@ r"""Smoke test — `tools/claim_workspace.py` (9 assertions).
 case 3(동시 경합)이 핵심이다. 배타성이 깨지면 두 에이전트가 같은 작업을 동시에 하게
 되고, 그건 이 워크플로우 전체의 전제가 무너지는 것이다.
 
-9 assertions:
+10 assertions (요약 숫자는 `len(RAN)` 에서 파생한다 — 예전에는 상수 9 였고,
+실제로는 10개가 돌고 있었다):
   1) dry-run 은 브랜치도 커밋도 만들지 않는다
-  2) 이미 선점된 브랜치는 소유자를 알려주고 아무것도 하지 않는다
-  3) **동시 경합에서 정확히 1명만 성공한다**
-  4) 승자의 seed 가 원격에 온전히 올라간다
-  5) 진 쪽은 lost_race 로 보고하고 선점자를 알려준다
-  6) 진 쪽의 로컬 브랜치가 보존된다 (조용히 삭제하지 않는다)
+  2) **동시 경합에서 정확히 1명만 성공한다**
+  3) 진 쪽 전원이 깨끗이 실패한다
+  4) 진 쪽은 lost_race 로 보고하고 선점자를 알려준다
+  5) 진 쪽의 로컬 브랜치가 보존된다 (조용히 삭제하지 않는다)
+  6) 승자의 seed 가 원격에 온전히 올라간다
   7) 원격 브랜치가 승자의 것으로 유지된다 (덮어쓰기 없음)
-  8) 승자는 곧바로 session-start 로 이어받을 수 있다
-  9) **소스에 force push 수단이 없다**
+  8) 이미 선점된 브랜치는 소유자를 알려주고 아무것도 하지 않는다
+  9) 승자는 곧바로 session-start 로 이어받을 수 있다
+ 10) **소스에 force push 수단이 없다**
 
 Refs:
   - core/global_workflow_standard.md §10.2 · §10.4
@@ -64,9 +66,15 @@ TODAY = date.today().isoformat()
 ENV = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
 
 FAILURES: list[str] = []
+RAN: list[str] = []
+"""기록된 case 이름 — 요약의 총 개수는 여기서 파생한다."""
 
 
 def _record(name: str, ok: bool, detail: str = "") -> None:
+    # 총 개수는 **실제로 기록된 case 수**다. 상수로 두면 case 를 늘려도 요약이
+    # 옛 숫자를 찍는다 — 2026-09-23 실측에서 10개가 돌고 있는데 요약은 9 였다
+    # (TASK-2026-09-23-main-006 이 case 수 대조 축의 범위를 넓혀 드러났다).
+    RAN.append(name)
     print(f"{'PASS' if ok else 'FAIL'}: {name}" + ("" if ok else f" — {detail}"))
     if not ok:
         FAILURES.append(name)
@@ -213,7 +221,7 @@ def main() -> int:
     if FAILURES:
         print(f"=== FAIL: {len(FAILURES)} case(s) — {FAILURES} ===")
         return 1
-    print("=== PASS: claim_workspace smoke (9 assertions) ===")
+    print(f"=== PASS: claim_workspace smoke ({len(RAN)} assertions) ===")
     return 0
 
 

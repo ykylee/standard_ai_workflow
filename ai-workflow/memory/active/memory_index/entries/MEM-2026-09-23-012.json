@@ -1,0 +1,35 @@
+{
+  "id": "MEM-2026-09-23-012",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-005.md",
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "A fixed metric can return under a new name; and a search that reports a hit must return it",
+  "cue_anchors": [
+    "fixed-query-returns-renamed",
+    "one-source-eats-the-cap",
+    "hit-reported-but-not-returned",
+    "seed-before-expansion",
+    "empty-result-must-explain",
+    "fixture-must-establish-its-own-conditions"
+  ],
+  "value_digest": "두 가지가 한 자리에서 나왔다. **① 고친 지표가 또 상수가 됐다.** ADR-006 W-2 는 '고정 trio 가 33일간 같은 entry 를 집었다' 를 고치려고 질의를 컨텍스트 유도로 바꿨는데, 유도 입력 `current_axis` 한 줄이 **130 token** 이고 상한이 8이라 `done_items` 기여가 **정확히 0** 이었다 — 세 소비자가 전부 같은 상수 질의를 냈고 증상은 그대로인 채 이름만 바뀌었다. 여러 출처를 이어 붙여 상한으로 자르는 유도는 한 출처가 길면 나머지가 조용히 0 이 된다. **출처마다 몫**을 주고 각 출처가 기여했는지를 case 로 고정한다. 그리고 '고쳤다' 는 커밋 뒤 그 지표를 한 번 더 실측한 기록이 없으면 미확인이다. **② 검색이 `cue_hits=1` 을 보고하면서 그 1건을 안 돌려줬다.** 선택이 `sorted(seed 와 확장분)[:top_k]` 인데 ID 가 날짜 기반이라 사전순 = 날짜순이고, 링크 관례가 최신→기존(단방향)이라 확장분이 항상 seed 보다 오래돼 **매칭된 것 자신이 밀려났다**. 계약은 'seed 는 전부 확장분보다 앞' 이지 '내가 1등' 이 아니다 — cue 를 공유하는 entry 가 실재한다(실측 2건). 빈 결과는 사유를 내놓아야 한다: `count: 0` 만으로는 색인 빔 / 질의 불일치 / 단계 꺼짐이 구분 안 되는데 셋의 처방이 다르다. 부수로, 이 수리를 고정한 검사가 두 번 엉뚱한 것을 쟀다 — 도구가 요구하는 입력(handoff)을 안 만들어 조기 반환을 쟀고, 브랜치 env 를 상속해 게이트의 `slash` 셀에서만 red 였다(native green). **fixture 는 자기가 재려는 조건을 스스로 성립시켜야 하고, 되주입은 모든 컨텍스트 축에서 돌린다.**",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "metric",
+    "memory-index"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-008",
+    "MEM-2026-09-23-007",
+    "MEM-2026-09-23-001"
+  ],
+  "created_at": "2026-09-23T15:00:00.000000Z",
+  "updated_at": "2026-09-23T15:00:00.000000Z"
+}

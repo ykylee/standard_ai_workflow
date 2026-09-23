@@ -39,6 +39,8 @@
       "TASK-2026-09-23-main-009"
     ],
     "recent_done_items": [
+      "TASK-2026-09-23-main-011 — 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red",
+      "TASK-2026-09-23-main-010 — 원격 main 동기화 및 v1.11.0 환경 배포",
       "TASK-2026-09-23-main-008 — wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend",
       "TASK-2026-09-23-main-007 — case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)",
       "TASK-2026-09-23-main-006 — case 수 대조 축의 사각지대 — 개수 선언이 없는 검사를 실측으로 가른다 (main-004 follow-up)",
@@ -46,16 +48,14 @@
       "TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)",
       "TASK-2026-09-23-main-003 — memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로",
       "TASK-2026-09-23-main-002 — check_release_wrapper_args case 6 이 git 인덱스 락을 잡아 병렬에서 flake",
-      "TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다",
-      "TASK-2026-09-22-main-008 — 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)",
-      "TASK-2026-09-22-main-007 — CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복"
+      "TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-23.md",
-    "task_count": 10,
+    "task_count": 12,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -67,7 +67,9 @@
       "TASK-2026-09-23-main-005 — memory_index 검색이 매칭된 entry 자신을 안 돌려준다 (seed 가 확장분에 ID순으로 밀림) + 한국어 질의는 기본 경로에서 0",
       "TASK-2026-09-23-main-006 — case 수 대조 축의 사각지대 — 개수 선언이 없는 검사를 실측으로 가른다 (main-004 follow-up)",
       "TASK-2026-09-23-main-007 — case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)",
-      "TASK-2026-09-23-main-008 — wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend"
+      "TASK-2026-09-23-main-008 — wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend",
+      "TASK-2026-09-23-main-010 — 원격 main 동기화 및 v1.11.0 환경 배포",
+      "TASK-2026-09-23-main-011 — 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red"
     ]
   },
   "next_documents": [

@@ -30,13 +30,14 @@ TASK-2026-09-21-main-008. 계약과 실측 근거는
 공유** 한다 — 사본을 두면 갈라지고, 좁은 쪽은 조용히 그 밖을 못 잰다. case 2 가
 그 파생 집합이 git 추적 `*.py` 전수와 일치하는지 매 게이트마다 대조한다.
 
-검증 케이스 (6):
+검증 케이스 (7):
     1. 스윕이 저장소 소스 전수를 **실제로 컴파일한다** (긍정 증거)
     2. 범위가 git 추적 `*.py` 와 일치한다 (조용한 축소를 잡는다)
     3. 이 저장소의 저장소-출처 컴파일 경고는 0 이다 (실 저장소 판정)
     4. 되주입 — invalid escape 를 스윕이 잡는다
     5. **캐시 무관** — import 기반 탐지는 warm cache 에서 눈이 머는데 스윕은 안 먼다
     6. 컴파일 실패를 삼키지 않고 `errors` 로 내놓는다 (모름 ≠ 안전)
+    7. 자기 `.git` 을 가진 하위 디렉터리(다른 checkout)는 범위 밖이다 (main-011)
 
 Stdlib only.
 """
@@ -241,6 +242,30 @@ with tempfile.TemporaryDirectory() as tmp:
         _fail("case 5",
             f"캐시 무관성을 실증하지 못했다 — import 1차 {first} / 2차 {second} / "
             f"스윕 {sweep_still}")
+
+
+# --- case 7: 다른 checkout 은 범위가 아니다 ------------------------------------
+# TASK-2026-09-23-main-011. 저장소 루트 아래 중첩 worktree 의 옛 소스가 case 3 을
+# **그 worktree 가 있는 호스트에서만** red 로 만들었다. 실 저장소 관찰로는 이 case 가
+# 발화하지 않는다 (CI 에는 중첩 worktree 가 없다) — 그래서 fixture 로 기전을 건다.
+# 루트 자신도 `.git` 을 가진다: 루트까지 빼면 전부 사라지므로 그 방향도 같이 잰다.
+with tempfile.TemporaryDirectory() as _tmp:
+    _root = Path(_tmp)
+    (_root / ".git").mkdir()
+    for _rel in ("a.py", "pkg/b.py", "wt/c.py", "deep/repo/d.py",
+                 ".venv-x/e.py", "pkg/__pycache__/f.py"):
+        (_root / _rel).parent.mkdir(parents=True, exist_ok=True)
+        (_root / _rel).write_text("x = 1" + chr(10), encoding="utf-8")
+    (_root / "wt" / ".git").write_text("gitdir: /elsewhere" + chr(10), encoding="utf-8")
+    (_root / "deep" / "repo" / ".git").mkdir()
+    _got = sorted(str(p.relative_to(_root)) for p in iter_sources(_root))
+
+_want = ["a.py", "pkg/b.py"]
+if _got == _want:
+    _ok("case 7: 자기 .git 을 가진 하위 디렉터리(worktree 파일 · 중첩 저장소)는 빼고 "
+       "루트는 남긴다")
+else:
+    _fail("case 7", f"열거 {_got} ≠ 기대 {_want} — 다른 checkout 을 재거나 이 저장소를 놓친다")
 
 
 print()

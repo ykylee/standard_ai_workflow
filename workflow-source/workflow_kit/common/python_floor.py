@@ -40,6 +40,7 @@ f-string 을 토크나이저 층에서 재작성한 변경이라 그 게이트�
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -77,16 +78,29 @@ def iter_sources(source_root: Path) -> list[Path]:
     한쪽만 넓어지면 좁은 쪽은 조용히 그 밖을 못 잰다 — 이 저장소가 포함 목록으로
     세 번 겪은 모양이다 (`TASK-2026-09-21-main-004` 등).
 
-    제외는 두 가지뿐이고 둘 다 *소스가 아닌 것* 이다: `__pycache__`(컴파일 산물)와
-    `.venv*`(서드파티). venv 디렉터리는 이름이 하나가 아니다 —
-    `.venv-interpreter-matrix/` · `.venv-sdk-matrix/` 가 실제로 저장소 루트 아래에
-    생긴다.
+    제외는 세 가지뿐이고 셋 다 *이 저장소의 소스가 아닌 것* 이다: `__pycache__`(컴파일
+    산물), `.venv*`(서드파티), 그리고 **자기 `.git` 을 가진 하위 디렉터리**(다른
+    checkout). venv 디렉터리는 이름이 하나가 아니다 — `.venv-interpreter-matrix/` ·
+    `.venv-sdk-matrix/` 가 실제로 저장소 루트 아래에 생긴다.
+
+    세 번째는 TASK-2026-09-23-main-011. 저장소 루트 아래의 중첩 worktree
+    (`.worktrees/<name>/`, `.git` 이 *파일*)는 gitignore 되어 있어도 rglob 에 잡힌다.
+    2026-09-23 실측: 8월에 멈춘 worktree 의 옛 소스가 SyntaxWarning 2건을 내
+    `check_source_compile_warnings` 가 **그 worktree 가 있는 호스트에서만** red 였다
+    (CI 는 green). 다른 checkout 은 그 checkout 의 게이트가 잰다. 판정은 이름
+    (`.worktrees`)이 아니라 `.git` 존재로 한다 — worktree 는 아무 경로에나 만들 수 있다.
     """
-    return sorted(
-        p for p in source_root.rglob("*.py")
-        if "__pycache__" not in p.parts
-        and not any(part.startswith(".venv") for part in p.parts)
-    )
+    found: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(source_root):
+        here = Path(dirpath)
+        dirnames[:] = [
+            d for d in dirnames
+            if d != "__pycache__"
+            and not d.startswith(".venv")
+            and not (here / d / ".git").exists()
+        ]
+        found.extend(here / f for f in filenames if f.endswith(".py"))
+    return sorted(found)
 
 
 def resolve_scope(repo_root: Path) -> tuple[Path, Path]:

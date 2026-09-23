@@ -1,0 +1,32 @@
+{
+  "id": "MEM-2026-09-23-006",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "Porting a mechanism silently drops its contract",
+  "cue_anchors": [
+    "contract-weakened-in-transit",
+    "known-transient-ledger",
+    "fatal-vs-reported",
+    "first-run-of-full-coverage-finds-real-things"
+  ],
+  "value_digest": "저장소 write 감시를 검사에서 러너로 옮기면서 '미지의 touch-and-restore 는 FAIL' 이라는 계약을 보고만 하도록 조용히 약화시켰다. 되돌려 놓으면 git status 가 오히려 깨끗해 보여 더 위험한 것이 그 축의 요지인데, 옮기는 과정에서 그 엄격도가 빠졌고 아무것도 실패하지 않았다. 원장(알려진 접촉만 이유와 함께 등록, 단방향)을 복원하고 엄격도를 되돌렸다. 덧붙여 범위를 표본 16에서 전수 290으로 넓히자 첫 실행에서 실물 접촉 2건이 나왔다 — 표본 밖이라 아무도 못 보던 것들이다. 기능을 옮길 때는 옮기기 전 계약이 그대로 왔는지 따로 확인한다. 빠지는 쪽은 조용하다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "testing",
+    "convention"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-003",
+    "MEM-2026-09-23-005",
+    "MEM-2026-08-20-003"
+  ],
+  "created_at": "2026-09-23T00:08:14.364282Z",
+  "updated_at": "2026-09-23T00:08:14.364282Z"
+}

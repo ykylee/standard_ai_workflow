@@ -1,0 +1,32 @@
+{
+  "id": "MEM-2026-09-23-007",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "A lexical-overlap metric measures nothing and reports a constant",
+  "cue_anchors": [
+    "constant-metric-is-a-defect",
+    "input-pair-mismatch",
+    "function-word-noise",
+    "threshold-vs-formula",
+    "promotion-is-judgment"
+  ],
+  "value_digest": "memory_index 승격 후보 판정이 '제목 토큰 교집합 entry 토큰 / 제목 토큰' 어휘 겹침이라 매 세션 '10건 중 0건' 상수를 냈다. 평균 0.22 · 최대 0.40 으로 구조적 0 은 아니지만 임계 0.5 를 영영 못 넘고, 더 결정적으로 그 겹침의 내용이 '자기'·'판정이'·'red'·'두'·'가' 같은 기능어/일반어다. 입력 쌍도 어긋나 있다 — entry 는 영어 추상화와 영어 kebab cue, task 제목은 한국어 산문이라 cue_anchors 기여가 0.062 다. 81차가 graph_insights 에서 고친 것과 같은 결함족이고 거기서는 선언 사슬로 갈았다. 상수인 지표는 판정식 또는 입력 쌍이 틀린 것이다 — 임계를 돌리기 전에 두 입력이 비교 가능한 종류인지 묻고, 겹침이 있다면 그 내용이 의미인지 기능어인지 눈으로 본다. 승격은 도구 순위가 아니라 재사용 가치로 고른다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "metrics",
+    "memory-index"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-002",
+    "MEM-2026-08-20-003"
+  ],
+  "created_at": "2026-09-23T00:08:14.364282Z",
+  "updated_at": "2026-09-23T00:08:14.364282Z"
+}

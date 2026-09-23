@@ -1,0 +1,33 @@
+{
+  "id": "MEM-2026-09-23-003",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "A rule the writer cannot read is not enforced",
+  "cue_anchors": [
+    "judgment-in-tests-dir",
+    "promote-to-product-code",
+    "doc-stamp",
+    "doc-headers-update",
+    "re-export-not-copy",
+    "import-surface-explosion"
+  ],
+  "value_digest": "문서 스탬프 규약('스탬프 >= 마지막 내용 변경일')이 tests/ 안에 살아서 읽는 쪽(검사 5종)만 알고 쓰는 쪽(릴리스의 doc-headers-update)은 구조적으로 import 할 수 없었다. 그래서 쓰는 쪽은 헤더가 있는 문서를 전부 오늘로 올렸고, 내용이 한 줄도 안 바뀐 문서 100개가 '오늘 수정됨' 을 주장했다. 되돌려도 release --apply 의 post-step 이 다시 넣어 커밋 전 되돌림으로는 못 막았다. 규약 판정 모듈이 tests/ 안에 있으면 그것은 읽는 쪽 전용이라는 뜻이다 — 강제하려면 제품 코드로 승격하고 검사는 재수출만 한다. 승격 시 패키지 __init__ 이 딸려 와 검사들의 입력 표면이 폭발하면(meta-watch 가 잡는다) stdlib-only 인지 보고 파일 경로로 직접 읽어 한 파일로 유지한다 — 사본이 아니라 같은 파일이라 갈라지지 않는다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "convention",
+    "release"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-006",
+    "MEM-2026-08-20-004"
+  ],
+  "created_at": "2026-09-23T00:08:14.364282Z",
+  "updated_at": "2026-09-23T00:08:14.364282Z"
+}

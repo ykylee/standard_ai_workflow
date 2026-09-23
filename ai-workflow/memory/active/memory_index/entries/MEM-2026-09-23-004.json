@@ -1,0 +1,31 @@
+{
+  "id": "MEM-2026-09-23-004",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "Local green and CI green can walk different branches",
+  "cue_anchors": [
+    "dist-presence-changes-the-path",
+    "toctou-on-shared-state",
+    "flake-fingerprint-is-moving-cells",
+    "reproduce-by-removing-local-state"
+  ],
+  "value_digest": "로컬 전량 4셀이 290/290 green 인데 CI smoke 가 2연속 red 였다. 코드 차이가 아니라 개발 머신의 workflow-source/dist/ 에 방금 빌드한 산출물이 있어서, 그 존재로 기대값을 고르던 검사가 fresh checkout 인 CI 와 아예 다른 경로를 탔다. 같은 원인이 두 번 더 나왔다 — sdist 빌드가 소스 트리에 만드는 임시 디렉터리도 CI 에서만 보였다. 실패 검사는 하나인데 실패 셀이 매번 바뀌면 그것은 경합의 지문이다. 로컬 green 과 CI red 가 갈리면 코드가 아니라 상태 차이부터 찾고, 재현할 때는 그 상태를 치우고(mv dist /tmp) 돌린다. 찾기 전까지 로컬 green 은 증거가 아니다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "ci",
+    "testing"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-002",
+    "MEM-2026-09-23-005"
+  ],
+  "created_at": "2026-09-23T00:08:14.364282Z",
+  "updated_at": "2026-09-23T00:08:14.364282Z"
+}

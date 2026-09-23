@@ -1,0 +1,32 @@
+{
+  "id": "MEM-2026-09-23-002",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "Passing and doing-what-was-intended are different questions",
+  "cue_anchors": [
+    "green-is-not-evidence",
+    "observability-of-mode",
+    "unmeasured-is-not-pass",
+    "artifact-last-line",
+    "json-runner-hides-stdout"
+  ],
+  "value_digest": "CI 하한 측정을 부분에서 전수로 올린 뒤 그것이 실제로 올라갔는지 확인하려는데, 검사는 전수 측정이든 부분 폴백이든 양쪽 다 PASS 라 '6/6 passed' 로는 구분이 안 됐다. 러너가 --json 으로 돌아 검사 stdout 이 job 로그에 안 남고 아티팩트의 last_line 만 남는 것도 겹쳤다. 판정을 바꾸지 않고 모드를 요약 줄에 실어('하한 측정 전수(3.10.21, 569개)') 관측 가능하게 만든 뒤에야 확인됐다. 목적 달성 여부를 보려면 관측 수단을 따로 만들어야 한다 — green 은 '깨지지 않았다' 이지 '의도한 것을 했다' 가 아니다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "ci",
+    "measurement"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-001",
+    "MEM-2026-09-23-004"
+  ],
+  "created_at": "2026-09-23T00:08:14.364282Z",
+  "updated_at": "2026-09-23T00:08:14.364282Z"
+}

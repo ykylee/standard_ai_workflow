@@ -1,0 +1,34 @@
+{
+  "id": "MEM-2026-09-23-014",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-007.md",
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "Stopping for false positives can be right while the cause lies one layer deeper",
+  "cue_anchors": [
+    "right-to-stop-wrong-about-why",
+    "one-marker-is-not-the-vocabulary",
+    "skip-counted-as-pass",
+    "declaration-vs-evidence-line",
+    "residual-must-be-numbered"
+  ],
+  "value_digest": "앞 작업이 '이 접두를 받으면 위양성 12건' 이라며 확장을 멈췄다. **멈춘 판단은 옳았지만 원인이 대상 쪽이 아니었다** — 그 12건 중 9건은 **이미 롤업을 찍고 있었고** 표식이 `[PASS]` 가 아니라 `✓ name PASS` 였을 뿐이다. 즉 '흐름이 둘이라 못 푼다' 가 아니라 **판정자가 롤업 표식을 하나만 알고 있었다.** 표식 하나를 더하니 위양성이 0 이 되고 측정이 188 → 212 로 올랐다. 규칙: 위양성 때문에 멈출 때 멈춤을 결론으로 남기지 말고 **왜 그 대상이 다르게 보이는지**를 한 겹 더 파라 — '대상이 이질적이다' 는 대개 판정자가 그 이질성의 축을 하나만 안다는 뜻이다. 멈추는 것은 옳지만 멈춘 자리를 *이유와 숫자로* 남겨야 다음 사람이 그 겹을 연다. **부수로 나온 진짜 결함**: 한 테스트가 실 저장소에 대상이 없으면 `SKIP` 만 찍고 `True` 를 돌려줬다 — 요약은 `Result: 5/5 PASS`, 게이트는 green 인데 그 테스트는 아무것도 재지 않았다. 드러난 경로는 **개수**였다(선언 5 / 증거 줄 4). 건너뛰는 테스트는 ①건너뛴 사실을 요약에 숫자로 싣고(`5/5 PASS (1 skipped)`) ②case 마다 결과 한 줄을 내어 선언과 증거가 맞물리게 한다. `'not a failure, just skip'` 주석이 붙은 `return True` 가 이 결함의 지문이다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "tests",
+    "gate"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-013",
+    "MEM-2026-09-23-010",
+    "MEM-2026-09-23-002"
+  ],
+  "created_at": "2026-09-23T18:00:00.000000Z",
+  "updated_at": "2026-09-23T18:00:00.000000Z"
+}

@@ -1,0 +1,34 @@
+{
+  "id": "MEM-2026-09-23-011",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-006.md",
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "A tool that writes 'now' cannot perform a retroactive correction",
+  "cue_anchors": [
+    "now-writer-cannot-backfill",
+    "scope-from-hand-list-to-derived",
+    "failure-taught-the-signal",
+    "mirror-never-converges",
+    "split-roles-when-scope-blows-the-budget"
+  ],
+  "value_digest": "뒤처진 스탬프를 교정하면서 **도구를 쓰지 않았다.** doc-headers-update 는 '오늘' 을 쓰는데, 내용이 2026-05-01 에 바뀐 문서에 오늘을 박으면 이 축이 없애려던 거짓과 같은 것을 만든다. 범위 확장만 도구에 넣고 소급 값은 **실제 내용 변경일**로 채웠다(116건, 최대 +142일). 범위는 손 목록(93개) → git 추적 전수 − 동결(210개)로 옮겼고 동결 판정 정본을 제품 코드로 승격해 사본을 0으로 만들었다. **동결 신호는 실패가 가르쳐 줬다** — 2개로는 발행 노트·테스트 트리가 살아있는 문서로 새어, .gitignore 무시 경로(check-ignore --no-index)까지 5개로 늘렸다. 배포 사본은 스캔에서 빼야 한다(정본과 byte-identical 이어야 해서 따로 올리면 **영원히 수렴하지 않는다**). 범위를 넓히면 실행 예산이 터지는데, timeout 을 올리는 것은 또 다른 손 목록이므로 **역할을 나눈다** — 파이프라인 auto-step 은 워킹 트리 변경분만, 전수 감시는 게이트가 한 번. 도구 종료 코드 함정 하나: `wk backlog-update --mode update` 가 대상 부재를 **warning + exit 0** 으로 내서 쉘 폴백이 안 걸렸고 task 없는 커밋이 나갔다 — '경고지만 성공' 을 조건에 쓰지 않는다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "convention",
+    "release"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-003",
+    "MEM-2026-09-23-001",
+    "MEM-2026-08-25-002"
+  ],
+  "created_at": "2026-09-23T12:00:00.000000Z",
+  "updated_at": "2026-09-23T12:00:00.000000Z"
+}

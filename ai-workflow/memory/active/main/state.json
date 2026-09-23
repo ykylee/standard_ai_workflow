@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**86차 세션 (2026-09-23, plex 호스트/linux) — task 3건 close (main-003·main-002·main-004). 세 건이 한 결함족이었다: 판정이 실제로는 아무것도 재지 않는데 숫자가 멀쩡해 보인다.** ①**main-003** — 85차가 follow-up 으로 남긴 `suggest-memory-entries` 의 판정식. coverage 가 제목↔entry **어휘 겹침**(평균 0.22 · 최대 0.40 · 임계 0.5 미도달)이라 매 세션 '10건 중 0건' 상수를 냈고, 최고 쌍의 공유 토큰은 `자기`·`판정이` 같은 기능어였다. **선언은 이미 있었다** — entry 의 `source_paths` 가 출처 task 를 인용하고 그 인용이 곧 '이 task 의 교훈을 담았다' 는 선언이다. 판정을 그것으로 바꿔 **covered=0/candidates=10 → covered=7 / candidates=3 / unmeasured=8**. 인용 없는 entry 는 '안 덮음' 이 아니라 `entries_without_task_citation` 으로 분리했다(초기 8건은 소급 불가). skeleton 의 `source_paths` 에 출처 task 를 미리 채워 다음 승격부터 규약이 자동으로 지켜진다. 되주입 5종 중 **옛 어휘식을 복원하면 covered=0** 이라 그 식이 아무것도 못 잡았다는 것이 실증된다. ②**main-002** — 그 push 의 CI smoke `slash/py3.11` 셀이 red. 등록해 둔 결함이 실제로 발화한 것이다: `git add --dry-run` 은 **dry-run 이어도 index 락을 잡아** 병렬 구간에서 `fatal: Unable to create .git/index.lock` 이 된다. `git ls-files --error-unmatch --cached --others --exclude-standard` 로 교체 — 락을 인위로 쥔 tmp repo 에서 add rc=128 / ls-files rc=0, 하위 디렉터리에서는 ls-files 도 rc=1 이라 6b 의 버그 재현 방향이 산다. **대체 수단이 원래 결함을 여전히 보는가**를 case 6c 로 따로 세웠다(두 cwd 방향에서 두 수단의 판정 일치). ③**main-004** — 같은 자리에서 `total = 11` 상수가 12 PASS 에 `11/11` 을 찍고 있었다. 전수로 재니 상수 total 20건 중 **4건이 이미 갈려** 있었다. 판정을 러너에 뒀다(`common/case_count.py` + `case_count_verdict`) — 러너는 이미 각 검사 출력을 전량 받아 두므로 **재실행 비용 0**, 경고 축·write 축과 같은 자리. **범위를 실측으로 두 번 넓힌 것이 이번의 핵심이다**: 처음엔 echo 위양성이 무서워 줄 맨 앞만 받아 **290 중 28개만** 읽혔고, 못 읽은 표본은 전부 자기 case 를 들여쓰는 검사였으며 선언=들여쓴 수였다(10/10·8/8·7/7·5/5·4/4·6/6). 넓힌 뒤 위양성 2건이 드러나 둘 다 해소했다 — 콜론 없이 `PASS` 만 찍는 case(23/22, 이미 파생이던 검사)와 production CLI 의 `  PASS  <url>` 혼입(2/4, production 표기는 두고 검사가 stdout 을 삼킴). 상수 15건 전부 파생 전환(`total = 0` 누산기 5건은 대상 아님), 그 과정에 `check_telemetry_window` 8→9 · `check_wk_dispatcher` 10→11 로 값이 정정됐다. `check_case_count` 8 case 로 기구를 고정했고 case 8 이 저장소 전수에서 상수 total 재도입을 잡는다. 요구 `check-summary-must-count-what-ran` 을 spec 정본에 등록. 되주입 7종이 각각 다른 지문. **미측정 320/582 은 통과로 세지 않고 사유별로 보고한다**(개수 선언 없음 306 / case 줄 없음 14) — 선언 없는 쪽은 계약 밖이라 red 가 아니지만 그만큼 사각지대다(follow-up). 게이트 **582/582** (291 × native/slash), CI 는 `f3ac2d13`·`88b92542` 모두 4셀 green.",
+    "current_baseline": "**86차 세션 (2026-09-23, plex 호스트/linux) — task 3건 close (main-003·main-002·main-004). 세 건이 한 결함족이었다: 판정이 실제로는 아무것도 재지 않는데 숫자가 멀쩡해 보인다.** ①**main-003** — 85차가 follow-up 으로 남긴 `suggest-memory-entries` 의 판정식. coverage 가 제목↔entry **어휘 겹침**(평균 0.22 · 최대 0.40 · 임계 0.5 미도달)이라 매 세션 '10건 중 0건' 상수를 냈고, 최고 쌍의 공유 토큰은 `자기`·`판정이` 같은 기능어였다. **선언은 이미 있었다** — entry 의 `source_paths` 가 출처 task 를 인용하고 그 인용이 곧 '이 task 의 교훈을 담았다' 는 선언이다. 판정을 그것으로 바꿔 **covered=0/candidates=10 → covered=7 / candidates=3 / unmeasured=8**. 인용 없는 entry 는 '안 덮음' 이 아니라 `entries_without_task_citation` 으로 분리했다(초기 8건은 소급 불가). skeleton 의 `source_paths` 에 출처 task 를 미리 채워 다음 승격부터 규약이 자동으로 지켜진다. 되주입 5종 중 **옛 어휘식을 복원하면 covered=0** 이라 그 식이 아무것도 못 잡았다는 것이 실증된다. ②**main-002** — 그 push 의 CI smoke `slash/py3.11` 셀이 red. 등록해 둔 결함이 실제로 발화한 것이다: `git add --dry-run` 은 **dry-run 이어도 index 락을 잡아** 병렬 구간에서 `fatal: Unable to create .git/index.lock` 이 된다. `git ls-files --error-unmatch --cached --others --exclude-standard` 로 교체 — 락을 인위로 쥔 tmp repo 에서 add rc=128 / ls-files rc=0, 하위 디렉터리에서는 ls-files 도 rc=1 이라 6b 의 버그 재현 방향이 산다. **대체 수단이 원래 결함을 여전히 보는가**를 case 6c 로 따로 세웠다(두 cwd 방향에서 두 수단의 판정 일치). ③**main-004** — 같은 자리에서 `total = 11` 상수가 12 PASS 에 `11/11` 을 찍고 있었다. 전수로 재니 상수 total 20건 중 **4건이 이미 갈려** 있었다. 판정을 러너에 뒀다(`common/case_count.py` + `case_count_verdict`) — 러너는 이미 각 검사 출력을 전량 받아 두므로 **재실행 비용 0**, 경고 축·write 축과 같은 자리. **범위를 실측으로 두 번 넓힌 것이 이번의 핵심이다**: 처음엔 echo 위양성이 무서워 줄 맨 앞만 받아 **290 중 28개만** 읽혔고, 못 읽은 표본은 전부 자기 case 를 들여쓰는 검사였으며 선언=들여쓴 수였다(10/10·8/8·7/7·5/5·4/4·6/6). 넓힌 뒤 위양성 2건이 드러나 둘 다 해소했다 — 콜론 없이 `PASS` 만 찍는 case(23/22, 이미 파생이던 검사)와 production CLI 의 `  PASS  <url>` 혼입(2/4, production 표기는 두고 검사가 stdout 을 삼킴). 상수 15건 전부 파생 전환(`total = 0` 누산기 5건은 대상 아님), 그 과정에 `check_telemetry_window` 8→9 · `check_wk_dispatcher` 10→11 로 값이 정정됐다. `check_case_count` 8 case 로 기구를 고정했고 case 8 이 저장소 전수에서 상수 total 재도입을 잡는다. 요구 `check-summary-must-count-what-ran` 을 spec 정본에 등록. 되주입 7종이 각각 다른 지문. **미측정 320/582 은 통과로 세지 않고 사유별로 보고한다**(개수 선언 없음 306 / case 줄 없음 14) — 선언 없는 쪽은 계약 밖이라 red 가 아니지만 그만큼 사각지대다(follow-up). 게이트 **582/582** (291 × native/slash), CI 는 `f3ac2d13`·`88b92542` 모두 4셀 green. **세션 말미에 소유자 지시로 승격 4건 추가** (entry 22 → 26): 008 상수 지표의 수리는 대개 아무도 안 읽는 선언이다(main-003) · 009 측정 수단을 갈아타면 옛것과 판정이 같은지 외부 증인이 필요하다(main-002) · 010 위양성이 무서워 좁힌 범위는 그 자체가 미측정이다(main-004) · 011 '지금' 을 쓰는 도구로는 소급 교정을 할 수 없다(09-22-main-006). `covered=6/candidates=4` → **`covered=10/candidates=0`**. **넣은 것이 걸리는지 재다가 검색 경로 결함 2건을 실측했다 (main-005 등록)** — ① `sorted(seed_and_linked)[:top_k]` 가 seed 와 확장분을 **ID 사전순(=날짜순)** 으로 자르는데 링크 관례가 최신→기존(26/26 단방향)이라 **매칭된 entry 자신이 밀려난다**. 정확한 cue 로 질의해도 3/3 에서 그 entry 가 상위 3에 없었고(`constant-metric-is-a-defect` → 08-20-001·003·09-23-001), `cue_hits=1` 을 보고하면서 그 1건을 안 돌려준다. ② cue 가 전부 영문 kebab 이고 `use_bm25_fallback` 기본값이 False 라 **한국어 질의는 기본 경로에서 0** 이다. BM25 를 켜면 4건 전부 걸린다(락/대체→009 1순위 · 소급/스탬프→011 2순위 · 선언/인용→008 2순위 · 위양성/범위→010 3순위). **85차가 '1순위' 로 기록한 질의도 지금 기본 경로에서는 0 이다** — 그때 무엇으로 쟀는지 확인이 필요하다. 즉 '넣은 것이 걸린다' 는 BM25 를 켰을 때만 참이다.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
     "in_progress_items": [],
@@ -35,7 +35,8 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-07-main-009"
+      "TASK-2026-09-07-main-009",
+      "TASK-2026-09-23-main-005"
     ],
     "recent_done_items": [
       "TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)",
@@ -54,7 +55,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-23.md",
-    "task_count": 5,
+    "task_count": 6,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -855,7 +856,143 @@
       ],
       "created_at": "2026-09-23T00:08:14.364282Z",
       "updated_at": "2026-09-23T00:08:14.364282Z"
+    },
+    {
+      "id": "MEM-2026-09-23-008",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-003.md",
+        "ai-workflow/memory/active/main/session_handoff.md"
+      ],
+      "primary_abstraction": "The fix for a constant metric is usually a declaration nobody reads",
+      "cue_anchors": [
+        "declaration-already-exists",
+        "citation-as-coverage",
+        "autopsy-the-old-formula",
+        "prefill-the-skeleton",
+        "unmeasured-vs-uncovered"
+      ],
+      "value_digest": "상수 지표를 고칠 때 새 판정식을 발명하기 전에 **이미 있는 선언**을 찾는다. 승격 후보 coverage 가 제목↔entry 어휘 겹침이라 매 세션 '10건 중 0건' 을 냈는데, entry 의 source_paths 가 출처 task 를 인용하고 있었다 — 그 인용이 곧 '이 task 의 교훈을 담았다' 는 선언이다. 판정을 그것으로 바꾸자 covered=0/candidates=10 이 covered=7 / candidates=3 / unmeasured=8 이 됐다. 인용 없는 entry 는 '안 덮음' 이 아니라 entries_without_task_citation 으로 분리한다 — 못 잰 것을 나쁨으로 세면 지표가 다시 거짓말한다. **옛 식을 되주입해 부검할 것**: 되주입 5종 중 하나가 '옛 어휘식 복원' 이었고 결과가 covered=0 이라, 그 식이 애초에 아무것도 못 잡았다는 것이 그제야 숫자로 남았다. 안 하면 새 값이 좋아 보이는 것만 남고 옛 값이 왜 상수였는지는 사라진다. 규약이 있는데 안 지켜지면 **만드는 쪽**을 고친다 — entry 22건 중 인용이 있는 것은 7건뿐이라, skeleton 의 source_paths 에 출처 task 경로를 미리 채워 다음 승격부터 자동으로 지켜지게 했다.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "metric",
+        "memory-index"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-09-23-007",
+        "MEM-2026-09-23-003",
+        "MEM-2026-08-20-003"
+      ],
+      "created_at": "2026-09-23T12:00:00Z",
+      "updated_at": "2026-09-23T12:00:00Z"
+    },
+    {
+      "id": "MEM-2026-09-23-009",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-002.md",
+        "ai-workflow/memory/active/main/session_handoff.md"
+      ],
+      "primary_abstraction": "Swapping a measurement tool needs an outside witness that it still sees the defect",
+      "cue_anchors": [
+        "dry-run-still-locks",
+        "read-only-substitute",
+        "substitute-needs-a-witness",
+        "flake-is-a-registered-defect",
+        "parallel-section-contention"
+      ],
+      "value_digest": "`git add --dry-run` 은 **dry-run 이어도 index 락을 잡는다** — 병렬 구간에서 다른 검사와 부딪히면 `fatal: Unable to create .git/index.lock` 로 죽는다. 락을 인위로 쥐고 재면 add 는 rc=128, `git ls-files --error-unmatch --cached --others --exclude-standard` 는 rc=0 이다. 그런데 수단을 바꾸는 순간 질문이 생긴다 — **대체 수단이 원래 잡던 결함을 여전히 보는가?** production 이 실제로 하는 일은 `git add` 이고 검사는 이제 다른 명령을 쓴다. 그래서 case 를 하나 더 둔다: 락 경합이 없는 tmp repo 에서 추적/미추적이 섞인 대상에 대해 두 수단이 **두 cwd 방향 모두에서** 같은 판정을 내는지 잰다. 갈리면 그 검사가 production 을 더 이상 대리하지 못한다는 뜻이고 그때 red 가 된다. 바꾼 뒤 green 인 것은 증거가 아니다. 덧붙여, 간헐 red 를 '잡음' 으로 넘기지 않고 task 로 등록해 뒀더니 다음 push 의 CI red 를 **새 결함이 아니라 등록된 결함의 발현**으로 즉시 식별할 수 있었다.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "tests",
+        "ci"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-09-23-004",
+        "MEM-2026-09-23-006",
+        "MEM-2026-08-20-003"
+      ],
+      "created_at": "2026-09-23T12:00:00Z",
+      "updated_at": "2026-09-23T12:00:00Z"
+    },
+    {
+      "id": "MEM-2026-09-23-010",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-004.md",
+        "ai-workflow/memory/active/main/session_handoff.md"
+      ],
+      "primary_abstraction": "A false-positive fear that narrows scope is itself a measurement gap",
+      "cue_anchors": [
+        "constant-total-hides-neutralization",
+        "scope-set-by-measurement",
+        "false-positive-is-not-a-reason-to-narrow",
+        "verdict-in-the-runner",
+        "unmeasured-reported-by-reason"
+      ],
+      "value_digest": "검사 요약의 `N/M` 에서 M 이 손으로 박은 상수이면 case 를 늘려도 줄여도 숫자가 안 바뀐다 — **무력화가 숫자에서도 안 보인다.** 하루에 두 번 실물로 만났고(11개에 9/9, 12개에 11/11) 둘 다 전체 green 이었으며, 전수로 재니 상수 total 20건 중 4건이 이미 갈려 있었다. 판정은 러너에 둔다 — 러너는 이미 각 검사의 출력을 전량 받아 두므로 **재실행 비용이 0**이다(경고 축·저장소 write 축과 같은 자리). **핵심은 범위를 실측으로 정한 것이다.** 남의 출력 echo 가 무서워 case 줄을 줄 맨 앞만 받았더니 **290개 중 28개**만 읽혔고, 못 읽은 표본은 전부 자기 case 를 들여쓰는 검사였으며 선언=들여쓴 수였다. 넓히자 위양성이 실제로 2건 나왔지만 **둘 다 좁힐 이유가 아니라 각자 원인이 따로 있었다** — 콜론 없이 PASS 만 찍는 case, production CLI 출력이 case 줄에 섞인 것(production 표기는 두고 검사가 stdout 을 삼켰다). 위양성 우려로 좁힐 때는 **좁힌 결과 몇 개를 못 보게 되는지**를 같이 재라. 그리고 미측정은 통과로 세지 말고 사유별로 보고한다 — 320/582 를 '개수 선언 없음 306 / case 줄 없음 14' 로 갈라 놓으면 사각지대가 숫자로 남는다.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "tests",
+        "gate"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-09-23-001",
+        "MEM-2026-09-23-002",
+        "MEM-2026-09-23-005"
+      ],
+      "created_at": "2026-09-23T12:00:00Z",
+      "updated_at": "2026-09-23T12:00:00Z"
+    },
+    {
+      "id": "MEM-2026-09-23-011",
+      "schema_version": 1,
+      "source_paths": [
+        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-006.md",
+        "ai-workflow/memory/active/main/session_handoff.md"
+      ],
+      "primary_abstraction": "A tool that writes 'now' cannot perform a retroactive correction",
+      "cue_anchors": [
+        "now-writer-cannot-backfill",
+        "scope-from-hand-list-to-derived",
+        "failure-taught-the-signal",
+        "mirror-never-converges",
+        "split-roles-when-scope-blows-the-budget"
+      ],
+      "value_digest": "뒤처진 스탬프를 교정하면서 **도구를 쓰지 않았다.** doc-headers-update 는 '오늘' 을 쓰는데, 내용이 2026-05-01 에 바뀐 문서에 오늘을 박으면 이 축이 없애려던 거짓과 같은 것을 만든다. 범위 확장만 도구에 넣고 소급 값은 **실제 내용 변경일**로 채웠다(116건, 최대 +142일). 범위는 손 목록(93개) → git 추적 전수 − 동결(210개)로 옮겼고 동결 판정 정본을 제품 코드로 승격해 사본을 0으로 만들었다. **동결 신호는 실패가 가르쳐 줬다** — 2개로는 발행 노트·테스트 트리가 살아있는 문서로 새어, .gitignore 무시 경로(check-ignore --no-index)까지 5개로 늘렸다. 배포 사본은 스캔에서 빼야 한다(정본과 byte-identical 이어야 해서 따로 올리면 **영원히 수렴하지 않는다**). 범위를 넓히면 실행 예산이 터지는데, timeout 을 올리는 것은 또 다른 손 목록이므로 **역할을 나눈다** — 파이프라인 auto-step 은 워킹 트리 변경분만, 전수 감시는 게이트가 한 번. 도구 종료 코드 함정 하나: `wk backlog-update --mode update` 가 대상 부재를 **warning + exit 0** 으로 내서 쉘 폴백이 안 걸렸고 task 없는 커밋이 나갔다 — '경고지만 성공' 을 조건에 쓰지 않는다.",
+      "owners": [
+        "ykylee"
+      ],
+      "scope": [
+        "standard-ai-workflow",
+        "convention",
+        "release"
+      ],
+      "merge_state": "active",
+      "mentioned_in": [],
+      "related_ids": [
+        "MEM-2026-09-23-003",
+        "MEM-2026-09-23-001",
+        "MEM-2026-08-25-002"
+      ],
+      "created_at": "2026-09-23T12:00:00Z",
+      "updated_at": "2026-09-23T12:00:00Z"
     }
   ],
-  "memory_entries_count": 22
+  "memory_entries_count": 26
 }

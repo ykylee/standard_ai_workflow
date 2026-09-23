@@ -2,7 +2,8 @@
 
 ## 왜 필요한가
 
-`.github/workflows/mypy-strict.yml` 은 v0.11.11 부터 이렇게 돌고 있었다:
+`.github/workflows/mypy-strict.yml` 은 v0.11.11 부터 이렇게 돌고 있었다
+(그 workflow 는 2026-09-23 CI 폐지, TASK-2026-09-23-main-022 로 삭제됐다):
 
     mypy --no-incremental workflow-source/workflow_kit/     # cwd = REPO_ROOT
 
@@ -30,7 +31,7 @@
 ## 이 file 이 보는 것
 
 1. 선언 — mypy 를 부르는 **모든** 지점이 `--config-file` 을 명시하는가
-   (AST 전수 조사 + workflow YAML, mypy 불필요)
+   (AST 전수 조사 + `TEXT_SITES`, mypy 불필요)
 2. 선언 내용 — 그 config 가 실제로 `strict = true` 인가
 3. exclude anchor — 어떤 exclude 패턴도 `workflow_kit/` 내부를 잘라내지 않는가
 4. 사실 — mypy 를 실제로 돌렸을 때 그 config 를 물었다고 보고하는가 (`mypy -v`)
@@ -38,8 +39,8 @@
 6. 음성 대조 — `--config-file` 을 빼면 정말로 `Default` 로 떨어지는가
    (위험이 실재함을 증명한다. 이게 없으면 4번이 무엇을 막는지 알 수 없다.)
 
-4~6 은 mypy 가 있어야 한다. smoke CI 는 `pip install -e "./workflow-source[dev,...]"`
-로 mypy 를 깔므로 CI 에서는 항상 돈다. 로컬에 mypy 가 없으면 4~6 만 SKIP 한다 —
+4~6 은 mypy 가 있어야 한다. 개발 `.venv` 는 `pip install -e "./workflow-source[dev,...]"`
+로 mypy 를 깔므로 게이트에서는 항상 돈다. mypy 가 없는 환경에서는 4~6 만 SKIP 한다 —
 1~3 은 mypy 없이도 항상 돈다.
 """
 from __future__ import annotations
@@ -59,7 +60,6 @@ WATCHES = (
     # mypy 가 tests/ 도 대상에 넣는다 — meta-watch 실측 (2026-08-28) 이 tests/*
     # 접근 273건을 보였다. 좁히면 tests 변경 시 이 검사가 조용히 skip 된다.
     "workflow-source/tests/*",
-    ".github/workflows/mypy-strict.yml",
 )
 """config 가 실제로 로드되는지를 재므로 config 파일과 그 대상 전체가 관찰 범위다."""
 
@@ -82,8 +82,10 @@ SCAN_DIRS = ["workflow-source/tests", "workflow-source/tools", "workflow-source/
 # 일부러 config 없이 부른다. AST 로는 그 구분이 안 된다.
 SCAN_EXCLUDE = {"workflow-source/tests/check_mypy_config_actually_loaded.py"}
 
-# YAML/스크립트라 AST 로 볼 수 없는 호출 지점.
-TEXT_SITES = [(".github/workflows/mypy-strict.yml", "CI (mypy-strict workflow)")]
+# YAML/스크립트라 AST 로 볼 수 없는 호출 지점. 유일한 항목이던
+# `.github/workflows/mypy-strict.yml` 은 2026-09-23 CI 폐지(main-022)로 삭제됐다 —
+# 그런 지점이 다시 생기면 여기에 (경로, 라벨) 로 등록한다.
+TEXT_SITES: list[tuple[str, str]] = []
 
 
 

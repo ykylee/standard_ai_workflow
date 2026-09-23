@@ -4,7 +4,13 @@
 - test_mypy_ci_cross_verify_v0_11_13 — `_cross_verify_ci_mypy` helper + `_resolve_cross_verify_verdict`
   + cmd_release 통합 + argparse --skip-cross-verify / --strict-cross-verify flag
   + dispatcher 2 flag forwarding + release_pipeline_lib.cmd_release 2 kwarg
-  + verdict matrix 4 outcome (sanity / drift_warning / ci_stale / ci_fail) + 실 gh CLI integration
+  + verdict matrix 4 outcome (sanity / drift_warning / ci_stale / ci_fail)
+
+2026-09-23 CI workflow 폐지(TASK-2026-09-23-main-022)로 Layer 1(`mypy-strict.yml`)이
+사라졌다. `_cross_verify_ci_mypy` 는 이제 gh 를 부르지 않고 늘 ``skipped`` 를 낸다 —
+case 1 은 그 행동(gh 미호출 + skipped)을 재고, 실 gh CLI integration 을 재던 case 7 은
+대상을 잃어 삭제했다. verdict 매트릭스(case 8)와 플래그 배선(case 2~6)은 인터페이스가
+남아 있는 동안 유지한다.
 """
 from __future__ import annotations
 
@@ -24,18 +30,47 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _observe_cross_verify() -> tuple[dict, list[list[str]]]:
+    """`_cross_verify_ci_mypy()` 를 실제로 부르고, 그 사이 띄운 subprocess argv 를 모은다."""
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
+    from release_pipeline import _cross_verify_ci_mypy
+
+    spawned: list[list[str]] = []
+    real_run = subprocess.run
+
+    def _recording_run(argv, *args, **kwargs):  # type: ignore[no-untyped-def]
+        spawned.append([str(a) for a in argv] if isinstance(argv, (list, tuple)) else [str(argv)])
+        return real_run(argv, *args, **kwargs)
+
+    subprocess.run = _recording_run  # type: ignore[assignment]
+    try:
+        result = _cross_verify_ci_mypy()
+    finally:
+        subprocess.run = real_run  # type: ignore[assignment]
+    return result, spawned
+
+
 def test_mypy_ci_cross_verify_v0_11_13() -> None:
     """v0.11.13 mypy CI cross-verify (Layer 1 ↔ Layer 2 정합) verify."""
-    # case 1: _cross_verify_ci_mypy helper 존재 + gh run list invocation
+    # case 1: _cross_verify_ci_mypy 는 Layer 1 폐지(main-022) 후 **gh 를 부르지 않고**
+    # 늘 skipped 를 낸다. 옛 mypy-strict run 을 집으면 영구 ci_stale 이 되므로,
+    # gh 호출이 되살아나면 red 다.
     rp_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py"
     rp_text = rp_path.read_text(encoding="utf-8")
     assert "def _cross_verify_ci_mypy" in rp_text, "release_pipeline._cross_verify_ci_mypy helper 부재"
-    # gh run list invocation (CI 조회)
-    assert re.search(
-        r"gh.*run.*list.*mypy-strict\.yml",
-        rp_text,
-        re.DOTALL,
-    ), "gh run list --workflow mypy-strict.yml invocation 부재"
+    ci_mypy, spawned = _observe_cross_verify()
+    gh_calls = [argv for argv in spawned if argv and Path(argv[0]).name == "gh"]
+    assert not gh_calls, f"폐지된 Layer 1 을 조회하려고 gh 를 불렀다: {gh_calls}"
+    assert ci_mypy.get("verdict") == "skipped", (
+        f"Layer 1 폐지 후 verdict 는 skipped 여야 한다: {ci_mypy.get('verdict')!r}"
+    )
+    assert ci_mypy.get("ci_run") is None, f"조회하지 않았는데 ci_run 이 있다: {ci_mypy.get('ci_run')!r}"
+    for key in ("verdict", "head_sha", "message"):
+        assert key in ci_mypy, f"ci_mypy.{key} 부재 (출력 스키마)"
+    assert "main-022" in str(ci_mypy.get("message")), (
+        f"skipped 사유가 폐지를 말하지 않는다: {ci_mypy.get('message')!r}"
+    )
     # 6 verdict 정의 정합 (sanity / drift_warning / ci_stale / ci_fail / absent / skipped)
     # + 7th = no_local_verify
     expected_verdicts = {
@@ -45,7 +80,7 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
     found_verdicts = set(re.findall(r'"(sanity|drift_warning|ci_stale|ci_fail|absent|skipped|no_local_verify|ci_sanity)"', rp_text))
     missing = expected_verdicts - found_verdicts
     assert not missing, f"verdict 정의 누락: {missing}"
-    print(f"  case 1 (_cross_verify_ci_mypy helper + gh run list + {len(found_verdicts)} verdict): PASS")
+    print(f"  case 1 (_cross_verify_ci_mypy: gh 미호출 + skipped + {len(found_verdicts)} verdict): PASS")
 
     # case 2: _resolve_cross_verify_verdict helper + verdict matrix
     assert "def _resolve_cross_verify_verdict" in rp_text, "_resolve_cross_verify_verdict helper 부재"
@@ -115,46 +150,7 @@ def test_mypy_ci_cross_verify_v0_11_13() -> None:
     )
     print("  case 6 (release_pipeline_lib.cmd_release 2 kwarg + _make_args default): PASS")
 
-    # case 7: helper 직접 실행 (실 gh CLI integration)
-    # pytest-like fixture: CI 가 query 가능하면 sanity/ci_sanity verdict, query 불가하면 absent/skipped
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
-    sys.path.insert(0, str(REPO_ROOT / "workflow-source" / "workflow_kit" / "tools"))
-    from release_pipeline import _cross_verify_ci_mypy, _resolve_cross_verify_verdict
-    ci_mypy = _cross_verify_ci_mypy()
-    # verdict schema 정합
-    assert "verdict" in ci_mypy, "ci_mypy.verdict 부재"
-    assert "head_sha" in ci_mypy, "ci_mypy.head_sha 부재"
-    assert "message" in ci_mypy, "ci_mypy.message 부재"
-    verdict = ci_mypy.get("verdict")
-    # v1.0.2: `ci_sanity` 가 아니면 실패로 보던 것이 §2.35 (4)/(6) 과 같은 **자기참조**였다.
-    # `ci_sanity` 는 "최신 mypy-strict run 이 success 이고 그 headSha 가 HEAD 와 같다" 는
-    # 뜻이라, **커밋한 직후부터 그 커밋이 CI 를 통과할 때까지는 반드시 `ci_stale`** 이다.
-    # 즉 push 직전 — 이 게이트가 정작 필요한 순간 — 에는 구조적으로 통과할 수 없었다.
-    # 여기서 볼 것은 helper 가 *관측한 환경을 알려진 verdict 로 옮기는가* 이고,
-    # verdict 매트릭스 자체는 case 8 이 주입으로 검증한다.
-    if verdict == "ci_sanity":
-        # CI 정상: ci_run 도 있어야 함
-        assert ci_mypy.get("ci_run") is not None, "ci_sanity verdict 인데 ci_run None"
-        assert ci_mypy.get("ci_run", {}).get("conclusion") == "success", (
-            f"ci_sanity 인데 ci_run.conclusion != success: {ci_mypy.get('ci_run', {}).get('conclusion')}"
-        )
-        print(f"  case 7 (_cross_verify_ci_mypy 실제 gh CLI integration: verdict={verdict!r}): PASS")
-    elif verdict == "ci_stale":
-        # HEAD 가 아직 CI 를 안 거쳤다 (커밋 직후의 정상 상태). run 은 있고 sha 가 다르다.
-        assert ci_mypy.get("ci_run") is not None, "ci_stale verdict 인데 ci_run None"
-        assert ci_mypy.get("ci_run", {}).get("headSha") != ci_mypy.get("head_sha"), (
-            f"ci_stale 인데 headSha 가 HEAD 와 같다: {ci_mypy.get('head_sha')!r}"
-        )
-        print(f"  case 7 (_cross_verify_ci_mypy: HEAD 미검증, verdict={verdict!r}): PASS")
-    elif verdict == "ci_fail":
-        assert ci_mypy.get("ci_run", {}).get("conclusion") != "success", (
-            "ci_fail 인데 ci_run.conclusion == success"
-        )
-        print(f"  case 7 (_cross_verify_ci_mypy: CI red, verdict={verdict!r}): PASS")
-    elif verdict in ("absent", "skipped"):
-        print(f"  case 7 (_cross_verify_ci_mypy: gh CLI absent/skipped, verdict={verdict!r}): SKIP")
-    else:
-        raise AssertionError(f"_cross_verify_ci_mypy unexpected verdict: {verdict!r}")
+    from release_pipeline import _resolve_cross_verify_verdict
 
     # case 8: _resolve_cross_verify_verdict 의 4 outcome verify
     # helper 직접 호출로 verdict matrix 4 outcome 검증

@@ -150,7 +150,14 @@ Close a session in the order **update memory → commit → push**. Do not split
 |---|---|---|
 | 편집 중 | `run_all_checks.py --filter=<이름조각>` | 방금 건드린 것과 그 이웃만. 초 단위로 끝난다 |
 | 커밋 전 | `run_all_checks.py --changed` + `check_self_application.py` | 관련 검사를 사람이 고르지 않는다 — 검사의 `WATCHES` 선언이 고른다 (v1.7.0, meta-watch 가 선언의 좁음을 게이트에서 잡는다). `--filter` 는 여전히 편집 루프용 |
-| **push 직전 1회** | `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량 |
+| **push 직전 1회** | 커밋 후 깨끗한 트리에서 `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량. 통과하면 HEAD sha 의 **게이트 통과 기록**이 남고 `release --apply` 가 그것을 요구한다 |
+| 발행 전 / 해당 코드를 건드렸을 때 | `interpreter_matrix --run-local` · `sdk_matrix --run-local` | 아래 두 절. CI 가 덮던 축이라 이제 로컬 말고는 아무도 안 돈다 |
+
+> **GitHub Actions 테스트 workflow 는 없다** (2026-09-23 소유자 결정, TASK-2026-09-23-main-022).
+> 느렸고, 어차피 push 전에 로컬 게이트를 돈다. 남은 workflow 는 `mkdocs`(문서 배포)와
+> `consumer-metrics-digest`(주간 집계)뿐이다. **로컬로 옮기지 못한 축**이 셋 있다 —
+> Windows/macOS 소비자 설치 경로(`os-matrix`), MCP Inspector 실동작(`mcp-inspector`,
+> Node 필요), 외부 URL 온라인 검증(`okf-validate`). 이 셋은 지금 아무도 재지 않는다.
 
 > 게이트의 **조건부 1축 생략은 검토 후 기각**했다 (TASK-2026-08-14-main-004, 재론 방지).
 > '민감 경로' 판정이 건전하게 성립하지 않는다 — 15연속 CI red 의 결함은 kit 코드가
@@ -174,12 +181,12 @@ PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.sdk_matrix -
 
 `mcp` SDK 를 쓰는 코드를 건드렸으면 **반드시** 이걸 먼저 돌린다. 개발 venv 는
 `requirements-dev.txt` 가 깐 하한(1.27.0) 하나뿐이라, 2.x 에서만 갈라지는 코드가
-**로컬에서는 통과하고 CI 의 `mcp-sdk-matrix` 에서만 red** 가 된다. 실제로 2026-08-05
-에 `CallToolResult.isError`(1.x 이름, 2.0.0 은 `is_error`) 때문에 그렇게 됐고,
-저장소가 이미 알고 있던 함정이었는데 로컬에 재현 수단이 없었다.
+**로컬 게이트를 통과하고도 2.x 에서 깨진다.** 실제로 2026-08-05 에
+`CallToolResult.isError`(1.x 이름, 2.0.0 은 `is_error`) 때문에 그렇게 됐다 — 그때는
+CI 의 `mcp-sdk-matrix` 가 잡았지만 **이제 CI 가 없으니 이 명령이 유일한 수단이다.**
 
-버전 목록은 `workflow_kit/common/sdk_matrix.py` 의 `PINNED_VERSIONS` 가 정본이고
-CI yml 도 거기서 읽는다. venv 는 `.venv-sdk-matrix/` 에 캐시되므로 두 번째부터 빠르다.
+버전 목록은 `workflow_kit/common/sdk_matrix.py` 의 `PINNED_VERSIONS` 가 정본이다.
+venv 는 `.venv-sdk-matrix/` 에 캐시되므로 두 번째부터 빠르다.
 
 ### 브랜치 매트릭스도 push 전에 로컬에서 돌린다
 
@@ -187,20 +194,20 @@ CI yml 도 거기서 읽는다. venv 는 `.venv-sdk-matrix/` 에 캐시되므로
 .venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>
 ```
 
-CI 의 `smoke` 는 전량을 **두 브랜치 컨텍스트**로 돌린다 (`native` / `slash`).
+게이트는 전량을 **두 브랜치 컨텍스트**로 돌린다 (`native` / `slash`).
 `ai-workflow/memory/active/<branch>/` 는 브랜치 이름으로 경로가 갈리고, 슬래시가 든
 브랜치는 중첩 디렉터리가 되며 **그 브랜치의 `state.json` 은 존재하지 않는다** —
 main 에서 재면 그 차이가 전부 0이다.
 
-무인자 `run_all_checks.py` 는 `native` 하나만 밟으므로, 위 SDK 매트릭스와 **똑같이**
-로컬 green + CI red 가 성립한다. 실제로 2026-08-10 에 그렇게 됐다: 검사 하나가
+무인자 `run_all_checks.py` 는 `native` 하나만 밟는다 — 그래서 게이트 통과 기록은
+`--branch-context=all` 로 돈 실행만 남기고, 발행 게이트는 기록에 컨텍스트가 전부 있는지
+본다. 한 축만 밟은 green 이 무엇을 놓치는지는 2026-08-10 에 겪었다: 검사 하나가
 브랜치의 `state.json` 존재를 전제해 `slash` 셀에서만 red 였고, **15연속 red 인
 동안 로컬은 계속 green 이었으며 handoff 는 내내 "전량 검사 green" 을 기록했다.**
 열흘 가까이 걸린 이유는 결함이 어려워서가 아니라 로컬에 그 축이 없어서였다.
 
 컨텍스트 목록은 `workflow_kit/common/branch_matrix.py` 의 `BRANCH_CONTEXTS` 가
-정본이고 `smoke.yml` 의 prepare job 도 거기서 읽는다
-(`check_branch_context_matrix.py` 가 복제를 검출한다). 한 축만 볼 때는
+정본이다. 한 축만 볼 때는
 `--branch-context=slash` 로 줄인다.
 
 ### 저장소 코드가 낸 Python 경고는 게이트 red 다
@@ -229,21 +236,20 @@ deprecation 경로를 의도적으로 부를 때는 `check_warnings.call_depreca
 메모리에서 `compile()` 해 캐시와 무관하게 판정하고, runner 는 부모 프로세스 경고를
 `PARENT_WARNINGS` 로 같은 출처 규율에 태운다.
 
-### 해석기 매트릭스 — CI 가 4셀을 돌고, 로컬은 필요할 때 재현한다
+### 해석기 매트릭스 — 발행 전에 로컬에서 돌린다
 
 ```bash
 PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local
 ```
 
-CI 의 `smoke` 는 이제 전량을 **브랜치 2 × 해석기 2 = 4셀**로 돌린다 (셀은 병렬이라
-벽시계 불변). 해석기 목록의 정본은 `workflow_kit/common/interpreter_matrix.py` 의
-`GATE_INTERPRETERS` 이고 `smoke.yml` 의 prepare job 이 거기서 읽는다 —
-`check_interpreter_matrix.py` 가 yml 의 버전 리터럴을 복제로 잡는다.
-
-**로컬 게이트는 늘리지 않았다.** `--branch-context=all` 은 당신이 가진 해석기
-하나로만 도는데, 나머지 축은 이제 CI 4셀이 덮는다. 위 `--run-local` 은 CI red 를
-**로컬에서 재현**할 때 쓴다 (venv 는 `.venv-interpreter-matrix/<버전>` 에 캐시되므로
-두 번째부터 빠르다). 한 버전만 볼 때는 `--only 3.11 --filter=<이름조각>`.
+`--branch-context=all` 게이트는 당신이 가진 해석기 **하나로만** 돈다. 해석기 목록의
+정본은 `workflow_kit/common/interpreter_matrix.py` 의 `GATE_INTERPRETERS` 이고, 위
+명령이 선언된 해석기마다 전량을 돈다 (venv 는 `.venv-interpreter-matrix/<버전>` 에
+캐시). 예전에는 CI 가 브랜치 2 × 해석기 2 = 4셀로 덮었지만 **CI 폐지(2026-09-23) 뒤로는
+이 명령 말고는 아무도 이 축을 안 돈다.** 게이트마다 돌리면 전량이 해석기 수만큼 늘어
+push 당 비용이 배가 되므로 **발행 전 1회 + 해석기에 민감한 코드(문법·경고·stdlib)를
+건드렸을 때**로 정했다. 발행 게이트가 이것을 강제하지는 않는다 — 공백으로 안다.
+한 버전만 볼 때는 `--only 3.11 --filter=<이름조각>`.
 
 착수 시점 실측(2026-09-21)이 이 축을 정당화한다. 전량을 두 해석기로 대조하면
 287/287 × 2 green 인데 **출력이 갈린 검사가 8건**이었고, 그중 다섯이 한 신호였다 —

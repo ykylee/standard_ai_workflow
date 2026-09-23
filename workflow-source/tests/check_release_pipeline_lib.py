@@ -20,11 +20,9 @@ Test list (v0.7.55 → v0.7.56):
 from __future__ import annotations
 
 import importlib.util
-import re
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WATCHES_ALL_REASON = (
     "release pre_check 가 memory·문서·매니페스트·CI yml 까지 파생 정합을 훑는다 — "
@@ -219,6 +217,13 @@ def test_cmd_verify_bad_tag_v0_7_56() -> None:
         pass
 
 
+#: mypy 크래시 사유가 들어와야 하는 요약 폭. CI 폐지(2026-09-23, main-022) 직전
+#: smoke.yml 요약이 `error_excerpt[:800]` 으로 잘랐다 — 출처가 사라져 값을 여기서
+#: 고정한다. 게이트 runner 의 `_error_excerpt` 상한(1200)보다 좁으므로, 이 폭 안에
+#: 들어오면 runner 출력에서도 보인다.
+SIGNAL_SUMMARY_CAP = 800
+
+
 def test_mypy_crash_reason_survives_truncation_v1_2_2() -> None:
     """mypy 크래시 사유가 **상위 절단을 통과**한다 (TASK-2026-08-13-main-004 관찰 3차).
 
@@ -247,17 +252,12 @@ def test_mypy_crash_reason_survives_truncation_v1_2_2() -> None:
     if "can not read file workflow_kit/ghost.py" not in signal:
         problems.append(f"사유가 사라졌다: {signal!r}")
 
-    # **CI 요약이 실제로 자르는 폭**을 smoke.yml 에서 읽어 그 안에 사유가 들어오는지
-    # 본다. 숫자를 여기 복제하면 워크플로가 폭을 줄여도 이 검사는 계속 green 이다 —
-    # 그러면 지키는 게 없다.
-    smoke_yml = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
-    cap_match = re.search(r"error_excerpt'\]\[:(\d+)\]", smoke_yml.read_text(encoding="utf-8"))
-    if not cap_match:
-        problems.append("smoke.yml 에서 요약 상한을 못 읽었다")
-    else:
-        cap = int(cap_match.group(1))
-        if "can not read file" not in signal[:cap]:
-            problems.append(f"사유가 CI 요약 상한({cap}자) 밖: {signal[:cap]!r}")
+    # 요약이 자르는 폭 안에 사유가 들어오는지 본다. 예전에는 CI 요약의 실제 폭을
+    # smoke.yml 에서 읽었지만 2026-09-23 CI workflow 폐지(main-022)로 그 출처가
+    # 사라져 마지막 값을 `SIGNAL_SUMMARY_CAP` 으로 고정했다.
+    cap = SIGNAL_SUMMARY_CAP
+    if "can not read file" not in signal[:cap]:
+        problems.append(f"사유가 요약 상한({cap}자) 밖: {signal[:cap]!r}")
     if "Please try using mypy master" in signal:
         problems.append("보일러플레이트가 남았다")
     # 보일러플레이트뿐이면 원문을 버리지 않는다 (증거 0 이 되면 안 된다).

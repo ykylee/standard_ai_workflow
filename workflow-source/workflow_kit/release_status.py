@@ -272,9 +272,11 @@ def _check_local_mypy() -> dict[str, Any]:
 
 
 def _check_ci_mypy() -> dict[str, Any]:
-    """Layer 1: GH Actions mypy-strict workflow last run verdict.
+    """Layer 1: GH Actions mypy-strict workflow last run verdict — **폐지됨**.
 
-    Uses `gh run list --workflow mypy-strict.yml --limit 1 --json ...`.
+    `mypy-strict.yml` 은 2026-09-23 CI 폐지(TASK-2026-09-23-main-022)로 삭제됐다.
+    `release_pipeline._cross_verify_ci_mypy` 에 위임하며, 그 helper 는 gh 를 부르지
+    않고 늘 ``skipped`` 를 낸다.
     Returns:
         {"verdict": "ci_sanity" | "ci_stale" | "ci_fail" | "absent" | "skipped",
          "head_sha_match": bool | None, "ci_run": dict | None, "message": str}

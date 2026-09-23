@@ -152,15 +152,18 @@ wk release-pipeline release \
   --json
 ```
 
-> **필수 CI 게이트 (v1.9.0+, TASK-2026-09-01-main-005)**: `release --apply` 는
-> `REQUIRED_CI_WORKFLOWS`(`smoke` · `mypy-strict` · `os-matrix` · `mcp-sdk-matrix`)를
-> **HEAD sha 로** 조회해 하나라도 green 이 아니면 **태그 생성 전에 멈춘다.** run 이
-> 아직 없거나(missing) 도는 중(pending)이거나 `gh` 를 못 부른 경우도 차단이다 —
-> 모름은 통과가 아니다. 그러므로 **push 하고 CI 가 끝나기를 기다린 뒤** 발행한다.
+> **발행 게이트 (v1.9.0+, 근거는 TASK-2026-09-23-main-022 부터 로컬 게이트 통과 기록)**:
+> `release --apply` 는 **HEAD sha 의 게이트 통과 기록**이 없으면 태그 생성 전에 멈춘다.
+> 기록은 `run_all_checks.py --branch-context=all` 을 **커밋 후 깨끗한 트리에서** 필터 없이
+> 돌려 exit 0 일 때만 `<git common dir>/gate_evidence/<sha>.json` 에 남는다
+> (정본: `workflow_kit.common.gate_evidence`). 컨텍스트가 하나라도 빠졌거나 기록이
+> 없으면 차단이다 — 모름은 통과가 아니다. 그러므로 **발행하는 호스트에서 게이트를
+> 돌린 뒤** 발행한다.
 >
 > 이 게이트가 생긴 이유: 이전에는 `mypy-strict` 하나만 advisory 로 봤고, 그래서
-> `smoke` 가 10 커밋 연속 red 인 채 **v1.8.0 이 발행됐다** (발행 커밋 `6c495e61` 는
-> smoke=failure). 넘겨야 하면 `--skip-ci-verify` 를 **명시**한다 — 결과에 남는다.
+> `smoke` 가 10 커밋 연속 red 인 채 **v1.8.0 이 발행됐다**. v1.9.0 은 CI 를 조회했고,
+> GitHub Actions 테스트 workflow 가 폐지(2026-09-23)된 뒤로는 로컬 기록을 본다.
+> 넘겨야 하면 `--skip-gate-verify` 를 **명시**한다 — 결과에 남는다.
 
 > **릴리스 노트의 `누적 smoke N/N PASS` 는 그 시점의 주장이다 (v1.9.2,
 > TASK-2026-09-03-main-003)**: `check_smoke_trend_cross` case 2 는 **발행된**

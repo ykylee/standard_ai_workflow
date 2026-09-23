@@ -246,11 +246,12 @@ def probe(source_root: Path, pyproject: Path) -> FloorProbe:
 
 
 def declared_floor_string(repo_root: Path) -> str | None:
-    """`requires-python` 하한을 `"X.Y"` 로. CI prepare job 이 읽는 값이다.
+    """`requires-python` 하한을 `"X.Y"` 로.
 
-    TASK-2026-09-22-main-007. `smoke.yml` 에 `3.10` 을 적으면 **선언의 사본**이
-    하나 생긴다 — `branch_matrix`/`interpreter_matrix` 가 registry→yml 로 세운
-    규율과 같은 자리다. 그래서 yml 은 이 함수의 출력을 주입받는다.
+    TASK-2026-09-22-main-007. CI prepare job 이 `--declared-floor` 로 이 값을 받아
+    `setup-python` 에 주입했다 (yml 에 `3.10` 을 적으면 선언의 사본이 생기므로).
+    2026-09-23 CI workflow 폐지(main-022)로 그 CLI 창구는 제거했고, 함수는 공개
+    심볼(Beta-v1.11.0 §3)이라 남긴다.
     """
     _root, pyproject = resolve_scope(repo_root)
     floor = declared_floor(pyproject)
@@ -267,17 +268,6 @@ def main(argv: list[str] | None = None) -> int:
     from workflow_kit.common.paths import resolve_workspace_root
 
     repo_root, _why = resolve_workspace_root()
-
-    # `--declared-floor`: CI prepare job 이 하한을 **선언에서** 받아 가는 창구.
-    if argv is not None and "--declared-floor" in argv or (
-        argv is None and "--declared-floor" in sys.argv[1:]
-    ):
-        floor_text = declared_floor_string(repo_root)
-        if floor_text is None:
-            print("[error] requires-python 선언을 읽지 못했다", file=sys.stderr)
-            return 2
-        print(floor_text)
-        return 0
 
     source_root, pyproject = resolve_scope(repo_root)
     result = probe(source_root, pyproject)

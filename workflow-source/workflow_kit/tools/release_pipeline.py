@@ -211,7 +211,7 @@ def cmd_validate(args) -> dict:
     3. state.json freshness: v0.7.5+ refresh_wiki_memory 의 last_freeze / last_ingest
     4. git status: working tree clean (release commit 의 clean state 보장)
     5. mypy strict: v0.11.12+ — workflow_kit/ mypy 2.1.0 strict 0 errors 강제
-       (CI mypy-strict workflow 와 동일 invocation, release-time gate)
+       (release-time gate — mypy-strict CI 는 main-022 로 폐지, 이것이 유일한 mypy 게이트)
     """
     results: dict = {}
 
@@ -331,10 +331,10 @@ def cmd_validate(args) -> dict:
     else:
         results["git"] = {"ok": True, "skipped": True}
 
-    # 5. mypy strict (v0.11.12+ — release-time gate, CI mypy-strict workflow 의 local mirror)
+    # 5. mypy strict (v0.11.12+ — release-time gate)
     # v0.11.10 의 FULL mypy strict 도달 (35 file strict clean) 을 release-time 강제.
-    # CI (.github/workflows/mypy-strict.yml) 가 PR-time 방어선이라면, 본 check 는
-    # release-time 방어선. invocation 은 CI 와 동일:
+    # 예전 CI mypy-strict workflow 의 local mirror 였고, 그 workflow 가 폐지된 뒤
+    # (2026-09-23, main-022) 로는 유일한 mypy 게이트다. invocation:
     #   `mypy --no-incremental --config-file <workflow-source/pyproject.toml> workflow_kit/`
     #   (cwd = parent_of_REPO_ROOT, 절대경로)
     #
@@ -449,254 +449,76 @@ def cmd_validate(args) -> dict:
 # ---------------------------------------------------------------------------
 
 
-#: 발행을 막을 수 있는 **필수 CI 워크플로**. 이 목록에 있는 것이 HEAD sha 에서
-#: green 이 아니면 `release --apply` 가 멈춘다 (v1.9.0, TASK-2026-09-01-main-005).
+#: 발행 게이트 (v1.9.0 → 2026-09-23 main-022 에서 근거를 CI 에서 로컬 게이트로 옮김).
 #:
-#: ## 왜 목록이 필요한가
+#: ## 왜 게이트가 있는가
 #:
 #: 이전에는 발행 게이트가 `mypy-strict.yml` **하나만** 조회했고 그마저 advisory 였다.
 #: 그래서 `smoke` 가 2026-08-30 `6d9ad763` 부터 **10 커밋 연속 red** 인 동안
-#: 게이트는 내내 green 을 봤고, **v1.8.0 이 그 위에서 발행됐다** (발행 커밋
-#: `6c495e61` 실측: smoke=failure, mypy-strict=success).
+#: 게이트는 내내 green 을 봤고, **v1.8.0 이 그 위에서 발행됐다**. 릴리스 노트의
+#: `누적 smoke N/N PASS` 는 사람의 주장이고, 그 주장을 대조하는 자리가 여기다.
 #:
-#: 뿌리는 설계의 분업이었다 — 릴리스 노트의 `누적 smoke N/N PASS` 는 **사람의 주장**
-#: 이고(`verify_release_note_smoke_count` 주석이 그렇게 적는다), 그 주장을 CI 와
-#: 대조하는 자리가 없었다. 이제 여기가 그 자리다.
+#: ## 왜 CI 가 아닌가
 #:
-#: ## 목록에 넣는 기준
-#:
-#: **소비자에게 나가는 산출물의 정확성을 재는 축**만 넣는다. 문서 사이트(`mkdocs`)나
-#: 워크플로 문법(`actionlint`) 이 red 라고 발행을 막으면, 막을 이유가 없는 것이
-#: 막혀 사람이 escape hatch 를 습관적으로 쓰게 된다 — 그러면 게이트가 다시 없어진다.
-REQUIRED_CI_WORKFLOWS: tuple[str, ...] = (
-    "smoke",           # 전량 검사 2축 (native / slash)
-    "mypy-strict",     # 타입 게이트
-    "os-matrix",       # 크로스 OS
-    "mcp-sdk-matrix",  # MCP SDK 버전 매트릭스
-)
+#: GitHub Actions 테스트 workflow 는 2026-09-23 소유자 결정으로 폐지됐다 (느리고, 어차피
+#: push 전에 로컬 게이트를 돈다). 그래서 근거를 `run_all_checks.py --branch-context=all`
+#: 이 남기는 **게이트 통과 기록**(`workflow_kit.common.gate_evidence`)으로 옮겼다.
+#: 기록은 HEAD sha 로 찾는다 — 조건(깨끗한 트리, 전량, 전 컨텍스트, exit 0)은 그
+#: 모듈이 정본이다.
 
 
-def _fetch_ci_runs_for_sha(sha: str, *, repo: str, timeout: int = 20) -> tuple[list[dict], str | None]:
-    """HEAD sha 의 워크플로 run 목록. ``(runs, error)``.
-
-    `--commit` 으로 **sha 를 직접 지정**한다. 이전 구현은 `--limit 1` 로 최신 run 을
-    집었는데, HEAD 의 run 이 아직 없으면 **이전 커밋의 run** 을 보게 되고 브랜치
-    필터도 없었다.
-    """
-    try:
-        proc = subprocess.run(
-            ["gh", "run", "list", "--repo", repo, "--commit", sha, "--limit", "50",
-             "--json", "name,conclusion,status,databaseId,url"],
-            cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=timeout,
-        )
-    except FileNotFoundError:
-        return [], "gh CLI not found"
-    except subprocess.TimeoutExpired:
-        return [], f"gh run list timeout (>{timeout}s)"
-    if proc.returncode != 0:
-        return [], f"gh run list failed (exit={proc.returncode}): {proc.stderr.strip()[:200]}"
-    try:
-        return json.loads(proc.stdout), None
-    except json.JSONDecodeError as exc:
-        return [], f"gh run list JSON parse error: {exc}"
-
-
-def verify_required_ci(
-    *, head_sha: str | None = None, repo: str | None = None,
-    runs: list[dict] | None = None, fetch_error: str | None = None,
+def verify_gate_evidence(
+    *, head_sha: str | None = None, evidence: dict | None = None,
+    repo_root: Path | None = None,
 ) -> dict:
-    """필수 워크플로가 **이 커밋에서** 전부 green 인가. 발행 차단 판정.
+    """HEAD sha 에 게이트 통과 기록이 있는가. 발행 차단 판정.
 
-    `runs` / `fetch_error` 를 주입하면 네트워크 없이 판정만 잰다 (검사용).
-
-    워크플로별 상태:
-      - ``success``  : green
-      - ``missing``  : 이 sha 에 run 이 없다 (아직 안 돌았거나 트리거 안 됨)
-      - ``pending``  : 아직 도는 중
-      - ``failure``  : red (conclusion 이 success 가 아닌 모든 완료 상태)
-
-    `success` 가 아닌 것이 하나라도 있으면 ``ok=False`` 다. **모름은 통과가 아니다** —
-    run 이 없거나 gh 를 못 부른 것도 막는다. 못 잰 것을 green 으로 세면 이 게이트는
-    있으나 마나다 (그것이 정확히 v1.8.0 에서 일어난 일이다).
+    `head_sha` 와 `evidence` 를 함께 주입하면 저장소를 읽지 않고 판정만 잰다 (검사용).
+    **모름은 통과가 아니다** — sha 를 못 읽거나 기록이 없으면 막는다.
     """
-    if runs is None and fetch_error is None:
-        if head_sha is None:
-            proc = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=5,
-            )
-            head_sha = proc.stdout.strip() if proc.returncode == 0 else None
-        if not head_sha:
-            return {
-                "ok": False, "head_sha": None, "workflows": {},
-                "blocking": list(REQUIRED_CI_WORKFLOWS),
-                "error": "HEAD sha 를 읽지 못했다",
-                "required": list(REQUIRED_CI_WORKFLOWS),
-            }
-        runs, fetch_error = _fetch_ci_runs_for_sha(head_sha, repo=repo or _get_repo())
+    from workflow_kit.common import gate_evidence
+    from workflow_kit.common.branch_matrix import labels
 
-    if fetch_error:
-        return {
-            "ok": False, "head_sha": head_sha, "workflows": {},
-            "blocking": list(REQUIRED_CI_WORKFLOWS),
-            "error": f"CI 결과를 못 읽었다 — {fetch_error}",
-            "required": list(REQUIRED_CI_WORKFLOWS),
-        }
-
-    by_name: dict[str, dict] = {}
-    for run in runs or []:
-        name = run.get("name")
-        if name in REQUIRED_CI_WORKFLOWS and name not in by_name:
-            by_name[name] = run  # gh 는 최신순이므로 첫 항목이 최신이다
-
-    workflows: dict[str, str] = {}
-    blocking: list[str] = []
-    for name in REQUIRED_CI_WORKFLOWS:
-        run = by_name.get(name)
-        if run is None:
-            state = "missing"
-        elif run.get("status") != "completed":
-            state = "pending"
-        elif run.get("conclusion") == "success":
-            state = "success"
-        else:
-            state = "failure"
-        workflows[name] = state
-        if state != "success":
-            blocking.append(name)
-
-    return {
-        "ok": not blocking,
-        "head_sha": head_sha,
-        "required": list(REQUIRED_CI_WORKFLOWS),
-        "workflows": workflows,
-        "blocking": blocking,
-        "error": None if not blocking else (
-            "필수 CI 워크플로가 green 이 아니다: "
-            + ", ".join(f"{n}={workflows[n]}" for n in blocking)
-        ),
-    }
+    root = repo_root or REPO_ROOT.parent
+    if head_sha is None:
+        head_sha = gate_evidence.head_sha(root)
+    if not head_sha:
+        return {"ok": False, "head_sha": None, "evidence": None,
+                "error": "HEAD sha 를 읽지 못했다"}
+    if evidence is None:
+        evidence = gate_evidence.lookup(root, head_sha)
+    if evidence is None:
+        return {"ok": False, "head_sha": head_sha, "evidence": None,
+                "error": ("이 커밋의 게이트 통과 기록이 없다 — "
+                          "`run_all_checks.py --branch-context=all` 을 커밋 후 깨끗한 "
+                          "트리에서 돌린다")}
+    required = list(labels())
+    missing = [c for c in required if c not in (evidence.get("contexts") or [])]
+    if missing:
+        return {"ok": False, "head_sha": head_sha, "evidence": evidence,
+                "error": f"게이트 기록에 브랜치 컨텍스트가 빠졌다: {missing}"}
+    return {"ok": True, "head_sha": head_sha, "evidence": evidence, "error": None}
 
 
 def _cross_verify_ci_mypy(*, timeout: int = 15) -> dict:
-    """GH Actions mypy-strict workflow 의 last run 결과 와 local HEAD sha 비교.
+    """mypy CI (Layer 1) 와 local mypy (Layer 2) 의 정합 — **Layer 1 폐지됨**.
 
-    Layer 1 (CI, v0.11.11+) 와 Layer 2 (release-time gate, v0.11.12+) 의 정합 verify.
-    verdict:
-      - "sanity": CI success + local mypy 정합 (default, release 진행)
-      - "drift_warning": CI success 인데 local fail (local drift, advisory)
-      - "ci_stale": CI success 인데 headSha != HEAD (re-run 권고, advisory)
-      - "ci_fail": CI failure (advisory)
-      - "absent": gh CLI 성공 / no run found (advisory)
-      - "skipped": gh CLI 부재 / error (advisory)
-
-    Returns:
-        {
-            "verdict": str,
-            "ci_run": dict | None,  # {databaseId, conclusion, headSha, event, status, createdAt, url}
-            "head_sha": str | None,
-            "head_sha_match": bool | None,
-            "message": str,
-        }
+    `mypy-strict.yml` 은 2026-09-23 CI 폐지(main-022)로 삭제됐다. 조회할 것이 없으니
+    gh 를 부르지 않고 늘 ``skipped`` 를 낸다 — 옛 run 을 집어 영구 ``ci_stale`` 이
+    되는 것을 막는다. mypy 판정은 validate 의 local mypy 가 유일하다.
+    인터페이스(verdict / 플래그 / 출력 필드) 걷어내기는 후속 task 몫이다.
     """
     head_sha_proc = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=5,
     )
     head_sha = head_sha_proc.stdout.strip() if head_sha_proc.returncode == 0 else None
-
-    try:
-        gh_proc = subprocess.run(
-            ["gh", "run", "list", "--repo", "ykylee/standard_ai_workflow",
-             "--workflow", "mypy-strict.yml", "--limit", "1",
-             "--json", "databaseId,conclusion,headSha,event,status,createdAt,url"],
-            cwd=str(REPO_ROOT.parent), capture_output=True, text=True, timeout=timeout,
-        )
-    except FileNotFoundError:
-        return {
-            "verdict": "skipped",
-            "ci_run": None,
-            "head_sha": head_sha,
-            "head_sha_match": None,
-            "message": "gh CLI not found (skip cross-verify)",
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "verdict": "skipped",
-            "ci_run": None,
-            "head_sha": head_sha,
-            "head_sha_match": None,
-            "message": f"gh run list timeout (>{timeout}s)",
-        }
-
-    if gh_proc.returncode != 0:
-        return {
-            "verdict": "skipped",
-            "ci_run": None,
-            "head_sha": head_sha,
-            "head_sha_match": None,
-            "message": f"gh run list failed (exit={gh_proc.returncode}): {gh_proc.stderr.strip()[:200]}",
-        }
-
-    try:
-        runs = json.loads(gh_proc.stdout)
-    except json.JSONDecodeError as e:
-        return {
-            "verdict": "skipped",
-            "ci_run": None,
-            "head_sha": head_sha,
-            "head_sha_match": None,
-            "message": f"gh run list JSON parse error: {e}",
-        }
-
-    if not runs:
-        return {
-            "verdict": "absent",
-            "ci_run": None,
-            "head_sha": head_sha,
-            "head_sha_match": None,
-            "message": "no mypy-strict CI run found",
-        }
-
-    last_run = runs[0]
-    ci_conclusion = last_run.get("conclusion")
-    ci_head_sha = last_run.get("headSha")
-    head_sha_match = (ci_head_sha == head_sha) if (ci_head_sha and head_sha) else None
-
-    # verdict 결정 (Layer 1 CI ↔ Layer 2 local mypy 정합)
-    # caller 가 별도로 local_mypy_ok / local_mypy_status 를 inject 해서
-    # drift_warning / no_local_verify verdict 결정. 여기서는 CI-only verdict 반환.
-    if ci_conclusion == "success":
-        if head_sha_match is False:
-            verdict = "ci_stale"
-            message = (
-                f"CI success for headSha={ci_head_sha[:7]}, "
-                f"but local HEAD={head_sha[:7]} — re-run recommended"
-            )
-        else:
-            verdict = "ci_sanity"
-            message = (
-                f"CI success for headSha={ci_head_sha[:7]} (matches local HEAD) — "
-                f"local mypy 정합 verify 는 caller 가 verdict 결정"
-            )
-    elif ci_conclusion == "failure":
-        verdict = "ci_fail"
-        message = (
-            f"CI failure for headSha={ci_head_sha[:7] if ci_head_sha else '?'}, "
-            f"databaseId={last_run.get('databaseId')}"
-        )
-    else:
-        verdict = "absent"
-        message = (
-            f"CI status {ci_conclusion!r} (not success/failure) for headSha={ci_head_sha[:7] if ci_head_sha else '?'}"
-        )
-
     return {
-        "verdict": verdict,
-        "ci_run": last_run,
+        "verdict": "skipped",
+        "ci_run": None,
         "head_sha": head_sha,
-        "head_sha_match": head_sha_match,
-        "message": message,
+        "head_sha_match": None,
+        "message": "mypy-strict CI 폐지 (main-022) — local mypy 가 유일한 판정",
     }
 
 
@@ -2632,25 +2454,22 @@ def cmd_release(args) -> dict:
                     ),
                 })
 
-    # 1.5 필수 CI 게이트 (v1.9.0, TASK-2026-09-01-main-005) — **기본이 차단**이다.
-    # 위 cross-verify 는 mypy 축 하나의 advisory 이고, 그 좁음 때문에 smoke 가 10 커밋
-    # 연속 red 인 채 v1.8.0 이 발행됐다. 여기서는 `REQUIRED_CI_WORKFLOWS` 전부를
-    # **HEAD sha 로** 조회해 하나라도 green 이 아니면 apply 를 멈춘다.
-    # dry-run 은 보고만 한다 (태그를 안 만드므로) — smoke_count_check 와 같은 관례.
-    # escape hatch: --skip-ci-verify (쓰면 결과에 그 사실이 남는다).
+    # 1.5 발행 게이트 (v1.9.0, 근거는 main-022 부터 로컬 게이트 통과 기록) — **기본이 차단**.
+    # HEAD sha 의 기록이 없으면 apply 를 멈춘다. dry-run 은 보고만 한다.
+    # escape hatch: --skip-gate-verify (쓰면 결과에 그 사실이 남는다).
     if getattr(args, "skip_ci_verify", False):
-        results["required_ci"] = {"skipped": True, "reason": "--skip-ci-verify"}
+        results["gate"] = {"skipped": True, "reason": "--skip-gate-verify"}
     else:
-        required_ci = verify_required_ci()
-        results["required_ci"] = required_ci
-        if not required_ci["ok"] and not args.dry_run:
+        gate = verify_gate_evidence()
+        results["gate"] = gate
+        if not gate["ok"] and not args.dry_run:
             return _attach_release_summary({
                 **results,
                 "ok": False,
                 "error": (
-                    f"{required_ci['error']} (HEAD={(required_ci.get('head_sha') or '?')[:8]}). "
-                    "CI 가 green 인 커밋에 태그를 붙인다 — 고치고 push 한 뒤 다시 돌린다. "
-                    "정말 넘겨야 하면 --skip-ci-verify 를 명시한다."
+                    f"{gate['error']} (HEAD={(gate.get('head_sha') or '?')[:8]}). "
+                    "게이트가 green 인 커밋에 태그를 붙인다. "
+                    "정말 넘겨야 하면 --skip-gate-verify 를 명시한다."
                 ),
             })
 
@@ -3690,11 +3509,12 @@ def main() -> int:
                        help="mypy CI cross-verify skip (v0.11.13+, advisory 만 default)")
     p_rel.add_argument("--strict-cross-verify", action="store_true",
                        help="mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)")
-    p_rel.add_argument("--skip-ci-verify", dest="skip_ci_verify",
+    p_rel.add_argument("--skip-gate-verify", "--skip-ci-verify", dest="skip_ci_verify",
                        action="store_true", default=False,
-                       help=("필수 CI 워크플로 게이트 skip (v1.8.1). 기본은 **차단**이다 — "
-                             "REQUIRED_CI_WORKFLOWS 가 HEAD sha 에서 전부 green 이 아니면 "
-                             "--apply 가 멈춘다. 넘기면 결과에 그 사실이 남는다"))
+                       help=("발행 게이트 skip. 기본은 **차단**이다 — HEAD sha 에 로컬 게이트 "
+                             "통과 기록(run_all_checks --branch-context=all)이 없으면 "
+                             "--apply 가 멈춘다. 넘기면 결과에 그 사실이 남는다. "
+                             "--skip-ci-verify 는 CI 폐지(main-022) 이전 이름"))
     p_rel.add_argument("--skip-self-recover", dest="skip_self_recover",
                        action="store_true", default=False,
                        help="drift prevention: Phase 13 AC3 self-recover step skip (v0.13.2+, manual override 용)")

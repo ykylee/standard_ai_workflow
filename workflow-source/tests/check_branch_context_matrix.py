@@ -1,23 +1,24 @@
-"""브랜치 컨텍스트 정본 ↔ CI ↔ 로컬 runner 정합 (TASK-2026-08-10-main-017).
+"""브랜치 컨텍스트 정본 ↔ 로컬 runner 정합 (TASK-2026-08-10-main-017).
 
 TASK-016 이 실측한 대가: `check_release_pre_check_gates` case 7 이 slash 셀에서만
 red 였고, **15연속 red 인 동안 로컬 전량 검사는 계속 green** 이었다. 결함이
 어려워서가 아니라 로컬에 그 축을 밟을 방법이 없어서 열흘 가까이 걸렸다.
 
-그래서 정본을 `workflow_kit/common/branch_matrix.py` 하나로 두고 CI 와 로컬이
-같은 것을 읽게 했다. 이 검사는 **그 관계가 유지되는지** 를 잰다 — 셀 목록이
-yml 로 복제되거나, runner 가 정본을 안 읽게 되면 비대칭이 조용히 돌아온다.
+그래서 정본을 `workflow_kit/common/branch_matrix.py` 하나로 두고 러너가 그것을
+읽게 했다. 이 검사는 **그 관계가 유지되는지** 를 잰다 — runner 가 정본을 안 읽게
+되면 비대칭이 조용히 돌아온다.
 
-검증 케이스 (8):
+2026-09-23 CI workflow 폐지(TASK-2026-09-23-main-022)로 smoke.yml 배선을 재던
+case 셋(`--github-matrix` 형태 · yml 주입 · yml 복제 검출)은 대상을 잃어 삭제했다.
+두 컨텍스트를 밟는 곳은 이제 로컬 게이트(`--branch-context=all`) 하나다.
+
+검증 케이스 (5):
     1. registry 자체 정합 (label 중복 없음, native 정확히 하나, 슬래시 셀 존재)
     2. `apply_context` 계약 — native 는 상속된 오버라이드까지 **지우고**,
        slash 는 최우선 키로 주입하며 상속을 이긴다
-    3. `--github-matrix` 가 yml 의 fromJSON 이 먹는 형태다
-    4. smoke.yml 이 prepare job 의 출력을 matrix 로 쓴다 (복제가 아니라 주입)
-    5. smoke.yml 에 브랜치 문자열이 직접 적혀 있지 않다 (복제 검출)
-    6. run_all_checks 가 `--branch-context` 를 정본에서 만든다
-    7. runner 가 요청한 컨텍스트를 subprocess 에 **실제로** 주입한다 (end-to-end)
-    8. `all` 이 선언된 컨텍스트 전부를 돈다 (목록이 줄면 잡힌다)
+    3. run_all_checks 가 `--branch-context` 를 정본에서 만든다
+    4. runner 가 요청한 컨텍스트를 subprocess 에 **실제로** 주입한다 (end-to-end)
+    5. `all` 이 선언된 컨텍스트 전부를 돈다 (목록이 줄면 잡힌다)
 
 Stdlib only.
 """
@@ -39,10 +40,9 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/run_all_checks.py",
-    ".github/workflows/smoke.yml",
     "ai-workflow/memory/*",
 )
-"""브랜치 컨텍스트 정본 + 러너 + CI + 브랜치별 메모리 경로.
+"""브랜치 컨텍스트 정본 + 러너 + 브랜치별 메모리 경로.
 
 kit 전체가 import 표면이다 (meta-watch 실측 2026-08-28: branch_matrix 하나만
 선언했더니 선언 밖 접근 42건 — import 는 transitively 닫힌다, ADR-028 결정 4)."""
@@ -57,11 +57,9 @@ from workflow_kit.common.branch_matrix import (  # noqa: E402
     OVERRIDE_ENV_KEY,
     apply_context,
     context_for,
-    github_matrix_json,
     labels,
 )
 
-SMOKE_YML = REPO_ROOT / ".github/workflows/smoke.yml"
 RUNNER = SOURCE_ROOT / "tests" / "run_all_checks.py"
 PROBE_FILTER = "release_pre_check"
 """end-to-end 케이스가 쓰는 check. 브랜치 컨텍스트에 따라 case 수가 갈리는 검사다
@@ -111,44 +109,6 @@ def test_apply_context_contract() -> None:
         assert apply_context(inherited, ctx)[OVERRIDE_ENV_KEY] == ctx.workflow_branch, (
             f"{ctx.label} 이 상속된 오버라이드를 못 이긴다"
         )
-
-
-def test_github_matrix_shape() -> None:
-    parsed = json.loads(github_matrix_json())
-    assert isinstance(parsed, list) and parsed, "매트릭스가 비어 있다"
-    assert len(parsed) == len(BRANCH_CONTEXTS), (
-        f"매트릭스 {len(parsed)}셀 ≠ 선언 {len(BRANCH_CONTEXTS)}건"
-    )
-    for cell in parsed:
-        assert set(cell) == {"label", "workflow_branch"}, (
-            f"셀 키가 yml 이 읽는 것과 다르다: {sorted(cell)}"
-        )
-
-
-def test_smoke_yml_consumes_registry() -> None:
-    text = SMOKE_YML.read_text(encoding="utf-8")
-    assert "workflow_kit.common.branch_matrix --github-matrix" in text, (
-        "smoke.yml 이 정본에서 컨텍스트 목록을 받지 않는다"
-    )
-    assert "fromJSON(needs.prepare.outputs.contexts)" in text, (
-        "smoke.yml 이 prepare job 의 출력을 matrix 로 쓰지 않는다"
-    )
-
-
-def test_smoke_yml_does_not_duplicate_branches() -> None:
-    text = SMOKE_YML.read_text(encoding="utf-8")
-    # 주석은 뺀다 — 설명에 브랜치 이름이 나오는 것은 복제가 아니다.
-    body = "\n".join(
-        line for line in text.splitlines() if not line.lstrip().startswith("#")
-    )
-    leaked = [
-        ctx.workflow_branch for ctx in BRANCH_CONTEXTS
-        if ctx.workflow_branch and ctx.workflow_branch in body
-    ]
-    assert not leaked, (
-        f"smoke.yml 에 브랜치 문자열이 직접 적혀 있다: {leaked} — "
-        "복제하면 갈라지고, 갈라진 쪽이 조용히 이긴다 (정본: branch_matrix.py)"
-    )
 
 
 def test_runner_declares_contexts_from_registry() -> None:
@@ -212,9 +172,6 @@ def main() -> int:
     test_funcs = [
         test_registry_is_coherent,
         test_apply_context_contract,
-        test_github_matrix_shape,
-        test_smoke_yml_consumes_registry,
-        test_smoke_yml_does_not_duplicate_branches,
         test_runner_declares_contexts_from_registry,
         test_runner_actually_injects_context,
         test_all_runs_every_declared_context,

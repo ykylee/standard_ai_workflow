@@ -1,4 +1,4 @@
-"""선언한 mcp SDK 버전 정책이 **실제 CI 와 같은 것을 말하는가** (TASK-2026-07-31-main-001).
+"""선언한 mcp SDK 버전 registry 가 **실제 저장소와 같은 것을 말하는가** (TASK-2026-07-31-main-001).
 
 ## 왜 필요한가
 
@@ -11,27 +11,29 @@ CI 가 mcp 1.x 와 2.x 를 동시에 밟은 것은 설계가 아니라 설치 �
 정본(`workflow_kit/common/sdk_matrix.py`)을 만드는 것만으로는 이 문제가 안 풀린다.
 선언은 사실이 아니라 주장이라서, 선언과 실제 파일이 갈라지면 **선언 쪽이 조용히
 이긴다** (§2.35 의 "관측하지 않은 값을 관측한 것처럼" 과 같은 모양). 그래서 이 검사가
-정본과 세 표면을 묶는다:
+정본과 저장소 표면을 묶는다:
 
 - `requirements-dev.txt` 의 핀 ↔ registry 의 floor
-- `pyproject.toml` 의 `mcp-sdk` extra 상한 ↔ registry 의 floating 선언
-- `.github/workflows/*.yml` ↔ registry 의 workflow 정책 (**양방향**)
+- `pyproject.toml` 의 `mcp-sdk` extra 상한 (새 major 를 소비자에게 막지 않는다)
+
+2026-09-23 CI workflow 폐지(TASK-2026-09-23-main-022)로 workflow 정책 registry
+(`WORKFLOW_POLICIES`)와 그것을 yml 과 대조하던 case 다섯(정책 정합 · 선언 workflow
+실재/`--record` · 역방향 · yml 버전 복제 · yml 두 층 검증), `--github-matrix` 형태,
+pinned 정책 강제는 대상을 잃어 삭제했다. "두 층을 둘 다 본다" 는 이제
+`run_local_matrix` 가 셀마다 직접 부르는지로 잰다 (case 6).
 
 ## 계약
 
 1. registry 자체가 말이 된다 — floor 는 정확히 하나, 버전은 중복 없고, 근거가 비어
    있지 않으며, **1.x 와 2.x 를 둘 다** 포함한다 (이 matrix 의 존재 이유다).
 2. registry 의 floor 가 `requirements-dev.txt` 의 핀과 같다.
-3. `mcp-sdk` extra 에 상한이 없다 — floating 이라고 선언한 job 이 실제로 부동이다.
-4. registry 가 아는 workflow 는 전부 실재하고, `--record` 로 실측을 남긴다.
-5. **역방향**: mcp 를 설치하는 workflow 중 정책이 선언 안 된 것이 없다. 새 job 이
-   조용히 늘어나는 것이 이 결함의 원래 모양이었다.
-6. matrix workflow 는 버전 목록을 `--github-matrix` 로 받고 **버전 문자열을 직접 적지
-   않는다**. 복제는 반드시 갈라진다.
-7. matrix workflow 는 "깔렸는가"(`--assert-installed`)와 "그것으로 실제로
-   쟀는가"(`--assert-not-skipped`)를 **둘 다** 본다.
-8. 판정 함수가 실제로 걸린다 — 어긋난 버전, 미설치, skip 한 검사, 정책 없는 workflow
-   네 가지를 되주입해 각각 다른 신호로 실패하는지 본다.
+3. `mcp-sdk` extra 에 상한이 없다.
+4. SDK 없이 건너뛸 수 있는 검사는 전부 증거가 선언돼 있다 (완전성).
+5. 선언한 증거 문자열이 그 파일에 실제로 있다.
+6. `--run-local` 이 셀마다 "깔렸는가"(`_assert_installed`)와 "그것으로 실제로
+   쟀는가"(`judge_exercised`)를 **둘 다** 부른다.
+7. 판정 함수가 실제로 걸린다 — 어긋난 버전, 미설치, skip 한 검사, 안 돈 검사,
+   exit != 0, 침묵을 되주입해 각각 실패하는지 본다.
 
 Cross-ref: TASK-2026-07-31-main-001, releases/Beta-v1.0.0.md §2.45.
 """
@@ -41,14 +43,13 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
-    ".github/workflows/*",
     "requirements-dev.txt",
     "workflow-source/pyproject.toml",
     "workflow-source/tests/*",
     "workflow-source/workflow_kit/*",
 )
 
-import json
+import inspect
 import re
 import sys
 import tomllib
@@ -58,40 +59,25 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = SOURCE_ROOT.parent
 sys.path.insert(0, str(SOURCE_ROOT))
 
+from workflow_kit.common import sdk_matrix  # noqa: E402
 from workflow_kit.common.sdk_matrix import (  # noqa: E402
+    LOCAL_MATRIX_FILTER,
     PINNED_VERSIONS,
-    POLICY_FLOATING,
-    POLICY_MATRIX,
-    POLICY_PINNED,
     ROLE_FLOOR,
     SDK_EXERCISING_CHECKS,
-    WORKFLOW_POLICIES,
     _assert_installed,
     judge_exercised,
     floor_version,
-    github_matrix_json,
     pinned_versions,
-    render_record,
 )
 
-MATRIX_FILTER = ("mcp", "optional_dep")
-"""matrix workflow 가 `run_all_checks --filter` 에 넘기는 값. 아래 완전성 검사가 쓴다."""
+MATRIX_FILTER = tuple(LOCAL_MATRIX_FILTER.split(","))
+"""`--run-local` 이 `run_all_checks --filter` 에 넘기는 값. 아래 완전성 검사가 쓴다."""
 
-WORKFLOW_DIR = REPO_ROOT / ".github/workflows"
 REQUIREMENTS_DEV = REPO_ROOT / "requirements-dev.txt"
 PYPROJECT_PATH = SOURCE_ROOT / "pyproject.toml"
-MODULE_CLI = "workflow_kit.common.sdk_matrix"
 
 _skipped: list[str] = []
-
-
-def _workflow_text(name: str) -> str:
-    return (WORKFLOW_DIR / f"{name}.yml").read_text(encoding="utf-8")
-
-
-def _installs_mcp(text: str) -> bool:
-    """그 workflow 가 mcp 를 깔고 도는가 (extra 또는 배포판 직접 설치)."""
-    return "mcp-sdk]" in text or "mcp[cli]" in text
 
 
 def _pinned_requirement(text: str, distribution: str) -> str | None:
@@ -118,43 +104,25 @@ def test_registry_is_coherent() -> None:
     majors = {version.split(".", 1)[0] for version in versions}
     assert {"1", "2"} <= majors, (
         f"matrix 가 두 major 를 밟지 않는다 (major: {sorted(majors)}) — "
-        "이 workflow 의 존재 이유가 두 major 커버리지를 선언으로 만드는 것이다"
+        "이 matrix 의 존재 이유가 두 major 커버리지를 선언으로 만드는 것이다"
     )
-
-
-def test_policies_are_coherent() -> None:
-    workflows = [entry.workflow for entry in WORKFLOW_POLICIES]
-    assert len(set(workflows)) == len(workflows), f"workflow 정책이 중복 선언됐다: {workflows}"
-
-    matrix_owners = [entry for entry in WORKFLOW_POLICIES if entry.policy == POLICY_MATRIX]
-    assert len(matrix_owners) == 1, (
-        f"matrix 정책을 가진 workflow 는 하나여야 한다 (현재 {len(matrix_owners)}건)"
-    )
-
-    for entry in WORKFLOW_POLICIES:
-        assert entry.source.strip(), f"{entry.workflow}: 버전이 어디서 오는지가 비어 있다"
-        assert entry.reason.strip(), f"{entry.workflow}: 왜 그 정책인지가 비어 있다"
-        if entry.policy == POLICY_PINNED:
-            assert entry.expected_role, (
-                f"{entry.workflow}: pinned 인데 어느 role 을 고정하는지 안 적혀 있다"
-            )
 
 
 def test_floor_matches_requirements_dev_pin() -> None:
-    """smoke 가 실제로 깔아 도는 버전이 registry 의 floor 와 같은가."""
+    """개발 `.venv` 가 실제로 깔아 도는 버전이 registry 의 floor 와 같은가."""
     pinned = _pinned_requirement(REQUIREMENTS_DEV.read_text(encoding="utf-8"), "mcp")
     assert pinned is not None, (
-        "requirements-dev.txt 에서 mcp 고정 핀을 못 찾았다 — smoke 의 pinned 정책이 "
-        "근거를 잃었다 (핀을 지웠다면 registry 의 smoke 정책도 같이 바꿔야 한다)"
+        "requirements-dev.txt 에서 mcp 고정 핀을 못 찾았다 — 개발 전량 검사가 "
+        "하한에서 돈다는 근거를 잃었다 (핀을 지웠다면 registry 의 floor 도 같이 볼 것)"
     )
     assert pinned == floor_version(), (
         f"requirements-dev.txt 핀({pinned}) 과 registry floor({floor_version()}) 가 갈렸다 — "
-        "smoke 는 실제로 전자로 돈다"
+        "개발 전량 검사는 실제로 전자로 돈다"
     )
 
 
 def test_extra_has_no_upper_bound() -> None:
-    """floating 이라고 선언한 job 이 실제로 부동인가."""
+    """`mcp-sdk` extra 가 새 major 를 막지 않는가 (소비자에게 상한을 강요하지 않는다)."""
     data = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
     specs = [
         spec
@@ -162,90 +130,18 @@ def test_extra_has_no_upper_bound() -> None:
         if spec.replace(" ", "").startswith("mcp")
     ]
     assert specs, "mcp-sdk extra 에 mcp requirement 가 없다"
-    floating_jobs = [e.workflow for e in WORKFLOW_POLICIES if e.policy == POLICY_FLOATING]
     for spec in specs:
         assert "<" not in spec, (
-            f"mcp-sdk extra 에 상한이 생겼다 ({spec}) — {floating_jobs} 는 floating 이라고 "
-            "선언돼 있는데 더 이상 부동이 아니다. 핀을 의도했다면 registry 를 먼저 고칠 것"
+            f"mcp-sdk extra 에 상한이 생겼다 ({spec}) — 두 major 를 모두 해석한다는 "
+            "registry 의 전제(1.x·2.x 셀)와 어긋난다. 핀을 의도했다면 registry 를 먼저 고칠 것"
         )
-
-
-def test_declared_workflows_exist_and_record() -> None:
-    problems: list[str] = []
-    for entry in WORKFLOW_POLICIES:
-        path = WORKFLOW_DIR / f"{entry.workflow}.yml"
-        if not path.exists():
-            problems.append(f"{entry.workflow}: 선언됐는데 {path.name} 이 없다")
-            continue
-        text = path.read_text(encoding="utf-8")
-        if entry.policy == POLICY_MATRIX:
-            continue
-        needle = f"--record {entry.workflow}"
-        if needle not in text:
-            problems.append(
-                f"{entry.workflow}: 정책은 선언됐는데 `{needle}` 를 호출하지 않는다 "
-                "— 실측이 어디에도 안 남는다"
-            )
-    assert not problems, "\n      ".join(problems)
-
-
-def test_every_mcp_installing_workflow_declares_a_policy() -> None:
-    """역방향. 정책 없이 mcp 를 깔고 도는 job 이 있으면 그것이 다음 사고다."""
-    declared = {entry.workflow for entry in WORKFLOW_POLICIES}
-    undeclared: list[str] = []
-    for path in sorted(WORKFLOW_DIR.glob("*.yml")):
-        if path.stem in declared:
-            continue
-        if _installs_mcp(path.read_text(encoding="utf-8")):
-            undeclared.append(path.stem)
-    assert not undeclared, (
-        f"mcp 를 깔면서 버전 정책이 선언 안 된 workflow: {undeclared} — "
-        "sdk_matrix.WORKFLOW_POLICIES 에 등록할 것"
-    )
-
-
-def test_matrix_workflow_does_not_duplicate_versions() -> None:
-    entry = next(e for e in WORKFLOW_POLICIES if e.policy == POLICY_MATRIX)
-    text = _workflow_text(entry.workflow)
-    assert f"{MODULE_CLI} --github-matrix" in text, (
-        f"{entry.workflow}.yml 이 정본에서 버전 목록을 받지 않는다"
-    )
-    assert "fromJson(needs." in text, (
-        f"{entry.workflow}.yml 이 prepare job 의 출력을 matrix 로 쓰지 않는다"
-    )
-    leaked = [version for version in pinned_versions() if version in text]
-    assert not leaked, (
-        f"{entry.workflow}.yml 에 버전 문자열이 직접 적혀 있다: {leaked} — "
-        "복제는 갈라진다. 목록은 registry 한 곳에만 둔다"
-    )
-
-
-def test_matrix_workflow_verifies_both_layers() -> None:
-    entry = next(e for e in WORKFLOW_POLICIES if e.policy == POLICY_MATRIX)
-    text = _workflow_text(entry.workflow)
-    for flag, why in (
-        ("--assert-installed", "요청한 버전이 실제로 깔렸는가"),
-        ("--assert-exercised", "그 SDK 로 실제로 쟀는가 (skip 은 통과가 아니다)"),
-    ):
-        assert f"{MODULE_CLI} {flag}" in text, (
-            f"{entry.workflow}.yml 이 `{flag}` 를 부르지 않는다 — {why} 를 안 본다"
-        )
-
-
-def test_github_matrix_output_is_valid_json_array() -> None:
-    parsed = json.loads(github_matrix_json())
-    assert isinstance(parsed, list) and parsed, "fromJson 이 받을 배열이 아니다"
-    assert all(isinstance(item, str) for item in parsed), (
-        f"matrix 항목이 문자열이 아니다: {parsed}"
-    )
-    assert parsed == list(pinned_versions())
 
 
 def test_every_skip_capable_check_is_declared() -> None:
     """**완전성.** SDK 없이 통째로 건너뛸 수 있는 검사는 전부 증거가 선언돼 있어야 한다.
 
     선언 안 된 채로 새 검사가 늘면, 그 검사는 셀 안에서 조용히 skip 하고도 green 을
-    낸다 — 이 workflow 가 막으려는 바로 그 상태다.
+    낸다 — 이 matrix 가 막으려는 바로 그 상태다.
     """
     declared = {entry.path for entry in SDK_EXERCISING_CHECKS}
     tests_dir = SOURCE_ROOT / "tests"
@@ -281,8 +177,25 @@ def test_declared_evidence_matches_reality() -> None:
     assert not problems, "\n      ".join(problems)
 
 
+def test_run_local_verifies_both_layers() -> None:
+    """`--run-local` 이 셀마다 두 층을 **둘 다** 부른다.
+
+    폐지된 CI 에서는 yml 이 `--assert-installed` / `--assert-exercised` 를 부르는지로
+    쟀다. 이제 그 판정을 부르는 곳은 `run_local_matrix` 하나라, 거기서 빠지면
+    SDK 검사가 skip 후 exit 0 으로 끝나도 로컬 매트릭스가 green 이 된다.
+    """
+    source = inspect.getsource(sdk_matrix.run_local_matrix)
+    for call, why in (
+        ("_assert_installed(", "요청한 버전이 실제로 깔렸는가"),
+        ("judge_exercised(observe_exercised(", "그 SDK 로 실제로 쟀는가 (skip 은 통과가 아니다)"),
+    ):
+        assert call in source, (
+            f"run_local_matrix 가 `{call}` 를 부르지 않는다 — {why} 를 안 본다"
+        )
+
+
 def test_verdicts_actually_fire() -> None:
-    """되주입: 네 가지 어긋남이 각각 다른 신호로 실패하는가."""
+    """되주입: 어긋남이 각각 다른 신호로 실패하는가."""
     mismatch = _assert_installed("1.27.0", "2.0.0")
     assert mismatch is not None and "2.0.0" in mismatch and "1.27.0" in mismatch, (
         f"버전이 어긋났는데 통과했다: {mismatch}"
@@ -317,48 +230,16 @@ def test_verdicts_actually_fire() -> None:
         "긍정 증거 없이도 통과한다 — skip 처럼 안 보이면 넘어가는 판정이면 안 된다"
     )
 
-    _line, problem = render_record("어디에도-없는-workflow", "2.0.0")
-    assert problem is not None and "WORKFLOW_POLICIES" in problem, (
-        f"정책 없는 workflow 가 통과했다: {problem}"
-    )
-
-
-def test_pinned_policy_enforces_its_role() -> None:
-    """pinned job 은 실측이 어긋나면 실패하고, floating job 은 기록만 한다."""
-    pinned_entry = next(e for e in WORKFLOW_POLICIES if e.policy == POLICY_PINNED)
-    _line, problem = render_record(pinned_entry.workflow, "9.9.9")
-    assert problem is not None, (
-        f"{pinned_entry.workflow} 는 pinned 인데 엉뚱한 버전이 통과했다"
-    )
-
-    line, problem = render_record(pinned_entry.workflow, floor_version())
-    assert problem is None, f"floor 를 깔았는데 실패했다: {problem}"
-    assert floor_version() in line
-
-    floating_entry = next(e for e in WORKFLOW_POLICIES if e.policy == POLICY_FLOATING)
-    line, problem = render_record(floating_entry.workflow, "9.9.9")
-    assert problem is None, (
-        f"{floating_entry.workflow} 는 floating 인데 강제하고 있다 — 조기 경보를 red 로 "
-        f"바꾸는 것은 이 층의 일이 아니다: {problem}"
-    )
-    assert "9.9.9" in line, "floating 이면 최소한 집힌 값은 남아야 한다"
-
 
 def main() -> int:
     test_funcs = [
         test_registry_is_coherent,
-        test_policies_are_coherent,
         test_floor_matches_requirements_dev_pin,
         test_extra_has_no_upper_bound,
-        test_declared_workflows_exist_and_record,
-        test_every_mcp_installing_workflow_declares_a_policy,
-        test_matrix_workflow_does_not_duplicate_versions,
-        test_matrix_workflow_verifies_both_layers,
         test_every_skip_capable_check_is_declared,
         test_declared_evidence_matches_reality,
-        test_github_matrix_output_is_valid_json_array,
+        test_run_local_verifies_both_layers,
         test_verdicts_actually_fire,
-        test_pinned_policy_enforces_its_role,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

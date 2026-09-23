@@ -13,13 +13,13 @@ silently 통과시키지 않도록 4개 cross-check smoke 를 강제한다.
   - maturity_matrix.json 의 last_updated 가 HEAD commit date 와 ±N일 이내
 
 기대 동작:
-  - 본 smoke 가 fail 이면 CI mypy-strict workflow + smoke.yml 의 두 군데에서 모두 fail
+  - 본 smoke 가 fail 이면 로컬 게이트(`run_all_checks.py --branch-context=all`)가 fail
   - release_pipeline.py release --apply 시 validate step 에서도 same check 가 inline 으로 호출됨
   - `tools/release_pipeline.py sync-maturity-matrix` 가 본 smoke 가 검출한 drift 를 자동 fix
 
-CI integration:
-  - .github/workflows/smoke.yml 의 smoke step 에 자동 포함 (workflow-source/tests/check_*.py glob)
-  - .github/workflows/mypy-strict.yml 의 mypy step 후 보조 검증 (--check-drift flag 향후 추가 여지)
+게이트 integration:
+  - `run_all_checks.py` 가 workflow-source/tests/check_*.py glob 으로 자동 포함
+    (CI smoke.yml / mypy-strict.yml 은 2026-09-23 폐지, TASK-2026-09-23-main-022)
 
 본 test 는 v0.11.23 의 4-7 cycle (Phase 12 의 운영 자동화) 의 일부.
 """

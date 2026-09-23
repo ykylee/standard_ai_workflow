@@ -13,9 +13,13 @@ Test list (offline only — online HEAD / GitHub API 는 network 의존이라 sk
 10. test_cache_stats_zero_on_empty: empty cache file → 0/0
 11. test_cache_clear_idempotent: clear on non-existent file → no error
 12. test_cache_file_for_strategy_suffix: per-strategy cache file naming
-13. test_cli_accepts_the_flags_ci_actually_passes: okf-validate.yml 의 실제 인자 ↔ 파서 대조
-14. test_online_path_parses_and_exposes_cache_attr: --online 경로 파싱 + args.cache 실재
-15. test_main_runs_the_ci_invocation_end_to_end: CI 실제 호출을 main() 으로 끝까지 (네트워크만 스텁)
+13. test_online_path_parses_and_exposes_cache_attr: --online 경로 파싱 + args.cache 실재
+14. test_main_runs_the_full_invocation_end_to_end: 전체 플래그 호출을 main() 으로 끝까지 (네트워크만 스텁)
+
+(구 13 "okf-validate.yml 의 실제 인자 ↔ 파서 대조" 는 2026-09-23 CI workflow 폐지
+(main-022)로 소비자 yml 이 사라져 삭제했다. 구 15 는 yml 에서 뽑던 호출 토큰을
+`FULL_INVOCATION_FLAGS` 상수로 옮겨 14 로 남겼다 — 파서만이 아니라 `main()` 이 그
+플래그 조합을 끝까지 실행하는지가 여전히 지킬 가치가 있다.)
 
 추가 audit (v0.7.53 audit 2차):
 - online / cache / semantic_* 함수 **호출**은 *외부 의존* (network, GitHub API) — 명시적 skip
@@ -30,7 +34,6 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
-    ".github/workflows/*",
     "workflow-source/workflow_kit/*",
 )
 
@@ -53,94 +56,32 @@ def _import_url_validity():
     return mod
 
 
-REPO_ROOT = SOURCE_ROOT.parent
-OKF_VALIDATE_WF = REPO_ROOT / ".github" / "workflows" / "okf-validate.yml"
+#: online 검증의 **전체 플래그 호출** (URL 은 호출자가 붙인다). 폐지된
+#: `okf-validate.yml`(2026-09-23, main-022)이 실제로 넘기던 조합 그대로다 — 그 yml 이
+#: 있을 때는 파일에서 뽑아 대조했고, 사라진 뒤로는 여기가 그 호출의 정본이다.
+#:
+#: 이 조합이 지키는 사고: `--cache`(§2.57, `46b6b7a`)와 `--max-bytes`(`1da10ef`)가
+#: 각각 등록만 지워지고 `main()` 의 참조는 남아, 파싱 또는 실행에서 죽는 CLI 가
+#: 7주간 방치됐다.
+FULL_INVOCATION_FLAGS: tuple[str, ...] = (
+    "--mode=strict", "--online", "--cache", "--body",
+    "--ttl", "86400", "--timeout", "10", "--max-retries", "3",
+)
 
 
-def _flags_ci_passes() -> list[str]:
-    """`okf-validate.yml` 이 CLI 에 **실제로 넘기는** 플래그.
+def test_main_runs_the_full_invocation_end_to_end() -> None:
+    """전체 플래그 호출을 **`main()` 으로 끝까지** 돌린다 (네트워크만 스텁).
 
-    손으로 베낀 목록을 두지 않는다 — 그것은 소비자와 갈라지고, 갈라진 사실이
-    안 보인다. 소비자 파일에서 직접 뽑아 파서와 대조한다.
-    """
-    text = OKF_VALIDATE_WF.read_text(encoding="utf-8")
-    flags: list[str] = []
-    lines = text.splitlines()
-    for i, line in enumerate(lines):
-        if "workflow_kit.url_validity" not in line:
-            continue
-        # 백슬래시로 이어지는 셸 명령을 끝까지 모은다.
-        chunk = [line]
-        j = i
-        while lines[j].rstrip().endswith("\\") and j + 1 < len(lines):
-            j += 1
-            chunk.append(lines[j])
-        for token in " ".join(chunk).split():
-            if token.startswith("--"):
-                flags.append(token.split("=", 1)[0])
-    return sorted(set(flags))
-
-
-def test_cli_accepts_the_flags_ci_actually_passes() -> None:
-    """CI 가 넘기는 플래그를 파서가 **전부 안다**.
-
-    **왜 이 case 가 필요한가**: 이 파일 상단이 "online / cache 는 network 의존이라
-    명시적 skip" 이라고 적고 있다. 그 판단은 옳지만, *네트워크 의존은 호출을 건너뛸
-    이유이지 **인자 계약**을 건너뛸 이유가 아니다* — 파싱은 오프라인이다.
-
-    그 틈으로 실제 사고가 났다: `46b6b7a`(v0.7.41)가 무관한 커밋에서
-    `--cache` 등록 한 줄만 지웠고, `main()` 의 `args.cache` 참조와 모듈 docstring 과
-    `okf-validate` 워크플로우는 그대로였다. `--online` CLI 경로가 **7주간 통째로**
-    죽어 있었는데(주면 `ambiguous option`, 안 주면 `AttributeError`) smoke 232건 중
-    아무것도 그 경로를 밟지 않았고, 유일한 소비자는 red 인 채 방치됐다.
-    """
-    mod = _import_url_validity()
-    parser = mod._build_arg_parser()
-    known = set(parser._option_string_actions)
-
-    flags = _flags_ci_passes()
-    assert flags, f"{OKF_VALIDATE_WF} 에서 CLI 플래그를 못 뽑았다 — 호출 형태가 바뀌었나?"
-    unknown = [f for f in flags if f not in known]
-    assert not unknown, (
-        f"CI 가 넘기는데 파서가 모르는 플래그 {unknown} — CLI 표면이 소비자를 두고 갈라졌다. "
-        f"(CI 인자: {flags})"
-    )
-
-
-def _ci_argv(dummy_url: str = "https://example.com") -> list[str]:
-    """`okf-validate.yml` 의 **실제 호출 토큰** (URL 은 xargs 가 넣으므로 dummy 로 대체)."""
-    lines = OKF_VALIDATE_WF.read_text(encoding="utf-8").splitlines()
-    for i, line in enumerate(lines):
-        if "workflow_kit.url_validity" not in line or "--cache-stats" in line:
-            continue
-        chunk = [line]
-        j = i
-        while lines[j].rstrip().endswith("\\") and j + 1 < len(lines):
-            j += 1
-            chunk.append(lines[j])
-        tokens = " ".join(chunk).replace("\\", " ").split()
-        tokens = tokens[tokens.index("workflow_kit.url_validity") + 1:]
-        if "|" in tokens:                      # `| tee …` 이후는 셸 파이프다
-            tokens = tokens[: tokens.index("|")]
-        return [dummy_url, *tokens]
-    raise AssertionError(f"{OKF_VALIDATE_WF} 에서 CLI 호출을 못 찾았다")
-
-
-def test_main_runs_the_ci_invocation_end_to_end() -> None:
-    """CI 의 **실제 호출을 `main()` 으로 끝까지** 돌린다 (네트워크만 스텁).
-
-    **파싱이 통과한다고 실행이 되는 것이 아니다.** 위 case 두 개는 파서만 봤고,
-    그래서 `main()` 이 읽는 `args.max_bytes` 가 없다는 것을 **못 잡았다** — 실제
-    CI 호출은 파싱을 지나 `AttributeError: 'Namespace' object has no attribute
-    'max_bytes'` 로 죽고 있었다. `--cache`(§2.57)와 완전히 같은 사고가 두 번이다
+    **파싱이 통과한다고 실행이 되는 것이 아니다.** 파서만 보던 case 는 `main()` 이
+    읽는 `args.max_bytes` 가 없다는 것을 **못 잡았다** — 실제 CI 호출은 파싱을 지나
+    `AttributeError: 'Namespace' object has no attribute 'max_bytes'` 로 죽고 있었다. `--cache`(§2.57)와 완전히 같은 사고가 두 번이다
     (`1da10ef` 가 `--max-bytes` 등록만 지우고 참조는 남겼다).
 
     네트워크만 스텁하고 **분기와 속성 접근은 전부 실제로 실행**한다 — 스텁이
     호출 시점까지 살아 있어야 하므로 모듈 속성을 직접 갈아 끼운다.
     """
     mod = _import_url_validity()
-    argv = _ci_argv()
-    assert "--online" in argv and "--cache" in argv, f"CI 호출 추출 실패: {argv}"
+    argv = ["https://example.com", *FULL_INVOCATION_FLAGS]
 
     saved = (mod.check_url_with_cache, mod.check_url_online, mod.check_url_body)
     calls: list[str] = []
@@ -152,7 +93,7 @@ def test_main_runs_the_ci_invocation_end_to_end() -> None:
     finally:
         mod.check_url_with_cache, mod.check_url_online, mod.check_url_body = saved
 
-    assert rc == 0, f"CI 호출이 exit {rc} 로 끝났다 (argv={argv})"
+    assert rc == 0, f"전체 플래그 호출이 exit {rc} 로 끝났다 (argv={argv})"
     assert "cache" in calls, f"--cache 인데 캐시 경로를 안 탔다: {calls}"
     assert "body" in calls, f"--body 인데 body 검사를 안 탔다: {calls}"
 
@@ -357,9 +298,8 @@ def main() -> int:
         test_cache_file_for_strategy_suffix_v0_7_53,
         test_cache_prune_dry_run_preserves_data_v0_7_56,
         test_cache_prune_apply_removes_old_v0_7_56,
-        test_cli_accepts_the_flags_ci_actually_passes,
         test_online_path_parses_and_exposes_cache_attr,
-        test_main_runs_the_ci_invocation_end_to_end,
+        test_main_runs_the_full_invocation_end_to_end,
     ]
     failed: list[str] = []
     for fn in test_funcs:

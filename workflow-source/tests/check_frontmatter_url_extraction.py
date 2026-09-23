@@ -19,7 +19,8 @@ Test list:
 5. test_resource_must_be_bare_uri: `resource` 규약 위반 검출 (실제 결함 값으로)
 6. test_repo_scan_has_no_convention_violation: 저장소 전수 — 위반 0 + 스캔 0건 아님
 7. test_extracted_urls_pass_v_r10_offline: 뽑힌 URL 이 V-R10 offline 검사를 통과한다
-8. test_consumer_workflow_uses_the_module: `okf-validate.yml` 이 실제로 이 모듈을 부른다
+(8. test_consumer_workflow_uses_the_module 는 2026-09-23 CI workflow 폐지(main-022)로
+   소비자 `okf-validate.yml` 이 사라져 삭제했다)
 9. test_zero_scan_is_not_a_pass: 스캔 0건은 통과가 아니다 (exit 2)
 10. test_producer_refuses_compound_value: 생산자가 서술 값을 URI 로 만들지 않는다
 11. test_producer_refuses_nonexistent_path: 저장소에 없는 경로를 URL 로 만들지 않는다
@@ -40,7 +41,6 @@ REPO_ROOT = SOURCE_ROOT.parent
 FRONTMATTER_URLS = SOURCE_ROOT / "workflow_kit" / "frontmatter_urls.py"
 OKF_EXPORT = SOURCE_ROOT / "workflow_kit" / "okf_export.py"
 URL_VALIDITY = SOURCE_ROOT / "workflow_kit" / "url_validity.py"
-OKF_VALIDATE_WF = REPO_ROOT / ".github" / "workflows" / "okf-validate.yml"
 
 WIKI_ROOT = REPO_ROOT / "ai-workflow" / "wiki"
 BUNDLE_ROOT = REPO_ROOT / "docs" / "samples" / "okf-bundle-2026-06-16"
@@ -236,29 +236,6 @@ def test_extracted_urls_pass_v_r10_offline() -> None:
         assert not errors, f"{u.path}:{u.line} {u.url} → {[e.message for e in errors]}"
 
 
-# --- 8. 소비자 대조 ---
-
-
-def test_consumer_workflow_uses_the_module() -> None:
-    """`okf-validate.yml` 이 이 모듈을 부르고, 넘기는 root 가 **실재**한다.
-
-    §2.57 과 같은 축이다 — 소비자와 도구가 갈라지면 그 사실이 안 보인다. 손으로 베낀
-    목록을 두지 않고 워크플로우 파일에서 직접 뽑아 대조한다.
-    """
-    text = OKF_VALIDATE_WF.read_text(encoding="utf-8")
-    assert "workflow_kit.frontmatter_urls" in text, (
-        "소비자가 추출 모듈을 안 부른다 — 규약을 아는 자리가 다시 둘로 갈라졌다"
-    )
-    assert "grep -rEho \"resource:" not in text, "옛 grep 추출기가 남아 있다"
-    assert "--check" in text, "규약 검사(--check) 호출이 워크플로우에 없다"
-
-    roots = set(re.findall(r"^\s+(?:roots=\()?((?:ai-workflow/wiki|docs/samples/[\w.-]+))", text, re.M))
-    roots |= set(re.findall(r"(ai-workflow/wiki|docs/samples/okf-bundle-[\d-]+)", text))
-    assert roots, "워크플로우에서 스캔 root 를 못 뽑았다 — 호출 형태가 바뀌었나?"
-    for root in sorted(roots):
-        assert (REPO_ROOT / root).exists(), f"워크플로우가 없는 경로를 스캔한다: {root}"
-
-
 # --- 9. 스캔 0건은 통과가 아니다 ---
 
 
@@ -374,7 +351,6 @@ def main() -> int:
         test_resource_must_be_bare_uri,
         test_repo_scan_has_no_convention_violation,
         test_extracted_urls_pass_v_r10_offline,
-        test_consumer_workflow_uses_the_module,
         test_zero_scan_is_not_a_pass,
         test_producer_refuses_compound_value,
         test_producer_refuses_nonexistent_path,

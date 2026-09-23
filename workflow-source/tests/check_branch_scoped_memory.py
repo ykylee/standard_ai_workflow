@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (10 cases).
+"""v1.0.0: branch-scoped memory + 종료 브랜치 자동 아카이브 smoke (9 cases).
 
 검증 대상:
   1) path helper 가 `active/<branch>/` 를 반환한다
@@ -12,7 +12,11 @@
   7) 아카이버가 살아있는 브랜치 / 현재 브랜치는 건드리지 않는다
   8) 아카이브 결과에 `.archived.json` 메타(task_ids 포함)가 남는다
   9) 슬래시 브랜치가 끝까지 동작한다 — 중첩 dir + 슬러그 파일명 (main 에서는 안 드러난다)
-  10) CI 가 슬래시 브랜치 컨텍스트를 실제로 돌린다 (9 는 코드, 10 은 그 검증의 실행 보장)
+
+  (구 10 "CI 가 슬래시 브랜치 컨텍스트를 실제로 돌린다" 는 2026-09-23 CI workflow
+  폐지(TASK-2026-09-23-main-022)로 대상을 잃어 삭제했다. 슬래시 컨텍스트의 실행
+  보장은 이제 로컬 게이트 `--branch-context=all` 이고, 그 정합은
+  `check_branch_context_matrix` 가 잰다.)
 
 Refs:
   - workflow-source/MEMORY_GOVERNANCE.md §2 (Branch-scoped layout)
@@ -290,55 +294,6 @@ def case_8_archive_emits_metadata() -> bool:
         return True
 
 
-def case_10_ci_runs_a_slash_branch_context() -> bool:
-    """10) CI 가 **슬래시 브랜치 컨텍스트를 실제로 돌린다**.
-
-    §2.55 의 결함 3건이 오래 살아 있던 이유는 단순하다 — 개발이 거의 main 에서
-    이뤄지므로 슬래시 브랜치를 밟는 실행이 **아무도 보장하지 않는 우연**이었다.
-    §2.56 이 smoke 를 2셀 matrix 로 만들어 그 우연을 없앴는데, 그 셀은 지우기 쉽다.
-    선언만 있고 검사가 없으면 드리프트한다.
-
-    `case_9` 는 *코드* 가 슬래시를 감당하는지 보고, 이 case 는 *그 검증이 CI 에서
-    실제로 도는지* 를 본다 — 다른 층이다.
-    """
-    wf = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
-    if not wf.is_file():
-        print(f"  FAIL: {wf} 부재")
-        return False
-
-    # v1.1.7(TASK-017): 셀 목록은 더 이상 yml 인라인이 아니다 — 정본
-    # (`branch_matrix.BRANCH_CONTEXTS`) 을 prepare job 이 주입한다. 그래서 여기서도
-    # 정본을 읽는다. yml 을 파싱해 셀을 세던 이전 판은 그 전환에서 정확히 깨졌고
-    # (`fromJSON` 표현식은 dict 가 아니라 문자열이다), 그것이 이 case 가 살아 있다는
-    # 증거이기도 하다.
-    from workflow_kit.common.branch_matrix import BRANCH_CONTEXTS
-
-    cells = BRANCH_CONTEXTS
-    slashed = [c for c in cells if "/" in c.workflow_branch]
-    if not slashed:
-        print(f"  FAIL: 슬래시가 든 브랜치 셀이 없다: {[c.label for c in cells]}")
-        return False
-    native = [c for c in cells if not c.workflow_branch]
-    if not native:
-        print("  FAIL: 오버라이드 없는 셀이 없다 — 실제 브랜치를 재는 실행이 사라졌다: "
-              f"{[c.label for c in cells]}")
-        return False
-
-    src = wf.read_text(encoding="utf-8")
-    # CI 가 그 정본을 실제로 소비하는가 (선언만 있고 CI 가 안 읽으면 의미가 없다).
-    if "workflow_kit.common.branch_matrix --github-matrix" not in src:
-        print("  FAIL: smoke.yml 이 정본에서 셀 목록을 받지 않는다 — 슬래시 컨텍스트 미보장")
-        return False
-    # 오버라이드가 안 먹었을 때 조용히 넘어가지 않는지 (workflow 안의 자기 검증)
-    if "브랜치 오버라이드가 적용되지 않았다" not in src:
-        print("  FAIL: 오버라이드 적용 여부를 workflow 가 강제하지 않는다 — "
-              "안 먹으면 두 셀이 같은 것을 재면서 '2셀 green' 이 된다")
-        return False
-    print(f"  PASS: CI 가 정본의 {len(cells)}셀로 돈다 "
-          f"(슬래시={slashed[0].workflow_branch}, native 셀 존재, 오버라이드 자기 검증 있음)")
-    return True
-
-
 def main() -> int:
     print("=" * 60)
     print("branch-scoped memory + 자동 아카이브 smoke (v1.0.0)")
@@ -353,7 +308,6 @@ def main() -> int:
         case_7_keep_current_and_live,
         case_8_archive_emits_metadata,
         case_9_slash_branch_end_to_end,
-        case_10_ci_runs_a_slash_branch_context,
     ]
     passed = 0
     for c in cases:

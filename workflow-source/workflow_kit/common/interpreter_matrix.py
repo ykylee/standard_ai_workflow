@@ -11,7 +11,7 @@
     mcp SDK 버전   → `sdk_matrix.py`     (로컬 green / matrix 2.0.0 셀만 red)
     브랜치 컨텍스트 → `branch_matrix.py`  (로컬 green / slash 셀만 15연속 red)
 
-세 번째다. 대응도 같다 — **정본을 한 곳에 두고 CI 와 로컬이 그것을 읽는다.**
+세 번째다. 대응도 같다 — **정본을 한 곳에 두고 게이트가 그것을 읽는다.**
 
 ## 이 축에서 특히 고약했던 것: 한쪽 커버리지가 *우연* 이었다
 
@@ -19,33 +19,32 @@
 
 | 해석기 | 누가 검사를 그것으로 도는가 |
 |---|---|
-| 3.11 | CI (`smoke.yml` / `mcp-sdk-matrix.yml` 의 `setup-python`) |
+| 3.11 | CI (당시 `smoke.yml` / `mcp-sdk-matrix.yml` 의 `setup-python`) |
 | 3.13 | 개발자 로컬 `.venv` — **선언이 아니라 그 호스트에 깔린 것** |
 
 3.13 축은 아무 데도 선언돼 있지 않았다. `.venv` 를 3.11 로 다시 만드는 순간 그
 커버리지는 **조용히 사라지고 아무 검사도 실패하지 않는다**. 부수 효과로 얻은
 커버리지를 선언으로 고정하는 것 — 2026-07-31 에 CI 에서 같은 일을 했다.
 
-그래서 이 registry 는 두 해석기를 **둘 다 선언**하고, CI 가 둘 다 밟는다. 로컬이
-무엇으로 돌든 커버리지가 변하지 않는다.
+그래서 이 registry 는 두 해석기를 **둘 다 선언**한다. 로컬이 무엇으로 돌든
+커버리지가 변하지 않는다.
 
-## 정본의 방향
+## CI 폐지 이후 (2026-09-23, TASK-2026-09-23-main-022)
 
-CI yml 에 버전 문자열을 적지 않는다. `prepare` job 이 이 registry 에서 읽어
-매트릭스로 주입한다 (`branch_matrix` 와 같은 배선). 복제하면 갈라지고, 갈라진
-쪽이 조용히 이긴다.
-
-로컬 재현:
+GitHub Actions 검사 workflow 가 폐지돼 smoke.yml 의 prepare job 주입
+(`--github-matrix`)과 셀의 긍정 증거(`--assert-running`)는 대상을 잃어 제거했다.
+선언된 해석기 전부를 밟는 곳은 이제 push 전 로컬 실행 하나다:
 
     PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local
 
-Stdlib only — CI prepare job 이 의존성 설치 없이 실행한다.
+그 경로는 venv 마다 실제 해석기 버전을 실측해 선언과 대조한다 (`_ensure_venv`).
+
+Stdlib only.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import subprocess
 import sys
@@ -53,7 +52,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ROLE_CI_RUNNER = "ci-runner"
-"""CI 가 검사를 실제로 도는 해석기."""
+"""CI 가 검사를 돌던 해석기 (CI 폐지 후에도 role 이름은 유지 — 선언의 연속성)."""
 
 ROLE_DEV_LOCAL = "dev-local"
 """저장소가 로컬 개발자를 유도하는 해석기 (`.python-version`)."""
@@ -64,7 +63,7 @@ class Interpreter:
     """게이트가 검사를 돌려 보는 Python 해석기 하나."""
 
     version: str
-    """`X.Y`. `setup-python` 의 `python-version` 이자 `uv python` 의 인자."""
+    """`X.Y`. `uv python` / `find_interpreter` 의 인자."""
 
     role: str
     """`ci-runner` / `dev-local`."""
@@ -80,9 +79,9 @@ GATE_INTERPRETERS: tuple[Interpreter, ...] = (
     Interpreter(
         version="3.11",
         role=ROLE_CI_RUNNER,
-        source=".github/workflows/smoke.yml 의 setup-python (이제 이 registry 가 주입한다)",
+        source="이 registry 선언 (CI smoke.yml 의 setup-python 이 출처였다 — 2026-09-23 폐지, main-022)",
         reason=(
-            "CI 가 검사를 실제로 도는 해석기. 여기서만 red 인 판정이 실제로 있었다 — "
+            "CI 가 검사를 돌던 해석기. 여기서만 red 인 판정이 실제로 있었다 — "
             "`check_python_floor_syntax` case 3 (2026-09-21, 9915e4ad)."
         ),
     ),
@@ -97,21 +96,6 @@ GATE_INTERPRETERS: tuple[Interpreter, ...] = (
         ),
     ),
 )
-
-
-#: 검사를 돌리지만 이 해석기 축을 **밟지 않는** workflow 와 그 이유.
-#:
-#: 손 목록이지만 *범위* 는 손으로 정하지 않는다 — `check_interpreter_matrix` 가
-#: `.github/workflows/` 를 훑어 `run_all_checks.py` 를 부르는 workflow 를 **파생**
-#: 하고, 그중 registry 도 안 읽고 여기에도 없는 것을 red 로 잡는다. 새 workflow 가
-#: 조용히 축 밖에 놓이는 자리를 없애는 것이 요점이다.
-AXIS_EXEMPT_WORKFLOWS: dict[str, str] = {
-    "mcp-sdk-matrix.yml": (
-        "그 workflow 의 축은 mcp SDK 버전이고 검사도 `mcp,optional_dep` 로 좁혀 "
-        "돈다. 해석기 축을 곱하면 셀이 3→6 이 되는데, 그 부분집합은 smoke 의 "
-        "전량 셀이 이미 두 해석기로 덮는다."
-    ),
-}
 
 
 def versions() -> tuple[str, ...]:
@@ -132,11 +116,6 @@ def role_version(role: str) -> str | None:
     return None
 
 
-def github_matrix_json() -> str:
-    """smoke.yml 의 `fromJSON` 이 먹는 매트릭스 JSON."""
-    return json.dumps([entry.version for entry in GATE_INTERPRETERS], ensure_ascii=False)
-
-
 def declared_local_version(repo_root: Path) -> str | None:
     """`.python-version` 이 선언한 로컬 개발 해석기. registry 의 출처 대조용."""
     pin = repo_root / ".python-version"
@@ -155,26 +134,8 @@ def running_version() -> str:
     return f"{sys.version_info[0]}.{sys.version_info[1]}"
 
 
-def assert_running(expected: str) -> int:
-    """이 프로세스가 **실제로** 그 해석기인가 (CI 셀의 긍정 증거).
-
-    `setup-python` 이 선언대로 깔렸다고 믿지 않는다. 셀이 다른 버전으로 돌면
-    "두 해석기를 밟았다" 는 보고가 거짓이 되는데, 아무것도 실패하지 않는다.
-    """
-    actual = running_version()
-    if interpreter_for(expected) is None:
-        print(f"::error::{expected} 은 GATE_INTERPRETERS 에 없다 (선언: {list(versions())})")
-        return 1
-    if actual != expected:
-        print(f"::error::이 셀은 {expected} 를 밟는다고 선언했는데 실제 해석기는 "
-              f"{actual} ({sys.executable}) 다")
-        return 1
-    print(f"해석기 실측: {actual} ({sys.version.split()[0]}) — 선언과 일치")
-    return 0
-
-
 def _ensure_venv(repo_root: Path, version: str) -> Path | None:
-    """`version` 해석기로 CI 와 같은 의존성을 깐 venv 를 만든다 (있으면 재사용).
+    """`version` 해석기로 개발 `.venv` 와 같은 의존성을 깐 venv 를 만든다 (있으면 재사용).
 
     해석기를 못 구하면 None — **통과가 아니라 미측정**이다 (`python_floor` 와 같은
     규율). 없는 것을 밟았다고 세지 않는다.
@@ -204,7 +165,7 @@ def _ensure_venv(repo_root: Path, version: str) -> Path | None:
         [str(python), "-c", "import workflow_kit"], capture_output=True,
     ).returncode == 0
     if not have_kit:
-        # CI 와 **같은 순서**로 깐다 — 뒤에 깔린 것이 이긴다는 사실이
+        # 개발 `.venv` 와 **같은 순서**로 깐다 — 뒤에 깔린 것이 이긴다는 사실이
         # `sdk_matrix` 가 존재하는 이유 자체다 (mcp 핀이 editable 뒤에 온다).
         print(f"  설치: requirements → requirements-dev → -e workflow-source[dev,release,mcp-sdk]")
         for spec in (["-r", str(repo_root / "requirements.txt")],
@@ -224,8 +185,7 @@ def run_local_matrix(
 
     ## 한계 (과장하지 않는다)
 
-    - CI 셀과 완전히 같은 환경은 아니다 (러너 OS / 패치 버전이 다르다). CI 를
-      대신하는 것이 아니라 push 전에 *같은 부류의* 결함을 잡는 도구다.
+    - 패치 버전은 호스트가 구한 것을 따른다 (`X.Y` 까지만 선언과 대조한다).
     - 해석기를 못 구하면 그 축은 **미측정**으로 보고한다. 못 잰 것을 통과로 세지
       않는다.
     """
@@ -285,12 +245,6 @@ def render_summary() -> str:
     for entry in GATE_INTERPRETERS:
         lines.append(f"| `{entry.version}` | {entry.role} | {entry.source} | {entry.reason} |")
     lines.append("")
-    if AXIS_EXEMPT_WORKFLOWS:
-        lines.append("| 축을 안 밟는 workflow | 이유 |")
-        lines.append("|---|---|")
-        for name, why in AXIS_EXEMPT_WORKFLOWS.items():
-            lines.append(f"| `{name}` | {why} |")
-        lines.append("")
     lines.append(
         "로컬 재현: "
         "`PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local`"
@@ -305,13 +259,9 @@ def main(argv: list[str] | None = None) -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--github-matrix", action="store_true",
-                       help="선언한 해석기 목록을 JSON 배열로 (Actions 의 fromJSON 입력)")
     group.add_argument("--versions", action="store_true",
                        help="버전을 한 줄에 하나씩 출력")
     group.add_argument("--summary", action="store_true", help="registry 를 표로 출력")
-    group.add_argument("--assert-running", metavar="VERSION",
-                       help="이 프로세스가 실제로 그 해석기인지 실측 확인 (CI 셀에서 사용)")
     group.add_argument("--run-local", action="store_true",
                        help="선언된 해석기 전부로 전량 검사를 돌린다 (push 전 재현)")
     parser.add_argument("--only", metavar="VERSION", default=None,
@@ -322,15 +272,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="--run-local 이 runner 에 넘길 --tmp-dir (실디스크 경로 권장)")
     args = parser.parse_args(argv)
 
-    if args.github_matrix:
-        print(github_matrix_json())
-    elif args.versions:
+    if args.versions:
         for version in versions():
             print(version)
     elif args.summary:
         print(render_summary())
-    elif args.assert_running:
-        return assert_running(args.assert_running)
     else:
         repo_root, _why = resolve_workspace_root()
         return run_local_matrix(repo_root, args.only, args.check_filter, args.tmp_dir)

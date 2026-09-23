@@ -5,7 +5,7 @@
 달라지는데, main 에서 재면 그 차이가 0이다. 그래서 smoke 는 두 컨텍스트를 밟는다
 (§2.56).
 
-이 registry 가 존재하는 이유는 **재현 수단의 비대칭** 이다:
+이 registry 가 존재하는 이유는 **재현 수단의 비대칭** 이었다:
 
     CI 는 두 컨텍스트를 돌고, 로컬 전량 검사는 native 하나만 돈다.
 
@@ -14,23 +14,21 @@ TASK-016 이 그 대가를 실측했다 — `check_release_pre_check_gates` case
 red 인 동안 로컬은 계속 green 이었으며 handoff 는 내내 "전량 검사 green" 을
 기록했다.** 열흘 가까이 걸린 이유는 결함이 어려워서가 아니라 로컬에 그 축을
 밟을 방법이 없었기 때문이다. `mcp` SDK 매트릭스와 같은 모양이고
-(`sdk_matrix.py` 참조), 대응도 같다 — **정본을 한 곳에 두고 CI 와 로컬이 그것을
+(`sdk_matrix.py` 참조), 대응도 같았다 — **정본을 한 곳에 두고 러너가 그것을
 읽는다.**
 
-    CI:    smoke.yml 의 prepare job 이 `--github-matrix` 로 주입
-    로컬:  `run_all_checks.py --branch-context=all`
+    로컬:  `run_all_checks.py --branch-context=all` (push 직전 게이트)
 
-이 파일에 컨텍스트를 추가하면 CI 셀과 로컬 재현이 **함께** 늘어난다. yml 에
-문자열을 복제하지 않는 것이 요점이다 — 복제하면 갈라지고, 갈라진 쪽이 조용히
-이긴다.
+2026-09-23 CI workflow 폐지(TASK-2026-09-23-main-022)로 smoke.yml 의 prepare
+job 주입(`--github-matrix`)은 사라졌고, 이제 두 컨텍스트를 밟는 곳은 로컬 게이트
+하나다. 이 파일에 컨텍스트를 추가하면 게이트가 **함께** 늘어난다.
 
-Stdlib only — CI prepare job 이 의존성 설치 없이 실행한다.
+Stdlib only.
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from dataclasses import dataclass
 
@@ -49,7 +47,7 @@ class BranchContext:
     """smoke 가 전량 검사를 한 번 돌리는 브랜치 컨텍스트 하나."""
 
     label: str
-    """CI 셀 이름 겸 `--branch-context` 인자."""
+    """`--branch-context` 인자 (게이트 결과의 컨텍스트 이름)."""
 
     workflow_branch: str
     """덮어쓸 브랜치 이름. **빈 문자열 = 덮지 않는다** (러너/로컬의 실제 브랜치).
@@ -125,47 +123,16 @@ def apply_context(env: dict[str, str], ctx: BranchContext) -> dict[str, str]:
     return out
 
 
-def github_matrix_json() -> str:
-    """smoke.yml 의 `fromJSON` 이 먹는 매트릭스 JSON."""
-    return json.dumps(
-        [{"label": ctx.label, "workflow_branch": ctx.workflow_branch}
-         for ctx in BRANCH_CONTEXTS],
-        ensure_ascii=False,
-    )
-
-
-def render_summary() -> str:
-    lines = ["| label | workflow_branch | 이유 |", "| --- | --- | --- |"]
-    for ctx in BRANCH_CONTEXTS:
-        branch = f"`{ctx.workflow_branch}`" if ctx.workflow_branch else "(덮지 않음)"
-        lines.append(f"| `{ctx.label}` | {branch} | {ctx.reason} |")
-    lines.append("")
-    lines.append(f"오버라이드 env key: `{OVERRIDE_ENV_KEY}`")
-    lines.append("")
-    lines.append("로컬 재현: `python3 workflow-source/tests/run_all_checks.py --branch-context=all`")
-    return "\n".join(lines)
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "--github-matrix", action="store_true",
-        help="smoke.yml 의 fromJSON 이 먹는 매트릭스 JSON 을 출력",
-    )
-    group.add_argument("--labels", action="store_true", help="label 을 한 줄에 하나씩 출력")
-    group.add_argument("--summary", action="store_true", help="registry 를 표로 출력")
-    args = parser.parse_args(argv)
+    parser.add_argument("--labels", action="store_true", required=True,
+                        help="label 을 한 줄에 하나씩 출력")
+    parser.parse_args(argv)
 
-    if args.github_matrix:
-        print(github_matrix_json())
-    elif args.labels:
-        for label in labels():
-            print(label)
-    else:
-        print(render_summary())
+    for label in labels():
+        print(label)
     return 0
 
 

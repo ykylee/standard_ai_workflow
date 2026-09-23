@@ -547,7 +547,7 @@
       "title": "CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용",
       "sdlc_phase": "concept",
       "declared_status": "planned",
-      "derived_status": "planned",
+      "derived_status": "in_progress",
       "progress": 0.0,
       "total_leaves": 1,
       "done_leaves": 0,
@@ -558,9 +558,11 @@
         {
           "id": "WBS-14.1",
           "title": "concept 검토 — 셀·검사별 시간 실측, 반복 계산 전수 조사 방법, 샤딩",
-          "derived_status": "planned",
+          "derived_status": "in_progress",
           "linked_task_ids": [
-            "TASK-2026-09-23-main-019"
+            "TASK-2026-09-23-main-019",
+            "TASK-2026-09-23-main-022",
+            "TASK-2026-09-24-main-001"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

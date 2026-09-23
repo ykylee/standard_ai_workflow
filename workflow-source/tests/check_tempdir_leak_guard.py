@@ -24,7 +24,9 @@ temp dir 이 그대로 남는다. 누적 결과:
 2. `check_scaffold_harness` 의 제외 목록에 무거운 트리가 들어 있다.
 3. `cleanup_leaked_tempdirs` 가 `/var/tmp` 를 포함해 훑는다.
 4. `cleanup_leaked_tempdirs` 가 남의 소유 dir 을 건드리지 않는다.
-5. CI smoke 루프에 per-check timeout 이 걸려 있다.
+5. 게이트 runner(`run_all_checks.py`)의 per-check timeout 이 **기본으로** 켜져 있다.
+   (2026-09-23 CI workflow 폐지(main-022) 전에는 smoke.yml 의 호출을 쟀다 — 게이트가
+   로컬 runner 로 옮겨 가 보장의 자리도 runner 기본값으로 옮겼다.)
 6. `check_scaffold_harness` 실행이 temp root 에 orphan 을 남기지 않는다 (실측).
 7. `tempfile.mkdtemp()` 를 정리 없이 쓰는 곳이 없다 — `mkdtemp` 은 자동 정리가
    전혀 없어 kill 이 아니라 *성공한 실행마다* 흘린다 (감사에서 3 smoke / 5개소,
@@ -43,7 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TESTS_DIR = REPO_ROOT / "workflow-source" / "tests"
 SCAFFOLD_SMOKE = TESTS_DIR / "check_scaffold_harness.py"
 EXPORT_TOOL = REPO_ROOT / "workflow-source" / "scripts" / "export_harness_package.py"
-SMOKE_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "smoke.yml"
+GATE_RUNNER = TESTS_DIR / "run_all_checks.py"
 
 # 복사 staging 에서 반드시 제외되어야 하는 무거운 트리
 REQUIRED_EXCLUDES = (".venv", ".git", "node_modules", "__pycache__")
@@ -130,38 +132,33 @@ def case_4_cleanup_respects_ownership() -> bool:
     return True
 
 
-def case_5_ci_loop_has_timeout() -> bool:
-    """5) CI smoke 가 per-check timeout 을 **보장**한다.
+def case_5_runner_has_default_timeout() -> bool:
+    """5) 게이트 runner 가 per-check timeout 을 **기본으로** 보장한다.
 
-    v1.0.0: *구현 형태* 가 아니라 *보장* 을 검증한다. 이전 구현은 `timeout ... python3 "$t"`
-    쉘 루프를 문자열로 고정했는데, CI 가 통합 runner(`run_all_checks.py --timeout=N`) 호출로
-    바뀌면 형태가 달라도 보장은 오히려 강해진다(러너는 per-check timeout 에 더해 전용 TMPDIR
-    삭제 + 프로세스 그룹 회수 + 디스크/temp 상한까지 수행). 둘 중 어느 형태든 통과시킨다.
+    CI 폐지(TASK-2026-09-23-main-022) 후 게이트는 로컬 `run_all_checks.py` 다. 인자
+    없이 돌려도 per-check timeout 이 걸려야 hang 이 무한 대기가 되지 않는다 (runner 는
+    timeout 에 더해 전용 TMPDIR 삭제 + 프로세스 그룹 회수까지 수행). 기본값이 사라지거나
+    0 이 되면 사람이 `--timeout` 을 잊는 순간 보장이 없어진다.
     """
-    if not SMOKE_WORKFLOW.is_file():
-        print(f"  FAIL: {SMOKE_WORKFLOW} 부재")
+    import re
+
+    if not GATE_RUNNER.is_file():
+        print(f"  FAIL: {GATE_RUNNER} 부재")
         return False
-    src = SMOKE_WORKFLOW.read_text(encoding="utf-8")
-
-    # (a) 통합 runner 경로 — --timeout 이 명시되어야 per-check 보장이 성립한다.
-    if "run_all_checks.py" in src:
-        if "--timeout" not in src:
-            print("  FAIL: run_all_checks 호출에 --timeout 부재 (per-check 보장 없음)")
-            return False
-        if "--tmp-dir" not in src:
-            print("  FAIL: run_all_checks 호출에 --tmp-dir 부재 (tmpfs 누수 회피 권장)")
-            return False
-        print("  [info] CI 가 통합 runner 사용 — per-check timeout + 전용 TMPDIR 보장")
-        return True
-
-    # (b) 직접 쉘 루프 경로 (legacy)
-    if 'python3 "$t"' in src and "timeout --signal=TERM" in src:
-        print("  [info] smoke.yml per-check timeout 존재 (SIGTERM 우선 → 정리 코드 실행 기회)")
-        return True
-
-    print("  FAIL: CI smoke 에 per-check timeout 보장이 없다")
-    print("        → hang 시 job 무한 대기 + kill 시 temp dir 누수")
-    return False
+    src = GATE_RUNNER.read_text(encoding="utf-8")
+    match = re.search(r'add_argument\(\s*"--timeout"\s*,[^)]*?default\s*=\s*(\d+)', src)
+    if match is None:
+        print("  FAIL: runner 의 --timeout 기본값을 찾지 못했다 (per-check 보장 없음)")
+        return False
+    default = int(match.group(1))
+    if default <= 0:
+        print(f"  FAIL: runner 의 --timeout 기본값이 {default} 다 — per-check 보장 없음")
+        return False
+    if '"--tmp-dir"' not in src:
+        print("  FAIL: runner 에 --tmp-dir 이 없다 (tmpfs 누수 회피 수단 부재)")
+        return False
+    print(f"  [info] runner 기본 per-check timeout {default}s + --tmp-dir 지원")
+    return True
 
 
 def case_6_scaffold_leaves_no_orphan() -> bool:
@@ -243,7 +240,7 @@ CASES = [
     ("case_2_scaffold_excludes_heavy_trees", case_2_scaffold_excludes_heavy_trees),
     ("case_3_cleanup_scans_var_tmp", case_3_cleanup_scans_var_tmp),
     ("case_4_cleanup_respects_ownership", case_4_cleanup_respects_ownership),
-    ("case_5_ci_loop_has_timeout", case_5_ci_loop_has_timeout),
+    ("case_5_runner_has_default_timeout", case_5_runner_has_default_timeout),
     ("case_6_scaffold_leaves_no_orphan", case_6_scaffold_leaves_no_orphan),
 ]
 
@@ -281,8 +278,8 @@ def test_case_4_cleanup_respects_ownership() -> None:
     assert case_4_cleanup_respects_ownership()
 
 
-def test_case_5_ci_loop_has_timeout() -> None:
-    assert case_5_ci_loop_has_timeout()
+def test_case_5_runner_has_default_timeout() -> None:
+    assert case_5_runner_has_default_timeout()
 
 
 def test_case_6_scaffold_leaves_no_orphan() -> None:

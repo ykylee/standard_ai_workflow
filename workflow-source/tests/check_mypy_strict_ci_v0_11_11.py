@@ -1,9 +1,14 @@
-"""Acceptance test for v0.11.11 mypy strict CI 통합.
+"""Acceptance test for v0.11.11 mypy strict 통합.
 
 1 acceptance test:
-- test_mypy_strict_ci_v0_11_11 — `.github/workflows/mypy-strict.yml` 신규 + valid YAML
-  + trigger (push to main + PR to main) 정합 + mypy invocation = `mypy --no-incremental workflow_kit/`
-  + dev extra mypy pin ==2.1.0 (CI + local 정합) + cumulative strict clean 35 file 유지 verify
+- test_mypy_strict_ci_v0_11_11 — dev extra mypy pin ==2.1.0 + loud fallback 정합
+  + cumulative strict clean 35 file 유지 + pyproject version 형식
+  + config 명시 mypy invocation 실제 실행 (exit 0)
+
+2026-09-23 CI workflow 폐지(TASK-2026-09-23-main-022)로 `.github/workflows/mypy-strict.yml`
+이 삭제돼, 그 파일을 재던 case 1~3(존재 · YAML/트리거 · invocation/핀)은 대상을 잃어
+삭제했다. 남은 case 는 번호를 유지한다 (4~8). strict 검사는 이제 로컬 게이트에서
+case 8 과 `check_mypy_config_actually_loaded` 가 돈다.
 """
 from __future__ import annotations
 
@@ -35,80 +40,8 @@ def _isolated_mypy_cache_dir() -> str:
     """
     return str(Path(tempfile.gettempdir()) / f"mypy-cache-{os.getpid()}")
 
-def _load_workflow(path: Path) -> dict[str, object]:
-    """워크플로우 YAML 을 **진짜 파서**로 읽는다.
-
-    v1.0.3: 이전의 `_read_yaml_simple` / `_read_yaml_text_based` 를 폐기했다.
-    PyYAML 이 없으면 정규식 fallback 으로 내려가는 구조였는데, 그 fallback 안에
-    결함이 있었다 — raw string 의 `[^\\n]` 이 "줄바꿈 제외"가 아니라 "역슬래시와
-    문자 n 제외"로 해석돼 여러 줄 invocation 허용이 전혀 동작하지 않았다.
-    게다가 fallback 이 도는 조건(PyYAML 부재)이 곧 CI 였다 — `pyyaml` 이 dev extra 에
-    선언돼 있지 않았기 때문이다. 즉 CI 에서는 항상 결함 있는 경로로 돌았다.
-
-    이제 `pyyaml` 은 dev extra 에 선언돼 있으므로 부재는 설치 결함이다 — hard fail 한다.
-    `check_yaml_surfaces.py` 가 자체 YAML 파서의 재등장을 금지한다.
-    """
-    import yaml
-
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    assert isinstance(data, dict), f"workflow 최상위가 매핑이 아니다: {path}"
-    return data
-
-
 def test_mypy_strict_ci_v0_11_11() -> None:
     """v0.11.11 mypy strict CI 통합 verify."""
-    # case 1: workflow file 존재
-    workflow_path = REPO_ROOT / ".github" / "workflows" / "mypy-strict.yml"
-    print(f"  workflow path: {workflow_path}")
-    assert workflow_path.exists(), f"workflow file not found: {workflow_path}"
-    print("  case 1 (mypy-strict.yml 존재): PASS")
-
-    # early-declare workflow_text (case 2 의 on_block fallback 에서 사용)
-    workflow_text = workflow_path.read_text(encoding="utf-8")
-
-    # case 2: workflow YAML valid + 필수 field
-    data = _load_workflow(workflow_path)
-    assert data.get("name") == "mypy-strict", f"workflow name != mypy-strict: {data.get('name')!r}"
-    # YAML 1.1 quirk: 키 `on` 은 boolean `True` 로 파싱된다 — 두 키를 모두 본다.
-    # v1.0.3: 정규식 fallback 분기 제거. 진짜 파서만 쓰므로 `on` 블록은 항상 매핑이다.
-    on_block = data.get("on", data.get(True))
-    assert isinstance(on_block, dict), f"`on` 블록이 매핑이 아니다: {on_block!r}"
-    triggers = list(on_block)
-    print(f"  triggers: {triggers}")
-    assert "push" in triggers, f"workflow push trigger 부재: {triggers}"
-    assert "pull_request" in triggers, f"workflow pull_request trigger 부재: {triggers}"
-    print("  case 2 (workflow YAML valid + push/PR trigger): PASS")
-
-    # case 3: workflow 의 mypy invocation.
-    # (workflow_text 는 case 1 끝에서 early-declare 됨)
-    #
-    # v1.0.2: **`--config-file` 을 필수로 격상.** 이전 버전은
-    # `mypy --no-incremental workflow_kit/` 를 요구했는데, 그 invocation 은 cwd 의
-    # 암묵적 config 탐색에 기대고 있었고 REPO_ROOT 에는 [tool.mypy] 가 없어 실제로는
-    # `Config File: Default` 로 떨어졌다. 즉 이 case 는 **깨진 invocation 을 고정** 하고
-    # 있었다. 이제 config 명시를 요구한다.
-    #
-    # 이전 fallback regex `r"mypy[^\\n]*..."` 의 char class 는 raw string 이라
-    # `[^\n]` 이 아니라 **`[^\\n]` (역슬래시와 문자 n 을 제외)** 로 해석됐다.
-    # 줄바꿈 허용 의도가 전혀 동작하지 않았으므로 re.DOTALL 로 바로잡는다.
-    assert "--no-incremental" in workflow_text, "workflow 에 --no-incremental 부재"
-    mypy_pattern = re.compile(
-        r"mypy\b.*?--config-file\s+workflow-source/pyproject\.toml.*?workflow-source/workflow_kit/",
-        re.DOTALL,
-    )
-    if not mypy_pattern.search(workflow_text):
-        raise AssertionError(
-            "workflow mypy invocation 이 --config-file workflow-source/pyproject.toml 을 "
-            "명시하지 않는다 — 암묵적 cwd 탐색은 REPO_ROOT 에서 Config File: Default 로 "
-            f"떨어진다 (strict 미적용):\n{workflow_text[:800]}"
-        )
-    # also verify python-version 3.10 (workflow_kit 정합)
-    assert "python-version" in workflow_text, "workflow python-version 누락"
-    assert "3.10" in workflow_text, "workflow python-version != 3.10 (workflow_kit python_version 정합)"
-    # also verify mypy 2.1.0 pin
-    assert "mypy==2.1.0" in workflow_text, "workflow mypy pin != mypy==2.1.0 (v0.11.10 release note 정합)"
-    print("  case 3 (mypy invocation + python 3.10 + mypy 2.1.0 pin): PASS")
-
     # case 4: dev extra mypy pin ==2.1.0
     #
     # v1.0.2: 참조 대상을 sub-package → 정본 `workflow-source/pyproject.toml` 로 교정.
@@ -128,8 +61,8 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     mypy_reqs = re.findall(r'"(mypy[^"]*)"', dev_block)
     assert mypy_reqs == ["mypy==2.1.0"], (
         f"dev extra mypy pin != ['mypy==2.1.0'] (실제: {mypy_reqs}). "
-        "CI 의 mypy-strict 는 ==2.1.0 을 깔고 smoke 는 이 extra 를 깐다 — "
-        f"하한 지정이면 서로 다른 버전으로 strict 결과가 갈린다.\n블록: {dev_block.strip()}"
+        "개발 `.venv` 와 발행 게이트가 이 extra 로 mypy 를 깐다 — "
+        f"하한 지정이면 호스트마다 다른 버전으로 strict 결과가 갈린다.\n블록: {dev_block.strip()}"
     )
     print("  case 4 (dev extra mypy pin ==2.1.0): PASS")
 
@@ -181,8 +114,8 @@ def test_mypy_strict_ci_v0_11_11() -> None:
     )
     print(f"  case 7 (pyproject version = {current_version!r}): PASS")
 
-    # case 8: CI 와 동일 invocation 실제 mypy 실행 verify (REPO_ROOT cwd, full path)
-    # CI 의 working pattern (v1.0.2+):
+    # case 8: 게이트 invocation 실제 mypy 실행 verify (REPO_ROOT cwd, full path)
+    # 폐지된 CI(mypy-strict.yml, 2026-09-23 main-022)가 쓰던 working pattern (v1.0.2+):
     #   `mypy --no-incremental --config-file workflow-source/pyproject.toml
     #    workflow-source/workflow_kit/` from REPO_ROOT.
     #
@@ -237,7 +170,7 @@ def test_mypy_strict_ci_v0_11_11() -> None:
 
 def main() -> int:
     """1 acceptance test. 1 fail = exit 1."""
-    print("=== v0.11.11 mypy strict CI 통합 acceptance test ===")
+    print("=== v0.11.11 mypy strict 통합 acceptance test ===")
     print("=== v0.11.10 의 '다음' §1 follow-up ===")
     tests = [
         ("test_mypy_strict_ci_v0_11_11", test_mypy_strict_ci_v0_11_11),

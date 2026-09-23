@@ -90,6 +90,7 @@ with warnings.catch_warnings(record=True) as _parent_captured:
         RepoWriteWatch,
     )
     from workflow_kit.common.case_count import CaseCount, count_cases  # noqa: E402
+    from workflow_kit.common import gate_evidence  # noqa: E402
 
 #: 부모 import 가 낸 경고를 CPython 기본 포맷으로 굳혀 둔다 — `extract` 가 읽는
 #: 형식과 같아야 서브프로세스 경고와 **같은 출처 규율** 로 판정된다.
@@ -1321,6 +1322,14 @@ def main() -> int:
             return 2
         selected = [ctx]
 
+    # 게이트 통과 기록 (TASK-2026-09-23-main-022). CI 폐지 뒤 발행 게이트의 근거다 —
+    # 조건은 gate_evidence 모듈 docstring. 시작 시점의 sha 와 청결을 먼저 잡는다.
+    repo_root = SOURCE_ROOT.parent
+    gate_run = (args.branch_context == "all" and args.filter is None
+                and not args.changed)
+    gate_sha = gate_evidence.head_sha(repo_root) if gate_run else None
+    gate_clean = gate_evidence.tree_is_clean(repo_root) if gate_run else None
+
     passes: list[tuple[str, RunSummary]] = []
     for ctx in selected:
         label = ctx.label if ctx else "(환경 그대로)"
@@ -1404,6 +1413,39 @@ def main() -> int:
         print_repo_write_report(write_fatal, write_reported)
         print_case_count_report(case_fatal, case_unmeasured)
 
+    exit_code = _exit_code(passes, meta_violations, warn_gated, write_fatal, case_fatal)
+    if gate_run:
+        _record_gate(repo_root, exit_code, gate_sha, gate_clean, passes, quiet=args.json)
+    return exit_code
+
+
+def _record_gate(repo_root: Path, exit_code: int, sha: str | None,
+                 clean_at_start: bool | None, passes: list[tuple[str, "RunSummary"]],
+                 *, quiet: bool) -> None:
+    """게이트 조건을 만족했으면 기록하고, 아니면 **왜 안 남겼는지** 찍는다."""
+    reason = None
+    if exit_code != 0:
+        reason = f"exit {exit_code}"
+    elif not sha:
+        reason = "HEAD sha 를 못 읽었다"
+    elif clean_at_start is None:
+        reason = "시작 시점 워킹 트리의 청결을 재지 못했다"
+    elif clean_at_start is not True:
+        reason = "시작 시점 워킹 트리가 깨끗하지 않았다 (커밋 후 다시 돌린다)"
+    elif gate_evidence.head_sha(repo_root) != sha:
+        reason = "실행 중 HEAD 가 바뀌었다"
+    if reason:
+        print(f"[gate] 통과 기록 안 남김 — {reason}", file=sys.stderr)
+        return
+    assert sha is not None
+    path = gate_evidence.record(repo_root, sha, contexts=[label for label, _ in passes],
+                                total=passes[0][1].total if passes else 0)
+    if not quiet:
+        print(f"[gate] 통과 기록 {sha[:8]} → {path}")
+
+
+def _exit_code(passes: list[tuple[str, "RunSummary"]], meta_violations: list[str],
+               warn_gated: list, write_fatal: list, case_fatal: list) -> int:
     if any(s.aborted_reason for _, s in passes):
         return 3    # resource guard 발동 — 완주하지 않았으므로 PASS 로 오독되면 안 된다
     if meta_violations:

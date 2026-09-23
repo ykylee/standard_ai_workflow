@@ -46,11 +46,11 @@ red 가 나면 다음 사람은 다시 손 편집으로 도망가므로, 이 검
 그 도구는 남의 브랜치 경로(`active/<X>/`)를 지운다. 삭제까지 잡으면 정본 절차가
 red 가 된다. 그래서 **추가/수정(A/M)만** 본다.
 
-## CI 에서 이 검사가 실제로 도는가
+## 게이트에서 이 검사가 실제로 도는가
 
-`smoke.yml` 의 checkout 은 `fetch-depth: 0` 이라 push 셀에서는 `origin/main` 이
-있고 브랜치가 체크아웃돼 **판정이 돈다**. pull_request 셀은 detached 라 SKIP 이다.
-즉 CI 에서 이 검사를 밟는 축은 **push 셀 하나**다 — 과장하지 않는다.
+`origin/main` 이 있고 브랜치가 체크아웃된 로컬 작업 트리에서 **판정이 돈다**.
+detached HEAD 에서는 SKIP 이다. (예전에는 CI `smoke.yml` 의 push 셀이 이 축을 밟았다 —
+그 workflow 는 2026-09-23 폐지, TASK-2026-09-23-main-022.)
 
 12 cases:
   1) 경로 → 네임스페이스 매핑 (슬래시 브랜치, 공유 파일, legacy flat)

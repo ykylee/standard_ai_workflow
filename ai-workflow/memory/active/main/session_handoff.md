@@ -49,6 +49,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-07-main-009 runtime_load 낡은 호스트 3개 잔존 — 이 저장소 밖 세션이라 재시작이 소유자 손에 있다
 - TASK-2026-09-23-main-011 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red
 - TASK-2026-09-23-main-010 원격 main 동기화 및 v1.11.0 환경 배포
 - TASK-2026-09-23-main-008 wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend
@@ -58,7 +59,6 @@
 - TASK-2026-09-23-main-004 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)
 - TASK-2026-09-23-main-002 check_release_wrapper_args case 6 이 git 인덱스 락을 잡아 병렬에서 flake
 - TASK-2026-09-23-main-003 memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로
-- TASK-2026-09-23-main-001 memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -197,14 +197,28 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > `.mypy_cache`)이 제거됐고 캐시 생성 0 이 실증돼 있다. **재발하면 새 task 로 연다** —
 > 증거 그물(`--show-traceback` + 결론-우선 절단)은 이미 게이트 안에 있다.
 
-- `TASK-2026-09-07-main-009` — `runtime_load` 낡은 호스트. 셋 다
-  **이 저장소 밖** 세션이라(auto-trading · custom-harness · codex app-server
-  데몬) 재시작이 소유자 손에 있다. 이 저장소에서 할 수 있는 것은 재측정뿐이다
-  — `wk doctor` 한 번으로 현재 값이 갱신된다.
-  **2026-09-18 plex 실측: 이 호스트는 낡은 호스트 0 이다** (claude-code 최신 1;
-  codex·grok-build·antigravity 는 0/0 인데 그것은 **통과가 아니라 해당 없음**
-  이다 — 돌고 있는 프로세스가 없다). 낡은 3개는 macOS 호스트의 값이므로 그쪽
-  세션에서 재측정한다.
+> **`TASK-2026-09-07-main-009` 는 87차에 닫혔다** — macOS 재측정에서 세 PID 가
+> 모두 소멸, `runtime_load` 낡은 호스트 0 (claude-code·codex).
+>
+> **87차 평가**([`workflow-assessment-2026-09.md`](../../../../docs/planning/workflow-assessment-2026-09.md))
+> 가 이슈 7건을 등록하고 새 기능 축 **M-013**(세션 시작 컨텍스트 예산, concept)을
+> 열었다. 이어 소유자 제기로 **M-014**(CI·게이트 처리량, concept)와 반복 계산 수리 2건을 열었다. 아래 순서가 평가 §6 의 권고 순서다.
+
+- `TASK-2026-09-23-main-009` — 스탬프 유예가 로컬 게이트에서 축을 가린다 (86차
+  마지막 push 의 CI 4셀 red 원인). 편집 중 유예는 보존하면서 커밋 전 게이트는 잡게.
+- `TASK-2026-09-23-main-013` · `TASK-2026-09-23-main-014` — 로컬 배포본이 조용히
+  낡는다. doctor 가 플러그인 MCP 가 실제로 띄우는 해석기의 kit 버전을 재게 하고,
+  발행 절차에 로컬 채널 재적용 단계를 넣는다.
+- `TASK-2026-09-23-main-012` — M-013 concept 검토 (필독 약 190KB 의 선언·측정).
+- `TASK-2026-09-23-main-020` · `TASK-2026-09-23-main-021` — 검사 내부 반복 계산
+  (root_anchor_audit 전 저장소 감사 13회 / release 계열 파이프라인·CI 조회 반복).
+  M-007 결함 수리로 먼저 닫는다.
+- `TASK-2026-09-23-main-019` — M-014 concept 검토 (CI·게이트 처리량, Linear CI 재작업
+  글 참고 — 셀당 4 vCPU 포화 3.48, 셀 간 1.56배 편차).
+- `TASK-2026-09-23-main-015` · `TASK-2026-09-23-main-016` — 상수 phase 표시 /
+  충돌 지표가 task ID 충돌을 못 셈.
+- `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리
+  (소유자 확인) / memory_index 소비 편중 관찰.
 
 > **`TASK-2026-08-25-main-017` (MCP emit `python3`) 은 78차에 blocked 로 옮겼다
 > — 무기한 연기 (소유자 결정).** 완료 기준 1(수리 + 판정)은 77차에 끝났고 회귀는

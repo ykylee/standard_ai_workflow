@@ -4,7 +4,7 @@
 - 범위: 로드맵·마일스톤·WBS 기능 자체의 구현 로드맵 (스펙 §10 의 자기 적용)
 - 대상 독자: AI agent (session-start / backlog-update), 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-08-28
+- 최종 수정일: 2026-09-23
 - 관련 문서: [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md), [`roadmap_state.json`](./roadmap_state.json)
 
 > 이 목록의 **순서가 곧 SDLC 순서 선언**이다 (스펙 §3.1). status 는 선언이고,
@@ -37,3 +37,7 @@
   - path: [`./M-011-test-impact-implementation.md`](./M-011-test-impact-implementation.md)
 - **M-012** [release] 계층별 회귀 실행 계약 — release (v1.7.0 발행 + CLAUDE.md 전환) — status: done
   - path: [`./M-012-test-impact-release.md`](./M-012-test-impact-release.md)
+- **M-013** [concept] 세션 시작 컨텍스트 예산 — 필독 문서 부피를 선언하고 잰다 — status: planned
+  - path: [`./M-013-session-context-budget.md`](./M-013-session-context-budget.md)
+- **M-014** [concept] CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용 — status: planned
+  - path: [`./M-014-ci-gate-throughput.md`](./M-014-ci-gate-throughput.md)

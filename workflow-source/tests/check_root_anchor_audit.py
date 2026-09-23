@@ -31,6 +31,8 @@ Cross-ref: releases/Beta-v1.0.0.md §2.47 / §2.49 / §2.50 / §2.51 / §2.52 / 
 
 from __future__ import annotations
 
+import copy
+import functools
 import json
 import shutil
 
@@ -121,9 +123,25 @@ def _fixture(td: str, filename: str, source: str) -> Path:
     return root
 
 
+@functools.lru_cache(maxsize=1)
+def _repo_audit_cached() -> dict[str, Any]:
+    return run_audit(REPO_ROOT)
+
+
+def _repo_audit() -> dict[str, Any]:
+    """이 저장소의 감사 결과 — 검사 프로세스 안에서 **1회만** 돈다 (main-020).
+
+    case 1·2·3·4·10·11 이 같은 입력(REPO_ROOT)을 각자 다시 감사해 파싱이 6배였다.
+    입력이 같으면 결과도 같으므로 한 번 재고 나눠 쓴다. case 가 결과를 고쳐도 다른
+    case 에 새지 않도록 매번 사본을 준다. 예외는 캐시되지 않아 각 case 가 따로 본다.
+    fixture 감사(case 5·6·8·11)와 CLI 실행(case 7·9)은 입력이 달라 공유하지 않는다.
+    """
+    return copy.deepcopy(_repo_audit_cached())
+
+
 def case_1_audit_actually_ran() -> bool:
     """1) 조사가 실제로 돌았다 — 바닥선 미만이면 범위가 무너진 것이다."""
-    result = run_audit(REPO_ROOT)
+    result = _repo_audit()
     inv = result["inventory"]
     if not result["scan_ok"]:
         print(f"  FAIL: scan_ok=False — 필수 대상 부재 {result['missing_required_dirs']}")
@@ -147,7 +165,7 @@ def case_1_audit_actually_ran() -> bool:
 
 def case_2_rules_have_something_to_look_at() -> bool:
     """2) 각 규칙이 볼 자리가 있다 — 0이면 규칙이 조용히 무력화된 것이다."""
-    inv = run_audit(REPO_ROOT)["inventory"]
+    inv = _repo_audit()["inventory"]
     if inv["r2_candidate_functions"] < MIN_R2_CANDIDATES:
         print(f"  FAIL: R2 후보 {inv['r2_candidate_functions']} < {MIN_R2_CANDIDATES} — "
               "WORKSPACE_PARAM_NAMES 가 코드와 갈라졌을 수 있다")
@@ -163,7 +181,7 @@ def case_2_rules_have_something_to_look_at() -> bool:
 
 def case_3_no_undeclared_findings() -> bool:
     """3) 이 저장소에 미선언 결함이 없다."""
-    result = run_audit(REPO_ROOT)
+    result = _repo_audit()
     if result["undeclared"]:
         print(f"  FAIL: 미선언 {len(result['undeclared'])}건")
         for f in result["undeclared"]:
@@ -176,7 +194,7 @@ def case_3_no_undeclared_findings() -> bool:
 
 def case_4_ledger_has_no_stale_entries() -> bool:
     """4) 원장에 잔재가 없다 — 사라진 예외가 사실처럼 남아 있으면 안 된다."""
-    result = run_audit(REPO_ROOT)
+    result = _repo_audit()
     if result["stale_ledger"]:
         print(f"  FAIL: 원장 잔재 {len(result['stale_ledger'])}건 (코드에 없다)")
         for e in result["stale_ledger"]:
@@ -314,7 +332,7 @@ def case_10_scan_covers_every_source_file() -> bool:
         print("  FAIL: git 이 .py 를 한 건도 안 냈다 — 대조의 전제가 무너졌다")
         return False
 
-    result = run_audit(REPO_ROOT)
+    result = _repo_audit()
     scanned = {Path(f) for f in _scanned_relpaths(result)}
     missed = sorted(expected - scanned)
     extra = sorted(scanned - expected)
@@ -342,7 +360,7 @@ def case_11_generated_is_decided_by_git_not_by_name() -> bool:
       (b) git 이 추적하는 `build/` 안의 소스는 **조사되고 결함이 잡힌다**.
       (c) git 루트가 아니면 fallback 이되, **그 사실을 산출물이 밝힌다**.
     """
-    real = run_audit(REPO_ROOT)
+    real = _repo_audit()
     if real["inventory"]["source_selection"] != SELECTION_GIT:
         print(f"  FAIL: 이 저장소의 대상 선정이 {real['inventory']['source_selection']} "
               f"(기대: {SELECTION_GIT}) — 이름 추측으로 조용히 떨어졌다")

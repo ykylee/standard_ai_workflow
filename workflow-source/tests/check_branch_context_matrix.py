@@ -30,6 +30,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+#: 단독 45s 대(2026-09-23 게이트 12회 실측: 42.8~46.2s)라 기본 60s 상한에
+#: 부하가 조금만 얹혀도 죽는다 — 실제로 `slash` 셀에서 60.26s TIMEOUT 이 났다.
+#: 저장소 규칙대로 상한을 선언한다 (CLAUDE.md: 단독 ~25s 초과 검사는 선언).
+CHECK_TIMEOUT_S = 150
+
 WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/pyproject.toml",

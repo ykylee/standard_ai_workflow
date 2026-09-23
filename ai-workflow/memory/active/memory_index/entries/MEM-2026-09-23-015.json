@@ -1,0 +1,35 @@
+{
+  "id": "MEM-2026-09-23-015",
+  "schema_version": 1,
+  "source_paths": [
+    "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-008.md",
+    "ai-workflow/memory/active/main/session_handoff.md"
+  ],
+  "primary_abstraction": "A CLI that drops unknown arguments does something other than what was asked, and reports success",
+  "cue_anchors": [
+    "dropped-argument-reports-success",
+    "rejection-must-name-what-is-accepted",
+    "allowed-set-derived-from-source",
+    "already-rejects-is-an-assumption",
+    "help-must-have-no-side-effects",
+    "my-bug-report-scope-was-too-narrow"
+  ],
+  "value_digest": "릴리스 준비에서 `wk release-bump --version 1.11.0 --apply` 를 돌렸다. 실제 플래그는 `--to` 였고, 도구는 **모르는 `--version` 을 조용히 버린 뒤** patch 자동 증가(1.10.0 → 1.10.1)를 하고 post-step 이 `git commit --amend` 로 직전 커밋을 덮었다. **종료 코드는 0 이었다.** 인자를 버리는 CLI 는 사용자가 요청한 것과 다른 일을 하면서 성공을 보고한다. **범위는 내가 등록한 것보다 넓었다** — 원인은 그 커맨드가 아니라 `_parse_flag`/`_has_flag` 로 손수 파싱하는 커맨드 **37개 전부**였다(그 함수들은 찾는 것만 보고 나머지를 무시한다). 결함 보고의 범위도 좁을 수 있으니 고치기 전에 같은 모양이 몇 개인지 먼저 센다. 수리 원칙 넷: ①**거절 메시지에 받는 목록을 같이 낸다** — 무엇이 틀렸는지만 알려주면 사용자는 다시 추측한다. ②**허용집합은 소스에서 파생**한다(docstring ∪ 본문 리터럴 ∪ 모듈 헬퍼). 손 목록은 갈라진다. 다만 *호출한 헬퍼만* 으로 좁히지 말 것 — 함수를 인자로 받는 래퍼 하나에 호출그래프 파생이 조용히 풀린다. 모듈 단위로 느슨하게 잡아도 실측 허용집합 중앙값이 4개였다. ③이미 거절하는 계열(argparse)에는 가드를 겹치지 않되 **'이미 거절한다' 를 가정으로 두지 않는다** — 전수로 재서 case 로 고정한다(모름은 통과가 아니다). 가드를 겹치면 argparse 의 풍부한 `--help` 를 빈약한 docstring 으로 덮는 부작용도 있다. ④`--help` 가 **부수효과를 내는지** 확인한다 — 이 도구는 `--help` 에 도움말 대신 dry-run 을 실행하고 있었다. 되주입에서 **발화 불가능한 case** 를 또 잡았다: 파생 두 출처를 재는 case 가 실물 커맨드를 썼는데 그 플래그들이 docstring·본문 양쪽에 있어, 한 출처를 통째로 지워도 green 이었다. 한쪽에만 플래그를 둔 **탐침**으로 분리해야 각 출처가 발화한다.",
+  "owners": [
+    "ykylee"
+  ],
+  "scope": [
+    "standard-ai-workflow",
+    "cli",
+    "release"
+  ],
+  "merge_state": "active",
+  "mentioned_in": [],
+  "related_ids": [
+    "MEM-2026-09-23-013",
+    "MEM-2026-09-23-014",
+    "MEM-2026-09-23-001"
+  ],
+  "created_at": "2026-09-23T21:00:00.000000Z",
+  "updated_at": "2026-09-23T21:00:00.000000Z"
+}

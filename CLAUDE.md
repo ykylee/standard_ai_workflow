@@ -162,7 +162,8 @@ Close a session in the order **update memory → commit → push**. Do not split
 196s, 160개는 1초 미만): `wiki_score` 68s(병렬 구간 임계경로) · `release_summary` 62s ·
 `release_status_auto_bump` 57s · `release_status` 48s · `release_pipeline_lib` 44s ·
 `mypy_config_actually_loaded` 41s · `no_repo_write` 39s(정숙 구간 61s 의 64%) ·
-`branch_context_matrix` 32s. `--filter` 로 좁힐 때 이 이름들을 피하면 대개 즉시 끝난다.
+`branch_context_matrix` 45s(2026-09-23 실측 12회 42.8~46.2s — 기본 60s 상한에
+> 닿아 `CHECK_TIMEOUT_S = 150` 을 선언했다). `--filter` 로 좁힐 때 이 이름들을 피하면 대개 즉시 끝난다.
 
 
 ### SDK 매트릭스는 push 전에 로컬에서 돌린다

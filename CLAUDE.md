@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-09-21
+- 최종 수정일: 2026-09-23
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로

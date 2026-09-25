@@ -1602,6 +1602,289 @@ def _probe_content_drift(
 
 
 # ---------------------------------------------------------------------------
+# mcp_interpreter — 플러그인 MCP 가 **실제로 띄우는** 해석기의 kit (main-013)
+# ---------------------------------------------------------------------------
+
+
+#: 자식 해석기 안에서 도는 탐침. 그 해석기가 `workflow_kit` 을 어디서 해석하는지와
+#: 그 자리의 배포본 메타데이터를 JSON 한 줄로 낸다. **import 만 하고 아무것도 실행하지
+#: 않는다** — 서버 모듈을 띄우면 stdio 를 기다리며 멈춘다.
+_MCP_CHILD_PROBE = r"""
+import json, site, sys
+roots = [sys.prefix, getattr(sys, "base_prefix", sys.prefix)]
+try:
+    roots += list(site.getsitepackages())
+except Exception:
+    pass
+try:
+    roots.append(site.getusersitepackages())
+except Exception:
+    pass
+out = {"executable": sys.executable,
+       "python_version": "%d.%d.%d" % sys.version_info[:3],
+       "install_roots": roots,
+       "origin": None, "import_error": None, "dists": []}
+try:
+    import workflow_kit
+    out["origin"] = getattr(workflow_kit, "__file__", None)
+except Exception as exc:
+    out["import_error"] = "%s: %s" % (type(exc).__name__, exc)
+try:
+    from importlib import metadata
+    for dist in metadata.distributions():
+        name = (dist.metadata["Name"] if "Name" in dist.metadata else "") or ""
+        if name.replace("-", "_").lower() != "standard_ai_workflow":
+            continue
+        editable_url = None
+        raw = dist.read_text("direct_url.json")
+        if raw:
+            info = json.loads(raw)
+            if (info.get("dir_info") or {}).get("editable"):
+                editable_url = info.get("url")
+        out["dists"].append({"version": dist.version,
+                             "location": str(dist.locate_file("")),
+                             "editable_url": editable_url})
+except Exception as exc:
+    out["dists_error"] = "%s: %s" % (type(exc).__name__, exc)
+print(json.dumps(out))
+"""
+
+#: 판정 라벨 → 사람이 읽는 문장. 판정은 늘 찍는다 (침묵 금지).
+_MCP_INTERPRETER_LABELS: dict[str, str] = {
+    "no_plugin_installed": "플러그인 설치 사본이 없다 — 이 해석기를 띄우는 채널이 없다 (측정은 남긴다)",
+    "command_not_found": "MCP command 가 PATH 에 없다 — preflight 절이 채널별로 보고한다",
+    "probe_failed": "해석기를 띄웠지만 결과를 읽지 못했다 — **모름은 통과가 아니다**",
+    "not_importable": "workflow_kit 이 import 되지 않는다 — MCP 서버가 뜨지 않는다",
+    "version_unknown": "workflow_kit 은 뜨는데 **버전을 확인할 수 없다**",
+    "version_mismatch": "설치본과 **버전이 다르다**",
+    "in_sync": "설치본과 버전 일치",
+}
+
+
+def _mcp_commands(canonical: dict[str, str] | None) -> tuple[list[str], str]:
+    """정본 payload 의 `.mcp.json` 에서 MCP 서버 command 를 **파생**한다.
+
+    손으로 `python3` 을 적으면 payload 가 command 를 바꿨을 때 탐침만 옛 이름을
+    잰다 (컨셉 §2 선언 계약: 정본에서 파생). 못 읽으면 payload 가 체크인하는
+    관례값으로 떨어지되 그 사실을 출처 라벨로 남긴다.
+    """
+    if canonical is not None:
+        for rel in (".mcp.json", "mcp.json"):
+            raw = canonical.get(rel)
+            if raw is None:
+                continue
+            try:
+                servers = json.loads(raw).get("mcpServers") or {}
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            commands = sorted({
+                str(spec["command"]) for spec in servers.values()
+                if isinstance(spec, dict) and spec.get("command")
+            })
+            if commands:
+                return commands, f"정본 payload `{rel}`"
+    return ["python3"], "관례값 — 정본 payload 의 MCP 설정을 읽지 못했다"
+
+
+def _run_mcp_child_probe(executable: str, cwd: Path) -> dict[str, Any]:
+    """``executable`` 로 자식 탐침을 돌린다. MCP 호스트처럼 **프로젝트 cwd** 에서 띄운다 —
+    `python3 -m` 은 cwd 를 `sys.path` 앞에 넣으므로 cwd 가 해석 결과를 바꿀 수 있다.
+
+    ``PYTHONPATH`` 는 **뺀다**. 플러그인 `.mcp.json` 은 그것을 설정하지 않는데, doctor 를
+    개발 모드(`PYTHONPATH=workflow-source`)로 띄우면 그 값이 자식에 새어 저장소 소스가
+    해석된 것처럼 보인다 (2026-09-25 실측: 실제로는 site-packages wheel 인데
+    `project_checkout` 으로 보고됐다)."""
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    try:
+        proc = subprocess.run(  # noqa: S603 - PATH 해석 결과를 그대로 띄운다 (탐침 대상 자체)
+            [executable, "-c", _MCP_CHILD_PROBE],
+            cwd=str(cwd), capture_output=True, text=True, timeout=30, env=env,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return {"probe_error": f"{type(exc).__name__}: {exc}"}
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-1:] or [""]
+        return {"probe_error": f"exit {proc.returncode}: {tail[0][:200]}"}
+    try:
+        data = json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError) as exc:
+        return {"probe_error": f"출력을 JSON 으로 읽지 못했다 ({exc})"}
+    return data if isinstance(data, dict) else {"probe_error": "출력이 JSON 객체가 아니다"}
+
+
+def _mcp_kit_version(origin: Path, dists: list[dict[str, Any]]) -> tuple[str | None, str]:
+    """자식이 해석한 **그 사본**의 버전 — `_running_kit_version` 과 같은 순서.
+
+    (1) 사본 옆 ``pyproject.toml`` (editable 체크아웃), (2) 사본이 놓인 자리에 설치된
+    배포본 메타데이터 (wheel), (3) 모름. 다른 자리의 배포본 값을 빌려 쓰지 않는다.
+    """
+    package_root = origin.parent
+    from_file = _pyproject_version(package_root.parent / "pyproject.toml")
+    if from_file:
+        return from_file, "pyproject.toml (사본 옆)"
+    try:
+        parent = package_root.parent.resolve()
+    except OSError:
+        parent = package_root.parent
+    for dist in dists:
+        try:
+            located = Path(str(dist.get("location") or "")).resolve()
+        except OSError:
+            continue
+        if located == parent and dist.get("version"):
+            return str(dist["version"]), "installed metadata (같은 자리의 배포본)"
+    return None, "모름 — 사본 옆 버전 선언도, 같은 자리의 배포본도 없다"
+
+
+def _mcp_placement(origin: Path, project_root: Path, install_roots: Sequence[str]) -> str:
+    """해석된 사본의 자리 — `_kit_resolution_verdict` 와 같은 세 칸.
+
+    그 함수는 **doctor 자신의** `sys.prefix` 로 가르므로 재사용하지 않는다 — 여기서
+    잴 것은 자식 해석기의 설치 루트다. 루트는 실행 파일 경로에서 추측하지 않고 자식이
+    알려 준 값(`sys.prefix` · `base_prefix` · `site.getsitepackages()` · user site)을
+    쓴다 — homebrew 는 site-packages 가 `bin` 의 부모 밑에 없어 추측이 정상 wheel 을
+    `foreign_path` 로 오판했다 (2026-09-25 실측).
+    """
+    if _is_under(origin, project_root):
+        return "project_checkout"
+    for root in install_roots:
+        if root and _is_under(origin, Path(root)):
+            return "interpreter_site_packages"
+    return "foreign_path"
+
+
+def _probe_mcp_interpreter(
+    project_root: Path,
+    content_drift: dict[str, Any],
+    canonical: dict[str, str] | None,
+    *,
+    which: Callable[[str], str | None] = shutil.which,
+    run_child: Callable[[str, Path], dict[str, Any]] = _run_mcp_child_probe,
+) -> dict[str, Any]:
+    """플러그인 MCP 가 띄우는 해석기가 **어떤 kit** 을 import 하는가.
+
+    `content_drift` 는 플러그인 **사본**(skills·mcp.json)만 대조한다. 그런데 MCP
+    서버는 사본 안의 코드가 아니라 `python3 -m workflow_kit…` — PATH 의 해석기에
+    깔린 kit — 으로 뜬다. 87차(2026-09-23) 실측: 시스템 homebrew python 의 kit 이
+    **옛 worktree 를 가리키는 editable 1.2.0** 이었는데 사본은 in-sync 라 doctor 는
+    조용했다. 사본이 최신이어도 실제로 도는 서버는 1.2.0 이었다.
+
+    판정 (``verdict``):
+    - ``no_plugin_installed``: 대조할 설치본이 없다 — 측정은 남기되 발견은 내지 않는다.
+    - ``command_not_found``: command 가 PATH 에 없다 — preflight 가 채널별로 이미
+      발견을 내므로 중복하지 않는다.
+    - ``probe_failed`` / ``not_importable`` / ``version_unknown`` / ``version_mismatch``: 발견.
+    - ``in_sync``: 설치본 버전 전부와 같다.
+
+    자리(``placement``)가 ``foreign_path`` 면 버전과 **별개로** 발견이다 — editable 이
+    프로젝트 밖(옛 worktree 등)을 가리키면 버전이 같아도 내용은 그 체크아웃의 것이다.
+    """
+    commands, command_source = _mcp_commands(canonical)
+    installed = sorted({
+        str(c["installed_version"])
+        for c in content_drift.get("caches", [])
+        if c.get("active") and c.get("served", True) and c.get("installed_version")
+    })
+    harnesses = sorted({
+        str(c["harness"]) for c in content_drift.get("caches", [])
+        if c.get("active") and c.get("served", True)
+    })
+    findings: list[str] = []
+    interpreters: list[dict[str, Any]] = []
+
+    for command in commands:
+        record: dict[str, Any] = {
+            "command": command, "resolved": which(command), "executable": None,
+            "python_version": None, "origin": None, "placement": None,
+            "kit_version": None, "kit_version_source": None, "editable_url": None,
+            "error": None,
+        }
+        interpreters.append(record)
+        if record["resolved"] is None:
+            record["verdict"] = "command_not_found"
+            continue
+        data = run_child(record["resolved"], project_root)
+        if data.get("probe_error"):
+            record["verdict"] = "probe_failed"
+            record["error"] = data["probe_error"]
+        else:
+            record["executable"] = data.get("executable")
+            record["python_version"] = data.get("python_version")
+            dists = [d for d in data.get("dists") or [] if isinstance(d, dict)]
+            origin_raw = data.get("origin")
+            if not origin_raw:
+                record["verdict"] = "not_importable"
+                record["error"] = data.get("import_error")
+            else:
+                origin = Path(str(origin_raw))
+                record["origin"] = str(origin.parent)
+                roots = [str(r) for r in data.get("install_roots") or [] if r]
+                record["placement"] = _mcp_placement(origin, project_root, roots)
+                version, source = _mcp_kit_version(origin, dists)
+                record["kit_version"], record["kit_version_source"] = version, source
+                record["editable_url"] = next(
+                    (d.get("editable_url") for d in dists if d.get("editable_url")), None)
+                if version is None:
+                    record["verdict"] = "version_unknown"
+                elif installed and any(v != version for v in installed):
+                    record["verdict"] = "version_mismatch"
+                else:
+                    record["verdict"] = "in_sync"
+
+        if not harnesses:
+            # 띄우는 채널이 없으면 무엇도 발견이 아니다 — 판정만 남는다.
+            record["measured_verdict"] = record["verdict"]
+            record["verdict"] = "no_plugin_installed"
+            continue
+
+        who = (f"`{command}` → {record['resolved']}"
+               + (f" (실행 {record['executable']})" if record["executable"]
+                  and record["executable"] != record["resolved"] else ""))
+        channels = ", ".join(harnesses)
+        verdict = record["verdict"]
+        if verdict == "probe_failed":
+            findings.append(
+                f"플러그인 MCP 해석기({who})를 띄웠지만 kit 을 확인하지 못했다 — "
+                f"{record['error']}. 채널 {channels} 의 MCP 서버가 어떤 코드로 뜨는지 모른다")
+        elif verdict == "not_importable":
+            findings.append(
+                f"플러그인 MCP 해석기({who})에 workflow_kit 이 없다 — 채널 {channels} 의 "
+                f"MCP 서버가 뜨지 않는다 ({record['error']}). 그 해석기에 kit 을 설치한다 "
+                "(docs/INSTALLATION_AND_USAGE.md §3)")
+        elif verdict == "version_unknown":
+            findings.append(
+                f"플러그인 MCP 해석기({who})의 workflow_kit 버전을 확인할 수 없다 — "
+                f"출처 {record['origin']}. 설치본 {', '.join(installed) or '(버전 없음)'} "
+                "과 같은 코드라는 근거가 없다")
+        elif verdict == "version_mismatch":
+            findings.append(
+                f"플러그인 MCP 해석기({who})가 workflow_kit {record['kit_version']} 을 "
+                f"import 한다 — 설치본은 {', '.join(installed)} ({channels}). 사본이 최신이어도 "
+                f"MCP 서버는 {record['kit_version']} 코드로 뜬다. 출처 {record['origin']}")
+        if record["placement"] == "foreign_path":
+            findings.append(
+                f"플러그인 MCP 해석기({who})가 workflow_kit 을 프로젝트 밖·해석기 밖 경로에서 "
+                f"해석한다 — {record['origin']}"
+                + (f" (editable → {record['editable_url']})" if record["editable_url"] else "")
+                + ". 그 체크아웃이 옮겨지거나 낡으면 MCP 서버도 따라간다 "
+                "(2026-09-23 실측: 옛 worktree 를 가리키는 editable 1.2.0)")
+
+    return {
+        "command_source": command_source,
+        "installed_versions": installed,
+        "plugin_harnesses": harnesses,
+        "interpreters": interpreters,
+        "findings": findings,
+        "measurement_note": (
+            "MCP 호스트의 환경은 doctor 를 띄운 셸의 PATH 로 근사하고 PYTHONPATH 는 뺀다 "
+            "(플러그인 .mcp.json 이 설정하지 않는다) — 하네스가 다른 PATH 로 서버를 "
+            "띄우면 해석 결과가 다를 수 있다"
+            + (" · 이 실행의 PYTHONPATH 는 무시됐다" if os.environ.get("PYTHONPATH") else "")
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # runtime_load — 지금 돌고 있는 호스트가 이 설치를 봤는가 (main-009)
 # ---------------------------------------------------------------------------
 
@@ -1867,6 +2150,8 @@ def probe(
     *,
     now: float | None = None,
     processes: Sequence[dict[str, Any]] | None = None,
+    mcp_which: Callable[[str], str | None] | None = None,
+    mcp_run_child: Callable[[str, Path], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """보고서를 만든다 — 아무것도 쓰지 않는다.
 
@@ -1876,6 +2161,8 @@ def probe(
         now: 지금 시각 (epoch). `runtime_load` 판정의 기준점이고 fixture 주입용.
         processes: 실행 중 프로세스 목록. 주지 않으면 `ps` 로 잰다 — 실 호스트의
             프로세스를 읽는 탐침은 주입 없이는 검사할 수 없다 (`home` 과 같은 이유).
+        mcp_which / mcp_run_child: `mcp_interpreter` 절의 PATH 해석 · 자식 해석기 탐침.
+            주지 않으면 실 호스트의 해석기를 띄운다 (`processes` 와 같은 이유).
     """
     resolved_project = (project_root or Path.cwd()).resolve()
     resolved_home = (home or Path.home()).resolve()
@@ -1888,12 +2175,18 @@ def probe(
     content_drift = _probe_content_drift(
         resolved_home, frozenset(global_scope.get("declared_harnesses") or ()))
     runtime_load = _probe_runtime_load(resolved_home, now=now, processes=processes)
+    mcp_interpreter = _probe_mcp_interpreter(
+        resolved_project, content_drift, _canonical_payload()[0],
+        which=mcp_which or shutil.which,
+        run_child=mcp_run_child or _run_mcp_child_probe,
+    )
 
     findings = [
         *environment["findings"],
         *preflight["findings"],
         *drift["findings"],
         *content_drift["findings"],
+        *mcp_interpreter["findings"],
         *runtime_load["findings"],
     ]
     return {
@@ -1905,6 +2198,7 @@ def probe(
         "global_scope": global_scope,
         "drift": drift,
         "content_drift": content_drift,
+        "mcp_interpreter": mcp_interpreter,
         "runtime_load": runtime_load,
         "finding_count": len(findings),
         "findings": findings,
@@ -2098,6 +2392,23 @@ def _render_text(report: dict[str, Any]) -> str:
         )
     for item in content.get("declared_unmeasured", []):
         lines.append(f"  (미측정) {item}")
+
+    mcp = report.get("mcp_interpreter") or {}
+    if mcp:
+        lines.append("")
+        lines.append("[mcp_interpreter] 플러그인 MCP 가 실제로 띄우는 해석기의 kit")
+        lines.append(
+            f"  설치본 버전 : {', '.join(mcp['installed_versions']) or '(없음)'}"
+            f" · command 출처 {mcp['command_source']}")
+        for rec in mcp["interpreters"]:
+            label = _MCP_INTERPRETER_LABELS.get(rec["verdict"], rec["verdict"])
+            lines.append(
+                f"  - `{rec['command']}` → {rec['resolved'] or '(PATH 에 없음)'}: "
+                f"kit {rec['kit_version'] or '(모름)'} — {label}")
+            if rec.get("origin"):
+                lines.append(f"      출처 {rec['origin']} ({rec['placement']})"
+                             + (f" · editable → {rec['editable_url']}" if rec.get("editable_url") else ""))
+        lines.append(f"  ! {mcp['measurement_note']}")
 
     runtime = report.get("runtime_load") or {}
     lines.append("")

@@ -37,7 +37,6 @@
     "planned_items": [
       "TASK-2026-09-23-main-009",
       "TASK-2026-09-23-main-012",
-      "TASK-2026-09-23-main-013",
       "TASK-2026-09-23-main-014",
       "TASK-2026-09-23-main-015",
       "TASK-2026-09-23-main-016",
@@ -50,24 +49,25 @@
       "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화",
       "TASK-2026-09-23-main-022 — GitHub CI 테스트 workflow 삭제 — 로컬 개발환경 게이트로 이관",
       "TASK-2026-09-23-main-020 — check_root_anchor_audit 가 전 저장소 감사를 case 마다 반복한다 (파싱 13배)",
+      "TASK-2026-09-23-main-013 — doctor 가 플러그인 MCP 가 실제로 띄우는 해석기의 kit 버전을 재지 않는다",
       "TASK-2026-09-23-main-011 — 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red",
       "TASK-2026-09-23-main-010 — 원격 main 동기화 및 v1.11.0 환경 배포",
       "TASK-2026-09-23-main-008 — wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend",
       "TASK-2026-09-23-main-007 — case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)",
       "TASK-2026-09-23-main-006 — case 수 대조 축의 사각지대 — 개수 선언이 없는 검사를 실측으로 가른다 (main-004 follow-up)",
-      "TASK-2026-09-23-main-005 — memory_index 검색이 매칭된 entry 자신을 안 돌려준다 (seed 가 확장분에 ID순으로 밀림) + 한국어 질의는 기본 경로에서 0",
-      "TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)"
+      "TASK-2026-09-23-main-005 — memory_index 검색이 매칭된 entry 자신을 안 돌려준다 (seed 가 확장분에 ID순으로 밀림) + 한국어 질의는 기본 경로에서 0"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-25.md",
-    "task_count": 1,
+    "task_count": 2,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화"
+      "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화",
+      "TASK-2026-09-23-main-013 — doctor 가 플러그인 MCP 가 실제로 띄우는 해석기의 kit 버전을 재지 않는다"
     ]
   },
   "next_documents": [

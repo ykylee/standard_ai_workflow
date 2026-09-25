@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.11.0 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-09-25 (CI 폐지 반영 — OS tier 가 로컬 실측 기준으로)
+- 최종 수정일: 2026-09-25 (CI 폐지 반영 — OS tier 가 로컬 실측 기준으로 · doctor `mcp_interpreter` 절)
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -381,12 +381,21 @@ wk doctor --json          # 기계가 읽는 형태
 wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 ```
 
-7절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import·**돌고 있는
+8절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import·**돌고 있는
 kit 사본이 저장소 소스와 같은 내용인가**) ·
 **preflight** (채널별 설치 전제, §7.0.0) · **project_scope** (하네스별 산출물과
 버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은
 마커, 스코프 간 어긋남) · **content_drift** (설치 사본의 페이로드 해시 대조) ·
+**mcp_interpreter** (플러그인 MCP 가 실제로 띄우는 해석기가 어떤 kit 을 import 하는가) ·
 **runtime_load** (실행 중 호스트가 이 설치를 봤는가).
+
+> **사본이 최신이어도 MCP 서버는 다른 코드로 뜰 수 있다** (TASK-2026-09-23-main-013).
+> 플러그인 `.mcp.json` 은 `python3 -m workflow_kit…` 만 부르므로 서버는 사본이 아니라
+> **PATH 의 해석기에 깔린 kit** 으로 뜬다. `mcp_interpreter` 절은 command 를 정본
+> payload 에서 파생해 PATH 로 해석하고, 그 해석기를 프로젝트 cwd 에서 띄워 kit 의
+> 출처·버전을 설치본과 대조한다 — 버전 불일치 · 미설치 · 프로젝트 밖 editable(옛
+> worktree 등) · 탐침 실패가 발견이다. PYTHONPATH 는 빼고 잰다(`.mcp.json` 이
+> 설정하지 않는다).
 
 > **탐침은 자기 자신에게도 같은 규율을 쓴다** (v1.7.1, TASK-2026-08-31-main-002).
 > `environment` 절의 `kit 사본` 줄이 돌고 있는 사본의 출처와 저장소 소스와의 `.py`

@@ -1550,6 +1550,176 @@ def test_claude_remote_source_keeps_cache_as_served() -> None:
     _record("test_claude_remote_source_keeps_cache_as_served", not problems, "; ".join(problems))
 
 
+# --- mcp_interpreter (main-013) -------------------------------------------------
+
+
+def _mcp_drift(*versions: str) -> dict:
+    """설치본이 `versions` 인 content_drift 조각 — 활성·읽힘 사본만 대조 대상이다."""
+    return {"caches": [
+        {"harness": f"h{i}", "active": True, "served": True, "installed_version": v}
+        for i, v in enumerate(versions)
+    ]}
+
+
+def _mcp_child(origin: Path | None, dists: list[dict] | None = None,
+               roots: list[str] | None = None, import_error: str | None = None):
+    """자식 해석기 탐침 결과를 흉내 낸다 — 실 해석기의 kit 은 호스트마다 다르다."""
+    def run(executable: str, cwd: Path) -> dict:
+        return {
+            "executable": executable, "python_version": "3.99.0",
+            "install_roots": roots or [],
+            "origin": str(origin) if origin else None,
+            "import_error": import_error, "dists": dists or [],
+        }
+    return run
+
+
+def _mcp_seed_copy(package_root: Path, pyproject_version: str | None = None) -> Path:
+    init = package_root / "__init__.py"
+    _write(init, "")
+    if pyproject_version:
+        _write(package_root.parent / "pyproject.toml",
+               f'[project]\nname = "standard-ai-workflow"\nversion = "{pyproject_version}"\n')
+    return init
+
+
+def test_mcp_interpreter_reinjections_each_fire() -> None:
+    """되주입 3종(옛 버전 설치 · editable 외부 경로 · 미설치)이 **각각** 발화하고, 정상은 조용하다.
+
+    87차 실측: 플러그인 사본은 in-sync 인데 MCP 가 띄우는 homebrew python 의 kit 이
+    옛 worktree 를 가리키는 editable 1.2.0 이었다 — doctor 는 사본만 대조해 침묵했다.
+    """
+    from workflow_kit.deploy_doctor import _probe_mcp_interpreter
+
+    problems: list[str] = []
+    which = lambda cmd: f"/fake/bin/{cmd}"  # noqa: E731
+    canonical = render_agent_plugin()
+    with tempfile.TemporaryDirectory(prefix="doctor-mcp-") as tmpdir:
+        tmp = Path(tmpdir)
+        project = tmp / "project"
+        project.mkdir()
+        site = tmp / "prefix" / "lib" / "site-packages"
+
+        def run(child, drift=None) -> dict:
+            return _probe_mcp_interpreter(project, drift or _mcp_drift("1.11.0"), canonical,
+                                          which=which, run_child=child)
+
+        # (1) 옛 버전 wheel — 자리는 정상인데 버전이 설치본과 다르다
+        old = _mcp_seed_copy(site / "workflow_kit")
+        out = run(_mcp_child(old, [{"version": "1.2.0", "location": str(site)}], [str(site)]))
+        rec = out["interpreters"][0]
+        if rec["verdict"] != "version_mismatch" or rec["placement"] != "interpreter_site_packages":
+            problems.append(f"옛 버전: {rec['verdict']}/{rec['placement']}")
+        if not any("1.2.0" in f and "1.11.0" in f for f in out["findings"]):
+            problems.append(f"옛 버전 finding 에 두 버전이 없다: {out['findings']}")
+
+        # (2) editable 이 프로젝트 밖 옛 worktree 를 가리킨다 — 자리 발견 + 버전 발견
+        wt = tmp / "old-worktree" / "workflow-source"
+        foreign = _mcp_seed_copy(wt / "workflow_kit", pyproject_version="1.2.0")
+        url = f"file://{wt}"
+        out = run(_mcp_child(foreign, [{"version": "1.2.0", "location": str(site),
+                                        "editable_url": url}], [str(site)]))
+        rec = out["interpreters"][0]
+        if rec["placement"] != "foreign_path" or rec["kit_version"] != "1.2.0":
+            problems.append(f"editable: {rec['placement']}/{rec['kit_version']} ({rec['kit_version_source']})")
+        if not any("editable" in f and url in f and str(wt) in f for f in out["findings"]):
+            problems.append(f"editable finding 에 경로·url 이 없다: {out['findings']}")
+
+        # (3) 미설치 — MCP 서버가 뜨지 않는다
+        out = run(_mcp_child(None, import_error="ModuleNotFoundError: No module named 'workflow_kit'"))
+        rec = out["interpreters"][0]
+        if rec["verdict"] != "not_importable" or not any("뜨지 않는다" in f for f in out["findings"]):
+            problems.append(f"미설치: {rec['verdict']} {out['findings']}")
+
+        # (4) 정상 — 해석기 site-packages 의 같은 버전은 조용하다
+        good = _mcp_seed_copy(site / "workflow_kit")
+        out = run(_mcp_child(good, [{"version": "1.11.0", "location": str(site)}], [str(site)]))
+        rec = out["interpreters"][0]
+        if rec["verdict"] != "in_sync" or out["findings"]:
+            problems.append(f"정상인데 발화: {rec['verdict']} {out['findings']}")
+
+        # (5) 모름은 통과가 아니다 — 탐침 실패 · 버전 불명은 발견이다
+        out = run(lambda exe, cwd: {"probe_error": "exit 1: boom"})
+        if out["interpreters"][0]["verdict"] != "probe_failed" or not out["findings"]:
+            problems.append(f"탐침 실패가 조용하다: {out}")
+        out = run(_mcp_child(good, [], [str(site)]))
+        if out["interpreters"][0]["verdict"] != "version_unknown" or not out["findings"]:
+            problems.append(f"버전 불명이 조용하다: {out['interpreters'][0]['verdict']}")
+
+        # (6) 띄우는 채널이 없으면 판정만 남고 발견은 없다 — 측정값은 보존한다
+        out = run(_mcp_child(None, import_error="boom"), drift={"caches": []})
+        rec = out["interpreters"][0]
+        if rec["verdict"] != "no_plugin_installed" or rec.get("measured_verdict") != "not_importable" \
+                or out["findings"]:
+            problems.append(f"설치본 없음: {rec['verdict']}/{rec.get('measured_verdict')} {out['findings']}")
+
+        # (7) PATH 에 없으면 preflight 몫 — 중복 발견을 내지 않는다
+        out = _probe_mcp_interpreter(project, _mcp_drift("1.11.0"), canonical,
+                                     which=lambda cmd: None, run_child=_mcp_child(good))
+        if out["interpreters"][0]["verdict"] != "command_not_found" or out["findings"]:
+            problems.append(f"command 부재: {out['interpreters'][0]['verdict']} {out['findings']}")
+
+        # (8) 소비 지점까지 — probe() 최상위 findings 와 텍스트 출력에 닿는가
+        report = probe(project_root=project, home=tmp / "home", mcp_which=which,
+                       mcp_run_child=_mcp_child(None, import_error="boom"))
+        if "mcp_interpreter" not in report:
+            problems.append("probe() 에 mcp_interpreter 절이 없다")
+        elif "[mcp_interpreter]" not in _render_text(report):
+            problems.append("텍스트 출력에 [mcp_interpreter] 절이 없다")
+    _record("test_mcp_interpreter_reinjections_each_fire", not problems, "; ".join(problems))
+
+
+def test_mcp_interpreter_command_is_derived_from_payload() -> None:
+    """MCP command 는 정본 payload 에서 파생한다 — 손으로 적은 `python3` 가 아니다."""
+    from workflow_kit.deploy_doctor import _mcp_commands
+
+    canonical = render_agent_plugin()
+    commands, source = _mcp_commands(canonical)
+    declared = sorted({
+        spec["command"] for spec in json.loads(canonical[".mcp.json"])["mcpServers"].values()
+    })
+    problems: list[str] = []
+    if commands != declared or "정본" not in source:
+        problems.append(f"정본 파생 아님: {commands} ({source}) vs {declared}")
+    mutated = dict(canonical)
+    mutated[".mcp.json"] = json.dumps({"mcpServers": {"x": {"command": "py-custom"}}})
+    if _mcp_commands(mutated)[0] != ["py-custom"]:
+        problems.append("payload command 변경을 따라가지 않는다")
+    fallback, fb_source = _mcp_commands(None)
+    if fallback != ["python3"] or "관례값" not in fb_source:
+        problems.append(f"폴백이 출처를 말하지 않는다: {fallback} ({fb_source})")
+    _record("test_mcp_interpreter_command_is_derived_from_payload", not problems, "; ".join(problems))
+
+
+def test_mcp_child_probe_ignores_pythonpath() -> None:
+    """실 자식 탐침은 PYTHONPATH 를 무시한다 — 개발 모드 doctor 의 값이 새면 저장소 소스가
+    해석된 것처럼 보인다 (2026-09-25 실측). 가짜 kit 을 PYTHONPATH 에 두고 안 잡히는지 잰다."""
+    from workflow_kit.deploy_doctor import _run_mcp_child_probe
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-mcp-pp-") as tmpdir:
+        decoy = Path(tmpdir) / "decoy"
+        _write(decoy / "workflow_kit" / "__init__.py", "")
+        cwd = Path(tmpdir) / "cwd"
+        cwd.mkdir()
+        before = os.environ.get("PYTHONPATH")
+        os.environ["PYTHONPATH"] = str(decoy)
+        try:
+            data = _run_mcp_child_probe(sys.executable, cwd)
+        finally:
+            if before is None:
+                os.environ.pop("PYTHONPATH", None)
+            else:
+                os.environ["PYTHONPATH"] = before
+    if data.get("probe_error"):
+        problems.append(f"실 탐침 실패: {data['probe_error']}")
+    if str(decoy) in str(data.get("origin")):
+        problems.append(f"PYTHONPATH 가 자식에 샜다: {data.get('origin')}")
+    if not data.get("install_roots"):
+        problems.append("자식이 설치 루트를 알려 주지 않았다")
+    _record("test_mcp_child_probe_ignores_pythonpath", not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1594,6 +1764,9 @@ def main() -> int:
         test_claude_directory_source_serves_source_not_cache,
         test_claude_directory_source_measures_the_served_copy,
         test_claude_remote_source_keeps_cache_as_served,
+        test_mcp_interpreter_reinjections_each_fire,
+        test_mcp_interpreter_command_is_derived_from_payload,
+        test_mcp_child_probe_ignores_pythonpath,
     ]
     for case in cases:
         case()

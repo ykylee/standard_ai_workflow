@@ -4,7 +4,7 @@
 - 범위: 3계층 워크스페이스 구분, 격리 키 결정과 근거, 하네스 동시 운영 시 lease 규약, 중앙 취합 확장 지점, 미해결 질문
 - 대상 독자: AI workflow 설계자, 멀티 에이전트 운영자, 저장소 관리자
 - 상태: draft (설계 단계 — 구현 미착수)
-- 최종 수정일: 2026-08-18
+- 최종 수정일: 2026-09-25
 - 관련 문서: `./workflow_configuration_layers.md`, `./workflow_harness_distribution.md`, `./workflow_agent_topology.md`, `./orchestrator_subagent_contract_v1.md`, `./merge_doc_reconcile_skill_spec.md`, `../MEMORY_GOVERNANCE.md`
 
 > **상태 고지**: 본 문서는 *설계* 다. §2 의 "이미 있다" 항목과 §5A~§5D 의 실측은
@@ -973,9 +973,19 @@ wk install-pre-push-hook uninstall --apply
 ```
 
 - hook script = `workflow_kit/assets/hooks/pre-push-no-force.sh` (POSIX `sh`, wheel 포함).
-- 거부 대상: `--force` / `-f` / `--force-with-lease` / `--force-if-includes` / `+refspec`
+- 거부 대상: **원격 이력을 덮어쓰는 push** — ref 마다 원격 sha 가 로컬 sha 의 조상이
+  아니면(non-fast-forward) 거부, 원격 sha 를 이 저장소가 모르면(fetch 안 함) 거부.
+  새 ref · 삭제 · fast-forward 인 `--force` 는 통과. 우회는 사람이 확인한 뒤
+  `git push --force --no-verify`.
+- **판정은 git 이 hook 에 넘기는 인터페이스로 한다** (TASK-2026-09-25-main-002). git 은
+  push 옵션을 hook 에 넘기지 않는다 — 인자는 `<remote> <url>` 둘, ref 는 stdin. v0.15.27
+  ~ 2026-09-25 의 hook 은 인자에서 `--force` 를 찾아 **실제 force push 에 무력**했고,
+  검사도 스크립트에 `--force` 를 직접 넘겨 그 사실을 못 봤다.
+- `core.hooksPath` 를 쓰는 저장소(이 저장소 `.githooks`)에서는 `.git/hooks/pre-push` 가
+  꺼진다 — `.githooks/pre-push` 가 게이트 판정 뒤 그것을 이어 부른다 (main-009).
 - 기존 hook 있으면 `pre-push.bak.<UTC-ISO>` 으로 backup 자동.
-- smoke `check_pre_push_hook.py` (7 case ALL PASS).
+- smoke `check_pre_push_hook.py` (8 case — case 6 은 bare remote 에 **실제 `git push`**
+  7 시나리오 + 조상 검사를 뺀 변형 hook 되주입).
 
 **Layer 3 확인 (TASK-023, v1.1.2+)**:
 

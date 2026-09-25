@@ -656,6 +656,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "검사 호스트 의존 수리 — 마일스톤 밖 유지보수",
       "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-25-main-001.md"
+    },
+    {
+      "task_id": "TASK-2026-09-25-main-002",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "기존 안전장치 결함 수리 — 마일스톤 밖 유지보수",
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-25-main-002.md"
     }
   ],
   "issues": []

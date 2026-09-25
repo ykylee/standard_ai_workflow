@@ -12,7 +12,12 @@ git repo 에서 검증. **in-process** 함수 호출 (subprocess mock 한계 회
     3. install idempotent — 두 번 install, backup 0개 유지, hook content 동일
     4. install with existing — 기존 hook backup 됨, 새 hook 설치, backup 1개
     5. status — installed / matches_src / backups 정확
-    6. hook script 동작 — `--force` / `-f` / `--force-with-lease` / `+refspec` 거부, normal 통과
+    6. **실제 `git push`** 로 bare remote 에 — force non-ff 거부(원격 불변) · 원격 sha 미상
+       거부 · 새 ref / fast-forward / ff 인 `--force` / 삭제 / `--no-verify` 통과.
+       + **되주입**: 판정을 뺀 변형 hook 으로 같은 시나리오를 돌려 결과가 갈리는지 본다.
+       (이전 case 6 은 스크립트에 `--force` 를 **인자로 직접** 넘겼다 — git 은 push 옵션을
+       hook 에 넘기지 않으므로 인터페이스를 재지 않았고, hook 은 실제 force push 에 무력했다.
+       2026-09-25 실측, TASK-2026-09-25-main-002)
     7. uninstall — hook 제거 + backup 에서 복원
     8. **mock 없이** cwd 의 git root 를 고르는가 + hook 원본이 실재하는가
        (1~7 은 `_git_root` 를 monkeypatch 해서 그 둘을 한 번도 재지 않았다)
@@ -49,6 +54,61 @@ HOOK_SOURCE = (
     REPO_ROOT / "workflow-source" / "workflow_kit" / "assets" / "hooks"
     / "pre-push-no-force.sh"
 )
+
+
+def _git(cwd: Path, *args: str, hooks: Path | None = None) -> subprocess.CompletedProcess[str]:
+    """``hooks`` 를 주면 그 디렉터리를 hooksPath 로 고정한다 — 사용자 전역 `core.hooksPath`
+    가 있으면 `.git/hooks` 가 무시되어 검사가 엉뚱한 hook(또는 없음)을 잰다."""
+    pre = ["-c", f"core.hooksPath={hooks}"] if hooks is not None else []
+    return subprocess.run(["git", *pre, *args], cwd=cwd, capture_output=True, text=True, timeout=60)
+
+
+def _commit(work: Path, tag: str) -> None:
+    (work / "push-case.txt").write_text(f"{tag}\n", encoding="utf-8")
+    _git(work, "add", "push-case.txt")
+    _git(work, "commit", "-q", "-m", tag)
+
+
+def _real_push_outcomes(work: Path, hooks: Path, remote: Path) -> dict:
+    """새 bare remote 에 실제 `git push` 시나리오를 돌린다. 이름 → (rc, stderr)."""
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True, capture_output=True)
+    _git(work, "remote", "remove", "origin")
+    _git(work, "remote", "add", "origin", str(remote))
+    out: dict = {}
+
+    def push(name: str, *args: str) -> None:
+        r = _git(work, "push", "origin", *args, hooks=hooks)
+        out[name] = (r.returncode, r.stderr)
+
+    def remote_main() -> str:
+        return _git(work, "ls-remote", str(remote), "refs/heads/main").stdout.split("\t")[0]
+
+    push("new_ref", "HEAD:refs/heads/main")
+    _commit(work, f"{remote.name}-ff")
+    push("ff", "HEAD:refs/heads/main")
+    _git(work, "reset", "-q", "--hard", "HEAD~1")
+    _commit(work, f"{remote.name}-diverge")
+    before = remote_main()
+    push("force_nonff", "--force", "HEAD:refs/heads/main")
+    out["force_nonff_remote_moved"] = remote_main() != before
+    push("no_verify", "--force", "--no-verify", "HEAD:refs/heads/main")
+    _commit(work, f"{remote.name}-ff2")
+    push("force_ff", "--force", "HEAD:refs/heads/main")
+    # 다른 클론이 올린 커밋을 이 저장소는 모른다 (fetch 안 함)
+    other = remote.parent / f"{remote.stem}-other"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(remote), str(other)],
+                   check=True, capture_output=True)
+    for key, val in (("user.email", "o@o"), ("user.name", "o")):
+        _git(other, "config", key, val)
+    _commit(other, f"{remote.name}-other")
+    pushed = _git(other, "push", "-q", "origin", "HEAD:refs/heads/main", hooks=other / ".git" / "hooks")
+    # 준비가 조용히 실패하면 아래 push 는 평범한 fast-forward 가 되어 아무것도 안 잰다
+    out["unknown_setup"] = (pushed.returncode, pushed.stderr)
+    _commit(work, f"{remote.name}-blind")
+    push("unknown_remote", "--force", "HEAD:refs/heads/main")
+    push("side", "HEAD:refs/heads/side")
+    push("delete", ":refs/heads/side")
+    return out
 
 
 def main() -> int:
@@ -132,25 +192,42 @@ def main() -> int:
             else:
                 print("  [5] status                 ✓  (installed=True, matches_source=True, backups=1)")
 
-            # 6) hook script 동작 검증 (subprocess)
-            hook_results = []
-            test_cases = [
-                (["origin", "main"], 0),
-                (["origin", "main", "--force"], 1),
-                (["origin", "main", "-f"], 1),
-                (["origin", "main", "--force-with-lease"], 1),
-                (["+main:refs/heads/main"], 1),
-            ]
-            for args_list, expected_rc in test_cases:
-                r = subprocess.run(
-                    ["sh", str(hook_target), *args_list],
-                    cwd=repo_dir, capture_output=True, text=True, timeout=5,
-                )
-                hook_results.append((args_list, r.returncode, expected_rc))
-                if r.returncode != expected_rc:
-                    failures.append(f"[6] hook {args_list}: rc={r.returncode} (expected {expected_rc})")
-            if all(g == e for _, g, e in hook_results):
-                print("  [6] hook script            ✓  (normal pass + 4 force 변형 모두 거부)")
+            # 6) 실제 git push — git 이 hook 에 넘기는 인터페이스(인자 2개 + stdin ref 줄)로 잰다
+            real = _real_push_outcomes(repo_dir, hook_target.parent, Path(tmp) / "remote-real.git")
+            expected = {
+                "new_ref": 0, "ff": 0, "force_nonff": 1, "no_verify": 0,
+                "force_ff": 0, "unknown_remote": 1, "delete": 0,
+            }
+            for name, want in expected.items():
+                got_rc, err = real[name]
+                if got_rc != want:
+                    failures.append(f"[6] {name}: git push rc={got_rc} (expected {want}) {err[-200:]!r}")
+            if real["unknown_setup"][0] != 0:
+                failures.append(f"[6] unknown_remote 준비 실패 — 다른 클론이 못 올렸다: {real['unknown_setup'][1][-200:]!r}")
+            if real["force_nonff_remote_moved"]:
+                failures.append("[6] force_nonff: 거부됐다면서 원격 ref 가 바뀌었다")
+            if "non-fast-forward" not in real["force_nonff"][1]:
+                failures.append("[6] force_nonff: 거부 사유가 non-fast-forward 를 말하지 않는다")
+            if "모른다" not in real["unknown_remote"][1]:
+                failures.append("[6] unknown_remote: 거부 사유가 '원격 sha 를 모른다' 를 말하지 않는다")
+            # 되주입 — 판정을 빼면(조상 검사 무력화) 같은 시나리오가 갈려야 한다
+            mutant_dir = Path(tmp) / "mutant-hooks"
+            mutant_dir.mkdir()
+            source = HOOK_SOURCE.read_text(encoding="utf-8")
+            needle = 'if git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then'
+            if needle not in source:
+                failures.append("[6] 되주입 지점(조상 검사)이 hook 원본에 없다 — 판정이 바뀌었나")
+            else:
+                mutant = mutant_dir / "pre-push"
+                mutant.write_text(source.replace(needle, "if true; then"), encoding="utf-8")
+                mutant.chmod(0o755)
+                mut = _real_push_outcomes(repo_dir, mutant_dir, Path(tmp) / "remote-mutant.git")
+                if mut["force_nonff"][0] != 0 or mut["unknown_remote"][0] != 0:
+                    failures.append(
+                        "[6] 되주입이 red 를 못 만든다 — 조상 검사를 빼도 시나리오 결과가 같다 "
+                        f"(force_nonff rc={mut['force_nonff'][0]}, unknown rc={mut['unknown_remote'][0]})")
+            if not any(f.startswith("[6]") for f in failures):
+                print("  [6] 실제 git push          ✓  (force non-ff·원격 미상 거부, 5 경로 통과, 되주입 발화)")
 
             # 7) uninstall — hook 제거 + backup 복원
             install_pre_push_hook.cmd_uninstall(argparse.Namespace(apply=True))
@@ -200,7 +277,7 @@ def main() -> int:
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("ALL PASS: pre-push hook installer — 8 case (dry-run / install / idempotent / existing / status / script / uninstall / cwd 대상 선택)")
+    print("ALL PASS: pre-push hook installer — 8 case (dry-run / install / idempotent / existing / status / 실제 git push + 되주입 / uninstall / cwd 대상 선택)")
     return 0
 
 

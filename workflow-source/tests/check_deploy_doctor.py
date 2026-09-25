@@ -1460,6 +1460,10 @@ def test_claude_directory_source_serves_source_not_cache() -> None:
         tmp = Path(tmpdir)
         home, cache_root, served_root = _seed_claude_marketplace(tmp, source_type="directory")
         content = probe(project_root=tmp / "project", home=home)["content_drift"]
+    # 보고서의 경로는 **실경로**다 (`probe` 가 home 을 resolve 한다) — 기대값도 실경로로
+    # 맞춘다. fixture 경로는 기본 TMPDIR(`/var` → `/private/var`)에서 symlink 형태라
+    # `==` 대조가 호스트마다 갈렸다 (2026-09-25).
+    cache_root, served_root = cache_root.resolve(), served_root.resolve()
     row = _claude_source_row(content)
     if row.get("source_type") != "directory":
         problems.append(f"소스 유형을 안 읽었다: {row!r}")
@@ -1500,6 +1504,7 @@ def test_claude_directory_source_measures_the_served_copy() -> None:
         home, _cache, served_root = _seed_claude_marketplace(
             tmp, source_type="directory", pollute_served=True)
         content = probe(project_root=tmp / "project", home=home)["content_drift"]
+        served_root = served_root.resolve()  # 보고서 경로는 실경로다
     if "claude-code" not in content["out_of_sync"]:
         problems.append("읽히는 사본이 오염됐는데 발견이 없다")
     if not any(c.get("path") == str(served_root) and c.get("in_sync") is False
@@ -1720,6 +1725,38 @@ def test_mcp_child_probe_ignores_pythonpath() -> None:
     _record("test_mcp_child_probe_ignores_pythonpath", not problems, "; ".join(problems))
 
 
+def test_symlinked_home_reports_real_paths_once() -> None:
+    """홈이 **symlink 아래**여도 판정이 같고, 보고서 경로는 실경로로 **한 번씩만** 나온다.
+
+    이 조건은 기본 TMPDIR 이 `/var` → `/private/var` 인 macOS 에서만 우연히 재졌다 —
+    runner 가 `--tmp-dir` 로 실경로를 주면 아무도 안 쟀다. 실 호스트도 symlink 홈을
+    가질 수 있으므로 fixture 를 명시적으로 symlink 아래에 심는다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-symlink-home-") as tmpdir:
+        real = Path(tmpdir).resolve() / "real"
+        real.mkdir()
+        link = Path(tmpdir).resolve() / "link"
+        link.symlink_to(real, target_is_directory=True)
+        home, cache_root, served_root = _seed_claude_marketplace(
+            link, source_type="directory", pollute_served=True)
+        if str(home).startswith(str(real)) or not str(cache_root).startswith(str(link)):
+            problems.append(f"fixture 가 symlink 경로로 심기지 않았다: {cache_root}")
+        content = probe(project_root=link / "project", home=home)["content_drift"]
+        real_cache, real_served = cache_root.resolve(), served_root.resolve()
+    paths = [c.get("path") for c in content["caches"] if c.get("harness") == "claude-code"]
+    if any(p and str(link) in p for p in paths):
+        problems.append(f"보고서에 symlink 형태 경로가 남았다: {paths}")
+    for want in (str(real_cache), str(real_served)):
+        if paths.count(want) != 1:
+            problems.append(f"{want} 가 {paths.count(want)}번 보고됐다 (1번이어야 한다): {paths}")
+    if _claude_source_row(content).get("served_root") != str(real_served):
+        problems.append(f"서빙 경로가 실경로가 아니다: {_claude_source_row(content).get('served_root')!r}")
+    if "claude-code" not in content["out_of_sync"]:
+        problems.append("symlink 홈에서 읽히는 사본의 오염을 놓쳤다")
+    _record("test_symlinked_home_reports_real_paths_once", not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1767,6 +1804,7 @@ def main() -> int:
         test_mcp_interpreter_reinjections_each_fire,
         test_mcp_interpreter_command_is_derived_from_payload,
         test_mcp_child_probe_ignores_pythonpath,
+        test_symlinked_home_reports_real_paths_once,
     ]
     for case in cases:
         case()

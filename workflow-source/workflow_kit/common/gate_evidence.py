@@ -23,6 +23,15 @@ push 전 게이트가 동등 검사를 맡게 됐다. 그런데 발행 게이트
 `<git common dir>/gate_evidence/<sha>.json`. common dir 이라 같은 저장소의 worktree
 끼리 공유된다. 호스트 밖으로는 나가지 않는다 — 발행하는 호스트가 게이트를 돌린
 호스트여야 한다.
+
+## 읽는 곳 (둘)
+
+- 발행: `release --apply` 가 HEAD 의 기록을 요구한다 (`release_pipeline.verify_gate_evidence`).
+- push: `.githooks/pre-push` 가 push 하는 각 ref 의 sha 기록을 요구한다
+  (:func:`check_push`, TASK-2026-09-23-main-009). 86차 `f4504818` 은 게이트를 돈 **뒤**
+  CLAUDE.md 를 고쳐 게이트 없이 push 됐고, 스탬프 위반이 CI 에서만 드러났다 — 로컬
+  green 은 다른 sha 의 green 이었다. CI 가 없는 지금은 그 커밋을 아무도 안 잰다.
+  우회는 `git push --no-verify` (쓰면 그 push 는 게이트 근거가 없다).
 """
 
 from __future__ import annotations
@@ -91,6 +100,14 @@ def record(repo_root: Path, sha: str, *, contexts: list[str], total: int) -> Pat
     return path
 
 
+def missing_contexts(evidence: dict[str, Any]) -> list[str]:
+    """기록에 빠진 브랜치 컨텍스트. 정본은 `branch_matrix.BRANCH_CONTEXTS` — 발행과 push 가 같이 쓴다."""
+    from workflow_kit.common.branch_matrix import labels
+
+    have = evidence.get("contexts") or []
+    return [c for c in labels() if c not in have]
+
+
 def lookup(repo_root: Path, sha: str) -> dict[str, Any] | None:
     directory = evidence_dir(repo_root)
     if directory is None:
@@ -103,3 +120,64 @@ def lookup(repo_root: Path, sha: str) -> dict[str, Any] | None:
     if not isinstance(data, dict) or data.get("sha") != sha:
         return None
     return data
+
+
+_ZERO = frozenset("0")
+
+
+def _is_zero_sha(sha: str) -> bool:
+    return bool(sha) and set(sha) <= _ZERO
+
+
+def check_push(repo_root: Path, lines: list[str]) -> list[str]:
+    """pre-push 표준입력(`<local ref> <local sha> <remote ref> <remote sha>`)을 판정한다.
+
+    반환은 막을 사유 목록 — 비면 통과. ref 마다 **tip sha** 하나를 본다 (게이트는
+    push 직전 HEAD 에서 돈다). 삭제 push(local sha 가 0)는 올리는 것이 없으니 통과.
+    태그는 가리키는 커밋으로 벗긴다. **모름은 통과가 아니다** — sha 를 못 벗기면 막는다.
+    """
+    problems: list[str] = []
+    for raw in lines:
+        parts = raw.split()
+        if len(parts) != 4:
+            continue
+        local_ref, local_sha, remote_ref, _remote_sha = parts
+        if _is_zero_sha(local_sha):
+            continue
+        commit = _git(repo_root, "rev-parse", "--verify", "--quiet", f"{local_sha}^{{commit}}")
+        if not commit:
+            problems.append(f"{local_ref} → {remote_ref}: {local_sha[:8]} 를 커밋으로 읽지 못했다")
+            continue
+        evidence = lookup(repo_root, commit)
+        if evidence is None:
+            problems.append(
+                f"{local_ref} → {remote_ref}: {commit[:8]} 에 게이트 통과 기록이 없다")
+            continue
+        missing = missing_contexts(evidence)
+        if missing:
+            problems.append(
+                f"{local_ref} → {remote_ref}: {commit[:8]} 의 게이트 기록에 컨텍스트가 빠졌다 {missing}")
+    return problems
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`python -m workflow_kit.common.gate_evidence pre-push <repo_root>` — hook 진입점."""
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 2 or args[0] != "pre-push":
+        print("usage: python -m workflow_kit.common.gate_evidence pre-push <repo_root>",
+              file=sys.stderr)
+        return 2
+    problems = check_push(Path(args[1]), sys.stdin.read().splitlines())
+    if not problems:
+        return 0
+    print("[pre-push] 게이트를 돌지 않은 커밋은 push 하지 않는다 (TASK-2026-09-23-main-009):",
+          file=sys.stderr)
+    for item in problems:
+        print(f"  - {item}", file=sys.stderr)
+    print("  커밋 후 깨끗한 트리에서 `run_all_checks.py --branch-context=all` 을 돌린다. "
+          "정말 넘겨야 하면 `git push --no-verify`.", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

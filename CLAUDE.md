@@ -8,7 +8,7 @@
 - 범위: 세션 복원, workflow state docs 참조 순서, 작업 원칙, 세션 종료 순서
 - 대상 독자: Claude Code, 저장소 관리자, workflow 설계자
 - 상태: beta
-- 최종 수정일: 2026-09-23
+- 최종 수정일: 2026-09-25
 - 관련 문서: `ai-workflow/memory/active/<branch>/state.json`, `docs/PROJECT_PROFILE.md`
 
 > **이 저장소만의 차이**: 상태 문서가 브랜치별(`ai-workflow/memory/active/<branch>/`)로
@@ -150,8 +150,14 @@ Close a session in the order **update memory → commit → push**. Do not split
 |---|---|---|
 | 편집 중 | `run_all_checks.py --filter=<이름조각>` | 방금 건드린 것과 그 이웃만. 초 단위로 끝난다 |
 | 커밋 전 | `run_all_checks.py --changed` + `check_self_application.py` | 관련 검사를 사람이 고르지 않는다 — 검사의 `WATCHES` 선언이 고른다 (v1.7.0, meta-watch 가 선언의 좁음을 게이트에서 잡는다). `--filter` 는 여전히 편집 루프용 |
-| **push 직전 1회** | 커밋 후 깨끗한 트리에서 `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량. 통과하면 HEAD sha 의 **게이트 통과 기록**이 남고 `release --apply` 가 그것을 요구한다 |
+| **push 직전 1회** | 커밋 후 깨끗한 트리에서 `run_all_checks.py --branch-context=all` | **이것이 게이트다.** 여기만 2축 전량. 통과하면 HEAD sha 의 **게이트 통과 기록**이 남고 `release --apply` 와 **pre-push hook** 이 그것을 요구한다 |
 | 발행 전 / 해당 코드를 건드렸을 때 | `interpreter_matrix --run-local` · `sdk_matrix --run-local` | 아래 두 절. CI 가 덮던 축이라 이제 로컬 말고는 아무도 안 돈다 |
+
+> **기록 없는 커밋은 push 되지 않는다** (TASK-2026-09-23-main-009). `.githooks/pre-push` 가
+> push 하는 각 ref 의 sha 에 게이트 통과 기록(컨텍스트 전부)을 요구한다. 새 클론·호스트에서는
+> 한 번 `git config core.hooksPath .githooks` 로 켠다. 게이트를 돈 **뒤** 편집하면 그 커밋은
+> 기록이 없어 막힌다 — 86차 `f4504818` 이 정확히 그렇게 게이트 밖에서 push 됐다. 우회는
+> `git push --no-verify` (그 push 는 게이트 근거가 없다).
 
 > **GitHub Actions 테스트 workflow 는 없다** (2026-09-23 소유자 결정, TASK-2026-09-23-main-022).
 > 느렸고, 어차피 push 전에 로컬 게이트를 돈다. 남은 workflow 는 `mkdocs`(문서 배포)와

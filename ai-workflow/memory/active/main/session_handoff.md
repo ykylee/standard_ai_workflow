@@ -50,6 +50,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-23-main-009 스탬프 유예가 로컬 게이트에서 축을 가린다 — 문서를 고친 사이클은 CI 에서만 발화
 - TASK-2026-09-25-main-001 check_deploy_doctor 의 claude directory source 2 case 가 기본 TMPDIR 직접 실행에서만 red
 - TASK-2026-09-23-main-013 doctor 가 플러그인 MCP 가 실제로 띄우는 해석기의 kit 버전을 재지 않는다
 - TASK-2026-09-24-main-001 mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화
@@ -59,7 +60,6 @@
 - TASK-2026-09-23-main-011 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red
 - TASK-2026-09-23-main-010 원격 main 동기화 및 v1.11.0 환경 배포
 - TASK-2026-09-23-main-008 wk release-bump 가 --version 을 무시하고 patch 자동 증가 + 직전 커밋을 amend
-- TASK-2026-09-23-main-007 case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

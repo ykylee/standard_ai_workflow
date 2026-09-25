@@ -1,0 +1,23 @@
+#!/bin/sh
+# 게이트 통과 기록이 없는 커밋의 push 를 막는다 (TASK-2026-09-23-main-009).
+# 판정 정본: workflow-source/workflow_kit/common/gate_evidence.py 의 check_push.
+# 켜기: git config core.hooksPath .githooks   · 우회: git push --no-verify
+#
+# core.hooksPath 를 켜면 git 은 `.git/hooks/` 를 더는 보지 않는다. 그 자리에 설치된
+# hook(예: tools/install_pre_push_hook.py 의 force 차단)이 조용히 꺼지지 않도록,
+# 게이트 판정을 통과하면 `<git common dir>/hooks/pre-push` 를 같은 인자·입력으로 이어 부른다.
+hook_dir=$(cd "$(dirname "$0")" && pwd)
+kit_root=$(dirname "$hook_dir")
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+py="$kit_root/.venv/bin/python3"
+[ -x "$py" ] || py=python3
+input=$(cat)
+printf '%s\n' "$input" | PYTHONPATH="$kit_root/workflow-source" "$py" \
+    -m workflow_kit.common.gate_evidence pre-push "$repo_root" || exit 1
+
+common_dir=$(git rev-parse --git-common-dir) || exit 1
+legacy="$common_dir/hooks/pre-push"
+if [ -x "$legacy" ]; then
+    printf '%s\n' "$input" | "$legacy" "$@" || exit 1
+fi
+exit 0

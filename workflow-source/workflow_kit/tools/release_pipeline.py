@@ -477,7 +477,6 @@ def verify_gate_evidence(
     **모름은 통과가 아니다** — sha 를 못 읽거나 기록이 없으면 막는다.
     """
     from workflow_kit.common import gate_evidence
-    from workflow_kit.common.branch_matrix import labels
 
     root = repo_root or REPO_ROOT.parent
     if head_sha is None:
@@ -492,8 +491,7 @@ def verify_gate_evidence(
                 "error": ("이 커밋의 게이트 통과 기록이 없다 — "
                           "`run_all_checks.py --branch-context=all` 을 커밋 후 깨끗한 "
                           "트리에서 돌린다")}
-    required = list(labels())
-    missing = [c for c in required if c not in (evidence.get("contexts") or [])]
+    missing = gate_evidence.missing_contexts(evidence)
     if missing:
         return {"ok": False, "head_sha": head_sha, "evidence": evidence,
                 "error": f"게이트 기록에 브랜치 컨텍스트가 빠졌다: {missing}"}

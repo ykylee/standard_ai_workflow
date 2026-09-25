@@ -5,7 +5,6 @@ Aggregates:
 - current pyproject version
 - last release tag (git describe)
 - unreleased commits (count + list)
-- CI mypy cross-verify verdict (v0.11.13+ Layer 1)
 - local mypy strict status (v0.11.12+ Layer 2)
 - next version (auto-bump hint, v0.7.18+)
 - ready_to_release verdict (all checks pass)
@@ -271,33 +270,6 @@ def _check_local_mypy() -> dict[str, Any]:
     )
 
 
-def _check_ci_mypy() -> dict[str, Any]:
-    """Layer 1: GH Actions mypy-strict workflow last run verdict — **폐지됨**.
-
-    `mypy-strict.yml` 은 2026-09-23 CI 폐지(TASK-2026-09-23-main-022)로 삭제됐다.
-    `release_pipeline._cross_verify_ci_mypy` 에 위임하며, 그 helper 는 gh 를 부르지
-    않고 늘 ``skipped`` 를 낸다.
-    Returns:
-        {"verdict": "ci_sanity" | "ci_stale" | "ci_fail" | "absent" | "skipped",
-         "head_sha_match": bool | None, "ci_run": dict | None, "message": str}
-    """
-    # importlib 으로 release_pipeline 의 helper 호출 (v0.11.13+)
-    try:
-        sys.path.insert(0, str(REPO_ROOT / "workflow_kit" / "tools"))
-        # v1.0.2: import-not-found ignore 제거 — tools/ 는 mypy 의 crawl 대상이 아니고
-        # config 의 ignore_missing_imports=true 가 이미 덮으므로 unused 였다.
-        from release_pipeline import _cross_verify_ci_mypy
-        ci_mypy: dict[str, Any] = _cross_verify_ci_mypy()
-        return ci_mypy
-    except Exception as e:
-        return {
-            "verdict": "skipped",
-            "head_sha_match": None,
-            "ci_run": None,
-            "message": f"cross-verify import/call failed: {type(e).__name__}: {e}",
-        }
-
-
 def _run_auto_bump(new_version: str) -> dict[str, Any]:
     """v0.11.16+ --auto-bump 의 actual bump stage.
 
@@ -381,7 +353,6 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             "current_version": str,
             "last_release_tag": str | None,
             "unreleased_commits": {"count": int, "commits": [...]},
-            "ci_mypy": {verdict, head_sha_match, ci_run, message},
             "local_mypy": {ok, verdict, exit_code, error_count, first_error, interpreter},
             "next_version": {next, current, bumped},
             "ready_to_release": bool,
@@ -393,7 +364,6 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
     last_tag = _last_release_tag()
     unreleased = _unreleased_commits(since_tag=last_tag)
     local_mypy = _check_local_mypy()
-    ci_mypy = _check_ci_mypy()
     next_ver = _suggest_next_version(current, commits=unreleased.get("commits", []))
 
     # v0.11.16+ --auto-bump: current == last_tag 분기에서 자동 bump
@@ -408,12 +378,11 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             current = _read_pyproject_version()
             next_ver = _suggest_next_version(current, commits=unreleased.get("commits", []))
 
-    # ready_to_release verdict: Layer 1 + Layer 2 모두 sanity
+    # ready_to_release verdict: local mypy clean (Layer 1 CI 는 main-022 에서 폐지)
     # + unreleased_commits > 0 (release 의미)
     # + last_tag != current (이미 released 가 아님)
     # v0.11.16+: auto_bump_applied 면 ready (current_version 이 last_tag 와 달라짐)
     local_mypy_ok = local_mypy.get("ok", False)
-    ci_verdict = ci_mypy.get("verdict", "skipped")
     if auto_bump_applied:
         # bump 성공 = next version 으로 정렬됨 → ready 판정으로 진행
         ready = True
@@ -439,10 +408,6 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             )
         else:
             ready_reason = f"local mypy strict not clean: error_count={local_mypy.get('error_count')}"
-    elif ci_verdict not in ("ci_sanity", "sanity", "no_local_verify", "absent", "skipped"):
-        # ci_stale / ci_fail / drift_warning
-        ready = False
-        ready_reason = f"ci_mypy verdict={ci_verdict!r} (not sanity)"
     else:
         ready = True
         ready_reason = "all checks pass + unreleased commits present"
@@ -451,12 +416,6 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
         "current_version": current,
         "last_release_tag": last_tag,
         "unreleased_commits": unreleased,
-        "ci_mypy": {
-            "verdict": ci_verdict,
-            "head_sha_match": ci_mypy.get("head_sha_match"),
-            "ci_run": ci_mypy.get("ci_run"),
-            "message": ci_mypy.get("message"),
-        },
         "local_mypy": local_mypy,
         "next_version": next_ver,
         "ready_to_release": ready,
@@ -475,15 +434,14 @@ def _summarize_release_status(result: dict[str, Any]) -> str:
     v0.11.16+: 6-field 로 확장 — `auto_bump=<applied|skipped|failed>` 추가.
 
     Returns:
-        Compact 1-line string. format = `ci_mypy=<verdict>,
-        local_mypy=<ok|FAIL|unavailable>, ready=<true|false>, next=<X.Y.Z>,
+        Compact 1-line string. format = `local_mypy=<ok|FAIL|unavailable>, ready=<true|false>, next=<X.Y.Z>,
         unreleased=<count>, auto_bump=<state>`. Stable key order for grep / pipe.
         `unavailable` = 탐침 인터프리터에 mypy 부재 (판정 FAIL 이 아니다 — main-022).
+        옛 `ci_mypy=<verdict>` 머리는 mypy-strict CI 폐지로 걷었다 (09-24-main-001).
 
     Example:
-        `ci_mypy=sanity, local_mypy=ok, ready=false, next=0.11.16, unreleased=3, auto_bump=skipped`
+        `local_mypy=ok, ready=false, next=0.11.16, unreleased=3, auto_bump=skipped`
     """
-    ci_verdict = result.get("ci_mypy", {}).get("verdict", "unknown")
     local_mypy_data = result.get("local_mypy", {})
     if local_mypy_data.get("ok", False):
         local_mypy_str = "ok"
@@ -502,7 +460,6 @@ def _summarize_release_status(result: dict[str, Any]) -> str:
     else:
         auto_bump_state = "skipped"
     return (
-        f"ci_mypy={ci_verdict}, "
         f"local_mypy={local_mypy_str}, "
         f"ready={'true' if ready else 'false'}, "
         f"next={next_v}, "

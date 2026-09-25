@@ -4,7 +4,7 @@
 - 범위: 실행 계층 계약, 검사 분류 선언 어휘, 선택 실행 계약, 메타 검증 계약, 소비 프로젝트 적용, 구현 단계, 요구 강제 선언(`ENFORCES`)
 - 대상 독자: workflow 설계자, 검사 저작자, AI agent, kit 소비 프로젝트
 - 상태: draft (ADR-028 accepted, M-011·M-012 구현 완료 — 보급은 M-007 운영 축)
-- 최종 수정일: 2026-09-23
+- 최종 수정일: 2026-09-25
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-028-test-impact-meta-validation.md`, `../../docs/planning/test-impact-tiering-requirements-2026-08.md`, `./global_workflow_standard.md`
 
 > **결정 근거는 ADR-028 에 있다** (2026-08-28: 채취 = audit hook · 판정 =
@@ -21,8 +21,11 @@
 
 - **게이트는 축소하지 않는다.** 선택 실행의 어떤 개선도 게이트 경로의 검사
   개수를 줄이지 않는다 (requirements R0 — 근거·기각 이력은 concept 검토 문서).
-- CI 는 게이트와 같은 전량 축을 돈다. 로컬이 CI 보다 약한 비대칭을 만들지
-  않는다.
+- 게이트는 **로컬**에서 돈다. GitHub Actions 테스트 workflow 는 2026-09-23 소유자
+  결정으로 폐지됐다 (main-022) — 게이트를 대신 돌아 줄 두 번째 실행자는 없다.
+  필터 없는 `--branch-context=all` 전량이 깨끗한 트리에서 green 이면 HEAD sha 의
+  **게이트 통과 기록**(`workflow_kit.common.gate_evidence`)이 남고, `release --apply`
+  가 그 기록을 요구한다. 기록 없는 커밋은 게이트를 돈 것으로 치지 않는다.
 
 ## 2. 검사 분류 선언 어휘
 
@@ -173,9 +176,10 @@ PEP 701(중첩 f-string, 3.12 도입)을 **통과시킨다** — 이 축을 만�
 
 ### Requirement: check-interpreter-axis-is-declared-not-incidental
 
-검사를 도는 Python 해석기는 **선언**에서 나오고, CI 가 선언된 전부를 밟는다.
-정본은 `workflow_kit/common/interpreter_matrix.py` 이고 CI yml 에 버전 문자열을
-적지 않는다 (`branch_matrix` · `sdk_matrix` 와 같은 배선).
+검사를 도는 Python 해석기는 **선언**에서 나오고, `interpreter_matrix --run-local`
+이 선언된 전부를 밟는다. 정본은 `workflow_kit/common/interpreter_matrix.py`
+(`GATE_INTERPRETERS`)이고 다른 곳에 버전 문자열을 적지 않는다 (`branch_matrix` ·
+`sdk_matrix` 와 같은 배선).
 
 2026-09-21 실측: CI 는 검사를 3.11 하나로만 돌았고 3.13 커버리지는 개발자 `.venv`
 에 깔린 것 — **선언이 아니라 우연**이었다. 두 방향 모두 실제로 갈라져 있었다.
@@ -185,11 +189,16 @@ PEP 701(중첩 f-string, 3.12 도입)을 **통과시킨다** — 이 축을 만�
 
 "해석기 민감 검사 목록" 을 선언해 그 부분집합만 돌리지 않는다. 목록은 드리프트하고
 빠진 것을 셀 방법이 없으며 (§2.53 · 브랜치 축과 같은 이유), 실측에서 민감한 쪽은
-*저장소 소스를 파싱하는 검사* 라 미리 알 수 없었다. 전량을 선언된 해석기마다 돌린다 —
-CI 셀은 병렬이라 wall-clock 이 늘지 않는다.
+*저장소 소스를 파싱하는 검사* 라 미리 알 수 없었다. 전량을 선언된 해석기마다 돌린다.
 
-셀이 실제로 그 해석기로 돌았는지는 **긍정 증거**로 확인한다 (`--assert-running`).
-해석기를 못 구하는 로컬 환경에서는 통과가 아니라 **미측정**으로 보고한다.
+비용은 해석기 수만큼 늘어난다 — CI 셀은 병렬이라 wall-clock 이 늘지 않았지만 로컬은
+순차다. 그래서 push 게이트에 넣지 않고 **발행 전 1회 + 해석기에 민감한 코드(문법·경고·
+stdlib)를 건드렸을 때**로 정했다. 발행 게이트가 이 실행을 강제하지는 않는다 — 공백으로
+알고 운영한다 (CLAUDE.md '해석기 매트릭스' 절).
+
+venv 가 실제로 그 해석기인지는 **긍정 증거**로 확인한다 — 셀마다 venv 해석기의
+`sys.version_info` 를 읽어 선언과 다르면 그 셀을 버린다. 해석기를 못 구하면 통과가
+아니라 **미측정**(`UNMEASURED`, exit 2)으로 보고한다.
 
 ### Requirement: repo-warnings-are-a-gate-signal
 

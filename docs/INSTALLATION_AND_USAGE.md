@@ -4,7 +4,7 @@
 - 범위: 의존성 설치, 패키지 임포트, 스모크 테스트 실행, bootstrap/demo/MCP 실행, 핵심 워크플로우 호출 예시
 - 대상 독자: 워크플로우를 직접 수정·검증하려는 개발자, 패키지 인테그레이션을 시도하는 통합 담당자
 - 상태: stable (v1.11.0 기준; 일부 본문 예시는 v0.5.10 시점 baseline 으로 표기, 동작 자체는 v1.1.6 과 정합)
-- 최종 수정일: 2026-09-21 (스모크 파일 수 290 반영)
+- 최종 수정일: 2026-09-25 (CI 폐지 반영 — OS tier 가 로컬 실측 기준으로)
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [QUICKSTART.md](https://github.com/ykylee/standard_ai_workflow/blob/main/QUICKSTART.md), [./DOCUMENT_INDEX.md](./DOCUMENT_INDEX.md), [./CODE_INDEX.md](./CODE_INDEX.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md)
 
 > [!NOTE]
@@ -31,7 +31,7 @@
 
 | 항목 | 권장 버전 | 비고 |
 | --- | --- | --- |
-| OS | Linux / macOS / Windows | **지원 tier** (v1.1.8+): Linux = 전량 smoke (CI 2축) · macOS = CLI probe (CI, `os-matrix.yml`) + 전량 2축 (darwin 실측 2026-08-11) · Windows = CLI probe (CI — wk 핵심 명령 + MCP 브리지; 전량 smoke 이식은 별건) |
+| OS | Linux / macOS / Windows | **지원 tier**: macOS = 전량 2축 (로컬 게이트, 소유자 개발 호스트) · Linux = 전량 2축 (로컬 게이트를 도는 호스트에 한함) · Windows = **현재 미측정**. GitHub Actions 테스트 workflow 가 2026-09-23 폐지돼(`os-matrix.yml` 포함) Windows/macOS 소비자 설치 경로를 재는 실행자가 없다 — 과거 CI probe 이력은 v1.1.8~v1.11.0 릴리스 노트 |
 | Python | **3.11+** (저장소는 `>=3.10` 선언) | 3.11.15 / 3.12.x / 3.13.x 모두 동작 확인됨 |
 | Git | 2.30+ |  |
 | 선택 도구 | `make`, `curl`, `unzip` |  |
@@ -95,9 +95,9 @@ python3 -c "import workflow_kit, workflow_kit.bootstrap_lib, mcp; print('ok')"
 > [!IMPORTANT]
 > **반드시 `workflow-source/` 안에서** `pip install -e .` 를 실행해야 한다. `pyproject.toml` 이 그 안에 있다. 저장소 루트에서 실행하면 editable install 자체는 진행되지만 `cwd` 기준 namespace 해석 때문에 위 §8.6 의 "stale root `workflow_kit/`" 문제가 생길 수 있다.
 
-### 3.B. requirements*.txt 로 런타임만 설치 (CI / 검증자용)
+### 3.B. requirements*.txt 로 런타임만 설치 (검증자용)
 
-CI (`/.github/workflows/smoke.yml`) 가 그대로 쓰는 경로다. editable 가 아니므로 `workflow_kit` 의 소스 수정이 반영되지 않는다.
+폐지된 CI smoke workflow(2026-09-23)가 쓰던 경로다. editable 가 아니므로 `workflow_kit` 의 소스 수정이 반영되지 않는다.
 
 ```bash
 python3 -m venv .venv

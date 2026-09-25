@@ -113,9 +113,9 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     from workflow_kit.release_status import cmd_release_status as _impl
     args_default = argparse.Namespace(auto_bump=False)
     result = _impl(args_default)
-    # 8 + 2 = 10 key verify (v0.11.14 8 + v0.11.16 2)
+    # 7 + 3 = 10 key verify (v0.11.14 7 + v0.11.16 3; ci_mypy 는 09-24-main-001 에서 은퇴)
     for key in ("current_version", "last_release_tag", "unreleased_commits",
-                "ci_mypy", "local_mypy", "next_version", "ready_to_release",
+                "local_mypy", "next_version", "ready_to_release",
                 "ready_reason", "summary", "auto_bump_applied", "auto_bump_result"):
         assert key in result, f"cmd_release_status 결과에 {key!r} key 부재"
     # default (auto_bump=False) → auto_bump_applied=False, auto_bump_result=None
@@ -125,26 +125,26 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     assert result["auto_bump_result"] is None, (
         f"default 호출의 auto_bump_result != None: {result['auto_bump_result']!r}"
     )
-    print("  case 3 (default 호출 schema 11 key + auto_bump=False 정합): PASS")
+    print("  case 3 (default 호출 schema 10 key + auto_bump=False 정합): PASS")
 
-    # case 4: _summarize_release_status 6-field format verify
+    # case 4: _summarize_release_status 5-field format verify
     summary = result["summary"]
-    # format = ci_mypy=<v>, local_mypy=<ok|FAIL>, ready=<bool>, next=<X.Y.Z>, unreleased=<int>, auto_bump=<state>
+    # format = local_mypy=<ok|FAIL|unavailable>, ready=<bool>, next=<X.Y.Z>, unreleased=<int>, auto_bump=<state>
     parts = [p.strip() for p in summary.split(",")]
-    assert len(parts) == 6, f"summary != 6-field: {summary!r}"
+    assert len(parts) == 5, f"summary != 5-field: {summary!r}"
     # 각 part 의 key=value parse
     kv = {}
     for p in parts:
         assert "=" in p, f"summary part 의 key=value format 아님: {p!r}"
         k, v = p.split("=", 1)
         kv[k.strip()] = v.strip()
-    for expected_key in ("ci_mypy", "local_mypy", "ready", "next", "unreleased", "auto_bump"):
+    for expected_key in ("local_mypy", "ready", "next", "unreleased", "auto_bump"):
         assert expected_key in kv, f"summary field {expected_key!r} 부재: {summary!r}"
     # default 호출 시 auto_bump=skipped
     assert kv["auto_bump"] == "skipped", (
         f"default 호출의 summary.auto_bump != 'skipped': {kv['auto_bump']!r}"
     )
-    print(f"  case 4 (summary 6-field format + auto_bump=skipped): PASS")
+    print(f"  case 4 (summary 5-field format + auto_bump=skipped): PASS")
 
     # case 5: mypy strict clean verify (CI scope, 107 source files 유지)
     mypy_proc = subprocess.run(

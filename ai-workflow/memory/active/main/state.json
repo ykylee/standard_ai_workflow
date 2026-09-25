@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-09-24",
+  "generated_at": "2026-09-25",
   "purpose_digest": "여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공",
   "purpose_digest_rev": "2026-06-19",
   "source_of_truth": {
@@ -10,7 +10,7 @@
     "daily_backlog_dir": "ai-workflow/memory/active/main/backlog",
     "tasks_dir": "ai-workflow/memory/active/main/backlog/tasks",
     "sessions_dir": "ai-workflow/memory/active/main/sessions",
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-24.md",
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-25.md",
     "repository_assessment_path": null
   },
   "project": {
@@ -44,10 +44,10 @@
       "TASK-2026-09-23-main-017",
       "TASK-2026-09-23-main-018",
       "TASK-2026-09-23-main-019",
-      "TASK-2026-09-23-main-021",
-      "TASK-2026-09-24-main-001"
+      "TASK-2026-09-23-main-021"
     ],
     "recent_done_items": [
+      "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화",
       "TASK-2026-09-23-main-022 — GitHub CI 테스트 workflow 삭제 — 로컬 개발환경 게이트로 이관",
       "TASK-2026-09-23-main-020 — check_root_anchor_audit 가 전 저장소 감사를 case 마다 반복한다 (파싱 13배)",
       "TASK-2026-09-23-main-011 — 소스 전수 열거가 저장소 안의 중첩 worktree 까지 훑어 호스트 의존 red",
@@ -56,26 +56,24 @@
       "TASK-2026-09-23-main-007 — case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)",
       "TASK-2026-09-23-main-006 — case 수 대조 축의 사각지대 — 개수 선언이 없는 검사를 실측으로 가른다 (main-004 follow-up)",
       "TASK-2026-09-23-main-005 — memory_index 검색이 매칭된 entry 자신을 안 돌려준다 (seed 가 확장분에 ID순으로 밀림) + 한국어 질의는 기본 경로에서 0",
-      "TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)",
-      "TASK-2026-09-23-main-003 — memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로"
+      "TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
-    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-24.md",
-    "task_count": 3,
+    "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-25.md",
+    "task_count": 1,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
-      "TASK-2026-09-23-main-020 — check_root_anchor_audit 가 전 저장소 감사를 case 마다 반복한다 (파싱 13배)",
-      "TASK-2026-09-23-main-022 — GitHub CI 테스트 workflow 삭제 — 로컬 개발환경 게이트로 이관"
+      "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화"
     ]
   },
   "next_documents": [
     "docs/PROJECT_PROFILE.md",
     "ai-workflow/memory/active/main/session_handoff.md",
-    "ai-workflow/memory/active/main/backlog/2026-09-24.md",
+    "ai-workflow/memory/active/main/backlog/2026-09-25.md",
     "ai-workflow/memory/active/main/state.json",
     "ai-workflow/memory/active/main/backlog",
     "ai-workflow/memory/active/main/sessions",

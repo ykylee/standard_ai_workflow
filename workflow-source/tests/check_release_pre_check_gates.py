@@ -114,7 +114,7 @@ def _validate_ns(**overrides: object) -> SimpleNamespace:
 
 def _run_release(*extra: str) -> dict:
     argv = [sys.executable, str(PIPELINE_PY), "release", "--version", "9.9.9",
-            "--skip-validate", "--skip-cross-verify", "--skip-self-recover",
+            "--skip-validate", "--skip-self-recover",
             "--skip-bidir-link", "--skip-doc-headers-update",
             "--skip-maturity-matrix-sync", "--skip-changelog-gen",
             "--skip-smoke-count-check", "--json", *extra]

@@ -263,8 +263,8 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         notes_template: path to notes template (optional)
         skip_validate: skip 4-source validate (not recommended)
         skip_mypy: skip mypy strict pre-check (v0.11.12+, not recommended)
-        skip_cross_verify: skip mypy CI cross-verify (v0.11.13+, advisory 만 default)
-        strict_cross_verify: mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)
+        skip_cross_verify: 은퇴 — no-op (mypy-strict CI 폐지, 09-24-main-001). 호출 호환용
+        strict_cross_verify: 은퇴 — no-op (같은 이유). 주면 stderr 경고만 난다
         auto_bump: if remote tag exists, auto-bump to next version
         full_auto: pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화 (v0.9.1+)
         allow_existing_tag: remote tag 가 이미 존재해도 그대로 진행 (v0.7.21+)

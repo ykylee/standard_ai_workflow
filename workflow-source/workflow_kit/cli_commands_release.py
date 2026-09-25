@@ -7,7 +7,7 @@ release-rollback / release-dist.
 
 release-create / release-status 는 workflow_kit_cli.py 에 남는다 — 4개 검사
 (check_release_status_v0_11_14 / _auto_bump_v0_11_16 /
-check_mypy_strict_release_gate_v0_11_12 / check_mypy_ci_cross_verify_v0_11_13)
+check_mypy_strict_release_gate_v0_11_12 / check_mypy_ci_cross_verify_retired)
 가 그 파일의 소스 본문을 regex 로 대조한다. 남은 cmd_release_create 는
 `_wrap_release_pipeline` 을 workflow_kit_cli 의 명시적 from-import (재-export)
 로 계속 쓴다.

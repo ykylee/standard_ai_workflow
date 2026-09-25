@@ -7,9 +7,10 @@
 - test_release_status_v0_11_14 — `release_status.py` 신규 module + dispatcher
   `release-status` subcommand + __init__.py 의 release_status import/export +
   cumulative strict clean 35 → 36 (v0.11.14) + schema verify (current_version /
-  last_release_tag / unreleased_commits / ci_mypy / local_mypy / next_version /
+  last_release_tag / unreleased_commits / local_mypy / next_version /
   ready_to_release / ready_reason) + mypy strict clean 107 source files verify
-  + cmd_release_status dispatcher text/JSON mode
+  + cmd_release_status dispatcher text/JSON mode. `ci_mypy` 는 mypy-strict CI
+  폐지로 은퇴했다 (TASK-2026-09-24-main-001) — 결과에 **없어야** 한다.
 """
 from __future__ import annotations
 
@@ -59,13 +60,14 @@ def test_release_status_v0_11_14() -> None:
     rs_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "release_status.py"
     assert rs_path.exists(), f"workflow_kit/release_status.py 부재: {rs_path}"
     # cmd_release_status 함수 + 5 helper (_read_pyproject_version / _last_release_tag /
-    # _unreleased_commits / _suggest_next_version / _check_local_mypy / _check_ci_mypy)
+    # _unreleased_commits / _suggest_next_version / _check_local_mypy)
     rs_text = rs_path.read_text(encoding="utf-8")
     assert "def cmd_release_status" in rs_text, "release_status.cmd_release_status 함수 부재"
     for helper in ("_read_pyproject_version", "_last_release_tag", "_unreleased_commits",
-                   "_suggest_next_version", "_check_local_mypy", "_check_ci_mypy"):
+                   "_suggest_next_version", "_check_local_mypy"):
         assert f"def {helper}" in rs_text, f"release_status.{helper} helper 부재"
-    print("  case 1 (release_status.py 신규 + 6 helper + cmd_release_status): PASS")
+    assert "def _check_ci_mypy" not in rs_text, "은퇴한 release_status._check_ci_mypy 가 되살아났다"
+    print("  case 1 (release_status.py 신규 + 5 helper + cmd_release_status): PASS")
 
     # case 2: __init__.py 의 release_status import + __all__ + cumulative count 36
     init_path = REPO_ROOT / "workflow-source" / "workflow_kit" / "__init__.py"
@@ -118,18 +120,16 @@ def test_release_status_v0_11_14() -> None:
     import argparse
     args = argparse.Namespace()
     result = _impl(args)
-    # schema 8 key verify
+    # schema 7 key verify
     for key in ("current_version", "last_release_tag", "unreleased_commits",
-                "ci_mypy", "local_mypy", "next_version", "ready_to_release", "ready_reason"):
+                "local_mypy", "next_version", "ready_to_release", "ready_reason"):
         assert key in result, f"cmd_release_status 결과에 {key!r} key 부재"
     # current_version format = X.Y.Z
     assert re.match(r"^\d+\.\d+\.\d+$", str(result.get("current_version", ""))), (
         f"current_version != X.Y.Z format: {result.get('current_version')!r}"
     )
-    # ci_mypy schema (v0.11.13+ cross-verify)
-    ci = result["ci_mypy"]
-    for k in ("verdict", "head_sha_match", "ci_run", "message"):
-        assert k in ci, f"ci_mypy 에 {k!r} 부재"
+    # ci_mypy 은퇴 (mypy-strict CI 폐지, 09-24-main-001) — 늘 skipped 인 칸이 되살아나면 red
+    assert "ci_mypy" not in result, f"은퇴한 ci_mypy 가 결과에 남았다: {result.get('ci_mypy')!r}"
     # local_mypy schema
     lm = result["local_mypy"]
     for k in ("ok", "exit_code", "error_count", "first_error"):
@@ -331,7 +331,6 @@ def test_local_mypy_absence_is_labeled() -> None:
     # case 4: 집계 경로 — ready_reason 이 부재를 부재라고 말하고 summary 는
     # unavailable 라벨을 쓴다 (error_count=None FAIL 문장 금지)
     with mock.patch.object(mod, "_check_local_mypy", lambda: dict(absence)), \
-            mock.patch.object(mod, "_check_ci_mypy", lambda: {"verdict": "skipped", "head_sha_match": None, "ci_run": None, "message": "test"}), \
             mock.patch.object(mod, "_read_pyproject_version", lambda: "1.6.0"), \
             mock.patch.object(mod, "_last_release_tag", lambda: "v1.5.0-beta"), \
             mock.patch.object(mod, "_unreleased_commits", lambda since_tag=None: {"count": 3, "commits": []}):
@@ -347,7 +346,6 @@ def test_local_mypy_absence_is_labeled() -> None:
 
     # case 5: 측정된 FAIL 의 summary 는 그대로 FAIL — 라벨 분리가 판정을 삼키면 안 된다
     with mock.patch.object(mod, "_check_local_mypy", lambda: dict(measured_fail)), \
-            mock.patch.object(mod, "_check_ci_mypy", lambda: {"verdict": "skipped", "head_sha_match": None, "ci_run": None, "message": "test"}), \
             mock.patch.object(mod, "_read_pyproject_version", lambda: "1.6.0"), \
             mock.patch.object(mod, "_last_release_tag", lambda: "v1.5.0-beta"), \
             mock.patch.object(mod, "_unreleased_commits", lambda since_tag=None: {"count": 3, "commits": []}):

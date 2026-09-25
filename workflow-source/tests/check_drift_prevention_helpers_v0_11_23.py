@@ -290,7 +290,7 @@ def test_case_4_sync_maturity_matrix_applied_ops_convention() -> None:
 def test_case_5_release_dry_run_triggers_drift_step() -> None:
     """`release --dry-run` 가 doc-headers-update + sync-maturity-matrix 를 자동 호출.
 
-    본 test 는 dry-run + --version=0.11.21 + --skip-validate + --skip-cross-verify 조합으로
+    본 test 는 dry-run + --version=0.11.21 + --skip-validate 조합으로
     dist 부재 → 'no dist files' 로 끝나는 단말 경로. *그 전에* auto-step 이 결과 dict 에
     박혀 들어가는지가 본 test 의 핵심. 단, dist 부재 로 *error 필드* 가 있는 모드 라도
     *results dict 의 doc_headers_update / maturity_matrix_sync 키* 가 존재해야 한다.
@@ -302,7 +302,6 @@ def test_case_5_release_dry_run_triggers_drift_step() -> None:
             "release",
             "--dry-run",
             "--skip-validate",
-            "--skip-cross-verify",
             "--version=0.11.21",
         ],
         cwd=str(REPO),
@@ -352,7 +351,6 @@ def test_case_6_release_dry_run_does_not_touch_repo() -> None:
             "release",
             "--dry-run",
             "--skip-validate",
-            "--skip-cross-verify",
             "--version=0.11.21",
             "--json",
         ],

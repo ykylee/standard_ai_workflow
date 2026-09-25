@@ -358,8 +358,8 @@ def cmd_release_create(argv: list[str]) -> int:
         --notes-template=PATH    notes template file (optional)
         --skip-validate          skip 4-source validate (not recommended)
         --skip-mypy              skip mypy strict pre-check (v0.11.12+, not recommended)
-        --skip-cross-verify      skip mypy CI cross-verify (v0.11.13+, advisory 만 default)
-        --strict-cross-verify    mypy CI cross-verify 시 drift / ci_stale / ci_fail hard fail (v0.11.13+)
+        --skip-cross-verify      은퇴 — no-op (mypy-strict CI 폐지, 09-24-main-001)
+        --strict-cross-verify    은퇴 — no-op (같은 이유, stderr 경고만)
         --auto-bump              auto-bump if remote tag exists
         --full-auto              pre-check conflict 시 --auto-bump / --allow-existing-tag 자동 활성화
         --apply                  actually create release (default dry-run)
@@ -435,7 +435,6 @@ def cmd_release_status(argv: list[str]) -> int:
     - current pyproject version
     - last release tag (git describe)
     - unreleased commits (count + list)
-    - CI mypy cross-verify verdict (v0.11.13+ Layer 1)
     - local mypy strict status (v0.11.12+ Layer 2)
     - next version (auto-bump hint)
     - ready_to_release verdict (all checks pass)
@@ -465,8 +464,6 @@ def cmd_release_status(argv: list[str]) -> int:
             print(f"current_version: {result.get('current_version')}")
             print(f"last_release_tag: {result.get('last_release_tag')}")
             print(f"unreleased_commits: {result.get('unreleased_commits', {}).get('count', 0)}")
-            print(f"ci_mypy.verdict: {result.get('ci_mypy', {}).get('verdict')}")
-            print(f"ci_mypy.head_sha_match: {result.get('ci_mypy', {}).get('head_sha_match')}")
             print(f"local_mypy.ok: {result.get('local_mypy', {}).get('ok')}")
             print(f"local_mypy.error_count: {result.get('local_mypy', {}).get('error_count')}")
             print(f"next_version: {result.get('next_version', {}).get('next')}")

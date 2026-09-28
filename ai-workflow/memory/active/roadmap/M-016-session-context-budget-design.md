@@ -2,7 +2,7 @@
 id: M-016
 title: 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)
 sdlc_phase: design
-status: planned
+status: done
 order: 16
 parallel_allowed:
   - M-007
@@ -28,6 +28,9 @@ requirements sign-off ([`M-015`](./M-015-session-context-budget-requirements.md)
 - **core 스펙 절**: 예산 · 출구 · '잃지 않음' 판정(R4)의 kit 표준 문서화.
 - **불변**: R0 — 이관은 삭제가 아니다 · `state.json` 은 생성기로만 · 생성 블록 불가침 ·
   push 게이트 전량 2축.
+
+**종결 (2026-09-28)**: 소유자 승인 — ADR-029 accepted, core 스펙 draft. 구현은
+[`M-017`](./M-017-session-context-budget-implementation.md) 으로 이어진다.
 
 ## WBS
 

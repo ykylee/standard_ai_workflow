@@ -604,23 +604,85 @@
       "id": "M-016",
       "title": "세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)",
       "sdlc_phase": "design",
-      "declared_status": "planned",
-      "derived_status": "planned",
-      "progress": 0.0,
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
       "total_leaves": 1,
-      "done_leaves": 0,
-      "deliverables_missing": [
-        "ai-workflow/wiki/decisions/adr-029-session-context-budget.md",
-        "workflow-source/core/session_context_budget_spec.md"
-      ],
+      "done_leaves": 1,
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-16.1",
           "title": "design 확정 — ADR-029 + `session_context_budget_spec.md` — 산출물:",
-          "derived_status": "planned",
+          "derived_status": "done",
           "linked_task_ids": [
             "TASK-2026-09-28-main-012"
           ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-017",
+      "title": "세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)",
+      "sdlc_phase": "implementation",
+      "declared_status": "planned",
+      "derived_status": "planned",
+      "progress": 0.0,
+      "total_leaves": 5,
+      "done_leaves": 0,
+      "deliverables_missing": [
+        "workflow-source/workflow_kit/common/context_budget.py",
+        "workflow-source/workflow_kit/tools/rollover_handoff_notes.py",
+        "workflow-source/tests/check_session_context_budget.py",
+        "docs/LOCAL_GATE.md"
+      ],
+      "wbs": [
+        {
+          "id": "WBS-17.1",
+          "title": "예산 모듈 + refresh-state warning — `context_budget.py` (예산 레코드 ·",
+          "derived_status": "planned",
+          "linked_task_ids": [
+            "TASK-2026-09-28-main-013"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-17.2",
+          "title": "D — `state.json.memory_entries` v2 포인터화 + test 갱신",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-17.3",
+          "title": "A·B — `wk rollover-handoff-notes` + fixture test (무손실) + 표준 `Memory Update Paths`",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-17.4",
+          "title": "E — `CLAUDE.md` 운영 절 → `docs/LOCAL_GATE.md`",
+          "derived_status": "planned",
+          "linked_task_ids": [],
+          "total_leaves": 1,
+          "done_leaves": 0,
+          "children": []
+        },
+        {
+          "id": "WBS-17.5",
+          "title": "이관 실행 · 실측 · 상한 한 번 재조정 + `check_session_context_budget` 활성 (red)",
+          "derived_status": "planned",
+          "linked_task_ids": [],
           "total_leaves": 1,
           "done_leaves": 0,
           "children": []

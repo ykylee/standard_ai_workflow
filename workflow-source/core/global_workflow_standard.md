@@ -3,7 +3,7 @@
 - 문서 목적: 모든 저장소에서 공통으로 적용되는 AI 에이전트 협업 표준을 정의한다.
 - 범위: 문서 구조, 세션 핸드오프, 작업 분류 및 모드(Task Modes) 기준
 - 상태: stable
-- 최종 수정일: 2026-08-29
+- 최종 수정일: 2026-09-28
 - 관련 문서: `../templates/project_workflow_profile_template.md`, `../templates/session_handoff_template.md`, `../templates/work_backlog_template.md`, **외부 contract: [`./orchestrator_subagent_contract_v1.md`](./orchestrator_subagent_contract_v1.md)**, [`./workflow_agent_topology.md`](./workflow_agent_topology.md)
 
 ## 1. Core Principles
@@ -236,6 +236,7 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 | Sync affected documents (advisory) | `wk doc-sync` |
 | Regenerate state.json at session close | `wk refresh-state` |
 | Roll off handoff §1 baselines when over cap | `wk rollover-baselines` |
+| Roll off handoff §5 accumulated notes when over budget | `wk rollover-handoff-notes` |
 | Propose memory_index promotion candidates at close (advisory, no write) | `wk suggest-memory-entries` |
 
 **11.2 Parsing contract** — holds even when writing by hand instead of using the tools
@@ -247,6 +248,7 @@ Measured (2026-08-11): prose such as "(none ...)" left in an empty handoff list 
 - Handoff §1 baseline lines have a cap. When it is exceeded, **move** the excess with
   `wk rollover-baselines` — never delete them by hand. That prose exists nowhere else,
   unlike the recently-done list whose SSOT is `backlog/tasks/`.
+- Handoff §5 accumulated sections (everything outside the declared current-section list) have a byte budget. When it is exceeded, **move** the oldest with `wk rollover-handoff-notes` — rules go to `lessons.md`, other notes to `sessions/`.
 - `session_handoff.md` and the backlog are **inputs to the state.json generator** — writing outside the format silently corrupts state.json.
 
 ## 다음에 읽을 문서

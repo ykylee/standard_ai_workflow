@@ -71,6 +71,8 @@ TOOL_MODULES: Final[dict[str, str]] = {
     # 재생성 창구 (--check 는 drift 판정만).
     "refresh-state": "workflow_kit.tools.refresh_state",
     "rollover-baselines": "workflow_kit.tools.rollover_handoff_baselines",
+    # ADR-029 (M-017): handoff §5 누적형 절의 출구 — 예산 초과 메시지가 이 명령을 가리킨다.
+    "rollover-handoff-notes": "workflow_kit.tools.rollover_handoff_notes",
     "refresh-wiki-memory": "workflow_kit.tools.refresh_wiki_memory",
     "release-pipeline": "workflow_kit.tools.release_pipeline",
     "release-v0-13-0": "workflow_kit.tools.release_v0_13_0",

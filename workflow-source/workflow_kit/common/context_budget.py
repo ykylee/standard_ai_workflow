@@ -97,13 +97,19 @@ class S5Block:
         return len(self.text.encode("utf-8"))
 
 
-def _section(text: str, number: int) -> str:
-    """`## <number>.` 절 본문 (제목 줄 포함). 없으면 빈 문자열."""
+def section_span(text: str, number: int) -> tuple[int, int] | None:
+    """`## <number>.` 절의 `(시작, 끝)` 문자 위치 (제목 줄 포함, 다음 `## ` 직전까지)."""
     m = re.search(rf"(?m)^## {number}\.", text)
     if not m:
-        return ""
+        return None
     nxt = re.search(r"(?m)^## ", text[m.end():])
-    return text[m.start(): m.end() + nxt.start()] if nxt else text[m.start():]
+    return m.start(), (m.end() + nxt.start()) if nxt else len(text)
+
+
+def _section(text: str, number: int) -> str:
+    """`## <number>.` 절 본문 (제목 줄 포함). 없으면 빈 문자열."""
+    span = section_span(text, number)
+    return text[span[0]:span[1]] if span else ""
 
 
 def is_current_section(title: str) -> bool:

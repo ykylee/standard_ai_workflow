@@ -634,7 +634,6 @@
       "total_leaves": 5,
       "done_leaves": 0,
       "deliverables_missing": [
-        "workflow-source/workflow_kit/tools/rollover_handoff_notes.py",
         "docs/LOCAL_GATE.md"
       ],
       "wbs": [

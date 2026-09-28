@@ -221,7 +221,7 @@ VALIDATE_SOURCES: tuple[str, ...] = (
 VALIDATE_UNSKIPPABLE: dict[str, str] = {
     "plugin_payload": (
         "P4 판정(2026-08-13) = 자동 재생성이 아니라 게이트. 어긋나면 처방이 "
-        "`wk plugin-payload` 재생성 한 줄이라 끌 이유가 약하다 — 소유자 결정 2026-09-28"
+        "`python3 -m workflow_kit.plugin_payload --apply` 재생성 한 줄이라 끌 이유가 약하다 — 소유자 결정 2026-09-28"
     ),
 }
 

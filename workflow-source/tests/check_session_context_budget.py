@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""세션 시작 컨텍스트 예산 — 측정 계약과 refresh-state 배선 (5 cases, ADR-029).
+"""세션 시작 컨텍스트 예산 — 측정 · refresh-state 배선 · §5 이관 도구 (8 cases, ADR-029).
 
 정본은 `workflow_kit/common/context_budget.py`, 계약은 `core/session_context_budget_spec.md`.
 
@@ -12,6 +12,12 @@
   5) `wk refresh-state` 가 초과한 예산만 **출구 명령과 함께** warning 으로 내고, 측정 전부를
      `context_budget` 으로 싣는다 (seed 한 임시 workspace — 저장소를 건드리지 않는다).
      같은 실행이 쓴 `state.json` 의 `memory_entries` 가 v2 포인터다 (생성기 경로 배선, 17.2)
+  6) `rollover-handoff-notes` 는 **무손실**이다 (requirements R4.1) — 누적형을 아래부터 옮겨 예산
+     이하로 만들고, 옮긴 절은 대상 파일에 바이트 그대로 있으며(규칙 → lessons.md, 그 밖 →
+     sessions/), 현재형은 그대로, §5 서두에 포인터가 정확히 하나다
+  7) 멱등 — 두 번째 실행은 아무것도 쓰지 않고, 쌓인 포인터는 하나로 접는다
+  8) 대상 파일은 newest-first 로 앞에 붙고 머리말은 한 번만 있다 · 포인터 건수는 대상 파일의
+     실제 절 수다
 
 이 저장소의 예산 red 판정(살아 있는 문서)은 이관을 실행한 뒤 켠다 — 스펙 §8 의 '출구 먼저,
 red 나중'. 지금 켜면 만성 red 가 된다.
@@ -202,12 +208,117 @@ def case_5_refresh_state_warns_with_exit() -> None:
     _record("case 5 refresh-state 가 초과만 출구와 함께 경고", problems)
 
 
+def _notes_fixture(n_rules: int, n_notes: int, *, size: int) -> str:
+    """§5 에 현재형 하나 + 누적형 규칙 n_rules · 기록 n_notes 절 (위가 최신)."""
+    parts = ["# Session Handoff\n\n## 1. 현재 작업 요약\n\n- 현재 기준선: **x**\n\n",
+             "## 5. 다음 세션 시작 포인트\n\n서두.\n\n",
+             "### ▶ 지금 할 일 — 운영\n\n#### 작업 후보 — 정본\n\n- `TASK-X` 후보\n\n"]
+    for i in range(n_rules):
+        parts.append(f"### {90 - i}차가 남긴 규칙 (재발 방지)\n\n- 규칙{i} " + "가" * size + "\n\n")
+    for i in range(n_notes):
+        parts.append(f"### 무엇이 끝났나 (2026-08-{20 - i:02d})\n\n- 기록{i} " + "나" * size + "\n\n")
+    parts.append("## 6. 남은 리스크\n\n- r\n")
+    return "".join(parts)
+
+
+def case_6_rollover_is_lossless() -> None:
+    from workflow_kit.tools.rollover_handoff_notes import run
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        h = Path(tmp) / "session_handoff.md"
+        original = _notes_fixture(4, 3, size=1000)
+        h.write_text(original, encoding="utf-8")
+        before = {b.title: b for b in split_s5_blocks(original)}
+        res = run(h, limit=8000, apply=True, today="2026-09-28")
+        after_text = h.read_text(encoding="utf-8")
+        after = {b.title: b for b in split_s5_blocks(after_text)}
+        lessons = (Path(tmp) / "lessons.md").read_text(encoding="utf-8") if (Path(tmp) / "lessons.md").exists() else ""
+        notes_f = Path(tmp) / "sessions" / "handoff-notes_2026-09-28.md"
+        notes = notes_f.read_text(encoding="utf-8") if notes_f.exists() else ""
+        acc_after = sum(b.size for b in after.values() if not b.current)
+        if acc_after > 8000:
+            problems.append(f"옮긴 뒤 누적형 {acc_after}B > 8000")
+        moved = [t for t in before if t not in after]
+        if not moved or res.get("moved_count") != len(moved):
+            problems.append(f"옮긴 절 {moved} / 보고 {res.get('moved_count')}")
+        # 아래(오래된 것)부터 옮겼는가 — 남은 누적형 절은 전부 옮긴 절보다 위에 있었다
+        order = list(before)
+        kept_acc = [t for t, blk in after.items() if not blk.current]
+        if moved and kept_acc and max(order.index(t) for t in kept_acc) > min(order.index(t) for t in moved):
+            problems.append(f"아래부터 옮기지 않았다: 남은 {kept_acc} / 옮긴 {moved}")
+        for t in moved:
+            dest = lessons if t[0].isdigit() else notes
+            if before[t].text.rstrip("\n") not in dest:
+                problems.append(f"무손실 위반: {t!r} 가 대상 파일에 바이트 그대로 없다")
+        # 현재형 절(서두 제외 — 포인터가 들어간다)은 바이트 그대로 남는다
+        for t, blk in before.items():
+            if not blk.current or t == "(서두)":
+                continue
+            if t not in after or after[t].text.rstrip("\n") != blk.text.rstrip("\n"):
+                problems.append(f"현재형 {t!r} 가 바뀌었다")
+        pointers = [ln for ln in after_text.splitlines() if ln.startswith("- 누적 기록은")]
+        if len(pointers) != 1:
+            problems.append(f"포인터 {len(pointers)}줄")
+        if "## 6. 남은 리스크" not in after_text or "## 1. 현재 작업 요약" not in after_text:
+            problems.append("§5 밖의 절이 손상됐다")
+    _record("case 6 §5 이관은 무손실 · 아래부터 · 현재형 보존 · 포인터 하나", problems)
+
+
+def case_7_idempotent_and_folds_pointers() -> None:
+    from workflow_kit.tools.rollover_handoff_notes import run
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        h = Path(tmp) / "session_handoff.md"
+        h.write_text(_notes_fixture(4, 3, size=1000), encoding="utf-8")
+        run(h, limit=8000, apply=True, today="2026-09-28")
+        snap = {p: p.read_bytes() for p in Path(tmp).rglob("*") if p.is_file()}
+        second = run(h, limit=8000, apply=True, today="2026-09-28")
+        if second.get("applied") or {p: p.read_bytes() for p in Path(tmp).rglob("*") if p.is_file()} != snap:
+            problems.append("두 번째 실행이 무언가를 썼다")
+        text = h.read_text(encoding="utf-8")
+        ptr = next(ln for ln in text.splitlines() if ln.startswith("- 누적 기록은"))
+        h.write_text(text.replace(ptr, ptr + "\n" + ptr), encoding="utf-8")
+        run(h, limit=8000, apply=True, today="2026-09-28")
+        n = sum(1 for ln in h.read_text(encoding="utf-8").splitlines() if ln.startswith("- 누적 기록은"))
+        if n != 1:
+            problems.append(f"쌓인 포인터를 접지 못했다: {n}줄")
+    _record("case 7 멱등 · 포인터 접기", problems)
+
+
+def case_8_newest_first_and_counts() -> None:
+    from workflow_kit.tools.rollover_handoff_notes import run
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        h = Path(tmp) / "session_handoff.md"
+        h.write_text(_notes_fixture(3, 0, size=2000), encoding="utf-8")
+        run(h, limit=2500, apply=True, today="2026-09-27")
+        text = h.read_text(encoding="utf-8")
+        cut = text.index("### ▶ 지금 할 일")
+        head, rest = text[:cut], text[cut:]
+        rest = rest.replace("### ▶ 지금 할 일", "### 99차가 남긴 규칙 (재발 방지)\n\n- 새 규칙 " + "다" * 3000 + "\n\n### ▶ 지금 할 일", 1)
+        h.write_text(head + rest, encoding="utf-8")
+        run(h, limit=2500, apply=True, today="2026-09-28")
+        lessons = (Path(tmp) / "lessons.md").read_text(encoding="utf-8")
+        if lessons.count("# Lessons") != 1:
+            problems.append(f"머리말이 {lessons.count('# Lessons')}번")
+        if not (0 <= lessons.find("## 이관 2026-09-28") < lessons.find("## 이관 2026-09-27")):
+            problems.append("newest-first 가 아니다")
+        n_blocks = sum(1 for ln in lessons.splitlines() if ln.startswith("### "))
+        ptr = next(ln for ln in h.read_text(encoding="utf-8").splitlines() if ln.startswith("- 누적 기록은"))
+        if f"규칙 {n_blocks}절" not in ptr:
+            problems.append(f"포인터 건수가 실제({n_blocks})와 다르다: {ptr}")
+    _record("case 8 newest-first · 머리말 한 번 · 포인터 건수 = 실제 절 수", problems)
+
+
 CASES = (
     case_1_current_vs_accumulated,
     case_2_unlisted_section_is_accumulated,
     case_3_baseline_lines_only_in_s1,
     case_4_missing_is_unmeasured,
     case_5_refresh_state_warns_with_exit,
+    case_6_rollover_is_lossless,
+    case_7_idempotent_and_folds_pointers,
+    case_8_newest_first_and_counts,
 )
 
 

@@ -2,7 +2,7 @@
 id: M-013
 title: 세션 시작 컨텍스트 예산 — 필독 문서 부피를 선언하고 잰다
 sdlc_phase: concept
-status: planned
+status: done
 order: 13
 parallel_allowed:
   - M-007
@@ -31,6 +31,11 @@ goals: [G2]
 
 SDLC 온보딩 기본 순서(concept → requirements → design → implementation)를 따른다.
 concept 산출물이 채워지기 전에는 다음 단계 leaf 를 열지 않는다.
+
+**종결 (2026-09-28)**: 소유자 결정 **③ 출구 + 예산** — 이관 출구(A~E 중 범위는
+requirements 에서)를 만들고, 넘치면 그 출구를 가리키는 warn/red 를 건다 (rollover 와
+같은 모양). requirements 단계는 [`M-015`](./M-015-session-context-budget-requirements.md)
+로 이어진다.
 
 ## WBS
 

@@ -217,6 +217,34 @@ def _detect_stale_branch_memories(
             )
     return {"stale_branches": stale, "archived": bool(apply and stale)}
 
+def _task_id_collision_warnings(workspace_root: Path) -> list[str]:
+    """워킹 트리의 task 가 원격의 같은 ID·다른 task 와 부딪히면 warning (TASK-2026-09-28-main-010).
+
+    검출 자체는 `common.git.task_id_collisions` 가 한다 (main-016). 대시보드 지표에만
+    실어 두면 아무도 안 본다 — 동기화 직후 에이전트가 **반드시** 보는 자리가 여기다.
+    87차에 실제로 났다: 미커밋 `main-009` 와 원격의 같은 ID 가 다른 task 였다.
+
+    **원격을 못 봤을 때는 말하지 않는다.** 원격 추적 ref 가 없다는 것은 그 브랜치가
+    원격에 없다는 뜻이라 같은 브랜치 충돌이 원리상 생기지 않는다 — 매 세션 경고하면
+    로컬 전용 브랜치·원격 없는 저장소에서 소음이 된다. '못 봤음' 은 대시보드 지표가
+    `task_id_collision_measured=false` + 이유로 계속 싣는다 (모름을 안전으로 바꾸지 않는다).
+    ref 는 마지막 fetch 시점이다 — 세션 시작 전 원격 동기화(작업 원칙)가 전제다.
+    """
+    try:
+        from workflow_kit.common.git import task_id_collisions
+        from workflow_kit.common.paths import branch_for_workspace, memory_active_dir
+        branch = branch_for_workspace(workspace_root)
+        tasks_dir = memory_active_dir(workspace_root) / branch / "backlog" / "tasks"
+        found = task_id_collisions(tasks_dir, branch=branch)
+    except Exception as exc:  # noqa: BLE001 — 점검 실패가 세션 진입을 막지 않는다
+        return [f"task ID 충돌 점검 실패 ({type(exc).__name__}) — `wk dashboard` 의 충돌 지표로 확인하라."]
+    return [
+        f"task ID 충돌: {task_id} — 로컬 {local!r} ≠ {found.ref} {remote!r}. "
+        "로컬 쪽을 새 ID 로 재번호하고 참조를 함께 고쳐라 (다른 에이전트의 미커밋 작업이면 소유자 확인)."
+        for task_id, local, remote in found.collisions
+    ]
+
+
 def _repair_missing_entrypoints(source_context: dict) -> dict:
     """부재 산출물을 현재 kit 버전으로 채운다. 실패해도 세션 진입을 막지 않는다.
 
@@ -440,6 +468,7 @@ def main() -> int:
         from workflow_kit.common.schemas import SessionStartOutput, SessionStartPurposeContext
 
         workspace_root = project_workspace_root(project_profile_path)
+        warnings.extend(_task_id_collision_warnings(workspace_root))
         state_json_path = workflow_state_path(project_profile_path)
         purpose_context_data = build_purpose_context(
             workspace_root=workspace_root,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""task ID 채번이 원격을 함께 보는가 + 충돌을 검출하는가 (8 cases, TASK-2026-09-07-main-006 · 09-23-main-016).
+"""task ID 채번이 원격을 함께 보는가 + 충돌을 검출하는가 (9 cases, TASK-2026-09-07-main-006 · 09-23-main-016).
 
 ## 왜 필요한가
 
@@ -30,6 +30,9 @@
   충돌 표식만 세어 0 (pass) 였다. case 6 은 그 상황을 bare 원격 + 클론 둘로 재현하고
   (같은 task 의 상태 갱신·로컬 전용 신규 task 는 충돌이 **아님**도 함께 잰다),
   case 7 은 대시보드 지표까지의 배선, case 8 은 원격을 못 봤을 때 '못 봤다' 로 말하는지.
+- case 9 는 **session-start warning 배선**이다 (09-28-main-010). 대시보드에만 있으면 아무도
+  안 본다. 실제 git fixture 로 helper 를, 예시 워크스페이스로 session-start 출력까지의
+  배선을 잰다 (후자는 검출 결과만 대역 — 검출 자체는 case 6 이 실물로 잰다).
 - case 5 는 **거짓 보증의 재발 방지**다. 문장 하나가 결함을 덮었으므로 그
   문장이 돌아오는 것을 정적으로 막는다.
 """
@@ -43,6 +46,8 @@ from pathlib import Path
 
 WATCHES = (
     "workflow-source/workflow_kit/*",
+    # case 9 가 session-start 를 이 예시 워크스페이스로 돌린다 (09-28-main-010)
+    "workflow-source/examples/acme_delivery_platform/*",
     "workflow-source/pyproject.toml",
 )
 
@@ -277,6 +282,62 @@ def case_8_unconsulted_remote_is_not_zero_conflicts() -> bool:
     return True
 
 
+def case_9_session_start_warns_on_collision() -> bool:
+    """충돌이 있으면 session-start warnings 에 실린다 · 못 봤으면 소음을 내지 않는다."""
+    print("case_9: session-start warning 배선")
+    import contextlib
+    import io
+    import json as _json
+    from unittest import mock
+    from workflow_kit.common import git as kit_git
+    from workflow_kit.tools import session_start as ss
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="idclash-") as tmp:
+        a = _collision_fixture(Path(tmp))
+        with _no_branch_env():
+            got = ss._task_id_collision_warnings(a)
+        if len(got) != 1 or f"TASK-{DATE}-main-002" not in got[0] or "A 가" not in got[0] or "B 가" not in got[0]:
+            problems.append(f"실제 fixture 의 warning: {got}")
+    with tempfile.TemporaryDirectory(prefix="idnorem-") as tmp:
+        root = Path(tmp) / "repo"
+        root.mkdir()
+        _git(root, "init", "-q", "-b", "main")
+        _task(root, 1, "원격 없는 task")
+        with _no_branch_env():
+            quiet = ss._task_id_collision_warnings(root)
+        if quiet:
+            problems.append(f"원격 없는 저장소에서 소음: {quiet}")
+
+    example = SOURCE_ROOT / "examples" / "acme_delivery_platform"
+    argv = ["session_start",
+            "--session-handoff-path", str(example / "session_handoff.md"),
+            "--work-backlog-index-path", str(example / "work_backlog.md"),
+            "--project-profile-path", str(example / "PROJECT_PROFILE.md"),
+            "--latest-backlog-path", str(sorted((example / "backlog").glob("*.md"))[-1])]
+
+    def run_with(result):  # type: ignore[no-untyped-def]
+        buf = io.StringIO()
+        with mock.patch.object(kit_git, "task_id_collisions", lambda *a, **k: result), \
+                mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(buf):
+            ss.main()
+        return _json.loads(buf.getvalue()).get("warnings", [])
+
+    fake = kit_git.TaskIdCollisions(
+        (("TASK-X-main-001", "# TASK-X-main-001 — 로컬", "# TASK-X-main-001 — 원격"),),
+        True, "refs/remotes/origin/main", "")
+    wired = run_with(fake)
+    if not any("TASK-X-main-001" in w for w in wired):
+        problems.append(f"session-start 출력에 충돌 warning 이 없다: {wired}")
+    unseen = run_with(kit_git.TaskIdCollisions((), False, "refs/remotes/origin/x", "원격 추적 ref 가 없다"))
+    if any("task ID" in w for w in unseen):
+        problems.append(f"못 봤을 때 소음: {unseen}")
+    if problems:
+        print(f"  FAIL: {problems}")
+        return False
+    print("  [info] fixture 충돌 1건 → warning 1건, 원격 없음 → 0건, session-start 출력까지 배선")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_remote_only_id_is_avoided", case_1_remote_only_id_is_avoided),
@@ -287,6 +348,7 @@ def main() -> int:
         ("case_6_uncommitted_id_collision_is_detected", case_6_uncommitted_id_collision_is_detected),
         ("case_7_dashboard_counts_id_collisions", case_7_dashboard_counts_id_collisions),
         ("case_8_unconsulted_remote_is_not_zero_conflicts", case_8_unconsulted_remote_is_not_zero_conflicts),
+        ("case_9_session_start_warns_on_collision", case_9_session_start_warns_on_collision),
     ]
     results = [(name, fn()) for name, fn in cases]
     passed = sum(1 for _, ok in results if ok)

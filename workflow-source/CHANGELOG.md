@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- refactor(release)!: v1.12.0 은퇴 shim 2종 제거 — verify_required_ci · REQUIRED_CI_WORKFLOWS (09-28-main-015) (2f3affc5)
+- chore(memory): 방치된 worktree 잔재 정리 — 원격 브랜치 3 삭제 + clear-field memory 아카이브 (09-23-main-017) (46ce9f9f)
 - docs(claude-md): 운영 절을 docs/LOCAL_GATE.md 로 이관 — CLAUDE.md 19.6KB → 11.3KB (M-017/WBS-17.4) (e1ef118b)
 - docs(design): ADR-029 세션 시작 컨텍스트 예산 accepted + core 스펙 → M-017 개설 (751346a3)
 - docs(planning): M-015 requirements sign-off (Q1~Q5 권고안) → M-016 design 개설 (e9a4b3c0)
@@ -78,12 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): main-006·main-007 승격 — 86차 세션 최종 (entry 27 → 29) (709eb23c)
 - chore(memory): 86차 세션 종료 마무리 — main-005 승격 + 기준선 정정 (3a92df61)
 - chore(memory): 86차 세션 종료 — 판정이 아무것도 재지 않던 결함족 3건 (c3a4b39c)
-- chore(memory): 85차 세션 종료 — memory_index 7건 승격 (749726ad)
-- chore(memory): main-007 완료 기준 4 실측 — CI 가 전수 측정을 돈다 (2eb0f44c)
-- ... (417 more)
+- ... (416 more)
 
 ### Fixed
 
+- fix(tests): check_self_application 이 실제 사용 지표에 session-start 를 붙였다 + main-018 판정 (09-23-main-018) (23162c90)
 - fix(release): 유예 없이 지운 공개 API 2종을 은퇴 shim 으로 복원 — v1.13.0 제거 (09-28-main-014) (891ce0b4)
 - fix(dashboard): Panel 1 phase 를 로드맵 정본에서 파생 — v0.15 에 멈춘 상수 표시 (09-23-main-015) (6253791c)
 - fix(release): validate source 목록을 정본 하나로 — 사본이 새 source 를 못 따라감 (09-28-main-009) (9c2bd06a)
@@ -113,13 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(doctor): content_drift 가 읽히지 않는 사본을 재고 있었다 — 소스 유형을 읽는다 (main-006) (3d5c7830)
 - fix(backlog-update): --apply 가 형제 생성물 roadmap_state.json 을 두고 갔다 (main-004) (cc172d6c)
 - fix(backlog-update): update 에서 --task-brief 를 선택 인자로 — 뜻이 갈리는 필수 인자가 진행 기록을 덮었다 (371afdbf)
-- fix(graph-insights): 완료한 일이 늘수록 내려가던 점수 — 오탐인 줄 알았던 자리가 지표 결함이었다 (878f0ae7)
-- ... (174 more)
+- ... (175 more)
+
+## [1.13.0] - 2026-09-28
+
+### Changed
+
+- release(v1.13.0): 발행 준비 — v1.12.0 에서 예고한 은퇴 API 제거 + telemetry 오염 수리 (1f16e431)
 
 ## [1.12.0] - 2026-09-28
 
 ### Changed
 
+- release(v1.12.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (18790f49)
 - release(v1.12.0): 발행 준비 — CI 를 걷고 로컬 게이트를 근거로 세운 사이클 + 세션 시작 컨텍스트 예산 (c26c92f8)
 
 ## [1.11.0] - 2026-09-23

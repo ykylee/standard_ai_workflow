@@ -62,3 +62,20 @@ session-start 를 실제 저장소에서 부르면서 memory_index telemetry 에
 - memory_index 30 entry 중 한 번이라도 선택된 것은 15 — 질의가 `state.json` 축에서 유도돼 세션
   내내 같다. 결함 판정 밖의 관찰로 남긴다.
 - **Windows 는 현재 미측정이다** (`TASK-2026-08-25-main-017` blocked).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-28T09:30:04Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

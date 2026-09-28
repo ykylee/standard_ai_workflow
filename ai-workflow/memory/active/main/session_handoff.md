@@ -231,10 +231,9 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > **v1.12.0 은 93차에 발행됐다** (`TASK-2026-09-28-main-014`) — minor + 은퇴 shim. **v1.13.0 에서
 > `verify_required_ci` · `REQUIRED_CI_WORKFLOWS` 를 지운다** (deprecation policy spec §3.7 마지막 체크박스).
 
-> **v1.13.0 은 발행됐다** (`TASK-2026-09-28-main-016`, 96차 close) — 태그 `1f16e431`, Release asset 4종, macOS §2.8 재적용 94차 완료. `plugin_enabled` 는 96차에 4채널로 넓혔다(main-018 close). 남은 것: **Linux i5-1335U 호스트의 §2.8 재적용**(1.12.0 → 1.13.0) 을 그 호스트 다음 세션에서 `wk doctor` `behind=[]` · `disabled=[]` 로 확인.
+> **v1.13.0 은 발행됐다** (`TASK-2026-09-28-main-016`, 96차 close) — 태그 `1f16e431`, Release asset 4종, macOS §2.8 재적용 94차 완료. `plugin_enabled` 는 96차에 4채널로 넓혔다(main-018 close). Linux i5-1335U 호스트는 발행 직후 §2.8 을 했다 — 97차 doctor 4채널 `[in-sync]` 1.13.0 · `plugin_enabled` 4채널 enabled.
 
-> **은퇴 shim 2종은 93차에 코드에서 지웠다** (`TASK-2026-09-28-main-015`). **다음 발행은 v1.13.0 이상** —
-> patch 로 내면 공개 API 제거가 patch 에 실린다. blocked 2건: 08-25-main-017 Windows · 09-23-main-017 macOS.
+> **은퇴 shim 2종은 93차에 코드에서 지웠다** (`TASK-2026-09-28-main-015`). v1.13.0 으로 발행했다. blocked 1건: 08-25-main-017 Windows.
 
 > **main-017(방치 worktree)은 94차에 닫혔다** — macOS 호스트의 worktree 4개 제거, `git worktree list` = main 하나.
 

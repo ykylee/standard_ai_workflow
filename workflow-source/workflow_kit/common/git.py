@@ -128,6 +128,111 @@ def remote_known_task_ids(
     Returns:
         `RemoteTaskIds` — `consulted=False` 면 `ids` 는 **판단 근거가 아니다**.
     """
+    loc = _remote_tasks_location(tasks_dir, remote, branch, timeout)
+    if isinstance(loc, RemoteTaskIds):
+        return loc
+    root, relpath, ref = loc
+
+    listing = _run_git(
+        ["ls-tree", "-r", "--name-only", ref, "--", relpath], root, timeout
+    )
+    if listing is None or listing.returncode != 0:
+        return RemoteTaskIds(frozenset(), False, ref, f"{ref} 의 트리를 읽지 못했다")
+
+    ids = {
+        Path(line).stem
+        for line in listing.stdout.splitlines()
+        if line.endswith(".md") and Path(line).name.startswith("TASK-")
+    }
+    return RemoteTaskIds(frozenset(ids), True, ref, "")
+
+
+@dataclass
+class TaskIdCollisions:
+    """같은 task ID 가 로컬과 원격에서 **다른 task** 를 가리키는 경우.
+
+    `consulted` 가 False 면 `collisions` 가 비어 있다는 것은 '충돌 없음' 이 아니라
+    **'못 봤다'** 다 (`RemoteTaskIds` 와 같은 규약).
+    """
+    collisions: tuple[tuple[str, str, str], ...]   # (task_id, 로컬 제목, 원격 제목)
+    consulted: bool
+    ref: str
+    reason: str
+
+
+def _task_heading(text: str) -> str:
+    """task 파일의 `# TASK-… — 제목` 줄. 없으면 빈 문자열."""
+    for line in text.splitlines():
+        if line.startswith("# TASK-"):
+            return line.strip()
+    return ""
+
+
+def task_id_collisions(
+    tasks_dir: str | Path,
+    *,
+    remote: str = "origin",
+    branch: str | None = None,
+    timeout: int = 15,
+) -> TaskIdCollisions:
+    """워킹 트리의 task 파일 중 **원격에 같은 ID 가 다른 제목으로** 있는 것.
+
+    ## 왜 필요한가 (TASK-2026-09-23-main-016)
+
+    채번은 원격 추적 ref 도 본다(`remote_known_task_ids`). 그래도 **아직 커밋하지 않은**
+    task 는 누구도 볼 수 없다 — 87차 실측: 한 에이전트가 미커밋으로
+    `TASK-2026-09-23-main-009` 를 쓰는 사이 다른 호스트가 같은 ID 를 다른 task 에
+    채번해 push 했고, 동기화 때 소유자 확인을 받아 재번호했다. 그동안 대시보드의
+    `multi_agent_concurrent_write_conflict` 는 git 충돌 표식만 세어 **0 (pass)** 였다.
+    채번 시점에 막을 수 없는 경우이므로 **fetch 뒤 검출**이 수단이다.
+
+    후보는 `git diff --name-only <ref>` 하나로 얻는다 — ref 와 워킹 트리가 **다른**
+    파일이고, ref 에만 있고 인덱스에 없는 경로(= 로컬이 untracked 로 같은 이름을 쓴
+    경우)도 여기 나온다. untracked 목록을 따로 구했던 첫 구현은 되주입에서 판정에
+    아무 기여가 없음이 드러나 걷었다. 후보 중 원격에 있는 것만 제목 줄을 비교한다 —
+    같은 task 의 상태 갱신은 제목이 같으므로 충돌이 아니다.
+    네트워크는 쓰지 않는다 (ref 는 마지막 fetch 시점).
+    """
+    loc = _remote_tasks_location(tasks_dir, remote, branch, timeout)
+    if isinstance(loc, RemoteTaskIds):
+        return TaskIdCollisions((), False, loc.ref, loc.reason)
+    root, relpath, ref = loc
+
+    changed = _run_git(["diff", "--name-only", ref, "--", relpath], root, timeout)
+    remote_listing = _run_git(["ls-tree", "-r", "--name-only", ref, "--", relpath], root, timeout)
+    if any(p is None or p.returncode != 0 for p in (changed, remote_listing)):
+        return TaskIdCollisions((), False, ref, f"{ref} 와 워킹 트리를 비교하지 못했다")
+    assert changed is not None and remote_listing is not None
+    on_remote = set(remote_listing.stdout.splitlines())
+    candidates = {
+        line for line in changed.stdout.splitlines()
+        if line in on_remote and Path(line).name.startswith("TASK-") and line.endswith(".md")
+    }
+
+    found: list[tuple[str, str, str]] = []
+    for rel in sorted(candidates):
+        local_path = root / rel
+        if not local_path.is_file():
+            continue  # 로컬에서 지운 파일은 충돌이 아니다
+        shown = _run_git(["show", f"{ref}:{rel}"], root, timeout)
+        if shown is None or shown.returncode != 0:
+            return TaskIdCollisions(tuple(found), False, ref, f"{ref}:{rel} 를 읽지 못했다")
+        local_head = _task_heading(local_path.read_text(encoding="utf-8", errors="replace"))
+        remote_head = _task_heading(shown.stdout)
+        if local_head != remote_head:
+            found.append((Path(rel).stem, local_head, remote_head))
+    return TaskIdCollisions(tuple(found), True, ref, "")
+
+
+def _remote_tasks_location(
+    tasks_dir: str | Path, remote: str, branch: str | None, timeout: int,
+) -> "tuple[Path, str, str] | RemoteTaskIds":
+    """(저장소 루트, tasks 의 저장소 상대경로, 원격 추적 ref) — 못 구하면 그 이유를 담은
+    `RemoteTaskIds(consulted=False)`.
+
+    `remote_known_task_ids` 와 `task_id_collisions` 가 **같은 해석**을 쓴다 — 경로
+    계산이 둘로 갈라지면 한쪽만 절대경로를 넘겨 조용히 빈 목록을 낸다.
+    """
     tasks_path = Path(tasks_dir)
     # 디렉터리가 아직 없을 수 있다 (seed 직전). 존재하는 조상에서 저장소를 찾는다.
     anchor = tasks_path
@@ -161,19 +266,7 @@ def remote_known_task_ids(
             frozenset(), False, ref,
             f"원격 추적 ref 가 없다 ({ref}) — 원격이 없거나 이 브랜치를 아직 fetch 하지 않았다",
         )
-
-    listing = _run_git(
-        ["ls-tree", "-r", "--name-only", ref, "--", relpath], root, timeout
-    )
-    if listing is None or listing.returncode != 0:
-        return RemoteTaskIds(frozenset(), False, ref, f"{ref} 의 트리를 읽지 못했다")
-
-    ids = {
-        Path(line).stem
-        for line in listing.stdout.splitlines()
-        if line.endswith(".md") and Path(line).name.startswith("TASK-")
-    }
-    return RemoteTaskIds(frozenset(ids), True, ref, "")
+    return root, relpath, ref
 
 
 def _run_git(

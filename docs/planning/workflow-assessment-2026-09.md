@@ -75,6 +75,13 @@
 - 다른 에이전트가 미커밋으로 `TASK-2026-09-23-main-009` 를 쓰는 사이 원격이 같은
   ID 를 다른 task 에 채번했다. 동기화 때 소유자 확인을 받아 main-010 으로 재번호했다.
   dashboard `multi_agent_concurrent_write_conflict` 는 git 충돌만 세어 **0 (pass)**.
+
+> **✅ 해소 (2026-09-28, main-016)** — `common.git.task_id_collisions` 가 워킹 트리의 task
+> 파일 중 원격 추적 ref 에 **같은 ID·다른 제목**으로 있는 것을 세고, 대시보드 지표가
+> 그것을 `task_id_collision_count` 로 합산한다 (원격을 못 봤으면 `measured=false` + 이유).
+> 채번은 이미 원격을 보지만(09-07-main-006) 미커밋 task 는 원리상 볼 수 없어, **fetch 뒤
+> 검출**을 수단으로 삼았다. 87차 상황은 `check_task_id_remote_uniqueness` case 6~8 이
+> bare 원격 + 클론 둘로 재현한다.
 - 방치된 worktree 4개 — `.worktrees/feat-auto-20260814-13740747` 는 main-011 의
   원인이었고, herdr `clear-field-f112` 는 시스템 python 1.2.0 editable 의 대상이었다.
 

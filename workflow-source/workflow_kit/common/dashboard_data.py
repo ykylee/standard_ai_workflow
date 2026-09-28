@@ -603,6 +603,10 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
        — agent 가 `<<<<<<<` / `=======` / `>>>>>>>` 잔존한 채 commit 한 경우 검출.
     2. git log --all --merges 의 commit message 에 "CONFLICT" keyword 포함 (subprocess)
        — historical merge conflict 검출.
+    3. **task ID 충돌** (TASK-2026-09-23-main-016) — 워킹 트리의 task 파일과 같은 ID 가
+       원격 추적 ref 에 **다른 제목으로** 있다 (`common.git.task_id_collisions`).
+       87차에 실제로 났지만 1·2 는 git 충돌 표식만 봐서 0 (pass) 를 냈다. 미커밋
+       task 는 채번 시점에 원격이 볼 수 없으므로 fetch 뒤 검출이 수단이다.
 
     Returns:
         dict {
@@ -659,19 +663,38 @@ def collect_multi_agent_concurrent_write_conflict(workspace_root: Path) -> dict[
     except (_subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
 
+    from workflow_kit.common.git import task_id_collisions
+    from workflow_kit.common.paths import branch_for_workspace
+    # tasks 디렉터리와 원격 ref 는 **같은 브랜치**로 푼다 — 워크플로 브랜치 오버라이드가
+    # 있을 때 한쪽만 git HEAD 를 따르면 다른 브랜치끼리 비교한다.
+    branch = branch_for_workspace(root)
+    tasks_dir = active_dir / branch / "backlog" / "tasks"
+    id_check = task_id_collisions(tasks_dir, branch=branch)
+    task_id_collision_count = len(id_check.collisions)
+    for task_id, local_head, remote_head in id_check.collisions:
+        conflict_locations.append(
+            f"task ID {task_id}: 로컬 {local_head!r} ≠ {id_check.ref} {remote_head!r}"
+        )
+
     measured_sources = []
     if active_dir.is_dir():
         measured_sources.append("working_tree")
     if git_log_measured:
         measured_sources.append("git_log")
+    if id_check.consulted:
+        measured_sources.append("task_id_remote")
 
-    conflict_count = working_tree_conflict_count + git_log_conflict_count
+    conflict_count = working_tree_conflict_count + git_log_conflict_count + task_id_collision_count
     measured = bool(measured_sources)
     return {
         "north_star": "multi_agent_concurrent_write_conflict_count",
         "working_tree_conflict_count": working_tree_conflict_count,
         "git_log_conflict_count": git_log_conflict_count,
         "git_log_measured": git_log_measured,
+        "task_id_collision_count": task_id_collision_count,
+        # 원격을 못 봤으면 0 이 '충돌 없음' 이 아니다 — 이유를 같이 낸다.
+        "task_id_collision_measured": id_check.consulted,
+        "task_id_collision_reason": id_check.reason,
         "conflict_count": conflict_count,
         "conflict_count_source": "+".join(measured_sources) if measured_sources else "unknown",
         "conflict_count_measured": measured,

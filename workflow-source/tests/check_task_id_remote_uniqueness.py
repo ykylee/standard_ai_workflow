@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""task ID 채번이 원격을 함께 보는가 (5 cases, TASK-2026-09-07-main-006).
+"""task ID 채번이 원격을 함께 보는가 + 충돌을 검출하는가 (8 cases, TASK-2026-09-07-main-006 · 09-23-main-016).
 
 ## 왜 필요한가
 
@@ -25,6 +25,11 @@
 - case 4 는 **경로 계산이 정본 안에 있는가**. 호출자가 상대경로를 만들게 하면
   절대경로를 넘기기 쉽고, `ls-tree` 는 그때 **조용히 빈 목록**을 낸다 — 이
   함수가 막으려는 실패 모드가 그대로 재현된다.
+- case 6~8 은 **채번이 못 막는 충돌의 검출**이다 (09-23-main-016). 미커밋 task 는
+  채번 시점에 원격이 볼 수 없다 — 87차에 실제로 겹쳤는데 대시보드 충돌 지표는 git
+  충돌 표식만 세어 0 (pass) 였다. case 6 은 그 상황을 bare 원격 + 클론 둘로 재현하고
+  (같은 task 의 상태 갱신·로컬 전용 신규 task 는 충돌이 **아님**도 함께 잰다),
+  case 7 은 대시보드 지표까지의 배선, case 8 은 원격을 못 봤을 때 '못 봤다' 로 말하는지.
 - case 5 는 **거짓 보증의 재발 방지**다. 문장 하나가 결함을 덮었으므로 그
   문장이 돌아오는 것을 정적으로 막는다.
 """
@@ -46,7 +51,8 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from workflow_kit.common.git import remote_known_task_ids  # noqa: E402
+from workflow_kit.common.git import remote_known_task_ids, task_id_collisions  # noqa: E402
+from workflow_kit.common.paths import BRANCH_ENV_KEYS  # noqa: E402
 from workflow_kit.tools.backlog_update import suggest_next_task_id  # noqa: E402
 from workflow_kit.tools.seed_workspace_memory import next_task_id  # noqa: E402
 
@@ -144,6 +150,133 @@ def case_5_false_guarantee_does_not_return() -> bool:
     return True
 
 
+GIT_ENV = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+TASKS_REL = Path("ai-workflow/memory/active/main/backlog/tasks")
+
+
+def _git(cwd: Path, *args: str) -> None:
+    import os
+    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True,
+                   env={**os.environ, **GIT_ENV})
+
+
+def _task(root: Path, n: int, title: str, status: str = "planned") -> Path:
+    path = root / TASKS_REL / f"TASK-{DATE}-main-{n:03d}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"---\nstatus: {status}\n---\n# TASK-{DATE}-main-{n:03d} — {title}\n", encoding="utf-8")
+    return path
+
+
+def _collision_fixture(tmp: Path) -> Path:
+    """87차 재현: A 가 미커밋으로 002 를 쓰는 사이 B 가 같은 번호를 다른 task 로 push.
+
+    A 에는 충돌이 **아닌** 것도 둔다 — 공유 task 001 의 상태 갱신(제목 동일)과 로컬
+    전용 신규 003. 이 둘을 세면 '모든 변경 = 충돌' 인 구현도 통과하지 못한다.
+    """
+    remote = tmp / "remote.git"
+    _git(tmp, "init", "-q", "--bare", "-b", "main", str(remote))
+    b = tmp / "b"
+    _git(tmp, "clone", "-q", str(remote), str(b))
+    _git(b, "checkout", "-q", "-b", "main")
+    _task(b, 1, "공유 task")
+    _git(b, "add", "-A"); _git(b, "commit", "-q", "-m", "001"); _git(b, "push", "-q", "origin", "main")
+    a = tmp / "a"
+    _git(tmp, "clone", "-q", str(remote), str(a))
+    _task(b, 2, "B 가 채번한 task")
+    _git(b, "add", "-A"); _git(b, "commit", "-q", "-m", "002"); _git(b, "push", "-q", "origin", "main")
+    _task(a, 1, "공유 task", status="in_progress")   # 같은 task 의 갱신 — 충돌 아님
+    _task(a, 2, "A 가 미커밋으로 쓰던 task")          # 충돌
+    _task(a, 3, "A 로컬 전용 신규 task")              # 원격에 없음 — 충돌 아님
+    _git(a, "fetch", "-q", "origin")
+    return a
+
+
+def case_6_uncommitted_id_collision_is_detected() -> bool:
+    """미커밋 task 와 원격의 같은 ID 가 다른 task 면 충돌로 센다 (그 외는 세지 않는다)."""
+    print("case_6: 87차 재현 — 미커밋 task ID 충돌 검출")
+    with tempfile.TemporaryDirectory(prefix="idclash-") as tmp:
+        a = _collision_fixture(Path(tmp))
+        got = task_id_collisions(a / TASKS_REL, branch="main")
+    if not got.consulted:
+        print(f"  FAIL: 원격을 못 봤다 ({got.reason})")
+        return False
+    ids = [c[0] for c in got.collisions]
+    if ids != [f"TASK-{DATE}-main-002"]:
+        print(f"  FAIL: 충돌 {ids} (기대: 002 하나 — 001 은 같은 task 의 갱신, 003 은 로컬 전용)")
+        return False
+    _, local_head, remote_head = got.collisions[0]
+    if "A 가" not in local_head or "B 가" not in remote_head:
+        print(f"  FAIL: 제목 대조가 어긋났다 — 로컬 {local_head!r} / 원격 {remote_head!r}")
+        return False
+    print(f"  [info] 002 만 충돌 (로컬 {local_head!r} ≠ 원격 {remote_head!r})")
+    return True
+
+
+def _no_branch_env():  # type: ignore[no-untyped-def]
+    """게이트의 slash 셀이 주입하는 브랜치 env 를 이 fixture 에서 걷는다.
+
+    fixture 는 자기 git 브랜치(main)를 재야 한다 — 상속된 오버라이드를 따르면
+    slash 셀에서만 다른 디렉터리를 보고 red 가 된다 (메모리: fixture 는 재려는 조건을
+    스스로 성립시켜야 한다).
+    """
+    import os
+    from unittest import mock
+    env = {k: v for k, v in os.environ.items() if k not in BRANCH_ENV_KEYS}
+    return mock.patch.dict(os.environ, env, clear=True)
+
+
+def case_7_dashboard_counts_id_collisions() -> bool:
+    """대시보드 멀티에이전트 충돌 지표가 ID 충돌을 센다 (예전에는 git 표식만 → 0 pass)."""
+    print("case_7: 대시보드 지표 배선")
+    from workflow_kit.common.dashboard_data import collect_multi_agent_concurrent_write_conflict
+    with tempfile.TemporaryDirectory(prefix="idclash-") as tmp:
+        a = _collision_fixture(Path(tmp))
+        with _no_branch_env():
+            panel = collect_multi_agent_concurrent_write_conflict(a)
+    problems = []
+    if panel.get("task_id_collision_count") != 1:
+        problems.append(f"task_id_collision_count={panel.get('task_id_collision_count')}")
+    if panel.get("conflict_count", 0) < 1 or panel.get("status") != "fail":
+        problems.append(f"conflict_count={panel.get('conflict_count')} status={panel.get('status')}")
+    if "task_id_remote" not in str(panel.get("conflict_count_source")):
+        problems.append(f"conflict_count_source={panel.get('conflict_count_source')}")
+    if not any(f"TASK-{DATE}-main-002" in loc for loc in panel.get("conflict_locations", [])):
+        problems.append(f"conflict_locations 에 002 가 없다: {panel.get('conflict_locations')}")
+    if problems:
+        print(f"  FAIL: {problems}")
+        return False
+    print(f"  [info] status=fail, locations={panel['conflict_locations']}")
+    return True
+
+
+def case_8_unconsulted_remote_is_not_zero_conflicts() -> bool:
+    """원격 ref 가 없으면 '충돌 0' 이 아니라 '못 봤다' 다 — 지표도 그것을 싣는다."""
+    print("case_8: 원격 미확인 ≠ 충돌 없음")
+    from workflow_kit.common.dashboard_data import collect_multi_agent_concurrent_write_conflict
+    with tempfile.TemporaryDirectory(prefix="idnorem-") as tmp:
+        root = Path(tmp) / "repo"
+        root.mkdir()
+        _git(root, "init", "-q", "-b", "main")
+        _task(root, 1, "원격 없는 task")
+        got = task_id_collisions(root / TASKS_REL, branch="main")
+        with _no_branch_env():
+            panel = collect_multi_agent_concurrent_write_conflict(root)
+    problems = []
+    if got.consulted or not got.reason:
+        problems.append(f"consulted={got.consulted} reason={got.reason!r}")
+    if panel.get("task_id_collision_measured") is not False or not panel.get("task_id_collision_reason"):
+        problems.append(f"지표: measured={panel.get('task_id_collision_measured')} reason={panel.get('task_id_collision_reason')!r}")
+    if "task_id_remote" in str(panel.get("conflict_count_source")):
+        problems.append(f"못 본 측정원을 source 에 넣었다: {panel.get('conflict_count_source')}")
+    if problems:
+        print(f"  FAIL: {problems}")
+        return False
+    print(f"  [info] {got.reason}")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_remote_only_id_is_avoided", case_1_remote_only_id_is_avoided),
@@ -151,6 +284,9 @@ def main() -> int:
         ("case_3_unknown_is_not_reported_as_safe", case_3_unknown_is_not_reported_as_safe),
         ("case_4_helper_owns_the_path_math", case_4_helper_owns_the_path_math),
         ("case_5_false_guarantee_does_not_return", case_5_false_guarantee_does_not_return),
+        ("case_6_uncommitted_id_collision_is_detected", case_6_uncommitted_id_collision_is_detected),
+        ("case_7_dashboard_counts_id_collisions", case_7_dashboard_counts_id_collisions),
+        ("case_8_unconsulted_remote_is_not_zero_conflicts", case_8_unconsulted_remote_is_not_zero_conflicts),
     ]
     results = [(name, fn()) for name, fn in cases]
     passed = sum(1 for _, ok in results if ok)

@@ -49,6 +49,15 @@ ENFORCES = ("repo-warnings-are-a-gate-signal",)
 #: case 6 이 runner 를 한 번 더 띄운다 — 기본 60s 를 넘길 수 있다.
 CHECK_TIMEOUT_S = 150
 
+REQUIRES_QUIET_REPO = True
+"""case 6 이 `tests/` 에 probe 파일을 만들었다 지운다 — 저장소 트리에 쓰는 검사다.
+
+그 사이 소스 전수를 훑는 검사(`check_python_floor_syntax` ·
+`check_source_compile_warnings`)가 목록에는 있고 읽을 때는 없는 파일을 만나 red 가
+된다 (TASK-2026-09-28-main-003 실측). 알파벳순 제출에서는 `w` 가 끝물이라 우연히
+안 겹쳤고, LPT 가 선언 timeout 을 보고 이 검사를 맨 앞에 보내자 드러났다.
+단독 0.3s 라 정숙 구간으로 옮기는 비용은 무시할 만하다."""
+
 import json
 import os
 import subprocess

@@ -118,9 +118,28 @@ DEFAULT_MAX_TMP_MB = 2048          # temp 총량이 2GB 초과하면 누수 폭�
 # 각 check 는 이미 전용 TMPDIR + 전용 프로세스 그룹으로 격리돼 있어 대체로 병렬
 # 안전하다. 유일한 장애물이던 `check_source_without_runtime_layer` (원본 저장소의
 # `ai-workflow/` 를 rename 해 숨기던 것) 는 같은 task 에서 사본 검증으로 고쳤다.
-MAX_AUTO_JOBS = 8
-"""`--jobs auto` 의 상한. 코어가 더 많아도 여기서 멈춘다 — check 는 subprocess 라
-I/O 대기가 많지만, 동시 temp 사용량도 함께 늘기 때문이다 (guard 의 2GB 상한)."""
+#
+# `--jobs auto` = **코어 수** (TASK-2026-09-28-main-003). 예전 상한 8 의 근거는
+# "동시 temp 사용량이 guard 의 2GB 상한에 닿는다" 였지만 실측 검사당 temp 최대가
+# 20MB 라 12-way 여도 ~240MB 다 (docs/planning/local-gate-throughput-review-2026-09.md
+# §3). 12스레드 호스트에서 k=8 → k=12 가 두 축 합 277s → 248s 였다 (실측).
+
+# --- 병렬 구간 제출 순서: LPT (TASK-2026-09-28-main-003) ------------------------
+# 병렬 구간은 처리량에 묶여 있고(최장 검사 < 처리량 하한), 알파벳순 제출이면 끝물에
+# 긴 검사가 몰려 꼬리가 생긴다. 긴 것부터 제출하면 꼬리가 사라진다 (시뮬레이션
+# 277s → 242s, k=8). **판정은 불변이다** — 검사는 각자 전용 TMPDIR·프로세스
+# 그룹으로 격리돼 있고 결과는 discover 순서로 보고한다. 바뀌는 것은 제출 순서뿐.
+#
+# 소요 시간 출처는 셋이고, 어느 것을 썼는지 개수로 출력에 남긴다:
+#   1. 기록 — 직전 실행의 검사별 소요 (`<git dir>/run_all_checks_durations.json`).
+#      호스트마다 자동으로 맞는다. 워킹 트리 밖이라 repo-write 감시에 안 걸린다.
+#   2. 선언 — 기록이 없는 검사 중 `CHECK_TIMEOUT_S` 를 선언한 것 (무겁다고 스스로
+#      말한 검사). 첫 실행·새 검사용.
+#   3. 미상 — 둘 다 없으면 알파벳순.
+# 미상·선언 검사는 기록 있는 검사보다 **먼저** 제출한다 — 모르는 것을 짧다고
+# 가정하면 긴 새 검사가 꼬리가 된다. 대개 소수라 앞에 둬도 비용이 거의 없다.
+DURATIONS_FILENAME = "run_all_checks_durations.json"
+DURATIONS_SCHEMA = 1
 
 QUIET_MARKER = "REQUIRES_QUIET_REPO"
 
@@ -158,10 +177,11 @@ QUIET_MARKER = "REQUIRES_QUIET_REPO"
 RUNNER_LOCK_ENV = "RUN_ALL_CHECKS_LOCK_HELD"
 
 
-def _runner_lock_path(repo_root: Path) -> Path:
+def _git_dir(repo_root: Path) -> Path | None:
+    """워킹 트리의 git dir. worktree 면 `.git` 파일이 가리키는 곳, 저장소가 아니면 None."""
     gitdir = repo_root / ".git"
     if gitdir.is_dir():
-        return gitdir / "run_all_checks.lock"
+        return gitdir
     if gitdir.is_file():
         # worktree: `.git` 은 "gitdir: <path>" 한 줄짜리 파일이다.
         text = gitdir.read_text(encoding="utf-8").strip()
@@ -170,7 +190,14 @@ def _runner_lock_path(repo_root: Path) -> Path:
             if not actual.is_absolute():
                 actual = (repo_root / actual).resolve()
             if actual.is_dir():
-                return actual / "run_all_checks.lock"
+                return actual
+    return None
+
+
+def _runner_lock_path(repo_root: Path) -> Path:
+    gitdir = _git_dir(repo_root)
+    if gitdir is not None:
+        return gitdir / "run_all_checks.lock"
     # git 저장소가 아니면 (사본 검증 등) 루트 경로로 갈린 temp 락을 쓴다.
     digest = hashlib.sha256(str(repo_root).encode("utf-8")).hexdigest()[:16]
     return Path(tempfile.gettempdir()) / f"run_all_checks-{digest}.lock"
@@ -324,6 +351,11 @@ class RunSummary:
     total_failed_tests: int = 0
     results: list[CheckResult] = field(default_factory=list)
     aborted_reason: str = ""    # resource guard 발동 시 사유 (빈 문자열이면 정상 완주)
+    schedule: dict = field(default_factory=dict)
+    """병렬 구간 제출 순서와 그 소요 시간 출처별 개수 (TASK-2026-09-28-main-003).
+
+    비어 있으면 병렬 구간이 없었다 (`--jobs 1` 은 discover 순서 그대로다).
+    """
     repo_write: dict = field(default_factory=dict)
     """저장소 write 감시 결과 (TASK-2026-09-22-main-008).
 
@@ -752,6 +784,13 @@ def print_human(summary: RunSummary) -> None:
         print(f"  resource: {len(leaky)} check 가 temp/자식 잔여를 남겨 러너가 회수함")
     if summary.aborted_reason:
         print(f"  ABORTED: {summary.aborted_reason}")
+    sch = summary.schedule
+    if sch:
+        line = (f"  schedule: LPT (jobs={sch['jobs']}) — 소요 출처 기록 {sch['recorded']}"
+                f" · 선언 {sch['declared']} · 미상(알파벳) {sch['unknown']}")
+        if sch.get("history_note"):
+            line += f" [기록 미사용: {sch['history_note']}]"
+        print(line)
     print()
     print(f"  --- per-check ---")
     for r in summary.results:
@@ -919,6 +958,71 @@ def dump_meta_watch(meta_dir: Path, dest: Path) -> int:
     return copied
 
 
+def durations_path(repo_root: Path) -> Path | None:
+    """소요 기록 파일. git 저장소가 아니면 None — 기록 없이 선언/알파벳으로 간다."""
+    gitdir = _git_dir(repo_root)
+    return gitdir / DURATIONS_FILENAME if gitdir is not None else None
+
+
+def load_durations(path: Path | None) -> tuple[dict[str, float], str]:
+    """(검사 stem → 초, 못 읽었으면 그 사유). 사유가 비어 있으면 정상 로드."""
+    if path is None:
+        return {}, "git 저장소가 아니다"
+    if not path.exists():
+        return {}, "기록 파일 없음 (첫 실행)"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        raw = data["durations"]
+        if data.get("schema") != DURATIONS_SCHEMA or not isinstance(raw, dict):
+            return {}, f"스키마 불일치 ({data.get('schema')!r})"
+        return ({k: float(v) for k, v in raw.items()
+                 if isinstance(v, (int, float)) and v >= 0}, "")
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        return {}, f"읽기 실패 ({type(e).__name__})"
+
+
+def save_durations(path: Path | None, results: list[CheckResult]) -> None:
+    """이번에 돈 검사의 소요로 기록을 갱신한다 (안 돈 검사는 이전 값 유지).
+
+    원자적 교체 — `--no-lock` 으로 겹친 실행이 반쯤 쓴 파일을 읽지 않게.
+    기록은 순서 힌트일 뿐이라 실패해도 판정에 영향이 없다 (조용히 넘어간다).
+    """
+    if path is None or not results:
+        return
+    known, _reason = load_durations(path)
+    known.update({r.name: round(r.duration_sec, 2) for r in results})
+    payload = {"schema": DURATIONS_SCHEMA,
+               "updated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+               "durations": dict(sorted(known.items()))}
+    try:
+        tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n",
+                       encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
+def schedule_order(checks: list[Path], durations: dict[str, float]
+                   ) -> tuple[list[Path], dict[str, int]]:
+    """병렬 구간 제출 순서 (LPT) 와 소요 출처별 개수.
+
+    순서: 미상·선언 검사 먼저 (선언 timeout 큰 순 → 이름) → 기록 있는 검사
+    (소요 긴 순 → 이름). 동률은 이름으로 깨서 같은 입력이면 같은 순서다.
+    """
+    counts = {"recorded": 0, "declared": 0, "unknown": 0}
+
+    def key(path: Path) -> tuple:
+        if path.stem in durations:
+            counts["recorded"] += 1
+            return (1, -durations[path.stem], path.name)
+        declared = _scan_markers(str(path))[1]
+        counts["declared" if declared else "unknown"] += 1
+        return (0, -declared, path.name)
+
+    return sorted(checks, key=key), counts
+
+
 def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
     """(병렬 가능, 정숙 구간 필요) 로 가른다. 순서는 각각 원래 순서를 지킨다."""
     parallel = [p for p in checks if not requires_quiet_repo(p)]
@@ -927,9 +1031,9 @@ def partition_checks(checks: list[Path]) -> tuple[list[Path], list[Path]]:
 
 
 def _resolve_jobs(raw: str) -> int:
-    """`--jobs` 값 해석. `auto` = min(코어, MAX_AUTO_JOBS)."""
+    """`--jobs` 값 해석. `auto` = 코어 수."""
     if raw == "auto":
-        return max(1, min(os.cpu_count() or 4, MAX_AUTO_JOBS))
+        return max(1, os.cpu_count() or 4)
     try:
         n = int(raw)
     except ValueError:
@@ -946,6 +1050,8 @@ def run_pass(
     branch_context: "BranchContext | None",
     jobs: int = 1,
     meta_dir: Path | None = None,
+    durations: dict[str, float] | None = None,
+    history_note: str = "",
 ) -> RunSummary:
     """check 전량을 **한 컨텍스트로** 한 바퀴 돌린다.
 
@@ -955,6 +1061,7 @@ def run_pass(
     start = time.time()
     results: list[CheckResult] = []
     aborted = ""
+    schedule: dict = {}
 
     # **저장소 write 를 러너가 직접 본다** (TASK-2026-09-22-main-008).
     # 예전에는 `check_no_repo_write` 가 표본 16개를 다시 돌려 봤고 그것이 전량
@@ -981,12 +1088,16 @@ def run_pass(
                 break
     else:
         done: dict[Path, CheckResult] = {}
+        ordered, counts = schedule_order(checks, durations or {})
+        schedule = {"order": "lpt", "jobs": jobs, **counts,
+                    "history_note": history_note}
         with ThreadPoolExecutor(max_workers=jobs) as pool:
+            # dict 삽입 순서 = 제출 순서. ThreadPoolExecutor 는 큐를 FIFO 로 꺼낸다.
             futures = {
                 pool.submit(run_one, path, timeout=effective_timeout(path, args.timeout),
                             guard=guard, branch_context=branch_context, meta_dir=meta_dir,
                             watch=watch): path
-                for path in checks
+                for path in ordered
             }
             for fut in as_completed(futures):
                 done[futures[fut]] = fut.result()
@@ -1018,6 +1129,7 @@ def run_pass(
 
     summary = aggregate(results, time.time() - start)
     summary.aborted_reason = aborted
+    summary.schedule = schedule
     summary.repo_write = watch.stop()
     return summary
 
@@ -1202,7 +1314,7 @@ def main() -> int:
     p.add_argument("--no-guard", action="store_true", dest="no_guard",
                    help="resource guard 비활성 (권장하지 않음)")
     p.add_argument("--jobs", "-j", default="auto", dest="jobs", metavar="N",
-                   help=f"동시 실행 수 (default: auto = min(코어, {MAX_AUTO_JOBS})). "
+                   help="동시 실행 수 (default: auto = 코어 수). "
                         "`1` 은 순차 — 재현이 필요할 때 쓴다")
     p.add_argument("--branch-context", default=None, dest="branch_context",
                    metavar="LABEL",
@@ -1330,14 +1442,28 @@ def main() -> int:
     gate_sha = gate_evidence.head_sha(repo_root) if gate_run else None
     gate_clean = gate_evidence.tree_is_clean(repo_root) if gate_run else None
 
+    # 소요 기록 (LPT 순서 힌트). 자식 runner(검사가 부른 것)와 다른 tests-dir 은
+    # 읽지도 쓰지도 않는다 — fixture 검사의 소요가 실제 검사 기록에 섞이면 안 된다.
+    history: Path | None = None
+    if tests_dir.resolve() == TESTS_DIR.resolve() and not lock._nested:
+        history = durations_path(repo_root)
+        durations, load_note = load_durations(history)
+    else:
+        durations, load_note = {}, "기본 tests-dir 이 아니거나 자식 runner"
+
     passes: list[tuple[str, RunSummary]] = []
     for ctx in selected:
         label = ctx.label if ctx else "(환경 그대로)"
         if len(selected) > 1 and not args.json:
             branch = ctx.workflow_branch if ctx and ctx.workflow_branch else "덮지 않음"
             print(f"\n=== 브랜치 컨텍스트: {label} ({branch}) ===\n")
-        summary = run_pass(checks, args, guard, ctx, jobs=jobs, meta_dir=meta_dir)
+        summary = run_pass(checks, args, guard, ctx, jobs=jobs, meta_dir=meta_dir,
+                           durations=durations, history_note=load_note)
         passes.append((label, summary))
+        save_durations(history, summary.results)
+        if history is not None:
+            # 다음 컨텍스트는 방금 잰 소요로 줄 세운다 — 첫 게이트도 둘째 축부터 LPT 다.
+            durations, load_note = load_durations(history)
         if summary.aborted_reason and not args.json:
             print(f"\n[abort] resource guard: {summary.aborted_reason}", file=sys.stderr)
         # guard 가 발동했으면 남은 컨텍스트를 더 돌리지 않는다 — 자원이 이미 한계다.

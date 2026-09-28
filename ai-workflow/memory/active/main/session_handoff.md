@@ -44,7 +44,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-28-main-003 게이트 러너 스케줄링 — 긴 검사 먼저(LPT) 제출 + --jobs auto 상한을 코어 수로
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -52,6 +52,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-28-main-004 check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다
 - TASK-2026-09-28-main-002 PURPOSE.md 가 90일 stale — check_memory_lint 가 날짜 경과로 red
 - TASK-2026-09-28-main-001 check_mcp_apply_mode_criterion 이 Linux 호스트에서 red — PATH python3(시스템 3.14)에 pydantic 이 없어 emit command 로 MCP 서버가 안 뜬다
 - TASK-2026-09-23-main-019 CI·게이트 처리량 — concept 검토 (Linear CI 재작업 글 참고)
@@ -61,7 +62,6 @@
 - TASK-2026-09-25-main-001 check_deploy_doctor 의 claude directory source 2 case 가 기본 TMPDIR 직접 실행에서만 red
 - TASK-2026-09-23-main-013 doctor 가 플러그인 MCP 가 실제로 띄우는 해석기의 kit 버전을 재지 않는다
 - TASK-2026-09-24-main-001 mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화
-- TASK-2026-09-23-main-022 GitHub CI 테스트 workflow 삭제 — 로컬 개발환경 게이트로 이관
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -220,8 +220,7 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 - `TASK-2026-09-28-main-003` — 게이트 러너를 긴 검사 먼저(LPT) 제출 + `--jobs auto`
   상한을 코어 수로. M-014 concept(90차 종결, 소유자 ① 안)의 구현. 추정 push 당
   277s → ~208s (12스레드 호스트). **완료 기준에 같은 설정 2회 실측 + 추정치 대조.**
-- `TASK-2026-09-28-main-004` — `check_wiki_score` 가 점수 도구를 3회 돈다 (멱등성
-  case 가 공유 실행을 안 씀). 3회 → 2회, 단독 −9s. ① 안의 C(반복 계산 제거) 첫 건.
+  (91차: 구현·계약 case·되주입 완료 — 남은 것은 게이트 실측 대조.)
 - `TASK-2026-09-23-main-015` · `TASK-2026-09-23-main-016` — 상수 phase 표시 /
   충돌 지표가 task ID 충돌을 못 셈.
 - `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리

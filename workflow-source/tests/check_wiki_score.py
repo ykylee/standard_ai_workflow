@@ -77,8 +77,9 @@ def _score_once() -> dict:
     만들어 나눠 본다. 원본을 넘기지 않고 **deep copy** 를 준다 — 앞 case 가 dict 를
     건드리면 뒤 case 가 조용히 다른 것을 보게 된다.
 
-    `test_score_idempotent` 는 여기를 쓰지 않는다. 그 case 가 재는 것이 *두 번 실행이
-    같은 값을 내는가* 라서, 캐시를 쓰면 자기 자신과 비교하는 동어반복이 된다.
+    `test_score_idempotent` 는 여기서 **한쪽만** 가져온다. 그 case 가 재는 것이 *두 번
+    실행이 같은 값을 내는가* 라서, 양쪽 다 캐시면 자기 자신과 비교하는 동어반복이 된다
+    — 공유 실행 1회 + 새 실행 1회면 여전히 독립된 두 실행이다.
     """
     global _SCORE_CACHE
     if _SCORE_CACHE is None:
@@ -231,8 +232,15 @@ def test_dashboard_in_index() -> None:
 
 
 def test_score_idempotent() -> None:
-    """2회 연속 실행 시 overall score 동일 (deterministic)."""
-    s1 = _run_score_tool()
+    """독립된 2회 실행의 overall score 동일 (deterministic).
+
+    s1 은 공유 실행이다 — 그것도 실제 도구 실행 한 번이라, 새로 한 번 더 돌린 s2 와
+    비교하면 두 실행의 대조가 된다. 예전에는 둘 다 새로 돌려 도구를 총 3회 돌았고
+    그것이 이 검사 단독 27s 의 1/3 이었다 (2026-09-28 cProfile, 1회 9.1s).
+    s2 는 **반드시** `_run_score_tool()` 이어야 한다 — `_score_once()` 로 바꾸면
+    캐시의 deep copy 끼리 비교해 비멱등 결함이 영영 안 잡힌다.
+    """
+    s1 = _score_once()
     s2 = _run_score_tool()
     assert s1["overall"] == s2["overall"], \
         f"non-idempotent: {s1['overall']} vs {s2['overall']}"

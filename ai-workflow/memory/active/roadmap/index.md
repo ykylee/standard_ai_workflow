@@ -39,5 +39,5 @@
   - path: [`./M-012-test-impact-release.md`](./M-012-test-impact-release.md)
 - **M-013** [concept] 세션 시작 컨텍스트 예산 — 필독 문서 부피를 선언하고 잰다 — status: planned
   - path: [`./M-013-session-context-budget.md`](./M-013-session-context-budget.md)
-- **M-014** [concept] CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용 — status: planned
+- **M-014** [concept] CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용 — status: done
   - path: [`./M-014-ci-gate-throughput.md`](./M-014-ci-gate-throughput.md)

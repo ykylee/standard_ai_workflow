@@ -2,13 +2,13 @@
 id: M-014
 title: CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용
 sdlc_phase: concept
-status: planned
+status: done
 order: 14
 parallel_allowed:
   - M-007
   - M-013
 deliverables:
-  - docs/planning/ci-throughput-review-2026-09.md
+  - docs/planning/local-gate-throughput-review-2026-09.md
 goals: [G2]
 ---
 
@@ -54,4 +54,13 @@ M-007/WBS-7.2 에서 먼저 닫는다 (TASK-2026-09-23-main-020 · main-021).
 
 - **WBS-14.1** concept 검토 — 셀·검사별 시간 실측, 반복 계산 전수 조사 방법, 샤딩
   단위와 분배 기준, 정숙 구간·락 제약, 기대 이득 상한, 소유자 선택지 —
-  산출물: `docs/planning/ci-throughput-review-2026-09.md`
+  산출물: `docs/planning/local-gate-throughput-review-2026-09.md`
+
+## 결정 (2026-09-28, 90차)
+
+concept 종결 — 산출물 [`local-gate-throughput-review-2026-09.md`](../../../../docs/planning/local-gate-throughput-review-2026-09.md).
+CI 폐지(main-022)로 대상이 로컬 push 게이트로 바뀌었다 (2026-09-25 소유자 결정).
+실측 결론: 병렬 구간은 **처리량에 묶여 있고**, 알파벳순 제출이 꼬리를 만든다.
+소유자 결정 = **① 안** — A(LPT 순서) + B(`--jobs auto` 상한 → 코어 수)를 러너 변경
+1건으로, C(반복 계산 제거)는 건별 결함 수리로. 둘 다 M-007/WBS-7.2 에서 진행한다
+(TASK-2026-09-28-main-003 · main-004). 후보 ⑤(두 축 동시 실행)는 시뮬레이션 이득 0 으로 기각.

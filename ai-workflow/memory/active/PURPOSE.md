@@ -1,6 +1,6 @@
 ---
 purpose_version: 1
-last_purpose_review: 2026-06-19
+last_purpose_review: 2026-09-28
 ---
 
 # Purpose — Wiki의 Why
@@ -9,7 +9,7 @@ last_purpose_review: 2026-06-19
 - 범위: 4-element (Goals / Key Questions / Research Scope / Evolving Thesis)
 - 대상 독자: AI agent (session-start / backlog-update / doc-sync), 저장소 maintainer
 - 상태: draft (v0.9.2 chapter 6 — purpose.md concept 흡수, 1차 출처 = llm_wiki Karpathy 패턴)
-- 최종 수정일: 2026-06-19
+- 최종 수정일: 2026-09-28
 - 관련 문서: [PROJECT_PROFILE.md](./PROJECT_PROFILE.md) (프로젝트 메타), [PURPOSE 운영 spec](../../workflow-source/core/llm_wiki_concept_purpose_spec.md)
 - 1차 출처: Karpathy `llm-wiki.md` + llm_wiki (nashsu) README §"Purpose.md — The Wiki's Soul"
 
@@ -19,8 +19,9 @@ last_purpose_review: 2026-06-19
 
 - **G1**: 여러 프로젝트에서 공통으로 사용할 수 있는 표준 AI 협업 워크플로우를 *독립 패키지 형태* 로 제공
 - **G2**: skill / MCP / agent 구현 기준을 *프로젝트별 차이* 와 *공통 표준* 으로 분리하여 *재현 가능* 한 운영 보장
-- **G3**: 외부 consumer 가 stable library 처럼 *신뢰* 가능하도록 SemVer 2-year guarantee (v0.8.0 → 2.0.0) 운영
+- **G3**: 외부 consumer 가 stable library 처럼 *신뢰* 가능하도록 SemVer 2-year guarantee (v0.8.0 → 2.0.0) 운영 (2026-09-28 소유자 재확인 — 유효)
 - **G4**: deprecation / breaking change 가 *운영 중인 consumer* 에게 *예측 가능* 하게 전달되는 운영 약속 (1 release DeprecationWarning → 1 release removal)
+- **G5**: 프로젝트 작업을 *로드맵 · 마일스톤 · WBS* 로 추적하고, 새 작업 축은 *SDLC 순서* (concept → requirements → design → implementation) 로 온보딩한다 (ADR-027, 2026-08-25 주 작업 축으로 확정)
 
 ## 2. Key Questions
 
@@ -38,7 +39,8 @@ last_purpose_review: 2026-06-19
 - 공통 표준 문서 (core/global_workflow_standard 등)
 - workflow state docs (session_handoff / work_backlog / state.json)
 - skill / MCP / agent 설계 카탈로그 + 프로토타입
-- 하네스 배포 가이드 (Codex / OpenCode / Gemini CLI / Antigravity / MiniMax Code / pi-dev)
+- 하네스 배포 — *플러그인 채널 중심* (Claude Code / Codex / Grok Build / Antigravity / pi-dev) + bootstrap 채널, 그 밖의 하네스 가이드 (OpenCode / MiniMax Code / Aider / Goose 등)
+- 로드맵 · 마일스톤 · WBS 진척 관리 + SDLC 온보딩 (ADR-027)
 - deprecation policy 운영 spec
 - release pipeline + state cache 운영
 - 외부 reference (Karpathy / llm_wiki / OpenCode / Aider 등) 의 *concept 흡수 정공법* (코드 차용 ❌)
@@ -56,7 +58,7 @@ last_purpose_review: 2026-06-19
 *현재까지의 working hypothesis* (시간에 따라 변할 수 있음):
 
 - 표준 워크플로우는 *문서 + 프로토타입 + 운영 spec* 의 3-tuple 로 표현 가능하며, *프로젝트별 차이* 는 *프로젝트 프로파일* 로 흡수
-- workflow state docs (`ai-workflow/memory/active/`) 는 *세션 복원의 SSOT* 이며, `state.json` 의 *in-process cache* 가 *라이브 운영 상태* 의 mirror
+- workflow state docs (`ai-workflow/memory/active/<branch>/`) 는 *세션 복원의 SSOT* 이며, 그 정본은 `backlog/tasks/` + `session_handoff.md` 다. `state.json` 은 그로부터 `wk refresh-state` 가 재생성하는 *생성물* 이다 (2026-08-11 확정 — 손으로 고치지 않는다)
 - deprecation policy 의 *1 release DeprecationWarning → 1 release removal* 은 *stable API* 의 *운영 약속* 이며, *contract test* 가 그 약속의 *자동 verify*
 - 외부 reference (Karpathy / llm_wiki / OpenCode / Aider 등) 의 *concept* 은 *우리 spec/code* 로 *재구현* (코드 차용 ❌) 이 표준 패턴
 - wiki 운영 R-1~R9 cycle 의 *lifecycle 운영* (Issue 발견 → Rule 보강 → SSOT 추출 → 영향 page 식별 → Lint cycle → Memory 갱신) 은 cross-project SSOT

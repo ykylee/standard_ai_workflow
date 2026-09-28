@@ -18,7 +18,7 @@ from workflow_kit.common.paths import (
 )
 from workflow_kit.common.state.builder import build_workflow_state_payload
 from workflow_kit.common.state.memory_index import (
-    load_memory_index,
+    entry_pointers,
     load_memory_index_at,
     memory_index_root,
 )
@@ -182,14 +182,16 @@ def refresh_workflow_state_cache(
 
     # v0.11.22+ Phase 1.5: ADR-005 memory_entries optional merge.
     # None 이면 zero-risk (key 미포함). 명시되면 load 후 dict 로 변환.
+    # v2 (ADR-029): 전문이 아니라 포인터 — 본문 정본은 memory_index/entries/.
     memory_entries_payload: list[dict[str, Any]] = []
-    if memory_index_dir is not None:
-        loaded_entries = load_memory_index_at(memory_index_dir)
-    elif actual_root is not None:
-        loaded_entries = load_memory_index(actual_root)
-    else:
-        loaded_entries = []
-    memory_entries_payload = [e.model_dump(mode="json") for e in loaded_entries]
+    index_dir: Path | None = memory_index_dir
+    if index_dir is None and actual_root is not None:
+        index_dir = memory_index_root(actual_root)
+    loaded_entries = load_memory_index_at(index_dir) if index_dir is not None else []
+    if index_dir is not None:
+        memory_entries_payload = [
+            dict(p) for p in entry_pointers(loaded_entries, index_dir, actual_root)
+        ]
 
     payload = build_workflow_state_payload(
         project_profile_path=resolved_project_profile_path,

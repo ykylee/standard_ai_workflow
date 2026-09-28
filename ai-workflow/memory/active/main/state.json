@@ -115,1040 +115,157 @@
     "path": null,
     "present": false
   },
-  "schema_version_memory_entries": "1",
+  "schema_version_memory_entries": "2",
   "memory_entries": [
     {
       "id": "MEM-2026-07-09-001",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/session_analysis_2026-07-09.md"
-      ],
       "primary_abstraction": "Workflow audit session (2026-07-09) baseline snapshot with 10 candidates",
-      "cue_anchors": [
-        "audit",
-        "workflow",
-        "2026-07-09",
-        "candidates",
-        "snapshot",
-        "P0",
-        "P1",
-        "P2"
-      ],
-      "value_digest": "Phase 12 in_progress baseline + P0 3 / P1 3 / P2 4 candidates 영구 기록.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "phase-12"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "ai-workflow/wiki/topics/workflow-audit-2026-07-09.md",
-        "ai-workflow/memory/active/work_backlog.md"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-001.json"
     },
     {
       "id": "MEM-2026-07-09-002",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/docs/architecture/ADR-005-memora-inspired-memory-index.md"
-      ],
       "primary_abstraction": "ADR-005 Memora-inspired Memory Index schema and retrieval 3-tuple",
-      "cue_anchors": [
-        "ADR-005",
-        "memory-index",
-        "memora",
-        "retrieval",
-        "3-tuple",
-        "cue-anchors"
-      ],
-      "value_digest": "memory_index/ entries/ + retrieval 3-tuple (cue match + linked expansion + BM25 fallback) Pydantic schema.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "state-layer"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "ai-workflow/memory/active/memory_index/README.md",
-        "workflow-source/workflow_kit/common/schemas/memory_index.py"
-      ],
-      "related_ids": [
-        "MEM-2026-08-10-001"
-      ],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-08-10T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-002.json"
     },
     {
       "id": "MEM-2026-07-09-003",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/core/maturity_matrix.json"
-      ],
       "primary_abstraction": "FULL mypy strict 도달 milestone (v0.11.18, 109 file clean, 0 errors)",
-      "cue_anchors": [
-        "mypy",
-        "strict",
-        "type-check",
-        "v0.11.18",
-        "quality",
-        "milestone"
-      ],
-      "value_digest": "FULL mypy strict 도달 (109 file clean, 0 errors). v0.8.0 spec §5.3 정합 (1 release = 1-2 file 격상).",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "quality"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/releases/Beta-v0.11.18.md"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-003.json"
     },
     {
       "id": "MEM-2026-07-09-004",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/releases/Beta-v0.11.25.md",
-        "workflow-source/core/maturity_matrix.json"
-      ],
       "primary_abstraction": "StdIO SDK v0.11.25 정식 stable 승격 (Phase 12 close candidate)",
-      "cue_anchors": [
-        "stdio-sdk",
-        "v0.11.25",
-        "stable-promotion",
-        "mcp-transport"
-      ],
-      "value_digest": "stdio-sdk 정식 stable 승격 + ADR-007 placeholder + connection-closed 회귀 해결.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "mcp",
-        "phase-12"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/docs/architecture/v1_0_0_promotion_feasibility_mcp_stdio_sdk.md"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-004.json"
     },
     {
       "id": "MEM-2026-07-09-005",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/tests/check_drift_prevention_v0_11_23.py",
-        "workflow-source/tests/check_drift_prevention_helpers_v0_11_23.py"
-      ],
       "primary_abstraction": "Drift prevention automation (v0.11.23, 6 case cross-check smoke)",
-      "cue_anchors": [
-        "drift-prevention",
-        "v0.11.23",
-        "cross-check",
-        "smoke",
-        "silent-fail"
-      ],
-      "value_digest": "pyproject ↔ __init__.py ↔ maturity_matrix ↔ README 6 case cross-check + sync-maturity-matrix helper.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "quality",
-        "release-automation"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/releases/Beta-v0.11.23.md"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-005.json"
     },
     {
       "id": "MEM-2026-07-09-006",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/core/maturity_matrix.json"
-      ],
       "primary_abstraction": "CodeWhale 10번째 하네스 overlay (v0.10.4, single SKILL.md 패턴)",
-      "cue_anchors": [
-        "codewhale",
-        "harness",
-        "v0.10.4",
-        "overlay",
-        "10th",
-        "single-skill"
-      ],
-      "value_digest": "CodeWhale 10번째 하네스 (2026-07-03). HARNESS_SPECS + SUPPORTED_HARNESSES + builder 등록. 단일 SKILL.md overlay.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "harness-distribution"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/harnesses/codewhale/SKILL.md"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-006.json"
     },
     {
       "id": "MEM-2026-07-09-007",
-      "schema_version": 1,
-      "source_paths": [
-        "workflow-source/core/orchestrator_subagent_contract_v1.md",
-        "workflow-source/core/orchestrator_contract_v1_wire_guide.md"
-      ],
       "primary_abstraction": "Contract v1 P0 enforcement + Mavis engine hook 자동화 (Phase 12 follow-up)",
-      "cue_anchors": [
-        "contract-v1",
-        "enforcement",
-        "Mavis",
-        "engine-hook",
-        "P0",
-        "delegator"
-      ],
-      "value_digest": "validate_output + choose_role + choose_roles + validate_fanin_output 4 helper 자동 enforce. Mavis engine hook spec.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "contract-v1",
-        "multi-agent"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/workflow_kit/contract_v1/output_validator.py",
-        "workflow-source/workflow_kit/contract_v1/delegator.py"
-      ],
-      "related_ids": [],
-      "created_at": "2026-07-09T00:46:00Z",
-      "updated_at": "2026-07-09T00:46:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-07-09-007.json"
     },
     {
       "id": "MEM-2026-08-10-001",
-      "schema_version": 1,
-      "source_paths": [
-        "docs/architecture/ADR-006-memory-index-retrospective.md"
-      ],
       "primary_abstraction": "ADR-006 memory index 30-day retrospective conclusions",
-      "cue_anchors": [
-        "memory-index",
-        "retrospective",
-        "adr-006",
-        "write-path",
-        "hit-rate",
-        "telemetry",
-        "bm25",
-        "suggest-memory-entries"
-      ],
-      "value_digest": "30일 실사용 = 고정 질의 1종→고정 entry 1건. 병목은 검색이 아니라 운영 — 후속 W-1~W-4, W-1 은 suggest-memory-entries 로 구현.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "memory-index"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "ai-workflow/wiki/topics/memory-index-retrospective-2026.md"
-      ],
-      "related_ids": [
-        "MEM-2026-07-09-002"
-      ],
-      "created_at": "2026-08-10T00:00:00Z",
-      "updated_at": "2026-08-10T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-001.json"
     },
     {
       "id": "MEM-2026-08-10-002",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-10-main-008.md",
-        "workflow-source/schemas/title_drift_calibration.json"
-      ],
       "primary_abstraction": "threshold calibration mines production path freezes with check",
-      "cue_anchors": [
-        "calibration",
-        "threshold",
-        "title-drift",
-        "fixture",
-        "production-path",
-        "similarity"
-      ],
-      "value_digest": "임계 캘리브레이션 방법론: production 소비 경로로 채굴, 개선안은 A/B 실측 기각, fixture+검사로 상수 동결 (변경 시 재캘리브레이션 강제). title drift 0.6 실측 확정 사례.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "drift-detection",
-        "methodology"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-08-10-001"
-      ],
-      "created_at": "2026-08-10T00:00:00Z",
-      "updated_at": "2026-08-10T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-10-002.json"
     },
     {
       "id": "MEM-2026-08-20-001",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-18-main-004.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-001.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-003.md"
-      ],
       "primary_abstraction": "Assertions that check existence hide count and identity defects",
-      "cue_anchors": [
-        "assertion",
-        "existence",
-        "count",
-        "denominator",
-        "unreachable-branch",
-        "check-design",
-        "false-green",
-        "dry-run-only"
-      ],
-      "value_digest": "'있는가' 단언은 사라짐·쌓임·바뀜을 통과시킨다. 실측 5종: 포인터 개수 · 지표 분모(찾은 파일 vs 선언 집합 — 대상을 지울수록 점수가 오름) · 진입점 명령 표(대표 1개만 봐서 6번째 추가가 안 보임) · dry-run 전용 검사(apply 크래시 2건 구조적 미탐지) · 도달 불가능한 분기(older→error 가 최신 버전인 동안 무해했다가 전제 변경 순간 결함). 처방: 개수/어느 것을 재고, 분모는 선언 집합으로, 폴백·출처는 결과에 남긴다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "check-design",
-        "metrics"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "ai-workflow/memory/active/main/sessions/wiki_l2_pipeline_revival_2026-08-19.md"
-      ],
-      "related_ids": [
-        "MEM-2026-08-10-001"
-      ],
-      "created_at": "2026-08-20T00:00:00Z",
-      "updated_at": "2026-08-20T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-001.json"
     },
     {
       "id": "MEM-2026-08-20-002",
-      "schema_version": 1,
-      "source_paths": [
-        "docs/RELEASE.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-007.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-006.md"
-      ],
       "primary_abstraction": "A breaking marker names a change, not its blast radius",
-      "cue_anchors": [
-        "semver",
-        "breaking-change",
-        "conventional-commits",
-        "release-grade",
-        "external-spec-version",
-        "api-surface",
-        "retirement"
-      ],
-      "value_digest": "`!` 는 '무언가 깨진다' 는 표시일 뿐 **무엇이** 깨지는지 말하지 않는다. 등급은 우리가 보장한 표면(공개 API) 기준으로 본다 — 공개 시그니처 / 진입점 소멸 / 소비자가 못 읽게 되나 / 외부 spec 버전. **외부 spec 버전이 오른 것만으로는 major 가 아니다** (v1.3.0 의 OKF v0.2 이행이 사례). 따름정리: 은퇴는 진입점을 남기고 write 0 + 사유 보고로 하면 breaking 이 아니게 만들 수 있다. 그리고 도구는 등급을 **근거와 함께** 제시하되 major 승격은 사람에게 넘긴다(requires_decision).",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "release",
-        "semver"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/releases/Beta-v1.3.0.md"
-      ],
-      "related_ids": [
-        "MEM-2026-08-20-001"
-      ],
-      "created_at": "2026-08-20T00:00:00Z",
-      "updated_at": "2026-08-20T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-002.json"
     },
     {
       "id": "MEM-2026-08-20-003",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-009.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-20-main-010.md",
-        "workflow-source/workflow_kit/deploy_doctor.py"
-      ],
       "primary_abstraction": "A probe must measure the right unit and read what the system already declares",
-      "cue_anchors": [
-        "measurement-unit",
-        "process-vs-session",
-        "plugin-load",
-        "restart-required",
-        "install-path",
-        "declared-state",
-        "stale-copy",
-        "probe-design",
-        "branch-tip-vs-tag"
-      ],
-      "value_digest": "탐침이 틀리는 두 가지 방식. ① **잰 단위** — 로드 단위가 프로세스인데 대화(session) 시각으로 재서 옳은 가설을 기각했다(`/clear` 는 프로세스를 재시작하지 않는다). 값싼 방증: 실행 중 프로세스의 버전과 `<cli> --version` 이 어긋나면 그 프로세스는 디스크보다 낡았다. 그리고 로케일로 번역되는 필드(`ps lstart`)를 파싱하지 않는다 — 형식이 고정된 `etime` 을 읽고 지금에서 뺀다. ② **선언을 안 읽음** — 어느 사본이 설치본인지 하네스가 `installPath` 로 이미 말하고 있는데 glob 매치를 전부 동등하게 세서, **갱신에 성공한 직후 발견이 늘었다**(잔재가 드리프트로 보고 + 발견 복제 + 옛 버전 표기). 따름정리: 마켓플레이스는 태그가 아니라 **브랜치 팁**을 당기므로 같은 버전 문자열이 시점마다 다른 내용을 가리킨다. 그리고 되주입해도 red 가 안 나는 방어 분기는 도달 불가능한 죽은 코드다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "deployment",
-        "probe-design"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "docs/INSTALLATION_AND_USAGE.md",
-        "workflow-source/core/workflow_deployment_idempotency.md",
-        "ai-workflow/memory/active/main/sessions/runtime_load_and_label_transition_2026-08-20.md"
-      ],
-      "related_ids": [
-        "MEM-2026-08-20-001"
-      ],
-      "created_at": "2026-08-20T00:00:00Z",
-      "updated_at": "2026-08-20T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-003.json"
     },
     {
       "id": "MEM-2026-08-20-004",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-14-main-009.md",
-        "workflow-source/workflow_kit/common/project_docs.py"
-      ],
       "primary_abstraction": "Changing a spelling breaks readers, not writers",
-      "cue_anchors": [
-        "label-transition",
-        "canonical-registry",
-        "alias",
-        "parser-literal",
-        "frontmatter-precedence",
-        "mixed-corpus",
-        "test-encodes-constant",
-        "deprecation-window"
-      ],
-      "value_digest": "표기를 바꾸면 눈에 보이는 산출물이 아니라 **파서가 조용히 갈린다**. 실측 4종: 경고 분기(`- 상태:` 로만 발화) · 사용자 보고(문서에 없는 이름을 말한다) · 같은 도구의 두 쓰기 경로가 갈림 · **본문 상태 줄 제거 정규식 하나가 frontmatter 우선순위를 뒤집었다**(fm `done` 인데 파서가 `in_progress`). 순서가 계약이다 — 두 표기를 아는 리더를 먼저 배포하고 그 뒤에 쓰는 쪽을 바꾼다. 별칭은 지우지 않는다(기존 문서가 그 표기다). 갱신은 **건드린 줄만** 새 표기로 다시 쓰고 나머지는 보존한다. 그물의 모양이 곧 주장의 범위다 — `- 라벨:` 콜론 모양만 보는 검사는 **라벨 이름만 든 리터럴**을 못 본다. 그리고 검사가 리터럴로 든 기대값은 계약이 아니라 그 시점 상수다(검사 3종·18곳이 red 였고 동작은 내내 옳았다).",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "task-ssot",
-        "migration"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [
-        "workflow-source/core/backlog_update_skill_spec.md",
-        "ai-workflow/memory/active/main/sessions/runtime_load_and_label_transition_2026-08-20.md"
-      ],
-      "related_ids": [
-        "MEM-2026-08-20-001",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-08-20T00:00:00Z",
-      "updated_at": "2026-08-20T00:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-20-004.json"
     },
     {
       "id": "MEM-2026-08-25-001",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-24-main-001.md",
-        "workflow-source/tests/check_watch_transient_writer.py"
-      ],
       "primary_abstraction": "One observed event does not mean a completed write",
-      "cue_anchors": [
-        "watch-transient-writer",
-        "flake",
-        "non-atomic-write",
-        "truncate-window",
-        "os-replace",
-        "event-semantics",
-        "partial-file",
-        "deterministic-test"
-      ],
-      "value_digest": "테스트가 `Path.write_text`(truncate 후 write)로 쓰는데 그것은 비원자적이라, 파일 감시자는 그 사이의 빈/부분 파일을 **정직하게** 첫 변경으로 잡는다 — 'changed[0] = 내 완결 주입' 가정이 틀렸다(실측: 1.8MB 창에서 changed 22건 중 12건이 완결 아닌 크기). 도구는 내내 옳았다 — 결함은 신호를 읽는 쪽 가정이다. 수리 2겹: ①테스트 쓰기를 원자화(임시 파일 + `os.replace`) ②'중간 상태는 보고된다'를 우연이 아니라 **계약 case** 로 못박아 다음 사람이 그 관측을 잡음으로 오해해 도구를 뭉개지 못하게 했다. 그리고 **flake 를 고치는 검사가 스스로 flaky 하면 안 된다** — 첫 판 case 가 5회 중 4회 red(폴러가 truncate 창을 운으로 잡길 기대)여서, 재려는 조건을 보장된 시간 동안 실재하게(2단계 쓰기 + fsync + 관측 대기) 바꿔 결정적으로 만들었다(6회 연속 6/6). 같은 주에 세 번째로 같은 모양: `in_sync ≠ 쓸 수 있음` · `인벤토리 ≠ 세션 가용성` · `이벤트 1건 ≠ 완결본`.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "tests",
-        "flake"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-08-20-001",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-08-24T15:15:54.893566Z",
-      "updated_at": "2026-08-24T15:15:54.893566Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-001.json"
     },
     {
       "id": "MEM-2026-08-25-002",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-24-main-006.md",
-        "workflow-source/workflow_kit/tools/ensure_entrypoints.py"
-      ],
       "primary_abstraction": "Absence is created, staleness is only reported",
-      "cue_anchors": [
-        "ensure-entrypoints",
-        "session-start",
-        "self-bootstrap",
-        "create-only",
-        "forked-declaration",
-        "update-available",
-        "write-gate",
-        "needs-bootstrap"
-      ],
-      "value_digest": "세션 시작이 부재 진입점을 현재 kit 버전으로 스스로 채운다(`wk ensure-entrypoints` + session-start 성공 경로 배선). 필요한 조각은 이미 다 있었고 없던 것은 배선 — HARNESS_SPECS(선언)·bootstrap_lib(렌더)·decide_action(판정). 경계(소유자 결정): **부재는 생성**(되돌리기 쉽고 self-bootstrap 이 약속한 동작), **낡음은 보고만** (`FORKED` 를 선언하지 않은 손수정이 세션을 여는 것만으로 사라지면 안 된다) — 그 경계는 `writes._resolve_write` **한 곳**에서 강제한다(쓰기 판정이 다섯 곳에 복제돼 있어 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다). '덮었다' 도 '최신이다' 도 아닌 상태는 자기 이름을 가진다(`UPDATE_AVAILABLE` — 열거형 파생 버킷이라 새 분류가 자동으로 실렸다). 정체를 모르면(PROJECT_PROFILE.md 부재) 지어내지 않고 `needs_bootstrap` 을 낸다 — 지어낸 이름은 이후 모든 산출물에 실린다. 실측이 설계를 두 번 고쳤다: 복구를 실패 경로에만 달아 반쪽 동작(성공 경로로 이동) · 내부 bootstrap 호출의 PYTHONPATH 오염(수동 시험은 export 가 가렸고 검사가 잡았다).",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "session-start",
-        "deployment"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-08-24T15:15:54.893566Z",
-      "updated_at": "2026-08-24T15:15:54.893566Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-08-25-002.json"
     },
     {
       "id": "MEM-2026-09-23-001",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-21-main-008.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-005.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A green summary is not a green verdict",
-      "cue_anchors": [
-        "exit-code-is-the-verdict",
-        "summary-line-lies",
-        "meta-watch",
-        "warning-gate",
-        "repo-write-watch",
-        "partial-vs-full-measurement",
-        "null-vs-empty-string"
-      ],
-      "value_digest": "종료 코드와 요약 수치가 다른 것을 말하는 일을 한 사이클에 여섯 번 만났다. 러너가 셀마다 '290/290 passed' 를 찍는데 프로세스는 EXIT=1 이었고(원인은 meta-watch·경고 게이트·저장소 write 로 매번 달랐다), CI 요약은 '## Smoke Passed' 인데 exit 1 이었으며(새 축을 요약에 안 실어서 — 그 스크립트 자신이 '무엇이 깨졌는지 볼 수 없으면 아무도 고치지 않는다' 고 주석에 적어 둔 실수를 반복했다), gh run list 의 conclusion 이 진행 중일 때 null 이 아니라 빈 문자열이라 대기 루프가 두 번 일찍 빠졌고, 도구가 대상 부재를 warning + exit 0 으로 알려 쉘 폴백이 안 걸렸다. 판정은 종료 코드로 한다 — 통과 수가 만점인데 rc가 0이 아니면 다른 축이 red 인 것이고, 출력 꼬리를 끝까지 읽어야 보인다. 새 판정 축을 더하면 요약에도 반드시 싣는다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "gate",
-        "ci"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-002",
-        "MEM-2026-09-23-006"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-001.json"
     },
     {
       "id": "MEM-2026-09-23-002",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-007.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Passing and doing-what-was-intended are different questions",
-      "cue_anchors": [
-        "green-is-not-evidence",
-        "observability-of-mode",
-        "unmeasured-is-not-pass",
-        "artifact-last-line",
-        "json-runner-hides-stdout"
-      ],
-      "value_digest": "CI 하한 측정을 부분에서 전수로 올린 뒤 그것이 실제로 올라갔는지 확인하려는데, 검사는 전수 측정이든 부분 폴백이든 양쪽 다 PASS 라 '6/6 passed' 로는 구분이 안 됐다. 러너가 --json 으로 돌아 검사 stdout 이 job 로그에 안 남고 아티팩트의 last_line 만 남는 것도 겹쳤다. 판정을 바꾸지 않고 모드를 요약 줄에 실어('하한 측정 전수(3.10.21, 569개)') 관측 가능하게 만든 뒤에야 확인됐다. 목적 달성 여부를 보려면 관측 수단을 따로 만들어야 한다 — green 은 '깨지지 않았다' 이지 '의도한 것을 했다' 가 아니다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "ci",
-        "measurement"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-001",
-        "MEM-2026-09-23-004"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-002.json"
     },
     {
       "id": "MEM-2026-09-23-003",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-002.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-004.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A rule the writer cannot read is not enforced",
-      "cue_anchors": [
-        "judgment-in-tests-dir",
-        "promote-to-product-code",
-        "doc-stamp",
-        "doc-headers-update",
-        "re-export-not-copy",
-        "import-surface-explosion"
-      ],
-      "value_digest": "문서 스탬프 규약('스탬프 >= 마지막 내용 변경일')이 tests/ 안에 살아서 읽는 쪽(검사 5종)만 알고 쓰는 쪽(릴리스의 doc-headers-update)은 구조적으로 import 할 수 없었다. 그래서 쓰는 쪽은 헤더가 있는 문서를 전부 오늘로 올렸고, 내용이 한 줄도 안 바뀐 문서 100개가 '오늘 수정됨' 을 주장했다. 되돌려도 release --apply 의 post-step 이 다시 넣어 커밋 전 되돌림으로는 못 막았다. 규약 판정 모듈이 tests/ 안에 있으면 그것은 읽는 쪽 전용이라는 뜻이다 — 강제하려면 제품 코드로 승격하고 검사는 재수출만 한다. 승격 시 패키지 __init__ 이 딸려 와 검사들의 입력 표면이 폭발하면(meta-watch 가 잡는다) stdlib-only 인지 보고 파일 경로로 직접 읽어 한 파일로 유지한다 — 사본이 아니라 같은 파일이라 갈라지지 않는다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "convention",
-        "release"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-006",
-        "MEM-2026-08-20-004"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-003.json"
     },
     {
       "id": "MEM-2026-09-23-004",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-005.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Local green and CI green can walk different branches",
-      "cue_anchors": [
-        "dist-presence-changes-the-path",
-        "toctou-on-shared-state",
-        "flake-fingerprint-is-moving-cells",
-        "reproduce-by-removing-local-state"
-      ],
-      "value_digest": "로컬 전량 4셀이 290/290 green 인데 CI smoke 가 2연속 red 였다. 코드 차이가 아니라 개발 머신의 workflow-source/dist/ 에 방금 빌드한 산출물이 있어서, 그 존재로 기대값을 고르던 검사가 fresh checkout 인 CI 와 아예 다른 경로를 탔다. 같은 원인이 두 번 더 나왔다 — sdist 빌드가 소스 트리에 만드는 임시 디렉터리도 CI 에서만 보였다. 실패 검사는 하나인데 실패 셀이 매번 바뀌면 그것은 경합의 지문이다. 로컬 green 과 CI red 가 갈리면 코드가 아니라 상태 차이부터 찾고, 재현할 때는 그 상태를 치우고(mv dist /tmp) 돌린다. 찾기 전까지 로컬 green 은 증거가 아니다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "ci",
-        "testing"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-002",
-        "MEM-2026-09-23-005"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-004.json"
     },
     {
       "id": "MEM-2026-09-23-005",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Optimize the distribution, not the count",
-      "cue_anchors": [
-        "measure-before-cutting",
-        "cumulative-distribution",
-        "meta-checks-rerun-the-suite",
-        "absorb-into-the-runner",
-        "cost-moves-to-the-failure-path",
-        "cannot-reduce-is-also-a-measurement"
-      ],
-      "value_digest": "'전량이 느리다' 에 검사를 걷어내려다 먼저 재니 290개 중 174개(60%)가 1초 미만이고 다 합쳐 6% 였다 — 개수는 원인이 아니었다. 비용은 다른 검사를 다시 도는 메타 검사에 몰려 있었고(166s, 18%) 그중 하나가 벽시계의 35% 였다. 그 감시를 러너에 흡수하니 벽시계 221s → 138s(-38%)가 되면서 감시 범위는 표본 16 → 전수 290 으로 늘었다 — 재실행을 없앤 것이 아니라 비용을 위반이 났을 때로 옮겼다. 설계 전제도 착수 전에 쟀다: 동시성 중앙 9(후보 귀속이 쓸모 있다) · git status 12.7ms(0.5s 폴링 = 5.6s). 남은 축은 '줄일 수 없다' 를 실측으로 냈다 — 싼 대안 프로브 4종이 전부 두 컨텍스트에서 출력이 안 갈려 그 축을 증명하지 못한다. 못 줄인다는 판단도 근거를 남겨야 다음 사람이 같은 길을 다시 가지 않는다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "performance",
-        "testing"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-006",
-        "MEM-2026-09-23-004"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-005.json"
     },
     {
       "id": "MEM-2026-09-23-006",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-008.md",
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-003.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Porting a mechanism silently drops its contract",
-      "cue_anchors": [
-        "contract-weakened-in-transit",
-        "known-transient-ledger",
-        "fatal-vs-reported",
-        "first-run-of-full-coverage-finds-real-things"
-      ],
-      "value_digest": "저장소 write 감시를 검사에서 러너로 옮기면서 '미지의 touch-and-restore 는 FAIL' 이라는 계약을 보고만 하도록 조용히 약화시켰다. 되돌려 놓으면 git status 가 오히려 깨끗해 보여 더 위험한 것이 그 축의 요지인데, 옮기는 과정에서 그 엄격도가 빠졌고 아무것도 실패하지 않았다. 원장(알려진 접촉만 이유와 함께 등록, 단방향)을 복원하고 엄격도를 되돌렸다. 덧붙여 범위를 표본 16에서 전수 290으로 넓히자 첫 실행에서 실물 접촉 2건이 나왔다 — 표본 밖이라 아무도 못 보던 것들이다. 기능을 옮길 때는 옮기기 전 계약이 그대로 왔는지 따로 확인한다. 빠지는 쪽은 조용하다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "testing",
-        "convention"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-003",
-        "MEM-2026-09-23-005",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-006.json"
     },
     {
       "id": "MEM-2026-09-23-007",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-001.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A lexical-overlap metric measures nothing and reports a constant",
-      "cue_anchors": [
-        "constant-metric-is-a-defect",
-        "input-pair-mismatch",
-        "function-word-noise",
-        "threshold-vs-formula",
-        "promotion-is-judgment"
-      ],
-      "value_digest": "memory_index 승격 후보 판정이 '제목 토큰 교집합 entry 토큰 / 제목 토큰' 어휘 겹침이라 매 세션 '10건 중 0건' 상수를 냈다. 평균 0.22 · 최대 0.40 으로 구조적 0 은 아니지만 임계 0.5 를 영영 못 넘고, 더 결정적으로 그 겹침의 내용이 '자기'·'판정이'·'red'·'두'·'가' 같은 기능어/일반어다. 입력 쌍도 어긋나 있다 — entry 는 영어 추상화와 영어 kebab cue, task 제목은 한국어 산문이라 cue_anchors 기여가 0.062 다. 81차가 graph_insights 에서 고친 것과 같은 결함족이고 거기서는 선언 사슬로 갈았다. 상수인 지표는 판정식 또는 입력 쌍이 틀린 것이다 — 임계를 돌리기 전에 두 입력이 비교 가능한 종류인지 묻고, 겹침이 있다면 그 내용이 의미인지 기능어인지 눈으로 본다. 승격은 도구 순위가 아니라 재사용 가치로 고른다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "metrics",
-        "memory-index"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-002",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-09-23T00:08:14.364282Z",
-      "updated_at": "2026-09-23T00:08:14.364282Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-007.json"
     },
     {
       "id": "MEM-2026-09-23-008",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-003.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "The fix for a constant metric is usually a declaration nobody reads",
-      "cue_anchors": [
-        "declaration-already-exists",
-        "citation-as-coverage",
-        "autopsy-the-old-formula",
-        "prefill-the-skeleton",
-        "unmeasured-vs-uncovered"
-      ],
-      "value_digest": "상수 지표를 고칠 때 새 판정식을 발명하기 전에 **이미 있는 선언**을 찾는다. 승격 후보 coverage 가 제목↔entry 어휘 겹침이라 매 세션 '10건 중 0건' 을 냈는데, entry 의 source_paths 가 출처 task 를 인용하고 있었다 — 그 인용이 곧 '이 task 의 교훈을 담았다' 는 선언이다. 판정을 그것으로 바꾸자 covered=0/candidates=10 이 covered=7 / candidates=3 / unmeasured=8 이 됐다. 인용 없는 entry 는 '안 덮음' 이 아니라 entries_without_task_citation 으로 분리한다 — 못 잰 것을 나쁨으로 세면 지표가 다시 거짓말한다. **옛 식을 되주입해 부검할 것**: 되주입 5종 중 하나가 '옛 어휘식 복원' 이었고 결과가 covered=0 이라, 그 식이 애초에 아무것도 못 잡았다는 것이 그제야 숫자로 남았다. 안 하면 새 값이 좋아 보이는 것만 남고 옛 값이 왜 상수였는지는 사라진다. 규약이 있는데 안 지켜지면 **만드는 쪽**을 고친다 — entry 22건 중 인용이 있는 것은 7건뿐이라, skeleton 의 source_paths 에 출처 task 경로를 미리 채워 다음 승격부터 자동으로 지켜지게 했다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "metric",
-        "memory-index"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-007",
-        "MEM-2026-09-23-003",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-09-23T12:00:00Z",
-      "updated_at": "2026-09-23T12:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-008.json"
     },
     {
       "id": "MEM-2026-09-23-009",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-002.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Swapping a measurement tool needs an outside witness that it still sees the defect",
-      "cue_anchors": [
-        "dry-run-still-locks",
-        "read-only-substitute",
-        "substitute-needs-a-witness",
-        "flake-is-a-registered-defect",
-        "parallel-section-contention"
-      ],
-      "value_digest": "`git add --dry-run` 은 **dry-run 이어도 index 락을 잡는다** — 병렬 구간에서 다른 검사와 부딪히면 `fatal: Unable to create .git/index.lock` 로 죽는다. 락을 인위로 쥐고 재면 add 는 rc=128, `git ls-files --error-unmatch --cached --others --exclude-standard` 는 rc=0 이다. 그런데 수단을 바꾸는 순간 질문이 생긴다 — **대체 수단이 원래 잡던 결함을 여전히 보는가?** production 이 실제로 하는 일은 `git add` 이고 검사는 이제 다른 명령을 쓴다. 그래서 case 를 하나 더 둔다: 락 경합이 없는 tmp repo 에서 추적/미추적이 섞인 대상에 대해 두 수단이 **두 cwd 방향 모두에서** 같은 판정을 내는지 잰다. 갈리면 그 검사가 production 을 더 이상 대리하지 못한다는 뜻이고 그때 red 가 된다. 바꾼 뒤 green 인 것은 증거가 아니다. 덧붙여, 간헐 red 를 '잡음' 으로 넘기지 않고 task 로 등록해 뒀더니 다음 push 의 CI red 를 **새 결함이 아니라 등록된 결함의 발현**으로 즉시 식별할 수 있었다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "tests",
-        "ci"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-004",
-        "MEM-2026-09-23-006",
-        "MEM-2026-08-20-003"
-      ],
-      "created_at": "2026-09-23T12:00:00Z",
-      "updated_at": "2026-09-23T12:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-009.json"
     },
     {
       "id": "MEM-2026-09-23-010",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-004.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A false-positive fear that narrows scope is itself a measurement gap",
-      "cue_anchors": [
-        "constant-total-hides-neutralization",
-        "scope-set-by-measurement",
-        "false-positive-is-not-a-reason-to-narrow",
-        "verdict-in-the-runner",
-        "unmeasured-reported-by-reason"
-      ],
-      "value_digest": "검사 요약의 `N/M` 에서 M 이 손으로 박은 상수이면 case 를 늘려도 줄여도 숫자가 안 바뀐다 — **무력화가 숫자에서도 안 보인다.** 하루에 두 번 실물로 만났고(11개에 9/9, 12개에 11/11) 둘 다 전체 green 이었으며, 전수로 재니 상수 total 20건 중 4건이 이미 갈려 있었다. 판정은 러너에 둔다 — 러너는 이미 각 검사의 출력을 전량 받아 두므로 **재실행 비용이 0**이다(경고 축·저장소 write 축과 같은 자리). **핵심은 범위를 실측으로 정한 것이다.** 남의 출력 echo 가 무서워 case 줄을 줄 맨 앞만 받았더니 **290개 중 28개**만 읽혔고, 못 읽은 표본은 전부 자기 case 를 들여쓰는 검사였으며 선언=들여쓴 수였다. 넓히자 위양성이 실제로 2건 나왔지만 **둘 다 좁힐 이유가 아니라 각자 원인이 따로 있었다** — 콜론 없이 PASS 만 찍는 case, production CLI 출력이 case 줄에 섞인 것(production 표기는 두고 검사가 stdout 을 삼켰다). 위양성 우려로 좁힐 때는 **좁힌 결과 몇 개를 못 보게 되는지**를 같이 재라. 그리고 미측정은 통과로 세지 말고 사유별로 보고한다 — 320/582 를 '개수 선언 없음 306 / case 줄 없음 14' 로 갈라 놓으면 사각지대가 숫자로 남는다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "tests",
-        "gate"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-001",
-        "MEM-2026-09-23-002",
-        "MEM-2026-09-23-005"
-      ],
-      "created_at": "2026-09-23T12:00:00Z",
-      "updated_at": "2026-09-23T12:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-010.json"
     },
     {
       "id": "MEM-2026-09-23-011",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-22-main-006.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A tool that writes 'now' cannot perform a retroactive correction",
-      "cue_anchors": [
-        "now-writer-cannot-backfill",
-        "scope-from-hand-list-to-derived",
-        "failure-taught-the-signal",
-        "mirror-never-converges",
-        "split-roles-when-scope-blows-the-budget"
-      ],
-      "value_digest": "뒤처진 스탬프를 교정하면서 **도구를 쓰지 않았다.** doc-headers-update 는 '오늘' 을 쓰는데, 내용이 2026-05-01 에 바뀐 문서에 오늘을 박으면 이 축이 없애려던 거짓과 같은 것을 만든다. 범위 확장만 도구에 넣고 소급 값은 **실제 내용 변경일**로 채웠다(116건, 최대 +142일). 범위는 손 목록(93개) → git 추적 전수 − 동결(210개)로 옮겼고 동결 판정 정본을 제품 코드로 승격해 사본을 0으로 만들었다. **동결 신호는 실패가 가르쳐 줬다** — 2개로는 발행 노트·테스트 트리가 살아있는 문서로 새어, .gitignore 무시 경로(check-ignore --no-index)까지 5개로 늘렸다. 배포 사본은 스캔에서 빼야 한다(정본과 byte-identical 이어야 해서 따로 올리면 **영원히 수렴하지 않는다**). 범위를 넓히면 실행 예산이 터지는데, timeout 을 올리는 것은 또 다른 손 목록이므로 **역할을 나눈다** — 파이프라인 auto-step 은 워킹 트리 변경분만, 전수 감시는 게이트가 한 번. 도구 종료 코드 함정 하나: `wk backlog-update --mode update` 가 대상 부재를 **warning + exit 0** 으로 내서 쉘 폴백이 안 걸렸고 task 없는 커밋이 나갔다 — '경고지만 성공' 을 조건에 쓰지 않는다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "convention",
-        "release"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-003",
-        "MEM-2026-09-23-001",
-        "MEM-2026-08-25-002"
-      ],
-      "created_at": "2026-09-23T12:00:00Z",
-      "updated_at": "2026-09-23T12:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-011.json"
     },
     {
       "id": "MEM-2026-09-23-012",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-005.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A fixed metric can return under a new name; and a search that reports a hit must return it",
-      "cue_anchors": [
-        "fixed-query-returns-renamed",
-        "one-source-eats-the-cap",
-        "hit-reported-but-not-returned",
-        "seed-before-expansion",
-        "empty-result-must-explain",
-        "fixture-must-establish-its-own-conditions"
-      ],
-      "value_digest": "두 가지가 한 자리에서 나왔다. **① 고친 지표가 또 상수가 됐다.** ADR-006 W-2 는 '고정 trio 가 33일간 같은 entry 를 집었다' 를 고치려고 질의를 컨텍스트 유도로 바꿨는데, 유도 입력 `current_axis` 한 줄이 **130 token** 이고 상한이 8이라 `done_items` 기여가 **정확히 0** 이었다 — 세 소비자가 전부 같은 상수 질의를 냈고 증상은 그대로인 채 이름만 바뀌었다. 여러 출처를 이어 붙여 상한으로 자르는 유도는 한 출처가 길면 나머지가 조용히 0 이 된다. **출처마다 몫**을 주고 각 출처가 기여했는지를 case 로 고정한다. 그리고 '고쳤다' 는 커밋 뒤 그 지표를 한 번 더 실측한 기록이 없으면 미확인이다. **② 검색이 `cue_hits=1` 을 보고하면서 그 1건을 안 돌려줬다.** 선택이 `sorted(seed 와 확장분)[:top_k]` 인데 ID 가 날짜 기반이라 사전순 = 날짜순이고, 링크 관례가 최신→기존(단방향)이라 확장분이 항상 seed 보다 오래돼 **매칭된 것 자신이 밀려났다**. 계약은 'seed 는 전부 확장분보다 앞' 이지 '내가 1등' 이 아니다 — cue 를 공유하는 entry 가 실재한다(실측 2건). 빈 결과는 사유를 내놓아야 한다: `count: 0` 만으로는 색인 빔 / 질의 불일치 / 단계 꺼짐이 구분 안 되는데 셋의 처방이 다르다. 부수로, 이 수리를 고정한 검사가 두 번 엉뚱한 것을 쟀다 — 도구가 요구하는 입력(handoff)을 안 만들어 조기 반환을 쟀고, 브랜치 env 를 상속해 게이트의 `slash` 셀에서만 red 였다(native green). **fixture 는 자기가 재려는 조건을 스스로 성립시켜야 하고, 되주입은 모든 컨텍스트 축에서 돌린다.**",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "metric",
-        "memory-index"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-008",
-        "MEM-2026-09-23-007",
-        "MEM-2026-09-23-001"
-      ],
-      "created_at": "2026-09-23T15:00:00Z",
-      "updated_at": "2026-09-23T15:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-012.json"
     },
     {
       "id": "MEM-2026-09-23-013",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-006.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "An 'unmeasured' reason can be the shadow of the measurer's own scope",
-      "cue_anchors": [
-        "unmeasured-reason-is-my-shadow",
-        "open-the-unmeasured-set",
-        "pin-the-audit-in-a-tool",
-        "widen-the-reader-not-the-targets",
-        "knowing-when-to-stop-widening"
-      ],
-      "value_digest": "축이 못 읽은 것을 사유별로 보고하고 있었다 — '개수 선언이 없다 153건'. 그 153건을 고치러 갔더니 **36건은 이미 선언하고 있었다**: 장식(`=== `)이 앞에 붙거나, `PASS:` 가 비율보다 먼저 오거나(`=== PASS: 5/5 ===`), 비율이 아니라 두 수의 합이거나(`7 pass, 0 fail`), 개수가 산문 안에 있었다(`(9 assertions)`). **사유가 사실 진술처럼 보였지만 실은 '내가 그것을 못 읽었다' 였다** — 미측정을 사유별로 나눠 보고하는 것만으로는 부족하고, **그 집합을 직접 열어 표본의 실제 출력을 봐야** 드러난다. 사유 문구를 판정자 능력 기준으로 쓰면 그 착시가 남는다. 조사는 먼저 **도구에 고정**했다(러너 `--case-count-dump` 가 검사별 선언·발화·측정·사유를 JSON 으로 낸다) — 손으로 세면 다음에 또 세야 하고 숫자가 달라져도 모른다. 확장으로 측정 132 → 188 이 됐고 **진짜 결함 1건**이 드러났다: 한 검사가 case 10개를 돌리면서 요약은 `(9 assertions)` 였고 문서도 9개만 나열했다. **그리고 멈출 줄도 알아야 한다** — 남은 22건 중 12건은 같은 출력에 흐름이 둘이라(하위 case 23줄 vs 테스트 함수 8) 받으면 위양성 12건이 된다. 미측정으로 남기는 것이 위양성보다 낫다. 잔여는 숫자와 이유로 기록했다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "tests",
-        "gate"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-010",
-        "MEM-2026-09-23-002",
-        "MEM-2026-09-23-001"
-      ],
-      "created_at": "2026-09-23T18:00:00Z",
-      "updated_at": "2026-09-23T18:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-013.json"
     },
     {
       "id": "MEM-2026-09-23-014",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-007.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "Stopping for false positives can be right while the cause lies one layer deeper",
-      "cue_anchors": [
-        "right-to-stop-wrong-about-why",
-        "one-marker-is-not-the-vocabulary",
-        "skip-counted-as-pass",
-        "declaration-vs-evidence-line",
-        "residual-must-be-numbered"
-      ],
-      "value_digest": "앞 작업이 '이 접두를 받으면 위양성 12건' 이라며 확장을 멈췄다. **멈춘 판단은 옳았지만 원인이 대상 쪽이 아니었다** — 그 12건 중 9건은 **이미 롤업을 찍고 있었고** 표식이 `[PASS]` 가 아니라 `✓ name PASS` 였을 뿐이다. 즉 '흐름이 둘이라 못 푼다' 가 아니라 **판정자가 롤업 표식을 하나만 알고 있었다.** 표식 하나를 더하니 위양성이 0 이 되고 측정이 188 → 212 로 올랐다. 규칙: 위양성 때문에 멈출 때 멈춤을 결론으로 남기지 말고 **왜 그 대상이 다르게 보이는지**를 한 겹 더 파라 — '대상이 이질적이다' 는 대개 판정자가 그 이질성의 축을 하나만 안다는 뜻이다. 멈추는 것은 옳지만 멈춘 자리를 *이유와 숫자로* 남겨야 다음 사람이 그 겹을 연다. **부수로 나온 진짜 결함**: 한 테스트가 실 저장소에 대상이 없으면 `SKIP` 만 찍고 `True` 를 돌려줬다 — 요약은 `Result: 5/5 PASS`, 게이트는 green 인데 그 테스트는 아무것도 재지 않았다. 드러난 경로는 **개수**였다(선언 5 / 증거 줄 4). 건너뛰는 테스트는 ①건너뛴 사실을 요약에 숫자로 싣고(`5/5 PASS (1 skipped)`) ②case 마다 결과 한 줄을 내어 선언과 증거가 맞물리게 한다. `'not a failure, just skip'` 주석이 붙은 `return True` 가 이 결함의 지문이다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "tests",
-        "gate"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-013",
-        "MEM-2026-09-23-010",
-        "MEM-2026-09-23-002"
-      ],
-      "created_at": "2026-09-23T18:00:00Z",
-      "updated_at": "2026-09-23T18:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-014.json"
     },
     {
       "id": "MEM-2026-09-23-015",
-      "schema_version": 1,
-      "source_paths": [
-        "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-008.md",
-        "ai-workflow/memory/active/main/session_handoff.md"
-      ],
       "primary_abstraction": "A CLI that drops unknown arguments does something other than what was asked, and reports success",
-      "cue_anchors": [
-        "dropped-argument-reports-success",
-        "rejection-must-name-what-is-accepted",
-        "allowed-set-derived-from-source",
-        "already-rejects-is-an-assumption",
-        "help-must-have-no-side-effects",
-        "my-bug-report-scope-was-too-narrow"
-      ],
-      "value_digest": "릴리스 준비에서 `wk release-bump --version 1.11.0 --apply` 를 돌렸다. 실제 플래그는 `--to` 였고, 도구는 **모르는 `--version` 을 조용히 버린 뒤** patch 자동 증가(1.10.0 → 1.10.1)를 하고 post-step 이 `git commit --amend` 로 직전 커밋을 덮었다. **종료 코드는 0 이었다.** 인자를 버리는 CLI 는 사용자가 요청한 것과 다른 일을 하면서 성공을 보고한다. **범위는 내가 등록한 것보다 넓었다** — 원인은 그 커맨드가 아니라 `_parse_flag`/`_has_flag` 로 손수 파싱하는 커맨드 **37개 전부**였다(그 함수들은 찾는 것만 보고 나머지를 무시한다). 결함 보고의 범위도 좁을 수 있으니 고치기 전에 같은 모양이 몇 개인지 먼저 센다. 수리 원칙 넷: ①**거절 메시지에 받는 목록을 같이 낸다** — 무엇이 틀렸는지만 알려주면 사용자는 다시 추측한다. ②**허용집합은 소스에서 파생**한다(docstring ∪ 본문 리터럴 ∪ 모듈 헬퍼). 손 목록은 갈라진다. 다만 *호출한 헬퍼만* 으로 좁히지 말 것 — 함수를 인자로 받는 래퍼 하나에 호출그래프 파생이 조용히 풀린다. 모듈 단위로 느슨하게 잡아도 실측 허용집합 중앙값이 4개였다. ③이미 거절하는 계열(argparse)에는 가드를 겹치지 않되 **'이미 거절한다' 를 가정으로 두지 않는다** — 전수로 재서 case 로 고정한다(모름은 통과가 아니다). 가드를 겹치면 argparse 의 풍부한 `--help` 를 빈약한 docstring 으로 덮는 부작용도 있다. ④`--help` 가 **부수효과를 내는지** 확인한다 — 이 도구는 `--help` 에 도움말 대신 dry-run 을 실행하고 있었다. 되주입에서 **발화 불가능한 case** 를 또 잡았다: 파생 두 출처를 재는 case 가 실물 커맨드를 썼는데 그 플래그들이 docstring·본문 양쪽에 있어, 한 출처를 통째로 지워도 green 이었다. 한쪽에만 플래그를 둔 **탐침**으로 분리해야 각 출처가 발화한다.",
-      "owners": [
-        "ykylee"
-      ],
-      "scope": [
-        "standard-ai-workflow",
-        "cli",
-        "release"
-      ],
-      "merge_state": "active",
-      "mentioned_in": [],
-      "related_ids": [
-        "MEM-2026-09-23-013",
-        "MEM-2026-09-23-014",
-        "MEM-2026-09-23-001"
-      ],
-      "created_at": "2026-09-23T21:00:00Z",
-      "updated_at": "2026-09-23T21:00:00Z"
+      "path": "ai-workflow/memory/active/memory_index/entries/MEM-2026-09-23-015.json"
     }
   ],
   "memory_entries_count": 30

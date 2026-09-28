@@ -312,6 +312,7 @@ def main() -> int:
         test_query_with_linked_expansion,
         test_payload_with_memory_entries_merged,
         test_payload_without_memory_entries_absent,
+        test_entry_pointers_v2,
         test_refresh_hint_includes_memory_index_dir_flag,
         test_merge_request_validates_duplicate_source_ids,
         test_merge_dry_run_default_no_file_written,
@@ -402,6 +403,42 @@ def test_payload_with_memory_entries_merged() -> None:
             f"memory_entries merge failed: {payload.get('memory_entries')}"
         )
         assert payload.get("memory_entries_count") == 2, "count mismatch"
+
+
+def test_entry_pointers_v2() -> None:
+    """state.json 용 포인터 (ADR-029 v2): 본문 없이 id · 요약 · 역참조 가능한 경로만.
+
+    v1 은 entry 전문을 복제해 30 entry 에서 state.json 의 70%(47KB)였다. 포인터가 본문을
+    다시 싣거나, 경로가 실제 파일을 못 가리키면(역참조 불가 — requirements R4.2) red.
+    """
+    import tempfile
+    from workflow_kit.common.state.memory_index import (
+        MEMORY_ENTRIES_SCHEMA_VERSION,
+        POINTER_ABSTRACTION_MAX_CHARS,
+        entry_pointers,
+        load_memory_index_at,
+        memory_index_root,
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp)
+        long_text = "가" * 150  # 스키마 상한 200 안, 포인터 상한 120 밖 — 자르기 분기를 실제로 밟는다
+        HELPER.save_memory_entry(workspace, _entry("MEM-2026-09-28-001", long_text))
+        HELPER.save_memory_entry(workspace, _entry("MEM-2026-09-28-002", "짧은 요약"))
+        index_dir = memory_index_root(workspace)
+        pointers = entry_pointers(load_memory_index_at(index_dir), index_dir, workspace)
+        assert MEMORY_ENTRIES_SCHEMA_VERSION == "2", MEMORY_ENTRIES_SCHEMA_VERSION
+        assert [p["id"] for p in pointers] == ["MEM-2026-09-28-001", "MEM-2026-09-28-002"], pointers
+        for p in pointers:
+            assert set(p) == {"id", "primary_abstraction", "path"}, f"포인터에 본문 필드가 섞였다: {p}"
+            assert len(p["primary_abstraction"]) <= POINTER_ABSTRACTION_MAX_CHARS, p
+            assert not Path(p["path"]).is_absolute(), f"workspace 안인데 절대경로: {p['path']}"
+            target = workspace / p["path"]
+            assert target.is_file(), f"역참조 불가: {p['path']}"
+            assert json.loads(target.read_text(encoding="utf-8"))["id"] == p["id"], p
+        assert pointers[0]["primary_abstraction"].endswith("…") and \
+            len(pointers[0]["primary_abstraction"]) == POINTER_ABSTRACTION_MAX_CHARS, pointers[0]
+        assert pointers[1]["primary_abstraction"] == "짧은 요약", "짧은 요약을 건드렸다"
 
 
 def test_payload_without_memory_entries_absent() -> None:

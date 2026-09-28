@@ -117,6 +117,39 @@ def make_id(memory_index: Path, today: str | None = None) -> str:
 # --- Entry I/O ---
 
 
+#: `state.json.memory_entries` 스키마 버전 (ADR-029 결정 4). v1 은 entry **전문 복제**였고
+#: 30 entry 에서 state.json 의 70%(47KB)가 됐다 — ADR-006 회고가 "entry 가 수십 건이 되면
+#: state.json 비대의 첫 후보" 라고 예고한 그대로다. v2 는 포인터만 싣는다.
+MEMORY_ENTRIES_SCHEMA_VERSION: Final = "2"
+
+#: 포인터에 싣는 `primary_abstraction` 의 최대 글자 수.
+POINTER_ABSTRACTION_MAX_CHARS: Final = 120
+
+
+def entry_pointers(
+    entries: list[MemoryEntry], memory_index_dir: Path, workspace_root: Path | None,
+) -> list[dict[str, str]]:
+    """entry 를 `state.json` 용 포인터 `{id, primary_abstraction, path}` 로 바꾼다.
+
+    본문의 정본은 `memory_index/entries/<id>.json` 이다 — `state.json` 에서 이 필드를 읽는
+    코드는 없고(2026-09-28 전수), 사본은 갈라진다. `path` 는 workspace 기준 상대경로이고,
+    workspace 밖이면 절대경로다 (역참조가 늘 가능해야 한다 — requirements R4.2).
+    """
+    ed = entries_dir(memory_index=memory_index_dir)
+    out: list[dict[str, str]] = []
+    for e in entries:
+        target = ed / f"{e.id}.json"
+        try:
+            path = target.resolve().relative_to(workspace_root.resolve()).as_posix() if workspace_root else str(target)
+        except ValueError:
+            path = str(target)
+        text = e.primary_abstraction
+        if len(text) > POINTER_ABSTRACTION_MAX_CHARS:
+            text = text[: POINTER_ABSTRACTION_MAX_CHARS - 1] + "…"
+        out.append({"id": e.id, "primary_abstraction": text, "path": path})
+    return out
+
+
 def load_memory_index(workspace_root: Path) -> list[MemoryEntry]:
     """`memory_index/entries/*.json` 을 모두 읽어 `MemoryEntry` list 로 반환.
 

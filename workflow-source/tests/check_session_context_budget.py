@@ -10,7 +10,8 @@
   3) 기준선 줄은 §1 의 라벨 줄만 센다 — 다른 절에 같은 낱말이 있어도 세지 않는다
   4) 파일이 없으면 `measured=False` 이고 초과로도 통과로도 치지 않는다 (모름 ≠ 통과)
   5) `wk refresh-state` 가 초과한 예산만 **출구 명령과 함께** warning 으로 내고, 측정 전부를
-     `context_budget` 으로 싣는다 (seed 한 임시 workspace — 저장소를 건드리지 않는다)
+     `context_budget` 으로 싣는다 (seed 한 임시 workspace — 저장소를 건드리지 않는다).
+     같은 실행이 쓴 `state.json` 의 `memory_entries` 가 v2 포인터다 (생성기 경로 배선, 17.2)
 
 이 저장소의 예산 red 판정(살아 있는 문서)은 이관을 실행한 뒤 켠다 — 스펙 §8 의 '출구 먼저,
 red 나중'. 지금 켜면 만성 red 가 된다.
@@ -166,11 +167,28 @@ def case_5_refresh_state_warns_with_exit() -> None:
         text = text[:cut] + block + text[cut:] if cut >= 0 else text + block
         handoff.write_text(text, encoding="utf-8")
         (root / "CLAUDE.md").write_text("x" * (BUDGETS_BY_KEY["claude_md"].limit_bytes + 1), encoding="utf-8")
+        # memory_index entry 하나 — 생성기가 전문이 아니라 포인터를 싣는지 본다.
+        entry_dir = memory_root / "active" / "memory_index" / "entries"
+        entry_dir.mkdir(parents=True)
+        (entry_dir / "MEM-2026-09-28-001.json").write_text(json.dumps({
+            "id": "MEM-2026-09-28-001", "schema_version": 1,
+            "source_paths": ["ai-workflow/memory/active/main/sessions#x"],
+            "primary_abstraction": "예산 fixture entry", "cue_anchors": ["budget"],
+            "value_digest": "본문 " * 200, "owners": ["session-orchestrator"], "scope": ["project"],
+            "merge_state": "active", "mentioned_in": [], "related_ids": [],
+            "created_at": "2026-09-28", "updated_at": "2026-09-28",
+        }, ensure_ascii=False), encoding="utf-8")
         proc = _run(["-m", "workflow_kit.tools.refresh_state", "--project-profile-path", str(profile)])
         if proc.returncode != 0:
             _record("case 5 refresh-state 경고 배선", [f"refresh-state exit {proc.returncode}: {proc.stderr[-300:]}"])
             return
         out = json.loads(proc.stdout)
+        state = json.loads((memory_root / "active" / "main" / "state.json").read_text(encoding="utf-8"))
+        ptrs = state.get("memory_entries", [])
+        if state.get("schema_version_memory_entries") != "2" or len(ptrs) != 1 \
+                or set(ptrs[0]) != {"id", "primary_abstraction", "path"} \
+                or not (root / ptrs[0]["path"]).is_file():
+            problems.append(f"생성기가 v2 포인터를 싣지 않았다: v={state.get('schema_version_memory_entries')} {ptrs}")
     warned = {k for k in BUDGETS_BY_KEY if any(f"] {k}:" in w for w in out.get("warnings", []))}
     if warned != {"handoff_s5_accumulated", "claude_md"}:
         problems.append(f"경고한 예산 {sorted(warned)} (기대: handoff_s5_accumulated · claude_md 만)")

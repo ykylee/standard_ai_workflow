@@ -15,6 +15,7 @@ from workflow_kit.common.normalize import (
     normalize_constraint_values,
 )
 from workflow_kit.common.paths import project_workspace_root, safe_relpath, memory_active_dir
+from workflow_kit.common.state.memory_index import MEMORY_ENTRIES_SCHEMA_VERSION
 from workflow_kit.common.project_docs import (
     MISSING_STATUS_MARKER,
     RECENT_DONE_ITEMS_CAP,
@@ -525,7 +526,7 @@ def build_workflow_state_payload(
             "path": safe_relpath(repository_assessment_path, actual_root) if repository_assessment_path else None,
             "present": bool(repository_assessment_path and repository_assessment_path.exists()),
         },
-        "schema_version_memory_entries": "1",
+        "schema_version_memory_entries": MEMORY_ENTRIES_SCHEMA_VERSION,
     }
     # v0.11.22+ Phase 1.5: ADR-005 memory_entries optional merge.
     # 부재 시 zero-risk (key 미포함), list 있을 때만 emit.

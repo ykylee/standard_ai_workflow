@@ -468,6 +468,40 @@ def test_content_drift_catches_same_version_stale_payload() -> None:
         )
 
 
+def test_content_drift_flags_installed_behind_canonical() -> None:
+    """설치본이 정본보다 **낮은 버전**이면 뒤처짐으로 따로 낸다 (main-014).
+
+    87차 실측: 설치본이 두 릴리스 뒤처져 있었는데 발견은 "내용이 다르다" 뿐이라
+    처방(발행 뒤 채널 재적용)이 안 보였다. 같은 버전인 사본은 뒤처짐이 아니다 —
+    그 대조가 없으면 모든 드리프트를 뒤처짐으로 부르는 판정도 통과한다.
+    """
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-behind-") as tmp:
+        home = Path(tmp) / "home"
+        root = _seed_cache(home, "codex")
+        manifest = root / PLUGIN_HARNESS_SPECS["codex"].manifest_relpath
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["version"] = "0.0.1"
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        content = probe(project_root=Path(tmp), home=home)["content_drift"]
+        if [b["harness"] for b in content["behind"]] != ["codex"]:
+            problems.append(f"behind={content['behind']}")
+        elif content["behind"][0]["canonical_version"] != INSTALLED_VERSION:
+            problems.append(f"정본 버전 {content['behind'][0]}")
+        lines = [f for f in content["findings"] if f.startswith("codex ")]
+        if len(lines) != 1 or "낮은 버전" not in lines[0] or "§2.8" not in lines[0]:
+            problems.append(f"발견 한 줄이 아니다: {lines}")
+    with tempfile.TemporaryDirectory(prefix="doctor-behind-") as tmp:
+        home = Path(tmp) / "home"
+        root = _seed_cache(home, "codex")
+        victim = next(p for p in sorted(root.rglob("*.md")) if p.is_file())
+        victim.write_text(victim.read_text(encoding="utf-8") + "\n<!-- 낡음 -->\n", encoding="utf-8")
+        content = probe(project_root=Path(tmp), home=home)["content_drift"]
+        if content["behind"] or any("낮은 버전" in f for f in content["findings"]):
+            problems.append(f"같은 버전 드리프트가 뒤처짐으로 불렸다: {content['behind']}")
+    _record("test_content_drift_flags_installed_behind_canonical", not problems, "; ".join(problems))
+
+
 def test_content_drift_expects_only_channel_files() -> None:
     """채널이 담지 않는 파일을 '없음' 으로 세지 않는다.
 
@@ -1787,6 +1821,7 @@ def main() -> int:
         test_runtime_load_clears_host_started_after_install,
         test_runtime_load_parses_etime_not_lstart,
         test_content_drift_reads_which_copy_is_installed,
+        test_content_drift_flags_installed_behind_canonical,
         test_runtime_load_does_not_duplicate_per_stale_copy,
         test_install_root_fallback_is_declared,
         test_content_drift_finds_grok_copy_by_declaration_not_name,

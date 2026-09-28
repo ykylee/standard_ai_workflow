@@ -5,7 +5,7 @@
 - 대상 독자: 저장소 maintainer (`ykylee`), 릴리스 매니저
 - 상태: stable (v1.11.0 기준; 절차 자체는 v0.5.7+ 부터 정식 도입된 정책 유지)
 - 현재 package version: 1.11.0 (`workflow-source/pyproject.toml`)
-- 최종 수정일: 2026-09-23
+- 최종 수정일: 2026-09-28
 - 관련 문서: [README.md](https://github.com/ykylee/standard_ai_workflow/blob/main/README.md), [./PROJECT_PROFILE.md](./PROJECT_PROFILE.md), [./INSTALLATION_AND_USAGE.md](./INSTALLATION_AND_USAGE.md), [Workflow Kit Roadmap](https://github.com/ykylee/standard_ai_workflow/blob/main/workflow-source/core/workflow_kit_roadmap.md), [workflow-source/releases/](https://github.com/ykylee/standard_ai_workflow/tree/main/workflow-source/releases/)
 
 > **최종 갱신**: 2026-07-18 (회귀 표를 v0.15.15 까지 확장하고 `release_pipeline.py` 자동화 경로 반영)
@@ -152,6 +152,9 @@ wk release-pipeline release \
   --json
 ```
 
+> 자동화 경로도 **§2.8 (이 호스트의 소비 채널 재적용)** 은 대신하지 않는다. `release --apply`
+> 가 끝나면 §2.8 로 간다.
+
 > **발행 게이트 (v1.9.0+, 근거는 TASK-2026-09-23-main-022 부터 로컬 게이트 통과 기록)**:
 > `release --apply` 는 **HEAD sha 의 게이트 통과 기록**이 없으면 태그 생성 전에 멈춘다.
 > 기록은 `run_all_checks.py --branch-context=all` 을 **커밋 후 깨끗한 트리에서** 필터 없이
@@ -273,6 +276,64 @@ gh release view "v<X>.<Y>.<Z>" --repo "$REPO"
 릴리스 직후 본인 사용 프로젝트 (downstream 예: `Devhub_example`, `my_harness`) 의 dep 박스를
 `standard-ai-workflow @ https://github.com/<owner>/<repo>/releases/download/v<X>.<Y>.<Z>/standard_ai_workflow-<X>.<Y>.<Z>-py3-none-any.whl`
 형태로 pin 하거나, `requirements.txt` 에 `git+` 형태 사용.
+
+### 2.8 이 호스트의 소비 채널 재적용 (필수)
+
+**발행은 이 호스트의 설치본을 올려 주지 않는다.** 87차(2026-09-23) 실측에서 Claude Code
+설치 기록은 1.9.1 로 두 릴리스(1.10.0·1.11.0) 뒤처져 있었다. 93차(2026-09-28) Linux
+호스트에서도 codex·grok-build·antigravity 가 1.10.0(정본 1.11.0)이었다. 이 절차에
+재적용 단계가 없어서, 아무도 모르는 채로 옛 스킬과 MCP 가 로드되고 있었다
+(TASK-2026-09-23-main-014).
+
+채널별 명령은 아래와 같다. 채널이 왜 이렇게 다른지는
+[`INSTALLATION_AND_USAGE.md` §7.0.2](INSTALLATION_AND_USAGE.md) 표와 읽는 법 4~8 에 있다.
+**이 호스트에 깔린 채널만** 돌린다. 어느 채널이 깔려 있는지는 아래 `wk doctor` 가 말한다.
+
+```bash
+V="<X>.<Y>.<Z>"
+
+# claude-code — marketplace 가 directory 소스(이 저장소)면 하네스가 소스를 직접 읽는다.
+#   재설치는 필요 없고 **호스트 재시작**이 곧 반영이다. 설치 기록(installed_plugins.json)의
+#   버전만 옛값으로 남는다 — 맞추려면 update 를 돌린다. 원격 소스면 update 가 곧 갱신이다.
+claude plugin update standard-ai-workflow@standard-ai-workflow   # <plugin>@<marketplace> — 맨 이름은 rc 1
+
+# codex — marketplace 가 버전 경로에 고정된다. 소스를 갈아야 새 버전이 보인다 (읽는 법 5·7).
+DEST="$HOME/.local/share/standard-ai-workflow"
+unzip -q -o "workflow-source/dist/plugins/codex/$V/standard-ai-workflow-codex-plugin-$V.zip" -d "$DEST"
+codex plugin remove standard-ai-workflow@standard-ai-workflow
+codex plugin marketplace remove standard-ai-workflow
+codex plugin marketplace add "$DEST/standard-ai-workflow-codex-plugin-$V"
+codex plugin add standard-ai-workflow@standard-ai-workflow     # 출력의 'Installed plugin root' 버전을 눈으로 확인
+
+# grok-build — update 는 'already live' 라고 말하지만 갱신하지 않는다 (읽는 법 3·6).
+grok plugin uninstall standard-ai-workflow                      # plugin-<hash> id 가 아니라 이름
+grok plugin install ./plugin --trust
+
+# antigravity — 재설치가 곧 갱신 (병합 복사).
+agy plugin install ./plugin
+
+# pi-dev — 경로 참조라 할 일 없다.
+```
+
+**확인 — 명령의 rc 는 근거가 아니다.** codex 는 옛 marketplace 로 옛 버전을 다시 깔고도
+성공하고, claude 의 맨 `marketplace …` 는 프롬프트로 먹혀 rc 0 을 낸다 (읽는 법 7).
+그래서 결과는 doctor 로 잰다:
+
+```bash
+wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['content_drift']['behind'])"
+#   → []   (읽히는 사본 중 정본보다 낮은 버전이 없다)
+```
+
+`content_drift.behind` 가 비어 있지 않으면 doctor 가 `<채널> 설치본이 정본보다 **낮은 버전**이다`
+를 발견으로 낸다. 호스트 프로세스가 재적용보다 먼저 떴으면 `runtime_load` 가 재시작을
+요구한다 — 재시작 전까지는 옛 코드가 돈다.
+
+> **범위**: `behind` 는 **이 호스트의 kit 정본**(정본 페이로드 매니페스트의 버전)과
+> 비교한다. 발행 직후 저장소에서는 정본이 곧 최신 발행본이다. GitHub Releases 의
+> 최신 태그를 네트워크로 조회하지는 않는다 — 저장소 밖 소비자 호스트에서는
+> "그 호스트에 깔린 kit 보다 낮은가" 까지만 잰다. 하네스가 읽지 않는 사본(예:
+> directory 소스일 때의 claude-code 캐시)은 뒤처져도 발견이 아니고
+> `content_drift.unserved` 에 버전과 함께 남는다.
 
 ## 3. 트러블슈팅
 

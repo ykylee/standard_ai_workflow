@@ -928,6 +928,39 @@ def _installed_version(root: Path, manifest_rel: str | None) -> str | None:
     return root.name or None
 
 
+def _canonical_version(expected: dict[str, str], manifest_rel: str | None) -> str | None:
+    """정본 페이로드가 스스로 말하는 버전 — :func:`_installed_version` 과 같은 순서.
+
+    비교 기준을 사본과 **같은 자리**에서 읽는다. 패키지 버전을 따로 읽으면
+    매니페스트 생성기와 그 출처가 갈릴 때 뒤처짐 판정이 거짓이 된다.
+    """
+    for rel in ([manifest_rel, "plugin.json"] if manifest_rel else ["plugin.json"]):
+        body = expected.get(rel)
+        if body is None:
+            continue
+        try:
+            declared = json.loads(body).get("version")
+        except (json.JSONDecodeError, AttributeError):
+            declared = None
+        if isinstance(declared, str) and declared:
+            return declared
+    return None
+
+
+def _version_behind(installed: str | None, canonical: str | None) -> bool | None:
+    """``installed < canonical`` 인가. 둘 중 하나라도 버전으로 못 읽으면 ``None``.
+
+    ``None`` 은 '뒤처지지 않음' 이 아니라 '판정 못 함' 이다 — 무버전 사본은
+    디렉터리 이름이 버전 자리에 오므로 파싱 실패가 흔하다.
+    """
+    if not installed or not canonical:
+        return None
+    try:
+        return compare_marker(installed, canonical) < 0
+    except ValueError:
+        return None
+
+
 def _channel_expected(harness: str, canonical: dict[str, str]) -> tuple[dict[str, str], str | None]:
     """이 채널이 **실제로 설치하는** 파일만 남긴 정본 + 매니페스트 상대 경로.
 
@@ -1399,6 +1432,9 @@ def _probe_content_drift(
                     _compare_cache(root, expected, entry.ignored, full_payload=canonical)
                 )
                 record["installed_version"] = _installed_version(root, manifest_rel)
+                record["canonical_version"] = _canonical_version(expected, manifest_rel)
+                record["behind"] = _version_behind(
+                    record["installed_version"], record["canonical_version"])
             record["active"] = active
             record["active_source"] = active_source
             # **선언된 설치본이 읽히는 사본이라는 보장은 없다** (main-006).
@@ -1430,6 +1466,9 @@ def _probe_content_drift(
                 _compare_cache(served_root, expected, (".in_use",), full_payload=canonical)
             )
             served_record["installed_version"] = _installed_version(served_root, manifest_rel)
+            served_record["canonical_version"] = _canonical_version(expected, manifest_rel)
+            served_record["behind"] = _version_behind(
+                served_record["installed_version"], served_record["canonical_version"])
             served_record["active"] = True
             served_record["active_source"] = (
                 f"known_marketplaces.json 의 `{src.get('marketplace')}` — "
@@ -1450,6 +1489,16 @@ def _probe_content_drift(
         if c.get("in_sync") is False and c.get("active") and c.get("served", True)
     ]
     unserved = [c for c in caches if c.get("active") and not c.get("served", True)]
+    # **버전이 뒤처진** 읽히는 사본 (TASK-2026-09-23-main-014). 내용 드리프트와
+    # 같은 사본이지만 원인과 처방이 다르다 — 이쪽은 개발 중 재배포가 아니라
+    # **발행 뒤 이 호스트의 채널 재적용이 빠진** 것이다. 87차 실측: 설치본이
+    # 1.9.1 로 두 릴리스 뒤처져 있었는데 발견은 "내용이 다르다" 뿐이라, 무엇을
+    # 해야 하는지(재적용)가 안 보였다. 읽히지 않는 사본은 `out_of_sync` 와 같은
+    # 규율로 발견에서 뺀다.
+    behind = [
+        c for c in caches
+        if c.get("behind") and c.get("active") and c.get("served", True)
+    ]
     superseded = [
         {
             "harness": c["harness"],
@@ -1538,7 +1587,18 @@ def _probe_content_drift(
                 "사라진다. 항구 경로(예: `~/.codex/local-marketplaces/`)에 풀고 "
                 "`codex plugin marketplace add` 를 그쪽으로 다시 건다"
             )
+    for c in behind:
+        findings.append(
+            f"{c['harness']} 설치본이 정본보다 **낮은 버전**이다 — 설치 "
+            f"{c.get('installed_version')} < 정본 {c.get('canonical_version')}"
+            + (f" (내용도 다름 {len(c['differs'])} / 없음 {len(c['missing'])})"
+               if c.get("in_sync") is False else "")
+            + ". 발행 뒤 이 호스트의 채널 재적용이 빠진 상태다 — docs/RELEASE.md §2.8 "
+            "의 채널별 갱신 명령을 따른다"
+        )
     for c in out_of_sync:
+        if c in behind:
+            continue
         findings.append(
             f"{c['harness']} 설치 사본의 내용이 정본과 다르다 — "
             f"다름 {len(c['differs'])} / 없음 {len(c['missing'])} "
@@ -1550,6 +1610,16 @@ def _probe_content_drift(
         "canonical_error": error,
         "caches": caches,
         "out_of_sync": [c["harness"] for c in out_of_sync],
+        # 읽히는 사본 중 정본보다 낮은 버전 (main-014). `out_of_sync` 와 겹칠 수
+        # 있다 — 발견은 이쪽 한 줄로 합친다.
+        "behind": [
+            {
+                "harness": c["harness"],
+                "installed_version": c.get("installed_version"),
+                "canonical_version": c.get("canonical_version"),
+            }
+            for c in behind
+        ],
         # 선언에 없는 사본 — 갱신 뒤 남은 옛 버전 디렉터리가 여기 온다.
         "superseded": superseded,
         # 사본 0 인 채널 — 침묵으로 지우지 않는다 (main-003).
@@ -2344,6 +2414,8 @@ def _render_text(report: dict[str, Any]) -> str:
         if not cache.get("active"):
             continue
         state = "in-sync" if cache.get("in_sync") else "DRIFT"
+        if cache.get("behind") and cache.get("served", True):
+            state += f", BEHIND < v{cache.get('canonical_version')}"
         lines.append(
             f"  - {cache['harness']} v{cache.get('installed_version') or '?'} "
             f"[{state}] 대조 {cache.get('files_compared', 0)}개 "

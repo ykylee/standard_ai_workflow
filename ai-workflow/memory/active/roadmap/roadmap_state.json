@@ -633,9 +633,7 @@
       "progress": 0.0,
       "total_leaves": 5,
       "done_leaves": 0,
-      "deliverables_missing": [
-        "docs/LOCAL_GATE.md"
-      ],
+      "deliverables_missing": [],
       "wbs": [
         {
           "id": "WBS-17.1",

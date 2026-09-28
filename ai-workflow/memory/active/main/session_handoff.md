@@ -50,6 +50,7 @@
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
+- TASK-2026-09-23-main-017 방치된 worktree 4개 정리 — 소유자 확인 필요
 - TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다
 ## 4. 최근 완료 작업
 

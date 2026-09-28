@@ -358,7 +358,7 @@
         {
           "id": "WBS-7.4",
           "title": "릴리스·채널 운영 (발행 사이클, 소비 채널 재적용, 브랜치 메모리 정비)",
-          "derived_status": "in_progress",
+          "derived_status": "blocked",
           "linked_task_ids": [
             "TASK-2026-08-30-main-004",
             "TASK-2026-08-31-main-001",

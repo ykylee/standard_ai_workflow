@@ -1,0 +1,14 @@
+{
+  "branch": "worktree/clear-field-f112",
+  "archived_at": "2026-09-28",
+  "merge_commit": "59ad6d435760db64f6bf4171ee1d3d0d9a984f65",
+  "task_ids": [
+    "TASK-2026-08-14-main-012",
+    "TASK-2026-08-14-worktree-clear-field-f112-001"
+  ],
+  "task_count": 2,
+  "open_task_ids": [
+    "TASK-2026-08-14-worktree-clear-field-f112-001"
+  ],
+  "note": "종료된 브랜치의 메모리. 과거 이력 조회 대상 (읽기 전용)."
+}

@@ -43,6 +43,7 @@ WATCHES = (
 )
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -56,6 +57,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.purpose_graph import STATE_ABSENT_WARNING  # noqa: E402
+from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 
 CLAIM = SOURCE_ROOT / "workflow_kit" / "tools" / "claim_workspace.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
@@ -64,6 +66,10 @@ PROFILE = REPO_ROOT / "docs" / "PROJECT_PROFILE.md"
 BRANCH = "feat-contested"
 TODAY = date.today().isoformat()
 ENV = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
+# 환경을 일부러 좁히지만 러너의 telemetry 표식은 넘긴다 — 빠지면 이 검사가 실제
+# 저장소 session-start 를 사용 지표에 섞는다 (TASK-2026-09-28-main-006 실측).
+if TELEMETRY_SKIP_ROOT_ENV in os.environ:
+    ENV[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
 
 FAILURES: list[str] = []
 RAN: list[str] = []

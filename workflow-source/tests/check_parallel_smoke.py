@@ -13,7 +13,7 @@ CI job 604s 중 576s 가 smoke 실행이었고, 267개 check 의 시간 분포�
 이 검사가 지키는 것은 **그 구조** 다. 마커가 사라지거나, 분류가 일부를 흘리거나,
 병렬이 실제로는 동시 실행이 아니게 되면 여기서 잡힌다.
 
-검증 케이스 (13):
+검증 케이스 (14):
     1. `--jobs` 해석 계약 (auto / 정수 / 잘못된 값)
     2. 마커 판정은 AST 기반이고, 주석·문자열 언급에 속지 않는다
     3. 실제 저장소에서 정숙 구간이 비어 있지 않다 (구조가 살아 있다)
@@ -34,6 +34,8 @@ CI job 604s 중 576s 가 smoke 실행이었고, 267개 check 의 시간 분포�
         내고 빈 기록으로 간다 — 순서 힌트가 판정을 깨뜨리면 안 된다.
     13. 다른 tests-dir 로 돈 runner 는 기록을 읽지도 쓰지도 않고, 그 사실을
         schedule 에 남긴다. 결과 보고 순서는 LPT 여도 discover 순서다.
+    14. 검사에 telemetry 표식을 주입하고, 실제 저장소 telemetry 증가를 red 로
+        판정한다 (TASK-2026-09-28-main-006). 미측정도 red, 0 은 조용하다.
 
 Stdlib only.
 """
@@ -444,6 +446,40 @@ def test_fixture_runner_leaves_history_alone() -> None:
     assert after == before, "fixture runner 가 실제 소요 기록을 건드렸다"
 
 
+def test_real_telemetry_growth_is_a_gate_signal() -> None:
+    # 주입: 러너가 띄운 검사 환경에 표식이 실제로 들어가는가 (자식이 보는 값으로)
+    with tempfile.TemporaryDirectory() as tmp:
+        probe = Path(tmp) / "check_env_probe.py"
+        probe.write_text(
+            "import os\n"
+            f"print('SKIP=' + os.environ.get({R.TELEMETRY_SKIP_ROOT_ENV!r}, ''))\n",
+            encoding="utf-8")
+        result = R.run_one(probe, timeout=60, guard=None, branch_context=None)
+        seen = [ln for ln in result.last_line.splitlines() if ln.startswith("SKIP=")]
+        assert seen and seen[0] == f"SKIP={REPO_ROOT}", (
+            f"검사 환경에 telemetry 표식이 없다: {result.last_line!r}")
+
+    # 판정: 증가 = red, 미측정 = red, 0 = 조용
+    def summary(growth):  # noqa: ANN001, ANN202
+        s = R.RunSummary()
+        s.telemetry_growth = growth
+        return s
+
+    fatal, _ = R.repo_write_verdict([("native", summary(3))])
+    assert any("3줄" in f for f in fatal), f"telemetry 증가가 red 가 아니다: {fatal}"
+    fatal, _ = R.repo_write_verdict([("native", summary(None))])
+    assert any("재지 못했다" in f for f in fatal), f"미측정이 통과로 셌다: {fatal}"
+    fatal, reported = R.repo_write_verdict([("native", summary(0))])
+    assert not fatal and not reported, f"증가 0 인데 신호가 났다: {fatal} {reported}"
+    # 실제 측정 함수: 부재 = 0, 있으면 줄 수
+    with tempfile.TemporaryDirectory() as tmp:
+        assert R._telemetry_lines(Path(tmp)) == 0, "파일 부재를 0 으로 안 셌다"
+        target = R.telemetry_path(Path(tmp))
+        target.parent.mkdir(parents=True)
+        target.write_text("{}\n{}\n", encoding="utf-8")
+        assert R._telemetry_lines(Path(tmp)) == 2
+
+
 def main() -> int:
     test_funcs = [
         test_resolve_jobs_contract,
@@ -459,6 +495,7 @@ def main() -> int:
         test_lpt_schedule_order,
         test_duration_history_merges_and_survives_corruption,
         test_fixture_runner_leaves_history_alone,
+        test_real_telemetry_growth_is_a_gate_signal,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

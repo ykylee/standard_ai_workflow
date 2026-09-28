@@ -81,6 +81,16 @@ def telemetry_dir(workspace_root: Path) -> Path:
     return memory_index_root(workspace_root) / TELEMETRY_SUBDIR
 
 
+TELEMETRY_SKIP_ROOT_ENV = "WORKFLOW_KIT_TELEMETRY_SKIP_ROOT"
+"""이 경로(워크스페이스 루트) 아래로는 telemetry 를 쓰지 않는다 (TASK-2026-09-28-main-006).
+
+검사 러너가 자기 저장소 루트를 넣는다. 검사 5개가 실제 저장소의 session-start 를
+불러 게이트마다 사용 지표(`by_source` · 3-tuple)에 가짜 호출을 +10건씩 섞고 있었다.
+fixture 작업공간(임시 디렉터리)은 이 루트 밖이라 그대로 쓴다 — telemetry 를 검사하는
+검사가 죽지 않는다. 표식이 빠진 자식이 있으면 러너가 실제 `events.jsonl` 증가로 잡는다.
+"""
+
+
 def telemetry_path(workspace_root: Path) -> Path:
     """`memory_index/telemetry/events.jsonl` 절대 경로."""
     return telemetry_dir(workspace_root) / TELEMETRY_FILE
@@ -731,6 +741,8 @@ def append_telemetry_event(
     import threading as _threading
 
     target = telemetry_path(workspace_root)
+    if _telemetry_suppressed(target):
+        return target
     target.parent.mkdir(parents=True, exist_ok=True)
 
     payload = event.model_dump(mode="json")
@@ -756,6 +768,19 @@ def append_telemetry_event(
                 file=_sys.stderr,
             )
     return target
+
+
+def _telemetry_suppressed(target: Path) -> bool:
+    """`TELEMETRY_SKIP_ROOT_ENV` 가 가리키는 루트 아래면 True."""
+    import os as _os
+
+    skip = _os.environ.get(TELEMETRY_SKIP_ROOT_ENV, "").strip()
+    if not skip:
+        return False
+    try:
+        return target.resolve().is_relative_to(Path(skip).resolve())
+    except (OSError, ValueError):
+        return False
 
 
 def _read_telemetry_events(tp: Path) -> tuple[list[MemoryIndexTelemetryEvent], int]:

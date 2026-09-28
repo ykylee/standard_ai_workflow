@@ -46,6 +46,7 @@ WATCHES = (
 )
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -56,6 +57,7 @@ SOURCE_ROOT = REPO_ROOT / "workflow-source"
 sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.common.purpose_graph import STATE_ABSENT_WARNING  # noqa: E402
+from workflow_kit.common.state.memory_index import TELEMETRY_SKIP_ROOT_ENV  # noqa: E402
 
 SEED_TOOL = SOURCE_ROOT / "workflow_kit" / "tools" / "seed_workspace_memory.py"
 SESSION_START = SOURCE_ROOT / "skills" / "session-start" / "scripts" / "run_session_start.py"
@@ -77,6 +79,9 @@ def _record(name: str, ok: bool, detail: str = "") -> None:
 
 def _run(args: list[str]) -> subprocess.CompletedProcess:
     env = {"PYTHONPATH": str(SOURCE_ROOT), "PATH": "/usr/bin:/bin:/usr/local/bin"}
+    # 좁힌 환경에도 러너의 telemetry 표식은 넘긴다 (TASK-2026-09-28-main-006).
+    if TELEMETRY_SKIP_ROOT_ENV in os.environ:
+        env[TELEMETRY_SKIP_ROOT_ENV] = os.environ[TELEMETRY_SKIP_ROOT_ENV]
     return subprocess.run([sys.executable, *args], capture_output=True, text=True, env=env)
 
 

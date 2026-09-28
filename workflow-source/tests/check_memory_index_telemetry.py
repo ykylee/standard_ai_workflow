@@ -2,13 +2,14 @@
 
 Phase 13 AC2 (memory_index 활용도 측정) 의 telemetry 인프라가 spec 그대로 동작하는지 검증한다.
 
-Test list (6 case):
+Test list (7 case):
 1. test_emit_one_event_returns_summary_with_one_call
 2. test_two_hits_one_miss_hit_rate_two_thirds
 3. test_by_source_breakdown_distinguishes_skills
 4. test_malformed_jsonl_line_is_skipped
 5. test_workspace_root_absent_returns_empty_summary
 6. test_concurrent_append_preserves_all_lines
+7. test_skip_root_env_suppresses_only_that_root (TASK-2026-09-28-main-006)
 
 Cross-ref: docs/architecture/phase-13-definition-north-star.md §2.4 + dashboard panel 3.
 """
@@ -23,6 +24,7 @@ WATCHES = (
 )
 
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -38,6 +40,7 @@ from workflow_kit.common.schemas.memory_index import (  # noqa: E402
     MemoryIndexTelemetryEvent,
 )
 from workflow_kit.common.state.memory_index import (  # noqa: E402
+    TELEMETRY_SKIP_ROOT_ENV,
     MemoryIndexTelemetrySummary,
     append_telemetry_event,
     read_telemetry_events,
@@ -178,6 +181,41 @@ def test_concurrent_append_preserves_all_lines() -> None:
         }
 
 
+def test_skip_root_env_suppresses_only_that_root() -> None:
+    """러너 표식은 **그 루트만** 막는다 — 다른 작업공간(fixture)은 그대로 쓴다.
+
+    검사 5개가 실제 저장소 session-start 로 사용 지표를 부풀리던 것을 막는
+    스위치다. 넓게 막으면 telemetry 를 검사하는 검사가 전부 0 을 보게 된다.
+    """
+    saved = os.environ.get(TELEMETRY_SKIP_ROOT_ENV)
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            blocked, other = Path(td) / "repo", Path(td) / "fixture"
+            blocked.mkdir()
+            other.mkdir()
+            os.environ.pop(TELEMETRY_SKIP_ROOT_ENV, None)
+            append_telemetry_event(blocked, _make_event(source="session-start"))
+            assert summarize_telemetry(blocked).total_calls == 1, "표식 없이도 막혔다"
+
+            os.environ[TELEMETRY_SKIP_ROOT_ENV] = str(blocked)
+            append_telemetry_event(blocked, _make_event(source="session-start"))
+            assert summarize_telemetry(blocked).total_calls == 1, (
+                "표식이 가리키는 루트에 썼다 — 스위치가 안 듣는다")
+            append_telemetry_event(other, _make_event(source="session-start"))
+            assert summarize_telemetry(other).total_calls == 1, (
+                "표식 밖 작업공간까지 막았다 — fixture 검사가 전부 0 을 본다")
+
+            # 하위 경로 표기(심볼릭·상대)에도 같은 판정이어야 한다
+            os.environ[TELEMETRY_SKIP_ROOT_ENV] = str(blocked / "." / "")
+            append_telemetry_event(blocked, _make_event(source="session-start"))
+            assert summarize_telemetry(blocked).total_calls == 1, "경로 표기가 달라 새었다"
+    finally:
+        if saved is None:
+            os.environ.pop(TELEMETRY_SKIP_ROOT_ENV, None)
+        else:
+            os.environ[TELEMETRY_SKIP_ROOT_ENV] = saved
+
+
 # --- 메인 실행 ---
 
 
@@ -189,6 +227,7 @@ def main() -> int:
         test_malformed_jsonl_line_is_skipped,
         test_workspace_root_absent_returns_empty_summary,
         test_concurrent_append_preserves_all_lines,
+        test_skip_root_env_suppresses_only_that_root,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

@@ -27,6 +27,8 @@ WATCHES = (
     "workflow-source/pyproject.toml",
     "workflow-source/tests/*",
     "workflow-source/workflow_kit/*",
+    # 러너가 축마다 실제 저장소 telemetry 증가를 잰다 (TASK-2026-09-28-main-006).
+    "ai-workflow/memory/active/memory_index/telemetry/*",
 )
 
 import json

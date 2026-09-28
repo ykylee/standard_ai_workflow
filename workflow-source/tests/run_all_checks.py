@@ -91,6 +91,9 @@ with warnings.catch_warnings(record=True) as _parent_captured:
     )
     from workflow_kit.common.case_count import CaseCount, count_cases  # noqa: E402
     from workflow_kit.common import gate_evidence  # noqa: E402
+    from workflow_kit.common.state.memory_index import (  # noqa: E402
+        TELEMETRY_SKIP_ROOT_ENV, telemetry_path,
+    )
 
 #: 부모 import 가 낸 경고를 CPython 기본 포맷으로 굳혀 둔다 — `extract` 가 읽는
 #: 형식과 같아야 서브프로세스 경고와 **같은 출처 규율** 로 판정된다.
@@ -351,6 +354,13 @@ class RunSummary:
     total_failed_tests: int = 0
     results: list[CheckResult] = field(default_factory=list)
     aborted_reason: str = ""    # resource guard 발동 시 사유 (빈 문자열이면 정상 완주)
+    telemetry_growth: "int | None" = None
+    """이 축 동안 실제 저장소 `events.jsonl` 에 늘어난 줄 수 (TASK-2026-09-28-main-006).
+
+    None 은 미측정이다. 0 이 아니면 누군가 검사 표식(`TELEMETRY_SKIP_ROOT_ENV`)을
+    잃은 채 실제 저장소 telemetry 에 썼다 — gitignore 된 파일이라 `git status`
+    감시에는 안 보인다.
+    """
     schedule: dict = field(default_factory=dict)
     """병렬 구간 제출 순서와 그 소요 시간 출처별 개수 (TASK-2026-09-28-main-003).
 
@@ -673,6 +683,9 @@ def _run_one(
     env = os.environ.copy()
     env["TMPDIR"] = str(tmp_dir)
     env.setdefault("PYTHONPATH", str(SOURCE_ROOT))
+    # 실제 저장소 telemetry 에 쓰지 않는다 (TASK-2026-09-28-main-006) — 검사가
+    # 부른 session-start 가 사용 지표에 섞였다. 새는 자식은 run_pass 가 잡는다.
+    env[TELEMETRY_SKIP_ROOT_ENV] = str(SOURCE_ROOT.parent)
     if meta_dir is not None:
         # meta-watch 채취 주입 (ADR-028): sitecustomize 디렉터리를 sys.path 앞에
         # 둬 검사 프로세스와 그 python 자식에 audit hook 이 걸린다. 접근 기록은
@@ -1069,6 +1082,7 @@ def run_pass(
     # 여기서 보면 **전수**를 덮으면서 비용이 폴링 하나(실측 5.6s)로 준다.
     watch = RepoWriteWatch(repo_root=SOURCE_ROOT.parent)
     watch.start()
+    telemetry_before = _telemetry_lines(SOURCE_ROOT.parent)
 
     # 정숙 구간이 필요한 check 는 병렬 구간에서 빼둔다 (jobs == 1 이면 가를 이유가 없다).
     quiet: list[Path] = []
@@ -1130,8 +1144,22 @@ def run_pass(
     summary = aggregate(results, time.time() - start)
     summary.aborted_reason = aborted
     summary.schedule = schedule
+    telemetry_after = _telemetry_lines(SOURCE_ROOT.parent)
+    if telemetry_before is not None and telemetry_after is not None:
+        summary.telemetry_growth = telemetry_after - telemetry_before
     summary.repo_write = watch.stop()
     return summary
+
+
+def _telemetry_lines(repo_root: Path) -> int | None:
+    """실제 저장소 telemetry 줄 수. 파일 부재는 0, 못 읽으면 None (미측정)."""
+    path = telemetry_path(repo_root)
+    if not path.exists():
+        return 0
+    try:
+        return path.read_bytes().count(b"\n")
+    except OSError:
+        return None
 
 
 def repo_write_verdict(passes: "list[tuple[str, RunSummary]]") -> tuple[list[str], list[str]]:
@@ -1166,6 +1194,17 @@ def repo_write_verdict(passes: "list[tuple[str, RunSummary]]") -> tuple[list[str
             )
         for item in info.get("known_transient", []):
             reported.append(f"[{label}] 알려진 접촉: {item['line']} — {item['reason']}")
+    for label, summary in passes:
+        # gitignore 된 런타임 데이터는 위 `git status` 감시에 안 보인다 — 따로 잰다.
+        growth = summary.telemetry_growth
+        if growth is None:
+            fatal.append(f"[{label}] 실제 저장소 telemetry 를 재지 못했다 (읽기 실패) — "
+                         "미측정은 통과가 아니다")
+        elif growth:
+            fatal.append(
+                f"[{label}] 실제 저장소 telemetry(events.jsonl)에 {growth}줄이 붙었다 — "
+                f"`{TELEMETRY_SKIP_ROOT_ENV}` 를 잃은 자식이 있다 (환경을 좁혀 띄우는 "
+                "검사를 먼저 의심. 같은 시각의 실제 세션이 쓴 것일 수도 있다)")
     return fatal, reported
 
 

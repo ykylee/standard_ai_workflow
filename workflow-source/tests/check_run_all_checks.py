@@ -8,14 +8,14 @@ Test 구성 (8 test):
 2. discover_checks (--filter=baselines,wiki → 2 file substring OR)
 3. parse_output (All N tests passed.)
 4. parse_output (N/M tests failed:)
-5. run_one (실제 check_baselines_compliance 16/16)
+5. run_one (가벼운 check_unit_of_work_template — 대상이 보고한 수와 대조)
 6. run_one (실제 check_refresh_wiki_memory 10/10)
 7. aggregate (passed/failed/total_passed_tests 정합)
-8. main CLI (--json output, --filter=baselines,refresh_wiki, --fail-fast, --no-such-filter)
+8. main CLI (--json 집계 — 가벼운 fixture 검사 2개, --no-such-filter)
 
 Reference:
 - tests/run_all_checks.py 본체
-- tests/check_baselines_compliance.py (16 test)
+- tests/check_unit_of_work_template.py · check_security_baseline.py (fixture — 가벼운 것을 고른다)
 - tests/check_refresh_wiki_memory.py (10 test)
 - tools/refresh_wiki_memory.py (v0.7.5, dry-run → fix → apply 패턴)
 """
@@ -107,13 +107,23 @@ def test_parse_output_fail() -> None:
 
 
 def test_run_one_baselines() -> None:
-    """run_one(check_baselines_compliance.py) → exit 0, 17 test PASS."""
+    """run_one(가벼운 검사) → exit 0, 대상이 보고한 test 수 그대로.
+
+    재는 것은 `run_one` 의 종료 코드·test 수 파싱이지 대상의 내용이 아니다. 대상은
+    원래 `check_baselines_compliance`(단독 8.6s, 게이트 부하에서 17.9s — 상한
+    30s)였는데 이 검사 단독 시간의 절반 가까이를 fixture 가 썼다
+    (TASK-2026-09-28-main-008). 이름은 호출 이력 호환으로 둔다.
+    """
     mod = _import_runner()
-    target = TESTS_DIR / "check_baselines_compliance.py"
+    target = TESTS_DIR / "check_unit_of_work_template.py"
     result = mod.run_one(target, timeout=30)
     assert result.exit_code == 0, f"exit {result.exit_code}: {result.error_excerpt}"
-    assert result.passed == 17, f"expected 17, got {result.passed}"
     assert result.failed == 0
+    reported = re.search(r"All (\d+) tests passed", result.last_line or "")
+    assert reported, f"last_line 파싱 실패: {result.last_line!r}"
+    assert result.passed == int(reported.group(1)) > 0, (
+        f"parse 불일치: passed={result.passed}, last_line={result.last_line!r}"
+    )
 
 
 def test_run_one_refresh_wiki() -> None:
@@ -158,17 +168,28 @@ def test_aggregate() -> None:
 
 
 def test_cli_json_output() -> None:
-    """--json output, --filter=baselines,refresh_wiki, --fail-fast 정상 작동."""
+    """--json output 의 집계 — 검사 수 · 통과 수 · 하위 test 수 합.
+
+    fixture 는 `All N tests passed.` 를 내는(러너가 하위 test 수를 읽는) **가벼운**
+    검사 둘이다. 예전 `--filter=baselines,refresh_wiki` 는 실제로 검사 3개
+    (`baselines_compliance` 8.6s 포함)에 걸려 이 검사 단독 19s 중 9s 를 썼다
+    (TASK-2026-09-28-main-008). 재는 것은 집계이지 fixture 검사의 내용이 아니다.
+    """
     proc = subprocess.run(
-        [sys.executable, str(RUNNER), "--filter=baselines,refresh_wiki", "--json"],
+        [sys.executable, str(RUNNER), "--filter=security_baseline,unit_of_work_template", "--json"],
         capture_output=True, text=True, timeout=60,
     )
     assert proc.returncode == 0, f"exit {proc.returncode}: {proc.stderr}"
     out = json.loads(proc.stdout)
-    assert out["total"] >= 2
-    assert out["passed"] >= 2
+    assert out["total"] == 2, f"fixture 필터가 {out['total']}개에 걸렸다 (2개여야 한다)"
+    assert out["passed"] == 2
     assert out["failed"] == 0
-    assert out["total_passed_tests"] >= 26  # 16 + 10
+    per_check = [r["passed"] for r in out["results"]]
+    # 하위 test 수를 못 읽으면 0 이 되고 합이 조용히 줄어든다 — 각각 0 보다 커야 한다.
+    assert all(n > 0 for n in per_check), f"하위 test 수를 못 읽은 검사가 있다: {out['results']}"
+    assert out["total_passed_tests"] == sum(per_check), (
+        f"total_passed_tests={out['total_passed_tests']} != 개별 합 {sum(per_check)}"
+    )
 
 
 def test_cli_no_match_filter_errors() -> None:

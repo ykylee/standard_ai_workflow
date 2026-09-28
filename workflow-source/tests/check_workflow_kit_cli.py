@@ -129,18 +129,30 @@ def test_cache_migrate_no_op_returns_0_v0_7_54() -> None:
 
 
 def test_release_doctor_all_skip_returns_0_v0_7_54() -> None:
-    """release-doctor with all 4 sources skipped returns 0 (all ok).
+    """release-doctor with all sources skipped returns 0 (all ok).
 
-    The --skip-* flags disable each of the 4 release-readiness checks
-    (packaging, doctor, state, git). With all 4 disabled, the validate
-    result is "all skipped = ok" and exit code is 0.
+    The --skip-* flags disable each release-readiness check (packaging,
+    doctor, state, git, mypy). With all disabled, the validate result is
+    "all skipped = ok" and exit code is 0.
+
+    mypy 는 v0.11.12 에 5번째 source 로 붙었는데 이 test 는 따라오지 않아, '전부
+    skip' 이라면서 mypy 를 매번 실제로 돌렸다 (~3.9s, TASK-2026-09-28-main-008 —
+    `check_release_pipeline_lib` 에서 main-007 이 고친 것과 같은 모양).
     """
+    import contextlib
+    import io
+    import json
     mod = _import_cli()
-    code = mod.run_workflow_kit_cli([
-        "--command=release-doctor",
-        "--skip-packaging", "--skip-doctor", "--skip-state", "--skip-git",
-    ])
-    assert code == 0
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = mod.run_workflow_kit_cli([
+            "--command=release-doctor",
+            "--skip-packaging", "--skip-doctor", "--skip-state", "--skip-git",
+            "--skip-mypy",
+        ])
+    assert code == 0, buf.getvalue()[-500:]
+    # 플래그가 버려지면 mypy 가 돌고도 ok 라 rc 만으로는 안 보인다 — skipped 를 단언.
+    assert json.loads(buf.getvalue()).get("mypy") == {"ok": True, "skipped": True}, buf.getvalue()[-500:]
 
 
 def test_cache_migrate_invalid_mode_returns_2_v0_7_55() -> None:
@@ -214,27 +226,40 @@ def test_score_wiki_trend_json_in_process_v0_7_56() -> None:
 def test_score_wiki_trend_record_current_in_process_v0_7_56(tmp_path=None) -> None:
     """score-wiki-trend --record-current in-process (v0.7.56).
 
-    side effect (history file append) 발생. in-process 가 subprocess 와
-    동일하게 동작 + .score_history.jsonl 의 row 1개 append 확인.
+    dispatcher 가 in-process 로 `record_current` 에 닿아 history 에 row 1개를
+    append 하는지 잰다.
+
+    **history 는 임시 사본에 쓰고 점수는 stub 한다** (TASK-2026-09-28-main-008).
+    예전에는 git 추적 파일인 실제 `.score_history.jsonl` 에 append 했다가 되돌렸다 —
+    그 ~9s 동안 병렬 구간의 `check_wiki_trend` 가 같은 파일을 읽는다. 그 9s 는
+    전부 실제 점수 도구 실행이었고, 점수 자체는 `check_wiki_score` 가 잰다.
+    기록 경로를 임시로 돌리는 방식은 `check_v0_7_15_config_thresholds` 와 같다.
     """
+    import importlib
     import json
+    import tempfile
+    from unittest import mock
     mod = _import_cli()
-    # backup + restore pattern (.score_history.jsonl 보존)
-    from pathlib import Path as _P
-    history_path = SOURCE_ROOT / "workflow_kit" / "tools" / ".score_history.jsonl"
-    backup = history_path.read_text(encoding="utf-8") if history_path.exists() else ""
-    try:
-        before_lines = len([ln for ln in backup.splitlines() if ln.strip()])
-        code = mod.run_workflow_kit_cli(["--command=score-wiki-trend", "--record-current"])
+    swt = importlib.import_module("workflow_kit.tools.score_wiki_trend")
+    real_history = SOURCE_ROOT / "workflow_kit" / "tools" / ".score_history.jsonl"
+    real_before = real_history.read_bytes() if real_history.exists() else b""
+    stub_score = {"scores": {d: 4.0 for d in swt.DIMS}, "overall": 4.0, "grade": "A"}
+    with tempfile.TemporaryDirectory() as tmp:
+        history_path = Path(tmp) / ".score_history.jsonl"
+        history_path.write_bytes(real_before)  # 실물 모양 그대로에 append
+        before_lines = len([ln for ln in real_before.decode("utf-8").splitlines() if ln.strip()])
+        with mock.patch.object(swt, "HISTORY_PATH", history_path), \
+                mock.patch.object(swt, "compute_score_at_commit", lambda c: dict(stub_score)):
+            code = mod.run_workflow_kit_cli(["--command=score-wiki-trend", "--record-current"])
         assert code == 0
         after = history_path.read_text(encoding="utf-8")
         after_lines = len([ln for ln in after.splitlines() if ln.strip()])
         assert after_lines == before_lines + 1, f"expected 1 new row, got {after_lines - before_lines}"
-        # last row is valid JSON
+        # last row is valid JSON — stub 점수가 dispatcher 를 거쳐 기록됐다
         last = json.loads(after.splitlines()[-1])
-        assert "commit" in last and "scores" in last
-    finally:
-        history_path.write_text(backup, encoding="utf-8")
+        assert "commit" in last and last.get("overall") == 4.0, f"기록된 row: {last}"
+    real_after = real_history.read_bytes() if real_history.exists() else b""
+    assert real_after == real_before, "실제 .score_history.jsonl 이 바뀌었다 — 기록이 임시 사본으로 안 갔다"
 
 
 def test_okf_cleanup_dry_run_v0_7_56() -> None:
@@ -522,6 +547,27 @@ def test_consumer_metrics_invalid_days_returns_2_v0_7_58() -> None:
     assert code == 2
 
 
+def _fake_gh_run():  # type: ignore[no-untyped-def]
+    """`gh` 호출만 가로채는 `subprocess.run` 대역 (TASK-2026-09-28-main-008).
+
+    consumer-metrics test 들은 rc 0(인증됨)과 1(미인증)을 둘 다 받아들였다 —
+    실제 GitHub API 호출 5종 × 2 test 가 판정에 기여하는 것이 없었고, 게이트를
+    네트워크에 묶었다 (~4s). 대역은 인증 성공 + 빈 응답을 돌려줘 rc=0 경로를
+    결정적으로 밟게 한다. 호출 목록을 남겨 경로가 실제로 gh 층까지 갔는지 본다.
+    """
+    import subprocess as _sp
+    real_run = _sp.run
+    calls: list[list[str]] = []
+
+    def run(cmd, *a, **k):  # type: ignore[no-untyped-def]
+        if isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "gh":
+            calls.append(list(cmd))
+            return _sp.CompletedProcess(cmd, 0, "", "")
+        return real_run(cmd, *a, **k)
+
+    return run, calls
+
+
 def test_consumer_metrics_default_argv_v0_7_58() -> None:
     """consumer-metrics with no args uses defaults (--days=14, --repo=ykylee/standard_ai_workflow).
 
@@ -529,10 +575,15 @@ def test_consumer_metrics_default_argv_v0_7_58() -> None:
     1 (gh auth fail) or 0 (success) are both acceptable; the test only fails on
     rc=2 (usage error) which would mean the dispatcher is broken.
     """
+    from unittest import mock
     mod = _import_cli()
-    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
-    # rc=0 = success, rc=1 = gh auth fail (CI), rc=2 = usage error (broken)
-    assert code in (0, 1), f"expected 0 or 1, got {code}"
+    fake_run, calls = _fake_gh_run()
+    with mock.patch("subprocess.run", fake_run):
+        code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
+    # 대역이 인증 성공을 주므로 rc 는 0 이어야 한다 (2 = usage error = dispatcher 고장)
+    assert code == 0, f"expected 0, got {code}"
+    # 기본 repo 가 gh 층까지 전달됐다
+    assert any("ykylee/standard_ai_workflow" in " ".join(c) for c in calls), f"gh 호출: {calls}"
 
 
 def test_consumer_metrics_in_process_v0_7_59() -> None:
@@ -550,10 +601,14 @@ def test_consumer_metrics_in_process_v0_7_59() -> None:
         if mod_name == "workflow_kit.tools.consumer_metrics" or mod_name.startswith("workflow_kit.tools.consumer_metrics."):
             del _sys.modules[mod_name]
     mod = _import_cli()
-    # Invoke dispatcher with default argv. rc=0/1 acceptable (gh auth dependent);
-    # rc=2 would indicate the dispatcher broke argv forwarding.
-    code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
-    assert code in (0, 1), f"expected 0 or 1 (gh auth), got {code}"
+    # Invoke dispatcher with default argv. gh 는 대역 (`_fake_gh_run`) — rc=2 would
+    # indicate the dispatcher broke argv forwarding.
+    from unittest import mock
+    fake_run, calls = _fake_gh_run()
+    with mock.patch("subprocess.run", fake_run):
+        code = mod.run_workflow_kit_cli(["--command=consumer-metrics", "--json"])
+    assert code == 0, f"expected 0, got {code}"
+    assert calls, "consumer-metrics 가 gh 층에 닿지 않았다"
     # After dispatcher run, workflow_kit.tools.consumer_metrics must be in
     # sys.modules (proof that in-process import path was taken, not subprocess).
     # v1.2.0 (2nd cycle): 구경로 tools.* shim drop — 정위치 모듈명으로 판정.

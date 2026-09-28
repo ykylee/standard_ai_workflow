@@ -50,26 +50,33 @@ def _is_source_checkout_required(exc: BaseException) -> bool:
 
 @register("release-doctor")
 def cmd_release_doctor(argv: list[str]) -> int:
-    """Release pre-flight: 4-source release-readiness check (in-process, v0.7.55+).
+    """Release pre-flight: release-readiness check (in-process, v0.7.55+).
 
     Calls `tools.release_pipeline_lib.cmd_validate` in-process (no subprocess
-    overhead, no script-path coupling). 4 checks:
+    overhead, no script-path coupling). 5 checks:
       1. check_packaging: pyproject [tool.setuptools.packages] ↔ disk
       2. workflow_kit.cli.doctor: 7 baseline evaluate
       3. state.json freshness
       4. git status: working tree clean
+      5. mypy strict (v0.11.12+ — release-time gate)
 
     Args:
         --skip-packaging   skip check 1
         --skip-doctor      skip check 2
         --skip-state       skip check 3
         --skip-git         skip check 4
+        --skip-mypy        skip check 5 (release-create 와 같은 이름)
+
+    5번은 v0.11.12 에 `cmd_validate` 에 붙었는데 이 커맨드는 skip 플래그를 따라
+    열지 않아, 나머지를 전부 skip 해도 mypy 는 끌 수 없었다
+    (TASK-2026-09-28-main-008).
     """
     skip = {
         "packaging": _has_flag(argv, "--skip-packaging"),
         "doctor": _has_flag(argv, "--skip-doctor"),
         "state": _has_flag(argv, "--skip-state"),
         "git": _has_flag(argv, "--skip-git"),
+        "mypy": _has_flag(argv, "--skip-mypy"),
     }
     try:
         # Find workflow_kit/tools dir relative to this module (v1.2.0: 구경로
@@ -96,6 +103,7 @@ def cmd_release_doctor(argv: list[str]) -> int:
             skip_doctor=skip["doctor"],
             skip_state=skip["state"],
             skip_git=skip["git"],
+            skip_mypy=skip["mypy"],
         )
         print(json.dumps(results, indent=2, default=str))
         # rc: 0 = all OK, 1 = at least one source not ok

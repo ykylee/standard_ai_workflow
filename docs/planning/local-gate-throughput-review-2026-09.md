@@ -251,3 +251,24 @@ A+B(LPT 제출 + `--jobs auto` = 코어 수 12) 와 C 첫 건(`wiki_score` 도�
   위 release 계열)은 **검사 사이** 반복이다. 검사마다 재는 계약(config 로드 · 게이트
   동일 invocation · release 경로)이 달라 공유하려면 검사 간 캐시가 필요하고, 그것은
   case 독립성을 깨는 설계라 이번 범위 밖으로 둔다.
+
+## 10. C 셋째 건 — 러너·CLI 검사의 fixture 와 네트워크 (TASK-2026-09-28-main-008)
+
+같은 계측을 게이트 소요 상위 셋(`run_all_checks` 43.7s · `workflow_kit_cli` 37.6s ·
+`wiki_trend` 22.7s, 게이트 k=12 기록)에 test 단위로 했다. **같은 인자의 반복**은 거의
+없었고, 비용은 **재려는 것과 무관한 무거운 실행**에서 나왔다.
+
+| 검사 | 단독 전→후 | 무엇이 시간을 썼나 |
+|---|---|---|
+| `run_all_checks` | 19.2s → 2.0s | 러너의 `run_one` · `--json` 집계를 재는 fixture 가 `check_baselines_compliance`(8.6s) 였고, `--filter=baselines,refresh_wiki` 는 실제로 검사 **3개**에 걸렸다 → `All N tests passed.` 를 내는 0.05s 검사로. 리터럴(17 · ≥26) 대신 대상이 보고한 수·개별 합과 대조 |
+| `workflow_kit_cli` | 17.8s → 0.4s | ① `release-doctor` '전부 skip' 이 mypy 를 못 끔 — 커맨드에 `--skip-mypy` 가 **없었다**(main-007 과 같은 모양, 공개 CLI 에 플래그 추가) ② `--record-current` 가 **git 추적 파일** `.score_history.jsonl` 에 append 후 복원 — 그 9s 동안 `check_wiki_trend` 가 같은 파일을 읽는다. 임시 사본 + 점수 stub 로 ③ consumer-metrics 2개가 실제 GitHub API 5종씩 호출, 판정은 rc 0·1 둘 다 허용 — 네트워크가 판정에 기여하지 않았다. `gh` 대역으로 rc=0 경로를 결정적으로 |
+| `wiki_trend` | 9.9s (유지) | 점수 도구 CLI 1회 — 반복이 아니다 |
+
+- 되주입 5종 전부 자기 단언으로 red: 러너 test 수 파싱 무력화(두 fixture case 모두) ·
+  `release-doctor` 가 `skip_mypy` 를 안 넘김 · `record_current` 가 모듈 경로를 무시하고
+  실제 파일에 씀 · consumer-metrics 기본 repo 가 전달되지 않음.
+- 세 검사 단독 합 **46.9s → 12.3s**. `--changed` 안에서 `run_all_checks` 3.8s ·
+  `workflow_kit_cli` 1.1s (게이트 기록 43.7 · 37.6s).
+- 두 건(main-007 · 008)에서 같은 결함이 세 번 나왔다: **"전부 skip" 이 나중에 붙은
+  source 를 따라가지 않는다.** 목록을 손으로 적은 곳(test 의 skip 인자, docstring 의
+  "4 sources", CLI 의 플래그)이 전부 따로 낡았다.

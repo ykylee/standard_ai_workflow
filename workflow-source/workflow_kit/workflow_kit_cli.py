@@ -42,7 +42,7 @@ Commands:
                        [--half-life=N] [--inplace] [--json]
     cache-prune        [--cache-path=PATH] [--older-than=SECONDS]
                        [--min-access-count=N] [--apply] [--json]
-    release-doctor     [--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git]
+    release-doctor     [--skip-packaging] [--skip-doctor] [--skip-state] [--skip-git] [--skip-mypy]
     release-bump       [--to=VERSION | --patch | --minor | --major]
                        [--no-init] [--apply] [--json]
     release-note       --to=VERSION --from-tag=TAG [--apply] [--json]

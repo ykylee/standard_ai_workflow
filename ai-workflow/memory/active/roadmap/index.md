@@ -41,5 +41,7 @@
   - path: [`./M-013-session-context-budget.md`](./M-013-session-context-budget.md)
 - **M-014** [concept] CI·게이트 처리량 — 반복 계산 제거 · 시간 기준 샤딩 · 셋업 비용 — status: done
   - path: [`./M-014-ci-gate-throughput.md`](./M-014-ci-gate-throughput.md)
-- **M-015** [requirements] 세션 시작 컨텍스트 예산 — requirements (출구 + 예산) — status: planned
+- **M-015** [requirements] 세션 시작 컨텍스트 예산 — requirements (출구 + 예산) — status: done
   - path: [`./M-015-session-context-budget-requirements.md`](./M-015-session-context-budget-requirements.md)
+- **M-016** [design] 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절) — status: planned
+  - path: [`./M-016-session-context-budget-design.md`](./M-016-session-context-budget-design.md)

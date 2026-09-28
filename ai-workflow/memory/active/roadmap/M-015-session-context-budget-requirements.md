@@ -2,7 +2,7 @@
 id: M-015
 title: 세션 시작 컨텍스트 예산 — requirements (출구 + 예산)
 sdlc_phase: requirements
-status: planned
+status: done
 order: 15
 parallel_allowed:
   - M-007
@@ -26,6 +26,9 @@ concept 검토([`M-013`](./M-013-session-context-budget.md) →
   (`check_standard_single_source`) 은 건드리지 않는다.
 - **잃지 않았음을 재는 수단**: 이관 뒤 다음 세션이 필요한 것을 잃지 않았는지의 판정을
   완료 기준에 넣는다 (concept 전제 3 · §7).
+
+**종결 (2026-09-28)**: 소유자 sign-off — Q1~Q5 권고안대로 (산출물 §9). design 단계는
+[`M-016`](./M-016-session-context-budget-design.md) 으로 이어진다.
 
 ## WBS
 

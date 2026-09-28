@@ -580,21 +580,46 @@
       "id": "M-015",
       "title": "세션 시작 컨텍스트 예산 — requirements (출구 + 예산)",
       "sdlc_phase": "requirements",
+      "declared_status": "done",
+      "derived_status": "done",
+      "progress": 1.0,
+      "total_leaves": 1,
+      "done_leaves": 1,
+      "deliverables_missing": [],
+      "wbs": [
+        {
+          "id": "WBS-15.1",
+          "title": "requirements 확정 — 출구 범위 · 섹션별 바이트 상한 · 게이트 강도 ·",
+          "derived_status": "done",
+          "linked_task_ids": [
+            "TASK-2026-09-28-main-011"
+          ],
+          "total_leaves": 1,
+          "done_leaves": 1,
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "M-016",
+      "title": "세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)",
+      "sdlc_phase": "design",
       "declared_status": "planned",
       "derived_status": "planned",
       "progress": 0.0,
       "total_leaves": 1,
       "done_leaves": 0,
       "deliverables_missing": [
-        "docs/planning/session-context-budget-requirements-2026-09.md"
+        "ai-workflow/wiki/decisions/adr-029-session-context-budget.md",
+        "workflow-source/core/session_context_budget_spec.md"
       ],
       "wbs": [
         {
-          "id": "WBS-15.1",
-          "title": "requirements 확정 — 출구 범위 · 섹션별 바이트 상한 · 게이트 강도 ·",
+          "id": "WBS-16.1",
+          "title": "design 확정 — ADR-029 + `session_context_budget_spec.md` — 산출물:",
           "derived_status": "planned",
           "linked_task_ids": [
-            "TASK-2026-09-28-main-011"
+            "TASK-2026-09-28-main-012"
           ],
           "total_leaves": 1,
           "done_leaves": 0,

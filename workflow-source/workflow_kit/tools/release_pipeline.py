@@ -53,6 +53,7 @@ import tempfile
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 # v0.7.15+ atomic_write (POSIX os.replace guarantee)
 # workflow-source 를 sys.path 에 추가 (script 가 standalone 으로 실행될 때도
@@ -537,6 +538,74 @@ def verify_gate_evidence(
         return {"ok": False, "head_sha": head_sha, "evidence": evidence,
                 "error": f"게이트 기록에 브랜치 컨텍스트가 빠졌다: {missing}"}
     return {"ok": True, "head_sha": head_sha, "evidence": evidence, "error": None}
+
+
+# ---------------------------------------------------------------------------
+# 은퇴 shim — v1.12.0 DeprecationWarning, v1.13.0 제거 (TASK-2026-09-28-main-014)
+# ---------------------------------------------------------------------------
+#
+# `verify_required_ci` · `REQUIRED_CI_WORKFLOWS` 는 v1.9.0 에 **공개 API 로 추가**됐고
+# (`tools/` 는 동결 표면 — `core/v0_8_0_stable_api_spec.md` §3.3), main-022 가 CI 폐지와
+# 함께 유예 없이 지웠다. v1.x 의 약속은 "1 release 경고 → 다음 release 제거" 라서
+# 한 발행 동안 되살린다.
+#
+# shim 은 **옛 질문에 새 근거로 답한다** — "이 커밋이 발행해도 되는 상태인가".
+# 조회할 CI 가 없으므로 늘 통과(가짜 green)도, 늘 차단(영구 red)도 거짓이다. 대체
+# 판정 `verify_gate_evidence` 에 위임하고 옛 반환 키 모양만 유지한다.
+
+_RETIRED_REMOVAL = "v1.13.0"
+
+
+def verify_required_ci(
+    *, head_sha: str | None = None, repo: str | None = None,
+    runs: list[dict] | None = None, fetch_error: str | None = None,
+) -> dict:
+    """**Deprecated** — :func:`verify_gate_evidence` 를 쓴다. v1.13.0 에서 제거.
+
+    CI 조회 입력(`repo` · `runs` · `fetch_error`)은 재는 대상이 사라져 쓰이지 않는다.
+    조용히 버리지 않고 `ignored_inputs` 에 이름을 남긴다.
+    """
+    import warnings
+
+    warnings.warn(
+        "release_pipeline.verify_required_ci is deprecated; use "
+        "release_pipeline.verify_gate_evidence (GitHub Actions 테스트 workflow 폐지, "
+        f"게이트 근거는 로컬 게이트 통과 기록). Will be removed in {_RETIRED_REMOVAL}.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    ignored = [name for name, value in
+               (("repo", repo), ("runs", runs), ("fetch_error", fetch_error))
+               if value is not None]
+    gate = verify_gate_evidence(head_sha=head_sha)
+    return {
+        **gate,
+        "required": [],
+        "workflows": {},
+        "blocking": [] if gate["ok"] else ["gate_evidence"],
+        "retired": True,
+        "replacement": "verify_gate_evidence",
+        "ignored_inputs": ignored,
+    }
+
+
+def __getattr__(name: str) -> Any:
+    """모듈 상수의 은퇴 shim. 값은 빈 tuple — 필수 CI 워크플로는 이제 없다.
+
+    옛 4종을 돌려주면 존재하지 않는 워크플로를 필수라고 말하게 된다.
+    """
+    if name == "REQUIRED_CI_WORKFLOWS":
+        import warnings
+
+        warnings.warn(
+            "release_pipeline.REQUIRED_CI_WORKFLOWS is deprecated; GitHub Actions 테스트 "
+            "workflow 가 폐지돼 필수 CI 워크플로가 없다 (빈 tuple). 발행 게이트 근거는 "
+            f"verify_gate_evidence. Will be removed in {_RETIRED_REMOVAL}.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return ()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _attach_release_summary(results: dict) -> dict:

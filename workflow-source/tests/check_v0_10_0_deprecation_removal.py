@@ -143,7 +143,7 @@ def test_phishing_federation_consolidated_still_works_v0_10_0() -> None:
 # Acceptance #6: DEPRECATION_MARKED_CALLABLES whitelist empty
 # ---------------------------------------------------------------------------
 def test_deprecation_whitelist_empty_v0_10_0() -> None:
-    """Acceptance §3.5 + §3.6 #6: v0.10.0 정합 — DEPRECATION_MARKED_CALLABLES whitelist empty.
+    """Acceptance §3.5 + §3.6 #6: v0.10.0 정합 — 종료된 cycle 이 whitelist 에 없다.
 
     1st cycle (v0.9.0) + 2nd cycle (v0.9.3) 동시 종료. whitelist empty 가 정합.
     """
@@ -166,9 +166,14 @@ def test_deprecation_whitelist_empty_v0_10_0() -> None:
         line for line in dict_body.splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    assert non_comment_lines == [], (
-        f"v0.10.0 정합: DEPRECATION_MARKED_CALLABLES whitelist 가 empty 여야 함. "
-        f"non-comment lines: {non_comment_lines}"
+    # v1.12.0 갱신 (TASK-2026-09-28-main-014): 이 case 는 'whitelist 가 영원히 비어
+    # 있다' 가 아니라 'v0.10.0 에 끝난 cycle 의 심볼이 남아 있지 않다' 를 잰다. 빈
+    # 목록을 기대값으로 박아 두면 다음 cycle 이 등록되는 순간 이 case 가 정책 운영을
+    # 막는다 — 살아있는 저장소 상태는 기대값이 아니다.
+    leftovers = [line for line in non_comment_lines if "phishing_federation_v4" in line]
+    assert leftovers == [], (
+        f"v0.10.0 정합: 종료된 cycle 1+2 (phishing_federation_v4) 가 "
+        f"DEPRECATION_MARKED_CALLABLES 에 남아 있다: {leftovers}"
     )
 
 

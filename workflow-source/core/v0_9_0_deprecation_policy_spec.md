@@ -4,7 +4,7 @@
 - 범위: deprecation lifecycle, 1st cycle 영향 symbol, mypy strict full clean, SSOT drift 해소, Beta-prefix 유지
 - 대상 독자: workflow_kit consumer, 저장소 maintainer, AI workflow 설계자
 - 상태: chapter 1+2 DONE, chapter 3 in-progress (drift patch + release note + roadmap 갱신)
-- 최종 수정일: 2026-06-24
+- 최종 수정일: 2026-09-28
 - 관련 문서: [`./v0_8_0_stable_api_spec.md`](./v0_8_0_stable_api_spec.md), [`./workflow_release_spec.md`](./workflow_release_spec.md), [`./output_schema_guide.md`](./output_schema_guide.md), [`./workflow_kit_roadmap.md`](./workflow_kit_roadmap.md), [`./prototype_promotion_scope.md`](./prototype_promotion_scope.md), [`./read_only_mcp_transport_promotion.md`](./read_only_mcp_transport_promotion.md)
 
 ## 1. 목적
@@ -87,6 +87,28 @@ def fetch_federated_phishing_urls_v4(
 - [x] `DEPRECATION_MARKED_CALLABLES` whitelist +1 entry (`build_default_sources_v4`) ✅ v0.9.3
 - [x] `__all__` 의 `phishing_federation_v4` 여전히 존재 ✅ v0.9.3 (cycle 1+2 동시 종료 시점 v0.10.0 에서 제거)
 - [x] **cycle 1+2 동시 종료** ✅ **v0.10.0**: `phishing_federation_v4.py` file delete + `__all__` 에서 `phishing_federation_v4` 제거 + `DEPRECATION_MARKED_CALLABLES` whitelist empty. consumer 가 *명시적 except* 없으면 `ImportError` raise (semver major 정공법).
+
+### 3.7 v1.12.0 cycle — 유예 없이 지운 공개 API 의 복원 (TASK-2026-09-28-main-014)
+
+| Symbol | module | 이유 | replacement | removal |
+|---|---|---|---|---|
+| `verify_required_ci` | `workflow_kit.tools.release_pipeline` | GitHub Actions 테스트 workflow 폐지(2026-09-23, main-022). 발행 게이트 근거가 로컬 게이트 통과 기록으로 옮겨졌다 | `release_pipeline.verify_gate_evidence` | v1.13.0 |
+| `REQUIRED_CI_WORKFLOWS` | `workflow_kit.tools.release_pipeline` | 같은 이유. 모듈 `__getattr__` 로 경고하고 **빈 tuple** 을 돌려준다 — 옛 4종을 돌려주면 없는 워크플로를 필수라 말하게 된다 | (없음 — 필수 CI 가 없다) | v1.13.0 |
+
+**이 cycle 은 사후 복원이다.** main-022 가 두 이름을 v1.11.0 태그 뒤에 유예 없이 지웠고,
+v1.12.0 발행 준비의 등급 판정(`RELEASE.md` §1.5)에서 드러났다. `tools/` 는 동결 표면(v0.8.0
+spec §3.3)이라, 지운 채 minor 로 내면 이 정책을 어기고, major 로 올리면 2년 보장을 스스로
+끝낸다. 소유자 결정(2026-09-28): shim 으로 한 발행 동안 되살려 minor.
+
+shim 은 **옛 질문에 새 근거로 답한다** — 늘 통과(가짜 green)도 늘 차단(영구 red)도 아니고
+`verify_gate_evidence` 의 판정을 그대로 따른다. 쓰이지 않는 CI 입력(`repo` · `runs` ·
+`fetch_error`)은 버리지 않고 결과의 `ignored_inputs` 에 이름을 남긴다.
+
+- [x] 두 이름 모두 `DeprecationWarning` (removal 명시) — `check_release_gate_evidence` case 10 ·
+      `check_v0_9_1_deprecation_contract` whitelist
+- [x] shim 이 대체 판정을 따른다 (게이트 True/False 두 방향) — 되주입 3종(늘 통과 · 경고 제거 ·
+      옛 4종 반환) 각각 red
+- [ ] v1.13.0: 두 이름 제거 + whitelist entry 제거
 
 ### 3.4 1st cycle 검증 (chapter 2 에서 실행)
 

@@ -29,8 +29,10 @@
   "session": {
     "current_baseline": "**93차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 1건 close (TASK-2026-09-23-main-014).** 발행 뒤 이 호스트 채널 재적용을 `docs/RELEASE.md` §2.8 로 절차화 + `wk doctor` `content_drift.behind`(읽히는 사본 < 정본 버전 → 발견) 신설. §2.8 을 이 호스트에서 첫 실행: codex·grok-build·antigravity 1.10.0 → 1.11.0, claude-code 설치 기록 1.9.4 → 1.11.0, doctor `behind=[]`. 남은 것: claude-code CLI 재시작(`runtime_load`). **교훈 재확인**: task close 뒤 `--changed` 에서 `check_handoff_next_steps` red — §5 후보가 닫힌 task 를 가리켰다.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump",
+    "in_progress_items": [
+      "TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump"
+    ],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -55,8 +57,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-28.md",
-    "task_count": 18,
-    "in_progress_items": [],
+    "task_count": 19,
+    "in_progress_items": [
+      "TASK-2026-09-28-main-014 — v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-23-main-019 — CI·게이트 처리량 — concept 검토 (Linear CI 재작업 글 참고)",

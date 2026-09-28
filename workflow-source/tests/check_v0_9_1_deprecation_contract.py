@@ -44,6 +44,14 @@ WORKFLOW_KIT_INIT = WORKFLOW_KIT_DIR / "__init__.py"
 # 다음 deprecation cycle 진입 시 새 entry 추가 (같은 정공법: 1 release DeprecationWarning → 1 release removal).
 DEPRECATION_MARKED_CALLABLES: dict[str, tuple[str, tuple, dict]] = {
     # v0.10.0 정합: empty (1st + 2nd cycle 동시 종료)
+    # v1.12.0 cycle (TASK-2026-09-28-main-014): main-022 가 유예 없이 지운 공개 API 를
+    # 은퇴 shim 으로 되살렸다 — v1.13.0 제거. 모듈 상수 `REQUIRED_CI_WORKFLOWS` 는
+    # callable 이 아니라 여기 못 오르고 `check_release_gate_evidence` case 10 이 잰다.
+    "workflow_kit.tools.release_pipeline.verify_required_ci": (
+        "workflow_kit.tools.release_pipeline.verify_gate_evidence",
+        (),
+        {},
+    ),
     # 다음 deprecation cycle 의 placeholder 예시:
     # "workflow_kit.<future_module>.<future_callable>": (
     #     "workflow_kit.<replacement_module>.<replacement_callable>",
@@ -115,8 +123,9 @@ def test_deprecation_marked_callables_warn_v0_9_1() -> None:
         )
         msg = str(captured[0].message)
         assert "deprecated" in msg.lower(), f"missing 'deprecated' in: {msg}"
-        # removal release 명시 (다음 cycle 시 dynamic)
-        assert "v0." in msg, f"missing removal release 'v0.X.Y' in: {msg}"
+        # removal release 명시 — v1.x cycle 도 받는다 (v1.12.0 cycle 에서 `v0.` 고정을 넓힘)
+        assert re.search(r"removed in v\d+\.\d+\.\d+", msg), (
+            f"missing removal release 'removed in vX.Y.Z' in: {msg}")
 
 
 def test_non_deprecated_callables_no_warning_v0_9_1() -> None:

@@ -356,7 +356,11 @@ def cmd_release_create(argv: list[str]) -> int:
     Args:
         --version=VERSION        target version (required)
         --notes-template=PATH    notes template file (optional)
-        --skip-validate          skip 4-source validate (not recommended)
+        --skip-validate          skip the whole validate pre-check (not recommended)
+        --skip-packaging         skip one pre-check source (not recommended)
+        --skip-doctor            skip one pre-check source (not recommended)
+        --skip-state             skip one pre-check source (not recommended)
+        --skip-git               skip one pre-check source (not recommended)
         --skip-mypy              skip mypy strict pre-check (v0.11.12+, not recommended)
         --skip-cross-verify      은퇴 — no-op (mypy-strict CI 폐지, 09-24-main-001)
         --strict-cross-verify    은퇴 — no-op (같은 이유, stderr 경고만)
@@ -374,6 +378,12 @@ def cmd_release_create(argv: list[str]) -> int:
         version=version,
         notes_template=_parse_flag(argv, "--notes-template"),
         skip_validate=_has_flag(argv, "--skip-validate"),
+        # 개별 source skip — 목록 정본은 release_pipeline.VALIDATE_SOURCES,
+        # 누락은 check_validate_source_coverage 가 잡는다 (TASK-2026-09-28-main-009).
+        skip_packaging=_has_flag(argv, "--skip-packaging"),
+        skip_doctor=_has_flag(argv, "--skip-doctor"),
+        skip_state=_has_flag(argv, "--skip-state"),
+        skip_git=_has_flag(argv, "--skip-git"),
         skip_mypy=_has_flag(argv, "--skip-mypy"),
         skip_cross_verify=_has_flag(argv, "--skip-cross-verify"),
         strict_cross_verify=_has_flag(argv, "--strict-cross-verify"),

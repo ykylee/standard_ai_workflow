@@ -140,19 +140,23 @@ def test_release_doctor_all_skip_returns_0_v0_7_54() -> None:
     `check_release_pipeline_lib` 에서 main-007 이 고친 것과 같은 모양).
     """
     import contextlib
+    import importlib
     import io
     import json
     mod = _import_cli()
+    # 플래그 목록은 정본에서 파생한다 (TASK-2026-09-28-main-009) — source 가 붙었는데
+    # release-doctor 가 그 플래그를 안 열면 '모르는 인자' 로 rc=2 가 되어 여기서 red.
+    rp = importlib.import_module("workflow_kit.tools.release_pipeline")
+    skippable = rp.validate_skippable_sources()
+    flags = [f"--skip-{s.replace('_', '-')}" for s in skippable]
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        code = mod.run_workflow_kit_cli([
-            "--command=release-doctor",
-            "--skip-packaging", "--skip-doctor", "--skip-state", "--skip-git",
-            "--skip-mypy",
-        ])
+        code = mod.run_workflow_kit_cli(["--command=release-doctor", *flags])
     assert code == 0, buf.getvalue()[-500:]
-    # 플래그가 버려지면 mypy 가 돌고도 ok 라 rc 만으로는 안 보인다 — skipped 를 단언.
-    assert json.loads(buf.getvalue()).get("mypy") == {"ok": True, "skipped": True}, buf.getvalue()[-500:]
+    out = json.loads(buf.getvalue())
+    # 플래그가 버려지면 그 source 가 돌고도 ok 라 rc 만으로는 안 보인다 — skipped 를 단언.
+    for s in skippable:
+        assert out.get(s) == {"ok": True, "skipped": True}, f"{s}: {out.get(s)}"
 
 
 def test_cache_migrate_invalid_mode_returns_2_v0_7_55() -> None:

@@ -203,8 +203,47 @@ def _traceback_conclusion_first(text: str, *, keep: int = 20) -> str:
     return "\n".join([f"[exception] {exception}", *body])
 
 
+#: `cmd_validate` 가 재는 source — **순서 포함 정본** (TASK-2026-09-28-main-009).
+#:
+#: 이 목록을 손으로 다시 적는 곳이 여럿이었고(argparse validate · release, lib
+#: `cmd_validate` · `cmd_release`, `release-doctor`, `release-create`, '전부 skip'
+#: test) 전부 **따로 낡았다** — v0.11.12 에 mypy, P4 에 plugin_payload 가 붙을 때마다
+#: 일부만 따라갔고, '전부 skip' 이라면서 mypy 를 실제로 돌리는 test 가 셋 나왔다.
+#: 파생할 수 있는 사본(argparse)은 여기서 만들고, 리터럴이 필요한 사본(공개 함수
+#: 시그니처 · 손 파싱 dispatcher)은 `check_validate_source_coverage` 가 대조한다.
+#: 이 목록과 아래 `cmd_validate` 본문이 같은지도 그 검사가 AST 로 잰다.
+VALIDATE_SOURCES: tuple[str, ...] = (
+    "packaging", "doctor", "state", "git", "mypy", "plugin_payload",
+)
+
+#: skip 을 **열지 않는** source 와 그 이유. 여기 없는 source 는 전부 `--skip-<source>`
+#: 로 끌 수 있어야 한다 (v1.1.4 — all-or-nothing 은 게이트 무력화를 강요한다).
+VALIDATE_UNSKIPPABLE: dict[str, str] = {
+    "plugin_payload": (
+        "P4 판정(2026-08-13) = 자동 재생성이 아니라 게이트. 어긋나면 처방이 "
+        "`wk plugin-payload` 재생성 한 줄이라 끌 이유가 약하다 — 소유자 결정 2026-09-28"
+    ),
+}
+
+
+def validate_skippable_sources() -> tuple[str, ...]:
+    """`--skip-<source>` 를 여는 source (정본 순서)."""
+    return tuple(s for s in VALIDATE_SOURCES if s not in VALIDATE_UNSKIPPABLE)
+
+
+def _skipped(args, source: str) -> bool:
+    """`args.skip_<source>` — 없으면 False. 모든 skip 판정이 이 한 모양을 쓴다.
+
+    예전에는 4개가 `args.skip_x` 직접 접근, 2개가 `getattr` 이었다 — 사본마다
+    기본값을 따로 채워야 했던 이유다.
+    """
+    if source in VALIDATE_UNSKIPPABLE:
+        raise ValueError(f"{source} 는 skip 을 열지 않는 source 다: {VALIDATE_UNSKIPPABLE[source]}")
+    return bool(getattr(args, f"skip_{source}", False))
+
+
 def cmd_validate(args) -> dict:
-    """4 source 의 release-readiness 검증.
+    """release-readiness 검증 — source 는 `VALIDATE_SOURCES` 순서.
 
     1. check_packaging.py: pyproject 의 [tool.setuptools.packages] ↔ 디스크 정합
     2. workflow_kit.cli.doctor: 7 baseline 모두 evaluate (state-aware variant)
@@ -212,11 +251,12 @@ def cmd_validate(args) -> dict:
     4. git status: working tree clean (release commit 의 clean state 보장)
     5. mypy strict: v0.11.12+ — workflow_kit/ mypy 2.1.0 strict 0 errors 강제
        (release-time gate — mypy-strict CI 는 main-022 로 폐지, 이것이 유일한 mypy 게이트)
+    6. plugin_payload: P4 — 플러그인 manifest 가 pyproject version 과 정합 (skip 불가)
     """
     results: dict = {}
 
     # 1. check_packaging
-    if not args.skip_packaging:
+    if not _skipped(args, "packaging"):
         # v0.11.17 in-scope fix: 부모 process 의 PYTHONPATH (예: `workflow-source`)
         # 가 상속되면, wheel install 의 site-packages/bootstrap_lib 가 shadowing
         # 되어 `No module named 'bootstrap_lib'` 실패. packaging check 는 venv
@@ -237,7 +277,7 @@ def cmd_validate(args) -> dict:
         results["packaging"] = {"ok": True, "skipped": True}
 
     # 2. workflow_kit.cli.doctor (v0.7.8)
-    if not args.skip_doctor:
+    if not _skipped(args, "doctor"):
         # v1.1.4: baselines 는 project_root 아래에서 `workflow-source/` 를 조립하므로
         # project_root 는 **저장소 루트**(REPO_ROOT.parent)여야 한다. 이전에는
         # REPO_ROOT(= workflow-source/)를 넘겨 tests 탐색이 workflow-source/workflow-source/
@@ -282,7 +322,7 @@ def cmd_validate(args) -> dict:
         results["doctor"] = {"ok": True, "skipped": True}
 
     # 3. state.json freshness
-    if not args.skip_state:
+    if not _skipped(args, "state"):
         # 정본 helper 로만 경로를 얻는다 — legacy 문자열 조립은 §2.20 의 재발 경로다.
         state_path = state_path_for_workspace(REPO_ROOT.parent)
         if state_path.exists():
@@ -318,7 +358,7 @@ def cmd_validate(args) -> dict:
         results["state"] = {"ok": True, "skipped": True}
 
     # 4. git status
-    if not args.skip_git:
+    if not _skipped(args, "git"):
         proc = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=10,
@@ -348,7 +388,7 @@ def cmd_validate(args) -> dict:
     #
     # REPO_ROOT = workflow-source/ (release_pipeline.py 의 Path.__file__.parents[1] 정의)
     # 이므로, *project root* (REPO_ROOT.parent) 를 cwd 로 사용하고, target 을 절대경로.
-    if not getattr(args, "skip_mypy", False):
+    if not _skipped(args, "mypy"):
         try:
             mypy_target = str(REPO_ROOT / "workflow_kit/")
             mypy_config = str(REPO_ROOT / "pyproject.toml")
@@ -432,14 +472,15 @@ def cmd_validate(args) -> dict:
     # 낡은 채 남겼다 (실측). 그래서 `state.json` 과 같은 규율로 바꿨다 — **생성물은
     # 사람이 명령으로 재생성하고, 게이트가 정합을 강제한다.** 실패 시 `fix` 에 그
     # 명령이 담긴다.
-    if not getattr(args, "skip_plugin_payload", False):
-        status = plugin_payload_status(read_workflow_kit_version())
-        results["plugin_payload"] = {
-            "ok": bool(status.get("ok")) and bool(status.get("in_sync")),
-            **{k: v for k, v in status.items() if k != "ok"},
-        }
-    else:
-        results["plugin_payload"] = {"ok": True, "skipped": True}
+    #
+    # **skip 을 열지 않는다** (`VALIDATE_UNSKIPPABLE`). 예전에는 `skip_plugin_payload`
+    # 분기가 있었지만 그것을 켜는 플래그가 어디에도 없어, 쓰이지 않는 탈출구로 남아
+    # 있었다 (TASK-2026-09-28-main-009).
+    status = plugin_payload_status(read_workflow_kit_version())
+    results["plugin_payload"] = {
+        "ok": bool(status.get("ok")) and bool(status.get("in_sync")),
+        **{k: v for k, v in status.items() if k != "ok"},
+    }
 
     return results
 
@@ -2300,7 +2341,7 @@ def cmd_release(args) -> dict:
     args.normalize 없이 cmd_release 진입 시 cmd_validate 호출에서 AttributeError.
     memory #11 의 _make_args 정공법 정합.
 
-    사전 점검: --skip-validate 미지정 시 validate 4 source 자동 호출.
+    사전 점검: --skip-validate 미지정 시 validate(`VALIDATE_SOURCES`) 자동 호출.
     1+ source fail 시 release 중단 (exit 1).
 
     **v0.7.18+ release coordination observability**:
@@ -3282,6 +3323,26 @@ def cmd_gen_schema(args) -> dict:
 # ---------------------------------------------------------------------------
 
 
+#: `--help` 문구용 — 없는 source 는 이름 그대로 쓴다 (문구가 없다고 플래그가 빠지지 않는다).
+_SKIP_LABELS: dict[str, str] = {
+    "packaging": "packaging",
+    "doctor": "doctor baseline",
+    "state": "state.json freshness",
+    "git": "git clean",
+    "mypy": "mypy strict",
+}
+
+
+def _add_skip_flags(parser: argparse.ArgumentParser, help_fmt: str) -> None:
+    """`--skip-<source>` 를 `validate_skippable_sources()` 전부에 대해 연다."""
+    for source in validate_skippable_sources():
+        parser.add_argument(
+            f"--skip-{source.replace('_', '-')}", dest=f"skip_{source}",
+            action="store_true", default=False,
+            help=help_fmt.format(_SKIP_LABELS.get(source, source)),
+        )
+
+
 def main() -> int:
     p = argparse.ArgumentParser(
         description="standard-ai-workflow release pipeline (v0.7.9+)",
@@ -3289,12 +3350,11 @@ def main() -> int:
     sub = p.add_subparsers(dest="command", required=True)
 
     # validate
-    p_val = sub.add_parser("validate", help="release-readiness 검증 (4 source + mypy)")
-    p_val.add_argument("--skip-packaging", action="store_true", help="check_packaging skip")
-    p_val.add_argument("--skip-doctor", action="store_true", help="doctor skip")
-    p_val.add_argument("--skip-state", action="store_true", help="state.json check skip")
-    p_val.add_argument("--skip-git", action="store_true", help="git status check skip")
-    p_val.add_argument("--skip-mypy", action="store_true", help="mypy strict check skip (v0.11.12+)")
+    p_val = sub.add_parser(
+        "validate", help=f"release-readiness 검증 ({len(VALIDATE_SOURCES)} source)",
+    )
+    # skip 플래그는 정본에서 만든다 — 손으로 적은 목록은 source 가 붙을 때마다 따로 낡았다.
+    _add_skip_flags(p_val, "{} check skip")
     p_val.add_argument("--dry-run", action="store_true")
     p_val.add_argument("--json", action="store_true")
 
@@ -3464,17 +3524,9 @@ def main() -> int:
                             "install_pre_push_hook / host_pull_registry 와 정합).")
     # 개별 pre_check skip (v1.1.4+): 이전에는 --skip-validate 뿐이라 doctor 하나를
     # 건너뛰려면 packaging/git/mypy 게이트까지 통째로 꺼야 했다 — 게이트 무력화를
-    # 강요하는 all-or-nothing. validate subcommand 와 같은 5 flag 를 노출한다.
-    p_rel.add_argument("--skip-packaging", action="store_true", default=False,
-                       help="pre_check 중 packaging check 만 skip")
-    p_rel.add_argument("--skip-doctor", action="store_true", default=False,
-                       help="pre_check 중 doctor baseline check 만 skip")
-    p_rel.add_argument("--skip-state", action="store_true", default=False,
-                       help="pre_check 중 state.json freshness check 만 skip")
-    p_rel.add_argument("--skip-git", action="store_true", default=False,
-                       help="pre_check 중 git clean check 만 skip")
-    p_rel.add_argument("--skip-mypy", action="store_true", default=False,
-                       help="pre_check 중 mypy strict check 만 skip")
+    # 강요하는 all-or-nothing. validate subcommand 와 **같은 정본**(`VALIDATE_SOURCES`)
+    # 에서 만든 flag 를 노출한다.
+    _add_skip_flags(p_rel, "pre_check 중 {} check 만 skip")
     p_rel.add_argument("--json", action="store_true")
     p_rel.add_argument(
         "--legacy-memory", dest="legacy_memory", default=None,

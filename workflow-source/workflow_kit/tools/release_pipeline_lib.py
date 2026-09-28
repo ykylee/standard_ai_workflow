@@ -251,7 +251,10 @@ def cmd_changelog_gen(*, from_tag: str | None = None, to_tag: str = "HEAD",
 
 
 def cmd_release(*, version: str, notes_template: str | None = None,
-                skip_validate: bool = False, skip_mypy: bool = False,
+                skip_validate: bool = False,
+                skip_packaging: bool = False, skip_doctor: bool = False,
+                skip_state: bool = False, skip_git: bool = False,
+                skip_mypy: bool = False,
                 skip_cross_verify: bool = False, strict_cross_verify: bool = False,
                 auto_bump: bool = False, full_auto: bool = False,
                 allow_existing_tag: bool = False,
@@ -261,8 +264,11 @@ def cmd_release(*, version: str, notes_template: str | None = None,
     Args:
         version: target version (e.g. "0.7.56")
         notes_template: path to notes template (optional)
-        skip_validate: skip 4-source validate (not recommended)
-        skip_mypy: skip mypy strict pre-check (v0.11.12+, not recommended)
+        skip_validate: skip the whole validate pre-check (not recommended)
+        skip_packaging / skip_doctor / skip_state / skip_git / skip_mypy:
+            pre-check source 하나만 skip (not recommended). 목록 정본은
+            `release_pipeline.VALIDATE_SOURCES` — 예전에는 mypy 만 열려 있어 나머지를
+            끄려면 validate 전체를 꺼야 했다 (TASK-2026-09-28-main-009).
         skip_cross_verify: 은퇴 — no-op (mypy-strict CI 폐지, 09-24-main-001). 호출 호환용
         strict_cross_verify: 은퇴 — no-op (같은 이유). 주면 stderr 경고만 난다
         auto_bump: if remote tag exists, auto-bump to next version
@@ -278,6 +284,10 @@ def cmd_release(*, version: str, notes_template: str | None = None,
         version=version,
         notes_template=notes_template,
         skip_validate=skip_validate,
+        skip_packaging=skip_packaging,
+        skip_doctor=skip_doctor,
+        skip_state=skip_state,
+        skip_git=skip_git,
         skip_mypy=skip_mypy,
         skip_cross_verify=skip_cross_verify,
         strict_cross_verify=strict_cross_verify,

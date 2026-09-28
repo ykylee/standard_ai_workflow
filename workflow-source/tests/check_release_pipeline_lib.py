@@ -99,20 +99,25 @@ def test_cmd_validate_returns_4_keys_v0_7_55() -> None:
 
 
 def test_cmd_validate_all_skipped_returns_all_ok_v0_7_55() -> None:
-    """cmd_validate with all sources skipped returns all ok=True.
+    """cmd_validate with all skippable sources skipped returns all ok=True.
 
-    `mypy` 는 v0.11.12 에 5번째 source 로 붙었는데 이 test 는 그때 따라오지 않아,
-    '전부 skip' 이라면서 판정에 쓰지도 않는 mypy 를 매번 실제로 돌렸다 (~3.9s,
-    TASK-2026-09-28-main-007). 실제 mypy 경로는 위 test 가 잰다.
+    skip 목록은 **정본에서 파생한다** (`VALIDATE_SOURCES` − `VALIDATE_UNSKIPPABLE`).
+    손으로 적었을 때는 v0.11.12 의 mypy 를 따라오지 않아 '전부 skip' 이라면서 mypy 를
+    매번 실제로 돌렸다 (main-007). 이제 source 가 붙으면 lib 시그니처가 그 인자를
+    받지 않는 순간 여기서 TypeError 로 red 가 된다 (main-009).
     """
     lib = _import_lib()
-    result = lib.cmd_validate(
-        skip_packaging=True, skip_doctor=True,
-        skip_state=True, skip_git=True, skip_mypy=True,
+    rp = _import_release_pipeline()
+    skippable = rp.validate_skippable_sources()
+    result = lib.cmd_validate(**{f"skip_{s}": True for s in skippable})
+    assert set(result) == set(rp.VALIDATE_SOURCES), (
+        f"결과 source {sorted(result)} != 정본 {sorted(rp.VALIDATE_SOURCES)}"
     )
-    for key in ("packaging", "doctor", "state", "git", "mypy"):
+    for key in skippable:
         assert result[key].get("ok") is True, f"{key} not ok: {result[key]}"
         assert result[key].get("skipped") is True, f"{key} not marked skipped: {result[key]}"
+    for key in rp.VALIDATE_UNSKIPPABLE:
+        assert not result[key].get("skipped"), f"skip 불가 source {key} 가 skipped: {result[key]}"
 
 
 def test_cmd_version_bump_dry_run_v0_7_56() -> None:

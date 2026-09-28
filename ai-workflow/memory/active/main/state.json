@@ -43,6 +43,7 @@
       "TASK-2026-09-23-main-018"
     ],
     "recent_done_items": [
+      "TASK-2026-09-28-main-009 — release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감",
       "TASK-2026-09-28-main-008 — 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산",
       "TASK-2026-09-28-main-007 — release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위",
       "TASK-2026-09-28-main-006 — 검사 5개가 실제 저장소 telemetry 에 session-start 를 기록해 사용 지표를 게이트마다 +10 부풀린다",
@@ -51,15 +52,14 @@
       "TASK-2026-09-28-main-003 — 게이트 러너 스케줄링 — 긴 검사 먼저(LPT) 제출 + --jobs auto 상한을 코어 수로",
       "TASK-2026-09-28-main-002 — PURPOSE.md 가 90일 stale — check_memory_lint 가 날짜 경과로 red",
       "TASK-2026-09-28-main-001 — check_mcp_apply_mode_criterion 이 Linux 호스트에서 red — PATH python3(시스템 3.14)에 pydantic 이 없어 emit command 로 MCP 서버가 안 뜬다",
-      "TASK-2026-09-25-main-002 — force push 차단 hook 이 실제 git push --force 를 막지 못한다",
-      "TASK-2026-09-25-main-001 — check_deploy_doctor 의 claude directory source 2 case 가 기본 TMPDIR 직접 실행에서만 red"
+      "TASK-2026-09-25-main-002 — force push 차단 hook 이 실제 git push --force 를 막지 못한다"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-28.md",
-    "task_count": 9,
+    "task_count": 10,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -71,7 +71,8 @@
       "TASK-2026-09-28-main-005 — 대시보드가 telemetry events.jsonl 을 패널마다 따로 읽어, 게이트 중 추가된 이벤트로 Panel 3·8 hit_rate 가 갈린다",
       "TASK-2026-09-28-main-006 — 검사 5개가 실제 저장소 telemetry 에 session-start 를 기록해 사용 지표를 게이트마다 +10 부풀린다",
       "TASK-2026-09-28-main-007 — release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위",
-      "TASK-2026-09-28-main-008 — 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산"
+      "TASK-2026-09-28-main-008 — 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산",
+      "TASK-2026-09-28-main-009 — release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감"
     ]
   },
   "next_documents": [

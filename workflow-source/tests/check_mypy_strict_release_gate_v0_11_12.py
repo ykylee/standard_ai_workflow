@@ -137,16 +137,27 @@ def test_mypy_strict_release_gate_v0_11_12() -> None:
     print("  case 1f (격리가 cwd 를 오염시키지 않는다): PASS")
 
     # case 2: --skip-mypy argparse flag
-    assert re.search(
-        r"p_val\.add_argument\([\"']--skip-mypy",
-        rp_text,
-    ), "validate subcommand 의 --skip-mypy flag 부재"
-    # default False (skip 안 함 = mypy check 활성)
-    assert re.search(
-        r"--skip-mypy[\"'].*?action=[\"']store_true",
-        rp_text,
-        re.DOTALL,
-    ), "--skip-mypy 의 action='store_true' 정합 부재"
+    #
+    # 소스의 글자 모양(`p_val.add_argument("--skip-mypy"`)이 아니라 **실제 파서**로 잰다.
+    # skip 플래그는 정본 `VALIDATE_SOURCES` 에서 만들어지게 됐다
+    # (TASK-2026-09-28-main-009) — 모양이 바뀌어도 동작은 같아야 하고, 그 동작이 이것이다.
+    import os as _os
+    _env = dict(_os.environ)
+    _env["PYTHONPATH"] = str(REPO_ROOT / "workflow-source") + _os.pathsep + _env.get("PYTHONPATH", "")
+    _help = subprocess.run(
+        [sys.executable, "-m", "workflow_kit.tools.release_pipeline", "validate", "--help"],
+        capture_output=True, text=True, timeout=60, env=_env, cwd=str(REPO_ROOT),
+    )
+    assert _help.returncode == 0, f"validate --help exit {_help.returncode}: {_help.stderr[-300:]}"
+    assert "--skip-mypy" in _help.stdout, "validate subcommand 의 --skip-mypy flag 부재"
+    # default False (skip 안 함 = mypy check 활성) + store_true (값을 받지 않는다)
+    import argparse as _ap
+    import importlib as _il
+    _rp = _il.import_module("workflow_kit.tools.release_pipeline")
+    _probe = _ap.ArgumentParser()
+    _rp._add_skip_flags(_probe, "{}")
+    assert _probe.parse_args([]).skip_mypy is False, "--skip-mypy 의 기본이 False 가 아니다"
+    assert _probe.parse_args(["--skip-mypy"]).skip_mypy is True, "--skip-mypy 가 store_true 가 아니다"
     print("  case 2 (argparse --skip-mypy flag): PASS")
 
     # case 3: cmd_validate 직접 실행 — mypy source 의 schema + ok=True verify

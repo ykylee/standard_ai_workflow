@@ -53,12 +53,15 @@ def cmd_release_doctor(argv: list[str]) -> int:
     """Release pre-flight: release-readiness check (in-process, v0.7.55+).
 
     Calls `tools.release_pipeline_lib.cmd_validate` in-process (no subprocess
-    overhead, no script-path coupling). 5 checks:
+    overhead, no script-path coupling). 6 checks (정본 순서 =
+    `release_pipeline.VALIDATE_SOURCES`):
       1. check_packaging: pyproject [tool.setuptools.packages] ↔ disk
       2. workflow_kit.cli.doctor: 7 baseline evaluate
       3. state.json freshness
       4. git status: working tree clean
       5. mypy strict (v0.11.12+ — release-time gate)
+      6. plugin_payload: 플러그인 manifest ↔ version 정합 (P4, **skip 불가** —
+         `VALIDATE_UNSKIPPABLE`)
 
     Args:
         --skip-packaging   skip check 1
@@ -69,7 +72,8 @@ def cmd_release_doctor(argv: list[str]) -> int:
 
     5번은 v0.11.12 에 `cmd_validate` 에 붙었는데 이 커맨드는 skip 플래그를 따라
     열지 않아, 나머지를 전부 skip 해도 mypy 는 끌 수 없었다
-    (TASK-2026-09-28-main-008).
+    (TASK-2026-09-28-main-008). 플래그 누락은 이제
+    `check_validate_source_coverage` 가 잡는다 (main-009).
     """
     skip = {
         "packaging": _has_flag(argv, "--skip-packaging"),

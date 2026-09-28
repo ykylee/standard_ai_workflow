@@ -31,9 +31,11 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit import __version__ as TOOL_VERSION
+from workflow_kit.common.context_budget import measure as measure_context_budget
 from workflow_kit.common.paths import (
     discover_project_profile_path,
     project_workspace_root,
+    workflow_handoff_path,
     workflow_state_path,
 )
 from workflow_kit.common.state.roadmap import (
@@ -98,6 +100,14 @@ def main() -> int:
         # 재생성한다 — 별도 명령을 만들지 않는다 (스펙 §7.1). 부재는 실패가
         # 아니라 해당 없음이다.
         roadmap_state = generate_roadmap_state(workspace_root)
+        # ADR-029: 세션 종료가 필독 문서를 마지막으로 쓰는 자리다 — 여기서 예산을 재고
+        # 초과를 **출구 명령과 함께** 경고한다. 소비 프로젝트에는 경고까지만 (게이트를
+        # 강요하지 않는다). 재생성 **뒤에** 재야 state.json 이 이번 출력의 크기다.
+        budget = measure_context_budget(
+            handoff_path=workflow_handoff_path(project_profile_path),
+            state_path=state_path,
+            claude_md_path=workspace_root / "CLAUDE.md",
+        )
         print(json.dumps({
             "status": "ok" if refresh_result["status"] == "refreshed" else "warning",
             "tool_version": TOOL_VERSION,
@@ -109,7 +119,11 @@ def main() -> int:
             "roadmap_state_status": "refreshed" if roadmap_state is not None else "not_applicable",
             "roadmap_state_path": str(roadmap_state_path(workspace_root)) if roadmap_state is not None else "",
             "roadmap_issues": len(roadmap_state.issues) if roadmap_state is not None else 0,
-            "warnings": refresh_result.get("deprecation_warnings", []),
+            "warnings": [
+                *refresh_result.get("deprecation_warnings", []),
+                *(m.message() for m in budget if m.over),
+            ],
+            "context_budget": [m.as_dict() for m in budget],
         }, ensure_ascii=False, indent=2))
         return 0
 

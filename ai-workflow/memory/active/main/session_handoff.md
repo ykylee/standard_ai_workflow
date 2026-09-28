@@ -46,7 +46,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-28-main-013 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

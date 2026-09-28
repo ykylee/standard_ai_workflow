@@ -387,7 +387,7 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은
 마커, 스코프 간 어긋남) · **content_drift** (설치 사본의 페이로드 해시 대조) ·
 **mcp_interpreter** (플러그인 MCP 가 실제로 띄우는 해석기가 어떤 kit 을 import 하는가) ·
-**plugin_enabled** (설치본을 하네스가 켜 두었는가 — `enabledPlugins` 선언 부재 / 명시 false) ·
+**plugin_enabled** (설치본을 하네스가 켜 두었는가 — 채널별 활성 선언의 부재 / 명시 false, 4채널) ·
 **runtime_load** (실행 중 호스트가 이 설치를 봤는가).
 
 > **설치와 활성은 다른 축이다** (TASK-2026-09-28-main-017). 95차(2026-09-28) 실측에서
@@ -395,7 +395,20 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 > 였다 — `~/.claude/settings.json` 에 `enabledPlugins` 키가 없었다(갱신 직후). 파일과
 > 프로세스를 재는 절은 전부 green 이었다. `plugin_enabled` 절은 설치 기록의
 > `<plugin>@<marketplace>` 키를 `enabledPlugins` 에서 찾아(프로젝트 로컬 > 프로젝트 >
-> 사용자) **부재**와 **명시 false** 를 구분해 발견으로 낸다. claude-code 만 잰다.
+> 사용자) **부재**와 **명시 false** 를 구분해 발견으로 낸다.
+>
+> **선언 자리는 채널마다 다르다** (96차 2026-09-28 실측, TASK-2026-09-28-main-018 — 4채널로 확장):
+>
+> | 채널 | 활성 선언 | 부재의 뜻 | 되살리기 |
+> |---|---|---|---|
+> | claude-code | `~/.claude/settings.json` `enabledPlugins["<plugin>@<market>"]` | 꺼짐 (갱신이 지운다) | `claude plugin enable <key>` |
+> | codex | `~/.codex/config.toml` `[plugins."<plugin>@<market>"] enabled` | 꺼짐 (기본값을 추측하지 않는다) | 그 블록에 `enabled = true` — codex 에는 enable 명령이 없다 |
+> | grok-build | `~/.grok/config.toml` `[plugins] enabled = […]` / `disabled = […]` | 꺼짐으로 적는다 (양쪽 부재 시 로드 여부는 미실측) | `grok plugin enable standard-ai-workflow` |
+> | antigravity | `~/.gemini/config/config.json` `plugins.<이름>.enabled` | **정상** — 사본 자리가 자동 발견 루트라 항목이 없다 | IDE 플러그인 패널 또는 그 파일 (`agy plugin enable` 은 이 파일을 쓰지 않는다) |
+> | pi-dev | 없음 (경로 참조) | 해당 없음 | — |
+>
+> grok 의 두 목록은 `grok plugin disable` → `enable` 왕복으로, antigravity 의 무반응은
+> `agy plugin disable science` 뒤 파일 불변으로 실측했다.
 
 > **사본이 최신이어도 MCP 서버는 다른 코드로 뜰 수 있다** (TASK-2026-09-23-main-013).
 > 플러그인 `.mcp.json` 은 `python3 -m workflow_kit…` 만 부르므로 서버는 사본이 아니라

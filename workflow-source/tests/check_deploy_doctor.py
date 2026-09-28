@@ -1818,7 +1818,7 @@ def test_plugin_enabled_missing_declaration_is_a_finding() -> None:
     recs = section.get("plugins") or []
     if [r.get("enabled") for r in recs] != [None]:
         problems.append(f"키 부재를 None 으로 안 적었다: {recs!r}")
-    if section.get("disabled") != [_ENABLED_KEY]:
+    if section.get("disabled") != [f"claude-code:{_ENABLED_KEY}"]:
         problems.append(f"disabled 목록이 비었다: {section.get('disabled')!r}")
     hits = [f for f in section.get("findings") or [] if "선언이 없다" in f and _ENABLED_KEY in f]
     if len(hits) != 1:
@@ -1890,6 +1890,102 @@ def test_plugin_enabled_without_copy_is_not_a_finding() -> None:
     _record("test_plugin_enabled_without_copy_is_not_a_finding", not problems, "; ".join(problems))
 
 
+def _rec(section: dict, harness: str) -> dict:
+    return next((r for r in section.get("plugins") or [] if r.get("harness") == harness), {})
+
+
+def test_plugin_enabled_codex_reads_config_block() -> None:
+    """codex 의 선언은 `config.toml` 블록의 `enabled` 다 (2026-09-28 실측, main-018).
+    false 는 꺼짐, 블록은 있되 줄이 없으면 부재 — 기본값을 추측하지 않는다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-codex-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        project = Path(tmpdir) / "project"
+        _seed_cache(home, "codex")
+        _seed_codex_marketplace(home, str(home / "market"))
+        section_true, _ = _enabled_section(home, project)
+        cfg = home / ".codex" / "config.toml"
+        cfg.write_text(cfg.read_text(encoding="utf-8").replace("enabled = true", "enabled = false"), encoding="utf-8")
+        section_false, findings_false = _enabled_section(home, project)
+        cfg.write_text(cfg.read_text(encoding="utf-8").replace("enabled = false\n", ""), encoding="utf-8")
+        section_absent, _ = _enabled_section(home, project)
+    problems = []
+    if _rec(section_true, "codex").get("enabled") is not True or section_true.get("disabled"):
+        problems.append(f"true 를 못 읽었다: {_rec(section_true, 'codex')!r} / {section_true.get('disabled')!r}")
+    rec = _rec(section_false, "codex")
+    if rec.get("enabled") is not False or rec.get("decided_by") != "~/.codex/config.toml":
+        problems.append(f"명시 false 를 못 읽었다: {rec!r}")
+    if section_false.get("disabled") != [f"codex:{_ENABLED_KEY}"]:
+        problems.append(f"disabled 목록이 codex 를 안 가리킨다: {section_false.get('disabled')!r}")
+    if not any("codex" in f and "명시적으로 꺼져 있다" in f and "enable 명령이 없다" in f for f in findings_false):
+        problems.append(f"codex 의 false 발견·처방이 없다: {findings_false!r}")
+    rec = _rec(section_absent, "codex")
+    if rec.get("enabled") is not None or not any("codex" in f and "활성 선언이 없다" in f for f in section_absent.get("findings") or []):
+        problems.append(f"enabled 줄 부재를 None + 발견으로 안 냈다: {rec!r} / {section_absent.get('findings')!r}")
+    _record("test_plugin_enabled_codex_reads_config_block", not problems, "; ".join(problems))
+
+
+def test_plugin_enabled_grok_reads_two_lists() -> None:
+    """grok 은 `[plugins]` 의 enabled / disabled 두 목록이다 (2026-09-28 disable 왕복 실측).
+    이름은 registry.json 에서 온다 — `plugin-<hash>` 디렉터리 이름이 아니다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-grok-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        project = Path(tmpdir) / "project"
+        _seed_grok_home(home, installed=True)
+        section_true, _ = _enabled_section(home, project)
+        cfg = home / ".grok" / "config.toml"
+        cfg.write_text('[plugins]\nenabled = [\n    "other",\n]\ndisabled = ["standard-ai-workflow"]\n', encoding="utf-8")
+        section_false, findings_false = _enabled_section(home, project)
+        cfg.write_text('[plugins]\nenabled = ["other"]\ndisabled = []\n', encoding="utf-8")
+        section_absent, _ = _enabled_section(home, project)
+    problems = []
+    if _rec(section_true, "grok-build").get("enabled") is not True or section_true.get("disabled"):
+        problems.append(f"enabled 목록을 못 읽었다: {_rec(section_true, 'grok-build')!r}")
+    if _rec(section_false, "grok-build").get("enabled") is not False:
+        problems.append(f"disabled 목록을 못 읽었다: {_rec(section_false, 'grok-build')!r}")
+    if section_false.get("disabled") != ["grok-build:standard-ai-workflow"]:
+        problems.append(f"disabled 목록이 grok 을 안 가리킨다: {section_false.get('disabled')!r}")
+    if not any("grok-build" in f and "명시적으로 꺼져 있다" in f and "grok plugin enable" in f for f in findings_false):
+        problems.append(f"grok 의 false 발견·처방이 없다: {findings_false!r}")
+    rec = _rec(section_absent, "grok-build")
+    if rec.get("enabled") is not None or not any("grok-build" in f and "활성 선언이 없다" in f for f in section_absent.get("findings") or []):
+        problems.append(f"양쪽 목록 부재를 None + 발견으로 안 냈다: {rec!r}")
+    _record("test_plugin_enabled_grok_reads_two_lists", not problems, "; ".join(problems))
+
+
+def test_plugin_enabled_antigravity_absence_is_discovery() -> None:
+    """antigravity 는 `config.json` 항목 **부재가 정상**이다 (자동 발견 루트, 2026-09-28
+    실측: IDE 관리 플러그인 5개만 항목이 있었다). 명시 false 만 꺼진 것이다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-agy-") as tmpdir:
+        home = Path(tmpdir) / "home"
+        project = Path(tmpdir) / "project"
+        # antigravity 사본은 **무버전** 디렉터리다 — `_seed_cache` 의 버전 디렉터리 규칙을 타지 않는다.
+        root = home / ".gemini" / "config" / "plugins" / "standard-ai-workflow"
+        spec = PLUGIN_HARNESS_SPECS.get("antigravity")
+        for rel, body in render_agent_plugin().items():
+            if spec is not None and not _included(rel, spec):
+                continue
+            _write(root / rel, body)
+        _write(home / ".gemini" / "config" / "config.json", json.dumps({"plugins": {"science": {"enabled": True}}}))
+        section_absent, _ = _enabled_section(home, project)
+        _write(home / ".gemini" / "config" / "config.json",
+               json.dumps({"plugins": {"standard-ai-workflow": {"enabled": False}}}))
+        section_false, findings_false = _enabled_section(home, project)
+    problems = []
+    rec = _rec(section_absent, "antigravity")
+    if rec.get("enabled") is not None or rec.get("basis") != "discovery":
+        problems.append(f"부재를 discovery 로 안 적었다: {rec!r}")
+    if section_absent.get("disabled") or section_absent.get("findings"):
+        problems.append(f"자동 발견 상태에 발견을 냈다: {section_absent.get('findings')!r}")
+    rec = _rec(section_false, "antigravity")
+    if rec.get("enabled") is not False or rec.get("decided_by") != "~/.gemini/config/config.json":
+        problems.append(f"명시 false 를 못 읽었다: {rec!r}")
+    if section_false.get("disabled") != ["antigravity:standard-ai-workflow"]:
+        problems.append(f"disabled 목록이 antigravity 를 안 가리킨다: {section_false.get('disabled')!r}")
+    if not any("antigravity" in f and "agy plugin enable` 은 이 파일을 쓰지 않는다" in f for f in findings_false):
+        problems.append(f"antigravity 의 처방이 실측 문장이 아니다: {findings_false!r}")
+    _record("test_plugin_enabled_antigravity_absence_is_discovery", not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1943,6 +2039,9 @@ def main() -> int:
         test_plugin_enabled_explicit_false_is_a_distinct_finding,
         test_plugin_enabled_true_is_silent,
         test_plugin_enabled_without_copy_is_not_a_finding,
+        test_plugin_enabled_codex_reads_config_block,
+        test_plugin_enabled_grok_reads_two_lists,
+        test_plugin_enabled_antigravity_absence_is_discovery,
     ]
     for case in cases:
         case()

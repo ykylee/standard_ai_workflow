@@ -208,7 +208,12 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 최신이어도 `enabledPlugins` 선언이 없으면 하네스는 그 사본을 읽지 않는다 — 95차
 실측에서 갱신 직후 그 키가 사라져 스킬이 조용히 없어졌고, 어느 절도 red 가 아니었다.
 **설치는 사본이 *어디* 있는지, 활성은 그것을 *읽을지* 다** — 다른 축은 서로를 대신하지
-못한다. `mcp_interpreter` 는 2026-09-25 에 더했다
+못한다. 처음엔 claude-code 만 쟀고, 2026-09-28 (TASK-2026-09-28-main-018) 에 codex ·
+grok-build · antigravity 를 같은 절에 더했다 — 선언 자리가 채널마다 달라(codex 는 config.toml
+블록의 `enabled`, grok 은 `[plugins]` 의 enabled/disabled 두 목록, antigravity 는 `config.json`
+의 `plugins.<이름>.enabled` 이되 **부재가 정상**인 자동 발견 루트) 리더를 채널별로 두고 실측
+근거를 각 리더의 docstring 에 적었다. 재지 못한 것(grok 양쪽 부재의 로드 의미, antigravity
+의 `plugins.json` exclude · IDE 패널)은 `declared_unmeasured` 에 남긴다. `mcp_interpreter` 는 2026-09-25 에 더했다
 (TASK-2026-09-23-main-013): `content_drift` 가 사본만 대조하는 사이 MCP 서버는
 PATH 해석기의 kit 으로 뜬다 — 87차 실측에서 사본은 in-sync 인데 서버는 옛 worktree
 를 가리키는 editable 1.2.0 이었다.

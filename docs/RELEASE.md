@@ -335,8 +335,13 @@ wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['cont
 
 ```bash
 wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plugin_enabled']['disabled'])"
-#   → []   (비어 있지 않으면 `claude plugin enable standard-ai-workflow@standard-ai-workflow`)
+#   → []   (항목은 `<채널>:<키>` — 4채널을 잰다, TASK-2026-09-28-main-018)
+#   claude-code:…  → claude plugin enable standard-ai-workflow@standard-ai-workflow
+#   codex:…        → ~/.codex/config.toml 의 [plugins."standard-ai-workflow@standard-ai-workflow"] 에 enabled = true (enable 명령이 없다)
+#   grok-build:…   → grok plugin enable standard-ai-workflow
+#   antigravity:…  → IDE 플러그인 패널 또는 ~/.gemini/config/config.json 의 plugins.standard-ai-workflow.enabled (agy plugin enable 은 이 파일을 쓰지 않는다)
 claude plugin list        # Status: ✔ enabled 를 눈으로 확인
+codex plugin list | grep standard-ai-workflow   # STATUS: installed, enabled
 ```
 
 > **범위**: `behind` 는 **이 호스트의 kit 정본**(정본 페이로드 매니페스트의 버전)과

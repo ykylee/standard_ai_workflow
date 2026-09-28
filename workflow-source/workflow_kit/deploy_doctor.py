@@ -2264,10 +2264,154 @@ def _read_enabled_plugins(path: Path) -> tuple[dict[str, Any] | None, bool, str 
     return (mapping if isinstance(mapping, dict) else {}), True, None
 
 
+def _codex_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """codex 의 활성 선언 — `~/.codex/config.toml` 의 ``[plugins."<plugin>@<market>"]``
+    블록 안 ``enabled = true|false`` (2026-09-28 이 호스트 실측, main-018).
+
+    codex 에는 enable/disable 명령이 없다 (`codex plugin --help` = add · list ·
+    marketplace · remove). 선언은 파일에만 있고, `codex plugin list` 의
+    `installed, enabled` 가 그 값을 되읽는다. 블록은 있는데 ``enabled`` 줄이
+    없으면 부재(None)로 적는다 — 기본값을 추측하지 않는다.
+    """
+    path = home / ".codex" / "config.toml"
+    if not path.is_file():
+        return [], "config.toml 이 없다"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [], f"config.toml 을 읽지 못했다: {type(exc).__name__}"
+    records: list[dict[str, Any]] = []
+    for m in re.finditer(
+        r'^\[plugins\."([^"]*standard-ai-workflow[^"]*)"\](.*?)(?=^\[|\Z)',
+        text, re.MULTILINE | re.DOTALL,
+    ):
+        flag = re.search(r"^\s*enabled\s*=\s*(true|false)\b", m.group(2), re.MULTILINE)
+        records.append({
+            "harness": "codex",
+            "key": m.group(1),
+            "enabled": (flag.group(1) == "true") if flag else None,
+            "decided_by": "~/.codex/config.toml" if flag else None,
+            "basis": "declared",
+        })
+    if not records:
+        return [], "config.toml 에 이 플러그인의 [plugins] 블록이 없다"
+    return records, None
+
+
+def _grok_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """grok-build 의 활성 선언 — `~/.grok/config.toml` ``[plugins]`` 의
+    ``enabled = [...]`` / ``disabled = [...]`` 두 목록 (2026-09-28 실측, main-018:
+    `grok plugin disable <이름>` 이 enabled 에서 빼고 disabled 에 넣는다, enable 은
+    반대). 이름은 설치 기록(`registry.json` 의 ``repos[].plugins``)에서 온다 —
+    디렉터리 이름(`plugin-<hash>`)은 하네스의 것이라 쓰지 않는다.
+
+    양쪽 목록 어디에도 없으면 None 이다. `grok plugin list --json` 은 활성 상태를
+    말하지 않아(실측) 그 경우 하네스가 무엇을 하는지 이 절은 확정하지 못한다 —
+    설치 명령이 enabled 에 넣는 것은 실측이므로, 부재는 선언이 지워진 상태다.
+    """
+    reg = home / ".grok" / "installed-plugins" / "registry.json"
+    if not reg.is_file():
+        return [], "registry.json 이 없다"
+    try:
+        payload = json.loads(reg.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return [], f"registry.json 을 읽지 못했다: {type(exc).__name__}"
+    names: list[str] = []
+    for repo in (payload.get("repos") or {}).values():
+        if not isinstance(repo, dict):
+            continue
+        for name in (repo.get("plugins") or {}):
+            if "standard-ai-workflow" in str(name) and str(name) not in names:
+                names.append(str(name))
+    if not names:
+        return [], "registry.json 에 이 플러그인의 기록이 없다"
+    cfg = home / ".grok" / "config.toml"
+    enabled_list: list[str] = []
+    disabled_list: list[str] = []
+    cfg_error: str | None = None
+    if cfg.is_file():
+        try:
+            text = cfg.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            text, cfg_error = "", f"config.toml 을 읽지 못했다: {type(exc).__name__}"
+        block = re.search(r"^\[plugins\](.*?)(?=^\[|\Z)", text, re.MULTILINE | re.DOTALL)
+        if block:
+            def _names(field: str) -> list[str]:
+                arr = re.search(rf"^\s*{field}\s*=\s*\[(.*?)\]", block.group(1),
+                                re.MULTILINE | re.DOTALL)
+                return re.findall(r'"([^"]+)"', arr.group(1)) if arr else []
+            enabled_list, disabled_list = _names("enabled"), _names("disabled")
+    else:
+        cfg_error = "config.toml 이 없다"
+    records: list[dict[str, Any]] = []
+    for name in names:
+        enabled: bool | None = None
+        if name in disabled_list:
+            enabled = False
+        elif name in enabled_list:
+            enabled = True
+        records.append({
+            "harness": "grok-build",
+            "key": name,
+            "enabled": enabled,
+            "decided_by": "~/.grok/config.toml" if enabled is not None else None,
+            "basis": "declared",
+        })
+    return records, cfg_error
+
+
+def _antigravity_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """antigravity 의 활성 선언 — `~/.gemini/config/config.json` 의
+    ``plugins.<이름>.enabled`` (2026-09-28 이 호스트 실측, main-018).
+
+    사본은 무버전 디렉터리(`~/.gemini/config/plugins/<이름>/`)이고, 하네스 문서는
+    그 자리를 **자동 발견 루트**(Global Discovery)로 둔다. 그래서 `config.json`
+    의 항목 부재는 결함이 아니라 발견 로드의 정상 상태다 — 실측에서 IDE 가
+    관리하는 플러그인 5개만 항목이 있었고 우리 것은 없었다. 명시 ``false`` 만
+    꺼진 것으로 적는다. `agy plugin enable|disable` 은 이 파일을 쓰지 않는다
+    (실측: 두 명령 다 rc 0 · 무출력 · 파일 변화 없음) — 되살리는 자리는 IDE 의
+    플러그인 패널 또는 이 파일이다.
+    """
+    entry = next(e for e in PLUGIN_INSTALL_CACHES if e.harness == "antigravity")
+    copy_dir = home / entry.glob
+    if not copy_dir.is_dir():
+        return [], "설치 사본이 없다"
+    name = copy_dir.name
+    path = home / ".gemini" / "config" / "config.json"
+    enabled: bool | None = None
+    error: str | None = None
+    if path.is_file():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            payload, error = {}, f"config.json 을 읽지 못했다: {type(exc).__name__}"
+        item = ((payload.get("plugins") or {}) if isinstance(payload, dict) else {}).get(name)
+        if isinstance(item, dict) and isinstance(item.get("enabled"), bool):
+            enabled = item["enabled"]
+    return [{
+        "harness": "antigravity",
+        "key": name,
+        "enabled": enabled,
+        "decided_by": "~/.gemini/config/config.json" if enabled is not None else None,
+        "basis": "declared" if enabled is not None else "discovery",
+    }], error
+
+
+#: 채널별 되살리는 명령 — 발견 문장에 그대로 실린다. codex 에는 enable 명령이 없다.
+_PLUGIN_ENABLE_REMEDY: dict[str, str] = {
+    "claude-code": "`claude plugin enable {key}`",
+    "codex": "`~/.codex/config.toml` 의 `[plugins.\"{key}\"]` 블록에 `enabled = true` "
+             "(codex 에는 enable 명령이 없다 — `codex plugin add {key}` 도 블록을 다시 쓴다)",
+    "grok-build": "`grok plugin enable {key}`",
+    "antigravity": "Antigravity 의 플러그인 패널에서 켜거나 `~/.gemini/config/config.json` 의 "
+                   "`plugins.{key}.enabled` 를 true 로 (`agy plugin enable` 은 이 파일을 쓰지 않는다 — 실측)",
+}
+
+
 def _probe_plugin_enabled(
     home: Path, project_root: Path, content_drift: dict[str, Any]
 ) -> dict[str, Any]:
-    """**설치본이 있는데 하네스가 그것을 켜 두었는가** (2026-09-28 실측, main-017).
+    """**설치본이 있는데 하네스가 그것을 켜 두었는가** (2026-09-28 실측, main-017 → main-018).
 
     95차 세션 시작(macOS)에 `/workflow-*` 스킬이 없었다. 사본은 정본과 in-sync 였고
     `installed_plugins.json` 도 1.13.0 을 가리켰는데, `claude plugin list` 는
@@ -2279,6 +2423,12 @@ def _probe_plugin_enabled(
 
     키 **부재**와 명시 **false** 를 구분해 적는다. 부재는 도구가 선언을 지운
     것(외부 도구 재작성, 갱신)이고 false 는 사람이 끈 것이라 처방이 다르다.
+
+    96차(main-018)에 codex · grok-build · antigravity 를 같은 절에 더했다. 선언
+    자리는 채널마다 다르다 — codex 는 `config.toml` 블록의 `enabled`, grok 은
+    `[plugins]` 의 enabled/disabled 두 목록, antigravity 는 `config.json` 의
+    `plugins.<이름>.enabled` 이되 **부재가 정상**(자동 발견 루트)이다. 각 리더의
+    docstring 이 실측 근거를 든다.
     """
     active_harnesses = {
         c["harness"] for c in (content_drift.get("caches") or []) if c.get("active")
@@ -2311,33 +2461,63 @@ def _probe_plugin_enabled(
                 enabled = bool(mapping[key])
                 decided_by = src["path"]
                 break
-        record = {
+        plugins.append({
             "harness": "claude-code",
             "key": key,
             "install_scopes": item["install_scopes"],
             "enabled": enabled,
             "decided_by": decided_by,
-        }
-        plugins.append(record)
-        if "claude-code" not in active_harnesses:
+            "basis": "declared",
+        })
+
+    # 읽기 실패는 **사본이 있는 채널**에서만 뜻이 있다 — 안 깔린 채널의 "파일이 없다" 는
+    # 미측정이 아니라 해당 없음이고, content_drift 의 `no_copy` 가 그것을 말한다.
+    read_errors: dict[str, str] = {}
+    if keys_error and "claude-code" in active_harnesses:
+        read_errors["claude-code"] = keys_error
+    for harness, reader in (
+        ("codex", _codex_plugin_enabled),
+        ("grok-build", _grok_plugin_enabled),
+        ("antigravity", _antigravity_plugin_enabled),
+    ):
+        records, error = reader(home)
+        plugins.extend(records)
+        if error and harness in active_harnesses:
+            read_errors[harness] = error
+
+    looked = ", ".join(f"`{s['path']}`" for s in sources if s["exists"])
+    disabled: list[str] = []
+    for rec in plugins:
+        harness, key = rec["harness"], rec["key"]
+        if harness not in active_harnesses:
             # 사본이 없으면 켜고 말고가 없다 — content_drift 의 `no_copy` 가 그 사실을 말한다.
             continue
-        if enabled is True:
+        if rec["enabled"] is True:
             continue
-        looked = ", ".join(f"`{s['path']}`" for s in sources if s["exists"])
-        if enabled is False:
+        if rec["enabled"] is None and rec.get("basis") == "discovery":
+            # antigravity: 항목 부재 = 자동 발견 로드. 발견이 아니다.
+            continue
+        disabled.append(f"{harness}:{key}")
+        remedy = _PLUGIN_ENABLE_REMEDY[harness].format(key=key)
+        if rec["enabled"] is False:
             findings.append(
-                f"claude-code 플러그인 `{key}` 가 **명시적으로 꺼져 있다** "
-                f"(`{decided_by}` 의 enabledPlugins = false). 설치본은 있으나 하네스가 "
+                f"{harness} 플러그인 `{key}` 가 **명시적으로 꺼져 있다** "
+                f"(`{rec['decided_by']}` 의 활성 선언 = false). 설치본은 있으나 하네스가 "
                 "읽지 않으므로 스킬·MCP 가 노출되지 않는다 — 의도가 아니면 "
-                f"`claude plugin enable {key}` (2026-09-28 실측, docs/RELEASE.md §2.8)"
+                f"{remedy} (2026-09-28 실측, docs/RELEASE.md §2.8)"
             )
-        else:
+        elif harness == "claude-code":
             findings.append(
                 f"claude-code 플러그인 `{key}` 의 **enabledPlugins 선언이 없다** "
                 f"(읽은 설정: {looked or '없음'}). 설치본은 있으나 `claude plugin list` 가 "
                 "disabled 로 보이는 상태다 — 갱신·외부 도구 재작성이 선언을 지운 경우로, "
-                f"`claude plugin enable {key}` 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
+                f"{remedy} 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
+            )
+        else:
+            findings.append(
+                f"{harness} 플러그인 `{key}` 의 **활성 선언이 없다** (설치 명령이 적어 두는 "
+                "선언이 사라진 상태 — 하네스가 이 사본을 읽는다는 근거가 없다). "
+                f"{remedy} 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
             )
 
     return {
@@ -2346,22 +2526,26 @@ def _probe_plugin_enabled(
             {k: v for k, v in s.items() if k != "mapping"} for s in sources
         ],
         "keys_error": keys_error,
-        "disabled": [p["key"] for p in plugins if p["enabled"] is not True
-                     and "claude-code" in active_harnesses],
+        "read_errors": read_errors,
+        "disabled": disabled,
         "findings": findings,
         "measurement_note": (
-            "설치 기록(installed_plugins.json)은 사본이 *어디* 있는지, enabledPlugins 는 "
-            "그것을 *읽을지* 말한다 — 둘은 다른 축이라 하나가 green 이어도 다른 하나를 "
-            "대신하지 못한다"
+            "설치 기록은 사본이 *어디* 있는지, 활성 선언은 그것을 *읽을지* 말한다 — "
+            "둘은 다른 축이라 하나가 green 이어도 다른 하나를 대신하지 못한다. 선언 자리: "
+            "claude-code `enabledPlugins` · codex `[plugins.\"…\"] enabled` · grok-build "
+            "`[plugins] enabled/disabled` · antigravity `config.json plugins.<이름>.enabled`(부재 = 자동 발견)"
         ),
         "not_applicable": {
             "pi-dev": "경로 참조라 켜고 끄는 선언이 없다",
         },
         "declared_unmeasured": [
-            "codex · grok-build · antigravity 의 활성/비활성 선언 자리는 미실측이다 — "
-            "이 절은 claude-code 만 잰다",
+            "antigravity 의 워크스페이스 `plugins.json`(exclude 규칙)과 IDE 패널의 토글은 "
+            "미실측이다 — 이 절은 `config.json` 의 명시 false 만 잰다",
+            "grok-build 가 enabled/disabled 어느 목록에도 없는 플러그인을 로드하는지는 "
+            "미실측이다 (`grok plugin list --json` 이 활성 상태를 내지 않는다) — 부재를 "
+            "선언 소실로 적는다",
         ]
-        + ([f"설치 기록을 읽지 못했다: {keys_error}"] if keys_error else []),
+        + [f"{h}: 선언을 읽지 못했다: {e}" for h, e in read_errors.items()],
     }
 
 
@@ -2645,15 +2829,17 @@ def _render_text(report: dict[str, Any]) -> str:
     if enabled:
         lines.append("")
         lines.append("[plugin_enabled] 설치본을 하네스가 **켜 두었는가** (설치 ≠ 활성)")
-        if enabled.get("keys_error"):
-            lines.append(f"  = claude-code: {enabled['keys_error']}")
+        for harness, error in (enabled.get("read_errors") or {}).items():
+            lines.append(f"  = {harness}: {error}")
         for rec in enabled.get("plugins") or []:
             if rec.get("enabled") is True:
                 state = f"enabled ({rec.get('decided_by')})"
             elif rec.get("enabled") is False:
                 state = f"DISABLED — 명시 false ({rec.get('decided_by')})"
+            elif rec.get("basis") == "discovery":
+                state = "enabled — 자동 발견 루트 (config.json 에 항목 없음)"
             else:
-                state = "DISABLED — enabledPlugins 선언 없음"
+                state = "DISABLED — 활성 선언 없음"
             lines.append(f"  - {rec['harness']} `{rec['key']}`: {state}")
         lines.append(f"  ! {enabled['measurement_note']}")
         for item in enabled.get("declared_unmeasured", []):

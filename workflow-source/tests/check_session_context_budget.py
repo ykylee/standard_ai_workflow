@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""세션 시작 컨텍스트 예산 — 측정 · refresh-state 배선 · §5 이관 도구 (8 cases, ADR-029).
+"""세션 시작 컨텍스트 예산 — 측정 · refresh-state 배선 · §5 이관 도구 · 이 저장소 게이트 (11 cases, ADR-029).
 
 정본은 `workflow_kit/common/context_budget.py`, 계약은 `core/session_context_budget_spec.md`.
 
@@ -18,9 +18,15 @@
   7) 멱등 — 두 번째 실행은 아무것도 쓰지 않고, 쌓인 포인터는 하나로 접는다
   8) 대상 파일은 newest-first 로 앞에 붙고 머리말은 한 번만 있다 · 포인터 건수는 대상 파일의
      실제 절 수다
+  9) **이 저장소의 red 예산** — 살아 있는 handoff · state.json · CLAUDE.md 가 예산 안이다.
+     넘치면 출구 명령을 싣고 red (스펙 §6). 2026-09-28 이관 실행 뒤 켰다 — '출구 먼저, red 나중'
+ 10) state.json 포인터 역참조 (requirements R4.2) — 포인터마다 파일이 있고 `id` 가 같다
+ 11) CLAUDE.md 이관의 링크 생존 (R4.3) — `docs/LOCAL_GATE.md` 를 링크하고, 이관한 절이 그
+     문서에 있으며, 이관 전 명령표의 명령이 CLAUDE.md 에 그대로 남아 있다
 
-이 저장소의 예산 red 판정(살아 있는 문서)은 이관을 실행한 뒤 켠다 — 스펙 §8 의 '출구 먼저,
-red 나중'. 지금 켜면 만성 red 가 된다.
+9·10 의 handoff · state.json 은 **현재 브랜치 메모리**를 잰다. slash 셀처럼 브랜치 메모리가
+없는 컨텍스트는 선언된 상태라(CLAUDE.md self-bootstrap) 그 두 측정을 이유와 함께 건너뛴다 —
+CLAUDE.md 는 모든 셀에서 잰다.
 """
 
 from __future__ import annotations
@@ -30,6 +36,10 @@ WATCHES = (
     "workflow-source/workflow_kit/*",
     "workflow-source/pyproject.toml",
     "docs/PROJECT_PROFILE.md",
+    # case 9~11 은 살아 있는 문서를 잰다 — 필독 문서와 그 이관처
+    "CLAUDE.md",
+    "docs/LOCAL_GATE.md",
+    "ai-workflow/memory/*",
 )
 
 import json
@@ -310,6 +320,87 @@ def case_8_newest_first_and_counts() -> None:
     _record("case 8 newest-first · 머리말 한 번 · 포인터 건수 = 실제 절 수", problems)
 
 
+#: 이관 전 CLAUDE.md 명령표의 명령 — 이관 뒤에도 CLAUDE.md 에 그대로 있어야 한다 (R4.3).
+CLAUDE_MD_COMMANDS: tuple[str, ...] = (
+    'python3 -m venv .venv && .venv/bin/python3 -m pip install -r requirements.txt -r requirements-dev.txt && .venv/bin/python3 -m pip install -e "./workflow-source[dev,release,mcp-sdk]"',
+    "PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.workflow_kit_cli --command=dashboard --format=json",
+    ".venv/bin/python3 workflow-source/tests/run_all_checks.py --filter=<이름조각> --tmp-dir=<실디스크경로>",
+    ".venv/bin/python3 workflow-source/tests/run_all_checks.py --tmp-dir=<실디스크경로>",
+    ".venv/bin/python3 workflow-source/tests/check_self_application.py",
+    ".venv/bin/python3 workflow-source/tests/run_all_checks.py --branch-context=all --tmp-dir=<실디스크경로>",
+    "PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.sdk_matrix --run-local",
+    "PYTHONPATH=workflow-source .venv/bin/python3 -m workflow_kit.common.interpreter_matrix --run-local",
+    "git config core.hooksPath .githooks",
+)
+
+
+def _live_paths() -> tuple[Path | None, Path | None, str]:
+    """현재 브랜치의 handoff · state.json. 브랜치 메모리가 없으면 (None, None, 이유)."""
+    from workflow_kit.common.paths import branch_for_workspace, memory_active_dir
+    branch = branch_for_workspace(REPO_ROOT)
+    bdir = memory_active_dir(REPO_ROOT) / branch
+    if not (bdir / "session_handoff.md").is_file():
+        return None, None, f"브랜치 메모리 부재 ({branch}) — 선언된 상태, handoff·state.json 측정 건너뜀"
+    return bdir / "session_handoff.md", bdir / "state.json", ""
+
+
+def case_9_this_repo_red_budgets() -> None:
+    handoff, state, why = _live_paths()
+    if why:
+        print(f"        [skip-part] {why}")
+    problems = []
+    for m in measure(handoff_path=handoff, state_path=state, claude_md_path=REPO_ROOT / "CLAUDE.md"):
+        if m.budget.severity != "red":
+            continue
+        if m.budget.key == "claude_md" and not m.measured:
+            problems.append("CLAUDE.md 를 재지 못했다 — 저장소 루트에 있어야 한다")
+        if m.over:
+            problems.append(m.message())
+    _record("case 9 이 저장소의 red 예산 (handoff §5 누적형 · state.json · CLAUDE.md)", problems)
+
+
+def case_10_state_pointers_resolve() -> None:
+    _, state, why = _live_paths()
+    if why or state is None or not state.is_file():
+        print(f"        [skip] {why or 'state.json 없음'}")
+        _record("case 10 state.json 포인터 역참조 (R4.2)", [])
+        return
+    data = json.loads(state.read_text(encoding="utf-8"))
+    problems = []
+    if data.get("schema_version_memory_entries") != "2":
+        problems.append(f"schema_version_memory_entries={data.get('schema_version_memory_entries')}")
+    for p in data.get("memory_entries", []):
+        target = REPO_ROOT / p.get("path", "")
+        if not target.is_file():
+            problems.append(f"역참조 불가: {p.get('id')} → {p.get('path')}")
+        elif json.loads(target.read_text(encoding="utf-8")).get("id") != p.get("id"):
+            problems.append(f"id 불일치: {p.get('id')} → {p.get('path')}")
+    _record("case 10 state.json 포인터 역참조 (R4.2)", problems)
+
+
+def case_11_claude_md_move_is_linked() -> None:
+    claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    gate_doc = REPO_ROOT / "docs" / "LOCAL_GATE.md"
+    problems = []
+    if "docs/LOCAL_GATE.md" not in claude:
+        problems.append("CLAUDE.md 가 docs/LOCAL_GATE.md 를 링크하지 않는다")
+    if not gate_doc.is_file():
+        problems.append("docs/LOCAL_GATE.md 가 없다")
+    else:
+        body = gate_doc.read_text(encoding="utf-8")
+        for heading in ("## 프로젝트 실행 기본값", "### 전량은 게이트지 확인 수단이 아니다",
+                        "### SDK 매트릭스는 push 전에 로컬에서 돌린다",
+                        "### 브랜치 매트릭스도 push 전에 로컬에서 돌린다",
+                        "### 저장소 코드가 낸 Python 경고는 게이트 red 다",
+                        "### 해석기 매트릭스 — 발행 전에 로컬에서 돌린다"):
+            if heading not in body:
+                problems.append(f"이관한 절이 LOCAL_GATE.md 에 없다: {heading}")
+    for cmd in CLAUDE_MD_COMMANDS:
+        if cmd not in claude:
+            problems.append(f"CLAUDE.md 에서 명령이 사라졌다: {cmd[:70]}")
+    _record("case 11 CLAUDE.md 이관 — 링크 · 이관 절 · 명령 보존 (R4.3)", problems)
+
+
 CASES = (
     case_1_current_vs_accumulated,
     case_2_unlisted_section_is_accumulated,
@@ -319,6 +410,9 @@ CASES = (
     case_6_rollover_is_lossless,
     case_7_idempotent_and_folds_pointers,
     case_8_newest_first_and_counts,
+    case_9_this_repo_red_budgets,
+    case_10_state_pointers_resolve,
+    case_11_claude_md_move_is_linked,
 )
 
 

@@ -45,5 +45,5 @@
   - path: [`./M-015-session-context-budget-requirements.md`](./M-015-session-context-budget-requirements.md)
 - **M-016** [design] 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절) — status: done
   - path: [`./M-016-session-context-budget-design.md`](./M-016-session-context-budget-design.md)
-- **M-017** [implementation] 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중) — status: planned
+- **M-017** [implementation] 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중) — status: done
   - path: [`./M-017-session-context-budget-implementation.md`](./M-017-session-context-budget-implementation.md)

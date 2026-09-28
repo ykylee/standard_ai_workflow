@@ -3,7 +3,7 @@
 - 문서 목적: 세션을 열 때 읽는 문서의 섹션별 바이트 예산, 초과 시의 출구, 옮긴 뒤 잃지 않았음을 재는 판정을 kit 계약으로 정의한다.
 - 범위: 예산 레코드와 정본 위치, handoff §5 현재형/누적형 계약, 이관 도구 계약, `state.json.memory_entries` 포인터 스키마, `CLAUDE.md` 이관, 강도(소비자 warn / 이 저장소 red), 구현 단계
 - 대상 독자: workflow 설계자, AI agent, kit 소비 프로젝트
-- 상태: draft (ADR-029 accepted 2026-09-28 — 구현은 M-017)
+- 상태: active (ADR-029 accepted, M-017 구현 완료 2026-09-28)
 - 최종 수정일: 2026-09-28
 - 관련 문서: `../../ai-workflow/wiki/decisions/adr-029-session-context-budget.md`, `../../docs/planning/session-context-budget-requirements-2026-09.md`, `./global_workflow_standard.md`
 
@@ -87,3 +87,17 @@
 4. E — `docs/LOCAL_GATE.md` 이관.
 5. 이 저장소에 이관 실행 → 실측 → 상한 한 번 재조정 (Q2).
 6. `check_session_context_budget` 활성 (red).
+
+### 구현 결과 (2026-09-28, 이 저장소)
+
+| 예산 | 구현 전 | 구현 후 | 상한 |
+|---|---|---|---|
+| handoff §5 누적형 | 39,615 (21절) | 7,851 (4절) — 17절 이관 (규칙 10 → `lessons.md`, 기록 7 → `sessions/`) | 8,192 |
+| handoff §1 기준선 한 줄 (warn) | 5,226 | 5,226 | 3,072 |
+| `state.json` | 68,822 | 21,409 | 30,720 |
+| `CLAUDE.md` | 19,595 | 11,341 | 12,288 |
+
+필독 합 195.1KB → **111.5KB** (추정 ~107KB 와의 차이는 §5 현재형 20.1KB — 예산 밖으로 둔 부분).
+**상한 재조정(Q2): 값 유지.** red 셋은 여유 있게 또는 도구가 맞추는 구조로 통과하고, `CLAUDE.md`
+의 좁은 여유는 새 산문을 `docs/LOCAL_GATE.md` 로 보내라는 의도된 압력이다. 다음 재조정 후보는
+§5 현재형(20KB, 관찰 중)이다.

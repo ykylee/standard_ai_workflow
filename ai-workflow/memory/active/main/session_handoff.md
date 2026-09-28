@@ -46,7 +46,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-28-main-016 v1.13.0 발행 — 은퇴 shim 제거 + check_self_application telemetry 오염 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -229,8 +229,10 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > **v1.12.0 은 93차에 발행됐다** (`TASK-2026-09-28-main-014`) — minor + 은퇴 shim. **v1.13.0 에서
 > `verify_required_ci` · `REQUIRED_CI_WORKFLOWS` 를 지운다** (deprecation policy spec §3.7 마지막 체크박스).
 
+- `TASK-2026-09-28-main-016` — **v1.13.0 발행 준비 중**. 준비 커밋까지 완료, 남은 것: dry-run 확인 → 승인 후 `--apply` → §2.8.
+
 > **은퇴 shim 2종은 93차에 코드에서 지웠다** (`TASK-2026-09-28-main-015`). **다음 발행은 v1.13.0 이상** —
-> patch 로 내면 공개 API 제거가 patch 에 실린다. 열린 작업 후보는 지금 없다 (blocked 2건: 08-25-main-017 Windows · 09-23-main-017 macOS).
+> patch 로 내면 공개 API 제거가 patch 에 실린다. blocked 2건: 08-25-main-017 Windows · 09-23-main-017 macOS.
 
 > **main-017(방치 worktree)은 blocked** — 원격 브랜치 3개·clear-field memory 는 93차에 정리했다. 남은 것은
 > **macOS 호스트의 worktree 디렉터리 4개**뿐이라 그 호스트에서 `git worktree remove` → `prune` 뒤 close 한다.

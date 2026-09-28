@@ -55,6 +55,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-23-main-018 memory_index 소비가 session-start 에 편중 — 다른 소비자의 조회가 거의 없다
 - TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump
 - TASK-2026-09-23-main-014 발행 후 로컬 소비 채널 갱신이 절차에 없어 설치본이 조용히 낡는다
 - TASK-2026-09-28-main-013 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)
@@ -64,7 +65,6 @@
 - TASK-2026-09-28-main-010 task ID 충돌 검출을 session-start warning 으로도 낸다
 - TASK-2026-09-23-main-016 멀티에이전트 충돌 지표가 task ID 충돌을 못 센다
 - TASK-2026-09-23-main-015 상위 요약의 phase 표시가 v0.15 에 멈춰 있다 — 상수 표시
-- TASK-2026-09-28-main-009 release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -229,8 +229,12 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > **v1.12.0 은 93차에 발행됐다** (`TASK-2026-09-28-main-014`) — minor + 은퇴 shim. **v1.13.0 에서
 > `verify_required_ci` · `REQUIRED_CI_WORKFLOWS` 를 지운다** (deprecation policy spec §3.7 마지막 체크박스).
 
-- `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리
-  (소유자 확인) / memory_index 소비 편중 관찰.
+- `TASK-2026-09-28-main-015` — v1.12.0 은퇴 shim 2종 제거 (v1.13.0 에 실린다, policy spec §3.7).
+
+> **main-017(방치 worktree)은 blocked** — 원격 브랜치 3개·clear-field memory 는 93차에 정리했다. 남은 것은
+> **macOS 호스트의 worktree 디렉터리 4개**뿐이라 그 호스트에서 `git worktree remove` → `prune` 뒤 close 한다.
+
+> **main-018 은 93차에 닫혔다** — 편중은 배선 누락이 아니라 측정 오염(테스트·`check_self_application` 단독 실행) + 호출 빈도.
 
 > **세션 시작 컨텍스트 예산 축(M-013→M-017)은 92차에 구현까지 닫혔다** — 예산 정본 `common/context_budget.py`, 넘치면 `wk refresh-state` 가 출구 명령과 함께 경고하고 이 저장소 게이트(`check_session_context_budget`)가 red. §5 에 `###` 절을 새로 쌓았으면 세션 종료 때 `wk rollover-handoff-notes --apply`.
 

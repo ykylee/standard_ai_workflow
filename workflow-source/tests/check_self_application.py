@@ -51,6 +51,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -70,6 +71,10 @@ from workflow_kit.common.paths import (  # noqa: E402
     state_path_for_workspace,
 )
 from workflow_kit.common.standard_rules import load_standard_rules  # noqa: E402
+from workflow_kit.common.state.memory_index import (  # noqa: E402
+    TELEMETRY_SKIP_ROOT_ENV,
+    telemetry_path,
+)
 
 PRINCIPLES_DOC = SOURCE_ROOT / "core" / "workflow_design_principles.md"
 
@@ -130,7 +135,12 @@ def _self_application_target() -> tuple[Path, str]:
 
 
 def _run_json(argv: list[str]) -> dict:
-    completed = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True)
+    # 자기 도구를 **실제 저장소에서** 부르므로 사용 지표(memory_index telemetry)에
+    # 섞이지 않게 표식을 스스로 건다 (TASK-2026-09-23-main-018). 러너는 자식에게 이
+    # 표식을 넘기지만, 이 검사는 CLAUDE.md 가 커밋 전마다 **단독으로** 돌리라는
+    # 검사라 러너 밖에서 돈다 — 표식 없이 커밋마다 session-start 1건이 붙었다.
+    env = {**os.environ, TELEMETRY_SKIP_ROOT_ENV: str(REPO_ROOT)}
+    completed = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, env=env)
     try:
         return json.loads(completed.stdout)
     except json.JSONDecodeError:
@@ -457,17 +467,30 @@ def test_own_session_start_runs_on_own_repo() -> None:
     if not backlogs:
         _record("test_own_session_start_runs_on_own_repo", False, "backlog 문서가 없어 실행할 수 없다")
         return
+    events = telemetry_path(REPO_ROOT)
+    before = _line_count(events)
     result = _run_json([
         sys.executable, str(SESSION_START),
         "--session-handoff-path", str(branch_dir / "session_handoff.md"),
         "--work-backlog-index-path", str(backlogs[0]),
         "--project-profile-path", str(PROFILE),
     ])
+    grew = _line_count(events) - before
     _record(
         "test_own_session_start_runs_on_own_repo",
-        result.get("status") in ("ok", "success"),
-        f"status={result.get('status')} error={result.get('error_code') or result.get('error')}",
+        result.get("status") in ("ok", "success") and grew == 0,
+        f"status={result.get('status')} error={result.get('error_code') or result.get('error')} "
+        f"telemetry +{grew}줄 (검사 실행은 사용 지표가 아니다 — 0 이어야 한다)",
     )
+
+
+def _line_count(path: Path) -> int:
+    """없으면 0. 같은 시각의 실제 세션이 쓰면 늘 수 있다 — 드물고, 그때는 재실행."""
+    try:
+        with path.open("rb") as fh:
+            return sum(1 for _ in fh)
+    except FileNotFoundError:
+        return 0
 
 
 def main() -> int:

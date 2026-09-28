@@ -36,7 +36,7 @@
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
     "planned_items": [
-      "TASK-2026-09-23-main-018"
+      "TASK-2026-09-28-main-015"
     ],
     "recent_done_items": [
       "TASK-2026-09-28-main-014 — v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump",
@@ -55,7 +55,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-28.md",
-    "task_count": 20,
+    "task_count": 22,
     "in_progress_items": [],
     "blocked_items": [
       "TASK-2026-09-23-main-017 — 방치된 worktree 4개 정리 — 소유자 확인 필요"
@@ -79,7 +79,8 @@
       "TASK-2026-09-28-main-012 — 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)",
       "TASK-2026-09-28-main-013 — 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)",
       "TASK-2026-09-23-main-014 — 발행 후 로컬 소비 채널 갱신이 절차에 없어 설치본이 조용히 낡는다",
-      "TASK-2026-09-28-main-014 — v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump"
+      "TASK-2026-09-28-main-014 — v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump",
+      "TASK-2026-09-23-main-018 — memory_index 소비가 session-start 에 편중 — 다른 소비자의 조회가 거의 없다"
     ]
   },
   "next_documents": [

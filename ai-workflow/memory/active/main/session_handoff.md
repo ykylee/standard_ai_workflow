@@ -225,6 +225,8 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > `wk doctor` 의 `content_drift.behind` 가 '읽히는 사본 < 정본 버전' 을 발견으로 낸다. 이 호스트의
 > 실제 재적용(1.10.0 → 1.11.0)도 93차에 §2.8 대로 실행해 doctor `behind=[]` 확인 — 남은 것은 claude-code CLI 재시작뿐.
 
+- `TASK-2026-09-28-main-014` — **v1.12.0 발행 준비 중** (소유자 결정: minor + 은퇴 shim). 준비 커밋까지
+  완료, 남은 것: 이 호스트에 `python3.14-venv` 설치 → `release --dry-run` 재확인 → 승인 후 `--apply` → §2.8.
 - `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리
   (소유자 확인) / memory_index 소비 편중 관찰.
 

@@ -1,20 +1,20 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-23T06:50:26Z`
-- tool_version: `1.11.0`
+- generated_at: `2026-09-28T08:47:00Z`
+- tool_version: `1.12.0`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
 
 - guard_status: `pass`
 - guard_cases: `7 / 7`
-- maturity_last_updated: `2026-09-23`
-- maturity_surface_changed_at: `2026-09-22`
+- maturity_last_updated: `2026-09-28`
+- maturity_surface_changed_at: `2026-09-23`
 - maturity_stale: `False` (source: `maturity_surface_commit`)
 - harness_supported_count: `10`
-- head_commit_date: `2026-09-23`
+- head_commit_date: `2026-09-28`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 20건)
+- silent_failing_cycles_count: `0` (측정 cycle 21건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -52,9 +52,9 @@
 
 ## Panel 3 — Memory Index Utilization
 
-- entries_total: `29`
-- entries_by_merge_state: `active`=29
-- cue_anchors_unique: `174`
+- entries_total: `30`
+- entries_by_merge_state: `active`=30
+- cue_anchors_unique: `180`
 - first_entry_date: `2026-07-09`
 - last_entry_date: `2026-09-23`
 
@@ -75,20 +75,20 @@
 
 ## Panel 4 — Smoke Trend
 
-- cumulative_total: `292`
-- cumulative_pass: `292`
+- cumulative_total: `296`
+- cumulative_pass: `296`
 - cumulative_pass_rate: `1.0000`
-- smoke_files_count: `292`
+- smoke_files_count: `296`
 
 ### Recent release smoke counts
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.12.0 | 296 | 296 |
 | Beta-v1.11.0 | 292 | 292 |
 | Beta-v1.10.0 | 290 | 290 |
 | Beta-v1.9.4 | 284 | 284 |
 | Beta-v1.9.3 | 282 | 282 |
-| Beta-v1.9.2 | 280 | 280 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,21 +98,21 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-23-main-007 — case 수 대조 축 잔여 22건 — 흐름이 둘인 검사가 무엇이 case 인지 스스로 말하게 (main-006 follow-up)  `[fresh]`
-- [1] TASK-2026-09-23-main-006 — case 수 대조 축의 사각지대 — 개수 선언이 없는 검사를 실측으로 가른다 (main-004 follow-up)  `[fresh]`
-- [2] TASK-2026-09-23-main-005 — memory_index 검색이 매칭된 entry 자신을 안 돌려준다 (seed 가 확장분에 ID순으로 밀림) + 한국어 질의는 기본 경로에서 0  `[fresh]`
-- [3] TASK-2026-09-23-main-004 — 검사 요약의 총 개수가 상수라 case 증감을 못 본다 (전수 20건 중 4건 현재 불일치)  `[fresh]`
-- [4] TASK-2026-09-23-main-003 — memory_index 승격 후보 판정을 어휘 겹침에서 선언(source_paths)으로  `[fresh]`
-- [5] TASK-2026-09-23-main-002 — check_release_wrapper_args case 6 이 git 인덱스 락을 잡아 병렬에서 flake  `[fresh]`
-- [6] TASK-2026-09-23-main-001 — memory_index 승격 — 후보 판정식이 잡음이라 도구 순위가 아니라 판단으로 고른다  `[fresh]`
-- [7] TASK-2026-09-22-main-008 — 전량 검사 시간 단축 — 저장소 write 감시를 러너에 흡수 (재실행 76.7s 제거)  `[fresh]`
-- [8] TASK-2026-09-22-main-007 — CI 의 Python 하한 측정을 부분 → 전수로 — 소유자 보류 번복  `[fresh]`
-- [9] TASK-2026-09-22-main-006 — 뒤처진 스탬프 소급 교정 — doc-headers-update 범위를 손 목록에서 파생으로  `[fresh]`
+- [0] TASK-2026-09-28-main-013 — 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)  `[fresh]`
+- [1] TASK-2026-09-28-main-012 — 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)  `[fresh]`
+- [2] TASK-2026-09-28-main-011 — 세션 시작 컨텍스트 예산 — requirements (출구 + 예산)  `[fresh]`
+- [3] TASK-2026-09-28-main-010 — task ID 충돌 검출을 session-start warning 으로도 낸다  `[fresh]`
+- [4] TASK-2026-09-28-main-009 — release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감  `[fresh]`
+- [5] TASK-2026-09-28-main-008 — 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산  `[fresh]`
+- [6] TASK-2026-09-28-main-007 — release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위  `[fresh]`
+- [7] TASK-2026-09-28-main-006 — 검사 5개가 실제 저장소 telemetry 에 session-start 를 기록해 사용 지표를 게이트마다 +10 부풀린다  `[fresh]`
+- [8] TASK-2026-09-28-main-005 — 대시보드가 telemetry events.jsonl 을 패널마다 따로 읽어, 게이트 중 추가된 이벤트로 Panel 3·8 hit_rate 가 갈린다  `[fresh]`
+- [9] TASK-2026-09-28-main-004 — check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
 - north_star: `multi_agent_concurrent_write_conflict_count`
-- conflict_count: `0` (source: `working_tree+git_log`)
+- conflict_count: `0` (source: `working_tree+git_log+task_id_remote`)
 - threshold: `0`
 - status: `pass`
 
@@ -136,24 +136,24 @@
 ## Panel 8 — Memory Index + Telemetry Utilization v2
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
-- entries_total: `29`
-- telemetry_events_total: `2595`
-- telemetry_total_queries: `2595`
-- telemetry_hit_count: `880`
-- telemetry_hit_rate: `0.3391`
+- entries_total: `30`
+- telemetry_events_total: `2924`
+- telemetry_total_queries: `2924`
+- telemetry_hit_count: `1172`
+- telemetry_hit_rate: `0.4008`
 
 ### Entries by merge_state
 
 | merge_state | count |
 |---|---|
-| `active` | 29 |
+| `active` | 30 |
 
 ### Telemetry by source
 
 | source | events |
 |---|---|
-| `backlog-update` | 391 |
+| `backlog-update` | 448 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2189 |
+| `session-start` | 2461 |
 

@@ -19,7 +19,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **93차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 1건 close (TASK-2026-09-23-main-014).** 발행 뒤 이 호스트 채널 재적용을 `docs/RELEASE.md` §2.8 로 절차화 + `wk doctor` `content_drift.behind`(읽히는 사본 < 정본 버전 → 발견) 신설. §2.8 을 이 호스트에서 첫 실행: codex·grok-build·antigravity 1.10.0 → 1.11.0, claude-code 설치 기록 1.9.4 → 1.11.0, doctor `behind=[]`. 남은 것: claude-code CLI 재시작(`runtime_load`). **교훈 재확인**: task close 뒤 `--changed` 에서 `check_handoff_next_steps` red — §5 후보가 닫힌 task 를 가리켰다.
+- 현재 기준선: **93차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 2건 close (TASK-2026-09-23-main-014 · 09-28-main-014), **v1.12.0 발행**.** 발행 뒤 이 호스트 채널 재적용을 `docs/RELEASE.md` §2.8 로 절차화 + `wk doctor` `content_drift.behind`(읽히는 사본 < 정본 버전 → 발견) 신설. §2.8 을 이 호스트에서 첫 실행: codex·grok-build·antigravity 1.10.0 → 1.11.0, claude-code 설치 기록 1.9.4 → 1.11.0, doctor `behind=[]`. **v1.12.0**: `release-status` 가 `!` 2건으로 2.0.0 제안 → `534e3a8d` 가 동결 표면 공개 API 2종을 유예 없이 지운 것이 드러남 → 소유자 결정 minor + 은퇴 shim(v1.13.0 제거). 태그 → `c26c92f8`, asset 4종, 발행 wheel 격리 설치 실측, §2.8 재적용 두 번째 실행(4채널 1.12.0). 이 호스트에 `python3.14-venv` 가 없어 packaging 점검이 실패했었다(설치로 해소). 남은 것: claude-code CLI 재시작(`runtime_load`). **교훈 재확인**: task close 뒤 `--changed` 에서 `check_handoff_next_steps` red — §5 후보가 닫힌 task 를 가리켰다.
 - 직전 기준선: **92차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 10건 close, 세션 시작 컨텍스트 예산 축(M-013→M-017)을 concept 에서 구현까지 하루에 완주. 필독 195.1KB → 111.5KB.** 상세는 각 task 파일(SSOT). ①**게이트 처리량** (M-014 C) — main-007 release 계열 검사 내 mypy 반복 제거(44.2→28.3s) · main-008 러너·CLI 검사의 무거운 fixture·네트워크 제거(46.9→12.3s, `release-doctor --skip-mypy` 신설, git 추적 `.score_history.jsonl` 쓰기 경합 제거) · 검사 간 mypy 공유는 **보류(소유자)**. ②**결함 수리** — main-009 validate source 정본화(`VALIDATE_SOURCES`, plugin_payload skip 불가 = 소유자 결정, `check_validate_source_coverage`) · 09-23-main-015 대시보드 phase 를 로드맵에서 파생 · 09-23-main-016 + main-010 task ID 충돌 검출(대시보드 지표 + session-start warning). ③**컨텍스트 예산** — 09-23-main-012 concept(③ 출구+예산) → main-011 requirements(Q1~Q5 권고안) → main-012 design(ADR-029 accepted) → main-013 구현: `common/context_budget.py`(예산 4 · 현재형 절 목록) · `wk refresh-state` 초과 경고 · `state.json.memory_entries` v2 포인터(68.8→21.4KB) · `wk rollover-handoff-notes`(§5 누적형 17절 → `lessons.md`/`sessions/`, 39.6→7.9KB) · `CLAUDE.md` 운영 절 → `docs/LOCAL_GATE.md`(19.6→11.3KB) · `check_session_context_budget` 이 저장소 red 활성. **교훈**: task 를 `--changed` 뒤에 close 하면 handoff §5 후보 검사가 게이트에서야 red · `backlog-update --status done` 은 `--validation-result` 없이는 조용히 보수 유지 — frontmatter 를 확인할 것. 후속: §5 현재형 20KB(예산 밖, 관찰) · macOS 10코어 B 측정.
 - 그 이전 기준선: **91차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 4건 close (09-28-main-004 · 09-28-main-003 · 09-28-main-005 · 09-28-main-006), M-014 ① 안 구현 완료. 게이트 두 축 합 277.5s → 218~220s (−21%).** ①**main-004** — `check_wiki_score` 멱등성 case 의 s1 을 공유 실행으로: 점수 도구 3→2회, 단독 27.3s → 18.3s, 비멱등 되주입 시 여전히 red. ②**main-003** — 병렬 구간 LPT 제출 + `--jobs auto` = 코어 수. 소요 출처 = `.git/run_all_checks_durations.json` 기록 → `CHECK_TIMEOUT_S` 선언 → 알파벳, `schedule:` 줄에 출처별 개수. 게이트 3회 실측 cold 224.1s / warm 218.0·220.1s (추정 ~208s 보다 +10~12s — 긴 검사끼리 앞에서 겹쳐 늘어짐, `branch_context_matrix` 50~53s/상한 150s). `check_parallel_smoke` case 11~13, 되주입 6건 전부 red. ③**LPT 가 드러낸 기존 경합** — `check_warning_gate` case 6 의 `tests/` probe 를 전수 컴파일 검사 2건이 읽다 red (알파벳순에선 `w` 가 끝물이라 우연히 안 겹쳤다) → 정숙 구간으로. 실측 표는 `local-gate-throughput-review-2026-09.md` §8. ④**push 게이트 1회 red → main-005 close** — `check_memory_index_cross_v0_15_7` 가 telemetry 이중 읽기 경합으로 slash 축 red. 대시보드가 telemetry 를 3회 읽던 것을 스냅샷 1회로 공유하고 Panel 8 의 별도 hit 정의를 흡수(실데이터 전 필드 동일), case 5 로 경합을 결정적으로 주입해 고정(되주입 2종 red). 쓰는 검사 5개 전수 실측 → ⑤**main-006 close** — writer 가 `WORKFLOW_KIT_TELEMETRY_SKIP_ROOT` 루트 아래는 안 쓰고(러너가 모든 검사에 주입, 환경을 좁히는 검사 2개는 표식 전달), 러너가 축마다 실제 `events.jsonl` 증가를 red 로 잰다(gitignore 라 git status 감시 밖이었다). 되주입 5종 red. 후속: macOS 10코어 호스트에서 B 이득 1회 측정 · C 다음 건(`release_*` 반복 계산).
 - 그 이전 기준선: **90차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 3건 close (main-019 · 09-28-main-001 · 09-28-main-002), 2건 open (09-28-main-003 · main-004), M-014 done.** ①**환경** — 시스템 python 이 3.13→3.14 로 올라가 `.venv`(심볼릭 해석기)와 사용자 site 의 kit editable 이 함께 사라졌다: `wk` ModuleNotFoundError + 플러그인 MCP 2종 Connection closed. `.venv` 는 `uv venv --seed` 로 재생성(3.14 에 ensurepip 없음), `/usr/bin/python3` 에는 `uv pip install --prefix ~/.local -e ./workflow-source`. `core.hooksPath=.githooks` 도 이 호스트에서 켰다. ②**main-019** — M-014 concept 종결(`docs/planning/local-gate-throughput-review-2026-09.md`): 게이트 3회 실측(k=8 268/278s, k=12 249s) — 병렬 구간은 **처리량에 묶임**(최장 검사 35~40s < 처리량 하한 89~94s), 알파벳순 제출이 꼬리. 스케줄 시뮬레이션이 실측과 1s 이내. 소유자 ① 안 = LPT + jobs 상한→코어 수(추정 −25%) + 반복 계산 건별 수리, 두 축 동시 실행은 이득 0 으로 기각. ③**09-28-main-002** — `PURPOSE.md` 가 101일 stale 로 `check_memory_lint` red → 소유자 검토로 개정(G5 로드맵·SDLC 추가, 하네스 범위 플러그인 중심, state.json 생성물 정정, G3 재확인).
@@ -46,7 +46,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
-- TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump
+-
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -54,6 +54,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump
 - TASK-2026-09-23-main-014 발행 후 로컬 소비 채널 갱신이 절차에 없어 설치본이 조용히 낡는다
 - TASK-2026-09-28-main-013 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)
 - TASK-2026-09-28-main-012 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)
@@ -63,7 +64,6 @@
 - TASK-2026-09-23-main-016 멀티에이전트 충돌 지표가 task ID 충돌을 못 센다
 - TASK-2026-09-23-main-015 상위 요약의 phase 표시가 v0.15 에 멈춰 있다 — 상수 표시
 - TASK-2026-09-28-main-009 release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감
-- TASK-2026-09-28-main-008 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
@@ -225,8 +225,9 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 > `wk doctor` 의 `content_drift.behind` 가 '읽히는 사본 < 정본 버전' 을 발견으로 낸다. 이 호스트의
 > 실제 재적용(1.10.0 → 1.11.0)도 93차에 §2.8 대로 실행해 doctor `behind=[]` 확인 — 남은 것은 claude-code CLI 재시작뿐.
 
-- `TASK-2026-09-28-main-014` — **v1.12.0 발행 준비 중** (소유자 결정: minor + 은퇴 shim). 준비 커밋까지
-  완료, 남은 것: 이 호스트에 `python3.14-venv` 설치 → `release --dry-run` 재확인 → 승인 후 `--apply` → §2.8.
+> **v1.12.0 은 93차에 발행됐다** (`TASK-2026-09-28-main-014`) — minor + 은퇴 shim. **v1.13.0 에서
+> `verify_required_ci` · `REQUIRED_CI_WORKFLOWS` 를 지운다** (deprecation policy spec §3.7 마지막 체크박스).
+
 - `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리
   (소유자 확인) / memory_index 소비 편중 관찰.
 

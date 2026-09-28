@@ -130,3 +130,20 @@ shim 은 **옛 질문에 새 근거로 답한다**. 조회할 CI 가 없으므�
   Windows 실측만 남아 blocked 다.
 - **해석기·SDK 매트릭스는 게이트가 강제하지 않는다** — 발행 전 `--run-local` 이 유일한 수단이다.
 - `behind` 판정의 기준은 **그 호스트의 kit 정본**이다. GitHub Releases 최신 태그를 조회하지 않는다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-28T08:47:01Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

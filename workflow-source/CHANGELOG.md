@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-23
+- 최종 수정일: 2026-09-28
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -12,10 +12,19 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-23
+## [Unreleased] - 2026-09-28
 
 ### Added
 
+- feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
+- feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
+- feat(handoff): wk rollover-handoff-notes — §5 누적형 절의 출구 (M-017/WBS-17.3) (0292d421)
+- feat(state): state.json memory_entries v2 — 전문 복제 대신 포인터 (M-017/WBS-17.2) (10c166cd)
+- feat(context-budget): 예산 정본 모듈 + refresh-state 초과 경고 (M-017/WBS-17.1) (ec21152a)
+- feat(session-start): task ID 충돌 warning + M-013 concept 종결(③ 출구+예산) → M-015 개설 (dd9a004e)
+- feat(dashboard): 멀티에이전트 충돌 지표가 task ID 충돌을 센다 (09-23-main-016) (4c8cd252)
+- feat(gate): 게이트 통과 기록 없는 커밋의 push 를 막는다 (main-009) (33e58fdd)
+- feat(doctor): 플러그인 MCP 가 실제로 띄우는 해석기의 kit 을 잰다 (main-013) (5631f059)
 - feat(memory): memory_index 승격 4건 + 검색이 매칭된 entry 를 안 돌려주는 결함 노출 (f631c3c0)
 - feat(tests): 요약의 case 개수를 발화 수와 대조하는 축 (main-004) (88b92542)
 - feat(memory): memory_index 7건 승격 — 후보 판정식이 잡음이라 판단으로 골랐다 (main-001) (b7fd4b3a)
@@ -37,53 +46,54 @@ All notable changes to this project will be documented in this file.
 - feat(roadmap): M-008 선언 — 검사 입력 표면 선언 + 계층별 회귀 실행 계약 (concept) (7aac9ee3)
 - feat(harness): overlay 위임 선언(plugin-only) 신설 — 이 저장소 claude-code 채널 플러그인 단일화 (main-010) (caffb013)
 - feat(roadmap)!: ADR-027 로드맵 층 — 스키마·파서·상태 생성기·배선·게이트·bootstrap 씨앗 (M-002~M-005) (9dc91713)
-- feat(session-start): 부재 진입점을 스스로 채운다 — 낡음은 보고만 (main-006) (b119d68b)
-- feat(handoff): §5 를 부류별로 가른다 — 산문이 SSOT 를 복제하던 자리 (main-001) (51cfa9ad)
-- feat(deploy)!: 소유권 4번째 분류 '포크됨' + codex 채널 정리 (main-011, -012) (00d30914)
-- feat(task-ssot)!: 본문 라벨을 영어로 전환한다 — 4단계 (main-009) (47c84ad4)
-- feat(doctor): runtime_load — 노출 미측정 한 칸을 측정으로 옮긴다 (main-009 close) (deb74b82)
-- feat(okf)!: v0.2 이행 — legacy 를 남긴 채 정규 필드를 더한다 (ADR-026, main-003) (8ead8bf7)
-- feat(doctor): 환경 pre-flight — 배포 축 gap 4개가 전부 닫혔다 (main-019) (c92d3c7b)
-- feat(doctor): 드리프트를 마커가 아니라 페이로드 해시로 본다 (main-005) (2f68fb2e)
-- feat(entrypoint): AGENTS.md 를 공유 진입점으로 합친다 (main-001, 08-18) (c55631f4)
-- ... (142 more)
+- ... (151 more)
 
 ### Changed
 
+- docs(claude-md): 운영 절을 docs/LOCAL_GATE.md 로 이관 — CLAUDE.md 19.6KB → 11.3KB (M-017/WBS-17.4) (e1ef118b)
+- docs(design): ADR-029 세션 시작 컨텍스트 예산 accepted + core 스펙 → M-017 개설 (751346a3)
+- docs(planning): M-015 requirements sign-off (Q1~Q5 권고안) → M-016 design 개설 (e9a4b3c0)
+- chore(memory): 92차 세션 종료 — main-009 · 015 · 016 반영 (44e0ff24)
+- chore(memory): handoff §5 작업 후보에서 닫힌 main-015 · main-016 을 걷음 (70b13c19)
+- chore(memory): 92차 세션 종료 — main-008 반영 (러너·CLI 검사 fixture·네트워크 제거) (7339bae5)
+- perf(checks): 러너·CLI 검사의 무거운 fixture 와 네트워크 호출 제거 (09-28-main-008) (bf1417d5)
+- chore(memory): 92차 세션 종료 — release 계열 검사 mypy 반복 제거 (main-007) (8648dfc6)
+- perf(checks): release 계열 검사의 검사 내 mypy 반복 제거 (09-28-main-007) (5e0d0043)
+- chore(memory): 91차 push 게이트 red 1건을 main-005 로 등록 (e6adb0df)
+- chore(memory): 91차 세션 종료 — M-014 ① 안 구현 완료 (main-003 · main-004) (b73d9460)
+- docs(gate): LPT·jobs 실측 결과 기록 + main-003·004 close (44695add)
+- perf(gate): 병렬 구간 LPT 제출 + --jobs auto=코어 수, wiki_score 도구 실행 3→2회 (5b96ebb6)
+- chore(memory): 90차 세션 종료 — M-014 concept 종결(① 안) · 3.14 환경 복구 · PURPOSE.md 개정 (dbf0287f)
+- chore(memory): 89차 세션 종료 — CI 폐지 뒷정리 · push 게이트 · force 차단 hook 수리 (455d27c0)
+- chore(memory): main-021 실측 종료 + main-019 범위를 로컬 게이트 처리량으로 (69a4648c)
+- test(doctor): symlink 홈에서 경로 대조가 갈리던 검사 수리 (09-25-main-001) (b15d1dfe)
+- refactor(release)!: mypy CI cross-verify 인터페이스 은퇴 (main-001) (53a3e152)
+- ci!: GitHub Actions 테스트 workflow 폐지 — 발행 게이트 근거를 로컬 게이트 통과 기록으로 (main-022) (534e3a8d)
+- perf(tests): check_root_anchor_audit 의 저장소 감사를 프로세스당 1회로 (main-020) (305d12a8)
+- chore(memory): 87차 세션 종료 — 평가·로드맵 개편 반영 (0a253e83)
+- docs(planning): 워크플로우 평가 + 도출 이슈 등록 + 로드맵 M-013·M-014 개설 (07ccab06)
+- chore(memory): 87차 세션 종료 — main-010·main-011 close (f3c1d00e)
+- chore(memory): 86차 세션 종료 — task 8건 close + v1.11.0 발행 + 승격 5건 (9a651225)
+- chore(memory): main-008 승격 + 상한에 붙어 있던 검사에 CHECK_TIMEOUT_S (86차 최종) (f4504818)
 - chore(memory): main-006·main-007 승격 — 86차 세션 최종 (entry 27 → 29) (709eb23c)
 - chore(memory): 86차 세션 종료 마무리 — main-005 승격 + 기준선 정정 (3a92df61)
 - chore(memory): 86차 세션 종료 — 판정이 아무것도 재지 않던 결함족 3건 (c3a4b39c)
 - chore(memory): 85차 세션 종료 — memory_index 7건 승격 (749726ad)
 - chore(memory): main-007 완료 기준 4 실측 — CI 가 전수 측정을 돈다 (2eb0f44c)
-- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 결함 6건 + 전량 시간 -38% (780f7b9b)
-- perf(tests): 저장소 write 감시를 러너에 흡수 — 벽시계 221s → 138s (main-008) (709c792d)
-- chore(memory): main-006 task 기록 — 앞 커밋이 가리키던 task 가 없었다 (8923dcfc)
-- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 결함 5건 전부 close (005e2051)
-- chore(memory): main-005 close 기록 — 로컬 green 과 CI green 이 다른 경로였다 (b87770a6)
-- chore(memory): main-004 close 기록 — 84차에 연 4건 전부 닫힘 (9b7ab66e)
-- chore(memory): main-002 close 기록 — 84차에 연 3건 전부 닫힘 (3b1a88f6)
-- chore(memory): main-003 close 기록 — 84차 누적 3건 close (be4c4968)
-- chore(memory): main-001 close — 3개월 만의 첫 실제 게시를 실증으로 닫는다 (7c5601ca)
-- chore(memory): 84차 세션 종료 — v1.10.0 발행 + 채널 재적용 + 절차가 드러낸 결함 3건 (ff55d8cc)
-- chore(backlog): consumer-metrics-digest 만성 red task 등록 (main-001) (9056b21e)
-- chore(memory): push 후 CI 실측 기록 + 83차 세션 최종 (main-009) (6ec86091)
-- chore(memory): push 후 CI 실측 기록 — smoke 4셀이 선언대로 떴다 (main-008) (5990b96c)
-- chore(memory): 82차 세션 종료 — main-006 · main-007 close + CI 실측 기록 (37d4d82e)
-- chore(backlog): 해석기별로 갈리는 경고를 게이트 신호로 올릴지 task 등록 (main-007) (4a6079f0)
-- chore(memory): push 후 CI 실측 기록 — smoke 4셀이 선언대로 떴다 (main-006) (a91549ba)
-- chore(backlog): 검사를 CI 인터프리터로도 돌리는 축 task 등록 (main-006) (bb14bb93)
-- chore(memory): 81차 세션 종료 — "범위가 조용히 좁으면 그 밖이 갈라진다" 4건 close (07ad98f9)
-- chore(backlog): Python 문법 호환 축 task 등록 (main-005) (d4550ec3)
-- chore(backlog): smoke 수 손 사본 task 등록 — 게이트가 8곳 중 2곳만 덮는다 (main-004) (fa4b1cb4)
-- chore(memory): 80차 세션 종료 — 형제 파생물과 "재고 있던 사본" close-out (f8ab8ac8)
-- docs(doctor): 노출 한 칸 첫 실측 — 그리고 캐시 사본은 읽히지 않는다 (main-005, -006) (d9102692)
-- chore(memory): 79차 세션 종료 — 이 호스트 채널 5주 낡음 + 포크 병합 close-out (5354ea76)
-- chore(env): 이 호스트 채널 v1.9.4 재적용 + CLAUDE.md 포크 병합 (main-002, -003) (6dd4c681)
-- docs(sessions): 77차 세션 후반 기록 — 발행과 "성공했는데 틀린" 명령 (7a328527)
-- ... (392 more)
+- ... (417 more)
 
 ### Fixed
 
+- fix(release): 유예 없이 지운 공개 API 2종을 은퇴 shim 으로 복원 — v1.13.0 제거 (09-28-main-014) (891ce0b4)
+- fix(dashboard): Panel 1 phase 를 로드맵 정본에서 파생 — v0.15 에 멈춘 상수 표시 (09-23-main-015) (6253791c)
+- fix(release): validate source 목록을 정본 하나로 — 사본이 새 source 를 못 따라감 (09-28-main-009) (9c2bd06a)
+- fix(telemetry): 검사가 실제 저장소 telemetry 에 쓰지 않게 + 러너가 증가를 red 로 (09-28-main-006) (4ea61232)
+- fix(dashboard): telemetry 를 대시보드당 스냅샷 1회로 — Panel 3·8 hit_rate 경합 (09-28-main-005) (e5d2c6f4)
+- fix(hooks): force 차단 hook 을 git 의 실제 pre-push 인터페이스로 판정 (09-25-main-002) (2dec51ca)
+- fix(memory): main-019 index 제목 중복 + handoff §5 의 닫힌 후보 정리 (a1e93af9)
+- fix(tests): 소스 전수 열거가 중첩 worktree 까지 훑었다 — 호스트 의존 red (main-011) (ca2db5ba)
+- fix(docs): CLAUDE.md 스탬프 + 유예가 로컬 게이트를 가린 자리 등록 (main-009) (c2c7593f)
+- fix(cli): 모르는 인자를 거절한다 — 조용히 버리면 요청과 다른 일을 한다 (main-008) (8ee16bdc)
 - fix(tests): 롤업 표식이 하나뿐이라 흐름을 못 갈랐다 (main-007) (6b7a941e)
 - fix(tests): case 수 대조 축의 범위를 실측으로 넓힌다 (main-006) + 86차 종료 (c3997a01)
 - fix(memory): 검색이 자기가 집은 것을 돌려주게 (main-005) (70a97a5d)
@@ -104,22 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(backlog-update): --apply 가 형제 생성물 roadmap_state.json 을 두고 갔다 (main-004) (cc172d6c)
 - fix(backlog-update): update 에서 --task-brief 를 선택 인자로 — 뜻이 갈리는 필수 인자가 진행 기록을 덮었다 (371afdbf)
 - fix(graph-insights): 완료한 일이 늘수록 내려가던 점수 — 오탐인 줄 알았던 자리가 지표 결함이었다 (878f0ae7)
-- fix(paths): 설치본에서 증발하는 모듈 앵커 — 소비자 배포처 모순의 뿌리를 닫는다 (30d2804b)
-- fix(backlog): task ID 채번이 원격을 함께 본다 — 코드가 적고 있던 거짓 보증을 지운다 (67fd0776)
-- fix(state): 예제 산출물 드리프트에서 생성기 결함 2건을 파내 정본과 판정으로 닫는다 (f21838f4)
-- fix(release): 발행마다 손이 가던 두 자리를 파생과 판정으로 닫는다 (main-003·004) (bb55ccd5)
-- fix(session-start): 상태 불일치 경고의 분모를 task corpus 전수로 바꾼다 (main-002) (b3f3eff9)
-- fix(backlog-update): done 강등이 이미 기록된 완료를 취소하지 않는다 (main-003) (e6f033db)
-- fix(tests): 휘발 경로 리터럴이 Linux CI 를 10 커밋 red 로 만들었다 (main-004) (e7671d24)
-- fix(checks): 문서 스탬프 기대값을 리터럴에서 git 파생으로 (main-002) (09a9df21)
-- fix(packaging): workflow_kit.cli 를 wheel 에 싣고, 손 목록을 디스크 대조로 대체 (main-001) (12b9f311)
-- fix(guarantee): 은퇴한 stable 행을 지우지 않는다 + v1.8.0 migration 절 (main-005) (2d8f4cad)
-- ... (164 more)
+- ... (174 more)
+
+## [1.12.0] - 2026-09-28
+
+### Changed
+
+- release(v1.12.0): 발행 준비 — CI 를 걷고 로컬 게이트를 근거로 세운 사이클 + 세션 시작 컨텍스트 예산 (c26c92f8)
 
 ## [1.11.0] - 2026-09-23
 
 ### Changed
 
+- release(v1.11.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (14f10cfc)
 - release(v1.11.0): 발행 준비 — 판정이 아무것도 재지 않는데 숫자는 멀쩡했던 사이클 (eb8152ac)
 
 ## [1.10.0] - 2026-09-22

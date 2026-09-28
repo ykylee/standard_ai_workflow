@@ -222,10 +222,12 @@ in_progress** + **M-008~M-012 done** (64차 — 첫 병행 기능 축의 SDLC �
 - `TASK-2026-09-23-main-014` — 로컬 배포본이 조용히 낡는다. 발행 절차에 로컬 채널
   재적용 단계를 넣는다 (짝이던 main-013 doctor 측정은 89차 close).
 - `TASK-2026-09-23-main-012` — M-013 concept 검토 (필독 약 190KB 의 선언·측정).
-- `TASK-2026-09-23-main-015` · `TASK-2026-09-23-main-016` — 상수 phase 표시 /
-  충돌 지표가 task ID 충돌을 못 셈.
 - `TASK-2026-09-23-main-017` · `TASK-2026-09-23-main-018` — 방치 worktree 정리
   (소유자 확인) / memory_index 소비 편중 관찰.
+
+> **main-015 · main-016 은 92차에 닫혔다** — 대시보드 `phase` 를 로드맵 정본에서 파생 /
+> 충돌 지표가 task ID 충돌(미커밋 task ↔ 원격 같은 ID·다른 제목)을 센다. 후속 후보:
+> 그 검출을 session-start warning 으로도 낼지 (task 미등록).
 
 > **`TASK-2026-08-25-main-017` (MCP emit `python3`) 은 78차에 blocked 로 옮겼다
 > — 무기한 연기 (소유자 결정).** 완료 기준 1(수리 + 판정)은 77차에 끝났고 회귀는

@@ -2210,6 +2210,162 @@ def _probe_runtime_load(
 
 
 # ---------------------------------------------------------------------------
+# plugin_enabled — 설치는 됐는데 **꺼져 있는가** (2026-09-28, main-017)
+# ---------------------------------------------------------------------------
+
+
+#: claude-code 가 `enabledPlugins` 를 읽는 설정 파일과 우선순위 (좁은 것이 이긴다).
+#: 프로젝트 쪽 둘은 project_root 기준, 사용자 쪽은 home 기준이다.
+_CLAUDE_ENABLED_SETTINGS: tuple[tuple[str, str], ...] = (
+    ("project-local", ".claude/settings.local.json"),
+    ("project", ".claude/settings.json"),
+    ("user", ".claude/settings.json"),
+)
+
+
+def _claude_plugin_keys(home: Path) -> tuple[list[dict[str, Any]], str | None]:
+    """설치 기록이 말하는 ``<plugin>@<marketplace>`` 키와 설치 scope."""
+    path = home / ".claude" / "plugins" / "installed_plugins.json"
+    if not path.is_file():
+        return [], "installed_plugins.json 이 없다"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return [], f"installed_plugins.json 을 읽지 못했다: {type(exc).__name__}"
+    keys: list[dict[str, Any]] = []
+    for key, entries in (payload.get("plugins") or {}).items():
+        if "standard-ai-workflow" not in key:
+            continue
+        scopes = sorted(
+            {str(item.get("scope")) for item in (entries if isinstance(entries, list) else [])
+             if isinstance(item, dict) and item.get("scope")}
+        )
+        keys.append({"key": key, "install_scopes": scopes})
+    if not keys:
+        return [], "installed_plugins.json 에 이 플러그인의 기록이 없다"
+    return keys, None
+
+
+def _read_enabled_plugins(path: Path) -> tuple[dict[str, Any] | None, bool, str | None]:
+    """``(enabledPlugins 매핑 | None, 키가 있었는가, 못 읽은 사유)``.
+
+    파일 부재는 사유가 아니라 ``(None, False, None)`` 이다. 키 부재와 빈 매핑을
+    구분해 돌려준다 — 부재는 선언이 지워진 상태이고, 이 절이 잡으려는 것이 그것이다.
+    """
+    if not path.is_file():
+        return None, False, None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return None, False, f"{type(exc).__name__}"
+    if not isinstance(payload, dict) or "enabledPlugins" not in payload:
+        return {}, False, None
+    mapping = payload.get("enabledPlugins")
+    return (mapping if isinstance(mapping, dict) else {}), True, None
+
+
+def _probe_plugin_enabled(
+    home: Path, project_root: Path, content_drift: dict[str, Any]
+) -> dict[str, Any]:
+    """**설치본이 있는데 하네스가 그것을 켜 두었는가** (2026-09-28 실측, main-017).
+
+    95차 세션 시작(macOS)에 `/workflow-*` 스킬이 없었다. 사본은 정본과 in-sync 였고
+    `installed_plugins.json` 도 1.13.0 을 가리켰는데, `claude plugin list` 는
+    `✘ disabled` 였다 — `~/.claude/settings.json` 에 `enabledPlugins` 키 자체가
+    없었다 (`plugin update` 직후로 추정). `content_drift` · `runtime_load` 는
+    파일과 프로세스를 재므로 이 상태를 green 으로 보고했다. **설치와 활성은
+    다른 축이다** — 설치 기록은 사본이 *어디* 있는지, 이 키는 그것을 *읽을지*
+    말한다. 재지 않은 축을 통과로 두는 것이 §0 의 *모름 ≠ 안전* 이다.
+
+    키 **부재**와 명시 **false** 를 구분해 적는다. 부재는 도구가 선언을 지운
+    것(외부 도구 재작성, 갱신)이고 false 는 사람이 끈 것이라 처방이 다르다.
+    """
+    active_harnesses = {
+        c["harness"] for c in (content_drift.get("caches") or []) if c.get("active")
+    }
+    keys, keys_error = _claude_plugin_keys(home)
+    sources: list[dict[str, Any]] = []
+    for scope, rel in _CLAUDE_ENABLED_SETTINGS:
+        path = (home if scope == "user" else project_root) / rel
+        mapping, has_key, error = _read_enabled_plugins(path)
+        sources.append(
+            {
+                "scope": scope,
+                "path": str(Path("~") / rel) if scope == "user" else rel,
+                "exists": path.is_file(),
+                "has_enabled_plugins": has_key,
+                "mapping": mapping,
+                "read_error": error,
+            }
+        )
+
+    plugins: list[dict[str, Any]] = []
+    findings: list[str] = []
+    for item in keys:
+        key = item["key"]
+        enabled: bool | None = None
+        decided_by: str | None = None
+        for src in sources:
+            mapping = src.get("mapping")
+            if isinstance(mapping, dict) and key in mapping:
+                enabled = bool(mapping[key])
+                decided_by = src["path"]
+                break
+        record = {
+            "harness": "claude-code",
+            "key": key,
+            "install_scopes": item["install_scopes"],
+            "enabled": enabled,
+            "decided_by": decided_by,
+        }
+        plugins.append(record)
+        if "claude-code" not in active_harnesses:
+            # 사본이 없으면 켜고 말고가 없다 — content_drift 의 `no_copy` 가 그 사실을 말한다.
+            continue
+        if enabled is True:
+            continue
+        looked = ", ".join(f"`{s['path']}`" for s in sources if s["exists"])
+        if enabled is False:
+            findings.append(
+                f"claude-code 플러그인 `{key}` 가 **명시적으로 꺼져 있다** "
+                f"(`{decided_by}` 의 enabledPlugins = false). 설치본은 있으나 하네스가 "
+                "읽지 않으므로 스킬·MCP 가 노출되지 않는다 — 의도가 아니면 "
+                f"`claude plugin enable {key}` (2026-09-28 실측, docs/RELEASE.md §2.8)"
+            )
+        else:
+            findings.append(
+                f"claude-code 플러그인 `{key}` 의 **enabledPlugins 선언이 없다** "
+                f"(읽은 설정: {looked or '없음'}). 설치본은 있으나 `claude plugin list` 가 "
+                "disabled 로 보이는 상태다 — 갱신·외부 도구 재작성이 선언을 지운 경우로, "
+                f"`claude plugin enable {key}` 가 되살린다 (2026-09-28 실측, docs/RELEASE.md §2.8)"
+            )
+
+    return {
+        "plugins": plugins,
+        "settings_read": [
+            {k: v for k, v in s.items() if k != "mapping"} for s in sources
+        ],
+        "keys_error": keys_error,
+        "disabled": [p["key"] for p in plugins if p["enabled"] is not True
+                     and "claude-code" in active_harnesses],
+        "findings": findings,
+        "measurement_note": (
+            "설치 기록(installed_plugins.json)은 사본이 *어디* 있는지, enabledPlugins 는 "
+            "그것을 *읽을지* 말한다 — 둘은 다른 축이라 하나가 green 이어도 다른 하나를 "
+            "대신하지 못한다"
+        ),
+        "not_applicable": {
+            "pi-dev": "경로 참조라 켜고 끄는 선언이 없다",
+        },
+        "declared_unmeasured": [
+            "codex · grok-build · antigravity 의 활성/비활성 선언 자리는 미실측이다 — "
+            "이 절은 claude-code 만 잰다",
+        ]
+        + ([f"설치 기록을 읽지 못했다: {keys_error}"] if keys_error else []),
+    }
+
+
+# ---------------------------------------------------------------------------
 # probe
 # ---------------------------------------------------------------------------
 
@@ -2250,6 +2406,7 @@ def probe(
         which=mcp_which or shutil.which,
         run_child=mcp_run_child or _run_mcp_child_probe,
     )
+    plugin_enabled = _probe_plugin_enabled(resolved_home, resolved_project, content_drift)
 
     findings = [
         *environment["findings"],
@@ -2257,6 +2414,7 @@ def probe(
         *drift["findings"],
         *content_drift["findings"],
         *mcp_interpreter["findings"],
+        *plugin_enabled["findings"],
         *runtime_load["findings"],
     ]
     return {
@@ -2269,6 +2427,7 @@ def probe(
         "drift": drift,
         "content_drift": content_drift,
         "mcp_interpreter": mcp_interpreter,
+        "plugin_enabled": plugin_enabled,
         "runtime_load": runtime_load,
         "finding_count": len(findings),
         "findings": findings,
@@ -2481,6 +2640,24 @@ def _render_text(report: dict[str, Any]) -> str:
                 lines.append(f"      출처 {rec['origin']} ({rec['placement']})"
                              + (f" · editable → {rec['editable_url']}" if rec.get("editable_url") else ""))
         lines.append(f"  ! {mcp['measurement_note']}")
+
+    enabled = report.get("plugin_enabled") or {}
+    if enabled:
+        lines.append("")
+        lines.append("[plugin_enabled] 설치본을 하네스가 **켜 두었는가** (설치 ≠ 활성)")
+        if enabled.get("keys_error"):
+            lines.append(f"  = claude-code: {enabled['keys_error']}")
+        for rec in enabled.get("plugins") or []:
+            if rec.get("enabled") is True:
+                state = f"enabled ({rec.get('decided_by')})"
+            elif rec.get("enabled") is False:
+                state = f"DISABLED — 명시 false ({rec.get('decided_by')})"
+            else:
+                state = "DISABLED — enabledPlugins 선언 없음"
+            lines.append(f"  - {rec['harness']} `{rec['key']}`: {state}")
+        lines.append(f"  ! {enabled['measurement_note']}")
+        for item in enabled.get("declared_unmeasured", []):
+            lines.append(f"  (미측정) {item}")
 
     runtime = report.get("runtime_load") or {}
     lines.append("")

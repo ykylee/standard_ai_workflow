@@ -381,13 +381,21 @@ wk doctor --json          # 기계가 읽는 형태
 wk doctor --strict        # 발견이 있으면 rc 1 (CI 용)
 ```
 
-8절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import·**돌고 있는
+9절: **environment** (venv·PEP 668·`wk` PATH·`workflow_kit` import·**돌고 있는
 kit 사본이 저장소 소스와 같은 내용인가**) ·
 **preflight** (채널별 설치 전제, §7.0.0) · **project_scope** (하네스별 산출물과
 버전 마커) · **global_scope** (하네스별 설치 선언의 거주지) · **drift** (낡은
 마커, 스코프 간 어긋남) · **content_drift** (설치 사본의 페이로드 해시 대조) ·
 **mcp_interpreter** (플러그인 MCP 가 실제로 띄우는 해석기가 어떤 kit 을 import 하는가) ·
+**plugin_enabled** (설치본을 하네스가 켜 두었는가 — `enabledPlugins` 선언 부재 / 명시 false) ·
 **runtime_load** (실행 중 호스트가 이 설치를 봤는가).
+
+> **설치와 활성은 다른 축이다** (TASK-2026-09-28-main-017). 95차(2026-09-28) 실측에서
+> 사본 in-sync · 설치 기록 1.13.0 · 호스트 최신인데 `claude plugin list` 는 `disabled`
+> 였다 — `~/.claude/settings.json` 에 `enabledPlugins` 키가 없었다(갱신 직후). 파일과
+> 프로세스를 재는 절은 전부 green 이었다. `plugin_enabled` 절은 설치 기록의
+> `<plugin>@<marketplace>` 키를 `enabledPlugins` 에서 찾아(프로젝트 로컬 > 프로젝트 >
+> 사용자) **부재**와 **명시 false** 를 구분해 발견으로 낸다. claude-code 만 잰다.
 
 > **사본이 최신이어도 MCP 서버는 다른 코드로 뜰 수 있다** (TASK-2026-09-23-main-013).
 > 플러그인 `.mcp.json` 은 `python3 -m workflow_kit…` 만 부르므로 서버는 사본이 아니라

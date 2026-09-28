@@ -4,7 +4,7 @@
 - 범위: 배포 함수 정의, 변수 5축, 3계약+1탐침 골격, 파일 소유권 3분류, 멀티 하네스 공존 규칙, 설치 스코프(글로벌/프로젝트) 규칙, 현재 구현 매핑과 gap
 - 대상 독자: 저장소 관리자, 하네스 통합 담당자, AI workflow 설계자
 - 상태: draft (2026-08-14 소유자 방향 승인 — 45차 세션)
-- 최종 수정일: 2026-09-25
+- 최종 수정일: 2026-09-28
 - 관련 문서: `./workflow_harness_distribution.md` (§2.1 채널×하네스 매트릭스), `./workflow_configuration_layers.md` (3계층·우선순위), `./workflow_global_injection_policy.md` (비침투 주입), `../workflow_kit/upgrade_diff.py` (적용 계약 구현), `../../docs/INSTALLATION_AND_USAGE.md` §7.0 (채널별 설치 명령), `../../docs/RELEASE.md` (패키지 채널 정책)
 
 ## 0. 배포는 함수다
@@ -201,9 +201,14 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 이 호스트 실측(2026-08-18, 당시 6채널): `gemini-cli` 만 막힘(`gemini` 부재, 2026-08-29 지원 종료) —
 §7.0.2 표의 '미실측' 과 같은 사실을 도구가 스스로 말한다.
 
-**배포 축 gap 4개가 모두 닫혔다.** 탐침은 이제 8절이다: environment ·
+**배포 축 gap 4개가 모두 닫혔다.** 탐침은 이제 9절이다: environment ·
 **preflight** · project_scope · global_scope · drift · **content_drift** ·
-**mcp_interpreter** · **runtime_load**. `mcp_interpreter` 는 2026-09-25 에 더했다
+**mcp_interpreter** · **plugin_enabled** · **runtime_load**. `plugin_enabled` 는
+2026-09-28 에 더했다 (TASK-2026-09-28-main-017): 사본·설치 기록·프로세스가 전부
+최신이어도 `enabledPlugins` 선언이 없으면 하네스는 그 사본을 읽지 않는다 — 95차
+실측에서 갱신 직후 그 키가 사라져 스킬이 조용히 없어졌고, 어느 절도 red 가 아니었다.
+**설치는 사본이 *어디* 있는지, 활성은 그것을 *읽을지* 다** — 다른 축은 서로를 대신하지
+못한다. `mcp_interpreter` 는 2026-09-25 에 더했다
 (TASK-2026-09-23-main-013): `content_drift` 가 사본만 대조하는 사이 MCP 서버는
 PATH 해석기의 kit 으로 뜬다 — 87차 실측에서 사본은 in-sync 인데 서버는 옛 worktree
 를 가리키는 editable 1.2.0 이었다.

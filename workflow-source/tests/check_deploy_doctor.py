@@ -1791,6 +1791,105 @@ def test_symlinked_home_reports_real_paths_once() -> None:
     _record("test_symlinked_home_reports_real_paths_once", not problems, "; ".join(problems))
 
 
+# --- plugin_enabled — 설치 ≠ 활성 (2026-09-28, main-017) -----------------------
+
+
+_ENABLED_KEY = "standard-ai-workflow@standard-ai-workflow"
+
+
+def _enabled_section(home: Path, project: Path) -> dict:
+    report = probe(project_root=project, home=home)
+    return report["plugin_enabled"], report["findings"]
+
+
+def test_plugin_enabled_missing_declaration_is_a_finding() -> None:
+    """**설치 기록과 사본이 멀쩡해도 선언이 없으면 꺼진 것이다** (2026-09-28 실측).
+
+    95차 세션 시작에 `/workflow-*` 스킬이 없었다. 사본 in-sync · installPath 1.13.0 ·
+    `runtime_load` 도 최신이었는데 `~/.claude/settings.json` 에 `enabledPlugins`
+    키가 없었다. 그때의 doctor 는 이 상태를 발견 0 으로 보고했다.
+    """
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-") as tmpdir:
+        home, _old, _new = _seed_updated_claude_home(Path(tmpdir))
+        # settings.json 자체는 있되 enabledPlugins 키가 없다 — 실측 그대로.
+        _write(home / ".claude" / "settings.json", json.dumps({"model": "x"}))
+        section, findings = _enabled_section(home, Path(tmpdir) / "project")
+    problems = []
+    recs = section.get("plugins") or []
+    if [r.get("enabled") for r in recs] != [None]:
+        problems.append(f"키 부재를 None 으로 안 적었다: {recs!r}")
+    if section.get("disabled") != [_ENABLED_KEY]:
+        problems.append(f"disabled 목록이 비었다: {section.get('disabled')!r}")
+    hits = [f for f in section.get("findings") or [] if "선언이 없다" in f and _ENABLED_KEY in f]
+    if len(hits) != 1:
+        problems.append(f"'선언이 없다' 발견이 1건이 아니다: {section.get('findings')!r}")
+    if not any("enabledPlugins" in f for f in findings):
+        problems.append("상위 findings 에 합쳐지지 않았다")
+    _record("test_plugin_enabled_missing_declaration_is_a_finding", not problems, "; ".join(problems))
+
+
+def test_plugin_enabled_explicit_false_is_a_distinct_finding() -> None:
+    """사람이 끈 것(false)과 도구가 지운 것(부재)은 처방이 달라 **문장이 달라야** 한다.
+    프로젝트 로컬 설정이 사용자 설정을 이기는 것도 같이 잰다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-") as tmpdir:
+        home, _old, _new = _seed_updated_claude_home(Path(tmpdir))
+        project = Path(tmpdir) / "project"
+        _write(home / ".claude" / "settings.json", json.dumps({"enabledPlugins": {_ENABLED_KEY: False}}))
+        section_user, _ = _enabled_section(home, project)
+        _write(home / ".claude" / "settings.json", json.dumps({"enabledPlugins": {_ENABLED_KEY: True}}))
+        _write(project / ".claude" / "settings.local.json", json.dumps({"enabledPlugins": {_ENABLED_KEY: False}}))
+        section_local, _ = _enabled_section(home, project)
+    problems = []
+    rec = (section_user.get("plugins") or [{}])[0]
+    if rec.get("enabled") is not False or rec.get("decided_by") != "~/.claude/settings.json":
+        problems.append(f"명시 false 를 못 읽었다: {rec!r}")
+    if not any("명시적으로 꺼져 있다" in f for f in section_user.get("findings") or []):
+        problems.append(f"false 의 문장이 부재와 안 갈린다: {section_user.get('findings')!r}")
+    if any("선언이 없다" in f for f in section_user.get("findings") or []):
+        problems.append("명시 false 를 부재로도 보고했다")
+    rec = (section_local.get("plugins") or [{}])[0]
+    if rec.get("enabled") is not False or rec.get("decided_by") != ".claude/settings.local.json":
+        problems.append(f"프로젝트 로컬 설정이 사용자 설정을 안 이겼다: {rec!r}")
+    _record("test_plugin_enabled_explicit_false_is_a_distinct_finding", not problems, "; ".join(problems))
+
+
+def test_plugin_enabled_true_is_silent() -> None:
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-") as tmpdir:
+        home, _old, _new = _seed_updated_claude_home(Path(tmpdir))
+        _write(home / ".claude" / "settings.json", json.dumps({"enabledPlugins": {_ENABLED_KEY: True}}))
+        section, findings = _enabled_section(home, Path(tmpdir) / "project")
+    problems = []
+    rec = (section.get("plugins") or [{}])[0]
+    if rec.get("enabled") is not True:
+        problems.append(f"true 를 못 읽었다: {rec!r}")
+    if section.get("findings") or section.get("disabled"):
+        problems.append(f"켜져 있는데 발견을 냈다: {section.get('findings')!r}")
+    if any("enabledPlugins" in f for f in findings):
+        problems.append("상위 findings 에 enabled 발견이 섞였다")
+    _record("test_plugin_enabled_true_is_silent", not problems, "; ".join(problems))
+
+
+def test_plugin_enabled_without_copy_is_not_a_finding() -> None:
+    """사본이 없으면 켜고 말고가 없다 — 그 사실은 content_drift 의 `no_copy` 가 말하고,
+    이 절이 같은 부재를 두 번 보고하면 안 된다. 다만 미측정 선언은 남긴다."""
+    with tempfile.TemporaryDirectory(prefix="doctor-enabled-") as tmpdir:
+        project, home = _fixture(Path(tmpdir), declare_global=False)
+        _write(
+            home / ".claude" / "plugins" / "installed_plugins.json",
+            json.dumps({"version": 2, "plugins": {_ENABLED_KEY: [
+                {"scope": "user", "installPath": str(home / "nowhere"), "version": INSTALLED_VERSION}]}}),
+        )
+        section, _ = _enabled_section(home, project)
+    problems = []
+    if section.get("findings") or section.get("disabled"):
+        problems.append(f"사본 없는 채널에 발견을 냈다: {section.get('findings')!r}")
+    if (section.get("plugins") or [{}])[0].get("enabled") is not None:
+        problems.append("선언 부재를 None 으로 안 적었다")
+    if not section.get("declared_unmeasured"):
+        problems.append("다른 채널을 미측정으로 선언하지 않았다")
+    _record("test_plugin_enabled_without_copy_is_not_a_finding", not problems, "; ".join(problems))
+
+
 def main() -> int:
     # 총계는 **세어서** 낸다 — `total = 23` 리터럴이었을 때는 case 를 늘려도
     # 숫자가 안 따라왔고, 그 숫자가 곧 "몇 개를 쟀나" 의 유일한 증거다.
@@ -1840,6 +1939,10 @@ def main() -> int:
         test_mcp_interpreter_command_is_derived_from_payload,
         test_mcp_child_probe_ignores_pythonpath,
         test_symlinked_home_reports_real_paths_once,
+        test_plugin_enabled_missing_declaration_is_a_finding,
+        test_plugin_enabled_explicit_false_is_a_distinct_finding,
+        test_plugin_enabled_true_is_silent,
+        test_plugin_enabled_without_copy_is_not_a_finding,
     ]
     for case in cases:
         case()

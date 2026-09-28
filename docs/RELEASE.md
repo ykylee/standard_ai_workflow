@@ -328,6 +328,17 @@ wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['cont
 를 발견으로 낸다. 호스트 프로세스가 재적용보다 먼저 떴으면 `runtime_load` 가 재시작을
 요구한다 — 재시작 전까지는 옛 코드가 돈다.
 
+**갱신 뒤 플러그인이 꺼져 있을 수 있다** (95차 2026-09-28 실측, TASK-2026-09-28-main-017):
+`claude plugin update` 직후 `~/.claude/settings.json` 의 `enabledPlugins` 키가 사라져
+`claude plugin list` 가 `✘ disabled` 를 냈고, 스킬이 조용히 없어졌다. `behind=[]` 와
+`runtime_load` 는 이 상태를 못 본다 — 같은 doctor 의 `plugin_enabled` 절이 잰다:
+
+```bash
+wk doctor --json | python3 -c "import json,sys; print(json.load(sys.stdin)['plugin_enabled']['disabled'])"
+#   → []   (비어 있지 않으면 `claude plugin enable standard-ai-workflow@standard-ai-workflow`)
+claude plugin list        # Status: ✔ enabled 를 눈으로 확인
+```
+
 > **범위**: `behind` 는 **이 호스트의 kit 정본**(정본 페이로드 매니페스트의 버전)과
 > 비교한다. 발행 직후 저장소에서는 정본이 곧 최신 발행본이다. GitHub Releases 의
 > 최신 태그를 네트워크로 조회하지는 않는다 — 저장소 밖 소비자 호스트에서는

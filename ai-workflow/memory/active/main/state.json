@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**91차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 2건 close (09-28-main-004 · 09-28-main-003), M-014 ① 안 구현 완료. 게이트 두 축 합 277.5s → 218~220s (−21%).** ①**main-004** — `check_wiki_score` 멱등성 case 의 s1 을 공유 실행으로: 점수 도구 3→2회, 단독 27.3s → 18.3s, 비멱등 되주입 시 여전히 red. ②**main-003** — 병렬 구간 LPT 제출 + `--jobs auto` = 코어 수. 소요 출처 = `.git/run_all_checks_durations.json` 기록 → `CHECK_TIMEOUT_S` 선언 → 알파벳, `schedule:` 줄에 출처별 개수. 게이트 3회 실측 cold 224.1s / warm 218.0·220.1s (추정 ~208s 보다 +10~12s — 긴 검사끼리 앞에서 겹쳐 늘어짐, `branch_context_matrix` 50~53s/상한 150s). `check_parallel_smoke` case 11~13, 되주입 6건 전부 red. ③**LPT 가 드러낸 기존 경합** — `check_warning_gate` case 6 의 `tests/` probe 를 전수 컴파일 검사 2건이 읽다 red (알파벳순에선 `w` 가 끝물이라 우연히 안 겹쳤다) → 정숙 구간으로. 실측 표는 `local-gate-throughput-review-2026-09.md` §8. ④**push 게이트 1회 red** — `check_memory_index_cross_v0_15_7` 가 telemetry 이중 읽기 경합으로 slash 축 red (기존 결함, main-005 로 등록 후 재실행). 후속: main-005 · macOS 10코어 호스트에서 B 이득 1회 측정 · C 다음 건(`release_*` 반복 계산).",
+    "current_baseline": "**91차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 3건 close (09-28-main-004 · 09-28-main-003 · 09-28-main-005), 1건 open (09-28-main-006), M-014 ① 안 구현 완료. 게이트 두 축 합 277.5s → 218~220s (−21%).** ①**main-004** — `check_wiki_score` 멱등성 case 의 s1 을 공유 실행으로: 점수 도구 3→2회, 단독 27.3s → 18.3s, 비멱등 되주입 시 여전히 red. ②**main-003** — 병렬 구간 LPT 제출 + `--jobs auto` = 코어 수. 소요 출처 = `.git/run_all_checks_durations.json` 기록 → `CHECK_TIMEOUT_S` 선언 → 알파벳, `schedule:` 줄에 출처별 개수. 게이트 3회 실측 cold 224.1s / warm 218.0·220.1s (추정 ~208s 보다 +10~12s — 긴 검사끼리 앞에서 겹쳐 늘어짐, `branch_context_matrix` 50~53s/상한 150s). `check_parallel_smoke` case 11~13, 되주입 6건 전부 red. ③**LPT 가 드러낸 기존 경합** — `check_warning_gate` case 6 의 `tests/` probe 를 전수 컴파일 검사 2건이 읽다 red (알파벳순에선 `w` 가 끝물이라 우연히 안 겹쳤다) → 정숙 구간으로. 실측 표는 `local-gate-throughput-review-2026-09.md` §8. ④**push 게이트 1회 red → main-005 close** — `check_memory_index_cross_v0_15_7` 가 telemetry 이중 읽기 경합으로 slash 축 red. 대시보드가 telemetry 를 3회 읽던 것을 스냅샷 1회로 공유하고 Panel 8 의 별도 hit 정의를 흡수(실데이터 전 필드 동일), case 5 로 경합을 결정적으로 주입해 고정(되주입 2종 red). 쓰는 검사 5개 전수 실측 → 지표 오염은 main-006. 후속: main-006 · macOS 10코어 호스트에서 B 이득 1회 측정 · C 다음 건(`release_*` 반복 계산).",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
     "in_progress_items": [],
@@ -41,9 +41,10 @@
       "TASK-2026-09-23-main-016",
       "TASK-2026-09-23-main-017",
       "TASK-2026-09-23-main-018",
-      "TASK-2026-09-28-main-005"
+      "TASK-2026-09-28-main-006"
     ],
     "recent_done_items": [
+      "TASK-2026-09-28-main-005 — 대시보드가 telemetry events.jsonl 을 패널마다 따로 읽어, 게이트 중 추가된 이벤트로 Panel 3·8 hit_rate 가 갈린다",
       "TASK-2026-09-28-main-004 — check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다",
       "TASK-2026-09-28-main-003 — 게이트 러너 스케줄링 — 긴 검사 먼저(LPT) 제출 + --jobs auto 상한을 코어 수로",
       "TASK-2026-09-28-main-002 — PURPOSE.md 가 90일 stale — check_memory_lint 가 날짜 경과로 red",
@@ -52,15 +53,14 @@
       "TASK-2026-09-25-main-001 — check_deploy_doctor 의 claude directory source 2 case 가 기본 TMPDIR 직접 실행에서만 red",
       "TASK-2026-09-24-main-001 — mypy CI cross-verify 인터페이스 은퇴 + CI 폐지 스펙 문서 동기화",
       "TASK-2026-09-23-main-022 — GitHub CI 테스트 workflow 삭제 — 로컬 개발환경 게이트로 이관",
-      "TASK-2026-09-23-main-021 — release 계열 검사가 파이프라인 전체와 CI 조회를 반복한다 — 네트워크 의존 여부 확인",
-      "TASK-2026-09-23-main-020 — check_root_anchor_audit 가 전 저장소 감사를 case 마다 반복한다 (파싱 13배)"
+      "TASK-2026-09-23-main-021 — release 계열 검사가 파이프라인 전체와 CI 조회를 반복한다 — 네트워크 의존 여부 확인"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-28.md",
-    "task_count": 6,
+    "task_count": 7,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -68,7 +68,8 @@
       "TASK-2026-09-28-main-001 — check_mcp_apply_mode_criterion 이 Linux 호스트에서 red — PATH python3(시스템 3.14)에 pydantic 이 없어 emit command 로 MCP 서버가 안 뜬다",
       "TASK-2026-09-28-main-002 — PURPOSE.md 가 90일 stale — check_memory_lint 가 날짜 경과로 red",
       "TASK-2026-09-28-main-003 — 게이트 러너 스케줄링 — 긴 검사 먼저(LPT) 제출 + --jobs auto 상한을 코어 수로",
-      "TASK-2026-09-28-main-004 — check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다"
+      "TASK-2026-09-28-main-004 — check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다",
+      "TASK-2026-09-28-main-005 — 대시보드가 telemetry events.jsonl 을 패널마다 따로 읽어, 게이트 중 추가된 이벤트로 Panel 3·8 hit_rate 가 갈린다"
     ]
   },
   "next_documents": [

@@ -4,7 +4,7 @@
 Panel 3 의 entries / cue_anchors / timeline / retrieval_hit_rate metric 들을
 실제 file system + telemetry 와 cross-check.
 
-4 cases:
+5 cases:
   1) **entries_total 정합**: `entries/` 디렉토리 의 실제 .json file 갯수 ==
      Panel 3 entries_total. 각 entry 는 valid JSON + required field 정합.
   2) **entries_by_merge_state 정합**: Panel 3 entries_by_merge_state 의
@@ -14,6 +14,10 @@ Panel 3 의 entries / cue_anchors / timeline / retrieval_hit_rate metric 들을
   4) **timeline + retrieval_hit_rate 정합**: first_entry_date <= last_entry_date +
      cumulative_timeline 의 date 가 first ~ last 사이 + retrieval_hit_rate (Panel 3)
      == telemetry_hit_rate (Panel 8) cross-panel.
+  5) **한 대시보드 = 한 telemetry 스냅샷** (TASK-2026-09-28-main-005): 두 읽기
+     사이에 이벤트가 붙는 상황을 결정적으로 주입해도 Panel 3 == Panel 8 이고,
+     스냅샷은 1회만 뜬다. case 4 는 실저장소를 재므로 그 경합을 **가끔만** 본다 —
+     91차 push 게이트에서 1/5 로 red 였다.
 """
 
 from __future__ import annotations
@@ -21,7 +25,14 @@ from __future__ import annotations
 #: 이 검사의 입력 표면 (spec `core/test_impact_tiering_spec.md` §2).
 #: 게이트 채취 실측에서 뽑아 넓은 쪽으로 올렸다 — 좁으면 meta-watch 가 red 로 잡는다.
 WATCHES = (
-    "ai-workflow/memory/active/memory_index/entries/*",
+    # case 4·5 가 대시보드 전체를 조립한다 — 입력 표면이 대시보드의 표면이다
+    # (main-005 채취: memory/active 640건 · release ledger · core · releases · kit).
+    # 예전 선언은 entries/* 하나라 dashboard_data 를 고쳐도 --changed 가 안 골랐다.
+    "ai-workflow/memory/*",
+    "workflow-source/workflow_kit/*",
+    "workflow-source/core/*",
+    "workflow-source/releases/*",
+    "workflow-source/pyproject.toml",
 )
 
 import json
@@ -200,12 +211,61 @@ def case_4_timeline_and_retrieval_hit_rate() -> bool:
     return True
 
 
+def case_5_one_snapshot_per_dashboard() -> bool:
+    """5) 읽을 때마다 값이 달라지는 telemetry 에서도 두 패널이 같은 순간을 잰다."""
+    if str(SOURCE_ROOT) not in sys.path:
+        sys.path.insert(0, str(SOURCE_ROOT))
+    from workflow_kit.common import dashboard_data
+    from workflow_kit.common.state import memory_index
+
+    real = memory_index.summarize_telemetry
+    calls = {"n": 0}
+
+    def drifting(workspace_root, **kw):  # noqa: ANN001, ANN003
+        # 호출마다 1건씩 늘어난 로그 — 병렬 검사가 session-start 로 붙이는 모양.
+        calls["n"] += 1
+        base = real(workspace_root, **kw)
+        total = base.total_calls + calls["n"]
+        return base.model_copy(update={
+            "total_calls": total,
+            "hit_rate": round(base.total_hits / total, 4),
+        })
+
+    memory_index.summarize_telemetry = drifting
+    try:
+        # 실제 조립 경로 — collector 단위가 아니라 배선(스냅샷을 넘기는가)을 잰다.
+        dash = dashboard_data.collect_dashboard_snapshot(REPO_ROOT, inline_guard=False)
+        p3 = dash["panels"]["memory_index_utilization"]
+        p8 = dash["panels"]["memory_index_utilization_v2"]
+        shared_calls = calls["n"]
+        # 대조군: 스냅샷을 안 넘기면(각자 읽으면) 실제로 갈리는가 — 주입이 살아 있다는 증거
+        p3_solo = dashboard_data.collect_memory_index_utilization(REPO_ROOT)
+        p8_solo = dashboard_data.collect_memory_index_utilization_v2(REPO_ROOT)
+    finally:
+        memory_index.summarize_telemetry = real
+
+    if p3_solo["retrieval_hit_rate"] == p8_solo["telemetry_hit_rate"]:
+        print("  FAIL: 주입이 죽었다 — 각자 읽어도 값이 같다 (이 case 가 아무것도 못 잰다)")
+        return False
+    if shared_calls != 1:
+        print(f"  FAIL: 대시보드 한 번에 telemetry 를 {shared_calls}회 읽었다 — 스냅샷이 1개가 아니다")
+        return False
+    if p3["retrieval_hit_rate"] != p8["telemetry_hit_rate"]:
+        print(f"  FAIL: 같은 스냅샷인데 Panel 3={p3['retrieval_hit_rate']} != "
+              f"Panel 8={p8['telemetry_hit_rate']}")
+        return False
+    print(f"  [info] 스냅샷 공유 시 Panel 3 == Panel 8 == {p3['retrieval_hit_rate']} · "
+          f"각자 읽으면 {p3_solo['retrieval_hit_rate']} vs {p8_solo['telemetry_hit_rate']}")
+    return True
+
+
 def main() -> int:
     cases = [
         ("case_1_entries_total", case_1_entries_total),
         ("case_2_entries_by_merge_state", case_2_entries_by_merge_state),
         ("case_3_cue_anchors_unique", case_3_cue_anchors_unique),
         ("case_4_timeline_and_retrieval_hit_rate", case_4_timeline_and_retrieval_hit_rate),
+        ("case_5_one_snapshot_per_dashboard", case_5_one_snapshot_per_dashboard),
     ]
     results: list[tuple[str, bool]] = []
     for name, fn in cases:
@@ -234,6 +294,10 @@ def test_case_3_cue_anchors_unique() -> None:
 
 def test_case_4_timeline_and_retrieval_hit_rate() -> None:
     assert case_4_timeline_and_retrieval_hit_rate(), "case_4_timeline_and_retrieval_hit_rate FAIL"
+
+
+def test_case_5_one_snapshot_per_dashboard() -> None:
+    assert case_5_one_snapshot_per_dashboard(), "case_5_one_snapshot_per_dashboard FAIL"
 
 
 if __name__ == "__main__":

@@ -742,7 +742,29 @@ def collect_deprecation_cycle_progress(workspace_root: Path) -> dict[str, Any]:
 # Panel 8 — Memory Index + Telemetry Utilization v2 (Phase 15)
 # ---------------------------------------------------------------------------
 
-def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
+def _telemetry_snapshot(workspace_root: Path) -> Any:
+    """telemetry 집계를 **한 번** 뜬다. 실패하면 None (패널은 0 으로 graceful).
+
+    Panel 3 과 Panel 8 이 `events.jsonl` 을 각자 읽으면, 그 사이 누가 이벤트를
+    붙였을 때 **한 대시보드 안의 두 패널이 서로 다른 순간을 잰다** — 91차 push
+    게이트에서 병렬 검사가 실제 저장소 session-start 로 이벤트를 붙여 Panel 3=0.375 /
+    Panel 8=0.3752 로 갈렸다 (TASK-2026-09-28-main-005). 그래서 `collect_dashboard`
+    가 이 스냅샷 하나를 두 패널에 넘긴다.
+    """
+    try:
+        from workflow_kit.common.state.memory_index import summarize_telemetry
+        return summarize_telemetry(workspace_root)
+    except Exception:
+        return None
+
+
+_NO_SNAPSHOT = object()
+"""collector 를 단독 호출했다는 표식 — 그때는 스스로 스냅샷을 뜬다.
+None 은 '떴는데 실패했다' 라서 따로 둔다."""
+
+
+def collect_memory_index_utilization_v2(workspace_root: Path,
+                                        telemetry: Any = _NO_SNAPSHOT) -> dict[str, Any]:
     r"""Phase 15 Panel 8: memory_index entries + telemetry integration.
 
     기존 Panel 3 (collect_memory_index_utilization) 의 강화판 — v0.13.1+ telemetry
@@ -751,7 +773,9 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
 
     측정원:
     1. entries_total + by_merge_state: ai-workflow/memory/active/memory_index/entries/MEM-*.json
-    2. telemetry_events_total + by_source + hit_rate: telemetry/events.jsonl
+    2. telemetry_events_total + by_source + hit_rate: `summarize_telemetry` 스냅샷
+       (Panel 3 과 **같은 스냅샷·같은 정의** — 예전에는 이 패널이 events.jsonl 을
+       따로 파싱했고 hit 정의도 달랐다. 값이 같았던 것은 error 이벤트가 0건이라서였다)
 
     Returns:
         dict { entries_total, entries_by_merge_state, telemetry_events_total,
@@ -789,41 +813,14 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
             except ValueError:
                 pass
 
-    # 2. telemetry events parse
-    telemetry_path = memory_index_dir / "telemetry" / "events.jsonl"
-    telemetry_events_total = 0
-    telemetry_by_source: dict[str, int] = {}
-    telemetry_total_queries = 0
-    telemetry_hit_count = 0
-    if telemetry_path.is_file():
-        try:
-            for line in telemetry_path.read_text(encoding="utf-8").splitlines():
-                if not line.strip():
-                    continue
-                try:
-                    ev = _json.loads(line)
-                except ValueError:
-                    continue
-                if ev.get("error"):
-                    continue
-                telemetry_events_total += 1
-                src = ev.get("source", "unknown")
-                telemetry_by_source[src] = telemetry_by_source.get(src, 0) + 1
-                hits = (
-                    (ev.get("cue_hits", 0) or 0)
-                    + (ev.get("bm25_hits", 0) or 0)
-                    + (ev.get("expansion_hits", 0) or 0)
-                )
-                if hits > 0:
-                    telemetry_hit_count += 1
-                telemetry_total_queries += 1
-        except OSError:
-            pass
-
-    hit_rate = (
-        telemetry_hit_count / telemetry_total_queries
-        if telemetry_total_queries > 0 else 0.0
-    )
+    # 2. telemetry — 스냅샷 하나에서 전부 (hit_rate · by_source · 3-tuple)
+    if telemetry is _NO_SNAPSHOT:
+        telemetry = _telemetry_snapshot(root)
+    telemetry_events_total = telemetry.total_calls if telemetry else 0
+    telemetry_by_source: dict[str, int] = (
+        {src: b["calls"] for src, b in telemetry.by_source.items()} if telemetry else {})
+    telemetry_hit_count = telemetry.total_hits if telemetry else 0
+    hit_rate = telemetry.hit_rate if telemetry else 0.0
 
     # W-4 (ADR-006): 3-tuple 지표 — hit_rate 단독은 33일간 1.0 으로 고정돼
     # 정보가 없었다 (고정 질의 1종 → 고정 entry 1건). north-star 를 (질의
@@ -837,26 +834,22 @@ def collect_memory_index_utilization_v2(workspace_root: Path) -> dict[str, Any]:
         "distinct_entries_retrieved": 0,
         "selected_ids_measurable": 0,
     }
-    try:
-        from workflow_kit.common.state.memory_index import summarize_telemetry
-        _summary = summarize_telemetry(root)
+    if telemetry is not None:
         utilization_3tuple.update({
-            "query_diversity": _summary.query_diversity,
-            "query_diversity_measurable": _summary.query_diversity_measurable,
-            "distinct_entries_retrieved": _summary.distinct_entries_retrieved,
-            "selected_ids_measurable": _summary.selected_ids_measurable,
+            "query_diversity": telemetry.query_diversity,
+            "query_diversity_measurable": telemetry.query_diversity_measurable,
+            "distinct_entries_retrieved": telemetry.distinct_entries_retrieved,
+            "selected_ids_measurable": telemetry.selected_ids_measurable,
         })
-    except Exception:
-        pass
 
     return {
         "entries_total": entries_total,
         "entries_by_merge_state": entries_by_merge_state,
         "telemetry_events_total": telemetry_events_total,
         "telemetry_by_source": telemetry_by_source,
-        "telemetry_total_queries": telemetry_total_queries,
+        "telemetry_total_queries": telemetry_events_total,
         "telemetry_hit_count": telemetry_hit_count,
-        "telemetry_hit_rate": round(hit_rate, 4),
+        "telemetry_hit_rate": hit_rate,
         "utilization_3tuple": utilization_3tuple,
         "phase_15_north_star": (
             "utilization_3tuple (query_diversity / entries_new_30d / "
@@ -1001,7 +994,8 @@ def _empty_maturity_distribution() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
+def collect_memory_index_utilization(workspace_root: Path,
+                                     telemetry: Any = _NO_SNAPSHOT) -> dict[str, Any]:
     """memory_index 의 활용도 metric 을 1 dict 로 emit.
 
     Fields:
@@ -1025,13 +1019,13 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
 
     if not entries_dir.is_dir():
         payload = _empty_memory_index_utilization()
-        _attach_telemetry_summary(root, payload)
+        _attach_telemetry_summary(root, payload, telemetry)
         return payload
 
     entry_files = sorted(entries_dir.glob("MEM-*.json"))
     if not entry_files:
         payload = _empty_memory_index_utilization()
-        _attach_telemetry_summary(root, payload)
+        _attach_telemetry_summary(root, payload, telemetry)
         return payload
 
     entries: list[dict[str, Any]] = []
@@ -1045,24 +1039,21 @@ def collect_memory_index_utilization(workspace_root: Path) -> dict[str, Any]:
             continue
 
     payload = _aggregate_memory_index(entries)
-    _attach_telemetry_summary(root, payload)
+    _attach_telemetry_summary(root, payload, telemetry)
     return payload
 
 
-def _attach_telemetry_summary(workspace_root: Path, payload: dict[str, Any]) -> None:
+def _attach_telemetry_summary(workspace_root: Path, payload: dict[str, Any],
+                              telemetry: Any = _NO_SNAPSHOT) -> None:
     """Panel 3 payload 에 telemetry sidecar 집계 attach (in-place mutation).
 
     v0.13.1+ Phase 13 AC2 정합: telemetry 부재 시에도 payload 는 *graceful* —
     `telemetry.total_calls=0` + `retrieval_hit_rate=0.0` 유지 (placeholder 와 동일).
     caller 는 `telemetry.source_version` 으로 fallback 구분 가능.
     """
-    try:
-        from workflow_kit.common.state.memory_index import summarize_telemetry
-    except ImportError:
-        return
-    try:
-        summary = summarize_telemetry(workspace_root)
-    except Exception:
+    summary = (_telemetry_snapshot(workspace_root) if telemetry is _NO_SNAPSHOT
+               else telemetry)
+    if summary is None:
         return
     payload["retrieval_hit_rate"] = summary.hit_rate
     payload["retrieval_hit_rate_source"] = summary.source_version
@@ -1452,6 +1443,8 @@ def collect_dashboard_snapshot(
             False 면 legacy v0.13.0 behavior (guard_status='unknown').
     """
     ws_root, ws_source = resolve_workspace_root(workspace_root)
+    # Panel 3 · 8 이 같은 순간을 재도록 telemetry 는 한 번만 뜬다 (main-005).
+    telemetry = _telemetry_snapshot(ws_root)
     return {
         "schema_version": "1.1",  # v0.14.3 Phase 15 — Panel 6/7/8 추가
         "tool_version": _workflow_kit_version(),
@@ -1464,13 +1457,13 @@ def collect_dashboard_snapshot(
         "panels": {
             "drift_prevention": collect_drift_prevention(ws_root, inline_guard=inline_guard),
             "maturity_distribution": collect_maturity_distribution(ws_root),
-            "memory_index_utilization": collect_memory_index_utilization(ws_root),
+            "memory_index_utilization": collect_memory_index_utilization(ws_root, telemetry),
             "smoke_trend": collect_smoke_trend(ws_root),
             "recent_releases": collect_recent_releases(ws_root),
             # Phase 15 (v0.14.3+) Panel 6/7/8 — north-star metrics
             "multi_agent_concurrent_write_conflict": collect_multi_agent_concurrent_write_conflict(ws_root),
             "deprecation_cycle_progress": collect_deprecation_cycle_progress(ws_root),
-            "memory_index_utilization_v2": collect_memory_index_utilization_v2(ws_root),
+            "memory_index_utilization_v2": collect_memory_index_utilization_v2(ws_root, telemetry),
         },
     }
 

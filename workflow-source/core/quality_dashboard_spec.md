@@ -4,7 +4,7 @@
 - 범위: panel 별 data source, field 정의, acceptance criteria, edge cases, drift detection
 - 대상 독자: AI agent 설계자, dashboard consumer (release note 자동 emit, wiki sync), 운영자
 - 상태: draft
-- 최종 수정일: 2026-07-20
+- 최종 수정일: 2026-09-28
 - 관련 문서:
   - [`./quality-dashboard-implementation-guide.md`](./quality-dashboard-implementation-guide.md) — wiki topic (구현 가이드)
   - [`./maturity_matrix.json`](./maturity_matrix.json) — Panel 1/2 의 data source
@@ -89,7 +89,8 @@ Data source: `workflow-source/core/maturity_matrix.json` + git HEAD commit
   "head_commit_date": "2026-07-09",
   "last_updated_delta_days": 0,
   "silent_failing_cycles_count": 0,
-  "phase": "Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)"
+  "phase": "M-007 운영 축 (상설) — stabilization · in_progress · WBS 1/4",
+  "phase_source": "roadmap_state"
 }
 ```
 
@@ -103,6 +104,8 @@ Data source: `workflow-source/core/maturity_matrix.json` + git HEAD commit
 | `head_commit_date` | `str` (ISO date) | `git log -1 --format=%cd --date=short` |
 | `last_updated_delta_days` | `int \| None` | maturity ↔ head 의 일수 차이 (drift indicator) |
 | `silent_failing_cycles_count` | `int` | **Phase 13 AC1 north-star metric** — 0 으로 수렴 목표 |
+| `phase` | `str` | 로드맵 정본(`roadmap_state`)의 **현재 마일스톤** — `<id> <title> — <sdlc_phase> · <status> · WBS <done>/<total>`. v1.11.0 까지는 리터럴 `"Phase 12 (done, v0.15.20) → …"` 였다 (상수 표시, TASK-2026-09-23-main-015) |
+| `phase_source` | `Literal["roadmap_state", "no_current_milestone", "absent", "error"]` | `phase` 의 출처. 부재·실패를 그럴듯한 문장으로 채우지 않는다 |
 
 ## 5. Panel 2 — Maturity Distribution
 

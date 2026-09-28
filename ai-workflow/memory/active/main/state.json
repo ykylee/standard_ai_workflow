@@ -37,7 +37,6 @@
     "planned_items": [
       "TASK-2026-09-23-main-012",
       "TASK-2026-09-23-main-014",
-      "TASK-2026-09-23-main-015",
       "TASK-2026-09-23-main-016",
       "TASK-2026-09-23-main-017",
       "TASK-2026-09-23-main-018"
@@ -59,7 +58,7 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-28.md",
-    "task_count": 10,
+    "task_count": 11,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -72,7 +71,8 @@
       "TASK-2026-09-28-main-006 — 검사 5개가 실제 저장소 telemetry 에 session-start 를 기록해 사용 지표를 게이트마다 +10 부풀린다",
       "TASK-2026-09-28-main-007 — release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위",
       "TASK-2026-09-28-main-008 — 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산",
-      "TASK-2026-09-28-main-009 — release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감"
+      "TASK-2026-09-28-main-009 — release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감",
+      "TASK-2026-09-23-main-015 — 상위 요약의 phase 표시가 v0.15 에 멈춰 있다 — 상수 표시"
     ]
   },
   "next_documents": [

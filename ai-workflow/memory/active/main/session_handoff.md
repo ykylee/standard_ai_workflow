@@ -54,6 +54,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-23-main-015 상위 요약의 phase 표시가 v0.15 에 멈춰 있다 — 상수 표시
 - TASK-2026-09-28-main-009 release validate 의 source 목록 사본이 따로 낡는다 — '전부 skip' 이 새 source 를 못 따라감
 - TASK-2026-09-28-main-008 게이트 상위 검사 3개(run_all_checks · workflow_kit_cli · wiki_trend)의 검사 내 반복 계산
 - TASK-2026-09-28-main-007 release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위
@@ -63,7 +64,6 @@
 - TASK-2026-09-28-main-004 check_wiki_score 가 점수 도구를 3회 돈다 — 멱등성 case 가 공유 실행을 안 쓴다
 - TASK-2026-09-28-main-002 PURPOSE.md 가 90일 stale — check_memory_lint 가 날짜 경과로 red
 - TASK-2026-09-28-main-001 check_mcp_apply_mode_criterion 이 Linux 호스트에서 red — PATH python3(시스템 3.14)에 pydantic 이 없어 emit command 로 MCP 서버가 안 뜬다
-- TASK-2026-09-23-main-019 CI·게이트 처리량 — concept 검토 (Linear CI 재작업 글 참고)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

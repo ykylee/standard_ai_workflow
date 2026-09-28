@@ -184,6 +184,7 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     surface_changed_at = str(p.get("maturity_surface_changed_at", ""))
     staleness_source = str(p.get("maturity_staleness_source", "unknown"))
     phase = str(p.get("phase", ""))
+    phase_source = str(p.get("phase_source", "unknown"))
 
     status_class = status if status in ("pass", "fail", "error") else "unknown"
     return f"""  <section class="panel">
@@ -197,7 +198,7 @@ def _render_html_panel_1(p: dict[str, Any]) -> str:
     <p>last_updated_delta_days: {delta if delta is not None else 'unknown'}</p>
     <p>harness_supported_count: {harness_supported_count}</p>
     <p><strong>silent_failing_cycles_count: {_html_escape(silent_failing_text)}</strong> (Phase 13 AC1 north-star)</p>
-    <p class="meta">{_html_escape(phase)}</p>
+    <p class="meta">{_html_escape(phase)} (source: {_html_escape(phase_source)})</p>
   </section>"""
 
 

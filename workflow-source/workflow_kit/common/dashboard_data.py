@@ -321,7 +321,39 @@ def collect_drift_prevention(
         "silent_failing_cycles_measured": north_star["measured"],
         "silent_failing_cycles_measured_cycles": north_star["measured_cycles"],
         "silent_failing_cycles_source": north_star["source"],
-        "phase": "Phase 12 (done, v0.15.20) → Phase 13 (planned, v1.0.0 stable 진입 후)",
+        **collect_roadmap_phase(root),
+    }
+
+
+def collect_roadmap_phase(workspace_root: Path) -> dict[str, Any]:
+    """Panel 1 의 `phase` — **로드맵 정본에서 파생**한다 (TASK-2026-09-23-main-015).
+
+    예전 값은 리터럴 `"Phase 12 (done, v0.15.20) → Phase 13 (planned, …)"` 이었다.
+    v1.11.0 에서도 같은 문장을 냈다 — 버전을 올려도 안 바뀌는 **상수 표시**다. 'Phase N'
+    명명 자체가 ADR-027(마일스톤·WBS) 이전 것이라, 지금의 정본은 `roadmap_state` 의
+    현재 마일스톤이다.
+
+    부재·실패를 그럴듯한 문장으로 채우지 않는다 — `phase_source` 가 출처를 말한다
+    (`roadmap_state` / `no_current_milestone` / `absent` / `error`).
+    """
+    try:
+        from workflow_kit.common.state.roadmap import build_roadmap_state
+        built = build_roadmap_state(workspace_root)
+    except Exception as exc:  # noqa: BLE001 — 대시보드 한 칸이 전체를 죽이지 않는다
+        return {"phase": f"측정 실패 ({type(exc).__name__})", "phase_source": "error"}
+    if built is None:
+        return {"phase": "미선언 (로드맵 없음)", "phase_source": "absent"}
+    current = next(
+        (m for m in built.milestones if m.id == built.current_milestone_id), None
+    )
+    if current is None:
+        return {"phase": "진행 중 마일스톤 없음", "phase_source": "no_current_milestone"}
+    return {
+        "phase": (
+            f"{current.id} {current.title} — {current.sdlc_phase.value} · "
+            f"{current.declared_status.value} · WBS {current.done_leaves}/{current.total_leaves}"
+        ),
+        "phase_source": "roadmap_state",
     }
 
 

@@ -445,6 +445,49 @@ def _check_panel_4_with_n_plus_release_note(tmp_path: Path) -> None:
     )
 
 
+def _check_phase_derived_from_roadmap() -> None:
+    """Panel 1 `phase` 가 **로드맵 정본에서 파생**되는지 잰다 (TASK-2026-09-23-main-015).
+
+    예전 값은 리터럴 `"Phase 12 (done, v0.15.20) → …"` 로, v1.11.0 에서도 같은 문장을
+    냈다. 현재값 일치만 보면 리터럴을 '지금 값' 으로 바꿔 박아도 통과하므로, **정본을
+    바꿨을 때 표시가 따라 바뀌는지**를 따로 잰다.
+    """
+    import tempfile
+    from unittest import mock
+    from workflow_kit.common import dashboard_data as dd
+    from workflow_kit.common.state import roadmap as rm
+
+    built = rm.build_roadmap_state(REPO_ROOT)
+    _assert(built is not None, "이 저장소의 로드맵을 못 읽었다 — 파생을 잴 수 없다")
+    assert built is not None
+    ctx = rm.build_session_roadmap_context(REPO_ROOT)
+
+    # (a) 현재값: session-start 가 보는 현재 마일스톤과 같은 것을 낸다
+    real = dd.collect_roadmap_phase(REPO_ROOT)
+    _assert(real["phase_source"] == "roadmap_state", f"phase_source: {real}")
+    _assert(str(real["phase"]).startswith(f"{ctx.current_milestone_id} "),
+            f"phase {real['phase']!r} 가 현재 마일스톤 {ctx.current_milestone_id} 가 아니다")
+    # 스냅샷 경로도 같은 값을 싣는다 (collect_drift_prevention 이 이 함수를 쓴다)
+    panel = dd.collect_drift_prevention(REPO_ROOT, inline_guard=False)
+    _assert(panel.get("phase") == real["phase"], f"Panel 1 phase {panel.get('phase')!r} != {real['phase']!r}")
+
+    # (b) 정본을 바꾸면 표시가 바뀐다 — 상수 리터럴이면 여기서 red
+    other = next((m for m in built.milestones if m.id != built.current_milestone_id), None)
+    _assert(other is not None, "비교할 다른 마일스톤이 없다")
+    assert other is not None
+    shifted = built.model_copy(update={"current_milestone_id": other.id})
+    # 패널 경로로 잰다 — 헬퍼만 재면 패널 쪽에 현재값 리터럴을 박아도 통과한다.
+    with mock.patch.object(rm, "build_roadmap_state", lambda _root: shifted):
+        moved = dd.collect_drift_prevention(REPO_ROOT, inline_guard=False)
+    _assert(moved.get("phase") != real["phase"] and str(moved.get("phase")).startswith(f"{other.id} "),
+            f"현재 마일스톤을 {other.id} 로 바꿨는데 Panel 1 phase 가 {moved.get('phase')!r}")
+
+    # (c) 부재는 부재라고 말한다 — 그럴듯한 문장으로 채우지 않는다
+    with tempfile.TemporaryDirectory() as td:
+        absent = dd.collect_roadmap_phase(Path(td))
+    _assert(absent["phase_source"] == "absent", f"로드맵 없는 작업공간: {absent}")
+
+
 def main() -> int:
     print("[check_quality_dashboard_v0_13_0] starting")
     try:
@@ -461,58 +504,62 @@ def main() -> int:
         _check_memory_index(panels.get("memory_index_utilization", {}))
         _check_smoke_trend(panels.get("smoke_trend", {}))
         _check_recent_releases(panels.get("recent_releases", {}))
-        print("[1/12] snapshot shape + 5 panel content — PASS")
+        print("[1/13] snapshot shape + 5 panel content — PASS")
 
         # Case 2: CLI subcommand json
         _check_cli_json()
-        print("[2/12] CLI --format=json — PASS")
+        print("[2/13] CLI --format=json — PASS")
 
         # Case 3: CLI subcommand markdown
         _check_cli_markdown()
-        print("[3/12] CLI --format=markdown — PASS")
+        print("[3/13] CLI --format=markdown — PASS")
 
         # Case 4: CLI subcommand invalid format → exit 2
         _check_cli_invalid_format()
-        print("[4/12] CLI invalid format → exit 2 — PASS")
+        print("[4/13] CLI invalid format → exit 2 — PASS")
 
         # Case 5: CLI subcommand --output=PATH
         import tempfile
         with tempfile.TemporaryDirectory() as temp_dir:
             tmp_path = Path(temp_dir).resolve()
             _check_cli_output_file(tmp_path)
-        print("[5/12] CLI --output=PATH — PASS")
+        print("[5/13] CLI --output=PATH — PASS")
 
         # Case 6: v0.13.1+ inline drift guard (직접 호출)
         _check_drift_guard_inline_direct()
-        print("[6/12] inline drift guard (run_drift_prevention_guard_inline) — PASS")
+        print("[6/13] inline drift guard (run_drift_prevention_guard_inline) — PASS")
 
         # Case 7: v0.13.1+ release_pipeline dashboard emit hook
         _check_release_pipeline_dashboard_emit()
-        print("[7/12] release_pipeline._emit_dashboard_post_release — PASS")
+        print("[7/13] release_pipeline._emit_dashboard_post_release — PASS")
 
         # Case 8: v0.13.2+ render_dashboard_html 직접 호출
         _check_html_render()
-        print("[8/12] render_dashboard_html — PASS")
+        print("[8/13] render_dashboard_html — PASS")
 
         # Case 9: v0.13.2+ CLI subcommand --format=html
         _check_cli_html()
-        print("[9/12] CLI --format=html — PASS")
+        print("[9/13] CLI --format=html — PASS")
 
         # Case 10: v0.13.2+ --publish → docs/dashboard/index.html
         with tempfile.TemporaryDirectory() as td:
             _check_cli_html_publish(Path(td).resolve())
-        print("[10/12] CLI --format=html --publish — PASS")
+        print("[10/13] CLI --format=html --publish — PASS")
 
         # Case 11: v0.15.0+ N+ 표기 parse (260+, 41/41, no-match)
         _check_smoke_count_n_plus_pattern()
-        print("[11/12] smoke count N+ 표기 parse (3 sub-case) — PASS")
+        print("[11/13] smoke count N+ 표기 parse (3 sub-case) — PASS")
 
         # Case 12: v0.15.0+ Panel 4 fixture release note N+ 표기 → (300, 300)
         with tempfile.TemporaryDirectory() as td:
             _check_panel_4_with_n_plus_release_note(Path(td).resolve())
-        print("[12/12] Panel 4 N+ 표기 release note parse (300+) — PASS")
+        print("[12/13] Panel 4 N+ 표기 release note parse (300+) — PASS")
 
-        print("\nALL 12/12 CASES PASS")
+        # Case 13: Panel 1 phase 는 로드맵 정본에서 파생된다 (상수 표시 금지)
+        _check_phase_derived_from_roadmap()
+        print("[13/13] Panel 1 phase ← roadmap_state (현재값 일치 · 상태가 바뀌면 바뀐다 · 부재는 부재) — PASS")
+
+        print("\nALL 13/13 CASES PASS")
         return 0
     except AssertionError as e:
         print(f"\nFAIL: {e}", file=sys.stderr)

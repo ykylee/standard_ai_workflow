@@ -4,7 +4,7 @@
 - 범위: 검증 체계, 상태 관리, 배포 채널, 멀티 에이전트 운영, 세션 컨텍스트 비용, 메모리 계층, 작업 구성비
 - 대상 독자: 소유자 (다음 사이클 방향 결정), maintainer, workflow 설계자
 - 상태: active — 이슈 7건 등록 (TASK-2026-09-23-main-012 ~ main-018), 새 기능 축 M-013 개설. 후속 §7: M-014 + main-019 ~ main-021
-- 최종 수정일: 2026-09-23
+- 최종 수정일: 2026-09-28
 - 관련 문서: [`roadmap/index.md`](../../ai-workflow/memory/active/roadmap/index.md), [`M-013`](../../ai-workflow/memory/active/roadmap/M-013-session-context-budget.md), [`M-014`](../../ai-workflow/memory/active/roadmap/M-014-ci-gate-throughput.md), [`M-007`](../../ai-workflow/memory/active/roadmap/M-007-operations-standing.md), [`session_handoff.md`](../../ai-workflow/memory/active/main/session_handoff.md)
 
 ## 0. 한 줄 결론
@@ -84,6 +84,11 @@
 - `docs/planning/README.md` §1: "v0.15.15-beta 기준 · Phase 12 in_progress"
 
 현재 v1.11.0 이다. 이 저장소가 계속 잡아 온 '버전을 올려도 안 바뀌는 지표' 결함족이다.
+
+> **✅ 해소 (2026-09-28, main-015)** — 대시보드 `phase` 는 로드맵 정본(`roadmap_state` 의
+> 현재 마일스톤)에서 파생하고 출처를 `phase_source` 로 낸다. 정본을 바꾸면 표시가
+> 따라 바뀌는지를 `check_quality_dashboard_v0_13_0` case 13 이 잰다(리터럴 되주입 red).
+> `docs/planning/README.md` 의 손 요약표는 은퇴시키고 정본 위치 표로 바꿨다.
 
 ### 3.5 로컬 green / CI red 가 여전히 생긴다 (→ 기존 09-23-main-009)
 

@@ -2305,9 +2305,13 @@ def _grok_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
     반대). 이름은 설치 기록(`registry.json` 의 ``repos[].plugins``)에서 온다 —
     디렉터리 이름(`plugin-<hash>`)은 하네스의 것이라 쓰지 않는다.
 
-    양쪽 목록 어디에도 없으면 None 이다. `grok plugin list --json` 은 활성 상태를
-    말하지 않아(실측) 그 경우 하네스가 무엇을 하는지 이 절은 확정하지 못한다 —
-    설치 명령이 enabled 에 넣는 것은 실측이므로, 부재는 선언이 지워진 상태다.
+    양쪽 목록 어디에도 없으면 ``enabled=None, basis="default"`` — **기본 로드**다
+    (2026-09-28 실측, main-019). ``enabled`` 줄을 지운 상태 · ``enabled = []`` 에서
+    `grok inspect --json` 의 스킬 4 · MCP 1 이 enabled 와 같았고, 실제 `grok -p`
+    세션의 프롬프트가 enabled 와 **바이트 동일**(19420 토큰 전량 캐시 적중)이었다.
+    disabled 에서만 스킬·MCP 가 빠졌다(18927 토큰). 그래서 부재는 발견이 아니다 —
+    끄는 선언은 disabled 목록 하나다. `inspect` 의 ``plugins[].enabled`` 는 disabled
+    에서도 true 라 판정에 쓰지 않는다.
     """
     reg = home / ".grok" / "installed-plugins" / "registry.json"
     if not reg.is_file():
@@ -2355,7 +2359,7 @@ def _grok_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str | None]:
             "key": name,
             "enabled": enabled,
             "decided_by": "~/.grok/config.toml" if enabled is not None else None,
-            "basis": "declared",
+            "basis": "declared" if enabled is not None else "default",
         })
     return records, cfg_error
 
@@ -2371,6 +2375,16 @@ def _antigravity_plugin_enabled(home: Path) -> tuple[list[dict[str, Any]], str |
     꺼진 것으로 적는다. `agy plugin enable|disable` 은 이 파일을 쓰지 않는다
     (실측: 두 명령 다 rc 0 · 무출력 · 파일 변화 없음) — 되살리는 자리는 IDE 의
     플러그인 패널 또는 이 파일이다.
+
+    실행 실측 (2026-09-28 Linux, agy 1.0.16, main-019): 첫 `agy -p` 가 마이그레이션
+    ``PLUGIN_ENABLEMENT`` 로 발견된 플러그인에 ``enabled: true`` 를 **써 넣는다** —
+    그래서 이 버전 이후엔 항목이 있는 것이 보통이다. 세 상태를 `--log-file` 의 MCP
+    로드 줄로 쟀다: true · 부재 → 로드, false → 미로드. false 는 **이름 단위**라
+    워크스페이스 `plugins.json` 으로 등록한 같은 이름의 사본까지 끈다. 반대로
+    `plugins.json` 의 ``exclude`` / ``include_only`` 는 **자기 ``entries`` 안에서만**
+    거른다 — 워크스페이스·전역 어느 `plugins.json` 으로도 자동 발견 루트의 이
+    설치본은 꺼지지 않았다 (이름 바꾼 사본으로 entry 로드 · exclude 제외를 양성 대조).
+    그래서 이 절은 `plugins.json` 을 읽지 않는다.
     """
     entry = next(e for e in PLUGIN_INSTALL_CACHES if e.harness == "antigravity")
     copy_dir = home / entry.glob
@@ -2494,8 +2508,9 @@ def _probe_plugin_enabled(
             continue
         if rec["enabled"] is True:
             continue
-        if rec["enabled"] is None and rec.get("basis") == "discovery":
-            # antigravity: 항목 부재 = 자동 발견 로드. 발견이 아니다.
+        if rec["enabled"] is None and rec.get("basis") in ("discovery", "default"):
+            # antigravity: 항목 부재 = 자동 발견 로드. grok: 양쪽 목록 부재 = 기본 로드.
+            # 둘 다 실행 실측(main-018 · main-019) — 발견이 아니다.
             continue
         disabled.append(f"{harness}:{key}")
         remedy = _PLUGIN_ENABLE_REMEDY[harness].format(key=key)
@@ -2533,17 +2548,18 @@ def _probe_plugin_enabled(
             "설치 기록은 사본이 *어디* 있는지, 활성 선언은 그것을 *읽을지* 말한다 — "
             "둘은 다른 축이라 하나가 green 이어도 다른 하나를 대신하지 못한다. 선언 자리: "
             "claude-code `enabledPlugins` · codex `[plugins.\"…\"] enabled` · grok-build "
-            "`[plugins] enabled/disabled` · antigravity `config.json plugins.<이름>.enabled`(부재 = 자동 발견)"
+            "`[plugins] disabled`(양쪽 목록 부재 = 기본 로드) · antigravity "
+            "`config.json plugins.<이름>.enabled`(부재 = 자동 발견; 워크스페이스 `plugins.json` "
+            "의 exclude 는 자기 entries 만 걸러 이 설치본을 끄지 못한다)"
         ),
         "not_applicable": {
             "pi-dev": "경로 참조라 켜고 끄는 선언이 없다",
         },
         "declared_unmeasured": [
-            "antigravity 의 워크스페이스 `plugins.json`(exclude 규칙)과 IDE 패널의 토글은 "
-            "미실측이다 — 이 절은 `config.json` 의 명시 false 만 잰다",
-            "grok-build 가 enabled/disabled 어느 목록에도 없는 플러그인을 로드하는지는 "
-            "미실측이다 (`grok plugin list --json` 이 활성 상태를 내지 않는다) — 부재를 "
-            "선언 소실로 적는다",
+            "antigravity IDE 패널의 토글이 어디에 쓰이는지는 미실측이다 (CLI `agy` 로만 쟀다) — "
+            "이 절은 `config.json` 의 명시 false 만 잰다",
+            "grok-build 가 disabled 일 때 `grok inspect` 는 플러그인 hooks 를 여전히 나열한다 — "
+            "실제 세션에서 그 hook 이 실행되는지는 미실측이다",
         ]
         + [f"{h}: 선언을 읽지 못했다: {e}" for h, e in read_errors.items()],
     }
@@ -2838,6 +2854,8 @@ def _render_text(report: dict[str, Any]) -> str:
                 state = f"DISABLED — 명시 false ({rec.get('decided_by')})"
             elif rec.get("basis") == "discovery":
                 state = "enabled — 자동 발견 루트 (config.json 에 항목 없음)"
+            elif rec.get("basis") == "default":
+                state = "enabled — 기본 로드 (enabled/disabled 어느 목록에도 없음)"
             else:
                 state = "DISABLED — 활성 선언 없음"
             lines.append(f"  - {rec['harness']} `{rec['key']}`: {state}")

@@ -294,6 +294,7 @@ claude plugin update standard-ai-workflow@standard-ai-workflow   # 재시작 후
 ```bash
 # Antigravity (agy CLI) — payload 루트를 로컬 경로로 설치한다 (2026-08-29 실측)
 # 인식되는 것: skills/ 4종 + 루트 mcp_config.json (mcpServers 키).
+# MCP 서버 별칭은 이 사본만 `ro` — 도구 이름이 mcp_standard-ai-workflow_ro_<도구> 로 64자 안에 든다 (main-020).
 # 루트 hooks.json 은 파일 인식까지만 실측 — 이벤트 어휘 호환 미실측이라 payload 에 안 싣는다.
 git clone https://github.com/ykylee/standard_ai_workflow.git
 agy plugin validate ./standard_ai_workflow/plugin   # 설치 전 검증 (skills 4 · mcpServers 1)
@@ -403,12 +404,23 @@ kit 사본이 저장소 소스와 같은 내용인가**) ·
 > |---|---|---|---|
 > | claude-code | `~/.claude/settings.json` `enabledPlugins["<plugin>@<market>"]` | 꺼짐 (갱신이 지운다) | `claude plugin enable <key>` |
 > | codex | `~/.codex/config.toml` `[plugins."<plugin>@<market>"] enabled` | 꺼짐 (기본값을 추측하지 않는다) | 그 블록에 `enabled = true` — codex 에는 enable 명령이 없다 |
-> | grok-build | `~/.grok/config.toml` `[plugins] enabled = […]` / `disabled = […]` | 꺼짐으로 적는다 (양쪽 부재 시 로드 여부는 미실측) | `grok plugin enable standard-ai-workflow` |
-> | antigravity | `~/.gemini/config/config.json` `plugins.<이름>.enabled` | **정상** — 사본 자리가 자동 발견 루트라 항목이 없다 | IDE 플러그인 패널 또는 그 파일 (`agy plugin enable` 은 이 파일을 쓰지 않는다) |
+> | grok-build | `~/.grok/config.toml` `[plugins] enabled = […]` / `disabled = […]` | **로드** — 양쪽 목록 부재는 기본 로드다 (끄는 선언은 `disabled` 하나) | `grok plugin enable standard-ai-workflow` |
+> | antigravity | `~/.gemini/config/config.json` `plugins.<이름>.enabled` | **로드** — 사본 자리가 자동 발견 루트다 (agy 1.0.16 은 첫 실행에 `enabled: true` 를 써 넣는다) | IDE 플러그인 패널 또는 그 파일 (`agy plugin enable` 은 이 파일을 쓰지 않는다) |
 > | pi-dev | 없음 (경로 참조) | 해당 없음 | — |
 >
 > grok 의 두 목록은 `grok plugin disable` → `enable` 왕복으로, antigravity 의 무반응은
 > `agy plugin disable science` 뒤 파일 불변으로 실측했다.
+>
+> **부재의 뜻은 실행으로 쟀다** (97차 2026-09-28, TASK-2026-09-28-main-019). grok 은 `enabled` 줄을
+> 지운 상태 · `enabled = []` 에서 `grok -p` 세션의 프롬프트가 enabled 와 바이트 동일했고
+> (`grok inspect --json` 도 스킬 4 · MCP 1 동일), disabled 에서만 스킬·MCP 가 빠졌다.
+> `inspect` 의 `plugins[].enabled` 는 disabled 에서도 true 라 판정 근거가 못 된다.
+> antigravity 는 `agy -p --log-file` 의 MCP 로드 줄로 true · 부재 → 로드, false → 미로드를 쟀다.
+> 워크스페이스 `.agents/plugins.json`(또는 전역 `~/.gemini/config/plugins.json`)의
+> `exclude` · `include_only` 는 **자기 `entries` 안에서만** 거른다 — 자동 발견 루트의 이
+> 설치본은 끄지 못했고, 이름 바꾼 사본을 entry 로 등록하면 로드 · exclude 하면 제외되는
+> 것으로 파일이 실제로 읽힌다는 것을 대조했다. 반대로 `config.json` 의 `false` 는 이름 단위라
+> `plugins.json` 으로 등록한 같은 이름의 사본까지 끈다.
 
 > **사본이 최신이어도 MCP 서버는 다른 코드로 뜰 수 있다** (TASK-2026-09-23-main-013).
 > 플러그인 `.mcp.json` 은 `python3 -m workflow_kit…` 만 부르므로 서버는 사본이 아니라

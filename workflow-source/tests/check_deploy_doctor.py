@@ -1937,6 +1937,8 @@ def test_plugin_enabled_grok_reads_two_lists() -> None:
         section_false, findings_false = _enabled_section(home, project)
         cfg.write_text('[plugins]\nenabled = ["other"]\ndisabled = []\n', encoding="utf-8")
         section_absent, _ = _enabled_section(home, project)
+        cfg.write_text('[ui]\nyolo = true\n', encoding="utf-8")
+        section_no_block, _ = _enabled_section(home, project)
     problems = []
     if _rec(section_true, "grok-build").get("enabled") is not True or section_true.get("disabled"):
         problems.append(f"enabled 목록을 못 읽었다: {_rec(section_true, 'grok-build')!r}")
@@ -1946,9 +1948,14 @@ def test_plugin_enabled_grok_reads_two_lists() -> None:
         problems.append(f"disabled 목록이 grok 을 안 가리킨다: {section_false.get('disabled')!r}")
     if not any("grok-build" in f and "명시적으로 꺼져 있다" in f and "grok plugin enable" in f for f in findings_false):
         problems.append(f"grok 의 false 발견·처방이 없다: {findings_false!r}")
-    rec = _rec(section_absent, "grok-build")
-    if rec.get("enabled") is not None or not any("grok-build" in f and "활성 선언이 없다" in f for f in section_absent.get("findings") or []):
-        problems.append(f"양쪽 목록 부재를 None + 발견으로 안 냈다: {rec!r}")
+    # 양쪽 목록 부재 = 기본 로드 (2026-09-28 실측, main-019: `grok -p` 프롬프트가 enabled 와
+    # 바이트 동일). 발견을 내면 로드되는 설치본을 꺼졌다고 말하는 위양성이다.
+    for label, section in (("목록에 다른 이름만", section_absent), ("[plugins] 블록 없음", section_no_block)):
+        rec = _rec(section, "grok-build")
+        if rec.get("enabled") is not None or rec.get("basis") != "default":
+            problems.append(f"{label}: 부재를 basis=default 로 안 적었다: {rec!r}")
+        if section.get("disabled") or any("grok-build" in f for f in section.get("findings") or []):
+            problems.append(f"{label}: 기본 로드 상태에 발견을 냈다: {section.get('findings')!r}")
     _record("test_plugin_enabled_grok_reads_two_lists", not problems, "; ".join(problems))
 
 

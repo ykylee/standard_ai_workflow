@@ -20,7 +20,7 @@ plugin/
 │   ├── doc-sync/SKILL.md
 │   └── session-end/SKILL.md
 ├── mcp.json                     # MCP mcpServers 스키마, read-only bundle (+ .mcp.json 동일 사본)
-├── mcp_config.json              # Antigravity 관례 루트 파일 — mcp.json 과 동일 사본 (2026-08-29 실측)
+├── mcp_config.json              # Antigravity 관례 루트 파일 — mcp.json 과 같은 서버, 별칭만 짧다 (main-020)
 ├── hooks/hooks.json             # Grok Build 관례 경로 — Claude 어댑터 훅과 동일 사본 (TASK-012)
 └── adapters/
     ├── claude-code/hooks.json   # 세션 경계 hook (P2) + 조건부 규칙 주입 (TASK-003)
@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Callable, NamedTuple, Sequence
@@ -163,6 +164,26 @@ CODEX_MANIFEST_RELPATH = ".codex-plugin/plugin.json"
 #: 루트 `hooks.json` 도 파일 단위로는 인식되지만 이벤트 어휘(SessionStart 계열)의
 #: 호환은 **미실측**이라 싣지 않는다 (모름 ≠ 안전).
 ANTIGRAVITY_MCP_RELPATH = "mcp_config.json"
+
+#: Antigravity 가 플러그인 MCP 도구에 붙이는 이름 — ``mcp_<플러그인>_<서버 별칭>_<도구>`` 를
+#: 이 정규식으로 검사하고 어긋나면 그 도구를 버린다 (2026-09-28 agy 1.0.16 실측,
+#: TASK-2026-09-28-main-020: `--log-file` 에 ``encountered invalid tool … violates
+#: ^[a-zA-Z0-9_-]{1,64}$``). 공용 별칭 ``standardAiWorkflowReadOnly`` 로는 접두가 52자라
+#: 가장 짧은 도구도 66자 — **11개 전부** 조용히 버려졌다. 서버 부분이 설정 키에서 온다는
+#: 것은 9자 별칭으로 30자 도구 1건만 거부되는 양성 대조로 확인했다.
+ANTIGRAVITY_TOOL_NAME_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
+
+#: Antigravity 사본에만 쓰는 짧은 서버 별칭. 공용 별칭을 바꾸면 다른 채널의 도구 이름
+#: (`mcp__standardAiWorkflowReadOnly__…`)과 문서가 함께 깨지므로 이 사본만 다르게 둔다.
+#: 예산: 64 − len("mcp_standard-ai-workflow_") − 1 − 가장 긴 도구 이름.
+ANTIGRAVITY_MCP_SERVER_ALIAS = "ro"
+
+
+def antigravity_tool_names(alias: str = ANTIGRAVITY_MCP_SERVER_ALIAS) -> list[str]:
+    """Antigravity 가 합성할 도구 이름 전부 — payload 가 싣는 bundle 의 정본 도구 목록에서 파생한다."""
+    from workflow_kit.server.read_only_registry import tool_specs_for_bundle
+
+    return [f"mcp_{PLUGIN_NAME}_{alias}_{spec.name}" for spec in tool_specs_for_bundle(PAYLOAD_MCP_BUNDLE)]
 
 #: goose / OpenCode 어댑터 — 두 하네스 모두 스킬은 `.agents/skills/` 를 직접 읽으므로
 #: (multi-harness-plugin-review §2) 어댑터가 나를 것은 MCP 등록 snippet 뿐이다.
@@ -579,7 +600,7 @@ def render_codex_manifest(version: str | None = None) -> str:
     ) + "\n"
 
 
-def render_plugin_mcp_config() -> str:
+def render_plugin_mcp_config(alias: str | None = None) -> str:
     """``plugin/mcp.json`` — read-only bundle 하나만 등록한다.
 
     command / args 는 :func:`workflow_kit.bootstrap_lib.mcp.mcp_server_command` 파생
@@ -590,6 +611,9 @@ def render_plugin_mcp_config() -> str:
     구조를 모른다. `wk` / `workflow_kit` 은 설치 전제이고 (계획 원칙 4), 그 전제가
     깨지면 서버가 뜨지 않는 것으로 드러나야 한다 — 상대 경로를 심어 두면 "왜인지
     모르게 안 되는" 경로가 생긴다.
+
+    ``alias`` 는 서버 키만 바꾼다 — Antigravity 사본이 도구 이름 길이 제한 때문에 쓴다
+    (:data:`ANTIGRAVITY_MCP_SERVER_ALIAS`). 생략하면 공용 별칭이다.
     """
     from workflow_kit.bootstrap_lib.mcp import MCP_SERVER_ALIAS, mcp_server_command
 
@@ -599,7 +623,7 @@ def render_plugin_mcp_config() -> str:
     return json.dumps(
         {
             "mcpServers": {
-                MCP_SERVER_ALIAS: {
+                alias or MCP_SERVER_ALIAS: {
                     "type": "stdio",
                     "command": command[0],
                     "args": command[1:],
@@ -926,8 +950,9 @@ def render_agent_plugin(
         CLAUDE_CODE_HOOKS_RELPATH: hooks_config,
         GROK_HOOKS_RELPATH: hooks_config,
         CLAUDE_CODE_RULES_RELPATH: render_claude_code_rules(resolved),
-        # Antigravity 관례 루트 파일 — mcp.json 과 동일 사본 (동일성은 검사 case 가 강제).
-        ANTIGRAVITY_MCP_RELPATH: mcp_config,
+        # Antigravity 관례 루트 파일 — 같은 렌더러, 서버 별칭만 짧다 (도구 이름 64자 제한,
+        # main-020). 별칭 외 동일성과 이름 길이는 검사 case 가 강제한다.
+        ANTIGRAVITY_MCP_RELPATH: render_plugin_mcp_config(ANTIGRAVITY_MCP_SERVER_ALIAS),
         GOOSE_SNIPPET_RELPATH: render_goose_config_snippet(),
         OPENCODE_SNIPPET_RELPATH: render_opencode_snippet(),
     }

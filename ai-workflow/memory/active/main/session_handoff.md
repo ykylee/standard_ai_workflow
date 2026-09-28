@@ -49,7 +49,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-28-main-021 v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
@@ -57,6 +57,8 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-28-main-020 antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과
+- TASK-2026-09-28-main-019 wk doctor plugin_enabled 미실측 2건 실측 — grok 목록 부재 시 로드 · antigravity 워크스페이스 exclude
 - TASK-2026-09-28-main-018 wk doctor plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 의 활성 선언 자리 실측
 - TASK-2026-09-28-main-016 v1.13.0 발행 — 은퇴 shim 제거 + check_self_application telemetry 오염 수리
 - TASK-2026-09-28-main-017 wk doctor 가 claude-code 플러그인의 enabled 여부를 재지 않는다 — enabledPlugins 부재로 스킬이 조용히 사라진다
@@ -65,8 +67,6 @@
 - TASK-2026-09-23-main-018 memory_index 소비가 session-start 에 편중 — 다른 소비자의 조회가 거의 없다
 - TASK-2026-09-28-main-014 v1.12.0 발행 준비 — 삭제된 공개 API 에 deprecation shim 복원 + 버전 bump
 - TASK-2026-09-23-main-014 발행 후 로컬 소비 채널 갱신이 절차에 없어 설치본이 조용히 낡는다
-- TASK-2026-09-28-main-013 세션 시작 컨텍스트 예산 — implementation (출구 먼저, red 나중)
-- TASK-2026-09-28-main-012 세션 시작 컨텍스트 예산 — design (ADR-029 + core 스펙 절)
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

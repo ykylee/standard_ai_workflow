@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "standardAiWorkflowReadOnly": {
+    "ro": {
       "type": "stdio",
       "command": "python3",
       "args": [

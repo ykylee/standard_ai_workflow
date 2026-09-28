@@ -212,8 +212,10 @@ claude-code 는 그 상태에서 `plugin update` 를 **버전 문자열만 보�
 grok-build · antigravity 를 같은 절에 더했다 — 선언 자리가 채널마다 달라(codex 는 config.toml
 블록의 `enabled`, grok 은 `[plugins]` 의 enabled/disabled 두 목록, antigravity 는 `config.json`
 의 `plugins.<이름>.enabled` 이되 **부재가 정상**인 자동 발견 루트) 리더를 채널별로 두고 실측
-근거를 각 리더의 docstring 에 적었다. 재지 못한 것(grok 양쪽 부재의 로드 의미, antigravity
-의 `plugins.json` exclude · IDE 패널)은 `declared_unmeasured` 에 남긴다. `mcp_interpreter` 는 2026-09-25 에 더했다
+근거를 각 리더의 docstring 에 적었다. 부재의 뜻은 같은 날 실행으로 쟀다 (TASK-2026-09-28-main-019):
+grok 양쪽 목록 부재와 antigravity 항목 부재는 둘 다 **로드**라 발견이 아니고, antigravity
+`plugins.json` 의 exclude 는 자기 entries 만 걸러 자동 발견 설치본을 끄지 못한다. 남은 미측정
+(antigravity IDE 패널 토글, grok disabled 시 hook 실행)은 `declared_unmeasured` 에 남긴다. `mcp_interpreter` 는 2026-09-25 에 더했다
 (TASK-2026-09-23-main-013): `content_drift` 가 사본만 대조하는 사이 MCP 서버는
 PATH 해석기의 kit 으로 뜬다 — 87차 실측에서 사본은 in-sync 인데 서버는 옛 worktree
 를 가리키는 editable 1.2.0 이었다.

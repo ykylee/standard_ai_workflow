@@ -793,8 +793,10 @@ def test_antigravity_adapter() -> None:
     payload 루트의 관례 파일을 읽는다 — `skills/` 4종과 루트 `mcp_config.json`
     (mcpServers 키). 이 case 는 그 형태를 고정한다:
 
-    - `mcp_config.json` 이 payload 에 실재하고 **`mcp.json` 과 byte 동일**하다 —
-      같은 렌더러 출력의 동일 사본이라 정본이 하나다 (`.mcp.json` 과 같은 설계).
+    - `mcp_config.json` 이 payload 에 실재하고 **서버 별칭 하나만 빼면 `mcp.json` 과 같다** —
+      같은 렌더러 출력이라 정본이 하나다. 별칭이 다른 이유는 도구 이름 64자 제한이다
+      (2026-09-28 agy 실측, main-020): Antigravity 가 합성하는 `mcp_<플러그인>_<별칭>_<도구>`
+      가 **전부** 정규식을 통과해야 한다 — 이름 목록은 정본 도구 목록에서 파생한다.
     - mcpServers 는 read-only bundle 하나, command 는 `mcp_server_command` 파생,
       `PYTHONPATH` 금지 (체크아웃 전제 금지 — 계획 원칙 4).
     - 루트 `hooks.json` 은 싣지 않는다 — 이벤트 어휘 호환이 미실측이다 (모름 ≠ 안전).
@@ -805,6 +807,12 @@ def test_antigravity_adapter() -> None:
         mcp_server_command,
     )
 
+    from workflow_kit.plugin_payload import (
+        ANTIGRAVITY_MCP_SERVER_ALIAS,
+        ANTIGRAVITY_TOOL_NAME_RE,
+        antigravity_tool_names,
+    )
+
     rules = load_standard_rules(SOURCE_ROOT)
     payload = render_agent_plugin(rules)
     problems: list[str] = []
@@ -812,18 +820,31 @@ def test_antigravity_adapter() -> None:
     config_text = payload.get(ANTIGRAVITY_MCP_RELPATH)
     if config_text is None:
         problems.append(f"{ANTIGRAVITY_MCP_RELPATH} 가 payload 에 없다")
-    elif config_text != payload.get("mcp.json"):
-        problems.append(f"{ANTIGRAVITY_MCP_RELPATH} 가 mcp.json 과 다르다 — 동일 사본 계약 위반")
+    else:
+        shared = json.loads(payload.get("mcp.json") or "{}").get("mcpServers", {})
+        own = json.loads(config_text).get("mcpServers", {})
+        if list(own.values()) != list(shared.values()):
+            problems.append(f"{ANTIGRAVITY_MCP_RELPATH} 의 서버 정의가 mcp.json 과 다르다 — 별칭 외엔 같아야 한다")
 
     if "hooks.json" in payload:
         problems.append("루트 hooks.json 이 실렸다 — 이벤트 어휘 호환 미실측 (모름 ≠ 안전)")
 
     servers = json.loads(config_text or "{}").get("mcpServers", {})
-    if set(servers) != {MCP_SERVER_ALIAS}:
-        problems.append(f"mcpServers alias {sorted(servers)} != {{{MCP_SERVER_ALIAS}}}")
+    if set(servers) != {ANTIGRAVITY_MCP_SERVER_ALIAS}:
+        problems.append(f"mcpServers alias {sorted(servers)} != {{{ANTIGRAVITY_MCP_SERVER_ALIAS}}}")
     if MCP_WRITE_SERVER_ALIAS in servers:
         problems.append(f"write bundle({MCP_WRITE_SERVER_ALIAS}) 이 실렸다 — opt-in 이다 (ADR-003)")
-    entry = servers.get(MCP_SERVER_ALIAS, {})
+    # 실제 렌더된 파일의 별칭으로 합성한다 — 상수만 보면 렌더러가 별칭을 안 써도 통과한다.
+    for alias in servers:
+        too_long = [n for n in antigravity_tool_names(alias) if not ANTIGRAVITY_TOOL_NAME_RE.match(n)]
+        if too_long:
+            problems.append(
+                f"Antigravity 가 버릴 도구 이름 {len(too_long)}개 (64자 제한): {too_long[0]} ({len(too_long[0])}자)"
+            )
+    # 판정 자체가 살아 있는가 — 공용 별칭은 실측에서 11/11 이 거부됐다.
+    if all(ANTIGRAVITY_TOOL_NAME_RE.match(n) for n in antigravity_tool_names(MCP_SERVER_ALIAS)):
+        problems.append("공용 별칭으로도 전부 통과한다 — 실측(전부 거부)과 판정이 어긋난다")
+    entry = next(iter(servers.values()), {})
     expected_cmd = mcp_server_command(PAYLOAD_MCP_BRIDGE, PAYLOAD_MCP_BUNDLE)
     if [entry.get("command"), *entry.get("args", [])] != expected_cmd:
         problems.append(f"command/args 가 mcp_server_command 파생이 아니다: {entry.get('args')}")
@@ -835,7 +856,7 @@ def test_antigravity_adapter() -> None:
         not problems,
         "; ".join(problems[:4])
         if problems
-        else "mcp_config.json = mcp.json 동일 사본 + MCP 파생 + hooks 미탑재",
+        else "mcp_config.json = mcp.json 과 별칭 외 동일 + 도구 이름 64자 이내 + MCP 파생 + hooks 미탑재",
     )
 
 

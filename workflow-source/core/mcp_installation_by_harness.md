@@ -4,7 +4,7 @@
 - 범위: 하네스별 MCP config 위치 / 스키마 / 자동 심기 (`--enable-mcp`) / 수동 적용 / 트러블슈팅
 - 대상 독자: 워크플로우 도입자, AI agent 운영자, 멀티 에이전트 setup 담당자
 - 상태: beta
-- 최종 수정일: 2026-08-29
+- 최종 수정일: 2026-09-28
 - 관련 문서: [./workflow_harness_distribution.md](./workflow_harness_distribution.md), [./read_only_mcp_transport_promotion.md](./read_only_mcp_transport_promotion.md), [../core/workflow_global_injection_policy.md](./workflow_global_injection_policy.md), [`../../scripts/bootstrap_workflow_kit.py`](../../scripts/bootstrap_workflow_kit.py), [../harnesses/*/apply_guide.md](../harnesses/)
 
 ## 1. 두 가지 MCP transport
@@ -179,7 +179,12 @@ workflow_kit.read_only = "Read-only MCP tools (latest_backlog, check_doc_metadat
 bootstrap 이 emit 한 `.antigravity/mcp.json` 의 `mcpServers` 블록을 그대로 복사한다.
 
 플러그인 채널이 더 간단하다: `agy plugin install <경로>/plugin` 이 payload 루트의
-`mcp_config.json` (`mcp.json` 과 동일 사본) 을 그대로 읽는다 — INSTALLATION §7.0.
+`mcp_config.json` 을 그대로 읽는다 — INSTALLATION §7.0. 이 파일은 `mcp.json` 과 서버 정의가
+같고 **별칭만 `ro` 로 짧다**: Antigravity 는 플러그인 도구 이름을 `mcp_<플러그인>_<별칭>_<도구>`
+로 합성해 `^[a-zA-Z0-9_-]{1,64}$` 로 검사하고 어긋나면 버리는데, 공용 별칭으로는 11개 전부가
+66~82자라 **조용히 전부 버려졌다** (2026-09-28 agy 1.0.16 `--log-file` 실측, TASK-2026-09-28-main-020).
+bootstrap 채널(`~/.gemini/config/mcp_config.json`)의 합성 규칙은 미실측이다 — 플러그인 접두가 없다면
+공용 별칭으로도 61자 이내지만, 그 전제를 재지 않았다.
 
 ### 6.5 MiniMax Code
 

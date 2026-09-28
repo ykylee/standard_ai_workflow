@@ -92,8 +92,8 @@ def fetch_federated_phishing_urls_v4(
 
 | Symbol | module | 이유 | replacement | removal |
 |---|---|---|---|---|
-| `verify_required_ci` | `workflow_kit.tools.release_pipeline` | GitHub Actions 테스트 workflow 폐지(2026-09-23, main-022). 발행 게이트 근거가 로컬 게이트 통과 기록으로 옮겨졌다 | `release_pipeline.verify_gate_evidence` | v1.13.0 |
-| `REQUIRED_CI_WORKFLOWS` | `workflow_kit.tools.release_pipeline` | 같은 이유. 모듈 `__getattr__` 로 경고하고 **빈 tuple** 을 돌려준다 — 옛 4종을 돌려주면 없는 워크플로를 필수라 말하게 된다 | (없음 — 필수 CI 가 없다) | v1.13.0 |
+| `verify_required_ci` | `workflow_kit.tools.release_pipeline` | GitHub Actions 테스트 workflow 폐지(2026-09-23, main-022). 발행 게이트 근거가 로컬 게이트 통과 기록으로 옮겨졌다 | `release_pipeline.verify_gate_evidence` | **v1.13.0** (코드 제거 ✅ 09-28-main-015) |
+| `REQUIRED_CI_WORKFLOWS` | `workflow_kit.tools.release_pipeline` | 같은 이유. 모듈 `__getattr__` 로 경고하고 **빈 tuple** 을 돌려준다 — 옛 4종을 돌려주면 없는 워크플로를 필수라 말하게 된다 | (없음 — 필수 CI 가 없다) | **v1.13.0** (코드 제거 ✅ 09-28-main-015) |
 
 **이 cycle 은 사후 복원이다.** main-022 가 두 이름을 v1.11.0 태그 뒤에 유예 없이 지웠고,
 v1.12.0 발행 준비의 등급 판정(`RELEASE.md` §1.5)에서 드러났다. `tools/` 는 동결 표면(v0.8.0
@@ -108,7 +108,8 @@ shim 은 **옛 질문에 새 근거로 답한다** — 늘 통과(가짜 green)�
       `check_v0_9_1_deprecation_contract` whitelist
 - [x] shim 이 대체 판정을 따른다 (게이트 True/False 두 방향) — 되주입 3종(늘 통과 · 경고 제거 ·
       옛 4종 반환) 각각 red
-- [ ] v1.13.0: 두 이름 제거 + whitelist entry 제거
+- [x] v1.13.0: 두 이름 제거 + whitelist entry 제거 ✅ 코드 (TASK-2026-09-28-main-015) — `check_release_gate_evidence`
+      case 10 이 '제거됨' 을 잰다(shim 되주입 → red). 소비자에게는 v1.13.0 발행으로 나간다
 
 ### 3.4 1st cycle 검증 (chapter 2 에서 실행)
 

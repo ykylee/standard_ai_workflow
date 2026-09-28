@@ -23,8 +23,9 @@
   7) runner 는 조건(exit 0 · 시작 시 깨끗 · HEAD 불변)을 **전부** 만족할 때만 기록
   8) runner 는 필터 없는 `--branch-context=all` 에서만 기록 대상으로 삼는다
   9) cmd_release 가 apply 경로에서 게이트로 **차단**한다 (advisory 로 되돌아가지 않았다)
- 10) 은퇴 shim(`verify_required_ci` · `REQUIRED_CI_WORKFLOWS`, v1.13.0 제거)이 경고를 내고
-     대체 판정을 **그대로 따른다** — 늘 통과도 늘 차단도 아니다 (TASK-2026-09-28-main-014)
+ 10) 은퇴한 CI 게이트 이름(`verify_required_ci` · `REQUIRED_CI_WORKFLOWS`)이 **제거됐다** —
+     v1.12.0 한 발행 동안 DeprecationWarning shim 이었고(TASK-2026-09-28-main-014) v1.13.0 에서
+     지웠다(09-28-main-015). 되살아나면 두 게이트가 공존해 어느 쪽이 발행을 막는지 흐려진다
 """
 
 from __future__ import annotations
@@ -50,7 +51,6 @@ for _p in (SOURCE_ROOT, TESTS_DIR):
 
 from workflow_kit.common import gate_evidence  # noqa: E402
 from workflow_kit.common.branch_matrix import labels  # noqa: E402
-from workflow_kit.common.check_warnings import call_deprecated  # noqa: E402
 from workflow_kit.tools import release_pipeline  # noqa: E402
 from workflow_kit.tools.release_pipeline import verify_gate_evidence  # noqa: E402
 
@@ -207,32 +207,18 @@ def case_9_release_blocks_on_gate() -> None:
     _record("case_9_release_blocks_on_gate", not problems, "; ".join(problems))
 
 
-def case_10_retired_ci_shim_follows_gate() -> None:
+def case_10_retired_ci_gate_removed() -> None:
     problems = []
-    original = release_pipeline.verify_gate_evidence
-    try:
-        for verdict in (True, False):
-            release_pipeline.verify_gate_evidence = (  # type: ignore[assignment]
-                lambda *, head_sha=None, **_: {"ok": verdict, "head_sha": head_sha or "abc",
-                                               "evidence": None, "error": None})
-            r = call_deprecated(release_pipeline.verify_required_ci, runs=[])
-            if r["ok"] is not verdict:
-                problems.append(f"게이트 {verdict} 인데 shim 이 {r['ok']}")
-            if r["blocking"] != ([] if verdict else ["gate_evidence"]):
-                problems.append(f"blocking={r['blocking']} (게이트 {verdict})")
-            if r.get("ignored_inputs") != ["runs"] or r.get("retired") is not True:
-                problems.append(f"은퇴 표식/무시한 입력 누락: {r}")
-    finally:
-        release_pipeline.verify_gate_evidence = original  # type: ignore[assignment]
-    workflows = call_deprecated(getattr, release_pipeline, "REQUIRED_CI_WORKFLOWS")
-    if workflows != ():
-        problems.append(f"REQUIRED_CI_WORKFLOWS={workflows!r} — 없는 워크플로를 필수라 말한다")
-    try:
-        getattr(release_pipeline, "NO_SUCH_NAME")
-        problems.append("모르는 이름이 AttributeError 를 안 낸다")
-    except AttributeError:
-        pass
-    _record("case_10_retired_ci_shim_follows_gate", not problems, "; ".join(problems))
+    for name in ("verify_required_ci", "REQUIRED_CI_WORKFLOWS"):
+        try:
+            getattr(release_pipeline, name)
+            problems.append(f"{name} 가 아직 있다 — v1.13.0 제거 대상 (policy spec §3.7)")
+        except AttributeError:
+            pass
+    src = PIPELINE_SRC.read_text(encoding="utf-8")
+    if "def __getattr__" in src:
+        problems.append("모듈 __getattr__ shim 이 남아 있다")
+    _record("case_10_retired_ci_gate_removed", not problems, "; ".join(problems))
 
 
 CASES = (
@@ -245,7 +231,7 @@ CASES = (
     case_7_runner_records_only_when_all_conditions_hold,
     case_8_runner_gate_scope,
     case_9_release_blocks_on_gate,
-    case_10_retired_ci_shim_follows_gate,
+    case_10_retired_ci_gate_removed,
 )
 
 

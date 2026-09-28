@@ -225,12 +225,20 @@ def _local_mypy_verdict(
         line for line in stdout.splitlines()
         if ".py:" in line and "error:" in line
     ]
+    # **몇 개를 쟀는지**도 판정과 함께 낸다. `ok` 만으로는 대상이 0개로 좁아진
+    # 실행("no issues found in 0 source files")과 구별이 안 된다. 검사들이 이
+    # 수를 보려고 같은 invocation 을 따로 한 번 더 돌리고 있었다
+    # (TASK-2026-09-28-main-007).
+    # 성공: "Success: no issues found in N source files"
+    # 실패: "Found E errors in F files (checked N source files)"
+    counted = re.search(r"(?:no issues found in|checked) (\d+) source files?", stdout)
     return {
         "ok": returncode == 0,
         "verdict": "measured",
         "exit_code": returncode,
         "error_count": len(error_lines),
         "first_error": error_lines[0] if error_lines else None,
+        "source_files": int(counted.group(1)) if counted else None,
         "interpreter": interpreter,
     }
 
@@ -240,7 +248,8 @@ def _check_local_mypy() -> dict[str, Any]:
 
     Returns:
         측정됨: {"ok": bool, "verdict": "measured", "exit_code": int,
-                "error_count": int, "first_error": str | None, "interpreter": str}
+                "error_count": int, "first_error": str | None,
+                "source_files": int | None, "interpreter": str}
         부재/미측정: {"ok": False, "skipped": True,
                 "verdict": "mypy_unavailable" | "timeout",
                 "interpreter": str, "error": str}
@@ -353,7 +362,7 @@ def cmd_release_status(args: Any) -> dict[str, Any]:
             "current_version": str,
             "last_release_tag": str | None,
             "unreleased_commits": {"count": int, "commits": [...]},
-            "local_mypy": {ok, verdict, exit_code, error_count, first_error, interpreter},
+            "local_mypy": {ok, verdict, exit_code, error_count, first_error, source_files, interpreter},
             "next_version": {next, current, bumped},
             "ready_to_release": bool,
             "auto_bump_applied": bool (v0.11.16+),

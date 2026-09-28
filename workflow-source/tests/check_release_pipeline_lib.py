@@ -99,13 +99,18 @@ def test_cmd_validate_returns_4_keys_v0_7_55() -> None:
 
 
 def test_cmd_validate_all_skipped_returns_all_ok_v0_7_55() -> None:
-    """cmd_validate with all 4 sources skipped returns all ok=True."""
+    """cmd_validate with all sources skipped returns all ok=True.
+
+    `mypy` 는 v0.11.12 에 5번째 source 로 붙었는데 이 test 는 그때 따라오지 않아,
+    '전부 skip' 이라면서 판정에 쓰지도 않는 mypy 를 매번 실제로 돌렸다 (~3.9s,
+    TASK-2026-09-28-main-007). 실제 mypy 경로는 위 test 가 잰다.
+    """
     lib = _import_lib()
     result = lib.cmd_validate(
         skip_packaging=True, skip_doctor=True,
-        skip_state=True, skip_git=True,
+        skip_state=True, skip_git=True, skip_mypy=True,
     )
-    for key in ("packaging", "doctor", "state", "git"):
+    for key in ("packaging", "doctor", "state", "git", "mypy"):
         assert result[key].get("ok") is True, f"{key} not ok: {result[key]}"
         assert result[key].get("skipped") is True, f"{key} not marked skipped: {result[key]}"
 

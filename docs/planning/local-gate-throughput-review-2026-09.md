@@ -225,3 +225,29 @@ A+B(LPT 제출 + `--jobs auto` = 코어 수 12) 와 C 첫 건(`wiki_score` 도�
 - LPT 가 **기존 경합 하나를 드러냈다**: `check_warning_gate` case 6 이 `tests/` 에
   만든 probe 를 전수 컴파일 검사 둘이 읽다 red. 알파벳순에서는 `w` 가 끝물이라
   우연히 안 겹쳤다. 그 검사를 정숙 구간으로 옮겼다 (단독 0.3s).
+
+## 9. C 둘째 건 — release 계열 검사의 mypy 반복 (TASK-2026-09-28-main-007)
+
+§3 의 다음 조사를 게이트 소요 상위 release 검사 4개에 먼저 했다. 방법은 cProfile
+대신 `subprocess.Popen` 계측(argv · 소요 전수)이다. 네 검사 단독 합 44.2s 중
+**42s 가 `mypy --no-incremental` 11회**(1회 ~3.85s)였고, 그중 5회가 같은 검사 안의
+반복이었다.
+
+| 검사 | mypy 전→후 | 단독 전→후 | 반복의 모양 |
+|---|---|---|---|
+| `release_pipeline_lib` | 2 → 1 | 12.6s → 8.6s | '전부 skip' test 가 v0.11.12 에 붙은 5번째 source(mypy)만 skip 하지 않아, 판정에 쓰지도 않는 mypy 를 돌렸다 |
+| `release_status_auto_bump_v0_11_16` | 3 → 1 | 11.7s → 3.9s | case 5 가 case 3 과 같은 invocation 을 직접 한 번 더 · case 8 의 mock 에서 `_check_local_mypy` 만 빠졌다 |
+| `release_status_v0_11_14` | 2 → 1 | 7.8s → 3.9s | case 6 이 case 5 와 같은 invocation 을 직접 한 번 더 |
+| `release_summary_v0_11_15` | 2 → 2 | 12.1s → 11.9s | 두 번이 서로 다른 코드 경로(release-status Layer 2 · release 게이트)라 유지 |
+
+- 직접 돌리던 이유는 **"몇 개 파일을 쟀는가"(≥107)** 를 보려는 것이었다. kit 의
+  Layer 2 판정이 그 수를 안 냈기 때문이다. 판정에 `source_files` 를 싣고(성공·실패
+  요약 줄 모두) 검사는 방금 실측한 판정을 단언한다 — 대상이 0개로 좁아진 실행을
+  `ok` 만으로는 구별할 수 없다는 점에서 판정 쪽에 있어야 할 값이었다.
+- 되주입 4종 전부 red: kit 에 타입 오류 1건(두 검사 모두 mypy 오류로 red) ·
+  `source_files` 파싱 제거 · 실패 요약 줄 파싱 제거(순수 함수 case) · `skip_mypy` 무시.
+- 단독 합 **44.2s → 28.3s (−16s, 축당 CPU)**. 두 축이면 −32s, 벽시계로는 ~1/k.
+- 게이트 전체의 mypy 호출(`mypy_config_actually_loaded` 44s · `mypy_strict_*` 2개 ·
+  위 release 계열)은 **검사 사이** 반복이다. 검사마다 재는 계약(config 로드 · 게이트
+  동일 invocation · release 경로)이 달라 공유하려면 검사 간 캐시가 필요하고, 그것은
+  case 독립성을 깨는 설계라 이번 범위 밖으로 둔다.

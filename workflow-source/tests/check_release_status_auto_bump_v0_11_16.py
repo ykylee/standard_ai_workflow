@@ -13,9 +13,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
-import os
-import tempfile
 import sys
 from pathlib import Path
 
@@ -34,23 +31,6 @@ CHECK_TIMEOUT_S = 150
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-
-def _isolated_mypy_cache_dir() -> str:
-    """이 프로세스 전용 mypy 캐시 경로 (TASK-2026-08-24-main-007).
-
-    `--no-incremental` 은 캐시 **읽기**만 끄고 디렉터리는 그대로 만든다. 그래서
-    병렬 구간의 mypy 호출들이 같은 cwd 의 `.mypy_cache` 를 두고 경합했고, 관찰
-    4차의 트레이스백이 `mypy/build.py:create_metastore` 를 지목했다.
-
-    **빈 문자열(`--cache-dir=`)로는 못 끈다** — 캐시를 *끄는* 것이 아니라 cwd 로
-    *옮긴다* (실측: `3.13/cache.*.db` 가 작업 디렉터리에 쏟아진다). 처음에
-    `.mypy_cache` 부재만 확인하고 "아무것도 안 만든다" 로 읽어 저장소에 캐시
-    db 를 커밋했다 — 기대한 산출물의 부재를 산출물 전체의 부재로 읽은 것이다.
-
-    그래서 **전용 경로**를 준다. 프로세스별로 갈라지므로 병렬에서 부딪히지 않고,
-    `TMPDIR` 아래라 러너가 정리한다 (전량 runner 는 `--tmp-dir` 로 실디스크를 준다).
-    """
-    return str(Path(tempfile.gettempdir()) / f"mypy-cache-{os.getpid()}")
 
 def test_release_status_auto_bump_v0_11_16() -> None:
     """v0.11.16 release-status --auto-bump flag verify."""
@@ -147,26 +127,19 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     print(f"  case 4 (summary 5-field format + auto_bump=skipped): PASS")
 
     # case 5: mypy strict clean verify (CI scope, 107 source files 유지)
-    mypy_proc = subprocess.run(
-        [sys.executable, "-m", "mypy", "--no-incremental", "--cache-dir", _isolated_mypy_cache_dir(),
-             # v1.0.2: config 명시. cwd(REPO_ROOT)에는 [tool.mypy] 가 없어
-             # 암묵적 탐색은 `Config File: Default` 로 떨어진다 — strict 미적용.
-             "--config-file", "workflow-source/pyproject.toml",
-         "workflow-source/workflow_kit/"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=120,
-    )
-    error_lines = [
-        line for line in mypy_proc.stdout.splitlines()
-        if ".py:" in line and "error:" in line
-    ]
-    assert mypy_proc.returncode == 0, (
-        f"mypy strict exit {mypy_proc.returncode} ({len(error_lines)} errors):\n"
-        + "\n".join(error_lines[:5])
+    #
+    # case 3 이 **방금 실제로 돌린** Layer 2 판정을 읽는다. 예전에는 같은 config ·
+    # 같은 대상 · 같은 `--no-incremental` 로 mypy 를 한 번 더 돌렸다 (~3.9s,
+    # TASK-2026-09-28-main-007). 대상이 좁아지지 않았는지는 판정이 함께 내는
+    # `source_files` 로 본다.
+    lm = result["local_mypy"]
+    assert lm.get("verdict") == "measured", f"local mypy 가 측정되지 않았다: {lm!r}"
+    assert lm["ok"] is True, (
+        f"mypy strict exit {lm['exit_code']} ({lm['error_count']} errors): {lm['first_error']}"
     )
     # 107 source files 유지 (v0.11.16 = v0.11.14 36 file 누적 mypy strict clean)
-    success_match = re.search(r"no issues found in (\d+) source files", mypy_proc.stdout)
-    assert success_match, f"mypy strict success message 부재: {mypy_proc.stdout[:200]}"
-    file_count = int(success_match.group(1))
+    file_count = lm.get("source_files")
+    assert isinstance(file_count, int), f"local_mypy 에 잰 파일 수가 없다: {lm!r}"
     assert file_count >= 107, f"mypy strict file count {file_count} < 107 (v0.11.10 baseline)"
     print(f"  case 5 (mypy strict clean {file_count} source files): PASS")
 
@@ -175,7 +148,7 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     # **Layer 2(mypy) 는 case 3 이 실제로 얻은 판정을 재사용한다.** 이 case 가 재는 것은
     # *두 모드가 auto_bump field 를 내는가* 이지 mypy 판정이 아닌데, `cmd_release_status`
     # 는 호출마다 `mypy --no-incremental` 을 새로 돌린다 (~5.1s). 가짜 값이 아니라 case 3
-    # 의 실측 그대로이고, 실제 mypy 판정은 case 5 가 자기 subprocess 로 따로 잰다.
+    # 의 실측 그대로이고, 그 판정 자체는 case 5 가 단언한다.
     # 실행 계약(`--no-incremental`)은 손대지 않는다.
     from workflow_kit import release_status as _rs
     from workflow_kit.workflow_kit_cli import cmd_release_status as _dispatch
@@ -236,7 +209,11 @@ def test_release_status_auto_bump_v0_11_16() -> None:
     # 유형에서 파생**되도록 바뀌었으므로(patch+1 고정 폐기), mock 하지 않으면 이
     # case 가 저장소 이력에 결합돼 breaking 커밋 하나에 기대값이 흔들린다.
     # 여기서 재는 것은 auto-bump 후 **current_version re-read 가 반영되는가** 다.
+    # `_check_local_mypy` 는 case 3 의 실측을 준다 — auto-bump 분기는 mypy 판정을 읽지
+    # 않는데, 빠져 있어서 mypy 를 한 번 더 돌리고 있었다 (TASK-2026-09-28-main-007).
     with patch("workflow_kit.release_status._run_auto_bump") as mock_bump, \
+         patch("workflow_kit.release_status._check_local_mypy",
+               lambda: dict(result["local_mypy"] or {})), \
          patch("workflow_kit.release_status._last_release_tag", return_value="v0.11.15-beta"), \
          patch("workflow_kit.release_status._unreleased_commits",
                return_value={"count": 1, "commits": [{"sha": "abc1234", "subject": "chore: bump"}]}), \

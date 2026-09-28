@@ -52,6 +52,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-28-main-007 release 계열 검사 4개가 같은 인자의 subprocess 를 반복한다 — 게이트 CPU 합 상위
 - TASK-2026-09-28-main-006 검사 5개가 실제 저장소 telemetry 에 session-start 를 기록해 사용 지표를 게이트마다 +10 부풀린다
 - TASK-2026-09-28-main-005 대시보드가 telemetry events.jsonl 을 패널마다 따로 읽어, 게이트 중 추가된 이벤트로 Panel 3·8 hit_rate 가 갈린다
 - TASK-2026-09-28-main-003 게이트 러너 스케줄링 — 긴 검사 먼저(LPT) 제출 + --jobs auto 상한을 코어 수로
@@ -61,7 +62,6 @@
 - TASK-2026-09-23-main-019 CI·게이트 처리량 — concept 검토 (Linear CI 재작업 글 참고)
 - TASK-2026-09-25-main-002 force push 차단 hook 이 실제 git push --force 를 막지 못한다
 - TASK-2026-09-23-main-021 release 계열 검사가 파이프라인 전체와 CI 조회를 반복한다 — 네트워크 의존 여부 확인
-- TASK-2026-09-23-main-009 스탬프 유예가 로컬 게이트에서 축을 가린다 — 문서를 고친 사이클은 CI 에서만 발화
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

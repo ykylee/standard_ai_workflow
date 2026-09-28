@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-09-28
 
+- **90차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 3건 close (main-019 · 09-28-main-001 · 09-28-main-002), 2건 open (09-28-main-003 · main-004), M-014 done.** ①**환경** — 시스템 python 이 3.13→3.14 로 올라가 `.venv`(심볼릭 해석기)와 사용자 site 의 kit editable 이 함께 사라졌다: `wk` ModuleNotFoundError + 플러그인 MCP 2종 Connection closed. `.venv` 는 `uv venv --seed` 로 재생성(3.14 에 ensurepip 없음), `/usr/bin/python3` 에는 `uv pip install --prefix ~/.local -e ./workflow-source`. `core.hooksPath=.githooks` 도 이 호스트에서 켰다. ②**main-019** — M-014 concept 종결(`docs/planning/local-gate-throughput-review-2026-09.md`): 게이트 3회 실측(k=8 268/278s, k=12 249s) — 병렬 구간은 **처리량에 묶임**(최장 검사 35~40s < 처리량 하한 89~94s), 알파벳순 제출이 꼬리. 스케줄 시뮬레이션이 실측과 1s 이내. 소유자 ① 안 = LPT + jobs 상한→코어 수(추정 −25%) + 반복 계산 건별 수리, 두 축 동시 실행은 이득 0 으로 기각. ③**09-28-main-002** — `PURPOSE.md` 가 101일 stale 로 `check_memory_lint` red → 소유자 검토로 개정(G5 로드맵·SDLC 추가, 하네스 범위 플러그인 중심, state.json 생성물 정정, G3 재확인).
+
+## 롤오프 2026-09-28
+
 - **89차 세션 (2026-09-24~25, macOS 호스트) — task 6건 close (09-24-main-001 · main-013 · 09-25-main-001 · main-009 · main-021 · 09-25-main-002), main-019 범위 변경. 결함족: 검사가 실제 인터페이스를 재지 않았다.** ①**09-24-main-001** — 늘 skipped 이던 `ci_mypy` 를 release/release-status 에서 제거(옛 플래그는 no-op 수용), summary wrap 판정을 AST 로 바꾸다 wrap 안 된 return 2개 발견·수리. ②**main-013** — `wk doctor` 에 `mcp_interpreter` 절(8절째): MCP 가 띄우는 PATH `python3` 의 kit 출처·버전을 설치본과 대조. 실측 오판 2건(PYTHONPATH 누수 · homebrew site-packages 추측) 수리. ③**main-009** — 진단 정정: 86차 CI red 는 '미커밋 유예' 가 아니라 **게이트 뒤 편집·미게이트 push**. `.githooks/pre-push` 가 push 하는 sha 의 게이트 통과 기록을 요구(`core.hooksPath=.githooks`, 새 클론은 한 번 켤 것), `.git/hooks/pre-push` 는 이어 부른다. ④**09-25-main-002** — force 차단 hook 이 git 이 넘기지 않는 `--force` 인자를 찾아 **v0.15.27 이후 무력**했다 → stdin ref 의 조상 판정으로 재작성, 검사는 bare remote 에 실제 `git push` + 변형 hook 되주입. ⑤main-021 은 CI 조회 소멸로 실측 기록만 남겨 close, main-019 는 로컬 게이트 처리량으로 범위 변경(소유자 결정). 게이트 축당 92~97s, 294 checks.
 
 ## 롤오프 2026-09-28

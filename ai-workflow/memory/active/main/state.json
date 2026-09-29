@@ -27,7 +27,7 @@
     "runtime_checks": null
   },
   "session": {
-    "current_baseline": "**104차 세션 (2026-09-29, macOS 호스트) — task 1건 close (TASK-2026-09-29-main-017, M-007/WBS-7.1).** 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인. **후속 후보**: 같은 패턴이 `okf_export.py:886` · `okf_import.py:323` · `refresh_wiki_memory.py:215` 등에 남음 — 커밋되는 산출물로 가는 곳만 선별 점검.",
+    "current_baseline": "**104차 세션 (2026-09-29, macOS 호스트) — task 2건 close (TASK-2026-09-29-main-017 · 018, M-007/WBS-7.1).** ②**main-018** — `str(relative_to)` 21곳을 용도별로 분류해 5곳을 `as_posix()` 로: **실결함** `deploy_doctor._compare_cache` 가 Windows 에서 하위 디렉터리 정본 파일 전부를 extra 로 보고(POSIX 키 대 역슬래시 rel), `plugin_payload` pi 정적 자산 제외도 무력 · 산출물 `refresh_wiki_memory` L1 SSOT 줄 · `okf_export`/`okf_import` 경로. 신규 `check_relpath_posix` (Windows 흉내 + 6개 모듈 정적 가드, 되돌리면 0/4). 표시용·OS 네이티브 사이트(release_pipeline 등)는 제외. ①**main-017** — 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
     "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
     "in_progress_items": [],
@@ -36,6 +36,7 @@
     ],
     "planned_items": [],
     "recent_done_items": [
+      "TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판",
       "TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정",
       "TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교",
       "TASK-2026-09-29-main-015 — Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현",
@@ -44,15 +45,14 @@
       "TASK-2026-09-29-main-012 — wiki 스탬프 단일화 — frontmatter updated: 를 정본으로, 게이트·doc-headers-update 가 그것을 판정·갱신 (100차 후속)",
       "TASK-2026-09-29-main-011 — claude runtime_load 재시작 확인 (100차 후속, v1.14.3)",
       "TASK-2026-09-29-main-010 — 상태 헤더 없는 wiki 6건의 스탬프 판정 범위",
-      "TASK-2026-09-29-main-009 — v1.14.3 발행 — 스탬프 형식 판정 + backlog-update kind 표식 수리",
-      "TASK-2026-09-29-main-008 — backlog-update 가 kind 규약을 모른다 — session kind 무source 생성 허용 + update 시 daily index kind 표식 미갱신"
+      "TASK-2026-09-29-main-009 — v1.14.3 발행 — 스탬프 형식 판정 + backlog-update kind 표식 수리"
     ],
     "unknown_status_items": [],
     "environment_constraints": []
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-29.md",
-    "task_count": 18,
+    "task_count": 19,
     "in_progress_items": [],
     "blocked_items": [],
     "done_items": [
@@ -73,7 +73,8 @@
       "TASK-2026-09-29-main-014 — v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리",
       "TASK-2026-09-29-main-015 — Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현",
       "TASK-2026-09-29-main-016 — Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교",
-      "TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정"
+      "TASK-2026-09-29-main-017 — roadmap_state.json source_path 호스트 독립(POSIX) 고정",
+      "TASK-2026-09-29-main-018 — str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판"
     ]
   },
   "next_documents": [

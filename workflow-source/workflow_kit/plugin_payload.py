@@ -1066,7 +1066,7 @@ def diff_repo_plugin_files(repo_root: Path, files: dict[str, str] | None = None)
         for found in base.rglob("*"):
             if not found.is_file():
                 continue
-            rel = str(found.relative_to(repo_root))
+            rel = found.relative_to(repo_root).as_posix()
             if _is_pi_static(rel):
                 continue
             if found.resolve() not in expected_paths:

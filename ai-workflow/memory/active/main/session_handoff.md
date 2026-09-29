@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 close: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`)
+- 최종 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 · 018 close: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`, 후속으로 `wk doctor` 가 Windows 에서 정본 파일을 extra 로 오판하던 것)
 - 이전 수정일: 2026-09-29 (103차 세션 **종료** — Windows 호스트. main-016 close: `wk` editable 재설치 확인 · 사용자 PATH 와 Codex 프로세스 PATH 비교. 사용자 PATH 에 venv Scripts 가 있으나 현재 데스크톱 프로세스에는 반영되지 않아 완전 재시작 필요)
 - 이전 수정일: 2026-09-29 (100차 세션 **종료** — Linux 호스트. main-010 close: 살아있음 판정이 wiki frontmatter status · 굵은 '상태' 헤더를 못 읽던 것)
 - 이전 수정일: 2026-09-29 (98차 세션 **종료** — Linux 호스트. task 5건 close(main-001~005) + **v1.14.1 · v1.14.2 발행** + GitHub #29 close)
@@ -26,7 +26,7 @@
 
 ## 1. 현재 작업 요약
 
-- 현재 기준선: **104차 세션 (2026-09-29, macOS 호스트) — task 1건 close (TASK-2026-09-29-main-017, M-007/WBS-7.1).** 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인. **후속 후보**: 같은 패턴이 `okf_export.py:886` · `okf_import.py:323` · `refresh_wiki_memory.py:215` 등에 남음 — 커밋되는 산출물로 가는 곳만 선별 점검.
+- 현재 기준선: **104차 세션 (2026-09-29, macOS 호스트) — task 2건 close (TASK-2026-09-29-main-017 · 018, M-007/WBS-7.1).** ②**main-018** — `str(relative_to)` 21곳을 용도별로 분류해 5곳을 `as_posix()` 로: **실결함** `deploy_doctor._compare_cache` 가 Windows 에서 하위 디렉터리 정본 파일 전부를 extra 로 보고(POSIX 키 대 역슬래시 rel), `plugin_payload` pi 정적 자산 제외도 무력 · 산출물 `refresh_wiki_memory` L1 SSOT 줄 · `okf_export`/`okf_import` 경로. 신규 `check_relpath_posix` (Windows 흉내 + 6개 모듈 정적 가드, 되돌리면 0/4). 표시용·OS 네이티브 사이트(release_pipeline 등)는 제외. ①**main-017** — 세션 시작 시 워킹 트리에 `roadmap_state.json` 미커밋 diff 15줄 — 103차 Windows 커밋이 `exempt_tasks[].source_path` 를 `\` 로 기록, Mac 재생성이 `/` 로 뒤집었다. 원인은 `common/state/roadmap.py` 의 `str(x.relative_to(root))` 2곳(task link `source_path` · `goal_source_missing` where) → `.as_posix()`. 회귀 case `test_source_paths_are_posix_on_any_host` 는 `relative_to` 를 `PureWindowsPath` 로 바꿔 Windows 를 흉내 — 수정 되돌리면 red 확인.
 - 직전 기준선: **103차 세션 (2026-09-29, Windows 호스트) — TASK-2026-09-29-main-016 종료.** 기존 `workflow-source/.venv` 에 `standard-ai-workflow 1.14.4` editable 재설치 성공, `wk.exe --help` 확인. 사용자 PATH 에 `D:\repos\standard_ai_workflow\workflow-source\.venv\Scripts` 가 이미 있지만, 현재 Codex 프로세스 PATH 에는 없어 `wk` 가 해석되지 않았다. 임시로 현재 셸 PATH 에 추가하면 `wk` 정상 해석. 원인은 데스크톱이 PATH 등록 뒤 재시작되지 않아 이전 환경을 유지한 것. 다음 시작: Codex 완전 재시작 후 `Get-Command wk`, `wk session-start`, `wk doctor --json` 확인.
 - 그 이전 기준선: **101차 세션 (2026-09-29, Linux 호스트 i5-1335U) — task 4건 close (TASK-2026-09-29-main-011 · 012 · 013 · 014), **v1.14.4 발행**.** ①**main-011** — 100차 후속 `runtime_load`: 이 세션 claude(pid 2316673, 04:08Z)는 1.14.3 설치(03:41Z) 뒤 시작 → 최신, 플러그인 스킬 실호출 성공, 4채널 enabled · 1.14.3 in_sync. 낡은 호스트 1개(pts/4 pid 2138779, 02:55Z)는 타 세션. ②**main-012** — 100차 후속 'wiki 두 번째 스탬프': wiki 는 SCHEMA 가 `updated:` 를 스탬프로 정하고 lint·`score_wiki_maintainability`·okf_export 가 그것을 읽는데 **게이트와 `doc-headers-update` 는 `- 최종 수정일:` 만 알았다** — `updated:` 만 가진 살아있는 wiki 68건은 감시 밖(20건 최대 78일 뒤처짐), 두 필드 다 가진 19건은 최대 66일 갈라짐. `updated:` 를 정본으로: `doc_stamp.is_wiki_page` · `read_stamp` · `write_stamp` · `HEADER_STAMP_RE` 신설, 게이트 case 10 과 `doc-headers-update` 가 같은 함수로 읽고 씀, wiki 의 `- 최종 수정일:` 은 형식 위반. 데이터: 옛 헤더 줄 19건 제거 + `updated:` 26건 실제 내용 변경일로 정규화. case 15(wiki 계약 11행) + case 10 wiki 판정 0건 바닥, 되주입 8종 red(처음 이력 경로 누락이 green 으로 새서 행 추가). 부수: wiki 여부를 매 문서 물으면 무관한 인덱스 검사가 `workflow_kit` 전체를 import 해 WATCHES 좁은 선언 red → `updated:` 줄이 바뀔 때만 묻게. ③**main-013 (소유자 전달 Windows 버그)** — `deploy_doctor._run_mcp_child_probe` 가 38줄 탐침을 `-c` 인자로 넘겨, Windows 에서 `which("python3")` 가 `python3.CMD` shim 이면 cmd.exe 가 첫 개행 뒤를 버려 탐침 출력 0 → `probe_failed`. stdin(`python -`) 전달로 수리(스크립트 ASCII). `check_deploy_doctor` 에 첫 개행에서 자르는 fake shim case(모형 유효성 같은 case 에서 따로 잼), 옛 호출 되주입 red. 같은 부류 `-c` 8곳 전수: venv 실물 경로 3곳 무관, `python_floor` 는 개발 게이트 전용이라 후속. ④**v1.14.4 (main-014)** — patch, 태그 → `e25239c5`, asset 4종, 게이트 1차 3 red = README 헤더 줄 리터럴 4개 중 첫 것만 sed 로 바꿈(→ `readme_version.sync`, 97차와 같은 자리), 발행 wheel 격리 shim 실측, §2.8 여덟 번째 실행(4채널 1.14.4, doctor `behind=[]` · `disabled=[]` · mcp `in_sync`). **실제 Windows cmd.exe 실측은 없다** — 소유자 환경 확인 필요. **후속**: claude 재시작(`runtime_load`) · macOS §2.8 재적용(→1.14.4) · Windows 에서 doctor mcp_interpreter 재확인 · MiniMax CLI 실제 읽기 경로 미실측.
 - 그 이전 기준선: **100차 세션 (2026-09-29, Linux 호스트 i5-1335U) — task 1건 close (TASK-2026-09-29-main-010).** ①**main-010** — 99차 후속 '상태 헤더 없는 wiki 6건': 원인은 wiki 가 아니라 **살아있음 판정이 평문 `- 상태:` 하나만 안 것**이다. wiki 페이지는 SCHEMA 에 따라 frontmatter `status:` 로 선언하고, 추적 문서 103건은 `- **상태**:` 굵은 표기 — 전부 '동결' 로 읽혀 wiki 스탬프가 최대 67일 뒤처져도 게이트가 안 봤다. `doc_layers.is_live_marked` 신설(굵은 헤더 + wiki 루트 안 현행 status active/draft/proposed/accepted, 루트 밖 okf 스냅샷은 동결 유지) + `paths.wiki_dir_for_workspace`. **스탬프(관리되는가)와 숫자 주장(지금의 사실인가)을 분리** — 버전 고정 wiki topic 의 '52개' 는 active 여도 그 시점 사실, 발행 노트는 굵은 헤더 덕에 우연히 빠져 있던 것을 명시 동결. 스탬프 7건 실제 내용 변경일로 정규화. `check_doc_stamp_rule` case 13(SCHEMA 어휘 == 정본 분할 파생 대조) · 14(경계 9행), 되주입 6종 red. 부수: `check_source_without_runtime_layer` 가 러너 밖 git 의 `index.lock` 에 copytree ENOENT → 복사 제외. **후속**: wiki frontmatter `updated:` 가 `- 최종 수정일:` 과 갈라진 두 번째 스탬프(정본 하나로 정할지) · claude 재시작(`runtime_load`) · macOS §2.8 재적용(→1.14.3) · MiniMax CLI 실제 읽기 경로 미실측.
@@ -61,6 +61,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-29-main-018 str(relative_to) 잔여 사이트 점검 — wk doctor 가 Windows 에서 정본 파일을 extra 로 오판
 - TASK-2026-09-29-main-017 roadmap_state.json source_path 호스트 독립(POSIX) 고정
 - TASK-2026-09-29-main-016 Codex 세션 내 wk 미인식 — editable 재설치 및 PATH 비교
 - TASK-2026-09-29-main-015 Windows 환경 워크플로우 editable 설치 및 emit/doctor 이슈 재현
@@ -70,13 +71,12 @@
 - TASK-2026-09-29-main-011 claude runtime_load 재시작 확인 (100차 후속, v1.14.3)
 - TASK-2026-09-29-main-010 상태 헤더 없는 wiki 6건의 스탬프 판정 범위
 - TASK-2026-09-29-main-009 v1.14.3 발행
-- TASK-2026-09-29-main-008 backlog-update kind 규약 불일치
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트
 
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.
-- (Mac/Linux 호스트) 104차 후속 후보: `str(x.relative_to())` 잔여 사이트 중 커밋되는·교차 호스트 산출물로 가는 곳 선별 점검 (M-007/WBS-7.1). blocked main-017(emit command python3 고정)도 같은 leaf.
+- (Windows 호스트) 104차 main-018 실측: `wk doctor --json` 사본 대조에서 정본 파일이 extra 로 뜨던 잡음이 사라졌는지 확인. (아무 호스트) blocked TASK-2026-08-25-main-017(emit command python3 고정)이 같은 M-007/WBS-7.1 leaf 의 다음 후보.
 - 누적 기록은 [`lessons.md`](./lessons.md) (규칙 10절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 7절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
 
 ### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64·65차 검증)

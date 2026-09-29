@@ -320,7 +320,7 @@ def _parse_bundle_pages(bundle: Path) -> list[ParsedPage]:
         except Exception:  # noqa: BLE001
             continue
         body = m.group(2)
-        rel = str(path.relative_to(bundle))
+        rel = path.relative_to(bundle).as_posix()
         pages.append(ParsedPage(source_path=path, relative_path=rel, frontmatter=fm, body=body))
     return pages
 

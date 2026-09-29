@@ -212,7 +212,7 @@ def l1_sources() -> dict[str, Path | None]:
 def _rel_to_repo(p: Path) -> str:
     """REPO_ROOT 상대 경로 문자열. 밖이면 절대 경로 그대로."""
     try:
-        return str(p.relative_to(REPO_ROOT))
+        return p.relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return str(p)
 

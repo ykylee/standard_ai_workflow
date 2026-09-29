@@ -883,7 +883,7 @@ def export_wiki_to_okf(
             skipped += sk
             exported += ex
             try:
-                rel = str(out_path.relative_to(out_bundle))
+                rel = out_path.relative_to(out_bundle).as_posix()
                 exported_text = out_path.read_text(encoding="utf-8")
                 fm = Frontmatter.parse(exported_text)
                 collected_pages.append((out_path, rel, fm))

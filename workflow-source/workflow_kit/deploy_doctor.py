@@ -1030,7 +1030,7 @@ def _compare_cache(
     for found in sorted(root.rglob("*")):
         if not found.is_file():
             continue
-        rel = str(found.relative_to(root))
+        rel = found.relative_to(root).as_posix()
         if rel in known or _skipped(rel) or _is_pi_static(rel):
             continue
         extra.append(rel)

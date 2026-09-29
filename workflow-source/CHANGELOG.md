@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 본 파일은 `tools/release_pipeline.py changelog-gen` 으로 자동 생성됩니다 (v0.7.14+).
 수동 편집은 다음 생성 시 덮어써진다 — 형식/metadata 변경은 생성기를 고칠 것.
 
-## [Unreleased] - 2026-09-28
+## [Unreleased] - 2026-09-29
 
 ### Added
 
@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(bootstrap): minimax-code 경로 대소문자 불일치로 session-start 가 매 세션 빈 task 를 만들던 것 (#29, 09-29-main-002) (9e4660ba)
+- fix(backlog-update): 날짜 경계 이월이 새 daily index 에 [generic] 을 적던 것 + 98차 세션 종료 (09-29-main-001) (6fd6af7c)
 - fix(plugin): antigravity MCP 도구 11개가 전부 거부되던 것 — 사본 별칭을 ro 로 + grok 목록 부재 위양성 (09-28-main-019·020) (0a232c99)
 - fix(tests): check_self_application 이 실제 사용 지표에 session-start 를 붙였다 + main-018 판정 (09-23-main-018) (23162c90)
 - fix(release): 유예 없이 지운 공개 API 2종을 은퇴 shim 으로 복원 — v1.13.0 제거 (09-28-main-014) (891ce0b4)
@@ -112,14 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(ci): digest 마커를 본문으로 — gh issue comment 에 없는 플래그였다 (main-001) (105f0043)
 - fix(tests): case 3 의 전제가 호스트 의존이었다 + 81차 세션 종료 (e2d6b0d3)
 - fix(docs): smoke 수 판정 범위를 포함 목록에서 전수 파생으로 (main-004) (d882b42a)
-- fix(doctor): content_drift 가 읽히지 않는 사본을 재고 있었다 — 소스 유형을 읽는다 (main-006) (3d5c7830)
-- fix(backlog-update): --apply 가 형제 생성물 roadmap_state.json 을 두고 갔다 (main-004) (cc172d6c)
-- ... (176 more)
+- ... (178 more)
 
-## [1.14.0] - 2026-09-28
+## [1.14.1] - 2026-09-29
 
 ### Changed
 
+- release(v1.14.1): 발행 준비 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리 (9e5ccadf)
+
+## [1.14.0] - 2026-09-29
+
+### Changed
+
+- release(v1.14.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 + §2.8 (8b434f4b)
 - release(v1.14.0): 발행 준비 — Antigravity MCP 도구 11종 거부 수리 + doctor plugin_enabled 4채널 (188bb9b7)
 
 ## [1.13.0] - 2026-09-28

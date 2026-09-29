@@ -67,3 +67,20 @@ update 에서 `--kind` 를 생략하면 task frontmatter 의 kind 는 보존됐�
   는 이미 설치된 파일을 인정하는 쪽의 결정이다.
 - Antigravity 에서 MCP 도구의 실제 **호출**은 여전히 재지 않았다 (v1.14.0 한계 그대로).
 - **Windows 는 현재 미측정이다** (`TASK-2026-08-25-main-017` blocked).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-29T02:21:59Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

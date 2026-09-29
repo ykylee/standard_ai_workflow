@@ -58,6 +58,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-29-main-010 상태 헤더 없는 wiki 6건의 스탬프 판정 범위
 - TASK-2026-09-29-main-009 v1.14.3 발행
 - TASK-2026-09-29-main-008 backlog-update kind 규약 불일치
 - TASK-2026-09-29-main-007 스탬프 게이트가 주석 달린 스탬프 줄을 조용히 건너뛰는 것
@@ -67,7 +68,6 @@
 - TASK-2026-09-29-main-003 v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리
 - TASK-2026-09-29-main-002 minimax-code 하네스 경로 대소문자 불일치로 session-start 가 매 세션 빈 bootstrap task 를 만든다 (GitHub #29)
 - TASK-2026-09-29-main-001 backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다
-- TASK-2026-09-28-main-021 v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (12 cases — 7~10 은 각 함수 docstring).
+"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (14 cases — 7~10 · 13 · 14 는 각 함수 docstring).
 
 ## 왜 이 검사가 있나 (TASK-2026-09-01-main-002)
 
@@ -27,6 +27,8 @@
   6) git 이 모르는 파일 → 판정 불가로 **loud FAIL** (조용한 통과 금지)
   11) 날짜 뒤 주석 달린 스탬프 → 형식 위반 (case 10 이 건너뛰지 않는다)
   12) 주석만 지운 변경 → 스탬프 전용 (정규화가 '오늘' 을 요구하지 않는다)
+  13) 정본의 wiki status 현행/은퇴 분할 == wiki SCHEMA 의 어휘 합집합
+  14) 살아있음 판정 경계 — wiki frontmatter · 굵은 헤더 · 스냅샷 · 은퇴 · 숫자 주장
 """
 
 from __future__ import annotations
@@ -346,6 +348,79 @@ def case_10_repo_wide_stamps_are_current() -> None:
     )
 
 
+def case_13_wiki_status_partition_matches_schema() -> None:
+    """정본의 현행/은퇴 분할이 wiki `SCHEMA.md` 의 어휘와 **같은 집합**인가 (main-010).
+
+    SCHEMA 에 어휘가 늘면(예: `archived`) 분할에 없는 값은 `is_live_marked` 가
+    조용히 '동결' 로 읽는다 — 새 값을 단 페이지가 스탬프 감시에서 빠진다. 그래서
+    분할을 손 목록으로 두되 SCHEMA 의 `status: a | b | c` 줄에서 파생한 합집합과
+    대조한다.
+    """
+    import re
+
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+    from workflow_kit.common.doc_layers import WIKI_LIVE_STATUSES, WIKI_RETIRED_STATUSES
+    from workflow_kit.common.paths import wiki_dir_for_workspace
+
+    schema = (wiki_dir_for_workspace(REPO_ROOT) / "SCHEMA.md").read_text(encoding="utf-8")
+    declared: set[str] = set()
+    for line in re.findall(r"^status:\s*(.+\|.+)$", schema, re.MULTILINE):
+        declared.update(v.strip() for v in line.split("|"))
+    assert declared, "SCHEMA 에서 status 어휘 줄을 하나도 못 읽었다 — 파생이 비면 대조는 무의미하다"
+    ours = set(WIKI_LIVE_STATUSES) | set(WIKI_RETIRED_STATUSES)
+    overlap = WIKI_LIVE_STATUSES & WIKI_RETIRED_STATUSES
+    _expect(
+        "case_13_wiki_status_partition_matches_schema",
+        declared == ours and not overlap,
+        True,
+        f"SCHEMA {sorted(declared)} == 분할 {sorted(ours)}"
+        if declared == ours and not overlap
+        else f"SCHEMA 에만 {sorted(declared - ours)} · 정본에만 {sorted(ours - declared)} · 겹침 {sorted(overlap)}",
+    )
+
+
+def case_14_liveness_boundaries() -> None:
+    """살아있음 판정의 경계를 한 줄씩 고정한다 (main-010).
+
+    파일을 쓰지 않는다 — 판정은 (경로, 본문) 만 읽으므로 존재하지 않는 경로로 잰다.
+    각 행은 '예전 판정이 틀렸던 자리' 또는 '넓히면 틀리게 될 자리' 다.
+    """
+    sys.path.insert(0, str(REPO_ROOT / "workflow-source"))
+    from workflow_kit.common.doc_layers import is_frozen_claim_layer, is_frozen_document
+
+    def fm(status: str) -> str:
+        return f"---\ntype: concept\nstatus: {status}\n---\n\n# t\n\n- 최종 수정일: 2026-01-01\n"
+
+    wiki = REPO_ROOT / "ai-workflow" / "wiki" / "concepts" / "_probe_main010.md"
+    sample = REPO_ROOT / "docs" / "samples" / "_probe_main010" / "concepts" / "x.md"
+    doc = REPO_ROOT / "docs" / "_probe_main010.md"
+    note = REPO_ROOT / "workflow-source" / "releases" / "_probe_main010.md"
+    bold = "# t\n\n- **상태**: accepted\n- 최종 수정일: 2026-01-01\n"
+    rows = [
+        # (이름, 판정 함수, 경로, 본문, 기대 동결)
+        ("wiki active → 스탬프 살아있음", is_frozen_document, wiki, fm("active"), False),
+        ("wiki accepted → 스탬프 살아있음", is_frozen_document, wiki, fm("accepted"), False),
+        ("wiki deprecated → 동결", is_frozen_document, wiki, fm("deprecated"), True),
+        ("wiki 루트 밖 스냅샷의 status active → 동결", is_frozen_document, sample, fm("active"), True),
+        ("본문의 status: 줄은 frontmatter 가 아니다", is_frozen_document, wiki,
+         "# t\n\nstatus: active\n", True),
+        ("굵은 헤더 - **상태**: → 살아있음", is_frozen_document, doc, bold, False),
+        ("wiki active 라도 숫자 주장은 동결", is_frozen_claim_layer, wiki, fm("active"), True),
+        ("굵은 헤더 문서의 숫자 주장 → 살아있음", is_frozen_claim_layer, doc, bold, False),
+        ("발행된 노트는 굵은 헤더여도 숫자 주장 동결", is_frozen_claim_layer, note, bold, True),
+    ]
+    wrong = [
+        name for name, fn, path, text, want in rows
+        if fn(path, text, repo_root=REPO_ROOT) is not want
+    ]
+    _expect(
+        "case_14_liveness_boundaries",
+        not wrong,
+        True,
+        f"경계 {len(rows)}행 일치" if not wrong else f"{len(wrong)}행 불일치 — {wrong}",
+    )
+
+
 def main() -> int:
     print("=== 문서 스탬프 판정 규칙 (_doc_stamp) ===")
     cases = (
@@ -361,6 +436,8 @@ def main() -> int:
         case_10_repo_wide_stamps_are_current,
         case_11_annotated_stamp_is_a_format_violation,
         case_12_dropping_annotation_is_stamp_only,
+        case_13_wiki_status_partition_matches_schema,
+        case_14_liveness_boundaries,
     )
     for fn in cases:
         try:

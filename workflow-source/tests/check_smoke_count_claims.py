@@ -65,10 +65,6 @@ TESTS_DIR = REPO_ROOT / "workflow-source" / "tests"
 #: `285개 check_*.py`). 실측에서 이 셋 외의 표기는 없었다.
 CLAIM_RE = re.compile(r"(?P<n>\d{2,4})\s*개\s*(?:`?check_\*\.py`?|smoke|스모크)")
 
-#: 살아있는 문서의 표지 — 저장소의 문서 메타데이터 헤더. 목록이 아니라 규약이다.
-LIVE_MARKER_RE = re.compile(r"^-\s*상태:", re.MULTILINE)
-
-
 def memory_layer_root() -> Path:
     """기록 계층(`ai-workflow/memory/`)의 경로를 **kit 의 경로 해석기에서** 얻는다.
 

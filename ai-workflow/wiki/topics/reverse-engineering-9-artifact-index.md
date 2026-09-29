@@ -11,7 +11,7 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.1 의 9-Artifact (brownfield project 의 주제별 SSOT) 의 *index* page. 각 artifact 의 본문은 `workflow-source/workflow_kit/assets/reverse-engineering/0N-*.md` 에 위치.
 - 범위: 9 artifact index + auto-fill helper (v0.7.1 follow-up) + R-1~R9 lint 정합
-- 최종 수정일: 2026-06-13
+- 최종 수정일: 2026-08-18
 
 ## §1 9-Artifact Index
 

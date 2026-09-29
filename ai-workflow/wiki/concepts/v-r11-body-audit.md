@@ -14,7 +14,7 @@ updated: 2026-06-16
 
 - 문서 목적: V-R10 offline (ADR-010) + V-R10 online (ADR-012) 의 *body* companion. HTTP GET + 4 body check: Content-Type, body size, phishing keywords, HTML renderable.
 - 범위: 4 body check (Content-Type / size / phishing / HTML) + 5 test + phishing keyword list
-- 최종 수정일: 2026-06-16
+- 최종 수정일: 2026-07-22
 
 ## §0 Status Notice  {#s0-status}
 

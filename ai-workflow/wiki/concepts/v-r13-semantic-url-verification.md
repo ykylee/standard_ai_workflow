@@ -14,7 +14,7 @@ updated: 2026-06-16
 
 - 문서 목적: V-R10 offline (ADR-010) + V-R10 online (ADR-012) + V-R11 body audit (ADR-017) + V-R12 commit-pinned URL (ADR-018) 의 *semantic* companion. URL 의 *content integrity* + *between-commit content change* verify.
 - 범위: 8 semantic check + 2 layer (content hash + commit range) + mode matrix
-- 최종 수정일: 2026-06-16
+- 최종 수정일: 2026-07-22
 
 ## §0 Status Notice  {#s0-status}
 

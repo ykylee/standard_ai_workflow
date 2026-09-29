@@ -13,7 +13,7 @@ r9_skip: true
 - 문서 목적: `ai-workflow/memory/` 의 3-state lifecycle (active ↔ archive ↔ release) 정책, R8 freeze 메커니즘, R9/R10 부수 규칙을 정리한다.
 - 범위: state 정의, lifecycle transition, R8 freeze protocol, related decisions
 - 관련 결정: ADR-005 (Memory as Raw Layer, proposed)
-- 최종 수정일: 2026-06-30 (세션 종료 commit/memory 순서 정합 cross-ref 추가)
+- 최종 수정일: 2026-06-30
 
 ## §1 TL;DR  {#s1-tldr}
 

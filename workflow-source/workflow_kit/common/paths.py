@@ -509,6 +509,15 @@ def memory_dir_for_workspace(workspace_root: Path) -> Path:
     return Path(workspace_root) / "ai-workflow" / "memory"
 
 
+def wiki_dir_for_workspace(workspace_root: Path) -> Path:
+    """workspace root 기준 `ai-workflow/wiki/` — wiki `SCHEMA.md` 가 관할하는 루트.
+
+    그 안의 페이지는 문서 상태를 frontmatter `status:` 로 선언한다
+    (`common.doc_layers` 가 이 경계를 읽는다, TASK-2026-09-29-main-010).
+    """
+    return Path(workspace_root) / "ai-workflow" / "wiki"
+
+
 def memory_active_dir(workspace_root: Path) -> Path:
     """workspace root 기준 `ai-workflow/memory/active/`.
 

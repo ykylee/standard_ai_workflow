@@ -11,7 +11,7 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.0 step 6 의 Reverse Engineering 9-Artifact (AIDLC `inception/reverse-engineering.md` 311 line 차용) 의 brownfield 도입 절차.
 - 범위: 9 md template + 13 step guide + state.json sync + user approval
-- 최종 수정일: 2026-06-13
+- 최종 수정일: 2026-08-18
 
 ## §1 TL;DR  {#s1-tldr}
 

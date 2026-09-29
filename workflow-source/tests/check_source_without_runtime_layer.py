@@ -51,6 +51,10 @@ RUNTIME_DIR_NAME = "ai-workflow"
 COPY_IGNORE = shutil.ignore_patterns(
     "__pycache__", "*.pyc", ".venv*", ".mypy_cache", ".pytest_cache",
     "node_modules", "dist", "build",
+    # 러너 밖 git(에디터 확장 등)이 잠깐 만드는 잠금 — 목록을 읽은 뒤 사라지면
+    # copytree 가 ENOENT 로 죽는다 (2026-09-29 `--changed` 실측, main-010).
+    # 사본에 남아도 사본의 git 을 막을 뿐이다.
+    "index.lock",
 )
 
 SOURCE_CHECKS = (

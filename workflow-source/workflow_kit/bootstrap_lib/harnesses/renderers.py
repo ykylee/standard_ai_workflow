@@ -214,7 +214,7 @@ When delegating to a worker, state the intent and the responsibility boundary in
 ## MiniMax Code notes
 
 - MiniMax Code uses both `MiniMax.md` and `AGENTS.md` as entry points. On conflict with system policy, `MiniMax.md` wins — but keep the two documents pointing at the same facts.
-- Copy `minimax_config_example.json` into your environment configuration (`~/.MiniMax/config.json`, or the project-local `.MiniMax/config.json`). Fill in server tokens and similar values yourself.
+- Copy `MiniMax_config.example.json` into your environment configuration (`~/.MiniMax/config.json`, or the project-local `.MiniMax/config.json`). Fill in server tokens and similar values yourself.
 - Before a worker performs a dangerous external action (database migration, production deploy, secret rotation), get explicit user approval first.
 - {harness_note}
 """

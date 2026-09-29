@@ -98,20 +98,24 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
     ),
     "minimax-code": HarnessSpec(
         name="minimax-code",
-        description="MiniMax Code용 overlay. AGENTS.md + MiniMax.md + minimax_config_example.json + orchestrator/worker 분리.",
-        entry_files=("AGENTS.md", "MiniMax.md"),
+        description="MiniMax Code용 overlay. MiniMax.md + MiniMax_config.example.json + orchestrator/worker 분리.",
+        # 선언은 **이 하네스의 bootstrap 이 실제로 쓰는 경로**와 대소문자까지 같아야 한다.
+        # 소문자로 선언돼 있는 동안 대소문자 구분 FS 에서 6건이 영구 부재로 분류돼
+        # 세션마다 자기 복구가 돌았다 (TASK-2026-09-29-main-002, GitHub #29).
+        # `AGENTS.md` 는 codex/opencode 채널이 쓰는 공유 파일이라 이 하네스는 쓰지 않는다.
+        entry_files=("MiniMax.md",),
         extra_files=(
-            "minimax_config_example.json",
-            ".minimax/agents/workflow-orchestrator.md",
-            ".minimax/agents/workflow-worker.md",
-            ".minimax/agents/workflow-doc-worker.md",
-            ".minimax/agents/workflow-code-worker.md",
-            ".minimax/agents/workflow-validation-worker.md",
+            "MiniMax_config.example.json",
+            ".MiniMax/agents/workflow-orchestrator.md",
+            ".MiniMax/agents/workflow-worker.md",
+            ".MiniMax/agents/workflow-doc-worker.md",
+            ".MiniMax/agents/workflow-code-worker.md",
+            ".MiniMax/agents/workflow-validation-worker.md",
         ),
         long_description=(
             "MiniMax Code(미니맥스 코드) 환경용 오버레이. 메인 orchestrator + doc/code/validation "
             "worker 분화 패턴과 한국어 우선 보고 원칙, 백로그/handoff 자동 동기화 규칙을 "
-            "AGENTS.md + MiniMax.md + .minimax/agents/ 구조로 한 번에 적용한다."
+            "MiniMax.md + .MiniMax/agents/ 구조로 한 번에 적용한다 (root AGENTS.md 는 codex 채널이 쓴다)."
         ),
     ),
     "mavis": HarnessSpec(
@@ -183,8 +187,10 @@ HARNESS_SPECS: dict[str, HarnessSpec] = {
     ),
     "grok-build": HarnessSpec(
         name="grok-build",
-        description="Grok Build (xAI CLI TUI)용 overlay. AGENTS.md + GROK.md 진입점 + .grok/skills/ + .grok/config.toml.example.",
-        entry_files=("AGENTS.md", "GROK.md"),
+        description="Grok Build (xAI CLI TUI)용 overlay. GROK.md 진입점 + .grok/skills/ + .grok/config.toml.example.",
+        # `AGENTS.md` 는 codex 채널이 쓰는 공유 파일이고 이 하네스의 bootstrap 은 쓰지
+        # 않는다 — 선언해 두면 grok 단독 프로젝트에서 영구 부재가 된다 (main-002).
+        entry_files=("GROK.md",),
         extra_files=(
             ".grok/skills/standard-ai-workflow/SKILL.md",
             ".grok/config.toml.example",

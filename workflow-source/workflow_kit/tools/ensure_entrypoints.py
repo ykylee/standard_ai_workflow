@@ -212,6 +212,10 @@ def run(*, project_root: Path, apply: bool) -> dict[str, object]:
             "--no-interactive",
             "--adoption-mode", "existing",
             "--create-missing-only",
+            # 선언된 부재 파일**만** 쓴다. 이것 없이 bootstrap 을 통째로 돌리면
+            # 초기 task 처럼 오늘 날짜가 든 상태 문서가 매 세션 새로 생긴다
+            # (TASK-2026-09-29-main-002, GitHub #29).
+            "--only-paths", *sorted({item["path"] for item in classified["missing"]}),
         ]
         for harness in harnesses:
             argv += ["--harness", harness]

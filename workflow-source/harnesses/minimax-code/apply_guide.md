@@ -4,7 +4,7 @@
 - 범위: 사전 점검, 파일 복사, 설정 적용, 첫 세션 시작, 트러블슈팅
 - 대상 독자: 표준 AI 워크플로우를 MiniMax Code로 처음 도입하는 개발자
 - 상태: beta
-- 최종 수정일: 2026-07-17
+- 최종 수정일: 2026-09-29
 - 관련 문서: `./README.md`, `../../core/workflow_adoption_entrypoints.md`
 
 ## 1. 사전 점검
@@ -21,10 +21,9 @@
 
 ```
 <project_root>/
-├── AGENTS.md
 ├── MiniMax.md
 ├── MiniMax_config.example.json
-└── .minimax/
+└── .MiniMax/            # 대소문자 그대로 — 대소문자 구분 FS 에서 `.minimax/` 는 다른 디렉터리다
     └── agents/
         ├── workflow-orchestrator.md
         ├── workflow-worker.md
@@ -37,11 +36,11 @@
 
 ```bash
 # 1. config.json 초기화
-mkdir -p .minimax
-cp MiniMax_config.example.json .minimax/config.json
+mkdir -p .MiniMax
+cp MiniMax_config.example.json .MiniMax/config.json
 
 # 2. 환경별 값 채우기
-$EDITOR .minimax/config.json
+$EDITOR .MiniMax/config.json
 # - project_name, agents[*].file 경로 확인
 # - mcp_servers[*].command 가 workflow-source 위치를 가리키는지 확인
 # - 시크릿은 환경 변수로 분리 (.env, vault 등)
@@ -68,7 +67,7 @@ MiniMax chat "AGENTS.md와 MiniMax.md를 읽고 워크플로우 세션을 시작
 
 | 증상 | 원인 | 해결 |
 | --- | --- | --- |
-| `MiniMax.md` 가 로드되지 않음 | `.minimax/` 디렉터리가 MiniMax Code의 신뢰 경로 밖 | 프로젝트 루트에 있는지 확인 후 세션 재시작 |
+| `MiniMax.md` 가 로드되지 않음 | `.MiniMax/` 디렉터리가 MiniMax Code의 신뢰 경로 밖 | 프로젝트 루트에 있는지 확인 후 세션 재시작 |
 | `mcp_servers` 가 연결되지 않음 | `PYTHONPATH` 가 `workflow-source` 를 가리키지 않음 | `MiniMax_config.example.json` 의 `mcp_servers.standard-ai-workflow-readonly.env.PYTHONPATH` 확인 |
 | 워커 호출 시 무한 대기 | orchestrator 가 `output_files` 를 명시하지 않음 | `WorkerTask.constraints` 에 "변경 범위는 output_files 한정" 명시 |
 | 한국어 보고가 영어로 나옴 | `language: "ko-KR"` 가 config 에 없음 | `MiniMax_config.example.json` 의 `language` 키 추가 |
@@ -76,7 +75,7 @@ MiniMax chat "AGENTS.md와 MiniMax.md를 읽고 워크플로우 세션을 시작
 ## 6. 다음 단계
 
 - 첫 적용이 끝나면 `workflow-source/harnesses/minimax-code/README.md` 와 본 가이드를 함께 검토한다.
-- 추가 워커 페르소나가 필요하면 `MiniMax.md` 의 "오케스트레이터 / 워커 운영 원칙" 섹션을 갱신하고 `.minimax/agents/` 에 새 파일을 추가한다.
+- 추가 워커 페르소나가 필요하면 `MiniMax.md` 의 "오케스트레이터 / 워커 운영 원칙" 섹션을 갱신하고 `.MiniMax/agents/` 에 새 파일을 추가한다.
 - 운영 패턴이 안정되면 `pilot_adoption_record_template.md` 로 도입 기록을 남긴다.
 
 ## 7. 로컬 MCP 설치 (`--enable-mcp`)
@@ -93,16 +92,16 @@ python3 workflow-source/scripts/bootstrap_workflow_kit.py \
   --enable-mcp
 ```
 
-`<root>/.minimax/mcp.json` 생성. 글로벌에 등록하려면 symlink:
+`<root>/.MiniMax/mcp.json` 생성. 글로벌에 등록하려면 symlink:
 
 ```bash
-mkdir -p ~/.minimax
-ln -sf <project_root>/.minimax/mcp.json ~/.minimax/mcp.json
+mkdir -p ~/.MiniMax
+ln -sf <project_root>/.MiniMax/mcp.json ~/.MiniMax/mcp.json
 ```
 
 ### 7.2 전역에 적용
 
-`~/.minimax/config.json` 의 `mcp_servers` 블록에 bootstrap 출력의 `standardAiWorkflowReadOnly` 항목을 옮긴다. `PYTHONPATH` 와 `STANDARD_AI_WORKFLOW_ROOT` 는 절대 경로로 보정.
+`~/.MiniMax/config.json` 의 `mcp_servers` 블록에 bootstrap 출력의 `standardAiWorkflowReadOnly` 항목을 옮긴다. `PYTHONPATH` 와 `STANDARD_AI_WORKFLOW_ROOT` 는 절대 경로로 보정.
 
 ### 7.3 Transport 선택
 

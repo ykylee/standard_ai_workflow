@@ -122,12 +122,45 @@ def create_only_enabled() -> bool:
     return _create_only
 
 
-def _resolve_write(decision: Decision) -> tuple[Decision, bool]:
+#: 쓰기를 허용할 target 기준 상대 경로 집합. ``None`` 이면 제한 없음.
+#: `ensure-entrypoints --apply` 가 **선언된 부재 파일만** 만들게 한다
+#: (TASK-2026-09-29-main-002, GitHub #29). 이것 없이 bootstrap 을 통째로 돌리면
+#: 초기 task 처럼 **오늘 날짜가 든** 상태 문서가 매 세션 새로 생긴다.
+_only_paths: frozenset[str] | None = None
+
+
+def set_only_paths(paths: list[str] | None) -> None:
+    """쓰기 허용 목록을 설정한다 (``None`` 이면 해제)."""
+    global _only_paths
+    _only_paths = None if paths is None else frozenset(
+        Path(p).as_posix() for p in paths)
+
+
+def only_paths_enabled() -> bool:
+    return _only_paths is not None
+
+
+def _resolve_write(
+    decision: Decision, path: Path, rel_to: Path | None,
+) -> tuple[Decision, bool]:
     """`(보고할 결정, 쓸 것인가)`. **쓰기 판정은 여기 한 곳**이다.
 
     예전에는 `decision.action in (Action.CREATE, Action.UPDATED)` 가 다섯 군데에
     복제돼 있었다 — 그런 복제는 새 분류가 늘 때 한 곳만 빠진다.
     """
+    if (_only_paths is not None
+            and decision.action in (Action.CREATE, Action.UPDATED)
+            and Path(rel(path, rel_to) if rel_to is not None else path).as_posix()
+            not in _only_paths):
+        return (
+            Decision(
+                action=Action.IGNORED,
+                src_marker=decision.src_marker,
+                dst_marker=decision.dst_marker,
+                reason=f"only-paths 밖이라 쓰지 않았다 (원래 판정: {decision.reason})",
+            ),
+            False,
+        )
     if decision.action is Action.UPDATED and _create_only:
         return (
             Decision(
@@ -186,7 +219,7 @@ def _copy_binary(
             is_preserved_path=is_preserved,
             force=force,
         )
-    decision, _write = _resolve_write(decision)
+    decision, _write = _resolve_write(decision, destination, rel_to)
     if _write:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, destination)
@@ -272,7 +305,7 @@ def write_text(
             force=force,
         )
 
-    decision, _write = _resolve_write(decision)
+    decision, _write = _resolve_write(decision, path, rel_to)
     if _write:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(stamped, encoding="utf-8")
@@ -326,7 +359,7 @@ def copy_core_docs(
             force=force,
         )
 
-        decision, _write = _resolve_write(decision)
+        decision, _write = _resolve_write(decision, destination, rel_to)
         if _write:
             shutil.copyfile(source, destination)
             destination.write_text(stamped, encoding="utf-8")
@@ -371,7 +404,8 @@ def copy_core_docs(
                     force=force,
                 )
 
-                nested_decision, _nested_write = _resolve_write(nested_decision)
+                nested_decision, _nested_write = _resolve_write(
+                    nested_decision, nested_destination, rel_to)
                 if _nested_write:
                     nested_destination.parent.mkdir(parents=True, exist_ok=True)
                     nested_destination.write_text(nested_stamped, encoding="utf-8")
@@ -407,7 +441,7 @@ def copy_core_docs(
             force=force,
         )
 
-        decision, _write = _resolve_write(decision)
+        decision, _write = _resolve_write(decision, destination, rel_to)
         if _write:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(stamped, encoding="utf-8")

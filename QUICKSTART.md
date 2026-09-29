@@ -4,7 +4,7 @@
 - 범위: 프로젝트 초기화, 환경 설정, 첫 세션 시작 가이드
 - 대상 독자: AI 에이전트와 협업하려는 개발자
 - 상태: beta
-- 최종 수정일: 2026-08-29
+- 최종 수정일: 2026-09-29
 - 관련 문서: `ai-workflow/README.md`, `AGENTS.md`, `ANTIGRAVITY.md`, `MiniMax.md`, [`docs/INSTALLATION_AND_USAGE.md`](docs/INSTALLATION_AND_USAGE.md) (개발자용)
 
 이 문서는 **Standard AI Workflow**를 여러분의 프로젝트에 5분 만에 도입하여 AI 에이전트와 체계적으로 Peer Programming을 시작하는 방법을 안내합니다.
@@ -111,10 +111,10 @@ v0.5.8 부터 TTY 환경에서 `--harness` 미지정 시 interactive picker 가 
 | Codex | `<root>/.codex/mcp.toml` | TOML |
 | OpenCode | `<root>/mcp.opencode.json` | JSON (`mcp` 키) |
 | Antigravity | `<root>/.antigravity/mcp.json` | JSON (`mcpServers` 키) |
-| MiniMax Code | `<root>/.minimax/mcp.json` | JSON (`mcp_servers` 키) |
+| MiniMax Code | `<root>/.MiniMax/mcp.json` | JSON (`mcp_servers` 키) |
 | pi-dev | `<root>/.pi-dev/mcp.json` | JSON (`mcpServers` 키) |
 
-전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/config/mcp_config.json` (Antigravity) / `~/.minimax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](workflow-source/core/mcp_installation_by_harness.md)
+전역 (사용자 홈) 에 등록하려면 bootstrap 출력 파일을 그대로 옮기거나 `mcp_servers` 블록을 `~/.codex/config.toml` / `~/.gemini/config/mcp_config.json` (Antigravity) / `~/.MiniMax/mcp.json` 등에 merge. 자세한 가이드: [`workflow-source/core/mcp_installation_by_harness.md`](workflow-source/core/mcp_installation_by_harness.md)
 
 전송 방식 (transport) 선택:
 

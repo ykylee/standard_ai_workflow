@@ -82,14 +82,27 @@ def _env() -> dict[str, str]:
     return env
 
 
-def _bootstrap(target: Path) -> None:
-    subprocess.run(
-        [sys.executable, "-m", "workflow_kit.bootstrap_lib",
-         "--target-root", str(target), "--project-slug", "demoproj",
-         "--project-name", "Demo Proj", "--harness", "claude-code",
-         "--no-interactive", "--adoption-mode", "new"],
-        cwd=str(REPO_ROOT), capture_output=True, text=True, env=_env(), check=True,
-    )
+def _bootstrap(target: Path, *, harness: str = "claude-code", today: str | None = None) -> str:
+    argv = [sys.executable, "-m", "workflow_kit.bootstrap_lib",
+            "--target-root", str(target), "--project-slug", "demoproj",
+            "--project-name", "Demo Proj", "--harness", harness,
+            "--no-interactive", "--adoption-mode", "new"]
+    if today is not None:
+        argv += ["--today", today]
+    return subprocess.run(
+        argv, cwd=str(REPO_ROOT), capture_output=True, text=True, env=_env(), check=True,
+    ).stdout
+
+
+def _exact_case_file(root: Path, rel: str) -> bool:
+    """대소문자까지 같은 이름으로 있는가. `Path.is_file()` 은 대소문자 비구분 FS
+    (macOS 기본)에서 `.minimax` 로 `.MiniMax` 를 찾아 버려 불일치를 가린다."""
+    cur = root
+    for part in Path(rel).parts:
+        if not cur.is_dir() or part not in os.listdir(cur):
+            return False
+        cur = cur / part
+    return cur.is_file()
 
 
 def _make_stale(path: Path) -> None:
@@ -218,12 +231,88 @@ def test_session_start_checks_on_every_start() -> None:
     _record("test_session_start_checks_on_every_start", not problems, "; ".join(problems))
 
 
+def test_harness_spec_matches_bootstrap_output() -> None:
+    """모든 하네스의 선언 파일을 그 하네스 **단독** bootstrap 이 대소문자까지 같게 쓰는가.
+
+    TASK-2026-09-29-main-002 (GitHub #29): minimax-code 선언은 `.minimax/…` 인데
+    렌더러는 `.MiniMax/…` 에 썼다. 대소문자 구분 FS 에서 6건이 영구 부재로 분류돼
+    세션마다 자기 복구가 돌았다. grok-build·minimax-code 는 codex 채널이 쓰는
+    `AGENTS.md` 까지 선언해, 단독 프로젝트에서 같은 반복을 냈다.
+    """
+    from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: PLC0415
+
+    mismatches: list[str] = []
+    for name, spec in sorted(HARNESS_SPECS.items()):
+        with tempfile.TemporaryDirectory() as td:
+            target = Path(td) / "proj"
+            target.mkdir()
+            _bootstrap(target, harness=name)
+            for rel in (*spec.entry_files, *spec.extra_files):
+                if not _exact_case_file(target, rel):
+                    mismatches.append(f"{name}:{rel}")
+    _record("test_harness_spec_matches_bootstrap_output", not mismatches,
+            f"선언됐지만 bootstrap 이 그 이름으로 쓰지 않은 파일: {mismatches}")
+
+
+def test_apply_writes_only_declared_missing() -> None:
+    """`--apply` 는 선언된 부재 파일**만** 만든다 — 상태 문서·state.json 은 건드리지 않는다.
+
+    GitHub #29: bootstrap 을 통째로 돌려, 도입일과 날짜가 다르면 초기 task
+    (`TASK-<오늘>-…-001`)와 오늘 daily index 가 매 세션 새로 생겼고 state.json 이
+    다시 쓰였다. 생성 목록에는 같은 경로가 두 번 찍혔다. 도입일을 과거로 두어야
+    이 결함이 보인다 — 같은 날이면 초기 task 가 이미 있어 조용하다.
+    """
+    import hashlib  # noqa: PLC0415
+
+    with tempfile.TemporaryDirectory() as td:
+        target = Path(td) / "proj"
+        target.mkdir()
+        _bootstrap(target, today="2026-01-01")
+        gone = target / ".claude" / "commands" / "workflow-session-end.md"
+        gone.unlink()
+        state = next(target.rglob("state.json"))
+        state_hash = hashlib.sha256(state.read_bytes()).hexdigest()
+        before = {p.relative_to(target).as_posix() for p in target.rglob("*")}
+        result = ensure_run(project_root=target, apply=True)
+        after = {p.relative_to(target).as_posix() for p in target.rglob("*")}
+        state_same = hashlib.sha256(state.read_bytes()).hexdigest() == state_hash
+    expected = ".claude/commands/workflow-session-end.md"
+    problems: list[str] = []
+    if result["created"] != [expected]:
+        problems.append(f"created={result['created']} — [{expected!r}] 하나여야 한다")
+    if sorted(after - before) != [expected]:
+        problems.append(f"선언된 부재 밖의 경로가 생겼다: {sorted(after - before)}")
+    if not state_same:
+        problems.append("state.json 을 다시 썼다")
+    _record("test_apply_writes_only_declared_missing", not problems, "; ".join(problems))
+
+
+def test_manifest_lists_each_file_once() -> None:
+    """bootstrap 매니페스트의 `file_actions` 에 같은 파일이 두 번 실리지 않는다.
+
+    GitHub #29 부수 증상: `write_text` 가 반환값과 모듈 로그 양쪽에 같은 dict 를
+    싣고 `_record_write` 가 반환값을 또 모아, 상태 문서 경로가 두 번씩 찍혔다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        target = Path(td) / "proj"
+        target.mkdir()
+        out = _bootstrap(target)
+    manifest = json.loads(out[out.index("{"):])
+    rels = [fa["rel"] for bucket in manifest["file_actions"].values() for fa in bucket]
+    dups = sorted({r for r in rels if rels.count(r) > 1})
+    _record("test_manifest_lists_each_file_once", bool(rels) and not dups,
+            f"중복 {len(dups)}건: {dups[:5]}" if dups else "file_actions 가 비었다")
+
+
 def main() -> int:
     cases = [
         test_create_only_writes_missing_but_not_stale,
         test_ensure_classifies_and_fills_missing_only,
         test_no_project_identity_means_no_invention,
         test_session_start_checks_on_every_start,
+        test_harness_spec_matches_bootstrap_output,
+        test_apply_writes_only_declared_missing,
+        test_manifest_lists_each_file_once,
     ]
     for case in cases:
         case()

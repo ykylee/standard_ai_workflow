@@ -58,6 +58,7 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-29-main-002 minimax-code 하네스 경로 대소문자 불일치로 session-start 가 매 세션 빈 bootstrap task 를 만든다 (GitHub #29)
 - TASK-2026-09-29-main-001 backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다
 - TASK-2026-09-28-main-021 v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널
 - TASK-2026-09-28-main-020 antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과
@@ -67,7 +68,6 @@
 - TASK-2026-09-28-main-017 wk doctor 가 claude-code 플러그인의 enabled 여부를 재지 않는다 — enabledPlugins 부재로 스킬이 조용히 사라진다
 - TASK-2026-09-23-main-017 방치된 worktree 4개 정리 — 소유자 확인 필요
 - TASK-2026-09-28-main-015 v1.12.0 은퇴 shim 2종 제거 — verify_required_ci · REQUIRED_CI_WORKFLOWS (v1.13.0)
-- TASK-2026-09-23-main-018 memory_index 소비가 session-start 에 편중 — 다른 소비자의 조회가 거의 없다
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

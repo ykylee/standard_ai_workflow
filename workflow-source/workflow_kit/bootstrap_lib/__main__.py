@@ -130,6 +130,8 @@ from workflow_kit.bootstrap_lib.writes import (  # noqa: E402
     copy_core_docs,
     drain_file_actions,
     set_create_only,
+    set_only_paths,
+    only_paths_enabled,
     rel,
     write_text,
 )
@@ -261,7 +263,7 @@ HARNESS_DEFINITIONS: dict[str, HarnessDefinition] = {
     ),
     "minimax-code": HarnessDefinition(
         name="minimax-code",
-        description="Generate AGENTS.md + MiniMax.md + minimax_config_example.json + orchestrator/worker split.",
+        description="Generate MiniMax.md + MiniMax_config.example.json + .MiniMax/agents/ orchestrator/worker split.",
     ),
     "mavis": HarnessDefinition(
         name="mavis",
@@ -324,6 +326,12 @@ def parse_args() -> argparse.Namespace:
         "--create-missing-only", action="store_true",
         help="부재 파일만 생성하고 낡은 파일은 덮지 않는다 (update_available 로 보고). "
              "세션 시작의 자기 복구가 쓰는 경로 — TASK-2026-08-24-main-006",
+    )
+    parser.add_argument(
+        "--only-paths", nargs="+", default=None, metavar="REL",
+        help="이 target 기준 상대 경로만 쓴다 (--create-missing-only 를 함께 켠다). "
+             "상태 문서·state.json·roadmap 재생성은 건너뛴다 — `ensure-entrypoints --apply` "
+             "가 선언된 부재 파일만 채우는 경로 (TASK-2026-09-29-main-002, GitHub #29)",
     )
     parser.add_argument("--initial-task-id", default="TASK-001")
     parser.add_argument("--initial-task-name", default="표준 AI 워크플로우 초기 도입")
@@ -410,7 +418,9 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     # create-only 모드는 **쓰기 판정 한 곳**(writes._resolve_write)에서 강제된다 —
     # 경로가 다섯이라 인자로 흘리면 한 곳만 빠뜨려도 조용히 덮는다.
-    set_create_only(bool(getattr(args, "create_missing_only", False)))
+    only_paths = getattr(args, "only_paths", None)
+    set_create_only(bool(getattr(args, "create_missing_only", False)) or only_paths is not None)
+    set_only_paths(only_paths)
 
     # Interactive harness picker: fire only when (a) the user didn't pass
     # --harness, (b) --no-interactive wasn't requested, and (c) stdin is a
@@ -1096,8 +1106,9 @@ def main() -> int:
         # 파일이 없으면 에이전트는 첫 단계에서 길을 잃는다
         # (`check_standard_single_source.py` case 7 이 이 불일치를 잡는다).
         sessions_dir = paths.memory_dir / "sessions"
-        sessions_dir.mkdir(parents=True, exist_ok=True)
-        (sessions_dir / ".gitkeep").touch(exist_ok=True)
+        if not only_paths_enabled():
+            sessions_dir.mkdir(parents=True, exist_ok=True)
+            (sessions_dir / ".gitkeep").touch(exist_ok=True)
         _record_write(paths.status_assessment_path, render_project_status_assessment(args), force=args.force)
         if args.adoption_mode == "existing":
             _record_write(paths.assessment_path, render_assessment(args, context), force=args.force)
@@ -1115,15 +1126,17 @@ def main() -> int:
         # 씨앗 직후의 기계 정본. kit_dir 가 기본값(ai-workflow)이 아니면 런타임
         # 경로 규약 밖이라 생성기가 찾지 못한다 — None 이면 그대로 둔다 (파서·
         # 게이트도 같은 이유로 해당 없음이 된다).
-        from workflow_kit.common.state.roadmap import generate_roadmap_state
-        generate_roadmap_state(paths.target_root)
+        # --only-paths 는 선언된 파일만 채운다 — 파생 정본 재생성은 그 범위 밖이다.
+        if not only_paths_enabled():
+            from workflow_kit.common.state.roadmap import generate_roadmap_state
+            generate_roadmap_state(paths.target_root)
 
         # 3. Write harness overlay files (includes MCP config snippets if --enable-mcp)
         harness_files, harness_actions = write_harness_files(args, paths, context)
         file_actions.extend(harness_actions)
 
         # 4. Optionally update dependency manifests
-        if args.update_deps:
+        if args.update_deps and not only_paths_enabled():
             dependency_files = update_dependencies(paths, context, selected_harnesses(args))
 
         # 6. Write workflow state payload
@@ -1138,14 +1151,25 @@ def main() -> int:
             generated_at=args.today,
             workspace_root=paths.target_root,
         )
-        paths.state_path.parent.mkdir(parents=True, exist_ok=True)
-        paths.state_path.write_text(
-            json.dumps(state_payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        # --only-paths 는 state.json 을 다시 쓰지 않는다 — 기존 도입 프로젝트에서
+        # 진입점 하나를 채우는 것만으로 생성물이 바뀌면 안 된다 (GitHub #29).
+        if not only_paths_enabled():
+            paths.state_path.parent.mkdir(parents=True, exist_ok=True)
+            paths.state_path.write_text(
+                json.dumps(state_payload, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
 
     # 7. Build + emit the manifest
-    all_file_actions = file_actions + drain_file_actions()
+    # `write_text` 는 반환값과 모듈 로그 **양쪽**에 같은 dict 를 싣는다 — 둘을
+    # 이어 붙이면 `_record_write` 경로의 파일이 매니페스트에 두 번 찍혔다
+    # (GitHub #29 부수 증상). 같은 객체는 한 번만 센다.
+    _seen: set[int] = set()
+    all_file_actions: list[dict[str, str]] = []
+    for _fa in file_actions + drain_file_actions():
+        if id(_fa) not in _seen:
+            _seen.add(id(_fa))
+            all_file_actions.append(_fa)
     manifest = build_manifest(
         args=args,
         paths=paths,

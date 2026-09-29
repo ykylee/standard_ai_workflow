@@ -1,7 +1,7 @@
 # Quality Dashboard Snapshot
 
-- generated_at: `2026-09-29T03:40:25Z`
-- tool_version: `1.14.3`
+- generated_at: `2026-09-29T05:15:02Z`
+- tool_version: `1.14.4`
 - workspace_root: `/home/yklee/repos/standard_ai_workflow`
 
 ## Panel 1 — Drift Prevention Status
@@ -14,7 +14,7 @@
 - harness_supported_count: `10`
 - head_commit_date: `2026-09-29`
 - last_updated_delta_days: `0`
-- silent_failing_cycles_count: `0` (측정 cycle 26건)
+- silent_failing_cycles_count: `0` (측정 cycle 27건)
 
 ## Panel 2 — Maturity Distribution
 
@@ -84,11 +84,11 @@
 
 | version | pass | total |
 |---|---|---|
+| Beta-v1.14.4 | 296 | 296 |
 | Beta-v1.14.3 | 296 | 296 |
 | Beta-v1.14.2 | 296 | 296 |
 | Beta-v1.14.1 | 296 | 296 |
 | Beta-v1.14.0 | 296 | 296 |
-| Beta-v1.13.0 | 296 | 296 |
 
 ## Panel 5 — Recent Release Cycle
 
@@ -98,16 +98,16 @@
 
 ### Timeline (preview, first 120 char)
 
-- [0] TASK-2026-09-29-main-008 — backlog-update 가 kind 규약을 모른다 — session kind 무source 생성 허용 + update 시 daily index kind 표식 미갱신  `[fresh]`
-- [1] TASK-2026-09-29-main-007 — 스탬프 게이트가 주석 달린 스탬프 줄을 조용히 건너뛰는 것  `[fresh]`
-- [2] TASK-2026-09-29-main-006 — claude runtime_load 재시작 확인 (98차 후속)  `[fresh]`
-- [3] TASK-2026-09-29-main-005 — v1.14.2 발행 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리  `[fresh]`
-- [4] TASK-2026-09-29-main-004 — 공유 AGENTS.md 마커 때문에 opencode 가 적용된 하네스로 판정돼 session-start 가 opencode 오버레이를 만든다  `[fresh]`
-- [5] TASK-2026-09-29-main-003 — v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리  `[fresh]`
-- [6] TASK-2026-09-29-main-002 — minimax-code 하네스 경로 대소문자 불일치로 session-start 가 매 세션 빈 bootstrap task 를 만든다 (GitHub #29)  `[fresh]`
-- [7] TASK-2026-09-29-main-001 — backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다  `[fresh]`
-- [8] TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널  `[fresh]`
-- [9] TASK-2026-09-28-main-020 — antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과  `[fresh]`
+- [0] TASK-2026-09-29-main-013 — Windows: doctor MCP 해석기 탐침이 python3.CMD shim 경유 시 cmd.exe 가 -c 다줄 스크립트를 첫 개행에서 자른다 (소유자 전달 버그…  `[fresh]`
+- [1] TASK-2026-09-29-main-012 — wiki 스탬프 단일화 — frontmatter updated: 를 정본으로, 게이트·doc-headers-update 가 그것을 판정·갱신 (100차 후속)  `[fresh]`
+- [2] TASK-2026-09-29-main-011 — claude runtime_load 재시작 확인 (100차 후속, v1.14.3)  `[fresh]`
+- [3] TASK-2026-09-29-main-010 — 상태 헤더 없는 wiki 6건의 스탬프 판정 범위  `[fresh]`
+- [4] TASK-2026-09-29-main-009 — v1.14.3 발행 — 스탬프 형식 판정 + backlog-update kind 표식 수리  `[fresh]`
+- [5] TASK-2026-09-29-main-008 — backlog-update 가 kind 규약을 모른다 — session kind 무source 생성 허용 + update 시 daily index kind 표식 미갱신  `[fresh]`
+- [6] TASK-2026-09-29-main-007 — 스탬프 게이트가 주석 달린 스탬프 줄을 조용히 건너뛰는 것  `[fresh]`
+- [7] TASK-2026-09-29-main-006 — claude runtime_load 재시작 확인 (98차 후속)  `[fresh]`
+- [8] TASK-2026-09-29-main-005 — v1.14.2 발행 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리  `[fresh]`
+- [9] TASK-2026-09-29-main-004 — 공유 AGENTS.md 마커 때문에 opencode 가 적용된 하네스로 판정돼 session-start 가 opencode 오버레이를 만든다  `[fresh]`
 
 ## Panel 6 — Multi-Agent Concurrent Write Conflict
 
@@ -137,10 +137,10 @@
 
 - phase_15_north_star: `utilization_3tuple (query_diversity / entries_new_30d / distinct_entries_retrieved — ADR-006 W-4; hit_rate 는 보조)`
 - entries_total: `30`
-- telemetry_events_total: `2971`
-- telemetry_total_queries: `2971`
-- telemetry_hit_count: `1219`
-- telemetry_hit_rate: `0.4103`
+- telemetry_events_total: `2982`
+- telemetry_total_queries: `2982`
+- telemetry_hit_count: `1230`
+- telemetry_hit_rate: `0.4125`
 
 ### Entries by merge_state
 
@@ -152,8 +152,8 @@
 
 | source | events |
 |---|---|
-| `backlog-update` | 487 |
+| `backlog-update` | 496 |
 | `dispatcher` | 13 |
 | `doc-sync` | 2 |
-| `session-start` | 2469 |
+| `session-start` | 2471 |
 

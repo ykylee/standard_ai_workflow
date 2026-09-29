@@ -80,3 +80,20 @@ wiki 루트 밖의 export 스냅샷(`docs/samples/okf-bundle-*`)은 여전히 �
   게이트를 Windows 에서 돌리지 않으므로 이번 범위 밖이다.
 - `TASK-2026-08-25-main-017` (MCP emit command 가 항상 `python3`) 는 blocked 그대로다.
 - MiniMax Code CLI 가 프로젝트 로컬에서 어느 대소문자 경로를 읽는지는 여전히 미실측이다.
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-29T05:15:02Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

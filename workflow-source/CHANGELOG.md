@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- chore(session): 101차 세션 종료 — handoff · state.json 갱신 (main-011 · 012) (29f92437)
+- chore(session): 100차 세션 종료 — handoff · state.json 갱신 (main-010) (3eb769dc)
 - chore(memory): 96차 세션 종료 — main-016 발행 기록 정리 + plugin_enabled 4채널 (09-28-main-018) (f8f40e99)
 - chore(memory): 95차 세션 종료 — plugin_enabled 절 신설 뒤 게이트 기록 + macOS 전량 게이트 첫 실측 (09-28-main-017) (569f858c)
 - chore(memory): 94차 세션 종료 — macOS 호스트 동기화 + v1.13.0 채널 재적용 + worktree 4개 정리 (09-23-main-017) (ab7bf648)
@@ -78,12 +80,13 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 87차 세션 종료 — 평가·로드맵 개편 반영 (0a253e83)
 - docs(planning): 워크플로우 평가 + 도출 이슈 등록 + 로드맵 M-013·M-014 개설 (07ccab06)
 - chore(memory): 87차 세션 종료 — main-010·main-011 close (f3c1d00e)
-- chore(memory): 86차 세션 종료 — task 8건 close + v1.11.0 발행 + 승격 5건 (9a651225)
-- chore(memory): main-008 승격 + 상한에 붙어 있던 검사에 CHECK_TIMEOUT_S (86차 최종) (f4504818)
-- ... (419 more)
+- ... (421 more)
 
 ### Fixed
 
+- fix(doctor): MCP 해석기 탐침 스크립트를 stdin 으로 — Windows python3.CMD shim 에서 cmd.exe 가 -c 다줄을 첫 개행에서 자르던 것 (09-29-main-013) (388ee750)
+- fix(doc-stamp): wiki 스탬프를 frontmatter updated: 하나로 — 게이트·doc-headers-update 가 같은 정본으로 판정·갱신 (09-29-main-012) (31fdfd64)
+- fix(doc-layers): wiki frontmatter status · 굵은 '상태' 헤더를 살아있다는 선언으로 읽는다 (09-29-main-010) (c54a3a54)
 - fix(backlog-update): update 의 명시 --kind 가 daily index 표식에 반영 + layout 검사의 session kind 오판 (09-29-main-008) (8f5619ca)
 - fix(doc-stamp): 날짜 뒤 주석 달린 스탬프를 전수 게이트가 판정 없이 건너뛰던 것 (09-29-main-007) (cad0d836)
 - fix(ensure-entrypoints,doctor): 공유 AGENTS.md 마커로 opencode 가 적용 판정돼 오버레이를 만들던 것 (09-29-main-004) (bd78a2ad)
@@ -111,15 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(ci): smoke.yml 의 연속 append 를 한 블록으로 — actionlint SC2129 (main-007) (16f9dab4)
 - fix(release): 스탬프 범위를 손 목록에서 파생으로 + 뒤처진 116건 소급 교정 (main-006) (df4a3d53)
 - fix(tests): version_flag 의 dist TOCTOU 제거 + 스탬프 판정 git 호출 1+N → 1 (main-005) (bee66a67)
-- fix(doc-stamp): '마지막 내용 변경' 이 실제로 내용 변경을 재게 한다 + 스탬프 97건 소급 교정 (main-004) (2cf73e87)
-- fix(release): 문서 스탬프를 뒤처진 것만 올린다 (main-002) (7b619a93)
-- fix(doctor): 설치 시각 폴백을 트리 최신 mtime 으로 (main-003) (625d0ee2)
-- ... (181 more)
+- ... (184 more)
+
+## [1.14.4] - 2026-09-29
+
+### Changed
+
+- release(v1.14.4): 발행 준비 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리 (e25239c5)
 
 ## [1.14.3] - 2026-09-29
 
 ### Changed
 
+- release(v1.14.3): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 + §2.8 (0c7a89e9)
 - release(v1.14.3): 발행 준비 — backlog-update kind 표식 + 스탬프 형식 판정 수리 (94afc6aa)
 
 ## [1.14.2] - 2026-09-29

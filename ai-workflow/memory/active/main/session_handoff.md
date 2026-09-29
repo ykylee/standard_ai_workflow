@@ -52,7 +52,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-29-main-014 v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

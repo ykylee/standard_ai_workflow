@@ -29,8 +29,10 @@
   "session": {
     "current_baseline": "**101차 세션 (2026-09-29, Linux 호스트 i5-1335U) — task 2건 close (TASK-2026-09-29-main-011 · 012).** ①**main-011** — 100차 후속 `runtime_load`: 이 세션 claude(pid 2316673, 04:08Z)는 1.14.3 설치(03:41Z) 뒤 시작 → 최신, 플러그인 스킬 실호출 성공, 4채널 enabled · 1.14.3 in_sync. 낡은 호스트 1개(pts/4 pid 2138779, 02:55Z)는 타 세션. ②**main-012** — 100차 후속 'wiki 두 번째 스탬프': wiki 는 SCHEMA 가 `updated:` 를 스탬프로 정하고 lint·`score_wiki_maintainability`·okf_export 가 그것을 읽는데 **게이트와 `doc-headers-update` 는 `- 최종 수정일:` 만 알았다** — `updated:` 만 가진 살아있는 wiki 68건은 감시 밖(20건 최대 78일 뒤처짐), 두 필드 다 가진 19건은 최대 66일 갈라짐. `updated:` 를 정본으로: `doc_stamp.is_wiki_page` · `read_stamp` · `write_stamp` · `HEADER_STAMP_RE` 신설, 게이트 case 10 과 `doc-headers-update` 가 같은 함수로 읽고 씀, wiki 의 `- 최종 수정일:` 은 형식 위반. 데이터: 옛 헤더 줄 19건 제거 + `updated:` 26건 실제 내용 변경일로 정규화. case 15(wiki 계약 11행) + case 10 wiki 판정 0건 바닥, 되주입 8종 red(처음 이력 경로 누락이 green 으로 새서 행 추가). 부수: wiki 여부를 매 문서 물으면 무관한 인덱스 검사가 `workflow_kit` 전체를 import 해 WATCHES 좁은 선언 red → `updated:` 줄이 바뀔 때만 묻게. **후속**: macOS §2.8 재적용(→1.14.3) · MiniMax CLI 실제 읽기 경로 미실측 · pts/4 claude 재시작.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-09-29-main-014 v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리",
+    "in_progress_items": [
+      "TASK-2026-09-29-main-014 v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리"
+    ],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -52,8 +54,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-29.md",
-    "task_count": 14,
-    "in_progress_items": [],
+    "task_count": 15,
+    "in_progress_items": [
+      "TASK-2026-09-29-main-014 — v1.14.4 발행 — Windows doctor MCP 탐침 shim 절단 + wiki 스탬프 판정 수리"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널",

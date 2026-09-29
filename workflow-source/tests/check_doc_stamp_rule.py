@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (14 cases — 7~10 · 13 · 14 는 각 함수 docstring).
+"""`_doc_stamp` 의 스탬프 판정 규칙을 **격리 git 저장소**에서 고정한다 (15 cases — 7~10 · 13~15 는 각 함수 docstring).
 
 ## 왜 이 검사가 있나 (TASK-2026-09-01-main-002)
 
@@ -29,6 +29,7 @@
   12) 주석만 지운 변경 → 스탬프 전용 (정규화가 '오늘' 을 요구하지 않는다)
   13) 정본의 wiki status 현행/은퇴 분할 == wiki SCHEMA 의 어휘 합집합
   14) 살아있음 판정 경계 — wiki frontmatter · 굵은 헤더 · 스냅샷 · 은퇴 · 숫자 주장
+  15) wiki 스탬프 = frontmatter `updated:` — 읽기·쓰기·두 번째 스탬프·경계
 """
 
 from __future__ import annotations
@@ -61,7 +62,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #: 저장소 루트 — case 10 이 실 저장소 전수를 훑는다.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-from _doc_stamp import check_frontmatter_stamp, stamp_format_violation  # noqa: E402
+from _doc_stamp import (  # noqa: E402
+    check_frontmatter_stamp,
+    is_wiki_page,
+    read_stamp,
+    stamp_format_violation,
+    write_stamp,
+)
 
 FAILURES: list[str] = []
 
@@ -302,16 +309,7 @@ def case_10_repo_wide_stamps_are_current() -> None:
     범위와 동결 판정은 도구와 **같은 정본**을 읽는다 — 사본을 두면 도구가 고치는
     집합과 게이트가 보는 집합이 갈린다.
     """
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "release_pipeline",
-        REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py",
-    )
-    assert spec and spec.loader, "release_pipeline 을 못 읽었다"
-    rp = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(rp)
-
+    rp = _load_release_pipeline()
     docs = rp._iter_doc_markdown_files("all")
     assert len(docs) > 100, f"범위가 의심스럽다 ({len(docs)}건) — 전수가 아니면 이 case 는 무의미하다"
 
@@ -321,27 +319,38 @@ def case_10_repo_wide_stamps_are_current() -> None:
     dirty = dirty_paths(REPO_ROOT)
     stale: list[str] = []
     judged = 0
+    judged_wiki = 0
     for doc in docs:
         text = doc.read_text(encoding="utf-8")
-        match = rp.DOC_HEADER_DATE_RE.search(text)
-        if match is None:
-            # 건너뜀은 통과가 아니다 (main-007) — 필드가 있는데 형식이 틀리면
-            # 판정 불가를 loud 로 낸다. 필드 자체가 없는 문서만 조용히 넘긴다.
-            violation = stamp_format_violation(text)
-            if violation is not None:
-                stale.append(f"{doc.relative_to(REPO_ROOT)}: {violation}")
+        # 건너뜀은 통과가 아니다 (main-007) — 필드가 있는데 형식이 틀리면 판정
+        # 불가를 loud 로 낸다. wiki 페이지의 두 번째 스탬프도 여기서 걸린다 (main-012).
+        violation = stamp_format_violation(text, path=doc, repo_root=REPO_ROOT)
+        if violation is not None:
+            stale.append(f"{doc.relative_to(REPO_ROOT)}: {violation}")
+            continue
+        # 어느 필드인지는 쓰는 쪽(`doc-headers-update`)과 같은 정본이 정한다 —
+        # wiki 페이지는 frontmatter `updated:` (main-012).
+        actual = read_stamp(doc, text, repo_root=REPO_ROOT)
+        if actual is None:
             continue
         judged += 1
+        if is_wiki_page(doc, repo_root=REPO_ROOT):
+            judged_wiki += 1
         ok, why = check_frontmatter_stamp(
-            doc, repo_root=REPO_ROOT, actual=match.group(2), dirty=dirty
+            doc, repo_root=REPO_ROOT, actual=actual, dirty=dirty
         )
         if not ok:
             stale.append(f"{doc.relative_to(REPO_ROOT)}: {why}")
+    # wiki 페이지가 범위에 있는데 `updated:` 판정이 0건이면 읽는 필드가 빠진 것이다 —
+    # 필드 없음은 조용히 건너뛰므로 여기서 세지 않으면 wiki 전체가 green 으로 샌다 (main-012).
+    wiki_in_scope = sum(1 for d in docs if is_wiki_page(d, repo_root=REPO_ROOT))
+    if wiki_in_scope and not judged_wiki:
+        stale.append(f"wiki 페이지 {wiki_in_scope}건이 범위에 있는데 `updated:` 판정이 0건이다")
     _expect(
         "case_10_repo_wide_stamps_are_current",
         not stale,
         True,
-        f"살아있는 문서 {len(docs)}건 중 스탬프 판정 {judged}건 전부 정합 "
+        f"살아있는 문서 {len(docs)}건 중 스탬프 판정 {judged}건(wiki `updated:` {judged_wiki}) 전부 정합 "
         f"(스탬프 필드 없음·자리표시자 {len(docs) - judged}건)"
         if not stale
         else f"{len(stale)}건 뒤처짐 — {'; '.join(stale[:3])}",
@@ -421,6 +430,116 @@ def case_14_liveness_boundaries() -> None:
     )
 
 
+def _wiki_page(stamp: str, *, legacy: str | None = None, body: str = "본문") -> str:
+    head = f"---\ntype: concept\nstatus: active\nupdated: {stamp}\n---\n\n# 페이지\n\n"
+    if legacy is not None:
+        # 실물처럼 메타데이터 목록의 한 줄이다 — 지우면 그 줄 하나만 빠진다.
+        head += f"- 최종 수정일: {legacy}\n"
+    return head + f"{body}\n\nupdated: 1999-01-01\n"   # 본문의 `updated:` 는 스탬프가 아니다
+
+
+def case_15_wiki_stamp_is_frontmatter_updated() -> None:
+    """**wiki 페이지의 스탬프는 frontmatter `updated:` 하나다** (TASK-2026-09-29-main-012).
+
+    wiki 는 SCHEMA 가 `updated:` 를 정하고 lint·`score_wiki_maintainability`·okf
+    export 가 그것을 읽는데, 게이트는 문서 헤더 `- 최종 수정일:` 만 판정했다.
+    그래서 `updated:` 만 가진 페이지 68건은 스탬프 감시 밖이었고(최대 78일 뒤처짐),
+    두 필드를 다 가진 19건은 둘이 최대 66일 갈라져 있었다. 행마다 옛 판정이 틀린
+    자리거나, 넓히면 틀리게 될 자리다.
+    """
+    rp = _load_release_pipeline()
+    rows: list[tuple[str, bool]] = []
+    with tempfile.TemporaryDirectory(prefix="doc-stamp-wiki-") as td:
+        repo, _doc = _make_repo(Path(td), stamp=_shift(-30), commit_days_ago=30)
+        page = repo / "ai-workflow" / "wiki" / "concepts" / "p.md"
+        page.parent.mkdir(parents=True)
+        # 옛 헤더 날짜를 `updated:` 와 **다르게** 둔다 — 같으면 헤더를 읽어도 우연히 맞는다.
+        page.write_text(_wiki_page(_shift(-30), legacy=_shift(-45)), encoding="utf-8")
+        outside = repo / "docs" / "Y.md"      # 루트 밖 — frontmatter `updated:` 는 스탬프가 아니다
+        outside.write_text(
+            f"---\nupdated: {_shift(-30)}\n---\n\n# Y\n\n- 최종 수정일: {_shift(-30)}\n",
+            encoding="utf-8",
+        )
+        _git(repo, "add", "-A")
+        when = f"{_shift(-30)}T23:30:00+00:00"
+        _git(repo, "commit", "-q", "-m", "pages",
+             env_extra={"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when})
+
+        text = page.read_text(encoding="utf-8")
+        rows.append(("wiki 는 frontmatter updated: 를 읽는다",
+                     read_stamp(page, text, repo_root=repo) == _shift(-30)))
+        rows.append(("wiki 의 - 최종 수정일: 은 두 번째 스탬프(위반)",
+                     stamp_format_violation(text, path=page, repo_root=repo) is not None))
+        rows.append(("루트 밖 문서는 헤더를 읽는다",
+                     read_stamp(outside, outside.read_text(encoding="utf-8"), repo_root=repo)
+                     == _shift(-30)))
+
+        # 두 번째 스탬프를 걷어내는 정리는 스탬프 전용이다 — '오늘' 을 요구하면 안 된다.
+        page.write_text(_wiki_page(_shift(-30)), encoding="utf-8")
+        text = page.read_text(encoding="utf-8")
+        ok, _why = check_frontmatter_stamp(page, repo_root=repo, actual=_shift(-30))
+        rows.append(("옛 헤더 줄 제거는 스탬프 전용", ok))
+        rows.append(("제거 뒤 위반 없음",
+                     stamp_format_violation(text, path=page, repo_root=repo) is None))
+
+        # `updated:` 만 올린 변경도 스탬프 전용이다 — 정규화가 내용 변경으로 읽히면
+        # 올린 날짜보다 더 새 날짜('오늘')를 요구하는 자가당착이 된다.
+        page.write_text(_wiki_page(_shift(-10)), encoding="utf-8")
+        ok, _why = check_frontmatter_stamp(page, repo_root=repo, actual=_shift(-10))
+        rows.append(("wiki 의 updated: 만 바꾼 변경은 스탬프 전용", ok))
+        # 같은 변경을 **커밋**한 뒤 — 이력 쪽 판정도 같은 규칙이어야 한다 (워킹 트리만
+        # 재면 이력 경로에서 wiki 를 빠뜨려도 green 이었다, 되주입 실측).
+        _git(repo, "add", "-A")
+        when = f"{_shift(-1)}T23:30:00+00:00"
+        _git(repo, "commit", "-q", "-m", "normalize stamp",
+             env_extra={"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when})
+        ok, _why = check_frontmatter_stamp(page, repo_root=repo, actual=_shift(-10))
+        rows.append(("커밋된 updated: 전용 변경도 스탬프 전용 (이력 경로)", ok))
+        page.write_text(_wiki_page(_shift(-30)), encoding="utf-8")
+
+        # 쓰는 쪽: 같은 필드를 바꾸고, 본문의 `updated:` 는 건드리지 않는다.
+        written = write_stamp(page, text, _shift(0), repo_root=repo)
+        rows.append(("write_stamp 는 frontmatter 만 바꾼다",
+                     read_stamp(page, written, repo_root=repo) == _shift(0)
+                     and written.count("updated: 1999-01-01") == 1))
+
+        # 본문을 고치면 유예 0 — 옛 `updated:` 는 뒤처졌고, 도구는 올려야 한다.
+        page.write_text(_wiki_page(_shift(-30), body="본문 — 고쳤다"), encoding="utf-8")
+        text = page.read_text(encoding="utf-8")
+        ok, _why = check_frontmatter_stamp(page, repo_root=repo, actual=_shift(-30))
+        rows.append(("wiki 본문 변경 → 뒤처진 updated: red", not ok))
+        rows.append(("doc-headers-update 가 wiki 스탬프를 올릴 대상으로 본다",
+                     rp._stamp_needs_bump(page, text, repo_root=repo) is True))
+
+        # 경계: 루트 밖에서 `updated:` 줄만 바뀐 것은 내용 변경이다.
+        outside.write_text(
+            f"---\nupdated: {_shift(0)}\n---\n\n# Y\n\n- 최종 수정일: {_shift(-30)}\n",
+            encoding="utf-8",
+        )
+        ok, _why = check_frontmatter_stamp(outside, repo_root=repo, actual=_shift(-30))
+        rows.append(("루트 밖의 updated: 변경은 스탬프 전용이 아니다", not ok))
+
+    wrong = [name for name, good in rows if not good]
+    _expect(
+        "case_15_wiki_stamp_is_frontmatter_updated",
+        not wrong, True,
+        f"wiki 스탬프 계약 {len(rows)}행 일치" if not wrong else f"{len(wrong)}행 불일치 — {wrong}",
+    )
+
+
+def _load_release_pipeline():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "release_pipeline",
+        REPO_ROOT / "workflow-source" / "workflow_kit" / "tools" / "release_pipeline.py",
+    )
+    assert spec and spec.loader, "release_pipeline 을 못 읽었다"
+    rp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rp)
+    return rp
+
+
 def main() -> int:
     print("=== 문서 스탬프 판정 규칙 (_doc_stamp) ===")
     cases = (
@@ -438,6 +557,7 @@ def main() -> int:
         case_12_dropping_annotation_is_stamp_only,
         case_13_wiki_status_partition_matches_schema,
         case_14_liveness_boundaries,
+        case_15_wiki_stamp_is_frontmatter_updated,
     )
     for fn in cases:
         try:

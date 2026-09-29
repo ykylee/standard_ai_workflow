@@ -7,7 +7,7 @@ accepted_in: v0.5.5
 alternatives_considered: [rw-by-default, opt-in-readonly, capability-declaration, scaffold-only]
 related_pages: [concepts/mcp-transport, concepts/harness-distribution, entities/mcp-read-only-bundle]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-08-12
 ---
 
 # ADR-003: Read-only MCP 우선 정책

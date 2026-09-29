@@ -5,7 +5,7 @@ last_ingested_from: internal (this page is the rule definition, not ingest of an
 r9_skip: true
 verification_status: accepted_via_adr-020 (v0.7.41, formal documentation)
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # V-R13 implementation — `check_url_semantic()` PoC (v0.7.39)

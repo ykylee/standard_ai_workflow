@@ -7,14 +7,13 @@ verification_status: verified_via_adr-010 (proposed, v0.7.35+ candidate)
 contradiction_flags: []
 related_pages: [concepts/okf-open-knowledge-format, decisions/adr-006-okf-compat-frontmatter, decisions/adr-007-okf-consumer-mode, decisions/adr-008-in-repo-path-to-url, decisions/adr-010-v-r10-url-validity-lint, concepts/v-t1-title-consistency-lint, patterns/wiki-stub-emit]
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # V-R10 Rule: URL validity (offline 8 check + optional online HEAD)
 
 - 문서 목적: ADR-006 (OKF 5-field bridge) 채택으로 wiki 의 `resource` field 와 `last_ingested_from` URL 이 canonical URI 의미로 emit. ADR-008 (v0.7.34) 의 자동 resolve 가 stale URL 가능. V-R10 lint 가 URL validity 검증 (8 offline + optional online).
 - 범위: lint 정의 (offline 8 check + mode matrix) + 6 test + ADR 후보 (ADR-010)
-- 최종 수정일: 2026-07-22
 
 ## §0 Status Notice  {#s0-status}
 

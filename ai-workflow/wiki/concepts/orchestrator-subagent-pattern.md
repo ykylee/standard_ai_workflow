@@ -12,7 +12,6 @@ updated: 2026-06-12
 - 문서 목적: standard_ai_workflow 의 메인 오케스트레이터가 sub-agent 워커에게 작업을 위임할 때 따르는 외부 contract v1 의 핵심 패턴을 정리한다. 4개 역할 경계, 위임 가능/불가 카탈로그, 멀티 컴포넌트 fan-out/fan-in 포함.
 - 범위: 4개 역할, 위임 입력/출력 스키마, MUST NOT delegate list, fan-out/fan-in
 - 관련 결정: ADR-004 (wiki layer 도입, P1 review 대상)
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

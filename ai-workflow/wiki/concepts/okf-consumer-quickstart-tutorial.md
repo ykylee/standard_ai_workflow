@@ -5,7 +5,7 @@ last_ingested_from: internal (this page is the rule definition, not ingest of an
 r9_skip: true
 verification_status: accepted_via_adr-025 (v0.7.44, formal documentation)
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # OKF consumer quick-start tutorial — 5 min walkthrough (ADR-025, v0.7.43 draft)

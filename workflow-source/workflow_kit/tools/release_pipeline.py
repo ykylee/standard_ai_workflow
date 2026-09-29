@@ -1438,9 +1438,10 @@ README_PATH = REPO_ROOT.parent / "README.md"
 CORE_DOCS_DIR = REPO_ROOT / "core"
 DOCS_DIR = REPO_ROOT.parent / "docs"
 
-DOC_HEADER_DATE_RE = re.compile(
-    r"^(-\s*최종\s*수정일:\s*)(\d{4}-\d{2}-\d{2})(\s*)$", re.MULTILINE
-)
+# 헤더 스탬프 모양의 정본은 `common.doc_stamp` 다 — 여기 사본을 두면 읽는 쪽
+# (게이트)과 쓰는 쪽(이 도구)이 갈린다 (TASK-2026-09-29-main-012). 이 이름은 옛
+# 소비자를 위한 별칭이고, 스탬프를 읽고 쓰는 자리는 `read_stamp`/`write_stamp` 다.
+from workflow_kit.common.doc_stamp import HEADER_STAMP_RE as DOC_HEADER_DATE_RE  # noqa: E402
 
 
 def _dirty_live_markdown() -> list[Path]:
@@ -1624,7 +1625,7 @@ def _sync_distributed_core_mirror(dry_run: bool) -> list[str]:
 def _stamp_needs_bump(
     path: Path, text: str, *, repo_root: Path, dirty: object = None,
 ) -> bool:
-    """이 문서의 `- 최종 수정일:` 이 **뒤처져 있는가**.
+    """이 문서의 스탬프(`- 최종 수정일:` · wiki 는 `updated:`)가 **뒤처져 있는가**.
 
     판정은 검사가 쓰는 것과 **같은 정본** 이다 (`common.doc_stamp`):
 
@@ -1634,16 +1635,17 @@ def _stamp_needs_bump(
     않음' 으로 접으면 정말 뒤처진 스탬프가 조용히 남는다. 쓰는 쪽의 모름은
     안전한 쪽(갱신)으로 떨어뜨린다.
     """
-    match = DOC_HEADER_DATE_RE.search(text)
-    if match is None:
+    # 어느 필드인지는 정본이 정한다 — wiki 페이지는 frontmatter `updated:`
+    # (TASK-2026-09-29-main-012). 여기서 헤더 줄만 보면 게이트가 wiki 스탬프를
+    # red 로 내도 이 도구는 고칠 줄을 모른다.
+    from workflow_kit.common.doc_stamp import check_frontmatter_stamp, read_stamp
+
+    actual = read_stamp(path, text, repo_root=repo_root)
+    if actual is None:
         return False  # 스탬프 줄이 없으면 바꿀 것도 없다
     try:
-        from workflow_kit.common.doc_stamp import check_frontmatter_stamp
-    except ImportError:  # pragma: no cover - 배치가 깨진 경우
-        return True
-    try:
         ok, _why = check_frontmatter_stamp(
-            path, repo_root=repo_root, actual=match.group(2), dirty=dirty,
+            path, repo_root=repo_root, actual=actual, dirty=dirty,
         )
     except (OSError, ValueError):
         return True
@@ -1674,7 +1676,7 @@ def cmd_doc_headers_update(args) -> dict:
     scanned = 0
     repo_root = REPO_ROOT.parent
     # `git status` 를 문서마다 부르지 않는다 — 한 번 받아 넘긴다 (main-006).
-    from workflow_kit.common.doc_stamp import dirty_paths
+    from workflow_kit.common.doc_stamp import dirty_paths, write_stamp
 
     dirty = dirty_paths(repo_root)
     for path in files:
@@ -1697,7 +1699,7 @@ def cmd_doc_headers_update(args) -> dict:
         if not _stamp_needs_bump(path, txt, repo_root=repo_root, dirty=dirty):
             skipped_current.append(str(path.relative_to(repo_root)))
             continue
-        new = DOC_HEADER_DATE_RE.sub(rf"\g<1>{target_date}\g<3>", txt)
+        new = write_stamp(path, txt, target_date, repo_root=repo_root)
         if new == txt:
             continue
         if dry_run:

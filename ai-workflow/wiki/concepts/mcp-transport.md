@@ -12,7 +12,6 @@ updated: 2026-06-12
 - 문서 목적: standard_ai_workflow 가 하네스에 심는 read-only MCP 서버의 transport 두 종류 (jsonrpc-bridge, stdio-sdk) 의 차이, 결정, 실패 모드, wiki layer 와의 상호작용을 정리한다.
 - 범위: transport 비교, key decisions, failure mode, read-only access pattern
 - 관련 결정: ADR-004 (wiki layer 도입, P1 review 대상)
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

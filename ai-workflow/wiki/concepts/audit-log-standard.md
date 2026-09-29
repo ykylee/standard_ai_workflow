@@ -11,7 +11,6 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.0 step 10 의 per-project audit log 표준. 분산 정의된 audit log 정책을 단일 표준 spec 으로 통합 + 2 latent bug fix.
 - 범위: per-project `audit.md` 정책, 8 field, append-only 강제, lifecycle, 자동화 hook
-- 최종 수정일: 2026-06-13
 
 ## §1 TL;DR  {#s1-tldr}
 

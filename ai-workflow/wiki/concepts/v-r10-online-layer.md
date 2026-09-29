@@ -14,7 +14,6 @@ updated: 2026-06-16
 
 - 문서 목적: V-R10 offline 8 check (ADR-010) 의 *online* companion. runtime HTTP HEAD request 로 stale URL / TLS error / DNS failure / 5xx transient / rate limit detect. 24h disk cache + smart retry (ADR-013).
 - 범위: 8 online case (HTTP 200/3xx/404/410/5xx/429/timeout/TLS/DNS) + cache layer + mode matrix + 16 test
-- 최종 수정일: 2026-06-16
 
 ## §0 Status Notice  {#s0-status}
 

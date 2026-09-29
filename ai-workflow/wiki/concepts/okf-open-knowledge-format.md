@@ -7,14 +7,13 @@ verification_status: VERIFIED — primary source located 2026-06-16
 contradiction_flags: []
 related_pages: [concepts/wiki-source-rule-r9, concepts/stage-gate-pattern, concepts/contract-v1-output-validation, decisions/adr-001-3-layer-separation, patterns/r4-anchor-index, topics/wiki-ingest-lifecycle, patterns/wiki-stub-emit]
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-08-04
 ---
 
 # OKF (Open Knowledge Format) v0.1
 
 - 문서 목적: Google Cloud 가 2026-06-12 발표한 **Open Knowledge Format (OKF) v0.1** spec 의 구조·원칙·우리의 wiki (ai-workflow/wiki/) 와의 정합/갭을 정리한다. **status=active** — primary source 확보 완료.
 - 범위: 1차 출처 (`GoogleCloudPlatform/knowledge-catalog/okf/SPEC.md`, 457 lines) + 3 sample bundle (GA4 / Stack Overflow / Bitcoin) + 우리 schema 대비 정합
-- 최종 수정일: 2026-08-04
 
 ## §0 Verification  {#s0-verification}
 

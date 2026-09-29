@@ -7,14 +7,13 @@ verification_status: verified_via_adr-017 (proposed, v0.7.37+ candidate)
 contradiction_flags: []
 related_pages: [concepts/v-r10-url-validity-lint, decisions/adr-010-v-r10-url-validity-lint, decisions/adr-012-v-r10-online-layer, decisions/adr-013-v-r10-v2-cache, decisions/adr-017-v-r11-body-audit, concepts/okf-open-knowledge-format, patterns/wiki-stub-emit]
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # V-R11 Body Content Audit (ADR-017)
 
 - 문서 목적: V-R10 offline (ADR-010) + V-R10 online (ADR-012) 의 *body* companion. HTTP GET + 4 body check: Content-Type, body size, phishing keywords, HTML renderable.
 - 범위: 4 body check (Content-Type / size / phishing / HTML) + 5 test + phishing keyword list
-- 최종 수정일: 2026-07-22
 
 ## §0 Status Notice  {#s0-status}
 

@@ -4,7 +4,7 @@ status: active
 last_ingested_from: workflow-source/core/workflow_harness_distribution.md + workflow-source/harnesses/
 related_pages: [concepts/agent-topology, topics/harness-distribution-model]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-08-29
 r9_skip: true
 ---
 

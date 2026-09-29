@@ -9,7 +9,7 @@ related_pages:
   - workflow-source/core/workflow_kit_roadmap.md
   - workflow-source/core/maturity_matrix.json
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 # Phase 13 정의 — north-star metric 및 acceptance criteria (2026-07-09)

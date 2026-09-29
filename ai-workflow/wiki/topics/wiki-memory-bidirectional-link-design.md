@@ -9,7 +9,7 @@ related_pages:
   - workflow-source/workflow_kit/okf_export.py
   - workflow-source/workflow_kit/common/wiki_cascade.py
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 # Wiki ↔ Memory 양방향 Link 자동화 검토 (2026-07-09)

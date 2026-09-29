@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """문서 frontmatter 의 `- 최종 수정일:` 스탬프를 **git 에서** 판정한다.
 
+wiki 페이지(`ai-workflow/wiki/`)의 스탬프는 SCHEMA 가 정한 frontmatter
+`updated:` 다 — 어느 필드를 읽고 쓰는지는 `read_stamp` / `write_stamp` 하나가
+정한다 (TASK-2026-09-29-main-012).
+
 ## 계보 (TASK-2026-09-01-main-002)
 
 `check_code_index_v0_15_17` 과 `check_document_index_v0_15_16` 은 기대 스탬프를
@@ -52,6 +56,7 @@ import re
 import subprocess
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from typing import Callable
 
 #: 스탬프를 쓴 날과 그것이 커밋된 날이 갈릴 수 있어 흡수하는 폭 (모듈 docstring 참고).
 GRACE_DAYS = 1
@@ -127,7 +132,13 @@ def last_content_change_date(
     else:
         is_dirty = rel in dirty
         note = rel
-    if is_dirty and not _worktree_change_is_stamp_only(rel, repo_root=repo_root):
+    # wiki 여부는 `updated:` 줄이 실제로 바뀌었을 때만 묻는다 — 묻는 순간
+    # `workflow_kit` 패키지 전체가 로드되고, wiki 와 무관한 검사(인덱스 문서 스탬프)가
+    # 그것을 자기 WATCHES 밖 접근으로 보고한다 (TASK-2026-09-29-main-012).
+    def wiki() -> bool:
+        return is_wiki_page(path, repo_root=repo_root)
+
+    if is_dirty and not _worktree_change_is_stamp_only(rel, repo_root=repo_root, wiki=wiki):
         return (
             _today_utc(),
             f"워킹 트리에 미커밋 변경이 있다 ({note})",
@@ -169,7 +180,7 @@ def last_content_change_date(
             continue
         commit_date, short_sha = parts[0], parts[1]
         oldest = (commit_date, short_sha)
-        if _diff_is_stamp_only(body):
+        if _diff_is_stamp_only(body, wiki=wiki):
             skipped += 1
             continue
         note = f"마지막 내용 변경 {short_sha} ({commit_date}, UTC)"
@@ -198,8 +209,10 @@ def last_content_change_date(
 _HISTORY_SCAN_LIMIT = 20
 
 
-def _worktree_change_is_stamp_only(rel: str, *, repo_root: Path) -> bool:
-    """미커밋 변경이 그 파일에서 **`- 최종 수정일:` 줄만** 바꿨는가.
+def _worktree_change_is_stamp_only(
+    rel: str, *, repo_root: Path, wiki: bool | Callable[[], bool] = False,
+) -> bool:
+    """미커밋 변경이 그 파일에서 **스탬프 줄만** 바꿨는가.
 
     커밋 쪽(`_commit_is_stamp_only`)과 같은 판정을 워킹 트리에 적용한다. 판정
     불가는 **False** — 모르는 변경을 '스탬프 전용' 으로 접으면 유예 0 규율이
@@ -208,14 +221,19 @@ def _worktree_change_is_stamp_only(rel: str, *, repo_root: Path) -> bool:
     rc, out = _git(["diff", "--unified=0", "--", rel], repo_root=repo_root)
     if rc != 0:
         return False
-    return _diff_is_stamp_only(out)
+    return _diff_is_stamp_only(out, wiki=wiki)
 
 
-def _diff_is_stamp_only(diff_text: str) -> bool:
-    """unified diff 본문이 **`- 최종 수정일:` 줄만** 바꿨는가.
+def _diff_is_stamp_only(diff_text: str, *, wiki: bool | Callable[[], bool] = False) -> bool:
+    """unified diff 본문이 **스탬프 줄만** 바꿨는가.
 
     커밋 쪽과 워킹트리 쪽이 **같은 판정**을 쓰도록 텍스트만 받는다 — 두 벌로
     두면 한쪽만 고쳐져 갈라진다.
+
+    `wiki` 면 frontmatter `updated:` 줄도 스탬프 줄이다 (`is_wiki_page`). 옛
+    `- 최종 수정일:` 줄은 wiki 에서도 스탬프 줄로 센다 — 그것을 걷어내는 커밋이
+    내용 변경으로 읽히면 정리 자체가 사실 아닌 '오늘' 스탬프를 요구한다
+    (TASK-2026-09-29-main-012).
 
     변경 줄이 하나도 없으면 **False**. 이름만 바뀐 커밋은 내용 변경도 스탬프
     변경도 아니고, 여기서 True 로 접으면 기준선이 근거 없이 과거로 내려간다.
@@ -229,11 +247,20 @@ def _diff_is_stamp_only(diff_text: str) -> bool:
     ]
     if not changed:
         return False
-    return all(_STAMP_LINE_RE.search(line[1:]) for line in changed)
+    if all(_STAMP_LINE_RE.search(line[1:]) for line in changed):
+        return True
+    if not all(
+        _STAMP_LINE_RE.search(line[1:]) or _WIKI_STAMP_LINE_RE.search(line[1:])
+        for line in changed
+    ):
+        return False
+    return bool(wiki() if callable(wiki) else wiki)
 
 
-def _commit_is_stamp_only(sha: str, rel: str, *, repo_root: Path) -> bool:
-    """이 커밋이 그 파일에서 **`- 최종 수정일:` 줄만** 바꿨는가.
+def _commit_is_stamp_only(
+    sha: str, rel: str, *, repo_root: Path, wiki: bool | Callable[[], bool] = False,
+) -> bool:
+    """이 커밋이 그 파일에서 **스탬프 줄만** 바꿨는가.
 
     TASK-2026-09-22-main-004. 이 구분이 없으면 이 함수는 이름과 docstring 이
     말하는 '마지막 **내용** 변경' 이 아니라 '마지막 커밋' 을 재게 된다. 실제로
@@ -249,7 +276,7 @@ def _commit_is_stamp_only(sha: str, rel: str, *, repo_root: Path) -> bool:
     )
     if rc != 0:
         return False
-    return _diff_is_stamp_only(out)
+    return _diff_is_stamp_only(out, wiki=wiki)
 
 
 #: 변경된 줄이 스탬프 줄인지. `release_pipeline.DOC_HEADER_DATE_RE` 와 같은 모양을
@@ -260,6 +287,8 @@ def _commit_is_stamp_only(sha: str, rel: str, *, repo_root: Path) -> bool:
 #: 따로 잡는다 — 여기서 그것을 내용 줄로 세면 **주석을 지우는 정규화 자체가 내용
 #: 변경**이 되어, 정규화한 문서가 사실이 아닌 '오늘' 스탬프를 요구받는다.
 _STAMP_LINE_RE = re.compile(r"^\s*-\s*최종\s*수정일:\s*\d{4}-\d{2}-\d{2}(\s.*)?$")
+#: wiki 페이지의 스탬프 줄 — frontmatter `updated:` (TASK-2026-09-29-main-012).
+_WIKI_STAMP_LINE_RE = re.compile(r"^updated:\s*\d{4}-\d{2}-\d{2}\s*$")
 
 #: 스탬프 **필드** 줄 — 값의 형식을 묻지 않고 필드가 있는지만 본다.
 _STAMP_FIELD_RE = re.compile(r"^\s*-\s*최종\s*수정일:(.*)$", re.MULTILINE)
@@ -269,7 +298,9 @@ _STAMP_VALUE_RE = re.compile(r"^\s*\d{4}-\d{2}-\d{2}\s*$")
 STAMP_PLACEHOLDER = "YYYY-MM-DD"
 
 
-def stamp_format_violation(text: str) -> str | None:
+def stamp_format_violation(
+    text: str, *, path: Path | None = None, repo_root: Path | None = None,
+) -> str | None:
     """스탬프 필드가 있는데 **판정할 수 없는 형식**이면 그 설명, 아니면 ``None``.
 
     TASK-2026-09-29-main-007. 전수 검사(`check_doc_stamp_rule` case 10)와
@@ -278,18 +309,94 @@ def stamp_format_violation(text: str) -> str | None:
     살아있는 문서 5건, 그중 3건은 실제로 뒤처져 있었다. 건너뜀은 통과가 아니므로
     필드가 있으면 형식부터 요구한다.
 
+    `path`·`repo_root` 를 주면 wiki 페이지를 구별한다 (TASK-2026-09-29-main-012).
+    wiki 의 정본 스탬프는 frontmatter `updated:` 이고, 거기에 `- 최종 수정일:` 이
+    **또 있으면** 두 번째 스탬프라 위반이다 — 둘이 갈라진 채 게이트는 한쪽만 봤다.
+
     필드가 없는 문서는 ``None`` — 스탬프를 안 다는 문서가 정상적으로 있다.
     """
-    match = _STAMP_FIELD_RE.search(text)
-    if match is None:
+    header = _STAMP_FIELD_RE.search(text)
+    if path is not None and repo_root is not None and is_wiki_page(path, repo_root=repo_root):
+        if header is not None:
+            return (
+                "wiki 페이지에 `- 최종 수정일:` 이 있다 — wiki 의 스탬프는 frontmatter "
+                "`updated:` 하나다 (SCHEMA). 두 번째 스탬프를 지운다."
+            )
+        value = _wiki_updated_value(text)
+        if value is None or value == STAMP_PLACEHOLDER or _STAMP_VALUE_RE.match(value):
+            return None
+        return (
+            f"frontmatter `updated:` 값이 날짜 하나가 아니다: {value!r} — 판정할 수 없다."
+        )
+    if header is None:
         return None
-    value = match.group(1).strip()
+    value = header.group(1).strip()
     if value == STAMP_PLACEHOLDER or _STAMP_VALUE_RE.match(value):
         return None
     return (
         f"`- 최종 수정일:` 값이 날짜 하나가 아니다: {value!r} — 판정할 수 없다. "
         "날짜만 남기고 주석은 본문이나 커밋 메시지로 옮긴다."
     )
+
+
+#: 문서 헤더 스탬프 — `- 최종 수정일: YYYY-MM-DD` 가 줄 끝까지. 읽기·쓰기가 이것 하나다.
+HEADER_STAMP_RE = re.compile(
+    r"^(-\s*최종\s*수정일:\s*)(\d{4}-\d{2}-\d{2})(\s*)$", re.MULTILINE
+)
+#: wiki 페이지의 스탬프 — frontmatter 블록 **안의** `updated: YYYY-MM-DD`.
+_WIKI_UPDATED_RE = re.compile(r"^(updated:[ \t]*)(\d{4}-\d{2}-\d{2})([ \t]*)$", re.MULTILINE)
+_WIKI_UPDATED_FIELD_RE = re.compile(r"^updated:(.*)$", re.MULTILINE)
+_FRONTMATTER_RE = re.compile(r"\A---\n(.*?\n)---\n", re.DOTALL)
+
+
+def is_wiki_page(path: Path, *, repo_root: Path) -> bool:
+    """wiki `SCHEMA.md` 가 관할하는 페이지인가 — 스탬프가 frontmatter `updated:` 인 자리.
+
+    경계는 `doc_layers` 의 살아있음 판정과 같은 정본(`paths.wiki_dir_for_workspace`)
+    이다. 루트 밖의 export 스냅샷(`docs/samples/okf-bundle-*`)은 wiki 페이지가 아니다.
+    """
+    from workflow_kit.common.paths import wiki_dir_for_workspace
+
+    try:
+        path.resolve().relative_to(wiki_dir_for_workspace(repo_root).resolve())
+        return True
+    except (ValueError, OSError):
+        return False
+
+
+def _wiki_updated_value(text: str) -> str | None:
+    block = _FRONTMATTER_RE.match(text)
+    if block is None:
+        return None
+    field = _WIKI_UPDATED_FIELD_RE.search(block.group(1))
+    return field.group(1).strip() if field else None
+
+
+def read_stamp(path: Path, text: str, *, repo_root: Path) -> str | None:
+    """이 문서의 **판정 가능한** 스탬프 값. 없거나 형식이 틀리면 ``None``.
+
+    wiki 페이지는 frontmatter `updated:`, 나머지는 `- 최종 수정일:` 이다
+    (TASK-2026-09-29-main-012). 게이트(`check_doc_stamp_rule` case 10)와 쓰는 쪽
+    (`doc-headers-update`)이 **같은 함수**로 읽는다 — 읽는 쪽만 wiki 를 알면 쓰는
+    쪽이 영영 못 고치는 red 가 된다.
+    """
+    if is_wiki_page(path, repo_root=repo_root):
+        block = _FRONTMATTER_RE.match(text)
+        match = _WIKI_UPDATED_RE.search(block.group(1)) if block else None
+    else:
+        match = HEADER_STAMP_RE.search(text)
+    return match.group(2) if match else None
+
+
+def write_stamp(path: Path, text: str, stamp: str, *, repo_root: Path) -> str:
+    """`read_stamp` 가 읽는 바로 그 필드를 `stamp` 로 바꾼 본문. 필드가 없으면 그대로."""
+    if is_wiki_page(path, repo_root=repo_root):
+        block = _FRONTMATTER_RE.match(text)
+        if block is None:
+            return text
+        new_block = _WIKI_UPDATED_RE.sub(rf"\g<1>{stamp}\g<3>", block.group(1), count=1)
+        return text[: block.start(1)] + new_block + text[block.end(1):]
+    return HEADER_STAMP_RE.sub(rf"\g<1>{stamp}\g<3>", text)
 
 
 def _minus_days(iso: str, days: int) -> str:
@@ -314,15 +421,21 @@ def check_frontmatter_stamp(
         floor = _minus_days(changed_at, grace)
     except ValueError:
         return False, f"날짜 형식을 읽을 수 없다: {changed_at!r} ({reason})"
+    def field() -> str:   # 실패 문장에만 쓴다 — 통과 경로에서 패키지를 로드하지 않게
+        return (
+            "frontmatter `updated:`" if is_wiki_page(path, repo_root=repo_root)
+            else "`- 최종 수정일:`"
+        )
+
     try:
         date.fromisoformat(actual)
     except ValueError:
-        return False, f"`- 최종 수정일:` 이 YYYY-MM-DD 가 아니다: {actual!r}"
+        return False, f"{field()} 이 YYYY-MM-DD 가 아니다: {actual!r}"
     if actual < floor:
         return False, (
             f"스탬프가 문서의 마지막 내용 변경보다 뒤처졌다 — "
             f"stamp={actual} < {floor} (변경일 {changed_at} − 유예 {grace}일, {reason}). "
-            f"`{path.name}` 의 `- 최종 수정일:` 을 올리거나 "
+            f"`{path.name}` 의 {field()} 을 올리거나 "
             "`wk release-pipeline doc-headers-update --apply` 를 돌린다."
         )
     return True, f"스탬프 {actual} >= {floor} (변경일 {changed_at}, {reason})"

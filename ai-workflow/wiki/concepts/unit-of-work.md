@@ -11,7 +11,6 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.0 step 9 의 UOW 3-layer template (AIDLC `inception/units-generation.md` 188 line 차용) 의 system-level / task-level / atom-level 분해 + dependency matrix + Mermaid graph.
 - 범위: 3 layer (system / task / atom) + dependency matrix + story mapping + code organization
-- 최종 수정일: 2026-06-13
 
 ## §1 TL;DR  {#s1-tldr}
 

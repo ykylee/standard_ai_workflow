@@ -200,6 +200,11 @@ wk release-pipeline release \
 > `스탬프 >= 그 문서의 마지막 내용 변경일 − 유예`. 뒤처진 문서만 올라가고, 건너뛴
 > 수는 결과의 `skipped_current` 에 남는다 — 조용히 안 하면 '안 돌았다' 와 구분이 안 된다.
 > **읽는 쪽만 알고 쓰는 쪽이 모르던 규약**이 이 결함의 원인이었다.
+>
+> **wiki 페이지(`ai-workflow/wiki/`)의 스탬프는 frontmatter `updated:` 하나다**
+> (TASK-2026-09-29-main-012). 어느 필드를 읽고 쓰는지는 `doc_stamp.read_stamp` /
+> `write_stamp` 가 정하고, 게이트(`check_doc_stamp_rule` case 10)와 이 단계가 같은
+> 함수를 쓴다. wiki 페이지에 `- 최종 수정일:` 이 또 있으면 두 번째 스탬프라 형식 위반이다.
 
 `--dry-run` 결과와 릴리스 노트·태그·산출물을 검토한 뒤에만 `--apply`로 외부 배포한다. `release`는 tag push와 GitHub Release 생성을 포함하므로 maintainer 승인이 필요하다.
 

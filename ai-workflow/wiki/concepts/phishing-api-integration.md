@@ -5,7 +5,7 @@ last_ingested_from: internal (this page is the rule definition, not ingest of an
 r9_skip: true
 verification_status: accepted_via_adr-023 (v0.7.43, formal documentation)
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # Phishing API integration — V-R11 v3 auto-update + rate-limit aware (ADR-023, v0.7.42 draft)

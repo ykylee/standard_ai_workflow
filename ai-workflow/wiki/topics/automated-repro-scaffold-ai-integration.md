@@ -8,7 +8,7 @@ related_pages:
   - workflow-source/skills/automated-repro-scaffold/SKILL.md
   - workflow-source/core/automated_repro_scaffold_skill_spec.md
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 # automated-repro-scaffold AI 에이전트 연동 강화 (2026-07-09)

@@ -8,7 +8,7 @@ related_pages:
   - patterns/frozen-archive-immutability
   - workflow-source/core/maturity_matrix.json
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 # Beta MCP 4종 Stable 승격 로드맵 (2026-07-09)

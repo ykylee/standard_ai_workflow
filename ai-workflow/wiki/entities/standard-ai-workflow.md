@@ -4,7 +4,7 @@ status: active
 last_ingested_from: README.md + workflow-source/README.md
 related_pages: [concepts/project-architecture, concepts/harness-distribution, concepts/contract-v1-output-validation, concepts/agent-topology, entities/workflow-kit, entities/workflow-source, entities/ai-workflow-runtime, decisions/adr-001-3-layer-separation]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-08-29
 ---
 
 # Standard AI Workflow

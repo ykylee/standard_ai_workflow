@@ -11,7 +11,6 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.0 step 1 의 stage_completion required 격상 + `ensure_stage_completion()` lazy fallback 정책.
 - 범위: required 격상 정책, lazy fallback, auto-approval 한계, 8 test PASS
-- 최종 수정일: 2026-06-13
 
 ## §1 TL;DR  {#s1-tldr}
 

@@ -12,7 +12,6 @@ updated: 2026-06-12
 - 문서 목적: standard_ai_workflow 의 표준 agent 토폴로지 (1 main orchestrator + 3 sub-agent workers) 의 구조, 권한 경계, 하네스별 변형을 정리한다.
 - 범위: 4 역할, fan-out/fan-in, OpenCode/Codex 변형, 위임 메커니즘
 - 관련 결정: [[concepts/orchestrator-subagent-pattern]] (위임 contract v1), [[concepts/contract-v1-output-validation]] (출력 envelope 검증)
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

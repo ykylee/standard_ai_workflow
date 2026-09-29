@@ -4,7 +4,7 @@ status: active
 last_ingested_from: workflow-source/core/workflow_harness_distribution.md + dist/harnesses/*/v0.6.3-beta/
 related_pages: [concepts/harness-distribution, concepts/agent-topology, entities/standard-ai-workflow, entities/harness-overlay-codex, entities/harness-overlay-opencode, entities/harness-overlay-antigravity, entities/harness-overlay-minimax-code, entities/harness-overlay-pi-dev]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-08-29
 ---
 
 # Harness Distribution Model: 6 × {code, doc, manifest} × version

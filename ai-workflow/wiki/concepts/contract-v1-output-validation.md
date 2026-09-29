@@ -11,7 +11,6 @@ updated: 2026-06-12
 
 - 문서 목적: standard_ai_workflow 의 orchestrator ↔ sub-agent 위임 contract v1 의 외부 markdown spec + Python enforcement helper 결합 정책을 정리한다. §5/§6 P0 enforcement, MUST NOT delegate 7+2 marker, fan-out/in 검증, sub.delegation_id parent-prefix rule.
 - 범위: 외부 spec 구조, `output_validator` / `delegator` API, MUST NOT marker, P0 hook, parent-prefix 강제
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

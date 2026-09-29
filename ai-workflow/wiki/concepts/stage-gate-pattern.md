@@ -11,7 +11,6 @@ updated: 2026-06-12
 
 - 문서 목적: standard_ai_workflow v0.6.4 의 Stage Gate 명시화 패턴 (AIDLC construction phase 의 2-option completion message 차용) 의 외부 markdown spec + Python enforcement helper 결합 정책을 정리한다. NO EMERGENT BEHAVIOR (3-option / 4-option ❌) + audit log append-only + auto-approval 한계.
 - 범위: 외부 spec 구조, `StageCompletion` dataclass, `validate_completion` / `require_explicit_approval` / `append_audit_log` / `emit_completion_message` API, gate 위반 시 행동
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

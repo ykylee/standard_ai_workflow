@@ -4,7 +4,7 @@ status: active
 last_ingested_from: workflow-source/core/global_workflow_standard.md + workflow-source/core/workflow_task_modes.md
 related_pages: [concepts/project-architecture, concepts/agent-topology, concepts/orchestrator-subagent-pattern, decisions/adr-001-3-layer-separation, decisions/adr-004-wiki-layer, patterns/r4-anchor-index, topics/standard-ai-workflow-architecture-2026, topics/wiki-ingest-lifecycle]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-07-08
 active_since: 2026-06-12
 active_reason: "draft → active (commit 2916d49 + cross-channel 동기화 완료). V-1 (위치) / V-4 (anchor) / V-R9 (면제) / R-1 (inbound ≥ 1) 모두 PASS"
 ---

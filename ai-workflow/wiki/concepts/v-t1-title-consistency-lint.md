@@ -14,7 +14,6 @@ updated: 2026-06-16
 
 - 문서 목적: ADR-006 (OKF 5-field bridge) 채택으로 wiki frontmatter 에 optional `title` field 가 추가됨. `title` 과 body 첫 `# ` (H1) heading 이 *동일한 정보를 다른 syntax* 로 표현 — prose 도중 H1 변경 시 frontmatter 미갱신 위험. V-T1 lint 가 이 일치를 강제.
 - 범위: lint 정의 (rule + mode matrix) + 7 test + ADR 후보 (ADR-009)
-- 최종 수정일: 2026-06-16
 
 ## §0 Status Notice  {#s0-status}
 

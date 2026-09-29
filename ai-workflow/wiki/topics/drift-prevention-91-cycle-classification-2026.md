@@ -8,7 +8,7 @@ related_pages:
   - workflow-source/tests/check_drift_prevention_v0_11_23.py
   - concepts/project-architecture
 created: 2026-07-09
-updated: 2026-07-09
+updated: 2026-07-22
 ---
 
 # Drift Prevention — 91 Cycle 사례 분류 노트 (2026-07-09)

@@ -11,7 +11,6 @@ updated: 2026-06-13
 
 - 문서 목적: standard_ai_workflow v0.7.0 step 7 의 Extension 시스템 (AIDLC `extensions/` 차용) 의 file format + opt-in pattern + lint rule + helper contract SSOT.
 - 범위: 3종 baseline (security / testing / performance) + SCHEMA.md + opt-in pattern + 23 smoke test
-- 최종 수정일: 2026-06-13
 
 ## §1 TL;DR  {#s1-tldr}
 

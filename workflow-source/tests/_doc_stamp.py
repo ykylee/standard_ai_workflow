@@ -30,6 +30,9 @@ _CANONICAL = (
     Path(__file__).resolve().parents[1] / "workflow_kit" / "common" / "doc_stamp.py"
 )
 
+# 정본이 wiki 경계를 `workflow_kit.common.paths` 에서 읽는다 (main-012).
+sys.path.insert(0, str(_CANONICAL.parents[2]))
+
 _spec = importlib.util.spec_from_file_location("_doc_stamp_canonical", _CANONICAL)
 if _spec is None or _spec.loader is None:  # pragma: no cover - 배치가 깨진 경우
     raise ImportError(f"문서 스탬프 판정 정본을 못 읽었다: {_CANONICAL}")
@@ -41,10 +44,16 @@ GRACE_DAYS = _mod.GRACE_DAYS
 check_frontmatter_stamp = _mod.check_frontmatter_stamp
 last_content_change_date = _mod.last_content_change_date
 stamp_format_violation = _mod.stamp_format_violation
+read_stamp = _mod.read_stamp
+write_stamp = _mod.write_stamp
+is_wiki_page = _mod.is_wiki_page
 
 __all__ = [
     "GRACE_DAYS",
     "check_frontmatter_stamp",
     "last_content_change_date",
     "stamp_format_violation",
+    "read_stamp",
+    "write_stamp",
+    "is_wiki_page",
 ]

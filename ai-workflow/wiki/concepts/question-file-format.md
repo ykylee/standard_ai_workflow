@@ -11,7 +11,6 @@ updated: 2026-06-12
 
 - 문서 목적: standard_ai_workflow v0.6.4 의 Question File Format 패턴 (AIDLC `common/question-format-guide.md` 차용) 의 외부 markdown spec + Python enforcement helper 결합 정책을 정리한다. multi-choice + `[Answer]:` tag + "Other" mandatory + contradiction/ambiguity auto-detection.
 - 범위: 외부 spec 구조, `parse_answers` / `validate_answers` / `detect_ambiguity` / `detect_contradiction` / `generate_clarification_file` API, stage gate 와의 결합
-- 최종 수정일: 2026-06-12
 
 ## §1 TL;DR  {#s1-tldr}
 

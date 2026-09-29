@@ -14,7 +14,7 @@ references:
   validations: [V-1, V-2, V-3, V-4, V-5, V-6, V-7, V-8]
   phases: [P1, P2, P3, P4]
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-09-29
 ---
 
 # Wiki 운영 헌법 (Operating Constitution)
@@ -112,6 +112,11 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 ```
+
+**스탬프는 `updated:` 하나다.** 문서 헤더식 `- 최종 수정일:` 을 wiki 페이지에 달지 않는다 —
+두 스탬프는 갈라진다(2026-09-29 실측 최대 66일). 게이트(`check_doc_stamp_rule` case 10)가
+`updated:` 를 그 페이지의 마지막 내용 변경일과 대조하고, `wk release-pipeline doc-headers-update`
+가 뒤처진 것을 올린다.
 
 ### §1.2 cross-page 식별자 규칙  {#s1-2-identifiers}
 

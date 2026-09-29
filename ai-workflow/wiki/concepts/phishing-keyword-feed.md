@@ -5,7 +5,7 @@ last_ingested_from: internal (this page is the rule definition, not ingest of an
 r9_skip: true
 verification_status: accepted_via_adr-022 (v0.7.41, formal documentation)
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-07-22
 ---
 
 # Phishing keyword feed — V-R11 v2 fallback chain (custom > external > bundled)

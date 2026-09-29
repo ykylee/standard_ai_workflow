@@ -302,6 +302,38 @@ def test_goal_source_missing_is_named_as_such() -> None:
     _record("test_goal_source_missing_is_named_as_such", not problems, "; ".join(problems))
 
 
+def test_source_paths_are_posix_on_any_host() -> None:
+    """roadmap_state.json 은 커밋되는 생성물이다 — 호스트마다 구분자가 바뀌면 교차 호스트 diff 가 난다.
+
+    Windows 호스트를 흉내 낸다: relative_to 가 PureWindowsPath 를 돌려주게 하면
+    `str()` 은 역슬래시를 내고 `as_posix()` 만 슬래시를 낸다.
+    """
+    from pathlib import PureWindowsPath
+    from unittest import mock
+
+    problems: list[str] = []
+    host_path = type(Path())
+    original = host_path.relative_to
+
+    def windows_relative_to(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+        return PureWindowsPath(*original(self, *args, **kwargs).parts)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = _fixture(Path(tmp), tasks=[
+            ("TASK-2026-08-25-main-001", "in_progress", "wbs: exempt\nwbs_exempt_reason: 교차 호스트\n"),
+        ])
+        with mock.patch.object(host_path, "relative_to", windows_relative_to):
+            state = build_roadmap_state(root)
+        if state is None:
+            problems.append("파생 실패")
+        else:
+            paths = [t.source_path for t in state.exempt_tasks]
+            if not paths:
+                problems.append("exempt task 가 집계되지 않았다")
+            problems.extend(f"역슬래시 경로: {p}" for p in paths if "\\" in p)
+    _record("test_source_paths_are_posix_on_any_host", not problems, "; ".join(problems))
+
+
 def main() -> int:
     cases = [
         test_repo_roadmap_is_clean,
@@ -312,6 +344,7 @@ def main() -> int:
         test_exempt_is_counted_and_needs_reason,
         test_goal_declarations_must_reach_real_goals,
         test_goal_source_missing_is_named_as_such,
+        test_source_paths_are_posix_on_any_host,
     ]
     for case in cases:
         case()

@@ -262,7 +262,8 @@
             "TASK-2026-09-18-main-003",
             "TASK-2026-09-28-main-001",
             "TASK-2026-09-28-main-020",
-            "TASK-2026-09-29-main-013"
+            "TASK-2026-09-29-main-013",
+            "TASK-2026-09-29-main-017"
           ],
           "total_leaves": 1,
           "done_leaves": 0,
@@ -678,105 +679,105 @@
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵(ADR-027 구현) 밖 환경 정리 — 사용자 직접 요청, 마일스톤 무관",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-25-main-010.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-010.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-018",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — emit 환경 결함(PYTHONPATH). ADR-027 로드맵 층 WBS 대상 아님",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-25-main-018.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-018.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-019",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — 전역 도구 해석 결함(doctor 탐침 표면). ADR-027 로드맵 층 WBS 대상 아님",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-25-main-019.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-019.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-020",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — cross-host 플랫폼 형식 결함(state.json). ADR-027 로드맵 층 WBS 대상 아님",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-25-main-020.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-020.md"
     },
     {
       "task_id": "TASK-2026-08-25-main-021",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "로드맵 밖 작업 — 열린 마일스톤 없음 (다음 로드맵은 소유자 선언 대기), 릴리스 운영 축",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-25-main-021.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-25-main-021.md"
     },
     {
       "task_id": "TASK-2026-08-29-main-004",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "소유자 지시 환경 정비 — 로드맵 축 외 호스트 채널 정렬",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-29-main-004.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-29-main-004.md"
     },
     {
       "task_id": "TASK-2026-08-29-main-005",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "소유자 지시 지원 하네스 축소 — 로드맵 축 외",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-29-main-005.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-29-main-005.md"
     },
     {
       "task_id": "TASK-2026-08-29-main-006",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "소유자 지시 지원 하네스 확장 — 로드맵 축 외",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-29-main-006.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-29-main-006.md"
     },
     {
       "task_id": "TASK-2026-08-30-main-001",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "결함 수리 — 로드맵 축 외 (main-013 결함족 잔여)",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-08-30-main-001.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-08-30-main-001.md"
     },
     {
       "task_id": "TASK-2026-09-23-main-010",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "원격 동기화와 로컬 하네스 배포는 M-007 구현 WBS 범위 밖의 환경 운영 작업",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-23-main-010.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-010.md"
     },
     {
       "task_id": "TASK-2026-09-23-main-011",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "결함 수리 — 로드맵 축 외 (검사 범위 결함)",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-23-main-011.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-23-main-011.md"
     },
     {
       "task_id": "TASK-2026-09-25-main-001",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "검사 호스트 의존 수리 — 마일스톤 밖 유지보수",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-25-main-001.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-25-main-001.md"
     },
     {
       "task_id": "TASK-2026-09-25-main-002",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "기존 안전장치 결함 수리 — 마일스톤 밖 유지보수",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-25-main-002.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-25-main-002.md"
     },
     {
       "task_id": "TASK-2026-09-29-main-015",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "기존 Windows 배포 결함 재현 및 개발환경 준비이며 로드맵 기능 leaf 범위 밖",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-29-main-015.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-29-main-015.md"
     },
     {
       "task_id": "TASK-2026-09-29-main-016",
       "task_status": "done",
       "wbs_ref": "exempt",
       "exempt_reason": "호스트별 개발 환경 복구 및 PATH 진단이며 로드맵 구현 작업이 아님.",
-      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-29-main-016.md"
+      "source_path": "ai-workflow/memory/active/main/backlog/tasks/TASK-2026-09-29-main-016.md"
     }
   ],
   "issues": []

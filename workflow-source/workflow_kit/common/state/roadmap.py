@@ -394,7 +394,7 @@ def _goal_link_issues(workspace_root: Path, milestones: list[Milestone]) -> list
         return [RoadmapIssue(
             code="goal_source_missing",
             detail=f"goals 선언 {len(declared)}건이 있으나 PURPOSE.md §1 Goals 를 읽을 수 없다",
-            where=str(purpose_path.relative_to(workspace_root)) if purpose_path else "PURPOSE.md",
+            where=purpose_path.relative_to(workspace_root).as_posix() if purpose_path else "PURPOSE.md",
         )]
     issues: list[RoadmapIssue] = []
     for milestone in milestones:
@@ -447,7 +447,7 @@ def collect_task_wbs_links(workspace_root: Path) -> list[TaskWbsLink]:
             task_status=_as_str(pairs, "status") or "unknown",
             wbs_ref=wbs_ref,
             exempt_reason=_as_str(pairs, "wbs_exempt_reason"),
-            source_path=str(task_path.relative_to(workspace_root)),
+            source_path=task_path.relative_to(workspace_root).as_posix(),
         ))
     return links
 

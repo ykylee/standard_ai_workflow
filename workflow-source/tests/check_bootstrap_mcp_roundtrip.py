@@ -34,6 +34,7 @@ WATCHES = (
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -77,6 +78,14 @@ def parse_args() -> argparse.Namespace:
         action="append",
         choices=list(HARNESS_CONFIG_KEY),
         help="Limit the smoke to a single harness. Repeatable; defaults to all.",
+    )
+    parser.add_argument(
+        "--literal-command",
+        action="store_true",
+        help=(
+            "emit 된 command 를 sys.executable 로 바꾸지 않고 이 호스트 PATH 에서 그대로 해석해 "
+            "spawn 한다 (TASK-2026-08-25-main-017 완료 기준 2 — 소비자 플랫폼 실측용, 기본 off)."
+        ),
     )
     return parser.parse_args()
 
@@ -143,6 +152,8 @@ def spawn_bridge(
     manifest: dict[str, object],
     target_root: Path,
     harness: str,
+    *,
+    literal_command: bool = False,
 ) -> subprocess.Popen[str]:
     """Spawn the MCP bridge described by the bootstrap manifest for ``harness``.
 
@@ -154,6 +165,11 @@ def spawn_bridge(
     cannot assume the harness PATH contains a Python that has the kit's
     dependencies, so we pin to the same interpreter we used to run the
     test (which definitely has them).
+
+    ``literal_command=True`` 는 그 치환을 끈다: emit 된 launcher 이름을 이 호스트
+    PATH 에서 ``shutil.which`` 로 해석해 그대로 spawn 한다. 소비자 플랫폼(특히
+    Windows 의 ``python``)에서 emit 설정이 실재하는 실행 파일로 서는지를 재는 칸이다 —
+    기본 경로는 이름만 재고 해석은 재지 않는다.
     """
     config_key = HARNESS_CONFIG_KEY[harness]
     if config_key not in manifest["generated_harness_files"]:
@@ -194,10 +210,21 @@ def spawn_bridge(
     # OpenCode 방언 (1.17.12 실측): command 는 배열 전체, env 키는 `environment`.
     # 다른 방언은 command 문자열 + args 분리 + `env` 를 유지한다.
     if isinstance(server_block["command"], list):
+        launcher = str(server_block["command"][0])
         launch_args = list(server_block["command"][1:])
     else:
+        launcher = str(server_block["command"])
         launch_args = list(server_block.get("args", []))
-    cmd = [sys.executable, *launch_args]
+    if literal_command:
+        resolved = shutil.which(launcher)
+        if resolved is None:
+            raise AssertionError(
+                f"emitted MCP command {launcher!r} for {harness!r} does not resolve on this "
+                f"host's PATH — a harness spawning the emitted config would fail here"
+            )
+        cmd = [resolved, *launch_args]
+    else:
+        cmd = [sys.executable, *launch_args]
     env = os.environ.copy()
     block_env = server_block.get("environment", server_block.get("env", {}))
     # main-018 형식 게이트: emit 된 PYTHONPATH 는 target 프로젝트에 **실재하는**
@@ -291,12 +318,12 @@ def _parse_codex_toml_server_block(toml_text: str) -> dict[str, object]:
     return server
 
 
-def smoke_one_harness(harness: str) -> None:
+def smoke_one_harness(harness: str, *, literal_command: bool = False) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         target_root = Path(tmpdir) / f"mcp-smoke-{harness}"
         target_root.mkdir(parents=True, exist_ok=True)
         manifest = run_bootstrap(target_root, harness)
-        proc = spawn_bridge(manifest, target_root, harness)
+        proc = spawn_bridge(manifest, target_root, harness, literal_command=literal_command)
         try:
             init = round_trip(
                 proc,
@@ -406,10 +433,11 @@ def main() -> int:
     args = parse_args()
     harnesses = args.harness or list(HARNESS_CONFIG_KEY)
     unit_checks()
-    print(f"Running MCP round-trip smoke for: {harnesses}")
+    mode = "literal emitted command" if args.literal_command else "sys.executable"
+    print(f"Running MCP round-trip smoke for: {harnesses} (launcher: {mode})")
     for harness in harnesses:
         print(f"  - {harness} ...", end=" ", flush=True)
-        smoke_one_harness(harness)
+        smoke_one_harness(harness, literal_command=args.literal_command)
         print("ok")
     print("Bootstrap-emitted MCP config round-trip smoke check passed for all selected harnesses.")
     return 0

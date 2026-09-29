@@ -52,9 +52,11 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-29.md",
-    "task_count": 19,
+    "task_count": 20,
     "in_progress_items": [],
-    "blocked_items": [],
+    "blocked_items": [
+      "TASK-2026-08-25-main-017 — MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
+    ],
     "done_items": [
       "TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널",
       "TASK-2026-09-29-main-001 — backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다",

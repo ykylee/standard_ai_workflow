@@ -4,7 +4,7 @@
 - 범위: 현재 기준선, 진행 상태, 다음 시작 포인트, 남은 리스크
 - 대상 독자: AI agent, 저장소 관리자
 - 상태: active
-- 최종 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 · 018 close: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`, 후속으로 `wk doctor` 가 Windows 에서 정본 파일을 extra 로 오판하던 것)
+- 최종 수정일: 2026-09-29 (104차 세션 **종료** — macOS 호스트. main-017 · 018 close + 08-25-main-017 Windows 실측 칸 신설: Windows 커밋이 `roadmap_state.json` source_path 를 역슬래시로 남겨 교차 호스트 diff 가 나던 것 → `as_posix()`, 후속으로 `wk doctor` 가 Windows 에서 정본 파일을 extra 로 오판하던 것)
 - 이전 수정일: 2026-09-29 (103차 세션 **종료** — Windows 호스트. main-016 close: `wk` editable 재설치 확인 · 사용자 PATH 와 Codex 프로세스 PATH 비교. 사용자 PATH 에 venv Scripts 가 있으나 현재 데스크톱 프로세스에는 반영되지 않아 완전 재시작 필요)
 - 이전 수정일: 2026-09-29 (100차 세션 **종료** — Linux 호스트. main-010 close: 살아있음 판정이 wiki frontmatter status · 굵은 '상태' 헤더를 못 읽던 것)
 - 이전 수정일: 2026-09-29 (98차 세션 **종료** — Linux 호스트. task 5건 close(main-001~005) + **v1.14.1 · v1.14.2 발행** + GitHub #29 close)
@@ -76,7 +76,7 @@
 ## 5. 다음 세션 시작 포인트
 
 - Codex 데스크톱을 완전히 재시작한 뒤 새 셸에서 `Get-Command wk`, `wk session-start`, `gh`, `unzip`, `python3 --version`, `wk doctor --json` 을 확인한다. 재시작 후에도 `wk` 가 빠져 있으면 사용자 PATH 가 데스크톱에 전달되는지 다시 진단한다. Codex CLI 실행 파일이 계속 PATH 에 없으면 `codex` 채널의 `installable=false` 는 별도 CLI 미설치 상태로 기록한다.
-- (Windows 호스트) 104차 main-018 실측: `wk doctor --json` 사본 대조에서 정본 파일이 extra 로 뜨던 잡음이 사라졌는지 확인. (아무 호스트) blocked TASK-2026-08-25-main-017(emit command python3 고정)이 같은 M-007/WBS-7.1 leaf 의 다음 후보.
+- (Windows 호스트) 104차 main-018 실측: `wk doctor --json` 사본 대조에서 정본 파일이 extra 로 뜨던 잡음이 사라졌는지 확인. 같은 Windows 세션에서 blocked TASK-2026-08-25-main-017 완료 기준 2 를 한 명령으로 닫는다: `.venv\Scripts\python.exe workflow-source/tests/check_bootstrap_mcp_roundtrip.py --literal-command` (104차 신설 — emit 된 launcher 를 치환 없이 PATH 에서 해석해 spawn). 5/5 면 done.
 - 누적 기록은 [`lessons.md`](./lessons.md) (규칙 10절) · [`sessions/handoff-notes_*.md`](./sessions/) (기록 7절) 로 이관됐다 — 최신이 위, 세션 시작에 읽지 않는다.
 
 ### ▶ 지금 할 일 — M-007 운영 축 상시 운용 (63차 전환, 64·65차 검증)

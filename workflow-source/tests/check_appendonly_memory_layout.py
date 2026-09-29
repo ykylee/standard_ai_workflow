@@ -189,7 +189,14 @@ def _check_daily_index_links_resolve() -> None:
             if current_task_id is None:
                 return
             if current_kind and "session" in current_kind:
-                # session entry → sessions/<raw_path_stem>.md
+                # session entry → sessions/<raw_path_stem>.md (이관 산출물) **또는**
+                # tasks/<id>.md. `wk backlog-update --kind session` 은 이관과 달리
+                # task SSOT 를 tasks/ 에 쓰고 source 줄을 안 단다 — 그 SSOT 가 있으면
+                # resolve 된 것이다 (TASK-2026-09-29-main-008: 도구가 쓴 정상 항목을
+                # 'source path 부재' 로 red 냈다. 이 함수의 계약은 docstring 대로
+                # "tasks/ 또는 sessions/" 다).
+                if (tasks_dir / f"{current_task_id}.md").exists():
+                    return
                 if current_source:
                     stem = Path(current_source).stem
                     session_path = sessions_dir / f"{stem}.md"

@@ -1002,6 +1002,8 @@ def main() -> int:
                     status=status,
                     # update 병합 시 index block 도 보존 — status 줄만 바꾼다.
                     preserve_index_block=update_merge,
+                    # 단 `--kind` 를 **명시**했으면 표식도 따라간다 (main-008).
+                    index_kind=args.kind if update_merge else None,
                 )
                 apply_result["written_paths"].append(str(daily_backlog_path))
                 # v1.0.2: `upsert_backlog_entry` 는 daily index 와 **task SSOT 두 파일**을

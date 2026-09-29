@@ -13,7 +13,7 @@ stable 로 선언된 `backlog-update` 가 **governance 가 규정한 layout 을 
 **layout 자체를 규약으로 검사하지 않았다.** 그래서 skill 을 실제로 돌려 산출물을
 governance 규약과 대조하는 본 smoke 를 둔다 (§2.18 "선언이 사실인가" 의 연장).
 
-Test list (10 case):
+Test list (11 case):
 1. test_daily_index_is_link_only
 2. test_task_file_naming_and_frontmatter
 3. test_no_bak_file_written
@@ -24,6 +24,7 @@ Test list (10 case):
 8. test_update_preserves_status_when_unspecified (TASK-2026-08-12-main-008 되주입)
 9. test_handoff_dedupes_by_task_id (TASK-2026-08-11-main-023 되주입)
 10. test_update_task_brief_is_optional (TASK-2026-09-18-main-001 되주입)
+11. test_update_explicit_kind_moves_index_marker (TASK-2026-09-29-main-008 되주입)
 
 Cross-ref: workflow-source/MEMORY_GOVERNANCE.md §2 +
 workflow-source/tests/check_appendonly_memory_layout.py (저장소 실물 검사).
@@ -234,6 +235,32 @@ def test_update_preserves_index_extras() -> None:
         assert "  - status: in_progress" in index, "index status 미갱신"
 
 
+def test_update_explicit_kind_moves_index_marker() -> None:
+    """update 에서 **명시한** `--kind` 는 index 의 `[kind]` 표식도 바꾼다 (main-008).
+
+    되주입 근거: 보존 모드가 status 줄만 바꿔, `--kind generic` 으로 frontmatter 를
+    고쳐도 index 는 `[session]` 으로 남았다 (2026-09-29 실측 — layout 검사 red, 손
+    교정). 표식만 바뀌고 손 sub-bullet 과 제목은 여전히 보존돼야 한다 — 그 반대쪽은
+    `test_update_preserves_index_extras` 가 kind 미지정으로 잰다.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        ws = _make_workspace(td)
+        task_id = _seed(ws, kind="session")["task_id"]
+        index_path = _branch_dir(ws) / "backlog" / "2026-07-22.md"
+        text = index_path.read_text(encoding="utf-8")
+        text = re.sub(r"(  - status: \w+)", r"\1\n  - notes: 손으로 쓴 노트", text, count=1)
+        index_path.write_text(text, encoding="utf-8")
+        _run_apply(ws, "--task-name", "레이아웃 검증", "--task-id", task_id,
+                   "--mode", "update", "--kind", "generic")
+        index = index_path.read_text(encoding="utf-8")
+        task_text = (_branch_dir(ws) / "backlog" / "tasks" / f"{task_id}.md").read_text(encoding="utf-8")
+        assert "kind: generic" in task_text, "frontmatter kind 미갱신"
+        assert f"- **{task_id}** [generic] 레이아웃 검증" in index, (
+            f"index 표식이 frontmatter 를 안 따라갔다: {index}")
+        assert "[session]" not in index, "옛 표식이 남았다"
+        assert "  - notes: 손으로 쓴 노트" in index, "표식을 바꾸며 손 sub-bullet 을 덮었다"
+
+
 def test_update_preserves_status_when_unspecified() -> None:
     """--status 미지정 update 는 기존 상태를 보존한다 (TASK-2026-08-12-main-008).
 
@@ -341,6 +368,7 @@ def main() -> int:
         test_update_preserves_status_when_unspecified,
         test_handoff_dedupes_by_task_id,
         test_update_task_brief_is_optional,
+        test_update_explicit_kind_moves_index_marker,
     ]
     failures: list[tuple[str, str]] = []
     for func in test_funcs:

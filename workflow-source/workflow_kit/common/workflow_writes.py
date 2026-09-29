@@ -476,6 +476,7 @@ def upsert_backlog_entry(
     kind: str = "generic",
     status: str = "planned",
     preserve_index_block: bool = False,
+    index_kind: str | None = None,
 ) -> str:
     """task SSOT 파일을 쓰고 daily index 에 link 를 반영한다 (v0.14.0+ layout).
 
@@ -505,6 +506,7 @@ def upsert_backlog_entry(
         lines = _replace_scalar_value(lines, "최종 수정일", date.today().isoformat())
         lines = _upsert_index_block(
             lines, task_id=task_id, entry=entry, preserve_block=preserve_index_block, status=status,
+            kind=index_kind,
         )
     else:
         lines = render_daily_backlog_header(backlog_path=backlog_path) + entry
@@ -520,6 +522,7 @@ def _upsert_index_block(
     entry: list[str],
     preserve_block: bool = False,
     status: str = "planned",
+    kind: str | None = None,
 ) -> list[str]:
     """daily index 에서 `- **<task_id>**` block 을 갱신하거나 끝에 덧붙인다.
 
@@ -529,6 +532,12 @@ def _upsert_index_block(
     3줄로 **교체하지 않고** `- status:` 줄만 바꾼다. 이전에는 교체가 head 의
     `[kind]`·제목과 `notes:`·`scope_creep_warnings:` 같은 부가 sub-bullet 을
     요약본으로 덮었다 (실측: [feature]→[generic] + notes 소실).
+
+    `kind` 는 **호출자가 명시로 바꾼** kind 다 (TASK-2026-09-29-main-008). 주면
+    보존 모드에서도 head 의 `[kind]` 표식만 그 값으로 바꾼다 — 안 그러면
+    `--kind` 로 고친 frontmatter 와 index 표식이 갈라진다(실측: frontmatter
+    generic, index [session] → layout 검사 red, 손 교정). ``None`` 이면 표식을
+    건드리지 않는다 — 기본값으로 옛 표식을 덮던 위 결함을 되살리지 않는다.
     """
     start: int | None = None
     for idx, line in enumerate(lines):
@@ -552,6 +561,13 @@ def _upsert_index_block(
         return lines[:start] + entry + lines[end:]
 
     updated = list(lines)
+    if kind is not None:
+        updated[start] = re.sub(
+            rf"^(\s*- \*\*{re.escape(task_id)}\*\*\s*)\[[^\]]*\]",
+            lambda m: f"{m.group(1)}[{kind}]",
+            updated[start],
+            count=1,
+        )
     for idx in range(start + 1, end):
         stripped = updated[idx].strip()
         if stripped.startswith("- status:"):

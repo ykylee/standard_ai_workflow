@@ -322,7 +322,9 @@
             "TASK-2026-09-28-main-019",
             "TASK-2026-09-29-main-001",
             "TASK-2026-09-29-main-002",
-            "TASK-2026-09-29-main-004"
+            "TASK-2026-09-29-main-004",
+            "TASK-2026-09-29-main-007",
+            "TASK-2026-09-29-main-008"
           ],
           "total_leaves": 1,
           "done_leaves": 1,
@@ -389,7 +391,8 @@
             "TASK-2026-09-28-main-018",
             "TASK-2026-09-28-main-021",
             "TASK-2026-09-29-main-003",
-            "TASK-2026-09-29-main-005"
+            "TASK-2026-09-29-main-005",
+            "TASK-2026-09-29-main-006"
           ],
           "total_leaves": 1,
           "done_leaves": 1,

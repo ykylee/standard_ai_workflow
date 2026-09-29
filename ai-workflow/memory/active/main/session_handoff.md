@@ -58,6 +58,9 @@
 ## 4. 최근 완료 작업
 
 - 최근 완료 작업 목록:
+- TASK-2026-09-29-main-008 backlog-update kind 규약 불일치
+- TASK-2026-09-29-main-007 스탬프 게이트가 주석 달린 스탬프 줄을 조용히 건너뛰는 것
+- TASK-2026-09-29-main-006 claude runtime_load 재시작 확인 (98차 후속)
 - TASK-2026-09-29-main-005 v1.14.2 발행 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리
 - TASK-2026-09-29-main-004 공유 AGENTS.md 마커 때문에 opencode 가 적용된 하네스로 판정돼 session-start 가 opencode 오버레이를 만든다
 - TASK-2026-09-29-main-003 v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리
@@ -65,9 +68,6 @@
 - TASK-2026-09-29-main-001 backlog-update update 가 날짜 경계를 넘으면 새 daily index 에 kind 를 generic 으로 적는다
 - TASK-2026-09-28-main-021 v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널
 - TASK-2026-09-28-main-020 antigravity 에서 플러그인 MCP 도구 11개가 전부 거부된다 — 합성 도구 이름이 64자 제한 초과
-- TASK-2026-09-28-main-019 wk doctor plugin_enabled 미실측 2건 실측 — grok 목록 부재 시 로드 · antigravity 워크스페이스 exclude
-- TASK-2026-09-28-main-018 wk doctor plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 의 활성 선언 자리 실측
-- TASK-2026-09-28-main-016 v1.13.0 발행 — 은퇴 shim 제거 + check_self_application telemetry 오염 수리
 그 이전 완료 항목은 [3차 세션 기록](./sessions/ci_reproducibility_and_smoke_parallelization_2026-08-10.md)·[2차 세션 기록](./sessions/adr006_retrospective_and_calibration_2026-08-10.md)과 각 task 파일에 있다.
 
 ## 5. 다음 세션 시작 포인트

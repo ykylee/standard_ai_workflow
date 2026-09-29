@@ -304,6 +304,47 @@ def test_manifest_lists_each_file_once() -> None:
             f"중복 {len(dups)}건: {dups[:5]}" if dups else "file_actions 가 비었다")
 
 
+def test_shared_marker_does_not_apply_other_harnesses() -> None:
+    """공유 파일(`AGENTS.md`)의 마커는 그 파일을 선언한 **모든** 하네스를 적용으로 만들지 않는다.
+
+    TASK-2026-09-29-main-004: codex 가 쓴 `AGENTS.md` 의 마커로 opencode 가 적용 판정돼
+    세션 시작이 요청하지 않은 opencode 오버레이 7개를 만들었다 (v1.14.1 wheel 실측).
+    `wk doctor` 도 같은 판정을 읽으므로 함께 잰다.
+    """
+    from workflow_kit.deploy_doctor import _probe_project_scope  # noqa: PLC0415
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory() as td:
+        codex = Path(td) / "codex"
+        codex.mkdir()
+        _bootstrap(codex, harness="codex")
+        plan = ensure_run(project_root=codex, apply=False)
+        doctor_applied = _probe_project_scope(codex)["applied_harnesses"]
+        ensure_run(project_root=codex, apply=True)
+        opencode_made = (codex / "opencode.json").exists() or (codex / ".opencode").exists()
+        (codex / "AGENTS.md").unlink()
+        gone_plan = ensure_run(project_root=codex, apply=False)
+
+        pi = Path(td) / "pi"
+        pi.mkdir()
+        _bootstrap(pi, harness="pi-dev")
+        pi_applied = ensure_run(project_root=pi, apply=False)["applied_harnesses"]
+
+    if plan["applied_harnesses"] != ["codex"]:
+        problems.append(f"codex 단독인데 applied={plan['applied_harnesses']}")
+    if doctor_applied != ["codex"]:
+        problems.append(f"doctor applied={doctor_applied} — [\x27codex\x27] 여야 한다 (ensure 와 같은 정본을 읽는다)")
+    if plan["missing"]:
+        problems.append(f"codex 단독인데 부재={[i['path'] for i in plan['missing']]}")
+    if opencode_made:
+        problems.append("--apply 가 opencode 오버레이를 만들었다")
+    if not any(i["path"] == "AGENTS.md" and i["harness"] == "codex" for i in gone_plan["missing"]):
+        problems.append(f"codex 의 AGENTS.md 부재를 못 잡았다: {gone_plan['missing']}")
+    if pi_applied != ["pi-dev"]:
+        problems.append(f"pi-dev 단독인데 applied={pi_applied} — 고유 파일 없는 하네스가 사라졌다")
+    _record("test_shared_marker_does_not_apply_other_harnesses", not problems, "; ".join(problems))
+
+
 def main() -> int:
     cases = [
         test_create_only_writes_missing_but_not_stale,
@@ -313,6 +354,7 @@ def main() -> int:
         test_harness_spec_matches_bootstrap_output,
         test_apply_writes_only_declared_missing,
         test_manifest_lists_each_file_once,
+        test_shared_marker_does_not_apply_other_harnesses,
     ]
     for case in cases:
         case()

@@ -51,6 +51,7 @@ if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from workflow_kit.bootstrap_lib.harnesses import HARNESS_SPECS  # noqa: E402
+from workflow_kit.common.harness_presence import detect_harnesses  # noqa: E402
 from workflow_kit.common.paths import discover_project_profile_path  # noqa: E402
 from workflow_kit.common.project_docs import parse_project_profile_core  # noqa: E402
 from workflow_kit.upgrade_diff import (  # noqa: E402
@@ -89,24 +90,13 @@ def _current_branch(project_root: Path) -> str:
 
 
 def _applied_harnesses(project_root: Path) -> list[str]:
-    """이 프로젝트에 **이미 적용된** 하네스. 마커가 하나라도 있으면 적용으로 본다.
+    """이 프로젝트에 **이미 적용된** 하네스. 판정 정본은 `harness_presence` 다.
 
-    존재는 적용이 아니다 — `AGENTS.md` 처럼 다른 도구가 쓴 파일이 여러 하네스를
-    적용됨으로 만들 수 있다 (`deploy_doctor` 가 같은 이유로 마커를 본다).
+    존재는 적용이 아니고, **공유 파일의 마커도 적용이 아니다** — codex 가 쓴
+    `AGENTS.md` 의 마커 하나가 opencode 까지 적용됨으로 만들어 세션 시작이 opencode
+    오버레이를 생성했다 (TASK-2026-09-29-main-004). `deploy_doctor` 도 같은 판정을 읽는다.
     """
-    applied: list[str] = []
-    for name, spec in sorted(HARNESS_SPECS.items()):
-        for rel in (*spec.entry_files, *spec.extra_files):
-            path = project_root / rel
-            if not path.is_file():
-                continue
-            try:
-                if parse_version_marker(path.read_text(encoding="utf-8")):
-                    applied.append(name)
-                    break
-            except (OSError, UnicodeDecodeError):
-                continue
-    return applied
+    return detect_harnesses(project_root)[0]
 
 
 def classify(project_root: Path, harnesses: list[str]) -> dict[str, list[dict[str, str]]]:

@@ -652,16 +652,20 @@ def _probe_project_scope(project_root: Path) -> dict[str, Any]:
     말하면 과보고가 된다 — 실측(2026-08-16): 이 저장소의 `AGENTS.md` 는 다른
     도구가 쓴 파일인데, 그 하나가 codex/grok-build/minimax-code/opencode/pi-dev
     **5개 하네스를 적용됨으로** 만들었다. 그래서 `applied_harnesses` 는 kit 소유
-    표식(버전 마커, §3)이 하나라도 있는 하네스만 센다. 마커 없이 존재만 하는
-    쪽은 `candidate_harnesses` 로 따로 보고한다 — 공유 진입점(§3 "공유")이 그
-    자리에 정당하게 올 수 있으므로 숨기지도 않는다.
+    표식(버전 마커, §3)이 있는 하네스만 센다. 마커가 **공유 파일**에만 있으면 그
+    파일을 선언한 하네스 모두가 아니라 고유 파일로 확인된 쪽의 몫이다 — 판정
+    정본은 `common.harness_presence` (TASK-2026-09-29-main-004). 적용이 아닌데
+    파일이 있는 쪽은 `candidate_harnesses` 로 따로 보고한다 — 숨기지 않는다.
     """
     declared = _declared_relpaths()
     kit_version, kit_version_source = _resolve_kit_version(project_root)
 
     harnesses: dict[str, Any] = {}
-    applied: list[str] = []
-    candidates: list[str] = []
+    # 적용 판정은 정본 한 곳(`harness_presence`)이 한다 — 공유 파일(`AGENTS.md`)의
+    # 마커가 그 파일을 선언한 모든 하네스를 적용됨으로 만들던 것 (main-004).
+    from workflow_kit.common.harness_presence import detect_harnesses  # noqa: PLC0415
+
+    applied, candidates = detect_harnesses(project_root)
     for harness, relpaths in sorted(declared.items()):
         present: list[dict[str, Any]] = []
         for rel in relpaths:
@@ -681,7 +685,6 @@ def _probe_project_scope(project_root: Path) -> dict[str, Any]:
             "files_declared": len(relpaths),
             "files_marked": len(marked),
         }
-        (applied if marked else candidates).append(harness)
 
     return {
         "project_root": str(project_root),

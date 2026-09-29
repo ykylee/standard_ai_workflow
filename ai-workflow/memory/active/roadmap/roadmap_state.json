@@ -770,6 +770,13 @@
       "wbs_ref": "exempt",
       "exempt_reason": "기존 Windows 배포 결함 재현 및 개발환경 준비이며 로드맵 기능 leaf 범위 밖",
       "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-29-main-015.md"
+    },
+    {
+      "task_id": "TASK-2026-09-29-main-016",
+      "task_status": "done",
+      "wbs_ref": "exempt",
+      "exempt_reason": "호스트별 개발 환경 복구 및 PATH 진단이며 로드맵 구현 작업이 아님.",
+      "source_path": "ai-workflow\\memory\\active\\main\\backlog\\tasks\\TASK-2026-09-29-main-016.md"
     }
   ],
   "issues": []

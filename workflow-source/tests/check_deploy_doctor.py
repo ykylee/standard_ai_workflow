@@ -1759,6 +1759,54 @@ def test_mcp_child_probe_ignores_pythonpath() -> None:
     _record("test_mcp_child_probe_ignores_pythonpath", not problems, "; ".join(problems))
 
 
+#: cmd.exe 가 배치 shim(`python3.CMD`)의 명령행을 다시 해석하며 **첫 개행 뒤를 버리는**
+#: 동작의 모형. cmd.exe 자체가 아니다 — 이 저장소에는 Windows 호스트가 없다. 재는 것은
+#: '인자에 실린 개행 뒤가 자식에 닿지 않는다' 한 가지이고, 그 모형이 결함을 실제로
+#: 재현하는지는 같은 case 의 첫 행이 따로 잰다.
+_TRUNCATING_SHIM = """#!{python}
+import os, sys
+args = []
+for arg in sys.argv[1:]:
+    if "\\n" in arg:
+        args.append(arg.split("\\n", 1)[0])
+        break
+    args.append(arg)
+os.execv({python!r}, [{python!r}, *args])
+"""
+
+
+def test_mcp_child_probe_survives_newline_truncating_shim() -> None:
+    """탐침이 **개행을 자르는 shim** 을 지나도 결과를 낸다 (TASK-2026-09-29-main-013).
+
+    Windows 에서 `which("python3")` 가 `python3.CMD` 를 돌려주면 cmd.exe 가 `-c` 의
+    다줄 스크립트를 첫 개행에서 잘라, 탐침은 첫 줄만 돌고 아무것도 찍지 않았다.
+    """
+    from workflow_kit.deploy_doctor import _MCP_CHILD_PROBE, _run_mcp_child_probe
+
+    problems: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="doctor-mcp-shim-") as tmpdir:
+        shim = Path(tmpdir) / "python3"
+        shim.write_text(_TRUNCATING_SHIM.format(python=sys.executable), encoding="utf-8")
+        shim.chmod(0o755)
+        cwd = Path(tmpdir) / "cwd"
+        cwd.mkdir()
+        # 모형이 결함을 재현하는가 — 이것이 없으면 아래 green 은 아무것도 증명하지 않는다.
+        seen = subprocess.run(
+            [str(shim), "-c", "print('first')\nprint('second')"],
+            capture_output=True, text=True, timeout=30,
+        ).stdout.split()
+        if seen != ["first"]:
+            problems.append(f"shim 이 개행 뒤를 자르지 않는다 (모형 무효): {seen}")
+        data = _run_mcp_child_probe(str(shim), cwd)
+    if data.get("probe_error"):
+        problems.append(f"shim 경유 탐침 실패: {data['probe_error']}")
+    elif not data.get("install_roots"):
+        problems.append("shim 경유 탐침이 설치 루트를 못 받았다")
+    # stdin 은 Windows 에서 로캘 인코딩(cp949 등)으로 쓰인다 — ASCII 밖 문자가 끼면 깨진다.
+    if not _MCP_CHILD_PROBE.isascii():
+        problems.append("탐침 스크립트에 ASCII 밖 문자가 있다 — Windows stdin 인코딩에서 깨진다")
+    _record("test_mcp_child_probe_survives_newline_truncating_shim", not problems, "; ".join(problems))
+
 def test_symlinked_home_reports_real_paths_once() -> None:
     """홈이 **symlink 아래**여도 판정이 같고, 보고서 경로는 실경로로 **한 번씩만** 나온다.
 
@@ -2041,6 +2089,7 @@ def main() -> int:
         test_mcp_interpreter_reinjections_each_fire,
         test_mcp_interpreter_command_is_derived_from_payload,
         test_mcp_child_probe_ignores_pythonpath,
+        test_mcp_child_probe_survives_newline_truncating_shim,
         test_symlinked_home_reports_real_paths_once,
         test_plugin_enabled_missing_declaration_is_a_finding,
         test_plugin_enabled_explicit_false_is_a_distinct_finding,

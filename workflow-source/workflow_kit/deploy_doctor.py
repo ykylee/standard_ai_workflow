@@ -1766,11 +1766,17 @@ def _run_mcp_child_probe(executable: str, cwd: Path) -> dict[str, Any]:
     ``PYTHONPATH`` 는 **뺀다**. 플러그인 `.mcp.json` 은 그것을 설정하지 않는데, doctor 를
     개발 모드(`PYTHONPATH=workflow-source`)로 띄우면 그 값이 자식에 새어 저장소 소스가
     해석된 것처럼 보인다 (2026-09-25 실측: 실제로는 site-packages wheel 인데
-    `project_checkout` 으로 보고됐다)."""
+    `project_checkout` 으로 보고됐다).
+
+    스크립트는 **stdin 으로**(`python -`) 넘긴다 — argv 에 싣지 않는다. Windows 에서
+    PATH 가 `python3.CMD` 같은 배치 shim 을 돌려주면 그 인자를 cmd.exe 가 다시 해석하며
+    **첫 개행에서 자른다** — 탐침은 `import json, site, sys` 한 줄만 돌고 아무것도 찍지
+    않은 채 끝났다 (TASK-2026-09-29-main-013, 소유자 전달 Windows 실측). stdin 은
+    shim 을 지나도 바이트 그대로 자식에 닿고, 인자는 개행 없는 `-` 하나만 남는다."""
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     try:
         proc = subprocess.run(  # noqa: S603 - PATH 해석 결과를 그대로 띄운다 (탐침 대상 자체)
-            [executable, "-c", _MCP_CHILD_PROBE],
+            [executable, "-"], input=_MCP_CHILD_PROBE,
             cwd=str(cwd), capture_output=True, text=True, timeout=30, env=env,
         )
     except (OSError, subprocess.SubprocessError) as exc:

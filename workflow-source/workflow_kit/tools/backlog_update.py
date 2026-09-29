@@ -492,6 +492,22 @@ def read_task_ssot_state(path: Path) -> tuple[str | None, str | None]:
     return status, (recorded or None)
 
 
+def read_task_ssot_kind(path: Path) -> str | None:
+    """task SSOT frontmatter 의 ``kind`` 를 읽는다 (없거나 못 읽으면 ``None``).
+
+    TASK-2026-09-29-main-001. update 에서 ``--kind`` 미지정은 "바꾸지 말라" 다.
+    frontmatter 는 그렇게 보존됐는데 daily index 의 ``[kind]`` 표식은
+    ``args.kind or "generic"`` 이라, 날짜 경계를 넘은 이월이 새 index 에 ``[generic]``
+    을 적었다 — 같은 task 가 두 index 에서 다른 작업으로 보여 게이트가 red 였다.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    m = re.search(r"^kind:\s*(\S+)", text, re.M)
+    return m.group(1) if m else None
+
+
 def main() -> int:
     args = parse_args()
     source_context = {
@@ -722,7 +738,11 @@ def main() -> int:
         }
         fields_requiring_confirmation = [normalize_backticked(item) for item in detect_confirmation_fields(fields_data)]
 
-        resolved_kind = args.kind or "generic"
+        # update 에서 --kind 미지정이면 task SSOT frontmatter 의 kind 를 따른다 —
+        # 이월로 새 daily index 에 줄이 생길 때 표식이 frontmatter 와 갈라지지 않게.
+        existing_kind = (read_task_ssot_kind(_ssot_probe)
+                         if requested_mode == "update" and _ssot_probe.exists() else None)
+        resolved_kind = args.kind or existing_kind or "generic"
         resolved_priority = args.priority or "high"
 
         # ADR-027 M-004 (스펙 §6): roadmap 이 있는 프로젝트의 task **생성** 게이트.

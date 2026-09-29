@@ -142,7 +142,7 @@ def _run(args: list[str]) -> dict[str, object]:
 class Fixture:
     """어제 index 에만 있는 진행 중 task + 오늘 index (다른 task 로 이미 존재)."""
 
-    def __init__(self, tmp: Path, *, with_ssot: bool = True) -> None:
+    def __init__(self, tmp: Path, *, with_ssot: bool = True, kind: str = "generic") -> None:
         example_root = SOURCE_ROOT / "examples" / "acme_delivery_platform"
         self.project_root = (tmp / "project").resolve()
         branch_root = (self.project_root / get_current_branch()).resolve()
@@ -161,7 +161,8 @@ class Fixture:
         self.today.write_text(TODAY_INDEX, encoding="utf-8")
         self.ssot = backlog_dir / "tasks" / f"{TASK_ID}.md"
         if with_ssot:
-            self.ssot.write_text(SSOT_BODY, encoding="utf-8")
+            self.ssot.write_text(
+                SSOT_BODY.replace("kind: generic", f"kind: {kind}"), encoding="utf-8")
 
     @property
     def base_args(self) -> list[str]:
@@ -293,11 +294,41 @@ def test_same_day_update_still_update_entry() -> None:
     )
 
 
+# --- Case 6 ----------------------------------------------------------------
+
+
+def test_carry_over_index_marker_follows_frontmatter_kind() -> None:
+    """이월된 index 줄의 `[kind]` 는 `--kind` 미지정이면 frontmatter 를 따른다.
+
+    TASK-2026-09-29-main-001: `args.kind or "generic"` 이라 frontmatter 는 `release`
+    로 보존됐는데 새 index 줄만 `[generic]` 이었다 — 같은 task 가 두 index 에서 다른
+    작업으로 보여 `check_appendonly_memory_layout` 이 게이트를 세웠다. 기본 fixture 가
+    `generic` 이라 기본값과 구별이 안 돼 이 결함을 못 봤다 — 그래서 generic 이 아닌 값.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fx = Fixture(Path(tmpdir), kind="release")
+        _run([
+            *fx.base_args, "--task-id", TASK_ID, "--mode", "update",
+            "--task-name", "이월 대상 task", "--task-brief", "kind 미지정 이월.", "--apply",
+        ])
+        today_text = fx.today.read_text(encoding="utf-8")
+        ssot_text = fx.ssot.read_text(encoding="utf-8")
+    line = next((ln for ln in today_text.splitlines() if ln.startswith(f"- **{TASK_ID}**")), "")
+    problems: list[str] = []
+    if "[release]" not in line:
+        problems.append(f"index 표식이 frontmatter 를 안 따랐다: {line!r}")
+    if "kind: release" not in ssot_text:
+        problems.append("frontmatter kind 가 보존되지 않았다")
+    _record("test_carry_over_index_marker_follows_frontmatter_kind",
+            not problems, "; ".join(problems))
+
+
 def main() -> int:
     test_carry_over_into_new_daily_index()
     test_carry_over_preserves_status_when_unspecified()
     test_missing_ssot_is_not_ok()
     test_same_day_update_still_update_entry()
+    test_carry_over_index_marker_follows_frontmatter_kind()
     total = len(RAN)
     print(f"\n{total - len(FAILURES)}/{total} passed")
     if FAILURES:

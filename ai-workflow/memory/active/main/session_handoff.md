@@ -50,7 +50,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-29-main-009 v1.14.3 발행 — 스탬프 형식 판정 + backlog-update kind 표식 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

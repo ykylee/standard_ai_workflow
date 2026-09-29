@@ -84,6 +84,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- fix(backlog-update): update 의 명시 --kind 가 daily index 표식에 반영 + layout 검사의 session kind 오판 (09-29-main-008) (8f5619ca)
+- fix(doc-stamp): 날짜 뒤 주석 달린 스탬프를 전수 게이트가 판정 없이 건너뛰던 것 (09-29-main-007) (cad0d836)
 - fix(ensure-entrypoints,doctor): 공유 AGENTS.md 마커로 opencode 가 적용 판정돼 오버레이를 만들던 것 (09-29-main-004) (bd78a2ad)
 - fix(bootstrap): minimax-code 경로 대소문자 불일치로 session-start 가 매 세션 빈 task 를 만들던 것 (#29, 09-29-main-002) (9e4660ba)
 - fix(backlog-update): 날짜 경계 이월이 새 daily index 에 [generic] 을 적던 것 + 98차 세션 종료 (09-29-main-001) (6fd6af7c)
@@ -112,14 +114,19 @@ All notable changes to this project will be documented in this file.
 - fix(doc-stamp): '마지막 내용 변경' 이 실제로 내용 변경을 재게 한다 + 스탬프 97건 소급 교정 (main-004) (2cf73e87)
 - fix(release): 문서 스탬프를 뒤처진 것만 올린다 (main-002) (7b619a93)
 - fix(doctor): 설치 시각 폴백을 트리 최신 mtime 으로 (main-003) (625d0ee2)
-- fix(ci): digest 마커를 본문으로 — gh issue comment 에 없는 플래그였다 (main-001) (105f0043)
-- fix(tests): case 3 의 전제가 호스트 의존이었다 + 81차 세션 종료 (e2d6b0d3)
-- ... (179 more)
+- ... (181 more)
+
+## [1.14.3] - 2026-09-29
+
+### Changed
+
+- release(v1.14.3): 발행 준비 — backlog-update kind 표식 + 스탬프 형식 판정 수리 (94afc6aa)
 
 ## [1.14.2] - 2026-09-29
 
 ### Changed
 
+- release(v1.14.2): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 + §2.8 (5a0fd083)
 - release(v1.14.2): 발행 준비 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리 (92c43b19)
 
 ## [1.14.1] - 2026-09-29
@@ -141,7 +148,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - release(v1.13.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (756a181e)
-- release(v1.13.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (2562b1ef)
 - release(v1.13.0): 발행 준비 — v1.12.0 에서 예고한 은퇴 API 제거 + telemetry 오염 수리 (1f16e431)
 
 ## [1.12.0] - 2026-09-28
@@ -325,7 +331,6 @@ All notable changes to this project will be documented in this file.
 - docs(v1.0.0): dashboard snapshot + CHANGELOG 재생성 + 검증 수치 실측 정합 (17c3cb63)
 - docs(v1.0.0): smoke 카운트 199 정합 + 릴리스 노트 검증 섹션 실측 기록 (5c690b97)
 - chore(v1.0.0): version bump 1.0.0 + 버전 스탬프 정합 + Phase 13 진입 (릴리스 미완) (e574bf9d)
-- docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (01838d0b)
 - docs(v1.0.0): Gate 1 ✅ PASS — Panel 5 items_total=11 (Break Point #1 close-out) (6e24b81d)
 
 ## [0.15.21] - 2026-07-21

@@ -66,3 +66,20 @@ update 를 한 번 돌리면 맞춰진다.
   분류돼 판정 밖이다. 헤더 부재를 동결 신호로 보는 규칙이 wiki 페이지에 맞는지는 별도 판단이다.
 - MiniMax Code CLI 가 프로젝트 로컬에서 어느 대소문자 경로를 읽는지는 여전히 미실측이다.
 - **Windows 는 현재 미측정이다** (`TASK-2026-08-25-main-017` blocked).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-29T03:40:25Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

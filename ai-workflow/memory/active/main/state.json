@@ -29,8 +29,10 @@
   "session": {
     "current_baseline": "**98차 세션 (2026-09-29, Linux 호스트 i5-1335U) — task 1건 close (TASK-2026-09-29-main-001), 코드 수리 1건.** ①**결함** — `backlog-update` update 에서 `--kind` 미지정은 frontmatter 를 보존했지만 daily index 표식은 `args.kind or \"generic\"` 이라, 날짜 경계를 넘은 이월이 새 index 에 `[generic]` 을 적었다(97차 v1.14.0 기록 중 `check_appendonly_memory_layout` red 로 실측). ②**수리** — `backlog_update.py` `read_task_ssot_kind()` 신설, 우선순위 `--kind` > frontmatter `kind` > `generic`. 같은 패턴은 저장소에 이 한 곳뿐. ③**검사** — `check_backlog_carry_over` case 6(`kind: release` 이월 → `[release]`). 기존 fixture 가 `generic` 이라 기본값과 구별이 안 돼 못 봤다 — **fixture 값이 기본값과 같으면 보존 결함이 안 보인다**. 옛 줄 되주입 → case 6 red(5/6) 확인 후 복원. `--changed` 269 통과 · smoke 8/8. **후속**(97차에서 이월): macOS §2.8 재적용(1.13.0→1.14.0) · antigravity MCP 실제 도구 호출 미측정 · 백업 브랜치 `backup/local-2562b1ef` 삭제는 소유자 확인.",
     "current_axis": "**로드맵·마일스톤·WBS 진척 관리 + SDLC 온보딩 기본 — 60차(2026-08-25) 소유자 지시로 확정.** ADR-027 accepted, 정본 스펙은 [`roadmap_milestone_wbs_spec.md`](../../../../workflow-source/core/roadmap_milestone_wbs_spec.md) (M-001 design 완료, 구현은 M-002~M-006 단계 실행 — 스펙 §10 이 임시 로드맵 정본). 직전 축(배포 일관성·멱등성)은 ✅ gap 4개 전부 닫혔다 (2026-08-18, 48차). 정본은 [`workflow_deployment_idempotency.md`](../../../../workflow-source/core/workflow_deployment_idempotency.md). ~~[main-016] `wk doctor`~~ ✅ · ~~[main-017] 채널 재실행 계약~~ ✅ (47차) · ~~[main-005] 드리프트 감지(페이로드 해시)~~ ✅ · ~~[main-019] 환경 pre-flight~~ ✅ (48차). 탐침은 이제 **7절**이다 (53차 `runtime_load` 신설 — 노출 미측정 한 칸을 측정으로 옮겼다). ~~[main-010] §7.0.2 의 '버전 상이' 셀~~ ✅ (53차 — 실측 + `installPath` 선언을 읽도록 교정). ~~[TASK-2026-08-14-main-009] 라벨 영어 전환~~ ✅ (53차 — 4단계 종료). ~~[main-004] wiki 3-step 하위 두 단계~~ ✅ (49차 — 1단계 은퇴 / 2단계 수리 / 3단계 재작성). **열린 후보**: ~~OKF v0.2 이행 ADR~~ ✅ (2026-08-20 ADR-026 로 전체 이행 완료, TASK-2026-08-20-main-003 — 이 줄이 그것을 안 따라와 58차가 낡은 후보를 다시 검토했다; 잔재였던 매니페스트 '0.1' 하드코딩은 58차 main-008 이 걷음) · ~~wiki L1→L2 갭 85개~~ ✅ (50차 — 계약을 4종으로 좁혀 닫음) · cross-host federation(MacBook, 시점 추후) · ~~[TASK-2026-08-13-main-004] mypy flake 관찰~~ ✅ (66차 close — 33/33 표본, mypy 실패 0).",
-    "current_focus": "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다",
-    "in_progress_items": [],
+    "current_focus": "TASK-2026-09-29-main-003 v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리",
+    "in_progress_items": [
+      "TASK-2026-09-29-main-003 v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리"
+    ],
     "blocked_items": [
       "TASK-2026-08-25-main-017 MCP emit command 가 항상 python3 — PATH 에 python3 이 없는 Windows 에서 emit 설정으로 서버를 spawn 할 수 없다"
     ],
@@ -52,8 +54,10 @@
   },
   "backlog": {
     "latest_backlog_path": "ai-workflow/memory/active/main/backlog/2026-09-29.md",
-    "task_count": 3,
-    "in_progress_items": [],
+    "task_count": 4,
+    "in_progress_items": [
+      "TASK-2026-09-29-main-003 — v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리"
+    ],
     "blocked_items": [],
     "done_items": [
       "TASK-2026-09-28-main-021 — v1.14.0 발행 — antigravity MCP 도구 이름 수리 + doctor plugin_enabled 4채널",

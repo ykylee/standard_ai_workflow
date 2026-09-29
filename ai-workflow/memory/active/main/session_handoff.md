@@ -50,7 +50,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-29-main-003 v1.14.1 발행 — minimax-code 경로 불일치(#29) + backlog-update 이월 kind 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:

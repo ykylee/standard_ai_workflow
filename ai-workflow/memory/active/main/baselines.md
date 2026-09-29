@@ -11,6 +11,10 @@
 
 ## 롤오프 2026-09-29
 
+- **93차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 2건 close (TASK-2026-09-23-main-014 · 09-28-main-014), **v1.12.0 발행**.** 발행 뒤 이 호스트 채널 재적용을 `docs/RELEASE.md` §2.8 로 절차화 + `wk doctor` `content_drift.behind`(읽히는 사본 < 정본 버전 → 발견) 신설. §2.8 을 이 호스트에서 첫 실행: codex·grok-build·antigravity 1.10.0 → 1.11.0, claude-code 설치 기록 1.9.4 → 1.11.0, doctor `behind=[]`. **v1.12.0**: `release-status` 가 `!` 2건으로 2.0.0 제안 → `534e3a8d` 가 동결 표면 공개 API 2종을 유예 없이 지운 것이 드러남 → 소유자 결정 minor + 은퇴 shim(v1.13.0 제거). 태그 → `c26c92f8`, asset 4종, 발행 wheel 격리 설치 실측, §2.8 재적용 두 번째 실행(4채널 1.12.0). 이 호스트에 `python3.14-venv` 가 없어 packaging 점검이 실패했었다(설치로 해소). 남은 것: claude-code CLI 재시작(`runtime_load`). **교훈 재확인**: task close 뒤 `--changed` 에서 `check_handoff_next_steps` red — §5 후보가 닫힌 task 를 가리켰다.
+
+## 롤오프 2026-09-29
+
 - **92차 세션 (2026-09-28, Linux 호스트 i5-1335U) — task 10건 close, 세션 시작 컨텍스트 예산 축(M-013→M-017)을 concept 에서 구현까지 하루에 완주. 필독 195.1KB → 111.5KB.** 상세는 각 task 파일(SSOT). ①**게이트 처리량** (M-014 C) — main-007 release 계열 검사 내 mypy 반복 제거(44.2→28.3s) · main-008 러너·CLI 검사의 무거운 fixture·네트워크 제거(46.9→12.3s, `release-doctor --skip-mypy` 신설, git 추적 `.score_history.jsonl` 쓰기 경합 제거) · 검사 간 mypy 공유는 **보류(소유자)**. ②**결함 수리** — main-009 validate source 정본화(`VALIDATE_SOURCES`, plugin_payload skip 불가 = 소유자 결정, `check_validate_source_coverage`) · 09-23-main-015 대시보드 phase 를 로드맵에서 파생 · 09-23-main-016 + main-010 task ID 충돌 검출(대시보드 지표 + session-start warning). ③**컨텍스트 예산** — 09-23-main-012 concept(③ 출구+예산) → main-011 requirements(Q1~Q5 권고안) → main-012 design(ADR-029 accepted) → main-013 구현: `common/context_budget.py`(예산 4 · 현재형 절 목록) · `wk refresh-state` 초과 경고 · `state.json.memory_entries` v2 포인터(68.8→21.4KB) · `wk rollover-handoff-notes`(§5 누적형 17절 → `lessons.md`/`sessions/`, 39.6→7.9KB) · `CLAUDE.md` 운영 절 → `docs/LOCAL_GATE.md`(19.6→11.3KB) · `check_session_context_budget` 이 저장소 red 활성. **교훈**: task 를 `--changed` 뒤에 close 하면 handoff §5 후보 검사가 게이트에서야 red · `backlog-update --status done` 은 `--validation-result` 없이는 조용히 보수 유지 — frontmatter 를 확인할 것. 후속: §5 현재형 20KB(예산 밖, 관찰) · macOS 10코어 B 측정.
 
 ## 롤오프 2026-09-28

@@ -4,7 +4,7 @@
 - 범위: git log 에서 추출한 release 별 Added / Changed / Fixed 항목.
 - 대상 독자: maintainer, 릴리스 매니저, 외부 consumer
 - 상태: stable (자동 생성물)
-- 최종 수정일: 2026-09-28
+- 최종 수정일: 2026-09-29
 - 관련 문서: [`./releases/`](./releases/) (release note), [`../docs/RELEASE.md`](../docs/RELEASE.md) (릴리스 절차)
 
 All notable changes to this project will be documented in this file.
@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- feat(doctor): plugin_enabled 절을 4채널로 — codex·grok-build·antigravity 활성 선언 실측 (09-28-main-018) (90e3d52a)
+- feat(doctor): plugin_enabled 절 신설 — 설치됐는데 꺼진 플러그인을 발견으로 (09-28-main-017) (880f8327)
 - feat(doctor): 설치본 < 정본 버전을 발견으로 + RELEASE §2.8 채널 재적용 (TASK-2026-09-23-main-014) (22653225)
 - feat(context-budget): 이관 실행 + 이 저장소 게이트 red 활성 — 필독 195KB → 111KB (M-017/WBS-17.5) (8b7119de)
 - feat(handoff): wk rollover-handoff-notes — §5 누적형 절의 출구 (M-017/WBS-17.3) (0292d421)
@@ -44,12 +46,13 @@ All notable changes to this project will be documented in this file.
 - feat(roadmap): requirements sign-off — M-009 close + M-010 [design] 선언 (e3ac7a27)
 - feat(roadmap): C안 채택 — M-008 close + M-009 [requirements] 진행 (requirements 초안) (12bb8d70)
 - feat(roadmap): M-008 선언 — 검사 입력 표면 선언 + 계층별 회귀 실행 계약 (concept) (7aac9ee3)
-- feat(harness): overlay 위임 선언(plugin-only) 신설 — 이 저장소 claude-code 채널 플러그인 단일화 (main-010) (caffb013)
-- feat(roadmap)!: ADR-027 로드맵 층 — 스키마·파서·상태 생성기·배선·게이트·bootstrap 씨앗 (M-002~M-005) (9dc91713)
-- ... (151 more)
+- ... (153 more)
 
 ### Changed
 
+- chore(memory): 96차 세션 종료 — main-016 발행 기록 정리 + plugin_enabled 4채널 (09-28-main-018) (f8f40e99)
+- chore(memory): 95차 세션 종료 — plugin_enabled 절 신설 뒤 게이트 기록 + macOS 전량 게이트 첫 실측 (09-28-main-017) (569f858c)
+- chore(memory): 94차 세션 종료 — macOS 호스트 동기화 + v1.13.0 채널 재적용 + worktree 4개 정리 (09-23-main-017) (ab7bf648)
 - refactor(release)!: v1.12.0 은퇴 shim 2종 제거 — verify_required_ci · REQUIRED_CI_WORKFLOWS (09-28-main-015) (2f3affc5)
 - chore(memory): 방치된 worktree 잔재 정리 — 원격 브랜치 3 삭제 + clear-field memory 아카이브 (09-23-main-017) (46ce9f9f)
 - docs(claude-md): 운영 절을 docs/LOCAL_GATE.md 로 이관 — CLAUDE.md 19.6KB → 11.3KB (M-017/WBS-17.4) (e1ef118b)
@@ -77,13 +80,11 @@ All notable changes to this project will be documented in this file.
 - chore(memory): 87차 세션 종료 — main-010·main-011 close (f3c1d00e)
 - chore(memory): 86차 세션 종료 — task 8건 close + v1.11.0 발행 + 승격 5건 (9a651225)
 - chore(memory): main-008 승격 + 상한에 붙어 있던 검사에 CHECK_TIMEOUT_S (86차 최종) (f4504818)
-- chore(memory): main-006·main-007 승격 — 86차 세션 최종 (entry 27 → 29) (709eb23c)
-- chore(memory): 86차 세션 종료 마무리 — main-005 승격 + 기준선 정정 (3a92df61)
-- chore(memory): 86차 세션 종료 — 판정이 아무것도 재지 않던 결함족 3건 (c3a4b39c)
-- ... (416 more)
+- ... (419 more)
 
 ### Fixed
 
+- fix(plugin): antigravity MCP 도구 11개가 전부 거부되던 것 — 사본 별칭을 ro 로 + grok 목록 부재 위양성 (09-28-main-019·020) (0a232c99)
 - fix(tests): check_self_application 이 실제 사용 지표에 session-start 를 붙였다 + main-018 판정 (09-23-main-018) (23162c90)
 - fix(release): 유예 없이 지운 공개 API 2종을 은퇴 shim 으로 복원 — v1.13.0 제거 (09-28-main-014) (891ce0b4)
 - fix(dashboard): Panel 1 phase 를 로드맵 정본에서 파생 — v0.15 에 멈춘 상수 표시 (09-23-main-015) (6253791c)
@@ -113,13 +114,20 @@ All notable changes to this project will be documented in this file.
 - fix(docs): smoke 수 판정 범위를 포함 목록에서 전수 파생으로 (main-004) (d882b42a)
 - fix(doctor): content_drift 가 읽히지 않는 사본을 재고 있었다 — 소스 유형을 읽는다 (main-006) (3d5c7830)
 - fix(backlog-update): --apply 가 형제 생성물 roadmap_state.json 을 두고 갔다 (main-004) (cc172d6c)
-- fix(backlog-update): update 에서 --task-brief 를 선택 인자로 — 뜻이 갈리는 필수 인자가 진행 기록을 덮었다 (371afdbf)
-- ... (175 more)
+- ... (176 more)
+
+## [1.14.0] - 2026-09-28
+
+### Changed
+
+- release(v1.14.0): 발행 준비 — Antigravity MCP 도구 11종 거부 수리 + doctor plugin_enabled 4채널 (188bb9b7)
 
 ## [1.13.0] - 2026-09-28
 
 ### Changed
 
+- release(v1.13.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (756a181e)
+- release(v1.13.0): 발행 완료 — 태그 push + GitHub Release(asset 4종) + wheel 격리 실측 (2562b1ef)
 - release(v1.13.0): 발행 준비 — v1.12.0 에서 예고한 은퇴 API 제거 + telemetry 오염 수리 (1f16e431)
 
 ## [1.12.0] - 2026-09-28

@@ -66,3 +66,20 @@ grok · antigravity 의 "부재 = 로드" 는 실제 세션으로 쟀다 (TASK-2
 - 미측정으로 남은 활성 축: Antigravity IDE 패널 토글, grok 이 disabled 일 때 hook 실행 여부
   (`plugin_enabled.declared_unmeasured`).
 - **Windows 는 현재 미측정이다** (`TASK-2026-08-25-main-017` blocked).
+
+## Bidirectional link audit
+
+_자동 emit (Phase 13 AC4+, 2026-09-29T00:06:30Z)_
+
+- total wiki pages: **96**
+- total memory entries: **30**
+- symmetric links: **0**
+- asymmetric count: **2**
+- wiki pages with related memory: **0**
+- memory entries with mentioned wiki: **2**
+- is_symmetric: **False**
+
+### Asymmetric links (advisory)
+
+- `memory_only`: `MEM-2026-07-09-001` ↔ `topics/workflow-audit-2026-07-09.md`
+- `memory_only`: `MEM-2026-08-10-001` ↔ `topics/memory-index-retrospective-2026.md`

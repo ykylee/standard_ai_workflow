@@ -50,7 +50,7 @@
 ## 2. 진행 중 작업
 
 - 현재 `in_progress` 작업:
--
+- TASK-2026-09-29-main-005 v1.14.2 발행 — 공유 AGENTS.md 마커로 opencode 오버레이가 생기던 것 수리
 ## 3. 차단 작업
 
 - 현재 `blocked` 작업:
